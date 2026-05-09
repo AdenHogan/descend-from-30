@@ -12,6 +12,6 @@ func go_to_scene(scene_name: String) -> void:
 
 func new_game() -> void:
 	WorldState.new_game()
+	HUD.show_hud()
 	go_to_scene("hallway")
 	
-	HUD.show_hud()

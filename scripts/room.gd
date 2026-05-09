@@ -89,7 +89,7 @@ func _ready() -> void:
 				zombie.global_position = pos
 				add_child(zombie)
 
-# Assign items and attach interactable scripts
+	# Assign items and attach interactable scripts
 	var apt_rng_items = RandomNumberGenerator.new()
 	apt_rng_items.seed = hash(str(WorldState.master_seed) + "items" + apartment_id)
 	var is_paradise = WorldState.is_paradise_apartment(apartment_id)
@@ -101,11 +101,9 @@ func _ready() -> void:
 		for anchor in module.get_children():
 			if not anchor is Marker2D:
 				continue
-			# Always attach interactable script
 			anchor.set_script(interactable_script)
 			anchor.apartment_id = apartment_id
 			anchor._ready()
-			# Roll for item spawn
 			var spawn_chance: float
 			if is_paradise:
 				spawn_chance = 0.65
