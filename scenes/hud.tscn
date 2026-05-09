@@ -1,0 +1,76 @@
+[gd_scene format=3 uid="uid://r74tk0l57buv"]
+
+[ext_resource type="Script" uid="uid://f0jh40afakcu" path="res://scripts/hud.gd" id="1_ahhtf"]
+[ext_resource type="Texture2D" uid="uid://cpdh2mtkekuxw" path="res://assets/Health_Bar/1 - Healthy.png" id="2_oo0fn"]
+
+[node name="CanvasLayer" type="CanvasLayer" unique_id=1931787751]
+script = ExtResource("1_ahhtf")
+
+[node name="Control" type="Control" parent="." unique_id=1466249495]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ColorRect" type="ColorRect" parent="Control" unique_id=1733876200]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_bottom = 80.0
+grow_horizontal = 2
+grow_vertical = 0
+color = Color(0.1882353, 0.2, 0.07058824, 1)
+
+[node name="Portrait" type="TextureRect" parent="Control" unique_id=2145080902]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -171.0
+offset_right = 146.0
+grow_vertical = 0
+texture = ExtResource("2_oo0fn")
+expand_mode = 1
+
+[node name="FloorLabel" type="Label" parent="Control" unique_id=415796759]
+layout_mode = 0
+offset_left = 309.0
+offset_top = 494.0
+offset_right = 349.0
+offset_bottom = 517.0
+vertical_alignment = 1
+
+[node name="HBoxContainer" type="HBoxContainer" parent="Control" unique_id=968257478]
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -40.0
+offset_top = -20.0
+offset_bottom = 20.0
+grow_horizontal = 0
+grow_vertical = 2
+
+[node name="Slot1" type="Panel" parent="Control/HBoxContainer" unique_id=623620861]
+layout_mode = 2
+
+[node name="Slot2" type="Panel" parent="Control/HBoxContainer" unique_id=250961297]
+layout_mode = 2
+
+[node name="Slot3" type="Panel" parent="Control/HBoxContainer" unique_id=1859513806]
+layout_mode = 2
+
+[node name="Slot4" type="Panel" parent="Control/HBoxContainer" unique_id=1850858488]
+layout_mode = 2
+
+[node name="Slot5" type="Panel" parent="Control/HBoxContainer" unique_id=516885455]
+layout_mode = 2
+
+[node name="SlotLocked" type="Panel" parent="Control/HBoxContainer" unique_id=513979516]
+layout_mode = 2

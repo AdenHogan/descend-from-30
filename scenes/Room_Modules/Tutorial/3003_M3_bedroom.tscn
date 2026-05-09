@@ -1,0 +1,23 @@
+[gd_scene format=3 uid="uid://dhyxpui0rapxc"]
+
+[ext_resource type="PackedScene" uid="uid://docglbyexn34r" path="res://scenes/enemy_zombie_standard.tscn" id="1_dvtmn"]
+
+[node name="Node2D" type="Node2D" unique_id=1019415200]
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=875678134]
+offset_right = 320.0
+offset_bottom = 144.0
+color = Color(0, 0.6303551, 0.630355, 1)
+
+[node name="Label" type="Label" parent="ColorRect" unique_id=1627051771]
+layout_mode = 0
+offset_right = 319.0
+offset_bottom = 97.0
+theme_override_font_sizes/font_size = 32
+text = "Bedroom"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CharacterBody2D" parent="." unique_id=155546427 instance=ExtResource("1_dvtmn")]
+z_index = 1
+position = Vector2(162, 95)

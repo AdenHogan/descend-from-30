@@ -1,0 +1,342 @@
+{
+  "ITEMS": {
+    "001": {
+      "ITEM_NAME": "Knife",
+      "ITEM_DESCRIPTION": "Point sharp end away from user. The knife is a versatile weapon and tool, but its range is limited.",
+      "VALUE_PROPERTY": "is_weapon, is_tool",
+      "PROPERTY_DURABILITY": "7 uses",
+      "PROPERTY_SPAWN_RARITY": 2,
+      "PROPERTY_WEIGHT_SIZE": null
+    },
+    "002": {
+      "ITEM_NAME": "Hammer",
+      "ITEM_DESCRIPTION": "Blunt object goes thwack. Hammers are durable tools that make short work of weak locks and zombie skulls.",
+      "VALUE_PROPERTY": "is_weapon, is_tool, can_force_lock",
+      "PROPERTY_DURABILITY": "10 uses",
+      "PROPERTY_SPAWN_RARITY": 2,
+      "PROPERTY_WEIGHT_SIZE": null
+    },
+    "003": {
+      "ITEM_NAME": "Sword",
+      "ITEM_DESCRIPTION": "Study the blade. Swords are uncommon but make light slicey work of the zombie menace!",
+      "VALUE_PROPERTY": "is_weapon",
+      "PROPERTY_DURABILITY": "15 uses",
+      "PROPERTY_SPAWN_RARITY": 1,
+      "PROPERTY_WEIGHT_SIZE": null
+    },
+    "004": {
+      "ITEM_NAME": "Gun",
+      "ITEM_DESCRIPTION": "Pew, pew, pew. Have you ever fired a gun before indoors? They make a lot of noise, and noise draws in enemies!",
+      "VALUE_PROPERTY": "is_weapon",
+      "PROPERTY_DURABILITY": "needs ammo",
+      "PROPERTY_SPAWN_RARITY": 1,
+      "PROPERTY_WEIGHT_SIZE": null
+    },
+    "005": {
+      "ITEM_NAME": "Canned Food",
+      "ITEM_DESCRIPTION": "You might not be hungry, but a thrown can makes a lot of noise. Could be a useful distraction.",
+      "VALUE_PROPERTY": "is_throwable",
+      "PROPERTY_DURABILITY": "single use, throwable object",
+      "PROPERTY_SPAWN_RARITY": 3,
+      "PROPERTY_WEIGHT_SIZE": null
+    },
+    "006": {
+      "ITEM_NAME": "Bandages",
+      "ITEM_DESCRIPTION": "Walk it off! For boo boos and scrapes, the trusty bandage can get you back on your feet.",
+      "VALUE_PROPERTY": "is_health_item",
+      "PROPERTY_DURABILITY": "single use, heals 2 states",
+      "PROPERTY_SPAWN_RARITY": 2,
+      "PROPERTY_WEIGHT_SIZE": null
+    },
+    "007": {
+      "ITEM_NAME": "First Aid Kit",
+      "ITEM_DESCRIPTION": "When a bandage just won't cut it, turn to the first aid kit, It could save your life. If you manage to find one!",
+      "VALUE_PROPERTY": "is_health_item",
+      "PROPERTY_DURABILITY": "single use, heals 3 states",
+      "PROPERTY_SPAWN_RARITY": 1,
+      "PROPERTY_WEIGHT_SIZE": null
+    },
+    "008": {
+      "ITEM_NAME": "Clothes",
+      "ITEM_DESCRIPTION": "This is no time for fashion, but clothing could provide new opportunities for the descent.",
+      "VALUE_PROPERTY": "is_tool",
+      "PROPERTY_DURABILITY": "single use",
+      "PROPERTY_SPAWN_RARITY": 3,
+      "PROPERTY_WEIGHT_SIZE": null
+    },
+    "009": {
+      "ITEM_NAME": "Torn Clothes",
+      "ITEM_DESCRIPTION": "This fabric is no good for making ropes, but they sure could come in handy as a bandage!",
+      "VALUE_PROPERTY": "is_health_item",
+      "PROPERTY_DURABILITY": "single use, heals 1 state",
+      "PROPERTY_SPAWN_RARITY": 2,
+      "PROPERTY_WEIGHT_SIZE": null
+    },
+    "010": {
+      "ITEM_NAME": "Painkillers",
+      "ITEM_DESCRIPTION": "Not feeling your finest? Take a chill pill. Or an actual pill. Seriously, it will help.",
+      "VALUE_PROPERTY": "is_health_item",
+      "PROPERTY_DURABILITY": "2 uses, heals 1 state each use",
+      "PROPERTY_SPAWN_RARITY": 2,
+      "PROPERTY_WEIGHT_SIZE": null
+    },
+    "011": {
+      "ITEM_NAME": "Ice Pack",
+      "ITEM_DESCRIPTION": "For light sprains and minor injuries, the faithful ice pack has helped many a swollen ankle.",
+      "VALUE_PROPERTY": "is_speed_boost",
+      "PROPERTY_DURABILITY": "2 uses, restores run ability",
+      "PROPERTY_SPAWN_RARITY": 2,
+      "PROPERTY_WEIGHT_SIZE": null
+    },
+    "012": {
+      "ITEM_NAME": "Golf Club",
+      "ITEM_DESCRIPTION": "Get a hole in one… zombie skull! A sturdy club can bash brains and locks, no polo shirt required!",
+      "VALUE_PROPERTY": "is_weapon, can_force_lock",
+      "PROPERTY_DURABILITY": "7 uses",
+      "PROPERTY_SPAWN_RARITY": 1,
+      "PROPERTY_WEIGHT_SIZE": null
+    },
+    "013": {
+      "ITEM_NAME": "Cricket Bat",
+      "ITEM_DESCRIPTION": "This is no test match, this is survival, and a good cricket bat will make light work of wickets, locks, and skulls.",
+      "VALUE_PROPERTY": "is_weapon, can_force_lock",
+      "PROPERTY_DURABILITY": "10 uses",
+      "PROPERTY_SPAWN_RARITY": 1,
+      "PROPERTY_WEIGHT_SIZE": null
+    },
+    "014": {
+      "ITEM_NAME": "Baseball Bat",
+      "ITEM_DESCRIPTION": "Batter, batter, swing… The baseball bat is a quality blunt force instrument, perfect for bashing brains and doors.",
+      "VALUE_PROPERTY": "is_weapon, can_force_lock",
+      "PROPERTY_DURABILITY": "8 uses",
+      "PROPERTY_SPAWN_RARITY": 2,
+      "PROPERTY_WEIGHT_SIZE": null
+    },
+    "015": {
+      "ITEM_NAME": "Flashlight",
+      "ITEM_DESCRIPTION": "Hey, who turned out the lights?! It's shocking that at the end of the world, some people didn't pay their electricity bill!",
+      "VALUE_PROPERTY": "is_tool",
+      "PROPERTY_DURABILITY": "requires battery",
+      "PROPERTY_SPAWN_RARITY": 2,
+      "PROPERTY_WEIGHT_SIZE": null
+    },
+    "016": {
+      "ITEM_NAME": "Bullets",
+      "ITEM_DESCRIPTION": "You can't pew, pew, pew without the metal and gunpowder. You need pew, you need ammo!",
+      "VALUE_PROPERTY": "is_ammo",
+      "PROPERTY_DURABILITY": "per bullet",
+      "PROPERTY_SPAWN_RARITY": 2,
+      "PROPERTY_WEIGHT_SIZE": null
+    },
+    "017": {
+      "ITEM_NAME": "Aluminium Baseball Bat",
+      "ITEM_DESCRIPTION": "Light, sturdy and even more durable than a wooden bat. Aluminium is a real… home run!",
+      "VALUE_PROPERTY": "is_weapon, can_force_lock",
+      "PROPERTY_DURABILITY": "15 uses",
+      "PROPERTY_SPAWN_RARITY": 1,
+      "PROPERTY_WEIGHT_SIZE": null
+    },
+    "018": {
+      "ITEM_NAME": "Rope",
+      "ITEM_DESCRIPTION": "You were home playing games, and now you're abseiling to the floor below. You really didn't think this through.",
+      "VALUE_PROPERTY": "is_tool",
+      "PROPERTY_DURABILITY": "single use",
+      "PROPERTY_SPAWN_RARITY": 1,
+      "PROPERTY_WEIGHT_SIZE": null
+    },
+    "019": {
+      "ITEM_NAME": "Toolbox",
+      "ITEM_DESCRIPTION": "It's like a first aid kit but for items. Need to fix a circuit and get the power back on, or repair an item? YOU NEED TO HAVE YOUR TOOLS!",
+      "VALUE_PROPERTY": "is_tool, can_repair",
+      "PROPERTY_DURABILITY": "3 uses",
+      "PROPERTY_SPAWN_RARITY": 1,
+      "PROPERTY_WEIGHT_SIZE": null
+    },
+    "020": {
+      "ITEM_NAME": "Fuse",
+      "ITEM_DESCRIPTION": "Sometimes, a blown fuse is the difference between life and death. Fortunately all building circuit breakers use the same fuses!",
+      "VALUE_PROPERTY": "is_tool",
+      "PROPERTY_DURABILITY": "single use",
+      "PROPERTY_SPAWN_RARITY": 1,
+      "PROPERTY_WEIGHT_SIZE": null
+    },
+    "021": {
+      "ITEM_NAME": "Battery",
+      "ITEM_DESCRIPTION": "Who would have thought that the humble battery could be so useful for powering up lights, and elevators. For a time…",
+      "VALUE_PROPERTY": "is_tool",
+      "PROPERTY_DURABILITY": "single use, holds charge state for power",
+      "PROPERTY_SPAWN_RARITY": 2,
+      "PROPERTY_WEIGHT_SIZE": null
+    }
+  },
+  "ROOM_SPAWN_POOLS": {
+    "Knife": {
+      "bedroom": 1,
+      "kitchen": 2,
+      "bathroom": 0,
+      "study": 0,
+      "living_room": 0,
+      "dining_room": 2
+    },
+    "Hammer": {
+      "bedroom": 1,
+      "kitchen": 1,
+      "bathroom": 0,
+      "study": 1,
+      "living_room": 2,
+      "dining_room": 1
+    },
+    "Sword": {
+      "bedroom": 1,
+      "kitchen": 0,
+      "bathroom": 0,
+      "study": 1,
+      "living_room": 1,
+      "dining_room": 0
+    },
+    "Gun": {
+      "bedroom": 1,
+      "kitchen": 0,
+      "bathroom": 0,
+      "study": 1,
+      "living_room": 1,
+      "dining_room": 0
+    },
+    "Canned Food": {
+      "bedroom": 0,
+      "kitchen": 3,
+      "bathroom": 0,
+      "study": 0,
+      "living_room": 0,
+      "dining_room": 3
+    },
+    "Bandages": {
+      "bedroom": 2,
+      "kitchen": 0,
+      "bathroom": 3,
+      "study": 1,
+      "living_room": 0,
+      "dining_room": 0
+    },
+    "First Aid Kit": {
+      "bedroom": 0,
+      "kitchen": 0,
+      "bathroom": 2,
+      "study": 0,
+      "living_room": 0,
+      "dining_room": 1
+    },
+    "Clothes": {
+      "bedroom": 3,
+      "kitchen": 0,
+      "bathroom": 1,
+      "study": 0,
+      "living_room": 1,
+      "dining_room": 0
+    },
+    "Torn Clothes": {
+      "bedroom": 2,
+      "kitchen": 0,
+      "bathroom": 1,
+      "study": 0,
+      "living_room": 1,
+      "dining_room": 1
+    },
+    "Painkillers": {
+      "bedroom": 1,
+      "kitchen": 0,
+      "bathroom": 3,
+      "study": 1,
+      "living_room": 0,
+      "dining_room": 0
+    },
+    "Ice Pack": {
+      "bedroom": 0,
+      "kitchen": 0,
+      "bathroom": 2,
+      "study": 0,
+      "living_room": 1,
+      "dining_room": 2
+    },
+    "Golf Club": {
+      "bedroom": 1,
+      "kitchen": 0,
+      "bathroom": 0,
+      "study": 0,
+      "living_room": 2,
+      "dining_room": 0
+    },
+    "Cricket Bat": {
+      "bedroom": 0,
+      "kitchen": 0,
+      "bathroom": 0,
+      "study": 1,
+      "living_room": 2,
+      "dining_room": 0
+    },
+    "Baseball Bat": {
+      "bedroom": 1,
+      "kitchen": 0,
+      "bathroom": 0,
+      "study": 0,
+      "living_room": 2,
+      "dining_room": 0
+    },
+    "Flashlight": {
+      "bedroom": 2,
+      "kitchen": 1,
+      "bathroom": 1,
+      "study": 2,
+      "living_room": 1,
+      "dining_room": 1
+    },
+    "Bullets": {
+      "bedroom": 1,
+      "kitchen": 0,
+      "bathroom": 0,
+      "study": 1,
+      "living_room": 1,
+      "dining_room": 1
+    },
+    "Aluminium Baseball Bat": {
+      "bedroom": 1,
+      "kitchen": 0,
+      "bathroom": 0,
+      "study": 0,
+      "living_room": 1,
+      "dining_room": 0
+    },
+    "Rope": {
+      "bedroom": 1,
+      "kitchen": 0,
+      "bathroom": 0,
+      "study": 0,
+      "living_room": 1,
+      "dining_room": 0
+    },
+    "Toolbox": {
+      "bedroom": 0,
+      "kitchen": 1,
+      "bathroom": 0,
+      "study": 1,
+      "living_room": 0,
+      "dining_room": 1
+    },
+    "Fuse": {
+      "bedroom": 0,
+      "kitchen": 0,
+      "bathroom": 0,
+      "study": 2,
+      "living_room": 1,
+      "dining_room": 0
+    },
+    "Battery": {
+      "bedroom": 2,
+      "kitchen": 1,
+      "bathroom": 1,
+      "study": 3,
+      "living_room": 1,
+      "dining_room": 1
+    }
+  }
+}

@@ -1,0 +1,45 @@
+[gd_scene format=3 uid="uid://b7h4576ex5v3h"]
+
+[node name="Node2D" type="Node2D" unique_id=1019415200]
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=963950206]
+offset_right = 320.0
+offset_bottom = 144.0
+color = Color(0.86694926, 0.38374203, 0, 1)
+
+[node name="Label" type="Label" parent="ColorRect" unique_id=745497633]
+layout_mode = 0
+offset_right = 318.0
+offset_bottom = 101.0
+theme_override_font_sizes/font_size = 32
+text = "Study"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ColorRect2" type="ColorRect" parent="." unique_id=412785465]
+offset_left = 16.0
+offset_top = 44.0
+offset_right = 69.0
+offset_bottom = 144.0
+
+[node name="Label" type="Label" parent="ColorRect2" unique_id=2139660542]
+layout_mode = 0
+offset_left = -3.0
+offset_top = 28.0
+offset_right = 58.0
+offset_bottom = 77.0
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+text = "Balcony
+ Door"
+
+[node name="anchor_centre_bookcaseupper" type="Marker2D" parent="." unique_id=1477232159]
+position = Vector2(113, 78)
+
+[node name="anchor_centre_bookcaselower" type="Marker2D" parent="." unique_id=252669313]
+position = Vector2(124, 106)
+
+[node name="anchor_centre_desk" type="Marker2D" parent="." unique_id=1874674597]
+position = Vector2(197, 108)
+
+[node name="anchor_right_shelf" type="Marker2D" parent="." unique_id=1034760135]
+position = Vector2(267, 99)

@@ -1,0 +1,40 @@
+[gd_scene format=3 uid="uid://c0eulj0yqefjo"]
+
+[ext_resource type="Script" uid="uid://cclog4gqa3s10" path="res://scripts/title_screen.gd" id="1_mgrm8"]
+[ext_resource type="Texture2D" uid="uid://bcnpxkq16ter0" path="res://assets/Descend From 30 - Placeholder Title Screen.png" id="2_dc4i4"]
+[ext_resource type="FontFile" uid="uid://b5du76xt4b41q" path="res://assets/fonts/PixelOperator8-Bold.ttf" id="3_e54dn"]
+[ext_resource type="FontFile" uid="uid://tv2mlsq0xxsg" path="res://assets/fonts/PixelOperator8.ttf" id="4_3yumr"]
+
+[node name="Node2D" type="Node2D" unique_id=237670169]
+script = ExtResource("1_mgrm8")
+
+[node name="DescendFrom30PlaceholderTitleScreen" type="Sprite2D" parent="." unique_id=582232327]
+position = Vector2(575, 325.5)
+scale = Vector2(0.81534094, 0.83203125)
+texture = ExtResource("2_dc4i4")
+
+[node name="Label" type="Label" parent="DescendFrom30PlaceholderTitleScreen" unique_id=1543285497]
+offset_left = -244.0697
+offset_top = -227.75587
+offset_right = 207.9303
+offset_bottom = -120.18779
+theme_override_fonts/font = ExtResource("3_e54dn")
+theme_override_font_sizes/font_size = 32
+text = "Descend From 30"
+
+[node name="Label2" type="Label" parent="DescendFrom30PlaceholderTitleScreen" unique_id=2123192378]
+offset_left = -104.25087
+offset_top = -48.676056
+offset_right = 66.74913
+offset_bottom = -24.676056
+theme_override_fonts/font = ExtResource("4_3yumr")
+theme_override_font_sizes/font_size = 24
+text = "New Game"
+
+[node name="NewGameButton" type="Button" parent="." unique_id=153132771]
+offset_left = 492.0
+offset_top = 285.0
+offset_right = 628.0
+offset_bottom = 302.0
+
+[connection signal="pressed" from="NewGameButton" to="." method="_on_new_game_button_pressed"]

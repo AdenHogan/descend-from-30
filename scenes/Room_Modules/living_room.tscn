@@ -1,0 +1,35 @@
+[gd_scene format=3 uid="uid://bw3qr141accvl"]
+
+[node name="Node2D" type="Node2D" unique_id=1019415200]
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=1568311814]
+offset_right = 320.0
+offset_bottom = 144.0
+color = Color(0.6784314, 0.34509805, 0.68235296, 1)
+
+[node name="Label" type="Label" parent="ColorRect" unique_id=1490545211]
+layout_mode = 0
+offset_right = 317.0
+offset_bottom = 100.0
+theme_override_font_sizes/font_size = 32
+text = "Living Room"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="anchor_left_bookshelf_upper" type="Marker2D" parent="." unique_id=539653209]
+position = Vector2(36, 89)
+
+[node name="anchor_centre_sofaleft" type="Marker2D" parent="." unique_id=512918010]
+position = Vector2(107, 114)
+
+[node name="anchor_centre_sofaright" type="Marker2D" parent="." unique_id=44908741]
+position = Vector2(151, 114)
+
+[node name="anchor_right_chair" type="Marker2D" parent="." unique_id=237230755]
+position = Vector2(270, 116)
+
+[node name="anchor_centre_coffeetable" type="Marker2D" parent="." unique_id=864448943]
+position = Vector2(218, 122)
+
+[node name="anchor_left_bookshelf_lower" type="Marker2D" parent="." unique_id=314598524]
+position = Vector2(36, 118)

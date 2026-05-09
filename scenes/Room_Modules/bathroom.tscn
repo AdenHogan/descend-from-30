@@ -1,0 +1,39 @@
+[gd_scene format=3 uid="uid://cirekclvdfux7"]
+
+[node name="Node2D" type="Node2D" unique_id=1019415200]
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=1019735023]
+offset_right = 320.0
+offset_bottom = 144.0
+color = Color(1, 1, 0, 1)
+
+[node name="Label" type="Label" parent="ColorRect" unique_id=174712085]
+layout_mode = 0
+offset_right = 319.0
+offset_bottom = 100.0
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 32
+text = "Bathroom"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="anchor_wall_sink" type="Marker2D" parent="." unique_id=962678034]
+position = Vector2(38, 102)
+
+[node name="anchor_wall_cabinet" type="Marker2D" parent="." unique_id=895909548]
+position = Vector2(38, 76)
+
+[node name="anchor_centre_toilet" type="Marker2D" parent="." unique_id=854915685]
+position = Vector2(85, 110)
+
+[node name="anchor_bath_left" type="Marker2D" parent="." unique_id=895872366]
+position = Vector2(149, 119)
+
+[node name="anchor_bath_right" type="Marker2D" parent="." unique_id=656359865]
+position = Vector2(186, 119)
+
+[node name="anchor_wall_shower" type="Marker2D" parent="." unique_id=733006613]
+position = Vector2(276, 105)
+
+[node name="anchor_floor_laundrybag" type="Marker2D" parent="." unique_id=979461038]
+position = Vector2(242, 126)

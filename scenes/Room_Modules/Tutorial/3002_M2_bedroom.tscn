@@ -1,0 +1,17 @@
+[gd_scene format=3 uid="uid://cnn8wh1bnch6v"]
+
+[node name="Node2D" type="Node2D" unique_id=1019415200]
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=875678134]
+offset_right = 320.0
+offset_bottom = 144.0
+color = Color(0, 0.6303551, 0.630355, 1)
+
+[node name="Label" type="Label" parent="ColorRect" unique_id=1627051771]
+layout_mode = 0
+offset_right = 319.0
+offset_bottom = 97.0
+theme_override_font_sizes/font_size = 32
+text = "Bedroom"
+horizontal_alignment = 1
+vertical_alignment = 1

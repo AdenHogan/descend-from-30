@@ -1,0 +1,17 @@
+[gd_scene format=3 uid="uid://dqhcayyb2r54k"]
+
+[node name="Node2D" type="Node2D" unique_id=1019415200]
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=1568311814]
+offset_right = 320.0
+offset_bottom = 144.0
+color = Color(0.6784314, 0.34509805, 0.68235296, 1)
+
+[node name="Label" type="Label" parent="ColorRect" unique_id=1490545211]
+layout_mode = 0
+offset_right = 317.0
+offset_bottom = 100.0
+theme_override_font_sizes/font_size = 32
+text = "Living Room"
+horizontal_alignment = 1
+vertical_alignment = 1

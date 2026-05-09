@@ -1,0 +1,38 @@
+[gd_scene format=3 uid="uid://b38ggkmmkp3ms"]
+
+[node name="Node2D" type="Node2D" unique_id=1019415200]
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=1833723709]
+offset_right = 320.0
+offset_bottom = 144.0
+color = Color(0.024840353, 0.5958453, 5.390644e-06, 1)
+
+[node name="Label" type="Label" parent="ColorRect" unique_id=1895761571]
+layout_mode = 0
+offset_right = 319.0
+offset_bottom = 100.0
+theme_override_font_sizes/font_size = 32
+text = "Kitchen"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="anchor_centre_fridge" type="Marker2D" parent="." unique_id=606887297]
+position = Vector2(195, 88)
+
+[node name="anchor_right_trashcan" type="Marker2D" parent="." unique_id=249149841]
+position = Vector2(16, 116)
+
+[node name="anchor_left_cupboard" type="Marker2D" parent="." unique_id=1247054906]
+position = Vector2(60, 115)
+
+[node name="anchor_centre_cupboard" type="Marker2D" parent="." unique_id=184168304]
+position = Vector2(102, 81)
+
+[node name="anchor_centre_oven" type="Marker2D" parent="." unique_id=109204778]
+position = Vector2(146, 105)
+
+[node name="anchor_right_sink" type="Marker2D" parent="." unique_id=1730188244]
+position = Vector2(259, 102)
+
+[node name="anchor_right_sinkcupboard" type="Marker2D" parent="." unique_id=1241376853]
+position = Vector2(259, 123)

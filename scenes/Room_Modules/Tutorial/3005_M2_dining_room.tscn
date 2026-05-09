@@ -1,0 +1,26 @@
+[gd_scene format=3 uid="uid://bp4thf5hxje0v"]
+
+[ext_resource type="PackedScene" uid="uid://docglbyexn34r" path="res://scenes/enemy_zombie_standard.tscn" id="1_okucy"]
+
+[node name="Node2D" type="Node2D" unique_id=1019415200]
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=628298692]
+offset_right = 320.0
+offset_bottom = 144.0
+color = Color(0.56478584, 0.051034577, 1.4439226e-07, 1)
+
+[node name="Label" type="Label" parent="ColorRect" unique_id=1012316611]
+layout_mode = 0
+offset_right = 318.0
+offset_bottom = 98.0
+theme_override_font_sizes/font_size = 32
+text = "Dining Room"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CharacterBody2D" parent="." unique_id=155546427 instance=ExtResource("1_okucy")]
+position = Vector2(50, 96)
+
+[node name="CharacterBody2D2" parent="." unique_id=1052962355 instance=ExtResource("1_okucy")]
+z_index = 1
+position = Vector2(113, 96)

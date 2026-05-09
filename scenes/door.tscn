@@ -1,0 +1,30 @@
+[gd_scene format=3 uid="uid://dp36pioteb12u"]
+
+[ext_resource type="Script" uid="uid://buduya2y3tsvx" path="res://scripts/door.gd" id="1_uvdjg"]
+[ext_resource type="Texture2D" uid="uid://m5odjepdswr8" path="res://assets/Door.png" id="2_83dcw"]
+[ext_resource type="FontFile" uid="uid://tv2mlsq0xxsg" path="res://assets/fonts/PixelOperator8.ttf" id="3_83dcw"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_la1wf"]
+size = Vector2(43, 82)
+
+[node name="Area2D" type="Area2D" unique_id=1966799570]
+script = ExtResource("1_uvdjg")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1956111598]
+position = Vector2(0, 1)
+shape = SubResource("RectangleShape2D_la1wf")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1757885554]
+position = Vector2(1.5258789e-05, 1.0000038)
+scale = Vector2(0.8723403, 0.9318182)
+texture = ExtResource("2_83dcw")
+
+[node name="ProximityLabel" type="Label" parent="." unique_id=473561933]
+visible = false
+offset_left = 27.0
+offset_top = -38.0
+offset_right = 67.0
+offset_bottom = -15.0
+theme_override_fonts/font = ExtResource("3_83dcw")
+theme_override_font_sizes/font_size = 8
+text = "3002 - Press E to Enter"
