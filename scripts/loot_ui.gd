@@ -11,6 +11,7 @@ var is_revealing = false
 var current_item_id = ""
 var current_anchor_name = ""
 var current_apartment_id = ""
+var anchor_node: Node = null
 
 func _ready() -> void:
 	visible = false
@@ -21,6 +22,7 @@ func open(item_id: String, anchor_name: String, apartment_id: String) -> void:
 	current_item_id = item_id
 	current_anchor_name = anchor_name
 	current_apartment_id = apartment_id
+	anchor_node = get_tree().get_root().find_child(anchor_name, true, false)
 	reveal_timer = 0.0
 	is_revealing = true
 	item_name_label.text = "Searching..."
@@ -30,6 +32,14 @@ func open(item_id: String, anchor_name: String, apartment_id: String) -> void:
 	visible = true
 
 func _process(delta: float) -> void:
+	if visible and anchor_node != null and is_instance_valid(anchor_node):
+		var player = get_tree().get_first_node_in_group("player")
+		if player != null:
+			var dist = anchor_node.global_position.distance_to(player.global_position)
+			if dist > anchor_node.INTERACT_DISTANCE * 1.5:
+				_close()
+				return
+
 	if not is_revealing:
 		return
 	reveal_timer += delta
@@ -49,10 +59,25 @@ func _reveal_item() -> void:
 	leave_button.text = "Leave"
 
 func _on_take() -> void:
-	print("Taking item: ", current_item_id)
-	WorldState.clear_anchor_item(current_apartment_id, current_anchor_name)
-	visible = false
+	WorldState.interaction_handled = true
+	if current_item_id != "":
+		var added = WorldState.add_to_inventory(current_item_id)
+		if added:
+			WorldState.clear_anchor_item(current_apartment_id, current_anchor_name)
+			HUD.refresh_inventory()
+		else:
+			item_name_label.text = "Inventory full."
+			item_desc_label.text = "Drop something first."
+			take_button.visible = false
+			leave_button.text = "Close"
+			return
+	_close()
 
 func _on_leave() -> void:
+	WorldState.interaction_handled = true
+	_close()
+
+func _close() -> void:
 	is_revealing = false
 	visible = false
+	anchor_node = null

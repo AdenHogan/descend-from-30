@@ -1,6 +1,7 @@
 extends Node
 
 const ROOM_POOL = ["bedroom", "bathroom", "study", "kitchen", "living_room", "dining_room"]
+const MAX_INVENTORY_SLOTS = 5
 
 var master_seed: int = 0
 var current_apartment_id: String = ""
@@ -20,21 +21,35 @@ var player_health: int = 0
 var is_dying: bool = false
 var dying_timer: float = 0.0
 var interaction_handled: bool = false
+var is_scavenge_mode: bool = false
+var inventory: Array = []
 
 func new_game() -> void:
 	master_seed = randi()
 	apartment_layouts.clear()
 	anchor_items.clear()
+	inventory.clear()
 	current_floor = 30
 	current_run = 1
 	player_health = 0
 	is_dying = false
 	dying_timer = 0.0
+	is_scavenge_mode = false
 	initialize_paradise_apartments()
 	spawn_source = ""
 	stair_spawn_side = ""
 	stair_direction = ""
 	exit_spawn_x = 0.0
+
+func add_to_inventory(item_id: String) -> bool:
+	if inventory.size() >= MAX_INVENTORY_SLOTS:
+		return false
+	inventory.append(item_id)
+	return true
+
+func remove_from_inventory(slot_index: int) -> void:
+	if slot_index >= 0 and slot_index < inventory.size():
+		inventory.remove_at(slot_index)
 
 func _get_apartment_rng(apartment_id: String) -> RandomNumberGenerator:
 	var apt_rng := RandomNumberGenerator.new()
@@ -184,6 +199,3 @@ func get_anchor_item(apartment_id: String, anchor_name: String) -> String:
 func clear_anchor_item(apartment_id: String, anchor_name: String) -> void:
 	var key = apartment_id + ":" + anchor_name
 	anchor_items.erase(key)
-	
-func _process(_delta: float) -> void:
-	interaction_handled = false

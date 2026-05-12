@@ -2,9 +2,20 @@ extends Node
 
 var items: Dictionary = {}
 var room_spawn_pools: Dictionary = {}
+var item_textures: Dictionary = {}
 
 func _ready() -> void:
 	_load_data()
+	_load_textures()
+
+func _load_textures() -> void:
+	for id in items:
+		var path = "res://assets/Items/" + id + ".png"
+		if ResourceLoader.exists(path):
+			item_textures[id] = load(path)
+
+func get_texture(id: String) -> Texture2D:
+	return item_textures.get(id, null)
 
 func _load_data() -> void:
 	var file = FileAccess.open("res://data/items.json", FileAccess.READ)

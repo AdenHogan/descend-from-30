@@ -103,6 +103,7 @@ func _ready() -> void:
 			anchor.set_script(interactable_script)
 			anchor.apartment_id = apartment_id
 			anchor._ready()
+			anchor.set_process(true)
 			var spawn_chance: float
 			if is_paradise:
 				spawn_chance = 0.65
@@ -119,3 +120,6 @@ func _ready() -> void:
 				continue
 			var item_id = valid_items[apt_rng_items.randi() % valid_items.size()]
 			WorldState.set_anchor_item(apartment_id, anchor.name, item_id)
+		
+		await get_tree().process_frame
+		WorldState.interaction_handled = false
