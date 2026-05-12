@@ -64,6 +64,7 @@ func _ready() -> void:
 		var instance = scene.instantiate()
 		instance.position.x = LEFT_WALL_X + (i * MODULE_WIDTH)
 		instance.position.y = 224
+		instance.add_to_group("room_module")
 		add_child(instance)
 
 	# Position door and player
@@ -95,9 +96,7 @@ func _ready() -> void:
 	var is_paradise = WorldState.is_paradise_apartment(apartment_id)
 	var interactable_script = load("res://scripts/interactable.gd")
 
-	for module in get_children():
-		if not module is Node2D:
-			continue
+	for module in get_tree().get_nodes_in_group("room_module"):
 		for anchor in module.get_children():
 			if not anchor is Marker2D:
 				continue

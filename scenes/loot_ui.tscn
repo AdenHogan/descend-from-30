@@ -1,0 +1,30 @@
+[gd_scene format=3 uid="uid://8ttead1nbqvc"]
+
+[ext_resource type="Script" uid="uid://k56v1v52xv2s" path="res://scripts/loot_ui.gd" id="1_lpx6w"]
+
+[node name="LootUI" type="CanvasLayer" unique_id=233333978]
+script = ExtResource("1_lpx6w")
+
+[node name="Panel" type="PanelContainer" parent="." unique_id=587916536]
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Panel" unique_id=358248726]
+layout_mode = 2
+
+[node name="ItemName" type="Label" parent="Panel/VBoxContainer" unique_id=1293696536]
+layout_mode = 2
+
+[node name="ItemDescription" type="Label" parent="Panel/VBoxContainer" unique_id=1807670900]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="Panel/VBoxContainer" unique_id=354095899]
+layout_mode = 2
+
+[node name="TakeButton" type="Button" parent="Panel/VBoxContainer/HBoxContainer" unique_id=669461861]
+layout_mode = 2
+text = "Take"
+
+[node name="LeaveButton" type="Button" parent="Panel/VBoxContainer/HBoxContainer" unique_id=525634147]
+layout_mode = 2
+text = "Leave"
