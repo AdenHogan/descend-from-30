@@ -40,13 +40,14 @@ func _ready() -> void:
 	refresh_inventory()
 
 func _layout() -> void:
-	color_rect.position = Vector2(0, SCREEN_H - BAR_H - 40)
-	color_rect.size = Vector2(SCREEN_W, BAR_H + 40)
+	color_rect.set_anchor_and_offset(SIDE_TOP, 0, SCREEN_H - BAR_H - 40)
+	color_rect.set_anchor_and_offset(SIDE_BOTTOM, 0, SCREEN_H)
+	color_rect.set_anchor_and_offset(SIDE_LEFT, 0, 0)
+	color_rect.set_anchor_and_offset(SIDE_RIGHT, 0, SCREEN_W)
 	color_rect.color = Color(0.1, 0.1, 0.1, 0.9)
 
-	floor_label.position = Vector2(65, SCREEN_H - BAR_H + 18)
-	floor_label.size = Vector2(100, 50)
 	floor_label.position = Vector2(SCREEN_W - 200, SCREEN_H - BAR_H + 18)
+	floor_label.size = Vector2(100, 50)
 
 	hbox.position = Vector2(SCREEN_W - (SLOT_SIZE + 8) * 6, SCREEN_H - BAR_H + 8)
 	hbox.add_theme_constant_override("separation", 8)
@@ -59,9 +60,10 @@ func _layout() -> void:
 
 func _create_mode_label() -> void:
 	mode_label = Label.new()
-	mode_label.add_theme_font_size_override("font_size", 14)
-	mode_label.position = Vector2(10, SCREEN_H - BAR_H + 24)
-	mode_label.size = Vector2(160, 40)
+	mode_label.add_theme_font_size_override("font_size", 18)
+	mode_label.position = Vector2(SCREEN_W - 258, SCREEN_H - BAR_H - 10)
+	mode_label.size = Vector2(180, 40)
+	mode_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	$Control.add_child(mode_label)
 
 func _create_slot_icons() -> void:
