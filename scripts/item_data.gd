@@ -52,6 +52,7 @@ func _load_data() -> void:
 			"is_ammo": properties.has("is_ammo"),
 			"can_repair": properties.has("can_repair"),
 			"is_speed_boost": properties.has("is_speed_boost"),
+			"is_junk": properties.has("is_junk"),
 			"single_use": durability_data["single_use"],
 			"max_durability": durability_data["max_durability"],
 			"heals_states": durability_data["heals_states"],

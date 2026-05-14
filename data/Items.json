@@ -167,6 +167,94 @@
       "PROPERTY_DURABILITY": "single use, holds charge state for power",
       "PROPERTY_SPAWN_RARITY": 2,
       "PROPERTY_WEIGHT_SIZE": null
+    },
+    "022": {
+      "ITEM_NAME": "Apartment Key",
+      "ITEM_DESCRIPTION": "There's a lot of trusting neighbours in this building.",
+      "VALUE_PROPERTY": "is_key",
+      "PROPERTY_DURABILITY": "single use",
+      "PROPERTY_SPAWN_RARITY": null,
+      "PROPERTY_WEIGHT_SIZE": null
+    },
+    "023": {
+      "ITEM_NAME": "Broken Glass",
+      "ITEM_DESCRIPTION": "Useless junk. Sharp enough to cut yourself on, not much else.",
+      "VALUE_PROPERTY": "is_junk",
+      "PROPERTY_DURABILITY": "single use",
+      "PROPERTY_SPAWN_RARITY": 4,
+      "PROPERTY_WEIGHT_SIZE": null
+    },
+    "024": {
+      "ITEM_NAME": "Empty Bottle",
+      "ITEM_DESCRIPTION": "Useless junk. Could make noise if thrown, but then there would be glass everywhere!",
+      "VALUE_PROPERTY": "is_junk",
+      "PROPERTY_DURABILITY": "single use",
+      "PROPERTY_SPAWN_RARITY": 4,
+      "PROPERTY_WEIGHT_SIZE": null
+    },
+    "025": {
+      "ITEM_NAME": "Old Magazine",
+      "ITEM_DESCRIPTION": "Useless junk. The crossword is half done. 6 down is Giraffe.. Why did they write Albania?!?!?!",
+      "VALUE_PROPERTY": "is_junk",
+      "PROPERTY_DURABILITY": "single use",
+      "PROPERTY_SPAWN_RARITY": 4,
+      "PROPERTY_WEIGHT_SIZE": null
+    },
+    "026": {
+      "ITEM_NAME": "Takeaway Boxes",
+      "ITEM_DESCRIPTION": "Useless junk. Whatever was in here, it's long gone.",
+      "VALUE_PROPERTY": "is_junk",
+      "PROPERTY_DURABILITY": "single use",
+      "PROPERTY_SPAWN_RARITY": 4,
+      "PROPERTY_WEIGHT_SIZE": null
+    },
+    "027": {
+      "ITEM_NAME": "Dead Plant",
+      "ITEM_DESCRIPTION": "Useless junk. Nobody was watering this before the apocalypse either.",
+      "VALUE_PROPERTY": "is_junk",
+      "PROPERTY_DURABILITY": "single use",
+      "PROPERTY_SPAWN_RARITY": 4,
+      "PROPERTY_WEIGHT_SIZE": null
+    },
+    "028": {
+      "ITEM_NAME": "Broken Remote",
+      "ITEM_DESCRIPTION": "Useless junk. No batteries, no signal, no use.",
+      "VALUE_PROPERTY": "is_junk",
+      "PROPERTY_DURABILITY": "single use",
+      "PROPERTY_SPAWN_RARITY": 4,
+      "PROPERTY_WEIGHT_SIZE": null
+    },
+    "029": {
+      "ITEM_NAME": "Pile of Paperwork",
+      "ITEM_DESCRIPTION": "Useless junk. Oh, okay, well, that's a lot of bank statements. Wow, that's a lot of debt!",
+      "VALUE_PROPERTY": "is_junk",
+      "PROPERTY_DURABILITY": "single use",
+      "PROPERTY_SPAWN_RARITY": 4,
+      "PROPERTY_WEIGHT_SIZE": null
+    },
+    "030": {
+      "ITEM_NAME": "Old Shoes",
+      "ITEM_DESCRIPTION": "Useless junk. Wrong size anyway.",
+      "VALUE_PROPERTY": "is_junk",
+      "PROPERTY_DURABILITY": "single use",
+      "PROPERTY_SPAWN_RARITY": 4,
+      "PROPERTY_WEIGHT_SIZE": null
+    },
+    "031": {
+      "ITEM_NAME": "Empty Wallet",
+      "ITEM_DESCRIPTION": "Useless junk. Money means nothing now, but it still stings a little.",
+      "VALUE_PROPERTY": "is_junk",
+      "PROPERTY_DURABILITY": "single use",
+      "PROPERTY_SPAWN_RARITY": 4,
+      "PROPERTY_WEIGHT_SIZE": null
+    },
+    "032": {
+      "ITEM_NAME": "Broken Umbrella",
+      "ITEM_DESCRIPTION": "Useless junk. Wasn't much use before the world ended either.",
+      "VALUE_PROPERTY": "is_junk",
+      "PROPERTY_DURABILITY": "single use",
+      "PROPERTY_SPAWN_RARITY": 4,
+      "PROPERTY_WEIGHT_SIZE": null
     }
   },
   "ROOM_SPAWN_POOLS": {
@@ -336,6 +424,86 @@
       "bathroom": 1,
       "study": 3,
       "living_room": 1,
+      "dining_room": 1
+    },
+    "Broken Glass": {
+      "bedroom": 2,
+      "kitchen": 3,
+      "bathroom": 2,
+      "study": 1,
+      "living_room": 2,
+      "dining_room": 2
+    },
+    "Empty Bottle": {
+      "bedroom": 1,
+      "kitchen": 3,
+      "bathroom": 1,
+      "study": 1,
+      "living_room": 2,
+      "dining_room": 3
+    },
+    "Old Magazine": {
+      "bedroom": 3,
+      "kitchen": 0,
+      "bathroom": 2,
+      "study": 3,
+      "living_room": 3,
+      "dining_room": 1
+    },
+    "Takeaway Boxes": {
+      "bedroom": 1,
+      "kitchen": 3,
+      "bathroom": 0,
+      "study": 1,
+      "living_room": 2,
+      "dining_room": 3
+    },
+    "Dead Plant": {
+      "bedroom": 2,
+      "kitchen": 1,
+      "bathroom": 0,
+      "study": 2,
+      "living_room": 3,
+      "dining_room": 2
+    },
+    "Broken Remote": {
+      "bedroom": 2,
+      "kitchen": 0,
+      "bathroom": 0,
+      "study": 2,
+      "living_room": 3,
+      "dining_room": 1
+    },
+    "Pile of Paperwork": {
+      "bedroom": 1,
+      "kitchen": 0,
+      "bathroom": 0,
+      "study": 4,
+      "living_room": 1,
+      "dining_room": 2
+    },
+    "Old Shoes": {
+      "bedroom": 3,
+      "kitchen": 0,
+      "bathroom": 2,
+      "study": 0,
+      "living_room": 1,
+      "dining_room": 0
+    },
+    "Empty Wallet": {
+      "bedroom": 2,
+      "kitchen": 1,
+      "bathroom": 1,
+      "study": 2,
+      "living_room": 2,
+      "dining_room": 1
+    },
+    "Broken Umbrella": {
+      "bedroom": 1,
+      "kitchen": 0,
+      "bathroom": 0,
+      "study": 1,
+      "living_room": 2,
       "dining_room": 1
     }
   }
