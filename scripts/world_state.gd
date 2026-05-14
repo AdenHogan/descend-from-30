@@ -196,6 +196,7 @@ func get_items_for_anchor(anchor_name: String, apartment_id: String) -> Array:
 			if item_id != "":
 				for i in range(weight):
 					valid_items.append(item_id)
+	print("Anchor: ", anchor_name, " room: ", room_type, " pool size: ", valid_items.size())
 	return valid_items
 
 func set_anchor_item(apartment_id: String, anchor_name: String, item_id: String) -> void:
