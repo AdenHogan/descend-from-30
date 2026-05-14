@@ -23,14 +23,6 @@ func _process(_delta: float) -> void:
 	if was_in_range and not is_in_range:
 		WorldState.interaction_handled = false
 	queue_redraw()
-	if not WorldState.is_scavenge_mode:
-		return
-	if Input.is_action_just_pressed("interact"):
-		print("E pressed, is_in_range: ", is_in_range, " player: ", player)
-	if is_in_range and Input.is_action_just_pressed("interact"):
-		if not WorldState.interaction_handled:
-			WorldState.interaction_handled = true
-			_open_loot()
 
 func _draw() -> void:
 	if player == null:

@@ -17,6 +17,7 @@ var last_exited_apartment: int = 0
 var current_run: int = 1
 var paradise_apartments: Array = []
 var anchor_items: Dictionary = {}
+var searched_anchors: Dictionary = {}
 var player_health: int = 0
 var is_dying: bool = false
 var dying_timer: float = 0.0
@@ -28,6 +29,7 @@ func new_game() -> void:
 	master_seed = randi()
 	apartment_layouts.clear()
 	anchor_items.clear()
+	searched_anchors.clear()
 	inventory.clear()
 	current_floor = 30
 	current_run = 1
@@ -50,6 +52,14 @@ func add_to_inventory(item_id: String) -> bool:
 func remove_from_inventory(slot_index: int) -> void:
 	if slot_index >= 0 and slot_index < inventory.size():
 		inventory.remove_at(slot_index)
+
+func mark_anchor_searched(apartment_id: String, anchor_name: String) -> void:
+	var key = apartment_id + ":" + anchor_name
+	searched_anchors[key] = true
+
+func is_anchor_searched(apartment_id: String, anchor_name: String) -> bool:
+	var key = apartment_id + ":" + anchor_name
+	return searched_anchors.get(key, false)
 
 func _get_apartment_rng(apartment_id: String) -> RandomNumberGenerator:
 	var apt_rng := RandomNumberGenerator.new()

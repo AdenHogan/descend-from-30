@@ -1,6 +1,8 @@
 extends Node
 
 var apartment_id: String = WorldState.current_apartment_id
+var interactables: Array = []
+var selected_index: int = 0
 
 const MODULE_SCENES = {
 	"bedroom": "res://scenes/Room_Modules/bedroom.tscn",
@@ -36,6 +38,7 @@ const TUTORIAL_SCENES = {
 
 const MODULE_WIDTH = 320
 const LEFT_WALL_X = 113
+const CLICK_RADIUS = 10.0
 
 func _ready() -> void:
 	var door = $Area2D
@@ -52,7 +55,6 @@ func _ready() -> void:
 		right_wall.process_mode = Node.PROCESS_MODE_DISABLED
 		left_wall.process_mode = Node.PROCESS_MODE_ALWAYS
 
-	# Spawn modules — tutorial fixed or procedural
 	for i in range(3):
 		var scene_path: String
 		if WorldState.is_first_run and TUTORIAL_SCENES.has(apartment_id):
@@ -67,7 +69,6 @@ func _ready() -> void:
 		instance.add_to_group("room_module")
 		add_child(instance)
 
-	# Position door and player
 	if entrance_side == "left":
 		door.position.x = 96
 		player.position.x = 140
@@ -77,7 +78,6 @@ func _ready() -> void:
 		player.position.x = 1050
 		player.get_node("AnimatedSprite2D").flip_h = true
 
-	# Spawn apartment zombies
 	if not (WorldState.is_first_run and WorldState.current_floor == 30):
 		var zombie_count = WorldState.get_apartment_zombie_count(apartment_id)
 		if zombie_count > 0:
@@ -90,7 +90,6 @@ func _ready() -> void:
 				zombie.global_position = pos
 				add_child(zombie)
 
-	# Assign items and attach interactable scripts
 	var apt_rng_items = RandomNumberGenerator.new()
 	apt_rng_items.seed = hash(str(WorldState.master_seed) + "items" + apartment_id)
 	var is_paradise = WorldState.is_paradise_apartment(apartment_id)
@@ -120,6 +119,116 @@ func _ready() -> void:
 				continue
 			var item_id = valid_items[apt_rng_items.randi() % valid_items.size()]
 			WorldState.set_anchor_item(apartment_id, anchor.name, item_id)
-		
-		await get_tree().process_frame
-		WorldState.interaction_handled = false
+
+	await get_tree().process_frame
+	WorldState.interaction_handled = false
+
+	for module in get_tree().get_nodes_in_group("room_module"):
+		for anchor in module.get_children():
+			if anchor.has_method("try_interact"):
+				interactables.append(anchor)
+
+func _is_player_facing_anchor(anchor: Node) -> bool:
+	var player = get_tree().get_first_node_in_group("player")
+	if player == null:
+		return false
+	var sprite = player.get_node_or_null("AnimatedSprite2D")
+	if sprite == null:
+		return false
+	var diff = anchor.global_position.x - player.global_position.x
+	if abs(diff) < 8.0:
+		return true
+	if not sprite.flip_h and diff > 0:
+		return true
+	if sprite.flip_h and diff < 0:
+		return true
+	return false
+
+func _process(_delta: float) -> void:
+	if not WorldState.is_scavenge_mode:
+		for i in interactables:
+			if is_instance_valid(i):
+				i.is_selected = false
+		return
+
+	var nearby: Array = []
+	for i in interactables:
+		if not is_instance_valid(i):
+			continue
+		if i.is_in_range and _is_player_facing_anchor(i):
+			nearby.append(i)
+
+	for i in interactables:
+		if is_instance_valid(i):
+			i.is_selected = false
+
+	if nearby.is_empty():
+		selected_index = 0
+		return
+
+	selected_index = clamp(selected_index, 0, nearby.size() - 1)
+
+	if Input.is_action_just_pressed("ui_focus_next"):
+		selected_index = (selected_index + 1) % nearby.size()
+	if Input.is_action_just_pressed("ui_focus_prev"):
+		selected_index = (selected_index - 1 + nearby.size()) % nearby.size()
+
+	nearby[selected_index].is_selected = true
+
+func _input(event: InputEvent) -> void:
+	if not WorldState.is_scavenge_mode:
+		return
+
+	var nearby: Array = []
+	for i in interactables:
+		if not is_instance_valid(i):
+			continue
+		if i.is_in_range and _is_player_facing_anchor(i):
+			nearby.append(i)
+
+	if nearby.is_empty():
+		return
+
+	# Scroll wheel cycling
+	if event is InputEventMouseButton and event.pressed:
+		if event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			selected_index = (selected_index + 1) % nearby.size()
+			return
+		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			selected_index = (selected_index - 1 + nearby.size()) % nearby.size()
+			return
+
+	# E key fires selected interactable
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.physical_keycode == KEY_E:
+			WorldState.interaction_handled = false
+			nearby[clamp(selected_index, 0, nearby.size() - 1)].try_interact()
+			return
+
+	# Mouse click — check if clicking near an orb in world space
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		var mouse_world = _get_mouse_world_pos()
+		var clicked_index = _get_clicked_interactable(nearby, mouse_world)
+		if clicked_index >= 0:
+			selected_index = clicked_index
+			WorldState.interaction_handled = false
+			nearby[selected_index].try_interact()
+
+func _get_mouse_world_pos() -> Vector2:
+	var player = get_tree().get_first_node_in_group("player")
+	if player == null:
+		return Vector2.ZERO
+	var cam = player.get_node_or_null("Camera2D")
+	if cam == null:
+		return Vector2.ZERO
+	return cam.get_screen_center_position() + (get_viewport().get_mouse_position() - get_viewport().get_visible_rect().size / 2) / cam.zoom
+
+func _get_clicked_interactable(nearby: Array, mouse_world: Vector2) -> int:
+	var best_index = -1
+	var best_dist = CLICK_RADIUS
+	for i in range(nearby.size()):
+		var d = nearby[i].global_position.distance_to(mouse_world)
+		if d <= best_dist:
+			best_dist = d
+			best_index = i
+	return best_index
