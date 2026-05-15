@@ -24,6 +24,13 @@ var dying_timer: float = 0.0
 var interaction_handled: bool = false
 var is_scavenge_mode: bool = false
 var inventory: Array = []
+var stamina: float = 100.0
+var max_stamina: float = 100.0
+var last_rest_floor: int = 30
+var rest_available: bool = true
+var rest_count: int = 0
+var active_upgrades: Array = []
+var available_upgrades: Array = []
 
 func new_game() -> void:
 	master_seed = randi()
@@ -37,11 +44,22 @@ func new_game() -> void:
 	is_dying = false
 	dying_timer = 0.0
 	is_scavenge_mode = false
+	stamina = 100.0
+	max_stamina = 100.0
+	last_rest_floor = 30
+	rest_available = true
+	rest_count = 0
+	active_upgrades.clear()
+	available_upgrades.clear()
 	initialize_paradise_apartments()
 	spawn_source = ""
 	stair_spawn_side = ""
 	stair_direction = ""
 	exit_spawn_x = 0.0
+
+func on_floor_arrived(floor_num: int) -> void:
+	if floor_num in [25, 20, 15, 10, 5]:
+		rest_available = true
 
 func add_to_inventory(item_id: String) -> bool:
 	if inventory.size() >= MAX_INVENTORY_SLOTS:

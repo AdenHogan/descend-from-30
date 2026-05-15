@@ -24,6 +24,20 @@ const PORTRAITS = [
 
 var mode_label: Label = null
 var slot_icons: Array = []
+var selected_slot: int = -1
+var feedback_label: Label = null
+var feedback_timer: float = 0.0
+var context_menu: Control = null
+var context_slot: int = -1
+var last_click_time: float = 0.0
+var last_click_slot: int = -1
+const DOUBLE_CLICK_TIME = 0.4
+
+var stamina_bar: Control = null
+var stamina_segments: Array = []
+const STAMINA_SEGMENTS = 8
+const STAMINA_BAR_W = 14.0
+const STAMINA_BAR_H = 60.0
 
 const SCREEN_W = 1152.0
 const SCREEN_H = 648.0
@@ -34,6 +48,9 @@ func _ready() -> void:
 	_layout()
 	_create_mode_label()
 	_create_slot_icons()
+	_create_feedback_label()
+	_create_context_menu()
+	_create_stamina_bar()
 	update_floor_label()
 	update_portrait(0)
 	update_mode_indicator()
@@ -67,7 +84,8 @@ func _create_mode_label() -> void:
 	$Control.add_child(mode_label)
 
 func _create_slot_icons() -> void:
-	for slot in slots:
+	for i in range(slots.size()):
+		var slot = slots[i]
 		var icon = TextureRect.new()
 		icon.custom_minimum_size = Vector2(SLOT_SIZE - 8, SLOT_SIZE - 8)
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
@@ -75,6 +93,151 @@ func _create_slot_icons() -> void:
 		icon.visible = false
 		slot.add_child(icon)
 		slot_icons.append(icon)
+		slot.gui_input.connect(_on_slot_gui_input.bind(i))
+
+func _create_feedback_label() -> void:
+	feedback_label = Label.new()
+	feedback_label.add_theme_font_size_override("font_size", 14)
+	feedback_label.position = Vector2(SCREEN_W / 2 - 100, SCREEN_H - BAR_H - 35)
+	feedback_label.size = Vector2(200, 30)
+	feedback_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	feedback_label.modulate = Color(1, 1, 0.5, 0)
+	$Control.add_child(feedback_label)
+
+func _create_context_menu() -> void:
+	context_menu = PanelContainer.new()
+	context_menu.visible = false
+	var vbox = VBoxContainer.new()
+	context_menu.add_child(vbox)
+
+	var use_btn = Button.new()
+	use_btn.text = "Use"
+	use_btn.pressed.connect(_context_use)
+	vbox.add_child(use_btn)
+
+	var discard_btn = Button.new()
+	discard_btn.text = "Discard"
+	discard_btn.pressed.connect(_context_discard)
+	vbox.add_child(discard_btn)
+
+	var cancel_btn = Button.new()
+	cancel_btn.text = "Cancel"
+	cancel_btn.pressed.connect(_context_cancel)
+	vbox.add_child(cancel_btn)
+
+	$Control.add_child(context_menu)
+
+func _create_stamina_bar() -> void:
+	stamina_bar = Control.new()
+	stamina_bar.position = Vector2(8, SCREEN_H - BAR_H + 10)
+	stamina_bar.size = Vector2(STAMINA_BAR_W, STAMINA_BAR_H)
+	$Control.add_child(stamina_bar)
+
+	var segment_h = (STAMINA_BAR_H - (STAMINA_SEGMENTS - 1) * 2) / STAMINA_SEGMENTS
+	for i in range(STAMINA_SEGMENTS):
+		var seg = ColorRect.new()
+		seg.size = Vector2(STAMINA_BAR_W, segment_h)
+		seg.position = Vector2(0, STAMINA_BAR_H - (i + 1) * (segment_h + 2))
+		seg.color = Color(0.2, 0.8, 0.4, 1.0)
+		stamina_bar.add_child(seg)
+		stamina_segments.append(seg)
+
+func update_stamina(current: float, maximum: float) -> void:
+	if stamina_segments.is_empty():
+		return
+	var ratio = current / maximum
+	var filled = int(round(ratio * STAMINA_SEGMENTS))
+	for i in range(STAMINA_SEGMENTS):
+		var seg = stamina_segments[i]
+		if i < filled:
+			if ratio > 0.5:
+				seg.color = Color(0.2, 0.8, 0.4, 1.0)
+			elif ratio > 0.25:
+				seg.color = Color(0.9, 0.7, 0.1, 1.0)
+			else:
+				seg.color = Color(0.9, 0.2, 0.2, 1.0)
+		else:
+			seg.color = Color(0.15, 0.15, 0.15, 1.0)
+
+func _process(delta: float) -> void:
+	if feedback_timer > 0:
+		feedback_timer -= delta
+		var alpha = min(feedback_timer / 0.5, 1.0)
+		feedback_label.modulate = Color(1, 1, 0.5, alpha)
+		if feedback_timer <= 0:
+			feedback_label.modulate = Color(1, 1, 0.5, 0)
+
+func _on_slot_gui_input(event: InputEvent, slot_index: int) -> void:
+	if event is InputEventMouseButton and event.pressed:
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			var now = Time.get_ticks_msec() / 1000.0
+			if last_click_slot == slot_index and (now - last_click_time) < DOUBLE_CLICK_TIME:
+				var player = get_tree().get_first_node_in_group("player")
+				if player and player.has_method("use_item"):
+					player.use_item(slot_index)
+				last_click_slot = -1
+			else:
+				select_slot(slot_index)
+				last_click_time = now
+				last_click_slot = slot_index
+		elif event.button_index == MOUSE_BUTTON_RIGHT:
+			if slot_index < WorldState.inventory.size():
+				show_context_menu(slot_index)
+
+func select_slot(index: int) -> void:
+	if selected_slot == index:
+		selected_slot = -1
+	else:
+		selected_slot = index
+	_update_slot_highlights()
+	context_menu.visible = false
+
+func _update_slot_highlights() -> void:
+	for i in range(slots.size()):
+		if i == selected_slot:
+			slots[i].add_theme_stylebox_override("panel", _make_slot_style_selected())
+		else:
+			slots[i].add_theme_stylebox_override("panel", _make_slot_style(false))
+
+func _make_slot_style_selected() -> StyleBoxFlat:
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.4, 0.4, 0.1, 1.0)
+	style.border_width_top = 2
+	style.border_width_bottom = 2
+	style.border_width_left = 2
+	style.border_width_right = 2
+	style.border_color = Color(1.0, 1.0, 0.2, 1.0)
+	return style
+
+func show_context_menu(slot_index: int) -> void:
+	context_slot = slot_index
+	select_slot(slot_index)
+	var slot_pos = slots[slot_index].global_position
+	context_menu.position = Vector2(slot_pos.x, slot_pos.y - 100)
+	context_menu.visible = true
+
+func _context_use() -> void:
+	context_menu.visible = false
+	var player = get_tree().get_first_node_in_group("player")
+	if player and player.has_method("use_item"):
+		player.use_item(context_slot)
+
+func _context_discard() -> void:
+	context_menu.visible = false
+	if context_slot >= 0 and context_slot < WorldState.inventory.size():
+		WorldState.remove_from_inventory(context_slot)
+		selected_slot = -1
+		_update_slot_highlights()
+		refresh_inventory()
+		show_feedback("Item discarded.")
+
+func _context_cancel() -> void:
+	context_menu.visible = false
+
+func show_feedback(text: String) -> void:
+	feedback_label.text = text
+	feedback_timer = 2.0
+	feedback_label.modulate = Color(1, 1, 0.5, 1)
 
 func _make_slot_style(locked: bool) -> StyleBoxFlat:
 	var style = StyleBoxFlat.new()
@@ -116,6 +279,7 @@ func refresh_inventory() -> void:
 				slot_icons[i].visible = false
 		else:
 			slot_icons[i].visible = false
+	_update_slot_highlights()
 
 func show_hud() -> void:
 	visible = true

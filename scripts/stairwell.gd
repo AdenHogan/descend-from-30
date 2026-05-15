@@ -39,6 +39,8 @@ func _process(_delta: float) -> void:
 			WorldState.current_floor -= 1
 		elif direction == "up":
 			WorldState.current_floor += 1
+		WorldState.on_floor_arrived(WorldState.current_floor)
+		HUD.update_floor_label()
 		if WorldState.current_floor == 30:
 			get_tree().change_scene_to_file("res://scenes/hallway.tscn")
 		elif WorldState.current_floor == 0:
