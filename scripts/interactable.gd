@@ -9,7 +9,6 @@ var is_in_range: bool = false
 var is_selected: bool = false
 
 func _ready() -> void:
-	print("Interactable ready at: ", global_position, " name: ", name)
 	player = get_tree().get_first_node_in_group("player")
 
 func _process(_delta: float) -> void:

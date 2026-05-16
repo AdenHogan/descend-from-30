@@ -103,7 +103,6 @@ func _physics_process(delta: float) -> void:
 			WorldState.is_scavenge_mode = !WorldState.is_scavenge_mode
 			animated_sprite.play("idle")
 			HUD.update_mode_indicator()
-			print("Mode switched to: ", "SCAVENGE" if WorldState.is_scavenge_mode else "COMBAT")
 		return
 
 	if Input.is_action_just_pressed("mode_toggle"):
@@ -125,7 +124,8 @@ func _physics_process(delta: float) -> void:
 
 	if not WorldState.is_scavenge_mode:
 		if Input.is_action_just_pressed("push") and not is_pushing:
-			_do_push()
+			if not _is_mouse_over_hud():
+				_do_push()
 
 	if is_pushing:
 		push_timer -= delta
@@ -206,7 +206,7 @@ func _get_equipped_weapon_type() -> String:
 	var slot = HUD.selected_slot
 	if slot < 0 or slot >= WorldState.inventory.size():
 		return ""
-	var item_data = ItemData.get_item(WorldState.inventory[slot])
+	var item_data = ItemData.get_item(WorldState.get_item_id_at(slot))
 	if not item_data.get("is_weapon", false):
 		return ""
 	return _get_weapon_type(item_data)
@@ -230,9 +230,10 @@ func _get_weapon_damage_type(weapon_type: String) -> String:
 		"gun": return "bullet"
 	return "blunt"
 
-func _do_melee_attack(item_data: Dictionary, slot_index: int) -> void:
+func _do_melee_attack(instance: ItemInstance, slot_index: int) -> void:
 	if is_attacking:
 		return
+	var item_data = instance.get_data()
 	var weapon_type = _get_weapon_type(item_data)
 	if weapon_type == "" or weapon_type == "gun":
 		return
@@ -240,15 +241,18 @@ func _do_melee_attack(item_data: Dictionary, slot_index: int) -> void:
 	if WorldState.stamina < stamina_cost:
 		HUD.show_feedback("Too exhausted to swing.")
 		return
+
 	WorldState.stamina = max(WorldState.stamina - stamina_cost, 0.0)
 	stamina_recovery_timer = STAMINA_RECOVERY_DELAY
 	HUD.update_stamina(WorldState.stamina, WorldState.max_stamina)
 	is_attacking = true
 	attack_cooldown_timer = WEAPON_COOLDOWN.get(weapon_type, 0.5)
 	animated_sprite.play("katana_attack_continuous")
+
 	var attack_range = WEAPON_RANGES.get(weapon_type, 40.0)
 	var damage = WEAPON_DAMAGE.get(weapon_type, 1)
 	var damage_type = _get_weapon_damage_type(weapon_type)
+	var hit_something = false
 	var zombies = get_tree().get_nodes_in_group("zombie")
 	for zombie in zombies:
 		var dist = global_position.distance_to(zombie.global_position)
@@ -258,8 +262,20 @@ func _do_melee_attack(item_data: Dictionary, slot_index: int) -> void:
 			if (facing_right and diff > -16.0) or (not facing_right and diff < 16.0):
 				if zombie.has_method("receive_damage"):
 					zombie.receive_damage(damage, damage_type)
+					hit_something = true
 
-func _do_gun_attack(item_data: Dictionary, slot_index: int) -> void:
+	if hit_something:
+		instance.use()
+		if instance.is_depleted:
+			var weapon_name = item_data.get("name", "Weapon")
+			WorldState.remove_from_inventory(slot_index)
+			HUD.selected_slot = -1
+			HUD.refresh_inventory()
+			HUD.show_feedback(weapon_name + " broke!")
+		else:
+			HUD.refresh_inventory()
+
+func _do_gun_attack(instance: ItemInstance, slot_index: int) -> void:
 	var ammo_slot = _find_ammo_in_inventory()
 	if ammo_slot == -1:
 		HUD.show_feedback("No ammo.")
@@ -311,7 +327,7 @@ func _calculate_gun_outcome(distance: float) -> String:
 
 func _find_ammo_in_inventory() -> int:
 	for i in range(WorldState.inventory.size()):
-		var item_data = ItemData.get_item(WorldState.inventory[i])
+		var item_data = ItemData.get_item(WorldState.get_item_id_at(i))
 		if item_data.get("is_ammo", false):
 			return i
 	return -1
@@ -392,15 +408,18 @@ func _input(event: InputEvent) -> void:
 
 	if not WorldState.is_scavenge_mode:
 		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+			if _is_mouse_over_hud():
+				return
 			var slot = HUD.selected_slot
 			if slot >= 0 and slot < WorldState.inventory.size():
-				var item_data = ItemData.get_item(WorldState.inventory[slot])
+				var instance = WorldState.get_instance_at(slot)
+				var item_data = instance.get_data()
 				if item_data.get("is_weapon", false):
 					var weapon_type = _get_weapon_type(item_data)
 					if weapon_type == "gun":
-						_do_gun_attack(item_data, slot)
+						_do_gun_attack(instance, slot)
 					else:
-						_do_melee_attack(item_data, slot)
+						_do_melee_attack(instance, slot)
 				else:
 					HUD.show_feedback("No weapon selected.")
 			else:
@@ -422,26 +441,49 @@ func _input(event: InputEvent) -> void:
 	elif event.is_action_pressed("rest"):
 		do_rest()
 
+func _is_mouse_over_hud() -> bool:
+	var mouse_y = get_viewport().get_mouse_position().y
+	var screen_h = get_viewport().get_visible_rect().size.y
+	return mouse_y > screen_h - (80.0 + 40.0)
+
 func use_item(slot_index: int) -> void:
 	if slot_index < 0 or slot_index >= WorldState.inventory.size():
 		return
-	var item_id = WorldState.inventory[slot_index]
-	var item_data = ItemData.get_item(item_id)
+	var instance = WorldState.get_instance_at(slot_index)
+	if instance == null:
+		return
+	var item_data = instance.get_data()
 	if item_data.is_empty():
 		return
 
 	if item_data["is_health_item"]:
 		var heals = item_data["heals_states"]
 		heal(heals)
-		_consume_item(slot_index, item_data)
+		instance.use()
+		if instance.is_depleted:
+			WorldState.remove_from_inventory(slot_index)
+			HUD.selected_slot = -1
+		HUD.refresh_inventory()
 	elif item_data["is_speed_boost"]:
 		restore_stamina(WorldState.max_stamina * 0.35)
 		HUD.show_feedback("Stamina restored.")
-		_consume_item(slot_index, item_data)
+		instance.use()
+		if instance.is_depleted:
+			WorldState.remove_from_inventory(slot_index)
+			HUD.selected_slot = -1
+		HUD.refresh_inventory()
+	elif item_data.get("is_weapon", false) and _get_weapon_type(item_data) != "gun":
+		HUD.selected_slot = slot_index
+		HUD._update_slot_highlights()
+		HUD.show_feedback("Equipped.")
+	elif item_data.get("is_weapon", false) and _get_weapon_type(item_data) == "gun":
+		HUD.selected_slot = slot_index
+		HUD._update_slot_highlights()
+		HUD.show_feedback("Not implemented yet.")
 	elif item_data["is_junk"]:
 		HUD.show_feedback("Nothing happens.")
 	else:
-		HUD.show_feedback("Can't use that yet.")
+		HUD.show_feedback("Not implemented yet.")
 
 func heal(states: int) -> void:
 	if health_state == HealthState.HEALTHY:
@@ -456,16 +498,6 @@ func heal(states: int) -> void:
 		WorldState.dying_timer = 0.0
 	_update_hud()
 	HUD.show_feedback("Used item.")
-
-func _consume_item(slot_index: int, item_data: Dictionary) -> void:
-	if item_data["single_use"]:
-		WorldState.remove_from_inventory(slot_index)
-		HUD.selected_slot = -1
-		HUD.refresh_inventory()
-	elif item_data["max_durability"] > 0:
-		WorldState.remove_from_inventory(slot_index)
-		HUD.selected_slot = -1
-		HUD.refresh_inventory()
 
 func receive_hit() -> void:
 	if is_dead or is_dying:
@@ -494,6 +526,8 @@ func _die() -> void:
 	WorldState.dying_timer = 0.0
 	animated_sprite.play("death")
 	print("Player died")
+	await get_tree().create_timer(2.0).timeout
+	Game.game_over()
 
 func _update_hud() -> void:
 	HUD.update_portrait(health_state)

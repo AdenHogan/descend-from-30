@@ -19,15 +19,12 @@ func _ready() -> void:
 	leave_button.pressed.connect(_on_leave)
 
 func open(item_id: String, anchor_name: String, apartment_id: String) -> void:
-	# Cancel any current search cleanly
 	is_revealing = false
-
 	current_item_id = item_id
 	current_anchor_name = anchor_name
 	current_apartment_id = apartment_id
 	anchor_node = get_tree().get_root().find_child(anchor_name, true, false)
 
-	# Check if already searched
 	if WorldState.is_anchor_searched(apartment_id, anchor_name):
 		_reveal_item_immediate()
 		return
@@ -71,7 +68,6 @@ func _process(delta: float) -> void:
 		_reveal_item()
 
 func _reveal_item() -> void:
-	# Mark as searched regardless of result
 	WorldState.mark_anchor_searched(current_apartment_id, current_anchor_name)
 	var item_data = ItemData.get_item(current_item_id)
 	if item_data.is_empty():

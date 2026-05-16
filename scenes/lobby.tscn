@@ -11,6 +11,7 @@
 [ext_resource type="Script" uid="uid://chpvp4q3y30nf" path="res://scripts/lobby.gd" id="10_m1sns"]
 [ext_resource type="Texture2D" uid="uid://gcweymtdvo6" path="res://assets/Lobby_Exit.png" id="11_m1sns"]
 [ext_resource type="Script" uid="uid://c1g4j83firkrc" path="res://scripts/lobby_exit.gd" id="12_dyhay"]
+[ext_resource type="PackedScene" uid="uid://chxtq3ecgwk1a" path="res://scenes/pause_menu.tscn" id="12_m1sns"]
 
 [sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_uwrxv"]
 
@@ -467,3 +468,5 @@ script = ExtResource("12_dyhay")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D" unique_id=240060759]
 position = Vector2(-2.5, -2.5)
 shape = SubResource("RectangleShape2D_q6qq2")
+
+[node name="PauseMenu" parent="." unique_id=1691155252 instance=ExtResource("12_m1sns")]

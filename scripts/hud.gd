@@ -24,6 +24,7 @@ const PORTRAITS = [
 
 var mode_label: Label = null
 var slot_icons: Array = []
+var slot_durability_bars: Array = []
 var selected_slot: int = -1
 var feedback_label: Label = null
 var feedback_timer: float = 0.0
@@ -93,6 +94,24 @@ func _create_slot_icons() -> void:
 		icon.visible = false
 		slot.add_child(icon)
 		slot_icons.append(icon)
+
+		# Durability bar — thin strip at bottom of slot
+		var dur_bg = ColorRect.new()
+		dur_bg.size = Vector2(SLOT_SIZE - 4, 4)
+		dur_bg.position = Vector2(2, SLOT_SIZE - 6)
+		dur_bg.color = Color(0.2, 0.2, 0.2, 1.0)
+		dur_bg.visible = false
+		slot.add_child(dur_bg)
+
+		var dur_fill = ColorRect.new()
+		dur_fill.size = Vector2(SLOT_SIZE - 4, 4)
+		dur_fill.position = Vector2(2, SLOT_SIZE - 6)
+		dur_fill.color = Color(0.2, 0.8, 0.2, 1.0)
+		dur_fill.visible = false
+		slot.add_child(dur_fill)
+
+		slot_durability_bars.append({"bg": dur_bg, "fill": dur_fill})
+
 		slot.gui_input.connect(_on_slot_gui_input.bind(i))
 
 func _create_feedback_label() -> void:
@@ -269,16 +288,38 @@ func update_mode_indicator() -> void:
 
 func refresh_inventory() -> void:
 	for i in range(slots.size()):
+		var dur = slot_durability_bars[i]
 		if i < WorldState.inventory.size():
-			var item_id = WorldState.inventory[i]
+			var instance = WorldState.inventory[i]
+			var item_id = instance.item_id
 			var texture = ItemData.get_texture(item_id)
 			if texture != null:
 				slot_icons[i].texture = texture
 				slot_icons[i].visible = true
 			else:
 				slot_icons[i].visible = false
+
+			# Show durability bar for items with limited uses
+			var item_data = ItemData.get_item(item_id)
+			var max_dur = item_data.get("max_durability", -1)
+			if max_dur > 0 and not item_data.get("single_use", false):
+				var ratio = float(instance.current_durability) / float(max_dur)
+				dur["bg"].visible = true
+				dur["fill"].visible = true
+				dur["fill"].size.x = (SLOT_SIZE - 4) * ratio
+				if ratio > 0.5:
+					dur["fill"].color = Color(0.2, 0.8, 0.2, 1.0)
+				elif ratio > 0.25:
+					dur["fill"].color = Color(0.9, 0.7, 0.1, 1.0)
+				else:
+					dur["fill"].color = Color(0.9, 0.2, 0.2, 1.0)
+			else:
+				dur["bg"].visible = false
+				dur["fill"].visible = false
 		else:
 			slot_icons[i].visible = false
+			dur["bg"].visible = false
+			dur["fill"].visible = false
 	_update_slot_highlights()
 
 func show_hud() -> void:

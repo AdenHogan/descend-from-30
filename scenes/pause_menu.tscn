@@ -1,0 +1,85 @@
+[gd_scene format=3 uid="uid://chxtq3ecgwk1a"]
+
+[ext_resource type="Script" uid="uid://1qf121wkj6ak" path="res://scripts/pause_menu.gd" id="1_n87rw"]
+
+[node name="PauseMenu" type="CanvasLayer" unique_id=1691155252]
+process_mode = 3
+script = ExtResource("1_n87rw")
+
+[node name="Control" type="Control" parent="." unique_id=1647149783]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ColorRect" type="ColorRect" parent="Control" unique_id=530664923]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.025936889, 0.048974976, 0.04550556, 1)
+
+[node name="PanelContainer" type="PanelContainer" parent="Control" unique_id=679266944]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -150.0
+offset_top = -120.0
+offset_right = 150.0
+offset_bottom = 120.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Control/PanelContainer" unique_id=351759619]
+layout_mode = 2
+
+[node name="Pause" type="Label" parent="Control/PanelContainer/VBoxContainer" unique_id=911714389]
+layout_mode = 2
+
+[node name="Resume" type="Button" parent="Control/PanelContainer/VBoxContainer" unique_id=1466042638]
+layout_mode = 2
+text = "Resume"
+
+[node name="Save and Quit" type="Button" parent="Control/PanelContainer/VBoxContainer" unique_id=1009129995]
+layout_mode = 2
+text = "Save and Quit"
+
+[node name="Quit Without Saving" type="Button" parent="Control/PanelContainer/VBoxContainer" unique_id=530820891]
+layout_mode = 2
+text = "Quit Without Saving"
+
+[node name="SaveQuitSubmenu" type="PanelContainer" parent="Control" unique_id=1883637889]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -150.0
+offset_top = 130.0
+offset_right = 150.0
+offset_bottom = 250.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Control/SaveQuitSubmenu" unique_id=2133070914]
+layout_mode = 2
+
+[node name="Return to Title" type="Button" parent="Control/SaveQuitSubmenu/VBoxContainer" unique_id=1827914425]
+layout_mode = 2
+text = "Return to Title"
+
+[node name="Exit to Desktop" type="Button" parent="Control/SaveQuitSubmenu/VBoxContainer" unique_id=504000527]
+layout_mode = 2
+text = "Exit to Desktop"
+
+[node name="Cancel" type="Button" parent="Control/SaveQuitSubmenu/VBoxContainer" unique_id=406990123]
+layout_mode = 2
+text = "Cancel"

@@ -10,6 +10,7 @@
 [ext_resource type="Script" uid="uid://j5pxhahwwyf5" path="res://scripts/stairwell.gd" id="8_nlnob"]
 [ext_resource type="FontFile" uid="uid://tv2mlsq0xxsg" path="res://assets/fonts/PixelOperator8.ttf" id="9_hwv8p"]
 [ext_resource type="Texture2D" uid="uid://dmf7nbqiuywie" path="res://assets/Hallway_Staircase_Left.png" id="10_52g5x"]
+[ext_resource type="PackedScene" uid="uid://chxtq3ecgwk1a" path="res://scenes/pause_menu.tscn" id="11_hwv8p"]
 
 [sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_uwrxv"]
 
@@ -456,3 +457,5 @@ vertical_alignment = 1
 position = Vector2(170.99998, 348)
 scale = Vector2(0.2259206, 0.25902933)
 texture = ExtResource("10_52g5x")
+
+[node name="PauseMenu" parent="." unique_id=1691155252 instance=ExtResource("11_hwv8p")]

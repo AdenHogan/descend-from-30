@@ -64,12 +64,24 @@ func on_floor_arrived(floor_num: int) -> void:
 func add_to_inventory(item_id: String) -> bool:
 	if inventory.size() >= MAX_INVENTORY_SLOTS:
 		return false
-	inventory.append(item_id)
+	var instance = ItemInstance.new()
+	instance.setup(item_id)
+	inventory.append(instance)
 	return true
 
 func remove_from_inventory(slot_index: int) -> void:
 	if slot_index >= 0 and slot_index < inventory.size():
 		inventory.remove_at(slot_index)
+
+func get_item_id_at(slot_index: int) -> String:
+	if slot_index < 0 or slot_index >= inventory.size():
+		return ""
+	return inventory[slot_index].item_id
+
+func get_instance_at(slot_index: int) -> ItemInstance:
+	if slot_index < 0 or slot_index >= inventory.size():
+		return null
+	return inventory[slot_index]
 
 func mark_anchor_searched(apartment_id: String, anchor_name: String) -> void:
 	var key = apartment_id + ":" + anchor_name
@@ -227,3 +239,106 @@ func get_anchor_item(apartment_id: String, anchor_name: String) -> String:
 func clear_anchor_item(apartment_id: String, anchor_name: String) -> void:
 	var key = apartment_id + ":" + anchor_name
 	anchor_items.erase(key)
+
+const SAVE_PATH = "user://savegame.json"
+
+func save_game(scene_path: String) -> void:
+	var save_data = {
+		"scene_path": scene_path,
+		"master_seed": master_seed,
+		"current_floor": current_floor,
+		"current_apartment_id": current_apartment_id,
+		"spawn_source": spawn_source,
+		"stair_spawn_side": stair_spawn_side,
+		"stair_direction": stair_direction,
+		"exit_spawn_x": exit_spawn_x,
+		"is_first_run": is_first_run,
+		"current_run": current_run,
+		"player_health": player_health,
+		"is_dying": is_dying,
+		"dying_timer": dying_timer,
+		"is_scavenge_mode": is_scavenge_mode,
+		"stamina": stamina,
+		"max_stamina": max_stamina,
+		"last_rest_floor": last_rest_floor,
+		"rest_available": rest_available,
+		"rest_count": rest_count,
+		"paradise_apartments": paradise_apartments,
+		"anchor_items": anchor_items,
+		"searched_anchors": searched_anchors,
+		"apartment_layouts": apartment_layouts,
+		"active_upgrades": active_upgrades,
+		"inventory": _serialize_inventory(),
+		"tutorial_zombie_spawned": tutorial_zombie_spawned,
+		"last_exited_apartment": last_exited_apartment
+	}
+	var file = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	if file:
+		file.store_string(JSON.stringify(save_data))
+		file.close()
+
+func load_game() -> String:
+	if not FileAccess.file_exists(SAVE_PATH):
+		return ""
+	var file = FileAccess.open(SAVE_PATH, FileAccess.READ)
+	if not file:
+		return ""
+	var json = JSON.new()
+	var error = json.parse(file.get_as_text())
+	file.close()
+	if error != OK:
+		return ""
+	var data = json.get_data()
+	master_seed = data["master_seed"]
+	current_floor = data["current_floor"]
+	current_apartment_id = data["current_apartment_id"]
+	spawn_source = data["spawn_source"]
+	stair_spawn_side = data["stair_spawn_side"]
+	stair_direction = data["stair_direction"]
+	exit_spawn_x = data["exit_spawn_x"]
+	is_first_run = data["is_first_run"]
+	current_run = data["current_run"]
+	player_health = data["player_health"]
+	is_dying = data["is_dying"]
+	dying_timer = data["dying_timer"]
+	is_scavenge_mode = data["is_scavenge_mode"]
+	stamina = data["stamina"]
+	max_stamina = data["max_stamina"]
+	last_rest_floor = data["last_rest_floor"]
+	rest_available = data["rest_available"]
+	rest_count = data["rest_count"]
+	paradise_apartments = data["paradise_apartments"]
+	anchor_items = data["anchor_items"]
+	searched_anchors = data["searched_anchors"]
+	apartment_layouts = data["apartment_layouts"]
+	active_upgrades = data["active_upgrades"]
+	tutorial_zombie_spawned = data["tutorial_zombie_spawned"]
+	last_exited_apartment = data["last_exited_apartment"]
+	_deserialize_inventory(data["inventory"])
+	return data["scene_path"]
+
+func save_exists() -> bool:
+	return FileAccess.file_exists(SAVE_PATH)
+
+func delete_save() -> void:
+	if FileAccess.file_exists(SAVE_PATH):
+		DirAccess.remove_absolute(SAVE_PATH)
+
+func _serialize_inventory() -> Array:
+	var result = []
+	for instance in inventory:
+		result.append({
+			"item_id": instance.item_id,
+			"current_durability": instance.current_durability,
+			"is_depleted": instance.is_depleted
+		})
+	return result
+
+func _deserialize_inventory(data: Array) -> void:
+	inventory.clear()
+	for entry in data:
+		var instance = ItemInstance.new()
+		instance.item_id = entry["item_id"]
+		instance.current_durability = entry["current_durability"]
+		instance.is_depleted = entry["is_depleted"]
+		inventory.append(instance)

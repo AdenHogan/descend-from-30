@@ -31,10 +31,46 @@ theme_override_fonts/font = ExtResource("4_3yumr")
 theme_override_font_sizes/font_size = 24
 text = "New Game"
 
+[node name="ContinueButton" type="Label" parent="DescendFrom30PlaceholderTitleScreen" unique_id=616609315]
+offset_left = -123.87456
+offset_top = -15.023475
+offset_right = 84.49129
+offset_bottom = 19.230034
+theme_override_fonts/font = ExtResource("4_3yumr")
+theme_override_font_sizes/font_size = 24
+text = "Continue"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ExitButton" type="Label" parent="DescendFrom30PlaceholderTitleScreen" unique_id=1027467409]
+offset_left = -155.76306
+offset_top = 29.44601
+offset_right = 126.23694
+offset_bottom = 53.44601
+theme_override_fonts/font = ExtResource("4_3yumr")
+theme_override_font_sizes/font_size = 24
+text = "Exit to Desktop"
+horizontal_alignment = 1
+vertical_alignment = 1
+
 [node name="NewGameButton" type="Button" parent="." unique_id=153132771]
 offset_left = 492.0
 offset_top = 285.0
 offset_right = 628.0
 offset_bottom = 302.0
 
+[node name="ContinueButton" type="Button" parent="." unique_id=288759246]
+offset_left = 491.0
+offset_top = 311.0
+offset_right = 628.0
+offset_bottom = 338.0
+
+[node name="ExitButton" type="Button" parent="." unique_id=1486842811]
+offset_left = 449.0
+offset_top = 347.0
+offset_right = 677.0
+offset_bottom = 372.0
+
 [connection signal="pressed" from="NewGameButton" to="." method="_on_new_game_button_pressed"]
+[connection signal="pressed" from="ContinueButton" to="." method="_on_continue_button_pressed"]
+[connection signal="pressed" from="ExitButton" to="." method="_on_exit_button_pressed"]
