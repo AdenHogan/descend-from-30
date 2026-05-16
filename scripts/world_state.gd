@@ -31,6 +31,9 @@ var rest_available: bool = true
 var rest_count: int = 0
 var active_upgrades: Array = []
 var available_upgrades: Array = []
+var saved_player_x: float = 0.0
+var saved_player_y: float = 0.0
+var killed_zombies: Array = []
 
 func new_game() -> void:
 	master_seed = randi()
@@ -56,6 +59,9 @@ func new_game() -> void:
 	stair_spawn_side = ""
 	stair_direction = ""
 	exit_spawn_x = 0.0
+	saved_player_x = 0.0
+	saved_player_y = 0.0
+	killed_zombies.clear()
 
 func on_floor_arrived(floor_num: int) -> void:
 	if floor_num in [25, 20, 15, 10, 5]:
@@ -270,7 +276,10 @@ func save_game(scene_path: String) -> void:
 		"active_upgrades": active_upgrades,
 		"inventory": _serialize_inventory(),
 		"tutorial_zombie_spawned": tutorial_zombie_spawned,
-		"last_exited_apartment": last_exited_apartment
+		"last_exited_apartment": last_exited_apartment,
+		"saved_player_x": saved_player_x,
+		"saved_player_y": saved_player_y,
+		"killed_zombies": killed_zombies,
 	}
 	var file = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if file:
@@ -314,6 +323,9 @@ func load_game() -> String:
 	active_upgrades = data["active_upgrades"]
 	tutorial_zombie_spawned = data["tutorial_zombie_spawned"]
 	last_exited_apartment = data["last_exited_apartment"]
+	saved_player_x = data["saved_player_x"]
+	saved_player_y = data["saved_player_y"]
+	killed_zombies = data["killed_zombies"]
 	_deserialize_inventory(data["inventory"])
 	return data["scene_path"]
 

@@ -16,7 +16,6 @@ func _ready() -> void:
 	var right_down = get_node("stair_right_down_trigger")
 	var right_up = get_node("stair_right_up_trigger")
 
-	# Spawn player at correct position
 	if WorldState.spawn_source == "stair":
 		if WorldState.stair_spawn_side == "left":
 			if WorldState.stair_direction == "down":
@@ -32,7 +31,11 @@ func _ready() -> void:
 		player.global_position.x = WorldState.exit_spawn_x
 		player.global_position.y = 388.0
 
-	# Set staircase visuals and active triggers based on arrival side
+	if WorldState.saved_player_x != 0.0:
+		player.global_position = Vector2(WorldState.saved_player_x, WorldState.saved_player_y)
+		WorldState.saved_player_x = 0.0
+		WorldState.saved_player_y = 0.0
+
 	if WorldState.stair_spawn_side == "left":
 		hallway_staircase_left.visible = false
 		lobby_left.visible = true
@@ -67,7 +70,6 @@ func _ready() -> void:
 			right_down.process_mode = Node.PROCESS_MODE_ALWAYS
 			left_up.process_mode = Node.PROCESS_MODE_ALWAYS
 			left_down.process_mode = Node.PROCESS_MODE_DISABLED
-# Assign apartment IDs based on current floor
 
 	var floor_num = WorldState.current_floor
 	for i in range(1, 6):
@@ -76,7 +78,7 @@ func _ready() -> void:
 		var door = get_node_or_null(node_name)
 		if door:
 			door.apartment_id = apt_id
-# Spawn corridor zombies
+
 	var floor_rng = RandomNumberGenerator.new()
 	floor_rng.seed = (WorldState.master_seed ^ (floor_num * 2246822519)) & 0xFFFFFFFF
 	var zombie_count = WorldState.get_floor_zombie_count(floor_num)
@@ -84,9 +86,10 @@ func _ready() -> void:
 	var positions = WorldState.get_zombie_positions(zombie_count, floor_rng, 50.0, 1300.0, 388.0)
 
 	for pos in positions:
+		var key = str(floor_num) + ":" + str(snappedf(pos.x, 1.0)) + ":" + str(snappedf(pos.y, 1.0))
+		if WorldState.killed_zombies.has(key):
+			continue
 		var zombie = zombie_scene.instantiate()
 		zombie.global_position = pos
+		zombie.spawn_key = key
 		add_child(zombie)
-
-		
-		

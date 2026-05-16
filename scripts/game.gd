@@ -8,6 +8,13 @@ const SCENES = {
 	"building_floors": "res://scenes/building_floors.tscn"
 }
 
+func _input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel") and HUD.visible:
+		var pause_menu = get_tree().get_root().find_child("PauseMenu", true, false)
+		if pause_menu:
+			pause_menu.toggle(not pause_menu.visible)
+			get_viewport().set_input_as_handled()
+
 func go_to_scene(scene_name: String) -> void:
 	get_tree().change_scene_to_file(SCENES[scene_name])
 
@@ -24,6 +31,10 @@ func continue_game() -> void:
 	get_tree().change_scene_to_file(scene_path)
 
 func save_and_quit(go_to_desktop: bool) -> void:
+	var player = get_tree().get_first_node_in_group("player")
+	if player:
+		WorldState.saved_player_x = player.global_position.x
+		WorldState.saved_player_y = player.global_position.y
 	var scene_path = get_tree().current_scene.scene_file_path
 	WorldState.save_game(scene_path)
 	HUD.hide_hud()
@@ -41,13 +52,3 @@ func game_over() -> void:
 	WorldState.delete_save()
 	HUD.hide_hud()
 	get_tree().change_scene_to_file("res://scenes/game_over.tscn")
-
-func _input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo:
-		if event.physical_keycode == KEY_ESCAPE:
-			var pause_menu = get_tree().get_root().find_child("PauseMenu", true, false)
-			if pause_menu and HUD.visible:
-				if pause_menu.visible:
-					pause_menu.toggle(false)
-				else:
-					pause_menu.toggle(true)

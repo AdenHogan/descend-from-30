@@ -230,7 +230,6 @@ func _make_slot_style_selected() -> StyleBoxFlat:
 
 func show_context_menu(slot_index: int) -> void:
 	context_slot = slot_index
-	select_slot(slot_index)
 	var slot_pos = slots[slot_index].global_position
 	context_menu.position = Vector2(slot_pos.x, slot_pos.y - 100)
 	context_menu.visible = true
@@ -245,7 +244,10 @@ func _context_discard() -> void:
 	context_menu.visible = false
 	if context_slot >= 0 and context_slot < WorldState.inventory.size():
 		WorldState.remove_from_inventory(context_slot)
-		selected_slot = -1
+		if selected_slot > context_slot:
+			selected_slot -= 1
+		elif selected_slot == context_slot:
+			selected_slot = -1
 		_update_slot_highlights()
 		refresh_inventory()
 		show_feedback("Item discarded.")

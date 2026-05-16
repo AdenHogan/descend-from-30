@@ -3,4 +3,5 @@
 [ext_resource type="Script" uid="uid://1nctco5l864u" path="res://scripts/game.gd" id="1_iywne"]
 
 [node name="Game" type="Node" unique_id=1255384022]
+process_mode = 3
 script = ExtResource("1_iywne")

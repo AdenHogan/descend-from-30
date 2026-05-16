@@ -79,6 +79,7 @@ func _ready() -> void:
 	HUD.update_portrait(health_state)
 	HUD.update_mode_indicator()
 	HUD.update_stamina(WorldState.stamina, WorldState.max_stamina)
+	HUD.refresh_inventory()
 
 func _physics_process(delta: float) -> void:
 	if is_dead:
@@ -444,7 +445,11 @@ func _input(event: InputEvent) -> void:
 func _is_mouse_over_hud() -> bool:
 	var mouse_y = get_viewport().get_mouse_position().y
 	var screen_h = get_viewport().get_visible_rect().size.y
-	return mouse_y > screen_h - (80.0 + 40.0)
+	if mouse_y > screen_h - (80.0 + 40.0):
+		return true
+	if HUD.context_menu and HUD.context_menu.visible:
+		return true
+	return false
 
 func use_item(slot_index: int) -> void:
 	if slot_index < 0 or slot_index >= WorldState.inventory.size():

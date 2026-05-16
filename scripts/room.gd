@@ -86,9 +86,18 @@ func _ready() -> void:
 			var zombie_scene = preload("res://scenes/enemy_zombie_standard.tscn")
 			var positions = WorldState.get_zombie_positions(zombie_count, apt_rng, 150.0, 1030.0, 321.0)
 			for pos in positions:
+				var key = str(WorldState.current_floor) + ":" + str(snappedf(pos.x, 1.0)) + ":" + str(snappedf(pos.y, 1.0))
+				if WorldState.killed_zombies.has(key):
+					continue
 				var zombie = zombie_scene.instantiate()
 				zombie.global_position = pos
+				zombie.spawn_key = key
 				add_child(zombie)
+
+	if WorldState.saved_player_x != 0.0:
+		player.global_position = Vector2(WorldState.saved_player_x, WorldState.saved_player_y)
+		WorldState.saved_player_x = 0.0
+		WorldState.saved_player_y = 0.0
 
 	var apt_rng_items = RandomNumberGenerator.new()
 	apt_rng_items.seed = hash(str(WorldState.master_seed) + "items" + apartment_id)
@@ -189,7 +198,6 @@ func _input(event: InputEvent) -> void:
 	if nearby.is_empty():
 		return
 
-	# Scroll wheel cycling
 	if event is InputEventMouseButton and event.pressed:
 		if event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
 			selected_index = (selected_index + 1) % nearby.size()
@@ -198,14 +206,12 @@ func _input(event: InputEvent) -> void:
 			selected_index = (selected_index - 1 + nearby.size()) % nearby.size()
 			return
 
-	# E key fires selected interactable
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.physical_keycode == KEY_E:
 			WorldState.interaction_handled = false
 			nearby[clamp(selected_index, 0, nearby.size() - 1)].try_interact()
 			return
 
-	# Mouse click — check if clicking near an orb in world space
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		var mouse_world = _get_mouse_world_pos()
 		var clicked_index = _get_clicked_interactable(nearby, mouse_world)

@@ -12,6 +12,7 @@ var animated_sprite: AnimatedSprite2D
 var player: Node2D = null
 var state = "idle"
 var state_timer = 0.0
+var spawn_key: String = ""
 
 var max_hp: int = 3
 var current_hp: int = 3
@@ -28,10 +29,8 @@ func _set_hp_from_floor() -> void:
 	var floor_num = WorldState.current_floor
 	var rng = RandomNumberGenerator.new()
 	rng.seed = hash(str(WorldState.master_seed) + str(global_position) + str(floor_num))
-	# Lower floors = higher HP range
-	# Floor 30 (top): 1-2 HP, Floor 1 (bottom): 4-7 HP, with variance throughout
 	var base = lerp(7.0, 1.0, float(floor_num - 1) / 29.0)
-	var variance = rng.randi() % 3 - 1  # -1, 0, or +1
+	var variance = rng.randi() % 3 - 1
 	max_hp = clamp(int(base) + variance, 1, 8)
 	current_hp = max_hp
 
@@ -51,7 +50,6 @@ func receive_damage(amount: int, damage_type: String) -> void:
 		return
 	current_hp -= amount
 	if current_hp <= 0:
-		# Bladed weapons have a chance to kill outright
 		if damage_type == "blade":
 			var rng = RandomNumberGenerator.new()
 			rng.seed = hash(str(WorldState.master_seed) + str(global_position) + str(Time.get_ticks_msec()))
@@ -59,25 +57,23 @@ func receive_damage(amount: int, damage_type: String) -> void:
 				_die()
 				return
 			else:
-				current_hp = 1  # survived but barely
+				current_hp = 1
 		else:
 			_die()
 			return
-	# Bludgeon has a chance to knock down even without killing
 	if damage_type == "bludgeon":
 		var rng = RandomNumberGenerator.new()
 		rng.seed = hash(str(WorldState.master_seed) + str(global_position) + str(Time.get_ticks_msec()))
 		if rng.randf() < 0.55:
 			_knockdown()
 			return
-	# Standard hit reaction
 	animated_sprite.play("Hit")
 
 func _knockdown() -> void:
 	state = "knockdown"
 	state_timer = KNOCKDOWN_DURATION
 	velocity.x = 0
-	animated_sprite.play("Hit")  # placeholder until knockdown animation exists
+	animated_sprite.play("Hit")
 	set_collision_layer_value(1, false)
 	set_collision_layer_value(2, true)
 	set_collision_mask_value(1, false)
@@ -86,11 +82,14 @@ func _die() -> void:
 	is_dead = true
 	state = "dead"
 	velocity.x = 0
-	animated_sprite.play("Death")  # death animation
+	animated_sprite.play("Death")
 	set_collision_layer_value(1, false)
 	set_collision_mask_value(1, false)
-	# Remove after a short delay
-	await get_tree().create_timer(1.5).timeout
+	if spawn_key != "" and not WorldState.killed_zombies.has(spawn_key):
+		WorldState.killed_zombies.append(spawn_key)
+	await animated_sprite.animation_finished
+	animated_sprite.pause()
+	await get_tree().create_timer(300).timeout
 	queue_free()
 
 func receive_hit_from_gun(outcome: String) -> void:
@@ -113,7 +112,6 @@ func _physics_process(delta: float) -> void:
 			velocity.x = 0
 			state_timer -= delta
 			if state_timer <= 0:
-				# Chance to get back up
 				var rng = RandomNumberGenerator.new()
 				rng.seed = hash(str(WorldState.master_seed) + str(global_position) + str(Time.get_ticks_msec()))
 				if rng.randf() < 0.6:
