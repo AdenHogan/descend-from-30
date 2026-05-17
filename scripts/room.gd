@@ -40,6 +40,15 @@ const MODULE_WIDTH = 320
 const LEFT_WALL_X = 113
 const CLICK_RADIUS = 10.0
 
+const ANCHOR_RANGES = {
+	"bedroom": [2, 5],
+	"bathroom": [2, 5],
+	"kitchen": [2, 5],
+	"dining_room": [2, 4],
+	"living_room": [2, 5],
+	"study": [2, 4]
+}
+
 func _ready() -> void:
 	var door = $Area2D
 	var player = $Player
@@ -99,15 +108,45 @@ func _ready() -> void:
 		WorldState.saved_player_x = 0.0
 		WorldState.saved_player_y = 0.0
 
-	var apt_rng_items = RandomNumberGenerator.new()
-	apt_rng_items.seed = hash(str(WorldState.master_seed) + "items" + apartment_id)
 	var is_paradise = WorldState.is_paradise_apartment(apartment_id)
 	var interactable_script = load("res://scripts/interactable.gd")
 
 	for module in get_tree().get_nodes_in_group("room_module"):
-		for anchor in module.get_children():
-			if not anchor is Marker2D:
-				continue
+		# Determine room type for this module
+		var room_type = ""
+		for rt in MODULE_SCENES.keys():
+			if module.get_node_or_null("ColorRect") != null:
+				var label = module.get_node_or_null("ColorRect/Label")
+				if label and label.text.to_lower().replace(" ", "_") == rt:
+					room_type = rt
+					break
+
+		# Get all Marker2D anchors in this module
+		var all_anchors = []
+		for child in module.get_children():
+			if child is Marker2D:
+				all_anchors.append(child)
+
+		# Shuffle anchors using apartment+room seed
+		var anchor_rng = RandomNumberGenerator.new()
+		anchor_rng.seed = hash(str(WorldState.master_seed) + apartment_id + room_type)
+		for i in range(all_anchors.size() - 1, 0, -1):
+			var j = anchor_rng.randi() % (i + 1)
+			var temp = all_anchors[i]
+			all_anchors[i] = all_anchors[j]
+			all_anchors[j] = temp
+
+		# Pick how many anchors are active this visit
+		var range_data = ANCHOR_RANGES.get(room_type, [2, all_anchors.size()])
+		var min_active = range_data[0]
+		var max_active = min(range_data[1], all_anchors.size())
+		var active_count = min_active + (anchor_rng.randi() % (max_active - min_active + 1))
+		var active_anchors = all_anchors.slice(0, active_count)
+
+		# Only wire up active anchors
+		var apt_rng_items = RandomNumberGenerator.new()
+		apt_rng_items.seed = hash(str(WorldState.master_seed) + "items" + apartment_id)
+		for anchor in active_anchors:
 			anchor.set_script(interactable_script)
 			anchor.apartment_id = apartment_id
 			anchor._ready()
