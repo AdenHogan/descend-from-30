@@ -435,10 +435,6 @@ func _input(event: InputEvent) -> void:
 		var slot = HUD.selected_slot
 		if slot >= 0 and slot < WorldState.inventory.size():
 			use_item(slot)
-	elif event.is_action_pressed("item_context"):
-		var slot = HUD.selected_slot
-		if slot >= 0 and slot < WorldState.inventory.size():
-			HUD.show_context_menu(slot)
 	elif event.is_action_pressed("rest"):
 		do_rest()
 

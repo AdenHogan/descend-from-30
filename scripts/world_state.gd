@@ -35,6 +35,22 @@ var saved_player_x: float = 0.0
 var saved_player_y: float = 0.0
 var killed_zombies: Dictionary = {}
 
+# --- Door system ---
+enum DoorState {
+	OPEN,
+	SHUT_JIMMYABLE,
+	SHUT_LOCKED,
+	BARRICADED_JIMMYABLE,
+	BARRICADED_LOCKED,
+	BREACHED
+}
+
+var door_states: Dictionary = {}
+var door_keys_consumed: Dictionary = {}
+var floor_states_seeded: Dictionary = {}
+var barricade_progress: Dictionary = {}  # apartment_id -> seconds_completed
+
+
 func new_game() -> void:
 	master_seed = randi()
 	apartment_layouts.clear()
@@ -62,10 +78,17 @@ func new_game() -> void:
 	saved_player_x = 0.0
 	saved_player_y = 0.0
 	killed_zombies.clear()
+	door_states.clear()
+	door_keys_consumed.clear()
+	floor_states_seeded.clear()
+	barricade_progress.clear()
+
 
 func on_floor_arrived(floor_num: int) -> void:
 	if floor_num in [25, 20, 15, 10, 5]:
 		rest_available = true
+	seed_floor_door_states(floor_num)
+
 
 func add_to_inventory(item_id: String) -> bool:
 	if inventory.size() >= MAX_INVENTORY_SLOTS:
@@ -75,36 +98,44 @@ func add_to_inventory(item_id: String) -> bool:
 	inventory.append(instance)
 	return true
 
+
 func remove_from_inventory(slot_index: int) -> void:
 	if slot_index >= 0 and slot_index < inventory.size():
 		inventory.remove_at(slot_index)
+
 
 func get_item_id_at(slot_index: int) -> String:
 	if slot_index < 0 or slot_index >= inventory.size():
 		return ""
 	return inventory[slot_index].item_id
 
+
 func get_instance_at(slot_index: int) -> ItemInstance:
 	if slot_index < 0 or slot_index >= inventory.size():
 		return null
 	return inventory[slot_index]
 
+
 func mark_anchor_searched(apartment_id: String, anchor_name: String) -> void:
 	var key = apartment_id + ":" + anchor_name
 	searched_anchors[key] = true
 
+
 func is_anchor_searched(apartment_id: String, anchor_name: String) -> bool:
 	var key = apartment_id + ":" + anchor_name
 	return searched_anchors.get(key, false)
+
 
 func _get_apartment_rng(apartment_id: String) -> RandomNumberGenerator:
 	var apt_rng := RandomNumberGenerator.new()
 	apt_rng.seed = hash(str(master_seed) + apartment_id)
 	return apt_rng
 
+
 func get_entrance_side(apartment_id: String) -> String:
 	var apt_rng = _get_apartment_rng(apartment_id)
 	return "left" if apt_rng.randi() % 2 == 0 else "right"
+
 
 func get_apartment_layout(apartment_id: String) -> Array:
 	if apartment_layouts.has(apartment_id):
@@ -120,6 +151,7 @@ func get_apartment_layout(apartment_id: String) -> Array:
 	var layout = [pool[0], pool[1], pool[2]]
 	apartment_layouts[apartment_id] = layout
 	return layout
+
 
 func get_floor_zombie_count(floor_num: int) -> int:
 	var rng = RandomNumberGenerator.new()
@@ -151,6 +183,7 @@ func get_floor_zombie_count(floor_num: int) -> int:
 		else:
 			return rng.randi() % 3 + 1
 
+
 func get_apartment_zombie_count(apartment_id: String) -> int:
 	var rng = RandomNumberGenerator.new()
 	rng.seed = hash(str(master_seed) + "zombies" + apartment_id)
@@ -161,6 +194,7 @@ func get_apartment_zombie_count(apartment_id: String) -> int:
 		return 10
 	else:
 		return rng.randi() % 4 + 1
+
 
 func get_zombie_positions(count: int, rng: RandomNumberGenerator, min_x: float, max_x: float, y: float) -> Array:
 	var positions = []
@@ -175,7 +209,8 @@ func get_zombie_positions(count: int, rng: RandomNumberGenerator, min_x: float, 
 		for i in range(count):
 			positions.append(Vector2(rng.randf_range(min_x, max_x), y))
 	return positions
-	
+
+
 func get_corpse_positions_for_floor(floor_num: int, scene_path: String) -> Array:
 	var result = []
 	for key in killed_zombies:
@@ -183,6 +218,7 @@ func get_corpse_positions_for_floor(floor_num: int, scene_path: String) -> Array
 		if data["floor"] == floor_num and data["scene"] == scene_path:
 			result.append(Vector2(data["x"], data["y"]))
 	return result
+
 
 func initialize_paradise_apartments() -> void:
 	var rng = RandomNumberGenerator.new()
@@ -199,8 +235,10 @@ func initialize_paradise_apartments() -> void:
 		all_apartments[j] = temp
 	paradise_apartments = all_apartments.slice(0, count)
 
+
 func is_paradise_apartment(apartment_id: String) -> bool:
 	return apartment_id in paradise_apartments
+
 
 func get_room_type_for_anchor(anchor_name: String, apartment_id: String) -> String:
 	var layout = get_apartment_layout(apartment_id)
@@ -209,6 +247,7 @@ func get_room_type_for_anchor(anchor_name: String, apartment_id: String) -> Stri
 		if anchor_name in anchors:
 			return room_type
 	return ""
+
 
 func get_anchors_for_room(room_type: String) -> Array:
 	match room_type:
@@ -226,6 +265,7 @@ func get_anchors_for_room(room_type: String) -> Array:
 			return ["anchor_centre_bookcaseupper", "anchor_centre_bookcaselower", "anchor_centre_desk", "anchor_right_shelf"]
 	return []
 
+
 func get_items_for_anchor(anchor_name: String, apartment_id: String) -> Array:
 	var room_type = get_room_type_for_anchor(anchor_name, apartment_id)
 	if room_type == "":
@@ -242,17 +282,184 @@ func get_items_for_anchor(anchor_name: String, apartment_id: String) -> Array:
 					valid_items.append(item_id)
 	return valid_items
 
+
 func set_anchor_item(apartment_id: String, anchor_name: String, item_id: String) -> void:
 	var key = apartment_id + ":" + anchor_name
 	anchor_items[key] = item_id
+
 
 func get_anchor_item(apartment_id: String, anchor_name: String) -> String:
 	var key = apartment_id + ":" + anchor_name
 	return anchor_items.get(key, "")
 
+
 func clear_anchor_item(apartment_id: String, anchor_name: String) -> void:
 	var key = apartment_id + ":" + anchor_name
 	anchor_items.erase(key)
+
+
+# ============================================================
+# DOOR SYSTEM
+# ============================================================
+
+func _get_door_weights(run_num: int) -> Array:
+	# Indices match DoorState enum: [OPEN, SHUT_JIMMYABLE, SHUT_LOCKED, BARRICADED_JIMMYABLE, BARRICADED_LOCKED, BREACHED]
+	# OPEN weight is 0 here — open slots are assigned separately as guaranteed slots
+	match run_num:
+		1: return [0, 40, 28, 14, 10, 8]
+		2: return [0, 30, 24, 16, 12, 18]
+		3: return [0, 22, 20, 16, 12, 30]
+	return [0, 40, 28, 14, 10, 8]
+
+
+func _pick_door_state(rng: RandomNumberGenerator, weights: Array) -> int:
+	var total = 0
+	for w in weights:
+		total += w
+	var roll = rng.randi() % total
+	var cumulative = 0
+	for i in range(weights.size()):
+		cumulative += weights[i]
+		if roll < cumulative:
+			return i
+	return DoorState.SHUT_JIMMYABLE
+
+
+func seed_floor_door_states(floor_num: int) -> void:
+	# Floor 30 is the tutorial floor — door states are hardcoded, never randomised
+	# 3001: permanently sealed (handled in door.gd directly, no state needed)
+	# 3002: locked — key found inside 3003
+	# 3003: open — first entry point
+	# 3004: barricaded + locked — teaches both mechanics
+	# 3005: open
+	if floor_num == 30:
+		if not door_states.has("3002"):
+			door_states["3002"] = DoorState.SHUT_LOCKED
+		if not door_states.has("3003"):
+			door_states["3003"] = DoorState.OPEN
+		if not door_states.has("3004"):
+			door_states["3004"] = DoorState.BARRICADED_LOCKED
+		if not door_states.has("3005"):
+			door_states["3005"] = DoorState.OPEN
+		floor_states_seeded[30] = true
+		return
+
+	if floor_states_seeded.get(floor_num, false):
+		return
+	floor_states_seeded[floor_num] = true
+
+	var rng = RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "doors" + str(floor_num) + str(current_run))
+
+	var apartments = []
+	for i in range(1, 6):
+		apartments.append(str(floor_num) + "0" + str(i))
+
+	# Shuffle so guaranteed open doors are not always apartment 01/02
+	for i in range(apartments.size() - 1, 0, -1):
+		var j = rng.randi() % (i + 1)
+		var temp = apartments[i]
+		apartments[i] = apartments[j]
+		apartments[j] = temp
+
+	# Guarantee 1-2 open doors — never overwrite cross-run player changes
+	var open_count = 1 + (rng.randi() % 2)
+	for i in range(open_count):
+		var apt_id = apartments[i]
+		if not door_states.has(apt_id):
+			door_states[apt_id] = DoorState.OPEN
+
+	# Assign remaining from weighted pool
+	var weights = _get_door_weights(current_run)
+	for i in range(open_count, apartments.size()):
+		var apt_id = apartments[i]
+		if not door_states.has(apt_id):
+			door_states[apt_id] = _pick_door_state(rng, weights)
+
+
+func get_door_state(apartment_id: String) -> int:
+	var floor_num = int(apartment_id.left(apartment_id.length() - 2))
+	seed_floor_door_states(floor_num)
+	return door_states.get(apartment_id, DoorState.SHUT_JIMMYABLE)
+
+
+func set_door_state(apartment_id: String, state: int) -> void:
+	door_states[apartment_id] = state
+
+
+func consume_key_for_apartment(apartment_id: String) -> void:
+	door_keys_consumed[apartment_id] = true
+	set_door_state(apartment_id, DoorState.OPEN)
+
+
+func mutate_door_states_for_new_run() -> void:
+	var rng = RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "mutate" + str(current_run))
+
+	for apt_id in door_states.keys():
+		var state = door_states[apt_id]
+		var roll = rng.randf()
+
+		match state:
+			DoorState.SHUT_JIMMYABLE:
+				if roll < 0.15:
+					door_states[apt_id] = DoorState.BREACHED
+			DoorState.SHUT_LOCKED:
+				if roll < 0.12:
+					door_states[apt_id] = DoorState.BREACHED
+				elif roll < 0.14:
+					door_states[apt_id] = DoorState.SHUT_JIMMYABLE
+			DoorState.BARRICADED_JIMMYABLE:
+				if roll < 0.20:
+					door_states[apt_id] = DoorState.SHUT_JIMMYABLE
+				elif roll < 0.25:
+					door_states[apt_id] = DoorState.BREACHED
+			DoorState.BARRICADED_LOCKED:
+				if roll < 0.15:
+					door_states[apt_id] = DoorState.SHUT_LOCKED
+				elif roll < 0.20:
+					door_states[apt_id] = DoorState.BREACHED
+			DoorState.OPEN:
+				pass
+			DoorState.BREACHED:
+				pass
+
+	floor_states_seeded.clear()
+	barricade_progress.clear()
+
+
+func is_locked_apartment(apartment_id: String) -> bool:
+	var state = get_door_state(apartment_id)
+	return state == DoorState.SHUT_LOCKED or state == DoorState.BARRICADED_LOCKED
+
+
+func was_key_opened(apartment_id: String) -> bool:
+	return door_keys_consumed.get(apartment_id, false)
+
+
+func get_breached_room_enemies(apartment_id: String, min_x: float, max_x: float, y: float) -> Array:
+	var rng = RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "breached" + apartment_id + str(current_run))
+
+	var count = 4 + (rng.randi() % 6)  # 4-9 enemies
+
+	var enemies = []
+	var center_x = rng.randf_range(min_x + 60, min_x + 200)
+	var spread = rng.randf_range(60, 200)
+
+	for i in range(count):
+		var pos_x = clamp(center_x + rng.randf_range(-spread, spread), min_x, max_x)
+		enemies.append({
+			"type": "zombie_standard",
+			"position": Vector2(pos_x, y)
+		})
+
+	return enemies
+
+
+# ============================================================
+# SAVE / LOAD
+# ============================================================
 
 const SAVE_PATH = "user://savegame.json"
 
@@ -288,11 +495,16 @@ func save_game(scene_path: String) -> void:
 		"saved_player_x": saved_player_x,
 		"saved_player_y": saved_player_y,
 		"killed_zombies": killed_zombies,
+		"door_states": door_states,
+		"door_keys_consumed": door_keys_consumed,
+		"floor_states_seeded": floor_states_seeded,
+		"barricade_progress": barricade_progress,
 	}
 	var file = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if file:
 		file.store_string(JSON.stringify(save_data))
 		file.close()
+
 
 func load_game() -> String:
 	if not FileAccess.file_exists(SAVE_PATH):
@@ -334,15 +546,22 @@ func load_game() -> String:
 	saved_player_x = data["saved_player_x"]
 	saved_player_y = data["saved_player_y"]
 	killed_zombies = data["killed_zombies"]
+	door_states = data["door_states"]
+	door_keys_consumed = data["door_keys_consumed"]
+	floor_states_seeded = data["floor_states_seeded"]
+	barricade_progress = data.get("barricade_progress", {})
 	_deserialize_inventory(data["inventory"])
 	return data["scene_path"]
+
 
 func save_exists() -> bool:
 	return FileAccess.file_exists(SAVE_PATH)
 
+
 func delete_save() -> void:
 	if FileAccess.file_exists(SAVE_PATH):
 		DirAccess.remove_absolute(SAVE_PATH)
+
 
 func _serialize_inventory() -> Array:
 	var result = []
@@ -353,6 +572,7 @@ func _serialize_inventory() -> Array:
 			"is_depleted": instance.is_depleted
 		})
 	return result
+
 
 func _deserialize_inventory(data: Array) -> void:
 	inventory.clear()

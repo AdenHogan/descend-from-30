@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://buduya2y3tsvx" path="res://scripts/door.gd" id="1_uvdjg"]
 [ext_resource type="Texture2D" uid="uid://m5odjepdswr8" path="res://assets/Door.png" id="2_83dcw"]
 [ext_resource type="FontFile" uid="uid://tv2mlsq0xxsg" path="res://assets/fonts/PixelOperator8.ttf" id="3_83dcw"]
+[ext_resource type="Texture2D" uid="uid://7jv4k013in5s" path="res://assets/Barricade.png" id="4_la1wf"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_la1wf"]
 size = Vector2(43, 82)
@@ -28,3 +29,10 @@ offset_bottom = -15.0
 theme_override_fonts/font = ExtResource("3_83dcw")
 theme_override_font_sizes/font_size = 8
 text = "3002 - Press E to Enter"
+
+[node name="BarricadeSprite2D" type="Sprite2D" parent="." unique_id=2089392389]
+texture = ExtResource("4_la1wf")
+
+[node name="BarricadeProgressOverlay" type="ColorRect" parent="." unique_id=1433825615]
+offset_right = 40.0
+offset_bottom = 40.0

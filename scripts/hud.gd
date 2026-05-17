@@ -186,6 +186,13 @@ func _process(delta: float) -> void:
 		if feedback_timer <= 0:
 			feedback_label.modulate = Color(1, 1, 0.5, 0)
 
+	# Close context menu on click outside
+	if context_menu and context_menu.visible:
+		if Input.is_action_just_pressed("interact") or \
+		   (Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) and \
+		   not context_menu.get_global_rect().has_point(get_viewport().get_mouse_position())):
+			context_menu.visible = false
+
 func _on_slot_gui_input(event: InputEvent, slot_index: int) -> void:
 	if event is InputEventMouseButton and event.pressed:
 		if event.button_index == MOUSE_BUTTON_LEFT:
