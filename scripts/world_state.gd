@@ -33,7 +33,7 @@ var active_upgrades: Array = []
 var available_upgrades: Array = []
 var saved_player_x: float = 0.0
 var saved_player_y: float = 0.0
-var killed_zombies: Array = []
+var killed_zombies: Dictionary = {}
 
 func new_game() -> void:
 	master_seed = randi()
@@ -175,6 +175,14 @@ func get_zombie_positions(count: int, rng: RandomNumberGenerator, min_x: float, 
 		for i in range(count):
 			positions.append(Vector2(rng.randf_range(min_x, max_x), y))
 	return positions
+	
+func get_corpse_positions_for_floor(floor_num: int, scene_path: String) -> Array:
+	var result = []
+	for key in killed_zombies:
+		var data = killed_zombies[key]
+		if data["floor"] == floor_num and data["scene"] == scene_path:
+			result.append(Vector2(data["x"], data["y"]))
+	return result
 
 func initialize_paradise_apartments() -> void:
 	var rng = RandomNumberGenerator.new()

@@ -29,4 +29,23 @@ func _ready() -> void:
 			zombie.spawn_key = str(30) + ":204.0:368.0"
 			add_child(zombie)
 
-# if spawn_source is empty, player stays at default scene position
+	_spawn_corpses(30)
+
+func _spawn_corpses(floor_num: int) -> void:
+	var scene_path = get_tree().current_scene.scene_file_path
+	var corpse_positions = WorldState.get_corpse_positions_for_floor(floor_num, scene_path)
+	if corpse_positions.is_empty():
+		return
+	var zombie_scene = preload("res://scenes/enemy_zombie_standard.tscn")
+	var zombie_instance = zombie_scene.instantiate()
+	var frames = zombie_instance.get_node("AnimatedSprite2D").sprite_frames
+	zombie_instance.queue_free()
+	for pos in corpse_positions:
+		var corpse = AnimatedSprite2D.new()
+		corpse.sprite_frames = frames
+		corpse.scale = Vector2(3, 3)
+		corpse.animation = "Dead_Dead"
+		corpse.autoplay = "Dead_Dead"
+		corpse.global_position = pos
+		corpse.z_index = 0
+		add_child(corpse)

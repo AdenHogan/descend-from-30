@@ -112,7 +112,6 @@ func _ready() -> void:
 	var interactable_script = load("res://scripts/interactable.gd")
 
 	for module in get_tree().get_nodes_in_group("room_module"):
-		# Determine room type for this module
 		var room_type = ""
 		for rt in MODULE_SCENES.keys():
 			if module.get_node_or_null("ColorRect") != null:
@@ -121,13 +120,11 @@ func _ready() -> void:
 					room_type = rt
 					break
 
-		# Get all Marker2D anchors in this module
 		var all_anchors = []
 		for child in module.get_children():
 			if child is Marker2D:
 				all_anchors.append(child)
 
-		# Shuffle anchors using apartment+room seed
 		var anchor_rng = RandomNumberGenerator.new()
 		anchor_rng.seed = hash(str(WorldState.master_seed) + apartment_id + room_type)
 		for i in range(all_anchors.size() - 1, 0, -1):
@@ -136,14 +133,12 @@ func _ready() -> void:
 			all_anchors[i] = all_anchors[j]
 			all_anchors[j] = temp
 
-		# Pick how many anchors are active this visit
 		var range_data = ANCHOR_RANGES.get(room_type, [2, all_anchors.size()])
 		var min_active = range_data[0]
 		var max_active = min(range_data[1], all_anchors.size())
 		var active_count = min_active + (anchor_rng.randi() % (max_active - min_active + 1))
 		var active_anchors = all_anchors.slice(0, active_count)
 
-		# Only wire up active anchors
 		var apt_rng_items = RandomNumberGenerator.new()
 		apt_rng_items.seed = hash(str(WorldState.master_seed) + "items" + apartment_id)
 		for anchor in active_anchors:
@@ -175,6 +170,27 @@ func _ready() -> void:
 		for anchor in module.get_children():
 			if anchor.has_method("try_interact"):
 				interactables.append(anchor)
+
+	_spawn_corpses(WorldState.current_floor)
+
+func _spawn_corpses(floor_num: int) -> void:
+	var scene_path = get_tree().current_scene.scene_file_path
+	var corpse_positions = WorldState.get_corpse_positions_for_floor(floor_num, scene_path)
+	if corpse_positions.is_empty():
+		return
+	var zombie_scene = preload("res://scenes/enemy_zombie_standard.tscn")
+	var zombie_instance = zombie_scene.instantiate()
+	var frames = zombie_instance.get_node("AnimatedSprite2D").sprite_frames
+	zombie_instance.queue_free()
+	for pos in corpse_positions:
+		var corpse = AnimatedSprite2D.new()
+		corpse.sprite_frames = frames
+		corpse.scale = Vector2(3, 3)
+		corpse.animation = "Dead_Dead"
+		corpse.autoplay = "Dead_Dead"
+		corpse.global_position = pos
+		corpse.z_index = 0
+		add_child(corpse)
 
 func _is_player_facing_anchor(anchor: Node) -> bool:
 	var player = get_tree().get_first_node_in_group("player")
