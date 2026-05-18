@@ -35,6 +35,9 @@ var saved_player_x: float = 0.0
 var saved_player_y: float = 0.0
 var killed_zombies: Dictionary = {}
 
+# Dev tools
+var god_mode: bool = false
+
 # --- Door system ---
 enum DoorState {
 	OPEN,
@@ -82,6 +85,7 @@ func new_game() -> void:
 	door_keys_consumed.clear()
 	floor_states_seeded.clear()
 	barricade_progress.clear()
+	god_mode = false
 
 
 func on_floor_arrived(floor_num: int) -> void:
@@ -326,24 +330,6 @@ func _pick_door_state(rng: RandomNumberGenerator, weights: Array) -> int:
 
 
 func seed_floor_door_states(floor_num: int) -> void:
-	# Floor 30 is the tutorial floor — door states are hardcoded, never randomised
-	# 3001: permanently sealed (handled in door.gd directly, no state needed)
-	# 3002: locked — key found inside 3003
-	# 3003: open — first entry point
-	# 3004: barricaded + locked — teaches both mechanics
-	# 3005: open
-	if floor_num == 30:
-		if not door_states.has("3002"):
-			door_states["3002"] = DoorState.SHUT_LOCKED
-		if not door_states.has("3003"):
-			door_states["3003"] = DoorState.OPEN
-		if not door_states.has("3004"):
-			door_states["3004"] = DoorState.BARRICADED_LOCKED
-		if not door_states.has("3005"):
-			door_states["3005"] = DoorState.OPEN
-		floor_states_seeded[30] = true
-		return
-
 	if floor_states_seeded.get(floor_num, false):
 		return
 	floor_states_seeded[floor_num] = true
@@ -355,7 +341,7 @@ func seed_floor_door_states(floor_num: int) -> void:
 	for i in range(1, 6):
 		apartments.append(str(floor_num) + "0" + str(i))
 
-	# Shuffle so guaranteed open doors are not always apartment 01/02
+	# Shuffle so guaranteed open doors aren't always apartment 01/02
 	for i in range(apartments.size() - 1, 0, -1):
 		var j = rng.randi() % (i + 1)
 		var temp = apartments[i]
@@ -455,6 +441,81 @@ func get_breached_room_enemies(apartment_id: String, min_x: float, max_x: float,
 		})
 
 	return enemies
+
+
+# ============================================================
+# KEY SYSTEM
+# ============================================================
+
+# Returns the apartment ID that a key should target, seeded for
+# a given floor and anchor. Keys spawn 4-5 floors away from their door.
+func get_key_target_for_anchor(floor_num: int, anchor_name: String) -> String:
+	var rng = RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "key" + str(floor_num) + anchor_name)
+
+	var offset = 4 + (rng.randi() % 2)  # 4 or 5
+	var direction = 1 if rng.randf() < 0.5 else -1
+	var target_floor = clamp(floor_num + (offset * direction), 2, 29)
+
+	var apt_num = "0" + str((rng.randi() % 5) + 1)
+	return str(target_floor) + apt_num
+
+
+# Called by room.gd when seeding items — determines if an anchor
+# should spawn a key instead of a regular item
+func should_anchor_spawn_key(apartment_id: String, anchor_name: String) -> bool:
+	var rng = RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "keyspawn" + apartment_id + anchor_name)
+	# Keys are rare — roughly 3% chance per anchor
+	return rng.randf() < 0.03
+
+
+# Add a key with a specific target apartment to inventory
+func add_key_to_inventory(target_apartment: String) -> bool:
+	if inventory.size() >= MAX_INVENTORY_SLOTS:
+		return false
+	var instance = ItemInstance.new()
+	instance.setup_key("022", target_apartment)
+	inventory.append(instance)
+	return true
+
+
+# Get the target apartment from a key in inventory at a given slot
+func get_key_target_at(slot_index: int) -> String:
+	if slot_index < 0 or slot_index >= inventory.size():
+		return ""
+	return inventory[slot_index].target_apartment
+
+
+func set_anchor_key(apartment_id: String, anchor_name: String, target_apartment: String) -> void:
+	var key = apartment_id + ":" + anchor_name
+	anchor_items[key] = "KEY:" + target_apartment
+
+
+func get_anchor_key_target(apartment_id: String, anchor_name: String) -> String:
+	var key = apartment_id + ":" + anchor_name
+	var val = anchor_items.get(key, "")
+	if val.begins_with("KEY:"):
+		return val.substr(4)
+	return ""
+
+
+func is_anchor_a_key(apartment_id: String, anchor_name: String) -> bool:
+	var key = apartment_id + ":" + anchor_name
+	return anchor_items.get(key, "").begins_with("KEY:")
+
+
+# Returns the apartment ID that the breached room boss key opens.
+# Seeded — same boss always drops the same key on a given run.
+func get_breached_boss_key_target(apartment_id: String) -> String:
+	var rng = RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "bosskey" + apartment_id)
+	var floor_num = int(apartment_id.left(apartment_id.length() - 2))
+	var offset = 1 + (rng.randi() % 3)
+	var direction = 1 if rng.randf() < 0.5 else -1
+	var target_floor = clamp(floor_num + (offset * direction), 2, 29)
+	var apt_num = "0" + str((rng.randi() % 5) + 1)
+	return str(target_floor) + apt_num
 
 
 # ============================================================
@@ -569,7 +630,8 @@ func _serialize_inventory() -> Array:
 		result.append({
 			"item_id": instance.item_id,
 			"current_durability": instance.current_durability,
-			"is_depleted": instance.is_depleted
+			"is_depleted": instance.is_depleted,
+			"target_apartment": instance.target_apartment
 		})
 	return result
 
@@ -581,4 +643,5 @@ func _deserialize_inventory(data: Array) -> void:
 		instance.item_id = entry["item_id"]
 		instance.current_durability = entry["current_durability"]
 		instance.is_depleted = entry["is_depleted"]
+		instance.target_apartment = entry.get("target_apartment", "")
 		inventory.append(instance)

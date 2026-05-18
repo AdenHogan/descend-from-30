@@ -71,6 +71,7 @@ func _ready() -> void:
 			left_up.process_mode = Node.PROCESS_MODE_ALWAYS
 			left_down.process_mode = Node.PROCESS_MODE_DISABLED
 
+	# Assign apartment IDs and apply correct door states AFTER IDs are set
 	var floor_num = WorldState.current_floor
 	for i in range(1, 6):
 		var node_name = "apartment0" + str(i)
@@ -78,6 +79,7 @@ func _ready() -> void:
 		var door = get_node_or_null(node_name)
 		if door:
 			door.apartment_id = apt_id
+			door._apply_door_state()
 
 	var floor_rng = RandomNumberGenerator.new()
 	floor_rng.seed = (WorldState.master_seed ^ (floor_num * 2246822519)) & 0xFFFFFFFF
@@ -95,6 +97,7 @@ func _ready() -> void:
 		add_child(zombie)
 
 	_spawn_corpses(floor_num)
+
 
 func _spawn_corpses(floor_num: int) -> void:
 	var scene_path = get_tree().current_scene.scene_file_path

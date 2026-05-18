@@ -87,7 +87,11 @@ func _ready() -> void:
 		player.position.x = 1050
 		player.get_node("AnimatedSprite2D").flip_h = true
 
-	if not (WorldState.is_first_run and WorldState.current_floor == 30):
+	# Spawn enemies — breached rooms use separate system with Big Zombie boss
+	var door_state = WorldState.get_door_state(apartment_id)
+	if door_state == WorldState.DoorState.BREACHED:
+		_spawn_breached_enemies()
+	elif not (WorldState.is_first_run and WorldState.current_floor == 30):
 		var zombie_count = WorldState.get_apartment_zombie_count(apartment_id)
 		if zombie_count > 0:
 			var apt_rng = RandomNumberGenerator.new()
@@ -146,22 +150,38 @@ func _ready() -> void:
 			anchor.apartment_id = apartment_id
 			anchor._ready()
 			anchor.set_process(true)
+
+			# Determine spawn chance based on room type and door state
 			var spawn_chance: float
-			if is_paradise:
+			var locked = WorldState.is_locked_apartment(apartment_id)
+			var key_opened = WorldState.was_key_opened(apartment_id)
+			if key_opened:
+				spawn_chance = 0.55  # Key-opened doors: best loot
+			elif is_paradise:
 				spawn_chance = 0.65
+			elif locked:
+				spawn_chance = 0.45  # Locked bonus even if forced
 			else:
 				match WorldState.current_run:
-					1: spawn_chance = 0.15
-					2: spawn_chance = 0.10
-					3: spawn_chance = 0.08
-					_: spawn_chance = 0.10
+					1: spawn_chance = 0.35
+					2: spawn_chance = 0.28
+					3: spawn_chance = 0.22
+					_: spawn_chance = 0.28
+
 			if apt_rng_items.randf() > spawn_chance:
 				continue
-			var valid_items = WorldState.get_items_for_anchor(anchor.name, apartment_id)
-			if valid_items.is_empty():
-				continue
-			var item_id = valid_items[apt_rng_items.randi() % valid_items.size()]
-			WorldState.set_anchor_item(apartment_id, anchor.name, item_id)
+
+			# Check if this anchor should spawn a key instead of a regular item
+			var floor_num = int(apartment_id.left(apartment_id.length() - 2))
+			if WorldState.should_anchor_spawn_key(apartment_id, anchor.name):
+				var key_target = WorldState.get_key_target_for_anchor(floor_num, anchor.name)
+				WorldState.set_anchor_key(apartment_id, anchor.name, key_target)
+			else:
+				var valid_items = WorldState.get_items_for_anchor(anchor.name, apartment_id)
+				if valid_items.is_empty():
+					continue
+				var item_id = valid_items[apt_rng_items.randi() % valid_items.size()]
+				WorldState.set_anchor_item(apartment_id, anchor.name, item_id)
 
 	await get_tree().process_frame
 	WorldState.interaction_handled = false
@@ -172,6 +192,38 @@ func _ready() -> void:
 				interactables.append(anchor)
 
 	_spawn_corpses(WorldState.current_floor)
+
+
+func _spawn_breached_enemies() -> void:
+	var floor_num = WorldState.current_floor
+	var enemy_list = WorldState.get_breached_room_enemies(apartment_id, 150.0, 1030.0, 321.0)
+
+	var standard_scene = preload("res://scenes/enemy_zombie_standard.tscn")
+	var big_scene = preload("res://scenes/enemy_zombie_big.tscn")
+
+	var boss_spawned = false
+
+	for i in range(enemy_list.size()):
+		var entry = enemy_list[i]
+		var key = str(floor_num) + ":" + str(snappedf(entry["position"].x, 1.0)) + ":" + str(snappedf(entry["position"].y, 1.0))
+		if WorldState.killed_zombies.has(key):
+			continue
+
+		# First enemy in the list is always the Big Zombie boss
+		if not boss_spawned and entry["type"] == "zombie_standard":
+			var boss = big_scene.instantiate()
+			boss.global_position = entry["position"]
+			boss.spawn_key = key
+			boss.drops_key = true
+			boss.key_target_apartment = WorldState.get_breached_boss_key_target(apartment_id)
+			add_child(boss)
+			boss_spawned = true
+		else:
+			var zombie = standard_scene.instantiate()
+			zombie.global_position = entry["position"]
+			zombie.spawn_key = key
+			add_child(zombie)
+
 
 func _spawn_corpses(floor_num: int) -> void:
 	var scene_path = get_tree().current_scene.scene_file_path
@@ -192,6 +244,7 @@ func _spawn_corpses(floor_num: int) -> void:
 		corpse.z_index = 0
 		add_child(corpse)
 
+
 func _is_player_facing_anchor(anchor: Node) -> bool:
 	var player = get_tree().get_first_node_in_group("player")
 	if player == null:
@@ -207,6 +260,7 @@ func _is_player_facing_anchor(anchor: Node) -> bool:
 	if sprite.flip_h and diff < 0:
 		return true
 	return false
+
 
 func _process(_delta: float) -> void:
 	if not WorldState.is_scavenge_mode:
@@ -238,6 +292,7 @@ func _process(_delta: float) -> void:
 		selected_index = (selected_index - 1 + nearby.size()) % nearby.size()
 
 	nearby[selected_index].is_selected = true
+
 
 func _input(event: InputEvent) -> void:
 	if not WorldState.is_scavenge_mode:
@@ -275,6 +330,7 @@ func _input(event: InputEvent) -> void:
 			WorldState.interaction_handled = false
 			nearby[selected_index].try_interact()
 
+
 func _get_mouse_world_pos() -> Vector2:
 	var player = get_tree().get_first_node_in_group("player")
 	if player == null:
@@ -283,6 +339,7 @@ func _get_mouse_world_pos() -> Vector2:
 	if cam == null:
 		return Vector2.ZERO
 	return cam.get_screen_center_position() + (get_viewport().get_mouse_position() - get_viewport().get_visible_rect().size / 2) / cam.zoom
+
 
 func _get_clicked_interactable(nearby: Array, mouse_world: Vector2) -> int:
 	var best_index = -1

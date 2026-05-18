@@ -12,6 +12,8 @@ const MODE_SWITCH_TIME = 0.2
 const DEV_MODE = true
 const DEV_ITEMS = ["001", "002", "003", "004", "005", "006", "007", "008", "009", "010", "011", "012", "013", "014", "015", "016", "017", "018", "019", "020", "021", "022"]
 var dev_item_index = 0
+const DEV_HEAL_ITEMS = ["006", "007", "009", "010", "011"]
+var dev_heal_index = 0
 
 # Stamina
 const STAMINA_SPRINT_DRAIN = 18.0
@@ -71,6 +73,7 @@ var is_dead = false
 var is_switching_mode = false
 var mode_switch_timer = 0.0
 
+
 func _ready() -> void:
 	add_to_group("player")
 	health_state = HealthState.values()[WorldState.player_health]
@@ -80,6 +83,9 @@ func _ready() -> void:
 	HUD.update_mode_indicator()
 	HUD.update_stamina(WorldState.stamina, WorldState.max_stamina)
 	HUD.refresh_inventory()
+	if WorldState.god_mode:
+		HUD.show_feedback("DEV: God Mode ON")
+
 
 func _physics_process(delta: float) -> void:
 	if is_dead:
@@ -139,7 +145,7 @@ func _physics_process(delta: float) -> void:
 			is_hit = false
 			animated_sprite.modulate = Color(1, 1, 1, 1)
 
-	if is_sprinting and WorldState.stamina > 0:
+	if is_sprinting and WorldState.stamina > 0 and not WorldState.god_mode:
 		WorldState.stamina = max(WorldState.stamina - STAMINA_SPRINT_DRAIN * delta, 0.0)
 		stamina_recovery_timer = STAMINA_RECOVERY_DELAY
 		HUD.update_stamina(WorldState.stamina, WorldState.max_stamina)
@@ -203,6 +209,7 @@ func _physics_process(delta: float) -> void:
 		velocity.x = move_toward(velocity.x, 0, SPEED)
 	move_and_slide()
 
+
 func _get_equipped_weapon_type() -> String:
 	var slot = HUD.selected_slot
 	if slot < 0 or slot >= WorldState.inventory.size():
@@ -211,6 +218,7 @@ func _get_equipped_weapon_type() -> String:
 	if not item_data.get("is_weapon", false):
 		return ""
 	return _get_weapon_type(item_data)
+
 
 func _get_weapon_type(item_data: Dictionary) -> String:
 	var name = item_data.get("name", "").to_lower()
@@ -224,12 +232,14 @@ func _get_weapon_type(item_data: Dictionary) -> String:
 		return "gun"
 	return ""
 
+
 func _get_weapon_damage_type(weapon_type: String) -> String:
 	match weapon_type:
 		"knife", "sword": return "blade"
 		"bat": return "bludgeon"
 		"gun": return "bullet"
 	return "blunt"
+
 
 func _do_melee_attack(instance: ItemInstance, slot_index: int) -> void:
 	if is_attacking:
@@ -239,13 +249,15 @@ func _do_melee_attack(instance: ItemInstance, slot_index: int) -> void:
 	if weapon_type == "" or weapon_type == "gun":
 		return
 	var stamina_cost = WEAPON_STAMINA_COST.get(weapon_type, 15.0)
-	if WorldState.stamina < stamina_cost:
+	if WorldState.stamina < stamina_cost and not WorldState.god_mode:
 		HUD.show_feedback("Too exhausted to swing.")
 		return
 
-	WorldState.stamina = max(WorldState.stamina - stamina_cost, 0.0)
-	stamina_recovery_timer = STAMINA_RECOVERY_DELAY
-	HUD.update_stamina(WorldState.stamina, WorldState.max_stamina)
+	if not WorldState.god_mode:
+		WorldState.stamina = max(WorldState.stamina - stamina_cost, 0.0)
+		stamina_recovery_timer = STAMINA_RECOVERY_DELAY
+		HUD.update_stamina(WorldState.stamina, WorldState.max_stamina)
+
 	is_attacking = true
 	attack_cooldown_timer = WEAPON_COOLDOWN.get(weapon_type, 0.5)
 	animated_sprite.play("katana_attack_continuous")
@@ -275,6 +287,7 @@ func _do_melee_attack(instance: ItemInstance, slot_index: int) -> void:
 			HUD.show_feedback(weapon_name + " broke!")
 		else:
 			HUD.refresh_inventory()
+
 
 func _do_gun_attack(instance: ItemInstance, slot_index: int) -> void:
 	var ammo_slot = _find_ammo_in_inventory()
@@ -309,6 +322,7 @@ func _do_gun_attack(instance: ItemInstance, slot_index: int) -> void:
 	if nearest.has_method("receive_hit_from_gun"):
 		nearest.receive_hit_from_gun(outcome)
 
+
 func _calculate_gun_outcome(distance: float) -> String:
 	var rng = RandomNumberGenerator.new()
 	rng.seed = hash(str(WorldState.master_seed) + str(Time.get_ticks_msec()))
@@ -326,6 +340,7 @@ func _calculate_gun_outcome(distance: float) -> String:
 		elif roll < 0.30: return "body"
 		else: return "miss"
 
+
 func _find_ammo_in_inventory() -> int:
 	for i in range(WorldState.inventory.size()):
 		var item_data = ItemData.get_item(WorldState.get_item_id_at(i))
@@ -333,8 +348,9 @@ func _find_ammo_in_inventory() -> int:
 			return i
 	return -1
 
+
 func _do_push() -> void:
-	if WorldState.stamina < 10.0:
+	if WorldState.stamina < 10.0 and not WorldState.god_mode:
 		HUD.show_feedback("Too exhausted to push.")
 		return
 	var now = Time.get_ticks_msec() / 1000.0
@@ -346,8 +362,9 @@ func _do_push() -> void:
 	else:
 		push_count_window = 1
 	last_push_time = now
-	WorldState.stamina = max(WorldState.stamina - cost, 0.0)
-	HUD.update_stamina(WorldState.stamina, WorldState.max_stamina)
+	if not WorldState.god_mode:
+		WorldState.stamina = max(WorldState.stamina - cost, 0.0)
+		HUD.update_stamina(WorldState.stamina, WorldState.max_stamina)
 	is_pushing = true
 	push_timer = PUSH_DURATION
 	animated_sprite.play("punch_jab")
@@ -358,9 +375,11 @@ func _do_push() -> void:
 			var push_dir = sign(zombie.global_position.x - global_position.x)
 			zombie.receive_push(push_dir * PUSH_FORCE)
 
+
 func restore_stamina(amount: float) -> void:
 	WorldState.stamina = min(WorldState.stamina + amount, WorldState.max_stamina)
 	HUD.update_stamina(WorldState.stamina, WorldState.max_stamina)
+
 
 func do_rest() -> void:
 	if not WorldState.rest_available:
@@ -374,10 +393,12 @@ func do_rest() -> void:
 	_reseed_zombies()
 	HUD.show_feedback("You rest. The building shifts.")
 
+
 func _reseed_zombies() -> void:
 	WorldState.master_seed = randi()
 	WorldState.apartment_layouts.clear()
 	WorldState.anchor_items.clear()
+
 
 func _input(event: InputEvent) -> void:
 	if is_dead or is_dying or is_switching_mode:
@@ -406,6 +427,17 @@ func _input(event: InputEvent) -> void:
 				WorldState.is_dying = false
 			_update_hud()
 			HUD.show_feedback("DEV: Health = " + HealthState.keys()[health_state])
+		elif event.is_action_pressed("dev_heal_items"):
+			var item_id = DEV_HEAL_ITEMS[dev_heal_index % DEV_HEAL_ITEMS.size()]
+			if WorldState.add_to_inventory(item_id):
+				HUD.refresh_inventory()
+				HUD.show_feedback("DEV: Added " + ItemData.get_item(item_id).get("name", item_id))
+			else:
+				HUD.show_feedback("DEV: Inventory full.")
+			dev_heal_index += 1
+		elif event.is_action_pressed("dev_god_mode"):
+			WorldState.god_mode = !WorldState.god_mode
+			HUD.show_feedback("DEV: God Mode " + ("ON" if WorldState.god_mode else "OFF"))
 
 	if not WorldState.is_scavenge_mode:
 		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
@@ -438,6 +470,7 @@ func _input(event: InputEvent) -> void:
 	elif event.is_action_pressed("rest"):
 		do_rest()
 
+
 func _is_mouse_over_hud() -> bool:
 	var mouse_y = get_viewport().get_mouse_position().y
 	var screen_h = get_viewport().get_visible_rect().size.y
@@ -446,6 +479,7 @@ func _is_mouse_over_hud() -> bool:
 	if HUD.context_menu and HUD.context_menu.visible:
 		return true
 	return false
+
 
 func use_item(slot_index: int) -> void:
 	if slot_index < 0 or slot_index >= WorldState.inventory.size():
@@ -481,10 +515,17 @@ func use_item(slot_index: int) -> void:
 		HUD.selected_slot = slot_index
 		HUD._update_slot_highlights()
 		HUD.show_feedback("Not implemented yet.")
+	elif item_data.get("is_key", false):
+		var target = instance.target_apartment
+		if target != "":
+			HUD.show_feedback("Apartment " + target + " Key")
+		else:
+			HUD.show_feedback("Apartment Key")
 	elif item_data["is_junk"]:
 		HUD.show_feedback("Nothing happens.")
 	else:
 		HUD.show_feedback("Not implemented yet.")
+
 
 func heal(states: int) -> void:
 	if health_state == HealthState.HEALTHY:
@@ -500,14 +541,18 @@ func heal(states: int) -> void:
 	_update_hud()
 	HUD.show_feedback("Used item.")
 
+
 func receive_hit() -> void:
 	if is_dead or is_dying:
+		return
+	if WorldState.god_mode:
 		return
 	is_hit = true
 	hit_flash_timer = HIT_FLASH_DURATION
 	animated_sprite.modulate = Color(1, 0, 0, 1)
 	animated_sprite.play("hurt")
 	take_damage()
+
 
 func take_damage() -> void:
 	if health_state < HealthState.DYING:
@@ -520,6 +565,7 @@ func take_damage() -> void:
 		WorldState.dying_timer = DYING_TIME
 	_update_hud()
 
+
 func _die() -> void:
 	is_dead = true
 	is_dying = false
@@ -529,6 +575,7 @@ func _die() -> void:
 	print("Player died")
 	await get_tree().create_timer(2.0).timeout
 	Game.game_over()
+
 
 func _update_hud() -> void:
 	HUD.update_portrait(health_state)

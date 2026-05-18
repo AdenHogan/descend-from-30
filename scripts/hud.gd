@@ -33,6 +33,7 @@ var context_slot: int = -1
 var last_click_time: float = 0.0
 var last_click_slot: int = -1
 const DOUBLE_CLICK_TIME = 0.4
+var slot_key_labels: Array = []
 
 var stamina_bar: Control = null
 var stamina_segments: Array = []
@@ -109,6 +110,15 @@ func _create_slot_icons() -> void:
 		dur_fill.color = Color(0.2, 0.8, 0.2, 1.0)
 		dur_fill.visible = false
 		slot.add_child(dur_fill)
+		
+		var key_label = Label.new()
+		key_label.add_theme_font_size_override("font_size", 7)
+		key_label.position = Vector2(2, 2)
+		key_label.size = Vector2(SLOT_SIZE - 4, 16)
+		key_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		key_label.visible = false
+		slot.add_child(key_label)
+		slot_key_labels.append(key_label)
 
 		slot_durability_bars.append({"bg": dur_bg, "fill": dur_fill})
 
@@ -308,8 +318,15 @@ func refresh_inventory() -> void:
 			else:
 				slot_icons[i].visible = false
 
-			# Show durability bar for items with limited uses
 			var item_data = ItemData.get_item(item_id)
+
+			var key_label = slot_key_labels[i]
+			if item_data.get("is_key", false) and instance.target_apartment != "":
+				key_label.text = instance.target_apartment
+				key_label.visible = true
+			else:
+				key_label.visible = false
+
 			var max_dur = item_data.get("max_durability", -1)
 			if max_dur > 0 and not item_data.get("single_use", false):
 				var ratio = float(instance.current_durability) / float(max_dur)
@@ -329,6 +346,7 @@ func refresh_inventory() -> void:
 			slot_icons[i].visible = false
 			dur["bg"].visible = false
 			dur["fill"].visible = false
+			slot_key_labels[i].visible = false
 	_update_slot_highlights()
 
 func show_hud() -> void:

@@ -4,6 +4,8 @@ class_name ItemInstance
 var item_id: String = ""
 var current_durability: int = 0
 var is_depleted: bool = false
+var target_apartment: String = ""  # Only used for is_key items — "Key — Apt XXXX"
+
 
 func setup(id: String) -> void:
 	item_id = id
@@ -18,8 +20,22 @@ func setup(id: String) -> void:
 	else:
 		current_durability = -1  # ammo-dependent or battery-dependent
 
+
+func setup_key(id: String, apartment_id: String) -> void:
+	setup(id)
+	target_apartment = apartment_id
+
+
+func get_display_name() -> String:
+	var data = get_data()
+	if data.get("is_key", false) and target_apartment != "":
+		return "Key — Apt " + target_apartment
+	return data.get("name", "Unknown")
+
+
 func get_data() -> Dictionary:
 	return ItemData.items.get(item_id, {})
+
 
 func use() -> bool:
 	if is_depleted:
@@ -31,12 +47,14 @@ func use() -> bool:
 		is_depleted = true
 	return true
 
+
 func repair(amount: int) -> void:
 	var data = get_data()
 	if data.get("single_use", false):
-		return  # can't repair single use items
+		return
 	current_durability = min(current_durability + amount, data["max_durability"])
 	is_depleted = false
 
+
 func get_item_name() -> String:
-	return get_data().get("name", "Unknown")
+	return get_display_name()

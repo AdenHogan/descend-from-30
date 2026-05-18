@@ -8,17 +8,16 @@ var current_state: int = -1
 
 # Barricade removal timer
 var is_removing_barricade: bool = false
-var removal_duration: float = 0.0  # 6.0 or 12.0 depending on tool
-var removal_elapsed: float = 0.0   # local mirror of WorldState progress
+var removal_duration: float = 0.0
+var removal_elapsed: float = 0.0
 
-const BARRICADE_SPRITE_HEIGHT: float = 69.0  # matches Barricade.png height at scale 1
+const BARRICADE_SPRITE_HEIGHT: float = 69.0
 
 @onready var proximity_label: Label = $ProximityLabel
 @onready var door_sprite: Sprite2D = $Sprite2D
 @onready var barricade_sprite: Sprite2D = $BarricadeSprite2D
 @onready var barricade_progress_overlay: ColorRect = $BarricadeProgressOverlay
 
-# Tint colours per state
 const TINT_OPEN                = Color(1.2, 1.2, 0.8, 1.0)
 const TINT_SHUT_JIMMYABLE      = Color(1.0, 1.0, 1.0, 1.0)
 const TINT_SHUT_LOCKED         = Color(1.4, 0.4, 0.4, 1.0)
@@ -27,7 +26,9 @@ const TINT_BARRICADED_L        = Color(1.4, 0.4, 0.4, 1.0)
 const TINT_BREACHED            = Color(0.9, 0.5, 1.3, 1.0)
 const TINT_INACCESSIBLE        = Color(0.3, 0.3, 0.3, 1.0)
 
-const SEALED_APARTMENT = "3001"
+
+func _is_sealed() -> bool:
+	return apartment_id == "3001" and WorldState.current_floor == 30
 
 
 func _ready() -> void:
@@ -40,19 +41,14 @@ func _ready() -> void:
 
 
 func _setup_progress_overlay() -> void:
-	# Semi-transparent dark overlay that shrinks top-down as barricade is removed
-	# Sits on top of the barricade sprite as a child — position/size set here in code
-	# so we don't need to hand-place it in the scene editor
 	barricade_progress_overlay.color = Color(0.0, 0.0, 0.0, 0.55)
 	barricade_progress_overlay.visible = false
-	# Overlay covers the full barricade sprite — position relative to barricade_sprite origin
-	# Barricade.png is 50x69, sprite is centred so top-left is at (-25, -34.5)
 	barricade_progress_overlay.position = Vector2(-25, -35)
 	barricade_progress_overlay.size = Vector2(50, BARRICADE_SPRITE_HEIGHT)
 
 
 func _apply_door_state() -> void:
-	if apartment_id == SEALED_APARTMENT:
+	if _is_sealed():
 		door_sprite.modulate = TINT_INACCESSIBLE
 		barricade_sprite.visible = false
 		barricade_progress_overlay.visible = false
@@ -93,17 +89,11 @@ func _apply_door_state() -> void:
 
 
 func _sync_overlay_to_progress() -> void:
-	# Restore overlay to match saved progress when re-entering collision area
-	# or when scene loads with a partially removed barricade
 	var saved = WorldState.barricade_progress.get(apartment_id, 0.0)
 	if saved <= 0.0:
 		barricade_progress_overlay.visible = false
 		barricade_progress_overlay.size.y = BARRICADE_SPRITE_HEIGHT
 		return
-
-	# Figure out what duration would have been used — check if player has a tool
-	# For display purposes we use the longer duration as a safe default;
-	# actual duration is set when the player starts/resumes removal
 	var display_ratio = saved / _get_removal_duration()
 	display_ratio = clamp(display_ratio, 0.0, 1.0)
 	var remaining_height = BARRICADE_SPRITE_HEIGHT * (1.0 - display_ratio)
@@ -121,16 +111,26 @@ func _get_removal_duration() -> float:
 
 
 func _get_prompt_text() -> String:
-	if apartment_id == SEALED_APARTMENT:
+	if _is_sealed():
 		return apartment_id + " - Sealed"
-
 	match current_state:
 		WorldState.DoorState.OPEN:
 			return apartment_id + " - [E] Enter"
 		WorldState.DoorState.SHUT_JIMMYABLE:
-			return apartment_id + " - [X] Jimmy door"
+			return apartment_id + " - [X] Force door"
 		WorldState.DoorState.SHUT_LOCKED:
-			return apartment_id + " - Locked  [X] Force lock"
+			var has_key = _find_key_for_apartment() >= 0
+			var has_force = false
+			var slot = HUD.selected_slot
+			if slot >= 0 and slot < WorldState.inventory.size():
+				var item_data = ItemData.get_item(WorldState.get_item_id_at(slot))
+				has_force = item_data.get("can_force_lock", false)
+			if has_key:
+				return apartment_id + " - [X] Use key"
+			elif has_force:
+				return apartment_id + " - Locked  [X] Force lock"
+			else:
+				return apartment_id + " - Locked  Needs key"
 		WorldState.DoorState.BARRICADED_JIMMYABLE:
 			if is_removing_barricade:
 				var remaining = removal_duration - removal_elapsed
@@ -151,11 +151,9 @@ func _get_prompt_text() -> String:
 			return apartment_id + " - BREACHED  [E] Enter"
 	return apartment_id
 
-
 func _on_body_entered(body: Node2D) -> void:
 	if body.name == "Player":
 		player_nearby = true
-		# Sync overlay to saved progress when player re-enters range
 		if current_state == WorldState.DoorState.BARRICADED_JIMMYABLE or \
 		   current_state == WorldState.DoorState.BARRICADED_LOCKED:
 			_sync_overlay_to_progress()
@@ -167,46 +165,37 @@ func _on_body_exited(body: Node2D) -> void:
 	if body.name == "Player":
 		player_nearby = false
 		proximity_label.visible = false
-		# Freeze removal — save progress and stop timer
 		if is_removing_barricade:
 			is_removing_barricade = false
 			WorldState.barricade_progress[apartment_id] = removal_elapsed
-			# Overlay stays at current position — frozen visually
 
 
 func _process(delta: float) -> void:
 	if not player_nearby:
 		return
 
-	if apartment_id == SEALED_APARTMENT:
+	if _is_sealed():
 		return
 
-	# Update barricade removal timer
 	if is_removing_barricade:
 		removal_elapsed += delta
 		WorldState.barricade_progress[apartment_id] = removal_elapsed
-
-		# Update overlay — shrink from top down
 		var progress_ratio = clamp(removal_elapsed / removal_duration, 0.0, 1.0)
 		var remaining_height = BARRICADE_SPRITE_HEIGHT * (1.0 - progress_ratio)
 		barricade_progress_overlay.size.y = remaining_height
 		barricade_progress_overlay.visible = remaining_height > 1.0
-
 		proximity_label.text = _get_prompt_text()
-
 		if removal_elapsed >= removal_duration:
 			_finish_barricade_removal()
 			return
 
 	proximity_label.text = _get_prompt_text()
 
-	# E to enter — always available regardless of mode
 	if Input.is_action_just_pressed("interact"):
 		match current_state:
 			WorldState.DoorState.OPEN, WorldState.DoorState.BREACHED:
 				_enter_apartment()
 
-	# Obstacle interactions require scavenge mode
 	if not WorldState.is_scavenge_mode:
 		return
 
@@ -259,7 +248,6 @@ func _attempt_jimmy() -> void:
 	WorldState.set_door_state(apartment_id, WorldState.DoorState.OPEN)
 	_apply_door_state()
 	proximity_label.text = _get_prompt_text()
-	# TODO: trigger noise event
 
 
 func _attempt_locked() -> void:
@@ -297,19 +285,14 @@ func _attempt_locked() -> void:
 	WorldState.set_door_state(apartment_id, WorldState.DoorState.OPEN)
 	_apply_door_state()
 	proximity_label.text = _get_prompt_text()
-	# TODO: trigger noise event
 
 
 func _attempt_barricade_removal() -> void:
 	if is_removing_barricade:
-		return  # already in progress
-
+		return
 	removal_duration = _get_removal_duration()
-	# Resume from saved progress if any
 	removal_elapsed = WorldState.barricade_progress.get(apartment_id, 0.0)
 	is_removing_barricade = true
-
-	# Show overlay immediately at correct position
 	_sync_overlay_to_progress()
 	barricade_progress_overlay.visible = true
 	proximity_label.text = _get_prompt_text()
@@ -329,7 +312,6 @@ func _finish_barricade_removal() -> void:
 	_apply_door_state()
 	proximity_label.text = _get_prompt_text()
 	HUD.show_feedback("Barricade removed.")
-	# TODO: trigger noise event, possibly spawn zombie
 
 
 func _use_key(key_slot: int) -> void:
@@ -345,5 +327,7 @@ func _find_key_for_apartment() -> int:
 	for i in range(WorldState.inventory.size()):
 		var item_data = ItemData.get_item(WorldState.get_item_id_at(i))
 		if item_data.get("is_key", false):
-			return i
+			var instance = WorldState.get_instance_at(i)
+			if instance.target_apartment == apartment_id:
+				return i
 	return -1
