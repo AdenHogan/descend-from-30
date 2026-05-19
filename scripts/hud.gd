@@ -260,14 +260,26 @@ func _context_use() -> void:
 func _context_discard() -> void:
 	context_menu.visible = false
 	if context_slot >= 0 and context_slot < WorldState.inventory.size():
-		WorldState.remove_from_inventory(context_slot)
+		var instance = WorldState.get_instance_at(context_slot)
+		var item_data = instance.get_data()
+		var is_broken = item_data.get("is_weapon", false) and instance.is_depleted
+		var is_consumed = not item_data.get("is_weapon", false) and instance.is_depleted
+		if not is_broken and not is_consumed:
+			var player = get_tree().get_first_node_in_group("player")
+			if player != null:
+				var drop_pos = player.global_position + Vector2(randf_range(-20, 20), 0)
+				var extra = {}
+				if instance.target_apartment != "":
+					extra["target_apartment"] = instance.target_apartment
+				WorldState.add_world_drop(instance.item_id, drop_pos, WorldState.current_floor, extra)
 		if selected_slot > context_slot:
 			selected_slot -= 1
 		elif selected_slot == context_slot:
 			selected_slot = -1
+		WorldState.remove_from_inventory(context_slot)
 		_update_slot_highlights()
 		refresh_inventory()
-		show_feedback("Item discarded.")
+		show_feedback("Item dropped.")
 
 func _context_cancel() -> void:
 	context_menu.visible = false

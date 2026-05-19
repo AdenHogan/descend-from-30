@@ -1,11 +1,10 @@
 extends CharacterBody2D
 
-const SPEED = 25.0                  # Slower than standard zombie (40.0)
-const DETECTION_RANGE = 130.0       # Slightly larger detection range
-const ATTACK_RANGE = 45.0           # Bigger reach
-const PUSH_FRICTION = 0.70          # Push knockback heavily reduced
-const HIT_DURATION = 0.6            # Much shorter stagger — hard to stagger
-const RECOVER_DURATION = 0.3
+const SPEED = 25.0
+const DETECTION_RANGE = 130.0
+const ATTACK_RANGE = 45.0
+const PUSH_FRICTION = 0.70
+const HIT_DURATION = 0.6
 # No knockdown state — big zombie cannot be knocked down
 
 var animated_sprite: AnimatedSprite2D
@@ -13,8 +12,9 @@ var player: Node2D = null
 var state = "idle"
 var state_timer = 0.0
 var spawn_key: String = ""
-var drops_key: bool = false         # Set true by room.gd for breached room boss
-var key_target_apartment: String = ""  # Which apartment key this boss drops
+var drops_key: bool = false
+var key_target_apartment: String = ""
+var key_dropped: bool = false  # Guard against double drops
 
 var max_hp: int = 20
 var current_hp: int = 20
@@ -34,7 +34,6 @@ func _set_hp_from_floor() -> void:
 	var floor_num = WorldState.current_floor
 	var rng = RandomNumberGenerator.new()
 	rng.seed = hash(str(WorldState.master_seed) + str(global_position) + str(floor_num))
-	# Big zombie scales from 15 HP on floor 29 down to 8 HP on floor 1
 	var base = lerp(15.0, 8.0, float(floor_num - 1) / 29.0)
 	var variance = rng.randi() % 3 - 1
 	max_hp = clamp(int(base) + variance, 6, 20)
@@ -44,7 +43,6 @@ func _set_hp_from_floor() -> void:
 func receive_push(force: float) -> void:
 	if is_dead:
 		return
-	# Big zombie absorbs most of the push — 40% effectiveness
 	var reduced_force = force * 0.4
 	velocity.x = clamp(reduced_force, -80.0, 80.0)
 	state_timer = max(state_timer, 0.3)
@@ -62,8 +60,10 @@ func receive_damage(amount: int, damage_type: String) -> void:
 	if current_hp <= 0:
 		_die()
 		return
-	animated_sprite.play("Hit")
+	# Enter hit stagger state
+	state = "hit"
 	state_timer = HIT_DURATION
+	animated_sprite.play("Hit")
 
 
 func receive_hit_from_gun(outcome: String) -> void:
@@ -76,6 +76,8 @@ func receive_hit_from_gun(outcome: String) -> void:
 
 
 func _die() -> void:
+	if is_dead:
+		return
 	is_dead = true
 	state = "dead"
 	velocity.x = 0
@@ -91,8 +93,8 @@ func _die() -> void:
 			"scene": get_tree().current_scene.scene_file_path
 		}
 
-	# Drop key if this is the breached room boss
-	if drops_key and key_target_apartment != "":
+	if drops_key and key_target_apartment != "" and not key_dropped:
+		key_dropped = true
 		_drop_key()
 
 	await animated_sprite.animation_finished
@@ -106,8 +108,10 @@ func _drop_key() -> void:
 	if added:
 		HUD.show_feedback("Key — Apt " + key_target_apartment + " found!")
 	else:
-		# TODO: spawn key as world item at global_position when world drop system is built
-		HUD.show_feedback("Key dropped! Inventory full.")
+		# Inventory full — spawn as world drop at corpse position
+		WorldState.spawn_world_drop(key_target_apartment, "KEY", global_position,
+				get_tree().current_scene.scene_file_path, WorldState.current_floor)
+		HUD.show_feedback("Key dropped nearby — inventory full.")
 
 
 func _physics_process(delta: float) -> void:
@@ -120,7 +124,7 @@ func _physics_process(delta: float) -> void:
 			state_timer -= delta
 			if state_timer <= 0:
 				state = "chase"
-				animated_sprite.play("Hit")
+				animated_sprite.play("Walk")
 		"attack":
 			velocity.x = 0
 			state_timer -= delta
@@ -128,11 +132,10 @@ func _physics_process(delta: float) -> void:
 				var distance = global_position.distance_to(player.global_position)
 				if distance <= ATTACK_RANGE:
 					if player and player.has_method("receive_hit"):
-						# Big zombie hits twice — deals 2 damage states
 						player.receive_hit()
 						player.receive_hit()
 				state = "chase"
-				animated_sprite.play("Attack")
+				animated_sprite.play("Walk")
 		"chase", "idle":
 			if player == null:
 				player = get_tree().get_first_node_in_group("player")

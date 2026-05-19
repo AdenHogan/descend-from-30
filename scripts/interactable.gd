@@ -8,8 +8,27 @@ var player: Node = null
 var is_in_range: bool = false
 var is_selected: bool = false
 
+
 func _ready() -> void:
 	player = get_tree().get_first_node_in_group("player")
+	_check_should_hide()
+
+
+func _check_should_hide() -> void:
+	# Hide if already searched AND nothing left at this anchor
+	if not WorldState.is_anchor_searched(apartment_id, name):
+		return
+	var has_item = WorldState.get_anchor_item(apartment_id, name) != "" or \
+				   WorldState.is_anchor_a_key(apartment_id, name)
+	if not has_item:
+		_hide_permanently()
+
+
+func _hide_permanently() -> void:
+	visible = false
+	set_process(false)
+	is_in_range = false
+
 
 func _process(_delta: float) -> void:
 	if player == null:
@@ -22,6 +41,7 @@ func _process(_delta: float) -> void:
 	if was_in_range and not is_in_range:
 		WorldState.interaction_handled = false
 	queue_redraw()
+
 
 func _draw() -> void:
 	if player == null:
@@ -39,12 +59,14 @@ func _draw() -> void:
 		var alpha = 1.0 - ((dist - INTERACT_DISTANCE) / (GLOW_DISTANCE - INTERACT_DISTANCE))
 		draw_circle(Vector2.ZERO, 4.0, Color(1, 1, 1, alpha * 0.6))
 
+
 func try_interact() -> void:
 	if not WorldState.is_scavenge_mode:
 		return
 	if not WorldState.interaction_handled:
 		WorldState.interaction_handled = true
 		_open_loot()
+
 
 func _open_loot() -> void:
 	var item_id = WorldState.get_anchor_item(apartment_id, name)
@@ -53,3 +75,13 @@ func _open_loot() -> void:
 		push_error("LootUI not found")
 		return
 	loot_ui.open(item_id, name, apartment_id)
+
+
+# Called by loot_ui after the interaction resolves
+func on_loot_closed(item_was_taken: bool) -> void:
+	if not WorldState.is_anchor_searched(apartment_id, name):
+		return
+	var has_item = WorldState.get_anchor_item(apartment_id, name) != "" or \
+				   WorldState.is_anchor_a_key(apartment_id, name)
+	if not has_item:
+		_hide_permanently()

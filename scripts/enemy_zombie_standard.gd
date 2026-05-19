@@ -92,6 +92,10 @@ func _die() -> void:
 			"floor": WorldState.current_floor,
 			"scene": get_tree().current_scene.scene_file_path
 		}
+ 
+	# Roll for loot drop — 18% chance, consumables only
+	WorldState.roll_zombie_loot(global_position, WorldState.current_floor)
+ 
 	await animated_sprite.animation_finished
 	animated_sprite.pause()
 	await get_tree().create_timer(300).timeout

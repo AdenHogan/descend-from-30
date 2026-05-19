@@ -34,6 +34,7 @@ var available_upgrades: Array = []
 var saved_player_x: float = 0.0
 var saved_player_y: float = 0.0
 var killed_zombies: Dictionary = {}
+var world_drops: Dictionary = {}  # "floor:x:y" -> {item_id, x, y, floor, target_apartment}
 
 # Dev tools
 var god_mode: bool = false
@@ -51,7 +52,7 @@ enum DoorState {
 var door_states: Dictionary = {}
 var door_keys_consumed: Dictionary = {}
 var floor_states_seeded: Dictionary = {}
-var barricade_progress: Dictionary = {}  # apartment_id -> seconds_completed
+var barricade_progress: Dictionary = {}
 
 
 func new_game() -> void:
@@ -81,6 +82,7 @@ func new_game() -> void:
 	saved_player_x = 0.0
 	saved_player_y = 0.0
 	killed_zombies.clear()
+	world_drops.clear()
 	door_states.clear()
 	door_keys_consumed.clear()
 	floor_states_seeded.clear()
@@ -307,8 +309,6 @@ func clear_anchor_item(apartment_id: String, anchor_name: String) -> void:
 # ============================================================
 
 func _get_door_weights(run_num: int) -> Array:
-	# Indices match DoorState enum: [OPEN, SHUT_JIMMYABLE, SHUT_LOCKED, BARRICADED_JIMMYABLE, BARRICADED_LOCKED, BREACHED]
-	# OPEN weight is 0 here — open slots are assigned separately as guaranteed slots
 	match run_num:
 		1: return [0, 40, 28, 14, 10, 8]
 		2: return [0, 30, 24, 16, 12, 18]
@@ -330,6 +330,19 @@ func _pick_door_state(rng: RandomNumberGenerator, weights: Array) -> int:
 
 
 func seed_floor_door_states(floor_num: int) -> void:
+	# Floor 30 is the tutorial floor — door states are hardcoded, never randomised
+	if floor_num == 30:
+		if not door_states.has("3002"):
+			door_states["3002"] = DoorState.SHUT_LOCKED
+		if not door_states.has("3003"):
+			door_states["3003"] = DoorState.OPEN
+		if not door_states.has("3004"):
+			door_states["3004"] = DoorState.BARRICADED_LOCKED
+		if not door_states.has("3005"):
+			door_states["3005"] = DoorState.OPEN
+		floor_states_seeded[30] = true
+		return
+
 	if floor_states_seeded.get(floor_num, false):
 		return
 	floor_states_seeded[floor_num] = true
@@ -341,21 +354,18 @@ func seed_floor_door_states(floor_num: int) -> void:
 	for i in range(1, 6):
 		apartments.append(str(floor_num) + "0" + str(i))
 
-	# Shuffle so guaranteed open doors aren't always apartment 01/02
 	for i in range(apartments.size() - 1, 0, -1):
 		var j = rng.randi() % (i + 1)
 		var temp = apartments[i]
 		apartments[i] = apartments[j]
 		apartments[j] = temp
 
-	# Guarantee 1-2 open doors — never overwrite cross-run player changes
 	var open_count = 1 + (rng.randi() % 2)
 	for i in range(open_count):
 		var apt_id = apartments[i]
 		if not door_states.has(apt_id):
 			door_states[apt_id] = DoorState.OPEN
 
-	# Assign remaining from weighted pool
 	var weights = _get_door_weights(current_run)
 	for i in range(open_count, apartments.size()):
 		var apt_id = apartments[i]
@@ -427,7 +437,7 @@ func get_breached_room_enemies(apartment_id: String, min_x: float, max_x: float,
 	var rng = RandomNumberGenerator.new()
 	rng.seed = hash(str(master_seed) + "breached" + apartment_id + str(current_run))
 
-	var count = 4 + (rng.randi() % 6)  # 4-9 enemies
+	var count = 4 + (rng.randi() % 6)
 
 	var enemies = []
 	var center_x = rng.randf_range(min_x + 60, min_x + 200)
@@ -447,31 +457,27 @@ func get_breached_room_enemies(apartment_id: String, min_x: float, max_x: float,
 # KEY SYSTEM
 # ============================================================
 
-# Returns the apartment ID that a key should target, seeded for
-# a given floor and anchor. Keys spawn 4-5 floors away from their door.
 func get_key_target_for_anchor(floor_num: int, anchor_name: String) -> String:
 	var rng = RandomNumberGenerator.new()
 	rng.seed = hash(str(master_seed) + "key" + str(floor_num) + anchor_name)
-
-	var offset = 4 + (rng.randi() % 2)  # 4 or 5
+	var offset = 4 + (rng.randi() % 2)
 	var direction = 1 if rng.randf() < 0.5 else -1
 	var target_floor = clamp(floor_num + (offset * direction), 2, 29)
-
 	var apt_num = "0" + str((rng.randi() % 5) + 1)
 	return str(target_floor) + apt_num
 
 
-# Called by room.gd when seeding items — determines if an anchor
-# should spawn a key instead of a regular item
 func should_anchor_spawn_key(apartment_id: String, anchor_name: String) -> bool:
 	var rng = RandomNumberGenerator.new()
 	rng.seed = hash(str(master_seed) + "keyspawn" + apartment_id + anchor_name)
-	# Keys are rare — roughly 3% chance per anchor
 	return rng.randf() < 0.03
 
 
-# Add a key with a specific target apartment to inventory
 func add_key_to_inventory(target_apartment: String) -> bool:
+	# Refuse if a key for this apartment already exists
+	for instance in inventory:
+		if instance.target_apartment == target_apartment:
+			return true  # already have it — silently succeed, don't duplicate
 	if inventory.size() >= MAX_INVENTORY_SLOTS:
 		return false
 	var instance = ItemInstance.new()
@@ -480,7 +486,6 @@ func add_key_to_inventory(target_apartment: String) -> bool:
 	return true
 
 
-# Get the target apartment from a key in inventory at a given slot
 func get_key_target_at(slot_index: int) -> String:
 	if slot_index < 0 or slot_index >= inventory.size():
 		return ""
@@ -505,8 +510,6 @@ func is_anchor_a_key(apartment_id: String, anchor_name: String) -> bool:
 	return anchor_items.get(key, "").begins_with("KEY:")
 
 
-# Returns the apartment ID that the breached room boss key opens.
-# Seeded — same boss always drops the same key on a given run.
 func get_breached_boss_key_target(apartment_id: String) -> String:
 	var rng = RandomNumberGenerator.new()
 	rng.seed = hash(str(master_seed) + "bosskey" + apartment_id)
@@ -516,6 +519,58 @@ func get_breached_boss_key_target(apartment_id: String) -> String:
 	var target_floor = clamp(floor_num + (offset * direction), 2, 29)
 	var apt_num = "0" + str((rng.randi() % 5) + 1)
 	return str(target_floor) + apt_num
+
+
+# ============================================================
+# WORLD DROPS
+# ============================================================
+# Persisted pickups — boss drops (inventory full), zombie loot, discarded items.
+
+func add_world_drop(item_id: String, pos: Vector2, floor_num: int, extra: Dictionary = {}) -> void:
+	var key = str(floor_num) + ":" + str(snappedf(pos.x, 1.0)) + ":" + str(snappedf(pos.y, 1.0))
+	world_drops[key] = {
+		"item_id": item_id,
+		"x": snappedf(pos.x, 1.0),
+		"y": snappedf(pos.y, 1.0),
+		"floor": floor_num,
+		"target_apartment": extra.get("target_apartment", "")
+	}
+
+
+func remove_world_drop(drop_key: String) -> void:
+	world_drops.erase(drop_key)
+
+
+func get_world_drops_for_floor(floor_num: int) -> Dictionary:
+	var result: Dictionary = {}
+	for key in world_drops:
+		if world_drops[key]["floor"] == floor_num:
+			result[key] = world_drops[key]
+	return result
+
+
+# ============================================================
+# ZOMBIE LOOT
+# ============================================================
+# ~18% chance on standard zombie death. Biased toward consumables.
+
+const ZOMBIE_LOOT_POOL = [
+	"006", "006", "006",  # Bandages      weight 3
+	"007", "007",         # First Aid Kit weight 2
+	"009", "009",         # Ice Pack      weight 2
+	"010",                # Painkillers   weight 1
+	"011",                # Adrenaline    weight 1
+]
+const ZOMBIE_LOOT_CHANCE = 0.18
+
+
+func roll_zombie_loot(pos: Vector2, floor_num: int) -> void:
+	var rng = RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "zloot" + str(snappedf(pos.x, 1.0)) + str(floor_num))
+	if rng.randf() > ZOMBIE_LOOT_CHANCE:
+		return
+	var item_id = ZOMBIE_LOOT_POOL[rng.randi() % ZOMBIE_LOOT_POOL.size()]
+	add_world_drop(item_id, pos, floor_num)
 
 
 # ============================================================
@@ -556,6 +611,7 @@ func save_game(scene_path: String) -> void:
 		"saved_player_x": saved_player_x,
 		"saved_player_y": saved_player_y,
 		"killed_zombies": killed_zombies,
+		"world_drops": world_drops,
 		"door_states": door_states,
 		"door_keys_consumed": door_keys_consumed,
 		"floor_states_seeded": floor_states_seeded,
@@ -607,6 +663,7 @@ func load_game() -> String:
 	saved_player_x = data["saved_player_x"]
 	saved_player_y = data["saved_player_y"]
 	killed_zombies = data["killed_zombies"]
+	world_drops = data.get("world_drops", {})
 	door_states = data["door_states"]
 	door_keys_consumed = data["door_keys_consumed"]
 	floor_states_seeded = data["floor_states_seeded"]

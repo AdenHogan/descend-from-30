@@ -192,7 +192,21 @@ func _ready() -> void:
 				interactables.append(anchor)
 
 	_spawn_corpses(WorldState.current_floor)
+	_spawn_world_drops(WorldState.current_floor)
 
+func _spawn_world_drops(floor_num: int) -> void:
+	var drops = WorldState.get_world_drops_for_floor(floor_num)
+	if drops.is_empty():
+		return
+	var drop_scene = preload("res://scenes/world_drop.tscn")
+	for drop_key in drops:
+		var data = drops[drop_key]
+		var drop = drop_scene.instantiate()
+		drop.item_id = data["item_id"]
+		drop.drop_key = drop_key
+		drop.target_apartment = data.get("target_apartment", "")
+		drop.global_position = Vector2(data["x"], data["y"])
+		add_child(drop)
 
 func _spawn_breached_enemies() -> void:
 	var floor_num = WorldState.current_floor
