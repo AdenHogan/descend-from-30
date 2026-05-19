@@ -10,3 +10,7 @@ script = ExtResource("1_jnytq")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=379508895]
 shape = SubResource("CircleShape2D_8lwqi")
+
+[node name="ProximityLabel" type="Label" parent="." unique_id=1973426389]
+offset_right = 40.0
+offset_bottom = 23.0

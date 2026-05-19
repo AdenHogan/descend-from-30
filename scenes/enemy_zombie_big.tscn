@@ -528,8 +528,11 @@ script = ExtResource("1_h2bx4")
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=645587394]
 scale = Vector2(3, 3)
 sprite_frames = SubResource("SpriteFrames_wy18f")
-animation = &"Walk"
-frame_progress = 0.103322215
+animation = &"Attack"
+
+[node name="ProximityLabel" type="Label" parent="AnimatedSprite2D" unique_id=2106945596]
+offset_right = 40.0
+offset_bottom = 23.0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=751645701]
 shape = SubResource("CapsuleShape2D_puw3t")

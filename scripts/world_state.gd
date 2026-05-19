@@ -217,11 +217,13 @@ func get_zombie_positions(count: int, rng: RandomNumberGenerator, min_x: float, 
 	return positions
 
 
-func get_corpse_positions_for_floor(floor_num: int, scene_path: String) -> Array:
+func get_corpse_positions_for_floor(floor_num: int, scene_path: String, apartment_id: String = "") -> Array:
 	var result = []
 	for key in killed_zombies:
 		var data = killed_zombies[key]
 		if data["floor"] == floor_num and data["scene"] == scene_path:
+			if apartment_id != "" and data.get("apartment_id", "") != apartment_id:
+				continue
 			result.append(Vector2(data["x"], data["y"]))
 	return result
 
@@ -460,12 +462,24 @@ func get_breached_room_enemies(apartment_id: String, min_x: float, max_x: float,
 func get_key_target_for_anchor(floor_num: int, anchor_name: String) -> String:
 	var rng = RandomNumberGenerator.new()
 	rng.seed = hash(str(master_seed) + "key" + str(floor_num) + anchor_name)
-	var offset = 4 + (rng.randi() % 2)
-	var direction = 1 if rng.randf() < 0.5 else -1
-	var target_floor = clamp(floor_num + (offset * direction), 2, 29)
-	var apt_num = "0" + str((rng.randi() % 5) + 1)
-	return str(target_floor) + apt_num
-
+	
+	# Build candidates — only locked rooms that actually need a key
+	var candidates = []
+	for f in range(max(2, floor_num - 5), min(29, floor_num + 5) + 1):
+		for i in range(1, 6):
+			var apt = str(f) + "0" + str(i)
+			var state = get_door_state(apt)
+			if state == DoorState.SHUT_LOCKED or state == DoorState.BARRICADED_LOCKED:
+				candidates.append(apt)
+	
+	if candidates.is_empty():
+		# Fallback — pick a nearby floor apt, hope for the best
+		var offset = 4 + (rng.randi() % 2)
+		var direction = 1 if rng.randf() < 0.5 else -1
+		var target_floor = clamp(floor_num + (offset * direction), 2, 29)
+		return str(target_floor) + "0" + str((rng.randi() % 5) + 1)
+	
+	return candidates[rng.randi() % candidates.size()]
 
 func should_anchor_spawn_key(apartment_id: String, anchor_name: String) -> bool:
 	var rng = RandomNumberGenerator.new()
@@ -514,11 +528,23 @@ func get_breached_boss_key_target(apartment_id: String) -> String:
 	var rng = RandomNumberGenerator.new()
 	rng.seed = hash(str(master_seed) + "bosskey" + apartment_id)
 	var floor_num = int(apartment_id.left(apartment_id.length() - 2))
-	var offset = 1 + (rng.randi() % 3)
-	var direction = 1 if rng.randf() < 0.5 else -1
-	var target_floor = clamp(floor_num + (offset * direction), 2, 29)
-	var apt_num = "0" + str((rng.randi() % 5) + 1)
-	return str(target_floor) + apt_num
+	
+	# Build a list of locked apartments to target
+	var candidates = []
+	for f in range(max(2, floor_num - 5), min(29, floor_num + 5) + 1):
+		for i in range(1, 6):
+			var apt = str(f) + "0" + str(i)
+			var state = get_door_state(apt)
+			if state == DoorState.SHUT_LOCKED or state == DoorState.BARRICADED_LOCKED or state == DoorState.BARRICADED_JIMMYABLE:
+				candidates.append(apt)
+	
+	if candidates.is_empty():
+		# Fallback — just pick any locked-ish apt on a nearby floor
+		var offset = 1 + (rng.randi() % 3)
+		var target_floor = clamp(floor_num + offset, 2, 29)
+		return str(target_floor) + "0" + str((rng.randi() % 5) + 1)
+	
+	return candidates[rng.randi() % candidates.size()]
 
 
 # ============================================================

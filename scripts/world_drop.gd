@@ -1,25 +1,11 @@
 extends Area2D
 
-# WorldDrop — a pickup that appears in the world when:
-# - A zombie drops loot on death
-# - A boss drops a key and inventory is full
-# - The player discards an item
-#
-# Scene structure:
-#   WorldDrop (Area2D)
-#     CollisionShape2D  (CircleShape2D radius=12)
-#     Sprite2D          (optional icon — or just draw_circle)
-#     ProximityLabel    (Label, visible=false by default)
-#
-# Placed at res://scenes/world_drop.tscn
-
 const PICKUP_RANGE = 40.0
 const GLOW_RANGE = 80.0
 
-var item_id: String = ""         # Regular item ID, or "" for key drops
-var item_type: String = "item"   # "item" or "key"
-var key_target: String = ""      # Apartment ID if item_type == "key"
-var drop_key: String = ""        # WorldState.world_drops key for persistence
+var item_id: String = ""
+var target_apartment: String = ""
+var drop_key: String = ""
 
 var player: Node2D = null
 var player_nearby: bool = false
@@ -32,30 +18,23 @@ func _ready() -> void:
 	body_exited.connect(_on_body_exited)
 	proximity_label.visible = false
 	add_to_group("world_drop")
-
-
-func setup(p_item_id: String, p_item_type: String, p_key_target: String, p_drop_key: String) -> void:
-	item_id = p_item_id
-	item_type = p_item_type
-	key_target = p_key_target
-	drop_key = p_drop_key
 	player = get_tree().get_first_node_in_group("player")
-	_update_label()
 
 
 func _update_label() -> void:
-	if item_type == "key":
-		proximity_label.text = "Key — Apt " + key_target + "  [E] Take"
+	if target_apartment != "":
+		proximity_label.text = "Key — Apt " + target_apartment + "  [E] Take"
 	else:
 		var item_data = ItemData.get_item(item_id)
-		var name = item_data.get("name", "Item") if not item_data.is_empty() else "Item"
-		proximity_label.text = name + "  [E] Take"
+		var display_name = item_data.get("name", "Item") if not item_data.is_empty() else "Item"
+		proximity_label.text = display_name + "  [E] Take"
 
 
 func _on_body_entered(body: Node2D) -> void:
 	if body.is_in_group("player"):
 		player = body
 		player_nearby = true
+		_update_label()
 		proximity_label.visible = true
 
 
@@ -75,10 +54,11 @@ func _process(_delta: float) -> void:
 
 func _try_pickup() -> void:
 	var added: bool
-	if item_type == "key":
-		added = WorldState.add_key_to_inventory(key_target)
+	if target_apartment != "":
+		added = WorldState.add_key_to_inventory(target_apartment)
 		if added:
-			HUD.show_feedback("Key — Apt " + key_target + " picked up.")
+			HUD.show_feedback("Key — Apt " + target_apartment + " picked up.")
+			HUD.refresh_inventory()
 		else:
 			HUD.show_feedback("Inventory full.")
 			return
@@ -91,8 +71,6 @@ func _try_pickup() -> void:
 		else:
 			HUD.show_feedback("Inventory full.")
 			return
-
-	# Remove from WorldState persistence
 	if drop_key != "":
 		WorldState.remove_world_drop(drop_key)
 	queue_free()
@@ -104,9 +82,8 @@ func _draw() -> void:
 	var dist = global_position.distance_to(player.global_position)
 	if dist > GLOW_RANGE:
 		return
-	# Yellow-gold glow for world drops — distinct from white orb of anchors
 	var alpha = 1.0 - clamp((dist - PICKUP_RANGE) / (GLOW_RANGE - PICKUP_RANGE), 0.0, 1.0)
-	if item_type == "key":
+	if target_apartment != "":
 		draw_circle(Vector2.ZERO, 6.0, Color(1.0, 0.85, 0.1, alpha))
 	else:
 		draw_circle(Vector2.ZERO, 5.0, Color(1.0, 0.65, 0.0, alpha))

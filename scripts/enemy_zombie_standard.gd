@@ -90,7 +90,8 @@ func _die() -> void:
 			"x": snappedf(global_position.x, 1.0),
 			"y": snappedf(global_position.y, 1.0),
 			"floor": WorldState.current_floor,
-			"scene": get_tree().current_scene.scene_file_path
+			"scene": get_tree().current_scene.scene_file_path,
+			"apartment_id": WorldState.current_apartment_id
 		}
  
 	# Roll for loot drop — 18% chance, consumables only

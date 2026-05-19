@@ -2,7 +2,7 @@ extends CharacterBody2D
 
 const SPEED = 25.0
 const DETECTION_RANGE = 130.0
-const ATTACK_RANGE = 45.0
+const ATTACK_RANGE = 50.0
 const PUSH_FRICTION = 0.70
 const HIT_DURATION = 0.6
 # No knockdown state — big zombie cannot be knocked down
@@ -90,7 +90,8 @@ func _die() -> void:
 			"x": snappedf(global_position.x, 1.0),
 			"y": snappedf(global_position.y, 1.0),
 			"floor": WorldState.current_floor,
-			"scene": get_tree().current_scene.scene_file_path
+			"scene": get_tree().current_scene.scene_file_path,
+			"apartment_id": WorldState.current_apartment_id
 		}
 
 	if drops_key and key_target_apartment != "" and not key_dropped:
@@ -109,8 +110,7 @@ func _drop_key() -> void:
 		HUD.show_feedback("Key — Apt " + key_target_apartment + " found!")
 	else:
 		# Inventory full — spawn as world drop at corpse position
-		WorldState.spawn_world_drop(key_target_apartment, "KEY", global_position,
-				get_tree().current_scene.scene_file_path, WorldState.current_floor)
+		WorldState.add_world_drop("022", global_position, WorldState.current_floor, {"target_apartment": key_target_apartment})
 		HUD.show_feedback("Key dropped nearby — inventory full.")
 
 
@@ -156,3 +156,4 @@ func _physics_process(delta: float) -> void:
 					velocity.x = 0
 					animated_sprite.play("Idle")
 	move_and_slide()
+	

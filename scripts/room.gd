@@ -191,7 +191,7 @@ func _ready() -> void:
 			if anchor.has_method("try_interact"):
 				interactables.append(anchor)
 
-	_spawn_corpses(WorldState.current_floor)
+	_spawn_corpses(WorldState.current_floor, WorldState.current_apartment_id)
 	_spawn_world_drops(WorldState.current_floor)
 
 func _spawn_world_drops(floor_num: int) -> void:
@@ -239,9 +239,9 @@ func _spawn_breached_enemies() -> void:
 			add_child(zombie)
 
 
-func _spawn_corpses(floor_num: int) -> void:
+func _spawn_corpses(floor_num: int, apartment_id: String = "") -> void:
 	var scene_path = get_tree().current_scene.scene_file_path
-	var corpse_positions = WorldState.get_corpse_positions_for_floor(floor_num, scene_path)
+	var corpse_positions = WorldState.get_corpse_positions_for_floor(floor_num, scene_path, apartment_id)
 	if corpse_positions.is_empty():
 		return
 	var zombie_scene = preload("res://scenes/enemy_zombie_standard.tscn")
