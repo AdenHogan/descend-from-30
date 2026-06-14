@@ -590,13 +590,14 @@ const ZOMBIE_LOOT_POOL = [
 const ZOMBIE_LOOT_CHANCE = 0.18
 
 
-func roll_zombie_loot(pos: Vector2, floor_num: int) -> void:
+func roll_zombie_loot_id(pos: Vector2, floor_num: int) -> String:
 	var rng = RandomNumberGenerator.new()
 	rng.seed = hash(str(master_seed) + "zloot" + str(snappedf(pos.x, 1.0)) + str(floor_num))
 	if rng.randf() > ZOMBIE_LOOT_CHANCE:
-		return
+		return ""
 	var item_id = ZOMBIE_LOOT_POOL[rng.randi() % ZOMBIE_LOOT_POOL.size()]
 	add_world_drop(item_id, pos, floor_num)
+	return item_id
 
 
 # ============================================================

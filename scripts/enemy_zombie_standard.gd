@@ -94,8 +94,15 @@ func _die() -> void:
 			"apartment_id": WorldState.current_apartment_id
 		}
  
-	# Roll for loot drop — 18% chance, consumables only
-	WorldState.roll_zombie_loot(global_position, WorldState.current_floor)
+# Roll for loot drop — 18% chance, consumables only
+	var loot_id = WorldState.roll_zombie_loot_id(global_position, WorldState.current_floor)
+	if loot_id != "":
+		var drop_scene = preload("res://scenes/world_drop.tscn")
+		var drop = drop_scene.instantiate()
+		drop.item_id = loot_id
+		drop.drop_key = str(WorldState.current_floor) + ":" + str(snappedf(global_position.x, 1.0)) + ":" + str(snappedf(global_position.y, 1.0))
+		drop.global_position = global_position
+		get_parent().add_child(drop)
  
 	await animated_sprite.animation_finished
 	animated_sprite.pause()

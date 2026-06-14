@@ -30,6 +30,7 @@ func _ready() -> void:
 			add_child(zombie)
 
 	_spawn_corpses(30)
+	_spawn_world_drops(30)
 
 func _spawn_corpses(floor_num: int) -> void:
 	var scene_path = get_tree().current_scene.scene_file_path
@@ -49,3 +50,17 @@ func _spawn_corpses(floor_num: int) -> void:
 		corpse.global_position = pos
 		corpse.z_index = 0
 		add_child(corpse)
+
+func _spawn_world_drops(floor_num: int) -> void:
+	var drops = WorldState.get_world_drops_for_floor(floor_num)
+	if drops.is_empty():
+		return
+	var drop_scene = preload("res://scenes/world_drop.tscn")
+	for drop_key in drops:
+		var data = drops[drop_key]
+		var drop = drop_scene.instantiate()
+		drop.item_id = data["item_id"]
+		drop.drop_key = drop_key
+		drop.target_apartment = data.get("target_apartment", "")
+		drop.global_position = Vector2(data["x"], data["y"])
+		add_child(drop)
