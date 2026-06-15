@@ -176,17 +176,20 @@ func update_stamina(current: float, maximum: float) -> void:
 		return
 	var ratio = current / maximum
 	var filled = int(round(ratio * STAMINA_SEGMENTS))
+	# All filled bars share one colour, chosen by how many bars are filled:
+	# 1-2 = red, 3-4 = yellow, 5+ = green. Avoids per-segment gradient flicker.
+	var band: Color
+	if filled <= 2:
+		band = Color(0.9, 0.2, 0.2, 1.0)
+	elif filled <= 4:
+		band = Color(0.9, 0.7, 0.1, 1.0)
+	else:
+		band = Color(0.2, 0.8, 0.4, 1.0)
 	for i in range(STAMINA_SEGMENTS):
-		var seg = stamina_segments[i]
 		if i < filled:
-			if ratio > 0.5:
-				seg.color = Color(0.2, 0.8, 0.4, 1.0)
-			elif ratio > 0.25:
-				seg.color = Color(0.9, 0.7, 0.1, 1.0)
-			else:
-				seg.color = Color(0.9, 0.2, 0.2, 1.0)
+			stamina_segments[i].color = band
 		else:
-			seg.color = Color(0.15, 0.15, 0.15, 1.0)
+			stamina_segments[i].color = Color(0.15, 0.15, 0.15, 1.0)
 
 func _process(delta: float) -> void:
 	if feedback_timer > 0:

@@ -67,7 +67,7 @@ const HIT_FLASH_DURATION = 0.5
 
 var is_dying = false
 var dying_timer = 0.0
-const DYING_TIME = 15.0
+const DYING_TIME = 8.0
 var is_dead = false
 
 var is_switching_mode = false
@@ -127,7 +127,10 @@ func _physics_process(delta: float) -> void:
 			is_attacking = false
 
 	var direction = Input.get_axis("move_left", "move_right")
-	var is_sprinting = Input.is_action_pressed("sprint") and not is_crouching and not WorldState.is_scavenge_mode
+	# Sprint requires a small stamina floor to (re)engage. Without this, stamina
+	# ticking a sliver above 0 between frames lets sprint flicker back on at zero.
+	var can_sprint_stamina = WorldState.stamina > STAMINA_SPRINT_DRAIN * 0.2 or WorldState.god_mode
+	var is_sprinting = Input.is_action_pressed("sprint") and not is_crouching and not WorldState.is_scavenge_mode and can_sprint_stamina
 
 	if not WorldState.is_scavenge_mode:
 		if Input.is_action_just_pressed("push") and not is_pushing:
@@ -249,6 +252,10 @@ func _do_melee_attack(instance: ItemInstance, slot_index: int) -> void:
 	if weapon_type == "" or weapon_type == "gun":
 		return
 	var stamina_cost = WEAPON_STAMINA_COST.get(weapon_type, 15.0)
+	# Attacking requires at least 2 bars (25%). In the red zone you can move but not swing.
+	if WorldState.stamina < WorldState.max_stamina * 0.25 and not WorldState.god_mode:
+		HUD.show_feedback("Too exhausted to swing.")
+		return
 	if WorldState.stamina < stamina_cost and not WorldState.god_mode:
 		HUD.show_feedback("Too exhausted to swing.")
 		return
@@ -267,15 +274,24 @@ func _do_melee_attack(instance: ItemInstance, slot_index: int) -> void:
 	var damage_type = _get_weapon_damage_type(weapon_type)
 	var hit_something = false
 	var zombies = get_tree().get_nodes_in_group("zombie")
+	# Gather every zombie in range and within the facing arc, then strike ONE at
+	# random. A single swing must never clear a bunched group — each hit lands on
+	# one enemy, so hordes stay a real threat.
+	var valid_targets: Array = []
 	for zombie in zombies:
+		if zombie.is_dead:
+			continue
 		var dist = global_position.distance_to(zombie.global_position)
 		if dist <= attack_range:
 			var diff = zombie.global_position.x - global_position.x
 			var facing_right = not animated_sprite.flip_h
 			if (facing_right and diff > -16.0) or (not facing_right and diff < 16.0):
 				if zombie.has_method("receive_damage"):
-					zombie.receive_damage(damage, damage_type)
-					hit_something = true
+					valid_targets.append(zombie)
+	if not valid_targets.is_empty():
+		var target = valid_targets[randi() % valid_targets.size()]
+		target.receive_damage(damage, damage_type)
+		hit_something = true
 
 	if hit_something:
 		instance.use()
@@ -542,7 +558,7 @@ func heal(states: int) -> void:
 	HUD.show_feedback("Used item.")
 
 
-func receive_hit() -> void:
+func receive_hit(amount: int = 1) -> void:
 	if is_dead or is_dying:
 		return
 	if WorldState.god_mode:
@@ -551,13 +567,14 @@ func receive_hit() -> void:
 	hit_flash_timer = HIT_FLASH_DURATION
 	animated_sprite.modulate = Color(1, 0, 0, 1)
 	animated_sprite.play("hurt")
-	take_damage()
+	take_damage(amount)
 
 
-func take_damage() -> void:
-	if health_state < HealthState.DYING:
-		health_state = (health_state + 1) as HealthState
-		WorldState.player_health = health_state
+func take_damage(amount: int = 1) -> void:
+	for i in range(amount):
+		if health_state < HealthState.DYING:
+			health_state = (health_state + 1) as HealthState
+			WorldState.player_health = health_state
 	if health_state == HealthState.DYING:
 		is_dying = true
 		WorldState.is_dying = true

@@ -100,7 +100,8 @@ func _ready() -> void:
 	_spawn_world_drops(floor_num)
 
 func _spawn_world_drops(floor_num: int) -> void:
-	var drops = WorldState.get_world_drops_for_floor(floor_num)
+	var scene_path = get_tree().current_scene.scene_file_path
+	var drops = WorldState.get_world_drops_for_floor(floor_num, scene_path)
 	if drops.is_empty():
 		return
 	var drop_scene = preload("res://scenes/world_drop.tscn")

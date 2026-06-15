@@ -16,11 +16,12 @@ func _ready() -> void:
 func toggle(should_show: bool) -> void:
 	visible = should_show
 	save_quit_submenu.visible = false
-	var player = get_tree().get_first_node_in_group("player")
-	if player:
-		player.process_mode = Node.PROCESS_MODE_DISABLED if should_show else Node.PROCESS_MODE_INHERIT
-	for zombie in get_tree().get_nodes_in_group("zombie"):
-		zombie.process_mode = Node.PROCESS_MODE_DISABLED if should_show else Node.PROCESS_MODE_INHERIT
+	# Freeze the entire SceneTree. Every node inherits PROCESS_MODE_INHERIT by
+	# default and halts; only this menu (PROCESS_MODE_ALWAYS, set in _ready) keeps
+	# running so its buttons stay live. This replaces the old approach of manually
+	# disabling the player and zombie group, which left timers, the loot UI, world
+	# drops and HUD feedback all running during the pause.
+	get_tree().paused = should_show
 
 func _on_resume() -> void:
 	toggle(false)

@@ -42,9 +42,9 @@ var god_mode: bool = false
 # --- Door system ---
 enum DoorState {
 	OPEN,
-	SHUT_JIMMYABLE,
+	SHUT_FORCEABLE,
 	SHUT_LOCKED,
-	BARRICADED_JIMMYABLE,
+	BARRICADED_FORCEABLE,
 	BARRICADED_LOCKED,
 	BREACHED
 }
@@ -291,6 +291,37 @@ func get_items_for_anchor(anchor_name: String, apartment_id: String) -> Array:
 	return valid_items
 
 
+# High enemy density means the player will likely burn through weapons and ammo
+# in the fight, so weight the pool toward weapons and bullets, and thin out junk.
+# `tier` scales the effect: 0 = quiet room (no change), 1-3 = increasing density.
+# Deterministic — only changes pool contents, not the RNG draw sequence at the call site.
+func get_items_for_anchor_weighted(anchor_name: String, apartment_id: String, tier: int) -> Array:
+	var base = get_items_for_anchor(anchor_name, apartment_id)
+	if tier <= 0 or base.is_empty():
+		return base
+
+	var extra_combat_copies = tier        # weapons/ammo duplicated this many times
+	var keep_junk = tier < 3              # at the highest tier, drop junk entirely
+
+	var weighted = []
+	for item_id in base:
+		var d = ItemData.get_item(item_id)
+		if d.get("is_junk", false):
+			# Thin junk: include roughly half (or none at top tier).
+			if keep_junk and (weighted.size() % 2 == 0):
+				weighted.append(item_id)
+			continue
+		weighted.append(item_id)
+		if d.get("is_weapon", false) or d.get("is_ammo", false):
+			for i in range(extra_combat_copies):
+				weighted.append(item_id)
+
+	# Guard against an all-junk room thinning to empty.
+	if weighted.is_empty():
+		return base
+	return weighted
+
+
 func set_anchor_item(apartment_id: String, anchor_name: String, item_id: String) -> void:
 	var key = apartment_id + ":" + anchor_name
 	anchor_items[key] = item_id
@@ -328,7 +359,7 @@ func _pick_door_state(rng: RandomNumberGenerator, weights: Array) -> int:
 		cumulative += weights[i]
 		if roll < cumulative:
 			return i
-	return DoorState.SHUT_JIMMYABLE
+	return DoorState.SHUT_FORCEABLE
 
 
 func seed_floor_door_states(floor_num: int) -> void:
@@ -378,7 +409,7 @@ func seed_floor_door_states(floor_num: int) -> void:
 func get_door_state(apartment_id: String) -> int:
 	var floor_num = int(apartment_id.left(apartment_id.length() - 2))
 	seed_floor_door_states(floor_num)
-	return door_states.get(apartment_id, DoorState.SHUT_JIMMYABLE)
+	return door_states.get(apartment_id, DoorState.SHUT_FORCEABLE)
 
 
 func set_door_state(apartment_id: String, state: int) -> void:
@@ -399,17 +430,17 @@ func mutate_door_states_for_new_run() -> void:
 		var roll = rng.randf()
 
 		match state:
-			DoorState.SHUT_JIMMYABLE:
+			DoorState.SHUT_FORCEABLE:
 				if roll < 0.15:
 					door_states[apt_id] = DoorState.BREACHED
 			DoorState.SHUT_LOCKED:
 				if roll < 0.12:
 					door_states[apt_id] = DoorState.BREACHED
 				elif roll < 0.14:
-					door_states[apt_id] = DoorState.SHUT_JIMMYABLE
-			DoorState.BARRICADED_JIMMYABLE:
+					door_states[apt_id] = DoorState.SHUT_FORCEABLE
+			DoorState.BARRICADED_FORCEABLE:
 				if roll < 0.20:
-					door_states[apt_id] = DoorState.SHUT_JIMMYABLE
+					door_states[apt_id] = DoorState.SHUT_FORCEABLE
 				elif roll < 0.25:
 					door_states[apt_id] = DoorState.BREACHED
 			DoorState.BARRICADED_LOCKED:
@@ -484,7 +515,16 @@ func get_key_target_for_anchor(floor_num: int, anchor_name: String) -> String:
 func should_anchor_spawn_key(apartment_id: String, anchor_name: String) -> bool:
 	var rng = RandomNumberGenerator.new()
 	rng.seed = hash(str(master_seed) + "keyspawn" + apartment_id + anchor_name)
-	return rng.randf() < 0.03
+	# Base 3% per anchor. High-density apartments raise this — clearing a horde
+	# should carry a real (if modest) shot at a key, below a breached/boss room's
+	# guaranteed boss key but enough to make the fight worth attempting.
+	var chance = 0.03
+	var zcount = get_apartment_zombie_count(apartment_id)
+	if zcount >= 10:
+		chance = 0.10
+	elif zcount >= 3:
+		chance = 0.06
+	return rng.randf() < chance
 
 
 func add_key_to_inventory(target_apartment: String) -> bool:
@@ -535,7 +575,7 @@ func get_breached_boss_key_target(apartment_id: String) -> String:
 		for i in range(1, 6):
 			var apt = str(f) + "0" + str(i)
 			var state = get_door_state(apt)
-			if state == DoorState.SHUT_LOCKED or state == DoorState.BARRICADED_LOCKED or state == DoorState.BARRICADED_JIMMYABLE:
+			if state == DoorState.SHUT_LOCKED or state == DoorState.BARRICADED_LOCKED or state == DoorState.BARRICADED_FORCEABLE:
 				candidates.append(apt)
 	
 	if candidates.is_empty():
@@ -559,6 +599,8 @@ func add_world_drop(item_id: String, pos: Vector2, floor_num: int, extra: Dictio
 		"x": snappedf(pos.x, 1.0),
 		"y": snappedf(pos.y, 1.0),
 		"floor": floor_num,
+		"scene": extra.get("scene", get_tree().current_scene.scene_file_path),
+		"apartment_id": extra.get("apartment_id", current_apartment_id),
 		"target_apartment": extra.get("target_apartment", "")
 	}
 
@@ -567,11 +609,21 @@ func remove_world_drop(drop_key: String) -> void:
 	world_drops.erase(drop_key)
 
 
-func get_world_drops_for_floor(floor_num: int) -> Dictionary:
+func get_world_drops_for_floor(floor_num: int, scene_path: String = "", apartment_id: String = "") -> Dictionary:
 	var result: Dictionary = {}
 	for key in world_drops:
-		if world_drops[key]["floor"] == floor_num:
-			result[key] = world_drops[key]
+		var data = world_drops[key]
+		if data["floor"] != floor_num:
+			continue
+		# Scene filtering — a drop belongs to the scene it was made in. Older saves
+		# may lack a "scene" field; treat those as floor-only (legacy behaviour).
+		if scene_path != "" and data.get("scene", "") != "" and data["scene"] != scene_path:
+			continue
+		# Apartment filtering — only applied when caller passes an apartment_id
+		# (i.e. inside a room). Hallways/lobbies pass "" and skip this check.
+		if apartment_id != "" and data.get("apartment_id", "") != apartment_id:
+			continue
+		result[key] = data
 	return result
 
 

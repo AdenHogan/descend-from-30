@@ -145,11 +145,29 @@ func _ready() -> void:
 
 		var apt_rng_items = RandomNumberGenerator.new()
 		apt_rng_items.seed = hash(str(WorldState.master_seed) + "items" + apartment_id)
+
+		# Per-apartment loot modifiers, computed once.
+		# Barricaded doors are a time/stamina investment, so reward them with a
+		# spawn-chance bonus (stacks with the locked bonus when both apply).
+		var apt_door_state = WorldState.get_door_state(apartment_id)
+		var is_barricaded = apt_door_state == WorldState.DoorState.BARRICADED_FORCEABLE or \
+							 apt_door_state == WorldState.DoorState.BARRICADED_LOCKED
+		var barricade_bonus = 0.12 if is_barricaded else 0.0
+		# High enemy density burns through weapons and ammo, so bias the item pool
+		# toward combat gear and thin out junk. tier 0 = quiet, 1-3 = denser.
+		var zcount = WorldState.get_apartment_zombie_count(apartment_id)
+		var density_tier = 0
+		if zcount >= 10:
+			density_tier = 3
+		elif zcount >= 3:
+			density_tier = 2
+		elif zcount >= 1:
+			density_tier = 1
+
 		for anchor in active_anchors:
 			anchor.set_script(interactable_script)
 			anchor.apartment_id = apartment_id
 			anchor._ready()
-			anchor.set_process(true)
 
 			# Determine spawn chance based on room type and door state
 			var spawn_chance: float
@@ -168,34 +186,49 @@ func _ready() -> void:
 					3: spawn_chance = 0.22
 					_: spawn_chance = 0.28
 
-			if apt_rng_items.randf() > spawn_chance:
-				continue
+			spawn_chance = min(spawn_chance + barricade_bonus, 0.85)
+
+			# An anchor the player has already searched is settled — its item state
+			# is whatever they left it as. We must NOT re-roll it (that's the dupe
+			# exploit) and must NOT re-enable it via set_process if _ready() hid it.
+			# But the seeded RNG sequence has to stay identical across re-entries, so
+			# we still consume the exact same draws this anchor would have consumed,
+			# then discard the result.
+			var already_searched = WorldState.is_anchor_searched(apartment_id, anchor.name)
+
+			if not already_searched:
+				anchor.set_process(true)
+
+			var passed_spawn_roll = apt_rng_items.randf() <= spawn_chance
 
 			# Check if this anchor should spawn a key instead of a regular item
 			var floor_num = int(apartment_id.left(apartment_id.length() - 2))
 			if WorldState.should_anchor_spawn_key(apartment_id, anchor.name):
 				var key_target = WorldState.get_key_target_for_anchor(floor_num, anchor.name)
-				WorldState.set_anchor_key(apartment_id, anchor.name, key_target)
+				if passed_spawn_roll and not already_searched:
+					WorldState.set_anchor_key(apartment_id, anchor.name, key_target)
 			else:
-				var valid_items = WorldState.get_items_for_anchor(anchor.name, apartment_id)
+				var valid_items = WorldState.get_items_for_anchor_weighted(anchor.name, apartment_id, density_tier)
 				if valid_items.is_empty():
 					continue
 				var item_id = valid_items[apt_rng_items.randi() % valid_items.size()]
-				WorldState.set_anchor_item(apartment_id, anchor.name, item_id)
+				if passed_spawn_roll and not already_searched:
+					WorldState.set_anchor_item(apartment_id, anchor.name, item_id)
 
 	await get_tree().process_frame
 	WorldState.interaction_handled = false
 
 	for module in get_tree().get_nodes_in_group("room_module"):
 		for anchor in module.get_children():
-			if anchor.has_method("try_interact"):
+			if anchor.has_method("try_interact") and anchor.visible:
 				interactables.append(anchor)
 
 	_spawn_corpses(WorldState.current_floor, WorldState.current_apartment_id)
 	_spawn_world_drops(WorldState.current_floor)
 
 func _spawn_world_drops(floor_num: int) -> void:
-	var drops = WorldState.get_world_drops_for_floor(floor_num)
+	var scene_path = get_tree().current_scene.scene_file_path
+	var drops = WorldState.get_world_drops_for_floor(floor_num, scene_path, WorldState.current_apartment_id)
 	if drops.is_empty():
 		return
 	var drop_scene = preload("res://scenes/world_drop.tscn")
@@ -259,6 +292,20 @@ func _spawn_corpses(floor_num: int, apartment_id: String = "") -> void:
 		add_child(corpse)
 
 
+# An anchor that's already been searched but still holds an item is known loot —
+# the player should be able to re-access it by standing near it, without having to
+# turn to face it. Unsearched anchors still require facing (discovery).
+func _is_anchor_selectable(anchor: Node) -> bool:
+	if not anchor.is_in_range:
+		return false
+	if WorldState.is_anchor_searched(anchor.apartment_id, anchor.name):
+		var has_item = WorldState.get_anchor_item(anchor.apartment_id, anchor.name) != "" or \
+					   WorldState.is_anchor_a_key(anchor.apartment_id, anchor.name)
+		if has_item:
+			return true
+	return _is_player_facing_anchor(anchor)
+
+
 func _is_player_facing_anchor(anchor: Node) -> bool:
 	var player = get_tree().get_first_node_in_group("player")
 	if player == null:
@@ -287,7 +334,7 @@ func _process(_delta: float) -> void:
 	for i in interactables:
 		if not is_instance_valid(i):
 			continue
-		if i.is_in_range and _is_player_facing_anchor(i):
+		if _is_anchor_selectable(i):
 			nearby.append(i)
 
 	for i in interactables:
@@ -316,7 +363,7 @@ func _input(event: InputEvent) -> void:
 	for i in interactables:
 		if not is_instance_valid(i):
 			continue
-		if i.is_in_range and _is_player_facing_anchor(i):
+		if _is_anchor_selectable(i):
 			nearby.append(i)
 
 	if nearby.is_empty():

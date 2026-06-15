@@ -2,6 +2,9 @@ extends CharacterBody2D
 
 const SPEED = 25.0
 const DETECTION_RANGE = 130.0
+const DETECTION_VARIANCE = 45.0   # +/- band for per-zombie aggro variance
+const SEPARATION_RADIUS = 14.0    # small: allow tight overlap, just avoid perfect stacking
+const SEPARATION_STRENGTH = 12.0
 const ATTACK_RANGE = 50.0
 const PUSH_FRICTION = 0.70
 const HIT_DURATION = 0.6
@@ -19,6 +22,7 @@ var key_dropped: bool = false  # Guard against double drops
 var max_hp: int = 20
 var current_hp: int = 20
 var is_dead: bool = false
+var detection_range: float = DETECTION_RANGE
 
 
 func _ready() -> void:
@@ -28,6 +32,11 @@ func _ready() -> void:
 	add_to_group("zombie")
 	add_to_group("big_zombie")
 	_set_hp_from_floor()
+	# Swarm collision model (see standard zombie). Layer 3, masks walls+player only.
+	set_collision_layer_value(1, false)
+	set_collision_layer_value(3, true)
+	set_collision_mask_value(1, true)
+	set_collision_mask_value(3, false)
 
 
 func _set_hp_from_floor() -> void:
@@ -38,14 +47,13 @@ func _set_hp_from_floor() -> void:
 	var variance = rng.randi() % 3 - 1
 	max_hp = clamp(int(base) + variance, 6, 20)
 	current_hp = max_hp
+	var aggro_roll = rng.randf() * 2.0 - 1.0
+	detection_range = DETECTION_RANGE + aggro_roll * DETECTION_VARIANCE
 
 
 func receive_push(force: float) -> void:
-	if is_dead:
-		return
-	var reduced_force = force * 0.4
-	velocity.x = clamp(reduced_force, -80.0, 80.0)
-	state_timer = max(state_timer, 0.3)
+	# The boss cannot be pushed — pushing should not work on the big zombie.
+	return
 
 
 func receive_damage(amount: int, damage_type: String) -> void:
@@ -83,6 +91,8 @@ func _die() -> void:
 	velocity.x = 0
 	animated_sprite.play("Death")
 	set_collision_layer_value(1, false)
+	set_collision_layer_value(2, false)
+	set_collision_layer_value(3, false)
 	set_collision_mask_value(1, false)
 
 	if spawn_key != "" and not WorldState.killed_zombies.has(spawn_key):
@@ -100,8 +110,6 @@ func _die() -> void:
 
 	await animated_sprite.animation_finished
 	animated_sprite.pause()
-	await get_tree().create_timer(300).timeout
-	queue_free()
 
 
 func _drop_key() -> void:
@@ -112,6 +120,22 @@ func _drop_key() -> void:
 		# Inventory full — spawn as world drop at corpse position
 		WorldState.add_world_drop("022", global_position, WorldState.current_floor, {"target_apartment": key_target_apartment})
 		HUD.show_feedback("Key dropped nearby — inventory full.")
+
+
+func _separation_nudge() -> float:
+	var nudge := 0.0
+	for other in get_tree().get_nodes_in_group("zombie"):
+		if other == self or other.is_dead:
+			continue
+		var dx = global_position.x - other.global_position.x
+		var ady = abs(global_position.y - other.global_position.y)
+		if ady > SEPARATION_RADIUS:
+			continue
+		var adx = abs(dx)
+		if adx < SEPARATION_RADIUS and adx > 0.01:
+			var strength = (1.0 - adx / SEPARATION_RADIUS) * SEPARATION_STRENGTH
+			nudge += sign(dx) * strength
+	return clamp(nudge, -SEPARATION_STRENGTH, SEPARATION_STRENGTH)
 
 
 func _physics_process(delta: float) -> void:
@@ -132,8 +156,7 @@ func _physics_process(delta: float) -> void:
 				var distance = global_position.distance_to(player.global_position)
 				if distance <= ATTACK_RANGE:
 					if player and player.has_method("receive_hit"):
-						player.receive_hit()
-						player.receive_hit()
+						player.receive_hit(2)
 				state = "chase"
 				animated_sprite.play("Walk")
 		"chase", "idle":
@@ -144,11 +167,12 @@ func _physics_process(delta: float) -> void:
 				if distance <= ATTACK_RANGE:
 					state = "attack"
 					state_timer = 1.2
+					animated_sprite.flip_h = (player.global_position.x - global_position.x) < 0
 					animated_sprite.play("Attack")
-				elif distance <= DETECTION_RANGE:
+				elif distance <= detection_range:
 					state = "chase"
 					var direction = sign(player.global_position.x - global_position.x)
-					velocity.x = direction * SPEED
+					velocity.x = direction * SPEED + _separation_nudge()
 					animated_sprite.flip_h = direction < 0
 					animated_sprite.play("Walk")
 				else:
