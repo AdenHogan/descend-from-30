@@ -19,7 +19,7 @@
 [ext_resource type="Texture2D" uid="uid://de5uro8r2dc4t" path="res://assets/2D-Pixel-Art-Character-Template/Sword Run/Player Sword Run 48x48.png" id="12_a8ls1"]
 [ext_resource type="Texture2D" uid="uid://dv3v32lnycspp" path="res://assets/2D-Pixel-Art-Character-Template/Punch/Player Punch 64x64.png" id="13_ke2ow"]
 [ext_resource type="Texture2D" uid="uid://b7opi0t848sdo" path="res://assets/2D-Pixel-Art-Character-Template/Sword Stab/Player Sword Stab 96x48.png" id="13_qfm1y"]
-[ext_resource type="Texture2D" uid="uid://b5ac2nauekdy7" path="res://assets/2D-Pixel-Art-Character-Template/Shooting (running and aiming)/Player Running Aiming 48x48.png" id="14_a38lo"]
+[ext_resource type="Texture2D" uid="uid://b5ac2nauekdy7" path="res://assets/2D-Pixel-Art-Character-Template/Walk Gun/Player Walking Aiming 48x48.png" id="14_a38lo"]
 [ext_resource type="Texture2D" uid="uid://d1pt41y0xwr6b" path="res://assets/2D-Pixel-Art-Character-Template/Punch Cross/Player Punch Cross 64x64.png" id="14_ujl30"]
 [ext_resource type="Texture2D" uid="uid://pkjbp23jkdjw" path="res://assets/2D-Pixel-Art-Character-Template/Shooting (running and aiming)/Player Running Shooting 48x48.png" id="15_4ni07"]
 [ext_resource type="Texture2D" uid="uid://bhfj5mo5xmtgw" path="res://assets/2D-Pixel-Art-Character-Template/Punch Jab/Player Jab 48x48.png" id="15_31cv2"]
