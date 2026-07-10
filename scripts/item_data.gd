@@ -18,7 +18,7 @@ func get_texture(id: String) -> Texture2D:
 	return item_textures.get(id, null)
 
 func _load_data() -> void:
-	var file = FileAccess.open("res://data/items.json", FileAccess.READ)
+	var file = FileAccess.open("res://data/Items.json", FileAccess.READ)
 	if not file:
 		push_error("Could not open items.json")
 		return
@@ -89,9 +89,9 @@ func _parse_durability(durability_string: String) -> Dictionary:
 	
 	var regex = RegEx.new()
 	regex.compile("(\\d+) uses")
-	var match = regex.search(lower)
-	if match:
-		result["max_durability"] = int(match.get_string(1))
+	var regex_match = regex.search(lower)
+	if regex_match:
+		result["max_durability"] = int(regex_match.get_string(1))
 	
 	return result
 

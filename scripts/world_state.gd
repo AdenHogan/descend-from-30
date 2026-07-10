@@ -52,6 +52,8 @@ enum DoorState {
 var door_states: Dictionary = {}
 var door_keys_consumed: Dictionary = {}
 var floor_states_seeded: Dictionary = {}
+# Live (unkilled) zombie positions captured at save time, keyed by spawn_key.
+var zombie_positions: Dictionary = {}
 var barricade_progress: Dictionary = {}
 
 
@@ -82,6 +84,7 @@ func new_game() -> void:
 	saved_player_x = 0.0
 	saved_player_y = 0.0
 	killed_zombies.clear()
+	zombie_positions.clear()
 	world_drops.clear()
 	door_states.clear()
 	door_keys_consumed.clear()
@@ -224,7 +227,7 @@ func get_corpse_positions_for_floor(floor_num: int, scene_path: String, apartmen
 		if data["floor"] == floor_num and data["scene"] == scene_path:
 			if apartment_id != "" and data.get("apartment_id", "") != apartment_id:
 				continue
-			result.append(Vector2(data["x"], data["y"]))
+			result.append({"pos": Vector2(data["x"], data["y"]), "type": data.get("type", "standard")})
 	return result
 
 
@@ -659,6 +662,18 @@ func roll_zombie_loot_id(pos: Vector2, floor_num: int) -> String:
 const SAVE_PATH = "user://savegame.json"
 
 func save_game(scene_path: String) -> void:
+	# Snapshot live zombie positions in the current scene so reloading can't be
+	# used to reset an encounter (save-scum lure exploit). Dead zombies are
+	# already covered by killed_zombies; tutorial zombies without a spawn_key
+	# are skipped.
+	var tree = Engine.get_main_loop() as SceneTree
+	if tree:
+		for z in tree.get_nodes_in_group("zombie"):
+			if not z.is_dead and z.spawn_key != "":
+				zombie_positions[z.spawn_key] = {
+					"x": snappedf(z.global_position.x, 1.0),
+					"y": snappedf(z.global_position.y, 1.0)
+				}
 	var save_data = {
 		"scene_path": scene_path,
 		"master_seed": master_seed,
@@ -694,6 +709,7 @@ func save_game(scene_path: String) -> void:
 		"door_states": door_states,
 		"door_keys_consumed": door_keys_consumed,
 		"floor_states_seeded": floor_states_seeded,
+		"zombie_positions": zombie_positions,
 		"barricade_progress": barricade_progress,
 	}
 	var file = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
@@ -745,7 +761,12 @@ func load_game() -> String:
 	world_drops = data.get("world_drops", {})
 	door_states = data["door_states"]
 	door_keys_consumed = data["door_keys_consumed"]
-	floor_states_seeded = data["floor_states_seeded"]
+	# JSON round-trips all dictionary keys as strings; this dict is keyed by int
+	# floor numbers, so convert keys back or every loaded game re-seeds its floors.
+	zombie_positions = data.get("zombie_positions", {})
+	floor_states_seeded = {}
+	for k in data["floor_states_seeded"]:
+		floor_states_seeded[int(k)] = data["floor_states_seeded"][k]
 	barricade_progress = data.get("barricade_progress", {})
 	_deserialize_inventory(data["inventory"])
 	return data["scene_path"]

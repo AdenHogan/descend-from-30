@@ -16,12 +16,12 @@ const DEV_HEAL_ITEMS = ["006", "007", "009", "010", "011"]
 var dev_heal_index = 0
 
 # Stamina
-const STAMINA_SPRINT_DRAIN = 18.0
+const STAMINA_SPRINT_DRAIN = 12.0
 const STAMINA_PUSH_COST = 28.0
 const STAMINA_PUSH_REPEAT_WINDOW = 0.6
 const STAMINA_PUSH_REPEAT_MULT = 2.0
-const STAMINA_PASSIVE_RATE = 4.0
-const STAMINA_RECOVERY_DELAY = 1.5
+const STAMINA_PASSIVE_RATE = 10.0
+const STAMINA_RECOVERY_DELAY = 0.8
 var stamina_recovery_timer: float = 0.0
 var last_push_time: float = 0.0
 var push_count_window: int = 0
@@ -148,7 +148,7 @@ func _physics_process(delta: float) -> void:
 			is_hit = false
 			animated_sprite.modulate = Color(1, 1, 1, 1)
 
-	if is_sprinting and WorldState.stamina > 0 and not WorldState.god_mode:
+	if is_sprinting and direction != 0 and WorldState.stamina > 0 and not WorldState.god_mode:
 		WorldState.stamina = max(WorldState.stamina - STAMINA_SPRINT_DRAIN * delta, 0.0)
 		stamina_recovery_timer = STAMINA_RECOVERY_DELAY
 		HUD.update_stamina(WorldState.stamina, WorldState.max_stamina)
@@ -244,6 +244,15 @@ func _get_weapon_damage_type(weapon_type: String) -> String:
 	return "blunt"
 
 
+func _zombie_body_radius(zombie: Node) -> float:
+	# Melee range is measured to the target's collision EDGE, not its centre.
+	# The boss capsule (radius 35) is wider than a knife's whole range (32), so
+	# centre-to-centre checks made small weapons physically unable to hit it.
+	var shape_node = zombie.get_node_or_null("CollisionShape2D")
+	if shape_node and shape_node.shape is CapsuleShape2D:
+		return shape_node.shape.radius
+	return 10.0
+
 func _do_melee_attack(instance: ItemInstance, slot_index: int) -> void:
 	if is_attacking:
 		return
@@ -277,19 +286,22 @@ func _do_melee_attack(instance: ItemInstance, slot_index: int) -> void:
 	# Gather every zombie in range and within the facing arc, then strike ONE at
 	# random. A single swing must never clear a bunched group — each hit lands on
 	# one enemy, so hordes stay a real threat.
-	var valid_targets: Array = []
+	# One swing strikes ONE enemy — the NEAREST valid one, so you never hit a
+	# boss behind the zombie that's currently mauling you. (Was random pick.)
+	var target: Node = null
+	var target_dist: float = 99999.0
 	for zombie in zombies:
 		if zombie.is_dead:
 			continue
-		var dist = global_position.distance_to(zombie.global_position)
+		var dist = global_position.distance_to(zombie.global_position) - _zombie_body_radius(zombie)
 		if dist <= attack_range:
 			var diff = zombie.global_position.x - global_position.x
 			var facing_right = not animated_sprite.flip_h
 			if (facing_right and diff > -16.0) or (not facing_right and diff < 16.0):
-				if zombie.has_method("receive_damage"):
-					valid_targets.append(zombie)
-	if not valid_targets.is_empty():
-		var target = valid_targets[randi() % valid_targets.size()]
+				if zombie.has_method("receive_damage") and dist < target_dist:
+					target_dist = dist
+					target = zombie
+	if target != null:
 		target.receive_damage(damage, damage_type)
 		hit_something = true
 
@@ -312,14 +324,12 @@ func _do_gun_attack(instance: ItemInstance, slot_index: int) -> void:
 		return
 	if is_attacking:
 		return
-	is_attacking = true
-	attack_cooldown_timer = 0.4
-	WorldState.remove_from_inventory(ammo_slot)
-	HUD.refresh_inventory()
 	var zombies = get_tree().get_nodes_in_group("zombie")
 	var nearest: Node = null
 	var nearest_dist: float = 9999.0
 	for zombie in zombies:
+		if zombie.is_dead:
+			continue
 		var dist = global_position.distance_to(zombie.global_position)
 		var diff = zombie.global_position.x - global_position.x
 		var facing_right = not animated_sprite.flip_h
@@ -330,6 +340,11 @@ func _do_gun_attack(instance: ItemInstance, slot_index: int) -> void:
 	if nearest == null:
 		HUD.show_feedback("Nothing in sight.")
 		return
+	# Only now commit the shot — no target means no ammo spent.
+	is_attacking = true
+	attack_cooldown_timer = 0.4
+	WorldState.remove_from_inventory(ammo_slot)
+	HUD.refresh_inventory()
 	var outcome = _calculate_gun_outcome(nearest_dist)
 	match outcome:
 		"headshot": HUD.show_feedback("Headshot!")
@@ -509,12 +524,13 @@ func use_item(slot_index: int) -> void:
 
 	if item_data["is_health_item"]:
 		var heals = item_data["heals_states"]
-		heal(heals)
-		instance.use()
-		if instance.is_depleted:
-			WorldState.remove_from_inventory(slot_index)
-			HUD.selected_slot = -1
-		HUD.refresh_inventory()
+		# Don't burn a use of the item if we're already at full health.
+		if heal(heals):
+			instance.use()
+			if instance.is_depleted:
+				WorldState.remove_from_inventory(slot_index)
+				HUD.selected_slot = -1
+			HUD.refresh_inventory()
 	elif item_data["is_speed_boost"]:
 		restore_stamina(WorldState.max_stamina * 0.35)
 		HUD.show_feedback("Stamina restored.")
@@ -543,10 +559,10 @@ func use_item(slot_index: int) -> void:
 		HUD.show_feedback("Not implemented yet.")
 
 
-func heal(states: int) -> void:
+func heal(states: int) -> bool:
 	if health_state == HealthState.HEALTHY:
 		HUD.show_feedback("Already healthy.")
-		return
+		return false
 	var new_state = max(int(health_state) - states, int(HealthState.HEALTHY))
 	health_state = new_state as HealthState
 	WorldState.player_health = health_state
@@ -556,6 +572,7 @@ func heal(states: int) -> void:
 		WorldState.dying_timer = 0.0
 	_update_hud()
 	HUD.show_feedback("Used item.")
+	return true
 
 
 func receive_hit(amount: int = 1) -> void:

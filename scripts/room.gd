@@ -105,6 +105,9 @@ func _ready() -> void:
 				var zombie = zombie_scene.instantiate()
 				zombie.global_position = pos
 				zombie.spawn_key = key
+				if WorldState.zombie_positions.has(key):
+					var saved = WorldState.zombie_positions[key]
+					zombie.global_position = Vector2(saved["x"], saved["y"])
 				add_child(zombie)
 
 	if WorldState.saved_player_x != 0.0:
@@ -248,27 +251,34 @@ func _spawn_breached_enemies() -> void:
 	var standard_scene = preload("res://scenes/enemy_zombie_standard.tscn")
 	var big_scene = preload("res://scenes/enemy_zombie_big.tscn")
 
-	var boss_spawned = false
-
 	for i in range(enemy_list.size()):
 		var entry = enemy_list[i]
 		var key = str(floor_num) + ":" + str(snappedf(entry["position"].x, 1.0)) + ":" + str(snappedf(entry["position"].y, 1.0))
 		if WorldState.killed_zombies.has(key):
 			continue
 
-		# First enemy in the list is always the Big Zombie boss
-		if not boss_spawned and entry["type"] == "zombie_standard":
+		# The boss is permanently bound to list slot 0. Previously the FIRST
+		# SURVIVOR was promoted to boss, so killing the boss and revisiting
+		# crowned a new one from the remaining zombies. Now a dead boss stays
+		# dead and survivors stay standard. (Promotion-on-revisit is noted as a
+		# possible deliberate mechanic for run 2/3 difficulty, not for run 1.)
+		if i == 0:
 			var boss = big_scene.instantiate()
 			boss.global_position = entry["position"]
 			boss.spawn_key = key
+			if WorldState.zombie_positions.has(key):
+				var saved_b = WorldState.zombie_positions[key]
+				boss.global_position = Vector2(saved_b["x"], saved_b["y"])
 			boss.drops_key = true
 			boss.key_target_apartment = WorldState.get_breached_boss_key_target(apartment_id)
 			add_child(boss)
-			boss_spawned = true
 		else:
 			var zombie = standard_scene.instantiate()
 			zombie.global_position = entry["position"]
 			zombie.spawn_key = key
+			if WorldState.zombie_positions.has(key):
+				var saved_z = WorldState.zombie_positions[key]
+				zombie.global_position = Vector2(saved_z["x"], saved_z["y"])
 			add_child(zombie)
 
 
@@ -277,17 +287,27 @@ func _spawn_corpses(floor_num: int, apartment_id: String = "") -> void:
 	var corpse_positions = WorldState.get_corpse_positions_for_floor(floor_num, scene_path, apartment_id)
 	if corpse_positions.is_empty():
 		return
-	var zombie_scene = preload("res://scenes/enemy_zombie_standard.tscn")
-	var zombie_instance = zombie_scene.instantiate()
-	var frames = zombie_instance.get_node("AnimatedSprite2D").sprite_frames
-	zombie_instance.queue_free()
-	for pos in corpse_positions:
+	# Corpse visuals are type-aware: standard zombies have a looping "Dead_Dead"
+	# frame; the big zombie has no Dead_Dead, so its corpse shows the final frame
+	# of its "Death" animation, paused.
+	var std_instance = preload("res://scenes/enemy_zombie_standard.tscn").instantiate()
+	var std_frames = std_instance.get_node("AnimatedSprite2D").sprite_frames
+	std_instance.queue_free()
+	var big_instance = preload("res://scenes/enemy_zombie_big.tscn").instantiate()
+	var big_frames = big_instance.get_node("AnimatedSprite2D").sprite_frames
+	big_instance.queue_free()
+	for entry in corpse_positions:
 		var corpse = AnimatedSprite2D.new()
-		corpse.sprite_frames = frames
 		corpse.scale = Vector2(3, 3)
-		corpse.animation = "Dead_Dead"
-		corpse.autoplay = "Dead_Dead"
-		corpse.global_position = pos
+		if entry["type"] == "big":
+			corpse.sprite_frames = big_frames
+			corpse.animation = "Death"
+			corpse.frame = big_frames.get_frame_count("Death") - 1
+		else:
+			corpse.sprite_frames = std_frames
+			corpse.animation = "Dead_Dead"
+			corpse.autoplay = "Dead_Dead"
+		corpse.global_position = entry["pos"]
 		corpse.z_index = 0
 		add_child(corpse)
 

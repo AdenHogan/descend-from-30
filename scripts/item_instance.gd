@@ -52,7 +52,10 @@ func repair(amount: int) -> void:
 	var data = get_data()
 	if data.get("single_use", false):
 		return
-	current_durability = min(current_durability + amount, data["max_durability"])
+	var max_d = data.get("max_durability", -1)
+	if max_d <= 0:
+		return
+	current_durability = min(current_durability + amount, max_d)
 	is_depleted = false
 
 

@@ -17,6 +17,7 @@ var spawn_key: String = ""
 var max_hp: int = 3
 var current_hp: int = 3
 var is_dead: bool = false
+var passable_to_player: bool = false
 
 func _ready() -> void:
 	animated_sprite = $AnimatedSprite2D
@@ -24,6 +25,34 @@ func _ready() -> void:
 	player = get_tree().get_first_node_in_group("player")
 	add_to_group("zombie")
 	_set_hp_from_floor()
+	_register_zombie_exceptions()
+
+func _register_zombie_exceptions() -> void:
+	# Swarm fix: zombies ignore collisions with each other (mutually), so a group
+	# converges and overlaps instead of queueing behind the front one. No layer or
+	# mask changes anywhere — walls, player, doors, stairs all untouched.
+	for other in get_tree().get_nodes_in_group("zombie"):
+		if other != self and other is PhysicsBody2D:
+			add_collision_exception_with(other)
+			other.add_collision_exception_with(self)
+
+func _make_passable_to_player() -> void:
+	# A staggered/knocked-down zombie stops blocking the player, so the push
+	# mechanic lets you shove past. Uses collision exceptions, not layers.
+	if player and not passable_to_player:
+		add_collision_exception_with(player)
+		player.add_collision_exception_with(self)
+		passable_to_player = true
+
+func _try_resolidify() -> void:
+	# Restore solidity only once the player is clear, so the zombie never
+	# re-solidifies while overlapping the player (which would jam both bodies).
+	if not passable_to_player or player == null:
+		return
+	if global_position.distance_to(player.global_position) > 26.0:
+		remove_collision_exception_with(player)
+		player.remove_collision_exception_with(self)
+		passable_to_player = false
 
 func _set_hp_from_floor() -> void:
 	var floor_num = WorldState.current_floor
@@ -41,9 +70,7 @@ func receive_push(force: float) -> void:
 	state = "hit"
 	state_timer = HIT_DURATION
 	animated_sprite.play("Hit")
-	set_collision_layer_value(1, false)
-	set_collision_layer_value(2, true)
-	set_collision_mask_value(1, false)
+	_make_passable_to_player()
 
 func receive_damage(amount: int, damage_type: String) -> void:
 	if is_dead or state == "knockdown":
@@ -74,9 +101,7 @@ func _knockdown() -> void:
 	state_timer = KNOCKDOWN_DURATION
 	velocity.x = 0
 	animated_sprite.play("Hit")
-	set_collision_layer_value(1, false)
-	set_collision_layer_value(2, true)
-	set_collision_mask_value(1, false)
+	_make_passable_to_player()
 
 func _die() -> void:
 	is_dead = true
@@ -91,7 +116,8 @@ func _die() -> void:
 			"y": snappedf(global_position.y, 1.0),
 			"floor": WorldState.current_floor,
 			"scene": get_tree().current_scene.scene_file_path,
-			"apartment_id": WorldState.current_apartment_id
+			"apartment_id": WorldState.current_apartment_id,
+			"type": "standard"
 		}
  
 # Roll for loot drop — 18% chance, consumables only
@@ -133,9 +159,6 @@ func _physics_process(delta: float) -> void:
 				rng.seed = hash(str(WorldState.master_seed) + str(global_position) + str(Time.get_ticks_msec()))
 				if rng.randf() < 0.6:
 					state = "chase"
-					set_collision_layer_value(1, true)
-					set_collision_layer_value(2, false)
-					set_collision_mask_value(1, true)
 					animated_sprite.play("Walk")
 				else:
 					_die()
@@ -145,9 +168,6 @@ func _physics_process(delta: float) -> void:
 			if state_timer <= 0:
 				state = "recovering"
 				state_timer = RECOVER_DURATION
-				set_collision_layer_value(2, false)
-				set_collision_layer_value(1, true)
-				set_collision_mask_value(1, true)
 				animated_sprite.play("Idle")
 		"recovering":
 			velocity.x = move_toward(velocity.x, 0, SPEED)
@@ -165,6 +185,7 @@ func _physics_process(delta: float) -> void:
 				state = "chase"
 				animated_sprite.play("Walk")
 		"chase", "idle":
+			_try_resolidify()
 			if player == null:
 				player = get_tree().get_first_node_in_group("player")
 			if player != null:

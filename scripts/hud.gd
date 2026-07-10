@@ -369,6 +369,3 @@ func show_hud() -> void:
 
 func hide_hud() -> void:
 	visible = false
-
-func update_slot(_slot_index: int, _item_id: String) -> void:
-	pass

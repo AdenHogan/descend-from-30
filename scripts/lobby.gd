@@ -42,17 +42,27 @@ func _spawn_corpses(floor_num: int) -> void:
 	var corpse_positions = WorldState.get_corpse_positions_for_floor(floor_num, scene_path)
 	if corpse_positions.is_empty():
 		return
-	var zombie_scene = preload("res://scenes/enemy_zombie_standard.tscn")
-	var zombie_instance = zombie_scene.instantiate()
-	var frames = zombie_instance.get_node("AnimatedSprite2D").sprite_frames
-	zombie_instance.queue_free()
-	for pos in corpse_positions:
+	# Corpse visuals are type-aware: standard zombies have a looping "Dead_Dead"
+	# frame; the big zombie has no Dead_Dead, so its corpse shows the final frame
+	# of its "Death" animation, paused.
+	var std_instance = preload("res://scenes/enemy_zombie_standard.tscn").instantiate()
+	var std_frames = std_instance.get_node("AnimatedSprite2D").sprite_frames
+	std_instance.queue_free()
+	var big_instance = preload("res://scenes/enemy_zombie_big.tscn").instantiate()
+	var big_frames = big_instance.get_node("AnimatedSprite2D").sprite_frames
+	big_instance.queue_free()
+	for entry in corpse_positions:
 		var corpse = AnimatedSprite2D.new()
-		corpse.sprite_frames = frames
 		corpse.scale = Vector2(3, 3)
-		corpse.animation = "Dead_Dead"
-		corpse.autoplay = "Dead_Dead"
-		corpse.global_position = pos
+		if entry["type"] == "big":
+			corpse.sprite_frames = big_frames
+			corpse.animation = "Death"
+			corpse.frame = big_frames.get_frame_count("Death") - 1
+		else:
+			corpse.sprite_frames = std_frames
+			corpse.animation = "Dead_Dead"
+			corpse.autoplay = "Dead_Dead"
+		corpse.global_position = entry["pos"]
 		corpse.z_index = 0
 		add_child(corpse)
 		

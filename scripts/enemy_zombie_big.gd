@@ -32,11 +32,17 @@ func _ready() -> void:
 	add_to_group("zombie")
 	add_to_group("big_zombie")
 	_set_hp_from_floor()
-	# Swarm collision model (see standard zombie). Layer 3, masks walls+player only.
-	set_collision_layer_value(1, false)
-	set_collision_layer_value(3, true)
-	set_collision_mask_value(1, true)
-	set_collision_mask_value(3, false)
+	_register_zombie_exceptions()
+
+
+func _register_zombie_exceptions() -> void:
+	# Swarm fix: zombies ignore collisions with each other (mutually), so a group
+	# converges and overlaps instead of queueing behind the front one. No layer or
+	# mask changes anywhere — walls, player, doors, stairs all untouched.
+	for other in get_tree().get_nodes_in_group("zombie"):
+		if other != self and other is PhysicsBody2D:
+			add_collision_exception_with(other)
+			other.add_collision_exception_with(self)
 
 
 func _set_hp_from_floor() -> void:
@@ -91,8 +97,6 @@ func _die() -> void:
 	velocity.x = 0
 	animated_sprite.play("Death")
 	set_collision_layer_value(1, false)
-	set_collision_layer_value(2, false)
-	set_collision_layer_value(3, false)
 	set_collision_mask_value(1, false)
 
 	if spawn_key != "" and not WorldState.killed_zombies.has(spawn_key):
@@ -101,7 +105,8 @@ func _die() -> void:
 			"y": snappedf(global_position.y, 1.0),
 			"floor": WorldState.current_floor,
 			"scene": get_tree().current_scene.scene_file_path,
-			"apartment_id": WorldState.current_apartment_id
+			"apartment_id": WorldState.current_apartment_id,
+			"type": "big"
 		}
 
 	if drops_key and key_target_apartment != "" and not key_dropped:
@@ -180,4 +185,3 @@ func _physics_process(delta: float) -> void:
 					velocity.x = 0
 					animated_sprite.play("Idle")
 	move_and_slide()
-	
