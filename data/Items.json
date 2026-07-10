@@ -255,6 +255,14 @@
       "PROPERTY_DURABILITY": "single use",
       "PROPERTY_SPAWN_RARITY": 4,
       "PROPERTY_WEIGHT_SIZE": null
+    },
+    "033": {
+      "ITEM_NAME": "Bank Notes",
+      "ITEM_DESCRIPTION": "Paper money. The world outside still runs on it — and so does the merchant man.",
+      "VALUE_PROPERTY": "is_money",
+      "PROPERTY_DURABILITY": "",
+      "PROPERTY_SPAWN_RARITY": 1,
+      "PROPERTY_WEIGHT_SIZE": null
     }
   },
   "ROOM_SPAWN_POOLS": {
@@ -503,6 +511,14 @@
       "kitchen": 0,
       "bathroom": 0,
       "study": 1,
+      "living_room": 2,
+      "dining_room": 1
+    },
+    "Bank Notes": {
+      "bedroom": 2,
+      "kitchen": 1,
+      "bathroom": 1,
+      "study": 3,
       "living_room": 2,
       "dining_room": 1
     }

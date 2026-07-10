@@ -76,6 +76,7 @@ func _spawn_world_drops(floor_num: int) -> void:
 		var data = drops[drop_key]
 		var drop = drop_scene.instantiate()
 		drop.item_id = data["item_id"]
+		drop.amount = int(data.get("amount", 0))
 		drop.drop_key = drop_key
 		drop.target_apartment = data.get("target_apartment", "")
 		drop.global_position = Vector2(data["x"], data["y"])

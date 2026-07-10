@@ -5,6 +5,7 @@ var item_id: String = ""
 var current_durability: int = 0
 var is_depleted: bool = false
 var target_apartment: String = ""  # Only used for is_key items — "Key — Apt XXXX"
+var count: int = 1  # Only used for stackable items (Bank Notes)
 
 
 func setup(id: String) -> void:

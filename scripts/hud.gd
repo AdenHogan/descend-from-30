@@ -37,6 +37,7 @@ var slot_key_labels: Array = []
 
 var stamina_bar: Control = null
 var stamina_segments: Array = []
+var wallet_label: Label = null
 const STAMINA_SEGMENTS = 8
 const STAMINA_BAR_W = 14.0
 const STAMINA_BAR_H = 60.0
@@ -53,6 +54,7 @@ func _ready() -> void:
 	_create_feedback_label()
 	_create_context_menu()
 	_create_stamina_bar()
+	_create_wallet_label()
 	update_floor_label()
 	update_portrait(0)
 	update_mode_indicator()
@@ -113,6 +115,9 @@ func _create_slot_icons() -> void:
 		
 		var key_label = Label.new()
 		key_label.add_theme_font_size_override("font_size", 7)
+		key_label.add_theme_color_override("font_color", Color(0.05, 0.05, 0.05, 1.0))
+		key_label.add_theme_color_override("font_outline_color", Color(1, 1, 1, 0.9))
+		key_label.add_theme_constant_override("outline_size", 2)
 		key_label.position = Vector2(2, 2)
 		key_label.size = Vector2(SLOT_SIZE - 4, 16)
 		key_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -170,6 +175,25 @@ func _create_stamina_bar() -> void:
 		seg.color = Color(0.2, 0.8, 0.4, 1.0)
 		stamina_bar.add_child(seg)
 		stamina_segments.append(seg)
+
+func _create_wallet_label() -> void:
+	wallet_label = Label.new()
+	wallet_label.add_theme_font_size_override("font_size", 12)
+	wallet_label.add_theme_color_override("font_color", Color(0.55, 0.9, 0.55, 1.0))
+	wallet_label.position = Vector2(SCREEN_W - (SLOT_SIZE + 8) * 6 - 8, SCREEN_H - BAR_H - 16)
+	wallet_label.size = Vector2((SLOT_SIZE + 8) * 6, 16)
+	wallet_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	wallet_label.visible = false
+	$Control.add_child(wallet_label)
+	update_wallet()
+
+
+func update_wallet() -> void:
+	if wallet_label == null:
+		return
+	wallet_label.visible = WorldState.wallet_unlocked
+	wallet_label.text = "WALLET  " + str(WorldState.wallet_balance)
+
 
 func update_stamina(current: float, maximum: float) -> void:
 	if stamina_segments.is_empty():
@@ -338,6 +362,9 @@ func refresh_inventory() -> void:
 			var key_label = slot_key_labels[i]
 			if item_data.get("is_key", false) and instance.target_apartment != "":
 				key_label.text = instance.target_apartment
+				key_label.visible = true
+			elif item_data.get("is_money", false):
+				key_label.text = "x" + str(instance.count)
 				key_label.visible = true
 			else:
 				key_label.visible = false

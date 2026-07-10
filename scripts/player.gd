@@ -293,13 +293,18 @@ func _do_melee_attack(instance: ItemInstance, slot_index: int) -> void:
 	for zombie in zombies:
 		if zombie.is_dead:
 			continue
-		var dist = global_position.distance_to(zombie.global_position) - _zombie_body_radius(zombie)
-		if dist <= attack_range:
+		# Range gate: edge distance (centre minus body radius) so small weapons can
+		# reach the boss's wide capsule. Priority: RAW centre distance — using edge
+		# distance for priority handed the boss a radius-sized head start, so it
+		# stole hits from standards visibly in front of it.
+		var center_dist = global_position.distance_to(zombie.global_position)
+		var edge_dist = center_dist - _zombie_body_radius(zombie)
+		if edge_dist <= attack_range:
 			var diff = zombie.global_position.x - global_position.x
 			var facing_right = not animated_sprite.flip_h
 			if (facing_right and diff > -16.0) or (not facing_right and diff < 16.0):
-				if zombie.has_method("receive_damage") and dist < target_dist:
-					target_dist = dist
+				if zombie.has_method("receive_damage") and center_dist < target_dist:
+					target_dist = center_dist
 					target = zombie
 	if target != null:
 		target.receive_damage(damage, damage_type)
@@ -469,6 +474,13 @@ func _input(event: InputEvent) -> void:
 		elif event.is_action_pressed("dev_god_mode"):
 			WorldState.god_mode = !WorldState.god_mode
 			HUD.show_feedback("DEV: God Mode " + ("ON" if WorldState.god_mode else "OFF"))
+		elif event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F5:
+			# DEV: unlock the Wallet and grant 500 Bank Notes.
+			if not WorldState.wallet_unlocked:
+				WorldState.unlock_wallet()
+			WorldState.add_to_inventory("033", 500)
+			HUD.refresh_inventory()
+			HUD.show_feedback("DEV: Wallet + 500 Bank Notes")
 
 	if not WorldState.is_scavenge_mode:
 		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:

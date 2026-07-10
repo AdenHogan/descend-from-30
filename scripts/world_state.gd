@@ -54,6 +54,12 @@ var door_keys_consumed: Dictionary = {}
 var floor_states_seeded: Dictionary = {}
 # Live (unkilled) zombie positions captured at save time, keyed by spawn_key.
 var zombie_positions: Dictionary = {}
+
+# Wallet: unlock is CROSS-RUN (persists over character death — see merchant doc);
+# balance is PER-RUN (dies with the character / recoverable from the corpse later).
+# NOTE: balance reset on run-advance is wired when the time-skip pass is built.
+var wallet_unlocked: bool = false
+var wallet_balance: int = 0
 var barricade_progress: Dictionary = {}
 
 
@@ -99,7 +105,39 @@ func on_floor_arrived(floor_num: int) -> void:
 	seed_floor_door_states(floor_num)
 
 
-func add_to_inventory(item_id: String) -> bool:
+func add_to_inventory(item_id: String, amount: int = 0) -> bool:
+	# Bank Notes stack: all money shares ONE slot ("Bank Notes xN"). An existing
+	# stack absorbs pickups without consuming a slot. `amount` <= 0 rolls a small
+	# scavenge bundle (5-15); sources with bigger bundles (Big Zombie, dense-tier
+	# anchors) pass an explicit amount.
+	# The Wallet (031) never enters the inventory: picking it up converts it
+	# straight into the wallet HUD (no "use" step — the freed slot IS the reward).
+	# Works even with a full inventory. If already unlocked (persists across runs),
+	# a found wallet is just someone's cash: pocket a small bundle instead.
+	if item_id == "031":
+		if wallet_unlocked:
+			return add_to_inventory("033", 5 + randi() % 11)
+		unlock_wallet()
+		return true
+	if ItemData.get_item(item_id).get("is_money", false):
+		var add_amount = amount
+		if add_amount <= 0:
+			add_amount = 5 + randi() % 11
+		if wallet_unlocked:
+			wallet_balance += add_amount
+			HUD.update_wallet()
+			return true
+		for instance in inventory:
+			if instance.item_id == item_id:
+				instance.count += add_amount
+				return true
+		if inventory.size() >= MAX_INVENTORY_SLOTS:
+			return false
+		var money = ItemInstance.new()
+		money.setup(item_id)
+		money.count = add_amount
+		inventory.append(money)
+		return true
 	if inventory.size() >= MAX_INVENTORY_SLOTS:
 		return false
 	var instance = ItemInstance.new()
@@ -111,6 +149,49 @@ func add_to_inventory(item_id: String) -> bool:
 func remove_from_inventory(slot_index: int) -> void:
 	if slot_index >= 0 and slot_index < inventory.size():
 		inventory.remove_at(slot_index)
+
+
+func unlock_wallet() -> void:
+	wallet_unlocked = true
+	# Absorb any carried Bank Notes stack into the wallet, freeing its slot.
+	for i in range(inventory.size() - 1, -1, -1):
+		if ItemData.get_item(inventory[i].item_id).get("is_money", false):
+			wallet_balance += inventory[i].count
+			inventory.remove_at(i)
+	HUD.refresh_inventory()
+	HUD.update_wallet()
+	HUD.show_feedback("Wallet acquired — cash no longer takes a slot.")
+
+
+func get_money_total() -> int:
+	var total = wallet_balance
+	for instance in inventory:
+		if ItemData.get_item(instance.item_id).get("is_money", false):
+			total += instance.count
+	return total
+
+
+func spend_money(cost: int) -> bool:
+	# Shop-ready: debits wallet first, then any carried stack. False if short.
+	if get_money_total() < cost:
+		return false
+	var remaining = cost
+	var from_wallet = min(wallet_balance, remaining)
+	wallet_balance -= from_wallet
+	remaining -= from_wallet
+	if remaining > 0:
+		for i in range(inventory.size() - 1, -1, -1):
+			if ItemData.get_item(inventory[i].item_id).get("is_money", false):
+				var take = min(inventory[i].count, remaining)
+				inventory[i].count -= take
+				remaining -= take
+				if inventory[i].count <= 0:
+					inventory.remove_at(i)
+				if remaining <= 0:
+					break
+	HUD.refresh_inventory()
+	HUD.update_wallet()
+	return true
 
 
 func get_item_id_at(slot_index: int) -> String:
@@ -604,7 +685,8 @@ func add_world_drop(item_id: String, pos: Vector2, floor_num: int, extra: Dictio
 		"floor": floor_num,
 		"scene": extra.get("scene", get_tree().current_scene.scene_file_path),
 		"apartment_id": extra.get("apartment_id", current_apartment_id),
-		"target_apartment": extra.get("target_apartment", "")
+		"target_apartment": extra.get("target_apartment", ""),
+		"amount": extra.get("amount", 0)
 	}
 
 
@@ -641,6 +723,7 @@ const ZOMBIE_LOOT_POOL = [
 	"009", "009",         # Ice Pack      weight 2
 	"010",                # Painkillers   weight 1
 	"011",                # Adrenaline    weight 1
+	"033", "033", "033",  # Bank Notes    weight 3 (bundle rolled at pickup)
 ]
 const ZOMBIE_LOOT_CHANCE = 0.18
 
@@ -710,6 +793,8 @@ func save_game(scene_path: String) -> void:
 		"door_keys_consumed": door_keys_consumed,
 		"floor_states_seeded": floor_states_seeded,
 		"zombie_positions": zombie_positions,
+		"wallet_unlocked": wallet_unlocked,
+		"wallet_balance": wallet_balance,
 		"barricade_progress": barricade_progress,
 	}
 	var file = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
@@ -764,6 +849,8 @@ func load_game() -> String:
 	# JSON round-trips all dictionary keys as strings; this dict is keyed by int
 	# floor numbers, so convert keys back or every loaded game re-seeds its floors.
 	zombie_positions = data.get("zombie_positions", {})
+	wallet_unlocked = data.get("wallet_unlocked", false)
+	wallet_balance = int(data.get("wallet_balance", 0))
 	floor_states_seeded = {}
 	for k in data["floor_states_seeded"]:
 		floor_states_seeded[int(k)] = data["floor_states_seeded"][k]
@@ -788,7 +875,8 @@ func _serialize_inventory() -> Array:
 			"item_id": instance.item_id,
 			"current_durability": instance.current_durability,
 			"is_depleted": instance.is_depleted,
-			"target_apartment": instance.target_apartment
+			"target_apartment": instance.target_apartment,
+			"count": instance.count
 		})
 	return result
 
@@ -801,4 +889,5 @@ func _deserialize_inventory(data: Array) -> void:
 		instance.current_durability = entry["current_durability"]
 		instance.is_depleted = entry["is_depleted"]
 		instance.target_apartment = entry.get("target_apartment", "")
+		instance.count = int(entry.get("count", 1))
 		inventory.append(instance)

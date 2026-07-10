@@ -109,6 +109,18 @@ func _die() -> void:
 			"type": "big"
 		}
 
+	# Big Zombie ALWAYS drops a Bank Notes bundle (30-60).
+	var money_amount = 30 + randi() % 31
+	var money_pos = global_position + Vector2(24, 0)
+	var money_key = str(WorldState.current_floor) + ":" + str(snappedf(money_pos.x, 1.0)) + ":" + str(snappedf(money_pos.y, 1.0))
+	WorldState.add_world_drop("033", money_pos, WorldState.current_floor, {"amount": money_amount})
+	var money_drop = preload("res://scenes/world_drop.tscn").instantiate()
+	money_drop.item_id = "033"
+	money_drop.amount = money_amount
+	money_drop.drop_key = money_key
+	money_drop.global_position = money_pos
+	get_parent().add_child(money_drop)
+
 	if drops_key and key_target_apartment != "" and not key_dropped:
 		key_dropped = true
 		_drop_key()

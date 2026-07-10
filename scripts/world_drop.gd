@@ -6,6 +6,7 @@ const GLOW_RANGE = 80.0
 var item_id: String = ""
 var target_apartment: String = ""
 var drop_key: String = ""
+var amount: int = 0  # Bank Notes bundle size; 0 = roll default on pickup
 
 var player: Node2D = null
 var player_nearby: bool = false
@@ -80,7 +81,7 @@ func _try_pickup() -> void:
 			HUD.show_feedback("Inventory full.")
 			return
 	else:
-		added = WorldState.add_to_inventory(item_id)
+		added = WorldState.add_to_inventory(item_id, amount)
 		if added:
 			var item_data = ItemData.get_item(item_id)
 			HUD.show_feedback(item_data.get("name", "Item") + " picked up.")
