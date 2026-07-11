@@ -62,6 +62,39 @@ var wallet_unlocked: bool = false
 var wallet_balance: int = 0
 var barricade_progress: Dictionary = {}
 
+# --- Merchant / shop (docs/STORE_DESIGN.md) ---
+const MERCHANT_FLOORS = [25, 20, 15, 10, 5]
+const LEGENDARY_HOLD_VISITS = 3
+
+# Price bands per design: common 15-40, quality 80-150, legendary 300-500.
+const SHOP_COMMON = {
+	"005": 15,   # Canned Food
+	"009": 15,   # Torn Clothes
+	"021": 20,   # Battery
+	"006": 25,   # Bandages
+	"010": 30,   # Painkillers
+	"011": 30,   # Ice Pack
+	"001": 40,   # Knife
+}
+const SHOP_QUALITY = {
+	"018": 80,   # Rope
+	"014": 90,   # Baseball Bat
+	"002": 100,  # Hammer
+	"013": 100,  # Cricket Bat
+	"007": 110,  # First Aid Kit
+	"019": 130,  # Toolbox
+}
+const SHOP_LEGENDARY = {
+	"017": 350,  # Aluminium Baseball Bat
+	"003": 400,  # Sword
+}
+
+var merchant_stock: Dictionary = {}  # "run:floor" -> Array of {item_id, price, band, sold}
+# Legendary hold: an unpurchased Legendary stays in stock for the next
+# LEGENDARY_HOLD_VISITS shop visits so a savings goal is always reachable.
+var legendary_hold: Dictionary = {}  # {"item_id": String, "visits_left": int} when active
+var legendary_just_purchased: bool = false
+
 
 func new_game() -> void:
 	master_seed = randi()
@@ -96,6 +129,9 @@ func new_game() -> void:
 	door_keys_consumed.clear()
 	floor_states_seeded.clear()
 	barricade_progress.clear()
+	merchant_stock.clear()
+	legendary_hold = {}
+	legendary_just_purchased = false
 	god_mode = false
 
 
@@ -192,6 +228,78 @@ func spend_money(cost: int) -> bool:
 	HUD.refresh_inventory()
 	HUD.update_wallet()
 	return true
+
+
+func get_merchant_stock(floor_num: int) -> Array:
+	# Stock is rolled once per (run, floor) visit, then persisted — purchases
+	# mutate the stored entries, and reloading a save can't reroll the shop.
+	var key = str(current_run) + ":" + str(floor_num)
+	if merchant_stock.has(key):
+		return merchant_stock[key]
+
+	var rng = RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "merchant" + str(floor_num) + str(current_run))
+	var stock: Array = []
+
+	# Legendary slot resolves first: an active hold overrides the roll so the
+	# held item keeps appearing until its window runs out or it's purchased.
+	var legendary_id = ""
+	if int(legendary_hold.get("visits_left", 0)) > 0:
+		legendary_id = legendary_hold["item_id"]
+		legendary_hold["visits_left"] = int(legendary_hold["visits_left"]) - 1
+	else:
+		var chance = 0.25 if legendary_just_purchased else 0.35
+		legendary_just_purchased = false
+		if rng.randf() < chance:
+			var ids = SHOP_LEGENDARY.keys()
+			legendary_id = ids[rng.randi() % ids.size()]
+			legendary_hold = {"item_id": legendary_id, "visits_left": LEGENDARY_HOLD_VISITS}
+
+	# Max 6 slots per visit: a legendary claims one, squeezing the commons.
+	var common_count = 3 if legendary_id != "" else 3 + (rng.randi() % 2)
+	var quality_count = 1 + (rng.randi() % 2)
+	stock.append_array(_roll_shop_band(SHOP_COMMON, common_count, "common", rng))
+	stock.append_array(_roll_shop_band(SHOP_QUALITY, quality_count, "quality", rng))
+	if legendary_id != "":
+		stock.append({
+			"item_id": legendary_id,
+			"price": SHOP_LEGENDARY[legendary_id],
+			"band": "legendary",
+			"sold": false,
+		})
+
+	merchant_stock[key] = stock
+	return stock
+
+
+func _roll_shop_band(pool: Dictionary, count: int, band: String, rng: RandomNumberGenerator) -> Array:
+	# Sample without replacement so one visit never shows duplicate wares.
+	var ids = pool.keys()
+	var result: Array = []
+	for i in range(min(count, ids.size())):
+		var pick = rng.randi() % ids.size()
+		var item_id = ids[pick]
+		ids.remove_at(pick)
+		result.append({
+			"item_id": item_id,
+			"price": pool[item_id],
+			"band": band,
+			"sold": false,
+		})
+	return result
+
+
+func mark_shop_item_sold(floor_num: int, stock_index: int) -> void:
+	var key = str(current_run) + ":" + str(floor_num)
+	if not merchant_stock.has(key):
+		return
+	if stock_index < 0 or stock_index >= merchant_stock[key].size():
+		return
+	var entry = merchant_stock[key][stock_index]
+	entry["sold"] = true
+	if entry["band"] == "legendary":
+		legendary_hold = {}
+		legendary_just_purchased = true
 
 
 func get_item_id_at(slot_index: int) -> String:
@@ -796,6 +904,9 @@ func save_game(scene_path: String) -> void:
 		"wallet_unlocked": wallet_unlocked,
 		"wallet_balance": wallet_balance,
 		"barricade_progress": barricade_progress,
+		"merchant_stock": merchant_stock,
+		"legendary_hold": legendary_hold,
+		"legendary_just_purchased": legendary_just_purchased,
 	}
 	var file = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if file:
@@ -855,6 +966,9 @@ func load_game() -> String:
 	for k in data["floor_states_seeded"]:
 		floor_states_seeded[int(k)] = data["floor_states_seeded"][k]
 	barricade_progress = data.get("barricade_progress", {})
+	merchant_stock = data.get("merchant_stock", {})
+	legendary_hold = data.get("legendary_hold", {})
+	legendary_just_purchased = bool(data.get("legendary_just_purchased", false))
 	_deserialize_inventory(data["inventory"])
 	return data["scene_path"]
 
