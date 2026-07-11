@@ -966,8 +966,22 @@ func load_game() -> String:
 	for k in data["floor_states_seeded"]:
 		floor_states_seeded[int(k)] = data["floor_states_seeded"][k]
 	barricade_progress = data.get("barricade_progress", {})
-	merchant_stock = data.get("merchant_stock", {})
+	# JSON round-trips ints as floats; normalise so loaded stock is
+	# type-identical to freshly generated stock.
+	merchant_stock = {}
+	for k in data.get("merchant_stock", {}):
+		var entries: Array = []
+		for e in data["merchant_stock"][k]:
+			entries.append({
+				"item_id": str(e["item_id"]),
+				"price": int(e["price"]),
+				"band": str(e["band"]),
+				"sold": bool(e["sold"]),
+			})
+		merchant_stock[k] = entries
 	legendary_hold = data.get("legendary_hold", {})
+	if not legendary_hold.is_empty():
+		legendary_hold["visits_left"] = int(legendary_hold.get("visits_left", 0))
 	legendary_just_purchased = bool(data.get("legendary_just_purchased", false))
 	_deserialize_inventory(data["inventory"])
 	return data["scene_path"]
