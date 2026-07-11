@@ -60,6 +60,21 @@ changes — they are the cross-session memory for this project.
   decay, corpses) vs per-run state (inventory, wallet balance, health).
   Put new state in the right block.
 
+## Testing / verification
+
+Headless Godot is available in cloud sessions (installed by the environment
+setup script; binary from downloads.godotengine.org). Before every commit:
+
+- `godot --headless --import` — catches broken scenes, bad UIDs, missing
+  resources. Run it after adding new scenes/scripts so their UIDs register.
+- `godot --headless res://tests/merchant_smoke_test.tscn` — merchant/shop
+  regression suite; exit 0 = all passed. Runs with full autoloads, so it
+  exercises real WorldState/ItemData/HUD code paths.
+
+Add a test scene under `tests/` for each new system (copy the pattern:
+plain Node + script with `check()` asserts, quit(1) on failure). Headless
+means no rendering — UI layout and art still need an in-editor look.
+
 ## Current status (update as work lands)
 
 - Built: floors/traversal, procedural apartments, doors (open/locked/weak/
