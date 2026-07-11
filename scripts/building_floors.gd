@@ -98,6 +98,15 @@ func _ready() -> void:
 
 	_spawn_corpses(floor_num)
 	_spawn_world_drops(floor_num)
+	_spawn_merchant(floor_num)
+
+func _spawn_merchant(floor_num: int) -> void:
+	if floor_num not in WorldState.MERCHANT_FLOORS:
+		return
+	var merchant = preload("res://scenes/merchant.tscn").instantiate()
+	# Standing in front of the jammed-open elevator (Elevator sprite x=1029.5).
+	merchant.global_position = Vector2(1030, 388)
+	add_child(merchant)
 
 func _spawn_world_drops(floor_num: int) -> void:
 	var scene_path = get_tree().current_scene.scene_file_path

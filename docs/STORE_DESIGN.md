@@ -175,11 +175,12 @@ customers, resulting in an ever-changing storefront selection.
 1. ✅ Bank Notes item in Items.json + loot pool weights + zombie drop table;
    stacking display in existing slot UI (only inventory-system change)
 2. ✅ Wallet conversion + HUD wallet counter
-3. Merchant scene in elevator on floors %5==0 (excluding 30): sprite,
-   E-interact, placeholder dialogue
-4. Shop data: seeded stock generation with rarity bands + Legendary hold
+3. ✅ Merchant scene in elevator on floors %5==0 (excluding 30): sprite,
+   E-interact, placeholder dialogue (placeholder drawn figure — art task open)
+4. ✅ Shop data: seeded stock generation with rarity bands + Legendary hold
    state in WorldState (persisted: merchant_stock, legendary_hold)
-5. Shop UI tab; buy flow debiting wallet/stack
+5. ✅ Shop UI; buy flow debiting wallet/stack (single screen for now — becomes
+   the SHOP tab when the upgrades tab lands in step 6)
 6. Upgrades tab: offer-before-shop flow (pair gates shop on first
    interaction; refusal = one confirm; resolved pair never returns that
    visit), pair generation from unowned weighted pool, effect application

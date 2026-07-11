@@ -65,7 +65,9 @@ changes — they are the cross-session memory for this project.
 - Built: floors/traversal, procedural apartments, doors (open/locked/weak/
   barricaded), combat (melee/push), inventory (5 + locked 6th slot), loot,
   HUD, save/pause, breach rooms + boss, world drops, enemy corpses,
-  Bank Notes + Wallet (store doc steps 1–2), `current_run` seeding.
-- In progress: **Merchant** (store doc step 3+).
-- Not started: shop UI, upgrade offers, player-corpse recovery, time-of-day,
-  fires, balcony descent, quests, character stats.
+  Bank Notes + Wallet (store doc steps 1–2), `current_run` seeding,
+  Merchant NPC + seeded shop with Legendary hold + buy flow (steps 3–5;
+  merchant sprite is a code-drawn placeholder — art task open).
+- Next: **Upgrade offers** (store doc step 6 — needs the upgrade pool
+  designed first), then player-corpse recovery (step 7).
+- Not started: time-of-day, fires, balcony descent, quests, character stats.
