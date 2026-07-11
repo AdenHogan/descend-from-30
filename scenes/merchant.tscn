@@ -1,17 +1,17 @@
-[gd_scene load_steps=3 format=3 uid="uid://cxednr1tk72zk"]
+[gd_scene format=3 uid="uid://cxednr1tk720k"]
 
 [ext_resource type="Script" uid="uid://byrpios1j1a8u" path="res://scripts/merchant.gd" id="1_mrcht"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_mrcht"]
 radius = 60.0
 
-[node name="Merchant" type="Area2D"]
+[node name="Merchant" type="Area2D" unique_id=1853152800]
 script = ExtResource("1_mrcht")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1404281355]
 shape = SubResource("CircleShape2D_mrcht")
 
-[node name="ProximityLabel" type="Label" parent="."]
+[node name="ProximityLabel" type="Label" parent="." unique_id=2000411955]
 offset_left = -90.0
 offset_top = -80.0
 offset_right = 90.0
