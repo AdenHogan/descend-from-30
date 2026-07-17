@@ -70,6 +70,8 @@ setup script; binary from downloads.godotengine.org). Before every commit:
 - `godot --headless res://tests/merchant_smoke_test.tscn` — merchant/shop
   regression suite; exit 0 = all passed. Runs with full autoloads, so it
   exercises real WorldState/ItemData/HUD code paths.
+- `godot --headless res://tests/gun_combat_test.tscn` — ammo stacking
+  (8/slot), consumption, gun animations, noise alerts.
 
 Add a test scene under `tests/` for each new system (copy the pattern:
 plain Node + script with `check()` asserts, quit(1) on failure). Headless
@@ -78,7 +80,8 @@ means no rendering — UI layout and art still need an in-editor look.
 ## Current status (update as work lands)
 
 - Built: floors/traversal, procedural apartments, doors (open/locked/weak/
-  barricaded), combat (melee/push), inventory (5 + locked 6th slot), loot,
+  barricaded), combat (melee/push/gun with stacking ammo + noise alerts),
+  inventory (5 + locked 6th slot), loot,
   HUD, save/pause, breach rooms + boss, world drops, enemy corpses,
   Bank Notes + Wallet (store doc steps 1–2), `current_run` seeding,
   Merchant NPC + seeded shop with Legendary hold + buy flow (steps 3–5;

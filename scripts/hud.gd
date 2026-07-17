@@ -371,7 +371,7 @@ func refresh_inventory() -> void:
 			if item_data.get("is_key", false) and instance.target_apartment != "":
 				key_label.text = instance.target_apartment
 				key_label.visible = true
-			elif item_data.get("is_money", false):
+			elif item_data.get("is_money", false) or item_data.get("is_ammo", false):
 				key_label.text = "x" + str(instance.count)
 				key_label.visible = true
 			else:
