@@ -23,6 +23,12 @@ var max_hp: int = 20
 var current_hp: int = 20
 var is_dead: bool = false
 var detection_range: float = DETECTION_RANGE
+# Gunfire (and future noise sources) override detection range while this runs.
+var alert_timer: float = 0.0
+
+
+func alert_to_noise(duration: float = 6.0) -> void:
+	alert_timer = max(alert_timer, duration)
 
 
 func _ready() -> void:
@@ -159,6 +165,9 @@ func _physics_process(delta: float) -> void:
 	if is_dead:
 		return
 
+	if alert_timer > 0:
+		alert_timer -= delta
+
 	match state:
 		"hit":
 			velocity.x *= PUSH_FRICTION
@@ -181,12 +190,13 @@ func _physics_process(delta: float) -> void:
 				player = get_tree().get_first_node_in_group("player")
 			if player != null:
 				var distance = global_position.distance_to(player.global_position)
+				var effective_detection = detection_range if alert_timer <= 0 else 2000.0
 				if distance <= ATTACK_RANGE:
 					state = "attack"
 					state_timer = 1.2
 					animated_sprite.flip_h = (player.global_position.x - global_position.x) < 0
 					animated_sprite.play("Attack")
-				elif distance <= detection_range:
+				elif distance <= effective_detection:
 					state = "chase"
 					var direction = sign(player.global_position.x - global_position.x)
 					velocity.x = direction * SPEED + _separation_nudge()

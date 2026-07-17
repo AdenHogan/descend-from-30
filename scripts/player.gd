@@ -76,6 +76,7 @@ var mode_switch_timer = 0.0
 
 func _ready() -> void:
 	add_to_group("player")
+	_setup_gun_animations()
 	health_state = HealthState.values()[WorldState.player_health]
 	is_dying = WorldState.is_dying
 	dying_timer = WorldState.dying_timer
@@ -194,14 +195,17 @@ func _physics_process(delta: float) -> void:
 		if direction == 0:
 			match equipped_weapon:
 				"sword", "knife", "bat": animated_sprite.play("katana_idle")
+				"gun": animated_sprite.play("gun_idle")
 				_: animated_sprite.play("idle")
 		elif is_sprinting and WorldState.stamina > 0:
 			match equipped_weapon:
 				"sword", "knife", "bat": animated_sprite.play("katana_run")
+				"gun": animated_sprite.play("gun_run")
 				_: animated_sprite.play("run")
 		else:
 			match equipped_weapon:
 				"sword", "knife", "bat": animated_sprite.play("katana_walk")
+				"gun": animated_sprite.play("gun_walk")
 				_: animated_sprite.play("walk")
 
 	if is_pushing:
@@ -211,6 +215,48 @@ func _physics_process(delta: float) -> void:
 	else:
 		velocity.x = move_toward(velocity.x, 0, SPEED)
 	move_and_slide()
+
+
+func _setup_gun_animations() -> void:
+	# Gun animations are built at runtime from the character-template sheets so
+	# the hand-tuned SpriteFrames in player.tscn stays untouched. An art pass
+	# can bake these into the scene later; the has_animation guard makes that a
+	# safe no-op here. Sheets: shoot 2H = 10 frames, running aiming = 8 frames.
+	var frames = animated_sprite.sprite_frames
+	if frames.has_animation("gun_shoot"):
+		return
+	var shoot_tex = preload("res://assets/2D-Pixel-Art-Character-Template/Shooting (two-handed)/player shoot 2H 48x48.png")
+	var aim_tex = preload("res://assets/2D-Pixel-Art-Character-Template/Shooting (running and aiming)/Player Running Aiming 48x48.png")
+
+	frames.add_animation("gun_idle")
+	frames.set_animation_loop("gun_idle", true)
+	frames.set_animation_speed("gun_idle", 8.0)
+	frames.add_frame("gun_idle", _atlas_frame(shoot_tex, 0))
+
+	frames.add_animation("gun_walk")
+	frames.set_animation_loop("gun_walk", true)
+	frames.set_animation_speed("gun_walk", 8.0)
+	for i in range(8):
+		frames.add_frame("gun_walk", _atlas_frame(aim_tex, i))
+
+	frames.add_animation("gun_run")
+	frames.set_animation_loop("gun_run", true)
+	frames.set_animation_speed("gun_run", 14.0)
+	for i in range(8):
+		frames.add_frame("gun_run", _atlas_frame(aim_tex, i))
+
+	frames.add_animation("gun_shoot")
+	frames.set_animation_loop("gun_shoot", false)
+	frames.set_animation_speed("gun_shoot", 16.0)
+	for i in range(10):
+		frames.add_frame("gun_shoot", _atlas_frame(shoot_tex, i))
+
+
+func _atlas_frame(sheet: Texture2D, index: int) -> AtlasTexture:
+	var atlas = AtlasTexture.new()
+	atlas.atlas = sheet
+	atlas.region = Rect2(index * 48, 0, 48, 48)
+	return atlas
 
 
 func _get_equipped_weapon_type() -> String:
@@ -322,9 +368,8 @@ func _do_melee_attack(instance: ItemInstance, slot_index: int) -> void:
 			HUD.refresh_inventory()
 
 
-func _do_gun_attack(instance: ItemInstance, slot_index: int) -> void:
-	var ammo_slot = _find_ammo_in_inventory()
-	if ammo_slot == -1:
+func _do_gun_attack(_instance: ItemInstance, _slot_index: int) -> void:
+	if WorldState.get_ammo_total() <= 0:
 		HUD.show_feedback("No ammo.")
 		return
 	if is_attacking:
@@ -347,9 +392,9 @@ func _do_gun_attack(instance: ItemInstance, slot_index: int) -> void:
 		return
 	# Only now commit the shot — no target means no ammo spent.
 	is_attacking = true
-	attack_cooldown_timer = 0.4
-	WorldState.remove_from_inventory(ammo_slot)
-	HUD.refresh_inventory()
+	attack_cooldown_timer = 0.65
+	WorldState.consume_ammo(1)
+	animated_sprite.play("gun_shoot")
 	var outcome = _calculate_gun_outcome(nearest_dist)
 	match outcome:
 		"headshot": HUD.show_feedback("Headshot!")
@@ -357,6 +402,11 @@ func _do_gun_attack(instance: ItemInstance, slot_index: int) -> void:
 		"miss": HUD.show_feedback("Missed.")
 	if nearest.has_method("receive_hit_from_gun"):
 		nearest.receive_hit_from_gun(outcome)
+	# Gunfire is LOUD (see GDD: noise draws enemies) — every zombie on the
+	# floor hears it and comes looking, regardless of detection range.
+	for zombie in zombies:
+		if not zombie.is_dead and zombie.has_method("alert_to_noise"):
+			zombie.alert_to_noise()
 
 
 func _calculate_gun_outcome(distance: float) -> String:
@@ -375,14 +425,6 @@ func _calculate_gun_outcome(distance: float) -> String:
 		if roll < 0.05: return "headshot"
 		elif roll < 0.30: return "body"
 		else: return "miss"
-
-
-func _find_ammo_in_inventory() -> int:
-	for i in range(WorldState.inventory.size()):
-		var item_data = ItemData.get_item(WorldState.get_item_id_at(i))
-		if item_data.get("is_ammo", false):
-			return i
-	return -1
 
 
 func _do_push() -> void:
@@ -558,7 +600,7 @@ func use_item(slot_index: int) -> void:
 	elif item_data.get("is_weapon", false) and _get_weapon_type(item_data) == "gun":
 		HUD.selected_slot = slot_index
 		HUD._update_slot_highlights()
-		HUD.show_feedback("Not implemented yet.")
+		HUD.show_feedback("Equipped. Ammo: " + str(WorldState.get_ammo_total()))
 	elif item_data.get("is_key", false):
 		var target = instance.target_apartment
 		if target != "":

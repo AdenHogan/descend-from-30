@@ -2,6 +2,7 @@ extends Node
 
 const ROOM_POOL = ["bedroom", "bathroom", "study", "kitchen", "living_room", "dining_room"]
 const MAX_INVENTORY_SLOTS = 5
+const MAX_AMMO_PER_SLOT = 8
 
 var master_seed: int = 0
 var current_apartment_id: String = ""
@@ -174,11 +175,67 @@ func add_to_inventory(item_id: String, amount: int = 0) -> bool:
 		money.count = add_amount
 		inventory.append(money)
 		return true
+	# Bullets stack up to MAX_AMMO_PER_SLOT per slot: fill existing stacks
+	# first, then open new slots. All-or-nothing — a bundle that can't fully
+	# fit is refused, so no bullets silently vanish.
+	if ItemData.get_item(item_id).get("is_ammo", false):
+		var add_amount = max(amount, 1)
+		var capacity = (MAX_INVENTORY_SLOTS - inventory.size()) * MAX_AMMO_PER_SLOT
+		for instance in inventory:
+			if instance.item_id == item_id:
+				capacity += MAX_AMMO_PER_SLOT - instance.count
+		if capacity < add_amount:
+			return false
+		for instance in inventory:
+			if add_amount <= 0:
+				break
+			if instance.item_id == item_id and instance.count < MAX_AMMO_PER_SLOT:
+				var fill = min(MAX_AMMO_PER_SLOT - instance.count, add_amount)
+				instance.count += fill
+				add_amount -= fill
+		while add_amount > 0:
+			var stack = ItemInstance.new()
+			stack.setup(item_id)
+			stack.count = min(add_amount, MAX_AMMO_PER_SLOT)
+			add_amount -= stack.count
+			inventory.append(stack)
+		return true
 	if inventory.size() >= MAX_INVENTORY_SLOTS:
 		return false
 	var instance = ItemInstance.new()
 	instance.setup(item_id)
 	inventory.append(instance)
+	return true
+
+
+func get_ammo_total() -> int:
+	var total = 0
+	for instance in inventory:
+		if ItemData.get_item(instance.item_id).get("is_ammo", false):
+			total += instance.count
+	return total
+
+
+func consume_ammo(count: int = 1) -> bool:
+	# Spends bullets across stacks, freeing slots that empty out. Keeps the
+	# HUD's selected slot pointing at the same item when indices shift.
+	if get_ammo_total() < count:
+		return false
+	var remaining = count
+	for i in range(inventory.size() - 1, -1, -1):
+		if remaining <= 0:
+			break
+		if ItemData.get_item(inventory[i].item_id).get("is_ammo", false):
+			var take = min(inventory[i].count, remaining)
+			inventory[i].count -= take
+			remaining -= take
+			if inventory[i].count <= 0:
+				inventory.remove_at(i)
+				if HUD.selected_slot == i:
+					HUD.selected_slot = -1
+				elif HUD.selected_slot > i:
+					HUD.selected_slot -= 1
+	HUD.refresh_inventory()
 	return true
 
 
