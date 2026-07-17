@@ -193,3 +193,12 @@ func _test_scene_instantiation() -> void:
 	shop.close()
 	check(not shop.visible, "shop ui closes")
 	shop.queue_free()
+
+	var warp = load("res://scripts/dev_warp_prompt.gd").new()
+	add_child(warp)
+	check(warp.edit != null, "dev warp prompt builds its input field")
+	warp._open()
+	check(not warp.visible, "warp refuses to open with no player in scene")
+	warp._on_submitted("abc")
+	check(not get_tree().paused, "invalid warp input never leaves the tree paused")
+	warp.queue_free()
