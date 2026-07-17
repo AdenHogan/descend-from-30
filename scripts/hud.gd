@@ -55,6 +55,7 @@ func _ready() -> void:
 	_create_context_menu()
 	_create_stamina_bar()
 	_create_wallet_label()
+	_create_dev_warp_prompt()
 	update_floor_label()
 	update_portrait(0)
 	update_mode_indicator()
@@ -186,6 +187,13 @@ func _create_wallet_label() -> void:
 	wallet_label.visible = false
 	$Control.add_child(wallet_label)
 	update_wallet()
+
+
+func _create_dev_warp_prompt() -> void:
+	# DEV: F6 floor-warp prompt (see dev_warp_prompt.gd). Lives on the HUD
+	# layer so it exists in every gameplay scene.
+	var warp = preload("res://scripts/dev_warp_prompt.gd").new()
+	$Control.add_child(warp)
 
 
 func update_wallet() -> void:
