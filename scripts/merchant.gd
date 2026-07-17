@@ -1,7 +1,11 @@
 extends Area2D
 
 # The merchant squats in the jammed-open elevator on floors 25/20/15/10/5
-# (docs/STORE_DESIGN.md). Placeholder visuals until art lands.
+# (docs/STORE_DESIGN.md). The scene renders its own elevator: two door
+# sprites (left/right halves of Elevator.png) slide open when the player
+# approaches, revealing the merchant inside. The static hallway Elevator
+# sprite is hidden on merchant floors (see building_floors.gd).
+# Merchant body reuses the player idle sheet as a stand-in — art task open.
 # TODO(store step 6): first interaction each visit must lead with the
 # upgrade pair BEFORE the shop opens — blocked on the upgrade pool design.
 
@@ -13,10 +17,21 @@ const GREETINGS = [
 	"Everything's for sale. Except the elevator.",
 ]
 
+const DOOR_OPEN_DISTANCE = 150.0
+const DOOR_TWEEN_TIME = 0.35
+const DOOR_CLOSED_X = 15.75
+const DOOR_OPEN_X = 29.0
+const DOOR_CLOSED_SCALE_X = 0.95454395
+const DOOR_OPEN_SCALE_X = 0.06
+
 var player_nearby: bool = false
 var shop_ui: CanvasLayer = null
+var doors_open: bool = false
+var door_tween: Tween = null
 
 @onready var proximity_label: Label = $ProximityLabel
+@onready var door_left: Sprite2D = $DoorLeft
+@onready var door_right: Sprite2D = $DoorRight
 
 
 func _ready() -> void:
@@ -54,11 +69,30 @@ func _on_body_exited(body: Node2D) -> void:
 
 
 func _process(_delta: float) -> void:
-	if not player_nearby:
-		return
-	if Input.is_action_just_pressed("interact"):
+	var player = get_tree().get_first_node_in_group("player")
+	if player != null:
+		var near = global_position.distance_to(player.global_position) <= DOOR_OPEN_DISTANCE
+		if near != doors_open:
+			_set_doors_open(near)
+	if player_nearby and Input.is_action_just_pressed("interact"):
 		if shop_ui == null or not shop_ui.visible:
 			_open_shop()
+
+
+func _set_doors_open(open: bool) -> void:
+	# Doors slide sideways while collapsing horizontally, so they read as
+	# retracting into the frame's side pockets instead of overlapping the wall.
+	doors_open = open
+	if door_tween != null:
+		door_tween.kill()
+	door_tween = create_tween().set_parallel(true) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	var x = DOOR_OPEN_X if open else DOOR_CLOSED_X
+	var sx = DOOR_OPEN_SCALE_X if open else DOOR_CLOSED_SCALE_X
+	door_tween.tween_property(door_left, "position:x", -x, DOOR_TWEEN_TIME)
+	door_tween.tween_property(door_right, "position:x", x, DOOR_TWEEN_TIME)
+	door_tween.tween_property(door_left, "scale:x", sx, DOOR_TWEEN_TIME)
+	door_tween.tween_property(door_right, "scale:x", sx, DOOR_TWEEN_TIME)
 
 
 func _open_shop() -> void:
@@ -66,16 +100,3 @@ func _open_shop() -> void:
 		shop_ui = preload("res://scenes/shop_ui.tscn").instantiate()
 		add_child(shop_ui)
 	shop_ui.open(WorldState.current_floor, get_greeting())
-
-
-func _draw() -> void:
-	# Placeholder merchant: a hooded figure sketched in primitives, sized to
-	# stand alongside the 3x-scaled character sprites. Replace with real art.
-	var coat = Color(0.28, 0.32, 0.24, 1.0)
-	var hood = Color(0.2, 0.23, 0.17, 1.0)
-	var skin = Color(0.75, 0.62, 0.5, 1.0)
-	draw_rect(Rect2(-16, -18, 32, 62), coat)
-	draw_circle(Vector2(0, -30), 13.0, hood)
-	draw_circle(Vector2(0, -27), 8.0, skin)
-	draw_rect(Rect2(-20, -14, 8, 34), coat)
-	draw_rect(Rect2(12, -14, 8, 34), coat)
