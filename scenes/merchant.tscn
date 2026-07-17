@@ -1,4 +1,4 @@
-[gd_scene load_steps=5 format=3 uid="uid://cxednr1tk72zk"]
+[gd_scene load_steps=5 format=3 uid="uid://cxednr1tk720k"]
 
 [ext_resource type="Script" uid="uid://byrpios1j1a8u" path="res://scripts/merchant.gd" id="1_mrcht"]
 [ext_resource type="Texture2D" uid="uid://btvcbwg3jsh3t" path="res://assets/Elevator.png" id="2_elev"]
@@ -7,10 +7,10 @@
 [sub_resource type="CircleShape2D" id="CircleShape2D_mrcht"]
 radius = 60.0
 
-[node name="Merchant" type="Area2D"]
+[node name="Merchant" type="Area2D" unique_id=1853152800]
 script = ExtResource("1_mrcht")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1404281355]
 position = Vector2(0, 31.5)
 shape = SubResource("CircleShape2D_mrcht")
 
@@ -40,7 +40,7 @@ texture = ExtResource("2_elev")
 region_enabled = true
 region_rect = Rect2(33, 0, 33, 88)
 
-[node name="ProximityLabel" type="Label" parent="."]
+[node name="ProximityLabel" type="Label" parent="." unique_id=2000411955]
 offset_left = -90.0
 offset_top = -75.0
 offset_right = 90.0
