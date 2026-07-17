@@ -82,7 +82,8 @@ means no rendering — UI layout and art still need an in-editor look.
   HUD, save/pause, breach rooms + boss, world drops, enemy corpses,
   Bank Notes + Wallet (store doc steps 1–2), `current_run` seeding,
   Merchant NPC + seeded shop with Legendary hold + buy flow (steps 3–5;
-  merchant sprite is a code-drawn placeholder — art task open).
+  merchant lives inside the elevator behind sliding doors that open on
+  approach; body reuses the player idle sheet — merchant art task open).
 - Next: **Upgrade offers** (store doc step 6 — needs the upgrade pool
   designed first), then player-corpse recovery (step 7).
 - Not started: time-of-day, fires, balcony descent, quests, character stats.

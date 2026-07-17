@@ -31,6 +31,7 @@ func _ready() -> void:
 	_test_legendary_hold()
 	_test_buy_flow()
 	_test_save_load()
+	_test_scene_instantiation()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -169,3 +170,26 @@ func _test_save_load() -> void:
 	check(str(WorldState.legendary_hold) == str(expected_hold), "legendary hold survives save/load")
 	check(WorldState.merchant_stock["1:25"][0]["sold"] == true, "sold flag survives save/load")
 	WorldState.delete_save()
+
+
+func _test_scene_instantiation() -> void:
+	print("[scenes]")
+	var merchant = load("res://scenes/merchant.tscn").instantiate()
+	add_child(merchant)
+	check(merchant.get_node_or_null("MerchantSprite") != null, "merchant sprite node present")
+	check(merchant.get_node("MerchantSprite").texture != null, "merchant sprite texture loads")
+	check(merchant.get_node_or_null("DoorLeft") != null and merchant.get_node_or_null("DoorRight") != null,
+		"elevator door nodes present")
+	check(merchant.get_node("DoorLeft").position.x == -merchant.get_node("DoorRight").position.x,
+		"doors start mirrored/closed")
+	merchant._set_doors_open(true)
+	check(merchant.doors_open, "door open toggle runs")
+	merchant.queue_free()
+
+	var shop = load("res://scenes/shop_ui.tscn").instantiate()
+	add_child(shop)
+	shop.open(25, "test greeting")
+	check(shop.visible, "shop ui opens and populates")
+	shop.close()
+	check(not shop.visible, "shop ui closes")
+	shop.queue_free()

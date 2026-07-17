@@ -103,9 +103,13 @@ func _ready() -> void:
 func _spawn_merchant(floor_num: int) -> void:
 	if floor_num not in WorldState.MERCHANT_FLOORS:
 		return
+	# The merchant scene renders its own elevator (interior + sliding doors),
+	# so the hallway's static Elevator sprite is hidden on merchant floors.
+	var static_elevator = get_node_or_null("Elevator")
+	if static_elevator:
+		static_elevator.visible = false
 	var merchant = preload("res://scenes/merchant.tscn").instantiate()
-	# Standing in front of the jammed-open elevator (Elevator sprite x=1029.5).
-	merchant.global_position = Vector2(1030, 388)
+	merchant.global_position = Vector2(1029.4999, 356.50003)
 	add_child(merchant)
 
 func _spawn_world_drops(floor_num: int) -> void:
