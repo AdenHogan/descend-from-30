@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://bcgz117iyuz4o"]
+
+[ext_resource type="Script" uid="uid://cxu4bo3qoupi7" path="res://tests/listen_noise_test.gd" id="1_lsn"]
+
+[node name="ListenNoiseTest" type="Node"]
+script = ExtResource("1_lsn")

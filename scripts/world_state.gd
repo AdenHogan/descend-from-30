@@ -96,6 +96,20 @@ var merchant_stock: Dictionary = {}  # "run:floor" -> Array of {item_id, price, 
 var legendary_hold: Dictionary = {}  # {"item_id": String, "visits_left": int} when active
 var legendary_just_purchased: bool = false
 
+# --- Sound & listen system (docs/SOUND_STEALTH.md) ---
+# Under-the-hood noise: every player action has a loudness radius; zombies
+# inside the radius are alerted. Sight detection (each zombie's own
+# DETECTION_RANGE) is unchanged — noise EXTENDS how far away you can be
+# noticed, it never shrinks it.
+const NOISE_RADIUS = {
+	"crouch": 45.0,     # level ~2/10
+	"scavenge": 70.0,   # level ~3/10
+	"walk": 120.0,      # level ~5/10
+	"run": 240.0,       # level ~7/10
+	"door_work": 420.0, # level 10/10 — forcing doors/locks, barricade removal
+	"gunshot": 2000.0,  # whole floor
+}
+
 
 func new_game() -> void:
 	master_seed = randi()
@@ -344,6 +358,106 @@ func _roll_shop_band(pool: Dictionary, count: int, band: String, rng: RandomNumb
 			"sold": false,
 		})
 	return result
+
+
+func emit_noise(pos: Vector2, radius: float, duration: float = 1.0) -> void:
+	# Central noise event: every living zombie within the radius is alerted
+	# (their detection range opens up for the duration — see alert_to_noise).
+	var tree = Engine.get_main_loop() as SceneTree
+	if tree == null:
+		return
+	for z in tree.get_nodes_in_group("zombie"):
+		if not z.is_dead and z.has_method("alert_to_noise"):
+			if z.global_position.distance_to(pos) <= radius:
+				z.alert_to_noise(duration)
+
+
+# --- Listen reads (press R at a door / down-stairwell) ---
+# Reports are TRUE: they come from the same seeds that spawn the enemies,
+# minus anything already killed there. Categories are a fixed vocabulary so
+# players learn exactly what each line means.
+
+func _listen_category(count: int, has_big: bool) -> String:
+	if has_big:
+		return "big"
+	if count <= 0:
+		return "none"
+	elif count == 1:
+		return "one"
+	elif count <= 3:
+		return "few"
+	return "many"
+
+
+const LISTEN_LINES_APARTMENT = {
+	"none": "...Silent. Nothing moving in there.",
+	"one": "Something's shuffling in there. Just one, I think.",
+	"few": "More than one... two, maybe three.",
+	"many": "It's crawling in there. Too many.",
+	"big": "Something big is moving in there... and it's not alone.",
+}
+const LISTEN_LINES_BELOW = {
+	"none": "Nothing moving down there.",
+	"one": "Something's moving below. Just one, I think.",
+	"few": "A few of them below. I can hear them pacing.",
+	"many": "The floor below is crawling with them.",
+	"big": "Something heavy is dragging around down there.",
+}
+
+
+func get_listen_report_for_apartment(apt_id: String) -> Dictionary:
+	var has_big = get_door_state(apt_id) == DoorState.BREACHED
+	var count: int
+	if has_big:
+		# Breach rooms are horde+boss by construction — read as many + big.
+		count = 4
+	else:
+		count = get_apartment_zombie_count(apt_id)
+	for key in killed_zombies:
+		var entry = killed_zombies[key]
+		if entry.get("apartment_id", "") == apt_id and str(entry.get("scene", "")).contains("room"):
+			count -= 1
+			if entry.get("type", "") == "big":
+				has_big = false
+	count = max(count, 0)
+	var category = _listen_category(count, has_big)
+	return {
+		"count": count,
+		"has_big": has_big,
+		"category": category,
+		"line": LISTEN_LINES_APARTMENT[category],
+		"nearness": get_listen_nearness("apartment", apt_id),
+	}
+
+
+func get_listen_report_for_floor_below() -> Dictionary:
+	var below = current_floor - 1
+	if below < 1:
+		return {"count": 0, "has_big": false, "category": "none",
+			"line": "...The lobby. Almost out.", "nearness": 0.5}
+	var count = get_floor_zombie_count(below)
+	for key in killed_zombies:
+		var entry = killed_zombies[key]
+		if int(entry.get("floor", -1)) == below and str(entry.get("scene", "")).contains("building_floors"):
+			count -= 1
+	count = max(count, 0)
+	var category = _listen_category(count, false)
+	return {
+		"count": count,
+		"has_big": false,
+		"category": category,
+		"line": LISTEN_LINES_BELOW[category],
+		"nearness": get_listen_nearness("floor_below", str(below)),
+	}
+
+
+func get_listen_nearness(kind: String, id: String) -> float:
+	# Seeded 0..1 "how close to the door/stairs the noise sits" — drives ping
+	# tempo (1.0 = right at the entrance = fast pings). Deterministic per
+	# target per run until interiors get fully pre-simulated positions.
+	var rng = RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "listennear" + kind + id + str(current_run))
+	return rng.randf()
 
 
 func mark_shop_item_sold(floor_num: int, stock_index: int) -> void:

@@ -74,6 +74,14 @@ var is_dead = false
 var is_switching_mode = false
 var mode_switch_timer = 0.0
 
+# Listen (docs/SOUND_STEALTH.md): rooted, real-time, interruptible by damage.
+const LISTEN_DURATION = 3.0
+const LISTEN_AMBUSH_ALERT_CHANCE = 0.18
+const LISTEN_AMBUSH_SPAWN_CHANCE = 0.08
+var is_listening: bool = false
+var listen_timer: float = 0.0
+var listen_report_line: String = ""
+
 
 func _ready() -> void:
 	add_to_group("player")
@@ -112,6 +120,15 @@ func _physics_process(delta: float) -> void:
 			WorldState.is_scavenge_mode = !WorldState.is_scavenge_mode
 			animated_sprite.play("idle")
 			HUD.update_mode_indicator()
+		return
+
+	if is_listening:
+		# Rooted and vulnerable — the world keeps moving while you focus.
+		velocity.x = 0
+		move_and_slide()
+		listen_timer -= delta
+		if listen_timer <= 0:
+			_finish_listen()
 		return
 
 	if Input.is_action_just_pressed("mode_toggle"):
@@ -216,6 +233,18 @@ func _physics_process(delta: float) -> void:
 	else:
 		velocity.x = move_toward(velocity.x, 0, SPEED)
 	move_and_slide()
+
+	# Movement noise (under the hood — docs/SOUND_STEALTH.md): louder gaits
+	# are audible further. Zombies whose sight misses you can still hear you.
+	if direction != 0 and not is_pushing:
+		var noise_key = "walk"
+		if is_crouching:
+			noise_key = "crouch"
+		elif WorldState.is_scavenge_mode:
+			noise_key = "scavenge"
+		elif is_sprinting and WorldState.stamina > 0:
+			noise_key = "run"
+		WorldState.emit_noise(global_position, WorldState.NOISE_RADIUS[noise_key], 0.5)
 
 
 func _setup_gun_animations() -> void:
@@ -403,11 +432,8 @@ func _do_gun_attack(_instance: ItemInstance, _slot_index: int) -> void:
 		"miss": HUD.show_feedback("Missed.")
 	if nearest.has_method("receive_hit_from_gun"):
 		nearest.receive_hit_from_gun(outcome)
-	# Gunfire is LOUD (see GDD: noise draws enemies) — every zombie on the
-	# floor hears it and comes looking, regardless of detection range.
-	for zombie in zombies:
-		if not zombie.is_dead and zombie.has_method("alert_to_noise"):
-			zombie.alert_to_noise()
+	# Gunfire is LOUD (GDD: noise draws enemies) — whole-floor noise event.
+	WorldState.emit_noise(global_position, WorldState.NOISE_RADIUS["gunshot"], 6.0)
 
 
 func _calculate_gun_outcome(distance: float) -> String:
@@ -455,6 +481,58 @@ func _do_push() -> void:
 			zombie.receive_push(push_dir * PUSH_FORCE)
 
 
+func start_listen(source_pos: Vector2, report: Dictionary) -> void:
+	# Anchored listen at a door or down-stairwell. Rooted for the duration,
+	# real time — listening while something shuffles toward you is on you.
+	if is_listening or is_dead or is_dying or is_switching_mode:
+		return
+	is_listening = true
+	listen_timer = LISTEN_DURATION
+	listen_report_line = report.get("line", "")
+	velocity.x = 0
+	# Placeholder stance until the ear-cupping/lean-over animation exists
+	# (art task — see docs/SOUND_STEALTH.md).
+	animated_sprite.play("crouch_idle")
+	HUD.listen_overlay.begin(source_pos, report)
+	_roll_listen_ambush()
+
+
+func _finish_listen() -> void:
+	is_listening = false
+	HUD.listen_overlay.finish(listen_report_line)
+	animated_sprite.play("idle")
+
+
+func _cancel_listen() -> void:
+	# Took a hit mid-listen: colour snaps back, no report — you lost focus.
+	is_listening = false
+	HUD.listen_overlay.abort()
+
+
+func _roll_listen_ambush() -> void:
+	# Sometimes — not always — focusing invites trouble (docs/SOUND_STEALTH.md).
+	# Prefer waking a distant leftover; only very rarely conjure one at the
+	# dark screen edge, and only in hallway scenes where that reads fairly.
+	var roll = randf()
+	var any_living = false
+	var far_zombies: Array = []
+	for zombie in get_tree().get_nodes_in_group("zombie"):
+		if not zombie.is_dead:
+			any_living = true
+			if global_position.distance_to(zombie.global_position) > 240.0:
+				far_zombies.append(zombie)
+	if not far_zombies.is_empty() and roll < LISTEN_AMBUSH_ALERT_CHANCE:
+		far_zombies.pick_random().alert_to_noise(10.0)
+	elif not any_living and roll < LISTEN_AMBUSH_SPAWN_CHANCE:
+		var scene_path = get_tree().current_scene.scene_file_path
+		if scene_path.contains("building_floors") or scene_path.contains("hallway"):
+			var zombie = preload("res://scenes/enemy_zombie_standard.tscn").instantiate()
+			var side = 1.0 if randf() < 0.5 else -1.0
+			zombie.global_position = Vector2(clamp(global_position.x + side * 500.0, 50.0, 1300.0), 388.0)
+			get_tree().current_scene.add_child(zombie)
+			zombie.alert_to_noise(10.0)
+
+
 func restore_stamina(amount: float) -> void:
 	WorldState.stamina = min(WorldState.stamina + amount, WorldState.max_stamina)
 	HUD.update_stamina(WorldState.stamina, WorldState.max_stamina)
@@ -480,7 +558,7 @@ func _reseed_zombies() -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if is_dead or is_dying or is_switching_mode:
+	if is_dead or is_dying or is_switching_mode or is_listening:
 		return
 
 	if DEV_MODE:
@@ -637,6 +715,8 @@ func receive_hit(amount: int = 1) -> void:
 		return
 	if WorldState.god_mode:
 		return
+	if is_listening:
+		_cancel_listen()
 	is_hit = true
 	hit_flash_timer = HIT_FLASH_DURATION
 	animated_sprite.modulate = Color(1, 0, 0, 1)

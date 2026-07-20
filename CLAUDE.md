@@ -20,6 +20,9 @@ originals — the markdown here is canonical for development):
 - `docs/QUEST_LIST.md` — quests 001–011 with outcomes/rewards.
 - `docs/ITEMS_SHEET.md` — item catalog + room spawn pools (design reference;
   **`data/Items.json` is the runtime source of truth**).
+- `docs/SOUND_STEALTH.md` — noise model (under the hood) + anchored R-listen
+  at doors/stairwells. Agreed + implemented v1; roaming TLOU-style listen
+  deliberately dropped.
 
 When docs conflict: STORE_DESIGN.md and THREE_RUN_ARC.md supersede the GDD
 (each notes what it overrides). Keep the docs updated when a design decision
@@ -72,6 +75,8 @@ setup script; binary from downloads.godotengine.org). Before every commit:
   exercises real WorldState/ItemData/HUD code paths.
 - `godot --headless res://tests/gun_combat_test.tscn` — ammo stacking
   (8/slot), consumption, gun animations, noise alerts.
+- `godot --headless res://tests/listen_noise_test.tscn` — noise radii,
+  emit_noise gating, listen categories/reports, overlay states.
 
 Add a test scene under `tests/` for each new system (copy the pattern:
 plain Node + script with `check()` asserts, quit(1) on failure). Headless
@@ -86,7 +91,10 @@ means no rendering — UI layout and art still need an in-editor look.
   Bank Notes + Wallet (store doc steps 1–2), `current_run` seeding,
   Merchant NPC + seeded shop with Legendary hold + buy flow (steps 3–5;
   merchant lives inside the elevator behind sliding doors that open on
-  approach; body reuses the player idle sheet — merchant art task open).
+  approach; body reuses the player idle sheet — merchant art task open),
+  sound & stealth v1 (noise radii per gait, emit_noise, R-listen at
+  doors/down-stairwells with grey vignette + pings + report, listen
+  ambush; Rest moved to T — audio SFX assets still an open task).
 - Next: **Upgrade offers** (store doc step 6 — needs the upgrade pool
   designed first), then player-corpse recovery (step 7).
 - Not started: time-of-day, fires, balcony descent, quests, character stats.
