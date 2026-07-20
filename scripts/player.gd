@@ -74,6 +74,30 @@ var is_dead = false
 var is_switching_mode = false
 var mode_switch_timer = 0.0
 
+# Audio (docs/SOUND_STEALTH.md audio pass). Carpet steps for the quiet
+# gaits, concrete for the loud ones — the sound mirrors the noise model.
+const FOOTSTEPS_SOFT = [
+	preload("res://assets/audio/footsteps/footstep_carpet_000.ogg"),
+	preload("res://assets/audio/footsteps/footstep_carpet_001.ogg"),
+	preload("res://assets/audio/footsteps/footstep_carpet_002.ogg"),
+	preload("res://assets/audio/footsteps/footstep_carpet_003.ogg"),
+	preload("res://assets/audio/footsteps/footstep_carpet_004.ogg"),
+]
+const FOOTSTEPS_HARD = [
+	preload("res://assets/audio/footsteps/footstep_concrete_000.ogg"),
+	preload("res://assets/audio/footsteps/footstep_concrete_001.ogg"),
+	preload("res://assets/audio/footsteps/footstep_concrete_002.ogg"),
+	preload("res://assets/audio/footsteps/footstep_concrete_003.ogg"),
+	preload("res://assets/audio/footsteps/footstep_concrete_004.ogg"),
+]
+const GUNSHOT_STREAM = preload("res://assets/audio/gunshot.wav")
+# Step cadence (s) and loudness (dB) per gait — tuned to the noise radii.
+const FOOTSTEP_INTERVAL = {"crouch": 0.55, "scavenge": 0.50, "walk": 0.38, "run": 0.26}
+const FOOTSTEP_VOLUME = {"crouch": -22.0, "scavenge": -16.0, "walk": -10.0, "run": -5.0}
+var footstep_player: AudioStreamPlayer2D = null
+var gunshot_player: AudioStreamPlayer2D = null
+var footstep_timer: float = 0.0
+
 # Listen (docs/SOUND_STEALTH.md): rooted, real-time, interruptible by damage.
 const LISTEN_DURATION = 3.0
 const LISTEN_AMBUSH_ALERT_CHANCE = 0.18
@@ -86,6 +110,16 @@ var listen_report_line: String = ""
 func _ready() -> void:
 	add_to_group("player")
 	_setup_gun_animations()
+	footstep_player = AudioStreamPlayer2D.new()
+	footstep_player.name = "FootstepPlayer"
+	footstep_player.max_distance = 500.0
+	add_child(footstep_player)
+	gunshot_player = AudioStreamPlayer2D.new()
+	gunshot_player.name = "GunshotPlayer"
+	gunshot_player.stream = GUNSHOT_STREAM
+	gunshot_player.volume_db = -4.0
+	gunshot_player.max_distance = 2500.0
+	add_child(gunshot_player)
 	health_state = HealthState.values()[WorldState.player_health]
 	is_dying = WorldState.is_dying
 	dying_timer = WorldState.dying_timer
@@ -245,6 +279,16 @@ func _physics_process(delta: float) -> void:
 		elif is_sprinting and WorldState.stamina > 0:
 			noise_key = "run"
 		WorldState.emit_noise(global_position, WorldState.NOISE_RADIUS[noise_key], 0.5)
+		footstep_timer -= delta
+		if footstep_timer <= 0.0:
+			footstep_timer = FOOTSTEP_INTERVAL[noise_key]
+			var pool = FOOTSTEPS_SOFT if noise_key in ["crouch", "scavenge"] else FOOTSTEPS_HARD
+			footstep_player.stream = pool.pick_random()
+			footstep_player.volume_db = FOOTSTEP_VOLUME[noise_key]
+			footstep_player.pitch_scale = randf_range(0.92, 1.08)
+			footstep_player.play()
+	else:
+		footstep_timer = 0.0
 
 
 func _setup_gun_animations() -> void:
@@ -425,6 +469,8 @@ func _do_gun_attack(_instance: ItemInstance, _slot_index: int) -> void:
 	attack_cooldown_timer = 0.65
 	WorldState.consume_ammo(1)
 	animated_sprite.play("gun_shoot")
+	gunshot_player.pitch_scale = randf_range(0.95, 1.05)
+	gunshot_player.play()
 	var outcome = _calculate_gun_outcome(nearest_dist)
 	match outcome:
 		"headshot": HUD.show_feedback("Headshot!")
