@@ -152,6 +152,10 @@ func _get_removal_duration() -> float:
 func _get_prompt_text() -> String:
 	if _is_sealed():
 		return apartment_id + " - Sealed"
+	return _base_prompt_text() + "  [R] Listen"
+
+
+func _base_prompt_text() -> String:
 	match current_state:
 		WorldState.DoorState.OPEN:
 			return apartment_id + " - [E] Enter"
@@ -241,6 +245,14 @@ func _process(delta: float) -> void:
 			WorldState.DoorState.OPEN, WorldState.DoorState.BREACHED:
 				_enter_apartment()
 
+	# Listen works in BOTH modes — sound is a first-class read, not a
+	# scavenge-only action (docs/SOUND_STEALTH.md).
+	if Input.is_action_just_pressed("listen"):
+		var player = get_tree().get_first_node_in_group("player")
+		if player and player.has_method("start_listen"):
+			var report = WorldState.get_listen_report_for_apartment(apartment_id)
+			player.start_listen(global_position, report)
+
 	# Force / lock / barricade require scavenge mode — forces the player to commit
 	# to a vulnerable stance to interact with doors.
 	if not WorldState.is_scavenge_mode:
@@ -293,6 +305,7 @@ func _attempt_force() -> void:
 		HUD.show_feedback("Door forced open.")
 
 	WorldState.set_door_state(apartment_id, WorldState.DoorState.OPEN)
+	WorldState.emit_noise(global_position, WorldState.NOISE_RADIUS["door_work"], 4.0)
 	_apply_door_state()
 	proximity_label.text = _get_prompt_text()
 
@@ -329,6 +342,7 @@ func _attempt_locked() -> void:
 		HUD.show_feedback("Lock forced.")
 
 	WorldState.set_door_state(apartment_id, WorldState.DoorState.OPEN)
+	WorldState.emit_noise(global_position, WorldState.NOISE_RADIUS["door_work"], 4.0)
 	_apply_door_state()
 	proximity_label.text = _get_prompt_text()
 
@@ -370,6 +384,8 @@ func _tick_barricade_removal(delta: float) -> void:
 	removal_fraction += delta / removal_duration
 	removal_fraction = clamp(removal_fraction, 0.0, 1.0)
 	WorldState.barricade_progress[apartment_id] = removal_fraction
+	# Tearing a barricade apart is 10/10 loud, continuously.
+	WorldState.emit_noise(global_position, WorldState.NOISE_RADIUS["door_work"], 1.0)
 
 	# Durability — debit progressively so a full removal costs BARRICADE_DURABILITY_COST.
 	# target_spend grows with progress; we apply use() each time it crosses an integer.

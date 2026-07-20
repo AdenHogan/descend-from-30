@@ -7,6 +7,7 @@ extends Area2D
 var player_nearby = false
 var bounce_time = 0.0
 var arrow = null
+var listen_label: Label = null
 
 func _ready() -> void:
 	body_entered.connect(_on_body_entered)
@@ -14,23 +15,43 @@ func _ready() -> void:
 	arrow = find_child("Label")
 	if arrow:
 		arrow.visible = false
+	# Down-stairwells offer a listen read of the floor below (SOUND_STEALTH.md).
+	if direction == "down":
+		listen_label = Label.new()
+		listen_label.text = "[R] Listen below"
+		listen_label.add_theme_font_size_override("font_size", 12)
+		listen_label.position = Vector2(-55, -46)
+		listen_label.size = Vector2(120, 18)
+		listen_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		listen_label.visible = false
+		add_child(listen_label)
 
 func _on_body_entered(body: Node2D) -> void:
 	if body.name == "Player":
 		player_nearby = true
 		if arrow:
 			arrow.visible = true
+		if listen_label:
+			listen_label.visible = true
 
 func _on_body_exited(body: Node2D) -> void:
 	if body.name == "Player":
 		player_nearby = false
 		if arrow:
 			arrow.visible = false
+		if listen_label:
+			listen_label.visible = false
 
 func _process(_delta: float) -> void:
 	if player_nearby and arrow:
 		bounce_time += _delta
 		arrow.position.y = -80 + sin(bounce_time * 4.0) * 8.0
+	if player_nearby and direction == "down" and Input.is_action_just_pressed("listen"):
+		var player = get_tree().get_first_node_in_group("player")
+		if player and player.has_method("start_listen"):
+			var report = WorldState.get_listen_report_for_floor_below()
+			player.start_listen(global_position, report)
+			return
 	if player_nearby and Input.is_action_just_pressed("interact"):
 		WorldState.stair_spawn_side = stair_side
 		WorldState.stair_direction = direction

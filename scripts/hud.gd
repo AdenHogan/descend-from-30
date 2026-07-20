@@ -38,6 +38,7 @@ var slot_key_labels: Array = []
 var stamina_bar: Control = null
 var stamina_segments: Array = []
 var wallet_label: Label = null
+var listen_overlay: CanvasLayer = null
 const STAMINA_SEGMENTS = 8
 const STAMINA_BAR_W = 14.0
 const STAMINA_BAR_H = 60.0
@@ -56,6 +57,9 @@ func _ready() -> void:
 	_create_stamina_bar()
 	_create_wallet_label()
 	_create_dev_warp_prompt()
+	# Listen-mode grey/ping/report overlay (own CanvasLayer above the HUD).
+	listen_overlay = preload("res://scripts/listen_overlay.gd").new()
+	add_child(listen_overlay)
 	update_floor_label()
 	update_portrait(0)
 	update_mode_indicator()
