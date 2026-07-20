@@ -5,7 +5,18 @@ var item_id: String = ""
 var current_durability: int = 0
 var is_depleted: bool = false
 var target_apartment: String = ""  # Only used for is_key items — "Key — Apt XXXX"
-var count: int = 1  # Only used for stackable items (Bank Notes)
+var count: int = 1  # Only used for stackable items (Bank Notes, Bullets)
+# Guns: loaded rounds + damage state (forcing doors with a gun damages it —
+# worse accuracy, smaller magazine — until repaired with a toolbox).
+var mag_count: int = 0
+var is_damaged: bool = false
+
+const MAG_CAP = 18          # Met-issue Glock: 17+1
+const MAG_CAP_DAMAGED = 10
+
+
+func get_mag_cap() -> int:
+	return MAG_CAP_DAMAGED if is_damaged else MAG_CAP
 
 
 func setup(id: String) -> void:

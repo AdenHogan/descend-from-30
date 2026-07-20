@@ -22,6 +22,9 @@ var dialogue_label: Label = null
 var rows_box: VBoxContainer = null
 var buy_buttons: Array = []
 var pending_confirm: int = -1
+var sell_box: VBoxContainer = null
+var sell_buttons: Array = []
+var pending_sell_confirm: int = -1
 
 
 func _ready() -> void:
@@ -83,6 +86,11 @@ func _build_ui() -> void:
 	rows_box.add_theme_constant_override("separation", 4)
 	rows_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	vbox.add_child(rows_box)
+
+	vbox.add_child(HSeparator.new())
+	sell_box = VBoxContainer.new()
+	sell_box.add_theme_constant_override("separation", 2)
+	vbox.add_child(sell_box)
 
 	var close_btn = Button.new()
 	close_btn.text = "Leave"
@@ -162,6 +170,69 @@ func _refresh() -> void:
 		row.add_child(buy_btn)
 		buy_buttons.append(buy_btn)
 
+	_refresh_sell_section()
+	_update_money_label()
+
+
+func _refresh_sell_section() -> void:
+	for child in sell_box.get_children():
+		child.queue_free()
+	sell_buttons.clear()
+	pending_sell_confirm = -1
+
+	var remaining = WorldState.get_sales_remaining(current_floor)
+	var header = Label.new()
+	header.add_theme_font_size_override("font_size", 13)
+	header.add_theme_color_override("font_color", Color(0.8, 0.75, 0.6, 1.0))
+	if remaining <= 0:
+		header.text = "SELL — \"Not in a position to buy more right now.\""
+		sell_box.add_child(header)
+		return
+	header.text = "SELL — the merchant will take %d more item%s this visit" % [remaining, "" if remaining == 1 else "s"]
+	sell_box.add_child(header)
+
+	for i in range(WorldState.inventory.size()):
+		var instance = WorldState.get_instance_at(i)
+		var price = WorldState.get_sell_price(instance.item_id)
+		if price <= 0:
+			sell_buttons.append(null)
+			continue
+		if ItemData.get_item(instance.item_id).get("is_ammo", false):
+			price *= instance.count
+		var row = HBoxContainer.new()
+		row.add_theme_constant_override("separation", 10)
+		sell_box.add_child(row)
+		var name_label = Label.new()
+		name_label.text = instance.get_display_name()
+		name_label.add_theme_font_size_override("font_size", 12)
+		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(name_label)
+		var price_label = Label.new()
+		price_label.text = str(price)
+		price_label.add_theme_font_size_override("font_size", 12)
+		price_label.add_theme_color_override("font_color", Color(0.55, 0.9, 0.55, 1.0))
+		row.add_child(price_label)
+		var btn = Button.new()
+		btn.text = "Sell"
+		btn.custom_minimum_size = Vector2(80, 24)
+		btn.pressed.connect(_on_sell_pressed.bind(i))
+		row.add_child(btn)
+		sell_buttons.append(btn)
+
+
+func _on_sell_pressed(slot_index: int) -> void:
+	if pending_sell_confirm != slot_index:
+		if pending_sell_confirm >= 0 and pending_sell_confirm < sell_buttons.size() \
+				and sell_buttons[pending_sell_confirm] != null:
+			sell_buttons[pending_sell_confirm].text = "Sell"
+		pending_sell_confirm = slot_index
+		if slot_index < sell_buttons.size() and sell_buttons[slot_index] != null:
+			sell_buttons[slot_index].text = "Confirm?"
+		return
+	pending_sell_confirm = -1
+	if WorldState.sell_item(slot_index, current_floor):
+		HUD.show_feedback("Sold.")
+	_refresh_sell_section()
 	_update_money_label()
 
 

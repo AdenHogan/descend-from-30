@@ -74,6 +74,8 @@ func _is_sealed() -> bool:
 func _ready() -> void:
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
+	# LMB on the door mirrors the X-key action (force / unlock / barricade).
+	input_event.connect(_on_click)
 	proximity_label.visible = false
 	barricade_sprite.visible = false
 	_migrate_legacy_progress()
@@ -259,6 +261,14 @@ func _process(delta: float) -> void:
 		return
 
 	if is_removing_barricade:
+		# Any other player action interrupts the removal (playtest bug: you
+		# could fight a zombie while the barricade kept tearing itself down).
+		var player = get_tree().get_first_node_in_group("player")
+		if player != null and (player.is_attacking or player.is_pushing
+				or player.is_switching_mode or player.is_listening):
+			_pause_barricade_removal()
+			HUD.show_feedback("Barricade removal interrupted.")
+			return
 		_tick_barricade_removal(delta)
 		if not is_removing_barricade:
 			return
@@ -294,6 +304,21 @@ func _process(delta: float) -> void:
 				_attempt_barricade_removal()
 
 
+func _on_click(_viewport: Node, event: InputEvent, _shape_idx: int) -> void:
+	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
+		return
+	if not player_nearby or _is_sealed() or not WorldState.is_scavenge_mode:
+		return
+	get_viewport().set_input_as_handled()
+	match current_state:
+		WorldState.DoorState.SHUT_FORCEABLE:
+			_attempt_force()
+		WorldState.DoorState.SHUT_LOCKED:
+			_attempt_locked()
+		WorldState.DoorState.BARRICADED_FORCEABLE, WorldState.DoorState.BARRICADED_LOCKED:
+			_attempt_barricade_removal()
+
+
 func _enter_apartment() -> void:
 	if WorldState.interaction_handled:
 		return
@@ -318,17 +343,19 @@ func _attempt_force() -> void:
 		HUD.show_feedback("Need a weapon or tool to force this.")
 		return
 
-	instance.use()
-	HUD.refresh_inventory()
-
-	if instance.is_depleted:
-		var weapon_name = item_data.get("name", "Item")
-		WorldState.remove_from_inventory(slot)
-		HUD.selected_slot = -1
-		HUD.refresh_inventory()
-		HUD.show_feedback(weapon_name + " broke forcing the door!")
+	if _force_damages_gun(instance, item_data):
+		pass  # gun took damage instead of durability
 	else:
-		HUD.show_feedback("Door forced open.")
+		instance.use()
+		HUD.refresh_inventory()
+		if instance.is_depleted:
+			var weapon_name = item_data.get("name", "Item")
+			WorldState.remove_from_inventory(slot)
+			HUD.selected_slot = -1
+			HUD.refresh_inventory()
+			HUD.show_feedback(weapon_name + " broke forcing the door!")
+		else:
+			HUD.show_feedback("Door forced open.")
 
 	WorldState.set_door_state(apartment_id, WorldState.DoorState.OPEN)
 	WorldState.emit_noise(global_position, WorldState.NOISE_RADIUS["door_work"], 4.0)
@@ -352,27 +379,52 @@ func _attempt_locked() -> void:
 	var instance = WorldState.get_instance_at(slot)
 	var item_data = instance.get_data()
 
-	if not item_data.get("can_force_lock", false):
+	if not item_data.get("can_force_lock", false) and not item_data.get("is_weapon", false):
 		HUD.show_feedback("Need a key or a weapon that can force locks.")
 		return
 
-	instance.use()
-	HUD.refresh_inventory()
-
-	if instance.is_depleted:
-		var weapon_name = item_data.get("name", "Item")
-		WorldState.remove_from_inventory(slot)
-		HUD.selected_slot = -1
-		HUD.refresh_inventory()
-		HUD.show_feedback(weapon_name + " broke forcing the lock!")
+	if _force_damages_gun(instance, item_data):
+		pass  # gun took damage instead of durability
 	else:
-		HUD.show_feedback("Lock forced.")
+		if not item_data.get("can_force_lock", false):
+			HUD.show_feedback("Need a key or a weapon that can force locks.")
+			return
+		instance.use()
+		HUD.refresh_inventory()
+		if instance.is_depleted:
+			var weapon_name = item_data.get("name", "Item")
+			WorldState.remove_from_inventory(slot)
+			HUD.selected_slot = -1
+			HUD.refresh_inventory()
+			HUD.show_feedback(weapon_name + " broke forcing the lock!")
+		else:
+			HUD.show_feedback("Lock forced.")
 
 	WorldState.set_door_state(apartment_id, WorldState.DoorState.OPEN)
 	WorldState.emit_noise(global_position, WorldState.NOISE_RADIUS["door_work"], 4.0)
 	_play_sfx(LATCH_STREAM, -2.0)
 	_apply_door_state()
 	proximity_label.text = _get_prompt_text()
+
+
+# Forcing with a gun doesn't spend durability — it DAMAGES the gun: worse
+# accuracy and a 10-round magazine until repaired with a toolbox. Excess
+# loaded rounds spill back into inventory (or are lost if it's full).
+func _force_damages_gun(instance: ItemInstance, item_data: Dictionary) -> bool:
+	var name_l = item_data.get("name", "").to_lower()
+	if not (name_l.contains("gun") or name_l.contains("pistol") or name_l.contains("rifle")):
+		return false
+	if not instance.is_damaged:
+		instance.is_damaged = true
+		var spill = instance.mag_count - instance.get_mag_cap()
+		if spill > 0:
+			instance.mag_count = instance.get_mag_cap()
+			WorldState.add_to_inventory("016", spill)
+		HUD.refresh_inventory()
+		HUD.show_feedback("The gun is damaged — accuracy will suffer.")
+	else:
+		HUD.show_feedback("Forced it — the gun's already beaten up.")
+	return true
 
 
 func _attempt_barricade_removal() -> void:

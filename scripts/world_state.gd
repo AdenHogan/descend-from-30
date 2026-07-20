@@ -147,6 +147,7 @@ func new_game() -> void:
 	merchant_stock.clear()
 	legendary_hold = {}
 	legendary_just_purchased = false
+	merchant_sales.clear()
 	god_mode = false
 
 
@@ -358,6 +359,79 @@ func _roll_shop_band(pool: Dictionary, count: int, band: String, rng: RandomNumb
 			"sold": false,
 		})
 	return result
+
+
+func reload_gun(gun: ItemInstance) -> int:
+	# Moves bullets from inventory stacks into the gun's magazine, up to its
+	# cap (smaller when damaged). Returns rounds loaded.
+	var space = gun.get_mag_cap() - gun.mag_count
+	if space <= 0:
+		return 0
+	var available = get_ammo_total()
+	var to_load = min(space, available)
+	if to_load <= 0:
+		return 0
+	consume_ammo(to_load)
+	gun.mag_count += to_load
+	HUD.refresh_inventory()
+	return to_load
+
+
+# --- Selling to the merchant (max SELL_LIMIT_PER_VISIT items per visit) ---
+const SELL_LIMIT_PER_VISIT = 3
+const SELL_JUNK_PRICE = 4
+var merchant_sales: Dictionary = {}  # "run:floor" -> items sold this visit
+
+
+func get_sales_remaining(floor_num: int) -> int:
+	var key = str(current_run) + ":" + str(floor_num)
+	return SELL_LIMIT_PER_VISIT - int(merchant_sales.get(key, 0))
+
+
+func get_sell_price(item_id: String) -> int:
+	# Roughly 40% of shop value; junk has a floor price so clearing it out
+	# is worth the trip but never worth farming.
+	if SHOP_COMMON.has(item_id):
+		return max(int(SHOP_COMMON[item_id] * 0.4), 5)
+	if SHOP_QUALITY.has(item_id):
+		return int(SHOP_QUALITY[item_id] * 0.4)
+	if SHOP_LEGENDARY.has(item_id):
+		return int(SHOP_LEGENDARY[item_id] * 0.4)
+	var d = ItemData.get_item(item_id)
+	if d.get("is_junk", false):
+		return SELL_JUNK_PRICE
+	if d.get("is_ammo", false):
+		return 2  # per stack entry; stacks sell whole
+	if d.get("is_key", false) or d.get("is_money", false):
+		return 0  # not sellable
+	return 10
+
+
+func sell_item(slot_index: int, floor_num: int) -> bool:
+	if slot_index < 0 or slot_index >= inventory.size():
+		return false
+	if get_sales_remaining(floor_num) <= 0:
+		return false
+	var instance = inventory[slot_index]
+	var price = get_sell_price(instance.item_id)
+	if price <= 0:
+		return false
+	if ItemData.get_item(instance.item_id).get("is_ammo", false):
+		price *= instance.count
+	inventory.remove_at(slot_index)
+	if HUD.selected_slot == slot_index:
+		HUD.selected_slot = -1
+	elif HUD.selected_slot > slot_index:
+		HUD.selected_slot -= 1
+	if wallet_unlocked:
+		wallet_balance += price
+	else:
+		add_to_inventory("033", price)
+	var key = str(current_run) + ":" + str(floor_num)
+	merchant_sales[key] = int(merchant_sales.get(key, 0)) + 1
+	HUD.refresh_inventory()
+	HUD.update_wallet()
+	return true
 
 
 func emit_noise(pos: Vector2, radius: float, duration: float = 1.0) -> void:
@@ -1078,6 +1152,7 @@ func save_game(scene_path: String) -> void:
 		"merchant_stock": merchant_stock,
 		"legendary_hold": legendary_hold,
 		"legendary_just_purchased": legendary_just_purchased,
+		"merchant_sales": merchant_sales,
 	}
 	var file = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if file:
@@ -1154,6 +1229,7 @@ func load_game() -> String:
 	if not legendary_hold.is_empty():
 		legendary_hold["visits_left"] = int(legendary_hold.get("visits_left", 0))
 	legendary_just_purchased = bool(data.get("legendary_just_purchased", false))
+	merchant_sales = data.get("merchant_sales", {})
 	_deserialize_inventory(data["inventory"])
 	return data["scene_path"]
 
@@ -1175,7 +1251,9 @@ func _serialize_inventory() -> Array:
 			"current_durability": instance.current_durability,
 			"is_depleted": instance.is_depleted,
 			"target_apartment": instance.target_apartment,
-			"count": instance.count
+			"count": instance.count,
+			"mag_count": instance.mag_count,
+			"is_damaged": instance.is_damaged,
 		})
 	return result
 
@@ -1189,4 +1267,6 @@ func _deserialize_inventory(data: Array) -> void:
 		instance.is_depleted = entry["is_depleted"]
 		instance.target_apartment = entry.get("target_apartment", "")
 		instance.count = int(entry.get("count", 1))
+		instance.mag_count = int(entry.get("mag_count", 0))
+		instance.is_damaged = bool(entry.get("is_damaged", false))
 		inventory.append(instance)

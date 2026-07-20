@@ -95,7 +95,14 @@ means no rendering — UI layout and art still need an in-editor look.
   sound & stealth v1 (noise radii per gait, emit_noise, R-listen at
   doors/down-stairwells with grey vignette + pings + report, listen
   ambush; Rest moved to T), audio v1 (CC0 Kenney footsteps/impacts +
-  synth moans/gunshot/heartbeat in assets/audio/ — see its LICENSE.md).
+  synth moans/gunshot/heartbeat/music in assets/audio/ — see its
+  LICENSE.md), playtest round 1 fixes (gun magazine 18/10-damaged with
+  reload-on-use, rarer headshots, damaged-gun accuracy + toolbox repair,
+  merchant SELL (3/visit), gun→bullet loot pairing + ammo bundles,
+  click-to-move / click-to-scavenge with auto-stance, barricade
+  interrupt fix, melee SFX, elevator ding, +5% scavenge rates).
+- Deferred from playtest feedback: drag-and-drop inventory, settings/
+  key-remap menu, can throwing (distraction), broken-item crafting.
 - Next: **Upgrade offers** (store doc step 6 — needs the upgrade pool
   designed first), then player-corpse recovery (step 7).
 - Not started: time-of-day, fires, balcony descent, quests, character stats.

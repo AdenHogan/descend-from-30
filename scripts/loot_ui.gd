@@ -81,6 +81,15 @@ func _process(delta: float) -> void:
 
 	if not is_revealing:
 		return
+	# Searching demands both hands: switching out of scavenge mode (or the
+	# mode-switch spin itself) cancels the search — the timer never runs on.
+	if not WorldState.is_scavenge_mode:
+		_close(false)
+		return
+	var searcher = get_tree().get_first_node_in_group("player")
+	if searcher != null and (searcher.is_switching_mode or searcher.is_pushing or searcher.is_attacking):
+		_close(false)
+		return
 	reveal_timer += delta
 	if reveal_timer >= REVEAL_TIME:
 		is_revealing = false
@@ -119,7 +128,11 @@ func _on_take() -> void:
 		if current_key_target != "":
 			added = WorldState.add_key_to_inventory(current_key_target)
 		else:
-			added = WorldState.add_to_inventory(current_item_id)
+			# Bullets come in bundles of 2-8, small bundles most likely.
+			var amount = 0
+			if ItemData.get_item(current_item_id).get("is_ammo", false):
+				amount = _roll_ammo_bundle()
+			added = WorldState.add_to_inventory(current_item_id, amount)
 
 		if added:
 			WorldState.clear_anchor_item(current_apartment_id, current_anchor_name)
@@ -138,12 +151,31 @@ func _on_leave() -> void:
 	_close(false)
 
 
+func _roll_ammo_bundle() -> int:
+	# Seeded per anchor so re-searching can't reroll. Weights fall off with
+	# size: 2 is common, 8 is a lucky day.
+	var rng = RandomNumberGenerator.new()
+	rng.seed = hash(str(WorldState.master_seed) + "ammobundle" + current_apartment_id + current_anchor_name)
+	var weights = [30, 22, 16, 12, 9, 7, 4]  # sizes 2..8
+	var total = 100
+	var roll = rng.randi() % total
+	var acc = 0
+	for i in range(weights.size()):
+		acc += weights[i]
+		if roll < acc:
+			return i + 2
+	return 2
+
+
 func _close(item_taken: bool) -> void:
 	is_revealing = false
 	visible = false
 	_notify_anchor_closed(item_taken)
 	anchor_node = null
 	current_key_target = ""
+	var player = get_tree().get_first_node_in_group("player")
+	if player != null and player.has_method("restore_stance"):
+		player.restore_stance()
 
 
 func _notify_anchor_closed(item_taken: bool) -> void:
