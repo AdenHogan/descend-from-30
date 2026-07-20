@@ -25,6 +25,11 @@ var ping_canvas: Control = null
 var report_panel: PanelContainer = null
 var report_label: Label = null
 
+const HEARTBEAT_STREAM = preload("res://assets/audio/heartbeat.wav")
+const HEARTBEAT_PERIOD = 1.1
+var heartbeat_player: AudioStreamPlayer = null
+var heartbeat_timer: float = 0.0
+
 
 func _ready() -> void:
 	layer = 2
@@ -41,9 +46,11 @@ void fragment() {
 	vec4 scr = texture(screen_tex, SCREEN_UV);
 	float g = dot(scr.rgb, vec3(0.299, 0.587, 0.114));
 	float d = distance(SCREEN_UV, vec2(0.5, 0.5));
-	// Focus falloff: light grey near the player, near-dark at the edges.
-	float vig = smoothstep(0.12, 0.72, d);
-	vec3 grey = mix(vec3(g), vec3(g * 0.30), vig);
+	// Focus falloff: a TIGHT readable circle around the player, then a hard
+	// slide into near-black — the edges must be dark enough for something to
+	// genuinely sneak up through them while you're focused.
+	float vig = smoothstep(0.06, 0.40, d);
+	vec3 grey = mix(vec3(g * 0.9), vec3(g * 0.05), vig);
 	COLOR = vec4(mix(scr.rgb, grey, intensity), 1.0);
 }
 """
@@ -79,6 +86,10 @@ void fragment() {
 	report_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	margin.add_child(report_label)
 	add_child(report_panel)
+
+	heartbeat_player = AudioStreamPlayer.new()
+	heartbeat_player.stream = HEARTBEAT_STREAM
+	add_child(heartbeat_player)
 
 
 func begin(world_pos: Vector2, listen_profile: Dictionary) -> void:
@@ -128,6 +139,12 @@ func _process(delta: float) -> void:
 
 	if state == "fading_in" or state == "active":
 		_tick_pings(delta)
+		# Heartbeat swells with the grey — the focus has a pulse.
+		heartbeat_timer -= delta
+		if heartbeat_timer <= 0.0:
+			heartbeat_timer = HEARTBEAT_PERIOD
+			heartbeat_player.volume_db = lerp(-30.0, -12.0, intensity)
+			heartbeat_player.play()
 	ping_canvas.queue_redraw()
 
 	if report_panel.visible:

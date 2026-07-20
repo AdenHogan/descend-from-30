@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://cpbmp16h6ayjs"]
+
+[ext_resource type="Script" uid="uid://bdkrr4duzw4fj" path="res://tests/audio_smoke_test.gd" id="1_aud"]
+
+[node name="AudioSmokeTest" type="Node"]
+script = ExtResource("1_aud")

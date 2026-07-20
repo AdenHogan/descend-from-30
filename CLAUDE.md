@@ -94,7 +94,8 @@ means no rendering — UI layout and art still need an in-editor look.
   approach; body reuses the player idle sheet — merchant art task open),
   sound & stealth v1 (noise radii per gait, emit_noise, R-listen at
   doors/down-stairwells with grey vignette + pings + report, listen
-  ambush; Rest moved to T — audio SFX assets still an open task).
+  ambush; Rest moved to T), audio v1 (CC0 Kenney footsteps/impacts +
+  synth moans/gunshot/heartbeat in assets/audio/ — see its LICENSE.md).
 - Next: **Upgrade offers** (store doc step 6 — needs the upgrade pool
   designed first), then player-corpse recovery (step 7).
 - Not started: time-of-day, fires, balcony descent, quests, character stats.

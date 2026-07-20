@@ -93,11 +93,23 @@ Focusing is dangerous. On listen start, one random roll:
 
 - **R = Listen** (GDD-canon restored). **Rest moved to T.**
 
+## Audio v1 (implemented)
+
+`assets/audio/` (licenses in its LICENSE.md — all CC0):
+- **Footsteps** (Kenney): carpet for crouch/scavenge, concrete for walk/run;
+  cadence + volume per gait mirror the noise table.
+- **Zombie moans**: positional `AudioStreamPlayer2D` on both types, random
+  4–12s intervals, audible ~650–800px — the off-screen presence signal that
+  replaces roaming listen. Big zombie plays the same moans pitched way down.
+  (Synth placeholders — replace with recorded SFX eventually.)
+- **Gunshot** (synth), **barricade plank rips + door-force impacts + lock
+  latch** (Kenney), **listen heartbeat** (synth, swells with the grey).
+
 ## Open tasks
 
-- **Audio pass (assets):** enemy shuffle/moan loops (audible off-screen),
-  player footsteps per gait, gunshot bang, barricade tearing, listen-mode
-  heartbeat/muffle. The noise MODEL is live; the player's ears are not.
+- **Audio upgrade:** replace synth moans/gunshot/heartbeat with recorded
+  SFX (Freesound CC0 / OpenGameArt); add shuffle/drag loops while zombies
+  walk; ambient building tone per time-of-day.
 - **Art:** listen animations — cupping ear at a door / leaning over the
   stairwell rail (placeholder: crouch idle).
 - **Later:** thrown-can distraction routes through `emit_noise`; directional

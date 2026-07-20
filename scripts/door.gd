@@ -42,6 +42,22 @@ const BARRICADE_STAMINA_FRACTION_BARE: float = 1.0 / 2.0
 @onready var barricade_sprite: Sprite2D = $BarricadeSprite2D
 @onready var barricade_progress_overlay: ColorRect = $BarricadeProgressOverlay
 
+const PLANK_STREAMS = [
+	preload("res://assets/audio/impacts/impactPlank_medium_000.ogg"),
+	preload("res://assets/audio/impacts/impactPlank_medium_001.ogg"),
+	preload("res://assets/audio/impacts/impactPlank_medium_002.ogg"),
+	preload("res://assets/audio/impacts/impactPlank_medium_003.ogg"),
+	preload("res://assets/audio/impacts/impactPlank_medium_004.ogg"),
+]
+const FORCE_STREAMS = [
+	preload("res://assets/audio/impacts/impactWood_heavy_000.ogg"),
+	preload("res://assets/audio/impacts/impactWood_heavy_001.ogg"),
+	preload("res://assets/audio/impacts/impactWood_heavy_002.ogg"),
+]
+const LATCH_STREAM = preload("res://assets/audio/doors/metalLatch.ogg")
+var sfx_player: AudioStreamPlayer2D = null
+var rip_sfx_timer: float = 0.0
+
 const TINT_OPEN                = Color(1.2, 1.2, 0.8, 1.0)
 const TINT_SHUT_FORCEABLE      = Color(1.0, 1.0, 1.0, 1.0)
 const TINT_SHUT_LOCKED         = Color(1.4, 0.4, 0.4, 1.0)
@@ -63,6 +79,16 @@ func _ready() -> void:
 	_migrate_legacy_progress()
 	_setup_progress_overlay()
 	_apply_door_state()
+	sfx_player = AudioStreamPlayer2D.new()
+	sfx_player.max_distance = 700.0
+	add_child(sfx_player)
+
+
+func _play_sfx(stream: AudioStream, volume_db: float = 0.0) -> void:
+	sfx_player.stream = stream
+	sfx_player.volume_db = volume_db
+	sfx_player.pitch_scale = randf_range(0.9, 1.1)
+	sfx_player.play()
 
 
 # One-time migration: older saves stored barricade_progress as elapsed SECONDS.
@@ -306,6 +332,7 @@ func _attempt_force() -> void:
 
 	WorldState.set_door_state(apartment_id, WorldState.DoorState.OPEN)
 	WorldState.emit_noise(global_position, WorldState.NOISE_RADIUS["door_work"], 4.0)
+	_play_sfx(FORCE_STREAMS.pick_random(), -2.0)
 	_apply_door_state()
 	proximity_label.text = _get_prompt_text()
 
@@ -343,6 +370,7 @@ func _attempt_locked() -> void:
 
 	WorldState.set_door_state(apartment_id, WorldState.DoorState.OPEN)
 	WorldState.emit_noise(global_position, WorldState.NOISE_RADIUS["door_work"], 4.0)
+	_play_sfx(LATCH_STREAM, -2.0)
 	_apply_door_state()
 	proximity_label.text = _get_prompt_text()
 
@@ -386,6 +414,10 @@ func _tick_barricade_removal(delta: float) -> void:
 	WorldState.barricade_progress[apartment_id] = removal_fraction
 	# Tearing a barricade apart is 10/10 loud, continuously.
 	WorldState.emit_noise(global_position, WorldState.NOISE_RADIUS["door_work"], 1.0)
+	rip_sfx_timer -= delta
+	if rip_sfx_timer <= 0.0:
+		rip_sfx_timer = randf_range(0.55, 0.85)
+		_play_sfx(PLANK_STREAMS.pick_random(), -4.0)
 
 	# Durability — debit progressively so a full removal costs BARRICADE_DURABILITY_COST.
 	# target_spend grows with progress; we apply use() each time it crosses an integer.

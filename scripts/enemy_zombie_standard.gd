@@ -21,6 +21,15 @@ var passable_to_player: bool = false
 # Gunfire (and future noise sources) override detection range while this runs.
 var alert_timer: float = 0.0
 
+# Off-screen presence: positional moans/shuffles the player can HEAR before
+# seeing (docs/SOUND_STEALTH.md — this is why roaming listen isn't needed).
+const MOAN_STREAMS = [
+	preload("res://assets/audio/zombie/moan_1.wav"),
+	preload("res://assets/audio/zombie/moan_2.wav"),
+]
+var moan_player: AudioStreamPlayer2D = null
+var moan_timer: float = 0.0
+
 
 func alert_to_noise(duration: float = 6.0) -> void:
 	alert_timer = max(alert_timer, duration)
@@ -32,6 +41,12 @@ func _ready() -> void:
 	add_to_group("zombie")
 	_set_hp_from_floor()
 	_register_zombie_exceptions()
+	moan_player = AudioStreamPlayer2D.new()
+	moan_player.name = "MoanPlayer"
+	moan_player.volume_db = -6.0
+	moan_player.max_distance = 650.0
+	add_child(moan_player)
+	moan_timer = randf_range(1.0, 6.0)
 
 func _register_zombie_exceptions() -> void:
 	# Swarm fix: zombies ignore collisions with each other (mutually), so a group
@@ -158,6 +173,13 @@ func _physics_process(delta: float) -> void:
 
 	if alert_timer > 0:
 		alert_timer -= delta
+
+	moan_timer -= delta
+	if moan_timer <= 0.0:
+		moan_timer = randf_range(4.0, 10.0)
+		moan_player.stream = MOAN_STREAMS.pick_random()
+		moan_player.pitch_scale = randf_range(0.9, 1.15)
+		moan_player.play()
 
 	match state:
 		"knockdown":
