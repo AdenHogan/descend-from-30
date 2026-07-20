@@ -23,15 +23,19 @@ const DOOR_CLOSED_X = 15.75
 const DOOR_OPEN_X = 29.0
 const DOOR_CLOSED_SCALE_X = 0.95454395
 const DOOR_OPEN_SCALE_X = 0.06
+const IDLE_FPS = 8.0
+const IDLE_FRAME_COUNT = 10
 
 var player_nearby: bool = false
 var shop_ui: CanvasLayer = null
 var doors_open: bool = false
 var door_tween: Tween = null
+var idle_timer: float = 0.0
 
 @onready var proximity_label: Label = $ProximityLabel
 @onready var door_left: Sprite2D = $DoorLeft
 @onready var door_right: Sprite2D = $DoorRight
+@onready var merchant_sprite: Sprite2D = $MerchantSprite
 
 
 func _ready() -> void:
@@ -69,6 +73,10 @@ func _on_body_exited(body: Node2D) -> void:
 
 
 func _process(_delta: float) -> void:
+	# The merchant sprite is a plain Sprite2D over the idle sheet; step its
+	# frame here so he breathes instead of freezing on frame 0.
+	idle_timer += _delta
+	merchant_sprite.frame = int(idle_timer * IDLE_FPS) % IDLE_FRAME_COUNT
 	var player = get_tree().get_first_node_in_group("player")
 	if player != null:
 		var near = global_position.distance_to(player.global_position) <= DOOR_OPEN_DISTANCE

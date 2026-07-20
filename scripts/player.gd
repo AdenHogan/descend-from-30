@@ -10,7 +10,8 @@ const PUSH_FORCE = 100.0
 const MODE_SWITCH_TIME = 0.2
 
 const DEV_MODE = true
-const DEV_ITEMS = ["001", "002", "003", "004", "005", "006", "007", "008", "009", "010", "011", "012", "013", "014", "015", "016", "017", "018", "019", "020", "021", "022"]
+# Bullets (016) sit right after the Gun (004) so gun testing is two F1 taps.
+const DEV_ITEMS = ["001", "002", "003", "004", "016", "005", "006", "007", "008", "009", "010", "011", "012", "013", "014", "015", "017", "018", "019", "020", "021", "022"]
 var dev_item_index = 0
 const DEV_HEAL_ITEMS = ["006", "007", "009", "010", "011"]
 var dev_heal_index = 0
@@ -485,7 +486,9 @@ func _input(event: InputEvent) -> void:
 	if DEV_MODE:
 		if event.is_action_pressed("dev_add_item"):
 			var item_id = DEV_ITEMS[dev_item_index % DEV_ITEMS.size()]
-			if WorldState.add_to_inventory(item_id):
+			# Ammo arrives as a full stack so one F1 tap = a loaded gun test.
+			var amount = WorldState.MAX_AMMO_PER_SLOT if ItemData.get_item(item_id).get("is_ammo", false) else 0
+			if WorldState.add_to_inventory(item_id, amount):
 				HUD.refresh_inventory()
 				HUD.show_feedback("DEV: Added " + ItemData.get_item(item_id).get("name", item_id))
 			else:
