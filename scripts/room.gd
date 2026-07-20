@@ -177,19 +177,19 @@ func _ready() -> void:
 			var locked = WorldState.is_locked_apartment(apartment_id)
 			var key_opened = WorldState.was_key_opened(apartment_id)
 			if key_opened:
-				spawn_chance = 0.55  # Key-opened doors: best loot
+				spawn_chance = 0.60  # Key-opened doors: best loot
 			elif is_paradise:
-				spawn_chance = 0.65
+				spawn_chance = 0.70
 			elif locked:
-				spawn_chance = 0.45  # Locked bonus even if forced
+				spawn_chance = 0.50  # Locked bonus even if forced
 			else:
 				match WorldState.current_run:
-					1: spawn_chance = 0.35
-					2: spawn_chance = 0.28
-					3: spawn_chance = 0.22
-					_: spawn_chance = 0.28
+					1: spawn_chance = 0.40
+					2: spawn_chance = 0.33
+					3: spawn_chance = 0.27
+					_: spawn_chance = 0.33
 
-			spawn_chance = min(spawn_chance + barricade_bonus, 0.85)
+			spawn_chance = min(spawn_chance + barricade_bonus, 0.90)
 
 			# An anchor the player has already searched is settled — its item state
 			# is whatever they left it as. We must NOT re-roll it (that's the dupe
@@ -218,6 +218,11 @@ func _ready() -> void:
 				if passed_spawn_roll and not already_searched:
 					WorldState.set_anchor_item(apartment_id, anchor.name, item_id)
 
+	# Gun/bullet pairing (balance): an apartment that rolled a Gun gets a 40%
+	# seeded chance to convert one junk anchor into Bullets, so finding the
+	# weapon usually means the means to feed it isn't far away.
+	_pair_bullets_with_gun(apartment_id)
+
 	await get_tree().process_frame
 	WorldState.interaction_handled = false
 
@@ -228,6 +233,29 @@ func _ready() -> void:
 
 	_spawn_corpses(WorldState.current_floor, WorldState.current_apartment_id)
 	_spawn_world_drops(WorldState.current_floor)
+
+func _pair_bullets_with_gun(apt_id: String) -> void:
+	var has_gun = false
+	var junk_keys: Array = []
+	for key in WorldState.anchor_items:
+		if not key.begins_with(apt_id + ":"):
+			continue
+		var item_id = WorldState.anchor_items[key]
+		if item_id == "004":
+			has_gun = true
+		elif ItemData.get_item(item_id).get("is_junk", false):
+			junk_keys.append(key)
+	if not has_gun or junk_keys.is_empty():
+		return
+	var rng = RandomNumberGenerator.new()
+	rng.seed = hash(str(WorldState.master_seed) + "gunpair" + apt_id)
+	if rng.randf() < 0.40:
+		var target_key = junk_keys[rng.randi() % junk_keys.size()]
+		# Only convert anchors the player hasn't already resolved.
+		var parts = target_key.split(":")
+		if not WorldState.is_anchor_searched(parts[0], parts[1]):
+			WorldState.anchor_items[target_key] = "016"
+
 
 func _spawn_world_drops(floor_num: int) -> void:
 	var scene_path = get_tree().current_scene.scene_file_path
@@ -407,10 +435,24 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		var mouse_world = _get_mouse_world_pos()
 		var clicked_index = _get_clicked_interactable(nearby, mouse_world)
+		var player = get_tree().get_first_node_in_group("player")
 		if clicked_index >= 0:
 			selected_index = clicked_index
 			WorldState.interaction_handled = false
+			if player != null and player.has_method("auto_stance_for_anchor"):
+				player.auto_stance_for_anchor(nearby[selected_index].global_position.y)
 			nearby[selected_index].try_interact()
+			get_viewport().set_input_as_handled()
+			return
+		# Distant anchor: walk over and loot on arrival (click-to-scavenge).
+		for anchor in interactables:
+			if not is_instance_valid(anchor) or not anchor.visible:
+				continue
+			if anchor.global_position.distance_to(mouse_world) <= 30.0:
+				if player != null and player.has_method("set_move_target"):
+					player.set_move_target(anchor.global_position.x, anchor)
+					get_viewport().set_input_as_handled()
+				return
 
 
 func _get_mouse_world_pos() -> Vector2:

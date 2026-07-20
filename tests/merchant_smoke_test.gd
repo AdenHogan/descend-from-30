@@ -30,6 +30,7 @@ func _ready() -> void:
 	_test_stock_structure()
 	_test_legendary_hold()
 	_test_buy_flow()
+	_test_sell_flow()
 	_test_save_load()
 	_test_scene_instantiation()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
@@ -145,6 +146,24 @@ func _test_buy_flow() -> void:
 	for i in range(WorldState.MAX_INVENTORY_SLOTS):
 		WorldState.add_to_inventory("001")
 	check(not WorldState.add_to_inventory("002"), "full inventory refuses the item")
+
+
+func _test_sell_flow() -> void:
+	print("[sell flow]")
+	_fresh_state(2024)
+	WorldState.wallet_unlocked = true
+	WorldState.wallet_balance = 0
+	for junk in ["023", "024", "025", "026"]:
+		WorldState.add_to_inventory(junk)
+	check(WorldState.get_sales_remaining(25) == 3, "merchant takes 3 items per visit")
+	check(WorldState.sell_item(0, 25), "junk sells")
+	check(WorldState.wallet_balance > 0, "sale credits the wallet")
+	WorldState.sell_item(0, 25)
+	WorldState.sell_item(0, 25)
+	check(WorldState.get_sales_remaining(25) == 0, "limit reached after three")
+	check(not WorldState.sell_item(0, 25), "fourth sale refused")
+	check(WorldState.get_sell_price("022") == 0, "keys are not sellable")
+	check(WorldState.inventory.size() == 1, "three items left the inventory")
 
 
 func _test_save_load() -> void:

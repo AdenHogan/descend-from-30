@@ -19,6 +19,7 @@ func _ready() -> void:
 	print("=== gun combat test ===")
 	_test_ammo_stacking()
 	_test_ammo_consumption()
+	_test_magazine()
 	_test_player_gun_setup()
 	_test_zombie_alert()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
@@ -69,6 +70,22 @@ func _test_ammo_consumption() -> void:
 	check(not WorldState.consume_ammo(1), "dry fire refused")
 
 
+func _test_magazine() -> void:
+	print("[magazine]")
+	WorldState.new_game()
+	WorldState.add_to_inventory("004")
+	WorldState.add_to_inventory("016", 24)
+	var gun = WorldState.get_instance_at(0)
+	check(gun.mag_count == 0 and gun.get_mag_cap() == 18, "fresh gun empty, cap 18")
+	var loaded = WorldState.reload_gun(gun)
+	check(loaded == 18 and gun.mag_count == 18, "reload fills the mag to 18")
+	check(WorldState.get_ammo_total() == 6, "leftover bullets stay in inventory")
+	check(WorldState.reload_gun(gun) == 0, "full mag refuses more")
+	gun.is_damaged = true
+	check(gun.get_mag_cap() == 10, "damaged gun caps at 10")
+	gun.is_damaged = false
+
+
 func _test_player_gun_setup() -> void:
 	print("[gun animations]")
 	WorldState.new_game()
@@ -85,6 +102,8 @@ func _test_player_gun_setup() -> void:
 	check(outcome in ["headshot", "body", "miss"], "close-range outcome is a valid band")
 	outcome = player._calculate_gun_outcome(500.0)
 	check(outcome in ["headshot", "body", "miss"], "long-range outcome is a valid band")
+	outcome = player._calculate_gun_outcome(50.0, true)
+	check(outcome in ["headshot", "body", "miss"], "damaged-gun outcome is a valid band")
 	player.queue_free()
 
 

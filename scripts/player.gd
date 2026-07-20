@@ -91,12 +91,32 @@ const FOOTSTEPS_HARD = [
 	preload("res://assets/audio/footsteps/footstep_concrete_004.ogg"),
 ]
 const GUNSHOT_STREAM = preload("res://assets/audio/gunshot.wav")
+const MELEE_THUNK = [
+	preload("res://assets/audio/impacts/impactWood_medium_000.ogg"),
+	preload("res://assets/audio/impacts/impactWood_medium_001.ogg"),
+	preload("res://assets/audio/impacts/impactWood_medium_002.ogg"),
+]
+const MELEE_SLICE = [
+	preload("res://assets/audio/impacts/knifeSlice.ogg"),
+	preload("res://assets/audio/impacts/knifeSlice2.ogg"),
+]
 # Step cadence (s) and loudness (dB) per gait — tuned to the noise radii.
 const FOOTSTEP_INTERVAL = {"crouch": 0.55, "scavenge": 0.50, "walk": 0.38, "run": 0.26}
 const FOOTSTEP_VOLUME = {"crouch": -22.0, "scavenge": -16.0, "walk": -10.0, "run": -5.0}
 var footstep_player: AudioStreamPlayer2D = null
 var gunshot_player: AudioStreamPlayer2D = null
+var melee_player: AudioStreamPlayer2D = null
 var footstep_timer: float = 0.0
+
+# Click-to-move (playtest feedback): LMB sets a walk target. Keyboard input
+# always overrides. In scavenge mode a far anchor click walks + auto-loots;
+# in combat mode clicking a far zombie walks over and swings once.
+var move_target_x: float = 0.0
+var has_move_target: bool = false
+var pending_anchor: Node = null
+var pending_attack: Node = null
+var auto_stance_was_crouching: bool = false
+var auto_stance_changed: bool = false
 
 # Listen (docs/SOUND_STEALTH.md): rooted, real-time, interruptible by damage.
 const LISTEN_DURATION = 3.0
@@ -120,6 +140,11 @@ func _ready() -> void:
 	gunshot_player.volume_db = -4.0
 	gunshot_player.max_distance = 2500.0
 	add_child(gunshot_player)
+	melee_player = AudioStreamPlayer2D.new()
+	melee_player.name = "MeleePlayer"
+	melee_player.volume_db = -6.0
+	melee_player.max_distance = 500.0
+	add_child(melee_player)
 	health_state = HealthState.values()[WorldState.player_health]
 	is_dying = WorldState.is_dying
 	dying_timer = WorldState.dying_timer
@@ -166,6 +191,7 @@ func _physics_process(delta: float) -> void:
 		return
 
 	if Input.is_action_just_pressed("mode_toggle"):
+		_clear_move_target()
 		is_switching_mode = true
 		mode_switch_timer = MODE_SWITCH_TIME
 		animated_sprite.play("air_spin")
@@ -180,6 +206,16 @@ func _physics_process(delta: float) -> void:
 			is_attacking = false
 
 	var direction = Input.get_axis("move_left", "move_right")
+	# Click-to-move: keyboard always overrides; otherwise steer toward the
+	# clicked point and resolve any queued anchor-loot / zombie-attack there.
+	if direction != 0:
+		_clear_move_target()
+	elif has_move_target:
+		var dx = move_target_x - global_position.x
+		if abs(dx) <= 8.0:
+			_arrive_at_move_target()
+		else:
+			direction = signf(dx)
 	# Sprint requires a small stamina floor to (re)engage. Without this, stamina
 	# ticking a sliver above 0 between frames lets sprint flicker back on at zero.
 	var can_sprint_stamina = WorldState.stamina > STAMINA_SPRINT_DRAIN * 0.2 or WorldState.god_mode
@@ -397,6 +433,10 @@ func _do_melee_attack(instance: ItemInstance, slot_index: int) -> void:
 	is_attacking = true
 	attack_cooldown_timer = WEAPON_COOLDOWN.get(weapon_type, 0.5)
 	animated_sprite.play("katana_attack_continuous")
+	# Swing sound: slice for blades, thunk for blunt weapons.
+	melee_player.stream = (MELEE_SLICE if weapon_type in ["knife", "sword"] else MELEE_THUNK).pick_random()
+	melee_player.pitch_scale = randf_range(0.9, 1.1)
+	melee_player.play()
 
 	var attack_range = WEAPON_RANGES.get(weapon_type, 40.0)
 	var damage = WEAPON_DAMAGE.get(weapon_type, 1)
@@ -442,9 +482,14 @@ func _do_melee_attack(instance: ItemInstance, slot_index: int) -> void:
 			HUD.refresh_inventory()
 
 
-func _do_gun_attack(_instance: ItemInstance, _slot_index: int) -> void:
-	if WorldState.get_ammo_total() <= 0:
-		HUD.show_feedback("No ammo.")
+func _do_gun_attack(instance: ItemInstance, _slot_index: int) -> void:
+	# Guns fire from their MAGAZINE (18, or 10 damaged). Loose bullets stay
+	# in inventory until loaded — press the use key on the equipped gun.
+	if instance.mag_count <= 0:
+		if WorldState.get_ammo_total() > 0:
+			HUD.show_feedback("Magazine empty — use the gun to reload.")
+		else:
+			HUD.show_feedback("No ammo.")
 		return
 	if is_attacking:
 		return
@@ -467,11 +512,12 @@ func _do_gun_attack(_instance: ItemInstance, _slot_index: int) -> void:
 	# Only now commit the shot — no target means no ammo spent.
 	is_attacking = true
 	attack_cooldown_timer = 0.65
-	WorldState.consume_ammo(1)
+	instance.mag_count -= 1
+	HUD.refresh_inventory()
 	animated_sprite.play("gun_shoot")
 	gunshot_player.pitch_scale = randf_range(0.95, 1.05)
 	gunshot_player.play()
-	var outcome = _calculate_gun_outcome(nearest_dist)
+	var outcome = _calculate_gun_outcome(nearest_dist, instance.is_damaged)
 	match outcome:
 		"headshot": HUD.show_feedback("Headshot!")
 		"body": HUD.show_feedback("Body shot.")
@@ -482,22 +528,27 @@ func _do_gun_attack(_instance: ItemInstance, _slot_index: int) -> void:
 	WorldState.emit_noise(global_position, WorldState.NOISE_RADIUS["gunshot"], 6.0)
 
 
-func _calculate_gun_outcome(distance: float) -> String:
+func _calculate_gun_outcome(distance: float, damaged: bool = false) -> String:
+	# Rebalanced after playtest: headshots (instant kill) are RARE now.
+	# Upgrades and rare/legendary guns will buff these odds later; a damaged
+	# gun (used to force a door) shoots markedly worse until repaired.
+	var head: float
+	var body: float
+	if distance <= GUN_RANGE_CLOSE:
+		head = 0.25; body = 0.60
+	elif distance <= GUN_RANGE_MID:
+		head = 0.08; body = 0.52
+	else:
+		head = 0.02; body = 0.23
+	if damaged:
+		head *= 0.5
+		body *= 0.65
 	var rng = RandomNumberGenerator.new()
 	rng.seed = hash(str(WorldState.master_seed) + str(Time.get_ticks_msec()))
 	var roll = rng.randf()
-	if distance <= GUN_RANGE_CLOSE:
-		if roll < 0.70: return "headshot"
-		elif roll < 0.95: return "body"
-		else: return "miss"
-	elif distance <= GUN_RANGE_MID:
-		if roll < 0.20: return "headshot"
-		elif roll < 0.75: return "body"
-		else: return "miss"
-	else:
-		if roll < 0.05: return "headshot"
-		elif roll < 0.30: return "body"
-		else: return "miss"
+	if roll < head: return "headshot"
+	elif roll < head + body: return "body"
+	return "miss"
 
 
 func _do_push() -> void:
@@ -527,11 +578,82 @@ func _do_push() -> void:
 			zombie.receive_push(push_dir * PUSH_FORCE)
 
 
+func set_move_target(x: float, anchor: Node = null) -> void:
+	move_target_x = x
+	has_move_target = true
+	pending_anchor = anchor
+	pending_attack = null
+
+
+func _clear_move_target() -> void:
+	has_move_target = false
+	pending_anchor = null
+	pending_attack = null
+
+
+func _arrive_at_move_target() -> void:
+	has_move_target = false
+	if pending_anchor != null and is_instance_valid(pending_anchor):
+		WorldState.interaction_handled = false
+		auto_stance_for_anchor(pending_anchor.global_position.y)
+		pending_anchor.try_interact()
+	elif pending_attack != null and is_instance_valid(pending_attack) and not pending_attack.is_dead:
+		animated_sprite.flip_h = pending_attack.global_position.x < global_position.x
+		var slot = HUD.selected_slot
+		if slot >= 0 and slot < WorldState.inventory.size():
+			var instance = WorldState.get_instance_at(slot)
+			if instance.get_data().get("is_weapon", false):
+				_do_melee_attack(instance, slot)
+	pending_anchor = null
+	pending_attack = null
+
+
+func auto_stance_for_anchor(anchor_y: float) -> void:
+	# Low anchors crouch you automatically; a crouched player stands for high
+	# ones. Original stance restores when the loot panel closes.
+	auto_stance_changed = false
+	auto_stance_was_crouching = is_crouching
+	if anchor_y > global_position.y + 15.0 and not is_crouching:
+		is_crouching = true
+		auto_stance_changed = true
+	elif anchor_y < global_position.y - 25.0 and is_crouching:
+		is_crouching = false
+		auto_stance_changed = true
+
+
+func restore_stance() -> void:
+	if auto_stance_changed:
+		is_crouching = auto_stance_was_crouching
+		auto_stance_changed = false
+
+
+func _mouse_world_pos() -> Vector2:
+	var cam = get_node_or_null("Camera2D")
+	if cam == null:
+		return global_position
+	return cam.get_screen_center_position() + \
+		(get_viewport().get_mouse_position() - get_viewport().get_visible_rect().size / 2) / cam.zoom
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	# Ground click-to-move (scavenge mode; anchors consume their clicks first
+	# in room.gd). Combat keeps LMB = attack, handled in _input.
+	if is_dead or is_dying or is_switching_mode or is_listening:
+		return
+	if not WorldState.is_scavenge_mode:
+		return
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		if _is_mouse_over_hud():
+			return
+		set_move_target(_mouse_world_pos().x)
+
+
 func start_listen(source_pos: Vector2, report: Dictionary) -> void:
 	# Anchored listen at a door or down-stairwell. Rooted for the duration,
 	# real time — listening while something shuffles toward you is on you.
 	if is_listening or is_dead or is_dying or is_switching_mode:
 		return
+	_clear_move_target()
 	is_listening = true
 	listen_timer = LISTEN_DURATION
 	listen_report_line = report.get("line", "")
@@ -664,7 +786,16 @@ func _input(event: InputEvent) -> void:
 					if weapon_type == "gun":
 						_do_gun_attack(instance, slot)
 					else:
-						_do_melee_attack(instance, slot)
+						# Clicking a distant zombie walks over and swings once;
+						# anything in reach swings immediately as before.
+						var clicked = _zombie_under_cursor()
+						var reach = WEAPON_RANGES.get(weapon_type, 40.0) + 40.0
+						if clicked != null and global_position.distance_to(clicked.global_position) > reach:
+							var approach = clicked.global_position.x - signf(clicked.global_position.x - global_position.x) * reach * 0.6
+							set_move_target(approach)
+							pending_attack = clicked
+						else:
+							_do_melee_attack(instance, slot)
 				else:
 					HUD.show_feedback("No weapon selected.")
 			else:
@@ -681,6 +812,20 @@ func _input(event: InputEvent) -> void:
 			use_item(slot)
 	elif event.is_action_pressed("rest"):
 		do_rest()
+
+
+func _zombie_under_cursor() -> Node:
+	var mouse_world = _mouse_world_pos()
+	var best: Node = null
+	var best_dist = 45.0
+	for zombie in get_tree().get_nodes_in_group("zombie"):
+		if zombie.is_dead:
+			continue
+		var d = zombie.global_position.distance_to(mouse_world)
+		if d < best_dist:
+			best_dist = d
+			best = zombie
+	return best
 
 
 func _is_mouse_over_hud() -> bool:
@@ -725,9 +870,33 @@ func use_item(slot_index: int) -> void:
 		HUD._update_slot_highlights()
 		HUD.show_feedback("Equipped.")
 	elif item_data.get("is_weapon", false) and _get_weapon_type(item_data) == "gun":
-		HUD.selected_slot = slot_index
-		HUD._update_slot_highlights()
-		HUD.show_feedback("Equipped. Ammo: " + str(WorldState.get_ammo_total()))
+		# First use equips; using the ALREADY-equipped gun reloads it.
+		if HUD.selected_slot == slot_index:
+			var loaded = WorldState.reload_gun(instance)
+			if loaded > 0:
+				HUD.show_feedback("Loaded %d — mag %d/%d." % [loaded, instance.mag_count, instance.get_mag_cap()])
+			elif instance.mag_count >= instance.get_mag_cap():
+				HUD.show_feedback("Magazine full.")
+			else:
+				HUD.show_feedback("No bullets to load.")
+		else:
+			HUD.selected_slot = slot_index
+			HUD._update_slot_highlights()
+			HUD.show_feedback("Equipped — mag %d/%d." % [instance.mag_count, instance.get_mag_cap()])
+	elif item_data.get("is_tool", false) and item_data.get("can_repair", false):
+		# Toolbox: repairs the first damaged gun in inventory (one use).
+		for i in range(WorldState.inventory.size()):
+			var other = WorldState.get_instance_at(i)
+			if other.is_damaged and _get_weapon_type(other.get_data()) == "gun":
+				other.is_damaged = false
+				instance.use()
+				if instance.is_depleted:
+					WorldState.remove_from_inventory(slot_index)
+					HUD.selected_slot = -1
+				HUD.refresh_inventory()
+				HUD.show_feedback("Gun repaired — accuracy and magazine restored.")
+				return
+		HUD.show_feedback("Nothing needs repairing.")
 	elif item_data.get("is_key", false):
 		var target = instance.target_apartment
 		if target != "":

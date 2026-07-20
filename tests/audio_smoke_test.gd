@@ -28,9 +28,13 @@ func _test_streams() -> void:
 	var paths = [
 		"res://assets/audio/gunshot.wav",
 		"res://assets/audio/heartbeat.wav",
+		"res://assets/audio/elevator_ding.wav",
 		"res://assets/audio/zombie/moan_1.wav",
 		"res://assets/audio/zombie/moan_2.wav",
 		"res://assets/audio/doors/metalLatch.ogg",
+		"res://assets/audio/impacts/knifeSlice.ogg",
+		"res://assets/audio/impacts/knifeSlice2.ogg",
+		"res://assets/audio/impacts/impactWood_medium_000.ogg",
 	]
 	for i in range(5):
 		paths.append("res://assets/audio/footsteps/footstep_carpet_00%d.ogg" % i)

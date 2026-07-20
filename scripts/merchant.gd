@@ -26,11 +26,14 @@ const DOOR_OPEN_SCALE_X = 0.06
 const IDLE_FPS = 8.0
 const IDLE_FRAME_COUNT = 10
 
+const DING_STREAM = preload("res://assets/audio/elevator_ding.wav")
+
 var player_nearby: bool = false
 var shop_ui: CanvasLayer = null
 var doors_open: bool = false
 var door_tween: Tween = null
 var idle_timer: float = 0.0
+var ding_player: AudioStreamPlayer2D = null
 
 @onready var proximity_label: Label = $ProximityLabel
 @onready var door_left: Sprite2D = $DoorLeft
@@ -42,6 +45,11 @@ func _ready() -> void:
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
 	proximity_label.visible = false
+	ding_player = AudioStreamPlayer2D.new()
+	ding_player.stream = DING_STREAM
+	ding_player.volume_db = -8.0
+	ding_player.max_distance = 600.0
+	add_child(ding_player)
 
 
 func get_greeting() -> String:
@@ -91,6 +99,8 @@ func _set_doors_open(open: bool) -> void:
 	# Doors slide sideways while collapsing horizontally, so they read as
 	# retracting into the frame's side pockets instead of overlapping the wall.
 	doors_open = open
+	ding_player.pitch_scale = 1.0 if open else 0.92
+	ding_player.play()
 	if door_tween != null:
 		door_tween.kill()
 	door_tween = create_tween().set_parallel(true) \

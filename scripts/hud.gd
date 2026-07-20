@@ -119,7 +119,7 @@ func _create_slot_icons() -> void:
 		slot.add_child(dur_fill)
 		
 		var key_label = Label.new()
-		key_label.add_theme_font_size_override("font_size", 7)
+		key_label.add_theme_font_size_override("font_size", 12)
 		key_label.add_theme_color_override("font_color", Color(0.05, 0.05, 0.05, 1.0))
 		key_label.add_theme_color_override("font_outline_color", Color(1, 1, 1, 0.9))
 		key_label.add_theme_constant_override("outline_size", 2)
@@ -372,11 +372,15 @@ func refresh_inventory() -> void:
 			var item_data = ItemData.get_item(item_id)
 
 			var key_label = slot_key_labels[i]
+			var item_name_l = item_data.get("name", "").to_lower()
 			if item_data.get("is_key", false) and instance.target_apartment != "":
 				key_label.text = instance.target_apartment
 				key_label.visible = true
 			elif item_data.get("is_money", false) or item_data.get("is_ammo", false):
 				key_label.text = "x" + str(instance.count)
+				key_label.visible = true
+			elif item_data.get("is_weapon", false) and item_name_l.contains("gun"):
+				key_label.text = "%d/%d" % [instance.mag_count, instance.get_mag_cap()]
 				key_label.visible = true
 			else:
 				key_label.visible = false
