@@ -8,9 +8,22 @@ const SCENES = {
 	"building_floors": "res://scenes/building_floors.tscn"
 }
 
+var music_player: AudioStreamPlayer = null
+
+
 func _ready() -> void:
 	# Must keep handling input while the tree is paused, so Esc can un-pause.
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	# Background dread loop (assets/audio/music) — lives on this autoload so
+	# it survives scene changes and keeps droning through the pause menu.
+	music_player = AudioStreamPlayer.new()
+	music_player.name = "MusicPlayer"
+	var stream = preload("res://assets/audio/music/dread_loop.ogg")
+	stream.loop = true
+	music_player.stream = stream
+	music_player.volume_db = -16.0
+	add_child(music_player)
+	music_player.play()
 
 
 func _input(event: InputEvent) -> void:

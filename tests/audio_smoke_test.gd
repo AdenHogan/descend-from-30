@@ -66,3 +66,9 @@ func _test_players() -> void:
 	add_child(overlay)
 	check(overlay.heartbeat_player != null, "listen overlay has heartbeat player")
 	overlay.queue_free()
+
+	var music = load("res://assets/audio/music/dread_loop.ogg")
+	check(music != null and music is AudioStream, "background loop loads")
+	check(Game.music_player != null and Game.music_player.stream != null,
+		"Game autoload carries the music player")
+	check(Game.music_player.stream.loop, "background loop set to loop")
