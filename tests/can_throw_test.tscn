@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://c0fk8p1nsklw6"]
+
+[ext_resource type="Script" uid="uid://bn70nsq4r3i43" path="res://tests/can_throw_test.gd" id="1_can"]
+
+[node name="CanThrowTest" type="Node"]
+script = ExtResource("1_can")

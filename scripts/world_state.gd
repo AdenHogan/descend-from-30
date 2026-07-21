@@ -471,6 +471,22 @@ func emit_noise(pos: Vector2, radius: float, duration: float = 1.0) -> void:
 				z.alert_to_noise(duration)
 
 
+func emit_distraction(pos: Vector2, radius: float = 700.0) -> void:
+	# A thrown can (docs/GAME_DESIGN_DOC + QUEST/design): a loud landing that
+	# OVERRIDES all standard-zombie aggro — every non-boss in earshot turns
+	# and walks to the sound. Bosses (big zombies) ignore it entirely.
+	var tree = Engine.get_main_loop() as SceneTree
+	if tree == null:
+		return
+	for z in tree.get_nodes_in_group("zombie"):
+		if z.is_dead:
+			continue
+		if z.is_in_group("big_zombie"):
+			continue
+		if z.has_method("be_distracted") and z.global_position.distance_to(pos) <= radius:
+			z.be_distracted(pos)
+
+
 # --- Listen reads (press R at a door / down-stairwell) ---
 # Reports are TRUE: they come from the same seeds that spawn the enemies,
 # minus anything already killed there. Categories are a fixed vocabulary so

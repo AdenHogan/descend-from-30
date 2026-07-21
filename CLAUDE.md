@@ -106,8 +106,12 @@ means no rendering — UI layout and art still need an in-editor look.
   bullets onto gun to load / drag to world to discard), 4 moan variants +
   per-zombie voice pitch + louder mix, room click-to-scavenge reachable
   when no anchor in range.
-- Deferred from playtest feedback: settings/key-remap menu, can throwing
-  (distraction), broken-item crafting.
+- Can throwing (item 17): scavenge-mode use of Canned Food throws a can
+  (sword-swing anim, manual arc physics w/ bounce+roll); its landing emits
+  a loud noise + distraction that pulls every non-boss zombie to the sound
+  (some de-aggro on arrival, some resume). Bosses ignore it.
+- Deferred from playtest feedback: settings/key-remap menu, broken-item
+  crafting.
 - Next: **Upgrade offers** (store doc step 6 — needs the upgrade pool
   designed first), then player-corpse recovery (step 7).
 - Not started: time-of-day, fires, balcony descent, quests, character stats.
