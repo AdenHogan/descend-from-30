@@ -148,6 +148,7 @@ func new_game() -> void:
 	legendary_hold = {}
 	legendary_just_purchased = false
 	merchant_sales.clear()
+	upgrade_offers.clear()
 	god_mode = false
 
 
@@ -183,7 +184,7 @@ func add_to_inventory(item_id: String, amount: int = 0) -> bool:
 			if instance.item_id == item_id:
 				instance.count += add_amount
 				return true
-		if inventory.size() >= MAX_INVENTORY_SLOTS:
+		if inventory.size() >= get_inventory_slots():
 			return false
 		var money = ItemInstance.new()
 		money.setup(item_id)
@@ -195,7 +196,7 @@ func add_to_inventory(item_id: String, amount: int = 0) -> bool:
 	# fit is refused, so no bullets silently vanish.
 	if ItemData.get_item(item_id).get("is_ammo", false):
 		var add_amount = max(amount, 1)
-		var capacity = (MAX_INVENTORY_SLOTS - inventory.size()) * MAX_AMMO_PER_SLOT
+		var capacity = (get_inventory_slots() - inventory.size()) * MAX_AMMO_PER_SLOT
 		for instance in inventory:
 			if instance.item_id == item_id:
 				capacity += MAX_AMMO_PER_SLOT - instance.count
@@ -215,7 +216,7 @@ func add_to_inventory(item_id: String, amount: int = 0) -> bool:
 			add_amount -= stack.count
 			inventory.append(stack)
 		return true
-	if inventory.size() >= MAX_INVENTORY_SLOTS:
+	if inventory.size() >= get_inventory_slots():
 		return false
 	var instance = ItemInstance.new()
 	instance.setup(item_id)
@@ -457,6 +458,146 @@ func sell_item(slot_index: int, floor_num: int) -> bool:
 	HUD.refresh_inventory()
 	HUD.update_wallet()
 	return true
+
+
+# --- UPGRADES (docs/STORE_DESIGN.md step 6) -------------------------------
+# Free pick-1-of-2 at each merchant visit; persist across all three runs.
+# ARCHITECTURE: upgrades are modifier lists, NEVER direct writes to stats.
+# Each stat's effective value = base * (product of mults) + (sum of adds),
+# multiplicative first then additive, then a stat-specific clamp. Owned ids
+# live in `active_upgrades` (cross-run persistence block).
+#
+# mods entries: {"<stat>": {"mult": x}} and/or {"<stat>": {"add": y}}.
+# Drawbacks simply carry both a beneficial and a costly mod; legibility is
+# absolute — the description states both halves.
+const UPGRADE_POOL = {
+	# ---- Stamina (weighted common — the bread-and-butter pick) ----
+	"U_stam_s": {"name": "Second Wind", "desc": "+15 max stamina", "w": 6, "drawback": false, "mods": {"max_stamina": {"add": 15}}},
+	"U_stam_m": {"name": "Marathoner", "desc": "+30 max stamina", "w": 4, "drawback": false, "mods": {"max_stamina": {"add": 30}}},
+	"U_stam_l": {"name": "Iron Lungs", "desc": "+50 max stamina", "w": 2, "drawback": false, "mods": {"max_stamina": {"add": 50}}},
+	"U_regen_s": {"name": "Quick Recovery", "desc": "+25% stamina regen", "w": 5, "drawback": false, "mods": {"stamina_regen": {"mult": 1.25}}},
+	"U_regen_m": {"name": "Deep Breaths", "desc": "+50% stamina regen", "w": 3, "drawback": false, "mods": {"stamina_regen": {"mult": 1.5}}},
+	"U_sprint_s": {"name": "Efficient Stride", "desc": "-20% sprint stamina cost", "w": 4, "drawback": false, "mods": {"sprint_drain": {"mult": 0.8}}},
+	"U_sprint_m": {"name": "Featherfoot", "desc": "-35% sprint stamina cost", "w": 2, "drawback": false, "mods": {"sprint_drain": {"mult": 0.65}}},
+	# ---- Inventory (weighted more common per the doc) ----
+	"U_slot": {"name": "Deep Pockets", "desc": "+1 inventory slot", "w": 7, "drawback": false, "mods": {"inventory_slots": {"add": 1}}},
+	# ---- Movement ----
+	"U_speed_s": {"name": "Fleet", "desc": "+10% move speed", "w": 4, "drawback": false, "mods": {"move_speed": {"mult": 1.10}}},
+	"U_speed_m": {"name": "Sprinter's Legs", "desc": "+18% move speed", "w": 2, "drawback": false, "mods": {"move_speed": {"mult": 1.18}}},
+	# ---- Melee ----
+	"U_melee_s": {"name": "Strong Arm", "desc": "+1 melee damage", "w": 4, "drawback": false, "mods": {"melee_damage": {"add": 1}}},
+	"U_melee_m": {"name": "Crushing Blows", "desc": "+2 melee damage", "w": 2, "drawback": false, "mods": {"melee_damage": {"add": 2}}},
+	"U_push": {"name": "Bruiser", "desc": "+40% push force", "w": 3, "drawback": false, "mods": {"push_force": {"mult": 1.4}}},
+	# ---- Guns ----
+	"U_head_s": {"name": "Steady Aim", "desc": "+8% headshot chance", "w": 4, "drawback": false, "mods": {"headshot_bonus": {"add": 0.08}}},
+	"U_head_m": {"name": "Marksman", "desc": "+15% headshot chance", "w": 2, "drawback": false, "mods": {"headshot_bonus": {"add": 0.15}}},
+	"U_acc": {"name": "Trigger Discipline", "desc": "+12% hit (body) chance", "w": 3, "drawback": false, "mods": {"body_bonus": {"add": 0.12}}},
+	"U_mag_s": {"name": "Extended Mag", "desc": "+6 magazine capacity", "w": 3, "drawback": false, "mods": {"mag_capacity": {"add": 6}}},
+	"U_mag_m": {"name": "Drum Mag", "desc": "+12 magazine capacity", "w": 1, "drawback": false, "mods": {"mag_capacity": {"add": 12}}},
+	# ---- Utility ----
+	"U_listen": {"name": "Keen Ear", "desc": "-30% listen time", "w": 3, "drawback": false, "mods": {"listen_speed": {"mult": 0.7}}},
+	"U_heal": {"name": "Field Medic", "desc": "Healing items restore +1 state", "w": 3, "drawback": false, "mods": {"heal_bonus": {"add": 1}}},
+	"U_scav_s": {"name": "Scavenger", "desc": "+8% scavenge find rate", "w": 4, "drawback": false, "mods": {"scavenge_bonus": {"add": 0.08}}},
+	"U_scav_m": {"name": "Sticky Fingers", "desc": "+15% scavenge find rate", "w": 2, "drawback": false, "mods": {"scavenge_bonus": {"add": 0.15}}},
+	"U_quiet_s": {"name": "Soft Soles", "desc": "-20% movement noise", "w": 4, "drawback": false, "mods": {"noise_mult": {"mult": 0.8}}},
+	"U_quiet_m": {"name": "Ghost", "desc": "-40% movement noise", "w": 2, "drawback": false, "mods": {"noise_mult": {"mult": 0.6}}},
+	# ---- Drawbacks (rarer; both halves stated — legibility is absolute) ----
+	"U_db_slotstam": {"name": "Pack Mule", "desc": "+1 inventory slot, but -25% max stamina", "w": 2, "drawback": true, "mods": {"inventory_slots": {"add": 1}, "max_stamina": {"mult": 0.75}}},
+	"U_db_glass": {"name": "Glass Cannon", "desc": "+2 melee damage, but -30% max stamina", "w": 2, "drawback": true, "mods": {"melee_damage": {"add": 2}, "max_stamina": {"mult": 0.7}}},
+	"U_db_speedquiet": {"name": "Reckless Dash", "desc": "+20% move speed, but +40% movement noise", "w": 2, "drawback": true, "mods": {"move_speed": {"mult": 1.2}, "noise_mult": {"mult": 1.4}}},
+	"U_db_headslow": {"name": "Aim Down", "desc": "+18% headshot chance, but -20% move speed", "w": 2, "drawback": true, "mods": {"headshot_bonus": {"add": 0.18}, "move_speed": {"mult": 0.8}}},
+	"U_db_quietweak": {"name": "Careful Steps", "desc": "-40% movement noise, but -1 melee damage", "w": 2, "drawback": true, "mods": {"noise_mult": {"mult": 0.6}, "melee_damage": {"add": -1}}},
+	"U_db_scavloud": {"name": "Rummager", "desc": "+15% scavenge rate, but +30% movement noise", "w": 2, "drawback": true, "mods": {"scavenge_bonus": {"add": 0.15}, "noise_mult": {"mult": 1.3}}},
+	"U_db_magstam": {"name": "Loadbearer", "desc": "+12 magazine capacity, but -20% max stamina", "w": 1, "drawback": true, "mods": {"mag_capacity": {"add": 12}, "max_stamina": {"mult": 0.8}}},
+	"U_db_regenslow": {"name": "Adrenaline Junkie", "desc": "+50% stamina regen, but -15% move speed", "w": 2, "drawback": true, "mods": {"stamina_regen": {"mult": 1.5}, "move_speed": {"mult": 0.85}}},
+}
+
+# Per-visit upgrade offer state (seeded pairs; resolution persists per visit).
+var upgrade_offers: Dictionary = {}  # "run:floor" -> {"pair": [id,id], "resolved": bool}
+
+
+func _upgrade_stat_mult(stat: String) -> float:
+	var m = 1.0
+	for id in active_upgrades:
+		var up = UPGRADE_POOL.get(id, {})
+		var mod = up.get("mods", {}).get(stat, {})
+		if mod.has("mult"):
+			m *= float(mod["mult"])
+	return m
+
+
+func _upgrade_stat_add(stat: String) -> float:
+	var a = 0.0
+	for id in active_upgrades:
+		var up = UPGRADE_POOL.get(id, {})
+		var mod = up.get("mods", {}).get(stat, {})
+		if mod.has("add"):
+			a += float(mod["add"])
+	return a
+
+
+func _apply_stat(stat: String, base: float) -> float:
+	# Documented order: multiplicative first, then additive.
+	return base * _upgrade_stat_mult(stat) + _upgrade_stat_add(stat)
+
+
+func get_max_stamina() -> float:
+	return max(_apply_stat("max_stamina", 100.0), 20.0)
+
+func get_inventory_slots() -> int:
+	return int(clamp(MAX_INVENTORY_SLOTS + _upgrade_stat_add("inventory_slots"), 1, 6))
+
+func get_stamina_regen_mult() -> float: return _upgrade_stat_mult("stamina_regen")
+func get_sprint_drain_mult() -> float: return _upgrade_stat_mult("sprint_drain")
+func get_move_speed_mult() -> float: return _upgrade_stat_mult("move_speed")
+func get_melee_damage_bonus() -> int: return int(_upgrade_stat_add("melee_damage"))
+func get_push_mult() -> float: return _upgrade_stat_mult("push_force")
+func get_headshot_bonus() -> float: return _upgrade_stat_add("headshot_bonus")
+func get_body_bonus() -> float: return _upgrade_stat_add("body_bonus")
+func get_gun_mag_bonus() -> int: return int(_upgrade_stat_add("mag_capacity"))
+func get_listen_speed_mult() -> float: return _upgrade_stat_mult("listen_speed")
+func get_heal_bonus() -> int: return int(_upgrade_stat_add("heal_bonus"))
+func get_scavenge_bonus() -> float: return _upgrade_stat_add("scavenge_bonus")
+func get_noise_mult() -> float: return _upgrade_stat_mult("noise_mult")
+
+
+func get_upgrade_pair(floor_num: int) -> Array:
+	# Seeded pair of UNOWNED upgrades, weighted. Stable per (run, floor) so a
+	# reload can't reroll the offer. <2 unowned -> offer one; none -> empty.
+	var key = str(current_run) + ":" + str(floor_num)
+	if upgrade_offers.has(key):
+		return upgrade_offers[key]["pair"]
+	var rng = RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "upgrade" + str(floor_num) + str(current_run))
+	var pool: Array = []
+	for id in UPGRADE_POOL:
+		if id in active_upgrades:
+			continue
+		for i in range(int(UPGRADE_POOL[id]["w"])):
+			pool.append(id)
+	var pair: Array = []
+	while pair.size() < 2 and not pool.is_empty():
+		var pick = pool[rng.randi() % pool.size()]
+		pair.append(pick)
+		pool = pool.filter(func(x): return x != pick)  # no dup in the same pair
+	upgrade_offers[key] = {"pair": pair, "resolved": false}
+	return pair
+
+
+func is_upgrade_offer_resolved(floor_num: int) -> bool:
+	var key = str(current_run) + ":" + str(floor_num)
+	return upgrade_offers.get(key, {}).get("resolved", false)
+
+
+func resolve_upgrade_offer(floor_num: int, chosen_id: String) -> void:
+	var key = str(current_run) + ":" + str(floor_num)
+	if not upgrade_offers.has(key):
+		get_upgrade_pair(floor_num)
+	upgrade_offers[key]["resolved"] = true
+	if chosen_id != "" and chosen_id not in active_upgrades:
+		active_upgrades.append(chosen_id)
+		# A max-stamina change must not leave current stamina above the new cap.
+		stamina = min(stamina, get_max_stamina())
 
 
 func emit_noise(pos: Vector2, radius: float, duration: float = 1.0) -> void:
@@ -1010,7 +1151,7 @@ func add_key_to_inventory(target_apartment: String) -> bool:
 	for instance in inventory:
 		if instance.target_apartment == target_apartment:
 			return true  # already have it — silently succeed, don't duplicate
-	if inventory.size() >= MAX_INVENTORY_SLOTS:
+	if inventory.size() >= get_inventory_slots():
 		return false
 	var instance = ItemInstance.new()
 	instance.setup_key("022", target_apartment)
@@ -1194,6 +1335,7 @@ func save_game(scene_path: String) -> void:
 		"legendary_hold": legendary_hold,
 		"legendary_just_purchased": legendary_just_purchased,
 		"merchant_sales": merchant_sales,
+		"upgrade_offers": upgrade_offers,
 	}
 	var file = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if file:
@@ -1271,6 +1413,7 @@ func load_game() -> String:
 		legendary_hold["visits_left"] = int(legendary_hold.get("visits_left", 0))
 	legendary_just_purchased = bool(data.get("legendary_just_purchased", false))
 	merchant_sales = data.get("merchant_sales", {})
+	upgrade_offers = data.get("upgrade_offers", {})
 	_deserialize_inventory(data["inventory"])
 	return data["scene_path"]
 

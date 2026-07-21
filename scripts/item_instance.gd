@@ -16,7 +16,8 @@ const MAG_CAP_DAMAGED = 10
 
 
 func get_mag_cap() -> int:
-	return MAG_CAP_DAMAGED if is_damaged else MAG_CAP
+	var base = MAG_CAP_DAMAGED if is_damaged else MAG_CAP
+	return base + WorldState.get_gun_mag_bonus()
 
 
 func setup(id: String) -> void:
