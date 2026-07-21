@@ -27,11 +27,11 @@ func _ready() -> void:
 
 
 func _input(event: InputEvent) -> void:
+	# PauseMenu is an autoload now (not embedded in every scene), so it no
+	# longer blankets the editor viewport and each world scene stays editable.
 	if event.is_action_pressed("ui_cancel") and HUD.visible:
-		var pause_menu = get_tree().get_root().find_child("PauseMenu", true, false)
-		if pause_menu:
-			pause_menu.toggle(not pause_menu.visible)
-			get_viewport().set_input_as_handled()
+		PauseMenu.toggle(not PauseMenu.visible)
+		get_viewport().set_input_as_handled()
 
 func go_to_scene(scene_name: String) -> void:
 	get_tree().paused = false

@@ -22,6 +22,7 @@ ItemData="*uid://ouoxesfv7r37"
 Game="*uid://1nctco5l864u"
 HUD="*uid://r74tk0l57buv"
 SettingsManager="*uid://bty8guqxk0ug3"
+PauseMenu="*uid://chxtq3ecgwk1a"
 
 [input]
 

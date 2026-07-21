@@ -6,7 +6,6 @@
 [ext_resource type="Texture2D" uid="uid://dg4sb1pbne4" path="res://assets/world_tileset.png" id="3_85yof"]
 [ext_resource type="PackedScene" uid="uid://cdhh5xsokqcli" path="res://scenes/door_open.tscn" id="4_14vil"]
 [ext_resource type="PackedScene" uid="uid://8ttead1nbqvc" path="res://scenes/loot_ui.tscn" id="6_jn645"]
-[ext_resource type="PackedScene" uid="uid://chxtq3ecgwk1a" path="res://scenes/pause_menu.tscn" id="7_qvc4m"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_jxe34"]
 size = Vector2(16, 174)
@@ -412,4 +411,3 @@ position = Vector2(797, 272)
 
 [node name="LootUI" parent="." unique_id=233333978 instance=ExtResource("6_jn645")]
 
-[node name="PauseMenu" parent="." unique_id=1691155252 instance=ExtResource("7_qvc4m")]

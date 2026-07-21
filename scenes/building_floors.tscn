@@ -12,7 +12,6 @@
 [ext_resource type="FontFile" uid="uid://tv2mlsq0xxsg" path="res://assets/fonts/PixelOperator8.ttf" id="9_q2usw"]
 [ext_resource type="Texture2D" uid="uid://bx46mfhgn5rg4" path="res://assets/Hallway_Staircase_Right.png" id="11_0lhb2"]
 [ext_resource type="Texture2D" uid="uid://d3neqlrb8e6j" path="res://assets/Lobby_Right.png" id="12_q6nx7"]
-[ext_resource type="PackedScene" uid="uid://chxtq3ecgwk1a" path="res://scenes/pause_menu.tscn" id="13_d55jr"]
 
 [sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_uwrxv"]
 
@@ -539,4 +538,3 @@ text = "↑"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="PauseMenu" parent="." unique_id=1691155252 instance=ExtResource("13_d55jr")]

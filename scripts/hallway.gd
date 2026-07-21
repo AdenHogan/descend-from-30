@@ -31,10 +31,12 @@ func _ready() -> void:
 	_spawn_corpses(30)
 	_spawn_world_drops(30)
 
-	# Diegetic tutorial: control hints scrawled in blood on the corridor walls,
-	# first run only (docs/GAME_DESIGN_DOC — replaces popup prompts).
-	if WorldState.is_first_run:
-		TutorialHints.spawn(self, TutorialHints.hallway_hints())
+	# Diegetic tutorial: blood-scrawled control hints are baked into the scene
+	# (group "tutorial_blood") so they can be positioned/resized in the editor.
+	# They only belong on the FIRST run — hide them otherwise.
+	if not WorldState.is_first_run:
+		for hint in get_tree().get_nodes_in_group("tutorial_blood"):
+			hint.visible = false
 
 func _spawn_corpses(floor_num: int) -> void:
 	var scene_path = get_tree().current_scene.scene_file_path
