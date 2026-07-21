@@ -101,8 +101,13 @@ means no rendering — UI layout and art still need an in-editor look.
   merchant SELL (3/visit), gun→bullet loot pairing + ammo bundles,
   click-to-move / click-to-scavenge with auto-stance, barricade
   interrupt fix, melee SFX, elevator ding, +5% scavenge rates).
-- Deferred from playtest feedback: drag-and-drop inventory, settings/
-  key-remap menu, can throwing (distraction), broken-item crafting.
+- Playtest round 2: fixed HUD root Control swallowing world clicks (left-
+  click-to-move now works), drag-and-drop inventory (reorder / swap / drag
+  bullets onto gun to load / drag to world to discard), 4 moan variants +
+  per-zombie voice pitch + louder mix, room click-to-scavenge reachable
+  when no anchor in range.
+- Deferred from playtest feedback: settings/key-remap menu, can throwing
+  (distraction), broken-item crafting.
 - Next: **Upgrade offers** (store doc step 6 — needs the upgrade pool
   designed first), then player-corpse recovery (step 7).
 - Not started: time-of-day, fires, balcony descent, quests, character stats.

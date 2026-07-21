@@ -254,6 +254,31 @@ func consume_ammo(count: int = 1) -> bool:
 	return true
 
 
+func swap_inventory_slots(a: int, b: int) -> void:
+	if a < 0 or a >= inventory.size() or b < 0 or b >= inventory.size() or a == b:
+		return
+	var tmp = inventory[a]
+	inventory[a] = inventory[b]
+	inventory[b] = tmp
+	if HUD.selected_slot == a:
+		HUD.selected_slot = b
+	elif HUD.selected_slot == b:
+		HUD.selected_slot = a
+
+
+func move_inventory_slot_to_end(from: int) -> void:
+	if from < 0 or from >= inventory.size() - 1:
+		return
+	var was_selected = HUD.selected_slot == from
+	var inst = inventory[from]
+	inventory.remove_at(from)
+	inventory.append(inst)
+	if was_selected:
+		HUD.selected_slot = inventory.size() - 1
+	elif HUD.selected_slot > from:
+		HUD.selected_slot -= 1
+
+
 func remove_from_inventory(slot_index: int) -> void:
 	if slot_index >= 0 and slot_index < inventory.size():
 		inventory.remove_at(slot_index)

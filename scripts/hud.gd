@@ -35,6 +35,15 @@ var last_click_slot: int = -1
 const DOUBLE_CLICK_TIME = 0.4
 var slot_key_labels: Array = []
 
+# Drag-and-drop inventory: hold LMB on a slot and move to drag its item.
+# Drop on another slot to swap; bullets onto a gun (or gun onto bullets)
+# loads the magazine; drop on the game world to discard.
+const DRAG_THRESHOLD = 6.0
+var drag_from: int = -1
+var drag_armed_pos: Vector2 = Vector2.ZERO
+var drag_active: bool = false
+var drag_icon: TextureRect = null
+
 var stamina_bar: Control = null
 var stamina_segments: Array = []
 var wallet_label: Label = null
@@ -66,6 +75,11 @@ func _ready() -> void:
 	refresh_inventory()
 
 func _layout() -> void:
+	# The root Control spans the whole screen: it must NOT swallow mouse
+	# events or click-to-move/world clicks never reach the game (playtest
+	# bug). Children (slots, buttons) keep their own filters and stay
+	# clickable.
+	$Control.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	color_rect.set_anchor_and_offset(SIDE_TOP, 0, SCREEN_H - BAR_H - 40)
 	color_rect.set_anchor_and_offset(SIDE_BOTTOM, 0, SCREEN_H)
 	color_rect.set_anchor_and_offset(SIDE_LEFT, 0, 0)
@@ -228,6 +242,7 @@ func update_stamina(current: float, maximum: float) -> void:
 			stamina_segments[i].color = Color(0.15, 0.15, 0.15, 1.0)
 
 func _process(delta: float) -> void:
+	_update_drag()
 	if feedback_timer > 0:
 		feedback_timer -= delta
 		var alpha = min(feedback_timer / 0.5, 1.0)
@@ -243,21 +258,127 @@ func _process(delta: float) -> void:
 			context_menu.visible = false
 
 func _on_slot_gui_input(event: InputEvent, slot_index: int) -> void:
-	if event is InputEventMouseButton and event.pressed:
-		if event.button_index == MOUSE_BUTTON_LEFT:
-			var now = Time.get_ticks_msec() / 1000.0
-			if last_click_slot == slot_index and (now - last_click_time) < DOUBLE_CLICK_TIME:
-				var player = get_tree().get_first_node_in_group("player")
-				if player and player.has_method("use_item"):
-					player.use_item(slot_index)
-				last_click_slot = -1
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		# Arm a potential drag; the actual drag start / drop / cancel is driven
+		# by mouse polling in _process, since a slot's gui_input stops firing
+		# once the cursor leaves it. A plain press (no drag) still selects, and
+		# a double-press still uses the item.
+		if slot_index < WorldState.inventory.size():
+			drag_from = slot_index
+			drag_armed_pos = get_viewport().get_mouse_position()
+		var now = Time.get_ticks_msec() / 1000.0
+		if last_click_slot == slot_index and (now - last_click_time) < DOUBLE_CLICK_TIME:
+			var player = get_tree().get_first_node_in_group("player")
+			if player and player.has_method("use_item"):
+				player.use_item(slot_index)
+			last_click_slot = -1
+			drag_from = -1
+		else:
+			select_slot(slot_index)
+			last_click_time = now
+			last_click_slot = slot_index
+	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
+		if slot_index < WorldState.inventory.size():
+			show_context_menu(slot_index)
+
+
+func _update_drag() -> void:
+	# Whole drag lifecycle, polled so it survives the cursor leaving the slot.
+	if drag_from < 0:
+		return
+	var held = Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
+	if not drag_active:
+		if not held:
+			drag_from = -1  # released without moving — it was just a click
+			return
+		if get_viewport().get_mouse_position().distance_to(drag_armed_pos) > DRAG_THRESHOLD:
+			_start_drag()
+	else:
+		drag_icon.position = get_viewport().get_mouse_position() - Vector2(24, 24)
+		if not held:
+			_finish_drag()
+
+
+func _start_drag() -> void:
+	drag_active = true
+	drag_icon = TextureRect.new()
+	drag_icon.texture = ItemData.get_texture(WorldState.get_item_id_at(drag_from))
+	drag_icon.custom_minimum_size = Vector2(48, 48)
+	drag_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	drag_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	drag_icon.modulate = Color(1, 1, 1, 0.8)
+	$Control.add_child(drag_icon)
+
+
+func _finish_drag() -> void:
+	drag_active = false
+	if drag_icon != null:
+		drag_icon.queue_free()
+		drag_icon = null
+	var from = drag_from
+	drag_from = -1
+	if from < 0 or from >= WorldState.inventory.size():
+		return
+	var mouse = get_viewport().get_mouse_position()
+	# Dropped on another slot?
+	for i in range(slots.size()):
+		if slots[i].get_global_rect().has_point(mouse) and i != from:
+			_drop_on_slot(from, i)
+			return
+	# Dropped on the game world (above the HUD bar) = discard.
+	if mouse.y < SCREEN_H - BAR_H - 40:
+		_discard_slot(from)
+
+
+func _drop_on_slot(from: int, to: int) -> void:
+	var from_inst = WorldState.get_instance_at(from)
+	var from_data = from_inst.get_data()
+	# Dropping onto an empty slot reorders to the end.
+	if to >= WorldState.inventory.size():
+		WorldState.move_inventory_slot_to_end(from)
+		refresh_inventory()
+		return
+	# Bullets onto a gun (either direction) load the magazine.
+	if to < WorldState.inventory.size():
+		var to_inst = WorldState.get_instance_at(to)
+		var to_data = to_inst.get_data()
+		var gun_inst: ItemInstance = null
+		if from_data.get("is_ammo", false) and to_data.get("name", "").to_lower().contains("gun"):
+			gun_inst = to_inst
+		elif to_data.get("is_ammo", false) and from_data.get("name", "").to_lower().contains("gun"):
+			gun_inst = from_inst
+		if gun_inst != null:
+			var loaded = WorldState.reload_gun(gun_inst)
+			if loaded > 0:
+				show_feedback("Loaded %d — mag %d/%d." % [loaded, gun_inst.mag_count, gun_inst.get_mag_cap()])
 			else:
-				select_slot(slot_index)
-				last_click_time = now
-				last_click_slot = slot_index
-		elif event.button_index == MOUSE_BUTTON_RIGHT:
-			if slot_index < WorldState.inventory.size():
-				show_context_menu(slot_index)
+				show_feedback("Magazine full." if gun_inst.mag_count >= gun_inst.get_mag_cap() else "No bullets to load.")
+			return
+	WorldState.swap_inventory_slots(from, to)
+	refresh_inventory()
+
+
+func _discard_slot(slot_index: int) -> void:
+	if slot_index < 0 or slot_index >= WorldState.inventory.size():
+		return
+	var instance = WorldState.get_instance_at(slot_index)
+	var item_data = instance.get_data()
+	if not instance.is_depleted:
+		var player = get_tree().get_first_node_in_group("player")
+		if player != null:
+			var drop_pos = player.global_position + Vector2(randf_range(-20, 20), 0)
+			var extra = {}
+			if instance.target_apartment != "":
+				extra["target_apartment"] = instance.target_apartment
+			WorldState.add_world_drop(instance.item_id, drop_pos, WorldState.current_floor, extra)
+	if selected_slot > slot_index:
+		selected_slot -= 1
+	elif selected_slot == slot_index:
+		selected_slot = -1
+	WorldState.remove_from_inventory(slot_index)
+	_update_slot_highlights()
+	refresh_inventory()
+	show_feedback(item_data.get("name", "Item") + " dropped.")
 
 func select_slot(index: int) -> void:
 	if selected_slot == index:
