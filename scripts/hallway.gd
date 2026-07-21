@@ -31,6 +31,11 @@ func _ready() -> void:
 	_spawn_corpses(30)
 	_spawn_world_drops(30)
 
+	# Diegetic tutorial: control hints scrawled in blood on the corridor walls,
+	# first run only (docs/GAME_DESIGN_DOC — replaces popup prompts).
+	if WorldState.is_first_run:
+		TutorialHints.spawn(self, TutorialHints.hallway_hints())
+
 func _spawn_corpses(floor_num: int) -> void:
 	var scene_path = get_tree().current_scene.scene_file_path
 	var corpse_positions = WorldState.get_corpse_positions_for_floor(floor_num, scene_path)

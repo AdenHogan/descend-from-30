@@ -115,6 +115,11 @@ func _ready() -> void:
 		WorldState.saved_player_x = 0.0
 		WorldState.saved_player_y = 0.0
 
+	# Blood-scrawled hints inside the first tutorial apartments (search / push
+	# / heal). First run + tutorial apartment only; 3003 is where combat begins.
+	if WorldState.is_first_run and TUTORIAL_SCENES.has(apartment_id):
+		TutorialHints.spawn(self, TutorialHints.room_hints())
+
 	var is_paradise = WorldState.is_paradise_apartment(apartment_id)
 	var interactable_script = load("res://scripts/interactable.gd")
 

@@ -57,6 +57,14 @@ engaging threats, and managing limited resources.
   - (Per Three-Run Arc doc: tutorial is FIRST-RUN-ONLY; from run 2, Floor 30
     is plain procedural seeding. Apartment 3001 is never accessible, any run.)
 
+**Diegetic control hints (implemented):** instead of popup boxes, the
+controls are scrawled on the corridor/apartment walls **in blood**
+(`blood_text.gd` — styled Label + procedural drips). `tutorial_hints.gd`
+holds the placement data and pulls key names live from `SettingsManager`
+(a rebind updates the wall text). Gated to `is_first_run` + Floor 30
+(hallway) / tutorial apartments (rooms). Positions are constants, tune in
+editor.
+
 ## Player Systems
 
 **Movement:** 2D side-scrolling traversal
