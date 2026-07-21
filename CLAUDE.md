@@ -116,8 +116,12 @@ means no rendering — UI layout and art still need an in-editor look.
   refusal, no-duplicate offers, seeded pairs, persists across the arc.
   Effects wired to stamina/regen/sprint/speed/melee/push/gun accuracy+mag/
   listen/heal/scavenge/noise/inventory-slot (unlocks the 6th HUD slot).
-- Deferred from playtest feedback: settings/key-remap menu, broken-item
-  crafting.
+- Settings menu (from pause): rebind any key or mouse button (incl. mouse
+  side buttons 4/5) via SettingsManager autoload, saved to
+  user://keybinds.cfg, applied on load. Combat attack is now a rebindable
+  `attack` action (default LMB); rebinding it off LMB frees left-click for
+  click-to-move in combat too.
+- Deferred from playtest feedback: broken-item crafting.
 - Next: **Upgrade offers** (store doc step 6 — needs the upgrade pool
   designed first), then player-corpse recovery (step 7).
 - Not started: time-of-day, fires, balcony descent, quests, character stats.
