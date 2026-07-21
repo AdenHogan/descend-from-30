@@ -30,6 +30,7 @@ func _test_distraction_targets() -> void:
 	var z = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
 	z.global_position = Vector2(100, 388)
 	add_child(z)
+	check(z.z_index == 1, "zombie renders on the actor layer (z 1, in front of doors)")
 	z.alert_to_noise(6.0)  # pretend it was chasing
 	WorldState.emit_distraction(Vector2(300, 388), 700.0)
 	check(z.is_distracted and z.state == "distracted", "in-range zombie is distracted")

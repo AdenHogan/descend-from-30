@@ -41,6 +41,8 @@ func alert_to_noise(duration: float = 6.0) -> void:
 
 
 func _ready() -> void:
+	# ACTOR LAYER (z 1) — always in front of wall/door backdrop (z 0).
+	z_index = 1
 	animated_sprite = $AnimatedSprite2D
 	animated_sprite.play("Idle")
 	player = get_tree().get_first_node_in_group("player")

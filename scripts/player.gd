@@ -129,6 +129,11 @@ var listen_report_line: String = ""
 
 func _ready() -> void:
 	add_to_group("player")
+	# ACTOR LAYER (z 1) — the player, like enemies, always renders above the
+	# corridor backdrop (walls, static doors, the merchant's elevator doors,
+	# and future dynamic door art at z 0). Keep new door/entrance visuals at
+	# z 0 and they'll sit behind bodies automatically.
+	z_index = 1
 	_setup_gun_animations()
 	footstep_player = AudioStreamPlayer2D.new()
 	footstep_player.name = "FootstepPlayer"
