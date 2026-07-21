@@ -10,7 +10,7 @@
 [ext_resource type="Script" uid="uid://j5pxhahwwyf5" path="res://scripts/stairwell.gd" id="8_nlnob"]
 [ext_resource type="FontFile" uid="uid://tv2mlsq0xxsg" path="res://assets/fonts/PixelOperator8.ttf" id="9_hwv8p"]
 [ext_resource type="Texture2D" uid="uid://dmf7nbqiuywie" path="res://assets/Hallway_Staircase_Left.png" id="10_52g5x"]
-[ext_resource type="PackedScene" uid="uid://c1u9dgtjllddv" path="res://scenes/blood_text.tscn" id="20_blood"]
+[ext_resource type="PackedScene" uid="uid://c1vadgtjllddv" path="res://scenes/blood_text.tscn" id="20_blood"]
 
 [sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_uwrxv"]
 
@@ -458,33 +458,38 @@ position = Vector2(170.99998, 348)
 scale = Vector2(0.2259206, 0.25902933)
 texture = ExtResource("10_52g5x")
 
+[node name="Hint_Move" parent="." unique_id=856044037 groups=["tutorial_blood"] instance=ExtResource("20_blood")]
+z_index = 1
+position = Vector2(857, 332)
+text = "MOVE — A · D or CLICK"
+font_size = 7
 
-[node name="Hint_Move" parent="." instance=ExtResource("20_blood") groups=["tutorial_blood"]]
-position = Vector2(170, 250)
-text = "MOVE — A · D  or CLICK"
-font_size = 18
-
-[node name="Hint_Run" parent="." instance=ExtResource("20_blood") groups=["tutorial_blood"]]
-position = Vector2(150, 292)
+[node name="Hint_Run" parent="." unique_id=700510301 groups=["tutorial_blood"] instance=ExtResource("20_blood")]
+z_index = 1
+position = Vector2(696, 309)
 text = "RUN [Shift] and they hear you"
-font_size = 15
+font_size = 6
 
-[node name="Hint_Listen" parent="." instance=ExtResource("20_blood") groups=["tutorial_blood"]]
-position = Vector2(430, 246)
+[node name="Hint_Listen" parent="." unique_id=444209253 groups=["tutorial_blood"] instance=ExtResource("20_blood")]
+z_index = 1
+position = Vector2(477, 313)
 text = "LISTEN — hold [R] at a door"
-font_size = 18
+font_size = 7
 
-[node name="Hint_Enter" parent="." instance=ExtResource("20_blood") groups=["tutorial_blood"]]
-position = Vector2(600, 250)
+[node name="Hint_Enter" parent="." unique_id=826681309 groups=["tutorial_blood"] instance=ExtResource("20_blood")]
+z_index = 1
+position = Vector2(325, 300)
 text = "[E] or CLICK to enter"
-font_size = 16
+font_size = 8
 
-[node name="Hint_Strike" parent="." instance=ExtResource("20_blood") groups=["tutorial_blood"]]
-position = Vector2(726, 246)
+[node name="Hint_Strike" parent="." unique_id=1880253280 groups=["tutorial_blood"] instance=ExtResource("20_blood")]
+z_index = 1
+position = Vector2(217, 310)
 text = "STRIKE [Space]   stance [F]"
-font_size = 16
+font_size = 10
 
-[node name="Hint_Rest" parent="." instance=ExtResource("20_blood") groups=["tutorial_blood"]]
-position = Vector2(905, 250)
+[node name="Hint_Rest" parent="." unique_id=671470965 groups=["tutorial_blood"] instance=ExtResource("20_blood")]
+z_index = 1
+position = Vector2(362, 253)
 text = "REST [T] while you can"
 font_size = 16
