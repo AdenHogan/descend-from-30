@@ -30,6 +30,7 @@ var alert_timer: float = 0.0
 const MOAN_STREAMS = [
 	preload("res://assets/audio/zombie/moan_1.wav"),
 	preload("res://assets/audio/zombie/moan_2.wav"),
+	preload("res://assets/audio/zombie/moan_4.wav"),
 ]
 var moan_player: AudioStreamPlayer2D = null
 var moan_timer: float = 0.0
@@ -49,7 +50,7 @@ func _ready() -> void:
 	_register_zombie_exceptions()
 	moan_player = AudioStreamPlayer2D.new()
 	moan_player.name = "MoanPlayer"
-	moan_player.volume_db = -3.0
+	moan_player.volume_db = 0.0
 	moan_player.max_distance = 800.0
 	add_child(moan_player)
 	moan_timer = randf_range(2.0, 7.0)

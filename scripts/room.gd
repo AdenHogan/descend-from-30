@@ -415,6 +415,34 @@ func _input(event: InputEvent) -> void:
 		if _is_anchor_selectable(i):
 			nearby.append(i)
 
+	# Left-click scavenge must work even when no anchor is in range yet — that's
+	# exactly when you click a FAR anchor to walk over to it. So handle LMB
+	# before the nearby-empty guard; unhandled clicks fall through to the
+	# player's own click-to-move in _unhandled_input.
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		var mouse_world = _get_mouse_world_pos()
+		var player = get_tree().get_first_node_in_group("player")
+		var clicked_index = _get_clicked_interactable(nearby, mouse_world) if not nearby.is_empty() else -1
+		if clicked_index >= 0:
+			selected_index = clicked_index
+			WorldState.interaction_handled = false
+			if player != null and player.has_method("auto_stance_for_anchor"):
+				player.auto_stance_for_anchor(nearby[selected_index].global_position.y)
+			nearby[selected_index].try_interact()
+			get_viewport().set_input_as_handled()
+			return
+		# Distant anchor under the cursor: walk over and loot on arrival.
+		for anchor in interactables:
+			if not is_instance_valid(anchor) or not anchor.visible:
+				continue
+			if anchor.global_position.distance_to(mouse_world) <= 30.0:
+				if player != null and player.has_method("set_move_target"):
+					player.set_move_target(anchor.global_position.x, anchor)
+					get_viewport().set_input_as_handled()
+				return
+		# Empty ground: let the player's _unhandled_input walk there.
+		return
+
 	if nearby.is_empty():
 		return
 
@@ -431,28 +459,6 @@ func _input(event: InputEvent) -> void:
 			WorldState.interaction_handled = false
 			nearby[clamp(selected_index, 0, nearby.size() - 1)].try_interact()
 			return
-
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		var mouse_world = _get_mouse_world_pos()
-		var clicked_index = _get_clicked_interactable(nearby, mouse_world)
-		var player = get_tree().get_first_node_in_group("player")
-		if clicked_index >= 0:
-			selected_index = clicked_index
-			WorldState.interaction_handled = false
-			if player != null and player.has_method("auto_stance_for_anchor"):
-				player.auto_stance_for_anchor(nearby[selected_index].global_position.y)
-			nearby[selected_index].try_interact()
-			get_viewport().set_input_as_handled()
-			return
-		# Distant anchor: walk over and loot on arrival (click-to-scavenge).
-		for anchor in interactables:
-			if not is_instance_valid(anchor) or not anchor.visible:
-				continue
-			if anchor.global_position.distance_to(mouse_world) <= 30.0:
-				if player != null and player.has_method("set_move_target"):
-					player.set_move_target(anchor.global_position.x, anchor)
-					get_viewport().set_input_as_handled()
-				return
 
 
 func _get_mouse_world_pos() -> Vector2:

@@ -31,6 +31,8 @@ func _test_streams() -> void:
 		"res://assets/audio/elevator_ding.wav",
 		"res://assets/audio/zombie/moan_1.wav",
 		"res://assets/audio/zombie/moan_2.wav",
+		"res://assets/audio/zombie/moan_3.wav",
+		"res://assets/audio/zombie/moan_4.wav",
 		"res://assets/audio/doors/metalLatch.ogg",
 		"res://assets/audio/impacts/knifeSlice.ogg",
 		"res://assets/audio/impacts/knifeSlice2.ogg",

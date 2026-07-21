@@ -26,9 +26,13 @@ var alert_timer: float = 0.0
 const MOAN_STREAMS = [
 	preload("res://assets/audio/zombie/moan_1.wav"),
 	preload("res://assets/audio/zombie/moan_2.wav"),
+	preload("res://assets/audio/zombie/moan_3.wav"),
+	preload("res://assets/audio/zombie/moan_4.wav"),
 ]
 var moan_player: AudioStreamPlayer2D = null
 var moan_timer: float = 0.0
+# Each zombie gets its own voice (pitch offset) so a crowd never choruses.
+var voice_pitch: float = 1.0
 
 
 func alert_to_noise(duration: float = 6.0) -> void:
@@ -43,10 +47,11 @@ func _ready() -> void:
 	_register_zombie_exceptions()
 	moan_player = AudioStreamPlayer2D.new()
 	moan_player.name = "MoanPlayer"
-	moan_player.volume_db = -6.0
+	moan_player.volume_db = -2.0
 	moan_player.max_distance = 650.0
 	add_child(moan_player)
-	moan_timer = randf_range(1.0, 6.0)
+	voice_pitch = randf_range(0.82, 1.22)
+	moan_timer = randf_range(0.5, 9.0)
 
 func _register_zombie_exceptions() -> void:
 	# Swarm fix: zombies ignore collisions with each other (mutually), so a group
@@ -176,9 +181,9 @@ func _physics_process(delta: float) -> void:
 
 	moan_timer -= delta
 	if moan_timer <= 0.0:
-		moan_timer = randf_range(4.0, 10.0)
+		moan_timer = randf_range(3.0, 14.0)
 		moan_player.stream = MOAN_STREAMS.pick_random()
-		moan_player.pitch_scale = randf_range(0.9, 1.15)
+		moan_player.pitch_scale = voice_pitch * randf_range(0.95, 1.05)
 		moan_player.play()
 
 	match state:

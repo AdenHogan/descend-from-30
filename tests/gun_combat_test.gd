@@ -20,6 +20,7 @@ func _ready() -> void:
 	_test_ammo_stacking()
 	_test_ammo_consumption()
 	_test_magazine()
+	_test_inventory_moves()
 	_test_player_gun_setup()
 	_test_zombie_alert()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
@@ -84,6 +85,23 @@ func _test_magazine() -> void:
 	gun.is_damaged = true
 	check(gun.get_mag_cap() == 10, "damaged gun caps at 10")
 	gun.is_damaged = false
+
+
+func _test_inventory_moves() -> void:
+	print("[inventory moves]")
+	WorldState.new_game()
+	WorldState.add_to_inventory("001")  # knife -> slot 0
+	WorldState.add_to_inventory("002")  # hammer -> slot 1
+	WorldState.add_to_inventory("003")  # sword -> slot 2
+	HUD.selected_slot = 0
+	WorldState.swap_inventory_slots(0, 2)
+	check(WorldState.get_item_id_at(0) == "003" and WorldState.get_item_id_at(2) == "001",
+		"swap exchanges two slots")
+	check(HUD.selected_slot == 2, "selection follows the swapped item")
+	WorldState.move_inventory_slot_to_end(0)
+	check(WorldState.get_item_id_at(2) == "003", "move-to-end reorders")
+	check(WorldState.get_item_id_at(0) == "002", "remaining items shift down")
+	HUD.selected_slot = -1
 
 
 func _test_player_gun_setup() -> void:
