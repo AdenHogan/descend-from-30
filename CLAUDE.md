@@ -121,7 +121,12 @@ means no rendering — UI layout and art still need an in-editor look.
   user://keybinds.cfg, applied on load. Combat attack is now a rebindable
   `attack` action (default LMB); rebinding it off LMB frees left-click for
   click-to-move in combat too.
-- Deferred from playtest feedback: broken-item crafting.
+- Broken-item repair (item 12): weapons/tools that deplete now STAY in
+  inventory as a "BROKEN" repairable item (greyed + red tag) instead of
+  vanishing; broken items can't attack/force/de-barricade. The toolbox
+  repairs the first repairable item (damaged gun prioritised, else broken
+  weapon/tool), restoring durability; the toolbox is consumed when its
+  charges run out. (Crafting-combine of broken parts is still future.)
 - Next: **Upgrade offers** (store doc step 6 — needs the upgrade pool
   designed first), then player-corpse recovery (step 7).
 - Not started: time-of-day, fires, balcony descent, quests, character stats.

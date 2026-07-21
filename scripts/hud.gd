@@ -487,6 +487,7 @@ func refresh_inventory() -> void:
 			var instance = WorldState.inventory[i]
 			var item_id = instance.item_id
 			var texture = ItemData.get_texture(item_id)
+			slot_icons[i].modulate = Color(1, 1, 1, 1.0)  # reset (broken items tint below)
 			if texture != null:
 				slot_icons[i].texture = texture
 				slot_icons[i].visible = true
@@ -503,10 +504,18 @@ func refresh_inventory() -> void:
 			elif item_data.get("is_money", false) or item_data.get("is_ammo", false):
 				key_label.text = "x" + str(instance.count)
 				key_label.visible = true
+			elif instance.is_depleted and int(item_data.get("max_durability", -1)) > 0:
+				# Broken durability item — repairable with a toolbox.
+				key_label.text = "BROKEN"
+				key_label.add_theme_color_override("font_color", Color(0.9, 0.3, 0.25, 1.0))
+				key_label.visible = true
+				slot_icons[i].modulate = Color(0.5, 0.4, 0.4, 1.0)
 			elif item_data.get("is_weapon", false) and item_name_l.contains("gun"):
-				key_label.text = "%d/%d" % [instance.mag_count, instance.get_mag_cap()]
+				key_label.text = ("%d/%d" % [instance.mag_count, instance.get_mag_cap()]) + (" DMG" if instance.is_damaged else "")
+				key_label.add_theme_color_override("font_color", Color(0.05, 0.05, 0.05, 1.0))
 				key_label.visible = true
 			else:
+				key_label.add_theme_color_override("font_color", Color(0.05, 0.05, 0.05, 1.0))
 				key_label.visible = false
 
 			var max_dur = item_data.get("max_durability", -1)

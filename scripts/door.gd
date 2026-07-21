@@ -169,7 +169,10 @@ func _has_removal_tool() -> bool:
 	var slot = HUD.selected_slot
 	if slot < 0 or slot >= WorldState.inventory.size():
 		return false
-	var d = WorldState.get_instance_at(slot).get_data()
+	var inst = WorldState.get_instance_at(slot)
+	if inst.is_depleted:
+		return false  # a broken tool is no tool
+	var d = inst.get_data()
 	return d.get("is_weapon", false) or d.get("is_tool", false) or d.get("can_force_lock", false)
 
 
@@ -339,6 +342,9 @@ func _attempt_force() -> void:
 	var instance = WorldState.get_instance_at(slot)
 	var item_data = instance.get_data()
 
+	if instance.is_depleted:
+		HUD.show_feedback("It's broken — repair it with a toolbox.")
+		return
 	if not item_data.get("is_weapon", false) and not item_data.get("can_force_lock", false):
 		HUD.show_feedback("Need a weapon or tool to force this.")
 		return
@@ -347,15 +353,15 @@ func _attempt_force() -> void:
 		pass  # gun took damage instead of durability
 	else:
 		instance.use()
-		HUD.refresh_inventory()
 		if instance.is_depleted:
+			# Broken weapon stays in inventory, repairable (item 12).
 			var weapon_name = item_data.get("name", "Item")
-			WorldState.remove_from_inventory(slot)
-			HUD.selected_slot = -1
-			HUD.refresh_inventory()
-			HUD.show_feedback(weapon_name + " broke forcing the door!")
+			if HUD.selected_slot == slot:
+				HUD.selected_slot = -1
+			HUD.show_feedback(weapon_name + " broke forcing the door — repair with a toolbox.")
 		else:
 			HUD.show_feedback("Door forced open.")
+		HUD.refresh_inventory()
 
 	WorldState.set_door_state(apartment_id, WorldState.DoorState.OPEN)
 	WorldState.emit_noise(global_position, WorldState.NOISE_RADIUS["door_work"], 4.0)
@@ -379,6 +385,9 @@ func _attempt_locked() -> void:
 	var instance = WorldState.get_instance_at(slot)
 	var item_data = instance.get_data()
 
+	if instance.is_depleted:
+		HUD.show_feedback("It's broken — repair it with a toolbox.")
+		return
 	if not item_data.get("can_force_lock", false) and not item_data.get("is_weapon", false):
 		HUD.show_feedback("Need a key or a weapon that can force locks.")
 		return
@@ -390,15 +399,14 @@ func _attempt_locked() -> void:
 			HUD.show_feedback("Need a key or a weapon that can force locks.")
 			return
 		instance.use()
-		HUD.refresh_inventory()
 		if instance.is_depleted:
 			var weapon_name = item_data.get("name", "Item")
-			WorldState.remove_from_inventory(slot)
-			HUD.selected_slot = -1
-			HUD.refresh_inventory()
-			HUD.show_feedback(weapon_name + " broke forcing the lock!")
+			if HUD.selected_slot == slot:
+				HUD.selected_slot = -1
+			HUD.show_feedback(weapon_name + " broke forcing the lock — repair with a toolbox.")
 		else:
 			HUD.show_feedback("Lock forced.")
+		HUD.refresh_inventory()
 
 	WorldState.set_door_state(apartment_id, WorldState.DoorState.OPEN)
 	WorldState.emit_noise(global_position, WorldState.NOISE_RADIUS["door_work"], 4.0)
@@ -516,12 +524,13 @@ func _pause_barricade_removal() -> void:
 # current progress banked. The player must re-initiate — bare-handed or with another
 # tool — and the saved fraction carries over (rescaled to the new duration).
 func _break_tool_mid_removal() -> void:
-	var weapon_name = "Your weapon"
+	# The tool snaps but STAYS as a broken, repairable item (item 12) — just
+	# deselect it so the player picks another tool / bare hands to continue.
+	var weapon_name = "Your tool"
 	if removal_tool_instance != null:
-		weapon_name = removal_tool_instance.get_data().get("name", "Your weapon")
+		weapon_name = removal_tool_instance.get_data().get("name", "Your tool")
 	var slot = HUD.selected_slot
 	if slot >= 0 and slot < WorldState.inventory.size() and WorldState.get_instance_at(slot) == removal_tool_instance:
-		WorldState.remove_from_inventory(slot)
 		HUD.selected_slot = -1
 	HUD.refresh_inventory()
 
@@ -531,7 +540,7 @@ func _break_tool_mid_removal() -> void:
 
 	_sync_overlay_to_progress()
 	proximity_label.text = _get_prompt_text()
-	HUD.show_feedback(weapon_name + " broke — barricade still standing.")
+	HUD.show_feedback(weapon_name + " broke — barricade still standing. Repair with a toolbox.")
 
 
 func _finish_barricade_removal() -> void:

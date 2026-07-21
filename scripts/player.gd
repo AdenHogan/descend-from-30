@@ -417,6 +417,9 @@ func _do_melee_attack(instance: ItemInstance, slot_index: int) -> void:
 	var weapon_type = _get_weapon_type(item_data)
 	if weapon_type == "" or weapon_type == "gun":
 		return
+	if instance.is_depleted:
+		HUD.show_feedback("It's broken — repair it with a toolbox.")
+		return
 	var stamina_cost = WEAPON_STAMINA_COST.get(weapon_type, 15.0)
 	# Attacking requires at least 2 bars (25%). In the red zone you can move but not swing.
 	if WorldState.stamina < WorldState.get_max_stamina() * 0.25 and not WorldState.god_mode:
@@ -475,11 +478,13 @@ func _do_melee_attack(instance: ItemInstance, slot_index: int) -> void:
 	if hit_something:
 		instance.use()
 		if instance.is_depleted:
+			# Broken weapons now STAY in inventory as a repairable item (item
+			# 12) — deselect so we don't keep swinging a broken tool.
 			var weapon_name = item_data.get("name", "Weapon")
-			WorldState.remove_from_inventory(slot_index)
-			HUD.selected_slot = -1
+			if HUD.selected_slot == slot_index:
+				HUD.selected_slot = -1
 			HUD.refresh_inventory()
-			HUD.show_feedback(weapon_name + " broke!")
+			HUD.show_feedback(weapon_name + " broke — repair it with a toolbox.")
 		else:
 			HUD.refresh_inventory()
 
@@ -924,18 +929,33 @@ func use_item(slot_index: int) -> void:
 	elif item_data.get("is_throwable", false):
 		_throw_can(slot_index)
 	elif item_data.get("is_tool", false) and item_data.get("can_repair", false):
-		# Toolbox: repairs the first damaged gun in inventory (one use).
+		# Toolbox: repairs the first repairable item — a damaged gun OR a
+		# broken durability weapon/tool (one toolbox use). Damaged guns take
+		# priority so a beaten gun beats a broken bat for the same charge.
+		var target: ItemInstance = null
 		for i in range(WorldState.inventory.size()):
 			var other = WorldState.get_instance_at(i)
-			if other.is_damaged and _get_weapon_type(other.get_data()) == "gun":
-				other.is_damaged = false
-				instance.use()
-				if instance.is_depleted:
-					WorldState.remove_from_inventory(slot_index)
+			if other == instance:
+				continue
+			if other.is_damaged:
+				target = other
+				break
+			if target == null and other.is_repairable():
+				target = other
+		if target != null:
+			var was_broken = target.is_depleted
+			target.repair_full()
+			instance.use()
+			var noun = target.get_data().get("name", "Item")
+			if instance.is_depleted:
+				# Toolbox spent its last charge — it's gone (a broken toolbox
+				# can't repair itself, so it isn't kept as clutter).
+				WorldState.remove_from_inventory(slot_index)
+				if HUD.selected_slot == slot_index:
 					HUD.selected_slot = -1
-				HUD.refresh_inventory()
-				HUD.show_feedback("Gun repaired — accuracy and magazine restored.")
-				return
+			HUD.refresh_inventory()
+			HUD.show_feedback(noun + (" rebuilt" if was_broken else " repaired") + ".")
+			return
 		HUD.show_feedback("Nothing needs repairing.")
 	elif item_data.get("is_key", false):
 		var target = instance.target_apartment
