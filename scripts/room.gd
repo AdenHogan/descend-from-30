@@ -189,7 +189,7 @@ func _ready() -> void:
 					3: spawn_chance = 0.27
 					_: spawn_chance = 0.33
 
-			spawn_chance = min(spawn_chance + barricade_bonus, 0.90)
+			spawn_chance = min(spawn_chance + barricade_bonus + WorldState.get_scavenge_bonus(), 0.95)
 
 			# An anchor the player has already searched is settled — its item state
 			# is whatever they left it as. We must NOT re-roll it (that's the dupe

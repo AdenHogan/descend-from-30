@@ -181,9 +181,18 @@ customers, resulting in an ever-changing storefront selection.
    state in WorldState (persisted: merchant_stock, legendary_hold)
 5. ✅ Shop UI; buy flow debiting wallet/stack (single screen for now — becomes
    the SHOP tab when the upgrades tab lands in step 6)
-6. Upgrades tab: offer-before-shop flow (pair gates shop on first
-   interaction; refusal = one confirm; resolved pair never returns that
-   visit), pair generation from unowned weighted pool, effect application
+6. ✅ Upgrades tab: offer-before-shop flow (shop opens on the UPGRADES tab
+   until the visit's pair is resolved; refusal = one "You sure?" confirm;
+   resolved pair never returns that visit), seeded pair generation from the
+   unowned weighted pool, effect application via modifier folding.
+   `WorldState.UPGRADE_POOL` holds ~30 upgrades (boons + drawbacks) keyed by
+   stat; `_apply_stat(stat, base)` folds `base * ∏mult + Σadd`. Getters:
+   get_max_stamina / get_inventory_slots (unlocks the 6th HUD slot) /
+   get_move_speed_mult / get_stamina_regen_mult / get_sprint_drain_mult /
+   get_melee_damage_bonus / get_push_mult / get_headshot_bonus /
+   get_body_bonus / get_gun_mag_bonus / get_listen_speed_mult /
+   get_heal_bonus / get_scavenge_bonus / get_noise_mult. Owned ids in
+   `active_upgrades`; per-visit offers in `upgrade_offers` (both persisted).
    - **ARCHITECTURE REQUIREMENT — STAT MODIFIERS, NOT DIRECT WRITES:**
      upgrades apply as modifier-list entries over base stats; derived values
      computed (e.g. `get_max_stamina()` folds base × multiplicative mods +

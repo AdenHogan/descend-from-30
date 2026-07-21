@@ -91,12 +91,13 @@ func _layout() -> void:
 
 	hbox.position = Vector2(SCREEN_W - (SLOT_SIZE + 8) * 6, SCREEN_H - BAR_H + 8)
 	hbox.add_theme_constant_override("separation", 8)
+	# The former "locked 6th slot" is now the inventory-upgrade unlock target,
+	# so it joins the real slot list; _update_slot_locks() greys it until an
+	# upgrade grants it.
+	slots.append(slot_locked)
 	for slot in slots:
 		slot.custom_minimum_size = Vector2(SLOT_SIZE, SLOT_SIZE)
 		slot.add_theme_stylebox_override("panel", _make_slot_style(false))
-	slot_locked.custom_minimum_size = Vector2(SLOT_SIZE, SLOT_SIZE)
-	slot_locked.add_theme_stylebox_override("panel", _make_slot_style(true))
-	slot_locked.modulate = Color(0.3, 0.3, 0.3, 1.0)
 
 func _create_mode_label() -> void:
 	mode_label = Label.new()
@@ -331,6 +332,8 @@ func _finish_drag() -> void:
 
 
 func _drop_on_slot(from: int, to: int) -> void:
+	if slot_is_locked(to):
+		return  # can't place into a still-locked slot
 	var from_inst = WorldState.get_instance_at(from)
 	var from_data = from_inst.get_data()
 	# Dropping onto an empty slot reorders to the end.
@@ -527,6 +530,20 @@ func refresh_inventory() -> void:
 			dur["fill"].visible = false
 			slot_key_labels[i].visible = false
 	_update_slot_highlights()
+	_update_slot_locks()
+
+
+func _update_slot_locks() -> void:
+	# Slots beyond current inventory capacity show a greyed lock; the inventory
+	# upgrade lifts it (the last slot is the classic "6th slot" unlock).
+	var unlocked = WorldState.get_inventory_slots()
+	for i in range(slots.size()):
+		slots[i].modulate = Color(1, 1, 1, 1.0) if i < unlocked else Color(0.3, 0.3, 0.3, 1.0)
+
+
+func slot_is_locked(index: int) -> bool:
+	return index >= WorldState.get_inventory_slots()
+
 
 func show_hud() -> void:
 	visible = true

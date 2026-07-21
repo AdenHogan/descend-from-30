@@ -110,6 +110,12 @@ means no rendering — UI layout and art still need an in-editor look.
   (sword-swing anim, manual arc physics w/ bounce+roll); its landing emits
   a loud noise + distraction that pulls every non-boss zombie to the sound
   (some de-aggro on arrival, some resume). Bosses ignore it.
+- Upgrades (store step 6): ~30 weighted upgrades (boons + drawbacks) via a
+  modifier-fold architecture (base × ∏mult + Σadd, never direct writes);
+  Hades-style pick-1-of-2 on the UPGRADES tab before the shop, one-confirm
+  refusal, no-duplicate offers, seeded pairs, persists across the arc.
+  Effects wired to stamina/regen/sprint/speed/melee/push/gun accuracy+mag/
+  listen/heal/scavenge/noise/inventory-slot (unlocks the 6th HUD slot).
 - Deferred from playtest feedback: settings/key-remap menu, broken-item
   crafting.
 - Next: **Upgrade offers** (store doc step 6 — needs the upgrade pool

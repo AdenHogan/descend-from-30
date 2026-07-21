@@ -150,7 +150,7 @@ func _ready() -> void:
 	dying_timer = WorldState.dying_timer
 	HUD.update_portrait(health_state)
 	HUD.update_mode_indicator()
-	HUD.update_stamina(WorldState.stamina, WorldState.max_stamina)
+	HUD.update_stamina(WorldState.stamina, WorldState.get_max_stamina())
 	HUD.refresh_inventory()
 	if WorldState.god_mode:
 		HUD.show_feedback("DEV: God Mode ON")
@@ -238,15 +238,15 @@ func _physics_process(delta: float) -> void:
 			animated_sprite.modulate = Color(1, 1, 1, 1)
 
 	if is_sprinting and direction != 0 and WorldState.stamina > 0 and not WorldState.god_mode:
-		WorldState.stamina = max(WorldState.stamina - STAMINA_SPRINT_DRAIN * delta, 0.0)
+		WorldState.stamina = max(WorldState.stamina - STAMINA_SPRINT_DRAIN * WorldState.get_sprint_drain_mult() * delta, 0.0)
 		stamina_recovery_timer = STAMINA_RECOVERY_DELAY
-		HUD.update_stamina(WorldState.stamina, WorldState.max_stamina)
+		HUD.update_stamina(WorldState.stamina, WorldState.get_max_stamina())
 	else:
 		if stamina_recovery_timer > 0:
 			stamina_recovery_timer -= delta
-		elif WorldState.stamina < WorldState.max_stamina:
-			WorldState.stamina = min(WorldState.stamina + STAMINA_PASSIVE_RATE * delta, WorldState.max_stamina)
-			HUD.update_stamina(WorldState.stamina, WorldState.max_stamina)
+		elif WorldState.stamina < WorldState.get_max_stamina():
+			WorldState.stamina = min(WorldState.stamina + STAMINA_PASSIVE_RATE * WorldState.get_stamina_regen_mult() * delta, WorldState.get_max_stamina())
+			HUD.update_stamina(WorldState.stamina, WorldState.get_max_stamina())
 
 	if push_count_window > 0:
 		var time_since_push = Time.get_ticks_msec() / 1000.0 - last_push_time
@@ -265,6 +265,7 @@ func _physics_process(delta: float) -> void:
 		current_speed = SPRINT_SPEED
 	elif is_crouching:
 		current_speed = CROUCH_SPEED
+	current_speed *= WorldState.get_move_speed_mult()
 
 	if is_crouching:
 		if direction == 0:
@@ -314,7 +315,7 @@ func _physics_process(delta: float) -> void:
 			noise_key = "scavenge"
 		elif is_sprinting and WorldState.stamina > 0:
 			noise_key = "run"
-		WorldState.emit_noise(global_position, WorldState.NOISE_RADIUS[noise_key], 0.5)
+		WorldState.emit_noise(global_position, WorldState.NOISE_RADIUS[noise_key] * WorldState.get_noise_mult(), 0.5)
 		footstep_timer -= delta
 		if footstep_timer <= 0.0:
 			footstep_timer = FOOTSTEP_INTERVAL[noise_key]
@@ -418,7 +419,7 @@ func _do_melee_attack(instance: ItemInstance, slot_index: int) -> void:
 		return
 	var stamina_cost = WEAPON_STAMINA_COST.get(weapon_type, 15.0)
 	# Attacking requires at least 2 bars (25%). In the red zone you can move but not swing.
-	if WorldState.stamina < WorldState.max_stamina * 0.25 and not WorldState.god_mode:
+	if WorldState.stamina < WorldState.get_max_stamina() * 0.25 and not WorldState.god_mode:
 		HUD.show_feedback("Too exhausted to swing.")
 		return
 	if WorldState.stamina < stamina_cost and not WorldState.god_mode:
@@ -428,7 +429,7 @@ func _do_melee_attack(instance: ItemInstance, slot_index: int) -> void:
 	if not WorldState.god_mode:
 		WorldState.stamina = max(WorldState.stamina - stamina_cost, 0.0)
 		stamina_recovery_timer = STAMINA_RECOVERY_DELAY
-		HUD.update_stamina(WorldState.stamina, WorldState.max_stamina)
+		HUD.update_stamina(WorldState.stamina, WorldState.get_max_stamina())
 
 	is_attacking = true
 	attack_cooldown_timer = WEAPON_COOLDOWN.get(weapon_type, 0.5)
@@ -439,7 +440,8 @@ func _do_melee_attack(instance: ItemInstance, slot_index: int) -> void:
 	melee_player.play()
 
 	var attack_range = WEAPON_RANGES.get(weapon_type, 40.0)
-	var damage = WEAPON_DAMAGE.get(weapon_type, 1)
+	var damage = WEAPON_DAMAGE.get(weapon_type, 1) + WorldState.get_melee_damage_bonus()
+	damage = max(damage, 1)
 	var damage_type = _get_weapon_damage_type(weapon_type)
 	var hit_something = false
 	var zombies = get_tree().get_nodes_in_group("zombie")
@@ -543,6 +545,10 @@ func _calculate_gun_outcome(distance: float, damaged: bool = false) -> String:
 	if damaged:
 		head *= 0.5
 		body *= 0.65
+	# Upgrades (Steady Aim, Marksman, Trigger Discipline) and — later — rare
+	# guns sharpen the odds.
+	head = clamp(head + WorldState.get_headshot_bonus(), 0.0, 0.95)
+	body = clamp(body + WorldState.get_body_bonus(), 0.0, 1.0 - head)
 	var rng = RandomNumberGenerator.new()
 	rng.seed = hash(str(WorldState.master_seed) + str(Time.get_ticks_msec()))
 	var roll = rng.randf()
@@ -566,7 +572,7 @@ func _do_push() -> void:
 	last_push_time = now
 	if not WorldState.god_mode:
 		WorldState.stamina = max(WorldState.stamina - cost, 0.0)
-		HUD.update_stamina(WorldState.stamina, WorldState.max_stamina)
+		HUD.update_stamina(WorldState.stamina, WorldState.get_max_stamina())
 	is_pushing = true
 	push_timer = PUSH_DURATION
 	animated_sprite.play("punch_jab")
@@ -575,7 +581,7 @@ func _do_push() -> void:
 		var dist = global_position.distance_to(zombie.global_position)
 		if dist <= PUSH_RANGE:
 			var push_dir = sign(zombie.global_position.x - global_position.x)
-			zombie.receive_push(push_dir * PUSH_FORCE)
+			zombie.receive_push(push_dir * PUSH_FORCE * WorldState.get_push_mult())
 
 
 func set_move_target(x: float, anchor: Node = null) -> void:
@@ -655,7 +661,7 @@ func start_listen(source_pos: Vector2, report: Dictionary) -> void:
 		return
 	_clear_move_target()
 	is_listening = true
-	listen_timer = LISTEN_DURATION
+	listen_timer = LISTEN_DURATION * WorldState.get_listen_speed_mult()
 	listen_report_line = report.get("line", "")
 	velocity.x = 0
 	# Placeholder stance until the ear-cupping/lean-over animation exists
@@ -702,8 +708,8 @@ func _roll_listen_ambush() -> void:
 
 
 func restore_stamina(amount: float) -> void:
-	WorldState.stamina = min(WorldState.stamina + amount, WorldState.max_stamina)
-	HUD.update_stamina(WorldState.stamina, WorldState.max_stamina)
+	WorldState.stamina = min(WorldState.stamina + amount, WorldState.get_max_stamina())
+	HUD.update_stamina(WorldState.stamina, WorldState.get_max_stamina())
 
 
 func do_rest() -> void:
@@ -713,8 +719,8 @@ func do_rest() -> void:
 	WorldState.rest_available = false
 	WorldState.rest_count += 1
 	WorldState.last_rest_floor = WorldState.current_floor
-	WorldState.stamina = WorldState.max_stamina
-	HUD.update_stamina(WorldState.stamina, WorldState.max_stamina)
+	WorldState.stamina = WorldState.get_max_stamina()
+	HUD.update_stamina(WorldState.stamina, WorldState.get_max_stamina())
 	_reseed_zombies()
 	HUD.show_feedback("You rest. The building shifts.")
 
@@ -873,7 +879,8 @@ func use_item(slot_index: int) -> void:
 		return
 
 	if item_data["is_health_item"]:
-		var heals = item_data["heals_states"]
+		# Field Medic upgrade bumps every heal by +1 state.
+		var heals = item_data["heals_states"] + WorldState.get_heal_bonus()
 		# Don't burn a use of the item if we're already at full health.
 		if heal(heals):
 			instance.use()
@@ -882,7 +889,7 @@ func use_item(slot_index: int) -> void:
 				HUD.selected_slot = -1
 			HUD.refresh_inventory()
 	elif item_data["is_speed_boost"]:
-		restore_stamina(WorldState.max_stamina * 0.35)
+		restore_stamina(WorldState.get_max_stamina() * 0.35)
 		HUD.show_feedback("Stamina restored.")
 		instance.use()
 		if instance.is_depleted:

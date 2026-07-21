@@ -25,6 +25,14 @@ var pending_confirm: int = -1
 var sell_box: VBoxContainer = null
 var sell_buttons: Array = []
 var pending_sell_confirm: int = -1
+# Upgrades tab (step 6): the pick-1-of-2 offer leads the visit; shop is the
+# errand. Tab bar lets you flip back to review owned upgrades.
+var shop_content: VBoxContainer = null
+var upgrades_box: VBoxContainer = null
+var tab_shop_btn: Button = null
+var tab_upg_btn: Button = null
+var active_tab: String = "shop"
+var refuse_armed: bool = false
 
 
 func _ready() -> void:
@@ -79,18 +87,44 @@ func _build_ui() -> void:
 	dialogue_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.6, 1.0))
 	vbox.add_child(dialogue_label)
 
-	var sep = HSeparator.new()
-	vbox.add_child(sep)
+	# Tab bar
+	var tabs = HBoxContainer.new()
+	tabs.add_theme_constant_override("separation", 6)
+	vbox.add_child(tabs)
+	tab_upg_btn = Button.new()
+	tab_upg_btn.text = "UPGRADES"
+	tab_upg_btn.custom_minimum_size = Vector2(150, 28)
+	tab_upg_btn.pressed.connect(func(): _show_tab("upgrades"))
+	tabs.add_child(tab_upg_btn)
+	tab_shop_btn = Button.new()
+	tab_shop_btn.text = "SHOP"
+	tab_shop_btn.custom_minimum_size = Vector2(150, 28)
+	tab_shop_btn.pressed.connect(func(): _show_tab("shop"))
+	tabs.add_child(tab_shop_btn)
+
+	vbox.add_child(HSeparator.new())
+
+	# Upgrades tab content
+	upgrades_box = VBoxContainer.new()
+	upgrades_box.add_theme_constant_override("separation", 8)
+	upgrades_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	vbox.add_child(upgrades_box)
+
+	# Shop tab content (wares + sell)
+	shop_content = VBoxContainer.new()
+	shop_content.add_theme_constant_override("separation", 6)
+	shop_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	vbox.add_child(shop_content)
 
 	rows_box = VBoxContainer.new()
 	rows_box.add_theme_constant_override("separation", 4)
 	rows_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	vbox.add_child(rows_box)
+	shop_content.add_child(rows_box)
 
-	vbox.add_child(HSeparator.new())
+	shop_content.add_child(HSeparator.new())
 	sell_box = VBoxContainer.new()
 	sell_box.add_theme_constant_override("separation", 2)
-	vbox.add_child(sell_box)
+	shop_content.add_child(sell_box)
 
 	var close_btn = Button.new()
 	close_btn.text = "Leave"
@@ -105,13 +139,153 @@ func open(floor_num: int, greeting: String) -> void:
 	stock = WorldState.get_merchant_stock(floor_num)
 	dialogue_label.text = "\"" + greeting + "\""
 	pending_confirm = -1
+	refuse_armed = false
 	_refresh()
+	# The boon is the event: the upgrade offer leads the visit until resolved,
+	# then re-opening goes straight to the shop.
+	_show_tab("upgrades" if not WorldState.is_upgrade_offer_resolved(floor_num) else "shop")
 	visible = true
+
+
+func _show_tab(tab: String) -> void:
+	active_tab = tab
+	refuse_armed = false
+	upgrades_box.visible = tab == "upgrades"
+	shop_content.visible = tab == "shop"
+	tab_upg_btn.disabled = tab == "upgrades"
+	tab_shop_btn.disabled = tab == "shop"
+	if tab == "upgrades":
+		_refresh_upgrades()
 
 
 func close() -> void:
 	visible = false
 	pending_confirm = -1
+
+
+func _refresh_upgrades() -> void:
+	for child in upgrades_box.get_children():
+		child.queue_free()
+
+	if WorldState.is_upgrade_offer_resolved(current_floor):
+		_render_owned_upgrades()
+		return
+
+	var pair = WorldState.get_upgrade_pair(current_floor)
+	var intro = Label.new()
+	intro.add_theme_font_size_override("font_size", 13)
+	intro.add_theme_color_override("font_color", Color(0.85, 0.8, 0.6, 1.0))
+	if pair.is_empty():
+		intro.text = "\"Nothing left to teach you, friend.\""
+		upgrades_box.add_child(intro)
+		_add_upgrade_button("Continue to shop", func(): WorldState.resolve_upgrade_offer(current_floor, ""); _show_tab("shop"))
+		return
+	intro.text = "Choose one — it stays with you for the whole descent."
+	upgrades_box.add_child(intro)
+
+	var cards = HBoxContainer.new()
+	cards.add_theme_constant_override("separation", 12)
+	upgrades_box.add_child(cards)
+	for id in pair:
+		cards.add_child(_make_upgrade_card(id))
+
+	# Refusal is a live choice (drawbacks make skipping sometimes right).
+	var refuse = Button.new()
+	refuse.custom_minimum_size = Vector2(180, 30)
+	refuse.text = "Take neither"
+	refuse.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	refuse.pressed.connect(_on_refuse)
+	upgrades_box.add_child(refuse)
+
+
+func _make_upgrade_card(id: String) -> Control:
+	var up = WorldState.UPGRADE_POOL.get(id, {})
+	var card = PanelContainer.new()
+	card.custom_minimum_size = Vector2(320, 130)
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.12, 0.12, 0.14, 1.0)
+	style.set_border_width_all(2)
+	style.border_color = Color(0.8, 0.45, 0.4, 1.0) if up.get("drawback", false) else Color(0.4, 0.6, 0.9, 1.0)
+	card.add_theme_stylebox_override("panel", style)
+	var m = MarginContainer.new()
+	m.add_theme_constant_override("margin_left", 10)
+	m.add_theme_constant_override("margin_right", 10)
+	m.add_theme_constant_override("margin_top", 8)
+	m.add_theme_constant_override("margin_bottom", 8)
+	card.add_child(m)
+	var box = VBoxContainer.new()
+	box.add_theme_constant_override("separation", 6)
+	m.add_child(box)
+	var name_l = Label.new()
+	name_l.text = up.get("name", id)
+	name_l.add_theme_font_size_override("font_size", 16)
+	name_l.add_theme_color_override("font_color", Color(1.0, 0.7, 0.6, 1.0) if up.get("drawback", false) else Color(0.7, 0.85, 1.0, 1.0))
+	box.add_child(name_l)
+	if up.get("drawback", false):
+		var tag = Label.new()
+		tag.text = "TRADE-OFF"
+		tag.add_theme_font_size_override("font_size", 9)
+		tag.add_theme_color_override("font_color", Color(0.9, 0.5, 0.4, 1.0))
+		box.add_child(tag)
+	var desc = Label.new()
+	desc.text = up.get("desc", "")
+	desc.add_theme_font_size_override("font_size", 12)
+	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	desc.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	box.add_child(desc)
+	var take = Button.new()
+	take.text = "Take"
+	take.pressed.connect(func(): _on_take_upgrade(id))
+	box.add_child(take)
+	return card
+
+
+func _on_take_upgrade(id: String) -> void:
+	WorldState.resolve_upgrade_offer(current_floor, id)
+	var player = get_tree().get_first_node_in_group("player")
+	if player != null:
+		HUD.update_stamina(WorldState.stamina, WorldState.get_max_stamina())
+	HUD.refresh_inventory()
+	HUD.show_feedback("Upgrade: " + WorldState.UPGRADE_POOL[id]["name"])
+	_show_tab("shop")
+
+
+func _on_refuse() -> void:
+	if not refuse_armed:
+		refuse_armed = true
+		HUD.show_feedback("You sure, friend? Click again to pass.")
+		return
+	WorldState.resolve_upgrade_offer(current_floor, "")
+	_show_tab("shop")
+
+
+func _render_owned_upgrades() -> void:
+	var header = Label.new()
+	header.add_theme_font_size_override("font_size", 13)
+	header.add_theme_color_override("font_color", Color(0.8, 0.8, 0.7, 1.0))
+	header.text = "Acquired this descent:"
+	upgrades_box.add_child(header)
+	if WorldState.active_upgrades.is_empty():
+		var none = Label.new()
+		none.text = "(none yet)"
+		none.add_theme_font_size_override("font_size", 12)
+		upgrades_box.add_child(none)
+	for id in WorldState.active_upgrades:
+		var up = WorldState.UPGRADE_POOL.get(id, {})
+		var row = Label.new()
+		row.text = "• " + up.get("name", id) + " — " + up.get("desc", "")
+		row.add_theme_font_size_override("font_size", 12)
+		row.add_theme_color_override("font_color", Color(0.75, 0.85, 0.7, 1.0))
+		upgrades_box.add_child(row)
+
+
+func _add_upgrade_button(text: String, cb: Callable) -> void:
+	var b = Button.new()
+	b.text = text
+	b.custom_minimum_size = Vector2(200, 30)
+	b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	b.pressed.connect(cb)
+	upgrades_box.add_child(b)
 
 
 func _refresh() -> void:
