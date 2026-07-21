@@ -251,6 +251,8 @@ func _test_scene_instantiation() -> void:
 		"elevator door nodes present")
 	check(merchant.get_node("DoorLeft").position.x == -merchant.get_node("DoorRight").position.x,
 		"doors start mirrored/closed")
+	check(merchant.z_index <= 0 and merchant.get_node("DoorLeft").z_index <= 0,
+		"merchant/elevator stays on the backdrop layer (behind actors)")
 	merchant._set_doors_open(true)
 	check(merchant.doors_open, "door open toggle runs")
 	merchant.queue_free()

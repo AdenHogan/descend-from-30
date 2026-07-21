@@ -62,6 +62,11 @@ changes — they are the cross-session memory for this project.
 - **Persistence split:** cross-run state (upgrades, wallet unlock, world
   decay, corpses) vs per-run state (inventory, wallet balance, health).
   Put new state in the right block.
+- **Render layers:** the corridor backdrop (walls, static doors, the
+  merchant's elevator doors, any future dynamic door art) lives at
+  `z_index 0`; **actors (player + enemies) sit at `z_index 1`** (set in each
+  `_ready`). New door/entrance visuals must stay at z 0 so bodies never clip
+  behind them. Corpses/world-drops stay at z 0 too (on the floor).
 
 ## Testing / verification
 

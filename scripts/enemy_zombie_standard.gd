@@ -54,6 +54,11 @@ func alert_to_noise(duration: float = 6.0) -> void:
 	alert_timer = max(alert_timer, duration)
 
 func _ready() -> void:
+	# ACTOR LAYER: player + enemies render one z-layer above the corridor
+	# backdrop (walls, static doors, the merchant's elevator doors, and any
+	# future dynamic door art at z 0), so nothing on the wall ever clips over
+	# a living body. Backdrop stays at z 0; actors at z 1.
+	z_index = 1
 	animated_sprite = $AnimatedSprite2D
 	animated_sprite.play("Idle")
 	player = get_tree().get_first_node_in_group("player")
