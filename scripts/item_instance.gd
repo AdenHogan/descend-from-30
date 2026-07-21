@@ -61,6 +61,27 @@ func use() -> bool:
 	return true
 
 
+func is_repairable() -> bool:
+	# A damaged gun, or a broken (depleted) durability weapon/tool.
+	var d = get_data()
+	if is_damaged:
+		return true
+	if is_depleted and int(d.get("max_durability", -1)) > 0 \
+			and (d.get("is_weapon", false) or d.get("is_tool", false)):
+		return true
+	return false
+
+
+func repair_full() -> void:
+	# Toolbox restore: un-break, un-damage, refill durability.
+	is_damaged = false
+	var d = get_data()
+	var max_d = int(d.get("max_durability", -1))
+	if max_d > 0:
+		current_durability = max_d
+		is_depleted = false
+
+
 func repair(amount: int) -> void:
 	var data = get_data()
 	if data.get("single_use", false):
