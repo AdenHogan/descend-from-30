@@ -58,12 +58,15 @@ engaging threats, and managing limited resources.
     is plain procedural seeding. Apartment 3001 is never accessible, any run.)
 
 **Diegetic control hints (implemented):** instead of popup boxes, the
-controls are scrawled on the corridor/apartment walls **in blood**
-(`blood_text.gd` — styled Label + procedural drips). `tutorial_hints.gd`
-holds the placement data and pulls key names live from `SettingsManager`
-(a rebind updates the wall text). Gated to `is_first_run` + Floor 30
-(hallway) / tutorial apartments (rooms). Positions are constants, tune in
-editor.
+controls are scrawled on the corridor/apartment walls **in blood**.
+`scenes/blood_text.tscn` (`blood_text.gd`, a `@tool` Node2D) draws blood-red
+text + procedural drips and renders **live in the editor** — drop one in,
+type the message and set size/tilt in the Inspector, and drag it into place.
+Hints are **baked into the scenes** (group `tutorial_blood`), not spawned in
+code, so they're positioned by hand. Hallway hints live in `hallway.tscn`;
+room hints go into the `Tutorial/` room modules (which only load on the
+first run, so they're first-run-gated automatically). `hallway.gd`/`room.gd`
+hide the `tutorial_blood` group on later runs.
 
 ## Player Systems
 

@@ -115,10 +115,13 @@ func _ready() -> void:
 		WorldState.saved_player_x = 0.0
 		WorldState.saved_player_y = 0.0
 
-	# Blood-scrawled hints inside the first tutorial apartments (search / push
-	# / heal). First run + tutorial apartment only; 3003 is where combat begins.
-	if WorldState.is_first_run and TUTORIAL_SCENES.has(apartment_id):
-		TutorialHints.spawn(self, TutorialHints.room_hints())
+	# Room tutorial hints: place BloodText nodes (scenes/blood_text.tscn) into
+	# the Tutorial room modules in the editor — those modules only load on the
+	# first run, so they're first-run-gated automatically. Any tagged
+	# "tutorial_blood" here is hidden on later runs to be safe.
+	if not WorldState.is_first_run:
+		for hint in get_tree().get_nodes_in_group("tutorial_blood"):
+			hint.visible = false
 
 	var is_paradise = WorldState.is_paradise_apartment(apartment_id)
 	var interactable_script = load("res://scripts/interactable.gd")

@@ -30,7 +30,9 @@ changes — they are the cross-session memory for this project.
 
 ## Project layout
 
-- `project.godot` — autoloads: `WorldState`, `ItemData`, `Game`, `HUD`
+- `project.godot` — autoloads: `WorldState`, `ItemData`, `Game`, `HUD`,
+  `SettingsManager`, `PauseMenu` (pause menu is an autoload, NOT embedded in
+  each scene — keeps world scenes editable in the 2D editor)
 - `scripts/` — all GDScript. Key files:
   - `world_state.gd` — the big one: master seed, per-floor/apartment
     generation seeds, door states, inventory, wallet, upgrades, corpses,
