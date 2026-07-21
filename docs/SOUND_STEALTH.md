@@ -46,9 +46,13 @@ player's half of the loop needs the SFX pass.
 - **Where:** apartment doors (all states except sealed 3001) and
   **down**-stairwells. Prompt appended to door text: `[R] Listen`.
 - Works in BOTH combat and scavenge modes.
-- **Rooted + real time:** the player cannot move or act for ~3s and CAN be
-  hit — damage cancels the listen with no report. Listening near a shuffler
-  is the player's own mistake; the risk is the price of information.
+- **Rooted + real time:** the player holds still for ~3s and CAN be hit.
+  ANY break cancels the listen immediately with **no report** — taking
+  damage, pressing a movement key, clicking to move, an action (attack/
+  push/interact/mode-toggle), or entering a room/stairwell. Only holding
+  still to the end delivers the read. (A new player scene also defensively
+  clears any lingering overlay, so entering a room mid-listen can't leave
+  the grey stuck on.)
 - **Presentation:** screen fades to grey (TLOU-style desaturation) with a
   focus vignette — lighter near the player/screen centre, near-dark at the
   edges (reduced extended visibility while focusing). Organic red echo

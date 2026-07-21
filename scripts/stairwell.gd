@@ -12,6 +12,7 @@ var listen_label: Label = null
 func _ready() -> void:
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
+	input_event.connect(_on_click)
 	arrow = find_child("Label")
 	if arrow:
 		arrow.visible = false
@@ -53,18 +54,33 @@ func _process(_delta: float) -> void:
 			player.start_listen(global_position, report)
 			return
 	if player_nearby and Input.is_action_just_pressed("interact"):
-		WorldState.stair_spawn_side = stair_side
-		WorldState.stair_direction = direction
-		WorldState.spawn_source = "stair"
-		if direction == "down":
-			WorldState.current_floor -= 1
-		elif direction == "up":
-			WorldState.current_floor += 1
-		WorldState.on_floor_arrived(WorldState.current_floor)
-		HUD.update_floor_label()
-		if WorldState.current_floor == 30:
-			get_tree().change_scene_to_file("res://scenes/hallway.tscn")
-		elif WorldState.current_floor == 0:
-			get_tree().change_scene_to_file("res://scenes/lobby.tscn")
-		else:
-			get_tree().change_scene_to_file("res://scenes/building_floors.tscn")
+		_use_stairs()
+
+
+func _on_click(_viewport: Node, event: InputEvent, _shape_idx: int) -> void:
+	# Left-click the stairwell to use it, same as E (playtest request). Only
+	# when you're standing in it; otherwise the click walks you over instead.
+	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
+		return
+	if not player_nearby:
+		return
+	get_viewport().set_input_as_handled()
+	_use_stairs()
+
+
+func _use_stairs() -> void:
+	WorldState.stair_spawn_side = stair_side
+	WorldState.stair_direction = direction
+	WorldState.spawn_source = "stair"
+	if direction == "down":
+		WorldState.current_floor -= 1
+	elif direction == "up":
+		WorldState.current_floor += 1
+	WorldState.on_floor_arrived(WorldState.current_floor)
+	HUD.update_floor_label()
+	if WorldState.current_floor == 30:
+		get_tree().change_scene_to_file("res://scenes/hallway.tscn")
+	elif WorldState.current_floor == 0:
+		get_tree().change_scene_to_file("res://scenes/lobby.tscn")
+	else:
+		get_tree().change_scene_to_file("res://scenes/building_floors.tscn")
