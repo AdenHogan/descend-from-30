@@ -29,7 +29,7 @@ func _test_attack_action() -> void:
 	print("[attack action]")
 	check(InputMap.has_action("attack"), "attack action was created")
 	var evs = InputMap.action_get_events("attack")
-	check(evs.size() > 0 and evs[0] is InputEventMouseButton, "attack defaults to a mouse button")
+	check(evs.size() > 0 and evs[0] is InputEventKey, "attack defaults to a key (Space)")
 
 
 func _test_rebind_key() -> void:

@@ -24,6 +24,7 @@ func _ready() -> void:
 	_test_apartment_report()
 	_test_floor_below_report()
 	_test_overlay()
+	_test_listen_cancel()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -141,3 +142,19 @@ func _test_overlay() -> void:
 	overlay.finish("test line")
 	check(overlay.state == "fading_out", "finish begins the fade-out")
 	overlay.queue_free()
+
+
+func _test_listen_cancel() -> void:
+	print("[listen cancel]")
+	WorldState.new_game()
+	var player = load("res://scenes/player.tscn").instantiate()
+	add_child(player)
+	player.start_listen(Vector2(500, 388), {"count": 2, "has_big": false, "line": "test", "nearness": 0.5})
+	check(player.is_listening, "start_listen roots the player")
+	check(HUD.listen_overlay.state in ["fading_in", "active"], "overlay is up while listening")
+	# Breaking the listen aborts with NO report delivered.
+	player._cancel_listen()
+	check(not player.is_listening, "cancel clears the listening state")
+	check(HUD.listen_overlay.state == "idle", "cancel aborts the overlay immediately")
+	check(HUD.listen_overlay.pending_report == "", "cancel delivers no report")
+	player.queue_free()

@@ -43,12 +43,13 @@ func _ready() -> void:
 
 
 func _ensure_attack_action() -> void:
-	# 'attack' isn't in project.godot; create it (default: left mouse button)
-	# so combat clicks are rebindable like everything else.
+	# 'attack' isn't in project.godot; create it. Default = SPACE, so the left
+	# mouse button is free for click-to-move in BOTH modes (playtest choice).
+	# Rebindable to a mouse side button etc. via the settings menu.
 	if not InputMap.has_action("attack"):
 		InputMap.add_action("attack")
-		var ev = InputEventMouseButton.new()
-		ev.button_index = MOUSE_BUTTON_LEFT
+		var ev = InputEventKey.new()
+		ev.physical_keycode = KEY_SPACE
 		InputMap.action_add_event("attack", ev)
 
 

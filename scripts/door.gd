@@ -308,18 +308,30 @@ func _process(delta: float) -> void:
 
 
 func _on_click(_viewport: Node, event: InputEvent, _shape_idx: int) -> void:
+	# Left-click on the door itself does what E/X would (playtest request).
+	# Clicking a door you're NOT next to isn't consumed, so it falls through
+	# to click-to-move and you walk over instead.
 	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
 		return
-	if not player_nearby or _is_sealed() or not WorldState.is_scavenge_mode:
+	if not player_nearby or _is_sealed():
 		return
-	get_viewport().set_input_as_handled()
 	match current_state:
+		WorldState.DoorState.OPEN, WorldState.DoorState.BREACHED:
+			# Entering works in either mode, same as pressing E.
+			get_viewport().set_input_as_handled()
+			_enter_apartment()
 		WorldState.DoorState.SHUT_FORCEABLE:
-			_attempt_force()
+			if WorldState.is_scavenge_mode:
+				get_viewport().set_input_as_handled()
+				_attempt_force()
 		WorldState.DoorState.SHUT_LOCKED:
-			_attempt_locked()
+			if WorldState.is_scavenge_mode:
+				get_viewport().set_input_as_handled()
+				_attempt_locked()
 		WorldState.DoorState.BARRICADED_FORCEABLE, WorldState.DoorState.BARRICADED_LOCKED:
-			_attempt_barricade_removal()
+			if WorldState.is_scavenge_mode:
+				get_viewport().set_input_as_handled()
+				_attempt_barricade_removal()
 
 
 func _enter_apartment() -> void:

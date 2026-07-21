@@ -145,6 +145,10 @@ func _ready() -> void:
 	melee_player.volume_db = -6.0
 	melee_player.max_distance = 500.0
 	add_child(melee_player)
+	# Entering a room/stairs while listening frees the old player node; make
+	# sure a lingering grey overlay is cleared for this fresh scene.
+	if HUD.listen_overlay != null:
+		HUD.listen_overlay.abort()
 	health_state = HealthState.values()[WorldState.player_health]
 	is_dying = WorldState.is_dying
 	dying_timer = WorldState.dying_timer
@@ -183,6 +187,16 @@ func _physics_process(delta: float) -> void:
 
 	if is_listening:
 		# Rooted and vulnerable — the world keeps moving while you focus.
+		# ANY break (movement, or an action) cancels the listen immediately
+		# with NO report. Only holding still to the end delivers the read.
+		if Input.get_axis("move_left", "move_right") != 0 \
+				or Input.is_action_just_pressed("interact") \
+				or Input.is_action_just_pressed("mode_toggle") \
+				or Input.is_action_just_pressed("attack") \
+				or Input.is_action_just_pressed("push") \
+				or Input.is_action_just_pressed("jump"):
+			_cancel_listen()
+			return
 		velocity.x = 0
 		move_and_slide()
 		listen_timer -= delta
@@ -737,7 +751,13 @@ func _reseed_zombies() -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if is_dead or is_dying or is_switching_mode or is_listening:
+	if is_dead or is_dying or is_switching_mode:
+		return
+	if is_listening:
+		# A click (like keyboard movement/actions in _physics_process) breaks
+		# the listen with no report; nothing else is processed while focused.
+		if event is InputEventMouseButton and event.pressed:
+			_cancel_listen()
 		return
 
 	if DEV_MODE:
