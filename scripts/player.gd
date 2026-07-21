@@ -814,6 +814,30 @@ func _input(event: InputEvent) -> void:
 		do_rest()
 
 
+func _throw_can(slot_index: int) -> void:
+	# Scavenge-only distraction. Reuses the sword-swing anim for the throw
+	# motion; the can flies the length of a room and its landing pulls aggro.
+	if not WorldState.is_scavenge_mode:
+		HUD.show_feedback("Switch to scavenge to throw.")
+		return
+	if is_attacking:
+		return
+	is_attacking = true
+	attack_cooldown_timer = 0.5
+	animated_sprite.play("katana_attack_continuous")
+	melee_player.stream = MELEE_SLICE.pick_random()
+	melee_player.pitch_scale = 1.2
+	melee_player.play()
+	var dir = -1.0 if animated_sprite.flip_h else 1.0
+	var can = preload("res://scenes/thrown_can.tscn").instantiate()
+	get_tree().current_scene.add_child(can)
+	can.launch(dir, global_position + Vector2(dir * 20.0, -10.0))
+	WorldState.remove_from_inventory(slot_index)
+	HUD.selected_slot = -1
+	HUD.refresh_inventory()
+	HUD.show_feedback("Can thrown — that'll draw them.")
+
+
 func _zombie_under_cursor() -> Node:
 	var mouse_world = _mouse_world_pos()
 	var best: Node = null
@@ -883,6 +907,8 @@ func use_item(slot_index: int) -> void:
 			HUD.selected_slot = slot_index
 			HUD._update_slot_highlights()
 			HUD.show_feedback("Equipped — mag %d/%d." % [instance.mag_count, instance.get_mag_cap()])
+	elif item_data.get("is_throwable", false):
+		_throw_can(slot_index)
 	elif item_data.get("is_tool", false) and item_data.get("can_repair", false):
 		# Toolbox: repairs the first damaged gun in inventory (one use).
 		for i in range(WorldState.inventory.size()):

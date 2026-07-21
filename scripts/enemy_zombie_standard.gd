@@ -20,6 +20,21 @@ var is_dead: bool = false
 var passable_to_player: bool = false
 # Gunfire (and future noise sources) override detection range while this runs.
 var alert_timer: float = 0.0
+# Thrown-can distraction: overrides chase; the zombie walks to the sound.
+var is_distracted: bool = false
+var distraction_target: Vector2 = Vector2.ZERO
+# Chance a zombie loses interest (de-aggros) once it reaches the can.
+const DISTRACTION_DEAGGRO_CHANCE = 0.5
+
+
+func be_distracted(pos: Vector2) -> void:
+	if is_dead or state in ["hit", "recovering", "knockdown"]:
+		return
+	is_distracted = true
+	distraction_target = pos
+	alert_timer = 0.0  # the can wins over prior gunfire/sight aggro
+	state = "distracted"
+	animated_sprite.play("Walk")
 
 # Off-screen presence: positional moans/shuffles the player can HEAR before
 # seeing (docs/SOUND_STEALTH.md — this is why roaming listen isn't needed).
@@ -219,6 +234,24 @@ func _physics_process(delta: float) -> void:
 					if player and player.has_method("receive_hit"):
 						player.receive_hit()
 				state = "chase"
+				animated_sprite.play("Walk")
+		"distracted":
+			_try_resolidify()
+			var to_can = distraction_target.x - global_position.x
+			if abs(to_can) <= 20.0:
+				# Reached the can — investigate, then some lose interest.
+				is_distracted = false
+				velocity.x = 0
+				if randf() < DISTRACTION_DEAGGRO_CHANCE:
+					state = "idle"
+					animated_sprite.play("Idle")
+				else:
+					state = "chase"
+					animated_sprite.play("Walk")
+			else:
+				var dir = signf(to_can)
+				velocity.x = dir * SPEED
+				animated_sprite.flip_h = dir < 0
 				animated_sprite.play("Walk")
 		"chase", "idle":
 			_try_resolidify()
