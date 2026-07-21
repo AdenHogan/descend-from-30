@@ -642,11 +642,11 @@ func _mouse_world_pos() -> Vector2:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	# Ground click-to-move (scavenge mode; anchors consume their clicks first
-	# in room.gd). Combat keeps LMB = attack, handled in _input.
+	# Ground click-to-move. In scavenge, room.gd consumes anchor clicks first;
+	# in combat, a default-LMB attack consumes the click in _input before it
+	# reaches here — so LMB only walks you when it ISN'T bound to attack
+	# (e.g. attack rebound to a mouse side button). Works in both modes.
 	if is_dead or is_dying or is_switching_mode or is_listening:
-		return
-	if not WorldState.is_scavenge_mode:
 		return
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		if _is_mouse_over_hud():
@@ -779,33 +779,13 @@ func _input(event: InputEvent) -> void:
 			HUD.refresh_inventory()
 			HUD.show_feedback("DEV: Wallet + 500 Bank Notes")
 
-	if not WorldState.is_scavenge_mode:
-		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-			if _is_mouse_over_hud():
-				return
-			var slot = HUD.selected_slot
-			if slot >= 0 and slot < WorldState.inventory.size():
-				var instance = WorldState.get_instance_at(slot)
-				var item_data = instance.get_data()
-				if item_data.get("is_weapon", false):
-					var weapon_type = _get_weapon_type(item_data)
-					if weapon_type == "gun":
-						_do_gun_attack(instance, slot)
-					else:
-						# Clicking a distant zombie walks over and swings once;
-						# anything in reach swings immediately as before.
-						var clicked = _zombie_under_cursor()
-						var reach = WEAPON_RANGES.get(weapon_type, 40.0) + 40.0
-						if clicked != null and global_position.distance_to(clicked.global_position) > reach:
-							var approach = clicked.global_position.x - signf(clicked.global_position.x - global_position.x) * reach * 0.6
-							set_move_target(approach)
-							pending_attack = clicked
-						else:
-							_do_melee_attack(instance, slot)
-				else:
-					HUD.show_feedback("No weapon selected.")
-			else:
-				HUD.show_feedback("No weapon selected.")
+	# Attack is a rebindable action (default LMB, can live on a mouse side
+	# button — see SettingsManager). Combat only. Consuming the event stops a
+	# default-LMB attack from also triggering click-to-move.
+	if not WorldState.is_scavenge_mode and event.is_action_pressed("attack"):
+		if not _is_mouse_over_hud():
+			_do_attack_action(event is InputEventMouseButton)
+			get_viewport().set_input_as_handled()
 
 	if event.is_action_pressed("item_slot_1"): HUD.select_slot(0)
 	elif event.is_action_pressed("item_slot_2"): HUD.select_slot(1)
@@ -842,6 +822,33 @@ func _throw_can(slot_index: int) -> void:
 	HUD.selected_slot = -1
 	HUD.refresh_inventory()
 	HUD.show_feedback("Can thrown — that'll draw them.")
+
+
+func _do_attack_action(from_mouse: bool) -> void:
+	var slot = HUD.selected_slot
+	if slot < 0 or slot >= WorldState.inventory.size():
+		HUD.show_feedback("No weapon selected.")
+		return
+	var instance = WorldState.get_instance_at(slot)
+	var item_data = instance.get_data()
+	if not item_data.get("is_weapon", false):
+		HUD.show_feedback("No weapon selected.")
+		return
+	var weapon_type = _get_weapon_type(item_data)
+	if weapon_type == "gun":
+		_do_gun_attack(instance, slot)
+		return
+	# Melee: a mouse attack can click a distant zombie to walk over and swing;
+	# a key/side-button attack just swings at whatever's in front.
+	if from_mouse:
+		var clicked = _zombie_under_cursor()
+		var reach = WEAPON_RANGES.get(weapon_type, 40.0) + 40.0
+		if clicked != null and global_position.distance_to(clicked.global_position) > reach:
+			var approach = clicked.global_position.x - signf(clicked.global_position.x - global_position.x) * reach * 0.6
+			set_move_target(approach)
+			pending_attack = clicked
+			return
+	_do_melee_attack(instance, slot)
 
 
 func _zombie_under_cursor() -> Node:
