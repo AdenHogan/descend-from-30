@@ -10,10 +10,10 @@ extends Node
 # PROCESS_MODE_ALWAYS so the prompt poll keeps ticking while the tree is paused
 # (a paused beat waits here for the player's key, then resumes the game).
 
-# The 3003 scripted zombie's fixed spawn key. Clearing it (killing it) is the
-# milestone that unlocks Floor-30 descent — and it persists in killed_zombies,
-# so the gate survives save/load and re-entry for free.
+# The scripted zombies' fixed spawn keys. Both persist in killed_zombies, so
+# the descent gate's milestones survive save/load and re-entry for free.
 const TUTORIAL_ZOMBIE_KEY := "3003:tutorial"
+const HALLWAY_ZOMBIE_KEY := "30hall:tutorial"
 
 var _awaiting: bool = false
 var _await_action: String = ""
@@ -30,10 +30,48 @@ func is_active() -> bool:
 	return WorldState.is_first_run and WorldState.current_floor == 30
 
 
+func stair_stage() -> String:
+	# The Floor-30 descent gate is STAGED along the mandatory path:
+	#   "key"    — 3003 neighbour still up: go get the spare key.
+	#   "apts"   — key gotten, 3004 barricade still standing: search the
+	#              other apartments (leads the player into the barricade beat).
+	#   "choice" — barricade down, the noise-drawn zombie is live and 3004 is
+	#              still shut: resolve the force-vs-fight choice first.
+	#   "open"   — free to descend.
+	if not is_active():
+		return "open"
+	if not WorldState.killed_zombies.has(TUTORIAL_ZOMBIE_KEY):
+		return "key"
+	var d3004 = WorldState.get_door_state("3004")
+	if d3004 == WorldState.DoorState.BARRICADED_LOCKED or d3004 == WorldState.DoorState.BARRICADED_FORCEABLE:
+		return "apts"
+	if d3004 != WorldState.DoorState.OPEN and not WorldState.killed_zombies.has(HALLWAY_ZOMBIE_KEY):
+		return "choice"
+	return "open"
+
+
 func stairs_locked() -> bool:
-	# Floor-30 descent is gated until the 3003 encounter is cleared (the doc's
-	# "player has the 3002 key = cleared 3003" milestone).
-	return is_active() and not WorldState.killed_zombies.has(TUTORIAL_ZOMBIE_KEY)
+	return stair_stage() != "open"
+
+
+func stair_block_info() -> Dictionary:
+	# What the stairwell should say + where to herd the player, per stage.
+	# target_x are hallway door positions (3002=696, 3003=570, 3004=444).
+	# Empty dict = descent is open.
+	match stair_stage():
+		"key":
+			return {"line": "The stairwell's a death trap empty-handed — the neighbour in 3003 might have a spare key. Check there first.",
+					"target_x": 570.0}
+		"apts":
+			var target = 696.0 if not WorldState.was_key_opened("3002") else 444.0
+			return {"line": "Not yet — I should search the other apartments before I go down.",
+					"target_x": target}
+		"choice":
+			# The zombie is live in the corridor — no herding INTO it, just
+			# the refusal.
+			return {"line": "Not with that thing loose — deal with it, or get through 3004.",
+					"target_x": -1.0}
+	return {}
 
 
 # --- Dialogue -------------------------------------------------------------
@@ -41,6 +79,17 @@ func stairs_locked() -> bool:
 func say(text: String) -> void:
 	# A transient first-person line (auto-hides). No pause.
 	HUD.show_dialogue(text)
+
+
+var _said_once: Dictionary = {}
+
+func say_once(tag: String, text: String) -> void:
+	# A one-shot line keyed by tag (first entry to a room, etc.). Resets per
+	# app run — fine for placeholder dialogue.
+	if _said_once.get(tag, false):
+		return
+	_said_once[tag] = true
+	say(text)
 
 
 func prompt(text: String, action: String, cb: Callable, hint: String = "", strict: bool = false) -> void:

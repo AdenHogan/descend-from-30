@@ -490,6 +490,10 @@ func _tick_barricade_removal(delta: float) -> void:
 	if rip_sfx_timer <= 0.0:
 		rip_sfx_timer = randf_range(0.55, 0.85)
 		_play_sfx(PLANK_STREAMS.pick_random(), -4.0)
+		# Every rip throws a sharp orange echo — the visual "you're being
+		# LOUD" cue (the aggressive counterpart to the listen ripples).
+		if HUD.listen_overlay != null:
+			HUD.listen_overlay.noise_ping(global_position)
 
 	# Durability — debit progressively so a full removal costs BARRICADE_DURABILITY_COST.
 	# target_spend grows with progress; we apply use() each time it crosses an integer.
@@ -561,6 +565,10 @@ func _finish_barricade_removal() -> void:
 	WorldState.barricade_progress.erase(apartment_id)
 	barricade_progress_overlay.visible = false
 	barricade_sprite.visible = false
+	# The final crash is the loudest moment — a burst of echoes.
+	if HUD.listen_overlay != null:
+		for i in range(3):
+			HUD.listen_overlay.noise_ping(global_position + Vector2(randf_range(-8, 8), randf_range(-8, 8)))
 
 	var underlying_state = WorldState.DoorState.SHUT_FORCEABLE
 	if current_state == WorldState.DoorState.BARRICADED_LOCKED:

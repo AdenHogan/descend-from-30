@@ -900,6 +900,10 @@ func _zombie_under_cursor() -> Node:
 func _is_mouse_over_hud() -> bool:
 	var mouse_y = get_viewport().get_mouse_position().y
 	var screen_h = get_viewport().get_visible_rect().size.y
+	# Headless (tests) has a degenerate viewport rect; without this every click
+	# reads as "over the HUD" and click-to-move can't be regression-tested.
+	if screen_h < 200.0:
+		return false
 	if mouse_y > screen_h - (80.0 + 40.0):
 		return true
 	if HUD.context_menu and HUD.context_menu.visible:

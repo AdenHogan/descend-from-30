@@ -20,10 +20,14 @@ const TUTORIAL_HITS_TO_DIE = 2
 # Post-push recover: hit slide (2s) + this = ~5s total, double a normal push.
 const TUTORIAL_PUSH_FREEZE = 3.0
 var tutorial_scripted: bool = false
-var tutorial_frozen: bool = false    # idle until room.gd releases it
+var tutorial_frozen: bool = false    # idle until the script releases it
 var tutorial_shamble: bool = false   # after the scripted push: slow pursuit
 var tutorial_long_recover: bool = false
 var tutorial_hits: int = 0
+# While frozen, a hold point >= 0 makes the zombie WALK there first, then wait
+# facing the player — the barricade beat's "arrive on scene but keep distance
+# until the barricade is down" behaviour (docs/TUTORIAL.md).
+var tutorial_hold_x: float = -1.0
 # Key drop (tutorial neighbour yields the 3002 key on death — matching the big
 # zombie's drop pattern).
 var drops_key: bool = false
@@ -337,11 +341,23 @@ func _physics_process(delta: float) -> void:
 				animated_sprite.play("Walk")
 		"chase", "idle":
 			_try_resolidify()
-			# Scripted neighbour: stays put until room.gd releases it, then
+			# Scripted zombie: stays put until the script releases it, then
 			# closes in at a slow, telegraphed pace so the player can scavenge.
+			# With a hold point set it first walks THERE (arriving on scene),
+			# then waits facing the player — visible menace, held at distance.
 			if tutorial_scripted and tutorial_frozen:
-				velocity.x = 0
-				animated_sprite.play("Idle")
+				if tutorial_hold_x >= 0.0 and absf(global_position.x - tutorial_hold_x) > 6.0:
+					var hold_dir = signf(tutorial_hold_x - global_position.x)
+					velocity.x = hold_dir * SPEED
+					animated_sprite.flip_h = hold_dir < 0
+					animated_sprite.play("Walk")
+				else:
+					velocity.x = 0
+					if player == null:
+						player = get_tree().get_first_node_in_group("player")
+					if player != null:
+						animated_sprite.flip_h = player.global_position.x < global_position.x
+					animated_sprite.play("Idle")
 				move_and_slide()
 				return
 			if player == null:

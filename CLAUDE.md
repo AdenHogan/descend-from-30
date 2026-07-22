@@ -154,8 +154,17 @@ means no rendering — UI layout and art still need an in-editor look.
   **low durability (4)**. Stairwell descent is **gated + herds** the player
   back until the 3003 zombie is cleared (`stairwell.gd` + `killed_zombies`
   milestone). **DEV F7** toggles the tutorial on/off and drops into a fresh
-  Floor 30 for playtesting. v2 TODO: 3004 barricade → noise mechanic →
-  scripted stairwell zombie + force-lock-vs-fight choice; 3002/3005 info.
+  Floor 30 for playtesting. **v2 built**: 3004 barricade rips throw sharp
+  ORANGE jagged noise pings (`listen_overlay.noise_ping` — reusable "you're
+  loud" cue) + corridor zombie walks in from the left stairs, HOLDS at a
+  distance (`tutorial_hold_x`) until the barricade falls, then pause-prompt
+  choice (force 3004's lock for the room vs kill it and break the club) and
+  slow release; stairs gate is STAGED (key → apts → choice → open) with
+  per-stage lines + herding to the next objective door; 3002 = conservative
+  reward room (cash/ice pack/first aid only) with the earliest descent line;
+  3003 kill line = the key realization. Dialogue/report panels are
+  mouse-transparent (click-to-move regression, locked by click_move_test).
+  Remaining: 3005 interior info; owner-authored final dialogue.
 - Next: tutorial **v2** (above), then characters/profiles/stats + the
   two-&-three-run arc; also **Upgrade offers** polish and player-corpse
   recovery (store step 7).

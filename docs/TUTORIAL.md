@@ -17,13 +17,18 @@ A small first-person speech line shown briefly (own UI, not the wall text).
 `HUD.show_dialogue(text)` / driven by the tutorial state machine. Placeholder
 lines below in «guillemets» are temporary.
 
-## Stairwell gating + herding (1C)
-- The Floor 30 down-stairwell is **blocked** until the tutorial's core is
-  done (player has the 3002 key = cleared 3003).
-- If the player approaches the stairs while blocked: dialogue «Maybe the
-  neighbour in 3003 has a spare key — I should check.» and they are **herded
-  back** (nudged away from the stairwell).
-- Once unlocked, descent to Floor 29 works normally and ends the tutorial.
+## Stairwell gating + herding (1C) — STAGED
+The Floor 30 down-stairwell is blocked along the whole mandatory path, with a
+stage-appropriate line + herd each time the player tries it:
+1. **"key"** — 3003 neighbour still up → «check 3003 for the spare key» and
+   herd the player to **3003's door**.
+2. **"apts"** — key gotten, 3004 barricade still standing → «search the other
+   apartments first» and herd to the next objective door (3002 if not yet
+   opened, else 3004).
+3. **"choice"** — barricade down, the corridor zombie live, 3004 shut →
+   refusal line only (**no herding into a live zombie**).
+4. **"open"** — corridor zombie dead OR 3004 entered → descent to 29 works
+   normally and ends the tutorial.
 
 ## 3003 — the scripted first apartment
 Layout: living room / kitchen / bedroom (real anchored modules). This
@@ -71,25 +76,34 @@ pauses at each teaching beat (`get_tree().paused` + a dialogue prompt).
   ~2 remaining uses: **kill the hallway zombie (club breaks)** OR **force a
   locked door** (leaves too little to fight). This is the durability lesson.
 
-## Hallway / stairwell scripted zombie
-- After the player **removes the 3004 barricade** (loud — this introduces the
-  **noise mechanic**), a zombie **spawns at the stairwell** (flavour: it came
-  up the stairs, drawn by the noise) and approaches — arriving **after** the
-  barricade is down so the player has time to choose:
-  - **Force the 3004 lock** with the club (1 use) → enter 3004 for optional
-    starter loot, then deal with the zombie (push / a weapon found inside).
-  - **Fight the zombie** with the club (breaks if at 2 uses) → then can't
-    force the lock; must push past or use another weapon.
-  - **Push past** either way — push is always the weaponless out.
+## Hallway / stairwell scripted zombie (IMPLEMENTED)
+- **Removing the 3004 barricade is the noise lesson**: every plank rip throws
+  a **sharp orange jagged echo ping** at the door (the aggressive counterpart
+  to the listen system's soft red ripples — noise is BAD), plus a burst on
+  the final crash. `listen_overlay.noise_ping()` — reusable for any future
+  "you are being loud" moment.
+- Once barricade work starts, a zombie **walks in from the left stairs**
+  (drawn by the noise), but **holds at a distance** (`tutorial_hold_x`),
+  facing the player — visible menace, no pressure yet.
+- The moment the barricade falls: **gameplay PAUSES** for the choice line
+  («Force the lock and take the room — or stand and fight. This club won't
+  do both.»), then the zombie is released at a slow shamble:
+  - **Force the 3004 lock** with the club (1 use → 1 left) → take the room,
+    but too little club left to kill the zombie (2 hits needed).
+  - **Fight the zombie** (2 hits → the club **breaks**) → 3004 stays locked;
+    the room is lost.
+  - **Push** remains the weaponless out either way.
+- The zombie is scripted (deterministic 2-hit kill, no RNG), keyed
+  `30hall:tutorial` so the kill persists.
 
 ## Apartment roles
 | Apt | State | Tutorial content |
 |---|---|---|
 | 3001 | sealed | — (never enterable) |
-| 3002 | locked (3003 key) | tutorial info inside — **TBD** |
-| 3003 | open | scripted encounter; scavenge + attack info |
+| 3002 | locked (3003 key) | **reward room** — conservative loot only: cash (weighted heaviest), ice pack, first aid kit; NO weapons/keys/toolbox (nothing that defuses the club-durability lesson). Entry line is the earliest descent mention. |
+| 3003 | open | scripted encounter; scavenge + attack info. **No descent talk here** — the kill dialogue is the key realization («this isn't my spare key — it's for 3002»). |
 | 3004 | barricaded+locked | **no** info inside (optional, forced-entry loot) |
-| 3005 | open | tutorial info inside |
+| 3005 | open | tutorial info inside — TBD |
 
 ## Mandatory path
 Hallway (movement text) → 3003 (scripted: see zombie → weapon → kill → key)
@@ -104,9 +118,10 @@ zombie → choice) → 3005 (open, info) → stairs unlock → descend to 29.
   a weapon" → delayed 3-node reveal (junk/health/club); timed slow approach;
   **pause →** "attack" → deterministic 2-hit zombie; low-durability club;
   key on kill; **pause →** heal prompt.
-- **v2 (next):** 3004 barricade → noise → scripted stairwell zombie + the
-  force-lock-vs-fight choice; 3002/3005 interior info; descent-unlock wiring
-  to the full path.
+- **v2 (BUILT):** 3004 barricade → orange noise pings → corridor zombie with
+  hold-then-release + the force-lock-vs-fight choice; staged stairs gate along
+  the full path; 3002 reward room + entry line. **Remaining:** 3005 interior
+  info; owner-authored final dialogue.
 - Final dialogue/wall text is owner-authored; code ships placeholders.
 
 ## Testing the tutorial (DEV)
