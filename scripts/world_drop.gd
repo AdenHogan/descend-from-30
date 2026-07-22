@@ -62,7 +62,10 @@ func _process(_delta: float) -> void:
 
 
 func _is_mouse_over_orb() -> bool:
-	var cam = get_tree().get_first_node_in_group("player").get_node_or_null("Camera2D")
+	var p = get_tree().get_first_node_in_group("player")
+	if p == null:
+		return false
+	var cam = p.get_node_or_null("Camera2D")
 	if cam == null:
 		return false
 	var mouse_world = cam.get_screen_center_position() + \

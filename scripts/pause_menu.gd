@@ -29,12 +29,26 @@ func _add_settings_button() -> void:
 func toggle(should_show: bool) -> void:
 	visible = should_show
 	save_quit_submenu.visible = false
+	# The settings menu is a separate CanvasLayer — hiding the pause menu
+	# doesn't cascade to it, so close it explicitly or it floats over live
+	# gameplay after Resume/Esc.
+	if settings_menu != null:
+		settings_menu.close()
 	# Freeze the entire SceneTree. Every node inherits PROCESS_MODE_INHERIT by
 	# default and halts; only this menu (PROCESS_MODE_ALWAYS, set in _ready) keeps
 	# running so its buttons stay live. This replaces the old approach of manually
 	# disabling the player and zombie group, which left timers, the loot UI, world
 	# drops and HUD feedback all running during the pause.
 	get_tree().paused = should_show
+
+func handle_cancel() -> void:
+	# Esc hierarchy: from Settings, go BACK to the pause menu (stay paused);
+	# from the pause menu, resume; from gameplay, open the pause menu.
+	if settings_menu != null and settings_menu.visible:
+		settings_menu.close()
+		return
+	toggle(not visible)
+
 
 func _on_resume() -> void:
 	toggle(false)
