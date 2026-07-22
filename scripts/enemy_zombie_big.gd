@@ -80,7 +80,7 @@ func _set_hp_from_floor() -> void:
 	detection_range = DETECTION_RANGE + aggro_roll * DETECTION_VARIANCE
 
 
-func receive_push(force: float) -> void:
+func receive_push(_force: float) -> void:
 	# The boss cannot be pushed — pushing should not work on the big zombie.
 	return
 
