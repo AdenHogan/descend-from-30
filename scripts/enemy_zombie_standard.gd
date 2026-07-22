@@ -9,15 +9,20 @@ const RECOVER_DURATION = 0.5
 const KNOCKDOWN_DURATION = 3.0
 
 # --- Tutorial (scripted 3003 zombie) --------------------------------------
-# The first-run neighbour is hand-tuned, not RNG: it starts frozen at the back
-# of the apartment, approaches SLOWLY once released, dies in exactly two golf-
-# club swings, and stays staggered longer after the scripted push so the
-# player gets real breathing room. See room.gd / docs/TUTORIAL.md.
-const TUTORIAL_SPEED = 20.0
+# The first-run neighbour is hand-tuned, not RNG: it starts frozen facing the
+# back wall, closes at normal pace once released (the menacing first advance),
+# dies in exactly two golf-club swings, and after the scripted push takes a
+# DOUBLE-length stagger then a slow shamble — paced so the player can search
+# all three nodes (3s each + walking + thinking, ~17s) and the neighbour
+# arrives just as the golf club comes up. See room.gd / docs/TUTORIAL.md.
+const TUTORIAL_SHAMBLE_SPEED = 35.0
 const TUTORIAL_HITS_TO_DIE = 2
-const TUTORIAL_PUSH_FREEZE = 4.0
+# Post-push recover: hit slide (2s) + this = ~5s total, double a normal push.
+const TUTORIAL_PUSH_FREEZE = 3.0
 var tutorial_scripted: bool = false
-var tutorial_frozen: bool = false   # idle until room.gd releases it
+var tutorial_frozen: bool = false    # idle until room.gd releases it
+var tutorial_shamble: bool = false   # after the scripted push: slow pursuit
+var tutorial_long_recover: bool = false
 var tutorial_hits: int = 0
 # Key drop (tutorial neighbour yields the 3002 key on death — matching the big
 # zombie's drop pattern).
@@ -141,12 +146,18 @@ func tutorial_release() -> void:
 
 
 func tutorial_stagger() -> void:
-	# The scripted push freezes the neighbour longer than a normal shove, and
-	# lets the player slip past it while it recovers.
-	state = "recovering"
-	state_timer = TUTORIAL_PUSH_FREEZE
-	velocity.x = 0
-	animated_sprite.play("Idle")
+	# The scripted push: a real knockback (so the shove visibly connects even
+	# if the player's own push whiffed on range), then a double-length recover,
+	# then the slow shamble. Passable while staggered so the player can slip by.
+	if state != "hit" and player != null:
+		# The player's _do_push didn't reach it — apply the shove ourselves.
+		var push_dir = signf(global_position.x - player.global_position.x)
+		velocity.x = (push_dir if push_dir != 0.0 else 1.0) * 180.0
+		state = "hit"
+		state_timer = HIT_DURATION
+		animated_sprite.play("Hit")
+	tutorial_long_recover = true
+	tutorial_shamble = true
 	_make_passable_to_player()
 
 
@@ -286,7 +297,10 @@ func _physics_process(delta: float) -> void:
 			state_timer -= delta
 			if state_timer <= 0:
 				state = "recovering"
-				state_timer = RECOVER_DURATION
+				# Scripted push: double-length recover so the player can turn
+				# and start searching before the shamble begins.
+				state_timer = TUTORIAL_PUSH_FREEZE if tutorial_long_recover else RECOVER_DURATION
+				tutorial_long_recover = false
 				animated_sprite.play("Idle")
 		"recovering":
 			velocity.x = move_toward(velocity.x, 0, SPEED)
@@ -333,7 +347,11 @@ func _physics_process(delta: float) -> void:
 			if player == null:
 				player = get_tree().get_first_node_in_group("player")
 			if player != null:
-				var move_speed = TUTORIAL_SPEED if tutorial_scripted else SPEED
+				# Scripted neighbour: normal pace on the first advance (menace),
+				# slow shamble after the push (paced for the three searches).
+				var move_speed = SPEED
+				if tutorial_scripted and tutorial_shamble:
+					move_speed = TUTORIAL_SHAMBLE_SPEED
 				var distance = global_position.distance_to(player.global_position)
 				var effective_detection = DETECTION_RANGE if alert_timer <= 0 else 2000.0
 				if tutorial_scripted:

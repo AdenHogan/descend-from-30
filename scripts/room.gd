@@ -12,8 +12,13 @@ var selected_index: int = 0
 # through TutorialManager (dialogue + press-a-key resume). docs/TUTORIAL.md.
 enum TutStep { INTRO, APPROACH, PUSH, WEAPON, SCAVENGE, COMBAT, HEAL, DONE }
 const TUT_CLUB_DURABILITY = 4   # low on purpose — a real resource from turn one
-const TUT_SEE_RANGE = 300.0     # player gets this close → curiosity + release
-const TUT_LUNGE_RANGE = 42.0    # zombie this close → the scripted first lunge
+# The neighbour stands almost at the back wall; with the trigger at 200px the
+# curiosity beat fires when the player is about a quarter into the final room.
+const TUT_SEE_RANGE = 200.0     # player gets this close → curiosity + turn + release
+# Matches the zombie's ATTACK_RANGE (30): the beat fires the instant she
+# lunges (she stops to attack at 30, so waiting for closer would never
+# trigger), and the taught push (range 40) connects with margin.
+const TUT_LUNGE_RANGE = 30.0    # zombie this close → the scripted first lunge
 var tut_step: int = -1          # -1 = not the tutorial apartment
 var tut_zombie: Node = null
 var tut_nodes: Array = []       # the three hidden anchors (junk / health / club)
@@ -270,8 +275,8 @@ func _spawn_tutorial_zombie(entrance_side: String) -> Node:
 	if WorldState.killed_zombies.has(key):
 		return null
 	var zombie = preload("res://scenes/enemy_zombie_standard.tscn").instantiate()
-	# Back of the apartment = the far wall from the entrance door.
-	var back_x = 980.0 if entrance_side == "left" else 190.0
+	# Almost at the back wall (the far wall from the entrance door).
+	var back_x = 1035.0 if entrance_side == "left" else 155.0
 	zombie.global_position = Vector2(back_x, 321)
 	zombie.spawn_key = key
 	zombie.tutorial_scripted = true
@@ -282,6 +287,9 @@ func _spawn_tutorial_zombie(entrance_side: String) -> Node:
 		var saved = WorldState.zombie_positions[key]
 		zombie.global_position = Vector2(saved["x"], saved["y"])
 	add_child(zombie)
+	# She starts FACING THE WALL — she only turns when the player calls out
+	# (the chase logic flips her toward the player on release).
+	zombie.animated_sprite.flip_h = entrance_side != "left"
 	return zombie
 
 
@@ -292,13 +300,18 @@ func _setup_tutorial() -> void:
 	var interactable_script = load("res://scripts/interactable.gd")
 	var already_cleared = WorldState.killed_zombies.has("3003:tutorial")
 
-	# Preference order: junk somewhere obvious, bandages in a bedside/drawer,
-	# golf club in a cupboard. Falls back to any free anchor. (025 = Old
-	# Magazine, the panic-spiking wasted search; 006 = Bandages; 012 = Club.)
+	# Placement is SPATIAL, not furniture-flavoured: the player retreats from
+	# the encounter at the back toward the entrance, so the nodes line up along
+	# that path — junk (025, the panicked wasted search) is met first, then
+	# bandages (006) mid-apartment, then the golf club (012) nearest the
+	# entrance. Interior spans x 113..1073; targets mirror for a right-side
+	# entrance (x' = 1186 - x). The spread also sets the pacing: three 3s
+	# searches + walking against the neighbour's post-push shamble.
+	var entrance_side = WorldState.get_entrance_side(apartment_id)
 	var wants = [
-		{"tag": "025", "keys": ["coffeetable", "sofa", "table", "shelf", "bookshelf", "desk"]},
-		{"tag": "006", "keys": ["bedside", "underbed", "pillow", "bed"]},
-		{"tag": "012", "keys": ["cupboard", "oven", "fridge", "wardrobe"]},
+		{"tag": "025", "x": 690.0},
+		{"tag": "006", "x": 480.0},
+		{"tag": "012", "x": 300.0},
 	]
 	var anchors: Array = []
 	for module in get_tree().get_nodes_in_group("room_module"):
@@ -307,7 +320,8 @@ func _setup_tutorial() -> void:
 				anchors.append(child)
 
 	for want in wants:
-		var chosen: Node = _pick_anchor(anchors, want["keys"])
+		var target_x: float = want["x"] if entrance_side == "left" else 1186.0 - want["x"]
+		var chosen: Node = _pick_anchor(anchors, target_x)
 		if chosen != null:
 			_place_tutorial_item(chosen, want["tag"], interactable_script, not already_cleared)
 
@@ -317,18 +331,19 @@ func _setup_tutorial() -> void:
 		tut_step = TutStep.INTRO
 
 
-func _pick_anchor(anchors: Array, keys: Array) -> Node:
-	# First free anchor whose name contains a keyword, else first free anchor.
+func _pick_anchor(anchors: Array, target_x: float) -> Node:
+	# The free anchor closest to the target x — real furniture, controlled
+	# geometry.
+	var best: Node = null
+	var best_dist := INF
 	for anchor in anchors:
 		if anchor.get_meta("tutorial_used", false):
 			continue
-		for k in keys:
-			if k in String(anchor.name):
-				return anchor
-	for anchor in anchors:
-		if not anchor.get_meta("tutorial_used", false):
-			return anchor
-	return null
+		var d: float = absf(anchor.global_position.x - target_x)
+		if d < best_dist:
+			best_dist = d
+			best = anchor
+	return best
 
 
 func _place_tutorial_item(anchor: Node, tag: String, interactable_script, hidden: bool) -> void:

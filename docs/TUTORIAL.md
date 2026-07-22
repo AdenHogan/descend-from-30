@@ -31,27 +31,30 @@ apartment teaches, in order: **push (defence) → search → weapon → combat �
 healing**. The whole sequence is a scripted state machine with gameplay
 pauses at each teaching beat (`get_tree().paused` + a dialogue prompt).
 
-1. **Enter.** The zombie is at the **BACK / far end** of the apartment
-   (far from the door), idle. **Scavenge nodes are hidden.**
-2. **Curiosity.** As the player moves in, dialogue «Mrs Delacroix…? Are you
-   okay in here?» — the neighbour, not yet understood as a threat.
-3. **The zombie sees the player and closes the gap.** When it gets **too
-   close it attacks** → **gameplay PAUSES** → prompt to **PUSH**
-   («Get it off me — shove it back!»). This introduces the **push mechanic
-   before any weapon exists** (the defensive fallback).
-4. **Player pushes.** The tutorial zombie **freezes longer than a normal
-   zombie** (bigger recovery window) so the player gets breathing room.
+1. **Enter.** The zombie stands **almost at the back wall** (the far wall
+   from the door), idle, **facing the wall**. **Scavenge nodes are hidden.**
+2. **Curiosity.** When the player is about a **quarter of the way into the
+   final room** (~200px from her): dialogue «Mrs Delacroix…? Are you okay in
+   here?» — and she **turns around** and starts closing at normal pace.
+3. **The lunge.** The beat fires the instant she reaches attack range
+   (30px — tight, so the taught push always connects) → scripted bite →
+   **gameplay PAUSES** → prompt to **PUSH** («It's on me — shove it back!»).
+   Push before any weapon exists (the defensive fallback).
+4. **Player pushes.** Real knockback + a **double-length stagger** (~5s,
+   twice a normal push) so the player can turn and start searching.
 5. **Gameplay PAUSES** for dialogue «I need something to fight back with —
    search the room!». This turns the player toward scavenging.
-6. **The three scavenge nodes reveal** (searched under pressure, in this
-   intended order):
-   - Node 1 → **junk** (spikes panic — a wasted search as it nears).
-   - Node 2 → **health item** (bandages / first aid).
-   - Node 3 → **golf club** (the weapon), already at **low durability**.
-7. **Timed slow approach.** After the push-freeze the zombie resumes but
-   moves **slowly**, moaning as it closes — paced so the player has time to
-   search **each** node in turn. On picking up the **golf club** the zombie
-   is **still not very close**.
+6. **The three scavenge nodes reveal**, laid out **along the retreat path**
+   (back → entrance), searched under pressure in this order:
+   - Node 1 (met first, nearest the encounter) → **junk** (spikes panic —
+     a wasted search as she nears).
+   - Node 2 (mid-apartment) → **health item** (bandages / first aid).
+   - Node 3 (nearest the entrance) → **golf club**, already **low
+     durability**.
+7. **Timed slow shamble.** After the stagger she pursues at a slow shamble
+   (~35 px/s vs the normal 40), moaning as she closes — paced against three
+   3s searches + walking + a little player thinking time (~17s), so she is
+   **almost on the player seconds before the golf club comes up**.
 8. **Gameplay PAUSES** for dialogue «Swing until it goes down.» →
    **scripted combat, NO RNG:** the 3003 zombie dies in **exactly 2 golf-club
    hits** (no knockdown/instakill rolls). 2 hits spends 2 of the club's uses.
