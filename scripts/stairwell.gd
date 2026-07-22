@@ -8,6 +8,7 @@ var player_nearby = false
 var bounce_time = 0.0
 var arrow = null
 var listen_label: Label = null
+var _herd_said = false
 
 func _ready() -> void:
 	body_entered.connect(_on_body_entered)
@@ -34,10 +35,15 @@ func _on_body_entered(body: Node2D) -> void:
 			arrow.visible = true
 		if listen_label:
 			listen_label.visible = true
+		# Tutorial (first-run Floor 30): the descent is gated until the 3003
+		# neighbour is dealt with — nudge the player back toward the apartments.
+		if direction == "down" and TutorialManager.stairs_locked():
+			_herd_back(body)
 
 func _on_body_exited(body: Node2D) -> void:
 	if body.name == "Player":
 		player_nearby = false
+		_herd_said = false
 		if arrow:
 			arrow.visible = false
 		if listen_label:
@@ -68,7 +74,24 @@ func _on_click(_viewport: Node, event: InputEvent, _shape_idx: int) -> void:
 	_use_stairs()
 
 
+func _herd_back(body: Node2D) -> void:
+	# Say it once per approach, and steer the player away from the stairwell
+	# (toward the middle of the corridor / the apartments they still need).
+	if not _herd_said:
+		TutorialManager.say("The stairwell's a death trap empty-handed — the neighbour in 3003 might have a spare key. Check there first.")
+		_herd_said = true
+	var herd_dir = 1.0 if stair_side == "left" else -1.0
+	if body.has_method("set_move_target"):
+		body.set_move_target(clampf(body.global_position.x + herd_dir * 280.0, 200.0, 1120.0))
+
+
 func _use_stairs() -> void:
+	# Gate the first-run Floor-30 descent until the 3003 encounter is cleared.
+	if direction == "down" and TutorialManager.stairs_locked():
+		var player = get_tree().get_first_node_in_group("player")
+		if player != null:
+			_herd_back(player)
+		return
 	WorldState.stair_spawn_side = stair_side
 	WorldState.stair_direction = direction
 	WorldState.spawn_source = "stair"

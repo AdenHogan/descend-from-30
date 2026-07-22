@@ -741,6 +741,22 @@ func get_instance_at(slot_index: int) -> ItemInstance:
 	return inventory[slot_index]
 
 
+func dev_reset_tutorial() -> void:
+	# DEV (F7): wipe the 3003 encounter's progress so the scripted tutorial
+	# replays from scratch — clears the neighbour's killed/position record and
+	# 3003's seeded/searched anchors so the three nodes re-seed fresh. Leaves
+	# the rest of the run (inventory, wallet, upgrades) untouched.
+	killed_zombies.erase("3003:tutorial")
+	zombie_positions.erase("3003:tutorial")
+	apartment_layouts.erase("3003")
+	for k in anchor_items.keys():
+		if String(k).begins_with("3003:"):
+			anchor_items.erase(k)
+	for k in searched_anchors.keys():
+		if String(k).begins_with("3003:"):
+			searched_anchors.erase(k)
+
+
 func mark_anchor_searched(apartment_id: String, anchor_name: String) -> void:
 	var key = apartment_id + ":" + anchor_name
 	searched_anchors[key] = true

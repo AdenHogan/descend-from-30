@@ -28,6 +28,13 @@ var slot_durability_bars: Array = []
 var selected_slot: int = -1
 var feedback_label: Label = null
 var feedback_timer: float = 0.0
+# Player-speech dialogue (tutorial prompts): a centred first-person line, its
+# own panel above the action bar. Transient lines auto-hide; prompt lines
+# persist (a paused teaching beat) until TutorialManager dismisses them.
+var dialogue_panel: PanelContainer = null
+var dialogue_label: Label = null
+var dialogue_hint: Label = null
+var dialogue_timer: float = 0.0
 var context_menu: Control = null
 var context_slot: int = -1
 var last_click_time: float = 0.0
@@ -62,6 +69,7 @@ func _ready() -> void:
 	_create_mode_label()
 	_create_slot_icons()
 	_create_feedback_label()
+	_create_dialogue_panel()
 	_create_context_menu()
 	_create_stamina_bar()
 	_create_wallet_label()
@@ -158,6 +166,67 @@ func _create_feedback_label() -> void:
 	feedback_label.modulate = Color(1, 1, 0.5, 0)
 	$Control.add_child(feedback_label)
 
+func _create_dialogue_panel() -> void:
+	dialogue_panel = PanelContainer.new()
+	# Renders while the tree is paused (teaching beats pause the game); a
+	# CanvasItem draws regardless of pause, but keep it ALWAYS to be safe.
+	dialogue_panel.process_mode = Node.PROCESS_MODE_ALWAYS
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.06, 0.06, 0.08, 0.92)
+	style.border_color = Color(0.75, 0.75, 0.8, 0.9)
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(6)
+	style.set_content_margin_all(14)
+	dialogue_panel.add_theme_stylebox_override("panel", style)
+	var box_w = 640.0
+	dialogue_panel.position = Vector2((SCREEN_W - box_w) / 2, 96)
+	dialogue_panel.custom_minimum_size = Vector2(box_w, 0)
+	dialogue_panel.visible = false
+
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 6)
+	dialogue_panel.add_child(vbox)
+
+	dialogue_label = Label.new()
+	dialogue_label.add_theme_font_size_override("font_size", 20)
+	dialogue_label.add_theme_color_override("font_color", Color(0.95, 0.95, 1.0, 1.0))
+	dialogue_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	dialogue_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	dialogue_label.custom_minimum_size = Vector2(box_w - 28, 0)
+	vbox.add_child(dialogue_label)
+
+	dialogue_hint = Label.new()
+	dialogue_hint.add_theme_font_size_override("font_size", 14)
+	dialogue_hint.add_theme_color_override("font_color", Color(1.0, 0.9, 0.35, 1.0))
+	dialogue_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	dialogue_hint.visible = false
+	vbox.add_child(dialogue_hint)
+
+	$Control.add_child(dialogue_panel)
+
+
+func show_dialogue(text: String, hint: String = "", persist: bool = false) -> void:
+	# Player-speech line. `persist` = a paused teaching beat that stays up until
+	# hide_dialogue(); otherwise it auto-hides after a few seconds.
+	if dialogue_panel == null:
+		return
+	dialogue_label.text = text
+	if hint != "":
+		dialogue_hint.text = hint
+		dialogue_hint.visible = true
+	else:
+		dialogue_hint.visible = false
+	dialogue_panel.visible = true
+	dialogue_timer = 0.0 if persist else 5.0
+
+
+func hide_dialogue() -> void:
+	if dialogue_panel == null:
+		return
+	dialogue_panel.visible = false
+	dialogue_timer = 0.0
+
+
 func _create_context_menu() -> void:
 	context_menu = PanelContainer.new()
 	context_menu.visible = false
@@ -250,6 +319,12 @@ func _process(delta: float) -> void:
 		feedback_label.modulate = Color(1, 1, 0.5, alpha)
 		if feedback_timer <= 0:
 			feedback_label.modulate = Color(1, 1, 0.5, 0)
+
+	# Transient dialogue auto-hide (persistent prompt lines keep timer at 0).
+	if dialogue_timer > 0:
+		dialogue_timer -= delta
+		if dialogue_timer <= 0:
+			hide_dialogue()
 
 	# Close context menu on click outside
 	if context_menu and context_menu.visible:
