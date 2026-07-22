@@ -140,6 +140,22 @@ means no rendering — UI layout and art still need an in-editor look.
   repairs the first repairable item (damaged gun prioritised, else broken
   weapon/tool), restoring durability; the toolbox is consumed when its
   charges run out. (Crafting-combine of broken parts is still future.)
-- Next: **Upgrade offers** (store doc step 6 — needs the upgrade pool
-  designed first), then player-corpse recovery (step 7).
+- Floor 30 scripted tutorial v1 (first run only — see docs/TUTORIAL.md):
+  new `TutorialManager` autoload drives player-speech dialogue prompts
+  (`HUD.show_dialogue`) and gameplay-PAUSE teaching beats (freeze → "press
+  a key" → resume-into-callback). The 3003 encounter is a poll-driven state
+  machine in `room.gd` (`_tutorial_process`): neighbour spawns at the BACK,
+  frozen; approach → curiosity line + slow release; first lunge → pause →
+  **push** intro (scripted long stagger); pause → "find a weapon" → the three
+  hidden nodes reveal (junk / bandages / golf club) + auto scavenge mode;
+  slow approach paced for sequential searching; club pickup → pause → combat
+  (mode+equip auto) with **deterministic 2-hit, no-RNG** death; neighbour
+  **drops the 3002 key** on death; pause → heal prompt. Golf club spawns at
+  **low durability (4)**. Stairwell descent is **gated + herds** the player
+  back until the 3003 zombie is cleared (`stairwell.gd` + `killed_zombies`
+  milestone). v2 TODO: 3004 barricade → noise mechanic → scripted stairwell
+  zombie + force-lock-vs-fight choice; 3002/3005 interior info.
+- Next: tutorial **v2** (above), then characters/profiles/stats + the
+  two-&-three-run arc; also **Upgrade offers** polish and player-corpse
+  recovery (store step 7).
 - Not started: time-of-day, fires, balcony descent, quests, character stats.

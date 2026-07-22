@@ -4,6 +4,20 @@ var apartment_id: String = WorldState.current_apartment_id
 var interactables: Array = []
 var selected_index: int = 0
 
+# --- 3003 scripted tutorial (first run only) ------------------------------
+# The neighbour encounter is a hand-paced state machine driven from _process:
+# see the zombie → it lunges (pause → PUSH intro) → pause → find a weapon →
+# three nodes reveal → scavenge under a slow approach → pause → attack (2-hit
+# kill) → key drops → pause → heal prompt. Beats that pause the game are run
+# through TutorialManager (dialogue + press-a-key resume). docs/TUTORIAL.md.
+enum TutStep { INTRO, APPROACH, PUSH, WEAPON, SCAVENGE, COMBAT, HEAL, DONE }
+const TUT_CLUB_DURABILITY = 4   # low on purpose — a real resource from turn one
+const TUT_SEE_RANGE = 300.0     # player gets this close → curiosity + release
+const TUT_LUNGE_RANGE = 42.0    # zombie this close → the scripted first lunge
+var tut_step: int = -1          # -1 = not the tutorial apartment
+var tut_zombie: Node = null
+var tut_nodes: Array = []       # the three hidden anchors (junk / health / club)
+
 const MODULE_SCENES = {
 	"bedroom": "res://scenes/Room_Modules/bedroom.tscn",
 	"bathroom": "res://scenes/Room_Modules/bathroom.tscn",
@@ -17,8 +31,8 @@ const MODULE_SCENES = {
 # carry the search anchors) with a deterministic room-type per slot, instead
 # of the old Tutorial/ stub scenes (which had no anchors, so nothing could be
 # searched — the tutorial's core loop was dead). 3003 is the scripted first
-# apartment (living room / kitchen / bedroom) and is seeded with guaranteed
-# tutorial items — see _seed_tutorial_content().
+# apartment (living room / kitchen / bedroom); its three nodes and the paced
+# neighbour encounter are set up in _setup_tutorial() / _tutorial_process().
 const TUTORIAL_LAYOUTS = {
 	"3002": ["living_room", "bedroom", "bathroom"],
 	"3003": ["living_room", "kitchen", "bedroom"],
@@ -82,10 +96,10 @@ func _ready() -> void:
 	if door_state == WorldState.DoorState.BREACHED:
 		_spawn_breached_enemies()
 	elif WorldState.is_first_run and apartment_id == "3003":
-		# The scripted first encounter: one zombie inside 3003 (the GDD's
-		# weaponless first fight). Other tutorial apartments stay empty so the
-		# player can learn to search in peace.
-		_spawn_tutorial_zombie()
+		# The scripted first encounter: one zombie at the BACK of 3003 (the
+		# GDD's weaponless first fight). Other tutorial apartments stay empty so
+		# the player can learn to search in peace.
+		tut_zombie = _spawn_tutorial_zombie(entrance_side)
 	elif not (WorldState.is_first_run and WorldState.current_floor == 30):
 		var zombie_count = WorldState.get_apartment_zombie_count(apartment_id)
 		if zombie_count > 0:
@@ -121,7 +135,12 @@ func _ready() -> void:
 	var is_paradise = WorldState.is_paradise_apartment(apartment_id)
 	var interactable_script = load("res://scripts/interactable.gd")
 
-	for module in get_tree().get_nodes_in_group("room_module"):
+	# 3003's first-run encounter uses ONLY its three scripted nodes (junk /
+	# health / club), so skip the normal random anchor seeding here — the
+	# tutorial owns this apartment's loot. _setup_tutorial() places the nodes.
+	var tutorial_apartment = WorldState.is_first_run and apartment_id == "3003"
+
+	for module in (get_tree().get_nodes_in_group("room_module") if not tutorial_apartment else []):
 		var room_type = ""
 		for rt in MODULE_SCENES.keys():
 			if module.get_node_or_null("ColorRect") != null:
@@ -226,10 +245,10 @@ func _ready() -> void:
 	# weapon usually means the means to feed it isn't far away.
 	_pair_bullets_with_gun(apartment_id)
 
-	# Tutorial: guarantee 3003's scripted finds (golf club, bandages, 3002 key)
-	# so the first apartment is always completable.
-	if WorldState.is_first_run and apartment_id == "3003":
-		_seed_tutorial_content()
+	# Tutorial: place 3003's three scripted nodes (junk / bandages / golf club),
+	# hidden until the scripted reveal, and arm the encounter state machine.
+	if tutorial_apartment:
+		_setup_tutorial()
 
 	await get_tree().process_frame
 	WorldState.interaction_handled = false
@@ -242,35 +261,44 @@ func _ready() -> void:
 	_spawn_corpses(WorldState.current_floor, WorldState.current_apartment_id)
 	_spawn_world_drops(WorldState.current_floor)
 
-func _spawn_tutorial_zombie() -> void:
-	# One guaranteed zombie inside 3003, unless already killed. Fixed spawn_key
-	# so leaving and returning doesn't respawn it.
+func _spawn_tutorial_zombie(entrance_side: String) -> Node:
+	# One guaranteed zombie at the BACK of 3003 (far from the entrance), unless
+	# already killed. Fixed spawn_key so leaving and returning doesn't respawn
+	# it. Scripted: frozen until the player draws near, slow once released,
+	# 2-hit kill, and it yields the 3002 key on death.
 	var key = "3003:tutorial"
 	if WorldState.killed_zombies.has(key):
-		return
+		return null
 	var zombie = preload("res://scenes/enemy_zombie_standard.tscn").instantiate()
-	zombie.global_position = Vector2(600, 321)
+	# Back of the apartment = the far wall from the entrance door.
+	var back_x = 980.0 if entrance_side == "left" else 190.0
+	zombie.global_position = Vector2(back_x, 321)
 	zombie.spawn_key = key
+	zombie.tutorial_scripted = true
+	zombie.tutorial_frozen = true
+	zombie.drops_key = true
+	zombie.key_target_apartment = "3002"
 	if WorldState.zombie_positions.has(key):
 		var saved = WorldState.zombie_positions[key]
 		zombie.global_position = Vector2(saved["x"], saved["y"])
 	add_child(zombie)
+	return zombie
 
 
-func _seed_tutorial_content() -> void:
-	# Force 3003's guaranteed finds onto real anchors so the tutorial always
-	# yields a weapon, healing, and the key onward. Picks the first matching
-	# anchor by furniture keyword and activates it (script + visible), so it
-	# gets collected into `interactables` and can be searched.
+func _setup_tutorial() -> void:
+	# Place the three scripted nodes on real furniture anchors — junk, bandages,
+	# golf club — hidden until the reveal beat. If the neighbour is already dead
+	# (a return visit), skip the choreography and just expose whatever's left.
 	var interactable_script = load("res://scripts/interactable.gd")
-	var placed = {"012": false, "006": false, "key": false}
+	var already_cleared = WorldState.killed_zombies.has("3003:tutorial")
 
-	# Preference order: golf club in a cupboard, bandages in a bedside/drawer,
-	# the 3002 key on a table/shelf. Falls back to any free anchor.
+	# Preference order: junk somewhere obvious, bandages in a bedside/drawer,
+	# golf club in a cupboard. Falls back to any free anchor. (025 = Old
+	# Magazine, the panic-spiking wasted search; 006 = Bandages; 012 = Club.)
 	var wants = [
-		{"tag": "012", "keys": ["cupboard", "oven", "fridge"]},
+		{"tag": "025", "keys": ["coffeetable", "sofa", "table", "shelf", "bookshelf", "desk"]},
 		{"tag": "006", "keys": ["bedside", "underbed", "pillow", "bed"]},
-		{"tag": "key", "keys": ["coffeetable", "sofa", "table", "bookshelf", "desk", "shelf"]},
+		{"tag": "012", "keys": ["cupboard", "oven", "fridge", "wardrobe"]},
 	]
 	var anchors: Array = []
 	for module in get_tree().get_nodes_in_group("room_module"):
@@ -279,47 +307,165 @@ func _seed_tutorial_content() -> void:
 				anchors.append(child)
 
 	for want in wants:
-		for anchor in anchors:
-			if _anchor_taken(anchor, placed):
-				continue
-			var matches = false
-			for k in want["keys"]:
-				if k in String(anchor.name):
-					matches = true
-					break
-			if matches:
-				_place_tutorial_item(anchor, want["tag"], interactable_script)
-				placed[want["tag"]] = true
-				break
-	# Fallbacks: if a keyword didn't match any anchor name, use any free one.
-	for want in wants:
-		if placed[want["tag"]]:
+		var chosen: Node = _pick_anchor(anchors, want["keys"])
+		if chosen != null:
+			_place_tutorial_item(chosen, want["tag"], interactable_script, not already_cleared)
+
+	if already_cleared:
+		tut_step = TutStep.DONE
+	else:
+		tut_step = TutStep.INTRO
+
+
+func _pick_anchor(anchors: Array, keys: Array) -> Node:
+	# First free anchor whose name contains a keyword, else first free anchor.
+	for anchor in anchors:
+		if anchor.get_meta("tutorial_used", false):
 			continue
-		for anchor in anchors:
-			if _anchor_taken(anchor, placed):
-				continue
-			_place_tutorial_item(anchor, want["tag"], interactable_script)
-			placed[want["tag"]] = true
-			break
+		for k in keys:
+			if k in String(anchor.name):
+				return anchor
+	for anchor in anchors:
+		if not anchor.get_meta("tutorial_used", false):
+			return anchor
+	return null
 
 
-func _anchor_taken(anchor: Node, placed: Dictionary) -> bool:
-	# An anchor already carrying a tutorial-scripted item this pass.
-	return anchor.get_meta("tutorial_used", false)
-
-
-func _place_tutorial_item(anchor: Node, tag: String, interactable_script) -> void:
+func _place_tutorial_item(anchor: Node, tag: String, interactable_script, hidden: bool) -> void:
 	if anchor.get_script() == null:
 		anchor.set_script(interactable_script)
 		anchor.apartment_id = "3003"
 		anchor._ready()
-	anchor.set_process(true)
-	anchor.visible = true
 	anchor.set_meta("tutorial_used", true)
-	if tag == "key":
-		WorldState.set_anchor_key("3003", anchor.name, "3002")
+	anchor.set_meta("tutorial_tag", tag)
+	WorldState.set_anchor_item("3003", anchor.name, tag)
+	tut_nodes.append(anchor)
+	if hidden:
+		# Hidden until the scripted reveal: no orb, not searchable, not collected
+		# into `interactables` yet.
+		anchor.visible = false
+		anchor.set_process(false)
 	else:
-		WorldState.set_anchor_item("3003", anchor.name, tag)
+		anchor.visible = true
+		anchor.set_process(true)
+		interactables.append(anchor)
+
+
+func _reveal_tutorial_nodes() -> void:
+	for anchor in tut_nodes:
+		if not is_instance_valid(anchor):
+			continue
+		anchor.visible = true
+		anchor.set_process(true)
+		if not interactables.has(anchor):
+			interactables.append(anchor)
+
+
+# --- 3003 scripted state machine ------------------------------------------
+# Poll-driven (runs even in combat mode); paused teaching beats hand off to
+# TutorialManager, which resumes into the _on_tut_* callbacks below.
+
+func _tutorial_process(_delta: float) -> void:
+	if tut_step < 0 or tut_step == TutStep.DONE:
+		return
+	var player = get_node_or_null("Player")
+	if player == null or tut_zombie == null or not is_instance_valid(tut_zombie):
+		return
+	var dist = player.global_position.distance_to(tut_zombie.global_position)
+	match tut_step:
+		TutStep.INTRO:
+			# Curiosity on approach, then the neighbour stirs and starts closing.
+			if dist <= TUT_SEE_RANGE:
+				TutorialManager.say("Mrs Delacroix…? Are you okay in there?")
+				tut_zombie.tutorial_release()
+				tut_step = TutStep.APPROACH
+		TutStep.APPROACH:
+			if tut_zombie.is_dead:
+				tut_step = TutStep.DONE
+				return
+			# First lunge: a scripted bite, then pause and teach the push.
+			if dist <= TUT_LUNGE_RANGE:
+				tut_step = TutStep.PUSH
+				if player.has_method("receive_hit"):
+					player.receive_hit(1)
+				TutorialManager.prompt(
+					"It's on me — shove it back!", "push", _on_tut_push, "[Push]", true)
+		TutStep.SCAVENGE:
+			if tut_zombie.is_dead:
+				tut_step = TutStep.DONE
+				return
+			# Grabbing the club ends the frantic search and cues the fight.
+			if _tut_player_has("012"):
+				tut_step = TutStep.COMBAT
+				_tut_set_club_durability()
+				WorldState.is_scavenge_mode = false
+				HUD.update_mode_indicator()
+				_tut_equip("012")
+				TutorialManager.prompt(
+					"A club — good. Time to swing until it goes down.", "interact",
+					_on_tut_combat, "[E] to ready up")
+		TutStep.COMBAT:
+			if tut_zombie.is_dead:
+				tut_step = TutStep.HEAL
+				TutorialManager.prompt(
+					"It got me back there — I should patch up with those bandages.",
+					"interact", _on_tut_heal, "[E], then use the bandages")
+
+
+func _on_tut_push() -> void:
+	# The player pushed: shove the neighbour and give it a long stagger, then
+	# pause to send them searching for a weapon.
+	var player = get_node_or_null("Player")
+	if player != null and player.has_method("_do_push"):
+		player._do_push()
+	if is_instance_valid(tut_zombie):
+		tut_zombie.tutorial_stagger()
+	TutorialManager.prompt(
+		"That won't hold it — I need a weapon. Search the room!",
+		"interact", _on_tut_weapon, "[E] to continue")
+
+
+func _on_tut_weapon() -> void:
+	# Reveal the three nodes and drop into scavenge mode so searching works.
+	_reveal_tutorial_nodes()
+	WorldState.is_scavenge_mode = true
+	HUD.update_mode_indicator()
+	TutorialManager.say("Anything I can swing — hurry!")
+	tut_step = TutStep.SCAVENGE
+
+
+func _on_tut_combat() -> void:
+	# Resumed into combat with the club equipped; the neighbour is 2 hits away.
+	TutorialManager.say("Two solid hits.")
+
+
+func _on_tut_heal() -> void:
+	TutorialManager.say("There. Now — find a way down.")
+	tut_step = TutStep.DONE
+
+
+func _tut_player_has(item_id: String) -> bool:
+	for instance in WorldState.inventory:
+		if instance.item_id == item_id:
+			return true
+	return false
+
+
+func _tut_equip(item_id: String) -> void:
+	for i in range(WorldState.inventory.size()):
+		if WorldState.inventory[i].item_id == item_id:
+			HUD.selected_slot = i
+			HUD._update_slot_highlights()
+			return
+
+
+func _tut_set_club_durability() -> void:
+	for instance in WorldState.inventory:
+		if instance.item_id == "012":
+			instance.current_durability = TUT_CLUB_DURABILITY
+			instance.is_depleted = false
+			HUD.refresh_inventory()
+			return
 
 
 func _pair_bullets_with_gun(apt_id: String) -> void:
@@ -461,6 +607,8 @@ func _is_player_facing_anchor(anchor: Node) -> bool:
 
 
 func _process(_delta: float) -> void:
+	_tutorial_process(_delta)
+
 	if not WorldState.is_scavenge_mode:
 		for i in interactables:
 			if is_instance_valid(i):

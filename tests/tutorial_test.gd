@@ -20,6 +20,7 @@ func _ready() -> void:
 	_test_blood_text_component()
 	_test_hallway_baked_hints()
 	_test_pause_menu_autoload()
+	_test_tutorial_manager()
 	await _test_3003_scripted_content()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
@@ -61,24 +62,57 @@ func _test_3003_scripted_content() -> void:
 	add_child(room)
 	for i in range(8):
 		await get_tree().process_frame
+	# The three scripted nodes are seeded (junk / bandages / golf club). The
+	# 3002 key is NOT on an anchor any more — the neighbour drops it on death.
 	var vals: Array = []
 	for k in WorldState.anchor_items:
 		if String(k).begins_with("3003:"):
 			vals.append(WorldState.anchor_items[k])
-	check("012" in vals, "golf club guaranteed in 3003 (%s)" % str(vals))
-	check("006" in vals, "bandages guaranteed in 3003")
-	check("KEY:3002" in vals, "key to 3002 guaranteed in 3003 (unlocks the next door)")
-	var zombies := 0
-	for z in get_tree().get_nodes_in_group("zombie"):
-		if not z.is_dead:
-			zombies += 1
-	check(zombies >= 1, "a zombie spawns inside 3003 (%d)" % zombies)
+	check("012" in vals, "golf club is one of 3003's nodes (%s)" % str(vals))
+	check("006" in vals, "bandages are one of 3003's nodes")
+	check("025" in vals, "a junk item is the panic node")
+	check(not ("KEY:3002" in vals), "3002 key is NOT on an anchor (zombie yields it)")
+	check(vals.size() == 3, "exactly three scavenge nodes in 3003 (%d)" % vals.size())
+	# The scripted neighbour: at the BACK, frozen, and the 3002-key carrier.
+	var tz = room.tut_zombie
+	check(tz != null and is_instance_valid(tz), "the scripted neighbour spawned")
+	if tz != null and is_instance_valid(tz):
+		check(tz.tutorial_scripted, "neighbour is in scripted (no-RNG) mode")
+		check(tz.tutorial_frozen, "neighbour starts frozen until the player nears")
+		check(tz.drops_key and tz.key_target_apartment == "3002", "neighbour yields the 3002 key on death")
+	check(room.tut_step == room.TutStep.INTRO, "encounter armed at INTRO")
+	# The nodes stay hidden until the scripted reveal.
+	var hidden_ok := true
+	for anchor in room.tut_nodes:
+		if anchor.visible:
+			hidden_ok = false
+	check(hidden_ok and room.tut_nodes.size() == 3, "the three nodes are hidden pre-reveal")
 	# Door states match the GDD's tutorial floor.
 	check(WorldState.get_door_state("3003") == WorldState.DoorState.OPEN, "3003 open")
 	check(WorldState.get_door_state("3002") == WorldState.DoorState.SHUT_LOCKED, "3002 locked (needs the key)")
 	check(WorldState.get_door_state("3004") == WorldState.DoorState.BARRICADED_LOCKED, "3004 barricaded+locked")
 	check(WorldState.get_door_state("3005") == WorldState.DoorState.OPEN, "3005 open")
 	room.queue_free()
+
+
+func _test_tutorial_manager() -> void:
+	print("[tutorial manager]")
+	var tm = get_node_or_null("/root/TutorialManager")
+	check(tm != null, "TutorialManager is an autoload singleton")
+	if tm == null:
+		return
+	# Stairs gate: locked while the first-run neighbour is alive, open once the
+	# encounter is cleared (killed_zombies carries the milestone).
+	WorldState.new_game()
+	WorldState.current_floor = 30
+	WorldState.killed_zombies.erase("3003:tutorial")
+	check(tm.stairs_locked(), "Floor-30 descent is locked pre-clear")
+	WorldState.killed_zombies["3003:tutorial"] = {"floor": 30}
+	check(not tm.stairs_locked(), "descent unlocks once the neighbour is cleared")
+	WorldState.killed_zombies.erase("3003:tutorial")
+	WorldState.is_first_run = false
+	check(not tm.stairs_locked(), "gate is inert after the first run")
+	WorldState.is_first_run = true
 
 
 func _test_pause_menu_autoload() -> void:

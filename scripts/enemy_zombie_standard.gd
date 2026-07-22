@@ -8,6 +8,23 @@ const HIT_DURATION = 2
 const RECOVER_DURATION = 0.5
 const KNOCKDOWN_DURATION = 3.0
 
+# --- Tutorial (scripted 3003 zombie) --------------------------------------
+# The first-run neighbour is hand-tuned, not RNG: it starts frozen at the back
+# of the apartment, approaches SLOWLY once released, dies in exactly two golf-
+# club swings, and stays staggered longer after the scripted push so the
+# player gets real breathing room. See room.gd / docs/TUTORIAL.md.
+const TUTORIAL_SPEED = 20.0
+const TUTORIAL_HITS_TO_DIE = 2
+const TUTORIAL_PUSH_FREEZE = 4.0
+var tutorial_scripted: bool = false
+var tutorial_frozen: bool = false   # idle until room.gd releases it
+var tutorial_hits: int = 0
+# Key drop (tutorial neighbour yields the 3002 key on death — matching the big
+# zombie's drop pattern).
+var drops_key: bool = false
+var key_target_apartment: String = ""
+var key_dropped: bool = false
+
 var animated_sprite: AnimatedSprite2D
 var player: Node2D = null
 var state = "idle"
@@ -118,8 +135,34 @@ func receive_push(force: float) -> void:
 	animated_sprite.play("Hit")
 	_make_passable_to_player()
 
+func tutorial_release() -> void:
+	# room.gd releases the frozen neighbour into its slow approach.
+	tutorial_frozen = false
+
+
+func tutorial_stagger() -> void:
+	# The scripted push freezes the neighbour longer than a normal shove, and
+	# lets the player slip past it while it recovers.
+	state = "recovering"
+	state_timer = TUTORIAL_PUSH_FREEZE
+	velocity.x = 0
+	animated_sprite.play("Idle")
+	_make_passable_to_player()
+
+
 func receive_damage(amount: int, damage_type: String) -> void:
 	if is_dead or state == "knockdown":
+		return
+	# Scripted combat: no luck. Exactly two golf-club hits put the neighbour
+	# down, no knockdown/instakill rolls, whatever the weapon's raw damage.
+	if tutorial_scripted:
+		tutorial_hits += 1
+		if tutorial_hits >= TUTORIAL_HITS_TO_DIE:
+			_die()
+		else:
+			state = "hit"
+			state_timer = HIT_DURATION
+			animated_sprite.play("Hit")
 		return
 	current_hp -= amount
 	if current_hp <= 0:
@@ -165,7 +208,18 @@ func _die() -> void:
 			"apartment_id": WorldState.current_apartment_id,
 			"type": "standard"
 		}
- 
+
+	# Tutorial neighbour yields the 3002 key on death (its scripted reward);
+	# it doesn't also roll the random consumable drop.
+	if drops_key and key_target_apartment != "" and not key_dropped:
+		key_dropped = true
+		_drop_key()
+		await animated_sprite.animation_finished
+		animated_sprite.pause()
+		await get_tree().create_timer(300).timeout
+		queue_free()
+		return
+
 # Roll for loot drop — 18% chance, consumables only
 	var loot_id = WorldState.roll_zombie_loot_id(global_position, WorldState.current_floor)
 	if loot_id != "":
@@ -180,6 +234,15 @@ func _die() -> void:
 	animated_sprite.pause()
 	await get_tree().create_timer(300).timeout
 	queue_free()
+
+func _drop_key() -> void:
+	var added = WorldState.add_key_to_inventory(key_target_apartment)
+	if added:
+		HUD.show_feedback("Key — Apt " + key_target_apartment + " found!")
+	else:
+		WorldState.add_world_drop("022", global_position, WorldState.current_floor, {"target_apartment": key_target_apartment})
+		HUD.show_feedback("Key dropped nearby — inventory full.")
+
 
 func receive_hit_from_gun(outcome: String) -> void:
 	if is_dead:
@@ -260,11 +323,21 @@ func _physics_process(delta: float) -> void:
 				animated_sprite.play("Walk")
 		"chase", "idle":
 			_try_resolidify()
+			# Scripted neighbour: stays put until room.gd releases it, then
+			# closes in at a slow, telegraphed pace so the player can scavenge.
+			if tutorial_scripted and tutorial_frozen:
+				velocity.x = 0
+				animated_sprite.play("Idle")
+				move_and_slide()
+				return
 			if player == null:
 				player = get_tree().get_first_node_in_group("player")
 			if player != null:
+				var move_speed = TUTORIAL_SPEED if tutorial_scripted else SPEED
 				var distance = global_position.distance_to(player.global_position)
 				var effective_detection = DETECTION_RANGE if alert_timer <= 0 else 2000.0
+				if tutorial_scripted:
+					effective_detection = 2000.0  # always aware once released
 				if distance <= ATTACK_RANGE:
 					state = "attack"
 					state_timer = 0.8
@@ -272,7 +345,7 @@ func _physics_process(delta: float) -> void:
 				elif distance <= effective_detection:
 					state = "chase"
 					var direction = sign(player.global_position.x - global_position.x)
-					velocity.x = direction * SPEED
+					velocity.x = direction * move_speed
 					animated_sprite.flip_h = direction < 0
 					animated_sprite.play("Walk")
 				else:
