@@ -231,6 +231,17 @@ func _ready() -> void:
 
 			var passed_spawn_roll = apt_rng_items.randf() <= spawn_chance
 
+			# First-run 3002 is the tutorial's key-reward room: useful but
+			# CONSERVATIVE loot only — cash, an ice pack, a first aid kit. No
+			# weapons, no keys onward, no toolbox (nothing that would defuse the
+			# golf-club durability lesson). Cash is weighted heaviest.
+			if WorldState.is_first_run and apartment_id == "3002":
+				var reward_pool = ["033", "033", "011", "007"]
+				var reward_id = reward_pool[apt_rng_items.randi() % reward_pool.size()]
+				if passed_spawn_roll and not already_searched:
+					WorldState.set_anchor_item(apartment_id, anchor.name, reward_id)
+				continue
+
 			# Check if this anchor should spawn a key instead of a regular item
 			var floor_num = int(apartment_id.left(apartment_id.length() - 2))
 			if WorldState.should_anchor_spawn_key(apartment_id, anchor.name):
@@ -254,6 +265,12 @@ func _ready() -> void:
 	# hidden until the scripted reveal, and arm the encounter state machine.
 	if tutorial_apartment:
 		_setup_tutorial()
+
+	# 3002 is the tutorial's reward room — first entry is also the EARLIEST
+	# place descent gets mentioned (never inside 3003).
+	if WorldState.is_first_run and apartment_id == "3002":
+		TutorialManager.say_once("3002_entry",
+			"So this is what the key kept safe. Take what helps — then find the stairs. It's a long way down.")
 
 	await get_tree().process_frame
 	WorldState.interaction_handled = false
@@ -455,7 +472,9 @@ func _on_tut_combat() -> void:
 
 
 func _on_tut_heal() -> void:
-	TutorialManager.say("There. Now — find a way down.")
+	# The key realization — points at 3002, NOT at descending (descent talk
+	# comes later, in 3002 / at the stairs).
+	TutorialManager.say("Wait… this isn't my spare key. It's for next door — 3002. Worth a look.")
 	tut_step = TutStep.DONE
 
 

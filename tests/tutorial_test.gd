@@ -21,6 +21,7 @@ func _ready() -> void:
 	_test_hallway_baked_hints()
 	_test_pause_menu_autoload()
 	_test_tutorial_manager()
+	await _test_barricade_beat()
 	await _test_3003_scripted_content()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
@@ -114,18 +115,49 @@ func _test_tutorial_manager() -> void:
 	check(tm != null, "TutorialManager is an autoload singleton")
 	if tm == null:
 		return
-	# Stairs gate: locked while the first-run neighbour is alive, open once the
-	# encounter is cleared (killed_zombies carries the milestone).
+	# Staged stairs gate along the mandatory path: key → apts → choice → open.
 	WorldState.new_game()
 	WorldState.current_floor = 30
-	WorldState.killed_zombies.erase("3003:tutorial")
-	check(tm.stairs_locked(), "Floor-30 descent is locked pre-clear")
+	WorldState.seed_floor_door_states(30)
+	check(tm.stair_stage() == "key" and tm.stairs_locked(), "stage 'key' while the neighbour is up")
 	WorldState.killed_zombies["3003:tutorial"] = {"floor": 30}
-	check(not tm.stairs_locked(), "descent unlocks once the neighbour is cleared")
+	check(tm.stair_stage() == "apts" and tm.stairs_locked(), "stage 'apts' with the 3004 barricade standing")
+	WorldState.set_door_state("3004", WorldState.DoorState.SHUT_LOCKED)
+	check(tm.stair_stage() == "choice" and tm.stairs_locked(), "stage 'choice' once the barricade is down")
+	WorldState.killed_zombies["30hall:tutorial"] = {"floor": 30}
+	check(tm.stair_stage() == "open" and not tm.stairs_locked(), "killing the corridor zombie opens descent")
+	WorldState.killed_zombies.erase("30hall:tutorial")
+	WorldState.set_door_state("3004", WorldState.DoorState.OPEN)
+	check(tm.stair_stage() == "open", "forcing into 3004 also opens descent")
+	check(not tm.stair_block_info().is_empty() == tm.stairs_locked(), "block info matches the lock state")
 	WorldState.killed_zombies.erase("3003:tutorial")
 	WorldState.is_first_run = false
 	check(not tm.stairs_locked(), "gate is inert after the first run")
 	WorldState.is_first_run = true
+
+
+func _test_barricade_beat() -> void:
+	print("[hallway barricade beat]")
+	WorldState.new_game()
+	WorldState.current_floor = 30
+	WorldState.seed_floor_door_states(30)
+	WorldState.killed_zombies["3003:tutorial"] = {"floor": 30}  # 3003 cleared
+	# Barricade work has begun — the noise-drawn zombie must walk in and hold.
+	WorldState.barricade_progress["3004"] = 0.4
+	var hallway = load("res://scenes/hallway.tscn").instantiate()
+	add_child(hallway)
+	for i in range(8):
+		await get_tree().process_frame
+	var hz = hallway.hall_zombie
+	check(hz != null and is_instance_valid(hz), "corridor zombie spawns once barricade work starts")
+	if hz != null and is_instance_valid(hz):
+		check(hz.tutorial_scripted, "corridor zombie is scripted (2-hit, no RNG)")
+		check(hz.tutorial_frozen, "it holds (frozen) while the barricade still stands")
+		check(hz.tutorial_hold_x > 0.0, "it walks to a hold point, not straight at the player")
+		check(hz.spawn_key == "30hall:tutorial", "fixed spawn key (no respawn after the kill)")
+	hallway.queue_free()
+	WorldState.barricade_progress.erase("3004")
+	await get_tree().process_frame
 
 
 func _test_pause_menu_autoload() -> void:

@@ -171,6 +171,8 @@ func _create_dialogue_panel() -> void:
 	# Renders while the tree is paused (teaching beats pause the game); a
 	# CanvasItem draws regardless of pause, but keep it ALWAYS to be safe.
 	dialogue_panel.process_mode = Node.PROCESS_MODE_ALWAYS
+	# Pure display — must NEVER swallow world clicks (click-to-move).
+	dialogue_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var style = StyleBoxFlat.new()
 	style.bg_color = Color(0.06, 0.06, 0.08, 0.92)
 	style.border_color = Color(0.75, 0.75, 0.8, 0.9)
@@ -185,6 +187,8 @@ func _create_dialogue_panel() -> void:
 
 	var vbox = VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 6)
+	# IGNORE doesn't shield children — they hit-test independently.
+	vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	dialogue_panel.add_child(vbox)
 
 	dialogue_label = Label.new()

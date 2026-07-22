@@ -16,6 +16,12 @@ var intensity: float = 0.0
 var source_world_pos: Vector2 = Vector2.ZERO
 var profile: Dictionary = {}
 var pings: Array = []          # each: {"age": float, "phase": float}
+# YOU-are-loud pings (barricade tearing etc.): orange, jagged, fast — the
+# aggressive counterpart to the listen system's soft red ripples. These render
+# any time, no grey overlay needed.
+const NOISE_PING_LIFE = 0.6
+const NOISE_PING_GROWTH = 150.0
+var noise_pings: Array = []    # each: {"age": float, "pos": Vector2, "phase": float}
 var ping_spawn_timer: float = 0.0
 var pending_report: String = ""
 var report_timer: float = 0.0
@@ -66,6 +72,8 @@ void fragment() {
 	add_child(ping_canvas)
 
 	report_panel = PanelContainer.new()
+	# Pure display — must never swallow world clicks (click-to-move).
+	report_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	report_panel.visible = false
 	report_panel.position = Vector2(140, 470)
 	report_panel.custom_minimum_size = Vector2(420, 0)
@@ -90,6 +98,11 @@ void fragment() {
 	heartbeat_player = AudioStreamPlayer.new()
 	heartbeat_player.stream = HEARTBEAT_STREAM
 	add_child(heartbeat_player)
+
+
+func noise_ping(world_pos: Vector2) -> void:
+	# One aggressive orange echo at a world position — "you just made noise".
+	noise_pings.append({"age": 0.0, "pos": world_pos, "phase": randf() * TAU})
 
 
 func begin(world_pos: Vector2, listen_profile: Dictionary) -> void:
@@ -145,6 +158,11 @@ func _process(delta: float) -> void:
 			heartbeat_timer = HEARTBEAT_PERIOD
 			heartbeat_player.volume_db = lerp(-30.0, -12.0, intensity)
 			heartbeat_player.play()
+
+	if not noise_pings.is_empty():
+		for np in noise_pings:
+			np["age"] += delta
+		noise_pings = noise_pings.filter(func(p): return p["age"] < NOISE_PING_LIFE)
 	ping_canvas.queue_redraw()
 
 	if report_panel.visible:
@@ -170,6 +188,7 @@ func _tick_pings(delta: float) -> void:
 
 
 func _draw_pings() -> void:
+	_draw_noise_pings()
 	if pings.is_empty():
 		return
 	var screen_pos = ping_canvas.get_viewport().canvas_transform * source_world_pos
@@ -189,3 +208,26 @@ func _draw_pings() -> void:
 				+ sin(angle * 3.0 - age * 5.0 + ping["phase"]) * 3.0
 			points.append(screen_pos + Vector2.from_angle(angle) * (radius + wobble))
 		ping_canvas.draw_polyline(points, Color(base_color.r, base_color.g, base_color.b, alpha), width)
+
+
+func _draw_noise_pings() -> void:
+	# The listen ripples are soft and organic; these are the opposite — a hard,
+	# jagged sawtooth ring that expands FAST and dies fast. Making noise reads
+	# as a warning, not an ambience.
+	if noise_pings.is_empty():
+		return
+	var xform = ping_canvas.get_viewport().canvas_transform
+	var col = Color(1.0, 0.55, 0.08)  # aggressive orange
+	for np in noise_pings:
+		var age = np["age"]
+		var t = age / NOISE_PING_LIFE
+		var screen_pos = xform * np["pos"]
+		var radius = 10.0 + age * NOISE_PING_GROWTH
+		var alpha = (1.0 - t) * 0.9
+		var points = PackedVector2Array()
+		# Sharp zigzag: alternate spike-out / notch-in every segment.
+		for i in range(33):
+			var angle = TAU * i / 32.0 + np["phase"]
+			var spike = 7.0 if i % 2 == 0 else -7.0
+			points.append(screen_pos + Vector2.from_angle(angle) * (radius + spike))
+		ping_canvas.draw_polyline(points, Color(col.r, col.g, col.b, alpha), 3.0)
