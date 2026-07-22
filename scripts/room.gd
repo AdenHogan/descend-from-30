@@ -13,27 +13,17 @@ const MODULE_SCENES = {
 	"dining_room": "res://scenes/Room_Modules/dining_room.tscn"
 }
 
-const TUTORIAL_SCENES = {
-	"3002": [
-		"res://scenes/Room_Modules/Tutorial/3002_M1_living_room.tscn",
-		"res://scenes/Room_Modules/Tutorial/3002_M2_bedroom.tscn",
-		"res://scenes/Room_Modules/Tutorial/3002_M3_bathroom.tscn"
-	],
-	"3003": [
-		"res://scenes/Room_Modules/Tutorial/3003_M1_living_room.tscn",
-		"res://scenes/Room_Modules/Tutorial/3003_M2_kitchen.tscn",
-		"res://scenes/Room_Modules/Tutorial/3003_M3_bedroom.tscn"
-	],
-	"3004": [
-		"res://scenes/Room_Modules/Tutorial/3004_M1_study.tscn",
-		"res://scenes/Room_Modules/Tutorial/3004_M2_kitchen.tscn",
-		"res://scenes/Room_Modules/Tutorial/3004_M3_bathroom.tscn"
-	],
-	"3005": [
-		"res://scenes/Room_Modules/Tutorial/3005_M1_living_room.tscn",
-		"res://scenes/Room_Modules/Tutorial/3005_M2_dining_room.tscn",
-		"res://scenes/Room_Modules/Tutorial/3005_M3_kitchen.tscn"
-	]
+# Fixed first-run tutorial layouts. These use the REAL room modules (which
+# carry the search anchors) with a deterministic room-type per slot, instead
+# of the old Tutorial/ stub scenes (which had no anchors, so nothing could be
+# searched — the tutorial's core loop was dead). 3003 is the scripted first
+# apartment (living room / kitchen / bedroom) and is seeded with guaranteed
+# tutorial items — see _seed_tutorial_content().
+const TUTORIAL_LAYOUTS = {
+	"3002": ["living_room", "bedroom", "bathroom"],
+	"3003": ["living_room", "kitchen", "bedroom"],
+	"3004": ["study", "kitchen", "bathroom"],
+	"3005": ["living_room", "dining_room", "kitchen"],
 }
 
 const MODULE_WIDTH = 320
@@ -66,9 +56,9 @@ func _ready() -> void:
 
 	for i in range(3):
 		var scene_path: String
-		if WorldState.is_first_run and TUTORIAL_SCENES.has(apartment_id):
+		if WorldState.is_first_run and TUTORIAL_LAYOUTS.has(apartment_id):
 			var module_index = i if entrance_side == "left" else 2 - i
-			scene_path = TUTORIAL_SCENES[apartment_id][module_index]
+			scene_path = MODULE_SCENES[TUTORIAL_LAYOUTS[apartment_id][module_index]]
 		else:
 			scene_path = MODULE_SCENES[layout[i]]
 		var scene = load(scene_path)
@@ -91,6 +81,11 @@ func _ready() -> void:
 	var door_state = WorldState.get_door_state(apartment_id)
 	if door_state == WorldState.DoorState.BREACHED:
 		_spawn_breached_enemies()
+	elif WorldState.is_first_run and apartment_id == "3003":
+		# The scripted first encounter: one zombie inside 3003 (the GDD's
+		# weaponless first fight). Other tutorial apartments stay empty so the
+		# player can learn to search in peace.
+		_spawn_tutorial_zombie()
 	elif not (WorldState.is_first_run and WorldState.current_floor == 30):
 		var zombie_count = WorldState.get_apartment_zombie_count(apartment_id)
 		if zombie_count > 0:
@@ -231,6 +226,11 @@ func _ready() -> void:
 	# weapon usually means the means to feed it isn't far away.
 	_pair_bullets_with_gun(apartment_id)
 
+	# Tutorial: guarantee 3003's scripted finds (golf club, bandages, 3002 key)
+	# so the first apartment is always completable.
+	if WorldState.is_first_run and apartment_id == "3003":
+		_seed_tutorial_content()
+
 	await get_tree().process_frame
 	WorldState.interaction_handled = false
 
@@ -241,6 +241,86 @@ func _ready() -> void:
 
 	_spawn_corpses(WorldState.current_floor, WorldState.current_apartment_id)
 	_spawn_world_drops(WorldState.current_floor)
+
+func _spawn_tutorial_zombie() -> void:
+	# One guaranteed zombie inside 3003, unless already killed. Fixed spawn_key
+	# so leaving and returning doesn't respawn it.
+	var key = "3003:tutorial"
+	if WorldState.killed_zombies.has(key):
+		return
+	var zombie = preload("res://scenes/enemy_zombie_standard.tscn").instantiate()
+	zombie.global_position = Vector2(600, 321)
+	zombie.spawn_key = key
+	if WorldState.zombie_positions.has(key):
+		var saved = WorldState.zombie_positions[key]
+		zombie.global_position = Vector2(saved["x"], saved["y"])
+	add_child(zombie)
+
+
+func _seed_tutorial_content() -> void:
+	# Force 3003's guaranteed finds onto real anchors so the tutorial always
+	# yields a weapon, healing, and the key onward. Picks the first matching
+	# anchor by furniture keyword and activates it (script + visible), so it
+	# gets collected into `interactables` and can be searched.
+	var interactable_script = load("res://scripts/interactable.gd")
+	var placed = {"012": false, "006": false, "key": false}
+
+	# Preference order: golf club in a cupboard, bandages in a bedside/drawer,
+	# the 3002 key on a table/shelf. Falls back to any free anchor.
+	var wants = [
+		{"tag": "012", "keys": ["cupboard", "oven", "fridge"]},
+		{"tag": "006", "keys": ["bedside", "underbed", "pillow", "bed"]},
+		{"tag": "key", "keys": ["coffeetable", "sofa", "table", "bookshelf", "desk", "shelf"]},
+	]
+	var anchors: Array = []
+	for module in get_tree().get_nodes_in_group("room_module"):
+		for child in module.get_children():
+			if child is Marker2D:
+				anchors.append(child)
+
+	for want in wants:
+		for anchor in anchors:
+			if _anchor_taken(anchor, placed):
+				continue
+			var matches = false
+			for k in want["keys"]:
+				if k in String(anchor.name):
+					matches = true
+					break
+			if matches:
+				_place_tutorial_item(anchor, want["tag"], interactable_script)
+				placed[want["tag"]] = true
+				break
+	# Fallbacks: if a keyword didn't match any anchor name, use any free one.
+	for want in wants:
+		if placed[want["tag"]]:
+			continue
+		for anchor in anchors:
+			if _anchor_taken(anchor, placed):
+				continue
+			_place_tutorial_item(anchor, want["tag"], interactable_script)
+			placed[want["tag"]] = true
+			break
+
+
+func _anchor_taken(anchor: Node, placed: Dictionary) -> bool:
+	# An anchor already carrying a tutorial-scripted item this pass.
+	return anchor.get_meta("tutorial_used", false)
+
+
+func _place_tutorial_item(anchor: Node, tag: String, interactable_script) -> void:
+	if anchor.get_script() == null:
+		anchor.set_script(interactable_script)
+		anchor.apartment_id = "3003"
+		anchor._ready()
+	anchor.set_process(true)
+	anchor.visible = true
+	anchor.set_meta("tutorial_used", true)
+	if tag == "key":
+		WorldState.set_anchor_key("3003", anchor.name, "3002")
+	else:
+		WorldState.set_anchor_item("3003", anchor.name, tag)
+
 
 func _pair_bullets_with_gun(apt_id: String) -> void:
 	var has_gun = false
