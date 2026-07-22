@@ -21,6 +21,7 @@ func _ready() -> void:
 	_test_rebind_mouse()
 	_test_reset()
 	_test_labels()
+	_test_pause_settings_lifecycle()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -71,3 +72,27 @@ func _test_labels() -> void:
 	var keyev = InputEventKey.new()
 	keyev.physical_keycode = KEY_R
 	check(SettingsManager.event_label(keyev) == "R", "key label works")
+
+
+func _test_pause_settings_lifecycle() -> void:
+	print("[pause/settings lifecycle]")
+	var pm = get_node_or_null("/root/PauseMenu")
+	check(pm != null and pm.settings_menu != null, "pause menu owns the settings menu")
+	if pm == null:
+		return
+	# Open pause, then settings; Esc from settings must return to the pause
+	# menu (settings hidden) WITHOUT resuming — not leave settings floating.
+	pm.toggle(true)
+	pm.settings_menu.open()
+	check(pm.settings_menu.visible, "settings menu opens")
+	pm.handle_cancel()
+	check(not pm.settings_menu.visible, "Esc from settings closes it")
+	check(pm.visible, "...and stays on the pause menu (not resumed)")
+	# Esc again resumes and force-closes settings for good measure.
+	pm.handle_cancel()
+	check(not pm.visible, "Esc from pause menu resumes")
+	pm.toggle(true)
+	pm.settings_menu.open()
+	pm.toggle(false)
+	check(not pm.settings_menu.visible, "resume also hides a stray settings menu")
+	get_tree().paused = false

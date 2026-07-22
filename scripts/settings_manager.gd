@@ -10,7 +10,9 @@ const SAVE_PATH = "user://keybinds.cfg"
 const REMAPPABLE = [
 	["move_left", "Move Left"],
 	["move_right", "Move Right"],
-	["jump", "Jump"],
+	# ("jump" is intentionally omitted — it's a vestigial action with no code
+	# behind it (flat game), and it shares Space with the default attack, so
+	# listing it just shows a confusing duplicate binding.)
 	["sprint", "Sprint"],
 	["crouch_toggle", "Crouch"],
 	["push", "Push"],
