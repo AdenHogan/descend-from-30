@@ -20,6 +20,7 @@ func _ready() -> void:
 	_test_boss_ignores()
 	_test_arrival()
 	_test_can_lands()
+	await _test_physics_collision()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -83,8 +84,36 @@ func _test_can_lands() -> void:
 	var can = load("res://scenes/thrown_can.tscn").instantiate()
 	add_child(can)
 	can.launch(1.0, Vector2(300, 388))
-	check(can.velocity.x > 0 and can.velocity.y < 0, "launch gives forward+up velocity")
+	check(can.linear_velocity.x > 0 and can.linear_velocity.y < 0, "launch gives forward+up velocity")
+	check(can.collision_mask & 1 != 0, "can collides with the world (layer 1) so it can't pass walls")
+	check(can.contact_monitor, "contact monitoring on for bounce thuds")
 	can._land()
 	check(z.is_distracted, "landing distracts a nearby zombie")
 	can.queue_free()
 	z.queue_free()
+
+
+func _test_physics_collision() -> void:
+	print("[physics collision]")
+	# Build a real floor collider (layer 1, like the world) and drop a can on
+	# it. If the RigidBody physics is wired right the can lands and STOPS above
+	# the floor instead of passing through it (the bug being fixed).
+	var floor_body = StaticBody2D.new()
+	floor_body.position = Vector2(0, 420)
+	var cs = CollisionShape2D.new()
+	var rect = RectangleShape2D.new()
+	rect.size = Vector2(4000, 60)
+	cs.shape = rect
+	floor_body.add_child(cs)
+	add_child(floor_body)
+
+	var can = load("res://scenes/thrown_can.tscn").instantiate()
+	add_child(can)
+	can.launch(1.0, Vector2(0, 300))
+	# Let gravity + collision resolve over ~1.2s of physics.
+	for i in range(72):
+		await get_tree().physics_frame
+	check(can.has_landed, "can made contact with the floor (didn't float)")
+	check(can.global_position.y <= 400.0, "can rests ABOVE the floor, not through it (y=%.0f)" % can.global_position.y)
+	can.queue_free()
+	floor_body.queue_free()

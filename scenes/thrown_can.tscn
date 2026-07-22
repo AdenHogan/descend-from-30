@@ -1,9 +1,25 @@
-[gd_scene load_steps=2 format=3 uid="uid://cu2ar2civ027n"]
+[gd_scene load_steps=4 format=3 uid="uid://cu2ar2civ027n"]
 
 [ext_resource type="Script" uid="uid://br62v8q6g8yhi" path="res://scripts/thrown_can.gd" id="1_can"]
 
-[node name="ThrownCan" type="Node2D"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_can"]
+size = Vector2(13, 19)
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_can"]
+friction = 0.5
+rough = true
+bounce = 0.45
+
+[node name="ThrownCan" type="RigidBody2D"]
+collision_layer = 1
+collision_mask = 1
+physics_material_override = SubResource("PhysicsMaterial_can")
+contact_monitor = true
+max_contacts_reported = 4
 script = ExtResource("1_can")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_can")
 
 [node name="Body" type="Polygon2D" parent="."]
 color = Color(0.72, 0.72, 0.55, 1)

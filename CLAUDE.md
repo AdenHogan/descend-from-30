@@ -115,10 +115,14 @@ means no rendering — UI layout and art still need an in-editor look.
   bullets onto gun to load / drag to world to discard), 4 moan variants +
   per-zombie voice pitch + louder mix, room click-to-scavenge reachable
   when no anchor in range.
-- Can throwing (item 17): scavenge-mode use of Canned Food throws a can
-  (sword-swing anim, manual arc physics w/ bounce+roll); its landing emits
-  a loud noise + distraction that pulls every non-boss zombie to the sound
-  (some de-aggro on arrival, some resume). Bosses ignore it.
+- Can throwing (item 17): scavenge-mode use of Canned Food throws a can —
+  a real `RigidBody2D` (collision_mask layer 1) that arcs, spins, and
+  BOUNCES off floor + walls, rolling to a stop with a thud on each impact;
+  its landing emits a loud noise + distraction that pulls every non-boss
+  zombie to the sound (some de-aggro on arrival, some resume). Bosses
+  ignore it. **This is the reusable physics-object pattern** — future gibs/
+  enemy-head props confined by walls should copy the can's RigidBody +
+  layer-1 mask + PhysicsMaterial setup.
 - Upgrades (store step 6): ~30 weighted upgrades (boons + drawbacks) via a
   modifier-fold architecture (base × ∏mult + Σadd, never direct writes);
   Hades-style pick-1-of-2 on the UPGRADES tab before the shop, one-confirm
