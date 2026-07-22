@@ -80,6 +80,19 @@ func _test_3003_scripted_content() -> void:
 		check(tz.tutorial_scripted, "neighbour is in scripted (no-RNG) mode")
 		check(tz.tutorial_frozen, "neighbour starts frozen until the player nears")
 		check(tz.drops_key and tz.key_target_apartment == "3002", "neighbour yields the 3002 key on death")
+		var zx = tz.global_position.x
+		check(absf(zx - 1035.0) < 10.0 or absf(zx - 155.0) < 10.0,
+			"neighbour stands almost at the back wall (x=%.0f)" % zx)
+		# Node order along the retreat path: junk is met first (nearest her),
+		# the golf club last (nearest the entrance).
+		var junk_x := -1.0
+		var club_x := -1.0
+		for anchor in room.tut_nodes:
+			match String(anchor.get_meta("tutorial_tag", "")):
+				"025": junk_x = anchor.global_position.x
+				"012": club_x = anchor.global_position.x
+		check(junk_x >= 0.0 and club_x >= 0.0 and absf(zx - junk_x) < absf(zx - club_x),
+			"junk node sits nearer the encounter than the club (junk %.0f, club %.0f)" % [junk_x, club_x])
 	check(room.tut_step == room.TutStep.INTRO, "encounter armed at INTRO")
 	# The nodes stay hidden until the scripted reveal.
 	var hidden_ok := true

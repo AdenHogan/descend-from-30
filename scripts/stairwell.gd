@@ -75,14 +75,17 @@ func _on_click(_viewport: Node, event: InputEvent, _shape_idx: int) -> void:
 
 
 func _herd_back(body: Node2D) -> void:
-	# Say it once per approach, and steer the player away from the stairwell
-	# (toward the middle of the corridor / the apartments they still need).
+	# Say it once per approach, and steer the player to 3003's door — the
+	# apartment the tutorial wants them in — not just vaguely up the corridor.
 	if not _herd_said:
 		TutorialManager.say("The stairwell's a death trap empty-handed — the neighbour in 3003 might have a spare key. Check there first.")
 		_herd_said = true
-	var herd_dir = 1.0 if stair_side == "left" else -1.0
+	var target_x = 570.0  # 3003's door in hallway.tscn
+	var door = get_tree().current_scene.get_node_or_null("3003")
+	if door != null:
+		target_x = door.global_position.x
 	if body.has_method("set_move_target"):
-		body.set_move_target(clampf(body.global_position.x + herd_dir * 280.0, 200.0, 1120.0))
+		body.set_move_target(target_x)
 
 
 func _use_stairs() -> void:
