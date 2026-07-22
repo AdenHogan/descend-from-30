@@ -19,14 +19,8 @@ func _ready() -> void:
 		WorldState.saved_player_x = 0.0
 		WorldState.saved_player_y = 0.0
 
-	if WorldState.spawn_source == "door" and WorldState.current_floor == 30:
-		if WorldState.last_exited_apartment == 3003 and not WorldState.tutorial_zombie_spawned:
-			WorldState.tutorial_zombie_spawned = true
-			var zombie_scene = preload("res://scenes/enemy_zombie_standard.tscn")
-			var zombie = zombie_scene.instantiate()
-			zombie.global_position = Vector2(204, 368)
-			zombie.spawn_key = str(30) + ":204.0:368.0"
-			add_child(zombie)
+	# (The first-encounter zombie now lives INSIDE 3003 per the GDD — see
+	# room.gd _spawn_tutorial_zombie — not out here in the corridor.)
 
 	_spawn_corpses(30)
 	_spawn_world_drops(30)

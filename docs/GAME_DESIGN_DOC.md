@@ -57,6 +57,24 @@ engaging threats, and managing limited resources.
   - (Per Three-Run Arc doc: tutorial is FIRST-RUN-ONLY; from run 2, Floor 30
     is plain procedural seeding. Apartment 3001 is never accessible, any run.)
 
+**Tutorial implementation status (Floor 30, first run):**
+- Door states hardcoded per the doc: 3001 sealed, 3002 locked, 3003 open,
+  3004 barricaded+locked, 3005 open. ✓
+- Tutorial apartments load REAL anchored modules with fixed layouts
+  (`room.gd TUTORIAL_LAYOUTS`) — the old `Tutorial/` stub scenes had no
+  search anchors, so the tutorial's search loop was dead; those stubs are
+  now unused (kept in-repo in case hand-crafted tutorial rooms replace the
+  fixed-layout approach later).
+- **3003 is scripted and always completable** (`room.gd
+  _seed_tutorial_content`): guaranteed golf club (cupboard), bandages
+  (bedside), and the **key to 3002** (table/shelf), plus one zombie **inside**
+  3003 (the weaponless first encounter). The 3002 key is no longer random
+  (it was ~3% to a random room — the tutorial could be unwinnable).
+- Guidance is **soft/diegetic** (blood-text hints below + door states),
+  not hard-forced: the player isn't yanked back to 3003. The GDD's literal
+  "forced back to stairs" hand-holding was intentionally not implemented in
+  favour of the diegetic direction; revisit if playtests want more gating.
+
 **Diegetic control hints (implemented):** instead of popup boxes, the
 controls are scrawled on the corridor/apartment walls **in blood**.
 `scenes/blood_text.tscn` (`blood_text.gd`, a `@tool` Node2D) draws blood-red
