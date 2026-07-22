@@ -105,3 +105,11 @@ zombie → choice) → 3005 (open, info) → stairs unlock → descend to 29.
   force-lock-vs-fight choice; 3002/3005 interior info; descent-unlock wiring
   to the full path.
 - Final dialogue/wall text is owner-authored; code ships placeholders.
+
+## Testing the tutorial (DEV)
+- **F7** toggles the first-run tutorial on/off and drops you into a fresh
+  Floor 30 hallway so the change takes effect at once. Turning it **ON**
+  resets the 3003 encounter (`WorldState.dev_reset_tutorial()`) so the
+  scripted sequence replays from the top; **OFF** makes Floor 30 a normal
+  procedural floor (no stairs gate, no scripted neighbour). Your inventory /
+  wallet / upgrades are left as-is. Gated by `DEV_MODE` — off for release.

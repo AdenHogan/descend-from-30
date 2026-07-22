@@ -153,8 +153,9 @@ means no rendering — UI layout and art still need an in-editor look.
   **drops the 3002 key** on death; pause → heal prompt. Golf club spawns at
   **low durability (4)**. Stairwell descent is **gated + herds** the player
   back until the 3003 zombie is cleared (`stairwell.gd` + `killed_zombies`
-  milestone). v2 TODO: 3004 barricade → noise mechanic → scripted stairwell
-  zombie + force-lock-vs-fight choice; 3002/3005 interior info.
+  milestone). **DEV F7** toggles the tutorial on/off and drops into a fresh
+  Floor 30 for playtesting. v2 TODO: 3004 barricade → noise mechanic →
+  scripted stairwell zombie + force-lock-vs-fight choice; 3002/3005 info.
 - Next: tutorial **v2** (above), then characters/profiles/stats + the
   two-&-three-run arc; also **Upgrade offers** polish and player-corpse
   recovery (store step 7).

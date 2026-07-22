@@ -808,6 +808,8 @@ func _input(event: InputEvent) -> void:
 			WorldState.add_to_inventory("033", 500)
 			HUD.refresh_inventory()
 			HUD.show_feedback("DEV: Wallet + 500 Bank Notes")
+		elif event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F7:
+			_dev_toggle_tutorial()
 
 	# Attack is a rebindable action (default LMB, can live on a mouse side
 	# button — see SettingsManager). Combat only. Consuming the event stops a
@@ -1050,3 +1052,24 @@ func _die() -> void:
 
 func _update_hud() -> void:
 	HUD.update_portrait(health_state)
+
+
+func _dev_toggle_tutorial() -> void:
+	# DEV (F7): flip the first-run tutorial on/off and drop into a fresh Floor
+	# 30 so the change takes effect immediately. Turning it ON resets the 3003
+	# encounter so the scripted sequence replays from the top; turning it OFF
+	# makes Floor 30 a normal procedural floor (no gate, no scripted neighbour).
+	WorldState.is_first_run = not WorldState.is_first_run
+	if WorldState.is_first_run:
+		WorldState.dev_reset_tutorial()
+	# Land in the Floor 30 hallway via the standard arrival path.
+	WorldState.current_floor = 30
+	WorldState.spawn_source = "stair"
+	WorldState.stair_spawn_side = "left"
+	WorldState.stair_direction = "down"
+	WorldState.on_floor_arrived(30)
+	if TutorialManager.has_method("cancel"):
+		TutorialManager.cancel()  # drop any pending prompt / unpause
+	HUD.update_floor_label()
+	HUD.show_feedback("DEV: Tutorial %s — Floor 30" % ("ON" if WorldState.is_first_run else "OFF"))
+	get_tree().change_scene_to_file("res://scenes/hallway.tscn")
