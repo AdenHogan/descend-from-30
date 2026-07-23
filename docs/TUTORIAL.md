@@ -171,9 +171,20 @@ zombie → choice) → 3005 (open, info) → stairs unlock → descend to 29.
   before `change_scene`.
 - **Seamless stair transition (building_floors doubling):** load the
   adjacent floor and PAN between them as the player walks the stairs, instead
-  of a hard scene cut — to sell the scale of descending. Feasible: instance a
-  second `building_floors` offset vertically, tween the camera across, then
-  promote the new floor to current. Bigger job; own pass.
+  of a hard scene cut — to sell the scale of descending.
+  - **Groundwork DONE + tested:** `building_floors` is now parameterizable —
+    set `setup_floor` + `passive = true` before `add_child()` to build any
+    floor as a backdrop (no player/enemies/corpses/drops/merchant, correct
+    door IDs). `building_floors_test` covers it.
+  - **`StairPan` autoload (scaffold, DISABLED):** `StairPan.pan_to_floor()`
+    instances the target floor as a passive backdrop one screen away, pans a
+    standalone camera across while the player slides toward the stairs, then
+    commits the real floor. `stairwell.gd` already routes through it when
+    `StairPan.can_pan()` is true.
+  - **To finish:** flip `StairPan.ENABLED` and iterate IN-EDITOR — the
+    offset, `PAN_TIME`, the player stair-walk slide, and the backdrop→real-
+    floor hand-off (a micro-fade at the swap) are all feel-tuning that can't
+    be verified headless. Off by default so the demo keeps the safe fade cut.
 
 ## Testing the tutorial (DEV)
 - **F7** toggles the first-run tutorial on/off and drops you into a fresh

@@ -188,8 +188,13 @@ means no rendering — UI layout and art still need an in-editor look.
   opens the door behind it; **click-to-move regression fixed** — floating HUD
   labels (dialogue/feedback/mode/floor/wallet) were `MOUSE_FILTER_STOP` and ate
   world clicks, now IGNORE (click_move_test clicks *through* the dialogue box).
-  Not yet built (own pass): depth approach-walk, door-open/enter fade
-  transitions, seamless stair pan (building_floors doubling).
+  Fade transitions (`Transition` autoload) on door enter/exit + stairs +
+  lobby; **depth approach-walk** (`player.approach_door`/`knock_door` — steps
+  up toward a door before the fade). Seamless stair pan: **groundwork built +
+  tested** — `building_floors` takes `setup_floor`/`passive` to build any
+  floor as a backdrop; `StairPan` autoload scaffolds the two-floor camera pan
+  but is **DISABLED** (needs in-editor feel-tuning; stairs use the fade until
+  then).
 - Next: tutorial **v2** (above), then characters/profiles/stats + the
   two-&-three-run arc; also **Upgrade offers** polish and player-corpse
   recovery (store step 7).

@@ -108,10 +108,16 @@ func _use_stairs() -> void:
 	WorldState.stair_spawn_side = stair_side
 	WorldState.stair_direction = direction
 	WorldState.spawn_source = "stair"
-	if direction == "down":
-		WorldState.current_floor -= 1
-	elif direction == "up":
-		WorldState.current_floor += 1
+	var target_floor = WorldState.current_floor + (-1 if direction == "down" else 1)
+
+	# Seamless pan between two mid-building floors when enabled; it commits the
+	# floor + scene change itself. Otherwise (and always, while disabled) the
+	# plain fade cut below.
+	if StairPan.can_pan(target_floor):
+		StairPan.pan_to_floor(target_floor, direction)
+		return
+
+	WorldState.current_floor = target_floor
 	WorldState.on_floor_arrived(WorldState.current_floor)
 	HUD.update_floor_label()
 	if WorldState.current_floor == 30:

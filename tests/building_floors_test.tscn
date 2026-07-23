@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://d0hq4wk7v1nxb"]
+
+[ext_resource type="Script" path="res://tests/building_floors_test.gd" id="1_bft"]
+
+[node name="BuildingFloorsTest" type="Node"]
+script = ExtResource("1_bft")
