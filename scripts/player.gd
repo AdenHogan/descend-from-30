@@ -78,9 +78,11 @@ var mode_switch_timer = 0.0
 # screen (−Y) toward a door before entering (or to knock). While a cutscene
 # move runs, normal control/input is suspended. Art (knock/enter frames) comes
 # later; this is the movement scaffold. See docs/TUTORIAL.md.
-const APPROACH_DEPTH = 26.0     # how far "into" the hallway (up) the player steps
-const APPROACH_TIME = 0.4
-const KNOCK_PAUSE = 0.6
+# Small on purpose: the player's feet should reach the line where the door
+# meets the floor, not float up into the doorway (playtest — 26 was too high).
+const APPROACH_DEPTH = 12.0     # how far "into" the hallway (up) the player steps
+const APPROACH_TIME = 0.35
+const KNOCK_PAUSE = 0.5
 var is_cutscene: bool = false
 
 # Audio (docs/SOUND_STEALTH.md audio pass). Carpet steps for the quiet
@@ -138,6 +140,7 @@ var listen_report_line: String = ""
 
 func _ready() -> void:
 	add_to_group("player")
+	WorldState.loot_open = false  # defensive: never carry a stuck loot lock into a new scene
 	# ACTOR LAYER (z 1) — the player, like enemies, always renders above the
 	# corridor backdrop (walls, static doors, the merchant's elevator doors,
 	# and future dynamic door art at z 0). Keep new door/entrance visuals at
@@ -713,8 +716,11 @@ func auto_stance_for_anchor(anchor_y: float) -> void:
 
 
 func restore_stance() -> void:
+	# After an auto-stance scavenge, always return to STANDING idle (playtest:
+	# auto-crouching for a low item used to leave the player stuck crouched,
+	# especially across back-to-back low searches).
 	if auto_stance_changed:
-		is_crouching = auto_stance_was_crouching
+		is_crouching = false
 		auto_stance_changed = false
 
 
@@ -731,7 +737,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	# in combat, a default-LMB attack consumes the click in _input before it
 	# reaches here — so LMB only walks you when it ISN'T bound to attack
 	# (e.g. attack rebound to a mouse side button). Works in both modes.
-	if is_dead or is_dying or is_switching_mode or is_listening or is_cutscene:
+	if is_dead or is_dying or is_switching_mode or is_listening or is_cutscene or WorldState.loot_open:
 		return
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		if _is_mouse_over_hud():
@@ -873,12 +879,17 @@ func _input(event: InputEvent) -> void:
 			_dev_toggle_tutorial()
 
 	# Attack is a rebindable action (default LMB, can live on a mouse side
-	# button — see SettingsManager). Combat only. Consuming the event stops a
-	# default-LMB attack from also triggering click-to-move.
+	# button — see SettingsManager). Combat only.
+	# A MOUSE attack only swings when there's an actual target (a zombie under
+	# the cursor or in reach ahead); on empty ground the click is NOT consumed,
+	# so it falls through to click-to-move. A key/side-button attack always
+	# swings. This is what makes left-click move in combat, not just attack.
 	if not WorldState.is_scavenge_mode and event.is_action_pressed("attack"):
 		if not _is_mouse_over_hud():
-			_do_attack_action(event is InputEventMouseButton)
-			get_viewport().set_input_as_handled()
+			var from_mouse = event is InputEventMouseButton
+			if not from_mouse or _has_attack_target():
+				_do_attack_action(from_mouse)
+				get_viewport().set_input_as_handled()
 
 	if event.is_action_pressed("item_slot_1"): HUD.select_slot(0)
 	elif event.is_action_pressed("item_slot_2"): HUD.select_slot(1)
@@ -942,6 +953,31 @@ func _do_attack_action(from_mouse: bool) -> void:
 			pending_attack = clicked
 			return
 	_do_melee_attack(instance, slot)
+
+
+func _has_attack_target() -> bool:
+	# Is there something a mouse-click should SWING at right now? A zombie under
+	# the cursor, or one within reach in the facing direction. If not, the click
+	# should move instead.
+	var slot = HUD.selected_slot
+	if slot < 0 or slot >= WorldState.inventory.size():
+		return false
+	var item_data = WorldState.get_instance_at(slot).get_data()
+	if not item_data.get("is_weapon", false):
+		return false
+	if _zombie_under_cursor() != null:
+		return true
+	var weapon_type = _get_weapon_type(item_data)
+	var reach = GUN_RANGE_MID if weapon_type == "gun" else WEAPON_RANGES.get(weapon_type, 40.0) + 24.0
+	var facing_right = not animated_sprite.flip_h
+	for zombie in get_tree().get_nodes_in_group("zombie"):
+		if zombie.is_dead:
+			continue
+		var diff = zombie.global_position.x - global_position.x
+		if (facing_right and diff > -16.0) or (not facing_right and diff < 16.0):
+			if global_position.distance_to(zombie.global_position) <= reach:
+				return true
+	return false
 
 
 func _zombie_under_cursor() -> Node:

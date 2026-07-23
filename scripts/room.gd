@@ -144,10 +144,11 @@ func _ready() -> void:
 	var is_paradise = WorldState.is_paradise_apartment(apartment_id)
 	var interactable_script = load("res://scripts/interactable.gd")
 
-	# 3003's first-run encounter uses ONLY its three scripted nodes (junk /
-	# health / club), so skip the normal random anchor seeding here — the
-	# tutorial owns this apartment's loot. _setup_tutorial() places the nodes.
-	var tutorial_apartment = WorldState.is_first_run and apartment_id == "3003"
+	# First-run tutorial apartments are FULLY scripted — a fixed set of clean
+	# nodes, no random seeding, no repeats/extra "nothing found". Skip the normal
+	# per-anchor loop for them; _setup_tutorial() (3003 encounter) and
+	# _setup_tutorial_room() (3002/3004/3005) place exactly what's specified.
+	var tutorial_apartment = WorldState.is_first_run and apartment_id in ["3002", "3003", "3004", "3005"]
 
 	for module in (get_tree().get_nodes_in_group("room_module") if not tutorial_apartment else []):
 		var room_type = ""
@@ -235,19 +236,6 @@ func _ready() -> void:
 
 			var passed_spawn_roll = apt_rng_items.randf() <= spawn_chance
 
-			# First-run 3002 / 3005 are CONTROLLED tutorial rooms — no weapons,
-			# keys, or toolbox (nothing that defuses the club durability lesson
-			# or lets the player go back and force 3004). 3002 = key-reward room
-			# (cash-heavy + healing); 3005 = bullets teaching room (cash + ammo +
-			# healing; the guaranteed 6 bullets are pinned in _seed_tutorial_3005).
-			if WorldState.is_first_run and (apartment_id == "3002" or apartment_id == "3005"):
-				var reward_pool = ["033", "033", "011", "007"] if apartment_id == "3002" \
-						else ["033", "016", "006", "025"]
-				var reward_id = reward_pool[apt_rng_items.randi() % reward_pool.size()]
-				if passed_spawn_roll and not already_searched:
-					WorldState.set_anchor_item(apartment_id, anchor.name, reward_id)
-				continue
-
 			# Check if this anchor should spawn a key instead of a regular item
 			var floor_num = int(apartment_id.left(apartment_id.length() - 2))
 			if WorldState.should_anchor_spawn_key(apartment_id, anchor.name):
@@ -267,24 +255,18 @@ func _ready() -> void:
 	# weapon usually means the means to feed it isn't far away.
 	_pair_bullets_with_gun(apartment_id)
 
-	# Tutorial: place 3003's three scripted nodes (junk / bandages / golf club),
-	# hidden until the scripted reveal, and arm the encounter state machine.
+	# Tutorial rooms: 3003 = the scripted encounter (3 hidden nodes); 3002/3004/
+	# 3005 = a fixed clean set of nodes (exact items/amounts, no repeats).
 	if tutorial_apartment:
-		_setup_tutorial()
+		if apartment_id == "3003":
+			_setup_tutorial()
+		else:
+			_setup_tutorial_room(apartment_id)
 
 	# 3002 is the tutorial's reward room — first entry is also the EARLIEST
 	# place descent gets mentioned (never inside 3003).
 	if WorldState.is_first_run and apartment_id == "3002":
 		TutorialManager.say_once("3002_entry", TutorialManager.LINES["3002_entry"])
-
-	# 3005 (first run): guarantee 6 Bullets — NOT a weapon. A weapon here would
-	# just let the player go back and force 3004 after choosing to fight; the
-	# bullets instead teach that guns exist but ammo without a gun is dead
-	# weight, and that (with the wallet locked) cash + bullets each eat an
-	# inventory slot. The real weapon comes on Floor 29. (Subsequent runs:
-	# 3002–3005 are plain RNG.)
-	if WorldState.is_first_run and apartment_id == "3005":
-		_seed_tutorial_3005()
 
 	# First floor-29 apartment on a tutorial run: guarantee a melee weapon so
 	# the player is armed again after the club's gone (once only).
@@ -403,18 +385,63 @@ func _place_tutorial_item(anchor: Node, tag: String, interactable_script, hidden
 		interactables.append(anchor)
 
 
-func _seed_tutorial_3005() -> void:
-	# Force Bullets (016) onto one active anchor, once. Skip if the player has
-	# already searched anything in 3005 (a return visit) so it can't re-grant.
-	# The bullet COUNT (6) is pinned at pickup in loot_ui for this room.
-	for k in WorldState.searched_anchors:
-		if String(k).begins_with("3005:"):
-			return
+# Exact node contents for the controlled tutorial rooms (first run only). Each
+# entry is one clean node; "" = a "nothing found" node. `amount` pins the
+# pickup count for cash (033) / bullets (016). Only these nodes are active in
+# the room — every other anchor stays off. (3003 is separate — the encounter.)
+const TUT_ROOM_NODES = {
+	"3002": [
+		{"item": "011"},                 # Ice Pack
+		{"item": "033", "amount": 10},   # Cash x10
+		{"item": "034"},                 # Screwdriver
+		{"item": "006"},                 # Bandages
+	],
+	"3004": [
+		{"item": ""},                    # nothing found
+		{"item": ""},                    # nothing found
+		{"item": "033", "amount": 8},    # Cash x8
+		{"item": "033", "amount": 4},    # Cash x4
+		{"item": "032"},                 # Broken Umbrella
+	],
+	"3005": [
+		{"item": "016", "amount": 8},    # Bullets x8
+		{"item": "016", "amount": 3},    # Bullets x3
+		{"item": ""},                    # nothing found
+		{"item": ""},                    # nothing found
+		{"item": "006"},                 # Bandages
+	],
+}
+
+
+func _setup_tutorial_room(apt: String) -> void:
+	# Activate exactly the specified nodes (in stable anchor order) and seed
+	# their fixed contents. Leaves every other anchor OFF. Items the player has
+	# already taken aren't re-seeded (re-entry safe).
+	var spec: Array = TUT_ROOM_NODES.get(apt, [])
+	if spec.is_empty():
+		return
+	var interactable_script = load("res://scripts/interactable.gd")
+	var anchors: Array = []
 	for module in get_tree().get_nodes_in_group("room_module"):
-		for anchor in module.get_children():
-			if anchor is Marker2D and anchor.get_script() != null and anchor.visible:
-				WorldState.set_anchor_item("3005", anchor.name, "016")
-				return
+		for child in module.get_children():
+			if child is Marker2D:
+				anchors.append(child)
+	for i in range(min(spec.size(), anchors.size())):
+		var anchor = anchors[i]
+		var entry: Dictionary = spec[i]
+		if anchor.get_script() == null:
+			anchor.set_script(interactable_script)
+			anchor.apartment_id = apt
+			anchor._ready()
+		anchor.visible = true
+		anchor.set_process(true)
+		# (the post-await collection loop adds visible+scripted anchors to
+		# `interactables`, so don't append here — would duplicate.)
+		# Seed contents once (don't re-add something already taken).
+		if not WorldState.is_anchor_searched(apt, anchor.name):
+			WorldState.set_anchor_item(apt, anchor.name, entry["item"])
+			if entry.has("amount"):
+				WorldState.set_anchor_amount(apt, anchor.name, int(entry["amount"]))
 
 
 func _seed_tutorial_f29_weapon() -> void:
@@ -723,6 +750,8 @@ func _process(_delta: float) -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if WorldState.loot_open:
+		return  # the loot panel owns input while it's open (take with E / click)
 	if not WorldState.is_scavenge_mode:
 		return
 

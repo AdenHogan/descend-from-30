@@ -23,7 +23,14 @@ var last_exited_apartment: int = 0
 var current_run: int = 1
 var paradise_apartments: Array = []
 var anchor_items: Dictionary = {}
+# Pinned pickup amount for an anchor (money/ammo), keyed "apt:anchor". Used by
+# the scripted tutorial rooms to hand out exact counts (e.g. "10 cash"); absent
+# = roll a random bundle as normal.
+var anchor_amounts: Dictionary = {}
 var searched_anchors: Dictionary = {}
+# True while the loot panel is open — the panel then owns input (take with E /
+# click), so the room's anchor handling and the player's move/attack stand down.
+var loot_open: bool = false
 var player_health: int = 0
 var is_dying: bool = false
 var dying_timer: float = 0.0
@@ -120,6 +127,7 @@ func new_game() -> void:
 	master_seed = randi()
 	apartment_layouts.clear()
 	anchor_items.clear()
+	anchor_amounts.clear()
 	searched_anchors.clear()
 	inventory.clear()
 	current_floor = 30
@@ -984,6 +992,16 @@ func get_anchor_item(apartment_id: String, anchor_name: String) -> String:
 func clear_anchor_item(apartment_id: String, anchor_name: String) -> void:
 	var key = apartment_id + ":" + anchor_name
 	anchor_items.erase(key)
+	anchor_amounts.erase(key)
+
+
+func set_anchor_amount(apartment_id: String, anchor_name: String, amount: int) -> void:
+	anchor_amounts[apartment_id + ":" + anchor_name] = amount
+
+
+func get_anchor_amount(apartment_id: String, anchor_name: String) -> int:
+	# 0 = unset (roll a random bundle).
+	return int(anchor_amounts.get(apartment_id + ":" + anchor_name, 0))
 
 
 # ============================================================

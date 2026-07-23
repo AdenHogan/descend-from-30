@@ -154,15 +154,21 @@ func _default_hint(action: String) -> String:
 		_: return "[Continue]"
 
 
-func _process(_delta: float) -> void:
+func _input(event: InputEvent) -> void:
 	if not _awaiting:
 		return
-	var pressed = Input.is_action_just_pressed(_await_action)
-	if not _await_strict:
-		# Loose beats also take a generic continue (E / Space).
-		pressed = pressed or Input.is_action_just_pressed("interact") \
-				or Input.is_action_just_pressed("jump")
-	if pressed:
+	var advance := false
+	if _await_strict:
+		# A teaching beat (the push intro) still needs its own action.
+		if event.is_action_pressed(_await_action):
+			advance = true
+	else:
+		# "Press-any-key" convenience: any key OR mouse click continues.
+		if (event is InputEventKey and event.pressed and not event.echo) \
+				or (event is InputEventMouseButton and event.pressed):
+			advance = true
+	if advance:
+		get_viewport().set_input_as_handled()
 		_resume()
 
 

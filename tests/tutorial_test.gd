@@ -24,6 +24,7 @@ func _ready() -> void:
 	await _test_opener()
 	await _test_barricade_beat()
 	await _test_3005_bullets()
+	await _test_tutorial_rooms()
 	await _test_3003_scripted_content()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
@@ -96,6 +97,57 @@ func _test_3005_bullets() -> void:
 	check(WorldState.tutorial_f29_weapon_granted, "the once-only flag is set")
 	r29.queue_free()
 	await get_tree().process_frame
+
+
+func _test_tutorial_rooms() -> void:
+	print("[fixed tutorial rooms 3002/3004/3005]")
+	var specs = {
+		"3002": {"items": {"011": 1, "033": 1, "034": 1, "006": 1}, "amounts": {"033": [10]}},
+		"3004": {"items": {"": 2, "033": 2, "032": 1}, "amounts": {"033": [8, 4]}},
+		"3005": {"items": {"016": 2, "": 2, "006": 1}, "amounts": {"016": [8, 3]}},
+	}
+	for apt in specs.keys():
+		WorldState.new_game()
+		WorldState.current_floor = 30
+		WorldState.current_apartment_id = apt
+		WorldState.spawn_source = "door"
+		WorldState.exit_spawn_x = 570.0
+		WorldState.seed_floor_door_states(30)
+		var room = load("res://scenes/room.tscn").instantiate()
+		add_child(room)
+		for i in range(8):
+			await get_tree().process_frame
+		# Tally item counts + collected amounts for this apartment.
+		var counts = {}
+		var amts = {}
+		for k in WorldState.anchor_items:
+			if not String(k).begins_with(apt + ":"):
+				continue
+			var it = String(WorldState.anchor_items[k])
+			counts[it] = counts.get(it, 0) + 1
+			var a = int(WorldState.anchor_amounts.get(k, 0))
+			if a > 0:
+				amts[it] = amts.get(it, [])
+				amts[it].append(a)
+		var spec = specs[apt]
+		var node_total = 0
+		for c in counts.values():
+			node_total += c
+		check(node_total == spec["items"].values().reduce(func(a, b): return a + b, 0),
+			"%s has exactly the specified node count (%d)" % [apt, node_total])
+		var items_ok = true
+		for it in spec["items"]:
+			if counts.get(it, 0) != spec["items"][it]:
+				items_ok = false
+		check(items_ok, "%s node items match the spec (%s)" % [apt, str(counts)])
+		for it in spec["amounts"]:
+			var got = amts.get(it, [])
+			got.sort()
+			var want = spec["amounts"][it].duplicate()
+			want.sort()
+			check(got == want, "%s pins %s amounts %s" % [apt, it, str(got)])
+		room.queue_free()
+		await get_tree().process_frame
 
 
 func _test_3003_scripted_content() -> void:

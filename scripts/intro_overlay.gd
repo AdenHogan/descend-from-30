@@ -110,10 +110,19 @@ func _process(delta: float) -> void:
 			knock_timer = KNOCK_INTERVAL
 			_play(BANG_STREAMS.pick_random(), -3.0)
 
-	if Input.is_action_just_pressed("interact") or Input.is_action_just_pressed("jump"):
+	# (advance handled in _input — any key or click)
+	pass
+
+
+func _input(event: InputEvent) -> void:
+	if fading:
+		return
+	if (event is InputEventKey and event.pressed and not event.echo) \
+			or (event is InputEventMouseButton and event.pressed):
 		# Guard the interact so this same press can't drive a door/stair the
 		# instant control returns.
 		TutorialManager.guard_interact()
+		get_viewport().set_input_as_handled()
 		_advance()
 
 
