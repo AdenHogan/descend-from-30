@@ -165,9 +165,15 @@ means no rendering — UI layout and art still need an in-editor look.
   3003 kill line = the key realization. Tutorial club now **6 uses** (−2
   zombie, −2 barricade, 2 left for the choice — barricades visibly cost
   durability); a **pause beat** when first passing the barricaded 3004 hints
-  it can be torn down (faster with a weapon). Dialogue/report panels are
-  mouse-transparent (click-to-move regression, locked by click_move_test).
-  Remaining: 3005 interior info; owner-authored final dialogue.
+  it can be torn down (faster with a weapon). The force-vs-fight choice line
+  now spells out the durability worry (one job left, door OR enemy), and the
+  corridor zombie **drops cash** if fought — so neither path is empty-handed.
+  3005 grants a **guaranteed Hammer (002)** on the first run so the player
+  descends to 29 armed; all tutorial scripted drops (3002 rewards, 3005
+  hammer, corridor cash) are `is_first_run`-gated (run 2+ = plain RNG).
+  Dialogue/report panels are mouse-transparent (click-to-move regression,
+  locked by click_move_test). Remaining: 3005 interior info; owner-authored
+  final dialogue.
 - Forcing a door/lock is now a **2s channeled action** game-wide (was
   instant): progress countdown, loud from the first heave, cancels on any
   other action or walking away, durability spent only on completion; a key

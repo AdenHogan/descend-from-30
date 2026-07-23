@@ -22,6 +22,7 @@ func _ready() -> void:
 	_test_pause_menu_autoload()
 	_test_tutorial_manager()
 	await _test_barricade_beat()
+	await _test_3005_hammer()
 	await _test_3003_scripted_content()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
@@ -49,6 +50,40 @@ func _test_hallway_baked_hints() -> void:
 	check(src.contains("scenes/blood_text.tscn"), "hallway references the blood_text scene")
 	# Pause menu must be OUT of the world scenes so the editor isn't blanketed.
 	check(not src.contains("pause_menu.tscn"), "pause menu removed from hallway.tscn")
+
+
+func _test_3005_hammer() -> void:
+	print("[3005 guaranteed hammer]")
+	WorldState.new_game()  # is_first_run = true
+	WorldState.current_floor = 30
+	WorldState.current_apartment_id = "3005"
+	WorldState.spawn_source = "door"
+	WorldState.exit_spawn_x = 316.0
+	WorldState.seed_floor_door_states(30)
+	var room = load("res://scenes/room.tscn").instantiate()
+	add_child(room)
+	for i in range(8):
+		await get_tree().process_frame
+	var has_hammer := false
+	for k in WorldState.anchor_items:
+		if String(k).begins_with("3005:") and WorldState.anchor_items[k] == "002":
+			has_hammer = true
+	check(has_hammer, "a Hammer (002) is guaranteed in 3005 for the first run")
+	room.queue_free()
+	await get_tree().process_frame
+	# Not on later runs — 3005 is plain RNG once the tutorial is done.
+	WorldState.is_first_run = false
+	WorldState.anchor_items.clear()
+	WorldState.apartment_layouts.clear()
+	var room2 = load("res://scenes/room.tscn").instantiate()
+	add_child(room2)
+	for i in range(8):
+		await get_tree().process_frame
+	# (No hard assert on absence — RNG could place one — but the scripted
+	# guarantee path must be first-run-gated, which _seed_tutorial_3005 is.)
+	room2.queue_free()
+	WorldState.is_first_run = true
+	await get_tree().process_frame
 
 
 func _test_3003_scripted_content() -> void:
@@ -155,6 +190,7 @@ func _test_barricade_beat() -> void:
 		check(hz.tutorial_frozen, "it holds (frozen) while the barricade still stands")
 		check(hz.tutorial_hold_x > 0.0, "it walks to a hold point, not straight at the player")
 		check(hz.spawn_key == "30hall:tutorial", "fixed spawn key (no respawn after the kill)")
+		check(hz.tutorial_cash_drop > 0, "fighting it still pays out (drops Bank Notes)")
 	hallway.queue_free()
 	WorldState.barricade_progress.erase("3004")
 	await get_tree().process_frame

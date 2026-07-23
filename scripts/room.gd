@@ -276,6 +276,13 @@ func _ready() -> void:
 		TutorialManager.say_once("3002_entry",
 			"So this is what the key kept safe. Take what helps — then find the stairs. It's a long way down.")
 
+	# 3005 (first run): guarantee a Hammer so the player descends to Floor 29
+	# with a real weapon — their club may be broken/low from the durability
+	# lesson. (Subsequent runs: 3002–3005 are plain RNG; only the tutorial is
+	# kind with scripted drops.)
+	if WorldState.is_first_run and apartment_id == "3005":
+		_seed_tutorial_3005()
+
 	await get_tree().process_frame
 	WorldState.interaction_handled = false
 
@@ -385,6 +392,19 @@ func _place_tutorial_item(anchor: Node, tag: String, interactable_script, hidden
 		anchor.visible = true
 		anchor.set_process(true)
 		interactables.append(anchor)
+
+
+func _seed_tutorial_3005() -> void:
+	# Force a Hammer (002) onto one active anchor, once. Skip if the player has
+	# already searched anything in 3005 (a return visit) so it can't re-grant.
+	for k in WorldState.searched_anchors:
+		if String(k).begins_with("3005:"):
+			return
+	for module in get_tree().get_nodes_in_group("room_module"):
+		for anchor in module.get_children():
+			if anchor is Marker2D and anchor.get_script() != null and anchor.visible:
+				WorldState.set_anchor_item("3005", anchor.name, "002")
+				return
 
 
 func _reveal_tutorial_nodes() -> void:
