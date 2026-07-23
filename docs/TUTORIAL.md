@@ -68,13 +68,30 @@ pauses at each teaching beat (`get_tree().paused` + a dialogue prompt).
    with those bandages.» (introduces the heal/consumable flow).
 
 ## Golf-club durability risk/reward (tutorial-tailored)
-- Tutorial golf club durability = **4 uses**. Each melee hit spends 1.
-- 3003 zombie = 2 hits → club at 2 uses left.
-- A second scripted zombie (below) also dies in 2 hits → the club **breaks**
-  on that kill.
-- Forcing a lock costs **1 use**. So the player faces a real choice with the
-  ~2 remaining uses: **kill the hallway zombie (club breaks)** OR **force a
-  locked door** (leaves too little to fight). This is the durability lesson.
+- Tutorial golf club durability = **6 uses**. Budgeted across the whole path:
+  - 3003 zombie = 2 hits → **4 left**.
+  - 3004 **barricade removal = 2 uses** (tool-assisted) → **2 left**. This is
+    deliberate — it teaches that durability also drains on barricades, not
+    just on swings. (Remove it bare-handed to save the club, at the cost of
+    time + stamina — an emergent option, not signposted.)
+  - At the hallway choice the club is at **2**: **force the 3004 lock** (−1,
+    take the room, ~1 use left) OR **fight the corridor zombie** (−2, the
+    club **breaks**, room lost). Push is always the weaponless out.
+- (Earlier design used 4 uses and exempted the barricade; bumped to 6 so the
+  barricade's durability cost is visible while the choice stays a clean 2.)
+
+## 3004 approach beat
+- After 3003 is cleared, the first time the player walks past the still-
+  barricaded 3004 the game **PAUSES** and they note it can be torn down —
+  «probably faster if I pry at it with a weapon» — teaching the removal action
+  and foreshadowing its durability cost. One-shot (`hallway.gd`).
+
+## Forcing is channeled, not instant (game-wide)
+- Forcing a **door** or a **lock** now takes **`FORCE_TIME` = 2s** (a heave,
+  not a snap): a progress line counts down, it's loud from the first frame,
+  and any other action (move/attack/push/switch/listen) or walking away
+  **cancels** it with no durability spent. A key still opens instantly. This
+  is general (`door.gd`), not tutorial-only.
 
 ## Hallway / stairwell scripted zombie (IMPLEMENTED)
 - **Removing the 3004 barricade is the noise lesson**: every plank rip throws
