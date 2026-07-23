@@ -88,6 +88,9 @@ func _layout() -> void:
 	# bug). Children (slots, buttons) keep their own filters and stay
 	# clickable.
 	$Control.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Floating text labels must never swallow a world click (click-to-move):
+	# an IGNORE parent does NOT shield STOP children, so set each explicitly.
+	floor_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	color_rect.set_anchor_and_offset(SIDE_TOP, 0, SCREEN_H - BAR_H - 40)
 	color_rect.set_anchor_and_offset(SIDE_BOTTOM, 0, SCREEN_H)
 	color_rect.set_anchor_and_offset(SIDE_LEFT, 0, 0)
@@ -109,6 +112,7 @@ func _layout() -> void:
 
 func _create_mode_label() -> void:
 	mode_label = Label.new()
+	mode_label.mouse_filter = Control.MOUSE_FILTER_IGNORE  # never eat world clicks
 	mode_label.add_theme_font_size_override("font_size", 18)
 	mode_label.position = Vector2(SCREEN_W - 258, SCREEN_H - BAR_H - 10)
 	mode_label.size = Vector2(180, 40)
@@ -159,6 +163,7 @@ func _create_slot_icons() -> void:
 
 func _create_feedback_label() -> void:
 	feedback_label = Label.new()
+	feedback_label.mouse_filter = Control.MOUSE_FILTER_IGNORE  # never eat world clicks
 	feedback_label.add_theme_font_size_override("font_size", 14)
 	feedback_label.position = Vector2(SCREEN_W / 2 - 100, SCREEN_H - BAR_H - 35)
 	feedback_label.size = Vector2(200, 30)
@@ -192,6 +197,7 @@ func _create_dialogue_panel() -> void:
 	dialogue_panel.add_child(vbox)
 
 	dialogue_label = Label.new()
+	dialogue_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	dialogue_label.add_theme_font_size_override("font_size", 20)
 	dialogue_label.add_theme_color_override("font_color", Color(0.95, 0.95, 1.0, 1.0))
 	dialogue_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -200,6 +206,7 @@ func _create_dialogue_panel() -> void:
 	vbox.add_child(dialogue_label)
 
 	dialogue_hint = Label.new()
+	dialogue_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	dialogue_hint.add_theme_font_size_override("font_size", 14)
 	dialogue_hint.add_theme_color_override("font_color", Color(1.0, 0.9, 0.35, 1.0))
 	dialogue_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -271,6 +278,7 @@ func _create_stamina_bar() -> void:
 
 func _create_wallet_label() -> void:
 	wallet_label = Label.new()
+	wallet_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	wallet_label.add_theme_font_size_override("font_size", 12)
 	wallet_label.add_theme_color_override("font_color", Color(0.55, 0.9, 0.55, 1.0))
 	wallet_label.position = Vector2(SCREEN_W - (SLOT_SIZE + 8) * 6 - 8, SCREEN_H - BAR_H - 16)

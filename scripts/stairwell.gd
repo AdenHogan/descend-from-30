@@ -59,7 +59,7 @@ func _process(_delta: float) -> void:
 			var report = WorldState.get_listen_report_for_floor_below()
 			player.start_listen(global_position, report)
 			return
-	if player_nearby and Input.is_action_just_pressed("interact"):
+	if player_nearby and Input.is_action_just_pressed("interact") and not TutorialManager.interact_guarded():
 		_use_stairs()
 
 

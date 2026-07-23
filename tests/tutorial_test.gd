@@ -21,6 +21,7 @@ func _ready() -> void:
 	_test_hallway_baked_hints()
 	_test_pause_menu_autoload()
 	_test_tutorial_manager()
+	await _test_opener()
 	await _test_barricade_beat()
 	await _test_3005_hammer()
 	await _test_3003_scripted_content()
@@ -171,9 +172,37 @@ func _test_tutorial_manager() -> void:
 	WorldState.is_first_run = true
 
 
+func _test_opener() -> void:
+	print("[first-run opener]")
+	WorldState.new_game()
+	check(not WorldState.opener_seen, "opener unseen after new_game")
+	# All opener lines exist to edit.
+	var keys_ok := true
+	for k in ["opener_1", "opener_2", "opener_3", "opener_4", "opener_5"]:
+		if not TutorialManager.LINES.has(k):
+			keys_ok = false
+	check(keys_ok, "all opener_* lines are in TutorialManager.LINES")
+	var intro = preload("res://scripts/intro_overlay.gd").new()
+	add_child(intro)
+	await get_tree().process_frame
+	check(get_tree().paused, "opener pauses the game")
+	check(intro.label.text == TutorialManager.LINES["opener_1"], "first opener line shows")
+	for i in range(6):
+		intro._advance()
+	check(intro.fading, "opener fades out after the last line")
+	intro._process(1.0)  # drive the fade to completion
+	await get_tree().process_frame
+	check(not get_tree().paused, "opener unpauses when done")
+	get_tree().paused = false  # defensive: never leave the test tree paused
+	if is_instance_valid(intro):
+		intro.queue_free()
+	await get_tree().process_frame
+
+
 func _test_barricade_beat() -> void:
 	print("[hallway barricade beat]")
 	WorldState.new_game()
+	WorldState.opener_seen = true  # skip the cold-open (it would pause the test tree)
 	WorldState.current_floor = 30
 	WorldState.seed_floor_door_states(30)
 	WorldState.killed_zombies["3003:tutorial"] = {"floor": 30}  # 3003 cleared
