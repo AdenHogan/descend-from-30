@@ -25,6 +25,7 @@ SettingsManager="*uid://bty8guqxk0ug3"
 PauseMenu="*uid://chxtq3ecgwk1a"
 TutorialManager="*res://scripts/tutorial_manager.gd"
 Transition="*res://scripts/transition.gd"
+StairPan="*res://scripts/stair_pan.gd"
 
 [input]
 

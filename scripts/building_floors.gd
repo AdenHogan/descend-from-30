@@ -5,8 +5,26 @@ const SPAWN_LEFT_BOTTOM = Vector2(188, 391)
 const SPAWN_RIGHT_TOP = Vector2(1201, 391)
 const SPAWN_RIGHT_BOTTOM = Vector2(1162, 391)
 
+# Stair-pan support: a building_floors can be built as a PASSIVE backdrop for a
+# specific floor — no player, enemies, corpses, drops, or merchant — so the
+# seamless pan (StairPan) can show the adjacent floor beside the live one. Set
+# these BEFORE add_child(). setup_floor -1 = use WorldState.current_floor.
+var setup_floor: int = -1
+var passive: bool = false
+
+
 func _ready() -> void:
+	var floor_num = setup_floor if setup_floor >= 0 else WorldState.current_floor
 	var player = get_node("Player")
+
+	# A passive backdrop instance carries no live actors — drop its player and
+	# build only the corridor + doors for `floor_num`.
+	if passive:
+		player.queue_free()
+		player = null
+		_apply_doors(floor_num)
+		return
+
 	var hallway_staircase_left = get_node("HallwayStaircaseLeft")
 	var lobby_left = get_node("LobbyLeft")
 	var hallway_staircase_right = get_node("HallwayStaircaseRight")
@@ -72,14 +90,7 @@ func _ready() -> void:
 			left_down.process_mode = Node.PROCESS_MODE_DISABLED
 
 	# Assign apartment IDs and apply correct door states AFTER IDs are set
-	var floor_num = WorldState.current_floor
-	for i in range(1, 6):
-		var node_name = "apartment0" + str(i)
-		var apt_id = str(floor_num) + "0" + str(i)
-		var door = get_node_or_null(node_name)
-		if door:
-			door.apartment_id = apt_id
-			door._apply_door_state()
+	_apply_doors(floor_num)
 
 	var floor_rng = RandomNumberGenerator.new()
 	floor_rng.seed = (WorldState.master_seed ^ (floor_num * 2246822519)) & 0xFFFFFFFF
@@ -99,6 +110,14 @@ func _ready() -> void:
 	_spawn_corpses(floor_num)
 	_spawn_world_drops(floor_num)
 	_spawn_merchant(floor_num)
+
+func _apply_doors(floor_num: int) -> void:
+	for i in range(1, 6):
+		var door = get_node_or_null("apartment0" + str(i))
+		if door:
+			door.apartment_id = str(floor_num) + "0" + str(i)
+			door._apply_door_state()
+
 
 func _spawn_merchant(floor_num: int) -> void:
 	if floor_num not in WorldState.MERCHANT_FLOORS:
