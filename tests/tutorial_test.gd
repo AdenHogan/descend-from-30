@@ -24,6 +24,7 @@ func _ready() -> void:
 	await _test_opener()
 	await _test_barricade_beat()
 	await _test_3005_bullets()
+	await _test_tutorial_rooms()
 	await _test_3003_scripted_content()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
@@ -96,6 +97,57 @@ func _test_3005_bullets() -> void:
 	check(WorldState.tutorial_f29_weapon_granted, "the once-only flag is set")
 	r29.queue_free()
 	await get_tree().process_frame
+
+
+func _test_tutorial_rooms() -> void:
+	print("[fixed tutorial rooms 3002/3004/3005]")
+	var specs = {
+		"3002": {"items": {"011": 1, "033": 1, "034": 1, "006": 1}, "amounts": {"033": [10]}},
+		"3004": {"items": {"": 2, "033": 2, "032": 1}, "amounts": {"033": [8, 4]}},
+		"3005": {"items": {"016": 2, "": 2, "006": 1}, "amounts": {"016": [8, 3]}},
+	}
+	for apt in specs.keys():
+		WorldState.new_game()
+		WorldState.current_floor = 30
+		WorldState.current_apartment_id = apt
+		WorldState.spawn_source = "door"
+		WorldState.exit_spawn_x = 570.0
+		WorldState.seed_floor_door_states(30)
+		var room = load("res://scenes/room.tscn").instantiate()
+		add_child(room)
+		for i in range(8):
+			await get_tree().process_frame
+		# Tally item counts + collected amounts for this apartment.
+		var counts = {}
+		var amts = {}
+		for k in WorldState.anchor_items:
+			if not String(k).begins_with(apt + ":"):
+				continue
+			var it = String(WorldState.anchor_items[k])
+			counts[it] = counts.get(it, 0) + 1
+			var a = int(WorldState.anchor_amounts.get(k, 0))
+			if a > 0:
+				amts[it] = amts.get(it, [])
+				amts[it].append(a)
+		var spec = specs[apt]
+		var node_total = 0
+		for c in counts.values():
+			node_total += c
+		check(node_total == spec["items"].values().reduce(func(a, b): return a + b, 0),
+			"%s has exactly the specified node count (%d)" % [apt, node_total])
+		var items_ok = true
+		for it in spec["items"]:
+			if counts.get(it, 0) != spec["items"][it]:
+				items_ok = false
+		check(items_ok, "%s node items match the spec (%s)" % [apt, str(counts)])
+		for it in spec["amounts"]:
+			var got = amts.get(it, [])
+			got.sort()
+			var want = spec["amounts"][it].duplicate()
+			want.sort()
+			check(got == want, "%s pins %s amounts %s" % [apt, it, str(got)])
+		room.queue_free()
+		await get_tree().process_frame
 
 
 func _test_3003_scripted_content() -> void:
@@ -187,24 +239,32 @@ func _test_opener() -> void:
 	print("[first-run opener]")
 	WorldState.new_game()
 	check(not WorldState.opener_seen, "opener unseen after new_game")
-	# All opener lines exist to edit.
 	var keys_ok := true
-	for k in ["opener_1", "opener_2", "opener_3", "opener_4", "opener_5"]:
+	for k in ["opener_1", "opener_4", "opener_5"]:
 		if not TutorialManager.LINES.has(k):
 			keys_ok = false
-	check(keys_ok, "all opener_* lines are in TutorialManager.LINES")
+	check(keys_ok, "opener_* lines are in TutorialManager.LINES")
 	var intro = preload("res://scripts/intro_overlay.gd").new()
 	add_child(intro)
 	await get_tree().process_frame
 	check(get_tree().paused, "opener pauses the game")
-	check(intro.label.text == TutorialManager.LINES["opener_1"], "first opener line shows")
-	for i in range(6):
-		intro._advance()
-	check(intro.fading, "opener fades out after the last line")
-	intro._process(1.0)  # drive the fade to completion
+	check(intro.title.text == "DESCEND FROM 30", "gory title card shows")
+	check(intro.black.color.a == 1.0, "starts on a black screen")
+	# Skip past the title fade → the first line should appear.
+	intro.t = intro.TITLE_FADE + 0.1
+	intro.burst_left = 0
+	intro._process(0.02)
+	check(intro.line_shown and intro.line.text == TutorialManager.LINES["opener_1"], "title done → first line shows")
+	# Any key advances → fade to gameplay.
+	var ev = InputEventKey.new()
+	ev.keycode = KEY_SPACE
+	ev.pressed = true
+	intro._input(ev)
+	check(intro.fading, "any key begins the fade to the hallway")
+	intro._process(1.0)  # drive the fade
 	await get_tree().process_frame
 	check(not get_tree().paused, "opener unpauses when done")
-	get_tree().paused = false  # defensive: never leave the test tree paused
+	get_tree().paused = false
 	if is_instance_valid(intro):
 		intro.queue_free()
 	await get_tree().process_frame
@@ -231,6 +291,7 @@ func _test_barricade_beat() -> void:
 		check(hz.tutorial_hold_x > 0.0, "it walks to a hold point, not straight at the player")
 		check(hz.spawn_key == "30hall:tutorial", "fixed spawn key (no respawn after the kill)")
 		check(hz.tutorial_cash_drop > 0, "fighting it still pays out (drops Bank Notes)")
+	check(hallway.has_method("start_opener_lockout"), "hallway exposes the opener lockout hook")
 	hallway.queue_free()
 	WorldState.barricade_progress.erase("3004")
 	await get_tree().process_frame

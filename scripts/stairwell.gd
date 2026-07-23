@@ -113,6 +113,8 @@ func _use_stairs() -> void:
 	# Seamless pan between two mid-building floors when enabled; it commits the
 	# floor + scene change itself. Otherwise (and always, while disabled) the
 	# plain fade cut below.
+	# >>> TO ENABLE THE STAIR PAN: set `const ENABLED := true` at the top of
+	#     scripts/stair_pan.gd (that's the toggle — not here / not building_floors).
 	if StairPan.can_pan(target_floor):
 		StairPan.pan_to_floor(target_floor, direction)
 		return

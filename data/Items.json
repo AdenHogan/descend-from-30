@@ -263,6 +263,14 @@
       "PROPERTY_DURABILITY": "",
       "PROPERTY_SPAWN_RARITY": 1,
       "PROPERTY_WEIGHT_SIZE": null
+    },
+    "034": {
+      "ITEM_NAME": "Screwdriver",
+      "ITEM_DESCRIPTION": "Huh, I bet this can be used to pry open loose locks. Looks sturdy enough for a number of doors.",
+      "VALUE_PROPERTY": "can_force_lock",
+      "PROPERTY_DURABILITY": "5 uses",
+      "PROPERTY_SPAWN_RARITY": 2,
+      "PROPERTY_WEIGHT_SIZE": null
     }
   },
   "ROOM_SPAWN_POOLS": {
@@ -520,6 +528,14 @@
       "bathroom": 1,
       "study": 3,
       "living_room": 2,
+      "dining_room": 1
+    },
+    "Screwdriver": {
+      "bedroom": 0,
+      "kitchen": 1,
+      "bathroom": 0,
+      "study": 1,
+      "living_room": 0,
       "dining_room": 1
     }
   }

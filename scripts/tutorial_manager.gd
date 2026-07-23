@@ -22,12 +22,11 @@ const HALLWAY_ZOMBIE_KEY := "30hall:tutorial"
 # TutorialManager.LINES["<key>"] from hallway.gd / room.gd.
 # ==========================================================================
 const LINES := {
-	# --- Opener (black-screen intro, first run) ---
+	# --- Opener: opener_1 is the black-screen title-card line; opener_4/5 play
+	#     in the hallway as the player bangs on their own locked door (3001). ---
 	"opener_1": "Huh? What the hell's going on out there?",
-	"opener_2": "— the door! No, no, no —",
-	"opener_3": "Locked myself out. Brilliant.",
-	"opener_4": "Come on, open up! ...Anyone in there?",
-	"opener_5": "No answer. ...The spare. The neighbour in 3003 keeps a spare key — I need to get in there.",
+	"opener_4": "Come on — open up! ...I'm locked out. Brilliant.",
+	"opener_5": "The spare. The neighbour in 3003 keeps a spare key — I need to get in there.",
 	# --- 3003 scripted encounter ---
 	"3003_curiosity": "Mrs Delacroix…? Are you okay in there?",
 	"3003_push": "It's on me — shove it back!",
@@ -154,15 +153,21 @@ func _default_hint(action: String) -> String:
 		_: return "[Continue]"
 
 
-func _process(_delta: float) -> void:
+func _input(event: InputEvent) -> void:
 	if not _awaiting:
 		return
-	var pressed = Input.is_action_just_pressed(_await_action)
-	if not _await_strict:
-		# Loose beats also take a generic continue (E / Space).
-		pressed = pressed or Input.is_action_just_pressed("interact") \
-				or Input.is_action_just_pressed("jump")
-	if pressed:
+	var advance := false
+	if _await_strict:
+		# A teaching beat (the push intro) still needs its own action.
+		if event.is_action_pressed(_await_action):
+			advance = true
+	else:
+		# "Press-any-key" convenience: any key OR mouse click continues.
+		if (event is InputEventKey and event.pressed and not event.echo) \
+				or (event is InputEventMouseButton and event.pressed):
+			advance = true
+	if advance:
+		get_viewport().set_input_as_handled()
 		_resume()
 
 

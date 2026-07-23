@@ -22,6 +22,7 @@ func _ready() -> void:
 
 
 func open(item_id: String, anchor_name: String, apartment_id: String) -> void:
+	WorldState.loot_open = true
 	is_revealing = false
 	current_item_id = item_id
 	current_anchor_name = anchor_name
@@ -121,6 +122,23 @@ func _reveal_item() -> void:
 	leave_button.text = "Leave"
 
 
+func _input(event: InputEvent) -> void:
+	# Convenience (playtest): once an item is revealed, TAKE it with E or a
+	# left-click too — not only the Take button. (Walking away already leaves.)
+	if not visible or is_revealing or not take_button.visible:
+		return
+	var take = false
+	if event.is_action_pressed("interact"):
+		take = true
+	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		# A click on the Leave button still leaves; anywhere else takes.
+		if not leave_button.get_global_rect().has_point(event.position):
+			take = true
+	if take:
+		get_viewport().set_input_as_handled()
+		_on_take()
+
+
 func _on_take() -> void:
 	WorldState.interaction_handled = true
 	if current_item_id != "":
@@ -128,14 +146,11 @@ func _on_take() -> void:
 		if current_key_target != "":
 			added = WorldState.add_key_to_inventory(current_key_target)
 		else:
-			# Bullets come in bundles of 2-8, small bundles most likely.
-			var amount = 0
-			if ItemData.get_item(current_item_id).get("is_ammo", false):
-				# The tutorial's 3005 bullets are a fixed teaching amount (6).
-				if WorldState.is_first_run and current_apartment_id == "3005" and current_item_id == "016":
-					amount = 6
-				else:
-					amount = _roll_ammo_bundle()
+			# A scripted node can PIN the exact pickup amount (cash / bullets);
+			# otherwise ammo rolls a random bundle and money rolls in add_to_inventory.
+			var amount = WorldState.get_anchor_amount(current_apartment_id, current_anchor_name)
+			if amount <= 0 and ItemData.get_item(current_item_id).get("is_ammo", false):
+				amount = _roll_ammo_bundle()
 			added = WorldState.add_to_inventory(current_item_id, amount)
 
 		if added:
@@ -174,6 +189,7 @@ func _roll_ammo_bundle() -> int:
 func _close(item_taken: bool) -> void:
 	is_revealing = false
 	visible = false
+	WorldState.loot_open = false
 	_notify_anchor_closed(item_taken)
 	anchor_node = null
 	current_key_target = ""
