@@ -24,27 +24,28 @@ func _ready() -> void:
 	get_tree().quit(1 if failures > 0 else 0)
 
 
-func _click() -> void:
+func _click(at: Vector2 = Vector2(300, 300)) -> void:
 	# Prime the viewport's cached mouse position first — headless has no real
 	# cursor, and _is_mouse_over_hud()/_mouse_world_pos() read the cache.
 	var mv = InputEventMouseMotion.new()
-	mv.position = Vector2(300, 300)  # mid-screen, well above the HUD bar
+	mv.position = at
 	get_viewport().push_input(mv)
 	var ev = InputEventMouseButton.new()
 	ev.button_index = MOUSE_BUTTON_LEFT
 	ev.pressed = true
-	ev.position = mv.position
+	ev.position = at
 	get_viewport().push_input(ev)
 	var up = InputEventMouseButton.new()
 	up.button_index = MOUSE_BUTTON_LEFT
 	up.pressed = false
-	up.position = mv.position
+	up.position = at
 	get_viewport().push_input(up)
 
 
 func _test_hallway_click() -> void:
 	print("[hallway: LMB sets a move target]")
 	WorldState.new_game()
+	WorldState.opener_seen = true  # skip the cold-open (would pause the test tree)
 	WorldState.current_floor = 30
 	WorldState.seed_floor_door_states(30)
 	var hallway = load("res://scenes/hallway.tscn").instantiate()
@@ -62,12 +63,13 @@ func _test_hallway_click() -> void:
 	_click()
 	# push_input is synchronous — check before physics can "arrive" and clear it.
 	check(player.has_move_target, "LMB click reaches the player (scavenge, no dialogue)")
-	# A transient dialogue line must NOT block world clicks.
+	# A dialogue line must NOT block world clicks — including a click that lands
+	# directly ON the dialogue panel (upper-centre), the real playtest failure.
 	player._clear_move_target()
-	HUD.show_dialogue("test line")
+	HUD.show_dialogue("A fairly long tutorial line that fills the whole dialogue panel width so a click lands on it.")
 	await get_tree().process_frame
-	_click()
-	check(player.has_move_target, "LMB still works while a dialogue line is up")
+	_click(Vector2(576, 128))  # over the dialogue panel
+	check(player.has_move_target, "LMB works even clicking ON the dialogue panel")
 	HUD.hide_dialogue()
 	hallway.queue_free()
 	await get_tree().process_frame

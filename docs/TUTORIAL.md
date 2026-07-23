@@ -17,6 +17,19 @@ A small first-person speech line shown briefly (own UI, not the wall text).
 `HUD.show_dialogue(text)` / driven by the tutorial state machine. Placeholder
 lines below in «guillemets» are temporary.
 
+> **Editing the dialogue:** every tutorial line lives in ONE place — the
+> `LINES` dictionary at the top of `scripts/tutorial_manager.gd`. Rewrite the
+> string values freely (keep the keys); nothing else needs touching. Keys are
+> grouped by beat: `opener_*`, `3003_*`, `3002_entry`, `3004_hint`,
+> `hall_*`, `stairs_*`.
+
+## Opener (first-run cold open)
+`scripts/intro_overlay.gd`, spawned once from `hallway.gd` (gated by
+`WorldState.opener_seen`): a black screen with rapid banging → «what the hell's
+going on out there?» → door-slam → locked out → bang on 3001, no answer →
+remembers the 3003 spare key → fades to gameplay. E advances each beat; SFX
+are placeholder impacts. Replays on `new_game()` / the F7 reset.
+
 ## Stairwell gating + herding (1C) — STAGED
 The Floor 30 down-stairwell is blocked along the whole mandatory path, with a
 stage-appropriate line + herd each time the player tries it:
@@ -147,6 +160,20 @@ zombie → choice) → 3005 (open, info) → stairs unlock → descend to 29.
   the full path; 3002 reward room + entry line. **Remaining:** 3005 interior
   info; owner-authored final dialogue.
 - Final dialogue/wall text is owner-authored; code ships placeholders.
+
+## Planned (not yet built) — transitions & depth
+- **Depth approach-walk:** player nudges UP the screen (toward the door, −Y)
+  to knock / enter, then back down to the main plane. Framework hook to add on
+  `player.gd` (a reusable `approach(target)` tween); wire into door entry + the
+  opener knock once the knock/door art exists.
+- **Door-open + enter transition:** a reasonably-timed fade (not an instant
+  cut) hallway↔apartment. A `HUD` fade-to-black helper the door/stair calls
+  before `change_scene`.
+- **Seamless stair transition (building_floors doubling):** load the
+  adjacent floor and PAN between them as the player walks the stairs, instead
+  of a hard scene cut — to sell the scale of descending. Feasible: instance a
+  second `building_floors` offset vertically, tween the camera across, then
+  promote the new floor to current. Bigger job; own pass.
 
 ## Testing the tutorial (DEV)
 - **F7** toggles the first-run tutorial on/off and drops you into a fresh

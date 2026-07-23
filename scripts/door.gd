@@ -299,7 +299,7 @@ func _process(delta: float) -> void:
 	proximity_label.text = _get_prompt_text()
 	proximity_label.visible = _prompt_should_show()
 
-	if Input.is_action_just_pressed("interact"):
+	if Input.is_action_just_pressed("interact") and not TutorialManager.interact_guarded():
 		match current_state:
 			WorldState.DoorState.OPEN, WorldState.DoorState.BREACHED:
 				_enter_apartment()

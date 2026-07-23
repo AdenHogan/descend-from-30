@@ -273,8 +273,7 @@ func _ready() -> void:
 	# 3002 is the tutorial's reward room — first entry is also the EARLIEST
 	# place descent gets mentioned (never inside 3003).
 	if WorldState.is_first_run and apartment_id == "3002":
-		TutorialManager.say_once("3002_entry",
-			"So this is what the key kept safe. Take what helps — then find the stairs. It's a long way down.")
+		TutorialManager.say_once("3002_entry", TutorialManager.LINES["3002_entry"])
 
 	# 3005 (first run): guarantee a Hammer so the player descends to Floor 29
 	# with a real weapon — their club may be broken/low from the durability
@@ -432,7 +431,7 @@ func _tutorial_process(_delta: float) -> void:
 		TutStep.INTRO:
 			# Curiosity on approach, then the neighbour stirs and starts closing.
 			if dist <= TUT_SEE_RANGE:
-				TutorialManager.say("Mrs Delacroix…? Are you okay in there?")
+				TutorialManager.say(TutorialManager.LINES["3003_curiosity"])
 				tut_zombie.tutorial_release()
 				tut_step = TutStep.APPROACH
 		TutStep.APPROACH:
@@ -445,7 +444,7 @@ func _tutorial_process(_delta: float) -> void:
 				if player.has_method("receive_hit"):
 					player.receive_hit(1)
 				TutorialManager.prompt(
-					"It's on me — shove it back!", "push", _on_tut_push, "[Push]", true)
+					TutorialManager.LINES["3003_push"], "push", _on_tut_push, "[Push]", true)
 		TutStep.SCAVENGE:
 			if tut_zombie.is_dead:
 				tut_step = TutStep.DONE
@@ -458,14 +457,13 @@ func _tutorial_process(_delta: float) -> void:
 				HUD.update_mode_indicator()
 				_tut_equip("012")
 				TutorialManager.prompt(
-					"A club — good. Time to swing until it goes down.", "interact",
+					TutorialManager.LINES["3003_combat"], "interact",
 					_on_tut_combat, "[E] to ready up")
 		TutStep.COMBAT:
 			if tut_zombie.is_dead:
 				tut_step = TutStep.HEAL
 				TutorialManager.prompt(
-					"It got me back there — I should patch up with those bandages.",
-					"interact", _on_tut_heal, "[E], then use the bandages")
+					TutorialManager.LINES["3003_heal"], "interact", _on_tut_heal, "[E], then use the bandages")
 
 
 func _on_tut_push() -> void:
@@ -477,8 +475,7 @@ func _on_tut_push() -> void:
 	if is_instance_valid(tut_zombie):
 		tut_zombie.tutorial_stagger()
 	TutorialManager.prompt(
-		"That won't hold it — I need a weapon. Search the room!",
-		"interact", _on_tut_weapon, "[E] to continue")
+		TutorialManager.LINES["3003_weapon"], "interact", _on_tut_weapon, "[E] to continue")
 
 
 func _on_tut_weapon() -> void:
@@ -486,19 +483,19 @@ func _on_tut_weapon() -> void:
 	_reveal_tutorial_nodes()
 	WorldState.is_scavenge_mode = true
 	HUD.update_mode_indicator()
-	TutorialManager.say("Anything I can swing — hurry!")
+	TutorialManager.say(TutorialManager.LINES["3003_weapon_go"])
 	tut_step = TutStep.SCAVENGE
 
 
 func _on_tut_combat() -> void:
 	# Resumed into combat with the club equipped; the neighbour is 2 hits away.
-	TutorialManager.say("Two solid hits.")
+	TutorialManager.say(TutorialManager.LINES["3003_combat_go"])
 
 
 func _on_tut_heal() -> void:
 	# The key realization — points at 3002, NOT at descending (descent talk
 	# comes later, in 3002 / at the stairs).
-	TutorialManager.say("Wait… this isn't my spare key. It's for next door — 3002. Worth a look.")
+	TutorialManager.say(TutorialManager.LINES["3003_key"])
 	tut_step = TutStep.DONE
 
 

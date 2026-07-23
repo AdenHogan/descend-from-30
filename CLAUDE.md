@@ -178,6 +178,18 @@ means no rendering — UI layout and art still need an in-editor look.
   instant): progress countdown, loud from the first heave, cancels on any
   other action or walking away, durability spent only on completion; a key
   still opens instantly (`door.gd`, locked by force_lock_test).
+- Tutorial playtest round 3: **first-run cold-open** (`intro_overlay.gd`,
+  black screen + banging → locked out → remember the 3003 key, gated by
+  `WorldState.opener_seen`); **all tutorial dialogue centralised** into
+  `TutorialManager.LINES` (single edit point, keys grouped by beat); forcing
+  3004 now **snaps the club** with a "it broke, get inside" pause (both choice
+  paths end weaponless → the 3005 hammer matters); corridor zombie **cash**
+  wording; **interact-guard** so the E that dismisses a prompt no longer also
+  opens the door behind it; **click-to-move regression fixed** — floating HUD
+  labels (dialogue/feedback/mode/floor/wallet) were `MOUSE_FILTER_STOP` and ate
+  world clicks, now IGNORE (click_move_test clicks *through* the dialogue box).
+  Not yet built (own pass): depth approach-walk, door-open/enter fade
+  transitions, seamless stair pan (building_floors doubling).
 - Next: tutorial **v2** (above), then characters/profiles/stats + the
   two-&-three-run arc; also **Upgrade offers** polish and player-corpse
   recovery (store step 7).

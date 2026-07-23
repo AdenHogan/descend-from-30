@@ -13,6 +13,9 @@ var current_floor: int = 30
 var stair_direction: String = ""
 var spawn_source: String = ""
 var is_first_run: bool = true
+# First-run opener (locked-out cold open) — plays once at the start of run 1;
+# reset by new_game() and the F7 dev tutorial reset so it can replay.
+var opener_seen: bool = false
 var tutorial_zombie_spawned: bool = false
 var last_exited_apartment: int = 0
 var current_run: int = 1
@@ -137,6 +140,7 @@ func new_game() -> void:
 	exit_spawn_x = 0.0
 	saved_player_x = 0.0
 	saved_player_y = 0.0
+	opener_seen = false
 	killed_zombies.clear()
 	zombie_positions.clear()
 	world_drops.clear()
@@ -746,7 +750,9 @@ func dev_reset_tutorial() -> void:
 	# replays from scratch — clears the neighbour's killed/position record and
 	# 3003's seeded/searched anchors so the three nodes re-seed fresh. Leaves
 	# the rest of the run (inventory, wallet, upgrades) untouched.
+	opener_seen = false
 	killed_zombies.erase("3003:tutorial")
+	killed_zombies.erase("30hall:tutorial")
 	zombie_positions.erase("3003:tutorial")
 	apartment_layouts.erase("3003")
 	for k in anchor_items.keys():

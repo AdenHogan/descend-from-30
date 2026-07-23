@@ -13,6 +13,7 @@ const HALL_ZOMBIE_CASH = 25   # Bank Notes it drops if the player fights it
 var hall_zombie: Node = null
 var hall_choice_prompted: bool = false
 var barricade_hint_shown: bool = false
+var hall_force_break_done: bool = false
 
 
 func _ready() -> void:
@@ -40,6 +41,12 @@ func _ready() -> void:
 	_spawn_corpses(30)
 	_spawn_world_drops(30)
 
+	# First-run cold open: black screen, banging, locked out, remember the
+	# 3003 spare key. Plays once (opener_seen), then hands to gameplay.
+	if WorldState.is_first_run and WorldState.current_floor == 30 and not WorldState.opener_seen:
+		WorldState.opener_seen = true
+		add_child(preload("res://scripts/intro_overlay.gd").new())
+
 	# Diegetic tutorial: blood-scrawled control hints are baked into the scene
 	# (group "tutorial_blood") so they can be positioned/resized in the editor.
 	# They only belong on the FIRST run — hide them otherwise.
@@ -51,6 +58,7 @@ func _process(_delta: float) -> void:
 	if not (WorldState.is_first_run and WorldState.current_floor == 30):
 		return
 	_maybe_hint_barricade()
+	_maybe_break_club_on_force()
 	if WorldState.killed_zombies.has(TutorialManager.HALLWAY_ZOMBIE_KEY):
 		return
 	var d3004 = WorldState.get_door_state("3004")
@@ -72,7 +80,7 @@ func _process(_delta: float) -> void:
 			_release_hall_zombie()
 		else:
 			TutorialManager.prompt(
-				"That lock looks forceable — but this club's nearly spent. Enough for ONE more job: force 3004 and take the room, OR put the thing down and take whatever it's carrying. Not both.",
+				TutorialManager.LINES["hall_choice"],
 				"interact", _release_hall_zombie, "[E] to continue")
 
 
@@ -96,11 +104,42 @@ func _maybe_hint_barricade() -> void:
 		return
 	barricade_hint_shown = true
 	TutorialManager.prompt(
-		"This one's barricaded. I could tear it down — probably faster if I pry at it with a weapon.",
+		TutorialManager.LINES["3004_hint"],
 		"interact", _on_barricade_hint, "[E] to continue")
 
 
 func _on_barricade_hint() -> void:
+	pass
+
+
+func _maybe_break_club_on_force() -> void:
+	# The force-vs-fight choice must leave the player weaponless either way:
+	# fighting breaks the club on the 2nd hit; forcing 3004's lock would leave
+	# a sliver of durability, so we snap it here — the scripted "one job left"
+	# payoff — the moment 3004 opens. (They pick up the 3005 Hammer next.)
+	if hall_force_break_done:
+		return
+	if not WorldState.killed_zombies.has(TutorialManager.TUTORIAL_ZOMBIE_KEY):
+		return  # barricade beat not reached yet
+	if WorldState.get_door_state("3004") != WorldState.DoorState.OPEN:
+		return
+	hall_force_break_done = true
+	var broke = false
+	for i in range(WorldState.inventory.size()):
+		var inst = WorldState.inventory[i]
+		if inst.item_id == "012" and not inst.is_depleted:
+			inst.current_durability = 0
+			inst.is_depleted = true
+			if HUD.selected_slot == i:
+				HUD.selected_slot = -1
+			broke = true
+	HUD.refresh_inventory()
+	if broke:
+		TutorialManager.prompt(TutorialManager.LINES["hall_force_break"],
+			"interact", _on_force_break, "[E]")
+
+
+func _on_force_break() -> void:
 	pass
 
 
@@ -123,8 +162,7 @@ func _spawn_hall_zombie() -> void:
 		zombie.global_position = Vector2(saved["x"], saved["y"])
 	add_child(zombie)
 	hall_zombie = zombie
-	TutorialManager.say_once("hall_zombie",
-		"Something heard that — it's coming up the stairs!")
+	TutorialManager.say_once("hall_zombie", TutorialManager.LINES["hall_zombie"])
 
 
 func _spawn_corpses(floor_num: int) -> void:
