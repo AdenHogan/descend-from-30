@@ -102,13 +102,15 @@ pauses at each teaching beat (`get_tree().paused` + a dialogue prompt).
 - Once barricade work starts, a zombie **walks in from the left stairs**
   (drawn by the noise), but **holds at a distance** (`tutorial_hold_x`),
   facing the player — visible menace, no pressure yet.
-- The moment the barricade falls: **gameplay PAUSES** for the choice line
-  («Force the lock and take the room — or stand and fight. This club won't
-  do both.»), then the zombie is released at a slow shamble:
+- The moment the barricade falls: **gameplay PAUSES** for the choice line —
+  «this club's nearly spent, enough for ONE more job: force 3004 and take the
+  room, OR put the thing down and take what it's carrying. Not both.» — then
+  the zombie is released at a slow shamble:
   - **Force the 3004 lock** with the club (1 use → 1 left) → take the room,
     but too little club left to kill the zombie (2 hits needed).
-  - **Fight the zombie** (2 hits → the club **breaks**) → 3004 stays locked;
-    the room is lost.
+  - **Fight the zombie** (2 hits → the club **breaks**) → 3004 stays locked,
+    but the zombie **drops a Bank Notes bundle** — so fighting still pays out.
+    The door-vs-enemy risk/reward is real; neither path is empty-handed.
   - **Push** remains the weaponless out either way.
 - The zombie is scripted (deterministic 2-hit kill, no RNG), keyed
   `30hall:tutorial` so the kill persists.
@@ -120,7 +122,12 @@ pauses at each teaching beat (`get_tree().paused` + a dialogue prompt).
 | 3002 | locked (3003 key) | **reward room** — conservative loot only: cash (weighted heaviest), ice pack, first aid kit; NO weapons/keys/toolbox (nothing that defuses the club-durability lesson). Entry line is the earliest descent mention. |
 | 3003 | open | scripted encounter; scavenge + attack info. **No descent talk here** — the kill dialogue is the key realization («this isn't my spare key — it's for 3002»). |
 | 3004 | barricaded+locked | **no** info inside (optional, forced-entry loot) |
-| 3005 | open | tutorial info inside — TBD |
+| 3005 | open | **guaranteed Hammer (002)** on the first run, so the player descends to 29 with a real weapon (their club may be broken/low). Interior info TBD. |
+
+**First-run generosity:** the tutorial's scripted kind drops (3002 reward
+pool, the 3005 hammer, the corridor zombie's cash) are all
+`is_first_run`-gated. From run 2 on, Floor-30 apartments 3002–3005 are plain
+RNG seeding like any other floor.
 
 ## Mandatory path
 Hallway (movement text) → 3003 (scripted: see zombie → weapon → kill → key)

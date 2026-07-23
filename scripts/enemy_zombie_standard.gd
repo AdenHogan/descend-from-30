@@ -33,6 +33,10 @@ var tutorial_hold_x: float = -1.0
 var drops_key: bool = false
 var key_target_apartment: String = ""
 var key_dropped: bool = false
+# Tutorial corridor zombie: a guaranteed Bank Notes bundle on death, so
+# choosing to FIGHT it (instead of forcing 3004) isn't walking away empty —
+# the door-vs-enemy risk/reward stays real, both paths pay out.
+var tutorial_cash_drop: int = 0
 
 var animated_sprite: AnimatedSprite2D
 var player: Node2D = null
@@ -235,6 +239,15 @@ func _die() -> void:
 		queue_free()
 		return
 
+	# Tutorial corridor zombie: guaranteed cash instead of the random roll.
+	if tutorial_cash_drop > 0:
+		_drop_tutorial_cash()
+		await animated_sprite.animation_finished
+		animated_sprite.pause()
+		await get_tree().create_timer(300).timeout
+		queue_free()
+		return
+
 # Roll for loot drop — 18% chance, consumables only
 	var loot_id = WorldState.roll_zombie_loot_id(global_position, WorldState.current_floor)
 	if loot_id != "":
@@ -249,6 +262,20 @@ func _die() -> void:
 	animated_sprite.pause()
 	await get_tree().create_timer(300).timeout
 	queue_free()
+
+func _drop_tutorial_cash() -> void:
+	# Register the drop (for persistence) AND spawn the visible pickup now —
+	# same pattern the big zombie uses for its cash bundle.
+	var pos = global_position
+	WorldState.add_world_drop("033", pos, WorldState.current_floor, {"amount": tutorial_cash_drop})
+	var drop = preload("res://scenes/world_drop.tscn").instantiate()
+	drop.item_id = "033"
+	drop.amount = tutorial_cash_drop
+	drop.drop_key = str(WorldState.current_floor) + ":" + str(snappedf(pos.x, 1.0)) + ":" + str(snappedf(pos.y, 1.0))
+	drop.global_position = pos
+	get_parent().add_child(drop)
+	HUD.show_feedback("It was carrying cash — grab it.")
+
 
 func _drop_key() -> void:
 	var added = WorldState.add_key_to_inventory(key_target_apartment)

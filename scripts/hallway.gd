@@ -9,6 +9,7 @@ extends Node
 const HALL_ZOMBIE_SPAWN_X = 80.0
 const HALL_ZOMBIE_HOLD_X = 260.0
 const BARRICADE_HINT_RANGE = 90.0
+const HALL_ZOMBIE_CASH = 25   # Bank Notes it drops if the player fights it
 var hall_zombie: Node = null
 var hall_choice_prompted: bool = false
 var barricade_hint_shown: bool = false
@@ -71,7 +72,7 @@ func _process(_delta: float) -> void:
 			_release_hall_zombie()
 		else:
 			TutorialManager.prompt(
-				"It heard everything. Force the lock and take the room — or stand and fight. This club won't do both.",
+				"That lock looks forceable — but this club's nearly spent. Enough for ONE more job: force 3004 and take the room, OR put the thing down and take whatever it's carrying. Not both.",
 				"interact", _release_hall_zombie, "[E] to continue")
 
 
@@ -116,6 +117,7 @@ func _spawn_hall_zombie() -> void:
 	zombie.tutorial_scripted = true   # deterministic 2-hit kill, no RNG
 	zombie.tutorial_frozen = true
 	zombie.tutorial_hold_x = HALL_ZOMBIE_HOLD_X
+	zombie.tutorial_cash_drop = HALL_ZOMBIE_CASH  # fighting it still pays out
 	if WorldState.zombie_positions.has(TutorialManager.HALLWAY_ZOMBIE_KEY):
 		var saved = WorldState.zombie_positions[TutorialManager.HALLWAY_ZOMBIE_KEY]
 		zombie.global_position = Vector2(saved["x"], saved["y"])
