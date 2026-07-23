@@ -162,9 +162,16 @@ means no rendering — UI layout and art still need an in-editor look.
   slow release; stairs gate is STAGED (key → apts → choice → open) with
   per-stage lines + herding to the next objective door; 3002 = conservative
   reward room (cash/ice pack/first aid only) with the earliest descent line;
-  3003 kill line = the key realization. Dialogue/report panels are
+  3003 kill line = the key realization. Tutorial club now **6 uses** (−2
+  zombie, −2 barricade, 2 left for the choice — barricades visibly cost
+  durability); a **pause beat** when first passing the barricaded 3004 hints
+  it can be torn down (faster with a weapon). Dialogue/report panels are
   mouse-transparent (click-to-move regression, locked by click_move_test).
   Remaining: 3005 interior info; owner-authored final dialogue.
+- Forcing a door/lock is now a **2s channeled action** game-wide (was
+  instant): progress countdown, loud from the first heave, cancels on any
+  other action or walking away, durability spent only on completion; a key
+  still opens instantly (`door.gd`, locked by force_lock_test).
 - Next: tutorial **v2** (above), then characters/profiles/stats + the
   two-&-three-run arc; also **Upgrade offers** polish and player-corpse
   recovery (store step 7).

@@ -11,7 +11,11 @@ var selected_index: int = 0
 # kill) → key drops → pause → heal prompt. Beats that pause the game are run
 # through TutorialManager (dialogue + press-a-key resume). docs/TUTORIAL.md.
 enum TutStep { INTRO, APPROACH, PUSH, WEAPON, SCAVENGE, COMBAT, HEAL, DONE }
-const TUT_CLUB_DURABILITY = 4   # low on purpose — a real resource from turn one
+# Low on purpose. Budget across the tutorial: 6 → −2 (3003 zombie) → −2 (3004
+# barricade, teaching that barricades drain durability too) → 2 left for the
+# hallway choice, where forcing the 3004 lock (−1) OR fighting the corridor
+# zombie (−2, breaks the club) is a real either/or.
+const TUT_CLUB_DURABILITY = 6
 # The neighbour stands almost at the back wall; with the trigger at 200px the
 # curiosity beat fires when the player is about a quarter into the final room.
 const TUT_SEE_RANGE = 200.0     # player gets this close → curiosity + turn + release

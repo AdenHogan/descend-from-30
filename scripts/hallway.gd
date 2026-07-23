@@ -8,8 +8,10 @@ extends Node
 # the club breaks, the room is lost). See docs/TUTORIAL.md.
 const HALL_ZOMBIE_SPAWN_X = 80.0
 const HALL_ZOMBIE_HOLD_X = 260.0
+const BARRICADE_HINT_RANGE = 90.0
 var hall_zombie: Node = null
 var hall_choice_prompted: bool = false
+var barricade_hint_shown: bool = false
 
 
 func _ready() -> void:
@@ -47,6 +49,7 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	if not (WorldState.is_first_run and WorldState.current_floor == 30):
 		return
+	_maybe_hint_barricade()
 	if WorldState.killed_zombies.has(TutorialManager.HALLWAY_ZOMBIE_KEY):
 		return
 	var d3004 = WorldState.get_door_state("3004")
@@ -70,6 +73,34 @@ func _process(_delta: float) -> void:
 			TutorialManager.prompt(
 				"It heard everything. Force the lock and take the room — or stand and fight. This club won't do both.",
 				"interact", _release_hall_zombie, "[E] to continue")
+
+
+func _maybe_hint_barricade() -> void:
+	# After 3003 is cleared, the first time the player walks past the still-
+	# barricaded 3004, pause and flag that it can be torn down — faster with a
+	# weapon (foreshadows both the removal AND that it'll cost durability).
+	if barricade_hint_shown:
+		return
+	if not WorldState.killed_zombies.has(TutorialManager.TUTORIAL_ZOMBIE_KEY):
+		return  # 3003 not cleared yet
+	var d3004 = WorldState.get_door_state("3004")
+	if not (d3004 == WorldState.DoorState.BARRICADED_LOCKED
+			or d3004 == WorldState.DoorState.BARRICADED_FORCEABLE):
+		return
+	var player = get_tree().get_first_node_in_group("player")
+	var door = get_node_or_null("3004")
+	if player == null or door == null:
+		return
+	if absf(player.global_position.x - door.global_position.x) > BARRICADE_HINT_RANGE:
+		return
+	barricade_hint_shown = true
+	TutorialManager.prompt(
+		"This one's barricaded. I could tear it down — probably faster if I pry at it with a weapon.",
+		"interact", _on_barricade_hint, "[E] to continue")
+
+
+func _on_barricade_hint() -> void:
+	pass
 
 
 func _release_hall_zombie() -> void:

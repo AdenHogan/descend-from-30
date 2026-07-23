@@ -22,6 +22,15 @@ var removal_durability_spent: int = 0
 var removal_stamina_start: float = 0.0
 var removal_stamina_total: float = 0.0
 
+# Forcing a door / lock is a short CHANNELED action (not instant) so entries
+# don't snap open the moment you press the key. Interrupted by walking away or
+# taking any other action; the durability isn't spent until it completes.
+const FORCE_TIME: float = 2.0
+var is_forcing: bool = false
+var force_timer: float = 0.0
+var force_is_lock: bool = false          # true = forcing a lock, false = a door
+var force_instance: ItemInstance = null
+
 const BARRICADE_SPRITE_HEIGHT: float = 69.0
 
 # ── Barricade tuning ────────────────────────────────────────────────────────
@@ -191,8 +200,12 @@ func _base_prompt_text() -> String:
 		WorldState.DoorState.OPEN:
 			return apartment_id + " - [E] Enter"
 		WorldState.DoorState.SHUT_FORCEABLE:
+			if is_forcing:
+				return apartment_id + " - Forcing door... %.1fs" % max(force_timer, 0.0)
 			return apartment_id + " - [X] Force door"
 		WorldState.DoorState.SHUT_LOCKED:
+			if is_forcing:
+				return apartment_id + " - Forcing lock... %.1fs" % max(force_timer, 0.0)
 			var has_key = _find_key_for_apartment() >= 0
 			var has_force = false
 			var slot = HUD.selected_slot
@@ -254,6 +267,8 @@ func _on_body_exited(body: Node2D) -> void:
 		proximity_label.visible = false
 		if is_removing_barricade:
 			_pause_barricade_removal()
+		if is_forcing:
+			_cancel_force()  # walked away mid-heave — no progress banked
 
 
 func _process(delta: float) -> void:
@@ -262,6 +277,11 @@ func _process(delta: float) -> void:
 
 	if _is_sealed():
 		return
+
+	if is_forcing:
+		if _tick_force(delta):
+			return
+		# Just resolved this frame — fall through to refresh the prompt.
 
 	if is_removing_barricade:
 		# Any other player action interrupts the removal (playtest bug: you
@@ -344,8 +364,16 @@ func _enter_apartment() -> void:
 	get_tree().change_scene_to_file(room_scene)
 
 
-# Forcing a door costs exactly ONE use — same as a combat swing.
+func _is_gun_item(item_data: Dictionary) -> bool:
+	var n = item_data.get("name", "").to_lower()
+	return n.contains("gun") or n.contains("pistol") or n.contains("rifle")
+
+
+# Forcing a door costs exactly ONE use — same as a combat swing — but takes
+# FORCE_TIME to work through (channeled, not instant).
 func _attempt_force() -> void:
+	if is_forcing:
+		return
 	var slot = HUD.selected_slot
 	if slot < 0 or slot >= WorldState.inventory.size():
 		HUD.show_feedback("Equip a weapon to force the door.")
@@ -361,29 +389,14 @@ func _attempt_force() -> void:
 		HUD.show_feedback("Need a weapon or tool to force this.")
 		return
 
-	if _force_damages_gun(instance, item_data):
-		pass  # gun took damage instead of durability
-	else:
-		instance.use()
-		if instance.is_depleted:
-			# Broken weapon stays in inventory, repairable (item 12).
-			var weapon_name = item_data.get("name", "Item")
-			if HUD.selected_slot == slot:
-				HUD.selected_slot = -1
-			HUD.show_feedback(weapon_name + " broke forcing the door — repair with a toolbox.")
-		else:
-			HUD.show_feedback("Door forced open.")
-		HUD.refresh_inventory()
-
-	WorldState.set_door_state(apartment_id, WorldState.DoorState.OPEN)
-	WorldState.emit_noise(global_position, WorldState.NOISE_RADIUS["door_work"], 4.0)
-	_play_sfx(FORCE_STREAMS.pick_random(), -2.0)
-	_apply_door_state()
-	proximity_label.text = _get_prompt_text()
+	_begin_force(false, instance)
 
 
-# Forcing a lock costs exactly ONE use — same as forcing a door / a combat swing.
+# Forcing a lock costs exactly ONE use — same as forcing a door / a combat
+# swing — and now channels over FORCE_TIME. A key still opens instantly.
 func _attempt_locked() -> void:
+	if is_forcing:
+		return
 	var key_slot = _find_key_for_apartment()
 	if key_slot >= 0:
 		_use_key(key_slot)
@@ -400,29 +413,79 @@ func _attempt_locked() -> void:
 	if instance.is_depleted:
 		HUD.show_feedback("It's broken — repair it with a toolbox.")
 		return
-	if not item_data.get("can_force_lock", false) and not item_data.get("is_weapon", false):
+	# Only a can_force_lock weapon or a gun can force a lock (a plain weapon
+	# can't) — reject up front so the channel isn't started for nothing.
+	if not item_data.get("can_force_lock", false) and not _is_gun_item(item_data):
 		HUD.show_feedback("Need a key or a weapon that can force locks.")
 		return
 
+	_begin_force(true, instance)
+
+
+func _begin_force(is_lock: bool, instance: ItemInstance) -> void:
+	is_forcing = true
+	force_is_lock = is_lock
+	force_timer = FORCE_TIME
+	force_instance = instance
+	# Straining at the door is loud from the first heave (draws attention like
+	# barricade work), not just on the pop.
+	WorldState.emit_noise(global_position, WorldState.NOISE_RADIUS["door_work"], FORCE_TIME)
+	_play_sfx(FORCE_STREAMS.pick_random(), -6.0)
+	proximity_label.text = _get_prompt_text()
+
+
+func _tick_force(delta: float) -> bool:
+	# Returns true while still forcing. Any other action (or walking away, via
+	# body_exited) cancels — a force is a committed heave, no partial progress.
+	var player = get_tree().get_first_node_in_group("player")
+	if player != null and (player.is_attacking or player.is_pushing
+			or player.is_switching_mode or player.is_listening):
+		_cancel_force()
+		HUD.show_feedback("Forcing interrupted.")
+		return false
+	force_timer -= delta
+	proximity_label.text = _get_prompt_text()
+	if force_timer <= 0.0:
+		_resolve_force()
+		return false
+	return true
+
+
+func _cancel_force() -> void:
+	is_forcing = false
+	force_instance = null
+
+
+func _resolve_force() -> void:
+	var instance = force_instance
+	is_forcing = false
+	force_instance = null
+	if instance == null or instance.is_depleted:
+		# The tool broke/changed while channeling — abort without opening.
+		_apply_door_state()
+		proximity_label.text = _get_prompt_text()
+		return
+
+	var item_data = instance.get_data()
 	if _force_damages_gun(instance, item_data):
 		pass  # gun took damage instead of durability
 	else:
-		if not item_data.get("can_force_lock", false):
-			HUD.show_feedback("Need a key or a weapon that can force locks.")
-			return
 		instance.use()
 		if instance.is_depleted:
+			# Broken weapon stays in inventory, repairable (item 12).
 			var weapon_name = item_data.get("name", "Item")
-			if HUD.selected_slot == slot:
+			var slot = HUD.selected_slot
+			if slot >= 0 and slot < WorldState.inventory.size() and WorldState.get_instance_at(slot) == instance:
 				HUD.selected_slot = -1
-			HUD.show_feedback(weapon_name + " broke forcing the lock — repair with a toolbox.")
+			var verb = "lock" if force_is_lock else "door"
+			HUD.show_feedback(weapon_name + " broke forcing the " + verb + " — repair with a toolbox.")
 		else:
-			HUD.show_feedback("Lock forced.")
+			HUD.show_feedback("Lock forced." if force_is_lock else "Door forced open.")
 		HUD.refresh_inventory()
 
 	WorldState.set_door_state(apartment_id, WorldState.DoorState.OPEN)
 	WorldState.emit_noise(global_position, WorldState.NOISE_RADIUS["door_work"], 4.0)
-	_play_sfx(LATCH_STREAM, -2.0)
+	_play_sfx(LATCH_STREAM if force_is_lock else FORCE_STREAMS.pick_random(), -2.0)
 	_apply_door_state()
 	proximity_label.text = _get_prompt_text()
 
