@@ -239,24 +239,32 @@ func _test_opener() -> void:
 	print("[first-run opener]")
 	WorldState.new_game()
 	check(not WorldState.opener_seen, "opener unseen after new_game")
-	# All opener lines exist to edit.
 	var keys_ok := true
-	for k in ["opener_1", "opener_2", "opener_3", "opener_4", "opener_5"]:
+	for k in ["opener_1", "opener_4", "opener_5"]:
 		if not TutorialManager.LINES.has(k):
 			keys_ok = false
-	check(keys_ok, "all opener_* lines are in TutorialManager.LINES")
+	check(keys_ok, "opener_* lines are in TutorialManager.LINES")
 	var intro = preload("res://scripts/intro_overlay.gd").new()
 	add_child(intro)
 	await get_tree().process_frame
 	check(get_tree().paused, "opener pauses the game")
-	check(intro.label.text == TutorialManager.LINES["opener_1"], "first opener line shows")
-	for i in range(6):
-		intro._advance()
-	check(intro.fading, "opener fades out after the last line")
-	intro._process(1.0)  # drive the fade to completion
+	check(intro.title.text == "DESCEND FROM 30", "gory title card shows")
+	check(intro.black.color.a == 1.0, "starts on a black screen")
+	# Skip past the title fade → the first line should appear.
+	intro.t = intro.TITLE_FADE + 0.1
+	intro.burst_left = 0
+	intro._process(0.02)
+	check(intro.line_shown and intro.line.text == TutorialManager.LINES["opener_1"], "title done → first line shows")
+	# Any key advances → fade to gameplay.
+	var ev = InputEventKey.new()
+	ev.keycode = KEY_SPACE
+	ev.pressed = true
+	intro._input(ev)
+	check(intro.fading, "any key begins the fade to the hallway")
+	intro._process(1.0)  # drive the fade
 	await get_tree().process_frame
 	check(not get_tree().paused, "opener unpauses when done")
-	get_tree().paused = false  # defensive: never leave the test tree paused
+	get_tree().paused = false
 	if is_instance_valid(intro):
 		intro.queue_free()
 	await get_tree().process_frame
@@ -283,6 +291,7 @@ func _test_barricade_beat() -> void:
 		check(hz.tutorial_hold_x > 0.0, "it walks to a hold point, not straight at the player")
 		check(hz.spawn_key == "30hall:tutorial", "fixed spawn key (no respawn after the kill)")
 		check(hz.tutorial_cash_drop > 0, "fighting it still pays out (drops Bank Notes)")
+	check(hallway.has_method("start_opener_lockout"), "hallway exposes the opener lockout hook")
 	hallway.queue_free()
 	WorldState.barricade_progress.erase("3004")
 	await get_tree().process_frame

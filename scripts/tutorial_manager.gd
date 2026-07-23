@@ -22,12 +22,11 @@ const HALLWAY_ZOMBIE_KEY := "30hall:tutorial"
 # TutorialManager.LINES["<key>"] from hallway.gd / room.gd.
 # ==========================================================================
 const LINES := {
-	# --- Opener (black-screen intro, first run) ---
+	# --- Opener: opener_1 is the black-screen title-card line; opener_4/5 play
+	#     in the hallway as the player bangs on their own locked door (3001). ---
 	"opener_1": "Huh? What the hell's going on out there?",
-	"opener_2": "— the door! No, no, no —",
-	"opener_3": "Locked myself out. Brilliant.",
-	"opener_4": "Come on, open up! ...Anyone in there?",
-	"opener_5": "No answer. ...The spare. The neighbour in 3003 keeps a spare key — I need to get in there.",
+	"opener_4": "Come on — open up! ...I'm locked out. Brilliant.",
+	"opener_5": "The spare. The neighbour in 3003 keeps a spare key — I need to get in there.",
 	# --- 3003 scripted encounter ---
 	"3003_curiosity": "Mrs Delacroix…? Are you okay in there?",
 	"3003_push": "It's on me — shove it back!",

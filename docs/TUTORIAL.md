@@ -24,11 +24,15 @@ lines below in «guillemets» are temporary.
 > `hall_*`, `stairs_*`.
 
 ## Opener (first-run cold open)
-`scripts/intro_overlay.gd`, spawned once from `hallway.gd` (gated by
-`WorldState.opener_seen`): a black screen with rapid banging → «what the hell's
-going on out there?» → door-slam → locked out → bang on 3001, no answer →
-remembers the 3003 spare key → fades to gameplay. E advances each beat; SFX
-are placeholder impacts. Replays on `new_game()` / the F7 reset.
+Two parts, gated by `WorldState.opener_seen` (replays on `new_game()` / F7):
+1. **Title card** (`scripts/intro_overlay.gd`): black screen, a SHORT loud
+   burst of banging while «DESCEND FROM 30» fades in gory red, one player line
+   («what the hell's going on out there?»), a door-slam, then fades to the
+   hallway.
+2. **Visible lockout** (`hallway.start_opener_lockout()`): the player — on
+   screen, not black — steps up and bangs on their own door 3001
+   (`player.knock_door`), gets no answer, and remembers the 3003 spare key.
+Any key / mouse click advances every beat. SFX are placeholder impacts.
 
 ## Stairwell gating + herding (1C) — STAGED
 The Floor 30 down-stairwell is blocked along the whole mandatory path, with a

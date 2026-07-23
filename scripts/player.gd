@@ -661,6 +661,13 @@ func knock_door(door_global: Vector2, on_done: Callable = Callable()) -> void:
 	tw.tween_property(self, "global_position", target, APPROACH_TIME)
 	await tw.finished
 	animated_sprite.play("idle")  # knock frames go here
+	# Knock: a couple of quick raps (placeholder — wood impact).
+	for i in range(2):
+		if melee_player != null:
+			melee_player.stream = MELEE_THUNK.pick_random()
+			melee_player.pitch_scale = randf_range(0.9, 1.05)
+			melee_player.play()
+		await get_tree().create_timer(0.22).timeout
 	await get_tree().create_timer(KNOCK_PAUSE).timeout
 	animated_sprite.play("walk")
 	var tw2 = create_tween()
