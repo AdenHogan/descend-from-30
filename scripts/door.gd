@@ -361,7 +361,7 @@ func _enter_apartment() -> void:
 	WorldState.current_apartment_id = apartment_id
 	WorldState.spawn_source = "door"
 	WorldState.exit_spawn_x = global_position.x
-	get_tree().change_scene_to_file(room_scene)
+	Transition.to_scene(room_scene)
 
 
 func _is_gun_item(item_data: Dictionary) -> bool:

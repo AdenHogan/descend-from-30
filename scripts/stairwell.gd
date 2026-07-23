@@ -115,8 +115,8 @@ func _use_stairs() -> void:
 	WorldState.on_floor_arrived(WorldState.current_floor)
 	HUD.update_floor_label()
 	if WorldState.current_floor == 30:
-		get_tree().change_scene_to_file("res://scenes/hallway.tscn")
+		Transition.to_scene("res://scenes/hallway.tscn")
 	elif WorldState.current_floor == 0:
-		get_tree().change_scene_to_file("res://scenes/lobby.tscn")
+		Transition.to_scene("res://scenes/lobby.tscn")
 	else:
-		get_tree().change_scene_to_file("res://scenes/building_floors.tscn")
+		Transition.to_scene("res://scenes/building_floors.tscn")
