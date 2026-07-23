@@ -361,7 +361,12 @@ func _enter_apartment() -> void:
 	WorldState.current_apartment_id = apartment_id
 	WorldState.spawn_source = "door"
 	WorldState.exit_spawn_x = global_position.x
-	Transition.to_scene(room_scene)
+	# Step up to the door first (depth), then fade into the apartment.
+	var player = get_tree().get_first_node_in_group("player")
+	if player != null and player.has_method("approach_door"):
+		player.approach_door(global_position, func(): Transition.to_scene(room_scene))
+	else:
+		Transition.to_scene(room_scene)
 
 
 func _is_gun_item(item_data: Dictionary) -> bool:

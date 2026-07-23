@@ -74,6 +74,15 @@ var is_dead = false
 var is_switching_mode = false
 var mode_switch_timer = 0.0
 
+# Depth approach-walk framework: for 2D-hallway depth, the player steps UP the
+# screen (−Y) toward a door before entering (or to knock). While a cutscene
+# move runs, normal control/input is suspended. Art (knock/enter frames) comes
+# later; this is the movement scaffold. See docs/TUTORIAL.md.
+const APPROACH_DEPTH = 26.0     # how far "into" the hallway (up) the player steps
+const APPROACH_TIME = 0.4
+const KNOCK_PAUSE = 0.6
+var is_cutscene: bool = false
+
 # Audio (docs/SOUND_STEALTH.md audio pass). Carpet steps for the quiet
 # gaits, concrete for the loud ones — the sound mirrors the noise model.
 const FOOTSTEPS_SOFT = [
@@ -167,6 +176,10 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	if is_dead:
+		return
+
+	# A scripted approach/knock owns the body — skip normal control.
+	if is_cutscene:
 		return
 
 	if is_dying:
@@ -608,6 +621,54 @@ func _do_push() -> void:
 			zombie.receive_push(push_dir * PUSH_FORCE * WorldState.get_push_mult())
 
 
+func approach_door(door_global: Vector2, on_arrive: Callable = Callable()) -> void:
+	# Step up toward the door (depth), then run on_arrive (typically the scene
+	# transition). Used on apartment entry so the player visibly walks in.
+	if is_cutscene:
+		return
+	is_cutscene = true
+	_clear_move_target()
+	velocity = Vector2.ZERO
+	var target = Vector2(door_global.x, global_position.y - APPROACH_DEPTH)
+	animated_sprite.flip_h = target.x < global_position.x
+	animated_sprite.play("walk")
+	var tw = create_tween()
+	tw.tween_property(self, "global_position", target, APPROACH_TIME)
+	await tw.finished
+	animated_sprite.play("idle")
+	is_cutscene = false
+	if on_arrive.is_valid():
+		on_arrive.call()
+
+
+func knock_door(door_global: Vector2, on_done: Callable = Callable()) -> void:
+	# Step up to a door, knock (placeholder pause + SFX later), and — when there's
+	# no answer — step back down to the main plane. Framework for sealed/locked
+	# doors and the opener; not auto-wired yet.
+	if is_cutscene:
+		return
+	is_cutscene = true
+	_clear_move_target()
+	velocity = Vector2.ZERO
+	var start = global_position
+	var target = Vector2(door_global.x, global_position.y - APPROACH_DEPTH)
+	animated_sprite.flip_h = target.x < global_position.x
+	animated_sprite.play("walk")
+	var tw = create_tween()
+	tw.tween_property(self, "global_position", target, APPROACH_TIME)
+	await tw.finished
+	animated_sprite.play("idle")  # knock frames go here
+	await get_tree().create_timer(KNOCK_PAUSE).timeout
+	animated_sprite.play("walk")
+	var tw2 = create_tween()
+	tw2.tween_property(self, "global_position", start, APPROACH_TIME)
+	await tw2.finished
+	animated_sprite.play("idle")
+	is_cutscene = false
+	if on_done.is_valid():
+		on_done.call()
+
+
 func set_move_target(x: float, anchor: Node = null) -> void:
 	move_target_x = x
 	has_move_target = true
@@ -670,7 +731,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	# in combat, a default-LMB attack consumes the click in _input before it
 	# reaches here — so LMB only walks you when it ISN'T bound to attack
 	# (e.g. attack rebound to a mouse side button). Works in both modes.
-	if is_dead or is_dying or is_switching_mode or is_listening:
+	if is_dead or is_dying or is_switching_mode or is_listening or is_cutscene:
 		return
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		if _is_mouse_over_hud():
@@ -756,7 +817,7 @@ func _reseed_zombies() -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if is_dead or is_dying or is_switching_mode:
+	if is_dead or is_dying or is_switching_mode or is_cutscene:
 		return
 	if is_listening:
 		# A click (like keyboard movement/actions in _physics_process) breaks
