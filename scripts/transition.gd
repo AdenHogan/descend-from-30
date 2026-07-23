@@ -6,8 +6,8 @@ extends CanvasLayer
 # persists across scene changes, and processes while paused. Call
 # Transition.to_scene(path) instead of get_tree().change_scene_to_file(path).
 
-const FADE_OUT := 0.28
-const FADE_IN := 0.34
+const FADE_OUT := 0.2
+const FADE_IN := 0.24
 
 var rect: ColorRect = null
 var busy: bool = false

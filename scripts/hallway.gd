@@ -84,6 +84,33 @@ func _process(_delta: float) -> void:
 				"interact", _release_hall_zombie, "[E] to continue")
 
 
+func start_opener_lockout() -> void:
+	# Called by intro_overlay after the title fades: the player (visible now,
+	# not on black) steps up and bangs on their own door 3001, gets no answer,
+	# then remembers the 3003 spare key. knock_door provides the up-to-the-door
+	# movement; the lines chain on any key / click.
+	var player = get_tree().get_first_node_in_group("player")
+	var door = get_node_or_null("3001")
+	if player == null:
+		return
+	if door != null and player.has_method("knock_door"):
+		player.knock_door(door.global_position, _opener_lockout_lines)
+	else:
+		_opener_lockout_lines()
+
+
+func _opener_lockout_lines() -> void:
+	TutorialManager.prompt(TutorialManager.LINES["opener_4"], "interact", _opener_lockout_line2, "[continue]")
+
+
+func _opener_lockout_line2() -> void:
+	TutorialManager.prompt(TutorialManager.LINES["opener_5"], "interact", _opener_lockout_done, "[continue]")
+
+
+func _opener_lockout_done() -> void:
+	pass
+
+
 func _maybe_hint_barricade() -> void:
 	# After 3003 is cleared, the first time the player walks past the still-
 	# barricaded 3004, pause and flag that it can be torn down — faster with a
