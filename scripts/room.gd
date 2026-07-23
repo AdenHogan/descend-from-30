@@ -235,12 +235,14 @@ func _ready() -> void:
 
 			var passed_spawn_roll = apt_rng_items.randf() <= spawn_chance
 
-			# First-run 3002 is the tutorial's key-reward room: useful but
-			# CONSERVATIVE loot only — cash, an ice pack, a first aid kit. No
-			# weapons, no keys onward, no toolbox (nothing that would defuse the
-			# golf-club durability lesson). Cash is weighted heaviest.
-			if WorldState.is_first_run and apartment_id == "3002":
-				var reward_pool = ["033", "033", "011", "007"]
+			# First-run 3002 / 3005 are CONTROLLED tutorial rooms — no weapons,
+			# keys, or toolbox (nothing that defuses the club durability lesson
+			# or lets the player go back and force 3004). 3002 = key-reward room
+			# (cash-heavy + healing); 3005 = bullets teaching room (cash + ammo +
+			# healing; the guaranteed 6 bullets are pinned in _seed_tutorial_3005).
+			if WorldState.is_first_run and (apartment_id == "3002" or apartment_id == "3005"):
+				var reward_pool = ["033", "033", "011", "007"] if apartment_id == "3002" \
+						else ["033", "016", "006", "025"]
 				var reward_id = reward_pool[apt_rng_items.randi() % reward_pool.size()]
 				if passed_spawn_roll and not already_searched:
 					WorldState.set_anchor_item(apartment_id, anchor.name, reward_id)
@@ -275,12 +277,20 @@ func _ready() -> void:
 	if WorldState.is_first_run and apartment_id == "3002":
 		TutorialManager.say_once("3002_entry", TutorialManager.LINES["3002_entry"])
 
-	# 3005 (first run): guarantee a Hammer so the player descends to Floor 29
-	# with a real weapon — their club may be broken/low from the durability
-	# lesson. (Subsequent runs: 3002–3005 are plain RNG; only the tutorial is
-	# kind with scripted drops.)
+	# 3005 (first run): guarantee 6 Bullets — NOT a weapon. A weapon here would
+	# just let the player go back and force 3004 after choosing to fight; the
+	# bullets instead teach that guns exist but ammo without a gun is dead
+	# weight, and that (with the wallet locked) cash + bullets each eat an
+	# inventory slot. The real weapon comes on Floor 29. (Subsequent runs:
+	# 3002–3005 are plain RNG.)
 	if WorldState.is_first_run and apartment_id == "3005":
 		_seed_tutorial_3005()
+
+	# First floor-29 apartment on a tutorial run: guarantee a melee weapon so
+	# the player is armed again after the club's gone (once only).
+	if WorldState.is_first_run and WorldState.current_floor == 29 \
+			and not WorldState.tutorial_f29_weapon_granted:
+		_seed_tutorial_f29_weapon()
 
 	await get_tree().process_frame
 	WorldState.interaction_handled = false
@@ -394,15 +404,32 @@ func _place_tutorial_item(anchor: Node, tag: String, interactable_script, hidden
 
 
 func _seed_tutorial_3005() -> void:
-	# Force a Hammer (002) onto one active anchor, once. Skip if the player has
+	# Force Bullets (016) onto one active anchor, once. Skip if the player has
 	# already searched anything in 3005 (a return visit) so it can't re-grant.
+	# The bullet COUNT (6) is pinned at pickup in loot_ui for this room.
 	for k in WorldState.searched_anchors:
 		if String(k).begins_with("3005:"):
 			return
 	for module in get_tree().get_nodes_in_group("room_module"):
 		for anchor in module.get_children():
 			if anchor is Marker2D and anchor.get_script() != null and anchor.visible:
-				WorldState.set_anchor_item("3005", anchor.name, "002")
+				WorldState.set_anchor_item("3005", anchor.name, "016")
+				return
+
+
+func _seed_tutorial_f29_weapon() -> void:
+	# Guarantee a melee weapon in the FIRST floor-29 apartment of a tutorial
+	# run (post-tutorial kindness — the player just lost/broke the club). Seeded
+	# pick from a small pool; sets the once-only flag.
+	var pool = ["002", "013", "014", "017"]  # hammer / cricket / baseball / alu bat
+	var rng = RandomNumberGenerator.new()
+	rng.seed = hash(str(WorldState.master_seed) + "f29weapon")
+	var weapon_id = pool[rng.randi() % pool.size()]
+	for module in get_tree().get_nodes_in_group("room_module"):
+		for anchor in module.get_children():
+			if anchor is Marker2D and anchor.get_script() != null and anchor.visible:
+				WorldState.set_anchor_item(apartment_id, anchor.name, weapon_id)
+				WorldState.tutorial_f29_weapon_granted = true
 				return
 
 

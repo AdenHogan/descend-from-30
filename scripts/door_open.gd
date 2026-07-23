@@ -12,6 +12,6 @@ func _on_body_entered(body: Node2D) -> void:
 		# silently refuses (you can't re-enter any room).
 		WorldState.interaction_handled = false
 		if WorldState.current_floor == 30:
-			get_tree().change_scene_to_file.call_deferred("res://scenes/hallway.tscn")
+			Transition.to_scene("res://scenes/hallway.tscn")
 		else:
-			get_tree().change_scene_to_file.call_deferred("res://scenes/building_floors.tscn")
+			Transition.to_scene("res://scenes/building_floors.tscn")

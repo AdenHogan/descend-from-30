@@ -131,7 +131,11 @@ func _on_take() -> void:
 			# Bullets come in bundles of 2-8, small bundles most likely.
 			var amount = 0
 			if ItemData.get_item(current_item_id).get("is_ammo", false):
-				amount = _roll_ammo_bundle()
+				# The tutorial's 3005 bullets are a fixed teaching amount (6).
+				if WorldState.is_first_run and current_apartment_id == "3005" and current_item_id == "016":
+					amount = 6
+				else:
+					amount = _roll_ammo_bundle()
 			added = WorldState.add_to_inventory(current_item_id, amount)
 
 		if added:

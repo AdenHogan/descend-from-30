@@ -39,6 +39,9 @@ const LINES := {
 	"3003_key": "Wait… this isn't my spare key. It's for next door — 3002. Worth a look.",
 	# --- 3002 reward room ---
 	"3002_entry": "So this is what the key kept safe. Take what helps — then find the stairs. It's a long way down.",
+	# --- Misc tutorial one-shots ---
+	"first_cash": "I left my wallet back in my room. Maybe I'll find another one on the way down.",
+	"no_return": "No. I need to get to the lobby — going home isn't an option any more.",
 	# --- 3004 barricade beat ---
 	"3004_hint": "This one's barricaded. I could tear it down — probably faster if I pry at it with a weapon.",
 	"hall_zombie": "Something heard that — it's coming up the stairs!",

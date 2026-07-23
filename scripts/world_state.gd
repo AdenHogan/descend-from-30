@@ -16,6 +16,8 @@ var is_first_run: bool = true
 # First-run opener (locked-out cold open) — plays once at the start of run 1;
 # reset by new_game() and the F7 dev tutorial reset so it can replay.
 var opener_seen: bool = false
+# Tutorial: the first Floor-29 apartment guarantees a melee weapon, once.
+var tutorial_f29_weapon_granted: bool = false
 var tutorial_zombie_spawned: bool = false
 var last_exited_apartment: int = 0
 var current_run: int = 1
@@ -141,6 +143,7 @@ func new_game() -> void:
 	saved_player_x = 0.0
 	saved_player_y = 0.0
 	opener_seen = false
+	tutorial_f29_weapon_granted = false
 	killed_zombies.clear()
 	zombie_positions.clear()
 	world_drops.clear()
@@ -184,6 +187,10 @@ func add_to_inventory(item_id: String, amount: int = 0) -> bool:
 			wallet_balance += add_amount
 			HUD.update_wallet()
 			return true
+		# First-run: picking up cash (wallet still locked, so it eats a slot) is
+		# the moment to hint the wallet exists to be found. Non-pausing one-shot.
+		if is_first_run:
+			TutorialManager.say_once("first_cash", TutorialManager.LINES["first_cash"])
 		for instance in inventory:
 			if instance.item_id == item_id:
 				instance.count += add_amount
@@ -751,6 +758,7 @@ func dev_reset_tutorial() -> void:
 	# 3003's seeded/searched anchors so the three nodes re-seed fresh. Leaves
 	# the rest of the run (inventory, wallet, upgrades) untouched.
 	opener_seen = false
+	tutorial_f29_weapon_granted = false
 	killed_zombies.erase("3003:tutorial")
 	killed_zombies.erase("30hall:tutorial")
 	zombie_positions.erase("3003:tutorial")
