@@ -24,6 +24,7 @@ const BURST_GAP = 0.11     # quick
 const FADE_TIME = 0.5      # shorter than before
 
 var black: ColorRect = null
+var gore: Control = null
 var title: Label = null
 var line: Label = null
 var hint: Label = null
@@ -47,12 +48,17 @@ func _ready() -> void:
 	black.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(black)
 
+	# Bloody handprint + drips behind the title (fades in with it).
+	gore = preload("res://scripts/blood_handprint.gd").new()
+	gore.modulate = Color(1, 1, 1, 0)
+	add_child(gore)
+
 	title = Label.new()
 	title.text = "DESCEND FROM 30"
-	title.add_theme_font_size_override("font_size", 64)
-	title.add_theme_color_override("font_color", Color(0.62, 0.03, 0.03))   # gory red
-	title.add_theme_color_override("font_outline_color", Color(0.15, 0.0, 0.0))
-	title.add_theme_constant_override("outline_size", 8)
+	title.add_theme_font_size_override("font_size", 66)
+	title.add_theme_color_override("font_color", Color(0.72, 0.05, 0.05))   # gory red
+	title.add_theme_color_override("font_outline_color", Color(0.09, 0.0, 0.0))
+	title.add_theme_constant_override("outline_size", 12)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.position = Vector2(0, SCREEN_H * 0.32)
 	title.size = Vector2(SCREEN_W, 90)
@@ -101,6 +107,7 @@ func _process(delta: float) -> void:
 		var a = 1.0 - clampf(fade_t / FADE_TIME, 0.0, 1.0)
 		black.color.a = a
 		title.modulate.a = a
+		gore.modulate.a = a
 		if fade_t >= FADE_TIME:
 			get_tree().paused = false
 			_hand_to_hallway()
@@ -108,7 +115,9 @@ func _process(delta: float) -> void:
 		return
 
 	t += delta
-	title.modulate.a = minf(t / TITLE_FADE, 1.0)
+	var ta = minf(t / TITLE_FADE, 1.0)
+	title.modulate.a = ta
+	gore.modulate.a = ta
 
 	# Short loud banging burst up front, then silence (banged and ran).
 	if burst_left > 0:
