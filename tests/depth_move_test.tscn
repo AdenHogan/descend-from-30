@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://c1k8v6hn2p4qd"]
+
+[ext_resource type="Script" path="res://tests/depth_move_test.gd" id="1_dmv"]
+
+[node name="DepthMoveTest" type="Node"]
+script = ExtResource("1_dmv")
