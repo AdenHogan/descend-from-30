@@ -23,7 +23,7 @@ func _ready() -> void:
 	_test_tutorial_manager()
 	await _test_opener()
 	await _test_barricade_beat()
-	await _test_3005_hammer()
+	await _test_3005_bullets()
 	await _test_3003_scripted_content()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
@@ -53,8 +53,8 @@ func _test_hallway_baked_hints() -> void:
 	check(not src.contains("pause_menu.tscn"), "pause menu removed from hallway.tscn")
 
 
-func _test_3005_hammer() -> void:
-	print("[3005 guaranteed hammer]")
+func _test_3005_bullets() -> void:
+	print("[3005 guaranteed bullets, Floor-29 weapon]")
 	WorldState.new_game()  # is_first_run = true
 	WorldState.current_floor = 30
 	WorldState.current_apartment_id = "3005"
@@ -65,25 +65,36 @@ func _test_3005_hammer() -> void:
 	add_child(room)
 	for i in range(8):
 		await get_tree().process_frame
-	var has_hammer := false
+	var has_bullets := false
+	var has_weapon := false
 	for k in WorldState.anchor_items:
-		if String(k).begins_with("3005:") and WorldState.anchor_items[k] == "002":
-			has_hammer = true
-	check(has_hammer, "a Hammer (002) is guaranteed in 3005 for the first run")
+		if String(k).begins_with("3005:"):
+			var it = WorldState.anchor_items[k]
+			if it == "016":
+				has_bullets = true
+			if ItemData.get_item(it).get("is_weapon", false):
+				has_weapon = true
+	check(has_bullets, "Bullets (016) are guaranteed in 3005 for the first run")
+	check(not has_weapon, "NO weapon in 3005 (would let the player force 3004)")
 	room.queue_free()
 	await get_tree().process_frame
-	# Not on later runs — 3005 is plain RNG once the tutorial is done.
-	WorldState.is_first_run = false
-	WorldState.anchor_items.clear()
-	WorldState.apartment_layouts.clear()
-	var room2 = load("res://scenes/room.tscn").instantiate()
-	add_child(room2)
+
+	# First Floor-29 apartment (tutorial run): a melee weapon is guaranteed once.
+	WorldState.current_floor = 29
+	WorldState.current_apartment_id = "2905"
+	WorldState.seed_floor_door_states(29)
+	check(not WorldState.tutorial_f29_weapon_granted, "f29 weapon not yet granted")
+	var r29 = load("res://scenes/room.tscn").instantiate()
+	add_child(r29)
 	for i in range(8):
 		await get_tree().process_frame
-	# (No hard assert on absence — RNG could place one — but the scripted
-	# guarantee path must be first-run-gated, which _seed_tutorial_3005 is.)
-	room2.queue_free()
-	WorldState.is_first_run = true
+	var f29_weapon := false
+	for k in WorldState.anchor_items:
+		if String(k).begins_with("2905:") and ItemData.get_item(WorldState.anchor_items[k]).get("is_weapon", false):
+			f29_weapon = true
+	check(f29_weapon, "first Floor-29 apartment guarantees a melee weapon")
+	check(WorldState.tutorial_f29_weapon_granted, "the once-only flag is set")
+	r29.queue_free()
 	await get_tree().process_frame
 
 
