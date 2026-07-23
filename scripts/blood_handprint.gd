@@ -50,9 +50,9 @@ func _draw_handprint(c: Vector2, s: float) -> void:
 		var t = c + f["tip"] * s
 		draw_line(b, t, blood, f["w"] * s)
 		draw_circle(t, f["w"] * 0.5 * s, blood)
-	# Thumb, splayed to the right.
-	draw_line(c + Vector2(50, 18) * s, c + Vector2(126, -26) * s, blood, 22 * s)
-	draw_circle(c + Vector2(126, -26) * s, 11 * s, blood)
+	# Thumb, splayed to the LEFT (tucks behind the title; makes a coherent hand).
+	draw_line(c + Vector2(-50, 18) * s, c + Vector2(-126, -26) * s, blood, 22 * s)
+	draw_circle(c + Vector2(-126, -26) * s, 11 * s, blood)
 
 	# Spatter around the print.
 	for i in range(16):
