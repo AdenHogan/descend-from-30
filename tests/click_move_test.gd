@@ -75,6 +75,15 @@ func _test_hallway_click() -> void:
 	await get_tree().process_frame
 
 
+func _controls_of(node: Node) -> Array:
+	var out: Array = []
+	if node is Control:
+		out.append(node)
+	for child in node.get_children():
+		out.append_array(_controls_of(child))
+	return out
+
+
 func _test_room_click() -> void:
 	print("[room 3003: LMB sets a move target]")
 	WorldState.current_apartment_id = "3003"
@@ -93,6 +102,14 @@ func _test_room_click() -> void:
 	player.has_move_target = false
 	_click()
 	check(player.has_move_target, "LMB ground click walks (tutorial room, nodes hidden)")
+	# The real apartment bug: module background Controls (ColorRect + Label)
+	# must be click-through, or they swallow every world click inside a room.
+	var stop_controls := 0
+	for module in get_tree().get_nodes_in_group("room_module"):
+		for ctrl in _controls_of(module):
+			if ctrl.mouse_filter == Control.MOUSE_FILTER_STOP:
+				stop_controls += 1
+	check(stop_controls == 0, "no module Control swallows clicks (%d STOP)" % stop_controls)
 	# After the reveal the nodes are clickable interactables.
 	room._reveal_tutorial_nodes()
 	check(room.interactables.size() >= 3, "revealed nodes joined interactables (%d)" % room.interactables.size())

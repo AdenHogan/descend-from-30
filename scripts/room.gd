@@ -90,6 +90,12 @@ func _ready() -> void:
 		instance.position.y = 224
 		instance.add_to_group("room_module")
 		add_child(instance)
+		# The module's background ColorRect (+ its Label) is a Control that
+		# defaults to MOUSE_FILTER_STOP, so it swallows every world click over
+		# the apartment — click-to-move dies inside rooms (works in hallways,
+		# whose backdrop is a Sprite). Make all module Controls click-through.
+		for ctrl in _all_controls(instance):
+			ctrl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	if entrance_side == "left":
 		door.position.x = 96
@@ -284,6 +290,15 @@ func _ready() -> void:
 
 	_spawn_corpses(WorldState.current_floor, WorldState.current_apartment_id)
 	_spawn_world_drops(WorldState.current_floor)
+
+func _all_controls(node: Node) -> Array:
+	var out: Array = []
+	if node is Control:
+		out.append(node)
+	for child in node.get_children():
+		out.append_array(_all_controls(child))
+	return out
+
 
 func _spawn_tutorial_zombie(entrance_side: String) -> Node:
 	# One guaranteed zombie at the BACK of 3003 (far from the entrance), unless
