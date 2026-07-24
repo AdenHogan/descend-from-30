@@ -67,8 +67,15 @@ func pan_targets(spawn: Vector2, cam_offset: Vector2, floor_offset: float) -> Di
 	# by the offset. Because both shift by the same delta, the player holds a
 	# fixed screen position and the world scrolls; because the end framing equals
 	# the destination framing (shifted), the change_scene is seamless.
+	#
+	# NOTE the two beats are split so the slide is PURELY VERTICAL: the stair
+	# spawn X differs between floors (e.g. left-down lands at x=188, not 148), and
+	# tweening straight to it dragged the camera diagonally, which looked awful.
+	# `walk_target` covers the X change first (on the current floor), so the pan
+	# itself only ever moves in Y.
 	var delta := Vector2(0, floor_offset)
 	return {
+		"walk_target": Vector2(spawn.x, 0.0),   # X only; Y filled by the caller
 		"player_target": spawn + delta,
 		"cam_target": spawn + cam_offset + delta,
 		"delta": delta,
@@ -117,20 +124,31 @@ func pan_to_floor(target_floor: int, direction: String) -> void:
 
 	var targets := pan_targets(dest_spawn(down), cam_offset, floor_offset)
 
-	# (1) A short beat standing at the stairs before moving — placeholder for the
-	#     stair-walk animation the player wants to add later.
-	if WALK_TIME > 0.0:
-		await get_tree().create_timer(WALK_TIME).timeout
-		if not is_instance_valid(pan_cam) or not is_instance_valid(player):
-			_commit(target_floor)
-			return
+	# (1) Walk to the stair mouth: X ONLY, on the current floor. This absorbs the
+	#     horizontal difference between the two floors' stair spawns so the slide
+	#     that follows is purely vertical (no diagonal drift).
+	var walk_x: float = targets["walk_target"].x
+	if WALK_TIME > 0.0 and not is_equal_approx(player.global_position.x, walk_x):
+		var walk := create_tween().set_parallel(true)
+		walk.tween_property(player, "global_position:x", walk_x, WALK_TIME) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		walk.tween_property(pan_cam, "global_position:x", walk_x + cam_offset.x, WALK_TIME) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		await walk.finished
+	else:
+		player.global_position.x = walk_x
+		pan_cam.global_position.x = walk_x + cam_offset.x
+	if not is_instance_valid(pan_cam) or not is_instance_valid(player):
+		_commit(target_floor)
+		return
 
-	# (2) Slide: player + camera translate by the SAME delta (player fixed on
-	#     screen, floors scroll past), ending on the destination framing.
+	# (2) Slide: STRAIGHT DOWN/UP. Player + camera translate by the same vertical
+	#     delta (player fixed on screen, the two stacked floors scroll past),
+	#     ending on exactly the framing the destination scene loads into.
 	var tw := create_tween().set_parallel(true)
-	tw.tween_property(player, "global_position", targets["player_target"], PAN_TIME) \
+	tw.tween_property(player, "global_position:y", targets["player_target"].y, PAN_TIME) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	tw.tween_property(pan_cam, "global_position", targets["cam_target"], PAN_TIME) \
+	tw.tween_property(pan_cam, "global_position:y", targets["cam_target"].y, PAN_TIME) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	await tw.finished
 
