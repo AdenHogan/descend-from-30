@@ -13,10 +13,10 @@ extends Node
 # `setup_floor` parameters it relies on are real and tested (see
 # building_floors_test).
 
-const ENABLED := false
+const ENABLED := true
 const PAN_TIME := 1.1
 
-var panning := false
+var panning := true
 
 
 func can_pan(target_floor: int) -> bool:

@@ -1,4 +1,4 @@
-[gd_scene load_steps=5 format=3 uid="uid://cxednr1tk720k"]
+[gd_scene format=3 uid="uid://cxednr1tk720k"]
 
 [ext_resource type="Script" uid="uid://byrpios1j1a8u" path="res://scripts/merchant.gd" id="1_mrcht"]
 [ext_resource type="Texture2D" uid="uid://btvcbwg3jsh3t" path="res://assets/Elevator.png" id="2_elev"]
@@ -14,46 +14,45 @@ script = ExtResource("1_mrcht")
 position = Vector2(0, 31.5)
 shape = SubResource("CircleShape2D_mrcht")
 
-[node name="Interior" type="Polygon2D" parent="."]
+[node name="Interior" type="Polygon2D" parent="." unique_id=317159336]
 color = Color(0.09, 0.09, 0.11, 1)
 polygon = PackedVector2Array(-29, -43, 29, -43, 29, 44, -29, 44)
 
-[node name="MerchantSprite" type="Sprite2D" parent="."]
+[node name="MerchantSprite" type="Sprite2D" parent="." unique_id=1479510035]
 position = Vector2(0, 1)
 scale = Vector2(1.8, 1.8)
 texture = ExtResource("3_idle")
-hframes = 10
-frame = 0
 flip_h = true
+hframes = 10
 
-[node name="TableTop" type="Polygon2D" parent="."]
+[node name="TableTop" type="Polygon2D" parent="." unique_id=2016521094]
 color = Color(0.42, 0.28, 0.14, 1)
 polygon = PackedVector2Array(-24, 14, 24, 14, 24, 20, -24, 20)
 
-[node name="TableLegLeft" type="Polygon2D" parent="."]
+[node name="TableLegLeft" type="Polygon2D" parent="." unique_id=1142575079]
 color = Color(0.3, 0.19, 0.09, 1)
 polygon = PackedVector2Array(-21, 20, -17, 20, -17, 44, -21, 44)
 
-[node name="TableLegRight" type="Polygon2D" parent="."]
+[node name="TableLegRight" type="Polygon2D" parent="." unique_id=1907767758]
 color = Color(0.3, 0.19, 0.09, 1)
 polygon = PackedVector2Array(17, 20, 21, 20, 21, 44, 17, 44)
 
-[node name="WareBoxA" type="Polygon2D" parent="."]
+[node name="WareBoxA" type="Polygon2D" parent="." unique_id=382250546]
 color = Color(0.5, 0.32, 0.2, 1)
 polygon = PackedVector2Array(-15, 7, -6, 7, -6, 14, -15, 14)
 
-[node name="WareBoxB" type="Polygon2D" parent="."]
+[node name="WareBoxB" type="Polygon2D" parent="." unique_id=1373368006]
 color = Color(0.35, 0.4, 0.32, 1)
 polygon = PackedVector2Array(3, 9, 12, 9, 12, 14, 3, 14)
 
-[node name="DoorLeft" type="Sprite2D" parent="."]
+[node name="DoorLeft" type="Sprite2D" parent="." unique_id=725544573]
 position = Vector2(-15.75, 0)
 scale = Vector2(0.95454395, 1.011364)
 texture = ExtResource("2_elev")
 region_enabled = true
 region_rect = Rect2(0, 0, 33, 88)
 
-[node name="DoorRight" type="Sprite2D" parent="."]
+[node name="DoorRight" type="Sprite2D" parent="." unique_id=755181295]
 position = Vector2(15.75, 0)
 scale = Vector2(0.95454395, 1.011364)
 texture = ExtResource("2_elev")

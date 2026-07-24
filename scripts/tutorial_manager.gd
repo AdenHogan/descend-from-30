@@ -24,32 +24,32 @@ const HALLWAY_ZOMBIE_KEY := "30hall:tutorial"
 const LINES := {
 	# --- Opener: opener_1 is the black-screen title-card line; opener_4/5 play
 	#     in the hallway as the player bangs on their own locked door (3001). ---
-	"opener_1": "Huh? What the hell's going on out there?",
-	"opener_4": "Come on — open up! ...I'm locked out. Brilliant.",
-	"opener_5": "The spare. The neighbour in 3003 keeps a spare key — I need to get in there.",
+	"opener_1": "Huh? Who the hell is banging on the door!?",
+	"opener_4": "Damn, I locked myself out! Wait, what happened out here?.",
+	"opener_5": "Whatever, I need the spare key. The lady in 3003 has it.",
 	# --- 3003 scripted encounter ---
-	"3003_curiosity": "Mrs Delacroix…? Are you okay in there?",
-	"3003_push": "It's on me — shove it back!",
-	"3003_weapon": "That won't hold it — I need a weapon. Search the room!",
-	"3003_weapon_go": "Anything I can swing — hurry!",
-	"3003_combat": "A club — good. Time to swing until it goes down.",
-	"3003_combat_go": "Two solid hits.",
-	"3003_heal": "It got me back there — I should patch up with those bandages.",
-	"3003_key": "Wait… this isn't my spare key. It's for next door — 3002. Worth a look.",
+	"3003_curiosity": "Mrs Delacroix…? you okay back there?",
+	"3003_push": "Mrs Delacroix, gah, no, not like this!!! - shove her back!",
+	"3003_weapon": "That won't stop her...it. I need a weapon - Search the room!",
+	"3003_weapon_go": "She's getting closer! I need to hurry!",
+	"3003_combat": "A... golf club? She played golf? She was 88! - Swing!.",
+	"3003_combat_go": "What have I done? Two solid hits. I'm so sorry.",
+	"3003_heal": "She scratched me up - I should patch up with those bandages.",
+	"3003_key": "Wait... this isn't my spare key! This is for 3002.",
 	# --- 3002 reward room ---
-	"3002_entry": "So this is what the key kept safe. Take what helps — then find the stairs. It's a long way down.",
+	"3002_entry": "No one is home. I feel bad stealing, but... what else can I do?",
 	# --- Misc tutorial one-shots ---
-	"first_cash": "I left my wallet back in my room. Maybe I'll find another one on the way down.",
-	"no_return": "No. I need to get to the lobby — going home isn't an option any more.",
+	"first_cash": "I don't have my wallet.",
+	"no_return": "No. I need to get to the lobby. Going home isn't an option any more.",
 	# --- 3004 barricade beat ---
-	"3004_hint": "This one's barricaded. I could tear it down — probably faster if I pry at it with a weapon.",
-	"hall_zombie": "Something heard that — it's coming up the stairs!",
-	"hall_choice": "That lock looks forceable — but this club's nearly spent. Enough for ONE more job: force 3004 and take the room, OR put the thing down and take whatever it's carrying. Not both.",
-	"hall_force_break": "Damn — it snapped. Get inside, fast.",
+	"3004_hint": "This one's barricaded. I could tear it down, maybe faster if I pry at it with a weapon.",
+	"hall_zombie": "Gah, this is so loud, I think something's coming!",
+	"hall_choice": "That door lock is loose. I might could force it, but this club is pretty beat up. I could risk it, but what if that thing attacks and I don't have a weapon?",
+	"hall_force_break": "Damnit, it broke. I gotta get inside, fast.",
 	# --- Staged stairs gate ---
-	"stairs_key": "The stairwell's a death trap empty-handed — the neighbour in 3003 might have a spare key. Check there first.",
-	"stairs_apts": "Not yet — I should search the other apartments before I go down.",
-	"stairs_choice": "Not with that thing loose — deal with it, or get through 3004.",
+	"stairs_key": "Wait, 3003 isn't downstairs, I need the spare key.",
+	"stairs_apts": "Hmmm, maybe I should search the other apartments before I descend.",
+	"stairs_choice": "That thing is dangeorus, if I descend now, I might not be able to come back up. Should I leave these apartments unsearched?",
 }
 
 var _awaiting: bool = false
