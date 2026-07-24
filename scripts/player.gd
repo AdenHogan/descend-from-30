@@ -226,10 +226,7 @@ func _physics_process(delta: float) -> void:
 		return
 
 	if Input.is_action_just_pressed("mode_toggle"):
-		_clear_move_target()
-		is_switching_mode = true
-		mode_switch_timer = MODE_SWITCH_TIME
-		animated_sprite.play("air_spin")
+		request_mode_toggle()
 		return
 
 	if Input.is_action_just_pressed("crouch_toggle"):
@@ -622,6 +619,20 @@ func _do_push() -> void:
 		if dist <= PUSH_RANGE:
 			var push_dir = sign(zombie.global_position.x - global_position.x)
 			zombie.receive_push(push_dir * PUSH_FORCE * WorldState.get_push_mult())
+
+
+func request_mode_toggle() -> bool:
+	# Public: start the scavenge↔combat switch (same as pressing F). Called by
+	# the HUD mode button so mouse players don't need the key.
+	if is_switching_mode or is_dead or is_dying or is_listening or is_cutscene:
+		return false
+	if WorldState.loot_open:
+		return false
+	_clear_move_target()
+	is_switching_mode = true
+	mode_switch_timer = MODE_SWITCH_TIME
+	animated_sprite.play("air_spin")
+	return true
 
 
 func approach_door(door_global: Vector2, on_arrive: Callable = Callable()) -> void:
