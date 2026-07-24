@@ -102,8 +102,8 @@ func _test_3005_bullets() -> void:
 func _test_tutorial_rooms() -> void:
 	print("[fixed tutorial rooms 3002/3004/3005]")
 	var specs = {
-		"3002": {"items": {"011": 1, "033": 1, "034": 1, "006": 1}, "amounts": {"033": [10]}},
-		"3004": {"items": {"": 2, "033": 2, "032": 1}, "amounts": {"033": [8, 4]}},
+		"3002": {"items": {"011": 1, "033": 1, "032": 1, "006": 1}, "amounts": {"033": [10]}},
+		"3004": {"items": {"": 2, "033": 2, "034": 1}, "amounts": {"033": [8, 4]}},
 		"3005": {"items": {"016": 2, "": 2, "006": 1}, "amounts": {"016": [8, 3]}},
 	}
 	for apt in specs.keys():

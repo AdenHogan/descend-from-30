@@ -22,7 +22,7 @@ const PORTRAITS = [
 ]
 @onready var slot_locked = $Control/HBoxContainer/SlotLocked
 
-var mode_label: Label = null
+var mode_label: Button = null   # clickable scavenge/combat toggle
 var slot_icons: Array = []
 var slot_durability_bars: Array = []
 var selected_slot: int = -1
@@ -111,13 +111,22 @@ func _layout() -> void:
 		slot.add_theme_stylebox_override("panel", _make_slot_style(false))
 
 func _create_mode_label() -> void:
-	mode_label = Label.new()
-	mode_label.mouse_filter = Control.MOUSE_FILTER_IGNORE  # never eat world clicks
+	# Clickable so mouse players can flip scavenge↔combat without pressing F.
+	mode_label = Button.new()
+	mode_label.flat = true
+	mode_label.focus_mode = Control.FOCUS_NONE
 	mode_label.add_theme_font_size_override("font_size", 18)
-	mode_label.position = Vector2(SCREEN_W - 258, SCREEN_H - BAR_H - 10)
-	mode_label.size = Vector2(180, 40)
-	mode_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	mode_label.position = Vector2(SCREEN_W - 258, SCREEN_H - BAR_H - 12)
+	mode_label.size = Vector2(180, 44)
+	mode_label.custom_minimum_size = Vector2(180, 44)
+	mode_label.pressed.connect(_on_mode_button)
 	$Control.add_child(mode_label)
+
+
+func _on_mode_button() -> void:
+	var player = get_tree().get_first_node_in_group("player")
+	if player != null and player.has_method("request_mode_toggle"):
+		player.request_mode_toggle()
 
 func _create_slot_icons() -> void:
 	for i in range(slots.size()):
@@ -600,6 +609,12 @@ func refresh_inventory() -> void:
 			elif item_data.get("is_weapon", false) and item_name_l.contains("gun"):
 				key_label.text = ("%d/%d" % [instance.mag_count, instance.get_mag_cap()]) + (" DMG" if instance.is_damaged else "")
 				key_label.add_theme_color_override("font_color", Color(0.05, 0.05, 0.05, 1.0))
+				key_label.visible = true
+			elif texture == null:
+				# No art yet (e.g. a new item's .png not added): show the name so
+				# the item is visible in the slot instead of a blank square.
+				key_label.text = item_data.get("name", "?").left(9)
+				key_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.95, 1.0))
 				key_label.visible = true
 			else:
 				key_label.add_theme_color_override("font_color", Color(0.05, 0.05, 0.05, 1.0))

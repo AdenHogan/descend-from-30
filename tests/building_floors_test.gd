@@ -56,6 +56,7 @@ func _test_stairpan_guard() -> void:
 	check(sp != null, "StairPan is an autoload singleton")
 	if sp == null:
 		return
-	# Disabled by default → never pans (stairs use the safe fade).
-	check(not sp.ENABLED, "StairPan is disabled by default (fade fallback)")
-	check(not sp.can_pan(20), "can_pan() is false while disabled")
+	# Enabled: pans between real floors (not into the lobby / past the top).
+	check(sp.ENABLED, "StairPan is enabled")
+	check(not sp.can_pan(0), "no pan into the lobby (floor 0)")
+	check(not sp.can_pan(30), "no pan up to the hallway (floor 30)")

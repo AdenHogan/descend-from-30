@@ -408,7 +408,7 @@ const TUT_ROOM_NODES = {
 	"3002": [
 		{"item": "011"},                 # Ice Pack
 		{"item": "033", "amount": 10},   # Cash x10
-		{"item": "034"},                 # Screwdriver
+		{"item": "032"},                 # Broken Umbrella (swapped out of 3004)
 		{"item": "006"},                 # Bandages
 	],
 	"3004": [
@@ -416,7 +416,10 @@ const TUT_ROOM_NODES = {
 		{"item": ""},                    # nothing found
 		{"item": "033", "amount": 8},    # Cash x8
 		{"item": "033", "amount": 4},    # Cash x4
-		{"item": "032"},                 # Broken Umbrella
+		{"item": "034"},                 # Screwdriver — a FORCE-only reward for
+		#                                  taking the barricade room; NOT in 3002
+		#                                  (would let the key room defeat the
+		#                                  force-vs-fight choice).
 	],
 	"3005": [
 		{"item": "016", "amount": 8},    # Bullets x8

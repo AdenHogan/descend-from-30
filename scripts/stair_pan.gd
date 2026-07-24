@@ -1,33 +1,36 @@
 extends Node
 
-# Autoload: seamless stair transition (docs/TUTORIAL.md #3). Instead of a hard
-# cut between floors, this loads the ADJACENT floor as a passive backdrop one
-# screen away, pans a standalone camera across as the player walks the stairs,
-# then commits the real floor.
+# Autoload: seamless stair transition. Instead of a hard cut between floors,
+# load the ADJACENT floor as a passive backdrop one screen away, pan a
+# standalone camera across as the player walks the stairs, then commit the real
+# floor. Gives the sense of descending the building.
 #
-# DISABLED by default (ENABLED = false): the pan is a visual effect that needs
-# in-editor tuning (offset, timing, the stair-walk slide) and can't be verified
-# headless — while off, stairs use the plain fade (Transition). To try it, flip
-# ENABLED and route stairwell._use_stairs through StairPan.pan_to_floor() for
-# the building_floors↔building_floors case. The building_floors `passive` /
-# `setup_floor` parameters it relies on are real and tested (see
-# building_floors_test).
+# ENABLED toggles it (this is THE switch). While it's on, mid-building stair
+# trips pan; if anything's missing it falls back to the plain fade so a descent
+# never soft-locks. Timing/feel is tunable via PAN_TIME + the player slide.
 
 const ENABLED := true
+<<<<<<< HEAD
 const PAN_TIME := 1.1
+=======
+const PAN_TIME := 1.05
+>>>>>>> dfd2f6ad759a4df6020836cf3711e45c7816c551
 
 var panning := true
 
 
 func can_pan(target_floor: int) -> bool:
-	# Only between two mid-building floors (both building_floors). Trips to the
-	# hallway (30) or lobby (0) fall back to the fade.
 	if not ENABLED or panning:
 		return false
+	# Only descend/ascend between real floors (not into the lobby, not up past
+	# the top). Both hallway (floor 30) and building_floors departures pan.
 	if target_floor <= 0 or target_floor >= 30:
 		return false
 	var scene = get_tree().current_scene
-	return scene != null and scene.scene_file_path.contains("building_floors")
+	if scene == null:
+		return false
+	var p = scene.scene_file_path
+	return p.contains("building_floors") or p.contains("hallway")
 
 
 func pan_to_floor(target_floor: int, direction: String) -> void:
@@ -35,25 +38,30 @@ func pan_to_floor(target_floor: int, direction: String) -> void:
 	var player = get_tree().get_first_node_in_group("player")
 	var cam = player.get_node_or_null("Camera2D") if player != null else null
 	if scene == null or player == null or cam == null:
-		# Can't pan — fall back to the fade cut.
-		_commit(target_floor)
+		_commit(target_floor)   # can't pan — plain cut, never soft-lock
 		return
 
 	panning = true
-	player.is_cutscene = true  # freeze normal control during the pan
+	player.is_cutscene = true   # freeze normal control during the pan
 
-	# One-screen world offset (down = +Y, up = −Y), accounting for camera zoom.
+	# One screen of world height (down = +Y below, up = −Y above), accounting
+	# for the camera zoom (floors are identical geometry, so one screen offset
+	# lines the next floor up exactly).
 	var view_h = get_viewport().get_visible_rect().size.y / cam.zoom.y
 	var floor_offset = view_h * (1.0 if direction == "down" else -1.0)
 
-	# Passive backdrop of the target floor, one screen away.
+	# The target floor as a passive backdrop, offset one screen away. It's
+	# wrapped in a Node2D — building_floors' root is a plain Node with no
+	# transform, so its CanvasItem children inherit the holder's offset.
+	var holder = Node2D.new()
+	holder.position = Vector2(0, floor_offset)
+	scene.add_child(holder)
 	var backdrop = load("res://scenes/building_floors.tscn").instantiate()
 	backdrop.setup_floor = target_floor
 	backdrop.passive = true
-	backdrop.position.y = floor_offset
-	scene.add_child(backdrop)
+	holder.add_child(backdrop)
 
-	# A standalone camera takes over from the player's and pans across.
+	# A standalone camera takes over and pans across both floors.
 	var pan_cam = Camera2D.new()
 	pan_cam.zoom = cam.zoom
 	pan_cam.global_position = cam.get_screen_center_position()
@@ -61,10 +69,11 @@ func pan_to_floor(target_floor: int, direction: String) -> void:
 	pan_cam.make_current()
 
 	var tw = create_tween().set_parallel(true)
-	tw.tween_property(pan_cam, "global_position:y", pan_cam.global_position.y + floor_offset, PAN_TIME)
-	# The player drifts toward the stairs as the view moves (placeholder for the
+	tw.tween_property(pan_cam, "global_position:y", pan_cam.global_position.y + floor_offset, PAN_TIME) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	# The player drifts down/up the stairs as the view moves (placeholder for a
 	# stair-walk animation).
-	tw.tween_property(player, "global_position:y", player.global_position.y + floor_offset * 0.4, PAN_TIME)
+	tw.tween_property(player, "global_position:y", player.global_position.y + floor_offset * 0.35, PAN_TIME)
 	await tw.finished
 
 	panning = false
