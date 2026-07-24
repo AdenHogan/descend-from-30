@@ -132,33 +132,39 @@ func pan_to_floor(target_floor: int, direction: String) -> void:
 
 	var targets := pan_targets(dest_spawn(down), cam_offset, floor_offset)
 
-	# (1) Walk to the stair mouth: X ONLY, on the current floor. This absorbs the
-	#     horizontal difference between the two floors' stair spawns so the slide
-	#     that follows is purely vertical (no diagonal drift).
+	# The camera NEVER moves horizontally. At a stairwell it is already clamped
+	# hard against the end wall, and the destination floor clamps it to the exact
+	# same X (same wall, same limits, player arriving at the same stair spawn) —
+	# so holding X still is what makes the commit invisible. Sliding it sideways
+	# with the player is what made the arrival jump and exposed the cut.
+	var hold_x: float = pan_cam.global_position.x
+
+	# (1) Walk to the stair mouth: the PLAYER moves, the view stays put. This also
+	#     absorbs the horizontal difference between the two floors' stair spawns
+	#     (left-down lands at 188, not 148) so the slide is purely vertical.
 	var walk_x: float = targets["walk_target"].x
 	if WALK_TIME > 0.0 and not is_equal_approx(player.global_position.x, walk_x):
-		var walk := create_tween().set_parallel(true)
+		var walk := create_tween()
 		walk.tween_property(player, "global_position:x", walk_x, WALK_TIME) \
-			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-		walk.tween_property(pan_cam, "global_position:x", walk_x + cam_offset.x, WALK_TIME) \
 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 		await walk.finished
 	else:
 		player.global_position.x = walk_x
-		pan_cam.global_position.x = walk_x + cam_offset.x
 	if not is_instance_valid(pan_cam) or not is_instance_valid(player):
 		_commit(target_floor)
 		return
+	pan_cam.global_position.x = hold_x
 
 	# (2) Slide: STRAIGHT DOWN/UP. Player + camera translate by the same vertical
-	#     delta (player fixed on screen, the two stacked floors scroll past),
-	#     ending on exactly the framing the destination scene loads into.
+	#     delta (the two stacked floors scroll past), ending on exactly the
+	#     framing the destination scene loads into.
 	var tw := create_tween().set_parallel(true)
 	tw.tween_property(player, "global_position:y", targets["player_target"].y, PAN_TIME) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	tw.tween_property(pan_cam, "global_position:y", targets["cam_target"].y, PAN_TIME) \
+	tw.tween_property(pan_cam, "global_position:y", pan_cam.global_position.y + floor_offset, PAN_TIME) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	await tw.finished
+	pan_cam.global_position.x = hold_x
 
 	_commit(target_floor)
 
