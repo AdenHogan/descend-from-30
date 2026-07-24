@@ -95,7 +95,10 @@ func _layout() -> void:
 	color_rect.set_anchor_and_offset(SIDE_BOTTOM, 0, SCREEN_H)
 	color_rect.set_anchor_and_offset(SIDE_LEFT, 0, 0)
 	color_rect.set_anchor_and_offset(SIDE_RIGHT, 0, SCREEN_W)
-	color_rect.color = Color(0.1, 0.1, 0.1, 0.9)
+	# FULLY opaque: at alpha 0.9 the world showed through the bar. It went
+	# unnoticed while the view was static, but during a stair pan the floor
+	# scrolls behind the inventory and the see-through is obvious.
+	color_rect.color = Color(0.1, 0.1, 0.1, 1.0)
 
 	floor_label.position = Vector2(SCREEN_W - 200, SCREEN_H - BAR_H + 18)
 	floor_label.size = Vector2(100, 50)
