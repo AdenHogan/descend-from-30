@@ -19,7 +19,14 @@ extends Node
 
 const ENABLED := true
 const PAN_TIME := 0.9        # the camera+player slide between floors
-const WALK_TIME := 0.35      # pre-roll pause (stands at the stairs) before the slide
+const WALK_TIME := 0.35      # walk along the corridor to the foot of the stairs
+const CLIMB_TIME := 0.45     # up the steps and out of sight behind the occluder
+const EMERGE_TIME := 0.45    # step back out of the stairwell on the new floor
+# How far up/along the steps the player travels before the occluder hides them.
+# Tune against the stairwell art: StairOccluderLeft/Right in the scene are the
+# boxes they vanish behind (z_index 2, above the player's z 1).
+const CLIMB_RISE := 34.0     # vertical travel up the steps
+const CLIMB_RUN := 26.0      # horizontal travel toward the bend
 # Nudge only if two floors don't quite meet (a 1-tile seam): + pushes the next
 # floor further away, − brings it closer. Should stay 0 (floors are 176 tall and
 # stack exactly).
@@ -155,16 +162,45 @@ func pan_to_floor(target_floor: int, direction: String) -> void:
 		return
 	pan_cam.global_position.x = hold_x
 
-	# (2) Slide: STRAIGHT DOWN/UP. Player + camera translate by the same vertical
-	#     delta (the two stacked floors scroll past), ending on exactly the
-	#     framing the destination scene loads into.
+	# (2) Climb: up the steps and BEHIND the occluder box, so the player is out of
+	#     sight for the actual floor change — exactly like rounding the bend of a
+	#     real stairwell. Direction of travel follows the stairs: toward the
+	#     building's middle, and up (down-trips still climb "into" the stairwell).
+	var toward_middle: float = 1.0 if walk_x < 640.0 else -1.0
+	var climb := create_tween().set_parallel(true)
+	climb.tween_property(player, "global_position:x",
+		player.global_position.x + CLIMB_RUN * toward_middle, CLIMB_TIME) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	climb.tween_property(player, "global_position:y",
+		player.global_position.y - CLIMB_RISE, CLIMB_TIME) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	await climb.finished
+	if not is_instance_valid(pan_cam) or not is_instance_valid(player):
+		_commit(target_floor)
+		return
+
+	# (3) Slide: STRAIGHT DOWN/UP, while the player is hidden. Player + camera
+	#     translate by the same vertical delta (the two stacked floors scroll
+	#     past), so the player stays tucked behind the NEXT floor's occluder.
 	var tw := create_tween().set_parallel(true)
-	tw.tween_property(player, "global_position:y", targets["player_target"].y, PAN_TIME) \
+	tw.tween_property(player, "global_position:y",
+		player.global_position.y + floor_offset, PAN_TIME) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	tw.tween_property(pan_cam, "global_position:y", pan_cam.global_position.y + floor_offset, PAN_TIME) \
+	tw.tween_property(pan_cam, "global_position:y",
+		pan_cam.global_position.y + floor_offset, PAN_TIME) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	await tw.finished
 	pan_cam.global_position.x = hold_x
+	if not is_instance_valid(player):
+		_commit(target_floor)
+		return
+
+	# (4) Emerge: step out of the stairwell to the exact spot the destination
+	#     scene will place the player, so the commit is invisible.
+	var emerge := create_tween().set_parallel(true)
+	emerge.tween_property(player, "global_position", targets["player_target"], EMERGE_TIME) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	await emerge.finished
 
 	_commit(target_floor)
 
