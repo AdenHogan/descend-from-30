@@ -171,6 +171,19 @@ func pan_to_floor(target_floor: int, direction: String) -> void:
 # floor is exactly its solid content, then stack/frame against that.
 const JUNK_ROW_FILL := 0.5   # a top row less than half-full is junk, not ceiling
 
+# THE floor band, in world Y, shared by every corridor scene. building_floors'
+# solid rows are 275..435; the hallway's tilemap is taller (243..483 — it carries
+# blue filler above AND below the corridor), so deriving the band per-scene gave
+# floor 30 a different zoom from floor 29 and showed that blue. Framing every
+# corridor to this ONE band keeps the zoom identical across a stair trip and
+# clips the filler.
+const FLOOR_BAND_TOP := 275.0
+const FLOOR_BAND_H := 160.0
+# The HUD's opaque background starts at SCREEN_H - BAR_H - 40 (hud.gd), i.e. the
+# bar is really 120px tall, not BAR_H's 80. Framing to 80 hid 40px of floor
+# behind the inventory; this is the number that keeps the floor tight above it.
+const HUD_BAR_H := 120.0
+
 
 func strip_junk_rows(tm: TileMapLayer) -> int:
 	# Erase sparse rows off the TOP of the tilemap. Returns how many were removed.
@@ -210,7 +223,14 @@ func clean_bounds(tm: TileMapLayer) -> Rect2:
 	return Rect2(pos, size)
 
 
-func apply_floor_camera(cam: Camera2D, bounds: Rect2, hud_bar_h: float = 80.0) -> void:
+func floor_band(tm: TileMapLayer) -> Rect2:
+	# Horizontal extent from the scene's own tilemap (corridors differ in width),
+	# vertical extent from the SHARED band so every floor frames identically.
+	var b := clean_bounds(tm)
+	return Rect2(Vector2(b.position.x, FLOOR_BAND_TOP), Vector2(b.size.x, FLOOR_BAND_H))
+
+
+func apply_floor_camera(cam: Camera2D, bounds: Rect2, hud_bar_h: float = HUD_BAR_H) -> void:
 	# Scene-locked camera (the playtest ask): instead of the view floating freely
 	# around the player, it is CLAMPED to the floor's own bounds — so walking to
 	# either stairwell pushes the camera up against the end wall and it stops,
