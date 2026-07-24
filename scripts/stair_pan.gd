@@ -115,9 +115,17 @@ func pan_to_floor(target_floor: int, direction: String) -> void:
 	holder.position = Vector2(0, floor_offset)
 
 	# Standalone camera copies the live one exactly (same zoom!) and takes over.
-	var cam_offset: Vector2 = cam.global_position - player.global_position
+	# It inherits the live camera's HORIZONTAL limits so the walls still stop the
+	# view sideways, but its vertical limits are opened up — it has to travel a
+	# whole floor, which the live camera's vertical clamp deliberately forbids.
+	var cam_offset: Vector2 = cam.get_screen_center_position() - player.global_position
 	var pan_cam := Camera2D.new()
 	pan_cam.zoom = cam.zoom
+	pan_cam.limit_left = cam.limit_left
+	pan_cam.limit_right = cam.limit_right
+	pan_cam.limit_top = -10000000
+	pan_cam.limit_bottom = 10000000
+	pan_cam.limit_smoothed = false
 	pan_cam.global_position = player.global_position + cam_offset
 	scene.add_child(pan_cam)
 	pan_cam.make_current()
@@ -155,9 +163,87 @@ func pan_to_floor(target_floor: int, direction: String) -> void:
 	_commit(target_floor)
 
 
+# --- floor geometry -------------------------------------------------------
+# The corridor tilemap's TOP row is "junk": a handful of stray tiles (the yellow
+# blocks) on an otherwise empty row, sitting above the real ceiling. Counting it
+# made a floor measure 176 tall when the actual floor is 160 — that extra 16px is
+# the dirty seam that showed between stacked floors. We strip those rows so a
+# floor is exactly its solid content, then stack/frame against that.
+const JUNK_ROW_FILL := 0.5   # a top row less than half-full is junk, not ceiling
+
+
+func strip_junk_rows(tm: TileMapLayer) -> int:
+	# Erase sparse rows off the TOP of the tilemap. Returns how many were removed.
+	if tm == null or tm.tile_set == null:
+		return 0
+	var removed := 0
+	while true:
+		var r := tm.get_used_rect()
+		if r.size.y <= 1 or r.size.x <= 0:
+			break
+		var row: int = r.position.y
+		var filled := 0
+		for col in range(r.position.x, r.position.x + r.size.x):
+			if tm.get_cell_source_id(Vector2i(col, row)) != -1:
+				filled += 1
+		if float(filled) / float(r.size.x) >= JUNK_ROW_FILL:
+			break   # a properly solid row — that's the real ceiling, stop
+		for col in range(r.position.x, r.position.x + r.size.x):
+			tm.erase_cell(Vector2i(col, row))
+		removed += 1
+	return removed
+
+
+func clean_bounds(tm: TileMapLayer) -> Rect2:
+	# The floor's solid extent in WORLD space (after junk rows are stripped).
+	if tm == null or tm.tile_set == null:
+		return Rect2()
+	var r := tm.get_used_rect()
+	var cell := tm.tile_set.tile_size
+	var origin := tm.global_position
+	var pos := Vector2(
+		origin.x + r.position.x * cell.x * tm.scale.x,
+		origin.y + r.position.y * cell.y * tm.scale.y)
+	var size := Vector2(
+		r.size.x * cell.x * tm.scale.x,
+		r.size.y * cell.y * tm.scale.y)
+	return Rect2(pos, size)
+
+
+func apply_floor_camera(cam: Camera2D, bounds: Rect2, hud_bar_h: float = 80.0) -> void:
+	# Scene-locked camera (the playtest ask): instead of the view floating freely
+	# around the player, it is CLAMPED to the floor's own bounds — so walking to
+	# either stairwell pushes the camera up against the end wall and it stops,
+	# while the player keeps moving freely into the corner. No grey beside the
+	# walls, none above the ceiling, none below the floor.
+	#
+	# Vertically the floor is framed EXACTLY into the area above the HUD bar, so
+	# the limit range equals the view height and the camera simply cannot drift
+	# up or down — which is also what keeps the stair pan clean.
+	if cam == null or bounds.size.y <= 0.0:
+		return
+	var view := Vector2(1152.0, 648.0)
+	var vp := cam.get_viewport()
+	if vp != null:
+		var vr := vp.get_visible_rect().size
+		if vr.x > 1.0 and vr.y > 1.0:
+			view = vr
+	var play_h: float = maxf(view.y - hud_bar_h, 1.0)
+	var z: float = play_h / bounds.size.y          # floor fills the play area
+	cam.zoom = Vector2(z, z)
+	var world_view_h: float = view.y / z           # includes the slice behind the HUD
+	cam.limit_left = int(floor(bounds.position.x))
+	cam.limit_right = int(ceil(bounds.position.x + bounds.size.x))
+	cam.limit_top = int(floor(bounds.position.y))
+	cam.limit_bottom = int(ceil(bounds.position.y + world_view_h))
+	cam.limit_smoothed = false
+
+
 func _floor_spacing(bf: Node) -> float:
 	# One floor's world height, from its tilemap — the vertical distance between
-	# equivalent points on adjacent (identical) floors.
+	# equivalent points on adjacent (identical) floors. Junk rows are excluded
+	# (they're stripped on build), so this is the SOLID height: floors stacked at
+	# this pitch meet flush with no seam.
 	var tm = bf.get_node_or_null("TileMapLayer")
 	if tm == null or tm.tile_set == null:
 		return 0.0

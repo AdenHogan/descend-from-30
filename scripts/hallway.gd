@@ -38,6 +38,15 @@ func _ready() -> void:
 	# room.gd _spawn_tutorial_zombie — not out here in the corridor. The
 	# corridor's own scripted zombie is the barricade beat below.)
 
+	# Same floor framing as building_floors: drop the junk row above the ceiling
+	# and clamp the camera to the corridor so it stops at the end walls.
+	var tm = get_node_or_null("TileMapLayer")
+	if tm != null:
+		StairPan.strip_junk_rows(tm)
+		var cam = player.get_node_or_null("Camera2D")
+		if cam != null:
+			StairPan.apply_floor_camera(cam, StairPan.clean_bounds(tm))
+
 	_spawn_corpses(30)
 	_spawn_world_drops(30)
 
