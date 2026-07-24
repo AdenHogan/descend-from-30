@@ -381,7 +381,7 @@ size = Vector2(27, 43)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_d55jr"]
 size = Vector2(27, 43)
 
-[node name="Node2D" type="Node" unique_id=1255384022]
+[node name="Node2D" type="Node2D" unique_id=1255384022]
 script = ExtResource("1_q2usw")
 
 [node name="StaticBody2D" type="StaticBody2D" parent="." unique_id=1706946986]

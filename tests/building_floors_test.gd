@@ -20,6 +20,7 @@ func check(cond: bool, label: String) -> void:
 func _ready() -> void:
 	print("=== building_floors passive / StairPan test ===")
 	await _test_passive_backdrop()
+	await _test_backdrop_offset_applies()
 	_test_stairpan_guard()
 	_test_pan_targets()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
@@ -57,6 +58,55 @@ func _test_passive_backdrop() -> void:
 		print("  INFO  measured floor spacing = %.1f world px" % spacing)
 	bf.queue_free()
 	await get_tree().process_frame
+
+
+func _test_backdrop_offset_applies() -> void:
+	# THE regression that broke every earlier "seamless offset" attempt:
+	# building_floors' root used to be a plain Node. CanvasItem transforms only
+	# propagate through CanvasItem parents, so a Node2D holder's offset was
+	# SILENTLY IGNORED — the backdrop drew exactly on top of the live floor and
+	# the camera panned off into grey. Assert the offset lands in WORLD space,
+	# not just that the arithmetic is right.
+	print("[backdrop offset actually applies]")
+	WorldState.new_game()
+	WorldState.current_floor = 25
+	var holder := Node2D.new()
+	add_child(holder)
+	var bf = load("res://scenes/building_floors.tscn").instantiate()
+	bf.setup_floor = 26
+	bf.passive = true
+	holder.add_child(bf)
+	for i in range(4):
+		await get_tree().process_frame
+	var base_tm = bf.get_node_or_null("TileMapLayer")
+	var base_y: float = base_tm.global_position.y
+	holder.position = Vector2(0, -176.0)
+	await get_tree().process_frame
+	var moved_y: float = base_tm.global_position.y
+	check(bf is Node2D, "building_floors root is a Node2D (transforms propagate)")
+	check(is_equal_approx(moved_y, base_y - 176.0),
+		"holder offset reaches the tilemap in world space (%.0f → %.0f)" % [base_y, moved_y])
+	# A stacked neighbour must not collide with / trigger on the live floor.
+	var counts := _physics_counts(bf)
+	check(counts["solid"] == 0, "passive backdrop has no active collision (%d)" % counts["solid"])
+	check(counts["monitoring"] == 0, "passive backdrop has no live Area2D triggers (%d)" % counts["monitoring"])
+	holder.queue_free()
+	await get_tree().process_frame
+
+
+func _physics_counts(node: Node) -> Dictionary:
+	var out := {"solid": 0, "monitoring": 0}
+	var stack: Array[Node] = [node]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		if n is CollisionObject2D:
+			if n.collision_layer != 0 or n.collision_mask != 0:
+				out["solid"] += 1
+			if n is Area2D and (n.monitoring or n.monitorable):
+				out["monitoring"] += 1
+		for c in n.get_children():
+			stack.append(c)
+	return out
 
 
 func _test_stairpan_guard() -> void:

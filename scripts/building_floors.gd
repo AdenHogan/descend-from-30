@@ -1,4 +1,4 @@
-extends Node
+extends Node2D
 
 const SPAWN_LEFT_TOP = Vector2(148, 391)
 const SPAWN_LEFT_BOTTOM = Vector2(188, 391)
@@ -23,6 +23,7 @@ func _ready() -> void:
 		player.queue_free()
 		player = null
 		_apply_doors(floor_num)
+		_make_inert()
 		return
 
 	var hallway_staircase_left = get_node("HallwayStaircaseLeft")
@@ -110,6 +111,28 @@ func _ready() -> void:
 	_spawn_corpses(floor_num)
 	_spawn_world_drops(floor_num)
 	_spawn_merchant(floor_num)
+
+func _make_inert() -> void:
+	# A stacked neighbour floor is SCENERY. Once it's offset into real world space
+	# its collision bodies and Area2D triggers would otherwise block/teleport the
+	# player on the live floor, so strip all physics + interaction from it and
+	# leave only what's drawn.
+	_disable_physics_recursive(self)
+
+
+func _disable_physics_recursive(node: Node) -> void:
+	if node is CollisionObject2D:
+		# Off every layer/mask: no blocking, no overlaps, no input picking.
+		node.collision_layer = 0
+		node.collision_mask = 0
+		if node is Area2D:
+			node.monitoring = false
+			node.monitorable = false
+		node.input_pickable = false
+		node.process_mode = Node.PROCESS_MODE_DISABLED
+	for child in node.get_children():
+		_disable_physics_recursive(child)
+
 
 func _apply_doors(floor_num: int) -> void:
 	for i in range(1, 6):
