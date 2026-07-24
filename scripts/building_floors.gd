@@ -12,6 +12,12 @@ const SPAWN_RIGHT_BOTTOM = Vector2(1162, 391)
 var setup_floor: int = -1
 var passive: bool = false
 
+# Where a zombie actually RESTS after move_and_slide resolves its spawn overlap
+# with the floor (spawn y is 388; recovery lifts it to ~370). Scenery zombies on
+# a pan backdrop have no physics step, so they must be placed here directly or
+# they sit sunk in the floor and warp upward on arrival.
+const ZOMBIE_SETTLED_Y := 370.0
+
 
 func _ready() -> void:
 	var floor_num = setup_floor if setup_floor >= 0 else WorldState.current_floor
@@ -119,7 +125,7 @@ func _frame_camera(player: Node) -> void:
 	var tm = get_node_or_null("TileMapLayer")
 	if cam == null or tm == null:
 		return
-	StairPan.apply_floor_camera(cam, StairPan.clean_bounds(tm))
+	StairPan.apply_floor_camera(cam, StairPan.floor_band(tm))
 
 func _spawn_zombies(floor_num: int, as_scenery: bool) -> void:
 	# Same seed either way, so a backdrop's zombies and the committed floor's
@@ -138,6 +144,12 @@ func _spawn_zombies(floor_num: int, as_scenery: bool) -> void:
 		zombie.global_position = pos
 		zombie.spawn_key = key
 		if as_scenery:
+			# A live zombie spawns overlapping the floor and move_and_slide lifts
+			# it to rest; a scenery zombie has no physics step, so it would stay
+			# sunk ~18px and then visibly WARP up the moment the floor commits.
+			# Place it where the live one ends up. (Guarded by building_floors_test,
+			# which measures the real settled Y and fails if this drifts.)
+			zombie.global_position.y = ZOMBIE_SETTLED_Y
 			zombie.add_to_group("pan_scenery")
 		add_child(zombie)
 		if as_scenery:
