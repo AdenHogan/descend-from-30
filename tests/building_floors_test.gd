@@ -23,6 +23,7 @@ func _ready() -> void:
 	await _test_backdrop_offset_applies()
 	_test_stairpan_guard()
 	_test_pan_targets()
+	await _test_floor_camera()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -40,10 +41,16 @@ func _test_passive_backdrop() -> void:
 		await get_tree().process_frame
 
 	check(bf.get_node_or_null("Player") == null, "passive backdrop drops its Player node")
-	var zombies := 0
-	for z in get_tree().get_nodes_in_group("zombie"):
-		zombies += 1
-	check(zombies == 0, "passive backdrop spawns no enemies (%d)" % zombies)
+	# A backdrop DOES show the floor's enemies (seeded identically to the live
+	# floor) so they scroll into view during the pan instead of materialising on
+	# arrival — but they must be pure scenery: no AI, no collision.
+	var scenery := get_tree().get_nodes_in_group("pan_scenery")
+	check(scenery.size() > 0, "backdrop shows the next floor's enemies (%d)" % scenery.size())
+	var thinking := 0
+	for z in scenery:
+		if z.is_physics_processing():
+			thinking += 1
+	check(thinking == 0, "backdrop enemies have no AI running (%d thinking)" % thinking)
 	# Doors carry the backdrop floor's apartment IDs.
 	var d1 = bf.get_node_or_null("apartment01")
 	check(d1 != null and d1.apartment_id == "2701", "doors use the backdrop floor's IDs (%s)" % (d1.apartment_id if d1 else "nil"))
@@ -91,6 +98,44 @@ func _test_backdrop_offset_applies() -> void:
 	check(counts["solid"] == 0, "passive backdrop has no active collision (%d)" % counts["solid"])
 	check(counts["monitoring"] == 0, "passive backdrop has no live Area2D triggers (%d)" % counts["monitoring"])
 	holder.queue_free()
+	await get_tree().process_frame
+
+
+func _test_floor_camera() -> void:
+	# The camera is locked to the FLOOR, not floating with the player: walking to
+	# a stairwell pushes the view against the end wall and it stops there.
+	print("[scene-locked floor camera]")
+	var sp = get_node_or_null("/root/StairPan")
+	WorldState.new_game()
+	WorldState.current_floor = 25
+	var bf = load("res://scenes/building_floors.tscn").instantiate()
+	bf.setup_floor = 25
+	bf.passive = true
+	add_child(bf)
+	for i in range(4):
+		await get_tree().process_frame
+	var tm = bf.get_node_or_null("TileMapLayer")
+	# Junk row is gone: the floor is its solid content only.
+	check(sp.strip_junk_rows(tm) == 0, "junk rows already stripped on build")
+	var b: Rect2 = sp.clean_bounds(tm)
+	check(is_equal_approx(b.size.y, 160.0), "clean floor height excludes junk (%.0f)" % b.size.y)
+	check(is_equal_approx(b.position.y, 275.0), "floor top is the solid ceiling (%.0f)" % b.position.y)
+
+	var cam := Camera2D.new()
+	add_child(cam)
+	sp.apply_floor_camera(cam, b, 80.0)
+	check(cam.limit_left == int(b.position.x), "camera stops at the left wall (%d)" % cam.limit_left)
+	check(cam.limit_right == int(b.position.x + b.size.x), "camera stops at the right wall (%d)" % cam.limit_right)
+	check(cam.limit_top == int(b.position.y), "camera never rises above the ceiling (%d)" % cam.limit_top)
+	# Vertical limits span exactly one view height → the camera cannot drift up
+	# or down at all, so no grey above the ceiling or below the floor.
+	var view_h: float = 648.0 / cam.zoom.y
+	check(absf(float(cam.limit_bottom - cam.limit_top) - view_h) <= 1.0,
+		"vertical limits pin the view to one floor (range %d vs view %.0f)"
+			% [cam.limit_bottom - cam.limit_top, view_h])
+	check(cam.zoom.y > 3.0, "zoomed in so the floor fills the play area (%.2f)" % cam.zoom.y)
+	cam.queue_free()
+	bf.queue_free()
 	await get_tree().process_frame
 
 

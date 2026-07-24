@@ -17,12 +17,22 @@ func _ready() -> void:
 	var floor_num = setup_floor if setup_floor >= 0 else WorldState.current_floor
 	var player = get_node("Player")
 
-	# A passive backdrop instance carries no live actors — drop its player and
-	# build only the corridor + doors for `floor_num`.
+	# Strip the junk row(s) above the ceiling so a floor is exactly its solid
+	# content — floors then stack flush and the camera can frame one exactly.
+	_strip_junk()
+
+	# A passive backdrop instance carries no live PLAYER, but it DOES show the
+	# floor's enemies: during a stair pan the player must see what's waiting on
+	# the next floor as it scrolls into view, instead of it materialising out of
+	# thin air the instant the floor commits. They're seeded identically to the
+	# live spawn, so the same zombies stay in the same places across the commit.
 	if passive:
 		player.queue_free()
 		player = null
 		_apply_doors(floor_num)
+		_spawn_zombies(floor_num, true)
+		_spawn_corpses(floor_num)
+		_spawn_world_drops(floor_num)
 		_make_inert()
 		return
 
@@ -93,12 +103,33 @@ func _ready() -> void:
 	# Assign apartment IDs and apply correct door states AFTER IDs are set
 	_apply_doors(floor_num)
 
+	_spawn_zombies(floor_num, false)
+	_spawn_corpses(floor_num)
+	_spawn_world_drops(floor_num)
+	_spawn_merchant(floor_num)
+	_frame_camera(player)
+
+
+func _frame_camera(player: Node) -> void:
+	# Lock the view to the floor itself (see StairPan.apply_floor_camera): the
+	# camera stops at the end walls instead of drifting past them into grey.
+	if player == null:
+		return
+	var cam = player.get_node_or_null("Camera2D")
+	var tm = get_node_or_null("TileMapLayer")
+	if cam == null or tm == null:
+		return
+	StairPan.apply_floor_camera(cam, StairPan.clean_bounds(tm))
+
+func _spawn_zombies(floor_num: int, as_scenery: bool) -> void:
+	# Same seed either way, so a backdrop's zombies and the committed floor's
+	# zombies are the SAME zombies in the same places — that's what makes them
+	# scroll into view during the pan rather than pop in on arrival.
 	var floor_rng = RandomNumberGenerator.new()
 	floor_rng.seed = (WorldState.master_seed ^ (floor_num * 2246822519)) & 0xFFFFFFFF
 	var zombie_count = WorldState.get_floor_zombie_count(floor_num)
 	var zombie_scene = preload("res://scenes/enemy_zombie_standard.tscn")
 	var positions = WorldState.get_zombie_positions(zombie_count, floor_rng, 50.0, 1300.0, 388.0)
-
 	for pos in positions:
 		var key = str(floor_num) + ":" + str(snappedf(pos.x, 1.0)) + ":" + str(snappedf(pos.y, 1.0))
 		if WorldState.killed_zombies.has(key):
@@ -106,11 +137,22 @@ func _ready() -> void:
 		var zombie = zombie_scene.instantiate()
 		zombie.global_position = pos
 		zombie.spawn_key = key
+		if as_scenery:
+			zombie.add_to_group("pan_scenery")
 		add_child(zombie)
+		if as_scenery:
+			# Visible, but no AI and no noise — it must not hunt the player, who
+			# is still a whole floor away. Disabled AFTER add_child so the
+			# zombie's own _ready can't turn its physics step back on.
+			# _make_inert() strips its collision separately.
+			zombie.set_physics_process(false)
 
-	_spawn_corpses(floor_num)
-	_spawn_world_drops(floor_num)
-	_spawn_merchant(floor_num)
+
+func _strip_junk() -> void:
+	var tm = get_node_or_null("TileMapLayer")
+	if tm != null:
+		StairPan.strip_junk_rows(tm)
+
 
 func _make_inert() -> void:
 	# A stacked neighbour floor is SCENERY. Once it's offset into real world space
@@ -129,7 +171,10 @@ func _disable_physics_recursive(node: Node) -> void:
 			node.monitoring = false
 			node.monitorable = false
 		node.input_pickable = false
-		node.process_mode = Node.PROCESS_MODE_DISABLED
+		# Scenery zombies keep processing so their idle animation still plays as
+		# they scroll into view (their AI is already off via set_physics_process).
+		if not node.is_in_group("pan_scenery"):
+			node.process_mode = Node.PROCESS_MODE_DISABLED
 	for child in node.get_children():
 		_disable_physics_recursive(child)
 
