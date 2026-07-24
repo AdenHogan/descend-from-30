@@ -21,6 +21,7 @@ func _ready() -> void:
 	print("=== building_floors passive / StairPan test ===")
 	await _test_passive_backdrop()
 	_test_stairpan_guard()
+	_test_pan_targets()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -68,3 +69,32 @@ func _test_stairpan_guard() -> void:
 	check(sp.ENABLED, "StairPan is enabled")
 	check(not sp.can_pan(0), "no pan into the lobby (floor 0)")
 	check(not sp.can_pan(30), "no pan up to the hallway (floor 30)")
+
+
+func _test_pan_targets() -> void:
+	print("[seamless pan targets]")
+	var sp = get_node_or_null("/root/StairPan")
+	if sp == null:
+		return
+	# The whole seamlessness rests on one invariant: at the end of the pan the
+	# camera-relative-to-player equals the live camera offset, so when the
+	# destination scene loads (player at spawn, camera at spawn+offset) the first
+	# frame is identical to the last pan frame — no jump, no hard cut.
+	var cam_offset := Vector2(6, -19)
+	var spawn := Vector2(188, 391)     # SPAWN_LEFT_BOTTOM
+	var down_t = sp.pan_targets(spawn, cam_offset, 176.0)
+	check(down_t["cam_target"] - down_t["player_target"] == cam_offset,
+		"down: end framing matches destination (seamless commit)")
+	check(down_t["player_target"] == spawn + Vector2(0, 176.0),
+		"down: player ends one floor below on the backdrop")
+	var up_t = sp.pan_targets(Vector2(148, 391), cam_offset, -176.0)
+	check(up_t["cam_target"] - up_t["player_target"] == cam_offset,
+		"up: end framing matches destination (seamless commit)")
+	# Player + camera move by the SAME delta → player holds a fixed screen spot.
+	var start_player := spawn
+	var start_cam := spawn + cam_offset
+	var player_delta = down_t["player_target"] - start_player
+	var cam_delta = down_t["cam_target"] - start_cam
+	check(player_delta == cam_delta, "player and camera slide by an identical delta")
+	# Floors are contiguous: the offset is exactly one floor height (no gap).
+	check(down_t["delta"] == Vector2(0, 176.0), "floor offset is exactly one floor height")
