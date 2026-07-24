@@ -24,6 +24,7 @@ func _ready() -> void:
 	_test_stairpan_guard()
 	_test_pan_targets()
 	await _test_floor_camera()
+	await _test_scenery_zombie_plane()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -117,13 +118,27 @@ func _test_floor_camera() -> void:
 	var tm = bf.get_node_or_null("TileMapLayer")
 	# Junk row is gone: the floor is its solid content only.
 	check(sp.strip_junk_rows(tm) == 0, "junk rows already stripped on build")
-	var b: Rect2 = sp.clean_bounds(tm)
+	var b: Rect2 = sp.floor_band(tm)
 	check(is_equal_approx(b.size.y, 160.0), "clean floor height excludes junk (%.0f)" % b.size.y)
 	check(is_equal_approx(b.position.y, 275.0), "floor top is the solid ceiling (%.0f)" % b.position.y)
 
+	# The hallway's tilemap is TALLER than a floor (blue filler above + below).
+	# It must still frame to the same band, or floor 30 zooms differently from 29.
+	var hall = load("res://scenes/hallway.tscn").instantiate()
+	var htm: TileMapLayer = hall.get_node_or_null("TileMapLayer")
+	var hb: Rect2 = sp.floor_band(htm)
+	check(is_equal_approx(hb.size.y, b.size.y) and is_equal_approx(hb.position.y, b.position.y),
+		"hallway frames the SAME band as a floor (%.0f..%.0f)" % [hb.position.y, hb.position.y + hb.size.y])
+	hall.free()
+
 	var cam := Camera2D.new()
 	add_child(cam)
-	sp.apply_floor_camera(cam, b, 80.0)
+	sp.apply_floor_camera(cam, b)
+	# The floor's bottom edge must land exactly on the top of the HUD bar, or the
+	# inventory eats into the floor (the bar is 120px, not BAR_H's 80).
+	var floor_bottom_screen: float = (b.position.y + b.size.y - float(cam.limit_top)) * cam.zoom.y
+	check(absf(floor_bottom_screen - (648.0 - sp.HUD_BAR_H)) <= 1.0,
+		"floor sits tight above the HUD bar (%.0f vs %.0f)" % [floor_bottom_screen, 648.0 - sp.HUD_BAR_H])
 	check(cam.limit_left == int(b.position.x), "camera stops at the left wall (%d)" % cam.limit_left)
 	check(cam.limit_right == int(b.position.x + b.size.x), "camera stops at the right wall (%d)" % cam.limit_right)
 	check(cam.limit_top == int(b.position.y), "camera never rises above the ceiling (%d)" % cam.limit_top)
@@ -136,6 +151,33 @@ func _test_floor_camera() -> void:
 	check(cam.zoom.y > 3.0, "zoomed in so the floor fills the play area (%.2f)" % cam.zoom.y)
 	cam.queue_free()
 	bf.queue_free()
+	await get_tree().process_frame
+
+
+func _test_scenery_zombie_plane() -> void:
+	# A backdrop zombie must stand on the SAME plane a live one settles to,
+	# otherwise it visibly warps up the instant the floor commits. This measures
+	# the real settled Y, so if collision shapes ever change the constant in
+	# building_floors.gd fails here instead of silently drifting.
+	print("[scenery zombie stands on the live plane]")
+	WorldState.new_game()
+	WorldState.current_floor = 25
+	var live = load("res://scenes/building_floors.tscn").instantiate()
+	live.setup_floor = 25
+	add_child(live)
+	for i in range(30):
+		await get_tree().process_frame
+	var settled := -1.0
+	for z in get_tree().get_nodes_in_group("zombie"):
+		if not z.is_in_group("pan_scenery"):
+			settled = z.global_position.y
+			break
+	check(settled > 0.0, "a live zombie exists to measure (%.1f)" % settled)
+	if settled > 0.0:
+		check(absf(settled - live.ZOMBIE_SETTLED_Y) <= 2.0,
+			"ZOMBIE_SETTLED_Y matches where a live zombie rests (%.1f vs %.1f)"
+				% [live.ZOMBIE_SETTLED_Y, settled])
+	live.queue_free()
 	await get_tree().process_frame
 
 
