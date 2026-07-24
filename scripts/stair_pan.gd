@@ -11,7 +11,11 @@ extends Node
 
 const ENABLED := true
 const PAN_TIME := 1.1
-var panning := true
+var panning := false   # true only WHILE a pan runs; if it starts true, can_pan() never fires
+
+func _ready() -> void:
+	panning = false   # defensive: never boot with the guard stuck on
+
 
 func can_pan(target_floor: int) -> bool:
 	if not ENABLED or panning:
