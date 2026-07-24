@@ -1,22 +1,39 @@
 extends Node
 
-# Autoload: seamless stair transition. Instead of a hard cut between floors,
-# load the ADJACENT floor as a passive backdrop one screen away, pan a
-# standalone camera across as the player walks the stairs, then commit the real
-# floor. Gives the sense of descending the building.
+# Autoload: seamless stair transition between two mid-building floors.
 #
-# ENABLED toggles it (this is THE switch). While it's on, mid-building stair
-# trips pan; if anything's missing it falls back to the plain fade so a descent
-# never soft-locks. Timing/feel is tunable via PAN_TIME + the player slide.
+# The trick that removes BOTH the grey void and the hard cut:
+#   * Every floor scene draws its floor at the SAME world coordinates, so a plain
+#     change_scene() snaps the world back to origin — that snap IS the hard cut.
+#   * We instead load the neighbour floor as a passive backdrop stacked EXACTLY
+#     one floor-height away (contiguous, no gap → no grey between floors), then
+#     move the player + a standalone camera RIGIDLY TOGETHER by one floor. The
+#     player stays fixed on screen while the two stacked floors scroll past
+#     (reads as descending/ascending).
+#   * The pan ends on the precise framing the destination scene will load into,
+#     so when we finally change_scene the first new frame is pixel-identical to
+#     the last pan frame — the commit is invisible.
+#
+# ENABLED is THE switch. If anything is missing it falls back to a plain cut so a
+# descent never soft-locks. Feel/timing is tunable via PAN_TIME + WALK_TIME.
 
 const ENABLED := true
-const PAN_TIME := 0.9        # the camera slide between floors
-const WALK_TIME := 0.45      # player walks onto/down the stairs BEFORE the pan
-const PLAYER_SLIDE := 0.30   # how far (fraction of a floor) the player drifts
-# Nudge if the two floors don't quite line up (a 1-tile seam): + pushes the
-# next floor further away, − brings it closer.
+const PAN_TIME := 0.9        # the camera+player slide between floors
+const WALK_TIME := 0.35      # pre-roll pause (stands at the stairs) before the slide
+# Nudge only if two floors don't quite meet (a 1-tile seam): + pushes the next
+# floor further away, − brings it closer. Should stay 0 (floors are 176 tall and
+# stack exactly).
 const SPACING_ADJUST := 0.0
+
+# building_floors spawn points (must match building_floors.gd) — where the player
+# lands on the destination floor, and therefore the exact frame we pan toward.
+const SPAWN_LEFT_TOP := Vector2(148, 391)
+const SPAWN_LEFT_BOTTOM := Vector2(188, 391)
+const SPAWN_RIGHT_TOP := Vector2(1201, 391)
+const SPAWN_RIGHT_BOTTOM := Vector2(1162, 391)
+
 var panning := false   # true only WHILE a pan runs; if it starts true, can_pan() never fires
+
 
 func _ready() -> void:
 	panning = false   # defensive: never boot with the guard stuck on
@@ -25,8 +42,8 @@ func _ready() -> void:
 func can_pan(target_floor: int) -> bool:
 	if not ENABLED or panning:
 		return false
-	# Only descend/ascend between real floors (not into the lobby, not up past
-	# the top). Both hallway (floor 30) and building_floors departures pan.
+	# Only pan between real mid-building floors (1..29). The lobby (0) and the
+	# hallway (30) are structurally different scenes → they keep the plain fade.
 	if target_floor <= 0 or target_floor >= 30:
 		return false
 	var scene = get_tree().current_scene
@@ -34,6 +51,28 @@ func can_pan(target_floor: int) -> bool:
 		return false
 	var p = scene.scene_file_path
 	return p.contains("building_floors") or p.contains("hallway")
+
+
+func dest_spawn(down: bool) -> Vector2:
+	# Mirror building_floors.gd's stair-arrival spawn selection.
+	if WorldState.stair_spawn_side == "left":
+		return SPAWN_LEFT_BOTTOM if down else SPAWN_LEFT_TOP
+	return SPAWN_RIGHT_BOTTOM if down else SPAWN_RIGHT_TOP
+
+
+func pan_targets(spawn: Vector2, cam_offset: Vector2, floor_offset: float) -> Dictionary:
+	# The destination scene will place the player at `spawn` with its camera at
+	# `spawn + cam_offset`. During the pan the same floor lives one floor-offset
+	# away (on the backdrop), so we drive player + camera to those points shifted
+	# by the offset. Because both shift by the same delta, the player holds a
+	# fixed screen position and the world scrolls; because the end framing equals
+	# the destination framing (shifted), the change_scene is seamless.
+	var delta := Vector2(0, floor_offset)
+	return {
+		"player_target": spawn + delta,
+		"cam_target": spawn + cam_offset + delta,
+		"delta": delta,
+	}
 
 
 func pan_to_floor(target_floor: int, direction: String) -> void:
@@ -47,51 +86,54 @@ func pan_to_floor(target_floor: int, direction: String) -> void:
 	panning = true
 	player.is_cutscene = true   # freeze normal control during the pan
 
-	var down = direction == "down"
+	var down := direction == "down"
 
-	# The target floor as a passive backdrop, wrapped in a Node2D — building_
+	# The neighbour floor as a passive backdrop, wrapped in a Node2D — building_
 	# floors' root is a plain Node with no transform, so its CanvasItem children
-	# inherit the holder's offset. Add it first so its tilemap exists to measure.
-	var holder = Node2D.new()
+	# inherit the holder's offset. Add first so its tilemap exists to measure.
+	var holder := Node2D.new()
 	scene.add_child(holder)
 	var backdrop = load("res://scenes/building_floors.tscn").instantiate()
 	backdrop.setup_floor = target_floor
 	backdrop.passive = true
 	holder.add_child(backdrop)
 
-	# The offset is the FLOOR's height (the tilemap), NOT one screen — that's
-	# what makes the next floor sit directly above/below with no grey gap.
-	var spacing = _floor_spacing(backdrop)
+	# Offset = ONE floor's height (the tilemap), so the neighbour sits directly
+	# above/below with the two floors contiguous — no grey gap between them.
+	var spacing := _floor_spacing(backdrop)
 	if spacing <= 0.0:
-		spacing = get_viewport().get_visible_rect().size.y / cam.zoom.y  # fallback
+		spacing = 176.0   # measured fallback (11 cells × 16px)
 	spacing += SPACING_ADJUST
-	var floor_offset = spacing * (1.0 if down else -1.0)
+	var floor_offset := spacing * (1.0 if down else -1.0)
 	holder.position = Vector2(0, floor_offset)
 
-	# A standalone camera takes over and pans across both floors.
-	var pan_cam = Camera2D.new()
+	# Standalone camera copies the live one exactly (same zoom!) and takes over.
+	var cam_offset: Vector2 = cam.global_position - player.global_position
+	var pan_cam := Camera2D.new()
 	pan_cam.zoom = cam.zoom
-	pan_cam.global_position = cam.get_screen_center_position()
+	pan_cam.global_position = player.global_position + cam_offset
 	scene.add_child(pan_cam)
 	pan_cam.make_current()
 
-	# 1) Walk onto the stairs first (a short drift, no camera move — placeholder
-	#    for the stair-walk animation).
-	var walk = create_tween()
-	walk.tween_property(player, "global_position:y",
-		player.global_position.y + floor_offset * PLAYER_SLIDE * 0.5, WALK_TIME)
-	await walk.finished
+	var targets := pan_targets(dest_spawn(down), cam_offset, floor_offset)
 
-	# 2) Halfway down/up the stairs, pan the camera to the next floor while the
-	#    player keeps drifting.
-	var tw = create_tween().set_parallel(true)
-	tw.tween_property(pan_cam, "global_position:y", pan_cam.global_position.y + floor_offset, PAN_TIME) \
+	# (1) A short beat standing at the stairs before moving — placeholder for the
+	#     stair-walk animation the player wants to add later.
+	if WALK_TIME > 0.0:
+		await get_tree().create_timer(WALK_TIME).timeout
+		if not is_instance_valid(pan_cam) or not is_instance_valid(player):
+			_commit(target_floor)
+			return
+
+	# (2) Slide: player + camera translate by the SAME delta (player fixed on
+	#     screen, floors scroll past), ending on the destination framing.
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(player, "global_position", targets["player_target"], PAN_TIME) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	tw.tween_property(player, "global_position:y",
-		player.global_position.y + floor_offset * PLAYER_SLIDE * 0.5, PAN_TIME)
+	tw.tween_property(pan_cam, "global_position", targets["cam_target"], PAN_TIME) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	await tw.finished
 
-	panning = false
 	_commit(target_floor)
 
 
@@ -106,6 +148,7 @@ func _floor_spacing(bf: Node) -> float:
 
 
 func _commit(target_floor: int) -> void:
+	panning = false
 	WorldState.current_floor = target_floor
 	WorldState.on_floor_arrived(target_floor)
 	HUD.update_floor_label()
