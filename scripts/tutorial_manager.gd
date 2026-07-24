@@ -74,22 +74,16 @@ func is_active() -> bool:
 
 
 func stair_stage() -> String:
-	# The Floor-30 descent gate is STAGED along the mandatory path:
-	#   "key"    — 3003 neighbour still up: go get the spare key.
-	#   "apts"   — key gotten, 3004 barricade still standing: search the
-	#              other apartments (leads the player into the barricade beat).
-	#   "choice" — barricade down, the noise-drawn zombie is live and 3004 is
-	#              still shut: resolve the force-vs-fight choice first.
-	#   "open"   — free to descend.
+	# The Floor-30 descent is gated ONLY until the 3003 spare key is in hand:
+	#   "key"  — 3003 not yet cleared: go get the key (hard block + herd).
+	#   "open" — key in hand: the player MAY descend at any time. Descending is
+	#            a ONE-WAY choice (end the tutorial early / leave apartments
+	#            unsearched) — the stairwell confirms it; they're never hard-
+	#            blocked for not "finishing".
 	if not is_active():
 		return "open"
 	if not WorldState.killed_zombies.has(TUTORIAL_ZOMBIE_KEY):
 		return "key"
-	var d3004 = WorldState.get_door_state("3004")
-	if d3004 == WorldState.DoorState.BARRICADED_LOCKED or d3004 == WorldState.DoorState.BARRICADED_FORCEABLE:
-		return "apts"
-	if d3004 != WorldState.DoorState.OPEN and not WorldState.killed_zombies.has(HALLWAY_ZOMBIE_KEY):
-		return "choice"
 	return "open"
 
 
@@ -98,19 +92,10 @@ func stairs_locked() -> bool:
 
 
 func stair_block_info() -> Dictionary:
-	# What the stairwell should say + where to herd the player, per stage.
-	# target_x are hallway door positions (3002=696, 3003=570, 3004=444).
-	# Empty dict = descent is open.
-	match stair_stage():
-		"key":
-			return {"line": LINES["stairs_key"], "target_x": 570.0}
-		"apts":
-			var target = 696.0 if not WorldState.was_key_opened("3002") else 444.0
-			return {"line": LINES["stairs_apts"], "target_x": target}
-		"choice":
-			# The zombie is live in the corridor — no herding INTO it, just
-			# the refusal.
-			return {"line": LINES["stairs_choice"], "target_x": -1.0}
+	# What the stairwell says + where to herd, while the descent is hard-blocked
+	# (only the "key" stage now). Empty dict = descent is allowed.
+	if stair_stage() == "key":
+		return {"line": LINES["stairs_key"], "target_x": 570.0}   # 3003's door
 	return {}
 
 

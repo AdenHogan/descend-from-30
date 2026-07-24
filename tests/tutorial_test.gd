@@ -214,21 +214,16 @@ func _test_tutorial_manager() -> void:
 	check(tm != null, "TutorialManager is an autoload singleton")
 	if tm == null:
 		return
-	# Staged stairs gate along the mandatory path: key → apts → choice → open.
+	# Stairs gate is ONE stage now: blocked until the 3003 key, then open — the
+	# one-way descent is a confirm at the stairwell, not a hard block.
 	WorldState.new_game()
 	WorldState.current_floor = 30
 	WorldState.seed_floor_door_states(30)
-	check(tm.stair_stage() == "key" and tm.stairs_locked(), "stage 'key' while the neighbour is up")
+	check(tm.stair_stage() == "key" and tm.stairs_locked(), "blocked until the 3003 key")
+	check(not tm.stair_block_info().is_empty(), "block info present while gated to 3003")
 	WorldState.killed_zombies["3003:tutorial"] = {"floor": 30}
-	check(tm.stair_stage() == "apts" and tm.stairs_locked(), "stage 'apts' with the 3004 barricade standing")
-	WorldState.set_door_state("3004", WorldState.DoorState.SHUT_LOCKED)
-	check(tm.stair_stage() == "choice" and tm.stairs_locked(), "stage 'choice' once the barricade is down")
-	WorldState.killed_zombies["30hall:tutorial"] = {"floor": 30}
-	check(tm.stair_stage() == "open" and not tm.stairs_locked(), "killing the corridor zombie opens descent")
-	WorldState.killed_zombies.erase("30hall:tutorial")
-	WorldState.set_door_state("3004", WorldState.DoorState.OPEN)
-	check(tm.stair_stage() == "open", "forcing into 3004 also opens descent")
-	check(not tm.stair_block_info().is_empty() == tm.stairs_locked(), "block info matches the lock state")
+	check(tm.stair_stage() == "open" and not tm.stairs_locked(), "descent opens once the key is in hand")
+	check(tm.stair_block_info().is_empty(), "no block info once open")
 	WorldState.killed_zombies.erase("3003:tutorial")
 	WorldState.is_first_run = false
 	check(not tm.stairs_locked(), "gate is inert after the first run")

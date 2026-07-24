@@ -46,6 +46,14 @@ func _test_passive_backdrop() -> void:
 	var d1 = bf.get_node_or_null("apartment01")
 	check(d1 != null and d1.apartment_id == "2701", "doors use the backdrop floor's IDs (%s)" % (d1.apartment_id if d1 else "nil"))
 	check(bf.get_node_or_null("Merchant") == null, "no merchant on a passive backdrop")
+	# The pan offset comes from the floor's tilemap height (not one screen) —
+	# that's what removes the grey gap between floors.
+	var sp2 = get_node_or_null("/root/StairPan")
+	if sp2 != null:
+		var spacing = sp2._floor_spacing(bf)
+		check(spacing > 0.0, "floor spacing measured from the tilemap (%.0f)" % spacing)
+		check(spacing < 1000.0, "floor spacing is a plausible one-floor height (%.0f)" % spacing)
+		print("  INFO  measured floor spacing = %.1f world px" % spacing)
 	bf.queue_free()
 	await get_tree().process_frame
 
