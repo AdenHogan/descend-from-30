@@ -399,7 +399,7 @@ shape = SubResource("WorldBoundaryShape2D_52g5x")
 position = Vector2(832, 388)
 
 [node name="Camera2D" type="Camera2D" parent="Player" unique_id=1267748613]
-position = Vector2(6, -8)
+position = Vector2(6, -19)
 zoom = Vector2(3, 3)
 
 [node name="TileMapLayer" type="TileMapLayer" parent="." unique_id=127911818]
