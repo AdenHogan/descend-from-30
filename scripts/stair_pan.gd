@@ -10,14 +10,8 @@ extends Node
 # never soft-locks. Timing/feel is tunable via PAN_TIME + the player slide.
 
 const ENABLED := true
-<<<<<<< HEAD
 const PAN_TIME := 1.1
-=======
-const PAN_TIME := 1.05
->>>>>>> dfd2f6ad759a4df6020836cf3711e45c7816c551
-
 var panning := true
-
 
 func can_pan(target_floor: int) -> bool:
 	if not ENABLED or panning:
