@@ -72,16 +72,13 @@ func _process(_delta: float) -> void:
 		return
 	if not is_instance_valid(hall_zombie) or hall_zombie.is_dead:
 		return
-	# The barricade just came down: pause for the choice, then release it.
+	# The barricade just came down: the corridor zombie is loose. No forced
+	# kill-vs-3004 pause any more (the descent choice at the stairs is the real
+	# decision) — just say the line and release it as an emergent threat.
 	if not barricade_up and hall_zombie.tutorial_frozen and not hall_choice_prompted:
 		hall_choice_prompted = true
-		if d3004 == WorldState.DoorState.OPEN:
-			# 3004 is already open — no choice left to present, just danger.
-			_release_hall_zombie()
-		else:
-			TutorialManager.prompt(
-				TutorialManager.LINES["hall_choice"],
-				"interact", _release_hall_zombie, "[E] to continue")
+		TutorialManager.say(TutorialManager.LINES["hall_choice"])
+		_release_hall_zombie()
 
 
 func start_opener_lockout() -> void:

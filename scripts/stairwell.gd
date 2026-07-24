@@ -9,6 +9,8 @@ var bounce_time = 0.0
 var arrow = null
 var listen_label: Label = null
 var _herd_said = false
+var _descend_confirm_time = 0.0
+const DESCEND_CONFIRM_WINDOW = 4.0
 
 func _ready() -> void:
 	body_entered.connect(_on_body_entered)
@@ -99,12 +101,24 @@ func _use_stairs() -> void:
 		TutorialManager.prompt(TutorialManager.LINES["no_return"], "interact", _on_no_return, "[E]")
 		return
 
-	# Gate the first-run Floor-30 descent until the 3003 encounter is cleared.
+	# Gate the first-run Floor-30 descent until the 3003 key is in hand.
 	if direction == "down" and TutorialManager.stairs_locked():
 		var player = get_tree().get_first_node_in_group("player")
 		if player != null:
 			_herd_back(player)
 		return
+
+	# After the key, descending Floor 30 is a ONE-WAY choice (end the tutorial
+	# early / leave apartments unsearched). Warn once, then commit on a second
+	# use of the stairs; walking away lets the warning lapse.
+	if direction == "down" and WorldState.is_first_run and WorldState.current_floor == 30:
+		var now = Time.get_ticks_msec() / 1000.0
+		if now - _descend_confirm_time > DESCEND_CONFIRM_WINDOW:
+			TutorialManager.say(TutorialManager.LINES["stairs_choice"])
+			_descend_confirm_time = now
+			return
+		# second use within the window → confirmed, fall through and descend.
+
 	WorldState.stair_spawn_side = stair_side
 	WorldState.stair_direction = direction
 	WorldState.spawn_source = "stair"
