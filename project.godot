@@ -15,18 +15,6 @@ run/main_scene="uid://c0eulj0yqefjo"
 config/features=PackedStringArray("4.6", "GL Compatibility")
 config/icon="res://icon.svg"
 
-[display]
-
-; The HUD is laid out in absolute pixels against a 1152x648 design (hud.gd
-; SCREEN_W/SCREEN_H/BAR_H), and the floor camera frames exactly one floor into
-; the area above that 80px bar. Declaring the design resolution + canvas_items
-; stretch makes both scale together on ANY monitor instead of revealing more
-; world (which is what used to expose grey around the floor on big screens).
-window/size/viewport_width=1152
-window/size/viewport_height=648
-window/stretch/mode="canvas_items"
-window/stretch/aspect="keep"
-
 [autoload]
 
 WorldState="*uid://bwseljwhy6qjx"
@@ -38,6 +26,10 @@ PauseMenu="*uid://chxtq3ecgwk1a"
 TutorialManager="*res://scripts/tutorial_manager.gd"
 Transition="*res://scripts/transition.gd"
 StairPan="*res://scripts/stair_pan.gd"
+
+[display]
+
+window/stretch/mode="canvas_items"
 
 [input]
 
