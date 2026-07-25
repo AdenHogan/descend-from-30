@@ -27,9 +27,13 @@ const TURN_TIME := 0.40      # crossing the landing between flights (horizontal 
 const STEP_HEIGHT := 16.0          # one tile per step
 const STEP_TIME := 0.13            # seconds per step
 const STEP_MOVE_FRACTION := 0.6    # of each step spent moving; the rest is the beat between
-# How much of a flight is spent IN VIEW on the steps before the player passes out
-# of the corridor. The rest happens hidden.
-const VISIBLE_FLIGHT := 0.65
+# How much of a flight is spent IN VIEW on the steps before the player passes
+# BEHIND the scene. Kept short: the floor edge should cut across them as they
+# drop, step by step, rather than them lingering in front of the corridor.
+const VISIBLE_FLIGHT := 0.3
+# Fraction of the sideways turn taken while still on screen, so the player is
+# visibly heading around the stairwell before the scene swallows them.
+const TURN_LEAD := 0.45
 # How far the player walks up INTO the stairwell mouth before slipping behind the
 # scene — same beat as player.approach_door before a door fade.
 const STAIR_APPROACH := 14.0
@@ -46,7 +50,8 @@ const Z_BEHIND_SCENE := -1
 # little (further away) and dim a little (the stairwell is unlit). Applied to the
 # SPRITE, never the body — scaling a CharacterBody2D would scale its collision.
 const DEPTH_SCALE := 0.82    # size at the back of the stairwell (1.0 = no depth)
-const DEPTH_DIM := 0.62      # brightness at the back (1.0 = no dimming)
+const DEPTH_DIM := 1.0       # no dimming: fading read as a ghost over the front
+                             # of the scene. Depth comes from OCCLUSION + shrink.
 # The legs derive from the floor height and the destination spawn, so there is
 # nothing to hand-tune here: half a floor up, across the landing, half a floor
 # more. StairFrontLeft/Right in building_floors.tscn are the FRONT LAYER of the
@@ -228,7 +233,14 @@ func pan_to_floor(target_floor: int, direction: String) -> void:
 			Color(base_mod.r * DEPTH_DIM, base_mod.g * DEPTH_DIM, base_mod.b * DEPTH_DIM, base_mod.a),
 			_climb_time(absf(visible_end - start_y))) \
 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	# Begin rounding the stairwell WHILE VISIBLE — without this the player just
+	# vanishes on the spot and the turn (which happens hidden) never reads.
+	var lead_x: float = player.global_position.x + (turn_x - player.global_position.x) * TURN_LEAD
 	var leg1a := _stagger_y(player, start_y, visible_end)
+	var lead := create_tween()
+	lead.tween_property(player, "global_position:x", lead_x,
+		_climb_time(absf(visible_end - start_y))) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	await leg1a.finished
 	if not is_instance_valid(player) or not is_instance_valid(pan_cam):
 		_commit(target_floor)
