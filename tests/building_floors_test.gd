@@ -165,13 +165,22 @@ func _test_scenery_zombie_plane() -> void:
 	var live = load("res://scenes/building_floors.tscn").instantiate()
 	live.setup_floor = 25
 	add_child(live)
-	for i in range(30):
-		await get_tree().process_frame
+	# Wait for the zombie's move_and_slide depenetration to actually SETTLE rather
+	# than assuming a fixed frame count — a fixed wait made this test flaky under
+	# load, failing intermittently with a mid-flight Y.
 	var settled := -1.0
-	for z in get_tree().get_nodes_in_group("zombie"):
-		if not z.is_in_group("pan_scenery"):
-			settled = z.global_position.y
+	var prev := -999.0
+	for i in range(180):
+		await get_tree().process_frame
+		var cur := -1.0
+		for z in get_tree().get_nodes_in_group("zombie"):
+			if not z.is_in_group("pan_scenery"):
+				cur = z.global_position.y
+				break
+		if cur > 0.0 and is_equal_approx(cur, prev):
+			settled = cur
 			break
+		prev = cur
 	check(settled > 0.0, "a live zombie exists to measure (%.1f)" % settled)
 	if settled > 0.0:
 		check(absf(settled - live.ZOMBIE_SETTLED_Y) <= 2.0,
