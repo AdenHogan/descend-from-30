@@ -131,7 +131,7 @@ func pan_to_floor(target_floor: int, direction: String) -> void:
 	# above/below with the two floors contiguous — no grey gap between them.
 	var spacing := _floor_spacing(backdrop)
 	if spacing <= 0.0:
-		spacing = 176.0   # measured fallback (11 cells × 16px)
+		spacing = FLOOR_BAND_H   # fallback if the tilemap can't be measured
 	spacing += SPACING_ADJUST
 	var floor_offset := spacing * (1.0 if down else -1.0)
 	holder.position = Vector2(0, floor_offset)
@@ -290,13 +290,14 @@ func _stagger_y(node: Node2D, from_y: float, to_y: float, duration: float) -> Tw
 const JUNK_ROW_FILL := 0.5   # a top row less than half-full is junk, not ceiling
 
 # THE floor band, in world Y, shared by every corridor scene. building_floors'
-# solid rows are 275..435; the hallway's tilemap is taller (243..483 — it carries
+# solid rows are 243..435 (12 tiles — the corridor was raised by two so the
+# player has headroom to climb without clipping the ceiling); the hallway's tilemap is taller (243..483 — it carries
 # blue filler above AND below the corridor), so deriving the band per-scene gave
 # floor 30 a different zoom from floor 29 and showed that blue. Framing every
 # corridor to this ONE band keeps the zoom identical across a stair trip and
 # clips the filler.
-const FLOOR_BAND_TOP := 275.0
-const FLOOR_BAND_H := 160.0
+const FLOOR_BAND_TOP := 243.0
+const FLOOR_BAND_H := 192.0
 # The HUD's opaque background starts at SCREEN_H - BAR_H - 40 (hud.gd), i.e. the
 # bar is really 120px tall, not BAR_H's 80. Framing to 80 hid 40px of floor
 # behind the inventory; this is the number that keeps the floor tight above it.
