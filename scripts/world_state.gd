@@ -13,6 +13,16 @@ var current_floor: int = 30
 var stair_direction: String = ""
 var spawn_source: String = ""
 var is_first_run: bool = true
+# --- PLAYER PROFILE -------------------------------------------------------
+# Deliberately NOT part of savegame.json: the save is one playthrough, the
+# profile is the person. It records that this player has already been taught the
+# game, so pressing Play in the editor (or starting a fresh game) no longer
+# replays the Floor 30 tutorial for someone who has seen it. Lives beside
+# keybinds.cfg in user://.
+const PROFILE_PATH := "user://profile.cfg"
+var tutorial_completed: bool = false
+# Session-only: makes the "who does the game think I am" notice appear once.
+var profile_announced: bool = false
 # First-run opener (locked-out cold open) — plays once at the start of run 1;
 # reset by new_game() and the F7 dev tutorial reset so it can replay.
 var opener_seen: bool = false
@@ -123,7 +133,46 @@ const NOISE_RADIUS = {
 }
 
 
+func _ready() -> void:
+	load_profile()
+
+
+func load_profile() -> void:
+	var cfg := ConfigFile.new()
+	if cfg.load(PROFILE_PATH) == OK:
+		tutorial_completed = bool(cfg.get_value("progress", "tutorial_completed", false))
+
+
+func save_profile() -> void:
+	var cfg := ConfigFile.new()
+	cfg.load(PROFILE_PATH)   # keep any other keys already stored
+	cfg.set_value("progress", "tutorial_completed", tutorial_completed)
+	cfg.save(PROFILE_PATH)
+
+
+func mark_tutorial_completed() -> void:
+	# Called once the player leaves Floor 30 — they have been through it.
+	if tutorial_completed:
+		return
+	tutorial_completed = true
+	save_profile()
+
+
+func set_tutorial_completed(done: bool) -> void:
+	# Explicit override (the F7 dev toggle) so "treat me as a new player" is a
+	# real, persistent choice rather than something that resets next launch.
+	tutorial_completed = done
+	save_profile()
+
+
+func profile_status() -> String:
+	return "returning player" if tutorial_completed else "new player"
+
+
 func new_game() -> void:
+	# A NEW GAME is not a new PLAYER: only someone who has never finished the
+	# tutorial gets taught it again.
+	is_first_run = not tutorial_completed
 	master_seed = randi()
 	apartment_layouts.clear()
 	anchor_items.clear()
@@ -168,6 +217,9 @@ func new_game() -> void:
 
 
 func on_floor_arrived(floor_num: int) -> void:
+	# Reaching any floor below 30 means the tutorial has been played through.
+	if floor_num < 30 and floor_num > 0:
+		mark_tutorial_completed()
 	if floor_num in [25, 20, 15, 10, 5]:
 		rest_available = true
 	seed_floor_door_states(floor_num)

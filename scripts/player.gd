@@ -1179,6 +1179,10 @@ func _dev_toggle_tutorial() -> void:
 	# encounter so the scripted sequence replays from the top; turning it OFF
 	# makes Floor 30 a normal procedural floor (no gate, no scripted neighbour).
 	WorldState.is_first_run = not WorldState.is_first_run
+	# Write the PROFILE too, so the choice sticks across restarts instead of
+	# being undone the next time you press Play. Tutorial ON = "treat me as a new
+	# player"; OFF = "I've seen it".
+	WorldState.set_tutorial_completed(not WorldState.is_first_run)
 	if WorldState.is_first_run:
 		WorldState.dev_reset_tutorial()
 	# Land in the Floor 30 hallway via the standard arrival path.
@@ -1190,5 +1194,6 @@ func _dev_toggle_tutorial() -> void:
 	if TutorialManager.has_method("cancel"):
 		TutorialManager.cancel()  # drop any pending prompt / unpause
 	HUD.update_floor_label()
-	HUD.show_feedback("DEV: Tutorial %s — Floor 30" % ("ON" if WorldState.is_first_run else "OFF"))
+	HUD.show_feedback("DEV: Tutorial %s — profile: %s" % [
+		"ON" if WorldState.is_first_run else "OFF", WorldState.profile_status()])
 	get_tree().change_scene_to_file("res://scenes/hallway.tscn")
