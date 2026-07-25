@@ -399,7 +399,7 @@ position = Vector2(700, 321)
 
 [node name="Camera2D" type="Camera2D" parent="Player" unique_id=1267118944]
 position = Vector2(6, -19)
-zoom = Vector2(3, 3)
+zoom = Vector2(2.75, 2.75)
 
 [node name="TileMapLayer" type="TileMapLayer" parent="." unique_id=513596650]
 position = Vector2(1, 0)

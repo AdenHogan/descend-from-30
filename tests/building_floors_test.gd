@@ -29,13 +29,25 @@ func _ready() -> void:
 	get_tree().quit(1 if failures > 0 else 0)
 
 
+func _floor_with_zombies(fallback: int) -> int:
+	# new_game() picks a RANDOM master seed and get_floor_zombie_count can legally
+	# return 0, so "spawn a floor and expect enemies" is a coin flip — that was the
+	# intermittent failure, not a timing problem. Pick a floor this seed actually
+	# populates instead of assuming one does.
+	for f in range(1, 30):
+		if WorldState.get_floor_zombie_count(f) > 0:
+			return f
+	return fallback
+
+
 func _test_passive_backdrop() -> void:
 	print("[passive backdrop]")
 	WorldState.new_game()
-	WorldState.current_floor = 25          # live floor is elsewhere
-	WorldState.seed_floor_door_states(27)  # backdrop floor
+	var backdrop_floor := _floor_with_zombies(27)
+	WorldState.current_floor = (backdrop_floor + 2) % 29 + 1   # live floor is elsewhere
+	WorldState.seed_floor_door_states(backdrop_floor)
 	var bf = load("res://scenes/building_floors.tscn").instantiate()
-	bf.setup_floor = 27
+	bf.setup_floor = backdrop_floor
 	bf.passive = true
 	add_child(bf)
 	for i in range(6):
@@ -54,7 +66,9 @@ func _test_passive_backdrop() -> void:
 	check(thinking == 0, "backdrop enemies have no AI running (%d thinking)" % thinking)
 	# Doors carry the backdrop floor's apartment IDs.
 	var d1 = bf.get_node_or_null("apartment01")
-	check(d1 != null and d1.apartment_id == "2701", "doors use the backdrop floor's IDs (%s)" % (d1.apartment_id if d1 else "nil"))
+	var want_id := str(backdrop_floor) + "01"
+	check(d1 != null and d1.apartment_id == want_id,
+		"doors use the backdrop floor's IDs (%s)" % (d1.apartment_id if d1 else "nil"))
 	check(bf.get_node_or_null("Merchant") == null, "no merchant on a passive backdrop")
 	# The pan offset comes from the floor's tilemap height (not one screen) —
 	# that's what removes the grey gap between floors.
@@ -161,9 +175,10 @@ func _test_scenery_zombie_plane() -> void:
 	# building_floors.gd fails here instead of silently drifting.
 	print("[scenery zombie stands on the live plane]")
 	WorldState.new_game()
-	WorldState.current_floor = 25
+	var live_floor := _floor_with_zombies(25)
+	WorldState.current_floor = live_floor
 	var live = load("res://scenes/building_floors.tscn").instantiate()
-	live.setup_floor = 25
+	live.setup_floor = live_floor
 	add_child(live)
 	# Wait for the zombie's move_and_slide depenetration to actually SETTLE rather
 	# than assuming a fixed frame count — a fixed wait made this test flaky under

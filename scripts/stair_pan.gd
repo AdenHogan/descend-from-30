@@ -49,12 +49,13 @@ const DEPTH_SCALE := 0.82    # size at the back of the stairwell (1.0 = no depth
 const DEPTH_DIM := 0.62      # brightness at the back (1.0 = no dimming)
 # The legs derive from the floor height and the destination spawn, so there is
 # nothing to hand-tune here: half a floor up, across the landing, half a floor
-# more. StairOccluderLeft/Right in building_floors.tscn are the boxes the player
-# passes behind (z_index 2, above the player's z 1) — position those in the
-# editor to control exactly when they disappear.
+# more. StairFrontLeft/Right in building_floors.tscn are the FRONT LAYER of the
+# stair art (the near half of the same PNG, drawn at z_index 2 above the player's
+# z 1) — adjust their region_rect in the editor to control exactly how much of
+# the stairwell hides the player.
 # Nudge only if two floors don't quite meet (a 1-tile seam): + pushes the next
-# floor further away, − brings it closer. Should stay 0 (floors are 176 tall and
-# stack exactly).
+# floor further away, − brings it closer. Should stay 0 (floors are FLOOR_BAND_H
+# tall and stack exactly).
 const SPACING_ADJUST := 0.0
 
 # building_floors spawn points (must match building_floors.gd) — where the player
@@ -319,7 +320,7 @@ func _stagger_y(node: Node2D, from_y: float, to_y: float) -> Tween:
 # --- floor geometry -------------------------------------------------------
 # The corridor tilemap's TOP row is "junk": a handful of stray tiles (the yellow
 # blocks) on an otherwise empty row, sitting above the real ceiling. Counting it
-# made a floor measure 176 tall when the actual floor is 160 — that extra 16px is
+# made a floor measure taller than its solid content — that extra row was
 # the dirty seam that showed between stacked floors. We strip those rows so a
 # floor is exactly its solid content, then stack/frame against that.
 const JUNK_ROW_FILL := 0.5   # a top row less than half-full is junk, not ceiling
