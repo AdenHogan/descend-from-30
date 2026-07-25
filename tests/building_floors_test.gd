@@ -88,11 +88,11 @@ func _test_backdrop_offset_applies() -> void:
 		await get_tree().process_frame
 	var base_tm = bf.get_node_or_null("TileMapLayer")
 	var base_y: float = base_tm.global_position.y
-	holder.position = Vector2(0, -176.0)
+	holder.position = Vector2(0, -192.0)
 	await get_tree().process_frame
 	var moved_y: float = base_tm.global_position.y
 	check(bf is Node2D, "building_floors root is a Node2D (transforms propagate)")
-	check(is_equal_approx(moved_y, base_y - 176.0),
+	check(is_equal_approx(moved_y, base_y - 192.0),
 		"holder offset reaches the tilemap in world space (%.0f → %.0f)" % [base_y, moved_y])
 	# A stacked neighbour must not collide with / trigger on the live floor.
 	var counts := _physics_counts(bf)
@@ -119,8 +119,8 @@ func _test_floor_camera() -> void:
 	# Junk row is gone: the floor is its solid content only.
 	check(sp.strip_junk_rows(tm) == 0, "junk rows already stripped on build")
 	var b: Rect2 = sp.floor_band(tm)
-	check(is_equal_approx(b.size.y, 160.0), "clean floor height excludes junk (%.0f)" % b.size.y)
-	check(is_equal_approx(b.position.y, 275.0), "floor top is the solid ceiling (%.0f)" % b.position.y)
+	check(is_equal_approx(b.size.y, 192.0), "floor band is the full 12-tile corridor (%.0f)" % b.size.y)
+	check(is_equal_approx(b.position.y, 243.0), "floor top is the raised ceiling (%.0f)" % b.position.y)
 
 	# The hallway's tilemap is TALLER than a floor (blue filler above + below).
 	# It must still frame to the same band, or floor 30 zooms differently from 29.
@@ -148,7 +148,7 @@ func _test_floor_camera() -> void:
 	check(absf(float(cam.limit_bottom - cam.limit_top) - view_h) <= 1.0,
 		"vertical limits pin the view to one floor (range %d vs view %.0f)"
 			% [cam.limit_bottom - cam.limit_top, view_h])
-	check(cam.zoom.y > 3.0, "zoomed in so the floor fills the play area (%.2f)" % cam.zoom.y)
+	check(cam.zoom.y > 2.5, "zoomed so the floor fills the play area (%.2f)" % cam.zoom.y)
 	cam.queue_free()
 	bf.queue_free()
 	await get_tree().process_frame
