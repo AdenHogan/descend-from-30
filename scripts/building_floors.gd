@@ -36,6 +36,7 @@ func _ready() -> void:
 		player.queue_free()
 		player = null
 		_apply_doors(floor_num)
+		_apply_stair_visuals()
 		_spawn_zombies(floor_num, true)
 		_spawn_corpses(floor_num)
 		_spawn_world_drops(floor_num)
@@ -71,11 +72,9 @@ func _ready() -> void:
 		WorldState.saved_player_x = 0.0
 		WorldState.saved_player_y = 0.0
 
+	_apply_stair_visuals()
+
 	if WorldState.stair_spawn_side == "left":
-		hallway_staircase_left.visible = false
-		lobby_left.visible = true
-		hallway_staircase_right.visible = true
-		lobby_right.visible = false
 		if WorldState.stair_direction == "down":
 			left_down.process_mode = Node.PROCESS_MODE_DISABLED
 			left_up.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -88,19 +87,11 @@ func _ready() -> void:
 			right_down.process_mode = Node.PROCESS_MODE_DISABLED
 	elif WorldState.stair_spawn_side == "right":
 		if WorldState.stair_direction == "down":
-			hallway_staircase_right.visible = false
-			lobby_right.visible = true
-			hallway_staircase_left.visible = true
-			lobby_left.visible = false
 			right_down.process_mode = Node.PROCESS_MODE_DISABLED
 			right_up.process_mode = Node.PROCESS_MODE_ALWAYS
 			left_down.process_mode = Node.PROCESS_MODE_ALWAYS
 			left_up.process_mode = Node.PROCESS_MODE_DISABLED
 		else:
-			hallway_staircase_right.visible = true
-			lobby_right.visible = false
-			hallway_staircase_left.visible = true
-			lobby_left.visible = false
 			right_up.process_mode = Node.PROCESS_MODE_DISABLED
 			right_down.process_mode = Node.PROCESS_MODE_ALWAYS
 			left_up.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -126,6 +117,34 @@ func _frame_camera(player: Node) -> void:
 	if cam == null or tm == null:
 		return
 	StairPan.apply_floor_camera(cam, StairPan.floor_band(tm))
+
+func _apply_stair_visuals() -> void:
+	# Which staircase art this floor shows depends on the trip the player is
+	# making. A PASSIVE backdrop must decide this exactly like the live floor
+	# will, or the art visibly swaps at the moment of commit — you pan up past
+	# one stairwell and arrive at a different one. (This used to be skipped on
+	# backdrops because passive returns early.)
+	var hl = get_node_or_null("HallwayStaircaseLeft")
+	var ll = get_node_or_null("LobbyLeft")
+	var hr = get_node_or_null("HallwayStaircaseRight")
+	var lr = get_node_or_null("LobbyRight")
+	if hl == null or ll == null or hr == null or lr == null:
+		return
+	if WorldState.stair_spawn_side == "left":
+		hl.visible = false
+		ll.visible = true
+		hr.visible = true
+		lr.visible = false
+	elif WorldState.stair_spawn_side == "right":
+		if WorldState.stair_direction == "down":
+			hr.visible = false
+			lr.visible = true
+		else:
+			hr.visible = true
+			lr.visible = false
+		hl.visible = true
+		ll.visible = false
+
 
 func _spawn_zombies(floor_num: int, as_scenery: bool) -> void:
 	# Same seed either way, so a backdrop's zombies and the committed floor's
