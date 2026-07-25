@@ -27,13 +27,12 @@ const TURN_TIME := 0.40      # crossing the landing between flights (horizontal 
 const STEP_HEIGHT := 16.0          # one tile per step
 const STEP_TIME := 0.13            # seconds per step
 const STEP_MOVE_FRACTION := 0.6    # of each step spent moving; the rest is the beat between
-# How much of a flight is spent IN VIEW on the steps before the player passes
-# BEHIND the scene. Kept short: the floor edge should cut across them as they
-# drop, step by step, rather than them lingering in front of the corridor.
-const VISIBLE_FLIGHT := 0.3
-# Fraction of the sideways turn taken while still on screen, so the player is
-# visibly heading around the stairwell before the scene swallows them.
-const TURN_LEAD := 0.45
+# How much of the first flight the player spends at normal z, sinking behind the
+# StairPit* front layer step by step — this is what "sliced away bit by bit"
+# looks like. Only AFTER that do they drop behind the scene entirely for the
+# hidden turn. It is high on purpose: the pit does the hiding, gradually, rather
+# than a z-flip blinking them out.
+const VISIBLE_FLIGHT := 0.85
 # How far the player walks up INTO the stairwell mouth before slipping behind the
 # scene — same beat as player.approach_door before a door fade.
 const STAIR_APPROACH := 14.0
@@ -233,14 +232,7 @@ func pan_to_floor(target_floor: int, direction: String) -> void:
 			Color(base_mod.r * DEPTH_DIM, base_mod.g * DEPTH_DIM, base_mod.b * DEPTH_DIM, base_mod.a),
 			_climb_time(absf(visible_end - start_y))) \
 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
-	# Begin rounding the stairwell WHILE VISIBLE — without this the player just
-	# vanishes on the spot and the turn (which happens hidden) never reads.
-	var lead_x: float = player.global_position.x + (turn_x - player.global_position.x) * TURN_LEAD
 	var leg1a := _stagger_y(player, start_y, visible_end)
-	var lead := create_tween()
-	lead.tween_property(player, "global_position:x", lead_x,
-		_climb_time(absf(visible_end - start_y))) \
-		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	await leg1a.finished
 	if not is_instance_valid(player) or not is_instance_valid(pan_cam):
 		_commit(target_floor)
