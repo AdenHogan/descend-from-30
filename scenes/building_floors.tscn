@@ -541,18 +541,18 @@ vertical_alignment = 1
 
 [node name="StairOccluderLeft" type="ColorRect" parent="." unique_id=1900010001]
 z_index = 2
-offset_left = 112.0
+offset_left = 110.0
 offset_top = 284.0
-offset_right = 192.0
+offset_right = 178.0
 offset_bottom = 352.0
 color = Color(0.36078432, 0.36078432, 0.36078432, 1)
 mouse_filter = 2
 
 [node name="StairOccluderRight" type="ColorRect" parent="." unique_id=1900010002]
 z_index = 2
-offset_left = 1158.0
+offset_left = 1172.0
 offset_top = 284.0
-offset_right = 1238.0
+offset_right = 1240.0
 offset_bottom = 352.0
 color = Color(0.36078432, 0.36078432, 0.36078432, 1)
 mouse_filter = 2
