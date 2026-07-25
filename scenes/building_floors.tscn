@@ -538,21 +538,20 @@ text = "↑"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-
 [node name="StairOccluderLeft" type="ColorRect" parent="." unique_id=1900010001]
 z_index = 2
-offset_left = 110.0
-offset_top = 284.0
-offset_right = 178.0
-offset_bottom = 352.0
-color = Color(0.36078432, 0.36078432, 0.36078432, 1)
+offset_left = 130.0
+offset_top = 291.0
+offset_right = 172.0
+offset_bottom = 344.0
 mouse_filter = 2
+color = Color(0.36078432, 0.36078432, 0.36078432, 1)
 
 [node name="StairOccluderRight" type="ColorRect" parent="." unique_id=1900010002]
 z_index = 2
-offset_left = 1172.0
-offset_top = 284.0
-offset_right = 1240.0
-offset_bottom = 352.0
-color = Color(0.36078432, 0.36078432, 0.36078432, 1)
+offset_left = 1179.0
+offset_top = 291.0
+offset_right = 1219.0
+offset_bottom = 343.0
 mouse_filter = 2
+color = Color(0.36078432, 0.36078432, 0.36078432, 1)
