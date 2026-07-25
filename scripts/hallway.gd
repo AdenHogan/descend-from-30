@@ -48,6 +48,14 @@ func _ready() -> void:
 		if cam != null:
 			StairPan.apply_floor_camera(cam, StairPan.floor_band(tm))
 
+	# Say out loud which player the game thinks you are — otherwise "why is the
+	# tutorial running again?" is invisible guesswork.
+	if not WorldState.profile_announced:
+		WorldState.profile_announced = true
+		HUD.show_feedback("%s — tutorial %s" % [
+			WorldState.profile_status().capitalize(),
+			"ON" if WorldState.is_first_run else "skipped"])
+
 	_spawn_corpses(30)
 	_spawn_world_drops(30)
 

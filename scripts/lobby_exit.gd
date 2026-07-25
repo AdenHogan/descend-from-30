@@ -5,6 +5,6 @@ func _ready() -> void:
 
 func _on_body_entered(body: Node2D) -> void:
 	if body.name == "Player":
-		WorldState.is_first_run = false
+		WorldState.mark_tutorial_completed()   # a full run: definitely not a new player
 		WorldState.new_game()
 		Transition.to_scene("res://scenes/hallway.tscn")
