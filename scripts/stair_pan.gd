@@ -21,6 +21,13 @@ extends Node
 const ENABLED := true
 const CLIMB_TIME := 0.40     # one flight of stairs (vertical leg)
 const TURN_TIME := 0.25      # crossing the landing between flights (horizontal leg)
+# DEPTH. A stairwell recedes away from the camera, so the player should read as
+# stepping INTO the scene rather than sliding across a flat plane. Same idea as
+# player.APPROACH_DEPTH at doors, with two more cues stacked on: they shrink a
+# little (further away) and dim a little (the stairwell is unlit). Applied to the
+# SPRITE, never the body — scaling a CharacterBody2D would scale its collision.
+const DEPTH_SCALE := 0.82    # size at the back of the stairwell (1.0 = no depth)
+const DEPTH_DIM := 0.62      # brightness at the back (1.0 = no dimming)
 # The legs derive from the floor height and the destination spawn, so there is
 # nothing to hand-tune here: half a floor up, across the landing, half a floor
 # more. StairOccluderLeft/Right in building_floors.tscn are the boxes the player
@@ -164,10 +171,24 @@ func pan_to_floor(target_floor: int, direction: String) -> void:
 		pan_cam.global_position.y + floor_offset, total) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
-	# Leg 1 — VERTICAL: the first flight, straight down/up out of sight.
-	var leg1 := create_tween()
+	# Leg 1 — VERTICAL: the first flight, straight down/up, receding INTO the
+	#         stairwell: the sprite shrinks and dims as it goes back (see
+	#         DEPTH_SCALE / DEPTH_DIM). Never touch the body's own scale.
+	var sprite: Node = player.get_node_or_null("AnimatedSprite2D")
+	var base_scale := Vector2.ONE
+	var base_mod := Color(1, 1, 1, 1)
+	if sprite != null:
+		base_scale = sprite.scale
+		base_mod = sprite.modulate
+	var leg1 := create_tween().set_parallel(true)
 	leg1.tween_property(player, "global_position:y", start_y + half, CLIMB_TIME) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	if sprite != null:
+		leg1.tween_property(sprite, "scale", base_scale * DEPTH_SCALE, CLIMB_TIME) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+		leg1.tween_property(sprite, "modulate",
+			Color(base_mod.r * DEPTH_DIM, base_mod.g * DEPTH_DIM, base_mod.b * DEPTH_DIM, base_mod.a),
+			CLIMB_TIME).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 	await leg1.finished
 	if not is_instance_valid(player) or not is_instance_valid(pan_cam):
 		_commit(target_floor)
@@ -182,13 +203,25 @@ func pan_to_floor(target_floor: int, direction: String) -> void:
 		_commit(target_floor)
 		return
 
-	# Leg 3 — VERTICAL: the second flight, arriving exactly where the destination
-	#         scene will place the player, so the commit is invisible.
-	var leg3 := create_tween()
+	# Leg 3 — VERTICAL: the second flight, coming back OUT toward the camera as
+	#         they arrive — depth cues unwind to normal — landing exactly where
+	#         the destination scene will place the player, so the commit is
+	#         invisible.
+	var leg3 := create_tween().set_parallel(true)
 	leg3.tween_property(player, "global_position:y", targets["player_target"].y, CLIMB_TIME) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	if sprite != null:
+		leg3.tween_property(sprite, "scale", base_scale, CLIMB_TIME) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		leg3.tween_property(sprite, "modulate", base_mod, CLIMB_TIME) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	await leg3.finished
 	pan_cam.global_position.x = hold_x
+	# Belt-and-braces: the destination scene builds a fresh player, but if this
+	# one survives (aborted pan, future reuse) it must not stay shrunk or dim.
+	if sprite != null and is_instance_valid(sprite):
+		sprite.scale = base_scale
+		sprite.modulate = base_mod
 
 	_commit(target_floor)
 
