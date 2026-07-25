@@ -15,11 +15,10 @@ extends Node
 #     the last pan frame — the commit is invisible.
 #
 # ENABLED is THE switch. If anything is missing it falls back to a plain cut so a
-# descent never soft-locks. Feel/timing is tunable via PAN_TIME + WALK_TIME.
+# descent never soft-locks. Feel/timing is tunable via the *_TIME constants.
 
 const ENABLED := true
 const PAN_TIME := 0.9        # the camera+player slide between floors
-const WALK_TIME := 0.35      # walk along the corridor to the foot of the stairs
 const CLIMB_TIME := 0.45     # up the steps and out of sight behind the occluder
 const EMERGE_TIME := 0.45    # step back out of the stairwell on the new floor
 # How far up/along the steps the player travels before the occluder hides them.
@@ -75,14 +74,12 @@ func pan_targets(spawn: Vector2, cam_offset: Vector2, floor_offset: float) -> Di
 	# fixed screen position and the world scrolls; because the end framing equals
 	# the destination framing (shifted), the change_scene is seamless.
 	#
-	# NOTE the two beats are split so the slide is PURELY VERTICAL: the stair
-	# spawn X differs between floors (e.g. left-down lands at x=188, not 148), and
-	# tweening straight to it dragged the camera diagonally, which looked awful.
-	# `walk_target` covers the X change first (on the current floor), so the pan
-	# itself only ever moves in Y.
+	# The slide is PURELY VERTICAL. The stair spawn X differs between floors
+	# (left-down lands at x=188, not 148); that difference is absorbed by the
+	# emerge beat as the player steps out of the stairwell, not by dragging them
+	# sideways before they have even taken a step.
 	var delta := Vector2(0, floor_offset)
 	return {
-		"walk_target": Vector2(spawn.x, 0.0),   # X only; Y filled by the caller
 		"player_target": spawn + delta,
 		"cam_target": spawn + cam_offset + delta,
 		"delta": delta,
@@ -146,38 +143,32 @@ func pan_to_floor(target_floor: int, direction: String) -> void:
 	# with the player is what made the arrival jump and exposed the cut.
 	var hold_x: float = pan_cam.global_position.x
 
-	# (1) Walk to the stair mouth: the PLAYER moves, the view stays put. This also
-	#     absorbs the horizontal difference between the two floors' stair spawns
-	#     (left-down lands at 188, not 148) so the slide is purely vertical.
-	var walk_x: float = targets["walk_target"].x
-	if WALK_TIME > 0.0 and not is_equal_approx(player.global_position.x, walk_x):
-		var walk := create_tween()
-		walk.tween_property(player, "global_position:x", walk_x, WALK_TIME) \
-			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-		await walk.finished
-	else:
-		player.global_position.x = walk_x
-	if not is_instance_valid(pan_cam) or not is_instance_valid(player):
-		_commit(target_floor)
-		return
-	pan_cam.global_position.x = hold_x
+	# (1) NO sideways slide. The player is already standing at the stairwell they
+	#     pressed E on, so dragging them to the DESTINATION floor's spawn X first
+	#     was both pointless and wrong-way: going up on the left, the up-steps are
+	#     at x=188 but the arrival spawn is x=148, so the player slid left before
+	#     the climb hauled them back right — that was the "slide then weird
+	#     diagonal". They now simply take the stairs from where they stand, and the
+	#     X difference is absorbed by the emerge beat on the far side.
+	var on_left: float = -1.0 if player.global_position.x < 640.0 else 1.0
+	var toward_bend: float = on_left   # the bend is at the near end wall
 
-	# (2) Climb: up the steps and BEHIND the occluder box, so the player is out of
-	#     sight for the actual floor change — exactly like rounding the bend of a
-	#     real stairwell. Direction of travel follows the stairs: toward the
-	#     building's middle, and up (down-trips still climb "into" the stairwell).
-	var toward_middle: float = 1.0 if walk_x < 640.0 else -1.0
+	# (2) Take the stairs: travel toward the bend and vertically WITH the trip
+	#     (up when ascending, down when descending), passing behind the occluder
+	#     so the player is out of sight for the floor change.
+	var rise: float = CLIMB_RISE * (1.0 if down else -1.0)
 	var climb := create_tween().set_parallel(true)
 	climb.tween_property(player, "global_position:x",
-		player.global_position.x + CLIMB_RUN * toward_middle, CLIMB_TIME) \
-		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		player.global_position.x + CLIMB_RUN * toward_bend, CLIMB_TIME) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	climb.tween_property(player, "global_position:y",
-		player.global_position.y - CLIMB_RISE, CLIMB_TIME) \
-		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		player.global_position.y + rise, CLIMB_TIME) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	await climb.finished
 	if not is_instance_valid(pan_cam) or not is_instance_valid(player):
 		_commit(target_floor)
 		return
+	pan_cam.global_position.x = hold_x
 
 	# (3) Slide: STRAIGHT DOWN/UP, while the player is hidden. Player + camera
 	#     translate by the same vertical delta (the two stacked floors scroll
