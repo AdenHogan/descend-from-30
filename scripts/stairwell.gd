@@ -65,13 +65,34 @@ func _process(_delta: float) -> void:
 		_use_stairs()
 
 
+# How near the stairwell a click must land to count as "use the stairs" rather
+# than "walk over there". Generous, because you are already standing in it.
+const CLICK_RANGE := 70.0
+
+
 func _on_click(_viewport: Node, event: InputEvent, _shape_idx: int) -> void:
-	# Left-click the stairwell to use it, same as E (playtest request). Only
-	# when you're standing in it; otherwise the click walks you over instead.
+	# Area2D pick path. Kept, but NOT relied on — see _unhandled_input below.
 	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
 		return
 	if not player_nearby:
 		return
+	get_viewport().set_input_as_handled()
+	_use_stairs()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	# Left-click the stairwell to use it, same as E. This does NOT go through
+	# Area2D input_event: physics picking depends on viewport settings and on
+	# nothing else having eaten the click first, and it had stopped firing here
+	# while E still worked. A plain distance test against the click's world
+	# position is immune to all of that.
+	if not player_nearby:
+		return
+	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
+		return
+	var world: Vector2 = get_global_mouse_position()
+	if world.distance_to(global_position) > CLICK_RANGE:
+		return   # a click further off is click-to-move, not "take the stairs"
 	get_viewport().set_input_as_handled()
 	_use_stairs()
 
