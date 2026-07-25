@@ -15,23 +15,30 @@ extends Node
 #     the last pan frame — the commit is invisible.
 #
 # ENABLED is THE switch. If anything is missing it falls back to a plain cut so a
-# descent never soft-locks. Feel/timing is tunable via CLIMB_TIME + TURN_TIME
-# (the camera pans across the full dog-leg, so its speed follows from those).
+# descent never soft-locks. Pace is tunable via STEP_TIME + STEP_HEIGHT (the
+# camera's pan duration is derived from them, so it always matches the player).
 
 const ENABLED := true
-const CLIMB_TIME := 0.95     # one flight of stairs (vertical leg)
 const TURN_TIME := 0.40      # crossing the landing between flights (horizontal leg)
-# Stairs are climbed STEP BY STEP, not glided: each flight is broken into this
-# many short moves with a beat of stillness between them. Stand-in for the real
-# stair animation — it reads as footfalls rather than a smooth slide.
-const STAIR_STEPS := 5
-const STEP_MOVE_FRACTION := 0.55   # of each step's time spent moving; rest is the pause
+# Stairs are climbed STEP BY STEP at walking pace, not glided. One step per tile
+# of height, each taking STEP_TIME — so the climb's duration follows the distance
+# instead of being squeezed into a fixed budget, and every step is the same size.
+# Stand-in for the real stair animation; it reads as footfalls.
+const STEP_HEIGHT := 16.0          # one tile per step
+const STEP_TIME := 0.13            # seconds per step
+const STEP_MOVE_FRACTION := 0.6    # of each step spent moving; the rest is the beat between
+# How much of a flight is spent IN VIEW on the steps before the player passes out
+# of the corridor. The rest happens hidden.
+const VISIBLE_FLIGHT := 0.65
 # How far the player walks up INTO the stairwell mouth before slipping behind the
 # scene — same beat as player.approach_door before a door fade.
 const STAIR_APPROACH := 14.0
 # Behind the corridor art. Actors sit at z_index 1 and the backdrop at 0, so -1
-# tucks the player BEHIND the floor and wall tiles: they descend inside the
-# stairwell instead of sliding across the front of the scene.
+# tucks the player BEHIND the floor and wall tiles: they leave the corridor
+# inside the stairwell instead of sliding across the front of the scene.
+# IMPORTANT: the corridor tilemap is solid across every column, so this hides the
+# player COMPLETELY. It must only be applied once they are past the visible part
+# of the flight — applying it on entry made the whole climb invisible.
 const Z_BEHIND_SCENE := -1
 # DEPTH. A stairwell recedes away from the camera, so the player should read as
 # stepping INTO the scene rather than sliding across a flat plane. Same idea as
@@ -195,35 +202,44 @@ func pan_to_floor(target_floor: int, direction: String) -> void:
 		_commit(target_floor)
 		return
 
-	# From here the player is INSIDE the stairwell: drop them behind the corridor
-	# art so they travel behind the floor and wall tiles rather than sliding
-	# across the front of the scene.
-	player.z_index = Z_BEHIND_SCENE
 	start_y = player.global_position.y
 
-	# Only NOW does the camera start travelling — during the approach the player is
-	# still on this floor, so the view must stay put. It then pans smoothly across
-	# the whole descent rather than per-leg, so it never stutters while the player
-	# takes discrete steps or pauses on the landing. Its duration matches the three
-	# legs exactly, so camera and player arrive together and the commit is clean.
-	var total: float = CLIMB_TIME + TURN_TIME + CLIMB_TIME
+	# Every vertical leg is stepped at a fixed pace, so the CAMERA's duration has
+	# to follow the player rather than the other way round: one step per tile of
+	# height across the whole floor, plus the landing.
+	var total: float = _climb_time(absf(floor_offset)) + TURN_TIME
 	var cam_tw := create_tween()
 	cam_tw.tween_property(pan_cam, "global_position:y",
 		pan_cam.global_position.y + floor_offset, total) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
-	# Leg 1 — VERTICAL: the first flight, taken STEP BY STEP, receding into the
-	#         stairwell as the sprite shrinks and dims (DEPTH_SCALE/DEPTH_DIM).
-	#         Never touch the body's own scale — that would scale its collision.
+	# Leg 1a — VISIBLE: climbing the steps in full view, one step per tile, while
+	#          receding into the stairwell (shrink + dim). This is the beat that
+	#          sells the whole thing, so it must NOT be hidden — the corridor
+	#          tilemap is solid, so going behind it here erased the climb entirely.
+	var visible_end: float = start_y + half * VISIBLE_FLIGHT
 	if sprite != null:
 		var depth := create_tween().set_parallel(true)
-		depth.tween_property(sprite, "scale", base_scale * DEPTH_SCALE, CLIMB_TIME) \
+		depth.tween_property(sprite, "scale", base_scale * DEPTH_SCALE,
+			_climb_time(absf(visible_end - start_y))) \
 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 		depth.tween_property(sprite, "modulate",
 			Color(base_mod.r * DEPTH_DIM, base_mod.g * DEPTH_DIM, base_mod.b * DEPTH_DIM, base_mod.a),
-			CLIMB_TIME).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
-	var leg1 := _stagger_y(player, start_y, start_y + half, CLIMB_TIME)
-	await leg1.finished
+			_climb_time(absf(visible_end - start_y))) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	var leg1a := _stagger_y(player, start_y, visible_end)
+	await leg1a.finished
+	if not is_instance_valid(player) or not is_instance_valid(pan_cam):
+		_commit(target_floor)
+		return
+
+	# Now they are leaving the corridor — only NOW go behind the scene, so the
+	# rest of the trip happens out of sight rather than sliding over the tiles.
+	player.z_index = Z_BEHIND_SCENE
+
+	# Leg 1b — the rest of the first flight, hidden.
+	var leg1b := _stagger_y(player, visible_end, start_y + half)
+	await leg1b.finished
 	if not is_instance_valid(player) or not is_instance_valid(pan_cam):
 		_commit(target_floor)
 		return
@@ -237,19 +253,29 @@ func pan_to_floor(target_floor: int, direction: String) -> void:
 		_commit(target_floor)
 		return
 
-	# Leg 3 — VERTICAL: the second flight, coming back OUT toward the camera as
-	#         they arrive — depth cues unwind to normal — landing exactly where
-	#         the destination scene will place the player, so the commit is
-	#         invisible.
+	# Leg 3a — the second flight, still hidden, until they reach the point where
+	#          the next floor's stairwell would reveal them.
+	var reveal_y: float = targets["player_target"].y - half * VISIBLE_FLIGHT
+	var leg3a := _stagger_y(player, player.global_position.y, reveal_y)
+	await leg3a.finished
+	if not is_instance_valid(player) or not is_instance_valid(pan_cam):
+		_commit(target_floor)
+		return
+
+	# Leg 3b — VISIBLE: step out onto the new floor, coming back toward the camera
+	#          as the depth cues unwind, landing exactly where the destination
+	#          scene will place the player so the commit is invisible.
+	player.z_index = base_z
 	if sprite != null:
 		var undepth := create_tween().set_parallel(true)
-		undepth.tween_property(sprite, "scale", base_scale, CLIMB_TIME) \
+		undepth.tween_property(sprite, "scale", base_scale,
+			_climb_time(absf(targets["player_target"].y - reveal_y))) \
 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-		undepth.tween_property(sprite, "modulate", base_mod, CLIMB_TIME) \
+		undepth.tween_property(sprite, "modulate", base_mod,
+			_climb_time(absf(targets["player_target"].y - reveal_y))) \
 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	var leg3 := _stagger_y(player, player.global_position.y,
-		targets["player_target"].y, CLIMB_TIME)
-	await leg3.finished
+	var leg3b := _stagger_y(player, reveal_y, targets["player_target"].y)
+	await leg3b.finished
 	pan_cam.global_position.x = hold_x
 	# Belt-and-braces: the destination scene builds a fresh player, but if this
 	# one survives (aborted pan, future reuse) it must not stay shrunk, dim, or
@@ -263,16 +289,25 @@ func pan_to_floor(target_floor: int, direction: String) -> void:
 	_commit(target_floor)
 
 
-func _stagger_y(node: Node2D, from_y: float, to_y: float, duration: float) -> Tween:
+func _climb_time(distance: float) -> float:
+	# Walking pace: one step per tile of height. Duration follows distance, so a
+	# taller floor simply takes longer rather than the steps getting faster.
+	return maxf(_step_count(distance), 1) * STEP_TIME
+
+
+func _step_count(distance: float) -> int:
+	return maxi(int(round(absf(distance) / STEP_HEIGHT)), 1)
+
+
+func _stagger_y(node: Node2D, from_y: float, to_y: float) -> Tween:
 	# Climb in discrete steps instead of gliding: a short move, then a beat of
-	# stillness, repeated. Reads as footfalls on stairs — a stand-in until the
-	# real stair animation exists.
+	# stillness, repeated — footfalls on stairs. A stand-in until the real stair
+	# animation exists.
 	var tw := create_tween()
-	var steps: int = maxi(STAIR_STEPS, 1)
+	var steps := _step_count(to_y - from_y)
 	var dy: float = (to_y - from_y) / float(steps)
-	var slice: float = duration / float(steps)
-	var move_t: float = slice * STEP_MOVE_FRACTION
-	var hold_t: float = slice - move_t
+	var move_t: float = STEP_TIME * STEP_MOVE_FRACTION
+	var hold_t: float = STEP_TIME - move_t
 	for i in range(steps):
 		tw.tween_property(node, "global_position:y", from_y + dy * float(i + 1), move_t) \
 			.set_trans(Tween.TRANS_LINEAR)

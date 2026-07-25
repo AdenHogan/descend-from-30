@@ -859,19 +859,52 @@ func get_apartment_zombie_count(apartment_id: String) -> int:
 		return rng.randi() % 4 + 1
 
 
+# Zombies must never end up stacked on top of each other — a huddle should read
+# as a GROUP, not as one body hiding the others. Keep at least this much space
+# between neighbours (roughly a body width).
+const MIN_ZOMBIE_GAP := 74.0
+
+
 func get_zombie_positions(count: int, rng: RandomNumberGenerator, min_x: float, max_x: float, y: float) -> Array:
-	var positions = []
+	var xs: Array[float] = []
 	var huddle = rng.randf() < 0.4
 	if huddle and count > 1:
 		var center_x = rng.randf_range(min_x + 100, max_x - 100)
 		var radius = rng.randf_range(40, 120)
 		for i in range(count):
-			var offset = rng.randf_range(-radius, radius)
-			positions.append(Vector2(clamp(center_x + offset, min_x, max_x), y))
+			xs.append(clampf(center_x + rng.randf_range(-radius, radius), min_x, max_x))
 	else:
 		for i in range(count):
-			positions.append(Vector2(rng.randf_range(min_x, max_x), y))
+			xs.append(rng.randf_range(min_x, max_x))
+	xs = _space_out(xs, min_x, max_x)
+	var positions = []
+	for x in xs:
+		positions.append(Vector2(x, y))
 	return positions
+
+
+func _space_out(xs: Array[float], min_x: float, max_x: float) -> Array[float]:
+	# Deterministic de-overlap: sort, push each neighbour right until it clears
+	# the one before, then if that ran past the end, push the whole run back left.
+	# Order-preserving and seed-stable, so spawn keys stay reproducible.
+	if xs.size() < 2:
+		return xs
+	xs.sort()
+	for i in range(1, xs.size()):
+		if xs[i] - xs[i - 1] < MIN_ZOMBIE_GAP:
+			xs[i] = xs[i - 1] + MIN_ZOMBIE_GAP
+	var overflow: float = xs[xs.size() - 1] - max_x
+	if overflow > 0.0:
+		for i in range(xs.size()):
+			xs[i] -= overflow
+		# If the corridor simply cannot fit them all, spread evenly instead of
+		# letting the front of the line pile up outside it.
+		if xs[0] < min_x:
+			var span: float = max_x - min_x
+			var gap: float = span / float(maxi(xs.size() - 1, 1))
+			for i in range(xs.size()):
+				xs[i] = min_x + gap * float(i)
+	return xs
 
 
 func get_corpse_positions_for_floor(floor_num: int, scene_path: String, apartment_id: String = "") -> Array:

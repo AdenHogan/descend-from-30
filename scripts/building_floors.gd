@@ -154,7 +154,9 @@ func _spawn_zombies(floor_num: int, as_scenery: bool) -> void:
 	floor_rng.seed = (WorldState.master_seed ^ (floor_num * 2246822519)) & 0xFFFFFFFF
 	var zombie_count = WorldState.get_floor_zombie_count(floor_num)
 	var zombie_scene = preload("res://scenes/enemy_zombie_standard.tscn")
-	var positions = WorldState.get_zombie_positions(zombie_count, floor_rng, 50.0, 1300.0, 388.0)
+	# Keep clear of both stairwells (the corridor runs 115..1235): a zombie spawned
+	# behind the stair art was effectively invisible until it moved.
+	var positions = WorldState.get_zombie_positions(zombie_count, floor_rng, 265.0, 1105.0, 388.0)
 	for pos in positions:
 		var key = str(floor_num) + ":" + str(snappedf(pos.x, 1.0)) + ":" + str(snappedf(pos.y, 1.0))
 		if WorldState.killed_zombies.has(key):
