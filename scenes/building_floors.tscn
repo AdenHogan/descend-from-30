@@ -553,21 +553,3 @@ scale = Vector2(0.22769113, 0.25705406)
 texture = ExtResource("11_0lhb2")
 region_enabled = true
 region_rect = Rect2(173, 0, 180, 208)
-
-[node name="StairPitLeft" type="ColorRect" parent="." unique_id=1900010003]
-z_index = 2
-offset_left = 131.0
-offset_top = 406.0
-offset_right = 211.0
-offset_bottom = 434.0
-mouse_filter = 2
-color = Color(0.5372549, 0.40784314, 0.28235295, 1)
-
-[node name="StairPitRight" type="ColorRect" parent="." unique_id=1900010004]
-z_index = 2
-offset_left = 1136.0
-offset_top = 401.0
-offset_right = 1232.0
-offset_bottom = 470.0
-mouse_filter = 2
-color = Color(0.5372549, 0.40784314, 0.28235295, 1)
