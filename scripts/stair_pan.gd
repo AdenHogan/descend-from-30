@@ -50,7 +50,7 @@ const Z_BEHIND_SCENE := -1
 # SPRITE, never the body — scaling a CharacterBody2D would scale its collision.
 const DEPTH_SCALE := 0.82    # size at the back of the stairwell (1.0 = no depth)
 const DEPTH_DIM := 1.0       # no dimming: fading read as a ghost over the front
-                             # of the scene. Depth comes from OCCLUSION + shrink.
+							 # of the scene. Depth comes from OCCLUSION + shrink.
 # The legs derive from the floor height and the destination spawn, so there is
 # nothing to hand-tune here: half a floor up, across the landing, half a floor
 # more. StairFrontLeft/Right in building_floors.tscn are the FRONT LAYER of the
