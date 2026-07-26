@@ -65,9 +65,13 @@ func _process(_delta: float) -> void:
 		_use_stairs()
 
 
-# How near the stairwell a click must land to count as "use the stairs" rather
-# than "walk over there". Generous, because you are already standing in it.
-const CLICK_RANGE := 70.0
+# Clicking to change floors must be a DELIBERATE act: only the narrow column
+# under the bouncing arrow counts. Clicking anywhere else in the stairwell —
+# including just left or right of the steps — is ordinary click-to-move, so you
+# can reposition without being yanked to another floor.
+const CLICK_HALF_WIDTH := 26.0   # horizontal window, centred on the arrow
+const CLICK_ABOVE := 70.0        # how far above the trigger still counts
+const CLICK_BELOW := 40.0
 
 
 func _on_click(_viewport: Node, event: InputEvent, _shape_idx: int) -> void:
@@ -91,8 +95,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
 		return
 	var world: Vector2 = get_global_mouse_position()
-	if world.distance_to(global_position) > CLICK_RANGE:
-		return   # a click further off is click-to-move, not "take the stairs"
+	if absf(world.x - global_position.x) > CLICK_HALF_WIDTH:
+		return   # beside the steps: let the player walk there instead
+	if world.y < global_position.y - CLICK_ABOVE or world.y > global_position.y + CLICK_BELOW:
+		return
 	get_viewport().set_input_as_handled()
 	_use_stairs()
 
