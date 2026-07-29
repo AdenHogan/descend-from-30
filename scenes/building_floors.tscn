@@ -538,18 +538,3 @@ text = "↑"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="StairFrontLeft" type="Sprite2D" parent="." unique_id=1900010001]
-z_index = 2
-position = Vector2(151.5, 317.6)
-scale = Vector2(0.22592068, 0.2590292)
-texture = ExtResource("7_8dssy")
-region_enabled = true
-region_rect = Rect2(0, 0, 180, 208)
-
-[node name="StairFrontRight" type="Sprite2D" parent="." unique_id=1900010002]
-z_index = 2
-position = Vector2(1198.5, 317.9)
-scale = Vector2(0.22769113, 0.25705406)
-texture = ExtResource("11_0lhb2")
-region_enabled = true
-region_rect = Rect2(173, 0, 180, 208)

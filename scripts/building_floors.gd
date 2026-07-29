@@ -150,41 +150,11 @@ func _apply_stair_visuals() -> void:
 	lr.visible = right_goes_up
 	hr.visible = not right_goes_up
 
-	# The front layer must be cut from whichever art is actually showing,
-	# otherwise the player walks in front of an up-staircase drawn from the
-	# down-staircase texture (and clips through it).
-	_fit_stair_front("StairFrontLeft", ll if left_goes_up else hl, false)
-	_fit_stair_front("StairFrontRight", lr if right_goes_up else hr, true)
-
-
-# Fraction of the stairwell art that forms the FRONT layer: the near half
-# horizontally, and down to this much of its height. Tune to change how much of
-# the stairwell hides the player.
-const STAIR_FRONT_W := 0.5
-const STAIR_FRONT_H := 0.47
-
-
-func _fit_stair_front(node_name: String, base: Sprite2D, near_is_right: bool) -> void:
-	# Re-cut the front-layer sprite from `base` so it sits exactly on top of the
-	# near half of the visible staircase. Because it is the same pixels in the
-	# same place it is invisible in play — it exists purely to occlude the player.
-	var front := get_node_or_null(node_name) as Sprite2D
-	if front == null or base == null or base.texture == null:
-		return
-	var tex_size: Vector2 = base.texture.get_size()
-	var w: float = tex_size.x * STAIR_FRONT_W
-	var h: float = tex_size.y * STAIR_FRONT_H
-	var region_x: float = tex_size.x - w if near_is_right else 0.0
-	front.texture = base.texture
-	front.scale = base.scale
-	front.region_enabled = true
-	front.region_rect = Rect2(region_x, 0.0, w, h)
-	# A centred Sprite2D draws its region about its own origin, so offset by how
-	# far the region's centre sits from the texture's centre.
-	var region_centre := Vector2(region_x + w * 0.5, h * 0.5)
-	var tex_centre := tex_size * 0.5
-	front.position = base.position + (region_centre - tex_centre) * base.scale
-	front.visible = true
+	# NOTE: there is no front-layer occluder here, and adding one back is a
+	# mistake. See _apply_stair_visuals's history / docs/STAIRWELL_LAYERS.md:
+	# re-cutting the top of the staircase art and drawing it at z 2 draws the
+	# DARK SHAFT over the corridor as a black box. The shredder hides the player,
+	# not an occluder.
 
 
 func _spawn_zombies(floor_num: int, as_scenery: bool) -> void:
