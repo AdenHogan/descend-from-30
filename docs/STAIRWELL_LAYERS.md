@@ -30,15 +30,39 @@ player standing still, which printed them into existence top-down like a
 dot-matrix. The only place the cut is allowed to move is the landing turn, where
 it sweeps sideways-and-down as they round the bend.
 
+## Ascending is the descent played backwards — literally
+
+The descent is correct and has been signed off. `_ascend` therefore invents
+nothing: its four beats are `_descend`'s four in reverse order, each undoing its
+partner, with the same cut, the same clip direction, the same distances, the same
+easings.
+
+| descend | ascend |
+|---|---|
+| (1) step UP onto the red line, 0.3s ease | (4) step DOWN off it, 0.3s ease |
+| (2) drop through the fixed cut, shrinking | (3) climb up through the same fixed cut, growing |
+| (3) turn, cut sweeps DOWN → re-form | (2) turn, cut sweeps UP → dissolve |
+| (4) visible walk down, TURN_HEIGHT | (1) visible walk up, TURN_HEIGHT |
+
+**If you change one beat, change its partner.** Every regression here has been a
+beat that stopped mirroring — most recently the ascent flipping `clip_dir` to −1
+for its turn when the descent never flips it at all.
+
 ## The handover flash
 
-The pan ends by swapping the panned backdrop for a real floor scene. The conceit
-is that the two are identical, so the swap is invisible — but any residual
-difference (a stair arrow re-triggering as the player spawns on it, the load
-hitch itself) showed as a flash. `_commit` therefore goes through
-`Transition.cross_fade_scene()`, which holds a still frame of the outgoing scene
-over the swap and dissolves it. Deliberately NOT `to_scene()`: a fade to black
-would reintroduce the cut the pan exists to remove.
+The pan ends by swapping the panned backdrop for a real floor scene, and the
+conceit is that the two are identical so the swap is invisible.
+
+The residual judder was **the camera clamping a frame late**: a `Camera2D` only
+re-evaluates its limits on its own next update, so the first frame of the new
+floor drew from the raw position and the next from the clamped one — the whole
+view shifting a pixel or two, most visible beside text. `apply_floor_camera` now
+calls `force_update_scroll()`, which fixes it for every scene entry.
+
+**Do not cover the handover with a viewport snapshot.** It was tried
+(`Transition.cross_fade_scene`, reverted): reading the viewport back into a
+texture returns black under GL Compatibility, which is the renderer this project
+ships, so it painted a black box over every arrival.
 
 ## The question that matters
 

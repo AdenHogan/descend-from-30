@@ -43,13 +43,6 @@ const TURN_HEIGHT := 72.0
 # body when dissolving or rematerialising.
 const SHRED_TOP := 52.0
 const SHRED_BOTTOM := 40.0
-# Arriving from below, the player climbs UP through a cut that does NOT move.
-# Sweeping the cut across a player standing still printed them into existence
-# top-down, like a dot-matrix; holding it fixed and walking them up through it is
-# the descent's own dissolve run backwards, and it reads as somebody climbing
-# into view. This is how far under the cut the hidden climb ends — enough that
-# they are wholly beneath it, so the first step up shows scalp and no more.
-const EMERGE_CLEARANCE := 4.0
 # How far BELOW the red line the cut sits. It must land where the yellow steps
 # meet the dark of the shaft — not down on the floor in front of them, which
 # looked like clipping through the ground rather than walking into a stairwell.
@@ -228,7 +221,7 @@ func pan_to_floor(target_floor: int, direction: String) -> void:
 			turn_x, turn_y, dest_y)
 	else:
 		await _ascend(player, sprite, pan_cam, base_scale, floor_offset,
-			turn_x, turn_y, dest_y, base_z)
+			turn_x, turn_y, dest_y)
 
 	# Never leave the player shredded, shrunk, or hidden - the destination scene
 	# builds a fresh player, but an aborted pan must not strand this one.
@@ -329,99 +322,90 @@ func _descend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vecto
 
 
 func _ascend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vector2,
-		floor_offset: float, turn_x: float, turn_y: float, dest_y: float,
-		base_z: int) -> void:
-	# EXACT REVERSE OF THE DESCENT. Run the descent's beats backwards:
+		floor_offset: float, turn_x: float, turn_y: float, dest_y: float) -> void:
+	# THE DESCENT, PLAYED BACKWARDS. The descent is right, so this does not invent
+	# anything: the four beats below are _descend's four in reverse order, each
+	# undoing its partner, using the same cut, the same clip direction, the same
+	# distances and the same easings.
 	#
-	#   descend:  step to red line -> dissolve -> hidden -> turn -> walk down
-	#   ascend:   walk up -> turn -> dissolve -> hidden -> step down from red line
+	#   descend:  (1) step up to red line  (2) drop through the cut
+	#             (3) turn, re-form        (4) walk down to the floor
+	#   ascend:   (1) walk up from the floor  (2) turn, dissolve
+	#             (3) climb up through the cut (4) step down off the red line
 	#
-	# Crucially this uses the SHREDDER for hiding, never z_index. The z-flip was
-	# leaving the player visible behind the corridor and then popping them in
-	# front of it once past the floor divider; clipping every pixel cannot do
-	# either, and it is what the descent already does.
+	# Read each beat against its partner in _descend above. If you change one,
+	# change the other — a beat that stops mirroring is what broke this before.
+	#
+	# Hiding is ALWAYS the shredder, never z_index. The z-flip left the player
+	# visible behind the corridor and then popped them in front of it past the
+	# floor divider; clipping every pixel cannot do either.
 	var stand_y: float = player.global_position.y
-	var bend_y: float = stand_y - TURN_HEIGHT
-	# The arrival spot is the red line — STAIR_APPROACH ABOVE the new floor's
-	# standing line, up on the steps. Identical to where the descent steps up to
-	# before dissolving, by construction: one constant moves both.
-	var reveal_y: float = stair_line(dest_y)
-	# The cut they climb up through, and the point just under it where the hidden
-	# climb hands over to the visible one.
-	var cut_y: float = shred_line(dest_y)
-	var emerge_start: float = cut_y + SHRED_TOP + EMERGE_CLEARANCE
+	var bend_y: float = turn_y
+	var top_of_stairs: float = stair_line(dest_y)   # the red line on the new floor
+	var cut_y: float = shred_line(dest_y)           # the cut, on its yellow steps
 
 	var cross_est: float = maxf(_climb_time(absf(turn_x - player.global_position.x)), TURN_TIME)
-	# The camera settles as the hidden climb ends, so the climb into view and the
-	# step down off the stairs both play against a still frame.
+	# Camera covers everything except the final settle onto the floor — the mirror
+	# of the descent, where it stays put for the approach and moves for the rest.
 	var total: float = _climb_time(absf(bend_y - stand_y)) + cross_est \
-		+ _climb_time(absf(emerge_start - bend_y))
+		+ _climb_time(absf(top_of_stairs - bend_y))
 	var cam_tw := create_tween()
 	cam_tw.tween_property(pan_cam, "global_position:y",
 		pan_cam.global_position.y + floor_offset, total) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
-	# (1) Walk UP the visible steps to the bend — the mirror of the descent's
-	#     final visible walk down. Shrinking into the stairwell as they go.
+	# (1) = descent (4) backwards. The visible flight, at full size, no cut: they
+	#     walk UP the steps they would have walked DOWN.
 	_play_walk(sprite, 0.0)
-	if sprite != null:
-		var shrink := create_tween()
-		shrink.tween_property(sprite, "scale", base_scale * DEPTH_SCALE,
-			_climb_time(absf(bend_y - stand_y))) \
-			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 	var flight1 := _stagger_y(player, stand_y, bend_y)
 	await flight1.finished
 	if not is_instance_valid(player) or not is_instance_valid(pan_cam):
 		return
 
-	# (2) Turn left/right ON the stairs at the bend, dissolving as they go —
-	#     the mirror of the descent's turn-and-rematerialise. clip_dir -1
-	#     discards everything ABOVE the cut, so sweeping the cut DOWN through
-	#     them eats the body head first.
+	# (2) = descent (3) backwards. The bend. The descent sweeps the cut DOWN here
+	#     and comes back to full form; so this sweeps it UP and dissolves — legs
+	#     first, head last — while crossing to the other flight and shrinking into
+	#     the shaft. Same clip_dir (+1) as every other beat: the descent never
+	#     flips it, so neither does this. Flipping to -1 was what made the two
+	#     directions stop being each other's reverse.
 	_play_walk(sprite, turn_x - player.global_position.x)
-	_set_shred(sprite, player.global_position.y - SHRED_TOP, -1.0)
+	_set_shred(sprite, player.global_position.y + SHRED_BOTTOM + 60.0, 1.0)
 	var leg2 := create_tween().set_parallel(true)
 	leg2.tween_property(player, "global_position:x", turn_x, cross_est) \
 		.set_trans(Tween.TRANS_LINEAR)
 	if _shred_mat != null:
-		leg2.tween_property(_shred_mat, "shader_parameter/cut_y",
-			player.global_position.y + SHRED_BOTTOM, cross_est)
+		leg2.tween_property(_shred_mat, "shader_parameter/cut_y", cut_y, cross_est)
+	if sprite != null:
+		leg2.tween_property(sprite, "scale", base_scale * DEPTH_SCALE, cross_est) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 	await leg2.finished
 	if not is_instance_valid(player):
 		return
 
-	# (3) Fully clipped now (the cut sits below their feet, so every pixel is
-	#     above it and discarded): the hidden climb up the second flight, stopping
-	#     just under the step line with the whole body still beneath it.
-	var flight2 := _stagger_y(player, player.global_position.y, emerge_start)
+	# (3) = descent (2) backwards. The cut is PINNED to the step line and the
+	#     player climbs up through it: hidden at first, then scalp, head,
+	#     shoulders, a step at a time. The descent drops through this same fixed
+	#     cut feet-first; this is that, rewound.
+	_play_walk(sprite, 0.0)
+	_set_shred(sprite, cut_y, 1.0)
+	var climb_time: float = _climb_time(absf(top_of_stairs - player.global_position.y))
+	if sprite != null:
+		var grow := create_tween()
+		grow.tween_property(sprite, "scale", base_scale, climb_time) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	var flight2 := _stagger_y(player, player.global_position.y, top_of_stairs)
 	await flight2.finished
 	if not is_instance_valid(player):
 		return
-
-	# (4) CLIMB INTO VIEW. The cut is pinned to the step line and does NOT move —
-	#     the player walks up through it, so scalp, then head, then shoulders rise
-	#     out of the stairwell a step at a time. This is the descent's beat (2)
-	#     played backwards, and it is the whole reason the cut exists.
-	#     Sweeping the cut across a player standing still (what this used to do)
-	#     printed them into being top-down, like a dot-matrix.
-	_set_shred(sprite, cut_y, 1.0)
-	_play_walk(sprite, 0.0)
-	var rise_time: float = _climb_time(absf(reveal_y - emerge_start))
 	if sprite != null and is_instance_valid(sprite):
-		var grow := create_tween()
-		grow.tween_property(sprite, "scale", base_scale, rise_time) \
-			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	var flight3 := _stagger_y(player, emerge_start, reveal_y)
-	await flight3.finished
-	if not is_instance_valid(player):
-		return
-	_clear_shred(sprite)
+		_clear_shred(sprite)
 
-	# (5) Step DOWN off the red line onto the floor — the mirror of the descent's
-	#     step up onto it.
-	_play_walk(sprite, 0.0)
-	var flight4 := _stagger_y(player, reveal_y, dest_y)
-	await flight4.finished
+	# (4) = descent (1) backwards. They stepped UP onto the red line to leave;
+	#     they step DOWN off it to arrive. Same 0.3s ease, same distance.
+	var settle := create_tween()
+	settle.tween_property(player, "global_position:y", dest_y, 0.3) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	await settle.finished
 	_play_idle(sprite)
 
 
@@ -619,6 +603,10 @@ func _commit(target_floor: int) -> void:
 		path = "res://scenes/hallway.tscn"
 	elif target_floor <= 0:
 		path = "res://scenes/lobby.tscn"
-	# NOT change_scene_to_file: the handover from the panned backdrop to the real
-	# floor was a visible flash. Cross-fading holds the last frame over the swap.
-	Transition.cross_fade_scene(path)
+	# A plain swap. Covering the handover with a snapshot of the outgoing frame
+	# was tried and REVERTED: reading the viewport back into a texture returns
+	# black under GL Compatibility, so it painted a black box over the arrival.
+	# The judder it was aimed at is handled properly in apply_floor_camera, by
+	# forcing the camera to clamp on the frame it loads instead of the frame
+	# after — which is what was actually shifting the view.
+	get_tree().change_scene_to_file(path)
