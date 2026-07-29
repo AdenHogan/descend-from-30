@@ -41,26 +41,49 @@ const TURN_HEIGHT := 72.0
 # body when dissolving or rematerialising.
 const SHRED_TOP := 52.0
 const SHRED_BOTTOM := 40.0
-# Where the cut sits relative to the player's origin. This must land on the
-# YELLOW STEPS, not the floor below them — cutting at the true foot line made it
-# look like the player was clipping through the floor rather than descending
-# stairs that start higher up.
-const SHRED_FOOT := 20.0
+# How far BELOW the red line the cut sits. It must land on the YELLOW STEPS, not
+# the floor below them — cutting at the true foot line made it look like the
+# player was clipping through the floor rather than descending stairs that start
+# higher up. 20 put it a few pixels low; 14 is the owner's marked line.
+# NOTE: this is ONE constant used by BOTH directions (descend beat 2, ascend
+# beat 3). Changing it moves the descent's cut as well — that is the point (the
+# two must stay the same line), but it is not a change to the ascent alone.
+const SHRED_FOOT := 14.0
+# How far either side of the stairwell's centre the shaft runs. The player sprite
+# is 48px at scale 3 — 144 wide — while the shaft is barely 60, so a body standing
+# dead centre in it still spills across the corridor wall on both sides. While the
+# shredder is running, the sprite is clipped to this band as well, so nothing of
+# them is ever drawn outside the stairwell. Widen to show more of them, narrow to
+# crop tighter to the opening.
+const SHAFT_MARGIN := 6.0
 # THE SHREDDER. Clips away every pixel of the player sprite below cut_y (world
 # space). Descending through the stair line feeds them through it - feet first,
 # sliced in staggered stages - no z tricks, no painted boxes, no art rebuild.
+# It ALSO clips to the shaft's x band (see SHAFT_MARGIN) — the sprite is wider
+# than the stairwell, so without it a half-dissolved body shows on the wall
+# beside the opening.
 const SHRED_SHADER := """
 shader_type canvas_item;
 uniform float cut_y = 999999.0;
 // +1 discards BELOW the line (descending: sliced away feet first)
 // -1 discards ABOVE the line (ascending: sliced away head first)
 uniform float clip_dir = 1.0;
+// The stairwell's x band. Defaults are wide open, so a cut with no band set
+// behaves exactly as before.
+uniform float shaft_min = -999999.0;
+uniform float shaft_max = 999999.0;
 varying float world_y;
+varying float world_x;
 void vertex() {
-	world_y = (MODEL_MATRIX * vec4(VERTEX, 0.0, 1.0)).y;
+	vec4 w = MODEL_MATRIX * vec4(VERTEX, 0.0, 1.0);
+	world_y = w.y;
+	world_x = w.x;
 }
 void fragment() {
 	if ((world_y - cut_y) * clip_dir > 0.0) {
+		discard;
+	}
+	if (world_x < shaft_min || world_x > shaft_max) {
 		discard;
 	}
 }
@@ -258,8 +281,11 @@ func _descend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vecto
 
 	# (2) THE SHREDDER. The cut sits on the platform edge under their feet;
 	#     dropping step by step feeds them through it - feet, legs, torso, head -
-	#     until nothing is left above the line.
-	_set_shred(sprite, line_center + SHRED_FOOT)
+	#     until nothing is left above the line. The same call crops them to the
+	#     shaft's width: the sprite is far wider than the opening, so without it
+	#     a half-sliced body shows on the corridor wall beside the stairwell.
+	var band := shaft_band(player.global_position.x, turn_x)
+	_set_shred(sprite, line_center + SHRED_FOOT, 1.0, band)
 	if sprite != null:
 		var shrink := create_tween()
 		shrink.tween_property(sprite, "scale", base_scale * DEPTH_SCALE,
@@ -345,7 +371,8 @@ func _ascend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vector
 	#     dissolves — the cut starts below their feet (nothing clipped) and rises
 	#     past their head while they cross and shrink into the shaft.
 	_play_walk(sprite, turn_x - player.global_position.x)
-	_set_shred(sprite, player.global_position.y + SHRED_FOOT + 90.0)
+	var band := shaft_band(player.global_position.x, turn_x)
+	_set_shred(sprite, player.global_position.y + SHRED_FOOT + 90.0, 1.0, band)
 	var leg2 := create_tween().set_parallel(true)
 	leg2.tween_property(player, "global_position:x", turn_x, cross_est) \
 		.set_trans(Tween.TRANS_LINEAR)
@@ -403,7 +430,17 @@ var _shred_mat: ShaderMaterial = null
 var _shred_saved: Material = null
 
 
-func _set_shred(sprite: Node, cut_y: float, clip_dir: float = 1.0) -> void:
+func shaft_band(a_x: float, b_x: float) -> Vector2:
+	# The stairwell's x extent, from the two stair positions the dog-leg runs
+	# between (they sit either side of the shaft's centre). Returned as min/max so
+	# the shader can crop the sprite to the opening.
+	var centre: float = (a_x + b_x) * 0.5
+	var half: float = absf(b_x - a_x) * 0.5 + SHAFT_MARGIN
+	return Vector2(centre - half, centre + half)
+
+
+func _set_shred(sprite: Node, cut_y: float, clip_dir: float = 1.0,
+		band: Vector2 = Vector2(-999999.0, 999999.0)) -> void:
 	if sprite == null:
 		return
 	if _shred_mat == null:
@@ -414,6 +451,8 @@ func _set_shred(sprite: Node, cut_y: float, clip_dir: float = 1.0) -> void:
 	_shred_saved = sprite.material
 	_shred_mat.set_shader_parameter("cut_y", cut_y)
 	_shred_mat.set_shader_parameter("clip_dir", clip_dir)
+	_shred_mat.set_shader_parameter("shaft_min", band.x)
+	_shred_mat.set_shader_parameter("shaft_max", band.y)
 	sprite.material = _shred_mat
 
 
