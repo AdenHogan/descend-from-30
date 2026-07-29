@@ -52,13 +52,26 @@ func _ready() -> void:
 			% [StairPan.stair_line(floor_line), floor_line])
 	chk(StairPan.stair_line(floor_line) == floor_line - StairPan.STAIR_APPROACH,
 		"one constant sets it for both directions")
-	# The arrival reveal must sweep the WHOLE body, head first: the cut starts
-	# above the head and ends below the feet.
-	chk(StairPan.SHRED_TOP > 0.0 and StairPan.SHRED_BOTTOM > 0.0,
-		"reveal sweep spans head (%.0f) to feet (%.0f)"
-			% [StairPan.SHRED_TOP, StairPan.SHRED_BOTTOM])
-	chk(StairPan.EMERGE_TIME > 0.25,
-		"the reveal is slow enough to be seen (%.2fs)" % StairPan.EMERGE_TIME)
+	# ONE cut line, both directions — the player leaves down through it and comes
+	# back up through the same one, so a body cannot dissolve at one height and
+	# reappear at another.
+	var cut := StairPan.shred_line(floor_line)
+	chk(cut > StairPan.stair_line(floor_line),
+		"the cut sits on the steps, BELOW the red line (%.1f > %.1f)"
+			% [cut, StairPan.stair_line(floor_line)])
+
+	# Arriving, the player climbs UP through that fixed cut. The hidden climb has
+	# to end wholly underneath it or they surface part-drawn; and it has to end
+	# BELOW the red line, or there is no visible climb left to watch.
+	var emerge_start := cut + StairPan.SHRED_TOP + StairPan.EMERGE_CLEARANCE
+	chk(emerge_start - StairPan.SHRED_TOP > cut,
+		"hidden climb ends with the whole body under the cut (scalp at %.1f, cut %.1f)"
+			% [emerge_start - StairPan.SHRED_TOP, cut])
+	chk(emerge_start > StairPan.stair_line(floor_line),
+		"...and below the red line, so the climb into view is actually seen")
+	chk(emerge_start - StairPan.stair_line(floor_line) >= StairPan.STEP_HEIGHT * 2.0,
+		"the climb into view is more than a single step (%.0fpx, step %.0f)"
+			% [emerge_start - StairPan.stair_line(floor_line), StairPan.STEP_HEIGHT])
 
 	print("=== %s (%d failures) ===" % ["ALL PASSED" if fails == 0 else "FAILED", fails])
 	get_tree().quit(1 if fails > 0 else 0)

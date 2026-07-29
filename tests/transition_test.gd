@@ -35,5 +35,15 @@ func _ready() -> void:
 	await tr._fade(0.0, 0.05)
 	check(tr.rect.color.a < 0.02, "fades back to transparent")
 
+	# The stair pan hands over to a real floor with no fade — a black blink would
+	# undo the whole point of panning — so it cross-fades under a still frame of
+	# the outgoing one instead.
+	check(tr.has_method("cross_fade_scene"), "offers a cross-fade for the stair handover")
+	check(tr.CROSS_FADE > 0.0, "cross-fade has a real duration (%.2fs)" % tr.CROSS_FADE)
+	# Headless has no framebuffer to read; it must degrade to a plain swap rather
+	# than hang waiting on a frame that never draws.
+	check(await tr._snapshot() == null, "headless: no snapshot, no hang")
+	check(not tr.busy, "a skipped snapshot releases the guard")
+
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
