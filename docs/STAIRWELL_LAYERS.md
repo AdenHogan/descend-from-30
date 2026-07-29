@@ -16,6 +16,30 @@ flight is walked visibly. Tunables: STAIR_APPROACH (the red line height),
 TURN_HEIGHT (bend height — the old halfway turn was far too high), SHRED_FOOT,
 DEPTH_SCALE.
 
+**Two lines, defined once, used by both directions** — `stair_line()` (the red
+line, where the player stands before dissolving / after climbing back into view)
+and `shred_line()` (the cut itself, `SHRED_FOOT` below it, on the yellow steps).
+Leaving and arriving must ask the same function or a body dissolves at one
+height and reappears at another.
+
+**The player moves through the cut; the cut does not move through the player.**
+Descending, the cut is pinned to the step line and they walk down through it.
+Arriving, it is pinned to the *same* line and they walk up through it — scalp,
+head, shoulders, a step at a time. An earlier version swept the cut across a
+player standing still, which printed them into existence top-down like a
+dot-matrix. The only place the cut is allowed to move is the landing turn, where
+it sweeps sideways-and-down as they round the bend.
+
+## The handover flash
+
+The pan ends by swapping the panned backdrop for a real floor scene. The conceit
+is that the two are identical, so the swap is invisible — but any residual
+difference (a stair arrow re-triggering as the player spawns on it, the load
+hitch itself) showed as a flash. `_commit` therefore goes through
+`Transition.cross_fade_scene()`, which holds a still frame of the outgoing scene
+over the swap and dissolves it. Deliberately NOT `to_scene()`: a fade to black
+would reintroduce the cut the pan exists to remove.
+
 ## The question that matters
 
 > Is it physically impossible for the player to move behind the tilemap? Is the

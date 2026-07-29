@@ -43,12 +43,13 @@ const TURN_HEIGHT := 72.0
 # body when dissolving or rematerialising.
 const SHRED_TOP := 52.0
 const SHRED_BOTTOM := 40.0
-# How long the arrival reveal takes on an upper floor. The player rematerialises
-# ON the stairs, at the SAME red line the descent departs from (STAIR_APPROACH
-# above the standing line) — never down on the corridor floor, which read as
-# stepping out of the wall — and the cut sweeps down through them over this long
-# so they come out of the stairwell head first instead of popping into being.
-const EMERGE_TIME := 0.5
+# Arriving from below, the player climbs UP through a cut that does NOT move.
+# Sweeping the cut across a player standing still printed them into existence
+# top-down, like a dot-matrix; holding it fixed and walking them up through it is
+# the descent's own dissolve run backwards, and it reads as somebody climbing
+# into view. This is how far under the cut the hidden climb ends — enough that
+# they are wholly beneath it, so the first step up shows scalp and no more.
+const EMERGE_CLEARANCE := 4.0
 # Where the cut sits relative to the player's origin. This must land on the
 # YELLOW STEPS, not the floor below them — cutting at the true foot line made it
 # look like the player was clipping through the floor rather than descending
@@ -250,11 +251,20 @@ func stair_line(standing_y: float) -> float:
 	return standing_y - STAIR_APPROACH
 
 
+# Where the shredder cuts: on the yellow steps, just under the red line. The
+# player passes DOWN through it leaving, and UP through it arriving — one line,
+# both directions, so a body never dissolves at one height and reappears at
+# another.
+func shred_line(standing_y: float) -> float:
+	return stair_line(standing_y) + SHRED_FOOT
+
+
 func _descend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vector2,
 		floor_offset: float, turn_x: float, turn_y: float, dest_y: float) -> void:
 	# (1) Walk up to the LINE where the stairs begin to go down (the red line) -
 	#     whole and visible, stepping into the dark mouth of the stairwell.
-	var line_center: float = stair_line(player.global_position.y)
+	var stand_y: float = player.global_position.y
+	var line_center: float = stair_line(stand_y)
 	var approach := create_tween()
 	approach.tween_property(player, "global_position:y", line_center, 0.3) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
@@ -275,7 +285,7 @@ func _descend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vecto
 	# (2) THE SHREDDER. The cut sits on the platform edge under their feet;
 	#     dropping step by step feeds them through it - feet, legs, torso, head -
 	#     until nothing is left above the line.
-	_set_shred(sprite, line_center + SHRED_FOOT)
+	_set_shred(sprite, shred_line(stand_y))
 	if sprite != null:
 		var shrink := create_tween()
 		shrink.tween_property(sprite, "scale", base_scale * DEPTH_SCALE,
@@ -334,12 +344,16 @@ func _ascend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vector
 	# standing line, up on the steps. Identical to where the descent steps up to
 	# before dissolving, by construction: one constant moves both.
 	var reveal_y: float = stair_line(dest_y)
+	# The cut they climb up through, and the point just under it where the hidden
+	# climb hands over to the visible one.
+	var cut_y: float = shred_line(dest_y)
+	var emerge_start: float = cut_y + SHRED_TOP + EMERGE_CLEARANCE
 
 	var cross_est: float = maxf(_climb_time(absf(turn_x - player.global_position.x)), TURN_TIME)
-	# The camera settles as the hidden climb ends, so the reveal and the step
-	# down off the stairs both play against a still frame.
+	# The camera settles as the hidden climb ends, so the climb into view and the
+	# step down off the stairs both play against a still frame.
 	var total: float = _climb_time(absf(bend_y - stand_y)) + cross_est \
-		+ _climb_time(absf(reveal_y - bend_y))
+		+ _climb_time(absf(emerge_start - bend_y))
 	var cam_tw := create_tween()
 	cam_tw.tween_property(pan_cam, "global_position:y",
 		pan_cam.global_position.y + floor_offset, total) \
@@ -375,38 +389,37 @@ func _ascend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vector
 		return
 
 	# (3) Fully clipped now (the cut sits below their feet, so every pixel is
-	#     above it and discarded): the hidden climb up the second flight, ending
-	#     ON the stairs at the red line — NOT down on the corridor floor. Arriving
-	#     at floor level put the player half in the wall and read as materialising
-	#     out of it; the stairs are where a person coming up would actually be.
-	var flight2 := _stagger_y(player, player.global_position.y, reveal_y)
+	#     above it and discarded): the hidden climb up the second flight, stopping
+	#     just under the step line with the whole body still beneath it.
+	var flight2 := _stagger_y(player, player.global_position.y, emerge_start)
 	await flight2.finished
 	if not is_instance_valid(player):
 		return
 
-	# (4) Rematerialise standing on the steps. clip_dir +1 discards everything
-	#     BELOW the cut, so parking it at their head hides all of them; sweeping
-	#     it DOWN past their feet gives back head, torso, legs in that order —
-	#     out of the stairwell shadow. Exact reverse of the descent's dissolve,
-	#     and it happens at the same spot.
-	_set_shred(sprite, reveal_y - SHRED_TOP, 1.0)
-	_play_idle(sprite)
-	if sprite != null and is_instance_valid(sprite) and _shred_mat != null:
-		var emerge := create_tween().set_parallel(true)
-		emerge.tween_property(_shred_mat, "shader_parameter/cut_y",
-			reveal_y + SHRED_BOTTOM, EMERGE_TIME)
-		emerge.tween_property(sprite, "scale", base_scale, EMERGE_TIME) \
+	# (4) CLIMB INTO VIEW. The cut is pinned to the step line and does NOT move —
+	#     the player walks up through it, so scalp, then head, then shoulders rise
+	#     out of the stairwell a step at a time. This is the descent's beat (2)
+	#     played backwards, and it is the whole reason the cut exists.
+	#     Sweeping the cut across a player standing still (what this used to do)
+	#     printed them into being top-down, like a dot-matrix.
+	_set_shred(sprite, cut_y, 1.0)
+	_play_walk(sprite, 0.0)
+	var rise_time: float = _climb_time(absf(reveal_y - emerge_start))
+	if sprite != null and is_instance_valid(sprite):
+		var grow := create_tween()
+		grow.tween_property(sprite, "scale", base_scale, rise_time) \
 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-		await emerge.finished
-		if not is_instance_valid(player):
-			return
+	var flight3 := _stagger_y(player, emerge_start, reveal_y)
+	await flight3.finished
+	if not is_instance_valid(player):
+		return
 	_clear_shred(sprite)
 
 	# (5) Step DOWN off the red line onto the floor — the mirror of the descent's
 	#     step up onto it.
 	_play_walk(sprite, 0.0)
-	var flight3 := _stagger_y(player, reveal_y, dest_y)
-	await flight3.finished
+	var flight4 := _stagger_y(player, reveal_y, dest_y)
+	await flight4.finished
 	_play_idle(sprite)
 
 
@@ -595,4 +608,6 @@ func _commit(target_floor: int) -> void:
 		path = "res://scenes/hallway.tscn"
 	elif target_floor <= 0:
 		path = "res://scenes/lobby.tscn"
-	get_tree().change_scene_to_file(path)
+	# NOT change_scene_to_file: the handover from the panned backdrop to the real
+	# floor was a visible flash. Cross-fading holds the last frame over the swap.
+	Transition.cross_fade_scene(path)
