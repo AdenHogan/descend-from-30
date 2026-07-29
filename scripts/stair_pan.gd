@@ -27,16 +27,37 @@ const TURN_TIME := 0.40      # crossing the landing between flights (horizontal 
 const STEP_HEIGHT := 16.0          # one tile per step
 const STEP_TIME := 0.13            # seconds per step
 const STEP_MOVE_FRACTION := 0.6    # of each step spent moving; the rest is the beat between
-# Where the descent begins: the player steps UP to the line where the stairs
-# drop away (the owner's red line), this far above their standing spot. Small
-# on purpose — they were rising far too high before pressing into the stairwell.
-const STAIR_APPROACH := 10.0
-# The dog-leg bend, measured above a floor's standing line. This is the single
-# height that BOTH directions turn at: descending you emerge and turn here on
-# the floor below, ascending you turn here on your own floor before vanishing.
-# Halfway (96) was far too high; 48 put the emergence too low - this sits near
-# the top of the visible yellow steps, matching the owner's red line.
-const TURN_HEIGHT := 72.0
+# ===========================================================================
+# PER-DIRECTION GEOMETRY. Down and up are MIRRORED IN DESIGN but SEPARATE IN
+# CODE, on purpose.
+#
+# These four started as one constant each, shared by both directions, and that
+# is exactly how a tweak to the ascent silently moved the descent and broke a
+# descent the owner had already signed off. Every value below is placed by eye
+# against the art for ONE direction; sharing them makes the two impossible to
+# tune independently and turns every adjustment into a gamble on the other.
+#
+# So: identical values here mean "these happen to match", never "these must
+# match". Change DOWN_* and only the descent moves. Change UP_* and only the
+# ascent moves. Nothing needs to be kept in sync by hand.
+#
+# Deliberately NOT split, because they are genuinely one thing:
+#   SHRED_TOP / SHRED_BOTTOM  — the sprite's extents, a fact about the art
+#   STEP_HEIGHT / STEP_TIME / TURN_TIME — walking pace, which has no direction
+# ===========================================================================
+
+# The red line: how far above a floor's standing spot the stairs begin. The
+# descent steps UP onto it before dissolving; the ascent steps DOWN off it on
+# arrival. Small on purpose — the player was rising far too high before pressing
+# into the stairwell.
+const DOWN_STAIR_APPROACH := 10.0
+const UP_STAIR_APPROACH := 10.0
+# The dog-leg bend, measured above a floor's standing line. Descending you emerge
+# and turn here on the floor below; ascending you turn here on your own floor
+# before vanishing. Halfway (96) was far too high; 48 put the emergence too low —
+# this sits near the top of the visible yellow steps.
+const DOWN_TURN_HEIGHT := 72.0
+const UP_TURN_HEIGHT := 72.0
 # Sprite extent above/below its origin, for sweeping the cut through the whole
 # body when dissolving or rematerialising.
 const SHRED_TOP := 52.0
@@ -44,26 +65,21 @@ const SHRED_BOTTOM := 40.0
 # How far BELOW the red line the cut sits — where the player is sliced as the
 # stairwell takes them. It must land on the YELLOW STEPS, not the floor below
 # them, or it looks like clipping through the ground rather than walking into a
-# stairwell.
-#
-# THE TWO DIRECTIONS HAVE DIFFERENT VALUES, and that is deliberate. They were one
-# shared constant; moving it to suit the ascent moved the descent with it and
-# broke a descent the owner had already signed off. Each is now the value that
-# was approved for its own direction against the art. Do not "tidy" them back
-# into one — the playtest verdict outranks the symmetry.
-const SHRED_FOOT := 20.0        # descending (signed off — do not change)
-const SHRED_FOOT_UP := 14.0     # arriving from below (owner's marked line)
+# stairwell. These two differ today: each is the value approved for its own
+# direction against the art.
+const DOWN_SHRED_FOOT := 20.0
+const UP_SHRED_FOOT := 14.0
 # How far either side of the stairwell's centre the shaft runs. The player sprite
 # is 48px at scale 3 — 144 wide — while the shaft is barely 60, so a body standing
 # dead centre in it still spills across the corridor wall on both sides. While the
 # shredder is running, the sprite is clipped to this band as well, so nothing of
 # them is ever drawn outside the stairwell. Widen to show more of them, narrow to
 # crop tighter to the opening.
-const SHAFT_MARGIN := 6.0
+const UP_SHAFT_MARGIN := 6.0
 # THE SHREDDER. Clips away every pixel of the player sprite below cut_y (world
 # space). Descending through the stair line feeds them through it - feet first,
 # sliced in staggered stages - no z tricks, no painted boxes, no art rebuild.
-# It ALSO clips to the shaft's x band (see SHAFT_MARGIN) — the sprite is wider
+# It ALSO clips to the shaft's x band (see UP_SHAFT_MARGIN) — the sprite is wider
 # than the stairwell, so without it a half-dissolved body shows on the wall
 # beside the opening.
 const SHRED_SHADER := """
@@ -101,7 +117,8 @@ void fragment() {
 # player.APPROACH_DEPTH at doors, with two more cues stacked on: they shrink a
 # little (further away) and dim a little (the stairwell is unlit). Applied to the
 # SPRITE, never the body — scaling a CharacterBody2D would scale its collision.
-const DEPTH_SCALE := 0.82    # size at the back of the stairwell (1.0 = no depth)
+const DOWN_DEPTH_SCALE := 0.82   # size at the back of the stairwell (1.0 = no depth)
+const UP_DEPTH_SCALE := 0.82
 # The legs derive from the floor height and the destination spawn, so there is
 # nothing to hand-tune here: half a floor up, across the landing, half a floor
 # more. There is deliberately NO front-layer occluder sprite: one was tried and
@@ -230,7 +247,8 @@ func pan_to_floor(target_floor: int, direction: String) -> void:
 	var turn_x: float = targets["player_target"].x
 	var start_y: float = player.global_position.y
 	var dest_y: float = targets["player_target"].y
-	var turn_y: float = maxf(start_y, dest_y) - TURN_HEIGHT
+	var turn_y: float = maxf(start_y, dest_y) \
+		- (DOWN_TURN_HEIGHT if down else UP_TURN_HEIGHT)
 
 	var sprite: Node = player.get_node_or_null("AnimatedSprite2D")
 	var base_scale := Vector2.ONE
@@ -265,7 +283,7 @@ func _descend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vecto
 		floor_offset: float, turn_x: float, turn_y: float, dest_y: float) -> void:
 	# (1) Walk up to the LINE where the stairs begin to go down (the red line) -
 	#     whole and visible, stepping into the dark mouth of the stairwell.
-	var line_center: float = player.global_position.y - STAIR_APPROACH
+	var line_center: float = player.global_position.y - DOWN_STAIR_APPROACH
 	var approach := create_tween()
 	approach.tween_property(player, "global_position:y", line_center, 0.3) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
@@ -286,10 +304,10 @@ func _descend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vecto
 	# (2) THE SHREDDER. The cut sits on the platform edge under their feet;
 	#     dropping step by step feeds them through it - feet, legs, torso, head -
 	#     until nothing is left above the line.
-	_set_shred(sprite, line_center + SHRED_FOOT)
+	_set_shred(sprite, line_center + DOWN_SHRED_FOOT)
 	if sprite != null:
 		var shrink := create_tween()
-		shrink.tween_property(sprite, "scale", base_scale * DEPTH_SCALE,
+		shrink.tween_property(sprite, "scale", base_scale * DOWN_DEPTH_SCALE,
 			_climb_time(absf(turn_y - player.global_position.y))) \
 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 	var flight1 := _stagger_y(player, player.global_position.y, turn_y)
@@ -310,7 +328,7 @@ func _descend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vecto
 		.set_trans(Tween.TRANS_LINEAR)
 	if _shred_mat != null:
 		leg2.tween_property(_shred_mat, "shader_parameter/cut_y",
-			player.global_position.y + SHRED_FOOT + 90.0, cross_time)
+			player.global_position.y + DOWN_SHRED_FOOT + 90.0, cross_time)
 	if sprite != null:
 		leg2.tween_property(sprite, "scale", base_scale, cross_time) \
 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
@@ -346,8 +364,8 @@ func _ascend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vector
 	var stand_y: float = player.global_position.y
 	# The destination floor's own red line and cut — the SAME expressions the
 	# descent uses for the floor it leaves.
-	var line_center: float = dest_y - STAIR_APPROACH
-	var cut_y: float = line_center + SHRED_FOOT_UP
+	var line_center: float = dest_y - UP_STAIR_APPROACH
+	var cut_y: float = line_center + UP_SHRED_FOOT
 
 	var cross_est: float = maxf(_climb_time(absf(turn_x - player.global_position.x)), TURN_TIME)
 	# Camera covers everything except the final step onto the floor — the mirror
@@ -383,7 +401,7 @@ func _ascend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vector
 	#     floors are. The x band crops whatever is still drawn to the stairwell's
 	#     own width, so nothing shows on the wall beside it.
 	_play_walk(sprite, turn_x - player.global_position.x)
-	var band := shaft_band(player.global_position.x, turn_x)
+	var band := shaft_band(player.global_position.x, turn_x, UP_SHAFT_MARGIN)
 	_set_shred(sprite, player.global_position.y - SHRED_TOP, -1.0, band)
 	var leg2 := create_tween().set_parallel(true)
 	leg2.tween_property(player, "global_position:x", turn_x, cross_est) \
@@ -392,7 +410,7 @@ func _ascend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vector
 		leg2.tween_property(_shred_mat, "shader_parameter/cut_y",
 			player.global_position.y + SHRED_BOTTOM, cross_est)
 	if sprite != null:
-		leg2.tween_property(sprite, "scale", base_scale * DEPTH_SCALE, cross_est) \
+		leg2.tween_property(sprite, "scale", base_scale * UP_DEPTH_SCALE, cross_est) \
 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 	await leg2.finished
 	if not is_instance_valid(player):
@@ -444,12 +462,12 @@ var _shred_mat: ShaderMaterial = null
 var _shred_saved: Material = null
 
 
-func shaft_band(a_x: float, b_x: float) -> Vector2:
+func shaft_band(a_x: float, b_x: float, margin: float) -> Vector2:
 	# The stairwell's x extent, from the two stair positions the dog-leg runs
 	# between (they sit either side of the shaft's centre). Returned as min/max so
 	# the shader can crop the sprite to the opening.
 	var centre: float = (a_x + b_x) * 0.5
-	var half: float = absf(b_x - a_x) * 0.5 + SHAFT_MARGIN
+	var half: float = absf(b_x - a_x) * 0.5 + margin
 	return Vector2(centre - half, centre + half)
 
 

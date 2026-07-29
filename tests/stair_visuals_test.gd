@@ -42,53 +42,63 @@ func _ready() -> void:
 		bf.free()
 		await get_tree().process_frame
 
-	# ASCENDING IS THE DESCENT PLAYED BACKWARDS. The descent is signed off, so the
-	# ascent must reuse its numbers rather than invent its own. Both directions
-	# derive the red line and the cut from the same two constants applied to their
-	# own floor's standing line, so the pair below is what keeps them in step.
+	# DOWN AND UP ARE MIRRORED IN DESIGN, SEPARATE IN CODE. Every value that
+	# places something on screen exists twice — DOWN_* and UP_* — so tuning one
+	# direction cannot move the other. Identical values mean "these happen to
+	# match", never "these must match". This is not tidiness: a shared
+	# SHRED_FOOT is what let an ascent tweak break a signed-off descent.
 	var floor_line := 391.0
-	var red_line := floor_line - StairPan.STAIR_APPROACH
-	chk(red_line < floor_line,
-		"the red line sits ABOVE the standing line, on the stairs (%.1f < %.1f)"
-			% [red_line, floor_line])
-	# The two directions have DIFFERENT cut offsets on purpose. They were one
-	# shared constant, and moving it to suit the ascent moved the descent with it
-	# and broke a descent that had already been signed off. Each is now the value
-	# approved for its own direction — do not collapse them back into one.
-	var cut := red_line + StairPan.SHRED_FOOT
-	var cut_up := red_line + StairPan.SHRED_FOOT_UP
-	chk(cut > red_line and cut_up > red_line,
-		"both cuts sit below the red line, on the steps (down %.1f, up %.1f)"
-			% [cut, cut_up])
-	chk(StairPan.SHRED_FOOT == 20.0,
-		"the DESCENT keeps its signed-off cut offset (%.0f)" % StairPan.SHRED_FOOT)
+	var down_red := floor_line - StairPan.DOWN_STAIR_APPROACH
+	var up_red := floor_line - StairPan.UP_STAIR_APPROACH
+	var down_cut := down_red + StairPan.DOWN_SHRED_FOOT
+	var up_cut := up_red + StairPan.UP_SHRED_FOOT
+	chk(down_red < floor_line and up_red < floor_line,
+		"both red lines sit ABOVE the standing line, on the stairs (%.0f / %.0f)"
+			% [down_red, up_red])
+	chk(down_cut > down_red and up_cut > up_red,
+		"both cuts sit below their red line, on the steps (down %.0f, up %.0f)"
+			% [down_cut, up_cut])
+
+	# The descent is signed off. These are its numbers; if a future ascent tweak
+	# ever moves one, it is a bug in the split, not a tuning choice.
+	chk(StairPan.DOWN_STAIR_APPROACH == 10.0
+		and StairPan.DOWN_TURN_HEIGHT == 72.0
+		and StairPan.DOWN_SHRED_FOOT == 20.0
+		and StairPan.DOWN_DEPTH_SCALE == 0.82,
+		"the DESCENT still has its signed-off geometry (%.0f/%.0f/%.0f/%.2f)"
+			% [StairPan.DOWN_STAIR_APPROACH, StairPan.DOWN_TURN_HEIGHT,
+			   StairPan.DOWN_SHRED_FOOT, StairPan.DOWN_DEPTH_SCALE])
+
 	# Arriving, the player climbs up through the cut; their scalp breaks it
 	# SHRED_TOP below, and there must be real climbing left between that and the
 	# red line or they surface all at once.
-	var scalp_crosses := cut_up + StairPan.SHRED_TOP
-	chk(scalp_crosses - red_line >= StairPan.STEP_HEIGHT * 2.0,
+	var scalp_crosses := up_cut + StairPan.SHRED_TOP
+	chk(scalp_crosses - up_red >= StairPan.STEP_HEIGHT * 2.0,
 		"the climb into view is more than a single step (%.0fpx, step %.0f)"
-			% [scalp_crosses - red_line, StairPan.STEP_HEIGHT])
+			% [scalp_crosses - up_red, StairPan.STEP_HEIGHT])
+
 	# THE SHAFT CROP. The player sprite is 48px at scale 3 — 144 wide — and the
 	# stairwell is barely 60, so a body standing dead centre in it still spills
-	# across the corridor wall. While the shredder runs, the sprite is cropped to
-	# the shaft, so nothing of them is drawn outside the opening.
-	var band := StairPan.shaft_band(148.0, 188.0)     # the left stairwell's two stair x's
+	# across the corridor wall. shaft_band takes its margin as an argument, so
+	# neither direction can inherit the other's.
+	var band := StairPan.shaft_band(148.0, 188.0, StairPan.UP_SHAFT_MARGIN)
 	chk(band.x < 148.0 and band.y > 188.0,
 		"the band contains both stair positions (%.0f..%.0f)" % [band.x, band.y])
 	chk(band.y - band.x < 144.0,
 		"...and is narrower than the sprite, or it crops nothing (%.0f wide)"
 			% (band.y - band.x))
-	var right := StairPan.shaft_band(1201.0, 1162.0)  # argument order must not matter
+	var right := StairPan.shaft_band(1201.0, 1162.0, StairPan.UP_SHAFT_MARGIN)
 	chk(right.x < 1162.0 and right.y > 1201.0,
 		"the right stairwell bands the same way round (%.0f..%.0f)" % [right.x, right.y])
 
-	# The two beats either side of the bend cover the same ground both ways.
-	chk(StairPan.TURN_HEIGHT > 0.0,
-		"visible flight is the same height both ways (%.0fpx)" % StairPan.TURN_HEIGHT)
-	chk(StairPan.STAIR_APPROACH > 0.0,
-		"step onto the red line leaving == step off it arriving (%.0fpx)"
-			% StairPan.STAIR_APPROACH)
+	# The bend and the step onto the red line are mirrored, but each direction
+	# owns its own value.
+	chk(StairPan.DOWN_TURN_HEIGHT > 0.0 and StairPan.UP_TURN_HEIGHT > 0.0,
+		"each direction owns its bend height (down %.0f, up %.0f)"
+			% [StairPan.DOWN_TURN_HEIGHT, StairPan.UP_TURN_HEIGHT])
+	chk(StairPan.DOWN_STAIR_APPROACH > 0.0 and StairPan.UP_STAIR_APPROACH > 0.0,
+		"...and its own step on/off the red line (down %.0f, up %.0f)"
+			% [StairPan.DOWN_STAIR_APPROACH, StairPan.UP_STAIR_APPROACH])
 
 	print("=== %s (%d failures) ===" % ["ALL PASSED" if fails == 0 else "FAILED", fails])
 	get_tree().quit(1 if fails > 0 else 0)
