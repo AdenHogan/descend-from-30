@@ -1,4 +1,4 @@
-[gd_scene load_steps=6 format=3 uid="uid://c0eulj0yqefjo"]
+[gd_scene format=3 uid="uid://c0eulj0yqefjo"]
 
 [ext_resource type="Script" uid="uid://cclog4gqa3s10" path="res://scripts/title_screen.gd" id="1_mgrm8"]
 [ext_resource type="Texture2D" uid="uid://bcnpxkq16ter0" path="res://assets/Descend From 30 - Placeholder Title Screen.png" id="2_dc4i4"]
@@ -7,27 +7,27 @@
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_menu"]
 
-[node name="Node2D" type="Node2D"]
+[node name="Node2D" type="Node2D" unique_id=1771227286]
 script = ExtResource("1_mgrm8")
 
-[node name="DescendFrom30PlaceholderTitleScreen" type="Sprite2D" parent="."]
+[node name="DescendFrom30PlaceholderTitleScreen" type="Sprite2D" parent="." unique_id=191731836]
 position = Vector2(575, 325.5)
 scale = Vector2(0.81534094, 0.83203125)
 texture = ExtResource("2_dc4i4")
 
-[node name="Label" type="Label" parent="DescendFrom30PlaceholderTitleScreen"]
+[node name="Label" type="Label" parent="DescendFrom30PlaceholderTitleScreen" unique_id=2014089569]
 offset_left = -244.0697
 offset_top = -227.75587
 offset_right = 207.9303
 offset_bottom = -120.18779
-mouse_filter = 2
 theme_override_fonts/font = ExtResource("3_e54dn")
 theme_override_font_sizes/font_size = 32
 text = "Descend From 30"
 
-[node name="Menu" type="CanvasLayer" parent="."]
+[node name="Menu" type="CanvasLayer" parent="." unique_id=1219537324]
 
-[node name="Root" type="Control" parent="Menu"]
+[node name="Root" type="Control" parent="Menu" unique_id=2065395798]
+layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -35,7 +35,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Buttons" type="VBoxContainer" parent="Menu/Root"]
+[node name="Buttons" type="VBoxContainer" parent="Menu/Root" unique_id=1510334375]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -50,59 +50,59 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/separation = 6
 
-[node name="PlayButton" type="Button" parent="Menu/Root/Buttons"]
+[node name="PlayButton" type="Button" parent="Menu/Root/Buttons" unique_id=649506589]
 custom_minimum_size = Vector2(0, 34)
 layout_mode = 2
 focus_neighbor_top = NodePath("../ExitButton")
 focus_neighbor_bottom = NodePath("../SettingsButton")
 theme_override_colors/font_color = Color(0.72, 0.72, 0.76, 1)
 theme_override_colors/font_focus_color = Color(1, 1, 1, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_colors/font_pressed_color = Color(0.85, 0.24, 0.24, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_fonts/font = ExtResource("4_3yumr")
 theme_override_font_sizes/font_size = 24
 theme_override_styles/normal = SubResource("StyleBoxEmpty_menu")
-theme_override_styles/hover = SubResource("StyleBoxEmpty_menu")
 theme_override_styles/pressed = SubResource("StyleBoxEmpty_menu")
-theme_override_styles/focus = SubResource("StyleBoxEmpty_menu")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_menu")
 theme_override_styles/disabled = SubResource("StyleBoxEmpty_menu")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_menu")
 text = "Play"
 flat = true
 
-[node name="SettingsButton" type="Button" parent="Menu/Root/Buttons"]
+[node name="SettingsButton" type="Button" parent="Menu/Root/Buttons" unique_id=1984033564]
 custom_minimum_size = Vector2(0, 34)
 layout_mode = 2
 focus_neighbor_top = NodePath("../PlayButton")
 focus_neighbor_bottom = NodePath("../ExitButton")
 theme_override_colors/font_color = Color(0.72, 0.72, 0.76, 1)
 theme_override_colors/font_focus_color = Color(1, 1, 1, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_colors/font_pressed_color = Color(0.85, 0.24, 0.24, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_fonts/font = ExtResource("4_3yumr")
 theme_override_font_sizes/font_size = 24
 theme_override_styles/normal = SubResource("StyleBoxEmpty_menu")
-theme_override_styles/hover = SubResource("StyleBoxEmpty_menu")
 theme_override_styles/pressed = SubResource("StyleBoxEmpty_menu")
-theme_override_styles/focus = SubResource("StyleBoxEmpty_menu")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_menu")
 theme_override_styles/disabled = SubResource("StyleBoxEmpty_menu")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_menu")
 text = "Settings"
 flat = true
 
-[node name="ExitButton" type="Button" parent="Menu/Root/Buttons"]
+[node name="ExitButton" type="Button" parent="Menu/Root/Buttons" unique_id=1861465055]
 custom_minimum_size = Vector2(0, 34)
 layout_mode = 2
 focus_neighbor_top = NodePath("../SettingsButton")
 focus_neighbor_bottom = NodePath("../PlayButton")
 theme_override_colors/font_color = Color(0.72, 0.72, 0.76, 1)
 theme_override_colors/font_focus_color = Color(1, 1, 1, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_colors/font_pressed_color = Color(0.85, 0.24, 0.24, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_fonts/font = ExtResource("4_3yumr")
 theme_override_font_sizes/font_size = 24
 theme_override_styles/normal = SubResource("StyleBoxEmpty_menu")
-theme_override_styles/hover = SubResource("StyleBoxEmpty_menu")
 theme_override_styles/pressed = SubResource("StyleBoxEmpty_menu")
-theme_override_styles/focus = SubResource("StyleBoxEmpty_menu")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_menu")
 theme_override_styles/disabled = SubResource("StyleBoxEmpty_menu")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_menu")
 text = "Exit"
 flat = true
