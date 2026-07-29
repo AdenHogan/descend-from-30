@@ -61,10 +61,17 @@ func cross_fade_scene(path: String, dur: float = CROSS_FADE) -> void:
 	if snap == null:
 		busy = false
 		return
-	# Let the new scene's _ready place the player and frame the camera before any
-	# of it is uncovered.
+	# Hold the still frame until the new floor has actually DRAWN, twice. Waiting
+	# on process frames alone was not enough: change_scene_to_file is deferred,
+	# and the build itself (doors, enemies, corpses, the first rasterisation of
+	# every label's glyphs) is a hitch that has to land underneath the cover, not
+	# during the dissolve — the dissolve runs on real time, so a hitch mid-fade is
+	# exactly the judder this is meant to remove.
 	await get_tree().process_frame
 	await get_tree().process_frame
+	if DisplayServer.get_name() != "headless":
+		await RenderingServer.frame_post_draw
+		await RenderingServer.frame_post_draw
 	var tw := create_tween()
 	tw.tween_property(snap, "modulate:a", 0.0, dur)
 	await tw.finished
