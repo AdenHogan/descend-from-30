@@ -72,6 +72,8 @@ func quit_without_saving() -> void:
 	go_to_scene("title")
 
 func game_over() -> void:
+	# The survivor for this run of the arc died — the profile card shows it.
+	WorldState.set_run_outcome(WorldState.current_run, "dead")
 	get_tree().paused = false
 	WorldState.delete_save()
 	HUD.hide_hud()

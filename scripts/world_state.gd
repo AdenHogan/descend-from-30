@@ -37,6 +37,30 @@ func slot_save_path(slot: int = -1) -> String:
 var tutorial_completed: bool = false
 var runs_made: int = 0
 var runs_successful: int = 0
+# Wall-clock time actually spent playing this profile. Ticks only while the HUD
+# is up, so menus and the profile screen do not inflate it.
+var playtime_seconds: float = 0.0
+# Fate of each survivor in the three-run arc, indexed 0..2 (morning / afternoon
+# / evening): "" not yet played, "alive" the one in progress, "survived" made it
+# out, "dead" did not. This is what the three portrait boxes on a profile card
+# read from.
+var run_outcomes: Array = ["", "", ""]
+
+
+func set_run_outcome(run_index: int, outcome: String) -> void:
+	var i: int = clampi(run_index - 1, 0, 2)
+	run_outcomes[i] = outcome
+	save_profile()
+
+
+func current_survivor_state() -> Array:
+	# The array as the card should show it: the run in progress reads "alive"
+	# even before it has an outcome of its own.
+	var out: Array = run_outcomes.duplicate()
+	var i: int = clampi(current_run - 1, 0, 2)
+	if String(out[i]) == "":
+		out[i] = "alive"
+	return out
 # Session-only: makes the "who does the game think I am" notice appear once.
 var profile_announced: bool = false
 # First-run opener (locked-out cold open) — plays once at the start of run 1;
@@ -153,15 +177,29 @@ func _ready() -> void:
 	load_profile()
 
 
+func _process(delta: float) -> void:
+	if HUD != null and HUD.visible:
+		playtime_seconds += delta
+
+
+func format_playtime(seconds: float) -> String:
+	var t := int(seconds)
+	return "%02d:%02d:%02d" % [t / 3600, (t / 60) % 60, t % 60]
+
+
 func load_profile() -> void:
 	var cfg := ConfigFile.new()
 	tutorial_completed = false
 	runs_made = 0
 	runs_successful = 0
+	playtime_seconds = 0.0
+	run_outcomes = ["", "", ""]
 	if cfg.load(profile_path()) == OK:
 		tutorial_completed = bool(cfg.get_value("progress", "tutorial_completed", false))
 		runs_made = int(cfg.get_value("stats", "runs_made", 0))
 		runs_successful = int(cfg.get_value("stats", "runs_successful", 0))
+		playtime_seconds = float(cfg.get_value("stats", "playtime_seconds", 0.0))
+		run_outcomes = cfg.get_value("stats", "run_outcomes", ["", "", ""])
 
 
 func save_profile() -> void:
@@ -170,11 +208,15 @@ func save_profile() -> void:
 	cfg.set_value("progress", "tutorial_completed", tutorial_completed)
 	cfg.set_value("stats", "runs_made", runs_made)
 	cfg.set_value("stats", "runs_successful", runs_successful)
+	cfg.set_value("stats", "playtime_seconds", playtime_seconds)
+	cfg.set_value("stats", "run_outcomes", run_outcomes)
 	# Mirror the headline save facts so the select screen can read one small
 	# file per slot instead of loading three save games.
 	cfg.set_value("resume", "has_save", FileAccess.file_exists(slot_save_path()))
 	cfg.set_value("resume", "floor", current_floor)
 	cfg.set_value("resume", "run", current_run)
+	cfg.set_value("resume", "wallet", wallet_balance)
+	cfg.set_value("resume", "survivors", current_survivor_state())
 	cfg.save(profile_path())
 
 
@@ -203,7 +245,8 @@ func slot_summary(slot: int) -> Dictionary:
 	# touching the save file or the currently loaded state.
 	var out := {
 		"slot": slot, "exists": false, "tutorial_completed": false,
-		"runs_made": 0, "runs_successful": 0,
+		"runs_made": 0, "runs_successful": 0, "playtime_seconds": 0.0,
+		"wallet": 0, "survivors": ["", "", ""],
 		"has_save": false, "floor": 0, "run": 1,
 	}
 	var cfg := ConfigFile.new()
@@ -216,6 +259,9 @@ func slot_summary(slot: int) -> Dictionary:
 		out["tutorial_completed"] = bool(cfg.get_value("progress", "tutorial_completed", false))
 		out["runs_made"] = int(cfg.get_value("stats", "runs_made", 0))
 		out["runs_successful"] = int(cfg.get_value("stats", "runs_successful", 0))
+		out["playtime_seconds"] = float(cfg.get_value("stats", "playtime_seconds", 0.0))
+		out["wallet"] = int(cfg.get_value("resume", "wallet", 0))
+		out["survivors"] = cfg.get_value("resume", "survivors", ["", "", ""])
 		out["floor"] = int(cfg.get_value("resume", "floor", 0))
 		out["run"] = int(cfg.get_value("resume", "run", 1))
 	out["has_save"] = have_save

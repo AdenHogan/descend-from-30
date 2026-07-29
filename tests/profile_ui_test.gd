@@ -16,12 +16,20 @@ func _ready() -> void:
 	print("=== profile select scene ===")
 	var s = load("res://scenes/profile_select.tscn").instantiate()
 	chk(s != null, "profile_select.tscn loads")
-	chk(s.get_node_or_null("BackButton") != null, "has a Back button")
-	chk(s.get_node_or_null("Title") != null, "has a Title label")
+	# Left navigation column carries the heading and every action.
+	for nav in ["Nav/Heading", "Nav/Subheading", "Nav/ContinueButton",
+			"Nav/NewGameButton", "Nav/DeleteButton", "Nav/BackButton"]:
+		chk(s.get_node_or_null(nav) != null, "%s exists" % nav)
+	# Cards stay clean: header, emblem, current run, stats.
 	for slot in range(1, WorldState.SLOT_COUNT + 1):
 		var root := "Slot%d" % slot
-		chk(s.get_node_or_null(root) != null, "%s panel exists" % root)
-		for child in ["Name", "Stats", "MainButton", "OverwriteButton", "DeleteButton"]:
+		chk(s.get_node_or_null(root) != null, "%s exists" % root)
+		for child in ["SelectBorder", "Card", "Name", "Emblem", "RunCaption",
+				"RunPlace", "RunName", "Playtime", "Status", "RunsMade",
+				"RunsWon", "SelectButton", "SurvivorCaption", "Money",
+				"Survivor1", "Survivor2", "Survivor3",
+				"SurvivorFace1", "SurvivorFace2", "SurvivorFace3",
+				"SurvivorTag1", "SurvivorTag2", "SurvivorTag3"]:
 			chk(s.get_node_or_null("%s/%s" % [root, child]) != null,
 				"%s/%s exists" % [root, child])
 	# Nothing in the scene may swallow world clicks the way HUD labels once did.
@@ -35,6 +43,9 @@ func _ready() -> void:
 		for c in n.get_children():
 			stack.append(c)
 	chk(stop == 0, "no decorative control swallows clicks (%d)" % stop)
+	# Playtime formatting is what the card shows for time played.
+	chk(WorldState.format_playtime(5064.0) == "01:24:24",
+		"playtime formats as HH:MM:SS (%s)" % WorldState.format_playtime(5064.0))
 	s.free()
 	print("=== %s (%d failures) ===" % ["ALL PASSED" if fails == 0 else "FAILED", fails])
 	get_tree().quit(1 if fails > 0 else 0)
