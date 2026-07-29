@@ -41,65 +41,6 @@ func to_scene(path: String) -> void:
 	busy = false
 
 
-const CROSS_FADE := 0.2
-
-
-func cross_fade_scene(path: String, dur: float = CROSS_FADE) -> void:
-	# Swap scenes UNDERNEATH a still frame of the one being left, then dissolve
-	# that frame away. For the stair pan, whose whole conceit is that the backdrop
-	# it panned to is identical to the floor about to be built for real: any
-	# residual difference — a stair arrow re-triggering as the player spawns on
-	# it, a corpse seeded a pixel out, the load hitch itself — was a visible flash
-	# at the instant of the swap. Under a dissolve, a difference fades in instead
-	# of popping. Unlike to_scene() the screen never goes black, so it stays a
-	# continuous move between floors rather than a cut.
-	if busy:
-		return
-	busy = true
-	var snap := await _snapshot()
-	get_tree().change_scene_to_file(path)
-	if snap == null:
-		busy = false
-		return
-	# Hold the still frame until the new floor has actually DRAWN, twice. Waiting
-	# on process frames alone was not enough: change_scene_to_file is deferred,
-	# and the build itself (doors, enemies, corpses, the first rasterisation of
-	# every label's glyphs) is a hitch that has to land underneath the cover, not
-	# during the dissolve — the dissolve runs on real time, so a hitch mid-fade is
-	# exactly the judder this is meant to remove.
-	await get_tree().process_frame
-	await get_tree().process_frame
-	if DisplayServer.get_name() != "headless":
-		await RenderingServer.frame_post_draw
-		await RenderingServer.frame_post_draw
-	var tw := create_tween()
-	tw.tween_property(snap, "modulate:a", 0.0, dur)
-	await tw.finished
-	snap.queue_free()
-	busy = false
-
-
-func _snapshot() -> TextureRect:
-	# Headless has no framebuffer to read, and nothing to look at either.
-	if DisplayServer.get_name() == "headless":
-		return null
-	await RenderingServer.frame_post_draw
-	var vp := get_viewport()
-	if vp == null or vp.get_texture() == null:
-		return null
-	var img := vp.get_texture().get_image()
-	if img == null or img.is_empty():
-		return null
-	var tr := TextureRect.new()
-	tr.texture = ImageTexture.create_from_image(img)
-	tr.set_anchors_preset(Control.PRESET_FULL_RECT)
-	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	tr.stretch_mode = TextureRect.STRETCH_SCALE
-	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE   # never eat clicks
-	add_child(tr)
-	return tr
-
-
 func _fade(target_alpha: float, dur: float) -> void:
 	var tw = create_tween()
 	tw.tween_property(rect, "color:a", target_alpha, dur)

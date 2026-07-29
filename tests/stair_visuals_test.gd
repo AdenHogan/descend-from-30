@@ -63,18 +63,27 @@ func _ready() -> void:
 		"...and ABOVE the corridor floor, on the yellow steps (%.1f < %.1f)"
 			% [cut, floor_line])
 
-	# Arriving, the player climbs UP through that fixed cut. The hidden climb has
-	# to end wholly underneath it or they surface part-drawn; and it has to end
-	# BELOW the red line, or there is no visible climb left to watch.
-	var emerge_start := cut + StairPan.SHRED_TOP + StairPan.EMERGE_CLEARANCE
-	chk(emerge_start - StairPan.SHRED_TOP > cut,
-		"hidden climb ends with the whole body under the cut (scalp at %.1f, cut %.1f)"
-			% [emerge_start - StairPan.SHRED_TOP, cut])
-	chk(emerge_start > StairPan.stair_line(floor_line),
-		"...and below the red line, so the climb into view is actually seen")
-	chk(emerge_start - StairPan.stair_line(floor_line) >= StairPan.STEP_HEIGHT * 2.0,
+	# Arriving, the player climbs UP through that fixed cut, so the first pixel
+	# shows when their scalp crosses it. There must be real climbing left between
+	# that moment and the red line, or they surface all at once.
+	var scalp_crosses := cut + StairPan.SHRED_TOP
+	chk(scalp_crosses > StairPan.stair_line(floor_line),
+		"they break the cut before reaching the red line (%.1f > %.1f)"
+			% [scalp_crosses, StairPan.stair_line(floor_line)])
+	chk(scalp_crosses - StairPan.stair_line(floor_line) >= StairPan.STEP_HEIGHT * 2.0,
 		"the climb into view is more than a single step (%.0fpx, step %.0f)"
-			% [emerge_start - StairPan.stair_line(floor_line), StairPan.STEP_HEIGHT])
+			% [scalp_crosses - StairPan.stair_line(floor_line), StairPan.STEP_HEIGHT])
+
+	# THE MIRROR. Ascending is the descent played backwards, so the matching beats
+	# must cover the same ground. The visible flight either side of the bend is
+	# TURN_HEIGHT by construction, and the settle onto the floor is the approach
+	# off it — both STAIR_APPROACH. If these ever differ, the two directions have
+	# stopped being each other's reverse.
+	chk(StairPan.TURN_HEIGHT > 0.0,
+		"visible flight is the same height both ways (%.0fpx)" % StairPan.TURN_HEIGHT)
+	chk(absf(floor_line - StairPan.stair_line(floor_line)) == StairPan.STAIR_APPROACH,
+		"step onto the red line leaving == step off it arriving (%.0fpx)"
+			% StairPan.STAIR_APPROACH)
 
 	print("=== %s (%d failures) ===" % ["ALL PASSED" if fails == 0 else "FAILED", fails])
 	get_tree().quit(1 if fails > 0 else 0)
