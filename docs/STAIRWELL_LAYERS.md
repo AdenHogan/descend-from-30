@@ -16,19 +16,38 @@ flight is walked visibly. Tunables: STAIR_APPROACH (the red line height),
 TURN_HEIGHT (bend height — the old halfway turn was far too high), SHRED_FOOT,
 DEPTH_SCALE.
 
-**The red line** (`standing_y - STAIR_APPROACH`) is where the player stands
-before dissolving and after climbing back into view — the same for both
-directions. **The cut** sits below it, but at a DIFFERENT offset per direction:
-`SHRED_FOOT` (20) descending, `SHRED_FOOT_UP` (14) arriving. They were one shared
-constant; moving it to suit the ascent moved the descent with it and broke a
-descent that had been signed off. Each value is the one approved for its own
-direction against the art. Do not tidy them back into one.
+## Mirrored in design, separate in code
+
+Every value that PLACES something on screen exists twice — `DOWN_*` and `UP_*`:
+
+| | descending | arriving |
+|---|---|---|
+| red line above the floor | `DOWN_STAIR_APPROACH` | `UP_STAIR_APPROACH` |
+| bend height | `DOWN_TURN_HEIGHT` | `UP_TURN_HEIGHT` |
+| cut below the red line | `DOWN_SHRED_FOOT` | `UP_SHRED_FOOT` |
+| depth shrink | `DOWN_DEPTH_SCALE` | `UP_DEPTH_SCALE` |
+
+**Identical values mean "these happen to match", never "these must match."**
+Tune `DOWN_*` and only the descent moves; tune `UP_*` and only the ascent does.
+Nothing has to be kept in sync by hand.
+
+This is not tidiness. These were single shared constants, and that is precisely
+how a tweak aimed at the ascent silently moved the descent and broke a descent
+the owner had already signed off. Each value is placed by eye against the art for
+ONE direction; sharing them makes the two impossible to tune independently.
+`stair_visuals_test` pins the descent's four numbers so a future ascent tweak
+cannot move them unnoticed.
+
+Deliberately NOT split, because they are genuinely one thing: `SHRED_TOP` /
+`SHRED_BOTTOM` (the sprite's extents, a fact about the art) and `STEP_HEIGHT` /
+`STEP_TIME` / `TURN_TIME` (walking pace, which has no direction).
 
 **The shredder cuts on BOTH axes.** Vertically at the step line, and
-horizontally to the stairwell's own width (`shaft_band` / `SHAFT_MARGIN`). The
+horizontally to the stairwell's own width (`shaft_band`, which takes its margin
+as an argument so neither direction can inherit the other's). The
 player sprite is 48px at scale 3 — 144 wide — while the shaft is barely 60, so a
 body standing dead centre in it still spills across the corridor wall on either
-side. The x crop is live for exactly as long as the y cut is, in both directions.
+side. The ascent passes `UP_SHAFT_MARGIN`; the descent passes no band at all.
 
 **The player moves through the cut; the cut does not move through the player.**
 Descending, the cut is pinned to the step line and they walk down through it.
