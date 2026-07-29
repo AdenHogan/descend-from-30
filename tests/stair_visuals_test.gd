@@ -91,14 +91,29 @@ func _ready() -> void:
 	chk(right.x <= 1162.0 and right.y >= 1201.0,
 		"the right stairwell bands the same way round (%.0f..%.0f)" % [right.x, right.y])
 
+	# THE WALL ABOVE THE OPENING. The bend is UP_TURN_HEIGHT above the floor,
+	# which is past the top of the stairwell opening — so the player turns behind
+	# solid wall and must not be drawn there. This is what makes them disappear
+	# behind the bend; without it they climb up over the corridor wall in plain
+	# sight, which no amount of x cropping fixes.
+	chk(StairPan.UP_SHAFT_TOP < StairPan.UP_TURN_HEIGHT,
+		"the bend sits ABOVE the opening, so the wall swallows them (%.0f < %.0f)"
+			% [StairPan.UP_SHAFT_TOP, StairPan.UP_TURN_HEIGHT])
+	chk(StairPan.UP_SHAFT_TOP > StairPan.UP_STAIR_APPROACH,
+		"...but the red line is INSIDE the opening, so arrival is not clipped (%.0f > %.0f)"
+			% [StairPan.UP_SHAFT_TOP, StairPan.UP_STAIR_APPROACH])
+
 	# THE ARRIVAL MUST NOT BOUNCE. The ascent used to climb to the red line, drop
 	# the shader there (snapping the cropped sprite back to its full 144px width,
 	# in front of the scene) and then ease DOWN onto the floor. It now climbs
 	# straight to the standing line, so there is no drop; and the crop is released
 	# during the climb, while the player is still wholly below the cut and
 	# therefore undrawn.
+	# It climbs to the red line and then WALKS DOWN onto the floor, with the cut
+	# falling away past their feet during that step. Sweeping the cut while they
+	# stood still made them rematerialise on the spot.
 	chk(StairPan.UP_ARRIVE_REVEAL > 0.0,
-		"the shader comes off over a real interval, not instantly (%.2fs)"
+		"the cut falls away over a real interval, not instantly (%.2fs)"
 			% StairPan.UP_ARRIVE_REVEAL)
 
 	# The bend and the step onto the red line are mirrored, but each direction

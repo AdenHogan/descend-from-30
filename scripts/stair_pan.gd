@@ -80,6 +80,12 @@ const UP_SHAFT_MARGIN := 0.0
 # destination floor, so the last of them fades in rather than popping. Placed by
 # eye — it cannot be checked headless.
 const UP_ARRIVE_REVEAL := 0.12
+# How far ABOVE a floor's standing line the stairwell opening ends. The bend is
+# UP_TURN_HEIGHT (72) up, well past this, so the player turns behind solid wall —
+# they must not be drawn there. THIS IS THE ONE NUMBER PLACED BY EYE: headless
+# cannot see the art. Raise it to let more of the climb stay visible, lower it to
+# swallow them sooner.
+const UP_SHAFT_TOP := 44.0
 # THE SHREDDER. Clips away every pixel of the player sprite below cut_y (world
 # space). Descending through the stair line feeds them through it - feet first,
 # sliced in staggered stages - no z tricks, no painted boxes, no art rebuild.
@@ -96,6 +102,9 @@ uniform float clip_dir = 1.0;
 // behaves exactly as before.
 uniform float shaft_min = -999999.0;
 uniform float shaft_max = 999999.0;
+// The top of the stairwell opening. Above it is solid wall, so the player must
+// not be drawn there — that is what "disappearing behind the bend" is.
+uniform float shaft_top = -999999.0;
 varying float world_y;
 varying float world_x;
 void vertex() {
@@ -108,6 +117,9 @@ void fragment() {
 		discard;
 	}
 	if (world_x < shaft_min || world_x > shaft_max) {
+		discard;
+	}
+	if (world_y < shaft_top) {
 		discard;
 	}
 }
@@ -376,37 +388,38 @@ func _ascend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vector
 	# of the descent, where it stays put for the opening step and moves for the
 	# rest.
 	var total: float = _climb_time(absf(turn_y - stand_y)) + cross_est \
-		+ _climb_time(absf(dest_y - turn_y))
+		+ _climb_time(absf(line_center - turn_y))
 	var cam_tw := create_tween()
 	cam_tw.tween_property(pan_cam, "global_position:y",
 		pan_cam.global_position.y + floor_offset, total) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
-	# (1) = descent (4) backwards. The visible flight, whole and at full size,
-	#     with no cut at all: they walk UP the steps they would have walked DOWN.
+	# The stairwell opening on THIS floor. Above its top edge is solid wall, and
+	# either side of it is corridor — the player is inside the shaft for beats
+	# (1) and (2), so they must not be drawn outside it in either axis.
+	var band := shaft_band(player.global_position.x, turn_x, UP_SHAFT_MARGIN)
+	var shaft_top := stand_y - UP_SHAFT_TOP
+
+	# (1) The visible flight up. No y cut — they are whole — but held inside the
+	#     opening, so as they climb past its top edge they slide up BEHIND THE
+	#     WALL and are gone. That is "disappearing behind the bend": it is the
+	#     wall doing it, not a dissolve. cut_y parked out of range disables the y
+	#     cut without disabling the crop.
 	_play_walk(sprite, 0.0)
+	_set_shred(sprite, 999999.0, 1.0, band, shaft_top)
 	var flight1 := _stagger_y(player, stand_y, turn_y)
 	await flight1.finished
 	if not is_instance_valid(player) or not is_instance_valid(pan_cam):
 		return
 
-	# (2) The landing turn: they go behind the bend and are gone by the end of it.
-	#
-	#     clip_dir -1 discards everything ABOVE the cut, so sweeping the cut DOWN
-	#     through them eats the body HEAD FIRST and the last thing left is the
-	#     feet, low and inside the shaft. Mirroring the descent exactly would mean
-	#     +1, where visible = everything above the cut — the last thing left is
-	#     then the top of the head, floating out over the corridor wall. This is
-	#     the one beat that is deliberately not a strict reversal.
-	#
-	#     The x band crops the sprite to the shaft for this beat ONLY. It is 144px
-	#     wide and the shaft is ~40, so without it a half-dissolved body shows on
-	#     the wall beside the opening. It is released in beat (3), at a moment when
-	#     nothing of the player is drawn — releasing it while any of them is
-	#     visible snaps the sprite back to full width, which reads as a pop.
+	# (2) The landing turn, entirely behind the wall. The y cut runs anyway so
+	#     that any part of them still below the opening's top edge dissolves
+	#     rather than sliding sideways: clip_dir -1 discards ABOVE the cut, so
+	#     sweeping it DOWN eats the body head first, leaving the feet last and
+	#     lowest. (Mirroring the descent exactly would use +1, which leaves the
+	#     TOP OF THE HEAD last — the bit that floated out over the wall.)
 	_play_walk(sprite, turn_x - player.global_position.x)
-	var band := shaft_band(player.global_position.x, turn_x, UP_SHAFT_MARGIN)
-	_set_shred(sprite, player.global_position.y - SHRED_TOP, -1.0, band)
+	_set_shred(sprite, player.global_position.y - SHRED_TOP, -1.0, band, shaft_top)
 	var leg2 := create_tween().set_parallel(true)
 	leg2.tween_property(player, "global_position:x", turn_x, cross_est) \
 		.set_trans(Tween.TRANS_LINEAR)
@@ -420,40 +433,40 @@ func _ascend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vector
 	if not is_instance_valid(player):
 		return
 
-	# (3) The climb into view, and the arrival — ONE continuous move to the floor.
+	# (3) The climb into view on the new floor. The cut is PINNED to its step line
+	#     and the player walks up through it — scalp, head, shoulders, a step at a
+	#     time — to the red line.
 	#
-	#     The cut is PINNED to the destination's step line and the player walks up
-	#     through it: hidden, then scalp, head, shoulders, a step at a time.
-	#
-	#     It climbs to dest_y, NOT to the red line. Stopping above the floor and
-	#     then easing down to it made the player rise, stop, and drop back — and
-	#     because the crop came off at the top of that climb, the sprite snapped
-	#     to full width in front of the scene on the way. There is no separate
-	#     settle beat any more: they walk up and they are standing there.
-	#
-	#     Re-arming the shred here with no band releases the crop while the player
-	#     is still wholly below the cut and therefore wholly undrawn — the release
-	#     cannot be seen.
+	#     The crop and the wall edge are dropped HERE, at the one moment nothing of
+	#     the player is drawn: they are still far below the cut, so a release
+	#     cannot be seen. Releasing them later snapped the sprite back to full
+	#     width in front of the scene.
 	_play_walk(sprite, 0.0)
 	_set_shred(sprite, cut_y, 1.0)
 	if sprite != null:
 		var grow := create_tween()
 		grow.tween_property(sprite, "scale", base_scale,
-			_climb_time(absf(dest_y - player.global_position.y))) \
+			_climb_time(absf(line_center - player.global_position.y))) \
 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	var flight2 := _stagger_y(player, player.global_position.y, dest_y)
+	var flight2 := _stagger_y(player, player.global_position.y, line_center)
 	await flight2.finished
 	if not is_instance_valid(player):
 		return
 
-	#     Standing on the floor, the cut still clips their shoes. Drop it past
-	#     their feet before taking the shader off, so the last of them fades in
-	#     instead of appearing. Same trick the descent uses at the end of its turn.
-	if _shred_mat != null and sprite != null and is_instance_valid(sprite):
-		var settle := create_tween()
-		settle.tween_property(_shred_mat, "shader_parameter/cut_y",
-			dest_y + SHRED_BOTTOM + 60.0, UP_ARRIVE_REVEAL)
-		await settle.finished
+	# (4) WALK DOWN off the red line onto the floor — the mirror of the descent
+	#     stepping up onto it — and let the cut fall away past their feet AS THEY
+	#     WALK. Sweeping it with the player standing still made them rematerialise
+	#     on the spot; doing it during the step reads as walking out of the
+	#     stairwell. By the time they land nothing is clipped, so taking the
+	#     shader off is invisible.
+	_play_walk(sprite, 0.0)
+	var arrive_t: float = maxf(_climb_time(absf(dest_y - line_center)), UP_ARRIVE_REVEAL)
+	if _shred_mat != null:
+		var reveal := create_tween()
+		reveal.tween_property(_shred_mat, "shader_parameter/cut_y",
+			dest_y + SHRED_BOTTOM + 60.0, arrive_t)
+	var flight3 := _stagger_y(player, line_center, dest_y)
+	await flight3.finished
 	if sprite != null and is_instance_valid(sprite):
 		_clear_shred(sprite)
 	_play_idle(sprite)
@@ -488,7 +501,8 @@ func shaft_band(a_x: float, b_x: float, margin: float) -> Vector2:
 
 
 func _set_shred(sprite: Node, cut_y: float, clip_dir: float = 1.0,
-		band: Vector2 = Vector2(-999999.0, 999999.0)) -> void:
+		band: Vector2 = Vector2(-999999.0, 999999.0),
+		top: float = -999999.0) -> void:
 	if sprite == null:
 		return
 	if _shred_mat == null:
@@ -501,6 +515,7 @@ func _set_shred(sprite: Node, cut_y: float, clip_dir: float = 1.0,
 	_shred_mat.set_shader_parameter("clip_dir", clip_dir)
 	_shred_mat.set_shader_parameter("shaft_min", band.x)
 	_shred_mat.set_shader_parameter("shaft_max", band.y)
+	_shred_mat.set_shader_parameter("shaft_top", top)
 	sprite.material = _shred_mat
 
 
