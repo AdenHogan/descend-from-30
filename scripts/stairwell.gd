@@ -69,7 +69,7 @@ func _process(_delta: float) -> void:
 # under the bouncing arrow counts. Clicking anywhere else in the stairwell —
 # including just left or right of the steps — is ordinary click-to-move, so you
 # can reposition without being yanked to another floor.
-const CLICK_HALF_WIDTH := 26.0   # horizontal window, centred on the arrow
+const CLICK_HALF_WIDTH := 16.0   # horizontal window, centred on the arrow
 const CLICK_ABOVE := 70.0        # how far above the trigger still counts
 const CLICK_BELOW := 40.0
 
@@ -145,6 +145,13 @@ func _use_stairs() -> void:
 			_descend_confirm_time = now
 			return
 		# second use within the window → confirmed, fall through and descend.
+
+	# Snap ONTO the stairwell before the transition takes over. Triggering from a
+	# step or two off-centre used to leave the player half in the stairs and half
+	# in the wall for the whole descent.
+	var body = get_tree().get_first_node_in_group("player")
+	if body != null:
+		body.global_position.x = global_position.x
 
 	WorldState.stair_spawn_side = stair_side
 	WorldState.stair_direction = direction

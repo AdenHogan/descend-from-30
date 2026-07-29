@@ -41,6 +41,11 @@ const TURN_HEIGHT := 72.0
 # body when dissolving or rematerialising.
 const SHRED_TOP := 52.0
 const SHRED_BOTTOM := 40.0
+# How far BELOW the destination's standing line the player starts when arriving
+# on an upper floor. They climb this last stretch in full view, rising out of
+# the stairwell — without it the arrival was one step long and read as being
+# spawned from thin air.
+const EMERGE_RISE := 64.0
 # Where the cut sits relative to the player's origin. This must land on the
 # YELLOW STEPS, not the floor below them — cutting at the true foot line made it
 # look like the player was clipping through the floor rather than descending
@@ -315,11 +320,11 @@ func _ascend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vector
 	# either, and it is what the descent already does.
 	var stand_y: float = player.global_position.y
 	var bend_y: float = stand_y - TURN_HEIGHT
-	var reveal_y: float = dest_y - STAIR_APPROACH   # destination's red line
+	var reveal_y: float = dest_y + EMERGE_RISE   # below the new floor, in the stairwell
 
 	var cross_est: float = maxf(_climb_time(absf(turn_x - player.global_position.x)), TURN_TIME)
 	var total: float = _climb_time(absf(bend_y - stand_y)) + cross_est \
-		+ _climb_time(absf(reveal_y - bend_y)) + _climb_time(STAIR_APPROACH)
+		+ _climb_time(absf(reveal_y - bend_y)) + _climb_time(EMERGE_RISE)
 	var cam_tw := create_tween()
 	cam_tw.tween_property(pan_cam, "global_position:y",
 		pan_cam.global_position.y + floor_offset, total) \
@@ -361,16 +366,20 @@ func _ascend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vector
 	if not is_instance_valid(player):
 		return
 
-	# (4) Step DOWN from the destination's red line onto the new floor,
-	#     rematerialising as they arrive — the mirror of the descent's opening
-	#     step up to the red line.
-	if sprite != null and is_instance_valid(sprite):
-		var back := create_tween().set_parallel(true)
-		back.tween_property(_shred_mat, "shader_parameter/cut_y",
-			reveal_y - SHRED_TOP - 8.0, _climb_time(STAIR_APPROACH))
-		back.tween_property(sprite, "scale", base_scale, _climb_time(STAIR_APPROACH)) \
-			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	# (4) Rise INTO VIEW out of the stairwell on the new floor. The cut is
+	#     parked at the stair line with clip_dir +1 (everything below it hidden),
+	#     so climbing up through it reveals the player head first, over several
+	#     steps. It then sweeps below their feet so nothing is clipped on
+	#     arrival. Previously this was a single 10px step down from above, which
+	#     read as materialising out of thin air.
+	_set_shred(sprite, reveal_y - SHRED_TOP, 1.0)
 	_play_walk(sprite, 0.0)
+	if sprite != null and is_instance_valid(sprite):
+		var rise := create_tween().set_parallel(true)
+		rise.tween_property(_shred_mat, "shader_parameter/cut_y",
+			dest_y + SHRED_BOTTOM + 8.0, _climb_time(EMERGE_RISE))
+		rise.tween_property(sprite, "scale", base_scale, _climb_time(EMERGE_RISE)) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	var flight3 := _stagger_y(player, reveal_y, dest_y)
 	await flight3.finished
 	_clear_shred(sprite)
