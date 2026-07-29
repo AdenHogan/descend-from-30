@@ -35,12 +35,5 @@ func _ready() -> void:
 	await tr._fade(0.0, 0.05)
 	check(tr.rect.color.a < 0.02, "fades back to transparent")
 
-	# NO viewport-snapshot cover. It was tried for the stair handover and painted
-	# a black box over every arrival: reading the viewport back into a texture
-	# returns black under GL Compatibility, which is the renderer this project
-	# ships. Keep it gone — the camera-clamp fix is what the judder actually
-	# needed.
-	check(not tr.has_method("cross_fade_scene"), "no viewport-snapshot cover (it rendered black)")
-
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)

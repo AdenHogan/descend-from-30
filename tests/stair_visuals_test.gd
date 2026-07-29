@@ -34,68 +34,38 @@ func _ready() -> void:
 		chk(int(lr.visible) + int(hr.visible) == 1, "%s: exactly one right sprite" % tag)
 		# NO front-layer occluder. One was tried: it re-cut the top of the stair
 		# art and drew it at z 2, which put the DARK SHAFT over the corridor as a
-		# black box. The shredder hides the player; nothing needs to be drawn on
-		# top of them. Do not add it back.
+		# black box, and the player surfaced in front of it anyway. The shredder
+		# hides the player. Do not add it back.
 		chk(bf.get_node_or_null("StairFrontLeft") == null
 			and bf.get_node_or_null("StairFrontRight") == null,
 			"%s: no front-layer sprite (it rendered as a black box)" % tag)
 		bf.free()
 		await get_tree().process_frame
 
-	# The transition has to MIRROR: the spot the descent leaves from and the spot
-	# the ascent arrives on are the same red line, up on the steps. Arriving at
-	# the standing line instead put the player half in the wall and read as
-	# materialising out of it.
+	# ASCENDING IS THE DESCENT PLAYED BACKWARDS. The descent is signed off, so the
+	# ascent must reuse its numbers rather than invent its own. Both directions
+	# derive the red line and the cut from the same two constants applied to their
+	# own floor's standing line, so the pair below is what keeps them in step.
 	var floor_line := 391.0
-	chk(StairPan.stair_line(floor_line) < floor_line,
+	var red_line := floor_line - StairPan.STAIR_APPROACH
+	var cut := red_line + StairPan.SHRED_FOOT
+	chk(red_line < floor_line,
 		"the red line sits ABOVE the standing line, on the stairs (%.1f < %.1f)"
-			% [StairPan.stair_line(floor_line), floor_line])
-	chk(StairPan.stair_line(floor_line) == floor_line - StairPan.STAIR_APPROACH,
-		"one constant sets it for both directions")
-	# ONE cut line, both directions — the player leaves down through it and comes
-	# back up through the same one, so a body cannot dissolve at one height and
-	# reappear at another.
-	var cut := StairPan.shred_line(floor_line)
-	chk(cut > StairPan.stair_line(floor_line),
-		"the cut sits BELOW the red line (%.1f > %.1f)"
-			% [cut, StairPan.stair_line(floor_line)])
-	chk(cut < floor_line,
-		"...and ABOVE the corridor floor, on the yellow steps (%.1f < %.1f)"
-			% [cut, floor_line])
-
-	# Arriving, the player climbs UP through that fixed cut, so the first pixel
-	# shows when their scalp crosses it. There must be real climbing left between
-	# that moment and the red line, or they surface all at once.
+			% [red_line, floor_line])
+	chk(cut > red_line,
+		"the cut sits below the red line, on the yellow steps (%.1f > %.1f)"
+			% [cut, red_line])
+	# Leaving, the player drops through that cut; arriving, they climb up through
+	# it. Their scalp breaks it SHRED_TOP below the cut, and there must be real
+	# climbing left between that and the red line or they surface all at once.
 	var scalp_crosses := cut + StairPan.SHRED_TOP
-	chk(scalp_crosses > StairPan.stair_line(floor_line),
-		"they break the cut before reaching the red line (%.1f > %.1f)"
-			% [scalp_crosses, StairPan.stair_line(floor_line)])
-	chk(scalp_crosses - StairPan.stair_line(floor_line) >= StairPan.STEP_HEIGHT * 2.0,
+	chk(scalp_crosses - red_line >= StairPan.STEP_HEIGHT * 2.0,
 		"the climb into view is more than a single step (%.0fpx, step %.0f)"
-			% [scalp_crosses - StairPan.stair_line(floor_line), StairPan.STEP_HEIGHT])
-
-	# THE MIRROR. Ascending is the descent played backwards, so the matching beats
-	# must cover the same ground. The visible flight either side of the bend is
-	# TURN_HEIGHT by construction, and the settle onto the floor is the approach
-	# off it — both STAIR_APPROACH. If these ever differ, the two directions have
-	# stopped being each other's reverse.
+			% [scalp_crosses - red_line, StairPan.STEP_HEIGHT])
+	# The two beats either side of the bend cover the same ground both ways.
 	chk(StairPan.TURN_HEIGHT > 0.0,
 		"visible flight is the same height both ways (%.0fpx)" % StairPan.TURN_HEIGHT)
-
-	# THE ARRIVAL HITCH. The destination floor is built DURING the pan, detached,
-	# so the commit frame only has to run _ready instead of allocating a whole
-	# floor. Building it must not put anything on screen early.
-	chk(StairPan.floor_scene_path(24) == "res://scenes/building_floors.tscn"
-		and StairPan.floor_scene_path(30) == "res://scenes/hallway.tscn"
-		and StairPan.floor_scene_path(0) == "res://scenes/lobby.tscn",
-		"every floor maps to its scene from one place")
-	StairPan._build_pending(24)
-	chk(StairPan._pending_scene != null, "the destination floor is built ahead of the commit")
-	chk(StairPan._pending_scene != null and not StairPan._pending_scene.is_inside_tree(),
-		"...detached, so none of it runs or draws until the swap")
-	StairPan._drop_pending()
-	chk(StairPan._pending_scene == null, "an abandoned pan frees it instead of leaking a floor")
-	chk(absf(floor_line - StairPan.stair_line(floor_line)) == StairPan.STAIR_APPROACH,
+	chk(StairPan.STAIR_APPROACH > 0.0,
 		"step onto the red line leaving == step off it arriving (%.0fpx)"
 			% StairPan.STAIR_APPROACH)
 

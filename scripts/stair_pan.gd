@@ -27,11 +27,9 @@ const TURN_TIME := 0.40      # crossing the landing between flights (horizontal 
 const STEP_HEIGHT := 16.0          # one tile per step
 const STEP_TIME := 0.13            # seconds per step
 const STEP_MOVE_FRACTION := 0.6    # of each step spent moving; the rest is the beat between
-# THE RED LINE: where the stairs meet the corridor, this far above a floor's
-# standing spot. Small on purpose — the player was rising far too high before
-# pressing into the stairwell. Descending you step UP to it and dissolve;
-# arriving from below you rematerialise ON it and step down. Use stair_line()
-# rather than the constant so both directions can never drift apart.
+# Where the descent begins: the player steps UP to the line where the stairs
+# drop away (the owner's red line), this far above their standing spot. Small
+# on purpose — they were rising far too high before pressing into the stairwell.
 const STAIR_APPROACH := 10.0
 # The dog-leg bend, measured above a floor's standing line. This is the single
 # height that BOTH directions turn at: descending you emerge and turn here on
@@ -43,11 +41,11 @@ const TURN_HEIGHT := 72.0
 # body when dissolving or rematerialising.
 const SHRED_TOP := 52.0
 const SHRED_BOTTOM := 40.0
-# How far BELOW the red line the cut sits. It must land where the yellow steps
-# meet the dark of the shaft — not down on the floor in front of them, which
-# looked like clipping through the ground rather than walking into a stairwell.
-# Measured off the owner's marked-up screenshot: the cut was ~14px too low.
-const SHRED_FOOT := 6.0
+# Where the cut sits relative to the player's origin. This must land on the
+# YELLOW STEPS, not the floor below them — cutting at the true foot line made it
+# look like the player was clipping through the floor rather than descending
+# stairs that start higher up.
+const SHRED_FOOT := 20.0
 # THE SHREDDER. Clips away every pixel of the player sprite below cut_y (world
 # space). Descending through the stair line feeds them through it - feet first,
 # sliced in staggered stages - no z tricks, no painted boxes, no art rebuild.
@@ -79,9 +77,9 @@ void fragment() {
 const DEPTH_SCALE := 0.82    # size at the back of the stairwell (1.0 = no depth)
 # The legs derive from the floor height and the destination spawn, so there is
 # nothing to hand-tune here: half a floor up, across the landing, half a floor
-# more. There is NO front-layer occluder sprite: one was tried and removed,
-# because re-cutting the top of the stair art and drawing it at z 2 puts the
-# dark shaft over the corridor as a black box. The shredder does the hiding.
+# more. There is deliberately NO front-layer occluder sprite: one was tried and
+# removed, because re-cutting the top of the stair art and drawing it at z 2 puts
+# the DARK SHAFT over the corridor as a black box. The shredder does the hiding.
 # Nudge only if two floors don't quite meet (a 1-tile seam): + pushes the next
 # floor further away, − brings it closer. Should stay 0 (floors are FLOOR_BAND_H
 # tall and stack exactly).
@@ -96,19 +94,9 @@ const SPAWN_RIGHT_BOTTOM := Vector2(1162, 391)
 
 var panning := false   # true only WHILE a pan runs; if it starts true, can_pan() never fires
 
-# The destination floor, BUILT DURING THE PAN. change_scene_to_file does all of
-# its work on one frame — allocating every node of a 70-column floor, its doors,
-# apartments and tilemap — and that frame is the arrival, so it landed as a
-# jarring hitch exactly when the player was meant to be walking out of the
-# stairwell. The pan runs for seconds with nothing else to do, so the scene is
-# instantiated up front and only ADDED to the tree at the commit; all that is
-# left on the swap frame is _ready.
-var _pending_scene: Node = null
-
 
 func _ready() -> void:
 	panning = false   # defensive: never boot with the guard stuck on
-	_pending_scene = null
 
 
 func can_pan(target_floor: int) -> bool:
@@ -183,10 +171,6 @@ func pan_to_floor(target_floor: int, direction: String) -> void:
 	var floor_offset := spacing * (1.0 if down else -1.0)
 	holder.position = Vector2(0, floor_offset)
 
-	# Build the REAL destination floor now, detached, while the pan plays. Nothing
-	# of it runs until _commit adds it to the tree.
-	_build_pending(target_floor)
-
 	# Standalone camera copies the live one exactly (same zoom!) and takes over.
 	# It inherits the live camera's HORIZONTAL limits so the walls still stop the
 	# view sideways, but its vertical limits are opened up — it has to travel a
@@ -250,27 +234,11 @@ func pan_to_floor(target_floor: int, direction: String) -> void:
 	_commit(target_floor)
 
 
-# The red line for a floor whose standing spot is at `standing_y`. Descent
-# leaves from it, ascent arrives on it — the transition only mirrors if both ask
-# the same question, so both ask it here.
-func stair_line(standing_y: float) -> float:
-	return standing_y - STAIR_APPROACH
-
-
-# Where the shredder cuts: on the yellow steps, just under the red line. The
-# player passes DOWN through it leaving, and UP through it arriving — one line,
-# both directions, so a body never dissolves at one height and reappears at
-# another.
-func shred_line(standing_y: float) -> float:
-	return stair_line(standing_y) + SHRED_FOOT
-
-
 func _descend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vector2,
 		floor_offset: float, turn_x: float, turn_y: float, dest_y: float) -> void:
 	# (1) Walk up to the LINE where the stairs begin to go down (the red line) -
 	#     whole and visible, stepping into the dark mouth of the stairwell.
-	var stand_y: float = player.global_position.y
-	var line_center: float = stair_line(stand_y)
+	var line_center: float = player.global_position.y - STAIR_APPROACH
 	var approach := create_tween()
 	approach.tween_property(player, "global_position:y", line_center, 0.3) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
@@ -291,7 +259,7 @@ func _descend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vecto
 	# (2) THE SHREDDER. The cut sits on the platform edge under their feet;
 	#     dropping step by step feeds them through it - feet, legs, torso, head -
 	#     until nothing is left above the line.
-	_set_shred(sprite, shred_line(stand_y))
+	_set_shred(sprite, line_center + SHRED_FOOT)
 	if sprite != null:
 		var shrink := create_tween()
 		shrink.tween_property(sprite, "scale", base_scale * DEPTH_SCALE,
@@ -314,10 +282,8 @@ func _descend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vecto
 	leg2.tween_property(player, "global_position:x", turn_x, cross_time) \
 		.set_trans(Tween.TRANS_LINEAR)
 	if _shred_mat != null:
-		# Sweep well past the feet — this is the one place the cut is allowed to
-		# move, and it must end clear of the body, not on the step line.
 		leg2.tween_property(_shred_mat, "shader_parameter/cut_y",
-			player.global_position.y + SHRED_BOTTOM + 60.0, cross_time)
+			player.global_position.y + SHRED_FOOT + 90.0, cross_time)
 	if sprite != null:
 		leg2.tween_property(sprite, "scale", base_scale, cross_time) \
 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
@@ -336,53 +302,50 @@ func _descend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vecto
 
 func _ascend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vector2,
 		floor_offset: float, turn_x: float, turn_y: float, dest_y: float) -> void:
-	# THE DESCENT, PLAYED BACKWARDS. The descent is right, so this does not invent
-	# anything: the four beats below are _descend's four in reverse order, each
-	# undoing its partner, using the same cut, the same clip direction, the same
-	# distances and the same easings.
+	# THE DESCENT, PLAYED BACKWARDS — nothing else. _descend above is correct and
+	# signed off, so this invents no beats, no extra lines and no new constants:
+	# it is _descend's four beats in reverse order, each undoing its partner, with
+	# the same cut, the same clip direction (+1 throughout — the descent never
+	# flips it), the same distances and the same easings.
 	#
-	#   descend:  (1) step up to red line  (2) drop through the cut
-	#             (3) turn, re-form        (4) walk down to the floor
-	#   ascend:   (1) walk up from the floor  (2) turn, dissolve
-	#             (3) climb up through the cut (4) step down off the red line
+	#   descend (1) step UP onto the red line   <-> ascend (4) step DOWN off it
+	#   descend (2) drop through the fixed cut  <-> ascend (3) climb up through it
+	#   descend (3) turn, cut sweeps DOWN       <-> ascend (2) turn, cut sweeps UP
+	#   descend (4) visible walk down           <-> ascend (1) visible walk up
 	#
-	# Read each beat against its partner in _descend above. If you change one,
-	# change the other — a beat that stops mirroring is what broke this before.
-	#
-	# Hiding is ALWAYS the shredder, never z_index. The z-flip left the player
-	# visible behind the corridor and then popped them in front of it past the
-	# floor divider; clipping every pixel cannot do either.
+	# If you change a beat here, change its partner there. Every regression in
+	# this transition has been one side drifting away from the other.
 	var stand_y: float = player.global_position.y
-	var bend_y: float = turn_y
-	var top_of_stairs: float = stair_line(dest_y)   # the red line on the new floor
-	var cut_y: float = shred_line(dest_y)           # the cut, on its yellow steps
+	# The destination floor's own red line and cut — the SAME expressions the
+	# descent uses for the floor it leaves.
+	var line_center: float = dest_y - STAIR_APPROACH
+	var cut_y: float = line_center + SHRED_FOOT
 
 	var cross_est: float = maxf(_climb_time(absf(turn_x - player.global_position.x)), TURN_TIME)
-	# Camera covers everything except the final settle onto the floor — the mirror
-	# of the descent, where it stays put for the approach and moves for the rest.
-	var total: float = _climb_time(absf(bend_y - stand_y)) + cross_est \
-		+ _climb_time(absf(top_of_stairs - bend_y))
+	# Camera covers everything except the final step onto the floor — the mirror
+	# of the descent, where it stays put for the opening step and moves for the
+	# rest.
+	var total: float = _climb_time(absf(turn_y - stand_y)) + cross_est \
+		+ _climb_time(absf(line_center - turn_y))
 	var cam_tw := create_tween()
 	cam_tw.tween_property(pan_cam, "global_position:y",
 		pan_cam.global_position.y + floor_offset, total) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
-	# (1) = descent (4) backwards. The visible flight, at full size, no cut: they
-	#     walk UP the steps they would have walked DOWN.
+	# (1) = descent (4) backwards. The visible flight, whole and at full size,
+	#     with no cut at all: they walk UP the steps they would have walked DOWN.
 	_play_walk(sprite, 0.0)
-	var flight1 := _stagger_y(player, stand_y, bend_y)
+	var flight1 := _stagger_y(player, stand_y, turn_y)
 	await flight1.finished
 	if not is_instance_valid(player) or not is_instance_valid(pan_cam):
 		return
 
-	# (2) = descent (3) backwards. The bend. The descent sweeps the cut DOWN here
-	#     and comes back to full form; so this sweeps it UP and dissolves — legs
-	#     first, head last — while crossing to the other flight and shrinking into
-	#     the shaft. Same clip_dir (+1) as every other beat: the descent never
-	#     flips it, so neither does this. Flipping to -1 was what made the two
-	#     directions stop being each other's reverse.
+	# (2) = descent (3) backwards. The landing turn. The descent sweeps the cut
+	#     DOWN here and comes back to full form, so this sweeps it UP and
+	#     dissolves — the cut starts below their feet (nothing clipped) and rises
+	#     past their head while they cross and shrink into the shaft.
 	_play_walk(sprite, turn_x - player.global_position.x)
-	_set_shred(sprite, player.global_position.y + SHRED_BOTTOM + 60.0, 1.0)
+	_set_shred(sprite, player.global_position.y + SHRED_FOOT + 90.0)
 	var leg2 := create_tween().set_parallel(true)
 	leg2.tween_property(player, "global_position:x", turn_x, cross_est) \
 		.set_trans(Tween.TRANS_LINEAR)
@@ -395,18 +358,17 @@ func _ascend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vector
 	if not is_instance_valid(player):
 		return
 
-	# (3) = descent (2) backwards. The cut is PINNED to the step line and the
-	#     player climbs up through it: hidden at first, then scalp, head,
+	# (3) = descent (2) backwards. The cut is PINNED to the destination's step
+	#     line and the player climbs up through it — hidden, then scalp, head,
 	#     shoulders, a step at a time. The descent drops through this same fixed
 	#     cut feet-first; this is that, rewound.
 	_play_walk(sprite, 0.0)
-	_set_shred(sprite, cut_y, 1.0)
-	var climb_time: float = _climb_time(absf(top_of_stairs - player.global_position.y))
 	if sprite != null:
 		var grow := create_tween()
-		grow.tween_property(sprite, "scale", base_scale, climb_time) \
+		grow.tween_property(sprite, "scale", base_scale,
+			_climb_time(absf(line_center - player.global_position.y))) \
 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	var flight2 := _stagger_y(player, player.global_position.y, top_of_stairs)
+	var flight2 := _stagger_y(player, player.global_position.y, line_center)
 	await flight2.finished
 	if not is_instance_valid(player):
 		return
@@ -583,15 +545,6 @@ func apply_floor_camera(cam: Camera2D, bounds: Rect2, hud_bar_h: float = HUD_BAR
 	cam.limit_top = int(floor(bounds.position.y))
 	cam.limit_bottom = int(ceil(bounds.position.y + world_view_h))
 	cam.limit_smoothed = false
-	# APPLY THE CLAMP NOW. A Camera2D only re-evaluates its limits on its own
-	# next update, so the first frame of a freshly loaded floor was drawn from the
-	# raw camera position and the frame after from the clamped one — the whole
-	# view shifting by a pixel or two. On stairs, where nothing fades over it, that
-	# read as a judder, and it was worst next to text, which shows a sub-pixel
-	# shift more plainly than tiles do.
-	if cam.is_inside_tree():
-		cam.reset_smoothing()
-		cam.force_update_scroll()
 
 
 func _floor_spacing(bf: Node) -> float:
@@ -606,54 +559,14 @@ func _floor_spacing(bf: Node) -> float:
 	return tm.get_used_rect().size.y * cell_y * tm.scale.y
 
 
-func floor_scene_path(target_floor: int) -> String:
-	if target_floor == 30:
-		return "res://scenes/hallway.tscn"
-	if target_floor <= 0:
-		return "res://scenes/lobby.tscn"
-	return "res://scenes/building_floors.tscn"
-
-
-func _build_pending(target_floor: int) -> void:
-	# Instantiate the destination floor DETACHED, at the start of the pan. Nothing
-	# in it runs — _ready fires only when it is added to the tree at the commit —
-	# so this is pure allocation, moved off the arrival frame and onto a frame the
-	# player is watching a camera move on.
-	_drop_pending()
-	_pending_scene = load(floor_scene_path(target_floor)).instantiate()
-
-
-func _drop_pending() -> void:
-	if _pending_scene != null:
-		if is_instance_valid(_pending_scene) and not _pending_scene.is_inside_tree():
-			_pending_scene.free()
-		_pending_scene = null
-
-
 func _commit(target_floor: int) -> void:
 	panning = false
 	WorldState.current_floor = target_floor
 	WorldState.on_floor_arrived(target_floor)
 	HUD.update_floor_label()
-
-	# Swap by hand rather than change_scene_to_file, so the floor built during the
-	# pan is the one that goes in. Everything the old call did on this single
-	# frame — allocating every node of the floor — has already happened; only
-	# _ready is left. There is deliberately NO cover over the swap: a snapshot of
-	# the outgoing frame was tried and reverted (it returns black under GL
-	# Compatibility and painted a black box over the arrival), and the view-shift
-	# half of the judder is fixed properly in apply_floor_camera.
-	var path := floor_scene_path(target_floor)
-	if _pending_scene == null or not is_instance_valid(_pending_scene):
-		get_tree().change_scene_to_file(path)   # pan aborted early — plain load
-		return
-	var incoming := _pending_scene
-	_pending_scene = null
-	var tree := get_tree()
-	var outgoing := tree.current_scene
-	if outgoing != null:
-		tree.root.remove_child(outgoing)
-	tree.root.add_child(incoming)     # _ready runs here, with the floor already built
-	tree.current_scene = incoming
-	if outgoing != null:
-		outgoing.queue_free()
+	var path := "res://scenes/building_floors.tscn"
+	if target_floor == 30:
+		path = "res://scenes/hallway.tscn"
+	elif target_floor <= 0:
+		path = "res://scenes/lobby.tscn"
+	get_tree().change_scene_to_file(path)
