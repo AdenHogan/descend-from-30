@@ -62,6 +62,20 @@ func _ready() -> void:
 	chk(scalp_crosses - red_line >= StairPan.STEP_HEIGHT * 2.0,
 		"the climb into view is more than a single step (%.0fpx, step %.0f)"
 			% [scalp_crosses - red_line, StairPan.STEP_HEIGHT])
+	# THE SHAFT CROP. The player sprite is 48px at scale 3 — 144 wide — and the
+	# stairwell is barely 60, so a body standing dead centre in it still spills
+	# across the corridor wall. While the shredder runs, the sprite is cropped to
+	# the shaft, so nothing of them is drawn outside the opening.
+	var band := StairPan.shaft_band(148.0, 188.0)     # the left stairwell's two stair x's
+	chk(band.x < 148.0 and band.y > 188.0,
+		"the band contains both stair positions (%.0f..%.0f)" % [band.x, band.y])
+	chk(band.y - band.x < 144.0,
+		"...and is narrower than the sprite, or it crops nothing (%.0f wide)"
+			% (band.y - band.x))
+	var right := StairPan.shaft_band(1201.0, 1162.0)  # argument order must not matter
+	chk(right.x < 1162.0 and right.y > 1201.0,
+		"the right stairwell bands the same way round (%.0f..%.0f)" % [right.x, right.y])
+
 	# The two beats either side of the bend cover the same ground both ways.
 	chk(StairPan.TURN_HEIGHT > 0.0,
 		"visible flight is the same height both ways (%.0fpx)" % StairPan.TURN_HEIGHT)

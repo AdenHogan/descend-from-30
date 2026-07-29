@@ -22,6 +22,12 @@ stands before dissolving / after climbing back into view) and the cut
 (`red line + SHRED_FOOT`, on the yellow steps). Leaving and arriving must derive
 them the same way or a body dissolves at one height and reappears at another.
 
+**The shredder cuts on BOTH axes.** Vertically at the step line, and
+horizontally to the stairwell's own width (`shaft_band` / `SHAFT_MARGIN`). The
+player sprite is 48px at scale 3 — 144 wide — while the shaft is barely 60, so a
+body standing dead centre in it still spills across the corridor wall on either
+side. The x crop is live for exactly as long as the y cut is, in both directions.
+
 **The player moves through the cut; the cut does not move through the player.**
 Descending, the cut is pinned to the step line and they walk down through it.
 Arriving, it is pinned to the destination's step line and they walk up through
