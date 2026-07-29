@@ -230,12 +230,12 @@ func record_run_survived() -> void:
 	save_profile()
 
 
-const RUN_NAMES := ["Morning", "Afternoon", "Evening"]
+const RUN_NAMES := ["Morning", "Afternoon", "Night"]
 
 
 func run_name(run_index: int) -> String:
-	# Three character runs per playthrough (see docs/THREE_RUN_ARC.md, which
-	# calls the third "night" — the owner asked for Evening on screen).
+	# Three character runs per playthrough — morning, afternoon, night, matching
+	# docs/THREE_RUN_ARC.md.
 	var i: int = clampi(run_index - 1, 0, RUN_NAMES.size() - 1)
 	return RUN_NAMES[i]
 

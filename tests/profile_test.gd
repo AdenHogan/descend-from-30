@@ -84,7 +84,7 @@ func _test_slots() -> void:
 	chk(one["floor"] == 24, "slot 1 remembers the floor (%d)" % one["floor"])
 	chk(one["run"] == 2, "slot 1 remembers which run of the arc (%d)" % one["run"])
 	chk(WorldState.run_name(1) == "Morning" and WorldState.run_name(2) == "Afternoon" \
-		and WorldState.run_name(3) == "Evening", "runs are named morning/afternoon/evening")
+		and WorldState.run_name(3) == "Night", "runs are named morning/afternoon/night")
 
 	# Slots must not bleed into each other.
 	chk(not WorldState.slot_summary(2)["exists"], "slot 2 untouched by play in slot 1")
