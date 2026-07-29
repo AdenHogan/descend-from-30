@@ -18,7 +18,7 @@ func _ready() -> void:
 	chk(s != null, "profile_select.tscn loads")
 	# Left navigation column carries the heading and every action.
 	for nav in ["Nav/Heading", "Nav/Subheading", "Nav/ContinueButton",
-			"Nav/NewGameButton", "Nav/DeleteButton", "Nav/BackButton"]:
+			"Nav/NewGameButton", "Nav/DeleteButton", "Nav/BackButton", "Nav/Hint"]:
 		chk(s.get_node_or_null(nav) != null, "%s exists" % nav)
 	# Cards stay clean: header, emblem, current run, stats.
 	for slot in range(1, WorldState.SLOT_COUNT + 1):
@@ -43,6 +43,29 @@ func _ready() -> void:
 		for c in n.get_children():
 			stack.append(c)
 	chk(stop == 0, "no decorative control swallows clicks (%d)" % stop)
+	# DOUBLE-CLICK A CARD TO PLAY IT. Every card must be wired for it, or the
+	# shortcut silently works on some slots and not others.
+	add_child(s)
+	await get_tree().process_frame
+	for slot in range(1, WorldState.SLOT_COUNT + 1):
+		var btn = s.get_node_or_null("Slot%d/SelectButton" % slot)
+		chk(btn != null and btn.gui_input.get_connections().size() > 0,
+			"slot %d card listens for the double click" % slot)
+	chk(s.has_method("slot_action"), "the card's action is decidable without launching")
+
+	# THE SAFETY RULE: double-click may resume a save, never overwrite one.
+	# Getting this backwards silently destroys a playthrough.
+	for slot in range(1, WorldState.SLOT_COUNT + 1):
+		WorldState.delete_slot(slot)
+	chk(s.slot_action(1) == "new", "empty slot: double click starts a new game")
+	WorldState.use_slot(1)
+	WorldState.new_game()
+	WorldState.save_game("res://scenes/hallway.tscn")
+	chk(s.slot_action(1) == "continue",
+		"slot with a save: double click RESUMES it, never overwrites (%s)" % s.slot_action(1))
+	WorldState.delete_slot(1)
+	s.get_parent().remove_child(s)
+
 	# Playtime formatting is what the card shows for time played.
 	chk(WorldState.format_playtime(5064.0) == "01:24:24",
 		"playtime formats as HH:MM:SS (%s)" % WorldState.format_playtime(5064.0))

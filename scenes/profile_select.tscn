@@ -94,6 +94,18 @@ text = "DELETE"
 flat = true
 alignment = 0
 
+[node name="Hint" type="Label" parent="./Nav"]
+layout_mode = 0
+offset_left = 0.0
+offset_top = 312.0
+offset_right = 336.0
+offset_bottom = 336.0
+theme_override_font_sizes/font_size = 14
+text = "DOUBLE-CLICK A SLOT TO PLAY IT"
+vertical_alignment = 1
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.45, 0.45, 0.47, 1)
+
 [node name="BackButton" type="Button" parent="./Nav"]
 layout_mode = 0
 offset_left = 0.0
