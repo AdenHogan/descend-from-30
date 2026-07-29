@@ -82,14 +82,24 @@ func _ready() -> void:
 	# across the corridor wall. shaft_band takes its margin as an argument, so
 	# neither direction can inherit the other's.
 	var band := StairPan.shaft_band(148.0, 188.0, StairPan.UP_SHAFT_MARGIN)
-	chk(band.x < 148.0 and band.y > 188.0,
-		"the band contains both stair positions (%.0f..%.0f)" % [band.x, band.y])
+	chk(band.x <= 148.0 and band.y >= 188.0,
+		"the band spans both stair positions (%.0f..%.0f)" % [band.x, band.y])
 	chk(band.y - band.x < 144.0,
 		"...and is narrower than the sprite, or it crops nothing (%.0f wide)"
 			% (band.y - band.x))
 	var right := StairPan.shaft_band(1201.0, 1162.0, StairPan.UP_SHAFT_MARGIN)
-	chk(right.x < 1162.0 and right.y > 1201.0,
+	chk(right.x <= 1162.0 and right.y >= 1201.0,
 		"the right stairwell bands the same way round (%.0f..%.0f)" % [right.x, right.y])
+
+	# THE ARRIVAL MUST NOT BOUNCE. The ascent used to climb to the red line, drop
+	# the shader there (snapping the cropped sprite back to its full 144px width,
+	# in front of the scene) and then ease DOWN onto the floor. It now climbs
+	# straight to the standing line, so there is no drop; and the crop is released
+	# during the climb, while the player is still wholly below the cut and
+	# therefore undrawn.
+	chk(StairPan.UP_ARRIVE_REVEAL > 0.0,
+		"the shader comes off over a real interval, not instantly (%.2fs)"
+			% StairPan.UP_ARRIVE_REVEAL)
 
 	# The bend and the step onto the red line are mirrored, but each direction
 	# owns its own value.

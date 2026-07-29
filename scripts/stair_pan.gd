@@ -75,7 +75,11 @@ const UP_SHRED_FOOT := 14.0
 # shredder is running, the sprite is clipped to this band as well, so nothing of
 # them is ever drawn outside the stairwell. Widen to show more of them, narrow to
 # crop tighter to the opening.
-const UP_SHAFT_MARGIN := 6.0
+const UP_SHAFT_MARGIN := 0.0
+# How long the cut takes to drop past the feet once the player is standing on the
+# destination floor, so the last of them fades in rather than popping. Placed by
+# eye — it cannot be checked headless.
+const UP_ARRIVE_REVEAL := 0.12
 # THE SHREDDER. Clips away every pixel of the player sprite below cut_y (world
 # space). Descending through the stair line feeds them through it - feet first,
 # sliced in staggered stages - no z tricks, no painted boxes, no art rebuild.
@@ -372,7 +376,7 @@ func _ascend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vector
 	# of the descent, where it stays put for the opening step and moves for the
 	# rest.
 	var total: float = _climb_time(absf(turn_y - stand_y)) + cross_est \
-		+ _climb_time(absf(line_center - turn_y))
+		+ _climb_time(absf(dest_y - turn_y))
 	var cam_tw := create_tween()
 	cam_tw.tween_property(pan_cam, "global_position:y",
 		pan_cam.global_position.y + floor_offset, total) \
@@ -388,18 +392,18 @@ func _ascend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vector
 
 	# (2) The landing turn: they go behind the bend and are gone by the end of it.
 	#
-	#     This is the ONE beat that is not a strict reversal of the descent, and
-	#     that is on purpose. Mirroring it exactly means clip_dir +1, where visible
-	#     = everything ABOVE the cut — so as the cut rises the last thing left is
-	#     the TOP OF THE HEAD, and it floats out across the corridor wall. That is
-	#     the bug in the owner's screenshot.
+	#     clip_dir -1 discards everything ABOVE the cut, so sweeping the cut DOWN
+	#     through them eats the body HEAD FIRST and the last thing left is the
+	#     feet, low and inside the shaft. Mirroring the descent exactly would mean
+	#     +1, where visible = everything above the cut — the last thing left is
+	#     then the top of the head, floating out over the corridor wall. This is
+	#     the one beat that is deliberately not a strict reversal.
 	#
-	#     clip_dir -1 discards everything above the cut instead, so sweeping the
-	#     cut DOWN through them eats the body HEAD FIRST and the last thing left is
-	#     the feet, low and inside the shaft. Both sweeps are player-relative, so
-	#     the dissolve always completes within the turn no matter how far apart the
-	#     floors are. The x band crops whatever is still drawn to the stairwell's
-	#     own width, so nothing shows on the wall beside it.
+	#     The x band crops the sprite to the shaft for this beat ONLY. It is 144px
+	#     wide and the shaft is ~40, so without it a half-dissolved body shows on
+	#     the wall beside the opening. It is released in beat (3), at a moment when
+	#     nothing of the player is drawn — releasing it while any of them is
+	#     visible snaps the sprite back to full width, which reads as a pop.
 	_play_walk(sprite, turn_x - player.global_position.x)
 	var band := shaft_band(player.global_position.x, turn_x, UP_SHAFT_MARGIN)
 	_set_shred(sprite, player.global_position.y - SHRED_TOP, -1.0, band)
@@ -416,30 +420,42 @@ func _ascend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vector
 	if not is_instance_valid(player):
 		return
 
-	# (3) = descent (2) backwards. The cut is PINNED to the destination's step
-	#     line and the player climbs up through it — hidden, then scalp, head,
-	#     shoulders, a step at a time. The descent drops through this same fixed
-	#     cut feet-first; this is that, rewound.
+	# (3) The climb into view, and the arrival — ONE continuous move to the floor.
+	#
+	#     The cut is PINNED to the destination's step line and the player walks up
+	#     through it: hidden, then scalp, head, shoulders, a step at a time.
+	#
+	#     It climbs to dest_y, NOT to the red line. Stopping above the floor and
+	#     then easing down to it made the player rise, stop, and drop back — and
+	#     because the crop came off at the top of that climb, the sprite snapped
+	#     to full width in front of the scene on the way. There is no separate
+	#     settle beat any more: they walk up and they are standing there.
+	#
+	#     Re-arming the shred here with no band releases the crop while the player
+	#     is still wholly below the cut and therefore wholly undrawn — the release
+	#     cannot be seen.
 	_play_walk(sprite, 0.0)
-	_set_shred(sprite, cut_y, 1.0, band)   # back to +1: visible = above the cut
+	_set_shred(sprite, cut_y, 1.0)
 	if sprite != null:
 		var grow := create_tween()
 		grow.tween_property(sprite, "scale", base_scale,
-			_climb_time(absf(line_center - player.global_position.y))) \
+			_climb_time(absf(dest_y - player.global_position.y))) \
 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	var flight2 := _stagger_y(player, player.global_position.y, line_center)
+	var flight2 := _stagger_y(player, player.global_position.y, dest_y)
 	await flight2.finished
 	if not is_instance_valid(player):
 		return
+
+	#     Standing on the floor, the cut still clips their shoes. Drop it past
+	#     their feet before taking the shader off, so the last of them fades in
+	#     instead of appearing. Same trick the descent uses at the end of its turn.
+	if _shred_mat != null and sprite != null and is_instance_valid(sprite):
+		var settle := create_tween()
+		settle.tween_property(_shred_mat, "shader_parameter/cut_y",
+			dest_y + SHRED_BOTTOM + 60.0, UP_ARRIVE_REVEAL)
+		await settle.finished
 	if sprite != null and is_instance_valid(sprite):
 		_clear_shred(sprite)
-
-	# (4) = descent (1) backwards. They stepped UP onto the red line to leave;
-	#     they step DOWN off it to arrive. Same 0.3s ease, same distance.
-	var settle := create_tween()
-	settle.tween_property(player, "global_position:y", dest_y, 0.3) \
-		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	await settle.finished
 	_play_idle(sprite)
 
 
