@@ -27,28 +27,34 @@ const TURN_TIME := 0.40      # crossing the landing between flights (horizontal 
 const STEP_HEIGHT := 16.0          # one tile per step
 const STEP_TIME := 0.13            # seconds per step
 const STEP_MOVE_FRACTION := 0.6    # of each step spent moving; the rest is the beat between
-# Where the descent begins: the player first walks UP to the line where the
-# stairs drop away (the owner's red line), this far above their standing spot.
-const STAIR_APPROACH := 28.0
+# Where the descent begins: the player steps UP to the line where the stairs
+# drop away (the owner's red line), this far above their standing spot. Small
+# on purpose — they were rising far too high before pressing into the stairwell.
+const STAIR_APPROACH := 10.0
 # The dog-leg bend sits this far above the LOWER floor's standing line -
 # descending you turn mid-staircase on the floor below; ascending you turn at
 # the top of your own flight. (The old halfway turn was far too high.)
 const TURN_HEIGHT := 48.0
-# Distance from the player's origin to their FEET - places the shredder cut on
-# the platform edge they are standing on.
-const SHRED_FOOT := 46.0
+# Where the cut sits relative to the player's origin. This must land on the
+# YELLOW STEPS, not the floor below them — cutting at the true foot line made it
+# look like the player was clipping through the floor rather than descending
+# stairs that start higher up.
+const SHRED_FOOT := 20.0
 # THE SHREDDER. Clips away every pixel of the player sprite below cut_y (world
 # space). Descending through the stair line feeds them through it - feet first,
 # sliced in staggered stages - no z tricks, no painted boxes, no art rebuild.
 const SHRED_SHADER := """
 shader_type canvas_item;
 uniform float cut_y = 999999.0;
+// +1 discards BELOW the line (descending: sliced away feet first)
+// -1 discards ABOVE the line (ascending: sliced away head first)
+uniform float clip_dir = 1.0;
 varying float world_y;
 void vertex() {
 	world_y = (MODEL_MATRIX * vec4(VERTEX, 0.0, 1.0)).y;
 }
 void fragment() {
-	if (world_y > cut_y) {
+	if ((world_y - cut_y) * clip_dir > 0.0) {
 		discard;
 	}
 }
@@ -240,8 +246,9 @@ func _descend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vecto
 
 	# Camera covers the rest of the trip in one smooth move (it stayed put for
 	# the approach - the player was still on this floor).
+	var cross_est: float = maxf(_climb_time(absf(turn_x - player.global_position.x)), TURN_TIME)
 	var total: float = _climb_time(absf(turn_y - player.global_position.y)) \
-		+ TURN_TIME + _climb_time(absf(dest_y - turn_y))
+		+ cross_est + _climb_time(absf(dest_y - turn_y))
 	var cam_tw := create_tween()
 	cam_tw.tween_property(pan_cam, "global_position:y",
 		pan_cam.global_position.y + floor_offset, total) \
@@ -264,14 +271,19 @@ func _descend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vecto
 	# (3) The landing turn, mid-staircase on the floor BELOW - and the shredder
 	#     runs in reverse: the cut sweeps down through them as they cross, so
 	#     they return to full form during the left/right move.
+	# They must be seen WALKING into frame along the staircase, not simply
+	# appearing there — that is what sells "came down the stairs and rounded the
+	# bend". Linear, at walking pace, with the walk cycle actually playing.
+	_play_walk(sprite, turn_x - player.global_position.x)
+	var cross_time: float = maxf(_climb_time(absf(turn_x - player.global_position.x)), TURN_TIME)
 	var leg2 := create_tween().set_parallel(true)
-	leg2.tween_property(player, "global_position:x", turn_x, TURN_TIME) \
-		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	leg2.tween_property(player, "global_position:x", turn_x, cross_time) \
+		.set_trans(Tween.TRANS_LINEAR)
 	if _shred_mat != null:
 		leg2.tween_property(_shred_mat, "shader_parameter/cut_y",
-			dest_y + SHRED_FOOT + 8.0, TURN_TIME)
+			player.global_position.y + SHRED_FOOT + 90.0, cross_time)
 	if sprite != null:
-		leg2.tween_property(sprite, "scale", base_scale, TURN_TIME) \
+		leg2.tween_property(sprite, "scale", base_scale, cross_time) \
 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	await leg2.finished
 	if not is_instance_valid(player):
@@ -280,24 +292,32 @@ func _descend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vecto
 		_clear_shred(sprite)
 
 	# (4) The last visible steps down the lower flight to the arrival spot.
+	_play_walk(sprite, 0.0)
 	var flight2 := _stagger_y(player, player.global_position.y, dest_y)
 	await flight2.finished
+	_play_idle(sprite)
 
 
 func _ascend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vector2,
 		floor_offset: float, turn_x: float, turn_y: float, dest_y: float,
 		base_z: int) -> void:
-	# Camera pans across the whole climb from the first step.
+	# MIRROR OF THE DESCENT. Climbing used to leave the player drawn in FRONT of
+	# the scene the whole way up; now the same shredder runs with the cut
+	# inverted, so they are sliced away HEAD FIRST as they rise past the stair
+	# line and disappear into the stairwell exactly as they sank into it.
+	var cross_est: float = maxf(_climb_time(absf(turn_x - player.global_position.x)), TURN_TIME)
 	var total: float = _climb_time(absf(turn_y - player.global_position.y)) \
-		+ TURN_TIME + _climb_time(absf(turn_y - dest_y))
+		+ cross_est + _climb_time(absf(turn_y - dest_y))
 	var cam_tw := create_tween()
 	cam_tw.tween_property(pan_cam, "global_position:y",
 		pan_cam.global_position.y + floor_offset, total) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
-	# (1) The visible flight: up the steps to the bend, shrinking slightly into
-	#     the scene. The bend is LOW (TURN_HEIGHT above standing) - the old
-	#     halfway turn put the player's head in the ceiling.
+	# (1) Up the visible steps to the bend, shrinking into the stairwell. The cut
+	#     sits at the stair line above them and eats them head first as they rise.
+	var line: float = player.global_position.y - STAIR_APPROACH - SHRED_FOOT
+	_set_shred(sprite, line, -1.0)
+	_play_walk(sprite, 0.0)
 	if sprite != null:
 		var shrink := create_tween()
 		shrink.tween_property(sprite, "scale", base_scale * DEPTH_SCALE,
@@ -308,13 +328,13 @@ func _ascend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vector
 	if not is_instance_valid(player) or not is_instance_valid(pan_cam):
 		return
 
-	# (2) Round the bend - out of sight behind the stairwell wall - and cross.
-	#     (The corridor tilemap is solid, so z -1 is a FULL hide; that is
-	#     correct here: they have gone around the bend.)
+	# (2) Fully out of sight now: round the bend and cross to the next flight.
+	#     (The corridor tilemap is solid, so z -1 is a FULL hide — correct here.)
 	player.z_index = Z_BEHIND_SCENE
+	_clear_shred(sprite)
 	var leg2 := create_tween()
-	leg2.tween_property(player, "global_position:x", turn_x, TURN_TIME) \
-		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	leg2.tween_property(player, "global_position:x", turn_x, cross_est) \
+		.set_trans(Tween.TRANS_LINEAR)
 	await leg2.finished
 	if not is_instance_valid(player):
 		return
@@ -326,21 +346,39 @@ func _ascend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vector
 	if not is_instance_valid(player):
 		return
 
-	# (4) ...emerging for the last steps up into the corridor.
+	# (4) ...emerging onto the new floor: back in front of the scene, growing to
+	#     full size, walking the last steps up into the corridor.
 	player.z_index = base_z
+	_play_walk(sprite, 0.0)
 	if sprite != null and is_instance_valid(sprite):
 		var grow := create_tween()
 		grow.tween_property(sprite, "scale", base_scale, _climb_time(TURN_HEIGHT)) \
 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	var flight3 := _stagger_y(player, reveal_y, dest_y)
 	await flight3.finished
+	_play_idle(sprite)
+
+
+func _play_walk(sprite: Node, dir: float) -> void:
+	# The pan owns the body (is_cutscene), so the normal movement code is not
+	# driving animation — play it explicitly, or the player slides/appears
+	# without ever looking like they walked.
+	if sprite == null or not is_instance_valid(sprite):
+		return
+	sprite.flip_h = dir < 0.0
+	sprite.play("walk")
+
+
+func _play_idle(sprite: Node) -> void:
+	if sprite != null and is_instance_valid(sprite):
+		sprite.play("idle")
 
 
 var _shred_mat: ShaderMaterial = null
 var _shred_saved: Material = null
 
 
-func _set_shred(sprite: Node, cut_y: float) -> void:
+func _set_shred(sprite: Node, cut_y: float, clip_dir: float = 1.0) -> void:
 	if sprite == null:
 		return
 	if _shred_mat == null:
@@ -350,6 +388,7 @@ func _set_shred(sprite: Node, cut_y: float) -> void:
 		_shred_mat.shader = sh
 	_shred_saved = sprite.material
 	_shred_mat.set_shader_parameter("cut_y", cut_y)
+	_shred_mat.set_shader_parameter("clip_dir", clip_dir)
 	sprite.material = _shred_mat
 
 
