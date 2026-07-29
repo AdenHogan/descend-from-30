@@ -27,15 +27,32 @@ const TURN_TIME := 0.40      # crossing the landing between flights (horizontal 
 const STEP_HEIGHT := 16.0          # one tile per step
 const STEP_TIME := 0.13            # seconds per step
 const STEP_MOVE_FRACTION := 0.6    # of each step spent moving; the rest is the beat between
-# How much of the first flight the player spends at normal z, sinking behind the
-# StairPit* front layer step by step — this is what "sliced away bit by bit"
-# looks like. Only AFTER that do they drop behind the scene entirely for the
-# hidden turn. It is high on purpose: the pit does the hiding, gradually, rather
-# than a z-flip blinking them out.
-const VISIBLE_FLIGHT := 0.85
-# How far the player walks up INTO the stairwell mouth before slipping behind the
-# scene — same beat as player.approach_door before a door fade.
-const STAIR_APPROACH := 14.0
+# Where the descent begins: the player first walks UP to the line where the
+# stairs drop away (the owner's red line), this far above their standing spot.
+const STAIR_APPROACH := 28.0
+# The dog-leg bend sits this far above the LOWER floor's standing line -
+# descending you turn mid-staircase on the floor below; ascending you turn at
+# the top of your own flight. (The old halfway turn was far too high.)
+const TURN_HEIGHT := 48.0
+# Distance from the player's origin to their FEET - places the shredder cut on
+# the platform edge they are standing on.
+const SHRED_FOOT := 46.0
+# THE SHREDDER. Clips away every pixel of the player sprite below cut_y (world
+# space). Descending through the stair line feeds them through it - feet first,
+# sliced in staggered stages - no z tricks, no painted boxes, no art rebuild.
+const SHRED_SHADER := """
+shader_type canvas_item;
+uniform float cut_y = 999999.0;
+varying float world_y;
+void vertex() {
+	world_y = (MODEL_MATRIX * vec4(VERTEX, 0.0, 1.0)).y;
+}
+void fragment() {
+	if (world_y > cut_y) {
+		discard;
+	}
+}
+"""
 # Behind the corridor art. Actors sit at z_index 1 and the backdrop at 0, so -1
 # tucks the player BEHIND the floor and wall tiles: they leave the corridor
 # inside the stairwell instead of sliding across the front of the scene.
@@ -49,8 +66,6 @@ const Z_BEHIND_SCENE := -1
 # little (further away) and dim a little (the stairwell is unlit). Applied to the
 # SPRITE, never the body — scaling a CharacterBody2D would scale its collision.
 const DEPTH_SCALE := 0.82    # size at the back of the stairwell (1.0 = no depth)
-const DEPTH_DIM := 1.0       # no dimming: fading read as a ghost over the front
-							 # of the scene. Depth comes from OCCLUSION + shrink.
 # The legs derive from the floor height and the destination spawn, so there is
 # nothing to hand-tune here: half a floor up, across the landing, half a floor
 # more. StairFrontLeft/Right in building_floors.tscn are the FRONT LAYER of the
@@ -173,19 +188,14 @@ func pan_to_floor(target_floor: int, direction: String) -> void:
 	# with the player is what made the arrival jump and exposed the cut.
 	var hold_x: float = pan_cam.global_position.x
 
-	# A real staircase is a DOG-LEG: one flight, a landing where you turn, then the
-	# next flight. So the player's path is three AXIS-ALIGNED legs and never a
-	# diagonal — vertical, horizontal, vertical:
-	#
-	#     26 -> 25 : down, right, down        25 -> 24 : down, left, down
-	#     24 -> 25 : up,   right, up          (each trip is the reverse of its twin)
-	#
-	# The horizontal leg is simply "where I am now" -> "where this floor's stairs
-	# put me", which is why the turn direction flips by side and by direction; it
-	# needs no special-casing. The whole dog-leg happens behind the occluder.
+	# A real staircase is a DOG-LEG: flight, landing, flight - three
+	# AXIS-ALIGNED legs, never a diagonal. The bend sits TURN_HEIGHT above the
+	# LOWER of the two floors' standing lines: descending you turn mid-staircase
+	# on the floor below, ascending you turn at the top of your own flight.
 	var turn_x: float = targets["player_target"].x
 	var start_y: float = player.global_position.y
-	var half: float = floor_offset * 0.5
+	var dest_y: float = targets["player_target"].y
+	var turn_y: float = maxf(start_y, dest_y) - TURN_HEIGHT
 
 	var sprite: Node = player.get_node_or_null("AnimatedSprite2D")
 	var base_scale := Vector2.ONE
@@ -195,103 +205,158 @@ func pan_to_floor(target_floor: int, direction: String) -> void:
 		base_mod = sprite.modulate
 	var base_z: int = player.z_index
 
-	# Beat 0 — APPROACH: walk up into the mouth of the stairwell, still in front
-	#          of the scene, exactly like approach_door before a door fade. This
-	#          is the "walk to the line" beat.
-	var approach := create_tween()
-	approach.tween_property(player, "global_position:y",
-		player.global_position.y - STAIR_APPROACH, TURN_TIME) \
-		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	await approach.finished
-	if not is_instance_valid(player) or not is_instance_valid(pan_cam):
-		_commit(target_floor)
-		return
+	if down:
+		await _descend(player, sprite, pan_cam, base_scale, floor_offset,
+			turn_x, turn_y, dest_y)
+	else:
+		await _ascend(player, sprite, pan_cam, base_scale, floor_offset,
+			turn_x, turn_y, dest_y, base_z)
 
-	start_y = player.global_position.y
-
-	# Every vertical leg is stepped at a fixed pace, so the CAMERA's duration has
-	# to follow the player rather than the other way round: one step per tile of
-	# height across the whole floor, plus the landing.
-	var total: float = _climb_time(absf(floor_offset)) + TURN_TIME
-	var cam_tw := create_tween()
-	cam_tw.tween_property(pan_cam, "global_position:y",
-		pan_cam.global_position.y + floor_offset, total) \
-		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-
-	# Leg 1a — VISIBLE: climbing the steps in full view, one step per tile, while
-	#          receding into the stairwell (shrink + dim). This is the beat that
-	#          sells the whole thing, so it must NOT be hidden — the corridor
-	#          tilemap is solid, so going behind it here erased the climb entirely.
-	var visible_end: float = start_y + half * VISIBLE_FLIGHT
-	if sprite != null:
-		var depth := create_tween().set_parallel(true)
-		depth.tween_property(sprite, "scale", base_scale * DEPTH_SCALE,
-			_climb_time(absf(visible_end - start_y))) \
-			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
-		depth.tween_property(sprite, "modulate",
-			Color(base_mod.r * DEPTH_DIM, base_mod.g * DEPTH_DIM, base_mod.b * DEPTH_DIM, base_mod.a),
-			_climb_time(absf(visible_end - start_y))) \
-			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
-	var leg1a := _stagger_y(player, start_y, visible_end)
-	await leg1a.finished
-	if not is_instance_valid(player) or not is_instance_valid(pan_cam):
-		_commit(target_floor)
-		return
-
-	# Now they are leaving the corridor — only NOW go behind the scene, so the
-	# rest of the trip happens out of sight rather than sliding over the tiles.
-	player.z_index = Z_BEHIND_SCENE
-
-	# Leg 1b — the rest of the first flight, hidden.
-	var leg1b := _stagger_y(player, visible_end, start_y + half)
-	await leg1b.finished
-	if not is_instance_valid(player) or not is_instance_valid(pan_cam):
-		_commit(target_floor)
-		return
-
-	# Leg 2 — HORIZONTAL: the landing. Turn and cross to the next flight.
-	var leg2 := create_tween()
-	leg2.tween_property(player, "global_position:x", turn_x, TURN_TIME) \
-		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	await leg2.finished
-	if not is_instance_valid(player) or not is_instance_valid(pan_cam):
-		_commit(target_floor)
-		return
-
-	# Leg 3a — the second flight, still hidden, until they reach the point where
-	#          the next floor's stairwell would reveal them.
-	var reveal_y: float = targets["player_target"].y - half * VISIBLE_FLIGHT
-	var leg3a := _stagger_y(player, player.global_position.y, reveal_y)
-	await leg3a.finished
-	if not is_instance_valid(player) or not is_instance_valid(pan_cam):
-		_commit(target_floor)
-		return
-
-	# Leg 3b — VISIBLE: step out onto the new floor, coming back toward the camera
-	#          as the depth cues unwind, landing exactly where the destination
-	#          scene will place the player so the commit is invisible.
-	player.z_index = base_z
-	if sprite != null:
-		var undepth := create_tween().set_parallel(true)
-		undepth.tween_property(sprite, "scale", base_scale,
-			_climb_time(absf(targets["player_target"].y - reveal_y))) \
-			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-		undepth.tween_property(sprite, "modulate", base_mod,
-			_climb_time(absf(targets["player_target"].y - reveal_y))) \
-			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	var leg3b := _stagger_y(player, reveal_y, targets["player_target"].y)
-	await leg3b.finished
-	pan_cam.global_position.x = hold_x
-	# Belt-and-braces: the destination scene builds a fresh player, but if this
-	# one survives (aborted pan, future reuse) it must not stay shrunk, dim, or
-	# stuck behind the scenery.
+	# Never leave the player shredded, shrunk, or hidden - the destination scene
+	# builds a fresh player, but an aborted pan must not strand this one.
+	if is_instance_valid(pan_cam):
+		pan_cam.global_position.x = hold_x
 	if is_instance_valid(player):
 		player.z_index = base_z
 	if sprite != null and is_instance_valid(sprite):
 		sprite.scale = base_scale
 		sprite.modulate = base_mod
+		_clear_shred(sprite)
 
 	_commit(target_floor)
+
+
+func _descend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vector2,
+		floor_offset: float, turn_x: float, turn_y: float, dest_y: float) -> void:
+	# (1) Walk up to the LINE where the stairs begin to go down (the red line) -
+	#     whole and visible, stepping into the dark mouth of the stairwell.
+	var line_center: float = player.global_position.y - STAIR_APPROACH
+	var approach := create_tween()
+	approach.tween_property(player, "global_position:y", line_center, 0.3) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	await approach.finished
+	if not is_instance_valid(player) or not is_instance_valid(pan_cam):
+		return
+
+	# Camera covers the rest of the trip in one smooth move (it stayed put for
+	# the approach - the player was still on this floor).
+	var total: float = _climb_time(absf(turn_y - player.global_position.y)) \
+		+ TURN_TIME + _climb_time(absf(dest_y - turn_y))
+	var cam_tw := create_tween()
+	cam_tw.tween_property(pan_cam, "global_position:y",
+		pan_cam.global_position.y + floor_offset, total) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+	# (2) THE SHREDDER. The cut sits on the platform edge under their feet;
+	#     dropping step by step feeds them through it - feet, legs, torso, head -
+	#     until nothing is left above the line.
+	_set_shred(sprite, line_center + SHRED_FOOT)
+	if sprite != null:
+		var shrink := create_tween()
+		shrink.tween_property(sprite, "scale", base_scale * DEPTH_SCALE,
+			_climb_time(absf(turn_y - player.global_position.y))) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	var flight1 := _stagger_y(player, player.global_position.y, turn_y)
+	await flight1.finished
+	if not is_instance_valid(player) or not is_instance_valid(pan_cam):
+		return
+
+	# (3) The landing turn, mid-staircase on the floor BELOW - and the shredder
+	#     runs in reverse: the cut sweeps down through them as they cross, so
+	#     they return to full form during the left/right move.
+	var leg2 := create_tween().set_parallel(true)
+	leg2.tween_property(player, "global_position:x", turn_x, TURN_TIME) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	if _shred_mat != null:
+		leg2.tween_property(_shred_mat, "shader_parameter/cut_y",
+			dest_y + SHRED_FOOT + 8.0, TURN_TIME)
+	if sprite != null:
+		leg2.tween_property(sprite, "scale", base_scale, TURN_TIME) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	await leg2.finished
+	if not is_instance_valid(player):
+		return
+	if sprite != null and is_instance_valid(sprite):
+		_clear_shred(sprite)
+
+	# (4) The last visible steps down the lower flight to the arrival spot.
+	var flight2 := _stagger_y(player, player.global_position.y, dest_y)
+	await flight2.finished
+
+
+func _ascend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vector2,
+		floor_offset: float, turn_x: float, turn_y: float, dest_y: float,
+		base_z: int) -> void:
+	# Camera pans across the whole climb from the first step.
+	var total: float = _climb_time(absf(turn_y - player.global_position.y)) \
+		+ TURN_TIME + _climb_time(absf(turn_y - dest_y))
+	var cam_tw := create_tween()
+	cam_tw.tween_property(pan_cam, "global_position:y",
+		pan_cam.global_position.y + floor_offset, total) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+	# (1) The visible flight: up the steps to the bend, shrinking slightly into
+	#     the scene. The bend is LOW (TURN_HEIGHT above standing) - the old
+	#     halfway turn put the player's head in the ceiling.
+	if sprite != null:
+		var shrink := create_tween()
+		shrink.tween_property(sprite, "scale", base_scale * DEPTH_SCALE,
+			_climb_time(absf(turn_y - player.global_position.y))) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	var flight1 := _stagger_y(player, player.global_position.y, turn_y)
+	await flight1.finished
+	if not is_instance_valid(player) or not is_instance_valid(pan_cam):
+		return
+
+	# (2) Round the bend - out of sight behind the stairwell wall - and cross.
+	#     (The corridor tilemap is solid, so z -1 is a FULL hide; that is
+	#     correct here: they have gone around the bend.)
+	player.z_index = Z_BEHIND_SCENE
+	var leg2 := create_tween()
+	leg2.tween_property(player, "global_position:x", turn_x, TURN_TIME) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	await leg2.finished
+	if not is_instance_valid(player):
+		return
+
+	# (3) The hidden climb up the second flight...
+	var reveal_y: float = dest_y + TURN_HEIGHT
+	var flight2 := _stagger_y(player, player.global_position.y, reveal_y)
+	await flight2.finished
+	if not is_instance_valid(player):
+		return
+
+	# (4) ...emerging for the last steps up into the corridor.
+	player.z_index = base_z
+	if sprite != null and is_instance_valid(sprite):
+		var grow := create_tween()
+		grow.tween_property(sprite, "scale", base_scale, _climb_time(TURN_HEIGHT)) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	var flight3 := _stagger_y(player, reveal_y, dest_y)
+	await flight3.finished
+
+
+var _shred_mat: ShaderMaterial = null
+var _shred_saved: Material = null
+
+
+func _set_shred(sprite: Node, cut_y: float) -> void:
+	if sprite == null:
+		return
+	if _shred_mat == null:
+		var sh := Shader.new()
+		sh.code = SHRED_SHADER
+		_shred_mat = ShaderMaterial.new()
+		_shred_mat.shader = sh
+	_shred_saved = sprite.material
+	_shred_mat.set_shader_parameter("cut_y", cut_y)
+	sprite.material = _shred_mat
+
+
+func _clear_shred(sprite: Node) -> void:
+	if sprite != null and is_instance_valid(sprite) and sprite.material == _shred_mat:
+		sprite.material = _shred_saved
+	_shred_saved = null
 
 
 func _climb_time(distance: float) -> float:

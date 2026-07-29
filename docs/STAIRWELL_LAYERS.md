@@ -1,7 +1,20 @@
 # Stairwell layering — why the descent looks wrong, and what to build
 
-Status: **problem diagnosed, art rebuild required.** Written up so the next
-session (or a different model) does not repeat three rounds of wrong fixes.
+Status: **descent solved with a clip shader ("the shredder") — see below.** An
+art overhaul is still wanted for LOOKS (the owner finds the stairwell ugly), but
+it is no longer required to make the descent read correctly. Written up so the
+next session does not repeat three rounds of wrong fixes.
+
+## The shredder (implemented, stair_pan.gd)
+
+A ShaderMaterial applied to the player sprite during the pan discards every
+pixel below `cut_y` (world space). Descending through the stair line feeds the
+player through it — feet first, sliced in staggered stages — with no z tricks,
+no painted boxes, no tilemap hole. The cut reverses (sweeps down) during the
+landing turn on the floor below, reassembling them to full form, and the last
+flight is walked visibly. Tunables: STAIR_APPROACH (the red line height),
+TURN_HEIGHT (bend height — the old halfway turn was far too high), SHRED_FOOT,
+DEPTH_SCALE.
 
 ## The question that matters
 
