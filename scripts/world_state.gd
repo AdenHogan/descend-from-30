@@ -19,8 +19,24 @@ var is_first_run: bool = true
 # game, so pressing Play in the editor (or starting a fresh game) no longer
 # replays the Floor 30 tutorial for someone who has seen it. Lives beside
 # keybinds.cfg in user://.
-const PROFILE_PATH := "user://profile.cfg"
+const SLOT_COUNT := 3
+var active_slot: int = 1
+
+# Per-slot files. The SAVE is one playthrough; the PROFILE is the player behind
+# it — runs attempted, runs survived, whether they have been taught the game —
+# plus a small mirror of the save's headline facts (floor, which run of the
+# arc) so the select screen can describe a slot without parsing its save JSON.
+func profile_path(slot: int = -1) -> String:
+	return "user://slot_%d_profile.cfg" % (active_slot if slot < 0 else slot)
+
+
+func slot_save_path(slot: int = -1) -> String:
+	return "user://slot_%d_save.json" % (active_slot if slot < 0 else slot)
+
+
 var tutorial_completed: bool = false
+var runs_made: int = 0
+var runs_successful: int = 0
 # Session-only: makes the "who does the game think I am" notice appear once.
 var profile_announced: bool = false
 # First-run opener (locked-out cold open) — plays once at the start of run 1;
@@ -139,15 +155,86 @@ func _ready() -> void:
 
 func load_profile() -> void:
 	var cfg := ConfigFile.new()
-	if cfg.load(PROFILE_PATH) == OK:
+	tutorial_completed = false
+	runs_made = 0
+	runs_successful = 0
+	if cfg.load(profile_path()) == OK:
 		tutorial_completed = bool(cfg.get_value("progress", "tutorial_completed", false))
+		runs_made = int(cfg.get_value("stats", "runs_made", 0))
+		runs_successful = int(cfg.get_value("stats", "runs_successful", 0))
 
 
 func save_profile() -> void:
 	var cfg := ConfigFile.new()
-	cfg.load(PROFILE_PATH)   # keep any other keys already stored
+	cfg.load(profile_path())   # keep any other keys already stored
 	cfg.set_value("progress", "tutorial_completed", tutorial_completed)
-	cfg.save(PROFILE_PATH)
+	cfg.set_value("stats", "runs_made", runs_made)
+	cfg.set_value("stats", "runs_successful", runs_successful)
+	# Mirror the headline save facts so the select screen can read one small
+	# file per slot instead of loading three save games.
+	cfg.set_value("resume", "has_save", FileAccess.file_exists(slot_save_path()))
+	cfg.set_value("resume", "floor", current_floor)
+	cfg.set_value("resume", "run", current_run)
+	cfg.save(profile_path())
+
+
+func record_run_started() -> void:
+	runs_made += 1
+	save_profile()
+
+
+func record_run_survived() -> void:
+	runs_successful += 1
+	save_profile()
+
+
+const RUN_NAMES := ["Morning", "Afternoon", "Evening"]
+
+
+func run_name(run_index: int) -> String:
+	# Three character runs per playthrough (see docs/THREE_RUN_ARC.md, which
+	# calls the third "night" — the owner asked for Evening on screen).
+	var i: int = clampi(run_index - 1, 0, RUN_NAMES.size() - 1)
+	return RUN_NAMES[i]
+
+
+func slot_summary(slot: int) -> Dictionary:
+	# Everything the profile-select screen needs about ONE slot, without
+	# touching the save file or the currently loaded state.
+	var out := {
+		"slot": slot, "exists": false, "tutorial_completed": false,
+		"runs_made": 0, "runs_successful": 0,
+		"has_save": false, "floor": 0, "run": 1,
+	}
+	var cfg := ConfigFile.new()
+	var have_cfg := cfg.load(profile_path(slot)) == OK
+	var have_save := FileAccess.file_exists(slot_save_path(slot))
+	if not have_cfg and not have_save:
+		return out            # genuinely empty slot: a NEW PLAYER lives here
+	out["exists"] = true
+	if have_cfg:
+		out["tutorial_completed"] = bool(cfg.get_value("progress", "tutorial_completed", false))
+		out["runs_made"] = int(cfg.get_value("stats", "runs_made", 0))
+		out["runs_successful"] = int(cfg.get_value("stats", "runs_successful", 0))
+		out["floor"] = int(cfg.get_value("resume", "floor", 0))
+		out["run"] = int(cfg.get_value("resume", "run", 1))
+	out["has_save"] = have_save
+	return out
+
+
+func use_slot(slot: int) -> void:
+	active_slot = clampi(slot, 1, SLOT_COUNT)
+	load_profile()
+
+
+func delete_slot(slot: int) -> void:
+	# Wipe a profile back to factory — the next New Game in it is a new player
+	# and gets the tutorial again.
+	for path in [profile_path(slot), slot_save_path(slot)]:
+		if FileAccess.file_exists(path):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+	if slot == active_slot:
+		load_profile()
 
 
 func mark_tutorial_completed() -> void:
@@ -173,6 +260,7 @@ func new_game() -> void:
 	# A NEW GAME is not a new PLAYER: only someone who has never finished the
 	# tutorial gets taught it again.
 	is_first_run = not tutorial_completed
+	record_run_started()
 	master_seed = randi()
 	apartment_layouts.clear()
 	anchor_items.clear()
@@ -1410,6 +1498,8 @@ func roll_zombie_loot_id(pos: Vector2, floor_num: int) -> String:
 # SAVE / LOAD
 # ============================================================
 
+# Legacy single-save path, kept only so an existing pre-profile save is not
+# orphaned; everything now goes through slot_save_path().
 const SAVE_PATH = "user://savegame.json"
 
 func save_game(scene_path: String) -> void:
@@ -1470,16 +1560,17 @@ func save_game(scene_path: String) -> void:
 		"merchant_sales": merchant_sales,
 		"upgrade_offers": upgrade_offers,
 	}
-	var file = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	save_profile()   # keep the slot summary (floor / run) in step with the save
+	var file = FileAccess.open(slot_save_path(), FileAccess.WRITE)
 	if file:
 		file.store_string(JSON.stringify(save_data))
 		file.close()
 
 
 func load_game() -> String:
-	if not FileAccess.file_exists(SAVE_PATH):
+	if not FileAccess.file_exists(slot_save_path()):
 		return ""
-	var file = FileAccess.open(SAVE_PATH, FileAccess.READ)
+	var file = FileAccess.open(slot_save_path(), FileAccess.READ)
 	if not file:
 		return ""
 	var json = JSON.new()
@@ -1552,12 +1643,12 @@ func load_game() -> String:
 
 
 func save_exists() -> bool:
-	return FileAccess.file_exists(SAVE_PATH)
+	return FileAccess.file_exists(slot_save_path())
 
 
 func delete_save() -> void:
-	if FileAccess.file_exists(SAVE_PATH):
-		DirAccess.remove_absolute(SAVE_PATH)
+	if FileAccess.file_exists(slot_save_path()):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(slot_save_path()))
 
 
 func _serialize_inventory() -> Array:

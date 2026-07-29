@@ -2,6 +2,7 @@ extends Node
 
 const SCENES = {
 	"title": "res://scenes/title_screen.tscn",
+	"profiles": "res://scenes/profile_select.tscn",
 	"hallway": "res://scenes/hallway.tscn",
 	"room": "res://scenes/room.tscn",
 	"lobby": "res://scenes/lobby.tscn",
