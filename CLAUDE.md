@@ -85,7 +85,10 @@ setup script; binary from downloads.godotengine.org). Before every commit:
 - `godot --headless res://tests/listen_noise_test.tscn` — noise radii,
   emit_noise gating, listen categories/reports, overlay states.
 - Other suites: `gun_combat_test`, `can_throw_test`, `settings_test`,
-  `repair_test`, `audio_smoke_test`, `tutorial_test` — run all before commit.
+  `repair_test`, `audio_smoke_test`, `tutorial_test`, `click_move_test`,
+  `depth_move_test`, `transition_test`, `force_lock_test`, `loot_test`,
+  `building_floors_test`, `stair_visuals_test`, `profile_test`,
+  `profile_ui_test`, `title_test` — run all 18 before commit.
 
 Add a test scene under `tests/` for each new system (copy the pattern:
 plain Node + script with `check()` asserts, quit(1) on failure). Headless

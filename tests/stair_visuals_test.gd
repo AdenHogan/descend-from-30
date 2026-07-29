@@ -41,5 +41,24 @@ func _ready() -> void:
 		chk(fr.texture == vis_right.texture, "%s: right front layer uses the visible art" % tag)
 		bf.free()
 		await get_tree().process_frame
+
+	# The transition has to MIRROR: the spot the descent leaves from and the spot
+	# the ascent arrives on are the same red line, up on the steps. Arriving at
+	# the standing line instead put the player half in the wall and read as
+	# materialising out of it.
+	var floor_line := 391.0
+	chk(StairPan.stair_line(floor_line) < floor_line,
+		"the red line sits ABOVE the standing line, on the stairs (%.1f < %.1f)"
+			% [StairPan.stair_line(floor_line), floor_line])
+	chk(StairPan.stair_line(floor_line) == floor_line - StairPan.STAIR_APPROACH,
+		"one constant sets it for both directions")
+	# The arrival reveal must sweep the WHOLE body, head first: the cut starts
+	# above the head and ends below the feet.
+	chk(StairPan.SHRED_TOP > 0.0 and StairPan.SHRED_BOTTOM > 0.0,
+		"reveal sweep spans head (%.0f) to feet (%.0f)"
+			% [StairPan.SHRED_TOP, StairPan.SHRED_BOTTOM])
+	chk(StairPan.EMERGE_TIME > 0.25,
+		"the reveal is slow enough to be seen (%.2fs)" % StairPan.EMERGE_TIME)
+
 	print("=== %s (%d failures) ===" % ["ALL PASSED" if fails == 0 else "FAILED", fails])
 	get_tree().quit(1 if fails > 0 else 0)
