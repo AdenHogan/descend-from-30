@@ -16,11 +16,13 @@ flight is walked visibly. Tunables: STAIR_APPROACH (the red line height),
 TURN_HEIGHT (bend height — the old halfway turn was far too high), SHRED_FOOT,
 DEPTH_SCALE.
 
-**Two lines, from the same two constants, applied to whichever floor is being
-left or reached** — the red line (`standing_y - STAIR_APPROACH`, where the player
-stands before dissolving / after climbing back into view) and the cut
-(`red line + SHRED_FOOT`, on the yellow steps). Leaving and arriving must derive
-them the same way or a body dissolves at one height and reappears at another.
+**The red line** (`standing_y - STAIR_APPROACH`) is where the player stands
+before dissolving and after climbing back into view — the same for both
+directions. **The cut** sits below it, but at a DIFFERENT offset per direction:
+`SHRED_FOOT` (20) descending, `SHRED_FOOT_UP` (14) arriving. They were one shared
+constant; moving it to suit the ascent moved the descent with it and broke a
+descent that had been signed off. Each value is the one approved for its own
+direction against the art. Do not tidy them back into one.
 
 **The shredder cuts on BOTH axes.** Vertically at the step line, and
 horizontally to the stairwell's own width (`shaft_band` / `SHAFT_MARGIN`). The
@@ -49,9 +51,18 @@ easings.
 | (3) turn, cut sweeps DOWN → re-form | (2) turn, cut sweeps UP → dissolve |
 | (4) visible walk down, TURN_HEIGHT | (1) visible walk up, TURN_HEIGHT |
 
-**If you change one beat, change its partner.** Every regression here has been a
-beat that stopped mirroring — most recently the ascent flipping `clip_dir` to −1
-for its turn when the descent never flips it at all.
+**If you change one beat, change its partner — with one exception, the turn.**
+
+The turn is the one beat that is deliberately NOT a strict reversal. Mirrored
+exactly it uses `clip_dir +1`, where visible means everything *above* the cut —
+so as the cut rises the last thing left is the top of the head, floating out
+across the corridor wall. The ascent's turn therefore uses `clip_dir -1`, which
+discards above the cut, so sweeping it DOWN eats the body head-first and the last
+thing left is the feet, low and inside the shaft. Both sweeps are
+player-relative, so the dissolve always completes within the turn however far
+apart the floors are.
+
+Every other regression here has been a beat that stopped mirroring.
 
 ## The handover
 
