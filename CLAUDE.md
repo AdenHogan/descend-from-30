@@ -48,6 +48,28 @@ changes — they are the cross-session memory for this project.
   weights (`ROOM_SPAWN_POOLS`)
 - `assets/` — sprites, tilesets, fonts
 
+## Reporting rules (do not violate)
+
+These exist because both were broken, repeatedly, and each cost the owner a
+playtest round.
+
+1. **Never claim something is unchanged without diffing it in the same turn.**
+   "X is untouched", "this doesn't affect Y", "nothing else moved" — each is a
+   claim about the code, not about intent, and must be backed by a diff or a
+   value comparison printed in that turn. A change made as a *consequence* of
+   another change is still a change; believing it to be behaviour-preserving is
+   not the same as it being so. If it hasn't been checked, say "I haven't
+   checked X" — that is useful, a confident guess is not.
+
+2. **If a fix requires touching something the owner has frozen, say so BEFORE
+   doing it.** When told "don't change X" and the fix needs X changed, stop and
+   explain the conflict. Do not make the edit quietly on the grounds that it
+   looks inert — that judgement is exactly what fails.
+
+Related: when one constant is read by two features, splitting it into two named
+constants beats keeping them in sync by hand (see `DOWN_*` / `UP_*` in
+`stair_pan.gd`).
+
 ## Hard-won conventions (do not violate)
 
 - **Save/load JSON: string keys only.** Godot's JSON round-trips int dict
