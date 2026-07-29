@@ -14,7 +14,7 @@ extends Control
 #
 # Node contract (rename in the scene → update here):
 #   Nav/Subheading, Nav/ContinueButton, Nav/NewGameButton, Nav/DeleteButton,
-#   Nav/BackButton
+#   Nav/BackButton, Nav/Hint
 #   Slot1..3/{SelectBorder, Name, Emblem, RunCaption, RunPlace, RunName,
 #             Playtime, SurvivorCaption, Survivor1..3, SurvivorFace1..3,
 #             SurvivorTag1..3, Money, Status, RunsMade, RunsWon, SelectButton}
@@ -33,6 +33,11 @@ func _ready() -> void:
 		var btn := get_node_or_null("Slot%d/SelectButton" % slot)
 		if btn != null:
 			btn.pressed.connect(func(): _select(slot))
+			# Single click selects, double click plays it — clicking a save and
+			# then having to cross back to the left column to say "yes, that one"
+			# is a step nobody expects. The left column stays for everything
+			# else the slot can do.
+			btn.gui_input.connect(func(e): _on_card_input(slot, e))
 	# Open on the first slot that has a run to resume, else slot 1.
 	for slot in range(1, WorldState.SLOT_COUNT + 1):
 		if WorldState.slot_summary(slot)["has_save"]:
@@ -61,6 +66,31 @@ func _select(slot: int) -> void:
 	_selected = slot
 	_confirm_delete = false   # changing slots disarms a pending delete
 	_refresh()
+
+
+func _on_card_input(slot: int, event: InputEvent) -> void:
+	if not (event is InputEventMouseButton):
+		return
+	if event.button_index != MOUSE_BUTTON_LEFT or not event.double_click:
+		return
+	_select(slot)
+	play_slot(slot)
+
+
+# What double-clicking a slot does: resume a run in progress, start one in a
+# slot with none. It must NEVER be "new" for a slot holding a save — losing a
+# playthrough to a stray double click would be unforgivable, so overwriting
+# stays behind the explicit NEW GAME (OVERWRITE) button. Kept separate from
+# play_slot so that rule can be asserted without launching the game.
+func slot_action(slot: int) -> String:
+	return "continue" if WorldState.slot_summary(slot)["has_save"] else "new"
+
+
+func play_slot(slot: int) -> void:
+	if slot_action(slot) == "continue":
+		_on_continue()
+	else:
+		_on_new_game()
 
 
 func _refresh() -> void:
