@@ -41,14 +41,18 @@ const TURN_HEIGHT := 72.0
 # body when dissolving or rematerialising.
 const SHRED_TOP := 52.0
 const SHRED_BOTTOM := 40.0
-# How far BELOW the red line the cut sits. It must land on the YELLOW STEPS, not
-# the floor below them — cutting at the true foot line made it look like the
-# player was clipping through the floor rather than descending stairs that start
-# higher up. 20 put it a few pixels low; 14 is the owner's marked line.
-# NOTE: this is ONE constant used by BOTH directions (descend beat 2, ascend
-# beat 3). Changing it moves the descent's cut as well — that is the point (the
-# two must stay the same line), but it is not a change to the ascent alone.
-const SHRED_FOOT := 14.0
+# How far BELOW the red line the cut sits — where the player is sliced as the
+# stairwell takes them. It must land on the YELLOW STEPS, not the floor below
+# them, or it looks like clipping through the ground rather than walking into a
+# stairwell.
+#
+# THE TWO DIRECTIONS HAVE DIFFERENT VALUES, and that is deliberate. They were one
+# shared constant; moving it to suit the ascent moved the descent with it and
+# broke a descent the owner had already signed off. Each is now the value that
+# was approved for its own direction against the art. Do not "tidy" them back
+# into one — the playtest verdict outranks the symmetry.
+const SHRED_FOOT := 20.0        # descending (signed off — do not change)
+const SHRED_FOOT_UP := 14.0     # arriving from below (owner's marked line)
 # How far either side of the stairwell's centre the shaft runs. The player sprite
 # is 48px at scale 3 — 144 wide — while the shaft is barely 60, so a body standing
 # dead centre in it still spills across the corridor wall on both sides. While the
@@ -281,11 +285,8 @@ func _descend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vecto
 
 	# (2) THE SHREDDER. The cut sits on the platform edge under their feet;
 	#     dropping step by step feeds them through it - feet, legs, torso, head -
-	#     until nothing is left above the line. The same call crops them to the
-	#     shaft's width: the sprite is far wider than the opening, so without it
-	#     a half-sliced body shows on the corridor wall beside the stairwell.
-	var band := shaft_band(player.global_position.x, turn_x)
-	_set_shred(sprite, line_center + SHRED_FOOT, 1.0, band)
+	#     until nothing is left above the line.
+	_set_shred(sprite, line_center + SHRED_FOOT)
 	if sprite != null:
 		var shrink := create_tween()
 		shrink.tween_property(sprite, "scale", base_scale * DEPTH_SCALE,
@@ -339,13 +340,14 @@ func _ascend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vector
 	#   descend (3) turn, cut sweeps DOWN       <-> ascend (2) turn, cut sweeps UP
 	#   descend (4) visible walk down           <-> ascend (1) visible walk up
 	#
-	# If you change a beat here, change its partner there. Every regression in
-	# this transition has been one side drifting away from the other.
+	# If you change a beat here, change its partner there — with ONE documented
+	# exception, beat (2), which is explained at the beat itself. Every other
+	# regression in this transition has been one side drifting from the other.
 	var stand_y: float = player.global_position.y
 	# The destination floor's own red line and cut — the SAME expressions the
 	# descent uses for the floor it leaves.
 	var line_center: float = dest_y - STAIR_APPROACH
-	var cut_y: float = line_center + SHRED_FOOT
+	var cut_y: float = line_center + SHRED_FOOT_UP
 
 	var cross_est: float = maxf(_climb_time(absf(turn_x - player.global_position.x)), TURN_TIME)
 	# Camera covers everything except the final step onto the floor — the mirror
@@ -366,18 +368,29 @@ func _ascend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vector
 	if not is_instance_valid(player) or not is_instance_valid(pan_cam):
 		return
 
-	# (2) = descent (3) backwards. The landing turn. The descent sweeps the cut
-	#     DOWN here and comes back to full form, so this sweeps it UP and
-	#     dissolves — the cut starts below their feet (nothing clipped) and rises
-	#     past their head while they cross and shrink into the shaft.
+	# (2) The landing turn: they go behind the bend and are gone by the end of it.
+	#
+	#     This is the ONE beat that is not a strict reversal of the descent, and
+	#     that is on purpose. Mirroring it exactly means clip_dir +1, where visible
+	#     = everything ABOVE the cut — so as the cut rises the last thing left is
+	#     the TOP OF THE HEAD, and it floats out across the corridor wall. That is
+	#     the bug in the owner's screenshot.
+	#
+	#     clip_dir -1 discards everything above the cut instead, so sweeping the
+	#     cut DOWN through them eats the body HEAD FIRST and the last thing left is
+	#     the feet, low and inside the shaft. Both sweeps are player-relative, so
+	#     the dissolve always completes within the turn no matter how far apart the
+	#     floors are. The x band crops whatever is still drawn to the stairwell's
+	#     own width, so nothing shows on the wall beside it.
 	_play_walk(sprite, turn_x - player.global_position.x)
 	var band := shaft_band(player.global_position.x, turn_x)
-	_set_shred(sprite, player.global_position.y + SHRED_FOOT + 90.0, 1.0, band)
+	_set_shred(sprite, player.global_position.y - SHRED_TOP, -1.0, band)
 	var leg2 := create_tween().set_parallel(true)
 	leg2.tween_property(player, "global_position:x", turn_x, cross_est) \
 		.set_trans(Tween.TRANS_LINEAR)
 	if _shred_mat != null:
-		leg2.tween_property(_shred_mat, "shader_parameter/cut_y", cut_y, cross_est)
+		leg2.tween_property(_shred_mat, "shader_parameter/cut_y",
+			player.global_position.y + SHRED_BOTTOM, cross_est)
 	if sprite != null:
 		leg2.tween_property(sprite, "scale", base_scale * DEPTH_SCALE, cross_est) \
 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
@@ -390,6 +403,7 @@ func _ascend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vector
 	#     shoulders, a step at a time. The descent drops through this same fixed
 	#     cut feet-first; this is that, rewound.
 	_play_walk(sprite, 0.0)
+	_set_shred(sprite, cut_y, 1.0, band)   # back to +1: visible = above the cut
 	if sprite != null:
 		var grow := create_tween()
 		grow.tween_property(sprite, "scale", base_scale,

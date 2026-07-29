@@ -48,17 +48,24 @@ func _ready() -> void:
 	# own floor's standing line, so the pair below is what keeps them in step.
 	var floor_line := 391.0
 	var red_line := floor_line - StairPan.STAIR_APPROACH
-	var cut := red_line + StairPan.SHRED_FOOT
 	chk(red_line < floor_line,
 		"the red line sits ABOVE the standing line, on the stairs (%.1f < %.1f)"
 			% [red_line, floor_line])
-	chk(cut > red_line,
-		"the cut sits below the red line, on the yellow steps (%.1f > %.1f)"
-			% [cut, red_line])
-	# Leaving, the player drops through that cut; arriving, they climb up through
-	# it. Their scalp breaks it SHRED_TOP below the cut, and there must be real
-	# climbing left between that and the red line or they surface all at once.
-	var scalp_crosses := cut + StairPan.SHRED_TOP
+	# The two directions have DIFFERENT cut offsets on purpose. They were one
+	# shared constant, and moving it to suit the ascent moved the descent with it
+	# and broke a descent that had already been signed off. Each is now the value
+	# approved for its own direction — do not collapse them back into one.
+	var cut := red_line + StairPan.SHRED_FOOT
+	var cut_up := red_line + StairPan.SHRED_FOOT_UP
+	chk(cut > red_line and cut_up > red_line,
+		"both cuts sit below the red line, on the steps (down %.1f, up %.1f)"
+			% [cut, cut_up])
+	chk(StairPan.SHRED_FOOT == 20.0,
+		"the DESCENT keeps its signed-off cut offset (%.0f)" % StairPan.SHRED_FOOT)
+	# Arriving, the player climbs up through the cut; their scalp breaks it
+	# SHRED_TOP below, and there must be real climbing left between that and the
+	# red line or they surface all at once.
+	var scalp_crosses := cut_up + StairPan.SHRED_TOP
 	chk(scalp_crosses - red_line >= StairPan.STEP_HEIGHT * 2.0,
 		"the climb into view is more than a single step (%.0fpx, step %.0f)"
 			% [scalp_crosses - red_line, StairPan.STEP_HEIGHT])
