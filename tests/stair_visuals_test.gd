@@ -57,8 +57,11 @@ func _ready() -> void:
 	# reappear at another.
 	var cut := StairPan.shred_line(floor_line)
 	chk(cut > StairPan.stair_line(floor_line),
-		"the cut sits on the steps, BELOW the red line (%.1f > %.1f)"
+		"the cut sits BELOW the red line (%.1f > %.1f)"
 			% [cut, StairPan.stair_line(floor_line)])
+	chk(cut < floor_line,
+		"...and ABOVE the corridor floor, on the yellow steps (%.1f < %.1f)"
+			% [cut, floor_line])
 
 	# Arriving, the player climbs UP through that fixed cut. The hidden climb has
 	# to end wholly underneath it or they surface part-drawn; and it has to end

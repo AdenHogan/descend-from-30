@@ -50,11 +50,11 @@ const SHRED_BOTTOM := 40.0
 # into view. This is how far under the cut the hidden climb ends — enough that
 # they are wholly beneath it, so the first step up shows scalp and no more.
 const EMERGE_CLEARANCE := 4.0
-# Where the cut sits relative to the player's origin. This must land on the
-# YELLOW STEPS, not the floor below them — cutting at the true foot line made it
-# look like the player was clipping through the floor rather than descending
-# stairs that start higher up.
-const SHRED_FOOT := 20.0
+# How far BELOW the red line the cut sits. It must land where the yellow steps
+# meet the dark of the shaft — not down on the floor in front of them, which
+# looked like clipping through the ground rather than walking into a stairwell.
+# Measured off the owner's marked-up screenshot: the cut was ~14px too low.
+const SHRED_FOOT := 6.0
 # THE SHREDDER. Clips away every pixel of the player sprite below cut_y (world
 # space). Descending through the stair line feeds them through it - feet first,
 # sliced in staggered stages - no z tricks, no painted boxes, no art rebuild.
@@ -308,8 +308,10 @@ func _descend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vecto
 	leg2.tween_property(player, "global_position:x", turn_x, cross_time) \
 		.set_trans(Tween.TRANS_LINEAR)
 	if _shred_mat != null:
+		# Sweep well past the feet — this is the one place the cut is allowed to
+		# move, and it must end clear of the body, not on the step line.
 		leg2.tween_property(_shred_mat, "shader_parameter/cut_y",
-			player.global_position.y + SHRED_FOOT + 90.0, cross_time)
+			player.global_position.y + SHRED_BOTTOM + 60.0, cross_time)
 	if sprite != null:
 		leg2.tween_property(sprite, "scale", base_scale, cross_time) \
 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
@@ -584,6 +586,15 @@ func apply_floor_camera(cam: Camera2D, bounds: Rect2, hud_bar_h: float = HUD_BAR
 	cam.limit_top = int(floor(bounds.position.y))
 	cam.limit_bottom = int(ceil(bounds.position.y + world_view_h))
 	cam.limit_smoothed = false
+	# APPLY THE CLAMP NOW. A Camera2D only re-evaluates its limits on its own
+	# next update, so the first frame of a freshly loaded floor was drawn from the
+	# raw camera position and the frame after from the clamped one — the whole
+	# view shifting by a pixel or two. On stairs, where nothing fades over it, that
+	# read as a judder, and it was worst next to text, which shows a sub-pixel
+	# shift more plainly than tiles do.
+	if cam.is_inside_tree():
+		cam.reset_smoothing()
+		cam.force_update_scroll()
 
 
 func _floor_spacing(bf: Node) -> float:
