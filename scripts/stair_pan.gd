@@ -79,10 +79,9 @@ void fragment() {
 const DEPTH_SCALE := 0.82    # size at the back of the stairwell (1.0 = no depth)
 # The legs derive from the floor height and the destination spawn, so there is
 # nothing to hand-tune here: half a floor up, across the landing, half a floor
-# more. StairFrontLeft/Right in building_floors.tscn are the FRONT LAYER of the
-# stair art (the near half of the same PNG, drawn at z_index 2 above the player's
-# z 1) — adjust their region_rect in the editor to control exactly how much of
-# the stairwell hides the player.
+# more. There is NO front-layer occluder sprite: one was tried and removed,
+# because re-cutting the top of the stair art and drawing it at z 2 puts the
+# dark shaft over the corridor as a black box. The shredder does the hiding.
 # Nudge only if two floors don't quite meet (a 1-tile seam): + pushes the next
 # floor further away, − brings it closer. Should stay 0 (floors are FLOOR_BAND_H
 # tall and stack exactly).
@@ -97,9 +96,19 @@ const SPAWN_RIGHT_BOTTOM := Vector2(1162, 391)
 
 var panning := false   # true only WHILE a pan runs; if it starts true, can_pan() never fires
 
+# The destination floor, BUILT DURING THE PAN. change_scene_to_file does all of
+# its work on one frame — allocating every node of a 70-column floor, its doors,
+# apartments and tilemap — and that frame is the arrival, so it landed as a
+# jarring hitch exactly when the player was meant to be walking out of the
+# stairwell. The pan runs for seconds with nothing else to do, so the scene is
+# instantiated up front and only ADDED to the tree at the commit; all that is
+# left on the swap frame is _ready.
+var _pending_scene: Node = null
+
 
 func _ready() -> void:
 	panning = false   # defensive: never boot with the guard stuck on
+	_pending_scene = null
 
 
 func can_pan(target_floor: int) -> bool:
@@ -173,6 +182,10 @@ func pan_to_floor(target_floor: int, direction: String) -> void:
 	spacing += SPACING_ADJUST
 	var floor_offset := spacing * (1.0 if down else -1.0)
 	holder.position = Vector2(0, floor_offset)
+
+	# Build the REAL destination floor now, detached, while the pan plays. Nothing
+	# of it runs until _commit adds it to the tree.
+	_build_pending(target_floor)
 
 	# Standalone camera copies the live one exactly (same zoom!) and takes over.
 	# It inherits the live camera's HORIZONTAL limits so the walls still stop the
@@ -593,20 +606,54 @@ func _floor_spacing(bf: Node) -> float:
 	return tm.get_used_rect().size.y * cell_y * tm.scale.y
 
 
+func floor_scene_path(target_floor: int) -> String:
+	if target_floor == 30:
+		return "res://scenes/hallway.tscn"
+	if target_floor <= 0:
+		return "res://scenes/lobby.tscn"
+	return "res://scenes/building_floors.tscn"
+
+
+func _build_pending(target_floor: int) -> void:
+	# Instantiate the destination floor DETACHED, at the start of the pan. Nothing
+	# in it runs — _ready fires only when it is added to the tree at the commit —
+	# so this is pure allocation, moved off the arrival frame and onto a frame the
+	# player is watching a camera move on.
+	_drop_pending()
+	_pending_scene = load(floor_scene_path(target_floor)).instantiate()
+
+
+func _drop_pending() -> void:
+	if _pending_scene != null:
+		if is_instance_valid(_pending_scene) and not _pending_scene.is_inside_tree():
+			_pending_scene.free()
+		_pending_scene = null
+
+
 func _commit(target_floor: int) -> void:
 	panning = false
 	WorldState.current_floor = target_floor
 	WorldState.on_floor_arrived(target_floor)
 	HUD.update_floor_label()
-	var path := "res://scenes/building_floors.tscn"
-	if target_floor == 30:
-		path = "res://scenes/hallway.tscn"
-	elif target_floor <= 0:
-		path = "res://scenes/lobby.tscn"
-	# A plain swap. Covering the handover with a snapshot of the outgoing frame
-	# was tried and REVERTED: reading the viewport back into a texture returns
-	# black under GL Compatibility, so it painted a black box over the arrival.
-	# The judder it was aimed at is handled properly in apply_floor_camera, by
-	# forcing the camera to clamp on the frame it loads instead of the frame
-	# after — which is what was actually shifting the view.
-	get_tree().change_scene_to_file(path)
+
+	# Swap by hand rather than change_scene_to_file, so the floor built during the
+	# pan is the one that goes in. Everything the old call did on this single
+	# frame — allocating every node of the floor — has already happened; only
+	# _ready is left. There is deliberately NO cover over the swap: a snapshot of
+	# the outgoing frame was tried and reverted (it returns black under GL
+	# Compatibility and painted a black box over the arrival), and the view-shift
+	# half of the judder is fixed properly in apply_floor_camera.
+	var path := floor_scene_path(target_floor)
+	if _pending_scene == null or not is_instance_valid(_pending_scene):
+		get_tree().change_scene_to_file(path)   # pan aborted early — plain load
+		return
+	var incoming := _pending_scene
+	_pending_scene = null
+	var tree := get_tree()
+	var outgoing := tree.current_scene
+	if outgoing != null:
+		tree.root.remove_child(outgoing)
+	tree.root.add_child(incoming)     # _ready runs here, with the floor already built
+	tree.current_scene = incoming
+	if outgoing != null:
+		outgoing.queue_free()

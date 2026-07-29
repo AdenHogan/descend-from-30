@@ -64,6 +64,25 @@ calls `force_update_scroll()`, which fixes it for every scene entry.
 texture returns black under GL Compatibility, which is the renderer this project
 ships, so it painted a black box over every arrival.
 
+The remaining jarring *hitch* was `change_scene_to_file` doing all of its work on
+one frame — allocating every node of a 70-column floor, its doors, apartments and
+tilemap — and that frame is the arrival. `StairPan` now instantiates the
+destination floor **detached, at the start of the pan** (`_build_pending`) and
+adds it to the tree at the commit, so the swap frame only runs `_ready`.
+
+## Two things that must never come back
+
+Both were tried, both looked worse than the problem they solved:
+
+1. **A front-layer occluder sprite** (`StairFrontLeft/Right`, `_fit_stair_front`).
+   It re-cut the top of the staircase PNG and drew it at `z_index 2` to hide the
+   player. That region of the art is the dark shaft, so it rendered as a **black
+   box over the corridor**, and the player still surfaced in front of it. The
+   shredder does the hiding; nothing needs drawing on top of the player.
+2. **A viewport snapshot over the scene swap** — see above.
+
+`stair_visuals_test` asserts both stay gone.
+
 ## The question that matters
 
 > Is it physically impossible for the player to move behind the tilemap? Is the

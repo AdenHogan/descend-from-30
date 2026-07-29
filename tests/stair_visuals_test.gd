@@ -32,13 +32,13 @@ func _ready() -> void:
 		chk(lr.visible != want_left_up and hr.visible == want_left_up, "%s: right shows %s" % [tag, "DOWN" if want_left_up else "UP"])
 		chk(int(ll.visible) + int(hl.visible) == 1, "%s: exactly one left sprite" % tag)
 		chk(int(lr.visible) + int(hr.visible) == 1, "%s: exactly one right sprite" % tag)
-		# front layer must be cut from the art that is actually visible
-		var fl = bf.get_node("StairFrontLeft")
-		var vis_left = ll if ll.visible else hl
-		chk(fl.texture == vis_left.texture, "%s: left front layer uses the visible art" % tag)
-		var fr = bf.get_node("StairFrontRight")
-		var vis_right = lr if lr.visible else hr
-		chk(fr.texture == vis_right.texture, "%s: right front layer uses the visible art" % tag)
+		# NO front-layer occluder. One was tried: it re-cut the top of the stair
+		# art and drew it at z 2, which put the DARK SHAFT over the corridor as a
+		# black box. The shredder hides the player; nothing needs to be drawn on
+		# top of them. Do not add it back.
+		chk(bf.get_node_or_null("StairFrontLeft") == null
+			and bf.get_node_or_null("StairFrontRight") == null,
+			"%s: no front-layer sprite (it rendered as a black box)" % tag)
 		bf.free()
 		await get_tree().process_frame
 
@@ -81,6 +81,20 @@ func _ready() -> void:
 	# stopped being each other's reverse.
 	chk(StairPan.TURN_HEIGHT > 0.0,
 		"visible flight is the same height both ways (%.0fpx)" % StairPan.TURN_HEIGHT)
+
+	# THE ARRIVAL HITCH. The destination floor is built DURING the pan, detached,
+	# so the commit frame only has to run _ready instead of allocating a whole
+	# floor. Building it must not put anything on screen early.
+	chk(StairPan.floor_scene_path(24) == "res://scenes/building_floors.tscn"
+		and StairPan.floor_scene_path(30) == "res://scenes/hallway.tscn"
+		and StairPan.floor_scene_path(0) == "res://scenes/lobby.tscn",
+		"every floor maps to its scene from one place")
+	StairPan._build_pending(24)
+	chk(StairPan._pending_scene != null, "the destination floor is built ahead of the commit")
+	chk(StairPan._pending_scene != null and not StairPan._pending_scene.is_inside_tree(),
+		"...detached, so none of it runs or draws until the swap")
+	StairPan._drop_pending()
+	chk(StairPan._pending_scene == null, "an abandoned pan frees it instead of leaking a floor")
 	chk(absf(floor_line - StairPan.stair_line(floor_line)) == StairPan.STAIR_APPROACH,
 		"step onto the red line leaving == step off it arriving (%.0fpx)"
 			% StairPan.STAIR_APPROACH)
