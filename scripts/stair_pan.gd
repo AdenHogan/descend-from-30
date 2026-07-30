@@ -394,32 +394,27 @@ func _ascend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vector
 		pan_cam.global_position.y + floor_offset, total) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
-	# The stairwell opening on THIS floor. Above its top edge is solid wall, and
-	# either side of it is corridor — the player is inside the shaft for beats
-	# (1) and (2), so they must not be drawn outside it in either axis.
-	var band := shaft_band(player.global_position.x, turn_x, UP_SHAFT_MARGIN)
-	var shaft_top := stand_y - UP_SHAFT_TOP
-
-	# (1) The visible flight up. No y cut — they are whole — but held inside the
-	#     opening, so as they climb past its top edge they slide up BEHIND THE
-	#     WALL and are gone. That is "disappearing behind the bend": it is the
-	#     wall doing it, not a dissolve. cut_y parked out of range disables the y
-	#     cut without disabling the crop.
+	# (1) The visible flight up the stairs, FRONT OF SCENE — whole and uncut, all
+	#     the way to the blue line (turn_y). The player must NOT disappear here: a
+	#     previous version clipped them against the stairwell opening's top edge
+	#     and vanished them a few steps up, which is the bug this removes. The
+	#     dematerialising happens in beat (2), as they cross behind the grey.
+	_clear_shred(sprite)
 	_play_walk(sprite, 0.0)
-	_set_shred(sprite, 999999.0, 1.0, band, shaft_top)
 	var flight1 := _stagger_y(player, stand_y, turn_y)
 	await flight1.finished
 	if not is_instance_valid(player) or not is_instance_valid(pan_cam):
 		return
 
-	# (2) The landing turn, entirely behind the wall. The y cut runs anyway so
-	#     that any part of them still below the opening's top edge dissolves
-	#     rather than sliding sideways: clip_dir -1 discards ABOVE the cut, so
-	#     sweeping it DOWN eats the body head first, leaving the feet last and
-	#     lowest. (Mirroring the descent exactly would use +1, which leaves the
-	#     TOP OF THE HEAD last — the bit that floated out over the wall.)
+	# (2) The horizontal move past the grey, front of scene -> behind it. This is
+	#     the exact MIRROR of the descent's landing turn (beat 3), which sweeps the
+	#     cut down to REVEAL as they cross; this sweeps the same way to HIDE.
+	#     clip_dir -1 discards ABOVE the cut, so starting the cut above their head
+	#     (nothing clipped, fully visible on the blue line) and sweeping it DOWN
+	#     past their feet eats the body head first, until they are wholly behind
+	#     the scene by the end of the walk. Beat (3) then carries them up, hidden.
 	_play_walk(sprite, turn_x - player.global_position.x)
-	_set_shred(sprite, player.global_position.y - SHRED_TOP, -1.0, band, shaft_top)
+	_set_shred(sprite, player.global_position.y - SHRED_TOP, -1.0)
 	var leg2 := create_tween().set_parallel(true)
 	leg2.tween_property(player, "global_position:x", turn_x, cross_est) \
 		.set_trans(Tween.TRANS_LINEAR)
