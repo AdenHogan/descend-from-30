@@ -112,6 +112,13 @@ func receive_hit_from_gun(outcome: String) -> void:
 		"miss":     pass
 
 
+func _exit_tree() -> void:
+	# Same living-enemy memory as the standard zombie: snapshot my state when the
+	# floor is left so I'm not re-seeded on return. See WorldState.record_zombie.
+	if is_instance_valid(WorldState):
+		WorldState.record_zombie(self)
+
+
 func _die() -> void:
 	if is_dead:
 		return

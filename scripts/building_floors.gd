@@ -176,15 +176,20 @@ func _spawn_zombies(floor_num: int, as_scenery: bool) -> void:
 		zombie.global_position = pos
 		zombie.spawn_key = key
 		if as_scenery:
+			zombie.add_to_group("pan_scenery")
+		add_child(zombie)
+		# Living-enemy memory: a zombie met before comes back exactly where it was
+		# left — facing, health and alert too — instead of its seeded spawn. Only
+		# when it has NO memory does the scenery-settle below apply.
+		var restored = WorldState.apply_saved_zombie(zombie)
+		if as_scenery:
 			# A live zombie spawns overlapping the floor and move_and_slide lifts
 			# it to rest; a scenery zombie has no physics step, so it would stay
 			# sunk ~18px and then visibly WARP up the moment the floor commits.
-			# Place it where the live one ends up. (Guarded by building_floors_test,
-			# which measures the real settled Y and fails if this drifts.)
-			zombie.global_position.y = ZOMBIE_SETTLED_Y
-			zombie.add_to_group("pan_scenery")
-		add_child(zombie)
-		if as_scenery:
+			# Place a FRESH one where the live one ends up (guarded by
+			# building_floors_test); a restored one already carries a settled Y.
+			if not restored:
+				zombie.global_position.y = ZOMBIE_SETTLED_Y
 			# Visible, but no AI and no noise — it must not hunt the player, who
 			# is still a whole floor away. Disabled AFTER add_child so the
 			# zombie's own _ready can't turn its physics step back on.

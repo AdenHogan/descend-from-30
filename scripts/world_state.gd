@@ -1069,6 +1069,56 @@ func get_zombie_positions(count: int, rng: RandomNumberGenerator, min_x: float, 
 	return positions
 
 
+# --- Living-enemy memory ---------------------------------------------------
+# A floor's zombies are re-seeded from the master seed every visit, so without
+# this a zombie mid-chase snaps back to its spawn the moment you step onto the
+# stairs or into an apartment — the "theme-park ride" reset. record_zombie
+# snapshots a LIVE zombie's position/facing/health/alert into zombie_positions
+# (keyed by its stable seed-derived spawn_key); apply_saved_zombie re-applies it
+# onto a freshly spawned instance. Dead zombies are covered by killed_zombies;
+# pan-backdrop scenery zombies are skipped so they can't overwrite real memory
+# with their seeded pose. Position-only memory already existed for manual saves
+# + apartments; this generalises it to every floor transition and every scene.
+func record_zombie(z: Node) -> void:
+	if z == null or not is_instance_valid(z):
+		return
+	if z.is_dead or z.spawn_key == "" or z.is_in_group("pan_scenery"):
+		return
+	var facing := false
+	var spr = z.get_node_or_null("AnimatedSprite2D")
+	if spr != null:
+		facing = spr.flip_h
+	zombie_positions[z.spawn_key] = {
+		"x": snappedf(z.global_position.x, 1.0),
+		"y": snappedf(z.global_position.y, 1.0),
+		"facing": facing,
+		"hp": z.current_hp,
+		"alert": z.alert_timer,
+	}
+
+
+# Re-apply a remembered zombie onto a fresh instance. Returns true if there was
+# memory (so the caller can skip its fresh-spawn settle). Safe on old saves that
+# stored x/y only — the extra fields default. Call after the zombie exists (its
+# AnimatedSprite2D child is present from instantiate()).
+func apply_saved_zombie(z: Node) -> bool:
+	if z == null or z.spawn_key == "" or not zombie_positions.has(z.spawn_key):
+		return false
+	var s = zombie_positions[z.spawn_key]
+	z.global_position = Vector2(
+		float(s.get("x", z.global_position.x)),
+		float(s.get("y", z.global_position.y)))
+	if s.has("facing"):
+		var spr = z.get_node_or_null("AnimatedSprite2D")
+		if spr != null:
+			spr.flip_h = bool(s["facing"])
+	if s.has("hp"):
+		z.current_hp = int(s["hp"])
+	if s.has("alert"):
+		z.alert_timer = float(s["alert"])
+	return true
+
+
 func _space_out(xs: Array[float], min_x: float, max_x: float) -> Array[float]:
 	# Deterministic de-overlap: sort, push each neighbour right until it clears
 	# the one before, then if that ran past the end, push the whole run back left.
@@ -1549,18 +1599,14 @@ func roll_zombie_loot_id(pos: Vector2, floor_num: int) -> String:
 const SAVE_PATH = "user://savegame.json"
 
 func save_game(scene_path: String) -> void:
-	# Snapshot live zombie positions in the current scene so reloading can't be
-	# used to reset an encounter (save-scum lure exploit). Dead zombies are
-	# already covered by killed_zombies; tutorial zombies without a spawn_key
-	# are skipped.
+	# Snapshot live zombie state in the current scene so reloading can't be used
+	# to reset an encounter (save-scum lure exploit). Same path the floor
+	# transitions use (enemy _exit_tree -> record_zombie), so a save captures
+	# exactly what a walk-away would.
 	var tree = Engine.get_main_loop() as SceneTree
 	if tree:
 		for z in tree.get_nodes_in_group("zombie"):
-			if not z.is_dead and z.spawn_key != "":
-				zombie_positions[z.spawn_key] = {
-					"x": snappedf(z.global_position.x, 1.0),
-					"y": snappedf(z.global_position.y, 1.0)
-				}
+			record_zombie(z)
 	var save_data = {
 		"scene_path": scene_path,
 		"master_seed": master_seed,
