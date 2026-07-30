@@ -43,15 +43,6 @@ func _ready() -> void:
 		_make_inert()
 		return
 
-	var hallway_staircase_left = get_node("HallwayStaircaseLeft")
-	var lobby_left = get_node("LobbyLeft")
-	var hallway_staircase_right = get_node("HallwayStaircaseRight")
-	var lobby_right = get_node("LobbyRight")
-	var left_down = get_node("stair_left_down_trigger")
-	var left_up = get_node("stair_left_up_trigger")
-	var right_down = get_node("stair_right_down_trigger")
-	var right_up = get_node("stair_right_up_trigger")
-
 	if WorldState.spawn_source == "stair":
 		if WorldState.stair_spawn_side == "left":
 			if WorldState.stair_direction == "down":
@@ -73,29 +64,7 @@ func _ready() -> void:
 		WorldState.saved_player_y = 0.0
 
 	_apply_stair_visuals()
-
-	if WorldState.stair_spawn_side == "left":
-		if WorldState.stair_direction == "down":
-			left_down.process_mode = Node.PROCESS_MODE_DISABLED
-			left_up.process_mode = Node.PROCESS_MODE_ALWAYS
-			right_down.process_mode = Node.PROCESS_MODE_ALWAYS
-			right_up.process_mode = Node.PROCESS_MODE_DISABLED
-		else:
-			left_up.process_mode = Node.PROCESS_MODE_DISABLED
-			left_down.process_mode = Node.PROCESS_MODE_ALWAYS
-			right_up.process_mode = Node.PROCESS_MODE_ALWAYS
-			right_down.process_mode = Node.PROCESS_MODE_DISABLED
-	elif WorldState.stair_spawn_side == "right":
-		if WorldState.stair_direction == "down":
-			right_down.process_mode = Node.PROCESS_MODE_DISABLED
-			right_up.process_mode = Node.PROCESS_MODE_ALWAYS
-			left_down.process_mode = Node.PROCESS_MODE_ALWAYS
-			left_up.process_mode = Node.PROCESS_MODE_DISABLED
-		else:
-			right_up.process_mode = Node.PROCESS_MODE_DISABLED
-			right_down.process_mode = Node.PROCESS_MODE_ALWAYS
-			left_up.process_mode = Node.PROCESS_MODE_ALWAYS
-			left_down.process_mode = Node.PROCESS_MODE_DISABLED
+	_enable_stair_triggers()
 
 	# Assign apartment IDs and apply correct door states AFTER IDs are set
 	_apply_doors(floor_num)
@@ -117,6 +86,38 @@ func _frame_camera(player: Node) -> void:
 	if cam == null or tm == null:
 		return
 	StairPan.apply_floor_camera(cam, StairPan.floor_band(tm))
+
+
+func _enable_stair_triggers() -> void:
+	# The side you ARRIVED on offers the way back (its return trigger is live); the
+	# far side carries your journey on. Exactly one trigger per side is active, so
+	# the descent zig-zags. Shared by a live spawn (_ready) and by go_live() when a
+	# prefetched backdrop is woken — the arrival direction is only final at that
+	# point, so both go through here.
+	var left_down = get_node_or_null("stair_left_down_trigger")
+	var left_up = get_node_or_null("stair_left_up_trigger")
+	var right_down = get_node_or_null("stair_right_down_trigger")
+	var right_up = get_node_or_null("stair_right_up_trigger")
+	if left_down == null or left_up == null or right_down == null or right_up == null:
+		return
+	# Default everything on (ALWAYS, as the original did), then disable the one on
+	# each side that would send you straight back the way you just came.
+	for t in [left_down, left_up, right_down, right_up]:
+		t.process_mode = Node.PROCESS_MODE_ALWAYS
+	if WorldState.stair_spawn_side == "left":
+		if WorldState.stair_direction == "down":
+			left_down.process_mode = Node.PROCESS_MODE_DISABLED
+			right_up.process_mode = Node.PROCESS_MODE_DISABLED
+		else:
+			left_up.process_mode = Node.PROCESS_MODE_DISABLED
+			right_down.process_mode = Node.PROCESS_MODE_DISABLED
+	elif WorldState.stair_spawn_side == "right":
+		if WorldState.stair_direction == "down":
+			right_down.process_mode = Node.PROCESS_MODE_DISABLED
+			left_up.process_mode = Node.PROCESS_MODE_DISABLED
+		else:
+			right_up.process_mode = Node.PROCESS_MODE_DISABLED
+			left_down.process_mode = Node.PROCESS_MODE_DISABLED
 
 func _apply_stair_visuals() -> void:
 	# WHICH staircase art each side shows.
@@ -203,16 +204,33 @@ func _strip_junk() -> void:
 		StairPan.strip_junk_rows(tm)
 
 
+# Each CollisionObject2D this floor put dormant, with its ORIGINAL values, so a
+# prefetched backdrop can be woken back to a fully live floor exactly as it was
+# (see go_live). Empty on a live floor.
+var _dormant: Array = []
+
+
 func _make_inert() -> void:
 	# A stacked neighbour floor is SCENERY. Once it's offset into real world space
 	# its collision bodies and Area2D triggers would otherwise block/teleport the
 	# player on the live floor, so strip all physics + interaction from it and
-	# leave only what's drawn.
+	# leave only what's drawn — recording each change so go_live can restore it.
+	_dormant.clear()
 	_disable_physics_recursive(self)
 
 
 func _disable_physics_recursive(node: Node) -> void:
 	if node is CollisionObject2D:
+		var scenery := node.is_in_group("pan_scenery")
+		_dormant.append({
+			"node": node,
+			"layer": node.collision_layer,
+			"mask": node.collision_mask,
+			"monitoring": node.monitoring if node is Area2D else false,
+			"monitorable": node.monitorable if node is Area2D else false,
+			"pickable": node.input_pickable,
+			"process_mode": node.process_mode,
+		})
 		# Off every layer/mask: no blocking, no overlaps, no input picking.
 		node.collision_layer = 0
 		node.collision_mask = 0
@@ -222,10 +240,57 @@ func _disable_physics_recursive(node: Node) -> void:
 		node.input_pickable = false
 		# Scenery zombies keep processing so their idle animation still plays as
 		# they scroll into view (their AI is already off via set_physics_process).
-		if not node.is_in_group("pan_scenery"):
+		if not scenery:
 			node.process_mode = Node.PROCESS_MODE_DISABLED
 	for child in node.get_children():
 		_disable_physics_recursive(child)
+
+
+func _restore_dormant() -> void:
+	# Exact inverse of _make_inert: put every recorded property back to what it was
+	# on the built floor, so a woken backdrop is indistinguishable from a floor
+	# that spawned live.
+	for e in _dormant:
+		var n = e["node"]
+		if not is_instance_valid(n):
+			continue
+		n.collision_layer = e["layer"]
+		n.collision_mask = e["mask"]
+		if n is Area2D:
+			n.monitoring = e["monitoring"]
+			n.monitorable = e["monitorable"]
+		n.input_pickable = e["pickable"]
+		n.process_mode = e["process_mode"]
+	_dormant.clear()
+
+
+func _wake_scenery_zombies() -> void:
+	# Turn the pan backdrop's frozen scenery zombies into real ones: their
+	# collision came back via _restore_dormant, so here just give them their AI
+	# and drop the scenery tag. Step 1's memory already placed them correctly.
+	for z in get_tree().get_nodes_in_group("pan_scenery"):
+		if not is_ancestor_of(z):
+			continue
+		z.remove_from_group("pan_scenery")
+		z.set_physics_process(true)
+
+
+# Wake a floor that was BUILT as a passive/inert backdrop into a fully live one,
+# WITHOUT re-running _ready (so no current_scene-null crash). Restores everything
+# _make_inert stripped, does the live-only setup the passive build skipped
+# (merchant, camera stays with the caller), and re-derives the direction-
+# dependent bits now that the arrival is final. The live player is reparented in
+# by the caller before this runs.
+func go_live() -> void:
+	if not passive:
+		return
+	passive = false
+	var floor_num = setup_floor if setup_floor >= 0 else WorldState.current_floor
+	_restore_dormant()
+	_apply_stair_visuals()        # arrival direction is only final now
+	_enable_stair_triggers()
+	_wake_scenery_zombies()
+	_spawn_merchant(floor_num)
 
 
 func _apply_doors(floor_num: int) -> void:
