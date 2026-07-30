@@ -19,6 +19,12 @@ extends Node
 # camera's pan duration is derived from them, so it always matches the player).
 
 const ENABLED := true
+# THE FLUID HAND-OFF. When true, the pan does not reload the destination floor at
+# the end — the backdrop it already built (and the player already walked onto) is
+# ADOPTED as the live floor: promoted, woken, re-homed to origin, old floor freed.
+# That removes the jarring re-instantiation cut on arrival. false falls back to
+# change_scene_to_file (works, but with the cut) — the safety valve.
+const ADOPT_ON_COMMIT := true
 const TURN_TIME := 0.40      # crossing the landing between flights (horizontal leg)
 # Stairs are climbed STEP BY STEP at walking pace, not glided. One step per tile
 # of height, each taking STEP_TIME — so the climb's duration follows the distance
@@ -292,7 +298,61 @@ func pan_to_floor(target_floor: int, direction: String) -> void:
 		sprite.modulate = base_mod
 		_clear_shred(sprite)
 
-	_commit(target_floor)
+	# Adopt the backdrop we already built, or fall back to a plain reload.
+	if ADOPT_ON_COMMIT and is_instance_valid(backdrop) and is_instance_valid(player) \
+			and is_instance_valid(scene) and backdrop.has_method("go_live"):
+		_adopt(target_floor, backdrop, player, pan_cam, floor_offset, scene)
+	else:
+		_commit(target_floor)   # change_scene frees the old scene, backdrop, holder, pan_cam
+
+
+func _adopt(target_floor: int, backdrop: Node, player: Node2D, pan_cam: Camera2D,
+		floor_offset: float, old_scene: Node) -> void:
+	# THE MAGIC TRICK. The backdrop IS the destination floor — fully built, with
+	# the player standing on it. Instead of tearing it down and rebuilding (the
+	# jarring cut), promote it. Everything here runs in ONE synchronous block: no
+	# await, so no frame renders mid-way and nothing can judder from ordering.
+	panning = false
+	WorldState.current_floor = target_floor
+	WorldState.on_floor_arrived(target_floor)
+	HUD.update_floor_label()
+
+	var tree := get_tree()
+
+	# Promote the backdrop to be the scene, with the live player (same instance —
+	# no rebuild, no lost state) reparented into it. reparent keeps global position.
+	backdrop.reparent(tree.root)
+	tree.current_scene = backdrop
+	player.reparent(backdrop)
+
+	# Re-home to the design origin: the floor shifts by -floor_offset and the
+	# player, being a child now, rides along — so the view does not move, but the
+	# floor lands where a freshly loaded one would (no offset drift over 30 floors)
+	# and the player sits on the real spawn. No frame renders during this block, so
+	# the still-current pan_cam never shows the shifted world.
+	backdrop.position += Vector2(0, -floor_offset)
+
+	# Wake it: collision/triggers restored, scenery zombies made live, merchant
+	# placed, stair art + triggers set for this arrival.
+	backdrop.go_live()
+
+	# Hand the camera back to the player's own, framed to the floor at its origin.
+	var pcam = player.get_node_or_null("Camera2D")
+	if pcam != null and backdrop.has_method("_frame_camera"):
+		backdrop._frame_camera(player)
+		pcam.make_current()
+		pcam.reset_smoothing()
+		pcam.force_update_scroll()
+	if is_instance_valid(pan_cam):
+		pan_cam.queue_free()
+
+	player.is_cutscene = false
+
+	# The old floor is detached now (player + backdrop left it). Its zombies record
+	# their positions as it frees (enemy _exit_tree — Step 1's memory), and the
+	# teardown lands AFTER control is back, off the arrival moment.
+	if is_instance_valid(old_scene):
+		old_scene.queue_free()
 
 
 func _descend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vector2,

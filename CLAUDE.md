@@ -110,7 +110,8 @@ setup script; binary from downloads.godotengine.org). Before every commit:
   `repair_test`, `audio_smoke_test`, `tutorial_test`, `click_move_test`,
   `depth_move_test`, `transition_test`, `force_lock_test`, `loot_test`,
   `building_floors_test`, `stair_visuals_test`, `profile_test`,
-  `profile_ui_test`, `title_test`, `enemy_memory_test` — run all 19 before commit.
+  `profile_ui_test`, `title_test`, `enemy_memory_test`, `floor_adopt_test` —
+  run all 20 before commit.
 
 Add a test scene under `tests/` for each new system (copy the pattern:
 plain Node + script with `check()` asserts, quit(1) on failure). Headless
