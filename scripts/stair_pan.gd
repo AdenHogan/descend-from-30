@@ -215,6 +215,12 @@ func pan_to_floor(target_floor: int, direction: String) -> void:
 
 	panning = true
 	player.is_cutscene = true   # freeze normal control during the pan
+	# Drop any click-to-move target from walking INTO the stairwell. Adoption keeps
+	# the same player instance, so without this the stale target survives the pan
+	# and the player takes a stray step toward it the instant control returns — the
+	# door approach/knock cutscenes already clear it the same way.
+	if player.has_method("_clear_move_target"):
+		player._clear_move_target()
 
 	var down := direction == "down"
 
