@@ -211,6 +211,15 @@ func _knockdown() -> void:
 	animated_sprite.play("Hit")
 	_make_passable_to_player()
 
+func _exit_tree() -> void:
+	# Leaving this floor (stairs, apartment door, save/quit): remember where I am,
+	# facing which way, how hurt — so returning doesn't reset me to my seeded
+	# spawn. record_zombie skips the dead (killed_zombies has those), keyless, and
+	# pan-backdrop scenery. Guard the autoload in case this fires during shutdown.
+	if is_instance_valid(WorldState):
+		WorldState.record_zombie(self)
+
+
 func _die() -> void:
 	is_dead = true
 	state = "dead"

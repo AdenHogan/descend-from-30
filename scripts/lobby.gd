@@ -33,6 +33,8 @@ func _ready() -> void:
 			zombie.global_position = pos
 			zombie.spawn_key = key
 			add_child(zombie)
+			# Living-enemy memory, same as the corridors and apartments.
+			WorldState.apply_saved_zombie(zombie)
 
 	_spawn_corpses(1)
 	_spawn_world_drops(1)

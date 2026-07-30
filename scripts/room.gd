@@ -129,10 +129,10 @@ func _ready() -> void:
 				var zombie = zombie_scene.instantiate()
 				zombie.global_position = pos
 				zombie.spawn_key = key
-				if WorldState.zombie_positions.has(key):
-					var saved = WorldState.zombie_positions[key]
-					zombie.global_position = Vector2(saved["x"], saved["y"])
 				add_child(zombie)
+				# Living-enemy memory: position + facing + health + alert (was
+				# position only). See WorldState.apply_saved_zombie.
+				WorldState.apply_saved_zombie(zombie)
 
 	if WorldState.saved_player_x != 0.0:
 		player.global_position = Vector2(WorldState.saved_player_x, WorldState.saved_player_y)
@@ -656,20 +656,16 @@ func _spawn_breached_enemies() -> void:
 			var boss = big_scene.instantiate()
 			boss.global_position = entry["position"]
 			boss.spawn_key = key
-			if WorldState.zombie_positions.has(key):
-				var saved_b = WorldState.zombie_positions[key]
-				boss.global_position = Vector2(saved_b["x"], saved_b["y"])
 			boss.drops_key = true
 			boss.key_target_apartment = WorldState.get_breached_boss_key_target(apartment_id)
 			add_child(boss)
+			WorldState.apply_saved_zombie(boss)
 		else:
 			var zombie = standard_scene.instantiate()
 			zombie.global_position = entry["position"]
 			zombie.spawn_key = key
-			if WorldState.zombie_positions.has(key):
-				var saved_z = WorldState.zombie_positions[key]
-				zombie.global_position = Vector2(saved_z["x"], saved_z["y"])
 			add_child(zombie)
+			WorldState.apply_saved_zombie(zombie)
 
 
 func _spawn_corpses(floor_num: int, apartment_id: String = "") -> void:
