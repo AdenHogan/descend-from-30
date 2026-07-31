@@ -10,9 +10,16 @@ extends RigidBody2D
 # from a bit of a distance), THROW_SPEED the horizontal reach (~one apartment
 # room). A higher arc takes longer to land, so raising THROW_UP without dropping
 # THROW_SPEED also throws it further — these two are the tuning dials.
-const THROW_SPEED = 190.0
-const THROW_UP = 500.0
-const SPIN = 12.0
+# THROW_SPEED, THROW_UP and GRAVITY are scaled together (v ×k, g ×k²) so the arc
+# keeps the SAME shape and landing spot but plays out k× faster — a snappier
+# throw. Here k = 1.2 over the original 190/500/1.0.
+const THROW_SPEED = 228.0
+const THROW_UP = 600.0
+const GRAVITY_SCALE = 1.44
+const SPIN = 14.0
+# Once a landed can slows below this it freezes into a static prop so a zombie
+# walking over it can't shove it around (see _physics_process).
+const REST_SPEED = 12.0
 # A can that hits an enemy IN FLIGHT (arc too low / too close) is a physical
 # knock — it damages but never kills. On the FLOOR it never blocks: enemies are
 # on a layer this can does not present to (collision_layer 128), so they walk
@@ -36,11 +43,12 @@ var thud_timer: float = 0.0
 var despawn_timer: float = -1.0
 var thud_player: AudioStreamPlayer2D = null
 var _hit: Dictionary = {}   # zombies already damaged this throw — never twice
+var _frozen_at_rest: bool = false
 
 
 func _ready() -> void:
 	z_index = 1  # actor/foreground layer, in front of the wall backdrop
-	gravity_scale = 1.0
+	gravity_scale = GRAVITY_SCALE
 	body_entered.connect(_on_body_entered)
 	thud_player = AudioStreamPlayer2D.new()
 	thud_player.max_distance = 700.0
@@ -60,6 +68,12 @@ func launch(dir: float, from: Vector2) -> void:
 func _physics_process(delta: float) -> void:
 	if thud_timer > 0.0:
 		thud_timer -= delta
+	# Rolled to a stop: pin it. Enemies never collide with the can's layer, but a
+	# still-live RigidBody would get shoved on contact — freezing it (a static
+	# prop) means a zombie walking over it just passes through, no push.
+	if has_landed and not _frozen_at_rest and linear_velocity.length() < REST_SPEED:
+		freeze = true
+		_frozen_at_rest = true
 	if despawn_timer > 0.0:
 		despawn_timer -= delta
 		if despawn_timer <= 0.0:
@@ -96,5 +110,7 @@ func _on_body_entered(body: Node) -> void:
 
 
 func _land() -> void:
+	# The distraction holds for the can's whole life (until it despawns), so
+	# zombies stay fixated on it instead of reaggroing the moment they arrive.
 	WorldState.emit_noise(global_position, LAND_NOISE_RADIUS, 3.0)
-	WorldState.emit_distraction(global_position, DISTRACTION_RADIUS)
+	WorldState.emit_distraction(global_position, DISTRACTION_RADIUS, DESPAWN_AFTER_LAND)

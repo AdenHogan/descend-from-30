@@ -174,6 +174,11 @@ const NOISE_RADIUS = {
 	"gunshot": 2000.0,  # whole floor
 }
 
+# A noise this loud or louder yanks a can-distracted zombie back onto the player
+# (running 240, door work 420, gunshot 2000). Quiet gaits — crouch/scavenge/walk
+# (<= 120) — stay under it, so a thrown can reliably holds their attention.
+const NOISE_BREAKS_DISTRACTION = 200.0
+
 
 func _ready() -> void:
 	load_profile()
@@ -831,12 +836,17 @@ func emit_noise(pos: Vector2, radius: float, duration: float = 1.0) -> void:
 		if not z.is_dead and z.has_method("alert_to_noise"):
 			if z.global_position.distance_to(pos) <= radius:
 				z.alert_to_noise(duration)
+				# Loud enough (running / forcing a door / gunfire) also snaps a
+				# can-distracted zombie back onto the player; quiet gaits don't.
+				if radius >= NOISE_BREAKS_DISTRACTION and z.has_method("break_distraction"):
+					z.break_distraction()
 
 
-func emit_distraction(pos: Vector2, radius: float = 700.0) -> void:
+func emit_distraction(pos: Vector2, radius: float = 700.0, duration: float = 6.0) -> void:
 	# A thrown can (docs/GAME_DESIGN_DOC + QUEST/design): a loud landing that
 	# OVERRIDES all standard-zombie aggro — every non-boss in earshot turns
-	# and walks to the sound. Bosses (big zombies) ignore it entirely.
+	# and walks to the sound, staying fixated for `duration` (the can's life).
+	# Bosses (big zombies) ignore it entirely.
 	var tree = Engine.get_main_loop() as SceneTree
 	if tree == null:
 		return
@@ -846,7 +856,7 @@ func emit_distraction(pos: Vector2, radius: float = 700.0) -> void:
 		if z.is_in_group("big_zombie"):
 			continue
 		if z.has_method("be_distracted") and z.global_position.distance_to(pos) <= radius:
-			z.be_distracted(pos)
+			z.be_distracted(pos, duration)
 
 
 # --- Listen reads (press R at a door / down-stairwell) ---

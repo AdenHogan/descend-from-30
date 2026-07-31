@@ -50,20 +50,35 @@ var is_dead: bool = false
 var passable_to_player: bool = false
 # Gunfire (and future noise sources) override detection range while this runs.
 var alert_timer: float = 0.0
-# Thrown-can distraction: overrides chase; the zombie walks to the sound.
+# Thrown-can distraction: overrides chase; the zombie walks to the sound and
+# stays fixated on it for distraction_timer seconds (the can's whole life). While
+# distracted it ignores the player's proximity entirely — only a loud noise
+# (break_distraction) pulls it off. When the timer runs out (the can despawns)
+# normal aggro resumes.
 var is_distracted: bool = false
 var distraction_target: Vector2 = Vector2.ZERO
-# Chance a zombie loses interest (de-aggros) once it reaches the can.
-const DISTRACTION_DEAGGRO_CHANCE = 0.5
+var distraction_timer: float = 0.0
 
 
-func be_distracted(pos: Vector2) -> void:
+func be_distracted(pos: Vector2, duration: float = 6.0) -> void:
 	if is_dead or state in ["hit", "recovering", "knockdown"]:
 		return
 	is_distracted = true
 	distraction_target = pos
+	distraction_timer = duration
 	alert_timer = 0.0  # the can wins over prior gunfire/sight aggro
 	state = "distracted"
+	animated_sprite.play("Walk")
+
+
+func break_distraction() -> void:
+	# A loud enough noise (running, forcing a door, gunfire — see emit_noise)
+	# snaps a can-distracted zombie back onto the player. Quiet movement won't.
+	if not is_distracted:
+		return
+	is_distracted = false
+	distraction_timer = 0.0
+	state = "chase"
 	animated_sprite.play("Walk")
 
 # Off-screen presence: positional moans/shuffles the player can HEAR before
@@ -359,22 +374,26 @@ func _physics_process(delta: float) -> void:
 				animated_sprite.play("Walk")
 		"distracted":
 			_try_resolidify()
-			var to_can = distraction_target.x - global_position.x
-			if abs(to_can) <= 20.0:
-				# Reached the can — investigate, then some lose interest.
+			distraction_timer -= delta
+			if distraction_timer <= 0.0:
+				# The can's gone quiet (it despawns about now) — normal aggro
+				# resumes next frame via the chase block.
 				is_distracted = false
-				velocity.x = 0
-				if randf() < DISTRACTION_DEAGGRO_CHANCE:
-					state = "idle"
+				state = "chase"
+				animated_sprite.play("Walk")
+			else:
+				var to_can = distraction_target.x - global_position.x
+				if abs(to_can) <= 20.0:
+					# At the can: loiter, fixated on the sound. The player walking
+					# up does NOT pull it back — only a loud noise does.
+					velocity.x = 0
+					animated_sprite.flip_h = distraction_target.x < global_position.x
 					animated_sprite.play("Idle")
 				else:
-					state = "chase"
+					var dir = signf(to_can)
+					velocity.x = dir * SPEED
+					animated_sprite.flip_h = dir < 0
 					animated_sprite.play("Walk")
-			else:
-				var dir = signf(to_can)
-				velocity.x = dir * SPEED
-				animated_sprite.flip_h = dir < 0
-				animated_sprite.play("Walk")
 		"chase", "idle":
 			_try_resolidify()
 			# Scripted zombie: stays put until the script releases it, then
