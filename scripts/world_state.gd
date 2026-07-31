@@ -1,6 +1,14 @@
 extends Node
 
 const ROOM_POOL = ["bedroom", "bathroom", "study", "kitchen", "living_room", "dining_room"]
+# Balcony rooms live only in study/dining modules. A balcony must always have a
+# balcony room directly below it (THREE_RUN_ARC balcony rule), so balconies are
+# seeded per APARTMENT COLUMN (not per apartment): a fraction of columns are
+# "balcony columns", and in one — the same seeded interior slot on EVERY floor —
+# generation forces a study or dining room. Column-only seeding makes the balcony
+# a continuous vertical stack, so every balcony (except floor 1) has one below.
+const BALCONY_ROOMS = ["study", "dining_room"]
+const BALCONY_COLUMN_CHANCE = 0.5
 const MAX_INVENTORY_SLOTS = 5
 const MAX_AMMO_PER_SLOT = 8
 const MAX_THROWABLE_PER_SLOT = 3   # cans held per slot (was one-and-done)
@@ -1024,8 +1032,62 @@ func get_apartment_layout(apartment_id: String) -> Array:
 		pool[i] = pool[j]
 		pool[j] = temp
 	var layout = [pool[0], pool[1], pool[2]]
+	# Balcony column: force a balcony room (study/dining) at the seeded slot so it
+	# stacks continuously down the building. Other slots keep their rolled types;
+	# non-balcony apartments are untouched (identical to the old generation).
+	var bal_slot = balcony_slot_in_apartment(apartment_id)
+	if bal_slot >= 0 and not (layout[bal_slot] in BALCONY_ROOMS):
+		var existing = -1
+		for k in range(3):
+			if layout[k] in BALCONY_ROOMS:
+				existing = k
+				break
+		if existing >= 0:
+			# A balcony room already rolled elsewhere — just swap it into the slot.
+			var t = layout[bal_slot]
+			layout[bal_slot] = layout[existing]
+			layout[existing] = t
+		else:
+			# None rolled — drop in a seeded study/dining (still three distinct).
+			layout[bal_slot] = BALCONY_ROOMS[apt_rng.randi() % BALCONY_ROOMS.size()]
 	apartment_layouts[apartment_id] = layout
 	return layout
+
+
+func _apartment_column(apartment_id: String) -> int:
+	# Apartment ids are floor + "0" + column (e.g. "2603" -> column 3). Columns are
+	# what stack vertically, so the balcony seed keys off the column alone.
+	if apartment_id == "":
+		return -1
+	return int(apartment_id) % 10
+
+
+func is_balcony_column(col: int) -> bool:
+	if col < 0:
+		return false
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "balconycol" + str(col))
+	return rng.randf() < BALCONY_COLUMN_CHANCE
+
+
+func balcony_slot_for_column(col: int) -> int:
+	# Which interior slot (0-2) is the balcony for this column. Column-only seed =>
+	# identical on every floor => the balcony stack lines up vertically.
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "balconyslot" + str(col))
+	return rng.randi() % 3
+
+
+func balcony_slot_in_apartment(apartment_id: String) -> int:
+	# The balcony slot for this apartment, or -1 if it has no balcony.
+	var col := _apartment_column(apartment_id)
+	if col < 0 or not is_balcony_column(col):
+		return -1
+	return balcony_slot_for_column(col)
+
+
+func is_balcony_slot(apartment_id: String, slot: int) -> bool:
+	return balcony_slot_in_apartment(apartment_id) == slot
 
 
 func get_floor_zombie_count(floor_num: int) -> int:

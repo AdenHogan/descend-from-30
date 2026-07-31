@@ -96,6 +96,14 @@ func _ready() -> void:
 		# whose backdrop is a Sprite). Make all module Controls click-through.
 		for ctrl in _all_controls(instance):
 			ctrl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		# Study/dining modules carry a Balcony node; reveal it only on a real
+		# balcony slot (seeded per column, stacked vertically). A study/dining that
+		# just happens to sit elsewhere shows no balcony. Hidden during the
+		# first-run Floor 30 tutorial to keep that sequence clean.
+		var bal_node = instance.get_node_or_null("Balcony")
+		if bal_node != null:
+			var tutorial_f30 = WorldState.is_first_run and WorldState.current_floor == 30
+			bal_node.visible = WorldState.is_balcony_slot(apartment_id, i) and not tutorial_f30
 
 	if entrance_side == "left":
 		door.position.x = 96
