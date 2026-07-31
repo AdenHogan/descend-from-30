@@ -114,6 +114,10 @@ func _ready() -> void:
 	moan_player.name = "MoanPlayer"
 	moan_player.volume_db = -2.0
 	moan_player.max_distance = 650.0
+	# Enemy SFX bus so the stair ascent can fade the floor's moans out without
+	# quieting the music (see Game._ensure_enemy_bus).
+	if AudioServer.get_bus_index(Game.ENEMY_BUS) != -1:
+		moan_player.bus = Game.ENEMY_BUS
 	add_child(moan_player)
 	voice_pitch = randf_range(0.82, 1.22)
 	moan_timer = randf_range(0.5, 9.0)

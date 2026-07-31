@@ -11,10 +11,16 @@ const SCENES = {
 
 var music_player: AudioStreamPlayer = null
 
+# A dedicated bus for enemy SFX (zombie moans). The stair ascent fades THIS bus
+# out as the player climbs away, so the floor's zombies recede without touching
+# the music. Everything else stays on Master.
+const ENEMY_BUS := "Enemies"
+
 
 func _ready() -> void:
 	# Must keep handling input while the tree is paused, so Esc can un-pause.
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_ensure_enemy_bus()
 	# Background dread loop (assets/audio/music) — lives on this autoload so
 	# it survives scene changes and keeps droning through the pause menu.
 	music_player = AudioStreamPlayer.new()
@@ -25,6 +31,17 @@ func _ready() -> void:
 	music_player.volume_db = -16.0
 	add_child(music_player)
 	music_player.play()
+
+
+func _ensure_enemy_bus() -> void:
+	# There's no bus layout resource, so create the enemy bus at runtime and
+	# route it to Master. Idempotent — safe if it already exists.
+	if AudioServer.get_bus_index(ENEMY_BUS) != -1:
+		return
+	var idx := AudioServer.bus_count
+	AudioServer.add_bus(idx)
+	AudioServer.set_bus_name(idx, ENEMY_BUS)
+	AudioServer.set_bus_send(idx, "Master")
 
 
 func _input(event: InputEvent) -> void:
