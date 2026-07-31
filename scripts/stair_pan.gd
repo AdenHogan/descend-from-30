@@ -25,6 +25,11 @@ const ENABLED := true
 # That removes the jarring re-instantiation cut on arrival. false falls back to
 # change_scene_to_file (works, but with the cut) — the safety valve.
 const ADOPT_ON_COMMIT := true
+# PREFETCH. Build the neighbour floor when the player steps into a stairwell zone
+# (the stairwell trigger calls prefetch/discard), so it's ready to adopt the
+# instant they commit — hiding the one remaining build on the approach. Discarded
+# if they leave the zone, so we never hold a floor we won't use.
+const PREFETCH := true
 const TURN_TIME := 0.40      # crossing the landing between flights (horizontal leg)
 # Stairs are climbed STEP BY STEP at walking pace, not glided. One step per tile
 # of height, each taking STEP_TIME — so the climb's duration follows the distance
@@ -160,6 +165,14 @@ const SPAWN_RIGHT_BOTTOM := Vector2(1162, 391)
 
 var panning := false   # true only WHILE a pan runs; if it starts true, can_pan() never fires
 
+# A neighbour floor built on stairwell approach, waiting to be adopted. Held at
+# most one at a time (see prefetch/discard_prefetch).
+var _pf_holder: Node2D = null
+var _pf_backdrop: Node = null
+var _pf_floor: int = 0
+var _pf_down: bool = false
+var _pf_offset: float = 0.0
+
 
 func _ready() -> void:
 	panning = false   # defensive: never boot with the guard stuck on
@@ -177,6 +190,57 @@ func can_pan(target_floor: int) -> bool:
 		return false
 	var p = scene.scene_file_path
 	return p.contains("building_floors") or p.contains("hallway")
+
+
+# The neighbour floor as a passive, inert, offset backdrop — the reusable build
+# shared by the prefetch buffer and pan_to_floor's fallback. building_floors'
+# root is a plain Node with no transform, so it hangs under a Node2D holder whose
+# offset (one floor's height) its children inherit — contiguous, no grey gap.
+func _build_backdrop(scene: Node, target_floor: int, down: bool) -> Dictionary:
+	var holder := Node2D.new()
+	scene.add_child(holder)
+	var backdrop = load("res://scenes/building_floors.tscn").instantiate()
+	backdrop.setup_floor = target_floor
+	backdrop.passive = true
+	holder.add_child(backdrop)
+	var spacing := _floor_spacing(backdrop)
+	if spacing <= 0.0:
+		spacing = FLOOR_BAND_H
+	spacing += SPACING_ADJUST
+	var floor_offset := spacing * (1.0 if down else -1.0)
+	holder.position = Vector2(0, floor_offset)
+	return {"holder": holder, "backdrop": backdrop, "offset": floor_offset}
+
+
+func prefetch(target_floor: int, down: bool) -> void:
+	# Called when the player steps into a stairwell zone: build the neighbour now,
+	# so pan_to_floor can adopt it instantly. Idempotent for the same target.
+	if not PREFETCH or panning or not can_pan(target_floor):
+		return
+	if _pf_backdrop != null and is_instance_valid(_pf_backdrop) \
+			and _pf_floor == target_floor and _pf_down == down:
+		return   # already holding this one
+	discard_prefetch()
+	var scene = get_tree().current_scene
+	if scene == null:
+		return
+	var built := _build_backdrop(scene, target_floor, down)
+	_pf_holder = built["holder"]
+	_pf_backdrop = built["backdrop"]
+	_pf_offset = built["offset"]
+	_pf_floor = target_floor
+	_pf_down = down
+
+
+func discard_prefetch() -> void:
+	# The player left the zone (or switched sides) without committing — drop the
+	# held floor so we never sit on one we won't use.
+	if _pf_holder != null and is_instance_valid(_pf_holder):
+		_pf_holder.queue_free()
+	_pf_holder = null
+	_pf_backdrop = null
+	_pf_floor = 0
+	_pf_offset = 0.0
 
 
 func dest_spawn(down: bool) -> Vector2:
@@ -224,24 +288,25 @@ func pan_to_floor(target_floor: int, direction: String) -> void:
 
 	var down := direction == "down"
 
-	# The neighbour floor as a passive backdrop, wrapped in a Node2D — building_
-	# floors' root is a plain Node with no transform, so its CanvasItem children
-	# inherit the holder's offset. Add first so its tilemap exists to measure.
-	var holder := Node2D.new()
-	scene.add_child(holder)
-	var backdrop = load("res://scenes/building_floors.tscn").instantiate()
-	backdrop.setup_floor = target_floor
-	backdrop.passive = true
-	holder.add_child(backdrop)
-
-	# Offset = ONE floor's height (the tilemap), so the neighbour sits directly
-	# above/below with the two floors contiguous — no grey gap between them.
-	var spacing := _floor_spacing(backdrop)
-	if spacing <= 0.0:
-		spacing = FLOOR_BAND_H   # fallback if the tilemap can't be measured
-	spacing += SPACING_ADJUST
-	var floor_offset := spacing * (1.0 if down else -1.0)
-	holder.position = Vector2(0, floor_offset)
+	# Use the floor prefetched on approach if it matches; otherwise build it now
+	# (fast player, or prefetch disabled) — never soft-lock on a missing buffer.
+	var holder: Node2D
+	var backdrop: Node
+	var floor_offset: float
+	if _pf_backdrop != null and is_instance_valid(_pf_backdrop) \
+			and _pf_floor == target_floor and _pf_down == down:
+		holder = _pf_holder
+		backdrop = _pf_backdrop
+		floor_offset = _pf_offset
+		_pf_holder = null   # consumed — the pan owns it now, don't free it
+		_pf_backdrop = null
+		_pf_floor = 0
+	else:
+		discard_prefetch()   # wrong floor/direction, or none — drop it
+		var built := _build_backdrop(scene, target_floor, down)
+		holder = built["holder"]
+		backdrop = built["backdrop"]
+		floor_offset = built["offset"]
 
 	# Standalone camera copies the live one exactly (same zoom!) and takes over.
 	# It inherits the live camera's HORIZONTAL limits so the walls still stop the
