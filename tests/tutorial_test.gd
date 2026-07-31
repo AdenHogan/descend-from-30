@@ -17,6 +17,12 @@ func check(cond: bool, label: String) -> void:
 
 func _ready() -> void:
 	print("=== tutorial / blood-text test ===")
+	# Hermetic: these tests assert FIRST-RUN tutorial drops, so pin the tutorial
+	# as not-yet-completed. new_game() derives is_first_run from this and never
+	# reloads it, so every sub-test is first-run regardless of any tutorial-
+	# completed profile another test (or a real playthrough) left on disk.
+	WorldState.tutorial_completed = false
+	WorldState.is_first_run = true
 	_test_blood_text_component()
 	_test_hallway_baked_hints()
 	_test_pause_menu_autoload()

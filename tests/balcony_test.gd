@@ -22,6 +22,7 @@ func _ready() -> void:
 	_test_continuity()
 	_test_conform_and_hide()
 	_test_rope_and_clothes()
+	_test_descent_core()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -127,3 +128,41 @@ func _test_rope_and_clothes() -> void:
 	WorldState.add_to_inventory("036")
 	check(not WorldState.craft_clothes_rope(), "2 clothes can't make a rope")
 	check(WorldState.count_clothes() == 2, "the spare clothes are left alone")
+
+
+func _test_descent_core() -> void:
+	print("[descent core]")
+	WorldState.new_game()
+	# The apartment below is same column, one floor down.
+	check(WorldState.balcony_below("2603") == "2503", "below 2603 is 2503")
+	check(WorldState.balcony_below("3005") == "2905", "below 3005 is 2905")
+	check(WorldState.balcony_below("103") == "", "floor 1 has nothing below (lobby)")
+
+	# A lashed rope persists and is keyed per apartment+slot.
+	check(not WorldState.is_balcony_roped("2603", 1), "balcony starts un-roped")
+	WorldState.rope_balcony("2603", 1)
+	check(WorldState.is_balcony_roped("2603", 1), "rope_balcony marks it roped")
+	check(not WorldState.is_balcony_roped("2603", 0), "only the roped slot is roped")
+
+	# Slip chance follows stamina bands.
+	var maxs = WorldState.get_max_stamina()
+	WorldState.stamina = maxs * 0.8
+	check(WorldState.balcony_slip_chance() == 0.0, "rested = safe climb")
+	WorldState.stamina = maxs * 0.45
+	check(absf(WorldState.balcony_slip_chance() - WorldState.BALCONY_SLIP_CHANCE_MODERATE) < 0.001,
+		"mid stamina = moderate slip chance")
+	WorldState.stamina = maxs * 0.1
+	check(absf(WorldState.balcony_slip_chance() - WorldState.BALCONY_SLIP_CHANCE_HIGH) < 0.001,
+		"low stamina = high slip chance")
+
+	# Descending moves world state into the apartment below and opens its door
+	# from the inside.
+	WorldState.door_states["2503"] = WorldState.DoorState.SHUT_LOCKED
+	var target = WorldState.descend_from_balcony("2603")
+	check(target == "2503", "descend targets the apartment below")
+	check(WorldState.current_floor == 25, "floor drops by one")
+	check(WorldState.current_apartment_id == "2503", "now inside the apartment below")
+	check(WorldState.spawn_source == "balcony", "arrival is flagged as a balcony drop-in")
+	check(WorldState.get_door_state("2503") == WorldState.DoorState.OPEN,
+		"a locked door is opened from the inside")
+	check(WorldState.descend_from_balcony("103") == "", "can't descend from floor 1")

@@ -81,6 +81,12 @@ const APPROACH_DEPTH = 12.0     # how far "into" the hallway (up) the player ste
 const APPROACH_TIME = 0.35
 const KNOCK_PAUSE = 0.5
 var is_cutscene: bool = false
+# Balcony descent (THREE_RUN_ARC): lashing a rope is a timed, SILENT channel the
+# player stands still for — and can be interrupted by a hit. Once lashed the rope
+# stays as a permanent balcony fixture (WorldState.roped_balconies).
+const BALCONY_LASH_TIME = 2.5
+var is_lashing: bool = false
+var _lash_cancel: bool = false
 
 # Audio (docs/SOUND_STEALTH.md audio pass). Carpet steps for the quiet
 # gaits, concrete for the loud ones — the sound mirrors the noise model.
@@ -180,6 +186,12 @@ func _physics_process(delta: float) -> void:
 
 	# A scripted approach/knock owns the body — skip normal control.
 	if is_cutscene:
+		return
+
+	# Lashing a rope: rooted and silent, vulnerable to a hit (which cancels it).
+	if is_lashing:
+		velocity.x = 0
+		move_and_slide()
 		return
 
 	if is_dying:
@@ -1134,11 +1146,84 @@ func receive_hit(amount: int = 1) -> void:
 		return
 	if is_listening:
 		_cancel_listen()
+	if is_lashing:
+		_lash_cancel = true   # a hit knocks you off the rope job
 	is_hit = true
 	hit_flash_timer = HIT_FLASH_DURATION
 	animated_sprite.modulate = Color(1, 0, 0, 1)
 	animated_sprite.play("hurt")
 	take_damage(amount)
+
+
+func begin_balcony_descent(apartment_id: String, slot: int, _from_global: Vector2) -> void:
+	# Triggered by W at a balcony zone (balcony_zone.gd). Rope (carried or already
+	# lashed) = a stamina climb with a slip risk when tired; no rope = a jump for
+	# heavier guaranteed injury.
+	if is_dead or is_dying or is_cutscene or is_lashing or is_listening or WorldState.is_scavenge_mode:
+		return
+	if WorldState.balcony_below(apartment_id) == "":
+		HUD.show_feedback("Nothing below — this is the ground floor.")
+		return
+	if WorldState.is_balcony_roped(apartment_id, slot):
+		_do_balcony_descent(apartment_id, false)   # the rope is already there
+		return
+	var rope_slot = _find_rope_slot()
+	if rope_slot >= 0:
+		_lash_and_descend(apartment_id, slot, rope_slot)
+	else:
+		_do_balcony_descent(apartment_id, true)     # no rope — jump
+
+
+func _find_rope_slot() -> int:
+	for i in range(WorldState.inventory.size()):
+		if ItemData.get_item(WorldState.inventory[i].item_id).get("is_rope", false):
+			return i
+	return -1
+
+
+func _lash_and_descend(apartment_id: String, slot: int, rope_slot: int) -> void:
+	# Silent, timed — you stand still and can be interrupted by a hit.
+	is_lashing = true
+	_lash_cancel = false
+	_clear_move_target()
+	HUD.show_feedback("Lashing the rope…")
+	var t := 0.0
+	while t < BALCONY_LASH_TIME:
+		if _lash_cancel or is_dead or is_dying:
+			is_lashing = false
+			HUD.show_feedback("Interrupted.")
+			return
+		await get_tree().process_frame
+		t += get_process_delta_time()
+	is_lashing = false
+	# The rope is now tied to the balcony for good — consume it from inventory.
+	WorldState.remove_from_inventory(rope_slot)
+	if HUD.selected_slot == rope_slot:
+		HUD.selected_slot = -1
+	HUD.refresh_inventory()
+	WorldState.rope_balcony(apartment_id, slot)
+	_do_balcony_descent(apartment_id, false)
+
+
+func _do_balcony_descent(apartment_id: String, is_jump: bool) -> void:
+	var injury := 0
+	if is_jump:
+		# A deliberate jump: heavier, guaranteed. (Fall-mitigation upgrades hook
+		# in here later.)
+		injury = randi_range(1, 3)
+	else:
+		WorldState.stamina = maxf(WorldState.stamina - WorldState.BALCONY_STAMINA_COST, 0.0)
+		HUD.update_stamina(WorldState.stamina, WorldState.get_max_stamina())
+		if randf() < WorldState.balcony_slip_chance():
+			injury = randi_range(1, 2)   # a slip is lighter than a jump
+			HUD.show_feedback("Lost your grip!")
+	var target = WorldState.descend_from_balcony(apartment_id)
+	if target == "":
+		return
+	if injury > 0 and not WorldState.god_mode:
+		take_damage(injury)
+	HUD.update_floor_label()
+	Transition.to_scene("res://scenes/room.tscn")
 
 
 func take_damage(amount: int = 1) -> void:

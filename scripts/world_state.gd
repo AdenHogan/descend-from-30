@@ -9,6 +9,16 @@ const ROOM_POOL = ["bedroom", "bathroom", "study", "kitchen", "living_room", "di
 # a continuous vertical stack, so every balcony (except floor 1) has one below.
 const BALCONY_ROOMS = ["study", "dining_room"]
 const BALCONY_COLUMN_CHANCE = 0.5
+# Descending a balcony: the climb costs stamina, and doing it tired risks losing
+# grip and falling the rest of the way (a lighter injury than a deliberate jump).
+const BALCONY_STAMINA_COST = 25.0
+const BALCONY_SLIP_SAFE = 0.60          # stamina fraction at/above which the climb is safe
+const BALCONY_SLIP_MODERATE = 0.30      # between this and SAFE: a moderate slip chance
+const BALCONY_SLIP_CHANCE_MODERATE = 0.35
+const BALCONY_SLIP_CHANCE_HIGH = 0.70   # below MODERATE stamina
+# A lashed rope stays tied to the balcony (persists), so re-descending — this run
+# or a later one — needs no rope. Keyed "apartmentId:slot".
+var roped_balconies: Dictionary = {}
 const MAX_INVENTORY_SLOTS = 5
 const MAX_AMMO_PER_SLOT = 8
 const MAX_THROWABLE_PER_SLOT = 3   # cans held per slot (was one-and-done)
@@ -354,6 +364,7 @@ func new_game() -> void:
 	killed_zombies.clear()
 	zombie_positions.clear()
 	world_drops.clear()
+	roped_balconies.clear()
 	door_states.clear()
 	door_keys_consumed.clear()
 	floor_states_seeded.clear()
@@ -1104,15 +1115,76 @@ func balcony_slot_for_column(col: int) -> int:
 
 
 func balcony_slot_in_apartment(apartment_id: String) -> int:
-	# The balcony slot for this apartment, or -1 if it has no balcony.
+	# The balcony slot for this apartment, or -1 if it has no balcony. Floor 30
+	# (the tutorial floor) never has balconies, any run — so its layouts also stay
+	# untouched by the balcony-conform in get_apartment_layout.
 	var col := _apartment_column(apartment_id)
-	if col < 0 or not is_balcony_column(col):
+	if col < 0 or _apartment_floor(apartment_id) == 30 or not is_balcony_column(col):
 		return -1
 	return balcony_slot_for_column(col)
 
 
 func is_balcony_slot(apartment_id: String, slot: int) -> bool:
 	return balcony_slot_in_apartment(apartment_id) == slot
+
+
+func _apartment_floor(apartment_id: String) -> int:
+	# floor + "0" + column, e.g. "2603" -> floor 26 (int / 100).
+	if apartment_id == "":
+		return -1
+	return int(apartment_id) / 100
+
+
+func balcony_below(apartment_id: String) -> String:
+	# The apartment directly below (same column, one floor down). Continuity means
+	# it also has a balcony at the same slot. "" if there's no apartment below
+	# (floor 1 sits over the lobby).
+	var floor_num := _apartment_floor(apartment_id)
+	var col := _apartment_column(apartment_id)
+	if floor_num <= 1 or col < 0:
+		return ""
+	return str(floor_num - 1) + "0" + str(col)
+
+
+func balcony_key(apartment_id: String, slot: int) -> String:
+	return apartment_id + ":" + str(slot)
+
+
+func is_balcony_roped(apartment_id: String, slot: int) -> bool:
+	return roped_balconies.has(balcony_key(apartment_id, slot))
+
+
+func rope_balcony(apartment_id: String, slot: int) -> void:
+	roped_balconies[balcony_key(apartment_id, slot)] = true
+
+
+func balcony_slip_chance() -> float:
+	# Chance of losing grip mid-climb, from current stamina (recover before you go).
+	var frac = stamina / max(get_max_stamina(), 1.0)
+	if frac >= BALCONY_SLIP_SAFE:
+		return 0.0
+	elif frac >= BALCONY_SLIP_MODERATE:
+		return BALCONY_SLIP_CHANCE_MODERATE
+	return BALCONY_SLIP_CHANCE_HIGH
+
+
+func descend_from_balcony(apartment_id: String) -> String:
+	# Move world state down one floor, into the apartment below via its balcony.
+	# Returns the target apartment id, or "" if there's nothing below. Entering
+	# from inside, a locked/barricaded door is opened from within (never a soft
+	# block — you're already in the room).
+	var below := balcony_below(apartment_id)
+	if below == "":
+		return ""
+	current_floor = _apartment_floor(apartment_id) - 1
+	current_apartment_id = below
+	spawn_source = "balcony"
+	var state = get_door_state(below)
+	if state in [DoorState.SHUT_LOCKED, DoorState.SHUT_FORCEABLE,
+			DoorState.BARRICADED_FORCEABLE, DoorState.BARRICADED_LOCKED]:
+		door_states[below] = DoorState.OPEN
+	on_floor_arrived(current_floor)
+	return below
 
 
 func get_floor_zombie_count(floor_num: int) -> int:
@@ -1260,10 +1332,12 @@ func get_corpse_positions_for_floor(floor_num: int, scene_path: String, apartmen
 	var result = []
 	for key in killed_zombies:
 		var data = killed_zombies[key]
-		if data["floor"] == floor_num and data["scene"] == scene_path:
+		# Tolerate partial entries (legacy saves / test fixtures) that omit scene
+		# or coords — same defensiveness as get_world_drops_for_floor.
+		if int(data.get("floor", -999)) == floor_num and str(data.get("scene", "")) == scene_path:
 			if apartment_id != "" and data.get("apartment_id", "") != apartment_id:
 				continue
-			result.append({"pos": Vector2(data["x"], data["y"]), "type": data.get("type", "standard")})
+			result.append({"pos": Vector2(data.get("x", 0.0), data.get("y", 0.0)), "type": data.get("type", "standard")})
 	return result
 
 
@@ -1771,6 +1845,7 @@ func save_game(scene_path: String) -> void:
 		"saved_player_y": saved_player_y,
 		"killed_zombies": killed_zombies,
 		"world_drops": world_drops,
+		"roped_balconies": roped_balconies,
 		"door_states": door_states,
 		"door_keys_consumed": door_keys_consumed,
 		"floor_states_seeded": floor_states_seeded,
@@ -1832,6 +1907,7 @@ func load_game() -> String:
 	saved_player_y = data["saved_player_y"]
 	killed_zombies = data["killed_zombies"]
 	world_drops = data.get("world_drops", {})
+	roped_balconies = data.get("roped_balconies", {})
 	door_states = data["door_states"]
 	door_keys_consumed = data["door_keys_consumed"]
 	# JSON round-trips all dictionary keys as strings; this dict is keyed by int

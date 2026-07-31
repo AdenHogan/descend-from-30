@@ -102,8 +102,16 @@ func _ready() -> void:
 		# first-run Floor 30 tutorial to keep that sequence clean.
 		var bal_node = instance.get_node_or_null("Balcony")
 		if bal_node != null:
-			var tutorial_f30 = WorldState.is_first_run and WorldState.current_floor == 30
-			bal_node.visible = WorldState.is_balcony_slot(apartment_id, i) and not tutorial_f30
+			# is_balcony_slot already excludes Floor 30 (the tutorial floor).
+			var show_balcony = WorldState.is_balcony_slot(apartment_id, i)
+			bal_node.visible = show_balcony
+			if show_balcony:
+				# A descent trigger under the balcony (walk up / W to climb down).
+				var zone = preload("res://scenes/balcony_zone.tscn").instantiate()
+				zone.apartment_id = apartment_id
+				zone.slot = i
+				zone.position = Vector2(LEFT_WALL_X + i * MODULE_WIDTH + 50, 334)
+				add_child(zone)
 
 	if entrance_side == "left":
 		door.position.x = 96
@@ -113,6 +121,16 @@ func _ready() -> void:
 		door.position.x = 1072
 		player.position.x = 1050
 		player.get_node("AnimatedSprite2D").flip_h = true
+
+	# Arrived by climbing DOWN a balcony (see player.begin_balcony_descent): drop
+	# in at this apartment's balcony slot instead of the hallway door.
+	if WorldState.spawn_source == "balcony":
+		var bslot = WorldState.balcony_slot_in_apartment(apartment_id)
+		if bslot < 0:
+			bslot = 0
+		player.position.x = LEFT_WALL_X + bslot * MODULE_WIDTH + 50
+		player.get_node("AnimatedSprite2D").flip_h = false
+		WorldState.spawn_source = ""
 
 	# Spawn enemies — breached rooms use separate system with Big Zombie boss
 	var door_state = WorldState.get_door_state(apartment_id)
