@@ -37,10 +37,6 @@ func _on_body_entered(body: Node2D) -> void:
 			arrow.visible = true
 		if listen_label:
 			listen_label.visible = true
-		# Buffer the neighbour floor while the player lingers here, so it's ready
-		# to adopt the instant they commit. Discarded if they walk back out.
-		StairPan.prefetch(WorldState.current_floor + (-1 if direction == "down" else 1),
-			direction == "down")
 		# Tutorial (first-run Floor 30): the descent is gated until the 3003
 		# neighbour is dealt with — nudge the player back toward the apartments.
 		if direction == "down" and TutorialManager.stairs_locked():
@@ -54,8 +50,6 @@ func _on_body_exited(body: Node2D) -> void:
 			arrow.visible = false
 		if listen_label:
 			listen_label.visible = false
-		# Walked back out without taking the stairs — drop the buffered floor.
-		StairPan.discard_prefetch()
 
 func _process(_delta: float) -> void:
 	if player_nearby and arrow:
