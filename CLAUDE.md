@@ -110,8 +110,15 @@ setup script; binary from downloads.godotengine.org). Before every commit:
   `repair_test`, `audio_smoke_test`, `tutorial_test`, `click_move_test`,
   `depth_move_test`, `transition_test`, `force_lock_test`, `loot_test`,
   `building_floors_test`, `stair_visuals_test`, `profile_test`,
-  `profile_ui_test`, `title_test`, `enemy_memory_test`, `floor_adopt_test` —
-  run all 20 before commit.
+  `profile_ui_test`, `title_test`, `enemy_memory_test`, `floor_adopt_test`,
+  `balcony_test` — run all 21 before commit.
+
+Note: `tutorial_test` asserts first-run tutorial content, so it needs
+`is_first_run` true — which comes from `tutorial_completed=false` in the active
+profile (`user://…profile.cfg`). A profile left with the tutorial completed
+makes that flag false and the tutorial apartments seed procedurally, failing the
+spec asserts. Reset the flag (or the profile) if the tutorial suite starts
+failing on procedural content.
 
 Add a test scene under `tests/` for each new system (copy the pattern:
 plain Node + script with `check()` asserts, quit(1) on failure). Headless

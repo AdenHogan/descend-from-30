@@ -1,10 +1,29 @@
 extends Node
 
 const ROOM_POOL = ["bedroom", "bathroom", "study", "kitchen", "living_room", "dining_room"]
+# Balcony rooms live only in study/dining modules. A balcony must always have a
+# balcony room directly below it (THREE_RUN_ARC balcony rule), so balconies are
+# seeded per APARTMENT COLUMN (not per apartment): a fraction of columns are
+# "balcony columns", and in one — the same seeded interior slot on EVERY floor —
+# generation forces a study or dining room. Column-only seeding makes the balcony
+# a continuous vertical stack, so every balcony (except floor 1) has one below.
+const BALCONY_ROOMS = ["study", "dining_room"]
+const BALCONY_COLUMN_CHANCE = 0.5
+# Descending a balcony: the climb costs stamina, and doing it tired risks losing
+# grip and falling the rest of the way (a lighter injury than a deliberate jump).
+const BALCONY_STAMINA_COST = 25.0
+const BALCONY_SLIP_SAFE = 0.60          # stamina fraction at/above which the climb is safe
+const BALCONY_SLIP_MODERATE = 0.30      # between this and SAFE: a moderate slip chance
+const BALCONY_SLIP_CHANCE_MODERATE = 0.35
+const BALCONY_SLIP_CHANCE_HIGH = 0.70   # below MODERATE stamina
+# A lashed rope stays tied to the balcony (persists), so re-descending — this run
+# or a later one — needs no rope. Keyed "apartmentId:slot".
+var roped_balconies: Dictionary = {}
 const MAX_INVENTORY_SLOTS = 5
 const MAX_AMMO_PER_SLOT = 8
 const MAX_THROWABLE_PER_SLOT = 3   # cans held per slot (was one-and-done)
 const CAN_SCAVENGE_BOOST = 1.18    # cans spawn 18% more, so they're a real option
+const CLOTHES_BEDROOM_BOOST = 1.30 # clothes +30% in bedrooms (3 make a clothes-rope)
 
 var master_seed: int = 0
 var current_apartment_id: String = ""
@@ -345,6 +364,7 @@ func new_game() -> void:
 	killed_zombies.clear()
 	zombie_positions.clear()
 	world_drops.clear()
+	roped_balconies.clear()
 	door_states.clear()
 	door_keys_consumed.clear()
 	floor_states_seeded.clear()
@@ -509,6 +529,30 @@ func move_inventory_slot_to_end(from: int) -> void:
 func remove_from_inventory(slot_index: int) -> void:
 	if slot_index >= 0 and slot_index < inventory.size():
 		inventory.remove_at(slot_index)
+
+
+func count_clothes() -> int:
+	var n := 0
+	for inst in inventory:
+		if ItemData.get_item(inst.item_id).get("is_clothes", false):
+			n += 1
+	return n
+
+
+func craft_clothes_rope() -> bool:
+	# Knot 3 clothes (item 036, not stackable) into a Clothes-Rope (037). Frees two
+	# slots net, so there's always room for the result. Returns false if short.
+	if count_clothes() < 3:
+		return false
+	var removed := 0
+	for i in range(inventory.size() - 1, -1, -1):
+		if removed >= 3:
+			break
+		if ItemData.get_item(inventory[i].item_id).get("is_clothes", false):
+			inventory.remove_at(i)
+			removed += 1
+	add_to_inventory("037")
+	return true
 
 
 func unlock_wallet() -> void:
@@ -1024,8 +1068,123 @@ func get_apartment_layout(apartment_id: String) -> Array:
 		pool[i] = pool[j]
 		pool[j] = temp
 	var layout = [pool[0], pool[1], pool[2]]
+	# Balcony column: force a balcony room (study/dining) at the seeded slot so it
+	# stacks continuously down the building. Other slots keep their rolled types;
+	# non-balcony apartments are untouched (identical to the old generation).
+	var bal_slot = balcony_slot_in_apartment(apartment_id)
+	if bal_slot >= 0 and not (layout[bal_slot] in BALCONY_ROOMS):
+		var existing = -1
+		for k in range(3):
+			if layout[k] in BALCONY_ROOMS:
+				existing = k
+				break
+		if existing >= 0:
+			# A balcony room already rolled elsewhere — just swap it into the slot.
+			var t = layout[bal_slot]
+			layout[bal_slot] = layout[existing]
+			layout[existing] = t
+		else:
+			# None rolled — drop in a seeded study/dining (still three distinct).
+			layout[bal_slot] = BALCONY_ROOMS[apt_rng.randi() % BALCONY_ROOMS.size()]
 	apartment_layouts[apartment_id] = layout
 	return layout
+
+
+func _apartment_column(apartment_id: String) -> int:
+	# Apartment ids are floor + "0" + column (e.g. "2603" -> column 3). Columns are
+	# what stack vertically, so the balcony seed keys off the column alone.
+	if apartment_id == "":
+		return -1
+	return int(apartment_id) % 10
+
+
+func is_balcony_column(col: int) -> bool:
+	if col < 0:
+		return false
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "balconycol" + str(col))
+	return rng.randf() < BALCONY_COLUMN_CHANCE
+
+
+func balcony_slot_for_column(col: int) -> int:
+	# Which interior slot (0-2) is the balcony for this column. Column-only seed =>
+	# identical on every floor => the balcony stack lines up vertically.
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "balconyslot" + str(col))
+	return rng.randi() % 3
+
+
+func balcony_slot_in_apartment(apartment_id: String) -> int:
+	# The balcony slot for this apartment, or -1 if it has no balcony. Floor 30
+	# (the tutorial floor) never has balconies, any run — so its layouts also stay
+	# untouched by the balcony-conform in get_apartment_layout.
+	var col := _apartment_column(apartment_id)
+	if col < 0 or _apartment_floor(apartment_id) == 30 or not is_balcony_column(col):
+		return -1
+	return balcony_slot_for_column(col)
+
+
+func is_balcony_slot(apartment_id: String, slot: int) -> bool:
+	return balcony_slot_in_apartment(apartment_id) == slot
+
+
+func _apartment_floor(apartment_id: String) -> int:
+	# floor + "0" + column, e.g. "2603" -> floor 26 (int / 100).
+	if apartment_id == "":
+		return -1
+	return int(apartment_id) / 100
+
+
+func balcony_below(apartment_id: String) -> String:
+	# The apartment directly below (same column, one floor down). Continuity means
+	# it also has a balcony at the same slot. "" if there's no apartment below
+	# (floor 1 sits over the lobby).
+	var floor_num := _apartment_floor(apartment_id)
+	var col := _apartment_column(apartment_id)
+	if floor_num <= 1 or col < 0:
+		return ""
+	return str(floor_num - 1) + "0" + str(col)
+
+
+func balcony_key(apartment_id: String, slot: int) -> String:
+	return apartment_id + ":" + str(slot)
+
+
+func is_balcony_roped(apartment_id: String, slot: int) -> bool:
+	return roped_balconies.has(balcony_key(apartment_id, slot))
+
+
+func rope_balcony(apartment_id: String, slot: int) -> void:
+	roped_balconies[balcony_key(apartment_id, slot)] = true
+
+
+func balcony_slip_chance() -> float:
+	# Chance of losing grip mid-climb, from current stamina (recover before you go).
+	var frac = stamina / max(get_max_stamina(), 1.0)
+	if frac >= BALCONY_SLIP_SAFE:
+		return 0.0
+	elif frac >= BALCONY_SLIP_MODERATE:
+		return BALCONY_SLIP_CHANCE_MODERATE
+	return BALCONY_SLIP_CHANCE_HIGH
+
+
+func descend_from_balcony(apartment_id: String) -> String:
+	# Move world state down one floor, into the apartment below via its balcony.
+	# Returns the target apartment id, or "" if there's nothing below. Entering
+	# from inside, a locked/barricaded door is opened from within (never a soft
+	# block — you're already in the room).
+	var below := balcony_below(apartment_id)
+	if below == "":
+		return ""
+	current_floor = _apartment_floor(apartment_id) - 1
+	current_apartment_id = below
+	spawn_source = "balcony"
+	var state = get_door_state(below)
+	if state in [DoorState.SHUT_LOCKED, DoorState.SHUT_FORCEABLE,
+			DoorState.BARRICADED_FORCEABLE, DoorState.BARRICADED_LOCKED]:
+		door_states[below] = DoorState.OPEN
+	on_floor_arrived(current_floor)
+	return below
 
 
 func get_floor_zombie_count(floor_num: int) -> int:
@@ -1173,10 +1332,12 @@ func get_corpse_positions_for_floor(floor_num: int, scene_path: String, apartmen
 	var result = []
 	for key in killed_zombies:
 		var data = killed_zombies[key]
-		if data["floor"] == floor_num and data["scene"] == scene_path:
+		# Tolerate partial entries (legacy saves / test fixtures) that omit scene
+		# or coords — same defensiveness as get_world_drops_for_floor.
+		if int(data.get("floor", -999)) == floor_num and str(data.get("scene", "")) == scene_path:
 			if apartment_id != "" and data.get("apartment_id", "") != apartment_id:
 				continue
-			result.append({"pos": Vector2(data["x"], data["y"]), "type": data.get("type", "standard")})
+			result.append({"pos": Vector2(data.get("x", 0.0), data.get("y", 0.0)), "type": data.get("type", "standard")})
 	return result
 
 
@@ -1246,6 +1407,10 @@ func get_items_for_anchor(anchor_name: String, apartment_id: String) -> Array:
 		# whole number, so its frac is 0 and it behaves exactly as before.
 		if item_id == "005":
 			weight *= CAN_SCAVENGE_BOOST
+		elif item_id == "036" and room_type == "bedroom":
+			# Bedrooms are the place to find clothes — bump the odds there so
+			# gathering three (for a clothes-rope) isn't a slog.
+			weight *= CLOTHES_BEDROOM_BOOST
 		var whole = int(floor(weight))
 		for i in range(whole):
 			valid_items.append(item_id)
@@ -1680,6 +1845,7 @@ func save_game(scene_path: String) -> void:
 		"saved_player_y": saved_player_y,
 		"killed_zombies": killed_zombies,
 		"world_drops": world_drops,
+		"roped_balconies": roped_balconies,
 		"door_states": door_states,
 		"door_keys_consumed": door_keys_consumed,
 		"floor_states_seeded": floor_states_seeded,
@@ -1741,6 +1907,7 @@ func load_game() -> String:
 	saved_player_y = data["saved_player_y"]
 	killed_zombies = data["killed_zombies"]
 	world_drops = data.get("world_drops", {})
+	roped_balconies = data.get("roped_balconies", {})
 	door_states = data["door_states"]
 	door_keys_consumed = data["door_keys_consumed"]
 	# JSON round-trips all dictionary keys as strings; this dict is keyed by int

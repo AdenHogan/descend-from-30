@@ -16,22 +16,139 @@ text = "Study"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="ColorRect2" type="ColorRect" parent="." unique_id=412785465]
-offset_left = 16.0
-offset_top = 44.0
-offset_right = 69.0
-offset_bottom = 144.0
+[node name="Balcony" type="Node2D" parent="."]
 
-[node name="Label" type="Label" parent="ColorRect2" unique_id=2139660542]
-layout_mode = 0
-offset_left = 2.0
-offset_top = 12.0
-offset_right = 52.0
+[node name="Sky" type="ColorRect" parent="Balcony"]
+offset_left = 12.0
+offset_top = 18.0
+offset_right = 88.0
+offset_bottom = 120.0
+color = Color(0.32, 0.56, 0.86, 1)
+
+[node name="SkylineA" type="ColorRect" parent="Balcony"]
+offset_left = 30.0
+offset_top = 34.0
+offset_right = 48.0
+offset_bottom = 57.0
+color = Color(0.24, 0.44, 0.68, 1)
+
+[node name="SkylineB" type="ColorRect" parent="Balcony"]
+offset_left = 52.0
+offset_top = 28.0
+offset_right = 68.0
+offset_bottom = 57.0
+color = Color(0.24, 0.44, 0.68, 1)
+
+[node name="Floor" type="Polygon2D" parent="Balcony"]
+polygon = PackedVector2Array(12, 118, 88, 118, 66, 74, 34, 74)
+color = Color(0.44, 0.44, 0.48, 1)
+
+[node name="FloorSeam" type="Polygon2D" parent="Balcony"]
+polygon = PackedVector2Array(34, 74, 66, 74, 62, 80, 38, 80)
+color = Color(0.36, 0.36, 0.4, 1)
+
+[node name="LeftWall" type="Polygon2D" parent="Balcony"]
+polygon = PackedVector2Array(12, 18, 12, 118, 34, 74, 34, 68)
+color = Color(0.3, 0.3, 0.34, 1)
+
+[node name="RightWall" type="Polygon2D" parent="Balcony"]
+polygon = PackedVector2Array(88, 18, 88, 118, 66, 74, 66, 68)
+color = Color(0.26, 0.26, 0.3, 1)
+
+[node name="TopRail" type="ColorRect" parent="Balcony"]
+offset_left = 33.0
+offset_top = 57.0
+offset_right = 67.0
 offset_bottom = 61.0
-theme_override_colors/font_color = Color(0, 0, 0, 1)
-theme_override_font_sizes/font_size = 12
-text = "Balcony
- Door"
+color = Color(0.16, 0.16, 0.18, 1)
+
+[node name="BottomRail" type="ColorRect" parent="Balcony"]
+offset_left = 34.0
+offset_top = 71.0
+offset_right = 66.0
+offset_bottom = 75.0
+color = Color(0.16, 0.16, 0.18, 1)
+
+[node name="Bar1" type="ColorRect" parent="Balcony"]
+offset_left = 38.0
+offset_top = 60.0
+offset_right = 41.0
+offset_bottom = 73.0
+color = Color(0.22, 0.22, 0.25, 1)
+
+[node name="Bar2" type="ColorRect" parent="Balcony"]
+offset_left = 46.0
+offset_top = 60.0
+offset_right = 49.0
+offset_bottom = 73.0
+color = Color(0.22, 0.22, 0.25, 1)
+
+[node name="Bar3" type="ColorRect" parent="Balcony"]
+offset_left = 54.0
+offset_top = 60.0
+offset_right = 57.0
+offset_bottom = 73.0
+color = Color(0.22, 0.22, 0.25, 1)
+
+[node name="Bar4" type="ColorRect" parent="Balcony"]
+offset_left = 62.0
+offset_top = 60.0
+offset_right = 65.0
+offset_bottom = 73.0
+color = Color(0.22, 0.22, 0.25, 1)
+
+[node name="FrameTop" type="ColorRect" parent="Balcony"]
+offset_left = 4.0
+offset_top = 12.0
+offset_right = 96.0
+offset_bottom = 20.0
+color = Color(0.16, 0.13, 0.11, 1)
+
+[node name="FrameLeft" type="ColorRect" parent="Balcony"]
+offset_left = 4.0
+offset_top = 12.0
+offset_right = 12.0
+offset_bottom = 124.0
+color = Color(0.16, 0.13, 0.11, 1)
+
+[node name="FrameRight" type="ColorRect" parent="Balcony"]
+offset_left = 88.0
+offset_top = 12.0
+offset_right = 96.0
+offset_bottom = 124.0
+color = Color(0.16, 0.13, 0.11, 1)
+
+[node name="Sill" type="ColorRect" parent="Balcony"]
+offset_left = 6.0
+offset_top = 118.0
+offset_right = 94.0
+offset_bottom = 126.0
+color = Color(0.2, 0.17, 0.14, 1)
+
+[node name="DoorLeaf" type="Polygon2D" parent="Balcony"]
+polygon = PackedVector2Array(14, 22, 30, 25, 28, 116, 14, 116)
+color = Color(0.72, 0.75, 0.8, 1)
+
+[node name="DoorLeafGlass" type="Polygon2D" parent="Balcony"]
+polygon = PackedVector2Array(17, 30, 27, 32, 25, 108, 17, 108)
+color = Color(0.5, 0.66, 0.82, 1)
+
+[node name="DoorRight" type="Polygon2D" parent="Balcony"]
+polygon = PackedVector2Array(70, 25, 86, 22, 86, 116, 72, 116)
+color = Color(0.68, 0.71, 0.76, 1)
+
+[node name="DoorRightGlass" type="Polygon2D" parent="Balcony"]
+polygon = PackedVector2Array(73, 32, 83, 30, 83, 108, 74, 108)
+color = Color(0.48, 0.62, 0.78, 1)
+
+[node name="Tag" type="Label" parent="Balcony"]
+offset_left = 8.0
+offset_top = 0.0
+offset_right = 72.0
+offset_bottom = 12.0
+theme_override_colors/font_color = Color(0.92, 0.92, 0.92, 1)
+theme_override_font_sizes/font_size = 10
+text = "BALCONY"
 
 [node name="anchor_centre_bookcaseupper" type="Marker2D" parent="." unique_id=1477232159]
 position = Vector2(113, 78)
