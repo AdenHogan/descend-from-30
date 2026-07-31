@@ -11,7 +11,7 @@ rough = true
 bounce = 0.45
 
 [node name="ThrownCan" type="RigidBody2D"]
-collision_layer = 1
+collision_layer = 128
 collision_mask = 1
 physics_material_override = SubResource("PhysicsMaterial_can")
 contact_monitor = true

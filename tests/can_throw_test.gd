@@ -20,6 +20,9 @@ func _ready() -> void:
 	_test_boss_ignores()
 	_test_arrival()
 	_test_can_lands()
+	_test_no_block_layer()
+	_test_hit_damages_not_kills()
+	_test_cans_stack()
 	await _test_physics_collision()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
@@ -91,6 +94,84 @@ func _test_can_lands() -> void:
 	check(z.is_distracted, "landing distracts a nearby zombie")
 	can.queue_free()
 	z.queue_free()
+
+
+func _test_no_block_layer() -> void:
+	print("[never a blockage]")
+	var can = load("res://scenes/thrown_can.tscn").instantiate()
+	add_child(can)
+	var z = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
+	add_child(z)
+	check(can.collision_layer == 128, "can sits on its own layer, not the world/actor layer 1")
+	check((z.collision_mask & 128) == 0, "enemies don't mask the can's layer, so it can't block them")
+	check((can.collision_mask & 1) != 0, "can still bounces off walls/floor and hits bodies (mask 1)")
+	can.queue_free()
+	z.queue_free()
+
+
+func _test_hit_damages_not_kills() -> void:
+	print("[in-flight hit]")
+	WorldState.new_game()
+	var z = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
+	z.global_position = Vector2(400, 388)
+	add_child(z)
+	z.current_hp = 3            # fix it (spawn HP has 1..8 variance)
+	var can = load("res://scenes/thrown_can.tscn").instantiate()
+	add_child(can)
+	can.launch(1.0, Vector2(300, 388))    # airborne, not landed
+	can._on_body_entered(z)
+	check(z.current_hp == 3 - can.HIT_DAMAGE, "an in-flight hit damages the zombie")
+	check(not z.is_dead, "a can hit never kills")
+	can._on_body_entered(z)
+	check(z.current_hp == 3 - can.HIT_DAMAGE, "the same zombie is only damaged once")
+
+	# A 1-HP enemy: the hit is clamped to leave it alive — softened, not finished.
+	var weak = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
+	weak.global_position = Vector2(500, 388)
+	add_child(weak)
+	weak.current_hp = 1
+	var can2 = load("res://scenes/thrown_can.tscn").instantiate()
+	add_child(can2)
+	can2.launch(1.0, Vector2(450, 388))
+	can2._on_body_entered(weak)
+	check(weak.current_hp == 1 and not weak.is_dead, "a 1-HP enemy is never finished off by a can")
+
+	can.has_landed = true
+	var z2 = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
+	z2.global_position = Vector2(400, 388)
+	add_child(z2)
+	z2.current_hp = 3
+	can._on_body_entered(z2)
+	check(z2.current_hp == 3, "a landed can bumps past enemies but does no damage")
+	can.queue_free()
+	can2.queue_free()
+	z.queue_free()
+	weak.queue_free()
+	z2.queue_free()
+
+
+func _test_cans_stack() -> void:
+	print("[cans stack to three]")
+	WorldState.new_game()
+	WorldState.inventory.clear()
+	check(WorldState.MAX_THROWABLE_PER_SLOT == 3, "cap is three per slot")
+	check(absf(WorldState.CAN_SCAVENGE_BOOST - 1.18) < 0.001, "scavenge boost is 18%")
+	check(WorldState.add_to_inventory("005"), "1st can taken")
+	check(WorldState.add_to_inventory("005"), "2nd can taken")
+	check(WorldState.add_to_inventory("005"), "3rd can taken")
+	var slots := 0
+	var total := 0
+	for inst in WorldState.inventory:
+		if inst.item_id == "005":
+			slots += 1
+			total += inst.count
+	check(slots == 1 and total == 3, "three cans share ONE slot (x3), not three slots")
+	WorldState.add_to_inventory("005")
+	var t2 := 0
+	for inst in WorldState.inventory:
+		if inst.item_id == "005":
+			t2 += inst.count
+	check(t2 == 4, "a 4th can opens a new slot rather than vanishing")
 
 
 func _test_physics_collision() -> void:

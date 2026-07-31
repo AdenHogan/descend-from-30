@@ -3,6 +3,8 @@ extends Node
 const ROOM_POOL = ["bedroom", "bathroom", "study", "kitchen", "living_room", "dining_room"]
 const MAX_INVENTORY_SLOTS = 5
 const MAX_AMMO_PER_SLOT = 8
+const MAX_THROWABLE_PER_SLOT = 3   # cans held per slot (was one-and-done)
+const CAN_SCAVENGE_BOOST = 1.18    # cans spawn 18% more, so they're a real option
 
 var master_seed: int = 0
 var current_apartment_id: String = ""
@@ -420,6 +422,20 @@ func add_to_inventory(item_id: String, amount: int = 0) -> bool:
 			stack.count = min(add_amount, MAX_AMMO_PER_SLOT)
 			add_amount -= stack.count
 			inventory.append(stack)
+		return true
+	# Throwable cans stack up to MAX_THROWABLE_PER_SLOT in one slot, so carrying a
+	# few and using them to herd enemies is a real strategy, not a one-shot.
+	if ItemData.get_item(item_id).get("is_throwable", false):
+		for instance in inventory:
+			if instance.item_id == item_id and instance.count < MAX_THROWABLE_PER_SLOT:
+				instance.count += 1
+				return true
+		if inventory.size() >= get_inventory_slots():
+			return false
+		var can = ItemInstance.new()
+		can.setup(item_id)
+		can.count = 1
+		inventory.append(can)
 		return true
 	if inventory.size() >= get_inventory_slots():
 		return false
@@ -1208,12 +1224,27 @@ func get_items_for_anchor(anchor_name: String, apartment_id: String) -> Array:
 	var spawn_pools = ItemData.room_spawn_pools
 	for item_name in spawn_pools:
 		var pool = spawn_pools[item_name]
-		var weight = pool.get(room_type, 0)
-		if weight > 0:
-			var item_id = ItemData.get_item_id_by_name(item_name)
-			if item_id != "":
-				for i in range(weight):
-					valid_items.append(item_id)
+		var weight = float(pool.get(room_type, 0))
+		if weight <= 0.0:
+			continue
+		var item_id = ItemData.get_item_id_by_name(item_name)
+		if item_id == "":
+			continue
+		# Cans get the CAN_SCAVENGE_BOOST. The pool is integer-copy based, so the
+		# fractional part becomes one extra copy at that probability — seeded per
+		# anchor so re-entering the room is stable. Every other item's weight is a
+		# whole number, so its frac is 0 and it behaves exactly as before.
+		if item_id == "005":
+			weight *= CAN_SCAVENGE_BOOST
+		var whole = int(floor(weight))
+		for i in range(whole):
+			valid_items.append(item_id)
+		var frac = weight - float(whole)
+		if frac > 0.0:
+			var rng = RandomNumberGenerator.new()
+			rng.seed = hash(str(master_seed) + "canfrac" + apartment_id + anchor_name + item_id)
+			if rng.randf() < frac:
+				valid_items.append(item_id)
 	return valid_items
 
 

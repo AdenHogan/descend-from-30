@@ -940,8 +940,13 @@ func _throw_can(slot_index: int) -> void:
 	var can = preload("res://scenes/thrown_can.tscn").instantiate()
 	get_tree().current_scene.add_child(can)
 	can.launch(dir, global_position + Vector2(dir * 20.0, -10.0))
-	WorldState.remove_from_inventory(slot_index)
-	HUD.selected_slot = -1
+	# Spend one from the stack; keep the slot (and selection) if more remain.
+	var inst = WorldState.inventory[slot_index]
+	if inst.count > 1:
+		inst.count -= 1
+	else:
+		WorldState.remove_from_inventory(slot_index)
+		HUD.selected_slot = -1
 	HUD.refresh_inventory()
 	HUD.show_feedback("Can thrown — that'll draw them.")
 
