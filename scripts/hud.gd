@@ -74,6 +74,7 @@ func _ready() -> void:
 	_create_stamina_bar()
 	_create_wallet_label()
 	_create_dev_warp_prompt()
+	_create_dev_item_prompt()
 	# Listen-mode grey/ping/report overlay (own CanvasLayer above the HUD).
 	listen_overlay = preload("res://scripts/listen_overlay.gd").new()
 	add_child(listen_overlay)
@@ -306,6 +307,13 @@ func _create_dev_warp_prompt() -> void:
 	# layer so it exists in every gameplay scene.
 	var warp = preload("res://scripts/dev_warp_prompt.gd").new()
 	$Control.add_child(warp)
+
+
+func _create_dev_item_prompt() -> void:
+	# DEV: F1 item-spawn prompt (see dev_item_prompt.gd). Lives on the HUD
+	# layer so it exists in every gameplay scene.
+	var spawn = preload("res://scripts/dev_item_prompt.gd").new()
+	$Control.add_child(spawn)
 
 
 func update_wallet() -> void:
