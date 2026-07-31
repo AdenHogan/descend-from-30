@@ -19,8 +19,10 @@ func _ready() -> void:
 	_test_distraction_targets()
 	_test_boss_ignores()
 	_test_arrival()
+	_test_loud_noise_breaks()
 	_test_can_lands()
 	_test_no_block_layer()
+	_test_landed_can_freezes()
 	_test_hit_damages_not_kills()
 	_test_cans_stack()
 	await _test_physics_collision()
@@ -63,19 +65,40 @@ func _test_boss_ignores() -> void:
 
 
 func _test_arrival() -> void:
-	print("[arrival]")
+	print("[arrival — loiters, no proximity reaggro]")
 	WorldState.new_game()
-	# Force both outcomes by seeding — just verify arrival clears distraction
-	# and lands in a valid follow-up state.
-	for i in range(20):
-		var z = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
-		z.global_position = Vector2(300, 388)
-		add_child(z)
-		z.be_distracted(Vector2(305, 388))  # already basically on top of it
-		z._physics_process(0.1)
-		check(not z.is_distracted, "arrival clears distraction (run %d)" % i)
-		check(z.state in ["idle", "chase"], "arrival -> idle or chase (run %d)" % i)
-		z.queue_free()
+	var z = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
+	z.global_position = Vector2(300, 388)
+	add_child(z)
+	z.be_distracted(Vector2(305, 388), 6.0)  # already basically on top of it
+	z._physics_process(0.1)
+	check(z.is_distracted and z.state == "distracted",
+		"at the can it loiters — still distracted, no arrival reaggro")
+	check(z.velocity.x == 0.0, "it holds at the can rather than chasing off")
+	# Timer runs out (the can despawns) -> normal aggro resumes.
+	z.distraction_timer = 0.05
+	z._physics_process(0.1)
+	check(not z.is_distracted, "once the can goes quiet, distraction ends")
+	check(z.state in ["idle", "chase"], "normal aggro resumes after the can")
+	z.queue_free()
+
+
+func _test_loud_noise_breaks() -> void:
+	print("[loud noise overrides the can, quiet doesn't]")
+	WorldState.new_game()
+	var z = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
+	z.global_position = Vector2(400, 388)
+	add_child(z)
+	z.be_distracted(Vector2(360, 388), 6.0)
+	check(z.is_distracted, "distracted by the can")
+	# A quiet gait right next to it must NOT break the fixation.
+	WorldState.emit_noise(Vector2(410, 388), WorldState.NOISE_RADIUS["walk"], 0.5)
+	check(z.is_distracted, "quiet walking nearby doesn't break the distraction")
+	# A loud one (running / door work / gunfire) does.
+	WorldState.emit_noise(Vector2(410, 388), WorldState.NOISE_RADIUS["run"], 0.5)
+	check(not z.is_distracted and z.state == "chase",
+		"a loud noise (running) snaps it back onto the player")
+	z.queue_free()
 
 
 func _test_can_lands() -> void:
@@ -107,6 +130,26 @@ func _test_no_block_layer() -> void:
 	check((can.collision_mask & 1) != 0, "can still bounces off walls/floor and hits bodies (mask 1)")
 	can.queue_free()
 	z.queue_free()
+
+
+func _test_landed_can_freezes() -> void:
+	print("[a settled can pins itself]")
+	# At rest after landing it freezes into a static prop so a zombie walking
+	# over it can't shove it around until despawn.
+	var can = load("res://scenes/thrown_can.tscn").instantiate()
+	add_child(can)
+	can.has_landed = true
+	can.linear_velocity = Vector2(3, 0)     # basically stopped
+	can._physics_process(0.1)
+	check(can.freeze, "a can at rest freezes (enemies can't push it)")
+	var rolling = load("res://scenes/thrown_can.tscn").instantiate()
+	add_child(rolling)
+	rolling.has_landed = true
+	rolling.linear_velocity = Vector2(120, 0)   # still rolling
+	rolling._physics_process(0.1)
+	check(not rolling.freeze, "a still-rolling can is NOT frozen yet")
+	can.queue_free()
+	rolling.queue_free()
 
 
 func _test_hit_damages_not_kills() -> void:
