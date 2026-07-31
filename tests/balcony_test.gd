@@ -21,6 +21,7 @@ func _ready() -> void:
 	_test_determinism()
 	_test_continuity()
 	_test_conform_and_hide()
+	_test_rope_and_clothes()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -92,3 +93,37 @@ func _test_conform_and_hide() -> void:
 		for s in range(3):
 			check(not WorldState.is_balcony_slot(apt, s),
 				"plain col %d floor %d slot %d: no balcony" % [plain_col, floor_num, s])
+
+
+func _test_rope_and_clothes() -> void:
+	print("[rope + clothes items]")
+	check(ItemData.get_item("035").get("is_rope", false), "Rope (035) is a rope")
+	check(ItemData.get_item("036").get("is_clothes", false), "Clothes (036) is clothes")
+	check(not ItemData.get_item("036").get("is_rope", false), "raw clothes are not a rope yet")
+	check(ItemData.get_item("037").get("is_rope", false), "Clothes-Rope (037) is a rope")
+	check(absf(WorldState.CLOTHES_BEDROOM_BOOST - 1.30) < 0.001, "clothes bedroom boost is 30%")
+
+	# Clothes don't stack — three take three slots.
+	WorldState.new_game()
+	WorldState.inventory.clear()
+	check(WorldState.add_to_inventory("036"), "1st clothes taken")
+	check(WorldState.add_to_inventory("036"), "2nd clothes taken")
+	check(WorldState.add_to_inventory("036"), "3rd clothes taken")
+	check(WorldState.inventory.size() == 3 and WorldState.count_clothes() == 3,
+		"three clothes occupy three separate slots (not stacked)")
+
+	# Knot them: 3 clothes -> 1 clothes-rope, freeing two slots.
+	check(WorldState.craft_clothes_rope(), "3 clothes craft a clothes-rope")
+	check(WorldState.count_clothes() == 0, "the clothes are consumed")
+	var ropes := 0
+	for inst in WorldState.inventory:
+		if inst.item_id == "037":
+			ropes += 1
+	check(ropes == 1 and WorldState.inventory.size() == 1, "one clothes-rope remains in one slot")
+
+	# Two clothes aren't enough.
+	WorldState.inventory.clear()
+	WorldState.add_to_inventory("036")
+	WorldState.add_to_inventory("036")
+	check(not WorldState.craft_clothes_rope(), "2 clothes can't make a rope")
+	check(WorldState.count_clothes() == 2, "the spare clothes are left alone")

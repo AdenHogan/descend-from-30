@@ -1094,6 +1094,17 @@ func use_item(slot_index: int) -> void:
 			HUD.show_feedback("Apartment " + target + " Key")
 		else:
 			HUD.show_feedback("Apartment Key")
+	elif item_data.get("is_clothes", false):
+		# Three clothes knot into a makeshift rope for a balcony climb.
+		if WorldState.craft_clothes_rope():
+			HUD.selected_slot = -1
+			HUD.refresh_inventory()
+			HUD.show_feedback("Knotted a clothes-rope — good for one balcony.")
+		else:
+			HUD.show_feedback("Need 3 clothes to knot a rope (have %d)." % WorldState.count_clothes())
+	elif item_data.get("is_rope", false):
+		# Descending is done AT a balcony (see room.gd, balcony descent).
+		HUD.show_feedback("Take this to a balcony to climb down.")
 	elif item_data["is_junk"]:
 		HUD.show_feedback("Nothing happens.")
 	else:

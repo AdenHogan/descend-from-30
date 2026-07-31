@@ -271,6 +271,30 @@
       "PROPERTY_DURABILITY": "5 uses",
       "PROPERTY_SPAWN_RARITY": 2,
       "PROPERTY_WEIGHT_SIZE": null
+    },
+    "035": {
+      "ITEM_NAME": "Rope",
+      "ITEM_DESCRIPTION": "Good strong rope. Lash it to a balcony rail and I can climb down to the floor below — and it'll still be there if I come back.",
+      "VALUE_PROPERTY": "is_rope",
+      "PROPERTY_DURABILITY": "",
+      "PROPERTY_SPAWN_RARITY": 2,
+      "PROPERTY_WEIGHT_SIZE": null
+    },
+    "036": {
+      "ITEM_NAME": "Clothes",
+      "ITEM_DESCRIPTION": "A bundle of clothes. Three of these knotted together would make a rope good enough to climb down a balcony.",
+      "VALUE_PROPERTY": "is_clothes",
+      "PROPERTY_DURABILITY": "",
+      "PROPERTY_SPAWN_RARITY": 1,
+      "PROPERTY_WEIGHT_SIZE": null
+    },
+    "037": {
+      "ITEM_NAME": "Clothes-Rope",
+      "ITEM_DESCRIPTION": "A makeshift rope knotted from clothes. Not pretty, but it'll hold my weight down one balcony.",
+      "VALUE_PROPERTY": "is_rope",
+      "PROPERTY_DURABILITY": "",
+      "PROPERTY_SPAWN_RARITY": 1,
+      "PROPERTY_WEIGHT_SIZE": null
     }
   },
   "ROOM_SPAWN_POOLS": {
@@ -536,6 +560,22 @@
       "bathroom": 0,
       "study": 1,
       "living_room": 0,
+      "dining_room": 1
+    },
+    "Rope": {
+      "bedroom": 1,
+      "kitchen": 1,
+      "bathroom": 1,
+      "study": 2,
+      "living_room": 1,
+      "dining_room": 1
+    },
+    "Clothes": {
+      "bedroom": 2,
+      "kitchen": 1,
+      "bathroom": 2,
+      "study": 1,
+      "living_room": 2,
       "dining_room": 1
     }
   }

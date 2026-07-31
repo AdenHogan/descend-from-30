@@ -13,6 +13,7 @@ const MAX_INVENTORY_SLOTS = 5
 const MAX_AMMO_PER_SLOT = 8
 const MAX_THROWABLE_PER_SLOT = 3   # cans held per slot (was one-and-done)
 const CAN_SCAVENGE_BOOST = 1.18    # cans spawn 18% more, so they're a real option
+const CLOTHES_BEDROOM_BOOST = 1.30 # clothes +30% in bedrooms (3 make a clothes-rope)
 
 var master_seed: int = 0
 var current_apartment_id: String = ""
@@ -517,6 +518,30 @@ func move_inventory_slot_to_end(from: int) -> void:
 func remove_from_inventory(slot_index: int) -> void:
 	if slot_index >= 0 and slot_index < inventory.size():
 		inventory.remove_at(slot_index)
+
+
+func count_clothes() -> int:
+	var n := 0
+	for inst in inventory:
+		if ItemData.get_item(inst.item_id).get("is_clothes", false):
+			n += 1
+	return n
+
+
+func craft_clothes_rope() -> bool:
+	# Knot 3 clothes (item 036, not stackable) into a Clothes-Rope (037). Frees two
+	# slots net, so there's always room for the result. Returns false if short.
+	if count_clothes() < 3:
+		return false
+	var removed := 0
+	for i in range(inventory.size() - 1, -1, -1):
+		if removed >= 3:
+			break
+		if ItemData.get_item(inventory[i].item_id).get("is_clothes", false):
+			inventory.remove_at(i)
+			removed += 1
+	add_to_inventory("037")
+	return true
 
 
 func unlock_wallet() -> void:
@@ -1308,6 +1333,10 @@ func get_items_for_anchor(anchor_name: String, apartment_id: String) -> Array:
 		# whole number, so its frac is 0 and it behaves exactly as before.
 		if item_id == "005":
 			weight *= CAN_SCAVENGE_BOOST
+		elif item_id == "036" and room_type == "bedroom":
+			# Bedrooms are the place to find clothes — bump the odds there so
+			# gathering three (for a clothes-rope) isn't a slog.
+			weight *= CLOTHES_BEDROOM_BOOST
 		var whole = int(floor(weight))
 		for i in range(whole):
 			valid_items.append(item_id)
