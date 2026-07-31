@@ -28,6 +28,7 @@ func _ready() -> void:
 	print("=== floor adoption / go_live ===")
 	await _test_rehome_lands_at_origin()
 	await _test_go_live_wakes_everything()
+	await _test_prefetch_buffer()
 	print("=== %s (%d failures) ===" % ["ALL PASSED" if fails == 0 else "FAILED", fails])
 	get_tree().quit(1 if fails > 0 else 0)
 
@@ -134,4 +135,38 @@ func _test_go_live_wakes_everything() -> void:
 	chk(lu.process_mode == Node.PROCESS_MODE_ALWAYS, "the way onward is live")
 
 	backdrop.free()
+	await get_tree().process_frame
+
+
+func _test_prefetch_buffer() -> void:
+	# Building the neighbour on stairwell approach, discarding it on turn-back, and
+	# rebuilding when the player switches direction — so at most one is ever held.
+	print("[prefetch buffer]")
+	WorldState.new_game()
+	WorldState.current_floor = 20
+	# can_pan() only fires from a real floor scene, so stand one in as current.
+	var host = load("res://scenes/building_floors.tscn").instantiate()
+	host.setup_floor = 20
+	get_tree().root.add_child(host)
+	var prev_scene = get_tree().current_scene
+	get_tree().current_scene = host
+	for i in range(3): await get_tree().process_frame
+
+	StairPan.prefetch(19, true)
+	chk(StairPan._pf_backdrop != null and StairPan._pf_floor == 19 and StairPan._pf_down,
+		"approach buffers the floor below")
+	var first = StairPan._pf_backdrop
+	StairPan.prefetch(19, true)
+	chk(StairPan._pf_backdrop == first, "same target does not rebuild")
+
+	StairPan.prefetch(21, false)
+	await get_tree().process_frame
+	chk(StairPan._pf_floor == 21 and StairPan._pf_backdrop != first, "switching direction rebuilds")
+	chk(not is_instance_valid(first), "the old buffer is freed on switch (never hold two)")
+
+	StairPan.discard_prefetch()
+	chk(StairPan._pf_backdrop == null and StairPan._pf_holder == null, "turn-back discards the buffer")
+
+	get_tree().current_scene = prev_scene
+	host.queue_free()
 	await get_tree().process_frame
