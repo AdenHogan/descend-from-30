@@ -31,6 +31,9 @@ const DISTRACTION_RADIUS = 700.0
 const THUD_MIN_SPEED = 55.0      # ignore tiny settling taps
 const THUD_MIN_GAP = 0.10        # don't machine-gun thuds while rolling
 const DESPAWN_AFTER_LAND = 6.0
+# Classic "about to disappear" tell: the can blinks for the last FLASH_WINDOW
+# seconds, faster as it runs out, then winks out.
+const FLASH_WINDOW = 1.5
 
 const THUD_STREAMS = [
 	preload("res://assets/audio/impacts/impactWood_heavy_000.ogg"),
@@ -78,6 +81,11 @@ func _physics_process(delta: float) -> void:
 		despawn_timer -= delta
 		if despawn_timer <= 0.0:
 			queue_free()
+		elif despawn_timer <= FLASH_WINDOW:
+			# Blink on/off, the interval shrinking (0.22s -> 0.07s) as it runs
+			# out — flash…flash…flash-flash-flash, then gone.
+			var interval = lerpf(0.07, 0.22, clampf(despawn_timer / FLASH_WINDOW, 0.0, 1.0))
+			visible = fmod(despawn_timer, interval * 2.0) < interval
 
 
 func _on_body_entered(body: Node) -> void:

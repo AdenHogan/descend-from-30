@@ -23,6 +23,7 @@ func _ready() -> void:
 	_test_can_lands()
 	_test_no_block_layer()
 	_test_landed_can_freezes()
+	_test_despawn_flashes()
 	_test_hit_damages_not_kills()
 	_test_cans_stack()
 	await _test_physics_collision()
@@ -150,6 +151,28 @@ func _test_landed_can_freezes() -> void:
 	check(not rolling.freeze, "a still-rolling can is NOT frozen yet")
 	can.queue_free()
 	rolling.queue_free()
+
+
+func _test_despawn_flashes() -> void:
+	print("[blinks out as it despawns]")
+	var can = load("res://scenes/thrown_can.tscn").instantiate()
+	add_child(can)
+	can.has_landed = true
+	# Walk the despawn timer down through the flash window; it should toggle
+	# both on and off (a blink), not just sit visible.
+	var seen_on := false
+	var seen_off := false
+	var t: float = can.FLASH_WINDOW
+	while t > 0.01:
+		can.despawn_timer = t
+		can._physics_process(0.0)
+		if can.visible:
+			seen_on = true
+		else:
+			seen_off = true
+		t -= 0.03
+	check(seen_on and seen_off, "the can blinks on and off as it runs out")
+	can.queue_free()
 
 
 func _test_hit_damages_not_kills() -> void:
