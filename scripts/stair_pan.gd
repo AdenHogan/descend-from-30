@@ -25,10 +25,10 @@ const ENABLED := true
 # That removes the jarring re-instantiation cut on arrival. false falls back to
 # change_scene_to_file (works, but with the cut) — the safety valve.
 const ADOPT_ON_COMMIT := true
-# Going UP, the floor's sounds (zombie moans) should recede as the player climbs
-# away and disappears up the stairs — without this they cut off hard the instant
-# the old floor frees on arrival. Fade the master bus down when the slice begins,
-# back up once the new floor is live.
+# Going UP, the floor's zombie moans should recede as the player climbs away and
+# disappears up the stairs — without this they cut off hard the instant the old
+# floor frees on arrival. Fade the ENEMY SFX bus down when the slice begins, back
+# up once the new floor is live. Only enemy sound moves; the music is untouched.
 const AUDIO_FADE_DB := -40.0
 const AUDIO_FADE_OUT := 0.6
 const AUDIO_FADE_IN := 0.5
@@ -318,10 +318,10 @@ func pan_to_floor(target_floor: int, direction: String) -> void:
 	else:
 		_commit(target_floor)   # change_scene frees the old scene, backdrop, holder, pan_cam
 
-	# Going up faded the master bus out as the player climbed away; now that the
-	# new floor is live, bring it back so its sounds come in rather than snap on.
+	# Going up faded the enemy bus out as the player climbed away; now that the
+	# new floor is live, bring it back so its moans come in rather than snap on.
 	if not down:
-		_fade_master(0.0, AUDIO_FADE_IN)
+		_fade_enemy_sfx(0.0, AUDIO_FADE_IN)
 
 
 func _adopt(target_floor: int, backdrop: Node, player: Node2D, pan_cam: Camera2D,
@@ -492,9 +492,9 @@ func _ascend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vector
 	#     past their feet eats the body head first, until they are wholly behind
 	#     the scene by the end of the walk. Beat (3) then carries them up, hidden.
 	_play_walk(sprite, turn_x - player.global_position.x)
-	# The player is sliding out of view up the stairs now — let the floor's sound
-	# recede with them, instead of cutting off hard when it frees on arrival.
-	_fade_master(AUDIO_FADE_DB, AUDIO_FADE_OUT)
+	# The player is sliding out of view up the stairs now — let the floor's enemy
+	# sound recede with them, instead of cutting off hard when it frees on arrival.
+	_fade_enemy_sfx(AUDIO_FADE_DB, AUDIO_FADE_OUT)
 	_set_shred(sprite, player.global_position.y - SHRED_TOP, -1.0)
 	var leg2 := create_tween().set_parallel(true)
 	leg2.tween_property(player, "global_position:x", turn_x, cross_est) \
@@ -548,12 +548,16 @@ func _ascend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vector
 	_play_idle(sprite)
 
 
-func _fade_master(to_db: float, dur: float) -> void:
-	# Tween the master bus volume. Fire-and-forget; a later call just takes over.
-	# StairPan is an autoload, so the tween survives the scene swap on arrival.
+func _fade_enemy_sfx(to_db: float, dur: float) -> void:
+	# Tween the ENEMY SFX bus volume — enemy moans recede/return, music untouched.
+	# Fire-and-forget; a later call just takes over. StairPan is an autoload, so
+	# the tween survives the scene swap on arrival.
+	var idx := AudioServer.get_bus_index(Game.ENEMY_BUS)
+	if idx == -1:
+		return
 	var t := create_tween()
-	t.tween_method(func(db: float): AudioServer.set_bus_volume_db(0, db),
-		AudioServer.get_bus_volume_db(0), to_db, dur)
+	t.tween_method(func(db: float): AudioServer.set_bus_volume_db(idx, db),
+		AudioServer.get_bus_volume_db(idx), to_db, dur)
 
 
 func _play_walk(sprite: Node, dir: float) -> void:

@@ -58,15 +58,27 @@ func _test_players() -> void:
 	check(player.get_node_or_null("GunshotPlayer") != null, "player has gunshot player")
 	player.queue_free()
 
+	# Enemy SFX ride a dedicated bus so the stair ascent can fade THEM out
+	# without touching the music (only enemy sound lessens, per playtest).
+	check(AudioServer.get_bus_index(Game.ENEMY_BUS) != -1, "enemy SFX bus exists")
+
 	var zombie = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
 	add_child(zombie)
 	check(zombie.get_node_or_null("MoanPlayer") != null, "standard zombie has moan player")
+	check(zombie.get_node("MoanPlayer").bus == Game.ENEMY_BUS,
+		"standard zombie moans route to the enemy bus, not Master")
 	zombie.queue_free()
 
 	var big = load("res://scenes/enemy_zombie_big.tscn").instantiate()
 	add_child(big)
 	check(big.get_node_or_null("MoanPlayer") != null, "big zombie has moan player")
+	check(big.get_node("MoanPlayer").bus == Game.ENEMY_BUS,
+		"big zombie moans route to the enemy bus, not Master")
 	big.queue_free()
+
+	# The music player must NOT be on the enemy bus — the ascent fade never
+	# touches it.
+	check(Game.music_player.bus != Game.ENEMY_BUS, "music stays off the enemy bus")
 
 	var overlay = load("res://scripts/listen_overlay.gd").new()
 	add_child(overlay)
