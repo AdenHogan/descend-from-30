@@ -25,11 +25,13 @@ const ENABLED := true
 # That removes the jarring re-instantiation cut on arrival. false falls back to
 # change_scene_to_file (works, but with the cut) — the safety valve.
 const ADOPT_ON_COMMIT := true
-# PREFETCH. Build the neighbour floor when the player steps into a stairwell zone
-# (the stairwell trigger calls prefetch/discard), so it's ready to adopt the
-# instant they commit — hiding the one remaining build on the approach. Discarded
-# if they leave the zone, so we never hold a floor we won't use.
-const PREFETCH := true
+# Going UP, the floor's sounds (zombie moans) should recede as the player climbs
+# away and disappears up the stairs — without this they cut off hard the instant
+# the old floor frees on arrival. Fade the master bus down when the slice begins,
+# back up once the new floor is live.
+const AUDIO_FADE_DB := -40.0
+const AUDIO_FADE_OUT := 0.6
+const AUDIO_FADE_IN := 0.5
 const TURN_TIME := 0.40      # crossing the landing between flights (horizontal leg)
 # Stairs are climbed STEP BY STEP at walking pace, not glided. One step per tile
 # of height, each taking STEP_TIME — so the climb's duration follows the distance
@@ -165,14 +167,6 @@ const SPAWN_RIGHT_BOTTOM := Vector2(1162, 391)
 
 var panning := false   # true only WHILE a pan runs; if it starts true, can_pan() never fires
 
-# A neighbour floor built on stairwell approach, waiting to be adopted. Held at
-# most one at a time (see prefetch/discard_prefetch).
-var _pf_holder: Node2D = null
-var _pf_backdrop: Node = null
-var _pf_floor: int = 0
-var _pf_down: bool = false
-var _pf_offset: float = 0.0
-
 
 func _ready() -> void:
 	panning = false   # defensive: never boot with the guard stuck on
@@ -190,57 +184,6 @@ func can_pan(target_floor: int) -> bool:
 		return false
 	var p = scene.scene_file_path
 	return p.contains("building_floors") or p.contains("hallway")
-
-
-# The neighbour floor as a passive, inert, offset backdrop — the reusable build
-# shared by the prefetch buffer and pan_to_floor's fallback. building_floors'
-# root is a plain Node with no transform, so it hangs under a Node2D holder whose
-# offset (one floor's height) its children inherit — contiguous, no grey gap.
-func _build_backdrop(scene: Node, target_floor: int, down: bool) -> Dictionary:
-	var holder := Node2D.new()
-	scene.add_child(holder)
-	var backdrop = load("res://scenes/building_floors.tscn").instantiate()
-	backdrop.setup_floor = target_floor
-	backdrop.passive = true
-	holder.add_child(backdrop)
-	var spacing := _floor_spacing(backdrop)
-	if spacing <= 0.0:
-		spacing = FLOOR_BAND_H
-	spacing += SPACING_ADJUST
-	var floor_offset := spacing * (1.0 if down else -1.0)
-	holder.position = Vector2(0, floor_offset)
-	return {"holder": holder, "backdrop": backdrop, "offset": floor_offset}
-
-
-func prefetch(target_floor: int, down: bool) -> void:
-	# Called when the player steps into a stairwell zone: build the neighbour now,
-	# so pan_to_floor can adopt it instantly. Idempotent for the same target.
-	if not PREFETCH or panning or not can_pan(target_floor):
-		return
-	if _pf_backdrop != null and is_instance_valid(_pf_backdrop) \
-			and _pf_floor == target_floor and _pf_down == down:
-		return   # already holding this one
-	discard_prefetch()
-	var scene = get_tree().current_scene
-	if scene == null:
-		return
-	var built := _build_backdrop(scene, target_floor, down)
-	_pf_holder = built["holder"]
-	_pf_backdrop = built["backdrop"]
-	_pf_offset = built["offset"]
-	_pf_floor = target_floor
-	_pf_down = down
-
-
-func discard_prefetch() -> void:
-	# The player left the zone (or switched sides) without committing — drop the
-	# held floor so we never sit on one we won't use.
-	if _pf_holder != null and is_instance_valid(_pf_holder):
-		_pf_holder.queue_free()
-	_pf_holder = null
-	_pf_backdrop = null
-	_pf_floor = 0
-	_pf_offset = 0.0
 
 
 func dest_spawn(down: bool) -> Vector2:
@@ -288,25 +231,24 @@ func pan_to_floor(target_floor: int, direction: String) -> void:
 
 	var down := direction == "down"
 
-	# Use the floor prefetched on approach if it matches; otherwise build it now
-	# (fast player, or prefetch disabled) — never soft-lock on a missing buffer.
-	var holder: Node2D
-	var backdrop: Node
-	var floor_offset: float
-	if _pf_backdrop != null and is_instance_valid(_pf_backdrop) \
-			and _pf_floor == target_floor and _pf_down == down:
-		holder = _pf_holder
-		backdrop = _pf_backdrop
-		floor_offset = _pf_offset
-		_pf_holder = null   # consumed — the pan owns it now, don't free it
-		_pf_backdrop = null
-		_pf_floor = 0
-	else:
-		discard_prefetch()   # wrong floor/direction, or none — drop it
-		var built := _build_backdrop(scene, target_floor, down)
-		holder = built["holder"]
-		backdrop = built["backdrop"]
-		floor_offset = built["offset"]
+	# The neighbour floor as a passive backdrop, wrapped in a Node2D — building_
+	# floors' root is a plain Node with no transform, so its CanvasItem children
+	# inherit the holder's offset. Add first so its tilemap exists to measure.
+	var holder := Node2D.new()
+	scene.add_child(holder)
+	var backdrop = load("res://scenes/building_floors.tscn").instantiate()
+	backdrop.setup_floor = target_floor
+	backdrop.passive = true
+	holder.add_child(backdrop)
+
+	# Offset = ONE floor's height (the tilemap), so the neighbour sits directly
+	# above/below with the two floors contiguous — no grey gap between them.
+	var spacing := _floor_spacing(backdrop)
+	if spacing <= 0.0:
+		spacing = FLOOR_BAND_H   # fallback if the tilemap can't be measured
+	spacing += SPACING_ADJUST
+	var floor_offset := spacing * (1.0 if down else -1.0)
+	holder.position = Vector2(0, floor_offset)
 
 	# Standalone camera copies the live one exactly (same zoom!) and takes over.
 	# It inherits the live camera's HORIZONTAL limits so the walls still stop the
@@ -375,6 +317,11 @@ func pan_to_floor(target_floor: int, direction: String) -> void:
 		_adopt(target_floor, backdrop, player, pan_cam, floor_offset, scene)
 	else:
 		_commit(target_floor)   # change_scene frees the old scene, backdrop, holder, pan_cam
+
+	# Going up faded the master bus out as the player climbed away; now that the
+	# new floor is live, bring it back so its sounds come in rather than snap on.
+	if not down:
+		_fade_master(0.0, AUDIO_FADE_IN)
 
 
 func _adopt(target_floor: int, backdrop: Node, player: Node2D, pan_cam: Camera2D,
@@ -545,6 +492,9 @@ func _ascend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vector
 	#     past their feet eats the body head first, until they are wholly behind
 	#     the scene by the end of the walk. Beat (3) then carries them up, hidden.
 	_play_walk(sprite, turn_x - player.global_position.x)
+	# The player is sliding out of view up the stairs now — let the floor's sound
+	# recede with them, instead of cutting off hard when it frees on arrival.
+	_fade_master(AUDIO_FADE_DB, AUDIO_FADE_OUT)
 	_set_shred(sprite, player.global_position.y - SHRED_TOP, -1.0)
 	var leg2 := create_tween().set_parallel(true)
 	leg2.tween_property(player, "global_position:x", turn_x, cross_est) \
@@ -596,6 +546,14 @@ func _ascend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vector
 	if sprite != null and is_instance_valid(sprite):
 		_clear_shred(sprite)
 	_play_idle(sprite)
+
+
+func _fade_master(to_db: float, dur: float) -> void:
+	# Tween the master bus volume. Fire-and-forget; a later call just takes over.
+	# StairPan is an autoload, so the tween survives the scene swap on arrival.
+	var t := create_tween()
+	t.tween_method(func(db: float): AudioServer.set_bus_volume_db(0, db),
+		AudioServer.get_bus_volume_db(0), to_db, dur)
 
 
 func _play_walk(sprite: Node, dir: float) -> void:
