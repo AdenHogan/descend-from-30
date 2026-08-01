@@ -271,14 +271,6 @@
       "PROPERTY_DURABILITY": "5 uses",
       "PROPERTY_SPAWN_RARITY": 2,
       "PROPERTY_WEIGHT_SIZE": null
-    },
-    "035": {
-      "ITEM_NAME": "Clothes-Rope",
-      "ITEM_DESCRIPTION": "A makeshift rope knotted from clothes. Not pretty, but it'll hold my weight down one balcony.",
-      "VALUE_PROPERTY": "is_rope",
-      "PROPERTY_DURABILITY": "",
-      "PROPERTY_SPAWN_RARITY": 1,
-      "PROPERTY_WEIGHT_SIZE": null
     }
   },
   "ROOM_SPAWN_POOLS": {

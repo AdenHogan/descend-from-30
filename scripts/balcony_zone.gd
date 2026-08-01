@@ -73,17 +73,10 @@ func _refresh() -> void:
 	listen_label.visible = has_below
 	if not has_below:
 		return
-	if WorldState.is_balcony_roped(apartment_id, slot) or _player_has_rope():
+	if WorldState.is_balcony_roped(apartment_id, slot) or WorldState.has_descent_rope():
 		prompt.text = "[W] Climb down"
 	else:
 		prompt.text = "[W] Jump down"
-
-
-func _player_has_rope() -> bool:
-	for inst in WorldState.inventory:
-		if ItemData.get_item(inst.item_id).get("is_rope", false):
-			return true
-	return false
 
 
 func _process(delta: float) -> void:

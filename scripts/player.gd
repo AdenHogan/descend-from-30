@@ -1110,13 +1110,8 @@ func use_item(slot_index: int) -> void:
 		else:
 			HUD.show_feedback("Apartment Key")
 	elif item_data.get("is_clothes", false):
-		# Three clothes knot into a makeshift rope for a balcony climb.
-		if WorldState.craft_clothes_rope():
-			HUD.selected_slot = -1
-			HUD.refresh_inventory()
-			HUD.show_feedback("Knotted a clothes-rope — good for one balcony.")
-		else:
-			HUD.show_feedback("Need 3 clothes to knot a rope (have %d)." % WorldState.count_clothes())
+		# No crafting — three clothes are knotted AT a balcony during the lash.
+		HUD.show_feedback("Clothes for a balcony line — need 3 (have %d)." % WorldState.count_clothes())
 	elif item_data.get("is_rope", false):
 		# Descending is done AT a balcony (see room.gd, balcony descent).
 		HUD.show_feedback("Take this to a balcony to climb down.")
@@ -1174,34 +1169,28 @@ func begin_balcony_descent(apartment_id: String, slot: int, _from_global: Vector
 	if WorldState.is_balcony_roped(apartment_id, slot):
 		_do_balcony_descent(apartment_id, false)   # the rope is already there
 		return
-	var rope_slot = _find_rope_slot()
-	if rope_slot >= 0:
-		_lash_and_descend(apartment_id, slot, rope_slot)
+	if WorldState.has_descent_rope():
+		_lash_and_descend(apartment_id, slot)
 	else:
-		# No rope — jumping is a real risk, so make it a DELIBERATE second press.
-		# First press warns; a second within the window commits to the jump.
+		# No rope and not enough clothes — jumping is a real risk, so make it a
+		# DELIBERATE second press: first press warns, a second within the window
+		# commits to the jump.
 		var now = Time.get_ticks_msec() / 1000.0
 		if now - _jump_confirm_time > BALCONY_JUMP_CONFIRM_WINDOW:
 			_jump_confirm_time = now
-			HUD.show_dialogue("That's a long drop — it'll hurt without a rope. I should find some rope or knot my clothes... or press again to risk the jump.")
+			HUD.show_dialogue("That's a long drop — it'll hurt without a rope. I should find some rope, or three lots of clothes to knot... or press again to risk the jump.")
 			return
 		_jump_confirm_time = 0.0
 		_do_balcony_descent(apartment_id, true)     # confirmed — jump
 
 
-func _find_rope_slot() -> int:
-	for i in range(WorldState.inventory.size()):
-		if ItemData.get_item(WorldState.inventory[i].item_id).get("is_rope", false):
-			return i
-	return -1
-
-
-func _lash_and_descend(apartment_id: String, slot: int, rope_slot: int) -> void:
-	# Silent, timed — you stand still and can be interrupted by a hit.
+func _lash_and_descend(apartment_id: String, slot: int) -> void:
+	# Silent, timed — you stand still and can be interrupted by a hit. Materials
+	# (a Rope, or 3 Clothes knotted on the spot) are spent only on completion.
 	is_lashing = true
 	_lash_cancel = false
 	_clear_move_target()
-	HUD.show_feedback("Lashing the rope…")
+	HUD.show_feedback("Lashing a line to the balcony…")
 	var t := 0.0
 	while t < BALCONY_LASH_TIME:
 		if _lash_cancel or is_dead or is_dying:
@@ -1211,10 +1200,10 @@ func _lash_and_descend(apartment_id: String, slot: int, rope_slot: int) -> void:
 		await get_tree().process_frame
 		t += get_process_delta_time()
 	is_lashing = false
-	# The rope is now tied to the balcony for good — consume it from inventory.
-	WorldState.remove_from_inventory(rope_slot)
-	if HUD.selected_slot == rope_slot:
-		HUD.selected_slot = -1
+	# The line is now tied to the balcony for good — spend the materials.
+	if not WorldState.consume_descent_rope():
+		return   # materials vanished mid-lash (dropped?) — no free descent
+	HUD.selected_slot = -1
 	HUD.refresh_inventory()
 	WorldState.rope_balcony(apartment_id, slot)
 	_do_balcony_descent(apartment_id, false)

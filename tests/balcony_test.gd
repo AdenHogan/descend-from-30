@@ -117,42 +117,42 @@ func _test_conform_and_hide() -> void:
 
 func _test_rope_and_clothes() -> void:
 	print("[rope + clothes items]")
-	# The ORIGINAL catalog items carry the flags (no duplicate names): Rope 018,
-	# Clothes 008, crafted Clothes-Rope 035. Torn Clothes (009) stays a bandage.
+	# The ORIGINAL catalog items carry the flags (no duplicates, no crafted
+	# intermediate): Rope 018 descends alone; 3x Clothes 008 (a slot each) are
+	# knotted AT the balcony. Torn Clothes (009) stays a bandage.
 	check(ItemData.get_item("018").get("is_rope", false), "Rope (018) is a rope")
 	check(ItemData.get_item("008").get("is_clothes", false), "Clothes (008) is clothes")
-	check(not ItemData.get_item("008").get("is_rope", false), "raw clothes are not a rope yet")
-	check(ItemData.get_item("035").get("is_rope", false), "Clothes-Rope (035) is a rope")
+	check(not ItemData.get_item("008").get("is_rope", false), "clothes alone are not a rope")
+	check(ItemData.get_item("035").is_empty(), "there is NO crafted Clothes-Rope item")
 	check(not ItemData.get_item("009").get("is_clothes", false),
 		"Torn Clothes (009) is a bandage, not rope material")
 	check(ItemData.get_item_id_by_name("Rope") == "018", "only ONE item is named Rope")
 	check(ItemData.get_item_id_by_name("Clothes") == "008", "only ONE item is named Clothes")
 	check(absf(WorldState.CLOTHES_BEDROOM_BOOST - 1.30) < 0.001, "clothes bedroom boost is 30%")
 
-	# Clothes don't stack — three take three slots.
+	# Clothes don't stack — three take three slots — and 3 enable a descent.
 	WorldState.new_game()
 	WorldState.inventory.clear()
-	check(WorldState.add_to_inventory("008"), "1st clothes taken")
-	check(WorldState.add_to_inventory("008"), "2nd clothes taken")
-	check(WorldState.add_to_inventory("008"), "3rd clothes taken")
-	check(WorldState.inventory.size() == 3 and WorldState.count_clothes() == 3,
-		"three clothes occupy three separate slots (not stacked)")
+	check(not WorldState.has_descent_rope(), "empty-handed = no descent line")
+	WorldState.add_to_inventory("008")
+	WorldState.add_to_inventory("008")
+	check(WorldState.inventory.size() == 2, "clothes occupy separate slots (not stacked)")
+	check(not WorldState.has_descent_rope(), "2 clothes aren't enough")
+	WorldState.add_to_inventory("008")
+	check(WorldState.has_descent_rope(), "3 clothes make a descent possible")
+	check(WorldState.consume_descent_rope(), "the lash spends the clothes")
+	check(WorldState.count_clothes() == 0 and WorldState.inventory.size() == 0,
+		"all three clothes are consumed at the lash")
 
-	# Knot them: 3 clothes -> 1 clothes-rope, freeing two slots.
-	check(WorldState.craft_clothes_rope(), "3 clothes craft a clothes-rope")
-	check(WorldState.count_clothes() == 0, "the clothes are consumed")
-	var ropes := 0
-	for inst in WorldState.inventory:
-		if inst.item_id == "035":
-			ropes += 1
-	check(ropes == 1 and WorldState.inventory.size() == 1, "one clothes-rope remains in one slot")
-
-	# Two clothes aren't enough.
+	# A rope is preferred and spent alone — clothes are left untouched.
 	WorldState.inventory.clear()
 	WorldState.add_to_inventory("008")
+	WorldState.add_to_inventory("018")
 	WorldState.add_to_inventory("008")
-	check(not WorldState.craft_clothes_rope(), "2 clothes can't make a rope")
-	check(WorldState.count_clothes() == 2, "the spare clothes are left alone")
+	check(WorldState.has_descent_rope(), "a rope makes a descent possible")
+	check(WorldState.consume_descent_rope(), "the lash spends the rope")
+	check(WorldState.count_clothes() == 2, "the rope is used first — clothes kept")
+	check(not WorldState.consume_descent_rope(), "2 leftover clothes can't lash again")
 
 
 func _test_descent_core() -> void:
