@@ -42,58 +42,77 @@ func _test_determinism() -> void:
 			"balcony_slot_for_column(%d) is stable" % col)
 
 
+func _find_top() -> Dictionary:
+	# A seed + column + slot + floor where a descendable (top) balcony exists, and
+	# a plain (non-balcony) column, so all paths are exercised.
+	for seed_try in range(1, 300):
+		WorldState.master_seed = seed_try
+		WorldState.apartment_layouts.clear()
+		var plain := -1
+		for c in range(1, 6):
+			if not WorldState.is_balcony_column(c):
+				plain = c
+		for col in range(1, 6):
+			if not WorldState.is_balcony_column(col):
+				continue
+			var slot = WorldState.balcony_slot_for_column(col)
+			for f in range(2, 30):
+				if WorldState.is_balcony_descendable(_apt(f, col), slot):
+					return {"seed": seed_try, "col": col, "slot": slot, "floor": f, "plain": plain}
+	return {}
+
+
 func _test_continuity() -> void:
-	print("[vertical continuity]")
-	WorldState.new_game()
-	# A balcony's slot must be identical to the apartment directly below (same
-	# column) — that's what makes the descent land on a balcony.
-	for col in range(1, 6):
-		for floor_num in range(2, 30):
-			var here := _apt(floor_num, col)
-			var below := _apt(floor_num - 1, col)
-			for slot in range(3):
-				check(WorldState.is_balcony_slot(here, slot) == WorldState.is_balcony_slot(below, slot),
-					"col %d slot %d: floor %d matches floor %d" % [col, slot, floor_num, floor_num - 1])
+	print("[balcony pairs — one and done]")
+	var top := _find_top()
+	check(not top.is_empty(), "found a top balcony and a plain column")
+	if top.is_empty():
+		return
+	var col: int = top["col"]
+	var slot: int = top["slot"]
+	var f: int = top["floor"]
+	var here := _apt(f, col)
+	var below := _apt(f - 1, col)
+	# A top has a balcony directly below (its partner) at the same slot.
+	check(WorldState.is_balcony_slot(here, slot), "the top is a balcony slot")
+	check(WorldState.is_balcony_slot(below, slot), "its partner directly below is a balcony too")
+	# The top descends; the partner below is a dead-end (one and done, no stack).
+	check(WorldState.is_balcony_descendable(here, slot), "the top is descendable")
+	check(not WorldState.is_balcony_descendable(below, slot),
+		"the partner below is NOT descendable (one-and-done, no chaining)")
+	# Floor 30 never has a balcony.
+	for c in range(1, 6):
+		check(not WorldState.is_balcony_slot(_apt(30, c), 0)
+			and not WorldState.is_balcony_slot(_apt(30, c), 1)
+			and not WorldState.is_balcony_slot(_apt(30, c), 2),
+			"floor 30 col %d has no balcony" % c)
 
 
 func _test_conform_and_hide() -> void:
-	print("[layout conforms / non-balcony hidden]")
-	# Find a seed that gives us BOTH a balcony column and a non-balcony column so
-	# both paths are exercised regardless of hash outcomes.
-	var bal_col := -1
-	var plain_col := -1
-	for seed_try in range(1, 80):
-		WorldState.master_seed = seed_try
-		WorldState.apartment_layouts.clear()
-		bal_col = -1
-		plain_col = -1
-		for col in range(1, 6):
-			if WorldState.is_balcony_column(col) and bal_col < 0:
-				bal_col = col
-			elif not WorldState.is_balcony_column(col) and plain_col < 0:
-				plain_col = col
-		if bal_col > 0 and plain_col > 0:
-			break
-	check(bal_col > 0 and plain_col > 0, "found a balcony column and a plain column to test")
-
-	# Balcony column: the seeded slot always holds a study or dining room, on
-	# every floor; the layout stays three distinct rooms.
-	var slot := WorldState.balcony_slot_for_column(bal_col)
-	for floor_num in range(1, 30):
-		var apt := _apt(floor_num, bal_col)
-		var layout = WorldState.get_apartment_layout(apt)
-		check(layout[slot] in WorldState.BALCONY_ROOMS,
-			"balcony col %d floor %d: slot %d is a balcony room (%s)" % [bal_col, floor_num, slot, layout[slot]])
-		check(layout[0] != layout[1] and layout[1] != layout[2] and layout[0] != layout[2],
-			"balcony col %d floor %d: three distinct rooms" % [bal_col, floor_num])
-		check(WorldState.is_balcony_slot(apt, slot), "balcony col %d floor %d: slot flagged" % [bal_col, floor_num])
-
-	# Plain column: no slot is ever a balcony slot.
-	for floor_num in range(1, 30):
-		var apt := _apt(floor_num, plain_col)
-		for s in range(3):
-			check(not WorldState.is_balcony_slot(apt, s),
-				"plain col %d floor %d slot %d: no balcony" % [plain_col, floor_num, s])
+	print("[layout conforms / plain column clean]")
+	var top := _find_top()
+	if top.is_empty():
+		check(false, "no top balcony found to test conform")
+		return
+	var col: int = top["col"]
+	var slot: int = top["slot"]
+	var plain: int = top["plain"]
+	# On any balcony floor (top or its partner) the seeded slot is a study/dining
+	# and the layout stays three distinct rooms; non-balcony floors aren't forced.
+	for f in range(1, 30):
+		var apt := _apt(f, col)
+		if WorldState.is_balcony_slot(apt, slot):
+			var layout = WorldState.get_apartment_layout(apt)
+			check(layout[slot] in WorldState.BALCONY_ROOMS,
+				"col %d floor %d: balcony slot is a study/dining (%s)" % [col, f, layout[slot]])
+			check(layout[0] != layout[1] and layout[1] != layout[2] and layout[0] != layout[2],
+				"col %d floor %d: three distinct rooms" % [col, f])
+	# Plain column: never a balcony, any floor.
+	if plain > 0:
+		for f in range(1, 30):
+			for s in range(3):
+				check(not WorldState.is_balcony_slot(_apt(f, plain), s),
+					"plain col %d floor %d slot %d: no balcony" % [plain, f, s])
 
 
 func _test_rope_and_clothes() -> void:

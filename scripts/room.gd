@@ -102,11 +102,11 @@ func _ready() -> void:
 		# first-run Floor 30 tutorial to keep that sequence clean.
 		var bal_node = instance.get_node_or_null("Balcony")
 		if bal_node != null:
-			# is_balcony_slot already excludes Floor 30 (the tutorial floor).
+			# Balcony art shows on BOTH halves of a pair (top + its partner below);
+			# only the TOP gets a descent trigger, so descent is one-and-done.
 			var show_balcony = WorldState.is_balcony_slot(apartment_id, i)
 			bal_node.visible = show_balcony
-			if show_balcony:
-				# A descent trigger under the balcony (walk up / W to climb down).
+			if show_balcony and WorldState.is_balcony_descendable(apartment_id, i):
 				var zone = preload("res://scenes/balcony_zone.tscn").instantiate()
 				zone.apartment_id = apartment_id
 				zone.slot = i

@@ -10,9 +10,12 @@ extends Area2D
 var apartment_id: String = ""
 var slot: int = 0
 
+const ARROW_FONT = preload("res://assets/fonts/PixelOperator8.ttf")
+const ARROW_BASE_Y = -85.0
+
 var player_nearby := false
 var bounce_time := 0.0
-var arrow: Polygon2D = null
+var arrow: Label = null
 var prompt: Label = null
 var listen_label: Label = null
 
@@ -20,11 +23,15 @@ var listen_label: Label = null
 func _ready() -> void:
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
-	# Font-independent up-arrow (a triangle), so it renders whatever the UI font.
-	arrow = Polygon2D.new()
-	arrow.polygon = PackedVector2Array([Vector2(0, -12), Vector2(-9, 4), Vector2(9, 4)])
-	arrow.color = Color(0.96, 0.94, 0.4, 1)
-	arrow.position = Vector2(0, -70)
+	# Match the stairwell arrow exactly (building_floors.tscn): a "↑" in
+	# PixelOperator8 at 38px, z 1, bobbing when the player is near.
+	arrow = Label.new()
+	arrow.text = "↑"
+	arrow.add_theme_font_override("font", ARROW_FONT)
+	arrow.add_theme_font_size_override("font_size", 38)
+	arrow.z_index = 1
+	arrow.position = Vector2(-17, ARROW_BASE_Y)
+	arrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	arrow.visible = false
 	add_child(arrow)
 	prompt = _make_label(Vector2(-48, -48), 96, 12)
@@ -83,7 +90,7 @@ func _process(delta: float) -> void:
 	if not player_nearby:
 		return
 	bounce_time += delta
-	arrow.position.y = -70 - absf(sin(bounce_time * 4.0)) * 10.0
+	arrow.position.y = ARROW_BASE_Y - absf(sin(bounce_time * 4.0)) * 8.0
 	var player = get_tree().get_first_node_in_group("player")
 	if player == null:
 		return
