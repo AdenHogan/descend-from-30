@@ -117,18 +117,24 @@ func _test_conform_and_hide() -> void:
 
 func _test_rope_and_clothes() -> void:
 	print("[rope + clothes items]")
-	check(ItemData.get_item("035").get("is_rope", false), "Rope (035) is a rope")
-	check(ItemData.get_item("036").get("is_clothes", false), "Clothes (036) is clothes")
-	check(not ItemData.get_item("036").get("is_rope", false), "raw clothes are not a rope yet")
-	check(ItemData.get_item("037").get("is_rope", false), "Clothes-Rope (037) is a rope")
+	# The ORIGINAL catalog items carry the flags (no duplicate names): Rope 018,
+	# Clothes 008, crafted Clothes-Rope 035. Torn Clothes (009) stays a bandage.
+	check(ItemData.get_item("018").get("is_rope", false), "Rope (018) is a rope")
+	check(ItemData.get_item("008").get("is_clothes", false), "Clothes (008) is clothes")
+	check(not ItemData.get_item("008").get("is_rope", false), "raw clothes are not a rope yet")
+	check(ItemData.get_item("035").get("is_rope", false), "Clothes-Rope (035) is a rope")
+	check(not ItemData.get_item("009").get("is_clothes", false),
+		"Torn Clothes (009) is a bandage, not rope material")
+	check(ItemData.get_item_id_by_name("Rope") == "018", "only ONE item is named Rope")
+	check(ItemData.get_item_id_by_name("Clothes") == "008", "only ONE item is named Clothes")
 	check(absf(WorldState.CLOTHES_BEDROOM_BOOST - 1.30) < 0.001, "clothes bedroom boost is 30%")
 
 	# Clothes don't stack — three take three slots.
 	WorldState.new_game()
 	WorldState.inventory.clear()
-	check(WorldState.add_to_inventory("036"), "1st clothes taken")
-	check(WorldState.add_to_inventory("036"), "2nd clothes taken")
-	check(WorldState.add_to_inventory("036"), "3rd clothes taken")
+	check(WorldState.add_to_inventory("008"), "1st clothes taken")
+	check(WorldState.add_to_inventory("008"), "2nd clothes taken")
+	check(WorldState.add_to_inventory("008"), "3rd clothes taken")
 	check(WorldState.inventory.size() == 3 and WorldState.count_clothes() == 3,
 		"three clothes occupy three separate slots (not stacked)")
 
@@ -137,14 +143,14 @@ func _test_rope_and_clothes() -> void:
 	check(WorldState.count_clothes() == 0, "the clothes are consumed")
 	var ropes := 0
 	for inst in WorldState.inventory:
-		if inst.item_id == "037":
+		if inst.item_id == "035":
 			ropes += 1
 	check(ropes == 1 and WorldState.inventory.size() == 1, "one clothes-rope remains in one slot")
 
 	# Two clothes aren't enough.
 	WorldState.inventory.clear()
-	WorldState.add_to_inventory("036")
-	WorldState.add_to_inventory("036")
+	WorldState.add_to_inventory("008")
+	WorldState.add_to_inventory("008")
 	check(not WorldState.craft_clothes_rope(), "2 clothes can't make a rope")
 	check(WorldState.count_clothes() == 2, "the spare clothes are left alone")
 

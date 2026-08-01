@@ -546,7 +546,7 @@ func count_clothes() -> int:
 
 
 func craft_clothes_rope() -> bool:
-	# Knot 3 clothes (item 036, not stackable) into a Clothes-Rope (037). Frees two
+	# Knot 3 clothes (item 008, not stackable) into a Clothes-Rope (035). Frees two
 	# slots net, so there's always room for the result. Returns false if short.
 	if count_clothes() < 3:
 		return false
@@ -557,7 +557,7 @@ func craft_clothes_rope() -> bool:
 		if ItemData.get_item(inventory[i].item_id).get("is_clothes", false):
 			inventory.remove_at(i)
 			removed += 1
-	add_to_inventory("037")
+	add_to_inventory("035")
 	return true
 
 
@@ -1453,7 +1453,7 @@ func get_items_for_anchor(anchor_name: String, apartment_id: String) -> Array:
 		# whole number, so its frac is 0 and it behaves exactly as before.
 		if item_id == "005":
 			weight *= CAN_SCAVENGE_BOOST
-		elif item_id == "036" and room_type == "bedroom":
+		elif item_id == "008" and room_type == "bedroom":
 			# Bedrooms are the place to find clothes — bump the odds there so
 			# gathering three (for a clothes-rope) isn't a slog.
 			weight *= CLOTHES_BEDROOM_BOOST
