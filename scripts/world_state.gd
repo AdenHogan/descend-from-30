@@ -9,6 +9,12 @@ const ROOM_POOL = ["bedroom", "bathroom", "study", "kitchen", "living_room", "di
 # a continuous vertical stack, so every balcony (except floor 1) has one below.
 const BALCONY_ROOMS = ["study", "dining_room"]
 const BALCONY_COLUMN_CHANCE = 0.5
+# Balconies come in vertical PAIRS, never stacks: a descendable "top" balcony has
+# exactly one partner "bottom" balcony directly below it, and descending is
+# one-and-done (the bottom is a dead-end, even if the seed puts another balcony
+# further down). Tops in a column are spaced >= this many floors apart so pairs
+# never touch — a bottom is never also a top.
+const BALCONY_PAIR_PERIOD = 6
 # Descending a balcony: the climb costs stamina, and doing it tired risks losing
 # grip and falling the rest of the way (a lighter injury than a deliberate jump).
 const BALCONY_STAMINA_COST = 25.0
@@ -1114,18 +1120,53 @@ func balcony_slot_for_column(col: int) -> int:
 	return rng.randi() % 3
 
 
+func _balcony_top_offset(col: int) -> int:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "balconytop" + str(col))
+	return rng.randi() % BALCONY_PAIR_PERIOD
+
+
+func _floor_is_balcony_top(floor_num: int, col: int) -> bool:
+	# A descendable balcony: needs an apartment directly below (floor >= 2) and is
+	# never on the tutorial floor (30). Tops sit every BALCONY_PAIR_PERIOD floors.
+	if col < 0 or not is_balcony_column(col):
+		return false
+	if floor_num < 2 or floor_num >= 30:
+		return false
+	return (floor_num - _balcony_top_offset(col)) % BALCONY_PAIR_PERIOD == 0
+
+
+func _floor_is_balcony_bottom(floor_num: int, col: int) -> bool:
+	# The partner directly below a top — the landing, not itself descendable.
+	return _floor_is_balcony_top(floor_num + 1, col)
+
+
 func balcony_slot_in_apartment(apartment_id: String) -> int:
-	# The balcony slot for this apartment, or -1 if it has no balcony. Floor 30
-	# (the tutorial floor) never has balconies, any run — so its layouts also stay
-	# untouched by the balcony-conform in get_apartment_layout.
+	# The balcony slot for this apartment (art shown on both halves of a pair), or
+	# -1 if it has no balcony. Floor 30 never has balconies, so its layouts also
+	# stay untouched by the balcony-conform in get_apartment_layout.
 	var col := _apartment_column(apartment_id)
-	if col < 0 or _apartment_floor(apartment_id) == 30 or not is_balcony_column(col):
+	if col < 0:
 		return -1
-	return balcony_slot_for_column(col)
+	var floor_num := _apartment_floor(apartment_id)
+	if floor_num == 30:
+		return -1
+	if _floor_is_balcony_top(floor_num, col) or _floor_is_balcony_bottom(floor_num, col):
+		return balcony_slot_for_column(col)
+	return -1
 
 
 func is_balcony_slot(apartment_id: String, slot: int) -> bool:
 	return balcony_slot_in_apartment(apartment_id) == slot
+
+
+func is_balcony_descendable(apartment_id: String, slot: int) -> bool:
+	# Only the TOP of a pair descends; its partner below is a dead-end. This is what
+	# makes descent one-and-done and never a stack.
+	var col := _apartment_column(apartment_id)
+	if col < 0 or balcony_slot_for_column(col) != slot:
+		return false
+	return _floor_is_balcony_top(_apartment_floor(apartment_id), col)
 
 
 func _apartment_floor(apartment_id: String) -> int:

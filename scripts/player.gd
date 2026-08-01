@@ -1159,7 +1159,15 @@ func begin_balcony_descent(apartment_id: String, slot: int, _from_global: Vector
 	# Triggered by W at a balcony zone (balcony_zone.gd). Rope (carried or already
 	# lashed) = a stamina climb with a slip risk when tired; no rope = a jump for
 	# heavier guaranteed injury.
-	if is_dead or is_dying or is_cutscene or is_lashing or is_listening or WorldState.is_scavenge_mode:
+	if is_dead or is_dying or is_cutscene or is_lashing or is_listening:
+		return
+	# Balconies are used from SCAVENGE mode (a deliberate, non-combat action).
+	if not WorldState.is_scavenge_mode:
+		HUD.show_feedback("Switch to scavenge mode to use the balcony.")
+		return
+	# Only a descendable (top) balcony leads anywhere — its partner below is a
+	# dead-end.
+	if not WorldState.is_balcony_descendable(apartment_id, slot):
 		return
 	if WorldState.balcony_below(apartment_id) == "":
 		HUD.show_feedback("Nothing below — this is the ground floor.")
