@@ -545,9 +545,22 @@ func count_clothes() -> int:
 	return n
 
 
-func craft_clothes_rope() -> bool:
-	# Knot 3 clothes (item 008, not stackable) into a Clothes-Rope (035). Frees two
-	# slots net, so there's always room for the result. Returns false if short.
+func has_descent_rope() -> bool:
+	# A balcony descent needs a Rope (018) OR three Clothes (008, one slot each).
+	# There is NO crafted intermediate — the clothes are knotted at the balcony.
+	for inst in inventory:
+		if ItemData.get_item(inst.item_id).get("is_rope", false):
+			return true
+	return count_clothes() >= 3
+
+
+func consume_descent_rope() -> bool:
+	# Spend the descent materials at the lash: a Rope if carried, else 3 Clothes.
+	# Returns false (and consumes nothing) if neither is available.
+	for i in range(inventory.size()):
+		if ItemData.get_item(inventory[i].item_id).get("is_rope", false):
+			inventory.remove_at(i)
+			return true
 	if count_clothes() < 3:
 		return false
 	var removed := 0
@@ -557,7 +570,6 @@ func craft_clothes_rope() -> bool:
 		if ItemData.get_item(inventory[i].item_id).get("is_clothes", false):
 			inventory.remove_at(i)
 			removed += 1
-	add_to_inventory("035")
 	return true
 
 
