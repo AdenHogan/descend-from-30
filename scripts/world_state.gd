@@ -1220,6 +1220,11 @@ func descend_from_balcony(apartment_id: String) -> String:
 	current_floor = _apartment_floor(apartment_id) - 1
 	current_apartment_id = below
 	spawn_source = "balcony"
+	# Descending one floor flips the stairwell arrangement (the zig-zag), same as a
+	# stair descent — otherwise the corridor you step out into shows the floor
+	# ABOVE's stair sides (inverted). See building_floors._apply_stair_visuals.
+	stair_spawn_side = "right" if stair_spawn_side == "left" else "left"
+	stair_direction = "down"
 	var state = get_door_state(below)
 	if state in [DoorState.SHUT_LOCKED, DoorState.SHUT_FORCEABLE,
 			DoorState.BARRICADED_FORCEABLE, DoorState.BARRICADED_LOCKED]:

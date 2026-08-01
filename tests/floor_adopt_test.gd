@@ -26,6 +26,11 @@ func _floor_with_zombies(fallback: int) -> int:
 
 func _ready() -> void:
 	print("=== floor adoption / go_live ===")
+	# Hermetic: pin first-run so procedural floor content doesn't depend on a
+	# tutorial-completed profile another suite test left on disk (new_game()
+	# derives is_first_run from this and never reloads it).
+	WorldState.tutorial_completed = false
+	WorldState.is_first_run = true
 	await _test_rehome_lands_at_origin()
 	await _test_go_live_wakes_everything()
 	print("=== %s (%d failures) ===" % ["ALL PASSED" if fails == 0 else "FAILED", fails])
