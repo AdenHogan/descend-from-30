@@ -87,6 +87,9 @@ var is_cutscene: bool = false
 const BALCONY_LASH_TIME = 2.5
 var is_lashing: bool = false
 var _lash_cancel: bool = false
+# A no-rope jump takes a deliberate second press (with a warning first).
+const BALCONY_JUMP_CONFIRM_WINDOW = 4.0
+var _jump_confirm_time: float = 0.0
 
 # Audio (docs/SOUND_STEALTH.md audio pass). Carpet steps for the quiet
 # gaits, concrete for the loud ones — the sound mirrors the noise model.
@@ -1161,12 +1164,8 @@ func begin_balcony_descent(apartment_id: String, slot: int, _from_global: Vector
 	# heavier guaranteed injury.
 	if is_dead or is_dying or is_cutscene or is_lashing or is_listening:
 		return
-	# Balconies are used from SCAVENGE mode (a deliberate, non-combat action).
-	if not WorldState.is_scavenge_mode:
-		HUD.show_feedback("Switch to scavenge mode to use the balcony.")
-		return
-	# Only a descendable (top) balcony leads anywhere — its partner below is a
-	# dead-end.
+	# Descent works in EITHER mode (like a door or the stairs). Only a descendable
+	# (top) balcony leads anywhere — its partner below is a dead-end.
 	if not WorldState.is_balcony_descendable(apartment_id, slot):
 		return
 	if WorldState.balcony_below(apartment_id) == "":
@@ -1179,7 +1178,15 @@ func begin_balcony_descent(apartment_id: String, slot: int, _from_global: Vector
 	if rope_slot >= 0:
 		_lash_and_descend(apartment_id, slot, rope_slot)
 	else:
-		_do_balcony_descent(apartment_id, true)     # no rope — jump
+		# No rope — jumping is a real risk, so make it a DELIBERATE second press.
+		# First press warns; a second within the window commits to the jump.
+		var now = Time.get_ticks_msec() / 1000.0
+		if now - _jump_confirm_time > BALCONY_JUMP_CONFIRM_WINDOW:
+			_jump_confirm_time = now
+			HUD.show_dialogue("That's a long drop — it'll hurt without a rope. I should find some rope or knot my clothes... or press again to risk the jump.")
+			return
+		_jump_confirm_time = 0.0
+		_do_balcony_descent(apartment_id, true)     # confirmed — jump
 
 
 func _find_rope_slot() -> int:

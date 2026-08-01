@@ -23,7 +23,11 @@ offset_left = 12.0
 offset_top = 18.0
 offset_right = 88.0
 offset_bottom = 120.0
-color = Color(0.32, 0.56, 0.86, 1)
+color = Color(0.47, 0.74, 0.98, 1)
+
+[node name="Sun" type="Polygon2D" parent="Balcony"]
+polygon = PackedVector2Array(70, 22, 76, 24, 78, 30, 76, 36, 70, 38, 64, 36, 62, 30, 64, 24)
+color = Color(1, 0.95, 0.55, 1)
 
 [node name="SkylineA" type="ColorRect" parent="Balcony"]
 offset_left = 30.0
