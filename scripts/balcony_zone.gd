@@ -73,10 +73,16 @@ func _refresh() -> void:
 	listen_label.visible = has_below
 	if not has_below:
 		return
-	if WorldState.is_balcony_roped(apartment_id, slot) or WorldState.has_descent_rope():
-		prompt.text = "[W] Climb down"
+	# Staged: from the room you first STEP OUT onto the balcony (W); the descent
+	# options only exist once you're standing out there on its plane.
+	var player = get_tree().get_first_node_in_group("player")
+	if player != null and player.get("on_balcony_plane"):
+		if WorldState.is_balcony_roped(apartment_id, slot) or WorldState.has_descent_rope():
+			prompt.text = "[W] Climb down   [S] Back inside"
+		else:
+			prompt.text = "[W] Jump down   [S] Back inside"
 	else:
-		prompt.text = "[W] Jump down"
+		prompt.text = "[W] Step onto balcony"
 
 
 func _process(delta: float) -> void:
@@ -87,8 +93,15 @@ func _process(delta: float) -> void:
 	var player = get_tree().get_first_node_in_group("player")
 	if player == null:
 		return
-	if Input.is_action_just_pressed("move_up") and player.has_method("begin_balcony_descent"):
-		player.begin_balcony_descent(apartment_id, slot, global_position)
+	_refresh()   # live prompt: stepping out / back in changes the options
+	if Input.is_action_just_pressed("move_up"):
+		if not player.get("on_balcony_plane"):
+			# First W: walk UP into the balcony space (its own plane).
+			if player.has_method("enter_balcony_plane"):
+				player.enter_balcony_plane(global_position.x)
+		elif player.has_method("begin_balcony_descent"):
+			# On the plane, W goes over the rail.
+			player.begin_balcony_descent(apartment_id, slot, global_position)
 	elif Input.is_action_just_pressed("listen") and player.has_method("start_listen"):
 		var below := WorldState.balcony_below(apartment_id)
 		if below != "":
