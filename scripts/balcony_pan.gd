@@ -55,6 +55,18 @@ func pan_down(target_apartment: String, slot: int, roped: bool) -> void:
 	lower.position = Vector2(0, SCREEN_H)
 	scene.add_child(lower)
 
+	# Kill the grey void BETWEEN the two apartments: a balcony descent goes down
+	# the BUILDING EXTERIOR, so fill it with a facade behind everything (z -20).
+	# The apartments' own opaque backgrounds sit in front, so it only shows in
+	# what used to be empty grey. (Full pixel-contiguous stacking + the behind-
+	# the-wall shred are the remaining polish — see docs / StairPan SHRED_SHADER.)
+	var facade := ColorRect.new()
+	facade.color = Color(0.38, 0.37, 0.34)
+	facade.position = Vector2(-120, -120)
+	facade.size = Vector2(1320, SCREEN_H * 2 + 240)
+	facade.z_index = -20
+	scene.add_child(facade)
+
 	var x := LEFT_WALL_X + slot * MODULE_WIDTH + 50.0   # the balcony column
 	# The lashed line, hanging from the upper rail down to the balcony below.
 	if roped:
