@@ -1181,6 +1181,14 @@ func is_balcony_descendable(apartment_id: String, slot: int) -> bool:
 	return _floor_is_balcony_top(_apartment_floor(apartment_id), col)
 
 
+func canonical_stair_arrival_side(floor_num: int) -> String:
+	# Which side a normal STAIR descent lands you on at this floor. The descent
+	# zig-zags, so it alternates every floor. A balcony drop uses this to look
+	# exactly like a stair arrival. If the building reads mirrored in playtest,
+	# flip the parity here (this one line) — nothing else depends on it.
+	return "left" if floor_num % 2 == 1 else "right"
+
+
 func _apartment_floor(apartment_id: String) -> int:
 	# floor + "0" + column, e.g. "2603" -> floor 26 (int / 100).
 	if apartment_id == "":
@@ -1232,10 +1240,13 @@ func descend_from_balcony(apartment_id: String) -> String:
 	current_floor = _apartment_floor(apartment_id) - 1
 	current_apartment_id = below
 	spawn_source = "balcony"
-	# Descending one floor flips the stairwell arrangement (the zig-zag), same as a
-	# stair descent — otherwise the corridor you step out into shows the floor
-	# ABOVE's stair sides (inverted). See building_floors._apply_stair_visuals.
-	stair_spawn_side = "right" if stair_spawn_side == "left" else "left"
+	# Set the stair state to exactly what a normal STAIR descent to this floor
+	# produces, so the corridor you step out into shows the correct (and STABLE)
+	# stairwells — not the floor above's, and not something that depends on how
+	# you reached the balcony. See building_floors._apply_stair_visuals (the
+	# zig-zag arrangement is arrival-driven by design; this makes a balcony drop
+	# a canonical descent arrival).
+	stair_spawn_side = canonical_stair_arrival_side(current_floor)
 	stair_direction = "down"
 	var state = get_door_state(below)
 	if state in [DoorState.SHUT_LOCKED, DoorState.SHUT_FORCEABLE,

@@ -333,6 +333,21 @@ func receive_hit_from_gun(outcome: String) -> void:
 		"miss":
 			pass
 
+func _update_plane_pursuit(delta: float) -> void:
+	# Balcony is not a safe island: an aggro'd zombie (chasing or attacking) that
+	# is close in X climbs UP onto the player's raised balcony line to keep
+	# attacking, and eases back to its own corridor line when the player drops
+	# back inside. Scripted tutorial zombies never do this (no F30 balconies).
+	if tutorial_scripted or player == null:
+		return
+	var aggro := state in ["chase", "attack"] or alert_timer > 0.0
+	var pursue_y := base_walk_y
+	if aggro and absf(player.global_position.x - global_position.x) < PLANE_PURSUIT_X \
+			and absf(player.global_position.y - base_walk_y) <= PLANE_PURSUIT_MAX:
+		pursue_y = player.global_position.y
+	global_position.y = move_toward(global_position.y, pursue_y, PLANE_CLIMB_SPEED * delta)
+
+
 func _physics_process(delta: float) -> void:
 	if is_dead:
 		return
@@ -346,6 +361,8 @@ func _physics_process(delta: float) -> void:
 		moan_player.stream = MOAN_STREAMS.pick_random()
 		moan_player.pitch_scale = voice_pitch * randf_range(0.95, 1.05)
 		moan_player.play()
+
+	_update_plane_pursuit(delta)
 
 	match state:
 		"knockdown":
@@ -408,15 +425,6 @@ func _physics_process(delta: float) -> void:
 					animated_sprite.play("Walk")
 		"chase", "idle":
 			_try_resolidify()
-			# Balcony-plane pursuit: an aggro'd zombie close in X climbs up onto
-			# the player's line (and back down when they return inside). Scripted
-			# tutorial zombies never do this (no balconies on floor 30 anyway).
-			if not tutorial_scripted and player != null and state == "chase":
-				var pursue_y = base_walk_y
-				if absf(player.global_position.x - global_position.x) < PLANE_PURSUIT_X \
-						and absf(player.global_position.y - base_walk_y) <= PLANE_PURSUIT_MAX:
-					pursue_y = player.global_position.y
-				global_position.y = move_toward(global_position.y, pursue_y, PLANE_CLIMB_SPEED * delta)
 			# Scripted zombie: stays put until the script releases it, then
 			# closes in at a slow, telegraphed pace so the player can scavenge.
 			# With a hold point set it first walks THERE (arriving on scene),
