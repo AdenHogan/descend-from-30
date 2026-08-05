@@ -3,6 +3,11 @@ extends Node
 var apartment_id: String = WorldState.current_apartment_id
 var interactables: Array = []
 var selected_index: int = 0
+# BalconyPan backdrop mode: build THIS apartment (instead of the current one) as
+# passive scenery — modules + balcony art, no player/door/loot/enemies. Set both
+# BEFORE add_child(), like building_floors' setup_floor/passive.
+var setup_apartment: String = ""
+var passive: bool = false
 
 # --- 3003 scripted tutorial (first run only) ------------------------------
 # The neighbour encounter is a hand-paced state machine driven from _process:
@@ -63,10 +68,28 @@ const ANCHOR_RANGES = {
 }
 
 func _ready() -> void:
+	# PASSIVE BACKDROP MODE (BalconyPan): build another apartment's interior as
+	# scenery — modules + balcony art only, no player/door/loot/enemies — so the
+	# apartment below can be stacked under this one during the descent pan.
+	# Mirrors building_floors' setup_floor/passive pattern.
+	if setup_apartment != "":
+		apartment_id = setup_apartment
+	if passive:
+		_build_modules(WorldState.get_entrance_side(apartment_id), false)
+		# The scene's own Player carries the room Camera2D — kill the camera
+		# FIRST or it hijacks the view the frame this backdrop enters the tree.
+		var pcam = get_node_or_null("Player/Camera2D")
+		if pcam != null:
+			pcam.enabled = false
+		for dead_name in ["Player", "Area2D", "LootUI"]:
+			var n = get_node_or_null(dead_name)
+			if n != null:
+				n.queue_free()
+		return
+
 	var door = $Area2D
 	var player = $Player
 	var entrance_side = WorldState.get_entrance_side(apartment_id)
-	var layout = WorldState.get_apartment_layout(apartment_id)
 	var left_wall = $LeftWall
 	var right_wall = $RightWall
 
@@ -77,41 +100,7 @@ func _ready() -> void:
 		right_wall.process_mode = Node.PROCESS_MODE_DISABLED
 		left_wall.process_mode = Node.PROCESS_MODE_ALWAYS
 
-	for i in range(3):
-		var scene_path: String
-		if WorldState.is_first_run and TUTORIAL_LAYOUTS.has(apartment_id):
-			var module_index = i if entrance_side == "left" else 2 - i
-			scene_path = MODULE_SCENES[TUTORIAL_LAYOUTS[apartment_id][module_index]]
-		else:
-			scene_path = MODULE_SCENES[layout[i]]
-		var scene = load(scene_path)
-		var instance = scene.instantiate()
-		instance.position.x = LEFT_WALL_X + (i * MODULE_WIDTH)
-		instance.position.y = 224
-		instance.add_to_group("room_module")
-		add_child(instance)
-		# The module's background ColorRect (+ its Label) is a Control that
-		# defaults to MOUSE_FILTER_STOP, so it swallows every world click over
-		# the apartment — click-to-move dies inside rooms (works in hallways,
-		# whose backdrop is a Sprite). Make all module Controls click-through.
-		for ctrl in _all_controls(instance):
-			ctrl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		# Study/dining modules carry a Balcony node; reveal it only on a real
-		# balcony slot (seeded per column, stacked vertically). A study/dining that
-		# just happens to sit elsewhere shows no balcony. Hidden during the
-		# first-run Floor 30 tutorial to keep that sequence clean.
-		var bal_node = instance.get_node_or_null("Balcony")
-		if bal_node != null:
-			# Balcony art shows on BOTH halves of a pair (top + its partner below);
-			# only the TOP gets a descent trigger, so descent is one-and-done.
-			var show_balcony = WorldState.is_balcony_slot(apartment_id, i)
-			bal_node.visible = show_balcony
-			if show_balcony and WorldState.is_balcony_descendable(apartment_id, i):
-				var zone = preload("res://scenes/balcony_zone.tscn").instantiate()
-				zone.apartment_id = apartment_id
-				zone.slot = i
-				zone.position = Vector2(LEFT_WALL_X + i * MODULE_WIDTH + 50, 334)
-				add_child(zone)
+	_build_modules(entrance_side, true)
 
 	if entrance_side == "left":
 		door.position.x = 96
@@ -165,6 +154,48 @@ func _ready() -> void:
 		WorldState.saved_player_x = 0.0
 		WorldState.saved_player_y = 0.0
 
+	_after_modules_ready()
+
+
+func _build_modules(entrance_side: String, live: bool) -> void:
+	# The three interior modules + balcony art. `live` also spawns the balcony
+	# descent zone (interactive) — passive backdrops get art only.
+	var layout = WorldState.get_apartment_layout(apartment_id)
+	for i in range(3):
+		var scene_path: String
+		if WorldState.is_first_run and TUTORIAL_LAYOUTS.has(apartment_id):
+			var module_index = i if entrance_side == "left" else 2 - i
+			scene_path = MODULE_SCENES[TUTORIAL_LAYOUTS[apartment_id][module_index]]
+		else:
+			scene_path = MODULE_SCENES[layout[i]]
+		var scene = load(scene_path)
+		var instance = scene.instantiate()
+		instance.position.x = LEFT_WALL_X + (i * MODULE_WIDTH)
+		instance.position.y = 224
+		instance.add_to_group("room_module")
+		add_child(instance)
+		# The module's background ColorRect (+ its Label) is a Control that
+		# defaults to MOUSE_FILTER_STOP, so it swallows every world click over
+		# the apartment — click-to-move dies inside rooms (works in hallways,
+		# whose backdrop is a Sprite). Make all module Controls click-through.
+		for ctrl in _all_controls(instance):
+			ctrl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		# Study/dining modules carry a Balcony node; reveal it only on a real
+		# balcony slot (seeded pairs). Art shows on BOTH halves of a pair; only
+		# the TOP gets a descent trigger, so descent is one-and-done.
+		var bal_node = instance.get_node_or_null("Balcony")
+		if bal_node != null:
+			var show_balcony = WorldState.is_balcony_slot(apartment_id, i)
+			bal_node.visible = show_balcony
+			if live and show_balcony and WorldState.is_balcony_descendable(apartment_id, i):
+				var zone = preload("res://scenes/balcony_zone.tscn").instantiate()
+				zone.apartment_id = apartment_id
+				zone.slot = i
+				zone.position = Vector2(LEFT_WALL_X + i * MODULE_WIDTH + 50, 334)
+				add_child(zone)
+
+
+func _after_modules_ready() -> void:
 	# Room tutorial hints: place BloodText nodes (scenes/blood_text.tscn) into
 	# the Tutorial room modules in the editor — those modules only load on the
 	# first run, so they're first-run-gated automatically. Any tagged

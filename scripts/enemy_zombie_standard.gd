@@ -47,6 +47,13 @@ var spawn_key: String = ""
 var max_hp: int = 3
 var current_hp: int = 3
 var is_dead: bool = false
+# The corridor walking line this zombie spawned on. When the player steps up
+# onto a balcony plane, close zombies CLIMB UP after them (the balcony is not a
+# safe island — THREE_RUN_ARC); otherwise they hold their own line.
+var base_walk_y: float = 0.0
+const PLANE_PURSUIT_X = 140.0     # close enough in X to start climbing
+const PLANE_PURSUIT_MAX = 60.0    # never chase further off-line than this
+const PLANE_CLIMB_SPEED = 45.0
 var passable_to_player: bool = false
 # Gunfire (and future noise sources) override detection range while this runs.
 var alert_timer: float = 0.0
@@ -107,6 +114,7 @@ func _ready() -> void:
 	animated_sprite = $AnimatedSprite2D
 	animated_sprite.play("Idle")
 	player = get_tree().get_first_node_in_group("player")
+	base_walk_y = global_position.y
 	add_to_group("zombie")
 	_set_hp_from_floor()
 	_register_zombie_exceptions()
@@ -400,6 +408,15 @@ func _physics_process(delta: float) -> void:
 					animated_sprite.play("Walk")
 		"chase", "idle":
 			_try_resolidify()
+			# Balcony-plane pursuit: an aggro'd zombie close in X climbs up onto
+			# the player's line (and back down when they return inside). Scripted
+			# tutorial zombies never do this (no balconies on floor 30 anyway).
+			if not tutorial_scripted and player != null and state == "chase":
+				var pursue_y = base_walk_y
+				if absf(player.global_position.x - global_position.x) < PLANE_PURSUIT_X \
+						and absf(player.global_position.y - base_walk_y) <= PLANE_PURSUIT_MAX:
+					pursue_y = player.global_position.y
+				global_position.y = move_toward(global_position.y, pursue_y, PLANE_CLIMB_SPEED * delta)
 			# Scripted zombie: stays put until the script releases it, then
 			# closes in at a slow, telegraphed pace so the player can scavenge.
 			# With a hold point set it first walks THERE (arriving on scene),

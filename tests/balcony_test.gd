@@ -23,6 +23,8 @@ func _ready() -> void:
 	_test_conform_and_hide()
 	_test_rope_and_clothes()
 	_test_descent_core()
+	await _test_passive_room()
+	_test_pan_gating()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -191,3 +193,47 @@ func _test_descent_core() -> void:
 	check(WorldState.get_door_state("2503") == WorldState.DoorState.OPEN,
 		"a locked door is opened from the inside")
 	check(WorldState.descend_from_balcony("103") == "", "can't descend from floor 1")
+
+
+func _test_passive_room() -> void:
+	print("[passive room backdrop (BalconyPan)]")
+	# The apartment below is stacked under the live room as scenery: modules +
+	# balcony art only — no player, no door area, no loot UI, no descent zone.
+	WorldState.new_game()
+	var room = load("res://scenes/room.tscn").instantiate()
+	room.passive = true
+	room.setup_apartment = "2503"
+	room.position = Vector2(0, 648)
+	add_child(room)
+	for i in range(4):
+		await get_tree().process_frame
+	var modules := 0
+	for m in get_tree().get_nodes_in_group("room_module"):
+		if m.get_parent() == room:
+			modules += 1
+	check(modules == 3, "passive room builds its three interior modules")
+	check(room.get_node_or_null("Player") == null, "passive room has NO player")
+	check(room.get_node_or_null("Area2D") == null, "passive room has NO door area")
+	check(room.get_node_or_null("LootUI") == null, "passive room has NO loot UI")
+	var zones := 0
+	for c in room.get_children():
+		if c.get_script() == load("res://scripts/balcony_zone.gd"):
+			zones += 1
+	check(zones == 0, "passive room spawns no interactive descent zone")
+	check(room.apartment_id == "2503", "passive room built the REQUESTED apartment")
+	room.queue_free()
+	await get_tree().process_frame
+
+
+func _test_pan_gating() -> void:
+	print("[pan gating]")
+	# Not in a room scene here (this is the test scene), so the pan must refuse
+	# and callers fall back to the plain fade — a descent can never soft-lock.
+	check(not BalconyPan.can_pan(), "pan refuses outside a room scene (fade fallback)")
+	check(BalconyPan.ENABLED, "pan is enabled by default")
+	# The zombie plane-pursuit baseline: spawn line is remembered.
+	var z = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
+	z.global_position = Vector2(300, 321)
+	add_child(z)
+	check(absf(z.base_walk_y - 321.0) < 0.5, "zombie remembers its corridor line")
+	z.queue_free()

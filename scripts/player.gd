@@ -90,6 +90,19 @@ var _lash_cancel: bool = false
 # A no-rope jump takes a deliberate second press (with a warning first).
 const BALCONY_JUMP_CONFIRM_WINDOW = 4.0
 var _jump_confirm_time: float = 0.0
+# The balcony is a real walkable SPACE (2.5D): W steps the player up onto its
+# own plane (higher Y line, sprite slightly smaller for depth), where they can
+# move left/right between the rails; S steps back inside. Descent (rope/jump)
+# is only offered ON the plane. It is NOT a safe island: enemies climb up too.
+const BALCONY_PLANE_RISE = 25.0
+const BALCONY_PLANE_SCALE = 0.88
+const BALCONY_HALF_WIDTH = 34.0
+const BALCONY_STEP_TIME = 0.35
+var on_balcony_plane: bool = false
+var balcony_plane_y: float = 0.0
+var balcony_center_x: float = 0.0
+var _plane_return_y: float = 0.0
+var _plane_base_scale: Vector2 = Vector2.ONE
 
 # Audio (docs/SOUND_STEALTH.md audio pass). Carpet steps for the quiet
 # gaits, concrete for the loud ones — the sound mirrors the noise model.
@@ -348,6 +361,15 @@ func _physics_process(delta: float) -> void:
 	else:
 		velocity.x = move_toward(velocity.x, 0, SPEED)
 	move_and_slide()
+
+	# On the balcony plane: held to the balcony's own line, clamped between the
+	# rails (its X collision bounds), free to move left/right; S steps back in.
+	if on_balcony_plane:
+		global_position.y = balcony_plane_y
+		global_position.x = clampf(global_position.x,
+			balcony_center_x - BALCONY_HALF_WIDTH, balcony_center_x + BALCONY_HALF_WIDTH)
+		if Input.is_action_just_pressed("move_down"):
+			exit_balcony_plane()
 
 	# Movement noise (under the hood — docs/SOUND_STEALTH.md): louder gaits
 	# are audible further. Zombies whose sight misses you can still hear you.
@@ -1153,21 +1175,62 @@ func receive_hit(amount: int = 1) -> void:
 	take_damage(amount)
 
 
+func enter_balcony_plane(center_x: float) -> void:
+	# Step UP into the balcony space (depth walk): a short owned move onto the
+	# balcony's own Y line, sprite scaled down a touch. Not an invincibility
+	# nook — zombies follow the player up (see enemy Y-pursuit).
+	if on_balcony_plane or is_cutscene or is_dead or is_dying or is_lashing or is_listening:
+		return
+	is_cutscene = true
+	_clear_move_target()
+	balcony_center_x = center_x
+	_plane_return_y = global_position.y
+	balcony_plane_y = global_position.y - BALCONY_PLANE_RISE
+	_plane_base_scale = animated_sprite.scale
+	var t = create_tween().set_parallel(true)
+	t.tween_property(self, "global_position", Vector2(
+		clampf(global_position.x, center_x - BALCONY_HALF_WIDTH, center_x + BALCONY_HALF_WIDTH),
+		balcony_plane_y), BALCONY_STEP_TIME).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	t.tween_property(animated_sprite, "scale", _plane_base_scale * BALCONY_PLANE_SCALE, BALCONY_STEP_TIME)
+	await t.finished
+	is_cutscene = false
+	on_balcony_plane = true
+	HUD.show_feedback("Out on the balcony — [S] steps back inside.")
+
+
+func exit_balcony_plane() -> void:
+	if not on_balcony_plane or is_cutscene or is_lashing:
+		return
+	on_balcony_plane = false
+	is_cutscene = true
+	_clear_move_target()
+	var t = create_tween().set_parallel(true)
+	t.tween_property(self, "global_position",
+		Vector2(global_position.x, _plane_return_y), BALCONY_STEP_TIME) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	t.tween_property(animated_sprite, "scale", _plane_base_scale, BALCONY_STEP_TIME)
+	await t.finished
+	is_cutscene = false
+
+
 func begin_balcony_descent(apartment_id: String, slot: int, _from_global: Vector2) -> void:
 	# Triggered by W at a balcony zone (balcony_zone.gd). Rope (carried or already
 	# lashed) = a stamina climb with a slip risk when tired; no rope = a jump for
 	# heavier guaranteed injury.
 	if is_dead or is_dying or is_cutscene or is_lashing or is_listening:
 		return
-	# Descent works in EITHER mode (like a door or the stairs). Only a descendable
-	# (top) balcony leads anywhere — its partner below is a dead-end.
+	# Descent is only offered ON the balcony plane (you must step out first) and
+	# works in EITHER mode (like a door or the stairs). Only a descendable (top)
+	# balcony leads anywhere — its partner below is a dead-end.
+	if not on_balcony_plane:
+		return
 	if not WorldState.is_balcony_descendable(apartment_id, slot):
 		return
 	if WorldState.balcony_below(apartment_id) == "":
 		HUD.show_feedback("Nothing below — this is the ground floor.")
 		return
 	if WorldState.is_balcony_roped(apartment_id, slot):
-		_do_balcony_descent(apartment_id, false)   # the rope is already there
+		_do_balcony_descent(apartment_id, slot, false)   # the rope is already there
 		return
 	if WorldState.has_descent_rope():
 		_lash_and_descend(apartment_id, slot)
@@ -1181,7 +1244,7 @@ func begin_balcony_descent(apartment_id: String, slot: int, _from_global: Vector
 			HUD.show_dialogue("That's a long drop — it'll hurt without a rope. I should find some rope, or three lots of clothes to knot... or press again to risk the jump.")
 			return
 		_jump_confirm_time = 0.0
-		_do_balcony_descent(apartment_id, true)     # confirmed — jump
+		_do_balcony_descent(apartment_id, slot, true)     # confirmed — jump
 
 
 func _lash_and_descend(apartment_id: String, slot: int) -> void:
@@ -1206,10 +1269,10 @@ func _lash_and_descend(apartment_id: String, slot: int) -> void:
 	HUD.selected_slot = -1
 	HUD.refresh_inventory()
 	WorldState.rope_balcony(apartment_id, slot)
-	_do_balcony_descent(apartment_id, false)
+	_do_balcony_descent(apartment_id, slot, false)
 
 
-func _do_balcony_descent(apartment_id: String, is_jump: bool) -> void:
+func _do_balcony_descent(apartment_id: String, slot: int, is_jump: bool) -> void:
 	var injury := 0
 	if is_jump:
 		# A deliberate jump: heavier, guaranteed. (Fall-mitigation upgrades hook
@@ -1227,7 +1290,14 @@ func _do_balcony_descent(apartment_id: String, is_jump: bool) -> void:
 	if injury > 0 and not WorldState.god_mode:
 		take_damage(injury)
 	HUD.update_floor_label()
-	Transition.to_scene("res://scenes/room.tscn")
+	on_balcony_plane = false
+	# The seamless descent pan (BalconyPan): the apartment below stacks under
+	# this one and the player goes over the rail and down. Fade fallback if the
+	# pan can't run — a descent must never soft-lock.
+	if BalconyPan.can_pan():
+		BalconyPan.pan_down(target, slot, not is_jump)
+	else:
+		Transition.to_scene("res://scenes/room.tscn")
 
 
 func take_damage(amount: int = 1) -> void:
