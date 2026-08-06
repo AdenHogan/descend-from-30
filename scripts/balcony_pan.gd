@@ -1,31 +1,53 @@
 extends Node
 
 # Autoload: seamless balcony descent (THREE_RUN_ARC balcony route), modeled on
-# StairPan but vertical and simpler because room scenes are fixed screens:
+# StairPan but vertical between two apartments:
 #
 #   * The apartment BELOW is built as a PASSIVE room.tscn backdrop (modules +
-#     balcony art, no player/door/loot/enemies — see room.gd passive mode)
-#     stacked EXACTLY one viewport-height under the live room, so 2501 really
-#     sits above 2401 while the player descends between them.
-#   * The room camera is a child of the Player, so moving the player pans the
-#     view for free: over the rail, then a rope shimmy (or a fast fall) one
-#     screen down, then a step off the lower balcony onto its corridor line —
-#     which is precisely the framing room.tscn loads into for a "balcony"
-#     spawn, so the commit (change_scene) is invisible.
+#     balcony art, no player/door/loot/enemies — room.gd passive mode) and
+#     placed exactly ONE FLOOR down (STACK_OFFSET), so 2501 sits DIRECTLY above
+#     2401 with the two contiguous — no grey void between them.
+#   * The room camera rides the Player, so moving the player pans the view: over
+#     the rail, down the rope (shimmy) or a fast fall, and off the lower balcony
+#     onto its corridor line — the exact frame the fresh room.tscn "balcony"
+#     spawn loads into, so the commit (change_scene) is invisible.
+#   * THE SHRED: while the player passes the wall BETWEEN the two balconies they
+#     must go BEHIND the scene, not in front of it. A band-discard shader clips
+#     every pixel of the sprite between the two red lines (SHRED_TOP world Y down
+#     to SHRED_BOTTOM), so they vanish behind the building wall and re-emerge at
+#     the balcony below. No z tricks (StairPan proved those pop wrong).
 #   * If anything is missing, callers fall back to the plain fade — a descent
-#     must never soft-lock (same philosophy as StairPan.can_pan).
+#     must never soft-lock.
 
 const ENABLED := true
-const SCREEN_H := 648.0
+# ONE floor down: the lower apartment sits directly beneath the upper one. This
+# is the building's floor height (StairPan.FLOOR_BAND_H); nudge if a seam shows.
+const STACK_OFFSET := 192.0
 const CORRIDOR_Y := 321.0      # the room walking line (room.tscn player Y)
-const RAIL_Y := 285.0          # standing on the rail, about to go over
-const PLANE_Y := 296.0         # the lower balcony's plane line
+const PLANE_Y := 296.0         # the balcony plane (player stands here, out on it)
+const RAIL_Y := 281.0          # the balcony's far rail — climb up onto it, then over
+# THE RED LINES (world Y). The player is drawn IN FRONT above SHRED_TOP and below
+# SHRED_BOTTOM, and BEHIND the scene (clipped away) between them — so they slip
+# behind the building wall on the way down. SHRED_TOP is the upper balcony floor;
+# SHRED_BOTTOM is the lower balcony's rail (one floor down). Placed by eye — tune
+# against the art in-editor.
+const SHRED_TOP := 344.0
+const SHRED_BOTTOM := STACK_OFFSET + RAIL_Y   # = 473
 const RAIL_HOP_TIME := 0.45
-const ROPE_TIME := 1.8         # shimmying down one floor on a rope
-const JUMP_TIME := 0.65        # a fall is fast
+const ROPE_TIME := 1.6         # shimmying down one floor on a rope
+const JUMP_TIME := 0.6         # a fall is fast
 const LAND_TIME := 0.3
 const LEFT_WALL_X := 113.0
 const MODULE_WIDTH := 320.0
+
+const SHRED_SHADER := """
+shader_type canvas_item;
+uniform float band_top = -999999.0;
+uniform float band_bottom = 999999.0;
+varying float wy;
+void vertex() { wy = (MODEL_MATRIX * vec4(VERTEX, 0.0, 1.0)).y; }
+void fragment() { if (wy > band_top && wy < band_bottom) discard; }
+"""
 
 var panning := false
 
@@ -47,36 +69,45 @@ func pan_down(target_apartment: String, slot: int, roped: bool) -> void:
 	var tree = get_tree()
 	var scene = tree.current_scene
 	var player = tree.get_first_node_in_group("player") as Node2D
+	var sprite = player.get_node_or_null("AnimatedSprite2D")
 
-	# The lower apartment, one screen down.
+	# The lower apartment, ONE FLOOR down — directly beneath, contiguous.
 	var lower = load("res://scenes/room.tscn").instantiate()
 	lower.passive = true
 	lower.setup_apartment = target_apartment
-	lower.position = Vector2(0, SCREEN_H)
+	lower.position = Vector2(0, STACK_OFFSET)
 	scene.add_child(lower)
 
-	# Kill the grey void BETWEEN the two apartments: a balcony descent goes down
-	# the BUILDING EXTERIOR, so fill it with a facade behind everything (z -20).
-	# The apartments' own opaque backgrounds sit in front, so it only shows in
-	# what used to be empty grey. (Full pixel-contiguous stacking + the behind-
-	# the-wall shred are the remaining polish — see docs / StairPan SHRED_SHADER.)
+	# Fill any residual void with the building exterior, behind everything.
 	var facade := ColorRect.new()
 	facade.color = Color(0.38, 0.37, 0.34)
 	facade.position = Vector2(-120, -120)
-	facade.size = Vector2(1320, SCREEN_H * 2 + 240)
+	facade.size = Vector2(1320, STACK_OFFSET + 900)
 	facade.z_index = -20
 	scene.add_child(facade)
 
-	var x := LEFT_WALL_X + slot * MODULE_WIDTH + 50.0   # the balcony column
-	# The lashed line, hanging from the upper rail down to the balcony below.
+	var x := LEFT_WALL_X + slot * MODULE_WIDTH + 50.0
+
+	# The lashed rope, from the upper rail down to the balcony below.
 	if roped:
 		var rope := Line2D.new()
 		rope.width = 2.0
 		rope.default_color = Color(0.76, 0.64, 0.38)
-		rope.add_point(Vector2(x + 6.0, RAIL_Y + 8.0))
-		rope.add_point(Vector2(x + 6.0, SCREEN_H + PLANE_Y))
-		rope.z_index = 0
+		rope.add_point(Vector2(x + 6.0, RAIL_Y))
+		rope.add_point(Vector2(x + 6.0, STACK_OFFSET + PLANE_Y + 10.0))
+		rope.z_index = -1   # the rope hangs on the wall, behind the player
 		scene.add_child(rope)
+
+	# THE SHRED: clip the sprite away between the two red lines so the player goes
+	# BEHIND the wall on the descent and re-emerges at the balcony below.
+	if sprite != null:
+		var mat := ShaderMaterial.new()
+		var sh := Shader.new()
+		sh.code = SHRED_SHADER
+		mat.shader = sh
+		mat.set_shader_parameter("band_top", SHRED_TOP)
+		mat.set_shader_parameter("band_bottom", SHRED_BOTTOM)
+		sprite.material = mat
 
 	player.set("is_cutscene", true)
 
@@ -89,14 +120,14 @@ func pan_down(target_apartment: String, slot: int, roped: bool) -> void:
 		panning = false
 		return
 
-	# (2) The drop — a controlled shimmy on the rope, or gravity when jumping.
+	# (2) The drop — a rope shimmy, or gravity when jumping — behind the wall.
 	var slide = scene.create_tween()
 	if roped:
 		slide.tween_property(player, "global_position",
-			Vector2(x, SCREEN_H + PLANE_Y), ROPE_TIME).set_trans(Tween.TRANS_LINEAR)
+			Vector2(x, STACK_OFFSET + PLANE_Y), ROPE_TIME).set_trans(Tween.TRANS_LINEAR)
 	else:
 		slide.tween_property(player, "global_position",
-			Vector2(x, SCREEN_H + PLANE_Y), JUMP_TIME) \
+			Vector2(x, STACK_OFFSET + PLANE_Y), JUMP_TIME) \
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	await slide.finished
 	if not is_instance_valid(player):
@@ -107,7 +138,7 @@ func pan_down(target_apartment: String, slot: int, roped: bool) -> void:
 	# room.tscn places a "balcony" arrival, so the swap can't be seen.
 	var land = scene.create_tween()
 	land.tween_property(player, "global_position",
-		Vector2(x, SCREEN_H + CORRIDOR_Y), LAND_TIME) \
+		Vector2(x, STACK_OFFSET + CORRIDOR_Y), LAND_TIME) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	await land.finished
 
