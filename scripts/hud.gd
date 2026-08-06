@@ -229,9 +229,9 @@ func _create_dialogue_panel() -> void:
 	$Control.add_child(dialogue_panel)
 
 
-func show_dialogue(text: String, hint: String = "", persist: bool = false) -> void:
+func show_dialogue(text: String, hint: String = "", persist: bool = false, seconds: float = 5.0) -> void:
 	# Player-speech line. `persist` = a paused teaching beat that stays up until
-	# hide_dialogue(); otherwise it auto-hides after a few seconds.
+	# hide_dialogue(); otherwise it auto-hides after `seconds`.
 	if dialogue_panel == null:
 		return
 	dialogue_label.text = text
@@ -241,7 +241,7 @@ func show_dialogue(text: String, hint: String = "", persist: bool = false) -> vo
 	else:
 		dialogue_hint.visible = false
 	dialogue_panel.visible = true
-	dialogue_timer = 0.0 if persist else 5.0
+	dialogue_timer = 0.0 if persist else seconds
 
 
 func hide_dialogue() -> void:
