@@ -33,8 +33,8 @@ const RAIL_Y := 281.0          # the balcony's far rail — climb up onto it, th
 # out); SHRED_BOTTOM the lower balcony floor (slice back in). The shred is armed
 # AFTER the rail hop, so the player is never hidden while still on the balcony.
 # Placed by eye — nudge against the art.
-const SHRED_TOP := 300.0
-const SHRED_BOTTOM := STACK_OFFSET + 290.0   # = 450, the lower balcony floor
+const SHRED_TOP := 272.0
+const SHRED_BOTTOM := STACK_OFFSET + 272.0   # the lower balcony rail (symmetric)
 const RAIL_HOP_TIME := 0.45
 const ROPE_TIME := 1.6         # shimmying down one floor on a rope
 const JUMP_TIME := 0.6         # a fall is fast
@@ -53,6 +53,14 @@ void fragment() { if (wy > band_top && wy < band_bottom) discard; }
 
 var panning := false
 
+# PREFETCH: the lower apartment is built the instant the player steps ONTO the
+# balcony (enter_balcony_plane), NOT when they commit to the drop — so the floor
+# below is already visible under them "in motion" while they decide, and is
+# torn down if they step back inside. pan_down reuses whatever prefetch built.
+var _pref_lower: Node = null
+var _pref_facade: ColorRect = null
+var _pref_apartment := ""
+
 
 func can_pan() -> bool:
 	if not ENABLED or panning:
@@ -61,6 +69,53 @@ func can_pan() -> bool:
 	if scene == null or scene.scene_file_path != "res://scenes/room.tscn":
 		return false
 	return get_tree().get_first_node_in_group("player") != null
+
+
+func _in_room() -> bool:
+	var scene = get_tree().current_scene
+	return scene != null and scene.scene_file_path == "res://scenes/room.tscn"
+
+
+func prefetch(target_apartment: String, _slot: int) -> void:
+	# Build (or re-use) the apartment ONE FLOOR down as a passive backdrop the
+	# moment the player is out on the balcony, so the descent is already "in
+	# motion" and the floor below is loaded before they commit — not popped in
+	# on landing. Idempotent for the same target; called every plane refresh.
+	if not ENABLED or target_apartment == "":
+		return
+	if _pref_apartment == target_apartment and is_instance_valid(_pref_lower):
+		return
+	clear_prefetch()
+	if not _in_room():
+		return
+	var scene = get_tree().current_scene
+	_pref_apartment = target_apartment
+
+	# Fill any residual void with the building exterior, behind everything.
+	_pref_facade = ColorRect.new()
+	_pref_facade.color = Color(0.38, 0.37, 0.34)
+	_pref_facade.position = Vector2(-120, -120)
+	_pref_facade.size = Vector2(1320, STACK_OFFSET + 900)
+	_pref_facade.z_index = -20
+	scene.add_child(_pref_facade)
+
+	# The lower apartment, ONE FLOOR down — directly beneath, contiguous.
+	_pref_lower = load("res://scenes/room.tscn").instantiate()
+	_pref_lower.passive = true
+	_pref_lower.setup_apartment = target_apartment
+	_pref_lower.position = Vector2(0, STACK_OFFSET)
+	scene.add_child(_pref_lower)
+
+
+func clear_prefetch() -> void:
+	# The player stepped back inside without descending — deload the floor below.
+	if is_instance_valid(_pref_lower):
+		_pref_lower.queue_free()
+	if is_instance_valid(_pref_facade):
+		_pref_facade.queue_free()
+	_pref_lower = null
+	_pref_facade = null
+	_pref_apartment = ""
 
 
 func pan_down(target_apartment: String, slot: int, roped: bool) -> void:
@@ -73,20 +128,26 @@ func pan_down(target_apartment: String, slot: int, roped: bool) -> void:
 	var player = tree.get_first_node_in_group("player") as Node2D
 	var sprite = player.get_node_or_null("AnimatedSprite2D")
 
-	# The lower apartment, ONE FLOOR down — directly beneath, contiguous.
-	var lower = load("res://scenes/room.tscn").instantiate()
-	lower.passive = true
-	lower.setup_apartment = target_apartment
-	lower.position = Vector2(0, STACK_OFFSET)
-	scene.add_child(lower)
+	# Re-use the backdrop prefetch already built when the player stepped onto the
+	# balcony; only build now if the prefetch is missing (fell out of sync).
+	if not (_pref_apartment == target_apartment and is_instance_valid(_pref_lower)):
+		clear_prefetch()
+		var lower = load("res://scenes/room.tscn").instantiate()
+		lower.passive = true
+		lower.setup_apartment = target_apartment
+		lower.position = Vector2(0, STACK_OFFSET)
+		scene.add_child(lower)
 
-	# Fill any residual void with the building exterior, behind everything.
-	var facade := ColorRect.new()
-	facade.color = Color(0.38, 0.37, 0.34)
-	facade.position = Vector2(-120, -120)
-	facade.size = Vector2(1320, STACK_OFFSET + 900)
-	facade.z_index = -20
-	scene.add_child(facade)
+		var facade := ColorRect.new()
+		facade.color = Color(0.38, 0.37, 0.34)
+		facade.position = Vector2(-120, -120)
+		facade.size = Vector2(1320, STACK_OFFSET + 900)
+		facade.z_index = -20
+		scene.add_child(facade)
+	# The prefetch nodes belong to this scene and are freed with it on commit.
+	_pref_lower = null
+	_pref_facade = null
+	_pref_apartment = ""
 
 	var x := LEFT_WALL_X + slot * MODULE_WIDTH + 50.0
 

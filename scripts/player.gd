@@ -1175,7 +1175,7 @@ func receive_hit(amount: int = 1) -> void:
 	take_damage(amount)
 
 
-func enter_balcony_plane(center_x: float) -> void:
+func enter_balcony_plane(center_x: float, below_apartment: String = "", slot: int = 0) -> void:
 	# Step UP into the balcony space (depth walk): a short owned move onto the
 	# balcony's own Y line, sprite scaled down a touch. Not an invincibility
 	# nook — zombies follow the player up (see enemy Y-pursuit).
@@ -1187,6 +1187,10 @@ func enter_balcony_plane(center_x: float) -> void:
 	_plane_return_y = global_position.y
 	balcony_plane_y = global_position.y - BALCONY_PLANE_RISE
 	_plane_base_scale = animated_sprite.scale
+	# Load the floor below the instant we're out here, so it's visible under us
+	# "in motion" while deciding — not popped in on landing. Freed on step-back.
+	if below_apartment != "" and BalconyPan.can_pan():
+		BalconyPan.prefetch(below_apartment, slot)
 	var t = create_tween().set_parallel(true)
 	t.tween_property(self, "global_position", Vector2(
 		clampf(global_position.x, center_x - BALCONY_HALF_WIDTH, center_x + BALCONY_HALF_WIDTH),
@@ -1202,6 +1206,8 @@ func exit_balcony_plane() -> void:
 	if not on_balcony_plane or is_cutscene or is_lashing:
 		return
 	on_balcony_plane = false
+	# Stepped back inside without descending — deload the floor below.
+	BalconyPan.clear_prefetch()
 	is_cutscene = true
 	_clear_move_target()
 	var t = create_tween().set_parallel(true)
@@ -1239,7 +1245,11 @@ func begin_balcony_descent(apartment_id: String, slot: int, _from_global: Vector
 		# DELIBERATE second press: first press warns, a second within the window
 		# commits to the jump.
 		var now = Time.get_ticks_msec() / 1000.0
-		if now - _jump_confirm_time > BALCONY_JUMP_CONFIRM_WINDOW:
+		# The warning is a one-time teach: shown ONCE per run, then never again —
+		# after that a bare W just jumps. On the very first attempt it still needs
+		# a deliberate second press within the window before committing.
+		if not WorldState.balcony_jump_warned:
+			WorldState.balcony_jump_warned = true
 			_jump_confirm_time = now
 			HUD.show_dialogue("That's a long drop — it'll hurt without a rope. I should find some rope, or three lots of clothes to knot... or press again to risk the jump.", "", false, 2.5)
 			return
@@ -1273,6 +1283,9 @@ func _lash_and_descend(apartment_id: String, slot: int) -> void:
 
 
 func _do_balcony_descent(apartment_id: String, slot: int, is_jump: bool) -> void:
+	# Committing to the drop — clear any lingering warning so it never carries
+	# over into the pan or the floor below.
+	HUD.hide_dialogue()
 	var injury := 0
 	if is_jump:
 		# A deliberate jump: heavier, guaranteed. (Fall-mitigation upgrades hook

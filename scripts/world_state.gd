@@ -25,6 +25,9 @@ const BALCONY_SLIP_CHANCE_HIGH = 0.70   # below MODERATE stamina
 # A lashed rope stays tied to the balcony (persists), so re-descending — this run
 # or a later one — needs no rope. Keyed "apartmentId:slot".
 var roped_balconies: Dictionary = {}
+# The no-rope jump warning is a one-time teach: it fires ONCE per run the first
+# time the player tries a bare drop, then never again that run (per-run flag).
+var balcony_jump_warned: bool = false
 const MAX_INVENTORY_SLOTS = 5
 const MAX_AMMO_PER_SLOT = 8
 const MAX_THROWABLE_PER_SLOT = 3   # cans held per slot (was one-and-done)
@@ -371,6 +374,7 @@ func new_game() -> void:
 	zombie_positions.clear()
 	world_drops.clear()
 	roped_balconies.clear()
+	balcony_jump_warned = false
 	door_states.clear()
 	door_keys_consumed.clear()
 	floor_states_seeded.clear()
@@ -1915,6 +1919,7 @@ func save_game(scene_path: String) -> void:
 		"killed_zombies": killed_zombies,
 		"world_drops": world_drops,
 		"roped_balconies": roped_balconies,
+		"balcony_jump_warned": balcony_jump_warned,
 		"door_states": door_states,
 		"door_keys_consumed": door_keys_consumed,
 		"floor_states_seeded": floor_states_seeded,
@@ -1977,6 +1982,7 @@ func load_game() -> String:
 	killed_zombies = data["killed_zombies"]
 	world_drops = data.get("world_drops", {})
 	roped_balconies = data.get("roped_balconies", {})
+	balcony_jump_warned = data.get("balcony_jump_warned", false)
 	door_states = data["door_states"]
 	door_keys_consumed = data["door_keys_consumed"]
 	# JSON round-trips all dictionary keys as strings; this dict is keyed by int
