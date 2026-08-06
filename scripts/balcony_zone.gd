@@ -96,9 +96,10 @@ func _process(delta: float) -> void:
 	_refresh()   # live prompt: stepping out / back in changes the options
 	if Input.is_action_just_pressed("move_up"):
 		if not player.get("on_balcony_plane"):
-			# First W: walk UP into the balcony space (its own plane).
+			# First W: walk UP into the balcony space (its own plane). Pass the
+			# apartment below so the floor there loads under us straight away.
 			if player.has_method("enter_balcony_plane"):
-				player.enter_balcony_plane(global_position.x)
+				player.enter_balcony_plane(global_position.x, WorldState.balcony_below(apartment_id), slot)
 		elif player.has_method("begin_balcony_descent"):
 			# On the plane, W goes over the rail.
 			player.begin_balcony_descent(apartment_id, slot, global_position)

@@ -23,6 +23,7 @@ func _ready() -> void:
 	_test_conform_and_hide()
 	_test_rope_and_clothes()
 	_test_descent_core()
+	_test_jump_warning_once()
 	await _test_passive_room()
 	_test_pan_gating()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
@@ -223,6 +224,21 @@ func _test_passive_room() -> void:
 	check(room.apartment_id == "2503", "passive room built the REQUESTED apartment")
 	room.queue_free()
 	await get_tree().process_frame
+
+
+func _test_jump_warning_once() -> void:
+	print("[jump warning once per run]")
+	# The no-rope jump warning is a one-time teach per run: fresh game clears it,
+	# it survives a save/load round-trip, and a new game clears it again.
+	WorldState.new_game()
+	check(not WorldState.balcony_jump_warned, "new game clears the jump warning")
+	WorldState.balcony_jump_warned = true
+	WorldState.save_game("res://scenes/room.tscn")
+	WorldState.balcony_jump_warned = false   # scramble before reload
+	WorldState.load_game()
+	check(WorldState.balcony_jump_warned, "jump warning survives save/load (per-run)")
+	WorldState.new_game()
+	check(not WorldState.balcony_jump_warned, "new game clears it again")
 
 
 func _test_pan_gating() -> void:
