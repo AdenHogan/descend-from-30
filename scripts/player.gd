@@ -1241,7 +1241,7 @@ func begin_balcony_descent(apartment_id: String, slot: int, _from_global: Vector
 		var now = Time.get_ticks_msec() / 1000.0
 		if now - _jump_confirm_time > BALCONY_JUMP_CONFIRM_WINDOW:
 			_jump_confirm_time = now
-			HUD.show_dialogue("That's a long drop — it'll hurt without a rope. I should find some rope, or three lots of clothes to knot... or press again to risk the jump.")
+			HUD.show_dialogue("That's a long drop — it'll hurt without a rope. I should find some rope, or three lots of clothes to knot... or press again to risk the jump.", "", false, 2.5)
 			return
 		_jump_confirm_time = 0.0
 		_do_balcony_descent(apartment_id, slot, true)     # confirmed — jump

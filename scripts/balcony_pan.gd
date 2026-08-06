@@ -20,19 +20,21 @@ extends Node
 #     must never soft-lock.
 
 const ENABLED := true
-# ONE floor down: the lower apartment sits directly beneath the upper one. This
-# is the building's floor height (StairPan.FLOOR_BAND_H); nudge if a seam shows.
-const STACK_OFFSET := 192.0
+# ONE apartment down: the room's visible interior is 160px tall (tilemap y
+# 207..367, measured), so the lower apartment sits DIRECTLY beneath the upper one
+# with the two contiguous — no grey seam. Nudge if a hairline shows.
+const STACK_OFFSET := 160.0
 const CORRIDOR_Y := 321.0      # the room walking line (room.tscn player Y)
 const PLANE_Y := 296.0         # the balcony plane (player stands here, out on it)
 const RAIL_Y := 281.0          # the balcony's far rail — climb up onto it, then over
 # THE RED LINES (world Y). The player is drawn IN FRONT above SHRED_TOP and below
-# SHRED_BOTTOM, and BEHIND the scene (clipped away) between them — so they slip
-# behind the building wall on the way down. SHRED_TOP is the upper balcony floor;
-# SHRED_BOTTOM is the lower balcony's rail (one floor down). Placed by eye — tune
-# against the art in-editor.
-const SHRED_TOP := 344.0
-const SHRED_BOTTOM := STACK_OFFSET + RAIL_Y   # = 473
+# SHRED_BOTTOM, and BEHIND the scene (clipped) between them — so they slip behind
+# the building wall on the way down. SHRED_TOP is the upper balcony floor (slice
+# out); SHRED_BOTTOM the lower balcony floor (slice back in). The shred is armed
+# AFTER the rail hop, so the player is never hidden while still on the balcony.
+# Placed by eye — nudge against the art.
+const SHRED_TOP := 300.0
+const SHRED_BOTTOM := STACK_OFFSET + 290.0   # = 450, the lower balcony floor
 const RAIL_HOP_TIME := 0.45
 const ROPE_TIME := 1.6         # shimmying down one floor on a rope
 const JUMP_TIME := 0.6         # a fall is fast
@@ -98,8 +100,20 @@ func pan_down(target_apartment: String, slot: int, roped: bool) -> void:
 		rope.z_index = -1   # the rope hangs on the wall, behind the player
 		scene.add_child(rope)
 
-	# THE SHRED: clip the sprite away between the two red lines so the player goes
-	# BEHIND the wall on the descent and re-emerges at the balcony below.
+	player.set("is_cutscene", true)
+
+	# (1) Up and over the rail (still fully visible, in front).
+	var hop = scene.create_tween()
+	hop.tween_property(player, "global_position", Vector2(x, RAIL_Y), RAIL_HOP_TIME) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	await hop.finished
+	if not is_instance_valid(player):
+		panning = false
+		return
+
+	# THE SHRED (armed now, over the rail): clip the sprite between the two red
+	# lines so the descent goes BEHIND the wall and re-emerges at the balcony
+	# below — never hidden while still standing on the balcony.
 	if sprite != null:
 		var mat := ShaderMaterial.new()
 		var sh := Shader.new()
@@ -108,17 +122,6 @@ func pan_down(target_apartment: String, slot: int, roped: bool) -> void:
 		mat.set_shader_parameter("band_top", SHRED_TOP)
 		mat.set_shader_parameter("band_bottom", SHRED_BOTTOM)
 		sprite.material = mat
-
-	player.set("is_cutscene", true)
-
-	# (1) Up and over the rail.
-	var hop = scene.create_tween()
-	hop.tween_property(player, "global_position", Vector2(x, RAIL_Y), RAIL_HOP_TIME) \
-		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	await hop.finished
-	if not is_instance_valid(player):
-		panning = false
-		return
 
 	# (2) The drop — a rope shimmy, or gravity when jumping — behind the wall.
 	var slide = scene.create_tween()
