@@ -24,7 +24,6 @@ const ENABLED := true
 # 207..367, measured), so the lower apartment sits DIRECTLY beneath the upper one
 # with the two contiguous — no grey seam. Nudge if a hairline shows.
 const STACK_OFFSET := 160.0
-const CORRIDOR_Y := 321.0      # the room walking line (room.tscn player Y)
 const PLANE_Y := 296.0         # the balcony plane (player stands here, out on it)
 const RAIL_Y := 281.0          # the balcony's far rail — climb up onto it, then over
 # THE RED LINES (world Y). The player is drawn IN FRONT above SHRED_TOP and below
@@ -218,13 +217,18 @@ func pan_down(target_apartment: String, slot: int, roped: bool) -> void:
 		panning = false
 		return
 
-	# (3) Step off the lower balcony onto its floor — the exact spot the fresh
-	# room.tscn places a "balcony" arrival, so the swap can't be seen.
-	var land = scene.create_tween()
-	land.tween_property(player, "global_position",
-		Vector2(x, STACK_OFFSET + CORRIDOR_Y), LAND_TIME) \
-		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	await land.finished
+	# (3) Land ON the lower balcony's plane (the slide already brought us here) and
+	# settle the camera onto the lower apartment's locked framing — the exact
+	# frame the fresh room re-locks to (room._frame_camera), so the held-frame
+	# hand-off is seamless. The player stays out on the plane; the arrival scene
+	# puts its player on the same plane (arrive_on_balcony_plane).
+	if cam != null:
+		var view_h: float = 648.0 / maxf(cam.zoom.y, 0.01)
+		var lock_center: float = ROOM_BAND_TOP + STACK_OFFSET + view_h / 2.0
+		var settle = scene.create_tween()
+		settle.tween_property(cam, "position:y", lock_center - player.global_position.y, LAND_TIME) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		await settle.finished
 	await RenderingServer.frame_post_draw   # make sure the final pose is on screen
 
 	# HOLD THE LAST FRAME across the scene swap. change_scene_to_file frees the

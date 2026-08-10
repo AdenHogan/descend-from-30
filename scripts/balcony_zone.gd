@@ -67,22 +67,25 @@ func _on_body_exited(body: Node2D) -> void:
 
 
 func _refresh() -> void:
-	var has_below := WorldState.balcony_below(apartment_id) != ""
-	arrow.visible = has_below
-	prompt.visible = has_below
-	listen_label.visible = has_below
-	if not has_below:
-		return
-	# Staged: from the room you first STEP OUT onto the balcony (W); the descent
-	# options only exist once you're standing out there on its plane.
+	# A descendable (top) balcony leads to the apartment below; a bottom balcony is
+	# a viewpoint dead-end — you can still step out on it and back, just not climb.
+	var descendable := WorldState.is_balcony_descendable(apartment_id, slot)
 	var player = get_tree().get_first_node_in_group("player")
-	if player != null and player.get("on_balcony_plane"):
+	var on_plane: bool = player != null and player.get("on_balcony_plane")
+	# Arrow invites stepping up; once out on the plane it only means "descend", so
+	# keep it only where a descent exists.
+	arrow.visible = not on_plane or descendable
+	prompt.visible = true
+	listen_label.visible = descendable
+	if not on_plane:
+		prompt.text = "[W] Step onto balcony"
+	elif descendable:
 		if WorldState.is_balcony_roped(apartment_id, slot) or WorldState.has_descent_rope():
 			prompt.text = "[W] Climb down   [S] Back inside"
 		else:
 			prompt.text = "[W] Jump down   [S] Back inside"
 	else:
-		prompt.text = "[W] Step onto balcony"
+		prompt.text = "[S] Back inside"
 
 
 func _process(delta: float) -> void:
@@ -94,16 +97,19 @@ func _process(delta: float) -> void:
 	if player == null:
 		return
 	_refresh()   # live prompt: stepping out / back in changes the options
+	var descendable := WorldState.is_balcony_descendable(apartment_id, slot)
 	if Input.is_action_just_pressed("move_up"):
 		if not player.get("on_balcony_plane"):
-			# First W: walk UP into the balcony space (its own plane). Pass the
-			# apartment below so the floor there loads under us straight away.
+			# First W: walk UP into the balcony space (its own plane). Only a
+			# descendable balcony prefetches the floor below (a dead-end one has
+			# nothing to drop into).
 			if player.has_method("enter_balcony_plane"):
-				player.enter_balcony_plane(global_position.x, WorldState.balcony_below(apartment_id), slot)
-		elif player.has_method("begin_balcony_descent"):
-			# On the plane, W goes over the rail.
+				var below_for_prefetch := WorldState.balcony_below(apartment_id) if descendable else ""
+				player.enter_balcony_plane(global_position.x, below_for_prefetch, slot)
+		elif descendable and player.has_method("begin_balcony_descent"):
+			# On the plane, W goes over the rail (top balconies only).
 			player.begin_balcony_descent(apartment_id, slot, global_position)
-	elif Input.is_action_just_pressed("listen") and player.has_method("start_listen"):
+	elif descendable and Input.is_action_just_pressed("listen") and player.has_method("start_listen"):
 		var below := WorldState.balcony_below(apartment_id)
 		if below != "":
 			player.start_listen(global_position, WorldState.get_listen_report_for_apartment(below))

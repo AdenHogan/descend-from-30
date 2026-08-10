@@ -1175,6 +1175,19 @@ func receive_hit(amount: int = 1) -> void:
 	take_damage(amount)
 
 
+func flash_hurt() -> void:
+	# The VISUAL of a hit (red flash + hurt pose) with NO damage — used on a hard
+	# balcony landing to show the drop hurt, when the HP was already spent during
+	# the descent. is_hit holds the hurt frame for HIT_FLASH_DURATION (see the
+	# `elif is_hit: pass` in _physics_process), then it reverts on its own.
+	if is_dead or is_dying:
+		return
+	is_hit = true
+	hit_flash_timer = HIT_FLASH_DURATION
+	animated_sprite.modulate = Color(1, 0, 0, 1)
+	animated_sprite.play("hurt")
+
+
 func enter_balcony_plane(center_x: float, below_apartment: String = "", slot: int = 0) -> void:
 	# Step UP into the balcony space (depth walk): a short owned move onto the
 	# balcony's own Y line, sprite scaled down a touch. Not an invincibility
@@ -1217,6 +1230,22 @@ func exit_balcony_plane() -> void:
 	t.tween_property(animated_sprite, "scale", _plane_base_scale, BALCONY_STEP_TIME)
 	await t.finished
 	is_cutscene = false
+
+
+func arrive_on_balcony_plane(center_x: float) -> void:
+	# Land straight ONTO the lower balcony's plane after a descent (the drop
+	# already carried the body here, so no step-up tween). Same end state as
+	# enter_balcony_plane: on the balcony's own Y line, sprite scaled, free to
+	# move left/right between the rails; S drops back onto the corridor.
+	balcony_center_x = center_x
+	global_position.x = clampf(global_position.x,
+		center_x - BALCONY_HALF_WIDTH, center_x + BALCONY_HALF_WIDTH)
+	_plane_return_y = global_position.y                 # corridor line for S
+	balcony_plane_y = global_position.y - BALCONY_PLANE_RISE
+	global_position.y = balcony_plane_y
+	_plane_base_scale = animated_sprite.scale
+	animated_sprite.scale = _plane_base_scale * BALCONY_PLANE_SCALE
+	on_balcony_plane = true
 
 
 func begin_balcony_descent(apartment_id: String, slot: int, _from_global: Vector2) -> void:
@@ -1305,6 +1334,9 @@ func _do_balcony_descent(apartment_id: String, slot: int, is_jump: bool) -> void
 		return
 	if injury > 0 and not WorldState.god_mode:
 		take_damage(injury)
+	# Remember the landing was hard so the arrival can flash the hurt pose (the HP
+	# is spent here; the arrived player only replays the visual). Cleared on land.
+	WorldState.balcony_arrival_hurt = injury > 0 and not WorldState.god_mode
 	HUD.update_floor_label()
 	on_balcony_plane = false
 	# The seamless descent pan (BalconyPan): the apartment below stacks under
