@@ -28,6 +28,9 @@ var roped_balconies: Dictionary = {}
 # The no-rope jump warning is a one-time teach: it fires ONCE per run the first
 # time the player tries a bare drop, then never again that run (per-run flag).
 var balcony_jump_warned: bool = false
+# Transient hand-off across the descent scene swap: a hard landing sets this so
+# the arriving player can flash the hurt pose. Consumed on arrival (room.gd).
+var balcony_arrival_hurt: bool = false
 const MAX_INVENTORY_SLOTS = 5
 const MAX_AMMO_PER_SLOT = 8
 const MAX_THROWABLE_PER_SLOT = 3   # cans held per slot (was one-and-done)
@@ -375,6 +378,7 @@ func new_game() -> void:
 	world_drops.clear()
 	roped_balconies.clear()
 	balcony_jump_warned = false
+	balcony_arrival_hurt = false
 	door_states.clear()
 	door_keys_consumed.clear()
 	floor_states_seeded.clear()

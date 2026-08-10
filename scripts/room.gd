@@ -124,14 +124,22 @@ func _ready() -> void:
 		player.position.x = 1050
 		player.get_node("AnimatedSprite2D").flip_h = true
 
-	# Arrived by climbing DOWN a balcony (see player.begin_balcony_descent): drop
-	# in at this apartment's balcony slot instead of the hallway door.
+	# Arrived by climbing DOWN a balcony (see player.begin_balcony_descent): land
+	# OUT ON this apartment's balcony plane (not back on the corridor), so the
+	# player can move along it, step back inside with S, or re-access it later.
 	if WorldState.spawn_source == "balcony":
 		var bslot = WorldState.balcony_slot_in_apartment(apartment_id)
 		if bslot < 0:
 			bslot = 0
-		player.position.x = LEFT_WALL_X + bslot * MODULE_WIDTH + 50
+		var bx = LEFT_WALL_X + bslot * MODULE_WIDTH + 50
+		player.position.x = bx
 		player.get_node("AnimatedSprite2D").flip_h = false
+		if player.has_method("arrive_on_balcony_plane"):
+			player.arrive_on_balcony_plane(bx)
+		# A hard/roped-slip landing replays the hurt pose (HP already spent).
+		if WorldState.balcony_arrival_hurt and player.has_method("flash_hurt"):
+			player.flash_hurt()
+		WorldState.balcony_arrival_hurt = false
 		WorldState.spawn_source = ""
 
 	# Spawn enemies — breached rooms use separate system with Big Zombie boss
@@ -217,7 +225,11 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 		if bal_node != null:
 			var show_balcony = WorldState.is_balcony_slot(apartment_id, i)
 			bal_node.visible = show_balcony
-			if live and show_balcony and WorldState.is_balcony_descendable(apartment_id, i):
+			# A zone on EVERY revealed balcony (top AND bottom of a pair): the top
+			# offers the descent, the bottom just lets the player step out onto its
+			# plane / listen — the zone gates the actual climb-down on
+			# is_balcony_descendable, so a bottom balcony is a viewpoint dead-end.
+			if live and show_balcony:
 				var zone = preload("res://scenes/balcony_zone.tscn").instantiate()
 				zone.apartment_id = apartment_id
 				zone.slot = i

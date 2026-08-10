@@ -25,6 +25,7 @@ func _ready() -> void:
 	_test_descent_core()
 	_test_jump_warning_once()
 	await _test_passive_room()
+	await _test_bottom_balcony_access()
 	_test_pan_gating()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
@@ -247,6 +248,50 @@ func _test_jump_warning_once() -> void:
 	check(WorldState.balcony_jump_warned, "jump warning survives save/load (per-run)")
 	WorldState.new_game()
 	check(not WorldState.balcony_jump_warned, "new game clears it again")
+
+
+func _test_bottom_balcony_access() -> void:
+	print("[bottom balcony is a steppable dead-end]")
+	WorldState.new_game()
+	WorldState.spawn_source = ""
+	var col := -1
+	for c in range(1, 10):
+		if WorldState.is_balcony_column(c):
+			col = c
+			break
+	if col < 0:
+		check(true, "no balcony column this seed — skipped")
+		return
+	var slot := WorldState.balcony_slot_for_column(col)
+	var topf := -1
+	for f in range(3, 30):
+		if WorldState.is_balcony_descendable(str(f) + "0" + str(col), slot):
+			topf = f
+			break
+	check(topf > 0, "found a descendable top balcony")
+	if topf < 0:
+		return
+	var top_apt := str(topf) + "0" + str(col)
+	var bot_apt := WorldState.balcony_below(top_apt)
+	check(bot_apt != "", "top has a partner directly below")
+	check(WorldState.is_balcony_slot(bot_apt, slot), "bottom is a balcony slot (art shows)")
+	check(not WorldState.is_balcony_descendable(bot_apt, slot), "bottom is NOT descendable (dead-end)")
+
+	# A live room for the BOTTOM apartment still spawns a step-out zone, so the
+	# player can access its balcony plane even though it leads nowhere.
+	WorldState.current_apartment_id = bot_apt
+	WorldState.current_floor = topf - 1
+	var room = load("res://scenes/room.tscn").instantiate()
+	add_child(room)
+	for i in range(4):
+		await get_tree().process_frame
+	var zones := 0
+	for c in room.get_children():
+		if c.get_script() == load("res://scripts/balcony_zone.gd"):
+			zones += 1
+	check(zones >= 1, "bottom balcony still spawns a step-out zone (%d)" % zones)
+	room.queue_free()
+	await get_tree().process_frame
 
 
 func _test_pan_gating() -> void:
