@@ -25,6 +25,7 @@ func _ready() -> void:
 	_test_pan_targets()
 	await _test_floor_camera()
 	await _test_scenery_zombie_plane()
+	await _test_pried_arrival_milling()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -259,3 +260,39 @@ func _test_pan_targets() -> void:
 	check(player_delta == cam_delta, "player and camera slide by an identical delta")
 	# Floors are contiguous: the offset is exactly one floor height (no gap).
 	check(down_t["delta"] == Vector2(0, 176.0), "floor offset is exactly one floor height")
+
+
+func _test_pried_arrival_milling() -> void:
+	# Phase 3: arriving via a crowbar pry, the destination floor's dead have
+	# gathered at the stairwell you tore open — clustered by the arrival stairs
+	# and roused — rather than spread evenly along the corridor.
+	print("[pried-arrival milling]")
+	WorldState.new_game()
+	var f := _floor_with_zombies(27)
+	WorldState.current_floor = f
+	WorldState.spawn_source = "stair"
+	WorldState.stair_direction = "down"
+	WorldState.stair_spawn_side = "left"   # land on the LEFT stairwell
+	WorldState.pending_pry_arrival_floor = f
+	WorldState.seed_floor_door_states(f)
+	var bf = load("res://scenes/building_floors.tscn").instantiate()
+	add_child(bf)
+	# _ready runs synchronously on add_child: the horde exists, positioned +
+	# roused, before any physics has had a chance to move it.
+	var zs: Array = []
+	for z in get_tree().get_nodes_in_group("zombie"):
+		if not z.is_in_group("pan_scenery"):
+			zs.append(z)
+	check(zs.size() > 0, "pried arrival spawned the floor's horde (%d)" % zs.size())
+	var all_in_band := true
+	var all_roused := true
+	for z in zs:
+		if z.global_position.x < 230.0 or z.global_position.x > 500.0:
+			all_in_band = false
+		if z.alert_timer <= 0.0:
+			all_roused = false
+	check(all_in_band, "horde clustered by the LEFT arrival stairwell")
+	check(all_roused, "arrival horde is roused (alerted)")
+	check(WorldState.pending_pry_arrival_floor == -1, "arrival flag consumed after milling")
+	bf.queue_free()
+	await get_tree().process_frame

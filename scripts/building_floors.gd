@@ -166,9 +166,20 @@ func _spawn_zombies(floor_num: int, as_scenery: bool) -> void:
 	floor_rng.seed = (WorldState.master_seed ^ (floor_num * 2246822519)) & 0xFFFFFFFF
 	var zombie_count = WorldState.get_floor_zombie_count(floor_num)
 	var zombie_scene = preload("res://scenes/enemy_zombie_standard.tscn")
+	# A pried crossing dumps you onto a floor whose dead have gathered at the
+	# stairwell you just tore open: cluster this floor's horde by the arrival
+	# stairs and rouse them (below), instead of the usual even corridor spread.
+	var pried_arrival: bool = (not as_scenery) and WorldState.pending_pry_arrival_floor == floor_num
 	# Keep clear of both stairwells (the corridor runs 115..1235): a zombie spawned
 	# behind the stair art was effectively invisible until it moved.
-	var positions = WorldState.get_zombie_positions(zombie_count, floor_rng, 265.0, 1105.0, 388.0)
+	var positions: Array
+	if pried_arrival:
+		var arrived_left: bool = WorldState.stair_spawn_side != "right"
+		var band_min: float = 245.0 if arrived_left else 895.0
+		var band_max: float = 470.0 if arrived_left else 1105.0
+		positions = WorldState.get_zombie_positions(zombie_count, floor_rng, band_min, band_max, 388.0)
+	else:
+		positions = WorldState.get_zombie_positions(zombie_count, floor_rng, 265.0, 1105.0, 388.0)
 	for pos in positions:
 		var key = str(floor_num) + ":" + str(snappedf(pos.x, 1.0)) + ":" + str(snappedf(pos.y, 1.0))
 		if WorldState.killed_zombies.has(key):
@@ -196,6 +207,14 @@ func _spawn_zombies(floor_num: int, as_scenery: bool) -> void:
 			# zombie's own _ready can't turn its physics step back on.
 			# _make_inert() strips its collision separately.
 			zombie.set_physics_process(false)
+		elif pried_arrival:
+			# Roused by the racket you made levering through: aware and converging
+			# on the stairwell instead of dozing in the corridor.
+			zombie.alert_to_noise(12.0)
+	# The gathered-horde arrival is a one-shot: consume it so re-entering this
+	# floor later spawns the ordinary corridor spread.
+	if pried_arrival:
+		WorldState.pending_pry_arrival_floor = -1
 
 
 func _strip_junk() -> void:
