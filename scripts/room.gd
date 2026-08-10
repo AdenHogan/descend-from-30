@@ -57,6 +57,7 @@ const TUTORIAL_LAYOUTS = {
 const MODULE_WIDTH = 320
 const LEFT_WALL_X = 113
 const CLICK_RADIUS = 10.0
+const UI_FONT = preload("res://assets/fonts/PixelOperator8.ttf")
 
 # The apartment interior in world space (tilemap measured y 207..367 = 160px
 # tall; x comes from the tilemap per scene). The camera is LOCKED to this band
@@ -218,6 +219,12 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 		# whose backdrop is a Sprite). Make all module Controls click-through.
 		for ctrl in _all_controls(instance):
 			ctrl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		# The room-type label (e.g. "Study") is a big default-font Label that reads
+		# huge and blurry once the camera zooms in — swap to the small pixel font.
+		var room_label = instance.get_node_or_null("ColorRect/Label")
+		if room_label != null:
+			room_label.add_theme_font_override("font", UI_FONT)
+			room_label.add_theme_font_size_override("font_size", 10)
 		# Study/dining modules carry a Balcony node; reveal it only on a real
 		# balcony slot (seeded pairs). Art shows on BOTH halves of a pair; only
 		# the TOP gets a descent trigger, so descent is one-and-done.

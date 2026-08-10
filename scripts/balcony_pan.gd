@@ -229,7 +229,18 @@ func pan_down(target_apartment: String, slot: int, roped: bool) -> void:
 		settle.tween_property(cam, "position:y", lock_center - player.global_position.y, LAND_TIME) \
 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 		await settle.finished
-	await RenderingServer.frame_post_draw   # make sure the final pose is on screen
+
+	# THE INJURY LANDS HERE — at touchdown, synced with the hurt flare, so the HP
+	# and portrait drop exactly as the body hits (not early during the fall). We
+	# flash the OLD player red too, so it's already in the held frame and the red
+	# is continuous when the fresh (also-flashed) player is revealed.
+	if WorldState.balcony_pending_injury > 0 and not WorldState.god_mode:
+		player.take_damage(WorldState.balcony_pending_injury)
+		if player.has_method("flash_hurt"):
+			player.flash_hurt()
+		WorldState.balcony_arrival_hurt = true
+		WorldState.balcony_pending_injury = 0
+	await RenderingServer.frame_post_draw   # make sure the final pose/flare is on screen
 
 	# HOLD THE LAST FRAME across the scene swap. change_scene_to_file frees the
 	# old scene and instantiates the new one on the next idle frame, and that gap
@@ -241,10 +252,17 @@ func pan_down(target_apartment: String, slot: int, roped: bool) -> void:
 	panning = false
 	tree.change_scene_to_file("res://scenes/room.tscn")
 	if cover != null:
-		# Let the new scene build (_ready frames + locks its camera) and paint a
-		# frame, then reveal it.
+		# Let the new scene build (_ready frames + locks its camera), then force
+		# the fresh camera to its final position and paint a frame before reveal —
+		# so there is no half-framed frame under the cover.
 		await tree.process_frame
 		await tree.process_frame
+		var np = tree.get_first_node_in_group("player")
+		if np != null:
+			var ncam = np.get_node_or_null("Camera2D") as Camera2D
+			if ncam != null:
+				ncam.reset_smoothing()
+				ncam.force_update_scroll()
 		await RenderingServer.frame_post_draw
 		cover.queue_free()
 
