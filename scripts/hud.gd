@@ -69,6 +69,7 @@ func _ready() -> void:
 	_create_mode_label()
 	_create_slot_icons()
 	_create_feedback_label()
+	_create_world_prompt()
 	_create_dialogue_panel()
 	_create_context_menu()
 	_create_stamina_bar()
@@ -183,6 +184,69 @@ func _create_feedback_label() -> void:
 	feedback_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	feedback_label.modulate = Color(1, 1, 0.5, 0)
 	$Control.add_child(feedback_label)
+
+
+# --- World-anchored loot prompt -------------------------------------------
+# A lootable's "<name>  [Click] Take" used to be a Label sitting in the WORLD,
+# so the zoomed-in room camera blew it up huge and blurry and it spilled past
+# the walls. Instead it's a screen-space HUD label (crisp, exactly like the
+# dialogue box) that TRACKS the item's projected screen position each frame and
+# is clamped inside the viewport, so it's sharp, small, and never out of bounds.
+var world_prompt_label: Label = null
+var _world_prompt_pos: Vector2 = Vector2.ZERO
+var _world_prompt_owner: int = 0
+
+
+func _create_world_prompt() -> void:
+	world_prompt_label = Label.new()
+	world_prompt_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	world_prompt_label.add_theme_font_size_override("font_size", 15)
+	world_prompt_label.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+	# A dark outline so it reads over any wall colour or the balcony sky.
+	world_prompt_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	world_prompt_label.add_theme_constant_override("outline_size", 5)
+	world_prompt_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	world_prompt_label.visible = false
+	$Control.add_child(world_prompt_label)
+
+
+func show_world_prompt(owner: Node, text: String, world_pos: Vector2) -> void:
+	if world_prompt_label == null:
+		return
+	world_prompt_label.text = text
+	_world_prompt_pos = world_pos
+	_world_prompt_owner = owner.get_instance_id()
+	world_prompt_label.visible = true
+
+
+func hide_world_prompt(owner: Node) -> void:
+	# Only the label's current owner may hide it, so one drop leaving range
+	# doesn't wipe another's prompt.
+	if world_prompt_label == null:
+		return
+	if owner != null and owner.get_instance_id() != _world_prompt_owner:
+		return
+	world_prompt_label.visible = false
+	_world_prompt_owner = 0
+
+
+func _update_world_prompt() -> void:
+	if world_prompt_label == null or not world_prompt_label.visible:
+		return
+	var cam := get_viewport().get_camera_2d()
+	if cam == null:
+		return
+	# Project the item's world position into screen (design) pixels.
+	var screen: Vector2 = (_world_prompt_pos - cam.get_screen_center_position()) * cam.zoom \
+		+ Vector2(SCREEN_W, SCREEN_H) / 2.0
+	var font := world_prompt_label.get_theme_font("font")
+	var fs := world_prompt_label.get_theme_font_size("font_size")
+	var tw: float = font.get_string_size(world_prompt_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+	world_prompt_label.size = Vector2(tw, 20)
+	# Centre above the item, then clamp fully on-screen and above the HUD bar.
+	var x: float = clampf(screen.x - tw / 2.0, 6.0, SCREEN_W - tw - 6.0)
+	var y: float = clampf(screen.y - 34.0, 6.0, SCREEN_H - BAR_H - 34.0)
+	world_prompt_label.position = Vector2(x, y)
 
 func _create_dialogue_panel() -> void:
 	dialogue_panel = PanelContainer.new()
@@ -345,6 +409,7 @@ func update_stamina(current: float, maximum: float) -> void:
 
 func _process(delta: float) -> void:
 	_update_drag()
+	_update_world_prompt()
 	if feedback_timer > 0:
 		feedback_timer -= delta
 		var alpha = min(feedback_timer / 0.5, 1.0)

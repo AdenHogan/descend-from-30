@@ -232,6 +232,10 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 		if bal_node != null:
 			var show_balcony = WorldState.is_balcony_slot(apartment_id, i)
 			bal_node.visible = show_balcony
+			# The "BALCONY" tag → crisp pixel font (default font blurs when zoomed).
+			var bal_tag = bal_node.get_node_or_null("Tag")
+			if bal_tag != null:
+				bal_tag.add_theme_font_override("font", UI_FONT)
 			# A zone on EVERY revealed balcony (top AND bottom of a pair): the top
 			# offers the descent, the bottom just lets the player step out onto its
 			# plane / listen — the zone gates the actual climb-down on

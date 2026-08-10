@@ -11,47 +11,38 @@ var amount: int = 0  # Bank Notes bundle size; 0 = roll default on pickup
 var player: Node2D = null
 var player_nearby: bool = false
 
-const UI_FONT = preload("res://assets/fonts/PixelOperator8.ttf")
-
 @onready var proximity_label: Label = $ProximityLabel
 
 
 func _ready() -> void:
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
-	# Small, crisp pixel font — the default label at world scale reads huge and
-	# blurry once the room camera zooms in. Centre it just above the orb.
-	proximity_label.add_theme_font_override("font", UI_FONT)
-	proximity_label.add_theme_font_size_override("font_size", 8)
-	proximity_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	proximity_label.position = Vector2(-70, -24)
-	proximity_label.size = Vector2(140, 12)
+	# The prompt is drawn by the HUD in SCREEN space (crisp, in-bounds), not by
+	# this world-space Label — hide the old one entirely.
 	proximity_label.visible = false
 	add_to_group("world_drop")
 	player = get_tree().get_first_node_in_group("player")
 
 
-func _update_label() -> void:
+func _prompt_text() -> String:
 	if target_apartment != "":
-		proximity_label.text = "Key — Apt " + target_apartment + "  [Click] Take"
-	else:
-		var item_data = ItemData.get_item(item_id)
-		var display_name = item_data.get("name", "Item") if not item_data.is_empty() else "Item"
-		proximity_label.text = display_name + "  [Click] Take"
+		return "Key — Apt " + target_apartment + "   [Click] Take"
+	var item_data = ItemData.get_item(item_id)
+	var display_name = item_data.get("name", "Item") if not item_data.is_empty() else "Item"
+	return display_name + "   [Click] Take"
 
 
 func _on_body_entered(body: Node2D) -> void:
 	if body.is_in_group("player"):
 		player = body
 		player_nearby = true
-		_update_label()
-		proximity_label.visible = true
+		HUD.show_world_prompt(self, _prompt_text(), global_position)
 
 
 func _on_body_exited(body: Node2D) -> void:
 	if body.is_in_group("player"):
 		player_nearby = false
-		proximity_label.visible = false
+		HUD.hide_world_prompt(self)
 
 
 func _input(event: InputEvent) -> void:
@@ -103,7 +94,15 @@ func _try_pickup() -> void:
 			return
 	if drop_key != "":
 		WorldState.remove_world_drop(drop_key)
+	HUD.hide_world_prompt(self)
 	queue_free()
+
+
+func _exit_tree() -> void:
+	# Freed while the player was still in range (scene change, etc.) — don't leave
+	# the HUD prompt pointing at a gone item.
+	if player_nearby:
+		HUD.hide_world_prompt(self)
 
 
 func _draw() -> void:

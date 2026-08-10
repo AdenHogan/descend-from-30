@@ -23,7 +23,8 @@ func _ready() -> void:
 	if direction == "down":
 		listen_label = Label.new()
 		listen_label.text = "[R] Listen below"
-		listen_label.add_theme_font_size_override("font_size", 12)
+		listen_label.add_theme_font_override("font", preload("res://assets/fonts/PixelOperator8.ttf"))
+		listen_label.add_theme_font_size_override("font_size", 8)
 		listen_label.position = Vector2(-55, -46)
 		listen_label.size = Vector2(120, 18)
 		listen_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
