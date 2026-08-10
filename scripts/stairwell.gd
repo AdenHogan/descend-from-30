@@ -12,6 +12,13 @@ var _herd_said = false
 var _descend_confirm_time = 0.0
 const DESCEND_CONFIRM_WINDOW = 4.0
 
+# Heavy-horde crossing: a blocked down-stairwell is levered open with a Crowbar
+# over a channeled PRY (loud from the first heave, so the current floor's dead
+# come to investigate). Cancels on walking off the steps or any other action.
+const PRY_TIME := 3.0
+var is_prying: bool = false
+var pry_timer: float = 0.0
+
 func _ready() -> void:
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
@@ -47,12 +54,17 @@ func _on_body_exited(body: Node2D) -> void:
 	if body.name == "Player":
 		player_nearby = false
 		_herd_said = false
+		if is_prying:
+			_cancel_pry("You back off the stairwell.")   # walked away mid-pry
 		if arrow:
 			arrow.visible = false
 		if listen_label:
 			listen_label.visible = false
 
 func _process(_delta: float) -> void:
+	if is_prying:
+		_tick_pry(_delta)
+		return
 	if player_nearby and arrow:
 		bounce_time += _delta
 		arrow.position.y = -80 + sin(bounce_time * 4.0) * 8.0
@@ -149,6 +161,21 @@ func _use_stairs() -> void:
 			return
 		# second use within the window → confirmed, fall through and descend.
 
+	# A heavy horde chokes this down-stairwell: no fighting through it, it's a
+	# Crowbar job (channeled pry). Refuse the descent until it's levered open.
+	if direction == "down" and WorldState.is_stair_blocked(WorldState.current_floor):
+		if is_prying:
+			return   # already levering — don't restart the channel
+		if not WorldState.has_crowbar():
+			TutorialManager.say("The stairwell's packed wall-to-wall with them. No way through that — I'd need a crowbar to lever a path open.")
+			return
+		_begin_pry()
+		return
+
+	_perform_transition()
+
+
+func _perform_transition() -> void:
 	# Snap ONTO the stairwell before the transition takes over. Triggering from a
 	# step or two off-centre used to leave the player half in the stairs and half
 	# in the wall for the whole descent.
@@ -179,3 +206,55 @@ func _use_stairs() -> void:
 		Transition.to_scene("res://scenes/lobby.tscn")
 	else:
 		Transition.to_scene("res://scenes/building_floors.tscn")
+
+
+# --- Crowbar pry (heavy stairwell horde) ----------------------------------
+
+func _begin_pry() -> void:
+	is_prying = true
+	pry_timer = PRY_TIME
+	# Loud from the first heave — draws the current floor's dead toward the steps
+	# and snaps any can-distracted ones back (same door_work loudness as forcing).
+	WorldState.emit_noise(global_position, WorldState.NOISE_RADIUS["door_work"], PRY_TIME)
+	if listen_label:
+		listen_label.text = "Prying... %.1fs" % pry_timer
+		listen_label.visible = true
+	TutorialManager.say("Come on... get the claw in and heave. Almost through...")
+
+
+func _tick_pry(delta: float) -> void:
+	# Any other committed action cancels the pry (no partial progress banked).
+	var player = get_tree().get_first_node_in_group("player")
+	if player != null and (player.is_attacking or player.is_pushing
+			or player.is_switching_mode or player.is_listening):
+		_cancel_pry("Prying interrupted.")
+		return
+	pry_timer -= delta
+	if listen_label:
+		listen_label.text = "Prying... %.1fs" % max(pry_timer, 0.0)
+	if pry_timer <= 0.0:
+		_commit_pry()
+
+
+func _cancel_pry(reason: String) -> void:
+	if not is_prying:
+		return
+	is_prying = false
+	pry_timer = 0.0
+	if listen_label:
+		listen_label.text = "[R] Listen below"
+		listen_label.visible = player_nearby
+	HUD.show_feedback(reason)
+
+
+func _commit_pry() -> void:
+	is_prying = false
+	pry_timer = 0.0
+	if listen_label:
+		listen_label.text = "[R] Listen below"
+	# Spend the crowbar and commit the crossing: opens the stairwell for the run,
+	# shifts the building (enemies move, no heal), and forfeits the next rest.
+	WorldState.consume_crowbar()
+	WorldState.cross_blocked_stair(WorldState.current_floor)
+	HUD.show_feedback("The crowbar bends open a gap. The building shifts around you.")
+	_perform_transition()

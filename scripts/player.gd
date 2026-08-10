@@ -869,9 +869,9 @@ func do_rest() -> void:
 
 
 func _reseed_zombies() -> void:
-	WorldState.master_seed = randi()
-	WorldState.apartment_layouts.clear()
-	WorldState.anchor_items.clear()
+	# The rest-time building shift. Same reseed the crowbar crossing uses, factored
+	# into WorldState.shift_building; do_rest() adds the stamina heal on top.
+	WorldState.shift_building()
 
 
 func _input(event: InputEvent) -> void:

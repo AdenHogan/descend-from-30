@@ -23,6 +23,8 @@ func _ready() -> void:
 	_test_clearing()
 	_test_per_run_keying()
 	_test_crowbar_inventory()
+	_test_shift_building()
+	_test_crossing()
 	_test_save_load()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
@@ -106,6 +108,43 @@ func _test_crowbar_inventory() -> void:
 	check(not WorldState.has_crowbar(), "crowbar is gone after consumption")
 	check(not WorldState.consume_crowbar(), "consume_crowbar fails with none left")
 	WorldState.inventory.clear()
+
+
+func _test_shift_building() -> void:
+	print("[shift_building]")
+	WorldState.master_seed = 4242
+	WorldState.apartment_layouts["1501"] = ["kitchen", "bedroom", "study"]
+	WorldState.anchor_items["1501:anchor_x"] = "005"
+	WorldState.shift_building()
+	check(WorldState.master_seed != 4242, "shift re-rolls the master seed")
+	check(WorldState.apartment_layouts.is_empty(), "shift clears cached apartment layouts")
+	check(WorldState.anchor_items.is_empty(), "shift clears cached anchor rolls")
+
+
+func _test_crossing() -> void:
+	print("[crossing]")
+	WorldState.master_seed = 1337
+	WorldState.current_run = 1
+	WorldState.stair_blocks_cleared.clear()
+	WorldState.rest_available = true
+	WorldState.pending_pry_arrival_floor = -1
+	# Find a floor this seed blocks, stand on it, and cross.
+	var target := -1
+	for f in range(2, 30):
+		if WorldState.is_stair_blocked(f):
+			target = f
+			break
+	check(target != -1, "found a blocked floor to cross")
+	if target == -1:
+		return
+	var seed_before = WorldState.master_seed
+	WorldState.current_floor = target
+	WorldState.cross_blocked_stair(target)
+	check(WorldState.is_stair_block_cleared(target), "crossing clears the stairwell for the run")
+	check(not WorldState.is_stair_blocked(target), "crossed stairwell is no longer blocked")
+	check(not WorldState.rest_available, "crossing forfeits the next rest (costs a rest slot)")
+	check(WorldState.master_seed != seed_before, "crossing shifts the building (enemies move)")
+	check(WorldState.pending_pry_arrival_floor == target - 1, "arrival floor is flagged for milling")
 
 
 func _test_save_load() -> void:

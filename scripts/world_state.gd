@@ -399,6 +399,7 @@ func new_game() -> void:
 	floor_states_seeded.clear()
 	barricade_progress.clear()
 	stair_blocks_cleared.clear()
+	pending_pry_arrival_floor = -1
 	merchant_stock.clear()
 	legendary_hold = {}
 	legendary_just_purchased = false
@@ -1367,6 +1368,34 @@ func consume_crowbar() -> bool:
 			HUD.refresh_inventory()
 			return true
 	return false
+
+
+func shift_building() -> void:
+	# The building decays and its dead wander: re-roll the master seed and drop the
+	# cached apartment layouts + anchor rolls so floors re-generate. This is the
+	# SAME shift a rest performs (player._reseed_zombies delegates here) — enemies
+	# move. On its own it carries NO stamina heal; the rest path adds that.
+	master_seed = randi()
+	apartment_layouts.clear()
+	anchor_items.clear()
+
+
+# Set when a pried crossing commits: the floor you ARRIVE on (floor_num-1). The
+# destination corridor reads this to mill that floor's stairwell-side horde right
+# at the stairwell you step out of, then clears it. -1 = normal arrival.
+var pending_pry_arrival_floor: int = -1
+
+
+func cross_blocked_stair(floor_num: int) -> void:
+	# Commit a crowbar crossing of the horde choking floor_num's down-stairwell.
+	# The crowbar is already spent by the caller. This: opens the stairwell for the
+	# run, shifts the building (enemies move — NO heal, so it is deliberately not
+	# billed as a rest), forfeits the next rest ("costs a rest slot"), and flags the
+	# arrival floor so its stairwell horde is milling there when you step out.
+	clear_stair_block(floor_num)
+	shift_building()
+	rest_available = false
+	pending_pry_arrival_floor = floor_num - 1
 
 
 # Zombies must never end up stacked on top of each other — a huddle should read
