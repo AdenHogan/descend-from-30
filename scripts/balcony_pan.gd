@@ -225,6 +225,43 @@ func pan_down(target_apartment: String, slot: int, roped: bool) -> void:
 		Vector2(x, STACK_OFFSET + CORRIDOR_Y), LAND_TIME) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	await land.finished
+	await RenderingServer.frame_post_draw   # make sure the final pose is on screen
 
+	# HOLD THE LAST FRAME across the scene swap. change_scene_to_file frees the
+	# old scene and instantiates the new one on the next idle frame, and that gap
+	# renders one blank (grey) frame — the "flash" on arrival. We snapshot the
+	# final pan frame (the lower apartment, framed exactly as the fresh room will
+	# re-lock it) and hold it over the swap, dropping it only once the new scene
+	# has rendered its first framed frame. No fade, no cut — just no blank.
+	var cover := _hold_last_frame(scene)
 	panning = false
 	tree.change_scene_to_file("res://scenes/room.tscn")
+	if cover != null:
+		# Let the new scene build (_ready frames + locks its camera) and paint a
+		# frame, then reveal it.
+		await tree.process_frame
+		await tree.process_frame
+		await RenderingServer.frame_post_draw
+		cover.queue_free()
+
+
+func _hold_last_frame(scene: Node) -> CanvasLayer:
+	# Snapshot the current viewport into a top-most overlay parented to THIS
+	# autoload, so it survives change_scene and masks the blank frame beneath it.
+	var vp := scene.get_viewport()
+	if vp == null:
+		return null
+	var img := vp.get_texture().get_image()
+	if img == null:
+		return null
+	var layer := CanvasLayer.new()
+	layer.layer = 128   # above the HUD and everything else
+	var tr := TextureRect.new()
+	tr.texture = ImageTexture.create_from_image(img)
+	tr.set_anchors_preset(Control.PRESET_FULL_RECT)
+	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	tr.stretch_mode = TextureRect.STRETCH_SCALE
+	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(tr)
+	add_child(layer)
+	return layer
