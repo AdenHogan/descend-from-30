@@ -44,6 +44,10 @@ const JUMP_TIME := 0.6         # a fall is fast
 const LAND_TIME := 0.3
 const LEFT_WALL_X := 113.0
 const MODULE_WIDTH := 320.0
+# The apartment interior band (matches room.gd ROOM_BAND_*): the live room locks
+# the camera to this; the descent extends the bottom by one floor.
+const ROOM_BAND_TOP := 207.0
+const ROOM_BAND_H := 160.0
 
 const SHRED_SHADER := """
 shader_type canvas_item;
@@ -165,6 +169,19 @@ func pan_down(target_apartment: String, slot: int, roped: bool) -> void:
 		scene.add_child(rope)
 
 	player.set("is_cutscene", true)
+
+	# Open the camera for the descent: the live room locked it to the UPPER
+	# apartment (room._frame_camera), which would clamp the view and leave the
+	# player behind as they drop. Keep the horizontal wall limits (no grey beside
+	# the apartment) and the upper ceiling as the top (no grey above), but extend
+	# the bottom one whole floor so the camera rides the player down into the
+	# lower apartment. The arrival scene re-locks to the lower apartment.
+	var cam = player.get_node_or_null("Camera2D") as Camera2D
+	if cam != null:
+		var view_h: float = 648.0 / maxf(cam.zoom.y, 0.01)
+		cam.limit_top = int(ROOM_BAND_TOP)
+		cam.limit_bottom = int(ROOM_BAND_TOP + STACK_OFFSET + ROOM_BAND_H + view_h)
+		cam.limit_smoothed = false
 
 	# (1) Up and over the rail (still fully visible, in front).
 	var hop = scene.create_tween()
