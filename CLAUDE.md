@@ -111,7 +111,7 @@ setup script; binary from downloads.godotengine.org). Before every commit:
   `depth_move_test`, `transition_test`, `force_lock_test`, `loot_test`,
   `building_floors_test`, `stair_visuals_test`, `profile_test`,
   `profile_ui_test`, `title_test`, `enemy_memory_test`, `floor_adopt_test`,
-  `balcony_test` — run all 21 before commit.
+  `balcony_test`, `hud_prompt_test` — run all 22 before commit.
 
 Note: `tutorial_test` asserts first-run tutorial content, so it needs
 `is_first_run` true — which comes from `tutorial_completed=false` in the active

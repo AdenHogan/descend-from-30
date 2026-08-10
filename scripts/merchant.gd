@@ -44,6 +44,9 @@ var ding_player: AudioStreamPlayer2D = null
 func _ready() -> void:
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
+	# Crisp pixel font (default font blurs when the hallway camera zooms in).
+	proximity_label.add_theme_font_override("font", preload("res://assets/fonts/PixelOperator8.ttf"))
+	proximity_label.add_theme_font_size_override("font_size", 8)
 	proximity_label.visible = false
 	ding_player = AudioStreamPlayer2D.new()
 	ding_player.stream = DING_STREAM
