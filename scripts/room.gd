@@ -85,6 +85,11 @@ func _ready() -> void:
 			var n = get_node_or_null(dead_name)
 			if n != null:
 				n.queue_free()
+		# Populate the backdrop with the SAME enemies/bodies the live apartment
+		# below will show, so they're already there during the descent pan instead
+		# of popping in on landing. Frozen (no AI) — the real scene, with identical
+		# deterministic spawns, replaces this within ~2s.
+		_populate_passive_backdrop()
 		return
 
 	var door = $Area2D
@@ -675,9 +680,60 @@ func _pair_bullets_with_gun(apt_id: String) -> void:
 			WorldState.anchor_items[target_key] = "016"
 
 
-func _spawn_world_drops(floor_num: int) -> void:
+func _populate_passive_backdrop() -> void:
+	# BalconyPan scenery: the enemies, corpses and world-drops of the apartment
+	# BELOW, so the floor the player is dropping into isn't empty until landing.
+	# Floor is derived from the backdrop's own id (not current_floor, which is
+	# still the upper floor when this is prefetched on stepping onto the balcony).
+	var floor_num = WorldState._apartment_floor(apartment_id)
+	if floor_num <= 0:
+		return
+	var door_state = WorldState.get_door_state(apartment_id)
+	if door_state == WorldState.DoorState.BREACHED:
+		_spawn_passive_enemies(floor_num, true)
+	else:
+		_spawn_passive_enemies(floor_num, false)
+	_spawn_corpses(floor_num, apartment_id)
+	_spawn_world_drops(floor_num, apartment_id)
+
+
+func _spawn_passive_enemies(floor_num: int, breached: bool) -> void:
+	# Same deterministic spawns as the live room, but FROZEN: no player exists in
+	# a backdrop, so live AI would chase the real player up in the scene above and
+	# drift out of place before the swap. Static poses match the arrival exactly.
+	var positions := []
+	var big_first := false
+	if breached:
+		var enemy_list = WorldState.get_breached_room_enemies(apartment_id, 150.0, 1030.0, 321.0)
+		for entry in enemy_list:
+			positions.append(entry["position"])
+		big_first = true
+	else:
+		var zombie_count = WorldState.get_apartment_zombie_count(apartment_id)
+		if zombie_count <= 0:
+			return
+		var apt_rng = RandomNumberGenerator.new()
+		apt_rng.seed = hash(str(WorldState.master_seed) + "aptpos" + apartment_id)
+		positions = WorldState.get_zombie_positions(zombie_count, apt_rng, 150.0, 1030.0, 321.0)
+	var std_scene = preload("res://scenes/enemy_zombie_standard.tscn")
+	var big_scene = preload("res://scenes/enemy_zombie_big.tscn")
+	for i in range(positions.size()):
+		var pos = positions[i]
+		var key = str(floor_num) + ":" + str(snappedf(pos.x, 1.0)) + ":" + str(snappedf(pos.y, 1.0))
+		if WorldState.killed_zombies.has(key):
+			continue
+		var z = (big_scene if (big_first and i == 0) else std_scene).instantiate()
+		z.global_position = pos
+		z.spawn_key = key
+		add_child(z)
+		WorldState.apply_saved_zombie(z)
+		z.process_mode = Node.PROCESS_MODE_DISABLED   # frozen scenery
+
+
+func _spawn_world_drops(floor_num: int, apt_override: String = "") -> void:
 	var scene_path = get_tree().current_scene.scene_file_path
-	var drops = WorldState.get_world_drops_for_floor(floor_num, scene_path, WorldState.current_apartment_id)
+	var apt := apt_override if apt_override != "" else WorldState.current_apartment_id
+	var drops = WorldState.get_world_drops_for_floor(floor_num, scene_path, apt)
 	if drops.is_empty():
 		return
 	var drop_scene = preload("res://scenes/world_drop.tscn")

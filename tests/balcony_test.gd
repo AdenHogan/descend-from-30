@@ -222,6 +222,14 @@ func _test_passive_room() -> void:
 			zones += 1
 	check(zones == 0, "passive room spawns no interactive descent zone")
 	check(room.apartment_id == "2503", "passive room built the REQUESTED apartment")
+	# Any enemies in the backdrop must be FROZEN (no AI) — a live zombie would
+	# chase the real player up in the scene above and drift out of place before
+	# the swap. (Vacuously true if this apartment happens to have none.)
+	var live_ai := 0
+	for z in get_tree().get_nodes_in_group("zombie"):
+		if z.get_parent() == room and z.process_mode != Node.PROCESS_MODE_DISABLED:
+			live_ai += 1
+	check(live_ai == 0, "backdrop enemies are frozen scenery, not live AI")
 	room.queue_free()
 	await get_tree().process_frame
 
