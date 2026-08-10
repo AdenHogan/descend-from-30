@@ -44,6 +44,10 @@ const JUMP_TIME := 0.6         # a fall is fast
 const LAND_TIME := 0.3
 const LEFT_WALL_X := 113.0
 const MODULE_WIDTH := 320.0
+# The apartment interior band (matches room.gd ROOM_BAND_*): the live room locks
+# the camera to this; the descent extends the bottom by one floor.
+const ROOM_BAND_TOP := 207.0
+const ROOM_BAND_H := 160.0
 
 const SHRED_SHADER := """
 shader_type canvas_item;
@@ -166,6 +170,19 @@ func pan_down(target_apartment: String, slot: int, roped: bool) -> void:
 
 	player.set("is_cutscene", true)
 
+	# Open the camera for the descent: the live room locked it to the UPPER
+	# apartment (room._frame_camera), which would clamp the view and leave the
+	# player behind as they drop. Keep the horizontal wall limits (no grey beside
+	# the apartment) and the upper ceiling as the top (no grey above), but extend
+	# the bottom one whole floor so the camera rides the player down into the
+	# lower apartment. The arrival scene re-locks to the lower apartment.
+	var cam = player.get_node_or_null("Camera2D") as Camera2D
+	if cam != null:
+		var view_h: float = 648.0 / maxf(cam.zoom.y, 0.01)
+		cam.limit_top = int(ROOM_BAND_TOP)
+		cam.limit_bottom = int(ROOM_BAND_TOP + STACK_OFFSET + ROOM_BAND_H + view_h)
+		cam.limit_smoothed = false
+
 	# (1) Up and over the rail (still fully visible, in front).
 	var hop = scene.create_tween()
 	hop.tween_property(player, "global_position", Vector2(x, RAIL_Y), RAIL_HOP_TIME) \
@@ -208,6 +225,43 @@ func pan_down(target_apartment: String, slot: int, roped: bool) -> void:
 		Vector2(x, STACK_OFFSET + CORRIDOR_Y), LAND_TIME) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	await land.finished
+	await RenderingServer.frame_post_draw   # make sure the final pose is on screen
 
+	# HOLD THE LAST FRAME across the scene swap. change_scene_to_file frees the
+	# old scene and instantiates the new one on the next idle frame, and that gap
+	# renders one blank (grey) frame — the "flash" on arrival. We snapshot the
+	# final pan frame (the lower apartment, framed exactly as the fresh room will
+	# re-lock it) and hold it over the swap, dropping it only once the new scene
+	# has rendered its first framed frame. No fade, no cut — just no blank.
+	var cover := _hold_last_frame(scene)
 	panning = false
 	tree.change_scene_to_file("res://scenes/room.tscn")
+	if cover != null:
+		# Let the new scene build (_ready frames + locks its camera) and paint a
+		# frame, then reveal it.
+		await tree.process_frame
+		await tree.process_frame
+		await RenderingServer.frame_post_draw
+		cover.queue_free()
+
+
+func _hold_last_frame(scene: Node) -> CanvasLayer:
+	# Snapshot the current viewport into a top-most overlay parented to THIS
+	# autoload, so it survives change_scene and masks the blank frame beneath it.
+	var vp := scene.get_viewport()
+	if vp == null:
+		return null
+	var img := vp.get_texture().get_image()
+	if img == null:
+		return null
+	var layer := CanvasLayer.new()
+	layer.layer = 128   # above the HUD and everything else
+	var tr := TextureRect.new()
+	tr.texture = ImageTexture.create_from_image(img)
+	tr.set_anchors_preset(Control.PRESET_FULL_RECT)
+	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	tr.stretch_mode = TextureRect.STRETCH_SCALE
+	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(tr)
+	add_child(layer)
+	return layer

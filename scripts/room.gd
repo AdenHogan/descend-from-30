@@ -58,6 +58,14 @@ const MODULE_WIDTH = 320
 const LEFT_WALL_X = 113
 const CLICK_RADIUS = 10.0
 
+# The apartment interior in world space (tilemap measured y 207..367 = 160px
+# tall; x comes from the tilemap per scene). The camera is LOCKED to this band
+# (StairPan.apply_floor_camera) so it stops at the walls/ceiling instead of
+# drifting into the grey void beside or above the apartment — same treatment
+# building_floors gives a corridor. The tight band zooms the view in to fill it.
+const ROOM_BAND_TOP := 207.0
+const ROOM_BAND_H := 160.0
+
 const ANCHOR_RANGES = {
 	"bedroom": [2, 5],
 	"bathroom": [2, 5],
@@ -160,6 +168,23 @@ func _ready() -> void:
 		WorldState.saved_player_y = 0.0
 
 	_after_modules_ready()
+	_frame_camera(player)
+
+
+func _frame_camera(player: Node) -> void:
+	# Lock the view to the apartment's own bounds (see StairPan.apply_floor_camera,
+	# shared with building_floors): horizontal extent from this scene's tilemap,
+	# vertical to the measured interior band — so the camera never shows the grey
+	# beyond the walls or above the ceiling, and zooms in to fill the apartment.
+	if player == null:
+		return
+	var cam = player.get_node_or_null("Camera2D")
+	var tm = get_node_or_null("TileMapLayer")
+	if cam == null or tm == null:
+		return
+	var b = StairPan.clean_bounds(tm)
+	var band = Rect2(Vector2(b.position.x, ROOM_BAND_TOP), Vector2(b.size.x, ROOM_BAND_H))
+	StairPan.apply_floor_camera(cam, band)
 
 
 func _build_modules(entrance_side: String, live: bool) -> void:
