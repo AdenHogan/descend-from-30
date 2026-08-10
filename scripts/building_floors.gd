@@ -170,11 +170,16 @@ func _spawn_zombies(floor_num: int, as_scenery: bool) -> void:
 	# stairwell you just tore open: cluster this floor's horde by the arrival
 	# stairs and rouse them (below), instead of the usual even corridor spread.
 	var pried_arrival: bool = (not as_scenery) and WorldState.pending_pry_arrival_floor == floor_num
+	# Cross-floor noise pull: loud noise you made near this floor's stairwell has
+	# roused the dead SEEDED NEAR that same stairwell (only them). They keep their
+	# seeded spots (so kill/memory keys stay stable) but wake and converge.
+	var stair_pull: bool = (not as_scenery) and not pried_arrival and WorldState.has_stair_pull(floor_num)
+	var arrived_left: bool = WorldState.stair_spawn_side != "right"
+	var pull_near_x: float = 265.0 + WorldState.STAIR_PULL_NEAR if arrived_left else 1105.0 - WorldState.STAIR_PULL_NEAR
 	# Keep clear of both stairwells (the corridor runs 115..1235): a zombie spawned
 	# behind the stair art was effectively invisible until it moved.
 	var positions: Array
 	if pried_arrival:
-		var arrived_left: bool = WorldState.stair_spawn_side != "right"
 		var band_min: float = 245.0 if arrived_left else 895.0
 		var band_max: float = 470.0 if arrived_left else 1105.0
 		positions = WorldState.get_zombie_positions(zombie_count, floor_rng, band_min, band_max, 388.0)
@@ -211,10 +216,18 @@ func _spawn_zombies(floor_num: int, as_scenery: bool) -> void:
 			# Roused by the racket you made levering through: aware and converging
 			# on the stairwell instead of dozing in the corridor.
 			zombie.alert_to_noise(12.0)
-	# The gathered-horde arrival is a one-shot: consume it so re-entering this
-	# floor later spawns the ordinary corridor spread.
+		elif stair_pull:
+			# Only the dead seeded near the arrival stairwell heard you through it.
+			var near_stair: bool = (arrived_left and pos.x <= pull_near_x) \
+				or ((not arrived_left) and pos.x >= pull_near_x)
+			if near_stair:
+				zombie.alert_to_noise(12.0)
+	# Both muster effects are one-shots: consume them so a later ordinary visit
+	# to this floor spawns the plain, dozing corridor spread again.
 	if pried_arrival:
 		WorldState.pending_pry_arrival_floor = -1
+	if stair_pull:
+		WorldState.consume_stair_pull(floor_num)
 
 
 func _strip_junk() -> void:

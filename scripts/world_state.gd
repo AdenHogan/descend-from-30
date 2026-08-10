@@ -172,6 +172,20 @@ const STAIR_BLOCK_CHANCE := 0.18
 # `str(floor)+":"+str(run)` -> true once its horde has been pried open (per-run).
 var stair_blocks_cleared: Dictionary = {}
 
+# --- Cross-floor noise pull ------------------------------------------------
+# Significant noise (gunfire / forcing — NOT running) made close to a stairwell
+# carries through it: the dead SEEDED NEAR that stairwell on the adjacent floor
+# rouse and gather there, so they're milling by the steps when you arrive. It
+# deliberately can't vacuum a whole floor up the stairs — only the stairwell-side
+# few are eligible, and only if the noise was made near the stairwell.
+const STAIR_NOISE_PULL_MIN := 420.0        # >= door_work; run (240) stays under it
+const LEFT_STAIR_ZONE_X := 360.0           # noise left of this is "at the left stairwell"
+const RIGHT_STAIR_ZONE_X := 1010.0         # noise right of this is "at the right stairwell"
+# A seeded zombie within this of a corridor end counts as seeded near that stair.
+const STAIR_PULL_NEAR := 150.0
+# "floor:run" -> true: the adjacent floor's stairwell-side dead are roused on arrival.
+var pending_stair_pulls: Dictionary = {}
+
 # --- Merchant / shop (docs/STORE_DESIGN.md) ---
 const MERCHANT_FLOORS = [25, 20, 15, 10, 5]
 const LEGENDARY_HOLD_VISITS = 3
@@ -399,6 +413,7 @@ func new_game() -> void:
 	floor_states_seeded.clear()
 	barricade_progress.clear()
 	stair_blocks_cleared.clear()
+	pending_stair_pulls.clear()
 	pending_pry_arrival_floor = -1
 	merchant_stock.clear()
 	legendary_hold = {}
@@ -916,6 +931,8 @@ func resolve_upgrade_offer(floor_num: int, chosen_id: String) -> void:
 func emit_noise(pos: Vector2, radius: float, duration: float = 1.0) -> void:
 	# Central noise event: every living zombie within the radius is alerted
 	# (their detection range opens up for the duration — see alert_to_noise).
+	# A loud enough noise near a stairwell also carries to the adjacent floors.
+	note_cross_floor_pull(pos, radius)
 	var tree = Engine.get_main_loop() as SceneTree
 	if tree == null:
 		return
@@ -1348,6 +1365,30 @@ func clear_stair_block(floor_num: int) -> void:
 	stair_blocks_cleared[str(floor_num) + ":" + str(current_run)] = true
 
 
+func note_cross_floor_pull(pos: Vector2, radius: float) -> void:
+	# Record which adjacent floors' stairwell-side dead should rouse, if this noise
+	# is loud enough AND made near a stairwell. Called from emit_noise so every loud
+	# source (gunfire, forcing, a crowbar pry) funnels through one gate. Running and
+	# quieter gaits fall under STAIR_NOISE_PULL_MIN and never pull.
+	if radius < STAIR_NOISE_PULL_MIN:
+		return
+	if pos.x > LEFT_STAIR_ZONE_X and pos.x < RIGHT_STAIR_ZONE_X:
+		return   # made mid-corridor, not by a stairwell — no cross-floor carry
+	if current_floor < 1 or current_floor > 29:
+		return   # only procedural floors seed cross-floor hordes (30 = tutorial)
+	for adj in [current_floor - 1, current_floor + 1]:
+		if adj >= 1 and adj <= 29:
+			pending_stair_pulls[str(adj) + ":" + str(current_run)] = true
+
+
+func has_stair_pull(floor_num: int) -> bool:
+	return pending_stair_pulls.get(str(floor_num) + ":" + str(current_run), false)
+
+
+func consume_stair_pull(floor_num: int) -> void:
+	pending_stair_pulls.erase(str(floor_num) + ":" + str(current_run))
+
+
 func has_crowbar() -> bool:
 	for instance in inventory:
 		if ItemData.get_item(instance.item_id).get("is_crowbar", false):
@@ -1378,6 +1419,8 @@ func shift_building() -> void:
 	master_seed = randi()
 	apartment_layouts.clear()
 	anchor_items.clear()
+	# The building rearranged: any pending cross-floor pulls are stale now.
+	pending_stair_pulls.clear()
 
 
 # Set when a pried crossing commits: the floor you ARRIVE on (floor_num-1). The
@@ -2019,6 +2062,7 @@ func save_game(scene_path: String) -> void:
 		"door_keys_consumed": door_keys_consumed,
 		"floor_states_seeded": floor_states_seeded,
 		"stair_blocks_cleared": stair_blocks_cleared,
+		"pending_stair_pulls": pending_stair_pulls,
 		"zombie_positions": zombie_positions,
 		"wallet_unlocked": wallet_unlocked,
 		"wallet_balance": wallet_balance,
@@ -2082,6 +2126,7 @@ func load_game() -> String:
 	door_states = data["door_states"]
 	door_keys_consumed = data["door_keys_consumed"]
 	stair_blocks_cleared = data.get("stair_blocks_cleared", {})
+	pending_stair_pulls = data.get("pending_stair_pulls", {})
 	# JSON round-trips all dictionary keys as strings; this dict is keyed by int
 	# floor numbers, so convert keys back or every loaded game re-seeds its floors.
 	zombie_positions = data.get("zombie_positions", {})

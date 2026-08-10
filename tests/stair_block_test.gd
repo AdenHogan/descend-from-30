@@ -25,6 +25,7 @@ func _ready() -> void:
 	_test_crowbar_inventory()
 	_test_shift_building()
 	_test_crossing()
+	_test_cross_floor_pull()
 	_test_save_load()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
@@ -145,6 +146,52 @@ func _test_crossing() -> void:
 	check(not WorldState.rest_available, "crossing forfeits the next rest (costs a rest slot)")
 	check(WorldState.master_seed != seed_before, "crossing shifts the building (enemies move)")
 	check(WorldState.pending_pry_arrival_floor == target - 1, "arrival floor is flagged for milling")
+
+
+func _test_cross_floor_pull() -> void:
+	print("[cross-floor pull]")
+	WorldState.current_run = 1
+	WorldState.current_floor = 15
+	var stair_pos = Vector2(200.0, 388.0)     # by the LEFT stairwell
+	var mid_pos = Vector2(680.0, 388.0)        # mid-corridor
+	var gunshot = WorldState.NOISE_RADIUS["gunshot"]
+	var run_noise = WorldState.NOISE_RADIUS["run"]
+
+	# Loud + near a stairwell → both adjacent floors' stair-side dead are pulled.
+	WorldState.pending_stair_pulls.clear()
+	WorldState.note_cross_floor_pull(stair_pos, gunshot)
+	check(WorldState.has_stair_pull(14), "gunshot by the stairs pulls the floor below")
+	check(WorldState.has_stair_pull(16), "gunshot by the stairs pulls the floor above")
+	check(not WorldState.has_stair_pull(15), "the current floor is not self-pulled")
+
+	# Loud but mid-corridor → no cross-floor carry (can't vacuum a floor upstairs).
+	WorldState.pending_stair_pulls.clear()
+	WorldState.note_cross_floor_pull(mid_pos, gunshot)
+	check(not WorldState.has_stair_pull(14), "a gunshot mid-corridor does NOT pull")
+
+	# Near a stairwell but quiet (running) → no pull.
+	WorldState.pending_stair_pulls.clear()
+	WorldState.note_cross_floor_pull(stair_pos, run_noise)
+	check(not WorldState.has_stair_pull(14), "running near the stairs does NOT pull")
+
+	# Consuming clears it (one-shot).
+	WorldState.pending_stair_pulls.clear()
+	WorldState.note_cross_floor_pull(stair_pos, gunshot)
+	WorldState.consume_stair_pull(14)
+	check(not WorldState.has_stair_pull(14), "consuming a pull clears it")
+
+	# A building shift wipes stale pulls.
+	WorldState.pending_stair_pulls.clear()
+	WorldState.note_cross_floor_pull(stair_pos, gunshot)
+	WorldState.shift_building()
+	check(not WorldState.has_stair_pull(14), "a building shift clears pending pulls")
+
+	# Tutorial floor never seeds cross-floor hordes.
+	WorldState.pending_stair_pulls.clear()
+	WorldState.current_floor = 30
+	WorldState.note_cross_floor_pull(stair_pos, gunshot)
+	check(not WorldState.has_stair_pull(29), "noise on floor 30 (tutorial) does not pull")
+	WorldState.current_floor = 15
 
 
 func _test_save_load() -> void:

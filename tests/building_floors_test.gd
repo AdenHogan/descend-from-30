@@ -26,6 +26,7 @@ func _ready() -> void:
 	await _test_floor_camera()
 	await _test_scenery_zombie_plane()
 	await _test_pried_arrival_milling()
+	await _test_stair_pull_rouses_only_near()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -294,5 +295,38 @@ func _test_pried_arrival_milling() -> void:
 	check(all_in_band, "horde clustered by the LEFT arrival stairwell")
 	check(all_roused, "arrival horde is roused (alerted)")
 	check(WorldState.pending_pry_arrival_floor == -1, "arrival flag consumed after milling")
+	bf.queue_free()
+	await get_tree().process_frame
+
+
+func _test_stair_pull_rouses_only_near() -> void:
+	# Phase 4: a cross-floor pull rouses ONLY the dead seeded near the arrival
+	# stairwell — never the ones dozing deeper in the corridor. Invariant checked
+	# regardless of how the seed happened to distribute them.
+	print("[cross-floor pull: only near-stair roused]")
+	WorldState.new_game()
+	var f := _floor_with_zombies(27)
+	WorldState.current_floor = f
+	WorldState.spawn_source = "stair"
+	WorldState.stair_direction = "down"
+	WorldState.stair_spawn_side = "left"
+	WorldState.pending_pry_arrival_floor = -1
+	WorldState.pending_stair_pulls[str(f) + ":" + str(WorldState.current_run)] = true
+	WorldState.seed_floor_door_states(f)
+	var bf = load("res://scenes/building_floors.tscn").instantiate()
+	add_child(bf)
+	var near_x: float = 265.0 + WorldState.STAIR_PULL_NEAR   # left arrival threshold
+	var roused_far := 0
+	var roused_total := 0
+	for z in get_tree().get_nodes_in_group("zombie"):
+		if z.is_in_group("pan_scenery"):
+			continue
+		if z.alert_timer > 0.0:
+			roused_total += 1
+			if z.global_position.x > near_x:
+				roused_far += 1
+	check(roused_far == 0, "no far-corridor zombie was roused by the pull (%d)" % roused_far)
+	check(not WorldState.has_stair_pull(f), "pull flag consumed after arrival")
+	print("  INFO  roused %d near-stair zombie(s) on floor %d" % [roused_total, f])
 	bf.queue_free()
 	await get_tree().process_frame
