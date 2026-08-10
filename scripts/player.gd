@@ -1320,31 +1320,31 @@ func _do_balcony_descent(apartment_id: String, slot: int, is_jump: bool) -> void
 	HUD.hide_dialogue()
 	var injury := 0
 	if is_jump:
-		# A deliberate jump: heavier, guaranteed. (Fall-mitigation upgrades hook
-		# in here later.)
-		injury = randi_range(1, 3)
+		# A deliberate jump hurts, but not brutally — one or two knocks.
+		# (Fall-mitigation upgrades hook in here later.)
+		injury = randi_range(1, 2)
 	else:
 		WorldState.stamina = maxf(WorldState.stamina - WorldState.BALCONY_STAMINA_COST, 0.0)
 		HUD.update_stamina(WorldState.stamina, WorldState.get_max_stamina())
 		if randf() < WorldState.balcony_slip_chance():
-			injury = randi_range(1, 2)   # a slip is lighter than a jump
+			injury = 1   # a slip is a single knock
 			HUD.show_feedback("Lost your grip!")
 	var target = WorldState.descend_from_balcony(apartment_id)
 	if target == "":
 		return
-	if injury > 0 and not WorldState.god_mode:
-		take_damage(injury)
-	# Remember the landing was hard so the arrival can flash the hurt pose (the HP
-	# is spent here; the arrived player only replays the visual). Cleared on land.
-	WorldState.balcony_arrival_hurt = injury > 0 and not WorldState.god_mode
 	HUD.update_floor_label()
 	on_balcony_plane = false
-	# The seamless descent pan (BalconyPan): the apartment below stacks under
-	# this one and the player goes over the rail and down. Fade fallback if the
-	# pan can't run — a descent must never soft-lock.
+	# The injury is spent AT THE LANDING (synced with the hurt flare), NOT now —
+	# so the HP/portrait don't drop early while the body is still falling. The pan
+	# applies it at touchdown; the fade fallback (no pan) applies it on the spot.
+	var hurt := injury > 0 and not WorldState.god_mode
 	if BalconyPan.can_pan():
+		WorldState.balcony_pending_injury = injury if hurt else 0
 		BalconyPan.pan_down(target, slot, not is_jump)
 	else:
+		if hurt:
+			take_damage(injury)
+		WorldState.balcony_arrival_hurt = hurt
 		Transition.to_scene("res://scenes/room.tscn")
 
 

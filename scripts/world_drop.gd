@@ -11,12 +11,21 @@ var amount: int = 0  # Bank Notes bundle size; 0 = roll default on pickup
 var player: Node2D = null
 var player_nearby: bool = false
 
+const UI_FONT = preload("res://assets/fonts/PixelOperator8.ttf")
+
 @onready var proximity_label: Label = $ProximityLabel
 
 
 func _ready() -> void:
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
+	# Small, crisp pixel font — the default label at world scale reads huge and
+	# blurry once the room camera zooms in. Centre it just above the orb.
+	proximity_label.add_theme_font_override("font", UI_FONT)
+	proximity_label.add_theme_font_size_override("font_size", 8)
+	proximity_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	proximity_label.position = Vector2(-70, -24)
+	proximity_label.size = Vector2(140, 12)
 	proximity_label.visible = false
 	add_to_group("world_drop")
 	player = get_tree().get_first_node_in_group("player")

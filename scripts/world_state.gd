@@ -31,6 +31,9 @@ var balcony_jump_warned: bool = false
 # Transient hand-off across the descent scene swap: a hard landing sets this so
 # the arriving player can flash the hurt pose. Consumed on arrival (room.gd).
 var balcony_arrival_hurt: bool = false
+# The injury a descent will spend AT TOUCHDOWN (BalconyPan applies it then, so
+# the HP/portrait drop is synced with the hurt flare, not the fall's start).
+var balcony_pending_injury: int = 0
 const MAX_INVENTORY_SLOTS = 5
 const MAX_AMMO_PER_SLOT = 8
 const MAX_THROWABLE_PER_SLOT = 3   # cans held per slot (was one-and-done)
@@ -379,6 +382,7 @@ func new_game() -> void:
 	roped_balconies.clear()
 	balcony_jump_warned = false
 	balcony_arrival_hurt = false
+	balcony_pending_injury = 0
 	door_states.clear()
 	door_keys_consumed.clear()
 	floor_states_seeded.clear()

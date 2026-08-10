@@ -67,25 +67,17 @@ func _on_body_exited(body: Node2D) -> void:
 
 
 func _refresh() -> void:
-	# A descendable (top) balcony leads to the apartment below; a bottom balcony is
-	# a viewpoint dead-end — you can still step out on it and back, just not climb.
+	# The bobbing arrow is the only cue — no key-prompt text (the tutorial will
+	# teach W/S/R later). A descendable (top) balcony leads to the apartment
+	# below; a bottom balcony is a viewpoint dead-end you can still step out on.
 	var descendable := WorldState.is_balcony_descendable(apartment_id, slot)
 	var player = get_tree().get_first_node_in_group("player")
 	var on_plane: bool = player != null and player.get("on_balcony_plane")
 	# Arrow invites stepping up; once out on the plane it only means "descend", so
-	# keep it only where a descent exists.
+	# keep it only where a descent still exists.
 	arrow.visible = not on_plane or descendable
-	prompt.visible = true
-	listen_label.visible = descendable
-	if not on_plane:
-		prompt.text = "[W] Step onto balcony"
-	elif descendable:
-		if WorldState.is_balcony_roped(apartment_id, slot) or WorldState.has_descent_rope():
-			prompt.text = "[W] Climb down   [S] Back inside"
-		else:
-			prompt.text = "[W] Jump down   [S] Back inside"
-	else:
-		prompt.text = "[S] Back inside"
+	prompt.visible = false
+	listen_label.visible = false
 
 
 func _process(delta: float) -> void:
