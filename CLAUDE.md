@@ -23,6 +23,10 @@ originals — the markdown here is canonical for development):
 - `docs/SOUND_STEALTH.md` — noise model (under the hood) + anchored R-listen
   at doors/stairwells. Agreed + implemented v1; roaming TLOU-style listen
   deliberately dropped.
+- `docs/STAIR_HORDES.md` — heavy stairwell hordes + the Crowbar (035):
+  passable-but-costly stair crossings (crowbar + building shift + rest-slot
+  cost), arrival mustering, and the narrow cross-floor noise pull. v1
+  implemented.
 
 When docs conflict: STORE_DESIGN.md and THREE_RUN_ARC.md supersede the GDD
 (each notes what it overrides). Keep the docs updated when a design decision
@@ -111,7 +115,10 @@ setup script; binary from downloads.godotengine.org). Before every commit:
   `depth_move_test`, `transition_test`, `force_lock_test`, `loot_test`,
   `building_floors_test`, `stair_visuals_test`, `profile_test`,
   `profile_ui_test`, `title_test`, `enemy_memory_test`, `floor_adopt_test`,
-  `balcony_test`, `hud_prompt_test` — run all 22 before commit.
+  `balcony_test`, `hud_prompt_test`, `stair_block_test` — run all 23 before
+  commit. (`floor_adopt_test` is seed-sensitive: `new_game` rolls a random
+  master seed and it asserts a floor has zombies, so it fails ~occasionally
+  on a 0-zombie seed — a known flake, re-run it.)
 
 Note: `tutorial_test` asserts first-run tutorial content, so it needs
 `is_first_run` true — which comes from `tutorial_completed=false` in the active
@@ -228,6 +235,20 @@ means no rendering — UI layout and art still need an in-editor look.
   floor as a backdrop; `StairPan` autoload scaffolds the two-floor camera pan
   but is **DISABLED** (needs in-editor feel-tuning; stairs use the fade until
   then).
+- Heavy stairwell hordes + Crowbar (docs/STAIR_HORDES.md, v1): some
+  down-stairwells are choked wall-to-wall and can't be fought — they're pried
+  through with a **Crowbar (035)** (new `is_tool, is_crowbar` item, single-use/
+  consumed). The pry is a channeled action (loud from the first heave, so the
+  current floor's dead converge on the steps); completing it spends the
+  crowbar, opens the stairwell for the run, and triggers the **same building
+  shift a rest does WITHOUT the heal** (`WorldState.shift_building`, shared with
+  the rest path), forfeiting the next rest (**costs a rest slot**). You arrive
+  to that floor's horde **milling at the stairwell**. Separately, loud noise
+  (gunfire/forcing) made **near a stairwell** pulls only the **stairwell-seeded**
+  dead on the adjacent floor (never a whole-floor vacuum; running never pulls).
+  Seeded per (floor,run); floor 30 + floor 1 exempt. Standard zombies for now
+  (new enemy type is a later pass). Covered by `stair_block_test` +
+  `building_floors_test`.
 - Next: tutorial **v2** (above), then characters/profiles/stats + the
   two-&-three-run arc; also **Upgrade offers** polish and player-corpse
   recovery (store step 7).

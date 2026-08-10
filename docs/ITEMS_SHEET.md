@@ -84,3 +84,11 @@ Spawn weights per room module (0 = never spawns there):
 | 030 | Old Shoes | 3 | 0 | 2 | 0 | 1 | 0 |
 | 031 | Empty Wallet | 2 | 1 | 1 | 2 | 2 | 1 |
 | 032 | Broken Umbrella | 1 | 0 | 0 | 1 | 2 | 1 |
+
+> **Items added after this snapshot** (see `data/Items.json` — the runtime
+> source of truth — for full flags + spawn weights):
+> - **033 Bank Notes** (`is_money`) — see `docs/STORE_DESIGN.md`.
+> - **034 Screwdriver** (`can_force_lock`, 5 uses).
+> - **035 Crowbar** (`is_tool, is_crowbar`, single-use/consumed) — the one
+>   tool that pries through a stairwell choked with the dead; **not** a weapon.
+>   See `docs/STAIR_HORDES.md`.
