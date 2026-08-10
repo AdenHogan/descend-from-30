@@ -127,7 +127,14 @@ func _test_rope_and_clothes() -> void:
 	check(ItemData.get_item("018").get("is_rope", false), "Rope (018) is a rope")
 	check(ItemData.get_item("008").get("is_clothes", false), "Clothes (008) is clothes")
 	check(not ItemData.get_item("008").get("is_rope", false), "clothes alone are not a rope")
-	check(ItemData.get_item("035").is_empty(), "there is NO crafted Clothes-Rope item")
+	# No CRAFTED clothes-rope intermediate exists: exactly ONE catalog item is a
+	# rope, and it's 018. (This used to hardcode "035 is empty" as a proxy; 035 is
+	# now the Crowbar, so guard the real invariant instead of the next-free ID.)
+	var rope_items: Array = []
+	for id in ItemData.items:
+		if ItemData.get_item(id).get("is_rope", false):
+			rope_items.append(id)
+	check(rope_items == ["018"], "only ONE item is a rope (018) — no crafted clothes-rope")
 	check(not ItemData.get_item("009").get("is_clothes", false),
 		"Torn Clothes (009) is a bandage, not rope material")
 	check(ItemData.get_item_id_by_name("Rope") == "018", "only ONE item is named Rope")

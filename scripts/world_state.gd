@@ -161,6 +161,17 @@ var wallet_unlocked: bool = false
 var wallet_balance: int = 0
 var barricade_progress: Dictionary = {}
 
+# --- Heavy stairwell hordes (crowbar crossing) ----------------------------
+# A fraction of DOWN-stairwells are packed wall-to-wall with the dead: not a
+# fight you win, a blockage you pry through with a Crowbar (035). Seeded per
+# (floor, run) so it's stable on re-entry and shifts between the three runs.
+# Floor 30 (tutorial) and floor 1 (the last step into the lobby) are never
+# blocked. Crossing one is a channeled pry that consumes the crowbar, forfeits
+# your next rest, and shifts the building (enemies move) — see docs.
+const STAIR_BLOCK_CHANCE := 0.18
+# `str(floor)+":"+str(run)` -> true once its horde has been pried open (per-run).
+var stair_blocks_cleared: Dictionary = {}
+
 # --- Merchant / shop (docs/STORE_DESIGN.md) ---
 const MERCHANT_FLOORS = [25, 20, 15, 10, 5]
 const LEGENDARY_HOLD_VISITS = 3
@@ -387,6 +398,7 @@ func new_game() -> void:
 	door_keys_consumed.clear()
 	floor_states_seeded.clear()
 	barricade_progress.clear()
+	stair_blocks_cleared.clear()
 	merchant_stock.clear()
 	legendary_hold = {}
 	legendary_just_purchased = false
@@ -1311,6 +1323,52 @@ func get_apartment_zombie_count(apartment_id: String) -> int:
 		return rng.randi() % 4 + 1
 
 
+# --- Heavy stairwell hordes -----------------------------------------------
+
+func is_stair_blocked(floor_num: int) -> bool:
+	# True when the DOWN-stairwell of `floor_num` (descending to floor_num-1) is
+	# choked with a horde. Seeded per (floor, run) — deterministic and re-entry
+	# stable, per the seeding convention. Once pried open it stays open for the
+	# run. Floor 30 (tutorial) and floor 1 (final step to the lobby) are exempt.
+	if floor_num >= 30 or floor_num <= 1:
+		return false
+	if is_stair_block_cleared(floor_num):
+		return false
+	var rng = RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "stairblock" + str(floor_num) + str(current_run))
+	return rng.randf() < STAIR_BLOCK_CHANCE
+
+
+func is_stair_block_cleared(floor_num: int) -> bool:
+	return stair_blocks_cleared.get(str(floor_num) + ":" + str(current_run), false)
+
+
+func clear_stair_block(floor_num: int) -> void:
+	stair_blocks_cleared[str(floor_num) + ":" + str(current_run)] = true
+
+
+func has_crowbar() -> bool:
+	for instance in inventory:
+		if ItemData.get_item(instance.item_id).get("is_crowbar", false):
+			return true
+	return false
+
+
+func consume_crowbar() -> bool:
+	# Spend one Crowbar (single-use, no durability — it's gone on use). Keeps the
+	# HUD's selected slot pointing at the same item when indices shift.
+	for i in range(inventory.size()):
+		if ItemData.get_item(inventory[i].item_id).get("is_crowbar", false):
+			inventory.remove_at(i)
+			if HUD.selected_slot == i:
+				HUD.selected_slot = -1
+			elif HUD.selected_slot > i:
+				HUD.selected_slot -= 1
+			HUD.refresh_inventory()
+			return true
+	return false
+
+
 # Zombies must never end up stacked on top of each other — a huddle should read
 # as a GROUP, not as one body hiding the others. Keep at least this much space
 # between neighbours (roughly a body width).
@@ -1931,6 +1989,7 @@ func save_game(scene_path: String) -> void:
 		"door_states": door_states,
 		"door_keys_consumed": door_keys_consumed,
 		"floor_states_seeded": floor_states_seeded,
+		"stair_blocks_cleared": stair_blocks_cleared,
 		"zombie_positions": zombie_positions,
 		"wallet_unlocked": wallet_unlocked,
 		"wallet_balance": wallet_balance,
@@ -1993,6 +2052,7 @@ func load_game() -> String:
 	balcony_jump_warned = data.get("balcony_jump_warned", false)
 	door_states = data["door_states"]
 	door_keys_consumed = data["door_keys_consumed"]
+	stair_blocks_cleared = data.get("stair_blocks_cleared", {})
 	# JSON round-trips all dictionary keys as strings; this dict is keyed by int
 	# floor numbers, so convert keys back or every loaded game re-seeds its floors.
 	zombie_positions = data.get("zombie_positions", {})

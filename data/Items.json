@@ -271,6 +271,14 @@
       "PROPERTY_DURABILITY": "5 uses",
       "PROPERTY_SPAWN_RARITY": 2,
       "PROPERTY_WEIGHT_SIZE": null
+    },
+    "035": {
+      "ITEM_NAME": "Crowbar",
+      "ITEM_DESCRIPTION": "Heavy iron with a claw on the end. Not for fighting — it's the one thing that'll lever a path through a stairwell packed wall-to-wall with the dead. Bends open once, then it's spent.",
+      "VALUE_PROPERTY": "is_tool, is_crowbar",
+      "PROPERTY_DURABILITY": "single use, pries one blocked stairwell",
+      "PROPERTY_SPAWN_RARITY": 2,
+      "PROPERTY_WEIGHT_SIZE": null
     }
   },
   "ROOM_SPAWN_POOLS": {
@@ -536,6 +544,14 @@
       "bathroom": 0,
       "study": 1,
       "living_room": 0,
+      "dining_room": 1
+    },
+    "Crowbar": {
+      "bedroom": 1,
+      "kitchen": 1,
+      "bathroom": 0,
+      "study": 1,
+      "living_room": 1,
       "dining_room": 1
     }
   }
