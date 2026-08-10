@@ -34,7 +34,10 @@ const RAIL_Y := 281.0          # the balcony's far rail — climb up onto it, th
 # AFTER the rail hop, so the player is never hidden while still on the balcony.
 # Placed by eye — nudge against the art.
 const SHRED_TOP := 272.0
-const SHRED_BOTTOM := STACK_OFFSET + 272.0   # the lower balcony rail (symmetric)
+# Re-emerge at the TOP of the lower balcony opening (its sky-top: module y 224 +
+# art offset 18 + one floor down), so the player slides in from the top of the
+# window rather than popping out low at the rail. Nudge against the art.
+const SHRED_BOTTOM := STACK_OFFSET + 224.0 + 18.0   # = 402, the lower sky-top
 const RAIL_HOP_TIME := 0.45
 const ROPE_TIME := 1.6         # shimmying down one floor on a rope
 const JUMP_TIME := 0.6         # a fall is fast

@@ -1245,13 +1245,16 @@ func begin_balcony_descent(apartment_id: String, slot: int, _from_global: Vector
 		# DELIBERATE second press: first press warns, a second within the window
 		# commits to the jump.
 		var now = Time.get_ticks_msec() / 1000.0
-		# The warning is a one-time teach: shown ONCE per run, then never again —
-		# after that a bare W just jumps. On the very first attempt it still needs
-		# a deliberate second press within the window before committing.
-		if not WorldState.balcony_jump_warned:
-			WorldState.balcony_jump_warned = true
+		# A jump always needs a DELIBERATE second press within the window (1-3 HP,
+		# never on a stray tap). But the teaching dialogue box is a one-time thing:
+		# shown ONCE per run, then never again — later arms get only a brief toast.
+		if now - _jump_confirm_time > BALCONY_JUMP_CONFIRM_WINDOW:
 			_jump_confirm_time = now
-			HUD.show_dialogue("That's a long drop — it'll hurt without a rope. I should find some rope, or three lots of clothes to knot... or press again to risk the jump.", "", false, 2.5)
+			if not WorldState.balcony_jump_warned:
+				WorldState.balcony_jump_warned = true
+				HUD.show_dialogue("Long drop without a rope — press again to risk the jump.", "", false, 1.6)
+			else:
+				HUD.show_feedback("Press again to jump.")
 			return
 		_jump_confirm_time = 0.0
 		_do_balcony_descent(apartment_id, slot, true)     # confirmed — jump
