@@ -11,7 +11,8 @@ const MODE_SWITCH_TIME = 0.2
 
 const DEV_MODE = true
 # F1 item spawning is now a typed prompt (dev_item_prompt.gd) — pick any item by
-# number instead of cycling. F2 is free for a future dev tool.
+# number instead of cycling. F2 (dev_force_hazards) forces floor hazards ON for
+# every floor (WorldState.dev_all_hazards) so a system can be tested in a vacuum.
 
 # Stamina
 const STAMINA_SPRINT_DRAIN = 12.0
@@ -903,6 +904,12 @@ func _input(event: InputEvent) -> void:
 		elif event.is_action_pressed("dev_god_mode"):
 			WorldState.god_mode = !WorldState.god_mode
 			HUD.show_feedback("DEV: God Mode " + ("ON" if WorldState.god_mode else "OFF"))
+		elif event.is_action_pressed("dev_force_hazards"):
+			# DEV (F2): force floor hazards ON everywhere so a system can be tested
+			# in a vacuum. Currently every eligible down-stairwell is a heavy horde
+			# (crowbar crossing); takes effect on the next descent.
+			WorldState.dev_all_hazards = !WorldState.dev_all_hazards
+			HUD.show_feedback("DEV: All hazards every floor " + ("ON" if WorldState.dev_all_hazards else "OFF"))
 		elif event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F5:
 			# DEV: unlock the Wallet and grant 500 Bank Notes.
 			if not WorldState.wallet_unlocked:

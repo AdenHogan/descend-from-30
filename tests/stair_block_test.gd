@@ -26,6 +26,7 @@ func _ready() -> void:
 	_test_shift_building()
 	_test_crossing()
 	_test_cross_floor_pull()
+	_test_dev_force_hazards()
 	_test_save_load()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
@@ -216,6 +217,40 @@ func _test_cross_floor_pull() -> void:
 	WorldState.note_cross_floor_pull(stair_pos, gunshot)
 	check(not WorldState.has_stair_pull(29), "noise on floor 30 (tutorial) does not pull")
 	WorldState.current_floor = 15
+
+
+func _test_dev_force_hazards() -> void:
+	print("[dev: force hazards every floor]")
+	WorldState.master_seed = 1337
+	WorldState.current_run = 1
+	WorldState.stair_blocks_cleared.clear()
+	WorldState.dev_all_hazards = true
+	# Every eligible floor is now blocked — testable in a vacuum.
+	var all_blocked := true
+	for f in range(2, 30):
+		if not WorldState.is_stair_blocked(f):
+			all_blocked = false
+	check(all_blocked, "dev flag blocks every eligible floor (2..29)")
+	# Exemptions still hold even with the dev flag on.
+	check(not WorldState.is_stair_blocked(30), "dev flag still exempts floor 30")
+	check(not WorldState.is_stair_blocked(1), "dev flag still exempts floor 1")
+	# A cleared stairwell stays open even under the dev flag.
+	WorldState.clear_stair_block(7)
+	check(not WorldState.is_stair_blocked(7), "a cleared stairwell stays open under the dev flag")
+	# Turning it off returns to seeded behaviour (not every floor blocked).
+	WorldState.dev_all_hazards = false
+	WorldState.stair_blocks_cleared.clear()
+	var seeded_blocked := 0
+	for f in range(2, 30):
+		if WorldState.is_stair_blocked(f):
+			seeded_blocked += 1
+	check(seeded_blocked < 28, "flag off: back to seeded (not every floor)")
+	# new_game clears the dev flag (session-only, like god_mode).
+	WorldState.dev_all_hazards = true
+	WorldState.new_game()
+	check(not WorldState.dev_all_hazards, "new_game resets the dev hazard flag")
+	WorldState.master_seed = 1337
+	WorldState.current_run = 1
 
 
 func _test_save_load() -> void:

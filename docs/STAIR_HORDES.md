@@ -108,6 +108,15 @@ within the same session, never crosses a save) and reset in `new_game`.
   the arrival stairwell (flag consumed); a cross-floor pull rouses **only**
   near-stairwell zombies (no far-corridor zombie roused; flag consumed).
 
+## Dev tooling
+
+**F2** (`dev_force_hazards`) toggles `WorldState.dev_all_hazards`: every eligible
+down-stairwell becomes a heavy horde so the crossing can be tested in a vacuum
+instead of hunting for a seeded one. Session-only (reset by `new_game`, not
+saved); exemptions (floor 30/1) and cleared stairwells still hold. New per-floor
+hazards should honour the same flag. Use **F1** to spawn a Crowbar (035) to test
+the crossing.
+
 ## Open / later
 
 - **New enemy type** for the horde (agreed: its own later pass).

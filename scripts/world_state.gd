@@ -141,6 +141,11 @@ var world_drops: Dictionary = {}  # "floor:x:y" -> {item_id, x, y, floor, target
 
 # Dev tools
 var god_mode: bool = false
+# DEV (F2): force every eligible floor's hazards ON so a system can be tested in
+# a vacuum instead of hunting for a seeded instance. Currently drives the heavy
+# stairwell horde (is_stair_blocked); new per-floor hazards should honour it too.
+# Session-only, like god_mode — not saved, reset by new_game.
+var dev_all_hazards: bool = false
 
 # --- Door system ---
 enum DoorState {
@@ -426,6 +431,7 @@ func new_game() -> void:
 	merchant_sales.clear()
 	upgrade_offers.clear()
 	god_mode = false
+	dev_all_hazards = false
 
 
 func on_floor_arrived(floor_num: int) -> void:
@@ -1363,6 +1369,9 @@ func is_stair_blocked(floor_num: int) -> bool:
 		return false
 	if is_stair_block_cleared(floor_num):
 		return false
+	# DEV: force the hazard onto every eligible floor for vacuum testing.
+	if dev_all_hazards:
+		return true
 	var rng = RandomNumberGenerator.new()
 	rng.seed = hash(str(master_seed) + "stairblock" + str(floor_num) + str(current_run))
 	return rng.randf() < STAIR_BLOCK_CHANCE
