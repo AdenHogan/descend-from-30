@@ -246,10 +246,29 @@ func _test_dev_force_hazards() -> void:
 		if WorldState.is_stair_blocked(f):
 			seeded_blocked += 1
 	check(seeded_blocked < 28, "flag off: back to seeded (not every floor)")
+	# The flag also forces barricaded doors on newly-seeded floors.
+	WorldState.dev_all_hazards = true
+	WorldState.door_states.clear()
+	WorldState.floor_states_seeded.clear()
+	WorldState.seed_floor_door_states(18)
+	var all_barricaded := true
+	for i in range(1, 6):
+		if WorldState.get_door_state("180" + str(i)) != WorldState.DoorState.BARRICADED_FORCEABLE:
+			all_barricaded = false
+	check(all_barricaded, "dev flag barricades every apartment on a seeded floor")
+	# The tutorial floor keeps its hardcoded doors even under the dev flag.
+	WorldState.door_states.clear()
+	WorldState.floor_states_seeded.clear()
+	WorldState.seed_floor_door_states(30)
+	check(WorldState.get_door_state("3003") == WorldState.DoorState.OPEN,
+		"dev flag does not override the tutorial floor's doors")
+
 	# new_game clears the dev flag (session-only, like god_mode).
 	WorldState.dev_all_hazards = true
 	WorldState.new_game()
 	check(not WorldState.dev_all_hazards, "new_game resets the dev hazard flag")
+	WorldState.door_states.clear()
+	WorldState.floor_states_seeded.clear()
 	WorldState.master_seed = 1337
 	WorldState.current_run = 1
 
@@ -270,10 +289,13 @@ func _test_save_load() -> void:
 	WorldState.current_run = 1
 	WorldState.stair_blocks_cleared.clear()
 	WorldState.clear_stair_block(7)
+	WorldState.saved_on_balcony_plane = true
 	WorldState.save_game("res://scenes/building_floors.tscn")
 	# Wipe the in-memory copy, then reload and confirm it came back.
 	WorldState.stair_blocks_cleared.clear()
+	WorldState.saved_on_balcony_plane = false
 	check(not WorldState.is_stair_block_cleared(7), "in-memory clear wiped")
 	WorldState.load_game()
 	check(WorldState.is_stair_block_cleared(7), "stair_blocks_cleared survives save/load")
+	check(WorldState.saved_on_balcony_plane, "balcony-plane flag survives save/load")
 	WorldState.delete_save()

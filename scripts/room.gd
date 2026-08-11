@@ -175,6 +175,15 @@ func _ready() -> void:
 		player.global_position = Vector2(WorldState.saved_player_x, WorldState.saved_player_y)
 		WorldState.saved_player_x = 0.0
 		WorldState.saved_player_y = 0.0
+		# Loaded a save taken while OUT on a balcony plane: re-establish that plane
+		# (held Y line + depth scale) so the player doesn't drift onto the default
+		# line. bx mirrors the balcony-arrival branch above.
+		if WorldState.saved_on_balcony_plane and player.has_method("restore_balcony_plane"):
+			var rslot = WorldState.balcony_slot_in_apartment(apartment_id)
+			if rslot < 0:
+				rslot = 0
+			player.restore_balcony_plane(LEFT_WALL_X + rslot * MODULE_WIDTH + 50)
+		WorldState.saved_on_balcony_plane = false
 
 	_after_modules_ready()
 	_frame_camera(player)

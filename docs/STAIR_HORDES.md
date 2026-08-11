@@ -110,12 +110,18 @@ within the same session, never crosses a save) and reset in `new_game`.
 
 ## Dev tooling
 
-**F2** (`dev_force_hazards`) toggles `WorldState.dev_all_hazards`: every eligible
-down-stairwell becomes a heavy horde so the crossing can be tested in a vacuum
-instead of hunting for a seeded one. Session-only (reset by `new_game`, not
-saved); exemptions (floor 30/1) and cleared stairwells still hold. New per-floor
-hazards should honour the same flag. Use **F1** to spawn a Crowbar (035) to test
-the crossing.
+**F2** (`dev_force_hazards`) toggles `WorldState.dev_all_hazards` — force floor
+hazards ON for vacuum testing:
+- **Stair hordes:** every eligible down-stairwell is blocked (`is_stair_blocked`
+  reads the flag live, so it applies on any descent immediately).
+- **Barricaded doors:** every apartment on a floor seeded *while the flag is on*
+  is `BARRICADED_FORCEABLE` (`seed_floor_door_states`). Because door states seed
+  once per floor, this applies to floors you **enter after** toggling it, not
+  retroactively to already-visited floors.
+
+Session-only (reset by `new_game`, not saved); exemptions (floor 30 tutorial,
+floor 1 stairs) still hold. New per-floor hazards should honour the same flag.
+Use **F1** to spawn a Crowbar (035) to test the crossing.
 
 ## Open / later
 

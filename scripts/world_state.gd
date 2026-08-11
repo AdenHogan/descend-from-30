@@ -136,6 +136,10 @@ var active_upgrades: Array = []
 var available_upgrades: Array = []
 var saved_player_x: float = 0.0
 var saved_player_y: float = 0.0
+# Was the player standing OUT on a balcony plane at save time? The plane is
+# stateful on the player (held Y line + depth scale), and the saved Y alone
+# can't re-establish it — restored in room.gd on load. Consumed on restore.
+var saved_on_balcony_plane: bool = false
 var killed_zombies: Dictionary = {}
 var world_drops: Dictionary = {}  # "floor:x:y" -> {item_id, x, y, floor, target_apartment}
 
@@ -409,6 +413,7 @@ func new_game() -> void:
 	exit_spawn_x = 0.0
 	saved_player_x = 0.0
 	saved_player_y = 0.0
+	saved_on_balcony_plane = false
 	opener_seen = false
 	tutorial_f29_weapon_granted = false
 	killed_zombies.clear()
@@ -1758,6 +1763,17 @@ func seed_floor_door_states(floor_num: int) -> void:
 		return
 	floor_states_seeded[floor_num] = true
 
+	# DEV (F2): force every apartment on this floor to a barricaded door for vacuum
+	# testing — a visible hazard on each floor. BARRICADED_FORCEABLE, so no key is
+	# needed to break in. Applies to floors seeded while the flag is on; any door
+	# the player has already changed is preserved.
+	if dev_all_hazards:
+		for i in range(1, 6):
+			var apt_id = str(floor_num) + "0" + str(i)
+			if not door_states.has(apt_id):
+				door_states[apt_id] = DoorState.BARRICADED_FORCEABLE
+		return
+
 	var rng = RandomNumberGenerator.new()
 	rng.seed = hash(str(master_seed) + "doors" + str(floor_num) + str(current_run))
 
@@ -2080,6 +2096,7 @@ func save_game(scene_path: String) -> void:
 		"last_exited_apartment": last_exited_apartment,
 		"saved_player_x": saved_player_x,
 		"saved_player_y": saved_player_y,
+		"saved_on_balcony_plane": saved_on_balcony_plane,
 		"killed_zombies": killed_zombies,
 		"world_drops": world_drops,
 		"roped_balconies": roped_balconies,
@@ -2146,6 +2163,7 @@ func load_game() -> String:
 	last_exited_apartment = data["last_exited_apartment"]
 	saved_player_x = data["saved_player_x"]
 	saved_player_y = data["saved_player_y"]
+	saved_on_balcony_plane = bool(data.get("saved_on_balcony_plane", false))
 	killed_zombies = data["killed_zombies"]
 	world_drops = data.get("world_drops", {})
 	roped_balconies = data.get("roped_balconies", {})

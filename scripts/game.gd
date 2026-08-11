@@ -73,6 +73,9 @@ func save_and_quit(go_to_desktop: bool) -> void:
 	if player:
 		WorldState.saved_player_x = player.global_position.x
 		WorldState.saved_player_y = player.global_position.y
+		# Remember if we were out on a balcony plane, so the load can re-establish
+		# it (the saved Y alone can't — see player.restore_balcony_plane).
+		WorldState.saved_on_balcony_plane = bool(player.get("on_balcony_plane"))
 	var scene_path = get_tree().current_scene.scene_file_path
 	WorldState.save_game(scene_path)
 	get_tree().paused = false

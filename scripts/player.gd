@@ -906,10 +906,14 @@ func _input(event: InputEvent) -> void:
 			HUD.show_feedback("DEV: God Mode " + ("ON" if WorldState.god_mode else "OFF"))
 		elif event.is_action_pressed("dev_force_hazards"):
 			# DEV (F2): force floor hazards ON everywhere so a system can be tested
-			# in a vacuum. Currently every eligible down-stairwell is a heavy horde
-			# (crowbar crossing); takes effect on the next descent.
+			# in a vacuum — barricaded apartment doors + heavy stairwell hordes.
+			# Stair blocks apply live on any descent; barricades apply to floors
+			# entered while the flag is on (door states seed once per floor).
 			WorldState.dev_all_hazards = !WorldState.dev_all_hazards
-			HUD.show_feedback("DEV: All hazards every floor " + ("ON" if WorldState.dev_all_hazards else "OFF"))
+			if WorldState.dev_all_hazards:
+				HUD.show_feedback("DEV: Hazards forced ON — barricades + stair hordes (as you enter floors)")
+			else:
+				HUD.show_feedback("DEV: Hazards forced OFF")
 		elif event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F5:
 			# DEV: unlock the Wallet and grant 500 Bank Notes.
 			if not WorldState.wallet_unlocked:
@@ -1237,6 +1241,21 @@ func exit_balcony_plane() -> void:
 	t.tween_property(animated_sprite, "scale", _plane_base_scale, BALCONY_STEP_TIME)
 	await t.finished
 	is_cutscene = false
+
+
+func restore_balcony_plane(center_x: float) -> void:
+	# Re-establish the balcony-plane state after a LOAD. Unlike arrive_/enter_,
+	# the saved Y is ALREADY the balcony line (the plane held the body there while
+	# saved), so there is NO step-up: adopt the current Y as the plane line, put
+	# the corridor return line one RISE below it, and re-apply the depth scale.
+	# Without this the loaded player sits at the balcony Y but off-plane, and normal
+	# depth movement drifts them onto the default line.
+	balcony_center_x = center_x
+	balcony_plane_y = global_position.y
+	_plane_return_y = global_position.y + BALCONY_PLANE_RISE
+	_plane_base_scale = animated_sprite.scale
+	animated_sprite.scale = _plane_base_scale * BALCONY_PLANE_SCALE
+	on_balcony_plane = true
 
 
 func arrive_on_balcony_plane(center_x: float) -> void:

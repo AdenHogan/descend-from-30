@@ -27,6 +27,7 @@ func _ready() -> void:
 	await _test_passive_room()
 	await _test_bottom_balcony_access()
 	_test_pan_gating()
+	await _test_balcony_plane_restore()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -313,3 +314,27 @@ func _test_pan_gating() -> void:
 	add_child(z)
 	check(absf(z.base_walk_y - 321.0) < 0.5, "zombie remembers its corridor line")
 	z.queue_free()
+
+
+func _test_balcony_plane_restore() -> void:
+	# Regression (save/load): a save taken while OUT on a balcony plane must
+	# re-establish that plane on load — the held Y line + depth scale — instead of
+	# dropping the player onto the default line. restore_balcony_plane treats the
+	# current Y as the balcony line (the save already holds the body there).
+	print("[balcony plane restore on load]")
+	var player = load("res://scenes/player.tscn").instantiate()
+	add_child(player)
+	await get_tree().process_frame
+	player.on_balcony_plane = false
+	player.global_position = Vector2(500.0, 300.0)   # the saved balcony line
+	var base_scale_y: float = player.animated_sprite.scale.y
+	player.restore_balcony_plane(500.0)
+	check(player.on_balcony_plane, "player is restored onto the balcony plane")
+	check(is_equal_approx(player.balcony_plane_y, 300.0), "plane line adopts the saved Y")
+	# _plane_return_y is the corridor line one RISE (25.0) below the plane.
+	check(is_equal_approx(player._plane_return_y, 325.0),
+		"corridor return line sits one RISE below the plane")
+	check(player.animated_sprite.scale.y < base_scale_y,
+		"sprite is depth-scaled while on the plane")
+	player.queue_free()
+	await get_tree().process_frame
