@@ -251,20 +251,34 @@ func _prompt_should_show() -> bool:
 			return WorldState.is_scavenge_mode
 
 
+# The door prompt now renders through the crisp screen-space HUD system
+# (HUD.show_world_prompt) instead of the world-space ProximityLabel, which the
+# room camera magnified into big blurry text. The ProximityLabel node stays in
+# the scene (hidden) purely as the authored anchor point above the door.
+func _prompt_anchor() -> Vector2:
+	return proximity_label.global_position
+
+
+func _refresh_prompt() -> void:
+	if player_nearby and _prompt_should_show():
+		HUD.show_world_prompt(self, _get_prompt_text(), _prompt_anchor())
+	else:
+		HUD.hide_world_prompt(self)
+
+
 func _on_body_entered(body: Node2D) -> void:
 	if body.name == "Player":
 		player_nearby = true
 		if current_state == WorldState.DoorState.BARRICADED_FORCEABLE or \
 		   current_state == WorldState.DoorState.BARRICADED_LOCKED:
 			_sync_overlay_to_progress()
-		proximity_label.text = _get_prompt_text()
-		proximity_label.visible = _prompt_should_show()
+		_refresh_prompt()
 
 
 func _on_body_exited(body: Node2D) -> void:
 	if body.name == "Player":
 		player_nearby = false
-		proximity_label.visible = false
+		HUD.hide_world_prompt(self)
 		if is_removing_barricade:
 			_pause_barricade_removal()
 		if is_forcing:
@@ -296,8 +310,7 @@ func _process(delta: float) -> void:
 		if not is_removing_barricade:
 			return
 
-	proximity_label.text = _get_prompt_text()
-	proximity_label.visible = _prompt_should_show()
+	_refresh_prompt()
 
 	if Input.is_action_just_pressed("interact") and not TutorialManager.interact_guarded():
 		match current_state:
@@ -436,7 +449,7 @@ func _begin_force(is_lock: bool, instance: ItemInstance) -> void:
 	# barricade work), not just on the pop.
 	WorldState.emit_noise(global_position, WorldState.NOISE_RADIUS["door_work"], FORCE_TIME)
 	_play_sfx(FORCE_STREAMS.pick_random(), -6.0)
-	proximity_label.text = _get_prompt_text()
+	_refresh_prompt()
 
 
 func _tick_force(delta: float) -> bool:
@@ -449,7 +462,7 @@ func _tick_force(delta: float) -> bool:
 		HUD.show_feedback("Forcing interrupted.")
 		return false
 	force_timer -= delta
-	proximity_label.text = _get_prompt_text()
+	_refresh_prompt()
 	if force_timer <= 0.0:
 		_resolve_force()
 		return false
@@ -468,7 +481,7 @@ func _resolve_force() -> void:
 	if instance == null or instance.is_depleted:
 		# The tool broke/changed while channeling — abort without opening.
 		_apply_door_state()
-		proximity_label.text = _get_prompt_text()
+		_refresh_prompt()
 		return
 
 	var item_data = instance.get_data()
@@ -492,7 +505,7 @@ func _resolve_force() -> void:
 	WorldState.emit_noise(global_position, WorldState.NOISE_RADIUS["door_work"], 4.0)
 	_play_sfx(LATCH_STREAM if force_is_lock else FORCE_STREAMS.pick_random(), -2.0)
 	_apply_door_state()
-	proximity_label.text = _get_prompt_text()
+	_refresh_prompt()
 
 
 # Forcing with a gun doesn't spend durability — it DAMAGES the gun: worse
@@ -545,7 +558,7 @@ func _attempt_barricade_removal() -> void:
 	is_removing_barricade = true
 	_sync_overlay_to_progress()
 	barricade_progress_overlay.visible = true
-	proximity_label.text = _get_prompt_text()
+	_refresh_prompt()
 
 
 func _tick_barricade_removal(delta: float) -> void:
@@ -591,7 +604,7 @@ func _tick_barricade_removal(delta: float) -> void:
 	var remaining_height = BARRICADE_SPRITE_HEIGHT * (1.0 - removal_fraction)
 	barricade_progress_overlay.size.y = remaining_height
 	barricade_progress_overlay.visible = remaining_height > 1.0
-	proximity_label.text = _get_prompt_text()
+	_refresh_prompt()
 
 	if removal_fraction >= 1.0:
 		_finish_barricade_removal()
@@ -623,7 +636,7 @@ func _break_tool_mid_removal() -> void:
 	WorldState.barricade_progress[apartment_id] = removal_fraction
 
 	_sync_overlay_to_progress()
-	proximity_label.text = _get_prompt_text()
+	_refresh_prompt()
 	HUD.show_feedback(weapon_name + " broke — barricade still standing. Repair with a toolbox.")
 
 
@@ -644,7 +657,7 @@ func _finish_barricade_removal() -> void:
 
 	WorldState.set_door_state(apartment_id, underlying_state)
 	_apply_door_state()
-	proximity_label.text = _get_prompt_text()
+	_refresh_prompt()
 	HUD.show_feedback("Barricade removed.")
 
 
@@ -653,7 +666,7 @@ func _use_key(key_slot: int) -> void:
 	HUD.refresh_inventory()
 	WorldState.consume_key_for_apartment(apartment_id)
 	_apply_door_state()
-	proximity_label.text = _get_prompt_text()
+	_refresh_prompt()
 	HUD.show_feedback("Door unlocked.")
 
 

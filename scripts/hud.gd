@@ -69,7 +69,6 @@ func _ready() -> void:
 	_create_mode_label()
 	_create_slot_icons()
 	_create_feedback_label()
-	_create_world_prompt()
 	_create_dialogue_panel()
 	_create_context_menu()
 	_create_stamina_bar()
@@ -192,61 +191,98 @@ func _create_feedback_label() -> void:
 # the walls. Instead it's a screen-space HUD label (crisp, exactly like the
 # dialogue box) that TRACKS the item's projected screen position each frame and
 # is clamped inside the viewport, so it's sharp, small, and never out of bounds.
-var world_prompt_label: Label = null
-var _world_prompt_pos: Vector2 = Vector2.ZERO
-var _world_prompt_owner: int = 0
+# --- Crisp, world-anchored interaction prompts (screen-space) --------------
+# Doors, stairwells, balcony zones and dropped loot all post their prompt here.
+# Each renders as a small dark pill (matching the dialogue box) with the crisp
+# pixel font at ONE consistent size, projected from the owner's world anchor each
+# frame and clamped fully on-screen and above the HUD bar. Several can show at
+# once (e.g. a door prompt AND a loot prompt) — one per owner, so one leaving
+# range never wipes another's.
+const WORLD_PROMPT_FONT_SIZE := 17
+const WORLD_PROMPT_PAD := Vector2(13, 6)   # padding around the text inside the pill
+const WORLD_PROMPT_GAP := 12.0             # screen px the pill floats above its anchor
+var _world_prompts: Dictionary = {}        # owner instance_id -> {panel, label, pos}
 
 
-func _create_world_prompt() -> void:
-	world_prompt_label = Label.new()
-	world_prompt_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	world_prompt_label.add_theme_font_size_override("font_size", 15)
-	world_prompt_label.add_theme_color_override("font_color", Color(1, 1, 1, 1))
-	# A dark outline so it reads over any wall colour or the balcony sky.
-	world_prompt_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
-	world_prompt_label.add_theme_constant_override("outline_size", 5)
-	world_prompt_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	world_prompt_label.visible = false
-	$Control.add_child(world_prompt_label)
+func _make_world_prompt() -> Dictionary:
+	var panel := Panel.new()
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE   # never eat world clicks
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.06, 0.06, 0.08, 0.86)
+	style.border_color = Color(0.0, 0.0, 0.0, 0.5)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(5)
+	panel.add_theme_stylebox_override("panel", style)
+	var label := Label.new()
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.add_theme_font_size_override("font_size", WORLD_PROMPT_FONT_SIZE)
+	label.add_theme_color_override("font_color", Color(0.96, 0.96, 1.0, 1.0))
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.set_anchors_preset(Control.PRESET_FULL_RECT)   # fills + centres in the pill
+	panel.add_child(label)
+	panel.visible = false
+	$Control.add_child(panel)
+	return {"panel": panel, "label": label, "pos": Vector2.ZERO}
 
 
 func show_world_prompt(owner: Node, text: String, world_pos: Vector2) -> void:
-	if world_prompt_label == null:
+	if owner == null:
 		return
-	world_prompt_label.text = text
-	_world_prompt_pos = world_pos
-	_world_prompt_owner = owner.get_instance_id()
-	world_prompt_label.visible = true
+	var id := owner.get_instance_id()
+	if not _world_prompts.has(id):
+		_world_prompts[id] = _make_world_prompt()
+	var e = _world_prompts[id]
+	e["label"].text = text
+	e["pos"] = world_pos
+	e["panel"].visible = true
 
 
 func hide_world_prompt(owner: Node) -> void:
-	# Only the label's current owner may hide it, so one drop leaving range
-	# doesn't wipe another's prompt.
-	if world_prompt_label == null:
+	# Only this owner's own pill is hidden, so one drop/door leaving range can't
+	# wipe another's prompt.
+	if owner == null:
 		return
-	if owner != null and owner.get_instance_id() != _world_prompt_owner:
-		return
-	world_prompt_label.visible = false
-	_world_prompt_owner = 0
+	var e = _world_prompts.get(owner.get_instance_id())
+	if e != null:
+		e["panel"].visible = false
 
 
 func _update_world_prompt() -> void:
-	if world_prompt_label == null or not world_prompt_label.visible:
-		return
 	var cam := get_viewport().get_camera_2d()
 	if cam == null:
 		return
-	# Project the item's world position into screen (design) pixels.
-	var screen: Vector2 = (_world_prompt_pos - cam.get_screen_center_position()) * cam.zoom \
-		+ Vector2(SCREEN_W, SCREEN_H) / 2.0
-	var font := world_prompt_label.get_theme_font("font")
-	var fs := world_prompt_label.get_theme_font_size("font_size")
-	var tw: float = font.get_string_size(world_prompt_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
-	world_prompt_label.size = Vector2(tw, 20)
-	# Centre above the item, then clamp fully on-screen and above the HUD bar.
-	var x: float = clampf(screen.x - tw / 2.0, 6.0, SCREEN_W - tw - 6.0)
-	var y: float = clampf(screen.y - 34.0, 6.0, SCREEN_H - BAR_H - 34.0)
-	world_prompt_label.position = Vector2(x, y)
+	for id in _world_prompts.keys():
+		# Owner gone (scene change, freed drop): drop its pill so nothing leaks.
+		if instance_from_id(id) == null:
+			_world_prompts[id]["panel"].queue_free()
+			_world_prompts.erase(id)
+			continue
+		var e = _world_prompts[id]
+		var panel: Panel = e["panel"]
+		if not panel.visible:
+			continue
+		var label: Label = e["label"]
+		var font := label.get_theme_font("font")
+		var tw: float = font.get_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, WORLD_PROMPT_FONT_SIZE).x
+		var pw: float = tw + WORLD_PROMPT_PAD.x * 2.0
+		var ph: float = float(WORLD_PROMPT_FONT_SIZE) + WORLD_PROMPT_PAD.y * 2.0
+		panel.size = Vector2(pw, ph)
+		# Project the anchor into design pixels, float the pill above it, then clamp
+		# fully on-screen and above the HUD bar.
+		var screen: Vector2 = (e["pos"] - cam.get_screen_center_position()) * cam.zoom \
+			+ Vector2(SCREEN_W, SCREEN_H) / 2.0
+		var x: float = clampf(screen.x - pw / 2.0, 6.0, SCREEN_W - pw - 6.0)
+		var y: float = clampf(screen.y - ph - WORLD_PROMPT_GAP, 6.0, SCREEN_H - BAR_H - ph)
+		panel.position = Vector2(x, y)
+
+
+func world_prompt_panel(owner: Node) -> Panel:
+	# Test/inspection accessor: the on-screen pill Panel for an owner, or null.
+	if owner == null:
+		return null
+	var e = _world_prompts.get(owner.get_instance_id())
+	return e["panel"] if e != null else null
 
 func _create_dialogue_panel() -> void:
 	dialogue_panel = PanelContainer.new()

@@ -7,7 +7,6 @@ extends Area2D
 var player_nearby = false
 var bounce_time = 0.0
 var arrow = null
-var listen_label: Label = null
 var _herd_said = false
 var _descend_confirm_time = 0.0
 const DESCEND_CONFIRM_WINDOW = 4.0
@@ -27,24 +26,26 @@ func _ready() -> void:
 	if arrow:
 		arrow.visible = false
 	# Down-stairwells offer a listen read of the floor below (SOUND_STEALTH.md).
+	# The prompt (and the pry countdown) render through the crisp screen-space HUD
+	# system (HUD.show_world_prompt), same as door/loot prompts — no world-space
+	# label the camera would magnify and blur.
+
+
+# Float the pill just above the stairwell arrow (tune here if it sits wrong).
+func _prompt_anchor() -> Vector2:
+	return global_position + Vector2(0, -34)
+
+
+func _show_listen_prompt() -> void:
 	if direction == "down":
-		listen_label = Label.new()
-		listen_label.text = "[R] Listen below"
-		listen_label.add_theme_font_override("font", preload("res://assets/fonts/PixelOperator8.ttf"))
-		listen_label.add_theme_font_size_override("font_size", 8)
-		listen_label.position = Vector2(-55, -46)
-		listen_label.size = Vector2(120, 18)
-		listen_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		listen_label.visible = false
-		add_child(listen_label)
+		HUD.show_world_prompt(self, "[R] Listen below", _prompt_anchor())
 
 func _on_body_entered(body: Node2D) -> void:
 	if body.name == "Player":
 		player_nearby = true
 		if arrow:
 			arrow.visible = true
-		if listen_label:
-			listen_label.visible = true
+		_show_listen_prompt()
 		# Tutorial (first-run Floor 30): the descent is gated until the 3003
 		# neighbour is dealt with — nudge the player back toward the apartments.
 		if direction == "down" and TutorialManager.stairs_locked():
@@ -58,8 +59,7 @@ func _on_body_exited(body: Node2D) -> void:
 			_cancel_pry("You back off the stairwell.")   # walked away mid-pry
 		if arrow:
 			arrow.visible = false
-		if listen_label:
-			listen_label.visible = false
+		HUD.hide_world_prompt(self)
 
 func _process(_delta: float) -> void:
 	if is_prying:
@@ -216,9 +216,7 @@ func _begin_pry() -> void:
 	# Loud from the first heave — draws the current floor's dead toward the steps
 	# and snaps any can-distracted ones back (same door_work loudness as forcing).
 	WorldState.emit_noise(global_position, WorldState.NOISE_RADIUS["door_work"], PRY_TIME)
-	if listen_label:
-		listen_label.text = "Prying... %.1fs" % pry_timer
-		listen_label.visible = true
+	HUD.show_world_prompt(self, "Prying... %.1fs" % pry_timer, _prompt_anchor())
 	TutorialManager.say("Come on... get the claw in and heave. Almost through...")
 
 
@@ -230,8 +228,7 @@ func _tick_pry(delta: float) -> void:
 		_cancel_pry("Prying interrupted.")
 		return
 	pry_timer -= delta
-	if listen_label:
-		listen_label.text = "Prying... %.1fs" % max(pry_timer, 0.0)
+	HUD.show_world_prompt(self, "Prying... %.1fs" % max(pry_timer, 0.0), _prompt_anchor())
 	if pry_timer <= 0.0:
 		_commit_pry()
 
@@ -241,17 +238,17 @@ func _cancel_pry(reason: String) -> void:
 		return
 	is_prying = false
 	pry_timer = 0.0
-	if listen_label:
-		listen_label.text = "[R] Listen below"
-		listen_label.visible = player_nearby
+	if player_nearby:
+		_show_listen_prompt()
+	else:
+		HUD.hide_world_prompt(self)
 	HUD.show_feedback(reason)
 
 
 func _commit_pry() -> void:
 	is_prying = false
 	pry_timer = 0.0
-	if listen_label:
-		listen_label.text = "[R] Listen below"
+	HUD.hide_world_prompt(self)   # about to transition off this floor
 	# Spend the crowbar and commit the crossing: opens the stairwell for the run,
 	# shifts the building (enemies move, no heal), and forfeits the next rest.
 	WorldState.consume_crowbar()

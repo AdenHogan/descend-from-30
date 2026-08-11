@@ -32,22 +32,30 @@ func _ready() -> void:
 	# An item far off to the right must still land fully on-screen.
 	HUD.show_world_prompt(owner_a, "First Aid Kit   [Click] Take", Vector2(5000, 300))
 	HUD._update_world_prompt()
-	chk(HUD.world_prompt_label.visible, "prompt is shown")
-	var pos: Vector2 = HUD.world_prompt_label.position
-	var w: float = HUD.world_prompt_label.size.x
+	var pa: Panel = HUD.world_prompt_panel(owner_a)
+	chk(pa != null and pa.visible, "prompt is shown")
+	var pos: Vector2 = pa.position
+	var w: float = pa.size.x
 	chk(pos.x >= 0.0 and pos.x + w <= HUD.SCREEN_W + 0.5, "clamped inside the right edge (x=%.0f w=%.0f)" % [pos.x, w])
-	chk(pos.y >= 0.0 and pos.y <= HUD.SCREEN_H - HUD.BAR_H, "kept above the HUD bar (y=%.0f)" % pos.y)
+	chk(pos.y >= 0.0 and pos.y + pa.size.y <= HUD.SCREEN_H - HUD.BAR_H + 0.5, "kept above the HUD bar (y=%.0f)" % pos.y)
 
 	# An item far to the LEFT clamps to the left edge, never negative.
 	HUD.show_world_prompt(owner_a, "Bandages   [Click] Take", Vector2(-5000, 300))
 	HUD._update_world_prompt()
-	chk(HUD.world_prompt_label.position.x >= 0.0, "clamped inside the left edge (x=%.0f)" % HUD.world_prompt_label.position.x)
+	chk(HUD.world_prompt_panel(owner_a).position.x >= 0.0, "clamped inside the left edge (x=%.0f)" % HUD.world_prompt_panel(owner_a).position.x)
 
-	# Ownership: a different node leaving range must NOT hide the active prompt.
+	# Multiple owners show at once, each its own pill.
+	HUD.show_world_prompt(owner_b, "2509 - [E] Enter", Vector2(600, 300))
+	HUD._update_world_prompt()
+	chk(HUD.world_prompt_panel(owner_a).visible and HUD.world_prompt_panel(owner_b).visible,
+		"two owners show independent prompts at once")
+
+	# Ownership: one node leaving range hides ONLY its own prompt.
 	HUD.hide_world_prompt(owner_b)
-	chk(HUD.world_prompt_label.visible, "a non-owner cannot hide the prompt")
+	chk(HUD.world_prompt_panel(owner_a).visible, "one owner leaving does not hide another's prompt")
+	chk(not HUD.world_prompt_panel(owner_b).visible, "the owner hides its own prompt")
 	HUD.hide_world_prompt(owner_a)
-	chk(not HUD.world_prompt_label.visible, "the owner hides its own prompt")
+	chk(not HUD.world_prompt_panel(owner_a).visible, "the other owner hides its own too")
 
 	print("=== %s (%d failures) ===" % ["ALL PASSED" if fails == 0 else "FAILED", fails])
 	get_tree().quit(1 if fails > 0 else 0)
