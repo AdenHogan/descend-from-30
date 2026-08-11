@@ -9,10 +9,42 @@ func _ready() -> void:
 	_load_textures()
 
 func _load_textures() -> void:
+	# Icons are addressed by item id. Prefer an exact "<id>.png"; otherwise accept
+	# a descriptive "<id> - Name.png" / "<id>-Name.png" so the assets folder can
+	# stay human-readable (e.g. "035 - Crowbar.png") without breaking the lookup.
+	var descriptive := _index_descriptive_icons()
 	for id in items:
-		var path = "res://assets/Items/" + id + ".png"
-		if ResourceLoader.exists(path):
-			item_textures[id] = load(path)
+		var exact = "res://assets/Items/" + id + ".png"
+		if ResourceLoader.exists(exact):
+			item_textures[id] = load(exact)
+		elif descriptive.has(id):
+			var path = "res://assets/Items/" + descriptive[id]
+			if ResourceLoader.exists(path):
+				item_textures[id] = load(path)
+
+
+func _index_descriptive_icons() -> Dictionary:
+	# Map "<id>" -> "<id> - Name.png" for any descriptively-named icon in the
+	# folder, keyed by the leading 3-digit id. The id must be followed by a
+	# separator (space or dash) so "003" can never grab a longer id's file.
+	var out := {}
+	var dir := DirAccess.open("res://assets/Items")
+	if dir == null:
+		return out
+	for f in dir.get_files():
+		if not f.ends_with(".png"):
+			continue          # skip .import metadata and non-images
+		var cut := f.length()
+		var dash := f.find("-")
+		var space := f.find(" ")
+		if dash >= 0:
+			cut = mini(cut, dash)
+		if space >= 0:
+			cut = mini(cut, space)
+		var id := f.substr(0, cut).strip_edges()
+		if id.length() == 3 and id.is_valid_int() and not out.has(id):
+			out[id] = f
+	return out
 
 func get_texture(id: String) -> Texture2D:
 	return item_textures.get(id, null)

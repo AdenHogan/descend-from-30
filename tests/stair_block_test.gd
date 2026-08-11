@@ -27,6 +27,7 @@ func _ready() -> void:
 	_test_crossing()
 	_test_cross_floor_pull()
 	_test_dev_force_hazards()
+	_test_item_icons()
 	_test_save_load()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
@@ -251,6 +252,16 @@ func _test_dev_force_hazards() -> void:
 	check(not WorldState.dev_all_hazards, "new_game resets the dev hazard flag")
 	WorldState.master_seed = 1337
 	WorldState.current_run = 1
+
+
+func _test_item_icons() -> void:
+	# The icon loader accepts both bare "<id>.png" and descriptive
+	# "<id> - Name.png". Verified against files actually in the repo: 001.png
+	# (bare) and "034 - Screwdriver.png" (descriptive). The Crowbar's
+	# "035 - Crowbar.png" will resolve the same way once the art lands.
+	print("[item icons]")
+	check(ItemData.get_texture("001") != null, "bare-name icon (001.png) loads")
+	check(ItemData.get_texture("034") != null, "descriptive icon (034 - Screwdriver.png) loads")
 
 
 func _test_save_load() -> void:
