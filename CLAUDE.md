@@ -242,7 +242,9 @@ means no rendering — UI layout and art still need an in-editor look.
   current floor's dead converge on the steps); completing it spends the
   crowbar, opens the stairwell for the run, and triggers the **same building
   shift a rest does WITHOUT the heal** (`WorldState.shift_building`, shared with
-  the rest path), forfeiting the next rest (**costs a rest slot**). You arrive
+  the rest path), at the cost of **one rest slot** (a banked rest is burned,
+  else the next merchant-floor rest is forfeited via `rest_forfeit_pending`).
+  You arrive
   to that floor's horde **milling at the stairwell**. Separately, loud noise
   (gunfire/forcing) made **near a stairwell** pulls only the **stairwell-seeded**
   dead on the adjacent floor (never a whole-floor vacuum; running never pulls).

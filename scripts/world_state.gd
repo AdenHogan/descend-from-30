@@ -128,6 +128,10 @@ var max_stamina: float = 100.0
 var last_rest_floor: int = 30
 var rest_available: bool = true
 var rest_count: int = 0
+# A crowbar crossing that had no banked rest to burn sets this: the NEXT
+# merchant-floor rest is forfeited instead (so a crossing always costs exactly
+# one rest opportunity, wherever it happens). Per-run; saved/loaded.
+var rest_forfeit_pending: bool = false
 var active_upgrades: Array = []
 var available_upgrades: Array = []
 var saved_player_x: float = 0.0
@@ -390,6 +394,7 @@ func new_game() -> void:
 	last_rest_floor = 30
 	rest_available = true
 	rest_count = 0
+	rest_forfeit_pending = false
 	active_upgrades.clear()
 	available_upgrades.clear()
 	initialize_paradise_apartments()
@@ -427,8 +432,14 @@ func on_floor_arrived(floor_num: int) -> void:
 	# Reaching any floor below 30 means the tutorial has been played through.
 	if floor_num < 30 and floor_num > 0:
 		mark_tutorial_completed()
-	if floor_num in [25, 20, 15, 10, 5]:
-		rest_available = true
+	if floor_num in MERCHANT_FLOORS:
+		# A pending crossing forfeit eats this merchant floor's rest grant instead
+		# of banking it — that's the "costs a rest slot" for a crossing made with
+		# no rest in hand.
+		if rest_forfeit_pending:
+			rest_forfeit_pending = false
+		else:
+			rest_available = true
 	seed_floor_door_states(floor_num)
 
 
@@ -1437,7 +1448,12 @@ func cross_blocked_stair(floor_num: int) -> void:
 	# arrival floor so its stairwell horde is milling there when you step out.
 	clear_stair_block(floor_num)
 	shift_building()
-	rest_available = false
+	# Cost exactly one rest opportunity: burn a banked rest if you have one, else
+	# forfeit the next merchant-floor rest. Never both — a crossing is one slot.
+	if rest_available:
+		rest_available = false
+	else:
+		rest_forfeit_pending = true
 	pending_pry_arrival_floor = floor_num - 1
 
 
@@ -2044,6 +2060,7 @@ func save_game(scene_path: String) -> void:
 		"last_rest_floor": last_rest_floor,
 		"rest_available": rest_available,
 		"rest_count": rest_count,
+		"rest_forfeit_pending": rest_forfeit_pending,
 		"paradise_apartments": paradise_apartments,
 		"anchor_items": anchor_items,
 		"searched_anchors": searched_anchors,
@@ -2110,6 +2127,7 @@ func load_game() -> String:
 	last_rest_floor = data["last_rest_floor"]
 	rest_available = data["rest_available"]
 	rest_count = data["rest_count"]
+	rest_forfeit_pending = data.get("rest_forfeit_pending", false)
 	paradise_apartments = data["paradise_apartments"]
 	anchor_items = data["anchor_items"]
 	searched_anchors = data["searched_anchors"]

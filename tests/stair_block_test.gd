@@ -140,12 +140,36 @@ func _test_crossing() -> void:
 		return
 	var seed_before = WorldState.master_seed
 	WorldState.current_floor = target
+	# Branch 1: crossing WITH a banked rest burns it (and sets no forfeit).
+	WorldState.rest_available = true
+	WorldState.rest_forfeit_pending = false
 	WorldState.cross_blocked_stair(target)
 	check(WorldState.is_stair_block_cleared(target), "crossing clears the stairwell for the run")
 	check(not WorldState.is_stair_blocked(target), "crossed stairwell is no longer blocked")
-	check(not WorldState.rest_available, "crossing forfeits the next rest (costs a rest slot)")
+	check(not WorldState.rest_available, "crossing with a banked rest burns it")
+	check(not WorldState.rest_forfeit_pending, "burning a banked rest sets no extra forfeit")
 	check(WorldState.master_seed != seed_before, "crossing shifts the building (enemies move)")
 	check(WorldState.pending_pry_arrival_floor == target - 1, "arrival floor is flagged for milling")
+
+	# Branch 2: crossing with NO banked rest forfeits the next merchant rest.
+	WorldState.rest_available = false
+	WorldState.rest_forfeit_pending = false
+	WorldState.cross_blocked_stair(target)
+	check(not WorldState.rest_available, "crossing with no rest leaves rest unavailable")
+	check(WorldState.rest_forfeit_pending, "crossing with no banked rest forfeits the next rest")
+
+	# The forfeit is spent at the next merchant floor: that floor grants no rest.
+	WorldState.rest_available = false
+	WorldState.rest_forfeit_pending = true
+	WorldState.on_floor_arrived(15)   # a merchant floor
+	check(not WorldState.rest_available, "a forfeited merchant floor grants no rest")
+	check(not WorldState.rest_forfeit_pending, "the forfeit is consumed at that floor")
+
+	# Without a forfeit, a merchant floor grants a rest as normal.
+	WorldState.rest_available = false
+	WorldState.rest_forfeit_pending = false
+	WorldState.on_floor_arrived(15)
+	check(WorldState.rest_available, "a normal merchant floor grants a rest")
 
 
 func _test_cross_floor_pull() -> void:

@@ -23,9 +23,11 @@ stairs, so where and when you cross is a real decision.
    - **Cost = a rest slot.** Crossing triggers the **same building shift a rest
      does** (`WorldState.shift_building` — the world reseeds and the dead
      wander), but is **not billed as rest**: **no stamina heal**, no rest-stat
-     bump. It also **forfeits your next rest** (`rest_available = false`). So
-     you weigh: spend the shift here to punch through, or save it to actually
-     rest and heal.
+     bump. It costs **exactly one rest opportunity, wherever you cross**: if a
+     rest is banked it's **burned** (`rest_available = false`); if not, the
+     **next** merchant-floor rest is **forfeited** (`rest_forfeit_pending`,
+     consumed in `on_floor_arrived`). Never both. So you weigh: spend the shift
+     here to punch through, or keep the slot to actually rest and heal.
    - **The destination floor is waiting.** Arriving via a pry, that floor's
      whole horde is **milling at the stairwell you tore open**, roused —
      tactical planning required.
@@ -63,8 +65,9 @@ a stairwell pried open; `clear_stair_block` sets it, and it short-circuits
 `stairwell.gd` (`_begin_pry`/`_tick_pry`/`_commit_pry`), reusing the door-force
 channel pattern. On commit: `consume_crowbar()` then
 `cross_blocked_stair(floor)` → `clear_stair_block` + `shift_building`
-(reseed, **no heal**) + `rest_available = false` + set
-`pending_pry_arrival_floor = floor - 1`. The normal descent transition is
+(reseed, **no heal**) + the one-slot rest cost (burn `rest_available`, else
+set `rest_forfeit_pending` — consumed at the next merchant floor in
+`on_floor_arrived`) + set `pending_pry_arrival_floor = floor - 1`. The normal descent transition is
 factored into `_perform_transition()` so both the plain and post-pry paths use
 it.
 
@@ -89,8 +92,8 @@ loud source funnels through `emit_noise`; the pull gate records
 `radius >= STAIR_NOISE_PULL_MIN` (door_work) and the noise sits in a stairwell
 zone. Cleared on `shift_building`, reset in `new_game`, saved/loaded.
 
-**Persistence.** `stair_blocks_cleared` and `pending_stair_pulls` are per-run
-and saved/loaded. `pending_pry_arrival_floor` is transient (consumed on arrival
+**Persistence.** `stair_blocks_cleared`, `pending_stair_pulls`, and
+`rest_forfeit_pending` are per-run and saved/loaded. `pending_pry_arrival_floor` is transient (consumed on arrival
 within the same session, never crosses a save) and reset in `new_game`.
 
 ## Tests
