@@ -110,18 +110,21 @@ within the same session, never crosses a save) and reset in `new_game`.
 
 ## Dev tooling
 
-**F2** (`dev_force_hazards`) toggles `WorldState.dev_all_hazards` — force floor
-hazards ON for vacuum testing:
-- **Stair hordes:** every eligible down-stairwell is blocked (`is_stair_blocked`
-  reads the flag live, so it applies on any descent immediately).
-- **Barricaded doors:** every apartment on a floor seeded *while the flag is on*
-  is `BARRICADED_FORCEABLE` (`seed_floor_door_states`). Because door states seed
-  once per floor, this applies to floors you **enter after** toggling it, not
-  retroactively to already-visited floors.
+**F2** (`dev_force_hazards`) CYCLES `WorldState.dev_hazard_mode` through one
+hazard at a time so they never overlap: **off → stairwell hordes → barricaded
+doors → off** (fire slots in before the wrap once implemented). Each press shows
+the new mode.
+- **Stair hordes** (mode 1): every eligible down-stairwell is blocked
+  (`is_stair_blocked` reads the mode live, so it applies on any descent
+  immediately).
+- **Barricaded doors** (mode 2): every apartment on a floor seeded *while this
+  mode is on* is `BARRICADED_FORCEABLE` (`seed_floor_door_states`). Door states
+  seed once per floor, so it applies to floors you **enter after** switching to
+  this mode, not retroactively.
 
 Session-only (reset by `new_game`, not saved); exemptions (floor 30 tutorial,
-floor 1 stairs) still hold. New per-floor hazards should honour the same flag.
-Use **F1** to spawn a Crowbar (035) to test the crossing.
+floor 1 stairs) hold in every mode. New per-floor hazards should extend the
+cycle. Use **F1** to spawn a Crowbar (035) to test the crossing.
 
 ## Open / later
 

@@ -221,33 +221,37 @@ func _test_cross_floor_pull() -> void:
 
 
 func _test_dev_force_hazards() -> void:
-	print("[dev: force hazards every floor]")
+	print("[dev: cycle hazards every floor]")
 	WorldState.master_seed = 1337
 	WorldState.current_run = 1
 	WorldState.stair_blocks_cleared.clear()
-	WorldState.dev_all_hazards = true
-	# Every eligible floor is now blocked — testable in a vacuum.
+
+	# HORDE mode: every eligible floor is blocked; barricades are NOT forced.
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_HORDE
 	var all_blocked := true
 	for f in range(2, 30):
 		if not WorldState.is_stair_blocked(f):
 			all_blocked = false
-	check(all_blocked, "dev flag blocks every eligible floor (2..29)")
-	# Exemptions still hold even with the dev flag on.
-	check(not WorldState.is_stair_blocked(30), "dev flag still exempts floor 30")
-	check(not WorldState.is_stair_blocked(1), "dev flag still exempts floor 1")
-	# A cleared stairwell stays open even under the dev flag.
+	check(all_blocked, "horde mode blocks every eligible floor (2..29)")
+	check(not WorldState.is_stair_blocked(30), "horde mode still exempts floor 30")
+	check(not WorldState.is_stair_blocked(1), "horde mode still exempts floor 1")
 	WorldState.clear_stair_block(7)
-	check(not WorldState.is_stair_blocked(7), "a cleared stairwell stays open under the dev flag")
-	# Turning it off returns to seeded behaviour (not every floor blocked).
-	WorldState.dev_all_hazards = false
+	check(not WorldState.is_stair_blocked(7), "a cleared stairwell stays open in horde mode")
+	# Horde mode does NOT force-barricade doors — they follow normal seeding, which
+	# always leaves at least one OPEN door (barricade mode forces all 5 shut).
+	WorldState.door_states.clear()
+	WorldState.floor_states_seeded.clear()
+	WorldState.seed_floor_door_states(18)
+	var open_in_horde := 0
+	for i in range(1, 6):
+		if WorldState.get_door_state("180" + str(i)) == WorldState.DoorState.OPEN:
+			open_in_horde += 1
+	check(open_in_horde >= 1, "horde mode uses normal door seeding (>=1 open, not all forced)")
+
+	# BARRICADE mode: every apartment on a newly-seeded floor is barricaded, and
+	# stairs are NOT force-blocked.
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_BARRICADE
 	WorldState.stair_blocks_cleared.clear()
-	var seeded_blocked := 0
-	for f in range(2, 30):
-		if WorldState.is_stair_blocked(f):
-			seeded_blocked += 1
-	check(seeded_blocked < 28, "flag off: back to seeded (not every floor)")
-	# The flag also forces barricaded doors on newly-seeded floors.
-	WorldState.dev_all_hazards = true
 	WorldState.door_states.clear()
 	WorldState.floor_states_seeded.clear()
 	WorldState.seed_floor_door_states(18)
@@ -255,18 +259,41 @@ func _test_dev_force_hazards() -> void:
 	for i in range(1, 6):
 		if WorldState.get_door_state("180" + str(i)) != WorldState.DoorState.BARRICADED_FORCEABLE:
 			all_barricaded = false
-	check(all_barricaded, "dev flag barricades every apartment on a seeded floor")
-	# The tutorial floor keeps its hardcoded doors even under the dev flag.
+	check(all_barricaded, "barricade mode barricades every apartment on a seeded floor")
+	var forced_blocked := 0
+	for f in range(2, 30):
+		if WorldState.is_stair_blocked(f):
+			forced_blocked += 1
+	check(forced_blocked < 28, "barricade mode does not force-block every stairwell (no overlap)")
+	# The tutorial floor keeps its hardcoded doors in any mode.
 	WorldState.door_states.clear()
 	WorldState.floor_states_seeded.clear()
 	WorldState.seed_floor_door_states(30)
 	check(WorldState.get_door_state("3003") == WorldState.DoorState.OPEN,
-		"dev flag does not override the tutorial floor's doors")
+		"barricade mode does not override the tutorial floor's doors")
 
-	# new_game clears the dev flag (session-only, like god_mode).
-	WorldState.dev_all_hazards = true
+	# OFF mode: back to seeded behaviour (not every floor blocked).
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
+	WorldState.stair_blocks_cleared.clear()
+	var seeded_blocked := 0
+	for f in range(2, 30):
+		if WorldState.is_stair_blocked(f):
+			seeded_blocked += 1
+	check(seeded_blocked < 28, "off mode: back to seeded (not every floor)")
+
+	# The cycle wraps off → horde → barricade → off.
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
+	var seq := []
+	for i in range(4):
+		WorldState.dev_hazard_mode = (WorldState.dev_hazard_mode + 1) % WorldState.DEV_HAZARD_COUNT
+		seq.append(WorldState.dev_hazard_mode)
+	check(seq == [WorldState.DEV_HAZARD_HORDE, WorldState.DEV_HAZARD_BARRICADE,
+		WorldState.DEV_HAZARD_NONE, WorldState.DEV_HAZARD_HORDE], "F2 cycles off→horde→barricade→off")
+
+	# new_game clears the dev mode (session-only, like god_mode).
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_BARRICADE
 	WorldState.new_game()
-	check(not WorldState.dev_all_hazards, "new_game resets the dev hazard flag")
+	check(WorldState.dev_hazard_mode == WorldState.DEV_HAZARD_NONE, "new_game resets the dev hazard mode")
 	WorldState.door_states.clear()
 	WorldState.floor_states_seeded.clear()
 	WorldState.master_seed = 1337

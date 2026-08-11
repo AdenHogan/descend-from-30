@@ -145,11 +145,16 @@ var world_drops: Dictionary = {}  # "floor:x:y" -> {item_id, x, y, floor, target
 
 # Dev tools
 var god_mode: bool = false
-# DEV (F2): force every eligible floor's hazards ON so a system can be tested in
-# a vacuum instead of hunting for a seeded instance. Currently drives the heavy
-# stairwell horde (is_stair_blocked); new per-floor hazards should honour it too.
-# Session-only, like god_mode — not saved, reset by new_game.
-var dev_all_hazards: bool = false
+# DEV (F2): CYCLE floor hazards one at a time (so they never overlap) —
+#   0 off → 1 heavy stairwell hordes → 2 barricaded doors → back to 0.
+# Fire slots in before the wrap once it's implemented. Session-only, like
+# god_mode — not saved, reset by new_game.
+const DEV_HAZARD_NONE := 0
+const DEV_HAZARD_HORDE := 1
+const DEV_HAZARD_BARRICADE := 2
+const DEV_HAZARD_COUNT := 3
+const DEV_HAZARD_NAMES := ["off", "stairwell hordes", "barricaded doors"]
+var dev_hazard_mode: int = DEV_HAZARD_NONE
 
 # --- Door system ---
 enum DoorState {
@@ -436,7 +441,7 @@ func new_game() -> void:
 	merchant_sales.clear()
 	upgrade_offers.clear()
 	god_mode = false
-	dev_all_hazards = false
+	dev_hazard_mode = DEV_HAZARD_NONE
 
 
 func on_floor_arrived(floor_num: int) -> void:
@@ -1375,7 +1380,7 @@ func is_stair_blocked(floor_num: int) -> bool:
 	if is_stair_block_cleared(floor_num):
 		return false
 	# DEV: force the hazard onto every eligible floor for vacuum testing.
-	if dev_all_hazards:
+	if dev_hazard_mode == DEV_HAZARD_HORDE:
 		return true
 	var rng = RandomNumberGenerator.new()
 	rng.seed = hash(str(master_seed) + "stairblock" + str(floor_num) + str(current_run))
@@ -1765,9 +1770,9 @@ func seed_floor_door_states(floor_num: int) -> void:
 
 	# DEV (F2): force every apartment on this floor to a barricaded door for vacuum
 	# testing — a visible hazard on each floor. BARRICADED_FORCEABLE, so no key is
-	# needed to break in. Applies to floors seeded while the flag is on; any door
+	# needed to break in. Applies to floors seeded while the mode is on; any door
 	# the player has already changed is preserved.
-	if dev_all_hazards:
+	if dev_hazard_mode == DEV_HAZARD_BARRICADE:
 		for i in range(1, 6):
 			var apt_id = str(floor_num) + "0" + str(i)
 			if not door_states.has(apt_id):
