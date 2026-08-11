@@ -23,10 +23,12 @@ originals — the markdown here is canonical for development):
 - `docs/SOUND_STEALTH.md` — noise model (under the hood) + anchored R-listen
   at doors/stairwells. Agreed + implemented v1; roaming TLOU-style listen
   deliberately dropped.
-- `docs/STAIR_HORDES.md` — heavy stairwell hordes + the Crowbar (035):
-  passable-but-costly stair crossings (crowbar + building shift + rest-slot
-  cost), arrival mustering, and the narrow cross-floor noise pull. v1
-  implemented.
+- `docs/STAIR_BARRICADES.md` — stairwell **barricades** + the Crowbar (035):
+  passable-but-costly crossings (crowbar pry, both directions, building shift +
+  rest-slot cost), arrival mustering, the narrow cross-floor noise pull, the F2
+  hazard cycle (barricade built; horde/fire placeholders), and barricade-keeper
+  NPC groundwork. v1 implemented. (Terminology: barricade = debris block pried
+  with a crowbar; horde = future live-enemy block; fire = future.)
 
 When docs conflict: STORE_DESIGN.md and THREE_RUN_ARC.md supersede the GDD
 (each notes what it overrides). Keep the docs updated when a design decision
@@ -235,23 +237,25 @@ means no rendering — UI layout and art still need an in-editor look.
   floor as a backdrop; `StairPan` autoload scaffolds the two-floor camera pan
   but is **DISABLED** (needs in-editor feel-tuning; stairs use the fade until
   then).
-- Heavy stairwell hordes + Crowbar (docs/STAIR_HORDES.md, v1): some
-  down-stairwells are choked wall-to-wall and can't be fought — they're pried
+- Stairwell **barricades** + Crowbar (docs/STAIR_BARRICADES.md, v1): some
+  stairwells are barricaded with debris and can't be fought — they're pried
   through with a **Crowbar (035)** (new `is_tool, is_crowbar` item, single-use/
-  consumed). The pry is a channeled action (loud from the first heave, so the
-  current floor's dead converge on the steps); completing it spends the
-  crowbar, opens the stairwell for the run, and triggers the **same building
-  shift a rest does WITHOUT the heal** (`WorldState.shift_building`, shared with
-  the rest path), at the cost of **one rest slot** (a banked rest is burned,
-  else the next merchant-floor rest is forfeited via `rest_forfeit_pending`).
-  You arrive
-  to that floor's horde **milling at the stairwell**. Separately, loud noise
-  (gunfire/forcing) made **near a stairwell** pulls only the **stairwell-seeded**
-  dead on the adjacent floor (never a whole-floor vacuum; running never pulls).
-  Seeded per (floor,run); floor 30 + floor 1 exempt. Standard zombies for now
-  (new enemy type is a later pass). Covered by `stair_block_test` +
-  `building_floors_test`.
+  consumed), and block **both directions** until cleared. The pry is a channeled
+  action (~6s, loud from the first heave, so the current floor's dead converge
+  on the steps); completing it spends the crowbar, opens the stairwell for the
+  run, and triggers the **same building shift a rest does WITHOUT the heal**
+  (`WorldState.shift_building`), at the cost of **one rest slot** (a banked rest
+  is burned, else the next merchant-floor rest is forfeited via
+  `rest_forfeit_pending`). You arrive to that floor's dead **milling at the
+  stairwell**. Separately, loud noise (gunfire/forcing) made **near a stairwell**
+  pulls only the **stairwell-seeded** dead on the adjacent floor (never a
+  whole-floor vacuum; running never pulls). Seeded per (floor,run); floor 30 +
+  floor 1 exempt. **Terminology:** barricade = debris block (built); *horde* =
+  future live-enemy block; *fire* = future — **F2** dev-cycles off → barricade →
+  horde → fire → off (horde/fire are placeholders). **Barricade-keeper NPC**
+  quest has seeded groundwork (`barricade_has_keeper` + `barricade_keeper_state`)
+  but no NPC yet. Covered by `stair_block_test` + `building_floors_test`.
 - Next: tutorial **v2** (above), then characters/profiles/stats + the
   two-&-three-run arc; also **Upgrade offers** polish and player-corpse
-  recovery (store step 7).
+  recovery (store step 7); barricade-keeper NPC + the horde/fire hazards.
 - Not started: time-of-day, fires, balcony descent, quests, character stats.

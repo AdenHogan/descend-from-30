@@ -27,6 +27,7 @@ func _ready() -> void:
 	_test_crossing()
 	_test_cross_floor_pull()
 	_test_dev_force_hazards()
+	_test_barricade_keeper()
 	_test_item_icons()
 	_test_save_load()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
@@ -226,51 +227,37 @@ func _test_dev_force_hazards() -> void:
 	WorldState.current_run = 1
 	WorldState.stair_blocks_cleared.clear()
 
-	# HORDE mode: every eligible floor is blocked; barricades are NOT forced.
-	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_HORDE
+	# BARRICADE mode (the only built one): every eligible stairwell is blocked.
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_BARRICADE
 	var all_blocked := true
 	for f in range(2, 30):
 		if not WorldState.is_stair_blocked(f):
 			all_blocked = false
-	check(all_blocked, "horde mode blocks every eligible floor (2..29)")
-	check(not WorldState.is_stair_blocked(30), "horde mode still exempts floor 30")
-	check(not WorldState.is_stair_blocked(1), "horde mode still exempts floor 1")
+	check(all_blocked, "barricade mode blocks every eligible stairwell (2..29)")
+	check(not WorldState.is_stair_blocked(30), "barricade mode still exempts floor 30")
+	check(not WorldState.is_stair_blocked(1), "barricade mode still exempts floor 1")
 	WorldState.clear_stair_block(7)
-	check(not WorldState.is_stair_blocked(7), "a cleared stairwell stays open in horde mode")
-	# Horde mode does NOT force-barricade doors — they follow normal seeding, which
-	# always leaves at least one OPEN door (barricade mode forces all 5 shut).
+	check(not WorldState.is_stair_blocked(7), "a cleared stairwell stays open in barricade mode")
+	# Barricade mode does NOT touch apartment doors (that dev mode was dropped) —
+	# doors follow normal seeding, which always leaves at least one OPEN.
 	WorldState.door_states.clear()
 	WorldState.floor_states_seeded.clear()
 	WorldState.seed_floor_door_states(18)
-	var open_in_horde := 0
+	var open_doors := 0
 	for i in range(1, 6):
 		if WorldState.get_door_state("180" + str(i)) == WorldState.DoorState.OPEN:
-			open_in_horde += 1
-	check(open_in_horde >= 1, "horde mode uses normal door seeding (>=1 open, not all forced)")
+			open_doors += 1
+	check(open_doors >= 1, "barricade mode leaves apartment doors to normal seeding")
 
-	# BARRICADE mode: every apartment on a newly-seeded floor is barricaded, and
-	# stairs are NOT force-blocked.
-	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_BARRICADE
+	# HORDE and FIRE are placeholders in the cycle — no effect yet.
 	WorldState.stair_blocks_cleared.clear()
-	WorldState.door_states.clear()
-	WorldState.floor_states_seeded.clear()
-	WorldState.seed_floor_door_states(18)
-	var all_barricaded := true
-	for i in range(1, 6):
-		if WorldState.get_door_state("180" + str(i)) != WorldState.DoorState.BARRICADED_FORCEABLE:
-			all_barricaded = false
-	check(all_barricaded, "barricade mode barricades every apartment on a seeded floor")
-	var forced_blocked := 0
-	for f in range(2, 30):
-		if WorldState.is_stair_blocked(f):
-			forced_blocked += 1
-	check(forced_blocked < 28, "barricade mode does not force-block every stairwell (no overlap)")
-	# The tutorial floor keeps its hardcoded doors in any mode.
-	WorldState.door_states.clear()
-	WorldState.floor_states_seeded.clear()
-	WorldState.seed_floor_door_states(30)
-	check(WorldState.get_door_state("3003") == WorldState.DoorState.OPEN,
-		"barricade mode does not override the tutorial floor's doors")
+	for placeholder in [WorldState.DEV_HAZARD_HORDE, WorldState.DEV_HAZARD_FIRE]:
+		WorldState.dev_hazard_mode = placeholder
+		var forced := 0
+		for f in range(2, 30):
+			if WorldState.is_stair_blocked(f):
+				forced += 1
+		check(forced < 28, "placeholder mode %d forces nothing (not built)" % placeholder)
 
 	# OFF mode: back to seeded behaviour (not every floor blocked).
 	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
@@ -281,14 +268,15 @@ func _test_dev_force_hazards() -> void:
 			seeded_blocked += 1
 	check(seeded_blocked < 28, "off mode: back to seeded (not every floor)")
 
-	# The cycle wraps off → horde → barricade → off.
+	# The cycle wraps off → barricade → hordes → fire → off.
 	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
 	var seq := []
-	for i in range(4):
+	for i in range(5):
 		WorldState.dev_hazard_mode = (WorldState.dev_hazard_mode + 1) % WorldState.DEV_HAZARD_COUNT
 		seq.append(WorldState.dev_hazard_mode)
-	check(seq == [WorldState.DEV_HAZARD_HORDE, WorldState.DEV_HAZARD_BARRICADE,
-		WorldState.DEV_HAZARD_NONE, WorldState.DEV_HAZARD_HORDE], "F2 cycles off→horde→barricade→off")
+	check(seq == [WorldState.DEV_HAZARD_BARRICADE, WorldState.DEV_HAZARD_HORDE,
+		WorldState.DEV_HAZARD_FIRE, WorldState.DEV_HAZARD_NONE, WorldState.DEV_HAZARD_BARRICADE],
+		"F2 cycles off→barricade→hordes→fire→off")
 
 	# new_game clears the dev mode (session-only, like god_mode).
 	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_BARRICADE
@@ -298,6 +286,48 @@ func _test_dev_force_hazards() -> void:
 	WorldState.floor_states_seeded.clear()
 	WorldState.master_seed = 1337
 	WorldState.current_run = 1
+
+
+func _test_barricade_keeper() -> void:
+	# Story groundwork: some ACTIVE barricades have a human keeper. Seeded per
+	# (floor, run); persisted narrative state. No NPC spawns yet.
+	print("[barricade keeper (groundwork)]")
+	WorldState.master_seed = 1337
+	WorldState.current_run = 1
+	WorldState.stair_blocks_cleared.clear()
+	WorldState.barricade_keeper_state.clear()
+	# Force every stairwell barricaded so keeper eligibility is testable.
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_BARRICADE
+	# Deterministic.
+	check(WorldState.barricade_has_keeper(15) == WorldState.barricade_has_keeper(15),
+		"barricade_has_keeper is deterministic")
+	# A keeper needs an ACTIVE barricade: exempt floors and cleared floors have none.
+	check(not WorldState.barricade_has_keeper(30), "no keeper on the exempt tutorial floor")
+	check(not WorldState.barricade_has_keeper(1), "no keeper on the exempt floor 1")
+	# Some floors have a keeper, but not all (it's a fraction of barricades).
+	var keepers := 0
+	for f in range(2, 30):
+		if WorldState.barricade_has_keeper(f):
+			keepers += 1
+	check(keepers > 0 and keepers < 28, "some (not all) barricades have a keeper (%d/28)" % keepers)
+	# Clearing the barricade removes the keeper hook (it's been dealt with).
+	var kf := -1
+	for f in range(2, 30):
+		if WorldState.barricade_has_keeper(f):
+			kf = f
+			break
+	if kf != -1:
+		WorldState.clear_stair_block(kf)
+		check(not WorldState.barricade_has_keeper(kf), "a cleared barricade has no keeper")
+	# Narrative state round-trips and is per-run.
+	WorldState.set_barricade_keeper_state(9, "hostile")
+	check(WorldState.get_barricade_keeper_state(9) == "hostile", "keeper state stored")
+	WorldState.current_run = 2
+	check(WorldState.get_barricade_keeper_state(9) == "", "keeper state is per-run")
+	WorldState.current_run = 1
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
+	WorldState.stair_blocks_cleared.clear()
+	WorldState.barricade_keeper_state.clear()
 
 
 func _test_item_icons() -> void:
@@ -324,12 +354,15 @@ func _test_save_load() -> void:
 	WorldState.stair_blocks_cleared.clear()
 	WorldState.clear_stair_block(7)
 	WorldState.saved_on_balcony_plane = true
+	WorldState.set_barricade_keeper_state(9, "hostile")
 	WorldState.save_game("res://scenes/building_floors.tscn")
 	# Wipe the in-memory copy, then reload and confirm it came back.
 	WorldState.stair_blocks_cleared.clear()
 	WorldState.saved_on_balcony_plane = false
+	WorldState.barricade_keeper_state.clear()
 	check(not WorldState.is_stair_block_cleared(7), "in-memory clear wiped")
 	WorldState.load_game()
 	check(WorldState.is_stair_block_cleared(7), "stair_blocks_cleared survives save/load")
 	check(WorldState.saved_on_balcony_plane, "balcony-plane flag survives save/load")
+	check(WorldState.get_barricade_keeper_state(9) == "hostile", "barricade keeper state survives save/load")
 	WorldState.delete_save()

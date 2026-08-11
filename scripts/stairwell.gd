@@ -167,7 +167,7 @@ func _use_stairs() -> void:
 		if is_prying:
 			return   # already levering — don't restart the channel
 		if not WorldState.has_crowbar():
-			TutorialManager.say("The stairwell's choked solid — no getting through that without a crowbar to lever it open.")
+			TutorialManager.say("Someone's barricaded the stairwell — furniture, planks, the lot, wedged in tight. I'd need a crowbar to lever it apart.")
 			return
 		_begin_pry()
 		return

@@ -12,8 +12,8 @@ const MODE_SWITCH_TIME = 0.2
 const DEV_MODE = true
 # F1 item spawning is now a typed prompt (dev_item_prompt.gd) — pick any item by
 # number instead of cycling. F2 (dev_force_hazards) CYCLES floor hazards one at a
-# time (WorldState.dev_hazard_mode: off → hordes → barricades → off) so each can
-# be tested in a vacuum without overlap.
+# time (WorldState.dev_hazard_mode: off → barricades → hordes → fire → off); only
+# barricades is built so far, so each can be tested in a vacuum without overlap.
 
 # Stamina
 const STAMINA_SPRINT_DRAIN = 12.0
@@ -907,14 +907,17 @@ func _input(event: InputEvent) -> void:
 			HUD.show_feedback("DEV: God Mode " + ("ON" if WorldState.god_mode else "OFF"))
 		elif event.is_action_pressed("dev_force_hazards"):
 			# DEV (F2): CYCLE floor hazards one at a time so they never overlap —
-			# off → stairwell hordes → barricaded doors → off. Stair hordes apply
-			# live on any descent; barricades apply to floors entered while that
-			# mode is on (door states seed once per floor).
+			# off → barricades → hordes → fire → off. Only barricades is built (it
+			# force-blocks every eligible stairwell); hordes/fire are cycle slots
+			# for later and have no effect yet.
 			WorldState.dev_hazard_mode = (WorldState.dev_hazard_mode + 1) % WorldState.DEV_HAZARD_COUNT
-			if WorldState.dev_hazard_mode == WorldState.DEV_HAZARD_NONE:
-				HUD.show_feedback("DEV: Hazards off")
+			var m = WorldState.dev_hazard_mode
+			if m == WorldState.DEV_HAZARD_NONE:
+				HUD.show_feedback("DEV: Hazards off (seed defaults)")
+			elif m in WorldState.DEV_HAZARD_UNBUILT:
+				HUD.show_feedback("DEV: Hazard → %s (not built yet)" % WorldState.DEV_HAZARD_NAMES[m])
 			else:
-				HUD.show_feedback("DEV: Hazard → %s (every floor)" % WorldState.DEV_HAZARD_NAMES[WorldState.dev_hazard_mode])
+				HUD.show_feedback("DEV: Hazard → %s (every floor)" % WorldState.DEV_HAZARD_NAMES[m])
 		elif event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F5:
 			# DEV: unlock the Wallet and grant 500 Bank Notes.
 			if not WorldState.wallet_unlocked:

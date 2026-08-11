@@ -1,25 +1,40 @@
-# DF30 — Heavy Stairwell Hordes & the Crowbar
+# DF30 — Stairwell Barricades & the Crowbar
 
 > **Status:** agreed design (owner Q&A), v1 implemented. Reintroduces
 > rest/building-reset as a live tactical decision and makes noise near
 > stairwells matter across floors.
 
-Some **down-stairwells** are choked wall-to-wall with the dead. This is not a
-fight you win — it's a **blockage you pry through with a Crowbar**. Getting
-through is passable but costly, and it stirs the building on both sides of the
-stairs, so where and when you cross is a real decision.
+## Terminology (agreed)
+
+Three distinct stairwell hazards — do not conflate them:
+- **Barricade** *(built)* — a stairwell blocked with furniture/debris. Not a
+  fight: you **pry it open with a Crowbar**. This doc.
+- **Horde** *(future)* — a stairwell packed with **live enemies** you fight or
+  distract through (no crowbar). Not built; a later pass.
+- **Fire** *(future)* — a spreading blaze. Not built.
+
+(The dead that *muster* at a barricade when you pry it, or get pulled through by
+noise, are still just standard zombies — the barricade draws them, it isn't made
+of them.)
+
+Some **stairwells** are barricaded — blocked with debris someone wedged in.
+Getting through is passable but costly, and it stirs the building on both sides
+of the stairs, so where and when you cross is a real decision.
 
 ## The rules (as agreed)
 
 1. **Passable, but costly — a Crowbar job.**
-   - A blocked down-stairwell refuses a normal descent. With a **Crowbar (035)**
-     the player runs a **channeled pry** (`PRY_TIME`, ~3s). It is **loud from
-     the first heave** (`door_work` noise at the stairwell), so the **current
-     floor's dead converge on the steps** while you work. Walking off the
-     stairwell or taking any other committed action cancels it.
+   - A barricaded stairwell refuses the crossing **in either direction** (you
+     can't slip up past it any more than down through it) until it's levered
+     open. With a **Crowbar (035)** the player runs a **channeled pry**
+     (`PRY_TIME`, ~6s — long enough that the roused dead can close in). It is
+     **loud from the first heave** (`door_work` noise at the stairwell), so the
+     **current floor's dead converge on the steps** while you work. Walking off
+     the stairwell or taking any other committed action cancels it.
    - Completing the pry **spends the crowbar** (single-use, consumed — see
      below), opens that stairwell **for the rest of the run**, and commits the
-     crossing.
+     crossing. A clear cue fires — feedback + a player-speech line — because the
+     building shift is the whole cost.
    - **Cost = a rest slot.** Crossing triggers the **same building shift a rest
      does** (`WorldState.shift_building` — the world reseeds and the dead
      wander), but is **not billed as rest**: **no stamina heal**, no rest-stat
@@ -61,15 +76,17 @@ lobby) are never blocked.** `stair_blocks_cleared` (per-run, string-keyed) marks
 a stairwell pried open; `clear_stair_block` sets it, and it short-circuits
 `is_stair_blocked`.
 
-**Crossing (`stairwell.gd` + `world_state.gd`).** The pry lives in
-`stairwell.gd` (`_begin_pry`/`_tick_pry`/`_commit_pry`), reusing the door-force
-channel pattern. On commit: `consume_crowbar()` then
-`cross_blocked_stair(floor)` → `clear_stair_block` + `shift_building`
-(reseed, **no heal**) + the one-slot rest cost (burn `rest_available`, else
-set `rest_forfeit_pending` — consumed at the next merchant floor in
-`on_floor_arrived`) + set `pending_pry_arrival_floor = floor - 1`. The normal descent transition is
-factored into `_perform_transition()` so both the plain and post-pry paths use
-it.
+**Crossing (`stairwell.gd` + `world_state.gd`).** A choke sits on the staircase
+*between* two floors, keyed by the upper floor's down-stair (`_choke_floor()`:
+`current` going down, `current+1` going up), so it blocks both directions. The
+pry lives in `stairwell.gd` (`_begin_pry`/`_tick_pry`/`_commit_pry`), reusing the
+door-force channel pattern. On commit: `consume_crowbar()` then
+`cross_blocked_stair(choke_floor, arrival_floor)` → `clear_stair_block` +
+`shift_building` (reseed, **no heal**) + the one-slot rest cost (burn
+`rest_available`, else set `rest_forfeit_pending` — consumed at the next merchant
+floor in `on_floor_arrived`) + set `pending_pry_arrival_floor = arrival_floor`
+(`choke-1` descending, `current+1` ascending). The transition is factored into
+`_perform_transition()` so the plain and post-pry paths share it.
 
 **The shift is shared.** `WorldState.shift_building()` is the single reseed
 (master seed + cached apartment layouts + anchor rolls). `player._reseed_zombies`
@@ -110,25 +127,40 @@ within the same session, never crosses a save) and reset in `new_game`.
 
 ## Dev tooling
 
-**F2** (`dev_force_hazards`) CYCLES `WorldState.dev_hazard_mode` through one
-hazard at a time so they never overlap: **off → stairwell hordes → barricaded
-doors → off** (fire slots in before the wrap once implemented). Each press shows
-the new mode.
-- **Stair hordes** (mode 1): every eligible down-stairwell is blocked
-  (`is_stair_blocked` reads the mode live, so it applies on any descent
-  immediately).
-- **Barricaded doors** (mode 2): every apartment on a floor seeded *while this
-  mode is on* is `BARRICADED_FORCEABLE` (`seed_floor_door_states`). Door states
-  seed once per floor, so it applies to floors you **enter after** switching to
-  this mode, not retroactively.
+**F2** (`dev_force_hazards`) CYCLES `WorldState.dev_hazard_mode` one hazard at a
+time so they never overlap: **off → barricades → hordes → fire → off**. Each
+press names the new mode.
+- **Barricades** (mode 1, the only one built): every eligible stairwell is
+  blocked (`is_stair_blocked` reads the mode live, so it applies on any crossing
+  immediately). Spawn a Crowbar with **F1** to test the pry.
+- **Hordes** (mode 2) and **Fire** (mode 3) are **cycle placeholders** — the
+  slots exist for when those hazards land; they force nothing yet (feedback says
+  "not built yet").
 
 Session-only (reset by `new_game`, not saved); exemptions (floor 30 tutorial,
-floor 1 stairs) hold in every mode. New per-floor hazards should extend the
-cycle. Use **F1** to spawn a Crowbar (035) to test the crossing.
+floor 1 stairs) hold in every mode. When hordes/fire are built, wire their
+effect to their existing mode constant.
+
+## Barricade keeper (story groundwork)
+
+A later story beat: some barricades were put up by a **living survivor** still on
+the floor who won't let you tear their wall down — a narrative encounter (talk /
+threaten / maybe a fight) rather than a plain crowbar job.
+
+**Groundwork only** (`world_state.gd`): `barricade_has_keeper(floor)` — seeded
+per `(floor, run)`, true for a fraction (`BARRICADE_KEEPER_CHANCE`) of **active**
+barricades (returns false once the barricade is cleared or on the exempt
+floors); plus `barricade_keeper_state` (`get`/`set`, persisted per run:
+`""`/`met`/`hostile`/`cleared`). **Nothing spawns an NPC or drives dialogue
+yet** — this is the deterministic predicate + resolution state the full quest
+will hang off.
 
 ## Open / later
 
-- **New enemy type** for the horde (agreed: its own later pass).
+- **Barricade-keeper NPC + quest** — the encounter, dialogue and fight on top of
+  the groundwork above.
+- **Horde hazard** (live enemies as the block) and **Fire hazard** — the two
+  cycle placeholders, plus the **new enemy type** for hordes (its own pass).
 - **Melee** doesn't pull cross-floor (quiet by the noise model). If loud melee
   should pull, add a `door_work`-level emit on the relevant swings.
 - **Balcony interplay:** a blocked down-stairwell is exactly the pressure that

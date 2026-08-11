@@ -146,14 +146,18 @@ var world_drops: Dictionary = {}  # "floor:x:y" -> {item_id, x, y, floor, target
 # Dev tools
 var god_mode: bool = false
 # DEV (F2): CYCLE floor hazards one at a time (so they never overlap) —
-#   0 off → 1 heavy stairwell hordes → 2 barricaded doors → back to 0.
-# Fire slots in before the wrap once it's implemented. Session-only, like
-# god_mode — not saved, reset by new_game.
+#   0 off → 1 barricades → 2 hordes → 3 fire → back to 0 (seed defaults).
+# Only BARRICADE is built (the crowbar stairwell block); HORDE (a stairwell
+# packed with LIVE enemies) and FIRE are placeholders in the cycle so the slots
+# exist for when they land. Session-only, like god_mode — not saved, reset by
+# new_game.
 const DEV_HAZARD_NONE := 0
-const DEV_HAZARD_HORDE := 1
-const DEV_HAZARD_BARRICADE := 2
-const DEV_HAZARD_COUNT := 3
-const DEV_HAZARD_NAMES := ["off", "stairwell hordes", "barricaded doors"]
+const DEV_HAZARD_BARRICADE := 1
+const DEV_HAZARD_HORDE := 2
+const DEV_HAZARD_FIRE := 3
+const DEV_HAZARD_COUNT := 4
+const DEV_HAZARD_NAMES := ["off", "barricades", "hordes", "fire"]
+const DEV_HAZARD_UNBUILT := [DEV_HAZARD_HORDE, DEV_HAZARD_FIRE]   # cycle to them, but no effect yet
 var dev_hazard_mode: int = DEV_HAZARD_NONE
 
 # --- Door system ---
@@ -434,6 +438,7 @@ func new_game() -> void:
 	barricade_progress.clear()
 	stair_blocks_cleared.clear()
 	pending_stair_pulls.clear()
+	barricade_keeper_state.clear()
 	pending_pry_arrival_floor = -1
 	merchant_stock.clear()
 	legendary_hold = {}
@@ -1379,8 +1384,8 @@ func is_stair_blocked(floor_num: int) -> bool:
 		return false
 	if is_stair_block_cleared(floor_num):
 		return false
-	# DEV: force the hazard onto every eligible floor for vacuum testing.
-	if dev_hazard_mode == DEV_HAZARD_HORDE:
+	# DEV: force barricades onto every eligible floor for vacuum testing.
+	if dev_hazard_mode == DEV_HAZARD_BARRICADE:
 		return true
 	var rng = RandomNumberGenerator.new()
 	rng.seed = hash(str(master_seed) + "stairblock" + str(floor_num) + str(current_run))
@@ -1476,6 +1481,38 @@ func cross_blocked_stair(choke_floor: int, arrival_floor: int) -> void:
 	else:
 		rest_forfeit_pending = true
 	pending_pry_arrival_floor = arrival_floor
+
+
+# --- Barricade keeper (STORY GROUNDWORK — full NPC/quest is a later pass) ----
+# Some barricades were put up by a living survivor who is still on the floor and
+# won't let you tear their wall down — a narrative beat (talk / threaten / maybe
+# a fight) rather than a plain crowbar job. This is the deterministic predicate +
+# the persisted resolution state future systems will hang off; nothing spawns an
+# NPC or drives dialogue yet. Seeded per (floor, run): only an ACTIVE barricade
+# can have a keeper, and a fraction of those do.
+const BARRICADE_KEEPER_CHANCE := 0.30
+# "floor:run" -> narrative state: "" not yet met, "met", "hostile", "cleared".
+# Persisted per run.
+var barricade_keeper_state: Dictionary = {}
+
+
+func barricade_has_keeper(floor_num: int) -> bool:
+	# A keeper exists only where a barricade currently stands (is_stair_blocked
+	# already handles the floor-30/1 exemptions, the cleared state and the dev
+	# override), and only for a seeded fraction of those.
+	if not is_stair_blocked(floor_num):
+		return false
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "barricadekeeper" + str(floor_num) + str(current_run))
+	return rng.randf() < BARRICADE_KEEPER_CHANCE
+
+
+func get_barricade_keeper_state(floor_num: int) -> String:
+	return barricade_keeper_state.get(str(floor_num) + ":" + str(current_run), "")
+
+
+func set_barricade_keeper_state(floor_num: int, state: String) -> void:
+	barricade_keeper_state[str(floor_num) + ":" + str(current_run)] = state
 
 
 # Zombies must never end up stacked on top of each other — a huddle should read
@@ -1769,17 +1806,6 @@ func seed_floor_door_states(floor_num: int) -> void:
 	if floor_states_seeded.get(floor_num, false):
 		return
 	floor_states_seeded[floor_num] = true
-
-	# DEV (F2): force every apartment on this floor to a barricaded door for vacuum
-	# testing — a visible hazard on each floor. BARRICADED_FORCEABLE, so no key is
-	# needed to break in. Applies to floors seeded while the mode is on; any door
-	# the player has already changed is preserved.
-	if dev_hazard_mode == DEV_HAZARD_BARRICADE:
-		for i in range(1, 6):
-			var apt_id = str(floor_num) + "0" + str(i)
-			if not door_states.has(apt_id):
-				door_states[apt_id] = DoorState.BARRICADED_FORCEABLE
-		return
 
 	var rng = RandomNumberGenerator.new()
 	rng.seed = hash(str(master_seed) + "doors" + str(floor_num) + str(current_run))
@@ -2113,6 +2139,7 @@ func save_game(scene_path: String) -> void:
 		"floor_states_seeded": floor_states_seeded,
 		"stair_blocks_cleared": stair_blocks_cleared,
 		"pending_stair_pulls": pending_stair_pulls,
+		"barricade_keeper_state": barricade_keeper_state,
 		"zombie_positions": zombie_positions,
 		"wallet_unlocked": wallet_unlocked,
 		"wallet_balance": wallet_balance,
@@ -2179,6 +2206,7 @@ func load_game() -> String:
 	door_keys_consumed = data["door_keys_consumed"]
 	stair_blocks_cleared = data.get("stair_blocks_cleared", {})
 	pending_stair_pulls = data.get("pending_stair_pulls", {})
+	barricade_keeper_state = data.get("barricade_keeper_state", {})
 	# JSON round-trips all dictionary keys as strings; this dict is keyed by int
 	# floor numbers, so convert keys back or every loaded game re-seeds its floors.
 	zombie_positions = data.get("zombie_positions", {})
