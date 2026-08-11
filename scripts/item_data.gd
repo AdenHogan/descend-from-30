@@ -9,24 +9,25 @@ func _ready() -> void:
 	_load_textures()
 
 func _load_textures() -> void:
-	# Icons are addressed by item id. Prefer an exact "<id>.png"; otherwise accept
-	# a descriptive "<id> - Name.png" / "<id>-Name.png" so the assets folder can
-	# stay human-readable (e.g. "035 - Crowbar.png") without breaking the lookup.
-	var descriptive := _index_descriptive_icons()
+	# Icons are addressed by item id, resolved from the ACTUAL files on disk so an
+	# orphaned "<id>.png.import" stub (a leftover with no source PNG) can never
+	# shadow the real art. This bit the Crowbar/Screwdriver: a stale "035.png"
+	# import cache resolved ahead of the real "035 - Crowbar.png". A bare
+	# "<id>.png" wins when it exists; otherwise a descriptive "<id> - Name.png".
+	var icons := _index_icons()
 	for id in items:
-		var exact = "res://assets/Items/" + id + ".png"
-		if ResourceLoader.exists(exact):
-			item_textures[id] = load(exact)
-		elif descriptive.has(id):
-			var path = "res://assets/Items/" + descriptive[id]
-			if ResourceLoader.exists(path):
-				item_textures[id] = load(path)
+		var fname: String = icons.get(id, "")
+		if fname == "":
+			continue
+		var path := "res://assets/Items/" + fname
+		if ResourceLoader.exists(path):
+			item_textures[id] = load(path)
 
 
-func _index_descriptive_icons() -> Dictionary:
-	# Map "<id>" -> "<id> - Name.png" for any descriptively-named icon in the
-	# folder, keyed by the leading 3-digit id. The id must be followed by a
-	# separator (space or dash) so "003" can never grab a longer id's file.
+func _index_icons() -> Dictionary:
+	# "<id>" -> real icon filename, built from DirAccess (real files only, so
+	# ".import" stubs are ignored). A bare "<id>.png" is preferred over a
+	# descriptive "<id> - Name.png"; the id is the leading 3-digit run.
 	var out := {}
 	var dir := DirAccess.open("res://assets/Items")
 	if dir == null:
@@ -34,15 +35,25 @@ func _index_descriptive_icons() -> Dictionary:
 	for f in dir.get_files():
 		if not f.ends_with(".png"):
 			continue          # skip .import metadata and non-images
-		var cut := f.length()
-		var dash := f.find("-")
-		var space := f.find(" ")
-		if dash >= 0:
-			cut = mini(cut, dash)
-		if space >= 0:
-			cut = mini(cut, space)
-		var id := f.substr(0, cut).strip_edges()
-		if id.length() == 3 and id.is_valid_int() and not out.has(id):
+		var base := f.substr(0, f.length() - 4)   # strip ".png"
+		var id := ""
+		if base.length() == 3 and base.is_valid_int():
+			id = base                             # bare "<id>.png"
+		else:
+			var cut := base.length()
+			var dash := base.find("-")
+			var space := base.find(" ")
+			if dash >= 0:
+				cut = mini(cut, dash)
+			if space >= 0:
+				cut = mini(cut, space)
+			var head := base.substr(0, cut).strip_edges()
+			if head.length() == 3 and head.is_valid_int():
+				id = head            # descriptive "<id> - Name.png"
+		if id == "":
+			continue
+		# A bare "<id>.png" always wins over a descriptive file for the same id.
+		if f == id + ".png" or not out.has(id):
 			out[id] = f
 	return out
 

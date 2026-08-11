@@ -145,7 +145,7 @@ func _test_crossing() -> void:
 	# Branch 1: crossing WITH a banked rest burns it (and sets no forfeit).
 	WorldState.rest_available = true
 	WorldState.rest_forfeit_pending = false
-	WorldState.cross_blocked_stair(target)
+	WorldState.cross_blocked_stair(target, target - 1)
 	check(WorldState.is_stair_block_cleared(target), "crossing clears the stairwell for the run")
 	check(not WorldState.is_stair_blocked(target), "crossed stairwell is no longer blocked")
 	check(not WorldState.rest_available, "crossing with a banked rest burns it")
@@ -156,7 +156,7 @@ func _test_crossing() -> void:
 	# Branch 2: crossing with NO banked rest forfeits the next merchant rest.
 	WorldState.rest_available = false
 	WorldState.rest_forfeit_pending = false
-	WorldState.cross_blocked_stair(target)
+	WorldState.cross_blocked_stair(target, target - 1)
 	check(not WorldState.rest_available, "crossing with no rest leaves rest unavailable")
 	check(WorldState.rest_forfeit_pending, "crossing with no banked rest forfeits the next rest")
 
@@ -307,8 +307,14 @@ func _test_item_icons() -> void:
 	# "035 - Crowbar.png" will resolve the same way once the art lands.
 	print("[item icons]")
 	check(ItemData.get_texture("001") != null, "bare-name icon (001.png) loads")
-	check(ItemData.get_texture("034") != null, "descriptive icon (034 - Screwdriver.png) loads")
-	check(ItemData.get_texture("035") != null, "crowbar icon (035 - Crowbar.png) loads")
+	# Resolve the REAL descriptive files, not a stale orphan "<id>.png" import
+	# cache (that shadowing bug made the Crowbar render as the old Cash art).
+	var t34 = ItemData.get_texture("034")
+	var t35 = ItemData.get_texture("035")
+	check(t34 != null and t34.resource_path.contains("Screwdriver"),
+		"034 resolves the real Screwdriver art (%s)" % (t34.resource_path if t34 else "NULL"))
+	check(t35 != null and t35.resource_path.contains("Crowbar"),
+		"035 resolves the real Crowbar art (%s)" % (t35.resource_path if t35 else "NULL"))
 
 
 func _test_save_load() -> void:

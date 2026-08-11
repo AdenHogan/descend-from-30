@@ -1459,13 +1459,15 @@ func shift_building() -> void:
 var pending_pry_arrival_floor: int = -1
 
 
-func cross_blocked_stair(floor_num: int) -> void:
-	# Commit a crowbar crossing of the horde choking floor_num's down-stairwell.
-	# The crowbar is already spent by the caller. This: opens the stairwell for the
-	# run, shifts the building (enemies move — NO heal, so it is deliberately not
-	# billed as a rest), forfeits the next rest ("costs a rest slot"), and flags the
-	# arrival floor so its stairwell horde is milling there when you step out.
-	clear_stair_block(floor_num)
+func cross_blocked_stair(choke_floor: int, arrival_floor: int) -> void:
+	# Commit a crowbar crossing of a choked stairwell (blocks BOTH directions).
+	# `choke_floor` is the staircase's index (the upper floor's down-stair);
+	# `arrival_floor` is the floor you step out onto (choke_floor-1 descending,
+	# current+1 ascending). The crowbar is already spent by the caller. This:
+	# opens the stairwell for the run, shifts the building (enemies move — NO heal,
+	# so it is deliberately not billed as a rest), costs one rest slot, and flags
+	# the arrival floor so its stairwell horde is milling there when you step out.
+	clear_stair_block(choke_floor)
 	shift_building()
 	# Cost exactly one rest opportunity: burn a banked rest if you have one, else
 	# forfeit the next merchant-floor rest. Never both — a crossing is one slot.
@@ -1473,7 +1475,7 @@ func cross_blocked_stair(floor_num: int) -> void:
 		rest_available = false
 	else:
 		rest_forfeit_pending = true
-	pending_pry_arrival_floor = floor_num - 1
+	pending_pry_arrival_floor = arrival_floor
 
 
 # Zombies must never end up stacked on top of each other — a huddle should read

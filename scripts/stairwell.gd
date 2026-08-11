@@ -14,7 +14,7 @@ const DESCEND_CONFIRM_WINDOW = 4.0
 # Heavy-horde crossing: a blocked down-stairwell is levered open with a Crowbar
 # over a channeled PRY (loud from the first heave, so the current floor's dead
 # come to investigate). Cancels on walking off the steps or any other action.
-const PRY_TIME := 3.0
+const PRY_TIME := 6.0   # long enough that the floor's roused dead can close in
 var is_prying: bool = false
 var pry_timer: float = 0.0
 
@@ -161,18 +161,25 @@ func _use_stairs() -> void:
 			return
 		# second use within the window → confirmed, fall through and descend.
 
-	# A heavy horde chokes this down-stairwell: no fighting through it, it's a
-	# Crowbar job (channeled pry). Refuse the descent until it's levered open.
-	if direction == "down" and WorldState.is_stair_blocked(WorldState.current_floor):
+	# A choked stairwell blocks the crossing in EITHER direction until it's levered
+	# open with a Crowbar — you can't slip up past it any more than down through it.
+	if WorldState.is_stair_blocked(_choke_floor()):
 		if is_prying:
 			return   # already levering — don't restart the channel
 		if not WorldState.has_crowbar():
-			TutorialManager.say("The stairwell's packed wall-to-wall with them. No way through that — I'd need a crowbar to lever a path open.")
+			TutorialManager.say("The stairwell's choked solid — no getting through that without a crowbar to lever it open.")
 			return
 		_begin_pry()
 		return
 
 	_perform_transition()
+
+
+func _choke_floor() -> int:
+	# Which floor indexes the staircase this traversal uses. A choke sits on the
+	# staircase BETWEEN two floors, keyed by the upper floor's down-stair: descending
+	# from N uses N; ascending from N uses N+1 (the same steps, from below).
+	return WorldState.current_floor if direction == "down" else WorldState.current_floor + 1
 
 
 func _perform_transition() -> void:
@@ -249,9 +256,13 @@ func _commit_pry() -> void:
 	is_prying = false
 	pry_timer = 0.0
 	HUD.hide_world_prompt(self)   # about to transition off this floor
-	# Spend the crowbar and commit the crossing: opens the stairwell for the run,
-	# shifts the building (enemies move, no heal), and forfeits the next rest.
+	# Spend the crowbar and commit the crossing (works either direction): opens the
+	# stairwell for the run, shifts the building (enemies move, no heal), costs a
+	# rest slot, and musters the arrival floor's horde at the stairwell.
+	var arrival: int = WorldState.current_floor + (-1 if direction == "down" else 1)
 	WorldState.consume_crowbar()
-	WorldState.cross_blocked_stair(WorldState.current_floor)
-	HUD.show_feedback("The crowbar bends open a gap. The building shifts around you.")
+	WorldState.cross_blocked_stair(_choke_floor(), arrival)
+	# Make the building shift legible — it's the whole cost of the crossing.
+	HUD.show_feedback("The way's open — but the building just shifted. The dead have moved.")
+	TutorialManager.say("Through... but I heard them move. Whole place has shifted around me.")
 	_perform_transition()
