@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://057p24bacs1s"
-path="res://.godot/imported/034 - Screwdriver.png-65ff5232f2690c9ca6bdf305beacc66b.ctex"
+uid="uid://2splb0xxpp2w"
+path="res://.godot/imported/035 - Crowbar.png-8348bd81f8f3a894e9eb6b91fb1726ab.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/Items/034 - Screwdriver.png"
-dest_files=["res://.godot/imported/034 - Screwdriver.png-65ff5232f2690c9ca6bdf305beacc66b.ctex"]
+source_file="res://assets/Items/035 - Crowbar.png"
+dest_files=["res://.godot/imported/035 - Crowbar.png-8348bd81f8f3a894e9eb6b91fb1726ab.ctex"]
 
 [params]
 
