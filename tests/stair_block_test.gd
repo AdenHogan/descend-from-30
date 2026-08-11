@@ -281,6 +281,7 @@ func _test_item_icons() -> void:
 	print("[item icons]")
 	check(ItemData.get_texture("001") != null, "bare-name icon (001.png) loads")
 	check(ItemData.get_texture("034") != null, "descriptive icon (034 - Screwdriver.png) loads")
+	check(ItemData.get_texture("035") != null, "crowbar icon (035 - Crowbar.png) loads")
 
 
 func _test_save_load() -> void:
