@@ -250,12 +250,19 @@ means no rendering — UI layout and art still need an in-editor look.
   stairwell**. Separately, loud noise (gunfire/forcing) made **near a stairwell**
   pulls only the **stairwell-seeded** dead on the adjacent floor (never a
   whole-floor vacuum; running never pulls). Seeded per (floor,run); floor 30 +
-  floor 1 exempt. **Terminology:** barricade = debris block (built); *horde* =
-  future live-enemy block; *fire* = future — **F2** dev-cycles off → barricade →
-  horde → fire → off (horde/fire are placeholders). **Barricade-keeper NPC**
+  floor 1 exempt. A blocked stairwell shows a **crate-stack prop**
+  (`barricade_prop.gd`) at both landings. **Hazard 2 — hordes (v1):** other
+  stairwells are packed with **live zombies** (`is_stair_horde`, seeded ~15%,
+  mutually exclusive with barricades) — no crowbar, you **fight or lure** them
+  off (thrown can); a seeded 4–7 cluster spawns at both landings (`stair_horde`
+  group, kills persist), and `stairwell.gd` blocks the crossing while any live
+  zombie is within `HORDE_BLOCK_RANGE`. No shift/rest cost — the fight is the
+  cost. **Terminology:** barricade = debris block (crowbar); horde = live-enemy
+  block (fight/lure); *fire* = future — **F2** dev-cycles off → barricade →
+  horde → fire → off (fire is a placeholder). **Barricade-keeper NPC**
   quest has seeded groundwork (`barricade_has_keeper` + `barricade_keeper_state`)
   but no NPC yet. Covered by `stair_block_test` + `building_floors_test`.
 - Next: tutorial **v2** (above), then characters/profiles/stats + the
   two-&-three-run arc; also **Upgrade offers** polish and player-corpse
-  recovery (store step 7); barricade-keeper NPC + the horde/fire hazards.
+  recovery (store step 7); barricade-keeper NPC + the fire hazard.
 - Not started: time-of-day, fires, balcony descent, quests, character stats.

@@ -161,8 +161,8 @@ func _use_stairs() -> void:
 			return
 		# second use within the window → confirmed, fall through and descend.
 
-	# A choked stairwell blocks the crossing in EITHER direction until it's levered
-	# open with a Crowbar — you can't slip up past it any more than down through it.
+	# A barricaded stairwell blocks the crossing in EITHER direction until it's
+	# levered open with a Crowbar — you can't slip up past it any more than down.
 	if WorldState.is_stair_blocked(_choke_floor()):
 		if is_prying:
 			return   # already levering — don't restart the channel
@@ -172,7 +172,29 @@ func _use_stairs() -> void:
 		_begin_pry()
 		return
 
+	# Hazard 2 — a horde packing the steps: no crowbar, you clear them out or draw
+	# them off (a thrown can) before the way is yours. Blocks while any live zombie
+	# is right on the stairwell.
+	if WorldState.is_stair_horde(_choke_floor()) and _horde_blocking():
+		TutorialManager.say("The stairwell's swarming — no getting through until I clear them out or draw them off.")
+		return
+
 	_perform_transition()
+
+
+const HORDE_BLOCK_RANGE := 300.0
+
+
+func _horde_blocking() -> bool:
+	# The steps are contested while any live zombie is within range of them.
+	# Killing them clears it for good; luring them off (a can) frees it while they
+	# are away.
+	for z in get_tree().get_nodes_in_group("zombie"):
+		if z.is_dead:
+			continue
+		if z.global_position.distance_to(global_position) <= HORDE_BLOCK_RANGE:
+			return true
+	return false
 
 
 func _choke_floor() -> int:

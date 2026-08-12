@@ -8,14 +8,16 @@
 
 Three distinct stairwell hazards — do not conflate them:
 - **Barricade** *(built)* — a stairwell blocked with furniture/debris. Not a
-  fight: you **pry it open with a Crowbar**. This doc.
-- **Horde** *(future)* — a stairwell packed with **live enemies** you fight or
-  distract through (no crowbar). Not built; a later pass.
+  fight: you **pry it open with a Crowbar**.
+- **Horde** *(built, v1)* — a stairwell packed with **live enemies** you fight or
+  lure through (no crowbar). See "The horde" below.
 - **Fire** *(future)* — a spreading blaze. Not built.
 
-(The dead that *muster* at a barricade when you pry it, or get pulled through by
-noise, are still just standard zombies — the barricade draws them, it isn't made
-of them.)
+A stairwell is at most ONE of these — the barricade seed rolls first, and the
+horde only rolls on stairwells the barricade didn't take (`is_stair_horde`
+excludes `_stair_barricade_seeded`). (The dead that *muster* at a barricade when
+you pry it, or get pulled through by noise, are still just standard zombies — the
+barricade draws them, it isn't made of them.)
 
 Some **stairwells** are barricaded — blocked with debris someone wedged in.
 Getting through is passable but costly, and it stirs the building on both sides
@@ -113,6 +115,28 @@ zone. Cleared on `shift_building`, reset in `new_game`, saved/loaded.
 `rest_forfeit_pending` are per-run and saved/loaded. `pending_pry_arrival_floor` is transient (consumed on arrival
 within the same session, never crosses a save) and reset in `new_game`.
 
+## The horde (Hazard 2)
+
+Some stairwells are **packed with live enemies** instead of barricaded. No
+crowbar — you **fight them off or lure them away** (a thrown can) before the
+steps are yours. It blocks **both directions**, like the barricade, but the
+"cost" is the fight itself — **no building shift, no rest slot**.
+
+- **Seeding** (`world_state.gd`): `is_stair_horde(floor)` per `(floor, run)`,
+  mutually exclusive with a barricade there; floor 30/1 exempt; F2 horde mode
+  forces all. ~15% of the stairwells the barricade didn't take.
+- **Manifestation** (`building_floors._spawn_stair_hordes`): a seeded cluster of
+  `STAIR_HORDE_MIN..MAX` (4–7) standard zombies spawns in the band in front of a
+  horde stairwell, in the `stair_horde` group. Spawned at **both landings** of a
+  horde staircase (each floor's side), so it blocks either direction. Stable
+  per-floor keys (`"<floor>:horde:<choke>:<i>"`) → **kills persist** (dead ones
+  don't respawn on re-entry); memory (`apply_saved_zombie`) applies within a
+  floor.
+- **Blocking** (`stairwell.gd`): `_use_stairs` refuses the crossing while
+  `_horde_blocking()` finds any live zombie within `HORDE_BLOCK_RANGE` (300px) of
+  the steps. Kill them → cleared for good (via `killed_zombies`); lure them off
+  with a can → the steps free up while they're away (a stealth option).
+
 ## Tests
 
 - `tests/stair_block_test` — item flags; seeded blocking (determinism +
@@ -123,23 +147,27 @@ within the same session, never crosses a save) and reset in `new_game`.
   save/load round-trip.
 - `tests/building_floors_test` — pried arrival clusters + rouses the horde at
   the arrival stairwell (flag consumed); a cross-floor pull rouses **only**
-  near-stairwell zombies (no far-corridor zombie roused; flag consumed).
+  near-stairwell zombies; a **horde stairwell spawns a cluster** at each
+  stairwell (in the `stair_horde` group, at the ends, none mid-corridor) and no
+  barricade props in horde mode. `stair_block_test` also covers horde seeding
+  (deterministic, exemptions, barricade/horde mutual exclusivity, dev-mode
+  exclusivity).
 
 ## Dev tooling
 
 **F2** (`dev_force_hazards`) CYCLES `WorldState.dev_hazard_mode` one hazard at a
 time so they never overlap: **off → barricades → hordes → fire → off**. Each
 press names the new mode.
-- **Barricades** (mode 1, the only one built): every eligible stairwell is
-  blocked (`is_stair_blocked` reads the mode live, so it applies on any crossing
-  immediately). Spawn a Crowbar with **F1** to test the pry.
-- **Hordes** (mode 2) and **Fire** (mode 3) are **cycle placeholders** — the
-  slots exist for when those hazards land; they force nothing yet (feedback says
-  "not built yet").
+- **Barricades** (mode 1): every eligible stairwell is barricaded
+  (`is_stair_blocked` reads the mode live). Spawn a Crowbar with **F1** to test
+  the pry.
+- **Hordes** (mode 2): every eligible stairwell spawns a live-enemy cluster
+  (applies to floors you enter while the mode is on). Barricades are suppressed.
+- **Fire** (mode 3) is still a **cycle placeholder** — forces nothing yet.
 
 Session-only (reset by `new_game`, not saved); exemptions (floor 30 tutorial,
-floor 1 stairs) hold in every mode. When hordes/fire are built, wire their
-effect to their existing mode constant.
+floor 1 stairs) hold in every mode. When fire is built, wire its effect to its
+mode constant.
 
 ## Barricade keeper (story groundwork)
 
@@ -159,8 +187,10 @@ will hang off.
 
 - **Barricade-keeper NPC + quest** — the encounter, dialogue and fight on top of
   the groundwork above.
-- **Horde hazard** (live enemies as the block) and **Fire hazard** — the two
-  cycle placeholders, plus the **new enemy type** for hordes (its own pass).
+- **Fire hazard** — the remaining cycle placeholder.
+- **Horde polish** — a **new enemy type** for the horde (its own pass), and
+  tuning: count/range, whether the whole floor's ambient zombies should thin on a
+  horde floor, and a clearer "the steps are swarmed" cue on approach.
 - **Melee** doesn't pull cross-floor (quiet by the noise model). If loud melee
   should pull, add a `door_work`-level emit on the relevant swings.
 - **Balcony interplay:** a blocked down-stairwell is exactly the pressure that

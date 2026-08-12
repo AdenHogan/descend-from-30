@@ -191,6 +191,9 @@ var barricade_progress: Dictionary = {}
 # blocked. Crossing one is a channeled pry that consumes the crowbar, forfeits
 # your next rest, and shifts the building (enemies move) — see docs.
 const STAIR_BLOCK_CHANCE := 0.18
+# Hazard 2: a stairwell packed with LIVE enemies (rolled after the barricade, so
+# the two are mutually exclusive on the same stairwell).
+const STAIR_HORDE_CHANCE := 0.15
 # `str(floor)+":"+str(run)` -> true once its horde has been pried open (per-run).
 var stair_blocks_cleared: Dictionary = {}
 
@@ -1373,23 +1376,52 @@ func get_apartment_zombie_count(apartment_id: String) -> int:
 		return rng.randi() % 4 + 1
 
 
-# --- Heavy stairwell hordes -----------------------------------------------
+# --- Stairwell hazards: barricades (crowbar) + hordes (fight/lure) ---------
+
+func _stair_barricade_seeded(floor_num: int) -> bool:
+	# Raw seed roll for a BARRICADE on this stairwell (no cleared/dev gates).
+	# Shared by is_stair_blocked and is_stair_horde so the two hazards stay
+	# mutually exclusive on the same stairwell, even after the barricade is pried.
+	if floor_num >= 30 or floor_num <= 1:
+		return false
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "stairblock" + str(floor_num) + str(current_run))
+	return rng.randf() < STAIR_BLOCK_CHANCE
+
 
 func is_stair_blocked(floor_num: int) -> bool:
-	# True when the DOWN-stairwell of `floor_num` (descending to floor_num-1) is
-	# choked with a horde. Seeded per (floor, run) — deterministic and re-entry
-	# stable, per the seeding convention. Once pried open it stays open for the
-	# run. Floor 30 (tutorial) and floor 1 (final step to the lobby) are exempt.
+	# True when the staircase indexed by `floor_num` (its down-stair) is barricaded
+	# — the crowbar hazard. Seeded per (floor, run); floor 30 (tutorial) and floor 1
+	# (final step to the lobby) are exempt; cleared once pried.
 	if floor_num >= 30 or floor_num <= 1:
 		return false
 	if is_stair_block_cleared(floor_num):
 		return false
-	# DEV: force barricades onto every eligible floor for vacuum testing.
+	# DEV cycle is one hazard at a time: barricade mode forces all, any other
+	# active mode (horde/fire) forces no barricades.
 	if dev_hazard_mode == DEV_HAZARD_BARRICADE:
 		return true
-	var rng = RandomNumberGenerator.new()
-	rng.seed = hash(str(master_seed) + "stairblock" + str(floor_num) + str(current_run))
-	return rng.randf() < STAIR_BLOCK_CHANCE
+	if dev_hazard_mode != DEV_HAZARD_NONE:
+		return false
+	return _stair_barricade_seeded(floor_num)
+
+
+func is_stair_horde(floor_num: int) -> bool:
+	# Hazard 2: the staircase indexed by `floor_num` is packed with LIVE enemies.
+	# Seeded per (floor, run), MUTUALLY EXCLUSIVE with a barricade there. This only
+	# says "this is a horde stairwell" — whether it currently BLOCKS depends on live
+	# zombies near the steps (stairwell.gd). Floor 30/1 exempt.
+	if floor_num >= 30 or floor_num <= 1:
+		return false
+	if dev_hazard_mode == DEV_HAZARD_HORDE:
+		return true
+	if dev_hazard_mode != DEV_HAZARD_NONE:
+		return false
+	if _stair_barricade_seeded(floor_num):
+		return false   # that stairwell is a barricade, not a horde
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "stairhorde" + str(floor_num) + str(current_run))
+	return rng.randf() < STAIR_HORDE_CHANCE
 
 
 func is_stair_block_cleared(floor_num: int) -> bool:

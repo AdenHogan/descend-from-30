@@ -74,6 +74,7 @@ func _ready() -> void:
 	_spawn_world_drops(floor_num)
 	_spawn_merchant(floor_num)
 	_spawn_barricade_visuals(floor_num)
+	_spawn_stair_hordes(floor_num)
 	_frame_camera(player)
 
 
@@ -105,6 +106,42 @@ func _spawn_barricade_visuals(floor_num: int) -> void:
 		var prop = BARRICADE_PROP.new()
 		prop.global_position = Vector2(t.global_position.x, t.global_position.y + BARRICADE_Y_OFFSET)
 		add_child(prop)
+
+
+const STAIR_HORDE_MIN := 4
+const STAIR_HORDE_MAX := 7
+
+
+func _spawn_stair_hordes(floor_num: int) -> void:
+	# Hazard 2: a cluster of live zombies packed in front of a horde stairwell,
+	# guarding it (both landings, so it blocks either direction). Kills persist via
+	# stable per-floor keys, so clearing them sticks; luring them off (a thrown can)
+	# frees the steps while they're away. See stairwell.gd for the block check.
+	var zombie_scene = preload("res://scenes/enemy_zombie_standard.tscn")
+	for tname in _BARRICADE_TRIGGERS:
+		var t = get_node_or_null(tname)
+		if t == null or t.process_mode == Node.PROCESS_MODE_DISABLED:
+			continue
+		var choke: int = floor_num + int(_BARRICADE_TRIGGERS[tname])
+		if not WorldState.is_stair_horde(choke):
+			continue
+		var on_left: bool = t.global_position.x < 600.0
+		var band_min: float = 245.0 if on_left else 895.0
+		var band_max: float = 470.0 if on_left else 1105.0
+		var rng := RandomNumberGenerator.new()
+		rng.seed = hash(str(WorldState.master_seed) + "stairhordepos" + str(choke) + str(WorldState.current_run))
+		var count: int = STAIR_HORDE_MIN + (rng.randi() % (STAIR_HORDE_MAX - STAIR_HORDE_MIN + 1))
+		var positions = WorldState.get_zombie_positions(count, rng, band_min, band_max, 388.0)
+		for i in range(positions.size()):
+			var key := "%d:horde:%d:%d" % [floor_num, choke, i]
+			if WorldState.killed_zombies.has(key):
+				continue
+			var z = zombie_scene.instantiate()
+			z.global_position = positions[i]
+			z.spawn_key = key
+			z.add_to_group("stair_horde")
+			add_child(z)
+			WorldState.apply_saved_zombie(z)
 
 
 func _frame_camera(player: Node) -> void:

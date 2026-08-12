@@ -27,6 +27,7 @@ func _ready() -> void:
 	_test_crossing()
 	_test_cross_floor_pull()
 	_test_dev_force_hazards()
+	_test_stair_horde()
 	_test_barricade_keeper()
 	_test_item_icons()
 	_test_save_load()
@@ -227,13 +228,17 @@ func _test_dev_force_hazards() -> void:
 	WorldState.current_run = 1
 	WorldState.stair_blocks_cleared.clear()
 
-	# BARRICADE mode (the only built one): every eligible stairwell is blocked.
+	# BARRICADE mode: every eligible stairwell is barricaded, and NO hordes.
 	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_BARRICADE
 	var all_blocked := true
+	var any_horde_in_barricade := false
 	for f in range(2, 30):
 		if not WorldState.is_stair_blocked(f):
 			all_blocked = false
+		if WorldState.is_stair_horde(f):
+			any_horde_in_barricade = true
 	check(all_blocked, "barricade mode blocks every eligible stairwell (2..29)")
+	check(not any_horde_in_barricade, "barricade mode spawns no hordes (one hazard at a time)")
 	check(not WorldState.is_stair_blocked(30), "barricade mode still exempts floor 30")
 	check(not WorldState.is_stair_blocked(1), "barricade mode still exempts floor 1")
 	WorldState.clear_stair_block(7)
@@ -249,15 +254,27 @@ func _test_dev_force_hazards() -> void:
 			open_doors += 1
 	check(open_doors >= 1, "barricade mode leaves apartment doors to normal seeding")
 
-	# HORDE and FIRE are placeholders in the cycle — no effect yet.
+	# HORDE mode: every eligible stairwell is a horde, and NO barricades.
 	WorldState.stair_blocks_cleared.clear()
-	for placeholder in [WorldState.DEV_HAZARD_HORDE, WorldState.DEV_HAZARD_FIRE]:
-		WorldState.dev_hazard_mode = placeholder
-		var forced := 0
-		for f in range(2, 30):
-			if WorldState.is_stair_blocked(f):
-				forced += 1
-		check(forced < 28, "placeholder mode %d forces nothing (not built)" % placeholder)
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_HORDE
+	var all_horde := true
+	var any_barricade_in_horde := false
+	for f in range(2, 30):
+		if not WorldState.is_stair_horde(f):
+			all_horde = false
+		if WorldState.is_stair_blocked(f):
+			any_barricade_in_horde = true
+	check(all_horde, "horde mode makes every eligible stairwell a horde (2..29)")
+	check(not any_barricade_in_horde, "horde mode forces no barricades (one hazard at a time)")
+	check(not WorldState.is_stair_horde(30), "horde mode still exempts floor 30")
+
+	# FIRE is a placeholder — neither hazard fires.
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_FIRE
+	var fire_hazards := 0
+	for f in range(2, 30):
+		if WorldState.is_stair_blocked(f) or WorldState.is_stair_horde(f):
+			fire_hazards += 1
+	check(fire_hazards == 0, "fire mode forces nothing (not built)")
 
 	# OFF mode: back to seeded behaviour (not every floor blocked).
 	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
@@ -286,6 +303,36 @@ func _test_dev_force_hazards() -> void:
 	WorldState.floor_states_seeded.clear()
 	WorldState.master_seed = 1337
 	WorldState.current_run = 1
+
+
+func _test_stair_horde() -> void:
+	# Hazard 2: some stairwells are packed with live enemies (seeded), mutually
+	# exclusive with a barricade on the same stairwell.
+	print("[stair horde seeding]")
+	WorldState.master_seed = 1337
+	WorldState.current_run = 1
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
+	WorldState.stair_blocks_cleared.clear()
+	# Deterministic + exemptions.
+	check(WorldState.is_stair_horde(15) == WorldState.is_stair_horde(15), "is_stair_horde is deterministic")
+	check(not WorldState.is_stair_horde(30), "floor 30 (tutorial) never a horde")
+	check(not WorldState.is_stair_horde(1), "floor 1 never a horde")
+	# Mutually exclusive with barricades, and both occur across the range.
+	var hordes := 0
+	var barricades := 0
+	var both := 0
+	for f in range(2, 30):
+		var h := WorldState.is_stair_horde(f)
+		var b := WorldState.is_stair_blocked(f)
+		if h:
+			hordes += 1
+		if b:
+			barricades += 1
+		if h and b:
+			both += 1
+	check(hordes > 0 and hordes < 28, "some (not all) stairwells are hordes (%d/28)" % hordes)
+	check(both == 0, "no stairwell is BOTH a barricade and a horde (%d)" % both)
+	print("  INFO  seed 1337 run 1: %d barricades, %d hordes / 28" % [barricades, hordes])
 
 
 func _test_barricade_keeper() -> void:

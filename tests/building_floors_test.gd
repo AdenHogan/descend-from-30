@@ -28,6 +28,7 @@ func _ready() -> void:
 	await _test_pried_arrival_milling()
 	await _test_stair_pull_rouses_only_near()
 	await _test_barricade_visuals()
+	await _test_stair_horde_spawns()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -367,3 +368,33 @@ func _test_barricade_visuals() -> void:
 		"no barricade props on an unblocked floor")
 	bf2.queue_free()
 	await get_tree().process_frame
+
+
+func _test_stair_horde_spawns() -> void:
+	# Hazard 2: a horde stairwell spawns a cluster of live zombies at the steps
+	# (both active stairwells in dev horde mode), in the "stair_horde" group.
+	print("[stair horde spawns]")
+	WorldState.new_game()
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_HORDE   # every stairwell a horde
+	WorldState.current_floor = 15
+	WorldState.spawn_source = "stair"
+	WorldState.stair_direction = "down"
+	WorldState.stair_spawn_side = "left"
+	WorldState.pending_pry_arrival_floor = -1
+	WorldState.seed_floor_door_states(15)
+	var bf = load("res://scenes/building_floors.tscn").instantiate()
+	add_child(bf)
+	var horde := get_tree().get_nodes_in_group("stair_horde")
+	# Two active stairwells x 4-7 each.
+	check(horde.size() >= 8 and horde.size() <= 14, "a horde cluster spawns at each stairwell (%d)" % horde.size())
+	var all_at_ends := true
+	for z in horde:
+		if z.global_position.x > 550.0 and z.global_position.x < 850.0:
+			all_at_ends = false   # mid-corridor, not by a stairwell
+	check(all_at_ends, "horde zombies cluster by the stairwells, not mid-corridor")
+	# No barricade props while in horde mode (one hazard at a time).
+	check(get_tree().get_nodes_in_group("barricade_prop").is_empty(),
+		"no barricade props in horde mode")
+	bf.queue_free()
+	await get_tree().process_frame
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
