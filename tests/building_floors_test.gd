@@ -27,6 +27,7 @@ func _ready() -> void:
 	await _test_scenery_zombie_plane()
 	await _test_pried_arrival_milling()
 	await _test_stair_pull_rouses_only_near()
+	await _test_barricade_visuals()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -329,4 +330,40 @@ func _test_stair_pull_rouses_only_near() -> void:
 	check(not WorldState.has_stair_pull(f), "pull flag consumed after arrival")
 	print("  INFO  roused %d near-stair zombie(s) on floor %d" % [roused_total, f])
 	bf.queue_free()
+	await get_tree().process_frame
+
+
+func _test_barricade_visuals() -> void:
+	# A crate stack spawns in front of every blocked stairwell (up AND down), so a
+	# barricade is visible on the floor, not just felt on a pry attempt.
+	print("[barricade visuals]")
+	WorldState.new_game()
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_BARRICADE   # every stairwell blocked
+	WorldState.current_floor = 15
+	WorldState.spawn_source = "stair"
+	WorldState.stair_direction = "down"
+	WorldState.stair_spawn_side = "left"
+	WorldState.pending_pry_arrival_floor = -1
+	WorldState.seed_floor_door_states(15)
+	var bf = load("res://scenes/building_floors.tscn").instantiate()
+	add_child(bf)
+	# _ready runs synchronously: props exist immediately.
+	var props: Array = get_tree().get_nodes_in_group("barricade_prop")
+	check(props.size() == 2, "a barricade prop spawns at each active blocked stairwell (%d)" % props.size())
+	var all_at_ends := true
+	for p in props:
+		if p.global_position.x > 300.0 and p.global_position.x < 1000.0:
+			all_at_ends = false
+	check(all_at_ends, "barricade props sit at the stairwell ends, not mid-corridor")
+	bf.queue_free()
+	await get_tree().process_frame
+	# With no barricade (cleared), none spawn.
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
+	WorldState.clear_stair_block(15)
+	WorldState.clear_stair_block(16)
+	var bf2 = load("res://scenes/building_floors.tscn").instantiate()
+	add_child(bf2)
+	check(get_tree().get_nodes_in_group("barricade_prop").is_empty(),
+		"no barricade props on an unblocked floor")
+	bf2.queue_free()
 	await get_tree().process_frame

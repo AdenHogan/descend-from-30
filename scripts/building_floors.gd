@@ -73,7 +73,37 @@ func _ready() -> void:
 	_spawn_corpses(floor_num)
 	_spawn_world_drops(floor_num)
 	_spawn_merchant(floor_num)
+	_spawn_barricade_visuals(floor_num)
 	_frame_camera(player)
+
+
+# Which floor's down-stair choke each trigger represents. A choke sits on the
+# staircase between two floors, keyed by the upper floor's down-stair, so a
+# down-trigger checks this floor and an up-trigger checks the floor above.
+const _BARRICADE_TRIGGERS := {
+	"stair_left_down_trigger": 0, "stair_right_down_trigger": 0,
+	"stair_left_up_trigger": 1, "stair_right_up_trigger": 1,
+}
+const BARRICADE_PROP := preload("res://scripts/barricade_prop.gd")
+# Nudge the crate stack toward floor level (the trigger sits up the opening).
+const BARRICADE_Y_OFFSET := 26.0
+
+
+func _spawn_barricade_visuals(floor_num: int) -> void:
+	# A stack of crates in front of every blocked stairwell — both the up and the
+	# down steps — so a barricade is visible, not just felt on a pry attempt. Only
+	# the ACTIVE trigger per side is a real path (its disabled twin overlaps it),
+	# so skip disabled ones to avoid a doubled stack.
+	for tname in _BARRICADE_TRIGGERS:
+		var t = get_node_or_null(tname)
+		if t == null or t.process_mode == Node.PROCESS_MODE_DISABLED:
+			continue
+		var choke: int = floor_num + int(_BARRICADE_TRIGGERS[tname])
+		if not WorldState.is_stair_blocked(choke):
+			continue
+		var prop = BARRICADE_PROP.new()
+		prop.global_position = Vector2(t.global_position.x, t.global_position.y + BARRICADE_Y_OFFSET)
+		add_child(prop)
 
 
 func _frame_camera(player: Node) -> void:
