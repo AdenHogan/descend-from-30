@@ -110,6 +110,10 @@ func _spawn_barricade_visuals(floor_num: int) -> void:
 
 const STAIR_HORDE_MIN := 4
 const STAIR_HORDE_MAX := 7
+const HORDE_ECHO := preload("res://scripts/horde_echo.gd")
+# Stairwells (this floor) that carry a live-enemy hazard: {x, side}. Read by the
+# approach-warning check in _process.
+var _horde_warn_targets: Array = []
 
 
 func _spawn_stair_hordes(floor_num: int) -> void:
@@ -125,7 +129,8 @@ func _spawn_stair_hordes(floor_num: int) -> void:
 		var choke: int = floor_num + int(_BARRICADE_TRIGGERS[tname])
 		if not WorldState.is_stair_horde(choke):
 			continue
-		var on_left: bool = t.global_position.x < 600.0
+		var stair_x: float = t.global_position.x
+		var on_left: bool = stair_x < 600.0
 		var band_min: float = 245.0 if on_left else 895.0
 		var band_max: float = 470.0 if on_left else 1105.0
 		var rng := RandomNumberGenerator.new()
@@ -142,6 +147,45 @@ func _spawn_stair_hordes(floor_num: int) -> void:
 			z.add_to_group("stair_horde")
 			add_child(z)
 			WorldState.apply_saved_zombie(z)
+		# Colored danger cue radiating from the steps, and a warn target so the
+		# player gets a first-time "I can hear them ahead" beat on approach.
+		var echo = HORDE_ECHO.new()
+		echo.global_position = Vector2(stair_x, 320.0)
+		add_child(echo)
+		_horde_warn_targets.append({"x": stair_x, "side": "left" if on_left else "right", "primed": false})
+
+
+# How close (px) to a horde stairwell the first-approach warning fires. The
+# "primed" gate means it only fires on an actual approach FROM a distance, not
+# when you spawn straight onto a horde stairwell (you can already see that one).
+const APPROACH_WARN_DIST := 400.0
+# Only HORDE stairwells warn on approach — a barricade shows nothing until you
+# get close and see the crates (owner's call). Fire will warn here too when built.
+func _process(_delta: float) -> void:
+	if _horde_warn_targets.is_empty():
+		return
+	var player = get_node_or_null("Player")
+	if player == null:
+		return
+	var floor_num: int = setup_floor if setup_floor >= 0 else WorldState.current_floor
+	for target in _horde_warn_targets:
+		var dist: float = absf(player.global_position.x - float(target["x"]))
+		if not bool(target["primed"]):
+			if dist > APPROACH_WARN_DIST:
+				target["primed"] = true
+			continue
+		if dist <= APPROACH_WARN_DIST and not WorldState.hazard_warned(floor_num, target["side"]):
+			WorldState.mark_hazard_warned(floor_num, target["side"])
+			_warn_hazard("Wait — I can hear them ahead. The stairwell's crawling with them. Careful now.")
+
+
+func _warn_hazard(text: String) -> void:
+	# A brief beat: freeze, show the player's warning, resume. The timer runs while
+	# paused (process_always), so it always unfreezes.
+	get_tree().paused = true
+	HUD.show_dialogue(text)
+	await get_tree().create_timer(0.7, true).timeout
+	get_tree().paused = false
 
 
 func _frame_camera(player: Node) -> void:

@@ -395,6 +395,10 @@ func _test_stair_horde_spawns() -> void:
 	# No barricade props while in horde mode (one hazard at a time).
 	check(get_tree().get_nodes_in_group("barricade_prop").is_empty(),
 		"no barricade props in horde mode")
+	# A red echo cue radiates from each horde stairwell, and each is a warn target.
+	check(get_tree().get_nodes_in_group("horde_echo").size() == 2,
+		"a horde echo cue spawns at each stairwell (%d)" % get_tree().get_nodes_in_group("horde_echo").size())
+	check(bf._horde_warn_targets.size() == 2, "both horde stairwells are approach-warn targets")
 	bf.queue_free()
 	await get_tree().process_frame
 	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE

@@ -279,6 +279,14 @@
       "PROPERTY_DURABILITY": "single use, pries one blocked stairwell",
       "PROPERTY_SPAWN_RARITY": 2,
       "PROPERTY_WEIGHT_SIZE": null
+    },
+    "036": {
+      "ITEM_NAME": "Fire Extinguisher",
+      "ITEM_DESCRIPTION": "Red canister, heavy, half-full. Point it at the flames and squeeze — a few good bursts will beat back a fire choking a stairwell. Won't last forever.",
+      "VALUE_PROPERTY": "is_tool, is_extinguisher",
+      "PROPERTY_DURABILITY": "3 uses",
+      "PROPERTY_SPAWN_RARITY": 2,
+      "PROPERTY_WEIGHT_SIZE": null
     }
   },
   "ROOM_SPAWN_POOLS": {
@@ -549,6 +557,14 @@
     "Crowbar": {
       "bedroom": 1,
       "kitchen": 1,
+      "bathroom": 0,
+      "study": 1,
+      "living_room": 1,
+      "dining_room": 1
+    },
+    "Fire Extinguisher": {
+      "bedroom": 0,
+      "kitchen": 2,
       "bathroom": 0,
       "study": 1,
       "living_room": 1,

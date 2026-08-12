@@ -28,6 +28,8 @@ func _ready() -> void:
 	_test_cross_floor_pull()
 	_test_dev_force_hazards()
 	_test_stair_horde()
+	_test_extinguisher_item()
+	_test_hazard_warning()
 	_test_barricade_keeper()
 	_test_item_icons()
 	_test_save_load()
@@ -333,6 +335,33 @@ func _test_stair_horde() -> void:
 	check(hordes > 0 and hordes < 28, "some (not all) stairwells are hordes (%d/28)" % hordes)
 	check(both == 0, "no stairwell is BOTH a barricade and a horde (%d)" % both)
 	print("  INFO  seed 1337 run 1: %d barricades, %d hordes / 28" % [barricades, hordes])
+
+
+func _test_extinguisher_item() -> void:
+	# Groundwork for the fire hazard: a Fire Extinguisher tool (036).
+	print("[extinguisher item (groundwork)]")
+	var d = ItemData.get_item("036")
+	check(not d.is_empty(), "item 036 exists")
+	check(d.get("name", "") == "Fire Extinguisher", "036 is the Fire Extinguisher")
+	check(d.get("is_extinguisher", false), "036 has is_extinguisher flag")
+	check(d.get("is_tool", false), "036 is a tool")
+	check(not d.get("is_weapon", false), "036 is NOT a weapon")
+	check(int(d.get("max_durability", -1)) == 3, "036 has 3 uses")
+
+
+func _test_hazard_warning() -> void:
+	# First-approach hazard warning flag: per (floor, run, side), session-only.
+	print("[hazard approach warning]")
+	WorldState.current_run = 1
+	WorldState.hazard_approach_warned.clear()
+	check(not WorldState.hazard_warned(12, "left"), "not warned initially")
+	WorldState.mark_hazard_warned(12, "left")
+	check(WorldState.hazard_warned(12, "left"), "warned flag set")
+	check(not WorldState.hazard_warned(12, "right"), "the other side is independent")
+	WorldState.current_run = 2
+	check(not WorldState.hazard_warned(12, "left"), "warning is per-run")
+	WorldState.current_run = 1
+	WorldState.hazard_approach_warned.clear()
 
 
 func _test_barricade_keeper() -> void:

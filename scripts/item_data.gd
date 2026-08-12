@@ -100,6 +100,7 @@ func _load_data() -> void:
 			"is_rope": properties.has("is_rope"),
 			"is_clothes": properties.has("is_clothes"),
 			"is_crowbar": properties.has("is_crowbar"),
+			"is_extinguisher": properties.has("is_extinguisher"),
 			"single_use": durability_data["single_use"],
 			"max_durability": durability_data["max_durability"],
 			"heals_states": durability_data["heals_states"],

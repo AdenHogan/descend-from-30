@@ -89,6 +89,7 @@ Spawn weights per room module (0 = never spawns there):
 > source of truth — for full flags + spawn weights):
 > - **033 Bank Notes** (`is_money`) — see `docs/STORE_DESIGN.md`.
 > - **034 Screwdriver** (`can_force_lock`, 5 uses).
-> - **035 Crowbar** (`is_tool, is_crowbar`, single-use/consumed) — the one
->   tool that pries through a stairwell choked with the dead; **not** a weapon.
->   See `docs/STAIR_HORDES.md`.
+> - **035 Crowbar** (`is_tool, is_crowbar`, single-use/consumed) — pries open a
+>   barricaded stairwell; **not** a weapon. See `docs/STAIR_BARRICADES.md`.
+> - **036 Fire Extinguisher** (`is_tool, is_extinguisher`, 3 uses) — groundwork
+>   for the future fire hazard (put out a stairwell blaze). Not yet functional.

@@ -136,6 +136,16 @@ steps are yours. It blocks **both directions**, like the barricade, but the
   `_horde_blocking()` finds any live zombie within `HORDE_BLOCK_RANGE` (300px) of
   the steps. Kill them → cleared for good (via `killed_zombies`); lure them off
   with a can → the steps free up while they're away (a stealth option).
+- **Danger cue** (`horde_echo.gd`): a colored (red, NOT the grey listen overlay)
+  "sound-wave" ring pulse radiates outward from each horde stairwell as
+  ground-zero, so the swarm reads from across the floor. Purely decorative.
+- **Approach warning** (`building_floors._process`): the FIRST time the player
+  approaches a horde stairwell from a distance (primed beyond
+  `APPROACH_WARN_DIST`, then within it), a brief freeze + player-speech line
+  ("I can hear them ahead…") fires once — keyed per `(floor, run, side)` in
+  `hazard_approach_warned` (session-only). A **barricade shows no advance
+  warning** (owner's call — you see the crates when you get close); fire will
+  warn here too once built.
 
 ## Tests
 
@@ -183,14 +193,26 @@ floors); plus `barricade_keeper_state` (`get`/`set`, persisted per run:
 yet** — this is the deterministic predicate + resolution state the full quest
 will hang off.
 
+## Fire (Hazard 3 — groundwork only)
+
+Agreed design, **not built**: a stairwell fire fills the room with **smoke that
+climbs from the floor up**; the player must **crouch under it** to breathe/see,
+and **put it out with a Fire Extinguisher** to clear the way. Extinguisher item
+is in (below); the smoke fill, the crouch-under interaction, and the
+extinguisher use are the pass to build. It slots into F2 mode 3 and should use
+the same approach-warning beat as the horde.
+
+**Groundwork:** item **036 Fire Extinguisher** (`is_tool, is_extinguisher`, 3
+uses) exists in `data/Items.json`; the F2 cycle already has the fire slot.
+
 ## Open / later
 
 - **Barricade-keeper NPC + quest** — the encounter, dialogue and fight on top of
   the groundwork above.
-- **Fire hazard** — the remaining cycle placeholder.
+- **Fire hazard** — smoke fill + crouch-under + extinguisher use (item ready).
 - **Horde polish** — a **new enemy type** for the horde (its own pass), and
-  tuning: count/range, whether the whole floor's ambient zombies should thin on a
-  horde floor, and a clearer "the steps are swarmed" cue on approach.
+  tuning: count/range, and whether the floor's ambient zombies should thin on a
+  horde floor.
 - **Melee** doesn't pull cross-floor (quiet by the noise model). If loud melee
   should pull, add a `door_work`-level emit on the relevant swings.
 - **Balcony interplay:** a blocked down-stairwell is exactly the pressure that

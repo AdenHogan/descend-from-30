@@ -442,6 +442,7 @@ func new_game() -> void:
 	stair_blocks_cleared.clear()
 	pending_stair_pulls.clear()
 	barricade_keeper_state.clear()
+	hazard_approach_warned.clear()
 	pending_pry_arrival_floor = -1
 	merchant_stock.clear()
 	legendary_hold = {}
@@ -1526,6 +1527,18 @@ const BARRICADE_KEEPER_CHANCE := 0.30
 # "floor:run" -> narrative state: "" not yet met, "met", "hostile", "cleared".
 # Persisted per run.
 var barricade_keeper_state: Dictionary = {}
+
+# First-approach hazard warning (a one-time "danger ahead" beat): "floor:run:side"
+# -> true once shown. Session-only UX, reset by new_game (not saved).
+var hazard_approach_warned: Dictionary = {}
+
+
+func hazard_warned(floor_num: int, side: String) -> bool:
+	return hazard_approach_warned.get(str(floor_num) + ":" + str(current_run) + ":" + side, false)
+
+
+func mark_hazard_warned(floor_num: int, side: String) -> void:
+	hazard_approach_warned[str(floor_num) + ":" + str(current_run) + ":" + side] = true
 
 
 func barricade_has_keeper(floor_num: int) -> bool:

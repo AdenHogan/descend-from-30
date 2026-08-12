@@ -257,9 +257,13 @@ means no rendering — UI layout and art still need an in-editor look.
   off (thrown can); a seeded 4–7 cluster spawns at both landings (`stair_horde`
   group, kills persist), and `stairwell.gd` blocks the crossing while any live
   zombie is within `HORDE_BLOCK_RANGE`. No shift/rest cost — the fight is the
-  cost. **Terminology:** barricade = debris block (crowbar); horde = live-enemy
-  block (fight/lure); *fire* = future — **F2** dev-cycles off → barricade →
-  horde → fire → off (fire is a placeholder). **Barricade-keeper NPC**
+  cost. A horde stairwell shows a **colored red echo pulse** (`horde_echo.gd`)
+  and gives a **one-time approach warning** (brief freeze + player line,
+  `building_floors._process` + `hazard_approach_warned`); barricades give no
+  advance warning. **Terminology:** barricade = debris block (crowbar); horde =
+  live-enemy block (fight/lure); *fire* = future (Hazard 3, groundwork only:
+  item **036 Fire Extinguisher** + F2 slot; smoke/crouch/extinguish unbuilt) —
+  **F2** dev-cycles off → barricade → horde → fire → off (fire is a placeholder). **Barricade-keeper NPC**
   quest has seeded groundwork (`barricade_has_keeper` + `barricade_keeper_state`)
   but no NPC yet. Covered by `stair_block_test` + `building_floors_test`.
 - Next: tutorial **v2** (above), then characters/profiles/stats + the
