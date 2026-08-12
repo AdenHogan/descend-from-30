@@ -85,8 +85,9 @@ const _BARRICADE_TRIGGERS := {
 	"stair_left_up_trigger": 1, "stair_right_up_trigger": 1,
 }
 const BARRICADE_PROP := preload("res://scripts/barricade_prop.gd")
-# Nudge the crate stack toward floor level (the trigger sits up the opening).
-const BARRICADE_Y_OFFSET := 26.0
+# The prop's pile RISES from its origin, so put the origin at floor level (the
+# stair trigger sits up the opening at y 391). Tune here if it floats/sinks.
+const BARRICADE_Y_OFFSET := 42.0
 
 
 func _spawn_barricade_visuals(floor_num: int) -> void:

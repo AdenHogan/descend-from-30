@@ -28,16 +28,19 @@ func _ready() -> void:
 
 
 func _draw() -> void:
-	# A piled stack filling the opening, centred on the origin. Alternate rows are
-	# nudged sideways so it reads as "wedged in", not a tidy grid.
+	# The pile RISES from the origin (placed at floor level), so nothing scrapes
+	# the bottom of the screen. Rows OVERLAP (~2/3 of a crate), and the bottom row
+	# is drawn LAST so the lower crates half-cover the ones behind them — a wedged
+	# pile, not a tidy grid. Alternate rows nudge sideways.
 	var bw := STACK_W / float(COLS)
 	var bh := STACK_H / float(ROWS)
-	for r in range(ROWS):
-		var row_shift := (bw * 0.18) if (r % 2 == 1) else 0.0
+	var row_step := bh * 0.62      # overlap: each row up ~2/3 of a crate
+	for r in range(ROWS - 1, -1, -1):          # top first, bottom last (drawn over)
+		var row_shift := (bw * 0.2) if (r % 2 == 1) else 0.0
 		for c in range(COLS):
 			var x := -STACK_W / 2.0 + c * bw + row_shift
-			var y := -STACK_H / 2.0 + r * bh
-			var rect := Rect2(x + 2.0, y + 2.0, bw - 4.0, bh - 4.0)
+			var top := -bh - r * row_step        # bottom row bottom-edge sits at y=0
+			var rect := Rect2(x + 2.0, top + 2.0, bw - 4.0, bh - 4.0)
 			draw_rect(rect, CRATE_HI if (r + c) % 2 == 0 else CRATE)
 			draw_rect(rect, CRATE_LINE, false, 2.0)
 			# A diagonal plank slash across each crate for a barricaded look.
