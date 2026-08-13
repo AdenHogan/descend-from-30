@@ -1407,6 +1407,18 @@ func is_stair_blocked(floor_num: int) -> bool:
 	return _stair_barricade_seeded(floor_num)
 
 
+func _stair_horde_seeded(floor_num: int) -> bool:
+	# Raw seed roll for a HORDE (no dev gate), excluding barricade stairwells so the
+	# hazards stay mutually exclusive. Shared by is_stair_horde and is_stair_fire.
+	if floor_num >= 30 or floor_num <= 1:
+		return false
+	if _stair_barricade_seeded(floor_num):
+		return false
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "stairhorde" + str(floor_num) + str(current_run))
+	return rng.randf() < STAIR_HORDE_CHANCE
+
+
 func is_stair_horde(floor_num: int) -> bool:
 	# Hazard 2: the staircase indexed by `floor_num` is packed with LIVE enemies.
 	# Seeded per (floor, run), MUTUALLY EXCLUSIVE with a barricade there. This only
@@ -1418,11 +1430,49 @@ func is_stair_horde(floor_num: int) -> bool:
 		return true
 	if dev_hazard_mode != DEV_HAZARD_NONE:
 		return false
-	if _stair_barricade_seeded(floor_num):
-		return false   # that stairwell is a barricade, not a horde
+	return _stair_horde_seeded(floor_num)
+
+
+# --- Hazard 3: fire ---------------------------------------------------------
+# A fire that starts at the stairwell and SPREADS across the floor over time
+# (see fire_field.gd). Seeded per (floor, run), mutually exclusive with the
+# barricade and horde. Escalates across the three runs if left unchecked.
+const STAIR_FIRE_CHANCE := 0.12
+const FIRE_LIGHT := 0     # run 1: a small fire near the stairwell
+const FIRE_BLAZE := 1     # run 2: most of the floor alight
+const FIRE_CHARRED := 2   # run 3: burnt-out ruin (no active fire, no loot)
+
+
+func is_stair_fire(floor_num: int) -> bool:
+	if floor_num >= 30 or floor_num <= 1:
+		return false
+	if dev_hazard_mode == DEV_HAZARD_FIRE:
+		return true
+	if dev_hazard_mode != DEV_HAZARD_NONE:
+		return false
+	if _stair_barricade_seeded(floor_num) or _stair_horde_seeded(floor_num):
+		return false   # that stairwell is a barricade or horde, not a fire
 	var rng := RandomNumberGenerator.new()
-	rng.seed = hash(str(master_seed) + "stairhorde" + str(floor_num) + str(current_run))
-	return rng.randf() < STAIR_HORDE_CHANCE
+	rng.seed = hash(str(master_seed) + "stairfire" + str(floor_num) + str(current_run))
+	return rng.randf() < STAIR_FIRE_CHANCE
+
+
+func fire_stage(floor_num: int) -> int:
+	# Escalation across the three-run arc (GROUNDWORK — the true "carries over
+	# worse only if you didn't put it out" tracking arrives with the run-advance
+	# machinery). For now it's purely run-driven: run 1 light, run 2 blaze,
+	# run 3+ charred ruin.
+	if current_run <= 1:
+		return FIRE_LIGHT
+	elif current_run == 2:
+		return FIRE_BLAZE
+	return FIRE_CHARRED
+
+
+func is_floor_charred(floor_num: int) -> bool:
+	# A charred fire floor is a dead husk — future room/anchor seeding should skip
+	# loot here (hook for the run-3 "no resources" ruin).
+	return is_stair_fire(floor_num) and fire_stage(floor_num) == FIRE_CHARRED
 
 
 func is_stair_block_cleared(floor_num: int) -> bool:
