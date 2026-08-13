@@ -86,25 +86,24 @@ const _BARRICADE_TRIGGERS := {
 	"stair_left_up_trigger": 1, "stair_right_up_trigger": 1,
 }
 const BARRICADE_PROP := preload("res://scripts/barricade_prop.gd")
-# The prop's pile RISES from its origin, so put the origin at floor level (the
-# stair trigger sits up the opening at y 391). Tune here if it floats/sinks.
-const BARRICADE_Y_OFFSET := 42.0
+# The floor line the crate pile GROUNDS on (its bottom row sits here; the stair
+# trigger sits up the opening at y 391). Tune here if the pile floats or sinks.
+const BARRICADE_FLOOR_Y := 418.0
 
 
 func _spawn_barricade_visuals(floor_num: int) -> void:
-	# A stack of crates in front of every blocked stairwell — both the up and the
-	# down steps — so a barricade is visible, not just felt on a pry attempt. Only
-	# the ACTIVE trigger per side is a real path (its disabled twin overlaps it),
-	# so skip disabled ones to avoid a doubled stack.
+	# A crate prop at EACH active stairwell (both usable sides — up and down). Each
+	# is told its choke floor and keeps ITSELF visible only while that stairwell is
+	# barricaded (is_stair_blocked), so the crates can never disagree with the block
+	# — they vanish the instant it's pried, and F2 shows/hides them live on both
+	# sides. Disabled twins overlap the active one, so skip them (no double stack).
 	for tname in _BARRICADE_TRIGGERS:
 		var t = get_node_or_null(tname)
 		if t == null or t.process_mode == Node.PROCESS_MODE_DISABLED:
 			continue
-		var choke: int = floor_num + int(_BARRICADE_TRIGGERS[tname])
-		if not WorldState.is_stair_blocked(choke):
-			continue
 		var prop = BARRICADE_PROP.new()
-		prop.global_position = Vector2(t.global_position.x, t.global_position.y + BARRICADE_Y_OFFSET)
+		prop.choke_floor = floor_num + int(_BARRICADE_TRIGGERS[tname])
+		prop.global_position = Vector2(t.global_position.x, BARRICADE_FLOOR_Y)
 		add_child(prop)
 
 

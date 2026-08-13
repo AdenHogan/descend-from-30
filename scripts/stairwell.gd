@@ -204,7 +204,7 @@ func _choke_floor() -> int:
 	return WorldState.current_floor if direction == "down" else WorldState.current_floor + 1
 
 
-func _perform_transition() -> void:
+func _perform_transition(shift: bool = false) -> void:
 	# Snap ONTO the stairwell before the transition takes over. Triggering from a
 	# step or two off-centre used to leave the player half in the stairs and half
 	# in the wall for the whole descent.
@@ -219,22 +219,28 @@ func _perform_transition() -> void:
 
 	# Seamless pan between two mid-building floors when enabled; it commits the
 	# floor + scene change itself. Otherwise (and always, while disabled) the
-	# plain fade cut below.
+	# plain fade cut below. A pried crossing (`shift`) always takes the fade path
+	# so it can play the heavier time-skip caption.
 	# >>> TO ENABLE THE STAIR PAN: set `const ENABLED := true` at the top of
 	#     scripts/stair_pan.gd (that's the toggle — not here / not building_floors).
-	if StairPan.can_pan(target_floor):
+	if not shift and StairPan.can_pan(target_floor):
 		StairPan.pan_to_floor(target_floor, direction)
 		return
 
 	WorldState.current_floor = target_floor
 	WorldState.on_floor_arrived(WorldState.current_floor)
 	HUD.update_floor_label()
+	var scene := "res://scenes/building_floors.tscn"
 	if WorldState.current_floor == 30:
-		Transition.to_scene("res://scenes/hallway.tscn")
+		scene = "res://scenes/hallway.tscn"
 	elif WorldState.current_floor == 0:
-		Transition.to_scene("res://scenes/lobby.tscn")
+		scene = "res://scenes/lobby.tscn"
+	if shift:
+		# The crossing was real work — land on the floor you fought toward, after a
+		# held "time passes / the building shifted" beat.
+		Transition.to_scene_shift(scene, "You wrench the last of it aside.\nTime passes — the building has shifted.")
 	else:
-		Transition.to_scene("res://scenes/building_floors.tscn")
+		Transition.to_scene(scene)
 
 
 # --- Crowbar pry (heavy stairwell horde) ----------------------------------
@@ -284,7 +290,6 @@ func _commit_pry() -> void:
 	var arrival: int = WorldState.current_floor + (-1 if direction == "down" else 1)
 	WorldState.consume_crowbar()
 	WorldState.cross_blocked_stair(_choke_floor(), arrival)
-	# Make the building shift legible — it's the whole cost of the crossing.
-	HUD.show_feedback("The way's open — but the building just shifted. The dead have moved.")
-	TutorialManager.say("Through... but I heard them move. Whole place has shifted around me.")
-	_perform_transition()
+	# The heavy time-skip transition carries the "building shifted" beat (fade to
+	# black + held caption), then lands the player on the floor they fought toward.
+	_perform_transition(true)

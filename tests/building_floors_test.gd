@@ -348,24 +348,29 @@ func _test_barricade_visuals() -> void:
 	WorldState.seed_floor_door_states(15)
 	var bf = load("res://scenes/building_floors.tscn").instantiate()
 	add_child(bf)
-	# _ready runs synchronously: props exist immediately.
+	# _ready runs synchronously: a prop lives at BOTH active stairwells, each
+	# VISIBLE because both are barricaded (F2 mode → both sides shown).
 	var props: Array = get_tree().get_nodes_in_group("barricade_prop")
-	check(props.size() == 2, "a barricade prop spawns at each active blocked stairwell (%d)" % props.size())
-	var all_at_ends := true
+	check(props.size() == 2, "a prop lives at each active stairwell (%d)" % props.size())
+	var visible_ends := 0
 	for p in props:
-		if p.global_position.x > 300.0 and p.global_position.x < 1000.0:
-			all_at_ends = false
-	check(all_at_ends, "barricade props sit at the stairwell ends, not mid-corridor")
+		if p.visible and (p.global_position.x < 300.0 or p.global_position.x > 1000.0):
+			visible_ends += 1
+	check(visible_ends == 2, "both stairwells show visible crates in barricade mode (%d)" % visible_ends)
 	bf.queue_free()
 	await get_tree().process_frame
-	# With no barricade (cleared), none spawn.
+	# With no barricade (cleared), the props exist but self-hide (visual matches
+	# the block, so it can never show crates where you can walk through).
 	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
 	WorldState.clear_stair_block(15)
 	WorldState.clear_stair_block(16)
 	var bf2 = load("res://scenes/building_floors.tscn").instantiate()
 	add_child(bf2)
-	check(get_tree().get_nodes_in_group("barricade_prop").is_empty(),
-		"no barricade props on an unblocked floor")
+	var any_visible := false
+	for p in get_tree().get_nodes_in_group("barricade_prop"):
+		if p.visible:
+			any_visible = true
+	check(not any_visible, "no VISIBLE barricade crates on an unblocked floor")
 	bf2.queue_free()
 	await get_tree().process_frame
 
@@ -392,9 +397,13 @@ func _test_stair_horde_spawns() -> void:
 		if z.global_position.x > 550.0 and z.global_position.x < 850.0:
 			all_at_ends = false   # mid-corridor, not by a stairwell
 	check(all_at_ends, "horde zombies cluster by the stairwells, not mid-corridor")
-	# No barricade props while in horde mode (one hazard at a time).
-	check(get_tree().get_nodes_in_group("barricade_prop").is_empty(),
-		"no barricade props in horde mode")
+	# No VISIBLE barricade crates while in horde mode (one hazard at a time; the
+	# self-hiding props may exist but must not show).
+	var vis_crates := 0
+	for p in get_tree().get_nodes_in_group("barricade_prop"):
+		if p.visible:
+			vis_crates += 1
+	check(vis_crates == 0, "no visible barricade crates in horde mode (%d)" % vis_crates)
 	# A red echo cue radiates from each horde stairwell, and each is a warn target.
 	check(get_tree().get_nodes_in_group("horde_echo").size() == 2,
 		"a horde echo cue spawns at each stairwell (%d)" % get_tree().get_nodes_in_group("horde_echo").size())
