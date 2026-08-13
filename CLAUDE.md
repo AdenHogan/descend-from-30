@@ -260,20 +260,30 @@ means no rendering — UI layout and art still need an in-editor look.
   cost. A horde stairwell shows a **colored red echo pulse** (`horde_echo.gd`)
   and gives a **one-time approach warning** (brief freeze + player line,
   `building_floors._process` + `hazard_approach_warned`); barricades give no
-  advance warning. **Hazard 3 — fire (v1):** a **spreading blaze**
-  (`is_stair_fire`, seeded ~12%, mutually exclusive with barricade+horde). A
+  advance warning. **Hazard 3 — fire (v2):** a **spreading blaze** that spreads
+  across a floor within a run AND **climbs the building across runs**. A
   deterministic (RNG-free) cellular sim `fire_field.gd` — corridor of heat/fuel
   cells; burning cells push heat to neighbours and burn out to **charred**;
-  self-ticks + draws pixel flame/smoke; in the `fire_field` group.
-  `building_floors._spawn_fire` lights one field per floor from the stair side,
-  extent by run stage (`fire_stage`: run 1 **LIGHT** at the steps / run 2
-  **BLAZE** floor-wide / run 3+ **CHARRED** husk via `char_all`). Standing in
-  flame costs **1 hp / 1.1s** (`_process` + `receive_hit`). Item **036 Fire
-  Extinguisher** (`is_extinguisher`, 3 uses) douses a radius **for good**
-  (`extinguish_at`); one is placed **by the elevator on merchant floors** once
-  per (floor,run) (`_place_elevator_kit` + `elevator_kit_placed`, saved). Still
-  to build: **smoke fill + crouch-under**, a fire approach-warning beat, true
-  cross-run escalation. **F2** dev-cycles off → barricade → horde → fire → off.
+  self-ticks + draws pixel flame/smoke; in the `fire_field` group. **Cross-run
+  model** (`world_state.gd`): a stable per-arc set of **outbreak origins**
+  (`_fire_origin_seeded`, ~12%); `fire_intensity(floor)` = worst `age - distance`
+  over live origins (`age = current_run-1`), so the front creeps one floor out +
+  one stage hotter per run (LIGHT→BLAZE→CHARRED). Fully extinguishing the
+  **source** records it in `fire_dealt_with` (cross-run, saved) and stops the
+  whole chain; dousing a spread floor (or just a safe path) doesn't count → it
+  comes back worse. Barricade + horde **defer to fire** (no doubling).
+  `building_floors._spawn_fire` lights a field on any fire floor; standing in
+  flame costs **1 hp / 1.1s** (`_process` + `receive_hit`); when the whole floor
+  goes out, `mark_fire_dealt_with` fires. Item **036 Fire Extinguisher**
+  (`is_extinguisher`, 3 uses) douses a radius **for good** (`extinguish_at`) —
+  one canister only blows a safe path through a big blaze (backtrack for more);
+  mounted **by the elevator on EVERY floor** (skips charred) once per (floor,run)
+  (`_place_elevator_kit` + `elevator_kit_placed`, saved). **Merchant** shelters
+  while its floor burns (`_merchant_pending_fire`) and emerges once it's dealt
+  with; left burning, it's absent on that floor across runs. Still to build:
+  **smoke fill + crouch-under**, a fire approach-warning beat, and the automatic
+  run-advance that drives escalation live. **F2** dev-cycles off → barricade →
+  horde → fire → off.
   **Terminology:** barricade = debris block (crowbar); horde = live-enemy block
   (fight/lure); fire = spreading blaze (extinguisher). **Barricade-keeper NPC**
   quest has seeded groundwork (`barricade_has_keeper` + `barricade_keeper_state`)

@@ -11,8 +11,9 @@ Three distinct stairwell hazards — do not conflate them:
   fight: you **pry it open with a Crowbar**.
 - **Horde** *(built, v1)* — a stairwell packed with **live enemies** you fight or
   lure through (no crowbar). See "The horde" below.
-- **Fire** — a blaze that **spreads across the floor over time** and burns you if
-  you stand in it; douse it with an extinguisher. v1 built.
+- **Fire** — a blaze that **spreads across the floor** and **climbs the building
+  across runs** if you don't put the source out; burns you, hides the merchant,
+  douse it with a wall extinguisher. v2 built.
 
 A stairwell is at most ONE of these — the barricade seed rolls first, and the
 horde only rolls on stairwells the barricade didn't take (`is_stair_horde`
@@ -195,11 +196,14 @@ floors); plus `barricade_keeper_state` (`get`/`set`, persisted per run:
 yet** — this is the deterministic predicate + resolution state the full quest
 will hang off.
 
-## Fire (Hazard 3 — spreading blaze, v1 built)
+## Fire (Hazard 3 — spreading blaze, v2 built)
 
-A stairwell fire that **spreads across the floor over time** and hurts you if you
-stand in it. Built v1 (`scripts/fire_field.gd` + `building_floors._spawn_fire`);
-covered by `fire_test` and a spawn check in `building_floors_test`.
+A stairwell fire that **spreads across the floor within a run** AND **climbs the
+building across runs** if the source is never put out. It hurts you if you stand
+in it; the merchant hides from it; an extinguisher is mounted on every floor.
+Built v2 (`scripts/fire_field.gd` + `building_floors._spawn_fire` + the
+origin/spread model in `world_state.gd`); covered by `fire_test` and
+`building_floors_test`.
 
 **Simulation** (`fire_field.gd`) — a deterministic (RNG-free, so testable)
 cellular model: the corridor is a row of cells, each with `heat` and `fuel`. A
@@ -210,16 +214,47 @@ procedural pixel flame + smoke. API: `ignite_span`, `char_all`, `extinguish_at`,
 `is_burning_at`, `any_burning`, `burning_count`. In the `fire_field` group so the
 player can find it.
 
-**Per-floor spawn + run stages** (`_spawn_fire`) — one `FireField` per floor,
-ignited from the fire stairwell. Extent is set by `WorldState.fire_stage(floor)`,
-which is driven by `current_run`:
-- **Run 1 — LIGHT:** a small fire at the steps that spreads if left.
-- **Run 2 — BLAZE:** most of the floor already alight, spreading in from the
-  stair side.
-- **Run 3+ — CHARRED:** `char_all()` — a burnt-out ruin (nothing to fight, but
-  the floor is a husk). (True "gets worse across a session because you didn't
-  put it out" waits on the three-run-arc run-advance machinery; the stage is
-  run-driven groundwork for it.)
+**Cross-run spread — the fire climbs the building** (`world_state.gd`). This is
+the whole point: **laziness in an early run costs big.** The model is
+origin-based, not per-run-seeded:
+- `_fire_origin_seeded(floor)` — a **stable, per-arc** set of floors that catch
+  fire in the run-1 outbreak (~`FIRE_ORIGIN_CHANCE`). Floor 30/1 exempt.
+- `fire_intensity(floor)` — the stage on a floor THIS run: the worst
+  `age - distance` over every **live** origin (`age = current_run - 1`, distance
+  in floors, clamped to CHARRED). So from each source the front **creeps one
+  floor further out and one stage hotter every run**:
+
+  | | origin | ±1 | ±2 |
+  |---|---|---|---|
+  | **Run 1** | LIGHT | — | — |
+  | **Run 2** | BLAZE | LIGHT | — |
+  | **Run 3** | CHARRED | BLAZE | LIGHT |
+
+  (Worked example: a fire on floor 23 in run 1 → run 2: 23 blaze, 22 & 24 light →
+  run 3: 23 charred, 22 & 24 blaze, 21 & 25 light.)
+- **Dealing with it** (`mark_fire_dealt_with`) — when the player **fully
+  extinguishes** a floor whose stairwell is the SOURCE, the origin is recorded in
+  `fire_dealt_with` (cross-run, saved) and its **whole chain stops for good** — no
+  re-ignite, no further spread. Dousing a *spread* floor without killing the
+  source does **not** count — it creeps back next run. (`is_stair_fire` /
+  `fire_stage` / `is_floor_charred` all read this model; **barricade + horde defer
+  to fire** so hazards never double up.) *Note: true escalation is exercised now
+  by setting `current_run`; the automatic run-to-run advance is the three-run-arc
+  machinery, not yet built — but the persistence + logic are complete and tested.*
+
+**Per-floor spawn** (`_spawn_fire`) — a `FireField` on any floor with
+`is_stair_fire` (origin or spread), anchored at a stairwell, extent by
+`fire_intensity`: LIGHT at the steps / BLAZE most of the floor / CHARRED a
+burnt-out husk (`char_all`).
+
+**Simulation** (`fire_field.gd`) — a deterministic (RNG-free, so testable)
+cellular model: the corridor is a row of cells, each with `heat` and `fuel`. A
+burning cell pushes heat to its neighbours (`SPREAD_RATE`) and burns its own fuel
+down (`BURN_RATE`); a cell over `IGNITE_THRESHOLD` is **BURNING**, out of fuel is
+**SPENT** (char), otherwise **COOL**. It self-ticks at `SIM_DT` and draws
+procedural pixel flame + smoke. API: `ignite_span`, `char_all`, `extinguish_at`,
+`is_burning_at`, `any_burning`, `burning_count`. In the `fire_field` group so the
+player can find it.
 
 **Damage** (`building_floors._process`) — standing where `is_burning_at(player.x)`
 costs **1 health every `FIRE_DMG_INTERVAL` (1.1s)** with a "get out of the flames"
@@ -228,23 +263,36 @@ nudge; stepping clear resets the cadence. Move through or douse — don't linger
 **Extinguisher** (item **036**, `is_tool, is_extinguisher`, 3 uses) — using it
 calls `field.extinguish_at(player.x, EXTINGUISH_RADIUS)`, which zeroes heat+fuel
 in a radius **for good** (a doused cell can't re-ignite), spends a charge, and
-emits a small noise; it's removed from inventory when spent. Placed like a real
-building: `_place_elevator_kit` drops one **by the elevator on merchant floors**,
-once per `(floor, run)` (`elevator_kit_placed`, saved/loaded, reset by
+emits a small noise; it's removed from inventory when spent. A single canister
+only blows a **safe path** through a big blaze — the player can walk that gap
+undamaged and head downstairs, but the fire is **not dealt with** (it's still
+burning) so it comes back worse next run; killing a large fire means
+**backtracking for more canisters**. Mounted like a real building:
+`_place_elevator_kit` drops one **by the elevator on EVERY floor** (skips charred
+ruins), once per `(floor, run)` (`elevator_kit_placed`, saved/loaded, reset by
 `new_game`).
 
+**Merchant + fire** (`_spawn_merchant` / `_process`) — a fire on a merchant floor
+keeps the merchant behind the doors (`_merchant_pending_fire`): they **refuse to
+come out until it's dealt with**. Put it out that run and they emerge to trade;
+leave it to burn and they **stay absent on that floor across runs** (too
+dangerous — a charred floor has no merchant) while the other merchant floors
+trade normally.
+
 **Still to build:** the **smoke-fill + crouch-under** layer (smoke that climbs
-from the floor up; crouch to breathe/see) and the fire **approach-warning** beat
-(the horde already warns; fire should too). Flame render, damage cadence, and
-stage extents want in-editor feel-tuning.
+from the floor up; crouch to breathe/see), the fire **approach-warning** beat
+(the horde already warns; fire should too), and the automatic run-advance that
+drives the escalation live. Flame render, damage cadence, and stage extents want
+in-editor feel-tuning.
 
 ## Open / later
 
 - **Barricade-keeper NPC + quest** — the encounter, dialogue and fight on top of
   the groundwork above.
-- **Fire hazard** — spread + damage + extinguisher + elevator kit built (v1);
-  remaining: **smoke fill + crouch-under**, a fire approach-warning beat, and
-  true cross-run escalation (on the three-run-arc).
+- **Fire hazard** — floor spread + cross-run building spread + dealt-with source
+  tracking + damage + extinguisher (every floor) + merchant-shelters built (v2);
+  remaining: **smoke fill + crouch-under**, a fire approach-warning beat, and the
+  automatic run-advance that drives the escalation live (three-run-arc).
 - **Horde polish** — a **new enemy type** for the horde (its own pass), and
   tuning: count/range, and whether the floor's ambient zombies should thin on a
   horde floor.
