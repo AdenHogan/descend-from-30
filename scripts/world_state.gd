@@ -442,6 +442,7 @@ func new_game() -> void:
 	stair_blocks_cleared.clear()
 	pending_stair_pulls.clear()
 	barricade_keeper_state.clear()
+	elevator_kit_placed.clear()
 	hazard_approach_warned.clear()
 	pending_pry_arrival_floor = -1
 	merchant_stock.clear()
@@ -1582,6 +1583,11 @@ var barricade_keeper_state: Dictionary = {}
 # -> true once shown. Session-only UX, reset by new_game (not saved).
 var hazard_approach_warned: Dictionary = {}
 
+# A fire extinguisher mounted by the elevator on merchant floors (safety kit).
+# "floor:run" -> true once placed, so it isn't re-spawned after being taken.
+# Persisted per run.
+var elevator_kit_placed: Dictionary = {}
+
 
 func hazard_warned(floor_num: int, side: String) -> bool:
 	return hazard_approach_warned.get(str(floor_num) + ":" + str(current_run) + ":" + side, false)
@@ -2235,6 +2241,7 @@ func save_game(scene_path: String) -> void:
 		"stair_blocks_cleared": stair_blocks_cleared,
 		"pending_stair_pulls": pending_stair_pulls,
 		"barricade_keeper_state": barricade_keeper_state,
+		"elevator_kit_placed": elevator_kit_placed,
 		"zombie_positions": zombie_positions,
 		"wallet_unlocked": wallet_unlocked,
 		"wallet_balance": wallet_balance,
@@ -2302,6 +2309,7 @@ func load_game() -> String:
 	stair_blocks_cleared = data.get("stair_blocks_cleared", {})
 	pending_stair_pulls = data.get("pending_stair_pulls", {})
 	barricade_keeper_state = data.get("barricade_keeper_state", {})
+	elevator_kit_placed = data.get("elevator_kit_placed", {})
 	# JSON round-trips all dictionary keys as strings; this dict is keyed by int
 	# floor numbers, so convert keys back or every loaded game re-seeds its floors.
 	zombie_positions = data.get("zombie_positions", {})

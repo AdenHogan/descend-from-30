@@ -29,6 +29,7 @@ func _ready() -> void:
 	await _test_stair_pull_rouses_only_near()
 	await _test_barricade_visuals()
 	await _test_stair_horde_spawns()
+	await _test_fire_spawns()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -408,6 +409,35 @@ func _test_stair_horde_spawns() -> void:
 	check(get_tree().get_nodes_in_group("horde_echo").size() == 2,
 		"a horde echo cue spawns at each stairwell (%d)" % get_tree().get_nodes_in_group("horde_echo").size())
 	check(bf._horde_warn_targets.size() == 2, "both horde stairwells are approach-warn targets")
+	bf.queue_free()
+	await get_tree().process_frame
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
+
+
+func _test_fire_spawns() -> void:
+	# Hazard 3: a fire floor spawns one spreading fire field, alight at the stairwell.
+	print("[fire spawns]")
+	WorldState.new_game()
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_FIRE
+	WorldState.current_run = 1   # LIGHT stage: an active fire (not a charred ruin)
+	WorldState.current_floor = 15
+	WorldState.spawn_source = "stair"
+	WorldState.stair_direction = "down"
+	WorldState.stair_spawn_side = "left"
+	WorldState.pending_pry_arrival_floor = -1
+	WorldState.seed_floor_door_states(15)
+	var bf = load("res://scenes/building_floors.tscn").instantiate()
+	add_child(bf)
+	var fields := get_tree().get_nodes_in_group("fire_field")
+	check(fields.size() == 1, "exactly one fire field per fire floor (%d)" % fields.size())
+	check(fields.size() == 1 and fields[0].any_burning(), "the fire is alight (run 1 = light)")
+	# One hazard at a time: no visible crates, no horde cluster.
+	var vis_crates := 0
+	for p in get_tree().get_nodes_in_group("barricade_prop"):
+		if p.visible:
+			vis_crates += 1
+	check(vis_crates == 0, "no barricade crates on a fire floor")
+	check(get_tree().get_nodes_in_group("stair_horde").is_empty(), "no horde on a fire floor")
 	bf.queue_free()
 	await get_tree().process_frame
 	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE

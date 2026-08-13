@@ -68,6 +68,7 @@ const HIT_FLASH_DURATION = 0.5
 var is_dying = false
 var dying_timer = 0.0
 const DYING_TIME = 8.0
+const EXTINGUISH_RADIUS := 130.0   # how wide a fire-extinguisher blast reaches
 var is_dead = false
 
 var is_switching_mode = false
@@ -1111,6 +1112,21 @@ func use_item(slot_index: int) -> void:
 			HUD.show_feedback("Equipped — mag %d/%d." % [instance.mag_count, instance.get_mag_cap()])
 	elif item_data.get("is_throwable", false):
 		_throw_can(slot_index)
+	elif item_data.get("is_extinguisher", false):
+		# Fire Extinguisher (036): beat back the flames around you, spend a charge.
+		var field = get_tree().get_first_node_in_group("fire_field")
+		if field == null or not field.any_burning():
+			HUD.show_feedback("Nothing to put out here.")
+			return
+		field.extinguish_at(global_position.x, EXTINGUISH_RADIUS)
+		instance.use()
+		if instance.is_depleted:
+			WorldState.remove_from_inventory(slot_index)
+			if HUD.selected_slot == slot_index:
+				HUD.selected_slot = -1
+		HUD.refresh_inventory()
+		WorldState.emit_noise(global_position, WorldState.NOISE_RADIUS["scavenge"], 1.0)
+		HUD.show_feedback("You beat back the flames." if field.any_burning() else "The fire's out.")
 	elif item_data.get("is_tool", false) and item_data.get("can_repair", false):
 		# Toolbox: repairs the first repairable item — a damaged gun OR a
 		# broken durability weapon/tool (one toolbox use). Damaged guns take

@@ -71,10 +71,12 @@ func _ready() -> void:
 
 	_spawn_zombies(floor_num, false)
 	_spawn_corpses(floor_num)
+	_place_elevator_kit(floor_num)
 	_spawn_world_drops(floor_num)
 	_spawn_merchant(floor_num)
 	_spawn_barricade_visuals(floor_num)
 	_spawn_stair_hordes(floor_num)
+	_spawn_fire(floor_num)
 	_frame_camera(player)
 
 
@@ -160,13 +162,12 @@ func _spawn_stair_hordes(floor_num: int) -> void:
 const APPROACH_WARN_DIST := 400.0
 # Only HORDE stairwells warn on approach — a barricade shows nothing until you
 # get close and see the crates (owner's call). Fire will warn here too when built.
-func _process(_delta: float) -> void:
-	if _horde_warn_targets.is_empty():
-		return
+func _process(delta: float) -> void:
 	var player = get_node_or_null("Player")
 	if player == null:
 		return
 	var floor_num: int = setup_floor if setup_floor >= 0 else WorldState.current_floor
+	# Horde approach warning (first time, from a distance).
 	for target in _horde_warn_targets:
 		var dist: float = absf(player.global_position.x - float(target["x"]))
 		if not bool(target["primed"]):
@@ -176,6 +177,16 @@ func _process(_delta: float) -> void:
 		if dist <= APPROACH_WARN_DIST and not WorldState.hazard_warned(floor_num, target["side"]):
 			WorldState.mark_hazard_warned(floor_num, target["side"])
 			_warn_hazard("Wait — I can hear them ahead. The stairwell's crawling with them. Careful now.")
+	# Fire damage: standing in flame costs health on a cadence (move or burn).
+	if _fire_field != null and player.has_method("receive_hit"):
+		if _fire_field.is_burning_at(player.global_position.x):
+			_fire_dmg_acc += delta
+			if _fire_dmg_acc >= FIRE_DMG_INTERVAL:
+				_fire_dmg_acc = 0.0
+				player.receive_hit(1)
+				HUD.show_feedback("You're burning! Get out of the flames!")
+		else:
+			_fire_dmg_acc = 0.0
 
 
 func _warn_hazard(text: String) -> void:
@@ -185,6 +196,44 @@ func _warn_hazard(text: String) -> void:
 	HUD.show_dialogue(text)
 	await get_tree().create_timer(0.7, true).timeout
 	get_tree().paused = false
+
+
+const FIRE_FIELD := preload("res://scripts/fire_field.gd")
+var _fire_field = null                 # the floor's fire, or null
+var _fire_dmg_acc: float = 0.0
+const FIRE_DMG_INTERVAL := 1.1         # a health hit this often while standing in flame
+
+
+func _spawn_fire(floor_num: int) -> void:
+	# Hazard 3: one fire field per floor (fire spreads floor-wide). It starts at a
+	# fire stairwell and its EXTENT is set by the run stage — light near the steps
+	# (run 1), most of the floor ablaze (run 2), a charred ruin (run 3).
+	var fire_x := -1.0
+	var on_left := true
+	for tname in _BARRICADE_TRIGGERS:
+		var t = get_node_or_null(tname)
+		if t == null or t.process_mode == Node.PROCESS_MODE_DISABLED:
+			continue
+		if WorldState.is_stair_fire(floor_num + int(_BARRICADE_TRIGGERS[tname])):
+			fire_x = t.global_position.x
+			on_left = fire_x < 600.0
+			break
+	if fire_x < 0.0:
+		return
+	_fire_field = FIRE_FIELD.new()
+	_fire_field.floor_num = floor_num
+	add_child(_fire_field)
+	match WorldState.fire_stage(floor_num):
+		WorldState.FIRE_CHARRED:
+			_fire_field.char_all()                              # burnt-out husk
+		WorldState.FIRE_BLAZE:
+			# Most of the floor alight, spreading in from the stair side.
+			if on_left:
+				_fire_field.ignite_span(fire_x, 720.0)
+			else:
+				_fire_field.ignite_span(680.0, fire_x)
+		_:
+			_fire_field.ignite_span(fire_x - 30.0, fire_x + 50.0)   # LIGHT: at the steps
 
 
 func _frame_camera(player: Node) -> void:
@@ -442,6 +491,19 @@ func _apply_doors(floor_num: int) -> void:
 		if door:
 			door.apartment_id = str(floor_num) + "0" + str(i)
 			door._apply_door_state()
+
+
+func _place_elevator_kit(floor_num: int) -> void:
+	# A fire extinguisher by the elevator (merchant floors), like a real building —
+	# a persisted world-drop placed ONCE per (floor, run) so it doesn't respawn
+	# after you take it. Added before _spawn_world_drops so its pickup renders now.
+	if floor_num not in WorldState.MERCHANT_FLOORS:
+		return
+	var key := str(floor_num) + ":" + str(WorldState.current_run)
+	if WorldState.elevator_kit_placed.get(key, false):
+		return
+	WorldState.elevator_kit_placed[key] = true
+	WorldState.add_world_drop("036", Vector2(915.0, 388.0), floor_num)
 
 
 func _spawn_merchant(floor_num: int) -> void:
