@@ -438,6 +438,16 @@ func _test_fire_spawns() -> void:
 			vis_crates += 1
 	check(vis_crates == 0, "no barricade crates on a fire floor")
 	check(get_tree().get_nodes_in_group("stair_horde").is_empty(), "no horde on a fire floor")
+	# A fire extinguisher is mounted by the elevator on this floor (every floor).
+	check(WorldState.elevator_kit_placed.get("15:1", false), "an extinguisher kit is placed by the elevator")
+	# Floor 15 is a merchant floor; the fire keeps the merchant sheltering.
+	check(bf._merchant_pending_fire, "the merchant shelters while the floor's on fire")
+	check(bf.get_node_or_null("Merchant") == null, "no merchant comes out during the fire")
+	# Put the whole floor's fire out — the merchant then emerges to trade.
+	fields[0].char_all()
+	bf._process(0.1)
+	check(not bf._merchant_pending_fire, "with the fire out, the merchant is no longer sheltering")
+	check(bf.get_node_or_null("Merchant") != null, "the merchant emerges once the fire is dealt with")
 	bf.queue_free()
 	await get_tree().process_frame
 	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE

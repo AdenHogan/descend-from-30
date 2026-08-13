@@ -443,6 +443,7 @@ func new_game() -> void:
 	pending_stair_pulls.clear()
 	barricade_keeper_state.clear()
 	elevator_kit_placed.clear()
+	fire_dealt_with.clear()
 	hazard_approach_warned.clear()
 	pending_pry_arrival_floor = -1
 	merchant_stock.clear()
@@ -1405,6 +1406,8 @@ func is_stair_blocked(floor_num: int) -> bool:
 		return true
 	if dev_hazard_mode != DEV_HAZARD_NONE:
 		return false
+	if is_stair_fire(floor_num):
+		return false   # a fire on this floor overrides a barricade (no doubling up)
 	return _stair_barricade_seeded(floor_num)
 
 
@@ -1431,49 +1434,97 @@ func is_stair_horde(floor_num: int) -> bool:
 		return true
 	if dev_hazard_mode != DEV_HAZARD_NONE:
 		return false
+	if is_stair_fire(floor_num):
+		return false   # a fire on this floor overrides a horde (no doubling up)
 	return _stair_horde_seeded(floor_num)
 
 
 # --- Hazard 3: fire ---------------------------------------------------------
-# A fire that starts at the stairwell and SPREADS across the floor over time
-# (see fire_field.gd). Seeded per (floor, run), mutually exclusive with the
-# barricade and horde. Escalates across the three runs if left unchecked.
-const STAIR_FIRE_CHANCE := 0.12
-const FIRE_LIGHT := 0     # run 1: a small fire near the stairwell
-const FIRE_BLAZE := 1     # run 2: most of the floor alight
-const FIRE_CHARRED := 2   # run 3: burnt-out ruin (no active fire, no loot)
+# A fire that breaks out at a stairwell and SPREADS — both ACROSS a floor within
+# a run (see fire_field.gd) and UP/DOWN the building ACROSS runs if the source is
+# never put out. The run-1 outbreak seeds a set of ORIGIN floors; from each live
+# origin the fire climbs one floor per run and every reached floor gains a stage
+# per run (light -> blaze -> charred). Dealing with (fully extinguishing) an
+# origin stops its whole chain for good. Laziness in an early run costs big.
+const FIRE_ORIGIN_CHANCE := 0.12   # floors that catch fire in the run-1 outbreak
+const FIRE_ORIGIN_RUN := 1         # the outbreak run (age = current_run - this)
+const FIRE_LIGHT := 0     # a small fire near the stairwell (spreads if left)
+const FIRE_BLAZE := 1     # most of the floor alight
+const FIRE_CHARRED := 2   # burnt-out ruin (no active fire, no loot)
+
+# Cross-run: origin floor (str) -> the run it was FULLY put out. Absent = still
+# burning/spreading. Persisted (it's the whole point of the escalation).
+var fire_dealt_with: Dictionary = {}
+
+
+func _fire_origin_seeded(floor_num: int) -> bool:
+	# Stable across the arc (NOT per-run): this floor is where a fire broke out in
+	# the run-1 outbreak. Floor 30 (tutorial) and floor 1 (lobby) never catch.
+	if floor_num >= 30 or floor_num <= 1:
+		return false
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "fireorigin" + str(floor_num))
+	return rng.randf() < FIRE_ORIGIN_CHANCE
+
+
+func _fire_origin_dead(floor_num: int) -> bool:
+	# An origin the player has already put out no longer spreads or re-ignites
+	# (this run or any later one). Absent from the dict = still live.
+	return fire_dealt_with.has(str(floor_num))
+
+
+func fire_intensity(floor_num: int) -> int:
+	# The fire stage on this floor THIS run: -1 none, else LIGHT/BLAZE/CHARRED.
+	# Each live origin contributes `age - distance` (clamped to CHARRED); a floor
+	# takes the worst contribution reaching it. `age` = runs since the outbreak, so
+	# the front creeps one floor further out and one stage hotter every run.
+	if floor_num >= 30 or floor_num <= 1:
+		return -1
+	if dev_hazard_mode == DEV_HAZARD_FIRE:
+		return FIRE_LIGHT       # dev cycle: a light fire on every eligible floor
+	if dev_hazard_mode != DEV_HAZARD_NONE:
+		return -1               # some other dev hazard is forced; no fire
+	var age: int = current_run - FIRE_ORIGIN_RUN
+	if age < 0:
+		return -1
+	var best: int = -1
+	for d in range(0, age + 1):
+		for o in [floor_num - d, floor_num + d]:
+			if not _fire_origin_seeded(o) or _fire_origin_dead(o):
+				continue
+			var stage: int = min(age - d, FIRE_CHARRED)
+			if stage > best:
+				best = stage
+			if d == 0:
+				break        # floor itself: don't double-count
+	return best
 
 
 func is_stair_fire(floor_num: int) -> bool:
-	if floor_num >= 30 or floor_num <= 1:
-		return false
-	if dev_hazard_mode == DEV_HAZARD_FIRE:
-		return true
-	if dev_hazard_mode != DEV_HAZARD_NONE:
-		return false
-	if _stair_barricade_seeded(floor_num) or _stair_horde_seeded(floor_num):
-		return false   # that stairwell is a barricade or horde, not a fire
-	var rng := RandomNumberGenerator.new()
-	rng.seed = hash(str(master_seed) + "stairfire" + str(floor_num) + str(current_run))
-	return rng.randf() < STAIR_FIRE_CHANCE
+	# True when this FLOOR is on fire this run (origin OR spread). Kept as the
+	# public predicate; barricade/horde defer to it so hazards never double up.
+	return fire_intensity(floor_num) >= 0
 
 
 func fire_stage(floor_num: int) -> int:
-	# Escalation across the three-run arc (GROUNDWORK — the true "carries over
-	# worse only if you didn't put it out" tracking arrives with the run-advance
-	# machinery). For now it's purely run-driven: run 1 light, run 2 blaze,
-	# run 3+ charred ruin.
-	if current_run <= 1:
-		return FIRE_LIGHT
-	elif current_run == 2:
-		return FIRE_BLAZE
-	return FIRE_CHARRED
+	# The stage of the fire on this floor (call only when is_stair_fire is true;
+	# clamps a no-fire floor up to LIGHT so callers never index out of range).
+	return max(fire_intensity(floor_num), 0)
+
+
+func mark_fire_dealt_with(floor_num: int) -> void:
+	# The player FULLY put out the fire on this floor. It only halts the chain if
+	# this floor is the SOURCE (an origin) — dousing a spread floor without killing
+	# the source lets it creep back next run (deal with the source). Recorded
+	# cross-run so that origin never re-ignites or escalates again.
+	if _fire_origin_seeded(floor_num) and not _fire_origin_dead(floor_num):
+		fire_dealt_with[str(floor_num)] = current_run
 
 
 func is_floor_charred(floor_num: int) -> bool:
 	# A charred fire floor is a dead husk — future room/anchor seeding should skip
 	# loot here (hook for the run-3 "no resources" ruin).
-	return is_stair_fire(floor_num) and fire_stage(floor_num) == FIRE_CHARRED
+	return fire_intensity(floor_num) == FIRE_CHARRED
 
 
 func is_stair_block_cleared(floor_num: int) -> bool:
@@ -2242,6 +2293,7 @@ func save_game(scene_path: String) -> void:
 		"pending_stair_pulls": pending_stair_pulls,
 		"barricade_keeper_state": barricade_keeper_state,
 		"elevator_kit_placed": elevator_kit_placed,
+		"fire_dealt_with": fire_dealt_with,
 		"zombie_positions": zombie_positions,
 		"wallet_unlocked": wallet_unlocked,
 		"wallet_balance": wallet_balance,
@@ -2310,6 +2362,7 @@ func load_game() -> String:
 	pending_stair_pulls = data.get("pending_stair_pulls", {})
 	barricade_keeper_state = data.get("barricade_keeper_state", {})
 	elevator_kit_placed = data.get("elevator_kit_placed", {})
+	fire_dealt_with = data.get("fire_dealt_with", {})
 	# JSON round-trips all dictionary keys as strings; this dict is keyed by int
 	# floor numbers, so convert keys back or every loaded game re-seeds its floors.
 	zombie_positions = data.get("zombie_positions", {})

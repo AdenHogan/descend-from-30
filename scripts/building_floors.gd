@@ -187,6 +187,17 @@ func _process(delta: float) -> void:
 				HUD.show_feedback("You're burning! Get out of the flames!")
 		else:
 			_fire_dmg_acc = 0.0
+		# The moment the WHOLE floor's fire is out (not just a path doused), it's
+		# dealt with: record it cross-run so it can't re-ignite/escalate, and let
+		# a sheltering merchant finally come out. A path-spray leaves cells burning,
+		# so it does NOT count — ignore the fire and it comes back worse next run.
+		if _fire_was_burning and not _fire_field.any_burning():
+			_fire_was_burning = false
+			WorldState.mark_fire_dealt_with(floor_num)
+			if _merchant_pending_fire:
+				_merchant_pending_fire = false
+				_do_spawn_merchant()
+				HUD.show_feedback("The fire's out — the merchant steps out to trade.")
 
 
 func _warn_hazard(text: String) -> void:
@@ -201,29 +212,34 @@ func _warn_hazard(text: String) -> void:
 const FIRE_FIELD := preload("res://scripts/fire_field.gd")
 var _fire_field = null                 # the floor's fire, or null
 var _fire_dmg_acc: float = 0.0
+var _fire_was_burning: bool = false    # to catch the moment the floor's fire goes out
 const FIRE_DMG_INTERVAL := 1.1         # a health hit this often while standing in flame
+var _merchant_pending_fire: bool = false   # merchant is sheltering until the fire's out
 
 
 func _spawn_fire(floor_num: int) -> void:
-	# Hazard 3: one fire field per floor (fire spreads floor-wide). It starts at a
-	# fire stairwell and its EXTENT is set by the run stage — light near the steps
-	# (run 1), most of the floor ablaze (run 2), a charred ruin (run 3).
-	var fire_x := -1.0
+	# Hazard 3: fire on THIS floor (an outbreak origin, or a floor the blaze has
+	# crept onto up/down the building across runs). One field per floor; its EXTENT
+	# is set by the floor's intensity — LIGHT near the steps, BLAZE most of the
+	# floor, CHARRED a burnt-out husk. The fire climbs the stairwell, so it's
+	# anchored at a down-stair on this floor.
+	if not WorldState.is_stair_fire(floor_num):
+		return
+	var fire_x := 250.0
 	var on_left := true
 	for tname in _BARRICADE_TRIGGERS:
+		if int(_BARRICADE_TRIGGERS[tname]) != 0:
+			continue   # want a stairwell ON this floor (offset 0), not the up-stair
 		var t = get_node_or_null(tname)
 		if t == null or t.process_mode == Node.PROCESS_MODE_DISABLED:
 			continue
-		if WorldState.is_stair_fire(floor_num + int(_BARRICADE_TRIGGERS[tname])):
-			fire_x = t.global_position.x
-			on_left = fire_x < 600.0
-			break
-	if fire_x < 0.0:
-		return
+		fire_x = t.global_position.x
+		on_left = fire_x < 600.0
+		break
 	_fire_field = FIRE_FIELD.new()
 	_fire_field.floor_num = floor_num
 	add_child(_fire_field)
-	match WorldState.fire_stage(floor_num):
+	match WorldState.fire_intensity(floor_num):
 		WorldState.FIRE_CHARRED:
 			_fire_field.char_all()                              # burnt-out husk
 		WorldState.FIRE_BLAZE:
@@ -234,6 +250,7 @@ func _spawn_fire(floor_num: int) -> void:
 				_fire_field.ignite_span(680.0, fire_x)
 		_:
 			_fire_field.ignite_span(fire_x - 30.0, fire_x + 50.0)   # LIGHT: at the steps
+	_fire_was_burning = _fire_field.any_burning()
 
 
 func _frame_camera(player: Node) -> void:
@@ -494,10 +511,12 @@ func _apply_doors(floor_num: int) -> void:
 
 
 func _place_elevator_kit(floor_num: int) -> void:
-	# A fire extinguisher by the elevator (merchant floors), like a real building —
-	# a persisted world-drop placed ONCE per (floor, run) so it doesn't respawn
-	# after you take it. Added before _spawn_world_drops so its pickup renders now.
-	if floor_num not in WorldState.MERCHANT_FLOORS:
+	# A fire extinguisher mounted on the wall by the elevator — on EVERY floor,
+	# like a real building. A persisted world-drop placed ONCE per (floor, run) so
+	# it doesn't respawn after you take it (added before _spawn_world_drops so its
+	# pickup renders now). A charred ruin is a dead husk — no kit there. Spreading
+	# fire may outrun one canister, so the point is you can backtrack for more.
+	if WorldState.is_floor_charred(floor_num):
 		return
 	var key := str(floor_num) + ":" + str(WorldState.current_run)
 	if WorldState.elevator_kit_placed.get(key, false):
@@ -509,6 +528,18 @@ func _place_elevator_kit(floor_num: int) -> void:
 func _spawn_merchant(floor_num: int) -> void:
 	if floor_num not in WorldState.MERCHANT_FLOORS:
 		return
+	# A fire on the merchant's floor keeps them behind the doors — they won't come
+	# out to trade until it's dealt with. If the player puts it out this run, the
+	# merchant emerges (see _process); if it's left to burn, they simply don't
+	# appear on this floor across runs (too dangerous) while other merchant floors
+	# still trade normally.
+	if WorldState.is_stair_fire(floor_num):
+		_merchant_pending_fire = true
+		return
+	_do_spawn_merchant()
+
+
+func _do_spawn_merchant() -> void:
 	# The merchant scene renders its own elevator (interior + sliding doors),
 	# so the hallway's static Elevator sprite is hidden on merchant floors.
 	var static_elevator = get_node_or_null("Elevator")
