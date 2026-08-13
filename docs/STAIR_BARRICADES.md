@@ -11,7 +11,8 @@ Three distinct stairwell hazards — do not conflate them:
   fight: you **pry it open with a Crowbar**.
 - **Horde** *(built, v1)* — a stairwell packed with **live enemies** you fight or
   lure through (no crowbar). See "The horde" below.
-- **Fire** *(future)* — a spreading blaze. Not built.
+- **Fire** — a blaze that **spreads across the floor over time** and burns you if
+  you stand in it; douse it with an extinguisher. v1 built.
 
 A stairwell is at most ONE of these — the barricade seed rolls first, and the
 horde only rolls on stairwells the barricade didn't take (`is_stair_horde`
@@ -173,11 +174,12 @@ press names the new mode.
   the pry.
 - **Hordes** (mode 2): every eligible stairwell spawns a live-enemy cluster
   (applies to floors you enter while the mode is on). Barricades are suppressed.
-- **Fire** (mode 3) is still a **cycle placeholder** — forces nothing yet.
+- **Fire** (mode 3): every eligible stairwell is a fire — a `FireField` spawns
+  on each floor you enter and ignites from the stair side. Grab an extinguisher
+  (036) by the elevator on merchant floors, or **F1**-spawn one to test dousing.
 
 Session-only (reset by `new_game`, not saved); exemptions (floor 30 tutorial,
-floor 1 stairs) hold in every mode. When fire is built, wire its effect to its
-mode constant.
+floor 1 stairs) hold in every mode.
 
 ## Barricade keeper (story groundwork)
 
@@ -193,23 +195,56 @@ floors); plus `barricade_keeper_state` (`get`/`set`, persisted per run:
 yet** — this is the deterministic predicate + resolution state the full quest
 will hang off.
 
-## Fire (Hazard 3 — groundwork only)
+## Fire (Hazard 3 — spreading blaze, v1 built)
 
-Agreed design, **not built**: a stairwell fire fills the room with **smoke that
-climbs from the floor up**; the player must **crouch under it** to breathe/see,
-and **put it out with a Fire Extinguisher** to clear the way. Extinguisher item
-is in (below); the smoke fill, the crouch-under interaction, and the
-extinguisher use are the pass to build. It slots into F2 mode 3 and should use
-the same approach-warning beat as the horde.
+A stairwell fire that **spreads across the floor over time** and hurts you if you
+stand in it. Built v1 (`scripts/fire_field.gd` + `building_floors._spawn_fire`);
+covered by `fire_test` and a spawn check in `building_floors_test`.
 
-**Groundwork:** item **036 Fire Extinguisher** (`is_tool, is_extinguisher`, 3
-uses) exists in `data/Items.json`; the F2 cycle already has the fire slot.
+**Simulation** (`fire_field.gd`) — a deterministic (RNG-free, so testable)
+cellular model: the corridor is a row of cells, each with `heat` and `fuel`. A
+burning cell pushes heat to its neighbours (`SPREAD_RATE`) and burns its own fuel
+down (`BURN_RATE`); a cell over `IGNITE_THRESHOLD` is **BURNING**, out of fuel is
+**SPENT** (char), otherwise **COOL**. It self-ticks at `SIM_DT` and draws
+procedural pixel flame + smoke. API: `ignite_span`, `char_all`, `extinguish_at`,
+`is_burning_at`, `any_burning`, `burning_count`. In the `fire_field` group so the
+player can find it.
+
+**Per-floor spawn + run stages** (`_spawn_fire`) — one `FireField` per floor,
+ignited from the fire stairwell. Extent is set by `WorldState.fire_stage(floor)`,
+which is driven by `current_run`:
+- **Run 1 — LIGHT:** a small fire at the steps that spreads if left.
+- **Run 2 — BLAZE:** most of the floor already alight, spreading in from the
+  stair side.
+- **Run 3+ — CHARRED:** `char_all()` — a burnt-out ruin (nothing to fight, but
+  the floor is a husk). (True "gets worse across a session because you didn't
+  put it out" waits on the three-run-arc run-advance machinery; the stage is
+  run-driven groundwork for it.)
+
+**Damage** (`building_floors._process`) — standing where `is_burning_at(player.x)`
+costs **1 health every `FIRE_DMG_INTERVAL` (1.1s)** with a "get out of the flames"
+nudge; stepping clear resets the cadence. Move through or douse — don't linger.
+
+**Extinguisher** (item **036**, `is_tool, is_extinguisher`, 3 uses) — using it
+calls `field.extinguish_at(player.x, EXTINGUISH_RADIUS)`, which zeroes heat+fuel
+in a radius **for good** (a doused cell can't re-ignite), spends a charge, and
+emits a small noise; it's removed from inventory when spent. Placed like a real
+building: `_place_elevator_kit` drops one **by the elevator on merchant floors**,
+once per `(floor, run)` (`elevator_kit_placed`, saved/loaded, reset by
+`new_game`).
+
+**Still to build:** the **smoke-fill + crouch-under** layer (smoke that climbs
+from the floor up; crouch to breathe/see) and the fire **approach-warning** beat
+(the horde already warns; fire should too). Flame render, damage cadence, and
+stage extents want in-editor feel-tuning.
 
 ## Open / later
 
 - **Barricade-keeper NPC + quest** — the encounter, dialogue and fight on top of
   the groundwork above.
-- **Fire hazard** — smoke fill + crouch-under + extinguisher use (item ready).
+- **Fire hazard** — spread + damage + extinguisher + elevator kit built (v1);
+  remaining: **smoke fill + crouch-under**, a fire approach-warning beat, and
+  true cross-run escalation (on the three-run-arc).
 - **Horde polish** — a **new enemy type** for the horde (its own pass), and
   tuning: count/range, and whether the floor's ambient zombies should thin on a
   horde floor.

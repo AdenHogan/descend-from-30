@@ -117,8 +117,8 @@ setup script; binary from downloads.godotengine.org). Before every commit:
   `depth_move_test`, `transition_test`, `force_lock_test`, `loot_test`,
   `building_floors_test`, `stair_visuals_test`, `profile_test`,
   `profile_ui_test`, `title_test`, `enemy_memory_test`, `floor_adopt_test`,
-  `balcony_test`, `hud_prompt_test`, `stair_block_test` — run all 23 before
-  commit. (`floor_adopt_test` is seed-sensitive: `new_game` rolls a random
+  `balcony_test`, `hud_prompt_test`, `stair_block_test`, `fire_test` — run all
+  24 before commit. (`floor_adopt_test` is seed-sensitive: `new_game` rolls a random
   master seed and it asserts a floor has zombies, so it fails ~occasionally
   on a 0-zombie seed — a known flake, re-run it.)
 
@@ -260,13 +260,26 @@ means no rendering — UI layout and art still need an in-editor look.
   cost. A horde stairwell shows a **colored red echo pulse** (`horde_echo.gd`)
   and gives a **one-time approach warning** (brief freeze + player line,
   `building_floors._process` + `hazard_approach_warned`); barricades give no
-  advance warning. **Terminology:** barricade = debris block (crowbar); horde =
-  live-enemy block (fight/lure); *fire* = future (Hazard 3, groundwork only:
-  item **036 Fire Extinguisher** + F2 slot; smoke/crouch/extinguish unbuilt) —
-  **F2** dev-cycles off → barricade → horde → fire → off (fire is a placeholder). **Barricade-keeper NPC**
+  advance warning. **Hazard 3 — fire (v1):** a **spreading blaze**
+  (`is_stair_fire`, seeded ~12%, mutually exclusive with barricade+horde). A
+  deterministic (RNG-free) cellular sim `fire_field.gd` — corridor of heat/fuel
+  cells; burning cells push heat to neighbours and burn out to **charred**;
+  self-ticks + draws pixel flame/smoke; in the `fire_field` group.
+  `building_floors._spawn_fire` lights one field per floor from the stair side,
+  extent by run stage (`fire_stage`: run 1 **LIGHT** at the steps / run 2
+  **BLAZE** floor-wide / run 3+ **CHARRED** husk via `char_all`). Standing in
+  flame costs **1 hp / 1.1s** (`_process` + `receive_hit`). Item **036 Fire
+  Extinguisher** (`is_extinguisher`, 3 uses) douses a radius **for good**
+  (`extinguish_at`); one is placed **by the elevator on merchant floors** once
+  per (floor,run) (`_place_elevator_kit` + `elevator_kit_placed`, saved). Still
+  to build: **smoke fill + crouch-under**, a fire approach-warning beat, true
+  cross-run escalation. **F2** dev-cycles off → barricade → horde → fire → off.
+  **Terminology:** barricade = debris block (crowbar); horde = live-enemy block
+  (fight/lure); fire = spreading blaze (extinguisher). **Barricade-keeper NPC**
   quest has seeded groundwork (`barricade_has_keeper` + `barricade_keeper_state`)
-  but no NPC yet. Covered by `stair_block_test` + `building_floors_test`.
+  but no NPC yet. Covered by `stair_block_test` + `building_floors_test` +
+  `fire_test`.
 - Next: tutorial **v2** (above), then characters/profiles/stats + the
   two-&-three-run arc; also **Upgrade offers** polish and player-corpse
-  recovery (store step 7); barricade-keeper NPC + the fire hazard.
-- Not started: time-of-day, fires, balcony descent, quests, character stats.
+  recovery (store step 7); barricade-keeper NPC; fire smoke/crouch + warning beat.
+- Not started: time-of-day, balcony descent, quests, character stats.
