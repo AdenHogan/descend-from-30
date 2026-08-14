@@ -147,18 +147,20 @@ var world_drops: Dictionary = {}  # "floor:x:y" -> {item_id, x, y, floor, target
 var god_mode: bool = false
 # DEV (F2): CYCLE floor hazards one at a time (so they never overlap) —
 #   0 off → 1 barricades → 2 hordes → 3 fire → back to 0 (seed defaults).
-# Only BARRICADE is built (the crowbar stairwell block); HORDE (a stairwell
-# packed with LIVE enemies) and FIRE are placeholders in the cycle so the slots
-# exist for when they land. Session-only, like god_mode — not saved, reset by
-# new_game.
+# Barricades (crowbar stairwell block), hordes (a stairwell packed with LIVE
+# enemies) and fire (spreading blaze) are ALL built now. Session-only, like
+# god_mode — not saved, reset by new_game.
 const DEV_HAZARD_NONE := 0
 const DEV_HAZARD_BARRICADE := 1
 const DEV_HAZARD_HORDE := 2
 const DEV_HAZARD_FIRE := 3
 const DEV_HAZARD_COUNT := 4
 const DEV_HAZARD_NAMES := ["off", "barricades", "hordes", "fire"]
-const DEV_HAZARD_UNBUILT := [DEV_HAZARD_HORDE, DEV_HAZARD_FIRE]   # cycle to them, but no effect yet
+const DEV_HAZARD_UNBUILT := []   # barricades, hordes AND fire are all built now
 var dev_hazard_mode: int = DEV_HAZARD_NONE
+# A DEV message the next scene load should surface AFTER the god-mode reminder,
+# so an F2 hazard toggle that rebuilds the floor isn't clobbered by it.
+var pending_dev_feedback: String = ""
 
 # --- Door system ---
 enum DoorState {
@@ -453,6 +455,7 @@ func new_game() -> void:
 	upgrade_offers.clear()
 	god_mode = false
 	dev_hazard_mode = DEV_HAZARD_NONE
+	pending_dev_feedback = ""
 
 
 func on_floor_arrived(floor_num: int) -> void:

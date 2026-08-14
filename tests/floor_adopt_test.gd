@@ -88,6 +88,11 @@ func _test_go_live_wakes_everything() -> void:
 	WorldState.current_floor = (f + 3) % 29 + 1
 	WorldState.stair_spawn_side = "left"
 	WorldState.stair_direction = "down"
+	# A merchant shelters from fire on its floor, so a seed that puts the woken
+	# merchant floor on fire would (correctly) skip the merchant. This test is
+	# about the wake, not fire — make sure f isn't burning so the merchant spawns.
+	if WorldState.is_stair_fire(f):
+		WorldState.mark_fire_dealt_with(f)
 	WorldState.seed_floor_door_states(f)
 
 	# A live reference for what "awake" collision looks like on a door.

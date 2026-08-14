@@ -195,8 +195,13 @@ func _ready() -> void:
 	HUD.update_mode_indicator()
 	HUD.update_stamina(WorldState.stamina, WorldState.get_max_stamina())
 	HUD.refresh_inventory()
-	if WorldState.god_mode:
-		HUD.show_feedback("DEV: God Mode ON")
+	# God mode no longer flares "God Mode ON" on every scene load (it clobbered
+	# other feedback and spammed on room/stairwell entry). The F3 toggle still
+	# announces ON/OFF when you change it. If a DEV action queued a message for
+	# after a rebuild (e.g. the F2 hazard toggle), surface it now.
+	if WorldState.pending_dev_feedback != "":
+		HUD.show_feedback(WorldState.pending_dev_feedback)
+		WorldState.pending_dev_feedback = ""
 
 
 func _physics_process(delta: float) -> void:
@@ -915,17 +920,26 @@ func _input(event: InputEvent) -> void:
 			# toggle to hordes/fire shows nothing until you cross to the next floor.
 			WorldState.dev_hazard_mode = (WorldState.dev_hazard_mode + 1) % WorldState.DEV_HAZARD_COUNT
 			var m = WorldState.dev_hazard_mode
+			var msg: String
 			if m == WorldState.DEV_HAZARD_NONE:
-				HUD.show_feedback("DEV: Hazards off (seed defaults) — rebuilding floor")
+				msg = "DEV: Hazards off (seed defaults)"
 			elif m in WorldState.DEV_HAZARD_UNBUILT:
-				HUD.show_feedback("DEV: Hazard → %s (not built yet)" % WorldState.DEV_HAZARD_NAMES[m])
+				msg = "DEV: Hazard → %s (not built yet)" % WorldState.DEV_HAZARD_NAMES[m]
 			else:
-				HUD.show_feedback("DEV: Hazard → %s (every floor) — rebuilding floor" % WorldState.DEV_HAZARD_NAMES[m])
-			# Keep the player where they are across the rebuild so the toggle reads
-			# as "this floor just changed" rather than a teleport to the entrance.
-			WorldState.saved_player_x = global_position.x
-			WorldState.saved_player_y = global_position.y
-			get_tree().call_deferred("reload_current_scene")
+				msg = "DEV: Hazard → %s (every floor)" % WorldState.DEV_HAZARD_NAMES[m]
+			# Rebuild the floor so the new hazard applies right here — but ONLY on the
+			# floor scene (stairwells/hazards live there). In a room/hallway/lobby the
+			# reload would do nothing useful, and its _ready would just re-flash text;
+			# the mode still takes effect when you step back onto the floor. Carry the
+			# message through the rebuild so it shows AFTER the reload, not before.
+			var path := get_tree().current_scene.scene_file_path
+			if path.ends_with("building_floors.tscn"):
+				WorldState.saved_player_x = global_position.x
+				WorldState.saved_player_y = global_position.y
+				WorldState.pending_dev_feedback = msg
+				get_tree().call_deferred("reload_current_scene")
+			else:
+				HUD.show_feedback(msg)
 		elif event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F5:
 			# DEV: unlock the Wallet and grant 500 Bank Notes.
 			if not WorldState.wallet_unlocked:

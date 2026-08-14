@@ -79,15 +79,22 @@ func _test_spread() -> void:
 	check(ff.state_of(mid - 1) == ff.COOL and ff.state_of(mid + 1) == ff.COOL,
 		"neighbours start COOL")
 
-	# A few seconds later the fire has crept to both neighbours.
+	# The spread is a SLOW creep now: after a short moment the neighbours have NOT
+	# caught yet (it doesn't race across the floor).
 	_ticks(ff, 30)   # ~3s
+	check(ff.state_of(mid - 1) == ff.COOL and ff.state_of(mid + 1) == ff.COOL,
+		"fire does NOT race — neighbours still cool after a few seconds")
+
+	# Given long enough it does creep to both neighbours.
+	_ticks(ff, 220)   # ~22s more
 	check(ff.state_of(mid - 1) == ff.BURNING and ff.state_of(mid + 1) == ff.BURNING,
-		"fire spreads to both neighbours over time")
+		"fire creeps to both neighbours over time")
 	check(ff.burning_count() >= 3, "the burn front is growing (%d cells)" % ff.burning_count())
 
-	# Left long enough, the origin exhausts its fuel and chars out.
-	_ticks(ff, 220)   # ~22s more
-	check(ff.state_of(mid) == ff.SPENT, "an old cell burns out to SPENT (char)")
+	# It does NOT burn itself out — a lit cell stays lit until it's put out.
+	_ticks(ff, 600)   # ~60s more
+	check(ff.state_of(mid) == ff.BURNING, "a fire stays lit indefinitely (never self-extinguishes)")
+	check(ff.any_burning(), "left alone, the fire is still going")
 
 	# Extinguishing kills the fire in a radius (heat + fuel), for good.
 	var live := -1
