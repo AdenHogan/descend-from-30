@@ -274,9 +274,27 @@ so a run of cells reads as one lively fire, not a slab. API: `ignite_span`,
 `char_all`, `extinguish_at`, `is_burning_at`, `any_burning`, `burning_count`. In
 the `fire_field` group so the player can find it.
 
-**Damage** (`building_floors._process`) — standing where `is_burning_at(player.x)`
-costs **1 health every `FIRE_DMG_INTERVAL` (1.1s)** with a "get out of the flames"
-nudge; stepping clear resets the cadence. Move through or douse — don't linger.
+**Render — layered for depth + pop** (`fire_field.gd` + `fire_layer.gd`). The
+fire draws across **four CanvasItems** at fixed z so the player stands INSIDE it:
+back-wall flames behind the actors (z0), the main floor flames level with them
+(z1), an **ADDITIVE glow + translucent foreground licks** in front (z2 — the
+"pop"), and **smoke** on top (z4). Flames are **stage-scaled** — small on a
+run-1 LIGHT fire, ~1.9× on a run-2 BLAZE (`flame_scale()`). Tapered pixel tongues
+(white-hot base → red tip), embers and per-cell glow round it out.
+
+**Burn damage** (`building_floors._process`) — standing where
+`is_burning_at(player.x)` costs **1 health every `FIRE_DMG_INTERVAL` (1.1s)**;
+stepping clear resets the cadence. Fire **never blocks** — you can always walk
+THROUGH it, you just take the burn.
+
+**Smoke + crouch-under** (`fire_field.smoke_at` / `smoke_bottom_y` +
+`building_floors._process`) — a **BLAZE** fills the upper air with **choking
+smoke** (it billows a few cells past the flames, `SMOKE_MARGIN_CELLS`). Stand in
+it and you **choke** (1 hp / `SMOKE_DMG_INTERVAL` 1.5s) with a "CROUCH to get
+under it" nudge; **crouch** (`player.is_crouching`) and your head drops below the
+smoke so you breathe. It's independent of the burn — you can **crouch-walk
+through a blaze**, breathing but still scorched by the floor flames. A **LIGHT**
+fire's smoke hugs the ceiling and is harmless (breathable standing).
 
 **Extinguisher** (item **036**, `is_tool, is_extinguisher`, 3 uses) — using it
 calls `field.extinguish_at(player.x, EXTINGUISH_RADIUS)`, which zeroes heat+fuel
@@ -297,11 +315,11 @@ leave it to burn and they **stay absent on that floor across runs** (too
 dangerous — a charred floor has no merchant) while the other merchant floors
 trade normally.
 
-**Still to build:** the **smoke-fill + crouch-under** layer (smoke that climbs
-from the floor up; crouch to breathe/see), the fire **approach-warning** beat
-(the horde already warns; fire should too), and the automatic run-advance that
-drives the escalation live. Flame render, damage cadence, and stage extents want
-in-editor feel-tuning.
+**Still to build:** the fire **approach-warning** beat (the horde already warns;
+fire should too), flames **on the walls / ceiling / apartment doors** (only the
+corridor flames are drawn today), and the automatic run-advance that drives the
+escalation live. Flame size/colour, smoke density + how low it hangs, and the
+burn/choke cadences all want in-editor feel-tuning.
 
 ## Open / later
 

@@ -278,16 +278,24 @@ means no rendering — UI layout and art still need an in-editor look.
   whole chain; dousing a spread floor (or just a safe path) doesn't count → it
   comes back worse. Barricade + horde **defer to fire** (no doubling).
   `building_floors._spawn_fire` lights a field on any fire floor; standing in
-  flame costs **1 hp / 1.1s** (`_process` + `receive_hit`); when the whole floor
-  goes out, `mark_fire_dealt_with` fires. Item **036 Fire Extinguisher**
+  flame costs **1 hp / 1.1s** (fire never blocks — walk through it, take the
+  burn); when the whole floor goes out, `mark_fire_dealt_with` fires. **Smoke +
+  crouch**: a BLAZE's choking smoke (`smoke_at`, billows past the flames) hits a
+  STANDING player **1 hp / 1.5s** — **crouch** (`is_crouching`) to get under it;
+  a LIGHT fire's smoke hugs the ceiling, harmless. **Render** is layered for
+  depth (`fire_layer.gd`): back-wall flames behind actors (z0), main flames level
+  (z1), an **additive glow + foreground licks** in front (z2), smoke on top (z4);
+  flames **stage-scaled** (small LIGHT, ~1.9× BLAZE via `flame_scale`). Item
+  **036 Fire Extinguisher**
   (`is_extinguisher`, 3 uses) douses a radius **for good** (`extinguish_at`) —
   one canister only blows a safe path through a big blaze (backtrack for more);
   mounted **by the elevator on EVERY floor** (skips charred) once per (floor,run)
   (`_place_elevator_kit` + `elevator_kit_placed`, saved). **Merchant** shelters
   while its floor burns (`_merchant_pending_fire`) and emerges once it's dealt
   with; left burning, it's absent on that floor across runs. Still to build:
-  **smoke fill + crouch-under**, a fire approach-warning beat, and the automatic
-  run-advance that drives escalation live. **F2** (all three hazards built)
+  flames **on walls/ceiling/doors** (corridor flames only today), a fire
+  approach-warning beat, and the automatic run-advance that drives escalation
+  live. **F2** (all three hazards built)
   rebuilds the current floor and dev-cycles off → barricade →
   horde → fire → off.
   **Terminology:** barricade = debris block (crowbar); horde = live-enemy block
