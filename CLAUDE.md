@@ -266,8 +266,10 @@ means no rendering — UI layout and art still need an in-editor look.
   advance warning. **Hazard 3 — fire (v2):** a **spreading blaze** that spreads
   across a floor within a run AND **climbs the building across runs**. A
   deterministic (RNG-free) cellular sim `fire_field.gd` — corridor of heat/fuel
-  cells; burning cells push heat to neighbours and burn out to **charred**;
-  self-ticks + draws pixel flame/smoke; in the `fire_field` group. **Cross-run
+  cells; burning cells push heat to neighbours in a **slow creep** (~1 cell/12s)
+  and **never self-extinguish** (`BURN_RATE` 0 — a fire stays lit until doused or
+  a run-3 `char_all`); draws **natural pixel flames** (tapered tongues, base
+  glow, embers, smoke); in the `fire_field` group. **Cross-run
   model** (`world_state.gd`): a stable per-arc set of **outbreak origins**
   (`_fire_origin_seeded`, ~12%); `fire_intensity(floor)` = worst `age - distance`
   over live origins (`age = current_run-1`), so the front creeps one floor out +
@@ -285,7 +287,8 @@ means no rendering — UI layout and art still need an in-editor look.
   while its floor burns (`_merchant_pending_fire`) and emerges once it's dealt
   with; left burning, it's absent on that floor across runs. Still to build:
   **smoke fill + crouch-under**, a fire approach-warning beat, and the automatic
-  run-advance that drives escalation live. **F2** dev-cycles off → barricade →
+  run-advance that drives escalation live. **F2** (all three hazards built)
+  rebuilds the current floor and dev-cycles off → barricade →
   horde → fire → off.
   **Terminology:** barricade = debris block (crowbar); horde = live-enemy block
   (fight/lure); fire = spreading blaze (extinguisher). **Barricade-keeper NPC**

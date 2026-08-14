@@ -221,15 +221,6 @@ Built v2 (`scripts/fire_field.gd` + `building_floors._spawn_fire` + the
 origin/spread model in `world_state.gd`); covered by `fire_test` and
 `building_floors_test`.
 
-**Simulation** (`fire_field.gd`) — a deterministic (RNG-free, so testable)
-cellular model: the corridor is a row of cells, each with `heat` and `fuel`. A
-burning cell pushes heat to its neighbours (`SPREAD_RATE`) and burns its own fuel
-down (`BURN_RATE`); a cell over `IGNITE_THRESHOLD` is **BURNING**, out of fuel is
-**SPENT** (char), otherwise **COOL**. It self-ticks at `SIM_DT` and draws
-procedural pixel flame + smoke. API: `ignite_span`, `char_all`, `extinguish_at`,
-`is_burning_at`, `any_burning`, `burning_count`. In the `fire_field` group so the
-player can find it.
-
 **Cross-run spread — the fire climbs the building** (`world_state.gd`). This is
 the whole point: **laziness in an early run costs big.** The model is
 origin-based, not per-run-seeded:
@@ -265,12 +256,23 @@ burnt-out husk (`char_all`).
 
 **Simulation** (`fire_field.gd`) — a deterministic (RNG-free, so testable)
 cellular model: the corridor is a row of cells, each with `heat` and `fuel`. A
-burning cell pushes heat to its neighbours (`SPREAD_RATE`) and burns its own fuel
-down (`BURN_RATE`); a cell over `IGNITE_THRESHOLD` is **BURNING**, out of fuel is
-**SPENT** (char), otherwise **COOL**. It self-ticks at `SIM_DT` and draws
-procedural pixel flame + smoke. API: `ignite_span`, `char_all`, `extinguish_at`,
-`is_burning_at`, `any_burning`, `burning_count`. In the `fire_field` group so the
-player can find it.
+burning cell pushes heat to its neighbours (`SPREAD_RATE`); a cell over
+`IGNITE_THRESHOLD` is **BURNING**, doused/charred (fuel 0) is **SPENT**,
+otherwise **COOL**. Two deliberate behaviours (owner's brief — *small, but
+consistent, and won't go out unless extinguished*):
+- **Slow creep.** `SPREAD_RATE` only just outpaces `COOL_RATE`, so the front
+  advances ~1 cell every ~12s — grows over a long visit, stays small on a quick
+  one, never races across the floor.
+- **Never self-extinguishes.** `BURN_RATE` is 0 — a lit cell does **not** burn
+  its own fuel out, so a fire stays lit until the player **douses it**
+  (`extinguish_at`) or a run-3 `char_all` makes a ruin.
+
+It self-ticks at `SIM_DT` and draws **natural pixel flames** — tapered tongues
+(white-hot base → yellow → orange → red flickering tip) with a base glow, drifting
+embers and a smoke wisp; a burning cell draws a small 3-tongue cluster kept short
+so a run of cells reads as one lively fire, not a slab. API: `ignite_span`,
+`char_all`, `extinguish_at`, `is_burning_at`, `any_burning`, `burning_count`. In
+the `fire_field` group so the player can find it.
 
 **Damage** (`building_floors._process`) — standing where `is_burning_at(player.x)`
 costs **1 health every `FIRE_DMG_INTERVAL` (1.1s)** with a "get out of the flames"
