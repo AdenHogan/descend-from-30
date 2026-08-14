@@ -47,9 +47,17 @@ of the stairs, so where and when you cross is a real decision.
      **next** merchant-floor rest is **forfeited** (`rest_forfeit_pending`,
      consumed in `on_floor_arrived`). Never both. So you weigh: spend the shift
      here to punch through, or keep the slot to actually rest and heal.
+   - **You arrive EXHAUSTED (the anti-rest).** The crossing is deliberately the
+     *opposite* of resting: on top of the no-heal shift, stamina is drained to a
+     small exhausted floor (`PRY_EXHAUST_FRACTION` of max, via `minf()` so it can
+     only ever LOWER it — an already-tired player is never topped up). The pry
+     completes on a **fade to black** with a held time-skip caption ("...the
+     building has shifted, and you're spent"), then lands you on the floor you
+     fought toward — bar near-empty. You worked all that time to tear it open;
+     you step out drained, into the roused floor below.
    - **The destination floor is waiting.** Arriving via a pry, that floor's
      whole horde is **milling at the stairwell you tore open**, roused —
-     tactical planning required.
+     tactical planning required (and you're spent when you get there).
 
 2. **Cross-floor noise pull is narrow (anti-cheese).**
    - Only **significant noise** — gunfire and forcing/prying (`>= door_work`
@@ -153,8 +161,8 @@ steps are yours. It blocks **both directions**, like the barricade, but the
 
 - `tests/stair_block_test` — item flags; seeded blocking (determinism +
   floor-30/1 exemptions); clearing; per-run keying; crowbar has/consume;
-  `shift_building`; the full crossing (clears + no-heal + rest-slot + arrival
-  flag); the cross-floor pull gate (loud-near-stair pulls both neighbours;
+  `shift_building`; the full crossing (clears + no-heal + rest-slot + exhausted
+  arrival + arrival flag); the cross-floor pull gate (loud-near-stair pulls both neighbours;
   mid-corridor and running don't; tutorial exempt; consume + shift clear);
   save/load round-trip.
 - `tests/building_floors_test` — pried arrival clusters + rouses the horde at

@@ -246,7 +246,10 @@ means no rendering — UI layout and art still need an in-editor look.
   run, and triggers the **same building shift a rest does WITHOUT the heal**
   (`WorldState.shift_building`), at the cost of **one rest slot** (a banked rest
   is burned, else the next merchant-floor rest is forfeited via
-  `rest_forfeit_pending`). You arrive to that floor's dead **milling at the
+  `rest_forfeit_pending`). The crossing is the **anti-rest**: it also drains
+  stamina to an **exhausted floor** (`PRY_EXHAUST_FRACTION`, via `minf` so it
+  only ever lowers), fades to black on a held time-skip caption, and lands you
+  **spent** on the floor you fought toward — its dead **milling at the
   stairwell**. Separately, loud noise (gunfire/forcing) made **near a stairwell**
   pulls only the **stairwell-seeded** dead on the adjacent floor (never a
   whole-floor vacuum; running never pulls). Seeded per (floor,run); floor 30 +
