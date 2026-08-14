@@ -34,10 +34,33 @@ const MAX_HEAT := 1.2
 
 enum { COOL, BURNING, SPENT }
 
+# Stage (set by building_floors from WorldState.fire_intensity): 0 LIGHT / 1 BLAZE
+# / 2 CHARRED. It scales how BIG the flames are and how choking/low the smoke is —
+# flames only get big and smoke only forces a crouch on a run-2 BLAZE.
+const STAGE_LIGHT := 0
+const STAGE_BLAZE := 1
+const STAGE_CHARRED := 2
+
+# Smoke billows past the flames and pools at the ceiling; on a BLAZE it sinks to
+# head height (crouch under it). SMOKE_MARGIN_CELLS = how far past the flames the
+# choking smoke drifts.
+const SMOKE_MARGIN_CELLS := 3
+const CEILING_Y := 30.0                 # top of the corridor (smoke gathers here)
+const SMOKE_BOTTOM_LIGHT := 150.0       # LIGHT: hugs the ceiling — breathable below
+const SMOKE_BOTTOM_BLAZE := 350.0       # BLAZE: sinks to head height — crouch under it
+
+# Render layers (child CanvasItems at different z so the player stands INSIDE the
+# fire): back-wall glow behind actors, main flames level with them, an ADDITIVE
+# front glow + licks in front, and smoke on top.
+const LYR_BACK := 0
+const LYR_FRONT := 1
+const LYR_SMOKE := 2
+
 var cell_count: int = 0
 var heat: PackedFloat32Array = PackedFloat32Array()
 var fuel: PackedFloat32Array = PackedFloat32Array()
 var floor_num: int = -1
+var stage: int = STAGE_LIGHT
 var _acc: float = 0.0
 var _t: float = 0.0               # render clock (flicker only)
 
@@ -50,6 +73,7 @@ func _ready() -> void:
 	for i in range(cell_count):
 		heat[i] = 0.0
 		fuel[i] = 1.0
+	_spawn_layers()
 	add_to_group("fire_field")
 
 
@@ -120,6 +144,35 @@ func burning_count() -> int:
 	return n
 
 
+# --- smoke (choking layer; crouch under it) ---------------------------------
+
+func _smoke_col(i: int) -> bool:
+	# A column carries choking smoke if a burning cell is within the drift margin
+	# (smoke billows wider than the flames themselves).
+	for d in range(-SMOKE_MARGIN_CELLS, SMOKE_MARGIN_CELLS + 1):
+		var j := i + d
+		if j >= 0 and j < cell_count and state_of(j) == BURNING:
+			return true
+	return false
+
+
+func smoke_at(x: float) -> bool:
+	# Is there choking smoke in this column right now? (Gameplay reads this; the
+	# STANDING/crouch decision + the LIGHT-is-harmless rule live in building_floors.)
+	return _smoke_col(cell_at(x))
+
+
+func smoke_bottom_y() -> float:
+	# How low the smoke hangs (render + reference): a LIGHT fire's smoke hugs the
+	# ceiling; a BLAZE's sinks to head height.
+	return SMOKE_BOTTOM_BLAZE if stage >= STAGE_BLAZE else SMOKE_BOTTOM_LIGHT
+
+
+func flame_scale() -> float:
+	# Flames are only BIG on a run-2+ BLAZE; a run-1 LIGHT fire stays small.
+	return 1.9 if stage >= STAGE_BLAZE else 1.0
+
+
 # --- simulation -------------------------------------------------------------
 
 func tick(dt: float) -> void:
@@ -150,16 +203,42 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 
-# --- render (natural pixel flames; flicker is cosmetic only) ----------------
-# Each burning cell draws a small cluster of tapered flame TONGUES: chunky pixel
-# rows narrowing to a point, hot near the base (near-white/yellow) and cooling to
-# orange then red at the flickering tip. Small but clearly fire — not a slab.
+# --- render (layered pixel flames + additive glow + choking smoke) ----------
+# The fire draws across FOUR CanvasItems so the player stands INSIDE it:
+#   z0  back-wall flames (dim, small — depth behind the actors)
+#   z1  the field itself: the main flames at floor level (with the actors)
+#   z2  an ADDITIVE glow + foreground licks (this is what makes it POP)
+#   z4  smoke, pooling from the ceiling down (choking — crouch under it)
+# Flames scale with the stage (small on a LIGHT fire, big on a BLAZE); smoke
+# sinks to head height on a BLAZE. The flicker is cosmetic; the sim is elsewhere.
 
 const ROW_H := 3.0                 # pixel-chunk height per flame row
 const CHAR_COL := Color(0.09, 0.08, 0.08)
-const SMOKE_COL := Color(0.22, 0.21, 0.21, 0.28)
-const GLOW_COL := Color(1.0, 0.55, 0.15, 0.13)
 const EMBER_COL := Color(1.0, 0.80, 0.35, 0.9)
+const FIRE_LAYER := preload("res://scripts/fire_layer.gd")
+
+
+func _spawn_layers() -> void:
+	# Extra draw surfaces at fixed absolute z so the player sits between the back
+	# glow and the front licks. Each just calls back into draw_layer().
+	for spec in [[LYR_BACK, 0, false], [LYR_FRONT, 2, true], [LYR_SMOKE, 4, false]]:
+		var lyr = FIRE_LAYER.new()
+		lyr.field = self
+		lyr.layer = int(spec[0])
+		lyr.z_as_relative = false
+		lyr.z_index = int(spec[1])
+		if bool(spec[2]):
+			var mat := CanvasItemMaterial.new()
+			mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD   # glow
+			lyr.material = mat
+		add_child(lyr)
+
+
+func draw_layer(canvas: CanvasItem, which: int) -> void:
+	match which:
+		LYR_BACK: _draw_back(canvas)
+		LYR_FRONT: _draw_front(canvas)
+		LYR_SMOKE: _draw_smoke(canvas)
 
 
 func _flame_color(frac: float) -> Color:
@@ -175,8 +254,8 @@ func _flame_color(frac: float) -> Color:
 	return Color(0.68, 0.15, 0.04)         # red, flickering tip
 
 
-func _draw_tongue(cx: float, h: float, base_w: float, phase: float) -> void:
-	# One tapered, leaning flame tongue rising from FIRE_BASE_Y.
+func _tongue(canvas: CanvasItem, cx: float, h: float, base_w: float, phase: float, alpha: float) -> void:
+	# One tapered, leaning flame tongue rising from FIRE_BASE_Y, onto `canvas`.
 	var rows := int(h / ROW_H)
 	if rows < 1:
 		return
@@ -185,38 +264,85 @@ func _draw_tongue(cx: float, h: float, base_w: float, phase: float) -> void:
 		var w := base_w * pow(1.0 - frac, 0.7)   # taper to a point
 		if w < 1.0:
 			w = 1.0
-		# Lean/wiggle grows toward the tip so the flame licks sideways.
 		var lean := sin(_t * 6.5 + phase + frac * 3.4) * base_w * 0.4 * frac
 		var y := FIRE_BASE_Y - float(r + 1) * ROW_H
-		draw_rect(Rect2(cx + lean - w * 0.5, y, w, ROW_H + 0.5), _flame_color(frac))
+		var c := _flame_color(frac)
+		canvas.draw_rect(Rect2(cx + lean - w * 0.5, y, w, ROW_H + 0.5), Color(c.r, c.g, c.b, c.a * alpha))
+
+
+func _cluster(canvas: CanvasItem, i: int, cx: float, sc: float, alpha: float) -> void:
+	# The 3-tongue flame cluster for one burning cell, sized by `sc`.
+	var flick := sin(_t * 8.0 + float(i) * 1.7) * 2.5 + sin(_t * 13.0 + float(i) * 0.7) * 1.5
+	_tongue(canvas, cx - 11.0 * sc, (15.0 + flick) * sc, 7.0 * sc, float(i) * 2.1 + 1.0, alpha)
+	_tongue(canvas, cx + 2.0 * sc, (26.0 + flick) * sc, 10.0 * sc, float(i) * 1.9, alpha)
+	_tongue(canvas, cx + 12.0 * sc, (13.0 - flick) * sc, 6.0 * sc, float(i) * 2.7 + 2.0, alpha)
 
 
 func _draw() -> void:
+	# MAIN layer (z1): full flames at floor level, sized by stage.
+	var sc := flame_scale()
 	for i in range(cell_count):
 		var cx := cell_x(i)
 		var st := state_of(i)
 		if st == SPENT:
-			# Charred floor scar (run-3 ruin / a doused patch).
 			draw_rect(Rect2(cx - CELL_W / 2.0 + 1.0, FIRE_BASE_Y - 5.0, CELL_W - 2.0, 6.0), CHAR_COL)
 			continue
 		if st != BURNING:
-			# A hot-but-unlit cell: a low ember glow at the base as it catches.
 			if heat[i] > 0.12:
 				var g := clampf(heat[i] / IGNITE_THRESHOLD, 0.0, 1.0)
-				_draw_tongue(cx, lerpf(3.0, 9.0, g), 5.0, float(i) * 1.3)
+				_tongue(self, cx, lerpf(3.0, 9.0, g), 5.0, float(i) * 1.3, 1.0)
 			continue
-		# BURNING: a small cluster of tongues, flickering, staggered across the
-		# cell so a run of burning cells reads as one lively fire — kept SHORT.
-		var flick := sin(_t * 8.0 + float(i) * 1.7) * 2.5 + sin(_t * 13.0 + float(i) * 0.7) * 1.5
-		var soft := 0.13 * sin(_t * 4.0 + float(i))          # gentle base glow pulse
-		draw_circle(Vector2(cx, FIRE_BASE_Y - 2.0), 15.0, Color(GLOW_COL.r, GLOW_COL.g, GLOW_COL.b, GLOW_COL.a + soft))
-		_draw_tongue(cx - 11.0, 15.0 + flick, 7.0, float(i) * 2.1 + 1.0)   # side tongue
-		_draw_tongue(cx + 2.0, 26.0 + flick, 10.0, float(i) * 1.9)         # main tongue
-		_draw_tongue(cx + 12.0, 13.0 - flick, 6.0, float(i) * 2.7 + 2.0)   # side tongue
-		# A couple of embers drifting up off the flame.
-		var ey := FIRE_BASE_Y - 22.0 - fmod(_t * 34.0 + float(i) * 21.0, 30.0)
+		_cluster(self, i, cx, sc, 1.0)
+		# embers drifting up off the flame
+		var ey := FIRE_BASE_Y - 22.0 - fmod(_t * 34.0 + float(i) * 21.0, 30.0 * sc)
 		var ex := cx + sin(_t * 3.0 + float(i)) * 6.0
 		draw_rect(Rect2(ex, ey, 2.0, 2.0), EMBER_COL)
-		# A thin wisp of smoke above the tip.
-		var sy := FIRE_BASE_Y - 34.0 - fmod(_t * 18.0 + float(i) * 27.0, 34.0)
-		draw_rect(Rect2(cx - 5.0, sy, 8.0, 6.0), SMOKE_COL)
+
+
+func _draw_back(canvas: CanvasItem) -> void:
+	# BACK layer (z0, behind the actors): dimmer, smaller flames for depth.
+	var sc := flame_scale() * 0.72
+	for i in range(cell_count):
+		if state_of(i) == BURNING:
+			_cluster(canvas, i, cell_x(i), sc, 0.7)
+
+
+func _draw_front(canvas: CanvasItem) -> void:
+	# FRONT layer (z2, ADDITIVE, in front of the actors): a radial glow that makes
+	# the fire pop, plus a couple of translucent foreground licks so the player
+	# reads as standing amid the flames.
+	var sc := flame_scale()
+	for i in range(cell_count):
+		if state_of(i) != BURNING:
+			continue
+		var cx := cell_x(i)
+		var soft := 0.06 * sin(_t * 4.0 + float(i))
+		canvas.draw_circle(Vector2(cx, FIRE_BASE_Y - 12.0 * sc), 24.0 * sc, Color(1.0, 0.48, 0.14, 0.09 + soft))
+		canvas.draw_circle(Vector2(cx, FIRE_BASE_Y - 5.0), 12.0 * sc, Color(1.0, 0.72, 0.28, 0.13 + soft))
+		var flick := sin(_t * 10.0 + float(i) * 1.3) * 3.0
+		_tongue(canvas, cx + 4.0, (28.0 + flick) * sc, 6.0 * sc, float(i) * 1.4, 0.5)
+
+
+func _draw_smoke(canvas: CanvasItem) -> void:
+	# SMOKE layer (z4, on top): translucent billows pooling from the ceiling down
+	# to smoke_bottom_y — thin and high on a LIGHT fire, thick and low (head
+	# height) on a BLAZE. Choking is enforced in building_floors (crouch under it).
+	if stage >= STAGE_CHARRED:
+		return
+	var bottom := smoke_bottom_y()
+	var dense := 1.0 if stage >= STAGE_BLAZE else 0.5
+	for i in range(cell_count):
+		if not _smoke_col(i):
+			continue
+		var cx := cell_x(i)
+		var y := CEILING_Y
+		var idx := 0
+		while y < bottom:
+			var frac := (y - CEILING_Y) / maxf(bottom - CEILING_Y, 1.0)
+			var drift := sin(_t * 0.9 + float(i) * 0.5 + frac * 4.0) * (8.0 + frac * 16.0)
+			var swirl := cos(_t * 0.6 + float(i) * 0.7 + float(idx)) * 4.0
+			var rad := 16.0 + (1.0 - frac) * 10.0
+			var a := (0.05 + (1.0 - frac) * 0.15) * dense
+			canvas.draw_circle(Vector2(cx + drift + swirl, y), rad, Color(0.16, 0.15, 0.15, a))
+			y += 16.0
+			idx += 1

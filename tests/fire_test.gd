@@ -19,6 +19,7 @@ func check(cond: bool, label: String) -> void:
 func _ready() -> void:
 	print("=== fire (Hazard 3) test ===")
 	_test_spread()
+	_test_smoke()
 	_test_seeding()
 	_test_spread_across_runs()
 	_test_dealt_with()
@@ -114,6 +115,29 @@ func _test_spread() -> void:
 	check(not ff.any_burning(), "char_all leaves nothing burning")
 	check(ff.state_of(0) == ff.SPENT and ff.state_of(ff.cell_count - 1) == ff.SPENT,
 		"char_all marks the whole floor SPENT")
+	ff.free()
+
+
+func _test_smoke() -> void:
+	print("[smoke coverage + stage scaling]")
+	var ff = _make_field()
+	var mid: int = ff.cell_count / 2
+	ff.ignite_span(ff.cell_x(mid), ff.cell_x(mid))
+	# Smoke sits over the fire and drifts a FEW cells past it — not the whole floor.
+	check(ff.smoke_at(ff.cell_x(mid)), "smoke sits over the fire")
+	check(ff.smoke_at(ff.cell_x(mid + ff.SMOKE_MARGIN_CELLS)), "smoke drifts a few cells past the flames")
+	check(not ff.smoke_at(ff.cell_x(mid + ff.SMOKE_MARGIN_CELLS + 2)), "smoke doesn't blanket the whole floor")
+	# Stage scales flame size AND how low the smoke hangs — small/high on LIGHT,
+	# big/low (head height, must crouch) on a BLAZE.
+	ff.stage = ff.STAGE_LIGHT
+	var light_scale: float = ff.flame_scale()
+	var light_bottom: float = ff.smoke_bottom_y()
+	ff.stage = ff.STAGE_BLAZE
+	check(ff.flame_scale() > light_scale, "flames are bigger on a BLAZE than a LIGHT fire")
+	check(ff.smoke_bottom_y() > light_bottom, "smoke sinks to head height on a BLAZE (crouch under it)")
+	# A charred ruin has no live fire, so no smoke.
+	ff.char_all()
+	check(not ff.smoke_at(ff.cell_x(mid)), "a charred ruin has no smoke")
 	ff.free()
 
 

@@ -177,7 +177,8 @@ func _process(delta: float) -> void:
 		if dist <= APPROACH_WARN_DIST and not WorldState.hazard_warned(floor_num, target["side"]):
 			WorldState.mark_hazard_warned(floor_num, target["side"])
 			_warn_hazard("Wait — I can hear them ahead. The stairwell's crawling with them. Careful now.")
-	# Fire damage: standing in flame costs health on a cadence (move or burn).
+	# Fire damage: standing in flame costs health on a cadence (move or burn). You
+	# can always walk THROUGH fire (it never blocks), you just take the burn.
 	if _fire_field != null and player.has_method("receive_hit"):
 		if _fire_field.is_burning_at(player.global_position.x):
 			_fire_dmg_acc += delta
@@ -187,6 +188,19 @@ func _process(delta: float) -> void:
 				HUD.show_feedback("You're burning! Get out of the flames!")
 		else:
 			_fire_dmg_acc = 0.0
+		# Smoke choke: a BLAZE fills the upper air with choking smoke. Stand in it
+		# and you choke; CROUCH under it to breathe. A LIGHT fire's smoke hugs the
+		# ceiling (harmless). Independent of the burn — you can crouch-walk through
+		# a blaze, breathing but still scorched by the flames at your feet.
+		if _fire_field.stage >= WorldState.FIRE_BLAZE and _fire_field.smoke_at(player.global_position.x) \
+				and not player.is_crouching:
+			_smoke_dmg_acc += delta
+			if _smoke_dmg_acc >= SMOKE_DMG_INTERVAL:
+				_smoke_dmg_acc = 0.0
+				player.receive_hit(1)
+				HUD.show_feedback("You're choking on the smoke — CROUCH to get under it!")
+		else:
+			_smoke_dmg_acc = 0.0
 		# The moment the WHOLE floor's fire is out (not just a path doused), it's
 		# dealt with: record it cross-run so it can't re-ignite/escalate, and let
 		# a sheltering merchant finally come out. A path-spray leaves cells burning,
@@ -212,8 +226,10 @@ func _warn_hazard(text: String) -> void:
 const FIRE_FIELD := preload("res://scripts/fire_field.gd")
 var _fire_field = null                 # the floor's fire, or null
 var _fire_dmg_acc: float = 0.0
+var _smoke_dmg_acc: float = 0.0
 var _fire_was_burning: bool = false    # to catch the moment the floor's fire goes out
 const FIRE_DMG_INTERVAL := 1.1         # a health hit this often while standing in flame
+const SMOKE_DMG_INTERVAL := 1.5        # a choke hit this often while stood up in smoke
 var _merchant_pending_fire: bool = false   # merchant is sheltering until the fire's out
 
 
@@ -238,6 +254,7 @@ func _spawn_fire(floor_num: int) -> void:
 		break
 	_fire_field = FIRE_FIELD.new()
 	_fire_field.floor_num = floor_num
+	_fire_field.stage = WorldState.fire_intensity(floor_num)   # scales flame size + smoke
 	add_child(_fire_field)
 	match WorldState.fire_intensity(floor_num):
 		WorldState.FIRE_CHARRED:
