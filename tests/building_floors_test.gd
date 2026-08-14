@@ -358,6 +358,14 @@ func _test_barricade_visuals() -> void:
 		if p.visible and (p.global_position.x < 300.0 or p.global_position.x > 1000.0):
 			visible_ends += 1
 	check(visible_ends == 2, "both stairwells show visible crates in barricade mode (%d)" % visible_ends)
+	# The two props are this floor's DOWN-stair (choke = floor, the descent block)
+	# and its UP-stair back to the floor above (choke = floor+1) — so a barricade
+	# you balconied past above is still visible here on the stair leading back up.
+	var chokes := {}
+	for p in props:
+		chokes[p.choke_floor] = true
+	check(chokes.has(15) and chokes.has(16),
+		"props cover the descent stair (15) AND the up-stair back (16)")
 	bf.queue_free()
 	await get_tree().process_frame
 	# With no barricade (cleared), the props exist but self-hide (visual matches

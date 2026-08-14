@@ -149,6 +149,7 @@ func _test_crossing() -> void:
 	# Branch 1: crossing WITH a banked rest burns it (and sets no forfeit).
 	WorldState.rest_available = true
 	WorldState.rest_forfeit_pending = false
+	WorldState.stamina = WorldState.get_max_stamina()   # arrive here fully rested...
 	WorldState.cross_blocked_stair(target, target - 1)
 	check(WorldState.is_stair_block_cleared(target), "crossing clears the stairwell for the run")
 	check(not WorldState.is_stair_blocked(target), "crossed stairwell is no longer blocked")
@@ -156,6 +157,14 @@ func _test_crossing() -> void:
 	check(not WorldState.rest_forfeit_pending, "burning a banked rest sets no extra forfeit")
 	check(WorldState.master_seed != seed_before, "crossing shifts the building (enemies move)")
 	check(WorldState.pending_pry_arrival_floor == target - 1, "arrival floor is flagged for milling")
+	# ...and step out EXHAUSTED — the crossing is the opposite of a rest.
+	check(WorldState.stamina <= WorldState.get_max_stamina() * WorldState.PRY_EXHAUST_FRACTION + 0.01,
+		"you arrive exhausted (stamina drained, not refreshed)")
+	# It only ever LOWERS stamina: an already-tired player isn't topped up to the floor.
+	WorldState.stamina = 5.0
+	WorldState.rest_available = true
+	WorldState.cross_blocked_stair(target, target - 1)
+	check(WorldState.stamina == 5.0, "a crossing never refreshes stamina (already-low stays low)")
 
 	# Branch 2: crossing with NO banked rest forfeits the next merchant rest.
 	WorldState.rest_available = false

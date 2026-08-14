@@ -238,7 +238,7 @@ func _perform_transition(shift: bool = false) -> void:
 	if shift:
 		# The crossing was real work — land on the floor you fought toward, after a
 		# held "time passes / the building shifted" beat.
-		Transition.to_scene_shift(scene, "You wrench the last of it aside.\nTime passes — the building has shifted.")
+		Transition.to_scene_shift(scene, "You wrench the last of it aside.\nTime passes — the building has shifted, and you're spent.")
 	else:
 		Transition.to_scene(scene)
 

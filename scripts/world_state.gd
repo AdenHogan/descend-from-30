@@ -1598,6 +1598,10 @@ func shift_building() -> void:
 # at the stairwell you step out of, then clears it. -1 = normal arrival.
 var pending_pry_arrival_floor: int = -1
 
+# How much stamina you have LEFT after wrenching a barricade open — a small
+# exhausted floor (fraction of max), never a refresh. Tune the drain here.
+const PRY_EXHAUST_FRACTION := 0.1
+
 
 func cross_blocked_stair(choke_floor: int, arrival_floor: int) -> void:
 	# Commit a crowbar crossing of a choked stairwell (blocks BOTH directions).
@@ -1615,6 +1619,11 @@ func cross_blocked_stair(choke_floor: int, arrival_floor: int) -> void:
 		rest_available = false
 	else:
 		rest_forfeit_pending = true
+	# You tore through by hand over all that time — arrive SPENT, the OPPOSITE of a
+	# rest. Drain stamina to an exhausted floor. min() so it can only ever lower it
+	# (a crossing never refreshes stamina or health), and the destination floor
+	# reads WorldState.stamina on load so the bar comes up empty.
+	stamina = minf(stamina, get_max_stamina() * PRY_EXHAUST_FRACTION)
 	pending_pry_arrival_floor = arrival_floor
 
 
