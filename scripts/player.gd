@@ -908,17 +908,24 @@ func _input(event: InputEvent) -> void:
 			HUD.show_feedback("DEV: God Mode " + ("ON" if WorldState.god_mode else "OFF"))
 		elif event.is_action_pressed("dev_force_hazards"):
 			# DEV (F2): CYCLE floor hazards one at a time so they never overlap —
-			# off → barricades → hordes → fire → off. Only barricades is built (it
-			# force-blocks every eligible stairwell); hordes/fire are cycle slots
-			# for later and have no effect yet.
+			# off → barricades → hordes → fire → off — then REBUILD the current floor
+			# so the new hazard applies right here, on both stairwells, immediately.
+			# Barricade props self-sync live, but hordes (live zombies) and fire
+			# fields are only spawned in building_floors._ready, so without a reload a
+			# toggle to hordes/fire shows nothing until you cross to the next floor.
 			WorldState.dev_hazard_mode = (WorldState.dev_hazard_mode + 1) % WorldState.DEV_HAZARD_COUNT
 			var m = WorldState.dev_hazard_mode
 			if m == WorldState.DEV_HAZARD_NONE:
-				HUD.show_feedback("DEV: Hazards off (seed defaults)")
+				HUD.show_feedback("DEV: Hazards off (seed defaults) — rebuilding floor")
 			elif m in WorldState.DEV_HAZARD_UNBUILT:
 				HUD.show_feedback("DEV: Hazard → %s (not built yet)" % WorldState.DEV_HAZARD_NAMES[m])
 			else:
-				HUD.show_feedback("DEV: Hazard → %s (every floor)" % WorldState.DEV_HAZARD_NAMES[m])
+				HUD.show_feedback("DEV: Hazard → %s (every floor) — rebuilding floor" % WorldState.DEV_HAZARD_NAMES[m])
+			# Keep the player where they are across the rebuild so the toggle reads
+			# as "this floor just changed" rather than a teleport to the entrance.
+			WorldState.saved_player_x = global_position.x
+			WorldState.saved_player_y = global_position.y
+			get_tree().call_deferred("reload_current_scene")
 		elif event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F5:
 			# DEV: unlock the Wallet and grant 500 Bank Notes.
 			if not WorldState.wallet_unlocked:

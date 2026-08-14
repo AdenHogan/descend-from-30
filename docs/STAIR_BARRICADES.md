@@ -169,7 +169,15 @@ steps are yours. It blocks **both directions**, like the barricade, but the
 
 **F2** (`dev_force_hazards`) CYCLES `WorldState.dev_hazard_mode` one hazard at a
 time so they never overlap: **off → barricades → hordes → fire → off**. Each
-press names the new mode.
+press names the new mode **and RELOADS the current floor** so the new hazard
+applies right here, on both stairwells, immediately (the player is kept in
+place via `saved_player_x/y`). Without the reload only barricades would update
+live — hordes (live zombies) and fire fields are built in
+`building_floors._ready`, so a mid-floor toggle to them would otherwise show
+nothing until you crossed to the next floor. Note the boundary exemptions still
+hold even in dev: floor 29's up-stair (to the tutorial floor 30) and floor 2's
+down-stair (to the lobby) never barricade — test on mid floors for both-sides
+coverage.
 - **Barricades** (mode 1): every eligible stairwell is barricaded
   (`is_stair_blocked` reads the mode live). Spawn a Crowbar with **F1** to test
   the pry.
