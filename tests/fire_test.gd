@@ -82,14 +82,26 @@ func _test_spread() -> void:
 
 	# The spread is a SLOW creep now: after a short moment the neighbours have NOT
 	# caught yet (it doesn't race across the floor).
-	_ticks(ff, 30)   # ~3s
+	_ticks(ff, 40)   # ~4s
 	check(ff.state_of(mid - 1) == ff.COOL and ff.state_of(mid + 1) == ff.COOL,
 		"fire does NOT race — neighbours still cool after a few seconds")
 
-	# Given long enough it does creep to both neighbours.
-	_ticks(ff, 220)   # ~22s more
-	check(ff.state_of(mid - 1) == ff.BURNING and ff.state_of(mid + 1) == ff.BURNING,
-		"fire creeps to both neighbours over time")
+	# The front is RAGGED, not a uniform wall: tick on and one neighbour catches
+	# before the other (their per-cell catch factors differ), instead of both
+	# igniting on the same step.
+	var caught_uneven := false
+	var both := false
+	for step in range(4000):
+		ff.tick(ff.SIM_DT)
+		var l: bool = ff.state_of(mid - 1) == ff.BURNING
+		var r: bool = ff.state_of(mid + 1) == ff.BURNING
+		if l != r:
+			caught_uneven = true
+		if l and r:
+			both = true
+			break
+	check(caught_uneven, "the front is ragged — one neighbour catches before the other")
+	check(both, "given long enough the fire does creep to both neighbours")
 	check(ff.burning_count() >= 3, "the burn front is growing (%d cells)" % ff.burning_count())
 
 	# It does NOT burn itself out — a lit cell stays lit until it's put out.
