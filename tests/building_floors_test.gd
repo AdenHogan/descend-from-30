@@ -438,7 +438,9 @@ func _test_fire_spawns() -> void:
 	add_child(bf)
 	var fields := get_tree().get_nodes_in_group("fire_field")
 	check(fields.size() == 1, "exactly one fire field per fire floor (%d)" % fields.size())
-	check(fields.size() == 1 and fields[0].any_burning(), "the fire is alight (run 1 = light)")
+	check(fields.size() == 1 and fields[0].any_burning(), "the fire is alight")
+	# DEV F2 fire mode shows a clear BLAZE so the whole effect is visible to test.
+	check(fields.size() == 1 and fields[0].stage == WorldState.FIRE_BLAZE, "dev F2 fire is a visible blaze")
 	# One hazard at a time: no visible crates, no horde cluster.
 	var vis_crates := 0
 	for p in get_tree().get_nodes_in_group("barricade_prop"):

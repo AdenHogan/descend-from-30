@@ -132,8 +132,11 @@ func _spawn_stair_hordes(floor_num: int) -> void:
 			continue
 		var stair_x: float = t.global_position.x
 		var on_left: bool = stair_x < 600.0
-		var band_min: float = 245.0 if on_left else 895.0
-		var band_max: float = 470.0 if on_left else 1105.0
+		# Pack them ONTO the stairwell — tight at the stair mouth and spilling only a
+		# little into the corridor, so they read as a horde ON the steps rather than
+		# milling out by the elevator. Left steps sit ~x120-200, right ~x1150-1230.
+		var band_min: float = 120.0 if on_left else 1055.0
+		var band_max: float = 300.0 if on_left else 1235.0
 		var rng := RandomNumberGenerator.new()
 		rng.seed = hash(str(WorldState.master_seed) + "stairhordepos" + str(choke) + str(WorldState.current_run))
 		var count: int = STAIR_HORDE_MIN + (rng.randi() % (STAIR_HORDE_MAX - STAIR_HORDE_MIN + 1))
@@ -143,7 +146,12 @@ func _spawn_stair_hordes(floor_num: int) -> void:
 			if WorldState.killed_zombies.has(key):
 				continue
 			var z = zombie_scene.instantiate()
-			z.global_position = positions[i]
+			# Pile them up the steps: the nearer the stairwell mouth, the higher they
+			# sit (as if standing on higher stairs), so the cluster climbs into the
+			# stairwell instead of standing in a flat row.
+			var p: Vector2 = positions[i]
+			p.y = 388.0 - clampf(58.0 - absf(p.x - stair_x) * 0.32, 0.0, 30.0)
+			z.global_position = p
 			z.spawn_key = key
 			z.add_to_group("stair_horde")
 			add_child(z)
@@ -252,11 +260,16 @@ func _spawn_fire(floor_num: int) -> void:
 		fire_x = t.global_position.x
 		on_left = fire_x < 600.0
 		break
+	# DEV F2 fire mode shows a clear BLAZE so the whole effect is visible for
+	# testing (big flames, smoke, crouch) — a real run-1 LIGHT is deliberately
+	# small and easy to miss at one stairwell. Seeded play uses the real intensity.
+	var dev_fire: bool = WorldState.dev_hazard_mode == WorldState.DEV_HAZARD_FIRE
+	var stage: int = WorldState.FIRE_BLAZE if dev_fire else WorldState.fire_intensity(floor_num)
 	_fire_field = FIRE_FIELD.new()
 	_fire_field.floor_num = floor_num
-	_fire_field.stage = WorldState.fire_intensity(floor_num)   # scales flame size + smoke
+	_fire_field.stage = stage                                   # scales flame size + smoke
 	add_child(_fire_field)
-	match WorldState.fire_intensity(floor_num):
+	match stage:
 		WorldState.FIRE_CHARRED:
 			_fire_field.char_all()                              # burnt-out husk
 		WorldState.FIRE_BLAZE:
@@ -266,7 +279,8 @@ func _spawn_fire(floor_num: int) -> void:
 			else:
 				_fire_field.ignite_span(680.0, fire_x)
 		_:
-			_fire_field.ignite_span(fire_x - 30.0, fire_x + 50.0)   # LIGHT: at the steps
+			# LIGHT: a small but clearly-visible fire at the steps (~4 cells).
+			_fire_field.ignite_span(fire_x - 70.0, fire_x + 90.0)
 	_fire_was_burning = _fire_field.any_burning()
 
 
