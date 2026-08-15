@@ -276,11 +276,17 @@ the `fire_field` group so the player can find it.
 
 **Render — layered for depth + pop** (`fire_field.gd` + `fire_layer.gd`). The
 fire draws across **four CanvasItems** at fixed z so the player stands INSIDE it:
-back-wall flames behind the actors (z0), the main floor flames level with them
-(z1), an **ADDITIVE glow + translucent foreground licks** in front (z2 — the
-"pop"), and **smoke** on top (z4). Flames are **stage-scaled** — small on a
-run-1 LIGHT fire, ~1.9× on a run-2 BLAZE (`flame_scale()`). Tapered pixel tongues
-(white-hot base → red tip), embers and per-cell glow round it out.
+z0 a dark **scorch + warm underglow** on the floor plus dim flames BEHIND the
+actors (seats the fire in the scene, not pasted on top), z1 the main flames level
+with them, z2 an **ADDITIVE glow + foreground licks** (the "pop"), z4 smoke.
+Flames are **stage-scaled** — small on a run-1 LIGHT fire, ~1.9× on a run-2 BLAZE
+(`flame_scale()`) — tapered pixel tongues (white-hot base → red tip). The base is
+an irregular, pulsing **ember bed** of coals (some below the base line) so the
+bottom dissolves into the floor rather than ending on a flat edge. **Smoke** is
+rising puffs: they lift from the flames to the ceiling, grow, drift on two-octave
+turbulence and fade — overlapping soft blobs reading as a billowing column. A
+run-1 fire is seeded **patchy** (a few separate flame patches with gaps, not a
+solid span).
 
 **Burn damage** (`building_floors._process`) — standing where
 `is_burning_at(player.x)` costs **1 health every `FIRE_DMG_INTERVAL` (1.1s)**;
