@@ -78,6 +78,10 @@ func _ready() -> void:
 	_spawn_stair_hordes(floor_num)
 	_spawn_fire(floor_num)
 	_frame_camera(player)
+	# Keep the HUD floor counter honest for EVERY way of landing on a floor — not
+	# just stair transitions. A dev jump / F2 rebuild used to leave it stale (e.g.
+	# reading 30 while you stood on floor 24).
+	HUD.update_floor_label()
 
 
 # Which floor's down-stair choke each trigger represents. A choke sits on the
@@ -260,11 +264,7 @@ func _spawn_fire(floor_num: int) -> void:
 		fire_x = t.global_position.x
 		on_left = fire_x < 600.0
 		break
-	# DEV F2 fire mode shows a clear BLAZE so the whole effect is visible for
-	# testing (big flames, smoke, crouch) — a real run-1 LIGHT is deliberately
-	# small and easy to miss at one stairwell. Seeded play uses the real intensity.
-	var dev_fire: bool = WorldState.dev_hazard_mode == WorldState.DEV_HAZARD_FIRE
-	var stage: int = WorldState.FIRE_BLAZE if dev_fire else WorldState.fire_intensity(floor_num)
+	var stage: int = WorldState.fire_intensity(floor_num)
 	_fire_field = FIRE_FIELD.new()
 	_fire_field.floor_num = floor_num
 	_fire_field.stage = stage                                   # scales flame size + smoke
@@ -279,8 +279,17 @@ func _spawn_fire(floor_num: int) -> void:
 			else:
 				_fire_field.ignite_span(680.0, fire_x)
 		_:
-			# LIGHT: a small but clearly-visible fire at the steps (~4 cells).
-			_fire_field.ignite_span(fire_x - 70.0, fire_x + 90.0)
+			# LIGHT (run 1): a SMALL, PATCHY fire by the steps — a few separate
+			# flame patches with gaps, not a solid wall, and it barely spreads. The
+			# blaze/charred stages are the escalation; run 1 is meant to be minor.
+			# Patches spread INWARD from the stairwell (dir) so they never fall off
+			# the corridor edge when the fire anchors at an end stair.
+			var c0: int = _fire_field.cell_at(fire_x)
+			var dir: int = 1 if on_left else -1
+			for dc in [0, 2, 4]:
+				var ci: int = c0 + dc * dir
+				if ci >= 0 and ci < _fire_field.cell_count:
+					_fire_field.ignite_span(_fire_field.cell_x(ci), _fire_field.cell_x(ci))
 	_fire_was_burning = _fire_field.any_burning()
 
 
