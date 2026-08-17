@@ -285,8 +285,22 @@ func _tongue(canvas: CanvasItem, cx: float, base_y: float, h: float, base_w: flo
 
 
 func _flame(canvas: CanvasItem, s: int, x: float, base_y: float, sc: float, alpha: float) -> void:
-	# ONE flame, fully varied by its seed `s` (size passed in, shape here): 1-3
-	# tongues, wobbling base, leaning. Real fire is never a grid of identical tufts.
+	# ONE flame — its SHAPE is picked from the seed too, so the fire is a mix of
+	# looks (pointed tongues, rounded blobs, curling wisps, little fireballs) rather
+	# than a row of identical conical tufts.
+	var kind := _hash01(float(s) * 5.9)
+	if kind < 0.42:
+		_flame_tongue(canvas, s, x, base_y, sc, alpha)
+	elif kind < 0.68:
+		_flame_round(canvas, s, x, base_y, sc, alpha)
+	elif kind < 0.88:
+		_flame_curl(canvas, s, x, base_y, sc, alpha)
+	else:
+		_flame_ball(canvas, s, x, base_y, sc, alpha)
+
+
+func _flame_tongue(canvas: CanvasItem, s: int, x: float, base_y: float, sc: float, alpha: float) -> void:
+	# Pointed, tapered tongues (1-3), wobbling base, leaning.
 	var v2 := _hash01(float(s) * 3.3)
 	var by := base_y - _hash01(float(s) * 0.9) * 3.0 + sin(_t * 2.3 + float(s)) * 1.2
 	var flick := sin(_t * 8.0 + float(s) * 1.7) * 2.5 + sin(_t * 13.0 + float(s) * 0.7) * 1.5
@@ -295,6 +309,51 @@ func _flame(canvas: CanvasItem, s: int, x: float, base_y: float, sc: float, alph
 		_tongue(canvas, x - 6.5 * sc, by, (11.0 + flick) * sc, 5.0 * sc, float(s) * 2.1 + 1.0, alpha)
 	if v2 > 0.72:
 		_tongue(canvas, x + 7.0 * sc, by, (9.0 - flick) * sc, 4.0 * sc, float(s) * 2.7 + 2.0, alpha)
+
+
+func _flame_round(canvas: CanvasItem, s: int, x: float, base_y: float, sc: float, alpha: float) -> void:
+	# A bulbous, ROUNDED flame (teardrop/onion): overlapping circles that bulge low
+	# and round up to a soft point, with a hot core — reads soft, not spiky.
+	var flick := sin(_t * 7.0 + float(s) * 1.6) * 2.0
+	var h := (20.0 + flick) * sc
+	var maxw := 9.0 * sc
+	for k in range(9):
+		var frac := float(k) / 9.0
+		var wf := sin((0.12 + frac * 0.88) * PI)        # peak in the lower-middle
+		var rad := maxw * (0.45 + 0.65 * wf) * (1.0 - frac * 0.3)
+		var lean := sin(_t * 5.0 + float(s) + frac * 2.0) * 3.0 * frac
+		var c := _flame_color(frac)
+		canvas.draw_circle(Vector2(x + lean, base_y - frac * h), maxf(rad, 1.5), Color(c.r, c.g, c.b, c.a * alpha))
+	canvas.draw_circle(Vector2(x, base_y - h * 0.3), maxw * 0.5, Color(1.0, 0.95, 0.72, alpha))
+
+
+func _flame_curl(canvas: CanvasItem, s: int, x: float, base_y: float, sc: float, alpha: float) -> void:
+	# A thin CURLING wisp: narrow segments following a curved path that licks to one
+	# side — a lighter, flickery look between the fuller flames.
+	var h := (24.0 + sin(_t * 8.0 + float(s)) * 3.0) * sc
+	var dirn := 1.0 if _hash01(float(s) * 2.2) > 0.5 else -1.0
+	var steps := int(h / 3.0)
+	for k in range(steps):
+		var frac := float(k) / float(maxi(steps, 1))
+		var cx := x + dirn * sin(frac * 2.4 + _t * 4.0 + float(s)) * 11.0 * sc * frac
+		var w := 4.0 * sc * (1.0 - frac * 0.8)
+		if w < 1.0:
+			w = 1.0
+		var c := _flame_color(frac)
+		canvas.draw_rect(Rect2(cx - w * 0.5, base_y - float(k) * 3.0, w, 3.5), Color(c.r, c.g, c.b, c.a * alpha))
+
+
+func _flame_ball(canvas: CanvasItem, s: int, x: float, base_y: float, sc: float, alpha: float) -> void:
+	# A small ROUND fireball: concentric circles (red→orange→hot core), pulsing,
+	# with a stubby tip so it isn't a pure disc — good for scattered flare-ups.
+	var pulse := 0.85 + 0.15 * sin(_t * 6.0 + float(s))
+	var y := base_y - 8.0 * sc
+	var r := 8.5 * sc * pulse
+	canvas.draw_circle(Vector2(x, y), r * 1.15, Color(0.8, 0.2, 0.05, 0.7 * alpha))
+	canvas.draw_circle(Vector2(x, y), r * 0.8, Color(1.0, 0.5, 0.12, 0.85 * alpha))
+	canvas.draw_circle(Vector2(x, y), r * 0.45, Color(1.0, 0.9, 0.5, alpha))
+	var c := _flame_color(0.4)
+	canvas.draw_rect(Rect2(x - 2.0 * sc, y - r - 5.0 * sc, 4.0 * sc, 7.0 * sc), Color(c.r, c.g, c.b, c.a * alpha))
 
 
 func _scatter(canvas: CanvasItem, i: int, cx: float, base_y: float, sc_mul: float, alpha: float) -> void:
