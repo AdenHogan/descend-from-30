@@ -3,6 +3,26 @@ extends CharacterBody2D
 const SPEED = 40.0
 const DETECTION_RANGE = 100.0
 const ATTACK_RANGE = 30.0
+
+# On fire: a zombie standing in flame catches, gets a flame overlay, and its
+# attacks hit for DOUBLE (a burning corpse lunging at you is far worse). Toggled
+# by building_floors._process as it moves in and out of the fire.
+const ENEMY_FIRE := preload("res://scripts/enemy_fire.gd")
+var on_fire: bool = false: set = _set_on_fire
+var _fire_fx = null
+
+
+func _set_on_fire(v: bool) -> void:
+	if v == on_fire:
+		return
+	on_fire = v
+	if v and _fire_fx == null:
+		_fire_fx = ENEMY_FIRE.new()
+		_fire_fx.position = Vector2(0, -6)
+		add_child(_fire_fx)
+	elif not v and _fire_fx != null:
+		_fire_fx.queue_free()
+		_fire_fx = null
 const PUSH_FRICTION = 0.85
 const HIT_DURATION = 2
 const RECOVER_DURATION = 0.5
@@ -398,7 +418,7 @@ func _physics_process(delta: float) -> void:
 				var distance = global_position.distance_to(player.global_position)
 				if distance <= ATTACK_RANGE:
 					if player and player.has_method("receive_hit"):
-						player.receive_hit()
+						player.receive_hit(2 if on_fire else 1)
 				state = "chase"
 				animated_sprite.play("Walk")
 		"distracted":

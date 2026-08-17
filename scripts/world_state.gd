@@ -446,6 +446,7 @@ func new_game() -> void:
 	barricade_keeper_state.clear()
 	elevator_kit_placed.clear()
 	fire_dealt_with.clear()
+	fire_origin_x.clear()
 	hazard_approach_warned.clear()
 	pending_pry_arrival_floor = -1
 	merchant_stock.clear()
@@ -1503,6 +1504,77 @@ func fire_intensity(floor_num: int) -> int:
 	return best
 
 
+# --- fire placement + spread into apartments -------------------------------
+# Where a floor's fire breaks out, seeded per floor: 40% at the DOWN stairwell
+# (the way you're heading), 40% MID-hallway, 20% at your ARRIVAL stairwell (a
+# nasty surprise to spawn into). building_floors resolves this to an x on first
+# build and persists it (a fire doesn't teleport between visits).
+const FIRE_SPAWN_DOWN := 0
+const FIRE_SPAWN_MID := 1
+const FIRE_SPAWN_ARRIVAL := 2
+# Apartment door x's on a floor (apt 1..5, right→left in the corridor). Used to
+# spread the fire into apartments by proximity to its origin.
+const APARTMENT_X := {1: 829.0, 2: 696.0, 3: 570.0, 4: 444.0, 5: 316.0}
+var fire_origin_x: Dictionary = {}    # floor(str) -> resolved origin x (per arc, saved)
+
+
+func fire_spawn_kind(floor_num: int) -> int:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "firespawnkind" + str(floor_num))
+	var r := rng.randf()
+	if r < 0.40:
+		return FIRE_SPAWN_DOWN
+	elif r < 0.80:
+		return FIRE_SPAWN_MID
+	return FIRE_SPAWN_ARRIVAL
+
+
+func get_fire_origin_x(floor_num: int) -> float:
+	# The resolved x of this floor's fire; mid-hallway until building_floors sets it.
+	return float(fire_origin_x.get(str(floor_num), 675.0))
+
+
+func set_fire_origin_x(floor_num: int, x: float) -> void:
+	# Persist the FIRST time the floor's fire is built, so it stays put across
+	# visits/runs (a physical fire doesn't move to a different spot next time).
+	if not fire_origin_x.has(str(floor_num)):
+		fire_origin_x[str(floor_num)] = x
+
+
+func apartment_rank(floor_num: int, apt_index: int) -> int:
+	# How near this apartment is to the fire's origin (0 = nearest), by door x.
+	var ox := get_fire_origin_x(floor_num)
+	var target := absf(float(APARTMENT_X.get(apt_index, 675.0)) - ox)
+	var rank := 0
+	for a in APARTMENT_X:
+		if absf(float(APARTMENT_X[a]) - ox) < target:
+			rank += 1
+	return rank
+
+
+func apartment_fire_stage(floor_num: int, apt_index: int) -> int:
+	# Fire stage AT/IN an apartment: -1 none, else LIGHT/BLAZE/CHARRED. The corridor
+	# fire creeps into apartments by PROXIMITY to its origin and escalates with the
+	# floor — a CHARRED floor is a total ruin (every apartment charred: lost scavenge
+	# + death trap); otherwise apartment rank r is `floor_stage - r` (nearest catches
+	# first, one apartment further per stage). Putting the source out stops it.
+	var fs := fire_intensity(floor_num)
+	if fs < 0:
+		return -1
+	if fs >= FIRE_CHARRED:
+		return FIRE_CHARRED
+	var stage := fs - apartment_rank(floor_num, apt_index)
+	return stage if stage >= 0 else -1
+
+
+func is_apartment_charred(floor_num: int, apt_index: int) -> bool:
+	return apartment_fire_stage(floor_num, apt_index) == FIRE_CHARRED
+
+
+func is_apartment_burning(floor_num: int, apt_index: int) -> bool:
+	return apartment_fire_stage(floor_num, apt_index) in [FIRE_LIGHT, FIRE_BLAZE]
+
+
 func is_stair_fire(floor_num: int) -> bool:
 	# True when this FLOOR is on fire this run (origin OR spread). Kept as the
 	# public predicate; barricade/horde defer to it so hazards never double up.
@@ -2306,6 +2378,7 @@ func save_game(scene_path: String) -> void:
 		"barricade_keeper_state": barricade_keeper_state,
 		"elevator_kit_placed": elevator_kit_placed,
 		"fire_dealt_with": fire_dealt_with,
+		"fire_origin_x": fire_origin_x,
 		"zombie_positions": zombie_positions,
 		"wallet_unlocked": wallet_unlocked,
 		"wallet_balance": wallet_balance,
@@ -2375,6 +2448,7 @@ func load_game() -> String:
 	barricade_keeper_state = data.get("barricade_keeper_state", {})
 	elevator_kit_placed = data.get("elevator_kit_placed", {})
 	fire_dealt_with = data.get("fire_dealt_with", {})
+	fire_origin_x = data.get("fire_origin_x", {})
 	# JSON round-trips all dictionary keys as strings; this dict is keyed by int
 	# floor numbers, so convert keys back or every loaded game re-seeds its floors.
 	zombie_positions = data.get("zombie_positions", {})

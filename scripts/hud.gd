@@ -78,6 +78,7 @@ func _ready() -> void:
 	# Listen-mode grey/ping/report overlay (own CanvasLayer above the HUD).
 	listen_overlay = preload("res://scripts/listen_overlay.gd").new()
 	add_child(listen_overlay)
+	_create_smoke_fog()
 	update_floor_label()
 	update_portrait(0)
 	update_mode_indicator()
@@ -443,9 +444,38 @@ func update_stamina(current: float, maximum: float) -> void:
 		else:
 			stamina_segments[i].color = Color(0.15, 0.15, 0.15, 1.0)
 
+# --- smoke fog (reduced visibility while standing in a blaze's smoke) --------
+var smoke_fog_rect: ColorRect = null
+var _fog_alpha: float = 0.0
+var _fog_target: float = 0.0
+const FOG_MAX_ALPHA := 0.6
+
+
+func _create_smoke_fog() -> void:
+	smoke_fog_rect = ColorRect.new()
+	smoke_fog_rect.color = Color(0.46, 0.44, 0.42, 0.0)
+	smoke_fog_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	smoke_fog_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	$Control.add_child(smoke_fog_rect)
+	$Control.move_child(smoke_fog_rect, 0)   # behind the HUD elements, over the world
+
+
+func set_smoke_fog(on: bool) -> void:
+	# Called by building_floors when the player is stood up in choking smoke.
+	_fog_target = 1.0 if on else 0.0
+
+
+func _update_smoke_fog(delta: float) -> void:
+	if smoke_fog_rect == null:
+		return
+	_fog_alpha = move_toward(_fog_alpha, _fog_target, delta * 2.2)
+	smoke_fog_rect.color.a = _fog_alpha * FOG_MAX_ALPHA
+
+
 func _process(delta: float) -> void:
 	_update_drag()
 	_update_world_prompt()
+	_update_smoke_fog(delta)
 	if feedback_timer > 0:
 		feedback_timer -= delta
 		var alpha = min(feedback_timer / 0.5, 1.0)

@@ -397,26 +397,35 @@ func _draw_smoke(canvas: CanvasItem) -> void:
 	# a LIGHT fire, thick/dark on a BLAZE. Choke is enforced in building_floors.
 	if stage >= STAGE_CHARRED:
 		return
-	var dense := 1.0 if stage >= STAGE_BLAZE else 0.4
-	var puffs := 5 if stage >= STAGE_BLAZE else 2
+	# Smoke is a MIX: thin light wisps and thick dark billows overlapping. On a
+	# BLAZE the heavy layer dominates (choking — you must crouch to see under it);
+	# a LIGHT fire is mostly thin wisps hugging the ceiling.
+	var blaze := stage >= STAGE_BLAZE
 	var rise_from := FIRE_BASE_Y - 12.0
 	for i in range(cell_count):
 		if not _smoke_col(i):
 			continue
 		var cx := cell_x(i)
-		for p in range(puffs):
-			var phase := _hash01(float(i) * 4.3 + float(p) * 9.1)
-			var prog := fmod(_t * 0.10 + phase, 1.0)                 # 0 at flames → 1 at ceiling
-			var y := lerpf(rise_from, CEILING_Y, prog)
-			# two-octave horizontal turbulence, widening as it rises
-			var turb := sin(_t * 1.1 + phase * 12.0 + prog * 4.0) * (6.0 + prog * 20.0) \
-				+ sin(_t * 0.5 + phase * 20.0) * (3.0 + prog * 8.0)
-			var rad := lerpf(7.0, 30.0, prog)
-			var a := sin(prog * PI) * 0.22 * dense                   # fade in then out
-			var shade := lerpf(0.20, 0.09, prog)
-			# each puff = a few overlapping blobs so its edge is soft, not a disc
-			for b in range(3):
-				var bh := _hash01(phase * 30.0 + float(b) * 3.7)
-				var ox := (bh - 0.5) * rad * 0.9
-				var oy := (_hash01(phase * 11.0 + float(b)) - 0.5) * rad * 0.7
-				canvas.draw_circle(Vector2(cx + turb + ox, y + oy), rad * (0.55 + 0.4 * bh), Color(shade, shade, shade, a * 0.6))
+		# LIGHT wisps (always) — pale, fast, thin.
+		_smoke_puffs(canvas, i, cx, rise_from, 2, 0.30, 0.12, 0.18, 0.16)
+		# HEAVY billows (blaze) — dark, slow, big, dropping lower.
+		if blaze:
+			_smoke_puffs(canvas, i, cx, rise_from, 4, 0.55, 0.30, 0.06, 0.28)
+
+
+func _smoke_puffs(canvas: CanvasItem, i: int, cx: float, rise_from: float, puffs: int,
+		max_alpha: float, dark_lo: float, dark_hi: float, speed: float) -> void:
+	for p in range(puffs):
+		var phase := _hash01(float(i) * 4.3 + float(p) * 9.1 + float(puffs))
+		var prog := fmod(_t * speed + phase, 1.0)                 # 0 at flames → 1 at ceiling
+		var y := lerpf(rise_from, CEILING_Y, prog)
+		var turb := sin(_t * 1.1 + phase * 12.0 + prog * 4.0) * (6.0 + prog * 20.0) \
+			+ sin(_t * 0.5 + phase * 20.0) * (3.0 + prog * 8.0)
+		var rad := lerpf(8.0, 34.0, prog) * (0.7 + max_alpha)
+		var a := sin(prog * PI) * max_alpha                       # fade in then out
+		var shade := lerpf(dark_hi + 0.06, dark_lo, prog)         # darker low, paler high
+		for b in range(3):
+			var bh := _hash01(phase * 30.0 + float(b) * 3.7)
+			var ox := (bh - 0.5) * rad * 0.9
+			var oy := (_hash01(phase * 11.0 + float(b)) - 0.5) * rad * 0.7
+			canvas.draw_circle(Vector2(cx + turb + ox, y + oy), rad * (0.55 + 0.4 * bh), Color(shade, shade, shade, a * 0.6))

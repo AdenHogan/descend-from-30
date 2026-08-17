@@ -20,6 +20,7 @@ func _ready() -> void:
 	print("=== fire (Hazard 3) test ===")
 	_test_spread()
 	_test_smoke()
+	_test_spawn_and_apartments()
 	_test_seeding()
 	_test_spread_across_runs()
 	_test_dealt_with()
@@ -151,6 +152,54 @@ func _test_smoke() -> void:
 	ff.char_all()
 	check(not ff.smoke_at(ff.cell_x(mid)), "a charred ruin has no smoke")
 	ff.free()
+
+
+func _test_spawn_and_apartments() -> void:
+	print("[fire spawn kind 40/40/20 + apartment spread]")
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
+	# Spawn kind roughly 40 down / 40 mid / 20 arrival across seeds.
+	var n := {0: 0, 1: 0, 2: 0}
+	for s in range(1, 601):
+		WorldState.master_seed = s
+		n[WorldState.fire_spawn_kind(15)] += 1
+	var total := 600.0
+	check(n[0] > 180 and n[0] < 300, "~40%% spawn at the down stair (%d)" % n[0])
+	check(n[1] > 180 and n[1] < 300, "~40%% spawn mid-hallway (%d)" % n[1])
+	check(n[2] > 60 and n[2] < 180, "~20%% spawn at the arrival stair (%d)" % n[2])
+
+	# Apartment spread: with the fire at the LEFT (a left-stair fire), the nearest
+	# apartment (2505, x=316) catches first, then 2504, escalating each run.
+	WorldState.master_seed = 4242
+	WorldState.current_run = 1
+	WorldState.fire_dealt_with.clear()
+	WorldState.fire_origin_x.clear()
+	# force an origin on floor 25 and put the fire at the left stair
+	while not WorldState._fire_origin_seeded(25):
+		WorldState.master_seed += 1
+	WorldState.set_fire_origin_x(25, 150.0)
+	check(WorldState.apartment_rank(25, 5) == 0, "apt 5 (leftmost) is nearest a left-stair fire")
+	check(WorldState.apartment_rank(25, 1) == 4, "apt 1 (rightmost) is furthest")
+	# Run 1: only the nearest apartment catches (light).
+	check(WorldState.apartment_fire_stage(25, 5) == WorldState.FIRE_LIGHT, "run 1: nearest apt catches (light)")
+	check(WorldState.apartment_fire_stage(25, 4) == -1, "run 1: the next apt is not alight yet")
+	# Run 2: nearest is a blaze, the next catches.
+	WorldState.current_run = 2
+	check(WorldState.apartment_fire_stage(25, 5) == WorldState.FIRE_BLAZE, "run 2: nearest apt is a blaze")
+	check(WorldState.apartment_fire_stage(25, 4) == WorldState.FIRE_LIGHT, "run 2: the next apt catches")
+	# Run 3: the whole floor is a charred ruin — every apartment lost.
+	WorldState.current_run = 3
+	var all_charred := true
+	for a in [1, 2, 3, 4, 5]:
+		if not WorldState.is_apartment_charred(25, a):
+			all_charred = false
+	check(all_charred, "run 3: every apartment is charred (floor is a total ruin)")
+	# Dealing with the source spares the apartments.
+	WorldState.current_run = 2
+	WorldState.mark_fire_dealt_with(25)
+	check(WorldState.apartment_fire_stage(25, 5) == -1, "putting the source out stops the apartment spread")
+	WorldState.fire_dealt_with.clear()
+	WorldState.fire_origin_x.clear()
+	WorldState.current_run = 1
 
 
 func _test_seeding() -> void:

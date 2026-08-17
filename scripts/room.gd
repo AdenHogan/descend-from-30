@@ -348,6 +348,14 @@ func _after_modules_ready() -> void:
 
 			spawn_chance = min(spawn_chance + barricade_bonus + WorldState.get_scavenge_bonus(), 0.95)
 
+			# A CHARRED apartment is a burnt-out husk — nothing left to scavenge. Zero
+			# the chance (the anchor still consumes its RNG draw so the seeded sequence
+			# stays identical for un-charred re-entries).
+			var _fnum := int(apartment_id.left(apartment_id.length() - 2))
+			var _anum := int(apartment_id.substr(apartment_id.length() - 2))
+			if WorldState.is_apartment_charred(_fnum, _anum):
+				spawn_chance = 0.0
+
 			# An anchor the player has already searched is settled — its item state
 			# is whatever they left it as. We must NOT re-roll it (that's the dupe
 			# exploit) and must NOT re-enable it via set_process if _ready() hid it.

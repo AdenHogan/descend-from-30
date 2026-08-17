@@ -19,6 +19,13 @@ var passive: bool = false
 const ZOMBIE_SETTLED_Y := 370.0
 
 
+func _exit_tree() -> void:
+	# Leaving the floor: clear the screen-space smoke fog so it doesn't linger on
+	# the next (fire-free) floor.
+	if HUD.has_method("set_smoke_fog"):
+		HUD.set_smoke_fog(false)
+
+
 func _ready() -> void:
 	var floor_num = setup_floor if setup_floor >= 0 else WorldState.current_floor
 	var player = get_node("Player")
@@ -213,6 +220,17 @@ func _process(delta: float) -> void:
 				HUD.show_feedback("You're choking on the smoke — CROUCH to get under it!")
 		else:
 			_smoke_dmg_acc = 0.0
+		# Standing in a blaze's smoke FOGS your view (crouch under it to see). The
+		# overlay is screen-space, so it lives on the HUD.
+		var fogged: bool = _fire_field.stage >= WorldState.FIRE_BLAZE \
+			and _fire_field.smoke_at(player.global_position.x) and not player.is_crouching
+		if HUD.has_method("set_smoke_fog"):
+			HUD.set_smoke_fog(fogged)
+		# Enemies standing in the flames CATCH FIRE: a flame overlay + DOUBLE-damage
+		# attacks. They go out the moment they step clear.
+		for z in get_tree().get_nodes_in_group("zombie"):
+			if "on_fire" in z:
+				z.on_fire = _fire_field.is_burning_at(z.global_position.x)
 		# The moment the WHOLE floor's fire is out (not just a path doused), it's
 		# dealt with: record it cross-run so it can't re-ignite/escalate, and let
 		# a sheltering merchant finally come out. A path-spray leaves cells burning,
@@ -245,25 +263,42 @@ const SMOKE_DMG_INTERVAL := 1.5        # a choke hit this often while stood up i
 var _merchant_pending_fire: bool = false   # merchant is sheltering until the fire's out
 
 
-func _spawn_fire(floor_num: int) -> void:
-	# Hazard 3: fire on THIS floor (an outbreak origin, or a floor the blaze has
-	# crept onto up/down the building across runs). One field per floor; its EXTENT
-	# is set by the floor's intensity — LIGHT near the steps, BLAZE most of the
-	# floor, CHARRED a burnt-out husk. The fire climbs the stairwell, so it's
-	# anchored at a down-stair on this floor.
-	if not WorldState.is_stair_fire(floor_num):
-		return
-	var fire_x := 250.0
-	var on_left := true
+func _fire_origin_for(floor_num: int) -> float:
+	# The x the fire breaks out at (persisted once, so it stays put): 40% at the
+	# DOWN stair (the way you're heading), 40% MID-hallway, 20% at your ARRIVAL
+	# stair (spawn straight into it — panic). Resolves the seeded kind against this
+	# floor's actual stair positions.
+	if WorldState.fire_origin_x.has(str(floor_num)):
+		return WorldState.get_fire_origin_x(floor_num)
+	var down_x := 250.0
+	var up_x := 950.0
 	for tname in _BARRICADE_TRIGGERS:
-		if int(_BARRICADE_TRIGGERS[tname]) != 0:
-			continue   # want a stairwell ON this floor (offset 0), not the up-stair
 		var t = get_node_or_null(tname)
 		if t == null or t.process_mode == Node.PROCESS_MODE_DISABLED:
 			continue
-		fire_x = t.global_position.x
-		on_left = fire_x < 600.0
-		break
+		if int(_BARRICADE_TRIGGERS[tname]) == 0:
+			down_x = t.global_position.x
+		else:
+			up_x = t.global_position.x
+	var origin_x := 675.0
+	match WorldState.fire_spawn_kind(floor_num):
+		WorldState.FIRE_SPAWN_DOWN:
+			origin_x = down_x
+		WorldState.FIRE_SPAWN_ARRIVAL:
+			origin_x = up_x
+		_:
+			origin_x = 675.0
+	WorldState.set_fire_origin_x(floor_num, origin_x)
+	return origin_x
+
+
+func _spawn_fire(floor_num: int) -> void:
+	# Hazard 3: fire on THIS floor (an outbreak origin, or a floor the blaze crept
+	# onto across runs). Breaks out at its seeded origin (down/mid/arrival), and by
+	# proximity has crept into nearby apartments — flames light at their doors.
+	if not WorldState.is_stair_fire(floor_num):
+		return
+	var origin_x := _fire_origin_for(floor_num)
 	var stage: int = WorldState.fire_intensity(floor_num)
 	_fire_field = FIRE_FIELD.new()
 	_fire_field.floor_num = floor_num
@@ -273,24 +308,36 @@ func _spawn_fire(floor_num: int) -> void:
 		WorldState.FIRE_CHARRED:
 			_fire_field.char_all()                              # burnt-out husk
 		WorldState.FIRE_BLAZE:
-			# Most of the floor alight, spreading in from the stair side.
-			if on_left:
-				_fire_field.ignite_span(fire_x, 720.0)
-			else:
-				_fire_field.ignite_span(680.0, fire_x)
+			_fire_field.ignite_span(origin_x - 280.0, origin_x + 280.0)   # most of the floor
 		_:
-			# LIGHT (run 1): a SMALL, PATCHY fire by the steps — a few separate
-			# flame patches with gaps, not a solid wall, and it barely spreads. The
-			# blaze/charred stages are the escalation; run 1 is meant to be minor.
-			# Patches spread INWARD from the stairwell (dir) so they never fall off
-			# the corridor edge when the fire anchors at an end stair.
-			var c0: int = _fire_field.cell_at(fire_x)
-			var dir: int = 1 if on_left else -1
-			for dc in [0, 2, 4]:
-				var ci: int = c0 + dc * dir
+			# LIGHT (run 1): a small, patchy fire around the origin (gaps, not a wall).
+			var c0: int = _fire_field.cell_at(origin_x)
+			for dc in [-2, 0, 2, 4]:
+				var ci: int = c0 + dc
 				if ci >= 0 and ci < _fire_field.cell_count:
 					_fire_field.ignite_span(_fire_field.cell_x(ci), _fire_field.cell_x(ci))
+	# Fire spreading INTO apartments: light flames at each burning apartment's door
+	# so the creep is visible (charred floors are already whole-floor char_all'd).
+	if stage != WorldState.FIRE_CHARRED:
+		for apt in [1, 2, 3, 4, 5]:
+			if WorldState.is_apartment_burning(floor_num, apt):
+				var ax: float = float(WorldState.APARTMENT_X[apt])
+				_fire_field.ignite_span(ax - 22.0, ax + 22.0)
 	_fire_was_burning = _fire_field.any_burning()
+	_tint_fire_doors(floor_num)
+
+
+func _tint_fire_doors(floor_num: int) -> void:
+	# A burning apartment door glows hot; a charred one is blackened. (Loot is
+	# separately suppressed for charred apartments in room.gd.)
+	for apt in [1, 2, 3, 4, 5]:
+		var door = get_node_or_null("apartment0" + str(apt))
+		if door == null:
+			continue
+		if WorldState.is_apartment_charred(floor_num, apt):
+			door.modulate = Color(0.32, 0.30, 0.30)
+		elif WorldState.is_apartment_burning(floor_num, apt):
+			door.modulate = Color(1.25, 0.85, 0.7)
 
 
 func _frame_camera(player: Node) -> void:
