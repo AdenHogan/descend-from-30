@@ -321,11 +321,33 @@ leave it to burn and they **stay absent on that floor across runs** (too
 dangerous — a charred floor has no merchant) while the other merchant floors
 trade normally.
 
+**Placement (40/40/20)** — a fire breaks out at a seeded spot: **40% at the DOWN
+stair**, **40% MID-hallway**, **20% at the ARRIVAL stair** (spawn straight into
+it). `WorldState.fire_spawn_kind(floor)` picks the kind; `building_floors`
+resolves it to an x and **persists** it (`fire_origin_x`, saved) so the fire
+stays put across visits/runs.
+
+**Spread into apartments** — the corridor fire creeps into apartments by
+**proximity to its origin** and escalates with the floor
+(`WorldState.apartment_fire_stage(floor, apt)`): a left-stair fire catches 2505
+first, then 2504…; **run 2** the nearby apartments are ablaze, **run 3** the
+WHOLE floor is charred (every apartment — lost scavenge + death trap). Putting the
+**source** out stops it. Burning apartment doors glow and get flames at the door;
+**charred apartments** render blackened and yield **no loot** (`room.gd`).
+
+**Enemies on fire** — a zombie standing in flame **catches** (a flame overlay via
+`enemy_fire.gd`) and its attacks hit for **DOUBLE** (`receive_hit(2)`); it goes
+out when it steps clear. Toggled in `building_floors._process`.
+
+**Smoke** is a **mix** of thin light wisps + heavy dark billows overlapping (the
+heavy layer only on a blaze). Standing in a blaze's smoke also **fogs the screen**
+(`HUD.set_smoke_fog`, cleared on floor exit) — crouch under it to see.
+
 **Still to build:** the fire **approach-warning** beat (the horde already warns;
-fire should too), flames **on the walls / ceiling / apartment doors** (only the
-corridor flames are drawn today), and the automatic run-advance that drives the
-escalation live. Flame size/colour, smoke density + how low it hangs, and the
-burn/choke cadences all want in-editor feel-tuning.
+fire should too), the **backdraft** blowback when opening a burning door (noted,
+not required yet), flames **on the walls/ceiling** beyond the corridor, and the
+automatic run-advance that drives escalation live. Flame/smoke sizes, spread
+rates, fog strength and burn/choke cadences all want in-editor feel-tuning.
 
 ## Open / later
 

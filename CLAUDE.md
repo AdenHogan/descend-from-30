@@ -285,8 +285,14 @@ means no rendering — UI layout and art still need an in-editor look.
   a LIGHT fire's smoke hugs the ceiling, harmless. **Render** is layered for
   depth (`fire_layer.gd`): back-wall flames behind actors (z0), main flames level
   (z1), an **additive glow + foreground licks** in front (z2), smoke on top (z4);
-  flames **stage-scaled** (small LIGHT, ~1.9× BLAZE via `flame_scale`). Item
-  **036 Fire Extinguisher**
+  flames **stage-scaled** (small LIGHT, ~1.9× BLAZE via `flame_scale`).
+  **Placement** 40% down-stair / 40% mid / 20% arrival-stair (`fire_spawn_kind`,
+  resolved x persisted in `fire_origin_x`). **Spreads into apartments** by
+  proximity (`apartment_fire_stage`): nearest catches first, run 2 nearby ablaze,
+  run 3 whole floor charred; charred apartments = no loot (`room.gd`), burning
+  doors glow. **Enemies on fire** (`enemy_fire.gd`) deal DOUBLE damage. **Smoke**
+  is a light+heavy mix and **fogs the screen while standing** (`HUD.set_smoke_fog`
+  — crouch to see). Item **036 Fire Extinguisher**
   (`is_extinguisher`, 3 uses) douses a radius **for good** (`extinguish_at`) —
   one canister only blows a safe path through a big blaze (backtrack for more);
   mounted **by the elevator on EVERY floor** (skips charred) once per (floor,run)
