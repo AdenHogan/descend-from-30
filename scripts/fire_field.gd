@@ -284,19 +284,30 @@ func _tongue(canvas: CanvasItem, cx: float, base_y: float, h: float, base_w: flo
 		canvas.draw_rect(Rect2(cx + lean - w * 0.5, y, w, ROW_H + 0.5), Color(c.r, c.g, c.b, c.a * alpha))
 
 
-func _cluster(canvas: CanvasItem, i: int, cx: float, sc: float, alpha: float, base_y: float) -> void:
-	# One flame for a burning cell, rising from base_y. Every flame VARIES — size,
-	# lean, and whether it has a second/third tongue — via per-cell hashes, so a run
-	# of cells reads as many individual flames, not one repeated stamp.
-	var v := _hash01(float(i) * 1.7)          # size variation
-	var v2 := _hash01(float(i) * 3.3)         # extra-tongue / shape variation
-	var csc := sc * (0.7 + 0.55 * v)          # per-flame size ~0.7..1.25
-	var by := base_y - _hash01(float(i) * 0.9) * 3.0 + sin(_t * 2.3 + float(i)) * 1.2
-	var flick := sin(_t * 8.0 + float(i) * 1.7) * 2.5 + sin(_t * 13.0 + float(i) * 0.7) * 1.5
-	_tongue(canvas, cx + (v - 0.5) * 5.0, by, (20.0 + flick) * csc, 8.0 * csc, float(i) * 1.9, alpha)
-	_tongue(canvas, cx - 8.0 * csc, by, (11.0 + flick) * csc, 5.0 * csc, float(i) * 2.1 + 1.0, alpha)
-	if v2 > 0.45:                             # some flames get a third tongue, some don't
-		_tongue(canvas, cx + 9.0 * csc, by, (9.0 - flick) * csc, 4.5 * csc, float(i) * 2.7 + 2.0, alpha)
+func _flame(canvas: CanvasItem, s: int, x: float, base_y: float, sc: float, alpha: float) -> void:
+	# ONE flame, fully varied by its seed `s` (size passed in, shape here): 1-3
+	# tongues, wobbling base, leaning. Real fire is never a grid of identical tufts.
+	var v2 := _hash01(float(s) * 3.3)
+	var by := base_y - _hash01(float(s) * 0.9) * 3.0 + sin(_t * 2.3 + float(s)) * 1.2
+	var flick := sin(_t * 8.0 + float(s) * 1.7) * 2.5 + sin(_t * 13.0 + float(s) * 0.7) * 1.5
+	_tongue(canvas, x, by, (20.0 + flick) * sc, 8.0 * sc, float(s) * 1.9, alpha)
+	if v2 > 0.35:
+		_tongue(canvas, x - 6.5 * sc, by, (11.0 + flick) * sc, 5.0 * sc, float(s) * 2.1 + 1.0, alpha)
+	if v2 > 0.72:
+		_tongue(canvas, x + 7.0 * sc, by, (9.0 - flick) * sc, 4.0 * sc, float(s) * 2.7 + 2.0, alpha)
+
+
+func _scatter(canvas: CanvasItem, i: int, cx: float, base_y: float, sc_mul: float, alpha: float) -> void:
+	# 1-3 flames of RANDOM size/position scattered across the cell, so scale and
+	# spacing look natural rather than one uniform flame per grid cell.
+	var n := 1 + int(_hash01(float(i) * 1.13) * 2.9)   # 1..3
+	for k in range(n):
+		var s := i * 11 + k * 7
+		var fx := cx + (_hash01(float(s) * 3.7) - 0.5) * CELL_W * 1.15
+		var fsc := sc_mul * (0.45 + 1.2 * _hash01(float(s) * 2.9))   # ~0.45..1.65
+		if _hash01(float(s) * 4.4) > 0.86:
+			fsc *= 1.7                                                # rare tall flare-up
+		_flame(canvas, s, fx, base_y, fsc, alpha)
 
 
 func _char_scar(canvas: CanvasItem, i: int, cx: float) -> void:
@@ -306,15 +317,15 @@ func _char_scar(canvas: CanvasItem, i: int, cx: float) -> void:
 		canvas.draw_circle(Vector2(cx + (hx - 0.5) * CELL_W * 0.85, FIRE_BASE_Y - 1.0 + hx * 3.0), 4.0 + hx * 3.5, CHAR_COL)
 
 
-# Depth is faked with three staggered rows: the BACK flames sit higher up (further
-# into the room) and small, the MAIN row at the floor line, the FRONT licks lower
-# and closer — so the fire is a band with depth, not everything on one line.
+# Depth is faked with staggered rows: BACK flames sit higher up (further into the
+# room) + climb the walls, the MAIN row is at the floor line, FRONT licks are lower
+# and closer — so the fire has vertical spread, not everything on one line.
 const BASE_BACK := FIRE_BASE_Y - 13.0
 const BASE_FRONT := FIRE_BASE_Y + 4.0
 
 
 func _draw() -> void:
-	# MAIN row (z1): flames at the floor line, level with the actors.
+	# MAIN row (z1): scattered flames at the floor line, level with the actors.
 	var sc := flame_scale()
 	for i in range(cell_count):
 		var cx := cell_x(i)
@@ -327,20 +338,41 @@ func _draw() -> void:
 				var g := clampf(heat[i] / IGNITE_THRESHOLD, 0.0, 1.0)
 				_tongue(self, cx, FIRE_BASE_Y, lerpf(3.0, 8.0, g), 4.0, float(i) * 1.3, 0.9)
 			continue
-		_cluster(self, i, cx, sc, 1.0, FIRE_BASE_Y)
-		# an occasional ember drifting up
+		_scatter(self, i, cx, FIRE_BASE_Y, sc, 1.0)
 		if _hash01(float(i) * 6.1) > 0.5:
 			var ey := FIRE_BASE_Y - 20.0 - fmod(_t * 34.0 + float(i) * 21.0, 28.0 * sc)
 			draw_rect(Rect2(cx + sin(_t * 3.0 + float(i)) * 6.0, ey, 2.0, 2.0), EMBER_COL)
 
 
 func _draw_back(canvas: CanvasItem) -> void:
-	# BACK row (z0, BEHIND the actors): smaller, dimmer flames sitting HIGHER up, so
-	# they read as a wall of fire further into the room. No scorch/underglow blob.
-	var sc := flame_scale() * 0.68
+	# BACK row (z0, BEHIND the actors): receding floor flames PLUS fire climbing the
+	# back wall at scattered heights and up the corridor end walls — so the blaze
+	# has real vertical spread across the scene, not just a strip on the floor.
+	var sc := flame_scale()
 	for i in range(cell_count):
-		if state_of(i) == BURNING:
-			_cluster(canvas, i, cell_x(i) + 6.0, sc, 0.6, BASE_BACK)
+		if state_of(i) != BURNING:
+			continue
+		var cx := cell_x(i)
+		_scatter(canvas, i, cx + 6.0, BASE_BACK, sc * 0.6, 0.55)      # receding floor row
+		# a patch of fire licking UP the back wall at a random height
+		if _hash01(float(i) * 7.7) > 0.5:
+			var wy := FIRE_BASE_Y - 24.0 - _hash01(float(i) * 5.5) * 80.0
+			var wx := cx + (_hash01(float(i) * 9.1) - 0.5) * 26.0
+			canvas.draw_circle(Vector2(wx, wy + 8.0), 13.0 * sc, Color(0.85, 0.38, 0.12, 0.09))   # wall-catch glow
+			_flame(canvas, i * 17 + 3, wx, wy + 12.0, sc * 0.5, 0.5)
+	# Stronger flames climbing the corridor END walls when the ends are alight.
+	_wall_column(canvas, 0, FIRE_MIN_X - 2.0, sc)
+	_wall_column(canvas, cell_count - 1, FIRE_MAX_X + 2.0, sc)
+
+
+func _wall_column(canvas: CanvasItem, cell_i: int, wall_x: float, sc: float) -> void:
+	# A stack of flames licking up an end wall (tapering as it climbs).
+	if state_of(cell_i) != BURNING:
+		return
+	for k in range(6):
+		var wy := FIRE_BASE_Y - float(k) * 20.0
+		canvas.draw_circle(Vector2(wall_x, wy), 11.0 * sc, Color(0.85, 0.38, 0.12, 0.10))
+		_flame(canvas, 300 + cell_i * 5 + k, wall_x, wy, sc * (0.6 - float(k) * 0.07), 0.7 - float(k) * 0.1)
 
 
 func _draw_front(canvas: CanvasItem) -> void:
@@ -353,9 +385,9 @@ func _draw_front(canvas: CanvasItem) -> void:
 		var cx := cell_x(i)
 		var soft := 0.05 * sin(_t * 4.0 + float(i))
 		canvas.draw_circle(Vector2(cx, FIRE_BASE_Y - 12.0 * sc), 20.0 * sc, Color(1.0, 0.46, 0.13, 0.06 + soft))
-		if _hash01(float(i) * 2.4) > 0.4:      # not every cell gets a foreground lick
+		if _hash01(float(i) * 2.4) > 0.45:      # not every cell gets a foreground lick
 			var flick := sin(_t * 10.0 + float(i) * 1.3) * 3.0
-			_tongue(canvas, cx + (_hash01(float(i) * 5.5) - 0.5) * 10.0, BASE_FRONT, (16.0 + flick) * sc, 5.0 * sc, float(i) * 1.4, 0.4)
+			_flame(canvas, i * 13 + 5, cx + (_hash01(float(i) * 5.5) - 0.5) * 12.0, BASE_FRONT, sc * (0.5 + 0.5 * _hash01(float(i) * 8.0)), 0.4)
 
 
 func _draw_smoke(canvas: CanvasItem) -> void:
