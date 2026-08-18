@@ -21,9 +21,13 @@ const ZOMBIE_SETTLED_Y := 370.0
 
 func _exit_tree() -> void:
 	# Leaving the floor: clear the screen-space smoke fog so it doesn't linger on
-	# the next (fire-free) floor.
+	# the next (fire-free) floor, and SNAPSHOT the fire's spread so it's exactly
+	# where it got to when you come back.
 	if HUD.has_method("set_smoke_fog"):
 		HUD.set_smoke_fog(false)
+	if _fire_field != null and is_instance_valid(_fire_field):
+		var floor_num: int = setup_floor if setup_floor >= 0 else WorldState.current_floor
+		WorldState.set_fire_cells(floor_num, _fire_field.export_state())
 
 
 func _ready() -> void:
@@ -323,6 +327,10 @@ func _spawn_fire(floor_num: int) -> void:
 			if WorldState.is_apartment_burning(floor_num, apt):
 				var ax: float = float(WorldState.APARTMENT_X[apt])
 				_fire_field.ignite_span(ax - 22.0, ax + 22.0)
+	# Restore the fire's SPREAD from a previous visit this run (so it doesn't reset
+	# to the spawn pattern every time you step out and back in).
+	if WorldState.has_fire_cells(floor_num):
+		_fire_field.import_state(WorldState.get_fire_cells(floor_num))
 	_fire_was_burning = _fire_field.any_burning()
 	_tint_fire_doors(floor_num)
 

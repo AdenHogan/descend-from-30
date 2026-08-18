@@ -136,6 +136,31 @@ func any_burning() -> bool:
 	return false
 
 
+func export_state() -> Array:
+	# A snapshot of every cell's state (0 cool / 1 burning / 2 spent) so the fire's
+	# SPREAD survives leaving and re-entering the floor (see WorldState.fire_cells).
+	var out: Array = []
+	out.resize(cell_count)
+	for i in range(cell_count):
+		out[i] = state_of(i)
+	return out
+
+
+func import_state(states: Array) -> void:
+	# Restore a snapshot: burning cells re-lit, doused/charred cells stay out.
+	for i in range(mini(states.size(), cell_count)):
+		match int(states[i]):
+			BURNING:
+				heat[i] = MAX_HEAT
+				fuel[i] = 1.0
+			SPENT:
+				heat[i] = 0.0
+				fuel[i] = 0.0
+			_:
+				heat[i] = 0.0
+				fuel[i] = 1.0
+
+
 func burning_count() -> int:
 	var n := 0
 	for i in range(cell_count):
@@ -285,75 +310,42 @@ func _tongue(canvas: CanvasItem, cx: float, base_y: float, h: float, base_w: flo
 
 
 func _flame(canvas: CanvasItem, s: int, x: float, base_y: float, sc: float, alpha: float) -> void:
-	# ONE flame — its SHAPE is picked from the seed too, so the fire is a mix of
-	# looks (pointed tongues, rounded blobs, curling wisps, little fireballs) rather
-	# than a row of identical conical tufts.
-	var kind := _hash01(float(s) * 5.9)
-	if kind < 0.42:
-		_flame_tongue(canvas, s, x, base_y, sc, alpha)
-	elif kind < 0.68:
-		_flame_round(canvas, s, x, base_y, sc, alpha)
-	elif kind < 0.88:
-		_flame_curl(canvas, s, x, base_y, sc, alpha)
-	else:
-		_flame_ball(canvas, s, x, base_y, sc, alpha)
+	# ONE flame drawn as LAYERED JAGGED POLYGONS — a red body, an orange layer, a
+	# yellow layer, and a white-hot core inset toward the base — each with the SAME
+	# ragged multi-lick top so it reads as a real flame (like classic pixel fire),
+	# not a smooth cone or blob. Variety comes from proportions: width, height, how
+	# many licks, lean and tip-curl all vary per seed — but every one is a flame.
+	var w := (12.0 + _hash01(float(s) * 1.3) * 16.0) * sc
+	var h := (20.0 + _hash01(float(s) * 2.1) * 26.0) * sc
+	var peaks := 2 + int(_hash01(float(s) * 4.9) * 2.4)      # 2..4 licks
+	var lean := (_hash01(float(s) * 3.7) - 0.5) * 0.55
+	var curl := (_hash01(float(s) * 6.1) - 0.5) * 0.8
+	_flame_poly(canvas, s, x, base_y, w, h, peaks, lean, curl, Color(0.82, 0.16, 0.04), alpha)          # red body
+	_flame_poly(canvas, s, x, base_y, w * 0.72, h * 0.82, peaks, lean, curl, Color(1.0, 0.46, 0.09), alpha)  # orange
+	_flame_poly(canvas, s, x, base_y, w * 0.46, h * 0.60, peaks, lean, curl, Color(1.0, 0.80, 0.24), alpha)  # yellow
+	_flame_poly(canvas, s, x, base_y, w * 0.22, h * 0.36, peaks, lean, curl, Color(1.0, 0.96, 0.80), alpha)  # white core
 
 
-func _flame_tongue(canvas: CanvasItem, s: int, x: float, base_y: float, sc: float, alpha: float) -> void:
-	# Pointed, tapered tongues (1-3), wobbling base, leaning.
-	var v2 := _hash01(float(s) * 3.3)
-	var by := base_y - _hash01(float(s) * 0.9) * 3.0 + sin(_t * 2.3 + float(s)) * 1.2
-	var flick := sin(_t * 8.0 + float(s) * 1.7) * 2.5 + sin(_t * 13.0 + float(s) * 0.7) * 1.5
-	_tongue(canvas, x, by, (20.0 + flick) * sc, 8.0 * sc, float(s) * 1.9, alpha)
-	if v2 > 0.35:
-		_tongue(canvas, x - 6.5 * sc, by, (11.0 + flick) * sc, 5.0 * sc, float(s) * 2.1 + 1.0, alpha)
-	if v2 > 0.72:
-		_tongue(canvas, x + 7.0 * sc, by, (9.0 - flick) * sc, 4.0 * sc, float(s) * 2.7 + 2.0, alpha)
-
-
-func _flame_round(canvas: CanvasItem, s: int, x: float, base_y: float, sc: float, alpha: float) -> void:
-	# A bulbous, ROUNDED flame (teardrop/onion): overlapping circles that bulge low
-	# and round up to a soft point, with a hot core — reads soft, not spiky.
-	var flick := sin(_t * 7.0 + float(s) * 1.6) * 2.0
-	var h := (20.0 + flick) * sc
-	var maxw := 9.0 * sc
-	for k in range(9):
-		var frac := float(k) / 9.0
-		var wf := sin((0.12 + frac * 0.88) * PI)        # peak in the lower-middle
-		var rad := maxw * (0.45 + 0.65 * wf) * (1.0 - frac * 0.3)
-		var lean := sin(_t * 5.0 + float(s) + frac * 2.0) * 3.0 * frac
-		var c := _flame_color(frac)
-		canvas.draw_circle(Vector2(x + lean, base_y - frac * h), maxf(rad, 1.5), Color(c.r, c.g, c.b, c.a * alpha))
-	canvas.draw_circle(Vector2(x, base_y - h * 0.3), maxw * 0.5, Color(1.0, 0.95, 0.72, alpha))
-
-
-func _flame_curl(canvas: CanvasItem, s: int, x: float, base_y: float, sc: float, alpha: float) -> void:
-	# A thin CURLING wisp: narrow segments following a curved path that licks to one
-	# side — a lighter, flickery look between the fuller flames.
-	var h := (24.0 + sin(_t * 8.0 + float(s)) * 3.0) * sc
-	var dirn := 1.0 if _hash01(float(s) * 2.2) > 0.5 else -1.0
-	var steps := int(h / 3.0)
-	for k in range(steps):
-		var frac := float(k) / float(maxi(steps, 1))
-		var cx := x + dirn * sin(frac * 2.4 + _t * 4.0 + float(s)) * 11.0 * sc * frac
-		var w := 4.0 * sc * (1.0 - frac * 0.8)
-		if w < 1.0:
-			w = 1.0
-		var c := _flame_color(frac)
-		canvas.draw_rect(Rect2(cx - w * 0.5, base_y - float(k) * 3.0, w, 3.5), Color(c.r, c.g, c.b, c.a * alpha))
-
-
-func _flame_ball(canvas: CanvasItem, s: int, x: float, base_y: float, sc: float, alpha: float) -> void:
-	# A small ROUND fireball: concentric circles (red→orange→hot core), pulsing,
-	# with a stubby tip so it isn't a pure disc — good for scattered flare-ups.
-	var pulse := 0.85 + 0.15 * sin(_t * 6.0 + float(s))
-	var y := base_y - 8.0 * sc
-	var r := 8.5 * sc * pulse
-	canvas.draw_circle(Vector2(x, y), r * 1.15, Color(0.8, 0.2, 0.05, 0.7 * alpha))
-	canvas.draw_circle(Vector2(x, y), r * 0.8, Color(1.0, 0.5, 0.12, 0.85 * alpha))
-	canvas.draw_circle(Vector2(x, y), r * 0.45, Color(1.0, 0.9, 0.5, alpha))
-	var c := _flame_color(0.4)
-	canvas.draw_rect(Rect2(x - 2.0 * sc, y - r - 5.0 * sc, 4.0 * sc, 7.0 * sc), Color(c.r, c.g, c.b, c.a * alpha))
+func _flame_poly(canvas: CanvasItem, s: int, x: float, base_y: float, w: float, h: float,
+		peaks: int, lean: float, curl: float, col: Color, alpha: float) -> void:
+	# One color band of a flame: a jagged tapered silhouette. The top edge is a run
+	# of licks (peaks + valleys) under an overall arch, flickering over time; the
+	# whole thing leans and its tips curl. Same s/k inputs across bands so they nest.
+	var pts := PackedVector2Array()
+	pts.append(Vector2(x - w * 0.5, base_y + 1.0))
+	var steps := 14
+	for k in range(steps + 1):
+		var u := float(k) / float(steps)                       # 0 left → 1 right
+		var arch := sin(u * PI)                                 # overall flame envelope
+		var lick := 0.45 + 0.55 * absf(sin(u * float(peaks) * PI + _t * 3.0 + float(s)))
+		var noise := 0.7 + 0.6 * _hash01(float(s) * 5.0 + float(k) * 3.1)
+		var wob := 1.0 + 0.12 * sin(_t * 7.0 + float(k) * 1.3 + float(s))
+		var hh := h * arch * lick * noise * wob
+		var fr := hh / maxf(h, 1.0)                             # 0..1 up the flame
+		var px := x + (u - 0.5) * w + lean * hh + curl * hh * fr * sin(_t * 2.5 + float(s))
+		pts.append(Vector2(px, base_y - hh))
+	pts.append(Vector2(x + w * 0.5, base_y + 1.0))
+	canvas.draw_colored_polygon(pts, Color(col.r, col.g, col.b, alpha))
 
 
 func _scatter(canvas: CanvasItem, i: int, cx: float, base_y: float, sc_mul: float, alpha: float) -> void:
@@ -450,41 +442,52 @@ func _draw_front(canvas: CanvasItem) -> void:
 
 
 func _draw_smoke(canvas: CanvasItem) -> void:
-	# SMOKE layer (z4, on top): puffs that RISE from the flames to the ceiling,
-	# growing, drifting on organic turbulence and fading out — overlapping soft
-	# blobs read as a billowing column rather than swaying circles. Thin/sparse on
-	# a LIGHT fire, thick/dark on a BLAZE. Choke is enforced in building_floors.
+	# SMOKE layer (z4, on top). A BLAZE puts up a THICK, oppressive bank of smoke —
+	# a dense churning mass of heavily-overlapping dark blobs, near-opaque low and
+	# only thinning toward the ceiling (crouch under it to see; the screen fog is
+	# separate). A LIGHT fire only gives thin pale wisps hugging the ceiling.
 	if stage >= STAGE_CHARRED:
 		return
-	# Smoke is a MIX: thin light wisps and thick dark billows overlapping. On a
-	# BLAZE the heavy layer dominates (choking — you must crouch to see under it);
-	# a LIGHT fire is mostly thin wisps hugging the ceiling.
 	var blaze := stage >= STAGE_BLAZE
-	var rise_from := FIRE_BASE_Y - 12.0
 	for i in range(cell_count):
 		if not _smoke_col(i):
 			continue
 		var cx := cell_x(i)
-		# LIGHT wisps (always) — pale, fast, thin.
-		_smoke_puffs(canvas, i, cx, rise_from, 2, 0.30, 0.12, 0.18, 0.16)
-		# HEAVY billows (blaze) — dark, slow, big, dropping lower.
 		if blaze:
-			_smoke_puffs(canvas, i, cx, rise_from, 4, 0.55, 0.30, 0.06, 0.28)
+			_smoke_bank(canvas, i, cx)
+		else:
+			_smoke_wisps(canvas, i, cx)
 
 
-func _smoke_puffs(canvas: CanvasItem, i: int, cx: float, rise_from: float, puffs: int,
-		max_alpha: float, dark_lo: float, dark_hi: float, speed: float) -> void:
-	for p in range(puffs):
-		var phase := _hash01(float(i) * 4.3 + float(p) * 9.1 + float(puffs))
-		var prog := fmod(_t * speed + phase, 1.0)                 # 0 at flames → 1 at ceiling
-		var y := lerpf(rise_from, CEILING_Y, prog)
-		var turb := sin(_t * 1.1 + phase * 12.0 + prog * 4.0) * (6.0 + prog * 20.0) \
-			+ sin(_t * 0.5 + phase * 20.0) * (3.0 + prog * 8.0)
-		var rad := lerpf(8.0, 34.0, prog) * (0.7 + max_alpha)
-		var a := sin(prog * PI) * max_alpha                       # fade in then out
-		var shade := lerpf(dark_hi + 0.06, dark_lo, prog)         # darker low, paler high
-		for b in range(3):
-			var bh := _hash01(phase * 30.0 + float(b) * 3.7)
-			var ox := (bh - 0.5) * rad * 0.9
-			var oy := (_hash01(phase * 11.0 + float(b)) - 0.5) * rad * 0.7
-			canvas.draw_circle(Vector2(cx + turb + ox, y + oy), rad * (0.55 + 0.4 * bh), Color(shade, shade, shade, a * 0.6))
+func _smoke_bank(canvas: CanvasItem, i: int, cx: float) -> void:
+	# A thick column of churning smoke from just above the flames to the ceiling.
+	# Rows of big overlapping dark blobs so it reads as one solid, roiling mass —
+	# oppressive and near-opaque low, thinning (but never clearing) high.
+	# Sits ABOVE the flame band (so the flames still read and a crouching player can
+	# see near the floor) and rises thick to the ceiling.
+	var bottom := FIRE_BASE_Y - 44.0
+	var rows := 14
+	for r in range(rows):
+		var frac := float(r) / float(rows)                       # 0 bottom → 1 ceiling
+		var y := lerpf(bottom, CEILING_Y, frac)
+		var ph := float(i) * 2.3 + float(r) * 1.7
+		var churn := sin(_t * 0.9 + ph) * (8.0 + frac * 28.0) + sin(_t * 0.4 + ph * 1.7) * (4.0 + frac * 12.0)
+		var boil := sin(_t * 1.6 + ph * 2.1) * 3.0               # small vertical roil
+		var rad := (24.0 + 14.0 * _hash01(ph)) + frac * 8.0
+		var a := lerpf(0.44, 0.13, frac)                         # thick low, thin high
+		var shade := 0.10 + 0.055 * _hash01(ph * 1.3)
+		canvas.draw_circle(Vector2(cx + churn, y + boil), rad, Color(shade, shade, shade, a))
+		canvas.draw_circle(Vector2(cx + churn - rad * 0.7, y + 4.0 + boil), rad * 0.82, Color(shade, shade, shade, a * 0.85))
+		canvas.draw_circle(Vector2(cx + churn + rad * 0.6, y - 3.0 + boil), rad * 0.7, Color(shade, shade, shade, a * 0.8))
+
+
+func _smoke_wisps(canvas: CanvasItem, i: int, cx: float) -> void:
+	# Thin pale wisps rising and fading — a LIGHT fire barely smokes.
+	for p in range(2):
+		var phase := _hash01(float(i) * 4.3 + float(p) * 9.1)
+		var prog := fmod(_t * 0.16 + phase, 1.0)
+		var y := lerpf(FIRE_BASE_Y - 14.0, CEILING_Y + 30.0, prog)
+		var turb := sin(_t * 1.1 + phase * 12.0 + prog * 4.0) * (6.0 + prog * 18.0)
+		var rad := lerpf(7.0, 22.0, prog)
+		var a := sin(prog * PI) * 0.16
+		canvas.draw_circle(Vector2(cx + turb, y), rad, Color(0.2, 0.19, 0.18, a))

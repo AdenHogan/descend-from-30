@@ -447,6 +447,7 @@ func new_game() -> void:
 	elevator_kit_placed.clear()
 	fire_dealt_with.clear()
 	fire_origin_x.clear()
+	fire_cells.clear()
 	hazard_approach_warned.clear()
 	pending_pry_arrival_floor = -1
 	merchant_stock.clear()
@@ -1516,6 +1517,26 @@ const FIRE_SPAWN_ARRIVAL := 2
 # spread the fire into apartments by proximity to its origin.
 const APARTMENT_X := {1: 829.0, 2: 696.0, 3: 570.0, 4: 444.0, 5: 316.0}
 var fire_origin_x: Dictionary = {}    # floor(str) -> resolved origin x (per arc, saved)
+# The fire's live SPREAD per (floor, run): "floor:run" -> per-cell state array, so
+# leaving and re-entering a floor keeps the fire where it got to (not reset to
+# spawn). Saved; cleared on a building shift (the layout re-rolls).
+var fire_cells: Dictionary = {}
+
+
+func _fire_cells_key(floor_num: int) -> String:
+	return str(floor_num) + ":" + str(current_run)
+
+
+func has_fire_cells(floor_num: int) -> bool:
+	return fire_cells.has(_fire_cells_key(floor_num))
+
+
+func get_fire_cells(floor_num: int) -> Array:
+	return fire_cells.get(_fire_cells_key(floor_num), [])
+
+
+func set_fire_cells(floor_num: int, states: Array) -> void:
+	fire_cells[_fire_cells_key(floor_num)] = states
 
 
 func fire_spawn_kind(floor_num: int) -> int:
@@ -1664,8 +1685,11 @@ func shift_building() -> void:
 	master_seed = randi()
 	apartment_layouts.clear()
 	anchor_items.clear()
-	# The building rearranged: any pending cross-floor pulls are stale now.
+	# The building rearranged: pending cross-floor pulls and any saved fire spread
+	# are stale now (the fire layout re-rolls with the new seed).
 	pending_stair_pulls.clear()
+	fire_cells.clear()
+	fire_origin_x.clear()
 
 
 # Set when a pried crossing commits: the floor you ARRIVE on (floor_num-1). The
@@ -2379,6 +2403,7 @@ func save_game(scene_path: String) -> void:
 		"elevator_kit_placed": elevator_kit_placed,
 		"fire_dealt_with": fire_dealt_with,
 		"fire_origin_x": fire_origin_x,
+		"fire_cells": fire_cells,
 		"zombie_positions": zombie_positions,
 		"wallet_unlocked": wallet_unlocked,
 		"wallet_balance": wallet_balance,
@@ -2449,6 +2474,7 @@ func load_game() -> String:
 	elevator_kit_placed = data.get("elevator_kit_placed", {})
 	fire_dealt_with = data.get("fire_dealt_with", {})
 	fire_origin_x = data.get("fire_origin_x", {})
+	fire_cells = data.get("fire_cells", {})
 	# JSON round-trips all dictionary keys as strings; this dict is keyed by int
 	# floor numbers, so convert keys back or every loaded game re-seeds its floors.
 	zombie_positions = data.get("zombie_positions", {})

@@ -19,6 +19,7 @@ func check(cond: bool, label: String) -> void:
 func _ready() -> void:
 	print("=== fire (Hazard 3) test ===")
 	_test_spread()
+	_test_memory()
 	_test_smoke()
 	_test_spawn_and_apartments()
 	_test_seeding()
@@ -129,6 +130,34 @@ func _test_spread() -> void:
 	check(ff.state_of(0) == ff.SPENT and ff.state_of(ff.cell_count - 1) == ff.SPENT,
 		"char_all marks the whole floor SPENT")
 	ff.free()
+
+
+func _test_memory() -> void:
+	print("[fire remembers its spread across a visit]")
+	var ff = _make_field()
+	# Spread it out a bit, then snapshot.
+	ff.ignite_span(ff.cell_x(ff.cell_count / 2), ff.cell_x(ff.cell_count / 2))
+	_ticks(ff, 900)
+	var burned: int = ff.burning_count()
+	check(burned >= 3, "fire spread to several cells before leaving (%d)" % burned)
+	var snap: Array = ff.export_state()
+	ff.free()
+	# A FRESH field (as if the floor was rebuilt on re-entry) restores the snapshot
+	# instead of resetting to the spawn pattern.
+	var ff2 = _make_field()
+	ff2.import_state(snap)
+	check(ff2.burning_count() == burned, "re-entering restores the same spread (%d vs %d)" % [ff2.burning_count(), burned])
+	# WorldState round-trips it per (floor, run).
+	WorldState.fire_cells.clear()
+	WorldState.current_run = 1
+	WorldState.set_fire_cells(24, snap)
+	check(WorldState.has_fire_cells(24), "WorldState stores the fire spread for the floor/run")
+	check(WorldState.get_fire_cells(24).size() == snap.size(), "stored spread matches")
+	WorldState.current_run = 2
+	check(not WorldState.has_fire_cells(24), "the spread is per-run (a new run starts fresh)")
+	WorldState.current_run = 1
+	WorldState.fire_cells.clear()
+	ff2.free()
 
 
 func _test_smoke() -> void:
