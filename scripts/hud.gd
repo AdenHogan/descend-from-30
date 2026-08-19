@@ -448,7 +448,7 @@ func update_stamina(current: float, maximum: float) -> void:
 var smoke_fog_rect: ColorRect = null
 var _fog_alpha: float = 0.0
 var _fog_target: float = 0.0
-const FOG_MAX_ALPHA := 0.82
+const FOG_MAX_ALPHA := 0.72
 
 
 func _create_smoke_fog() -> void:

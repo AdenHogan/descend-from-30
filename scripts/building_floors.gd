@@ -203,27 +203,27 @@ func _process(delta: float) -> void:
 	# Fire damage: standing in flame costs health on a cadence (move or burn). You
 	# can always walk THROUGH fire (it never blocks), you just take the burn.
 	if _fire_field != null and player.has_method("receive_hit"):
+		_fire_line_cd = maxf(_fire_line_cd - delta, 0.0)
 		if _fire_field.is_burning_at(player.global_position.x):
 			_fire_dmg_acc += delta
 			if _fire_dmg_acc >= FIRE_DMG_INTERVAL:
 				_fire_dmg_acc = 0.0
-				player.receive_hit(1)
-				HUD.show_feedback("You're burning! Get out of the flames!")
+				player.receive_hit(1)                     # the HUD portrait shows the health drop
+				_say_fire_line()
 		else:
 			_fire_dmg_acc = 0.0
-		# Smoke choke: a BLAZE fills the upper air with choking smoke. Stand in it
-		# and you choke; CROUCH under it to breathe. A LIGHT fire's smoke hugs the
-		# ceiling (harmless). Independent of the burn — you can crouch-walk through
-		# a blaze, breathing but still scorched by the flames at your feet.
-		# Choke/fog when the smoke is THICK (scales with how much of the floor is
-		# alight — a spread-out fire chokes even at the light stage), not just a blaze.
+		# Smoke choke: thick smoke fills the upper air. Stand in it and you choke for
+		# HALF the fire's damage-over-time; CROUCH under it to breathe (and to see —
+		# it also fogs the view). Independent of the burn, so you can crouch-walk a
+		# blaze, breathing but still scorched by the flames at your feet. Thickness
+		# scales with how much of the floor is alight (a spread fire chokes at any stage).
 		var thick_smoke: bool = _fire_field.smoke_intensity() > 0.3 and _fire_field.smoke_at(player.global_position.x)
 		if thick_smoke and not player.is_crouching:
 			_smoke_dmg_acc += delta
 			if _smoke_dmg_acc >= SMOKE_DMG_INTERVAL:
 				_smoke_dmg_acc = 0.0
 				player.receive_hit(1)
-				HUD.show_feedback("You're choking on the smoke — CROUCH to get under it!")
+				_say_smoke_line()
 		else:
 			_smoke_dmg_acc = 0.0
 		# Standing in thick smoke FOGS your view (crouch under it to see). Screen-space,
@@ -263,7 +263,28 @@ var _fire_dmg_acc: float = 0.0
 var _smoke_dmg_acc: float = 0.0
 var _fire_was_burning: bool = false    # to catch the moment the floor's fire goes out
 const FIRE_DMG_INTERVAL := 1.1         # a health hit this often while standing in flame
-const SMOKE_DMG_INTERVAL := 1.5        # a choke hit this often while stood up in smoke
+const SMOKE_DMG_INTERVAL := 2.2        # smoke chokes at HALF the fire's damage-over-time
+# Throttle the player's fire/smoke voice lines so they don't spam every damage tick.
+var _fire_line_cd: float = 0.0
+const FIRE_LINE_COOLDOWN := 3.5
+const FIRE_LINES := ["Agh! Burning!", "The flames — argh!", "It's burning me!", "Aah — too hot!"]
+const SMOKE_LINES := ["*cough* — I need to get under this smoke.", "*hack* — can't... breathe up here.", "*cough cough* — stay low."]
+
+
+func _say_fire_line() -> void:
+	if _fire_line_cd > 0.0:
+		return
+	_fire_line_cd = FIRE_LINE_COOLDOWN
+	if HUD.has_method("show_dialogue"):
+		HUD.show_dialogue(FIRE_LINES[randi() % FIRE_LINES.size()], "", false, 2.5)
+
+
+func _say_smoke_line() -> void:
+	if _fire_line_cd > 0.0:
+		return
+	_fire_line_cd = FIRE_LINE_COOLDOWN
+	if HUD.has_method("show_dialogue"):
+		HUD.show_dialogue(SMOKE_LINES[randi() % SMOKE_LINES.size()], "", false, 2.5)
 var _merchant_pending_fire: bool = false   # merchant is sheltering until the fire's out
 
 

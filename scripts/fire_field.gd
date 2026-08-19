@@ -343,21 +343,32 @@ func _flame_poly(canvas: CanvasItem, s: int, x: float, base_y: float, w: float, 
 	# sway left/right as a rigid cone. Instead each point of the ragged top edge
 	# FLICKERS fast and independently (two quick octaves), so the licks dart up and
 	# down and dance in place like real fire. Same s/k across bands so they nest.
+	var lx := x - w * 0.5
+	var rx := x + w * 0.5
+	# Steps scale with width so tiny flames don't crowd the points (which used to
+	# make the top edge cross itself -> "triangulation failed" errors).
+	var steps := clampi(int(w / 3.5), 4, 15)
 	var pts := PackedVector2Array()
-	pts.append(Vector2(x - w * 0.5, base_y + 2.0))
-	var steps := 16
+	pts.append(Vector2(lx, base_y + 2.0))
+	var prev_x := lx + 0.4
 	for k in range(steps + 1):
 		var u := float(k) / float(steps)                       # 0 left → 1 right
-		var arch := sin(u * PI)                                 # overall envelope (fuller, not a spike)
+		var arch := sin(u * PI)                                 # overall envelope
 		var phase := float(s) * 1.3 + float(k) * 2.7
-		var lick := 0.35 + 0.65 * absf(sin(u * float(peaks) * PI + float(s) * 0.7))   # WHICH points peak (static)
-		var flick := 0.60 + 0.32 * sin(_t * 11.0 + phase) + 0.20 * sin(_t * 19.0 + phase * 1.7)  # fast height flicker
-		var noise := 0.75 + 0.5 * _hash01(float(s) * 5.0 + float(k) * 3.1)
-		var hh := h * arch * lick * flick * noise
-		# tiny high-frequency horizontal jitter (a dance), NOT a whole-flame lean
-		var jx := sin(_t * 14.0 + phase * 2.0) * 1.8 + sin(_t * 7.0 + phase) * 1.2
-		pts.append(Vector2(x + (u - 0.5) * w + jx, base_y - hh))
-	pts.append(Vector2(x + w * 0.5, base_y + 2.0))
+		var lick := 0.4 + 0.6 * absf(sin(u * float(peaks) * PI + float(s) * 0.7))   # WHICH points peak (static)
+		# GENTLE flicker — slow + small so the flame dances without STROBING its
+		# brightness (the old fast/large flicker read as a strobe light).
+		var flick := 0.9 + 0.08 * sin(_t * 4.5 + phase) + 0.05 * sin(_t * 7.0 + phase * 1.6)
+		var noise := 0.82 + 0.36 * _hash01(float(s) * 5.0 + float(k) * 3.1)
+		var hh := maxf(h * arch * lick * flick * noise, 0.0)
+		# tiny horizontal dance, scaled to width so small flames never self-cross,
+		# then forced strictly-increasing + inside [lx,rx] -> always a valid polygon.
+		var jx := sin(_t * 5.0 + phase * 1.4) * w * 0.03
+		var lo := minf(prev_x, rx - 0.4)
+		var px := clampf(x + (u - 0.5) * w + jx, lo, rx - 0.4)
+		prev_x = px + 0.3
+		pts.append(Vector2(px, base_y - hh))
+	pts.append(Vector2(rx, base_y + 2.0))
 	canvas.draw_colored_polygon(pts, Color(col.r, col.g, col.b, alpha))
 
 
@@ -389,18 +400,25 @@ const BASE_FRONT := FIRE_BASE_Y + 3.0
 
 
 func _floor_flicker(canvas: CanvasItem, i: int, cx: float, sc: float) -> void:
-	# A carpet of little FAST-flickering flames right on the floor, filling the base
-	# so the bottom of the fire dances instead of sitting on a dead flat line — it
-	# reads as the FLOOR being on fire, not fire pasted on top of it.
+	# A carpet of little flames right on the floor so the BASE dances instead of
+	# sitting on a dead flat line (the floor is on fire). Drawn as tapered RECTS —
+	# robust for tiny sizes (no polygon triangulation) — with a GENTLE flicker so
+	# it doesn't strobe.
 	for k in range(5):
 		var s := i * 31 + k * 13 + 900
 		var fx := cx + (_hash01(float(s) * 3.1) - 0.5) * CELL_W * 1.1
-		var flick := 0.5 + 0.5 * sin(_t * 16.0 + float(s) + float(k))       # fast
-		var h := (4.0 + 8.0 * _hash01(float(s) * 2.3)) * sc * (0.5 + flick)
-		_flame_poly(canvas, s, fx, FIRE_BASE_Y + 1.0, (5.0 + 4.0 * _hash01(float(s))) * sc, h, 2, _flame_color(0.35), 1.0)
-		# a hot little core so the base glows white-yellow
-		var c := Color(1.0, 0.9, 0.5)
-		canvas.draw_rect(Rect2(fx - 1.5 * sc, FIRE_BASE_Y - h * 0.4, 3.0 * sc, h * 0.4), Color(c.r, c.g, c.b, 0.9))
+		var flick := 0.75 + 0.25 * sin(_t * 5.5 + float(s) + float(k))       # gentle, slow
+		var h := (5.0 + 8.0 * _hash01(float(s) * 2.3)) * sc * flick
+		var bw := (4.0 + 3.0 * _hash01(float(s))) * sc
+		var rows := int(h / 2.5)
+		for r in range(rows):
+			var fr := float(r) / float(maxi(rows, 1))
+			var ww := bw * (1.0 - fr * 0.8)
+			if ww < 1.0:
+				ww = 1.0
+			var wob := sin(_t * 6.0 + float(s) + fr * 4.0) * 1.2 * fr        # tiny tip wiggle
+			var c := _flame_color(fr)
+			canvas.draw_rect(Rect2(fx + wob - ww * 0.5, FIRE_BASE_Y - float(r) * 2.5, ww, 2.8), Color(c.r, c.g, c.b, c.a))
 
 
 func _draw() -> void:
@@ -442,10 +460,10 @@ func _draw_front(canvas: CanvasItem) -> void:
 		if state_of(i) != BURNING:
 			continue
 		var cx := cell_x(i)
-		var soft := 0.05 * sin(_t * 4.0 + float(i))
-		canvas.draw_circle(Vector2(cx, FIRE_BASE_Y - 12.0 * sc), 20.0 * sc, Color(1.0, 0.46, 0.13, 0.06 + soft))
-		if _hash01(float(i) * 2.4) > 0.45:      # not every cell gets a foreground lick
-			var flick := sin(_t * 10.0 + float(i) * 1.3) * 3.0
+		# a STEADY warm glow (barely pulsing) so the fire "pops" without flashing
+		var soft := 0.02 * sin(_t * 2.5 + float(i))
+		canvas.draw_circle(Vector2(cx, FIRE_BASE_Y - 12.0 * sc), 18.0 * sc, Color(1.0, 0.46, 0.13, 0.05 + soft))
+		if _hash01(float(i) * 2.4) > 0.5:      # not every cell gets a foreground lick
 			_flame(canvas, i * 13 + 5, cx + (_hash01(float(i) * 5.5) - 0.5) * 12.0, BASE_FRONT, sc * (0.5 + 0.5 * _hash01(float(i) * 8.0)), 0.4)
 
 
@@ -457,35 +475,36 @@ func _draw_smoke(canvas: CanvasItem) -> void:
 	if stage >= STAGE_CHARRED:
 		return
 	var intensity := smoke_intensity()
-	if intensity < 0.08:
+	if intensity < 0.05:
 		return
+	# One smoke model, density scaled CONTINUOUSLY by intensity (no threshold snap
+	# from "nothing" to "wall of smoke"). It also HANGS HIGHER when the fire is
+	# small and only creeps down toward head height as it grows — always leaving a
+	# breathable band at the floor to crouch into.
 	for i in range(cell_count):
-		if not _smoke_col(i):
-			continue
-		var cx := cell_x(i)
-		if intensity > 0.28:
-			_smoke_bank(canvas, i, cx, intensity)
-		else:
-			_smoke_wisps(canvas, i, cx)
+		if _smoke_col(i):
+			_smoke_bank(canvas, cell_x(i), i, intensity)
 
 
-func _smoke_bank(canvas: CanvasItem, i: int, cx: float, intensity: float) -> void:
-	# A thick column of churning smoke from above the flames to the ceiling. Rows of
-	# big overlapping dark blobs read as one solid, roiling mass — its DENSITY scales
-	# with `intensity` (how much of the floor is alight), oppressive and near-opaque
-	# low, thinning (but never clearing) high. Sits above the flame band so the
-	# flames still read and a crouching player can see near the floor.
-	var bottom := FIRE_BASE_Y - 40.0
+# The smoke never comes below this — a breathable band at the floor for crouching.
+const SMOKE_FLOOR_Y := FIRE_BASE_Y - 90.0
+
+
+func _smoke_bank(canvas: CanvasItem, cx: float, i: int, intensity: float) -> void:
+	# A column of churning smoke: rows of big overlapping dark blobs reading as one
+	# roiling mass. DENSITY and how LOW it hangs both scale with `intensity`, so a
+	# small fire is a faint high haze and a floor-wide one is an oppressive bank
+	# down near head height (but never to the floor).
+	var bottom := lerpf(CEILING_Y + 70.0, SMOKE_FLOOR_Y, clampf(intensity, 0.0, 1.0))
 	var rows := 15
-	var dens := minf(0.5 + intensity, 1.25)
 	for r in range(rows):
 		var frac := float(r) / float(rows)                       # 0 bottom → 1 ceiling
 		var y := lerpf(bottom, CEILING_Y, frac)
 		var ph := float(i) * 2.3 + float(r) * 1.7
-		var churn := sin(_t * 0.9 + ph) * (8.0 + frac * 30.0) + sin(_t * 0.4 + ph * 1.7) * (4.0 + frac * 14.0)
-		var boil := sin(_t * 1.6 + ph * 2.1) * 3.0               # small vertical roil
+		var churn := sin(_t * 0.7 + ph) * (8.0 + frac * 30.0) + sin(_t * 0.35 + ph * 1.7) * (4.0 + frac * 14.0)
+		var boil := sin(_t * 1.3 + ph * 2.1) * 3.0               # small vertical roil
 		var rad := (26.0 + 16.0 * _hash01(ph)) + frac * 8.0
-		var a := lerpf(0.5, 0.16, frac) * dens                   # thick low, thin high, scaled
+		var a := lerpf(0.5, 0.16, frac) * clampf(intensity * 1.25, 0.0, 1.15)   # scales from 0 (no snap)
 		var shade := 0.09 + 0.05 * _hash01(ph * 1.3)
 		canvas.draw_circle(Vector2(cx + churn, y + boil), rad, Color(shade, shade, shade, a))
 		canvas.draw_circle(Vector2(cx + churn - rad * 0.7, y + 4.0 + boil), rad * 0.85, Color(shade, shade, shade, a * 0.9))
