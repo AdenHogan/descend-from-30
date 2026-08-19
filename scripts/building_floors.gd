@@ -275,16 +275,16 @@ func _say_fire_line() -> void:
 	if _fire_line_cd > 0.0:
 		return
 	_fire_line_cd = FIRE_LINE_COOLDOWN
-	if HUD.has_method("show_dialogue"):
-		HUD.show_dialogue(FIRE_LINES[randi() % FIRE_LINES.size()], "", false, 2.5)
+	if HUD.has_method("show_speech"):
+		HUD.show_speech(FIRE_LINES[randi() % FIRE_LINES.size()])
 
 
 func _say_smoke_line() -> void:
 	if _fire_line_cd > 0.0:
 		return
 	_fire_line_cd = FIRE_LINE_COOLDOWN
-	if HUD.has_method("show_dialogue"):
-		HUD.show_dialogue(SMOKE_LINES[randi() % SMOKE_LINES.size()], "", false, 2.5)
+	if HUD.has_method("show_speech"):
+		HUD.show_speech(SMOKE_LINES[randi() % SMOKE_LINES.size()])
 var _merchant_pending_fire: bool = false   # merchant is sheltering until the fire's out
 
 

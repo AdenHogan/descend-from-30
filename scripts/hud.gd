@@ -79,6 +79,7 @@ func _ready() -> void:
 	listen_overlay = preload("res://scripts/listen_overlay.gd").new()
 	add_child(listen_overlay)
 	_create_smoke_fog()
+	_create_speech_bubble()
 	update_floor_label()
 	update_portrait(0)
 	update_mode_indicator()
@@ -445,38 +446,112 @@ func update_stamina(current: float, maximum: float) -> void:
 			stamina_segments[i].color = Color(0.15, 0.15, 0.15, 1.0)
 
 # --- smoke fog (reduced visibility while standing in a blaze's smoke) --------
-var smoke_fog_rect: ColorRect = null
+var smoke_fog_rect: TextureRect = null
 var _fog_alpha: float = 0.0
 var _fog_target: float = 0.0
 const FOG_MAX_ALPHA := 0.72
 
 
 func _create_smoke_fog() -> void:
-	smoke_fog_rect = ColorRect.new()
-	smoke_fog_rect.color = Color(0.30, 0.29, 0.28, 0.0)   # dark choking haze
+	# A vertical GRADIENT haze — dense at the top (where the smoke gathers), fading
+	# to clear by the lower third — so standing in smoke reads as it settling from
+	# above, not a flat grey filter over the whole screen, and your feet stay visible.
+	var grad := Gradient.new()
+	grad.offsets = PackedFloat32Array([0.0, 0.55, 1.0])
+	grad.colors = PackedColorArray([
+		Color(0.13, 0.12, 0.11, 1.0),   # top: dark, opaque
+		Color(0.14, 0.13, 0.12, 0.35),  # middle: thinning
+		Color(0.15, 0.14, 0.13, 0.0),   # floor: clear
+	])
+	var tex := GradientTexture2D.new()
+	tex.gradient = grad
+	tex.fill = GradientTexture2D.FILL_LINEAR
+	tex.fill_from = Vector2(0, 0)
+	tex.fill_to = Vector2(0, 1)         # vertical
+	tex.width = 8
+	tex.height = 64
+	smoke_fog_rect = TextureRect.new()
+	smoke_fog_rect.texture = tex
+	smoke_fog_rect.stretch_mode = TextureRect.STRETCH_SCALE
 	smoke_fog_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	smoke_fog_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	smoke_fog_rect.modulate.a = 0.0
 	$Control.add_child(smoke_fog_rect)
 	$Control.move_child(smoke_fog_rect, 0)   # behind the HUD elements, over the world
+
+
+# --- speech bubble (small line above the player's head) ----------------------
+var speech_panel: PanelContainer = null
+var speech_label: Label = null
+var speech_timer: float = 0.0
+
+
+func _create_speech_bubble() -> void:
+	speech_panel = PanelContainer.new()
+	speech_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.08, 0.08, 0.09, 0.9)
+	sb.set_corner_radius_all(9)
+	sb.content_margin_left = 8
+	sb.content_margin_right = 8
+	sb.content_margin_top = 4
+	sb.content_margin_bottom = 4
+	speech_panel.add_theme_stylebox_override("panel", sb)
+	speech_label = Label.new()
+	speech_label.add_theme_font_size_override("font_size", 15)
+	speech_label.add_theme_color_override("font_color", Color(1, 1, 1))
+	speech_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	speech_panel.add_child(speech_label)
+	speech_panel.visible = false
+	speech_panel.z_index = 30
+	$Control.add_child(speech_panel)
+
+
+func show_speech(text: String, seconds: float = 2.5) -> void:
+	# A small speech bubble above the player's head (used for fire/smoke reactions).
+	if speech_panel == null:
+		return
+	speech_label.text = text
+	speech_panel.visible = true
+	speech_timer = seconds
+	_position_speech()
+
+
+func _position_speech() -> void:
+	var player = get_tree().get_first_node_in_group("player")
+	if player == null or not is_instance_valid(player):
+		speech_panel.visible = false
+		return
+	speech_panel.reset_size()
+	var sz := speech_panel.size
+	var head: Vector2 = get_viewport().get_canvas_transform() * (player.global_position + Vector2(0, -52))
+	var px := clampf(head.x - sz.x * 0.5, 6.0, SCREEN_W - sz.x - 6.0)
+	var py := clampf(head.y - sz.y, 6.0, SCREEN_H - BAR_H - sz.y - 6.0)
+	speech_panel.position = Vector2(px, py)
 
 
 func set_smoke_fog(on: bool, intensity: float = 1.0) -> void:
 	# Called by building_floors when the player is stood up in choking smoke; the
 	# target darkness scales with how thick the smoke is.
-	_fog_target = clampf(0.55 + 0.45 * intensity, 0.0, 1.0) if on else 0.0
+	_fog_target = clampf(0.5 + 0.5 * intensity, 0.0, 1.0) if on else 0.0
 
 
 func _update_smoke_fog(delta: float) -> void:
 	if smoke_fog_rect == null:
 		return
-	_fog_alpha = move_toward(_fog_alpha, _fog_target, delta * 2.2)
-	smoke_fog_rect.color.a = _fog_alpha * FOG_MAX_ALPHA
+	_fog_alpha = move_toward(_fog_alpha, _fog_target, delta * 1.8)
+	smoke_fog_rect.modulate.a = _fog_alpha * FOG_MAX_ALPHA
 
 
 func _process(delta: float) -> void:
 	_update_drag()
 	_update_world_prompt()
 	_update_smoke_fog(delta)
+	if speech_timer > 0.0:
+		speech_timer -= delta
+		_position_speech()
+		if speech_timer <= 0.0:
+			speech_panel.visible = false
 	if feedback_timer > 0:
 		feedback_timer -= delta
 		var alpha = min(feedback_timer / 0.5, 1.0)

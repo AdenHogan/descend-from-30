@@ -320,56 +320,41 @@ func _tongue(canvas: CanvasItem, cx: float, base_y: float, h: float, base_w: flo
 
 
 func _flame(canvas: CanvasItem, s: int, x: float, base_y: float, sc: float, alpha: float) -> void:
-	# ONE flame drawn as LAYERED JAGGED POLYGONS — a red body, an orange layer, a
-	# yellow layer, and a white-hot core inset toward the base — each with the SAME
-	# ragged multi-lick top so it reads as a real flame (like classic pixel fire),
-	# not a smooth cone or blob. Variety comes from proportions: width, height, how
-	# many licks, lean and tip-curl all vary per seed — but every one is a flame.
-	# Aspect varies a lot: some tall + narrow, some broad mounds of fire (not all
-	# pointy triangles). Base y jitters a hair so a row of flames has no clean line.
-	var w := (14.0 + _hash01(float(s) * 1.3) * 22.0) * sc
-	var h := (18.0 + _hash01(float(s) * 2.1) * 26.0) * sc
-	var peaks := 2 + int(_hash01(float(s) * 4.9) * 2.9)      # 2..4 licks
-	var by := base_y - _hash01(float(s) * 0.7) * 2.0
-	_flame_poly(canvas, s, x, by, w, h, peaks, Color(0.82, 0.16, 0.04), alpha)          # red body
-	_flame_poly(canvas, s, x, by, w * 0.7, h * 0.82, peaks, Color(1.0, 0.46, 0.09), alpha)  # orange
-	_flame_poly(canvas, s, x, by, w * 0.44, h * 0.60, peaks, Color(1.0, 0.80, 0.24), alpha)  # yellow
-	_flame_poly(canvas, s, x, by, w * 0.20, h * 0.36, peaks, Color(1.0, 0.96, 0.80), alpha)  # white core
+	# ONE flame = a CLUSTER of thin tapered LICKS (same look as the little floor
+	# flames the owner liked), not a solid polygon glob. Each lick rises, flickers,
+	# and periodically drops away to nothing then rises again — so the flame is
+	# always changing shape (licks appearing/disappearing/dancing) like real fire,
+	# without the whole thing strobing. Per-flame width/height/lick-count and a
+	# slight colour shift make each flame look different across the fire.
+	var w := (10.0 + _hash01(float(s) * 1.3) * 16.0) * sc
+	var base_h := (16.0 + _hash01(float(s) * 2.1) * 26.0) * sc
+	var licks := 3 + int(_hash01(float(s) * 4.9) * 3.9)      # 3..6 licks
+	var tint := (_hash01(float(s) * 8.3) - 0.5) * 0.14       # redder / oranger per flame
+	for k in range(licks):
+		var lph := float(s) * 1.3 + float(k) * 2.1
+		var u := (float(k) + 0.5) / float(licks)
+		var lx := x + (u - 0.5) * w + (_hash01(lph * 4.4) - 0.5) * 4.0 * sc
+		# height rises + flickers + occasionally DROPS to ~0 (disappears), different
+		# phase per lick so they never all move together (no strobe).
+		var f := 0.42 + 0.30 * sin(_t * 6.0 + lph) + 0.22 * sin(_t * 9.5 + lph * 1.7) + 0.16 * sin(_t * 3.1 + lph * 0.6)
+		var lh := base_h * clampf(f, 0.0, 1.25) * (0.55 + 0.5 * _hash01(lph * 3.3))
+		if lh < 2.0 * sc:
+			continue                                          # this lick has died back
+		_lick(canvas, lph, lx, base_y, lh, (3.2 + 2.6 * _hash01(lph * 1.9)) * sc, alpha, tint)
 
 
-func _flame_poly(canvas: CanvasItem, s: int, x: float, base_y: float, w: float, h: float,
-		peaks: int, col: Color, alpha: float) -> void:
-	# One color band of a flame. The flame stays UPRIGHT (fire rises) — it does NOT
-	# sway left/right as a rigid cone. Instead each point of the ragged top edge
-	# FLICKERS fast and independently (two quick octaves), so the licks dart up and
-	# down and dance in place like real fire. Same s/k across bands so they nest.
-	var lx := x - w * 0.5
-	var rx := x + w * 0.5
-	# Steps scale with width so tiny flames don't crowd the points (which used to
-	# make the top edge cross itself -> "triangulation failed" errors).
-	var steps := clampi(int(w / 3.5), 4, 15)
-	var pts := PackedVector2Array()
-	pts.append(Vector2(lx, base_y + 2.0))
-	var prev_x := lx + 0.4
-	for k in range(steps + 1):
-		var u := float(k) / float(steps)                       # 0 left → 1 right
-		var arch := sin(u * PI)                                 # overall envelope
-		var phase := float(s) * 1.3 + float(k) * 2.7
-		var lick := 0.4 + 0.6 * absf(sin(u * float(peaks) * PI + float(s) * 0.7))   # WHICH points peak (static)
-		# GENTLE flicker — slow + small so the flame dances without STROBING its
-		# brightness (the old fast/large flicker read as a strobe light).
-		var flick := 0.9 + 0.08 * sin(_t * 4.5 + phase) + 0.05 * sin(_t * 7.0 + phase * 1.6)
-		var noise := 0.82 + 0.36 * _hash01(float(s) * 5.0 + float(k) * 3.1)
-		var hh := maxf(h * arch * lick * flick * noise, 0.0)
-		# tiny horizontal dance, scaled to width so small flames never self-cross,
-		# then forced strictly-increasing + inside [lx,rx] -> always a valid polygon.
-		var jx := sin(_t * 5.0 + phase * 1.4) * w * 0.03
-		var lo := minf(prev_x, rx - 0.4)
-		var px := clampf(x + (u - 0.5) * w + jx, lo, rx - 0.4)
-		prev_x = px + 0.3
-		pts.append(Vector2(px, base_y - hh))
-	pts.append(Vector2(rx, base_y + 2.0))
-	canvas.draw_colored_polygon(pts, Color(col.r, col.g, col.b, alpha))
+func _lick(canvas: CanvasItem, ph: float, lx: float, base_y: float, h: float, bw: float, alpha: float, tint: float) -> void:
+	# One thin flame lick: tapered stacked rects, hot (white/yellow) at the base
+	# cooling to red at the tip, tips swaying. Robust (no polygons).
+	var rows := int(h / 2.5)
+	for r in range(rows):
+		var fr := float(r) / float(maxi(rows, 1))
+		var ww := bw * (1.0 - fr * 0.72)
+		if ww < 1.0:
+			ww = 1.0
+		var wob := sin(_t * 5.0 + ph + fr * 3.5) * 3.5 * fr    # tip dances sideways
+		var c := _flame_color(clampf(fr + tint, 0.0, 1.0))
+		canvas.draw_rect(Rect2(lx + wob - ww * 0.5, base_y - float(r) * 2.5, ww, 2.9), Color(c.r, c.g, c.b, c.a * alpha))
 
 
 func _scatter(canvas: CanvasItem, i: int, cx: float, base_y: float, sc_mul: float, alpha: float) -> void:
