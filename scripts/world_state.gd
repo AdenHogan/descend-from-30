@@ -1486,7 +1486,9 @@ func fire_intensity(floor_num: int) -> int:
 	if floor_num >= 30 or floor_num <= 1:
 		return -1
 	if dev_hazard_mode == DEV_HAZARD_FIRE:
-		return FIRE_LIGHT       # dev cycle: a light fire on every eligible floor
+		# Dev cycle: fire on every eligible floor, STAGE by current_run so F8 (advance
+		# run) lets you test the run-1 breakout, the run-2 blaze and the run-3 ruin.
+		return mini(current_run - 1, FIRE_CHARRED)
 	if dev_hazard_mode != DEV_HAZARD_NONE:
 		return -1               # some other dev hazard is forced; no fire
 	var age: int = current_run - FIRE_ORIGIN_RUN

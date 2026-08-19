@@ -356,4 +356,11 @@ func _test_dev_mode() -> void:
 			other = true
 	check(all_fire, "dev fire mode makes every eligible floor a fire")
 	check(not other, "dev fire mode suppresses barricades and hordes")
+	# Dev fire STAGE follows current_run (F8 advance-run tests each escalation step).
+	check(WorldState.fire_intensity(15) == WorldState.FIRE_LIGHT, "dev fire run 1 = light")
+	WorldState.current_run = 2
+	check(WorldState.fire_intensity(15) == WorldState.FIRE_BLAZE, "dev fire run 2 = blaze")
+	WorldState.current_run = 3
+	check(WorldState.fire_intensity(15) == WorldState.FIRE_CHARRED, "dev fire run 3 = charred")
+	WorldState.current_run = 1
 	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE

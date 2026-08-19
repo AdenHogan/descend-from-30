@@ -949,6 +949,19 @@ func _input(event: InputEvent) -> void:
 			HUD.show_feedback("DEV: Wallet + 500 Bank Notes")
 		elif event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F7:
 			_dev_toggle_tutorial()
+		elif event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F8:
+			# DEV: advance the RUN (1 -> 2 -> 3 -> 1) and rebuild the floor, to test
+			# fire escalation — the run-2 blaze that spreads breakouts onto adjacent
+			# floors, and the run-3 charred ruin. Fire re-seeds per run, so wipe the
+			# saved spread; keep dealt-with so "I put it out" still holds across runs.
+			WorldState.current_run = WorldState.current_run % 3 + 1
+			WorldState.fire_cells.clear()
+			WorldState.saved_player_x = global_position.x
+			WorldState.saved_player_y = global_position.y
+			HUD.update_floor_label()
+			HUD.show_feedback("DEV: Run %d — rebuilding floor" % WorldState.current_run)
+			if get_tree().current_scene.scene_file_path.ends_with("building_floors.tscn"):
+				get_tree().call_deferred("reload_current_scene")
 
 	# Attack is a rebindable action (default LMB, can live on a mouse side
 	# button — see SettingsManager). Combat only.
