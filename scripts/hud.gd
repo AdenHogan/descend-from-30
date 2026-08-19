@@ -448,21 +448,22 @@ func update_stamina(current: float, maximum: float) -> void:
 var smoke_fog_rect: ColorRect = null
 var _fog_alpha: float = 0.0
 var _fog_target: float = 0.0
-const FOG_MAX_ALPHA := 0.6
+const FOG_MAX_ALPHA := 0.82
 
 
 func _create_smoke_fog() -> void:
 	smoke_fog_rect = ColorRect.new()
-	smoke_fog_rect.color = Color(0.46, 0.44, 0.42, 0.0)
+	smoke_fog_rect.color = Color(0.30, 0.29, 0.28, 0.0)   # dark choking haze
 	smoke_fog_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	smoke_fog_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	$Control.add_child(smoke_fog_rect)
 	$Control.move_child(smoke_fog_rect, 0)   # behind the HUD elements, over the world
 
 
-func set_smoke_fog(on: bool) -> void:
-	# Called by building_floors when the player is stood up in choking smoke.
-	_fog_target = 1.0 if on else 0.0
+func set_smoke_fog(on: bool, intensity: float = 1.0) -> void:
+	# Called by building_floors when the player is stood up in choking smoke; the
+	# target darkness scales with how thick the smoke is.
+	_fog_target = clampf(0.55 + 0.45 * intensity, 0.0, 1.0) if on else 0.0
 
 
 func _update_smoke_fog(delta: float) -> void:

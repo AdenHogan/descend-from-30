@@ -215,8 +215,10 @@ func _process(delta: float) -> void:
 		# and you choke; CROUCH under it to breathe. A LIGHT fire's smoke hugs the
 		# ceiling (harmless). Independent of the burn — you can crouch-walk through
 		# a blaze, breathing but still scorched by the flames at your feet.
-		if _fire_field.stage >= WorldState.FIRE_BLAZE and _fire_field.smoke_at(player.global_position.x) \
-				and not player.is_crouching:
+		# Choke/fog when the smoke is THICK (scales with how much of the floor is
+		# alight — a spread-out fire chokes even at the light stage), not just a blaze.
+		var thick_smoke: bool = _fire_field.smoke_intensity() > 0.3 and _fire_field.smoke_at(player.global_position.x)
+		if thick_smoke and not player.is_crouching:
 			_smoke_dmg_acc += delta
 			if _smoke_dmg_acc >= SMOKE_DMG_INTERVAL:
 				_smoke_dmg_acc = 0.0
@@ -224,12 +226,10 @@ func _process(delta: float) -> void:
 				HUD.show_feedback("You're choking on the smoke — CROUCH to get under it!")
 		else:
 			_smoke_dmg_acc = 0.0
-		# Standing in a blaze's smoke FOGS your view (crouch under it to see). The
-		# overlay is screen-space, so it lives on the HUD.
-		var fogged: bool = _fire_field.stage >= WorldState.FIRE_BLAZE \
-			and _fire_field.smoke_at(player.global_position.x) and not player.is_crouching
+		# Standing in thick smoke FOGS your view (crouch under it to see). Screen-space,
+		# so the overlay lives on the HUD; its strength scales with the smoke.
 		if HUD.has_method("set_smoke_fog"):
-			HUD.set_smoke_fog(fogged)
+			HUD.set_smoke_fog(thick_smoke and not player.is_crouching, _fire_field.smoke_intensity())
 		# Enemies standing in the flames CATCH FIRE: a flame overlay + DOUBLE-damage
 		# attacks. They go out the moment they step clear.
 		for z in get_tree().get_nodes_in_group("zombie"):
