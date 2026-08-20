@@ -336,7 +336,18 @@ func _variant_for(pool_size: int, salt: float) -> int:
 	return int(_hash01(float(floor_num) + salt) * float(pool_size)) % pool_size
 
 
-func _draw_ground_fire(canvas: CanvasItem, base_y: float, alpha: float, y_off: float, bottom_frac: float = 1.0, sc_override: float = -1.0) -> void:
+# Patchy fire: real fire clumps — some here, some there — never a solid unbroken
+# line. A low-frequency seeded mask turns the bed on/off in runs ~PATCH_CLUMP wide;
+# a different `salt` per layer means the front bed, back bed and tall flames gap in
+# DIFFERENT places, so the whole thing reads as scattered clumps of fire.
+const PATCH_CLUMP := 120.0
+
+
+func _patch_on(x: float, salt: float) -> bool:
+	return _hash01(floori(x / PATCH_CLUMP) * 3.17 + salt + float(floor_num) * 0.7) > 0.36
+
+
+func _draw_ground_fire(canvas: CanvasItem, base_y: float, alpha: float, y_off: float, bottom_frac: float = 1.0, sc_override: float = -1.0, patch_salt: float = -1.0) -> void:
 	# Blit the animated fire TILE across the whole burning span, its bottom on the
 	# floor line. The tile tiles seamlessly (uniform frame across columns; the art
 	# tiles cleanly with itself, and the big flames on top break any repetition).
@@ -356,7 +367,7 @@ func _draw_ground_fire(canvas: CanvasItem, base_y: float, alpha: float, y_off: f
 	var src := Rect2(float(fr * TILE_PX), src_y, float(TILE_PX), src_h)
 	var x := FIRE_MIN_X
 	while x <= FIRE_MAX_X:
-		if is_burning_at(x + tw * 0.5):
+		if is_burning_at(x + tw * 0.5) and (patch_salt < 0.0 or _patch_on(x, patch_salt)):
 			var dst := Rect2(x, base_y - th + y_off, tw + 1.0, th)
 			canvas.draw_texture_rect_region(tex, dst, src, Color(1.0, 1.0, 1.0, alpha))
 		x += tw
@@ -387,7 +398,7 @@ func _draw_tall_flames(canvas: CanvasItem) -> void:
 	var col := 0
 	var x := FIRE_MIN_X + 18.0
 	while x <= FIRE_MAX_X:
-		if is_burning_at(x):
+		if is_burning_at(x) and _patch_on(x, 3.0):       # clump the tall flames too — not every spot
 			var seed := float(floori(x / step)) + float(floor_num) * 0.7
 			var roll := _hash01(seed * 1.9)              # size class for this glob
 			var tex3: Texture2D = _flame_tex[int(_hash01(seed * 1.3) * float(_flame_tex.size())) % _flame_tex.size()]
@@ -416,19 +427,21 @@ func _draw() -> void:
 			_char_scar(self, i, cell_x(i))
 
 
-# The floor-to-wall seam sits above the front floor line; a smaller fire bed runs
-# along it BEHIND the player, so the fire recedes toward the back wall (depth).
-const BACK_SEAM_Y := FIRE_BASE_Y - 30.0
+# The floor-to-wall seam sits a little above the front floor line; a smaller fire
+# bed runs along it BEHIND the player, so the fire recedes toward the back wall
+# (depth). This offset places it ON the seam — tune if the wall art moves.
+const BACK_SEAM_Y := FIRE_BASE_Y - 14.0
 
 
 func _draw_back(canvas: CanvasItem) -> void:
 	# BEHIND the actors (z0):
-	#  1) a SMALLER tile bed running along the floor-to-wall SEAM (higher up), so the
-	#     fire spreads back toward the wall, not just along the front edge — depth.
+	#  1) a SMALLER, PATCHY tile bed running along the floor-to-wall SEAM, so the fire
+	#     recedes back toward the wall, not just along the front edge — depth.
 	#  2) the TALL flames (varied bonfires + mid flames) rising above the player.
-	# The player walks in FRONT of all of this. The FULL-size floor bed is drawn once,
-	# in front (below) — not here — so there's no doubling.
-	_draw_ground_fire(canvas, BACK_SEAM_Y, 0.9, 0.0, 0.6, _tile_scale() * 0.58)
+	# The player walks in FRONT of all of this. The FULL floor bed is drawn once, in
+	# front (below) — not here — so there's no doubling. Different patch salt from the
+	# front bed so the gaps don't line up.
+	_draw_ground_fire(canvas, BACK_SEAM_Y, 0.9, 0.0, 0.6, _tile_scale() * 0.58, 7.0)
 	_draw_tall_flames(canvas)
 
 
@@ -440,7 +453,7 @@ func _draw_front(canvas: CanvasItem) -> void:
 	var sc := _tile_scale()
 	var target_h := 34.0 if stage >= STAGE_BLAZE else 26.0    # feet-to-waist, not to the neck
 	var bf := clampf(target_h / (float(TILE_PX) * sc), 0.06, 1.0)
-	_draw_ground_fire(canvas, FIRE_BASE_Y, 1.0, 0.0, bf)
+	_draw_ground_fire(canvas, FIRE_BASE_Y, 1.0, 0.0, bf, -1.0, 0.0)   # patchy (salt 0)
 
 
 func _draw_smoke(canvas: CanvasItem) -> void:

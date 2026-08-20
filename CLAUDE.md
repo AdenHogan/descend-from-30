@@ -301,16 +301,21 @@ means no rendering — UI layout and art still need an in-editor look.
   **seam** (`BACK_SEAM_Y`) and the tall flames rise BEHIND (z0), so the player passes
   in front of them and the fire recedes toward the wall; `FIRE_BASE_Y` 426 sits on the
   walking plane (feet ~418, bed covers them). Tile **stage-scaled** (`_tile_scale`:
-  1.6× LIGHT, 2.7× BLAZE), globs bigger/denser on a BLAZE. **Within-run spread is
+  1.6× LIGHT, 2.7× BLAZE), globs bigger/denser on a BLAZE. All the beds + globs are
+  **PATCHY** (`_patch_on`, a seeded per-floor clump mask, different salt per layer) —
+  fire clumps here and there, never a solid unbroken line. **Within-run spread is
   CAPPED** (`fire_field.spread_cap`, set in `_spawn_fire`): a run-1 LIGHT fire holds
   as a small ~7-cell patch (persists but never consumes the floor); a run-2+ BLAZE
   caps ~26 (creeps toward floor-wide). Escalation is across RUNS, not within one.
-  **Fire memory** is saved in `_exit_tree` under `_built_floor` (the floor THIS scene
-  built) — NOT `current_floor`, which a stair transition has already advanced, which
-  used to save the fire under the wrong floor so it vanished on return.
-  **Door fire**: a burning apartment's door has flames licking out around
-  the frame — a bonfire + edge flames (`building_floors._spawn_door_fire` +
-  `fire_decal.gd`), at z0 behind the player. (`1 Fire`'s Death/Run/Walk anims are a
+  **Fire memory** is snapshotted PERIODICALLY (every ~0.6s in `_process`) under
+  `_built_floor` (the floor THIS scene built) — NOT `current_floor`, which a stair
+  transition advances to the destination before the old floor frees; the
+  `_exit_tree`-only save proved unreliable across stairs (fire came back empty), so
+  the periodic snapshot is the reliable path, re-imported by `_spawn_fire` on return.
+  **Door fire**: a burning apartment's door has flames climbing the two FRAME EDGES
+  only (`building_floors._spawn_door_fire` + `fire_decal.gd`, folder 3), at z0 behind
+  the player — the doorway itself stays clear so the door is visible/enterable (a big
+  central glob used to block it). (`1 Fire`'s Death/Run/Walk anims are a
   fire-elemental character — still unused; candidate for a fire enemy.)
   **Placement** 40% down-stair / 40% mid / 20% arrival-stair (`fire_spawn_kind`,
   resolved x persisted in `fire_origin_x`). **Spreads into apartments** by

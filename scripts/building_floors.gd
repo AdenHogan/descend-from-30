@@ -208,6 +208,16 @@ func _process(delta: float) -> void:
 		if dist <= APPROACH_WARN_DIST and not WorldState.hazard_warned(floor_num, target["side"]):
 			WorldState.mark_hazard_warned(floor_num, target["side"])
 			_warn_hazard("Wait — I can hear them ahead. The stairwell's crawling with them. Careful now.")
+	# Fire memory: snapshot the fire's spread PERIODICALLY (not only in _exit_tree),
+	# keyed by the floor THIS scene built. _exit_tree alone proved unreliable across a
+	# stair transition (the fire came back empty), so we also keep a fresh snapshot on
+	# a short cadence — leaving the floor any way keeps a ≤0.6s-old, correctly-keyed
+	# copy, which _spawn_fire re-imports on return.
+	if _fire_field != null and is_instance_valid(_fire_field):
+		_fire_save_acc += delta
+		if _fire_save_acc >= 0.6:
+			_fire_save_acc = 0.0
+			WorldState.set_fire_cells(_built_floor, _fire_field.export_state())
 	# Fire damage: standing in flame costs health on a cadence (move or burn). You
 	# can always walk THROUGH fire (it never blocks), you just take the burn.
 	if _fire_field != null and player.has_method("receive_hit"):
@@ -274,6 +284,7 @@ const FIRE_FIELD := preload("res://scripts/fire_field.gd")
 var _fire_field = null                 # the floor's fire, or null
 var _fire_dmg_acc: float = 0.0
 var _smoke_dmg_acc: float = 0.0
+var _fire_save_acc: float = 0.0        # throttles the periodic fire-memory snapshot
 var _fire_was_burning: bool = false    # to catch the moment the floor's fire goes out
 const FIRE_DMG_INTERVAL := 1.1         # a health hit this often while standing in flame
 const SMOKE_DMG_INTERVAL := 2.2        # smoke chokes at HALF the fire's damage-over-time
@@ -394,15 +405,13 @@ const DOOR_FIRE_BASE_Y := 420.0        # floor line the door flames climb from
 
 func _spawn_door_fire(floor_num: int) -> void:
 	# The apartment behind a BURNING door is alight, so fire licks OUT around the door
-	# frame — a bonfire in the doorway plus flames climbing each edge. Uses folder 1
-	# (big bonfire) + folder 3 (mid flame) so it looks different from the floor tile
-	# bed. Placed at z0 (behind the player: fire higher than them reads behind); the
-	# corridor floor fire in front covers the base. Charred floors are dead — no flame.
+	# FRAME — flames climbing each edge (folder 3), leaving the doorway itself clear so
+	# the player can see and enter. Placed at z0 (behind the player). Charred floors are
+	# dead — no flame.
 	if WorldState.fire_intensity(floor_num) == WorldState.FIRE_CHARRED:
 		return
 	var base := "res://assets/fire-pixel-art-animation-sprites/"
 	var flame3 = load(base + "3 Flame/2.png")
-	var bonfire = load(base + "1 Fire/Idle.png")
 	for apt in [1, 2, 3, 4, 5]:
 		if not WorldState.is_apartment_burning(floor_num, apt):
 			continue
@@ -410,9 +419,11 @@ func _spawn_door_fire(floor_num: int) -> void:
 		if door == null:
 			continue
 		var dx: float = door.global_position.x
-		_add_door_flame(bonfire, 64, dx, 74.0, 108.0, 0.0)          # doorway bonfire
-		_add_door_flame(flame3, 32, dx - 30.0, 40.0, 92.0, 1.3)     # left frame lick
-		_add_door_flame(flame3, 32, dx + 30.0, 40.0, 92.0, 2.6)     # right frame lick
+		# Flames climb the two EDGES of the door frame only — NOT a big glob dead-centre
+		# in the doorway (that blocked the door and looked strange to walk through). The
+		# doorway stays clear so the player can still see and enter the room.
+		_add_door_flame(flame3, 32, dx - 32.0, 44.0, 96.0, 1.3)     # left frame lick
+		_add_door_flame(flame3, 32, dx + 32.0, 44.0, 96.0, 2.6)     # right frame lick
 
 
 func _add_door_flame(tex, frame_px: int, x: float, w: float, h: float, phase: float) -> void:
