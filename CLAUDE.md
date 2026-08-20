@@ -120,7 +120,9 @@ setup script; binary from downloads.godotengine.org). Before every commit:
   `balcony_test`, `hud_prompt_test`, `stair_block_test`, `fire_test` — run all
   24 before commit. (`floor_adopt_test` is seed-sensitive: `new_game` rolls a random
   master seed and it asserts a floor has zombies, so it fails ~occasionally
-  on a 0-zombie seed — a known flake, re-run it.)
+  on a 0-zombie seed — a known flake, re-run it. `building_floors_test` is the same
+  class: its arrival-stair-horde asserts depend on the rolled seed placing a horde at
+  the arrival stairwell, so it too flakes ~occasionally — re-run it.)
 
 Note: `tutorial_test` asserts first-run tutorial content, so it needs
 `is_first_run` true — which comes from `tutorial_completed=false` in the active
