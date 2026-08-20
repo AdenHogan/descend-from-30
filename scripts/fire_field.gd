@@ -323,22 +323,23 @@ func _variant_for(pool_size: int, salt: float) -> int:
 	return int(_hash01(float(floor_num) + salt) * float(pool_size)) % pool_size
 
 
-func _draw_ground_fire(canvas: CanvasItem, base_y: float, alpha: float, y_off: float) -> void:
+func _draw_ground_fire(canvas: CanvasItem, base_y: float, alpha: float, y_off: float, bottom_frac: float = 1.0) -> void:
 	# Blit the animated fire TILE across the whole burning span, its bottom on the
-	# floor line. The tile tiles seamlessly; we advance the animation frame and also
-	# OFFSET the frame per column, so the strip animates like real fire and never
-	# shows a repeating 32px pattern. This is the artist's fire — no procedural flames.
+	# floor line. The tile tiles seamlessly (uniform frame across columns; the art
+	# tiles cleanly with itself, and the big flames on top break any repetition).
+	# `bottom_frac` < 1 draws only the LOW part of the tile — used for the FRONT layer
+	# so only the hottest flames lap the player's feet instead of burying their legs.
 	if _tile_tex.is_empty():
 		return
 	var tex: Texture2D = _tile_tex[_variant_for(_tile_tex.size(), 3.1)]
 	var sc := _tile_scale()
 	var tw := float(TILE_PX) * sc
-	var th := float(TILE_PX) * sc
-	# UNIFORM frame across all columns so the tile stays seamlessly tiled (a per-column
-	# offset would break the seam and show gaps); the tile art tiles cleanly with
-	# itself, and the big flames on top break any sense of repetition.
+	var bf := clampf(bottom_frac, 0.05, 1.0)
+	var src_h := float(TILE_PX) * bf
+	var src_y := float(TILE_PX) - src_h                          # crop to the bottom band
+	var th := src_h * sc
 	var fr := int(_t * TILE_FPS) % TILE_FRAMES
-	var src := Rect2(float(fr * TILE_PX), 0.0, float(TILE_PX), float(TILE_PX))
+	var src := Rect2(float(fr * TILE_PX), src_y, float(TILE_PX), src_h)
 	var x := FIRE_MIN_X
 	while x <= FIRE_MAX_X:
 		if is_burning_at(x + tw * 0.5):
@@ -395,9 +396,10 @@ func _draw_back(canvas: CanvasItem) -> void:
 
 
 func _draw_front(canvas: CanvasItem) -> void:
-	# IN FRONT of the actors' feet (z2): the ground fire again, partial + nudged a
-	# touch lower, so flames lap over the player's legs (they're standing in it).
-	_draw_ground_fire(canvas, FIRE_BASE_Y + 5.0, 0.5, 0.0)
+	# IN FRONT of the actors' feet (z2): only the LOW flames (bottom ~third of the
+	# tile) so they lap the ankles and read as "standing in it" — WITHOUT burying the
+	# player's legs (that was too much overlap).
+	_draw_ground_fire(canvas, FIRE_BASE_Y + 2.0, 0.6, 0.0, 0.32)
 
 
 func _draw_smoke(canvas: CanvasItem) -> void:
