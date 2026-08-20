@@ -284,10 +284,17 @@ means no rendering — UI layout and art still need an in-editor look.
   burn); when the whole floor goes out, `mark_fire_dealt_with` fires. **Smoke +
   crouch**: a BLAZE's choking smoke (`smoke_at`, billows past the flames) hits a
   STANDING player **1 hp / 1.5s** — **crouch** (`is_crouching`) to get under it;
-  a LIGHT fire's smoke hugs the ceiling, harmless. **Render** is layered for
-  depth (`fire_layer.gd`): back-wall flames behind actors (z0), main flames level
-  (z1), an **additive glow + foreground licks** in front (z2), smoke on top (z4);
-  flames **stage-scaled** (small LIGHT, ~1.9× BLAZE via `flame_scale`).
+  a LIGHT fire's smoke hugs the ceiling, harmless. **Render**: the flames are the
+  purchased **craftpix pixel-fire sprites** in `assets/fire-pixel-art-animation-sprites/`
+  (procedural flames dropped — they never read as real fire). The floor fire is the
+  animated **`2 Fire_tiles`** sheet (32×32, 6 frames) blitted seamlessly across the
+  burning span with the animation frame advancing (`_draw_ground_fire`, nearest
+  filtering); on a BLAZE, taller **`3 Flame`** sprites rise at intervals for the big
+  licks (`_draw_big_flames`). Drawn on depth layers (`fire_layer.gd`) so the player
+  stands amongst it: ground fire dim BEHIND the actors (z0) + partial IN FRONT of
+  their feet (z2), smoke on top (z4); tile **stage-scaled** (`_tile_scale`: 1.6×
+  LIGHT, 2.7× BLAZE). (`1 Fire` is a fire-elemental character sheet — unused so far;
+  candidate for enemies-on-fire.)
   **Placement** 40% down-stair / 40% mid / 20% arrival-stair (`fire_spawn_kind`,
   resolved x persisted in `fire_origin_x`). **Spreads into apartments** by
   proximity (`apartment_fire_stage`): nearest catches first, run 2 nearby ablaze,

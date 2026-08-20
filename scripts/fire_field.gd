@@ -73,6 +73,7 @@ func _ready() -> void:
 	for i in range(cell_count):
 		heat[i] = 0.0
 		fuel[i] = 1.0
+	_load_fire_textures()
 	_spawn_layers()
 	add_to_group("fire_field")
 
@@ -256,25 +257,43 @@ func _process(delta: float) -> void:
 # Flames scale with the stage (small on a LIGHT fire, big on a BLAZE); smoke
 # sinks to head height on a BLAZE. The flicker is cosmetic; the sim is elsewhere.
 
-const FLAME_ROW := 3.0             # pixel-chunk row height for a flame
-const FLAME_STRIDE := 15.0         # spacing of flame tongues along the fire strip
+# Real pixel-fire SPRITES (craftpix "Fire_tiles" — an artist-drawn animated fire
+# tile, seamlessly tileable across the corridor). The tile is 32x32 per frame, 6
+# frames across the sheet; four variants for horizontal variety. "Flame" (also 6x
+# 32x32) gives taller single flames for the big licks on a BLAZE.
+const TILE_PX := 32
+const TILE_FRAMES := 6
+const TILE_FPS := 12.0
 const CHAR_COL := Color(0.09, 0.08, 0.08)
 const FIRE_LAYER := preload("res://scripts/fire_layer.gd")
+var _tile_tex: Array = []           # Fire_tiles variants (Texture2D)
+var _flame_tex: Array = []          # Flame variants (Texture2D)
+
+
+func _load_fire_textures() -> void:
+	var base := "res://assets/fire-pixel-art-animation-sprites/"
+	for n in ["1", "2", "3", "4"]:
+		var t = load(base + "2 Fire_tiles/" + n + ".png")
+		if t != null:
+			_tile_tex.append(t)
+		var fl = load(base + "3 Flame/" + n + ".png")
+		if fl != null:
+			_flame_tex.append(fl)
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST   # crisp pixels, no blur
 
 
 func _spawn_layers() -> void:
-	# Extra draw surfaces at fixed absolute z so the player sits between the back
-	# glow and the front licks. Each just calls back into draw_layer().
-	for spec in [[LYR_BACK, 0, false], [LYR_FRONT, 2, true], [LYR_SMOKE, 4, false]]:
+	# Extra draw surfaces at fixed absolute z so the player stands INSIDE the fire:
+	# the ground fire is drawn dim BEHIND the actors (z0) and, partial, IN FRONT of
+	# their feet (z2). Each just calls back into draw_layer(). Nearest filtering so
+	# the pixel art stays crisp.
+	for spec in [[LYR_BACK, 0], [LYR_FRONT, 2], [LYR_SMOKE, 4]]:
 		var lyr = FIRE_LAYER.new()
 		lyr.field = self
 		lyr.layer = int(spec[0])
 		lyr.z_as_relative = false
 		lyr.z_index = int(spec[1])
-		if bool(spec[2]):
-			var mat := CanvasItemMaterial.new()
-			mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD   # glow
-			lyr.material = mat
+		lyr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		add_child(lyr)
 
 
@@ -285,99 +304,73 @@ func draw_layer(canvas: CanvasItem, which: int) -> void:
 		LYR_SMOKE: _draw_smoke(canvas)
 
 
-func _tongue_outer(f: float) -> Color:
-	# The outer skin / SILHOUETTE of a flame, base(0) -> tip(1): a pale-hot foot
-	# through yellow and orange to a dark-red curling tip (matches the reference
-	# pixel fire — hot low, red up top).
-	if f < 0.08:
-		return Color(1.0, 0.95, 0.72)
-	elif f < 0.30:
-		return Color(1.0, 0.78, 0.24)
-	elif f < 0.55:
-		return Color(1.0, 0.50, 0.13)
-	elif f < 0.78:
-		return Color(0.85, 0.27, 0.07)
-	return Color(0.60, 0.12, 0.045)
-
-
-func _tongue_inner(f: float) -> Color:
-	# The bright HEART up the lower centre of a flame — white-hot low, cooling to
-	# yellow. Only the lower body has a heart; tips are all outer red. This is what
-	# gives each flame its own white core (colour by within-flame height, NOT screen
-	# height — so there are no horizontal colour stripes across the whole fire).
-	if f < 0.10:
-		return Color(1.0, 1.0, 0.94)
-	elif f < 0.32:
-		return Color(1.0, 0.94, 0.60)
-	return Color(1.0, 0.78, 0.28)
-
-
 func _hash01(a: float) -> float:
 	# Cheap deterministic pseudo-random in [0,1) for organic (non-uniform) jitter.
 	return fmod(absf(sin(a * 12.9898) * 43758.5453), 1.0)
 
 
-func _draw_tongue(canvas: CanvasItem, cx: float, base_y: float, h: float, base_w: float, seed: float, alpha: float) -> void:
-	# ONE flame: a teardrop with a bright heart and a dark curling tip, built from
-	# stacked rows (robust — no polygons, so no triangulation errors). Colour is by
-	# height WITHIN this flame, so every flame has its own white-hot base and red tip.
-	# Only the TIP curls/flicks (wobble scaled by f); the body stays put, so it dances
-	# instead of swaying like a worm.
-	var rows := int(h / FLAME_ROW)
-	if rows < 2:
-		rows = 2
-	var lean := (_hash01(seed * 1.7) - 0.5) * base_w * 0.7     # this flame's own drift
-	var fph := seed * 6.1
-	for r in range(rows):
-		var f := float(r) / float(rows)                         # 0 base .. 1 tip
-		# teardrop: full-bodied low, pinched to a point at the tip
-		var w := base_w * pow(sin((1.0 - f) * (PI * 0.5)), 0.62)
-		if w < 1.3:
-			w = 1.3
-		# gentle lean that grows toward the tip + a small upward-travelling flicker
-		# concentrated at the tip — the TIP licks, the body holds
-		var curl := lean * f * f + sin(_t * 8.0 + fph + f * 5.5) * (2.0 * f)
-		var y := base_y - f * h
-		var oc := _tongue_outer(f)
-		canvas.draw_rect(Rect2(cx + curl - w * 0.5, y - FLAME_ROW, w, FLAME_ROW + 0.6), Color(oc.r, oc.g, oc.b, oc.a * alpha))
-		if f < 0.66:                                            # bright heart, lower body only
-			var iw := w * 0.5
-			var ic := _tongue_inner(f)
-			canvas.draw_rect(Rect2(cx + curl - iw * 0.5, y - FLAME_ROW, iw, FLAME_ROW + 0.6), Color(ic.r, ic.g, ic.b, ic.a * alpha))
+func _tile_scale() -> float:
+	# The fire tile is small (32px); scale it up — modest on a LIGHT fire, big on a
+	# run-2+ BLAZE.
+	return 2.7 if stage >= STAGE_BLAZE else 1.6
 
 
-# --- the fire strip: a packed row of independently-dancing flame tongues --------
-# Along the burning span, tongues sit ~FLAME_STRIDE apart (dense, like a real bed
-# of fire), each with its own width, height and — crucially — its own flicker FREQ
-# and PHASE, so they never rise and fall together (that shared rhythm was the "EDM
-# pulse"). Heights vary a lot (many mid, a few tall spikes) so the crown is ragged,
-# not a row of matching cones. Identity is seeded by x, so a spreading fire's
-# flames stay put as new ground catches.
+func _variant_for(pool_size: int, salt: float) -> int:
+	# A stable tile/flame variant per floor (so a floor's fire looks consistent, and
+	# different floors differ).
+	if pool_size <= 0:
+		return 0
+	return int(_hash01(float(floor_num) + salt) * float(pool_size)) % pool_size
 
-func _flame_strip(canvas: CanvasItem, base_y: float, sc: float, alpha: float, size_mul: float, spark: bool) -> void:
+
+func _draw_ground_fire(canvas: CanvasItem, base_y: float, alpha: float, y_off: float) -> void:
+	# Blit the animated fire TILE across the whole burning span, its bottom on the
+	# floor line. The tile tiles seamlessly; we advance the animation frame and also
+	# OFFSET the frame per column, so the strip animates like real fire and never
+	# shows a repeating 32px pattern. This is the artist's fire — no procedural flames.
+	if _tile_tex.is_empty():
+		return
+	var tex: Texture2D = _tile_tex[_variant_for(_tile_tex.size(), 3.1)]
+	var sc := _tile_scale()
+	var tw := float(TILE_PX) * sc
+	var th := float(TILE_PX) * sc
+	# UNIFORM frame across all columns so the tile stays seamlessly tiled (a per-column
+	# offset would break the seam and show gaps); the tile art tiles cleanly with
+	# itself, and the big flames on top break any sense of repetition.
+	var fr := int(_t * TILE_FPS) % TILE_FRAMES
+	var src := Rect2(float(fr * TILE_PX), 0.0, float(TILE_PX), float(TILE_PX))
 	var x := FIRE_MIN_X
 	while x <= FIRE_MAX_X:
+		if is_burning_at(x + tw * 0.5):
+			var dst := Rect2(x, base_y - th + y_off, tw + 1.0, th)
+			canvas.draw_texture_rect_region(tex, dst, src, Color(1.0, 1.0, 1.0, alpha))
+		x += tw
+
+
+func _draw_big_flames(canvas: CanvasItem, base_y: float, alpha: float) -> void:
+	# On a BLAZE, taller single flames rise at intervals over the tile bed, for the
+	# big-fire look. Each is the artist's "Flame" sprite, scaled up, its own variant
+	# and frame offset so they dance out of sync.
+	if stage < STAGE_BLAZE or _flame_tex.is_empty():
+		return
+	var step := 90.0
+	var sc := 2.3
+	var fw := float(TILE_PX) * sc
+	var fh := float(TILE_PX) * sc
+	var base_frame := int(_t * TILE_FPS)
+	var col := 0
+	var x := FIRE_MIN_X + 30.0
+	while x <= FIRE_MAX_X:
 		if is_burning_at(x):
-			var region := floori(x / FLAME_STRIDE)
-			var seed := float(region) * 2.399 + float(floor_num) * 0.73
-			var jx := (_hash01(seed * 1.1) - 0.5) * FLAME_STRIDE * 0.8
-			var base_w := (7.0 + 7.0 * _hash01(seed * 2.3)) * sc
-			var hb := 15.0 + 32.0 * _hash01(seed * 3.7)
-			if _hash01(seed * 5.1) > 0.83:
-				hb *= 1.7                                       # occasional tall spike
-			# INDEPENDENT flicker: small, fast, per-flame freq+phase (dances, no pump)
-			var freq := 6.0 + 6.0 * _hash01(seed * 4.3)
-			var flick := 1.0 + 0.16 * sin(_t * freq + seed * 7.0) + 0.09 * sin(_t * (freq * 1.7) + seed * 3.0)
-			var h := hb * sc * size_mul * clampf(flick, 0.7, 1.35)
-			_draw_tongue(canvas, x + jx, base_y, h, base_w, seed, alpha)
-			# a spark detaching from the tip and rising, then fading — real fire sheds
-			if spark and _hash01(seed * 6.6) > 0.62:
-				var p := fmod(_t * 0.85 + _hash01(seed * 7.7), 1.0)
-				var srad := (2.6 - 2.2 * p) * sc
-				if srad > 0.5:
-					var sy := base_y - h - p * 26.0 * sc
-					canvas.draw_circle(Vector2(x + jx + sin(_t * 3.0 + seed) * 4.0, sy), srad, Color(1.0, 0.52, 0.16, (1.0 - p) * 0.85 * alpha))
-		x += FLAME_STRIDE
+			var seed := float(floori(x / step)) + float(floor_num) * 0.7
+			var tex: Texture2D = _flame_tex[int(_hash01(seed * 1.3) * float(_flame_tex.size())) % _flame_tex.size()]
+			var fr := (base_frame + col * 3) % TILE_FRAMES
+			var src := Rect2(float(fr * TILE_PX), 0.0, float(TILE_PX), float(TILE_PX))
+			var jx := (_hash01(seed * 2.1) - 0.5) * 26.0
+			var dst := Rect2(x + jx - fw * 0.5, base_y - fh, fw, fh)
+			canvas.draw_texture_rect_region(tex, dst, src, Color(1.0, 1.0, 1.0, alpha))
+		x += step
+		col += 1
 
 
 func _char_scar(canvas: CanvasItem, i: int, cx: float) -> void:
@@ -387,60 +380,24 @@ func _char_scar(canvas: CanvasItem, i: int, cx: float) -> void:
 		canvas.draw_circle(Vector2(cx + (hx - 0.5) * CELL_W * 0.85, FIRE_BASE_Y - 1.0 + hx * 3.0), 4.0 + hx * 3.5, CHAR_COL)
 
 
-# Depth is faked with two rows, BOTH grounded on the floor (fire is attached to the
-# floor, never hanging mid-air): a small/dim BACK row a hair behind and a full MAIN
-# row, plus a low FRONT lick. Reads deep without floating flames up the walls.
-const BASE_BACK := FIRE_BASE_Y - 2.0
-const BASE_FRONT := FIRE_BASE_Y + 3.0
-
-
-func _ember_base(canvas: CanvasItem, sc: float, alpha: float) -> void:
-	# A low, STABLE white-hot ember bed the tongues rise from — slightly uneven along
-	# its top and barely shimmering (so the BASE never bobs). Gives the fire a hot,
-	# continuous foot instead of separate flames floating on the floor line.
-	var x := FIRE_MIN_X
-	while x <= FIRE_MAX_X:
-		if is_burning_at(x):
-			var region := floori(x / 8.0)
-			var seed := float(region) * 1.77 + float(floor_num) * 0.5
-			var eh := (6.0 + 5.0 * _hash01(seed * 2.1)) * sc
-			eh *= 0.9 + 0.1 * sin(_t * 3.0 + seed)              # tiny shimmer, not a pump
-			var rows := int(eh / FLAME_ROW)
-			for r in range(rows):
-				var f := float(r) / float(maxi(rows, 1))
-				var c := _tongue_inner(f * 0.5)                 # white/yellow hot foot
-				canvas.draw_rect(Rect2(x - 4.5, FIRE_BASE_Y - float(r + 1) * FLAME_ROW, 9.0, FLAME_ROW + 0.6), Color(c.r, c.g, c.b, c.a * alpha))
-		x += 8.0
-
-
 func _draw() -> void:
-	# MAIN layer (z1, with the actors): the stable ember bed + the packed flame strip,
-	# on the floor line. Char scars where the fire has burnt out.
-	var sc := flame_scale()
+	# The field itself (z1) only marks char scars where the fire burnt out; the fire
+	# sprites are drawn on the depth layers so the player sits amongst them.
 	for i in range(cell_count):
 		if state_of(i) == SPENT:
 			_char_scar(self, i, cell_x(i))
-	_ember_base(self, sc, 1.0)
-	_flame_strip(self, FIRE_BASE_Y, sc, 1.0, 1.0, true)
 
 
 func _draw_back(canvas: CanvasItem) -> void:
-	# BACK layer (z0, BEHIND the actors): the same flames a touch shorter, dimmer and
-	# a hair behind, so the player stands AMONG the fire. Grounded on the floor (no
-	# flames floating up the wall / stairwell shaft — those read as hanging mid-air).
-	_flame_strip(canvas, BASE_BACK, flame_scale() * 0.82, 0.5, 0.9, false)
+	# BEHIND the actors (z0): the ground fire tiles + the big blaze flames.
+	_draw_ground_fire(canvas, FIRE_BASE_Y, 1.0, 0.0)
+	_draw_big_flames(canvas, FIRE_BASE_Y, 0.95)
 
 
 func _draw_front(canvas: CanvasItem) -> void:
-	# FRONT layer (z2, ADDITIVE): a soft warm glow so the fire pops (additive brightens
-	# rather than browns), plus a few low close licks in front of the actors' feet.
-	var sc := flame_scale()
-	var x := FIRE_MIN_X
-	while x <= FIRE_MAX_X:
-		if is_burning_at(x):
-			canvas.draw_circle(Vector2(x, FIRE_BASE_Y - 12.0 * sc), 17.0 * sc, Color(1.0, 0.45, 0.12, 0.05))
-		x += 34.0
-	_flame_strip(canvas, BASE_FRONT, sc * 0.55, 0.4, 0.6, false)
+	# IN FRONT of the actors' feet (z2): the ground fire again, partial + nudged a
+	# touch lower, so flames lap over the player's legs (they're standing in it).
+	_draw_ground_fire(canvas, FIRE_BASE_Y + 5.0, 0.5, 0.0)
 
 
 func _draw_smoke(canvas: CanvasItem) -> void:
