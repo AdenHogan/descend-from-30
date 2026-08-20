@@ -88,6 +88,7 @@ func _ready() -> void:
 	_spawn_barricade_visuals(floor_num)
 	_spawn_stair_hordes(floor_num)
 	_spawn_fire(floor_num)
+	_spawn_door_fire(floor_num)
 	_frame_camera(player)
 	# Keep the HUD floor counter honest for EVERY way of landing on a floor — not
 	# just stair transitions. A dev jump / F2 rebuild used to leave it stale (e.g.
@@ -372,6 +373,48 @@ func _tint_fire_doors(floor_num: int) -> void:
 			door.modulate = Color(0.32, 0.30, 0.30)
 		elif WorldState.is_apartment_burning(floor_num, apt):
 			door.modulate = Color(1.25, 0.85, 0.7)
+
+
+const FIRE_DECAL := preload("res://scripts/fire_decal.gd")
+const DOOR_FIRE_BASE_Y := 420.0        # floor line the door flames climb from
+
+
+func _spawn_door_fire(floor_num: int) -> void:
+	# The apartment behind a BURNING door is alight, so fire licks OUT around the door
+	# frame — a bonfire in the doorway plus flames climbing each edge. Uses folder 1
+	# (big bonfire) + folder 3 (mid flame) so it looks different from the floor tile
+	# bed. Placed at z0 (behind the player: fire higher than them reads behind); the
+	# corridor floor fire in front covers the base. Charred floors are dead — no flame.
+	if WorldState.fire_intensity(floor_num) == WorldState.FIRE_CHARRED:
+		return
+	var base := "res://assets/fire-pixel-art-animation-sprites/"
+	var flame3 = load(base + "3 Flame/2.png")
+	var bonfire = load(base + "1 Fire/Idle.png")
+	for apt in [1, 2, 3, 4, 5]:
+		if not WorldState.is_apartment_burning(floor_num, apt):
+			continue
+		var door = get_node_or_null("apartment0" + str(apt))
+		if door == null:
+			continue
+		var dx: float = door.global_position.x
+		_add_door_flame(bonfire, 64, dx, 74.0, 108.0, 0.0)          # doorway bonfire
+		_add_door_flame(flame3, 32, dx - 30.0, 40.0, 92.0, 1.3)     # left frame lick
+		_add_door_flame(flame3, 32, dx + 30.0, 40.0, 92.0, 2.6)     # right frame lick
+
+
+func _add_door_flame(tex, frame_px: int, x: float, w: float, h: float, phase: float) -> void:
+	if tex == null:
+		return
+	var d = FIRE_DECAL.new()
+	d.tex = tex
+	d.frame_px = frame_px
+	d.draw_w = w
+	d.draw_h = h
+	d.phase = phase
+	d.z_as_relative = false
+	d.z_index = 0                                                   # behind the player
+	d.global_position = Vector2(x, DOOR_FIRE_BASE_Y)
+	add_child(d)
 
 
 func _frame_camera(player: Node) -> void:

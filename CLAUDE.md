@@ -284,17 +284,25 @@ means no rendering — UI layout and art still need an in-editor look.
   burn); when the whole floor goes out, `mark_fire_dealt_with` fires. **Smoke +
   crouch**: a BLAZE's choking smoke (`smoke_at`, billows past the flames) hits a
   STANDING player **1 hp / 1.5s** — **crouch** (`is_crouching`) to get under it;
-  a LIGHT fire's smoke hugs the ceiling, harmless. **Render**: the flames are the
+  a LIGHT fire's smoke hugs the ceiling, harmless. **Enemies burn too**: a zombie
+  (standard AND big) standing in flame catches (`on_fire` overlay) and takes burn
+  DoT via `burn_tick` until it dies — same rule as the player, driven from
+  `building_floors._process` where `on_fire` is set. **Render**: the flames are the
   purchased **craftpix pixel-fire sprites** in `assets/fire-pixel-art-animation-sprites/`
-  (procedural flames dropped — they never read as real fire). The floor fire is the
-  animated **`2 Fire_tiles`** sheet (32×32, 6 frames) blitted seamlessly across the
-  burning span with the animation frame advancing (`_draw_ground_fire`, nearest
-  filtering); on a BLAZE, taller **`3 Flame`** sprites rise at intervals for the big
-  licks (`_draw_big_flames`). Drawn on depth layers (`fire_layer.gd`) so the player
-  stands amongst it: ground fire dim BEHIND the actors (z0) + partial IN FRONT of
-  their feet (z2), smoke on top (z4); tile **stage-scaled** (`_tile_scale`: 1.6×
-  LIGHT, 2.7× BLAZE). (`1 Fire` is a fire-elemental character sheet — unused so far;
-  candidate for enemies-on-fire.)
+  (procedural flames dropped — they never read as real fire). Three sheets for
+  variety: **`2 Fire_tiles`** (32² floor bed) tiled seamlessly across the burning
+  span (`_draw_ground_fire`), **`3 Flame`** (32² mid flame) and **`1 Fire/Idle`**
+  (64² big bonfire) rising at intervals (`_draw_tall_flames`/`_blit_anim`), all
+  nearest-filtered, frame advancing at `TILE_FPS`. **Depth** by the rule "fire lower
+  than the player draws in front, higher draws behind": the floor bed is drawn ONCE
+  IN FRONT (z2) to ~waist height so the player walks THROUGH it (no more doubling —
+  it used to be on both layers), the tall flames BEHIND (z0) so the player passes in
+  front of them; `FIRE_BASE_Y` 415 sits on the walking plane (feet ~418). Tile
+  **stage-scaled** (`_tile_scale`: 1.6× LIGHT, 2.7× BLAZE), tall flames bigger/denser
+  on a BLAZE. **Door fire**: a burning apartment's door has flames licking out around
+  the frame — a bonfire + edge flames (`building_floors._spawn_door_fire` +
+  `fire_decal.gd`), at z0 behind the player. (`1 Fire`'s Death/Run/Walk anims are a
+  fire-elemental character — still unused; candidate for a fire enemy.)
   **Placement** 40% down-stair / 40% mid / 20% arrival-stair (`fire_spawn_kind`,
   resolved x persisted in `fire_origin_x`). **Spreads into apartments** by
   proximity (`apartment_fire_stage`): nearest catches first, run 2 nearby ablaze,
