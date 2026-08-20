@@ -206,7 +206,10 @@ func _process(delta: float) -> void:
 		_fire_line_cd = maxf(_fire_line_cd - delta, 0.0)
 		if _fire_field.is_burning_at(player.global_position.x):
 			_fire_dmg_acc += delta
-			if _fire_dmg_acc >= FIRE_DMG_INTERVAL:
+			# A run-1 LIGHT fire scorches at HALF the rate of a run-2+ BLAZE — you can
+			# cross a small fire and only smart, a full blaze eats you fast.
+			var burn_interval: float = FIRE_DMG_INTERVAL if _fire_field.stage >= _fire_field.STAGE_BLAZE else FIRE_DMG_INTERVAL * 2.0
+			if _fire_dmg_acc >= burn_interval:
 				_fire_dmg_acc = 0.0
 				player.receive_hit(1)                     # the HUD portrait shows the health drop
 				_say_fire_line()
@@ -217,7 +220,7 @@ func _process(delta: float) -> void:
 		# it also fogs the view). Independent of the burn, so you can crouch-walk a
 		# blaze, breathing but still scorched by the flames at your feet. Thickness
 		# scales with how much of the floor is alight (a spread fire chokes at any stage).
-		var thick_smoke: bool = _fire_field.smoke_intensity() > 0.3 and _fire_field.smoke_at(player.global_position.x)
+		var thick_smoke: bool = _fire_field.smoke_intensity() > SMOKE_CHOKE_THRESHOLD and _fire_field.smoke_at(player.global_position.x)
 		if thick_smoke and not player.is_crouching:
 			_smoke_dmg_acc += delta
 			if _smoke_dmg_acc >= SMOKE_DMG_INTERVAL:
@@ -262,8 +265,12 @@ var _fire_field = null                 # the floor's fire, or null
 var _fire_dmg_acc: float = 0.0
 var _smoke_dmg_acc: float = 0.0
 var _fire_was_burning: bool = false    # to catch the moment the floor's fire goes out
-const FIRE_DMG_INTERVAL := 1.1         # a health hit this often while standing in flame
+const FIRE_DMG_INTERVAL := 1.1         # a health hit this often in a BLAZE (2x this in a LIGHT fire)
 const SMOKE_DMG_INTERVAL := 2.2        # smoke chokes at HALF the fire's damage-over-time
+# Smoke only chokes / fogs the view once it's genuinely THICK. Below this a small
+# fire's wisp is cosmetic — it must NOT darken the screen or trigger a cough line
+# when there's barely any smoke around (that read as a bug).
+const SMOKE_CHOKE_THRESHOLD := 0.5
 # Throttle the player's fire/smoke voice lines so they don't spam every damage tick.
 var _fire_line_cd: float = 0.0
 const FIRE_LINE_COOLDOWN := 3.5

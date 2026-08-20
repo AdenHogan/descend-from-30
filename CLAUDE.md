@@ -278,14 +278,21 @@ means no rendering — UI layout and art still need an in-editor look.
   whole chain; dousing a spread floor (or just a safe path) doesn't count → it
   comes back worse. Barricade + horde **defer to fire** (no doubling).
   `building_floors._spawn_fire` lights a field on any fire floor; standing in
-  flame costs **1 hp / 1.1s** (fire never blocks — walk through it, take the
-  burn); when the whole floor goes out, `mark_fire_dealt_with` fires. **Smoke +
-  crouch**: a BLAZE's choking smoke (`smoke_at`, billows past the flames) hits a
-  STANDING player **1 hp / 1.5s** — **crouch** (`is_crouching`) to get under it;
-  a LIGHT fire's smoke hugs the ceiling, harmless. **Render** is layered for
+  flame costs **1 hp / 1.1s in a BLAZE, half that (2.2s) in a run-1 LIGHT fire**
+  (stage-scaled burn, fire never blocks — walk through it, take the burn); when
+  the whole floor goes out, `mark_fire_dealt_with` fires. **Smoke + crouch**: a
+  choking smoke (`smoke_at`, billows past the flames) hits a STANDING player
+  **1 hp / 2.2s** — **crouch** (`is_crouching`) to get under it; choke + view-fog
+  only kick in once smoke is genuinely thick (`SMOKE_CHOKE_THRESHOLD` 0.5, so a
+  small fire's wisp never darkens the screen or coughs). **Render** is layered for
   depth (`fire_layer.gd`): back-wall flames behind actors (z0), main flames level
   (z1), an **additive glow + foreground licks** in front (z2), smoke on top (z4);
-  flames **stage-scaled** (small LIGHT, ~1.9× BLAZE via `flame_scale`).
+  flames are a **continuous height-field** — one connected sheet (white-hot base
+  → red tips by absolute height) with tongues that rise/flicker/vanish, **not**
+  separate worms/globs (`_draw_fire_span`/`_tongues_at`/`_fire_ramp`), and
+  **stage-scaled** (small LIGHT, ~1.9× BLAZE via `flame_scale`); smoke is a
+  **soft-puff haze** (radial-alpha `_puff_tex`, light grey, roiling/drifting,
+  hangs high with a breathable crouch gap — diffuse mist, not hard circles).
   **Placement** 40% down-stair / 40% mid / 20% arrival-stair (`fire_spawn_kind`,
   resolved x persisted in `fire_origin_x`). **Spreads into apartments** by
   proximity (`apartment_fire_stage`): nearest catches first, run 2 nearby ablaze,
