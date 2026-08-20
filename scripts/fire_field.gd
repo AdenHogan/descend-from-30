@@ -15,7 +15,7 @@ extends Node2D
 const FIRE_MIN_X := 150.0
 const FIRE_MAX_X := 1200.0
 const CELL_W := 42.0
-const FIRE_BASE_Y := 430.0        # floor line the flames rise from
+const FIRE_BASE_Y := 415.0        # floor line the flames rise from (player feet ~418)
 
 const IGNITE_THRESHOLD := 0.5
 # SPREAD is a SLOW, RAGGED creep. A burning cell's heat only just outpaces a cool
@@ -262,12 +262,14 @@ func _process(delta: float) -> void:
 # frames across the sheet; four variants for horizontal variety. "Flame" (also 6x
 # 32x32) gives taller single flames for the big licks on a BLAZE.
 const TILE_PX := 32
+const BONFIRE_PX := 64              # "1 Fire" frame size (big bonfire flame)
 const TILE_FRAMES := 6
 const TILE_FPS := 12.0
 const CHAR_COL := Color(0.09, 0.08, 0.08)
 const FIRE_LAYER := preload("res://scripts/fire_layer.gd")
-var _tile_tex: Array = []           # Fire_tiles variants (Texture2D)
-var _flame_tex: Array = []          # Flame variants (Texture2D)
+var _tile_tex: Array = []           # Fire_tiles variants (folder 2) — the floor bed
+var _flame_tex: Array = []          # Flame variants (folder 3) — mid single flames
+var _bonfire_tex: Texture2D = null  # 1 Fire/Idle (folder 1) — big tall bonfire
 
 
 func _load_fire_textures() -> void:
@@ -279,6 +281,7 @@ func _load_fire_textures() -> void:
 		var fl = load(base + "3 Flame/" + n + ".png")
 		if fl != null:
 			_flame_tex.append(fl)
+	_bonfire_tex = load(base + "1 Fire/Idle.png")
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST   # crisp pixels, no blur
 
 
@@ -348,28 +351,37 @@ func _draw_ground_fire(canvas: CanvasItem, base_y: float, alpha: float, y_off: f
 		x += tw
 
 
-func _draw_big_flames(canvas: CanvasItem, base_y: float, alpha: float) -> void:
-	# On a BLAZE, taller single flames rise at intervals over the tile bed, for the
-	# big-fire look. Each is the artist's "Flame" sprite, scaled up, its own variant
-	# and frame offset so they dance out of sync.
-	if stage < STAGE_BLAZE or _flame_tex.is_empty():
+func _blit_anim(canvas: CanvasItem, tex: Texture2D, px: int, cx: float, base_y: float, sc: float, col: int, seed: float, alpha: float) -> void:
+	# Blit one frame of an animated flame sheet (px-square frames, 6 across), centred
+	# on cx with its base on base_y. Per-flame frame offset so they dance out of sync.
+	var fr := (int(_t * TILE_FPS) + col * 2) % TILE_FRAMES
+	var src := Rect2(float(fr * px), 0.0, float(px), float(px))
+	var w := float(px) * sc
+	var h := float(px) * sc
+	var jx := (_hash01(seed * 2.1) - 0.5) * 26.0
+	var dst := Rect2(cx + jx - w * 0.5, base_y - h, w, h)
+	canvas.draw_texture_rect_region(tex, dst, src, Color(1.0, 1.0, 1.0, alpha))
+
+
+func _draw_tall_flames(canvas: CanvasItem) -> void:
+	# TALLER flames rising at intervals from the fire, drawn BEHIND the player (depth):
+	# a mix of the big "1 Fire" bonfire (folder 1) and the mid "3 Flame" (folder 3), so
+	# the fire has vertical height and VARIETY instead of only the low tile bed — the
+	# player walks in FRONT of these, they tower behind. Bigger + denser on a BLAZE.
+	if _flame_tex.is_empty():
 		return
-	var step := 90.0
-	var sc := 2.3
-	var fw := float(TILE_PX) * sc
-	var fh := float(TILE_PX) * sc
-	var base_frame := int(_t * TILE_FPS)
+	var big := stage >= STAGE_BLAZE
+	var step := 76.0 if big else 132.0
 	var col := 0
-	var x := FIRE_MIN_X + 30.0
+	var x := FIRE_MIN_X + 24.0
 	while x <= FIRE_MAX_X:
 		if is_burning_at(x):
 			var seed := float(floori(x / step)) + float(floor_num) * 0.7
-			var tex: Texture2D = _flame_tex[int(_hash01(seed * 1.3) * float(_flame_tex.size())) % _flame_tex.size()]
-			var fr := (base_frame + col * 3) % TILE_FRAMES
-			var src := Rect2(float(fr * TILE_PX), 0.0, float(TILE_PX), float(TILE_PX))
-			var jx := (_hash01(seed * 2.1) - 0.5) * 26.0
-			var dst := Rect2(x + jx - fw * 0.5, base_y - fh, fw, fh)
-			canvas.draw_texture_rect_region(tex, dst, src, Color(1.0, 1.0, 1.0, alpha))
+			if big and _bonfire_tex != null and _hash01(seed * 1.9) > 0.5:
+				_blit_anim(canvas, _bonfire_tex, BONFIRE_PX, x, FIRE_BASE_Y, 1.7, col, seed, 1.0)
+			else:
+				var tex: Texture2D = _flame_tex[int(_hash01(seed * 1.3) * float(_flame_tex.size())) % _flame_tex.size()]
+				_blit_anim(canvas, tex, TILE_PX, x, FIRE_BASE_Y, 2.5 if big else 1.6, col, seed, 1.0)
 		x += step
 		col += 1
 
@@ -390,16 +402,22 @@ func _draw() -> void:
 
 
 func _draw_back(canvas: CanvasItem) -> void:
-	# BEHIND the actors (z0): the ground fire tiles + the big blaze flames.
-	_draw_ground_fire(canvas, FIRE_BASE_Y, 1.0, 0.0)
-	_draw_big_flames(canvas, FIRE_BASE_Y, 0.95)
+	# BEHIND the actors (z0): the TALL flames only (bonfires + mid flames). These rise
+	# ABOVE the player, so by the depth rule they belong behind — the player walks in
+	# front of them. The floor bed is NOT drawn here (that caused the doubled look);
+	# it's drawn once, in front, below.
+	_draw_tall_flames(canvas)
 
 
 func _draw_front(canvas: CanvasItem) -> void:
-	# IN FRONT of the actors' feet (z2): only the LOW flames (bottom ~third of the
-	# tile) so they lap the ankles and read as "standing in it" — WITHOUT burying the
-	# player's legs (that was too much overlap).
-	_draw_ground_fire(canvas, FIRE_BASE_Y + 2.0, 0.6, 0.0, 0.32)
+	# IN FRONT of the actors (z2): the floor fire bed, drawn ONCE, up to about waist
+	# height, so the player is engulfed to the legs and walks THROUGH it (fire lower
+	# than the player reads in front). Torso/head stay above it. A fixed pixel height
+	# (not a tile fraction) keeps the engulf consistent across stage scales.
+	var sc := _tile_scale()
+	var target_h := 34.0 if stage >= STAGE_BLAZE else 26.0    # feet-to-waist, not to the neck
+	var bf := clampf(target_h / (float(TILE_PX) * sc), 0.06, 1.0)
+	_draw_ground_fire(canvas, FIRE_BASE_Y, 1.0, 0.0, bf)
 
 
 func _draw_smoke(canvas: CanvasItem) -> void:

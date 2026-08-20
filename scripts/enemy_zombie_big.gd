@@ -23,6 +23,41 @@ var max_hp: int = 20
 var current_hp: int = 20
 var is_dead: bool = false
 var detection_range: float = DETECTION_RANGE
+
+# On fire: a big zombie standing in flame catches too (flame overlay + burn DoT).
+# Big and slow, so it cooks in the fire — same rule as the player and the standard.
+const ENEMY_FIRE := preload("res://scripts/enemy_fire.gd")
+var on_fire: bool = false: set = _set_on_fire
+var _fire_fx = null
+var _burn_acc: float = 0.0
+const BURN_INTERVAL := 1.5
+
+
+func _set_on_fire(v: bool) -> void:
+	if v == on_fire:
+		return
+	on_fire = v
+	if not v:
+		_burn_acc = 0.0
+	if v and _fire_fx == null:
+		_fire_fx = ENEMY_FIRE.new()
+		_fire_fx.position = Vector2(0, -10)
+		add_child(_fire_fx)
+	elif not v and _fire_fx != null:
+		_fire_fx.queue_free()
+		_fire_fx = null
+
+
+func burn_tick(delta: float) -> void:
+	# Fire damage-over-time: a quiet hit on a cadence (no flinch) until it kills me.
+	if is_dead:
+		return
+	_burn_acc += delta
+	if _burn_acc >= BURN_INTERVAL:
+		_burn_acc = 0.0
+		current_hp -= 1
+		if current_hp <= 0:
+			_die()
 # Gunfire (and future noise sources) override detection range while this runs.
 var alert_timer: float = 0.0
 

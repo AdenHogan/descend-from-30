@@ -233,8 +233,13 @@ func _process(delta: float) -> void:
 		# Enemies standing in the flames CATCH FIRE: a flame overlay + DOUBLE-damage
 		# attacks. They go out the moment they step clear.
 		for z in get_tree().get_nodes_in_group("zombie"):
+			var z_inflame: bool = _fire_field.is_burning_at(z.global_position.x)
 			if "on_fire" in z:
-				z.on_fire = _fire_field.is_burning_at(z.global_position.x)
+				z.on_fire = z_inflame
+			# Fire damages enemies too — stand one in the flames and it burns down and
+			# dies, same as the player would (driven here, where we know the fire).
+			if z_inflame and z.has_method("burn_tick"):
+				z.burn_tick(delta)
 		# The moment the WHOLE floor's fire is out (not just a path doused), it's
 		# dealt with: record it cross-run so it can't re-ignite/escalate, and let
 		# a sheltering merchant finally come out. A path-spray leaves cells burning,
