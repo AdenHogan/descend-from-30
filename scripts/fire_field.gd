@@ -15,7 +15,7 @@ extends Node2D
 const FIRE_MIN_X := 150.0
 const FIRE_MAX_X := 1200.0
 const CELL_W := 42.0
-const FIRE_BASE_Y := 415.0        # floor line the flames rise from (player feet ~418)
+const FIRE_BASE_Y := 426.0        # floor line the flames rise from (sits on the feet/bodies)
 
 const IGNITE_THRESHOLD := 0.5
 # SPREAD is a SLOW, RAGGED creep. A burning cell's heat only just outpaces a cool
@@ -61,6 +61,12 @@ var heat: PackedFloat32Array = PackedFloat32Array()
 var fuel: PackedFloat32Array = PackedFloat32Array()
 var floor_num: int = -1
 var stage: int = STAGE_LIGHT
+# Cap on how many cells the fire may reach by SPREAD within a run — set by the
+# caller per stage. A run-1 LIGHT fire holds as a small patch (it persists, but
+# does NOT creep across the whole floor within the run); the escalation to a
+# floor-wide blaze happens across RUNS, not within one. Default = effectively off
+# (raw sim / tests spread freely).
+var spread_cap: int = 1000000
 var _acc: float = 0.0
 var _t: float = 0.0               # render clock (flicker only)
 
@@ -225,15 +231,19 @@ func tick(dt: float) -> void:
 	# NEIGHBOUR's catch factor, so the front is uneven); cool cells bleed heat off.
 	# Neighbour heat is written to a copy so the step doesn't cascade within a tick.
 	var new_heat := heat.duplicate()
+	# Once the fire has reached its cap, it stops CREEPING (but keeps burning — it
+	# doesn't go out). This is what keeps a run-1 patch contained.
+	var can_spread := burning_count() < spread_cap
 	for i in range(cell_count):
 		match state_of(i):
 			BURNING:
 				fuel[i] = maxf(fuel[i] - BURN_RATE * dt, 0.0)
-				var push := SPREAD_RATE * dt
-				if i > 0 and fuel[i - 1] > 0.0:
-					new_heat[i - 1] = minf(new_heat[i - 1] + push * _spread_mult(i - 1), MAX_HEAT)
-				if i < cell_count - 1 and fuel[i + 1] > 0.0:
-					new_heat[i + 1] = minf(new_heat[i + 1] + push * _spread_mult(i + 1), MAX_HEAT)
+				if can_spread:
+					var push := SPREAD_RATE * dt
+					if i > 0 and fuel[i - 1] > 0.0:
+						new_heat[i - 1] = minf(new_heat[i - 1] + push * _spread_mult(i - 1), MAX_HEAT)
+					if i < cell_count - 1 and fuel[i + 1] > 0.0:
+						new_heat[i + 1] = minf(new_heat[i + 1] + push * _spread_mult(i + 1), MAX_HEAT)
 			COOL:
 				new_heat[i] = maxf(new_heat[i] - COOL_RATE * dt, 0.0)
 	heat = new_heat
@@ -326,16 +336,17 @@ func _variant_for(pool_size: int, salt: float) -> int:
 	return int(_hash01(float(floor_num) + salt) * float(pool_size)) % pool_size
 
 
-func _draw_ground_fire(canvas: CanvasItem, base_y: float, alpha: float, y_off: float, bottom_frac: float = 1.0) -> void:
+func _draw_ground_fire(canvas: CanvasItem, base_y: float, alpha: float, y_off: float, bottom_frac: float = 1.0, sc_override: float = -1.0) -> void:
 	# Blit the animated fire TILE across the whole burning span, its bottom on the
 	# floor line. The tile tiles seamlessly (uniform frame across columns; the art
 	# tiles cleanly with itself, and the big flames on top break any repetition).
 	# `bottom_frac` < 1 draws only the LOW part of the tile — used for the FRONT layer
 	# so only the hottest flames lap the player's feet instead of burying their legs.
+	# `sc_override` > 0 forces a scale (the smaller BACK bed at the wall seam uses it).
 	if _tile_tex.is_empty():
 		return
 	var tex: Texture2D = _tile_tex[_variant_for(_tile_tex.size(), 3.1)]
-	var sc := _tile_scale()
+	var sc := _tile_scale() if sc_override <= 0.0 else sc_override
 	var tw := float(TILE_PX) * sc
 	var bf := clampf(bottom_frac, 0.05, 1.0)
 	var src_h := float(TILE_PX) * bf
@@ -364,24 +375,28 @@ func _blit_anim(canvas: CanvasItem, tex: Texture2D, px: int, cx: float, base_y: 
 
 
 func _draw_tall_flames(canvas: CanvasItem) -> void:
-	# TALLER flames rising at intervals from the fire, drawn BEHIND the player (depth):
-	# a mix of the big "1 Fire" bonfire (folder 1) and the mid "3 Flame" (folder 3), so
-	# the fire has vertical height and VARIETY instead of only the low tile bed — the
-	# player walks in FRONT of these, they tower behind. Bigger + denser on a BLAZE.
+	# TALLER flames rising at intervals, drawn BEHIND the player (depth). VARIED SIZES
+	# repeated along the whole fire — small + medium "3 Flame" (folder 3) globs with an
+	# occasional big "1 Fire" bonfire (folder 1) — so the hazard reads as clumps of
+	# fire of different sizes, not one lone glob by the door. Bigger/denser on a BLAZE;
+	# on a run-1 LIGHT the big bonfire is rare and everything is smaller.
 	if _flame_tex.is_empty():
 		return
 	var big := stage >= STAGE_BLAZE
-	var step := 76.0 if big else 132.0
+	var step := 60.0 if big else 82.0
 	var col := 0
-	var x := FIRE_MIN_X + 24.0
+	var x := FIRE_MIN_X + 18.0
 	while x <= FIRE_MAX_X:
 		if is_burning_at(x):
 			var seed := float(floori(x / step)) + float(floor_num) * 0.7
-			if big and _bonfire_tex != null and _hash01(seed * 1.9) > 0.5:
-				_blit_anim(canvas, _bonfire_tex, BONFIRE_PX, x, FIRE_BASE_Y, 1.7, col, seed, 1.0)
+			var roll := _hash01(seed * 1.9)              # size class for this glob
+			var tex3: Texture2D = _flame_tex[int(_hash01(seed * 1.3) * float(_flame_tex.size())) % _flame_tex.size()]
+			if roll > (0.78 if big else 0.87) and _bonfire_tex != null:
+				_blit_anim(canvas, _bonfire_tex, BONFIRE_PX, x, FIRE_BASE_Y, 1.7 if big else 1.1, col, seed, 1.0)   # BIG glob
+			elif roll > 0.45:
+				_blit_anim(canvas, tex3, TILE_PX, x, FIRE_BASE_Y, 2.6 if big else 1.9, col, seed, 1.0)             # MEDIUM
 			else:
-				var tex: Texture2D = _flame_tex[int(_hash01(seed * 1.3) * float(_flame_tex.size())) % _flame_tex.size()]
-				_blit_anim(canvas, tex, TILE_PX, x, FIRE_BASE_Y, 2.5 if big else 1.6, col, seed, 1.0)
+				_blit_anim(canvas, tex3, TILE_PX, x, FIRE_BASE_Y, 1.7 if big else 1.15, col, seed, 1.0)            # SMALL
 		x += step
 		col += 1
 
@@ -401,11 +416,19 @@ func _draw() -> void:
 			_char_scar(self, i, cell_x(i))
 
 
+# The floor-to-wall seam sits above the front floor line; a smaller fire bed runs
+# along it BEHIND the player, so the fire recedes toward the back wall (depth).
+const BACK_SEAM_Y := FIRE_BASE_Y - 30.0
+
+
 func _draw_back(canvas: CanvasItem) -> void:
-	# BEHIND the actors (z0): the TALL flames only (bonfires + mid flames). These rise
-	# ABOVE the player, so by the depth rule they belong behind — the player walks in
-	# front of them. The floor bed is NOT drawn here (that caused the doubled look);
-	# it's drawn once, in front, below.
+	# BEHIND the actors (z0):
+	#  1) a SMALLER tile bed running along the floor-to-wall SEAM (higher up), so the
+	#     fire spreads back toward the wall, not just along the front edge — depth.
+	#  2) the TALL flames (varied bonfires + mid flames) rising above the player.
+	# The player walks in FRONT of all of this. The FULL-size floor bed is drawn once,
+	# in front (below) — not here — so there's no doubling.
+	_draw_ground_fire(canvas, BACK_SEAM_Y, 0.9, 0.0, 0.6, _tile_scale() * 0.58)
 	_draw_tall_flames(canvas)
 
 

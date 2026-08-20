@@ -355,7 +355,7 @@ func _test_extinguisher_item() -> void:
 	check(d.get("is_extinguisher", false), "036 has is_extinguisher flag")
 	check(d.get("is_tool", false), "036 is a tool")
 	check(not d.get("is_weapon", false), "036 is NOT a weapon")
-	check(int(d.get("max_durability", -1)) == 3, "036 has 3 uses")
+	check(int(d.get("max_durability", -1)) == 2, "036 has 2 uses")
 
 
 func _test_hazard_warning() -> void:

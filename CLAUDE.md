@@ -292,14 +292,23 @@ means no rendering — UI layout and art still need an in-editor look.
   (procedural flames dropped — they never read as real fire). Three sheets for
   variety: **`2 Fire_tiles`** (32² floor bed) tiled seamlessly across the burning
   span (`_draw_ground_fire`), **`3 Flame`** (32² mid flame) and **`1 Fire/Idle`**
-  (64² big bonfire) rising at intervals (`_draw_tall_flames`/`_blit_anim`), all
+  (64² big bonfire) rising at intervals in **varied sizes** repeated along the whole
+  fire — small/medium/big globs (`_draw_tall_flames`/`_blit_anim`), all
   nearest-filtered, frame advancing at `TILE_FPS`. **Depth** by the rule "fire lower
-  than the player draws in front, higher draws behind": the floor bed is drawn ONCE
-  IN FRONT (z2) to ~waist height so the player walks THROUGH it (no more doubling —
-  it used to be on both layers), the tall flames BEHIND (z0) so the player passes in
-  front of them; `FIRE_BASE_Y` 415 sits on the walking plane (feet ~418). Tile
-  **stage-scaled** (`_tile_scale`: 1.6× LIGHT, 2.7× BLAZE), tall flames bigger/denser
-  on a BLAZE. **Door fire**: a burning apartment's door has flames licking out around
+  than the player draws in front, higher draws behind": the full floor bed is drawn
+  ONCE IN FRONT (z2) to ~waist height so the player walks THROUGH it (no doubling —
+  it used to be on both layers), while a SMALLER bed runs along the floor-to-wall
+  **seam** (`BACK_SEAM_Y`) and the tall flames rise BEHIND (z0), so the player passes
+  in front of them and the fire recedes toward the wall; `FIRE_BASE_Y` 426 sits on the
+  walking plane (feet ~418, bed covers them). Tile **stage-scaled** (`_tile_scale`:
+  1.6× LIGHT, 2.7× BLAZE), globs bigger/denser on a BLAZE. **Within-run spread is
+  CAPPED** (`fire_field.spread_cap`, set in `_spawn_fire`): a run-1 LIGHT fire holds
+  as a small ~7-cell patch (persists but never consumes the floor); a run-2+ BLAZE
+  caps ~26 (creeps toward floor-wide). Escalation is across RUNS, not within one.
+  **Fire memory** is saved in `_exit_tree` under `_built_floor` (the floor THIS scene
+  built) — NOT `current_floor`, which a stair transition has already advanced, which
+  used to save the fire under the wrong floor so it vanished on return.
+  **Door fire**: a burning apartment's door has flames licking out around
   the frame — a bonfire + edge flames (`building_floors._spawn_door_fire` +
   `fire_decal.gd`), at z0 behind the player. (`1 Fire`'s Death/Run/Walk anims are a
   fire-elemental character — still unused; candidate for a fire enemy.)
@@ -310,7 +319,7 @@ means no rendering — UI layout and art still need an in-editor look.
   doors glow. **Enemies on fire** (`enemy_fire.gd`) deal DOUBLE damage. **Smoke**
   is a light+heavy mix and **fogs the screen while standing** (`HUD.set_smoke_fog`
   — crouch to see). Item **036 Fire Extinguisher**
-  (`is_extinguisher`, 3 uses) douses a radius **for good** (`extinguish_at`) —
+  (`is_extinguisher`, 2 uses) douses a radius **for good** (`extinguish_at`) —
   one canister only blows a safe path through a big blaze (backtrack for more);
   mounted **by the elevator on EVERY floor** (skips charred) once per (floor,run)
   (`_place_elevator_kit` + `elevator_kit_placed`, saved). **Merchant** shelters

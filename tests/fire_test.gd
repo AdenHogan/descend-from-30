@@ -19,6 +19,7 @@ func check(cond: bool, label: String) -> void:
 func _ready() -> void:
 	print("=== fire (Hazard 3) test ===")
 	_test_spread()
+	_test_spread_cap()
 	_test_memory()
 	_test_smoke()
 	_test_spawn_and_apartments()
@@ -69,6 +70,22 @@ func _make_field():
 func _ticks(ff, n: int) -> void:
 	for i in range(n):
 		ff.tick(ff.SIM_DT)
+
+
+func _test_spread_cap() -> void:
+	# A run-1 LIGHT fire is CAPPED: it holds as a small patch instead of creeping over
+	# the whole floor within the run (escalation is across runs). Set a low cap, run a
+	# long time, and it must stop growing at the cap — but stay lit (persist).
+	print("[spread cap — run-1 fire stays a contained patch]")
+	var ff = _make_field()
+	var mid: int = ff.cell_count / 2
+	for dc in [-2, 0, 2]:
+		ff.ignite_span(ff.cell_x(mid + dc), ff.cell_x(mid + dc))
+	ff.spread_cap = maxi(ff.burning_count(), 7)
+	_ticks(ff, 1500)   # ~150s — plenty of time to creep the whole floor if uncapped
+	check(ff.burning_count() <= 7, "capped fire never exceeds its cap (%d <= 7)" % ff.burning_count())
+	check(ff.burning_count() < ff.cell_count, "capped fire does NOT fill the floor (%d of %d cells)" % [ff.burning_count(), ff.cell_count])
+	check(ff.any_burning(), "a capped fire still burns (it persists, just doesn't spread)")
 
 
 func _test_spread() -> void:

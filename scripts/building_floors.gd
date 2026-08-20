@@ -22,16 +22,23 @@ const ZOMBIE_SETTLED_Y := 370.0
 func _exit_tree() -> void:
 	# Leaving the floor: clear the screen-space smoke fog so it doesn't linger on
 	# the next (fire-free) floor, and SNAPSHOT the fire's spread so it's exactly
-	# where it got to when you come back.
+	# where it got to when you come back. Save under the floor THIS scene built
+	# (_built_floor) — NOT WorldState.current_floor, which a stair transition has
+	# already advanced to the destination by the time _exit_tree fires (that bug
+	# saved the fire under the wrong floor, so it was gone on return).
 	if HUD.has_method("set_smoke_fog"):
 		HUD.set_smoke_fog(false)
 	if _fire_field != null and is_instance_valid(_fire_field):
-		var floor_num: int = setup_floor if setup_floor >= 0 else WorldState.current_floor
+		var floor_num: int = _built_floor if _built_floor >= 0 else (setup_floor if setup_floor >= 0 else WorldState.current_floor)
 		WorldState.set_fire_cells(floor_num, _fire_field.export_state())
+
+
+var _built_floor: int = -1             # the floor THIS scene built (for _exit_tree save)
 
 
 func _ready() -> void:
 	var floor_num = setup_floor if setup_floor >= 0 else WorldState.current_floor
+	_built_floor = floor_num
 	var player = get_node("Player")
 
 	# Strip the junk row(s) above the ceiling so a floor is exactly its solid
@@ -358,6 +365,12 @@ func _spawn_fire(floor_num: int) -> void:
 	# to the spawn pattern every time you step out and back in).
 	if WorldState.has_fire_cells(floor_num):
 		_fire_field.import_state(WorldState.get_fire_cells(floor_num))
+	# Cap how far it may CREEP within the run: a run-1 LIGHT fire holds as a small
+	# patch (persists but never consumes the whole floor); a run-2+ BLAZE is allowed
+	# to creep toward floor-wide (out of control). Escalation is across RUNS, not
+	# within one. maxi(...) so a restored bigger state is never forced to shrink.
+	var _cap: int = 26 if stage == WorldState.FIRE_BLAZE else 7
+	_fire_field.spread_cap = maxi(_fire_field.burning_count(), _cap)
 	_fire_was_burning = _fire_field.any_burning()
 	_tint_fire_doors(floor_num)
 

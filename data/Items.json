@@ -284,7 +284,7 @@
       "ITEM_NAME": "Fire Extinguisher",
       "ITEM_DESCRIPTION": "Red canister, heavy, half-full. Point it at the flames and squeeze — a few good bursts will beat back a fire choking a stairwell. Won't last forever.",
       "VALUE_PROPERTY": "is_tool, is_extinguisher",
-      "PROPERTY_DURABILITY": "3 uses",
+      "PROPERTY_DURABILITY": "2 uses",
       "PROPERTY_SPAWN_RARITY": 2,
       "PROPERTY_WEIGHT_SIZE": null
     }
