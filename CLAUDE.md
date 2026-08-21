@@ -238,11 +238,14 @@ means no rendering — UI layout and art still need an in-editor look.
   (`stair_pan.gd` `ENABLED = true`) — stairs between floors 1–29 pan between two
   contiguous floors instead of a fade. `building_floors` takes `setup_floor`/`passive`
   to build the destination as a backdrop, then `go_live()` promotes it. **Gotcha**:
-  the passive build skips everything after `if passive: return` in `_ready` (fire,
-  barricades, hordes, door-fire, merchant), so `go_live` MUST re-spawn those — any
-  new live-only floor content added to `_ready` needs a matching call in `go_live`
-  or it'll be missing when you arrive by stairs (but present via the fade/apartment
-  path). Lobby (0) and hallway (30) still use the plain fade.
+  the passive build skips everything after `if passive: return` in `_ready`
+  (barricades, hordes, merchant), so `go_live` MUST re-spawn those — any new live-only
+  floor content added to `_ready` needs a matching call in `go_live` or it'll be
+  missing when you arrive by stairs (but present via the fade/apartment path).
+  **Exception**: FIRE + door-fire ARE spawned in the passive build (so a floor panned
+  UP toward shows its fire as it scrolls into view, not popping in after the commit);
+  `go_live` only spawns fire if the backdrop didn't already (`_fire_field == null`).
+  Lobby (0) and hallway (30) still use the plain fade.
 - Stairwell **barricades** + Crowbar (docs/STAIR_BARRICADES.md, v1): some
   stairwells are barricaded with debris and can't be fought — they're pried
   through with a **Crowbar (035)** (new `is_tool, is_crowbar` item, single-use/
@@ -313,9 +316,16 @@ means no rendering — UI layout and art still need an in-editor look.
   (`_draw_scatter_bits`) sit ON THE FLOOR and IN FRONT of the player (z2, player walks
   behind them) — not floating up the wall. **Within-run spread is CAPPED**
   (`fire_field.spread_cap`, set in `_spawn_fire`): a run-1 LIGHT fire creeps SLOWLY
-  (~15s/cell) up to ~16 cells — spreading across a good chunk of the floor toward
-  nearby apartments over time, but staying small enough to extinguish; a run-2+ BLAZE
-  caps ~26 (toward floor-wide). Escalation is across RUNS, not within one.
+  (~30s/cell — `SPREAD_RATE`/`COOL_RATE` halved so it doesn't cover the floor in a few
+  minutes) up to ~16 cells — spreading across a good chunk of the floor toward nearby
+  apartments over time, but staying small enough to extinguish; a run-2+ BLAZE caps
+  ~26 (toward floor-wide). Escalation (across floors) is across RUNS, not within one:
+  the origin-based `fire_intensity` (age = `current_run-1`, minus distance) means run
+  1 lights ONLY the origin floor, run 2 adds its immediate neighbours (LIGHT) while
+  the origin goes BLAZE, run 3 pushes two floors out. **DEV fire (F2)** seeds a SINGLE
+  origin on the floor it's pressed on (`dev_fire_origin`) and uses that SAME
+  age-distance model, so F2 + F8 (advance run) reproduce the real escalation exactly
+  (was: forced fire on EVERY floor).
   **Fire memory** is snapshotted PERIODICALLY (every ~0.6s in `_process`) under
   `_built_floor`, re-imported by `_spawn_fire` on return. **Crucial**: the seamless
   stair pan (`stair_pan.gd`, `ENABLED = true`) builds the destination floor as a

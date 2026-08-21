@@ -58,6 +58,12 @@ func _ready() -> void:
 		_spawn_zombies(floor_num, true)
 		_spawn_corpses(floor_num)
 		_spawn_world_drops(floor_num)
+		# Spawn the FIRE in the backdrop too, so a floor you're panning UP toward shows
+		# its fire AS IT SCROLLS INTO VIEW, not popping in only after the commit. It's
+		# visual/sim only (no collision), so _make_inert leaves it alone; go_live sees
+		# it's already here and doesn't re-spawn.
+		_spawn_fire(floor_num)
+		_spawn_door_fire(floor_num)
 		_make_inert()
 		return
 
@@ -677,8 +683,9 @@ func go_live() -> void:
 	# re-imports the saved spread, so the fire comes back exactly as it was left.
 	_spawn_barricade_visuals(floor_num)
 	_spawn_stair_hordes(floor_num)
-	_spawn_fire(floor_num)
-	_spawn_door_fire(floor_num)
+	if _fire_field == null:            # the passive backdrop already built the fire
+		_spawn_fire(floor_num)
+		_spawn_door_fire(floor_num)
 	_spawn_merchant(floor_num)
 
 

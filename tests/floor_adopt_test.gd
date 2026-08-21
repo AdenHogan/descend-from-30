@@ -88,30 +88,33 @@ func _test_go_live_spawns_fire() -> void:
 	# the woken backdrop carries a fire field.
 	print("[go_live spawns the fire on a fire floor]")
 	WorldState.new_game()
-	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_FIRE   # every floor is on fire
 	var f := 24
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_FIRE   # force a fire floor for the test
+	WorldState.dev_fire_origin = f                            # single origin on this floor
 	chk(WorldState.is_stair_fire(f), "test floor is on fire")
 	var backdrop = load("res://scenes/building_floors.tscn").instantiate()
 	backdrop.setup_floor = f
 	backdrop.passive = true
 	add_child(backdrop)
 	for i in range(3): await get_tree().process_frame
-	# Passive build skipped the fire — no field yet.
+	# The passive backdrop now spawns the fire too, so a floor panned UP toward shows
+	# its fire as it scrolls in (not popping in after the commit).
 	var fires_before := 0
 	for n in get_tree().get_nodes_in_group("fire_field"):
 		if backdrop.is_ancestor_of(n):
 			fires_before += 1
-	chk(fires_before == 0, "passive backdrop has NO fire yet (%d)" % fires_before)
+	chk(fires_before == 1, "passive backdrop already shows the fire (pan buffer) (%d)" % fires_before)
 	backdrop.go_live()
 	await get_tree().process_frame
 	var fires_after := 0
 	for n in get_tree().get_nodes_in_group("fire_field"):
 		if backdrop.is_ancestor_of(n):
 			fires_after += 1
-	chk(fires_after == 1, "go_live spawned the fire on the fire floor (%d)" % fires_after)
+	chk(fires_after == 1, "go_live keeps exactly one fire — no double-spawn (%d)" % fires_after)
 	backdrop.free()
 	await get_tree().process_frame
 	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
+	WorldState.dev_fire_origin = -1
 
 
 func _test_go_live_wakes_everything() -> void:

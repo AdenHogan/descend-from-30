@@ -364,20 +364,27 @@ func _test_dev_mode() -> void:
 	WorldState.master_seed = 1337
 	WorldState.current_run = 1
 	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_FIRE
-	var all_fire := true
+	WorldState.dev_fire_origin = 15               # F2 pressed on floor 15
+	# Dev fire suppresses the other hazards everywhere.
 	var other := false
 	for f in range(2, 30):
-		if not WorldState.is_stair_fire(f):
-			all_fire = false
 		if WorldState.is_stair_blocked(f) or WorldState.is_stair_horde(f):
 			other = true
-	check(all_fire, "dev fire mode makes every eligible floor a fire")
 	check(not other, "dev fire mode suppresses barricades and hordes")
-	# Dev fire STAGE follows current_run (F8 advance-run tests each escalation step).
-	check(WorldState.fire_intensity(15) == WorldState.FIRE_LIGHT, "dev fire run 1 = light")
+	# Run 1: ONLY the origin burns (LIGHT); its neighbours do NOT.
+	check(WorldState.fire_intensity(15) == WorldState.FIRE_LIGHT, "run 1: origin is LIGHT")
+	check(not WorldState.is_stair_fire(14) and not WorldState.is_stair_fire(16), "run 1: neighbours are NOT on fire")
+	check(not WorldState.is_stair_fire(20), "run 1: a far floor is NOT on fire")
+	# Run 2: origin BLAZE, both neighbours LIGHT, two-out still clear.
 	WorldState.current_run = 2
-	check(WorldState.fire_intensity(15) == WorldState.FIRE_BLAZE, "dev fire run 2 = blaze")
+	check(WorldState.fire_intensity(15) == WorldState.FIRE_BLAZE, "run 2: origin is BLAZE")
+	check(WorldState.fire_intensity(14) == WorldState.FIRE_LIGHT and WorldState.fire_intensity(16) == WorldState.FIRE_LIGHT, "run 2: neighbours catch at LIGHT")
+	check(not WorldState.is_stair_fire(13) and not WorldState.is_stair_fire(17), "run 2: two floors out still clear")
+	# Run 3: origin CHARRED, neighbours BLAZE, two-out LIGHT.
 	WorldState.current_run = 3
-	check(WorldState.fire_intensity(15) == WorldState.FIRE_CHARRED, "dev fire run 3 = charred")
+	check(WorldState.fire_intensity(15) == WorldState.FIRE_CHARRED, "run 3: origin is CHARRED")
+	check(WorldState.fire_intensity(14) == WorldState.FIRE_BLAZE and WorldState.fire_intensity(16) == WorldState.FIRE_BLAZE, "run 3: neighbours are BLAZE")
+	check(WorldState.fire_intensity(13) == WorldState.FIRE_LIGHT and WorldState.fire_intensity(17) == WorldState.FIRE_LIGHT, "run 3: two floors out are LIGHT")
 	WorldState.current_run = 1
 	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
+	WorldState.dev_fire_origin = -1

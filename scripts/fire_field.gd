@@ -22,8 +22,11 @@ const IGNITE_THRESHOLD := 0.5
 # cell's loss, and how well each cell CATCHES varies per-cell (_spread_mult), so
 # the front advances unevenly — some cells take, others resist for ages — instead
 # of a uniform wall marching across. Net ~= SPREAD_RATE*mult - COOL_RATE.
-const SPREAD_RATE := 0.10         # heat/sec a burning cell pushes to each neighbour
-const COOL_RATE := 0.085          # heat/sec a non-burning cell loses
+# Halved from 0.10/0.085 to slow the creep by ~half (5 min was covering most of the
+# floor) while KEEPING the margin positive, so the spread still happens — just at
+# half pace (~30s/cell for an average cell, slower for the ragged ones).
+const SPREAD_RATE := 0.05         # heat/sec a burning cell pushes to each neighbour
+const COOL_RATE := 0.0425         # heat/sec a non-burning cell loses
 # A fire does NOT burn itself out within a run — it stays lit until the player
 # puts it out (or a run-3 char_all makes a ruin). So fuel never depletes from
 # burning (BURN_RATE 0); only extinguish_at / char_all zero it. This is what
@@ -433,7 +436,7 @@ func _draw() -> void:
 # The floor-to-wall seam sits a little above the front floor line; a smaller fire
 # bed runs along it BEHIND the player, so the fire recedes toward the back wall
 # (depth). This offset places it ON the seam — tune if the wall art moves.
-const BACK_SEAM_Y := FIRE_BASE_Y - 6.0
+const BACK_SEAM_Y := FIRE_BASE_Y - 22.0   # the wall/floor seam (door base ~404; feet ~419)
 
 
 func _draw_back(canvas: CanvasItem) -> void:

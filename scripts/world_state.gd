@@ -158,6 +158,10 @@ const DEV_HAZARD_COUNT := 4
 const DEV_HAZARD_NAMES := ["off", "barricades", "hordes", "fire"]
 const DEV_HAZARD_UNBUILT := []   # barricades, hordes AND fire are all built now
 var dev_hazard_mode: int = DEV_HAZARD_NONE
+# When DEV fire is toggled on (F2), the floor it was pressed on becomes the single
+# fire ORIGIN; dev fire_intensity spreads out from here by the age-distance model, so
+# the dev cycle mirrors the real run-1/2/3 escalation. -1 = no dev origin.
+var dev_fire_origin: int = -1
 # A DEV message the next scene load should surface AFTER the god-mode reminder,
 # so an F2 hazard toggle that rebuilds the floor isn't clobbered by it.
 var pending_dev_feedback: String = ""
@@ -457,6 +461,7 @@ func new_game() -> void:
 	upgrade_offers.clear()
 	god_mode = false
 	dev_hazard_mode = DEV_HAZARD_NONE
+	dev_fire_origin = -1
 	pending_dev_feedback = ""
 
 
@@ -1486,9 +1491,17 @@ func fire_intensity(floor_num: int) -> int:
 	if floor_num >= 30 or floor_num <= 1:
 		return -1
 	if dev_hazard_mode == DEV_HAZARD_FIRE:
-		# Dev cycle: fire on every eligible floor, STAGE by current_run so F8 (advance
-		# run) lets you test the run-1 breakout, the run-2 blaze and the run-3 ruin.
-		return mini(current_run - 1, FIRE_CHARRED)
+		# Dev fire: a SINGLE origin (the floor F2 was pressed on) spreads by the SAME
+		# age-distance model as a real outbreak, so F2 + F8 (advance run) test the real
+		# escalation exactly: run 1 = only the origin (LIGHT); run 2 = origin BLAZE +
+		# both neighbours LIGHT; run 3 = origin CHARRED, neighbours BLAZE, two-out LIGHT.
+		# (Fallback to the old "every floor" behaviour only if no origin was recorded.)
+		if dev_fire_origin < 0:
+			return mini(current_run - 1, FIRE_CHARRED)
+		var d_stage: int = (current_run - 1) - absi(floor_num - dev_fire_origin)
+		if d_stage < 0:
+			return -1
+		return mini(d_stage, FIRE_CHARRED)
 	if dev_hazard_mode != DEV_HAZARD_NONE:
 		return -1               # some other dev hazard is forced; no fire
 	var age: int = current_run - FIRE_ORIGIN_RUN

@@ -920,11 +920,16 @@ func _input(event: InputEvent) -> void:
 			# toggle to hordes/fire shows nothing until you cross to the next floor.
 			WorldState.dev_hazard_mode = (WorldState.dev_hazard_mode + 1) % WorldState.DEV_HAZARD_COUNT
 			var m = WorldState.dev_hazard_mode
+			# Dev FIRE seeds a SINGLE origin on THIS floor, spreading out by run like a
+			# real outbreak (F8 to advance the run and watch it climb to neighbours).
+			WorldState.dev_fire_origin = WorldState.current_floor if m == WorldState.DEV_HAZARD_FIRE else -1
 			var msg: String
 			if m == WorldState.DEV_HAZARD_NONE:
 				msg = "DEV: Hazards off (seed defaults)"
 			elif m in WorldState.DEV_HAZARD_UNBUILT:
 				msg = "DEV: Hazard → %s (not built yet)" % WorldState.DEV_HAZARD_NAMES[m]
+			elif m == WorldState.DEV_HAZARD_FIRE:
+				msg = "DEV: Fire origin on floor %d (F8 to spread across runs)" % WorldState.current_floor
 			else:
 				msg = "DEV: Hazard → %s (every floor)" % WorldState.DEV_HAZARD_NAMES[m]
 			# Rebuild the floor so the new hazard applies right here — but ONLY on the
