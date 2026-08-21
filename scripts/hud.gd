@@ -449,19 +449,20 @@ func update_stamina(current: float, maximum: float) -> void:
 var smoke_fog_rect: TextureRect = null
 var _fog_alpha: float = 0.0
 var _fog_target: float = 0.0
-const FOG_MAX_ALPHA := 0.72
+const FOG_MAX_ALPHA := 0.34
 
 
 func _create_smoke_fog() -> void:
-	# A vertical GRADIENT haze — dense at the top (where the smoke gathers), fading
-	# to clear by the lower third — so standing in smoke reads as it settling from
-	# above, not a flat grey filter over the whole screen, and your feet stay visible.
+	# A SUBTLE, washed-out haze — a warm-grey veil that hangs a little denser up top
+	# (where smoke gathers) but touches the whole screen, so a fire floor reads as
+	# gradually hazy / slightly washed-out and darker. NOT a heavy black fog, and NOT
+	# something you have to crouch under — pure atmosphere. Proper smoke art later.
 	var grad := Gradient.new()
 	grad.offsets = PackedFloat32Array([0.0, 0.55, 1.0])
 	grad.colors = PackedColorArray([
-		Color(0.13, 0.12, 0.11, 1.0),   # top: dark, opaque
-		Color(0.14, 0.13, 0.12, 0.35),  # middle: thinning
-		Color(0.15, 0.14, 0.13, 0.0),   # floor: clear
+		Color(0.44, 0.41, 0.37, 0.95),  # top: light warm-grey haze
+		Color(0.44, 0.41, 0.37, 0.6),   # middle
+		Color(0.44, 0.41, 0.37, 0.38),  # floor: still a touch of haze (washes the whole view)
 	])
 	var tex := GradientTexture2D.new()
 	tex.gradient = grad
@@ -531,15 +532,16 @@ func _position_speech() -> void:
 
 
 func set_smoke_fog(on: bool, intensity: float = 1.0) -> void:
-	# Called by building_floors when the player is stood up in choking smoke; the
-	# target darkness scales with how thick the smoke is.
-	_fog_target = clampf(0.5 + 0.5 * intensity, 0.0, 1.0) if on else 0.0
+	# Atmosphere only: a gradual hazy wash whose strength scales with how much of the
+	# floor is alight, building up from nothing (no crouch, no damage). It eases in via
+	# _update_smoke_fog, so it thickens gradually rather than snapping on.
+	_fog_target = clampf(intensity, 0.0, 1.0) if on else 0.0
 
 
 func _update_smoke_fog(delta: float) -> void:
 	if smoke_fog_rect == null:
 		return
-	_fog_alpha = move_toward(_fog_alpha, _fog_target, delta * 1.8)
+	_fog_alpha = move_toward(_fog_alpha, _fog_target, delta * 0.5)   # slow, gradual build
 	smoke_fog_rect.modulate.a = _fog_alpha * FOG_MAX_ALPHA
 
 

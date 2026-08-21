@@ -230,24 +230,13 @@ func _process(delta: float) -> void:
 				_say_fire_line()
 		else:
 			_fire_dmg_acc = 0.0
-		# Smoke choke: thick smoke fills the upper air. Stand in it and you choke for
-		# HALF the fire's damage-over-time; CROUCH under it to breathe (and to see —
-		# it also fogs the view). Independent of the burn, so you can crouch-walk a
-		# blaze, breathing but still scorched by the flames at your feet. Thickness
-		# scales with how much of the floor is alight (a spread fire chokes at any stage).
-		var thick_smoke: bool = _fire_field.smoke_intensity() > 0.3 and _fire_field.smoke_at(player.global_position.x)
-		if thick_smoke and not player.is_crouching:
-			_smoke_dmg_acc += delta
-			if _smoke_dmg_acc >= SMOKE_DMG_INTERVAL:
-				_smoke_dmg_acc = 0.0
-				player.receive_hit(1)
-				_say_smoke_line()
-		else:
-			_smoke_dmg_acc = 0.0
-		# Standing in thick smoke FOGS your view (crouch under it to see). Screen-space,
-		# so the overlay lives on the HUD; its strength scales with the smoke.
+		# Smoke = ATMOSPHERE ONLY now. A fire fills the air with a gradually thickening,
+		# slightly washed-out haze — no crouch, no choke damage, no world-space smoke
+		# clouds (proper smoke art is coming). The fire itself is the threat. Strength
+		# eases up with how much of the floor is alight; the HUD lerps it in, so it
+		# builds gradually rather than snapping on.
 		if HUD.has_method("set_smoke_fog"):
-			HUD.set_smoke_fog(thick_smoke and not player.is_crouching, _fire_field.smoke_intensity())
+			HUD.set_smoke_fog(_fire_field.any_burning(), clampf(_fire_field.smoke_intensity(), 0.0, 1.0))
 		# Enemies standing in the flames CATCH FIRE: a flame overlay + DOUBLE-damage
 		# attacks. They go out the moment they step clear.
 		for z in get_tree().get_nodes_in_group("zombie"):
@@ -283,16 +272,13 @@ func _warn_hazard(text: String) -> void:
 const FIRE_FIELD := preload("res://scripts/fire_field.gd")
 var _fire_field = null                 # the floor's fire, or null
 var _fire_dmg_acc: float = 0.0
-var _smoke_dmg_acc: float = 0.0
 var _fire_save_acc: float = 0.0        # throttles the periodic fire-memory snapshot
 var _fire_was_burning: bool = false    # to catch the moment the floor's fire goes out
 const FIRE_DMG_INTERVAL := 1.1         # a health hit this often while standing in flame
-const SMOKE_DMG_INTERVAL := 2.2        # smoke chokes at HALF the fire's damage-over-time
-# Throttle the player's fire/smoke voice lines so they don't spam every damage tick.
+# Throttle the player's fire voice lines so they don't spam every damage tick.
 var _fire_line_cd: float = 0.0
 const FIRE_LINE_COOLDOWN := 3.5
 const FIRE_LINES := ["Agh! Burning!", "The flames — argh!", "It's burning me!", "Aah — too hot!"]
-const SMOKE_LINES := ["*cough* — I need to get under this smoke.", "*hack* — can't... breathe up here.", "*cough cough* — stay low."]
 
 
 func _say_fire_line() -> void:
@@ -301,14 +287,6 @@ func _say_fire_line() -> void:
 	_fire_line_cd = FIRE_LINE_COOLDOWN
 	if HUD.has_method("show_speech"):
 		HUD.show_speech(FIRE_LINES[randi() % FIRE_LINES.size()])
-
-
-func _say_smoke_line() -> void:
-	if _fire_line_cd > 0.0:
-		return
-	_fire_line_cd = FIRE_LINE_COOLDOWN
-	if HUD.has_method("show_speech"):
-		HUD.show_speech(SMOKE_LINES[randi() % SMOKE_LINES.size()])
 var _merchant_pending_fire: bool = false   # merchant is sheltering until the fire's out
 
 
@@ -376,11 +354,13 @@ func _spawn_fire(floor_num: int) -> void:
 	# to the spawn pattern every time you step out and back in).
 	if WorldState.has_fire_cells(floor_num):
 		_fire_field.import_state(WorldState.get_fire_cells(floor_num))
-	# Cap how far it may CREEP within the run: a run-1 LIGHT fire holds as a small
-	# patch (persists but never consumes the whole floor); a run-2+ BLAZE is allowed
-	# to creep toward floor-wide (out of control). Escalation is across RUNS, not
-	# within one. maxi(...) so a restored bigger state is never forced to shrink.
-	var _cap: int = 26 if stage == WorldState.FIRE_BLAZE else 7
+	# Cap how far it may CREEP within the run. A run-1 LIGHT fire is ALLOWED to creep
+	# — slowly (~15s/cell) — across a good chunk of the floor and toward nearby
+	# apartments (it's problematic, but small enough to stay extinguishable); it just
+	# never becomes the instant floor-wide wall a BLAZE is. A run-2+ BLAZE creeps
+	# toward floor-wide (out of control). Escalation is across RUNS, not within one.
+	# maxi(...) so a restored bigger state is never forced to shrink.
+	var _cap: int = 26 if stage == WorldState.FIRE_BLAZE else 16
 	_fire_field.spread_cap = maxi(_fire_field.burning_count(), _cap)
 	_fire_was_burning = _fire_field.any_burning()
 	_tint_fire_doors(floor_num)

@@ -285,10 +285,12 @@ means no rendering — UI layout and art still need an in-editor look.
   comes back worse. Barricade + horde **defer to fire** (no doubling).
   `building_floors._spawn_fire` lights a field on any fire floor; standing in
   flame costs **1 hp / 1.1s** (fire never blocks — walk through it, take the
-  burn); when the whole floor goes out, `mark_fire_dealt_with` fires. **Smoke +
-  crouch**: a BLAZE's choking smoke (`smoke_at`, billows past the flames) hits a
-  STANDING player **1 hp / 1.5s** — **crouch** (`is_crouching`) to get under it;
-  a LIGHT fire's smoke hugs the ceiling, harmless. **Enemies burn too**: a zombie
+  burn); when the whole floor goes out, `mark_fire_dealt_with` fires. **Smoke =
+  ATMOSPHERE ONLY** (reworked): no crouch, no choke damage, no world-space smoke
+  clouds — just a subtle, gradual, washed-out screen HAZE (`HUD.set_smoke_fog`, a
+  light warm-grey veil that eases in as more of the floor is alight; `smoke_intensity`
+  still drives its strength). `_draw_smoke` is a no-op; proper smoke art will slot in
+  later. **Enemies burn too**: a zombie
   (standard AND big) standing in flame catches (`on_fire` overlay) and takes burn
   DoT via `burn_tick` until it dies — same rule as the player, driven from
   `building_floors._process` where `on_fire` is set. **Render**: the flames are the
@@ -307,10 +309,13 @@ means no rendering — UI layout and art still need an in-editor look.
   walking plane (feet ~418, bed covers them). Tile **stage-scaled** (`_tile_scale`:
   1.6× LIGHT, 2.7× BLAZE), globs bigger/denser on a BLAZE. All the beds + globs are
   **PATCHY** (`_patch_on`, a seeded per-floor clump mask, different salt per layer) —
-  fire clumps here and there, never a solid unbroken line. **Within-run spread is
-  CAPPED** (`fire_field.spread_cap`, set in `_spawn_fire`): a run-1 LIGHT fire holds
-  as a small ~7-cell patch (persists but never consumes the floor); a run-2+ BLAZE
-  caps ~26 (creeps toward floor-wide). Escalation is across RUNS, not within one.
+  fire clumps here and there, never a solid unbroken line. The scattered floor globs
+  (`_draw_scatter_bits`) sit ON THE FLOOR and IN FRONT of the player (z2, player walks
+  behind them) — not floating up the wall. **Within-run spread is CAPPED**
+  (`fire_field.spread_cap`, set in `_spawn_fire`): a run-1 LIGHT fire creeps SLOWLY
+  (~15s/cell) up to ~16 cells — spreading across a good chunk of the floor toward
+  nearby apartments over time, but staying small enough to extinguish; a run-2+ BLAZE
+  caps ~26 (toward floor-wide). Escalation is across RUNS, not within one.
   **Fire memory** is snapshotted PERIODICALLY (every ~0.6s in `_process`) under
   `_built_floor`, re-imported by `_spawn_fire` on return. **Crucial**: the seamless
   stair pan (`stair_pan.gd`, `ENABLED = true`) builds the destination floor as a
@@ -328,9 +333,7 @@ means no rendering — UI layout and art still need an in-editor look.
   resolved x persisted in `fire_origin_x`). **Spreads into apartments** by
   proximity (`apartment_fire_stage`): nearest catches first, run 2 nearby ablaze,
   run 3 whole floor charred; charred apartments = no loot (`room.gd`), burning
-  doors glow. **Enemies on fire** (`enemy_fire.gd`) deal DOUBLE damage. **Smoke**
-  is a light+heavy mix and **fogs the screen while standing** (`HUD.set_smoke_fog`
-  — crouch to see). Item **036 Fire Extinguisher**
+  doors glow. **Enemies on fire** (`enemy_fire.gd`) deal DOUBLE damage. Item **036 Fire Extinguisher**
   (`is_extinguisher`, 2 uses) douses a radius **for good** (`extinguish_at`) —
   one canister only blows a safe path through a big blaze (backtrack for more);
   mounted **by the elevator on EVERY floor** (skips charred) once per (floor,run)

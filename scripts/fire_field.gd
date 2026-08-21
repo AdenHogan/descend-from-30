@@ -446,14 +446,14 @@ func _draw_back(canvas: CanvasItem) -> void:
 	# front bed so the gaps don't line up.
 	_draw_ground_fire(canvas, BACK_SEAM_Y, 0.9, 0.0, 0.6, _tile_scale() * 0.58, 7.0)
 	_draw_tall_flames(canvas)
-	_draw_scatter_bits(canvas)
 
 
 func _draw_scatter_bits(canvas: CanvasItem) -> void:
 	# Pepper small RESIZED fragments of fire around the outbreak — bonfire bits
-	# (folder 1) and tile chunks (folder 2) — some on the floor, a few up on the wall,
-	# to break up the strip and make the breakout look scattered/organic. Behind the
-	# player (z0). Seeded, so they're stable per floor.
+	# (folder 1) and tile chunks (folder 2) — to break up the strip and make the
+	# breakout look scattered/organic. They sit ON THE FLOOR (a touch lower than the
+	# main bed) and IN FRONT of the player (z2), so the player walks BEHIND them — NOT
+	# floating up on the wall. Seeded, so they're stable per floor.
 	if _tile_tex.is_empty() and _bonfire_tex == null:
 		return
 	var span0 := FIRE_MAX_X
@@ -468,10 +468,9 @@ func _draw_scatter_bits(canvas: CanvasItem) -> void:
 	for k in range(n):
 		var seed := float(k) * 7.31 + float(floor_num) * 1.9
 		var x := lerpf(span0 - 24.0, span1 + 24.0, _hash01(seed * 1.1))
-		# Keep bits LOW — near the floor and only creeping a little way up the wall — so
-		# they complement the outbreak without floating in mid-air at head height.
-		var up := _hash01(seed * 2.7)
-		var y := FIRE_BASE_Y - up * up * 40.0
+		# On the floor, a little LOWER than the main bed (nearer the camera), never up
+		# the wall — a small spread of extra flames the player walks behind.
+		var y := FIRE_BASE_Y + 3.0 + 7.0 * _hash01(seed * 2.7)
 		if _bonfire_tex != null and _hash01(seed * 3.3) > 0.5:
 			_blit_anim(canvas, _bonfire_tex, BONFIRE_PX, x, y, 0.38 + 0.32 * _hash01(seed * 4.1), k, seed, 0.9)
 		else:
@@ -483,64 +482,18 @@ func _draw_front(canvas: CanvasItem) -> void:
 	# IN FRONT of the actors (z2): the floor fire bed, drawn ONCE, up to about waist
 	# height, so the player is engulfed to the legs and walks THROUGH it (fire lower
 	# than the player reads in front). Torso/head stay above it. A fixed pixel height
-	# (not a tile fraction) keeps the engulf consistent across stage scales.
+	# (not a tile fraction) keeps the engulf consistent across stage scales. The
+	# scattered floor globs also go here (in front, on the floor — player walks behind).
 	var sc := _tile_scale()
 	var target_h := 34.0 if stage >= STAGE_BLAZE else 26.0    # feet-to-waist, not to the neck
 	var bf := clampf(target_h / (float(TILE_PX) * sc), 0.06, 1.0)
 	_draw_ground_fire(canvas, FIRE_BASE_Y, 1.0, 0.0, bf, -1.0, 0.0)   # patchy (salt 0)
+	_draw_scatter_bits(canvas)
 
 
-func _draw_smoke(canvas: CanvasItem) -> void:
-	# SMOKE layer (z4, on top). A BLAZE puts up a THICK, oppressive bank of smoke —
-	# a dense churning mass of heavily-overlapping dark blobs, near-opaque low and
-	# only thinning toward the ceiling (crouch under it to see; the screen fog is
-	# separate). A LIGHT fire only gives thin pale wisps hugging the ceiling.
-	if stage >= STAGE_CHARRED:
-		return
-	var intensity := smoke_intensity()
-	if intensity < 0.05:
-		return
-	# One smoke model, density scaled CONTINUOUSLY by intensity (no threshold snap
-	# from "nothing" to "wall of smoke"). It also HANGS HIGHER when the fire is
-	# small and only creeps down toward head height as it grows — always leaving a
-	# breathable band at the floor to crouch into.
-	for i in range(cell_count):
-		if _smoke_col(i):
-			_smoke_bank(canvas, cell_x(i), i, intensity)
-
-
-# The smoke never comes below this — a breathable band at the floor for crouching.
-const SMOKE_FLOOR_Y := FIRE_BASE_Y - 90.0
-
-
-func _smoke_bank(canvas: CanvasItem, cx: float, i: int, intensity: float) -> void:
-	# A column of churning smoke: rows of big overlapping dark blobs reading as one
-	# roiling mass. DENSITY and how LOW it hangs both scale with `intensity`, so a
-	# small fire is a faint high haze and a floor-wide one is an oppressive bank
-	# down near head height (but never to the floor).
-	var bottom := lerpf(CEILING_Y + 70.0, SMOKE_FLOOR_Y, clampf(intensity, 0.0, 1.0))
-	var rows := 15
-	for r in range(rows):
-		var frac := float(r) / float(rows)                       # 0 bottom → 1 ceiling
-		var y := lerpf(bottom, CEILING_Y, frac)
-		var ph := float(i) * 2.3 + float(r) * 1.7
-		var churn := sin(_t * 0.7 + ph) * (8.0 + frac * 30.0) + sin(_t * 0.35 + ph * 1.7) * (4.0 + frac * 14.0)
-		var boil := sin(_t * 1.3 + ph * 2.1) * 3.0               # small vertical roil
-		var rad := (26.0 + 16.0 * _hash01(ph)) + frac * 8.0
-		var a := lerpf(0.5, 0.16, frac) * clampf(intensity * 1.25, 0.0, 1.15)   # scales from 0 (no snap)
-		var shade := 0.09 + 0.05 * _hash01(ph * 1.3)
-		canvas.draw_circle(Vector2(cx + churn, y + boil), rad, Color(shade, shade, shade, a))
-		canvas.draw_circle(Vector2(cx + churn - rad * 0.7, y + 4.0 + boil), rad * 0.85, Color(shade, shade, shade, a * 0.9))
-		canvas.draw_circle(Vector2(cx + churn + rad * 0.62, y - 3.0 + boil), rad * 0.72, Color(shade, shade, shade, a * 0.85))
-
-
-func _smoke_wisps(canvas: CanvasItem, i: int, cx: float) -> void:
-	# Thin pale wisps rising and fading — a LIGHT fire barely smokes.
-	for p in range(2):
-		var phase := _hash01(float(i) * 4.3 + float(p) * 9.1)
-		var prog := fmod(_t * 0.16 + phase, 1.0)
-		var y := lerpf(FIRE_BASE_Y - 14.0, CEILING_Y + 30.0, prog)
-		var turb := sin(_t * 1.1 + phase * 12.0 + prog * 4.0) * (6.0 + prog * 18.0)
-		var rad := lerpf(7.0, 22.0, prog)
-		var a := sin(prog * PI) * 0.16
-		canvas.draw_circle(Vector2(cx + turb, y), rad, Color(0.2, 0.19, 0.18, a))
+func _draw_smoke(_canvas: CanvasItem) -> void:
+	# World-space smoke clouds have been REMOVED (they read as black pulsing circles).
+	# The only smoke effect now is a subtle gradual screen HAZE driven by the HUD from
+	# smoke_intensity() (see building_floors._process / HUD.set_smoke_fog). Proper
+	# smoke art will slot in here later. Left as a no-op so the z4 layer draws nothing.
+	pass
