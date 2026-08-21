@@ -524,11 +524,16 @@ func _draw_smoke_plumes(canvas: CanvasItem) -> void:
 		var frame := int(_t * SMOKE_FPS + s) % SMOKE_FRAMES
 		var cx: float = z["cx"]
 		# VARY the height a lot per plume (stable seed) so the tops sit at different Y —
-		# variance, not a row of identical stacks.
+		# variance, not a row of identical stacks. The SMOKE is drawn first (behind)...
 		if big and not _smoke_long.is_empty():
 			_blit_smoke(canvas, _smoke_long[frame], 32.0, 129.0, cx, 0.55 + 0.6 * _hash01(s))
 		elif not _smoke_reg.is_empty():
 			_blit_smoke(canvas, _smoke_reg[frame], 128.0, 128.0, cx, 0.4 + 0.42 * _hash01(s))
+		# ...then a real flame is drawn IN FRONT of it (same z0, after), so the smoke can
+		# NEVER be a lone trail — it always rises from BEHIND a visible fire, even where
+		# the patchy tile bed happens to leave a gap under the plume.
+		if _bonfire_tex != null:
+			_blit_anim(canvas, _bonfire_tex, BONFIRE_PX, cx, FIRE_BASE_Y, 1.9 if big else 1.25, k, s, 1.0)
 
 
 func _blit_smoke(canvas: CanvasItem, tex: Texture2D, fw: float, fh: float, cx: float, sc: float) -> void:
