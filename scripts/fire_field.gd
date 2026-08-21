@@ -346,14 +346,27 @@ func _variant_for(pool_size: int, salt: float) -> int:
 const PATCH_CLUMP := 92.0
 
 
-func _patch_on(x: float, salt: float) -> bool:
+func _patch_on(x: float, salt: float, carve: float = 0.0) -> bool:
 	# A run-1 LIGHT outbreak carves up HARDER (more gaps) so it reads as a scattered
-	# breakout, not a lengthy strip; a full BLAZE is denser.
-	var thresh := 0.46 if stage < STAGE_BLAZE else 0.36
+	# breakout, not a lengthy strip; a full BLAZE is denser. `carve` adds extra gaps
+	# for a layer that wants to be broken up more (the depth/back bed).
+	var thresh := (0.46 if stage < STAGE_BLAZE else 0.36) + carve
 	return _hash01(floori(x / PATCH_CLUMP) * 3.17 + salt + float(floor_num) * 0.7) > thresh
 
 
-func _draw_ground_fire(canvas: CanvasItem, base_y: float, alpha: float, y_off: float, bottom_frac: float = 1.0, sc_override: float = -1.0, patch_salt: float = -1.0) -> void:
+# Door x's (same on every floor — apartment01..05); the depth/back bed skips a band
+# around each so it never runs straight across a doorway (beside a door is fine).
+const DOOR_AVOID_HALF := 36.0
+
+
+func _near_door(x: float) -> bool:
+	for apt in WorldState.APARTMENT_X:
+		if absf(x - float(WorldState.APARTMENT_X[apt])) < DOOR_AVOID_HALF:
+			return true
+	return false
+
+
+func _draw_ground_fire(canvas: CanvasItem, base_y: float, alpha: float, y_off: float, bottom_frac: float = 1.0, sc_override: float = -1.0, patch_salt: float = -1.0, avoid_doors: bool = false, patch_carve: float = 0.0) -> void:
 	# Blit the animated fire TILE across the whole burning span, its bottom on the
 	# floor line. The tile tiles seamlessly (uniform frame across columns; the art
 	# tiles cleanly with itself, and the big flames on top break any repetition).
@@ -373,7 +386,8 @@ func _draw_ground_fire(canvas: CanvasItem, base_y: float, alpha: float, y_off: f
 	var src := Rect2(float(fr * TILE_PX), src_y, float(TILE_PX), src_h)
 	var x := FIRE_MIN_X
 	while x <= FIRE_MAX_X:
-		if is_burning_at(x + tw * 0.5) and (patch_salt < 0.0 or _patch_on(x, patch_salt)):
+		var cx := x + tw * 0.5
+		if is_burning_at(cx) and (patch_salt < 0.0 or _patch_on(x, patch_salt, patch_carve)) and not (avoid_doors and _near_door(cx)):
 			var dst := Rect2(x, base_y - th + y_off, tw + 1.0, th)
 			canvas.draw_texture_rect_region(tex, dst, src, Color(1.0, 1.0, 1.0, alpha))
 		x += tw
@@ -447,7 +461,9 @@ func _draw_back(canvas: CanvasItem) -> void:
 	# The player walks in FRONT of all of this. The FULL floor bed is drawn once, in
 	# front (below) — not here — so there's no doubling. Different patch salt from the
 	# front bed so the gaps don't line up.
-	_draw_ground_fire(canvas, BACK_SEAM_Y, 0.9, 0.0, 0.6, _tile_scale() * 0.58, 7.0)
+	# avoid_doors=true keeps the depth bed OUT of doorways (beside a door is fine, not
+	# straight across it); the extra patch_carve breaks up its line into clumps.
+	_draw_ground_fire(canvas, BACK_SEAM_Y, 0.9, 0.0, 0.6, _tile_scale() * 0.58, 7.0, true, 0.14)
 	_draw_tall_flames(canvas)
 
 

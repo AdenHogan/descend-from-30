@@ -307,9 +307,11 @@ means no rendering — UI layout and art still need an in-editor look.
   than the player draws in front, higher draws behind": the full floor bed is drawn
   ONCE IN FRONT (z2) to ~waist height so the player walks THROUGH it (no doubling —
   it used to be on both layers), while a SMALLER bed runs along the floor-to-wall
-  **seam** (`BACK_SEAM_Y`) and the tall flames rise BEHIND (z0), so the player passes
-  in front of them and the fire recedes toward the wall; `FIRE_BASE_Y` 426 sits on the
-  walking plane (feet ~418, bed covers them). Tile **stage-scaled** (`_tile_scale`:
+  **seam** (`BACK_SEAM_Y` = feet−22 ≈ the door base) and the tall flames rise BEHIND
+  (z0), so the player passes in front of them and the fire recedes toward the wall;
+  `FIRE_BASE_Y` 426 sits on the walking plane (feet ~418, bed covers them). The depth
+  bed is carved harder + **skips doorways** (`avoid_doors`/`_near_door`, a band around
+  each `APARTMENT_X`) so it never runs straight across a door (beside one is fine). Tile **stage-scaled** (`_tile_scale`:
   1.6× LIGHT, 2.7× BLAZE), globs bigger/denser on a BLAZE. All the beds + globs are
   **PATCHY** (`_patch_on`, a seeded per-floor clump mask, different salt per layer) —
   fire clumps here and there, never a solid unbroken line. The scattered floor globs
