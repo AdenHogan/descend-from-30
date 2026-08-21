@@ -510,7 +510,7 @@ func _draw_smoke_plumes(canvas: CanvasItem) -> void:
 				burn += 1
 				sumx += cell_x(i)
 		if burn >= SMOKE_ZONE_MIN:
-			zones.append({"i": zi, "burn": burn, "cx": sumx / float(burn)})
+			zones.append({"i": zi, "burn": burn, "cx": sumx / float(burn), "zx": zx})
 		zx += SMOKE_ZONE_W
 		zi += 1
 	if zones.is_empty():
@@ -518,22 +518,43 @@ func _draw_smoke_plumes(canvas: CanvasItem) -> void:
 	zones.sort_custom(func(a, b): return int(a["burn"]) > int(b["burn"]))   # the BIGGEST fire smokes first
 	var big := stage >= STAGE_BLAZE
 	var cap := mini(4 if big else 2, zones.size())      # SOME spots, not everywhere (no bloat)
-	for k in range(cap):
-		var z: Dictionary = zones[k]
+	var tw := float(TILE_PX) * _tile_scale()
+	var placed := 0
+	for z in zones:
+		if placed >= cap:
+			break
+		# Snap the plume onto an actually-RENDERED front-bed tile in the zone. The fire
+		# draws PATCHY, so the sim centroid can sit over a gap — this guarantees the
+		# smoke rises from behind a real front-bed tile (z2 = in front of the smoke).
+		# No extra bonfire (that undercut the bed); the existing tile is the backing.
+		var cx := _front_tile_near(float(z["cx"]), float(z["zx"]) - SMOKE_ZONE_W * 0.5, float(z["zx"]) + SMOKE_ZONE_W * 0.5, tw)
+		if cx < 0.0:
+			continue
 		var s := float(int(z["i"])) * 5.3 + float(floor_num) * 1.7          # STABLE per zone (no morph)
 		var frame := int(_t * SMOKE_FPS + s) % SMOKE_FRAMES
-		var cx: float = z["cx"]
-		# VARY the height a lot per plume (stable seed) so the tops sit at different Y —
-		# variance, not a row of identical stacks. The SMOKE is drawn first (behind)...
+		# VARY the height a lot per plume (stable seed) so the tops sit at different Y.
 		if big and not _smoke_long.is_empty():
 			_blit_smoke(canvas, _smoke_long[frame], 32.0, 129.0, cx, 0.55 + 0.6 * _hash01(s))
 		elif not _smoke_reg.is_empty():
 			_blit_smoke(canvas, _smoke_reg[frame], 128.0, 128.0, cx, 0.4 + 0.42 * _hash01(s))
-		# ...then a real flame is drawn IN FRONT of it (same z0, after), so the smoke can
-		# NEVER be a lone trail — it always rises from BEHIND a visible fire, even where
-		# the patchy tile bed happens to leave a gap under the plume.
-		if _bonfire_tex != null:
-			_blit_anim(canvas, _bonfire_tex, BONFIRE_PX, cx, FIRE_BASE_Y, 1.9 if big else 1.25, k, s, 1.0)
+		placed += 1
+
+
+func _front_tile_near(target: float, x0: float, x1: float, tw: float) -> float:
+	# The x (tile centre) of the nearest RENDERED front-bed tile within [x0,x1] — same
+	# condition the front bed itself draws by (burning + patch on). -1 if none.
+	var best := -1.0
+	var best_d := 1.0e9
+	var x := FIRE_MIN_X
+	while x <= FIRE_MAX_X:
+		var cx := x + tw * 0.5
+		if cx >= x0 and cx <= x1 and is_burning_at(cx) and _patch_on(x, 0.0):
+			var d := absf(cx - target)
+			if d < best_d:
+				best_d = d
+				best = cx
+		x += tw
+	return best
 
 
 func _blit_smoke(canvas: CanvasItem, tex: Texture2D, fw: float, fh: float, cx: float, sc: float) -> void:
