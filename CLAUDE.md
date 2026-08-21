@@ -294,12 +294,13 @@ means no rendering — UI layout and art still need an in-editor look.
   light warm-grey veil that eases in as more of the floor is alight; `smoke_intensity`
   still drives its strength) PLUS a FEW real **smoke-sprite plumes** rising off the
   fire (`_draw_smoke_plumes`, purchased `assets/smoke-effects-pixel-art/`): the
-  corridor is scanned in FIXED zones (`SMOKE_ZONE_W`); the zones with the MOST fire
-  smoke, each plume EMBEDDED at the centroid of that zone's burning cells (rises from
-  ON the fire, never stuck to bare wall). TYPE is fixed by STAGE so a plume never
-  morphs short↔long: a LIGHT fire's smoke is always the small `Cycled_smoke` wisp, a
-  BLAZE's always the (ceiling-safe, kept short) `Cycled_smoke_long` column; height
-  varies a little per zone by a STABLE seed. Cap 5 blaze / 3 light, drawn BEHIND the
+  corridor is scanned in FIXED zones (`SMOKE_ZONE_W`); only a DENSE zone
+  (`SMOKE_ZONE_MIN` nearly-full) smokes, so there's always real fire under the plume,
+  EMBEDDED at the centroid of that zone's burning cells with a LOW base (rises from the
+  fire bed, behind the front tiles — the tileset looks like it's burning). TYPE is
+  fixed by STAGE so a plume never morphs short↔long (LIGHT = small `Cycled_smoke` wisp,
+  BLAZE = short `Cycled_smoke_long` column), with the height varied a lot per zone by a
+  STABLE seed. Cap 4 blaze / 2 light (some spots, not everywhere), drawn BEHIND the
   player (z0). (`_draw_smoke`, the old z4 layer, stays a no-op.) **Enemies burn too**: a zombie
   (standard AND big) standing in flame catches (`on_fire` overlay) and takes burn
   DoT via `burn_tick` until it dies — same rule as the player, driven from

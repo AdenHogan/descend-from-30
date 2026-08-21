@@ -489,7 +489,7 @@ func _draw_back(canvas: CanvasItem) -> void:
 # little per zone (stable seed), and the long column is kept short enough to clear the
 # ceiling. Drawn BEHIND the player (z0) so it rises up the wall.
 const SMOKE_ZONE_W := 210.0        # scan the span in fixed zones this wide (~5 cells)
-const SMOKE_ZONE_MIN := 3          # burning cells in a zone → a patch big enough to smoke
+const SMOKE_ZONE_MIN := 4          # a DENSE zone (nearly full) → guarantees real fire under the plume
 
 
 func _draw_smoke_plumes(canvas: CanvasItem) -> void:
@@ -517,16 +517,18 @@ func _draw_smoke_plumes(canvas: CanvasItem) -> void:
 		return
 	zones.sort_custom(func(a, b): return int(a["burn"]) > int(b["burn"]))   # the BIGGEST fire smokes first
 	var big := stage >= STAGE_BLAZE
-	var cap := mini(5 if big else 3, zones.size())
+	var cap := mini(4 if big else 2, zones.size())      # SOME spots, not everywhere (no bloat)
 	for k in range(cap):
 		var z: Dictionary = zones[k]
 		var s := float(int(z["i"])) * 5.3 + float(floor_num) * 1.7          # STABLE per zone (no morph)
 		var frame := int(_t * SMOKE_FPS + s) % SMOKE_FRAMES
 		var cx: float = z["cx"]
+		# VARY the height a lot per plume (stable seed) so the tops sit at different Y —
+		# variance, not a row of identical stacks.
 		if big and not _smoke_long.is_empty():
-			_blit_smoke(canvas, _smoke_long[frame], 32.0, 129.0, cx, 0.8 + 0.35 * _hash01(s))   # shorter, ceiling-safe
+			_blit_smoke(canvas, _smoke_long[frame], 32.0, 129.0, cx, 0.55 + 0.6 * _hash01(s))
 		elif not _smoke_reg.is_empty():
-			_blit_smoke(canvas, _smoke_reg[frame], 128.0, 128.0, cx, 0.5 + 0.28 * _hash01(s))
+			_blit_smoke(canvas, _smoke_reg[frame], 128.0, 128.0, cx, 0.4 + 0.42 * _hash01(s))
 
 
 func _blit_smoke(canvas: CanvasItem, tex: Texture2D, fw: float, fh: float, cx: float, sc: float) -> void:
@@ -534,7 +536,7 @@ func _blit_smoke(canvas: CanvasItem, tex: Texture2D, fw: float, fh: float, cx: f
 		return
 	var w := fw * sc
 	var h := fh * sc
-	var base_y := FIRE_BASE_Y - 24.0                       # emerge from the top of the flames
+	var base_y := FIRE_BASE_Y - 4.0                        # rise from the fire bed, BEHIND the front tiles
 	canvas.draw_texture_rect(tex, Rect2(cx - w * 0.5, base_y - h, w, h), false, Color(1.0, 1.0, 1.0, 0.82))
 
 
@@ -560,7 +562,7 @@ func _draw_scatter_bits(canvas: CanvasItem) -> void:
 		var x := lerpf(span0 - 24.0, span1 + 24.0, _hash01(seed * 1.1))
 		# On the floor, a little LOWER than the main bed (nearer the camera), never up
 		# the wall — a small spread of extra flames the player walks behind.
-		var y := FIRE_BASE_Y + 3.0 + 7.0 * _hash01(seed * 2.7)
+		var y := FIRE_BASE_Y - 6.0 + 6.0 * _hash01(seed * 2.7)   # lifted a fraction off the UI (still below the player)
 		if _bonfire_tex != null and _hash01(seed * 3.3) > 0.5:
 			_blit_anim(canvas, _bonfire_tex, BONFIRE_PX, x, y, 0.38 + 0.32 * _hash01(seed * 4.1), k, seed, 0.9)
 		else:
@@ -577,7 +579,7 @@ func _draw_front(canvas: CanvasItem) -> void:
 	var sc := _tile_scale()
 	var target_h := 34.0 if stage >= STAGE_BLAZE else 26.0    # feet-to-waist, not to the neck
 	var bf := clampf(target_h / (float(TILE_PX) * sc), 0.06, 1.0)
-	_draw_ground_fire(canvas, FIRE_BASE_Y, 1.0, 0.0, bf, -1.0, 0.0)   # patchy (salt 0)
+	_draw_ground_fire(canvas, FIRE_BASE_Y, 1.0, -5.0, bf, -1.0, 0.0)   # patchy (salt 0); y_off -5 lifts the low front fire a fraction off the UI
 	_draw_scatter_bits(canvas)
 
 
