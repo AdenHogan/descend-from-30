@@ -15,7 +15,7 @@ extends Node2D
 const FIRE_MIN_X := 150.0
 const FIRE_MAX_X := 1200.0
 const CELL_W := 42.0
-const FIRE_BASE_Y := 420.0        # floor line the flames rise from (nudged up off the UI edge)
+const FIRE_BASE_Y := 426.0        # floor line the flames rise from (sits on the feet/bodies)
 
 const IGNITE_THRESHOLD := 0.5
 # SPREAD is a SLOW, RAGGED creep. A burning cell's heat only just outpaces a cool
@@ -481,44 +481,52 @@ func _draw_back(canvas: CanvasItem) -> void:
 
 
 # --- smoke plumes (real smoke-sprite loops rising off the fire) ----------------
-# Smoke is placed by scanning the corridor in FIXED zones and smoking any zone that
-# holds a dense-enough PATCH of fire — so plumes sit behind LARGER fire (never off on
-# their own) at STABLE positions (fixed zone centres don't jump when the fire spreads,
-# which was the F2-reload flash). A zone's burn-count sets the plume SIZE: a dense
-# zone gets a tall "long" column (Cycled_smoke_long), a lighter one a wispy "regular"
-# puff (Cycled_smoke) — so a spread fire shows SEVERAL stacks of VARYING size. Drawn
-# BEHIND the player (z0) so it rises up the wall and the player passes in front.
+# Scan the corridor in FIXED zones; the zones with the MOST fire smoke, each plume
+# EMBEDDED at the centroid of that zone's burning cells (so it rises from ON the fire,
+# never stuck to a bare patch of wall). The TYPE is fixed by STAGE — a LIGHT fire's
+# smoke is always the small `Cycled_smoke` wisp, a BLAZE's always the `Cycled_smoke_long`
+# column — so a plume is a DISTINCT thing and never morphs short↔long. Height varies a
+# little per zone (stable seed), and the long column is kept short enough to clear the
+# ceiling. Drawn BEHIND the player (z0) so it rises up the wall.
 const SMOKE_ZONE_W := 210.0        # scan the span in fixed zones this wide (~5 cells)
 const SMOKE_ZONE_MIN := 3          # burning cells in a zone → a patch big enough to smoke
-const SMOKE_ZONE_DENSE := 5        # a near-FULL zone → a TALL long column; lighter → wispy puff
 
 
 func _draw_smoke_plumes(canvas: CanvasItem) -> void:
 	if _smoke_reg.is_empty() and _smoke_long.is_empty():
 		return
-	var cap := 6 if stage >= STAGE_BLAZE else 3      # several on a blaze, a couple on a light fire
-	var placed := 0
+	# Eligible zones (enough fire), each with the CENTROID of its burning cells (= the
+	# x to rise from, so the plume sits on the fire, not off in a gap).
+	var zones: Array = []
 	var zi := 0
 	var zx := FIRE_MIN_X + SMOKE_ZONE_W * 0.5
-	while zx < FIRE_MAX_X and placed < cap:
+	while zx < FIRE_MAX_X:
 		var ca := cell_at(zx - SMOKE_ZONE_W * 0.5)
 		var cb := cell_at(zx + SMOKE_ZONE_W * 0.5)
 		var burn := 0
+		var sumx := 0.0
 		for i in range(ca, cb + 1):
 			if state_of(i) == BURNING:
 				burn += 1
+				sumx += cell_x(i)
 		if burn >= SMOKE_ZONE_MIN:
-			var seed := float(zi) * 4.73 + float(floor_num) * 1.7
-			var frame := int(_t * SMOKE_FPS + seed) % SMOKE_FRAMES
-			var cx := zx + (_hash01(seed * 1.3) - 0.5) * 44.0     # small STABLE per-zone offset
-			var dense := clampf(float(burn) / float(maxi(cb - ca + 1, 1)), 0.0, 1.0)
-			if burn >= SMOKE_ZONE_DENSE and not _smoke_long.is_empty():
-				_blit_smoke(canvas, _smoke_long[frame], 32.0, 129.0, cx, 1.0 + 0.9 * dense + 0.25 * _hash01(seed))
-			elif not _smoke_reg.is_empty():
-				_blit_smoke(canvas, _smoke_reg[frame], 128.0, 128.0, cx, 0.42 + 0.5 * dense + 0.18 * _hash01(seed))
-			placed += 1
+			zones.append({"i": zi, "burn": burn, "cx": sumx / float(burn)})
 		zx += SMOKE_ZONE_W
 		zi += 1
+	if zones.is_empty():
+		return
+	zones.sort_custom(func(a, b): return int(a["burn"]) > int(b["burn"]))   # the BIGGEST fire smokes first
+	var big := stage >= STAGE_BLAZE
+	var cap := mini(5 if big else 3, zones.size())
+	for k in range(cap):
+		var z: Dictionary = zones[k]
+		var s := float(int(z["i"])) * 5.3 + float(floor_num) * 1.7          # STABLE per zone (no morph)
+		var frame := int(_t * SMOKE_FPS + s) % SMOKE_FRAMES
+		var cx: float = z["cx"]
+		if big and not _smoke_long.is_empty():
+			_blit_smoke(canvas, _smoke_long[frame], 32.0, 129.0, cx, 0.8 + 0.35 * _hash01(s))   # shorter, ceiling-safe
+		elif not _smoke_reg.is_empty():
+			_blit_smoke(canvas, _smoke_reg[frame], 128.0, 128.0, cx, 0.5 + 0.28 * _hash01(s))
 
 
 func _blit_smoke(canvas: CanvasItem, tex: Texture2D, fw: float, fh: float, cx: float, sc: float) -> void:
@@ -546,7 +554,7 @@ func _draw_scatter_bits(canvas: CanvasItem) -> void:
 			span1 = maxf(span1, cell_x(i))
 	if span1 < span0:
 		return
-	var n := 5 if stage >= STAGE_BLAZE else 3      # fewer, so they don't pile up on the bed
+	var n := 9 if stage >= STAGE_BLAZE else 6      # fuller scatter (reverted the thinning)
 	for k in range(n):
 		var seed := float(k) * 7.31 + float(floor_num) * 1.9
 		var x := lerpf(span0 - 24.0, span1 + 24.0, _hash01(seed * 1.1))
