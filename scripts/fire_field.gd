@@ -278,11 +278,15 @@ const TILE_PX := 32
 const BONFIRE_PX := 64              # "1 Fire" frame size (big bonfire flame)
 const TILE_FRAMES := 6
 const TILE_FPS := 12.0
+const SMOKE_FRAMES := 6
+const SMOKE_FPS := 8.0
 const CHAR_COL := Color(0.09, 0.08, 0.08)
 const FIRE_LAYER := preload("res://scripts/fire_layer.gd")
 var _tile_tex: Array = []           # Fire_tiles variants (folder 2) — the floor bed
 var _flame_tex: Array = []          # Flame variants (folder 3) — mid single flames
 var _bonfire_tex: Texture2D = null  # 1 Fire/Idle (folder 1) — big tall bonfire
+var _smoke_reg: Array = []          # Cycled_smoke (128²) — a wispy plume for smaller patches
+var _smoke_long: Array = []         # Cycled_smoke_long (32×129) — tall column for big patches
 
 
 func _load_fire_textures() -> void:
@@ -295,6 +299,14 @@ func _load_fire_textures() -> void:
 		if fl != null:
 			_flame_tex.append(fl)
 	_bonfire_tex = load(base + "1 Fire/Idle.png")
+	var sm := "res://assets/smoke-effects-pixel-art/PNG/"
+	for i in range(1, SMOKE_FRAMES + 1):
+		var r = load(sm + "Cycled_smoke/Cycled_smoke%d.png" % i)
+		if r != null:
+			_smoke_reg.append(r)
+		var lg = load(sm + "Cycled_smoke_long/Cycled_smoke_long%d.png" % i)
+		if lg != null:
+			_smoke_long.append(lg)
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST   # crisp pixels, no blur
 
 
@@ -465,6 +477,82 @@ func _draw_back(canvas: CanvasItem) -> void:
 	# straight across it); the extra patch_carve breaks up its line into clumps.
 	_draw_ground_fire(canvas, BACK_SEAM_Y, 0.9, 0.0, 0.6, _tile_scale() * 0.58, 7.0, true, 0.14)
 	_draw_tall_flames(canvas)
+	_draw_smoke_plumes(canvas)
+
+
+# --- smoke plumes (real smoke-sprite loops rising off the biggest fire) --------
+# A FEW smoke columns only — placed at the LARGEST contiguous burning clusters and
+# sized by how big each is: a big patch gets a tall "long" column (Cycled_smoke_long),
+# a smaller patch a wispy "regular" puff (Cycled_smoke). Capped low so it's atmosphere,
+# never an overwhelming smokescreen. Drawn BEHIND the player (z0) so it rises up the
+# wall and the player passes in front.
+const SMOKE_MIN_CLUSTER := 2       # a burning run must be at least this many cells to smoke
+const SMOKE_BIG_CLUSTER := 4       # this big or more → a tall "long" column
+
+
+func _find_clusters() -> Array:
+	# Contiguous runs of BURNING cells → {a, b, size}. The biggest = the largest fire.
+	var out: Array = []
+	var i := 0
+	while i < cell_count:
+		if state_of(i) == BURNING:
+			var j := i
+			while j < cell_count and state_of(j) == BURNING:
+				j += 1
+			out.append({"a": i, "b": j - 1, "size": j - i})
+			i = j
+		else:
+			i += 1
+	return out
+
+
+const SMOKE_SPACING := 280.0       # tall columns are placed no closer than this apart
+
+
+func _draw_smoke_plumes(canvas: CanvasItem) -> void:
+	if _smoke_reg.is_empty() and _smoke_long.is_empty():
+		return
+	var clusters := _find_clusters()
+	if clusters.is_empty():
+		return
+	clusters.sort_custom(func(a, b): return int(a["size"]) > int(b["size"]))
+	# TALL "long" columns are only for a big BLAZE; a small LIGHT outbreak gets a
+	# single wispy "regular" puff. Kept sparse either way (atmosphere, not a wall).
+	var big_fire := stage >= STAGE_BLAZE
+	var max_plumes := 3 if big_fire else 1
+	var drawn := 0
+	for cl in clusters:
+		if drawn >= max_plumes:
+			break
+		if int(cl["size"]) < SMOKE_MIN_CLUSTER:
+			continue
+		var a := cell_x(int(cl["a"]))
+		var b := cell_x(int(cl["b"]))
+		if big_fire and int(cl["size"]) >= SMOKE_BIG_CLUSTER and not _smoke_long.is_empty():
+			# A wide blaze cluster gets tall columns SPREAD along it (not one lone stack).
+			var px := a + 70.0
+			while px <= b and drawn < max_plumes:
+				var s1 := px * 0.7 + float(floor_num)
+				var f1 := int(_t * SMOKE_FPS + s1 * 2.0) % SMOKE_FRAMES
+				_blit_smoke(canvas, _smoke_long[f1], 32.0, 129.0, px, 1.3 + 0.4 * _hash01(s1))
+				drawn += 1
+				px += SMOKE_SPACING
+		elif not _smoke_reg.is_empty():
+			# Smaller patch: one wispy puff at its centre.
+			var cx := (a + b) * 0.5
+			var s2 := float(int(cl["a"])) * 3.1 + float(floor_num)
+			var f2 := int(_t * SMOKE_FPS + s2 * 2.0) % SMOKE_FRAMES
+			_blit_smoke(canvas, _smoke_reg[f2], 128.0, 128.0, cx, 0.5 + 0.28 * _hash01(s2))
+			drawn += 1
+
+
+func _blit_smoke(canvas: CanvasItem, tex: Texture2D, fw: float, fh: float, cx: float, sc: float) -> void:
+	if tex == null:
+		return
+	var w := fw * sc
+	var h := fh * sc
+	var base_y := FIRE_BASE_Y - 24.0                       # emerge from the top of the flames
+	canvas.draw_texture_rect(tex, Rect2(cx - w * 0.5, base_y - h, w, h), false, Color(1.0, 1.0, 1.0, 0.82))
 
 
 func _draw_scatter_bits(canvas: CanvasItem) -> void:

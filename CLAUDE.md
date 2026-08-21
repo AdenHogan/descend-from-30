@@ -292,8 +292,13 @@ means no rendering — UI layout and art still need an in-editor look.
   ATMOSPHERE ONLY** (reworked): no crouch, no choke damage, no world-space smoke
   clouds — just a subtle, gradual, washed-out screen HAZE (`HUD.set_smoke_fog`, a
   light warm-grey veil that eases in as more of the floor is alight; `smoke_intensity`
-  still drives its strength). `_draw_smoke` is a no-op; proper smoke art will slot in
-  later. **Enemies burn too**: a zombie
+  still drives its strength) PLUS a FEW real **smoke-sprite plumes** rising off the
+  fire (`_draw_smoke_plumes`, purchased `assets/smoke-effects-pixel-art/`): the
+  largest contiguous burning clusters get smoke sized by the patch — a big BLAZE
+  cluster gets tall `Cycled_smoke_long` columns spread along it (max 3), a smaller
+  LIGHT patch a single wispy `Cycled_smoke` puff — drawn BEHIND the player (z0), kept
+  sparse so it's atmosphere not a smokescreen. (`_draw_smoke`, the old z4 layer, stays
+  a no-op.) **Enemies burn too**: a zombie
   (standard AND big) standing in flame catches (`on_fire` overlay) and takes burn
   DoT via `burn_tick` until it dies — same rule as the player, driven from
   `building_floors._process` where `on_fire` is set. **Render**: the flames are the
