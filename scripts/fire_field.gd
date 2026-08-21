@@ -15,7 +15,7 @@ extends Node2D
 const FIRE_MIN_X := 150.0
 const FIRE_MAX_X := 1200.0
 const CELL_W := 42.0
-const FIRE_BASE_Y := 426.0        # floor line the flames rise from (sits on the feet/bodies)
+const FIRE_BASE_Y := 420.0        # floor line the flames rise from (nudged up off the UI edge)
 
 const IGNITE_THRESHOLD := 0.5
 # SPREAD is a SLOW, RAGGED creep. A burning cell's heat only just outpaces a cool
@@ -480,70 +480,45 @@ func _draw_back(canvas: CanvasItem) -> void:
 	_draw_smoke_plumes(canvas)
 
 
-# --- smoke plumes (real smoke-sprite loops rising off the biggest fire) --------
-# A FEW smoke columns only — placed at the LARGEST contiguous burning clusters and
-# sized by how big each is: a big patch gets a tall "long" column (Cycled_smoke_long),
-# a smaller patch a wispy "regular" puff (Cycled_smoke). Capped low so it's atmosphere,
-# never an overwhelming smokescreen. Drawn BEHIND the player (z0) so it rises up the
-# wall and the player passes in front.
-const SMOKE_MIN_CLUSTER := 2       # a burning run must be at least this many cells to smoke
-const SMOKE_BIG_CLUSTER := 4       # this big or more → a tall "long" column
-
-
-func _find_clusters() -> Array:
-	# Contiguous runs of BURNING cells → {a, b, size}. The biggest = the largest fire.
-	var out: Array = []
-	var i := 0
-	while i < cell_count:
-		if state_of(i) == BURNING:
-			var j := i
-			while j < cell_count and state_of(j) == BURNING:
-				j += 1
-			out.append({"a": i, "b": j - 1, "size": j - i})
-			i = j
-		else:
-			i += 1
-	return out
-
-
-const SMOKE_SPACING := 280.0       # tall columns are placed no closer than this apart
+# --- smoke plumes (real smoke-sprite loops rising off the fire) ----------------
+# Smoke is placed by scanning the corridor in FIXED zones and smoking any zone that
+# holds a dense-enough PATCH of fire — so plumes sit behind LARGER fire (never off on
+# their own) at STABLE positions (fixed zone centres don't jump when the fire spreads,
+# which was the F2-reload flash). A zone's burn-count sets the plume SIZE: a dense
+# zone gets a tall "long" column (Cycled_smoke_long), a lighter one a wispy "regular"
+# puff (Cycled_smoke) — so a spread fire shows SEVERAL stacks of VARYING size. Drawn
+# BEHIND the player (z0) so it rises up the wall and the player passes in front.
+const SMOKE_ZONE_W := 210.0        # scan the span in fixed zones this wide (~5 cells)
+const SMOKE_ZONE_MIN := 3          # burning cells in a zone → a patch big enough to smoke
+const SMOKE_ZONE_DENSE := 5        # a near-FULL zone → a TALL long column; lighter → wispy puff
 
 
 func _draw_smoke_plumes(canvas: CanvasItem) -> void:
 	if _smoke_reg.is_empty() and _smoke_long.is_empty():
 		return
-	var clusters := _find_clusters()
-	if clusters.is_empty():
-		return
-	clusters.sort_custom(func(a, b): return int(a["size"]) > int(b["size"]))
-	# TALL "long" columns are only for a big BLAZE; a small LIGHT outbreak gets a
-	# single wispy "regular" puff. Kept sparse either way (atmosphere, not a wall).
-	var big_fire := stage >= STAGE_BLAZE
-	var max_plumes := 3 if big_fire else 1
-	var drawn := 0
-	for cl in clusters:
-		if drawn >= max_plumes:
-			break
-		if int(cl["size"]) < SMOKE_MIN_CLUSTER:
-			continue
-		var a := cell_x(int(cl["a"]))
-		var b := cell_x(int(cl["b"]))
-		if big_fire and int(cl["size"]) >= SMOKE_BIG_CLUSTER and not _smoke_long.is_empty():
-			# A wide blaze cluster gets tall columns SPREAD along it (not one lone stack).
-			var px := a + 70.0
-			while px <= b and drawn < max_plumes:
-				var s1 := px * 0.7 + float(floor_num)
-				var f1 := int(_t * SMOKE_FPS + s1 * 2.0) % SMOKE_FRAMES
-				_blit_smoke(canvas, _smoke_long[f1], 32.0, 129.0, px, 1.3 + 0.4 * _hash01(s1))
-				drawn += 1
-				px += SMOKE_SPACING
-		elif not _smoke_reg.is_empty():
-			# Smaller patch: one wispy puff at its centre.
-			var cx := (a + b) * 0.5
-			var s2 := float(int(cl["a"])) * 3.1 + float(floor_num)
-			var f2 := int(_t * SMOKE_FPS + s2 * 2.0) % SMOKE_FRAMES
-			_blit_smoke(canvas, _smoke_reg[f2], 128.0, 128.0, cx, 0.5 + 0.28 * _hash01(s2))
-			drawn += 1
+	var cap := 6 if stage >= STAGE_BLAZE else 3      # several on a blaze, a couple on a light fire
+	var placed := 0
+	var zi := 0
+	var zx := FIRE_MIN_X + SMOKE_ZONE_W * 0.5
+	while zx < FIRE_MAX_X and placed < cap:
+		var ca := cell_at(zx - SMOKE_ZONE_W * 0.5)
+		var cb := cell_at(zx + SMOKE_ZONE_W * 0.5)
+		var burn := 0
+		for i in range(ca, cb + 1):
+			if state_of(i) == BURNING:
+				burn += 1
+		if burn >= SMOKE_ZONE_MIN:
+			var seed := float(zi) * 4.73 + float(floor_num) * 1.7
+			var frame := int(_t * SMOKE_FPS + seed) % SMOKE_FRAMES
+			var cx := zx + (_hash01(seed * 1.3) - 0.5) * 44.0     # small STABLE per-zone offset
+			var dense := clampf(float(burn) / float(maxi(cb - ca + 1, 1)), 0.0, 1.0)
+			if burn >= SMOKE_ZONE_DENSE and not _smoke_long.is_empty():
+				_blit_smoke(canvas, _smoke_long[frame], 32.0, 129.0, cx, 1.0 + 0.9 * dense + 0.25 * _hash01(seed))
+			elif not _smoke_reg.is_empty():
+				_blit_smoke(canvas, _smoke_reg[frame], 128.0, 128.0, cx, 0.42 + 0.5 * dense + 0.18 * _hash01(seed))
+			placed += 1
+		zx += SMOKE_ZONE_W
+		zi += 1
 
 
 func _blit_smoke(canvas: CanvasItem, tex: Texture2D, fw: float, fh: float, cx: float, sc: float) -> void:
@@ -571,7 +546,7 @@ func _draw_scatter_bits(canvas: CanvasItem) -> void:
 			span1 = maxf(span1, cell_x(i))
 	if span1 < span0:
 		return
-	var n := 9 if stage >= STAGE_BLAZE else 6
+	var n := 5 if stage >= STAGE_BLAZE else 3      # fewer, so they don't pile up on the bed
 	for k in range(n):
 		var seed := float(k) * 7.31 + float(floor_num) * 1.9
 		var x := lerpf(span0 - 24.0, span1 + 24.0, _hash01(seed * 1.1))

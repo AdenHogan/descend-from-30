@@ -294,11 +294,13 @@ means no rendering — UI layout and art still need an in-editor look.
   light warm-grey veil that eases in as more of the floor is alight; `smoke_intensity`
   still drives its strength) PLUS a FEW real **smoke-sprite plumes** rising off the
   fire (`_draw_smoke_plumes`, purchased `assets/smoke-effects-pixel-art/`): the
-  largest contiguous burning clusters get smoke sized by the patch — a big BLAZE
-  cluster gets tall `Cycled_smoke_long` columns spread along it (max 3), a smaller
-  LIGHT patch a single wispy `Cycled_smoke` puff — drawn BEHIND the player (z0), kept
-  sparse so it's atmosphere not a smokescreen. (`_draw_smoke`, the old z4 layer, stays
-  a no-op.) **Enemies burn too**: a zombie
+  corridor is scanned in FIXED zones (`SMOKE_ZONE_W`) and any zone holding a dense
+  enough PATCH of fire smokes — at its FIXED centre (stable, so it doesn't jump when
+  the fire spreads, which was the F2-reload flash), sized by the zone's burn-count: a
+  near-full zone gets a tall `Cycled_smoke_long` column, a lighter one a wispy
+  `Cycled_smoke` puff. So a spread fire shows SEVERAL stacks of VARYING size (cap 6
+  blaze / 3 light) behind LARGER fire, never a lone plume off on its own; drawn BEHIND
+  the player (z0). (`_draw_smoke`, the old z4 layer, stays a no-op.) **Enemies burn too**: a zombie
   (standard AND big) standing in flame catches (`on_fire` overlay) and takes burn
   DoT via `burn_tick` until it dies — same rule as the player, driven from
   `building_floors._process` where `on_fire` is set. **Render**: the flames are the
