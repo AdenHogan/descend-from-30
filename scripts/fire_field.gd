@@ -340,11 +340,14 @@ func _variant_for(pool_size: int, salt: float) -> int:
 # line. A low-frequency seeded mask turns the bed on/off in runs ~PATCH_CLUMP wide;
 # a different `salt` per layer means the front bed, back bed and tall flames gap in
 # DIFFERENT places, so the whole thing reads as scattered clumps of fire.
-const PATCH_CLUMP := 120.0
+const PATCH_CLUMP := 92.0
 
 
 func _patch_on(x: float, salt: float) -> bool:
-	return _hash01(floori(x / PATCH_CLUMP) * 3.17 + salt + float(floor_num) * 0.7) > 0.36
+	# A run-1 LIGHT outbreak carves up HARDER (more gaps) so it reads as a scattered
+	# breakout, not a lengthy strip; a full BLAZE is denser.
+	var thresh := 0.46 if stage < STAGE_BLAZE else 0.36
+	return _hash01(floori(x / PATCH_CLUMP) * 3.17 + salt + float(floor_num) * 0.7) > thresh
 
 
 func _draw_ground_fire(canvas: CanvasItem, base_y: float, alpha: float, y_off: float, bottom_frac: float = 1.0, sc_override: float = -1.0, patch_salt: float = -1.0) -> void:
@@ -430,7 +433,7 @@ func _draw() -> void:
 # The floor-to-wall seam sits a little above the front floor line; a smaller fire
 # bed runs along it BEHIND the player, so the fire recedes toward the back wall
 # (depth). This offset places it ON the seam — tune if the wall art moves.
-const BACK_SEAM_Y := FIRE_BASE_Y - 14.0
+const BACK_SEAM_Y := FIRE_BASE_Y - 6.0
 
 
 func _draw_back(canvas: CanvasItem) -> void:
@@ -443,6 +446,37 @@ func _draw_back(canvas: CanvasItem) -> void:
 	# front bed so the gaps don't line up.
 	_draw_ground_fire(canvas, BACK_SEAM_Y, 0.9, 0.0, 0.6, _tile_scale() * 0.58, 7.0)
 	_draw_tall_flames(canvas)
+	_draw_scatter_bits(canvas)
+
+
+func _draw_scatter_bits(canvas: CanvasItem) -> void:
+	# Pepper small RESIZED fragments of fire around the outbreak — bonfire bits
+	# (folder 1) and tile chunks (folder 2) — some on the floor, a few up on the wall,
+	# to break up the strip and make the breakout look scattered/organic. Behind the
+	# player (z0). Seeded, so they're stable per floor.
+	if _tile_tex.is_empty() and _bonfire_tex == null:
+		return
+	var span0 := FIRE_MAX_X
+	var span1 := FIRE_MIN_X
+	for i in range(cell_count):
+		if state_of(i) == BURNING:
+			span0 = minf(span0, cell_x(i))
+			span1 = maxf(span1, cell_x(i))
+	if span1 < span0:
+		return
+	var n := 9 if stage >= STAGE_BLAZE else 6
+	for k in range(n):
+		var seed := float(k) * 7.31 + float(floor_num) * 1.9
+		var x := lerpf(span0 - 24.0, span1 + 24.0, _hash01(seed * 1.1))
+		# Keep bits LOW — near the floor and only creeping a little way up the wall — so
+		# they complement the outbreak without floating in mid-air at head height.
+		var up := _hash01(seed * 2.7)
+		var y := FIRE_BASE_Y - up * up * 40.0
+		if _bonfire_tex != null and _hash01(seed * 3.3) > 0.5:
+			_blit_anim(canvas, _bonfire_tex, BONFIRE_PX, x, y, 0.38 + 0.32 * _hash01(seed * 4.1), k, seed, 0.9)
+		else:
+			var tex: Texture2D = _tile_tex[int(_hash01(seed * 5.3) * float(_tile_tex.size())) % _tile_tex.size()]
+			_blit_anim(canvas, tex, TILE_PX, x, y, 0.7 + 0.6 * _hash01(seed * 6.1), k, seed, 0.9)
 
 
 func _draw_front(canvas: CanvasItem) -> void:

@@ -33,6 +33,7 @@ func _ready() -> void:
 	WorldState.is_first_run = true
 	await _test_rehome_lands_at_origin()
 	await _test_go_live_wakes_everything()
+	await _test_go_live_spawns_fire()
 	print("=== %s (%d failures) ===" % ["ALL PASSED" if fails == 0 else "FAILED", fails])
 	get_tree().quit(1 if fails > 0 else 0)
 
@@ -77,6 +78,40 @@ func _test_rehome_lands_at_origin() -> void:
 	backdrop.free()
 	holder.free()
 	await get_tree().process_frame
+
+
+func _test_go_live_spawns_fire() -> void:
+	# The seamless stair PAN builds the destination as a PASSIVE backdrop, which skips
+	# every live hazard, then promotes it with go_live(). go_live MUST spawn the fire
+	# (it used to not — arriving via stairs left a fire floor with no fire, while an
+	# apartment round-trip via the fade path was fine). Force a fire floor and prove
+	# the woken backdrop carries a fire field.
+	print("[go_live spawns the fire on a fire floor]")
+	WorldState.new_game()
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_FIRE   # every floor is on fire
+	var f := 24
+	chk(WorldState.is_stair_fire(f), "test floor is on fire")
+	var backdrop = load("res://scenes/building_floors.tscn").instantiate()
+	backdrop.setup_floor = f
+	backdrop.passive = true
+	add_child(backdrop)
+	for i in range(3): await get_tree().process_frame
+	# Passive build skipped the fire — no field yet.
+	var fires_before := 0
+	for n in get_tree().get_nodes_in_group("fire_field"):
+		if backdrop.is_ancestor_of(n):
+			fires_before += 1
+	chk(fires_before == 0, "passive backdrop has NO fire yet (%d)" % fires_before)
+	backdrop.go_live()
+	await get_tree().process_frame
+	var fires_after := 0
+	for n in get_tree().get_nodes_in_group("fire_field"):
+		if backdrop.is_ancestor_of(n):
+			fires_after += 1
+	chk(fires_after == 1, "go_live spawned the fire on the fire floor (%d)" % fires_after)
+	backdrop.free()
+	await get_tree().process_frame
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
 
 
 func _test_go_live_wakes_everything() -> void:

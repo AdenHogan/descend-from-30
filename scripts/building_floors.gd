@@ -419,11 +419,12 @@ func _spawn_door_fire(floor_num: int) -> void:
 		if door == null:
 			continue
 		var dx: float = door.global_position.x
-		# Flames climb the two EDGES of the door frame only — NOT a big glob dead-centre
-		# in the doorway (that blocked the door and looked strange to walk through). The
-		# doorway stays clear so the player can still see and enter the room.
-		_add_door_flame(flame3, 32, dx - 32.0, 44.0, 96.0, 1.3)     # left frame lick
-		_add_door_flame(flame3, 32, dx + 32.0, 44.0, 96.0, 2.6)     # right frame lick
+		# SMALL flames hugging the base of each door edge, licking a little way UP the
+		# frame — like the frame is catching. NOT tall torch pillars flanking the door
+		# (that looked like a nightclub entrance). Kept low + tight to the frame so the
+		# door stays clearly visible and enterable.
+		_add_door_flame(flame3, 32, dx - 26.0, 30.0, 46.0, 1.3)     # left frame lick (low)
+		_add_door_flame(flame3, 32, dx + 26.0, 30.0, 46.0, 2.6)     # right frame lick (low)
 
 
 func _add_door_flame(tex, frame_px: int, x: float, w: float, h: float, phase: float) -> void:
@@ -683,10 +684,21 @@ func go_live() -> void:
 		return
 	passive = false
 	var floor_num = setup_floor if setup_floor >= 0 else WorldState.current_floor
+	_built_floor = floor_num
 	_restore_dormant()
 	_apply_stair_visuals()        # arrival direction is only final now
 	_enable_stair_triggers()
 	_wake_scenery_zombies()
+	# The PASSIVE backdrop build skipped every live hazard (they sit after the
+	# `if passive: return` in _ready), so arriving via the seamless stair PAN left a
+	# floor with NO fire / barricades / hordes — that was the "fire gone after stairs"
+	# bug (apartments use the fade path, which runs the full _ready, so they were
+	# fine). Spawn them here on adoption, same as a fresh build would. _spawn_fire
+	# re-imports the saved spread, so the fire comes back exactly as it was left.
+	_spawn_barricade_visuals(floor_num)
+	_spawn_stair_hordes(floor_num)
+	_spawn_fire(floor_num)
+	_spawn_door_fire(floor_num)
 	_spawn_merchant(floor_num)
 
 

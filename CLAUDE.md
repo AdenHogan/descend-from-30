@@ -234,11 +234,15 @@ means no rendering — UI layout and art still need an in-editor look.
   world clicks, now IGNORE (click_move_test clicks *through* the dialogue box).
   Fade transitions (`Transition` autoload) on door enter/exit + stairs +
   lobby; **depth approach-walk** (`player.approach_door`/`knock_door` — steps
-  up toward a door before the fade). Seamless stair pan: **groundwork built +
-  tested** — `building_floors` takes `setup_floor`/`passive` to build any
-  floor as a backdrop; `StairPan` autoload scaffolds the two-floor camera pan
-  but is **DISABLED** (needs in-editor feel-tuning; stairs use the fade until
-  then).
+  up toward a door before the fade). Seamless stair pan: **ENABLED**
+  (`stair_pan.gd` `ENABLED = true`) — stairs between floors 1–29 pan between two
+  contiguous floors instead of a fade. `building_floors` takes `setup_floor`/`passive`
+  to build the destination as a backdrop, then `go_live()` promotes it. **Gotcha**:
+  the passive build skips everything after `if passive: return` in `_ready` (fire,
+  barricades, hordes, door-fire, merchant), so `go_live` MUST re-spawn those — any
+  new live-only floor content added to `_ready` needs a matching call in `go_live`
+  or it'll be missing when you arrive by stairs (but present via the fade/apartment
+  path). Lobby (0) and hallway (30) still use the plain fade.
 - Stairwell **barricades** + Crowbar (docs/STAIR_BARRICADES.md, v1): some
   stairwells are barricaded with debris and can't be fought — they're pried
   through with a **Crowbar (035)** (new `is_tool, is_crowbar` item, single-use/
@@ -308,10 +312,13 @@ means no rendering — UI layout and art still need an in-editor look.
   as a small ~7-cell patch (persists but never consumes the floor); a run-2+ BLAZE
   caps ~26 (creeps toward floor-wide). Escalation is across RUNS, not within one.
   **Fire memory** is snapshotted PERIODICALLY (every ~0.6s in `_process`) under
-  `_built_floor` (the floor THIS scene built) — NOT `current_floor`, which a stair
-  transition advances to the destination before the old floor frees; the
-  `_exit_tree`-only save proved unreliable across stairs (fire came back empty), so
-  the periodic snapshot is the reliable path, re-imported by `_spawn_fire` on return.
+  `_built_floor`, re-imported by `_spawn_fire` on return. **Crucial**: the seamless
+  stair pan (`stair_pan.gd`, `ENABLED = true`) builds the destination floor as a
+  PASSIVE backdrop — which skips EVERY live hazard (they sit after `if passive:
+  return` in `_ready`) — then promotes it with `go_live()`. So `go_live` must itself
+  spawn fire/barricades/hordes/door-fire (it now does); without that, arriving via
+  stairs left a fire floor with NO fire, while an apartment round-trip (the fade
+  path, full `_ready`) was fine. Locked by `floor_adopt_test`.
   **Door fire**: a burning apartment's door has flames climbing the two FRAME EDGES
   only (`building_floors._spawn_door_fire` + `fire_decal.gd`, folder 3), at z0 behind
   the player — the doorway itself stays clear so the door is visible/enterable (a big
