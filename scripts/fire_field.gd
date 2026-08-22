@@ -517,7 +517,7 @@ func _draw_smoke_plumes(canvas: CanvasItem) -> void:
 		return
 	zones.sort_custom(func(a, b): return int(a["burn"]) > int(b["burn"]))   # the BIGGEST fire smokes first
 	var big := stage >= STAGE_BLAZE
-	var cap := mini(4 if big else 2, zones.size())      # SOME spots, not everywhere (no bloat)
+	var cap := mini(5 if big else 3, zones.size())      # SOME spots, not everywhere (no bloat)
 	var tw := float(TILE_PX) * _tile_scale()
 	var placed := 0
 	for z in zones:
@@ -562,7 +562,7 @@ func _blit_smoke(canvas: CanvasItem, tex: Texture2D, fw: float, fh: float, cx: f
 		return
 	var w := fw * sc
 	var h := fh * sc
-	var base_y := FIRE_BASE_Y - 4.0                        # rise from the fire bed, BEHIND the front tiles
+	var base_y := FIRE_BASE_Y - 14.0                       # rise from the fire bed, a touch higher for visibility but still BEHIND the front tiles (bed spans ~395..421)
 	canvas.draw_texture_rect(tex, Rect2(cx - w * 0.5, base_y - h, w, h), false, Color(1.0, 1.0, 1.0, 0.82))
 
 
