@@ -12,8 +12,8 @@ const MODE_SWITCH_TIME = 0.2
 const DEV_MODE = true
 # F1 item spawning is now a typed prompt (dev_item_prompt.gd) — pick any item by
 # number instead of cycling. F2 (dev_force_hazards) CYCLES floor hazards one at a
-# time (WorldState.dev_hazard_mode: off → barricades → hordes → fire → off); only
-# barricades is built so far, so each can be tested in a vacuum without overlap.
+# time (WorldState.dev_hazard_mode: off → barricades → hordes → fire lv1 → fire lv2
+# → off), so each can be tested in a vacuum without overlap.
 
 # Stamina
 const STAMINA_SPRINT_DRAIN = 12.0
@@ -913,23 +913,26 @@ func _input(event: InputEvent) -> void:
 			HUD.show_feedback("DEV: God Mode " + ("ON" if WorldState.god_mode else "OFF"))
 		elif event.is_action_pressed("dev_force_hazards"):
 			# DEV (F2): CYCLE floor hazards one at a time so they never overlap —
-			# off → barricades → hordes → fire → off — then REBUILD the current floor
-			# so the new hazard applies right here, on both stairwells, immediately.
-			# Barricade props self-sync live, but hordes (live zombies) and fire
-			# fields are only spawned in building_floors._ready, so without a reload a
+			# off → barricades → hordes → fire lv1 → fire lv2 → off — then REBUILD the
+			# current floor so the new hazard applies right here, on both stairwells,
+			# immediately. Barricade props self-sync live, but hordes (live zombies) and
+			# fire fields are only spawned in building_floors._ready, so without a reload a
 			# toggle to hordes/fire shows nothing until you cross to the next floor.
 			WorldState.dev_hazard_mode = (WorldState.dev_hazard_mode + 1) % WorldState.DEV_HAZARD_COUNT
 			var m = WorldState.dev_hazard_mode
-			# Dev FIRE seeds a SINGLE origin on THIS floor, spreading out by run like a
-			# real outbreak (F8 to advance the run and watch it climb to neighbours).
-			WorldState.dev_fire_origin = WorldState.current_floor if m == WorldState.DEV_HAZARD_FIRE else -1
+			# Dev FIRE (both levels) seeds a SINGLE origin on THIS floor; the level is the
+			# scroll step itself — lv1 = origin LIGHT, lv2 = origin BLAZE + neighbours LIGHT.
+			var is_fire_mode := m == WorldState.DEV_HAZARD_FIRE or m == WorldState.DEV_HAZARD_FIRE2
+			WorldState.dev_fire_origin = WorldState.current_floor if is_fire_mode else -1
 			var msg: String
 			if m == WorldState.DEV_HAZARD_NONE:
 				msg = "DEV: Hazards off (seed defaults)"
 			elif m in WorldState.DEV_HAZARD_UNBUILT:
 				msg = "DEV: Hazard → %s (not built yet)" % WorldState.DEV_HAZARD_NAMES[m]
 			elif m == WorldState.DEV_HAZARD_FIRE:
-				msg = "DEV: Fire origin on floor %d (F8 to spread across runs)" % WorldState.current_floor
+				msg = "DEV: Fire lv1 (LIGHT) on floor %d" % WorldState.current_floor
+			elif m == WorldState.DEV_HAZARD_FIRE2:
+				msg = "DEV: Fire lv2 (BLAZE) on floor %d + neighbours LIGHT" % WorldState.current_floor
 			else:
 				msg = "DEV: Hazard → %s (every floor)" % WorldState.DEV_HAZARD_NAMES[m]
 			# Rebuild the floor so the new hazard applies right here — but ONLY on the

@@ -360,9 +360,12 @@ func _test_exclusivity() -> void:
 
 
 func _test_dev_mode() -> void:
-	print("[dev FIRE cycle]")
+	print("[dev FIRE scroll (F2 lv1/lv2)]")
 	WorldState.master_seed = 1337
-	WorldState.current_run = 1
+	# The dev fire LEVEL is the F2 scroll step, NOT the run counter — so the level
+	# holds no matter which run we're on (F8/advance-run is not needed and is avoided,
+	# it being Godot's editor Stop). Pin an off-1 run to prove independence.
+	WorldState.current_run = 3
 	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_FIRE
 	WorldState.dev_fire_origin = 15               # F2 pressed on floor 15
 	# Dev fire suppresses the other hazards everywhere.
@@ -371,20 +374,17 @@ func _test_dev_mode() -> void:
 		if WorldState.is_stair_blocked(f) or WorldState.is_stair_horde(f):
 			other = true
 	check(not other, "dev fire mode suppresses barricades and hordes")
-	# Run 1: ONLY the origin burns (LIGHT); its neighbours do NOT.
-	check(WorldState.fire_intensity(15) == WorldState.FIRE_LIGHT, "run 1: origin is LIGHT")
-	check(not WorldState.is_stair_fire(14) and not WorldState.is_stair_fire(16), "run 1: neighbours are NOT on fire")
-	check(not WorldState.is_stair_fire(20), "run 1: a far floor is NOT on fire")
-	# Run 2: origin BLAZE, both neighbours LIGHT, two-out still clear.
-	WorldState.current_run = 2
-	check(WorldState.fire_intensity(15) == WorldState.FIRE_BLAZE, "run 2: origin is BLAZE")
-	check(WorldState.fire_intensity(14) == WorldState.FIRE_LIGHT and WorldState.fire_intensity(16) == WorldState.FIRE_LIGHT, "run 2: neighbours catch at LIGHT")
-	check(not WorldState.is_stair_fire(13) and not WorldState.is_stair_fire(17), "run 2: two floors out still clear")
-	# Run 3: origin CHARRED, neighbours BLAZE, two-out LIGHT.
-	WorldState.current_run = 3
-	check(WorldState.fire_intensity(15) == WorldState.FIRE_CHARRED, "run 3: origin is CHARRED")
-	check(WorldState.fire_intensity(14) == WorldState.FIRE_BLAZE and WorldState.fire_intensity(16) == WorldState.FIRE_BLAZE, "run 3: neighbours are BLAZE")
-	check(WorldState.fire_intensity(13) == WorldState.FIRE_LIGHT and WorldState.fire_intensity(17) == WorldState.FIRE_LIGHT, "run 3: two floors out are LIGHT")
+	# lv1 (DEV_HAZARD_FIRE): ONLY the origin burns (LIGHT); its neighbours do NOT.
+	check(WorldState.fire_intensity(15) == WorldState.FIRE_LIGHT, "lv1: origin is LIGHT")
+	check(not WorldState.is_stair_fire(14) and not WorldState.is_stair_fire(16), "lv1: neighbours are NOT on fire")
+	check(not WorldState.is_stair_fire(20), "lv1: a far floor is NOT on fire")
+	# lv2 (DEV_HAZARD_FIRE2): origin BLAZE, both neighbours LIGHT, two-out still clear.
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_FIRE2
+	check(WorldState.fire_intensity(15) == WorldState.FIRE_BLAZE, "lv2: origin is BLAZE")
+	check(WorldState.fire_intensity(14) == WorldState.FIRE_LIGHT and WorldState.fire_intensity(16) == WorldState.FIRE_LIGHT, "lv2: neighbours catch at LIGHT")
+	check(not WorldState.is_stair_fire(13) and not WorldState.is_stair_fire(17), "lv2: two floors out still clear")
+	# The level is scroll-driven, not run-driven: same result on a different run.
 	WorldState.current_run = 1
+	check(WorldState.fire_intensity(15) == WorldState.FIRE_BLAZE, "lv2 holds regardless of run (run-independent)")
 	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
 	WorldState.dev_fire_origin = -1

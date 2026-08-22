@@ -332,10 +332,13 @@ means no rendering — UI layout and art still need an in-editor look.
   ~26 (toward floor-wide). Escalation (across floors) is across RUNS, not within one:
   the origin-based `fire_intensity` (age = `current_run-1`, minus distance) means run
   1 lights ONLY the origin floor, run 2 adds its immediate neighbours (LIGHT) while
-  the origin goes BLAZE, run 3 pushes two floors out. **DEV fire (F2)** seeds a SINGLE
-  origin on the floor it's pressed on (`dev_fire_origin`) and uses that SAME
-  age-distance model, so F2 + F8 (advance run) reproduce the real escalation exactly
-  (was: forced fire on EVERY floor).
+  the origin goes BLAZE, run 3 pushes two floors out. **DEV fire (F2 scroll)** now has
+  TWO fire steps — the cycle is off → barricades → hordes → **fire lv1** → **fire lv2**
+  → off. Both seed a SINGLE origin on the floor F2 is pressed on (`dev_fire_origin`);
+  the LEVEL is the scroll step itself (not the run counter): lv1 (`DEV_HAZARD_FIRE`) =
+  origin LIGHT only; lv2 (`DEV_HAZARD_FIRE2`) = origin BLAZE + both neighbours LIGHT —
+  mirroring run-1 vs run-2 escalation without advancing the run. (Avoids F8, which is
+  Godot's editor "Stop" shortcut and closes the embedded game window.)
   **Fire memory** is snapshotted PERIODICALLY (every ~0.6s in `_process`) under
   `_built_floor`, re-imported by `_spawn_fire` on return. **Crucial**: the seamless
   stair pan (`stair_pan.gd`, `ENABLED = true`) builds the destination floor as a

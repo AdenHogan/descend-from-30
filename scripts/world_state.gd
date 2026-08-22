@@ -153,9 +153,10 @@ var god_mode: bool = false
 const DEV_HAZARD_NONE := 0
 const DEV_HAZARD_BARRICADE := 1
 const DEV_HAZARD_HORDE := 2
-const DEV_HAZARD_FIRE := 3
-const DEV_HAZARD_COUNT := 4
-const DEV_HAZARD_NAMES := ["off", "barricades", "hordes", "fire"]
+const DEV_HAZARD_FIRE := 3        # fire lv1: origin floor LIGHT only
+const DEV_HAZARD_FIRE2 := 4       # fire lv2: origin BLAZE + both neighbours LIGHT
+const DEV_HAZARD_COUNT := 5
+const DEV_HAZARD_NAMES := ["off", "barricades", "hordes", "fire lv1", "fire lv2"]
 const DEV_HAZARD_UNBUILT := []   # barricades, hordes AND fire are all built now
 var dev_hazard_mode: int = DEV_HAZARD_NONE
 # When DEV fire is toggled on (F2), the floor it was pressed on becomes the single
@@ -1490,15 +1491,17 @@ func fire_intensity(floor_num: int) -> int:
 	# the front creeps one floor further out and one stage hotter every run.
 	if floor_num >= 30 or floor_num <= 1:
 		return -1
-	if dev_hazard_mode == DEV_HAZARD_FIRE:
-		# Dev fire: a SINGLE origin (the floor F2 was pressed on) spreads by the SAME
-		# age-distance model as a real outbreak, so F2 + F8 (advance run) test the real
-		# escalation exactly: run 1 = only the origin (LIGHT); run 2 = origin BLAZE +
-		# both neighbours LIGHT; run 3 = origin CHARRED, neighbours BLAZE, two-out LIGHT.
-		# (Fallback to the old "every floor" behaviour only if no origin was recorded.)
+	if dev_hazard_mode == DEV_HAZARD_FIRE or dev_hazard_mode == DEV_HAZARD_FIRE2:
+		# Dev fire: a SINGLE origin (the floor F2 was pressed on), with the LEVEL chosen
+		# straight from the F2 scroll instead of the run counter — lv1 (DEV_HAZARD_FIRE)
+		# = origin LIGHT only; lv2 (DEV_HAZARD_FIRE2) = origin BLAZE + both neighbours
+		# LIGHT. `front` is the same age-distance the real outbreak uses (front 0 = run 1,
+		# front 1 = run 2), so the two levels mirror real escalation without needing to
+		# advance the run. (Fallback if no origin was recorded: the origin's own stage.)
+		var front: int = 1 if dev_hazard_mode == DEV_HAZARD_FIRE2 else 0
 		if dev_fire_origin < 0:
-			return mini(current_run - 1, FIRE_CHARRED)
-		var d_stage: int = (current_run - 1) - absi(floor_num - dev_fire_origin)
+			return mini(front, FIRE_CHARRED)
+		var d_stage: int = front - absi(floor_num - dev_fire_origin)
 		if d_stage < 0:
 			return -1
 		return mini(d_stage, FIRE_CHARRED)

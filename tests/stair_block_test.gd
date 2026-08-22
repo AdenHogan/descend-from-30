@@ -279,13 +279,13 @@ func _test_dev_force_hazards() -> void:
 	check(not any_barricade_in_horde, "horde mode forces no barricades (one hazard at a time)")
 	check(not WorldState.is_stair_horde(30), "horde mode still exempts floor 30")
 
-	# FIRE is a placeholder — neither hazard fires.
+	# FIRE mode owns the floor: it suppresses barricades AND hordes (one hazard at a time).
 	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_FIRE
 	var fire_hazards := 0
 	for f in range(2, 30):
 		if WorldState.is_stair_blocked(f) or WorldState.is_stair_horde(f):
 			fire_hazards += 1
-	check(fire_hazards == 0, "fire mode forces nothing (not built)")
+	check(fire_hazards == 0, "fire mode suppresses barricades and hordes")
 
 	# OFF mode: back to seeded behaviour (not every floor blocked).
 	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
@@ -296,15 +296,16 @@ func _test_dev_force_hazards() -> void:
 			seeded_blocked += 1
 	check(seeded_blocked < 28, "off mode: back to seeded (not every floor)")
 
-	# The cycle wraps off → barricade → hordes → fire → off.
+	# The cycle wraps off → barricade → hordes → fire lv1 → fire lv2 → off.
 	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
 	var seq := []
-	for i in range(5):
+	for i in range(6):
 		WorldState.dev_hazard_mode = (WorldState.dev_hazard_mode + 1) % WorldState.DEV_HAZARD_COUNT
 		seq.append(WorldState.dev_hazard_mode)
 	check(seq == [WorldState.DEV_HAZARD_BARRICADE, WorldState.DEV_HAZARD_HORDE,
-		WorldState.DEV_HAZARD_FIRE, WorldState.DEV_HAZARD_NONE, WorldState.DEV_HAZARD_BARRICADE],
-		"F2 cycles off→barricade→hordes→fire→off")
+		WorldState.DEV_HAZARD_FIRE, WorldState.DEV_HAZARD_FIRE2, WorldState.DEV_HAZARD_NONE,
+		WorldState.DEV_HAZARD_BARRICADE],
+		"F2 cycles off→barricade→hordes→fire lv1→fire lv2→off")
 
 	# new_game clears the dev mode (session-only, like god_mode).
 	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_BARRICADE
