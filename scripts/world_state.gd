@@ -454,6 +454,7 @@ func new_game() -> void:
 	fire_dealt_with.clear()
 	fire_origin_x.clear()
 	fire_cells.clear()
+	apartment_fire_out.clear()
 	hazard_approach_warned.clear()
 	pending_pry_arrival_floor = -1
 	merchant_stock.clear()
@@ -1545,6 +1546,12 @@ var fire_origin_x: Dictionary = {}    # floor(str) -> resolved origin x (per arc
 # leaving and re-entering a floor keeps the fire where it got to (not reset to
 # spawn). Saved; cleared on a building shift (the layout re-rolls).
 var fire_cells: Dictionary = {}
+# The player fully doused an APARTMENT's interior fire this run: "floor:apt:run" -> true.
+# Keeps it out on re-entry THIS run. Cross-run, the apartment re-derives its stage from
+# the (still-burning) corridor source — so dousing one room without killing the source
+# means it comes back worse next run, same "douse a path vs kill the source" rule as the
+# corridor. Saved; cleared on a building shift (the fire layout re-rolls).
+var apartment_fire_out: Dictionary = {}
 
 
 func _fire_cells_key(floor_num: int) -> String:
@@ -1618,6 +1625,30 @@ func is_apartment_charred(floor_num: int, apt_index: int) -> bool:
 
 func is_apartment_burning(floor_num: int, apt_index: int) -> bool:
 	return apartment_fire_stage(floor_num, apt_index) in [FIRE_LIGHT, FIRE_BLAZE]
+
+
+func _apartment_fire_key(floor_num: int, apt_index: int) -> String:
+	return str(floor_num) + ":" + str(apt_index) + ":" + str(current_run)
+
+
+func is_apartment_fire_out(floor_num: int, apt_index: int) -> bool:
+	# The player fully doused this apartment's interior fire this run.
+	return apartment_fire_out.get(_apartment_fire_key(floor_num, apt_index), false)
+
+
+func mark_apartment_fire_out(floor_num: int, apt_index: int) -> void:
+	apartment_fire_out[_apartment_fire_key(floor_num, apt_index)] = true
+
+
+func apartment_active_fire_stage(floor_num: int, apt_index: int) -> int:
+	# The stage to actually SPAWN/render inside the apartment: the derived stage, unless
+	# the player has doused it out this run (then -1, no interior fire). A CHARRED ruin is
+	# NOT "out" — it stays charred (no fire, but a burnt husk); only active LIGHT/BLAZE
+	# fire can be doused.
+	var st := apartment_fire_stage(floor_num, apt_index)
+	if st in [FIRE_LIGHT, FIRE_BLAZE] and is_apartment_fire_out(floor_num, apt_index):
+		return -1
+	return st
 
 
 func is_stair_fire(floor_num: int) -> bool:
@@ -1714,6 +1745,7 @@ func shift_building() -> void:
 	pending_stair_pulls.clear()
 	fire_cells.clear()
 	fire_origin_x.clear()
+	apartment_fire_out.clear()
 
 
 # Set when a pried crossing commits: the floor you ARRIVE on (floor_num-1). The
@@ -2428,6 +2460,7 @@ func save_game(scene_path: String) -> void:
 		"fire_dealt_with": fire_dealt_with,
 		"fire_origin_x": fire_origin_x,
 		"fire_cells": fire_cells,
+		"apartment_fire_out": apartment_fire_out,
 		"zombie_positions": zombie_positions,
 		"wallet_unlocked": wallet_unlocked,
 		"wallet_balance": wallet_balance,
@@ -2499,6 +2532,7 @@ func load_game() -> String:
 	fire_dealt_with = data.get("fire_dealt_with", {})
 	fire_origin_x = data.get("fire_origin_x", {})
 	fire_cells = data.get("fire_cells", {})
+	apartment_fire_out = data.get("apartment_fire_out", {})
 	# JSON round-trips all dictionary keys as strings; this dict is keyed by int
 	# floor numbers, so convert keys back or every loaded game re-seeds its floors.
 	zombie_positions = data.get("zombie_positions", {})

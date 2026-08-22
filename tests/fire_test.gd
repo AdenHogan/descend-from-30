@@ -28,6 +28,7 @@ func _ready() -> void:
 	_test_dealt_with()
 	_test_exclusivity()
 	_test_dev_mode()
+	_test_apartment_fire_state()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -394,3 +395,49 @@ func _test_dev_mode() -> void:
 	check(WorldState.fire_intensity(15) == WorldState.FIRE_CHARRED, "lv3 holds regardless of run (run-independent)")
 	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
 	WorldState.dev_fire_origin = -1
+
+
+func _test_apartment_fire_state() -> void:
+	print("[apartment fire: active stage + doused-out persistence]")
+	WorldState.new_game()
+	WorldState.master_seed = 4242
+	var f := 12
+	# lv2 dev fire (BLAZE origin) so the floor is on fire and near apartments catch.
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_FIRE2
+	WorldState.dev_fire_origin = f
+	WorldState.current_run = 1
+	# At least one apartment is burning on a BLAZE floor (rank 0/1 by the origin).
+	var burning_apt := -1
+	for a in [1, 2, 3, 4, 5]:
+		if WorldState.is_apartment_burning(f, a):
+			burning_apt = a
+			break
+	check(burning_apt != -1, "a BLAZE floor has at least one burning apartment")
+	if burning_apt != -1:
+		check(WorldState.apartment_active_fire_stage(f, burning_apt) == WorldState.apartment_fire_stage(f, burning_apt),
+			"active stage == derived stage before dousing")
+		check(WorldState.apartment_active_fire_stage(f, burning_apt) >= WorldState.FIRE_LIGHT,
+			"burning apartment reports an active fire stage")
+		# Douse it → no active interior fire this run.
+		WorldState.mark_apartment_fire_out(f, burning_apt)
+		check(WorldState.is_apartment_fire_out(f, burning_apt), "apartment marked doused-out")
+		check(WorldState.apartment_active_fire_stage(f, burning_apt) == -1,
+			"a doused apartment shows no active fire this run")
+		# Doused-out is PER-RUN: next run (source still burning) it's back.
+		WorldState.current_run = 2
+		check(not WorldState.is_apartment_fire_out(f, burning_apt),
+			"doused-out does not carry to the next run (source still governs)")
+		WorldState.current_run = 1
+	# A CHARRED floor: every apartment is a charred ruin, and charred can't be 'doused out'.
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_FIRE3
+	var all_charred := true
+	for a in [1, 2, 3, 4, 5]:
+		if not WorldState.is_apartment_charred(f, a):
+			all_charred = false
+	check(all_charred, "every apartment on a charred floor is charred")
+	WorldState.mark_apartment_fire_out(f, 1)
+	check(WorldState.apartment_active_fire_stage(f, 1) == WorldState.FIRE_CHARRED,
+		"a charred apartment stays charred (cannot be doused out)")
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
+	WorldState.dev_fire_origin = -1
+	WorldState.apartment_fire_out.clear()
