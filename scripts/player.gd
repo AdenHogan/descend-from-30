@@ -974,7 +974,21 @@ func _input(event: InputEvent) -> void:
 			if get_tree().current_scene.scene_file_path.ends_with("building_floors.tscn"):
 				get_tree().call_deferred("reload_current_scene")
 
-	# Attack is a rebindable action (default LMB, can live on a mouse side
+	# The fire extinguisher SPRAYS on the attack key (default Space) in EITHER mode —
+	# "use what's in your hand". It's not a weapon, so it never swings; handling it here
+	# and consuming the event keeps the attack key from also swinging, and works in
+	# scavenge mode too (where the combat swing below is disabled). Q (item_use), the
+	# double-click and the right-click "use" still work as before.
+	if event.is_action_pressed("attack"):
+		var sel := HUD.selected_slot
+		if sel >= 0 and sel < WorldState.inventory.size():
+			var sel_inst = WorldState.get_instance_at(sel)
+			if sel_inst != null and sel_inst.get_data().get("is_extinguisher", false):
+				use_item(sel)
+				get_viewport().set_input_as_handled()
+				return
+
+	# Attack is a rebindable action (default Space, can live on a mouse side
 	# button — see SettingsManager). Combat only.
 	# A MOUSE attack only swings when there's an actual target (a zombie under
 	# the cursor or in reach ahead); on empty ground the click is NOT consumed,

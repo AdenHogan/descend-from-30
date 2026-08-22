@@ -57,6 +57,10 @@ func _ready() -> void:
 		_apply_stair_visuals()
 		_spawn_zombies(floor_num, true)
 		_spawn_corpses(floor_num)
+		# Register the elevator fire-extinguisher BEFORE _spawn_world_drops so it renders
+		# in the backdrop too — otherwise a floor first reached via the seamless stair PAN
+		# (which builds passively then go_live's) had no extinguisher until a full _ready.
+		_place_elevator_kit(floor_num)
 		_spawn_world_drops(floor_num)
 		# Spawn the FIRE in the backdrop too, so a floor you're panning UP toward shows
 		# its fire AS IT SCROLLS INTO VIEW, not popping in only after the commit. It's
@@ -709,7 +713,10 @@ func _place_elevator_kit(floor_num: int) -> void:
 	if WorldState.elevator_kit_placed.get(key, false):
 		return
 	WorldState.elevator_kit_placed[key] = true
-	WorldState.add_world_drop("036", Vector2(915.0, 388.0), floor_num)
+	# Mounted on the wall to the LEFT of the elevator, halfway between apartment 01
+	# (x 829) and the elevator (x 1029.5) → x 929; y 360 sits it up on the wall at
+	# door height (world_drop draws the extinguisher prop; pickup is the usual walk-up).
+	WorldState.add_world_drop("036", Vector2(929.0, 360.0), floor_num)
 
 
 func _spawn_merchant(floor_num: int) -> void:

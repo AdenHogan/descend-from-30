@@ -106,6 +106,11 @@ func _exit_tree() -> void:
 
 
 func _draw() -> void:
+	# The wall-mounted fire extinguisher is a fixed FIXTURE — drawn always (not a
+	# floor glow orb that only shows up close), so you can spot it across the corridor.
+	if item_id == "036":
+		_draw_extinguisher()
+		return
 	if player == null:
 		return
 	var dist = global_position.distance_to(player.global_position)
@@ -116,3 +121,26 @@ func _draw() -> void:
 		draw_circle(Vector2.ZERO, 6.0, Color(1.0, 0.85, 0.1, alpha))
 	else:
 		draw_circle(Vector2.ZERO, 5.0, Color(1.0, 0.65, 0.0, alpha))
+
+
+func _draw_extinguisher() -> void:
+	# A slim red canister with a white label band — taller and narrower than the
+	# thrown can — sitting on a small wall bracket. Brightens when you're in range.
+	var w := 11.0
+	var h := 34.0
+	var top := -18.0                       # body spans local y -18..16 (up on the wall)
+	var glow := 0.0
+	if player != null:
+		var dist := global_position.distance_to(player.global_position)
+		glow = 1.0 - clamp((dist - PICKUP_RANGE) / (GLOW_RANGE - PICKUP_RANGE), 0.0, 1.0)
+	# wall bracket behind the canister
+	draw_rect(Rect2(-w * 0.5 - 3.0, top + h - 7.0, w + 6.0, 4.0), Color(0.20, 0.20, 0.22))
+	# red body
+	draw_rect(Rect2(-w * 0.5, top, w, h), Color(0.82, 0.11, 0.11))
+	# white label band
+	draw_rect(Rect2(-w * 0.5, top + h * 0.34, w, h * 0.30), Color(0.95, 0.95, 0.95))
+	# dark handle / nozzle on top
+	draw_rect(Rect2(-2.0, top - 6.0, 4.0, 7.0), Color(0.13, 0.13, 0.13))
+	# pickable highlight when near
+	if glow > 0.0:
+		draw_rect(Rect2(-w * 0.5, top, w, h), Color(1.0, 1.0, 1.0, 0.30 * glow), false, 2.0)
