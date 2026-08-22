@@ -126,13 +126,17 @@ func char_all() -> void:
 
 
 func extinguish_at(x: float, radius: float) -> void:
-	# A blast of extinguisher: kill the heat AND wet the fuel (fuel->0) so those
-	# cells are OUT, not merely cooled — they can't re-ignite from a neighbour.
+	# A blast of extinguisher: put out only the cells that were actually BURNING, turning
+	# them SPENT (ash + smoke — the AFTERMATH marks where fire WAS, not where the spray
+	# landed). A COOL cell in the blast is left untouched, so spraying bare floor leaves NO
+	# fake ash/smoke. The burnt-out (SPENT) cells act as firebreaks, so the doused patch
+	# can't re-ignite from a neighbour.
 	var a := cell_at(x - radius)
 	var b := cell_at(x + radius)
 	for i in range(a, b + 1):
-		heat[i] = 0.0
-		fuel[i] = 0.0
+		if state_of(i) == BURNING:
+			heat[i] = 0.0
+			fuel[i] = 0.0
 
 
 func is_burning_at(x: float) -> bool:

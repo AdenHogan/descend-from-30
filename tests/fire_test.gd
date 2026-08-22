@@ -29,6 +29,7 @@ func _ready() -> void:
 	_test_exclusivity()
 	_test_dev_mode()
 	_test_apartment_fire_state()
+	_test_extinguish_aftermath()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -441,3 +442,36 @@ func _test_apartment_fire_state() -> void:
 	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
 	WorldState.dev_fire_origin = -1
 	WorldState.apartment_fire_out.clear()
+
+
+func _test_extinguish_aftermath() -> void:
+	# Ash/smoke marks where fire WAS, not where the spray landed: extinguishing empty floor
+	# leaves NOTHING (no fake spent cells / smoulder), and extinguishing fire turns the
+	# BURNING cells (not untouched cool ones) into spent ash.
+	print("[extinguish: aftermath tracks the fire, not the blast]")
+	var ff = load("res://scripts/fire_field.gd").new()
+	ff.stage = WorldState.FIRE_BLAZE
+	ff.spread_cap = 1000000
+	add_child(ff)
+	ff.set_process(false)
+	# Spray bare floor — no fire anywhere.
+	ff.extinguish_at(ff.cell_x(ff.cell_count / 2), 130.0)
+	var spent_empty := 0
+	for i in range(ff.cell_count):
+		if ff.state_of(i) == ff.SPENT:
+			spent_empty += 1
+	check(spent_empty == 0, "dousing bare floor leaves NO ash (spent cells = %d)" % spent_empty)
+	check(not ff.has_smoulder(), "dousing bare floor leaves NO smoulder smoke")
+	# Now light a patch and douse it — the burning cells become ash.
+	var mid: int = ff.cell_count / 2
+	ff.ignite_span(ff.cell_x(mid - 3), ff.cell_x(mid + 3))
+	var burned: int = ff.burning_count()
+	check(burned > 0, "patch is burning before dousing (%d)" % burned)
+	ff.extinguish_at(ff.cell_x(mid), 130.0)
+	var spent_after := 0
+	for i in range(ff.cell_count):
+		if ff.state_of(i) == ff.SPENT:
+			spent_after += 1
+	check(spent_after > 0, "dousing fire leaves ash where it burned (spent = %d)" % spent_after)
+	check(ff.has_smoulder(), "doused fire smoulders")
+	ff.free()

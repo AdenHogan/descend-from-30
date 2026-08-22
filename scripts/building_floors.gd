@@ -480,7 +480,9 @@ func _spawn_door_fire(floor_num: int) -> void:
 	var base := "res://assets/fire-pixel-art-animation-sprites/"
 	var flame3 = load(base + "3 Flame/2.png")
 	for apt in [1, 2, 3, 4, 5]:
-		if not WorldState.is_apartment_burning(floor_num, apt):
+		# Use the ACTIVE stage (doused-aware): a burning apartment licks flame around its
+		# door frame, but one the player has put out this run shows none.
+		if not (WorldState.apartment_active_fire_stage(floor_num, apt) in [WorldState.FIRE_LIGHT, WorldState.FIRE_BLAZE]):
 			continue
 		var door = get_node_or_null("apartment0" + str(apt))
 		if door == null:
@@ -506,6 +508,7 @@ func _add_door_flame(tex, frame_px: int, x: float, w: float, h: float, phase: fl
 	d.z_as_relative = false
 	d.z_index = 0                                                   # behind the player
 	d.global_position = Vector2(x, DOOR_FIRE_BASE_Y)
+	d.add_to_group("door_fire")                                     # so the extinguisher can clear it
 	add_child(d)
 
 

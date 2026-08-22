@@ -1211,6 +1211,12 @@ func use_item(slot_index: int) -> void:
 		await get_tree().create_timer(1.0).timeout
 		if is_instance_valid(field):
 			field.extinguish_at(douse_x, EXTINGUISH_RADIUS)
+			# Also snuff any burning DOOR-FRAME flames in reach — they're separate decals,
+			# not part of the fire field, so without this they'd linger after a blast and
+			# read as fire the player "can't put out" (wasting another charge on them).
+			for d in get_tree().get_nodes_in_group("door_fire"):
+				if is_instance_valid(d) and absf(d.global_position.x - douse_x) <= EXTINGUISH_RADIUS:
+					d.queue_free()
 			HUD.show_feedback("You beat back the flames." if field.any_burning() else "The fire's out.")
 	elif item_data.get("is_tool", false) and item_data.get("can_repair", false):
 		# Toolbox: repairs the first repairable item — a damaged gun OR a

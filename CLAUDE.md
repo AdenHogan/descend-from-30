@@ -312,7 +312,13 @@ means no rendering — UI layout and art still need an in-editor look.
   `building_floors._process` keeps the HUD haze on while the floor smoulders, not only while
   it burns). A zombie that dies ALIGHT leaves a smouldering corpse: `_die` attaches
   `body_smoke.gd` (a small looping `Cycled_smoke` wisp, no collision) instead of the flame.
-  **Enemies burn too**: a zombie
+  **Aftermath marks where fire WAS, not where the spray landed**: `extinguish_at` only
+  spends cells that were actually BURNING (a COOL cell in the blast is left alone), so
+  spraying bare floor leaves NO fake ash/smoke; the burnt-out cells act as firebreaks.
+  **Door-frame fire** is a separate decal (not the fire field), so a blast also clears
+  `door_fire`-group decals within its radius (else they lingered as flames a re-blast
+  couldn't touch), and `_spawn_door_fire` uses the doused-aware `apartment_active_fire_stage`
+  so a put-out apartment shows no door flame. **Enemies burn too**: a zombie
   (standard AND big) standing in flame catches (`on_fire` overlay) and takes burn
   DoT via `burn_tick` until it dies — same rule as the player, driven from
   `building_floors._process` where `on_fire` is set. The overlay (`enemy_fire.gd`) is
