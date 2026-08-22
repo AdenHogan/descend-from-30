@@ -343,7 +343,13 @@ means no rendering — UI layout and art still need an in-editor look.
   each `APARTMENT_X`) so it never runs straight across a door (beside one is fine). Tile **stage-scaled** (`_tile_scale`:
   1.6× LIGHT, 2.7× BLAZE), globs bigger/denser on a BLAZE. All the beds + globs are
   **PATCHY** (`_patch_on`, a seeded per-floor clump mask, different salt per layer) —
-  fire clumps here and there, never a solid unbroken line. The scattered floor globs
+  fire clumps here and there, never a solid unbroken line. **No-overlap placement**: the
+  tall flames (`_draw_tall_flames`) and floor globs (`_draw_scatter_bits`) are placed by a
+  MIN-GAP walk (>= the widest glob), not a dense step, so globs read as DISTINCT tongues on
+  the continuous bed instead of piling into one blob — on any seed, at LIGHT or BLAZE (the
+  jitter in `_blit_anim` is small enough not to close the gap). `apartment_fire` spots use
+  the same discipline (spaced ~120-168 on BLAZE, ~108 apart from the entrance on LIGHT, one
+  bed per spot). The scattered floor globs
   (`_draw_scatter_bits`) sit ON THE FLOOR and IN FRONT of the player (z2, player walks
   behind them) — not floating up the wall. **Ignition patterns** (per stage, seeded per
   (floor,run) so they vary floor-to-floor / game-to-game, `_ignite_light_patch` /

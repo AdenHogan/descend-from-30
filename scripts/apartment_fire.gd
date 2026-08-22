@@ -97,20 +97,23 @@ func _build_spots() -> void:
 					_scars.append(x)
 				x += 58.0 + rng.randf() * 26.0
 		STAGE_BLAZE:
-			# Fire all across the room — many patches, larger globs, with gaps.
-			var x := span0 + 20.0
-			while x < span1:
-				if rng.randf() < 0.6:
-					_spots.append({"x": x, "sz": 1.0 + rng.randf() * 0.7})
-				x += 66.0 + rng.randf() * 44.0
+			# Fire across the room — SPACED patches with gaps (each step is >= a patch's
+			# width, so the globs never pile into one blob), scaled by seed.
+			var x := span0 + 30.0
+			while x < span1 - 20.0:
+				if rng.randf() < 0.72:
+					_spots.append({"x": x, "sz": 0.85 + rng.randf() * 0.4})
+				x += 122.0 + rng.randf() * 46.0     # 122-168 apart
 			if _spots.is_empty():
-				_spots.append({"x": (span0 + span1) * 0.5, "sz": 1.2})
+				_spots.append({"x": (span0 + span1) * 0.5, "sz": 1.1})
 		_:
-			# LIGHT outbreak: a few small patches near the entrance the fire crept in from.
-			var n := 2 + (rng.randi() % 3)     # 2-4
+			# LIGHT outbreak: 2-3 small patches marching in from the entrance the fire crept
+			# in from, spaced so they stay distinct (never overlapping).
+			var n := 2 + (rng.randi() % 2)         # 2-3
+			var dir := 1.0 if entrance_x < (span0 + span1) * 0.5 else -1.0
 			for k in range(n):
-				var sx: float = clampf(entrance_x + (rng.randf() - 0.5) * 200.0, span0, span1)
-				_spots.append({"x": sx, "sz": 0.6 + rng.randf() * 0.35})
+				var sx: float = clampf(entrance_x + dir * float(k) * 108.0 + (rng.randf() - 0.5) * 30.0, span0, span1)
+				_spots.append({"x": sx, "sz": 0.6 + rng.randf() * 0.3})
 
 
 # --- interface shared with fire_field (extinguisher + burn code call these) ---
@@ -177,7 +180,7 @@ func _hash01(v: float) -> float:
 
 
 func _tile_scale() -> float:
-	return 2.3 if stage >= STAGE_BLAZE else 1.5
+	return 1.8 if stage >= STAGE_BLAZE else 1.3
 
 
 func _draw_beds(canvas: CanvasItem) -> void:
@@ -193,11 +196,9 @@ func _draw_beds(canvas: CanvasItem) -> void:
 		var w: float = float(TILE_PX) * sc
 		var target_h: float = (30.0 if stage >= STAGE_BLAZE else 22.0) * float(s["sz"])
 		var src := Rect2(float(fr * TILE_PX), float(TILE_PX) - float(TILE_PX) * 0.6, float(TILE_PX), float(TILE_PX) * 0.6)
-		# tile a couple across for wider spots
-		var reps := 2 if float(s["sz"]) > 1.1 else 1
-		for r in range(reps):
-			var x0 := cx - w * 0.5 + float(r) * (w * 0.8)
-			canvas.draw_texture_rect_region(tex, Rect2(x0, base_y - target_h - 4.0, w, target_h), src)
+		# ONE bed per spot — spots are already spaced so beds stay distinct (no widening
+		# that would bridge into a neighbour).
+		canvas.draw_texture_rect_region(tex, Rect2(cx - w * 0.5, base_y - target_h - 4.0, w, target_h), src)
 
 
 func _draw_tall_flames(canvas: CanvasItem) -> void:

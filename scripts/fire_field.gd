@@ -423,7 +423,7 @@ func _blit_anim(canvas: CanvasItem, tex: Texture2D, px: int, cx: float, base_y: 
 	var src := Rect2(float(fr * px), 0.0, float(px), float(px))
 	var w := float(px) * sc
 	var h := float(px) * sc
-	var jx := (_hash01(sd * 2.1) - 0.5) * 26.0
+	var jx := (_hash01(sd * 2.1) - 0.5) * 10.0   # small wobble only — must not close the MIN_GAP
 	var dst := Rect2(cx + jx - w * 0.5, base_y - h, w, h)
 	canvas.draw_texture_rect_region(tex, dst, src, Color(1.0, 1.0, 1.0, alpha))
 
@@ -437,21 +437,28 @@ func _draw_tall_flames(canvas: CanvasItem) -> void:
 	if _flame_tex.is_empty():
 		return
 	var big := stage >= STAGE_BLAZE
-	var step := 60.0 if big else 82.0
+	# Scan finely, but only PLACE a flame when it clears MIN_GAP from the last one — so
+	# globs read as DISTINCT tongues rising off the bed, never piling into one blob. The
+	# gap is >= the widest glob below, so no overlap on any seed. The continuous ground
+	# bed carries the fire's fullness; these are spaced accents.
+	var scan := 24.0
+	var min_gap := 104.0 if big else 92.0
 	var col := 0
+	var last_x := -1.0e9
 	var x := FIRE_MIN_X + 18.0
 	while x <= FIRE_MAX_X:
-		if is_burning_at(x) and _patch_on(x, 3.0):       # clump the tall flames too — not every spot
-			var sd := float(floori(x / step)) + float(floor_num) * 0.7
+		if is_burning_at(x) and _patch_on(x, 3.0) and (x - last_x) >= min_gap:
+			var sd := float(floori(x / min_gap)) + float(floor_num) * 0.7
 			var roll := _hash01(sd * 1.9)              # size class for this glob
 			var tex3: Texture2D = _flame_tex[int(_hash01(sd * 1.3) * float(_flame_tex.size())) % _flame_tex.size()]
-			if roll > (0.78 if big else 0.87) and _bonfire_tex != null:
-				_blit_anim(canvas, _bonfire_tex, BONFIRE_PX, x, FIRE_BASE_Y, 1.7 if big else 1.1, col, sd, 1.0)   # BIG glob
-			elif roll > 0.45:
-				_blit_anim(canvas, tex3, TILE_PX, x, FIRE_BASE_Y, 2.6 if big else 1.9, col, sd, 1.0)             # MEDIUM
+			if roll > (0.80 if big else 0.90) and _bonfire_tex != null:
+				_blit_anim(canvas, _bonfire_tex, BONFIRE_PX, x, FIRE_BASE_Y, 1.35 if big else 1.0, col, sd, 1.0)   # BIG glob (<= ~86px)
+			elif roll > 0.5:
+				_blit_anim(canvas, tex3, TILE_PX, x, FIRE_BASE_Y, 2.0 if big else 1.55, col, sd, 1.0)             # MEDIUM (<= ~64px)
 			else:
-				_blit_anim(canvas, tex3, TILE_PX, x, FIRE_BASE_Y, 1.7 if big else 1.15, col, sd, 1.0)            # SMALL
-		x += step
+				_blit_anim(canvas, tex3, TILE_PX, x, FIRE_BASE_Y, 1.4 if big else 1.1, col, sd, 1.0)              # SMALL
+			last_x = x
+		x += scan
 		col += 1
 
 
@@ -632,24 +639,29 @@ func _draw_scatter_bits(canvas: CanvasItem) -> void:
 			span1 = maxf(span1, cell_x(i))
 	if span1 < span0:
 		return
-	var n := 9 if stage >= STAGE_BLAZE else 6      # fuller scatter (reverted the thinning)
-	for k in range(n):
-		var sd := float(k) * 7.31 + float(floor_num) * 1.9
-		var x := lerpf(span0 - 24.0, span1 + 24.0, _hash01(sd * 1.1))
-		# ONLY over an actually-burning cell — the bits used to be strewn across the whole
-		# burning SPAN, so dousing the middle left flame wisps stranded on doused ground
-		# that re-spraying couldn't clear. Gated per-cell, a bit vanishes the moment its
-		# cell is put out.
-		if not is_burning_at(x):
+	# Walk the burning span in fixed SLOTS and drop at most one small bit per slot (with a
+	# little in-slot jitter), so the fragments are SPACED — density scales with the fire's
+	# width and they never clump on top of each other, on any seed or fire size.
+	var slot := 104.0 if stage >= STAGE_BLAZE else 122.0
+	var col := 0
+	var x := span0
+	while x <= span1 + 12.0:
+		var sd := float(col) * 7.31 + float(floor_num) * 1.9
+		var bx := x + (_hash01(sd * 1.1) - 0.5) * slot * 0.5   # jitter within the slot (< slot/2)
+		col += 1
+		x += slot
+		# ONLY over an actually-burning cell — a bit vanishes the moment its cell is out
+		# (they used to strew across the whole span, stranding wisps on doused ground).
+		if not is_burning_at(bx):
 			continue
 		# On the floor, a little LOWER than the main bed (nearer the camera), never up
 		# the wall — a small spread of extra flames the player walks behind.
 		var y := FIRE_BASE_Y - 6.0 + 6.0 * _hash01(sd * 2.7)   # lifted a fraction off the UI (still below the player)
 		if _bonfire_tex != null and _hash01(sd * 3.3) > 0.5:
-			_blit_anim(canvas, _bonfire_tex, BONFIRE_PX, x, y, 0.38 + 0.32 * _hash01(sd * 4.1), k, sd, 0.9)
+			_blit_anim(canvas, _bonfire_tex, BONFIRE_PX, bx, y, 0.38 + 0.30 * _hash01(sd * 4.1), col, sd, 0.9)
 		else:
 			var tex: Texture2D = _tile_tex[int(_hash01(sd * 5.3) * float(_tile_tex.size())) % _tile_tex.size()]
-			_blit_anim(canvas, tex, TILE_PX, x, y, 0.7 + 0.6 * _hash01(sd * 6.1), k, sd, 0.9)
+			_blit_anim(canvas, tex, TILE_PX, bx, y, 0.7 + 0.5 * _hash01(sd * 6.1), col, sd, 0.9)
 
 
 func _draw_front(canvas: CanvasItem) -> void:
