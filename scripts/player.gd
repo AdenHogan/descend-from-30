@@ -1014,6 +1014,23 @@ func _input(event: InputEvent) -> void:
 		do_rest()
 
 
+const EXTINGUISHER_SPRAY := preload("res://scripts/extinguisher_spray.gd")
+const HELD_EXTINGUISHER := preload("res://scripts/held_extinguisher.gd")
+
+
+func _spawn_extinguisher_spray(dir: float) -> void:
+	# A placeholder canister in the player's HANDS (follows the player) plus the retardant
+	# jet from its nozzle, blowing toward the fire the player faces.
+	var can = HELD_EXTINGUISHER.new()
+	can.direction = dir
+	can.position = Vector2(dir * 10.0, 2.0)        # at the hands (child of the player, ~waist)
+	add_child(can)
+	var spray = EXTINGUISHER_SPRAY.new()
+	spray.direction = dir
+	spray.global_position = global_position + Vector2(dir * 18.0, 0.0)     # from the nozzle, over the fire
+	get_tree().current_scene.add_child(spray)
+
+
 func _throw_can(slot_index: int) -> void:
 	# Scavenge-only distraction. Reuses the sword-swing anim for the throw
 	# motion; the can flies the length of a room and its landing pulls aggro.
@@ -1172,12 +1189,14 @@ func use_item(slot_index: int) -> void:
 	elif item_data.get("is_throwable", false):
 		_throw_can(slot_index)
 	elif item_data.get("is_extinguisher", false):
-		# Fire Extinguisher (036): beat back the flames around you, spend a charge.
+		# Fire Extinguisher (036): a jet of retardant that blows OVER the fire, then the
+		# flames drop out ~1s later (doused, not instant) leaving rising black smoulder.
 		var field = get_tree().get_first_node_in_group("fire_field")
 		if field == null or not field.any_burning():
 			HUD.show_feedback("Nothing to put out here.")
 			return
-		field.extinguish_at(global_position.x, EXTINGUISH_RADIUS)
+		var dir := -1.0 if animated_sprite.flip_h else 1.0
+		_spawn_extinguisher_spray(dir)
 		instance.use()
 		if instance.is_depleted:
 			WorldState.remove_from_inventory(slot_index)
@@ -1185,7 +1204,14 @@ func use_item(slot_index: int) -> void:
 				HUD.selected_slot = -1
 		HUD.refresh_inventory()
 		WorldState.emit_noise(global_position, WorldState.NOISE_RADIUS["scavenge"], 1.0)
-		HUD.show_feedback("You beat back the flames." if field.any_burning() else "The fire's out.")
+		HUD.show_feedback("Spraying the extinguisher...")
+		# Delay the actual dousing so the spray visibly plays OVER the fire first — it
+		# reads as beaten back, not switched off. Douse a touch AHEAD, where the jet lands.
+		var douse_x := global_position.x + dir * 45.0
+		await get_tree().create_timer(1.0).timeout
+		if is_instance_valid(field):
+			field.extinguish_at(douse_x, EXTINGUISH_RADIUS)
+			HUD.show_feedback("You beat back the flames." if field.any_burning() else "The fire's out.")
 	elif item_data.get("is_tool", false) and item_data.get("can_repair", false):
 		# Toolbox: repairs the first repairable item — a damaged gun OR a
 		# broken durability weapon/tool (one toolbox use). Damaged guns take

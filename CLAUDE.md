@@ -401,7 +401,12 @@ means no rendering — UI layout and art still need an in-editor look.
   red/white canister prop by `world_drop.gd` at x929 — halfway apt01↔elevator — and
   registered in the PASSIVE build too so a stair-pan arrival still gets one). Its use
   is bound to the **attack key** (default Space) when it's the selected item — sprays
-  in either mode, never swings (Q / double-click / right-click still work). **Merchant**
+  in either mode, never swings (Q / double-click / right-click still work). **Spray VFX**:
+  using it puts a placeholder red/white canister in the player's HANDS (`held_extinguisher.gd`,
+  child of the player, ~1.1s) and jets the purchased **Horisontal_smoke** cloud from the
+  nozzle over the fire (`extinguisher_spray.gd`, z3, flips with facing); the actual douse is
+  **delayed ~1s** (a `create_timer` in `use_item`) so the fire reads as beaten back rather
+  than switched off, then those cells go SPENT and rise black smoulder. **Merchant**
   shelters while its floor burns (`_merchant_pending_fire`) and emerges once it's dealt
   with; left burning, it's absent on that floor across runs. While sheltering it shows a
   **one-time non-interrupting line by the elevator** (`_process`, `_merchant_shelter_line_shown`)
