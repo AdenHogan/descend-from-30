@@ -383,8 +383,14 @@ func _test_dev_mode() -> void:
 	check(WorldState.fire_intensity(15) == WorldState.FIRE_BLAZE, "lv2: origin is BLAZE")
 	check(WorldState.fire_intensity(14) == WorldState.FIRE_LIGHT and WorldState.fire_intensity(16) == WorldState.FIRE_LIGHT, "lv2: neighbours catch at LIGHT")
 	check(not WorldState.is_stair_fire(13) and not WorldState.is_stair_fire(17), "lv2: two floors out still clear")
+	# lv3 (DEV_HAZARD_FIRE3): origin CHARRED, neighbours BLAZE, two-out LIGHT, three-out clear.
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_FIRE3
+	check(WorldState.fire_intensity(15) == WorldState.FIRE_CHARRED, "lv3: origin is CHARRED")
+	check(WorldState.fire_intensity(14) == WorldState.FIRE_BLAZE and WorldState.fire_intensity(16) == WorldState.FIRE_BLAZE, "lv3: neighbours are BLAZE")
+	check(WorldState.fire_intensity(13) == WorldState.FIRE_LIGHT and WorldState.fire_intensity(17) == WorldState.FIRE_LIGHT, "lv3: two floors out are LIGHT")
+	check(not WorldState.is_stair_fire(12) and not WorldState.is_stair_fire(18), "lv3: three floors out still clear")
 	# The level is scroll-driven, not run-driven: same result on a different run.
 	WorldState.current_run = 1
-	check(WorldState.fire_intensity(15) == WorldState.FIRE_BLAZE, "lv2 holds regardless of run (run-independent)")
+	check(WorldState.fire_intensity(15) == WorldState.FIRE_CHARRED, "lv3 holds regardless of run (run-independent)")
 	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
 	WorldState.dev_fire_origin = -1

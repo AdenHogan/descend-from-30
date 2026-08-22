@@ -296,16 +296,16 @@ func _test_dev_force_hazards() -> void:
 			seeded_blocked += 1
 	check(seeded_blocked < 28, "off mode: back to seeded (not every floor)")
 
-	# The cycle wraps off → barricade → hordes → fire lv1 → fire lv2 → off.
+	# The cycle wraps off → barricade → hordes → fire lv1 → fire lv2 → fire lv3 → off.
 	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
 	var seq := []
-	for i in range(6):
+	for i in range(7):
 		WorldState.dev_hazard_mode = (WorldState.dev_hazard_mode + 1) % WorldState.DEV_HAZARD_COUNT
 		seq.append(WorldState.dev_hazard_mode)
 	check(seq == [WorldState.DEV_HAZARD_BARRICADE, WorldState.DEV_HAZARD_HORDE,
-		WorldState.DEV_HAZARD_FIRE, WorldState.DEV_HAZARD_FIRE2, WorldState.DEV_HAZARD_NONE,
-		WorldState.DEV_HAZARD_BARRICADE],
-		"F2 cycles off→barricade→hordes→fire lv1→fire lv2→off")
+		WorldState.DEV_HAZARD_FIRE, WorldState.DEV_HAZARD_FIRE2, WorldState.DEV_HAZARD_FIRE3,
+		WorldState.DEV_HAZARD_NONE, WorldState.DEV_HAZARD_BARRICADE],
+		"F2 cycles off→barricade→hordes→fire lv1→fire lv2→fire lv3→off")
 
 	# new_game clears the dev mode (session-only, like god_mode).
 	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_BARRICADE
