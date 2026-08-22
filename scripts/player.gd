@@ -455,14 +455,14 @@ func _get_equipped_weapon_type() -> String:
 
 
 func _get_weapon_type(item_data: Dictionary) -> String:
-	var name = item_data.get("name", "").to_lower()
-	if name.contains("knife") or name.contains("scalpel"):
+	var item_name = item_data.get("name", "").to_lower()
+	if item_name.contains("knife") or item_name.contains("scalpel"):
 		return "knife"
-	elif name.contains("sword") or name.contains("katana") or name.contains("machete"):
+	elif item_name.contains("sword") or item_name.contains("katana") or item_name.contains("machete"):
 		return "sword"
-	elif name.contains("bat") or name.contains("club") or name.contains("wrench") or name.contains("hammer"):
+	elif item_name.contains("bat") or item_name.contains("club") or item_name.contains("wrench") or item_name.contains("hammer"):
 		return "bat"
-	elif name.contains("gun") or name.contains("pistol") or name.contains("rifle") or name.contains("shotgun"):
+	elif item_name.contains("gun") or item_name.contains("pistol") or item_name.contains("rifle") or item_name.contains("shotgun"):
 		return "gun"
 	return ""
 

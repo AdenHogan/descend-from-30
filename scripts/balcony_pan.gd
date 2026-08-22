@@ -278,12 +278,12 @@ func _hold_last_frame(scene: Node) -> CanvasLayer:
 		return null
 	var layer := CanvasLayer.new()
 	layer.layer = 128   # above the HUD and everything else
-	var tr := TextureRect.new()
-	tr.texture = ImageTexture.create_from_image(img)
-	tr.set_anchors_preset(Control.PRESET_FULL_RECT)
-	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	tr.stretch_mode = TextureRect.STRETCH_SCALE
-	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	layer.add_child(tr)
+	var trect := TextureRect.new()
+	trect.texture = ImageTexture.create_from_image(img)
+	trect.set_anchors_preset(Control.PRESET_FULL_RECT)
+	trect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	trect.stretch_mode = TextureRect.STRETCH_SCALE
+	trect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(trect)
 	add_child(layer)
 	return layer

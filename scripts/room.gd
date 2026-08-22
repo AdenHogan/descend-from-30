@@ -958,9 +958,9 @@ func _spawn_breached_enemies() -> void:
 			WorldState.apply_saved_zombie(zombie)
 
 
-func _spawn_corpses(floor_num: int, apartment_id: String = "") -> void:
+func _spawn_corpses(floor_num: int, apt_id: String = "") -> void:
 	var scene_path = get_tree().current_scene.scene_file_path
-	var corpse_positions = WorldState.get_corpse_positions_for_floor(floor_num, scene_path, apartment_id)
+	var corpse_positions = WorldState.get_corpse_positions_for_floor(floor_num, scene_path, apt_id)
 	if corpse_positions.is_empty():
 		return
 	# Corpse visuals are type-aware: standard zombies have a looping "Dead_Dead"

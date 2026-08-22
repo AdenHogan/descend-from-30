@@ -416,14 +416,14 @@ func _draw_ground_fire(canvas: CanvasItem, base_y: float, alpha: float, y_off: f
 		x += tw
 
 
-func _blit_anim(canvas: CanvasItem, tex: Texture2D, px: int, cx: float, base_y: float, sc: float, col: int, seed: float, alpha: float) -> void:
+func _blit_anim(canvas: CanvasItem, tex: Texture2D, px: int, cx: float, base_y: float, sc: float, col: int, sd: float, alpha: float) -> void:
 	# Blit one frame of an animated flame sheet (px-square frames, 6 across), centred
 	# on cx with its base on base_y. Per-flame frame offset so they dance out of sync.
 	var fr := (int(_t * TILE_FPS) + col * 2) % TILE_FRAMES
 	var src := Rect2(float(fr * px), 0.0, float(px), float(px))
 	var w := float(px) * sc
 	var h := float(px) * sc
-	var jx := (_hash01(seed * 2.1) - 0.5) * 26.0
+	var jx := (_hash01(sd * 2.1) - 0.5) * 26.0
 	var dst := Rect2(cx + jx - w * 0.5, base_y - h, w, h)
 	canvas.draw_texture_rect_region(tex, dst, src, Color(1.0, 1.0, 1.0, alpha))
 
@@ -442,15 +442,15 @@ func _draw_tall_flames(canvas: CanvasItem) -> void:
 	var x := FIRE_MIN_X + 18.0
 	while x <= FIRE_MAX_X:
 		if is_burning_at(x) and _patch_on(x, 3.0):       # clump the tall flames too — not every spot
-			var seed := float(floori(x / step)) + float(floor_num) * 0.7
-			var roll := _hash01(seed * 1.9)              # size class for this glob
-			var tex3: Texture2D = _flame_tex[int(_hash01(seed * 1.3) * float(_flame_tex.size())) % _flame_tex.size()]
+			var sd := float(floori(x / step)) + float(floor_num) * 0.7
+			var roll := _hash01(sd * 1.9)              # size class for this glob
+			var tex3: Texture2D = _flame_tex[int(_hash01(sd * 1.3) * float(_flame_tex.size())) % _flame_tex.size()]
 			if roll > (0.78 if big else 0.87) and _bonfire_tex != null:
-				_blit_anim(canvas, _bonfire_tex, BONFIRE_PX, x, FIRE_BASE_Y, 1.7 if big else 1.1, col, seed, 1.0)   # BIG glob
+				_blit_anim(canvas, _bonfire_tex, BONFIRE_PX, x, FIRE_BASE_Y, 1.7 if big else 1.1, col, sd, 1.0)   # BIG glob
 			elif roll > 0.45:
-				_blit_anim(canvas, tex3, TILE_PX, x, FIRE_BASE_Y, 2.6 if big else 1.9, col, seed, 1.0)             # MEDIUM
+				_blit_anim(canvas, tex3, TILE_PX, x, FIRE_BASE_Y, 2.6 if big else 1.9, col, sd, 1.0)             # MEDIUM
 			else:
-				_blit_anim(canvas, tex3, TILE_PX, x, FIRE_BASE_Y, 1.7 if big else 1.15, col, seed, 1.0)            # SMALL
+				_blit_anim(canvas, tex3, TILE_PX, x, FIRE_BASE_Y, 1.7 if big else 1.15, col, sd, 1.0)            # SMALL
 		x += step
 		col += 1
 
@@ -634,8 +634,8 @@ func _draw_scatter_bits(canvas: CanvasItem) -> void:
 		return
 	var n := 9 if stage >= STAGE_BLAZE else 6      # fuller scatter (reverted the thinning)
 	for k in range(n):
-		var seed := float(k) * 7.31 + float(floor_num) * 1.9
-		var x := lerpf(span0 - 24.0, span1 + 24.0, _hash01(seed * 1.1))
+		var sd := float(k) * 7.31 + float(floor_num) * 1.9
+		var x := lerpf(span0 - 24.0, span1 + 24.0, _hash01(sd * 1.1))
 		# ONLY over an actually-burning cell — the bits used to be strewn across the whole
 		# burning SPAN, so dousing the middle left flame wisps stranded on doused ground
 		# that re-spraying couldn't clear. Gated per-cell, a bit vanishes the moment its
@@ -644,12 +644,12 @@ func _draw_scatter_bits(canvas: CanvasItem) -> void:
 			continue
 		# On the floor, a little LOWER than the main bed (nearer the camera), never up
 		# the wall — a small spread of extra flames the player walks behind.
-		var y := FIRE_BASE_Y - 6.0 + 6.0 * _hash01(seed * 2.7)   # lifted a fraction off the UI (still below the player)
-		if _bonfire_tex != null and _hash01(seed * 3.3) > 0.5:
-			_blit_anim(canvas, _bonfire_tex, BONFIRE_PX, x, y, 0.38 + 0.32 * _hash01(seed * 4.1), k, seed, 0.9)
+		var y := FIRE_BASE_Y - 6.0 + 6.0 * _hash01(sd * 2.7)   # lifted a fraction off the UI (still below the player)
+		if _bonfire_tex != null and _hash01(sd * 3.3) > 0.5:
+			_blit_anim(canvas, _bonfire_tex, BONFIRE_PX, x, y, 0.38 + 0.32 * _hash01(sd * 4.1), k, sd, 0.9)
 		else:
-			var tex: Texture2D = _tile_tex[int(_hash01(seed * 5.3) * float(_tile_tex.size())) % _tile_tex.size()]
-			_blit_anim(canvas, tex, TILE_PX, x, y, 0.7 + 0.6 * _hash01(seed * 6.1), k, seed, 0.9)
+			var tex: Texture2D = _tile_tex[int(_hash01(sd * 5.3) * float(_tile_tex.size())) % _tile_tex.size()]
+			_blit_anim(canvas, tex, TILE_PX, x, y, 0.7 + 0.6 * _hash01(sd * 6.1), k, sd, 0.9)
 
 
 func _draw_front(canvas: CanvasItem) -> void:

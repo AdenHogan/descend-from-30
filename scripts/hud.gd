@@ -228,10 +228,10 @@ func _make_world_prompt() -> Dictionary:
 	return {"panel": panel, "label": label, "pos": Vector2.ZERO}
 
 
-func show_world_prompt(owner: Node, text: String, world_pos: Vector2) -> void:
-	if owner == null:
+func show_world_prompt(prompt_owner: Node, text: String, world_pos: Vector2) -> void:
+	if prompt_owner == null:
 		return
-	var id := owner.get_instance_id()
+	var id := prompt_owner.get_instance_id()
 	if not _world_prompts.has(id):
 		_world_prompts[id] = _make_world_prompt()
 	var e = _world_prompts[id]
@@ -240,12 +240,12 @@ func show_world_prompt(owner: Node, text: String, world_pos: Vector2) -> void:
 	e["panel"].visible = true
 
 
-func hide_world_prompt(owner: Node) -> void:
+func hide_world_prompt(prompt_owner: Node) -> void:
 	# Only this owner's own pill is hidden, so one drop/door leaving range can't
 	# wipe another's prompt.
-	if owner == null:
+	if prompt_owner == null:
 		return
-	var e = _world_prompts.get(owner.get_instance_id())
+	var e = _world_prompts.get(prompt_owner.get_instance_id())
 	if e != null:
 		e["panel"].visible = false
 
@@ -279,11 +279,11 @@ func _update_world_prompt() -> void:
 		panel.position = Vector2(x, y)
 
 
-func world_prompt_panel(owner: Node) -> Panel:
+func world_prompt_panel(prompt_owner: Node) -> Panel:
 	# Test/inspection accessor: the on-screen pill Panel for an owner, or null.
-	if owner == null:
+	if prompt_owner == null:
 		return null
-	var e = _world_prompts.get(owner.get_instance_id())
+	var e = _world_prompts.get(prompt_owner.get_instance_id())
 	return e["panel"] if e != null else null
 
 func _create_dialogue_panel() -> void:

@@ -78,7 +78,7 @@ func _open_loot() -> void:
 
 
 # Called by loot_ui after the interaction resolves
-func on_loot_closed(item_was_taken: bool) -> void:
+func on_loot_closed(_item_was_taken: bool) -> void:
 	if not WorldState.is_anchor_searched(apartment_id, name):
 		return
 	var has_item = WorldState.get_anchor_item(apartment_id, name) != "" or \

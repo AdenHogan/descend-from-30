@@ -283,6 +283,7 @@ func _process(delta: float) -> void:
 
 func format_playtime(seconds: float) -> String:
 	var t := int(seconds)
+	@warning_ignore("integer_division")   # HH:MM:SS — integer truncation is intended
 	return "%02d:%02d:%02d" % [t / 3600, (t / 60) % 60, t % 60]
 
 
@@ -1286,6 +1287,7 @@ func _apartment_floor(apartment_id: String) -> int:
 	# floor + "0" + column, e.g. "2603" -> floor 26 (int / 100).
 	if apartment_id == "":
 		return -1
+	@warning_ignore("integer_division")   # "2603" -> 26: integer truncation is intended
 	return int(apartment_id) / 100
 
 
