@@ -304,7 +304,11 @@ means no rendering — UI layout and art still need an in-editor look.
   player (z0). (`_draw_smoke`, the old z4 layer, stays a no-op.) **Enemies burn too**: a zombie
   (standard AND big) standing in flame catches (`on_fire` overlay) and takes burn
   DoT via `burn_tick` until it dies — same rule as the player, driven from
-  `building_floors._process` where `on_fire` is set. **Render**: the flames are the
+  `building_floors._process` where `on_fire` is set. The overlay (`enemy_fire.gd`) is
+  **2-3 small purchased `3 Flame` globs stuck across the body** (scaled down, NO
+  collision — purely cosmetic, never blocks the player); it's cleared the instant the
+  zombie dies (`_die` sets `on_fire=false`) and `_process` **skips dead corpses** so a
+  lingering body never re-lights or leaves flames floating. **Render**: the flames are the
   purchased **craftpix pixel-fire sprites** in `assets/fire-pixel-art-animation-sprites/`
   (procedural flames dropped — they never read as real fire). Three sheets for
   variety: **`2 Fire_tiles`** (32² floor bed) tiled seamlessly across the burning
@@ -324,7 +328,16 @@ means no rendering — UI layout and art still need an in-editor look.
   **PATCHY** (`_patch_on`, a seeded per-floor clump mask, different salt per layer) —
   fire clumps here and there, never a solid unbroken line. The scattered floor globs
   (`_draw_scatter_bits`) sit ON THE FLOOR and IN FRONT of the player (z2, player walks
-  behind them) — not floating up the wall. **Within-run spread is CAPPED**
+  behind them) — not floating up the wall. **Ignition patterns** (per stage, seeded per
+  (floor,run) so they vary floor-to-floor / game-to-game, `_ignite_light_patch` /
+  `_ignite_blaze_patches`): **LIGHT** = a small seeded patch at the origin (2-4 cells,
+  varied shape); **BLAZE** = a floor-WIDE scatter of 1-2 cell patches with gaps (~60%
+  of the corridor, never one localised blob — the whole floor reads ablaze); **CHARRED**
+  = `char_all` (no active fire — a burnt-out ruin; `_spawn_fire` also SKIPS the saved-
+  spread `import_state` on charred so a stale burning snapshot can't re-light the ruin,
+  the bug when F2-cycling lv1/lv2→lv3 in one run). The breakout origin x is **jittered
+  per floor** (`_fire_origin_for`, ±120) off the exact stair/mid anchors so fires aren't
+  always at the same three spots. **Within-run spread is CAPPED**
   (`fire_field.spread_cap`, set in `_spawn_fire`): a run-1 LIGHT fire creeps SLOWLY
   (~30s/cell — `SPREAD_RATE`/`COOL_RATE` halved so it doesn't cover the floor in a few
   minutes) up to ~16 cells — spreading across a good chunk of the floor toward nearby
@@ -361,9 +374,15 @@ means no rendering — UI layout and art still need an in-editor look.
   (`is_extinguisher`, 2 uses) douses a radius **for good** (`extinguish_at`) —
   one canister only blows a safe path through a big blaze (backtrack for more);
   mounted **by the elevator on EVERY floor** (skips charred) once per (floor,run)
-  (`_place_elevator_kit` + `elevator_kit_placed`, saved). **Merchant** shelters
-  while its floor burns (`_merchant_pending_fire`) and emerges once it's dealt
-  with; left burning, it's absent on that floor across runs. Still to build:
+  (`_place_elevator_kit` + `elevator_kit_placed`, saved; drawn as a wall-mounted
+  red/white canister prop by `world_drop.gd` at x929 — halfway apt01↔elevator — and
+  registered in the PASSIVE build too so a stair-pan arrival still gets one). Its use
+  is bound to the **attack key** (default Space) when it's the selected item — sprays
+  in either mode, never swings (Q / double-click / right-click still work). **Merchant**
+  shelters while its floor burns (`_merchant_pending_fire`) and emerges once it's dealt
+  with; left burning, it's absent on that floor across runs. While sheltering it shows a
+  **one-time non-interrupting line by the elevator** (`_process`, `_merchant_shelter_line_shown`)
+  so the shut doors read as its choice, not a bug. Still to build:
   flames **on walls/ceiling/doors** (corridor flames only today), a fire
   approach-warning beat, and the automatic run-advance that drives escalation
   live. **F2** (all three hazards built)

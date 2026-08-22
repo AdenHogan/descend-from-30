@@ -161,6 +161,7 @@ func _die() -> void:
 	if is_dead:
 		return
 	is_dead = true
+	on_fire = false                # the flames go out the instant it dies (clears the fx)
 	state = "dead"
 	velocity.x = 0
 	animated_sprite.play("Death")

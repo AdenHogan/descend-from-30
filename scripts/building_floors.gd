@@ -250,6 +250,12 @@ func _process(delta: float) -> void:
 		# Enemies standing in the flames CATCH FIRE: a flame overlay + DOUBLE-damage
 		# attacks. They go out the moment they step clear.
 		for z in get_tree().get_nodes_in_group("zombie"):
+			# A DEAD corpse doesn't burn — clear any flame it still carries (so the fire
+			# vanishes the instant it dies) and never re-light it while it lingers.
+			if ("is_dead" in z) and z.is_dead:
+				if ("on_fire" in z) and z.on_fire:
+					z.on_fire = false
+				continue
 			var z_inflame: bool = _fire_field.is_burning_at(z.global_position.x)
 			if "on_fire" in z:
 				z.on_fire = z_inflame
@@ -268,6 +274,14 @@ func _process(delta: float) -> void:
 				_merchant_pending_fire = false
 				_do_spawn_merchant()
 				HUD.show_feedback("The fire's out — the merchant steps out to trade.")
+
+	# Merchant sheltering behind the elevator doors while the floor burns: a one-time,
+	# NON-interrupting line as the player nears the elevator, so the shut doors read as
+	# the merchant's choice ("put the fire out first"), not a bug.
+	if _merchant_pending_fire and not _merchant_shelter_line_shown \
+			and absf(player.global_position.x - 1029.5) < 170.0:
+		_merchant_shelter_line_shown = true
+		HUD.show_dialogue("Merchant: Not a chance — I'm not opening these doors with the floor on fire. Put it out and we'll trade.", "", false, 4.5)
 
 
 func _warn_hazard(text: String) -> void:
@@ -298,6 +312,7 @@ func _say_fire_line() -> void:
 	if HUD.has_method("show_speech"):
 		HUD.show_speech(FIRE_LINES[randi() % FIRE_LINES.size()])
 var _merchant_pending_fire: bool = false   # merchant is sheltering until the fire's out
+var _merchant_shelter_line_shown: bool = false   # one-time "I won't come out" line per visit
 
 
 func _fire_origin_for(floor_num: int) -> float:
@@ -325,6 +340,12 @@ func _fire_origin_for(floor_num: int) -> float:
 			origin_x = up_x
 		_:
 			origin_x = 675.0
+	# Jitter the breakout point off the exact stair/mid anchors, seeded per floor, so
+	# fires don't always sit at the same three spots (left stair / dead-centre / right
+	# stair) floor after floor. Clamped to the walkable corridor.
+	var jit := RandomNumberGenerator.new()
+	jit.seed = hash(str(WorldState.master_seed) + "fireoriginjit" + str(floor_num))
+	origin_x = clampf(origin_x + (jit.randf() - 0.5) * 240.0, 230.0, 1120.0)
 	WorldState.set_fire_origin_x(floor_num, origin_x)
 	return origin_x
 
@@ -343,16 +364,11 @@ func _spawn_fire(floor_num: int) -> void:
 	add_child(_fire_field)
 	match stage:
 		WorldState.FIRE_CHARRED:
-			_fire_field.char_all()                              # burnt-out husk
+			_fire_field.char_all()                              # burnt-out husk — no active fire
 		WorldState.FIRE_BLAZE:
-			_fire_field.ignite_span(origin_x - 280.0, origin_x + 280.0)   # most of the floor
+			_ignite_blaze_patches(floor_num, origin_x)         # patches across the WHOLE floor
 		_:
-			# LIGHT (run 1): a small, patchy fire around the origin (gaps, not a wall).
-			var c0: int = _fire_field.cell_at(origin_x)
-			for dc in [-2, 0, 2, 4]:
-				var ci: int = c0 + dc
-				if ci >= 0 and ci < _fire_field.cell_count:
-					_fire_field.ignite_span(_fire_field.cell_x(ci), _fire_field.cell_x(ci))
+			_ignite_light_patch(floor_num, origin_x)           # a small, seeded patch at the origin
 	# Fire spreading INTO apartments: light flames at each burning apartment's door
 	# so the creep is visible (charred floors are already whole-floor char_all'd).
 	if stage != WorldState.FIRE_CHARRED:
@@ -361,8 +377,11 @@ func _spawn_fire(floor_num: int) -> void:
 				var ax: float = float(WorldState.APARTMENT_X[apt])
 				_fire_field.ignite_span(ax - 22.0, ax + 22.0)
 	# Restore the fire's SPREAD from a previous visit this run (so it doesn't reset
-	# to the spawn pattern every time you step out and back in).
-	if WorldState.has_fire_cells(floor_num):
+	# to the spawn pattern every time you step out and back in). NOT on a CHARRED
+	# ruin — a run-3 origin is burnt out, and importing a stale burning snapshot from
+	# an earlier level (a real problem when F2-cycling lv1/lv2 -> lv3 in one run) would
+	# re-light the ruin. char_all wins; the next periodic snapshot rewrites it clean.
+	if stage != WorldState.FIRE_CHARRED and WorldState.has_fire_cells(floor_num):
 		_fire_field.import_state(WorldState.get_fire_cells(floor_num))
 	# Cap how far it may CREEP within the run. A run-1 LIGHT fire is ALLOWED to creep
 	# — slowly (~15s/cell) — across a good chunk of the floor and toward nearby
@@ -374,6 +393,61 @@ func _spawn_fire(floor_num: int) -> void:
 	_fire_field.spread_cap = maxi(_fire_field.burning_count(), _cap)
 	_fire_was_burning = _fire_field.any_burning()
 	_tint_fire_doors(floor_num)
+
+
+func _ignite_light_patch(floor_num: int, origin_x: float) -> void:
+	# LIGHT (a lv1 outbreak): a small patch AT the origin, but seeded per (floor, run)
+	# so different floors light different cells (not the same fixed shape everywhere).
+	var f = _fire_field
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(WorldState.master_seed) + "firelight" + str(floor_num) + str(WorldState.current_run))
+	var c0: int = f.cell_at(origin_x)
+	f.ignite_span(f.cell_x(c0), f.cell_x(c0))          # the heart always catches
+	# 1-3 nearby cells, chosen by the seed (shuffled offsets), so the patch stays SMALL
+	# (total 2-4 cells) but its shape varies floor to floor instead of a fixed stamp.
+	var offs := [-2, -1, 1, 2, 3, 4]
+	for i in range(offs.size() - 1, 0, -1):
+		var j: int = rng.randi() % (i + 1)
+		var tmp: int = offs[i]
+		offs[i] = offs[j]
+		offs[j] = tmp
+	var extra: int = 1 + (rng.randi() % 3)             # 1..3 extra cells
+	var added: int = 0
+	for dc in offs:
+		if added >= extra:
+			break
+		var ci: int = c0 + dc
+		if ci >= 0 and ci < f.cell_count:
+			f.ignite_span(f.cell_x(ci), f.cell_x(ci))
+			added += 1
+
+
+func _ignite_blaze_patches(floor_num: int, origin_x: float) -> void:
+	# BLAZE (a lv2 fire): NOT one localised blob — a floor-WIDE scatter of burning
+	# patches with gaps, so the whole corridor reads as ablaze. Seeded per (floor, run)
+	# so the pattern is stable on re-entry but different floor to floor / game to game.
+	var f = _fire_field
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(WorldState.master_seed) + "fireblaze" + str(floor_num) + str(WorldState.current_run))
+	# a guaranteed cluster at the breakout origin (its hottest heart)
+	var oc: int = f.cell_at(origin_x)
+	for dc in [-1, 0, 1]:
+		var hi: int = oc + dc
+		if hi >= 0 and hi < f.cell_count:
+			f.ignite_span(f.cell_x(hi), f.cell_x(hi))
+	# then patches marching across the ENTIRE floor, each a 1-2 cell clump with a
+	# 1-2 cell gap after — ~60% of the corridor alight, scattered, never a solid wall.
+	var i: int = 0
+	while i < f.cell_count:
+		if rng.randf() < 0.62:
+			var plen: int = 1 + (rng.randi() % 2)
+			for k in range(plen):
+				var ci: int = i + k
+				if ci >= 0 and ci < f.cell_count:
+					f.ignite_span(f.cell_x(ci), f.cell_x(ci))
+			i += plen + 1 + (rng.randi() % 2)
+		else:
+			i += 1 + (rng.randi() % 2)
 
 
 func _tint_fire_doors(floor_num: int) -> void:
