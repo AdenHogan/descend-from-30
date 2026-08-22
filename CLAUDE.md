@@ -300,8 +300,19 @@ means no rendering — UI layout and art still need an in-editor look.
   fire bed, behind the front tiles — the tileset looks like it's burning). TYPE is
   fixed by STAGE so a plume never morphs short↔long (LIGHT = small `Cycled_smoke` wisp,
   BLAZE = short `Cycled_smoke_long` column), with the height varied a lot per zone by a
-  STABLE seed. Cap 4 blaze / 2 light (some spots, not everywhere), drawn BEHIND the
-  player (z0). (`_draw_smoke`, the old z4 layer, stays a no-op.) **Enemies burn too**: a zombie
+  STABLE seed. Cap 5 blaze / 3 light (some spots, not everywhere), drawn BEHIND the
+  player (z0). (`_draw_smoke`, the old z4 layer, stays a no-op.) **Aftermath smoke**: fire
+  leaves SMOKE, not stray flames. The scatter flame-bits (`_draw_scatter_bits`) are now
+  gated PER-CELL (`is_burning_at`) — they used to strew across the whole burning span, so
+  dousing the middle stranded flame wisps on doused ground that re-spraying couldn't clear;
+  now a bit vanishes the moment its cell is out. Doused/charred (SPENT) cells instead
+  SMOULDER: `_draw_smoulder_plumes` rises grey, semi-transparent `Cycled_smoke` off most
+  spent cells (z0, behind active-fire smoke), so a stretch you just put out — and a fully
+  charred ruin — stays smoky (`has_smoulder` + `smoke_intensity` now count spent cells, and
+  `building_floors._process` keeps the HUD haze on while the floor smoulders, not only while
+  it burns). A zombie that dies ALIGHT leaves a smouldering corpse: `_die` attaches
+  `body_smoke.gd` (a small looping `Cycled_smoke` wisp, no collision) instead of the flame.
+  **Enemies burn too**: a zombie
   (standard AND big) standing in flame catches (`on_fire` overlay) and takes burn
   DoT via `burn_tick` until it dies — same rule as the player, driven from
   `building_floors._process` where `on_fire` is set. The overlay (`enemy_fire.gd`) is

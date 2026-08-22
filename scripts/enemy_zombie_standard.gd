@@ -8,6 +8,7 @@ const ATTACK_RANGE = 30.0
 # attacks hit for DOUBLE (a burning corpse lunging at you is far worse). Toggled
 # by building_floors._process as it moves in and out of the fire.
 const ENEMY_FIRE := preload("res://scripts/enemy_fire.gd")
+const BODY_SMOKE := preload("res://scripts/body_smoke.gd")
 var on_fire: bool = false: set = _set_on_fire
 var _fire_fx = null
 
@@ -289,6 +290,10 @@ func _exit_tree() -> void:
 
 func _die() -> void:
 	is_dead = true
+	if on_fire:                    # died alight → the corpse smoulders (smoke, not flame)
+		var sm = BODY_SMOKE.new()
+		sm.position = Vector2(0, -6)
+		add_child(sm)
 	on_fire = false                # the flames go out the instant it dies (clears the fx)
 	state = "dead"
 	velocity.x = 0

@@ -203,7 +203,14 @@ func smoke_intensity() -> float:
 	# even at the LIGHT stage (smoke builds as the fire grows / you ignore it).
 	if cell_count == 0:
 		return 0.0
-	var frac := float(burning_count()) / float(cell_count)
+	var spent := 0
+	for i in range(cell_count):
+		if state_of(i) == SPENT:
+			spent += 1
+	# Active fire smokes most; doused/charred (spent) ground SMOULDERS at a lower weight
+	# but still hazes — so a floor you've just put out, and a fully charred ruin, stay
+	# smoky rather than snapping clear.
+	var frac := (float(burning_count()) + float(spent) * 0.7) / float(cell_count)
 	return clampf(frac * (1.6 + float(stage) * 1.3), 0.0, 1.0)
 
 
@@ -477,6 +484,7 @@ func _draw_back(canvas: CanvasItem) -> void:
 	# straight across it); the extra patch_carve breaks up its line into clumps.
 	_draw_ground_fire(canvas, BACK_SEAM_Y, 0.9, 0.0, 0.6, _tile_scale() * 0.58, 7.0, true, 0.14)
 	_draw_tall_flames(canvas)
+	_draw_smoulder_plumes(canvas)   # aftermath smoke (doused + charred), behind the active-fire smoke
 	_draw_smoke_plumes(canvas)
 
 
@@ -540,6 +548,44 @@ func _draw_smoke_plumes(canvas: CanvasItem) -> void:
 		placed += 1
 
 
+func has_smoulder() -> bool:
+	# True if any cell is a doused/charred (SPENT) ruin — i.e. there's smoke to show
+	# even though nothing is actively BURNING. Drives the HUD haze on a charred floor.
+	for i in range(cell_count):
+		if state_of(i) == SPENT:
+			return true
+	return false
+
+
+func _draw_smoulder_plumes(canvas: CanvasItem) -> void:
+	# Smoke rising from DOUSED / CHARRED (spent) ground — the AFTERMATH of fire. Greyer,
+	# thinner and more numerous than active-fire smoke, so a stretch you've just put out
+	# (and a fully charred ruin) SMOULDERS heavily instead of leaving bare scorch marks.
+	if _smoke_reg.is_empty():
+		return
+	var i := 0
+	while i < cell_count:
+		if state_of(i) == SPENT:
+			var s := float(i) * 3.7 + float(floor_num) * 1.9
+			if _hash01(s) < 0.72:                      # a plume on most spent cells, with gaps
+				var cx := cell_x(i)
+				var frame := int(_t * SMOKE_FPS + s) % SMOKE_FRAMES
+				_blit_smoulder(canvas, _smoke_reg[frame], cx, 0.44 + 0.36 * _hash01(s * 1.7))
+			i += 2                                      # step so plumes don't stack every cell
+		else:
+			i += 1
+
+
+func _blit_smoulder(canvas: CanvasItem, tex: Texture2D, cx: float, sc: float) -> void:
+	if tex == null:
+		return
+	var w := 128.0 * sc
+	var h := 128.0 * sc
+	var base_y := FIRE_BASE_Y - 6.0                    # rises off the scorched floor
+	# grey + semi-transparent: smoulder, not a fresh fire's warm smoke
+	canvas.draw_texture_rect(tex, Rect2(cx - w * 0.5, base_y - h, w, h), false, Color(0.62, 0.60, 0.58, 0.5))
+
+
 func _front_tile_near(target: float, x0: float, x1: float, tw: float) -> float:
 	# The x (tile centre) of the nearest RENDERED front-bed tile within [x0,x1] — same
 	# condition the front bed itself draws by (burning + patch on). -1 if none.
@@ -586,6 +632,12 @@ func _draw_scatter_bits(canvas: CanvasItem) -> void:
 	for k in range(n):
 		var seed := float(k) * 7.31 + float(floor_num) * 1.9
 		var x := lerpf(span0 - 24.0, span1 + 24.0, _hash01(seed * 1.1))
+		# ONLY over an actually-burning cell — the bits used to be strewn across the whole
+		# burning SPAN, so dousing the middle left flame wisps stranded on doused ground
+		# that re-spraying couldn't clear. Gated per-cell, a bit vanishes the moment its
+		# cell is put out.
+		if not is_burning_at(x):
+			continue
 		# On the floor, a little LOWER than the main bed (nearer the camera), never up
 		# the wall — a small spread of extra flames the player walks behind.
 		var y := FIRE_BASE_Y - 6.0 + 6.0 * _hash01(seed * 2.7)   # lifted a fraction off the UI (still below the player)

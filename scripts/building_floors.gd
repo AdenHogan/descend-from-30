@@ -246,7 +246,10 @@ func _process(delta: float) -> void:
 		# eases up with how much of the floor is alight; the HUD lerps it in, so it
 		# builds gradually rather than snapping on.
 		if HUD.has_method("set_smoke_fog"):
-			HUD.set_smoke_fog(_fire_field.any_burning(), clampf(_fire_field.smoke_intensity(), 0.0, 1.0))
+			# Haze lingers while the floor still SMOULDERS (doused or charred), not only
+			# while it's actively burning — a burnt-out floor stays smoky.
+			var smoky: bool = _fire_field.any_burning() or _fire_field.has_smoulder()
+			HUD.set_smoke_fog(smoky, clampf(_fire_field.smoke_intensity(), 0.0, 1.0))
 		# Enemies standing in the flames CATCH FIRE: a flame overlay + DOUBLE-damage
 		# attacks. They go out the moment they step clear.
 		for z in get_tree().get_nodes_in_group("zombie"):
