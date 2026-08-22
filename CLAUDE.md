@@ -381,7 +381,19 @@ means no rendering — UI layout and art still need an in-editor look.
   resolved x persisted in `fire_origin_x`). **Spreads into apartments** by
   proximity (`apartment_fire_stage`): nearest catches first, run 2 nearby ablaze,
   run 3 whole floor charred; charred apartments = no loot (`room.gd`), burning
-  doors glow. **Enemies on fire** (`enemy_fire.gd`) deal DOUBLE damage. Item **036 Fire Extinguisher**
+  doors glow. **INTERIOR apartment fire** (`apartment_fire.gd`, a NO-SIM procedural
+  renderer — spots don't spread): gated by `apartment_active_fire_stage(floor,apt)` (the
+  derived `apartment_fire_stage` unless the player DOUSED it out this run —
+  `apartment_fire_out['floor:apt:run']`, saved, cleared on shift; cross-run a doused room
+  re-derives from the still-burning corridor source, so kill the SOURCE not just the room).
+  Stage placement: LIGHT = a few small patches near the ENTRANCE the fire crept in from;
+  BLAZE = patches across the whole room; CHARRED = scorch + heavy smoulder smoke, no fire.
+  `room.gd` spawns it (live + BalconyPan backdrop), runs the player/enemy burn + HUD haze
+  in `_apartment_fire_process`, and marks the room doused when fully out. Enemy-by-stage
+  (uses the DERIVED stage): CHARRED = no enemies; BLAZE = no live enemies, 1-2 smouldering
+  burnt corpses (`enemy.make_burnt_corpse`); LIGHT/none = normal live spawn (they burn if
+  they wander into the flames). The extinguisher + burn code find the interior fire via the
+  shared `fire_field` group + interface, zero extra wiring. **Enemies on fire** (`enemy_fire.gd`) deal DOUBLE damage. Item **036 Fire Extinguisher**
   (`is_extinguisher`, 2 uses) douses a radius **for good** (`extinguish_at`) —
   one canister only blows a safe path through a big blaze (backtrack for more);
   mounted **by the elevator on EVERY floor** (skips charred) once per (floor,run)

@@ -67,6 +67,16 @@ const UI_FONT = preload("res://assets/fonts/PixelOperator8.ttf")
 const ROOM_BAND_TOP := 207.0
 const ROOM_BAND_H := 160.0
 
+# Interior fire (Hazard 3 inside apartments). apartment_fire.gd is a no-sim, procedurally
+# placed fire keyed to WorldState.apartment_active_fire_stage(floor,apt): LIGHT near the
+# entrance, BLAZE across the room, CHARRED = scorch + smoke (no fire). See docs.
+const APARTMENT_FIRE := preload("res://scripts/apartment_fire.gd")
+const FIRE_BASE_Y_ROOM := 356.0        # room floor line the interior fire rises from (feet ~321+)
+const FIRE_DMG_INTERVAL := 1.1         # a health hit this often while standing in interior flame
+var _apt_fire = null
+var _apt_fire_was_burning: bool = false
+var _fire_dmg_acc: float = 0.0
+
 const ANCHOR_RANGES = {
 	"bedroom": [2, 5],
 	"bathroom": [2, 5],
@@ -153,23 +163,36 @@ func _ready() -> void:
 		# the player can learn to search in peace.
 		tut_zombie = _spawn_tutorial_zombie(entrance_side)
 	elif not (WorldState.is_first_run and WorldState.current_floor == 30):
-		var zombie_count = WorldState.get_apartment_zombie_count(apartment_id)
-		if zombie_count > 0:
-			var apt_rng = RandomNumberGenerator.new()
-			apt_rng.seed = hash(str(WorldState.master_seed) + "aptpos" + apartment_id)
-			var zombie_scene = preload("res://scenes/enemy_zombie_standard.tscn")
-			var positions = WorldState.get_zombie_positions(zombie_count, apt_rng, 150.0, 1030.0, 321.0)
-			for pos in positions:
-				var key = str(WorldState.current_floor) + ":" + str(snappedf(pos.x, 1.0)) + ":" + str(snappedf(pos.y, 1.0))
-				if WorldState.killed_zombies.has(key):
-					continue
-				var zombie = zombie_scene.instantiate()
-				zombie.global_position = pos
-				zombie.spawn_key = key
-				add_child(zombie)
-				# Living-enemy memory: position + facing + health + alert (was
-				# position only). See WorldState.apply_saved_zombie.
-				WorldState.apply_saved_zombie(zombie)
+		# Fire changes who's here (derived stage — a doused room's occupants still died in
+		# the blaze that killed them): CHARRED = a dead ruin, no enemies; BLAZE = everyone
+		# burned, so a couple of smouldering corpses instead of live enemies; LIGHT/none =
+		# normal live spawn (they'll catch fire if they wander into the interior flames).
+		var afs := WorldState.apartment_fire_stage(_apt_floor(), _apt_index())
+		if afs == WorldState.FIRE_CHARRED:
+			pass   # burnt-out ruin — no enemies
+		elif afs == WorldState.FIRE_BLAZE:
+			_spawn_burnt_corpses(1 + (hash(apartment_id) % 2))   # 1-2 burned corpses
+		else:
+			var zombie_count = WorldState.get_apartment_zombie_count(apartment_id)
+			if zombie_count > 0:
+				var apt_rng = RandomNumberGenerator.new()
+				apt_rng.seed = hash(str(WorldState.master_seed) + "aptpos" + apartment_id)
+				var zombie_scene = preload("res://scenes/enemy_zombie_standard.tscn")
+				var positions = WorldState.get_zombie_positions(zombie_count, apt_rng, 150.0, 1030.0, 321.0)
+				for pos in positions:
+					var key = str(WorldState.current_floor) + ":" + str(snappedf(pos.x, 1.0)) + ":" + str(snappedf(pos.y, 1.0))
+					if WorldState.killed_zombies.has(key):
+						continue
+					var zombie = zombie_scene.instantiate()
+					zombie.global_position = pos
+					zombie.spawn_key = key
+					add_child(zombie)
+					# Living-enemy memory: position + facing + health + alert (was
+					# position only). See WorldState.apply_saved_zombie.
+					WorldState.apply_saved_zombie(zombie)
+
+	# Interior fire (after enemies, so burning enemies can already be in the room).
+	_spawn_apartment_fire()
 
 	if WorldState.saved_player_x != 0.0:
 		player.global_position = Vector2(WorldState.saved_player_x, WorldState.saved_player_y)
@@ -203,6 +226,93 @@ func _frame_camera(player: Node) -> void:
 	var b = StairPan.clean_bounds(tm)
 	var band = Rect2(Vector2(b.position.x, ROOM_BAND_TOP), Vector2(b.size.x, ROOM_BAND_H))
 	StairPan.apply_floor_camera(cam, band)
+
+
+func _exit_tree() -> void:
+	# Don't leave the interior-fire haze lingering over the next scene.
+	if HUD.has_method("set_smoke_fog"):
+		HUD.set_smoke_fog(false)
+
+
+func _apartment_fire_process(delta: float) -> void:
+	# Interior fire, mirroring building_floors: standing in flame burns the player and any
+	# enemies (they can walk into it and die), the HUD hazes while it burns/smoulders, and
+	# fully dousing it records the apartment as OUT for this run (persists on re-entry).
+	if passive:
+		return   # a BalconyPan backdrop just RENDERS its fire; no damage/haze/douse
+	if _apt_fire == null or not is_instance_valid(_apt_fire):
+		return
+	var player = get_node_or_null("Player")
+	if player != null and player.has_method("receive_hit"):
+		if _apt_fire.is_burning_at(player.global_position.x):
+			_fire_dmg_acc += delta
+			if _fire_dmg_acc >= FIRE_DMG_INTERVAL:
+				_fire_dmg_acc = 0.0
+				player.receive_hit(1)
+		else:
+			_fire_dmg_acc = 0.0
+	# Enemies catch fire in the room too (skip dead corpses so they never re-light).
+	for z in get_tree().get_nodes_in_group("zombie"):
+		if ("is_dead" in z) and z.is_dead:
+			if ("on_fire" in z) and z.on_fire:
+				z.on_fire = false
+			continue
+		var inflame: bool = _apt_fire.is_burning_at(z.global_position.x)
+		if "on_fire" in z:
+			z.on_fire = inflame
+		if inflame and z.has_method("burn_tick"):
+			z.burn_tick(delta)
+	if HUD.has_method("set_smoke_fog"):
+		var smoky: bool = _apt_fire.any_burning() or _apt_fire.has_smoulder()
+		HUD.set_smoke_fog(smoky, clampf(_apt_fire.smoke_intensity(), 0.0, 1.0))
+	# Fully put out (was burning, now not) → record this apartment doused for the run.
+	if _apt_fire_was_burning and not _apt_fire.any_burning():
+		_apt_fire_was_burning = false
+		WorldState.mark_apartment_fire_out(_apt_floor(), _apt_index())
+		HUD.show_feedback("The fire's out.")
+
+
+func _apt_floor() -> int:
+	return int(apartment_id.left(apartment_id.length() - 2))
+
+
+func _apt_index() -> int:
+	return int(apartment_id.substr(apartment_id.length() - 2))
+
+
+func _spawn_apartment_fire() -> void:
+	# Interior fire, gated by the SAME predicate as the corridor door-frame fire
+	# (apartment_active_fire_stage): only a burning apartment (door frame alight) has
+	# interior fire; a charred one shows scorch + smoke; a doused-this-run or non-burning
+	# one shows nothing. Placed with room geometry; joins the "fire_field" group so the
+	# extinguisher + burn code find it here.
+	var stage := WorldState.apartment_active_fire_stage(_apt_floor(), _apt_index())
+	if stage < 0:
+		return
+	_apt_fire = APARTMENT_FIRE.new()
+	_apt_fire.stage = stage
+	_apt_fire.span0 = 140.0
+	_apt_fire.span1 = 1040.0
+	_apt_fire.base_y = FIRE_BASE_Y_ROOM
+	var eside := WorldState.get_entrance_side(apartment_id)
+	_apt_fire.entrance_x = 200.0 if eside == "left" else 980.0
+	_apt_fire.seed_salt = apartment_id
+	add_child(_apt_fire)
+	_apt_fire_was_burning = _apt_fire.any_burning()
+
+
+func _spawn_burnt_corpses(count: int) -> void:
+	# A BLAZE-stage apartment: whoever was here burned. Spawn a couple of dead, smouldering
+	# zombie corpses (no AI, no collision, no loot) instead of live enemies.
+	var zombie_scene = preload("res://scenes/enemy_zombie_standard.tscn")
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(WorldState.master_seed) + "burntcorpse" + apartment_id)
+	for k in range(count):
+		var z = zombie_scene.instantiate()
+		z.global_position = Vector2(280.0 + rng.randf() * 620.0, 321.0)
+		add_child(z)
+		if z.has_method("make_burnt_corpse"):
+			z.make_burnt_corpse()
 
 
 func _build_modules(entrance_side: String, live: bool) -> void:
@@ -760,6 +870,8 @@ func _populate_passive_backdrop() -> void:
 		_spawn_passive_enemies(floor_num, false)
 	_spawn_corpses(floor_num, apartment_id)
 	_spawn_world_drops(floor_num, apartment_id)
+	# Interior fire in the backdrop too, so it's already there as the pan lands (no pop-in).
+	_spawn_apartment_fire()
 
 
 func _spawn_passive_enemies(floor_num: int, breached: bool) -> void:
@@ -909,6 +1021,7 @@ func _is_player_facing_anchor(anchor: Node) -> bool:
 
 func _process(_delta: float) -> void:
 	_tutorial_process(_delta)
+	_apartment_fire_process(_delta)
 
 	if not WorldState.is_scavenge_mode:
 		for i in interactables:

@@ -32,6 +32,25 @@ func _set_on_fire(v: bool) -> void:
 		_fire_fx = null
 
 
+func make_burnt_corpse() -> void:
+	# Spawn straight into a dead, smouldering state — no AI, no collision, no loot. Used
+	# for a BLAZE-stage apartment where everyone already burned to death (room.gd).
+	is_dead = true
+	state = "dead"
+	set_physics_process(false)
+	set_collision_layer_value(1, false)
+	set_collision_mask_value(1, false)
+	if animated_sprite:
+		animated_sprite.play("Death")
+		# settle on the final (dead-on-the-ground) frame, not the standing first frame
+		animated_sprite.animation_finished.connect(
+			func(): if is_instance_valid(animated_sprite): animated_sprite.pause(),
+			CONNECT_ONE_SHOT)
+	var sm = BODY_SMOKE.new()
+	sm.position = Vector2(0, -6)
+	add_child(sm)
+
+
 func burn_tick(delta: float) -> void:
 	# Standing in fire burns me: accumulate and take a QUIET hit on a cadence (no
 	# flinch, no knockdown — I keep shambling, alight) until the flames kill me. Same
