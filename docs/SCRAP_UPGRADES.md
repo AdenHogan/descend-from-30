@@ -41,10 +41,9 @@ Scrap works like Bank Notes / the Wallet, **not** like a normal item:
   unlock + balance (cross-run/per-run split TBD) and a HUD counter next to the
   cash readout — reuse that pattern rather than inventing a new one.
 
-<!-- OWNER: your message cut off at "Scrap won…" — the rest of this rule is
-     still open. Fill in what scrap won't do (e.g. won't be sellable to the
-     merchant? won't carry across runs? won't drop from zombies?) and I'll
-     finish this section. -->
+- **Scrap is NOT dragged onto items.** Upgrading is not an inventory action at
+  all — it happens at a physical **upgrade station** in a **maintenance room**
+  (below). Scrap is purely the currency spent there.
 
 ## Gathering scrap
 
@@ -69,50 +68,108 @@ Rough priority (exact numbers TBD in balancing). Every source below adds to the
    items they don't want into scrap** — turning surplus weapons/junk into
    upgrade fuel. Gated so it's a late reward, not a run-1 given.
 
-## Spending scrap — item upgrades
+## The maintenance room (where upgrades happen)
 
-**Drag scrap onto an item to upgrade it** (mirrors the existing drag-to-load
-bullets-onto-gun interaction — see the inventory drag/drop system). A threshold
-of scrap (working figure: **100 scrap → one level**) converts the item to its
-next level.
+A new **maintenance room** — its own `.tscn` (a small room, not a full
+apartment), placed **next to the elevator every 3 floors** (a "maintenance
+door"). It serves two jobs:
 
-Examples (illustrative — per-item effects TBD):
-- **Gun → level 2:** better **accuracy** and **damage**.
-- **Hammer → level 2:** **double durability**.
-- Other melee: more damage / more durability / faster swing, per weapon.
+1. **The upgrade work station.** Click the station → the player walks to it → a
+   **UpgradeUI** opens (like the merchant/shop UI) listing what you can upgrade,
+   the **scrap cost**, and any **item requirements** (which weapons of which
+   level it consumes). Confirm → the upgrade applies to the selected weapon.
+2. **The fuse box → elevator power.** The maintenance room is also where the
+   **fuse boxes that power the elevators** are found. (Separate sub-system; see
+   Open Questions — how elevator power gates traversal/the merchant is TBD.)
 
-Design intent:
-- Upgrades are **per-item and persistent** on that item instance (they ride the
-  item, like durability/mag state on `ItemInstance`).
-- Levels should read clearly (a small "Lv2" tag on the slot, like the
-  broken/damaged tags already do).
-- Follow the **modifier-fold** rule from `STORE_DESIGN.md` (base × ∏mult + Σadd,
-  never direct stat writes) so an upgraded item stacks cleanly with the global
-  upgrade system.
+### Upgrade costs (crafting-combine + scrap)
+
+Higher levels cost scrap **and consume lower-level copies of the same weapon**
+(so a spare gun is upgrade material, not junk — and a reason to buy a second one
+from the merchant). Worked example (gun):
+
+| Step            | Cost                                      |
+|-----------------|-------------------------------------------|
+| Gun Lv1 → Lv2   | 50 scrap                                  |
+| Gun Lv2 → Lv3   | a **Lv2 gun** + a **Lv1 gun** + 80 scrap  |
+| Gun Lv3 → Lv4 (max) | a **Lv3 gun** + a **Lv2 gun** + 100 scrap |
+
+### Static, player-CHOSEN upgrade trees
+
+Levelling is not "part → variant" (e.g. silencer makes a silenced pistol).
+Instead each weapon has **three static upgrade tiers** (basic → rare →
+legendary), and at each level the player **picks 1 of 2** static upgrades — so
+they shape the weapon deliberately. (Reuse the existing Hades-style **pick-1-of-2
+UI** from the character upgrades — see `STORE_DESIGN.md` step 6.)
+
+Worked example — **gun**:
+- **Lv2 (rare) — pick one:**
+  - *Aim Assist* — improved aim + higher headshot chance.
+  - *Durable Hand Cannon* — doubles the weapon's durability.
+- **Lv3 (legendary path) — pick one:**
+  - *Silencer* — firing makes no noise (huge for the stealth system).
+  - *Through-and-Through* — a shot can also hit an enemy behind the target.
+- **Lv4 (max) — pick one:**
+  - *Lucky Bullet* — a shot has a chance not to consume a bullet.
+  - *Bigger Bang* — bullets are volatile: explosive AoE damage to nearby enemies.
+
+Every weapon we support needs its own 3-tier × 2-choice tree. That's a lot of
+content, but it's what lets a player build a **unique arsenal per run**, on top
+of the every-5-floors **character** upgrades.
+
+### Persistence / carry-over
+
+- Upgrades are **per-item-instance** (level + chosen upgrades ride the weapon,
+  like durability/mag/broken state on `ItemInstance`), applied via the
+  **modifier-fold** rule (base × ∏mult + Σadd, never direct writes) so they
+  stack cleanly with the global upgrade system.
+- **Merchant weapons stay relevant.** Players can still buy rare/legendary
+  weapons from the merchant for **cash**. If a purchased weapon already carries
+  an upgrade and is then **consumed to level another weapon, its upgrades carry
+  over** to the result. (Exact carry-over rule — which of the consumed weapon's
+  picks transfer, and whether they can conflict with the target's picks — is an
+  Open Question.)
+- Levels read clearly on the slot (a small **"Lv2/3/4" tag**, like the
+  broken/damaged tags today) plus the chosen-upgrade icons.
 
 ## Open questions (to decide before building)
 
-- **Scrap cost curve:** flat 100/level, or rising (100 → 250 → …)? How many
-  levels per item (2? 3?).
-- **Per-item-type upgrade tables:** what each weapon/tool class gains per level
-  (damage / durability / accuracy / speed / capacity).
-- **Amounts per source:** scrap per charred apartment vs per natural find;
-  scrap yield from dismantling by item rarity.
-- **Persistence scope:** does an upgraded item survive across the 3-run arc, or
-  reset with fresh-character state? (Probably per-run like inventory, but worth
-  confirming against `THREE_RUN_ARC.md`.)
-- **UI:** a scrap counter on the HUD (near the wallet), the drag-to-upgrade
-  affordance, and the level tag on the slot.
-- **Dismantle perk:** which tier-5 perk grants it; scrap returned vs item value.
-- **Interaction with the merchant:** can scrap be bought/sold, or is it strictly
-  a scavenge/fire resource? (Leaning: fire/scavenge only — keeps it distinct
-  from Bank Notes.)
+- **Combine-cost inventory pressure.** Lv3/Lv4 consume *extra* weapons (a Lv2 +
+  a Lv1 gun, etc.). With only 5+1 slots, where do the spares come from (merchant
+  buys, finds?) and is juggling 2–3 guns to feed one upgrade the intended
+  tension, or too fiddly? (Option: the station could accept weapons from a small
+  "feed" list without them all being in hand at once.)
+- **Carry-over semantics.** When a weapon with upgrades is consumed, do its
+  chosen upgrades transfer to the result automatically, or does the player
+  re-pick? What happens if the consumed weapon's pick conflicts with the
+  target's (two Lv2 picks)? Recommend: the *target* keeps its own picks; a
+  consumed **purchased** weapon can donate one pick if the target's slot at that
+  tier is empty.
+- **Which weapons first.** Gun tree is fully specced. Build **gun + one melee**
+  (e.g. hammer) as the template, prove the flow, then expand to the rest.
+- **Persistence across the 3-run arc.** Fresh character each run
+  (`THREE_RUN_ARC.md`) implies upgrades reset per run (like inventory) and scrap
+  is spent fresh each run — confirm that's intended vs. some carry-over.
+- **Scrap amounts.** Per charred apartment vs natural find; dismantle yield by
+  rarity; whether Lv1→Lv2's 50 and the later 80/100 are the right curve.
+- **Fuse box / elevator power.** New sub-system bundled into the maintenance
+  room: does the elevator not run until a fuse box is found? How does that gate
+  the merchant (who lives in the elevator) and traversal? Needs its own mini-spec.
+- **Scrap ≠ Bank Notes.** Scrap is fire/scavenge-only and spent only at the
+  station — not bought/sold at the merchant (keeps the two economies distinct).
+- **Dismantle perk.** Which tier-5 character perk grants "break item → scrap";
+  scrap returned vs item value.
 
 ## Why this is good for the game
 
 - Makes **fire a decision, not just damage** — the first hazard that *rewards*
-  as well as punishes.
+  as well as punishes (let a room burn → scrap).
 - Gives **runs 2 and 3 a forward pull** (more charred floors = more scrap) so
-  the escalating danger has an escalating payoff.
-- Adds a **second progression axis** (upgrade what you carry) alongside the
-  merchant/Bank-Notes economy, without competing with it.
+  escalating danger has an escalating payoff.
+- A **maintenance room every 3 floors** gives a physical upgrade ritual and a
+  reason to explore off the apartment path, and folds in the elevator fuse-box.
+- **Two progression axes at different cadences:** weapon upgrades every ~3 floors
+  (scrap, at the station) and character upgrades every ~5 floors — plus a
+  crafting-combine sink that makes duplicate/merchant weapons valuable.
+- **Player-chosen static trees** = build variety and a unique per-run arsenal,
+  without the frustration of random rolls.
