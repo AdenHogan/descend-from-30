@@ -266,6 +266,12 @@ func _process(delta: float) -> void:
 			# dies, same as the player would (driven here, where we know the fire).
 			if z_inflame and z.has_method("burn_tick"):
 				z.burn_tick(delta)
+		# Door-frame flames are separate decals; clear each the moment the corridor fire
+		# beside its door is doused, so no fire is left stacked by a door once it's out.
+		# Only THIS floor's own decals (the group is global; a pan may hold two floors).
+		for df in get_tree().get_nodes_in_group("door_fire"):
+			if df.get_parent() == self and not _fire_field.burning_near(df.global_position.x, 44.0):
+				df.queue_free()
 		# The moment the WHOLE floor's fire is out (not just a path doused), it's
 		# dealt with: record it cross-run so it can't re-ignite/escalate, and let
 		# a sheltering merchant finally come out. A path-spray leaves cells burning,

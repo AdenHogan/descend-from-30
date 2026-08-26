@@ -169,6 +169,18 @@ func any_burning() -> bool:
 	return false
 
 
+func burning_near(x: float, radius: float) -> bool:
+	# True if any cell within `radius` px of x is BURNING. Used to clear door-frame flames
+	# the moment the corridor fire beside that door is doused — so nothing burns where the
+	# fire is out.
+	var a := cell_at(x - radius)
+	var b := cell_at(x + radius)
+	for i in range(a, b + 1):
+		if state_of(i) == BURNING:
+			return true
+	return false
+
+
 func export_state() -> Array:
 	# A snapshot of every cell's state (0 cool / 1 burning / 2 spent) so the fire's
 	# SPREAD survives leaving and re-entering the floor (see WorldState.fire_cells).
@@ -401,10 +413,11 @@ func _patch_on(x: float, salt: float, carve: float = 0.0) -> bool:
 const DOOR_AVOID_HALF := 36.0
 
 # HARD BUILDING BORDERS (the blue lines): the corridor's left/right walls. Nothing —
-# fire, smoke, globs — may be drawn beyond these. Matches the WorldBoundary colliders in
-# building_floors.tscn (StaticBody at 544 with wall offsets -416 / +680).
-const BORDER_L := 128.0
-const BORDER_R := 1224.0
+# fire, smoke, globs — may be drawn beyond these. The WorldBoundary colliders (where the
+# player physically stops) sit at 128 / 1224; we inset the fire a few px INSIDE them so a
+# flame never even touches the wall face, let alone overlaps it.
+const BORDER_L := 138.0
+const BORDER_R := 1214.0
 
 
 func _draw_clipped(canvas: CanvasItem, tex: Texture2D, dst: Rect2, src: Rect2, col: Color) -> void:
