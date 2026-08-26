@@ -471,11 +471,10 @@ func _cell_kind(cx: float) -> int:
 		return 2
 	var clump := floori(cx / (CELL_W * 2.0))
 	var h := _hash01(float(clump) * 1.7 + float(floor_num) * 0.9)
-	if h < 0.4:
-		return 1
-	elif h < 0.75:
-		return 0
-	return 2
+	# EVERY non-door burning cell gets a tile bed — BACK or FRONT (complementary, never
+	# both), so coverage is full and the fire reads strong, while the two tile beds still
+	# never double up. Tall flames / globs rise on top freely (they may overlap a bed).
+	return 1 if h < 0.5 else 0
 
 
 func _is_glob_cell(cx: float) -> bool:
@@ -539,22 +538,25 @@ func _draw_tall_flames(canvas: CanvasItem) -> void:
 	# globs read as DISTINCT tongues rising off the bed, never piling into one blob. The
 	# gap is >= the widest glob below, so no overlap on any seed. The continuous ground
 	# bed carries the fire's fullness; these are spaced accents.
-	var scan := 24.0
-	var min_gap := 108.0 if big else 104.0     # clear air between neighbours (globs are small now)
+	var scan := 18.0
+	# Tall flames rise on ANY burning cell (globs are FINE over a tile — only tile beds must
+	# not double). A BLAZE packs them tight + tall so it reads as a raging fire; a LIGHT
+	# outbreak is sparser and shorter. min_gap keeps neighbours from fusing into one blob.
+	var min_gap := 70.0 if big else 100.0
 	var col := 0
 	var last_x := -1.0e9
 	var x := FIRE_MIN_X + 18.0
 	while x <= FIRE_MAX_X:
-		if is_burning_at(x) and _is_glob_cell(x) and not _in_stair_keepout(x) and (x - last_x) >= min_gap:
+		if is_burning_at(x) and not _near_door(x) and not _in_stair_keepout(x) and _patch_on(x, 3.0) and (x - last_x) >= min_gap:
 			var sd := float(floori(x / min_gap)) + float(floor_num) * 0.7
 			var roll := _hash01(sd * 1.9)              # size class for this glob
 			var tex3: Texture2D = _flame_tex[int(_hash01(sd * 1.3) * float(_flame_tex.size())) % _flame_tex.size()]
-			if roll > (0.82 if big else 0.92) and _bonfire_tex != null:
-				_blit_anim(canvas, _bonfire_tex, BONFIRE_PX, x, FIRE_BASE_Y, 1.2 if big else 0.95, col, sd, 1.0)   # BIG glob (<= ~77px)
-			elif roll > 0.5:
-				_blit_anim(canvas, tex3, TILE_PX, x, FIRE_BASE_Y, 1.75 if big else 1.4, col, sd, 1.0)             # MEDIUM (<= ~56px)
+			if roll > (0.74 if big else 0.92) and _bonfire_tex != null:
+				_blit_anim(canvas, _bonfire_tex, BONFIRE_PX, x, FIRE_BASE_Y, 1.5 if big else 0.95, col, sd, 1.0)   # BIG bonfire
+			elif roll > 0.45:
+				_blit_anim(canvas, tex3, TILE_PX, x, FIRE_BASE_Y, 2.1 if big else 1.4, col, sd, 1.0)              # MEDIUM tall flame
 			else:
-				_blit_anim(canvas, tex3, TILE_PX, x, FIRE_BASE_Y, 1.25 if big else 1.0, col, sd, 1.0)             # SMALL
+				_blit_anim(canvas, tex3, TILE_PX, x, FIRE_BASE_Y, 1.5 if big else 1.0, col, sd, 1.0)              # SMALL
 			last_x = x
 		x += scan
 		col += 1
@@ -854,10 +856,9 @@ func _draw_scatter_bits(canvas: CanvasItem) -> void:
 		var bx := x + (_hash01(sd * 1.1) - 0.5) * slot * 0.5   # jitter within the slot (< slot/2)
 		col += 1
 		x += slot
-		# ONLY over an actually-burning GAP cell — a bit vanishes the moment its cell is out
-		# (they used to strew across the whole span, stranding wisps on doused ground), and
-		# it only sits where the tile bed ISN'T drawn, so a glob never overlaps a front tile.
-		if not is_burning_at(bx) or not _is_glob_cell(bx) or _in_stair_keepout(bx):
+		# ONLY over an actually-burning cell (a bit vanishes the moment its cell is out) and
+		# not across a door / the stair keep-out. Globs may sit over a tile bed — that's fine.
+		if not is_burning_at(bx) or _near_door(bx) or _in_stair_keepout(bx):
 			continue
 		# On the floor, a little LOWER than the main bed (nearer the camera), never up
 		# the wall — a small spread of extra flames the player walks behind.
