@@ -17,6 +17,9 @@ originals — the markdown here is canonical for development):
   fires, balcony descent, fresh-character state. Agreed, pre-implementation.
 - `docs/STORE_DESIGN.md` — **FINAL v3**: bank notes, wallet, merchant, shop
   rotation, free pick-1-of-2 upgrades, corpse recovery, implementation order.
+- `docs/SCRAP_UPGRADES.md` — **AGREED, pre-implementation**: Scrap (a 2nd
+  currency) to upgrade items; charred/burned apartments are the main scrap
+  faucet → fire becomes risk/reward. Not built yet.
 - `docs/QUEST_LIST.md` — quests 001–011 with outcomes/rewards.
 - `docs/ITEMS_SHEET.md` — item catalog + room spawn pools (design reference;
   **`data/Items.json` is the runtime source of truth**).
