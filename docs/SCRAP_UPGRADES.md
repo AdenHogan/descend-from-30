@@ -23,9 +23,33 @@ weapon. Because fire escalates across runs (see `THREE_RUN_ARC.md`), runs 2 and
 3 become a **scrap-farming opportunity as much as a threat**: more of the
 building is charred, so more scrap is available — if you can survive it.
 
+## Scrap is a COUNTER, not an inventory stack (mirrors the Wallet)
+
+Scrap works like Bank Notes / the Wallet, **not** like a normal item:
+
+- It is presented as an item concept in the UI at first, but once the player
+  finds their **first scrap bag**, scrap becomes a **running total shown in the
+  top-right of the screen, exactly like the cash counter** (same treatment as
+  the Wallet balance — see `STORE_DESIGN.md`).
+- A **scrap bag pickup does NOT go into inventory** (it never takes one of the
+  5+1 slots). Instead, picking one up **adds a randomised amount of scrap to the
+  total** and the bag is consumed.
+- So finding scrap bags just grows the number; the player never has to manage
+  scrap as an item, the way they never carry individual bank notes once the
+  Wallet is unlocked.
+- Implementation note (when built): this parallels `WorldState`'s wallet
+  unlock + balance (cross-run/per-run split TBD) and a HUD counter next to the
+  cash readout — reuse that pattern rather than inventing a new one.
+
+<!-- OWNER: your message cut off at "Scrap won…" — the rest of this rule is
+     still open. Fill in what scrap won't do (e.g. won't be sellable to the
+     merchant? won't carry across runs? won't drop from zombies?) and I'll
+     finish this section. -->
+
 ## Gathering scrap
 
-Rough priority (exact numbers TBD in balancing):
+Rough priority (exact numbers TBD in balancing). Every source below adds to the
+**scrap counter** (above) — none of them place an item in inventory:
 
 1. **Charred / burned apartments — the primary faucet.** A CHARRED apartment
    (a burnt-out ruin — see the fire hazard) yields **scrap** instead of normal
