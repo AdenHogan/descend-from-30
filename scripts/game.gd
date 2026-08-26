@@ -5,6 +5,7 @@ const SCENES = {
 	"profiles": "res://scenes/profile_select.tscn",
 	"hallway": "res://scenes/hallway.tscn",
 	"room": "res://scenes/room.tscn",
+	"maintenance": "res://scenes/maintenance.tscn",
 	"lobby": "res://scenes/lobby.tscn",
 	"building_floors": "res://scenes/building_floors.tscn"
 }

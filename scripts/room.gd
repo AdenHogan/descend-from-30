@@ -111,6 +111,13 @@ func _ready() -> void:
 		_populate_passive_backdrop()
 		return
 
+	# MAINTENANCE ROOM (maintenance.tscn): a small SAFE room — NO enemies, no apartment
+	# modules, just 2 scavenge anchors (toolbox/fuse-weighted) + a spot to rest. Reuses
+	# this scene's Player / camera / exit-door and the scavenge interaction layer below.
+	if _is_maintenance():
+		_setup_maintenance()
+		return
+
 	var door = $Area2D
 	var player = $Player
 	var entrance_side = WorldState.get_entrance_side(apartment_id)
@@ -276,6 +283,61 @@ func _apartment_fire_process(delta: float) -> void:
 		_apt_fire_was_burning = false
 		WorldState.mark_apartment_fire_out(_apt_floor(), _apt_index())
 		HUD.show_feedback("The fire's out.")
+
+
+func _is_maintenance() -> bool:
+	# The scene's own source path — set whether it's the live current_scene or instantiated
+	# in a test harness, so both take the maintenance branch.
+	return scene_file_path.ends_with("maintenance.tscn")
+
+
+func _maintenance_key() -> String:
+	# Per (floor, run) so its two anchors' searched/looted state persists on re-entry,
+	# like an apartment's. Not a real apartment id (won't collide with "FF0A" ids).
+	return "MAINT:" + str(WorldState.current_floor) + ":" + str(WorldState.current_run)
+
+
+func _maintenance_loot(rng: RandomNumberGenerator) -> String:
+	# A maintenance room is where you find repair gear and spare parts: heavily weighted
+	# to Toolbox (019) and Fuse (020), with the odd bank-notes bundle; sometimes empty.
+	var r := rng.randf()
+	if r < 0.40:
+		return "019"   # Toolbox (repairs)
+	elif r < 0.70:
+		return "020"   # Fuse (powers the elevator)
+	elif r < 0.85:
+		return "033"   # Bank Notes
+	return ""          # empty this time
+
+
+func _setup_maintenance() -> void:
+	var player = $Player
+	# Small enclosed room: both walls solid, player + exit door at fixed spots.
+	$LeftWall.process_mode = Node.PROCESS_MODE_ALWAYS
+	$RightWall.process_mode = Node.PROCESS_MODE_ALWAYS
+	apartment_id = _maintenance_key()
+	player.position = Vector2(600, 321)
+	if WorldState.saved_player_x != 0.0:
+		player.global_position = Vector2(WorldState.saved_player_x, WorldState.saved_player_y)
+		WorldState.saved_player_x = 0.0
+		WorldState.saved_player_y = 0.0
+	# Set up the 2 scavenge anchors — toolbox/fuse-weighted loot, seeded + persistent.
+	var interactable_script = load("res://scripts/interactable.gd")
+	var mrng = RandomNumberGenerator.new()
+	mrng.seed = hash(str(WorldState.master_seed) + "maint" + apartment_id)
+	for child in get_children():
+		if child is Marker2D and str(child.name).begins_with("anchor"):
+			child.set_script(interactable_script)
+			child.apartment_id = apartment_id
+			child._ready()
+			interactables.append(child)
+			var passed = mrng.randf() <= 0.85   # most anchors have something here
+			if not WorldState.is_anchor_searched(apartment_id, child.name):
+				var item := _maintenance_loot(mrng)
+				if passed and item != "":
+					WorldState.set_anchor_item(apartment_id, child.name, item)
+	_frame_camera(player)
+	HUD.update_floor_label()
 
 
 func _apt_floor() -> int:
