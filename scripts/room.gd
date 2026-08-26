@@ -194,6 +194,12 @@ func _ready() -> void:
 	# Interior fire (after enemies, so burning enemies can already be in the room).
 	_spawn_apartment_fire()
 
+	# Charred ruin: a one-time (per game) non-interrupting line so the empty, burnt-out
+	# room reads as "the fire got here first" — context for why there's nothing to scavenge.
+	if WorldState.is_apartment_charred(_apt_floor(), _apt_index()) and not WorldState.charred_intro_shown:
+		WorldState.charred_intro_shown = true
+		HUD.show_dialogue("The fire gutted this place — everything's burned down to scrap and cinders.", "", false, 4.5)
+
 	if WorldState.saved_player_x != 0.0:
 		player.global_position = Vector2(WorldState.saved_player_x, WorldState.saved_player_y)
 		WorldState.saved_player_x = 0.0

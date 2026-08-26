@@ -28,6 +28,9 @@ var roped_balconies: Dictionary = {}
 # The no-rope jump warning is a one-time teach: it fires ONCE per run the first
 # time the player tries a bare drop, then never again that run (per-run flag).
 var balcony_jump_warned: bool = false
+# One-time-per-game context line the first time the player enters a CHARRED (burnt-out)
+# apartment, so the empty ruin reads as "the fire got here first", not a broken room.
+var charred_intro_shown: bool = false
 # Transient hand-off across the descent scene swap: a hard landing sets this so
 # the arriving player can flash the hurt pose. Consumed on arrival (room.gd).
 var balcony_arrival_hurt: bool = false
@@ -442,6 +445,7 @@ func new_game() -> void:
 	world_drops.clear()
 	roped_balconies.clear()
 	balcony_jump_warned = false
+	charred_intro_shown = false
 	balcony_arrival_hurt = false
 	balcony_pending_injury = 0
 	door_states.clear()

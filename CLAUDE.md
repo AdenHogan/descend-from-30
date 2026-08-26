@@ -349,7 +349,15 @@ means no rendering — UI layout and art still need an in-editor look.
   the continuous bed instead of piling into one blob — on any seed, at LIGHT or BLAZE (the
   jitter in `_blit_anim` is small enough not to close the gap). `apartment_fire` spots use
   the same discipline (spaced ~120-168 on BLAZE, ~108 apart from the entrance on LIGHT, one
-  bed per spot). The scattered floor globs
+  bed per spot). **Complementary tile beds**: the DEPTH (back-seam) bed and the FRONT bed are
+  MUTUALLY EXCLUSIVE per cell (`_bed_assign`, ~2-cell clumps assigned back XOR front), so the
+  tile-set fire never doubles into a bloated overlap — where depth draws, front doesn't, and
+  vice versa; globs/tall flames are a separate layer and may still overlap (fine). BOTH beds
+  avoid doorways (`avoid_doors`), so no fire tiles plaster across a door. **Smoke** plumes are
+  spaced (`_too_close`, no stacking into a dark blob) and drawn as THIN rising wisps (the
+  128-wide sprite squished into a ~62px dest, not a blocky square), with a couple more of them
+  (cap 7 blaze / 5 light) plus 2 FOREGROUND stacks (`_draw_front_smoke`, z2) so smoke reads in
+  front as well as at the depth seam. The scattered floor globs
   (`_draw_scatter_bits`) sit ON THE FLOOR and IN FRONT of the player (z2, player walks
   behind them) — not floating up the wall. **Ignition patterns** (per stage, seeded per
   (floor,run) so they vary floor-to-floor / game-to-game, `_ignite_light_patch` /

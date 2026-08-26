@@ -389,7 +389,17 @@ func _near_door(x: float) -> bool:
 	return false
 
 
-func _draw_ground_fire(canvas: CanvasItem, base_y: float, alpha: float, y_off: float, bottom_frac: float = 1.0, sc_override: float = -1.0, patch_salt: float = -1.0, avoid_doors: bool = false, patch_carve: float = 0.0) -> void:
+func _bed_assign(cx: float) -> int:
+	# Each burning cell's tile bed belongs to EXACTLY ONE depth — the BACK seam (1) or the
+	# FRONT floor (0), in ~2-cell clumps, seeded per floor. This makes the two tile beds
+	# COMPLEMENTARY: where the depth bed draws, the front bed does not, and vice versa, so
+	# the tile-set fire never doubles up into a bloated overlap. (Globs/tall flames are a
+	# separate layer and may still overlap — that's fine, it's the beds that must not.)
+	var clump := floori(cx / (CELL_W * 2.0))
+	return 1 if _hash01(float(clump) * 1.7 + float(floor_num) * 0.9) < 0.5 else 0
+
+
+func _draw_ground_fire(canvas: CanvasItem, base_y: float, alpha: float, y_off: float, bottom_frac: float = 1.0, sc_override: float = -1.0, patch_salt: float = -1.0, avoid_doors: bool = false, patch_carve: float = 0.0, bed_side: int = -1) -> void:
 	# Blit the animated fire TILE across the whole burning span, its bottom on the
 	# floor line. The tile tiles seamlessly (uniform frame across columns; the art
 	# tiles cleanly with itself, and the big flames on top break any repetition).
@@ -410,7 +420,10 @@ func _draw_ground_fire(canvas: CanvasItem, base_y: float, alpha: float, y_off: f
 	var x := FIRE_MIN_X
 	while x <= FIRE_MAX_X:
 		var cx := x + tw * 0.5
-		if is_burning_at(cx) and (patch_salt < 0.0 or _patch_on(x, patch_salt, patch_carve)) and not (avoid_doors and _near_door(cx)):
+		var pass_gate := (patch_salt < 0.0 or _patch_on(x, patch_salt, patch_carve))
+		if bed_side >= 0:
+			pass_gate = (_bed_assign(cx) == bed_side)   # complementary back/front bed split
+		if is_burning_at(cx) and pass_gate and not (avoid_doors and _near_door(cx)):
 			var dst := Rect2(x, base_y - th + y_off, tw + 1.0, th)
 			canvas.draw_texture_rect_region(tex, dst, src, Color(1.0, 1.0, 1.0, alpha))
 		x += tw
@@ -442,7 +455,7 @@ func _draw_tall_flames(canvas: CanvasItem) -> void:
 	# gap is >= the widest glob below, so no overlap on any seed. The continuous ground
 	# bed carries the fire's fullness; these are spaced accents.
 	var scan := 24.0
-	var min_gap := 104.0 if big else 92.0
+	var min_gap := 108.0 if big else 104.0     # clear air between neighbours (globs are small now)
 	var col := 0
 	var last_x := -1.0e9
 	var x := FIRE_MIN_X + 18.0
@@ -451,12 +464,12 @@ func _draw_tall_flames(canvas: CanvasItem) -> void:
 			var sd := float(floori(x / min_gap)) + float(floor_num) * 0.7
 			var roll := _hash01(sd * 1.9)              # size class for this glob
 			var tex3: Texture2D = _flame_tex[int(_hash01(sd * 1.3) * float(_flame_tex.size())) % _flame_tex.size()]
-			if roll > (0.80 if big else 0.90) and _bonfire_tex != null:
-				_blit_anim(canvas, _bonfire_tex, BONFIRE_PX, x, FIRE_BASE_Y, 1.35 if big else 1.0, col, sd, 1.0)   # BIG glob (<= ~86px)
+			if roll > (0.82 if big else 0.92) and _bonfire_tex != null:
+				_blit_anim(canvas, _bonfire_tex, BONFIRE_PX, x, FIRE_BASE_Y, 1.2 if big else 0.95, col, sd, 1.0)   # BIG glob (<= ~77px)
 			elif roll > 0.5:
-				_blit_anim(canvas, tex3, TILE_PX, x, FIRE_BASE_Y, 2.0 if big else 1.55, col, sd, 1.0)             # MEDIUM (<= ~64px)
+				_blit_anim(canvas, tex3, TILE_PX, x, FIRE_BASE_Y, 1.75 if big else 1.4, col, sd, 1.0)             # MEDIUM (<= ~56px)
 			else:
-				_blit_anim(canvas, tex3, TILE_PX, x, FIRE_BASE_Y, 1.4 if big else 1.1, col, sd, 1.0)              # SMALL
+				_blit_anim(canvas, tex3, TILE_PX, x, FIRE_BASE_Y, 1.25 if big else 1.0, col, sd, 1.0)             # SMALL
 			last_x = x
 		x += scan
 		col += 1
@@ -493,7 +506,7 @@ func _draw_back(canvas: CanvasItem) -> void:
 	# front bed so the gaps don't line up.
 	# avoid_doors=true keeps the depth bed OUT of doorways (beside a door is fine, not
 	# straight across it); the extra patch_carve breaks up its line into clumps.
-	_draw_ground_fire(canvas, BACK_SEAM_Y, 0.9, 0.0, 0.6, _tile_scale() * 0.58, 7.0, true, 0.14)
+	_draw_ground_fire(canvas, BACK_SEAM_Y, 0.9, 0.0, 0.6, _tile_scale() * 0.58, -1.0, true, 0.0, 1)   # DEPTH bed (side 1), avoids doors
 	_draw_tall_flames(canvas)
 	_draw_smoulder_plumes(canvas)   # aftermath smoke (doused + charred), behind the active-fire smoke
 	_draw_smoke_plumes(canvas)
@@ -507,15 +520,13 @@ func _draw_back(canvas: CanvasItem) -> void:
 # column — so a plume is a DISTINCT thing and never morphs short↔long. Height varies a
 # little per zone (stable seed), and the long column is kept short enough to clear the
 # ceiling. Drawn BEHIND the player (z0) so it rises up the wall.
-const SMOKE_ZONE_W := 210.0        # scan the span in fixed zones this wide (~5 cells)
-const SMOKE_ZONE_MIN := 4          # a DENSE zone (nearly full) → guarantees real fire under the plume
+const SMOKE_ZONE_W := 180.0        # scan the span in fixed zones this wide (~4 cells)
+const SMOKE_ZONE_MIN := 3          # a zone with a few burning cells smokes (more visible stacks)
 
 
-func _draw_smoke_plumes(canvas: CanvasItem) -> void:
-	if _smoke_reg.is_empty() and _smoke_long.is_empty():
-		return
-	# Eligible zones (enough fire), each with the CENTROID of its burning cells (= the
-	# x to rise from, so the plume sits on the fire, not off in a gap).
+func _smoke_zones() -> Array:
+	# Eligible zones (enough fire), each with the CENTROID of its burning cells (= the x to
+	# rise from), sorted biggest-fire first. Shared by the depth + foreground smoke passes.
 	var zones: Array = []
 	var zi := 0
 	var zx := FIRE_MIN_X + SMOKE_ZONE_W * 0.5
@@ -532,31 +543,83 @@ func _draw_smoke_plumes(canvas: CanvasItem) -> void:
 			zones.append({"i": zi, "burn": burn, "cx": sumx / float(burn), "zx": zx})
 		zx += SMOKE_ZONE_W
 		zi += 1
+	zones.sort_custom(func(a, b): return int(a["burn"]) > int(b["burn"]))
+	return zones
+
+
+func _draw_smoke_plumes(canvas: CanvasItem) -> void:
+	# DEPTH smoke: plumes rising off the fire up the wall, BEHIND the player (z0). Bumped a
+	# couple higher so the burning corridor clearly smokes.
+	if _smoke_reg.is_empty() and _smoke_long.is_empty():
+		return
+	var zones := _smoke_zones()
 	if zones.is_empty():
 		return
-	zones.sort_custom(func(a, b): return int(a["burn"]) > int(b["burn"]))   # the BIGGEST fire smokes first
 	var big := stage >= STAGE_BLAZE
-	var cap := mini(5 if big else 3, zones.size())      # SOME spots, not everywhere (no bloat)
+	var cap := mini(7 if big else 5, zones.size())      # a couple more stacks than before
 	var tw := float(TILE_PX) * _tile_scale()
 	var placed := 0
+	var placed_xs: Array = []
 	for z in zones:
 		if placed >= cap:
 			break
-		# Snap the plume onto an actually-RENDERED front-bed tile in the zone. The fire
-		# draws PATCHY, so the sim centroid can sit over a gap — this guarantees the
-		# smoke rises from behind a real front-bed tile (z2 = in front of the smoke).
-		# No extra bonfire (that undercut the bed); the existing tile is the backing.
+		# Snap the plume onto an actually-RENDERED front-bed tile in the zone (the fire is
+		# PATCHY, so the sim centroid can sit over a gap) so smoke rises from behind a tile.
 		var cx := _front_tile_near(float(z["cx"]), float(z["zx"]) - SMOKE_ZONE_W * 0.5, float(z["zx"]) + SMOKE_ZONE_W * 0.5, tw)
 		if cx < 0.0:
 			continue
+		if _too_close(cx, placed_xs, 150.0):   # never stack plumes — a small fire clusters its zones
+			continue
+		placed_xs.append(cx)
 		var s := float(int(z["i"])) * 5.3 + float(floor_num) * 1.7          # STABLE per zone (no morph)
 		var frame := int(_t * SMOKE_FPS + s) % SMOKE_FRAMES
-		# VARY the height a lot per plume (stable seed) so the tops sit at different Y.
 		if big and not _smoke_long.is_empty():
 			_blit_smoke(canvas, _smoke_long[frame], 32.0, 129.0, cx, 0.55 + 0.6 * _hash01(s))
 		elif not _smoke_reg.is_empty():
-			_blit_smoke(canvas, _smoke_reg[frame], 128.0, 128.0, cx, 0.4 + 0.42 * _hash01(s))
+			# 128-wide sprite squished into a ~62px-wide dest = a thin rising WISP, not a big
+			# blocky square (which read as a dark grid over a clean door).
+			_blit_smoke(canvas, _smoke_reg[frame], 62.0, 122.0, cx, 0.5 + 0.42 * _hash01(s))
 		placed += 1
+
+
+func _draw_front_smoke(canvas: CanvasItem) -> void:
+	# FOREGROUND smoke: two extra stacks rising IN FRONT of the player (z2), over the
+	# nearest/biggest fire, so smoke reads in the foreground too — semi-transparent so it
+	# doesn't hide the player. Placed on the LEAST-dense of the top zones so it isn't at the
+	# exact x of a depth plume (foreground + depth smoke sit at different spots).
+	if _smoke_reg.is_empty():
+		return
+	var zones := _smoke_zones()
+	if zones.is_empty():
+		return
+	var tw := float(TILE_PX) * _tile_scale()
+	var want := 2
+	var placed := 0
+	var placed_xs: Array = []
+	# walk from the SMALLER of the qualifying zones so we don't double the biggest one
+	for zi in range(zones.size() - 1, -1, -1):
+		if placed >= want:
+			break
+		var z = zones[zi]
+		var cx := _front_tile_near(float(z["cx"]), float(z["zx"]) - SMOKE_ZONE_W * 0.5, float(z["zx"]) + SMOKE_ZONE_W * 0.5, tw)
+		if cx < 0.0:
+			continue
+		if _too_close(cx, placed_xs, 170.0):   # keep foreground stacks apart (no dark pile-up)
+			continue
+		placed_xs.append(cx)
+		var s := float(int(z["i"])) * 3.1 + float(floor_num) * 2.3
+		var frame := int(_t * SMOKE_FPS + s) % SMOKE_FRAMES
+		var h := 122.0 * (0.5 + 0.3 * _hash01(s))
+		var w := h * 0.5                                 # thin rising wisp, not a square blob
+		canvas.draw_texture_rect(_smoke_reg[frame], Rect2(cx - w * 0.5, FIRE_BASE_Y - 2.0 - h, w, h), false, Color(1.0, 1.0, 1.0, 0.42))
+		placed += 1
+
+
+func _too_close(x: float, xs: Array, gap: float) -> bool:
+	for px in xs:
+		if absf(float(px) - x) < gap:
+			return true
+	return false
 
 
 func has_smoulder() -> bool:
@@ -620,7 +683,7 @@ func _blit_smoke(canvas: CanvasItem, tex: Texture2D, fw: float, fh: float, cx: f
 	var w := fw * sc
 	var h := fh * sc
 	var base_y := FIRE_BASE_Y - 14.0                       # rise from the fire bed, a touch higher for visibility but still BEHIND the front tiles (bed spans ~395..421)
-	canvas.draw_texture_rect(tex, Rect2(cx - w * 0.5, base_y - h, w, h), false, Color(1.0, 1.0, 1.0, 0.82))
+	canvas.draw_texture_rect(tex, Rect2(cx - w * 0.5, base_y - h, w, h), false, Color(1.0, 1.0, 1.0, 0.72))
 
 
 func _draw_scatter_bits(canvas: CanvasItem) -> void:
@@ -642,7 +705,7 @@ func _draw_scatter_bits(canvas: CanvasItem) -> void:
 	# Walk the burning span in fixed SLOTS and drop at most one small bit per slot (with a
 	# little in-slot jitter), so the fragments are SPACED — density scales with the fire's
 	# width and they never clump on top of each other, on any seed or fire size.
-	var slot := 104.0 if stage >= STAGE_BLAZE else 122.0
+	var slot := 128.0 if stage >= STAGE_BLAZE else 145.0   # spaced front bits — accents, not a second fire
 	var col := 0
 	var x := span0
 	while x <= span1 + 12.0:
@@ -673,8 +736,9 @@ func _draw_front(canvas: CanvasItem) -> void:
 	var sc := _tile_scale()
 	var target_h := 34.0 if stage >= STAGE_BLAZE else 26.0    # feet-to-waist, not to the neck
 	var bf := clampf(target_h / (float(TILE_PX) * sc), 0.06, 1.0)
-	_draw_ground_fire(canvas, FIRE_BASE_Y, 1.0, -5.0, bf, -1.0, 0.0)   # patchy (salt 0); y_off -5 lifts the low front fire a fraction off the UI
+	_draw_ground_fire(canvas, FIRE_BASE_Y, 1.0, -5.0, bf, -1.0, -1.0, true, 0.0, 0)   # FRONT bed (side 0), complementary to the depth bed, also avoids doors
 	_draw_scatter_bits(canvas)
+	_draw_front_smoke(canvas)     # a couple foreground smoke stacks (in front of the player)
 
 
 func _draw_smoke(_canvas: CanvasItem) -> void:
