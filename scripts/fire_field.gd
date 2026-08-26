@@ -567,13 +567,12 @@ var _stair_fire_x: float = -1.0    # shaft CENTRE x (the down-stairwell)
 var _stair_half: float = 16.0      # half the shaft width — fire never crosses these x bounds
 var _stair_keep_lo: float = 0.0    # corridor fire is excluded across [lo, hi] (the whole stair zone)
 var _stair_keep_hi: float = -1.0
-# The step line (the owner's red horizontal line) is the TOP of the yellow step; the fire
-# fills the step block down to STAIR_STEP_BOTTOM and NEVER rises above the line.
-const STAIR_STEP_Y := 386.0
-const STAIR_STEP_BOTTOM := 401.0
+# The owner's red HORIZONTAL line — the fire's BASE sits exactly here; flames rise up from
+# it into the stairwell shaft (never below it). Confirmed against the editor ruler.
+const STAIR_BASE_Y := 415.0
 
 
-func set_stair_fire(cx: float, half: float = 16.0, keep_lo: float = 0.0, keep_hi: float = -1.0) -> void:
+func set_stair_fire(cx: float, half: float = 26.0, keep_lo: float = 0.0, keep_hi: float = -1.0) -> void:
 	_stair_fire_x = cx
 	_stair_half = half
 	_stair_keep_lo = keep_lo
@@ -581,29 +580,32 @@ func set_stair_fire(cx: float, half: float = 16.0, keep_lo: float = 0.0, keep_hi
 
 
 func _draw_stair_fire(canvas: CanvasItem) -> void:
-	# Fire INSIDE the shaft box: strictly within [cx-half, cx+half] on the x plane, filling
-	# the yellow step from STAIR_STEP_BOTTOM up to the step line and NEVER above it. Clipped
-	# to the box so it can't spill past the red vertical lines.
+	# Fire INSIDE the stairwell box: base on STAIR_BASE_Y (the red horizontal line), flames
+	# rising UP into the shaft, strictly within [cx-half, cx+half] on x (the red verticals) —
+	# never crossing beyond them. The corridor fire is kept out of the whole stair zone.
 	if _stair_fire_x < 0.0 or _tile_tex.is_empty() or not any_burning():
 		return
 	var l: float = _stair_fire_x - _stair_half
 	var r: float = _stair_fire_x + _stair_half
 	var w: float = r - l
-	var h: float = STAIR_STEP_BOTTOM - STAIR_STEP_Y
+	var big := stage >= STAGE_BLAZE
 	var fr := int(_t * TILE_FPS) % TILE_FRAMES
+	# a bed along the base line, stretched to the shaft width
 	var tex: Texture2D = _tile_tex[_variant_for(_tile_tex.size(), 4.7)]
-	# one bed stretched to the shaft width, top on the yellow line
-	var src := Rect2(float(fr * TILE_PX), float(TILE_PX) * 0.55, float(TILE_PX), float(TILE_PX) * 0.45)
-	canvas.draw_texture_rect_region(tex, Rect2(l, STAIR_STEP_Y, w, h), src, Color(1.0, 1.0, 1.0, 0.97))
-	# two flame tongues WITHIN the box, tops clamped to the step line (base − height == line)
+	var bed_h := 15.0
+	var src := Rect2(float(fr * TILE_PX), float(TILE_PX) * 0.5, float(TILE_PX), float(TILE_PX) * 0.5)
+	canvas.draw_texture_rect_region(tex, Rect2(l, STAIR_BASE_Y - bed_h, w, bed_h), src, Color(1.0, 1.0, 1.0, 0.97))
+	# flame tongues rising off the base into the shaft, spread across and clipped to [l, r]
 	if not _flame_tex.is_empty():
-		var fsc: float = h / float(TILE_PX)
-		var fw: float = float(TILE_PX) * fsc
+		var fh := 42.0 if big else 32.0
+		var fw := fh * 0.62
 		var f_src := Rect2(float(fr * TILE_PX), 0.0, float(TILE_PX), float(TILE_PX))
-		for k in range(2):
-			var cx: float = clampf(_stair_fire_x + (float(k) - 0.5) * w * 0.4, l + fw * 0.5, r - fw * 0.5)
-			var f2 := Rect2(cx - fw * 0.5, STAIR_STEP_Y, fw, h)
-			canvas.draw_texture_rect_region(_flame_tex[_variant_for(_flame_tex.size(), 2.3 + float(k))], f2, f_src, Color(1.0, 1.0, 1.0, 1.0))
+		var n := 3
+		for k in range(n):
+			var t: float = float(k) / float(n - 1)
+			var cx: float = clampf(lerpf(l + fw * 0.5, r - fw * 0.5, t), l + fw * 0.5, r - fw * 0.5)
+			var hk: float = fh * (0.75 + 0.25 * _hash01(cx * 0.7 + float(floor_num)))
+			canvas.draw_texture_rect_region(_flame_tex[k % _flame_tex.size()], Rect2(cx - fw * 0.5, STAIR_BASE_Y - hk, fw, hk), f_src, Color(1.0, 1.0, 1.0, 1.0))
 
 
 # --- smoke plumes (real smoke-sprite loops rising off the fire) ----------------

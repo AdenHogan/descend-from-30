@@ -563,9 +563,9 @@ func _set_stair_fire(ff) -> void:
 	var hl := get_node_or_null("HallwayStaircaseLeft") as Sprite2D
 	var hr := get_node_or_null("HallwayStaircaseRight") as Sprite2D
 	if hl != null and hl.visible:
-		ff.set_stair_fire(148.0, 16.0, 90.0, 214.0)    # left shaft ~[132,164]; zone clear of corridor fire
+		ff.set_stair_fire(146.0, 26.0, 100.0, 235.0)     # left shaft box x[120,172] (owner-confirmed); zone clear of corridor fire
 	elif hr != null and hr.visible:
-		ff.set_stair_fire(1201.0, 16.0, 1135.0, 1260.0)  # right shaft (mirror)
+		ff.set_stair_fire(1203.0, 26.0, 1114.0, 1249.0)  # right shaft (mirror about corridor centre)
 	else:
 		ff.set_stair_fire(-1.0)
 
