@@ -389,14 +389,33 @@ func _near_door(x: float) -> bool:
 	return false
 
 
-func _bed_assign(cx: float) -> int:
-	# Each burning cell's tile bed belongs to EXACTLY ONE depth — the BACK seam (1) or the
-	# FRONT floor (0), in ~2-cell clumps, seeded per floor. This makes the two tile beds
-	# COMPLEMENTARY: where the depth bed draws, the front bed does not, and vice versa, so
-	# the tile-set fire never doubles up into a bloated overlap. (Globs/tall flames are a
-	# separate layer and may still overlap — that's fine, it's the beds that must not.)
+func _cell_kind(cx: float) -> int:
+	# Each burning cell renders EXACTLY ONE of three things, in ~2-cell clumps seeded per
+	# floor:
+	#   1 = a BACK-seam depth tile (drawn behind the player at the wall/floor seam)
+	#   0 = a FRONT floor tile     (drawn in front, lapping the player's feet)
+	#   2 = a GAP — NO tile at all
+	# Back and front are MUTUALLY EXCLUSIVE, so the tile-set fire can never double into a
+	# bloated overlap (where the depth bed draws, the front bed does not, and vice versa).
+	# The GAP cells are the ONLY place GLOBS (tall flames / scatter bits) may rise — "globs
+	# can generate anywhere the tile set is not actively visible" — so a glob never stacks
+	# on top of a rendered tile. DOOR cells are forced to GAP so no tile bed runs across a
+	# doorway; globs also skip doors (see `_is_glob_cell`), keeping doorways clear.
+	if _near_door(cx):
+		return 2
 	var clump := floori(cx / (CELL_W * 2.0))
-	return 1 if _hash01(float(clump) * 1.7 + float(floor_num) * 0.9) < 0.5 else 0
+	var h := _hash01(float(clump) * 1.7 + float(floor_num) * 0.9)
+	if h < 0.4:
+		return 1
+	elif h < 0.75:
+		return 0
+	return 2
+
+
+func _is_glob_cell(cx: float) -> bool:
+	# A GAP cell that isn't a doorway — the free space where globs may rise (tiles aren't
+	# visible here, and we keep globs off doors so entrances stay clear).
+	return _cell_kind(cx) == 2 and not _near_door(cx)
 
 
 func _draw_ground_fire(canvas: CanvasItem, base_y: float, alpha: float, y_off: float, bottom_frac: float = 1.0, sc_override: float = -1.0, patch_salt: float = -1.0, avoid_doors: bool = false, patch_carve: float = 0.0, bed_side: int = -1) -> void:
@@ -422,7 +441,7 @@ func _draw_ground_fire(canvas: CanvasItem, base_y: float, alpha: float, y_off: f
 		var cx := x + tw * 0.5
 		var pass_gate := (patch_salt < 0.0 or _patch_on(x, patch_salt, patch_carve))
 		if bed_side >= 0:
-			pass_gate = (_bed_assign(cx) == bed_side)   # complementary back/front bed split
+			pass_gate = (_cell_kind(cx) == bed_side)   # complementary back(1)/front(0)/gap(2) split
 		if is_burning_at(cx) and pass_gate and not (avoid_doors and _near_door(cx)):
 			var dst := Rect2(x, base_y - th + y_off, tw + 1.0, th)
 			canvas.draw_texture_rect_region(tex, dst, src, Color(1.0, 1.0, 1.0, alpha))
@@ -460,7 +479,7 @@ func _draw_tall_flames(canvas: CanvasItem) -> void:
 	var last_x := -1.0e9
 	var x := FIRE_MIN_X + 18.0
 	while x <= FIRE_MAX_X:
-		if is_burning_at(x) and _patch_on(x, 3.0) and (x - last_x) >= min_gap:
+		if is_burning_at(x) and _is_glob_cell(x) and (x - last_x) >= min_gap:
 			var sd := float(floori(x / min_gap)) + float(floor_num) * 0.7
 			var roll := _hash01(sd * 1.9)              # size class for this glob
 			var tex3: Texture2D = _flame_tex[int(_hash01(sd * 1.3) * float(_flame_tex.size())) % _flame_tex.size()]
@@ -661,14 +680,15 @@ func _blit_smoulder(canvas: CanvasItem, tex: Texture2D, cx: float, sc: float) ->
 
 
 func _front_tile_near(target: float, x0: float, x1: float, tw: float) -> float:
-	# The x (tile centre) of the nearest RENDERED front-bed tile within [x0,x1] — same
-	# condition the front bed itself draws by (burning + patch on). -1 if none.
+	# The x (tile centre) of the nearest RENDERED tile cell within [x0,x1] — a burning cell
+	# that actually draws a tile (front OR back seam, i.e. NOT a gap), so a plume always
+	# rises from BEHIND real tile-set fire and never floats over a bare gap. -1 if none.
 	var best := -1.0
 	var best_d := 1.0e9
 	var x := FIRE_MIN_X
 	while x <= FIRE_MAX_X:
 		var cx := x + tw * 0.5
-		if cx >= x0 and cx <= x1 and is_burning_at(cx) and _patch_on(x, 0.0):
+		if cx >= x0 and cx <= x1 and is_burning_at(cx) and _cell_kind(cx) != 2:
 			var d := absf(cx - target)
 			if d < best_d:
 				best_d = d
@@ -713,9 +733,10 @@ func _draw_scatter_bits(canvas: CanvasItem) -> void:
 		var bx := x + (_hash01(sd * 1.1) - 0.5) * slot * 0.5   # jitter within the slot (< slot/2)
 		col += 1
 		x += slot
-		# ONLY over an actually-burning cell — a bit vanishes the moment its cell is out
-		# (they used to strew across the whole span, stranding wisps on doused ground).
-		if not is_burning_at(bx):
+		# ONLY over an actually-burning GAP cell — a bit vanishes the moment its cell is out
+		# (they used to strew across the whole span, stranding wisps on doused ground), and
+		# it only sits where the tile bed ISN'T drawn, so a glob never overlaps a front tile.
+		if not is_burning_at(bx) or not _is_glob_cell(bx):
 			continue
 		# On the floor, a little LOWER than the main bed (nearer the camera), never up
 		# the wall — a small spread of extra flames the player walks behind.
