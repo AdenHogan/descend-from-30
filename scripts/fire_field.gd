@@ -400,6 +400,33 @@ func _patch_on(x: float, salt: float, carve: float = 0.0) -> bool:
 # around each so it never runs straight across a doorway (beside a door is fine).
 const DOOR_AVOID_HALF := 36.0
 
+# HARD BUILDING BORDERS (the blue lines): the corridor's left/right walls. Nothing —
+# fire, smoke, globs — may be drawn beyond these. Matches the WorldBoundary colliders in
+# building_floors.tscn (StaticBody at 544 with wall offsets -416 / +680).
+const BORDER_L := 128.0
+const BORDER_R := 1224.0
+
+
+func _draw_clipped(canvas: CanvasItem, tex: Texture2D, dst: Rect2, src: Rect2, col: Color) -> void:
+	# Draw a texture region CLIPPED to the building borders, so no pixel of fire crosses the
+	# blue lines. Fully out of bounds → nothing; partly out → the dst is trimmed and the src
+	# trimmed proportionally so the sprite is cropped, not squashed.
+	if tex == null or dst.size.x <= 0.0:
+		return
+	var l: float = dst.position.x
+	var r: float = dst.position.x + dst.size.x
+	if r <= BORDER_L or l >= BORDER_R:
+		return
+	var nl: float = maxf(l, BORDER_L)
+	var nr: float = minf(r, BORDER_R)
+	if nr <= nl:
+		return
+	var fl: float = (nl - l) / dst.size.x
+	var fr: float = (nr - l) / dst.size.x
+	var ndst := Rect2(nl, dst.position.y, nr - nl, dst.size.y)
+	var nsrc := Rect2(src.position.x + fl * src.size.x, src.position.y, (fr - fl) * src.size.x, src.size.y)
+	canvas.draw_texture_rect_region(tex, ndst, nsrc, col)
+
 
 func _near_door(x: float) -> bool:
 	for apt in WorldState.APARTMENT_X:
@@ -470,7 +497,7 @@ func _draw_ground_fire(canvas: CanvasItem, base_y: float, alpha: float, y_off: f
 			pass_gate = (_cell_kind(cx) == bed_side)   # complementary back(1)/front(0)/gap(2) split
 		if is_burning_at(cx) and pass_gate and not (avoid_doors and _near_door(cx)) and not _in_stair_keepout(cx):
 			var dst := Rect2(x, base_y - th + y_off, tw + 1.0, th)
-			canvas.draw_texture_rect_region(tex, dst, src, Color(1.0, 1.0, 1.0, alpha))
+			_draw_clipped(canvas, tex, dst, src, Color(1.0, 1.0, 1.0, alpha))
 		x += tw
 
 
@@ -483,7 +510,7 @@ func _blit_anim(canvas: CanvasItem, tex: Texture2D, px: int, cx: float, base_y: 
 	var h := float(px) * sc
 	var jx := (_hash01(sd * 2.1) - 0.5) * 10.0   # small wobble only — must not close the MIN_GAP
 	var dst := Rect2(cx + jx - w * 0.5, base_y - h, w, h)
-	canvas.draw_texture_rect_region(tex, dst, src, Color(1.0, 1.0, 1.0, alpha))
+	_draw_clipped(canvas, tex, dst, src, Color(1.0, 1.0, 1.0, alpha))
 
 
 func _draw_tall_flames(canvas: CanvasItem) -> void:
@@ -554,7 +581,8 @@ func _draw_back(canvas: CanvasItem) -> void:
 	_draw_ground_fire(canvas, BACK_SEAM_Y, 0.9, 0.0, 0.6, _tile_scale() * 0.58, -1.0, true, 0.0, 1)   # DEPTH bed (side 1), avoids doors
 	_draw_stair_fire(canvas)        # the THIRD plane — fire on the down-stairwell top step
 	_draw_tall_flames(canvas)
-	_draw_smoulder_plumes(canvas)   # aftermath smoke (doused + charred), behind the active-fire smoke
+	# NO smoulder smoke: smoke must NEVER rise on its own — there must always be a fireball
+	# or a fire tile in front of it. Doused/charred (spent) ground has no fire, so no smoke.
 	_draw_smoke_plumes(canvas)
 
 
@@ -585,9 +613,11 @@ func _draw_stair_fire(canvas: CanvasItem) -> void:
 	# never crossing beyond them. The corridor fire is kept out of the whole stair zone.
 	if _stair_fire_x < 0.0 or _tile_tex.is_empty() or not any_burning():
 		return
-	var l: float = _stair_fire_x - _stair_half
-	var r: float = _stair_fire_x + _stair_half
+	var l: float = maxf(_stair_fire_x - _stair_half, BORDER_L)   # never past the blue borders
+	var r: float = minf(_stair_fire_x + _stair_half, BORDER_R)
 	var w: float = r - l
+	if w <= 0.0:
+		return
 	var big := stage >= STAGE_BLAZE
 	var fr := int(_t * TILE_FPS) % TILE_FRAMES
 	# a bed along the base line, stretched to the shaft width
@@ -757,15 +787,16 @@ func _blit_smoulder(canvas: CanvasItem, tex: Texture2D, cx: float, sc: float) ->
 
 
 func _front_tile_near(target: float, x0: float, x1: float, tw: float) -> float:
-	# The x (tile centre) of the nearest RENDERED tile cell within [x0,x1] — a burning cell
-	# that actually draws a tile (front OR back seam, i.e. NOT a gap), so a plume always
-	# rises from BEHIND real tile-set fire and never floats over a bare gap. -1 if none.
+	# The x (tile centre) of the nearest RENDERED FRONT-bed tile within [x0,x1] — a burning
+	# kind-0 cell that actually draws a front tile (z2, in front of the smoke), and not in the
+	# stair keep-out. So a plume ALWAYS has a fire tile in front of it, never rising on its
+	# own over bare or back-only ground. -1 if none.
 	var best := -1.0
 	var best_d := 1.0e9
 	var x := FIRE_MIN_X
 	while x <= FIRE_MAX_X:
 		var cx := x + tw * 0.5
-		if cx >= x0 and cx <= x1 and is_burning_at(cx) and _cell_kind(cx) != 2:
+		if cx >= x0 and cx <= x1 and is_burning_at(cx) and _cell_kind(cx) == 0 and not _in_stair_keepout(cx):
 			var d := absf(cx - target)
 			if d < best_d:
 				best_d = d
@@ -836,7 +867,8 @@ func _draw_front(canvas: CanvasItem) -> void:
 	var bf := clampf(target_h / (float(TILE_PX) * sc), 0.06, 1.0)
 	_draw_ground_fire(canvas, FIRE_BASE_Y, 1.0, -5.0, bf, -1.0, -1.0, true, 0.0, 0)   # FRONT bed (side 0), complementary to the depth bed, also avoids doors
 	_draw_scatter_bits(canvas)
-	_draw_front_smoke(canvas)     # a couple foreground smoke stacks (in front of the player)
+	# NO foreground smoke here: it drew IN FRONT of the fire (frontmost), leaving smoke with
+	# nothing in front of it. All smoke now rises on the BACK layer, behind the front bed.
 
 
 func _draw_smoke(_canvas: CanvasItem) -> void:

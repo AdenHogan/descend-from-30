@@ -97,15 +97,16 @@ func _build_spots() -> void:
 					_scars.append(x)
 				x += 58.0 + rng.randf() * 26.0
 		STAGE_BLAZE:
-			# Fire across the room — SPACED patches with gaps (each step is >= a patch's
-			# width, so the globs never pile into one blob), scaled by seed.
-			var x := span0 + 30.0
-			while x < span1 - 20.0:
-				if rng.randf() < 0.72:
-					_spots.append({"x": x, "sz": 0.85 + rng.randf() * 0.4})
-				x += 122.0 + rng.randf() * 46.0     # 122-168 apart
-			if _spots.is_empty():
-				_spots.append({"x": (span0 + span1) * 0.5, "sz": 1.1})
+			# Fire spread EVENLY across the whole room (all three modules) — one small patch
+			# per fixed slot so coverage is consistent, never two thick clumps with bare gaps.
+			# Sizes are kept small so neighbouring patches DON'T overlap into a blob.
+			var width: float = maxf(span1 - span0, 1.0)
+			var n: int = maxi(int(width / 118.0), 3)        # at least 3 patches, ~one per 118px
+			var step: float = width / float(n)
+			for k in range(n):
+				var base: float = span0 + (float(k) + 0.5) * step
+				var jx: float = (rng.randf() - 0.5) * step * 0.35
+				_spots.append({"x": clampf(base + jx, span0 + 16.0, span1 - 16.0), "sz": 0.7 + rng.randf() * 0.22})
 		_:
 			# LIGHT outbreak: 2-3 small patches marching in from the entrance the fire crept
 			# in from, spaced so they stay distinct (never overlapping).
@@ -168,8 +169,8 @@ func _spawn_layers() -> void:
 func draw_layer(canvas: CanvasItem, which: int) -> void:
 	if which == LYR_BACK:
 		_draw_tall_flames(canvas)     # tall flames rise BEHIND the player
-		_draw_smoulder(canvas)        # smoulder smoke off scorched patches
-		_draw_smoke(canvas)           # active-fire smoke plumes
+		# NO smoulder smoke off scorched patches: smoke must always have fire in front of it.
+		_draw_smoke(canvas)           # active-fire smoke plumes (behind each burning spot's bed)
 	else:
 		_draw_char_scars(canvas)      # scorch on the floor, in front
 		_draw_beds(canvas)            # fire tile bed at the player's feet (walk through)
