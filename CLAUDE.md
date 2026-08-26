@@ -18,8 +18,13 @@ originals — the markdown here is canonical for development):
 - `docs/STORE_DESIGN.md` — **FINAL v3**: bank notes, wallet, merchant, shop
   rotation, free pick-1-of-2 upgrades, corpse recovery, implementation order.
 - `docs/SCRAP_UPGRADES.md` — **AGREED, pre-implementation**: Scrap (a 2nd
-  currency) to upgrade items; charred/burned apartments are the main scrap
-  faucet → fire becomes risk/reward. Not built yet.
+  currency) to upgrade weapons at a maintenance-room station; charred apartments
+  are the main scrap faucet → fire becomes risk/reward. Not built yet.
+- `docs/MAINTENANCE_ELEVATOR.md` — **AGREED, pre-implementation**: the
+  maintenance room (`maintenance.tscn`, safe room, every 3 floors, hosts the
+  upgrade station + fuse box), fuses (stack 3) powering a single-use **elevator**
+  that jumps 5 floors — recommended via an `elevator_interior.tscn` cut, not a
+  5-floor pan. Not built yet.
 - `docs/QUEST_LIST.md` — quests 001–011 with outcomes/rewards.
 - `docs/ITEMS_SHEET.md` — item catalog + room spawn pools (design reference;
   **`data/Items.json` is the runtime source of truth**).

@@ -117,48 +117,62 @@ Every weapon we support needs its own 3-tier × 2-choice tree. That's a lot of
 content, but it's what lets a player build a **unique arsenal per run**, on top
 of the every-5-floors **character** upgrades.
 
-### Persistence / carry-over
+### Persistence / carry-over (DECIDED)
 
 - Upgrades are **per-item-instance** (level + chosen upgrades ride the weapon,
   like durability/mag/broken state on `ItemInstance`), applied via the
   **modifier-fold** rule (base × ∏mult + Σadd, never direct writes) so they
   stack cleanly with the global upgrade system.
-- **Merchant weapons stay relevant.** Players can still buy rare/legendary
-  weapons from the merchant for **cash**. If a purchased weapon already carries
-  an upgrade and is then **consumed to level another weapon, its upgrades carry
-  over** to the result. (Exact carry-over rule — which of the consumed weapon's
-  picks transfer, and whether they can conflict with the target's picks — is an
-  Open Question.)
+- **A weapon KEEPS all its upgrades as it levels.** Upgrades never disappear
+  when you level up and choose a new perk. Example: buy a **Lv2 gun that already
+  has *Aim Assist*** → upgrade it to Lv3 → it **still has Aim Assist** *and*
+  gains the Lv3 pick. So merchant-bought pre-upgraded weapons are worth
+  levelling further, and picks accumulate up the tiers.
+- **Combine/consume:** the weapon you're upgrading is the **target** (it keeps
+  its upgrades). The extra lower-level gun(s) in the cost are **feed material** —
+  consumed, their state discarded. (Reading of the cost table: to reach Lv3 you
+  have your target Lv2 gun + feed a spare Lv1 gun + 80 scrap; Lv4 = target Lv3 +
+  feed a spare Lv2 + 100 scrap.)
+- **Player-specific, like cash/wallet.** Scrap, scrap total, and upgraded
+  weapons belong to the **current character**, not the arc. Only **character
+  upgrades** (the every-5-floors perks) carry fully across all three runs — the
+  game gets harder each run *and* the player gets stronger, whichever character
+  they are.
+- **Death → corpse recovery.** If a character dies, the next character can find
+  the **previous character's corpse** and scavenge to recover their supplies
+  (ties into `STORE_DESIGN.md` corpse recovery). **Scrap totals MERGE** on
+  recovery — char 2 with a scrap total who loots char 1's corpse simply adds the
+  two totals, never carries two separate "bags."
 - Levels read clearly on the slot (a small **"Lv2/3/4" tag**, like the
   broken/damaged tags today) plus the chosen-upgrade icons.
 
-## Open questions (to decide before building)
+### Discard memory (fair drops)
 
-- **Combine-cost inventory pressure.** Lv3/Lv4 consume *extra* weapons (a Lv2 +
-  a Lv1 gun, etc.). With only 5+1 slots, where do the spares come from (merchant
-  buys, finds?) and is juggling 2–3 guns to feed one upgrade the intended
-  tension, or too fiddly? (Option: the station could accept weapons from a small
-  "feed" list without them all being in hand at once.)
-- **Carry-over semantics.** When a weapon with upgrades is consumed, do its
-  chosen upgrades transfer to the result automatically, or does the player
-  re-pick? What happens if the consumed weapon's pick conflicts with the
-  target's (two Lv2 picks)? Recommend: the *target* keeps its own picks; a
-  consumed **purchased** weapon can donate one pick if the target's slot at that
-  tier is empty.
-- **Which weapons first.** Gun tree is fully specced. Build **gun + one melee**
-  (e.g. hammer) as the template, prove the flow, then expand to the rest.
-- **Persistence across the 3-run arc.** Fresh character each run
-  (`THREE_RUN_ARC.md`) implies upgrades reset per run (like inventory) and scrap
-  is spent fresh each run — confirm that's intended vs. some carry-over.
+Because the player is meant to **collect spare weapons over time** to feed
+upgrades (maintenance rooms are every 3 floors but you needn't upgrade at each),
+dropping/keeping decisions matter — so an **accidental drop must be
+recoverable**. A discarded item must persist in the world with a **held memory**
+so the player can return and pick it back up (as other games do). *To verify /
+ensure when we build:* the existing drag-to-world discard already creates a
+persisted `world_drop` on the floor — confirm it survives leaving + re-entering,
+and add it if any gap.
+
+## Remaining TBD (small, balancing-level)
+
 - **Scrap amounts.** Per charred apartment vs natural find; dismantle yield by
-  rarity; whether Lv1→Lv2's 50 and the later 80/100 are the right curve.
-- **Fuse box / elevator power.** New sub-system bundled into the maintenance
-  room: does the elevator not run until a fuse box is found? How does that gate
-  the merchant (who lives in the elevator) and traversal? Needs its own mini-spec.
-- **Scrap ≠ Bank Notes.** Scrap is fire/scavenge-only and spent only at the
-  station — not bought/sold at the merchant (keeps the two economies distinct).
-- **Dismantle perk.** Which tier-5 character perk grants "break item → scrap";
-  scrap returned vs item value.
+  rarity; whether the 50 / 80 / 100 curve and Lv1/Lv2 feed requirements feel
+  right. (Tune in playtest.)
+- **Hammer upgrade tree.** Gun tree is specced; owner will define hammer perks
+  while we build the gun tree as the first test.
+- **Dismantle perk.** Which tier-5 character perk grants "break item → scrap"
+  and how much scrap it returns by rarity.
+
+**Settled:** inventory pressure is intended (collect + decide, with discard
+memory as the safety net); scrap is fire/scavenge-only, spent only at the
+station (never traded with the merchant); build **gun + hammer first**.
+
+> **The maintenance room + fuse box + elevator traversal it enables is a whole
+> sub-system — see `MAINTENANCE_ELEVATOR.md`.**
 
 ## Why this is good for the game
 
