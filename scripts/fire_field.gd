@@ -471,10 +471,14 @@ func _cell_kind(cx: float) -> int:
 		return 2
 	var clump := floori(cx / (CELL_W * 2.0))
 	var h := _hash01(float(clump) * 1.7 + float(floor_num) * 0.9)
-	# EVERY non-door burning cell gets a tile bed — BACK or FRONT (complementary, never
-	# both), so coverage is full and the fire reads strong, while the two tile beds still
-	# never double up. Tall flames / globs rise on top freely (they may overlap a bed).
-	return 1 if h < 0.5 else 0
+	# Three MUTUALLY-EXCLUSIVE planes in 2-cell clumps, so nothing ever overlaps anything:
+	#   1 = BACK-seam tile, 0 = FRONT-floor tile, 2 = GAP (a glob rises here, no tile under it).
+	# The gap clumps are the ONLY place tall flames go, so a glob never sits over a tile bed.
+	if h < 0.33:
+		return 1
+	elif h < 0.66:
+		return 0
+	return 2
 
 
 func _is_glob_cell(cx: float) -> bool:
@@ -520,7 +524,7 @@ func _blit_anim(canvas: CanvasItem, tex: Texture2D, px: int, cx: float, base_y: 
 	var src := Rect2(float(fr * px), 0.0, float(px), float(px))
 	var w := float(px) * sc
 	var h := float(px) * sc
-	var jx := (_hash01(sd * 2.1) - 0.5) * 10.0   # small wobble only — must not close the MIN_GAP
+	var jx := (_hash01(sd * 2.1) - 0.5) * 4.0    # tiny wobble only — keep flames clean/still, no drift into neighbours
 	var dst := Rect2(cx + jx - w * 0.5, base_y - h, w, h)
 	_draw_clipped(canvas, tex, dst, src, Color(1.0, 1.0, 1.0, alpha))
 
@@ -538,25 +542,26 @@ func _draw_tall_flames(canvas: CanvasItem) -> void:
 	# globs read as DISTINCT tongues rising off the bed, never piling into one blob. The
 	# gap is >= the widest glob below, so no overlap on any seed. The continuous ground
 	# bed carries the fire's fullness; these are spaced accents.
-	var scan := 18.0
-	# Tall flames rise on ANY burning cell (globs are FINE over a tile — only tile beds must
-	# not double). A BLAZE packs them tight + tall so it reads as a raging fire; a LIGHT
-	# outbreak is sparser and shorter. min_gap keeps neighbours from fusing into one blob.
-	var min_gap := 70.0 if big else 100.0
+	var scan := 21.0
+	# Tall flames rise ONLY in GAP cells (their own plane — never over a tile bed), one per
+	# gap clump, spaced by MIN_GAP so no two globs touch either. Big on a BLAZE, smaller on a
+	# LIGHT outbreak. The continuous tile beds carry the fire's abundance; these are the tall,
+	# clean accents. MIN_GAP is >= the widest glob so nothing overlaps, on any seed.
+	var min_gap := 96.0 if big else 116.0
 	var col := 0
 	var last_x := -1.0e9
 	var x := FIRE_MIN_X + 18.0
 	while x <= FIRE_MAX_X:
-		if is_burning_at(x) and not _near_door(x) and not _in_stair_keepout(x) and _patch_on(x, 3.0) and (x - last_x) >= min_gap:
+		if is_burning_at(x) and _is_glob_cell(x) and not _in_stair_keepout(x) and (x - last_x) >= min_gap:
 			var sd := float(floori(x / min_gap)) + float(floor_num) * 0.7
 			var roll := _hash01(sd * 1.9)              # size class for this glob
 			var tex3: Texture2D = _flame_tex[int(_hash01(sd * 1.3) * float(_flame_tex.size())) % _flame_tex.size()]
-			if roll > (0.74 if big else 0.92) and _bonfire_tex != null:
-				_blit_anim(canvas, _bonfire_tex, BONFIRE_PX, x, FIRE_BASE_Y, 1.5 if big else 0.95, col, sd, 1.0)   # BIG bonfire
+			if roll > (0.7 if big else 0.9) and _bonfire_tex != null:
+				_blit_anim(canvas, _bonfire_tex, BONFIRE_PX, x, FIRE_BASE_Y, 1.35 if big else 0.95, col, sd, 1.0)  # BIG bonfire (<= ~86px)
 			elif roll > 0.45:
-				_blit_anim(canvas, tex3, TILE_PX, x, FIRE_BASE_Y, 2.1 if big else 1.4, col, sd, 1.0)              # MEDIUM tall flame
+				_blit_anim(canvas, tex3, TILE_PX, x, FIRE_BASE_Y, 2.3 if big else 1.5, col, sd, 1.0)              # MEDIUM tall flame (<= ~74px)
 			else:
-				_blit_anim(canvas, tex3, TILE_PX, x, FIRE_BASE_Y, 1.5 if big else 1.0, col, sd, 1.0)              # SMALL
+				_blit_anim(canvas, tex3, TILE_PX, x, FIRE_BASE_Y, 1.7 if big else 1.1, col, sd, 1.0)              # SMALL
 			last_x = x
 		x += scan
 		col += 1
@@ -880,9 +885,10 @@ func _draw_front(canvas: CanvasItem) -> void:
 	var target_h := 34.0 if stage >= STAGE_BLAZE else 26.0    # feet-to-waist, not to the neck
 	var bf := clampf(target_h / (float(TILE_PX) * sc), 0.06, 1.0)
 	_draw_ground_fire(canvas, FIRE_BASE_Y, 1.0, -5.0, bf, -1.0, -1.0, true, 0.0, 0)   # FRONT bed (side 0), complementary to the depth bed, also avoids doors
-	_draw_scatter_bits(canvas)
-	# NO foreground smoke here: it drew IN FRONT of the fire (frontmost), leaving smoke with
-	# nothing in front of it. All smoke now rises on the BACK layer, behind the front bed.
+	# NO scatter floor-globs: they sat ON the front bed (plane overlap). The tall flames in
+	# the gap cells are the only globs, so nothing overlaps the tile beds.
+	# NO foreground smoke here either: it drew IN FRONT of the fire; all smoke is on the BACK
+	# layer, behind the front bed.
 
 
 func _draw_smoke(_canvas: CanvasItem) -> void:
