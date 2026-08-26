@@ -364,7 +364,7 @@ func _spawn_fire(floor_num: int) -> void:
 	_fire_field = FIRE_FIELD.new()
 	_fire_field.floor_num = floor_num
 	_fire_field.stage = stage                                   # scales flame size + smoke
-	_fire_field.set_stair_fire(_down_stair_x())                 # the third plane: fire on the down stairwell
+	_set_stair_fire(_fire_field)                                # the third plane: fire in the down stairwell
 	add_child(_fire_field)
 	match stage:
 		WorldState.FIRE_CHARRED:
@@ -556,17 +556,18 @@ func _enable_stair_triggers() -> void:
 			right_up.process_mode = Node.PROCESS_MODE_DISABLED
 			left_down.process_mode = Node.PROCESS_MODE_DISABLED
 
-func _down_stair_x() -> float:
-	# The x of the DOWN stairwell's top step (the way onward), for the fire's third plane.
-	# _apply_stair_visuals has already set which Hallway_Staircase_* (the DOWN art) is
-	# visible — the fire sits on whichever side descends. -1 if neither (no stair fire).
+func _set_stair_fire(ff) -> void:
+	# Confine the down-stairwell fire to the SHAFT box (centre, half-width) and keep the
+	# corridor fire out of the whole stair zone [keep_lo, keep_hi]. _apply_stair_visuals has
+	# already set which Hallway_Staircase_* (the DOWN art) is visible.
 	var hl := get_node_or_null("HallwayStaircaseLeft") as Sprite2D
 	var hr := get_node_or_null("HallwayStaircaseRight") as Sprite2D
 	if hl != null and hl.visible:
-		return 165.0        # left staircase: top step (centre of the landing at the mouth)
-	if hr != null and hr.visible:
-		return 1188.0       # right staircase
-	return -1.0
+		ff.set_stair_fire(148.0, 16.0, 90.0, 214.0)    # left shaft ~[132,164]; zone clear of corridor fire
+	elif hr != null and hr.visible:
+		ff.set_stair_fire(1201.0, 16.0, 1135.0, 1260.0)  # right shaft (mirror)
+	else:
+		ff.set_stair_fire(-1.0)
 
 
 func _apply_stair_visuals() -> void:
