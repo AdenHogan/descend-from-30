@@ -408,6 +408,17 @@ func _near_door(x: float) -> bool:
 	return false
 
 
+# The down-stairwell has its OWN fire (the low element on the yellow step). The corridor
+# fire (floor beds + tall flames + scatter) must NOT draw across the stairwell mouth, or
+# its tall flames tower up over the step and it looks like fire floating above the stairs.
+# This band is kept clear of corridor art so only the stair-fire element shows there.
+const STAIR_KEEPOUT_HALF := 66.0
+
+
+func _in_stair_keepout(cx: float) -> bool:
+	return _stair_fire_x >= 0.0 and absf(cx - _stair_fire_x) < STAIR_KEEPOUT_HALF
+
+
 func _cell_kind(cx: float) -> int:
 	# Each burning cell renders EXACTLY ONE of three things, in ~2-cell clumps seeded per
 	# floor:
@@ -461,7 +472,7 @@ func _draw_ground_fire(canvas: CanvasItem, base_y: float, alpha: float, y_off: f
 		var pass_gate := (patch_salt < 0.0 or _patch_on(x, patch_salt, patch_carve))
 		if bed_side >= 0:
 			pass_gate = (_cell_kind(cx) == bed_side)   # complementary back(1)/front(0)/gap(2) split
-		if is_burning_at(cx) and pass_gate and not (avoid_doors and _near_door(cx)):
+		if is_burning_at(cx) and pass_gate and not (avoid_doors and _near_door(cx)) and not _in_stair_keepout(cx):
 			var dst := Rect2(x, base_y - th + y_off, tw + 1.0, th)
 			canvas.draw_texture_rect_region(tex, dst, src, Color(1.0, 1.0, 1.0, alpha))
 		x += tw
@@ -498,7 +509,7 @@ func _draw_tall_flames(canvas: CanvasItem) -> void:
 	var last_x := -1.0e9
 	var x := FIRE_MIN_X + 18.0
 	while x <= FIRE_MAX_X:
-		if is_burning_at(x) and _is_glob_cell(x) and (x - last_x) >= min_gap:
+		if is_burning_at(x) and _is_glob_cell(x) and not _in_stair_keepout(x) and (x - last_x) >= min_gap:
 			var sd := float(floori(x / min_gap)) + float(floor_num) * 0.7
 			var roll := _hash01(sd * 1.9)              # size class for this glob
 			var tex3: Texture2D = _flame_tex[int(_hash01(sd * 1.3) * float(_flame_tex.size())) % _flame_tex.size()]
@@ -561,7 +572,8 @@ var _stair_fire_x: float = -1.0
 # NOT the floor/wall seam below it and NOT floating higher up the shaft. The fire's body is
 # centred on this line so it reads as fire on the actual stairs. This is a SEPARATE plane
 # from the corridor beds (BACK_SEAM_Y / FIRE_BASE_Y).
-const STAIR_STEP_Y := 386.0        # top of the yellow step (the owner's red line)
+const STAIR_STEP_Y := 386.0        # TOP of the yellow step (the owner's red line) — the CAP
+const STAIR_STEP_BOTTOM := 401.0   # bottom of the yellow step block (fire sits ON this)
 
 
 func set_stair_fire(x: float) -> void:
@@ -569,30 +581,29 @@ func set_stair_fire(x: float) -> void:
 
 
 func _draw_stair_fire(canvas: CanvasItem) -> void:
-	# A compact fire whose BODY sits centred on the step line (STAIR_STEP_Y) — a short bed
-	# on the step with short flames rising just a little above it, so the mass is ON the
-	# yellow step, not down at the seam and not floating up the shaft.
+	# Fire sitting ON the yellow step: it fills the step block (STAIR_STEP_BOTTOM up to the
+	# step line) and its flames are CAPPED so their tops land at the yellow line — never
+	# above it, never up the shaft. The corridor fire is kept out of this band entirely
+	# (see _in_stair_keepout), so this compact fire is the ONLY fire on the stairs.
 	if _stair_fire_x < 0.0 or _tile_tex.is_empty() or not any_burning():
 		return
 	var sc := _tile_scale() * 0.5
 	var tw := float(TILE_PX) * sc
 	var fr := int(_t * TILE_FPS) % TILE_FRAMES
 	var tex: Texture2D = _tile_tex[_variant_for(_tile_tex.size(), 4.7)]
-	# the bed's BASE sits a touch below the step line so the tile bed covers the step; the
-	# flames rise from the same base so their body straddles the line (centred on it).
-	var base_y := STAIR_STEP_Y + 8.0
-	var bf := 0.45
-	var src := Rect2(float(fr * TILE_PX), float(TILE_PX) * (1.0 - bf), float(TILE_PX), float(TILE_PX) * bf)
-	var th := float(TILE_PX) * bf * sc
+	# the bed sits on the step block and its TOP is clamped to the yellow line
+	var bed_h: float = STAIR_STEP_BOTTOM - STAIR_STEP_Y            # exactly the step's height
 	for k in range(2):
-		var cx := _stair_fire_x + (float(k) - 0.5) * tw * 0.75   # two tiles just overlapping = one short bed
-		canvas.draw_texture_rect_region(tex, Rect2(cx - tw * 0.5, base_y - th, tw + 1.0, th), src, Color(1.0, 1.0, 1.0, 0.95))
-	# short flame tongues rising off the step — their tops land just above the step line, so
-	# the fire's mass is centred on it (not climbing the shaft).
+		var cx := _stair_fire_x + (float(k) - 0.5) * tw * 0.75    # two tiles = one bed across the step
+		var src := Rect2(float(fr * TILE_PX), float(TILE_PX) * 0.55, float(TILE_PX), float(TILE_PX) * 0.45)
+		canvas.draw_texture_rect_region(tex, Rect2(cx - tw * 0.5, STAIR_STEP_Y, tw + 1.0, bed_h), src, Color(1.0, 1.0, 1.0, 0.97))
+	# flame tongues whose TOPS are clamped to the yellow line (base on the step block bottom).
+	# We size each flame so base − height == STAIR_STEP_Y, i.e. it never pokes above the line.
 	if not _flame_tex.is_empty():
-		var fsc := 0.6 if stage >= STAGE_BLAZE else 0.48
-		_blit_anim(canvas, _flame_tex[_variant_for(_flame_tex.size(), 2.3)], TILE_PX, _stair_fire_x - tw * 0.28, base_y, fsc, 1, 4.4, 1.0)
-		_blit_anim(canvas, _flame_tex[_variant_for(_flame_tex.size(), 5.1)], TILE_PX, _stair_fire_x + tw * 0.28, base_y, fsc * 0.85, 2, 7.9, 1.0)
+		var fh: float = STAIR_STEP_BOTTOM - STAIR_STEP_Y          # top lands exactly on the yellow line
+		var fsc: float = fh / float(TILE_PX)
+		_blit_anim(canvas, _flame_tex[_variant_for(_flame_tex.size(), 2.3)], TILE_PX, _stair_fire_x - tw * 0.28, STAIR_STEP_BOTTOM, fsc, 1, 4.4, 1.0)
+		_blit_anim(canvas, _flame_tex[_variant_for(_flame_tex.size(), 5.1)], TILE_PX, _stair_fire_x + tw * 0.28, STAIR_STEP_BOTTOM, fsc, 2, 7.9, 1.0)
 
 
 # --- smoke plumes (real smoke-sprite loops rising off the fire) ----------------
@@ -800,7 +811,7 @@ func _draw_scatter_bits(canvas: CanvasItem) -> void:
 		# ONLY over an actually-burning GAP cell — a bit vanishes the moment its cell is out
 		# (they used to strew across the whole span, stranding wisps on doused ground), and
 		# it only sits where the tile bed ISN'T drawn, so a glob never overlaps a front tile.
-		if not is_burning_at(bx) or not _is_glob_cell(bx):
+		if not is_burning_at(bx) or not _is_glob_cell(bx) or _in_stair_keepout(bx):
 			continue
 		# On the floor, a little LOWER than the main bed (nearer the camera), never up
 		# the wall — a small spread of extra flames the player walks behind.
