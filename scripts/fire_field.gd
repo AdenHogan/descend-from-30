@@ -557,7 +557,10 @@ func _draw_back(canvas: CanvasItem) -> void:
 # reads as spilling onto the stairs themselves. Only while the floor still has live
 # fire (a doused/charred floor shows none). -1 = no stair fire on this floor.
 var _stair_fire_x: float = -1.0
-const STAIR_FIRE_Y := 383.0        # top of the down-stairwell step (floor line 391 − approach)
+# The top step of the down stairwell sits on the walking plane, at the base of the shaft
+# (feet ~418) — NOT up in the dark shaft. The fire's BASE goes here and it's kept short so
+# its flames only just lick above the step, instead of floating high inside the stairwell.
+const STAIR_FIRE_Y := 416.0
 
 
 func set_stair_fire(x: float) -> void:
@@ -565,24 +568,26 @@ func set_stair_fire(x: float) -> void:
 
 
 func _draw_stair_fire(canvas: CanvasItem) -> void:
-	# A COMPACT fire cluster sitting ON the top step — a short bed + a single flame tongue,
-	# kept narrow so it stays on the step and doesn't spill onto the corridor floor.
+	# A LOW, compact fire sitting ON the top step — a short bed + short flames that top out
+	# around the step line, so it reads as fire ON the stairs, not hovering up the shaft.
 	if _stair_fire_x < 0.0 or _tile_tex.is_empty() or not any_burning():
 		return
-	var sc := _tile_scale() * 0.55
+	var sc := _tile_scale() * 0.5
 	var tw := float(TILE_PX) * sc
 	var fr := int(_t * TILE_FPS) % TILE_FRAMES
 	var tex: Texture2D = _tile_tex[_variant_for(_tile_tex.size(), 4.7)]
-	# crop to the LOW half of the tile so the bed is short — fire ON the step, not a wall of it
-	var bf := 0.5
+	# crop to the LOW third of the tile so the bed is short — a fire ON the step
+	var bf := 0.4
 	var src := Rect2(float(fr * TILE_PX), float(TILE_PX) * (1.0 - bf), float(TILE_PX), float(TILE_PX) * bf)
 	var th := float(TILE_PX) * bf * sc
 	for k in range(2):
 		var cx := _stair_fire_x + (float(k) - 0.5) * tw * 0.75   # two tiles just overlapping = one short bed
 		canvas.draw_texture_rect_region(tex, Rect2(cx - tw * 0.5, STAIR_FIRE_Y - th, tw + 1.0, th), src, Color(1.0, 1.0, 1.0, 0.95))
-	# one modest flame tongue rising off the step
+	# a couple of SHORT flame tongues — kept low so they lick just above the step, not up the shaft
 	if not _flame_tex.is_empty():
-		_blit_anim(canvas, _flame_tex[_variant_for(_flame_tex.size(), 2.3)], TILE_PX, _stair_fire_x, STAIR_FIRE_Y, 1.15 if stage >= STAGE_BLAZE else 0.9, 1, 4.4, 1.0)
+		var fsc := 0.7 if stage >= STAGE_BLAZE else 0.55
+		_blit_anim(canvas, _flame_tex[_variant_for(_flame_tex.size(), 2.3)], TILE_PX, _stair_fire_x - tw * 0.28, STAIR_FIRE_Y, fsc, 1, 4.4, 1.0)
+		_blit_anim(canvas, _flame_tex[_variant_for(_flame_tex.size(), 5.1)], TILE_PX, _stair_fire_x + tw * 0.28, STAIR_FIRE_Y, fsc * 0.85, 2, 7.9, 1.0)
 
 
 # --- smoke plumes (real smoke-sprite loops rising off the fire) ----------------
