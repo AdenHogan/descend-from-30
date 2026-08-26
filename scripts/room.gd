@@ -316,7 +316,7 @@ func _setup_maintenance() -> void:
 	$LeftWall.process_mode = Node.PROCESS_MODE_ALWAYS
 	$RightWall.process_mode = Node.PROCESS_MODE_ALWAYS
 	apartment_id = _maintenance_key()
-	player.position = Vector2(600, 321)
+	player.position = Vector2(300, 321)     # centre of the one-module room
 	if WorldState.saved_player_x != 0.0:
 		player.global_position = Vector2(WorldState.saved_player_x, WorldState.saved_player_y)
 		WorldState.saved_player_x = 0.0

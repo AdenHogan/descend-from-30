@@ -224,6 +224,12 @@ var pending_stair_pulls: Dictionary = {}
 
 # --- Merchant / shop (docs/STORE_DESIGN.md) ---
 const MERCHANT_FLOORS = [25, 20, 15, 10, 5]
+
+
+# A MAINTENANCE room (docs/MAINTENANCE_ELEVATOR.md) sits by the elevator every third
+# floor — its door is placed between the elevator and the right stairwell. Floors 3..27.
+func is_maintenance_floor(floor_num: int) -> bool:
+	return floor_num % 3 == 0 and floor_num >= 3 and floor_num <= 27
 const LEGENDARY_HOLD_VISITS = 3
 
 # Price bands per design: common 15-40, quality 80-150, legendary 300-500.

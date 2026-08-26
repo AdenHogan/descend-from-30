@@ -2,6 +2,9 @@ extends Area2D
 
 @export var room_scene: String = "res://scenes/room.tscn"
 @export var apartment_id: String = "3001"
+# A maintenance-room door (docs/MAINTENANCE_ELEVATOR.md): always open, no lock/barricade,
+# leads into maintenance.tscn. Set by building_floors._spawn_maintenance_door.
+@export var is_maintenance: bool = false
 
 var player_nearby: bool = false
 var current_state: int = -1
@@ -119,6 +122,12 @@ func _setup_progress_overlay() -> void:
 
 
 func _apply_door_state() -> void:
+	if is_maintenance:
+		current_state = WorldState.DoorState.OPEN     # always enterable, no lock/barricade
+		door_sprite.modulate = TINT_OPEN
+		barricade_sprite.visible = false
+		barricade_progress_overlay.visible = false
+		return
 	if _is_sealed():
 		door_sprite.modulate = TINT_INACCESSIBLE
 		barricade_sprite.visible = false
@@ -190,6 +199,8 @@ func _get_removal_duration() -> float:
 
 
 func _get_prompt_text() -> String:
+	if is_maintenance:
+		return "Maintenance  [E] Enter"
 	if _is_sealed():
 		return apartment_id + " - Sealed"
 	return _base_prompt_text() + "  [R] Listen"
@@ -242,6 +253,8 @@ func _base_prompt_text() -> String:
 func _prompt_should_show() -> bool:
 	# OPEN / BREACHED / sealed prompts always show (basic traversal). Force / lock /
 	# barricade prompts only show in scavenge mode, matching where the action works.
+	if is_maintenance:
+		return true
 	if _is_sealed():
 		return true
 	match current_state:

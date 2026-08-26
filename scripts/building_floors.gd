@@ -61,6 +61,7 @@ func _ready() -> void:
 		# in the backdrop too — otherwise a floor first reached via the seamless stair PAN
 		# (which builds passively then go_live's) had no extinguisher until a full _ready.
 		_place_elevator_kit(floor_num)
+		_spawn_maintenance_door(floor_num)
 		_spawn_world_drops(floor_num)
 		# Spawn the FIRE in the backdrop too, so a floor you're panning UP toward shows
 		# its fire AS IT SCROLLS INTO VIEW, not popping in only after the commit. It's
@@ -100,6 +101,7 @@ func _ready() -> void:
 	_spawn_zombies(floor_num, false)
 	_spawn_corpses(floor_num)
 	_place_elevator_kit(floor_num)
+	_spawn_maintenance_door(floor_num)
 	_spawn_world_drops(floor_num)
 	_spawn_merchant(floor_num)
 	_spawn_barricade_visuals(floor_num)
@@ -810,6 +812,10 @@ func _place_elevator_kit(floor_num: int) -> void:
 	# fire may outrun one canister, so the point is you can backtrack for more.
 	if WorldState.is_floor_charred(floor_num):
 		return
+	# Maintenance floors give the extinguisher's wall spot to the maintenance-room door
+	# (between the elevator and the right stairwell) — no canister mounted here.
+	if WorldState.is_maintenance_floor(floor_num):
+		return
 	var key := str(floor_num) + ":" + str(WorldState.current_run)
 	if WorldState.elevator_kit_placed.get(key, false):
 		return
@@ -818,6 +824,27 @@ func _place_elevator_kit(floor_num: int) -> void:
 	# (x 829) and the elevator (x 1029.5) → x 929; y 360 sits it up on the wall at
 	# door height (world_drop draws the extinguisher prop; pickup is the usual walk-up).
 	WorldState.add_world_drop("036", Vector2(929.0, 360.0), floor_num)
+
+
+const MAINT_DOOR_SCENE := preload("res://scenes/door.tscn")
+const MAINT_DOOR_X := 1104.0     # between the elevator (~1029) and the right stairwell (~1179)
+
+
+func _spawn_maintenance_door(floor_num: int) -> void:
+	# Every third floor gets a maintenance-room door in the wall between the elevator and
+	# the right stairwell (where the extinguisher would otherwise mount). It's a plain,
+	# always-open door that leads into maintenance.tscn — no lock/barricade.
+	if not WorldState.is_maintenance_floor(floor_num):
+		return
+	if get_node_or_null("MaintenanceDoor") != null:
+		return
+	var d = MAINT_DOOR_SCENE.instantiate()
+	d.name = "MaintenanceDoor"
+	d.is_maintenance = true
+	d.room_scene = "res://scenes/maintenance.tscn"
+	d.apartment_id = "MAINT" + str(floor_num)
+	d.global_position = Vector2(MAINT_DOOR_X, 364.0)   # apartment-door height
+	add_child(d)
 
 
 func _spawn_merchant(floor_num: int) -> void:

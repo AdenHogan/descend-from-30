@@ -451,8 +451,11 @@ func _test_fire_spawns() -> void:
 			vis_crates += 1
 	check(vis_crates == 0, "no barricade crates on a fire floor")
 	check(get_tree().get_nodes_in_group("stair_horde").is_empty(), "no horde on a fire floor")
-	# A fire extinguisher is mounted by the elevator on this floor (every floor).
-	check(WorldState.elevator_kit_placed.get("15:1", false), "an extinguisher kit is placed by the elevator")
+	# Floor 15 is a MAINTENANCE floor (15 % 3 == 0): the maintenance-room door takes the
+	# extinguisher's wall spot between the elevator and the right stairwell, so no canister
+	# is mounted here — a maintenance door is placed instead.
+	check(not WorldState.elevator_kit_placed.get("15:1", false), "no extinguisher on a maintenance floor")
+	check(bf.get_node_or_null("MaintenanceDoor") != null, "a maintenance-room door is placed on a maintenance floor")
 	# Floor 15 is a merchant floor; the fire keeps the merchant sheltering.
 	check(bf._merchant_pending_fire, "the merchant shelters while the floor's on fire")
 	check(bf.get_node_or_null("Merchant") == null, "no merchant comes out during the fire")
