@@ -30,6 +30,8 @@ func _ready() -> void:
 	_test_dev_mode()
 	_test_apartment_fire_state()
 	_test_extinguish_aftermath()
+	_test_fire_hot_at()
+	_test_stair_fire()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -67,6 +69,53 @@ func _make_field():
 	add_child(ff)
 	ff.set_process(false)
 	return ff
+
+
+func _test_fire_hot_at() -> void:
+	# The PLAYER-damage test is TIGHTER than is_burning_at: it only reports hot when a
+	# burning cell that actually RENDERS a tile (kind 0/1, not a gap) sits within
+	# DAMAGE_REACH. So a player over a bare GAP cell — or off the fire entirely — is not
+	# cooked, even though the sim cell may be burning.
+	print("[fire_hot_at — tight player damage]")
+	var ff = _make_field()
+	ff.floor_num = 7
+	ff.ignite_span(ff.FIRE_MIN_X + 40.0, ff.FIRE_MAX_X - 40.0)
+	check(not ff.fire_hot_at(ff.FIRE_MIN_X - 60.0), "no burn standing off the fire")
+	# At a cell CENTRE the neighbours are a full cell (>DAMAGE_REACH) away, so the burn is
+	# decided by the player's OWN cell: hot iff it's a burning cell that renders a tile.
+	var exact := true
+	var found_hot_tile := false
+	var found_cold_gap := false
+	for i in range(ff.cell_count):
+		var cx: float = ff.cell_x(i)
+		var hot: bool = ff.fire_hot_at(cx)
+		var burning: bool = ff.state_of(i) == ff.BURNING
+		var is_tile: bool = ff._cell_kind(cx) != 2
+		if hot != (burning and is_tile):
+			exact = false
+		if hot:
+			found_hot_tile = true
+		if burning and not is_tile and not hot:
+			found_cold_gap = true
+	check(exact, "at a cell centre, burn iff standing on a burning TILE cell")
+	check(found_hot_tile, "standing on a burning TILE cell burns")
+	check(found_cold_gap, "standing on a burning GAP cell does NOT burn (tighter than the sim)")
+	ff.free()
+
+
+func _test_stair_fire() -> void:
+	# The third plane: set_stair_fire arms a fire on the down-stairwell; it only draws while
+	# the floor still has live fire (gated by any_burning), and clears with -1.
+	print("[stair fire — third plane]")
+	var ff = _make_field()
+	ff.set_stair_fire(165.0)
+	check(ff._stair_fire_x == 165.0, "set_stair_fire records the down-stair x")
+	check(not ff.any_burning(), "no fire yet - stair fire would not draw")
+	ff.ignite_span(600.0, 600.0)
+	check(ff.any_burning(), "a lit floor - stair fire draws on the step")
+	ff.set_stair_fire(-1.0)
+	check(ff._stair_fire_x < 0.0, "a floor with no down-stair fire clears to -1")
+	ff.free()
 
 
 func _ticks(ff, n: int) -> void:

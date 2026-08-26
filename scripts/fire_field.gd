@@ -143,6 +143,25 @@ func is_burning_at(x: float) -> bool:
 	return state_of(cell_at(x)) == BURNING
 
 
+# How close (px) the player must be to a VISIBLE flame to take the burn. Tight — a
+# player standing anywhere in a burning tile cell (42px wide) is within this of its
+# centre, but a step off the fire is not.
+const DAMAGE_REACH := 26.0
+
+
+func fire_hot_at(x: float) -> bool:
+	# TIGHT player-damage test (see building_floors fire damage). The SIM burns a wider,
+	# GAPPIER span than the patchy RENDER shows, so is_burning_at() cooked the player while
+	# they stood over a bare GAP with no visible flame. Here the burn only lands when a
+	# burning cell that actually RENDERS a fire tile (kind 0/1, not a gap) sits within
+	# DAMAGE_REACH of the player — i.e. they're essentially standing IN the flames.
+	var c := cell_at(x)
+	for i in range(maxi(c - 1, 0), mini(c + 2, cell_count)):
+		if state_of(i) == BURNING and _cell_kind(cell_x(i)) != 2 and absf(cell_x(i) - x) <= DAMAGE_REACH:
+			return true
+	return false
+
+
 func any_burning() -> bool:
 	for i in range(cell_count):
 		if state_of(i) == BURNING:
@@ -526,9 +545,44 @@ func _draw_back(canvas: CanvasItem) -> void:
 	# avoid_doors=true keeps the depth bed OUT of doorways (beside a door is fine, not
 	# straight across it); the extra patch_carve breaks up its line into clumps.
 	_draw_ground_fire(canvas, BACK_SEAM_Y, 0.9, 0.0, 0.6, _tile_scale() * 0.58, -1.0, true, 0.0, 1)   # DEPTH bed (side 1), avoids doors
+	_draw_stair_fire(canvas)        # the THIRD plane — fire on the down-stairwell top step
 	_draw_tall_flames(canvas)
 	_draw_smoulder_plumes(canvas)   # aftermath smoke (doused + charred), behind the active-fire smoke
 	_draw_smoke_plumes(canvas)
+
+
+# --- the third plane: fire on the DOWN stairwell -------------------------------
+# building_floors hands us the x of the down-stairwell's top step; we draw a small
+# bed + flame there, at the STEP's Y (above the corridor floor line), so the fire
+# reads as spilling onto the stairs themselves. Only while the floor still has live
+# fire (a doused/charred floor shows none). -1 = no stair fire on this floor.
+var _stair_fire_x: float = -1.0
+const STAIR_FIRE_Y := 383.0        # top of the down-stairwell step (floor line 391 − approach)
+
+
+func set_stair_fire(x: float) -> void:
+	_stair_fire_x = x
+
+
+func _draw_stair_fire(canvas: CanvasItem) -> void:
+	# A COMPACT fire cluster sitting ON the top step — a short bed + a single flame tongue,
+	# kept narrow so it stays on the step and doesn't spill onto the corridor floor.
+	if _stair_fire_x < 0.0 or _tile_tex.is_empty() or not any_burning():
+		return
+	var sc := _tile_scale() * 0.55
+	var tw := float(TILE_PX) * sc
+	var fr := int(_t * TILE_FPS) % TILE_FRAMES
+	var tex: Texture2D = _tile_tex[_variant_for(_tile_tex.size(), 4.7)]
+	# crop to the LOW half of the tile so the bed is short — fire ON the step, not a wall of it
+	var bf := 0.5
+	var src := Rect2(float(fr * TILE_PX), float(TILE_PX) * (1.0 - bf), float(TILE_PX), float(TILE_PX) * bf)
+	var th := float(TILE_PX) * bf * sc
+	for k in range(2):
+		var cx := _stair_fire_x + (float(k) - 0.5) * tw * 0.75   # two tiles just overlapping = one short bed
+		canvas.draw_texture_rect_region(tex, Rect2(cx - tw * 0.5, STAIR_FIRE_Y - th, tw + 1.0, th), src, Color(1.0, 1.0, 1.0, 0.95))
+	# one modest flame tongue rising off the step
+	if not _flame_tex.is_empty():
+		_blit_anim(canvas, _flame_tex[_variant_for(_flame_tex.size(), 2.3)], TILE_PX, _stair_fire_x, STAIR_FIRE_Y, 1.15 if stage >= STAGE_BLAZE else 0.9, 1, 4.4, 1.0)
 
 
 # --- smoke plumes (real smoke-sprite loops rising off the fire) ----------------

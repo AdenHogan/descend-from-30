@@ -232,7 +232,7 @@ func _process(delta: float) -> void:
 	# can always walk THROUGH fire (it never blocks), you just take the burn.
 	if _fire_field != null and player.has_method("receive_hit"):
 		_fire_line_cd = maxf(_fire_line_cd - delta, 0.0)
-		if _fire_field.is_burning_at(player.global_position.x):
+		if _fire_field.fire_hot_at(player.global_position.x):
 			_fire_dmg_acc += delta
 			if _fire_dmg_acc >= FIRE_DMG_INTERVAL:
 				_fire_dmg_acc = 0.0
@@ -364,6 +364,7 @@ func _spawn_fire(floor_num: int) -> void:
 	_fire_field = FIRE_FIELD.new()
 	_fire_field.floor_num = floor_num
 	_fire_field.stage = stage                                   # scales flame size + smoke
+	_fire_field.set_stair_fire(_down_stair_x())                 # the third plane: fire on the down stairwell
 	add_child(_fire_field)
 	match stage:
 		WorldState.FIRE_CHARRED:
@@ -554,6 +555,19 @@ func _enable_stair_triggers() -> void:
 		else:
 			right_up.process_mode = Node.PROCESS_MODE_DISABLED
 			left_down.process_mode = Node.PROCESS_MODE_DISABLED
+
+func _down_stair_x() -> float:
+	# The x of the DOWN stairwell's top step (the way onward), for the fire's third plane.
+	# _apply_stair_visuals has already set which Hallway_Staircase_* (the DOWN art) is
+	# visible — the fire sits on whichever side descends. -1 if neither (no stair fire).
+	var hl := get_node_or_null("HallwayStaircaseLeft") as Sprite2D
+	var hr := get_node_or_null("HallwayStaircaseRight") as Sprite2D
+	if hl != null and hl.visible:
+		return 165.0        # left staircase: top step (centre of the landing at the mouth)
+	if hr != null and hr.visible:
+		return 1188.0       # right staircase
+	return -1.0
+
 
 func _apply_stair_visuals() -> void:
 	# WHICH staircase art each side shows.
