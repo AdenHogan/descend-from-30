@@ -312,16 +312,15 @@ func _maintenance_loot(rng: RandomNumberGenerator) -> String:
 
 func _setup_maintenance() -> void:
 	var player = $Player
-	# Small enclosed room: both walls solid, player + exit door at fixed spots.
-	$LeftWall.process_mode = Node.PROCESS_MODE_ALWAYS
+	# ONE-WAY entrance: always the LEFT doorway (the hole in the left brick wall). The left
+	# wall is passable there; the right wall stays solid. Enter at the hole, walk right in;
+	# walk back left through it to leave (the $Area2D exit trigger sits in the hole).
+	$LeftWall.process_mode = Node.PROCESS_MODE_DISABLED
 	$RightWall.process_mode = Node.PROCESS_MODE_ALWAYS
+	$Area2D.position = Vector2(100, 300)
 	apartment_id = _maintenance_key()
-	# Spawn just INSIDE the back-wall door (at x420) and face into the room, so you enter
-	# at the doorway and walk in — not dead-centre. The exit trigger ($Area2D) sits on the
-	# door, so you walk back to it to leave. Kept clear of the 6px-wide trigger so entering
-	# doesn't immediately bounce you back out.
-	player.position = Vector2(360, 321)
-	player.get_node("AnimatedSprite2D").flip_h = true    # face left, into the room
+	player.position = Vector2(150, 321)                   # just inside the left doorway
+	player.get_node("AnimatedSprite2D").flip_h = false    # face right, into the room
 	if WorldState.saved_player_x != 0.0:
 		player.global_position = Vector2(WorldState.saved_player_x, WorldState.saved_player_y)
 		WorldState.saved_player_x = 0.0
@@ -335,14 +334,66 @@ func _setup_maintenance() -> void:
 			child.set_script(interactable_script)
 			child.apartment_id = apartment_id
 			child._ready()
+			child.set_process(true)      # enable the glow/range _process (set_script alone won't)
 			interactables.append(child)
 			var passed = mrng.randf() <= 0.85   # most anchors have something here
 			if not WorldState.is_anchor_searched(apartment_id, child.name):
 				var item := _maintenance_loot(mrng)
 				if passed and item != "":
 					WorldState.set_anchor_item(apartment_id, child.name, item)
+	_build_maintenance_props()
 	_frame_camera(player)
 	HUD.update_floor_label()
+
+
+# Placeholder maintenance-room fixtures (coloured rects until the real art/UX lands):
+# an upgrade WORKBENCH on the floor and a FUSE BOX on the wall (press E to access).
+var _fuse_box_pos: Vector2 = Vector2.ZERO
+var _fuse_box_active: bool = false
+
+func _build_maintenance_props() -> void:
+	# Upgrade workbench — a wooden bench on the floor (the scrap upgrade station goes here).
+	var bench := Polygon2D.new()
+	bench.name = "Workbench"
+	bench.polygon = PackedVector2Array([Vector2(-52, -30), Vector2(52, -30), Vector2(52, 0), Vector2(-52, 0)])
+	bench.color = Color(0.44, 0.29, 0.17)
+	bench.position = Vector2(300, 322)
+	add_child(bench)
+	var top := Polygon2D.new()   # a lighter benchtop lip
+	top.polygon = PackedVector2Array([Vector2(-56, -34), Vector2(56, -34), Vector2(56, -28), Vector2(-56, -28)])
+	top.color = Color(0.55, 0.38, 0.22)
+	top.position = Vector2(300, 322)
+	add_child(top)
+	# Fuse box — a grey metal box on the wall above the bench.
+	var fuse := Polygon2D.new()
+	fuse.name = "FuseBox"
+	fuse.polygon = PackedVector2Array([Vector2(-22, -30), Vector2(22, -30), Vector2(22, 30), Vector2(-22, 30)])
+	fuse.color = Color(0.34, 0.37, 0.41)
+	fuse.position = Vector2(300, 232)
+	add_child(fuse)
+	var latch := Polygon2D.new()  # a small yellow latch/handle so it reads as a box
+	latch.polygon = PackedVector2Array([Vector2(14, -6), Vector2(20, -6), Vector2(20, 6), Vector2(14, 6)])
+	latch.color = Color(0.85, 0.7, 0.2)
+	latch.position = Vector2(300, 232)
+	add_child(latch)
+	_fuse_box_pos = fuse.position
+	_fuse_box_active = true
+
+
+func _maintenance_process(_delta: float) -> void:
+	# Fuse box: show an [E] Access prompt when the player is close, and open it on E. The
+	# fuse/elevator system isn't wired yet, so E just reports what it will do (groundwork).
+	if not _fuse_box_active:
+		return
+	var player = get_node_or_null("Player")
+	if player == null:
+		return
+	if player.global_position.distance_to(_fuse_box_pos) < 72.0:
+		HUD.show_world_prompt(self, "Fuse box  [E] Access", _fuse_box_pos + Vector2(0, -44))
+		if Input.is_action_just_pressed("interact") and not TutorialManager.interact_guarded():
+			HUD.show_feedback("Fuse box — the elevator needs 3 fuses. (Fuse system coming soon.)")
+	else:
+		HUD.hide_world_prompt(self)
 
 
 func _apt_floor() -> int:
@@ -1095,6 +1146,7 @@ func _is_player_facing_anchor(anchor: Node) -> bool:
 func _process(_delta: float) -> void:
 	_tutorial_process(_delta)
 	_apartment_fire_process(_delta)
+	_maintenance_process(_delta)
 
 	if not WorldState.is_scavenge_mode:
 		for i in interactables:
