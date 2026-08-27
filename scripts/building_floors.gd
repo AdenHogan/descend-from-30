@@ -885,8 +885,14 @@ func _spawn_world_drops(floor_num: int) -> void:
 	if drops.is_empty():
 		return
 	var drop_scene = preload("res://scenes/world_drop.tscn")
+	var is_maint := WorldState.is_maintenance_floor(floor_num)
 	for drop_key in drops:
 		var data = drops[drop_key]
+		# A maintenance floor NEVER shows a wall extinguisher — the door owns that wall.
+		# Block it at the render layer too, so a canister persisted in an old save (or added
+		# by any path) can never appear here regardless of the data-layer cleanup.
+		if is_maint and data["item_id"] == "036":
+			continue
 		var drop = drop_scene.instantiate()
 		drop.item_id = data["item_id"]
 		drop.amount = int(data.get("amount", 0))
