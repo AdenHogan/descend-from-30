@@ -456,6 +456,10 @@ func _test_fire_spawns() -> void:
 	# is mounted here — a maintenance door is placed instead.
 	check(not WorldState.elevator_kit_placed.get("15:1", false), "no extinguisher on a maintenance floor")
 	check(bf.get_node_or_null("MaintenanceDoor") != null, "a maintenance-room door is placed on a maintenance floor")
+	# A maintenance floor NEVER offers a wall extinguisher; a normal floor's presence is
+	# seeded (deterministic) and not guaranteed — some floors have none.
+	check(not WorldState.floor_has_extinguisher(15), "maintenance floor never has a wall extinguisher")
+	check(WorldState.floor_has_extinguisher(14) == WorldState.floor_has_extinguisher(14), "floor extinguisher presence is deterministic")
 	# Floor 15 is a merchant floor; the fire keeps the merchant sheltering.
 	check(bf._merchant_pending_fire, "the merchant shelters while the floor's on fire")
 	check(bf.get_node_or_null("Merchant") == null, "no merchant comes out during the fire")

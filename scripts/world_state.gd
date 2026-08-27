@@ -230,6 +230,39 @@ const MERCHANT_FLOORS = [25, 20, 15, 10, 5]
 # floor — its door is placed between the elevator and the right stairwell. Floors 3..27.
 func is_maintenance_floor(floor_num: int) -> bool:
 	return floor_num % 3 == 0 and floor_num >= 3 and floor_num <= 27
+
+
+# Wall fire-extinguishers aren't on EVERY floor (like a real building — sometimes the
+# nearest one is a floor or two away). Seeded per floor (stable across runs) so it's a
+# fixed fact of the building, not a per-visit surprise. Maintenance floors NEVER have one
+# (the door takes that wall) — it's on the player to go up/down for a canister.
+const EXTINGUISHER_FLOOR_CHANCE := 0.6
+func floor_has_extinguisher(floor_num: int) -> bool:
+	if is_maintenance_floor(floor_num):
+		return false
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "extinguisher" + str(floor_num))
+	return rng.randf() < EXTINGUISHER_FLOOR_CHANCE
+
+
+func nearest_merchant_floor(floor_num: int) -> int:
+	var best: int = int(MERCHANT_FLOORS[0])
+	var bestd: int = 999
+	for mf in MERCHANT_FLOORS:
+		var dd: int = absi(int(mf) - floor_num)
+		if dd < bestd:
+			bestd = dd
+			best = int(mf)
+	return best
+
+
+func fire_merchant_should_stock(merchant_floor: int) -> bool:
+	# Crisis profiteering: if a fire is seeded anywhere in the arc, the merchant floor
+	# NEAREST that fire always carries an extinguisher (marked up).
+	for f in range(2, 30):
+		if _fire_origin_seeded(f) and nearest_merchant_floor(f) == merchant_floor:
+			return true
+	return false
 const LEGENDARY_HOLD_VISITS = 3
 
 # Price bands per design: common 15-40, quality 80-150, legendary 300-500.
@@ -743,9 +776,17 @@ func get_merchant_stock(floor_num: int) -> Array:
 			legendary_id = ids[rng.randi() % ids.size()]
 			legendary_hold = {"item_id": legendary_id, "visits_left": LEGENDARY_HOLD_VISITS}
 
+	# Fire extinguisher (036): the merchant sometimes carries one; near a seeded fire the
+	# NEAREST merchant floor ALWAYS does, marked up — profiting off the crisis. When it's
+	# stocked it takes a COMMON slot, so the shop still never exceeds 6 wares.
+	var fire_crisis := fire_merchant_should_stock(floor_num)
+	var want_ext := fire_crisis or rng.randf() < 0.30
+
 	# Max 6 slots per visit: a legendary claims one, squeezing the commons.
 	var common_count = 3 if legendary_id != "" else 3 + (rng.randi() % 2)
 	var quality_count = 1 + (rng.randi() % 2)
+	if want_ext:
+		common_count = maxi(common_count - 1, 1)   # the extinguisher takes a common slot
 	stock.append_array(_roll_shop_band(SHOP_COMMON, common_count, "common", rng))
 	stock.append_array(_roll_shop_band(SHOP_QUALITY, quality_count, "quality", rng))
 	if legendary_id != "":
@@ -755,6 +796,8 @@ func get_merchant_stock(floor_num: int) -> Array:
 			"band": "legendary",
 			"sold": false,
 		})
+	if want_ext:
+		stock.append({"item_id": "036", "price": (55 if fire_crisis else 35), "band": "common", "sold": false})
 
 	merchant_stock[key] = stock
 	return stock

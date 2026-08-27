@@ -66,7 +66,11 @@ func _test_stock_structure() -> void:
 				match entry["band"]:
 					"common":
 						commons += 1
-						prices_ok = prices_ok and WorldState.SHOP_COMMON.get(entry["item_id"], -1) == entry["price"]
+						if entry["item_id"] == "036":
+							# Fire extinguisher: priced 35 normally / 55 in a fire crisis (not a SHOP_COMMON ware).
+							prices_ok = prices_ok and (entry["price"] == 35 or entry["price"] == 55)
+						else:
+							prices_ok = prices_ok and WorldState.SHOP_COMMON.get(entry["item_id"], -1) == entry["price"]
 					"quality":
 						quality += 1
 						prices_ok = prices_ok and WorldState.SHOP_QUALITY.get(entry["item_id"], -1) == entry["price"]

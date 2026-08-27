@@ -805,27 +805,29 @@ func _apply_doors(floor_num: int) -> void:
 
 
 func _place_elevator_kit(floor_num: int) -> void:
-	# A fire extinguisher mounted on the wall by the elevator — on EVERY floor,
-	# like a real building. A persisted world-drop placed ONCE per (floor, run) so
-	# it doesn't respawn after you take it (added before _spawn_world_drops so its
-	# pickup renders now). A charred ruin is a dead husk — no kit there. Spreading
-	# fire may outrun one canister, so the point is you can backtrack for more.
+	# A wall fire-extinguisher by the elevator — but NOT on every floor. Like a real
+	# building, some floors are missing one (seeded per floor), so the nearest canister may
+	# be a floor or two away. A charred ruin is a dead husk — no kit. Persisted per (floor,
+	# run) so it doesn't respawn after you take it.
 	if WorldState.is_floor_charred(floor_num):
 		return
-	# Maintenance floors give the extinguisher's wall spot (x929) to the maintenance-room
-	# door — no canister mounted here. Also clear any extinguisher drop persisted at that
-	# spot from before (an old save shouldn't still show one).
+	# Maintenance floors NEVER mount one — the door takes that wall. Clear any wall-mounted
+	# extinguisher (y ~360) persisted here from before, even if a fire is on this floor;
+	# it's on the player to go up/down for a canister.
 	if WorldState.is_maintenance_floor(floor_num):
 		for k in WorldState.world_drops.keys():
 			var d = WorldState.world_drops[k]
 			if int(d.get("floor", -1)) == floor_num and d.get("item_id", "") == "036" \
-					and absf(float(d.get("x", 0.0)) - MAINT_DOOR_X) < 6.0:
+					and absf(float(d.get("y", 0.0)) - 360.0) < 8.0:
 				WorldState.remove_world_drop(k)
 		return
 	var key := str(floor_num) + ":" + str(WorldState.current_run)
 	if WorldState.elevator_kit_placed.get(key, false):
 		return
 	WorldState.elevator_kit_placed[key] = true
+	# This floor may simply not have one — like a real building. If not, no canister here.
+	if not WorldState.floor_has_extinguisher(floor_num):
+		return
 	# Mounted on the wall to the LEFT of the elevator, halfway between apartment 01
 	# (x 829) and the elevator (x 1029.5) → x 929; y 360 sits it up on the wall at
 	# door height (world_drop draws the extinguisher prop; pickup is the usual walk-up).
