@@ -380,18 +380,70 @@ func _build_maintenance_props() -> void:
 	_fuse_box_active = true
 
 
+func _fuse_box_prompt() -> String:
+	# What [E] will do, given how many fuses are fitted and how many the player carries.
+	if WorldState.elevator_powered:
+		return "Elevator powered  —  ride it from the corridor"
+	var loaded := WorldState.elevator_fuses_loaded
+	var need := WorldState.ELEVATOR_FUSES_NEEDED - loaded
+	var carried := WorldState.fuse_count()
+	if carried > 0:
+		return "Fuse box (" + str(loaded) + "/3)  [E] Fit fuse"
+	return "Fuse box (" + str(loaded) + "/3)  —  need " + str(need) + " more fuse" + ("s" if need != 1 else "")
+
+
+func _fit_fuses() -> void:
+	if WorldState.elevator_powered:
+		HUD.show_feedback("The elevator's already powered — ride it from the corridor.")
+		return
+	var carried := WorldState.fuse_count()
+	if carried <= 0:
+		var need := WorldState.ELEVATOR_FUSES_NEEDED - WorldState.elevator_fuses_loaded
+		HUD.show_feedback("The fuse box needs " + str(need) + " more fuse" + ("s" if need != 1 else "") + " to power the elevator.")
+		return
+	var fitted := WorldState.fit_fuses_from_inventory()
+	if WorldState.elevator_powered:
+		# Power-on: elevator "ding" + a rising electrical whirr (a quick pitched-up ding).
+		_play_fuse_ding()
+		HUD.show_feedback("The box hums to life — the elevator is powered. Ride it from the corridor.")
+	else:
+		_play_fuse_click()
+		var loaded := WorldState.elevator_fuses_loaded
+		HUD.show_feedback("Fitted " + str(fitted) + " fuse" + ("s" if fitted != 1 else "") + " (" + str(loaded) + "/3).")
+
+
+func _play_fuse_ding() -> void:
+	var p := AudioStreamPlayer.new()
+	p.stream = preload("res://assets/audio/elevator_ding.wav")
+	p.volume_db = -4.0
+	add_child(p)
+	p.play()
+	p.finished.connect(p.queue_free)
+
+
+func _play_fuse_click() -> void:
+	# A softer, lower thunk for a partial fit (fuse seated, not yet powered).
+	var p := AudioStreamPlayer.new()
+	p.stream = preload("res://assets/audio/elevator_ding.wav")
+	p.volume_db = -12.0
+	p.pitch_scale = 0.6
+	add_child(p)
+	p.play()
+	p.finished.connect(p.queue_free)
+
+
 func _maintenance_process(_delta: float) -> void:
-	# Fuse box: show an [E] Access prompt when the player is close, and open it on E. The
-	# fuse/elevator system isn't wired yet, so E just reports what it will do (groundwork).
+	# Fuse box: show an [E] prompt reflecting the fuse count when the player is close,
+	# and fit carried fuses on E. At 3 the elevator powers on (ride it from the corridor).
 	if not _fuse_box_active:
 		return
 	var player = get_node_or_null("Player")
 	if player == null:
 		return
 	if player.global_position.distance_to(_fuse_box_pos) < 72.0:
-		HUD.show_world_prompt(self, "Fuse box  [E] Access", _fuse_box_pos + Vector2(0, -44))
+		HUD.show_world_prompt(self, _fuse_box_prompt(), _fuse_box_pos + Vector2(0, -44))
 		if Input.is_action_just_pressed("interact") and not TutorialManager.interact_guarded():
-			HUD.show_feedback("Fuse box — the elevator needs 3 fuses. (Fuse system coming soon.)")
+			_fit_fuses()
 	else:
 		HUD.hide_world_prompt(self)
 

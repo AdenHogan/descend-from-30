@@ -125,8 +125,9 @@ setup script; binary from downloads.godotengine.org). Before every commit:
   `depth_move_test`, `transition_test`, `force_lock_test`, `loot_test`,
   `building_floors_test`, `stair_visuals_test`, `profile_test`,
   `profile_ui_test`, `title_test`, `enemy_memory_test`, `floor_adopt_test`,
-  `balcony_test`, `hud_prompt_test`, `stair_block_test`, `fire_test` — run all
-  24 before commit. (`floor_adopt_test` is seed-sensitive: `new_game` rolls a random
+  `balcony_test`, `hud_prompt_test`, `stair_block_test`, `fire_test`,
+  `maintenance_test`, `elevator_test` — run all
+  26 before commit. (`floor_adopt_test` is seed-sensitive: `new_game` rolls a random
   master seed and it asserts a floor has zombies, so it fails ~occasionally
   on a 0-zombie seed — a known flake, re-run it. `building_floors_test` is the same
   class: its arrival-stair-horde asserts depend on the rolled seed placing a horde at
@@ -449,7 +450,30 @@ means no rendering — UI layout and art still need an in-editor look.
   quest has seeded groundwork (`barricade_has_keeper` + `barricade_keeper_state`)
   but no NPC yet. Covered by `stair_block_test` + `building_floors_test` +
   `fire_test`.
+- Maintenance room + fuse/elevator traversal (docs/MAINTENANCE_ELEVATOR.md,
+  steps 1–3, v1): a small SAFE room (`maintenance.tscn`) placed every 3rd floor
+  (`is_maintenance_floor` = 3..27 step 3) via a `MaintenanceDoor` at x929 (the old
+  extinguisher spot — **no wall extinguisher on maintenance floors**, blocked at
+  both the data and render layers). ONE-WAY **left doorway** (hole in the bricks);
+  spawn just inside it, exit trigger sits in the hole. Two toolbox/fuse-weighted
+  scavenge anchors (glow fixed: `set_process(true)` after runtime `set_script`).
+  Placeholder **workbench** + **fuse-box** ColorRect props (upgrade station UI is
+  future — the Scrap system). **Fuse (020)** now `is_fuse` + **stacks to 3/slot**
+  (`MAX_FUSE_PER_SLOT`); at the fuse box **[E] fits carried fuses** (accumulates
+  across visits), and 3 **powers the elevator** (ding + hum). Power is a **single
+  global per-run charge** (`elevator_powered`/`elevator_fuses_loaded`, saved,
+  reset by `new_game`). When powered the corridor **Elevator** shows `[E] Ride`
+  (hidden on merchant floors — the merchant has the car); E cuts to
+  **`elevator_interior.tscn`** (closed-box UI: `[↑]`/`[↓]` to the two
+  destinations), which **spends the charge** and drops you out **5 floors** up/down
+  (`elevator_destination`, clamped [1,29]) via `spawn_source="elevator"`. Riding
+  onto a merchant floor triggers a "you rode MY elevator?" beat. **Extinguisher
+  economy**: floor spawns randomized (`EXTINGUISHER_FLOOR_CHANCE` 0.6, none on
+  maintenance floors); the merchant sells 036 (~30% of visits, or guaranteed at
+  the nearest merchant floor to a seeded fire — crisis markup). Covered by
+  `maintenance_test` + `elevator_test`.
 - Next: tutorial **v2** (above), then characters/profiles/stats + the
   two-&-three-run arc; also **Upgrade offers** polish and player-corpse
-  recovery (store step 7); barricade-keeper NPC; fire smoke/crouch + warning beat.
+  recovery (store step 7); barricade-keeper NPC; fire smoke/crouch + warning beat;
+  the maintenance **upgrade station** UI (Scrap system, SCRAP_UPGRADES.md).
 - Not started: time-of-day, balcony descent, quests, character stats.

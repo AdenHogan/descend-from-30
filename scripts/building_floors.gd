@@ -86,6 +86,9 @@ func _ready() -> void:
 	elif WorldState.spawn_source == "door" and WorldState.exit_spawn_x != 0.0:
 		player.global_position.x = WorldState.exit_spawn_x
 		player.global_position.y = 388.0
+	elif WorldState.spawn_source == "elevator":
+		# Stepped out of the lift — stand right by the elevator doors.
+		player.global_position = Vector2(ELEVATOR_X, 388.0)
 
 	if WorldState.saved_player_x != 0.0:
 		player.global_position = Vector2(WorldState.saved_player_x, WorldState.saved_player_y)
@@ -293,6 +296,29 @@ func _process(delta: float) -> void:
 			and absf(player.global_position.x - 1029.5) < 170.0:
 		_merchant_shelter_line_shown = true
 		HUD.show_dialogue("Merchant: Not a chance — I'm not opening these doors with the floor on fire. Put it out and we'll trade.", "", false, 4.5)
+
+	_elevator_ride_process(player)
+
+
+func _elevator_ride_process(player) -> void:
+	# The corridor elevator is rideable once powered (3 fuses fitted at a maintenance
+	# fuse box). On a MERCHANT floor the merchant has the car — the static Elevator
+	# sprite is hidden and no ride is offered (they reclaimed it). Show an [E] Ride
+	# prompt near the doors and cut to the interior on E.
+	if not WorldState.can_ride_elevator():
+		HUD.hide_world_prompt(self)
+		return
+	var elevator = get_node_or_null("Elevator")
+	if elevator == null or not elevator.visible:
+		HUD.hide_world_prompt(self)
+		return
+	if absf(player.global_position.x - ELEVATOR_X) < ELEVATOR_RIDE_RANGE:
+		HUD.show_world_prompt(self, "Elevator (powered)  [E] Ride", Vector2(ELEVATOR_X, 300.0))
+		if Input.is_action_just_pressed("interact") and not TutorialManager.interact_guarded():
+			HUD.hide_world_prompt(self)
+			Transition.to_scene("res://scenes/elevator_interior.tscn")
+	else:
+		HUD.hide_world_prompt(self)
 
 
 func _warn_hazard(text: String) -> void:
@@ -836,6 +862,8 @@ func _place_elevator_kit(floor_num: int) -> void:
 
 const MAINT_DOOR_SCENE := preload("res://scenes/door.tscn")
 const MAINT_DOOR_X := 929.0       # the old extinguisher wall spot (between apartment 01 and the elevator)
+const ELEVATOR_X := 1029.5        # the corridor elevator sprite (building_floors.tscn)
+const ELEVATOR_RIDE_RANGE := 80.0 # how close to the doors the [E] Ride prompt shows
 
 
 func _spawn_maintenance_door(floor_num: int) -> void:
@@ -878,6 +906,10 @@ func _do_spawn_merchant() -> void:
 	var merchant = preload("res://scenes/merchant.tscn").instantiate()
 	merchant.global_position = Vector2(1029.4999, 356.50003)
 	add_child(merchant)
+	# Rode the lift onto the merchant's own floor — they reclaim their elevator and
+	# grumble about it (docs/MAINTENANCE_ELEVATOR.md), then trade as normal.
+	if WorldState.spawn_source == "elevator":
+		HUD.show_dialogue("Merchant: You rode MY elevator? Cheeky. Fine — you're here now. Let's trade.", "", false, 4.5)
 
 func _spawn_world_drops(floor_num: int) -> void:
 	var scene_path = get_tree().current_scene.scene_file_path

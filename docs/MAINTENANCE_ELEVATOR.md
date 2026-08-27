@@ -86,13 +86,47 @@ enclosed elevator that spectacle is arguably wrong anyway. Go interior.
 1. **`maintenance.tscn`** — the room itself: small layout, safe (no enemies), 2
    scavenge nodes, higher toolbox chance, rest-friendly. Placed next to the
    elevator every 3 floors. (Self-contained; doesn't touch fire/horde.)
+   **✅ BUILT** (`is_maintenance_floor` = 3..27 step 3; left one-way doorway;
+   workbench + fuse-box props; two scavenge anchors).
 2. **Fuse item** (stack max 3) + **fuse box** interaction (load 3 → ding + whirr
-   → doors open on exit). Elevator becomes rideable, single-use.
+   → doors open on exit). Elevator becomes rideable, single-use. **✅ BUILT.**
 3. **`elevator_interior.tscn`** + the ride (press up/down → 5-floor jump → exit
    into the destination floor). Merchant "you stole my elevator" beat on
-   merchant floors.
+   merchant floors. **✅ BUILT (v1).**
 4. Later: the **upgrade station** UI in the room (that's the Scrap system —
-   `SCRAP_UPGRADES.md`).
+   `SCRAP_UPGRADES.md`). *(Still to build — the workbench is a placeholder.)*
+
+### What v1 actually does (steps 2–3, as built)
+
+- **Fuse (item 020)** now carries an `is_fuse` flag and **stacks to 3 per slot**
+  (`MAX_FUSE_PER_SLOT`, mirroring the throwable-can pattern in
+  `world_state.add_to_inventory`). Maintenance-room anchors are the main faucet
+  (their loot table already weights fuses at ~30%).
+- **Fuse box** (`room.gd` `_maintenance_process` / `_fit_fuses`): the [E] prompt
+  reflects the count — `Fuse box (n/3)  [E] Fit fuse`. Pressing E fits as many
+  carried fuses as the box still needs (`WorldState.fit_fuses_from_inventory`),
+  accumulating across visits. At **3** it `power_elevator()`s — an elevator
+  **ding** + a "the box hums to life" line. Partial fits play a lower thunk.
+- **Elevator power is a single global per-run charge** (`elevator_powered` +
+  `elevator_fuses_loaded`, both saved and reset by `new_game`) — you energised
+  the whole shaft, not one floor's doors.
+- **Riding** (`building_floors._elevator_ride_process`): when powered, the
+  corridor **Elevator** sprite shows `Elevator (powered)  [E] Ride`. On a
+  **merchant floor** the merchant has the car (the static sprite is hidden), so
+  no ride is offered there — ride from the next non-merchant floor instead.
+  E cuts to **`elevator_interior.tscn`**: a closed-box UI beat (dark car, floor
+  indicator, `[↑]`/`[↓]` to the two destinations). Pressing up/down **spends the
+  charge** (`consume_elevator_power` — box back to 0/3), sets `current_floor` to
+  the destination and `spawn_source = "elevator"`, then a short shift caption
+  drops the player out by the destination floor's lift.
+- **Jump = 5 floors**, clamped to **[1, 29]** (`elevator_destination`): near an
+  end the offered direction shows "already near the top/bottom" and does nothing,
+  so you pick the other way rather than getting stuck.
+- **Merchant beat:** arriving via the lift onto a merchant floor triggers a
+  one-off "you rode MY elevator?" line before normal trading.
+
+Covered by `tests/elevator_test.tscn` (stacking, fitting, single-use, the jump +
+clamp, save/load persistence, interior load).
 
 ## Open questions
 

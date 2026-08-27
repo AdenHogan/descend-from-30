@@ -6,6 +6,7 @@ const SCENES = {
 	"hallway": "res://scenes/hallway.tscn",
 	"room": "res://scenes/room.tscn",
 	"maintenance": "res://scenes/maintenance.tscn",
+	"elevator_interior": "res://scenes/elevator_interior.tscn",
 	"lobby": "res://scenes/lobby.tscn",
 	"building_floors": "res://scenes/building_floors.tscn"
 }

@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=4 uid="uid://bqx8fu3elev01"]
+
+[ext_resource type="Script" path="res://scripts/elevator_interior.gd" id="1_elev"]
+
+[node name="ElevatorInterior" type="Node2D"]
+script = ExtResource("1_elev")

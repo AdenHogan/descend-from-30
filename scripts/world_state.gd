@@ -40,6 +40,7 @@ var balcony_pending_injury: int = 0
 const MAX_INVENTORY_SLOTS = 5
 const MAX_AMMO_PER_SLOT = 8
 const MAX_THROWABLE_PER_SLOT = 3   # cans held per slot (was one-and-done)
+const MAX_FUSE_PER_SLOT = 3        # the elevator needs exactly 3 — one slot holds a full set
 const CAN_SCAVENGE_BOOST = 1.18    # cans spawn 18% more, so they're a real option
 const CLOTHES_BEDROOM_BOOST = 1.30 # clothes +30% in bedrooms (3 make a clothes-rope)
 
@@ -495,6 +496,8 @@ func new_game() -> void:
 	pending_stair_pulls.clear()
 	barricade_keeper_state.clear()
 	elevator_kit_placed.clear()
+	elevator_powered = false
+	elevator_fuses_loaded = 0
 	fire_dealt_with.clear()
 	fire_origin_x.clear()
 	fire_cells.clear()
@@ -603,6 +606,20 @@ func add_to_inventory(item_id: String, amount: int = 0) -> bool:
 		can.count = 1
 		inventory.append(can)
 		return true
+	# Fuses stack up to MAX_FUSE_PER_SLOT (3) in one slot — a full set of three
+	# fits a single slot so powering the elevator never demands your whole bag.
+	if ItemData.get_item(item_id).get("is_fuse", false):
+		for instance in inventory:
+			if instance.item_id == item_id and instance.count < MAX_FUSE_PER_SLOT:
+				instance.count += 1
+				return true
+		if inventory.size() >= get_inventory_slots():
+			return false
+		var fuse = ItemInstance.new()
+		fuse.setup(item_id)
+		fuse.count = 1
+		inventory.append(fuse)
+		return true
 	if inventory.size() >= get_inventory_slots():
 		return false
 	var instance = ItemInstance.new()
@@ -630,6 +647,39 @@ func consume_ammo(count: int = 1) -> bool:
 			break
 		if ItemData.get_item(inventory[i].item_id).get("is_ammo", false):
 			var take = min(inventory[i].count, remaining)
+			inventory[i].count -= take
+			remaining -= take
+			if inventory[i].count <= 0:
+				inventory.remove_at(i)
+				if HUD.selected_slot == i:
+					HUD.selected_slot = -1
+				elif HUD.selected_slot > i:
+					HUD.selected_slot -= 1
+	HUD.refresh_inventory()
+	return true
+
+
+func fuse_count() -> int:
+	# Total fuses carried across any slots (they stack to 3, but a straggler could
+	# sit in a second slot).
+	var total := 0
+	for instance in inventory:
+		if ItemData.get_item(instance.item_id).get("is_fuse", false):
+			total += instance.count
+	return total
+
+
+func consume_fuses(count: int) -> bool:
+	# Spends `count` fuses across stacks (fitting them into the fuse box), freeing
+	# slots that empty. All-or-nothing. Mirrors consume_ammo's slot bookkeeping.
+	if fuse_count() < count:
+		return false
+	var remaining := count
+	for i in range(inventory.size() - 1, -1, -1):
+		if remaining <= 0:
+			break
+		if ItemData.get_item(inventory[i].item_id).get("is_fuse", false):
+			var take: int = min(inventory[i].count, remaining)
 			inventory[i].count -= take
 			remaining -= take
 			if inventory[i].count <= 0:
@@ -1858,6 +1908,59 @@ var hazard_approach_warned: Dictionary = {}
 # Persisted per run.
 var elevator_kit_placed: Dictionary = {}
 
+# Elevator power. The building's lift runs on 3 fuses fitted at a maintenance-room
+# fuse box (docs/MAINTENANCE_ELEVATOR.md). It's a single rationed charge: once
+# powered the corridor elevator can be ridden ONCE (5 floors up/down), then it
+# goes dark until 3 more fuses are fitted. Persists within a run (saved), reset by
+# new_game. Not tied to a floor — you energised the whole shaft.
+var elevator_powered: bool = false
+# Fuses fitted into the box so far (0..3). Accumulates across visits — you can fit
+# what you have and come back with the rest. At 3 the elevator powers on.
+var elevator_fuses_loaded: int = 0
+# How many floors one ride jumps, and the clamp bounds (lobby..hallway).
+const ELEVATOR_JUMP := 5
+const ELEVATOR_FUSES_NEEDED := 3
+const ELEVATOR_MIN_FLOOR := 1
+const ELEVATOR_MAX_FLOOR := 29
+
+
+func power_elevator() -> void:
+	elevator_powered = true
+
+
+func fit_fuses_from_inventory() -> int:
+	# Fit as many carried fuses as the box still needs; returns how many went in.
+	# When the box fills (3) the elevator powers on. Called from the fuse box [E].
+	if elevator_powered:
+		return 0
+	var need := ELEVATOR_FUSES_NEEDED - elevator_fuses_loaded
+	var have := fuse_count()
+	var fit: int = min(need, have)
+	if fit <= 0:
+		return 0
+	consume_fuses(fit)
+	elevator_fuses_loaded += fit
+	if elevator_fuses_loaded >= ELEVATOR_FUSES_NEEDED:
+		power_elevator()
+	return fit
+
+
+func can_ride_elevator() -> bool:
+	return elevator_powered
+
+
+func consume_elevator_power() -> void:
+	# Spent on a ride: the lift goes dark until 3 more fuses are fitted.
+	elevator_powered = false
+	elevator_fuses_loaded = 0
+
+
+func elevator_destination(direction: int) -> int:
+	# direction: -1 = down (descend, toward the lobby), +1 = up. Clamped so a jump
+	# near the ends lands on the last reachable floor instead of overshooting.
+	var dest := current_floor + direction * ELEVATOR_JUMP
+	return clampi(dest, ELEVATOR_MIN_FLOOR, ELEVATOR_MAX_FLOOR)
+
 
 func hazard_warned(floor_num: int, side: String) -> bool:
 	return hazard_approach_warned.get(str(floor_num) + ":" + str(current_run) + ":" + side, false)
@@ -2512,6 +2615,8 @@ func save_game(scene_path: String) -> void:
 		"pending_stair_pulls": pending_stair_pulls,
 		"barricade_keeper_state": barricade_keeper_state,
 		"elevator_kit_placed": elevator_kit_placed,
+		"elevator_powered": elevator_powered,
+		"elevator_fuses_loaded": elevator_fuses_loaded,
 		"fire_dealt_with": fire_dealt_with,
 		"fire_origin_x": fire_origin_x,
 		"fire_cells": fire_cells,
@@ -2584,6 +2689,8 @@ func load_game() -> String:
 	pending_stair_pulls = data.get("pending_stair_pulls", {})
 	barricade_keeper_state = data.get("barricade_keeper_state", {})
 	elevator_kit_placed = data.get("elevator_kit_placed", {})
+	elevator_powered = bool(data.get("elevator_powered", false))
+	elevator_fuses_loaded = int(data.get("elevator_fuses_loaded", 0))
 	fire_dealt_with = data.get("fire_dealt_with", {})
 	fire_origin_x = data.get("fire_origin_x", {})
 	fire_cells = data.get("fire_cells", {})

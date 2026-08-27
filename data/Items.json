@@ -154,8 +154,8 @@
     },
     "020": {
       "ITEM_NAME": "Fuse",
-      "ITEM_DESCRIPTION": "Sometimes, a blown fuse is the difference between life and death. Fortunately all building circuit breakers use the same fuses!",
-      "VALUE_PROPERTY": "is_tool",
+      "ITEM_DESCRIPTION": "Sometimes, a blown fuse is the difference between life and death. Fortunately all building circuit breakers use the same fuses! The elevator needs three.",
+      "VALUE_PROPERTY": "is_tool, is_fuse",
       "PROPERTY_DURABILITY": "single use",
       "PROPERTY_SPAWN_RARITY": 1,
       "PROPERTY_WEIGHT_SIZE": null
