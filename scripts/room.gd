@@ -316,7 +316,12 @@ func _setup_maintenance() -> void:
 	$LeftWall.process_mode = Node.PROCESS_MODE_ALWAYS
 	$RightWall.process_mode = Node.PROCESS_MODE_ALWAYS
 	apartment_id = _maintenance_key()
-	player.position = Vector2(300, 321)     # centre of the one-module room
+	# Spawn just INSIDE the back-wall door (at x420) and face into the room, so you enter
+	# at the doorway and walk in — not dead-centre. The exit trigger ($Area2D) sits on the
+	# door, so you walk back to it to leave. Kept clear of the 6px-wide trigger so entering
+	# doesn't immediately bounce you back out.
+	player.position = Vector2(360, 321)
+	player.get_node("AnimatedSprite2D").flip_h = true    # face left, into the room
 	if WorldState.saved_player_x != 0.0:
 		player.global_position = Vector2(WorldState.saved_player_x, WorldState.saved_player_y)
 		WorldState.saved_player_x = 0.0

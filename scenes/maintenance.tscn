@@ -407,12 +407,12 @@ tile_map_data = PackedByteArray("AAAfAA4ABAACAAEAAAAfABAABAACAAEAAAAfABIABAACAAE
 tile_set = SubResource("TileSet_qvc4m")
 
 [node name="Area2D" parent="." unique_id=2128702534 instance=ExtResource("4_14vil")]
-position = Vector2(190, 272)
+position = Vector2(420, 272)
 
 [node name="LootUI" parent="." unique_id=233333978 instance=ExtResource("6_jn645")]
 
 [node name="anchor_maint_a" type="Marker2D" parent="." unique_id=901000001]
-position = Vector2(260, 315)
+position = Vector2(190, 315)
 
 [node name="anchor_maint_b" type="Marker2D" parent="." unique_id=901000002]
-position = Vector2(400, 315)
+position = Vector2(300, 315)
