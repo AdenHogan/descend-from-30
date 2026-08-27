@@ -812,9 +812,15 @@ func _place_elevator_kit(floor_num: int) -> void:
 	# fire may outrun one canister, so the point is you can backtrack for more.
 	if WorldState.is_floor_charred(floor_num):
 		return
-	# Maintenance floors give the extinguisher's wall spot to the maintenance-room door
-	# (between the elevator and the right stairwell) — no canister mounted here.
+	# Maintenance floors give the extinguisher's wall spot (x929) to the maintenance-room
+	# door — no canister mounted here. Also clear any extinguisher drop persisted at that
+	# spot from before (an old save shouldn't still show one).
 	if WorldState.is_maintenance_floor(floor_num):
+		for k in WorldState.world_drops.keys():
+			var d = WorldState.world_drops[k]
+			if int(d.get("floor", -1)) == floor_num and d.get("item_id", "") == "036" \
+					and absf(float(d.get("x", 0.0)) - MAINT_DOOR_X) < 6.0:
+				WorldState.remove_world_drop(k)
 		return
 	var key := str(floor_num) + ":" + str(WorldState.current_run)
 	if WorldState.elevator_kit_placed.get(key, false):
@@ -827,7 +833,7 @@ func _place_elevator_kit(floor_num: int) -> void:
 
 
 const MAINT_DOOR_SCENE := preload("res://scenes/door.tscn")
-const MAINT_DOOR_X := 1104.0     # between the elevator (~1029) and the right stairwell (~1179)
+const MAINT_DOOR_X := 929.0       # the old extinguisher wall spot (between apartment 01 and the elevator)
 
 
 func _spawn_maintenance_door(floor_num: int) -> void:
