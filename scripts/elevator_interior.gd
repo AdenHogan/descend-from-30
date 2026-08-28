@@ -45,9 +45,10 @@ func _spawn_rider() -> void:
 	var cam = p.get_node_or_null("Camera2D")
 	if cam:
 		cam.queue_free()
-	# Snug fit: the rider nearly fills the cramped car, feet on the floor plate.
-	p.position = Vector2(-4, 30)
-	p.scale = Vector2(1.5, 1.5)
+	# Stand the rider to the LEFT of centre, feet on the floor plate — leaving room on
+	# the right for a future NPC without either of them feeling squeezed.
+	p.position = Vector2(-42, 34)
+	p.scale = Vector2(1.4, 1.4)
 	p.z_index = 5
 	add_child(p)
 	var spr = p.get_node_or_null("AnimatedSprite2D")
@@ -63,7 +64,7 @@ func _setup_camera() -> void:
 	# short screens so it never runs into the HUD. Centre it in the upper-middle, with
 	# the black shaft filling the rest of the (landscape) screen around the narrow car.
 	var car_h := CAR.HALF_H * 2.0
-	_z = minf(2.4, (vp.y - 160.0) / (car_h + 40.0))
+	_z = minf(2.1, (vp.y - 160.0) / (car_h + 44.0))
 	_cam.zoom = Vector2(_z, _z)
 	_car_center_y = vp.y * 0.44
 	# Camera world-y that puts the car centre (world 0) at _car_center_y on screen.
