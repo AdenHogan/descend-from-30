@@ -305,6 +305,8 @@ func _elevator_ride_process(player) -> void:
 	# fuse box). On a MERCHANT floor the merchant has the car — the static Elevator
 	# sprite is hidden and no ride is offered (they reclaimed it). Show an [E] Ride
 	# prompt near the doors and cut to the interior on E.
+	if _elevator_boarding:
+		return
 	if not WorldState.can_ride_elevator():
 		HUD.hide_world_prompt(self)
 		return
@@ -316,9 +318,55 @@ func _elevator_ride_process(player) -> void:
 		HUD.show_world_prompt(self, "Elevator (powered)  [E] Ride", Vector2(ELEVATOR_X, 300.0))
 		if Input.is_action_just_pressed("interact") and not TutorialManager.interact_guarded():
 			HUD.hide_world_prompt(self)
-			Transition.to_scene("res://scenes/elevator_interior.tscn")
+			_board_elevator(elevator)
 	else:
 		HUD.hide_world_prompt(self)
+
+
+var _elevator_boarding: bool = false
+const ELEVATOR_TEX := preload("res://assets/Elevator.png")
+
+func _board_elevator(elevator) -> void:
+	# Immersion beat: the corridor doors slide open with a ding (like the merchant's),
+	# THEN we cut to the interior — not an instant shift. Mirrors merchant.gd's door
+	# tween (two halves of Elevator.png sliding apart + collapsing into the frame).
+	_elevator_boarding = true
+	_play_elevator_ding()
+	var ex: float = elevator.global_position.x
+	var ey: float = elevator.global_position.y
+	elevator.visible = false
+	var dl := _make_door_half(Rect2(0, 0, 33, 88), Vector2(ex - 15.75, ey))
+	var dr := _make_door_half(Rect2(33, 0, 33, 88), Vector2(ex + 15.75, ey))
+	add_child(dl)
+	add_child(dr)
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(dl, "position:x", ex - 29.0, 0.45)
+	tw.tween_property(dr, "position:x", ex + 29.0, 0.45)
+	tw.tween_property(dl, "scale:x", 0.06, 0.45)
+	tw.tween_property(dr, "scale:x", 0.06, 0.45)
+	await tw.finished
+	await get_tree().create_timer(0.2, false).timeout
+	Transition.to_scene("res://scenes/elevator_interior.tscn")
+
+
+func _make_door_half(region: Rect2, pos: Vector2) -> Sprite2D:
+	var d := Sprite2D.new()
+	d.texture = ELEVATOR_TEX
+	d.region_enabled = true
+	d.region_rect = region
+	d.scale = Vector2(0.95454395, 1.011364)
+	d.global_position = pos
+	d.z_index = 0
+	return d
+
+
+func _play_elevator_ding() -> void:
+	var p := AudioStreamPlayer.new()
+	p.stream = preload("res://assets/audio/elevator_ding.wav")
+	p.volume_db = -5.0
+	add_child(p)
+	p.play()
+	p.finished.connect(p.queue_free)
 
 
 func _warn_hazard(text: String) -> void:

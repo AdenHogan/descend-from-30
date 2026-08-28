@@ -34,7 +34,6 @@ func _ready() -> void:
 	_spawn_rider()
 	_setup_camera()
 	_build_ui()
-	_play_ding()                       # a soft ding as you step in
 
 
 func _spawn_rider() -> void:
@@ -158,9 +157,9 @@ func _process(delta: float) -> void:
 			# Rumble: jitter the camera, ramped in at the start and out at the end so
 			# the car settles rather than snapping still.
 			var ramp: float = clampf(minf(_elapsed, _duration - _elapsed) / 0.5, 0.0, 1.0)
-			var amp: float = 3.2 * ramp
+			var amp: float = 1.6 * ramp
 			_cam.offset = Vector2(randf_range(-amp, amp), randf_range(-amp, amp)) \
-				+ Vector2(0, sin(_elapsed * 22.0) * 1.2 * ramp)
+				+ Vector2(0, sin(_elapsed * 22.0) * 0.6 * ramp)
 			_refresh_floor_readout()
 			if _elapsed >= _duration:
 				_arrive()
@@ -192,21 +191,23 @@ func _arrive() -> void:
 	WorldState.current_floor = _dest_floor
 	_floor_label.text = "Floor %d" % _dest_floor
 	_title_label.text = "ELEVATOR"
-	_play_bing_bong()
-	# Commit the ride, then let a beat pass on the arrival ding before opening out.
-	WorldState.consume_elevator_power()  # single-use: 3 more fuses for the next trip
+	_choices.visible = false
+	# Commit the ride now (single-use: 3 more fuses for the next trip).
+	WorldState.consume_elevator_power()
 	WorldState.on_floor_arrived(_dest_floor)
 	WorldState.spawn_source = "elevator"
 	WorldState.stair_spawn_side = ""
 	WorldState.stair_direction = ""
 	WorldState.exit_spawn_x = 0.0
 	HUD.update_floor_label()
-	await get_tree().create_timer(1.1, false).timeout
+	# The doors slide open with the bing-bong — a glimpse of the hallway beyond — then
+	# a beat to take it in before stepping out onto the floor.
+	_play_bing_bong()
+	var tw := create_tween()
+	tw.tween_property(_car, "door_open", 1.0, 0.8)
+	await tw.finished
+	await get_tree().create_timer(0.8, false).timeout
 	Transition.to_scene("res://scenes/building_floors.tscn")
-
-
-func _play_ding() -> void:
-	_ding(-6.0, 1.0)
 
 
 func _play_bing_bong() -> void:

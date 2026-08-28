@@ -463,13 +463,16 @@ means no rendering — UI layout and art still need an in-editor look.
   across visits), and 3 **powers the elevator** (ding + hum). Power is a **single
   global per-run charge** (`elevator_powered`/`elevator_fuses_loaded`, saved,
   reset by `new_game`). When powered the corridor **Elevator** shows `[E] Ride`
-  (hidden on merchant floors — the merchant has the car); E cuts to
-  **`elevator_interior.tscn`** — a self-contained **animated car instance**
-  (Silksong bench-room style): the player stands in a drawn metal car
-  (`elevator_car.gd`), picks `[↑]`/`[↓]`, and the car **rumbles** (camera shake)
-  with **light bars streaming past the walls** while a **floor counter ticks**
-  through the floors for a few seconds, then a **bing-bong** on arrival. Room
-  beside the rider for a future NPC beat. It **spends the charge** and drops you
+  (hidden on merchant floors — the merchant has the car); on E the **corridor
+  doors slide open with a ding** (`_board_elevator`, mirroring the merchant's
+  door tween) THEN cut to **`elevator_interior.tscn`** — a self-contained
+  **animated car instance** (Silksong bench-room style): the player stands in a
+  drawn metal car (`elevator_car.gd`, roomy enough for a future NPC), picks
+  `[↑]`/`[↓]`, and the car **rumbles gently** (camera shake) with a **cool light
+  band sweeping the back wall** (passing-floor light) while a **floor counter
+  ticks** through the floors for a few seconds; on arrival a **bing-bong** and
+  the **car doors slide open onto a glimpse of the hallway beyond** (drawn in the
+  corridor tileset palette) before it **spends the charge** and drops you
   out **5 floors** up/down
   (`elevator_destination`, clamped [1,29]) via `spawn_source="elevator"`. Riding
   onto a merchant floor triggers a "you rode MY elevator?" beat. **Extinguisher
