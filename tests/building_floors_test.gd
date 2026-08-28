@@ -30,8 +30,47 @@ func _ready() -> void:
 	await _test_barricade_visuals()
 	await _test_stair_horde_spawns()
 	await _test_fire_spawns()
+	await _test_elevator_arrival_stairs()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
+
+
+func _enabled_stair_triggers(bf: Node) -> Array:
+	var out: Array = []
+	for n in ["stair_left_down_trigger", "stair_left_up_trigger", "stair_right_down_trigger", "stair_right_up_trigger"]:
+		var t = bf.get_node_or_null(n)
+		if t != null and t.process_mode != Node.PROCESS_MODE_DISABLED:
+			out.append(n)
+	return out
+
+
+func _test_elevator_arrival_stairs() -> void:
+	# Arriving by elevator must configure the stairwells like a canonical descent —
+	# exactly ONE up + ONE down trigger live (zig-zag). The bug: empty stair state left
+	# ALL FOUR enabled, so the player tripped the wrong one and the floor count drifted.
+	print("[elevator arrival stairs]")
+	WorldState.new_game()
+	WorldState.tutorial_completed = true
+	WorldState.is_first_run = false
+	for f in [19, 20]:               # odd + even (canonical side alternates)
+		WorldState.current_floor = f
+		WorldState.spawn_source = "elevator"
+		WorldState.stair_spawn_side = WorldState.canonical_stair_arrival_side(f)
+		WorldState.stair_direction = "down"
+		var bf = load("res://scenes/building_floors.tscn").instantiate()
+		bf.setup_floor = f
+		add_child(bf)
+		for i in range(4): await get_tree().process_frame
+		var en := _enabled_stair_triggers(bf)
+		check(en.size() == 2, "floor %d elevator arrival: exactly 2 stair triggers live (%d)" % [f, en.size()])
+		var ups := 0
+		var downs := 0
+		for n in en:
+			if str(n).contains("_up_"): ups += 1
+			else: downs += 1
+		check(ups == 1 and downs == 1, "floor %d: one up + one down live (up=%d down=%d)" % [f, ups, downs])
+		bf.free()
+		await get_tree().process_frame
 
 
 func _floor_with_zombies(fallback: int) -> int:

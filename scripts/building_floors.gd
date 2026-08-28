@@ -335,6 +335,14 @@ func _board_elevator(elevator) -> void:
 	var ex: float = elevator.global_position.x
 	var ey: float = elevator.global_position.y
 	elevator.visible = false
+	# A dark interior behind the doors so the opening reveals the car's DEPTH (matching
+	# the merchant's elevator, which draws the same recess behind its sliding doors).
+	var interior := Polygon2D.new()
+	interior.polygon = PackedVector2Array([Vector2(-29, -43), Vector2(29, -43), Vector2(29, 44), Vector2(-29, 44)])
+	interior.color = Color(0.09, 0.09, 0.11)
+	interior.global_position = Vector2(ex, ey)
+	interior.z_index = 0
+	add_child(interior)
 	var dl := _make_door_half(Rect2(0, 0, 33, 88), Vector2(ex - 15.75, ey))
 	var dr := _make_door_half(Rect2(33, 0, 33, 88), Vector2(ex + 15.75, ey))
 	add_child(dl)

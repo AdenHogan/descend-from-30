@@ -196,8 +196,13 @@ func _arrive() -> void:
 	WorldState.consume_elevator_power()
 	WorldState.on_floor_arrived(_dest_floor)
 	WorldState.spawn_source = "elevator"
-	WorldState.stair_spawn_side = ""
-	WorldState.stair_direction = ""
+	# Configure this floor's stairwells as a CANONICAL descent arrival (exactly one up +
+	# one down trigger live, zig-zag), the same way a balcony drop does. Leaving these
+	# empty left ALL FOUR stair triggers enabled, so the player tripped the wrong one and
+	# the floor count drifted (up from 19 landed on 18, etc.). The player still spawns at
+	# the elevator (the spawn_source == "elevator" branch), this only fixes the stairs.
+	WorldState.stair_spawn_side = WorldState.canonical_stair_arrival_side(_dest_floor)
+	WorldState.stair_direction = "down"
 	WorldState.exit_spawn_x = 0.0
 	HUD.update_floor_label()
 	# The doors slide open with the bing-bong — a glimpse of the hallway beyond — then
