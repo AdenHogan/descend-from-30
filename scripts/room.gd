@@ -319,7 +319,7 @@ func _setup_maintenance() -> void:
 	$RightWall.process_mode = Node.PROCESS_MODE_ALWAYS
 	$Area2D.position = Vector2(100, 300)
 	apartment_id = _maintenance_key()
-	player.position = Vector2(150, 321)                   # just inside the left doorway
+	player.position = Vector2(140, 321)                   # just inside the left doorway, clear of the workbench prompt
 	player.get_node("AnimatedSprite2D").flip_h = false    # face right, into the room
 	if WorldState.saved_player_x != 0.0:
 		player.global_position = Vector2(WorldState.saved_player_x, WorldState.saved_player_y)
@@ -331,6 +331,13 @@ func _setup_maintenance() -> void:
 	mrng.seed = hash(str(WorldState.master_seed) + "maint" + apartment_id)
 	for child in get_children():
 		if child is Marker2D and str(child.name).begins_with("anchor"):
+			# Spread the two anchors to the ends of the room, clear of the centre
+			# stations (workbench + fuse box) so their [E] never collides with a
+			# station's [E]. Room spans x96..512; anchors sit on the floor (y315).
+			if child.name == "anchor_maint_a":
+				child.position = Vector2(408, 340)
+			elif child.name == "anchor_maint_b":
+				child.position = Vector2(462, 340)
 			child.set_script(interactable_script)
 			child.apartment_id = apartment_id
 			child._ready()
@@ -346,38 +353,78 @@ func _setup_maintenance() -> void:
 	HUD.update_floor_label()
 
 
-# Placeholder maintenance-room fixtures (coloured rects until the real art/UX lands):
-# an upgrade WORKBENCH on the floor and a FUSE BOX on the wall (press E to access).
+# Placeholder maintenance-room fixtures (coloured rects until the real art/UX lands).
+# Room spans x96..512 (16px tiles); the player walks the floor at y~321. TWO stations,
+# spaced apart so their [E] prompts never overlap:
+#   - WORKBENCH  (floor, x235)  — the future weapon UPGRADE station (Scrap system).
+#   - FUSE BOX   (wall,  x400)  — powers the ELEVATOR (fit 3 fuses).
+# Each is accessed by standing IN FRONT of it (horizontal proximity), since a
+# wall-mounted box sits above the player's feet and a feet-to-box distance check
+# could never reach it.
+# Interior is x112..500 with a brick-framed window filling x385..475 (right side);
+# the walkable floor top is ~y352. Keep both stations on the CLEAR left-centre wall,
+# well apart, and leave the floor in front of the window for the loot anchors.
+const _WORKBENCH_X := 190.0
+const _FLOOR_Y := 352.0               # floor surface the player stands on
+const _FUSE_BOX_X := 312.0
+const _FUSE_BOX_Y := 290.0            # mid-wall, above the floor (reached horizontally)
+const _STATION_REACH := 50.0          # how close (horizontally) the [E] prompt shows
 var _fuse_box_pos: Vector2 = Vector2.ZERO
 var _fuse_box_active: bool = false
+var _workbench_pos: Vector2 = Vector2.ZERO
+var _fuse_slots: Array = []           # the 3 slot rects, recoloured to show fitted count
 
 func _build_maintenance_props() -> void:
 	# Upgrade workbench — a wooden bench on the floor (the scrap upgrade station goes here).
 	var bench := Polygon2D.new()
 	bench.name = "Workbench"
-	bench.polygon = PackedVector2Array([Vector2(-52, -30), Vector2(52, -30), Vector2(52, 0), Vector2(-52, 0)])
+	bench.polygon = PackedVector2Array([Vector2(-40, -30), Vector2(40, -30), Vector2(40, 0), Vector2(-40, 0)])
 	bench.color = Color(0.44, 0.29, 0.17)
-	bench.position = Vector2(300, 322)
+	bench.position = Vector2(_WORKBENCH_X, _FLOOR_Y)      # base sits ON the floor
 	add_child(bench)
 	var top := Polygon2D.new()   # a lighter benchtop lip
-	top.polygon = PackedVector2Array([Vector2(-56, -34), Vector2(56, -34), Vector2(56, -28), Vector2(-56, -28)])
+	top.polygon = PackedVector2Array([Vector2(-44, -34), Vector2(44, -34), Vector2(44, -28), Vector2(-44, -28)])
 	top.color = Color(0.55, 0.38, 0.22)
-	top.position = Vector2(300, 322)
+	top.position = Vector2(_WORKBENCH_X, _FLOOR_Y)
 	add_child(top)
-	# Fuse box — a grey metal box on the wall above the bench.
+	var vice := Polygon2D.new()  # a little grey vice/tool on the benchtop so it reads as a workstation
+	vice.polygon = PackedVector2Array([Vector2(18, -46), Vector2(30, -46), Vector2(30, -34), Vector2(18, -34)])
+	vice.color = Color(0.5, 0.52, 0.55)
+	vice.position = Vector2(_WORKBENCH_X, _FLOOR_Y)
+	add_child(vice)
+	_workbench_pos = bench.position
+	# Fuse box — a grey metal box mounted on the wall, with THREE fuse slots that light
+	# up green as fuses are fitted (0/3 -> 3/3), so the power state reads at a glance.
 	var fuse := Polygon2D.new()
 	fuse.name = "FuseBox"
-	fuse.polygon = PackedVector2Array([Vector2(-22, -30), Vector2(22, -30), Vector2(22, 30), Vector2(-22, 30)])
-	fuse.color = Color(0.34, 0.37, 0.41)
-	fuse.position = Vector2(300, 232)
+	fuse.polygon = PackedVector2Array([Vector2(-18, -24), Vector2(18, -24), Vector2(18, 24), Vector2(-18, 24)])
+	fuse.color = Color(0.30, 0.33, 0.37)
+	fuse.position = Vector2(_FUSE_BOX_X, _FUSE_BOX_Y)
 	add_child(fuse)
-	var latch := Polygon2D.new()  # a small yellow latch/handle so it reads as a box
-	latch.polygon = PackedVector2Array([Vector2(14, -6), Vector2(20, -6), Vector2(20, 6), Vector2(14, 6)])
-	latch.color = Color(0.85, 0.7, 0.2)
-	latch.position = Vector2(300, 232)
-	add_child(latch)
+	var rim := Polygon2D.new()   # a darker rim so the box has an edge
+	rim.polygon = PackedVector2Array([Vector2(-18, -24), Vector2(18, -24), Vector2(18, -20), Vector2(-18, -20)])
+	rim.color = Color(0.2, 0.22, 0.25)
+	rim.position = Vector2(_FUSE_BOX_X, _FUSE_BOX_Y)
+	add_child(rim)
+	# Three vertical fuse slots inside the box.
+	for i in range(3):
+		var slot := Polygon2D.new()
+		slot.polygon = PackedVector2Array([Vector2(-4, -13), Vector2(4, -13), Vector2(4, 13), Vector2(-4, 13)])
+		slot.color = Color(0.12, 0.13, 0.15)                 # empty = dark
+		slot.position = Vector2(_FUSE_BOX_X - 11 + i * 11, _FUSE_BOX_Y + 2)
+		add_child(slot)
+		_fuse_slots.append(slot)
 	_fuse_box_pos = fuse.position
 	_fuse_box_active = true
+	_refresh_fuse_slots()
+
+
+func _refresh_fuse_slots() -> void:
+	# Recolour the three slots: fitted = amber (or green once powered), empty = dark.
+	var lit := WorldState.elevator_fuses_loaded
+	var on_col := Color(0.35, 0.85, 0.35) if WorldState.elevator_powered else Color(0.9, 0.72, 0.2)
+	for i in range(_fuse_slots.size()):
+		_fuse_slots[i].color = on_col if i < lit else Color(0.12, 0.13, 0.15)
 
 
 func _fuse_box_prompt() -> String:
@@ -402,6 +449,7 @@ func _fit_fuses() -> void:
 		HUD.show_feedback("The fuse box needs " + str(need) + " more fuse" + ("s" if need != 1 else "") + " to power the elevator.")
 		return
 	var fitted := WorldState.fit_fuses_from_inventory()
+	_refresh_fuse_slots()
 	if WorldState.elevator_powered:
 		# Power-on: elevator "ding" + a rising electrical whirr (a quick pitched-up ding).
 		_play_fuse_ding()
@@ -433,17 +481,25 @@ func _play_fuse_click() -> void:
 
 
 func _maintenance_process(_delta: float) -> void:
-	# Fuse box: show an [E] prompt reflecting the fuse count when the player is close,
-	# and fit carried fuses on E. At 3 the elevator powers on (ride it from the corridor).
+	# Two wall/floor stations, each accessed by standing IN FRONT of it (horizontal
+	# proximity — a wall box sits above the feet, so a point-distance check can't reach
+	# it). Fuse box: fit carried fuses; at 3 the elevator powers on. Workbench: the
+	# future upgrade station (placeholder for now).
 	if not _fuse_box_active:
 		return
 	var player = get_node_or_null("Player")
 	if player == null:
 		return
-	if player.global_position.distance_to(_fuse_box_pos) < 72.0:
-		HUD.show_world_prompt(self, _fuse_box_prompt(), _fuse_box_pos + Vector2(0, -44))
-		if Input.is_action_just_pressed("interact") and not TutorialManager.interact_guarded():
+	var px: float = player.global_position.x
+	var e_pressed: bool = Input.is_action_just_pressed("interact") and not TutorialManager.interact_guarded()
+	if absf(px - _fuse_box_pos.x) < _STATION_REACH:
+		HUD.show_world_prompt(self, _fuse_box_prompt(), _fuse_box_pos + Vector2(0, -38))
+		if e_pressed:
 			_fit_fuses()
+	elif absf(px - _workbench_pos.x) < _STATION_REACH:
+		HUD.show_world_prompt(self, "Workbench  [E]  (weapon upgrades — coming soon)", _workbench_pos + Vector2(0, -54))
+		if e_pressed:
+			HUD.show_feedback("Workbench — weapon upgrades will live here (the Scrap system).")
 	else:
 		HUD.hide_world_prompt(self)
 
