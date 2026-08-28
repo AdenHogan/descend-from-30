@@ -18,9 +18,10 @@ var _direction: int = 0
 var _phase: String = "idle"          # "idle" | "moving" | "arriving" | "done"
 var _elapsed: float = 0.0
 var _duration: float = 2.4
-const LIFT_PX := 74.0                # raise the car above the HUD bar (UI shifts with it)
 var _car: Node2D = null
 var _cam: Camera2D = null
+var _z: float = 2.0                   # camera zoom (car screen size), set in _setup_camera
+var _car_center_y: float = 0.0        # screen y of the car's centre (for UI placement)
 var _floor_label: Label = null
 var _title_label: Label = null
 var _choices: VBoxContainer = null
@@ -44,8 +45,9 @@ func _spawn_rider() -> void:
 	var cam = p.get_node_or_null("Camera2D")
 	if cam:
 		cam.queue_free()
-	p.position = Vector2(-30, 84)       # standing on the car floor, left of centre
-	p.scale = Vector2(1.4, 1.4)
+	# Snug fit: the rider nearly fills the cramped car, feet on the floor plate.
+	p.position = Vector2(-4, 30)
+	p.scale = Vector2(1.5, 1.5)
 	p.z_index = 5
 	add_child(p)
 	var spr = p.get_node_or_null("AnimatedSprite2D")
@@ -57,36 +59,44 @@ func _setup_camera() -> void:
 	_cam = Camera2D.new()
 	add_child(_cam)
 	var vp := get_viewport_rect().size
-	# Fit the ~540x300 design box into the space ABOVE the HUD bar, then lift the car so
-	# its floor clears the HUD (the UI CanvasLayer is shifted up by the same amount).
-	var z: float = minf(vp.x / 540.0, (vp.y - 150.0) / 300.0)
-	_cam.zoom = Vector2(z, z)
-	_cam.position = Vector2(0, LIFT_PX / z)
+	# Show the cramped car at a sensible fixed on-screen size (~2.4x), clamped down on
+	# short screens so it never runs into the HUD. Centre it in the upper-middle, with
+	# the black shaft filling the rest of the (landscape) screen around the narrow car.
+	var car_h := CAR.HALF_H * 2.0
+	_z = minf(2.4, (vp.y - 160.0) / (car_h + 40.0))
+	_cam.zoom = Vector2(_z, _z)
+	_car_center_y = vp.y * 0.44
+	# Camera world-y that puts the car centre (world 0) at _car_center_y on screen.
+	_cam.position = Vector2(0, (vp.y * 0.5 - _car_center_y) / _z)
 	_cam.make_current()
 
 
 func _build_ui() -> void:
 	var layer := CanvasLayer.new()
 	layer.name = "ElevatorUI"
-	layer.offset = Vector2(0, -LIFT_PX)   # follow the lifted car so labels stay aligned
 	add_child(layer)
 	var font := preload("res://assets/fonts/PixelOperator8.ttf")
 
-	# Big floor readout over the doors (ticks through floors during the ride).
+	# UI lives in the black margins AROUND the narrow car: readout above, controls below —
+	# the cramped car itself stays clear (the rider nearly fills it).
+	var vp := get_viewport_rect().size
+	var half_h_px: float = CAR.HALF_H * _z
+	var car_top: float = _car_center_y - half_h_px
+	var car_bot: float = _car_center_y + half_h_px
+
+	# Big floor readout above the car (ticks through floors during the ride).
 	_floor_label = Label.new()
-	_floor_label.set_anchors_preset(Control.PRESET_CENTER)
-	_floor_label.position = Vector2(-120, -150)
-	_floor_label.custom_minimum_size = Vector2(240, 0)
+	_floor_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	_floor_label.offset_top = car_top - 42.0
 	_floor_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_floor_label.add_theme_font_override("font", font)
-	_floor_label.add_theme_font_size_override("font_size", 30)
+	_floor_label.add_theme_font_size_override("font_size", 26)
 	_floor_label.add_theme_color_override("font_color", Color(0.95, 0.82, 0.35))
 	layer.add_child(_floor_label)
 
 	_title_label = Label.new()
-	_title_label.set_anchors_preset(Control.PRESET_CENTER)
-	_title_label.position = Vector2(-120, -180)
-	_title_label.custom_minimum_size = Vector2(240, 0)
+	_title_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	_title_label.offset_top = car_top - 62.0
 	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_title_label.add_theme_font_override("font", font)
 	_title_label.add_theme_font_size_override("font_size", 12)
@@ -94,13 +104,12 @@ func _build_ui() -> void:
 	_title_label.text = "ELEVATOR"
 	layer.add_child(_title_label)
 
-	# Direction choices (idle only).
+	# Direction choices below the car (idle only).
 	_choices = VBoxContainer.new()
-	_choices.set_anchors_preset(Control.PRESET_CENTER)
-	_choices.position = Vector2(-140, -46)   # in the open door area, above the rider's head
-	_choices.custom_minimum_size = Vector2(280, 0)
+	_choices.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	_choices.offset_top = car_bot + 14.0
 	_choices.alignment = BoxContainer.ALIGNMENT_CENTER
-	_choices.add_theme_constant_override("separation", 8)
+	_choices.add_theme_constant_override("separation", 6)
 	layer.add_child(_choices)
 
 	var up_dest := WorldState.elevator_destination(1)
@@ -117,6 +126,7 @@ func _build_ui() -> void:
 func _choice_label(font: Font, text: String, enabled: bool) -> Label:
 	var lb := Label.new()
 	lb.text = text
+	lb.size_flags_horizontal = Control.SIZE_FILL
 	lb.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lb.add_theme_font_override("font", font)
 	lb.add_theme_font_size_override("font_size", 14)
