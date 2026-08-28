@@ -180,7 +180,7 @@ func _start_ride(direction: int) -> void:
 	_car.phase = "moving"
 	_car.direction = direction
 	_choices.visible = false
-	_title_label.text = "▲  RISING" if direction > 0 else "▼  DESCENDING"
+	_title_label.text = "▲  GOING UP" if direction > 0 else "▼  GOING DOWN"
 
 
 func _arrive() -> void:

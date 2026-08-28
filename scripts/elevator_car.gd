@@ -17,11 +17,14 @@ var direction: int = -1             # -1 down, +1 up
 var door_open: float = 0.0          # 0 closed .. 1 fully open (the manager tweens it on arrival)
 var _sweep: float = 0.0             # scroll offset for the passing-floor light sweep
 
-# Corridor tileset palette — the glimpse of hallway seen through the opening doors.
-const HALL_WALL := Color(0.60, 0.51, 0.38)
-const HALL_WALL_HI := Color(0.66, 0.57, 0.43)
-const HALL_FLOOR := Color(0.40, 0.30, 0.20)
-const HALL_BASE := Color(0.20, 0.15, 0.11)
+# Corridor tileset palette (sampled from Building_Floor Hallway.png) — the glimpse of
+# hallway seen through the opening doors: a light tan wall over an orange banded
+# wainscot with darker stripes.
+const HALL_WALL := Color(0.89, 0.76, 0.59)     # tan wall  (#e4c396)
+const HALL_WALL_HI := Color(0.95, 0.86, 0.66)  # lighter tan trim
+const HALL_TRIM := Color(0.98, 0.92, 0.74)     # bright moulding line above the wainscot
+const HALL_BAND := Color(0.80, 0.52, 0.14)     # orange wainscot  (#cd8521)
+const HALL_STRIPE := Color(0.60, 0.29, 0.15)   # dark stripe / baseboard  (#994626)
 const DOOR_COL := Color(0.23, 0.24, 0.27)
 
 
@@ -94,20 +97,17 @@ func _draw() -> void:
 
 
 func _draw_hallway(x: float, y: float, w: float, hgt: float) -> void:
-	# A brief glimpse of the corridor beyond the doors — tan brick wall over a brown
-	# floor with a dark baseboard, matching the building's tileset colours. Dimmed a
-	# touch (it's a shadowed doorway view).
-	var floor_h := hgt * 0.30
-	draw_rect(Rect2(x, y, w, hgt - floor_h), HALL_WALL)
-	# a lighter upper band so the wall reads as lit brick, not a flat block
-	draw_rect(Rect2(x, y, w, hgt * 0.16), HALL_WALL_HI)
-	draw_rect(Rect2(x, y + hgt - floor_h, w, floor_h), HALL_FLOOR)
-	draw_rect(Rect2(x, y + hgt - floor_h - 3.0, w, 3.0), HALL_BASE)
-	# faint mortar lines to suggest brickwork
-	var col := Color(HALL_BASE.r, HALL_BASE.g, HALL_BASE.b, 0.25)
-	for i in range(1, 3):
-		var ly := y + (hgt - floor_h) * (float(i) / 3.0)
-		draw_line(Vector2(x, ly), Vector2(x + w, ly), col, 1.0)
+	# A brief glimpse of the corridor beyond the doors, matching the building tileset:
+	# a light tan wall on top, a bright moulding line, then the orange wainscot band
+	# with two darker stripes near the floor.
+	var wall_h := hgt * 0.52
+	var band_h := hgt - wall_h
+	draw_rect(Rect2(x, y, w, wall_h), HALL_WALL)
+	draw_rect(Rect2(x, y, w, hgt * 0.06), HALL_WALL_HI)               # lighter top trim
+	draw_rect(Rect2(x, y + wall_h - 2.0, w, 2.0), HALL_TRIM)          # moulding above the band
+	draw_rect(Rect2(x, y + wall_h, w, band_h), HALL_BAND)            # orange wainscot
+	draw_rect(Rect2(x, y + wall_h + band_h * 0.36, w, 3.0), HALL_STRIPE)
+	draw_rect(Rect2(x, y + hgt - 3.0, w, 3.0), HALL_STRIPE)          # baseboard at the floor
 
 
 func _draw_sweep(x0: float, w: float, y0: float, span: float) -> void:
