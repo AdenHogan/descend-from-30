@@ -114,11 +114,16 @@ enclosed elevator that spectacle is arguably wrong anyway. Go interior.
   corridor **Elevator** sprite shows `Elevator (powered)  [E] Ride`. On a
   **merchant floor** the merchant has the car (the static sprite is hidden), so
   no ride is offered there — ride from the next non-merchant floor instead.
-  E cuts to **`elevator_interior.tscn`**: a closed-box UI beat (dark car, floor
-  indicator, `[↑]`/`[↓]` to the two destinations). Pressing up/down **spends the
-  charge** (`consume_elevator_power` — box back to 0/3), sets `current_floor` to
-  the destination and `spawn_source = "elevator"`, then a short shift caption
-  drops the player out by the destination floor's lift.
+  E cuts to **`elevator_interior.tscn`**: a self-contained **animated car
+  instance** (Silksong bench-room feel — its own little space, room for a future
+  NPC). The player stands in a drawn metal car (`elevator_car.gd`: side walls, lit
+  ceiling, handrail, closed back-wall doors); picking `[↑]`/`[↓]` starts a
+  ~2–3.6s ride where the **camera rumbles**, **light bars stream past the side
+  walls** (parallax to the travel), and a **floor counter ticks** through the
+  floors, ending on a **bing-bong** chime. It then **spends the charge**
+  (`consume_elevator_power` — box back to 0/3), sets `current_floor` to the
+  destination and `spawn_source = "elevator"`, and fades out by the destination
+  floor's lift.
 - **Jump = 5 floors**, clamped to **[1, 29]** (`elevator_destination`): near an
   end the offered direction shows "already near the top/bottom" and does nothing,
   so you pick the other way rather than getting stuck.
