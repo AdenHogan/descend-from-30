@@ -818,7 +818,8 @@ func refresh_inventory() -> void:
 				key_label.text = instance.target_apartment
 				key_label.visible = true
 			elif item_data.get("is_money", false) or item_data.get("is_ammo", false) \
-					or (item_data.get("is_throwable", false) and instance.count > 1):
+					or (item_data.get("is_throwable", false) and instance.count > 1) \
+					or (item_data.get("is_fuse", false) and instance.count > 1):
 				key_label.text = "x" + str(instance.count)
 				key_label.visible = true
 			elif instance.is_depleted and int(item_data.get("max_durability", -1)) > 0:
