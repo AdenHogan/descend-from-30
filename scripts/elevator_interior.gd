@@ -176,7 +176,8 @@ func _start_ride(direction: int) -> void:
 	_phase = "moving"
 	_elapsed = 0.0
 	var steps: int = absi(dest - _origin_floor)
-	_duration = clampf(steps * 0.55, 1.8, 3.6)
+	# A slower, calmer ride — more of a breather between floors (a 5-floor jump is ~4s).
+	_duration = clampf(steps * 0.8, 2.6, 4.8)
 	_car.phase = "moving"
 	_car.direction = direction
 	_choices.visible = false
