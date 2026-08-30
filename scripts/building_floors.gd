@@ -170,25 +170,26 @@ func _spawn_stair_hordes(floor_num: int) -> void:
 			continue
 		var stair_x: float = t.global_position.x
 		var on_left: bool = stair_x < 600.0
-		# Pack them ONTO the stairwell — tight at the stair mouth and spilling only a
-		# little into the corridor, so they read as a horde ON the steps rather than
-		# milling out by the elevator. Left steps sit ~x120-200, right ~x1150-1230.
-		var band_min: float = 120.0 if on_left else 1055.0
-		var band_max: float = 300.0 if on_left else 1235.0
 		var rng := RandomNumberGenerator.new()
 		rng.seed = hash(str(WorldState.master_seed) + "stairhordepos" + str(choke) + str(WorldState.current_run))
 		var count: int = STAIR_HORDE_MIN + (rng.randi() % (STAIR_HORDE_MAX - STAIR_HORDE_MIN + 1))
-		var positions = WorldState.get_zombie_positions(count, rng, band_min, band_max, 388.0)
-		for i in range(positions.size()):
+		# Stack the horde UP THE STAIRCASE itself — a crowd surging up/down the steps,
+		# not milling in the corridor. The staircase runs on a diagonal: the landing at
+		# the corridor mouth (front of the horde, blocking the crossing) up to the top
+		# steps by the wall. Zombies climb that line, packed two-abreast.
+		var bottom := Vector2(202.0, 405.0) if on_left else Vector2(1148.0, 405.0)
+		var top := Vector2(150.0, 331.0) if on_left else Vector2(1200.0, 331.0)
+		var along := (top - bottom).normalized()
+		for i in range(count):
 			var key := "%d:horde:%d:%d" % [floor_num, choke, i]
 			if WorldState.killed_zombies.has(key):
 				continue
 			var z = zombie_scene.instantiate()
-			# Pile them up the steps: the nearer the stairwell mouth, the higher they
-			# sit (as if standing on higher stairs), so the cluster climbs into the
-			# stairwell instead of standing in a flat row.
-			var p: Vector2 = positions[i]
-			p.y = 388.0 - clampf(58.0 - absf(p.x - stair_x) * 0.32, 0.0, 30.0)
+			# Each successive zombie sits ~15px further up the diagonal, alternating a
+			# little to either side so the cluster reads as a packed crowd on the steps.
+			var p: Vector2 = bottom + along * (float(i) * 15.0)
+			p.x += (7.0 if i % 2 == 0 else -7.0) + rng.randf_range(-3.0, 3.0)
+			p.y += rng.randf_range(-2.0, 2.0)
 			z.global_position = p
 			z.spawn_key = key
 			z.add_to_group("stair_horde")
