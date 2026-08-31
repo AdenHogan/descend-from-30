@@ -199,38 +199,47 @@ func _spawn_stair_hordes(floor_num: int) -> void:
 		var rng := RandomNumberGenerator.new()
 		rng.seed = hash(str(WorldState.master_seed) + "stairhordepos" + str(choke) + str(WorldState.current_run))
 		var count: int = STAIR_HORDE_MIN + (rng.randi() % (STAIR_HORDE_MAX - STAIR_HORDE_MIN + 1))
-		# 3-4 zombies waiting DOWN IN the stairwell. They stand on the steps with their
-		# FEET BELOW the corridor floor line, and the slice hides everything below that
-		# line — so a body disappears INTO the floor/shaft (like standing waist-deep in a
-		# hole), NOT chopped off at the thigh on the landing. Each is a little deeper than
-		# the last (only its head/shoulders showing) and dimmed into shadow. Confined to
-		# the shaft's x-band so nothing shows on the wall beside the opening.
-		# The walkable DEPTH is the dark shaft on the TOP-spawn side (toward the outer
-		# wall) — right of the near-wall divider, ABOVE the floor edge. That's the exact
-		# region the player's transition walks; standing anywhere left/below it is the
-		# hard border. Centre the knot on the deep side (SPAWN_*_TOP.x) and clip it to the
-		# shaft rectangle so no pixel crosses onto the near wall or below the floor.
-		var deep_x: float = SPAWN_LEFT_TOP.x if on_left else SPAWN_RIGHT_TOP.x
-		var band := Vector2(deep_x - 11.0, deep_x + 11.0)
+		# The two stairwell ARTS put the walkable space in different places:
+		#   DOWN (Hallway art, dark shaft): the depth is the dark shaft toward the OUTER
+		#     wall — anchored on SPAWN_*_TOP.x, a narrow x-band, up off the floor line.
+		#   UP (Lobby art, yellow steps): the walkable space is the VISIBLE STEPS toward
+		#     the CENTRE — anchored on SPAWN_*_BOTTOM.x, a wider band, on the step treads
+		#     (world y~345-395). Above the steps is the back space behind the .png.
+		# Standing anywhere else (near wall / below the floor) is the hard border.
+		var is_up: bool = _stair_is_up(on_left)
+		var anchor_x: float
+		var band: Vector2
+		var y0: float          # deepest (back) zombie's centre y
+		var y_step: float      # each nearer one this much lower
+		var dock_cut: float    # slice line: below it is hidden (floor / step base)
+		var dock_top: float    # above it is hidden (back space / lintel)
+		if is_up:
+			anchor_x = SPAWN_LEFT_BOTTOM.x if on_left else SPAWN_RIGHT_BOTTOM.x
+			band = Vector2(anchor_x - 22.0, anchor_x + 22.0)
+			y0 = 350.0; y_step = 12.0; dock_cut = 396.0; dock_top = 343.0
+		else:
+			anchor_x = SPAWN_LEFT_TOP.x if on_left else SPAWN_RIGHT_TOP.x
+			band = Vector2(anchor_x - 11.0, anchor_x + 11.0)
+			y0 = 361.0; y_step = 9.0; dock_cut = _stair_cut_y(); dock_top = 320.0
 		var horde: Array = []
 		for i in range(count):
 			var key := "%d:horde:%d:%d" % [floor_num, choke, i]
 			if WorldState.killed_zombies.has(key):
 				continue
 			var z = zombie_scene.instantiate()
-			# A tight BUNCH up in the dark shaft: i=0 is deepest (highest/back), each one
-			# after is a step lower + nearer. They ignore each other's collision (swarm
-			# exception), so they overlap freely; z_index by depth keeps the overlap CLEAN
-			# — the nearer (lower) one draws fully IN FRONT, never interleaved/"cut up".
-			var cy: float = 361.0 + float(i) * 9.0
-			var pos := Vector2(deep_x, cy)
+			# A tight BUNCH: i=0 is deepest (highest/back), each one after is a step lower +
+			# nearer. They ignore each other's collision (swarm exception), so they overlap
+			# freely; z_index by depth keeps the overlap CLEAN — the nearer (lower) one draws
+			# fully IN FRONT, never interleaved/"cut up".
+			var cy: float = y0 + float(i) * y_step
+			var pos := Vector2(anchor_x, cy)
 			pos.x += rng.randf_range(-3.0, 3.0)
 			z.global_position = pos
 			z.spawn_key = key
 			z.add_to_group("stair_horde")
 			add_child(z)
 			WorldState.apply_saved_zombie(z)
-			_dock_stair_zombie(z, band)
+			_dock_stair_zombie(z, band, dock_cut, dock_top)
 			z.z_index = 1 + i                    # deeper=back(low z), nearer=front(high z)
 			horde.append(z)
 		# Belt-and-braces: make every pair in this knot mutually collision-exempt now, so
@@ -310,7 +319,15 @@ func _emerge_one(z, land_x: float, delay: float) -> void:
 	z.stair_emerging = false                         # normal AI (chase) resumes
 
 
-func _dock_stair_zombie(z, band: Vector2) -> void:
+func _stair_is_up(on_left: bool) -> bool:
+	# Which staircase ART this side is showing (set by _apply_stair_visuals): the Lobby
+	# sprite is the UP stairwell (visible steps), Hallway_Staircase is the DOWN stairwell
+	# (dark shaft). Defaults to DOWN if neither resolves.
+	var lobby = get_node_or_null("LobbyLeft" if on_left else "LobbyRight")
+	return lobby != null and lobby.visible
+
+
+func _dock_stair_zombie(z, band: Vector2, cut_y: float, top_clip: float) -> void:
 	# Freeze the zombie down in the shaft and slice its sprite on the player's stair-cut
 	# line, so everything below is hidden — it reads as standing in the stairwell,
 	# head/shoulders above the steps, not chopped off at the thigh. Shrink it to the same
@@ -327,11 +344,11 @@ func _dock_stair_zombie(z, band: Vector2) -> void:
 	spr.scale = spr.scale * StairPan.DOWN_DEPTH_SCALE   # same depth shrink as the player's descent
 	var mat := ShaderMaterial.new()
 	mat.shader = _stair_slice_shader()
-	mat.set_shader_parameter("cut_y", _stair_cut_y())    # same line the player is sliced on
+	mat.set_shader_parameter("cut_y", cut_y)             # below it hidden (floor line / step base)
 	mat.set_shader_parameter("clip_dir", 1.0)            # discard BELOW (same as the descent)
 	mat.set_shader_parameter("shaft_min", band.x)
 	mat.set_shader_parameter("shaft_max", band.y)
-	mat.set_shader_parameter("shaft_top", 320.0)         # clip at the walkable top (~player turn line) — no heads in the lintel/wall
+	mat.set_shader_parameter("shaft_top", top_clip)      # above it hidden (back space / lintel)
 	spr.material = mat
 	z.set_meta("slice_mat", mat)
 
