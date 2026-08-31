@@ -205,23 +205,25 @@ func _spawn_stair_hordes(floor_num: int) -> void:
 		# hole), NOT chopped off at the thigh on the landing. Each is a little deeper than
 		# the last (only its head/shoulders showing) and dimmed into shadow. Confined to
 		# the shaft's x-band so nothing shows on the wall beside the opening.
-		var band := StairPan.shaft_band(148.0, 188.0, 12.0) if on_left \
-			else StairPan.shaft_band(1162.0, 1201.0, 12.0)
-		var shaft_cx: float = (band.x + band.y) * 0.5
-		var cut_y: float = _stair_cut_y()
+		# The walkable DEPTH is the dark shaft on the TOP-spawn side (toward the outer
+		# wall) — right of the near-wall divider, ABOVE the floor edge. That's the exact
+		# region the player's transition walks; standing anywhere left/below it is the
+		# hard border. Centre the knot on the deep side (SPAWN_*_TOP.x) and clip it to the
+		# shaft rectangle so no pixel crosses onto the near wall or below the floor.
+		var deep_x: float = SPAWN_LEFT_TOP.x if on_left else SPAWN_RIGHT_TOP.x
+		var band := Vector2(deep_x - 11.0, deep_x + 11.0)
 		var horde: Array = []
 		for i in range(count):
 			var key := "%d:horde:%d:%d" % [floor_num, choke, i]
 			if WorldState.killed_zombies.has(key):
 				continue
 			var z = zombie_scene.instantiate()
-			# A tight BUNCH in the little shaft: overlapping in x and stepped a little in
-			# y (each on a slightly different step), so they read as a knot under/above/
-			# beside one another. They ignore each other's collision (the swarm exception),
-			# so they can overlap freely; z_index by screen-y keeps the overlap CLEAN —
-			# whoever is lower (nearer) draws fully IN FRONT, never interleaved/"cut up".
-			var cy: float = cut_y + float(i) * 4.0
-			var pos := Vector2(shaft_cx + (float(i) - float(count - 1) * 0.5) * 9.0, cy)
+			# A tight BUNCH up in the dark shaft: i=0 is deepest (highest/back), each one
+			# after is a step lower + nearer. They ignore each other's collision (swarm
+			# exception), so they overlap freely; z_index by depth keeps the overlap CLEAN
+			# — the nearer (lower) one draws fully IN FRONT, never interleaved/"cut up".
+			var cy: float = 361.0 + float(i) * 9.0
+			var pos := Vector2(deep_x, cy)
 			pos.x += rng.randf_range(-3.0, 3.0)
 			z.global_position = pos
 			z.spawn_key = key
@@ -229,7 +231,7 @@ func _spawn_stair_hordes(floor_num: int) -> void:
 			add_child(z)
 			WorldState.apply_saved_zombie(z)
 			_dock_stair_zombie(z, band)
-			z.z_index = 1 + i                    # lower/nearer draws in front (see _emerge reset)
+			z.z_index = 1 + i                    # deeper=back(low z), nearer=front(high z)
 			horde.append(z)
 		# Belt-and-braces: make every pair in this knot mutually collision-exempt now, so
 		# the tight bunch never shoves itself apart even if spawn-order missed a pair.
@@ -329,7 +331,7 @@ func _dock_stair_zombie(z, band: Vector2) -> void:
 	mat.set_shader_parameter("clip_dir", 1.0)            # discard BELOW (same as the descent)
 	mat.set_shader_parameter("shaft_min", band.x)
 	mat.set_shader_parameter("shaft_max", band.y)
-	mat.set_shader_parameter("shaft_top", 296.0)         # nothing draws up into the wall above the opening
+	mat.set_shader_parameter("shaft_top", 320.0)         # clip at the walkable top (~player turn line) — no heads in the lintel/wall
 	spr.material = mat
 	z.set_meta("slice_mat", mat)
 
