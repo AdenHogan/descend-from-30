@@ -215,12 +215,13 @@ func _spawn_stair_hordes(floor_num: int) -> void:
 			if WorldState.killed_zombies.has(key):
 				continue
 			var z = zombie_scene.instantiate()
-			# Sit them ON the slice line and deeper, so the front shows head+shoulders
-			# above the steps and each one behind is lower (more hidden) — the depth of
-			# a group waiting in the shaft (no player equivalent; the transition is one
-			# actor). Fanned across the shaft so they don't stack on one x.
-			var cy: float = cut_y + float(i) * 8.0
-			var pos := Vector2(shaft_cx + (float(i) - 1.0) * 10.0, cy)
+			# A tight BUNCH in the little shaft: overlapping in x and stepped a little in
+			# y (each on a slightly different step), so they read as a knot under/above/
+			# beside one another. They ignore each other's collision (the swarm exception),
+			# so they can overlap freely; z_index by screen-y keeps the overlap CLEAN —
+			# whoever is lower (nearer) draws fully IN FRONT, never interleaved/"cut up".
+			var cy: float = cut_y + float(i) * 4.0
+			var pos := Vector2(shaft_cx + (float(i) - float(count - 1) * 0.5) * 9.0, cy)
 			pos.x += rng.randf_range(-3.0, 3.0)
 			z.global_position = pos
 			z.spawn_key = key
@@ -228,7 +229,14 @@ func _spawn_stair_hordes(floor_num: int) -> void:
 			add_child(z)
 			WorldState.apply_saved_zombie(z)
 			_dock_stair_zombie(z, band)
+			z.z_index = 1 + i                    # lower/nearer draws in front (see _emerge reset)
 			horde.append(z)
+		# Belt-and-braces: make every pair in this knot mutually collision-exempt now, so
+		# the tight bunch never shoves itself apart even if spawn-order missed a pair.
+		for a in horde:
+			for b in horde:
+				if a != b:
+					a.add_collision_exception_with(b)
 		_stair_hordes.append({
 			"zombies": horde, "stair_x": stair_x, "band": band, "emerged": false,
 		})
@@ -296,6 +304,7 @@ func _emerge_one(z, land_x: float, delay: float) -> void:
 		z.animated_sprite.material = null            # fully un-sliced, out in the corridor
 		z.animated_sprite.modulate = base_mod
 		z.animated_sprite.scale = base_scale
+	z.z_index = 1                                    # back to the normal actor layer
 	z.stair_emerging = false                         # normal AI (chase) resumes
 
 
