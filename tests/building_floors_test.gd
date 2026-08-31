@@ -330,6 +330,11 @@ func _test_pried_arrival_milling() -> void:
 	var all_in_band := true
 	var all_roused := true
 	for z in zs:
+		# A stair-horde on the FAR stairwell is a separate hazard (docked + sliced there),
+		# not the arrival's milling dead — exclude it so the seed's horde placement can't
+		# skew the milling asserts.
+		if z.is_in_group("stair_horde"):
+			continue
 		if z.global_position.x < 230.0 or z.global_position.x > 500.0:
 			all_in_band = false
 		if z.alert_timer <= 0.0:
@@ -438,13 +443,17 @@ func _test_stair_horde_spawns() -> void:
 	var bf = load("res://scenes/building_floors.tscn").instantiate()
 	add_child(bf)
 	var horde := get_tree().get_nodes_in_group("stair_horde")
-	# Two active stairwells x 4-7 each.
-	check(horde.size() >= 8 and horde.size() <= 14, "a horde cluster spawns at each stairwell (%d)" % horde.size())
+	# Two active stairwells x 3-4 each — a small knot on the steps, not a mob.
+	check(horde.size() >= 6 and horde.size() <= 8, "a horde cluster spawns at each stairwell (%d)" % horde.size())
 	var all_at_ends := true
+	var all_docked := true
 	for z in horde:
 		if z.global_position.x > 550.0 and z.global_position.x < 850.0:
 			all_at_ends = false   # mid-corridor, not by a stairwell
+		if not z.stair_docked:
+			all_docked = false    # they wait IN the stairwell until the player nears
 	check(all_at_ends, "horde zombies cluster by the stairwells, not mid-corridor")
+	check(all_docked, "horde zombies start docked in the stairwell (sliced, not roaming)")
 	# No VISIBLE barricade crates while in horde mode (one hazard at a time; the
 	# self-hiding props may exist but must not show).
 	var vis_crates := 0

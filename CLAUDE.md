@@ -272,13 +272,21 @@ means no rendering — UI layout and art still need an in-editor look.
   pulls only the **stairwell-seeded** dead on the adjacent floor (never a
   whole-floor vacuum; running never pulls). Seeded per (floor,run); floor 30 +
   floor 1 exempt. A blocked stairwell shows a **crate-stack prop**
-  (`barricade_prop.gd`) at both landings. **Hazard 2 — hordes (v1):** other
-  stairwells are packed with **live zombies** (`is_stair_horde`, seeded ~15%,
-  mutually exclusive with barricades) — no crowbar, you **fight or lure** them
-  off (thrown can); a seeded 4–7 cluster spawns at both landings (`stair_horde`
-  group, kills persist), and `stairwell.gd` blocks the crossing while any live
-  zombie is within `HORDE_BLOCK_RANGE`. No shift/rest cost — the fight is the
-  cost. A horde stairwell shows a **colored red echo pulse** (`horde_echo.gd`)
+  (`barricade_prop.gd`) at both landings. **Hazard 2 — hordes (v2):** other
+  stairwells hold a **small knot of live zombies** (`is_stair_horde`, seeded ~15%,
+  mutually exclusive with barricades) — no crowbar, you **fight or lure** them off
+  (thrown can). **3–4 zombies wait DOCKED IN the stairwell** (`stair_docked`), each
+  **sliced** by the stair-pan `SHRED_SHADER` (reused via `StairPan.SHRED_SHADER`) so
+  only the part above the landing shows — they read as standing down in the shaft,
+  confined to its x-band (nothing on the wall beside the opening). They're frozen
+  (no roaming the hall) until the player comes within `STAIR_DOCK_EMERGE_RANGE`, then
+  they **EMERGE** one-by-one (`stair_emerging`): a stair-step climb up to the corridor
+  landing that **un-slices** as they rise (cut swept past the feet), landing spots
+  fanned into the corridor so they file out rather than stack, after which normal AI
+  (chase) takes over — no camera move (in-scene actors). `stair_horde` group, kills
+  persist; `stairwell.gd` blocks the crossing while any live zombie is within
+  `HORDE_BLOCK_RANGE`. No shift/rest cost — the fight is the cost. A horde stairwell
+  shows a **colored red echo pulse** (`horde_echo.gd`)
   and gives a **one-time approach warning** (brief freeze + player line,
   `building_floors._process` + `hazard_approach_warned`); barricades give no
   advance warning. **Hazard 3 — fire (v2):** a **spreading blaze** that spreads

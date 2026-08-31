@@ -107,6 +107,13 @@ var spawn_key: String = ""
 var max_hp: int = 3
 var current_hp: int = 3
 var is_dead: bool = false
+# Stairwell horde: this zombie is DOCKED on the stairs (frozen, its sprite sliced by
+# building_floors so only the part above the landing shows — it reads as waiting down
+# in the stairwell). It stays put until building_floors sees the player approach and
+# releases it, driving an EMERGE (a stair-step climb up to the landing) with
+# stair_emerging true; then it becomes a normal chaser. See building_floors.gd.
+var stair_docked: bool = false
+var stair_emerging: bool = false
 # The corridor walking line this zombie spawned on. When the player steps up
 # onto a balcony plane, close zombies CLIMB UP after them (the balcony is not a
 # safe island — THREE_RUN_ARC); otherwise they hold their own line.
@@ -415,6 +422,22 @@ func _update_plane_pursuit(delta: float) -> void:
 
 func _physics_process(delta: float) -> void:
 	if is_dead:
+		return
+
+	# Emerging up the stairs: building_floors drives the position + slice via a tween.
+	# Hold off ALL normal AI (no pathing, no plane-pursuit fighting the tween).
+	if stair_emerging:
+		return
+	# Docked on the stairs: frozen in place, sliced, facing the player — a menace
+	# waiting in the stairwell. building_floors releases it (emerge) on approach.
+	if stair_docked:
+		velocity = Vector2.ZERO
+		if player == null:
+			player = get_tree().get_first_node_in_group("player")
+		if player != null and animated_sprite != null:
+			animated_sprite.flip_h = player.global_position.x < global_position.x
+		if animated_sprite != null and animated_sprite.animation != "Idle":
+			animated_sprite.play("Idle")
 		return
 
 	if alert_timer > 0:
