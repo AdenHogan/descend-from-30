@@ -278,12 +278,19 @@ means no rendering — UI layout and art still need an in-editor look.
   (thrown can). **3–4 zombies wait DOCKED IN the stairwell** (`stair_docked`), each
   **sliced** by the stair-pan `SHRED_SHADER` (reused via `StairPan.SHRED_SHADER`) so
   only the part above the landing shows — they read as standing down in the shaft,
-  confined to its x-band (nothing on the wall beside the opening). They're frozen
-  (no roaming the hall) until the player comes within `STAIR_DOCK_EMERGE_RANGE`, then
-  they **EMERGE** one-by-one (`stair_emerging`): a stair-step climb up to the corridor
-  landing that **un-slices** as they rise (cut swept past the feet), landing spots
-  fanned into the corridor so they file out rather than stack, after which normal AI
-  (chase) takes over — no camera move (in-scene actors). `stair_horde` group, kills
+  confined to its x-band (nothing on the wall beside the opening). **Consistent with
+  the player's stair transition** (owner-audited): the slice sits on the SAME cut line
+  the player descent uses (`CORRIDOR_PLANE_Y − StairPan.DOWN_STAIR_APPROACH +
+  DOWN_SHRED_FOOT` = y401), shrunk to the SAME `StairPan.DOWN_DEPTH_SCALE`. They're
+  frozen (no roaming the hall) until the player comes within `STAIR_DOCK_EMERGE_RANGE`,
+  then they **EMERGE** one-by-one (`stair_emerging`): a climb up to the stairwell's own
+  standing spot (`stair_x`, where the player lands) using the SAME footfall stepping
+  (`StairPan._stagger_y`, 16px steps at `STEP_TIME`) and the SAME reveal-cut sweep
+  (`+ StairPan.SHRED_BOTTOM`), **un-slicing** + brightening + growing back to full as
+  they rise, landing spots fanned so they file out rather than stack, after which normal
+  AI (chase) takes over — no camera move (in-scene actors). (Two intentional deviations
+  from the single-actor transition: the group is staggered at multiple depths, and it
+  dims into the unlit shaft — the player code shrinks but doesn't dim.) `stair_horde` group, kills
   persist; `stairwell.gd` blocks the crossing while any live zombie is within
   `HORDE_BLOCK_RANGE`. No shift/rest cost — the fight is the cost. A horde stairwell
   shows a **colored red echo pulse** (`horde_echo.gd`)

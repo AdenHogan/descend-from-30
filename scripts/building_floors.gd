@@ -152,15 +152,21 @@ func _spawn_barricade_visuals(floor_num: int) -> void:
 const STAIR_HORDE_MIN := 3
 const STAIR_HORDE_MAX := 4
 const HORDE_ECHO := preload("res://scripts/horde_echo.gd")
-const CORRIDOR_PLANE_Y := 391.0        # the walking line zombies settle on once emerged
-const STAIR_FLOOR_EDGE := 400.0        # corridor floor line; docked zombies are hidden BELOW it
+const CORRIDOR_PLANE_Y := 391.0        # the walking line zombies settle on == SPAWN_*_*.y
 const STAIR_DOCK_EMERGE_RANGE := 250.0 # how near (x) the player must get to trigger the climb-out
-const STAIR_DOCK_DIM := Color(0.62, 0.64, 0.7)  # shadowed tint while down in the shaft
-const STAIR_DOCK_SCALE := 0.9          # a touch smaller (further away, down the steps)
+const STAIR_DOCK_DIM := Color(0.62, 0.64, 0.7)  # shadowed tint while down in the shaft (see note)
+
+
+func _stair_cut_y() -> float:
+	# EXACTLY where the player's stair descent slices — on the yellow steps, DOWN_SHRED_FOOT
+	# below the stairwell's red line, which is DOWN_STAIR_APPROACH above the standing spot
+	# (SPAWN y). Same expression the player uses, not a hand-measured magic value, so a
+	# docked zombie is cut on the same line the player is when it steps into the stairwell.
+	return CORRIDOR_PLANE_Y - StairPan.DOWN_STAIR_APPROACH + StairPan.DOWN_SHRED_FOOT
 # Stairwells (this floor) that carry a live-enemy hazard: {x, side}. Read by the
 # approach-warning check in _process.
 var _horde_warn_targets: Array = []
-# Docked stair hordes awaiting release: {zombies, stair_x, land_x, band, emerged}.
+# Docked stair hordes awaiting release: {zombies, stair_x, band, emerged}.
 var _stair_hordes: Array = []
 var _slice_shader: Shader = null
 
@@ -202,17 +208,18 @@ func _spawn_stair_hordes(floor_num: int) -> void:
 		var band := StairPan.shaft_band(148.0, 188.0, 12.0) if on_left \
 			else StairPan.shaft_band(1162.0, 1201.0, 12.0)
 		var shaft_cx: float = (band.x + band.y) * 0.5
-		var land_x := 190.0 if on_left else 1170.0
+		var cut_y: float = _stair_cut_y()
 		var horde: Array = []
 		for i in range(count):
 			var key := "%d:horde:%d:%d" % [floor_num, choke, i]
 			if WorldState.killed_zombies.has(key):
 				continue
 			var z = zombie_scene.instantiate()
-			# Stand them across the floor line so head+torso show above it and the legs
-			# drop below into the shaft; each one a little deeper (lower) than the last.
-			# Fanned across the shaft so they don't stack on one x.
-			var cy: float = STAIR_FLOOR_EDGE - 12.0 + float(i) * 7.0
+			# Sit them ON the slice line and deeper, so the front shows head+shoulders
+			# above the steps and each one behind is lower (more hidden) — the depth of
+			# a group waiting in the shaft (no player equivalent; the transition is one
+			# actor). Fanned across the shaft so they don't stack on one x.
+			var cy: float = cut_y + float(i) * 8.0
 			var pos := Vector2(shaft_cx + (float(i) - 1.0) * 10.0, cy)
 			pos.x += rng.randf_range(-3.0, 3.0)
 			z.global_position = pos
@@ -223,8 +230,7 @@ func _spawn_stair_hordes(floor_num: int) -> void:
 			_dock_stair_zombie(z, band)
 			horde.append(z)
 		_stair_hordes.append({
-			"zombies": horde, "stair_x": stair_x, "land_x": land_x,
-			"band": band, "emerged": false,
+			"zombies": horde, "stair_x": stair_x, "band": band, "emerged": false,
 		})
 		# Colored danger cue radiating from the steps, and a warn target so the
 		# player gets a first-time "I can hear them ahead" beat on approach.
@@ -235,21 +241,24 @@ func _spawn_stair_hordes(floor_num: int) -> void:
 
 
 func _emerge_stair_horde(h: Dictionary) -> void:
-	# Spread the landing spots a little INTO the corridor so they file out one behind
-	# the other instead of piling onto the same tile (the AI spreads them further once
-	# they're chasing).
-	var corridor_dir := 1.0 if float(h["stair_x"]) < 600.0 else -1.0
+	# They climb out to the stairwell's own standing spot (stair_x, the SAME x the player
+	# lands on there), fanned a little INTO the corridor so they file out one behind the
+	# next rather than piling on one tile (the AI spreads them further once chasing).
+	var stair_x: float = float(h["stair_x"])
+	var corridor_dir := 1.0 if stair_x < 600.0 else -1.0
 	var i := 0
 	for z in h["zombies"]:
 		if not is_instance_valid(z) or z.is_dead:
 			continue
-		_emerge_one(z, float(h["land_x"]) + corridor_dir * float(i) * 18.0, i * 0.3)
+		_emerge_one(z, stair_x + corridor_dir * float(i) * 18.0, i * 0.3)
 		i += 1
 
 
 func _emerge_one(z, land_x: float, delay: float) -> void:
-	# Step up out of the stairwell onto the landing, un-slicing as it rises, then hand
-	# control back to the normal AI (chase). No camera move — this is an in-scene actor.
+	# Climb up out of the stairwell onto the landing using the SAME footfall stepping the
+	# player's stair transition uses (StairPan._stagger_y — discrete 16px steps at
+	# STEP_TIME), un-slicing / brightening / growing back to full over the same climb, then
+	# hand control to normal AI (chase). No camera move — this is an in-scene actor.
 	if delay > 0.0:
 		await get_tree().create_timer(delay, false).timeout
 	if not is_instance_valid(z) or z.is_dead:
@@ -262,17 +271,25 @@ func _emerge_one(z, land_x: float, delay: float) -> void:
 	var mat = z.get_meta("slice_mat", null)
 	var base_scale = z.get_meta("base_scale", Vector2.ONE)
 	var base_mod = z.get_meta("base_modulate", Color.WHITE)
+	var from_y: float = z.global_position.y
+	# Footfall pace for this climb — the SAME step timing the player uses on stairs.
+	var climb: float = StairPan._climb_time(absf(CORRIDOR_PLANE_Y - from_y))
+	# Y climbs in discrete steps (StairPan._stagger_y); X, the un-slice cut sweep, the
+	# brighten and the grow-back all run in parallel over the same climb duration.
+	var y_tw: Tween = StairPan._stagger_y(z, from_y, CORRIDOR_PLANE_Y)
 	var t := create_tween().set_parallel(true)
-	# Climb up onto the landing, un-slicing (cut sweeps below the feet), brightening out
-	# of the shadow and growing back to full size as it steps into the corridor.
-	t.tween_property(z, "global_position", Vector2(land_x, CORRIDOR_PLANE_Y), 0.55) \
-		.set_trans(Tween.TRANS_SINE)
+	t.tween_property(z, "global_position:x", land_x, climb).set_trans(Tween.TRANS_LINEAR)
 	if mat != null:
-		t.tween_property(mat, "shader_parameter/cut_y", CORRIDOR_PLANE_Y + 60.0, 0.55)
+		# Sweep the cut down past the feet (SHRED_BOTTOM below the landing) so the whole
+		# body reveals as it rises — mirroring the descent's reveal sweep.
+		t.tween_property(mat, "shader_parameter/cut_y",
+			CORRIDOR_PLANE_Y + StairPan.SHRED_BOTTOM, climb)
 	if spr != null:
-		t.tween_property(spr, "modulate", base_mod, 0.5)
-		t.tween_property(spr, "scale", base_scale, 0.5)
+		t.tween_property(spr, "modulate", base_mod, climb)
+		t.tween_property(spr, "scale", base_scale, climb)
 	await t.finished
+	if is_instance_valid(y_tw):
+		await y_tw.finished
 	if not is_instance_valid(z):
 		return
 	if z.animated_sprite != null:
@@ -283,11 +300,11 @@ func _emerge_one(z, land_x: float, delay: float) -> void:
 
 
 func _dock_stair_zombie(z, band: Vector2) -> void:
-	# Freeze the zombie down in the shaft and slice its sprite at the FLOOR LINE, so
-	# everything below the corridor floor is hidden — it reads as standing in the
-	# stairwell, head/shoulders above the floor edge, not chopped off at the thigh. Dim +
-	# shrink it into the shadowed depth. base_walk_y is the CORRIDOR line, so once emerged
-	# it settles on the walking plane (not the stair y it spawned at).
+	# Freeze the zombie down in the shaft and slice its sprite on the player's stair-cut
+	# line, so everything below is hidden — it reads as standing in the stairwell,
+	# head/shoulders above the steps, not chopped off at the thigh. Shrink it to the same
+	# DEPTH scale the player's descent uses, and dim it into the unlit shaft. base_walk_y
+	# is the CORRIDOR line, so once emerged it settles on the walking plane.
 	z.base_walk_y = CORRIDOR_PLANE_Y
 	z.stair_docked = true
 	var spr = z.animated_sprite
@@ -296,11 +313,11 @@ func _dock_stair_zombie(z, band: Vector2) -> void:
 	z.set_meta("base_scale", spr.scale)
 	z.set_meta("base_modulate", spr.modulate)
 	spr.modulate = STAIR_DOCK_DIM
-	spr.scale = spr.scale * STAIR_DOCK_SCALE
+	spr.scale = spr.scale * StairPan.DOWN_DEPTH_SCALE   # same depth shrink as the player's descent
 	var mat := ShaderMaterial.new()
 	mat.shader = _stair_slice_shader()
-	mat.set_shader_parameter("cut_y", STAIR_FLOOR_EDGE)  # hide everything below the floor line
-	mat.set_shader_parameter("clip_dir", 1.0)
+	mat.set_shader_parameter("cut_y", _stair_cut_y())    # same line the player is sliced on
+	mat.set_shader_parameter("clip_dir", 1.0)            # discard BELOW (same as the descent)
 	mat.set_shader_parameter("shaft_min", band.x)
 	mat.set_shader_parameter("shaft_max", band.y)
 	mat.set_shader_parameter("shaft_top", 296.0)         # nothing draws up into the wall above the opening
