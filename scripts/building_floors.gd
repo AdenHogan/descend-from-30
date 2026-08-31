@@ -154,15 +154,13 @@ const STAIR_HORDE_MAX := 4
 const HORDE_ECHO := preload("res://scripts/horde_echo.gd")
 const CORRIDOR_PLANE_Y := 391.0        # the walking line zombies settle on == SPAWN_*_*.y
 const STAIR_DOCK_EMERGE_RANGE := 250.0 # how near (x) the player must get to trigger the climb-out
-const STAIR_DOCK_DIM := Color(0.62, 0.64, 0.7)  # shadowed tint while down in the shaft (see note)
+const STAIR_DOCK_DIM := Color(0.62, 0.64, 0.7)  # shadowed tint while down in the DARK shaft
+const STAIR_DOCK_DIM_UP := Color(0.9, 0.91, 0.94) # barely dimmed on the lit visible steps
+# Owner's blue-line cut-off for the stairs: at/above it an actor is visible in front;
+# BELOW it the actor is behind the .png (sliced out of frame). Measured off the art.
+const STAIR_CUT_Y := 394.0
 
 
-func _stair_cut_y() -> float:
-	# EXACTLY where the player's stair descent slices — on the yellow steps, DOWN_SHRED_FOOT
-	# below the stairwell's red line, which is DOWN_STAIR_APPROACH above the standing spot
-	# (SPAWN y). Same expression the player uses, not a hand-measured magic value, so a
-	# docked zombie is cut on the same line the player is when it steps into the stairwell.
-	return CORRIDOR_PLANE_Y - StairPan.DOWN_STAIR_APPROACH + StairPan.DOWN_SHRED_FOOT
 # Stairwells (this floor) that carry a live-enemy hazard: {x, side}. Read by the
 # approach-warning check in _process.
 var _horde_warn_targets: Array = []
@@ -213,14 +211,22 @@ func _spawn_stair_hordes(floor_num: int) -> void:
 		var y_step: float      # each nearer one this much lower
 		var dock_cut: float    # slice line: below it is hidden (floor / step base)
 		var dock_top: float    # above it is hidden (back space / lintel)
+		var dock_dim: Color
 		if is_up:
-			anchor_x = SPAWN_LEFT_BOTTOM.x if on_left else SPAWN_RIGHT_BOTTOM.x
-			band = Vector2(anchor_x - 22.0, anchor_x + 22.0)
-			y0 = 350.0; y_step = 12.0; dock_cut = 396.0; dock_top = 343.0
+			# The VISIBLE stair column (window on top, yellow steps below). Enemies stand
+			# on the steps and UP in FRONT of the window — visible the whole way; the top
+			# of the stairs is NOT a cut line (the slice-behind only happens when an actor
+			# walks off to the side into the back-space box). Lit steps, so barely dimmed.
+			band = Vector2(172.0, 214.0) if on_left else Vector2(1138.0, 1180.0)
+			anchor_x = (band.x + band.y) * 0.5
+			y0 = 332.0; y_step = 17.0; dock_cut = STAIR_CUT_Y; dock_top = 300.0
+			dock_dim = STAIR_DOCK_DIM_UP
 		else:
+			# The dark shaft toward the outer wall — depth. Sliced at the blue-line cut, dim.
 			anchor_x = SPAWN_LEFT_TOP.x if on_left else SPAWN_RIGHT_TOP.x
 			band = Vector2(anchor_x - 11.0, anchor_x + 11.0)
-			y0 = 361.0; y_step = 9.0; dock_cut = _stair_cut_y(); dock_top = 320.0
+			y0 = 361.0; y_step = 9.0; dock_cut = STAIR_CUT_Y; dock_top = 320.0
+			dock_dim = STAIR_DOCK_DIM
 		var horde: Array = []
 		for i in range(count):
 			var key := "%d:horde:%d:%d" % [floor_num, choke, i]
@@ -239,7 +245,7 @@ func _spawn_stair_hordes(floor_num: int) -> void:
 			z.add_to_group("stair_horde")
 			add_child(z)
 			WorldState.apply_saved_zombie(z)
-			_dock_stair_zombie(z, band, dock_cut, dock_top)
+			_dock_stair_zombie(z, band, dock_cut, dock_top, dock_dim)
 			z.z_index = 1 + i                    # deeper=back(low z), nearer=front(high z)
 			horde.append(z)
 		# Belt-and-braces: make every pair in this knot mutually collision-exempt now, so
@@ -327,7 +333,7 @@ func _stair_is_up(on_left: bool) -> bool:
 	return lobby != null and lobby.visible
 
 
-func _dock_stair_zombie(z, band: Vector2, cut_y: float, top_clip: float) -> void:
+func _dock_stair_zombie(z, band: Vector2, cut_y: float, top_clip: float, dim: Color) -> void:
 	# Freeze the zombie down in the shaft and slice its sprite on the player's stair-cut
 	# line, so everything below is hidden — it reads as standing in the stairwell,
 	# head/shoulders above the steps, not chopped off at the thigh. Shrink it to the same
@@ -340,7 +346,7 @@ func _dock_stair_zombie(z, band: Vector2, cut_y: float, top_clip: float) -> void
 		return
 	z.set_meta("base_scale", spr.scale)
 	z.set_meta("base_modulate", spr.modulate)
-	spr.modulate = STAIR_DOCK_DIM
+	spr.modulate = dim
 	spr.scale = spr.scale * StairPan.DOWN_DEPTH_SCALE   # same depth shrink as the player's descent
 	var mat := ShaderMaterial.new()
 	mat.shader = _stair_slice_shader()
