@@ -165,12 +165,13 @@ var _horde_warn_targets: Array = []
 # --- Stairwell-shaft placement, derived from the visible staircase sprite ---
 # The staircase art (353x443 tex) sits centred at ~(171, 348.6) left / (1179, …)
 # right, scaled down to a ~80x115 world box: x[131,211], y[291,406], with the
-# corridor standing line at 391. Everything below is READ from that sprite at
-# runtime (no guessed pixels) — the only by-eye knobs are the three fractions/
-# offsets marked TUNABLE, which shape how tightly the bodies crop to the opening.
-const STAIR_SHAFT_INSET := 0.62      # TUNABLE: band half-width as a fraction of the art half-width
-const STAIR_STACK_SPAN := 40.0       # TUNABLE: how far up the steps the bunch is spread
-const STAIR_BOB_AMP := 10.0          # TUNABLE: how far each one shuffles up/down its spot
+# corridor standing line at 391. The x-band + top clip come straight from that
+# sprite; the vertical SLICE + depth use the player's own transition constants
+# (StairPan.DOWN_STAIR_APPROACH / DOWN_SHRED_FOOT / DOWN_DEPTH_SCALE) — no invented
+# slice numbers. STACK_SPAN / BOB_AMP are only how the bunch is spread / how far it
+# shuffles (motion, not slice geometry).
+const STAIR_STACK_SPAN := 40.0       # how far up the steps the bunch is spread
+const STAIR_BOB_AMP := 10.0          # how far each one shuffles up/down its spot
 
 
 func _stair_art_box(on_left: bool) -> Dictionary:
@@ -213,10 +214,12 @@ func _spawn_stair_hordes(floor_num: int) -> void:
 		# sprite is missing for some reason (never leave a horde floor empty).
 		var shaft_x: float = box.get("center_x", t.global_position.x)
 		var half_w: float = box.get("half_w", 40.0)
-		var band_half: float = half_w * STAIR_SHAFT_INSET
-		var shaft_min: float = shaft_x - band_half
-		var shaft_max: float = shaft_x + band_half
+		var shaft_min: float = shaft_x - half_w          # the staircase art's own x-extent
+		var shaft_max: float = shaft_x + half_w
 		var clip_top: float = box.get("top_y", CORRIDOR_PLANE_Y - 100.0)
+		# The player's own mouth cut — the fixed line their descent is sliced through
+		# (line just above the standing spot, plus the foot offset). Reused verbatim.
+		var cut_y: float = (CORRIDOR_PLANE_Y - StairPan.DOWN_STAIR_APPROACH) + StairPan.DOWN_SHRED_FOOT
 		var rng := RandomNumberGenerator.new()
 		rng.seed = hash(str(WorldState.master_seed) + "stairhordepos" + str(choke) + str(WorldState.current_run))
 		var count: int = STAIR_HORDE_MIN + (rng.randi() % (STAIR_HORDE_MAX - STAIR_HORDE_MIN + 1))
@@ -237,7 +240,7 @@ func _spawn_stair_hordes(floor_num: int) -> void:
 			# corridor — don't re-cage it in the shaft. Only fresh ones start up there.
 			var restored = WorldState.apply_saved_zombie(z)
 			if not restored:
-				z.enter_stairwell_mode(rest_y, CORRIDOR_PLANE_Y, STAIR_BOB_AMP,
+				z.enter_stairwell_mode(rest_y, CORRIDOR_PLANE_Y, STAIR_BOB_AMP, cut_y,
 					shaft_min, shaft_max, clip_top, on_left)
 		# Colored danger cue radiating from the steps, and a warn target so the
 		# player gets a first-time "I can hear them ahead" beat on approach.

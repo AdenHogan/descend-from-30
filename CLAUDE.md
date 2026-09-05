@@ -276,15 +276,17 @@ means no rendering — UI layout and art still need an in-editor look.
   a stairwell "horde" is **NOT a special entity** — it's just **3–4 STANDARD zombies
   that spawn UP INSIDE the stairwell** (`is_stair_horde`, seeded ~15%, mutually exclusive
   with barricades). They spawn on the steps in the shaft depth, staggered at different
-  heights (`enemy.enter_stairwell_mode`), and while idle they **shuffle slowly up/down
-  and are sliced to the staircase opening using the PLAYER'S OWN stair shredder**
-  (`StairPan.SHRED_SHADER` — cropped to the opening's x-band + clipped above its top
-  edge, shrunk+dimmed with StairPan's depth cues) — so the stairwell reads as "something
-  could be coming up or down". The geometry is **read from the visible staircase sprite
-  at runtime** (`building_floors._stair_art_box`: the 353×443 art scaled to ~x[131,211]
-  y[291,406], standing line 391 — no guessed pixels; the by-eye knobs are
-  `STAIR_SHAFT_INSET` / `STAIR_STACK_SPAN` / `STAIR_BOB_AMP` in `building_floors.gd` and
-  `STAIR_DEPTH_SCALE` / `STAIR_DEPTH_DIM` on the enemy). The moment the player gets close
+  heights (`enemy.enter_stairwell_mode`), and while idle they **shuffle slowly up/down,
+  drawn with the PLAYER'S OWN stair slice** — `StairPan.SHRED_SHADER` with the player's
+  fixed **mouth cut** (`DOWN_STAIR_APPROACH` + `DOWN_SHRED_FOOT`) feeding the body
+  feet-first as it moves down the steps and the player's **depth scale**
+  (`DOWN_DEPTH_SCALE`) shrinking it into the shaft — **no invented slice numbers, just
+  the player's, with the zombie sprite swapped in**. Only the x-band + top clip are
+  extra, and those are **read from the visible staircase sprite at runtime**
+  (`building_floors._stair_art_box`: the 353×443 art scaled to ~x[131,211] y[291,406],
+  standing line 391) so a body stays framed by the opening — no guessed pixels. The
+  remaining knobs are pure motion: `STAIR_STACK_SPAN` / `STAIR_BOB_AMP` / `STAIR_PACE_SPEED`.
+  So the stairwell reads as "something could be coming up or down". The moment the player gets close
   (`STAIR_ACTIVATE_RANGE`), or gunfire/a thrown can pulls them, they **walk DOWN out of
   the shaft and become ordinary chasers** (`_stair_tick` drops the slice + hands off to
   normal AI) — the "coming down the stairs at you" beat. Normal AI otherwise (solid,
