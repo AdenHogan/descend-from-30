@@ -312,9 +312,11 @@ func _emerge_one(z, land_x: float, delay: float) -> void:
 	if spr != null:
 		t.tween_property(spr, "modulate", base_mod, climb)
 		t.tween_property(spr, "scale", base_scale, climb)
-	await t.finished
-	if is_instance_valid(y_tw):
-		await y_tw.finished
+	# Wait out the climb on a TIMER, never on the tweens' `finished` signals: the two
+	# tweens run in parallel and either can finish a frame before it's awaited, so
+	# awaiting its already-fired signal would hang FOREVER — leaving the zombie stuck
+	# mid-emerge (idle, passable, wrong layer, never chasing). The timer always fires.
+	await get_tree().create_timer(climb + 0.05, false).timeout
 	if not is_instance_valid(z):
 		return
 	if z.animated_sprite != null:
