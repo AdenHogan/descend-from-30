@@ -282,21 +282,30 @@ means no rendering — UI layout and art still need an in-editor look.
   numbers, the player's, with the zombie sprite swapped in**; only the x-band + top clip
   are extra and those are **read from the visible staircase sprite at runtime**
   (`building_floors._stair_art_box`: 353×443 art → ~x[131,211] y[291,406], standing line
-  391). **Sequence** (`_stair_tick` phase machine `idle → rise → stepoff → normal AI`):
-  it waits **sunk in the shaft** (upper body visible, lower half sliced away), drifting
-  gently up/down (`STAIR_BOB_AMP`); when the player comes within `STAIR_ACTIVATE_RANGE`
-  (or gunfire alerts it) it **RISES up the steps, appearing slice by slice (head first)**
-  as it clears the fixed cut and grows to full size; reaching the plane it **steps off**
-  with the player's own arrival reveal (cut swept off the feet over `STAIR_STEPOFF_TIME`),
-  then hands to **normal AI** — an ordinary solid, pushable, killable chaser. While still
-  on the steps it is **passable and unharmable** (no invisible wall, no interaction) —
-  you attack/push it only once it's stepped off. Kills persist (`stair_horde` group +
+  391). **Two directions, mirroring the player's own DOWN/UP transition** (`_stair_up`):
+  on a **DOWN shaft** (dark, `Hallway_Staircase_*`) it lurks BELOW the plane, sliced by
+  the mouth cut so only its head/shoulders show, and RISES up appearing head-first; on an
+  **UP stairwell** (visible yellow steps, `Lobby_*`) it stands UP the steps ABOVE the
+  plane with its top tucked behind the bend (shaft-top clip, no feet cut — the feet ARE
+  on the visible steps) and walks DOWN. Getting the direction wrong is what sank the enemy
+  into the floor with amputated feet on an up-stairwell. **Sequence** (`_stair_tick` phase
+  machine `idle → rise → stepoff → normal AI`): it waits in the shaft, drifting gently
+  (`STAIR_BOB_AMP`); when the player comes within `STAIR_ACTIVATE_RANGE` (or gunfire
+  alerts it) it moves along the steps to the plane, appearing as it clears the cut/bend
+  and growing to full size; reaching the plane it **steps off** (DOWN shaft sweeps the cut
+  off the feet over `STAIR_STEPOFF_TIME`; UP just settles) and hands to **normal AI** — an
+  ordinary solid, pushable, killable chaser. While in the shaft it draws at **z 0 (BEHIND
+  the player**, who is on the corridor plane, so the player passes in front, never behind)
+  and is **passable and unharmable** (no invisible wall, no interaction) — you attack/push
+  it only once it's stepped off (z back to 1). Kills persist (`stair_horde` group +
   per-floor key `<floor>:stairwell:<choke>`). **Crossing lock** (`stairwell.gd`
-  `_horde_blocking`) now only counts a zombie that has **stepped off** and is standing on
-  the steps within `SHAFT_BLOCK_HALF_WIDTH` (52px) of the stair centre — one still on the
-  steps (`stair_mode`) or chased off down the corridor does NOT lock you out, so in
-  practice the stairs stay usable (the earlier 300px radius wrongly counted zombies
-  spawned/standing between the stairwell and the elevator). No echo/warn cue any more
+  `_horde_blocking`) blocks the crossing ONLY while an enemy is **on / coming up the
+  stairs** — i.e. still in `stair_mode`, within `SHAFT_BLOCK_HALF_WIDTH` (52px) of the
+  stair centre. The instant it **steps off** onto the corridor the crossing is free again
+  (you can descend past it; you'll fight it on the landing, but traversal isn't held
+  hostage) — matching the descent rule "blocked if something's coming up the stairs, open
+  otherwise". (Earlier bugs: a 300px radius counted zombies nowhere near the steps; then a
+  flipped check locked you out AFTER the enemy had stepped off.) No echo/warn cue any more
   (dropped with the horde framing; `horde_echo.gd` is now unused). (Earlier: v2 built a
   bespoke docked/frozen entity that walled the player off — scrapped; v3 spawned on the
   corridor plane; v4 was a 3–4 shuffling bunch. **Future:** re-layer multiple enemies /

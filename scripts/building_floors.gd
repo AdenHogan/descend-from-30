@@ -185,6 +185,7 @@ func _stair_art_box(on_left: bool) -> Dictionary:
 				"center_x": s.global_position.x,
 				"half_w": hw,
 				"top_y": s.global_position.y - hh,
+				"is_up": String(n).begins_with("Lobby"),   # Lobby_* = UP stairwell (visible steps)
 			}
 	return {}
 
@@ -215,14 +216,24 @@ func _spawn_stair_hordes(floor_num: int) -> void:
 		var shaft_min: float = shaft_x - half_w          # the staircase art's own x-extent
 		var shaft_max: float = shaft_x + half_w
 		var clip_top: float = box.get("top_y", CORRIDOR_PLANE_Y - 100.0)
+		var is_up: bool = box.get("is_up", false)
 		# The player's own mouth cut — the fixed line their descent is sliced through
 		# (line just above the standing spot, plus the foot offset). Reused verbatim.
 		var cut_y: float = (CORRIDOR_PLANE_Y - StairPan.DOWN_STAIR_APPROACH) + StairPan.DOWN_SHRED_FOOT
 		var rng := RandomNumberGenerator.new()
 		rng.seed = hash(str(WorldState.master_seed) + "stairenemy" + str(choke) + str(WorldState.current_run))
-		# Where it waits, sunk in the shaft: around the mouth cut (upper body visible,
-		# lower half sliced away), a little higher or lower per seed.
-		var rest_y: float = cut_y + rng.randf_range(-8.0, 30.0)
+		# Where it waits, mirroring which way the stairs run:
+		#   DOWN shaft (dark, recedes down): origin sits BELOW the mouth cut, so only its
+		#     head/shoulders poke up — lurking down the shaft, not a body with amputated
+		#     feet. Rising to the plane reveals it head-first, slice by slice.
+		#   UP stairwell (visible steps up to the window): it stands UP the steps, above
+		#     the plane (its top tucked behind the bend by the shaft-top clip), and walks
+		#     DOWN the visible flight to emerge.
+		var rest_y: float
+		if is_up:
+			rest_y = clip_top + rng.randf_range(12.0, 36.0)   # up near the top bend, on the visible steps
+		else:
+			rest_y = cut_y + rng.randf_range(28.0, 58.0)      # down in the dark shaft
 		var z = zombie_scene.instantiate()
 		z.global_position = Vector2(shaft_x, rest_y)
 		z.spawn_key = key
@@ -233,7 +244,7 @@ func _spawn_stair_hordes(floor_num: int) -> void:
 		var restored = WorldState.apply_saved_zombie(z)
 		if not restored:
 			z.enter_stairwell_mode(rest_y, CORRIDOR_PLANE_Y, STAIR_BOB_AMP, cut_y,
-				shaft_min, shaft_max, clip_top, on_left)
+				shaft_min, shaft_max, clip_top, on_left, is_up)
 
 
 # How close (px) to a horde stairwell the first-approach warning fires. The

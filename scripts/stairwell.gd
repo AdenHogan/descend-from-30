@@ -176,7 +176,7 @@ func _use_stairs() -> void:
 	# them off (a thrown can) before the way is yours. Blocks while any live zombie
 	# is right on the stairwell.
 	if WorldState.is_stair_horde(_choke_floor()) and _horde_blocking():
-		TutorialManager.say("The stairwell's swarming — no getting through until I clear them out or draw them off.")
+		TutorialManager.say("Something's coming up the stairs — I can't get past until it's off them.")
 		return
 
 	_perform_transition()
@@ -193,16 +193,17 @@ const SHAFT_BLOCK_HALF_WIDTH := 52.0
 
 
 func _horde_blocking() -> bool:
-	# Only a zombie that has actually STEPPED OFF the stairs and is standing on them,
-	# in the shaft's narrow x-band, contests the crossing. One still on the steps
-	# (stair_mode: passable, mid-emerge) does NOT lock you out — you can pass or wait
-	# for it to come down; and one that has chased off down the corridor leaves the
-	# band, so it no longer counts either.
+	# You're locked out ONLY while an enemy is on / coming up the stairs — i.e. still in
+	# stairwell mode (lurking in the shaft or rising to emerge), within the shaft's
+	# narrow x-band. The moment it has STEPPED OFF onto the corridor it's an ordinary
+	# enemy and the crossing is free again: you can descend past it (you'll fight it on
+	# the landing, but traversal isn't held hostage). This matches the descent rule —
+	# blocked if something's coming up the stairs, open otherwise.
 	for z in get_tree().get_nodes_in_group("zombie"):
 		if z.is_dead:
 			continue
-		if ("stair_mode" in z) and z.stair_mode:
-			continue
+		if not (("stair_mode" in z) and z.stair_mode):
+			continue   # stepped off (or an ordinary zombie) — doesn't hold the stairs
 		if absf(z.global_position.x - global_position.x) <= SHAFT_BLOCK_HALF_WIDTH:
 			return true
 	return false

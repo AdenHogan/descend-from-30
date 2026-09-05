@@ -142,29 +142,31 @@ var distraction_timer: float = 0.0
 # THEN is it a solid, attackable/pushable, ordinary chaser. While still on the steps
 # it is passable and unharmable — you fight it once it's off the stairwell.
 var stair_mode: bool = false
+var _stair_up: bool = false            # true = UP stairwell (visible steps, enemy above the plane, comes DOWN); false = DOWN shaft (dark, enemy below the plane, rises UP)
 var _stair_plane_y: float = 391.0      # corridor standing line (where it steps off)
 var _stair_rest_y: float = 401.0       # where it waits, sunk in the shaft
-var _stair_bob_amp: float = 0.0        # gentle up/down drift while waiting
+var _stair_bob_amp: float = 0.0        # gentle drift while waiting
 var _stair_dir: float = -1.0
-var _stair_cut_y: float = 1.0e9        # the player's mouth cut (fixed) — feet-first slice
+var _stair_cut_y: float = 1.0e9        # DOWN shaft: the player's mouth cut (feet-first slice); UP: inert
 var _stair_shaft_min: float = -1.0e9   # opening x-band, from the staircase art
 var _stair_shaft_max: float = 1.0e9
-var _stair_clip_top: float = -1.0e9    # top edge of the opening, from the staircase art
+var _stair_clip_top: float = -1.0e9    # top edge of the opening, from the staircase art (hides "behind the bend")
 var _stair_phase: String = "idle"      # idle → rise → stepoff → (normal AI)
 var _stair_reveal_t: float = 0.0
 var _stair_face_flip: bool = false
 var _stair_mat: ShaderMaterial = null
 var _stair_base_scale: Vector2 = Vector2.ONE
-const STAIR_ACTIVATE_RANGE := 170.0    # player this close in X → it rises and emerges
-const STAIR_IDLE_SPEED := 10.0         # gentle up/down drift while waiting
-const STAIR_RISE_SPEED := 40.0         # climbing up the steps toward the corridor
-const STAIR_STEPOFF_TIME := 0.22       # the arrival reveal (cut sweeps off the feet)
-const STAIR_DEPTH_SPAN := 44.0         # how far below the plane counts as "fully in the shaft"
+const STAIR_ACTIVATE_RANGE := 170.0    # player this close in X → it emerges onto the corridor
+const STAIR_IDLE_SPEED := 10.0         # gentle drift while waiting
+const STAIR_RISE_SPEED := 40.0         # moving along the steps toward the corridor plane
+const STAIR_STEPOFF_TIME := 0.22       # the arrival reveal (cut sweeps off the feet, DOWN shaft)
+const STAIR_DEPTH_SPAN := 44.0         # how far off the plane counts as "fully in the shaft"
 
 
 func enter_stairwell_mode(rest_y: float, plane_y: float, bob_amp: float, cut_y: float,
-		shaft_min: float, shaft_max: float, clip_top: float, on_left: bool) -> void:
+		shaft_min: float, shaft_max: float, clip_top: float, on_left: bool, is_up: bool) -> void:
 	stair_mode = true
+	_stair_up = is_up
 	_stair_plane_y = plane_y
 	_stair_rest_y = rest_y
 	_stair_bob_amp = bob_amp
@@ -177,6 +179,10 @@ func enter_stairwell_mode(rest_y: float, plane_y: float, bob_amp: float, cut_y: 
 	base_walk_y = plane_y               # once it steps off, its corridor line is the standing plane
 	global_position.y = rest_y
 	_stair_dir = -1.0
+	# It's back in the shaft depth: draw BEHIND the player (who is out on the corridor
+	# plane), so the player passes in FRONT of it, never behind. Restored to the actor
+	# layer when it steps off (_exit_stairwell_mode).
+	z_index = 0
 	if animated_sprite != null:
 		_stair_base_scale = animated_sprite.scale
 	# No invisible wall and no damage while it's on the steps — you interact once it
@@ -187,9 +193,13 @@ func enter_stairwell_mode(rest_y: float, plane_y: float, bob_amp: float, cut_y: 
 
 
 func _apply_stair_slice() -> void:
-	# The player's shredder, verbatim: clip_dir +1 (discard below the cut = sliced
-	# feet-first, exactly as _descend does) and the player's own mouth cut. The x-band
-	# and top clip come from the staircase art so the body stays framed by the opening.
+	# Uses the player's shredder, mirroring the player's own DOWN/UP transition:
+	#   DOWN shaft (dark, steps recede down) — the player's feet-first mouth cut
+	#     (clip_dir +1, cut_y at the mouth): sunk below the plane it shows only its head/
+	#     shoulders, revealing head-first as it rises. Like _descend.
+	#   UP stairwell (visible yellow steps up to the window) — no feet cut (the feet ARE
+	#     visible on the steps); only the shaft-top clip hides whatever is up behind the
+	#     bend, so it appears as it comes DOWN the visible flight. Like _ascend beat 1.
 	if animated_sprite == null:
 		return
 	if _stair_mat == null:
@@ -198,7 +208,7 @@ func _apply_stair_slice() -> void:
 		_stair_mat = ShaderMaterial.new()
 		_stair_mat.shader = sh
 		_stair_mat.set_shader_parameter("clip_dir", 1.0)
-	_stair_mat.set_shader_parameter("cut_y", _stair_cut_y)
+	_stair_mat.set_shader_parameter("cut_y", 1.0e9 if _stair_up else _stair_cut_y)
 	_stair_mat.set_shader_parameter("shaft_min", _stair_shaft_min)
 	_stair_mat.set_shader_parameter("shaft_max", _stair_shaft_max)
 	_stair_mat.set_shader_parameter("shaft_top", _stair_clip_top)
@@ -206,11 +216,12 @@ func _apply_stair_slice() -> void:
 
 
 func _update_stair_draw() -> void:
-	# Depth scale from the player's constant, eased by how deep in the shaft it sits:
-	# full size at the plane, shrinking to DOWN_DEPTH_SCALE when fully sunk.
+	# Depth scale from the player's constant, eased by how far OFF the plane it sits
+	# (below it in a down shaft, above it on up steps): full size at the plane, shrinking
+	# to DOWN_DEPTH_SCALE when fully back in the shaft.
 	if animated_sprite == null:
 		return
-	var depth: float = clampf((global_position.y - _stair_plane_y) / STAIR_DEPTH_SPAN, 0.0, 1.0)
+	var depth: float = clampf(absf(global_position.y - _stair_plane_y) / STAIR_DEPTH_SPAN, 0.0, 1.0)
 	var s: float = lerpf(1.0, StairPan.DOWN_DEPTH_SCALE, depth)
 	animated_sprite.scale = _stair_base_scale * s
 
@@ -221,6 +232,7 @@ func _exit_stairwell_mode() -> void:
 	# clear — so it never re-solidifies while overlapping the player.
 	stair_mode = false
 	_stair_phase = "done"
+	z_index = 1                         # back on the actor layer, like every other zombie
 	if animated_sprite != null and is_instance_valid(animated_sprite):
 		if animated_sprite.material == _stair_mat:
 			animated_sprite.material = null
@@ -272,11 +284,12 @@ func _stair_tick(delta: float) -> bool:
 				_stair_reveal_t = 0.0
 			return true
 		"stepoff":
-			# The arrival reveal: sweep the cut down past the feet so the last of the
-			# slice (the lower legs) fades in as it steps off, then hand to normal AI.
+			# The arrival reveal (DOWN shaft only): sweep the cut down past the feet so the
+			# last of the slice (the lower legs) fades in as it steps off. The UP stairwell
+			# has no feet cut, so it just settles onto the plane. Then hand to normal AI.
 			_stair_reveal_t += delta
 			var f: float = clampf(_stair_reveal_t / STAIR_STEPOFF_TIME, 0.0, 1.0)
-			if _stair_mat != null:
+			if _stair_mat != null and not _stair_up:
 				_stair_mat.set_shader_parameter("cut_y", lerpf(_stair_cut_y, _stair_plane_y + 140.0, f))
 			if animated_sprite != null:
 				animated_sprite.play("Walk")

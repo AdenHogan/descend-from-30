@@ -456,9 +456,9 @@ func _test_stair_horde_spawns() -> void:
 			all_in_shaft = false            # must not wall the player off while on the steps
 		if z.global_position.x > 260.0 and z.global_position.x < 1090.0:
 			all_in_shaft = false            # not tucked into a stairwell
-		if z.global_position.y < 391.0:
-			all_in_shaft = false            # should be sunk on the steps, not above the plane
-	check(all_in_shaft, "the stairwell enemy waits sliced IN the shaft (stair mode, passable, sunk)")
+		if absf(z.global_position.y - 391.0) < 8.0:
+			all_in_shaft = false            # should be OFF the plane, on the steps (up OR down), not standing on the corridor
+	check(all_in_shaft, "the stairwell enemy waits sliced IN the shaft (stair mode, passable, off the plane)")
 	# It is unharmable while on the steps (you fight it once it's stepped off).
 	var z0 = horde[0]
 	var hp_before: int = z0.current_hp
