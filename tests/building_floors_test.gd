@@ -443,21 +443,19 @@ func _test_stair_horde_spawns() -> void:
 	var bf = load("res://scenes/building_floors.tscn").instantiate()
 	add_child(bf)
 	var horde := get_tree().get_nodes_in_group("stair_horde")
-	# Two active stairwells x 3-4 each — a small knot on the steps, not a mob.
+	# Two active stairwells x 3-4 each — a small knot of STANDARD zombies by the steps.
 	check(horde.size() >= 6 and horde.size() <= 8, "a horde cluster spawns at each stairwell (%d)" % horde.size())
+	# They are plain standard enemies: clustered by the stairwells (not mid-corridor),
+	# solid (NOT passable), and using normal AI (no bespoke docked/emerging state).
 	var all_at_ends := true
-	var all_docked := true
-	var all_passable := true
+	var any_passable := false
 	for z in horde:
 		if z.global_position.x > 550.0 and z.global_position.x < 850.0:
 			all_at_ends = false   # mid-corridor, not by a stairwell
-		if not z.stair_docked:
-			all_docked = false    # they wait IN the stairwell until the player nears
-		if not z.passable_to_player:
-			all_passable = false  # a docked zombie must NOT wall the player off
+		if z.passable_to_player:
+			any_passable = true   # a fresh standard zombie must be solid
 	check(all_at_ends, "horde zombies cluster by the stairwells, not mid-corridor")
-	check(all_docked, "horde zombies start docked in the stairwell (sliced, not roaming)")
-	check(all_passable, "docked horde zombies are passable to the player (no invisible wall)")
+	check(not any_passable, "horde zombies are standard SOLID enemies (no passable/docked hack)")
 	# No VISIBLE barricade crates while in horde mode (one hazard at a time; the
 	# self-hiding props may exist but must not show).
 	var vis_crates := 0

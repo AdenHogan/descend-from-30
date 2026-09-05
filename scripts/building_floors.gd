@@ -147,43 +147,28 @@ func _spawn_barricade_visuals(floor_num: int) -> void:
 		add_child(prop)
 
 
-# A stairwell horde is a SMALL knot of 3-4 zombies waiting ON the steps (not a mob
-# spilling into the hall) — docked + sliced in the stairwell, emerging when neared.
+# A stairwell "horde" is nothing special — just 3-4 STANDARD zombies that happen to be
+# clustered at a stairwell. They spawn like any other enemy (normal AI, solid, chase),
+# in the stair_horde group so kills there persist. Being live enemies near the steps,
+# they block the crossing (stairwell.gd _horde_blocking) until cleared or lured off.
 const STAIR_HORDE_MIN := 3
 const STAIR_HORDE_MAX := 4
 const HORDE_ECHO := preload("res://scripts/horde_echo.gd")
-const CORRIDOR_PLANE_Y := 391.0        # the walking line zombies settle on == SPAWN_*_*.y
-const STAIR_DOCK_EMERGE_RANGE := 250.0 # how near (x) the player must get to trigger the climb-out
-const STAIR_DOCK_DIM := Color(0.62, 0.64, 0.7)  # shadowed tint while down in the DARK shaft
-const STAIR_DOCK_DIM_UP := Color(0.9, 0.91, 0.94) # barely dimmed on the lit visible steps
-# Owner's blue-line cut-off for the stairs: at/above it an actor is visible in front;
-# BELOW it the actor is behind the .png (sliced out of frame). Measured off the art.
-const STAIR_CUT_Y := 394.0
+const CORRIDOR_PLANE_Y := 391.0        # the corridor walking line (== SPAWN_*_*.y)
 
 
 # Stairwells (this floor) that carry a live-enemy hazard: {x, side}. Read by the
 # approach-warning check in _process.
 var _horde_warn_targets: Array = []
-# Docked stair hordes awaiting release: {zombies, stair_x, band, emerged}.
-var _stair_hordes: Array = []
-var _slice_shader: Shader = null
-
-
-func _stair_slice_shader() -> Shader:
-	# Reuse the stair-pan SHREDDER (clips a sprite below cut_y, within the shaft x-band)
-	# so a docked zombie shows only the part above the landing — waiting in the stairwell.
-	if _slice_shader == null:
-		_slice_shader = Shader.new()
-		_slice_shader.code = StairPan.SHRED_SHADER
-	return _slice_shader
 
 
 func _spawn_stair_hordes(floor_num: int) -> void:
-	# Hazard 2: a cluster of live zombies packed in front of a horde stairwell,
-	# guarding it (both landings, so it blocks either direction). Kills persist via
-	# stable per-floor keys, so clearing them sticks; luring them off (a thrown can)
-	# frees the steps while they're away. See stairwell.gd for the block check.
-	_stair_hordes.clear()
+	# 3-4 STANDARD zombies clustered at a horde stairwell — nothing special, just normal
+	# enemies that happen to be gathered by the steps. They spawn on the corridor walking
+	# plane, use normal AI (idle until the player's near, then chase), are solid (block +
+	# pushable), and their kills persist via stable per-floor keys. Being live enemies by
+	# the steps, they block the crossing (stairwell.gd _horde_blocking) until cleared or
+	# lured off (a thrown can). No docking, slicing, or bespoke emerge.
 	var zombie_scene = preload("res://scenes/enemy_zombie_standard.tscn")
 	for tname in _BARRICADE_TRIGGERS:
 		var t = get_node_or_null(tname)
@@ -194,179 +179,28 @@ func _spawn_stair_hordes(floor_num: int) -> void:
 			continue
 		var stair_x: float = t.global_position.x
 		var on_left: bool = stair_x < 600.0
+		var toward: float = 1.0 if on_left else -1.0   # spill INTO the corridor, off the outer wall
 		var rng := RandomNumberGenerator.new()
 		rng.seed = hash(str(WorldState.master_seed) + "stairhordepos" + str(choke) + str(WorldState.current_run))
 		var count: int = STAIR_HORDE_MIN + (rng.randi() % (STAIR_HORDE_MAX - STAIR_HORDE_MIN + 1))
-		# The two stairwell ARTS put the walkable space in different places:
-		#   DOWN (Hallway art, dark shaft): the depth is the dark shaft toward the OUTER
-		#     wall — anchored on SPAWN_*_TOP.x, a narrow x-band, up off the floor line.
-		#   UP (Lobby art, yellow steps): the walkable space is the VISIBLE STEPS toward
-		#     the CENTRE — anchored on SPAWN_*_BOTTOM.x, a wider band, on the step treads
-		#     (world y~345-395). Above the steps is the back space behind the .png.
-		# Standing anywhere else (near wall / below the floor) is the hard border.
-		var is_up: bool = _stair_is_up(on_left)
-		var anchor_x: float
-		var band: Vector2
-		var y0: float          # deepest (back) zombie's centre y
-		var y_step: float      # each nearer one this much lower
-		var dock_cut: float    # slice line: below it is hidden (floor / step base)
-		var dock_top: float    # above it is hidden (back space / lintel)
-		var dock_dim: Color
-		if is_up:
-			# The VISIBLE stair column (window on top, yellow steps below). Enemies stand
-			# on the steps and UP in FRONT of the window — visible the whole way; the top
-			# of the stairs is NOT a cut line (the slice-behind only happens when an actor
-			# walks off to the side into the back-space box). Lit steps, so barely dimmed.
-			band = Vector2(172.0, 214.0) if on_left else Vector2(1138.0, 1180.0)
-			anchor_x = (band.x + band.y) * 0.5
-			y0 = 332.0; y_step = 17.0; dock_cut = STAIR_CUT_Y; dock_top = 300.0
-			dock_dim = STAIR_DOCK_DIM_UP
-		else:
-			# The dark shaft toward the outer wall — depth. Sliced at the blue-line cut, dim.
-			anchor_x = SPAWN_LEFT_TOP.x if on_left else SPAWN_RIGHT_TOP.x
-			band = Vector2(anchor_x - 11.0, anchor_x + 11.0)
-			y0 = 361.0; y_step = 9.0; dock_cut = STAIR_CUT_Y; dock_top = 320.0
-			dock_dim = STAIR_DOCK_DIM
-		var horde: Array = []
 		for i in range(count):
 			var key := "%d:horde:%d:%d" % [floor_num, choke, i]
 			if WorldState.killed_zombies.has(key):
 				continue
 			var z = zombie_scene.instantiate()
-			# A tight BUNCH: i=0 is deepest (highest/back), each one after is a step lower +
-			# nearer. They ignore each other's collision (swarm exception), so they overlap
-			# freely; z_index by depth keeps the overlap CLEAN — the nearer (lower) one draws
-			# fully IN FRONT, never interleaved/"cut up".
-			var cy: float = y0 + float(i) * y_step
-			var pos := Vector2(anchor_x, cy)
-			pos.x += rng.randf_range(-3.0, 3.0)
-			z.global_position = pos
+			z.global_position = Vector2(
+				stair_x + toward * (12.0 + float(i) * 22.0) + rng.randf_range(-4.0, 4.0),
+				CORRIDOR_PLANE_Y + rng.randf_range(-3.0, 3.0))
 			z.spawn_key = key
 			z.add_to_group("stair_horde")
 			add_child(z)
 			WorldState.apply_saved_zombie(z)
-			_dock_stair_zombie(z, band, dock_cut, dock_top, dock_dim)
-			z.z_index = 1 + i                    # deeper=back(low z), nearer=front(high z)
-			horde.append(z)
-		# Belt-and-braces: make every pair in this knot mutually collision-exempt now, so
-		# the tight bunch never shoves itself apart even if spawn-order missed a pair.
-		for a in horde:
-			for b in horde:
-				if a != b:
-					a.add_collision_exception_with(b)
-		_stair_hordes.append({
-			"zombies": horde, "stair_x": stair_x, "band": band, "emerged": false,
-		})
 		# Colored danger cue radiating from the steps, and a warn target so the
 		# player gets a first-time "I can hear them ahead" beat on approach.
 		var echo = HORDE_ECHO.new()
 		echo.global_position = Vector2(stair_x, 320.0)
 		add_child(echo)
 		_horde_warn_targets.append({"x": stair_x, "side": "left" if on_left else "right", "primed": false})
-
-
-func _emerge_stair_horde(h: Dictionary) -> void:
-	# They climb out to the stairwell's own standing spot (stair_x, the SAME x the player
-	# lands on there), fanned a little INTO the corridor so they file out one behind the
-	# next rather than piling on one tile (the AI spreads them further once chasing).
-	var stair_x: float = float(h["stair_x"])
-	var corridor_dir := 1.0 if stair_x < 600.0 else -1.0
-	var i := 0
-	for z in h["zombies"]:
-		if not is_instance_valid(z) or z.is_dead:
-			continue
-		_emerge_one(z, stair_x + corridor_dir * float(i) * 18.0, i * 0.3)
-		i += 1
-
-
-func _emerge_one(z, land_x: float, delay: float) -> void:
-	# Climb up out of the stairwell onto the landing using the SAME footfall stepping the
-	# player's stair transition uses (StairPan._stagger_y — discrete 16px steps at
-	# STEP_TIME), un-slicing / brightening / growing back to full over the same climb, then
-	# hand control to normal AI (chase). No camera move — this is an in-scene actor.
-	if delay > 0.0:
-		await get_tree().create_timer(delay, false).timeout
-	if not is_instance_valid(z) or z.is_dead:
-		return
-	z.stair_docked = false
-	z.stair_emerging = true
-	var spr = z.animated_sprite
-	if spr != null:
-		spr.play("Walk")
-	var mat = z.get_meta("slice_mat", null)
-	var base_scale = z.get_meta("base_scale", Vector2.ONE)
-	var base_mod = z.get_meta("base_modulate", Color.WHITE)
-	var from_y: float = z.global_position.y
-	# Footfall pace for this climb — the SAME step timing the player uses on stairs.
-	var climb: float = StairPan._climb_time(absf(CORRIDOR_PLANE_Y - from_y))
-	# Y climbs in discrete steps (StairPan._stagger_y); X, the un-slice cut sweep, the
-	# brighten and the grow-back all run in parallel over the same climb duration.
-	var y_tw: Tween = StairPan._stagger_y(z, from_y, CORRIDOR_PLANE_Y)
-	var t := create_tween().set_parallel(true)
-	t.tween_property(z, "global_position:x", land_x, climb).set_trans(Tween.TRANS_LINEAR)
-	if mat != null:
-		# Sweep the cut down past the feet (SHRED_BOTTOM below the landing) so the whole
-		# body reveals as it rises — mirroring the descent's reveal sweep.
-		t.tween_property(mat, "shader_parameter/cut_y",
-			CORRIDOR_PLANE_Y + StairPan.SHRED_BOTTOM, climb)
-	if spr != null:
-		t.tween_property(spr, "modulate", base_mod, climb)
-		t.tween_property(spr, "scale", base_scale, climb)
-	# Wait out the climb on a TIMER, never on the tweens' `finished` signals: the two
-	# tweens run in parallel and either can finish a frame before it's awaited, so
-	# awaiting its already-fired signal would hang FOREVER — leaving the zombie stuck
-	# mid-emerge (idle, passable, wrong layer, never chasing). The timer always fires.
-	await get_tree().create_timer(climb + 0.05, false).timeout
-	if not is_instance_valid(z):
-		return
-	if z.animated_sprite != null:
-		z.animated_sprite.material = null            # fully un-sliced, out in the corridor
-		z.animated_sprite.modulate = base_mod
-		z.animated_sprite.scale = base_scale
-	z.z_index = 1                                    # back to the normal actor layer
-	z.stair_emerging = false                         # normal AI (chase) resumes
-
-
-func _stair_is_up(on_left: bool) -> bool:
-	# Which staircase ART this side is showing (set by _apply_stair_visuals): the Lobby
-	# sprite is the UP stairwell (visible steps), Hallway_Staircase is the DOWN stairwell
-	# (dark shaft). Defaults to DOWN if neither resolves.
-	var lobby = get_node_or_null("LobbyLeft" if on_left else "LobbyRight")
-	return lobby != null and lobby.visible
-
-
-func _dock_stair_zombie(z, band: Vector2, cut_y: float, top_clip: float, dim: Color) -> void:
-	# Freeze the zombie down in the shaft and slice its sprite on the player's stair-cut
-	# line, so everything below is hidden — it reads as standing in the stairwell,
-	# head/shoulders above the steps, not chopped off at the thigh. Shrink it to the same
-	# DEPTH scale the player's descent uses, and dim it into the unlit shaft. base_walk_y
-	# is the CORRIDOR line, so once emerged it settles on the walking plane.
-	z.base_walk_y = CORRIDOR_PLANE_Y
-	z.stair_docked = true
-	# CRITICAL: a docked zombie must NOT physically block the player. It sits up in the
-	# shaft, frozen; if it collided it would be an invisible wall (the player can't pass,
-	# and being frozen it never clears) and could even shove the player onto the wrong
-	# plane. The stairwell CROSSING is gated by stairwell.gd (_horde_blocking), not by
-	# body collision. Make it passable now; once emerged into chase it resolidifies
-	# (enemy _try_resolidify) so melee still connects.
-	if z.has_method("_make_passable_to_player"):
-		z._make_passable_to_player()
-	var spr = z.animated_sprite
-	if spr == null:
-		return
-	z.set_meta("base_scale", spr.scale)
-	z.set_meta("base_modulate", spr.modulate)
-	spr.modulate = dim
-	spr.scale = spr.scale * StairPan.DOWN_DEPTH_SCALE   # same depth shrink as the player's descent
-	var mat := ShaderMaterial.new()
-	mat.shader = _stair_slice_shader()
-	mat.set_shader_parameter("cut_y", cut_y)             # below it hidden (floor line / step base)
-	mat.set_shader_parameter("clip_dir", 1.0)            # discard BELOW (same as the descent)
-	mat.set_shader_parameter("shaft_min", band.x)
-	mat.set_shader_parameter("shaft_max", band.y)
-	mat.set_shader_parameter("shaft_top", top_clip)      # above it hidden (back space / lintel)
-	spr.material = mat
-	z.set_meta("slice_mat", mat)
 
 
 # How close (px) to a horde stairwell the first-approach warning fires. The
@@ -390,15 +224,6 @@ func _process(delta: float) -> void:
 		if dist <= APPROACH_WARN_DIST and not WorldState.hazard_warned(floor_num, target["side"]):
 			WorldState.mark_hazard_warned(floor_num, target["side"])
 			_warn_hazard("Wait — I can hear them ahead. The stairwell's crawling with them. Careful now.")
-	# Stairwell hordes climb OUT when the player comes near: each docked zombie steps up
-	# to the landing (un-slicing) and then chases. Staggered so they spill out one after
-	# another rather than all at once.
-	for h in _stair_hordes:
-		if h["emerged"]:
-			continue
-		if absf(player.global_position.x - float(h["stair_x"])) <= STAIR_DOCK_EMERGE_RANGE:
-			h["emerged"] = true
-			_emerge_stair_horde(h)
 	# Fire memory: snapshot the fire's spread PERIODICALLY (not only in _exit_tree),
 	# keyed by the floor THIS scene built. _exit_tree alone proved unreliable across a
 	# stair transition (the fire came back empty), so we also keep a fresh snapshot on

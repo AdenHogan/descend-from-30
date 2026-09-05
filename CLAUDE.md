@@ -272,27 +272,19 @@ means no rendering — UI layout and art still need an in-editor look.
   pulls only the **stairwell-seeded** dead on the adjacent floor (never a
   whole-floor vacuum; running never pulls). Seeded per (floor,run); floor 30 +
   floor 1 exempt. A blocked stairwell shows a **crate-stack prop**
-  (`barricade_prop.gd`) at both landings. **Hazard 2 — hordes (v2):** other
-  stairwells hold a **small knot of live zombies** (`is_stair_horde`, seeded ~15%,
-  mutually exclusive with barricades) — no crowbar, you **fight or lure** them off
-  (thrown can). **3–4 zombies wait DOCKED IN the stairwell** (`stair_docked`), each
-  **sliced** by the stair-pan `SHRED_SHADER` (reused via `StairPan.SHRED_SHADER`) so
-  only the part above the landing shows — they read as standing down in the shaft,
-  confined to its x-band (nothing on the wall beside the opening). **Consistent with
-  the player's stair transition** (owner-audited): the slice sits on the SAME cut line
-  the player descent uses (`CORRIDOR_PLANE_Y − StairPan.DOWN_STAIR_APPROACH +
-  DOWN_SHRED_FOOT` = y401), shrunk to the SAME `StairPan.DOWN_DEPTH_SCALE`. They're
-  frozen (no roaming the hall) until the player comes within `STAIR_DOCK_EMERGE_RANGE`,
-  then they **EMERGE** one-by-one (`stair_emerging`): a climb up to the stairwell's own
-  standing spot (`stair_x`, where the player lands) using the SAME footfall stepping
-  (`StairPan._stagger_y`, 16px steps at `STEP_TIME`) and the SAME reveal-cut sweep
-  (`+ StairPan.SHRED_BOTTOM`), **un-slicing** + brightening + growing back to full as
-  they rise, landing spots fanned so they file out rather than stack, after which normal
-  AI (chase) takes over — no camera move (in-scene actors). (Two intentional deviations
-  from the single-actor transition: the group is staggered at multiple depths, and it
-  dims into the unlit shaft — the player code shrinks but doesn't dim.) `stair_horde` group, kills
-  persist; `stairwell.gd` blocks the crossing while any live zombie is within
-  `HORDE_BLOCK_RANGE`. No shift/rest cost — the fight is the cost. A horde stairwell
+  (`barricade_prop.gd`) at both landings. **Hazard 2 — hordes (v3, simplified):**
+  a stairwell "horde" is **NOT a special entity** — it's just **3–4 STANDARD zombies
+  clustered at a stairwell** (`is_stair_horde`, seeded ~15%, mutually exclusive with
+  barricades). They spawn on the corridor walking plane at the stair mouth (spilling a
+  little INTO the corridor, off the outer wall), use normal AI (idle → chase), are
+  solid (block + pushable), and their kills persist (`stair_horde` group + per-floor
+  keys). No crowbar — you **fight or lure** them off (thrown can). Because they're live
+  enemies by the steps, `stairwell.gd` blocks the crossing while any is within
+  `HORDE_BLOCK_RANGE`. No shift/rest cost — the fight is the cost. (An earlier v2 built
+  a bespoke docked/sliced/frozen/custom-emerge entity; it walled the player off and
+  was scrapped per owner: enemies here are meant to be ORDINARY enemies that happen to
+  stack up in the stairwell. **Future/organic:** standard enemies actually traversing
+  floors up/down via the stair transition — not built.) A horde stairwell
   shows a **colored red echo pulse** (`horde_echo.gd`)
   and gives a **one-time approach warning** (brief freeze + player line,
   `building_floors._process` + `hazard_approach_warned`); barricades give no
