@@ -276,29 +276,32 @@ means no rendering — UI layout and art still need an in-editor look.
   emerging):** deliberately simplified from the old "horde" — a stairwell enemy is now
   **ONE STANDARD zombie that spawns partway down the stairs** (`is_stair_horde`, seeded
   ~15%, mutually exclusive with barricades; dev-forced on every stairwell by the F2 horde
-  step). It's drawn with the **PLAYER'S OWN stair slice** (`enemy.enter_stairwell_mode`
-  → `StairPan.SHRED_SHADER` with the player's fixed **mouth cut**, `DOWN_STAIR_APPROACH`
-  + `DOWN_SHRED_FOOT`, and **depth scale** `DOWN_DEPTH_SCALE`) — **no invented slice
-  numbers, the player's, with the zombie sprite swapped in**; only the x-band + top clip
-  are extra and those are **read from the visible staircase sprite at runtime**
-  (`building_floors._stair_art_box`: 353×443 art → ~x[131,211] y[291,406], standing line
-  391). **Two directions, mirroring the player's own DOWN/UP transition** (`_stair_up`):
-  on a **DOWN shaft** (dark, `Hallway_Staircase_*`) it lurks BELOW the plane, sliced by
-  the mouth cut so only its head/shoulders show, and RISES up appearing head-first; on an
-  **UP stairwell** (visible yellow steps, `Lobby_*`) it stands UP the steps ABOVE the
-  plane with its top tucked behind the bend (shaft-top clip, no feet cut — the feet ARE
-  on the visible steps) and walks DOWN. Getting the direction wrong is what sank the enemy
-  into the floor with amputated feet on an up-stairwell. **Sequence** (`_stair_tick` phase
-  machine `idle → rise → stepoff → normal AI`): it waits in the shaft, drifting gently
-  (`STAIR_BOB_AMP`); when the player comes within `STAIR_ACTIVATE_RANGE` (or gunfire
-  alerts it) it moves along the steps to the plane, appearing as it clears the cut/bend
-  and growing to full size; reaching the plane it **steps off** (DOWN shaft sweeps the cut
-  off the feet over `STAIR_STEPOFF_TIME`; UP just settles) and hands to **normal AI** — an
-  ordinary solid, pushable, killable chaser. While in the shaft it draws at **z 0 (BEHIND
-  the player**, who is on the corridor plane, so the player passes in front, never behind)
-  and is **passable and unharmable** (no invisible wall, no interaction) — you attack/push
-  it only once it's stepped off (z back to 1). Kills persist (`stair_horde` group +
-  per-floor key `<floor>:stairwell:<choke>`). **Crossing lock** (`stairwell.gd`
+  step). It spawns at the stair **TRIGGER x** — the exact point the player itself snaps
+  to when using the steps (the authoritative centre of the staircase), NOT the art
+  texture centre (which is offset). **Two directions, mirroring the player's own DOWN/UP
+  transition** (`_stair_up`): on a **DOWN shaft** (dark, `Hallway_Staircase_*`) it lurks
+  BELOW the plane, drawn with the **PLAYER'S OWN mouth cut** (`StairPan.SHRED_SHADER`,
+  `DOWN_STAIR_APPROACH` + `DOWN_SHRED_FOOT`, clip_dir +1) so only its head/shoulders show,
+  and RISES up appearing head-first — the same slice the player descends through; on an
+  **UP stairwell** (visible yellow steps, `Lobby_*`) the steps are VISIBLE so it's drawn
+  WHOLE (no slice, just `DOWN_DEPTH_SCALE`), standing up the steps ABOVE the plane, and
+  walks DOWN. (An earlier build applied the down-slice to both and sank the enemy into the
+  floor with amputated feet on an up-stairwell.) **Sequence** (`_stair_tick` phase machine
+  `idle → rise → stepoff → normal AI`): it waits, drifting gently (`STAIR_BOB_AMP`); when
+  the player comes within `STAIR_ACTIVATE_RANGE` (or gunfire alerts it) it moves along the
+  steps to the plane, appearing as it clears the cut and growing to full size; reaching
+  the plane it **steps off** (DOWN shaft sweeps the cut off the feet over
+  `STAIR_STEPOFF_TIME`; UP just settles) and hands to **normal AI**. **Robustness — this
+  is where earlier builds softlocked, so it's built to be impossible:** while on the
+  stairs its **body collision is OFF** (`set_collision_layer_value(1,false)`), so it can
+  NEVER shove or wall off the player — but it is **ALWAYS killable/pushable** (attacks are
+  distance-based on the `zombie` group, not collision), and **any hit/push/can pulls it
+  straight off the stairs** (`receive_damage`/`receive_push` call `_exit_stairwell_mode`)
+  into ordinary AI. There is no state where it is present but unremovable. It draws at
+  **z 0** (behind the player) while in the shaft, z 1 once stepped off; collision is
+  restored on step-off (passable-until-clear so it never jams). Kills persist
+  (`stair_horde` group + per-floor key `<floor>:stairwell:<choke>`). **Crossing lock**
+  (`stairwell.gd`
   `_horde_blocking`) blocks the crossing ONLY while an enemy is **on / coming up the
   stairs** — i.e. still in `stair_mode`, within `SHAFT_BLOCK_HALF_WIDTH` (52px) of the
   stair centre. The instant it **steps off** onto the corridor the crossing is free again

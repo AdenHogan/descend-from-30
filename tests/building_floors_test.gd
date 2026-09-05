@@ -452,18 +452,18 @@ func _test_stair_horde_spawns() -> void:
 	for z in horde:
 		if not z.stair_mode:
 			all_in_shaft = false
-		if not z.passable_to_player:
-			all_in_shaft = false            # must not wall the player off while on the steps
+		if z.get_collision_layer_value(1):
+			all_in_shaft = false            # body collision must be OFF on the steps (can't shove/wall the player)
 		if z.global_position.x > 260.0 and z.global_position.x < 1090.0:
 			all_in_shaft = false            # not tucked into a stairwell
 		if absf(z.global_position.y - 391.0) < 8.0:
 			all_in_shaft = false            # should be OFF the plane, on the steps (up OR down), not standing on the corridor
-	check(all_in_shaft, "the stairwell enemy waits sliced IN the shaft (stair mode, passable, off the plane)")
-	# It is unharmable while on the steps (you fight it once it's stepped off).
+	check(all_in_shaft, "the stairwell enemy waits IN the shaft (stair mode, no body collision, off the plane)")
+	# It is ALWAYS killable — no softlock. A hit pulls it OUT of stair mode into normal
+	# handling instead of being unharmable, so it can always be dealt with.
 	var z0 = horde[0]
-	var hp_before: int = z0.current_hp
-	z0.receive_damage(3, "blade")
-	check(z0.current_hp == hp_before and not z0.is_dead, "a stairwell enemy is unharmable until it steps off")
+	z0.receive_damage(1, "blade")
+	check(not z0.stair_mode, "a hit pulls a stairwell enemy off the steps (killable, never a softlock)")
 	# No VISIBLE barricade crates while in horde mode (one hazard at a time; the
 	# self-hiding props may exist but must not show).
 	var vis_crates := 0
