@@ -127,6 +127,131 @@ var distraction_target: Vector2 = Vector2.ZERO
 var distraction_timer: float = 0.0
 
 
+# --- Stairwell horde: standing / shuffling IN the shaft --------------------
+# A horde zombie is nothing but a STANDARD zombie that spawns up inside the
+# stairwell instead of out on the corridor. While idle up there it is:
+#   * confined to the staircase opening's x-band and clipped above its top edge,
+#     using the SAME shredder the player's stair transition uses (StairPan.
+#     SHRED_SHADER) — so only the part of it framed by the opening is drawn: it
+#     reads as sliced, waiting in the depth of the stairs;
+#   * shrunk + dimmed a touch (StairPan's depth cues), further into the unlit shaft;
+#   * shuffling slowly up and down the steps (different zombies at different
+#     heights), so the stairwell reads as "something could be coming up or down".
+# The instant the player gets close — or gunfire/a thrown can pulls it — it walks
+# DOWN out of the shaft onto the corridor and is an ORDINARY chaser from then on
+# (normal AI, solid, pushable, killable). Nothing about combat/aggro changes; this
+# is only what it does while left alone in the shaft. All geometry is passed in by
+# building_floors, measured from the visible staircase sprite (no guessed pixels).
+var stair_mode: bool = false
+var _stair_foot_y: float = 391.0       # corridor standing line (bottom of the steps)
+var _stair_rest_y: float = 391.0       # this zombie's home height on the steps
+var _stair_bob_amp: float = 0.0        # how far above rest it shuffles
+var _stair_dir: float = -1.0           # -1 shuffling up, +1 shuffling back down
+var _stair_shaft_min: float = -1.0e9
+var _stair_shaft_max: float = 1.0e9
+var _stair_clip_top: float = -1.0e9    # discard everything above this (behind the bend)
+var _stair_leaving: bool = false
+var _stair_face_flip: bool = false     # which way it faces down the steps toward the corridor
+var _stair_mat: ShaderMaterial = null
+var _stair_base_scale: Vector2 = Vector2.ONE
+var _stair_base_mod: Color = Color(1, 1, 1, 1)
+const STAIR_ACTIVATE_RANGE := 160.0    # player this close in X → it descends to chase
+const STAIR_PACE_SPEED := 12.0         # slow shuffle up/down the steps
+const STAIR_LEAVE_SPEED := 46.0        # coming down out of the shaft
+const STAIR_DEPTH_SCALE := 0.82        # matches StairPan depth (further in = smaller)
+const STAIR_DEPTH_DIM := 0.74          # the shaft is unlit
+
+
+func enter_stairwell_mode(rest_y: float, foot_y: float, bob_amp: float,
+		shaft_min: float, shaft_max: float, clip_top: float, on_left: bool) -> void:
+	stair_mode = true
+	_stair_foot_y = foot_y
+	_stair_rest_y = rest_y
+	_stair_bob_amp = bob_amp
+	_stair_shaft_min = shaft_min
+	_stair_shaft_max = shaft_max
+	_stair_clip_top = clip_top
+	_stair_face_flip = not on_left      # left stairwell faces right (down toward corridor), right faces left
+	base_walk_y = foot_y                # once it descends, its corridor line is the foot of the steps
+	global_position.y = rest_y
+	_stair_dir = -1.0
+	if animated_sprite != null:
+		_stair_base_scale = animated_sprite.scale
+		_stair_base_mod = animated_sprite.modulate
+	_apply_stair_slice()
+
+
+func _apply_stair_slice() -> void:
+	if animated_sprite == null:
+		return
+	if _stair_mat == null:
+		var sh := Shader.new()
+		sh.code = StairPan.SHRED_SHADER
+		_stair_mat = ShaderMaterial.new()
+		_stair_mat.shader = sh
+		_stair_mat.set_shader_parameter("cut_y", 1.0e9)   # no feet clip while standing on the steps
+		_stair_mat.set_shader_parameter("clip_dir", 1.0)
+	_stair_mat.set_shader_parameter("shaft_min", _stair_shaft_min)
+	_stair_mat.set_shader_parameter("shaft_max", _stair_shaft_max)
+	_stair_mat.set_shader_parameter("shaft_top", _stair_clip_top)
+	animated_sprite.material = _stair_mat
+	animated_sprite.scale = _stair_base_scale * STAIR_DEPTH_SCALE
+	animated_sprite.modulate = _stair_base_mod * Color(STAIR_DEPTH_DIM, STAIR_DEPTH_DIM, STAIR_DEPTH_DIM, 1.0)
+
+
+func _exit_stairwell_mode() -> void:
+	# Back to an ordinary corridor zombie: drop the slice, restore full size/colour.
+	stair_mode = false
+	if animated_sprite != null and is_instance_valid(animated_sprite):
+		if animated_sprite.material == _stair_mat:
+			animated_sprite.material = null
+		animated_sprite.scale = _stair_base_scale
+		animated_sprite.modulate = _stair_base_mod
+
+
+func _stair_tick(delta: float) -> bool:
+	# Returns true while stairwell mode still owns this zombie (skip normal AI).
+	# Any real engagement — a hit, a push, a knockdown, an attack, a can — means it's
+	# committed now: drop out of the shaft handling and let the normal machine run.
+	if state in ["hit", "recovering", "knockdown", "attack", "distracted"]:
+		_exit_stairwell_mode()
+		_stair_leaving = false
+		return false
+	if not _stair_leaving:
+		var near: bool = player != null \
+			and absf(player.global_position.x - global_position.x) <= STAIR_ACTIVATE_RANGE
+		if near or alert_timer > 0.0 or is_distracted:
+			_stair_leaving = true
+	if _stair_leaving:
+		# Walk down the steps to the corridor plane, then hand off to normal AI.
+		velocity.x = 0.0
+		global_position.y = move_toward(global_position.y, _stair_foot_y, STAIR_LEAVE_SPEED * delta)
+		if animated_sprite != null:
+			animated_sprite.play("Walk")
+			if player != null:
+				animated_sprite.flip_h = player.global_position.x < global_position.x
+		if absf(global_position.y - _stair_foot_y) <= 0.5:
+			global_position.y = _stair_foot_y
+			_exit_stairwell_mode()
+			_stair_leaving = false
+			state = "chase"
+			return false                       # this frame: run normal AI (it chases)
+		return true
+	# Idle: shuffle slowly up and down its stretch of the steps.
+	velocity.x = 0.0
+	global_position.y += _stair_dir * STAIR_PACE_SPEED * delta
+	if global_position.y <= _stair_rest_y - _stair_bob_amp:
+		global_position.y = _stair_rest_y - _stair_bob_amp
+		_stair_dir = 1.0
+	elif global_position.y >= _stair_rest_y:
+		global_position.y = _stair_rest_y
+		_stair_dir = -1.0
+	if animated_sprite != null:
+		animated_sprite.play("Walk")
+		animated_sprite.flip_h = _stair_face_flip
+	return true
+
+
 func be_distracted(pos: Vector2, duration: float = 6.0) -> void:
 	if is_dead or state in ["hit", "recovering", "knockdown"]:
 		return
@@ -426,6 +551,12 @@ func _physics_process(delta: float) -> void:
 		moan_player.stream = MOAN_STREAMS.pick_random()
 		moan_player.pitch_scale = voice_pitch * randf_range(0.95, 1.05)
 		moan_player.play()
+
+	# Stairwell horde: while idle up in the shaft, run the shuffle/slice; it returns
+	# false the frame it commits to coming down, so normal AI takes over seamlessly.
+	if stair_mode and _stair_tick(delta):
+		move_and_slide()
+		return
 
 	_update_plane_pursuit(delta)
 

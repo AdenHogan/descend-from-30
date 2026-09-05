@@ -272,19 +272,35 @@ means no rendering — UI layout and art still need an in-editor look.
   pulls only the **stairwell-seeded** dead on the adjacent floor (never a
   whole-floor vacuum; running never pulls). Seeded per (floor,run); floor 30 +
   floor 1 exempt. A blocked stairwell shows a **crate-stack prop**
-  (`barricade_prop.gd`) at both landings. **Hazard 2 — hordes (v3, simplified):**
+  (`barricade_prop.gd`) at both landings. **Hazard 2 — hordes (v4, in-shaft):**
   a stairwell "horde" is **NOT a special entity** — it's just **3–4 STANDARD zombies
-  clustered at a stairwell** (`is_stair_horde`, seeded ~15%, mutually exclusive with
-  barricades). They spawn on the corridor walking plane at the stair mouth (spilling a
-  little INTO the corridor, off the outer wall), use normal AI (idle → chase), are
-  solid (block + pushable), and their kills persist (`stair_horde` group + per-floor
-  keys). No crowbar — you **fight or lure** them off (thrown can). Because they're live
-  enemies by the steps, `stairwell.gd` blocks the crossing while any is within
-  `HORDE_BLOCK_RANGE`. No shift/rest cost — the fight is the cost. (An earlier v2 built
-  a bespoke docked/sliced/frozen/custom-emerge entity; it walled the player off and
-  was scrapped per owner: enemies here are meant to be ORDINARY enemies that happen to
-  stack up in the stairwell. **Future/organic:** standard enemies actually traversing
-  floors up/down via the stair transition — not built.) A horde stairwell
+  that spawn UP INSIDE the stairwell** (`is_stair_horde`, seeded ~15%, mutually exclusive
+  with barricades). They spawn on the steps in the shaft depth, staggered at different
+  heights (`enemy.enter_stairwell_mode`), and while idle they **shuffle slowly up/down
+  and are sliced to the staircase opening using the PLAYER'S OWN stair shredder**
+  (`StairPan.SHRED_SHADER` — cropped to the opening's x-band + clipped above its top
+  edge, shrunk+dimmed with StairPan's depth cues) — so the stairwell reads as "something
+  could be coming up or down". The geometry is **read from the visible staircase sprite
+  at runtime** (`building_floors._stair_art_box`: the 353×443 art scaled to ~x[131,211]
+  y[291,406], standing line 391 — no guessed pixels; the by-eye knobs are
+  `STAIR_SHAFT_INSET` / `STAIR_STACK_SPAN` / `STAIR_BOB_AMP` in `building_floors.gd` and
+  `STAIR_DEPTH_SCALE` / `STAIR_DEPTH_DIM` on the enemy). The moment the player gets close
+  (`STAIR_ACTIVATE_RANGE`), or gunfire/a thrown can pulls them, they **walk DOWN out of
+  the shaft and become ordinary chasers** (`_stair_tick` drops the slice + hands off to
+  normal AI) — the "coming down the stairs at you" beat. Normal AI otherwise (solid,
+  pushable, killable); kills persist (`stair_horde` group + per-floor keys). No crowbar —
+  you **fight or lure** them (thrown can). **Crossing lock**: `stairwell.gd`
+  `_horde_blocking` blocks ONLY while a live zombie is PHYSICALLY in the shaft — within
+  `SHAFT_BLOCK_HALF_WIDTH` (52px) of the stair centre in X, not a wide radius. A zombie
+  that has come down and chased off along the corridor leaves the band and no longer
+  holds the stairs shut; you're locked out only while something is actually on the steps
+  (was a 300px radius that wrongly counted zombies spawned/standing between the stairwell
+  and the elevator). No shift/rest cost — the fight is the cost. (An earlier v2 built a
+  bespoke docked/frozen/custom-emerge entity that walled the player off and was scrapped;
+  v3 over-corrected to plain corridor-plane spawns — neither was in the shaft. **Future/
+  organic:** standard enemies actually traversing between floor SCENES via the stair
+  transition — not built; the up/down here is within-floor shuffle + descend-on-approach.)
+  A horde stairwell
   shows a **colored red echo pulse** (`horde_echo.gd`)
   and gives a **one-time approach warning** (brief freeze + player line,
   `building_floors._process` + `hazard_approach_warned`); barricades give no

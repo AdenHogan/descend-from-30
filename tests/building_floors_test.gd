@@ -456,6 +456,18 @@ func _test_stair_horde_spawns() -> void:
 			any_passable = true   # a fresh standard zombie must be solid
 	check(all_at_ends, "horde zombies cluster by the stairwells, not mid-corridor")
 	check(not any_passable, "horde zombies are standard SOLID enemies (no passable/docked hack)")
+	# Fresh horde zombies start UP INSIDE the shaft: in stairwell mode, above the
+	# corridor standing line (391), tight against a stairwell centre — not spilled
+	# out onto the corridor plane. They come down to chase only when the player nears.
+	var all_in_shaft := true
+	for z in horde:
+		if not z.stair_mode:
+			all_in_shaft = false
+		if z.global_position.y > 391.0:
+			all_in_shaft = false            # sitting on the corridor plane, not up the steps
+		if z.global_position.x > 260.0 and z.global_position.x < 1090.0:
+			all_in_shaft = false            # not tucked into a stairwell
+	check(all_in_shaft, "fresh horde zombies wait UP IN the shaft (stair mode, above the standing line)")
 	# No VISIBLE barricade crates while in horde mode (one hazard at a time; the
 	# self-hiding props may exist but must not show).
 	var vis_crates := 0

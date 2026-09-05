@@ -162,13 +162,43 @@ const CORRIDOR_PLANE_Y := 391.0        # the corridor walking line (== SPAWN_*_*
 var _horde_warn_targets: Array = []
 
 
+# --- Stairwell-shaft placement, derived from the visible staircase sprite ---
+# The staircase art (353x443 tex) sits centred at ~(171, 348.6) left / (1179, …)
+# right, scaled down to a ~80x115 world box: x[131,211], y[291,406], with the
+# corridor standing line at 391. Everything below is READ from that sprite at
+# runtime (no guessed pixels) — the only by-eye knobs are the three fractions/
+# offsets marked TUNABLE, which shape how tightly the bodies crop to the opening.
+const STAIR_SHAFT_INSET := 0.62      # TUNABLE: band half-width as a fraction of the art half-width
+const STAIR_STACK_SPAN := 40.0       # TUNABLE: how far up the steps the bunch is spread
+const STAIR_BOB_AMP := 10.0          # TUNABLE: how far each one shuffles up/down its spot
+
+
+func _stair_art_box(on_left: bool) -> Dictionary:
+	# The visible staircase sprite's world box (Hallway_Staircase_* when the side
+	# goes DOWN, Lobby_* when it goes UP — exactly one is visible per side, set by
+	# _apply_stair_visuals just before this runs). Returns {} if neither is found.
+	var names: Array = ["HallwayStaircaseLeft", "LobbyLeft"] if on_left \
+		else ["HallwayStaircaseRight", "LobbyRight"]
+	for n in names:
+		var s := get_node_or_null(n) as Sprite2D
+		if s != null and s.visible and s.texture != null:
+			var hw: float = s.texture.get_width() * absf(s.scale.x) * 0.5
+			var hh: float = s.texture.get_height() * absf(s.scale.y) * 0.5
+			return {
+				"center_x": s.global_position.x,
+				"half_w": hw,
+				"top_y": s.global_position.y - hh,
+			}
+	return {}
+
+
 func _spawn_stair_hordes(floor_num: int) -> void:
-	# 3-4 STANDARD zombies clustered at a horde stairwell — nothing special, just normal
-	# enemies that happen to be gathered by the steps. They spawn on the corridor walking
-	# plane, use normal AI (idle until the player's near, then chase), are solid (block +
-	# pushable), and their kills persist via stable per-floor keys. Being live enemies by
-	# the steps, they block the crossing (stairwell.gd _horde_blocking) until cleared or
-	# lured off (a thrown can). No docking, slicing, or bespoke emerge.
+	# A horde is just 3-4 STANDARD zombies that spawn UP INSIDE the stairwell shaft
+	# rather than out on the corridor. They shuffle on the steps, sliced to the
+	# staircase opening (enemy enter_stairwell_mode, using the player's own stair
+	# shredder), and come DOWN to chase the moment the player is near or a noise/can
+	# pulls them — ordinary enemies from then on. Kills persist via stable per-floor
+	# keys; while any is still IN the shaft it holds the crossing (stairwell.gd).
 	var zombie_scene = preload("res://scenes/enemy_zombie_standard.tscn")
 	for tname in _BARRICADE_TRIGGERS:
 		var t = get_node_or_null(tname)
@@ -177,30 +207,44 @@ func _spawn_stair_hordes(floor_num: int) -> void:
 		var choke: int = floor_num + int(_BARRICADE_TRIGGERS[tname])
 		if not WorldState.is_stair_horde(choke):
 			continue
-		var stair_x: float = t.global_position.x
-		var on_left: bool = stair_x < 600.0
-		var toward: float = 1.0 if on_left else -1.0   # spill INTO the corridor, off the outer wall
+		var on_left: bool = t.global_position.x < 600.0
+		var box := _stair_art_box(on_left)
+		# Centre the bunch in the staircase art; fall back to the trigger if the
+		# sprite is missing for some reason (never leave a horde floor empty).
+		var shaft_x: float = box.get("center_x", t.global_position.x)
+		var half_w: float = box.get("half_w", 40.0)
+		var band_half: float = half_w * STAIR_SHAFT_INSET
+		var shaft_min: float = shaft_x - band_half
+		var shaft_max: float = shaft_x + band_half
+		var clip_top: float = box.get("top_y", CORRIDOR_PLANE_Y - 100.0)
 		var rng := RandomNumberGenerator.new()
 		rng.seed = hash(str(WorldState.master_seed) + "stairhordepos" + str(choke) + str(WorldState.current_run))
 		var count: int = STAIR_HORDE_MIN + (rng.randi() % (STAIR_HORDE_MAX - STAIR_HORDE_MIN + 1))
-		for i in range(count):
+		var step: float = STAIR_STACK_SPAN / float(maxi(count - 1, 1))
+		# Add furthest-up FIRST so the lowest (nearest) is added last and draws on
+		# top — "lower on the steps reads in front" without a per-frame z sort.
+		for i in range(count - 1, -1, -1):
 			var key := "%d:horde:%d:%d" % [floor_num, choke, i]
 			if WorldState.killed_zombies.has(key):
 				continue
+			var rest_y: float = CORRIDOR_PLANE_Y - 6.0 - float(i) * step
 			var z = zombie_scene.instantiate()
-			z.global_position = Vector2(
-				stair_x + toward * (12.0 + float(i) * 22.0) + rng.randf_range(-4.0, 4.0),
-				CORRIDOR_PLANE_Y + rng.randf_range(-3.0, 3.0))
+			z.global_position = Vector2(shaft_x + rng.randf_range(-3.0, 3.0), rest_y)
 			z.spawn_key = key
 			z.add_to_group("stair_horde")
 			add_child(z)
-			WorldState.apply_saved_zombie(z)
+			# A zombie met before (memory) comes back where it was left, on the
+			# corridor — don't re-cage it in the shaft. Only fresh ones start up there.
+			var restored = WorldState.apply_saved_zombie(z)
+			if not restored:
+				z.enter_stairwell_mode(rest_y, CORRIDOR_PLANE_Y, STAIR_BOB_AMP,
+					shaft_min, shaft_max, clip_top, on_left)
 		# Colored danger cue radiating from the steps, and a warn target so the
 		# player gets a first-time "I can hear them ahead" beat on approach.
 		var echo = HORDE_ECHO.new()
-		echo.global_position = Vector2(stair_x, 320.0)
+		echo.global_position = Vector2(shaft_x, 320.0)
 		add_child(echo)
-		_horde_warn_targets.append({"x": stair_x, "side": "left" if on_left else "right", "primed": false})
+		_horde_warn_targets.append({"x": shaft_x, "side": "left" if on_left else "right", "primed": false})
 
 
 # How close (px) to a horde stairwell the first-approach warning fires. The

@@ -182,17 +182,28 @@ func _use_stairs() -> void:
 	_perform_transition()
 
 
-const HORDE_BLOCK_RANGE := 300.0
+# How far either side of the stair CENTRE a zombie still counts as "on the steps".
+# This is deliberately TIGHT — the shaft itself is ~52px wide (owner-confirmed box
+# x[120,172] around centre 146) and a body clustered in it, or standing right at
+# the mouth, sits within this band. A zombie that has descended and chased off down
+# the corridor (toward the merchant / apartments) leaves the band, so it no longer
+# holds the crossing shut — which is the whole point: you're locked out only while
+# something is PHYSICALLY in the stairwell, not merely somewhere on the floor.
+const SHAFT_BLOCK_HALF_WIDTH := 52.0
 
 
 func _horde_blocking() -> bool:
-	# The steps are contested while any live zombie is within range of them.
-	# Killing them clears it for good; luring them off (a can) frees it while they
-	# are away.
+	# The steps are contested only while a live zombie is physically IN the stairwell
+	# (within the shaft's narrow x-band, either up the steps or right at the mouth).
+	# Killing those clears it for good; luring them off with a can — or simply
+	# approaching, which draws them down out of the shaft to chase — pulls them out
+	# of the band and frees the crossing while they're away. A distance radius was
+	# wrong: it kept the stairs locked because zombies that had walked well off down
+	# the corridor still counted.
 	for z in get_tree().get_nodes_in_group("zombie"):
 		if z.is_dead:
 			continue
-		if z.global_position.distance_to(global_position) <= HORDE_BLOCK_RANGE:
+		if absf(z.global_position.x - global_position.x) <= SHAFT_BLOCK_HALF_WIDTH:
 			return true
 	return false
 
