@@ -193,15 +193,15 @@ const SHAFT_BLOCK_HALF_WIDTH := 52.0
 
 
 func _horde_blocking() -> bool:
-	# The steps are contested only while a live zombie is physically IN the stairwell
-	# (within the shaft's narrow x-band, either up the steps or right at the mouth).
-	# Killing those clears it for good; luring them off with a can — or simply
-	# approaching, which draws them down out of the shaft to chase — pulls them out
-	# of the band and frees the crossing while they're away. A distance radius was
-	# wrong: it kept the stairs locked because zombies that had walked well off down
-	# the corridor still counted.
+	# Only a zombie that has actually STEPPED OFF the stairs and is standing on them,
+	# in the shaft's narrow x-band, contests the crossing. One still on the steps
+	# (stair_mode: passable, mid-emerge) does NOT lock you out — you can pass or wait
+	# for it to come down; and one that has chased off down the corridor leaves the
+	# band, so it no longer counts either.
 	for z in get_tree().get_nodes_in_group("zombie"):
 		if z.is_dead:
+			continue
+		if ("stair_mode" in z) and z.stair_mode:
 			continue
 		if absf(z.global_position.x - global_position.x) <= SHAFT_BLOCK_HALF_WIDTH:
 			return true

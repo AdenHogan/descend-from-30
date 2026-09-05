@@ -127,60 +127,69 @@ var distraction_target: Vector2 = Vector2.ZERO
 var distraction_timer: float = 0.0
 
 
-# --- Stairwell horde: on the steps, using the PLAYER'S stair slice ----------
-# A horde zombie is just a STANDARD zombie that spawns up on the stairs instead of
-# out on the corridor. Up there it is drawn with the EXACT slice the player's stair
-# transition uses (StairPan.SHRED_SHADER): the player's own mouth cut (line +
-# DOWN_SHRED_FOOT) feeds the body feet-first as it moves down the steps, and the
-# player's depth scale (DOWN_DEPTH_SCALE) shrinks it into the shaft — no new slice
-# numbers, just the player's, with the zombie sprite swapped in. It shuffles slowly
-# up/down its stretch of the steps so the stairwell reads as "something could be
-# coming up or down". The x-band + top clip are read from the staircase art (so it
-# stays framed by the opening), NOT invented. The instant the player gets close —
-# or gunfire/a can pulls it — it walks DOWN off the steps onto the corridor and is
-# an ORDINARY chaser from then on (normal AI, solid, pushable, killable).
+# --- A single enemy on the stairs, using the PLAYER'S stair slice -----------
+# A stairwell enemy is just a STANDARD zombie that spawns partway down the stairs
+# instead of out on the corridor. It's drawn with the EXACT slice the player's stair
+# transition uses (StairPan.SHRED_SHADER): the player's own mouth cut feeds the body
+# through feet-first, so sunk in the shaft it shows only its upper half — sliced,
+# waiting. The player's depth scale (DOWN_DEPTH_SCALE) sits it back in the shaft. The
+# x-band + top clip come from the staircase art so it stays framed by the opening.
+#
+# Sequence (what the player sees): it waits sliced, drifting a little up/down. When
+# the player gets close it RISES up the steps — appearing slice by slice, head first,
+# as it clears the fixed cut — grows to full size, and as it steps onto the corridor
+# the last of the slice sweeps off its feet (the player's own arrival reveal). Only
+# THEN is it a solid, attackable/pushable, ordinary chaser. While still on the steps
+# it is passable and unharmable — you fight it once it's off the stairwell.
 var stair_mode: bool = false
-var _stair_foot_y: float = 391.0       # corridor standing line (bottom of the steps)
-var _stair_rest_y: float = 391.0       # this zombie's home height on the steps
-var _stair_bob_amp: float = 0.0        # how far above rest it shuffles
-var _stair_dir: float = -1.0           # -1 shuffling up, +1 shuffling back down
+var _stair_plane_y: float = 391.0      # corridor standing line (where it steps off)
+var _stair_rest_y: float = 401.0       # where it waits, sunk in the shaft
+var _stair_bob_amp: float = 0.0        # gentle up/down drift while waiting
+var _stair_dir: float = -1.0
 var _stair_cut_y: float = 1.0e9        # the player's mouth cut (fixed) — feet-first slice
 var _stair_shaft_min: float = -1.0e9   # opening x-band, from the staircase art
 var _stair_shaft_max: float = 1.0e9
 var _stair_clip_top: float = -1.0e9    # top edge of the opening, from the staircase art
-var _stair_leaving: bool = false
-var _stair_face_flip: bool = false     # which way it faces down the steps toward the corridor
+var _stair_phase: String = "idle"      # idle → rise → stepoff → (normal AI)
+var _stair_reveal_t: float = 0.0
+var _stair_face_flip: bool = false
 var _stair_mat: ShaderMaterial = null
 var _stair_base_scale: Vector2 = Vector2.ONE
-const STAIR_ACTIVATE_RANGE := 160.0    # player this close in X → it descends to chase
-const STAIR_PACE_SPEED := 12.0         # slow shuffle up/down the steps (slower than the player's climb)
-const STAIR_LEAVE_SPEED := 46.0        # coming down off the steps onto the corridor
+const STAIR_ACTIVATE_RANGE := 170.0    # player this close in X → it rises and emerges
+const STAIR_IDLE_SPEED := 10.0         # gentle up/down drift while waiting
+const STAIR_RISE_SPEED := 40.0         # climbing up the steps toward the corridor
+const STAIR_STEPOFF_TIME := 0.22       # the arrival reveal (cut sweeps off the feet)
+const STAIR_DEPTH_SPAN := 44.0         # how far below the plane counts as "fully in the shaft"
 
 
-func enter_stairwell_mode(rest_y: float, foot_y: float, bob_amp: float, cut_y: float,
+func enter_stairwell_mode(rest_y: float, plane_y: float, bob_amp: float, cut_y: float,
 		shaft_min: float, shaft_max: float, clip_top: float, on_left: bool) -> void:
 	stair_mode = true
-	_stair_foot_y = foot_y
+	_stair_plane_y = plane_y
 	_stair_rest_y = rest_y
 	_stair_bob_amp = bob_amp
 	_stair_cut_y = cut_y
 	_stair_shaft_min = shaft_min
 	_stair_shaft_max = shaft_max
 	_stair_clip_top = clip_top
-	_stair_face_flip = not on_left      # left stairwell faces right (down toward corridor), right faces left
-	base_walk_y = foot_y                # once it descends, its corridor line is the foot of the steps
+	_stair_face_flip = not on_left      # left stairwell faces right (toward the corridor), right faces left
+	_stair_phase = "idle"
+	base_walk_y = plane_y               # once it steps off, its corridor line is the standing plane
 	global_position.y = rest_y
 	_stair_dir = -1.0
 	if animated_sprite != null:
 		_stair_base_scale = animated_sprite.scale
+	# No invisible wall and no damage while it's on the steps — you interact once it
+	# has stepped off (below, when the sequence finishes).
+	_make_passable_to_player()
 	_apply_stair_slice()
+	_update_stair_draw()
 
 
 func _apply_stair_slice() -> void:
 	# The player's shredder, verbatim: clip_dir +1 (discard below the cut = sliced
-	# feet-first, exactly as _descend does), the player's mouth cut, and the player's
-	# depth scale. The x-band and top clip come from the staircase art so a body is
-	# framed by the opening rather than spilling onto the wall beside it.
+	# feet-first, exactly as _descend does) and the player's own mouth cut. The x-band
+	# and top clip come from the staircase art so the body stays framed by the opening.
 	if animated_sprite == null:
 		return
 	if _stair_mat == null:
@@ -194,12 +203,24 @@ func _apply_stair_slice() -> void:
 	_stair_mat.set_shader_parameter("shaft_max", _stair_shaft_max)
 	_stair_mat.set_shader_parameter("shaft_top", _stair_clip_top)
 	animated_sprite.material = _stair_mat
-	animated_sprite.scale = _stair_base_scale * StairPan.DOWN_DEPTH_SCALE
+
+
+func _update_stair_draw() -> void:
+	# Depth scale from the player's constant, eased by how deep in the shaft it sits:
+	# full size at the plane, shrinking to DOWN_DEPTH_SCALE when fully sunk.
+	if animated_sprite == null:
+		return
+	var depth: float = clampf((global_position.y - _stair_plane_y) / STAIR_DEPTH_SPAN, 0.0, 1.0)
+	var s: float = lerpf(1.0, StairPan.DOWN_DEPTH_SCALE, depth)
+	animated_sprite.scale = _stair_base_scale * s
 
 
 func _exit_stairwell_mode() -> void:
-	# Back to an ordinary corridor zombie: drop the slice, restore full size.
+	# Back to an ordinary corridor zombie: drop the slice, restore full size. It stays
+	# passable until the normal AI's _try_resolidify makes it solid once the player is
+	# clear — so it never re-solidifies while overlapping the player.
 	stair_mode = false
+	_stair_phase = "done"
 	if animated_sprite != null and is_instance_valid(animated_sprite):
 		if animated_sprite.material == _stair_mat:
 			animated_sprite.material = null
@@ -207,48 +228,64 @@ func _exit_stairwell_mode() -> void:
 
 
 func _stair_tick(delta: float) -> bool:
-	# Returns true while stairwell mode still owns this zombie (skip normal AI).
-	# Any real engagement — a hit, a push, a knockdown, an attack, a can — means it's
-	# committed now: drop out of the shaft handling and let the normal machine run.
-	if state in ["hit", "recovering", "knockdown", "attack", "distracted"]:
+	# Returns true while stairwell mode still owns this zombie (skip normal AI). A can
+	# distraction hands straight off to the normal machine (it walks to the sound).
+	if state == "distracted":
 		_exit_stairwell_mode()
-		_stair_leaving = false
 		return false
-	if not _stair_leaving:
-		var near: bool = player != null \
-			and absf(player.global_position.x - global_position.x) <= STAIR_ACTIVATE_RANGE
-		if near or alert_timer > 0.0 or is_distracted:
-			_stair_leaving = true
-	if _stair_leaving:
-		# Walk down off the steps to the corridor plane, then hand off to normal AI.
-		velocity.x = 0.0
-		global_position.y = move_toward(global_position.y, _stair_foot_y, STAIR_LEAVE_SPEED * delta)
-		if animated_sprite != null:
-			animated_sprite.play("Walk")
-			if player != null:
-				animated_sprite.flip_h = player.global_position.x < global_position.x
-		if absf(global_position.y - _stair_foot_y) <= 0.5:
-			global_position.y = _stair_foot_y
-			_exit_stairwell_mode()
-			_stair_leaving = false
-			state = "chase"
-			return false                       # this frame: run normal AI (it chases)
-		return true
-	# Idle: shuffle slowly up and down its stretch of the steps. The mouth cut is
-	# fixed, so moving up un-slices the feet (rising into view up the steps) and
-	# moving down feeds them back through it — the player's feet-first slice, looped.
 	velocity.x = 0.0
-	global_position.y += _stair_dir * STAIR_PACE_SPEED * delta
-	if global_position.y <= _stair_rest_y - _stair_bob_amp:
-		global_position.y = _stair_rest_y - _stair_bob_amp
-		_stair_dir = 1.0
-	elif global_position.y >= _stair_rest_y:
-		global_position.y = _stair_rest_y
-		_stair_dir = -1.0
-	if animated_sprite != null:
-		animated_sprite.play("Walk")
-		animated_sprite.flip_h = _stair_face_flip
-	return true
+	match _stair_phase:
+		"idle":
+			# Wait, sliced, drifting gently up/down. The player getting close (or a
+			# noise) starts it rising up the steps.
+			var near: bool = player != null \
+				and absf(player.global_position.x - global_position.x) <= STAIR_ACTIVATE_RANGE
+			if near or alert_timer > 0.0:
+				_stair_phase = "rise"
+			else:
+				global_position.y += _stair_dir * STAIR_IDLE_SPEED * delta
+				if global_position.y <= _stair_rest_y - _stair_bob_amp:
+					global_position.y = _stair_rest_y - _stair_bob_amp
+					_stair_dir = 1.0
+				elif global_position.y >= _stair_rest_y + _stair_bob_amp:
+					global_position.y = _stair_rest_y + _stair_bob_amp
+					_stair_dir = -1.0
+				if animated_sprite != null:
+					animated_sprite.play("Walk")
+					animated_sprite.flip_h = _stair_face_flip
+				_update_stair_draw()
+			return true
+		"rise":
+			# Climb up the steps to the standing plane. The fixed mouth cut reveals the
+			# body slice by slice (head first) as it clears the cut; it grows to full size.
+			global_position.y = move_toward(global_position.y, _stair_plane_y, STAIR_RISE_SPEED * delta)
+			if animated_sprite != null:
+				animated_sprite.play("Walk")
+				if player != null:
+					animated_sprite.flip_h = player.global_position.x < global_position.x
+				else:
+					animated_sprite.flip_h = _stair_face_flip
+			_update_stair_draw()
+			if absf(global_position.y - _stair_plane_y) <= 0.5:
+				global_position.y = _stair_plane_y
+				_stair_phase = "stepoff"
+				_stair_reveal_t = 0.0
+			return true
+		"stepoff":
+			# The arrival reveal: sweep the cut down past the feet so the last of the
+			# slice (the lower legs) fades in as it steps off, then hand to normal AI.
+			_stair_reveal_t += delta
+			var f: float = clampf(_stair_reveal_t / STAIR_STEPOFF_TIME, 0.0, 1.0)
+			if _stair_mat != null:
+				_stair_mat.set_shader_parameter("cut_y", lerpf(_stair_cut_y, _stair_plane_y + 140.0, f))
+			if animated_sprite != null:
+				animated_sprite.play("Walk")
+			if f >= 1.0:
+				_exit_stairwell_mode()
+				state = "chase"
+				return false                    # this frame: run normal AI (it chases)
+			return true
+	return false
 
 
 func be_distracted(pos: Vector2, duration: float = 6.0) -> void:
@@ -351,6 +388,8 @@ func _set_hp_from_floor() -> void:
 	current_hp = max_hp
 
 func receive_push(force: float) -> void:
+	if stair_mode:
+		return   # still on the steps — no interaction until it has stepped off
 	if state == "hit" or state == "recovering" or state == "knockdown" or is_dead:
 		return
 	velocity.x = clamp(force, -200.0, 200.0)
@@ -381,6 +420,8 @@ func tutorial_stagger() -> void:
 
 
 func receive_damage(amount: int, damage_type: String) -> void:
+	if stair_mode:
+		return   # still on the steps — no interaction until it has stepped off
 	if is_dead or state == "knockdown":
 		return
 	# Scripted combat: no luck. Exactly two golf-club hits put the neighbour
@@ -512,8 +553,8 @@ func _drop_key() -> void:
 
 
 func receive_hit_from_gun(outcome: String) -> void:
-	if is_dead:
-		return
+	if is_dead or stair_mode:
+		return   # on the steps: unharmable until it has stepped off
 	match outcome:
 		"headshot":
 			_die()

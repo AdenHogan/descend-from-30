@@ -272,41 +272,37 @@ means no rendering — UI layout and art still need an in-editor look.
   pulls only the **stairwell-seeded** dead on the adjacent floor (never a
   whole-floor vacuum; running never pulls). Seeded per (floor,run); floor 30 +
   floor 1 exempt. A blocked stairwell shows a **crate-stack prop**
-  (`barricade_prop.gd`) at both landings. **Hazard 2 — hordes (v4, in-shaft):**
-  a stairwell "horde" is **NOT a special entity** — it's just **3–4 STANDARD zombies
-  that spawn UP INSIDE the stairwell** (`is_stair_horde`, seeded ~15%, mutually exclusive
-  with barricades). They spawn on the steps in the shaft depth, staggered at different
-  heights (`enemy.enter_stairwell_mode`), and while idle they **shuffle slowly up/down,
-  drawn with the PLAYER'S OWN stair slice** — `StairPan.SHRED_SHADER` with the player's
-  fixed **mouth cut** (`DOWN_STAIR_APPROACH` + `DOWN_SHRED_FOOT`) feeding the body
-  feet-first as it moves down the steps and the player's **depth scale**
-  (`DOWN_DEPTH_SCALE`) shrinking it into the shaft — **no invented slice numbers, just
-  the player's, with the zombie sprite swapped in**. Only the x-band + top clip are
-  extra, and those are **read from the visible staircase sprite at runtime**
-  (`building_floors._stair_art_box`: the 353×443 art scaled to ~x[131,211] y[291,406],
-  standing line 391) so a body stays framed by the opening — no guessed pixels. The
-  remaining knobs are pure motion: `STAIR_STACK_SPAN` / `STAIR_BOB_AMP` / `STAIR_PACE_SPEED`.
-  So the stairwell reads as "something could be coming up or down". The moment the player gets close
-  (`STAIR_ACTIVATE_RANGE`), or gunfire/a thrown can pulls them, they **walk DOWN out of
-  the shaft and become ordinary chasers** (`_stair_tick` drops the slice + hands off to
-  normal AI) — the "coming down the stairs at you" beat. Normal AI otherwise (solid,
-  pushable, killable); kills persist (`stair_horde` group + per-floor keys). No crowbar —
-  you **fight or lure** them (thrown can). **Crossing lock**: `stairwell.gd`
-  `_horde_blocking` blocks ONLY while a live zombie is PHYSICALLY in the shaft — within
-  `SHAFT_BLOCK_HALF_WIDTH` (52px) of the stair centre in X, not a wide radius. A zombie
-  that has come down and chased off along the corridor leaves the band and no longer
-  holds the stairs shut; you're locked out only while something is actually on the steps
-  (was a 300px radius that wrongly counted zombies spawned/standing between the stairwell
-  and the elevator). No shift/rest cost — the fight is the cost. (An earlier v2 built a
-  bespoke docked/frozen/custom-emerge entity that walled the player off and was scrapped;
-  v3 over-corrected to plain corridor-plane spawns — neither was in the shaft. **Future/
-  organic:** standard enemies actually traversing between floor SCENES via the stair
-  transition — not built; the up/down here is within-floor shuffle + descend-on-approach.)
-  A horde stairwell
-  shows a **colored red echo pulse** (`horde_echo.gd`)
-  and gives a **one-time approach warning** (brief freeze + player line,
-  `building_floors._process` + `hazard_approach_warned`); barricades give no
-  advance warning. **Hazard 3 — fire (v2):** a **spreading blaze** that spreads
+  (`barricade_prop.gd`) at both landings. **Hazard 2 — stairwell enemy (v5, single &
+  emerging):** deliberately simplified from the old "horde" — a stairwell enemy is now
+  **ONE STANDARD zombie that spawns partway down the stairs** (`is_stair_horde`, seeded
+  ~15%, mutually exclusive with barricades; dev-forced on every stairwell by the F2 horde
+  step). It's drawn with the **PLAYER'S OWN stair slice** (`enemy.enter_stairwell_mode`
+  → `StairPan.SHRED_SHADER` with the player's fixed **mouth cut**, `DOWN_STAIR_APPROACH`
+  + `DOWN_SHRED_FOOT`, and **depth scale** `DOWN_DEPTH_SCALE`) — **no invented slice
+  numbers, the player's, with the zombie sprite swapped in**; only the x-band + top clip
+  are extra and those are **read from the visible staircase sprite at runtime**
+  (`building_floors._stair_art_box`: 353×443 art → ~x[131,211] y[291,406], standing line
+  391). **Sequence** (`_stair_tick` phase machine `idle → rise → stepoff → normal AI`):
+  it waits **sunk in the shaft** (upper body visible, lower half sliced away), drifting
+  gently up/down (`STAIR_BOB_AMP`); when the player comes within `STAIR_ACTIVATE_RANGE`
+  (or gunfire alerts it) it **RISES up the steps, appearing slice by slice (head first)**
+  as it clears the fixed cut and grows to full size; reaching the plane it **steps off**
+  with the player's own arrival reveal (cut swept off the feet over `STAIR_STEPOFF_TIME`),
+  then hands to **normal AI** — an ordinary solid, pushable, killable chaser. While still
+  on the steps it is **passable and unharmable** (no invisible wall, no interaction) —
+  you attack/push it only once it's stepped off. Kills persist (`stair_horde` group +
+  per-floor key `<floor>:stairwell:<choke>`). **Crossing lock** (`stairwell.gd`
+  `_horde_blocking`) now only counts a zombie that has **stepped off** and is standing on
+  the steps within `SHAFT_BLOCK_HALF_WIDTH` (52px) of the stair centre — one still on the
+  steps (`stair_mode`) or chased off down the corridor does NOT lock you out, so in
+  practice the stairs stay usable (the earlier 300px radius wrongly counted zombies
+  spawned/standing between the stairwell and the elevator). No echo/warn cue any more
+  (dropped with the horde framing; `horde_echo.gd` is now unused). (Earlier: v2 built a
+  bespoke docked/frozen entity that walled the player off — scrapped; v3 spawned on the
+  corridor plane; v4 was a 3–4 shuffling bunch. **Future:** re-layer multiple enemies /
+  a real crossing hazard on top of this once the single-enemy feel is right; enemies
+  traversing between floor SCENES via the stair transition is still not built.)
+  **Hazard 3 — fire (v2):** a **spreading blaze** that spreads
   across a floor within a run AND **climbs the building across runs**. A
   deterministic (RNG-free) cellular sim `fire_field.gd` — corridor of heat/fuel
   cells; burning cells push heat to neighbours in a **slow creep** (~1 cell/12s)

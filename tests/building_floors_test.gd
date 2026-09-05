@@ -429,11 +429,12 @@ func _test_barricade_visuals() -> void:
 
 
 func _test_stair_horde_spawns() -> void:
-	# Hazard 2: a horde stairwell spawns a cluster of live zombies at the steps
-	# (both active stairwells in dev horde mode), in the "stair_horde" group.
+	# A seeded stairwell spawns a SINGLE standard zombie partway down the stairs,
+	# sliced into the shaft (both active stairwells in dev horde mode), in the
+	# "stair_horde" group. It emerges onto the corridor when the player nears.
 	print("[stair horde spawns]")
 	WorldState.new_game()
-	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_HORDE   # every stairwell a horde
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_HORDE   # every stairwell seeded
 	WorldState.current_floor = 15
 	WorldState.spawn_source = "stair"
 	WorldState.stair_direction = "down"
@@ -443,31 +444,26 @@ func _test_stair_horde_spawns() -> void:
 	var bf = load("res://scenes/building_floors.tscn").instantiate()
 	add_child(bf)
 	var horde := get_tree().get_nodes_in_group("stair_horde")
-	# Two active stairwells x 3-4 each — a small knot of STANDARD zombies by the steps.
-	check(horde.size() >= 6 and horde.size() <= 8, "a horde cluster spawns at each stairwell (%d)" % horde.size())
-	# They are plain standard enemies: clustered by the stairwells (not mid-corridor),
-	# solid (NOT passable), and using normal AI (no bespoke docked/emerging state).
-	var all_at_ends := true
-	var any_passable := false
-	for z in horde:
-		if z.global_position.x > 550.0 and z.global_position.x < 850.0:
-			all_at_ends = false   # mid-corridor, not by a stairwell
-		if z.passable_to_player:
-			any_passable = true   # a fresh standard zombie must be solid
-	check(all_at_ends, "horde zombies cluster by the stairwells, not mid-corridor")
-	check(not any_passable, "horde zombies are standard SOLID enemies (no passable/docked hack)")
-	# Fresh horde zombies start UP INSIDE the shaft: in stairwell mode, above the
-	# corridor standing line (391), tight against a stairwell centre — not spilled
-	# out onto the corridor plane. They come down to chase only when the player nears.
+	# One enemy per active stairwell — two active (one up + one down) in dev mode.
+	check(horde.size() == 2, "one stairwell enemy per active stairwell (%d)" % horde.size())
+	# Each starts IN the shaft: stair mode, tucked to a stairwell centre (an end), sunk
+	# down on the steps (below the corridor line), passable + unharmable until it emerges.
 	var all_in_shaft := true
 	for z in horde:
 		if not z.stair_mode:
 			all_in_shaft = false
-		if z.global_position.y > 391.0:
-			all_in_shaft = false            # sitting on the corridor plane, not up the steps
+		if not z.passable_to_player:
+			all_in_shaft = false            # must not wall the player off while on the steps
 		if z.global_position.x > 260.0 and z.global_position.x < 1090.0:
 			all_in_shaft = false            # not tucked into a stairwell
-	check(all_in_shaft, "fresh horde zombies wait UP IN the shaft (stair mode, above the standing line)")
+		if z.global_position.y < 391.0:
+			all_in_shaft = false            # should be sunk on the steps, not above the plane
+	check(all_in_shaft, "the stairwell enemy waits sliced IN the shaft (stair mode, passable, sunk)")
+	# It is unharmable while on the steps (you fight it once it's stepped off).
+	var z0 = horde[0]
+	var hp_before: int = z0.current_hp
+	z0.receive_damage(3, "blade")
+	check(z0.current_hp == hp_before and not z0.is_dead, "a stairwell enemy is unharmable until it steps off")
 	# No VISIBLE barricade crates while in horde mode (one hazard at a time; the
 	# self-hiding props may exist but must not show).
 	var vis_crates := 0
@@ -475,10 +471,6 @@ func _test_stair_horde_spawns() -> void:
 		if p.visible:
 			vis_crates += 1
 	check(vis_crates == 0, "no visible barricade crates in horde mode (%d)" % vis_crates)
-	# A red echo cue radiates from each horde stairwell, and each is a warn target.
-	check(get_tree().get_nodes_in_group("horde_echo").size() == 2,
-		"a horde echo cue spawns at each stairwell (%d)" % get_tree().get_nodes_in_group("horde_echo").size())
-	check(bf._horde_warn_targets.size() == 2, "both horde stairwells are approach-warn targets")
 	bf.queue_free()
 	await get_tree().process_frame
 	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
