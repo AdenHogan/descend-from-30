@@ -447,13 +447,17 @@ func _test_stair_horde_spawns() -> void:
 	check(horde.size() >= 6 and horde.size() <= 8, "a horde cluster spawns at each stairwell (%d)" % horde.size())
 	var all_at_ends := true
 	var all_docked := true
+	var all_passable := true
 	for z in horde:
 		if z.global_position.x > 550.0 and z.global_position.x < 850.0:
 			all_at_ends = false   # mid-corridor, not by a stairwell
 		if not z.stair_docked:
 			all_docked = false    # they wait IN the stairwell until the player nears
+		if not z.passable_to_player:
+			all_passable = false  # a docked zombie must NOT wall the player off
 	check(all_at_ends, "horde zombies cluster by the stairwells, not mid-corridor")
 	check(all_docked, "horde zombies start docked in the stairwell (sliced, not roaming)")
+	check(all_passable, "docked horde zombies are passable to the player (no invisible wall)")
 	# No VISIBLE barricade crates while in horde mode (one hazard at a time; the
 	# self-hiding props may exist but must not show).
 	var vis_crates := 0

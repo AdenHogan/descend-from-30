@@ -341,6 +341,14 @@ func _dock_stair_zombie(z, band: Vector2, cut_y: float, top_clip: float, dim: Co
 	# is the CORRIDOR line, so once emerged it settles on the walking plane.
 	z.base_walk_y = CORRIDOR_PLANE_Y
 	z.stair_docked = true
+	# CRITICAL: a docked zombie must NOT physically block the player. It sits up in the
+	# shaft, frozen; if it collided it would be an invisible wall (the player can't pass,
+	# and being frozen it never clears) and could even shove the player onto the wrong
+	# plane. The stairwell CROSSING is gated by stairwell.gd (_horde_blocking), not by
+	# body collision. Make it passable now; once emerged into chase it resolidifies
+	# (enemy _try_resolidify) so melee still connects.
+	if z.has_method("_make_passable_to_player"):
+		z._make_passable_to_player()
 	var spr = z.animated_sprite
 	if spr == null:
 		return
