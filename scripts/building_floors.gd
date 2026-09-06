@@ -109,6 +109,7 @@ func _ready() -> void:
 	_spawn_merchant(floor_num)
 	_spawn_barricade_visuals(floor_num)
 	_spawn_stair_hordes(floor_num)
+	_spawn_follower(floor_num)
 	_spawn_fire(floor_num)
 	_spawn_door_fire(floor_num)
 	_frame_camera(player)
@@ -264,6 +265,45 @@ func _spawn_stair_hordes(floor_num: int) -> void:
 				z._make_passable_to_player()
 		else:
 			z.enter_stairwell_mode(rest_y, STAIR_STAND_Y, STAIR_BOB_AMP, cut_y, on_left, is_up)
+
+
+func _spawn_follower(floor_num: int) -> void:
+	# An enemy that was chasing the player onto the stairs FOLLOWED them here (captured
+	# in stairwell.gd). It emerges from the ARRIVAL stairwell — the one the player just
+	# stepped out of — and chases relentlessly (it's locked on): the building is one
+	# connected space, and an enemy can pursue you the whole way down. Grounded + robust,
+	# reusing the stairwell-enemy emerge; a UNIQUE key so it persists on this floor.
+	if WorldState.pending_follower.is_empty():
+		return
+	var f: Dictionary = WorldState.pending_follower
+	WorldState.pending_follower = {}
+	var arrived_left: bool = WorldState.stair_spawn_side != "right"
+	# The active stairwell trigger on the side the player arrived on (its return path).
+	var t = null
+	for suffix in ["up", "down"]:
+		var tn := "stair_%s_%s_trigger" % ["left" if arrived_left else "right", suffix]
+		var cand = get_node_or_null(tn)
+		if cand != null and cand.process_mode != Node.PROCESS_MODE_DISABLED:
+			t = cand
+			break
+	var shaft_x: float = t.global_position.x if t != null else (188.0 if arrived_left else 1162.0)
+	var is_up: bool = _stair_art_box(arrived_left).get("is_up", false)
+	var cut_y: float = STAIR_STAND_Y + STAIR_DOWN_CUT_DROP
+	var rest_y: float = (STAIR_STAND_Y - 42.0) if is_up else (cut_y + 42.0)
+	WorldState.follower_seq += 1
+	var z = preload("res://scenes/enemy_zombie_standard.tscn").instantiate()
+	z.global_position = Vector2(shaft_x, rest_y)
+	z.spawn_key = "%d:follower:%d" % [floor_num, WorldState.follower_seq]
+	z.is_follower = true
+	z.add_to_group("stair_horde")
+	add_child(z)
+	z.enter_stairwell_mode(rest_y, STAIR_STAND_Y, STAIR_BOB_AMP, cut_y, arrived_left, is_up)
+	z.current_hp = int(f.get("hp", z.current_hp))
+	z.alert_timer = 99999.0             # locked on — it chose to follow you
+	z._stair_react_timer = 0.0          # emerge NOW (it came down right after you)
+	z._stair_phase = "rise"
+	if WorldState.follower_streak >= 3:
+		HUD.show_feedback("It's still on you — %d floors and counting." % WorldState.follower_streak)
 
 
 # How close (px) to a horde stairwell the first-approach warning fires. The
@@ -936,6 +976,7 @@ func go_live() -> void:
 	# re-imports the saved spread, so the fire comes back exactly as it was left.
 	_spawn_barricade_visuals(floor_num)
 	_spawn_stair_hordes(floor_num)
+	_spawn_follower(floor_num)
 	if _fire_field == null:            # the passive backdrop already built the fire
 		_spawn_fire(floor_num)
 		_spawn_door_fire(floor_num)

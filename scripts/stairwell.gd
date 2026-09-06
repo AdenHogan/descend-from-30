@@ -209,6 +209,45 @@ func _horde_blocking() -> bool:
 	return false
 
 
+# How close (X) to the stairwell a chasing enemy must be to follow you through. It has
+# to be right behind you on the steps, not merely somewhere on the floor.
+const FOLLOW_RANGE := 170.0
+
+
+func _capture_follower() -> void:
+	# Find the nearest LIVE, actively-chasing enemy on your heels at the stairwell and
+	# take it with you: record its state in WorldState, remove it from THIS floor (it
+	# left), and it will emerge from the arrival stairwell on the destination floor
+	# (building_floors._spawn_follower). Only an aggro'd, off-the-steps enemy follows.
+	var best = null
+	var best_d := FOLLOW_RANGE
+	for z in get_tree().get_nodes_in_group("zombie"):
+		if z.is_dead:
+			continue
+		if ("stair_mode" in z) and z.stair_mode:
+			continue   # still lurking on the steps — it isn't chasing you yet
+		var aggro: bool = (("state" in z) and z.state in ["chase", "attack"]) \
+			or (("alert_timer" in z) and z.alert_timer > 0.0)
+		if not aggro:
+			continue
+		var d: float = absf(z.global_position.x - global_position.x)
+		if d <= best_d:
+			best = z
+			best_d = d
+	if best == null:
+		return
+	# Chain tracking: if the enemy that follows is itself already a follower, the chase
+	# continues across another floor; otherwise a new chase begins.
+	if ("is_follower" in best) and best.is_follower:
+		WorldState.follower_streak += 1
+	else:
+		WorldState.follower_streak = 1
+	WorldState.pending_follower = {"hp": best.current_hp}
+	WorldState.zombie_positions.erase(best.spawn_key)   # no stale memory on this floor
+	best.left_floor = true                              # _exit_tree won't re-record it
+	best.queue_free()                                   # it's gone from here — it followed
+
+
 func _choke_floor() -> int:
 	# Which floor indexes the staircase this traversal uses. A choke sits on the
 	# staircase BETWEEN two floors, keyed by the upper floor's down-stair: descending
@@ -228,6 +267,9 @@ func _perform_transition(shift: bool = false) -> void:
 	WorldState.stair_direction = direction
 	WorldState.spawn_source = "stair"
 	var target_floor = WorldState.current_floor + (-1 if direction == "down" else 1)
+
+	# An enemy right on your heels comes WITH you — the building is one connected space.
+	_capture_follower()
 
 	# Seamless pan between two mid-building floors when enabled; it commits the
 	# floor + scene change itself. Otherwise (and always, while disabled) the

@@ -144,6 +144,11 @@ var distraction_timer: float = 0.0
 # group, not collision, so it can still be hit). A hit/push/can drops it straight into
 # normal AI. And it ALWAYS reaches the plane and hands off — there is no state it can be
 # stranded in unkillable.
+# Cross-floor follow: an enemy that chased you onto the stairs and came WITH you to the
+# next floor. `is_follower` marks it so the chase chain can be tracked; `left_floor` tells
+# _exit_tree NOT to record it on the floor it just left (it's gone from there — it followed).
+var is_follower: bool = false
+var left_floor: bool = false
 var stair_mode: bool = false
 var _stair_up: bool = false            # true = UP stairwell (above the plane, comes DOWN); false = DOWN shaft (below the plane, rises UP)
 var _stair_plane_y: float = 391.0      # corridor standing line (where it steps off)
@@ -542,6 +547,10 @@ func _exit_tree() -> void:
 	# facing which way, how hurt — so returning doesn't reset me to my seeded
 	# spawn. record_zombie skips the dead (killed_zombies has those), keyless, and
 	# pan-backdrop scenery. Guard the autoload in case this fires during shutdown.
+	# It FOLLOWED the player off this floor (captured as a cross-floor follower): it's
+	# gone from here, so do not leave a memory of it on this floor.
+	if left_floor:
+		return
 	# NEVER record a stair enemy that's still on the steps at its mid-shaft y — it would
 	# come back as a plain zombie floating in the air, solid, and lodge the player. Snap
 	# it to the stand line so it's remembered standing on the corridor. (An already-

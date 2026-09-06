@@ -30,6 +30,7 @@ func _ready() -> void:
 	await _test_barricade_visuals()
 	await _test_stair_horde_spawns()
 	await _test_stair_enemy_return_grounded()
+	await _test_follower_arrives()
 	await _test_fire_spawns()
 	await _test_elevator_arrival_stairs()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
@@ -475,6 +476,39 @@ func _test_stair_horde_spawns() -> void:
 	bf.queue_free()
 	await get_tree().process_frame
 	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
+
+
+func _test_follower_arrives() -> void:
+	# Cross-floor follow: an enemy captured on the departing floor emerges from the
+	# ARRIVAL stairwell on the destination floor, chasing, and ends grounded (never
+	# mid-air). The building is one connected space.
+	print("[cross-floor follower]")
+	WorldState.new_game(); WorldState.tutorial_completed = true; WorldState.is_first_run = false
+	WorldState.current_floor = 14; WorldState.spawn_source = "stair"
+	WorldState.stair_direction = "down"; WorldState.stair_spawn_side = "left"
+	WorldState.pending_pry_arrival_floor = -1
+	WorldState.seed_floor_door_states(14)
+	WorldState.pending_follower = {"hp": 4}
+	var bf = load("res://scenes/building_floors.tscn").instantiate()
+	add_child(bf)
+	await get_tree().process_frame
+	var f = null
+	for z in get_tree().get_nodes_in_group("stair_horde"):
+		if ("is_follower" in z) and z.is_follower:
+			f = z; break
+	check(f != null, "a follower emerges on the arrival floor")
+	check(WorldState.pending_follower.is_empty(), "pending_follower is consumed on arrival")
+	if f != null:
+		check(f.global_position.x < 260.0, "it emerges from the LEFT arrival stairwell (x=%.0f)" % f.global_position.x)
+		check(f.current_hp == 4, "it keeps the hp it had when it started chasing")
+		check(f.alert_timer > 0.0, "it arrives locked on (chasing)")
+		# Drive the emerge; it must end grounded and solid, never mid-air.
+		for i in range(600):
+			if not f.stair_mode: break
+			f._stair_tick(1.0 / 60.0)
+		check(absf(f.global_position.y - 370.0) < 0.5, "the follower ends GROUNDED on the floor line (%.1f)" % f.global_position.y)
+	bf.queue_free()
+	await get_tree().process_frame
 
 
 func _test_stair_enemy_return_grounded() -> void:

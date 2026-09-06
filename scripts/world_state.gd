@@ -504,6 +504,9 @@ func new_game() -> void:
 	apartment_fire_out.clear()
 	hazard_approach_warned.clear()
 	pending_pry_arrival_floor = -1
+	pending_follower = {}
+	follower_streak = 0
+	follower_seq = 0
 	merchant_stock.clear()
 	legendary_hold = {}
 	legendary_just_purchased = false
@@ -1857,6 +1860,18 @@ func shift_building() -> void:
 # destination corridor reads this to mill that floor's stairwell-side horde right
 # at the stairwell you step out of, then clears it. -1 = normal arrival.
 var pending_pry_arrival_floor: int = -1
+
+# Cross-floor FOLLOWER: an enemy that was chasing you onto the stairs follows you
+# through the transition — the building is one connected space, not separate floors.
+# Captured on the departing floor (stairwell.gd), spawned emerging from the ARRIVAL
+# stairwell on the destination floor (building_floors._spawn_follower), then cleared.
+# {hp} of the enemy that came with you; empty = nobody followed. Transient (consumed
+# on the very next arrival), so not persisted. `follower_streak` counts how many floors
+# it has chased you across in a row (an enemy pursuing you the whole way down); reset
+# when the chain breaks. `follower_seq` gives each spawned follower a unique key.
+var pending_follower: Dictionary = {}
+var follower_streak: int = 0
+var follower_seq: int = 0
 
 # How much stamina you have LEFT after wrenching a barricade open — a small
 # exhausted floor (fraction of max), never a refresh. Tune the drain here.
