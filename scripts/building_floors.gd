@@ -223,12 +223,10 @@ func _spawn_stair_hordes(floor_num: int) -> void:
 		# when using these steps (the authoritative "middle of the staircase"), not the
 		# art texture's centre (which is offset from the visible steps).
 		var shaft_x: float = t.global_position.x
-		# It must finish standing where EVERY OTHER zombie stands — the zombie floor line
-		# (STAIR_STAND_Y = 388, the same y _spawn_zombies uses), NOT the player's spawn
-		# plane (391). Measured: emerging to 391 left it ~3px below the other actors, then
-		# plane-pursuit rubber-banded it back up. Emerging to 388 lands it flush, no snap.
-		# The slice cut sits ON that stand line (the step edge), so the enemy reveals at
-		# the floor line, not 13px below it (the old cut at 401).
+		# It must finish standing where EVERY OTHER actor stands — origin STAIR_STAND_Y
+		# (370), whose collision-bottom/FEET land on the floor line 419 (measured equal for
+		# player + normal zombies). See docs/Y_PLANES.md. Emerging to 388 (feet 437) sat it
+		# 18px low and floor-collision snapped it up = the rubber-band.
 		var cut_y: float = STAIR_STAND_Y + STAIR_DOWN_CUT_DROP
 		var rng := RandomNumberGenerator.new()
 		rng.seed = hash(str(WorldState.master_seed) + "stairenemy" + str(choke) + str(WorldState.current_run))

@@ -38,6 +38,12 @@ originals — the markdown here is canonical for development):
   NPC groundwork. v1 implemented. (Terminology: barricade = debris block pried
   with a crowbar; horde = future live-enemy block; fire = future.)
 
+- `docs/Y_PLANES.md` — **LOCKED reference**: every world-Y plane on a corridor
+  floor (the feet line 419, spawn/stand origins, stair triggers, staircase art
+  boxes, the player stair-transition slice constants, the stairwell-enemy geometry,
+  fire planes). Read it before positioning or slicing anything on the vertical axis;
+  update it in the same commit as any Y-constant change.
+
 When docs conflict: STORE_DESIGN.md and THREE_RUN_ARC.md supersede the GDD
 (each notes what it overrides). Keep the docs updated when a design decision
 changes — they are the cross-session memory for this project.
@@ -85,6 +91,15 @@ constants beats keeping them in sync by hand (see `DOWN_*` / `UP_*` in
 `stair_pan.gd`).
 
 ## Hard-won conventions (do not violate)
+
+- **Y planes: measure, don't eyeball; align by FEET, not origin.** The corridor
+  floor line (every actor's collision-bottom when standing) is **419**. Origins
+  differ per rig (standard zombie origin 370 → feet 419; player origin ~386 → feet
+  419), so aligning two rigs by origin puts the bigger one's feet low. Never guess a
+  vertical position — read `docs/Y_PLANES.md`, or measure (a headless trace of
+  `global_position` / collision-bottom). Don't reuse the player's stair-slice pixel
+  offsets on a different-sized sprite; anchor to that rig's own feet line. Keep
+  `docs/Y_PLANES.md` current with any Y change.
 
 - **Save/load JSON: string keys only.** Godot's JSON round-trips int dict
   keys as strings; int-keyed dicts silently break on load. Always key
