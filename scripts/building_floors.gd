@@ -168,14 +168,16 @@ var _horde_warn_targets: Array = []
 # (StairPan.DOWN_STAIR_APPROACH / DOWN_SHRED_FOOT / DOWN_DEPTH_SCALE) — no invented
 # slice numbers. BOB_AMP is only how far it drifts while waiting (motion, not slice).
 const STAIR_BOB_AMP := 10.0          # how far the waiting enemy drifts up/down its spot
-# Where the emerged stair enemy STANDS — the shared zombie floor line (== the y
-# _spawn_zombies uses), so it lands flush with every other zombie/the player instead
-# of ~3px lower (which caused the plane-pursuit rubber-band). NOT the player spawn (391).
-const STAIR_STAND_Y := 388.0
-# How far BELOW the stand line the DOWN-shaft slice sits (the step edge the body
-# reveals over). 0 = right on the stand line. TUNABLE by eye against the art: raise the
-# slice (reveal higher) with a negative value, lower it with a positive one.
-const STAIR_DOWN_CUT_DROP := 0.0
+# The origin y at which a stair enemy STANDS so its FEET rest exactly on the corridor
+# floor line (measured: player + normal-zombie collision-bottom = 419; the zombie
+# collision bottom is origin+49, so origin 370 puts feet on 419). Emerging straight to
+# this means no floor-collision snap when its body collision turns back on — that snap
+# was the rubber-band, and origin 388 (feet 437) sat it 18px below everyone.
+const STAIR_STAND_Y := 370.0
+# How far BELOW the stand line the DOWN-shaft slice reveal sits. TUNABLE by eye against
+# the art (headless can't see it): LOWER the reveal (toward the feet) by INCREASING this,
+# raise it by decreasing. cut_y = STAIR_STAND_Y + this.
+const STAIR_DOWN_CUT_DROP := 30.0
 
 
 func _stair_art_box(on_left: bool) -> Dictionary:

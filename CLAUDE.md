@@ -297,11 +297,12 @@ means no rendering — UI layout and art still need an in-editor look.
   onto the plane (`stepdown`: the DOWN cut sweeps off the feet AS it steps, so nothing pops;
   it stops AT the plane, never below — mirroring the player's "up over the step, then down
   onto the floor"), and hands to **normal AI**. Pace is deliberately unhurried
-  (`STAIR_RISE_SPEED` / `STAIR_STEPDOWN_SPEED`). It emerges to `STAIR_STAND_Y` (388, the
-  shared zombie floor line `_spawn_zombies` uses) — NOT the player spawn plane (391) — so
-  it lands flush with the other actors instead of ~3px low and getting rubber-banded back
-  up by plane-pursuit; the DOWN-shaft slice cut sits on that same line (`STAIR_DOWN_CUT_DROP`
-  = 0, the by-eye knob) so the body reveals at the floor line, not below it. **Robustness — this
+  (`STAIR_RISE_SPEED` / `STAIR_STEPDOWN_SPEED`). It emerges to `STAIR_STAND_Y` (370 — the
+  origin whose collision-bottom/FEET rest on the corridor floor line 419, measured equal
+  for the player + normal zombies), so it lands flush with every actor with NO floor-
+  collision snap when its body collision turns back on (that snap, from emerging to 388/
+  feet 437, was the rubber-band). The DOWN-shaft slice cut = `STAIR_STAND_Y +
+  STAIR_DOWN_CUT_DROP` (30), the one by-eye knob left. **Robustness — this
   is where earlier builds softlocked, so it's built to be impossible:** while on the
   stairs its **body collision is OFF** (`set_collision_layer_value(1,false)`), so it can
   NEVER shove or wall off the player — but it is **ALWAYS killable/pushable** (attacks are
