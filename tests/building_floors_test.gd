@@ -29,6 +29,7 @@ func _ready() -> void:
 	await _test_stair_pull_rouses_only_near()
 	await _test_barricade_visuals()
 	await _test_stair_horde_spawns()
+	await _test_stair_enemy_return_grounded()
 	await _test_fire_spawns()
 	await _test_elevator_arrival_stairs()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
@@ -472,6 +473,46 @@ func _test_stair_horde_spawns() -> void:
 			vis_crates += 1
 	check(vis_crates == 0, "no visible barricade crates in horde mode (%d)" % vis_crates)
 	bf.queue_free()
+	await get_tree().process_frame
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
+
+
+func _test_stair_enemy_return_grounded() -> void:
+	# Regression: a stair enemy remembered at an off-plane (mid-shaft/mid-air) y must come
+	# back GROUNDED on the floor line as an ordinary zombie — not floating, solid, lodging
+	# the player. This was the "enemy mid-air, dragged the player across the map" bug.
+	print("[stair enemy returns grounded]")
+	WorldState.new_game(); WorldState.tutorial_completed = true; WorldState.is_first_run = false
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_HORDE
+	WorldState.current_floor = 15; WorldState.spawn_source = "stair"
+	WorldState.stair_direction = "down"; WorldState.stair_spawn_side = "left"
+	WorldState.pending_pry_arrival_floor = -1
+	WorldState.seed_floor_door_states(15)
+	var bf = load("res://scenes/building_floors.tscn").instantiate()
+	add_child(bf)
+	await get_tree().process_frame
+	var key := ""
+	for z in get_tree().get_nodes_in_group("stair_horde"):
+		key = z.spawn_key; break
+	check(key != "", "a stair enemy exists to remember")
+	# Forge a mid-air memory (as if recorded while emerging) and rebuild the floor.
+	WorldState.zombie_positions[key] = {"x": 700.0, "y": 360.0, "facing": false, "hp": 3, "alert": 0.0}
+	bf.queue_free()
+	await get_tree().process_frame
+	var bf2 = load("res://scenes/building_floors.tscn").instantiate()
+	add_child(bf2)
+	await get_tree().process_frame
+	var found = null
+	for z in get_tree().get_nodes_in_group("stair_horde"):
+		if z.spawn_key == key:
+			found = z; break
+	check(found != null, "the remembered stair enemy respawns")
+	if found != null:
+		check(absf(found.global_position.y - 370.0) < 0.5, "it returns GROUNDED on the stand line 370, not mid-air (%.1f)" % found.global_position.y)
+		check(absf(found.base_walk_y - 370.0) < 0.5, "its home line is the floor, not the stale shaft y (%.1f)" % found.base_walk_y)
+		check(not found.stair_mode, "it returns as an ordinary floor zombie, not re-caged in the shaft")
+		check(found.get_collision_layer_value(1), "its body collision is back on")
+	bf2.queue_free()
 	await get_tree().process_frame
 	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
 

@@ -160,7 +160,9 @@ var _stair_base_scale: Vector2 = Vector2.ONE
 var _stair_idle_action: String = "pause"
 var _stair_idle_timer: float = 0.0
 var _stair_react_timer: float = -1.0   # < 0 = not yet roused; once the player's near it counts down, then it emerges
-const STAIR_ACTIVATE_RANGE := 150.0    # player this close in X rouses it — close, but not point-blank
+var stair_eager: bool = true           # seeded: eager rouses at the normal range; passive only when the player's right on it
+const STAIR_ACTIVATE_RANGE := 150.0    # EAGER: player this close in X rouses it — close, but not point-blank
+const STAIR_ACTIVATE_RANGE_PASSIVE := 74.0  # PASSIVE: only stirs when the player is right on it (or a noise pulls it)
 const STAIR_REACT_MAX := 0.7           # small random rouse delay — prompt, with a touch of variation (never a long, slow wait)
 const STAIR_IDLE_SPEED := 9.0          # a slow shuffle while waiting
 const STAIR_RISE_SPEED := 24.0         # climbing the steps toward the plane (deliberately unhurried)
@@ -263,8 +265,9 @@ func _stair_tick(delta: float) -> bool:
 			# Wait on the steps with unpredictable idle behaviour. The player getting close
 			# (or gunfire) ROUSES it — but not instantly: a random delay means sometimes it
 			# comes straight for you, sometimes it lingers a beat first (the jump scare).
+			var rouse_range: float = STAIR_ACTIVATE_RANGE if stair_eager else STAIR_ACTIVATE_RANGE_PASSIVE
 			var near: bool = player != null \
-				and absf(player.global_position.x - global_position.x) <= STAIR_ACTIVATE_RANGE
+				and absf(player.global_position.x - global_position.x) <= rouse_range
 			if _stair_react_timer < 0.0 and (near or alert_timer > 0.0):
 				_stair_react_timer = randf_range(0.0, STAIR_REACT_MAX)
 			if _stair_react_timer >= 0.0:
@@ -432,6 +435,8 @@ func _register_zombie_exceptions() -> void:
 func _make_passable_to_player() -> void:
 	# A staggered/knocked-down zombie stops blocking the player, so the push
 	# mechanic lets you shove past. Uses collision exceptions, not layers.
+	if player == null:
+		player = get_tree().get_first_node_in_group("player")
 	if player and not passable_to_player:
 		add_collision_exception_with(player)
 		player.add_collision_exception_with(self)
@@ -537,6 +542,12 @@ func _exit_tree() -> void:
 	# facing which way, how hurt — so returning doesn't reset me to my seeded
 	# spawn. record_zombie skips the dead (killed_zombies has those), keyless, and
 	# pan-backdrop scenery. Guard the autoload in case this fires during shutdown.
+	# NEVER record a stair enemy that's still on the steps at its mid-shaft y — it would
+	# come back as a plain zombie floating in the air, solid, and lodge the player. Snap
+	# it to the stand line so it's remembered standing on the corridor. (An already-
+	# emerged one is on the floor; the restore path also re-grounds stair enemies.)
+	if stair_mode:
+		global_position.y = _stair_plane_y
 	if is_instance_valid(WorldState):
 		WorldState.record_zombie(self)
 

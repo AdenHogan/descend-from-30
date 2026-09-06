@@ -244,11 +244,25 @@ func _spawn_stair_hordes(floor_num: int) -> void:
 		z.global_position = Vector2(shaft_x, rest_y)
 		z.spawn_key = key
 		z.add_to_group("stair_horde")
+		# Seeded disposition: an EAGER one rouses at the normal range; a PASSIVE one only
+		# stirs when the player is right on it (or a noise pulls it) — so not every
+		# stairwell enemy always comes at you.
+		z.stair_eager = (rng.randi() % 2 == 0)
 		add_child(z)
-		# A zombie met before (memory) comes back where it was left, on the corridor —
-		# don't re-cage it in the shaft. Only a fresh one starts up on the steps.
+		# A zombie met before (memory) already emerged on an earlier visit — bring it back
+		# as an ORDINARY floor zombie, never re-caged in the shaft and never left mid-air:
+		# re-ground it on the stand line and start it passable so it can't lodge the player
+		# on arrival. Only a FRESH one starts up on the steps.
 		var restored = WorldState.apply_saved_zombie(z)
-		if not restored:
+		if restored:
+			z.global_position.y = STAIR_STAND_Y
+			z.base_walk_y = STAIR_STAND_Y      # home line is the floor, not the stale shaft rest_y from _ready
+			z.stair_mode = false
+			z.set_collision_layer_value(1, true)
+			z.set_collision_mask_value(1, true)
+			if z.has_method("_make_passable_to_player"):
+				z._make_passable_to_player()
+		else:
 			z.enter_stairwell_mode(rest_y, STAIR_STAND_Y, STAIR_BOB_AMP, cut_y, on_left, is_up)
 
 

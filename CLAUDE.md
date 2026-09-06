@@ -326,7 +326,15 @@ means no rendering — UI layout and art still need an in-editor look.
   NEVER shove or wall off the player — but it is **ALWAYS killable/pushable** (attacks are
   distance-based on the `zombie` group, not collision), and **any hit/push/can pulls it
   straight off the stairs** (`receive_damage`/`receive_push` call `_exit_stairwell_mode`)
-  into ordinary AI. There is no state where it is present but unremovable. It draws at
+  into ordinary AI. There is no state where it is present but unremovable. **Leaving &
+  returning**: a stair enemy is never RECORDED at an off-floor y (snapped to the stand
+  line on `_exit_tree` while still on the steps), and on RETURN a remembered one comes
+  back GROUNDED as an ordinary floor zombie (`_spawn_stair_hordes` restore branch:
+  y/base_walk_y→`STAIR_STAND_Y`, collision on, passable-until-clear) — never floating
+  mid-air, solid, dragging the player (the cross-floor bug). **Disposition**: a seeded
+  `stair_eager` flag varies whether it rouses at the normal range (`STAIR_ACTIVATE_RANGE`)
+  or only when the player is right on it (`STAIR_ACTIVATE_RANGE_PASSIVE`) — so not every
+  stairwell enemy always comes at you. It draws at
   **z 0** (behind the player) while in the shaft, z 1 once stepped off; collision is
   restored on step-off (passable-until-clear so it never jams). Kills persist
   (`stair_horde` group + per-floor key `<floor>:stairwell:<choke>`). **Crossing lock**
