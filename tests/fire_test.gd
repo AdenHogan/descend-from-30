@@ -404,9 +404,9 @@ func _test_exclusivity() -> void:
 	for run in [1, 2, 3]:
 		WorldState.current_run = run
 		for f in range(2, 30):
-			if WorldState.is_stair_fire(f) and (WorldState.is_stair_blocked(f) or WorldState.is_stair_horde(f)):
+			if WorldState.is_stair_fire(f) and WorldState.is_stair_blocked(f):
 				overlaps += 1
-	check(overlaps == 0, "no floor is ever a fire AND a barricade/horde (%d overlaps)" % overlaps)
+	check(overlaps == 0, "no floor is ever a fire AND a barricade (%d overlaps)" % overlaps)
 	WorldState.current_run = 1
 
 
@@ -422,9 +422,9 @@ func _test_dev_mode() -> void:
 	# Dev fire suppresses the other hazards everywhere.
 	var other := false
 	for f in range(2, 30):
-		if WorldState.is_stair_blocked(f) or WorldState.is_stair_horde(f):
+		if WorldState.is_stair_blocked(f):
 			other = true
-	check(not other, "dev fire mode suppresses barricades and hordes")
+	check(not other, "dev fire mode suppresses barricades")
 	# lv1 (DEV_HAZARD_FIRE): ONLY the origin burns (LIGHT); its neighbours do NOT.
 	check(WorldState.fire_intensity(15) == WorldState.FIRE_LIGHT, "lv1: origin is LIGHT")
 	check(not WorldState.is_stair_fire(14) and not WorldState.is_stair_fire(16), "lv1: neighbours are NOT on fire")

@@ -28,7 +28,7 @@ func _ready() -> void:
 	await _test_pried_arrival_milling()
 	await _test_stair_pull_rouses_only_near()
 	await _test_barricade_visuals()
-	await _test_stair_horde_spawns()
+	await _test_stair_enemy_spawns()
 	await _test_stair_enemy_return_grounded()
 	await _test_follower_arrives()
 	await _test_fire_spawns()
@@ -335,7 +335,7 @@ func _test_pried_arrival_milling() -> void:
 		# A stair-horde on the FAR stairwell is a separate hazard (docked + sliced there),
 		# not the arrival's milling dead — exclude it so the seed's horde placement can't
 		# skew the milling asserts.
-		if z.is_in_group("stair_horde"):
+		if z.is_in_group("stair_enemy"):
 			continue
 		if z.global_position.x < 230.0 or z.global_position.x > 500.0:
 			all_in_band = false
@@ -430,13 +430,13 @@ func _test_barricade_visuals() -> void:
 	await get_tree().process_frame
 
 
-func _test_stair_horde_spawns() -> void:
+func _test_stair_enemy_spawns() -> void:
 	# A seeded stairwell spawns a SINGLE standard zombie partway down the stairs,
 	# sliced into the shaft (both active stairwells in dev horde mode), in the
-	# "stair_horde" group. It emerges onto the corridor when the player nears.
+	# "stair_enemy" group. It emerges onto the corridor when the player nears.
 	print("[stair horde spawns]")
 	WorldState.new_game()
-	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_HORDE   # every stairwell seeded
+	WorldState.dev_force_stair_enemies = true   # force one stair enemy per active stairwell
 	WorldState.current_floor = 15
 	WorldState.spawn_source = "stair"
 	WorldState.stair_direction = "down"
@@ -445,7 +445,7 @@ func _test_stair_horde_spawns() -> void:
 	WorldState.seed_floor_door_states(15)
 	var bf = load("res://scenes/building_floors.tscn").instantiate()
 	add_child(bf)
-	var horde := get_tree().get_nodes_in_group("stair_horde")
+	var horde := get_tree().get_nodes_in_group("stair_enemy")
 	# One enemy per active stairwell — two active (one up + one down) in dev mode.
 	check(horde.size() == 2, "one stairwell enemy per active stairwell (%d)" % horde.size())
 	# Each starts IN the shaft: stair mode, tucked to a stairwell centre (an end), sunk
@@ -466,16 +466,10 @@ func _test_stair_horde_spawns() -> void:
 	var z0 = horde[0]
 	z0.receive_damage(1, "blade")
 	check(not z0.stair_mode, "a hit pulls a stairwell enemy off the steps (killable, never a softlock)")
-	# No VISIBLE barricade crates while in horde mode (one hazard at a time; the
-	# self-hiding props may exist but must not show).
-	var vis_crates := 0
-	for p in get_tree().get_nodes_in_group("barricade_prop"):
-		if p.visible:
-			vis_crates += 1
-	check(vis_crates == 0, "no visible barricade crates in horde mode (%d)" % vis_crates)
+	# (Stairwell enemies are decoupled from hazards now — a barricade may coexist here.)
 	bf.queue_free()
 	await get_tree().process_frame
-	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
+	WorldState.dev_force_stair_enemies = false
 
 
 func _test_follower_arrives() -> void:
@@ -493,7 +487,7 @@ func _test_follower_arrives() -> void:
 	add_child(bf)
 	await get_tree().process_frame
 	var f = null
-	for z in get_tree().get_nodes_in_group("stair_horde"):
+	for z in get_tree().get_nodes_in_group("stair_enemy"):
 		if ("is_follower" in z) and z.is_follower:
 			f = z; break
 	check(f != null, "a follower emerges on the arrival floor")
@@ -517,7 +511,7 @@ func _test_stair_enemy_return_grounded() -> void:
 	# the player. This was the "enemy mid-air, dragged the player across the map" bug.
 	print("[stair enemy returns grounded]")
 	WorldState.new_game(); WorldState.tutorial_completed = true; WorldState.is_first_run = false
-	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_HORDE
+	WorldState.dev_force_stair_enemies = true   # force one stair enemy per active stairwell
 	WorldState.current_floor = 15; WorldState.spawn_source = "stair"
 	WorldState.stair_direction = "down"; WorldState.stair_spawn_side = "left"
 	WorldState.pending_pry_arrival_floor = -1
@@ -526,7 +520,7 @@ func _test_stair_enemy_return_grounded() -> void:
 	add_child(bf)
 	await get_tree().process_frame
 	var key := ""
-	for z in get_tree().get_nodes_in_group("stair_horde"):
+	for z in get_tree().get_nodes_in_group("stair_enemy"):
 		key = z.spawn_key; break
 	check(key != "", "a stair enemy exists to remember")
 	# Forge a mid-air memory (as if recorded while emerging) and rebuild the floor.
@@ -537,7 +531,7 @@ func _test_stair_enemy_return_grounded() -> void:
 	add_child(bf2)
 	await get_tree().process_frame
 	var found = null
-	for z in get_tree().get_nodes_in_group("stair_horde"):
+	for z in get_tree().get_nodes_in_group("stair_enemy"):
 		if z.spawn_key == key:
 			found = z; break
 	check(found != null, "the remembered stair enemy respawns")
@@ -548,7 +542,7 @@ func _test_stair_enemy_return_grounded() -> void:
 		check(found.get_collision_layer_value(1), "its body collision is back on")
 	bf2.queue_free()
 	await get_tree().process_frame
-	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
+	WorldState.dev_force_stair_enemies = false
 
 
 func _test_fire_spawns() -> void:
@@ -579,7 +573,6 @@ func _test_fire_spawns() -> void:
 		if p.visible:
 			vis_crates += 1
 	check(vis_crates == 0, "no barricade crates on a fire floor")
-	check(get_tree().get_nodes_in_group("stair_horde").is_empty(), "no horde on a fire floor")
 	# Floor 15 is a MAINTENANCE floor (15 % 3 == 0): the maintenance-room door takes the
 	# extinguisher's wall spot between the elevator and the right stairwell, so no canister
 	# is mounted here — a maintenance door is placed instead.

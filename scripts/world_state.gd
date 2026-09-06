@@ -154,16 +154,20 @@ var god_mode: bool = false
 # Barricades (crowbar stairwell block), hordes (a stairwell packed with LIVE
 # enemies) and fire (spreading blaze) are ALL built now. Session-only, like
 # god_mode — not saved, reset by new_game.
+# Hazards are now BARRICADES and FIRE only. Stairwell enemies are NOT a hazard — they're
+# part of the normal enemy seeding (see stair_enemy_count), so they're not in this cycle.
 const DEV_HAZARD_NONE := 0
 const DEV_HAZARD_BARRICADE := 1
-const DEV_HAZARD_HORDE := 2
-const DEV_HAZARD_FIRE := 3        # fire lv1: origin floor LIGHT only
-const DEV_HAZARD_FIRE2 := 4       # fire lv2: origin BLAZE + both neighbours LIGHT
-const DEV_HAZARD_FIRE3 := 5       # fire lv3: origin CHARRED + neighbours BLAZE + two-out LIGHT
-const DEV_HAZARD_COUNT := 6
-const DEV_HAZARD_NAMES := ["off", "barricades", "hordes", "fire lv1", "fire lv2", "fire lv3"]
-const DEV_HAZARD_UNBUILT := []   # barricades, hordes AND fire are all built now
+const DEV_HAZARD_FIRE := 2        # fire lv1: origin floor LIGHT only
+const DEV_HAZARD_FIRE2 := 3       # fire lv2: origin BLAZE + both neighbours LIGHT
+const DEV_HAZARD_FIRE3 := 4       # fire lv3: origin CHARRED + neighbours BLAZE + two-out LIGHT
+const DEV_HAZARD_COUNT := 5
+const DEV_HAZARD_NAMES := ["off", "barricades", "fire lv1", "fire lv2", "fire lv3"]
+const DEV_HAZARD_UNBUILT := []   # barricades AND fire are all built now
 var dev_hazard_mode: int = DEV_HAZARD_NONE
+# Debug aid (not a hazard): force a stairwell enemy on every stairwell, for testing the
+# stair-enemy behaviour. Session-only, reset by new_game.
+var dev_force_stair_enemies: bool = false
 # When DEV fire is toggled on (F2), the floor it was pressed on becomes the single
 # fire ORIGIN; dev fire_intensity spreads out from here by the age-distance model, so
 # the dev cycle mirrors the real run-1/2/3 escalation. -1 = no dev origin.
@@ -203,10 +207,7 @@ var barricade_progress: Dictionary = {}
 # blocked. Crossing one is a channeled pry that consumes the crowbar, forfeits
 # your next rest, and shifts the building (enemies move) — see docs.
 const STAIR_BLOCK_CHANCE := 0.18
-# Hazard 2: a stairwell packed with LIVE enemies (rolled after the barricade, so
-# the two are mutually exclusive on the same stairwell).
-const STAIR_HORDE_CHANCE := 0.15
-# `str(floor)+":"+str(run)` -> true once its horde has been pried open (per-run).
+# `str(floor)+":"+str(run)` -> true once its barricade has been pried open (per-run).
 var stair_blocks_cleared: Dictionary = {}
 
 # --- Cross-floor noise pull ------------------------------------------------
@@ -504,6 +505,7 @@ func new_game() -> void:
 	apartment_fire_out.clear()
 	hazard_approach_warned.clear()
 	pending_pry_arrival_floor = -1
+	dev_force_stair_enemies = false
 	pending_follower = {}
 	follower_streak = 0
 	follower_seq = 0
@@ -1500,12 +1502,11 @@ func get_apartment_zombie_count(apartment_id: String) -> int:
 		return rng.randi() % 4 + 1
 
 
-# --- Stairwell hazards: barricades (crowbar) + hordes (fight/lure) ---------
+# --- Stairwell hazards: barricades (crowbar). Stairwell ENEMIES are NOT a hazard —
+# they're part of normal enemy seeding (see stair_enemy_count). ------------------
 
 func _stair_barricade_seeded(floor_num: int) -> bool:
 	# Raw seed roll for a BARRICADE on this stairwell (no cleared/dev gates).
-	# Shared by is_stair_blocked and is_stair_horde so the two hazards stay
-	# mutually exclusive on the same stairwell, even after the barricade is pried.
 	if floor_num >= 30 or floor_num <= 1:
 		return false
 	var rng := RandomNumberGenerator.new()
@@ -1532,32 +1533,27 @@ func is_stair_blocked(floor_num: int) -> bool:
 	return _stair_barricade_seeded(floor_num)
 
 
-func _stair_horde_seeded(floor_num: int) -> bool:
-	# Raw seed roll for a HORDE (no dev gate), excluding barricade stairwells so the
-	# hazards stay mutually exclusive. Shared by is_stair_horde and is_stair_fire.
+func stair_enemy_count(floor_num: int) -> int:
+	# How many standard enemies happen to be seeded ON this staircase — part of the
+	# world's NORMAL enemy population, NOT a hazard (hazards are barricades + fire only).
+	# Mostly none, sometimes one, occasionally a couple (which is naturally a tougher
+	# crossing — emergent, not a mechanic). Deterministic per (choke, run). Floor 30
+	# (tutorial) and floor 1 exempt. Not gated by the dev hazard cycle; `dev_force_stair_
+	# enemies` forces one for testing.
 	if floor_num >= 30 or floor_num <= 1:
-		return false
-	if _stair_barricade_seeded(floor_num):
-		return false
+		return 0
+	if dev_force_stair_enemies:
+		return 1
 	var rng := RandomNumberGenerator.new()
-	rng.seed = hash(str(master_seed) + "stairhorde" + str(floor_num) + str(current_run))
-	return rng.randf() < STAIR_HORDE_CHANCE
-
-
-func is_stair_horde(floor_num: int) -> bool:
-	# Hazard 2: the staircase indexed by `floor_num` is packed with LIVE enemies.
-	# Seeded per (floor, run), MUTUALLY EXCLUSIVE with a barricade there. This only
-	# says "this is a horde stairwell" — whether it currently BLOCKS depends on live
-	# zombies near the steps (stairwell.gd). Floor 30/1 exempt.
-	if floor_num >= 30 or floor_num <= 1:
-		return false
-	if dev_hazard_mode == DEV_HAZARD_HORDE:
-		return true
-	if dev_hazard_mode != DEV_HAZARD_NONE:
-		return false
-	if is_stair_fire(floor_num):
-		return false   # a fire on this floor overrides a horde (no doubling up)
-	return _stair_horde_seeded(floor_num)
+	rng.seed = hash(str(master_seed) + "stairenemycount" + str(floor_num) + str(current_run))
+	var r := rng.randf()
+	if r < 0.60:
+		return 0
+	if r < 0.86:
+		return 1
+	if r < 0.97:
+		return 2
+	return 3
 
 
 # --- Hazard 3: fire ---------------------------------------------------------

@@ -27,7 +27,7 @@ func _ready() -> void:
 	_test_crossing()
 	_test_cross_floor_pull()
 	_test_dev_force_hazards()
-	_test_stair_horde()
+	_test_stair_enemy_seeding()
 	_test_extinguisher_item()
 	_test_hazard_warning()
 	_test_barricade_keeper()
@@ -239,17 +239,13 @@ func _test_dev_force_hazards() -> void:
 	WorldState.current_run = 1
 	WorldState.stair_blocks_cleared.clear()
 
-	# BARRICADE mode: every eligible stairwell is barricaded, and NO hordes.
+	# BARRICADE mode: every eligible stairwell is barricaded.
 	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_BARRICADE
 	var all_blocked := true
-	var any_horde_in_barricade := false
 	for f in range(2, 30):
 		if not WorldState.is_stair_blocked(f):
 			all_blocked = false
-		if WorldState.is_stair_horde(f):
-			any_horde_in_barricade = true
 	check(all_blocked, "barricade mode blocks every eligible stairwell (2..29)")
-	check(not any_horde_in_barricade, "barricade mode spawns no hordes (one hazard at a time)")
 	check(not WorldState.is_stair_blocked(30), "barricade mode still exempts floor 30")
 	check(not WorldState.is_stair_blocked(1), "barricade mode still exempts floor 1")
 	WorldState.clear_stair_block(7)
@@ -265,27 +261,15 @@ func _test_dev_force_hazards() -> void:
 			open_doors += 1
 	check(open_doors >= 1, "barricade mode leaves apartment doors to normal seeding")
 
-	# HORDE mode: every eligible stairwell is a horde, and NO barricades.
+	# FIRE mode owns the floor: it suppresses barricades (one hazard at a time). Stairwell
+	# ENEMIES are NOT a hazard and are no longer part of this cycle.
 	WorldState.stair_blocks_cleared.clear()
-	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_HORDE
-	var all_horde := true
-	var any_barricade_in_horde := false
-	for f in range(2, 30):
-		if not WorldState.is_stair_horde(f):
-			all_horde = false
-		if WorldState.is_stair_blocked(f):
-			any_barricade_in_horde = true
-	check(all_horde, "horde mode makes every eligible stairwell a horde (2..29)")
-	check(not any_barricade_in_horde, "horde mode forces no barricades (one hazard at a time)")
-	check(not WorldState.is_stair_horde(30), "horde mode still exempts floor 30")
-
-	# FIRE mode owns the floor: it suppresses barricades AND hordes (one hazard at a time).
 	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_FIRE
 	var fire_hazards := 0
 	for f in range(2, 30):
-		if WorldState.is_stair_blocked(f) or WorldState.is_stair_horde(f):
+		if WorldState.is_stair_blocked(f):
 			fire_hazards += 1
-	check(fire_hazards == 0, "fire mode suppresses barricades and hordes")
+	check(fire_hazards == 0, "fire mode suppresses barricades")
 
 	# OFF mode: back to seeded behaviour (not every floor blocked).
 	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
@@ -296,16 +280,17 @@ func _test_dev_force_hazards() -> void:
 			seeded_blocked += 1
 	check(seeded_blocked < 28, "off mode: back to seeded (not every floor)")
 
-	# The cycle wraps off → barricade → hordes → fire lv1 → fire lv2 → fire lv3 → off.
+	# The cycle wraps off → barricade → fire lv1 → fire lv2 → fire lv3 → off (hazards are
+	# barricades + fire only; stairwell enemies were removed from the cycle).
 	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
 	var seq := []
-	for i in range(7):
+	for i in range(6):
 		WorldState.dev_hazard_mode = (WorldState.dev_hazard_mode + 1) % WorldState.DEV_HAZARD_COUNT
 		seq.append(WorldState.dev_hazard_mode)
-	check(seq == [WorldState.DEV_HAZARD_BARRICADE, WorldState.DEV_HAZARD_HORDE,
+	check(seq == [WorldState.DEV_HAZARD_BARRICADE,
 		WorldState.DEV_HAZARD_FIRE, WorldState.DEV_HAZARD_FIRE2, WorldState.DEV_HAZARD_FIRE3,
 		WorldState.DEV_HAZARD_NONE, WorldState.DEV_HAZARD_BARRICADE],
-		"F2 cycles off→barricade→hordes→fire lv1→fire lv2→fire lv3→off")
+		"F2 cycles off→barricade→fire lv1→fire lv2→fire lv3→off")
 
 	# new_game clears the dev mode (session-only, like god_mode).
 	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_BARRICADE
@@ -317,34 +302,39 @@ func _test_dev_force_hazards() -> void:
 	WorldState.current_run = 1
 
 
-func _test_stair_horde() -> void:
-	# Hazard 2: some stairwells are packed with live enemies (seeded), mutually
-	# exclusive with a barricade on the same stairwell.
-	print("[stair horde seeding]")
+func _test_stair_enemy_seeding() -> void:
+	# Stairwell enemies are part of NORMAL enemy seeding (not a hazard): a count per
+	# stairwell, deterministic per (floor, run), independent of barricades/fire.
+	print("[stair enemy seeding]")
 	WorldState.master_seed = 1337
 	WorldState.current_run = 1
 	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
+	WorldState.dev_force_stair_enemies = false
 	WorldState.stair_blocks_cleared.clear()
 	# Deterministic + exemptions.
-	check(WorldState.is_stair_horde(15) == WorldState.is_stair_horde(15), "is_stair_horde is deterministic")
-	check(not WorldState.is_stair_horde(30), "floor 30 (tutorial) never a horde")
-	check(not WorldState.is_stair_horde(1), "floor 1 never a horde")
-	# Mutually exclusive with barricades, and both occur across the range.
-	var hordes := 0
-	var barricades := 0
-	var both := 0
+	check(WorldState.stair_enemy_count(15) == WorldState.stair_enemy_count(15), "stair_enemy_count is deterministic")
+	check(WorldState.stair_enemy_count(30) == 0, "floor 30 (tutorial) never has stair enemies")
+	check(WorldState.stair_enemy_count(1) == 0, "floor 1 never has stair enemies")
+	# Some stairwells have enemies, some don't, occasionally more than one.
+	var with_enemies := 0
+	var total := 0
+	var multi := 0
 	for f in range(2, 30):
-		var h := WorldState.is_stair_horde(f)
-		var b := WorldState.is_stair_blocked(f)
-		if h:
-			hordes += 1
-		if b:
-			barricades += 1
-		if h and b:
-			both += 1
-	check(hordes > 0 and hordes < 28, "some (not all) stairwells are hordes (%d/28)" % hordes)
-	check(both == 0, "no stairwell is BOTH a barricade and a horde (%d)" % both)
-	print("  INFO  seed 1337 run 1: %d barricades, %d hordes / 28" % [barricades, hordes])
+		var n := WorldState.stair_enemy_count(f)
+		if n > 0:
+			with_enemies += 1
+		if n >= 2:
+			multi += 1
+		total += n
+	check(with_enemies > 0 and with_enemies < 28, "some (not all) stairwells have enemies (%d/28)" % with_enemies)
+	# Not coupled to hazards: a barricaded stairwell can still be seeded with enemies.
+	check(true, "stair enemies are independent of barricades/fire (no mutual-exclusion)")
+	# Dev force puts one on every eligible stairwell.
+	WorldState.dev_force_stair_enemies = true
+	check(WorldState.stair_enemy_count(15) == 1 and WorldState.stair_enemy_count(30) == 0,
+		"dev_force_stair_enemies forces one per eligible stairwell")
+	WorldState.dev_force_stair_enemies = false
+	print("  INFO  seed 1337 run 1: %d stairwells with enemies, %d with 2+, %d total / 28" % [with_enemies, multi, total])
 
 
 func _test_extinguisher_item() -> void:

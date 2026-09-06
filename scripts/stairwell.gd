@@ -172,10 +172,10 @@ func _use_stairs() -> void:
 		_begin_pry()
 		return
 
-	# Hazard 2 — a horde packing the steps: no crowbar, you clear them out or draw
-	# them off (a thrown can) before the way is yours. Blocks while any live zombie
-	# is right on the stairwell.
-	if WorldState.is_stair_horde(_choke_floor()) and _horde_blocking():
+	# Enemies physically on the steps block the crossing (emergent — not a hazard): you
+	# clear them or draw them off before the way is yours. Only ones still ON the stairs
+	# count; once they step off onto the corridor the crossing is free (fight them there).
+	if _stair_enemy_blocking():
 		TutorialManager.say("Something's coming up the stairs — I can't get past until it's off them.")
 		return
 
@@ -192,7 +192,7 @@ func _use_stairs() -> void:
 const SHAFT_BLOCK_HALF_WIDTH := 52.0
 
 
-func _horde_blocking() -> bool:
+func _stair_enemy_blocking() -> bool:
 	# You're locked out ONLY while an enemy is on / coming up the stairs — i.e. still in
 	# stairwell mode (lurking in the shaft or rising to emerge), within the shaft's
 	# narrow x-band. The moment it has STEPPED OFF onto the corridor it's an ordinary

@@ -12,8 +12,9 @@ const MODE_SWITCH_TIME = 0.2
 const DEV_MODE = true
 # F1 item spawning is now a typed prompt (dev_item_prompt.gd) — pick any item by
 # number instead of cycling. F2 (dev_force_hazards) CYCLES floor hazards one at a
-# time (WorldState.dev_hazard_mode: off → barricades → hordes → fire lv1 → fire lv2
-# → fire lv3 → off), so each can be tested in a vacuum without overlap.
+# time (WorldState.dev_hazard_mode: off → barricades → fire lv1 → fire lv2 → fire
+# lv3 → off), so each can be tested in a vacuum without overlap. Stairwell ENEMIES
+# are NOT a hazard — they're normal enemy seeding (WorldState.stair_enemy_count).
 
 # Stamina
 const STAMINA_SPRINT_DRAIN = 12.0

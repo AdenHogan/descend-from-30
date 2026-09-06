@@ -290,11 +290,15 @@ means no rendering — UI layout and art still need an in-editor look.
   pulls only the **stairwell-seeded** dead on the adjacent floor (never a
   whole-floor vacuum; running never pulls). Seeded per (floor,run); floor 30 +
   floor 1 exempt. A blocked stairwell shows a **crate-stack prop**
-  (`barricade_prop.gd`) at both landings. **Hazard 2 — stairwell enemy (v5, single &
-  emerging):** deliberately simplified from the old "horde" — a stairwell enemy is now
-  **ONE STANDARD zombie that spawns partway down the stairs** (`is_stair_horde`, seeded
-  ~15%, mutually exclusive with barricades; dev-forced on every stairwell by the F2 horde
-  step). It spawns at the stair **TRIGGER x** — the exact point the player itself snaps
+  (`barricade_prop.gd`) at both landings. **Stairwell enemies (NOT a hazard — normal
+  enemy seeding):** decoupled from the hazard system entirely. Hazards are barricades +
+  fire ONLY; enemies on stairs are just part of the world's enemy population. A count per
+  stairwell (`WorldState.stair_enemy_count`, weighted: mostly 0-1, occasionally 2-3 — a
+  naturally tougher crossing, emergent not a mechanic), seeded per (choke, run),
+  independent of barricades/fire; NOT in the F2 dev hazard cycle (a `dev_force_stair_
+  enemies` bool forces them for testing). `building_floors._spawn_stair_enemies` (group
+  `stair_enemy`). Each is a STANDARD zombie that spawns partway down the stairs and spawns
+  at the stair **TRIGGER x** — the exact point the player itself snaps
   to when using the steps (the authoritative centre of the staircase), NOT the art
   texture centre (which is offset). **Two directions, mirroring the player's own DOWN/UP
   transition** (`_stair_up`): on a **DOWN shaft** (dark, `Hallway_Staircase_*`) it lurks
@@ -339,18 +343,25 @@ means no rendering — UI layout and art still need an in-editor look.
   restored on step-off (passable-until-clear so it never jams). Kills persist
   (`stair_horde` group + per-floor key `<floor>:stairwell:<choke>`). **Crossing lock**
   (`stairwell.gd`
-  `_horde_blocking`) blocks the crossing ONLY while an enemy is **on / coming up the
+  `_stair_enemy_blocking`) blocks the crossing ONLY while an enemy is **on / coming up the
   stairs** — i.e. still in `stair_mode`, within `SHAFT_BLOCK_HALF_WIDTH` (52px) of the
-  stair centre. The instant it **steps off** onto the corridor the crossing is free again
-  (you can descend past it; you'll fight it on the landing, but traversal isn't held
-  hostage) — matching the descent rule "blocked if something's coming up the stairs, open
-  otherwise". (Earlier bugs: a 300px radius counted zombies nowhere near the steps; then a
-  flipped check locked you out AFTER the enemy had stepped off.) No echo/warn cue any more
-  (dropped with the horde framing; `horde_echo.gd` is now unused). (Earlier: v2 built a
-  bespoke docked/frozen entity that walled the player off — scrapped; v3 spawned on the
-  corridor plane; v4 was a 3–4 shuffling bunch. **Future:** re-layer multiple enemies /
-  a real crossing hazard on top of this once the single-enemy feel is right; enemies
-  traversing between floor SCENES via the stair transition is still not built.)
+  stair centre (emergent — 2+ on the steps is naturally a hazard). The instant it **steps
+  off** onto the corridor the crossing is free again (you can descend past it; you'll fight
+  it on the landing, but traversal isn't held hostage). **Returning to a floor**: a stair
+  enemy is never recorded off-floor (snapped to the stand line on `_exit_tree` while on the
+  steps) and a remembered one comes back GROUNDED as an ordinary floor zombie (restore
+  branch re-grounds y/base_walk_y→370, collision on, passable-until-clear) — never mid-air
+  or lodging the player. **CROSS-FLOOR FOLLOW (built):** an enemy chasing you onto the
+  stairs comes WITH you — `stairwell.gd _capture_follower` (nearest live chaser within
+  `FOLLOW_RANGE` of the steps) stores it in `WorldState.pending_follower`, erases its memory
+  here + `left_floor` so it's gone from this floor; `building_floors._spawn_follower` (both
+  the fade build and pan `go_live`) emerges it from the ARRIVAL stairwell, pre-roused +
+  locked on (`alert_timer`), hp preserved, unique persistent key. `follower_streak` counts
+  consecutive floors it has pursued you across (a "chased the whole way down" achievement
+  hook; HUD nudge at 3+). So the building is one connected space — an enemy can follow you
+  floor to floor. (`horde_echo.gd` unused. Earlier: v2 bespoke docked entity that walled
+  the player off — scrapped; v3 corridor-plane; v4 a 3-4 bunch; v5 a single hazard-gated
+  emerging enemy — now decoupled into normal seeding.)
   **Hazard 3 — fire (v2):** a **spreading blaze** that spreads
   across a floor within a run AND **climbs the building across runs**. A
   deterministic (RNG-free) cellular sim `fire_field.gd` — corridor of heat/fuel

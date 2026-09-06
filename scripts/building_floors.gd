@@ -108,7 +108,7 @@ func _ready() -> void:
 	_spawn_world_drops(floor_num)
 	_spawn_merchant(floor_num)
 	_spawn_barricade_visuals(floor_num)
-	_spawn_stair_hordes(floor_num)
+	_spawn_stair_enemies(floor_num)
 	_spawn_follower(floor_num)
 	_spawn_fire(floor_num)
 	_spawn_door_fire(floor_num)
@@ -148,16 +148,18 @@ func _spawn_barricade_visuals(floor_num: int) -> void:
 		add_child(prop)
 
 
-# A stairwell enemy is nothing special — a single STANDARD zombie that spawns partway
-# down the stairs instead of out on the corridor. It waits sliced in the shaft and
-# rises up to emerge onto the corridor when the player nears (enemy.enter_stairwell_
-# mode); kills persist via the stair_horde group + a per-floor key. Seeded per stairwell
-# (is_stair_horde); dev-forced on every stairwell by the F2 horde step for playtesting.
+# A stairwell enemy is nothing special — a STANDARD zombie that happens to be seeded ON a
+# staircase instead of out on the corridor, part of the world's normal enemy population
+# (NOT a hazard; hazards are barricades + fire). It waits sliced in the shaft and rises up
+# to emerge onto the corridor when the player nears (enemy.enter_stairwell_mode); kills
+# persist via the stair_enemy group + a per-floor key. Count seeded per stairwell
+# (WorldState.stair_enemy_count) — usually 0-1, occasionally a couple, which is naturally
+# a tougher crossing.
 const CORRIDOR_PLANE_Y := 391.0        # the corridor walking line (== SPAWN_*_*.y)
 
 
-# Kept only so the approach-warning loop in _process has a list to read (empty now the
-# single stairwell enemy carries no horde echo/warn).
+# Kept only so the approach-warning loop in _process has a list to read (empty — stair
+# enemies are ordinary enemies now, no special approach cue).
 var _horde_warn_targets: Array = []
 
 
@@ -201,70 +203,66 @@ func _stair_art_box(on_left: bool) -> Dictionary:
 	return {}
 
 
-func _spawn_stair_hordes(floor_num: int) -> void:
-	# ONE standard zombie per seeded stairwell, spawned partway down the stairs and
-	# sliced into the shaft with the player's own stair slice (enemy.enter_stairwell_
-	# mode). It waits there, drifting a little, then rises up and steps off onto the
-	# corridor when the player nears — becoming an ordinary, attackable chaser only once
-	# it's off the steps. Kills persist via a stable per-floor key (stair_horde group).
+func _spawn_stair_enemies(floor_num: int) -> void:
+	# Seed standard zombies ONTO the staircases as part of the floor's normal enemy
+	# population (NOT a hazard). Count per stairwell from WorldState.stair_enemy_count —
+	# usually 0-1, occasionally a couple (a tougher crossing, emergent). Each waits sliced
+	# in the shaft and rises to emerge onto the corridor when the player nears (enemy.
+	# enter_stairwell_mode), then is an ordinary attackable chaser. Kills persist via a
+	# stable per-floor key (stair_enemy group).
 	var zombie_scene = preload("res://scenes/enemy_zombie_standard.tscn")
 	for tname in _BARRICADE_TRIGGERS:
 		var t = get_node_or_null(tname)
 		if t == null or t.process_mode == Node.PROCESS_MODE_DISABLED:
 			continue
 		var choke: int = floor_num + int(_BARRICADE_TRIGGERS[tname])
-		if not WorldState.is_stair_horde(choke):
-			continue
-		var key := "%d:stairwell:%d" % [floor_num, choke]
-		if WorldState.killed_zombies.has(key):
+		var count: int = WorldState.stair_enemy_count(choke)
+		if count <= 0:
 			continue
 		var on_left: bool = t.global_position.x < 600.0
 		var is_up: bool = _stair_art_box(on_left).get("is_up", false)
-		# Centre the enemy on the stair TRIGGER — the exact x the player itself snaps to
-		# when using these steps (the authoritative "middle of the staircase"), not the
-		# art texture's centre (which is offset from the visible steps).
+		# Centre on the stair TRIGGER — the exact x the player snaps to (the authoritative
+		# middle of the staircase), not the art texture's centre.
 		var shaft_x: float = t.global_position.x
-		# It must finish standing where EVERY OTHER actor stands — origin STAIR_STAND_Y
-		# (370), whose collision-bottom/FEET land on the floor line 419 (measured equal for
-		# player + normal zombies). See docs/Y_PLANES.md. Emerging to 388 (feet 437) sat it
-		# 18px low and floor-collision snapped it up = the rubber-band.
 		var cut_y: float = STAIR_STAND_Y + STAIR_DOWN_CUT_DROP
 		var rng := RandomNumberGenerator.new()
 		rng.seed = hash(str(WorldState.master_seed) + "stairenemy" + str(choke) + str(WorldState.current_run))
-		# Where it waits on the steps, mirroring which way the stairs run:
-		#   DOWN shaft (dark): origin BELOW the cut, so only its head/shoulders poke up —
-		#     lurking down the shaft. Rising to the plane reveals it head-first.
-		#   UP stairwell (visible steps): it stands UP the visible steps, above the plane,
-		#     and walks DOWN to emerge (drawn whole, just depth-scaled).
-		var rest_y: float
-		if is_up:
-			rest_y = STAIR_STAND_Y - rng.randf_range(30.0, 55.0)   # up the visible steps
-		else:
-			rest_y = cut_y + rng.randf_range(28.0, 58.0)           # down in the dark shaft
-		var z = zombie_scene.instantiate()
-		z.global_position = Vector2(shaft_x, rest_y)
-		z.spawn_key = key
-		z.add_to_group("stair_horde")
-		# Seeded disposition: an EAGER one rouses at the normal range; a PASSIVE one only
-		# stirs when the player is right on it (or a noise pulls it) — so not every
-		# stairwell enemy always comes at you.
-		z.stair_eager = (rng.randi() % 2 == 0)
-		add_child(z)
-		# A zombie met before (memory) already emerged on an earlier visit — bring it back
-		# as an ORDINARY floor zombie, never re-caged in the shaft and never left mid-air:
-		# re-ground it on the stand line and start it passable so it can't lodge the player
-		# on arrival. Only a FRESH one starts up on the steps.
-		var restored = WorldState.apply_saved_zombie(z)
-		if restored:
-			z.global_position.y = STAIR_STAND_Y
-			z.base_walk_y = STAIR_STAND_Y      # home line is the floor, not the stale shaft rest_y from _ready
-			z.stair_mode = false
-			z.set_collision_layer_value(1, true)
-			z.set_collision_mask_value(1, true)
-			if z.has_method("_make_passable_to_player"):
-				z._make_passable_to_player()
-		else:
-			z.enter_stairwell_mode(rest_y, STAIR_STAND_Y, STAIR_BOB_AMP, cut_y, on_left, is_up)
+		# Spawn topmost-first so the lowest (nearest) is added last and draws on top.
+		for i in range(count - 1, -1, -1):
+			var key := "%d:stairwell:%d:%d" % [floor_num, choke, i]
+			if WorldState.killed_zombies.has(key):
+				continue
+			# Stack them up the shaft: each one a bit further up/deeper than the last, so a
+			# couple on one staircase read as bunched on the steps rather than overlapping.
+			var step_off: float = float(i) * 30.0
+			var rest_y: float
+			if is_up:
+				rest_y = STAIR_STAND_Y - (rng.randf_range(30.0, 45.0) + step_off)   # up the visible steps
+			else:
+				rest_y = cut_y + rng.randf_range(28.0, 44.0) + step_off            # down in the dark shaft
+			var z = zombie_scene.instantiate()
+			z.global_position = Vector2(shaft_x + rng.randf_range(-4.0, 4.0), rest_y)
+			z.spawn_key = key
+			z.add_to_group("stair_enemy")
+			# Seeded disposition: EAGER rouses at the normal range; PASSIVE only when the
+			# player is right on it — so not every stairwell enemy always comes at you.
+			z.stair_eager = (rng.randi() % 2 == 0)
+			add_child(z)
+			# A zombie met before (memory) already emerged on an earlier visit — bring it
+			# back as an ORDINARY floor zombie, never re-caged in the shaft and never mid-
+			# air: re-ground it on the stand line and start it passable so it can't lodge
+			# the player on arrival. Only a FRESH one starts up on the steps.
+			var restored = WorldState.apply_saved_zombie(z)
+			if restored:
+				z.global_position.y = STAIR_STAND_Y
+				z.base_walk_y = STAIR_STAND_Y
+				z.stair_mode = false
+				z.set_collision_layer_value(1, true)
+				z.set_collision_mask_value(1, true)
+				if z.has_method("_make_passable_to_player"):
+					z._make_passable_to_player()
+			else:
+				z.enter_stairwell_mode(rest_y, STAIR_STAND_Y, STAIR_BOB_AMP, cut_y, on_left, is_up)
 
 
 func _spawn_follower(floor_num: int) -> void:
@@ -295,7 +293,7 @@ func _spawn_follower(floor_num: int) -> void:
 	z.global_position = Vector2(shaft_x, rest_y)
 	z.spawn_key = "%d:follower:%d" % [floor_num, WorldState.follower_seq]
 	z.is_follower = true
-	z.add_to_group("stair_horde")
+	z.add_to_group("stair_enemy")
 	add_child(z)
 	z.enter_stairwell_mode(rest_y, STAIR_STAND_Y, STAIR_BOB_AMP, cut_y, arrived_left, is_up)
 	z.current_hp = int(f.get("hp", z.current_hp))
@@ -975,7 +973,7 @@ func go_live() -> void:
 	# fine). Spawn them here on adoption, same as a fresh build would. _spawn_fire
 	# re-imports the saved spread, so the fire comes back exactly as it was left.
 	_spawn_barricade_visuals(floor_num)
-	_spawn_stair_hordes(floor_num)
+	_spawn_stair_enemies(floor_num)
 	_spawn_follower(floor_num)
 	if _fire_field == null:            # the passive backdrop already built the fire
 		_spawn_fire(floor_num)
