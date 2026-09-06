@@ -214,16 +214,23 @@ func _stair_enemy_blocking() -> bool:
 const FOLLOW_RANGE := 170.0
 
 
-func _capture_follower() -> void:
-	# Find the nearest LIVE, actively-chasing enemy on your heels at the stairwell and
-	# take it with you: record its state in WorldState, remove it from THIS floor (it
-	# left), and it will emerge from the arrival stairwell on the destination floor
-	# (building_floors._spawn_follower). Only an aggro'd, off-the-steps enemy follows.
+func _capture_follower(target_floor: int) -> void:
+	# Find the nearest LIVE, actively-chasing enemy on your heels at the stairwell and take
+	# THE SAME NODE with you: it's parked on the SceneTree root (begin_follow) so it
+	# survives the scene change, then re-homed emerging from the arrival stairwell
+	# (building_floors._spawn_follower). Only an aggro'd, off-the-steps standard enemy
+	# follows, and only toward a real building floor (1..29 — not the lobby/hallway, which
+	# don't spawn followers).
+	if target_floor < 1 or target_floor > 29:
+		WorldState.follower_streak = 0
+		return
 	var best = null
 	var best_d := FOLLOW_RANGE
 	for z in get_tree().get_nodes_in_group("zombie"):
 		if z.is_dead:
 			continue
+		if not z.has_method("begin_follow"):
+			continue   # only standard zombies can follow (bosses/others don't)
 		if ("stair_mode" in z) and z.stair_mode:
 			continue   # still lurking on the steps — it isn't chasing you yet
 		var aggro: bool = (("state" in z) and z.state in ["chase", "attack"]) \
@@ -235,17 +242,20 @@ func _capture_follower() -> void:
 			best = z
 			best_d = d
 	if best == null:
+		WorldState.follower_streak = 0   # nobody on your heels — the chase chain ends
 		return
-	# Chain tracking: if the enemy that follows is itself already a follower, the chase
-	# continues across another floor; otherwise a new chase begins.
+	# Chain tracking: if the one following is ALREADY a follower, the chase continues
+	# across another floor; otherwise a fresh chase begins.
 	if ("is_follower" in best) and best.is_follower:
 		WorldState.follower_streak += 1
 	else:
 		WorldState.follower_streak = 1
-	WorldState.pending_follower = {"hp": best.current_hp}
-	WorldState.zombie_positions.erase(best.spawn_key)   # no stale memory on this floor
-	best.left_floor = true                              # _exit_tree won't re-record it
-	best.queue_free()                                   # it's gone from here — it followed
+	# Its origin-floor slot must never re-spawn a duplicate: forget its remembered spot
+	# and mark the seed slot as "left" (skipped by _spawn_zombies / _spawn_stair_enemies).
+	WorldState.zombie_positions.erase(best.spawn_key)
+	WorldState.followed_away[best.spawn_key] = true
+	best.begin_follow()                 # parks the SAME node on root, frozen, out of groups
+	WorldState.follower_node = best
 
 
 func _choke_floor() -> int:
@@ -269,7 +279,9 @@ func _perform_transition(shift: bool = false) -> void:
 	var target_floor = WorldState.current_floor + (-1 if direction == "down" else 1)
 
 	# An enemy right on your heels comes WITH you — the building is one connected space.
-	_capture_follower()
+	# NOT on a pried crossing (`shift`): that's a heavy time-skip that re-rolls the world.
+	if not shift:
+		_capture_follower(target_floor)
 
 	# Seamless pan between two mid-building floors when enabled; it commits the
 	# floor + scene change itself. Otherwise (and always, while disabled) the

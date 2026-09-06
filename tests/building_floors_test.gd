@@ -30,7 +30,8 @@ func _ready() -> void:
 	await _test_barricade_visuals()
 	await _test_stair_enemy_spawns()
 	await _test_stair_enemy_return_grounded()
-	await _test_follower_arrives()
+	await _test_follower_same_node()
+	await _test_follower_resident()
 	await _test_fire_spawns()
 	await _test_elevator_arrival_stairs()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
@@ -472,37 +473,104 @@ func _test_stair_enemy_spawns() -> void:
 	WorldState.dev_force_stair_enemies = false
 
 
-func _test_follower_arrives() -> void:
-	# Cross-floor follow: an enemy captured on the departing floor emerges from the
-	# ARRIVAL stairwell on the destination floor, chasing, and ends grounded (never
-	# mid-air). The building is one connected space.
-	print("[cross-floor follower]")
+func _test_follower_same_node() -> void:
+	# Cross-floor follow with the EXACT SAME NODE: a chasing enemy is parked on the tree
+	# root, survives the origin floor being freed, and is re-homed emerging from the
+	# arrival stairwell — same instance id, same hp. No duplicate is left behind.
+	print("[cross-floor follower — exact same node]")
 	WorldState.new_game(); WorldState.tutorial_completed = true; WorldState.is_first_run = false
+	WorldState.dev_force_stair_enemies = true
 	WorldState.current_floor = 14; WorldState.spawn_source = "stair"
 	WorldState.stair_direction = "down"; WorldState.stair_spawn_side = "left"
 	WorldState.pending_pry_arrival_floor = -1
 	WorldState.seed_floor_door_states(14)
-	WorldState.pending_follower = {"hp": 4}
 	var bf = load("res://scenes/building_floors.tscn").instantiate()
 	add_child(bf)
 	await get_tree().process_frame
-	var f = null
+	var e = null
 	for z in get_tree().get_nodes_in_group("stair_enemy"):
-		if ("is_follower" in z) and z.is_follower:
-			f = z; break
-	check(f != null, "a follower emerges on the arrival floor")
-	check(WorldState.pending_follower.is_empty(), "pending_follower is consumed on arrival")
-	if f != null:
-		check(f.global_position.x < 260.0, "it emerges from the LEFT arrival stairwell (x=%.0f)" % f.global_position.x)
-		check(f.current_hp == 4, "it keeps the hp it had when it started chasing")
-		check(f.alert_timer > 0.0, "it arrives locked on (chasing)")
-		# Drive the emerge; it must end grounded and solid, never mid-air.
-		for i in range(600):
-			if not f.stair_mode: break
-			f._stair_tick(1.0 / 60.0)
-		check(absf(f.global_position.y - 370.0) < 0.5, "the follower ends GROUNDED on the floor line (%.1f)" % f.global_position.y)
+		e = z; break
+	check(e != null, "a stair enemy exists to become the follower")
+	if e == null:
+		bf.queue_free(); await get_tree().process_frame; WorldState.dev_force_stair_enemies = false; return
+	var eid: int = e.get_instance_id()
+	e.current_hp = 2
+	# Simulate stairwell._capture_follower toward floor 13.
+	WorldState.followed_away[e.spawn_key] = true
+	WorldState.zombie_positions.erase(e.spawn_key)
+	WorldState.follower_streak = 1
+	e.begin_follow()
+	WorldState.follower_node = e
+	check(e.get_parent() == get_tree().root, "the captured node is parked on the tree root")
+	# The origin floor is torn down (as a real transition frees it).
 	bf.queue_free()
 	await get_tree().process_frame
+	check(is_instance_valid(e), "the SAME node survives the origin floor being freed")
+	# Arrive on floor 13.
+	WorldState.current_floor = 13; WorldState.spawn_source = "stair"
+	WorldState.stair_direction = "down"; WorldState.stair_spawn_side = "left"
+	WorldState.dev_force_stair_enemies = false
+	WorldState.seed_floor_door_states(13)
+	var bf2 = load("res://scenes/building_floors.tscn").instantiate()
+	add_child(bf2)
+	await get_tree().process_frame
+	var arrived = null
+	for z in get_tree().get_nodes_in_group("stair_enemy"):
+		if z.get_instance_id() == eid:
+			arrived = z; break
+	check(arrived != null, "THE SAME node (same instance id) arrives on the next floor")
+	check(WorldState.follower_node == null, "follower_node is consumed on arrival")
+	if arrived != null:
+		check(arrived.get_parent() == bf2, "the same node is re-homed into the new floor scene")
+		check(arrived.current_hp == 2, "it keeps its EXACT hp (2)")
+		check(arrived.is_follower and arrived.alert_timer > 0.0, "arrives as the follower, locked on")
+		for i in range(600):
+			if not arrived.stair_mode: break
+			arrived._stair_tick(1.0 / 60.0)
+		check(absf(arrived.global_position.y - 370.0) < 0.5, "ends GROUNDED on the floor line (%.1f)" % arrived.global_position.y)
+	bf2.queue_free()
+	await get_tree().process_frame
+	WorldState.followed_away.clear()
+
+
+func _test_follower_resident() -> void:
+	# A follower left on a floor (non-stair exit) persists: remembered under its resident
+	# key and restored GROUNDED as an ordinary floor zombie on return.
+	print("[follower resident persistence]")
+	WorldState.new_game(); WorldState.tutorial_completed = true; WorldState.is_first_run = false
+	WorldState.follower_node = null
+	WorldState.current_floor = 12; WorldState.spawn_source = "stair"
+	WorldState.stair_direction = "down"; WorldState.stair_spawn_side = "left"
+	WorldState.seed_floor_door_states(12)
+	# Forge a remembered resident follower on floor 12 (as _exit_tree would after an
+	# apartment trip).
+	WorldState.zombie_positions["followerR:12"] = {"x": 620.0, "y": 370.0, "facing": false, "hp": 3, "alert": 0.0}
+	var bf = load("res://scenes/building_floors.tscn").instantiate()
+	add_child(bf)
+	await get_tree().process_frame
+	var r = null
+	for z in get_tree().get_nodes_in_group("stair_enemy"):
+		if z.spawn_key == "followerR:12":
+			r = z; break
+	check(r != null, "a resident follower is restored on return")
+	if r != null:
+		check(r.current_hp == 3, "it keeps its remembered hp (3)")
+		check(not r.stair_mode, "it's an ordinary floor zombie (not re-caged in the shaft)")
+		check(absf(r.global_position.y - 370.0) < 0.5, "restored GROUNDED on the floor line (%.1f)" % r.global_position.y)
+	# A DEAD resident does not come back.
+	bf.queue_free(); await get_tree().process_frame
+	WorldState.killed_zombies["followerR:12"] = {"floor": 12}
+	var bf2 = load("res://scenes/building_floors.tscn").instantiate()
+	add_child(bf2)
+	await get_tree().process_frame
+	var still := false
+	for z in get_tree().get_nodes_in_group("stair_enemy"):
+		if z.spawn_key == "followerR:12":
+			still = true
+	check(not still, "a killed resident follower stays dead")
+	bf2.queue_free(); await get_tree().process_frame
+	WorldState.zombie_positions.erase("followerR:12")
+	WorldState.killed_zombies.erase("followerR:12")
 
 
 func _test_stair_enemy_return_grounded() -> void:

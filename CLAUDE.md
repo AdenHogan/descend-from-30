@@ -351,17 +351,29 @@ means no rendering — UI layout and art still need an in-editor look.
   enemy is never recorded off-floor (snapped to the stand line on `_exit_tree` while on the
   steps) and a remembered one comes back GROUNDED as an ordinary floor zombie (restore
   branch re-grounds y/base_walk_y→370, collision on, passable-until-clear) — never mid-air
-  or lodging the player. **CROSS-FLOOR FOLLOW (built):** an enemy chasing you onto the
-  stairs comes WITH you — `stairwell.gd _capture_follower` (nearest live chaser within
-  `FOLLOW_RANGE` of the steps) stores it in `WorldState.pending_follower`, erases its memory
-  here + `left_floor` so it's gone from this floor; `building_floors._spawn_follower` (both
-  the fade build and pan `go_live`) emerges it from the ARRIVAL stairwell, pre-roused +
-  locked on (`alert_timer`), hp preserved, unique persistent key. `follower_streak` counts
-  consecutive floors it has pursued you across (a "chased the whole way down" achievement
-  hook; HUD nudge at 3+). So the building is one connected space — an enemy can follow you
-  floor to floor. (`horde_echo.gd` unused. Earlier: v2 bespoke docked entity that walled
-  the player off — scrapped; v3 corridor-plane; v4 a 3-4 bunch; v5 a single hazard-gated
-  emerging enemy — now decoupled into normal seeding.)
+  or lodging the player. **CROSS-FLOOR FOLLOW — the EXACT SAME node (built):** an enemy
+  chasing you onto the stairs comes WITH you, and it is literally the same node, not a copy.
+  `stairwell._capture_follower(target)` picks the nearest live chaser within `FOLLOW_RANGE`
+  of the steps (standard zombies only, toward a real floor 1..29) and calls
+  `enemy.begin_follow()`, which **parks the live node on the SceneTree ROOT** (frozen,
+  hidden, out of all groups) so it SURVIVES the scene teardown — root outlives both the
+  pan's `_adopt` (which frees the old scene AFTER `go_live`) and a fade's `change_scene`.
+  `WorldState.follower_node` holds it in transit (transient, never saved). On arrival
+  `building_floors._spawn_follower` (called in the fade build AND pan `go_live`) reparents
+  the SAME node into the floor, `end_follow_transit` un-freezes/re-groups/refreshes the
+  player ref, and it emerges from the ARRIVAL stairwell, locked on (`alert_timer`), hp/state
+  intact. **No duplicate**: the origin slot's `spawn_key` is erased from memory AND added to
+  `WorldState.followed_away`, which `_spawn_zombies` + `_spawn_stair_enemies` skip, so the
+  floor it left never re-spawns a copy. **Resident persistence**: on the floor it's on, the
+  follower's key is `followerR:<floor>`, so a NON-stair exit (apartment/elevator) records it
+  and `_spawn_follower` restores it grounded on return (a killed one stays dead). `follower_
+  streak` counts consecutive floors the SAME enemy has chased you across (the "whole way
+  down" achievement hook; HUD nudge at 3+); reset when the chain breaks or it dies. NOT on a
+  pried crossing (a shift re-rolls the world). Cleared by `new_game`; `followed_away` also by
+  `shift_building`. (`horde_echo.gd` unused. Earlier follower attempt spawned a fresh copy
+  carrying hp — replaced with the real same-node hand-off. Earlier stair-enemy: v2 bespoke
+  docked entity that walled the player off — scrapped; v3 corridor-plane; v4 a 3-4 bunch; v5
+  a single hazard-gated emerging enemy — now decoupled into normal seeding.)
   **Hazard 3 — fire (v2):** a **spreading blaze** that spreads
   across a floor within a run AND **climbs the building across runs**. A
   deterministic (RNG-free) cellular sim `fire_field.gd` — corridor of heat/fuel

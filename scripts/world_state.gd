@@ -506,9 +506,11 @@ func new_game() -> void:
 	hazard_approach_warned.clear()
 	pending_pry_arrival_floor = -1
 	dev_force_stair_enemies = false
-	pending_follower = {}
+	if is_instance_valid(follower_node):
+		follower_node.queue_free()
+	follower_node = null
 	follower_streak = 0
-	follower_seq = 0
+	followed_away.clear()
 	merchant_stock.clear()
 	legendary_hold = {}
 	legendary_just_purchased = false
@@ -1850,6 +1852,8 @@ func shift_building() -> void:
 	fire_cells.clear()
 	fire_origin_x.clear()
 	apartment_fire_out.clear()
+	# The seed re-rolled, so the old "left this floor" slots no longer map to anything.
+	followed_away.clear()
 
 
 # Set when a pried crossing commits: the floor you ARRIVE on (floor_num-1). The
@@ -1857,17 +1861,19 @@ func shift_building() -> void:
 # at the stairwell you step out of, then clears it. -1 = normal arrival.
 var pending_pry_arrival_floor: int = -1
 
-# Cross-floor FOLLOWER: an enemy that was chasing you onto the stairs follows you
-# through the transition — the building is one connected space, not separate floors.
-# Captured on the departing floor (stairwell.gd), spawned emerging from the ARRIVAL
-# stairwell on the destination floor (building_floors._spawn_follower), then cleared.
-# {hp} of the enemy that came with you; empty = nobody followed. Transient (consumed
-# on the very next arrival), so not persisted. `follower_streak` counts how many floors
-# it has chased you across in a row (an enemy pursuing you the whole way down); reset
-# when the chain breaks. `follower_seq` gives each spawned follower a unique key.
-var pending_follower: Dictionary = {}
+# Cross-floor FOLLOWER: an enemy chasing you onto the stairs comes WITH you — the SAME
+# node, not a copy. Captured on the departing floor (stairwell._capture_follower →
+# enemy.begin_follow parks the live node on the SceneTree root, which survives both the
+# seamless pan's adopt and a fade's change_scene), then re-homed into the arrival floor
+# and set emerging (building_floors._spawn_follower). `follower_node` holds that live node
+# in transit — TRANSIENT (a live ref, never saved; saves only happen at rest/merchant, so
+# it's always null at save time). `follower_streak` counts how many floors it has chased
+# you across in a row (the "whole way down" chase); reset when the chain breaks.
+# `followed_away` holds the spawn_keys of enemies that LEFT their floor by following you,
+# so their origin-floor slot never re-spawns a duplicate.
+var follower_node: Node = null
 var follower_streak: int = 0
-var follower_seq: int = 0
+var followed_away: Dictionary = {}
 
 # How much stamina you have LEFT after wrenching a barricade open — a small
 # exhausted floor (fraction of max), never a refresh. Tune the drain here.

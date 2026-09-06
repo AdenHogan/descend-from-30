@@ -232,6 +232,8 @@ func _spawn_stair_enemies(floor_num: int) -> void:
 			var key := "%d:stairwell:%d:%d" % [floor_num, choke, i]
 			if WorldState.killed_zombies.has(key):
 				continue
+			if WorldState.followed_away.has(key):
+				continue   # this one left the floor following the player — no duplicate
 			# Stack them up the shaft: each one a bit further up/deeper than the last, so a
 			# couple on one staircase read as bunched on the steps rather than overlapping.
 			var step_off: float = float(i) * 30.0
@@ -265,43 +267,71 @@ func _spawn_stair_enemies(floor_num: int) -> void:
 				z.enter_stairwell_mode(rest_y, STAIR_STAND_Y, STAIR_BOB_AMP, cut_y, on_left, is_up)
 
 
+# One resident follower per floor, remembered under this key so it persists across
+# non-stair exits (an apartment/elevator trip) like any other floor zombie.
+func _follower_res_key(floor_num: int) -> String:
+	return "followerR:%d" % floor_num
+
+
 func _spawn_follower(floor_num: int) -> void:
-	# An enemy that was chasing the player onto the stairs FOLLOWED them here (captured
-	# in stairwell.gd). It emerges from the ARRIVAL stairwell — the one the player just
-	# stepped out of — and chases relentlessly (it's locked on): the building is one
-	# connected space, and an enemy can pursue you the whole way down. Grounded + robust,
-	# reusing the stairwell-enemy emerge; a UNIQUE key so it persists on this floor.
-	if WorldState.pending_follower.is_empty():
+	# Two ways a follower appears on this floor:
+	#   1. It CHASED the player down the stairs — the SAME node, parked on root in transit
+	#      (WorldState.follower_node). Re-home it, emerging from the ARRIVAL stairwell, and
+	#      it keeps chasing (locked on). This is the "one connected building" feature.
+	#   2. It was already RESIDENT here and the player left/returned by a non-stair route
+	#      (apartment/elevator): restore it from memory as an ordinary floor zombie.
+	# Both persist under _follower_res_key so the enemy is remembered floor-to-floor.
+	var res_key := _follower_res_key(floor_num)
+
+	if WorldState.follower_node != null and is_instance_valid(WorldState.follower_node):
+		var z = WorldState.follower_node
+		WorldState.follower_node = null
+		var arrived_left: bool = WorldState.stair_spawn_side != "right"
+		# The active stairwell trigger on the side the player arrived on (its return path).
+		var t = null
+		for suffix in ["up", "down"]:
+			var tn := "stair_%s_%s_trigger" % ["left" if arrived_left else "right", suffix]
+			var cand = get_node_or_null(tn)
+			if cand != null and cand.process_mode != Node.PROCESS_MODE_DISABLED:
+				t = cand
+				break
+		var shaft_x: float = t.global_position.x if t != null else (188.0 if arrived_left else 1162.0)
+		var is_up: bool = _stair_art_box(arrived_left).get("is_up", false)
+		var cut_y: float = STAIR_STAND_Y + STAIR_DOWN_CUT_DROP
+		var rest_y: float = (STAIR_STAND_Y - 42.0) if is_up else (cut_y + 42.0)
+		# Re-home THE SAME node into this floor (it was parked on the tree root).
+		var p = z.get_parent()
+		if p != null:
+			p.remove_child(z)
+		add_child(z)
+		z.end_follow_transit()                 # un-freeze, re-group, refresh player ref
+		z.spawn_key = res_key                  # resident here now (persists via memory)
+		z.global_position = Vector2(shaft_x, rest_y)
+		z.enter_stairwell_mode(rest_y, STAIR_STAND_Y, STAIR_BOB_AMP, cut_y, arrived_left, is_up)
+		z.alert_timer = 99999.0                # locked on — it chose to follow you
+		z._stair_react_timer = 0.0             # emerge NOW (right after you)
+		z._stair_phase = "rise"
+		if WorldState.follower_streak >= 3:
+			HUD.show_feedback("It's still on you — %d floors and counting." % WorldState.follower_streak)
 		return
-	var f: Dictionary = WorldState.pending_follower
-	WorldState.pending_follower = {}
-	var arrived_left: bool = WorldState.stair_spawn_side != "right"
-	# The active stairwell trigger on the side the player arrived on (its return path).
-	var t = null
-	for suffix in ["up", "down"]:
-		var tn := "stair_%s_%s_trigger" % ["left" if arrived_left else "right", suffix]
-		var cand = get_node_or_null(tn)
-		if cand != null and cand.process_mode != Node.PROCESS_MODE_DISABLED:
-			t = cand
-			break
-	var shaft_x: float = t.global_position.x if t != null else (188.0 if arrived_left else 1162.0)
-	var is_up: bool = _stair_art_box(arrived_left).get("is_up", false)
-	var cut_y: float = STAIR_STAND_Y + STAIR_DOWN_CUT_DROP
-	var rest_y: float = (STAIR_STAND_Y - 42.0) if is_up else (cut_y + 42.0)
-	WorldState.follower_seq += 1
-	var z = preload("res://scenes/enemy_zombie_standard.tscn").instantiate()
-	z.global_position = Vector2(shaft_x, rest_y)
-	z.spawn_key = "%d:follower:%d" % [floor_num, WorldState.follower_seq]
-	z.is_follower = true
-	z.add_to_group("stair_enemy")
-	add_child(z)
-	z.enter_stairwell_mode(rest_y, STAIR_STAND_Y, STAIR_BOB_AMP, cut_y, arrived_left, is_up)
-	z.current_hp = int(f.get("hp", z.current_hp))
-	z.alert_timer = 99999.0             # locked on — it chose to follow you
-	z._stair_react_timer = 0.0          # emerge NOW (it came down right after you)
-	z._stair_phase = "rise"
-	if WorldState.follower_streak >= 3:
-		HUD.show_feedback("It's still on you — %d floors and counting." % WorldState.follower_streak)
+
+	# No live node in transit — restore a resident follower if one is remembered here and
+	# it isn't dead. Ordinary floor zombie (already on the corridor; no emerge).
+	WorldState.follower_node = null
+	if WorldState.killed_zombies.has(res_key):
+		return
+	if not WorldState.zombie_positions.has(res_key):
+		return
+	var r = preload("res://scenes/enemy_zombie_standard.tscn").instantiate()
+	r.spawn_key = res_key
+	r.is_follower = true
+	r.add_to_group("stair_enemy")
+	add_child(r)
+	WorldState.apply_saved_zombie(r)           # restore its remembered spot + hp
+	r.global_position.y = STAIR_STAND_Y         # grounded on the floor line, never mid-air
+	r.base_walk_y = STAIR_STAND_Y
+	r.stair_mode = false
+	r._make_passable_to_player()
 
 
 # How close (px) to a horde stairwell the first-approach warning fires. The
@@ -832,6 +862,8 @@ func _spawn_zombies(floor_num: int, as_scenery: bool) -> void:
 		var key = str(floor_num) + ":" + str(snappedf(pos.x, 1.0)) + ":" + str(snappedf(pos.y, 1.0))
 		if WorldState.killed_zombies.has(key):
 			continue
+		if WorldState.followed_away.has(key):
+			continue   # this one left the floor following the player — don't respawn a copy
 		var zombie = zombie_scene.instantiate()
 		zombie.global_position = pos
 		zombie.spawn_key = key

@@ -145,10 +145,51 @@ var distraction_timer: float = 0.0
 # normal AI. And it ALWAYS reaches the plane and hands off — there is no state it can be
 # stranded in unkillable.
 # Cross-floor follow: an enemy that chased you onto the stairs and came WITH you to the
-# next floor. `is_follower` marks it so the chase chain can be tracked; `left_floor` tells
-# _exit_tree NOT to record it on the floor it just left (it's gone from there — it followed).
+# next floor — the SAME node, parked on the SceneTree root during the transition then
+# re-homed into the arrival floor. `is_follower` marks it (chase-chain tracking);
+# `left_floor` tells _exit_tree NOT to record it on the floor it just left; `_in_transit`
+# is true only while it's parked between floors (frozen, hidden, out of groups).
 var is_follower: bool = false
 var left_floor: bool = false
+var _in_transit: bool = false
+
+
+func begin_follow() -> void:
+	# Take this live node OUT of the current floor and park it on the SceneTree root so it
+	# survives the scene teardown (both the pan's adopt and a fade's change_scene). Frozen,
+	# hidden, and out of every group so nothing on the old floor touches it in transit.
+	is_follower = true
+	left_floor = true
+	_in_transit = true
+	velocity = Vector2.ZERO
+	set_physics_process(false)
+	set_collision_layer_value(1, false)
+	set_collision_mask_value(1, false)
+	visible = false
+	if is_in_group("zombie"):
+		remove_from_group("zombie")
+	if is_in_group("stair_enemy"):
+		remove_from_group("stair_enemy")
+	var root = get_tree().root
+	var p = get_parent()
+	if p != null and p != root:
+		p.remove_child(self)          # _exit_tree fires; left_floor makes it skip recording
+		root.add_child(self)          # parked on root — survives the scene change
+
+
+func end_follow_transit() -> void:
+	# Back onto a live floor: un-freeze, re-join the groups, refresh the player ref (a fade
+	# built a brand-new player instance). The caller has already reparented us into the
+	# floor and will position + re-enter stairwell mode (emerge).
+	_in_transit = false
+	left_floor = false
+	visible = true
+	set_physics_process(true)
+	if not is_in_group("zombie"):
+		add_to_group("zombie")
+	if not is_in_group("stair_enemy"):
+		add_to_group("stair_enemy")
+	player = get_tree().get_first_node_in_group("player")
 var stair_mode: bool = false
 var _stair_up: bool = false            # true = UP stairwell (above the plane, comes DOWN); false = DOWN shaft (below the plane, rises UP)
 var _stair_plane_y: float = 391.0      # corridor standing line (where it steps off)
@@ -563,6 +604,13 @@ func _exit_tree() -> void:
 
 func _die() -> void:
 	is_dead = true
+	# A follower that dies breaks the chase chain; make sure it's never left dangling as
+	# the in-transit reference either.
+	if is_follower:
+		if is_instance_valid(WorldState) and WorldState.follower_node == self:
+			WorldState.follower_node = null
+		if is_instance_valid(WorldState):
+			WorldState.follower_streak = 0
 	if on_fire:                    # died alight → the corpse smoulders (smoke, not flame)
 		var sm = BODY_SMOKE.new()
 		sm.position = Vector2(0, -6)
