@@ -176,6 +176,40 @@ laps the feet (~419), never buries the legs.
 
 ---
 
+## 9. FUTURE — placement grid overlay (AGREED, not built)
+
+To end eyeballing for good: on request, generate a **dev grid overlay** so the
+owner can read a position off-screen and hand back an exact X/Y (or a numbered
+zone) to place an element — no more guessing.
+
+Spec to build when asked:
+- `scripts/grid_overlay.gd` — a `CanvasItem` (added to the live world at high z, or
+  an autoload toggled per scene) that draws over the corridor in WORLD space.
+- **Toggle** on a free dev key (F2 = hazards, F7 = tutorial, F8 = Godot stop — so
+  use **F3** or F4; confirm free before wiring).
+- **Grid**: fixed cell (default **32×32** world px) spanning the corridor extent —
+  X **115 … 1235**, Y **243 … 435** (the solid floor band; extend down to 435+ for
+  the feet/fire region if needed). Lines + faint fill.
+- **Labels**: every cell shows a **zone number** (row-major, starting 1 at
+  top-left) AND the cell's world centre (x,y). Axis rulers along the top/left print
+  raw world X and Y every cell so the owner can give either a zone number or a raw
+  coordinate. Mark the known planes from this doc (feet 419, stand 370, plane 391,
+  art box, stair triggers) as coloured guide lines.
+- **Mapping** (locked so a zone always resolves the same): with origin
+  `GX0=115, GY0=243`, cell `C=32`, columns `NCOLS=ceil((1235-115)/C)=35`:
+  `zone = row*NCOLS + col + 1` (0-indexed row/col, row-major);
+  `col=(zone-1)%NCOLS`, `row=(zone-1)/NCOLS`;
+  cell centre `x = GX0 + col*C + C/2`, `y = GY0 + row*C + C/2`.
+  So "zone N" ⇄ a precise (x,y) with no interpretation. The owner can also just
+  read the printed x/y off the ruler.
+- Workflow: owner toggles the grid, names a zone (or an x/y, or "feet line at
+  zone-column K"), I place the element at the mapped world coordinate. Measured,
+  never eyeballed.
+
+Keep this section as the contract; when the owner says "make the grid," build to it.
+
+---
+
 ## The rule (why this file exists)
 
 Repeated Y-plane mistakes came from (a) eyeballing instead of measuring, (b)

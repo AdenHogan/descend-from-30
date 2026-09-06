@@ -99,7 +99,10 @@ constants beats keeping them in sync by hand (see `DOWN_*` / `UP_*` in
   vertical position — read `docs/Y_PLANES.md`, or measure (a headless trace of
   `global_position` / collision-bottom). Don't reuse the player's stair-slice pixel
   offsets on a different-sized sprite; anchor to that rig's own feet line. Keep
-  `docs/Y_PLANES.md` current with any Y change.
+  `docs/Y_PLANES.md` current with any Y change. When the owner asks to place
+  something and the spot is unclear, offer the **placement grid overlay** (spec
+  locked in `docs/Y_PLANES.md` §9) so they read back an exact zone/coordinate —
+  never eyeball a position.
 
 - **Save/load JSON: string keys only.** Godot's JSON round-trips int dict
   keys as strings; int-keyed dicts silently break on load. Always key
