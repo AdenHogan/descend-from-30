@@ -160,8 +160,8 @@ var _stair_base_scale: Vector2 = Vector2.ONE
 var _stair_idle_action: String = "pause"
 var _stair_idle_timer: float = 0.0
 var _stair_react_timer: float = -1.0   # < 0 = not yet roused; once the player's near it counts down, then it emerges
-const STAIR_ACTIVATE_RANGE := 120.0    # player this close in X rouses it (tighter, so it doesn't emerge from way off)
-const STAIR_REACT_MAX := 1.6           # random rouse delay — sometimes immediate, sometimes it waits (jump scare)
+const STAIR_ACTIVATE_RANGE := 150.0    # player this close in X rouses it — close, but not point-blank
+const STAIR_REACT_MAX := 0.7           # small random rouse delay — prompt, with a touch of variation (never a long, slow wait)
 const STAIR_IDLE_SPEED := 9.0          # a slow shuffle while waiting
 const STAIR_RISE_SPEED := 24.0         # climbing the steps toward the plane (deliberately unhurried)
 const STAIR_STEPDOWN_SPEED := 18.0     # the final step DOWN off the stairwell onto the plane

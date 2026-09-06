@@ -168,6 +168,14 @@ var _horde_warn_targets: Array = []
 # (StairPan.DOWN_STAIR_APPROACH / DOWN_SHRED_FOOT / DOWN_DEPTH_SCALE) — no invented
 # slice numbers. BOB_AMP is only how far it drifts while waiting (motion, not slice).
 const STAIR_BOB_AMP := 10.0          # how far the waiting enemy drifts up/down its spot
+# Where the emerged stair enemy STANDS — the shared zombie floor line (== the y
+# _spawn_zombies uses), so it lands flush with every other zombie/the player instead
+# of ~3px lower (which caused the plane-pursuit rubber-band). NOT the player spawn (391).
+const STAIR_STAND_Y := 388.0
+# How far BELOW the stand line the DOWN-shaft slice sits (the step edge the body
+# reveals over). 0 = right on the stand line. TUNABLE by eye against the art: raise the
+# slice (reveal higher) with a negative value, lower it with a positive one.
+const STAIR_DOWN_CUT_DROP := 0.0
 
 
 func _stair_art_box(on_left: bool) -> Dictionary:
@@ -213,22 +221,25 @@ func _spawn_stair_hordes(floor_num: int) -> void:
 		# when using these steps (the authoritative "middle of the staircase"), not the
 		# art texture's centre (which is offset from the visible steps).
 		var shaft_x: float = t.global_position.x
-		# The player's own mouth cut — the fixed line the descent is sliced through (line
-		# just above the standing spot, plus the foot offset). Reused verbatim for the
-		# DOWN-shaft slice; the UP stairwell has visible steps and isn't sliced.
-		var cut_y: float = (CORRIDOR_PLANE_Y - StairPan.DOWN_STAIR_APPROACH) + StairPan.DOWN_SHRED_FOOT
+		# It must finish standing where EVERY OTHER zombie stands — the zombie floor line
+		# (STAIR_STAND_Y = 388, the same y _spawn_zombies uses), NOT the player's spawn
+		# plane (391). Measured: emerging to 391 left it ~3px below the other actors, then
+		# plane-pursuit rubber-banded it back up. Emerging to 388 lands it flush, no snap.
+		# The slice cut sits ON that stand line (the step edge), so the enemy reveals at
+		# the floor line, not 13px below it (the old cut at 401).
+		var cut_y: float = STAIR_STAND_Y + STAIR_DOWN_CUT_DROP
 		var rng := RandomNumberGenerator.new()
 		rng.seed = hash(str(WorldState.master_seed) + "stairenemy" + str(choke) + str(WorldState.current_run))
 		# Where it waits on the steps, mirroring which way the stairs run:
-		#   DOWN shaft (dark): origin BELOW the mouth cut, so only its head/shoulders poke
-		#     up — lurking down the shaft. Rising to the plane reveals it head-first.
+		#   DOWN shaft (dark): origin BELOW the cut, so only its head/shoulders poke up —
+		#     lurking down the shaft. Rising to the plane reveals it head-first.
 		#   UP stairwell (visible steps): it stands UP the visible steps, above the plane,
 		#     and walks DOWN to emerge (drawn whole, just depth-scaled).
 		var rest_y: float
 		if is_up:
-			rest_y = CORRIDOR_PLANE_Y - rng.randf_range(30.0, 55.0)   # up the visible steps
+			rest_y = STAIR_STAND_Y - rng.randf_range(30.0, 55.0)   # up the visible steps
 		else:
-			rest_y = cut_y + rng.randf_range(28.0, 58.0)             # down in the dark shaft
+			rest_y = cut_y + rng.randf_range(28.0, 58.0)           # down in the dark shaft
 		var z = zombie_scene.instantiate()
 		z.global_position = Vector2(shaft_x, rest_y)
 		z.spawn_key = key
@@ -238,7 +249,7 @@ func _spawn_stair_hordes(floor_num: int) -> void:
 		# don't re-cage it in the shaft. Only a fresh one starts up on the steps.
 		var restored = WorldState.apply_saved_zombie(z)
 		if not restored:
-			z.enter_stairwell_mode(rest_y, CORRIDOR_PLANE_Y, STAIR_BOB_AMP, cut_y, on_left, is_up)
+			z.enter_stairwell_mode(rest_y, STAIR_STAND_Y, STAIR_BOB_AMP, cut_y, on_left, is_up)
 
 
 # How close (px) to a horde stairwell the first-approach warning fires. The
