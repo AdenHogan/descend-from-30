@@ -287,11 +287,17 @@ means no rendering — UI layout and art still need an in-editor look.
   WHOLE (no slice, just `DOWN_DEPTH_SCALE`), standing up the steps ABOVE the plane, and
   walks DOWN. (An earlier build applied the down-slice to both and sank the enemy into the
   floor with amputated feet on an up-stairwell.) **Sequence** (`_stair_tick` phase machine
-  `idle → rise → stepoff → normal AI`): it waits, drifting gently (`STAIR_BOB_AMP`); when
-  the player comes within `STAIR_ACTIVATE_RANGE` (or gunfire alerts it) it moves along the
-  steps to the plane, appearing as it clears the cut and growing to full size; reaching
-  the plane it **steps off** (DOWN shaft sweeps the cut off the feet over
-  `STAIR_STEPOFF_TIME`; UP just settles) and hands to **normal AI**. **Robustness — this
+  `idle → rise → stepdown → normal AI`): while idle it does **unpredictable, non-looping
+  behaviour** (`_stair_idle_behaviour` — mostly pauses, occasionally shuffles a step up or
+  down its small band, occasionally swipes at thin air, on random timers). When the player
+  comes within `STAIR_ACTIVATE_RANGE` (tight, ~120px) or gunfire alerts it, it is ROUSED
+  after a **random delay** (`STAIR_REACT_MAX` — sometimes immediate, sometimes it lingers a
+  beat: the jump scare). It then **rises to `_stair_over_y`** (just ABOVE the plane, fully
+  clearing the step — the DOWN cut reveals it head-first as it clears), then **steps DOWN**
+  onto the plane (`stepdown`: the DOWN cut sweeps off the feet AS it steps, so nothing pops;
+  it stops AT the plane, never below — mirroring the player's "up over the step, then down
+  onto the floor"), and hands to **normal AI**. Pace is deliberately unhurried
+  (`STAIR_RISE_SPEED` / `STAIR_STEPDOWN_SPEED`). **Robustness — this
   is where earlier builds softlocked, so it's built to be impossible:** while on the
   stairs its **body collision is OFF** (`set_collision_layer_value(1,false)`), so it can
   NEVER shove or wall off the player — but it is **ALWAYS killable/pushable** (attacks are

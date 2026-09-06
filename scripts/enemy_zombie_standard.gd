@@ -147,19 +147,25 @@ var distraction_timer: float = 0.0
 var stair_mode: bool = false
 var _stair_up: bool = false            # true = UP stairwell (above the plane, comes DOWN); false = DOWN shaft (below the plane, rises UP)
 var _stair_plane_y: float = 391.0      # corridor standing line (where it steps off)
+var _stair_over_y: float = 375.0       # just ABOVE the plane — it climbs to here (clearing the step) then steps DOWN
 var _stair_rest_y: float = 401.0       # where it waits on the steps
-var _stair_bob_amp: float = 0.0        # gentle drift while waiting
-var _stair_dir: float = -1.0
+var _stair_bob_amp: float = 0.0        # how far it drifts up/down while waiting
 var _stair_cut_y: float = 1.0e9        # DOWN shaft: the player's mouth cut (feet-first slice); UP: inert
-var _stair_phase: String = "idle"      # idle → rise → stepoff → (normal AI)
-var _stair_reveal_t: float = 0.0
+var _stair_phase: String = "idle"      # idle → rise → stepdown → (normal AI)
 var _stair_face_flip: bool = false
 var _stair_mat: ShaderMaterial = null
 var _stair_base_scale: Vector2 = Vector2.ONE
-const STAIR_ACTIVATE_RANGE := 190.0    # player this close in X → it emerges onto the corridor
-const STAIR_IDLE_SPEED := 10.0         # gentle drift while waiting
-const STAIR_RISE_SPEED := 46.0         # moving along the steps toward the corridor plane
-const STAIR_STEPOFF_TIME := 0.20       # the arrival reveal (cut sweeps off the feet, DOWN shaft)
+# Idle behaviour: not a metronome — it mostly waits, sometimes shuffles a step up or
+# down, sometimes swipes at nothing, on random timers. Purely cosmetic.
+var _stair_idle_action: String = "pause"
+var _stair_idle_timer: float = 0.0
+var _stair_react_timer: float = -1.0   # < 0 = not yet roused; once the player's near it counts down, then it emerges
+const STAIR_ACTIVATE_RANGE := 120.0    # player this close in X rouses it (tighter, so it doesn't emerge from way off)
+const STAIR_REACT_MAX := 1.6           # random rouse delay — sometimes immediate, sometimes it waits (jump scare)
+const STAIR_IDLE_SPEED := 9.0          # a slow shuffle while waiting
+const STAIR_RISE_SPEED := 24.0         # climbing the steps toward the plane (deliberately unhurried)
+const STAIR_STEPDOWN_SPEED := 18.0     # the final step DOWN off the stairwell onto the plane
+const STAIR_STEP_CLEARANCE := 16.0     # how far above the plane it climbs before stepping down (the "over the top")
 const STAIR_DEPTH_SPAN := 44.0         # how far off the plane counts as "fully in the shaft"
 
 
@@ -168,14 +174,17 @@ func enter_stairwell_mode(rest_y: float, plane_y: float, bob_amp: float, cut_y: 
 	stair_mode = true
 	_stair_up = is_up
 	_stair_plane_y = plane_y
+	_stair_over_y = plane_y - STAIR_STEP_CLEARANCE
 	_stair_rest_y = rest_y
 	_stair_bob_amp = bob_amp
 	_stair_cut_y = cut_y
 	_stair_face_flip = not on_left      # left stairwell faces right (toward the corridor), right faces left
 	_stair_phase = "idle"
+	_stair_idle_action = "pause"
+	_stair_idle_timer = randf_range(0.3, 1.4)   # desync so a row of them never moves in lockstep
+	_stair_react_timer = -1.0
 	base_walk_y = plane_y               # once it steps off, its corridor line is the standing plane
 	global_position.y = rest_y
-	_stair_dir = -1.0
 	# In the shaft depth: draw BEHIND the player (who's on the corridor plane) so the
 	# player passes in FRONT of it. Restored to the actor layer when it steps off.
 	z_index = 0
@@ -251,29 +260,25 @@ func _stair_tick(delta: float) -> bool:
 	velocity.x = 0.0
 	match _stair_phase:
 		"idle":
-			# Wait, sliced, drifting gently up/down. The player getting close (or a
-			# noise) starts it rising up the steps.
+			# Wait on the steps with unpredictable idle behaviour. The player getting close
+			# (or gunfire) ROUSES it — but not instantly: a random delay means sometimes it
+			# comes straight for you, sometimes it lingers a beat first (the jump scare).
 			var near: bool = player != null \
 				and absf(player.global_position.x - global_position.x) <= STAIR_ACTIVATE_RANGE
-			if near or alert_timer > 0.0:
-				_stair_phase = "rise"
-			else:
-				global_position.y += _stair_dir * STAIR_IDLE_SPEED * delta
-				if global_position.y <= _stair_rest_y - _stair_bob_amp:
-					global_position.y = _stair_rest_y - _stair_bob_amp
-					_stair_dir = 1.0
-				elif global_position.y >= _stair_rest_y + _stair_bob_amp:
-					global_position.y = _stair_rest_y + _stair_bob_amp
-					_stair_dir = -1.0
-				if animated_sprite != null:
-					animated_sprite.play("Walk")
-					animated_sprite.flip_h = _stair_face_flip
-				_update_stair_draw()
+			if _stair_react_timer < 0.0 and (near or alert_timer > 0.0):
+				_stair_react_timer = randf_range(0.0, STAIR_REACT_MAX)
+			if _stair_react_timer >= 0.0:
+				_stair_react_timer -= delta
+				if _stair_react_timer <= 0.0:
+					_stair_phase = "rise"
+					return true
+			_stair_idle_behaviour(delta)
 			return true
 		"rise":
-			# Climb up the steps to the standing plane. The fixed mouth cut reveals the
-			# body slice by slice (head first) as it clears the cut; it grows to full size.
-			global_position.y = move_toward(global_position.y, _stair_plane_y, STAIR_RISE_SPEED * delta)
+			# Climb the steps and CLEAR the top — up to just ABOVE the plane (over_y), the
+			# same "fully move up, over the step" the player does before stepping down. The
+			# DOWN-shaft mouth cut reveals it head-first as it rises; it grows to full size.
+			global_position.y = move_toward(global_position.y, _stair_over_y, STAIR_RISE_SPEED * delta)
 			if animated_sprite != null:
 				animated_sprite.play("Walk")
 				if player != null:
@@ -281,27 +286,75 @@ func _stair_tick(delta: float) -> bool:
 				else:
 					animated_sprite.flip_h = _stair_face_flip
 			_update_stair_draw()
-			if absf(global_position.y - _stair_plane_y) <= 0.5:
-				global_position.y = _stair_plane_y
-				_stair_phase = "stepoff"
-				_stair_reveal_t = 0.0
+			if absf(global_position.y - _stair_over_y) <= 0.5:
+				global_position.y = _stair_over_y
+				_stair_phase = "stepdown"
 			return true
-		"stepoff":
-			# The arrival reveal (DOWN shaft only): sweep the cut down past the feet so the
-			# last of the slice (the lower legs) fades in as it steps off. The UP stairwell
-			# has no feet cut, so it just settles onto the plane. Then hand to normal AI.
-			_stair_reveal_t += delta
-			var f: float = clampf(_stair_reveal_t / STAIR_STEPOFF_TIME, 0.0, 1.0)
+		"stepdown":
+			# The final step DOWN off the stairwell onto the standard plane (the player's
+			# "once over the step, move down slightly" beat). On the DOWN shaft the mouth
+			# cut sweeps off the feet AS it steps down, so the last of the slice fades in
+			# with the motion rather than popping. It stops AT the plane — never below.
+			global_position.y = move_toward(global_position.y, _stair_plane_y, STAIR_STEPDOWN_SPEED * delta)
 			if _stair_mat != null and not _stair_up:
-				_stair_mat.set_shader_parameter("cut_y", lerpf(_stair_cut_y, _stair_plane_y + 140.0, f))
+				var prog: float = 1.0
+				if not is_equal_approx(_stair_plane_y, _stair_over_y):
+					prog = clampf((global_position.y - _stair_over_y) / (_stair_plane_y - _stair_over_y), 0.0, 1.0)
+				_stair_mat.set_shader_parameter("cut_y", lerpf(_stair_cut_y, _stair_plane_y + 140.0, prog))
 			if animated_sprite != null:
 				animated_sprite.play("Walk")
-			if f >= 1.0:
+			_update_stair_draw()
+			if absf(global_position.y - _stair_plane_y) <= 0.5:
+				global_position.y = _stair_plane_y
 				_exit_stairwell_mode()
 				state = "chase"
 				return false                    # this frame: run normal AI (it chases)
 			return true
 	return false
+
+
+func _stair_idle_behaviour(delta: float) -> void:
+	# Natural, unscripted waiting: mostly stands, sometimes shuffles a step up or down its
+	# stretch, sometimes swipes at nothing — picked at random on random timers, so it never
+	# reads as a metronome loop. Bounded to a small band so it never wanders off the steps.
+	_stair_idle_timer -= delta
+	if _stair_idle_timer <= 0.0:
+		var r: float = randf()
+		if r < 0.5:
+			_stair_idle_action = "pause"
+			_stair_idle_timer = randf_range(0.8, 2.4)
+		elif r < 0.68:
+			_stair_idle_action = "up"
+			_stair_idle_timer = randf_range(0.4, 1.1)
+		elif r < 0.86:
+			_stair_idle_action = "down"
+			_stair_idle_timer = randf_range(0.4, 1.1)
+		else:
+			_stair_idle_action = "air"      # swipe at thin air
+			_stair_idle_timer = randf_range(0.6, 0.9)
+			if animated_sprite != null:
+				animated_sprite.play("Attack")
+				animated_sprite.flip_h = _stair_face_flip
+	var lo: float = _stair_rest_y - _stair_bob_amp
+	var hi: float = _stair_rest_y + _stair_bob_amp
+	match _stair_idle_action:
+		"up":
+			global_position.y = maxf(global_position.y - STAIR_IDLE_SPEED * delta, lo)
+			if animated_sprite != null:
+				animated_sprite.play("Walk")
+				animated_sprite.flip_h = _stair_face_flip
+		"down":
+			global_position.y = minf(global_position.y + STAIR_IDLE_SPEED * delta, hi)
+			if animated_sprite != null:
+				animated_sprite.play("Walk")
+				animated_sprite.flip_h = _stair_face_flip
+		"air":
+			pass                            # let the Attack swing play out in place
+		_:
+			if animated_sprite != null:
+				animated_sprite.play("Idle")
+				animated_sprite.flip_h = _stair_face_flip
+	_update_stair_draw()
 
 
 func be_distracted(pos: Vector2, duration: float = 6.0) -> void:
