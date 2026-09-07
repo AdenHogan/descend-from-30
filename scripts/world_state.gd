@@ -1854,6 +1854,19 @@ func shift_building() -> void:
 	apartment_fire_out.clear()
 	# The seed re-rolled, so the old "left this floor" slots no longer map to anything.
 	followed_away.clear()
+	# Normal zombie memory/kills are keyed by seeded POSITION, so the re-rolled seed
+	# orphans them (they naturally re-populate). But stair enemies and followers are keyed
+	# by a POSITION-INDEPENDENT slot (`<floor>:stairwell:<choke>:<i>` / `followerR:<floor>`),
+	# so a stale "killed"/remembered entry would wrongly suppress or mis-place the re-rolled
+	# one after a shift — an enemy vanishing. Drop those slots so they re-populate cleanly.
+	for k in killed_zombies.keys():
+		var ks := str(k)
+		if ks.contains(":stairwell:") or ks.begins_with("followerR:"):
+			killed_zombies.erase(k)
+	for k in zombie_positions.keys():
+		var kp := str(k)
+		if kp.contains(":stairwell:") or kp.begins_with("followerR:"):
+			zombie_positions.erase(k)
 
 
 # Set when a pried crossing commits: the floor you ARRIVE on (floor_num-1). The
