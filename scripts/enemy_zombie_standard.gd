@@ -298,10 +298,28 @@ func _exit_stairwell_mode() -> void:
 		animated_sprite.scale = _stair_base_scale
 
 
+func _process(_delta: float) -> void:
+	# Keep the WORLD-SPACE stair slice aligned to this floor's world offset. During a
+	# seamless pan the floor (our parent) is shifted by a whole floor-height, so a fixed
+	# world cut would mis-clip and the enemy would vanish; re-anchor the cut to the parent's
+	# offset every frame so a backdrop stair enemy stays correctly sliced as it scrolls in.
+	# Skipped during the step-off sweep (which animates cut_y itself) and for UP stairwells
+	# (no slice). When the floor sits at origin (live) this just holds the cut at its value.
+	if not stair_mode or _stair_mat == null or _stair_up or _stair_phase == "stepdown":
+		return
+	var off: float = 0.0
+	var p = get_parent()
+	if p is Node2D:
+		off = p.global_position.y
+	_stair_mat.set_shader_parameter("cut_y", off + _stair_cut_y)
+
+
 func _stair_tick(delta: float) -> bool:
 	# Returns true while stairwell mode still owns this zombie (skip normal AI). Any real
 	# engagement — a hit, push, knockdown, attack, or a can — drops it straight into the
 	# normal machine (so a shove/kill on the stairs reads correctly, never a softlock).
+	if player == null:
+		player = get_tree().get_first_node_in_group("player")   # a woken backdrop enemy has none yet
 	if state in ["hit", "recovering", "knockdown", "attack", "distracted"]:
 		_exit_stairwell_mode()
 		return false

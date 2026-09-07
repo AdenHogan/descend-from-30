@@ -341,7 +341,23 @@ means no rendering — UI layout and art still need an in-editor look.
   stairwell enemy always comes at you. It draws at
   **z 0** (behind the player) while in the shaft, z 1 once stepped off; collision is
   restored on step-off (passable-until-clear so it never jams). Kills persist
-  (`stair_horde` group + per-floor key `<floor>:stairwell:<choke>`). **Crossing lock**
+  (`stair_horde` group + per-floor key `<floor>:stairwell:<choke>`). **Pan-pop fix (no
+  materialising on arrival):** a floor reached by the seamless stair PAN builds as a
+  PASSIVE backdrop, so `_spawn_stair_enemies(floor_num, true)` seeds the stair enemies
+  there too — as FROZEN scenery (`pan_scenery` group + `set_physics_process(false)`, AI
+  off so they can't rouse while the player is still a floor away) that SCROLLS INTO VIEW
+  with the floor instead of popping in at the commit; `go_live` WAKES the same nodes
+  (`_wake_scenery_zombies` → physics on, drop the tag) and skips a re-spawn
+  (`_stair_backdrop_built` guard) so there's never a double set. The passive build now
+  calls `_enable_stair_triggers()` before the scenery spawn so the backdrop seeds on the
+  SAME 2 active chokes a live/fade floor uses (not all 4 — its triggers were previously
+  left at the scene default). The DOWN-shaft slice is WORLD-space, so during the pan the
+  floor (the enemy's parent) is offset a whole floor-height; the enemy's `_process`
+  re-anchors the shader `cut_y` to the parent's `global_position.y` every frame
+  (`off + _stair_cut_y`) so the shaft cut stays aligned as it scrolls in (skipped for UP
+  stairwells and during the `stepdown` sweep, which animates the cut itself; at origin
+  `off = 0` so it just holds). Covered by `building_floors_test`
+  `_test_stair_enemy_backdrop`. **Crossing lock**
   (`stairwell.gd`
   `_stair_enemy_blocking`) blocks the crossing ONLY while an enemy is **on / coming up the
   stairs** — i.e. still in `stair_mode`, within `SHAFT_BLOCK_HALF_WIDTH` (52px) of the

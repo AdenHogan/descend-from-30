@@ -29,6 +29,7 @@ func _ready() -> void:
 	await _test_stair_pull_rouses_only_near()
 	await _test_barricade_visuals()
 	await _test_stair_enemy_spawns()
+	await _test_stair_enemy_backdrop()
 	await _test_stair_enemy_return_grounded()
 	await _test_follower_same_node()
 	await _test_follower_resident()
@@ -571,6 +572,64 @@ func _test_follower_resident() -> void:
 	bf2.queue_free(); await get_tree().process_frame
 	WorldState.zombie_positions.erase("followerR:12")
 	WorldState.killed_zombies.erase("followerR:12")
+
+
+func _test_stair_enemy_backdrop() -> void:
+	# Regression (pan-pop): a floor reached by the seamless stair PAN builds as a PASSIVE
+	# backdrop first, so its stair enemies must be present as FROZEN scenery that scrolls
+	# into view — not pop in at the commit. And go_live must WAKE those same nodes, never
+	# spawn a second set. The backdrop must seed on exactly the 2 active chokes (like a
+	# live floor), not all 4 (its triggers weren't enabled before this fix).
+	print("[stair enemy pan backdrop]")
+	WorldState.new_game(); WorldState.tutorial_completed = true; WorldState.is_first_run = false
+	WorldState.dev_force_stair_enemies = true   # force one stair enemy per active stairwell
+	WorldState.current_floor = 14
+	WorldState.spawn_source = "stair"
+	WorldState.stair_direction = "down"
+	WorldState.stair_spawn_side = "left"
+	WorldState.pending_pry_arrival_floor = -1
+	WorldState.seed_floor_door_states(14)
+	var bf = load("res://scenes/building_floors.tscn").instantiate()
+	bf.setup_floor = 14
+	bf.passive = true
+	add_child(bf)
+	for i in range(4):
+		await get_tree().process_frame
+	# The backdrop shows the stair enemies as pure scenery: in the shaft, frozen (no AI),
+	# tagged pan_scenery, and — crucially — one per ACTIVE choke, so 2 not 4.
+	var back := get_tree().get_nodes_in_group("stair_enemy")
+	check(back.size() == 2, "backdrop seeds stair enemies on the 2 active chokes, not 4 (%d)" % back.size())
+	var all_frozen_scenery := true
+	for z in back:
+		if not z.is_in_group("pan_scenery"):
+			all_frozen_scenery = false
+		if z.is_physics_processing():
+			all_frozen_scenery = false      # AI must be off while it's still a floor away
+		if not z.stair_mode:
+			all_frozen_scenery = false      # still waiting in the shaft
+	check(all_frozen_scenery, "backdrop stair enemies are frozen scenery (pan_scenery, no AI, in the shaft)")
+	var ids := {}
+	for z in back:
+		ids[z.get_instance_id()] = true
+	# Wake the backdrop into a live floor (as StairPan does after reparenting the player).
+	bf.go_live()
+	await get_tree().process_frame
+	var live := get_tree().get_nodes_in_group("stair_enemy")
+	check(live.size() == 2, "go_live wakes the SAME stair enemies, no double-spawn (%d)" % live.size())
+	var same_nodes := true
+	var awake := 0
+	for z in live:
+		if not ids.has(z.get_instance_id()):
+			same_nodes = false              # a fresh node → go_live re-spawned instead of waking
+		if z.is_in_group("pan_scenery"):
+			same_nodes = false              # scenery tag must be dropped on wake
+		if z.is_physics_processing():
+			awake += 1
+	check(same_nodes, "the woken stair enemies are the SAME backdrop nodes (no re-spawn)")
+	check(awake == live.size(), "woken stair enemies have their AI back on (%d/%d)" % [awake, live.size()])
+	bf.queue_free()
+	await get_tree().process_frame
+	WorldState.dev_force_stair_enemies = false
 
 
 func _test_stair_enemy_return_grounded() -> void:

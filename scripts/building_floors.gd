@@ -34,6 +34,7 @@ func _exit_tree() -> void:
 
 
 var _built_floor: int = -1             # the floor THIS scene built (for _exit_tree save)
+var _stair_backdrop_built: bool = false  # true if the passive backdrop already spawned this floor's stair enemies (go_live wakes them instead of re-spawning)
 
 
 func _ready() -> void:
@@ -55,6 +56,10 @@ func _ready() -> void:
 		player = null
 		_apply_doors(floor_num)
 		_apply_stair_visuals()
+		# Enable the SAME two stair triggers the live spawn does, so the backdrop seeds
+		# stair enemies on exactly the 2 active chokes (not all 4). _make_inert disables
+		# them again below; go_live re-enables via _restore_dormant + _enable_stair_triggers.
+		_enable_stair_triggers()
 		_spawn_zombies(floor_num, true)
 		_spawn_corpses(floor_num)
 		# Register the elevator fire-extinguisher BEFORE _spawn_world_drops so it renders
@@ -63,6 +68,10 @@ func _ready() -> void:
 		_place_elevator_kit(floor_num)
 		_spawn_maintenance_door(floor_num)
 		_spawn_world_drops(floor_num)
+		# Stair enemies in the backdrop too (frozen scenery), so they scroll into view with
+		# the floor during the pan instead of popping in at the commit. go_live wakes them.
+		_spawn_stair_enemies(floor_num, true)
+		_stair_backdrop_built = true
 		# Spawn the FIRE in the backdrop too, so a floor you're panning UP toward shows
 		# its fire AS IT SCROLLS INTO VIEW, not popping in only after the commit. It's
 		# visual/sim only (no collision), so _make_inert leaves it alone; go_live sees
@@ -203,13 +212,20 @@ func _stair_art_box(on_left: bool) -> Dictionary:
 	return {}
 
 
-func _spawn_stair_enemies(floor_num: int) -> void:
+func _spawn_stair_enemies(floor_num: int, as_scenery: bool = false) -> void:
 	# Seed standard zombies ONTO the staircases as part of the floor's normal enemy
 	# population (NOT a hazard). Count per stairwell from WorldState.stair_enemy_count —
 	# usually 0-1, occasionally a couple (a tougher crossing, emergent). Each waits sliced
 	# in the shaft and rises to emerge onto the corridor when the player nears (enemy.
 	# enter_stairwell_mode), then is an ordinary attackable chaser. Kills persist via a
 	# stable per-floor key (stair_enemy group).
+	#
+	# as_scenery=true: spawned into a PASSIVE pan backdrop so the destination's stair
+	# enemies SCROLL INTO VIEW during the seamless pan instead of popping in at the commit.
+	# They're frozen (physics off) + tagged pan_scenery; go_live wakes them via
+	# _wake_scenery_zombies (physics on) rather than re-spawning. Their world-space slice
+	# tracks the backdrop's offset each frame in the enemy's _process, so the shaft cut
+	# stays aligned while the floor is offset during the pan.
 	var zombie_scene = preload("res://scenes/enemy_zombie_standard.tscn")
 	for tname in _BARRICADE_TRIGGERS:
 		var t = get_node_or_null(tname)
@@ -265,6 +281,13 @@ func _spawn_stair_enemies(floor_num: int) -> void:
 					z._make_passable_to_player()
 			else:
 				z.enter_stairwell_mode(rest_y, STAIR_STAND_Y, STAIR_BOB_AMP, cut_y, on_left, is_up)
+			if as_scenery:
+				# Frozen scenery in the pan backdrop: visible + sliced, but no AI (it must not
+				# rouse while the player is still a floor away). go_live wakes it. Collision
+				# already off for a shaft enemy; _make_inert records/leaves it, _restore_dormant
+				# keeps it. A restored (grounded) one gets its collision stripped by _make_inert.
+				z.add_to_group("pan_scenery")
+				z.set_physics_process(false)
 
 
 # One resident follower per floor, remembered under this key so it persists across
@@ -1005,7 +1028,10 @@ func go_live() -> void:
 	# fine). Spawn them here on adoption, same as a fresh build would. _spawn_fire
 	# re-imports the saved spread, so the fire comes back exactly as it was left.
 	_spawn_barricade_visuals(floor_num)
-	_spawn_stair_enemies(floor_num)
+	# The passive backdrop already spawned the stair enemies as frozen scenery
+	# (_wake_scenery_zombies just gave them their AI); only spawn fresh if it didn't.
+	if not _stair_backdrop_built:
+		_spawn_stair_enemies(floor_num)
 	_spawn_follower(floor_num)
 	if _fire_field == null:            # the passive backdrop already built the fire
 		_spawn_fire(floor_num)
