@@ -164,7 +164,18 @@ Floor 30 after run 1:
 5. Fire hazard objects: blocking volumes + visuals; floors flagged
    fire-affected at skip time
 6. Enemy-type spawn tables per (floor band × run) — data-driven so new types
-   slot in as art arrives
+   slot in as art arrives — **BUILT (v1, mix only)**. `WorldState.HEAVY_CHANCE`
+   is a 3×3 table [band][run] (bands LOW 1-10 / MID 11-20 / HIGH 21-29) giving the
+   per-slot chance a corridor spawn is a HEAVY; `enemy_type_for(floor, spawn_key)`
+   rolls it deterministically (backdrop == live, stable on re-entry, re-rolls per
+   run). `building_floors._spawn_zombies` maps the result to a scene. Today the only
+   heavy is the **Big Zombie** (settles at origin **374**, feet on 419 — its own
+   line, not the standard's 370; `BIG_ZOMBIE_SETTLED_Y`); new art-gated types slot
+   into the same table. Faithful to the migration model: heavies rare + LOW-floor
+   only in the morning, reaching MID by afternoon, common even up HIGH at night.
+   Density stays with `get_floor_zombie_count` (mix, not count — no cramming).
+   Covered by `enemy_variety_test`. Still open: distinct new TYPES (art), storied
+   rooms.
 7. Descent boon on successful exit (design TBD)
 8. Character stats system (own design doc first)
 

@@ -144,8 +144,8 @@ setup script; binary from downloads.godotengine.org). Before every commit:
   `building_floors_test`, `stair_visuals_test`, `profile_test`,
   `profile_ui_test`, `title_test`, `enemy_memory_test`, `floor_adopt_test`,
   `balcony_test`, `hud_prompt_test`, `stair_block_test`, `fire_test`,
-  `maintenance_test`, `elevator_test` — run all
-  26 before commit. (`floor_adopt_test` is seed-sensitive: `new_game` rolls a random
+  `maintenance_test`, `elevator_test`, `run_arc_test`, `enemy_variety_test` — run all
+  28 before commit. (`floor_adopt_test` is seed-sensitive: `new_game` rolls a random
   master seed and it asserts a floor has zombies, so it fails ~occasionally
   on a 0-zombie seed — a known flake, re-run it. The old `building_floors_test`
   fire-cell-count flake was fixed by widening the LIGHT "small/patchy" bound to
@@ -612,9 +612,23 @@ means no rendering — UI layout and art still need an in-editor look.
   every world scene grades itself by `WorldState.apply_time_tint(self)` — a `CanvasModulate`
   (world only, never the HUD) that's warm daylight → golden → cool dim-blue night. Only the
   THIRD character concluding ends the playthrough: `game_over.tscn` now shows a win/lose
-  headline + all three fates. Covered by `run_arc_test`. Still to build: enemy-VARIETY
-  tables per (floor band × run), storied-room spawn reserve, descent boon on exit,
-  night-darkness/lighting as a real difficulty axis, character stats.
+  headline + all three fates. Covered by `run_arc_test`.
+- Enemy variety / escalation table (THREE_RUN_ARC step 6, v1 — mix only): the
+  infestation **migrates upward** across the arc. `WorldState.HEAVY_CHANCE` is a 3×3
+  table `[band][run]` (bands LOW 1-10 / MID 11-20 / HIGH 21-29) giving the per-slot
+  chance a corridor spawn is a **heavy**; `enemy_type_for(floor, spawn_key)` rolls it
+  **deterministically** (a pure function of floor/position/run, so a pan backdrop and its
+  live commit pick the SAME type, stable on re-entry, re-rolled when the run advances).
+  `building_floors._spawn_zombies` maps the id to a scene. Today the only heavy is the
+  **Big Zombie** (already breach-boss art) — rare + **LOW-floor-only in run 1** (so run 1
+  is barely touched: 6% on floors 1-10, nothing mid/high), reaching MID by run 2, common
+  even up HIGH by run 3. Density is unchanged (`get_floor_zombie_count` — this is MIX, not
+  count; no cramming). A corridor Big Zombie settles at origin **374** (feet on 419 — its
+  OWN line, `BIG_ZOMBIE_SETTLED_Y`, never the standard's 370); memory/record/pan-freeze all
+  work through the shared `zombie` group. New art-gated types slot into the same table.
+  Tuning lives in one place (`HEAVY_CHANCE`). Covered by `enemy_variety_test`. Still to
+  build: distinct new enemy TYPES (art-gated), storied-room spawn reserve, descent boon on
+  exit, night-darkness/lighting as a real difficulty axis, character stats.
 - Next: characters/profiles/stats; **Upgrade offers** polish and player-corpse
   recovery (store step 7); barricade-keeper NPC; fire smoke/crouch + warning beat;
   the maintenance **upgrade station** UI (Scrap system, SCRAP_UPGRADES.md).

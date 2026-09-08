@@ -17,6 +17,10 @@ var passive: bool = false
 # a pan backdrop have no physics step, so they must be placed here directly or
 # they sit sunk in the floor and warp upward on arrival.
 const ZOMBIE_SETTLED_Y := 370.0
+# The Big Zombie rests HIGHER (origin 374) than the standard (370): its collision
+# capsule is a different size, so its feet land on the same floor line (419) from a
+# different origin — never reuse the standard's 370 for it (measured; docs/Y_PLANES.md).
+const BIG_ZOMBIE_SETTLED_Y := 374.0
 
 
 func _exit_tree() -> void:
@@ -865,6 +869,7 @@ func _spawn_zombies(floor_num: int, as_scenery: bool) -> void:
 	floor_rng.seed = (WorldState.master_seed ^ (floor_num * 2246822519) ^ (WorldState.current_run * 40503)) & 0xFFFFFFFF
 	var zombie_count = WorldState.get_floor_zombie_count(floor_num)
 	var zombie_scene = preload("res://scenes/enemy_zombie_standard.tscn")
+	var big_scene = preload("res://scenes/enemy_zombie_big.tscn")
 	# A pried crossing dumps you onto a floor whose dead have gathered at the
 	# stairwell you just tore open: cluster this floor's horde by the arrival
 	# stairs and rouse them (below), instead of the usual even corridor spread.
@@ -890,7 +895,12 @@ func _spawn_zombies(floor_num: int, as_scenery: bool) -> void:
 			continue
 		if WorldState.followed_away.has(key):
 			continue   # this one left the floor following the player — don't respawn a copy
-		var zombie = zombie_scene.instantiate()
+		# Enemy VARIETY (docs/THREE_RUN_ARC.md): the escalation table decides whether this
+		# slot is a heavy (Big Zombie) or a standard, by (floor band × run). Deterministic
+		# per position, so a pan backdrop and its live commit pick the SAME type.
+		var etype: String = WorldState.enemy_type_for(floor_num, key)
+		var is_big: bool = etype == "zombie_big"
+		var zombie = (big_scene if is_big else zombie_scene).instantiate()
 		zombie.global_position = pos
 		zombie.spawn_key = key
 		if as_scenery:
@@ -905,9 +915,10 @@ func _spawn_zombies(floor_num: int, as_scenery: bool) -> void:
 			# it to rest; a scenery zombie has no physics step, so it would stay
 			# sunk ~18px and then visibly WARP up the moment the floor commits.
 			# Place a FRESH one where the live one ends up (guarded by
-			# building_floors_test); a restored one already carries a settled Y.
+			# building_floors_test); a restored one already carries a settled Y. A heavy
+			# rests higher (bigger collision → same feet line from a different origin).
 			if not restored:
-				zombie.global_position.y = ZOMBIE_SETTLED_Y
+				zombie.global_position.y = BIG_ZOMBIE_SETTLED_Y if is_big else ZOMBIE_SETTLED_Y
 			# Visible, but no AI and no noise — it must not hunt the player, who
 			# is still a whole floor away. Disabled AFTER add_child so the
 			# zombie's own _ready can't turn its physics step back on.

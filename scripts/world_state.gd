@@ -1630,6 +1630,50 @@ func get_floor_zombie_count(floor_num: int) -> int:
 			return rng.randi() % 3 + 1
 
 
+# --- Enemy variety across the arc (docs/THREE_RUN_ARC.md, escalation lever) ----
+# The infestation MIGRATES UPWARD as the day wears on. HEAVIES — the Big Zombie
+# (today the only non-standard type; new art-gated types will slot into this same
+# table) — start DEEP in the building and rare, reach the middle floors by the
+# afternoon, and are common even up high by night. This governs the MIX only, never
+# the count (density stays realistic — see get_floor_zombie_count; no cramming).
+#
+# Bands by floor NUMBER (the descent runs 30->1, so "low" = deep, near the lobby,
+# where the outbreak began and is worst): LOW 1-10, MID 11-20, HIGH 21-29. Floor 30
+# is the tutorial hallway (its own scene) and never reads this. Indexed [band][run-1].
+# TUNING: these are the run-to-run difficulty knobs — raise/lower per band freely.
+const HEAVY_CHANCE := [
+	[0.06, 0.16, 0.30],   # LOW  (1-10): a few heavies from the start, worse each run
+	[0.00, 0.08, 0.18],   # MID  (11-20): clear in the morning, fills by night
+	[0.00, 0.03, 0.10],   # HIGH (21-29): the top stays safest the longest
+]
+
+
+func _floor_band(floor_num: int) -> int:
+	if floor_num <= 10:
+		return 0
+	elif floor_num <= 20:
+		return 1
+	return 2
+
+
+func heavy_chance(floor_num: int) -> float:
+	# Per-zombie probability that a corridor slot on this floor, this run, is a heavy.
+	var r: int = clampi(current_run - 1, 0, 2)
+	return HEAVY_CHANCE[_floor_band(floor_num)][r]
+
+
+func enemy_type_for(floor_num: int, spawn_key: String) -> String:
+	# Which enemy type fills ONE corridor slot — a pure function of (floor, position,
+	# run), so it's identical between a pan backdrop and its live commit, stable across
+	# re-entry, and reshuffles when the run advances (the spawn_key already carries the
+	# run salt via its position). Returns a type id the spawner maps to a scene.
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "etype" + spawn_key + str(current_run))
+	if rng.randf() < heavy_chance(floor_num):
+		return "zombie_big"
+	return "zombie_standard"
+
+
 func get_apartment_zombie_count(apartment_id: String) -> int:
 	var rng = RandomNumberGenerator.new()
 	rng.seed = hash(str(master_seed) + "zombies" + apartment_id)

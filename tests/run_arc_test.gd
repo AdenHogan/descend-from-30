@@ -122,20 +122,27 @@ func _test_enemy_reshuffle() -> void:
 	WorldState.tutorial_completed = true
 	WorldState.is_first_run = false
 	WorldState.current_run = 1
-	WorldState.current_floor = 18
+	# Pick a floor guaranteed to have a couple of zombies (count is run-independent),
+	# so the reshuffle comparison isn't defeated by a 0-zombie roll.
+	var f := 18
+	for cand in range(11, 20):
+		if WorldState.get_floor_zombie_count(cand) >= 2:
+			f = cand
+			break
+	WorldState.current_floor = f
 	WorldState.spawn_source = "stair"
 	WorldState.stair_direction = "down"
 	WorldState.stair_spawn_side = "left"
-	WorldState.seed_floor_door_states(18)
-	var xs1 := await _floor_zombie_xs(18)
+	WorldState.seed_floor_door_states(f)
+	var xs1 := await _floor_zombie_xs(f)
 	# Advance to run 2 (same seed) and rebuild the same floor.
 	WorldState.advance_run()
-	WorldState.current_floor = 18
+	WorldState.current_floor = f
 	WorldState.spawn_source = "stair"
 	WorldState.stair_direction = "down"
 	WorldState.stair_spawn_side = "left"
-	WorldState.seed_floor_door_states(18)
-	var xs2 := await _floor_zombie_xs(18)
+	WorldState.seed_floor_door_states(f)
+	var xs2 := await _floor_zombie_xs(f)
 	check(xs1.size() > 0 and xs2.size() > 0, "both runs spawned zombies (%d / %d)" % [xs1.size(), xs2.size()])
 	check(xs1 != xs2, "run 2 zombie positions differ from run 1 (reshuffled)")
 
