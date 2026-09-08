@@ -13,6 +13,20 @@ var rect: ColorRect = null
 var label: Label = null
 var busy: bool = false
 
+# Time-skip title card (to_run_shift): a centred MORNING / AFTERNOON / NIGHT over a
+# one-line subtitle, in the game's pixel font, tinted by time of day.
+const TITLE_FONT := preload("res://assets/fonts/PixelOperator8-Bold.ttf")
+const SUB_FONT := preload("res://assets/fonts/PixelOperator8.ttf")
+# Warm gold morning → deep orange afternoon → cold blue night (the word's colour).
+const TIME_WORD_COLORS := [
+	Color(1.00, 0.86, 0.45),
+	Color(1.00, 0.66, 0.30),
+	Color(0.58, 0.72, 1.00),
+]
+var run_box: VBoxContainer = null
+var run_title: Label = null
+var run_sub: Label = null
+
 
 func _ready() -> void:
 	layer = 128
@@ -33,6 +47,76 @@ func _ready() -> void:
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.modulate.a = 0.0
 	add_child(label)
+	_build_run_card()
+
+
+func _build_run_card() -> void:
+	# The time-skip card: a big time-of-day word over a small subtitle, stacked and
+	# centred, faded in as a group. Hidden until to_run_shift drives it.
+	run_box = VBoxContainer.new()
+	run_box.set_anchors_preset(Control.PRESET_FULL_RECT)
+	run_box.alignment = BoxContainer.ALIGNMENT_CENTER          # vertically centred
+	run_box.add_theme_constant_override("separation", 18)
+	run_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	run_box.modulate.a = 0.0
+	run_box.visible = false
+	add_child(run_box)
+
+	run_title = Label.new()
+	run_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	run_title.add_theme_font_override("font", TITLE_FONT)
+	run_title.add_theme_font_size_override("font_size", 78)
+	run_title.add_theme_constant_override("outline_size", 10)
+	run_title.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	run_title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	run_box.add_child(run_title)
+
+	run_sub = Label.new()
+	run_sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	run_sub.add_theme_font_override("font", SUB_FONT)
+	run_sub.add_theme_font_size_override("font_size", 20)
+	run_sub.add_theme_color_override("font_color", Color(0.78, 0.80, 0.86, 1.0))
+	run_sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	run_box.add_child(run_sub)
+
+
+# THE TIME SKIP between characters (docs/THREE_RUN_ARC.md). A slow fade to black,
+# then the time-of-day card (MORNING / AFTERNOON / NIGHT) drifts up and holds so the
+# passage of time is unmistakable, then the scene swaps and fades in on the new run.
+# `run_index` is the run we're arriving INTO (2 or 3).
+func to_run_shift(path: String, run_index: int, hold: float = 2.0) -> void:
+	if busy:
+		return
+	busy = true
+	rect.visible = true
+	await _fade(1.0, 0.7)                                      # slow — hours pass
+
+	var i: int = clampi(run_index - 1, 0, WorldState.RUN_NAMES.size() - 1)
+	run_title.text = WorldState.RUN_NAMES[i].to_upper()
+	run_title.add_theme_color_override("font_color", TIME_WORD_COLORS[i])
+	run_sub.text = WorldState.TIME_SUBTITLES[i]
+	run_box.visible = true
+	run_box.modulate.a = 0.0
+	run_box.position.y = 24.0                                  # start low, drift up
+
+	var t_in = create_tween().set_parallel(true)
+	t_in.tween_property(run_box, "modulate:a", 1.0, 0.6)
+	t_in.tween_property(run_box, "position:y", 0.0, 0.9).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	await t_in.finished
+	await get_tree().create_timer(hold, true).timeout
+
+	get_tree().change_scene_to_file(path)
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	var t_out = create_tween().set_parallel(true)
+	t_out.tween_property(run_box, "modulate:a", 0.0, 0.4)
+	t_out.tween_property(run_box, "position:y", -20.0, 0.5).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	await t_out.finished
+	run_box.visible = false
+	await _fade(0.0, 0.6)
+	rect.visible = false
+	busy = false
 
 
 # A heavier transition for a real TIME SKIP (the crowbar crossing): a longer fade

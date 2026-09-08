@@ -522,6 +522,144 @@ func new_game() -> void:
 	pending_dev_feedback = ""
 
 
+# Advance to the NEXT character run — THE TIME SKIP (docs/THREE_RUN_ARC.md). The
+# character who was here has just concluded (exited the lobby OR died); the next
+# one begins at Floor 30 a few hours later. Returns true if the ARC IS OVER (the
+# third character just concluded — there is no run 4), so the caller shows the
+# ending instead of loading a new run.
+#
+# Persistence split: a FRESH character (inventory, health, stamina, wallet
+# BALANCE all wiped — nothing is carried out of the building), but the WORLD
+# persists and DECAYS. Almost every escalation is already keyed on current_run —
+# door-state weights, fire climbing (age = current_run-1), the merchant's nastier
+# bargains — so bumping the run on the SAME master_seed reads the same building one
+# run harder, no re-roll. What we do here is the stateful decay the run number
+# alone can't express: mutate the doors the player left, and reshuffle the dead.
+func advance_run() -> bool:
+	if current_run >= RUN_NAMES.size():
+		return true                         # run 3 has concluded → the arc is over
+
+	current_run += 1
+	record_run_started()                    # stats: the next character enters the building
+	is_first_run = false                    # the tutorial / cold open is run-1 only
+
+	# --- FRESH CHARACTER (per-run state, wiped) — mirrors new_game's character block.
+	#     Cross-run rewards (active_upgrades, wallet UNLOCK) are deliberately KEPT. ---
+	inventory.clear()
+	player_health = 0                       # player._ready re-derives max + fills to full
+	is_dying = false
+	dying_timer = 0.0
+	is_scavenge_mode = false
+	stamina = 100.0
+	max_stamina = 100.0                     # upgrade modifier-fold re-applies on top
+	current_floor = 30
+	last_rest_floor = 30
+	rest_available = true
+	rest_count = 0
+	rest_forfeit_pending = false
+	wallet_balance = 0                      # per-run (recoverable from the corpse later)
+	available_upgrades.clear()
+	upgrade_offers.clear()
+	spawn_source = ""
+	stair_spawn_side = ""
+	stair_direction = ""
+	exit_spawn_x = 0.0
+	saved_player_x = 0.0
+	saved_player_y = 0.0
+	saved_on_balcony_plane = false
+	last_exited_apartment = 0
+	# A follower in transit / its streak belonged to the character who just left.
+	if is_instance_valid(follower_node):
+		follower_node.queue_free()
+	follower_node = null
+	follower_streak = 0
+	followed_away.clear()
+
+	# --- THE BUILDING DECAYS (cross-run world, mutated in place; same master_seed) ---
+	# Door access shifts: some locks loosen, more rooms breach (seeded per run). This
+	# keeps the player-caused changes (opened/keyed doors) and decays from there.
+	mutate_door_states_for_new_run()
+	# The dead RESHUFFLE — hours passed, more wandered in. Clear kill/position memory so
+	# every floor re-populates, and the run-salted spawn seed lands them in NEW spots.
+	# Loot depletion PERSISTS: searched_anchors, world_drops and consumed keys are left
+	# untouched, so an emptied building stays emptied (runs 2/3 inherit a looted map).
+	killed_zombies.clear()
+	zombie_positions.clear()
+	# Per-run world systems reset so they re-derive fresh for the new run.
+	elevator_powered = false
+	elevator_fuses_loaded = 0
+	elevator_kit_placed.clear()
+	stair_blocks_cleared.clear()
+	pending_stair_pulls.clear()
+	pending_pry_arrival_floor = -1
+	barricade_progress.clear()
+	hazard_approach_warned.clear()
+	# Fire climbs the building automatically (fire_intensity, age = current_run-1). Its
+	# saved SPREAD snapshot is per-run, so drop it and let the new run re-derive. A source
+	# fully dealt with (fire_dealt_with) STAYS dealt with across runs — never cleared here.
+	fire_cells.clear()
+	fire_origin_x.clear()
+	apartment_fire_out.clear()
+	# The merchant re-seeds per (floor, run); drop this run's transient shop state.
+	merchant_stock.clear()
+	legendary_hold = {}
+	legendary_just_purchased = false
+	merchant_sales.clear()
+	# Per-run balcony / injury flags.
+	roped_balconies.clear()
+	balcony_jump_warned = false
+	balcony_arrival_hurt = false
+	balcony_pending_injury = 0
+	return false
+
+
+# --- Time of day (derived from the run) --------------------------------------
+# Run 1 = Morning, 2 = Afternoon, 3 = Night — the fiction the time skip sells and
+# a subtle world tint (time_modulate_color) grades each scene by.
+const TIME_SUBTITLES := [
+	"The building stirs at first light.",
+	"The heat and the noise have drawn them out.",
+	"The dark belongs to them now.",
+]
+# A gentle CanvasModulate multiplied over the WORLD (never the HUD/CanvasLayers):
+# warm-neutral morning → golden afternoon → cool, dimmer night. Kept mild so the
+# art still reads; night is the only one that noticeably darkens.
+const TIME_TINTS := [
+	Color(1.00, 0.98, 0.92),   # morning: faint warm daylight
+	Color(1.00, 0.90, 0.76),   # afternoon: golden, lower sun
+	Color(0.60, 0.65, 0.88),   # night: cool blue, dimmed
+]
+
+
+func time_of_day() -> String:
+	return run_name(current_run)
+
+
+func time_subtitle() -> String:
+	var i: int = clampi(current_run - 1, 0, TIME_SUBTITLES.size() - 1)
+	return TIME_SUBTITLES[i]
+
+
+func time_modulate_color() -> Color:
+	var i: int = clampi(current_run - 1, 0, TIME_TINTS.size() - 1)
+	return TIME_TINTS[i]
+
+
+func apply_time_tint(scene: Node) -> void:
+	# Grade the WORLD by time of day. A CanvasModulate multiplies the default 2D
+	# canvas only — it never touches the HUD or any other CanvasLayer — so it dims
+	# and colours the level without dulling the UI. Idempotent: reuse the node if a
+	# scene calls this more than once (e.g. a floor woken from a pan backdrop).
+	if scene == null:
+		return
+	var cm := scene.get_node_or_null("TimeOfDayTint") as CanvasModulate
+	if cm == null:
+		cm = CanvasModulate.new()
+		cm.name = "TimeOfDayTint"
+		scene.add_child(cm)
+	cm.color = time_modulate_color()
+
+
 func on_floor_arrived(floor_num: int) -> void:
 	# Reaching any floor below 30 means the tutorial has been played through.
 	if floor_num < 30 and floor_num > 0:
@@ -2593,13 +2731,16 @@ func roll_zombie_loot_id(pos: Vector2, floor_num: int) -> String:
 # orphaned; everything now goes through slot_save_path().
 const SAVE_PATH = "user://savegame.json"
 
-func save_game(scene_path: String) -> void:
+func save_game(scene_path: String, record_live_zombies: bool = true) -> void:
 	# Snapshot live zombie state in the current scene so reloading can't be used
 	# to reset an encounter (save-scum lure exploit). Same path the floor
 	# transitions use (enemy _exit_tree -> record_zombie), so a save captures
-	# exactly what a walk-away would.
+	# exactly what a walk-away would. `record_live_zombies` is false when saving
+	# ACROSS a time skip (advance_run just cleared the roster): the scene still on
+	# screen belongs to the character who just left, so its zombies must NOT be
+	# recorded into the fresh run.
 	var tree = Engine.get_main_loop() as SceneTree
-	if tree:
+	if tree and record_live_zombies:
 		for z in tree.get_nodes_in_group("zombie"):
 			record_zombie(z)
 	var save_data = {

@@ -121,6 +121,7 @@ func _ready() -> void:
 	_spawn_follower(floor_num)
 	_spawn_fire(floor_num)
 	_spawn_door_fire(floor_num)
+	WorldState.apply_time_tint(self)   # morning / afternoon / night grade
 	_frame_camera(player)
 	# Keep the HUD floor counter honest for EVERY way of landing on a floor — not
 	# just stair transitions. A dev jump / F2 rebuild used to leave it stale (e.g.
@@ -857,9 +858,11 @@ func _apply_stair_visuals() -> void:
 func _spawn_zombies(floor_num: int, as_scenery: bool) -> void:
 	# Same seed either way, so a backdrop's zombies and the committed floor's
 	# zombies are the SAME zombies in the same places — that's what makes them
-	# scroll into view during the pan rather than pop in on arrival.
+	# scroll into view during the pan rather than pop in on arrival. The current_run
+	# salt RESHUFFLES positions across the time skip (a fresh infestation each run)
+	# while staying identical between a backdrop and its live commit within one run.
 	var floor_rng = RandomNumberGenerator.new()
-	floor_rng.seed = (WorldState.master_seed ^ (floor_num * 2246822519)) & 0xFFFFFFFF
+	floor_rng.seed = (WorldState.master_seed ^ (floor_num * 2246822519) ^ (WorldState.current_run * 40503)) & 0xFFFFFFFF
 	var zombie_count = WorldState.get_floor_zombie_count(floor_num)
 	var zombie_scene = preload("res://scenes/enemy_zombie_standard.tscn")
 	# A pried crossing dumps you onto a floor whose dead have gathered at the
@@ -1037,6 +1040,7 @@ func go_live() -> void:
 		_spawn_fire(floor_num)
 		_spawn_door_fire(floor_num)
 	_spawn_merchant(floor_num)
+	WorldState.apply_time_tint(self)   # a woken pan backdrop gets its time grade here
 
 
 func _apply_doors(floor_num: int) -> void:

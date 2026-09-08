@@ -111,6 +111,10 @@ func _ready() -> void:
 		_populate_passive_backdrop()
 		return
 
+	# Live apartment / maintenance room: grade it by time of day (never the balcony
+	# passive backdrop above, which shares the pan's single canvas modulate).
+	WorldState.apply_time_tint(self)
+
 	# MAINTENANCE ROOM (maintenance.tscn): a small SAFE room — NO enemies, no apartment
 	# modules, just 2 scavenge anchors (toolbox/fuse-weighted) + a spot to rest. Reuses
 	# this scene's Player / camera / exit-door and the scavenge interaction layer below.

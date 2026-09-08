@@ -20,6 +20,7 @@ func _ready() -> void:
 	if WorldState.master_seed == 0:
 		WorldState.new_game()
 	var player = get_node("Player")
+	WorldState.apply_time_tint(self)   # morning / afternoon / night grade
 	if WorldState.spawn_source == "stair":
 		if WorldState.stair_spawn_side == "left":
 			player.global_position = Vector2(148, 388.0)

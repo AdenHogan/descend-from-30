@@ -138,12 +138,28 @@ Floor 30 after run 1:
 ## Implementation Notes (rough order, post-merchant)
 
 1. Run/time-of-day state in WorldState (`current_run` already exists; add
-   `time_of_day` derived from it; palette/tint hook per scene)
+   `time_of_day` derived from it; palette/tint hook per scene) — **BUILT (v1)**.
+   `WorldState.advance_run()` bumps `current_run` (cap 3, returns true when the
+   arc is over), wipes the PER-RUN character (inventory, health, stamina, wallet
+   BALANCE, follower, upgrade offers) and KEEPS the cross-run rewards (upgrades,
+   wallet UNLOCK) + the decayed world (same `master_seed`). `time_of_day()` →
+   Morning/Afternoon/Night; `time_modulate_color()` grades each world scene via a
+   `CanvasModulate` (`apply_time_tint`, world only — never the HUD).
 2. Time-skip transition: on character end (death or exit), advance run,
    reshuffle spawn seeds (except storied-room flag, reserved), apply
-   door-decay pass, roll fires
+   door-decay pass, roll fires — **BUILT (v1)**. Both endpoints wired:
+   `lobby_exit.gd` (exit) and `game.gd::game_over` (death) set the finishing
+   character's outcome, call `advance_run()`, and — unless the arc is over —
+   `Transition.to_run_shift(hallway, next_run)` (a slow fade-to-black title card
+   animating the time-of-day word + subtitle, then the new Floor 30). Death is no
+   longer a session-end mid-arc; only the THIRD character concluding ends it
+   (`game_over.tscn` now shows the three fates + a win/lose headline). Enemy
+   positions reshuffle via a `current_run` salt in `building_floors._spawn_zombies`;
+   fires climb automatically off `current_run`. Storied-room reserve: not yet.
 3. Door-decay pass: seeded per (master_seed, run) — converts a fraction of
-   locked→open/barricaded, adds breaches. Tuning table per run
+   locked→open/barricaded, adds breaches. Tuning table per run —
+   `mutate_door_states_for_new_run()` exists and is now CALLED by `advance_run`
+   (decays the doors the player left in place). Per-run tuning table: future.
 4. Balcony column seed in generation + balcony descent (spec above, DECIDED)
 5. Fire hazard objects: blocking volumes + visuals; floors flagged
    fire-affected at skip time

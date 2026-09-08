@@ -94,9 +94,21 @@ func quit_without_saving() -> void:
 	go_to_scene("title")
 
 func game_over() -> void:
-	# The survivor for this run of the arc died — the profile card shows it.
+	# A character of the arc has died. Per docs/THREE_RUN_ARC.md a death is NOT the
+	# end of the session — it triggers the SAME time skip an exit does, and the next
+	# character takes over. Only when the THIRD character falls is the playthrough
+	# truly over (a dead character leaves a recoverable corpse — store step 7, future).
 	WorldState.set_run_outcome(WorldState.current_run, "dead")
 	get_tree().paused = false
-	WorldState.delete_save()
-	HUD.hide_hud()
-	get_tree().change_scene_to_file("res://scenes/game_over.tscn")
+	var next_run: int = WorldState.current_run + 1
+	var arc_over: bool = WorldState.advance_run()
+	if arc_over:
+		# The final character has fallen — the playthrough ends.
+		WorldState.delete_save()
+		HUD.hide_hud()
+		get_tree().change_scene_to_file("res://scenes/game_over.tscn")
+		return
+	# The next character wakes at Floor 30 after the skip. Persist the fresh run
+	# WITHOUT recording the dead scene's zombies, then time-skip into the hallway.
+	WorldState.save_game("res://scenes/hallway.tscn", false)
+	Transition.to_run_shift("res://scenes/hallway.tscn", next_run)

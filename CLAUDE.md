@@ -589,8 +589,33 @@ means no rendering — UI layout and art still need an in-editor look.
   maintenance floors); the merchant sells 036 (~30% of visits, or guaranteed at
   the nearest merchant floor to a seeded fire — crisis markup). Covered by
   `maintenance_test` + `elevator_test`.
-- Next: tutorial **v2** (above), then characters/profiles/stats + the
-  two-&-three-run arc; also **Upgrade offers** polish and player-corpse
+- Three-run arc + time skip (docs/THREE_RUN_ARC.md, steps 1-3, v1): a session is
+  THREE characters (morning / afternoon / night), not one. `WorldState.advance_run()`
+  is THE TIME SKIP — it bumps `current_run` (cap 3; returns true when the arc is over),
+  sets up a FRESH character (inventory / health / stamina / wallet BALANCE / follower /
+  upgrade offers all wiped) and KEEPS the cross-run rewards (active upgrades, wallet
+  UNLOCK) plus the DECAYED world on the **same `master_seed`** — almost every escalation
+  already reads `current_run` (door-state weights, fire climbing `age=current_run-1`,
+  nastier merchant), so the same building simply reads one run harder with no re-roll.
+  The stateful decay it adds: `mutate_door_states_for_new_run()` (locks loosen, more
+  breaches, keeping the player's opened doors) and clearing kill/position memory so the
+  dead **reshuffle** (a `current_run` salt in `building_floors._spawn_zombies` lands them
+  in new spots); loot depletion PERSISTS (searched anchors, world drops, consumed keys
+  untouched). **Both endpoints wired**: `lobby_exit.gd` (exit — selfish, takes inventory
+  out, no corpse) and `game.gd::game_over` (death — a mid-arc death is NO LONGER a
+  session end; corpse recovery is store step 7, future) set the finishing character's
+  outcome, call `advance_run()`, and — unless the arc is over — save the fresh run
+  (`save_game(hallway, record_live_zombies=false)` so the dead scene's zombies aren't
+  logged into it) and `Transition.to_run_shift(hallway, next_run)`. **Time visuals**:
+  `to_run_shift` is a slow fade-to-black **title card** (game pixel font) animating the
+  time-of-day word MORNING / AFTERNOON / NIGHT + a subtitle, held, then the new Floor 30;
+  every world scene grades itself by `WorldState.apply_time_tint(self)` — a `CanvasModulate`
+  (world only, never the HUD) that's warm daylight → golden → cool dim-blue night. Only the
+  THIRD character concluding ends the playthrough: `game_over.tscn` now shows a win/lose
+  headline + all three fates. Covered by `run_arc_test`. Still to build: enemy-VARIETY
+  tables per (floor band × run), storied-room spawn reserve, descent boon on exit,
+  night-darkness/lighting as a real difficulty axis, character stats.
+- Next: characters/profiles/stats; **Upgrade offers** polish and player-corpse
   recovery (store step 7); barricade-keeper NPC; fire smoke/crouch + warning beat;
   the maintenance **upgrade station** UI (Scrap system, SCRAP_UPGRADES.md).
-- Not started: time-of-day, balcony descent, quests, character stats.
+- Not started: balcony descent, quests, character stats.
