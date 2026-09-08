@@ -18,6 +18,10 @@ var spawn_key: String = ""
 var drops_key: bool = false
 var key_target_apartment: String = ""
 var key_dropped: bool = false  # Guard against double drops
+# Corridor BOSS (runs 2/3, docs/THREE_RUN_ARC.md): a tougher roaming Big Zombie set
+# loose on a building floor. Guards nothing, so drops NO key — but drops BETTER loot.
+# building_floors sets this true (before add_child) for a floor_has_boss spawn.
+var is_corridor_boss: bool = false
 
 var max_hp: int = 20
 var current_hp: int = 20
@@ -85,6 +89,15 @@ func _ready() -> void:
 	add_to_group("zombie")
 	add_to_group("big_zombie")
 	_set_hp_from_floor()
+	if is_corridor_boss:
+		# A real wall: markedly tougher than an ordinary corridor big, and tinted so it
+		# reads as elite even under the time-of-day grade (a per-node modulate stacks with
+		# the world CanvasModulate, so it's always "redder than normal"). Scale is left
+		# alone — bumping it would move the feet off the 419 floor line (docs/Y_PLANES.md).
+		max_hp = int(round(max_hp * 1.6)) + 6
+		current_hp = max_hp
+		add_to_group("corridor_boss")
+		modulate = Color(1.0, 0.66, 0.62)
 	_register_zombie_exceptions()
 	moan_player = AudioStreamPlayer2D.new()
 	moan_player.name = "MoanPlayer"
@@ -183,8 +196,8 @@ func _die() -> void:
 			"type": "big"
 		}
 
-	# Big Zombie ALWAYS drops a Bank Notes bundle (30-60).
-	var money_amount = 30 + randi() % 31
+	# Big Zombie ALWAYS drops a Bank Notes bundle — a corridor BOSS drops a fatter one.
+	var money_amount = (70 + randi() % 61) if is_corridor_boss else (30 + randi() % 31)
 	var money_pos = global_position + Vector2(24, 0)
 	var money_key = str(WorldState.current_floor) + ":" + str(snappedf(money_pos.x, 1.0)) + ":" + str(snappedf(money_pos.y, 1.0))
 	WorldState.add_world_drop("033", money_pos, WorldState.current_floor, {"amount": money_amount})
@@ -194,6 +207,18 @@ func _die() -> void:
 	money_drop.drop_key = money_key
 	money_drop.global_position = money_pos
 	get_parent().add_child(money_drop)
+
+	# A corridor boss ALSO drops one genuinely good item (never a key — it guards nothing).
+	if is_corridor_boss:
+		var loot_id: String = WorldState.boss_loot_item(spawn_key)
+		var loot_pos = global_position + Vector2(-24, 0)
+		var loot_key = str(WorldState.current_floor) + ":" + str(snappedf(loot_pos.x, 1.0)) + ":" + str(snappedf(loot_pos.y, 1.0))
+		WorldState.add_world_drop(loot_id, loot_pos, WorldState.current_floor, {})
+		var loot_drop = preload("res://scenes/world_drop.tscn").instantiate()
+		loot_drop.item_id = loot_id
+		loot_drop.drop_key = loot_key
+		loot_drop.global_position = loot_pos
+		get_parent().add_child(loot_drop)
 
 	if drops_key and key_target_apartment != "" and not key_dropped:
 		key_dropped = true

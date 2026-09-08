@@ -640,9 +640,25 @@ means no rendering — UI layout and art still need an in-editor look.
   OWN line, `ENEMY_SETTLED_Y`, never the standard's 370; measured, see docs/Y_PLANES.md);
   memory/record/pan-freeze all work via the shared `zombie` group. Frames are baked
   SpriteFrames `.tres` (regenerate with `tools/gen_enemies.gd`). Tuning lives in the four
-  `*_CHANCE` tables. Covered by `enemy_variety_test`. Still to build: distinct AI beyond
-  the reskins (the spitter's kiting, crawler crawl-under), storied-room spawn reserve,
-  descent boon on exit, night-darkness/lighting, character stats.
+  `*_CHANCE` tables. Covered by `enemy_variety_test`.
+  **Spread rebalance (variety + sectional flavour):** the tables were reworked so runs
+  2/3 carry MORE new enemies (esp. MID/HIGH — HIGH run 2 went 8%→22%, run 3 31%→48%), no
+  single type dominates (per-type peak trimmed 0.30→~0.22 so a fight reads as a MIX not a
+  wall of bigs), and each **section** has a distinct night-time lead so descending isn't
+  samey: **LOW = the swarm** (crawler/big, melee), **MID = the bruisers** (long-arm),
+  **HIGH = ranged** (spitter *inverts* — it's rarest deep, most common up top). Run 1 is
+  left exactly as tuned. Locked by `enemy_variety_test` (`_test_variety_and_flavor`).
+  **Corridor bosses (runs 2/3):** a floor may set ONE roaming boss loose — a tougher Big
+  Zombie (`enemy_zombie_big.is_corridor_boss`: ~1.6×+6 HP, elite red tint, in group
+  `corridor_boss`). It guards nothing so drops **NO key**, but drops a **fatter money
+  bundle + one good-loot item** from `WorldState.BOSS_LOOT_POOL` (weighted; gun/first-aid
+  the rare rolls). Per-FLOOR, at most one, seeded per (floor,run) via
+  `WorldState.floor_has_boss` (`BOSS_CHANCE` table, LOW-favoured, none in run 1);
+  `building_floors._spawn_corridor_boss` places it mid-corridor with the same
+  memory/settle-374/pan-scenery rules as any big, key `boss:<floor>:<run>` (dropped by
+  `shift_building` like the stairwell/follower keys). Still to build: distinct AI beyond
+  the reskins (spitter kiting, crawler crawl-under), a distinct boss silhouette (art),
+  storied-room spawn reserve, descent boon on exit, night-darkness/lighting, character stats.
 - Next: characters/profiles/stats; **Upgrade offers** polish and player-corpse
   recovery (store step 7); barricade-keeper NPC; fire smoke/crouch + warning beat;
   the maintenance **upgrade station** UI (Scrap system, SCRAP_UPGRADES.md).

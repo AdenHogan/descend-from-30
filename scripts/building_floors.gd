@@ -958,6 +958,37 @@ func _spawn_zombies(floor_num: int, as_scenery: bool) -> void:
 		WorldState.pending_pry_arrival_floor = -1
 	if stair_pull:
 		WorldState.consume_stair_pull(floor_num)
+	# Runs 2/3 may set ONE roaming corridor boss loose on this floor (scrolls in via
+	# the pan backdrop too, so it doesn't pop at the commit).
+	_spawn_corridor_boss(floor_num, as_scenery)
+
+
+func _spawn_corridor_boss(floor_num: int, as_scenery: bool) -> void:
+	# A tougher Big Zombie loose in the corridor (docs/THREE_RUN_ARC.md) — at most one,
+	# seeded per (floor, run). It guards nothing so drops NO key, but drops better loot
+	# (handled in enemy_zombie_big when is_corridor_boss). Same memory/settle/pan rules
+	# as any big: killed persists, feet on 419 (origin 374), frozen scenery in a backdrop.
+	if not WorldState.floor_has_boss(floor_num):
+		return
+	var key := "boss:%d:%d" % [floor_num, WorldState.current_run]
+	if WorldState.killed_zombies.has(key) or WorldState.followed_away.has(key):
+		return
+	# A seeded mid-corridor x, clear of both stairwells (corridor runs ~115..1235).
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(WorldState.master_seed) + "bosspos" + str(floor_num) + str(WorldState.current_run))
+	var bx: float = rng.randf_range(360.0, 1000.0)
+	var boss = ENEMY_SCENES["zombie_big"].instantiate()
+	boss.is_corridor_boss = true          # set BEFORE add_child so its _ready boosts it
+	boss.global_position = Vector2(bx, 388.0)
+	boss.spawn_key = key
+	if as_scenery:
+		boss.add_to_group("pan_scenery")
+	add_child(boss)
+	var restored = WorldState.apply_saved_zombie(boss)
+	if as_scenery:
+		if not restored:
+			boss.global_position.y = BIG_ZOMBIE_SETTLED_Y
+		boss.set_physics_process(false)
 
 
 func _strip_junk() -> void:

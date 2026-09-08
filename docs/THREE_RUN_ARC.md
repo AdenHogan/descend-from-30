@@ -176,8 +176,15 @@ Floor 30 after run 1:
    Density stays with `get_floor_zombie_count` (mix, not count — no cramming).
    **Three new types added** (Crawler / Long Arm / Spitter — art in `assets/Enemies/`),
    each with its own `*_CHANCE` table alongside `HEAVY_CHANCE` and its own scene/script
-   (reskins of the standard AI; the Spitter adds a real ranged projectile). Covered by
-   `enemy_variety_test`. Still open: distinct AI per type beyond the reskin, storied rooms.
+   (reskins of the standard AI; the Spitter adds a real ranged projectile).
+   **Spread tuned for VARIETY + section flavour**: runs 2/3 carry more new enemies up the
+   building; no type dominates; LOW reads as a melee swarm, MID as long-arm bruisers, HIGH
+   at night as a ranged/spitter threat (the spitter inverts and favours the top). Run 1
+   unchanged. **Corridor bosses (runs 2/3)**: a floor may hold ONE roaming tougher Big
+   Zombie (`is_corridor_boss`) — NO key (guards nothing) but a fatter money bundle + one
+   good-loot item (`BOSS_LOOT_POOL`); per (floor,run) via `floor_has_boss`. Covered by
+   `enemy_variety_test`. Still open: distinct AI per type beyond the reskin; a boss
+   silhouette; storied rooms.
 7. Descent boon on successful exit (design TBD)
 8. Character stats system (own design doc first)
 

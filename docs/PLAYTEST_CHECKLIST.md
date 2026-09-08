@@ -98,6 +98,36 @@ climb by run 2–3. Fastest way to see them: **F8 to run 3, walk low floors (1�
 - [ ] Art/scale sanity: none of the three look oversized/undersized next to the
       player and standard zombie (a look-only check headless can't do).
 
+## 4c. Spread / variety by section (F8 through the runs)
+
+The mix was tuned so it doesn't feel samey. Descending in run 3, watch for:
+
+- [ ] **Low floors (1–10)** read as a **melee swarm** — crawlers and the odd big,
+      up close and personal.
+- [ ] **Mid floors (11–20)** lean on the **Long Arm** — the reach bruiser is the
+      most common new face here.
+- [ ] **High floors (21–29)** at night lean **ranged** — the Spitter is most
+      common up top (it's rarest deep). Top vs bottom should feel different.
+- [ ] A fight reads as a **mix** — you're not just fighting a wall of Big Zombies
+      any more (their share was trimmed for variety).
+- [ ] Runs 2 and 3 clearly have **more** new enemies than run 1, and they now
+      reach the **middle and upper** floors, not just the bottom.
+
+## 4d. Corridor bosses (runs 2 & 3 only)
+
+Occasionally a floor sets a **roaming boss** loose — a tougher Big Zombie in the
+corridor (tinted reddish so it reads as elite). Rare; more common on low floors.
+
+- [ ] It's a **real wall of HP** — a proper fight, not a normal big.
+- [ ] It drops **NO key**, but on death drops a **fat money bundle + one good
+      item** (bullets / first-aid / a weapon / crowbar / extinguisher — a gun is
+      the jackpot). Confirm the loot actually appears and is worth the fight.
+- [ ] It **stands on the floor line** (grounded, no float), including scrolling
+      in via a stair pan.
+- [ ] Elite tint reads under all three time-of-day grades (morning/afternoon/night).
+- [ ] Balance gut-check: a boss on top of the denser run-2/3 mix isn't unfair —
+      `WorldState.BOSS_CHANCE` (how often) and the HP multiplier are one-line tunes.
+
 ## 5. Arc-end screen (only after run 3 concludes)
 
 - [ ] Dying as the 3rd character → headline reads **YOU DIED** (or the "takes

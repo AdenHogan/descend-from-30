@@ -1645,27 +1645,32 @@ func get_floor_zombie_count(floor_num: int) -> int:
 # and tests read it directly). TYPE_CHANCE adds the three lighter types. TUNE HERE:
 # these are the run-to-run difficulty knobs. Per (band,run) the four chances plus
 # HEAVY_CHANCE must stay under 1.0 (the remainder is a plain standard).
+# Each type also carries a BAND FLAVOUR so the building doesn't feel the same top to
+# bottom (intelligent spread, not a uniform scale): the heavy and the crawler swarm
+# concentrate DEEP (LOW); the long-arm bruiser owns the MIDDLE; the ranged spitter
+# INVERTS and concentrates UP HIGH — so by night the lower floors read as a melee
+# swarm and the upper floors as a ranged/agile threat. Run 1 is left as tuned
+# (LOW-only taste); the growth is in runs 2 & 3, and no single type dominates
+# (peaks flattened) so a fight reads as a MIX. TUNE the four tables here.
 const HEAVY_CHANCE := [
-	[0.06, 0.16, 0.30],   # LOW  (1-10): a few heavies from the start, worse each run
-	[0.00, 0.08, 0.18],   # MID  (11-20): clear in the morning, fills by night
-	[0.00, 0.03, 0.10],   # HIGH (21-29): the top stays safest the longest
+	[0.06, 0.14, 0.20],   # LOW  (1-10): apex predator, deep + climbing (was the dominant one; trimmed for variety)
+	[0.00, 0.08, 0.14],   # MID  (11-20)
+	[0.00, 0.03, 0.08],   # HIGH (21-29): the heavy stays rarest up top
 ]
-# Lighter special types, each a per-slot chance indexed [band][run-1]. Same migration
-# shape as the heavies: present deep in the morning, climbing the building by night.
 const CRAWLER_CHANCE := [
-	[0.10, 0.16, 0.18],   # LOW: the swarmer is the earliest new face
-	[0.00, 0.10, 0.14],   # MID
-	[0.00, 0.05, 0.10],   # HIGH
+	[0.10, 0.16, 0.22],   # LOW: the swarmer — earliest + most common new face, densest deep
+	[0.00, 0.10, 0.16],   # MID
+	[0.00, 0.07, 0.14],   # HIGH: still spreads everywhere by night
 ]
 const LONGARM_CHANCE := [
-	[0.00, 0.08, 0.12],   # LOW
-	[0.00, 0.06, 0.10],   # MID
-	[0.00, 0.00, 0.06],   # HIGH
+	[0.00, 0.12, 0.18],   # LOW
+	[0.00, 0.12, 0.18],   # MID: the reach bruiser OWNS the middle floors
+	[0.00, 0.05, 0.10],   # HIGH
 ]
 const SPITTER_CHANCE := [
-	[0.00, 0.06, 0.10],   # LOW: the ranged threat shows up from the afternoon
-	[0.00, 0.04, 0.08],   # MID
-	[0.00, 0.00, 0.05],   # HIGH
+	[0.00, 0.08, 0.12],   # LOW
+	[0.00, 0.08, 0.14],   # MID
+	[0.00, 0.07, 0.16],   # HIGH: the ranged threat INVERTS — most common UP TOP at night
 ]
 # Roll order (rarest / nastiest first). The spawner maps these ids to scenes.
 const _MIX_TABLES := {
@@ -1709,6 +1714,63 @@ func enemy_type_for(floor_num: int, spawn_key: String) -> String:
 		if roll < acc:
 			return id
 	return "zombie_standard"
+
+
+# --- Corridor BOSS (runs 2 & 3 only) -----------------------------------------
+# As the building gets harder, a floor may hold ONE roaming BOSS — a tougher Big
+# Zombie loose in the corridor (not a breach-room boss). It drops NO key (it guards
+# nothing), but it drops BETTER loot than an ordinary kill. Per-FLOOR (at most one),
+# seeded per (floor, run) so it's stable on re-entry and identical backdrop↔live.
+# LOW-favoured (the apex roams deep) but present up the building by night. TUNE HERE.
+const BOSS_CHANCE := [
+	[0.00, 0.12, 0.20],   # LOW  (1-10)
+	[0.00, 0.08, 0.16],   # MID  (11-20)
+	[0.00, 0.05, 0.12],   # HIGH (21-29)
+]
+# The good-loot pool a corridor boss can drop (besides its always-money bundle),
+# weighted so genuinely strong finds (a gun, a first-aid kit) are the rarer rolls.
+const BOSS_LOOT_POOL := [
+	["016", 22],   # Bullets
+	["007", 18],   # First Aid Kit
+	["036", 14],   # Fire Extinguisher
+	["035", 12],   # Crowbar
+	["017", 12],   # Aluminium Baseball Bat
+	["003", 10],   # Sword
+	["013", 8],    # Cricket Bat
+	["004", 4],    # Gun (the jackpot)
+]
+
+
+func floor_boss_chance(floor_num: int) -> float:
+	var r: int = clampi(current_run - 1, 0, 2)
+	return BOSS_CHANCE[_floor_band(floor_num)][r]
+
+
+func floor_has_boss(floor_num: int) -> bool:
+	# Deterministic per (floor, run). Floor 1 and 30 are exempt (the last step into the
+	# lobby and the tutorial hallway are never boss floors).
+	if floor_num <= 1 or floor_num >= 30:
+		return false
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "floorboss" + str(floor_num) + str(current_run))
+	return rng.randf() < floor_boss_chance(floor_num)
+
+
+func boss_loot_item(spawn_key: String) -> String:
+	# Deterministic per boss (its spawn_key + run) so the drop is stable if you retreat
+	# and return before killing it. Weighted pick from BOSS_LOOT_POOL.
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "bossloot" + spawn_key + str(current_run))
+	var total: int = 0
+	for entry in BOSS_LOOT_POOL:
+		total += int(entry[1])
+	var roll: int = rng.randi() % total
+	var acc: int = 0
+	for entry in BOSS_LOOT_POOL:
+		acc += int(entry[1])
+		if roll < acc:
+			return String(entry[0])
+	return String(BOSS_LOOT_POOL[0][0])
 
 
 func get_apartment_zombie_count(apartment_id: String) -> int:
@@ -2080,11 +2142,11 @@ func shift_building() -> void:
 	# one after a shift — an enemy vanishing. Drop those slots so they re-populate cleanly.
 	for k in killed_zombies.keys():
 		var ks := str(k)
-		if ks.contains(":stairwell:") or ks.begins_with("followerR:"):
+		if ks.contains(":stairwell:") or ks.begins_with("followerR:") or ks.begins_with("boss:"):
 			killed_zombies.erase(k)
 	for k in zombie_positions.keys():
 		var kp := str(k)
-		if kp.contains(":stairwell:") or kp.begins_with("followerR:"):
+		if kp.contains(":stairwell:") or kp.begins_with("followerR:") or kp.begins_with("boss:"):
 			zombie_positions.erase(k)
 
 

@@ -29,6 +29,8 @@ func _ready() -> void:
 	await _test_new_types_settle()
 	_test_all_types_appear_run3()
 	await _test_spitter_spits()
+	_test_variety_and_flavor()
+	await _test_corridor_boss()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -277,6 +279,125 @@ func _test_spitter_spits() -> void:
 				break
 		check(not is_instance_valid(proj) or proj.global_position.x > x0, "the spit travels toward the player (+x)")
 	holder.queue_free()
+	await get_tree().process_frame
+
+
+func _special_share(band: int, run: int) -> float:
+	return WorldState.HEAVY_CHANCE[band][run] + WorldState.CRAWLER_CHANCE[band][run] \
+		+ WorldState.LONGARM_CHANCE[band][run] + WorldState.SPITTER_CHANCE[band][run]
+
+
+func _run3_lead(band: int) -> String:
+	# Which special type is most common in this band at night (the band's "flavour").
+	var best := ""
+	var best_v := -1.0
+	for pair in [["big", WorldState.HEAVY_CHANCE], ["crawler", WorldState.CRAWLER_CHANCE], ["longarm", WorldState.LONGARM_CHANCE], ["spitter", WorldState.SPITTER_CHANCE]]:
+		var v: float = pair[1][band][2]
+		if v > best_v:
+			best_v = v
+			best = String(pair[0])
+	return best
+
+
+func _test_variety_and_flavor() -> void:
+	# The rebalance's intent, locked: (1) runs 2/3 carry MORE new enemies, including up
+	# the building; (2) no single type dominates (variety); (3) each section has a
+	# distinct lead type so descending doesn't feel samey.
+	print("[variety + sectional flavour]")
+	# (1) more new enemies in runs 2/3 — MID and HIGH are no longer sparse.
+	check(_special_share(1, 1) >= 0.30, "MID run2 has a real special share (%.2f)" % _special_share(1, 1))
+	check(_special_share(1, 2) >= 0.55, "MID run3 is heavily mixed (%.2f)" % _special_share(1, 2))
+	check(_special_share(2, 1) >= 0.18, "HIGH run2 is no longer near-empty (%.2f)" % _special_share(2, 1))
+	check(_special_share(2, 2) >= 0.40, "HIGH run3 is well mixed (%.2f)" % _special_share(2, 2))
+	# (2) variety — no special type exceeds a cap in any cell (was: big at 0.30 dominating).
+	var peak := 0.0
+	for t in [WorldState.HEAVY_CHANCE, WorldState.CRAWLER_CHANCE, WorldState.LONGARM_CHANCE, WorldState.SPITTER_CHANCE]:
+		for band in range(3):
+			for r in range(3):
+				peak = maxf(peak, t[band][r])
+	check(peak <= 0.24, "no single special type dominates a cell (peak %.2f <= 0.24)" % peak)
+	# (3) sectional flavour at night: LOW = swarm (crawler/big), MID = long-arm bruisers,
+	# HIGH = ranged spitters. The lead type differs by section.
+	check(_run3_lead(0) in ["crawler", "big"], "LOW night lead is the swarm (%s)" % _run3_lead(0))
+	check(_run3_lead(1) == "longarm", "MID night lead is the long-arm bruiser (%s)" % _run3_lead(1))
+	check(_run3_lead(2) == "spitter", "HIGH night lead is the ranged spitter (%s)" % _run3_lead(2))
+	check(_run3_lead(0) != _run3_lead(2), "the deep floors and the top floors feel different at night")
+	# All four tables only ever grow across runs (migration, never a dip).
+	var mono := true
+	for t in [WorldState.HEAVY_CHANCE, WorldState.CRAWLER_CHANCE, WorldState.LONGARM_CHANCE, WorldState.SPITTER_CHANCE]:
+		for band in range(3):
+			for r in range(1, 3):
+				if t[band][r] < t[band][r - 1]:
+					mono = false
+	check(mono, "every type's prevalence only grows run to run")
+	# Run 1 is left exactly as tuned (LOW-only taste, mid/high clean).
+	check(_special_share(1, 0) == 0.0 and _special_share(2, 0) == 0.0, "run 1 mid/high stay standard-only")
+
+
+func _test_corridor_boss() -> void:
+	# Corridor bosses appear only in runs 2/3, are tougher, drop NO key but better loot,
+	# and stand on the floor line. Deterministic per (floor, run).
+	print("[corridor boss]")
+	WorldState.new_game()
+	WorldState.tutorial_completed = true
+	WorldState.is_first_run = false
+	# Run 1: never.
+	WorldState.current_run = 1
+	var r1 := 0
+	for f in range(2, 30):
+		if WorldState.floor_has_boss(f):
+			r1 += 1
+	check(r1 == 0, "no corridor bosses in run 1 (%d)" % r1)
+	# Runs 2 and 3: some, and run 3 has at least as many.
+	WorldState.current_run = 2
+	var r2 := 0
+	var boss_floor := -1
+	for f in range(2, 30):
+		if WorldState.floor_has_boss(f):
+			r2 += 1
+			if boss_floor < 0:
+				boss_floor = f
+	WorldState.current_run = 3
+	var r3 := 0
+	for f in range(2, 30):
+		if WorldState.floor_has_boss(f):
+			r3 += 1
+	check(r2 > 0, "run 2 sets some corridor bosses loose (%d)" % r2)
+	check(r3 >= r2, "run 3 has at least as many boss floors (%d >= %d)" % [r3, r2])
+	# Determinism.
+	WorldState.current_run = 2
+	if boss_floor > 0:
+		check(WorldState.floor_has_boss(boss_floor) and WorldState.floor_has_boss(boss_floor), "floor_has_boss is deterministic")
+	# The loot roll returns a valid pool id.
+	var pool_ids := {}
+	for entry in WorldState.BOSS_LOOT_POOL:
+		pool_ids[String(entry[0])] = true
+	check(pool_ids.has(WorldState.boss_loot_item("boss:%d:2" % boss_floor)), "boss loot is drawn from the good-loot pool")
+	# Spawn the boss floor and inspect the live boss.
+	if boss_floor < 0:
+		return
+	WorldState.current_floor = boss_floor
+	var bf = load("res://scenes/building_floors.tscn").instantiate()
+	bf.setup_floor = boss_floor
+	add_child(bf)
+	var _pl = bf.get_node_or_null("Player")
+	if _pl != null:
+		_pl.queue_free()                    # no target — don't let the boss trigger a death/skip
+	for i in range(80):
+		await get_tree().process_frame
+	var bosses := get_tree().get_nodes_in_group("corridor_boss")
+	var mine := []
+	for b in bosses:
+		if bf.is_ancestor_of(b):
+			mine.append(b)
+	check(mine.size() == 1, "exactly one corridor boss on a boss floor (%d)" % mine.size())
+	if mine.size() == 1:
+		var boss = mine[0]
+		check(not boss.drops_key, "the corridor boss drops NO key")
+		check(boss.is_in_group("big_zombie"), "it's a Big Zombie under the hood")
+		check(boss.max_hp >= 12, "it's a real wall of HP (%d)" % boss.max_hp)
+		check(absf(boss.global_position.y - bf.BIG_ZOMBIE_SETTLED_Y) <= 1.5, "it stands on the floor line (%.1f)" % boss.global_position.y)
+	bf.queue_free()
 	await get_tree().process_frame
 
 
