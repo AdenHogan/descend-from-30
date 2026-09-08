@@ -174,8 +174,10 @@ Floor 30 after run 1:
    into the same table. Faithful to the migration model: heavies rare + LOW-floor
    only in the morning, reaching MID by afternoon, common even up HIGH at night.
    Density stays with `get_floor_zombie_count` (mix, not count — no cramming).
-   Covered by `enemy_variety_test`. Still open: distinct new TYPES (art), storied
-   rooms.
+   **Three new types added** (Crawler / Long Arm / Spitter — art in `assets/Enemies/`),
+   each with its own `*_CHANCE` table alongside `HEAVY_CHANCE` and its own scene/script
+   (reskins of the standard AI; the Spitter adds a real ranged projectile). Covered by
+   `enemy_variety_test`. Still open: distinct AI per type beyond the reskin, storied rooms.
 7. Descent boon on successful exit (design TBD)
 8. Character stats system (own design doc first)
 

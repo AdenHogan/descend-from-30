@@ -24,6 +24,7 @@ corridor floor. Measured (collision-bottom of the CollisionShape2D):
 | Player           | ~386 (spawns 391)   | **419**                 |
 | Standard zombie  | **370**             | **419**                 |
 | Big zombie       | **374**             | **419**                 |
+| Crawler / Long Arm / Spitter | **374**     | **419**                 |
 
 - **FLOOR_FEET_Y = 419** — the floor line. Anything that should "stand on the
   floor" must have its collision-bottom here, NOT its origin.
@@ -32,6 +33,10 @@ corridor floor. Measured (collision-bottom of the CollisionShape2D):
   - big zombie collision-bottom = `origin + 45` → origin **374** ⇒ feet 419
     (bigger capsule, DIFFERENT offset from the standard — measured; corridor
     scenery placement uses `building_floors.BIG_ZOMBIE_SETTLED_Y = 374`, never 370).
+  - crawler / long-arm / spitter collision-bottom = `origin + 45` → origin **374**
+    ⇒ feet 419 (all three sit on the same line as the big; their sprites' feet were
+    measured at frame-row 79, scale 3 → offset 45). `building_floors.ENEMY_SETTLED_Y`
+    holds the per-type origin (standard 370, every other rig 374) for scenery placement.
   - player collision-bottom = `origin + 33` → origin **386** ⇒ feet 419.
 - **Never align two different rigs by their ORIGIN.** Matching origins puts a
   bigger rig's feet lower. Align by FEET (collision-bottom = 419). This is the

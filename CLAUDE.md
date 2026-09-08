@@ -145,7 +145,11 @@ setup script; binary from downloads.godotengine.org). Before every commit:
   `profile_ui_test`, `title_test`, `enemy_memory_test`, `floor_adopt_test`,
   `balcony_test`, `hud_prompt_test`, `stair_block_test`, `fire_test`,
   `maintenance_test`, `elevator_test`, `run_arc_test`, `enemy_variety_test` — run all
-  28 before commit. (`floor_adopt_test` is seed-sensitive: `new_game` rolls a random
+  28 before commit. (Run ONE godot at a time — a killed/backgrounded headless run can
+  linger and block the next, and a GDScript **parse error makes a test scene load but
+  never call `quit()`, so it "hangs" until timeout** rather than printing an error line;
+  if a suite hangs, check for a parse error and stray `godot` processes first.
+  `floor_adopt_test` is seed-sensitive: `new_game` rolls a random
   master seed and it asserts a floor has zombies, so it fails ~occasionally
   on a 0-zombie seed — a known flake, re-run it. The old `building_floors_test`
   fire-cell-count flake was fixed by widening the LIGHT "small/patchy" bound to
@@ -613,22 +617,32 @@ means no rendering — UI layout and art still need an in-editor look.
   (world only, never the HUD) that's warm daylight → golden → cool dim-blue night. Only the
   THIRD character concluding ends the playthrough: `game_over.tscn` now shows a win/lose
   headline + all three fates. Covered by `run_arc_test`.
-- Enemy variety / escalation table (THREE_RUN_ARC step 6, v1 — mix only): the
-  infestation **migrates upward** across the arc. `WorldState.HEAVY_CHANCE` is a 3×3
-  table `[band][run]` (bands LOW 1-10 / MID 11-20 / HIGH 21-29) giving the per-slot
-  chance a corridor spawn is a **heavy**; `enemy_type_for(floor, spawn_key)` rolls it
-  **deterministically** (a pure function of floor/position/run, so a pan backdrop and its
-  live commit pick the SAME type, stable on re-entry, re-rolled when the run advances).
-  `building_floors._spawn_zombies` maps the id to a scene. Today the only heavy is the
-  **Big Zombie** (already breach-boss art) — rare + **LOW-floor-only in run 1** (so run 1
-  is barely touched: 6% on floors 1-10, nothing mid/high), reaching MID by run 2, common
-  even up HIGH by run 3. Density is unchanged (`get_floor_zombie_count` — this is MIX, not
-  count; no cramming). A corridor Big Zombie settles at origin **374** (feet on 419 — its
-  OWN line, `BIG_ZOMBIE_SETTLED_Y`, never the standard's 370); memory/record/pan-freeze all
-  work through the shared `zombie` group. New art-gated types slot into the same table.
-  Tuning lives in one place (`HEAVY_CHANCE`). Covered by `enemy_variety_test`. Still to
-  build: distinct new enemy TYPES (art-gated), storied-room spawn reserve, descent boon on
-  exit, night-darkness/lighting as a real difficulty axis, character stats.
+- Enemy variety / escalation table (THREE_RUN_ARC step 6, v1): the infestation
+  **migrates upward** across the arc, and there are now **five corridor types**. The mix
+  is data-driven per (floor band × run) in `world_state.gd`: `HEAVY_CHANCE` (Big Zombie)
+  plus `CRAWLER_CHANCE` / `LONGARM_CHANCE` / `SPITTER_CHANCE`, each a 3×3 `[band][run]`
+  table (bands LOW 1-10 / MID 11-20 / HIGH 21-29). `enemy_type_for(floor, spawn_key)`
+  walks them in a fixed order (`_MIX_ORDER`) accumulating the per-slot chances — the
+  leftover is a plain standard — **deterministically** (a pure function of floor/position/
+  run, so a pan backdrop and its live commit pick the SAME type, stable on re-entry,
+  re-rolled when the run advances). `building_floors._spawn_zombies` maps the id via
+  `ENEMY_SCENES`. **Run 1 is barely touched** (only LOW floors: 6% heavy + 10% crawler;
+  nothing mid/high); types reach MID by run 2 and are common even up HIGH by run 3.
+  Density is unchanged (`get_floor_zombie_count` — MIX not count; no cramming). **The
+  types** (all reuse `enemy_zombie_standard.gd` via `extends`, overriding the now-`var`
+  stats `SPEED`/`DETECTION_RANGE`/`ATTACK_RANGE`): **Crawler** (`enemy_zombie_crawler`) —
+  fast (68) + fragile (~half HP), a low-to-the-ground swarmer; **Long Arm**
+  (`enemy_zombie_longarm`) — normal pace, long `ATTACK_RANGE` (62 vs 30), the reach threat;
+  **Spitter** (`enemy_zombie_spitter`) — its `ATTACK_RANGE` is a 300px SPIT range, so the
+  base AI halts and plays Attack from afar; the overridable `_deliver_attack` launches a
+  `spit_projectile.gd` (frames sliced at runtime from the purchased Projectile sheet) on a
+  cooldown instead of a melee hit. All three settle at origin **374** (feet on 419 — their
+  OWN line, `ENEMY_SETTLED_Y`, never the standard's 370; measured, see docs/Y_PLANES.md);
+  memory/record/pan-freeze all work via the shared `zombie` group. Frames are baked
+  SpriteFrames `.tres` (regenerate with `tools/gen_enemies.gd`). Tuning lives in the four
+  `*_CHANCE` tables. Covered by `enemy_variety_test`. Still to build: distinct AI beyond
+  the reskins (the spitter's kiting, crawler crawl-under), storied-room spawn reserve,
+  descent boon on exit, night-darkness/lighting, character stats.
 - Next: characters/profiles/stats; **Upgrade offers** polish and player-corpse
   recovery (store step 7); barricade-keeper NPC; fire smoke/crouch + warning beat;
   the maintenance **upgrade station** UI (Scrap system, SCRAP_UPGRADES.md).

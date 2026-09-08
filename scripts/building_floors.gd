@@ -21,6 +21,25 @@ const ZOMBIE_SETTLED_Y := 370.0
 # capsule is a different size, so its feet land on the same floor line (419) from a
 # different origin — never reuse the standard's 370 for it (measured; docs/Y_PLANES.md).
 const BIG_ZOMBIE_SETTLED_Y := 374.0
+# Corridor enemy types (WorldState.enemy_type_for → a scene). New art-gated types
+# (crawler / long-arm / spitter) slot in here; the standard is the fallback.
+const ENEMY_SCENES := {
+	"zombie_standard": preload("res://scenes/enemy_zombie_standard.tscn"),
+	"zombie_big": preload("res://scenes/enemy_zombie_big.tscn"),
+	"zombie_crawler": preload("res://scenes/enemy_zombie_crawler.tscn"),
+	"zombie_longarm": preload("res://scenes/enemy_zombie_longarm.tscn"),
+	"zombie_spitter": preload("res://scenes/enemy_zombie_spitter.tscn"),
+}
+# Settled origin Y per type (feet on the 419 floor line — MEASURED, see docs/Y_PLANES.md).
+# Only the standard sits at 370; the big + all three new rigs rest at 374. Used for
+# pan-backdrop scenery placement (no physics step to settle them).
+const ENEMY_SETTLED_Y := {
+	"zombie_standard": 370.0,
+	"zombie_big": 374.0,
+	"zombie_crawler": 374.0,
+	"zombie_longarm": 374.0,
+	"zombie_spitter": 374.0,
+}
 
 
 func _exit_tree() -> void:
@@ -869,7 +888,6 @@ func _spawn_zombies(floor_num: int, as_scenery: bool) -> void:
 	floor_rng.seed = (WorldState.master_seed ^ (floor_num * 2246822519) ^ (WorldState.current_run * 40503)) & 0xFFFFFFFF
 	var zombie_count = WorldState.get_floor_zombie_count(floor_num)
 	var zombie_scene = preload("res://scenes/enemy_zombie_standard.tscn")
-	var big_scene = preload("res://scenes/enemy_zombie_big.tscn")
 	# A pried crossing dumps you onto a floor whose dead have gathered at the
 	# stairwell you just tore open: cluster this floor's horde by the arrival
 	# stairs and rouse them (below), instead of the usual even corridor spread.
@@ -895,12 +913,12 @@ func _spawn_zombies(floor_num: int, as_scenery: bool) -> void:
 			continue
 		if WorldState.followed_away.has(key):
 			continue   # this one left the floor following the player — don't respawn a copy
-		# Enemy VARIETY (docs/THREE_RUN_ARC.md): the escalation table decides whether this
-		# slot is a heavy (Big Zombie) or a standard, by (floor band × run). Deterministic
-		# per position, so a pan backdrop and its live commit pick the SAME type.
+		# Enemy VARIETY (docs/THREE_RUN_ARC.md): the escalation table decides this slot's
+		# TYPE — standard / heavy / crawler / long-arm / spitter — by (floor band × run).
+		# Deterministic per position, so a pan backdrop and its live commit pick the SAME type.
 		var etype: String = WorldState.enemy_type_for(floor_num, key)
-		var is_big: bool = etype == "zombie_big"
-		var zombie = (big_scene if is_big else zombie_scene).instantiate()
+		var scene = ENEMY_SCENES.get(etype, zombie_scene)
+		var zombie = scene.instantiate()
 		zombie.global_position = pos
 		zombie.spawn_key = key
 		if as_scenery:
@@ -915,10 +933,10 @@ func _spawn_zombies(floor_num: int, as_scenery: bool) -> void:
 			# it to rest; a scenery zombie has no physics step, so it would stay
 			# sunk ~18px and then visibly WARP up the moment the floor commits.
 			# Place a FRESH one where the live one ends up (guarded by
-			# building_floors_test); a restored one already carries a settled Y. A heavy
-			# rests higher (bigger collision → same feet line from a different origin).
+			# building_floors_test); a restored one already carries a settled Y. Each type
+			# rests on its OWN measured line (feet on 419 from a different origin per rig).
 			if not restored:
-				zombie.global_position.y = BIG_ZOMBIE_SETTLED_Y if is_big else ZOMBIE_SETTLED_Y
+				zombie.global_position.y = ENEMY_SETTLED_Y.get(etype, ZOMBIE_SETTLED_Y)
 			# Visible, but no AI and no noise — it must not hunt the player, who
 			# is still a whole floor away. Disabled AFTER add_child so the
 			# zombie's own _ready can't turn its physics step back on.

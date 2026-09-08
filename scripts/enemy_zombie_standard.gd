@@ -1,8 +1,12 @@
 extends CharacterBody2D
 
-const SPEED = 40.0
-const DETECTION_RANGE = 100.0
-const ATTACK_RANGE = 30.0
+# Base zombie stats. These are instance VARS (not consts) so a subclass enemy type
+# (crawler / long-arm / spitter — each `extends` this script) can override them in
+# _ready() to differentiate itself. Defaults are the standard zombie's values, so a
+# plain standard behaves exactly as before. No other script reads these statically.
+var SPEED := 40.0
+var DETECTION_RANGE := 100.0
+var ATTACK_RANGE := 30.0
 
 # On fire: a zombie standing in flame catches, gets a flame overlay, and its
 # attacks hit for DOUBLE (a burning corpse lunging at you is far worse). Toggled
@@ -557,6 +561,15 @@ func tutorial_stagger() -> void:
 	_make_passable_to_player()
 
 
+# The MOMENT an attack lands (end of the attack windup). Overridable: the standard
+# (and crawler / long-arm) strike in melee; the spitter overrides this to launch a
+# projectile instead. Base = a melee hit if the player is still within reach.
+func _deliver_attack(distance: float) -> void:
+	if distance <= ATTACK_RANGE:
+		if player and player.has_method("receive_hit"):
+			player.receive_hit(2 if on_fire else 1)
+
+
 func receive_damage(amount: int, damage_type: String) -> void:
 	if stair_mode:
 		_exit_stairwell_mode()   # a hit pulls it off the stairs; it's never unkillable
@@ -789,9 +802,7 @@ func _physics_process(delta: float) -> void:
 			state_timer -= delta
 			if state_timer <= 0:
 				var distance = global_position.distance_to(player.global_position)
-				if distance <= ATTACK_RANGE:
-					if player and player.has_method("receive_hit"):
-						player.receive_hit(2 if on_fire else 1)
+				_deliver_attack(distance)
 				state = "chase"
 				animated_sprite.play("Walk")
 		"distracted":

@@ -1631,21 +1631,50 @@ func get_floor_zombie_count(floor_num: int) -> int:
 
 
 # --- Enemy variety across the arc (docs/THREE_RUN_ARC.md, escalation lever) ----
-# The infestation MIGRATES UPWARD as the day wears on. HEAVIES — the Big Zombie
-# (today the only non-standard type; new art-gated types will slot into this same
-# table) — start DEEP in the building and rare, reach the middle floors by the
-# afternoon, and are common even up high by night. This governs the MIX only, never
-# the count (density stays realistic — see get_floor_zombie_count; no cramming).
+# The infestation MIGRATES UPWARD as the day wears on. Non-standard types — the Big
+# Zombie (heavy), plus the Crawler (fast/fragile swarmer), Long Arm (long reach) and
+# Spitter (ranged) — start DEEP in the building and rare, reach the middle floors by
+# the afternoon, and are common even up high by night. This governs the MIX only,
+# never the count (density stays realistic — see get_floor_zombie_count; no cramming).
 #
 # Bands by floor NUMBER (the descent runs 30->1, so "low" = deep, near the lobby,
 # where the outbreak began and is worst): LOW 1-10, MID 11-20, HIGH 21-29. Floor 30
 # is the tutorial hallway (its own scene) and never reads this. Indexed [band][run-1].
-# TUNING: these are the run-to-run difficulty knobs — raise/lower per band freely.
+#
+# HEAVY_CHANCE is the Big Zombie's own column (kept as its own table — several systems
+# and tests read it directly). TYPE_CHANCE adds the three lighter types. TUNE HERE:
+# these are the run-to-run difficulty knobs. Per (band,run) the four chances plus
+# HEAVY_CHANCE must stay under 1.0 (the remainder is a plain standard).
 const HEAVY_CHANCE := [
 	[0.06, 0.16, 0.30],   # LOW  (1-10): a few heavies from the start, worse each run
 	[0.00, 0.08, 0.18],   # MID  (11-20): clear in the morning, fills by night
 	[0.00, 0.03, 0.10],   # HIGH (21-29): the top stays safest the longest
 ]
+# Lighter special types, each a per-slot chance indexed [band][run-1]. Same migration
+# shape as the heavies: present deep in the morning, climbing the building by night.
+const CRAWLER_CHANCE := [
+	[0.10, 0.16, 0.18],   # LOW: the swarmer is the earliest new face
+	[0.00, 0.10, 0.14],   # MID
+	[0.00, 0.05, 0.10],   # HIGH
+]
+const LONGARM_CHANCE := [
+	[0.00, 0.08, 0.12],   # LOW
+	[0.00, 0.06, 0.10],   # MID
+	[0.00, 0.00, 0.06],   # HIGH
+]
+const SPITTER_CHANCE := [
+	[0.00, 0.06, 0.10],   # LOW: the ranged threat shows up from the afternoon
+	[0.00, 0.04, 0.08],   # MID
+	[0.00, 0.00, 0.05],   # HIGH
+]
+# Roll order (rarest / nastiest first). The spawner maps these ids to scenes.
+const _MIX_TABLES := {
+	"zombie_big": HEAVY_CHANCE,
+	"zombie_spitter": SPITTER_CHANCE,
+	"zombie_longarm": LONGARM_CHANCE,
+	"zombie_crawler": CRAWLER_CHANCE,
+}
+const _MIX_ORDER := ["zombie_big", "zombie_spitter", "zombie_longarm", "zombie_crawler"]
 
 
 func _floor_band(floor_num: int) -> int:
@@ -1666,11 +1695,19 @@ func enemy_type_for(floor_num: int, spawn_key: String) -> String:
 	# Which enemy type fills ONE corridor slot — a pure function of (floor, position,
 	# run), so it's identical between a pan backdrop and its live commit, stable across
 	# re-entry, and reshuffles when the run advances (the spawn_key already carries the
-	# run salt via its position). Returns a type id the spawner maps to a scene.
+	# run salt via its position). Walks the special types in a fixed order, accumulating
+	# their per-(band,run) chances; the leftover probability is a plain standard. Returns
+	# a type id the spawner maps to a scene.
+	var band: int = _floor_band(floor_num)
+	var r: int = clampi(current_run - 1, 0, 2)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(str(master_seed) + "etype" + spawn_key + str(current_run))
-	if rng.randf() < heavy_chance(floor_num):
-		return "zombie_big"
+	var roll: float = rng.randf()
+	var acc: float = 0.0
+	for id in _MIX_ORDER:
+		acc += _MIX_TABLES[id][band][r]
+		if roll < acc:
+			return id
 	return "zombie_standard"
 
 

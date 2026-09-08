@@ -77,6 +77,27 @@
 - [ ] Big Zombies fight/behave normally in the corridor (attack, push, burn in
       fire) — nothing breaks vs. their breach-room behaviour.
 
+## 4b. Three NEW enemy types (crawler / long-arm / spitter) — use F8
+
+These read from the same escalation table, so they show up deep-and-rare in run 1,
+climb by run 2–3. Fastest way to see them: **F8 to run 3, walk low floors (1–10).**
+
+- [ ] **Crawler** — low to the ground, noticeably FAST, dies in a hit or two.
+      Sprite sits correctly on the floor (it's drawn low by design, not sunk).
+- [ ] **Long Arm** — normal speed, but lands its hit from further back than a
+      standard (don't trust a one-step backpedal). A little tougher.
+- [ ] **Spitter** — hangs back and SPITS a projectile that flies at you and hurts
+      on contact; it doesn't rush into melee. The spit sprite reads clearly and
+      flies the right direction; check it doesn't spam (there's a cooldown).
+- [ ] All three **stand on the floor line** (feet grounded, no float/sink),
+      including when they **scroll in via a stair pan** (no warp at the commit).
+- [ ] Each **animates** (idle/walk/attack) and plays a **death** on kill; a
+      damaged one you leave **comes back with the same HP** on re-entry.
+- [ ] Balance gut-check: the new mix on run 2–3 low floors is a step up but not
+      unfair. All prevalence is tunable in `WorldState`'s `*_CHANCE` tables.
+- [ ] Art/scale sanity: none of the three look oversized/undersized next to the
+      player and standard zombie (a look-only check headless can't do).
+
 ## 5. Arc-end screen (only after run 3 concludes)
 
 - [ ] Dying as the 3rd character → headline reads **YOU DIED** (or the "takes
