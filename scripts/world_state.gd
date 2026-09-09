@@ -1657,10 +1657,14 @@ const HEAVY_CHANCE := [
 	[0.00, 0.08, 0.14],   # MID  (11-20)
 	[0.00, 0.03, 0.08],   # HIGH (21-29): the heavy stays rarest up top
 ]
+# The Crawler is FRONT-LOADED: it's the early swarm that's already spread through the
+# WHOLE building by run 1 (~1 crawler per 3 standards, every band — owner's 3:1 call),
+# then its SHARE eases as runs 2/3 bring the tougher types in for variety. So unlike the
+# others it is NOT monotonic across runs — run 1 is deliberately its peak.
 const CRAWLER_CHANCE := [
-	[0.10, 0.16, 0.22],   # LOW: the swarmer — earliest + most common new face, densest deep
-	[0.00, 0.10, 0.16],   # MID
-	[0.00, 0.07, 0.14],   # HIGH: still spreads everywhere by night
+	[0.25, 0.18, 0.22],   # LOW  : run-1 swarm (3:1), holds through the arc
+	[0.25, 0.14, 0.16],   # MID  : run-1 crawlers throughout; MID stays long-arm-led later
+	[0.25, 0.10, 0.14],   # HIGH : same run-1 swarm up top; HIGH stays spitter-led at night
 ]
 const LONGARM_CHANCE := [
 	[0.00, 0.12, 0.18],   # LOW

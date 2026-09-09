@@ -7,6 +7,9 @@ const SCAVENGE_SPEED = 80.0
 const PUSH_DURATION = 0.8
 const PUSH_RANGE = 40.0
 const PUSH_FORCE = 100.0
+# A push aimed at a Crawler becomes a KICK — it can't be shoved back (too low), so it's
+# rooted/stunned this long instead. Buys a beat to reposition or finish it.
+const CRAWLER_KICK_STUN = 1.4
 const MODE_SWITCH_TIME = 0.2
 
 const DEV_MODE = true
@@ -481,8 +484,14 @@ func _zombie_body_radius(zombie: Node) -> float:
 	# The boss capsule (radius 35) is wider than a knife's whole range (32), so
 	# centre-to-centre checks made small weapons physically unable to hit it.
 	var shape_node = zombie.get_node_or_null("CollisionShape2D")
-	if shape_node and shape_node.shape is CapsuleShape2D:
-		return shape_node.shape.radius
+	if shape_node:
+		# Measure to the target's real horizontal half-extent so reach is consistent
+		# across rigs. The Crawler is a WIDE, LOW box (RectangleShape2D) — without this
+		# it fell back to 10 and a swing needed you ~30px closer than its body implied.
+		if shape_node.shape is CapsuleShape2D:
+			return shape_node.shape.radius
+		if shape_node.shape is RectangleShape2D:
+			return shape_node.shape.size.x * 0.5
 	return 10.0
 
 func _do_melee_attack(instance: ItemInstance, slot_index: int) -> void:
@@ -660,8 +669,13 @@ func _do_push() -> void:
 	for zombie in zombies:
 		var dist = global_position.distance_to(zombie.global_position)
 		if dist <= PUSH_RANGE:
-			var push_dir = sign(zombie.global_position.x - global_position.x)
-			zombie.receive_push(push_dir * PUSH_FORCE * WorldState.get_push_mult())
+			# Contextual push: a Crawler is too low to the ground to shove BACK, so the
+			# same input KICKS it — a stun that roots it in place — instead of a knockback.
+			if zombie.is_in_group("crawler") and zombie.has_method("receive_kick"):
+				zombie.receive_kick(CRAWLER_KICK_STUN)
+			else:
+				var push_dir = sign(zombie.global_position.x - global_position.x)
+				zombie.receive_push(push_dir * PUSH_FORCE * WorldState.get_push_mult())
 
 
 func request_mode_toggle() -> bool:

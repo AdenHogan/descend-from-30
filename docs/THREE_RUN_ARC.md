@@ -182,9 +182,12 @@ Floor 30 after run 1:
    at night as a ranged/spitter threat (the spitter inverts and favours the top). Run 1
    unchanged. **Corridor bosses (runs 2/3)**: a floor may hold ONE roaming tougher Big
    Zombie (`is_corridor_boss`) — NO key (guards nothing) but a fatter money bundle + one
-   good-loot item (`BOSS_LOOT_POOL`); per (floor,run) via `floor_has_boss`. Covered by
-   `enemy_variety_test`. Still open: distinct AI per type beyond the reskin; a boss
-   silhouette; storied rooms.
+   good-loot item (`BOSS_LOOT_POOL`); per (floor,run) via `floor_has_boss`.
+   **Crawler redefined**: SLOW + fragile but DOUBLE-damage bite, and the run-1 swarm
+   (~3:1 standards, whole building); a push on it becomes a KICK-STUN (can't be shoved
+   back). Aim/hitbox verified height-independent (melee + gun target the on-plane origin),
+   so low crawlers connect. Covered by `enemy_variety_test`. Still open: distinct AI per
+   type beyond the reskin; a low/impale melee *feel*; a boss silhouette; storied rooms.
 7. Descent boon on successful exit (design TBD)
 8. Character stats system (own design doc first)
 

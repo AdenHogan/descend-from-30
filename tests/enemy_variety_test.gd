@@ -31,6 +31,7 @@ func _ready() -> void:
 	await _test_spitter_spits()
 	_test_variety_and_flavor()
 	await _test_corridor_boss()
+	await _test_crawler_behaviour()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -282,6 +283,38 @@ func _test_spitter_spits() -> void:
 	await get_tree().process_frame
 
 
+func _test_crawler_behaviour() -> void:
+	# The Crawler is now SLOW, hits for DOUBLE, and can't be shoved back — a push KICKS it
+	# (rooted stun) instead. Plus its run-1 frequency is ~3:1 standards across the building.
+	print("[crawler behaviour: slow, double dmg, kick-stun, 3:1]")
+	WorldState.new_game()
+	var std = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
+	add_child(std)
+	await get_tree().process_frame
+	var std_speed: float = std.SPEED
+	std.queue_free()
+	var cr = load("res://scenes/enemy_zombie_crawler.tscn").instantiate()
+	add_child(cr)
+	await get_tree().process_frame
+	check(cr.SPEED < std_speed, "crawler is slower than a standard (%.0f < %.0f)" % [cr.SPEED, std_speed])
+	check(cr.ATTACK_DAMAGE == 2, "crawler bite does DOUBLE damage (ATTACK_DAMAGE=%d)" % cr.ATTACK_DAMAGE)
+	# Kick-stun: roots it in the 'hit' state with no knockback velocity.
+	check(cr.has_method("receive_kick"), "crawler supports a kick-stun")
+	cr.receive_kick(1.4)
+	check(cr.state == "hit" and absf(cr.velocity.x) < 0.01, "a kick roots the crawler (state=%s vel=%.1f)" % [cr.state, cr.velocity.x])
+	cr.queue_free()
+	await get_tree().process_frame
+	# Run-1 frequency ~3:1 across the building (sample a mid floor — clean of big).
+	WorldState.current_run = 1
+	var craw := 0
+	var total := 600
+	for i in range(total):
+		if WorldState.enemy_type_for(15, "15:%d:388" % (150 + i * 2)) == "zombie_crawler":
+			craw += 1
+	var frac := float(craw) / float(total)
+	check(frac >= 0.18 and frac <= 0.32, "run-1 crawlers are ~1-in-4 across the building (%.2f)" % frac)
+
+
 func _special_share(band: int, run: int) -> float:
 	return WorldState.HEAVY_CHANCE[band][run] + WorldState.CRAWLER_CHANCE[band][run] \
 		+ WorldState.LONGARM_CHANCE[band][run] + WorldState.SPITTER_CHANCE[band][run]
@@ -309,29 +342,41 @@ func _test_variety_and_flavor() -> void:
 	check(_special_share(1, 2) >= 0.55, "MID run3 is heavily mixed (%.2f)" % _special_share(1, 2))
 	check(_special_share(2, 1) >= 0.18, "HIGH run2 is no longer near-empty (%.2f)" % _special_share(2, 1))
 	check(_special_share(2, 2) >= 0.40, "HIGH run3 is well mixed (%.2f)" % _special_share(2, 2))
-	# (2) variety — no special type exceeds a cap in any cell (was: big at 0.30 dominating).
+	# (2) variety in the MIXED runs (2/3) — no special type exceeds a cap in a cell there
+	# (was: big at 0.30 dominating). Run 1 is exempt: the crawler is deliberately the
+	# run-1 swarm at ~0.25 (see below), which isn't "dominating" — it's 1-in-4 vs standards.
 	var peak := 0.0
 	for t in [WorldState.HEAVY_CHANCE, WorldState.CRAWLER_CHANCE, WorldState.LONGARM_CHANCE, WorldState.SPITTER_CHANCE]:
 		for band in range(3):
-			for r in range(3):
+			for r in range(1, 3):
 				peak = maxf(peak, t[band][r])
-	check(peak <= 0.24, "no single special type dominates a cell (peak %.2f <= 0.24)" % peak)
+	check(peak <= 0.24, "no single special type dominates a run-2/3 cell (peak %.2f <= 0.24)" % peak)
 	# (3) sectional flavour at night: LOW = swarm (crawler/big), MID = long-arm bruisers,
 	# HIGH = ranged spitters. The lead type differs by section.
 	check(_run3_lead(0) in ["crawler", "big"], "LOW night lead is the swarm (%s)" % _run3_lead(0))
 	check(_run3_lead(1) == "longarm", "MID night lead is the long-arm bruiser (%s)" % _run3_lead(1))
 	check(_run3_lead(2) == "spitter", "HIGH night lead is the ranged spitter (%s)" % _run3_lead(2))
 	check(_run3_lead(0) != _run3_lead(2), "the deep floors and the top floors feel different at night")
-	# All four tables only ever grow across runs (migration, never a dip).
+	# The MIGRATING types (big / long-arm / spitter) only ever grow across runs.
 	var mono := true
-	for t in [WorldState.HEAVY_CHANCE, WorldState.CRAWLER_CHANCE, WorldState.LONGARM_CHANCE, WorldState.SPITTER_CHANCE]:
+	for t in [WorldState.HEAVY_CHANCE, WorldState.LONGARM_CHANCE, WorldState.SPITTER_CHANCE]:
 		for band in range(3):
 			for r in range(1, 3):
 				if t[band][r] < t[band][r - 1]:
 					mono = false
-	check(mono, "every type's prevalence only grows run to run")
-	# Run 1 is left exactly as tuned (LOW-only taste, mid/high clean).
-	check(_special_share(1, 0) == 0.0 and _special_share(2, 0) == 0.0, "run 1 mid/high stay standard-only")
+	check(mono, "the migrating types only grow run to run")
+	# The Crawler is FRONT-LOADED: present across the WHOLE building in run 1 at ~3:1
+	# (its run-1 value is its peak per band), the early swarm before the tougher types.
+	var craw_ok := true
+	for band in range(3):
+		if WorldState.CRAWLER_CHANCE[band][0] < 0.20:
+			craw_ok = false                 # a real run-1 presence on every band
+		if WorldState.CRAWLER_CHANCE[band][0] < WorldState.CRAWLER_CHANCE[band][1]:
+			craw_ok = false                 # run 1 is its peak (front-loaded, not monotonic)
+	check(craw_ok, "the crawler is the run-1 swarm across the whole building (~3:1)")
+	# Run 1's OTHER new types stay a deep-only taste (only big, low floors).
+	check(WorldState.LONGARM_CHANCE[0][0] == 0.0 and WorldState.SPITTER_CHANCE[0][0] == 0.0, "run 1 has no long-arm/spitter yet")
+	check(WorldState.HEAVY_CHANCE[1][0] == 0.0 and WorldState.HEAVY_CHANCE[2][0] == 0.0, "run 1 heavies stay deep only")
 
 
 func _test_corridor_boss() -> void:
@@ -341,38 +386,46 @@ func _test_corridor_boss() -> void:
 	WorldState.new_game()
 	WorldState.tutorial_completed = true
 	WorldState.is_first_run = false
-	# Run 1: never.
+	# Run 1: NEVER (deterministic — BOSS_CHANCE run-1 column is all 0, so floor_boss_chance
+	# is 0 and the roll can't pass). Not a seed gamble.
 	WorldState.current_run = 1
 	var r1 := 0
 	for f in range(2, 30):
 		if WorldState.floor_has_boss(f):
 			r1 += 1
 	check(r1 == 0, "no corridor bosses in run 1 (%d)" % r1)
-	# Runs 2 and 3: some, and run 3 has at least as many.
-	WorldState.current_run = 2
-	var r2 := 0
+	# Runs 2/3 CAN set bosses (deterministic table intent — no seed gamble): positive
+	# chances, and run 3 is at least as likely as run 2 per band.
+	var boss_intent := true
+	for band in range(3):
+		if WorldState.BOSS_CHANCE[band][1] <= 0.0 or WorldState.BOSS_CHANCE[band][2] <= 0.0:
+			boss_intent = false
+		if WorldState.BOSS_CHANCE[band][2] < WorldState.BOSS_CHANCE[band][1]:
+			boss_intent = false
+	check(boss_intent, "runs 2/3 can set bosses; run 3 >= run 2 per band")
+	# Find an actual boss floor across runs 2 and 3 (P(none in either) is negligible) to
+	# inspect a live one.
 	var boss_floor := -1
-	for f in range(2, 30):
-		if WorldState.floor_has_boss(f):
-			r2 += 1
-			if boss_floor < 0:
+	var boss_run := 2
+	for run in [2, 3]:
+		WorldState.current_run = run
+		for f in range(2, 30):
+			if WorldState.floor_has_boss(f):
 				boss_floor = f
-	WorldState.current_run = 3
-	var r3 := 0
-	for f in range(2, 30):
-		if WorldState.floor_has_boss(f):
-			r3 += 1
-	check(r2 > 0, "run 2 sets some corridor bosses loose (%d)" % r2)
-	check(r3 >= r2, "run 3 has at least as many boss floors (%d >= %d)" % [r3, r2])
+				boss_run = run
+				break
+		if boss_floor > 0:
+			break
+	check(boss_floor > 0, "a boss floor exists to inspect (floor %d, run %d)" % [boss_floor, boss_run])
+	WorldState.current_run = boss_run
 	# Determinism.
-	WorldState.current_run = 2
 	if boss_floor > 0:
-		check(WorldState.floor_has_boss(boss_floor) and WorldState.floor_has_boss(boss_floor), "floor_has_boss is deterministic")
+		check(WorldState.floor_has_boss(boss_floor) == WorldState.floor_has_boss(boss_floor), "floor_has_boss is deterministic")
 	# The loot roll returns a valid pool id.
 	var pool_ids := {}
 	for entry in WorldState.BOSS_LOOT_POOL:
 		pool_ids[String(entry[0])] = true
-	check(pool_ids.has(WorldState.boss_loot_item("boss:%d:2" % boss_floor)), "boss loot is drawn from the good-loot pool")
+	check(pool_ids.has(WorldState.boss_loot_item("boss:%d:%d" % [boss_floor, boss_run])), "boss loot is drawn from the good-loot pool")
 	# Spawn the boss floor and inspect the live boss.
 	if boss_floor < 0:
 		return

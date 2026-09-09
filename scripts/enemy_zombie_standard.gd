@@ -7,6 +7,9 @@ extends CharacterBody2D
 var SPEED := 40.0
 var DETECTION_RANGE := 100.0
 var ATTACK_RANGE := 30.0
+# Damage one landed hit deals to the player (before the on-fire ×2). Overridable so a
+# subclass can hit harder — the Crawler is slow but strikes for DOUBLE.
+var ATTACK_DAMAGE := 1
 
 # On fire: a zombie standing in flame catches, gets a flame overlay, and its
 # attacks hit for DOUBLE (a burning corpse lunging at you is far worse). Toggled
@@ -540,6 +543,23 @@ func receive_push(force: float) -> void:
 	animated_sprite.play("Hit")
 	_make_passable_to_player()
 
+
+func receive_kick(duration: float) -> void:
+	# A contextual PUSH alternative for enemies a shove-back doesn't suit (the Crawler:
+	# too low to the ground to stumble). Instead of knockback it ROOTS the enemy in place,
+	# stunned, for `duration` — the same rooted "hit" state, just with no velocity. Still
+	# passable so the player can slip past, and any hit still works normally.
+	if stair_mode:
+		_exit_stairwell_mode()
+	if is_dead or state == "knockdown":
+		return
+	velocity.x = 0.0
+	state = "hit"
+	state_timer = duration
+	if animated_sprite != null:
+		animated_sprite.play("Hit")
+	_make_passable_to_player()
+
 func tutorial_release() -> void:
 	# room.gd releases the frozen neighbour into its slow approach.
 	tutorial_frozen = false
@@ -567,7 +587,7 @@ func tutorial_stagger() -> void:
 func _deliver_attack(distance: float) -> void:
 	if distance <= ATTACK_RANGE:
 		if player and player.has_method("receive_hit"):
-			player.receive_hit(2 if on_fire else 1)
+			player.receive_hit(ATTACK_DAMAGE * (2 if on_fire else 1))
 
 
 func receive_damage(amount: int, damage_type: String) -> void:

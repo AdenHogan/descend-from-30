@@ -228,23 +228,23 @@ func _test_scenery_zombie_plane() -> void:
 	var live = load("res://scenes/building_floors.tscn").instantiate()
 	live.setup_floor = live_floor
 	add_child(live)
-	# Wait for the zombie's move_and_slide depenetration to actually SETTLE rather
-	# than assuming a fixed frame count — a fixed wait made this test flaky under
-	# load, failing intermittently with a mid-flight Y.
-	var settled := -1.0
-	var prev := -999.0
-	for i in range(180):
+	# Drop the floor's Player so the seeded zombies (crawlers now hit for double) can't
+	# kill it mid-measure — a death would fire the time-skip and free this test scene.
+	var _pl = live.get_node_or_null("Player")
+	if _pl != null:
+		_pl.queue_free()
+	# Measure an explicitly-spawned STANDARD zombie: the seeded mix now includes crawlers
+	# (which rest on their own 374 line), so grabbing "a live zombie" could read the wrong
+	# rig. A known standard proves ZOMBIE_SETTLED_Y is where the standard rig actually rests.
+	for i in range(4):
 		await get_tree().process_frame
-		var cur := -1.0
-		for z in get_tree().get_nodes_in_group("zombie"):
-			if not z.is_in_group("pan_scenery"):
-				cur = z.global_position.y
-				break
-		if cur > 0.0 and is_equal_approx(cur, prev):
-			settled = cur
-			break
-		prev = cur
-	check(settled > 0.0, "a live zombie exists to measure (%.1f)" % settled)
+	var std = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
+	live.add_child(std)
+	std.global_position = Vector2(640, 388.0)
+	for i in range(80):                 # fully settles by ~frame 60 (measured)
+		await get_tree().process_frame
+	var settled: float = std.global_position.y
+	check(settled > 0.0, "a live standard zombie settled to measure (%.1f)" % settled)
 	if settled > 0.0:
 		check(absf(settled - live.ZOMBIE_SETTLED_Y) <= 2.0,
 			"ZOMBIE_SETTLED_Y matches where a live zombie rests (%.1f vs %.1f)"

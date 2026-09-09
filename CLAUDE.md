@@ -630,8 +630,11 @@ means no rendering — UI layout and art still need an in-editor look.
   nothing mid/high); types reach MID by run 2 and are common even up HIGH by run 3.
   Density is unchanged (`get_floor_zombie_count` — MIX not count; no cramming). **The
   types** (all reuse `enemy_zombie_standard.gd` via `extends`, overriding the now-`var`
-  stats `SPEED`/`DETECTION_RANGE`/`ATTACK_RANGE`): **Crawler** (`enemy_zombie_crawler`) —
-  fast (68) + fragile (~half HP), a low-to-the-ground swarmer; **Long Arm**
+  stats `SPEED`/`DETECTION_RANGE`/`ATTACK_RANGE`/`ATTACK_DAMAGE`): **Crawler** (`enemy_zombie_crawler`) —
+  low to the ground, **SLOW** (26) + fragile (~half HP) but hits for **DOUBLE**
+  (`ATTACK_DAMAGE=2`); the run-1 swarm (see spread rebalance). It's too low to shove BACK,
+  so a **push becomes a KICK-STUN** on it (`player._do_push` → `enemy.receive_kick`, a rooted
+  `hit`-state stun ~1.4s) instead of a knockback; **Long Arm**
   (`enemy_zombie_longarm`) — normal pace, long `ATTACK_RANGE` (62 vs 30), the reach threat;
   **Spitter** (`enemy_zombie_spitter`) — its `ATTACK_RANGE` is a 300px SPIT range, so the
   base AI halts and plays Attack from afar; the overridable `_deliver_attack` launches a
@@ -646,8 +649,20 @@ means no rendering — UI layout and art still need an in-editor look.
   single type dominates (per-type peak trimmed 0.30→~0.22 so a fight reads as a MIX not a
   wall of bigs), and each **section** has a distinct night-time lead so descending isn't
   samey: **LOW = the swarm** (crawler/big, melee), **MID = the bruisers** (long-arm),
-  **HIGH = ranged** (spitter *inverts* — it's rarest deep, most common up top). Run 1 is
-  left exactly as tuned. Locked by `enemy_variety_test` (`_test_variety_and_flavor`).
+  **HIGH = ranged** (spitter *inverts* — it's rarest deep, most common up top). The
+  **Crawler is FRONT-LOADED** (owner's 3:1 call): ~0.25 across the WHOLE building in run 1
+  (its per-band peak — the early swarm before the tougher types), then its share eases as
+  runs 2/3 diversify. So crawler is deliberately NOT monotonic (the other three still only
+  grow). Locked by `enemy_variety_test` (`_test_variety_and_flavor` + `_test_crawler_behaviour`).
+  **Aim / hitbox (checked):** melee (`_do_melee_attack`) and gun (`_do_gun_attack`) both
+  target by `global_position.distance_to(zombie)` + an **X-only facing arc** — height-
+  INDEPENDENT. Every corridor rig (crawler/standard/big/long-arm/spitter) shares an on-plane
+  ORIGIN (~370-388, feet 419), so a visually-LOW crawler still connects (the hit is measured
+  to its origin, not its low sprite) — no special low-attack is functionally required. Melee
+  reach is edge-based via `_zombie_body_radius`, now RectangleShape2D-aware so the wide low
+  crawler's real half-width (40) is used instead of the old 10 fallback. (An impale/bludgeon
+  *feel* animation is optional polish, not a fix — the swing VISUAL doesn't angle at the
+  target, but the hit lands.)
   **Corridor bosses (runs 2/3):** a floor may set ONE roaming boss loose — a tougher Big
   Zombie (`enemy_zombie_big.is_corridor_boss`: ~1.6×+6 HP, elite red tint, in group
   `corridor_boss`). It guards nothing so drops **NO key**, but drops a **fatter money

@@ -82,8 +82,17 @@
 These read from the same escalation table, so they show up deep-and-rare in run 1,
 climb by run 2–3. Fastest way to see them: **F8 to run 3, walk low floors (1–10).**
 
-- [ ] **Crawler** — low to the ground, noticeably FAST, dies in a hit or two.
-      Sprite sits correctly on the floor (it's drawn low by design, not sunk).
+- [ ] **Crawler** — low to the ground, now **SLOW** (it drags itself), fragile,
+      but its bite does **DOUBLE damage** — letting one reach you hurts. Common
+      across the WHOLE building in run 1 (~1 crawler per 3 standards).
+- [ ] **Hitting a low crawler connects** — a melee swing and a gunshot both land
+      on it even though it's low (the hit targets its on-floor position, not the
+      low sprite). Confirm it doesn't *feel* like swings whiff over it; if it
+      does, that's a swing-animation feel issue, not a miss (flag it and we can
+      add a low/impale/bludgeon animation).
+- [ ] **Right-click on a crawler KICKS it** — it's rooted/stunned in place for a
+      beat (no knockback, because it's on the ground), buying you time. Right-
+      click on a normal zombie still SHOVES it back as before.
 - [ ] **Long Arm** — normal speed, but lands its hit from further back than a
       standard (don't trust a one-step backpedal). A little tougher.
 - [ ] **Spitter** — hangs back and SPITS a projectile that flies at you and hurts
