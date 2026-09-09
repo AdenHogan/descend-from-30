@@ -43,6 +43,20 @@
 - [ ] During a **stair pan** between floors, no jarring tint seam as the next
       floor scrolls in (brief, if any — flag if it's ugly).
 
+## 2b. Descent infection grade (sectional identity)
+
+On TOP of the time tint, the world should get **sicker / more decayed the LOWER
+you descend** (the infection is worst at the bottom). Placeholder for future
+grotesque art — a colour grade for now.
+
+- [ ] Floor 30 looks **clean** (just the time-of-day colour); by the low floors
+      (1–10) and the lobby the world has a **pallid, sickly-green, dimmer** cast.
+- [ ] The shift is **gradual** as you descend, not a hard jump between sections.
+- [ ] It's still **readable** at the deepest + night combination (dim but not
+      black). If it's too strong/weak, `WorldState.INFECTION_DEEP_TINT` is one line.
+- [ ] It reads as *decay/infection*, not just "darker" — green should stay the
+      dominant channel down low.
+
 ## 3. Fresh character / persistence across the skip
 
 - [ ] New character starts at **Floor 30** with an **empty inventory**, full

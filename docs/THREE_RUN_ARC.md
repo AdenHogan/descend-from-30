@@ -36,6 +36,37 @@ fiction is fixed time-of-day; the difficulty curve is authored, not emergent.
   outcome; dying reachable is the generous one. (See `STORE_DESIGN.md` —
   corpse recovery.)
 
+## Sectional Identity (a design PILLAR)
+
+The building should feel different by SECTION as well as by run — two axes of
+identity that compound:
+
+- **Down the building = more grotesque.** The infection has spread WORST to the
+  lower floors, so as the player descends the world gets sicker and more decayed
+  and the enemy make-up shifts. Floor 30 is near-clean; floor 1 / the lobby is the
+  rotten heart of it.
+- **Across the runs = worse everywhere** (morning → afternoon → night), the time
+  skip layered on top.
+- **Narrative will reinforce this in due course** (story beats tied to sections),
+  and eventually **per-section GROTESQUE ART** (environment + enemy art that
+  degrades as you go down).
+
+**Built so far (v1):**
+- **Descent infection grade** (`WorldState.infection_grade_color` /
+  `world_tint_color`): a depth tint multiplied into the world CanvasModulate on top
+  of the time-of-day colour — subtle at the top, deepening to a pallid, sickly-green,
+  dimmed cast at the bottom. A placeholder for the eventual grotesque art; dial it back
+  or drop it when real art lands (`INFECTION_DEEP_TINT`). Covered by `run_arc_test`.
+- **Enemy sectional flavour** (see escalation table below): LOW = melee swarm
+  (crawler/big), MID = long-arm bruisers, HIGH = ranged spitters; the spitter inverts
+  to favour the top so descending genuinely changes the threat.
+- **Deeper = tougher** already: zombie HP scales up toward the lower floors
+  (`_set_hp_from_floor`).
+
+**Still to come:** per-section grotesque art (environment + new enemy TYPES — art-
+gated); story/narrative section beats; possibly finer sections than the current 3
+bands, and per-section behavioural intensity (aggression) once it can be playtested.
+
 ## Escalation Levers (Runs 2/3)
 
 **Enemy VARIETY, not density:**

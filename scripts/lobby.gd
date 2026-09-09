@@ -2,7 +2,7 @@ extends Node
 
 func _ready() -> void:
 	var player = get_node("Player")
-	WorldState.apply_time_tint(self)   # morning / afternoon / night grade
+	WorldState.apply_time_tint(self, 0)   # ground floor — the infection is worst here
 	if WorldState.spawn_source == "stair":
 		if WorldState.stair_spawn_side == "left":
 			if WorldState.stair_direction == "down":

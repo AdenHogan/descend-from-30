@@ -613,10 +613,15 @@ means no rendering — UI layout and art still need an in-editor look.
   logged into it) and `Transition.to_run_shift(hallway, next_run)`. **Time visuals**:
   `to_run_shift` is a slow fade-to-black **title card** (game pixel font) animating the
   time-of-day word MORNING / AFTERNOON / NIGHT + a subtitle, held, then the new Floor 30;
-  every world scene grades itself by `WorldState.apply_time_tint(self)` — a `CanvasModulate`
-  (world only, never the HUD) that's warm daylight → golden → cool dim-blue night. Only the
-  THIRD character concluding ends the playthrough: `game_over.tscn` now shows a win/lose
-  headline + all three fates. Covered by `run_arc_test`.
+  every world scene grades itself by `WorldState.apply_time_tint(self, floor)` — one
+  `CanvasModulate` (node `WorldGrade`, world only, never the HUD) whose colour is
+  `world_tint_color = time_modulate_color() × infection_grade_color(floor)`: the
+  per-run time of day (warm daylight → golden → cool dim-blue night) MULTIPLIED by the
+  **descent infection grade** — a SECTIONAL-IDENTITY pillar (docs/THREE_RUN_ARC.md) where
+  the world gets sicker/more decayed the LOWER you go (near-clean floor 30 → pallid sickly-
+  green dimmed at floor 1 / the lobby; `INFECTION_DEEP_TINT`, a placeholder for future
+  grotesque art). Only the THIRD character concluding ends the playthrough: `game_over.tscn`
+  now shows a win/lose headline + all three fates. Covered by `run_arc_test`.
 - Enemy variety / escalation table (THREE_RUN_ARC step 6, v1): the infestation
   **migrates upward** across the arc, and there are now **five corridor types**. The mix
   is data-driven per (floor band × run) in `world_state.gd`: `HEAVY_CHANCE` (Big Zombie)

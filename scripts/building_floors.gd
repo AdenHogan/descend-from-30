@@ -144,7 +144,7 @@ func _ready() -> void:
 	_spawn_follower(floor_num)
 	_spawn_fire(floor_num)
 	_spawn_door_fire(floor_num)
-	WorldState.apply_time_tint(self)   # morning / afternoon / night grade
+	WorldState.apply_time_tint(self, floor_num)   # time-of-day × descent-infection grade
 	_frame_camera(player)
 	# Keep the HUD floor counter honest for EVERY way of landing on a floor — not
 	# just stair transitions. A dev jump / F2 rebuild used to leave it stale (e.g.
@@ -1100,7 +1100,7 @@ func go_live() -> void:
 		_spawn_fire(floor_num)
 		_spawn_door_fire(floor_num)
 	_spawn_merchant(floor_num)
-	WorldState.apply_time_tint(self)   # a woken pan backdrop gets its time grade here
+	WorldState.apply_time_tint(self, floor_num)   # a woken pan backdrop gets its world grade here
 
 
 func _apply_doors(floor_num: int) -> void:

@@ -645,19 +645,45 @@ func time_modulate_color() -> Color:
 	return TIME_TINTS[i]
 
 
-func apply_time_tint(scene: Node) -> void:
-	# Grade the WORLD by time of day. A CanvasModulate multiplies the default 2D
-	# canvas only — it never touches the HUD or any other CanvasLayer — so it dims
-	# and colours the level without dulling the UI. Idempotent: reuse the node if a
-	# scene calls this more than once (e.g. a floor woken from a pan backdrop).
+# --- Sectional identity: the DESCENT gets more grotesque (docs/THREE_RUN_ARC.md) ---
+# The infection has spread WORST to the lower floors, so as the player descends the
+# world takes on a sicker, more decayed cast. This is a depth grade multiplied into the
+# world tint on top of the time-of-day colour — subtle at the top (floor 30, near clean),
+# deepening to a pallid, sickly-green decay at the bottom (floor 1 / the lobby). It's a
+# placeholder for the eventual per-section GROTESQUE ART; when that lands this can dial
+# back or go. TUNE the deepest cast + how fast it deepens here.
+const INFECTION_DEEP_TINT := Color(0.84, 0.95, 0.80)   # multiply at max depth: pallid, sickly green, dimmed
+
+
+func infection_depth(floor_num: int) -> float:
+	# 0.0 at the top (floor 30), 1.0 at the very bottom (floor 1 and the lobby, floor 0).
+	return clampf((30.0 - float(floor_num)) / 29.0, 0.0, 1.0)
+
+
+func infection_grade_color(floor_num: int) -> Color:
+	return Color.WHITE.lerp(INFECTION_DEEP_TINT, infection_depth(floor_num))
+
+
+func world_tint_color(floor_num: int) -> Color:
+	# The full world grade: time of day (per run) × the descent infection grade (per floor).
+	return time_modulate_color() * infection_grade_color(floor_num)
+
+
+func apply_time_tint(scene: Node, floor_num: int = -1) -> void:
+	# Grade the WORLD: time of day × descent infection (deeper = sicker). A CanvasModulate
+	# multiplies the default 2D canvas only — never the HUD or another CanvasLayer — so it
+	# colours the level without dulling the UI. Idempotent: reuse the node if a scene calls
+	# this more than once (e.g. a floor woken from a pan backdrop). `floor_num` defaults to
+	# the current floor; pass it explicitly for a backdrop being built for another floor.
 	if scene == null:
 		return
-	var cm := scene.get_node_or_null("TimeOfDayTint") as CanvasModulate
+	var f: int = floor_num if floor_num >= 0 else current_floor
+	var cm := scene.get_node_or_null("WorldGrade") as CanvasModulate
 	if cm == null:
 		cm = CanvasModulate.new()
-		cm.name = "TimeOfDayTint"
+		cm.name = "WorldGrade"
 		scene.add_child(cm)
-	cm.color = time_modulate_color()
+	cm.color = world_tint_color(f)
 
 
 func on_floor_arrived(floor_num: int) -> void:
