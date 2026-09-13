@@ -620,15 +620,19 @@ means no rendering — UI layout and art still need an in-editor look.
   headline + all three fates. Covered by `run_arc_test`.
 - REAL 2D lighting (GL Compatibility PointLight2D; replaced the old flat colour/infection
   "filter" the owner disliked): the world CanvasModulate (`WorldState.ambient_color`) is the
-  **ambient DARKNESS** real lights punch through, NOT a tint over lit art. Per-run brightness
-  (`AMBIENT_BASE_BY_RUN` [morning **0.88 = near-original colours** / afternoon 0.55 / **night
-  0.10 = near-black**] × a warm→gold→cool-blue `AMBIENT_CAST` hue) is dimmed further by DEPTH
-  (`AMBIENT_DEPTH_DIM`) so the failing lower building is darker. **Brightness budget (matters —
-  2D lights are ADDITIVE):** by DAY the ambient already lights the scene, so lamp/window/aura
-  energy is a GENTLE accent (`LAMP_ENERGY_BY_RUN` [0.26/0.70/1.5], window [0.16/0.28/0.30],
-  aura [0.16/0.40/0.62]) — a big additive value blows the scene to washed-out white (the owner
-  caught exactly this: run-1 glare + a white-blown stairwell window). Lights run BRIGHT only at
-  night when the ambient is near-black. Keep ambient+peak-light ≤ ~1.0 in lit areas. **NIGHT is deliberately near-black** — only the lights
+  **ambient DARKNESS** real lights punch through, NOT a tint over lit art. **VIBE = "cozy
+  horror"** (owner's word): warm amber light POOLS (cozy) against a cooler, deeper dark
+  (horror) — CONTRAST, not a flat wash. So the ambient FILL is COOL/neutral (`AMBIENT_CAST`
+  morning cool-daylight → afternoon cool dusk → night deep blue), NOT warm — warm-on-warm read
+  flat/beige and "too soft". The lamp light is a RICH amber (`WARM` 1.0,0.78,0.45) so its pools
+  pop against the cool fill. Per-run base (`AMBIENT_BASE_BY_RUN` [morning 0.80 / afternoon 0.42
+  / **night 0.07 = near-black**]) is dimmed further by DEPTH (`AMBIENT_DEPTH_DIM`). **Brightness
+  budget (matters — 2D lights are ADDITIVE):** lamp energy is per-run `LAMP_ENERGY_BY_RUN`
+  [0.34/0.95/1.9] — punchy enough to read as defined pools, but ambient+peak-add ≈ 1.0 so it
+  never blows to white (the owner caught an earlier version glaring + a white-blown window). The
+  cone cookie has a CRISP edge (`pow(1-hf²,1.6)`) so shafts read as pools, not fuzz. Window
+  [0.16/0.28/0.30] + cool day cast keeps the pane's blue; aura [0.16/0.40/0.62]. Lights run
+  bright only at night when the ambient is near-black. **NIGHT is deliberately near-black** — only the lights
   reveal the scene, so **enemies lurk unseen in the dark and jump-scare** the player when they
   walk into them (free from the darkness — enemy sprites are just unlit until a light reaches
   them; no reveal code). Lights: **ceiling lamps** cast **DOWNWARD CONES** (a baked

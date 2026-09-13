@@ -18,12 +18,13 @@ const LIGHT_Y := 250.0                       # ceiling: the cone apex (bulb) sit
 const X_START := 200.0
 const X_END := 1150.0
 const COUNT := 6
-const WARM := Color(1.0, 0.90, 0.72)          # a gentle warm, not a heavy orange cast
+const WARM := Color(1.0, 0.78, 0.45)          # a RICH cozy amber — warm pools vs a cool dark
 const LAMP_SCALE := 1.15                       # cone reach (texture_scale)
-# ADDITIVE light energy per run. 2D lights ADD on top of the ambient, so by DAY (bright
-# ambient) the lamps must be a GENTLE accent — a big value blows the scene to washed-out
-# white. At NIGHT the ambient is near-black, so the lamps are the main light and run bright.
-const LAMP_ENERGY_BY_RUN := [0.26, 0.70, 1.5]  # morning / afternoon / night
+# ADDITIVE light energy per run. 2D lights ADD on top of the ambient. By DAY the ambient
+# still carries the scene, but the pools are PUNCHY enough to read as cozy warm islands
+# against a cooler dusk; at NIGHT the ambient is near-black so the lamps are bright, defined
+# shafts in the dark. (The budget: ambient + peak add ≈ 1.0 in the pool, no white blowout.)
+const LAMP_ENERGY_BY_RUN := [0.34, 0.95, 1.9]  # morning / afternoon / night
 
 # Stairwell windows — daylight spills in beside the stairs (moonlit at night).
 const STAIR_WINDOW_LEFT_X := 171.0
@@ -87,13 +88,15 @@ static func cone_texture() -> Texture2D:
 				var dx := absf(float(x) - cx)
 				var a := 0.0
 				if dx <= half:
+					# A CRISPER edge (pow 1.6) so the shaft reads as a defined pool, not a
+					# fuzzy wash — more contrast between the cone and the dark beside it.
 					var hf := dx / half       # 0 centre .. 1 edge
-					a = vfall * (1.0 - hf * hf)
-				# A soft round glow right at the bulb so the source itself reads (kept low
-				# so the apex doesn't burn out to white when it adds over a lit scene).
+					a = vfall * pow(1.0 - hf * hf, 1.6)
+				# A soft round glow right at the bulb so the source itself reads (kept in
+				# check so the apex doesn't burn out to white when it adds over a lit scene).
 				var rd := sqrt((float(x) - cx) * (float(x) - cx) + d * d)
-				if rd < 22.0:
-					a = maxf(a, (1.0 - rd / 22.0) * 0.5)
+				if rd < 24.0:
+					a = maxf(a, (1.0 - rd / 24.0) * 0.6)
 				img.set_pixel(x, y, Color(1, 1, 1, clampf(a, 0.0, 1.0)))
 		_cone = ImageTexture.create_from_image(img)
 	return _cone
@@ -141,7 +144,8 @@ func setup(floor_num: int) -> void:
 		add_child(bulb)
 		if rng.randf() < dead_frac:
 			lamp.visible = false
-			bulb.modulate = Color(0.14, 0.13, 0.11)   # a dark, dead fixture
+			bulb.scale = Vector2(0.07, 0.07)          # a small, dark, dead fixture (not a smudge)
+			bulb.modulate = Color(0.12, 0.11, 0.10)
 			continue
 		# Behaviour: mostly steady, some gently flicker, some BLINK (a failing tube).
 		var roll: float = rng.randf()

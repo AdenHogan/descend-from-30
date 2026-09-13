@@ -643,11 +643,14 @@ func time_subtitle() -> String:
 # NIGHT is deliberately near-black: only the ceiling cones, fire, windows and the player's
 # own aura light the scene, so enemies lurk unseen in the gaps until you're on them. The
 # merchant's "Night Eyes" upgrade lifts this a little (see get_night_vision / ambient).
-const AMBIENT_BASE_BY_RUN := [0.88, 0.55, 0.10]   # morning / afternoon / night: unlit brightness
+const AMBIENT_BASE_BY_RUN := [0.80, 0.42, 0.07]   # morning / afternoon / night: unlit brightness
+# The ambient FILL is cool/neutral (not warm) so the warm lamp pools read as COZY islands
+# against it — warm-on-warm looked flat and beige. Lower base + cool fill = the contrast that
+# sells "cozy horror": safe amber pools, cold gloom between. Night is a deep cool blue.
 const AMBIENT_CAST := [
-	Color(1.00, 0.98, 0.94),   # morning: near-neutral, faint warm
-	Color(1.00, 0.93, 0.82),   # afternoon: warm gold
-	Color(0.62, 0.72, 1.00),   # night: cool blue
+	Color(0.90, 0.94, 1.00),   # morning: cool-neutral daylight
+	Color(0.74, 0.79, 0.96),   # afternoon: cool dusk (lamps warm against it)
+	Color(0.50, 0.60, 1.00),   # night: deep cool blue
 ]
 const AMBIENT_DEPTH_DIM := 0.28   # how much darker the very bottom is than the top
 
