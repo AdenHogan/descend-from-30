@@ -632,11 +632,9 @@ func _fire_origin_for(floor_num: int) -> float:
 func _spawn_floor_lighting(floor_num: int) -> void:
 	# Real ceiling lighting: a row of warm PointLight2D lamps (some flickering, some dead —
 	# more dead the deeper/later you go) that cast actual pools through the ambient darkness
-	# WorldState set. Skipped when dev lighting is off (flat, fully-lit world). Idempotent —
-	# spawned in the passive backdrop too so lamps scroll in with a stair pan; go_live guards.
+	# WorldState set. Idempotent — spawned in the passive backdrop too so lamps scroll in
+	# with a stair pan; go_live guards against a double-spawn.
 	if _floor_lights != null and is_instance_valid(_floor_lights):
-		return
-	if WorldState.dev_lighting_off:
 		return
 	_floor_lights = FLOOR_LIGHTING.new()
 	_floor_lights.name = "FloorLighting"

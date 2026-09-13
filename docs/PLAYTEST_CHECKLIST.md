@@ -33,8 +33,8 @@
 
 The old flat colour "filter" is GONE. The world now has **actual 2D lighting**: a dark
 ambient with warm ceiling lamps casting real pools, fire as a real orange light, and a
-faint player aura. **Use the F1 dev menu → "Set Run (time of day)"** to compare runs and
-**→ "Lighting: ON/OFF"** to A/B against the flat, fully-lit world.
+faint player aura. Lighting is **intrinsic** — always on, varying by scene and run (no
+toggle). **Use the F1 dev menu → "Set Run (time of day)"** to compare runs quickly.
 
 - [ ] **Ceiling lamps** cast visible warm POOLS on the floor/walls; between pools it's
       darker. Some lamps **flicker**; some are **dead** (dark fixture, no pool).
@@ -51,8 +51,6 @@ faint player aura. **Use the F1 dev menu → "Set Run (time of day)"** to compar
       on a BLAZE than a LIGHT fire; winks out when the fire's put out.
 - [ ] The **player aura** is FAINT — enough to read your own footing in a dark stretch,
       not enough to light the whole room. Flag if it's too strong (washes out the dark).
-- [ ] **Dev "Lighting: OFF"** returns the flat, fully-lit look (no lamps, no darkness) —
-      a sanity A/B. Toggling it rebuilds the floor.
 
 ## 2b. Descent dimming (sectional identity via lighting)
 

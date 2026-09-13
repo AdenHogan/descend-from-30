@@ -648,10 +648,6 @@ const AMBIENT_CAST := [
 ]
 const AMBIENT_DEPTH_DIM := 0.28   # how much darker the very bottom is than the top
 
-# DEV: bypass the whole lighting system — flat, fully-lit world (no ambient darkening,
-# no ceiling lamps). Toggled from the dev menu; NOT persisted.
-var dev_lighting_off: bool = false
-
 
 func infection_depth(floor_num: int) -> float:
 	# 0.0 at the top (floor 30), 1.0 at the very bottom (floor 1 and the lobby, floor 0).
@@ -681,7 +677,6 @@ func apply_time_tint(scene: Node, floor_num: int = -1) -> void:
 	# darkens the level without dulling the UI. Idempotent: reuse the node if a scene calls
 	# this more than once (e.g. a floor woken from a pan backdrop). `floor_num` defaults to
 	# the current floor; pass it explicitly for a backdrop being built for another floor.
-	# With dev_lighting_off the world is left fully lit (WHITE ambient).
 	if scene == null:
 		return
 	var f: int = floor_num if floor_num >= 0 else current_floor
@@ -690,7 +685,7 @@ func apply_time_tint(scene: Node, floor_num: int = -1) -> void:
 		cm = CanvasModulate.new()
 		cm.name = "WorldGrade"
 		scene.add_child(cm)
-	cm.color = Color.WHITE if dev_lighting_off else ambient_color(f)
+	cm.color = ambient_color(f)
 
 
 func on_floor_arrived(floor_num: int) -> void:

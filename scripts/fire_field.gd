@@ -92,8 +92,7 @@ func _ready() -> void:
 # A burning corridor throws actual orange light — a small pool of flickering
 # PointLight2D that ride the BURNING span (repositioned each frame) so the fire
 # lights the walls and the player near it, not just draws flames. Energy/reach
-# scale with the stage; when nothing's burning they wink out. Skipped when dev
-# lighting is off (flat, fully-lit world).
+# scale with the stage; when nothing's burning they wink out.
 const FIRE_LIGHT_COUNT := 4
 const FIRE_LIGHT_COLOR := Color(1.0, 0.52, 0.16)
 const FLOOR_LIGHTING := preload("res://scripts/floor_lighting.gd")
@@ -101,8 +100,6 @@ var _fire_lights: Array = []
 
 
 func _spawn_fire_lights() -> void:
-	if WorldState.dev_lighting_off:
-		return
 	for i in range(FIRE_LIGHT_COUNT):
 		var lt := PointLight2D.new()
 		lt.texture = FLOOR_LIGHTING.light_texture()

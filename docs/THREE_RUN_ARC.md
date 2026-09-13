@@ -60,9 +60,9 @@ identity that compound:
   dead ceiling lamps and less ambient, for tension + sectional identity. Ceiling
   PointLight2D lamps (some flickering, some dead — more dead deeper/later, seeded per
   floor/run), fire as a real orange light source (`fire_field`), and a faint player aura
-  do the actual lighting. `dev_lighting_off` (dev-menu "Lighting" toggle) bypasses it all
-  to a flat, fully-lit world. Covered by `lighting_test` + `run_arc_test`. (Still a
-  placeholder for eventual per-section grotesque ART, but now a lit atmosphere, not a tint.)
+  do the actual lighting. Lighting is **intrinsic** — it is always on and varies by scene
+  and run (no toggle). Covered by `lighting_test` + `run_arc_test`. (Still a placeholder
+  for eventual per-section grotesque ART, but now a lit atmosphere, not a tint.)
 - **Enemy sectional flavour** (see escalation table below): LOW = melee swarm
   (crawler/big), MID = long-arm bruisers, HIGH = ranged spitters; the spitter inverts
   to favour the top so descending genuinely changes the threat.

@@ -121,16 +121,12 @@ func _test_infection_grade() -> void:
 	var n_sum := night.r + night.g + night.b
 	check(n_sum < m_sum, "night ambient is darker than morning same floor (%.2f < %.2f)" % [n_sum, m_sum])
 	check(night.b > night.r, "night ambient reads cool/blue (b=%.2f > r=%.2f)" % [night.b, night.r])
-	# The DEV bypass leaves the world fully lit (WHITE ambient, no darkening).
-	WorldState.dev_lighting_off = true
+	# Ambient is always applied (intrinsic — not a toggle): a normal floor darkens the world.
 	var probe := Node2D.new()
 	add_child(probe)
 	WorldState.apply_time_tint(probe, 1)
 	var cm := probe.get_node_or_null("WorldGrade") as CanvasModulate
-	check(cm != null and cm.color.is_equal_approx(Color.WHITE), "dev_lighting_off => WHITE ambient (flat, fully lit)")
-	WorldState.dev_lighting_off = false
-	WorldState.apply_time_tint(probe, 1)
-	check(cm != null and not cm.color.is_equal_approx(Color.WHITE), "lighting on => ambient darkens the world")
+	check(cm != null and not cm.color.is_equal_approx(Color.WHITE), "lighting is intrinsic => ambient darkens the world")
 	probe.queue_free()
 
 

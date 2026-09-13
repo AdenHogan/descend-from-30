@@ -24,7 +24,6 @@ func _ready() -> void:
 	_test_shared_texture()
 	_test_lamp_rig_builds()
 	_test_more_dead_deeper_and_later()
-	_test_dev_bypass()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -93,16 +92,3 @@ func _test_more_dead_deeper_and_later() -> void:
 		var b := FLOOR_LIGHTING.new(); add_child(b); b.setup(f)
 		dead_r3 += _dead_count(b); b.queue_free()
 	check(dead_r3 >= dead_r1, "more lamps dead later in the arc (run3 %d >= run1 %d)" % [dead_r3, dead_r1])
-
-
-func _test_dev_bypass() -> void:
-	print("[dev lighting bypass]")
-	WorldState.new_game()
-	WorldState.dev_lighting_off = true
-	var probe := Node2D.new()
-	add_child(probe)
-	WorldState.apply_time_tint(probe, 1)
-	var cm := probe.get_node_or_null("WorldGrade") as CanvasModulate
-	check(cm != null and cm.color.is_equal_approx(Color.WHITE), "dev bypass => WHITE ambient (flat)")
-	WorldState.dev_lighting_off = false
-	probe.queue_free()

@@ -632,10 +632,10 @@ means no rendering — UI layout and art still need an in-editor look.
   a **faint player aura** (`player._setup_player_light`). All three share the radial cookie
   `FloorLighting.light_texture()`. **Descent dimming = the SECTIONAL-IDENTITY pillar** now
   (docs/THREE_RUN_ARC.md) — light, not a green cast (`INFECTION_DEEP_TINT` removed; a
-  placeholder for future grotesque ART). **DEV toggle**: dev menu "Lighting: ON/OFF"
-  (`player.dev_toggle_lighting` → `WorldState.dev_lighting_off`, rebuilds the floor) bypasses
-  the whole system to a flat, fully-lit world. Purely visual (can't verify headless — see
-  docs/PLAYTEST_CHECKLIST.md §2/§2b). Covered by `lighting_test` + `run_arc_test`.
+  placeholder for future grotesque ART). **Lighting is INTRINSIC** — always on, varying by
+  scene and run; NOT a dev toggle (the owner was explicit: it's core game design, not an F-key
+  feature). Purely visual (can't verify the look headless — see docs/PLAYTEST_CHECKLIST.md
+  §2/§2b). Covered by `lighting_test` + `run_arc_test`.
 - Enemy variety / escalation table (THREE_RUN_ARC step 6, v1): the infestation
   **migrates upward** across the arc, and there are now **five corridor types**. The mix
   is data-driven per (floor band × run) in `world_state.gd`: `HEAVY_CHANCE` (Big Zombie)

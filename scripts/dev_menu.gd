@@ -94,8 +94,6 @@ func _show_main() -> void:
 	_btn("God Mode: %s" % ("ON" if god_on else "OFF"), _toggle_god)
 	var stair_on: bool = WorldState.dev_force_stair_enemies
 	_btn("Force Stair Enemies: %s" % ("ON" if stair_on else "OFF"), _toggle_stair_enemies)
-	var lights_on: bool = not WorldState.dev_lighting_off
-	_btn("Lighting: %s" % ("ON" if lights_on else "OFF (flat)"), _toggle_lighting)
 	_btn("Set Health ▸", _sub_health)
 	_btn("Set Run (time of day) ▸", _sub_run)
 	_btn("Floor Hazard ▸", _sub_hazard)
@@ -128,16 +126,6 @@ func _toggle_god() -> void:
 func _toggle_stair_enemies() -> void:
 	WorldState.dev_force_stair_enemies = not WorldState.dev_force_stair_enemies
 	_show_main()
-
-
-func _toggle_lighting() -> void:
-	# Reloads the floor to add/remove the lamps + ambient — close (unpause) first.
-	_close()
-	var p = _player()
-	if p != null and p.has_method("dev_toggle_lighting"):
-		p.dev_toggle_lighting()
-	else:
-		WorldState.dev_lighting_off = not WorldState.dev_lighting_off
 
 
 func _wallet() -> void:

@@ -419,9 +419,7 @@ func _setup_player_light() -> void:
 	# A FAINT personal aura so the player is never a black silhouette in an unlit
 	# stretch — just enough to read their own footing, not enough to light the room
 	# (the ceiling lamps + fire do that). Real PointLight2D, so it plays with the
-	# ambient darkness like every other light. Skipped when dev lighting is off.
-	if WorldState.dev_lighting_off:
-		return
+	# ambient darkness like every other light.
 	var aura := PointLight2D.new()
 	aura.name = "PlayerAura"
 	aura.texture = load("res://scripts/floor_lighting.gd").light_texture()
@@ -1518,21 +1516,6 @@ func dev_apply_hazard(mode: int) -> void:
 		get_tree().call_deferred("reload_current_scene")
 	else:
 		HUD.show_feedback(WorldState.pending_dev_feedback)
-
-
-func dev_toggle_lighting() -> bool:
-	# DEV: flip the whole real-lighting system on/off and rebuild the floor so lamps +
-	# ambient darkness appear/disappear. OFF = flat, fully-lit (WHITE ambient, no lamps).
-	WorldState.dev_lighting_off = not WorldState.dev_lighting_off
-	WorldState.pending_dev_feedback = "DEV: Lighting %s" % ("OFF (flat)" if WorldState.dev_lighting_off else "ON")
-	var path := get_tree().current_scene.scene_file_path
-	if path.ends_with("building_floors.tscn"):
-		WorldState.saved_player_x = global_position.x
-		WorldState.saved_player_y = global_position.y
-		get_tree().call_deferred("reload_current_scene")
-	else:
-		HUD.show_feedback(WorldState.pending_dev_feedback)
-	return WorldState.dev_lighting_off
 
 
 func dev_set_run(run: int) -> void:
