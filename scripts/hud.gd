@@ -75,6 +75,7 @@ func _ready() -> void:
 	_create_wallet_label()
 	_create_dev_warp_prompt()
 	_create_dev_item_prompt()
+	_create_dev_menu()
 	# Listen-mode grey/ping/report overlay (own CanvasLayer above the HUD).
 	listen_overlay = preload("res://scripts/listen_overlay.gd").new()
 	add_child(listen_overlay)
@@ -412,10 +413,18 @@ func _create_dev_warp_prompt() -> void:
 
 
 func _create_dev_item_prompt() -> void:
-	# DEV: F1 item-spawn prompt (see dev_item_prompt.gd). Lives on the HUD
-	# layer so it exists in every gameplay scene.
+	# DEV: item-spawn prompt (see dev_item_prompt.gd). Opened from the F1 dev menu.
+	# Lives on the HUD layer so it exists in every gameplay scene.
 	var spawn = preload("res://scripts/dev_item_prompt.gd").new()
 	$Control.add_child(spawn)
+
+
+func _create_dev_menu() -> void:
+	# DEV: the F1 consolidated dev-tools menu (see dev_menu.gd). One panel for god
+	# mode / health / run / hazard / wallet / tutorial / warp / item — no more juggling
+	# eight function keys (and nothing on F8, which the editor steals as Stop).
+	var menu = preload("res://scripts/dev_menu.gd").new()
+	$Control.add_child(menu)
 
 
 func update_wallet() -> void:

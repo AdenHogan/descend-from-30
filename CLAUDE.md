@@ -144,8 +144,9 @@ setup script; binary from downloads.godotengine.org). Before every commit:
   `building_floors_test`, `stair_visuals_test`, `profile_test`,
   `profile_ui_test`, `title_test`, `enemy_memory_test`, `floor_adopt_test`,
   `balcony_test`, `hud_prompt_test`, `stair_block_test`, `fire_test`,
-  `maintenance_test`, `elevator_test`, `run_arc_test`, `enemy_variety_test` — run all
-  28 before commit. (Run ONE godot at a time — a killed/backgrounded headless run can
+  `maintenance_test`, `elevator_test`, `run_arc_test`, `enemy_variety_test`,
+  `dev_menu_test` — run all
+  29 before commit. (Run ONE godot at a time — a killed/backgrounded headless run can
   linger and block the next, and a GDScript **parse error makes a test scene load but
   never call `quit()`, so it "hangs" until timeout** rather than printing an error line;
   if a suite hangs, check for a parse error and stray `godot` processes first.
@@ -679,6 +680,17 @@ means no rendering — UI layout and art still need an in-editor look.
   `shift_building` like the stairwell/follower keys). Still to build: distinct AI beyond
   the reskins (spitter kiting, crawler crawl-under), a distinct boss silhouette (art),
   storied-room spawn reserve, descent boon on exit, night-darkness/lighting, character stats.
+- DEV TOOLS — consolidated F1 menu (`scripts/dev_menu.gd`, on the HUD; gated by
+  `DEV_MODE`): one paused button panel replacing the old scattered F1-F8 keys (which
+  were unwieldy, and F8 is the editor's Stop shortcut so it closed the game). Buttons:
+  God Mode + Force Stair Enemies (toggles), Set Health / Set Run (time of day) / Floor
+  Hazard (sub-panels), Wallet +500, Toggle Tutorial, Warp to Floor…, Spawn Item…. The
+  actual actions are public `player.dev_*` methods (`dev_toggle_god`, `dev_set_health_state`,
+  `dev_apply_hazard`, `dev_set_run`, `dev_wallet_cash`, `dev_toggle_tutorial`); the old
+  item-spawn (`dev_item_prompt`) and floor-warp (`dev_warp_prompt`) prompts lost their own
+  F1/F6 hotkeys and are opened from the menu via a public `open()` (found by group). Set
+  Run replaces the F8 run-advance. Covered by `dev_menu_test`. (The `dev_*` input actions
+  in project.godot are now unbound-in-practice — harmless.)
 - Next: characters/profiles/stats; **Upgrade offers** polish and player-corpse
   recovery (store step 7); barricade-keeper NPC; fire smoke/crouch + warning beat;
   the maintenance **upgrade station** UI (Scrap system, SCRAP_UPGRADES.md).

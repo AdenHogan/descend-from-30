@@ -907,88 +907,6 @@ func _input(event: InputEvent) -> void:
 			_cancel_listen()
 		return
 
-	if DEV_MODE:
-		# F1 item spawning is handled by dev_item_prompt.gd (typed prompt).
-		if event.is_action_pressed("dev_set_health"):
-			var next = (int(health_state) + 1) % (HealthState.DYING + 1)
-			health_state = next as HealthState
-			WorldState.player_health = health_state
-			if health_state == HealthState.DYING:
-				is_dying = true
-				WorldState.is_dying = true
-				dying_timer = DYING_TIME
-				WorldState.dying_timer = DYING_TIME
-			else:
-				is_dying = false
-				WorldState.is_dying = false
-			_update_hud()
-			HUD.show_feedback("DEV: Health = " + HealthState.keys()[health_state])
-		elif event.is_action_pressed("dev_god_mode"):
-			WorldState.god_mode = !WorldState.god_mode
-			HUD.show_feedback("DEV: God Mode " + ("ON" if WorldState.god_mode else "OFF"))
-		elif event.is_action_pressed("dev_force_hazards"):
-			# DEV (F2): CYCLE floor hazards one at a time so they never overlap —
-			# off → barricades → hordes → fire lv1 → fire lv2 → fire lv3 → off — then
-			# REBUILD the current floor so the new hazard applies right here, on both stairwells,
-			# immediately. Barricade props self-sync live, but hordes (live zombies) and
-			# fire fields are only spawned in building_floors._ready, so without a reload a
-			# toggle to hordes/fire shows nothing until you cross to the next floor.
-			WorldState.dev_hazard_mode = (WorldState.dev_hazard_mode + 1) % WorldState.DEV_HAZARD_COUNT
-			var m = WorldState.dev_hazard_mode
-			# Dev FIRE (all levels) seeds a SINGLE origin on THIS floor; the level is the
-			# scroll step itself — lv1 = origin LIGHT, lv2 = origin BLAZE + neighbours LIGHT,
-			# lv3 = origin CHARRED + neighbours BLAZE + two-out LIGHT.
-			var is_fire_mode := m == WorldState.DEV_HAZARD_FIRE or m == WorldState.DEV_HAZARD_FIRE2 or m == WorldState.DEV_HAZARD_FIRE3
-			WorldState.dev_fire_origin = WorldState.current_floor if is_fire_mode else -1
-			var msg: String
-			if m == WorldState.DEV_HAZARD_NONE:
-				msg = "DEV: Hazards off (seed defaults)"
-			elif m in WorldState.DEV_HAZARD_UNBUILT:
-				msg = "DEV: Hazard → %s (not built yet)" % WorldState.DEV_HAZARD_NAMES[m]
-			elif m == WorldState.DEV_HAZARD_FIRE:
-				msg = "DEV: Fire lv1 (LIGHT) on floor %d" % WorldState.current_floor
-			elif m == WorldState.DEV_HAZARD_FIRE2:
-				msg = "DEV: Fire lv2 (BLAZE) on floor %d + neighbours LIGHT" % WorldState.current_floor
-			elif m == WorldState.DEV_HAZARD_FIRE3:
-				msg = "DEV: Fire lv3 (CHARRED) on floor %d + neighbours BLAZE + two-out LIGHT" % WorldState.current_floor
-			else:
-				msg = "DEV: Hazard → %s (every floor)" % WorldState.DEV_HAZARD_NAMES[m]
-			# Rebuild the floor so the new hazard applies right here — but ONLY on the
-			# floor scene (stairwells/hazards live there). In a room/hallway/lobby the
-			# reload would do nothing useful, and its _ready would just re-flash text;
-			# the mode still takes effect when you step back onto the floor. Carry the
-			# message through the rebuild so it shows AFTER the reload, not before.
-			var path := get_tree().current_scene.scene_file_path
-			if path.ends_with("building_floors.tscn"):
-				WorldState.saved_player_x = global_position.x
-				WorldState.saved_player_y = global_position.y
-				WorldState.pending_dev_feedback = msg
-				get_tree().call_deferred("reload_current_scene")
-			else:
-				HUD.show_feedback(msg)
-		elif event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F5:
-			# DEV: unlock the Wallet and grant 500 Bank Notes.
-			if not WorldState.wallet_unlocked:
-				WorldState.unlock_wallet()
-			WorldState.add_to_inventory("033", 500)
-			HUD.refresh_inventory()
-			HUD.show_feedback("DEV: Wallet + 500 Bank Notes")
-		elif event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F7:
-			_dev_toggle_tutorial()
-		elif event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F8:
-			# DEV: advance the RUN (1 -> 2 -> 3 -> 1) and rebuild the floor, to test
-			# fire escalation — the run-2 blaze that spreads breakouts onto adjacent
-			# floors, and the run-3 charred ruin. Fire re-seeds per run, so wipe the
-			# saved spread; keep dealt-with so "I put it out" still holds across runs.
-			WorldState.current_run = WorldState.current_run % 3 + 1
-			WorldState.fire_cells.clear()
-			WorldState.saved_player_x = global_position.x
-			WorldState.saved_player_y = global_position.y
-			HUD.update_floor_label()
-			HUD.show_feedback("DEV: Run %d — rebuilding floor" % WorldState.current_run)
-			if get_tree().current_scene.scene_file_path.ends_with("building_floors.tscn"):
-				get_tree().call_deferred("reload_current_scene")
-
 	# The fire extinguisher SPRAYS on the attack key (default Space) in EITHER mode —
 	# "use what's in your hand". It's not a weapon, so it never swings; handling it here
 	# and consuming the event keeps the attack key from also swinging, and works in
@@ -1528,8 +1446,73 @@ func _update_hud() -> void:
 	HUD.update_portrait(health_state)
 
 
+# --- DEV tools (driven by the F1 dev menu, scripts/dev_menu.gd) --------------
+# These public methods hold the actual dev actions; the menu buttons call them.
+# (They used to be scattered F1-F8 handlers in _input — consolidated into one menu.)
+func dev_toggle_god() -> bool:
+	WorldState.god_mode = not WorldState.god_mode
+	HUD.show_feedback("DEV: God Mode " + ("ON" if WorldState.god_mode else "OFF"))
+	return WorldState.god_mode
+
+
+func dev_set_health_state(idx: int) -> void:
+	health_state = clampi(idx, 0, HealthState.DYING) as HealthState
+	WorldState.player_health = health_state
+	if health_state == HealthState.DYING:
+		is_dying = true
+		WorldState.is_dying = true
+		dying_timer = DYING_TIME
+		WorldState.dying_timer = DYING_TIME
+	else:
+		is_dying = false
+		WorldState.is_dying = false
+	_update_hud()
+	HUD.show_feedback("DEV: Health = " + HealthState.keys()[health_state])
+
+
+func dev_wallet_cash() -> void:
+	if not WorldState.wallet_unlocked:
+		WorldState.unlock_wallet()
+	WorldState.add_to_inventory("033", 500)
+	HUD.refresh_inventory()
+	HUD.show_feedback("DEV: Wallet + 500 Bank Notes")
+
+
+func dev_apply_hazard(mode: int) -> void:
+	# Set a floor hazard DIRECTLY (the old F2 cycled; the menu picks) and rebuild the
+	# floor so it applies here. Fire modes seed a single origin on this floor.
+	WorldState.dev_hazard_mode = mode
+	var is_fire := mode == WorldState.DEV_HAZARD_FIRE or mode == WorldState.DEV_HAZARD_FIRE2 or mode == WorldState.DEV_HAZARD_FIRE3
+	WorldState.dev_fire_origin = WorldState.current_floor if is_fire else -1
+	WorldState.pending_dev_feedback = "DEV: Hazard → %s" % WorldState.DEV_HAZARD_NAMES[mode]
+	var path := get_tree().current_scene.scene_file_path
+	if path.ends_with("building_floors.tscn"):
+		WorldState.saved_player_x = global_position.x
+		WorldState.saved_player_y = global_position.y
+		get_tree().call_deferred("reload_current_scene")
+	else:
+		HUD.show_feedback(WorldState.pending_dev_feedback)
+
+
+func dev_set_run(run: int) -> void:
+	# Jump straight to a run (time of day) and rebuild the floor. Replaces the old F8,
+	# which the Godot editor steals as "Stop" (closing the game) — hence the menu.
+	WorldState.current_run = clampi(run, 1, 3)
+	WorldState.fire_cells.clear()
+	WorldState.saved_player_x = global_position.x
+	WorldState.saved_player_y = global_position.y
+	HUD.update_floor_label()
+	HUD.show_feedback("DEV: Run %d — rebuilding floor" % WorldState.current_run)
+	if get_tree().current_scene.scene_file_path.ends_with("building_floors.tscn"):
+		get_tree().call_deferred("reload_current_scene")
+
+
+func dev_toggle_tutorial() -> void:
+	_dev_toggle_tutorial()
+
+
 func _dev_toggle_tutorial() -> void:
-	# DEV (F7): flip the first-run tutorial on/off and drop into a fresh Floor
+	# DEV: flip the first-run tutorial on/off and drop into a fresh Floor
 	# 30 so the change takes effect immediately. Turning it ON resets the 3003
 	# encounter so the scripted sequence replays from the top; turning it OFF
 	# makes Floor 30 a normal procedural floor (no gate, no scripted neighbour).

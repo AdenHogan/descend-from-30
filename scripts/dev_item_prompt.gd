@@ -17,6 +17,7 @@ var hint: Label = null
 func _ready() -> void:
 	# Must keep processing while the tree is paused, both for typing and Esc.
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	add_to_group("dev_item_prompt")   # the F1 dev menu finds + opens this
 	visible = false
 	position = Vector2(SCREEN_W / 2 - 140, SCREEN_H / 2 - 60)
 	custom_minimum_size = Vector2(280, 0)
@@ -39,25 +40,18 @@ func _ready() -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if not DEV_MODE:
+	# Opened from the F1 DEV MENU now (open()), not its own hotkey. Only Esc-to-close
+	# lives here while the box is up.
+	if not DEV_MODE or not visible:
 		return
-	if not (event is InputEventKey and event.pressed and not event.echo):
-		return
-	if event.keycode == KEY_F1:
-		if visible:
-			_close()
-		else:
-			_open()
-		get_viewport().set_input_as_handled()
-	elif visible and event.keycode == KEY_ESCAPE:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
 		_close()
 		get_viewport().set_input_as_handled()
 
 
-func _open() -> void:
-	# Only in live gameplay: needs a player, and must not fight the pause menu
-	# (or anything else) over tree pause state.
-	if not HUD.visible or get_tree().paused:
+func open() -> void:
+	# Called by the dev menu (which has already unpaused itself). Needs a live player.
+	if not DEV_MODE:
 		return
 	if get_tree().get_first_node_in_group("player") == null:
 		return
