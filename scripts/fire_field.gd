@@ -89,11 +89,13 @@ func _ready() -> void:
 
 
 # --- fire as a REAL light source --------------------------------------------
-# A burning corridor throws actual orange light — a small pool of flickering
-# PointLight2D that ride the BURNING span (repositioned each frame) so the fire
-# lights the walls and the player near it, not just draws flames. Energy/reach
-# scale with the stage; when nothing's burning they wink out.
+# A burning corridor throws orange light — but LOCALISED to the flames, a tight warm
+# glow that hugs the fire, NOT a floor-wide wash. A pool of small flickering PointLight2D
+# ride the BURNING span (repositioned each frame); only as MANY are lit as the span is
+# wide (FIRE_LIGHT_SPACING), so a small fire is ONE tight glow instead of four piled on
+# the same spot blowing the area out. They wink out when nothing's burning.
 const FIRE_LIGHT_COUNT := 4
+const FIRE_LIGHT_SPACING := 150.0     # px of burning span per lit glow
 const FIRE_LIGHT_COLOR := Color(1.0, 0.52, 0.16)
 const FLOOR_LIGHTING := preload("res://scripts/floor_lighting.gd")
 var _fire_lights: Array = []
@@ -127,17 +129,23 @@ func _update_fire_lights() -> void:
 		return
 	var x0 := cell_x(lo)
 	var x1 := cell_x(hi)
-	# Bigger, reachier light the hotter the stage.
-	var base_energy: float = 1.1 if stage >= STAGE_BLAZE else 0.8
-	var scale: float = 3.4 if stage >= STAGE_BLAZE else 2.4
+	var span := x1 - x0
+	# A SMALL, tight glow that hugs the flames (scale ~1.0-1.3 → ~128-166px radius), not the
+	# old floor-flooding 2.4-3.4. Only light as many points as the span is wide, so a small
+	# fire is a single localised pool and a floor-wide blaze gets a few spaced glows.
+	var base_energy: float = 0.7 if stage >= STAGE_BLAZE else 0.5
+	var scale: float = 1.3 if stage >= STAGE_BLAZE else 1.0
+	var want: int = clampi(int(round(span / FIRE_LIGHT_SPACING)), 1, _fire_lights.size())
 	for i in range(_fire_lights.size()):
 		var lt: PointLight2D = _fire_lights[i]
-		var f: float = float(i) / float(max(1, _fire_lights.size() - 1))
-		var lx: float = lerpf(x0, x1, f) if x1 > x0 else x0
-		lt.position = Vector2(lx, FIRE_BASE_Y - 34.0)
+		if i >= want:
+			lt.energy = 0.0            # unused this frame — keep dark, don't wash the floor
+			continue
+		var f: float = 0.5 if want == 1 else float(i) / float(want - 1)
+		lt.position = Vector2(lerpf(x0, x1, f), FIRE_BASE_Y - 34.0)
 		lt.texture_scale = scale
 		# Per-light flicker, out of phase, plus a little jitter.
-		var flick: float = 0.78 + 0.18 * sin(_t * 11.0 + float(i) * 1.7) + randf_range(-0.06, 0.06)
+		var flick: float = 0.80 + 0.16 * sin(_t * 11.0 + float(i) * 1.7) + randf_range(-0.05, 0.05)
 		lt.energy = base_energy * flick
 
 

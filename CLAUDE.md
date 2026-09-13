@@ -645,7 +645,10 @@ means no rendering — UI layout and art still need an in-editor look.
   (`FloorLighting.make_window_light`, round cookie, warm by day → dim blue MOONLIGHT at night):
   the two **stairwell windows** (added in `floor_lighting.setup`) and each **apartment balcony
   window** (`room.gd`, on a shown balcony slot). **Fire** is a real orange light
-  (`fire_field._spawn_fire_lights`/`_update_fire_lights`, riding the burning span). The player
+  (`fire_field._spawn_fire_lights`/`_update_fire_lights`) — **LOCALISED** to the flames: small
+  glows (scale ~1.0-1.3) and only as many lit as the burning span is wide (`FIRE_LIGHT_SPACING`),
+  so a small fire is ONE tight pool, not a floor-wide wash (owner caught an over-scaled "disco"
+  version flooding the whole side). The player
   carries a **faint aura** (`player._setup_player_light`, energy/reach from
   `WorldState.player_aura_energy/scale`) — the bubble that reveals lurkers. **"Night Eyes"
   merchant upgrade** (`U_nightvision`, `night_vision` stat): widens the aura a LOT + lifts the
