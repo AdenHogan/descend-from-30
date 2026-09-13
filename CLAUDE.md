@@ -621,9 +621,14 @@ means no rendering — UI layout and art still need an in-editor look.
 - REAL 2D lighting (GL Compatibility PointLight2D; replaced the old flat colour/infection
   "filter" the owner disliked): the world CanvasModulate (`WorldState.ambient_color`) is the
   **ambient DARKNESS** real lights punch through, NOT a tint over lit art. Per-run brightness
-  (`AMBIENT_BASE_BY_RUN` [morning 0.62 / afternoon 0.42 / **night 0.10 = near-black**] × a
-  warm→gold→cool-blue `AMBIENT_CAST` hue) is dimmed further by DEPTH (`AMBIENT_DEPTH_DIM`) so
-  the failing lower building is darker. **NIGHT is deliberately near-black** — only the lights
+  (`AMBIENT_BASE_BY_RUN` [morning **0.88 = near-original colours** / afternoon 0.55 / **night
+  0.10 = near-black**] × a warm→gold→cool-blue `AMBIENT_CAST` hue) is dimmed further by DEPTH
+  (`AMBIENT_DEPTH_DIM`) so the failing lower building is darker. **Brightness budget (matters —
+  2D lights are ADDITIVE):** by DAY the ambient already lights the scene, so lamp/window/aura
+  energy is a GENTLE accent (`LAMP_ENERGY_BY_RUN` [0.26/0.70/1.5], window [0.16/0.28/0.30],
+  aura [0.16/0.40/0.62]) — a big additive value blows the scene to washed-out white (the owner
+  caught exactly this: run-1 glare + a white-blown stairwell window). Lights run BRIGHT only at
+  night when the ambient is near-black. Keep ambient+peak-light ≤ ~1.0 in lit areas. **NIGHT is deliberately near-black** — only the lights
   reveal the scene, so **enemies lurk unseen in the dark and jump-scare** the player when they
   walk into them (free from the darkness — enemy sprites are just unlit until a light reaches
   them; no reveal code). Lights: **ceiling lamps** cast **DOWNWARD CONES** (a baked

@@ -643,7 +643,7 @@ func time_subtitle() -> String:
 # NIGHT is deliberately near-black: only the ceiling cones, fire, windows and the player's
 # own aura light the scene, so enemies lurk unseen in the gaps until you're on them. The
 # merchant's "Night Eyes" upgrade lifts this a little (see get_night_vision / ambient).
-const AMBIENT_BASE_BY_RUN := [0.62, 0.42, 0.10]   # morning / afternoon / night: unlit brightness
+const AMBIENT_BASE_BY_RUN := [0.88, 0.55, 0.10]   # morning / afternoon / night: unlit brightness
 const AMBIENT_CAST := [
 	Color(1.00, 0.98, 0.94),   # morning: near-neutral, faint warm
 	Color(1.00, 0.93, 0.82),   # afternoon: warm gold
@@ -687,14 +687,16 @@ func get_night_vision() -> float:
 
 
 func player_aura_energy() -> float:
+	# Faint by DAY (the scene is already lit — a strong aura would wash the player out);
+	# it's the personal light that matters at NIGHT.
 	var i: int = clampi(current_run - 1, 0, 2)
-	var base: float = [0.42, 0.50, 0.62][i]
+	var base: float = [0.16, 0.40, 0.62][i]
 	return base + get_night_vision() * (0.9 if current_run >= 3 else 0.4)
 
 
 func player_aura_scale() -> float:
 	var i: int = clampi(current_run - 1, 0, 2)
-	var base: float = [1.5, 1.7, 2.1][i]
+	var base: float = [1.3, 1.7, 2.1][i]
 	return base + get_night_vision() * (1.7 if current_run >= 3 else 0.8)
 
 

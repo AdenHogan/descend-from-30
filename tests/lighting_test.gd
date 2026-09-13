@@ -59,12 +59,15 @@ func _test_window_light() -> void:
 	var day := FLOOR_LIGHTING.make_window_light(Vector2(171, 300))
 	add_child(day)
 	check(day is PointLight2D, "make_window_light returns a PointLight2D")
-	var day_e: float = day.energy
+	# Daytime is a GENTLE additive accent (a big value blows the pane to white over the
+	# already-bright ambient) — so keep it small so it never washes out.
+	check(day.energy <= 0.35, "daytime window is a gentle accent, not a floodlight (%.2f)" % day.energy)
+	var day_lum: float = day.color.r + day.color.g + day.color.b
 	WorldState.current_run = 3
 	var night := FLOOR_LIGHTING.make_window_light(Vector2(171, 300))
 	add_child(night)
-	check(night.energy < day_e, "window daylight is dimmer at night (moonlight) (%.2f < %.2f)" % [night.energy, day_e])
 	check(night.color.b > night.color.r, "night window reads cool/blue (moonlight)")
+	check((night.color.r + night.color.g + night.color.b) < day_lum, "night window is a darker/cooler cast than day (%.2f < %.2f)" % [night.color.r + night.color.g + night.color.b, day_lum])
 	day.queue_free()
 	night.queue_free()
 

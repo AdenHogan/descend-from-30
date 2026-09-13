@@ -18,20 +18,25 @@ const LIGHT_Y := 250.0                       # ceiling: the cone apex (bulb) sit
 const X_START := 200.0
 const X_END := 1150.0
 const COUNT := 6
-const WARM := Color(1.0, 0.84, 0.58)
-const LAMP_SCALE := 1.15                      # cone reach (texture_scale)
-const LAMP_ENERGY := 1.15
+const WARM := Color(1.0, 0.90, 0.72)          # a gentle warm, not a heavy orange cast
+const LAMP_SCALE := 1.15                       # cone reach (texture_scale)
+# ADDITIVE light energy per run. 2D lights ADD on top of the ambient, so by DAY (bright
+# ambient) the lamps must be a GENTLE accent — a big value blows the scene to washed-out
+# white. At NIGHT the ambient is near-black, so the lamps are the main light and run bright.
+const LAMP_ENERGY_BY_RUN := [0.26, 0.70, 1.5]  # morning / afternoon / night
 
 # Stairwell windows — daylight spills in beside the stairs (moonlit at night).
 const STAIR_WINDOW_LEFT_X := 171.0
 const STAIR_WINDOW_RIGHT_X := 1179.0
 const STAIR_WINDOW_Y := 300.0
 
-# Natural daylight through a window: colour + energy per run (morning / afternoon / a dim
-# blue MOONLIGHT at night), and a broad soft pool.
-const WINDOW_CAST := [Color(1.0, 0.97, 0.86), Color(1.0, 0.90, 0.72), Color(0.55, 0.68, 1.0)]
-const WINDOW_ENERGY := [1.25, 0.95, 0.30]
-const WINDOW_SCALE := 2.6
+# Natural light through a window: cool DAYLIGHT (keeps the pane's blue), warm lower
+# afternoon, dim blue MOONLIGHT at night. Energy is the ADDITIVE amount over the ambient —
+# SMALL by day (the scene is already lit; a big value blows the pane to white) and modest
+# at night. A soft, fairly tight pool so it reads as light through a window, not a floodlight.
+const WINDOW_CAST := [Color(0.80, 0.88, 1.00), Color(1.00, 0.90, 0.76), Color(0.55, 0.68, 1.00)]
+const WINDOW_ENERGY := [0.16, 0.28, 0.30]
+const WINDOW_SCALE := 1.6
 
 static var _cone: Texture2D = null
 static var _radial: Texture2D = null
@@ -84,10 +89,11 @@ static func cone_texture() -> Texture2D:
 				if dx <= half:
 					var hf := dx / half       # 0 centre .. 1 edge
 					a = vfall * (1.0 - hf * hf)
-				# A soft round glow right at the bulb so the source itself reads.
+				# A soft round glow right at the bulb so the source itself reads (kept low
+				# so the apex doesn't burn out to white when it adds over a lit scene).
 				var rd := sqrt((float(x) - cx) * (float(x) - cx) + d * d)
 				if rd < 22.0:
-					a = maxf(a, (1.0 - rd / 22.0) * 0.9)
+					a = maxf(a, (1.0 - rd / 22.0) * 0.5)
 				img.set_pixel(x, y, Color(1, 1, 1, clampf(a, 0.0, 1.0)))
 		_cone = ImageTexture.create_from_image(img)
 	return _cone
@@ -116,6 +122,7 @@ func setup(floor_num: int) -> void:
 	# a fifth more, run 3 two-fifths more — the later building is failing.
 	var dead_frac: float = clampf(0.06 + WorldState.infection_depth(floor_num) * 0.30 \
 		+ float(WorldState.current_run - 1) * 0.20, 0.0, 0.72)
+	var lamp_energy: float = LAMP_ENERGY_BY_RUN[clampi(WorldState.current_run - 1, 0, 2)]
 	for i in range(COUNT):
 		var x: float = lerpf(X_START, X_END, float(i) / float(COUNT - 1))
 		var lamp := PointLight2D.new()
@@ -123,13 +130,13 @@ func setup(floor_num: int) -> void:
 		lamp.position = Vector2(x, LIGHT_Y)
 		lamp.color = WARM
 		lamp.texture_scale = LAMP_SCALE
-		lamp.energy = LAMP_ENERGY
+		lamp.energy = lamp_energy
 		add_child(lamp)
 		# A small visible fixture/bulb so the source reads, not just the pool.
 		var bulb := Sprite2D.new()
 		bulb.texture = light_texture()
 		bulb.position = Vector2(x, LIGHT_Y)
-		bulb.scale = Vector2(0.14, 0.14)
+		bulb.scale = Vector2(0.11, 0.11)
 		bulb.modulate = WARM
 		add_child(bulb)
 		if rng.randf() < dead_frac:
@@ -144,7 +151,7 @@ func setup(floor_num: int) -> void:
 		elif roll < 0.55:
 			mode = "flicker"
 		_lamps.append({
-			"light": lamp, "bulb": bulb, "base": LAMP_ENERGY, "mode": mode,
+			"light": lamp, "bulb": bulb, "base": lamp_energy, "mode": mode,
 			"phase": rng.randf() * TAU, "speed": rng.randf_range(6.0, 12.0),
 			# HALF the lamps sway — a very gentle, tight rotation about the bulb.
 			"sway": rng.randf() < 0.5,
