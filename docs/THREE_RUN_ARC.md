@@ -54,15 +54,19 @@ identity that compound:
 **Built so far (v1):**
 - **Real lighting + descent dimming** (`WorldState.ambient_color` /
   `apply_time_tint`, `scripts/floor_lighting.gd`): the old flat sickly-green "filter"
-  was replaced with actual 2D lighting. The world CanvasModulate is now the AMBIENT
-  DARKNESS that real lights punch through (morning bright, afternoon golden, NIGHT
-  genuinely dark), and the DESCENT dims it further — the lower/sicker building has more
-  dead ceiling lamps and less ambient, for tension + sectional identity. Ceiling
-  PointLight2D lamps (some flickering, some dead — more dead deeper/later, seeded per
-  floor/run), fire as a real orange light source (`fire_field`), and a faint player aura
-  do the actual lighting. Lighting is **intrinsic** — it is always on and varies by scene
-  and run (no toggle). Covered by `lighting_test` + `run_arc_test`. (Still a placeholder
-  for eventual per-section grotesque ART, but now a lit atmosphere, not a tint.)
+  was replaced with actual 2D lighting. The world CanvasModulate is the AMBIENT DARKNESS
+  real lights punch through — morning fairly bright, afternoon golden, **NIGHT near-black**
+  — and the DESCENT dims it further (more dead lamps + less ambient the lower/later you go).
+  Ceiling lamps cast **DOWNWARD CONES** (spotlight cookie, not a blanket): some **sway**
+  gently, some **flicker**, some **BLINK** (a failing tube), some **DEAD** — run 2 loses
+  lamps, run 3 loses more. **Window daylight** (warm by day, blue MOONLIGHT at night) at the
+  **stairwell windows** and each **apartment balcony window**. Fire is a real orange light;
+  the player carries a faint **aura** that reveals lurkers. At night the scene is lit ONLY by
+  these, so **enemies lurk unseen and jump-scare** when you walk into them. The merchant's
+  **"Night Eyes"** upgrade widens the aura + lifts the ambient (see in the dark, most on run
+  3). Lighting is **intrinsic** — always on, varying by scene and run (no toggle). Covered by
+  `lighting_test` + `run_arc_test`. (Still a placeholder for eventual per-section grotesque
+  ART, but now a lit atmosphere, not a tint.)
 - **Enemy sectional flavour** (see escalation table below): LOW = melee swarm
   (crawler/big), MID = long-arm bruisers, HIGH = ranged spitters; the spitter inverts
   to favour the top so descending genuinely changes the threat.

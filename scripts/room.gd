@@ -587,6 +587,13 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 		if bal_node != null:
 			var show_balcony = WorldState.is_balcony_slot(apartment_id, i)
 			bal_node.visible = show_balcony
+			# Natural daylight spills IN from the balcony window (moonlit at night) — so a
+			# balcony apartment is never pitch black even with the power out. Shown on the
+			# backdrop too, so a balcony seen during a descent pan is lit.
+			if show_balcony:
+				var win = load("res://scripts/floor_lighting.gd").make_window_light(
+					Vector2(LEFT_WALL_X + i * MODULE_WIDTH + 90, 210))
+				add_child(win)
 			# The "BALCONY" tag → crisp pixel font (default font blurs when zoomed).
 			var bal_tag = bal_node.get_node_or_null("Tag")
 			if bal_tag != null:

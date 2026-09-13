@@ -32,15 +32,23 @@
 ## 2. REAL lighting — ceiling lamps, fire, player aura (NEW — replaces the flat filter)
 
 The old flat colour "filter" is GONE. The world now has **actual 2D lighting**: a dark
-ambient with warm ceiling lamps casting real pools, fire as a real orange light, and a
-faint player aura. Lighting is **intrinsic** — always on, varying by scene and run (no
-toggle). **Use the F1 dev menu → "Set Run (time of day)"** to compare runs quickly.
+ambient with warm ceiling lamps casting **downward CONES** (like the sun/a spotlight from
+the fixture, not a round blanket), window daylight, fire, and a faint player aura. Lighting
+is **intrinsic** — always on, varying by scene and run (no toggle). **Use the F1 dev menu →
+"Set Run (time of day)"** to compare runs quickly.
 
-- [ ] **Ceiling lamps** cast visible warm POOLS on the floor/walls; between pools it's
-      darker. Some lamps **flicker**; some are **dead** (dark fixture, no pool).
-- [ ] **Morning (run 1):** bright enough to walk by easily. **Afternoon (run 2):**
-      golden and a touch lower. **Night (run 3):** genuinely DARK — the lamps + fire are
-      your light. Still readable, never pitch black.
+- [ ] **Ceiling lamps** cast **CONE** pools that fan DOWNWARD from each fixture (brightest
+      at the bulb, fading toward the floor + edges) — NOT a flat blanket over the scene.
+- [ ] **Some cones SWAY** very gently side to side; some lamps **flicker**; some **BLINK**
+      (a failing tube — on a while, brief dark stutters); some are **DEAD** (dark fixture).
+- [ ] **Morning (run 1):** fairly lit. **Afternoon (run 2):** golden, dimmer, more lamps
+      dead. **Night (run 3):** GENUINELY DARK — lit only by the cones, windows, fire and
+      your aura; even MORE lamps dead. Scary, but you can still navigate the lit pools.
+- [ ] **Enemies lurk in the dark at night** — a zombie outside any light is near-invisible
+      until your aura/a cone reaches it (walk into one = jump scare). Confirm this reads as
+      tension, not as a bug/pop-in.
+- [ ] **Stairwell windows** cast natural daylight beside the stairs (warm by day, a dim
+      blue MOONLIGHT at night). Same at each **apartment balcony window**.
 - [ ] The lighting covers the **world only** — HUD, inventory, wallet, dialogue and
       listen overlays stay full-brightness and unshifted.
 - [ ] Consistent across corridor, apartments, maintenance room, lobby, hallway (floor 30).
@@ -49,8 +57,13 @@ toggle). **Use the F1 dev menu → "Set Run (time of day)"** to compare runs qui
 - [ ] **Fire throws real light** — an apartment/corridor blaze lights the walls and the
       player near it with a flickering orange glow, not just drawn flames. Bigger/reachier
       on a BLAZE than a LIGHT fire; winks out when the fire's put out.
-- [ ] The **player aura** is FAINT — enough to read your own footing in a dark stretch,
-      not enough to light the whole room. Flag if it's too strong (washes out the dark).
+- [ ] The **player aura** is FAINT by default — enough to read your own footing, not to
+      light the room. Flag if it's too strong (washes out the dark) or too weak (can't see).
+- [ ] **"Night Eyes"** merchant upgrade (in the pick-1-of-2 pool): after taking it, the
+      dark is noticeably more visible on **run 3** (wider aura + lifted ambient). Verify it's
+      worth a pick and that WITHOUT it night is meaningfully darker.
+- [ ] Apartments have **no ceiling lamps** — at night they lean on the balcony window + your
+      aura + anchor glow. Flag if it's too dark to scavenge (may need apartment lamps).
 
 ## 2b. Descent dimming (sectional identity via lighting)
 

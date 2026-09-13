@@ -640,11 +640,14 @@ func time_subtitle() -> String:
 # DESCENT dims it further — the lower/sicker floors have more dead lamps and less ambient
 # — for tension and sectional identity. Real light sources do the colouring; this only
 # sets how dark the UNLIT world is and its faint cast.
-const AMBIENT_BASE_BY_RUN := [0.82, 0.66, 0.40]   # morning / afternoon / night: unlit brightness
+# NIGHT is deliberately near-black: only the ceiling cones, fire, windows and the player's
+# own aura light the scene, so enemies lurk unseen in the gaps until you're on them. The
+# merchant's "Night Eyes" upgrade lifts this a little (see get_night_vision / ambient).
+const AMBIENT_BASE_BY_RUN := [0.62, 0.42, 0.10]   # morning / afternoon / night: unlit brightness
 const AMBIENT_CAST := [
 	Color(1.00, 0.98, 0.94),   # morning: near-neutral, faint warm
 	Color(1.00, 0.93, 0.82),   # afternoon: warm gold
-	Color(0.70, 0.78, 1.00),   # night: cool blue
+	Color(0.62, 0.72, 1.00),   # night: cool blue
 ]
 const AMBIENT_DEPTH_DIM := 0.28   # how much darker the very bottom is than the top
 
@@ -663,12 +666,36 @@ func time_modulate_color() -> Color:
 
 func ambient_color(floor_num: int = -1) -> Color:
 	# The CanvasModulate the real lights show through: the per-run cast, dimmed by the run
-	# (night darkest) and by DEPTH (the failing lower building is darker). Alpha stays 1.
+	# (night darkest) and by DEPTH (the failing lower building is darker). The "Night Eyes"
+	# upgrade lifts the dark a little, most at night. Alpha stays 1.
 	var f: int = floor_num if floor_num >= 0 else current_floor
 	var i: int = clampi(current_run - 1, 0, AMBIENT_CAST.size() - 1)
 	var base: float = AMBIENT_BASE_BY_RUN[i] * (1.0 - infection_depth(f) * AMBIENT_DEPTH_DIM)
+	base += get_night_vision() * 0.05 * float(current_run - 1)   # +0 run1, +0.05 run2, +0.10 run3 per point
 	var c: Color = AMBIENT_CAST[i]
-	return Color(c.r * base, c.g * base, c.b * base, 1.0)
+	return Color(minf(c.r * base, 1.0), minf(c.g * base, 1.0), minf(c.b * base, 1.0), 1.0)
+
+
+# --- Player aura + Night-vision upgrade --------------------------------------
+# The player carries a faint personal light (player._setup_player_light) so they're never a
+# pure black silhouette — a small bubble that also REVEALS an enemy lurking in the dark when
+# you get close (the jump scare). It's a touch brighter/wider as the runs darken, and the
+# "Night Eyes" merchant upgrade widens it a lot — most on run 3 (night), where seeing in the
+# dark matters — and lifts the ambient (above).
+func get_night_vision() -> float:
+	return _upgrade_stat_add("night_vision")
+
+
+func player_aura_energy() -> float:
+	var i: int = clampi(current_run - 1, 0, 2)
+	var base: float = [0.42, 0.50, 0.62][i]
+	return base + get_night_vision() * (0.9 if current_run >= 3 else 0.4)
+
+
+func player_aura_scale() -> float:
+	var i: int = clampi(current_run - 1, 0, 2)
+	var base: float = [1.5, 1.7, 2.1][i]
+	return base + get_night_vision() * (1.7 if current_run >= 3 else 0.8)
 
 
 func apply_time_tint(scene: Node, floor_num: int = -1) -> void:
@@ -1157,6 +1184,7 @@ const UPGRADE_POOL = {
 	"U_scav_m": {"name": "Sticky Fingers", "desc": "+15% scavenge find rate", "w": 2, "drawback": false, "mods": {"scavenge_bonus": {"add": 0.15}}},
 	"U_quiet_s": {"name": "Soft Soles", "desc": "-20% movement noise", "w": 4, "drawback": false, "mods": {"noise_mult": {"mult": 0.8}}},
 	"U_quiet_m": {"name": "Ghost", "desc": "-40% movement noise", "w": 2, "drawback": false, "mods": {"noise_mult": {"mult": 0.6}}},
+	"U_nightvision": {"name": "Night Eyes", "desc": "See much further in the dark (matters most at night)", "w": 3, "drawback": false, "mods": {"night_vision": {"add": 1.0}}},
 	# ---- Drawbacks (rarer; both halves stated — legibility is absolute) ----
 	"U_db_slotstam": {"name": "Pack Mule", "desc": "+1 inventory slot, but -25% max stamina", "w": 2, "drawback": true, "mods": {"inventory_slots": {"add": 1}, "max_stamina": {"mult": 0.75}}},
 	"U_db_glass": {"name": "Glass Cannon", "desc": "+2 melee damage, but -30% max stamina", "w": 2, "drawback": true, "mods": {"melee_damage": {"add": 2}, "max_stamina": {"mult": 0.7}}},

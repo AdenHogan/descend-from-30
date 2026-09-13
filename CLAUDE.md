@@ -619,23 +619,33 @@ means no rendering — UI layout and art still need an in-editor look.
   THIRD character concluding ends the playthrough: `game_over.tscn` now shows a win/lose
   headline + all three fates. Covered by `run_arc_test`.
 - REAL 2D lighting (GL Compatibility PointLight2D; replaced the old flat colour/infection
-  "filter" the owner disliked): the world CanvasModulate (`WorldState.ambient_color`) is now
-  the **ambient DARKNESS** real lights punch through, NOT a tint over lit art. Per-run
-  brightness (`AMBIENT_BASE_BY_RUN` [morning 0.82 / afternoon 0.66 / night 0.40] × a warm→gold
-  →cool-blue `AMBIENT_CAST` hue) is dimmed further by DEPTH (`AMBIENT_DEPTH_DIM`) so the
-  failing lower building is darker. Lights: **ceiling lamps** (`scripts/floor_lighting.gd` — a
-  row of warm PointLight2D, some flickering, some DEAD; more dead the deeper/later you go,
-  seeded per floor/run; installed by `building_floors._spawn_floor_lighting` in live `_ready`
-  AND the passive backdrop + guarded in `go_live` so lamps scroll in with a stair pan);
-  **fire** as a real orange light (`fire_field._spawn_fire_lights`/`_update_fire_lights` — a
-  small pool riding the burning span, energy/reach by stage, flicker, winks out when doused);
-  a **faint player aura** (`player._setup_player_light`). All three share the radial cookie
-  `FloorLighting.light_texture()`. **Descent dimming = the SECTIONAL-IDENTITY pillar** now
-  (docs/THREE_RUN_ARC.md) — light, not a green cast (`INFECTION_DEEP_TINT` removed; a
-  placeholder for future grotesque ART). **Lighting is INTRINSIC** — always on, varying by
-  scene and run; NOT a dev toggle (the owner was explicit: it's core game design, not an F-key
-  feature). Purely visual (can't verify the look headless — see docs/PLAYTEST_CHECKLIST.md
-  §2/§2b). Covered by `lighting_test` + `run_arc_test`.
+  "filter" the owner disliked): the world CanvasModulate (`WorldState.ambient_color`) is the
+  **ambient DARKNESS** real lights punch through, NOT a tint over lit art. Per-run brightness
+  (`AMBIENT_BASE_BY_RUN` [morning 0.62 / afternoon 0.42 / **night 0.10 = near-black**] × a
+  warm→gold→cool-blue `AMBIENT_CAST` hue) is dimmed further by DEPTH (`AMBIENT_DEPTH_DIM`) so
+  the failing lower building is darker. **NIGHT is deliberately near-black** — only the lights
+  reveal the scene, so **enemies lurk unseen in the dark and jump-scare** the player when they
+  walk into them (free from the darkness — enemy sprites are just unlit until a light reaches
+  them; no reveal code). Lights: **ceiling lamps** cast **DOWNWARD CONES** (a baked
+  `FloorLighting.cone_texture()` spotlight cookie, apex at the fixture — NOT a round blanket),
+  some **swaying** gently (rotation about the bulb), some **flickering**, some **BLINKING** (a
+  failing tube), some **DEAD** — more dead the deeper/later you go (`dead_frac` scales with
+  depth + `0.20×(run-1)`, so run 2 loses lamps, run 3 loses more), seeded per floor/run;
+  installed by `building_floors._spawn_floor_lighting` in live `_ready` AND the passive backdrop
+  + guarded in `go_live` so lamps scroll in with a stair pan. **Window daylight**
+  (`FloorLighting.make_window_light`, round cookie, warm by day → dim blue MOONLIGHT at night):
+  the two **stairwell windows** (added in `floor_lighting.setup`) and each **apartment balcony
+  window** (`room.gd`, on a shown balcony slot). **Fire** is a real orange light
+  (`fire_field._spawn_fire_lights`/`_update_fire_lights`, riding the burning span). The player
+  carries a **faint aura** (`player._setup_player_light`, energy/reach from
+  `WorldState.player_aura_energy/scale`) — the bubble that reveals lurkers. **"Night Eyes"
+  merchant upgrade** (`U_nightvision`, `night_vision` stat): widens the aura a LOT + lifts the
+  ambient, most on **run 3** — "see in the dark". **Descent dimming = the SECTIONAL-IDENTITY
+  pillar** now (light, not a green cast; `INFECTION_DEEP_TINT` removed). **Lighting is
+  INTRINSIC** — always on, varying by scene/run; NOT a dev toggle (owner was explicit). Purely
+  visual (can't verify the LOOK headless — see docs/PLAYTEST_CHECKLIST.md §2/§2b). Covered by
+  `lighting_test` + `run_arc_test`. TODO/verify in-editor: apartments have no ceiling lamps, so
+  at night they rely on window + aura + anchor glow — flag if too dark to scavenge.
 - Enemy variety / escalation table (THREE_RUN_ARC step 6, v1): the infestation
   **migrates upward** across the arc, and there are now **five corridor types**. The mix
   is data-driven per (floor band × run) in `world_state.gd`: `HEAVY_CHANCE` (Big Zombie)

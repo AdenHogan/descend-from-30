@@ -24,6 +24,8 @@ func _ready() -> void:
 	_test_shared_texture()
 	_test_lamp_rig_builds()
 	_test_more_dead_deeper_and_later()
+	_test_window_light()
+	_test_night_vision_upgrade()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -38,11 +40,50 @@ func _dead_count(node: Node) -> int:
 
 
 func _test_shared_texture() -> void:
-	print("[shared light cookie]")
+	print("[shared light cookies]")
 	var a := FLOOR_LIGHTING.light_texture()
 	var b := FLOOR_LIGHTING.light_texture()
-	check(a != null, "light_texture builds a cookie")
-	check(a == b, "the cookie is shared (cached), not rebuilt per light")
+	check(a != null, "light_texture (round) builds a cookie")
+	check(a == b, "the round cookie is shared (cached), not rebuilt per light")
+	var c := FLOOR_LIGHTING.cone_texture()
+	var d := FLOOR_LIGHTING.cone_texture()
+	check(c != null, "cone_texture (downward spotlight) builds a cookie")
+	check(c == d, "the cone cookie is shared (cached)")
+	check(c != a, "the cone and round cookies are distinct textures")
+
+
+func _test_window_light() -> void:
+	print("[window natural light]")
+	WorldState.new_game()
+	WorldState.current_run = 1
+	var day := FLOOR_LIGHTING.make_window_light(Vector2(171, 300))
+	add_child(day)
+	check(day is PointLight2D, "make_window_light returns a PointLight2D")
+	var day_e: float = day.energy
+	WorldState.current_run = 3
+	var night := FLOOR_LIGHTING.make_window_light(Vector2(171, 300))
+	add_child(night)
+	check(night.energy < day_e, "window daylight is dimmer at night (moonlight) (%.2f < %.2f)" % [night.energy, day_e])
+	check(night.color.b > night.color.r, "night window reads cool/blue (moonlight)")
+	day.queue_free()
+	night.queue_free()
+
+
+func _test_night_vision_upgrade() -> void:
+	print("[Night Eyes upgrade]")
+	WorldState.new_game()
+	WorldState.current_run = 3
+	var base_e: float = WorldState.player_aura_energy()
+	var base_s: float = WorldState.player_aura_scale()
+	var base_amb := WorldState.ambient_color(15)
+	check("U_nightvision" in WorldState.UPGRADE_POOL, "Night Eyes is in the upgrade pool")
+	WorldState.active_upgrades.append("U_nightvision")
+	check(WorldState.get_night_vision() > 0.0, "owning Night Eyes registers night vision")
+	check(WorldState.player_aura_energy() > base_e, "Night Eyes widens the aura energy at night (%.2f > %.2f)" % [WorldState.player_aura_energy(), base_e])
+	check(WorldState.player_aura_scale() > base_s, "Night Eyes widens the aura reach at night (%.2f > %.2f)" % [WorldState.player_aura_scale(), base_s])
+	var nv_amb := WorldState.ambient_color(15)
+	check((nv_amb.r + nv_amb.g + nv_amb.b) > (base_amb.r + base_amb.g + base_amb.b), "Night Eyes lifts the night ambient a little")
+	WorldState.active_upgrades.erase("U_nightvision")
 
 
 func _test_lamp_rig_builds() -> void:
@@ -52,11 +93,17 @@ func _test_lamp_rig_builds() -> void:
 	var rig := FLOOR_LIGHTING.new()
 	add_child(rig)
 	rig.setup(30)
+	var cone := FLOOR_LIGHTING.cone_texture()
 	var lamps := 0
+	var windows := 0
 	for c in rig.get_children():
 		if c is PointLight2D:
-			lamps += 1
-	check(lamps == FLOOR_LIGHTING.COUNT, "one PointLight2D per lamp slot (%d)" % lamps)
+			if c.texture == cone:
+				lamps += 1
+			else:
+				windows += 1
+	check(lamps == FLOOR_LIGHTING.COUNT, "one cone lamp per slot (%d)" % lamps)
+	check(windows == 2, "two stairwell window lights (%d)" % windows)
 	# Determinism: the same floor/run/seed produces the same dead layout.
 	var rig2 := FLOOR_LIGHTING.new()
 	add_child(rig2)

@@ -180,8 +180,12 @@ collision planes) but live here so any move is measured, not eyeballed.
 
 | Const / value        | value            | meaning                                          |
 |----------------------|------------------|--------------------------------------------------|
-| `LIGHT_Y` (lamps)    | **250**          | ceiling-lamp row Y (`floor_lighting.gd`)         |
+| `LIGHT_Y` (lamps)    | **250**          | ceiling-lamp cone APEX (bulb) Y (`floor_lighting.gd`) |
 | lamp X span          | 200 → 1150 (×6)  | `X_START`..`X_END`, `COUNT` evenly spaced         |
+| cone cookie          | 192×384, apex-centred | downward spotlight; reaches ~`192×scale` px below the bulb |
+| `STAIR_WINDOW_*_X`   | 171 / 1179       | stairwell window daylight X (left / right)        |
+| `STAIR_WINDOW_Y`     | **300**          | stairwell window daylight Y                        |
+| balcony window       | (LEFT_WALL_X + slot·320 + 90, 210) | apartment balcony daylight (`room.gd`) |
 | fire light Y         | 392 (= 426 − 34) | fire PointLight2D rides `FIRE_BASE_Y − 34`        |
 | player aura offset   | (0, −10)         | aura light offset from the player origin          |
 

@@ -424,8 +424,8 @@ func _setup_player_light() -> void:
 	aura.name = "PlayerAura"
 	aura.texture = load("res://scripts/floor_lighting.gd").light_texture()
 	aura.color = Color(1.0, 0.94, 0.82)
-	aura.energy = 0.45
-	aura.texture_scale = 1.6
+	aura.energy = WorldState.player_aura_energy()
+	aura.texture_scale = WorldState.player_aura_scale()
 	aura.position = Vector2(0, -10)
 	add_child(aura)
 
