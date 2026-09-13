@@ -173,6 +173,20 @@ laps the feet (~419), never buries the legs.
 
 ---
 
+## 7b. LIGHTING planes (`floor_lighting.gd`, `fire_field.gd`, `player.gd`)
+
+Real 2D lighting (PointLight2D). These Y's are DECORATIVE (light sources, not
+collision planes) but live here so any move is measured, not eyeballed.
+
+| Const / value        | value            | meaning                                          |
+|----------------------|------------------|--------------------------------------------------|
+| `LIGHT_Y` (lamps)    | **250**          | ceiling-lamp row Y (`floor_lighting.gd`)         |
+| lamp X span          | 200 → 1150 (×6)  | `X_START`..`X_END`, `COUNT` evenly spaced         |
+| fire light Y         | 392 (= 426 − 34) | fire PointLight2D rides `FIRE_BASE_Y − 34`        |
+| player aura offset   | (0, −10)         | aura light offset from the player origin          |
+
+---
+
 ## 8. Other X anchors (for completeness)
 
 | Const/value        | X       | meaning                                    |

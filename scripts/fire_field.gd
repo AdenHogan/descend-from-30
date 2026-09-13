@@ -84,7 +84,64 @@ func _ready() -> void:
 		fuel[i] = 1.0
 	_load_fire_textures()
 	_spawn_layers()
+	_spawn_fire_lights()
 	add_to_group("fire_field")
+
+
+# --- fire as a REAL light source --------------------------------------------
+# A burning corridor throws actual orange light — a small pool of flickering
+# PointLight2D that ride the BURNING span (repositioned each frame) so the fire
+# lights the walls and the player near it, not just draws flames. Energy/reach
+# scale with the stage; when nothing's burning they wink out. Skipped when dev
+# lighting is off (flat, fully-lit world).
+const FIRE_LIGHT_COUNT := 4
+const FIRE_LIGHT_COLOR := Color(1.0, 0.52, 0.16)
+const FLOOR_LIGHTING := preload("res://scripts/floor_lighting.gd")
+var _fire_lights: Array = []
+
+
+func _spawn_fire_lights() -> void:
+	if WorldState.dev_lighting_off:
+		return
+	for i in range(FIRE_LIGHT_COUNT):
+		var lt := PointLight2D.new()
+		lt.texture = FLOOR_LIGHTING.light_texture()
+		lt.color = FIRE_LIGHT_COLOR
+		lt.energy = 0.0                  # dark until it rides a burning cell
+		lt.z_index = 0
+		add_child(lt)
+		_fire_lights.append(lt)
+
+
+func _update_fire_lights() -> void:
+	if _fire_lights.is_empty():
+		return
+	# Collect the burning span.
+	var lo := -1
+	var hi := -1
+	for i in range(cell_count):
+		if state_of(i) == BURNING:
+			if lo < 0:
+				lo = i
+			hi = i
+	if lo < 0:
+		for lt in _fire_lights:
+			lt.energy = 0.0
+		return
+	var x0 := cell_x(lo)
+	var x1 := cell_x(hi)
+	# Bigger, reachier light the hotter the stage.
+	var base_energy: float = 1.1 if stage >= STAGE_BLAZE else 0.8
+	var scale: float = 3.4 if stage >= STAGE_BLAZE else 2.4
+	for i in range(_fire_lights.size()):
+		var lt: PointLight2D = _fire_lights[i]
+		var f: float = float(i) / float(max(1, _fire_lights.size() - 1))
+		var lx: float = lerpf(x0, x1, f) if x1 > x0 else x0
+		lt.position = Vector2(lx, FIRE_BASE_Y - 34.0)
+		lt.texture_scale = scale
+		# Per-light flicker, out of phase, plus a little jitter.
+		var flick: float = 0.78 + 0.18 * sin(_t * 11.0 + float(i) * 1.7) + randf_range(-0.06, 0.06)
+		lt.energy = base_energy * flick
 
 
 # --- geometry ---------------------------------------------------------------
@@ -300,6 +357,7 @@ func _process(delta: float) -> void:
 	while _acc >= SIM_DT:
 		_acc -= SIM_DT
 		tick(SIM_DT)
+	_update_fire_lights()
 	queue_redraw()
 
 

@@ -95,30 +95,43 @@ func _test_time_of_day() -> void:
 
 
 func _test_infection_grade() -> void:
-	# Sectional identity: the DESCENT gets more grotesque — a depth grade multiplied into
-	# the world tint, clean at the top and pallid/sickly at the bottom.
-	print("[descent infection grade]")
+	# Real lighting: the CanvasModulate is now the AMBIENT DARKNESS the ceiling lamps + fire
+	# punch through (not a flat tint over lit art). Night is darkest, and the DESCENT dims it
+	# further — the failing lower building is darker, for tension + sectional identity.
+	print("[ambient darkness + descent dimming]")
 	WorldState.new_game()
 	check(is_equal_approx(WorldState.infection_depth(30), 0.0), "top of the building is un-infected (depth 0)")
 	check(is_equal_approx(WorldState.infection_depth(1), 1.0), "the bottom is fully infected (depth 1)")
 	check(is_equal_approx(WorldState.infection_depth(0), 1.0), "the lobby is at max depth too")
 	check(WorldState.infection_depth(5) > WorldState.infection_depth(20), "it deepens as you descend")
-	# The grade at the top is a no-op (white); deep down it's a sickly-green, dimmer cast.
-	check(WorldState.infection_grade_color(30).is_equal_approx(Color.WHITE), "no grade at the very top")
-	var deep := WorldState.infection_grade_color(1)
-	check(deep.g >= deep.r and deep.g >= deep.b, "deep grade keeps GREEN dominant (sickly): %s" % str(deep))
-	check(deep.r < 1.0 and deep.b < 1.0, "deep grade dims red/blue (decay): %s" % str(deep))
-	# The combined world tint: same run, a low floor is darker/sicker than a high floor.
+	# Same run: a low floor is DARKER than a high floor (descent dim).
 	WorldState.current_run = 2
-	var top := WorldState.world_tint_color(29)
-	var bot := WorldState.world_tint_color(1)
-	check(top.is_equal_approx(WorldState.world_tint_color(29)), "world tint is deterministic")
+	var top := WorldState.ambient_color(29)
+	var bot := WorldState.ambient_color(1)
+	check(top.is_equal_approx(WorldState.ambient_color(29)), "ambient is deterministic")
 	var top_lum := top.r + top.g + top.b
 	var bot_lum := bot.r + bot.g + bot.b
-	check(bot_lum < top_lum, "a deep floor grades darker than a high one same run (%.2f < %.2f)" % [bot_lum, top_lum])
-	# It STILL layers under the time of day: floor 30 keeps the pure time colour.
+	check(bot_lum < top_lum, "a deep floor is darker than a high one same run (%.2f < %.2f)" % [bot_lum, top_lum])
+	# Later runs are darker overall: the SAME floor is darker at night than in the morning.
+	WorldState.current_run = 1
+	var morning_lum := WorldState.ambient_color(15)
+	var m_sum := morning_lum.r + morning_lum.g + morning_lum.b
 	WorldState.current_run = 3
-	check(WorldState.world_tint_color(30).is_equal_approx(WorldState.time_modulate_color()), "floor 30 is the pure time-of-day colour (no infection)")
+	var night := WorldState.ambient_color(15)
+	var n_sum := night.r + night.g + night.b
+	check(n_sum < m_sum, "night ambient is darker than morning same floor (%.2f < %.2f)" % [n_sum, m_sum])
+	check(night.b > night.r, "night ambient reads cool/blue (b=%.2f > r=%.2f)" % [night.b, night.r])
+	# The DEV bypass leaves the world fully lit (WHITE ambient, no darkening).
+	WorldState.dev_lighting_off = true
+	var probe := Node2D.new()
+	add_child(probe)
+	WorldState.apply_time_tint(probe, 1)
+	var cm := probe.get_node_or_null("WorldGrade") as CanvasModulate
+	check(cm != null and cm.color.is_equal_approx(Color.WHITE), "dev_lighting_off => WHITE ambient (flat, fully lit)")
+	WorldState.dev_lighting_off = false
+	WorldState.apply_time_tint(probe, 1)
+	check(cm != null and not cm.color.is_equal_approx(Color.WHITE), "lighting on => ambient darkens the world")
+	probe.queue_free()
 
 
 func _test_door_decay() -> void:

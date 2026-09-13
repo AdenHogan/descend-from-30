@@ -29,33 +29,44 @@
 - [ ] It fades cleanly into the new Floor 30 (no flash of the old scene, no
       lingering text).
 
-## 2. Time-of-day world tint (use F8 to compare runs quickly)
+## 2. REAL lighting — ceiling lamps, fire, player aura (NEW — replaces the flat filter)
 
-- [ ] **Morning (run 1):** near-neutral, faint warm daylight — basically how the
-      game looks today.
-- [ ] **Afternoon (run 2):** noticeably golden/amber, lower-sun feel.
-- [ ] **Night (run 3):** cool blue and dimmer, but the art is still readable
-      (it's a colour grade, NOT a darkness/visibility mechanic yet).
-- [ ] The tint covers the **world only** — the HUD, inventory, wallet, dialogue
-      and listen overlays stay full-brightness and unshifted.
-- [ ] Tint is consistent across corridor, apartments, maintenance room, lobby,
-      and the hallway (floor 30).
-- [ ] During a **stair pan** between floors, no jarring tint seam as the next
-      floor scrolls in (brief, if any — flag if it's ugly).
+The old flat colour "filter" is GONE. The world now has **actual 2D lighting**: a dark
+ambient with warm ceiling lamps casting real pools, fire as a real orange light, and a
+faint player aura. **Use the F1 dev menu → "Set Run (time of day)"** to compare runs and
+**→ "Lighting: ON/OFF"** to A/B against the flat, fully-lit world.
 
-## 2b. Descent infection grade (sectional identity)
+- [ ] **Ceiling lamps** cast visible warm POOLS on the floor/walls; between pools it's
+      darker. Some lamps **flicker**; some are **dead** (dark fixture, no pool).
+- [ ] **Morning (run 1):** bright enough to walk by easily. **Afternoon (run 2):**
+      golden and a touch lower. **Night (run 3):** genuinely DARK — the lamps + fire are
+      your light. Still readable, never pitch black.
+- [ ] The lighting covers the **world only** — HUD, inventory, wallet, dialogue and
+      listen overlays stay full-brightness and unshifted.
+- [ ] Consistent across corridor, apartments, maintenance room, lobby, hallway (floor 30).
+- [ ] During a **stair pan**, the next floor's lamps **scroll into view lit** (no pop-in
+      of lighting at the commit); no jarring ambient seam (brief, if any — flag if ugly).
+- [ ] **Fire throws real light** — an apartment/corridor blaze lights the walls and the
+      player near it with a flickering orange glow, not just drawn flames. Bigger/reachier
+      on a BLAZE than a LIGHT fire; winks out when the fire's put out.
+- [ ] The **player aura** is FAINT — enough to read your own footing in a dark stretch,
+      not enough to light the whole room. Flag if it's too strong (washes out the dark).
+- [ ] **Dev "Lighting: OFF"** returns the flat, fully-lit look (no lamps, no darkness) —
+      a sanity A/B. Toggling it rebuilds the floor.
 
-On TOP of the time tint, the world should get **sicker / more decayed the LOWER
-you descend** (the infection is worst at the bottom). Placeholder for future
-grotesque art — a colour grade for now.
+## 2b. Descent dimming (sectional identity via lighting)
 
-- [ ] Floor 30 looks **clean** (just the time-of-day colour); by the low floors
-      (1–10) and the lobby the world has a **pallid, sickly-green, dimmer** cast.
+Instead of a green tint, the DESCENT now dims the ambient and kills more lamps the LOWER
+you go (the failing lower building) — tension + sectional identity through light.
+
+- [ ] Floor 30 is the **best lit**; by the low floors (1–10) and the lobby the ambient is
+      **darker** and noticeably **more lamps are dead/out**.
 - [ ] The shift is **gradual** as you descend, not a hard jump between sections.
-- [ ] It's still **readable** at the deepest + night combination (dim but not
-      black). If it's too strong/weak, `WorldState.INFECTION_DEEP_TINT` is one line.
-- [ ] It reads as *decay/infection*, not just "darker" — green should stay the
-      dominant channel down low.
+- [ ] Still **readable** at the deepest + night combination (dim but not black). Tuning
+      lives in `WorldState.AMBIENT_BASE_BY_RUN` / `AMBIENT_DEPTH_DIM` and
+      `floor_lighting.gd` (lamp count, energy, dead fraction).
+- [ ] Later runs also kill more lamps (a floor at night has more out than the same floor
+      in the morning).
 
 ## 3. Fresh character / persistence across the skip
 

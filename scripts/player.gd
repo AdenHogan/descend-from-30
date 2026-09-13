@@ -172,6 +172,7 @@ func _ready() -> void:
 	# and future dynamic door art at z 0). Keep new door/entrance visuals at
 	# z 0 and they'll sit behind bodies automatically.
 	z_index = 1
+	_setup_player_light()
 	_setup_gun_animations()
 	footstep_player = AudioStreamPlayer2D.new()
 	footstep_player.name = "FootstepPlayer"
@@ -412,6 +413,23 @@ func _physics_process(delta: float) -> void:
 			footstep_player.play()
 	else:
 		footstep_timer = 0.0
+
+
+func _setup_player_light() -> void:
+	# A FAINT personal aura so the player is never a black silhouette in an unlit
+	# stretch — just enough to read their own footing, not enough to light the room
+	# (the ceiling lamps + fire do that). Real PointLight2D, so it plays with the
+	# ambient darkness like every other light. Skipped when dev lighting is off.
+	if WorldState.dev_lighting_off:
+		return
+	var aura := PointLight2D.new()
+	aura.name = "PlayerAura"
+	aura.texture = load("res://scripts/floor_lighting.gd").light_texture()
+	aura.color = Color(1.0, 0.94, 0.82)
+	aura.energy = 0.45
+	aura.texture_scale = 1.6
+	aura.position = Vector2(0, -10)
+	add_child(aura)
 
 
 func _setup_gun_animations() -> void:
@@ -1500,6 +1518,21 @@ func dev_apply_hazard(mode: int) -> void:
 		get_tree().call_deferred("reload_current_scene")
 	else:
 		HUD.show_feedback(WorldState.pending_dev_feedback)
+
+
+func dev_toggle_lighting() -> bool:
+	# DEV: flip the whole real-lighting system on/off and rebuild the floor so lamps +
+	# ambient darkness appear/disappear. OFF = flat, fully-lit (WHITE ambient, no lamps).
+	WorldState.dev_lighting_off = not WorldState.dev_lighting_off
+	WorldState.pending_dev_feedback = "DEV: Lighting %s" % ("OFF (flat)" if WorldState.dev_lighting_off else "ON")
+	var path := get_tree().current_scene.scene_file_path
+	if path.ends_with("building_floors.tscn"):
+		WorldState.saved_player_x = global_position.x
+		WorldState.saved_player_y = global_position.y
+		get_tree().call_deferred("reload_current_scene")
+	else:
+		HUD.show_feedback(WorldState.pending_dev_feedback)
+	return WorldState.dev_lighting_off
 
 
 func dev_set_run(run: int) -> void:

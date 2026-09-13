@@ -614,20 +614,11 @@ func advance_run() -> bool:
 
 
 # --- Time of day (derived from the run) --------------------------------------
-# Run 1 = Morning, 2 = Afternoon, 3 = Night — the fiction the time skip sells and
-# a subtle world tint (time_modulate_color) grades each scene by.
+# Run 1 = Morning, 2 = Afternoon, 3 = Night — the fiction the time skip sells.
 const TIME_SUBTITLES := [
 	"The building stirs at first light.",
 	"The heat and the noise have drawn them out.",
 	"The dark belongs to them now.",
-]
-# A gentle CanvasModulate multiplied over the WORLD (never the HUD/CanvasLayers):
-# warm-neutral morning → golden afternoon → cool, dimmer night. Kept mild so the
-# art still reads; night is the only one that noticeably darkens.
-const TIME_TINTS := [
-	Color(1.00, 0.98, 0.92),   # morning: faint warm daylight
-	Color(1.00, 0.90, 0.76),   # afternoon: golden, lower sun
-	Color(0.60, 0.65, 0.88),   # night: cool blue, dimmed
 ]
 
 
@@ -640,19 +631,26 @@ func time_subtitle() -> String:
 	return TIME_SUBTITLES[i]
 
 
-func time_modulate_color() -> Color:
-	var i: int = clampi(current_run - 1, 0, TIME_TINTS.size() - 1)
-	return TIME_TINTS[i]
+# --- Ambient darkness + REAL 2D lighting -------------------------------------
+# The world is lit for real now: ceiling PointLight2D lamps (scripts/floor_lighting.gd),
+# the fire, and a faint player aura cast actual light POOLS. The old flat colour "filter"
+# is gone — the CanvasModulate here is the AMBIENT DARKNESS those lights punch through,
+# NOT a tint laid over already-lit art. Morning is bright enough to walk by; afternoon
+# is golden and lower; NIGHT is genuinely dark (the lamps + fire ARE your light). And the
+# DESCENT dims it further — the lower/sicker floors have more dead lamps and less ambient
+# — for tension and sectional identity. Real light sources do the colouring; this only
+# sets how dark the UNLIT world is and its faint cast.
+const AMBIENT_BASE_BY_RUN := [0.82, 0.66, 0.40]   # morning / afternoon / night: unlit brightness
+const AMBIENT_CAST := [
+	Color(1.00, 0.98, 0.94),   # morning: near-neutral, faint warm
+	Color(1.00, 0.93, 0.82),   # afternoon: warm gold
+	Color(0.70, 0.78, 1.00),   # night: cool blue
+]
+const AMBIENT_DEPTH_DIM := 0.28   # how much darker the very bottom is than the top
 
-
-# --- Sectional identity: the DESCENT gets more grotesque (docs/THREE_RUN_ARC.md) ---
-# The infection has spread WORST to the lower floors, so as the player descends the
-# world takes on a sicker, more decayed cast. This is a depth grade multiplied into the
-# world tint on top of the time-of-day colour — subtle at the top (floor 30, near clean),
-# deepening to a pallid, sickly-green decay at the bottom (floor 1 / the lobby). It's a
-# placeholder for the eventual per-section GROTESQUE ART; when that lands this can dial
-# back or go. TUNE the deepest cast + how fast it deepens here.
-const INFECTION_DEEP_TINT := Color(0.84, 0.95, 0.80)   # multiply at max depth: pallid, sickly green, dimmed
+# DEV: bypass the whole lighting system — flat, fully-lit world (no ambient darkening,
+# no ceiling lamps). Toggled from the dev menu; NOT persisted.
+var dev_lighting_off: bool = false
 
 
 func infection_depth(floor_num: int) -> float:
@@ -660,21 +658,30 @@ func infection_depth(floor_num: int) -> float:
 	return clampf((30.0 - float(floor_num)) / 29.0, 0.0, 1.0)
 
 
-func infection_grade_color(floor_num: int) -> Color:
-	return Color.WHITE.lerp(INFECTION_DEEP_TINT, infection_depth(floor_num))
+func time_modulate_color() -> Color:
+	# The faint hue of the ambient light this run (before it's dimmed by run/depth) — the
+	# time-of-day cast the title card and any tint-only reader can use.
+	var i: int = clampi(current_run - 1, 0, AMBIENT_CAST.size() - 1)
+	return AMBIENT_CAST[i]
 
 
-func world_tint_color(floor_num: int) -> Color:
-	# The full world grade: time of day (per run) × the descent infection grade (per floor).
-	return time_modulate_color() * infection_grade_color(floor_num)
+func ambient_color(floor_num: int = -1) -> Color:
+	# The CanvasModulate the real lights show through: the per-run cast, dimmed by the run
+	# (night darkest) and by DEPTH (the failing lower building is darker). Alpha stays 1.
+	var f: int = floor_num if floor_num >= 0 else current_floor
+	var i: int = clampi(current_run - 1, 0, AMBIENT_CAST.size() - 1)
+	var base: float = AMBIENT_BASE_BY_RUN[i] * (1.0 - infection_depth(f) * AMBIENT_DEPTH_DIM)
+	var c: Color = AMBIENT_CAST[i]
+	return Color(c.r * base, c.g * base, c.b * base, 1.0)
 
 
 func apply_time_tint(scene: Node, floor_num: int = -1) -> void:
-	# Grade the WORLD: time of day × descent infection (deeper = sicker). A CanvasModulate
+	# Set the WORLD's ambient darkness (real lights punch through it). A CanvasModulate
 	# multiplies the default 2D canvas only — never the HUD or another CanvasLayer — so it
-	# colours the level without dulling the UI. Idempotent: reuse the node if a scene calls
+	# darkens the level without dulling the UI. Idempotent: reuse the node if a scene calls
 	# this more than once (e.g. a floor woken from a pan backdrop). `floor_num` defaults to
 	# the current floor; pass it explicitly for a backdrop being built for another floor.
+	# With dev_lighting_off the world is left fully lit (WHITE ambient).
 	if scene == null:
 		return
 	var f: int = floor_num if floor_num >= 0 else current_floor
@@ -683,7 +690,7 @@ func apply_time_tint(scene: Node, floor_num: int = -1) -> void:
 		cm = CanvasModulate.new()
 		cm.name = "WorldGrade"
 		scene.add_child(cm)
-	cm.color = world_tint_color(f)
+	cm.color = Color.WHITE if dev_lighting_off else ambient_color(f)
 
 
 func on_floor_arrived(floor_num: int) -> void:

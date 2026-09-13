@@ -101,6 +101,9 @@ func _ready() -> void:
 		# it's already here and doesn't re-spawn.
 		_spawn_fire(floor_num)
 		_spawn_door_fire(floor_num)
+		# Ceiling lamps in the backdrop too, so they scroll into view with the floor during
+		# a stair pan instead of popping in at the commit (go_live guards against a re-spawn).
+		_spawn_floor_lighting(floor_num)
 		_make_inert()
 		return
 
@@ -144,7 +147,8 @@ func _ready() -> void:
 	_spawn_follower(floor_num)
 	_spawn_fire(floor_num)
 	_spawn_door_fire(floor_num)
-	WorldState.apply_time_tint(self, floor_num)   # time-of-day × descent-infection grade
+	WorldState.apply_time_tint(self, floor_num)   # ambient darkness the real lights punch through
+	_spawn_floor_lighting(floor_num)              # real ceiling lamps
 	_frame_camera(player)
 	# Keep the HUD floor counter honest for EVERY way of landing on a floor — not
 	# just stair transitions. A dev jump / F2 rebuild used to leave it stale (e.g.
@@ -565,6 +569,9 @@ func _warn_hazard(text: String) -> void:
 	get_tree().paused = false
 
 
+const FLOOR_LIGHTING := preload("res://scripts/floor_lighting.gd")
+var _floor_lights = null               # the floor's ceiling PointLight2D rig, or null
+
 const FIRE_FIELD := preload("res://scripts/fire_field.gd")
 var _fire_field = null                 # the floor's fire, or null
 var _fire_dmg_acc: float = 0.0
@@ -620,6 +627,21 @@ func _fire_origin_for(floor_num: int) -> float:
 	origin_x = clampf(origin_x + (jit.randf() - 0.5) * 240.0, 230.0, 1120.0)
 	WorldState.set_fire_origin_x(floor_num, origin_x)
 	return origin_x
+
+
+func _spawn_floor_lighting(floor_num: int) -> void:
+	# Real ceiling lighting: a row of warm PointLight2D lamps (some flickering, some dead —
+	# more dead the deeper/later you go) that cast actual pools through the ambient darkness
+	# WorldState set. Skipped when dev lighting is off (flat, fully-lit world). Idempotent —
+	# spawned in the passive backdrop too so lamps scroll in with a stair pan; go_live guards.
+	if _floor_lights != null and is_instance_valid(_floor_lights):
+		return
+	if WorldState.dev_lighting_off:
+		return
+	_floor_lights = FLOOR_LIGHTING.new()
+	_floor_lights.name = "FloorLighting"
+	add_child(_floor_lights)
+	_floor_lights.setup(floor_num)
 
 
 func _spawn_fire(floor_num: int) -> void:
@@ -1100,7 +1122,8 @@ func go_live() -> void:
 		_spawn_fire(floor_num)
 		_spawn_door_fire(floor_num)
 	_spawn_merchant(floor_num)
-	WorldState.apply_time_tint(self, floor_num)   # a woken pan backdrop gets its world grade here
+	WorldState.apply_time_tint(self, floor_num)   # a woken pan backdrop gets its ambient here
+	_spawn_floor_lighting(floor_num)              # guarded — passive backdrop already built these
 
 
 func _apply_doors(floor_num: int) -> void:

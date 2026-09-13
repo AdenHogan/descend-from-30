@@ -145,8 +145,8 @@ setup script; binary from downloads.godotengine.org). Before every commit:
   `profile_ui_test`, `title_test`, `enemy_memory_test`, `floor_adopt_test`,
   `balcony_test`, `hud_prompt_test`, `stair_block_test`, `fire_test`,
   `maintenance_test`, `elevator_test`, `run_arc_test`, `enemy_variety_test`,
-  `dev_menu_test` — run all
-  29 before commit. (Run ONE godot at a time — a killed/backgrounded headless run can
+  `dev_menu_test`, `lighting_test` — run all
+  30 before commit. (Run ONE godot at a time — a killed/backgrounded headless run can
   linger and block the next, and a GDScript **parse error makes a test scene load but
   never call `quit()`, so it "hangs" until timeout** rather than printing an error line;
   if a suite hangs, check for a parse error and stray `godot` processes first.
@@ -614,15 +614,28 @@ means no rendering — UI layout and art still need an in-editor look.
   logged into it) and `Transition.to_run_shift(hallway, next_run)`. **Time visuals**:
   `to_run_shift` is a slow fade-to-black **title card** (game pixel font) animating the
   time-of-day word MORNING / AFTERNOON / NIGHT + a subtitle, held, then the new Floor 30;
-  every world scene grades itself by `WorldState.apply_time_tint(self, floor)` — one
-  `CanvasModulate` (node `WorldGrade`, world only, never the HUD) whose colour is
-  `world_tint_color = time_modulate_color() × infection_grade_color(floor)`: the
-  per-run time of day (warm daylight → golden → cool dim-blue night) MULTIPLIED by the
-  **descent infection grade** — a SECTIONAL-IDENTITY pillar (docs/THREE_RUN_ARC.md) where
-  the world gets sicker/more decayed the LOWER you go (near-clean floor 30 → pallid sickly-
-  green dimmed at floor 1 / the lobby; `INFECTION_DEEP_TINT`, a placeholder for future
-  grotesque art). Only the THIRD character concluding ends the playthrough: `game_over.tscn`
-  now shows a win/lose headline + all three fates. Covered by `run_arc_test`.
+  every world scene sets its **ambient darkness** via `WorldState.apply_time_tint(self,
+  floor)` — one `CanvasModulate` (node `WorldGrade`, world only, never the HUD). Only the
+  THIRD character concluding ends the playthrough: `game_over.tscn` now shows a win/lose
+  headline + all three fates. Covered by `run_arc_test`.
+- REAL 2D lighting (GL Compatibility PointLight2D; replaced the old flat colour/infection
+  "filter" the owner disliked): the world CanvasModulate (`WorldState.ambient_color`) is now
+  the **ambient DARKNESS** real lights punch through, NOT a tint over lit art. Per-run
+  brightness (`AMBIENT_BASE_BY_RUN` [morning 0.82 / afternoon 0.66 / night 0.40] × a warm→gold
+  →cool-blue `AMBIENT_CAST` hue) is dimmed further by DEPTH (`AMBIENT_DEPTH_DIM`) so the
+  failing lower building is darker. Lights: **ceiling lamps** (`scripts/floor_lighting.gd` — a
+  row of warm PointLight2D, some flickering, some DEAD; more dead the deeper/later you go,
+  seeded per floor/run; installed by `building_floors._spawn_floor_lighting` in live `_ready`
+  AND the passive backdrop + guarded in `go_live` so lamps scroll in with a stair pan);
+  **fire** as a real orange light (`fire_field._spawn_fire_lights`/`_update_fire_lights` — a
+  small pool riding the burning span, energy/reach by stage, flicker, winks out when doused);
+  a **faint player aura** (`player._setup_player_light`). All three share the radial cookie
+  `FloorLighting.light_texture()`. **Descent dimming = the SECTIONAL-IDENTITY pillar** now
+  (docs/THREE_RUN_ARC.md) — light, not a green cast (`INFECTION_DEEP_TINT` removed; a
+  placeholder for future grotesque ART). **DEV toggle**: dev menu "Lighting: ON/OFF"
+  (`player.dev_toggle_lighting` → `WorldState.dev_lighting_off`, rebuilds the floor) bypasses
+  the whole system to a flat, fully-lit world. Purely visual (can't verify headless — see
+  docs/PLAYTEST_CHECKLIST.md §2/§2b). Covered by `lighting_test` + `run_arc_test`.
 - Enemy variety / escalation table (THREE_RUN_ARC step 6, v1): the infestation
   **migrates upward** across the arc, and there are now **five corridor types**. The mix
   is data-driven per (floor band × run) in `world_state.gd`: `HEAVY_CHANCE` (Big Zombie)

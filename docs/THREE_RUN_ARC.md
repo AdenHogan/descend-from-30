@@ -52,11 +52,17 @@ identity that compound:
   degrades as you go down).
 
 **Built so far (v1):**
-- **Descent infection grade** (`WorldState.infection_grade_color` /
-  `world_tint_color`): a depth tint multiplied into the world CanvasModulate on top
-  of the time-of-day colour — subtle at the top, deepening to a pallid, sickly-green,
-  dimmed cast at the bottom. A placeholder for the eventual grotesque art; dial it back
-  or drop it when real art lands (`INFECTION_DEEP_TINT`). Covered by `run_arc_test`.
+- **Real lighting + descent dimming** (`WorldState.ambient_color` /
+  `apply_time_tint`, `scripts/floor_lighting.gd`): the old flat sickly-green "filter"
+  was replaced with actual 2D lighting. The world CanvasModulate is now the AMBIENT
+  DARKNESS that real lights punch through (morning bright, afternoon golden, NIGHT
+  genuinely dark), and the DESCENT dims it further — the lower/sicker building has more
+  dead ceiling lamps and less ambient, for tension + sectional identity. Ceiling
+  PointLight2D lamps (some flickering, some dead — more dead deeper/later, seeded per
+  floor/run), fire as a real orange light source (`fire_field`), and a faint player aura
+  do the actual lighting. `dev_lighting_off` (dev-menu "Lighting" toggle) bypasses it all
+  to a flat, fully-lit world. Covered by `lighting_test` + `run_arc_test`. (Still a
+  placeholder for eventual per-section grotesque ART, but now a lit atmosphere, not a tint.)
 - **Enemy sectional flavour** (see escalation table below): LOW = melee swarm
   (crawler/big), MID = long-arm bruisers, HIGH = ranged spitters; the spitter inverts
   to favour the top so descending genuinely changes the threat.
@@ -174,8 +180,9 @@ Floor 30 after run 1:
    arc is over), wipes the PER-RUN character (inventory, health, stamina, wallet
    BALANCE, follower, upgrade offers) and KEEPS the cross-run rewards (upgrades,
    wallet UNLOCK) + the decayed world (same `master_seed`). `time_of_day()` →
-   Morning/Afternoon/Night; `time_modulate_color()` grades each world scene via a
-   `CanvasModulate` (`apply_time_tint`, world only — never the HUD).
+   Morning/Afternoon/Night; `apply_time_tint()` sets each world scene's ambient
+   DARKNESS via a `CanvasModulate` (world only — never the HUD) that the real lights
+   punch through — see "Real lighting + descent dimming" above.
 2. Time-skip transition: on character end (death or exit), advance run,
    reshuffle spawn seeds (except storied-room flag, reserved), apply
    door-decay pass, roll fires — **BUILT (v1)**. Both endpoints wired:
