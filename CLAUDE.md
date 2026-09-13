@@ -695,13 +695,22 @@ means no rendering — UI layout and art still need an in-editor look.
   (its per-band peak — the early swarm before the tougher types), then its share eases as
   runs 2/3 diversify. So crawler is deliberately NOT monotonic (the other three still only
   grow). Locked by `enemy_variety_test` (`_test_variety_and_flavor` + `_test_crawler_behaviour`).
-  **Aim / hitbox (checked):** melee (`_do_melee_attack`) and gun (`_do_gun_attack`) both
-  target by `global_position.distance_to(zombie)` + an **X-only facing arc** — height-
-  INDEPENDENT. Every corridor rig (crawler/standard/big/long-arm/spitter) shares an on-plane
-  ORIGIN (~370-388, feet 419), so a visually-LOW crawler still connects (the hit is measured
-  to its origin, not its low sprite) — no special low-attack is functionally required. Melee
-  reach is edge-based via `_zombie_body_radius`, now RectangleShape2D-aware so the wide low
-  crawler's real half-width (40) is used instead of the old 10 fallback. (An impale/bludgeon
+  **Aim / hitbox (MEASURED + fixed):** the corridor rigs rest on ONE plane by FEET (all on
+  419) but at different ORIGINS — player ~388 (feet/col-bottom ~421), standard zombie 370,
+  big/crawler/long-arm/spitter 374 — an inherent ~18px origin gap. Melee `_do_melee_attack`
+  now gates on **HORIZONTAL edge distance** (`|dx| - _zombie_body_radius`) with a **vertical
+  tolerance** (`MELEE_PLANE_TOLERANCE` 48) — genuinely height-independent, so that origin gap
+  can't shorten reach or miss (the old euclidean `distance_to` folded the 18px into every
+  check and ate reach — the owner caught this: "not on the same plane, affecting attacks").
+  The tolerance still excludes a truly off-plane enemy (a corridor zombie while you're up on a
+  balcony, or one lurking mid-stair). Priority = nearest by horizontal edge distance. Locked
+  by `gun_combat_test` `_test_melee_plane_reach`. (Gun still uses `distance_to` — negligible at
+  range.) The **VISUAL** height difference in a screenshot is sprite FRAMING, not position: the
+  zombie frame is 128px×3 (drawn feet high in a tall mostly-transparent frame), the player
+  48px×2, so their DRAWN feet land at different screen Y even though collisions/feet align at
+  419 — a per-rig `AnimatedSprite2D.offset` art tweak (needs an in-editor look), NOT a Y-plane
+  bug. `_zombie_body_radius` is RectangleShape2D-aware so the wide low crawler's real
+  half-width (40) is used instead of the old 10 fallback. (An impale/bludgeon
   *feel* animation is optional polish, not a fix — the swing VISUAL doesn't angle at the
   target, but the hit lands.)
   **Corridor bosses (runs 2/3):** a floor may set ONE roaming boss loose — a tougher Big

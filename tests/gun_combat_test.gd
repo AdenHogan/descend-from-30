@@ -23,6 +23,7 @@ func _ready() -> void:
 	_test_inventory_moves()
 	_test_player_gun_setup()
 	_test_zombie_alert()
+	_test_melee_plane_reach()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -141,3 +142,43 @@ func _test_zombie_alert() -> void:
 	big.alert_to_noise(1.0)
 	check(big.alert_timer == 3.0, "shorter noise never truncates an active alert")
 	big.queue_free()
+
+
+func _test_melee_plane_reach() -> void:
+	# Melee must be HEIGHT-INDEPENDENT: the player (~388) and zombies (~370-374) rest at
+	# different ORIGINS though their feet share 419, so a swing must connect across that
+	# ~18px gap — but must NOT reach an enemy genuinely off this plane (balcony / stair).
+	print("[melee plane-independent reach]")
+	WorldState.new_game()
+	WorldState.god_mode = true            # skip the stamina gate
+	WorldState.add_to_inventory("002")    # Hammer (a melee weapon)
+	HUD.selected_slot = 0
+	var inst = WorldState.inventory[0]
+	var player = load("res://scenes/player.tscn").instantiate()
+	add_child(player)
+	player.global_position = Vector2(600, 388)
+	await get_tree().process_frame
+	# On-plane target ahead (to the right), at the real rig-origin gap (dy 18).
+	var z = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
+	add_child(z)
+	z.global_position = Vector2(640, 370)
+	await get_tree().process_frame
+	var before = z.current_hp
+	player._do_melee_attack(inst, 0)
+	check(z.current_hp < before, "swing connects across the 18px rig-origin gap (%d -> %d)" % [before, z.current_hp])
+	z.queue_free()
+	await get_tree().process_frame
+	# Off-plane target (far below, e.g. a corridor zombie while you're on a balcony): no hit.
+	# Clear the per-swing guard so this is a real swing, not an early-return.
+	player.is_attacking = false
+	player.attack_cooldown_timer = 0.0
+	var z2 = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
+	add_child(z2)
+	z2.global_position = Vector2(640, 388 + 200)
+	await get_tree().process_frame
+	var before2 = z2.current_hp
+	player._do_melee_attack(inst, 0)
+	check(z2.current_hp == before2, "a genuinely off-plane enemy is NOT hit (tolerance excludes it)")
+	WorldState.god_mode = false
+	player.queue_free()
+	z2.queue_free()

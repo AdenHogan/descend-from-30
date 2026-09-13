@@ -86,6 +86,13 @@ var mode_switch_timer = 0.0
 # meets the floor, not float up into the doorway (playtest — 26 was too high).
 const APPROACH_DEPTH = 12.0     # how far "into" the hallway (up) the player steps
 const APPROACH_TIME = 0.35
+# Melee reach is HEIGHT-INDEPENDENT: the corridor is one plane, but the rigs have
+# different ORIGINS (player ~388, zombies ~370-374 — feet all on 419), so a euclidean
+# distance folds an ~18px vertical gap into every range check and shortens reach. We gate
+# on HORIZONTAL distance with this vertical tolerance instead — big enough to cover any
+# rig-origin gap, small enough to still exclude a genuinely off-plane enemy (a corridor
+# zombie while you're up on a balcony, or one still lurking in the stair shaft).
+const MELEE_PLANE_TOLERANCE = 48.0
 const KNOCK_PAUSE = 0.5
 var is_cutscene: bool = false
 # Balcony descent (THREE_RUN_ARC): lashing a rope is a timed, SILENT channel the
@@ -570,14 +577,20 @@ func _do_melee_attack(instance: ItemInstance, slot_index: int) -> void:
 		# reach the boss's wide capsule. Priority: RAW centre distance — using edge
 		# distance for priority handed the boss a radius-sized head start, so it
 		# stole hits from standards visibly in front of it.
-		var center_dist = global_position.distance_to(zombie.global_position)
-		var edge_dist = center_dist - _zombie_body_radius(zombie)
+		# HEIGHT-INDEPENDENT: gate on HORIZONTAL edge distance + a vertical tolerance, so
+		# the rigs' ~18px origin gap (feet all on 419) can't shorten reach or miss. An enemy
+		# genuinely off this plane (balcony / mid-stair) is excluded by the tolerance.
+		var dx = zombie.global_position.x - global_position.x
+		var dy = absf(zombie.global_position.y - global_position.y)
+		if dy > MELEE_PLANE_TOLERANCE:
+			continue
+		var edge_dist = absf(dx) - _zombie_body_radius(zombie)
 		if edge_dist <= attack_range:
-			var diff = zombie.global_position.x - global_position.x
 			var facing_right = not animated_sprite.flip_h
-			if (facing_right and diff > -16.0) or (not facing_right and diff < 16.0):
-				if zombie.has_method("receive_damage") and center_dist < target_dist:
-					target_dist = center_dist
+			if (facing_right and dx > -16.0) or (not facing_right and dx < 16.0):
+				# Priority = nearest by horizontal edge distance.
+				if zombie.has_method("receive_damage") and edge_dist < target_dist:
+					target_dist = edge_dist
 					target = zombie
 	if target != null:
 		target.receive_damage(damage, damage_type)
