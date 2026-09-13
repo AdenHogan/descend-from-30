@@ -372,6 +372,7 @@ func _physics_process(delta: float) -> void:
 		velocity.x = direction * current_speed
 	else:
 		velocity.x = move_toward(velocity.x, 0, SPEED)
+	var _pre_y := global_position.y
 	move_and_slide()
 
 	# On the balcony plane: held to the balcony's own line, clamped between the
@@ -382,6 +383,13 @@ func _physics_process(delta: float) -> void:
 			balcony_center_x - BALCONY_HALF_WIDTH, balcony_center_x + BALCONY_HALF_WIDTH)
 		if Input.is_action_just_pressed("move_down"):
 			exit_balcony_plane()
+	elif not is_cutscene:
+		# FLAT WALKING PLANE: there is no gravity here — the player only ever moves
+		# horizontally. Enemies (a run-3 crowd / a boss at a door) may block sideways,
+		# but they must NEVER push the player off the floor line. move_and_slide's
+		# depenetration was riding the player UP onto a crowd (a Y-plane break: player
+		# stranded on top of enemies). Hold Y to where it was before the slide.
+		global_position.y = _pre_y
 
 	# Movement noise (under the hood — docs/SOUND_STEALTH.md): louder gaits
 	# are audible further. Zombies whose sight misses you can still hear you.
