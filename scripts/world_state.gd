@@ -643,12 +643,16 @@ func time_subtitle() -> String:
 # NIGHT is deliberately near-black: only the ceiling cones, fire, windows and the player's
 # own aura light the scene, so enemies lurk unseen in the gaps until you're on them. The
 # merchant's "Night Eyes" upgrade lifts this a little (see get_night_vision / ambient).
-const AMBIENT_BASE_BY_RUN := [0.80, 0.42, 0.07]   # morning / afternoon / night: unlit brightness
-# The ambient FILL is cool/neutral (not warm) so the warm lamp pools read as COZY islands
-# against it — warm-on-warm looked flat and beige. Lower base + cool fill = the contrast that
-# sells "cozy horror": safe amber pools, cold gloom between. Night is a deep cool blue.
+# MORNING is DAYTIME — near-fully lit, minimal shadow/gloom, the dynamic lighting barely
+# intrudes. The lighting DESIGN only starts doing real work in the AFTERNOON (cool dusk,
+# warm pools begin to matter) and dominates at NIGHT (near-black, only the lights reveal
+# the scene). This staged ramp is the intended arc — don't gloom out the morning.
+const AMBIENT_BASE_BY_RUN := [0.95, 0.42, 0.07]   # morning / afternoon / night: unlit brightness
+# The ambient FILL: morning is a NEUTRAL bright daylight (true colours, no gloom); afternoon
+# and night go cool so the warm lamp pools read as COZY islands against a colder dark
+# ("cozy horror" — safe amber pools, cold gloom between). Night is a deep cool blue.
 const AMBIENT_CAST := [
-	Color(0.90, 0.94, 1.00),   # morning: cool-neutral daylight
+	Color(1.00, 0.99, 0.96),   # morning: neutral bright daylight (near-original colours)
 	Color(0.74, 0.79, 0.96),   # afternoon: cool dusk (lamps warm against it)
 	Color(0.50, 0.60, 1.00),   # night: deep cool blue
 ]
@@ -693,7 +697,7 @@ func player_aura_energy() -> float:
 	# Faint by DAY (the scene is already lit — a strong aura would wash the player out);
 	# it's the personal light that matters at NIGHT.
 	var i: int = clampi(current_run - 1, 0, 2)
-	var base: float = [0.16, 0.40, 0.62][i]
+	var base: float = [0.10, 0.40, 0.62][i]   # morning: barely any aura (it's daytime)
 	return base + get_night_vision() * (0.9 if current_run >= 3 else 0.4)
 
 

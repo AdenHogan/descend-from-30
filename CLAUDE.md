@@ -38,6 +38,10 @@ originals — the markdown here is canonical for development):
   NPC groundwork. v1 implemented. (Terminology: barricade = debris block pried
   with a crowbar; horde = future live-enemy block; fire = future.)
 
+- `docs/ART_REQUIREMENTS.md` — brief for contracting pixel artists: the cozy-horror
+  tone, the critical conventions (one feet-baseline, author FLAT so the engine's dynamic
+  lighting works, face-right + flip), the full asset list by priority, the sectional
+  decay bands, and deliverable/naming spec. Share with any artist.
 - `docs/Y_PLANES.md` — **LOCKED reference**: every world-Y plane on a corridor
   floor (the feet line 419, spawn/stand origins, stair triggers, staircase art
   boxes, the player stair-transition slice constants, the stairwell-enemy geometry,
@@ -625,10 +629,13 @@ means no rendering — UI layout and art still need an in-editor look.
   (horror) — CONTRAST, not a flat wash. So the ambient FILL is COOL/neutral (`AMBIENT_CAST`
   morning cool-daylight → afternoon cool dusk → night deep blue), NOT warm — warm-on-warm read
   flat/beige and "too soft". The lamp light is a RICH amber (`WARM` 1.0,0.78,0.45) so its pools
-  pop against the cool fill. Per-run base (`AMBIENT_BASE_BY_RUN` [morning 0.80 / afternoon 0.42
-  / **night 0.07 = near-black**]) is dimmed further by DEPTH (`AMBIENT_DEPTH_DIM`). **Brightness
-  budget (matters — 2D lights are ADDITIVE):** lamp energy is per-run `LAMP_ENERGY_BY_RUN`
-  [0.34/0.95/1.9] — punchy enough to read as defined pools, but ambient+peak-add ≈ 1.0 so it
+  pop against the cool fill. **STAGED RAMP (owner's call):** MORNING is DAYTIME — near-fully lit,
+  minimal shadow, lighting barely intrudes (ambient base **0.95**, NEUTRAL bright daylight cast
+  1.0,0.99,0.96; lamp 0.15, window 0.10, aura 0.10). The lighting design only starts working in
+  the AFTERNOON (base 0.42, cool dusk, warm pools begin to matter) and dominates at NIGHT (base
+  **0.07 = near-black**). Base dimmed further by DEPTH (`AMBIENT_DEPTH_DIM`). **Brightness budget
+  (matters — 2D lights are ADDITIVE):** lamp energy per-run `LAMP_ENERGY_BY_RUN` [0.15/0.95/1.9]
+  — barely-there by day, punchy defined pools by dusk/night, but ambient+peak-add ≈ 1.0 so it
   never blows to white (the owner caught an earlier version glaring + a white-blown window). The
   cone cookie has a CRISP edge (`pow(1-hf²,1.6)`) so shafts read as pools, not fuzz. Window
   [0.16/0.28/0.30] + cool day cast keeps the pane's blue; aura [0.16/0.40/0.62]. Lights run

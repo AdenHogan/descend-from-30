@@ -24,7 +24,7 @@ const LAMP_SCALE := 1.15                       # cone reach (texture_scale)
 # still carries the scene, but the pools are PUNCHY enough to read as cozy warm islands
 # against a cooler dusk; at NIGHT the ambient is near-black so the lamps are bright, defined
 # shafts in the dark. (The budget: ambient + peak add ≈ 1.0 in the pool, no white blowout.)
-const LAMP_ENERGY_BY_RUN := [0.34, 0.95, 1.9]  # morning / afternoon / night
+const LAMP_ENERGY_BY_RUN := [0.15, 0.95, 1.9]  # morning barely lit (daytime) / afternoon / night
 
 # Stairwell windows — daylight spills in beside the stairs (moonlit at night).
 const STAIR_WINDOW_LEFT_X := 171.0
@@ -36,7 +36,7 @@ const STAIR_WINDOW_Y := 300.0
 # SMALL by day (the scene is already lit; a big value blows the pane to white) and modest
 # at night. A soft, fairly tight pool so it reads as light through a window, not a floodlight.
 const WINDOW_CAST := [Color(0.80, 0.88, 1.00), Color(1.00, 0.90, 0.76), Color(0.55, 0.68, 1.00)]
-const WINDOW_ENERGY := [0.16, 0.28, 0.30]
+const WINDOW_ENERGY := [0.10, 0.28, 0.30]
 const WINDOW_SCALE := 1.6
 
 static var _cone: Texture2D = null

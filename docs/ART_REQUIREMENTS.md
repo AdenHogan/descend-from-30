@@ -1,0 +1,163 @@
+# Descend From 30 — Art Requirements (v1)
+
+A brief for contracting pixel artists. Share this + a few in-game screenshots. If
+anything here is unclear, ask before starting a full set — a quick test frame saves
+re-work.
+
+## The game in one paragraph
+
+A 2D **side-scrolling pixel-art** roguelike (Godot 4.6). You play survivors
+**descending a 30-floor apartment building** during a zombie outbreak — scavenging
+apartments and fighting through corridors, floor by floor, down to the lobby. One
+playthrough is **three characters** (a morning, an afternoon and a night run) through
+the *same* building as it decays. Everything plays on a **single flat walking plane**
+(the camera scrolls left/right; there is no jumping/verticality in normal play).
+
+## Tone — "cozy horror"
+
+Warm, lived-in apartments turned quietly dangerous. Dread comes from **atmosphere,
+light and decay**, not gore-splatter. Think: an ordinary building you know, wrong.
+Grounded, slightly muted palette; strong readable silhouettes.
+
+---
+
+## CRITICAL technical rules (read first — these prevent re-work)
+
+1. **One feet baseline.** Every character and enemy stands on the **same floor line**.
+   Author each sheet so the character's **feet sit at a fixed row within the frame**,
+   identical across every frame and every character, and tell us that feet offset (or
+   keep it at the very bottom of a tightly-cropped frame). Our current placeholder rigs
+   were authored at different scales/paddings, so their drawn feet don't line up — the
+   #1 thing to get right.
+
+2. **Author art FLAT / neutrally lit — the engine does the lighting.** The game applies
+   **real dynamic 2D lighting** on top of the art: warm ceiling-lamp pools, fire glow,
+   cool moonlight, and darkness. So deliver art that is **evenly lit, near shadeless** —
+   **no baked-in hard highlights or cast shadows** on characters/props. (A soft
+   contact-shadow oval under the feet is fine and welcome.) Form-shading with gentle
+   ambient volume is OK; directional "sun from top-left" baking is not — it fights the
+   engine light. Every asset must still read when the only light on it is a **single
+   warm pool in a near-black room** (our night runs).
+
+3. **Author facing RIGHT.** The engine mirrors horizontally for left-facing. Avoid
+   asymmetric details (text, single-shoulder bags) that look wrong flipped.
+
+4. **Transparent background, no baked scenery.** Characters/props on their own
+   transparent layer; never paint the corridor into a character sheet.
+
+5. **Pixel-perfect.** Nearest-neighbour scaling, integer frame sizes, crisp edges (no
+   soft anti-aliased halos unless a glow is intended).
+
+---
+
+## Canvas, scale & density
+
+- The game renders **1152 × 648**, nearest-filter (chunky pixels).
+- **Match the existing density.** Standard humanoids (player, zombies, NPCs) should read
+  **~90–110 px tall on screen** standing. Author at a **tight native frame** (≈ 64 × 64
+  for a normal human, larger for the Big Zombie/boss) and we scale in-engine — deliver
+  native pixels + the intended scale factor.
+  - The current player rig is 48², the zombie rigs 128² (mostly empty padding) — please
+    **don't** copy the padded 128² approach; use a tight crop with feet on the baseline.
+- **Bigger creatures are taller, not lower** — a Big Zombie/boss reads larger but its
+  **feet still sit on the same floor line**.
+
+---
+
+## Asset list (by priority)
+
+### Tier 1 — core actors (replace placeholders)
+- **Player character** — full set. Animations: idle, walk, run, crouch-idle, crouch-walk,
+  scavenge (searching a cupboard), **melee attack** (swing), **gun**: idle / walk / run /
+  shoot, hurt/stagger, death, door-approach + knock (a step-up toward a door), balcony
+  rope-lash + climb-down. Author neutral clothing (a scavenger/survivor).
+- **Standard Zombie** — idle, walk, attack (lunge/grab), hit/stagger, death.
+- **Big Zombie** — same set, bulkier, heavier silhouette.
+
+### Tier 2 — enemy variety (need DISTINCT silhouettes; today they're reskins)
+- **Crawler** — low to the ground, dragging itself (reads as *low* even in shadow).
+- **Long-Arm** — elongated reaching arms (the long-reach threat).
+- **Spitter** — ranged; also a small **spit projectile** sprite/anim.
+- **Corridor Boss** — an elite, unmistakable silhouette (a step above the Big Zombie).
+- Each: idle, walk/move, attack, hit, death.
+
+### Tier 3 — NPCs
+- **Merchant** — a shopkeeper who trades from inside the elevator car (currently reuses
+  the player sheet). Idle + a talk/gesture beat.
+- **Barricade-keeper** — a survivor NPC guarding a stairwell (future; concept welcome).
+
+### Environment
+- **Corridor set** — wall, baseboard/trim, ceiling, floor.
+- **Apartment doors, by state** — closed, open, **locked**, **weak/damaged**,
+  **barricaded**, **breached** (busted open). Same door, readable state changes.
+- **Stairwells** — an *up* flight (visible steps) and a *down* shaft (dark opening).
+- **Windows** — a stairwell window and an apartment **balcony** window/door (daylight
+  comes through these; keep the glass able to read as lit).
+- **Elevator** — corridor doors (closed/open) + the **interior car** (a small room the
+  player rides in, roomy enough for the merchant).
+- **Maintenance room** — small utility room: workbench, fuse box.
+- **Lobby** (ground floor) and the **floor-30 hallway** (tutorial floor).
+- **Apartment room modules** — bedroom, kitchen, bathroom, study, living room, dining
+  room. Each a self-contained ~**320 px-wide** module (three sit side by side per
+  apartment); furnish for scavenging.
+
+### Props
+- Crate-stack **barricade** (blocks a stairwell), scavenge-anchor highlight, corpse,
+  world-drop pickups, keys, wall-mounted fire extinguisher canister.
+
+### UI / icons
+- **36 inventory item icons** (small, readable at ~32–48 px in a HUD slot). List below.
+- HUD frame / slot art, a pixel display font is already in use (match its feel).
+
+### FX
+- Fire & smoke are currently **licensed sprite packs** (craftpix/Kenney) — no bespoke
+  fire needed yet, but a matching **impact/blood-hit** puff and a **muzzle flash** would
+  help.
+
+---
+
+## Sectional identity — the descent DECAYS (a key pillar)
+
+The infection is **worst at the bottom**, so the building should visibly rot the lower
+you go. Please deliver corridor + door (and ideally room-dressing) variants across
+**three bands**:
+
+- **Floors 30–21 (top):** clean, intact, lived-in — an ordinary nice building.
+- **Floors 20–11 (mid):** disturbed — damage, blood, disorder, things breaking down.
+- **Floors 10–1 + lobby (bottom):** **grotesque** — heavy infection growth, biological
+  corruption, ruin.
+
+Descending should *feel* like sinking into something sick. Enemies can also pick up
+per-band grime if budget allows.
+
+## Time of day — the ENGINE handles it, not the art
+
+Each run is Morning / Afternoon / Night. **We light and tint that dynamically** (morning
+bright daylight; afternoon a cool dusk with warm interior pools; night near-black lit
+only by lamps/fire). **Author each asset once, neutrally lit** — do **not** deliver
+separate day/night versions unless we ask.
+
+---
+
+## Deliverables & naming
+
+- **PNG**, transparent, nearest-filter-safe.
+- Sprite sheets as **horizontal strips, one animation per row** (or per-file frames) —
+  either is fine, just be consistent and tell us the layout.
+- For each animation give: **name, frame count, frame size, suggested fps, loop or
+  one-shot**, and the **feet/pivot offset**.
+- Naming: `subject_anim.png` — e.g. `player_walk.png`, `zombie_standard_attack.png`,
+  `door_barricaded.png`, `corridor_wall_low.png`.
+- First, a **palette swatch** + one **"hero" mock** of a lit corridor with a character
+  in it, so we can lock the look before you produce full sets.
+
+## Inventory items (36 — for icons)
+
+001 Knife · 002 Hammer · 003 Sword · 004 Gun · 005 Canned Food · 006 Bandages ·
+007 First Aid Kit · 008 Clothes · 009 Torn Clothes · 010 Painkillers · 011 Ice Pack ·
+012 Golf Club · 013 Cricket Bat · 014 Baseball Bat · 015 Flashlight · 016 Bullets ·
+017 Aluminium Baseball Bat · 018 Rope · 019 Toolbox · 020 Fuse · 021 Battery ·
+022 Apartment Key · 023 Broken Glass · 024 Empty Bottle · 025 Old Magazine ·
+026 Takeaway Boxes · 027 Dead Plant · 028 Broken Remote · 029 Pile of Paperwork ·
+030 Old Shoes · 031 Empty Wallet · 032 Broken Umbrella · 033 Bank Notes ·
+034 Screwdriver · 035 Crowbar · 036 Fire Extinguisher
