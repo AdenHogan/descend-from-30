@@ -161,7 +161,13 @@ d.subhead("Tone — “cozy horror”")
 d.para("Warm, lived-in apartments turned quietly dangerous. Dread comes from atmosphere, "
        "light and decay — not gore-splatter. Grounded, slightly muted palette; strong, "
        "readable silhouettes. The title art below is the mood target.")
-d.space(6)
+d.space(4)
+d.subhead("Scope at a glance")
+d.para("This is a full game art package, not a one-off: player character sprites (multiple "
+       "survivors), enemy sprites, NPCs, inventory + in-world items, environments (varied "
+       "corridors, modular rooms, stairwells, elevator, lobby), UI / HUD, and player "
+       "health-state portraits. Sections below break each down.", "small", SUB)
+d.space(4)
 d.image(os.path.join(SHOTS, "title.png"),
         "Title screen — the tone/mood we are aiming for.", ph_label="title.png", ph_h=420)
 
@@ -215,36 +221,49 @@ d.bullets([
 # ---- Characters & enemies ----------------------------------------------
 d.heading("Characters & enemies", "Placeholder rigs shown at true in-game scale, feet aligned.")
 d.image(os.path.join(REF, "enemy_lineup.png"))
-d.para("Need DISTINCT silhouettes (today these are reskins): Crawler reads low/dragging, "
-       "Long Arm has the reach, Spitter is ranged (+ a spit projectile), the Boss is an "
-       "unmistakable elite. Each enemy: idle, walk/move, attack, hit/stagger, death.", "small", SUB)
+d.para("Five enemies. They currently SHARE one rig (reskins) — we need DISTINCT silhouettes: "
+       "the Standard zombie; the Big (a larger, heavier zombie with a heavy attack); the Crawler "
+       "(low, dragging along the ground); the Long Arm (extended reach); and the Spitter (ranged, "
+       "with a spit projectile). Each needs: idle, walk/move, attack, hit/stagger, death.",
+       "small", SUB)
 d.image(os.path.join(REF, "player_poses.png"))
+d.para("The four poses above are stills; the placeholder player rig ALSO already includes full "
+       "attack animation sheets (melee swing + gun shoot) and the walk/run/crouch/hurt/death "
+       "cycles — all available as reference for timing and frame counts.", "small", SUB)
 d.bullets([
     "Player — full set: idle, walk, run, crouch-idle/walk, scavenge, melee attack, gun "
     "(idle/walk/run/shoot), hurt, death, door-approach + knock, balcony rope-lash + climb.",
-    "Enemies — Standard, Big, Crawler, Long Arm, Spitter, Corridor Boss.",
-    "NPCs — Merchant (trades from inside the elevator car) and a Barricade-keeper (survivor).",
+    "Enemies — Standard, Big (larger, heavy attack), Crawler, Long Arm, Spitter.",
+    "NPCs — the Merchant already exists in-game (trades from inside the elevator car); MORE "
+    "NPCs will need designing later (e.g. a barricade-keeper survivor, and others as the story "
+    "grows).",
 ])
 
 # ---- Health stages ------------------------------------------------------
 d.heading("Player health stages", "The character visibly deteriorates as they take damage.")
 d.image(os.path.join(REF, "health_stages.png"))
-d.para("Six HUD portrait states, Healthy → Dying (shown bottom-left of the HUD). Any new "
-       "player character needs this full progression — escalating injury, blood and exhaustion "
-       "— matching the same six beats.", "small", SUB)
+d.para("Six HUD portrait states, Healthy → Dying (shown bottom-left of the HUD). These are "
+       "TEMPORARY and show ONE player character. We plan MULTIPLE playable characters — male "
+       "and female body types, up to ~8 potential survivors — and EACH needs the same six "
+       "health-state portraits (escalating injury, blood and exhaustion) plus its own full body "
+       "sprite set. Match this progression per character.", "small", SUB)
 
 # ---- Environment --------------------------------------------------------
 d.heading("Environment & modular rooms")
 d.bullets([
-    "Corridor set: wall, baseboard/trim, ceiling, floor.",
+    "Corridor / hallway set: wall, baseboard/trim, ceiling, floor — with VARIETY. The player "
+    "descends 30 floors; the corridor must NOT feel like the same background 30 times. We need "
+    "several corridor variants (layout/decor/wear) AND day-state/immersion differences, so each "
+    "stretch feels distinct as you go down (this is separate from the top→bottom decay below).",
     "Apartment doors BY STATE: closed, open, locked, weak/damaged, barricaded, breached.",
     "Stairwells (an up flight + a dark down shaft); windows (stairwell + apartment balcony — "
     "daylight/moonlight comes through these).",
     "Elevator (corridor doors + the interior car), maintenance room (workbench, fuse box), "
     "lobby, and the floor-30 hallway.",
     "MODULAR apartment rooms — bedroom, kitchen, bathroom, study, living room, dining room; "
-    "each a self-contained ~320 px-wide module (three sit side by side per apartment), "
-    "furnished for scavenging (see the Bathroom shot above).",
+    "each a self-contained ~320 px-wide module (three sit side by side per apartment), furnished "
+    "for scavenging (see the Bathroom shot). Same anti-repetition rule: a FEW variations per room "
+    "type, not the same bathroom every time.",
     "Props: crate-stack barricade, corpse, world-drop pickups, keys, wall fire-extinguisher.",
 ])
 d.subhead("Sectional identity — the descent DECAYS (a key pillar)")
@@ -273,11 +292,14 @@ d.para("Because the engine handles the light, do NOT deliver separate day/night 
        "an asset unless we ask — one neutral version is lit three ways.", "small", SUB)
 
 # ---- Items --------------------------------------------------------------
-d.heading("Items")
+d.heading("Items & UI")
 d.para("We also need ITEM art — inventory icons and in-world pickups (weapons, tools, medical, "
        "food, junk, keys, cash, etc.), readable at small HUD size. There are ~36 items; a full "
        "per-item spec exists on our side and we'll share it when we get to this — for now, just "
-       "flagging that item design is part of the scope, not only characters and environments.")
+       "flagging that item design is part of the scope.")
+d.para("And UI: the HUD (portrait frame, hotbar slots, floor/mode readouts) and menu screens "
+       "(title, save-slots, settings) — see the shots on page 2 for the current placeholder "
+       "style. A cohesive UI pass is part of the package.", "small", SUB)
 
 # ---- Deliverables -------------------------------------------------------
 d.heading("Deliverables & naming")

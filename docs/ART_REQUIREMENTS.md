@@ -59,7 +59,7 @@ Grounded, slightly muted palette; strong readable silhouettes.
   native pixels + the intended scale factor.
   - The current player rig is 48², the zombie rigs 128² (mostly empty padding) — please
     **don't** copy the padded 128² approach; use a tight crop with feet on the baseline.
-- **Bigger creatures are taller, not lower** — a Big Zombie/boss reads larger but its
+- **Bigger creatures are taller, not lower** — the Big Zombie reads larger but its
   **feet still sit on the same floor line**.
 
 ---
@@ -70,24 +70,34 @@ Grounded, slightly muted palette; strong readable silhouettes.
 - **Player character** — full set. Animations: idle, walk, run, crouch-idle, crouch-walk,
   scavenge (searching a cupboard), **melee attack** (swing), **gun**: idle / walk / run /
   shoot, hurt/stagger, death, door-approach + knock (a step-up toward a door), balcony
-  rope-lash + climb-down. Author neutral clothing (a scavenger/survivor).
+  rope-lash + climb-down. Author neutral clothing (a scavenger/survivor). NOTE: the
+  placeholder rig **already includes attack animation sheets** (melee swing + gun shoot) and
+  the full walk/run/crouch/hurt/death cycles — use them as reference for timing/frame counts.
+- **Multiple playable characters (future):** the health portraits + body shown are ONE
+  character. We plan up to **~8 survivors — male and female body types** — each needing its
+  own full body sprite set AND its own six health-state portraits.
 - **Standard Zombie** — idle, walk, attack (lunge/grab), hit/stagger, death.
-- **Big Zombie** — same set, bulkier, heavier silhouette.
+- **Big Zombie** — a **larger, heavier zombie with a heavy attack** (bulkier silhouette).
+  (There is no separate "boss" asset — a corridor boss is just this Big rig, so it is NOT a
+  distinct art item.)
 
-### Tier 2 — enemy variety (need DISTINCT silhouettes; today they're reskins)
+### Tier 2 — enemy variety (need DISTINCT silhouettes; today all five share one rig)
 - **Crawler** — low to the ground, dragging itself (reads as *low* even in shadow).
 - **Long-Arm** — elongated reaching arms (the long-reach threat).
 - **Spitter** — ranged; also a small **spit projectile** sprite/anim.
-- **Corridor Boss** — an elite, unmistakable silhouette (a step above the Big Zombie).
 - Each: idle, walk/move, attack, hit, death.
 
 ### Tier 3 — NPCs
-- **Merchant** — a shopkeeper who trades from inside the elevator car (currently reuses
-  the player sheet). Idle + a talk/gesture beat.
-- **Barricade-keeper** — a survivor NPC guarding a stairwell (future; concept welcome).
+- **Merchant** — a shopkeeper who trades from inside the elevator car; **already in-game**
+  (reuses the player sheet as a placeholder). Idle + a talk/gesture beat.
+- **More NPCs (future):** a barricade-keeper survivor and further story NPCs will need
+  designing as the game grows — flag capacity for an expanding cast.
 
 ### Environment
-- **Corridor set** — wall, baseboard/trim, ceiling, floor.
+- **Corridor / hallway set** — wall, baseboard/trim, ceiling, floor — **with VARIETY**. The
+  player descends 30 floors; it must not feel like the same background 30 times. Need several
+  **corridor variants** (layout / decor / wear) plus day-state & immersion differences so each
+  stretch feels distinct (this is *separate* from the top→bottom decay bands below).
 - **Apartment doors, by state** — closed, open, **locked**, **weak/damaged**,
   **barricaded**, **breached** (busted open). Same door, readable state changes.
 - **Stairwells** — an *up* flight (visible steps) and a *down* shaft (dark opening).
@@ -99,7 +109,8 @@ Grounded, slightly muted palette; strong readable silhouettes.
 - **Lobby** (ground floor) and the **floor-30 hallway** (tutorial floor).
 - **Apartment room modules** — bedroom, kitchen, bathroom, study, living room, dining
   room. Each a self-contained ~**320 px-wide** module (three sit side by side per
-  apartment); furnish for scavenging.
+  apartment); furnish for scavenging. **Same anti-repetition rule as corridors:** a **few
+  variations per room type** (not the same bathroom every time).
 
 ### Props
 - Crate-stack **barricade** (blocks a stairwell), scavenge-anchor highlight, corpse,
