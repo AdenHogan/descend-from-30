@@ -1,0 +1,51 @@
+{
+  "enemies": [
+    {
+      "file": "enemy_standard.png",
+      "label": "Standard",
+      "scale": 3.0
+    },
+    {
+      "file": "enemy_big.png",
+      "label": "Big",
+      "scale": 3.0
+    },
+    {
+      "file": "enemy_crawler.png",
+      "label": "Crawler",
+      "scale": 3.0
+    },
+    {
+      "file": "enemy_long_arm.png",
+      "label": "Long Arm",
+      "scale": 3.0
+    },
+    {
+      "file": "enemy_spitter.png",
+      "label": "Spitter",
+      "scale": 3.0
+    }
+  ],
+  "player": [
+    {
+      "file": "player_gun_idle.png",
+      "label": "Gun idle",
+      "scale": 2.0
+    },
+    {
+      "file": "player_katana_idle.png",
+      "label": "Sword idle",
+      "scale": 2.0
+    },
+    {
+      "file": "player_crouch_idle.png",
+      "label": "Crouch",
+      "scale": 2.0
+    },
+    {
+      "file": "player_punch_jab.png",
+      "label": "Push",
+      "scale": 2.0
+    }
+  ]
+}
