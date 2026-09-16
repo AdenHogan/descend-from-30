@@ -227,7 +227,7 @@ func _physics_process(delta: float) -> void:
 	# Lashing a rope: rooted and silent, vulnerable to a hit (which cancels it).
 	if is_lashing:
 		velocity.x = 0
-		move_and_slide()
+		_move_locked()
 		return
 
 	if is_dying:
@@ -237,13 +237,13 @@ func _physics_process(delta: float) -> void:
 			_die()
 		var dying_direction = Input.get_axis("move_left", "move_right")
 		velocity.x = dying_direction * CROUCH_SPEED * 0.5
-		move_and_slide()
+		_move_locked()
 		return
 
 	if is_switching_mode:
 		mode_switch_timer -= delta
 		velocity.x = 0
-		move_and_slide()
+		_move_locked()
 		if mode_switch_timer <= 0:
 			is_switching_mode = false
 			WorldState.is_scavenge_mode = !WorldState.is_scavenge_mode
@@ -264,7 +264,7 @@ func _physics_process(delta: float) -> void:
 			_cancel_listen()
 			return
 		velocity.x = 0
-		move_and_slide()
+		_move_locked()
 		listen_timer -= delta
 		if listen_timer <= 0:
 			_finish_listen()
@@ -380,8 +380,7 @@ func _physics_process(delta: float) -> void:
 		velocity.x = direction * current_speed
 	else:
 		velocity.x = move_toward(velocity.x, 0, SPEED)
-	var _pre_y := global_position.y
-	move_and_slide()
+	_move_locked()
 
 	# On the balcony plane: held to the balcony's own line, clamped between the
 	# rails (its X collision bounds), free to move left/right; S steps back in.
@@ -391,13 +390,6 @@ func _physics_process(delta: float) -> void:
 			balcony_center_x - BALCONY_HALF_WIDTH, balcony_center_x + BALCONY_HALF_WIDTH)
 		if Input.is_action_just_pressed("move_down"):
 			exit_balcony_plane()
-	elif not is_cutscene:
-		# FLAT WALKING PLANE: there is no gravity here — the player only ever moves
-		# horizontally. Enemies (a run-3 crowd / a boss at a door) may block sideways,
-		# but they must NEVER push the player off the floor line. move_and_slide's
-		# depenetration was riding the player UP onto a crowd (a Y-plane break: player
-		# stranded on top of enemies). Hold Y to where it was before the slide.
-		global_position.y = _pre_y
 
 	# Movement noise (under the hood — docs/SOUND_STEALTH.md): louder gaits
 	# are audible further. Zombies whose sight misses you can still hear you.
@@ -420,6 +412,19 @@ func _physics_process(delta: float) -> void:
 			footstep_player.play()
 	else:
 		footstep_timer = 0.0
+
+
+func _move_locked() -> void:
+	# FLAT WALKING PLANE: there is no gravity — the player only moves horizontally. Enemies
+	# (a run-3 crowd, a boss at a door) may block sideways, but must NEVER push the player off
+	# the floor line: move_and_slide's depenetration rides the player UP onto a crowd (a
+	# Y-plane break — stranded on top of enemies). Hold Y to where it was before the slide.
+	# Used by EVERY move path (idle, walk, listen, mode-switch, lashing, dying) so no state
+	# leaks the plane. Balcony/cutscene manage Y themselves, so skip the pin for them.
+	var y := global_position.y
+	move_and_slide()
+	if not on_balcony_plane and not is_cutscene:
+		global_position.y = y
 
 
 func _setup_player_light() -> void:

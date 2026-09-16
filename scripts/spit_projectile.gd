@@ -52,7 +52,12 @@ func _physics_process(delta: float) -> void:
 	position.x += _dir * step
 	_travelled += step
 	if _player != null and is_instance_valid(_player):
-		if global_position.distance_to(_player.global_position) <= HIT_RADIUS:
+		# Height-tolerant hit: the rigs sit at different origins, so gate on HORIZONTAL
+		# distance with a vertical tolerance rather than a raw radius that the origin gap
+		# could exceed (that used to make the spit sail over the shorter player).
+		var dx: float = absf(global_position.x - _player.global_position.x)
+		var dy: float = absf(global_position.y - _player.global_position.y)
+		if dx <= HIT_RADIUS and dy <= 48.0:
 			if _player.has_method("receive_hit"):
 				_player.receive_hit(1)
 			_hit = true

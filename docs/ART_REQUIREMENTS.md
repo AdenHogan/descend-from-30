@@ -61,6 +61,13 @@ Grounded, slightly muted palette; strong readable silhouettes.
     **don't** copy the padded 128² approach; use a tight crop with feet on the baseline.
 - **Bigger creatures are taller, not lower** — the Big Zombie reads larger but its
   **feet still sit on the same floor line**.
+- **Consistent character height (a live gameplay issue).** The current PLACEHOLDER player
+  reads only ~56 px tall while the zombies are ~84–99 px, so the player is the odd one out —
+  tall enemies (Long Arm, Spitter) tower and their attacks read as going over the player's
+  head. New art must fix this: the **player and a standard zombie stand at roughly the same
+  height**, with attack reach at a matching level; the Big is taller but proportioned so its
+  hits still land. (Engine-side, the spit projectile and melee already connect regardless of
+  the current mismatch; this is about how it *reads*.)
 
 ---
 

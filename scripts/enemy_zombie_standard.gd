@@ -44,6 +44,7 @@ func make_burnt_corpse() -> void:
 	# for a BLAZE-stage apartment where everyone already burned to death (room.gd).
 	is_dead = true
 	state = "dead"
+	z_index = 0                    # a corpse lies on the floor layer, under the living
 	set_physics_process(false)
 	set_collision_layer_value(1, false)
 	set_collision_mask_value(1, false)
@@ -669,6 +670,8 @@ func _die() -> void:
 	on_fire = false                # the flames go out the instant it dies (clears the fx)
 	state = "dead"
 	velocity.x = 0
+	z_index = 0                    # drop to the FLOOR layer — a corpse must lie UNDER the
+	                               # living (player/enemies at z1), never over the player's legs
 	animated_sprite.play("Death")
 	set_collision_layer_value(1, false)
 	set_collision_mask_value(1, false)

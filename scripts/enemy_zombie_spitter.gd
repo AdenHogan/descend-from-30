@@ -36,5 +36,9 @@ func _deliver_attack(_distance: float) -> void:
 		animated_sprite.flip_h = dir < 0
 	var proj = SPIT.new()
 	proj.launch(dir)
-	proj.global_position = global_position + Vector2(dir * 22.0, -28.0)   # from the mouth
+	# Launch toward the PLAYER'S plane, not the spitter's high mouth: the player rig is much
+	# shorter than the spitter, so a spit fired from mouth height (~28px up) flew clean OVER
+	# the player and could never connect. Fly it level at the player's body so it actually hits.
+	var launch_y: float = player.global_position.y - 8.0 if player != null else global_position.y
+	proj.global_position = Vector2(global_position.x + dir * 22.0, launch_y)
 	get_parent().add_child(proj)

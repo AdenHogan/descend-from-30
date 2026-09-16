@@ -149,8 +149,8 @@ setup script; binary from downloads.godotengine.org). Before every commit:
   `profile_ui_test`, `title_test`, `enemy_memory_test`, `floor_adopt_test`,
   `balcony_test`, `hud_prompt_test`, `stair_block_test`, `fire_test`,
   `maintenance_test`, `elevator_test`, `run_arc_test`, `enemy_variety_test`,
-  `dev_menu_test`, `lighting_test` — run all
-  30 before commit. (Run ONE godot at a time — a killed/backgrounded headless run can
+  `dev_menu_test`, `lighting_test`, `plane_lock_test` — run all
+  31 before commit. (Run ONE godot at a time — a killed/backgrounded headless run can
   linger and block the next, and a GDScript **parse error makes a test scene load but
   never call `quit()`, so it "hangs" until timeout** rather than printing an error line;
   if a suite hangs, check for a parse error and stray `godot` processes first.
@@ -720,6 +720,22 @@ means no rendering — UI layout and art still need an in-editor look.
   half-width (40) is used instead of the old 10 fallback. (An impale/bludgeon
   *feel* animation is optional polish, not a fix — the swing VISUAL doesn't angle at the
   target, but the hit lands.)
+  **Playtest fixes (measured):** (1) **Crowd-push off the plane** — the Y-pin only guarded
+  the MAIN move path; the early-return states (`is_listening`/`is_switching_mode`/lashing/
+  dying) each called `move_and_slide()` unpinned, so a crowd shoved the player UP during
+  those frames and it stuck. Centralised into `player._move_locked()` (pins Y to pre-slide
+  unless balcony/cutscene) used by EVERY move path. Locked by `plane_lock_test` (0px drift
+  under a 14-zombie crowd in the mode-switch path). (2) **Spitter couldn't hit** — it
+  launched the spit from the mouth (~28px up) and flew level, but the player rig is much
+  shorter, so the blob sailed 42px over the player (> the 30px hit radius) and never
+  connected. Now launches at the player's plane (`enemy_zombie_spitter`) + the projectile
+  hit is horizontal + a 48px vertical tolerance (`spit_projectile`). (3) **Legs behind
+  corpses** — `_die`/`make_burnt_corpse` left the corpse at z1 (actor layer, later in the
+  tree) so it drew over the player's legs; corpses now drop to **z0** (the floor layer) on
+  death (standard + big). (4) **Placeholder scale mismatch** (player ~56px vs zombies
+  ~84–99px) makes tall enemies tower — an ART issue (functional hits land after the above);
+  documented in docs/ART_REQUIREMENTS.md as "consistent character height" for the art pass,
+  NOT fixed by rescaling throwaway rigs (would float their feet).
   **Corridor bosses (runs 2/3):** a floor may set ONE roaming boss loose — a tougher Big
   Zombie (`enemy_zombie_big.is_corridor_boss`: ~1.6×+6 HP, elite red tint, in group
   `corridor_boss`). It guards nothing so drops **NO key**, but drops a **fatter money

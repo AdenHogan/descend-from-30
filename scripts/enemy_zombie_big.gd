@@ -182,6 +182,7 @@ func _die() -> void:
 	on_fire = false                # the flames go out the instant it dies (clears the fx)
 	state = "dead"
 	velocity.x = 0
+	z_index = 0                    # corpse drops to the floor layer, under the living
 	animated_sprite.play("Death")
 	set_collision_layer_value(1, false)
 	set_collision_mask_value(1, false)

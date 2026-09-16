@@ -213,9 +213,16 @@ d.bullets([
 d.subhead("Scale & density")
 d.bullets([
     "Game renders 1152×648, chunky pixels. Standard humanoids read ~90–110 px tall on "
-    "screen; author at a tight native frame (~64² for a human, larger for the Big/boss) and "
-    "we scale in-engine — deliver native px + the intended scale factor.",
+    "screen; author at a tight native frame (~64² for a human, larger for the Big) and we "
+    "scale in-engine — deliver native px + the intended scale factor.",
     "Bigger creatures are TALLER, not lower — feet still on the same floor line.",
+    "CONSISTENT CHARACTER HEIGHT (important — a live gameplay issue): today's PLACEHOLDER "
+    "player reads only ~56 px tall while the zombies are ~84–99 px, so the player is the "
+    "odd one out — tall enemies (Long Arm, Spitter) tower and their attacks read as passing "
+    "over the player's head. New art must fix this: the player and a standard zombie should "
+    "stand at ROUGHLY the same height, with attack reach at a matching level; bigger types "
+    "(Big) are taller but proportioned so their hits still land on the player. All feet on "
+    "the shared baseline.",
 ])
 
 # ---- Characters & enemies ----------------------------------------------
