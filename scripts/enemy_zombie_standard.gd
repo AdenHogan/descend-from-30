@@ -671,7 +671,7 @@ func _die() -> void:
 	state = "dead"
 	velocity.x = 0
 	z_index = 0                    # drop to the FLOOR layer — a corpse must lie UNDER the
-	                               # living (player/enemies at z1), never over the player's legs
+								   # living (player/enemies at z1), never over the player's legs
 	animated_sprite.play("Death")
 	set_collision_layer_value(1, false)
 	set_collision_mask_value(1, false)
