@@ -185,6 +185,12 @@ d = Doc()
 
 # ---- Cover ---------------------------------------------------------------
 d.dr.text((MARGIN, d.y), "DESCEND FROM 30", font=F["title"], fill=INK)
+# Studio + contact block, right-aligned against the title.
+_studio = "Mammoth Games"
+d.dr.text((PW - MARGIN - d.dr.textlength(_studio, font=F["h2"]), d.y + 6), _studio, font=F["h2"], fill=ACCENT)
+for _i, _line in enumerate(["Project lead: Aden Hogan", "adenhoganej@gmail.com"]):
+    d.dr.text((PW - MARGIN - d.dr.textlength(_line, font=F["small"]), d.y + 40 + _i * 20),
+              _line, font=F["small"], fill=SUB)
 d.y += F["title"].getbbox("Ag")[3] + 8
 d.dr.text((MARGIN, d.y), "Art brief for contracting artists", font=F["h2"], fill=ACCENT)
 d.y += F["h2"].getbbox("Ag")[3] + 18
@@ -237,6 +243,9 @@ d.two_up([
     (os.path.join(SHOTS, "merchant.png"),
      "Merchant floor: trades from the elevator. Note the warm ceiling light cones (engine "
      "lighting), the wall fire-extinguisher, and a corpse on the floor.", "merchant.png"),
+    (os.path.join(SHOTS, "attack.png"),
+     "Combat swing: the melee attack VFX (sword, the pink slash) inside an apartment "
+     "(Bedroom).", "attack.png"),
 ])
 
 # ---- Critical conventions -----------------------------------------------
