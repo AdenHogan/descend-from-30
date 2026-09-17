@@ -284,9 +284,10 @@ func _test_spitter_spits() -> void:
 
 
 func _test_crawler_behaviour() -> void:
-	# The Crawler is now SLOW, hits for DOUBLE, and can't be shoved back — a push KICKS it
-	# (rooted stun) instead. Plus its run-1 frequency is ~3:1 standards across the building.
-	print("[crawler behaviour: slow, double dmg, kick-stun, 3:1]")
+	# The Crawler is SLOW and hits for DOUBLE. A push is now a GENERAL push on it too
+	# (real knockback, like every other enemy — the old Crawler-only kick-stun was
+	# dropped). Plus its run-1 frequency is ~3:1 standards across the building.
+	print("[crawler behaviour: slow, double dmg, general push, 3:1]")
 	WorldState.new_game()
 	var std = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
 	add_child(std)
@@ -298,10 +299,15 @@ func _test_crawler_behaviour() -> void:
 	await get_tree().process_frame
 	check(cr.SPEED < std_speed, "crawler is slower than a standard (%.0f < %.0f)" % [cr.SPEED, std_speed])
 	check(cr.ATTACK_DAMAGE == 2, "crawler bite does DOUBLE damage (ATTACK_DAMAGE=%d)" % cr.ATTACK_DAMAGE)
-	# Kick-stun: roots it in the 'hit' state with no knockback velocity.
-	check(cr.has_method("receive_kick"), "crawler supports a kick-stun")
-	cr.receive_kick(1.4)
-	check(cr.state == "hit" and absf(cr.velocity.x) < 0.01, "a kick roots the crawler (state=%s vel=%.1f)" % [cr.state, cr.velocity.x])
+	# General push: a shove now imparts real knockback velocity (not a rooted stun).
+	check(cr.has_method("receive_push"), "crawler supports a general push")
+	cr.receive_push(150.0)
+	check(absf(cr.velocity.x) > 0.01, "a push knocks the crawler back (vel=%.1f)" % cr.velocity.x)
+	# Its collision box is TALLER now so the shove connects even into the blank space
+	# above the low body (measured against the standard's box height).
+	var cr_shape = cr.get_node_or_null("CollisionShape2D")
+	check(cr_shape != null and cr_shape.shape is RectangleShape2D and cr_shape.shape.size.y >= 50.0,
+		"crawler collision box is taller (%.0f px)" % (cr_shape.shape.size.y if cr_shape != null and cr_shape.shape is RectangleShape2D else -1.0))
 	cr.queue_free()
 	await get_tree().process_frame
 	# Run-1 frequency ~3:1 across the building (sample a mid floor — clean of big).

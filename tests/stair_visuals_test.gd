@@ -125,5 +125,37 @@ func _ready() -> void:
 		"...and its own step on/off the red line (down %.0f, up %.0f)"
 			% [StairPan.DOWN_STAIR_APPROACH, StairPan.UP_STAIR_APPROACH])
 
+	# CANONICAL ARRIVAL SIDE (the dev-warp fix). The stairwell layout is arrival-driven,
+	# so a warp must land on the SAME side a real stair descent to that floor would — else
+	# even floors render mirrored (down-stair on the wrong side) until an apartment
+	# round-trip re-derives it. The warp (dev_warp_prompt), balcony drop and elevator all
+	# feed WorldState.canonical_stair_arrival_side into stair_spawn_side for exactly this.
+	chk(WorldState.canonical_stair_arrival_side(25) == "left"
+		and WorldState.canonical_stair_arrival_side(23) == "left",
+		"odd floors arrive on the LEFT (25=%s, 23=%s)"
+			% [WorldState.canonical_stair_arrival_side(25), WorldState.canonical_stair_arrival_side(23)])
+	chk(WorldState.canonical_stair_arrival_side(24) == "right"
+		and WorldState.canonical_stair_arrival_side(26) == "right",
+		"even floors arrive on the RIGHT (24=%s, 26=%s)"
+			% [WorldState.canonical_stair_arrival_side(24), WorldState.canonical_stair_arrival_side(26)])
+	# A canonical arrival at floor N puts the DOWN stair (the way on, to N-1) on the side
+	# OPPOSITE the arrival side — the zig-zag. Verify the built floor honours it for both
+	# parities, which is what a warp now reproduces on every floor.
+	for fnum in [24, 25]:
+		WorldState.current_floor = fnum
+		WorldState.stair_spawn_side = WorldState.canonical_stair_arrival_side(fnum)
+		WorldState.stair_direction = "down"
+		var bf2 = load("res://scenes/building_floors.tscn").instantiate()
+		bf2.setup_floor = fnum; bf2.passive = true
+		add_child(bf2)
+		for i in range(3): await get_tree().process_frame
+		var down_on_left: bool = bf2.get_node("HallwayStaircaseLeft").visible
+		var arrived_left: bool = WorldState.canonical_stair_arrival_side(fnum) == "left"
+		chk(down_on_left != arrived_left,
+			"floor %d: DOWN stair is opposite the canonical arrival side (down_left=%s, arrived_left=%s)"
+				% [fnum, down_on_left, arrived_left])
+		bf2.free()
+		await get_tree().process_frame
+
 	print("=== %s (%d failures) ===" % ["ALL PASSED" if fails == 0 else "FAILED", fails])
 	get_tree().quit(1 if fails > 0 else 0)

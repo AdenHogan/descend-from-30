@@ -77,9 +77,16 @@ func _on_submitted(text: String) -> void:
 
 func _warp_to(floor_num: int) -> void:
 	# Mirrors stairwell.gd's descent transition so all arrival hooks fire.
+	# The stairwell layout is arrival-driven (building_floors._apply_stair_visuals):
+	# which side goes up vs down depends on stair_spawn_side/stair_direction. A normal
+	# descent lands you on the floor's CANONICAL side (it alternates by parity), so the
+	# warp must use that same canonical side — hardcoding "left" landed even floors
+	# MIRRORED (down-stair on the wrong side) until an apartment round-trip re-derived
+	# it. Balcony drops (world_state.descend_from_balcony) and the elevator already use
+	# canonical_stair_arrival_side for exactly this reason; match them.
 	WorldState.current_floor = floor_num
 	WorldState.spawn_source = "stair"
-	WorldState.stair_spawn_side = "left"
+	WorldState.stair_spawn_side = WorldState.canonical_stair_arrival_side(floor_num)
 	WorldState.stair_direction = "down"
 	WorldState.on_floor_arrived(floor_num)
 	HUD.update_floor_label()

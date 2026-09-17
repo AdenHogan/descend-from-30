@@ -680,9 +680,12 @@ means no rendering — UI layout and art still need an in-editor look.
   types** (all reuse `enemy_zombie_standard.gd` via `extends`, overriding the now-`var`
   stats `SPEED`/`DETECTION_RANGE`/`ATTACK_RANGE`/`ATTACK_DAMAGE`): **Crawler** (`enemy_zombie_crawler`) —
   low to the ground, **SLOW** (26) + fragile (~half HP) but hits for **DOUBLE**
-  (`ATTACK_DAMAGE=2`); the run-1 swarm (see spread rebalance). It's too low to shove BACK,
-  so a **push becomes a KICK-STUN** on it (`player._do_push` → `enemy.receive_kick`, a rooted
-  `hit`-state stun ~1.4s) instead of a knockback; **Long Arm**
+  (`ATTACK_DAMAGE=2`); the run-1 swarm (see spread rebalance). A push is a **general push**
+  on it like every other enemy (real knockback via `receive_push`); its scene collision box
+  is **taller** (60px, feet still on 419) than the low sprite so the shove connects even into
+  the blank space above the body. (`player._do_push` now gates on HORIZONTAL edge distance +
+  `MELEE_PLANE_TOLERANCE`, same as melee, so a wide low body can't dodge the range check. The
+  old Crawler-only KICK-STUN was dropped; `enemy.receive_kick` remains but is unwired.) **Long Arm**
   (`enemy_zombie_longarm`) — normal pace, long `ATTACK_RANGE` (62 vs 30), the reach threat;
   **Spitter** (`enemy_zombie_spitter`) — its `ATTACK_RANGE` is a 300px SPIT range, so the
   base AI halts and plays Attack from afar; the overridable `_deliver_attack` launches a

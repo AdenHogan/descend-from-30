@@ -37,6 +37,9 @@ corridor floor. Measured (collision-bottom of the CollisionShape2D):
     ⇒ feet 419 (all three sit on the same line as the big; their sprites' feet were
     measured at frame-row 79, scale 3 → offset 45). `building_floors.ENEMY_SETTLED_Y`
     holds the per-type origin (standard 370, every other rig 374) for scenery placement.
+    NOTE: the crawler's box was made TALLER (60px, local pos y=15) so a push connects
+    into the blank space above its low body — it grew UPWARD only, collision-bottom
+    stays at `origin + 45` = 419, so this plane is unchanged.
   - player collision-bottom = `origin + 33` → origin **386** ⇒ feet 419.
 - **Never align two different rigs by their ORIGIN.** Matching origins puts a
   bigger rig's feet lower. Align by FEET (collision-bottom = 419). This is the
