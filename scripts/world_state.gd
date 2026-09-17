@@ -1588,12 +1588,30 @@ func is_balcony_descendable(apartment_id: String, slot: int) -> bool:
 	return _floor_is_balcony_top(_apartment_floor(apartment_id), col)
 
 
+func stair_down_side(floor_num: int) -> String:
+	# THE SINGLE SOURCE OF TRUTH for the building's stair geometry: which side of a
+	# floor the DOWN staircase (to floor-1) is on. The UP staircase is the other side.
+	#
+	# This is a PURE FUNCTION OF THE FLOOR NUMBER — it does NOT depend on how you
+	# arrived (stair / warp / balcony / elevator / door), on the building seed, or on
+	# any mutable state. That is deliberate and load-bearing: the descent is a connected
+	# zig-zag, so the staircase between floor N and N-1 is ONE physical thing, seen as
+	# "down" from N and "up" from N-1. For that to hold, down_side must alternate every
+	# floor (down_side(N) == up_side(N-1) == opposite(down_side(N-1))). Parity gives that
+	# for free and can never drift. building_floors._apply_stair_visuals / _enable_stair_
+	# triggers / the stair player-spawn all derive from THIS, so the floor's stairwells
+	# are identical no matter how the player got there. Flip the parity here (one line)
+	# if the whole building ever reads mirrored; nothing else encodes the side.
+	return "right" if floor_num % 2 == 1 else "left"
+
+
 func canonical_stair_arrival_side(floor_num: int) -> String:
-	# Which side a normal STAIR descent lands you on at this floor. The descent
-	# zig-zags, so it alternates every floor. A balcony drop uses this to look
-	# exactly like a stair arrival. If the building reads mirrored in playtest,
-	# flip the parity here (this one line) — nothing else depends on it.
-	return "left" if floor_num % 2 == 1 else "right"
+	# Which side a normal STAIR descent lands you ON at this floor: the UP-stair side
+	# (you came down the staircase from above, which at this floor is the way back up).
+	# It is exactly the opposite of stair_down_side, kept as a named helper because
+	# balcony drops / warps read "the side I arrive on". Derived, so it can never
+	# disagree with stair_down_side.
+	return "left" if stair_down_side(floor_num) == "right" else "right"
 
 
 func _apartment_floor(apartment_id: String) -> int:

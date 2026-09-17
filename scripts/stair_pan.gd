@@ -160,10 +160,12 @@ const SPACING_ADJUST := 0.0
 
 # building_floors spawn points (must match building_floors.gd) — where the player
 # lands on the destination floor, and therefore the exact frame we pan toward.
-const SPAWN_LEFT_TOP := Vector2(148, 391)
-const SPAWN_LEFT_BOTTOM := Vector2(188, 391)
-const SPAWN_RIGHT_TOP := Vector2(1201, 391)
-const SPAWN_RIGHT_BOTTOM := Vector2(1162, 391)
+# Y 386 = the shared corridor plane origin (player feet on 419, level with enemies) —
+# MUST match building_floors.PLAYER_PLANE_Y or the pan would land the player off-plane.
+const SPAWN_LEFT_TOP := Vector2(148, 386)
+const SPAWN_LEFT_BOTTOM := Vector2(188, 386)
+const SPAWN_RIGHT_TOP := Vector2(1201, 386)
+const SPAWN_RIGHT_BOTTOM := Vector2(1162, 386)
 
 var panning := false   # true only WHILE a pan runs; if it starts true, can_pan() never fires
 
@@ -186,11 +188,17 @@ func can_pan(target_floor: int) -> bool:
 	return p.contains("building_floors") or p.contains("hallway")
 
 
-func dest_spawn(down: bool) -> Vector2:
-	# Mirror building_floors.gd's stair-arrival spawn selection.
-	if WorldState.stair_spawn_side == "left":
-		return SPAWN_LEFT_BOTTOM if down else SPAWN_LEFT_TOP
-	return SPAWN_RIGHT_BOTTOM if down else SPAWN_RIGHT_TOP
+func dest_spawn(target_floor: int, down: bool) -> Vector2:
+	# Mirror building_floors.gd's stair-arrival spawn selection, which is now derived
+	# PURELY from the destination floor (WorldState.stair_down_side), not from the
+	# mutable stair_spawn_side. Descending, the player emerges at the UP stair (opposite
+	# the down side), BOTTOM offset; ascending, at the DOWN stair, TOP offset. Keeping
+	# this in lockstep with building_floors means the pan lands the player exactly where
+	# the committed floor would place them, so the go_live adoption never jumps.
+	var down_on_left: bool = WorldState.stair_down_side(target_floor) == "left"
+	if down:
+		return SPAWN_RIGHT_BOTTOM if down_on_left else SPAWN_LEFT_BOTTOM
+	return SPAWN_LEFT_TOP if down_on_left else SPAWN_RIGHT_TOP
 
 
 func pan_targets(spawn: Vector2, cam_offset: Vector2, floor_offset: float) -> Dictionary:
@@ -266,7 +274,7 @@ func pan_to_floor(target_floor: int, direction: String) -> void:
 	scene.add_child(pan_cam)
 	pan_cam.make_current()
 
-	var targets := pan_targets(dest_spawn(down), cam_offset, floor_offset)
+	var targets := pan_targets(dest_spawn(target_floor, down), cam_offset, floor_offset)
 
 	# The camera NEVER moves horizontally. At a stairwell it is already clamped
 	# hard against the end wall, and the destination floor clamps it to the exact

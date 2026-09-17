@@ -108,6 +108,32 @@ constants beats keeping them in sync by hand (see `DOWN_*` / `UP_*` in
   locked in `docs/Y_PLANES.md` §9) so they read back an exact zone/coordinate —
   never eyeball a position.
 
+- **Scene dimensions (MEMORISE — measured in-engine, don't re-derive every time).**
+  Tile grid 16×16 px @ scale 1.0. Shared corridor FEET line (all actors' collision-
+  bottom when standing) = **419**. Sizes (W×H px):
+  - Screen/viewport **1152×648**
+  - Corridor (floors 1–29, `building_floors`) **1120×192** (feet 419; floor/ceiling band Y 243–435; walkable X ~115–1235)
+  - Hallway (floor 30) **1120×240**; Lobby (0) **1120×176**
+  - Apartment shell (`room`) **992×160** (holds 3 modules; interior floor Y 352)
+  - Apartment room MODULE **320×144** (`MODULE_WIDTH`=320; 3 side by side; `LEFT_WALL_X`=113)
+  - Maintenance **416×176**; Elevator car interior **192×160** (`HALF_W`96/`HALF_H`80, centred in a full-screen dark shaft)
+  - **Player corridor origin = 386** (collision-bottom = origin+33 → feet 419, level with
+    enemies). Enemies settle: standard origin 370 (bottom +49), big/crawler/longarm/spitter
+    374 (+45). NEVER spawn the player at 388/391 (that sat it 2–5px LOW, legs under corpses).
+    Canonical constants: `building_floors.PLAYER_PLANE_Y` / `stair_pan` SPAWN_* (keep in sync).
+  Full artist-facing table lives in `docs/ART_REQUIREMENTS.md` (“World & scene dimensions”).
+
+- **Stairwell layout is a PURE FUNCTION OF THE FLOOR, never arrival state.**
+  `WorldState.stair_down_side(floor)` (parity: odd→right, even→left) is THE single source of
+  truth for which side a floor's DOWN stair is on; `canonical_stair_arrival_side` is its
+  opposite (the UP/arrival side). `building_floors._apply_stair_visuals` / `_enable_stair_
+  triggers` and the stair player-spawn ALL derive from it, so the building can never “lose
+  track” of which stairwell is which — no matter how you arrive (stair / warp / balcony /
+  elevator / door) or what the mutable `stair_spawn_side`/`stair_direction` say. Deriving
+  from arrival was the old bug class (warp mirrored even floors; an empty spawn_side left all
+  4 triggers live). Locked by `stair_visuals_test`. Endpoint scenes (hallway 30, lobby 0)
+  still position the player from `stair_spawn_side`, so keep setting a canonical value there.
+
 - **Save/load JSON: string keys only.** Godot's JSON round-trips int dict
   keys as strings; int-keyed dicts silently break on load. Always key
   persisted dicts by `str(...)`.

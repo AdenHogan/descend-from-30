@@ -40,7 +40,14 @@ corridor floor. Measured (collision-bottom of the CollisionShape2D):
     NOTE: the crawler's box was made TALLER (60px, local pos y=15) so a push connects
     into the blank space above its low body — it grew UPWARD only, collision-bottom
     stays at `origin + 45` = 419, so this plane is unchanged.
-  - player collision-bottom = `origin + 33` → origin **386** ⇒ feet 419.
+  - player collision-bottom = `origin + 33` (capsule pos y=2 + half-height 31) → origin
+    **386** ⇒ feet 419. The player is SPAWNED at origin 386 on every corridor scene
+    (`building_floors.PLAYER_PLANE_Y`, `hallway`, `lobby`, `stair_pan` SPAWN_*), and
+    `player._move_locked` pins Y so a crowd can never shove it off. HISTORY: spawns used to
+    be 391 (stair) / 388 (door/elevator), which — because the pin freezes the SPAWN Y and
+    never lets the floor settle it — left the player resting 2–5px BELOW 419, standing under
+    the enemies with its legs poking beneath corpses. Measured + fixed; locked by
+    `plane_lock_test` (`_test_player_feet_on_enemy_plane`).
 - **Never align two different rigs by their ORIGIN.** Matching origins puts a
   bigger rig's feet lower. Align by FEET (collision-bottom = 419). This is the
   bug that made the stair enemy sit 18px low.

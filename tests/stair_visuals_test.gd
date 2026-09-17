@@ -15,9 +15,14 @@ func chk(c: bool, m: String) -> void:
 	print(("  PASS  " if c else "  FAIL  ") + m); if not c: fails += 1
 func _ready() -> void:
 	WorldState.new_game()
+	# The stairwell layout is now a PURE FUNCTION OF THE FLOOR (WorldState.stair_down_side),
+	# NOT of how you arrived. So on a GIVEN floor the same side is always DOWN and the same
+	# side always UP, no matter what stair_spawn_side / stair_direction say. We prove that by
+	# building the SAME floor under all four arrival combinations and asserting an identical
+	# layout every time — this is the "iron-clad, can't lose track of the stairs" guarantee.
+	# Floor 25 is odd, so its DOWN stair is on the RIGHT (stair_down_side(25) == "right").
 	WorldState.current_floor = 25
-	# side arrived, direction travelled -> which side should show UP art
-	for case in [["left","down",true],["left","up",false],["right","down",false],["right","up",true]]:
+	for case in [["left","down"],["left","up"],["right","down"],["right","up"],["","" ]]:
 		WorldState.stair_spawn_side = case[0]
 		WorldState.stair_direction = case[1]
 		var bf = load("res://scenes/building_floors.tscn").instantiate()
@@ -26,12 +31,21 @@ func _ready() -> void:
 		for i in range(3): await get_tree().process_frame
 		var ll = bf.get_node("LobbyLeft"); var hl = bf.get_node("HallwayStaircaseLeft")
 		var lr = bf.get_node("LobbyRight"); var hr = bf.get_node("HallwayStaircaseRight")
-		var want_left_up: bool = case[2]
-		var tag := "arrive %s going %s" % [case[0], case[1]]
-		chk(ll.visible == want_left_up and hl.visible != want_left_up, "%s: left shows %s" % [tag, "UP" if want_left_up else "DOWN"])
-		chk(lr.visible != want_left_up and hr.visible == want_left_up, "%s: right shows %s" % [tag, "DOWN" if want_left_up else "UP"])
+		var tag := "arrival(%s,%s)" % [case[0] if case[0] != "" else "-", case[1] if case[1] != "" else "-"]
+		# Floor 25: DOWN on the RIGHT (Hallway art), UP on the LEFT (Lobby art), ALWAYS.
+		chk(hr.visible and lr.visible == false, "%s: floor 25 right shows DOWN (fixed)" % tag)
+		chk(ll.visible and hl.visible == false, "%s: floor 25 left shows UP (fixed)" % tag)
 		chk(int(ll.visible) + int(hl.visible) == 1, "%s: exactly one left sprite" % tag)
 		chk(int(lr.visible) + int(hr.visible) == 1, "%s: exactly one right sprite" % tag)
+		# The active triggers must match the art. (The passive backdrop makes triggers inert
+		# via _make_inert; call the function directly to test its floor-derived output.)
+		bf._enable_stair_triggers(25)
+		chk(bf.get_node("stair_right_down_trigger").process_mode == Node.PROCESS_MODE_ALWAYS
+			and bf.get_node("stair_left_up_trigger").process_mode == Node.PROCESS_MODE_ALWAYS,
+			"%s: floor 25 right-DOWN + left-UP triggers live" % tag)
+		chk(bf.get_node("stair_left_down_trigger").process_mode == Node.PROCESS_MODE_DISABLED
+			and bf.get_node("stair_right_up_trigger").process_mode == Node.PROCESS_MODE_DISABLED,
+			"%s: floor 25 the other two triggers disabled" % tag)
 		# NO front-layer occluder. One was tried: it re-cut the top of the stair
 		# art and drew it at z 2, which put the DARK SHAFT over the corridor as a
 		# black box, and the player surfaced in front of it anyway. The shredder
@@ -41,6 +55,17 @@ func _ready() -> void:
 			"%s: no front-layer sprite (it rendered as a black box)" % tag)
 		bf.free()
 		await get_tree().process_frame
+	# And an EVEN floor mirrors it: floor 24 DOWN on the LEFT.
+	WorldState.current_floor = 24
+	WorldState.stair_spawn_side = ""; WorldState.stair_direction = ""
+	var bf24 = load("res://scenes/building_floors.tscn").instantiate()
+	bf24.setup_floor = 24; bf24.passive = true
+	add_child(bf24)
+	for i in range(3): await get_tree().process_frame
+	chk(bf24.get_node("HallwayStaircaseLeft").visible and bf24.get_node("LobbyRight").visible,
+		"floor 24 (even): DOWN on the LEFT, UP on the RIGHT")
+	bf24.free()
+	await get_tree().process_frame
 
 	# DOWN AND UP ARE MIRRORED IN DESIGN, SEPARATE IN CODE. Every value that
 	# places something on screen exists twice — DOWN_* and UP_* — so tuning one

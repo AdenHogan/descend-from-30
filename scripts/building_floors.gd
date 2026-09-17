@@ -1,9 +1,15 @@
 extends Node2D
 
-const SPAWN_LEFT_TOP = Vector2(148, 391)
-const SPAWN_LEFT_BOTTOM = Vector2(188, 391)
-const SPAWN_RIGHT_TOP = Vector2(1201, 391)
-const SPAWN_RIGHT_BOTTOM = Vector2(1162, 391)
+# Player stair-arrival spawns. Y is the CORRIDOR PLANE ORIGIN: 386 puts the player's
+# collision-bottom (origin + 33, capsule pos 2 + half-height 31) on the shared floor
+# line 419 — the EXACT plane every enemy's feet rest on (measured). The old 391 sat the
+# player 5px BELOW that line (feet 424), so it stood a touch under the enemies and its
+# legs poked beneath corpses. Never spawn the player off this plane. (See docs/Y_PLANES.md.)
+const PLAYER_PLANE_Y := 386.0
+const SPAWN_LEFT_TOP = Vector2(148, PLAYER_PLANE_Y)
+const SPAWN_LEFT_BOTTOM = Vector2(188, PLAYER_PLANE_Y)
+const SPAWN_RIGHT_TOP = Vector2(1201, PLAYER_PLANE_Y)
+const SPAWN_RIGHT_BOTTOM = Vector2(1162, PLAYER_PLANE_Y)
 
 # Stair-pan support: a building_floors can be built as a PASSIVE backdrop for a
 # specific floor — no player, enemies, corpses, drops, or merchant — so the
@@ -78,11 +84,11 @@ func _ready() -> void:
 		player.queue_free()
 		player = null
 		_apply_doors(floor_num)
-		_apply_stair_visuals()
+		_apply_stair_visuals(floor_num)
 		# Enable the SAME two stair triggers the live spawn does, so the backdrop seeds
 		# stair enemies on exactly the 2 active chokes (not all 4). _make_inert disables
 		# them again below; go_live re-enables via _restore_dormant + _enable_stair_triggers.
-		_enable_stair_triggers()
+		_enable_stair_triggers(floor_num)
 		_spawn_zombies(floor_num, true)
 		_spawn_corpses(floor_num)
 		# Register the elevator fire-extinguisher BEFORE _spawn_world_drops so it renders
@@ -108,30 +114,34 @@ func _ready() -> void:
 		return
 
 	if WorldState.spawn_source == "stair":
-		if WorldState.stair_spawn_side == "left":
-			if WorldState.stair_direction == "down":
-				player.global_position = SPAWN_LEFT_BOTTOM
-			elif WorldState.stair_direction == "up":
-				player.global_position = SPAWN_LEFT_TOP
-		elif WorldState.stair_spawn_side == "right":
-			if WorldState.stair_direction == "down":
-				player.global_position = SPAWN_RIGHT_BOTTOM
-			elif WorldState.stair_direction == "up":
-				player.global_position = SPAWN_RIGHT_TOP
+		# WHERE the player emerges is derived from the floor's fixed geometry + the
+		# direction travelled, NOT from the mutable stair_spawn_side (which a warp/
+		# elevator could set stale). Descending, you step off the UP stair of this
+		# floor (opposite the down side) at its BOTTOM; ascending, you step off the
+		# DOWN stair at its TOP. This can never land you at a stairwell the visuals
+		# don't show, because both read stair_down_side.
+		var came_down: bool = WorldState.stair_direction != "up"
+		var down_on_left: bool = WorldState.stair_down_side(floor_num) == "left"
+		if came_down:
+			# emerge at the UP stair (the far side from the down stair), bottom offset
+			player.global_position = SPAWN_RIGHT_BOTTOM if down_on_left else SPAWN_LEFT_BOTTOM
+		else:
+			# emerge at the DOWN stair (same side as down_side), top offset
+			player.global_position = SPAWN_LEFT_TOP if down_on_left else SPAWN_RIGHT_TOP
 	elif WorldState.spawn_source == "door" and WorldState.exit_spawn_x != 0.0:
 		player.global_position.x = WorldState.exit_spawn_x
-		player.global_position.y = 388.0
+		player.global_position.y = PLAYER_PLANE_Y
 	elif WorldState.spawn_source == "elevator":
 		# Stepped out of the lift — stand right by the elevator doors.
-		player.global_position = Vector2(ELEVATOR_X, 388.0)
+		player.global_position = Vector2(ELEVATOR_X, PLAYER_PLANE_Y)
 
 	if WorldState.saved_player_x != 0.0:
 		player.global_position = Vector2(WorldState.saved_player_x, WorldState.saved_player_y)
 		WorldState.saved_player_x = 0.0
 		WorldState.saved_player_y = 0.0
 
-	_apply_stair_visuals()
-	_enable_stair_triggers()
+	_apply_stair_visuals(floor_num)
+	_enable_stair_triggers(floor_num)
 
 	# Assign apartment IDs and apply correct door states AFTER IDs are set
 	_apply_doors(floor_num)
@@ -192,7 +202,7 @@ func _spawn_barricade_visuals(floor_num: int) -> void:
 # persist via the stair_enemy group + a per-floor key. Count seeded per stairwell
 # (WorldState.stair_enemy_count) — usually 0-1, occasionally a couple, which is naturally
 # a tougher crossing.
-const CORRIDOR_PLANE_Y := 391.0        # the corridor walking line (== SPAWN_*_*.y)
+const CORRIDOR_PLANE_Y := 386.0        # the player's corridor origin (feet on 419; == PLAYER_PLANE_Y)
 
 
 # Kept only so the approach-warning loop in _process has a list to read (empty — stair
@@ -814,36 +824,26 @@ func _frame_camera(player: Node) -> void:
 	StairPan.apply_floor_camera(cam, StairPan.floor_band(tm))
 
 
-func _enable_stair_triggers() -> void:
-	# The side you ARRIVED on offers the way back (its return trigger is live); the
-	# far side carries your journey on. Exactly one trigger per side is active, so
-	# the descent zig-zags. Shared by a live spawn (_ready) and by go_live() when a
-	# prefetched backdrop is woken — the arrival direction is only final at that
-	# point, so both go through here.
+func _enable_stair_triggers(floor_num: int) -> void:
+	# Which two of the four stair triggers are live is a PURE FUNCTION OF THE FLOOR
+	# (WorldState.stair_down_side), NOT of how you arrived. A floor has its DOWN stair
+	# on one fixed side and its UP stair on the other, so exactly those two triggers are
+	# active and the descent zig-zags. This is arrival-independent ON PURPOSE: an empty
+	# or stale stair_spawn_side used to leave ALL FOUR triggers live (the elevator/warp
+	# desync bug) or the wrong two — deriving from the floor makes that impossible.
 	var left_down = get_node_or_null("stair_left_down_trigger")
 	var left_up = get_node_or_null("stair_left_up_trigger")
 	var right_down = get_node_or_null("stair_right_down_trigger")
 	var right_up = get_node_or_null("stair_right_up_trigger")
 	if left_down == null or left_up == null or right_down == null or right_up == null:
 		return
-	# Default everything on (ALWAYS, as the original did), then disable the one on
-	# each side that would send you straight back the way you just came.
-	for t in [left_down, left_up, right_down, right_up]:
-		t.process_mode = Node.PROCESS_MODE_ALWAYS
-	if WorldState.stair_spawn_side == "left":
-		if WorldState.stair_direction == "down":
-			left_down.process_mode = Node.PROCESS_MODE_DISABLED
-			right_up.process_mode = Node.PROCESS_MODE_DISABLED
-		else:
-			left_up.process_mode = Node.PROCESS_MODE_DISABLED
-			right_down.process_mode = Node.PROCESS_MODE_DISABLED
-	elif WorldState.stair_spawn_side == "right":
-		if WorldState.stair_direction == "down":
-			right_down.process_mode = Node.PROCESS_MODE_DISABLED
-			left_up.process_mode = Node.PROCESS_MODE_DISABLED
-		else:
-			right_up.process_mode = Node.PROCESS_MODE_DISABLED
-			left_down.process_mode = Node.PROCESS_MODE_DISABLED
+	var down_on_left: bool = WorldState.stair_down_side(floor_num) == "left"
+	# Active pair = the DOWN trigger on the down side + the UP trigger on the up side.
+	# The other two don't correspond to a real staircase on this floor, so disable them.
+	left_down.process_mode = Node.PROCESS_MODE_ALWAYS if down_on_left else Node.PROCESS_MODE_DISABLED
+	right_up.process_mode = Node.PROCESS_MODE_ALWAYS if down_on_left else Node.PROCESS_MODE_DISABLED
+	right_down.process_mode = Node.PROCESS_MODE_DISABLED if down_on_left else Node.PROCESS_MODE_ALWAYS
+	left_up.process_mode = Node.PROCESS_MODE_DISABLED if down_on_left else Node.PROCESS_MODE_ALWAYS
 
 func _set_stair_fire(ff) -> void:
 	# Confine the down-stairwell fire to the SHAFT box (centre, half-width) and keep the
@@ -859,37 +859,30 @@ func _set_stair_fire(ff) -> void:
 		ff.set_stair_fire(-1.0)
 
 
-func _apply_stair_visuals() -> void:
+func _apply_stair_visuals(floor_num: int) -> void:
 	# WHICH staircase art each side shows.
 	#
 	# Art meaning (from where each is used): Lobby_* is the UP stairwell — the
 	# lobby is the bottom of the building and can only go up. Hallway_Staircase_*
 	# is the DOWN stairwell — floor 30 is the top and can only go down.
 	#
-	# The rule mirrors the stair TRIGGERS enabled in _ready: the side you arrived
-	# on offers the way BACK (you came down it, so from here it goes up), and the
-	# far side continues your journey. Exactly one side is up and one is down, so
-	# the descent zig-zags across the corridor.
-	#
-	# The old version ignored stair_direction for left arrivals, so the left was
-	# always drawn as an up-staircase — floor 25 and 26 showed the same art, and
-	# a side whose trigger said "up" could be drawn descending.
+	# This is a PURE FUNCTION OF THE FLOOR (WorldState.stair_down_side), matching the
+	# triggers enabled by _enable_stair_triggers, so the art can NEVER disagree with the
+	# triggers and NEVER depends on how you arrived. The old version derived it from the
+	# mutable arrival vars, so a stale/wrong stair_spawn_side (warp on even floors, an
+	# empty value from the elevator) drew the wrong side descending — the building "lost
+	# track" of which stair was which until an apartment round-trip re-derived it.
 	var hl := get_node_or_null("HallwayStaircaseLeft") as Sprite2D
 	var ll := get_node_or_null("LobbyLeft") as Sprite2D
 	var hr := get_node_or_null("HallwayStaircaseRight") as Sprite2D
 	var lr := get_node_or_null("LobbyRight") as Sprite2D
 	if hl == null or ll == null or hr == null or lr == null:
 		return
-	var came_down: bool = WorldState.stair_direction == "down"
-	var arrived_left: bool = WorldState.stair_spawn_side != "right"
-	# Arrival side goes back the way you came; the other side carries on.
-	var left_goes_up: bool = came_down if arrived_left else not came_down
-	var right_goes_up: bool = not left_goes_up
-
-	ll.visible = left_goes_up          # Lobby_Left  = UP
-	hl.visible = not left_goes_up      # Hallway_Staircase_Left = DOWN
-	lr.visible = right_goes_up
-	hr.visible = not right_goes_up
+	var down_on_left: bool = WorldState.stair_down_side(floor_num) == "left"
+	hl.visible = down_on_left           # Hallway_Staircase_Left = DOWN
+	ll.visible = not down_on_left       # Lobby_Left = UP
+	hr.visible = not down_on_left       # right is DOWN when down is NOT on the left
+	lr.visible = down_on_left           # right is UP when down IS on the left
 
 	# NOTE: there is no front-layer occluder here, and adding one back is a
 	# mistake. See _apply_stair_visuals's history / docs/STAIRWELL_LAYERS.md:
@@ -1101,8 +1094,8 @@ func go_live() -> void:
 	var floor_num = setup_floor if setup_floor >= 0 else WorldState.current_floor
 	_built_floor = floor_num
 	_restore_dormant()
-	_apply_stair_visuals()        # arrival direction is only final now
-	_enable_stair_triggers()
+	_apply_stair_visuals(floor_num)        # pure function of the floor — arrival-independent
+	_enable_stair_triggers(floor_num)
 	_wake_scenery_zombies()
 	# The PASSIVE backdrop build skipped every live hazard (they sit after the
 	# `if passive: return` in _ready), so arriving via the seamless stair PAN left a

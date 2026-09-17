@@ -21,8 +21,49 @@ func check(cond: bool, label: String) -> void:
 func _ready() -> void:
 	print("=== plane lock test ===")
 	await _test_crowd_cannot_push_off_plane()
+	await _test_player_feet_on_enemy_plane()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
+
+
+func _test_player_feet_on_enemy_plane() -> void:
+	# The player must rest on the EXACT plane the enemies do — feet (collision-bottom)
+	# on the shared floor line 419, never above or below. The old stair spawn (origin
+	# 391) sat the player 5px LOW (feet 424), so it stood under the enemies and its legs
+	# poked beneath corpses. A real floor arrival must land it feet-on-419.
+	WorldState.new_game()
+	WorldState.current_floor = 15
+	WorldState.spawn_source = "stair"
+	WorldState.stair_direction = "down"
+	var bf = load("res://scenes/building_floors.tscn").instantiate()
+	add_child(bf)
+	for i in range(40):
+		await get_tree().physics_frame
+	var p = bf.get_node_or_null("Player")
+	var cs = p.get_node_or_null("CollisionShape2D")
+	var player_feet: float = p.global_position.y + cs.position.y + cs.shape.height * 0.5
+	check(absf(player_feet - 419.0) < 1.5, "player feet rest on the floor line 419 (got %.1f)" % player_feet)
+	# Find a GROUNDED corridor zombie (not a stair-shaft lurker, which sits deliberately
+	# off-plane in the shaft) and assert its feet match the player's exactly.
+	var matched := false
+	for z in get_tree().get_nodes_in_group("zombie"):
+		var zs = z.get_node_or_null("CollisionShape2D")
+		if zs == null:
+			continue
+		if z.is_in_group("stair_enemy") or z.is_in_group("stair_horde") or z.is_in_group("pan_scenery"):
+			continue
+		if ("stair_mode" in z) and z.stair_mode:
+			continue
+		var zh: float = zs.shape.height * 0.5 if zs.shape is CapsuleShape2D else zs.shape.size.y * 0.5
+		var zfeet: float = z.global_position.y + zs.position.y + zh
+		if absf(zfeet - 419.0) > 30.0:
+			continue   # not resting on the corridor plane (still settling / off-floor)
+		check(absf(zfeet - player_feet) < 1.5, "a %s's feet sit on the SAME plane as the player (dz %.2f)" % [z.name, zfeet - player_feet])
+		matched = true
+		break
+	check(matched, "there was a grounded corridor enemy to compare planes against")
+	bf.free()
+	await get_tree().physics_frame
 
 
 func _test_crowd_cannot_push_off_plane() -> void:

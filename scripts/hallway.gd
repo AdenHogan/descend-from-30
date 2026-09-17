@@ -22,13 +22,15 @@ func _ready() -> void:
 	var player = get_node("Player")
 	WorldState.apply_time_tint(self, 30)   # top of the building — least infected
 	if WorldState.spawn_source == "stair":
+		# Y 386 = the shared corridor plane origin (feet on 419, level with every enemy).
 		if WorldState.stair_spawn_side == "left":
-			player.global_position = Vector2(148, 388.0)
+			player.global_position = Vector2(148, 386.0)
 		elif WorldState.stair_spawn_side == "right":
-			player.global_position = Vector2(1202, 388.0)
+			player.global_position = Vector2(1202, 386.0)
 			
 	elif WorldState.spawn_source == "door" and WorldState.exit_spawn_x != 0.0:
 		player.global_position.x = WorldState.exit_spawn_x
+		player.global_position.y = 386.0
 
 	if WorldState.saved_player_x != 0.0:
 		player.global_position = Vector2(WorldState.saved_player_x, WorldState.saved_player_y)
