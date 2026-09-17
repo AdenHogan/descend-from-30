@@ -81,7 +81,46 @@ backgrounds and we scale to fit.
 
 ---
 
+## World & scene dimensions (exact px)
+
+These are the real in-engine sizes (measured from the scenes). The world uses a
+**16 x 16 px tile grid at scale 1.0**, and everything shares **one feet/floor line
+at world-Y 419** in the corridors. Author environment art to these footprints (native
+px), or to a clean multiple of them, and tell us your tile size so we can slot it in.
+
+| Scene / element        | Size (W x H px) | Tiles (16px) | Notes |
+|------------------------|-----------------|--------------|-------|
+| Screen / viewport      | **1152 x 648**  | 72 x 40.5    | Fixed render resolution (nearest-filter). |
+| Corridor (mid-floors 1-29, `building_floors`) | **1120 x 192** | 70 x 12 | The main repeated set. Feet line Y 419; ceiling/floor band Y 243-435. Walkable X ~115-1235. Needs the decay-band + variety variants below. |
+| Hallway (floor 30, tutorial) | **1120 x 240** | 70 x 15 | Same width as a corridor, taller tilemap; framed to the same 192px band in view. |
+| Lobby (ground floor)   | **1120 x 176**  | 70 x 11      | Bottom of the building; grotesque decay band. |
+| Apartment shell (`room`) | **992 x 160**   | 62 x 10      | The container an apartment's 3 modules sit inside; interior floor at Y 352. |
+| Apartment room MODULE   | **320 x 144**   | 20 x 9       | One furnished room (bedroom / kitchen / bathroom / study / living / dining). **Three sit side by side** to make an apartment. This is the key modular unit, author each room type to exactly 320 x 144, feet/floor at the bottom. |
+| Maintenance room       | **416 x 176**   | 26 x 11      | Small safe utility room (workbench + fuse box). |
+| Elevator car interior  | **192 x 160**   | 12 x 10      | The drawn car the player rides in (roomy enough for a 2nd occupant/NPC), centred in a full-screen dark shaft, so also supply the surrounding shaft/void treatment for the rest of the 1152 x 648 frame. |
+
+- **Modules are the unit that repeats most**, so budget the anti-repetition variants
+  (a few per room type) against this 320 x 144 footprint.
+- **Corridors and the lobby span 1120px wide** but only the ~192px-tall band is on
+  screen at once; author full-width strips (or tileable wall/floor/ceiling pieces we
+  repeat) plus the door/stair/window/elevator fixtures that punctuate them.
+- If you prefer to work larger and downscale, keep the **aspect ratios** above and the
+  **feet-on-baseline** rule, and hand us the native size + intended scale.
+
+---
+
 ## Asset list (by priority)
+
+### Tier 0: brand / identity (do this first, it sets the look)
+- **Game logo / title wordmark** for **"Descend From 30"**, the single most visible
+  piece of art (title screen, store page, marketing, app icon). The title screen today
+  uses a plain pixel font (see the title screenshot) and needs a real designed logo.
+  Deliver: (1) the **full logo** (any icon/mark + the wordmark), (2) a **wordmark-only**
+  lockup, and (3) a small **square app-icon / favicon** mark that still reads at ~32-64px.
+  Supply **light-on-dark and dark-on-light** versions on transparent backgrounds, and make
+  it **scalable** (vector, or high-resolution raster). It should carry the cozy-horror tone
+  (an ordinary building gone wrong; a sense of descent). Studio name for any credit lockup:
+  **Mammoth Games**.
 
 ### Tier 1: core actors (replace placeholders)
 - **Player character** (full set). Animations: idle, walk, run, crouch-idle, crouch-walk,

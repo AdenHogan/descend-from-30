@@ -179,6 +179,11 @@ class Doc:
     def save(self):
         self.pages[0].save(OUT, save_all=True, append_images=self.pages[1:], resolution=150.0)
         print("wrote", OUT, "(%d pages)" % len(self.pages))
+        if os.environ.get("DUMP_PNG"):
+            for i, pg in enumerate(self.pages):
+                p = os.path.join(os.path.dirname(OUT), "_page%d.png" % (i + 1))
+                pg.save(p)
+                print("dumped", p)
 
 
 d = Doc()
@@ -218,8 +223,20 @@ d.para("This is a full game art package, not a one-off: player character sprites
        "corridors, modular rooms, stairwells, elevator, lobby), UI and HUD, and player "
        "health-state portraits. Sections below break each down.", "small", SUB)
 d.space(4)
+d.subhead("First priority: the game logo")
+d.para("Before the full asset sets, we need a real GAME LOGO / title wordmark for "
+       "“Descend From 30”, the single most visible piece of art (title screen, store "
+       "page, marketing, app icon). The title screen today uses a plain pixel font (see below) "
+       "and needs a designed logo. Deliver: (1) the full logo (any mark plus the wordmark), "
+       "(2) a wordmark-only lockup, and (3) a small square app-icon / favicon mark that still "
+       "reads at about 32-64 px. Supply light-on-dark and dark-on-light versions on transparent "
+       "backgrounds, make it scalable (vector or high-resolution), and carry the cozy-horror tone "
+       "(an ordinary building gone wrong, a sense of descent). Studio name for any credit lockup: "
+       "Mammoth Games.")
+d.space(4)
 d.image(os.path.join(SHOTS, "title.png"),
-        "Title screen: the tone and mood we are aiming for.", ph_label="title.png", ph_h=420)
+        "Title screen: the tone and mood we are aiming for (and the plain placeholder title the "
+        "new logo replaces).", ph_label="title.png", ph_h=420)
 
 # ---- Current in-game look -----------------------------------------------
 d.heading("Where it is today",
@@ -326,6 +343,24 @@ d.bullets([
     "scavenging (see the Bathroom shot). Same anti-repetition rule: a FEW variations per room "
     "type, not the same bathroom every time.",
     "Props: crate-stack barricade, corpse, world-drop pickups, keys, wall fire-extinguisher.",
+])
+d.subhead("Exact scene dimensions (measured in-engine)")
+d.para("The world is a 16x16 px tile grid at scale 1.0, and all corridor actors share one "
+       "feet/floor line at world-Y 419. Author environment art to these footprints (native px) "
+       "or a clean multiple, and tell us your tile size:")
+d.bullets([
+    "Screen / viewport: 1152 x 648 px (fixed render resolution).",
+    "Corridor, floors 1-29 (the main repeated set): 1120 x 192 px (70 x 12 tiles). Feet line "
+    "Y 419; visible floor-to-ceiling band Y 243-435. Needs the variety + decay variants.",
+    "Hallway, floor 30 (tutorial): 1120 x 240 px, same width as a corridor.",
+    "Lobby (ground floor): 1120 x 176 px.",
+    "Apartment shell: 992 x 160 px, the container the three room modules sit inside; floor Y 352.",
+    "Apartment ROOM MODULE: 320 x 144 px (20 x 9 tiles), one furnished room. THREE sit side by "
+    "side to form an apartment, this is the key modular unit; author each room type to exactly "
+    "320 x 144 with the floor at the bottom.",
+    "Maintenance room: 416 x 176 px (workbench + fuse box).",
+    "Elevator car interior: 192 x 160 px, the drawn car (roomy enough for a second occupant), "
+    "centred in a full-screen dark shaft, so also supply the surrounding shaft/void treatment.",
 ])
 d.subhead("Sectional identity: the descent DECAYS (a key pillar)")
 d.para("The infection is worst at the bottom, so the building should visibly rot the lower you "
