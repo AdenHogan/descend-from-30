@@ -70,19 +70,20 @@ func _test_windows_day() -> void:
 	var windows := get_tree().get_nodes_in_group("apt_window_light")
 	check(windows.size() == _expected_windows(APT),
 		"one window per non-balcony module (%d, expected %d)" % [windows.size(), _expected_windows(APT)])
-	# Every window rides the top wall band, clear of the scavenge anchors below.
+	# Every window rides a natural mid-upper-wall height (world 284), not the ceiling.
 	var win_y_ok := true
 	for w in windows:
-		if absf(w.global_position.y - 252.0) > 1.0:
+		if absf(w.global_position.y - 284.0) > 1.0:
 			win_y_ok = false
-	check(win_y_ok, "windows sit on the top wall band (y 252)")
-	# Prove NO overlap with scavenge nodes: every anchor sits well below the window band.
+	check(win_y_ok, "windows sit at the natural wall height (y 284)")
+	# The window CENTRE sits ABOVE every scavenge node (window higher on the wall than the
+	# furniture), so it never obscures a node's interaction point — a node may sit under it.
 	var min_anchor_y := 100000.0
 	for m in get_tree().get_nodes_in_group("room_module"):
 		for c in m.get_children():
 			if c is Marker2D:
 				min_anchor_y = minf(min_anchor_y, m.global_position.y + c.position.y)
-	check(min_anchor_y > 290.0, "all scavenge anchors sit below the window band (lowest %.0f > 290)" % min_anchor_y)
+	check(min_anchor_y > 284.0, "every scavenge node sits below the window centre (lowest %.0f > 284)" % min_anchor_y)
 	check(get_tree().get_nodes_in_group("apt_storm").is_empty(), "no storm on a day run")
 	room.queue_free()
 	await get_tree().process_frame

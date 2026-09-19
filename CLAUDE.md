@@ -695,9 +695,12 @@ means no rendering — UI layout and art still need an in-editor look.
   module gets ONE window at a seeded LEFT/RIGHT wall slot (`WorldState.apartment_window_side`,
   stable across runs — a physical feature). The two slots are the hook for a future module-art
   pass to vary which walls are glazed (one/both/none) so rooms aren't samey; today each
-  non-balcony module has exactly one. Placed in the anchor-free TOP wall band (world Y 252,
-  `room.MODULE_WINDOW_Y`) so it never overlaps a scavenge node (anchors are furniture-level,
-  world Y ~300+; measured). Natural light via the shared `FloorLighting.make_window_light`
+  non-balcony module has exactly one. Placed at a NATURAL mid-upper-wall height (world Y 284,
+  `room.MODULE_WINDOW_Y`, module-local 60) — ABOVE the scavenge nodes (furniture-level, world
+  Y ~300+) so it never obscures a node, but not jammed at the ceiling (an earlier Y 252 read
+  unnatural). A node may sit under a window (fine). Per-module grid blueprints via
+  `tools/gen_module_blueprint.py` → `docs/art_reference/blueprints/` (reads the real .tscn, so
+  it can't drift; reusable for all six modules). Natural light via the shared `FloorLighting.make_window_light`
   (now takes an `energy_scale`; apartment windows run 1.3× since a flat has no ceiling lamps) —
   bright cool DAY, warm AFTERNOON, dim blue MOONLIGHT at NIGHT. On live NIGHT runs a single
   `apartment_storm` per flat drives a RAIN hiss loop + synced LIGHTNING that flashes every

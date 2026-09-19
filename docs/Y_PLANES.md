@@ -61,9 +61,12 @@ the player, but the floor collider resolves feet back to 419.
 Apartment interiors (`room.tscn`): module ColorRect is 320×144 at instance y 224, so a
 module spans world Y 224..368; the interior floor is Y 352. Scavenge anchors (Marker2D)
 sit at module-local y 76..131 → world **~300..355** (furniture level). WALL WINDOWS
-(`apartment_window.gd`, one per non-balcony module, seeded left/right) ride the anchor-free
-TOP band at world Y **252** (`room.MODULE_WINDOW_Y`), so a window's light/rain/future art
-never overlaps a search node. The balcony window light stays at world Y 210.
+(`apartment_window.gd`, one per non-balcony module, seeded left/right) sit at a NATURAL
+mid-upper-wall height, world Y **284** (`room.MODULE_WINDOW_Y`, module-local 60) — ABOVE
+every scavenge node so they never obscure a node's interaction point, but not jammed at the
+ceiling (an earlier build put them at Y 252 to force a big gap, which read unnatural). A
+node may sit under a window (a sofa below a window is fine). The balcony window light stays
+at world Y 210. Per-module blueprints: `tools/gen_module_blueprint.py`.
 
 ---
 

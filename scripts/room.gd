@@ -56,10 +56,13 @@ const TUTORIAL_LAYOUTS = {
 
 const MODULE_WIDTH = 320
 const LEFT_WALL_X = 113
-# Wall-window placement inside a module. Y sits in the anchor-free TOP wall band (scavenge
-# anchors are all at module-local y>=76, i.e. world y>=~300), so a window never overlaps a
-# search node. INSET is how far in from the module edge the left/right window slot sits.
-const MODULE_WINDOW_Y := 252.0
+# Wall-window placement inside a module. Y is a NATURAL mid-upper-wall height (world 284 =
+# module-local 60, roughly the wall's vertical middle above the floor at local 128) — a
+# window belongs on the wall, not jammed at the ceiling. It sits ABOVE the scavenge nodes
+# (which are furniture-level, world y ~300+), so the window reads higher than the furniture
+# without obscuring a node's interaction point; furniture naturally sitting under a window is
+# fine. INSET is how far in from the module edge the left/right window slot sits.
+const MODULE_WINDOW_Y := 284.0
 const MODULE_WINDOW_INSET := 72.0
 const CLICK_RADIUS = 10.0
 const UI_FONT = preload("res://assets/fonts/PixelOperator8.ttf")

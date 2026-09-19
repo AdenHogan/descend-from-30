@@ -24,7 +24,7 @@ OUT_DIR = os.path.join(ROOT, "docs", "art_reference", "blueprints")
 MODULE_W, MODULE_H = 320, 144          # module box (px); ColorRect size in every module
 TILE = 16                              # world tile grid
 WINDOW_INSET = 72                      # room.MODULE_WINDOW_INSET
-WINDOW_Y_LOCAL = 252 - 224            # room.MODULE_WINDOW_Y(252) - module world-top(224)
+WINDOW_Y_LOCAL = 284 - 224            # room.MODULE_WINDOW_Y(284) - module world-top(224)
 FLOOR_Y_LOCAL = 352 - 224             # room._FLOOR_Y(352) world -> module-local
 PANE_HW, PANE_HH = 22, 26             # apartment_window pane half-extents
 LEFT_WALL_X = 113                      # room.LEFT_WALL_X (world x of module slot 0)
@@ -201,11 +201,12 @@ def _legend(d, x, y, anchors):
     d.text((x, y), "WINDOWS", font=F_LEGB, fill=WINDOW_COL)
     y += 26
     for line in [
-        "• Two potential slots: L (72,28), R (248,28)",
+        "• Two potential slots: L (%d,%d), R (%d,%d)" % (WINDOW_INSET, WINDOW_Y_LOCAL, MODULE_W - WINDOW_INSET, WINDOW_Y_LOCAL),
         "• One seeded per module today",
         "  (except a balcony module).",
-        "• Sit in the anchor-free TOP wall band,",
-        "  so a window never overlaps a node.",
+        "• Natural mid-upper-wall height, ABOVE",
+        "  the furniture nodes (a node may sit",
+        "  under a window — that's fine).",
         "• Art may use one / both / none per",
         "  module design to vary the room look.",
     ]:
