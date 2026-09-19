@@ -18,21 +18,41 @@ extends Node2D
 const FL = preload("res://scripts/floor_lighting.gd")
 const APARTMENT_WINDOW_ENERGY_SCALE := 1.3   # a flat has no ceiling lamps — windows carry it
 
+# Placeholder pane box (drawn until real module art frames the window). Half-extents.
+const PANE_HALF_W := 22.0
+const PANE_HALF_H := 26.0
+
 var light: PointLight2D = null
+var _night := false
 
 
 func setup(pos: Vector2, live: bool) -> void:
 	position = pos
 	z_index = 0
+	_night = WorldState.current_run == 3
 	light = FL.make_window_light(Vector2.ZERO, APARTMENT_WINDOW_ENERGY_SCALE)
 	# The storm driver finds every window this way to flash them as one lightning event.
 	light.add_to_group("apt_window_light")
 	# Remember the run's base energy so a flash can return to it exactly.
 	light.set_meta("base_energy", light.energy)
 	add_child(light)
+	queue_redraw()   # draw the placeholder pane
 	# Rain is OUTSIDE the glass — only on live night runs (no rain on a passive backdrop).
-	if live and WorldState.current_run == 3:
+	if live and _night:
 		_add_rain()
+
+
+func _draw() -> void:
+	# A simple placeholder window: a framed pane of "sky" you can see through, so the window
+	# reads AS a window in-editor before real module art exists (the art pass replaces this).
+	# Glass tint tracks the time of day so a night pane reads dark/moonlit, a day pane bright.
+	var glass := Color(0.16, 0.20, 0.34, 0.75) if _night else Color(0.62, 0.78, 0.98, 0.65)
+	var frame := Color(0.10, 0.10, 0.12, 0.95)
+	var rect := Rect2(-PANE_HALF_W, -PANE_HALF_H, PANE_HALF_W * 2.0, PANE_HALF_H * 2.0)
+	draw_rect(rect, glass, true)                       # glass
+	draw_rect(rect, frame, false, 3.0)                 # outer frame
+	draw_line(Vector2(0, -PANE_HALF_H), Vector2(0, PANE_HALF_H), frame, 2.0)   # mullion |
+	draw_line(Vector2(-PANE_HALF_W, 0), Vector2(PANE_HALF_W, 0), frame, 2.0)   # mullion -
 
 
 func _add_rain() -> void:
@@ -46,8 +66,8 @@ func _add_rain() -> void:
 	rain.preprocess = 0.55                       # start mid-fall, no empty first beat
 	rain.local_coords = false
 	rain.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
-	rain.emission_rect_extents = Vector2(24, 4)
-	rain.position = Vector2(0, -18)              # emit at the top of the pane
+	rain.emission_rect_extents = Vector2(PANE_HALF_W - 2.0, 3.0)
+	rain.position = Vector2(0, -PANE_HALF_H + 2.0)   # emit at the top of the pane
 	rain.direction = Vector2(0.12, 1.0)          # a slight wind-driven slant
 	rain.spread = 0.0
 	rain.gravity = Vector2(0, 900)
