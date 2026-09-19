@@ -102,9 +102,9 @@ func _process(delta: float) -> void:
 		var pal = _palette()
 		_light.color = pal["light"]
 		var pulse = 1.0 + 0.08 * sin(_t * 3.2)
-		# Modest, tight pool — presence, not a floodlight.
-		_light.energy = lvl * 0.45 * pulse
-		_light.texture_scale = 0.045 + 0.03 * lvl
+		# A bit brighter/wider than before, still a tight pool — presence, not a floodlight.
+		_light.energy = lvl * 0.6 * pulse
+		_light.texture_scale = 0.06 + 0.04 * lvl
 	queue_redraw()
 
 
@@ -119,21 +119,22 @@ func _draw() -> void:
 		return
 	var pal = _palette()
 	var pulse = 1.0 + 0.06 * sin(_t * 3.0)
-	# SMALL orb. Radius in world px.
-	var r = lerpf(4.5, 7.0, lvl) * pulse
+	# Small orb, dialled a little bigger + brighter so it stays easy to spot once real art sits
+	# behind it. Radius in world px.
+	var r = lerpf(5.5, 8.5, lvl) * pulse
 	# A little vertical bob for weight (a floating mote of light).
-	var c = Vector2(0.0, sin(_t * 2.0) * 0.8)
+	var c = Vector2(0.0, sin(_t * 2.0) * 0.9)
 
 	# A GLOWING TRANSLUCENT orb, NOT a solid ball: soft radial layers built from the round
 	# cookie (bright centre → transparent edge) so it reads as luminous light you can see
-	# through, with no hard rim. Centre lands ~0.75 alpha — glowing, not opaque.
-	_blit(c, r * 1.9, _a(pal["glow"], 0.16 * lvl))    # outer glow, faint + tight
-	_blit(c, r * 1.2, _a(pal["body"], 0.42 * lvl))    # translucent body (see-through)
-	_blit(c, r * 0.7, _a(pal["glow"], 0.45 * lvl))    # inner luminance
-	_blit(c, r * 0.34, _a(pal["spec"], 0.85 * lvl))   # bright glowing HEART (still soft, no hard rim)
+	# through, with no hard rim — just brighter now.
+	_blit(c, r * 2.0, _a(pal["glow"], 0.20 * lvl))    # outer glow
+	_blit(c, r * 1.25, _a(pal["body"], 0.50 * lvl))   # translucent body (still see-through)
+	_blit(c, r * 0.72, _a(pal["glow"], 0.58 * lvl))   # inner luminance
+	_blit(c, r * 0.36, _a(pal["spec"], 0.98 * lvl))   # bright glowing HEART (soft, no hard rim)
 	# A soft brighter glint drifting near the top — subtle shine + a gentle-rotation cue.
 	var gpos = c + Vector2(-0.5, -0.6).normalized() * (r * 0.34) + Vector2(cos(_t * 1.1), sin(_t * 1.1)) * (r * 0.12)
-	_blit(gpos, r * 0.34, _a(pal["spec"], 0.5 * lvl))
+	_blit(gpos, r * 0.36, _a(pal["spec"], 0.6 * lvl))
 
 
 func _a(col: Color, alpha: float) -> Color:
