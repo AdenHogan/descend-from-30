@@ -710,22 +710,22 @@ means no rendering — UI layout and art still need an in-editor look.
   `assets/audio/ambience/`, CC0). Added on the passive balcony-pan backdrop too (light only,
   no rain/storm). Covered by `apartment_window_test`. Purely visual/audio otherwise — the LOOK
   (window brightness, rain read, flash) needs an in-editor check.
-- Scavenge nodes = a small shaded SPHERE (`interactable.gd`, replaced the old flat yellow/white
-  `draw_circle`; iterated: v1 literal "mini sun" with flares/sunspots → owner: too figurative;
-  v2 concentric-disc shading → owner: too big, giant halo, "Among Us visor"; **v3 = the keeper**):
-  a small golden BALL drawn from a baked, smoothly-shaded sphere texture (`sphere_texture()` —
-  diffuse from an upper-left key light over a low ambient, so a bright crest fades to a soft dark
-  terminator: a real 3D read, NO hard rings/crescent), tinted by state, with a tiny drifting
-  specular glint (subtle shine + gentle-rotation cue), a small bob, and a TIGHT little glow that
-  hugs the ball (never a halo). A MODEST real PointLight2D (`energy ~0.45×lvl`, `texture_scale
-  ~0.05`) gives presence without flooding the room. **GOLDEN** while it holds an untaken item you
-  HAVEN'T searched; once **SEARCHED-but-not-emptied** it turns **pale WHITE/colourless**
-  (`GOLD`/`PALE` palettes = a `body` tint + `spec`/`glow`/`light` accents; the light colour swaps
-  too) — drained but still glowing + distinct so a looked-in node reads apart. Radius small
-  (`lerpf(4.0, 6.5, lvl)`); size/brightness/light scale with proximity (dim+small at the glow
-  edge → bright near → hottest when selected); light is 0 out of scavenge mode or range. Uses
-  `TEXTURE_FILTER_LINEAR` so the scaled-down sphere is smooth. The LOOK can't be verified headless
-  (PIL approximation: `docs/art_reference/scavenge_node_preview.png`); the light/weight + gold→pale
+- Scavenge nodes = a glowing TRANSLUCENT orb (`interactable.gd`, replaced the old flat
+  yellow/white `draw_circle`; iterated: v1 literal "mini sun" w/ flares+sunspots → too figurative;
+  v2 concentric-disc shading → too big, giant halo, "Among Us visor"; v3 opaque baked sphere →
+  read as a solid marble/bead; **v4 = the keeper**): a small LUMINOUS orb built from soft radial
+  layers of the round cookie (`FL.light_texture()`, bright centre → transparent edge) — an outer
+  faint glow, a translucent BODY (~0.42 alpha so the background shows through), an inner luminance,
+  and a bright soft HEART (no hard rim; it's light you can see through, not a filled ball). A soft
+  drifting glint gives shine + a gentle-rotation cue, a small bob gives weight, and a MODEST real
+  PointLight2D (`energy ~0.45×lvl`, `texture_scale ~0.05`) gives presence without flooding the
+  room. **GOLDEN** while it holds an untaken item you HAVEN'T searched; once **SEARCHED-but-not-
+  emptied** it turns **pale WHITE/colourless** (`GOLD`/`PALE` palettes = a `body` tint +
+  `spec`/`glow`/`light` accents; the light colour swaps too) — drained but still glowing + distinct.
+  Radius small (`lerpf(4.5, 7.0, lvl)`); size/brightness/light scale with proximity (faint at the
+  glow edge → bright near → hottest when selected); light is 0 out of scavenge mode or range.
+  `TEXTURE_FILTER_LINEAR` keeps the scaled cookie smooth. The LOOK can't be verified headless (PIL
+  approximation: `docs/art_reference/scavenge_node_preview.png`); the light/weight + gold→pale
   wiring is locked by `scavenge_node_test`. Same script drives maintenance-room anchors too.
 - Enemy variety / escalation table (THREE_RUN_ARC step 6, v1): the infestation
   **migrates upward** across the arc, and there are now **five corridor types**. The mix

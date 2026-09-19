@@ -5,15 +5,15 @@ const INTERACT_DISTANCE = 50.0
 
 const FL = preload("res://scripts/floor_lighting.gd")
 
-# --- Scavenge marker: a small shiny SPHERE -----------------------------------
-# Replaces the old flat circle. A small, appealing glowing BALL with real volume: a properly
-# SHADED SPHERE (baked from sphere-normal lighting, a smooth gradient from a lit upper-left
-# crest to a soft dark terminator — NOT concentric discs, which read as an "Among Us" visor),
-# a tiny drifting specular glint (gentle rotation + shine), a small bob, and a TIGHT little
-# glow. A modest REAL PointLight2D gives it presence without flooding the room. GOLDEN while
-# it still holds an untaken item you HAVEN'T searched; once SEARCHED-but-not-emptied it turns
-# pale WHITE/colourless — drained but still glowing + distinct so a looked-in node reads apart.
-# Only two colours matter now: the sphere BODY tint and the SPEC/GLOW/LIGHT accent.
+# --- Scavenge marker: a glowing TRANSLUCENT orb ------------------------------
+# Replaces the old flat circle. A small luminous orb — soft radial layers built from the round
+# cookie (bright centre → transparent edge), so it reads as glowing LIGHT you can see through,
+# NOT a solid marble (an opaque baked sphere read as a bead). A soft drifting glint gives a
+# subtle shine + gentle-rotation cue, a small bob gives weight, and a TIGHT little glow hugs it.
+# A modest REAL PointLight2D gives it presence without flooding the room. GOLDEN while it still
+# holds an untaken item you HAVEN'T searched; once SEARCHED-but-not-emptied it turns pale
+# WHITE/colourless — drained but still glowing + distinct so a looked-in node reads apart.
+# Palette = a BODY tint + SPEC/GLOW/LIGHT accents.
 const GOLD := {
 	"body": Color(1.00, 0.80, 0.22), "spec": Color(1.00, 0.98, 0.86),
 	"glow": Color(1.00, 0.80, 0.30), "light": Color(1.00, 0.78, 0.34),
@@ -22,8 +22,6 @@ const PALE := {
 	"body": Color(0.86, 0.89, 0.95), "spec": Color(1.00, 1.00, 1.00),
 	"glow": Color(0.88, 0.92, 1.00), "light": Color(0.88, 0.92, 1.00),
 }
-
-static var _sphere_tex: Texture2D = null
 
 var apartment_id: String = ""
 var player: Node = null
@@ -35,37 +33,10 @@ var _tex: Texture2D = null
 var _light: PointLight2D = null
 
 
-static func sphere_texture() -> Texture2D:
-	# A baked, smoothly-shaded sphere (white; tint it when drawing). Diffuse from an upper-left
-	# key light over a low ambient, so the ball has a bright crest fading to a soft dark edge —
-	# a real 3D read, no hard rings. Soft anti-aliased alpha at the rim.
-	if _sphere_tex == null:
-		var w := 64
-		var img := Image.create(w, w, false, Image.FORMAT_RGBA8)
-		var c := (w - 1) / 2.0
-		var half := w / 2.0
-		var lightdir := Vector3(-0.5, -0.6, 0.62).normalized()
-		for y in range(w):
-			for x in range(w):
-				var nx := (float(x) - c) / half
-				var ny := (float(y) - c) / half
-				var r2 := nx * nx + ny * ny
-				if r2 >= 1.0:
-					img.set_pixel(x, y, Color(0, 0, 0, 0))
-					continue
-				var nz := sqrt(1.0 - r2)
-				var diff: float = maxf(0.0, Vector3(nx, ny, nz).dot(lightdir))
-				var shade: float = 0.28 + 0.72 * diff        # ambient floor so the dark side isn't black
-				var edge: float = clampf((1.0 - r2) / 0.08, 0.0, 1.0)   # soft AA rim
-				img.set_pixel(x, y, Color(shade, shade, shade, edge))
-		_sphere_tex = ImageTexture.create_from_image(img)
-	return _sphere_tex
-
-
 func _ready() -> void:
 	player = get_tree().get_first_node_in_group("player")
-	_tex = FL.light_texture()          # soft round cookie — used for the tight glow + glint softness
-	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR   # smooth the scaled-down sphere/glow
+	_tex = FL.light_texture()          # soft round cookie (bright centre → transparent edge)
+	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR   # smooth the scaled cookie
 	# A MODEST real light so the orb has presence — small pool, not a floodlight (an earlier
 	# version's big halo read as a giant glow). Driven per-frame in _process; 0 when not
 	# scavenging / out of range so it never lights a room you're not searching.
@@ -147,24 +118,22 @@ func _draw() -> void:
 	if lvl <= 0.0:
 		return
 	var pal = _palette()
-	var pulse = 1.0 + 0.05 * sin(_t * 3.0)
-	# SMALL ball (an earlier version read far too big). Radius in world px.
-	var r = lerpf(4.0, 6.5, lvl) * pulse
-	# A little vertical bob for weight (a held object floating).
+	var pulse = 1.0 + 0.06 * sin(_t * 3.0)
+	# SMALL orb. Radius in world px.
+	var r = lerpf(4.5, 7.0, lvl) * pulse
+	# A little vertical bob for weight (a floating mote of light).
 	var c = Vector2(0.0, sin(_t * 2.0) * 0.8)
 
-	# TIGHT glow, hugging the ball — just enough to read as glowing, never a big halo.
-	_blit(c, r * 1.5, _a(pal["glow"], 0.16 * lvl))
-
-	# The shaded sphere itself (baked smooth gradient, tinted). Real 3D read, no crescent.
-	var d = r * 2.0
-	draw_texture_rect(sphere_texture(), Rect2(c.x - r, c.y - r, d, d), false, pal["body"])
-
-	# A tiny specular glint drifting near the lit crest — subtle shine + a gentle-rotation cue.
-	var hl = Vector2(-1, -1).normalized()
-	var gpos = c + hl * (r * 0.38) + Vector2(cos(_t * 1.1), sin(_t * 1.1)) * (r * 0.10)
-	_blit(gpos, r * 0.42, _a(pal["spec"], 0.30 * lvl))
-	draw_circle(gpos, r * 0.14, _a(pal["spec"], 0.85 * lvl))
+	# A GLOWING TRANSLUCENT orb, NOT a solid ball: soft radial layers built from the round
+	# cookie (bright centre → transparent edge) so it reads as luminous light you can see
+	# through, with no hard rim. Centre lands ~0.75 alpha — glowing, not opaque.
+	_blit(c, r * 1.9, _a(pal["glow"], 0.16 * lvl))    # outer glow, faint + tight
+	_blit(c, r * 1.2, _a(pal["body"], 0.42 * lvl))    # translucent body (see-through)
+	_blit(c, r * 0.7, _a(pal["glow"], 0.45 * lvl))    # inner luminance
+	_blit(c, r * 0.34, _a(pal["spec"], 0.85 * lvl))   # bright glowing HEART (still soft, no hard rim)
+	# A soft brighter glint drifting near the top — subtle shine + a gentle-rotation cue.
+	var gpos = c + Vector2(-0.5, -0.6).normalized() * (r * 0.34) + Vector2(cos(_t * 1.1), sin(_t * 1.1)) * (r * 0.12)
+	_blit(gpos, r * 0.34, _a(pal["spec"], 0.5 * lvl))
 
 
 func _a(col: Color, alpha: float) -> Color:
