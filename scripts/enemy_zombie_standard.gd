@@ -712,8 +712,9 @@ func _die() -> void:
 		var drop = drop_scene.instantiate()
 		drop.item_id = loot_id
 		drop.drop_key = str(WorldState.current_floor) + ":" + str(snappedf(global_position.x, 1.0)) + ":" + str(snappedf(global_position.y, 1.0))
-		drop.global_position = global_position
 		get_parent().add_child(drop)
+		# Fly out of the corpse, bounce, and settle on the floor near it (not floating).
+		drop.toss(global_position, _drop_feet_y(), 1.0 if randf() < 0.5 else -1.0)
  
 	await animated_sprite.animation_finished
 	animated_sprite.pause()
@@ -722,16 +723,31 @@ func _die() -> void:
 
 func _drop_tutorial_cash() -> void:
 	# Register the drop (for persistence) AND spawn the visible pickup now —
-	# same pattern the big zombie uses for its cash bundle.
-	var pos = global_position
-	WorldState.add_world_drop("033", pos, WorldState.current_floor, {"amount": tutorial_cash_drop})
+	# same pattern the big zombie uses for its cash bundle. Persist at the RESTED floor
+	# position so a re-entry loads it on the floor (not floating), then toss the live one.
+	var feet := _drop_feet_y()
+	var rest = Vector2(global_position.x, feet - WORLD_DROP.REST_LIFT)
+	WorldState.add_world_drop("033", rest, WorldState.current_floor, {"amount": tutorial_cash_drop})
 	var drop = preload("res://scenes/world_drop.tscn").instantiate()
 	drop.item_id = "033"
 	drop.amount = tutorial_cash_drop
-	drop.drop_key = str(WorldState.current_floor) + ":" + str(snappedf(pos.x, 1.0)) + ":" + str(snappedf(pos.y, 1.0))
-	drop.global_position = pos
+	drop.drop_key = str(WorldState.current_floor) + ":" + str(snappedf(rest.x, 1.0)) + ":" + str(snappedf(rest.y, 1.0))
 	get_parent().add_child(drop)
+	drop.toss(global_position, feet, 1.0 if randf() < 0.5 else -1.0)
 	HUD.show_feedback("It was carrying cash — grab it.")
+
+
+const WORLD_DROP := preload("res://scripts/world_drop.gd")   # for REST_LIFT (rest position)
+
+
+func _drop_feet_y() -> float:
+	# The floor line this rig's feet rest on (collision-bottom) — where a drop should settle.
+	var cs = get_node_or_null("CollisionShape2D")
+	if cs != null and cs.shape is CapsuleShape2D:
+		return global_position.y + cs.position.y + (cs.shape as CapsuleShape2D).height * 0.5
+	if cs != null and cs.shape is RectangleShape2D:
+		return global_position.y + cs.position.y + (cs.shape as RectangleShape2D).size.y * 0.5
+	return global_position.y + 49.0
 
 
 func _drop_key() -> void:

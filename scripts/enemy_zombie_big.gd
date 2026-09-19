@@ -197,29 +197,32 @@ func _die() -> void:
 			"type": "big"
 		}
 
-	# Big Zombie ALWAYS drops a Bank Notes bundle — a corridor BOSS drops a fatter one.
+	# Big Zombie ALWAYS drops a Bank Notes bundle — a corridor BOSS drops a fatter one. Each
+	# drop is REGISTERED at its rested floor position (so a re-entry loads it on the floor, not
+	# floating) and the live pickup is TOSSED out of the corpse to bounce down onto it.
+	var feet := _drop_feet_y()
 	var money_amount = (70 + randi() % 61) if is_corridor_boss else (30 + randi() % 31)
-	var money_pos = global_position + Vector2(24, 0)
-	var money_key = str(WorldState.current_floor) + ":" + str(snappedf(money_pos.x, 1.0)) + ":" + str(snappedf(money_pos.y, 1.0))
-	WorldState.add_world_drop("033", money_pos, WorldState.current_floor, {"amount": money_amount})
+	var money_rest = Vector2(global_position.x + 26.0, feet - WORLD_DROP.REST_LIFT)
+	var money_key = str(WorldState.current_floor) + ":" + str(snappedf(money_rest.x, 1.0)) + ":" + str(snappedf(money_rest.y, 1.0))
+	WorldState.add_world_drop("033", money_rest, WorldState.current_floor, {"amount": money_amount})
 	var money_drop = preload("res://scenes/world_drop.tscn").instantiate()
 	money_drop.item_id = "033"
 	money_drop.amount = money_amount
 	money_drop.drop_key = money_key
-	money_drop.global_position = money_pos
 	get_parent().add_child(money_drop)
+	money_drop.toss(global_position, feet, 1.0)
 
 	# A corridor boss ALSO drops one genuinely good item (never a key — it guards nothing).
 	if is_corridor_boss:
 		var loot_id: String = WorldState.boss_loot_item(spawn_key)
-		var loot_pos = global_position + Vector2(-24, 0)
-		var loot_key = str(WorldState.current_floor) + ":" + str(snappedf(loot_pos.x, 1.0)) + ":" + str(snappedf(loot_pos.y, 1.0))
-		WorldState.add_world_drop(loot_id, loot_pos, WorldState.current_floor, {})
+		var loot_rest = Vector2(global_position.x - 26.0, feet - WORLD_DROP.REST_LIFT)
+		var loot_key = str(WorldState.current_floor) + ":" + str(snappedf(loot_rest.x, 1.0)) + ":" + str(snappedf(loot_rest.y, 1.0))
+		WorldState.add_world_drop(loot_id, loot_rest, WorldState.current_floor, {})
 		var loot_drop = preload("res://scenes/world_drop.tscn").instantiate()
 		loot_drop.item_id = loot_id
 		loot_drop.drop_key = loot_key
-		loot_drop.global_position = loot_pos
 		get_parent().add_child(loot_drop)
+		loot_drop.toss(global_position, feet, -1.0)
 
 	if drops_key and key_target_apartment != "" and not key_dropped:
 		key_dropped = true
@@ -227,6 +230,19 @@ func _die() -> void:
 
 	await animated_sprite.animation_finished
 	animated_sprite.pause()
+
+
+const WORLD_DROP := preload("res://scripts/world_drop.gd")   # for REST_LIFT (rest position)
+
+
+func _drop_feet_y() -> float:
+	# The floor line this rig's feet rest on (collision-bottom) — where a drop settles.
+	var cs = get_node_or_null("CollisionShape2D")
+	if cs != null and cs.shape is CapsuleShape2D:
+		return global_position.y + cs.position.y + (cs.shape as CapsuleShape2D).height * 0.5
+	if cs != null and cs.shape is RectangleShape2D:
+		return global_position.y + cs.position.y + (cs.shape as RectangleShape2D).size.y * 0.5
+	return global_position.y + 45.0
 
 
 func _drop_key() -> void:

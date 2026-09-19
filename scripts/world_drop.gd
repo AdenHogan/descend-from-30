@@ -3,6 +3,15 @@ extends Area2D
 const PICKUP_RANGE = 40.0
 const GLOW_RANGE = 80.0
 
+const ORB := preload("res://scripts/interactable.gd")   # shared glowing-orb renderer + palette
+const FL := preload("res://scripts/floor_lighting.gd")
+
+# Toss physics for a fresh enemy drop: it flies out of the corpse, falls, bounces a little,
+# and settles ON the floor plane near the corpse (never suspended in the air).
+const GRAVITY := 900.0
+const REST_LIFT := 7.0        # orb centre rests this far above the floor line so it sits ON it
+const ORB_BASE_R := 8.0
+
 var item_id: String = ""
 var target_apartment: String = ""
 var drop_key: String = ""
@@ -10,6 +19,15 @@ var amount: int = 0  # Bank Notes bundle size; 0 = roll default on pickup
 
 var player: Node2D = null
 var player_nearby: bool = false
+
+var _t: float = 0.0
+var _tex: Texture2D = null
+var _light: PointLight2D = null
+# Toss state
+var _tossing: bool = false
+var _vel: Vector2 = Vector2.ZERO
+var _rest_y: float = 0.0
+var _bounces: int = 0
 
 @onready var proximity_label: Label = $ProximityLabel
 
@@ -22,6 +40,45 @@ func _ready() -> void:
 	proximity_label.visible = false
 	add_to_group("world_drop")
 	player = get_tree().get_first_node_in_group("player")
+	# The glowing-orb pickup (matches the scavenge marker). The extinguisher (036) is a wall
+	# fixture, not an orb, so it gets no orb light.
+	if item_id != "036":
+		_tex = FL.light_texture()
+		texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		_light = PointLight2D.new()
+		_light.texture = _tex
+		_light.color = ORB.GOLD["light"]
+		_light.energy = 0.0
+		_light.texture_scale = 0.06
+		_light.z_index = 0
+		add_child(_light)
+
+
+func toss(from_pos: Vector2, land_y: float, dir_x: float) -> void:
+	# Start a fresh drop flying out of the corpse; it settles at the floor line near it.
+	global_position = from_pos
+	_rest_y = land_y - REST_LIFT
+	if global_position.y >= _rest_y:
+		global_position.y = _rest_y - 2.0   # nudge above the floor so it visibly drops
+	_vel = Vector2(dir_x * randf_range(45.0, 95.0), -randf_range(150.0, 220.0))
+	_bounces = 0
+	_tossing = true
+
+
+func _physics_process(delta: float) -> void:
+	if not _tossing:
+		return
+	_vel.y += GRAVITY * delta
+	global_position += _vel * delta
+	if global_position.y >= _rest_y and _vel.y > 0.0:
+		global_position.y = _rest_y
+		_bounces += 1
+		if _bounces >= 3 or absf(_vel.y) < 55.0:
+			_tossing = false
+			_vel = Vector2.ZERO
+		else:
+			_vel.y = -_vel.y * 0.42     # each bounce loses most of its energy
+			_vel.x *= 0.55
 
 
 func _prompt_text() -> String:
@@ -53,12 +110,29 @@ func _input(event: InputEvent) -> void:
 			_try_pickup()
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	_t += delta
 	queue_redraw()
+	# Drive the orb's cast light to match its on-screen brightness (proximity fade).
+	if _light != null:
+		var lvl := _orb_level()
+		var pulse := 1.0 + 0.08 * sin(_t * 3.2)
+		_light.energy = lvl * 0.55 * pulse
+		_light.texture_scale = 0.06 + 0.04 * lvl
 	if not player_nearby:
 		return
 	if Input.is_action_just_pressed("interact"):
 		_try_pickup()
+
+
+func _orb_level() -> float:
+	# 0..1 brightness by proximity (full inside pickup range, fading out to the glow edge).
+	if player == null:
+		return 0.0
+	var dist := global_position.distance_to(player.global_position)
+	if dist > GLOW_RANGE:
+		return 0.0
+	return 1.0 - clampf((dist - PICKUP_RANGE) / (GLOW_RANGE - PICKUP_RANGE), 0.0, 1.0)
 
 
 func _is_mouse_over_orb() -> bool:
@@ -111,16 +185,13 @@ func _draw() -> void:
 	if item_id == "036":
 		_draw_extinguisher()
 		return
-	if player == null:
+	# Every other pickup is the same glowing orb as a scavenge marker (gold), fading in by
+	# proximity. A key drop reads a touch bigger so it stands out as an objective.
+	var lvl := _orb_level()
+	if lvl <= 0.0:
 		return
-	var dist = global_position.distance_to(player.global_position)
-	if dist > GLOW_RANGE:
-		return
-	var alpha = 1.0 - clamp((dist - PICKUP_RANGE) / (GLOW_RANGE - PICKUP_RANGE), 0.0, 1.0)
-	if target_apartment != "":
-		draw_circle(Vector2.ZERO, 6.0, Color(1.0, 0.85, 0.1, alpha))
-	else:
-		draw_circle(Vector2.ZERO, 5.0, Color(1.0, 0.65, 0.0, alpha))
+	var base_r := ORB_BASE_R + (2.0 if target_apartment != "" else 0.0)
+	ORB.draw_orb(self, _tex, Vector2.ZERO, base_r, ORB.GOLD, _t, lvl)
 
 
 func _draw_extinguisher() -> void:

@@ -176,7 +176,7 @@ setup script; binary from downloads.godotengine.org). Before every commit:
   `balcony_test`, `hud_prompt_test`, `stair_block_test`, `fire_test`,
   `maintenance_test`, `elevator_test`, `run_arc_test`, `enemy_variety_test`,
   `dev_menu_test`, `lighting_test`, `plane_lock_test`, `apartment_window_test`,
-  `scavenge_node_test` — run all 33 before commit. (Run ONE godot at a time — a killed/backgrounded headless run can
+  `scavenge_node_test`, `drop_physics_test` — run all 34 before commit. (Run ONE godot at a time — a killed/backgrounded headless run can
   linger and block the next, and a GDScript **parse error makes a test scene load but
   never call `quit()`, so it "hangs" until timeout** rather than printing an error line;
   if a suite hangs, check for a parse error and stray `godot` processes first.
@@ -727,6 +727,20 @@ means no rendering — UI layout and art still need an in-editor look.
   `TEXTURE_FILTER_LINEAR` keeps the scaled cookie smooth. The LOOK can't be verified headless (PIL
   approximation: `docs/art_reference/scavenge_node_preview.png`); the light/weight + gold→pale
   wiring is locked by `scavenge_node_test`. Same script drives maintenance-room anchors too.
+  **Shared with drops:** the whole look is a static `Interactable.draw_orb(ci, tex, center, r,
+  pal, t, lvl)` so `world_drop.gd` renders the EXACT same glowing orb for enemy/floor loot
+  pickups (gold; key drops a touch bigger) — tweak `draw_orb` and both update. `world_drop`
+  also carries the same modest cast light (except item 036, the wall extinguisher fixture,
+  which keeps its canister prop and no orb light).
+- Enemy/world DROP physics (`world_drop.gd` `toss()`): a fresh enemy drop no longer floats —
+  it FLIES out of the corpse (up + sideways), falls under gravity, BOUNCES a couple of times
+  (energy-damped), and SETTLES on the floor plane near the corpse. Death spawn sites
+  (`enemy_zombie_standard`/`_big` `_die`) compute the rig's feet line (`_drop_feet_y()` =
+  collision-bottom) and call `drop.toss(corpse_pos, feet_y, dir)`; PERSISTED drops (big
+  money/loot, tutorial cash) are also REGISTERED at the rested floor position
+  (`feet - REST_LIFT`) so a re-entry loads them on the floor, not floating (live-only standard
+  loot just tosses). Non-death drops (pre-placed floor loot, the extinguisher) don't toss —
+  they render at their stored position. Locked by `drop_physics_test`.
 - Enemy variety / escalation table (THREE_RUN_ARC step 6, v1): the infestation
   **migrates upward** across the arc, and there are now **five corridor types**. The mix
   is data-driven per (floor band × run) in `world_state.gd`: `HEAVY_CHANCE` (Big Zombie)

@@ -117,33 +117,33 @@ func _draw() -> void:
 	var lvl = _activity()
 	if lvl <= 0.0:
 		return
-	var pal = _palette()
-	var pulse = 1.0 + 0.06 * sin(_t * 3.0)
-	# Small orb, dialled a little bigger + brighter so it stays easy to spot once real art sits
-	# behind it. Radius in world px.
-	var r = lerpf(5.5, 8.5, lvl) * pulse
-	# A little vertical bob for weight (a floating mote of light).
-	var c = Vector2(0.0, sin(_t * 2.0) * 0.9)
-
-	# A GLOWING TRANSLUCENT orb, NOT a solid ball: soft radial layers built from the round
-	# cookie (bright centre → transparent edge) so it reads as luminous light you can see
-	# through, with no hard rim — just brighter now.
-	_blit(c, r * 2.0, _a(pal["glow"], 0.20 * lvl))    # outer glow
-	_blit(c, r * 1.25, _a(pal["body"], 0.50 * lvl))   # translucent body (still see-through)
-	_blit(c, r * 0.72, _a(pal["glow"], 0.58 * lvl))   # inner luminance
-	_blit(c, r * 0.36, _a(pal["spec"], 0.98 * lvl))   # bright glowing HEART (soft, no hard rim)
-	# A soft brighter glint drifting near the top — subtle shine + a gentle-rotation cue.
-	var gpos = c + Vector2(-0.5, -0.6).normalized() * (r * 0.34) + Vector2(cos(_t * 1.1), sin(_t * 1.1)) * (r * 0.12)
-	_blit(gpos, r * 0.36, _a(pal["spec"], 0.6 * lvl))
+	# The whole glowing-orb look lives in the shared static draw_orb() so world-drop pickups
+	# (enemy/floor loot) render the EXACT same orb. base_r pre-pulse; the helper adds pulse+bob.
+	draw_orb(self, _tex, Vector2.ZERO, lerpf(5.5, 8.5, lvl), _palette(), _t, lvl)
 
 
-func _a(col: Color, alpha: float) -> Color:
-	return Color(col.r, col.g, col.b, alpha)
+# Shared glowing-orb renderer — used by the scavenge marker AND by world_drop.gd so a dropped
+# pickup is the same orb. A GLOWING TRANSLUCENT ball: soft radial layers from the round cookie
+# (bright centre → transparent edge), see-through, no hard rim; a drifting glint (shine +
+# gentle-rotation cue); a small bob for weight. `pal` = {body,spec,glow[,light]}; `lvl` 0..1
+# scales overall brightness. Static so callers share one look — tweak here, it updates both.
+static func draw_orb(ci: CanvasItem, tex: Texture2D, base_center: Vector2, base_r: float, pal: Dictionary, t: float, lvl: float) -> void:
+	if lvl <= 0.0 or tex == null:
+		return
+	var pulse := 1.0 + 0.06 * sin(t * 3.0)
+	var r := base_r * pulse
+	var c := base_center + Vector2(0.0, sin(t * 2.0) * 0.9)   # gentle bob (a floating mote of light)
+	_orb_layer(ci, tex, c, r * 2.0, pal["glow"], 0.20 * lvl)   # outer glow
+	_orb_layer(ci, tex, c, r * 1.25, pal["body"], 0.50 * lvl)  # translucent body (see-through)
+	_orb_layer(ci, tex, c, r * 0.72, pal["glow"], 0.58 * lvl)  # inner luminance
+	_orb_layer(ci, tex, c, r * 0.36, pal["spec"], 0.98 * lvl)  # bright glowing heart (soft, no rim)
+	var gpos := c + Vector2(-0.5, -0.6).normalized() * (r * 0.34) + Vector2(cos(t * 1.1), sin(t * 1.1)) * (r * 0.12)
+	_orb_layer(ci, tex, gpos, r * 0.36, pal["spec"], 0.6 * lvl)   # drifting glint
 
 
-func _blit(center: Vector2, radius: float, col: Color) -> void:
-	# Draw the round cookie centred at `center`, sized to `radius`.
-	draw_texture_rect(_tex, Rect2(center.x - radius, center.y - radius, radius * 2.0, radius * 2.0), false, col)
+static func _orb_layer(ci: CanvasItem, tex: Texture2D, center: Vector2, radius: float, col: Color, a: float) -> void:
+	ci.draw_texture_rect(tex, Rect2(center.x - radius, center.y - radius, radius * 2.0, radius * 2.0),
+		false, Color(col.r, col.g, col.b, a))
 
 
 func try_interact() -> void:
