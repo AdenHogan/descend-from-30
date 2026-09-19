@@ -130,15 +130,20 @@ func _draw() -> void:
 static func draw_orb(ci: CanvasItem, tex: Texture2D, base_center: Vector2, base_r: float, pal: Dictionary, t: float, lvl: float) -> void:
 	if lvl <= 0.0 or tex == null:
 		return
+	# Fuller, "No Man's Sky galaxy-map star" build-up: a broad soft bloom, a saturated colour
+	# body, then a DENSE white-hot core pip — a bright solid heart wrapped in a coloured glow,
+	# with translucent edges so it still reads as light (not a flat disc).
 	var pulse := 1.0 + 0.06 * sin(t * 3.0)
 	var r := base_r * pulse
 	var c := base_center + Vector2(0.0, sin(t * 2.0) * 0.9)   # gentle bob (a floating mote of light)
-	_orb_layer(ci, tex, c, r * 2.0, pal["glow"], 0.20 * lvl)   # outer glow
-	_orb_layer(ci, tex, c, r * 1.25, pal["body"], 0.50 * lvl)  # translucent body (see-through)
-	_orb_layer(ci, tex, c, r * 0.72, pal["glow"], 0.58 * lvl)  # inner luminance
-	_orb_layer(ci, tex, c, r * 0.36, pal["spec"], 0.98 * lvl)  # bright glowing heart (soft, no rim)
-	var gpos := c + Vector2(-0.5, -0.6).normalized() * (r * 0.34) + Vector2(cos(t * 1.1), sin(t * 1.1)) * (r * 0.12)
-	_orb_layer(ci, tex, gpos, r * 0.36, pal["spec"], 0.6 * lvl)   # drifting glint
+	_orb_layer(ci, tex, c, r * 2.3, pal["glow"], 0.16 * lvl)   # broad outer bloom (soft halo)
+	_orb_layer(ci, tex, c, r * 1.45, pal["glow"], 0.30 * lvl)  # mid bloom
+	_orb_layer(ci, tex, c, r * 1.05, pal["body"], 0.66 * lvl)  # saturated colour body (fuller)
+	_orb_layer(ci, tex, c, r * 0.62, pal["body"], 0.85 * lvl)  # dense inner colour
+	_orb_layer(ci, tex, c, r * 0.42, pal["spec"], 1.0 * lvl)   # bright heart
+	_orb_layer(ci, tex, c, r * 0.20, pal["spec"], 1.0 * lvl)   # white-hot core pip (star centre)
+	var gpos := c + Vector2(-0.5, -0.6).normalized() * (r * 0.30) + Vector2(cos(t * 1.1), sin(t * 1.1)) * (r * 0.10)
+	_orb_layer(ci, tex, gpos, r * 0.30, pal["spec"], 0.45 * lvl)   # soft drifting glint
 
 
 static func _orb_layer(ci: CanvasItem, tex: Texture2D, center: Vector2, radius: float, col: Color, a: float) -> void:
