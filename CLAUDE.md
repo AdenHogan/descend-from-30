@@ -713,16 +713,17 @@ means no rendering — UI layout and art still need an in-editor look.
 - Scavenge nodes = a glowing TRANSLUCENT orb (`interactable.gd`, replaced the old flat
   yellow/white `draw_circle`; iterated: v1 literal "mini sun" w/ flares+sunspots → too figurative;
   v2 concentric-disc shading → too big, giant halo, "Among Us visor"; v3 opaque baked sphere →
-  read as a solid marble/bead; v4 = translucent glowing orb; **v6 = the keeper**, "fuller"):
-  a small LUMINOUS orb built from soft radial layers of the round cookie (`FL.light_texture()`,
-  bright centre → transparent edge), tuned to the look/weight/glow of a **No Man's Sky galaxy-map
-  star** (owner's reference): a broad soft outer bloom (r×2.3 @0.16) + mid bloom (r×1.45 @0.30)
-  wrapping a SATURATED colour body (r×1.05 @0.66, r×0.62 @0.85) around a DENSE white-hot HEART
-  (r×0.42 @1.0) with a bright core pip (r×0.20 @1.0) — a solid glowing centre inside a coloured
-  halo, edges still translucent so the background shows through (not a filled disc). A soft
-  drifting glint gives shine + a gentle-rotation cue, a small bob gives weight, and a MODEST real
-  PointLight2D (`energy ~0.6×lvl`, `texture_scale ~0.06–0.10`) gives presence without flooding the
-  room. **GOLDEN** while it holds an untaken item you HAVEN'T searched; once **SEARCHED-but-not-
+  read as a solid marble/bead; v4/v6 = translucent glowing orb, too airy/gassy; **v7 = the
+  keeper**): a small LUMINOUS orb built from soft radial layers of the round cookie
+  (`FL.light_texture()`, bright centre → transparent edge), tuned to a **No Man's Sky galaxy-map
+  star** (owner's reference) — an ORB with real central MASS + a gleam, NOT a gas cloud. The trick
+  is CONTRAST: a SINGLE tight, dim halo (r×1.45 @0.15 — no wide airy bloom) over a DENSE stack of
+  near-opaque colour-body layers (r×1.0 @0.70, r×0.78 @0.90, r×0.58 @1.0) that sum to a solid
+  glowing ball, a white-hot HEART (r×0.40 @1.0) + core (r×0.22 @1.0), and a CRISP little specular
+  GLEAM offset up-left (r×0.20 @0.90, like a lit sphere). Edges stay slightly translucent (still
+  reads as light) but the centre is unmistakably solid. A small bob gives weight; the gleam
+  drifts subtly for shine. A MODEST real PointLight2D (`energy ~0.6×lvl`, `texture_scale
+  ~0.06–0.10`) gives presence without flooding the room. **GOLDEN** while it holds an untaken item you HAVEN'T searched; once **SEARCHED-but-not-
   emptied** it turns **pale WHITE/colourless** (`GOLD`/`PALE` palettes = a `body` tint +
   `spec`/`glow`/`light` accents; the light colour swaps too) — drained but still glowing + distinct.
   Radius small (`lerpf(5.5, 8.5, lvl)`); size/brightness/light scale with proximity (faint at the

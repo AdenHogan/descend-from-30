@@ -130,20 +130,23 @@ func _draw() -> void:
 static func draw_orb(ci: CanvasItem, tex: Texture2D, base_center: Vector2, base_r: float, pal: Dictionary, t: float, lvl: float) -> void:
 	if lvl <= 0.0 or tex == null:
 		return
-	# Fuller, "No Man's Sky galaxy-map star" build-up: a broad soft bloom, a saturated colour
-	# body, then a DENSE white-hot core pip — a bright solid heart wrapped in a coloured glow,
-	# with translucent edges so it still reads as light (not a flat disc).
-	var pulse := 1.0 + 0.06 * sin(t * 3.0)
+	# "No Man's Sky galaxy-map star": an ORB with real central MASS + a gleam, NOT a gas cloud.
+	# The trick is contrast — a single TIGHT dim halo (no wide airy bloom), then a DENSE stack of
+	# near-opaque colour-body layers that sum to a solid glowing ball, a white-hot heart, and a
+	# crisp little specular GLEAM up-left. Edges stay slightly translucent so it still reads as
+	# light, but the centre is unmistakably solid.
+	var pulse := 1.0 + 0.05 * sin(t * 3.0)
 	var r := base_r * pulse
-	var c := base_center + Vector2(0.0, sin(t * 2.0) * 0.9)   # gentle bob (a floating mote of light)
-	_orb_layer(ci, tex, c, r * 2.3, pal["glow"], 0.16 * lvl)   # broad outer bloom (soft halo)
-	_orb_layer(ci, tex, c, r * 1.45, pal["glow"], 0.30 * lvl)  # mid bloom
-	_orb_layer(ci, tex, c, r * 1.05, pal["body"], 0.66 * lvl)  # saturated colour body (fuller)
-	_orb_layer(ci, tex, c, r * 0.62, pal["body"], 0.85 * lvl)  # dense inner colour
-	_orb_layer(ci, tex, c, r * 0.42, pal["spec"], 1.0 * lvl)   # bright heart
-	_orb_layer(ci, tex, c, r * 0.20, pal["spec"], 1.0 * lvl)   # white-hot core pip (star centre)
-	var gpos := c + Vector2(-0.5, -0.6).normalized() * (r * 0.30) + Vector2(cos(t * 1.1), sin(t * 1.1)) * (r * 0.10)
-	_orb_layer(ci, tex, gpos, r * 0.30, pal["spec"], 0.45 * lvl)   # soft drifting glint
+	var c := base_center + Vector2(0.0, sin(t * 2.0) * 0.8)   # gentle bob (weight)
+	_orb_layer(ci, tex, c, r * 1.45, pal["glow"], 0.15 * lvl)  # ONE tight contained halo (not gassy)
+	_orb_layer(ci, tex, c, r * 1.00, pal["body"], 0.70 * lvl)  # colour body — outer
+	_orb_layer(ci, tex, c, r * 0.78, pal["body"], 0.90 * lvl)  # colour body — dense
+	_orb_layer(ci, tex, c, r * 0.58, pal["body"], 1.00 * lvl)  # colour mass — near-solid (the weight)
+	_orb_layer(ci, tex, c, r * 0.40, pal["spec"], 1.00 * lvl)  # bright heart
+	_orb_layer(ci, tex, c, r * 0.22, pal["spec"], 1.00 * lvl)  # white-hot core
+	# crisp specular GLEAM (small + bright, offset up-left like a lit sphere; a tiny drift for shine)
+	var gpos := c + Vector2(-0.40, -0.48) * (r * 0.55) + Vector2(cos(t * 1.1), sin(t * 1.1)) * (r * 0.04)
+	_orb_layer(ci, tex, gpos, r * 0.20, pal["spec"], 0.90 * lvl)
 
 
 static func _orb_layer(ci: CanvasItem, tex: Texture2D, center: Vector2, radius: float, col: Color, a: float) -> void:
