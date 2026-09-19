@@ -710,18 +710,21 @@ means no rendering — UI layout and art still need an in-editor look.
   `assets/audio/ambience/`, CC0). Added on the passive balcony-pan backdrop too (light only,
   no rain/storm). Covered by `apartment_window_test`. Purely visual/audio otherwise — the LOOK
   (window brightness, rain read, flash) needs an in-editor check.
-- Scavenge nodes = a glowing "mini sun" (`interactable.gd`, replaced the old flat
-  yellow/white `draw_circle`): a procedurally-drawn, ROTATING orb with a shaded sphere body
-  (rim→mid→hot→offset white core = fake 3D lit from upper-left), a rotating corona of flares,
-  drifting scattered sunspots (spin cue, deliberately NON-symmetric so it never reads as a
-  face), a soft glow halo, and a gentle pulse — PLUS a REAL PointLight2D child so the orb
-  actually casts a warm pool into the room (weight; plays with the dynamic lighting + helps
-  night scavenging). Size/brightness/light-energy scale with proximity: dim+small at the far
-  edge of the glow radius → bright at interact range → hottest when selected; the light is 0
-  (dark) whenever not in scavenge mode or out of range, so it never lights a room you're not
-  searching. Animated via `_process` advancing `_t`; visual can't be verified headless (a PIL
-  approximation is `docs/art_reference/scavenge_node_preview.png`), but the light/weight wiring
-  is locked by `scavenge_node_test`. Same script drives maintenance-room anchors too.
+- Scavenge nodes = a shiny glowing ORB (`interactable.gd`, replaced the old flat yellow/white
+  `draw_circle`; NOT a literal sun — owner corrected an over-figurative first pass with flares/
+  sunspots): a small appealing sphere with real volume (shaded rim→body→bright, lit upper-left
+  = fake 3D), a soft specular glint that slowly ORBITS the surface (reads as gentle rotation +
+  shine), a soft glow halo, and a gentle bob+pulse (weight) — PLUS a REAL PointLight2D child so
+  it casts a pool into the room (plays with the dynamic lighting + helps night scavenging).
+  **GOLDEN** while it still holds an untaken item you HAVEN'T searched; once **SEARCHED-but-not-
+  emptied** (item left behind) it turns **pale WHITE/colourless** (`GOLD`/`PALE` palettes; the
+  light colour swaps too) — drained of gold but still glowing + distinct so the player knows
+  it's been looked in. Size/brightness/light-energy scale with proximity (dim+small at the glow
+  edge → bright at interact range → hottest when selected); light is 0 out of scavenge mode or
+  range so it never lights a room you're not searching. Animated via `_process` advancing `_t`;
+  the LOOK can't be verified headless (PIL approximation: `docs/art_reference/scavenge_node_preview.png`),
+  but the light/weight + gold→pale wiring is locked by `scavenge_node_test`. Same script drives
+  maintenance-room anchors too.
 - Enemy variety / escalation table (THREE_RUN_ARC step 6, v1): the infestation
   **migrates upward** across the arc, and there are now **five corridor types**. The mix
   is data-driven per (floor band × run) in `world_state.gd`: `HEAVY_CHANCE` (Big Zombie)
