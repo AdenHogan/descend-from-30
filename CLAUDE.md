@@ -175,8 +175,8 @@ setup script; binary from downloads.godotengine.org). Before every commit:
   `profile_ui_test`, `title_test`, `enemy_memory_test`, `floor_adopt_test`,
   `balcony_test`, `hud_prompt_test`, `stair_block_test`, `fire_test`,
   `maintenance_test`, `elevator_test`, `run_arc_test`, `enemy_variety_test`,
-  `dev_menu_test`, `lighting_test`, `plane_lock_test` — run all
-  31 before commit. (Run ONE godot at a time — a killed/backgrounded headless run can
+  `dev_menu_test`, `lighting_test`, `plane_lock_test`, `apartment_window_test` — run all
+  32 before commit. (Run ONE godot at a time — a killed/backgrounded headless run can
   linger and block the next, and a GDScript **parse error makes a test scene load but
   never call `quit()`, so it "hangs" until timeout** rather than printing an error line;
   if a suite hangs, check for a parse error and stray `godot` processes first.
@@ -691,6 +691,22 @@ means no rendering — UI layout and art still need an in-editor look.
   visual (can't verify the LOOK headless — see docs/PLAYTEST_CHECKLIST.md §2/§2b). Covered by
   `lighting_test` + `run_arc_test`. TODO/verify in-editor: apartments have no ceiling lamps, so
   at night they rely on window + aura + anchor glow — flag if too dark to scavenge.
+- Apartment WALL WINDOWS (`apartment_window.gd`, `apartment_storm.gd`): every NON-balcony
+  module gets ONE window at a seeded LEFT/RIGHT wall slot (`WorldState.apartment_window_side`,
+  stable across runs — a physical feature). The two slots are the hook for a future module-art
+  pass to vary which walls are glazed (one/both/none) so rooms aren't samey; today each
+  non-balcony module has exactly one. Placed in the anchor-free TOP wall band (world Y 252,
+  `room.MODULE_WINDOW_Y`) so it never overlaps a scavenge node (anchors are furniture-level,
+  world Y ~300+; measured). Natural light via the shared `FloorLighting.make_window_light`
+  (now takes an `energy_scale`; apartment windows run 1.3× since a flat has no ceiling lamps) —
+  bright cool DAY, warm AFTERNOON, dim blue MOONLIGHT at NIGHT. On live NIGHT runs a single
+  `apartment_storm` per flat drives a RAIN hiss loop + synced LIGHTNING that flashes every
+  window light together (localised, through-the-glass) followed by THUNDER a beat later; each
+  night window also carries a small rain-particle patch. Balcony modules keep their balcony
+  window (no wall window). Storm audio is generated (`tools/gen_storm_audio.py` →
+  `assets/audio/ambience/`, CC0). Added on the passive balcony-pan backdrop too (light only,
+  no rain/storm). Covered by `apartment_window_test`. Purely visual/audio otherwise — the LOOK
+  (window brightness, rain read, flash) needs an in-editor check.
 - Enemy variety / escalation table (THREE_RUN_ARC step 6, v1): the infestation
   **migrates upward** across the arc, and there are now **five corridor types**. The mix
   is data-driven per (floor band × run) in `world_state.gd`: `HEAVY_CHANCE` (Big Zombie)

@@ -1579,6 +1579,17 @@ func is_balcony_slot(apartment_id: String, slot: int) -> bool:
 	return balcony_slot_in_apartment(apartment_id) == slot
 
 
+func apartment_window_side(apartment_id: String, slot: int) -> String:
+	# Which wall a NON-balcony module's window sits on — "left" or "right". Seeded per
+	# (apartment, slot) and NOT per run: a window is a physical feature of the room, so it
+	# stays put across the three runs and every re-entry. The two positions exist so a future
+	# module art pass can pick which side(s) carry a window (one / both / none) to vary the
+	# room look; today each non-balcony module gets exactly one, at this seeded side.
+	# Deterministic (docs/… seeding convention): hash(master_seed + purpose + apt + slot).
+	var h := hash(str(master_seed) + "aptwindow" + apartment_id + ":" + str(slot))
+	return "left" if (h % 2) == 0 else "right"
+
+
 func is_balcony_descendable(apartment_id: String, slot: int) -> bool:
 	# Only the TOP of a pair descends; its partner below is a dead-end. This is what
 	# makes descent one-and-done and never a stack.

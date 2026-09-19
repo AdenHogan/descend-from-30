@@ -58,6 +58,13 @@ corridor floor. Measured (collision-bottom of the CollisionShape2D):
 `base_walk_y` on a zombie is its home line; plane-pursuit may aim the origin at
 the player, but the floor collider resolves feet back to 419.
 
+Apartment interiors (`room.tscn`): module ColorRect is 320×144 at instance y 224, so a
+module spans world Y 224..368; the interior floor is Y 352. Scavenge anchors (Marker2D)
+sit at module-local y 76..131 → world **~300..355** (furniture level). WALL WINDOWS
+(`apartment_window.gd`, one per non-balcony module, seeded left/right) ride the anchor-free
+TOP band at world Y **252** (`room.MODULE_WINDOW_Y`), so a window's light/rain/future art
+never overlaps a search node. The balcony window light stays at world Y 210.
+
 ---
 
 ## 2. Spawn / arrival planes (`building_floors.gd`, `stair_pan.gd` — must match)

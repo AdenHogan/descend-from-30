@@ -9,3 +9,7 @@
 - `music/dread_loop.ogg` — procedurally composed placeholder background
   loop (32s, Em; drone pads / sub / echoing motif / noise swell) made for
   this project. **CC0.** Replace with a real score later.
+- `ambience/thunder_*.wav`, `ambience/rain_loop.wav` — procedurally
+  generated night-storm ambience for apartment windows (rolling thunder +
+  a seamless rain loop) made for this project (`tools/gen_storm_audio.py`).
+  **CC0.** Replace with recorded storm SFX later.

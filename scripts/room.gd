@@ -56,6 +56,11 @@ const TUTORIAL_LAYOUTS = {
 
 const MODULE_WIDTH = 320
 const LEFT_WALL_X = 113
+# Wall-window placement inside a module. Y sits in the anchor-free TOP wall band (scavenge
+# anchors are all at module-local y>=76, i.e. world y>=~300), so a window never overlaps a
+# search node. INSET is how far in from the module edge the left/right window slot sits.
+const MODULE_WINDOW_Y := 252.0
+const MODULE_WINDOW_INSET := 72.0
 const CLICK_RADIUS = 10.0
 const UI_FONT = preload("res://assets/fonts/PixelOperator8.ttf")
 
@@ -608,6 +613,25 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 				zone.slot = i
 				zone.position = Vector2(LEFT_WALL_X + i * MODULE_WIDTH + 50, 334)
 				add_child(zone)
+
+		# WALL WINDOW on every NON-balcony module (a balcony module already has its balcony
+		# window). Seeded LEFT or RIGHT (WorldState.apartment_window_side) — the two slots let
+		# a future module-art pass vary which walls are glazed. Sits in the anchor-free TOP wall
+		# band (world y MODULE_WINDOW_Y ~252) so it NEVER overlaps a scavenge node (anchors are
+		# at furniture level, world y >= ~300). Added on the passive backdrop too (light only),
+		# so a balcony descent pan shows the neighbouring flat's windows lit.
+		var has_balcony := bal_node != null and WorldState.is_balcony_slot(apartment_id, i)
+		if not has_balcony:
+			var side := WorldState.apartment_window_side(apartment_id, i)
+			var wx: float = LEFT_WALL_X + i * MODULE_WIDTH + (MODULE_WINDOW_INSET if side == "left" else MODULE_WIDTH - MODULE_WINDOW_INSET)
+			var window = load("res://scripts/apartment_window.gd").new()
+			add_child(window)
+			window.setup(Vector2(wx, MODULE_WINDOW_Y), live)
+
+	# One storm driver per LIVE night apartment: rain hiss + synced lightning/thunder across
+	# all the windows just built. Skipped on passive backdrops and on day/afternoon runs.
+	if live and WorldState.current_run == 3:
+		add_child(load("res://scripts/apartment_storm.gd").new())
 
 
 func _after_modules_ready() -> void:

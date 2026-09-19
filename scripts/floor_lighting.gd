@@ -102,15 +102,17 @@ static func cone_texture() -> Texture2D:
 	return _cone
 
 
-static func make_window_light(pos: Vector2) -> PointLight2D:
-	# A broad, soft daylight pool from a window (stairwell or apartment balcony). Bright and
-	# warm by day, a dim cool MOONLIGHT at night. Uses the round cookie (a window washes a
-	# whole area, it isn't a tight spotlight).
+static func make_window_light(pos: Vector2, energy_scale: float = 1.0) -> PointLight2D:
+	# A broad, soft daylight pool from a window (stairwell / balcony / apartment wall). Bright
+	# COOL daylight by day, warm afternoon, a dim blue MOONLIGHT at night. Uses the round cookie
+	# (a window washes a whole area, it isn't a tight spotlight). `energy_scale` lets a caller
+	# lift it a touch — apartment wall windows carry the room (no ceiling lamps in a flat), so
+	# they run a bit stronger than the incidental stairwell/balcony spill.
 	var i: int = clampi(WorldState.current_run - 1, 0, WINDOW_CAST.size() - 1)
 	var lt := PointLight2D.new()
 	lt.texture = light_texture()
 	lt.color = WINDOW_CAST[i]
-	lt.energy = WINDOW_ENERGY[i]
+	lt.energy = WINDOW_ENERGY[i] * energy_scale
 	lt.texture_scale = WINDOW_SCALE
 	lt.position = pos
 	lt.z_index = 0
