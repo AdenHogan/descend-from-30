@@ -175,8 +175,8 @@ setup script; binary from downloads.godotengine.org). Before every commit:
   `profile_ui_test`, `title_test`, `enemy_memory_test`, `floor_adopt_test`,
   `balcony_test`, `hud_prompt_test`, `stair_block_test`, `fire_test`,
   `maintenance_test`, `elevator_test`, `run_arc_test`, `enemy_variety_test`,
-  `dev_menu_test`, `lighting_test`, `plane_lock_test`, `apartment_window_test` — run all
-  32 before commit. (Run ONE godot at a time — a killed/backgrounded headless run can
+  `dev_menu_test`, `lighting_test`, `plane_lock_test`, `apartment_window_test`,
+  `scavenge_node_test` — run all 33 before commit. (Run ONE godot at a time — a killed/backgrounded headless run can
   linger and block the next, and a GDScript **parse error makes a test scene load but
   never call `quit()`, so it "hangs" until timeout** rather than printing an error line;
   if a suite hangs, check for a parse error and stray `godot` processes first.
@@ -710,6 +710,18 @@ means no rendering — UI layout and art still need an in-editor look.
   `assets/audio/ambience/`, CC0). Added on the passive balcony-pan backdrop too (light only,
   no rain/storm). Covered by `apartment_window_test`. Purely visual/audio otherwise — the LOOK
   (window brightness, rain read, flash) needs an in-editor check.
+- Scavenge nodes = a glowing "mini sun" (`interactable.gd`, replaced the old flat
+  yellow/white `draw_circle`): a procedurally-drawn, ROTATING orb with a shaded sphere body
+  (rim→mid→hot→offset white core = fake 3D lit from upper-left), a rotating corona of flares,
+  drifting scattered sunspots (spin cue, deliberately NON-symmetric so it never reads as a
+  face), a soft glow halo, and a gentle pulse — PLUS a REAL PointLight2D child so the orb
+  actually casts a warm pool into the room (weight; plays with the dynamic lighting + helps
+  night scavenging). Size/brightness/light-energy scale with proximity: dim+small at the far
+  edge of the glow radius → bright at interact range → hottest when selected; the light is 0
+  (dark) whenever not in scavenge mode or out of range, so it never lights a room you're not
+  searching. Animated via `_process` advancing `_t`; visual can't be verified headless (a PIL
+  approximation is `docs/art_reference/scavenge_node_preview.png`), but the light/weight wiring
+  is locked by `scavenge_node_test`. Same script drives maintenance-room anchors too.
 - Enemy variety / escalation table (THREE_RUN_ARC step 6, v1): the infestation
   **migrates upward** across the arc, and there are now **five corridor types**. The mix
   is data-driven per (floor band × run) in `world_state.gd`: `HEAVY_CHANCE` (Big Zombie)
