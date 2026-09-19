@@ -5,24 +5,25 @@ const INTERACT_DISTANCE = 50.0
 
 const FL = preload("res://scripts/floor_lighting.gd")
 
-# --- Scavenge marker: a shiny physical orb -----------------------------------
-# Replaces the old flat yellow/white circle. A small, appealing GLOWING SPHERE with real
-# volume: a shaded body (rim → body → bright, lit from the upper-left = fake 3D), a soft
-# specular glint that slowly ORBITS the surface (reads as gentle rotation + shine), a soft
-# glow halo, a gentle bob + pulse (weight) — PLUS a REAL PointLight2D so it casts a warm
-# pool into the room. GOLDEN while it still holds an untaken item you HAVEN'T searched;
-# once SEARCHED-but-not-emptied (item left behind) it turns pale WHITE/colourless — drained
-# of gold but still glowing and distinct so the player knows it's been looked in.
+# --- Scavenge marker: a small shiny SPHERE -----------------------------------
+# Replaces the old flat circle. A small, appealing glowing BALL with real volume: a properly
+# SHADED SPHERE (baked from sphere-normal lighting, a smooth gradient from a lit upper-left
+# crest to a soft dark terminator — NOT concentric discs, which read as an "Among Us" visor),
+# a tiny drifting specular glint (gentle rotation + shine), a small bob, and a TIGHT little
+# glow. A modest REAL PointLight2D gives it presence without flooding the room. GOLDEN while
+# it still holds an untaken item you HAVEN'T searched; once SEARCHED-but-not-emptied it turns
+# pale WHITE/colourless — drained but still glowing + distinct so a looked-in node reads apart.
+# Only two colours matter now: the sphere BODY tint and the SPEC/GLOW/LIGHT accent.
 const GOLD := {
-	"rim": Color(0.70, 0.50, 0.06), "body": Color(0.96, 0.74, 0.16),
-	"bright": Color(1.00, 0.90, 0.46), "spec": Color(1.00, 0.99, 0.90),
+	"body": Color(1.00, 0.80, 0.22), "spec": Color(1.00, 0.98, 0.86),
 	"glow": Color(1.00, 0.80, 0.30), "light": Color(1.00, 0.78, 0.34),
 }
 const PALE := {
-	"rim": Color(0.54, 0.56, 0.60), "body": Color(0.82, 0.85, 0.90),
-	"bright": Color(0.95, 0.97, 1.00), "spec": Color(1.00, 1.00, 1.00),
-	"glow": Color(0.86, 0.90, 1.00), "light": Color(0.86, 0.90, 1.00),
+	"body": Color(0.86, 0.89, 0.95), "spec": Color(1.00, 1.00, 1.00),
+	"glow": Color(0.88, 0.92, 1.00), "light": Color(0.88, 0.92, 1.00),
 }
+
+static var _sphere_tex: Texture2D = null
 
 var apartment_id: String = ""
 var player: Node = null
@@ -34,17 +35,45 @@ var _tex: Texture2D = null
 var _light: PointLight2D = null
 
 
+static func sphere_texture() -> Texture2D:
+	# A baked, smoothly-shaded sphere (white; tint it when drawing). Diffuse from an upper-left
+	# key light over a low ambient, so the ball has a bright crest fading to a soft dark edge —
+	# a real 3D read, no hard rings. Soft anti-aliased alpha at the rim.
+	if _sphere_tex == null:
+		var w := 64
+		var img := Image.create(w, w, false, Image.FORMAT_RGBA8)
+		var c := (w - 1) / 2.0
+		var half := w / 2.0
+		var lightdir := Vector3(-0.5, -0.6, 0.62).normalized()
+		for y in range(w):
+			for x in range(w):
+				var nx := (float(x) - c) / half
+				var ny := (float(y) - c) / half
+				var r2 := nx * nx + ny * ny
+				if r2 >= 1.0:
+					img.set_pixel(x, y, Color(0, 0, 0, 0))
+					continue
+				var nz := sqrt(1.0 - r2)
+				var diff: float = maxf(0.0, Vector3(nx, ny, nz).dot(lightdir))
+				var shade: float = 0.28 + 0.72 * diff        # ambient floor so the dark side isn't black
+				var edge: float = clampf((1.0 - r2) / 0.08, 0.0, 1.0)   # soft AA rim
+				img.set_pixel(x, y, Color(shade, shade, shade, edge))
+		_sphere_tex = ImageTexture.create_from_image(img)
+	return _sphere_tex
+
+
 func _ready() -> void:
 	player = get_tree().get_first_node_in_group("player")
-	_tex = FL.light_texture()   # soft round cookie, shared — used for halo + core glow
-	# Real light so the orb has physical presence (a warm pool on the wall/floor). Energy is
-	# driven per-frame in _process; 0 when not scavenging / out of range so it never lights
-	# a room the player isn't searching.
+	_tex = FL.light_texture()          # soft round cookie — used for the tight glow + glint softness
+	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR   # smooth the scaled-down sphere/glow
+	# A MODEST real light so the orb has presence — small pool, not a floodlight (an earlier
+	# version's big halo read as a giant glow). Driven per-frame in _process; 0 when not
+	# scavenging / out of range so it never lights a room you're not searching.
 	_light = PointLight2D.new()
 	_light.texture = _tex
-	_light.color = Color(1.0, 0.72, 0.34)
+	_light.color = GOLD["light"]
 	_light.energy = 0.0
-	_light.texture_scale = 0.16
+	_light.texture_scale = 0.06
 	_light.z_index = 0
 	add_child(_light)
 	_check_should_hide()
@@ -101,9 +130,10 @@ func _process(delta: float) -> void:
 	if _light != null:
 		var pal = _palette()
 		_light.color = pal["light"]
-		var pulse = 1.0 + 0.10 * sin(_t * 3.2)
-		_light.energy = lvl * 0.7 * pulse
-		_light.texture_scale = 0.12 + 0.10 * lvl
+		var pulse = 1.0 + 0.08 * sin(_t * 3.2)
+		# Modest, tight pool — presence, not a floodlight.
+		_light.energy = lvl * 0.45 * pulse
+		_light.texture_scale = 0.045 + 0.03 * lvl
 	queue_redraw()
 
 
@@ -118,26 +148,23 @@ func _draw() -> void:
 		return
 	var pal = _palette()
 	var pulse = 1.0 + 0.05 * sin(_t * 3.0)
-	var r = lerpf(6.0, 10.0, lvl) * pulse
-	# Gentle vertical bob for weight (a held object floating, breathing).
-	var c = Vector2(0.0, sin(_t * 2.0) * 1.3)
+	# SMALL ball (an earlier version read far too big). Radius in world px.
+	var r = lerpf(4.0, 6.5, lvl) * pulse
+	# A little vertical bob for weight (a held object floating).
+	var c = Vector2(0.0, sin(_t * 2.0) * 0.8)
 
-	# Soft glow halo (baked round cookie) so the orb reads as glowing even on unlit art.
-	_blit(c, r * 2.9, _a(pal["glow"], 0.09 * lvl))
-	_blit(c, r * 1.9, _a(pal["glow"], 0.15 * lvl))
+	# TIGHT glow, hugging the ball — just enough to read as glowing, never a big halo.
+	_blit(c, r * 1.5, _a(pal["glow"], 0.16 * lvl))
 
-	# Shaded sphere: rim -> body -> bright, each inner disc nudged toward the upper-left
-	# "light" so the bright side sits off-centre and it reads as a lit ball, not a flat coin.
+	# The shaded sphere itself (baked smooth gradient, tinted). Real 3D read, no crescent.
+	var d = r * 2.0
+	draw_texture_rect(sphere_texture(), Rect2(c.x - r, c.y - r, d, d), false, pal["body"])
+
+	# A tiny specular glint drifting near the lit crest — subtle shine + a gentle-rotation cue.
 	var hl = Vector2(-1, -1).normalized()
-	draw_circle(c, r, pal["rim"])
-	draw_circle(c + hl * (r * 0.14), r * 0.80, pal["body"])
-	draw_circle(c + hl * (r * 0.34), r * 0.50, pal["bright"])
-
-	# Specular glint that slowly ORBITS a small path in the upper hemisphere — the shine
-	# drifting reads as the ball gently rotating. Soft (cookie) + a tiny hard hotspot.
-	var gpos = c + hl * (r * 0.34) + Vector2(cos(_t * 1.1), sin(_t * 1.1)) * (r * 0.14)
-	_blit(gpos, r * 0.55, _a(pal["spec"], 0.55 * lvl))
-	draw_circle(gpos, r * 0.12, _a(pal["spec"], 0.9 * lvl))
+	var gpos = c + hl * (r * 0.38) + Vector2(cos(_t * 1.1), sin(_t * 1.1)) * (r * 0.10)
+	_blit(gpos, r * 0.42, _a(pal["spec"], 0.30 * lvl))
+	draw_circle(gpos, r * 0.14, _a(pal["spec"], 0.85 * lvl))
 
 
 func _a(col: Color, alpha: float) -> Color:

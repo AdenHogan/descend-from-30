@@ -710,21 +710,23 @@ means no rendering — UI layout and art still need an in-editor look.
   `assets/audio/ambience/`, CC0). Added on the passive balcony-pan backdrop too (light only,
   no rain/storm). Covered by `apartment_window_test`. Purely visual/audio otherwise — the LOOK
   (window brightness, rain read, flash) needs an in-editor check.
-- Scavenge nodes = a shiny glowing ORB (`interactable.gd`, replaced the old flat yellow/white
-  `draw_circle`; NOT a literal sun — owner corrected an over-figurative first pass with flares/
-  sunspots): a small appealing sphere with real volume (shaded rim→body→bright, lit upper-left
-  = fake 3D), a soft specular glint that slowly ORBITS the surface (reads as gentle rotation +
-  shine), a soft glow halo, and a gentle bob+pulse (weight) — PLUS a REAL PointLight2D child so
-  it casts a pool into the room (plays with the dynamic lighting + helps night scavenging).
-  **GOLDEN** while it still holds an untaken item you HAVEN'T searched; once **SEARCHED-but-not-
-  emptied** (item left behind) it turns **pale WHITE/colourless** (`GOLD`/`PALE` palettes; the
-  light colour swaps too) — drained of gold but still glowing + distinct so the player knows
-  it's been looked in. Size/brightness/light-energy scale with proximity (dim+small at the glow
-  edge → bright at interact range → hottest when selected); light is 0 out of scavenge mode or
-  range so it never lights a room you're not searching. Animated via `_process` advancing `_t`;
-  the LOOK can't be verified headless (PIL approximation: `docs/art_reference/scavenge_node_preview.png`),
-  but the light/weight + gold→pale wiring is locked by `scavenge_node_test`. Same script drives
-  maintenance-room anchors too.
+- Scavenge nodes = a small shaded SPHERE (`interactable.gd`, replaced the old flat yellow/white
+  `draw_circle`; iterated: v1 literal "mini sun" with flares/sunspots → owner: too figurative;
+  v2 concentric-disc shading → owner: too big, giant halo, "Among Us visor"; **v3 = the keeper**):
+  a small golden BALL drawn from a baked, smoothly-shaded sphere texture (`sphere_texture()` —
+  diffuse from an upper-left key light over a low ambient, so a bright crest fades to a soft dark
+  terminator: a real 3D read, NO hard rings/crescent), tinted by state, with a tiny drifting
+  specular glint (subtle shine + gentle-rotation cue), a small bob, and a TIGHT little glow that
+  hugs the ball (never a halo). A MODEST real PointLight2D (`energy ~0.45×lvl`, `texture_scale
+  ~0.05`) gives presence without flooding the room. **GOLDEN** while it holds an untaken item you
+  HAVEN'T searched; once **SEARCHED-but-not-emptied** it turns **pale WHITE/colourless**
+  (`GOLD`/`PALE` palettes = a `body` tint + `spec`/`glow`/`light` accents; the light colour swaps
+  too) — drained but still glowing + distinct so a looked-in node reads apart. Radius small
+  (`lerpf(4.0, 6.5, lvl)`); size/brightness/light scale with proximity (dim+small at the glow
+  edge → bright near → hottest when selected); light is 0 out of scavenge mode or range. Uses
+  `TEXTURE_FILTER_LINEAR` so the scaled-down sphere is smooth. The LOOK can't be verified headless
+  (PIL approximation: `docs/art_reference/scavenge_node_preview.png`); the light/weight + gold→pale
+  wiring is locked by `scavenge_node_test`. Same script drives maintenance-room anchors too.
 - Enemy variety / escalation table (THREE_RUN_ARC step 6, v1): the infestation
   **migrates upward** across the arc, and there are now **five corridor types**. The mix
   is data-driven per (floor band × run) in `world_state.gd`: `HEAVY_CHANCE` (Big Zombie)
