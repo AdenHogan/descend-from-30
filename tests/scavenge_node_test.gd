@@ -63,6 +63,19 @@ func _test_mini_sun_light() -> void:
 		await get_tree().process_frame
 	check(light != null and light.energy == 0.0, "orb is dark when the player is far (energy %.2f)" % (light.energy if light else -1))
 
+	# GOLD → PALE once searched-but-not-emptied: the light colour drains from warm gold to
+	# cool white, so a searched orb reads distinctly different while still glowing.
+	node.global_position = Vector2(620, 386)     # back in range
+	for i in range(3):
+		await get_tree().process_frame
+	var gold := light.color
+	check(gold.r > gold.b, "unsearched orb light is warm gold (r %.2f > b %.2f)" % [gold.r, gold.b])
+	WorldState.mark_anchor_searched("1501", "anchor_test")
+	for i in range(3):
+		await get_tree().process_frame
+	var pale := light.color
+	check(pale.b >= pale.r, "searched orb light turns cool/pale (r %.2f <= b %.2f)" % [pale.r, pale.b])
+
 	WorldState.is_scavenge_mode = false
 	p.queue_free()
 	node.queue_free()

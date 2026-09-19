@@ -5,18 +5,24 @@ const INTERACT_DISTANCE = 50.0
 
 const FL = preload("res://scripts/floor_lighting.gd")
 
-# --- Mini-sun scavenge marker -------------------------------------------------
-# Replaces the old flat yellow/white circle. A small glowing, ROTATING orb with a
-# shaded body (fake 3D), a rotating corona of flares, drifting sunspots (spin cue), a
-# soft halo, a gentle pulse — and a REAL PointLight2D so it actually casts warm light
-# into the room (weight + it plays with the dynamic lighting). Distinct, not overwhelming;
-# it grows/brightens as the player nears and is hottest when selected.
-const CORE := Color(1.00, 0.97, 0.86)   # white-hot centre
-const HOT := Color(1.00, 0.84, 0.42)    # inner amber
-const MID := Color(1.00, 0.58, 0.16)    # body orange
-const RIM := Color(0.82, 0.33, 0.05)    # cooler rim (edge in shadow → sphere read)
-const FLARE := Color(1.00, 0.72, 0.28)  # corona
-const SUNSPOT := Color(0.72, 0.26, 0.04)
+# --- Scavenge marker: a shiny physical orb -----------------------------------
+# Replaces the old flat yellow/white circle. A small, appealing GLOWING SPHERE with real
+# volume: a shaded body (rim → body → bright, lit from the upper-left = fake 3D), a soft
+# specular glint that slowly ORBITS the surface (reads as gentle rotation + shine), a soft
+# glow halo, a gentle bob + pulse (weight) — PLUS a REAL PointLight2D so it casts a warm
+# pool into the room. GOLDEN while it still holds an untaken item you HAVEN'T searched;
+# once SEARCHED-but-not-emptied (item left behind) it turns pale WHITE/colourless — drained
+# of gold but still glowing and distinct so the player knows it's been looked in.
+const GOLD := {
+	"rim": Color(0.70, 0.50, 0.06), "body": Color(0.96, 0.74, 0.16),
+	"bright": Color(1.00, 0.90, 0.46), "spec": Color(1.00, 0.99, 0.90),
+	"glow": Color(1.00, 0.80, 0.30), "light": Color(1.00, 0.78, 0.34),
+}
+const PALE := {
+	"rim": Color(0.54, 0.56, 0.60), "body": Color(0.82, 0.85, 0.90),
+	"bright": Color(0.95, 0.97, 1.00), "spec": Color(1.00, 1.00, 1.00),
+	"glow": Color(0.86, 0.90, 1.00), "light": Color(0.86, 0.90, 1.00),
+}
 
 var apartment_id: String = ""
 var player: Node = null
@@ -89,56 +95,58 @@ func _process(delta: float) -> void:
 	is_in_range = dist <= INTERACT_DISTANCE
 	if was_in_range and not is_in_range:
 		WorldState.interaction_handled = false
-	# Drive the real light to match the orb's heat, with the same gentle pulse.
+	# Drive the real light to match the orb, with the same gentle pulse; colour follows the
+	# orb's state (warm gold, or cool white once searched-but-not-emptied).
 	var lvl = _activity()
 	if _light != null:
+		var pal = _palette()
+		_light.color = pal["light"]
 		var pulse = 1.0 + 0.10 * sin(_t * 3.2)
-		_light.energy = lvl * 0.75 * pulse
+		_light.energy = lvl * 0.7 * pulse
 		_light.texture_scale = 0.12 + 0.10 * lvl
 	queue_redraw()
+
+
+func _palette() -> Dictionary:
+	# GOLD until the anchor has been searched; PALE (colourless) after, if it still holds an item.
+	return PALE if WorldState.is_anchor_searched(apartment_id, name) else GOLD
 
 
 func _draw() -> void:
 	var lvl = _activity()
 	if lvl <= 0.0:
 		return
-	var pulse = 1.0 + 0.06 * sin(_t * 3.2)
-	var r = lerpf(6.0, 10.5, lvl) * pulse
+	var pal = _palette()
+	var pulse = 1.0 + 0.05 * sin(_t * 3.0)
+	var r = lerpf(6.0, 10.0, lvl) * pulse
+	# Gentle vertical bob for weight (a held object floating, breathing).
+	var c = Vector2(0.0, sin(_t * 2.0) * 1.3)
 
-	# Soft glow halo (baked round cookie), so the orb reads as glowing even on unlit art.
-	_blit(_tex, r * 3.2, Color(1.0, 0.6, 0.22, 0.10 * lvl))
-	_blit(_tex, r * 2.0, Color(1.0, 0.68, 0.28, 0.14 * lvl))
+	# Soft glow halo (baked round cookie) so the orb reads as glowing even on unlit art.
+	_blit(c, r * 2.9, _a(pal["glow"], 0.09 * lvl))
+	_blit(c, r * 1.9, _a(pal["glow"], 0.15 * lvl))
 
-	# Rotating corona flares (spin + flicker).
-	var rays = 12
-	for i in range(rays):
-		var a = _t * 0.6 + float(i) * TAU / float(rays)
-		var flick = 0.6 + 0.4 * sin(_t * 4.0 + float(i) * 1.7)
-		var dir = Vector2(cos(a), sin(a))
-		draw_line(dir * (r * 1.05), dir * (r * (1.35 + 0.55 * flick)),
-			Color(FLARE.r, FLARE.g, FLARE.b, 0.5 * lvl * flick), maxf(1.0, r * 0.11))
-
-	# Sphere body: rim -> mid -> hot -> core, each inner disc nudged toward the upper-left
-	# "light" so the bright core sits off-centre and the disc reads as a lit sphere, not a flat coin.
+	# Shaded sphere: rim -> body -> bright, each inner disc nudged toward the upper-left
+	# "light" so the bright side sits off-centre and it reads as a lit ball, not a flat coin.
 	var hl = Vector2(-1, -1).normalized()
-	draw_circle(Vector2.ZERO, r, RIM)
-	draw_circle(hl * (r * 0.12), r * 0.82, MID)
-	draw_circle(hl * (r * 0.30), r * 0.55, HOT)
-	# Rotating sunspots (each an ellipse path = a point going around a sphere), BEFORE the
-	# core so it still burns brightest on top. Distinct radii / speeds / phases so they scatter
-	# as surface mottling and never line up into a symmetric "face".
-	for s in [[0.52, 0.26, 1.3, 0.0], [0.32, 0.44, -0.95, 2.4], [0.62, 0.16, 1.75, 4.1]]:
-		var sa = _t * s[2] + s[3]
-		var sp = Vector2(cos(sa) * r * s[0], sin(sa * 0.7) * r * s[1])
-		draw_circle(sp, r * 0.09, Color(SUNSPOT.r, SUNSPOT.g, SUNSPOT.b, 0.38 * lvl))
-	draw_circle(hl * (r * 0.5), r * 0.30, CORE)
-	# Soft hot bloom on the core.
-	_blit(_tex, r * 0.9, Color(1.0, 0.95, 0.8, 0.5 * lvl))
+	draw_circle(c, r, pal["rim"])
+	draw_circle(c + hl * (r * 0.14), r * 0.80, pal["body"])
+	draw_circle(c + hl * (r * 0.34), r * 0.50, pal["bright"])
+
+	# Specular glint that slowly ORBITS a small path in the upper hemisphere — the shine
+	# drifting reads as the ball gently rotating. Soft (cookie) + a tiny hard hotspot.
+	var gpos = c + hl * (r * 0.34) + Vector2(cos(_t * 1.1), sin(_t * 1.1)) * (r * 0.14)
+	_blit(gpos, r * 0.55, _a(pal["spec"], 0.55 * lvl))
+	draw_circle(gpos, r * 0.12, _a(pal["spec"], 0.9 * lvl))
 
 
-func _blit(tex: Texture2D, radius: float, col: Color) -> void:
-	# Draw the round cookie centred at the origin, sized to `radius`.
-	draw_texture_rect(tex, Rect2(-radius, -radius, radius * 2.0, radius * 2.0), false, col)
+func _a(col: Color, alpha: float) -> Color:
+	return Color(col.r, col.g, col.b, alpha)
+
+
+func _blit(center: Vector2, radius: float, col: Color) -> void:
+	# Draw the round cookie centred at `center`, sized to `radius`.
+	draw_texture_rect(_tex, Rect2(center.x - radius, center.y - radius, radius * 2.0, radius * 2.0), false, col)
 
 
 func try_interact() -> void:
