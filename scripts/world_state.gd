@@ -1756,9 +1756,9 @@ const HEAVY_CHANCE := [
 # then its SHARE eases as runs 2/3 bring the tougher types in for variety. So unlike the
 # others it is NOT monotonic across runs — run 1 is deliberately its peak.
 const CRAWLER_CHANCE := [
-	[0.25, 0.18, 0.22],   # LOW  : run-1 swarm (3:1), holds through the arc
-	[0.25, 0.14, 0.16],   # MID  : run-1 crawlers throughout; MID stays long-arm-led later
-	[0.25, 0.10, 0.14],   # HIGH : same run-1 swarm up top; HIGH stays spitter-led at night
+	[0.25, 0.18, 0.22],   # LOW  : run-1 swarm (3:1) stays DEEP where the outbreak is worst
+	[0.25, 0.14, 0.16],   # MID  : run-1 3:1 holds through the mid floors; MID stays long-arm-led later
+	[0.12, 0.10, 0.14],   # HIGH : run-1 TOP is mostly regulars — crawler only OCCASIONAL up here
 ]
 const LONGARM_CHANCE := [
 	[0.00, 0.12, 0.18],   # LOW
@@ -1825,16 +1825,14 @@ func enemy_type_for(floor_num: int, spawn_key: String) -> String:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(str(master_seed) + "etype" + spawn_key + str(current_run))
 	var roll: float = rng.randf()
-	# Run-opening grace: on the fresh-start floors (29/28/27) the weapon-dependent tough types
-	# (heavy / long-arm / spitter) are scaled down so a gearless character isn't walled early.
-	# The crawler is exempt (the intended barehanded-killable early swarm).
+	# Run-opening grace: on the fresh-start floors (29/28/27) ALL special types (heavy, long-arm,
+	# spitter AND crawler) are scaled down, so the opening is mostly plain standards — a gearless
+	# character isn't walled, and two crawlers landing side-by-side on the 2nd floor down is
+	# highly unlikely (owner ask). The deeper floors keep their full swarm.
 	var ease: float = run_opening_ease(floor_num)
 	var acc: float = 0.0
 	for id in _MIX_ORDER:
-		var c: float = _MIX_TABLES[id][band][r]
-		if id != "zombie_crawler":
-			c *= ease
-		acc += c
+		acc += _MIX_TABLES[id][band][r] * ease
 		if roll < acc:
 			return id
 	return "zombie_standard"

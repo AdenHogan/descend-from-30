@@ -101,14 +101,21 @@ func game_over() -> void:
 	WorldState.set_run_outcome(WorldState.current_run, "dead")
 	get_tree().paused = false
 	var next_run: int = WorldState.current_run + 1
+	# Cover the screen to BLACK before advancing the run — otherwise advance_run()'s run-3
+	# world mutation (new barricades/props/door states) pops in over the still-visible run-2
+	# death scene. Everything below now happens out of sight.
+	await Transition.cover()
 	var arc_over: bool = WorldState.advance_run()
 	if arc_over:
-		# The final character has fallen — the playthrough ends.
+		# The final character has fallen — the playthrough ends. Reveal onto the game-over card.
 		WorldState.delete_save()
 		HUD.hide_hud()
 		get_tree().change_scene_to_file("res://scenes/game_over.tscn")
+		await get_tree().process_frame
+		await get_tree().process_frame
+		await Transition.reveal()
 		return
 	# The next character wakes at Floor 30 after the skip. Persist the fresh run
 	# WITHOUT recording the dead scene's zombies, then time-skip into the hallway.
 	WorldState.save_game("res://scenes/hallway.tscn", false)
-	Transition.to_run_shift("res://scenes/hallway.tscn", next_run)
+	Transition.to_run_shift("res://scenes/hallway.tscn", next_run, 2.0, true)

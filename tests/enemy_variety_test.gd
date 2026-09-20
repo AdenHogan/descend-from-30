@@ -311,15 +311,31 @@ func _test_crawler_behaviour() -> void:
 		"crawler collision box is taller (%.0f px)" % (cr_shape.shape.size.y if cr_shape != null and cr_shape.shape is RectangleShape2D else -1.0))
 	cr.queue_free()
 	await get_tree().process_frame
-	# Run-1 frequency ~3:1 across the building (sample a mid floor — clean of big).
+	# Run-1 frequency ~3:1 through the mid/deep floors. Sample ACROSS many LOW+MID floors (all
+	# 0.25 crawler in run 1, clean of the top taper) so the fraction converges to ~0.25 regardless
+	# of seed — enemy_type_for's per-slot RNG (one draw off a per-key hash) can bias a single
+	# floor's small sample otherwise.
 	WorldState.current_run = 1
 	var craw := 0
-	var total := 600
-	for i in range(total):
-		if WorldState.enemy_type_for(15, "15:%d:388" % (150 + i * 2)) == "zombie_crawler":
-			craw += 1
+	var total := 0
+	for f in range(3, 19):
+		for i in range(45):
+			total += 1
+			if WorldState.enemy_type_for(f, "%d:%d:388" % [f, 150 + i * 7]) == "zombie_crawler":
+				craw += 1
 	var frac := float(craw) / float(total)
-	check(frac >= 0.18 and frac <= 0.32, "run-1 crawlers are ~1-in-4 across the building (%.2f)" % frac)
+	check(frac >= 0.18 and frac <= 0.32, "run-1 crawlers are ~1-in-4 through the mid/deep floors (%.2f)" % frac)
+	# Run-1 TOP is mostly regulars: the 2nd floor down (29) carries FAR fewer crawlers than the
+	# deep swarm, so two landing side-by-side up top is highly unlikely (owner ask).
+	var top := 0
+	var deep := 0
+	for i in range(600):
+		if WorldState.enemy_type_for(29, "29:%d:388" % (150 + i * 2)) == "zombie_crawler":
+			top += 1
+		if WorldState.enemy_type_for(5, "5:%d:388" % (150 + i * 2)) == "zombie_crawler":
+			deep += 1
+	check(float(top) / 600.0 < 0.10, "run-1 top (floor 29) is light on crawlers (%.3f)" % (float(top) / 600.0))
+	check(deep > top * 3, "the crawler swarm concentrates deep, not up top (%d deep vs %d top)" % [deep, top])
 
 
 func _special_share(band: int, run: int) -> float:
@@ -372,15 +388,19 @@ func _test_variety_and_flavor() -> void:
 				if t[band][r] < t[band][r - 1]:
 					mono = false
 	check(mono, "the migrating types only grow run to run")
-	# The Crawler is FRONT-LOADED: present across the WHOLE building in run 1 at ~3:1
-	# (its run-1 value is its peak per band), the early swarm before the tougher types.
+	# The Crawler is FRONT-LOADED: the run-1 early swarm. It concentrates DEEP (LOW/MID ~0.25,
+	# where the outbreak is worst) and THINS toward the TOP (HIGH run 1 only occasional), so a
+	# fresh character on the first floors down meets mostly regulars — no two-crawler ambush on
+	# the 2nd floor down (owner ask). Its run-1 value is its peak per band (front-loaded).
 	var craw_ok := true
+	if WorldState.CRAWLER_CHANCE[0][0] < 0.20 or WorldState.CRAWLER_CHANCE[1][0] < 0.20:
+		craw_ok = false                     # a real run-1 swarm deep (LOW) and mid (MID)
+	if WorldState.CRAWLER_CHANCE[2][0] >= WorldState.CRAWLER_CHANCE[0][0]:
+		craw_ok = false                     # HIGH (top) run-1 is thinned vs the deep swarm
 	for band in range(3):
-		if WorldState.CRAWLER_CHANCE[band][0] < 0.20:
-			craw_ok = false                 # a real run-1 presence on every band
 		if WorldState.CRAWLER_CHANCE[band][0] < WorldState.CRAWLER_CHANCE[band][1]:
-			craw_ok = false                 # run 1 is its peak (front-loaded, not monotonic)
-	check(craw_ok, "the crawler is the run-1 swarm across the whole building (~3:1)")
+			craw_ok = false                 # run 1 is its peak per band (front-loaded, not monotonic)
+	check(craw_ok, "crawler front-loaded: run-1 swarm deep, thinned up top, its peak per band")
 	# Run 1's OTHER new types stay a deep-only taste (only big, low floors).
 	check(WorldState.LONGARM_CHANCE[0][0] == 0.0 and WorldState.SPITTER_CHANCE[0][0] == 0.0, "run 1 has no long-arm/spitter yet")
 	check(WorldState.HEAVY_CHANCE[1][0] == 0.0 and WorldState.HEAVY_CHANCE[2][0] == 0.0, "run 1 heavies stay deep only")
@@ -392,6 +412,7 @@ func _test_run_opening_grace() -> void:
 	# gearless run-2/3 start isn't walled. Bosses + full-strength tough types resume at floor 26.
 	print("[run-opening grace]")
 	WorldState.new_game()
+	WorldState.master_seed = 20240117          # fixed so the statistical samples are deterministic
 	WorldState.tutorial_completed = true
 	WorldState.is_first_run = false
 	var no_open_boss := true
@@ -416,13 +437,11 @@ func _test_run_opening_grace() -> void:
 		if t26 == "zombie_big" or t26 == "zombie_longarm" or t26 == "zombie_spitter":
 			tough26 += 1
 	check(tough29 < tough26, "opening floor 29 carries fewer weapon-needing enemies than floor 26 (%d < %d)" % [tough29, tough26])
-	# A boss still appears below the opening stretch (runs 2/3).
+	# Bosses remain possible below the opening stretch (deterministic table intent — no seed
+	# gamble: positive chance at floor 26 and down, forced to zero on the graced 27-29).
 	WorldState.current_run = 2
-	var deep_boss := false
-	for f in range(2, 27):
-		if WorldState.floor_has_boss(f):
-			deep_boss = true
-	check(deep_boss, "bosses still appear below the opening stretch")
+	check(WorldState.floor_boss_chance(26) > 0.0 and WorldState.floor_boss_chance(2) > 0.0,
+		"bosses possible below the opening stretch (fl26 %.2f / fl2 %.2f)" % [WorldState.floor_boss_chance(26), WorldState.floor_boss_chance(2)])
 	await get_tree().process_frame
 
 

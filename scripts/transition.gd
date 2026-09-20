@@ -84,12 +84,39 @@ func _build_run_card() -> void:
 # then the time-of-day card (MORNING / AFTERNOON / NIGHT) drifts up and holds so the
 # passage of time is unmistakable, then the scene swaps and fades in on the new run.
 # `run_index` is the run we're arriving INTO (2 or 3).
-func to_run_shift(path: String, run_index: int, hold: float = 2.0) -> void:
+func cover(dur: float = 0.7) -> bool:
+	# Fade the screen to FULL BLACK and hold it. Returns false if a transition is already
+	# running. Used before a run-advance so that ALL run-3 world mutation / spawns happen
+	# BEHIND black (the owner caught run-3 boxes popping in over the run-2 death scene when
+	# advance_run() ran while the old floor was still visible). Pair with to_run_shift(...,
+	# already_covered=true) to continue, or reveal() to fade back in on a fresh scene.
 	if busy:
-		return
+		return false
 	busy = true
 	rect.visible = true
-	await _fade(1.0, 0.7)                                      # slow — hours pass
+	await _fade(1.0, dur)
+	return true
+
+
+func reveal(dur: float = 0.6) -> void:
+	# Fade the black cover back out (after cover() + a scene swap). Clears busy.
+	await _fade(0.0, dur)
+	rect.visible = false
+	busy = false
+
+
+func to_run_shift(path: String, run_index: int, hold: float = 2.0, already_covered: bool = false) -> void:
+	# already_covered = the caller already ran cover() (screen is black, busy is set) so the
+	# run-advance happened out of sight; skip the initial fade and continue from black.
+	if already_covered:
+		if not busy:
+			return
+	else:
+		if busy:
+			return
+		busy = true
+		rect.visible = true
+		await _fade(1.0, 0.7)                                  # slow — hours pass
 
 	var i: int = clampi(run_index - 1, 0, WorldState.RUN_NAMES.size() - 1)
 	run_title.text = WorldState.RUN_NAMES[i].to_upper()

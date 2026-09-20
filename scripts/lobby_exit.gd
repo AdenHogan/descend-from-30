@@ -14,14 +14,19 @@ func _on_body_entered(body: Node2D) -> void:
 	WorldState.record_run_survived()
 	WorldState.set_run_outcome(WorldState.current_run, "survived")
 	var next_run: int = WorldState.current_run + 1
+	# Cover to black BEFORE advancing so the run's world mutation never shows on the old scene.
+	await Transition.cover()
 	var arc_over: bool = WorldState.advance_run()
 	if arc_over:
 		# The THIRD character walked out — the whole playthrough is complete.
 		WorldState.delete_save()
 		HUD.hide_hud()
 		get_tree().change_scene_to_file("res://scenes/game_over.tscn")
+		await get_tree().process_frame
+		await get_tree().process_frame
+		await Transition.reveal()
 		return
 	# Persist the fresh run WITHOUT recording the lobby's zombies into it, then
 	# time-skip into the next character's Floor 30 arrival.
 	WorldState.save_game("res://scenes/hallway.tscn", false)
-	Transition.to_run_shift("res://scenes/hallway.tscn", next_run)
+	Transition.to_run_shift("res://scenes/hallway.tscn", next_run, 2.0, true)

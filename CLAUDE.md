@@ -639,9 +639,15 @@ means no rendering — UI layout and art still need an in-editor look.
   untouched). **Both endpoints wired**: `lobby_exit.gd` (exit — selfish, takes inventory
   out, no corpse) and `game.gd::game_over` (death — a mid-arc death is NO LONGER a
   session end; corpse recovery is store step 7, future) set the finishing character's
-  outcome, call `advance_run()`, and — unless the arc is over — save the fresh run
-  (`save_game(hallway, record_live_zombies=false)` so the dead scene's zombies aren't
-  logged into it) and `Transition.to_run_shift(hallway, next_run)`. **Time visuals**:
+  outcome, then **`await Transition.cover()` (fade to FULL BLACK) BEFORE `advance_run()`** — the
+  run-advance mutates the world to the next run (new barricades / props / door states), and if
+  that ran while the old floor was still visible it POPPED IN over the death/exit scene (owner
+  caught run-3 boxes appearing on the run-2 death). So everything after `cover()` happens behind
+  black: `advance_run()`, then — unless the arc is over — save the fresh run
+  (`save_game(hallway, record_live_zombies=false)` so the dead scene's zombies aren't logged into
+  it) and `Transition.to_run_shift(hallway, next_run, 2.0, already_covered=true)` (continues from
+  black into the time-of-day card); the arc-over branch swaps to `game_over.tscn` then
+  `Transition.reveal()`. **Time visuals**:
   `to_run_shift` is a slow fade-to-black **title card** (game pixel font) animating the
   time-of-day word MORNING / AFTERNOON / NIGHT + a subtitle, held, then the new Floor 30;
   every world scene sets its **ambient darkness** via `WorldState.apply_time_tint(self,
@@ -805,10 +811,12 @@ means no rendering — UI layout and art still need an in-editor look.
   wall of bigs), and each **section** has a distinct night-time lead so descending isn't
   samey: **LOW = the swarm** (crawler/big, melee), **MID = the bruisers** (long-arm),
   **HIGH = ranged** (spitter *inverts* — it's rarest deep, most common up top). The
-  **Crawler is FRONT-LOADED** (owner's 3:1 call): ~0.25 across the WHOLE building in run 1
-  (its per-band peak — the early swarm before the tougher types), then its share eases as
-  runs 2/3 diversify. So crawler is deliberately NOT monotonic (the other three still only
-  grow). Locked by `enemy_variety_test` (`_test_variety_and_flavor` + `_test_crawler_behaviour`).
+  **Crawler is FRONT-LOADED** (owner's 3:1 call) but **DEEP-weighted in run 1**: ~0.25 on the
+  LOW+MID floors (the early swarm where the outbreak is worst), THINNED to **0.12 up top (HIGH,
+  run 1)** so the first floors down are mostly regulars — a fresh character isn't ambushed by two
+  crawlers on the 2nd floor down (owner ask). Its run-1 value is still its per-band peak (the
+  other three only grow); crawler is deliberately NOT monotonic. Locked by `enemy_variety_test`
+  (`_test_variety_and_flavor` + `_test_crawler_behaviour`).
   **Aim / hitbox (MEASURED + fixed):** the corridor rigs rest on ONE plane by FEET (all on
   419) but at different ORIGINS — player ~388 (feet/col-bottom ~421), standard zombie 370,
   big/crawler/long-arm/spitter 374 — an inherent ~18px origin gap. Melee `_do_melee_attack`
@@ -854,10 +862,10 @@ means no rendering — UI layout and art still need an in-editor look.
   otherwise make the top boss-capable + heavy, walling a gearless player right away (owner:
   "moving to run 2 immediately bumping into a boss is too punishing"). So the opening floors get
   a dampener (`WorldState.run_opening_ease` + `RUN_OPENING_EASE {29:0.30, 28:0.55, 27:0.80}`):
-  **no corridor boss on 27-29** (first boss at floor 26), and the weapon-dependent tough types
-  (heavy / long-arm / spitter) are scaled down there — leaving mostly plain standards + the
-  fragile barehanded-killable crawler for the first few floors. Layered as a multiplier on top of
-  the base `*_CHANCE` tables (the tables/tests are unchanged); applies every run. Locked by
+  **no corridor boss on 27-29** (first boss at floor 26), and ALL special types (heavy / long-arm
+  / spitter AND crawler) are scaled down there — leaving mostly plain standards, so two crawlers
+  landing side-by-side on the 2nd floor down is highly unlikely. Layered as a multiplier on top of
+  the base `*_CHANCE` tables (the tables themselves unchanged); applies every run. Locked by
   `enemy_variety_test._test_run_opening_grace`.
   `building_floors._spawn_corridor_boss` places it mid-corridor with the same
   memory/settle-374/pan-scenery rules as any big, key `boss:<floor>:<run>` (dropped by
