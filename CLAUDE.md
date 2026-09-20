@@ -714,15 +714,15 @@ means no rendering — UI layout and art still need an in-editor look.
   yellow/white `draw_circle`; iterated: v1 literal "mini sun" w/ flares+sunspots → too figurative;
   v2 concentric-disc shading → too big, giant halo, "Among Us visor"; v3 opaque baked sphere →
   read as a solid marble/bead; v4/v6/v7 = translucent/cookie-only, too airy/gassy with an
-  oversized halo; **v8 = the keeper**): a small orb with real WEIGHT + a gleam, NOT a gas cloud.
-  The all-cookie versions never made a solid centre (the round cookie `FL.light_texture()` is
-  inherently soft), so v8 draws an actually OPAQUE filled body with `draw_circle`: a SMALL tight
-  halo (r×1.15 @0.12 — hugs the orb, no wide bloom) + a soft colour feather (r×0.92 @0.55), then
-  a SOLID body disc (r×0.72 @0.92 — the weight), a slightly-raised brighter disc (r×0.52 @1.0,
-  nudged up for a lit-sphere read), a white-hot core (r×0.30 @1.0) + soft luminous core, and a
-  CRISP specular GLEAM offset up-left (r×0.14, like light on a ball). Only the edges stay
-  translucent (still reads as light); the middle is solid. A small bob gives weight; the gleam
-  drifts subtly. The **cast PointLight2D is TIGHT** (`energy ~0.5×lvl`, `texture_scale
+  oversized halo; v8 = fully-opaque `draw_circle` body, too solid (a flat "3D-paint sphere");
+  **v9 = the keeper**): GLOW + WEIGHT + a small halo + a shiny gleam all at once — it reads as
+  LIGHT with a dense bright core, between v7's gas and v8's flat ball. Layers: a small halo
+  (r×1.30 @0.14), a GLOWING translucent colour body (r×1.0 @0.55, r×0.72 @0.85 — the glow), a
+  MODEST semi-opaque nucleus for weight (`draw_circle` r×0.40 @0.70 — small + translucent, so it
+  anchors mass but still glows, feathered by the next layer so it never reads as a hard disc), a
+  bright glowing heart (r×0.42 @0.90) + white-hot core (r×0.20 @1.0), and a CRISP specular GLEAM
+  offset up-left (`draw_circle` r×0.12 — the shine that makes it desirable). A small bob gives
+  weight; the gleam drifts subtly. The **cast PointLight2D is TIGHT** (`energy ~0.5×lvl`, `texture_scale
   0.035–0.06` on the 256px cookie → ~7-8px glow that hugs the ~8px orb; the earlier 0.06–0.10
   threw a ~13px halo BIGGER than the orb — the owner's "halo too big"). Same tight cast on
   `world_drop.gd`. **GOLDEN** while it holds an untaken item you HAVEN'T searched; once **SEARCHED-but-not-

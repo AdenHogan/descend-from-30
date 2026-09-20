@@ -131,25 +131,24 @@ func _draw() -> void:
 static func draw_orb(ci: CanvasItem, tex: Texture2D, base_center: Vector2, base_r: float, pal: Dictionary, t: float, lvl: float) -> void:
 	if lvl <= 0.0 or tex == null:
 		return
-	# "No Man's Sky galaxy-map star": an ORB with real WEIGHT + a gleam, NOT a gas cloud. The
-	# earlier all-cookie versions read airy — the cookie is inherently soft, so it never made a
-	# solid centre. Fix: a SMALL tight halo (hugs the orb, no wide bloom) + a soft colour feather,
-	# then a genuinely OPAQUE filled body disc (draw_circle = hard mass, the weight), a slightly
-	# raised brighter disc for a lit-sphere read, a white-hot core, and a crisp specular GLEAM
-	# up-left. Only the edges stay translucent (still reads as light); the middle is solid.
+	# "No Man's Sky galaxy-map star": GLOW + WEIGHT + a small halo + a shiny gleam, all at once —
+	# it reads as LIGHT with a dense bright core, not a gas cloud (too airy) and not a flat opaque
+	# ball (too solid). So: a SMALL halo, a GLOWING translucent colour body (the glow), a MODEST
+	# semi-opaque nucleus for weight (~0.7 alpha, small — feathered by a bloom so it never reads
+	# as a hard disc), a white-hot core, and a crisp specular GLEAM up-left (the shine).
 	var pulse := 1.0 + 0.05 * sin(t * 3.0)
 	var r := base_r * pulse
 	var c := base_center + Vector2(0.0, sin(t * 2.0) * 0.7)   # gentle bob (weight)
 	var body: Color = pal["body"]
 	var spec: Color = pal["spec"]
-	_orb_layer(ci, tex, c, r * 1.15, pal["glow"], 0.12 * lvl)                       # SMALL tight halo (hugs it)
-	_orb_layer(ci, tex, c, r * 0.92, body, 0.55 * lvl)                              # soft colour feather (edge)
-	ci.draw_circle(c, r * 0.72, Color(body.r, body.g, body.b, 0.92 * lvl))          # SOLID body disc — the weight
-	ci.draw_circle(c + Vector2(0.0, -r * 0.10), r * 0.52, Color(body.r, body.g, body.b, 1.0 * lvl))  # lit hemisphere (3D)
-	ci.draw_circle(c + Vector2(0.0, -r * 0.06), r * 0.30, Color(spec.r, spec.g, spec.b, 1.0 * lvl))  # white-hot core
-	_orb_layer(ci, tex, c, r * 0.22, spec, 1.0 * lvl)                               # soft luminous core over it
-	var gpos := c + Vector2(-0.42, -0.50) * (r * 0.55) + Vector2(cos(t * 1.1), sin(t * 1.1)) * (r * 0.03)
-	ci.draw_circle(gpos, r * 0.14, Color(1.0, 1.0, 1.0, 0.95 * lvl))                # crisp specular gleam
+	_orb_layer(ci, tex, c, r * 1.30, pal["glow"], 0.14 * lvl)                       # small halo (hugs it)
+	_orb_layer(ci, tex, c, r * 1.00, body, 0.55 * lvl)                              # glowing colour body — outer
+	_orb_layer(ci, tex, c, r * 0.72, body, 0.85 * lvl)                              # glowing colour body — dense
+	ci.draw_circle(c + Vector2(0.0, -r * 0.05), r * 0.40, Color(body.r, body.g, body.b, 0.70 * lvl))  # semi-opaque nucleus (weight)
+	_orb_layer(ci, tex, c, r * 0.42, spec, 0.90 * lvl)                              # bright glowing heart (feathers the nucleus)
+	_orb_layer(ci, tex, c, r * 0.20, spec, 1.00 * lvl)                              # white-hot core
+	var gpos := c + Vector2(-0.42, -0.50) * (r * 0.52) + Vector2(cos(t * 1.1), sin(t * 1.1)) * (r * 0.03)
+	ci.draw_circle(gpos, r * 0.12, Color(1.0, 1.0, 1.0, 0.88 * lvl))                # crisp specular gleam (shine)
 
 
 static func _orb_layer(ci: CanvasItem, tex: Texture2D, center: Vector2, radius: float, col: Color, a: float) -> void:
