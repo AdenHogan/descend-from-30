@@ -1,13 +1,13 @@
 extends CanvasLayer
 
-const PORTRAITS = [
-	preload("res://assets/Health_Bar/blond_man - 1 - Healthy.png"),
-	preload("res://assets/Health_Bar/blond_man - 2 - Hurt.png"),
-	preload("res://assets/Health_Bar/blond_man - 3 - Injured.png"),
-	preload("res://assets/Health_Bar/blond_man - 4 - Wounded.png"),
-	preload("res://assets/Health_Bar/blond_man - 5 - Severely Wounded.png"),
-	preload("res://assets/Health_Bar/blond_man - 6 - Dying.png")
+# Health portraits are per-CHARACTER now (the run's character — WorldState.current_character()).
+# Each set is 6 stage files in assets/Health_Bar/<char_id> - N - Stage.png; loaded on demand and
+# re-loaded when the run's character changes (see _ensure_portraits).
+const PORTRAIT_STAGES := [
+	"1 - Healthy", "2 - Hurt", "3 - Injured", "4 - Wounded", "5 - Severely Wounded", "6 - Dying",
 ]
+var _portraits: Array = []
+var _loaded_char: String = ""
 
 @onready var portrait = $Control/Portrait
 @onready var floor_label = $Control/FloorLabel
@@ -790,10 +790,23 @@ func _make_slot_style(locked: bool) -> StyleBoxFlat:
 func update_floor_label() -> void:
 	floor_label.text = "FLOOR:\n" + str(WorldState.current_floor) + " / 30"
 
+func _ensure_portraits() -> void:
+	# Load the current run's character's 6 portrait stages, reloading when the run's
+	# character changes (advance_run / new_game re-roll the cast via master_seed).
+	var cid: String = WorldState.current_character()
+	if cid == _loaded_char and not _portraits.is_empty():
+		return
+	_portraits.clear()
+	for stage in PORTRAIT_STAGES:
+		_portraits.append(load("res://assets/Health_Bar/%s - %s.png" % [cid, stage]))
+	_loaded_char = cid
+
+
 func update_portrait(health_index: int) -> void:
 	if portrait == null:
 		return
-	portrait.texture = PORTRAITS[health_index]
+	_ensure_portraits()
+	portrait.texture = _portraits[clampi(health_index, 0, _portraits.size() - 1)]
 
 func update_mode_indicator() -> void:
 	if mode_label == null:

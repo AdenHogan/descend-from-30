@@ -446,6 +446,35 @@ func profile_status() -> String:
 	return "returning player" if tutorial_completed else "new player"
 
 
+# --- Run cast (which character plays each of the three runs) -------------------
+# The four playable characters — health-portrait sets in
+# assets/Health_Bar/<id> - N - Stage.png (hud.gd loads them). A playthrough CASTS THREE of
+# the four, one per run, in a seeded RANDOM order (so any 3 of 4, no fixed order). Names /
+# selectable profiles are a later job; for now it's a random draw per playthrough. Deterministic
+# from master_seed, so the cast is stable across save/load and re-entry (master_seed persists).
+const CHARACTERS := ["blond_man", "dark_woman", "bald_man", "blond_woman"]
+
+
+func run_cast() -> Array:
+	# A shuffled pick of THREE of the four characters (Fisher-Yates, seeded by master_seed).
+	var pool: Array = CHARACTERS.duplicate()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "cast")
+	for i in range(pool.size() - 1, 0, -1):
+		var j: int = rng.randi_range(0, i)
+		var t = pool[i]; pool[i] = pool[j]; pool[j] = t
+	return pool.slice(0, 3)
+
+
+func run_character(run: int) -> String:
+	var cast: Array = run_cast()
+	return String(cast[clampi(run - 1, 0, cast.size() - 1)])
+
+
+func current_character() -> String:
+	return run_character(current_run)
+
+
 func new_game() -> void:
 	# A NEW GAME is not a new PLAYER: only someone who has never finished the
 	# tutorial gets taught it again.

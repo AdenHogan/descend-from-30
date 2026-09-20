@@ -888,8 +888,14 @@ means no rendering — UI layout and art still need an in-editor look.
   `blond_man - N - Stage.png` (the ORIGINAL — renamed from the old unprefixed files; `hud.gd` +
   `hud.tscn` + `profile_select.tscn` updated to the prefixed path, uid preserved), plus
   `dark_woman`, `bald_man`, `blond_woman` (new, from Gemini art). Each set is 6 files at
-  **281×351 RGBA**, background removed. **hud.gd still hardcodes the blond_man set** — the other
-  three are ASSETS staged for a future profile-select character picker (not yet wired to swap).
+  **281×351 RGBA**, background removed.
+  **RUN CAST (wired):** a playthrough casts **3 of the 4** characters, ONE PER RUN, in a seeded
+  random order (`WorldState.CHARACTERS` + `run_cast()` — Fisher-Yates seeded by `master_seed`, so
+  deterministic per playthrough + stable across save/load; `run_character(run)` /
+  `current_character()`). `hud.gd` loads the CURRENT run's character's 6 portraits on demand
+  (`_ensure_portraits`, reloading when `current_character()` changes as the run advances) — no more
+  hardcoded set. Names / a selectable profile picker are a later job (for now it's a random draw).
+  Locked by `run_arc_test._test_run_cast`.
   Prep pipeline (rembg human-seg + isnet fallback on low-contrast panels, alpha solidify,
   shoulder-anchored bust crop upscaled to 281×351 to match the male's framing) is a one-off
   scratchpad script; the Gemini sheets had only **5 panels** (no distinct WOUNDED) so slot 4

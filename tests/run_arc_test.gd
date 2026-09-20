@@ -24,8 +24,51 @@ func _ready() -> void:
 	_test_infection_grade()
 	_test_door_decay()
 	await _test_enemy_reshuffle()
+	_test_run_cast()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
+
+
+func _test_run_cast() -> void:
+	# The playthrough casts THREE of the four characters, one per run, in a seeded random
+	# order — deterministic from master_seed (stable across save/load), and current_character()
+	# tracks current_run.
+	print("[run cast: 3 of 4 characters, one per run]")
+	WorldState.new_game()
+	var cast: Array = WorldState.run_cast()
+	check(cast.size() == 3, "the cast is 3 characters (%d)" % cast.size())
+	check(cast[0] != cast[1] and cast[1] != cast[2] and cast[0] != cast[2], "the three run characters are distinct")
+	var allknown := true
+	for c in cast:
+		if c not in WorldState.CHARACTERS:
+			allknown = false
+	check(allknown, "every cast member is a known character")
+	# Deterministic per master_seed.
+	var again: Array = WorldState.run_cast()
+	check(cast == again, "run_cast is deterministic for a given master_seed")
+	# current_character follows the run.
+	WorldState.current_run = 1
+	var c1: String = WorldState.current_character()
+	WorldState.current_run = 2
+	var c2: String = WorldState.current_character()
+	WorldState.current_run = 3
+	var c3: String = WorldState.current_character()
+	check(c1 == cast[0] and c2 == cast[1] and c3 == cast[2], "current_character() maps run 1/2/3 to the cast in order")
+	# A different playthrough (new master_seed) can re-roll the cast — over several seeds the
+	# selection isn't always identical (variety, not a fixed trio).
+	var seen := {}
+	for i in range(12):
+		WorldState.master_seed = 1000 + i * 7919
+		seen[",".join(WorldState.run_cast())] = true
+	check(seen.size() >= 2, "the cast varies across playthroughs (%d distinct over 12 seeds)" % seen.size())
+	# The HUD loads THAT run's character's portrait set (not a hardcoded one).
+	WorldState.new_game()
+	WorldState.current_run = 2
+	HUD.update_portrait(0)
+	check(HUD._loaded_char == WorldState.run_character(2), "HUD loads the run's character portraits (%s)" % HUD._loaded_char)
+	if HUD.portrait != null and HUD.portrait.texture != null:
+		check(String(HUD.portrait.texture.resource_path).find(WorldState.run_character(2)) != -1,
+			"the shown portrait texture is that character's file")
 
 
 func _test_persistence_split() -> void:
