@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dgxkiwvsolvh3"
-path="res://.godot/imported/6 - Dying.png-3d863cffda316959f40b4e4a2f9347be.ctex"
+uid="uid://cpdh2mtkekuxw"
+path="res://.godot/imported/blond_man - 1 - Healthy.png-e563f63fde53632653752a0555ece3e5.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/Health_Bar/6 - Dying.png"
-dest_files=["res://.godot/imported/6 - Dying.png-3d863cffda316959f40b4e4a2f9347be.ctex"]
+source_file="res://assets/Health_Bar/blond_man - 1 - Healthy.png"
+dest_files=["res://.godot/imported/blond_man - 1 - Healthy.png-e563f63fde53632653752a0555ece3e5.ctex"]
 
 [params]
 

@@ -1,12 +1,12 @@
 extends CanvasLayer
 
 const PORTRAITS = [
-	preload("res://assets/Health_Bar/1 - Healthy.png"),
-	preload("res://assets/Health_Bar/2 - Hurt.png"),
-	preload("res://assets/Health_Bar/3 - Injured.png"),
-	preload("res://assets/Health_Bar/4 - Wounded.png"),
-	preload("res://assets/Health_Bar/5 - Severely Wounded.png"),
-	preload("res://assets/Health_Bar/6 - Dying.png")
+	preload("res://assets/Health_Bar/blond_man - 1 - Healthy.png"),
+	preload("res://assets/Health_Bar/blond_man - 2 - Hurt.png"),
+	preload("res://assets/Health_Bar/blond_man - 3 - Injured.png"),
+	preload("res://assets/Health_Bar/blond_man - 4 - Wounded.png"),
+	preload("res://assets/Health_Bar/blond_man - 5 - Severely Wounded.png"),
+	preload("res://assets/Health_Bar/blond_man - 6 - Dying.png")
 ]
 
 @onready var portrait = $Control/Portrait

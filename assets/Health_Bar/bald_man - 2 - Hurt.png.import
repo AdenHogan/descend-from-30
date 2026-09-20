@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://d3q5twevsacyv"
-path="res://.godot/imported/2 - Hurt.png-af16194462146927400cfd391f818bcf.ctex"
+uid="uid://comw8lt61l8op"
+path="res://.godot/imported/bald_man - 2 - Hurt.png-e02ad02d43b57f6f57c0a62d1d783ec7.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/Health_Bar/2 - Hurt.png"
-dest_files=["res://.godot/imported/2 - Hurt.png-af16194462146927400cfd391f818bcf.ctex"]
+source_file="res://assets/Health_Bar/bald_man - 2 - Hurt.png"
+dest_files=["res://.godot/imported/bald_man - 2 - Hurt.png-e02ad02d43b57f6f57c0a62d1d783ec7.ctex"]
 
 [params]
 

@@ -883,6 +883,17 @@ means no rendering — UI layout and art still need an in-editor look.
   F1/F6 hotkeys and are opened from the menu via a public `open()` (found by group). Set
   Run replaces the F8 run-advance. Covered by `dev_menu_test`. (The `dev_*` input actions
   in project.godot are now unbound-in-practice — harmless.)
+- Health portraits (`assets/Health_Bar/`): the HUD health bust (6 stages HEALTHY→DYING,
+  `hud.gd` `PORTRAITS`) now has **four character sets**, each **prefixed** in the folder root:
+  `blond_man - N - Stage.png` (the ORIGINAL — renamed from the old unprefixed files; `hud.gd` +
+  `hud.tscn` + `profile_select.tscn` updated to the prefixed path, uid preserved), plus
+  `dark_woman`, `bald_man`, `blond_woman` (new, from Gemini art). Each set is 6 files at
+  **281×351 RGBA**, background removed. **hud.gd still hardcodes the blond_man set** — the other
+  three are ASSETS staged for a future profile-select character picker (not yet wired to swap).
+  Prep pipeline (rembg human-seg + isnet fallback on low-contrast panels, alpha solidify,
+  shoulder-anchored bust crop upscaled to 281×351 to match the male's framing) is a one-off
+  scratchpad script; the Gemini sheets had only **5 panels** (no distinct WOUNDED) so slot 4
+  (Wounded) DUPLICATES the "Severely Wounded" frame (owner's call — "double up wounded").
 - Next: characters/profiles/stats; **Upgrade offers** polish and player-corpse
   recovery (store step 7); barricade-keeper NPC; fire smoke/crouch + warning beat;
   the maintenance **upgrade station** UI (Scrap system, SCRAP_UPGRADES.md).

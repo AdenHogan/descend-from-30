@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://r74tk0l57buv"]
 
 [ext_resource type="Script" uid="uid://f0jh40afakcu" path="res://scripts/hud.gd" id="1_ahhtf"]
-[ext_resource type="Texture2D" uid="uid://cpdh2mtkekuxw" path="res://assets/Health_Bar/1 - Healthy.png" id="2_oo0fn"]
+[ext_resource type="Texture2D" uid="uid://cpdh2mtkekuxw" path="res://assets/Health_Bar/blond_man - 1 - Healthy.png" id="2_oo0fn"]
 
 [node name="CanvasLayer" type="CanvasLayer" unique_id=1931787751]
 script = ExtResource("1_ahhtf")

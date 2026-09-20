@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c0k3tcbj7vw4m"
-path="res://.godot/imported/5 - Severely Wounded.png-4c19118e62f0a6697c105be5bf929c26.ctex"
+uid="uid://dxpicrwkkccao"
+path="res://.godot/imported/blond_woman - 5 - Severely Wounded.png-93e21fb0be65b3a7438e1a0d9460b320.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/Health_Bar/5 - Severely Wounded.png"
-dest_files=["res://.godot/imported/5 - Severely Wounded.png-4c19118e62f0a6697c105be5bf929c26.ctex"]
+source_file="res://assets/Health_Bar/blond_woman - 5 - Severely Wounded.png"
+dest_files=["res://.godot/imported/blond_woman - 5 - Severely Wounded.png-93e21fb0be65b3a7438e1a0d9460b320.ctex"]
 
 [params]
 

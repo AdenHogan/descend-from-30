@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bti0nds7y2aby"
-path="res://.godot/imported/4 - Wounded.png-93efa33ef3baf0f4b826164857498761.ctex"
+uid="uid://b6537oeplvcps"
+path="res://.godot/imported/bald_man - 4 - Wounded.png-57fd54d17e4b8810596e051d2954639b.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/Health_Bar/4 - Wounded.png"
-dest_files=["res://.godot/imported/4 - Wounded.png-93efa33ef3baf0f4b826164857498761.ctex"]
+source_file="res://assets/Health_Bar/bald_man - 4 - Wounded.png"
+dest_files=["res://.godot/imported/bald_man - 4 - Wounded.png-57fd54d17e4b8810596e051d2954639b.ctex"]
 
 [params]
 

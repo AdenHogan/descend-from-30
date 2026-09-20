@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cpdh2mtkekuxw"
-path="res://.godot/imported/1 - Healthy.png-0281fb13741ab1a6a0fbc120b7d0ec0a.ctex"
+uid="uid://cv3ht6q2oeacj"
+path="res://.godot/imported/bald_man - 6 - Dying.png-b7fe83592b10f6607196639a6b0c9cb8.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/Health_Bar/1 - Healthy.png"
-dest_files=["res://.godot/imported/1 - Healthy.png-0281fb13741ab1a6a0fbc120b7d0ec0a.ctex"]
+source_file="res://assets/Health_Bar/bald_man - 6 - Dying.png"
+dest_files=["res://.godot/imported/bald_man - 6 - Dying.png-b7fe83592b10f6607196639a6b0c9cb8.ctex"]
 
 [params]
 
