@@ -1788,6 +1788,25 @@ func _floor_band(floor_num: int) -> int:
 	return 2
 
 
+# --- Run-opening grace (fresh-character start) --------------------------------
+# The descent ALWAYS starts at floor 30 and goes down, so floors 29 / 28 / 27 are the OPENING
+# stretch of EVERY run — where a brand-new character (inventory / health / wallet reset on the
+# time skip) has NO gear yet. Runs 2/3 otherwise make the top floors boss-capable + heavy, which
+# drops a fresh player straight into a wall (owner: "moving to run 2 immediately bumping into a
+# boss level enemy is too punishing"). So the opening floors get a difficulty DAMPENER: NO
+# corridor boss, and the tough types you need a WEAPON for (heavy / long-arm / spitter) are
+# scaled DOWN — leaving mostly plain standards + the fragile crawler for the first few floors,
+# so the player can find a weapon before the wall. The crawler is left at full: it's the intended
+# early swarm and is killable barehanded (push / fists). Applies to every run (it's about the
+# fresh start, not the run number); run 1's top is already gentle so it barely changes there.
+const RUN_OPENING_EASE := {29: 0.30, 28: 0.55, 27: 0.80}   # tough-type multiplier per opening floor (1.0 below)
+
+
+func run_opening_ease(floor_num: int) -> float:
+	# 1.0 = full strength; < 1.0 on the run-opening floors (also the "no boss here" marker).
+	return float(RUN_OPENING_EASE.get(floor_num, 1.0))
+
+
 func heavy_chance(floor_num: int) -> float:
 	# Per-zombie probability that a corridor slot on this floor, this run, is a heavy.
 	var r: int = clampi(current_run - 1, 0, 2)
@@ -1806,9 +1825,16 @@ func enemy_type_for(floor_num: int, spawn_key: String) -> String:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(str(master_seed) + "etype" + spawn_key + str(current_run))
 	var roll: float = rng.randf()
+	# Run-opening grace: on the fresh-start floors (29/28/27) the weapon-dependent tough types
+	# (heavy / long-arm / spitter) are scaled down so a gearless character isn't walled early.
+	# The crawler is exempt (the intended barehanded-killable early swarm).
+	var ease: float = run_opening_ease(floor_num)
 	var acc: float = 0.0
 	for id in _MIX_ORDER:
-		acc += _MIX_TABLES[id][band][r]
+		var c: float = _MIX_TABLES[id][band][r]
+		if id != "zombie_crawler":
+			c *= ease
+		acc += c
 		if roll < acc:
 			return id
 	return "zombie_standard"
@@ -1848,6 +1874,10 @@ func floor_has_boss(floor_num: int) -> bool:
 	# Deterministic per (floor, run). Floor 1 and 30 are exempt (the last step into the
 	# lobby and the tutorial hallway are never boss floors).
 	if floor_num <= 1 or floor_num >= 30:
+		return false
+	# Run-opening grace: no corridor boss on the fresh-start floors (27-29) — a gearless
+	# character shouldn't meet a boss on the first floors of a run. First boss is floor 26.
+	if run_opening_ease(floor_num) < 1.0:
 		return false
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(str(master_seed) + "floorboss" + str(floor_num) + str(current_run))

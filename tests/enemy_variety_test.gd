@@ -31,6 +31,7 @@ func _ready() -> void:
 	await _test_spitter_spits()
 	_test_variety_and_flavor()
 	await _test_corridor_boss()
+	await _test_run_opening_grace()
 	await _test_crawler_behaviour()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
@@ -383,6 +384,46 @@ func _test_variety_and_flavor() -> void:
 	# Run 1's OTHER new types stay a deep-only taste (only big, low floors).
 	check(WorldState.LONGARM_CHANCE[0][0] == 0.0 and WorldState.SPITTER_CHANCE[0][0] == 0.0, "run 1 has no long-arm/spitter yet")
 	check(WorldState.HEAVY_CHANCE[1][0] == 0.0 and WorldState.HEAVY_CHANCE[2][0] == 0.0, "run 1 heavies stay deep only")
+
+
+func _test_run_opening_grace() -> void:
+	# The descent starts at 30, so 29/28/27 are the fresh-character opening of EVERY run. They
+	# get a grace: NO corridor boss, and tough types (heavy/long-arm/spitter) scaled down — so a
+	# gearless run-2/3 start isn't walled. Bosses + full-strength tough types resume at floor 26.
+	print("[run-opening grace]")
+	WorldState.new_game()
+	WorldState.tutorial_completed = true
+	WorldState.is_first_run = false
+	var no_open_boss := true
+	for run in [2, 3]:
+		WorldState.current_run = run
+		for f in [27, 28, 29]:
+			if WorldState.floor_has_boss(f):
+				no_open_boss = false
+	check(no_open_boss, "no corridor boss on the opening floors 27-29 (runs 2/3)")
+	check(WorldState.run_opening_ease(29) < WorldState.run_opening_ease(27),
+		"the ease deepens toward the top (29 %.2f < 27 %.2f)" % [WorldState.run_opening_ease(29), WorldState.run_opening_ease(27)])
+	check(WorldState.run_opening_ease(26) == 1.0, "floor 26 is full strength (past the opening)")
+	# Tough types are rarer on floor 29 than floor 26 at night (the ease actually bites).
+	WorldState.current_run = 3
+	var tough29 := 0
+	var tough26 := 0
+	for i in range(400):
+		var t29: String = WorldState.enemy_type_for(29, "29:%d:388" % (100 + i * 3))
+		var t26: String = WorldState.enemy_type_for(26, "26:%d:388" % (100 + i * 3))
+		if t29 == "zombie_big" or t29 == "zombie_longarm" or t29 == "zombie_spitter":
+			tough29 += 1
+		if t26 == "zombie_big" or t26 == "zombie_longarm" or t26 == "zombie_spitter":
+			tough26 += 1
+	check(tough29 < tough26, "opening floor 29 carries fewer weapon-needing enemies than floor 26 (%d < %d)" % [tough29, tough26])
+	# A boss still appears below the opening stretch (runs 2/3).
+	WorldState.current_run = 2
+	var deep_boss := false
+	for f in range(2, 27):
+		if WorldState.floor_has_boss(f):
+			deep_boss = true
+	check(deep_boss, "bosses still appear below the opening stretch")
+	await get_tree().process_frame
 
 
 func _test_corridor_boss() -> void:

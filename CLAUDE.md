@@ -849,6 +849,16 @@ means no rendering — UI layout and art still need an in-editor look.
   bundle + one good-loot item** from `WorldState.BOSS_LOOT_POOL` (weighted; gun/first-aid
   the rare rolls). Per-FLOOR, at most one, seeded per (floor,run) via
   `WorldState.floor_has_boss` (`BOSS_CHANCE` table, LOW-favoured, none in run 1);
+  **RUN-OPENING GRACE (balance):** the descent always starts at 30, so floors **29/28/27 are
+  the fresh-character opening of EVERY run** (inventory/health reset on the time skip). Runs 2/3
+  otherwise make the top boss-capable + heavy, walling a gearless player right away (owner:
+  "moving to run 2 immediately bumping into a boss is too punishing"). So the opening floors get
+  a dampener (`WorldState.run_opening_ease` + `RUN_OPENING_EASE {29:0.30, 28:0.55, 27:0.80}`):
+  **no corridor boss on 27-29** (first boss at floor 26), and the weapon-dependent tough types
+  (heavy / long-arm / spitter) are scaled down there — leaving mostly plain standards + the
+  fragile barehanded-killable crawler for the first few floors. Layered as a multiplier on top of
+  the base `*_CHANCE` tables (the tables/tests are unchanged); applies every run. Locked by
+  `enemy_variety_test._test_run_opening_grace`.
   `building_floors._spawn_corridor_boss` places it mid-corridor with the same
   memory/settle-374/pan-scenery rules as any big, key `boss:<floor>:<run>` (dropped by
   `shift_building` like the stairwell/follower keys). Still to build: distinct AI beyond
