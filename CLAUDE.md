@@ -713,17 +713,19 @@ means no rendering — UI layout and art still need an in-editor look.
 - Scavenge nodes = a glowing TRANSLUCENT orb (`interactable.gd`, replaced the old flat
   yellow/white `draw_circle`; iterated: v1 literal "mini sun" w/ flares+sunspots → too figurative;
   v2 concentric-disc shading → too big, giant halo, "Among Us visor"; v3 opaque baked sphere →
-  read as a solid marble/bead; v4/v6 = translucent glowing orb, too airy/gassy; **v7 = the
-  keeper**): a small LUMINOUS orb built from soft radial layers of the round cookie
-  (`FL.light_texture()`, bright centre → transparent edge), tuned to a **No Man's Sky galaxy-map
-  star** (owner's reference) — an ORB with real central MASS + a gleam, NOT a gas cloud. The trick
-  is CONTRAST: a SINGLE tight, dim halo (r×1.45 @0.15 — no wide airy bloom) over a DENSE stack of
-  near-opaque colour-body layers (r×1.0 @0.70, r×0.78 @0.90, r×0.58 @1.0) that sum to a solid
-  glowing ball, a white-hot HEART (r×0.40 @1.0) + core (r×0.22 @1.0), and a CRISP little specular
-  GLEAM offset up-left (r×0.20 @0.90, like a lit sphere). Edges stay slightly translucent (still
-  reads as light) but the centre is unmistakably solid. A small bob gives weight; the gleam
-  drifts subtly for shine. A MODEST real PointLight2D (`energy ~0.6×lvl`, `texture_scale
-  ~0.06–0.10`) gives presence without flooding the room. **GOLDEN** while it holds an untaken item you HAVEN'T searched; once **SEARCHED-but-not-
+  read as a solid marble/bead; v4/v6/v7 = translucent/cookie-only, too airy/gassy with an
+  oversized halo; **v8 = the keeper**): a small orb with real WEIGHT + a gleam, NOT a gas cloud.
+  The all-cookie versions never made a solid centre (the round cookie `FL.light_texture()` is
+  inherently soft), so v8 draws an actually OPAQUE filled body with `draw_circle`: a SMALL tight
+  halo (r×1.15 @0.12 — hugs the orb, no wide bloom) + a soft colour feather (r×0.92 @0.55), then
+  a SOLID body disc (r×0.72 @0.92 — the weight), a slightly-raised brighter disc (r×0.52 @1.0,
+  nudged up for a lit-sphere read), a white-hot core (r×0.30 @1.0) + soft luminous core, and a
+  CRISP specular GLEAM offset up-left (r×0.14, like light on a ball). Only the edges stay
+  translucent (still reads as light); the middle is solid. A small bob gives weight; the gleam
+  drifts subtly. The **cast PointLight2D is TIGHT** (`energy ~0.5×lvl`, `texture_scale
+  0.035–0.06` on the 256px cookie → ~7-8px glow that hugs the ~8px orb; the earlier 0.06–0.10
+  threw a ~13px halo BIGGER than the orb — the owner's "halo too big"). Same tight cast on
+  `world_drop.gd`. **GOLDEN** while it holds an untaken item you HAVEN'T searched; once **SEARCHED-but-not-
   emptied** it turns **pale WHITE/colourless** (`GOLD`/`PALE` palettes = a `body` tint +
   `spec`/`glow`/`light` accents; the light colour swaps too) — drained but still glowing + distinct.
   Radius small (`lerpf(5.5, 8.5, lvl)`); size/brightness/light scale with proximity (faint at the
