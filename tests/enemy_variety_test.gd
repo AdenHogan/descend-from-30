@@ -29,6 +29,7 @@ func _ready() -> void:
 	await _test_new_types_settle()
 	_test_all_types_appear_run3()
 	await _test_spitter_spits()
+	await _test_spit_crouch_dodge()
 	_test_variety_and_flavor()
 	await _test_corridor_boss()
 	await _test_run_opening_grace()
@@ -282,6 +283,38 @@ func _test_spitter_spits() -> void:
 		check(not is_instance_valid(proj) or proj.global_position.x > x0, "the spit travels toward the player (+x)")
 	holder.queue_free()
 	await get_tree().process_frame
+
+
+func _test_spit_crouch_dodge() -> void:
+	# A CROUCHING player ducks under the spit (it sails over — a ranged dodge); STANDING takes
+	# the hit. Uses a minimal player-group stub so we can count receive_hit precisely.
+	print("[spit crouch dodge]")
+	var StubScript := GDScript.new()
+	StubScript.source_code = "extends Node2D\nvar is_crouching := false\nvar hits := 0\nfunc receive_hit(_d): hits += 1\n"
+	StubScript.reload()
+	for crouching in [true, false]:
+		var target = StubScript.new()
+		target.add_to_group("player")
+		add_child(target)
+		target.global_position = Vector2(700, 374.0)
+		target.is_crouching = crouching
+		await get_tree().process_frame
+		var proj = load("res://scripts/spit_projectile.gd").new()
+		proj.launch(1.0)
+		add_child(proj)
+		proj.global_position = Vector2(650, 374.0)   # left of target, flies right through its x
+		for i in range(40):
+			await get_tree().physics_frame
+			if not is_instance_valid(proj):
+				break
+		if crouching:
+			check(target.hits == 0, "crouching player DUCKS the spit (hits %d)" % target.hits)
+		else:
+			check(target.hits == 1, "standing player is HIT by the spit (hits %d)" % target.hits)
+		if is_instance_valid(proj):
+			proj.queue_free()
+		target.queue_free()
+		await get_tree().process_frame
 
 
 func _test_crawler_behaviour() -> void:

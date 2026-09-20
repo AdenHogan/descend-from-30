@@ -70,24 +70,28 @@ func _draw() -> void:
 func _add_rain() -> void:
 	# A small patch of falling streaks confined to the pane, drawn behind actors (z0) so it
 	# reads as rain seen THROUGH the window, not rain in the room. Placeholder until window art.
+	# Rain is seen THROUGH the glass, so it must stay WITHIN the pane — a fast/long fall spilled
+	# streaks out the bottom into the room and read as a leak (owner). Confine it: emit across the
+	# top of the pane and tune velocity/gravity/lifetime so a streak dies before it reaches the
+	# pane bottom. (Temp placeholder — a proper rain sprite-sheet animation is a future asset.)
 	var rain := CPUParticles2D.new()
 	rain.texture = _streak_texture()
 	rain.z_index = 0
-	rain.amount = 16
-	rain.lifetime = 0.55
-	rain.preprocess = 0.55                       # start mid-fall, no empty first beat
+	rain.amount = 14
+	rain.lifetime = 0.34
+	rain.preprocess = 0.34                       # start mid-fall, no empty first beat
 	rain.local_coords = false
 	rain.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
-	rain.emission_rect_extents = Vector2(PANE_HALF_W - 2.0, 3.0)
-	rain.position = Vector2(0, -PANE_HALF_H + 2.0)   # emit at the top of the pane
+	rain.emission_rect_extents = Vector2(PANE_HALF_W - 4.0, 2.0)
+	rain.position = Vector2(0, -PANE_HALF_H + 3.0)   # emit at the top of the pane
 	rain.direction = Vector2(0.12, 1.0)          # a slight wind-driven slant
 	rain.spread = 0.0
-	rain.gravity = Vector2(0, 900)
-	rain.initial_velocity_min = 220.0
-	rain.initial_velocity_max = 300.0
-	rain.scale_amount_min = 0.8
-	rain.scale_amount_max = 1.2
-	rain.color = Color(0.62, 0.72, 0.95, 0.55)   # cool, translucent
+	rain.gravity = Vector2(0, 260)
+	rain.initial_velocity_min = 50.0
+	rain.initial_velocity_max = 70.0
+	rain.scale_amount_min = 0.7
+	rain.scale_amount_max = 1.0
+	rain.color = Color(0.62, 0.72, 0.95, 0.5)    # cool, translucent
 	add_child(rain)
 
 

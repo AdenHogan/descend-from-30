@@ -58,10 +58,15 @@ func _physics_process(delta: float) -> void:
 		var dx: float = absf(global_position.x - _player.global_position.x)
 		var dy: float = absf(global_position.y - _player.global_position.y)
 		if dx <= HIT_RADIUS and dy <= 48.0:
-			if _player.has_method("receive_hit"):
-				_player.receive_hit(1)
-			_hit = true
-			queue_free()
-			return
+			# CROUCH DODGE: the blob flies at standing chest/head height, so a CROUCHING
+			# player ducks under it — the spit sails over and flies on (a real ranged dodge,
+			# and a reason to crouch). Standing in its path takes the hit.
+			var ducked: bool = ("is_crouching" in _player) and _player.is_crouching
+			if not ducked:
+				if _player.has_method("receive_hit"):
+					_player.receive_hit(1)
+				_hit = true
+				queue_free()
+				return
 	if _travelled >= MAX_DIST:
 		queue_free()

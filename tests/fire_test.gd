@@ -72,35 +72,56 @@ func _make_field():
 
 
 func _test_fire_hot_at() -> void:
-	# The PLAYER-damage test is TIGHTER than is_burning_at: it only reports hot when a
-	# burning cell that actually RENDERS a tile (kind 0/1, not a gap) sits within
-	# DAMAGE_REACH. So a player over a bare GAP cell — or off the fire entirely — is not
-	# cooked, even though the sim cell may be burning.
-	print("[fire_hot_at — tight player damage]")
+	# The PLAYER-damage test burns whenever the player's OWN cell is a BURNING cell — ANY kind,
+	# tile OR gap. (Gap cells are exactly where the big TALL FLAMES rise, so excluding them left
+	# the player unburned while standing in the most visible fire — the owner's bug.) It's still
+	# TIGHT: DAMAGE_REACH < half a cell, so at a cell centre only that cell decides it, and a
+	# player off the fire is never cooked.
+	print("[fire_hot_at — player damage in any burning cell]")
 	var ff = _make_field()
 	ff.floor_num = 7
 	ff.ignite_span(ff.FIRE_MIN_X + 40.0, ff.FIRE_MAX_X - 40.0)
 	check(not ff.fire_hot_at(ff.FIRE_MIN_X - 60.0), "no burn standing off the fire")
 	# At a cell CENTRE the neighbours are a full cell (>DAMAGE_REACH) away, so the burn is
-	# decided by the player's OWN cell: hot iff it's a burning cell that renders a tile.
+	# decided by the player's OWN cell: hot iff it's burning — regardless of tile/gap.
 	var exact := true
-	var found_hot_tile := false
-	var found_cold_gap := false
+	var found_hot_gap := false
 	for i in range(ff.cell_count):
 		var cx: float = ff.cell_x(i)
 		var hot: bool = ff.fire_hot_at(cx)
 		var burning: bool = ff.state_of(i) == ff.BURNING
-		var is_tile: bool = ff._cell_kind(cx) != 2
-		if hot != (burning and is_tile):
+		if hot != burning:
 			exact = false
-		if hot:
-			found_hot_tile = true
-		if burning and not is_tile and not hot:
-			found_cold_gap = true
-	check(exact, "at a cell centre, burn iff standing on a burning TILE cell")
-	check(found_hot_tile, "standing on a burning TILE cell burns")
-	check(found_cold_gap, "standing on a burning GAP cell does NOT burn (tighter than the sim)")
+		if hot and ff._cell_kind(cx) == 2:
+			found_hot_gap = true
+	check(exact, "at a cell centre, burn iff standing on a burning cell (any kind)")
+	check(found_hot_gap, "standing on a burning GAP cell (where the tall flames are) NOW burns")
 	ff.free()
+
+	# PARITY (the "no damage on the left, but corpses appeared" bug): the player-burn test
+	# (fire_hot_at) and the enemy-burn test (is_burning_at) must AGREE everywhere, including OFF
+	# the ends of the fire span. cell_at() clamps+truncates, so an x just left of FIRE_MIN_X used
+	# to read the burning edge cell as "burning" for the enemy while the player was spared — so
+	# enemies cooked to death (leaving corpses) on the left where the player took no damage.
+	print("[fire_hot_at — left/right off-span parity (player == enemy)]")
+	var pf = _make_field()
+	pf.floor_num = 7
+	pf.ignite_span(pf.FIRE_MIN_X, pf.FIRE_MIN_X)          # only the very first (leftmost) cell
+	var parity := true
+	var phantom_left := false
+	# Sweep from well left of the span through the first cell.
+	for x in range(int(pf.FIRE_MIN_X) - 80, int(pf.FIRE_MIN_X) + 60, 3):
+		var pfx := float(x)
+		if pf.fire_hot_at(pfx) != pf.is_burning_at(pfx):
+			parity = false
+		# Nothing should burn (player OR enemy) a clear step LEFT of the span.
+		if pfx <= pf.FIRE_MIN_X - pf.CELL_W and (pf.fire_hot_at(pfx) or pf.is_burning_at(pfx)):
+			phantom_left = true
+	check(parity, "player-burn and enemy-burn agree across the left edge")
+	check(not phantom_left, "nothing burns a full cell left of the fire span (no phantom corpses)")
+	# The lit leftmost cell DOES still burn both when you stand on it.
+	check(pf.is_burning_at(pf.cell_x(0)) and pf.fire_hot_at(pf.cell_x(0)), "the lit edge cell still burns both")
+	pf.free()
 
 
 func _test_stair_fire() -> void:

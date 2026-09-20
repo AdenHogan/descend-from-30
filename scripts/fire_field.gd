@@ -201,8 +201,20 @@ func extinguish_at(x: float, radius: float) -> void:
 			fuel[i] = 0.0
 
 
+func cell_of_unclamped(x: float) -> int:
+	# Which cell does x fall in, WITHOUT clamping — returns -1 (or >= cell_count) when x is
+	# OUTSIDE the fire span. cell_at() clamps AND truncates toward zero, so any x just left of
+	# FIRE_MIN_X collapsed onto cell 0; state_of(cell_at(x)) then read the edge cell as
+	# "burning" for the whole run-off past the ends of the fire. That phantom made ENEMIES burn
+	# to death (and leave corpses) standing LEFT of the flames while the player — saved by the
+	# DAMAGE_REACH distance guard — took no damage there (owner: "no damage on the left, but
+	# corpses appeared"). floori() (not int()) so a fractional-negative offset lands OUT of range.
+	return floori((x - FIRE_MIN_X) / CELL_W)
+
+
 func is_burning_at(x: float) -> bool:
-	return state_of(cell_at(x)) == BURNING
+	var i := cell_of_unclamped(x)
+	return i >= 0 and i < cell_count and state_of(i) == BURNING
 
 
 # How close (px) the player must be to a VISIBLE flame to take the burn. Tight — a
@@ -212,16 +224,15 @@ const DAMAGE_REACH := 26.0
 
 
 func fire_hot_at(x: float) -> bool:
-	# TIGHT player-damage test (see building_floors fire damage). The SIM burns a wider,
-	# GAPPIER span than the patchy RENDER shows, so is_burning_at() cooked the player while
-	# they stood over a bare GAP with no visible flame. Here the burn only lands when a
-	# burning cell that actually RENDERS a fire tile (kind 0/1, not a gap) sits within
-	# DAMAGE_REACH of the player — i.e. they're essentially standing IN the flames.
-	var c := cell_at(x)
-	for i in range(maxi(c - 1, 0), mini(c + 2, cell_count)):
-		if state_of(i) == BURNING and _cell_kind(cell_x(i)) != 2 and absf(cell_x(i) - x) <= DAMAGE_REACH:
-			return true
-	return false
+	# Player-damage test (see building_floors fire damage): the player burns when they're
+	# standing IN a burning cell — SYMMETRIC with is_burning_at (the enemy-burn test), so
+	# anything that cooks an enemy also cooks the player and vice-versa. The old version used
+	# the CLAMPED, truncating cell_at() plus a DAMAGE_REACH distance guard; the clamp+truncation
+	# put the left approach into a dead-zone where enemies burned but the player didn't (owner:
+	# "no damage on the left"). Now: burn iff the player's OWN (unclamped) cell is a BURNING cell
+	# — the SAME rule is_burning_at applies to enemies (42px cell granularity: in the flames or
+	# not). Off the fire span → never cooked, for player and enemy alike.
+	return is_burning_at(x)
 
 
 func any_burning() -> bool:

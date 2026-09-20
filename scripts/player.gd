@@ -60,6 +60,7 @@ enum HealthState {HEALTHY, HURT, INJURED, WOUNDED, SEVERELY_WOUNDED, DYING}
 var health_state: HealthState = HealthState.HEALTHY
 
 var is_crouching = false
+var is_running = false          # actively sprint-moving this frame (read by fire: run THROUGH fire unburned)
 var is_pushing = false
 var push_timer = 0.0
 var is_hit = false
@@ -311,6 +312,8 @@ func _physics_process(delta: float) -> void:
 			is_hit = false
 			animated_sprite.modulate = Color(1, 1, 1, 1)
 
+	# Actively running (sprint gait, moving): lets the player DASH through fire unburned.
+	is_running = is_sprinting and direction != 0 and (WorldState.stamina > 0 or WorldState.god_mode)
 	if is_sprinting and direction != 0 and WorldState.stamina > 0 and not WorldState.god_mode:
 		WorldState.stamina = max(WorldState.stamina - STAMINA_SPRINT_DRAIN * WorldState.get_sprint_drain_mult() * delta, 0.0)
 		stamina_recovery_timer = STAMINA_RECOVERY_DELAY

@@ -17,11 +17,20 @@ func _ready() -> void:
 	ATTACK_RANGE = 300.0         # a SPIT range, NOT a melee reach
 	current_hp = max_hp
 	add_to_group("spitter")
+	_make_passable_to_player()   # a ranged skirmisher never physically WALLS the player
+
+func _try_resolidify() -> void:
+	# Never re-solidify against the player: the spitter halts at range and would otherwise
+	# stand as an (unlit, at night INVISIBLE) solid wall you can't walk past — a soft-lock.
+	# It stays a ranged threat you can walk through / around; the spit is the danger.
+	_make_passable_to_player()
 
 func _physics_process(delta: float) -> void:
 	if _spit_cd > 0.0:
 		_spit_cd -= delta
 	super(delta)
+	if state != "hit" and state != "knockdown":
+		_make_passable_to_player()   # keep it non-blocking every frame
 
 func _deliver_attack(_distance: float) -> void:
 	# The attack beat launches a spit at the player instead of a melee hit. Honour a

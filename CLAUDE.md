@@ -851,6 +851,34 @@ means no rendering — UI layout and art still need an in-editor look.
   ~84–99px) makes tall enemies tower — an ART issue (functional hits land after the above);
   documented in docs/ART_REQUIREMENTS.md as "consistent character height" for the art pass,
   NOT fixed by rescaling throwaway rigs (would float their feet).
+  **Playtest fixes (night-run batch):** (1) **Fire damage parity — "no damage on the left"
+  + phantom corpses.** `fire_field.cell_at()` CLAMPS and (via `int()`) truncates toward zero,
+  so any x just LEFT of `FIRE_MIN_X` (150) collapsed onto cell 0 and anything past either end
+  clamped to the edge cell. `is_burning_at` (enemy burn) then read the burning EDGE cell as "on
+  fire" for the whole run-off past the ends, so ENEMIES standing left of the flames burned to
+  death and **left corpses**, while the PLAYER — saved by the old `DAMAGE_REACH` distance guard
+  in `fire_hot_at` — took **no damage there**. Fixed by a shared UNCLAMPED membership test
+  `fire_field.cell_of_unclamped(x)` (uses `floori`, returns -1/≥count OFF the span): both
+  `is_burning_at` AND `fire_hot_at` now return "burning iff the actor's own in-span cell is
+  BURNING" — 42px cell granularity, player and enemy **symmetric**, nothing burns off the ends.
+  This also removes the phantom off-span corpses (the "corpses respawned when I re-entered —
+  memory bug" report: they were legit recordings of enemies the phantom burn had killed left of
+  the fire; with symmetry they no longer spuriously die). `DAMAGE_REACH` is now vestigial.
+  Locked by `fire_test` `_test_fire_hot_at` (left/right off-span parity). (2) **Run THROUGH fire
+  = no burn** (owner: "only damage when walking"): `player.is_running` (sprint + moving +
+  stamina) gates the burn in `building_floors._process` (`_running_thru`) — sprint the gauntlet
+  unscathed, walk and take the hits; the player chooses. (3) **Spitter crouch-DODGE** — a spit
+  now passes over a CROUCHING player (`spit_projectile` reads `_player.is_crouching`), giving
+  crouch real combat use as the only counter to the ranged attack. (4) **Non-blocking skirmisher
+  / burning cluster** — the Spitter is kept passable-to-player every frame
+  (`enemy_zombie_spitter._make_passable_to_player`), and any ON-FIRE enemy is forced passable
+  too (`enemy_zombie_standard` `_set_on_fire`/`_try_resolidify`), so a ranged enemy or a packed
+  burning crowd can never physically WALL the player (the softlock the owner hit — it was LIVE
+  packed burning enemies, not corpses; a corpse sweep confirmed EVERY corpse path already
+  disables collision). (5) **Rain confined to the pane** (owner: "rain is inside the room, looks
+  leaky") — `apartment_window._add_rain` tuned (amount 14, lifetime 0.34, gravity 260, velocity
+  50–70, emit at pane top) so a streak dies before the pane bottom, reading as rain seen THROUGH
+  the glass. Temp placeholder — a real rain sprite-sheet is a future asset.
   **Corridor bosses (runs 2/3):** a floor may set ONE roaming boss loose — a tougher Big
   Zombie (`enemy_zombie_big.is_corridor_boss`: ~1.6×+6 HP, elite red tint, in group
   `corridor_boss`). It guards nothing so drops **NO key**, but drops a **fatter money

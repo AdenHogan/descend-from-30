@@ -30,6 +30,12 @@ func _set_on_fire(v: bool) -> void:
 	on_fire = v
 	if not v:
 		_burn_acc = 0.0
+	elif not is_dead:
+		# A burning enemy never physically WALLS the player: a cluster of zombies dying in a
+		# corridor fire used to pack solid and block the way (owner's soft-lock). While alight
+		# it's passable — still a ranged/contact threat, just not a wall — so you can push/dash
+		# through the gauntlet. It re-solidifies once the flames go out (_try_resolidify).
+		_make_passable_to_player()
 	if v and _fire_fx == null:
 		_fire_fx = ENEMY_FIRE.new()
 		_fire_fx.position = Vector2(0, -6)
@@ -517,6 +523,9 @@ func _make_passable_to_player() -> void:
 func _try_resolidify() -> void:
 	# Restore solidity only once the player is clear, so the zombie never
 	# re-solidifies while overlapping the player (which would jam both bodies).
+	if on_fire:
+		_make_passable_to_player()   # burning enemies stay passable so a fire cluster can't wall the player
+		return
 	if not passable_to_player or player == null:
 		return
 	if global_position.distance_to(player.global_position) > 26.0:

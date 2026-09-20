@@ -426,11 +426,14 @@ func _process(delta: float) -> void:
 		if _fire_save_acc >= 0.6:
 			_fire_save_acc = 0.0
 			WorldState.set_fire_cells(_built_floor, _fire_field.export_state())
-	# Fire damage: standing in flame costs health on a cadence (move or burn). You
-	# can always walk THROUGH fire (it never blocks), you just take the burn.
+	# Fire damage: standing/walking in flame costs health on a cadence. Fire never BLOCKS —
+	# you can always pass through it. RUNNING (sprint) through it takes NO burn: a dash gets you
+	# across unscathed, so the player chooses — sprint the gauntlet, or walk and take the hits
+	# (owner's call). Walking / standing in it burns.
+	var _running_thru: bool = ("is_running" in player) and player.is_running
 	if _fire_field != null and player.has_method("receive_hit"):
 		_fire_line_cd = maxf(_fire_line_cd - delta, 0.0)
-		if _fire_field.fire_hot_at(player.global_position.x):
+		if not _running_thru and _fire_field.fire_hot_at(player.global_position.x):
 			_fire_dmg_acc += delta
 			if _fire_dmg_acc >= FIRE_DMG_INTERVAL:
 				_fire_dmg_acc = 0.0
