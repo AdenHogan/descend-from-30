@@ -46,7 +46,7 @@ const WINDOW_SCALE := 1.6
 # MOONBEAM at night. window_beam.gd pairs a VISIBLE additive shaft (reads in ANY ambient) with
 # a REAL PointLight2D (lights the floor + whatever passes through) + drifting dust motes.
 const BEAM_SLANT_BY_RUN := [0.40, -0.40, 0.12]                                       # radians: morning →, afternoon ←, night ~vertical
-const BEAM_TINT := [Color(1.00, 0.92, 0.70), Color(1.00, 0.84, 0.58), Color(0.60, 0.72, 1.00)]
+const BEAM_TINT := [Color(1.00, 0.92, 0.70), Color(1.00, 0.80, 0.70), Color(0.60, 0.72, 1.00)]  # morning gold / sunset peach-pink / cool moon
 const BEAM_ALPHA := [0.17, 0.16, 0.11]                                               # additive shaft strength (visible, never blown)
 const BEAM_LIGHT_ENERGY := [0.12, 0.30, 0.34]                                        # the REAL cast light (modest, matches the window fill)
 

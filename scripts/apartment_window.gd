@@ -18,6 +18,14 @@ extends Node2D
 const FL = preload("res://scripts/floor_lighting.gd")
 const APARTMENT_WINDOW_ENERGY_SCALE := 1.3   # a flat has no ceiling lamps — windows carry it
 
+# The sky seen THROUGH the glass, by run/time of day: bright cool blue morning, a PINKISH-BLUE
+# (sunset) afternoon, DARK at night. So the window exterior sells the time skip, not just the light.
+const GLASS_BY_RUN := [
+	Color(0.62, 0.78, 0.98, 0.65),   # run 1 morning — cool blue sky
+	Color(0.86, 0.62, 0.78, 0.66),   # run 2 afternoon — pinkish-blue sunset
+	Color(0.15, 0.18, 0.32, 0.80),   # run 3 night — dark outside
+]
+
 # Placeholder pane box (drawn until real module art frames the window). Half-extents.
 const PANE_HALF_W := 22.0
 const PANE_HALF_H := 26.0
@@ -49,8 +57,8 @@ func setup(pos: Vector2, live: bool) -> void:
 func _draw() -> void:
 	# A simple placeholder window: a framed pane of "sky" you can see through, so the window
 	# reads AS a window in-editor before real module art exists (the art pass replaces this).
-	# Glass tint tracks the time of day so a night pane reads dark/moonlit, a day pane bright.
-	var glass := Color(0.16, 0.20, 0.34, 0.75) if _night else Color(0.62, 0.78, 0.98, 0.65)
+	# Glass tint tracks the time of day: cool blue morning, pinkish-blue sunset, dark at night.
+	var glass: Color = GLASS_BY_RUN[clampi(WorldState.current_run - 1, 0, 2)]
 	var frame := Color(0.10, 0.10, 0.12, 0.95)
 	var rect := Rect2(-PANE_HALF_W, -PANE_HALF_H, PANE_HALF_W * 2.0, PANE_HALF_H * 2.0)
 	draw_rect(rect, glass, true)                       # glass
