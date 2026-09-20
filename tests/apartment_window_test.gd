@@ -85,6 +85,19 @@ func _test_windows_day() -> void:
 				min_anchor_y = minf(min_anchor_y, m.global_position.y + c.position.y)
 	check(min_anchor_y > 284.0, "every scavenge node sits below the window centre (lowest %.0f > 284)" % min_anchor_y)
 	check(get_tree().get_nodes_in_group("apt_storm").is_empty(), "no storm on a day run")
+	# Every window / balcony door casts a slanting light BEAM (window_beam.gd) that carries a
+	# real PointLight2D — so the shaft actually lights the room, not just a painted overlay.
+	var beams := get_tree().get_nodes_in_group("window_beam")
+	check(beams.size() >= windows.size(),
+		"each window casts a light beam (%d beams >= %d windows)" % [beams.size(), windows.size()])
+	var beams_lit := beams.size() > 0
+	for b in beams:
+		var has_light := false
+		for c in b.get_children():
+			if c is PointLight2D:
+				has_light = true
+		beams_lit = beams_lit and has_light
+	check(beams_lit, "every beam carries a real cast light")
 	room.queue_free()
 	await get_tree().process_frame
 

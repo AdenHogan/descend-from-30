@@ -39,8 +39,52 @@ const WINDOW_CAST := [Color(0.80, 0.88, 1.00), Color(1.00, 0.90, 0.76), Color(0.
 const WINDOW_ENERGY := [0.10, 0.28, 0.30]
 const WINDOW_SCALE := 1.6
 
+# --- Window / balcony LIGHT BEAMS (god-ray shafts) ------------------------------
+# A visible sunbeam / moonbeam SLANTING in through a window or balcony door (the owner's
+# "beams of light through these windows"). The sun's ANGLE + COLOUR come from the time of day:
+# a warm morning beam slanting one way, a warm afternoon beam the other, a near-vertical cool
+# MOONBEAM at night. window_beam.gd pairs a VISIBLE additive shaft (reads in ANY ambient) with
+# a REAL PointLight2D (lights the floor + whatever passes through) + drifting dust motes.
+const BEAM_SLANT_BY_RUN := [0.40, -0.40, 0.12]                                       # radians: morning →, afternoon ←, night ~vertical
+const BEAM_TINT := [Color(1.00, 0.92, 0.70), Color(1.00, 0.84, 0.58), Color(0.60, 0.72, 1.00)]
+const BEAM_ALPHA := [0.17, 0.16, 0.11]                                               # additive shaft strength (visible, never blown)
+const BEAM_LIGHT_ENERGY := [0.12, 0.30, 0.34]                                        # the REAL cast light (modest, matches the window fill)
+
 static var _cone: Texture2D = null
 static var _radial: Texture2D = null
+static var _beam: Texture2D = null
+
+
+static func beam_texture() -> Texture2D:
+	# A soft SHAFT cookie: apex at the texture CENTRE (so a light/sprite placed at the window
+	# has the beam ORIGINATE there and fall DOWNWARD), fanning a little wider with distance and
+	# fading along its length + softly at the edges. The caller rotates it for the sun's slant.
+	if _beam == null:
+		var w := 176
+		var h := 320
+		var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
+		var cx := float(w) * 0.5
+		var apex_y := float(h) * 0.5
+		var maxd := float(h) * 0.5
+		var top_half := float(w) * 0.15          # beam half-width at the window
+		var bot_half := float(w) * 0.44          # a gentle fan toward the floor
+		for y in range(h):
+			var d := float(y) - apex_y
+			if d <= 0.0:
+				continue
+			var vf := d / maxd
+			var half := lerpf(top_half, bot_half, vf)
+			var vfall := clampf(1.0 - vf, 0.0, 1.0)
+			vfall = pow(vfall, 1.3)               # fades gradually down the shaft
+			for x in range(w):
+				var dx := absf(float(x) - cx)
+				var a := 0.0
+				if dx <= half:
+					var hf := dx / half
+					a = vfall * pow(1.0 - hf * hf, 1.5)   # soft edges
+				img.set_pixel(x, y, Color(1, 1, 1, clampf(a, 0.0, 1.0)))
+		_beam = ImageTexture.create_from_image(img)
+	return _beam
 
 var _lamps: Array = []
 
@@ -166,9 +210,19 @@ func setup(floor_num: int) -> void:
 			"sway_phase": rng.randf() * TAU,
 			"blink_t": rng.randf_range(1.5, 4.0), "on": true,
 		})
-	# Stairwell windows: natural light in from both stair shafts.
+	# Stairwell windows: natural light in from both stair shafts, plus a slanting sunbeam shaft.
 	add_child(make_window_light(Vector2(STAIR_WINDOW_LEFT_X, STAIR_WINDOW_Y)))
 	add_child(make_window_light(Vector2(STAIR_WINDOW_RIGHT_X, STAIR_WINDOW_Y)))
+	_add_window_beam(Vector2(STAIR_WINDOW_LEFT_X, STAIR_WINDOW_Y), 1.25)
+	_add_window_beam(Vector2(STAIR_WINDOW_RIGHT_X, STAIR_WINDOW_Y), 1.25)
+
+
+func _add_window_beam(pos: Vector2, length_scale: float = 1.0) -> void:
+	# A slanting light shaft through the stairwell window (see window_beam.gd). load() (not
+	# preload) avoids a cyclic const preload — window_beam.gd preloads THIS script.
+	var beam = load("res://scripts/window_beam.gd").new()
+	add_child(beam)
+	beam.setup(pos, length_scale)
 
 
 func _process(delta: float) -> void:

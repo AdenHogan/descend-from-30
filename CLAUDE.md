@@ -710,6 +710,24 @@ means no rendering — UI layout and art still need an in-editor look.
   `assets/audio/ambience/`, CC0). Added on the passive balcony-pan backdrop too (light only,
   no rain/storm). Covered by `apartment_window_test`. Purely visual/audio otherwise — the LOOK
   (window brightness, rain read, flash) needs an in-editor check.
+- Window / balcony LIGHT BEAMS (`window_beam.gd`, `FloorLighting.beam_texture` + `BEAM_*`): a
+  slanting sunbeam / moonbeam SHAFT streams in through EVERY window (apartment wall windows,
+  stairwell windows) and balcony door. **Two parts so it reads in ANY ambient** (a plain
+  PointLight2D washes out in a bright day room): a VISIBLE volumetric shaft — an ADDITIVE
+  soft-edged `beam_texture` Sprite2D tinted by time of day — PLUS a REAL PointLight2D beam
+  (same cookie) so the shaft actually LIGHTS the floor + whatever walks through it (genuinely
+  dynamic, not a painted overlay). The **sun's angle + colour come from the run**
+  (`BEAM_SLANT_BY_RUN` / `BEAM_TINT` / `BEAM_ALPHA` / `BEAM_LIGHT_ENERGY`): a warm morning beam
+  slanting one way, a warm afternoon beam the other, a near-vertical cool MOONBEAM at night.
+  Faint DUST MOTES drift down the shaft (live only) and a slow shimmer + micro angle-drift keep
+  it alive. Drawn at **z0** (behind actors) so the beam lands on the wall/floor and never washes
+  the player. The `beam_texture` cookie is a soft shaft with apex at the texture CENTRE (so a
+  light/sprite at the window has the beam ORIGINATE there and fall downward) — the caller
+  rotates it for the slant + scales Y (`length_scale`) to reach the floor per placement.
+  Instantiated in `apartment_window.gd` (wall windows), `room.gd` (balcony doors), and
+  `floor_lighting._add_window_beam` (stairwell windows; runtime `load()` avoids the cyclic
+  const preload). Wiring locked by `apartment_window_test` (beam count + real cast light); the
+  LOOK (shaft brightness/angle, motes) needs an in-editor check.
 - Scavenge nodes = a glowing TRANSLUCENT orb (`interactable.gd`, replaced the old flat
   yellow/white `draw_circle`; iterated: v1 literal "mini sun" w/ flares+sunspots → too figurative;
   v2 concentric-disc shading → too big, giant halo, "Among Us visor"; v3 opaque baked sphere →

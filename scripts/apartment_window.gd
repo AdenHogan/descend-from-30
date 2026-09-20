@@ -36,6 +36,10 @@ func setup(pos: Vector2, live: bool) -> void:
 	# Remember the run's base energy so a flash can return to it exactly.
 	light.set_meta("base_energy", light.energy)
 	add_child(light)
+	# A slanting sunbeam / moonbeam shaft in through the glass (see window_beam.gd).
+	var beam = load("res://scripts/window_beam.gd").new()
+	add_child(beam)
+	beam.setup(Vector2.ZERO, 0.9, 1.0, live)
 	queue_redraw()   # draw the placeholder pane
 	# Rain is OUTSIDE the glass — only on live night runs (no rain on a passive backdrop).
 	if live and _night:

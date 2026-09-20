@@ -602,6 +602,10 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 				var win = load("res://scripts/floor_lighting.gd").make_window_light(
 					Vector2(LEFT_WALL_X + i * MODULE_WIDTH + 90, 210))
 				add_child(win)
+				# A slanting daylight beam through the balcony door (see window_beam.gd).
+				var bbeam = load("res://scripts/window_beam.gd").new()
+				add_child(bbeam)
+				bbeam.setup(Vector2(LEFT_WALL_X + i * MODULE_WIDTH + 90, 210), 1.1, 1.0, live)
 			# The "BALCONY" tag → crisp pixel font (default font blurs when zoomed).
 			var bal_tag = bal_node.get_node_or_null("Tag")
 			if bal_tag != null:
