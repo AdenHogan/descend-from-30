@@ -61,6 +61,20 @@ var health_state: HealthState = HealthState.HEALTHY
 
 var is_crouching = false
 var is_running = false          # actively sprint-moving this frame (read by fire: run THROUGH fire unburned)
+
+# --- ANTI-STUCK SAFETY NET (owner: "there can be NO blockages preventing a player from
+# moving otherwise the gameplay is destroyed"). The flat plane pins Y (_move_locked), so a
+# solid body dead ahead — a live/burning zombie or boss at a door, a re-solidify jam, a
+# corpse that somehow stayed solid, a crowd — is an absolute wall the player can't slide
+# around. This GUARANTEES escape, universally and independent of any enemy's own passable
+# API (the big zombie/boss has none): if the player is trying to walk but hasn't moved for
+# STUCK_UNJAM_TIME, the PLAYER adds a collision exception to every nearby body so it slides
+# straight through, then drops each exception the instant that body is clear. Never permanent.
+const STUCK_UNJAM_TIME := 0.5     # seconds of zero progress while trying to move → phase through
+const UNJAM_ADD_RANGE := 90.0     # only phase bodies this close (the thing actually pinning you)
+const UNJAM_CLEAR_RANGE := 58.0   # re-solidify a phased body once it's this far horizontally
+var _stuck_time: float = 0.0
+var _phased_bodies: Array = []    # bodies the player is currently phasing through
 var is_pushing = false
 var push_timer = 0.0
 var is_hit = false
@@ -422,9 +436,41 @@ func _move_locked() -> void:
 	# Used by EVERY move path (idle, walk, listen, mode-switch, lashing, dying) so no state
 	# leaks the plane. Balcony/cutscene manage Y themselves, so skip the pin for them.
 	var y := global_position.y
+	var x0 := global_position.x
+	# "Trying to move" = commanded horizontal velocity, and NOT already dealing with the blocker
+	# via combat (attack/push have their own means to clear it, so the net stays out of fights).
+	var wants_move := absf(velocity.x) > 1.0 and not is_pushing and not is_attacking and not is_cutscene
 	move_and_slide()
 	if not on_balcony_plane and not is_cutscene:
 		global_position.y = y
+	_update_unjam(wants_move, absf(global_position.x - x0))
+
+
+func _update_unjam(wants_move: bool, moved: float) -> void:
+	# Release every body the player has cleared (or that's gone) so it turns solid again the
+	# instant it's no longer the thing pinning the player — the net is momentary, never a
+	# permanent walk-through.
+	for i in range(_phased_bodies.size() - 1, -1, -1):
+		var b = _phased_bodies[i]
+		if not is_instance_valid(b):
+			_phased_bodies.remove_at(i)
+			continue
+		if absf(b.global_position.x - global_position.x) > UNJAM_CLEAR_RANGE:
+			remove_collision_exception_with(b)
+			_phased_bodies.remove_at(i)
+	# Genuinely stuck? (trying to move, but no horizontal progress this frame.) A real wall
+	# (corridor end) trips this too but has no zombie nearby to phase, so it's a harmless no-op.
+	if wants_move and moved < 0.5:
+		_stuck_time += get_physics_process_delta_time()
+		if _stuck_time >= STUCK_UNJAM_TIME:
+			for z in get_tree().get_nodes_in_group("zombie"):
+				if not is_instance_valid(z) or not (z is PhysicsBody2D):
+					continue
+				if absf(z.global_position.x - global_position.x) <= UNJAM_ADD_RANGE and not (z in _phased_bodies):
+					add_collision_exception_with(z)
+					_phased_bodies.append(z)
+	else:
+		_stuck_time = 0.0
 
 
 func _setup_player_light() -> void:

@@ -176,7 +176,7 @@ setup script; binary from downloads.godotengine.org). Before every commit:
   `balcony_test`, `hud_prompt_test`, `stair_block_test`, `fire_test`,
   `maintenance_test`, `elevator_test`, `run_arc_test`, `enemy_variety_test`,
   `dev_menu_test`, `lighting_test`, `plane_lock_test`, `apartment_window_test`,
-  `scavenge_node_test`, `drop_physics_test` — run all 34 before commit. (Run ONE godot at a time — a killed/backgrounded headless run can
+  `scavenge_node_test`, `drop_physics_test`, `softlock_test` — run all 35 before commit. (Run ONE godot at a time — a killed/backgrounded headless run can
   linger and block the next, and a GDScript **parse error makes a test scene load but
   never call `quit()`, so it "hangs" until timeout** rather than printing an error line;
   if a suite hangs, check for a parse error and stray `godot` processes first.
@@ -879,6 +879,27 @@ means no rendering — UI layout and art still need an in-editor look.
   leaky") — `apartment_window._add_rain` tuned (amount 14, lifetime 0.34, gravity 260, velocity
   50–70, emit at pane top) so a streak dies before the pane bottom, reading as rain seen THROUGH
   the glass. Temp placeholder — a real rain sprite-sheet is a future asset.
+  **Anti-stuck safety net — the softlock GUARANTEE (owner: "there can be NO blockages
+  preventing a player from moving").** The flat plane pins Y (`player._move_locked`), so a
+  solid body dead ahead — a live/burning zombie or a Big/boss at a door, a re-solidify jam, a
+  corpse that somehow stayed solid, a packed crowd — is an ABSOLUTE wall the player can't slide
+  around (no vertical escape). Rather than patch each cause, `player._update_unjam` (called every
+  frame from `_move_locked`) GUARANTEES escape UNIVERSALLY: if the player is trying to walk
+  (commanded velocity, NOT mid attack/push — combat has its own means) but made no horizontal
+  progress for `STUCK_UNJAM_TIME` (0.5s), the PLAYER adds a collision exception to every body in
+  group `zombie` within `UNJAM_ADD_RANGE` (90px) — from the PLAYER side, so it works even for
+  the Big zombie/boss, which has NO passable API of its own — and slides straight through; each
+  phased body is released (`remove_collision_exception_with`) the instant it's `UNJAM_CLEAR_RANGE`
+  (58px) clear, so the net is momentary, never a permanent walk-through. A real wall (corridor
+  end) trips the dwell too but finds no zombie to phase → harmless no-op. This is a deliberate
+  safety VALVE: holding into an enemy for 0.5s phases you through it (enemies still block for that
+  beat + damage you), the owner's absolute-priority tradeoff over "enemies hard-block". Separately,
+  the per-enemy re-solidify (`enemy_zombie_standard._try_resolidify`) now uses a width-aware
+  HORIZONTAL clearance (`_resolidify_clearance` = my half-width + player half + margin) instead of
+  a flat 26px center distance — a wide crawler (80px body) used to re-solidify while still
+  overlapping the player and the engine hard-separated them, shoving the Y-pinned player sideways
+  into a lodge. Locked by `softlock_test` (player escapes a solid standard / Big-boss / crawler;
+  body released once clear; wall-only is a no-op; clearance covers the crawler).
   **Corridor bosses (runs 2/3):** a floor may set ONE roaming boss loose — a tougher Big
   Zombie (`enemy_zombie_big.is_corridor_boss`: ~1.6×+6 HP, elite red tint, in group
   `corridor_boss`). It guards nothing so drops **NO key**, but drops a **fatter money

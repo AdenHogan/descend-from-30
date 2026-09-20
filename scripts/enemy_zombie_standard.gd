@@ -528,10 +528,28 @@ func _try_resolidify() -> void:
 		return
 	if not passable_to_player or player == null:
 		return
-	if global_position.distance_to(player.global_position) > 26.0:
+	# Re-solidify only once the player is HORIZONTALLY clear of my body — a flat 26px
+	# center distance re-solidified while a WIDE body (the crawler is 80px wide) still
+	# overlapped the player, and the physics engine then hard-separated them; with the
+	# player's Y pinned that ejection shoved it sideways and could lodge it (a softlock).
+	# Clear = my half-width + the player's half-width + margin, measured on X only.
+	if absf(global_position.x - player.global_position.x) > _resolidify_clearance():
 		remove_collision_exception_with(player)
 		player.remove_collision_exception_with(self)
 		passable_to_player = false
+
+
+func _resolidify_clearance() -> float:
+	# Horizontal gap at which my collision shape and the player's are guaranteed apart.
+	var half := 20.0
+	var cs = get_node_or_null("CollisionShape2D")
+	if cs != null and cs.shape != null:
+		var shp = cs.shape
+		if shp is RectangleShape2D:
+			half = shp.size.x * 0.5
+		elif shp is CapsuleShape2D or shp is CircleShape2D:
+			half = shp.radius
+	return half + 13.0 + 8.0    # + player capsule half-width (13) + margin
 
 func _set_hp_from_floor() -> void:
 	var floor_num = WorldState.current_floor
