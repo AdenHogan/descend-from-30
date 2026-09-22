@@ -48,6 +48,7 @@ var subtitle_label: Label = null
 var lore_text: RichTextLabel = null
 var portrait_rect: TextureRect = null
 var npc_text: RichTextLabel = null
+var before_text: RichTextLabel = null
 var tabs: TabContainer = null
 
 
@@ -149,6 +150,13 @@ func _build() -> void:
 	npc_text.scroll_active = true
 	tabs.add_child(npc_text)
 
+	# --- Tab 3: Before You (the cross-run chronicle — who came before + what they left) ---
+	before_text = RichTextLabel.new()
+	before_text.name = "Before You"
+	before_text.bbcode_enabled = true
+	before_text.scroll_active = true
+	tabs.add_child(before_text)
+
 
 func open() -> void:
 	_refresh()
@@ -189,6 +197,50 @@ func _refresh() -> void:
 		for entry in NPC_STORIES:
 			body += "[b]%s[/b]\n%s\n\n" % [str(entry.get("name", "?")), str(entry.get("story", ""))]
 		npc_text.text = body
+	# Before You tab — the cross-run chronicle.
+	before_text.text = _chronicle_bbcode()
+
+
+func _chronicle_bbcode() -> String:
+	# One block per run: who they were, their fate + how deep they got, the marks they left, and
+	# — once you've recovered their body — their full lore plus your character's thoughts on them.
+	WorldState._ensure_chronicle()
+	var out := ""
+	for run in range(1, 4):
+		var e: Dictionary = WorldState.chronicle_entry(run)
+		var who: String = String(e.get("character", ""))
+		if who == "":
+			continue
+		var name := WorldState.character_display_name(who)
+		var when := WorldState.run_name(run)
+		var is_now: bool = run == WorldState.current_run
+		var tag := "  [i](now)[/i]" if is_now else ""
+		out += "[b]%s — %s[/b]%s\n" % [when, name, tag]
+		var outcome := String(e.get("outcome", ""))
+		var depth := int(e.get("deepest_floor", 30))
+		if is_now:
+			out += "Still descending — floor %d so far.\n" % depth
+		else:
+			var fate := "fell" if outcome == "fell" else ("escaped" if outcome == "escaped" else "unaccounted for")
+			out += "%s. Deepest: floor %d.\n" % [fate.capitalize(), depth]
+		var traces: Array = e.get("traces", [])
+		if not traces.is_empty():
+			out += "[i]They left: %s[/i]\n" % ", ".join(traces)
+		# Their lore unlocks once you've recovered their body.
+		if not is_now:
+			if bool(e.get("recovered", false)):
+				var lore := str(CHAR_LORE.get(who, {}).get("lore", ""))
+				if lore != "":
+					out += lore + "\n"
+			else:
+				out += "[i]You haven't found their body. Their story is lost until you do.[/i]\n"
+		var thoughts: Array = e.get("thoughts", [])
+		for t in thoughts:
+			out += "[color=#9fb0c8]“%s”[/color]\n" % str(t)
+		out += "\n"
+	if out == "":
+		out = "[i]No one has come before you yet.[/i]"
+	return out
 
 
 func _prettify(cid: String) -> String:

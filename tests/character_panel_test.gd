@@ -50,7 +50,7 @@ func _ready() -> void:
 		check(HUD.character_panel.title_label.text == expected,
 			"title shows the current character's name (%s)" % expected)
 	check(HUD.character_panel.portrait_rect.texture != null, "profile shows the character portrait")
-	check(HUD.character_panel.tabs.get_tab_count() == 2, "two tabs (Profile + NPCs)")
+	check(HUD.character_panel.tabs.get_tab_count() == 3, "three tabs (Profile + NPCs + Before You)")
 	check(HUD.character_panel.npc_text.text.length() > 0, "NPC tab has placeholder copy")
 
 	# 4. Closing restores the prior pause state.

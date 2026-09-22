@@ -177,7 +177,7 @@ setup script; binary from downloads.godotengine.org). Before every commit:
   `maintenance_test`, `elevator_test`, `run_arc_test`, `enemy_variety_test`,
   `dev_menu_test`, `lighting_test`, `plane_lock_test`, `apartment_window_test`,
   `scavenge_node_test`, `drop_physics_test`, `softlock_test`, `character_panel_test`,
-  `corpse_recovery_test` — run all 37 before commit. (Run ONE godot at a time — a killed/backgrounded headless run can
+  `corpse_recovery_test`, `run_memory_test` — run all 38 before commit. (Run ONE godot at a time — a killed/backgrounded headless run can
   linger and block the next, and a GDScript **parse error makes a test scene load but
   never call `quit()`, so it "hangs" until timeout** rather than printing an error line;
   if a suite hangs, check for a parse error and stray `godot` processes first.
@@ -990,6 +990,31 @@ means no rendering — UI layout and art still need an in-editor look.
   load, matching, notes+item+durability restore, partial recovery, spawn/dedupe). The LOOK (the
   placeholder slumped body + glow) needs an in-editor check; lobby deaths aren't handled (no
   combat at the exit).
+- Cross-run MEMORY / chronicle (owner: "connecting memory across the three runs", v1): the
+  three descents are stitched into ONE story via `WorldState.run_chronicle` — a persisted array
+  of 3 records (one per run), each `{character, outcome (fell/escaped), deepest_floor, recovered,
+  traces[], thoughts[]}` (`_blank_chronicle_entry`). **Character** is stamped on run start
+  (`note_run_character`, called from `new_game` + `advance_run`). **Deepest floor** is tracked as
+  you descend (`note_floor_reached`, called from `building_floors` live build; descending = lower
+  number = deeper) → feeds a PERMANENT all-time record `best_depth` written to the **profile**
+  (`stats/best_depth`, only ever lowers, survives new_game — the hook for future permanent
+  upgrades + player records). **Outcome** mirrors `set_run_outcome` into the chronicle
+  (dead→"fell", survived→"escaped"). **Traces** = marks the character left (`add_run_trace`,
+  de-duped/capped; wired v1 to forced doors in `door.gd`). **Recovery links memory to the corpse
+  system**: `player_corpse` keys by the dead run, so looting a body calls
+  `WorldState.recover_run_memory(dead_run, make_finder_thought(dead_run))` — unlocking that
+  character's lore in the chronicle AND appending the finder's auto-generated comment (compares
+  how deep they got vs you). Canonical names live in `WorldState.CHARACTER_NAMES` /
+  `character_display_name` (single source; the profile panel + chronicle both read it). Surfaced
+  in the character profile panel's **"Before You" tab** (`character_panel._chronicle_bbcode`):
+  each run's time-of-day, name, fate, deepest floor, traces, thoughts, and — once their body is
+  recovered — their full lore (unrecovered = "their story is lost until you find them"). Chronicle
+  persists in the save; cleared by `new_game` (best_depth does NOT — it's the permanent record).
+  Covered by `run_memory_test` (stamp, depth+record, traces de-dupe, outcome mirror, survive the
+  time skip, recover→unlock+thought, names, save/load) + `character_panel_test` (3rd tab). The
+  chronicle LOOK/wording needs an in-editor read. Future: more trace producers (fires doused,
+  bosses felled, keys used), owner-authored finder-thought variety, spending best_depth on
+  permanent upgrades.
 - Next: characters/profiles/stats; **Upgrade offers** polish; barricade-keeper NPC; fire
   smoke/crouch + warning beat; the maintenance **upgrade station** UI (Scrap system,
   SCRAP_UPGRADES.md).

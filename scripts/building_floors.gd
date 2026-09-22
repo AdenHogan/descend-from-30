@@ -114,6 +114,9 @@ func _ready() -> void:
 		_make_inert()
 		return
 
+	# Cross-run memory: this character has now reached this floor (deepest tracked for records).
+	WorldState.note_floor_reached(floor_num)
+
 	if WorldState.spawn_source == "stair":
 		# WHERE the player emerges is derived from the floor's fixed geometry + the
 		# direction travelled, NOT from the mutable stair_spawn_side (which a warp/

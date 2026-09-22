@@ -99,6 +99,11 @@ func _is_mouse_over_body() -> bool:
 
 func _recover() -> void:
 	var summary = WorldState.recover_player_corpse(corpse_key)
+	# Collect the fallen character's MEMORY too (STORE_DESIGN corpse recovery + cross-run memory):
+	# unlock their lore in the chronicle and leave this character's comment on finding them.
+	if corpse_key.is_valid_int():
+		var dead_run := int(corpse_key)
+		WorldState.recover_run_memory(dead_run, WorldState.make_finder_thought(dead_run))
 	var parts: Array = []
 	if int(summary.get("notes", 0)) > 0:
 		parts.append("%d notes" % int(summary["notes"]))

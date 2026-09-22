@@ -86,10 +86,119 @@ var playtime_seconds: float = 0.0
 # read from.
 var run_outcomes: Array = ["", "", ""]
 
+# CROSS-RUN MEMORY / chronicle (owner: "connecting memory across the three runs"). One record
+# per run (index 0..2): who the character was, their fate, how DEEP they got (records +
+# permanent-upgrade hook), the world TRACES they left (doors forced, fires doused…), and the
+# THOUGHTS collected about them (their own lore, unlocked when their body is recovered, plus the
+# comments later characters leave on finding them). This is what makes the three descents feel
+# like ONE connected story. Persisted in the save; the best depth is also written to the profile
+# as a permanent record. Cleared by new_game.
+var run_chronicle: Array = []          # of Dictionary, see _blank_chronicle_entry
+var best_depth: int = 30               # deepest floor EVER reached (lowest number); profile record
+
+
+func _blank_chronicle_entry(character: String = "") -> Dictionary:
+	return {
+		"character": character,
+		"outcome": "",             # "" pending / "fell" / "escaped"
+		"deepest_floor": 30,       # descending, so LOWER = deeper; 30 = the start
+		"recovered": false,        # has a later character reached this body + read their memory?
+		"traces": [],              # world marks this character left (immersion)
+		"thoughts": [],            # collected lore + later characters' comments about them
+	}
+
+
+func _ensure_chronicle() -> void:
+	while run_chronicle.size() < 3:
+		run_chronicle.append(_blank_chronicle_entry())
+
+
+func chronicle_entry(run_index: int) -> Dictionary:
+	_ensure_chronicle()
+	return run_chronicle[clampi(run_index - 1, 0, 2)]
+
+
+func note_run_character() -> void:
+	# Stamp the current run's chronicle slot with who's playing it (called on run start). Keeps a
+	# character already recorded (a reload mid-run must not wipe accrued depth/traces/thoughts).
+	_ensure_chronicle()
+	var e: Dictionary = run_chronicle[clampi(current_run - 1, 0, 2)]
+	if String(e.get("character", "")) == "":
+		e["character"] = current_character()
+		e["deepest_floor"] = current_floor
+
+
+func note_floor_reached(floor_num: int) -> void:
+	# Descending: a lower number is deeper. Track it for this run + the all-time record.
+	_ensure_chronicle()
+	var e: Dictionary = run_chronicle[clampi(current_run - 1, 0, 2)]
+	if int(e.get("deepest_floor", 30)) > floor_num:
+		e["deepest_floor"] = floor_num
+	if floor_num < best_depth:
+		best_depth = floor_num
+		save_profile()             # a new all-time record — persist it (permanent-upgrade hook)
+
+
+func add_run_trace(text: String) -> void:
+	# Record a mark the current character left on the building (a forced door, a doused fire…),
+	# so a later character can feel someone came before. De-duped; capped so it can't grow forever.
+	if text == "":
+		return
+	_ensure_chronicle()
+	var e: Dictionary = run_chronicle[clampi(current_run - 1, 0, 2)]
+	var traces: Array = e["traces"]
+	if text in traces:
+		return
+	traces.append(text)
+	if traces.size() > 12:
+		traces.pop_front()
+
+
+# Canonical character display names — the ONE source (the profile panel + the chronicle both
+# read these, so a rename lands everywhere). Authored placeholders; owner rewrites freely.
+const CHARACTER_NAMES := {
+	"blond_man": "The Tenant",
+	"dark_woman": "The Nurse",
+	"bald_man": "The Super",
+	"blond_woman": "The Neighbour",
+}
+
+
+func character_display_name(cid: String) -> String:
+	return String(CHARACTER_NAMES.get(cid, cid.capitalize().replace("_", " ")))
+
+
+func make_finder_thought(dead_run: int) -> String:
+	# The current character's comment on finding a predecessor's body — a small piece of the
+	# connecting memory. Compares how deep they got to how deep I am, so the line means something.
+	var e: Dictionary = chronicle_entry(dead_run)
+	var them: String = character_display_name(String(e.get("character", "")))
+	var their_depth: int = int(e.get("deepest_floor", 30))
+	var my_depth: int = int(chronicle_entry(current_run).get("deepest_floor", 30))
+	if their_depth < my_depth:
+		return "%s got further than me — floor %d. I'll carry what they couldn't." % [them, their_depth]
+	return "%s fell on floor %d. I won't stop where they did." % [them, their_depth]
+
+
+func recover_run_memory(run_index: int, finder_thought: String = "") -> void:
+	# A later character reached run_index's body: unlock that character's memory (so the chronicle
+	# shows their full lore) and append the finder's comment about them.
+	_ensure_chronicle()
+	var e: Dictionary = run_chronicle[clampi(run_index - 1, 0, 2)]
+	e["recovered"] = true
+	if finder_thought != "" and not (finder_thought in e["thoughts"]):
+		e["thoughts"].append(finder_thought)
+
 
 func set_run_outcome(run_index: int, outcome: String) -> void:
 	var i: int = clampi(run_index - 1, 0, 2)
 	run_outcomes[i] = outcome
+	# Mirror into the chronicle in its own words (fell / escaped), keeping depth/traces intact.
+	_ensure_chronicle()
+	if outcome == "dead":
+		run_chronicle[i]["outcome"] = "fell"
+	elif outcome == "survived":
+		run_chronicle[i]["outcome"] = "escaped"
 	save_profile()
 
 
@@ -350,6 +459,7 @@ func load_profile() -> void:
 		runs_successful = int(cfg.get_value("stats", "runs_successful", 0))
 		playtime_seconds = float(cfg.get_value("stats", "playtime_seconds", 0.0))
 		run_outcomes = cfg.get_value("stats", "run_outcomes", ["", "", ""])
+		best_depth = int(cfg.get_value("stats", "best_depth", 30))
 
 
 func save_profile() -> void:
@@ -360,6 +470,7 @@ func save_profile() -> void:
 	cfg.set_value("stats", "runs_successful", runs_successful)
 	cfg.set_value("stats", "playtime_seconds", playtime_seconds)
 	cfg.set_value("stats", "run_outcomes", run_outcomes)
+	cfg.set_value("stats", "best_depth", best_depth)
 	# Mirror the headline save facts so the select screen can read one small
 	# file per slot instead of loading three save games.
 	cfg.set_value("resume", "has_save", FileAccess.file_exists(slot_save_path()))
@@ -520,6 +631,8 @@ func new_game() -> void:
 	zombie_positions.clear()
 	world_drops.clear()
 	player_corpses.clear()
+	run_chronicle.clear()          # a fresh playthrough starts a new chronicle (best_depth persists)
+	_ensure_chronicle()
 	roped_balconies.clear()
 	balcony_jump_warned = false
 	charred_intro_shown = false
@@ -556,6 +669,7 @@ func new_game() -> void:
 	dev_hazard_mode = DEV_HAZARD_NONE
 	dev_fire_origin = -1
 	pending_dev_feedback = ""
+	note_run_character()           # stamp run 1's chronicle slot with its character
 
 
 # Advance to the NEXT character run — THE TIME SKIP (docs/THREE_RUN_ARC.md). The
@@ -589,6 +703,7 @@ func advance_run() -> bool:
 	stamina = 100.0
 	max_stamina = 100.0                     # upgrade modifier-fold re-applies on top
 	current_floor = 30
+	note_run_character()                    # stamp this run's chronicle slot with its character
 	last_rest_floor = 30
 	rest_available = true
 	rest_count = 0
@@ -3187,6 +3302,7 @@ func save_game(scene_path: String, record_live_zombies: bool = true) -> void:
 		"killed_zombies": killed_zombies,
 		"world_drops": world_drops,
 		"player_corpses": player_corpses,
+		"run_chronicle": run_chronicle,
 		"roped_balconies": roped_balconies,
 		"balcony_jump_warned": balcony_jump_warned,
 		"door_states": door_states,
@@ -3263,6 +3379,8 @@ func load_game() -> String:
 	killed_zombies = data["killed_zombies"]
 	world_drops = data.get("world_drops", {})
 	player_corpses = data.get("player_corpses", {})
+	run_chronicle = data.get("run_chronicle", [])
+	_ensure_chronicle()
 	roped_balconies = data.get("roped_balconies", {})
 	balcony_jump_warned = data.get("balcony_jump_warned", false)
 	door_states = data["door_states"]

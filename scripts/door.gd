@@ -515,6 +515,8 @@ func _resolve_force() -> void:
 		HUD.refresh_inventory()
 
 	WorldState.set_door_state(apartment_id, WorldState.DoorState.OPEN)
+	# Cross-run memory: a forced door is a mark this character leaves on the building.
+	WorldState.add_run_trace("a forced door on floor %d" % WorldState.current_floor)
 	WorldState.emit_noise(global_position, WorldState.NOISE_RADIUS["door_work"], 4.0)
 	_play_sfx(LATCH_STREAM if force_is_lock else FORCE_STREAMS.pick_random(), -2.0)
 	_apply_door_state()
