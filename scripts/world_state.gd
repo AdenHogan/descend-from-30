@@ -146,6 +146,12 @@ var saved_player_y: float = 0.0
 var saved_on_balcony_plane: bool = false
 var killed_zombies: Dictionary = {}
 var world_drops: Dictionary = {}  # "floor:x:y" -> {item_id, x, y, floor, target_apartment}
+# PLAYER CORPSES — cross-run (STORE_DESIGN step 7). When a character dies, its wallet notes +
+# inventory are recorded here at the death spot; the NEXT character can reach the body and loot
+# it, so death is never a total economic wipe (recovery is a risk, not a refund). Keyed by the
+# run that died (str) → {floor, scene, apartment_id, x, y, notes:int, items:Array(serialized)}.
+# Survives advance_run (kept, not wiped) and save/load; cleared only by new_game.
+var player_corpses: Dictionary = {}
 
 # Dev tools
 var god_mode: bool = false
@@ -513,6 +519,7 @@ func new_game() -> void:
 	killed_zombies.clear()
 	zombie_positions.clear()
 	world_drops.clear()
+	player_corpses.clear()
 	roped_balconies.clear()
 	balcony_jump_warned = false
 	charred_intro_shown = false
@@ -2996,6 +3003,110 @@ func get_world_drops_for_floor(floor_num: int, scene_path: String = "", apartmen
 
 
 # ============================================================
+# PLAYER CORPSE — recover a fallen character's notes + items (STORE_DESIGN step 7)
+# ============================================================
+
+func record_player_corpse(floor_num: int, scene: String, apartment: String, pos: Vector2) -> void:
+	# Snapshot the dying character's wallet notes + carried items at the death spot, keyed by
+	# the run that died, so the NEXT character can loot it. Money folds into `notes` (it's
+	# literally on the corpse); everything else is the serialized inventory (durability/mag/
+	# count preserved). Called from game_over BEFORE advance_run wipes per-run state.
+	var notes: int = wallet_balance
+	var items: Array = []
+	for entry in _serialize_inventory():
+		if ItemData.get_item(entry["item_id"]).get("is_money", false):
+			notes += int(entry.get("count", 1))   # a loose Bank Notes stack (wallet still locked)
+		else:
+			items.append(entry)
+	player_corpses[str(current_run)] = {
+		"floor": floor_num,
+		"scene": scene,
+		"apartment_id": apartment,
+		"x": snappedf(pos.x, 1.0),
+		"y": snappedf(pos.y, 1.0),
+		"notes": notes,
+		"items": items,
+	}
+
+
+func get_player_corpse_for(floor_num: int, scene: String, apartment: String = "") -> Dictionary:
+	# The corpse record (plus its key) whose floor/scene(/apartment) match HERE, else {}.
+	# A corridor query (apartment == "") must not match an apartment corpse, and vice-versa.
+	for key in player_corpses:
+		var data = player_corpses[key]
+		if int(data.get("floor", -999)) != floor_num:
+			continue
+		if scene != "" and str(data.get("scene", "")) != "" and str(data.get("scene", "")) != scene:
+			continue
+		var corpse_apt := str(data.get("apartment_id", ""))
+		if apartment != "" and corpse_apt != apartment:
+			continue
+		if apartment == "" and corpse_apt != "":
+			continue
+		return {"key": key, "data": data}
+	return {}
+
+
+func recover_player_corpse(key: String) -> Dictionary:
+	# Loot the fallen character: credit its notes to the wallet (or pocket them if the wallet is
+	# somehow still locked), then restore as many items as fit — each rebuilt as an ItemInstance
+	# so its saved durability/mag/count survive (never re-rolled). Items that don't fit STAY on
+	# the corpse for a return trip; the record clears only when the body is empty. Returns a
+	# summary {notes, items_taken, items_left}.
+	if not player_corpses.has(key):
+		return {"notes": 0, "items_taken": 0, "items_left": 0}
+	var data = player_corpses[key]
+	var notes: int = int(data.get("notes", 0))
+	if notes > 0:
+		if wallet_unlocked:
+			wallet_balance += notes
+			HUD.update_wallet()
+		else:
+			add_to_inventory("033", notes)     # no wallet yet — take the cash as a stack
+		data["notes"] = 0
+	var leftover: Array = []
+	var taken := 0
+	for entry in data.get("items", []):
+		if inventory.size() < get_inventory_slots():
+			var inst = ItemInstance.new()
+			inst.item_id = entry["item_id"]
+			inst.current_durability = int(entry.get("current_durability", 0))
+			inst.is_depleted = bool(entry.get("is_depleted", false))
+			inst.target_apartment = entry.get("target_apartment", "")
+			inst.count = int(entry.get("count", 1))
+			inst.mag_count = int(entry.get("mag_count", 0))
+			inst.is_damaged = bool(entry.get("is_damaged", false))
+			inventory.append(inst)
+			taken += 1
+		else:
+			leftover.append(entry)
+	data["items"] = leftover
+	HUD.refresh_inventory()
+	if leftover.is_empty():
+		player_corpses.erase(key)              # body emptied — clear the record
+	else:
+		player_corpses[key] = data             # partial: notes gone, some items left to return for
+	return {"notes": notes, "items_taken": taken, "items_left": leftover.size()}
+
+
+func spawn_player_corpse_into(parent: Node, floor_num: int, scene: String, apartment: String = "") -> void:
+	# Place the recoverable body if one belongs HERE. Idempotent — never two of the same corpse
+	# (a passive stair-pan backdrop and its go_live can both call in; the group guard dedupes).
+	var rec = get_player_corpse_for(floor_num, scene, apartment)
+	if rec.is_empty():
+		return
+	var key: String = rec["key"]
+	for existing in get_tree().get_nodes_in_group("player_corpse"):
+		if str(existing.get("corpse_key")) == key:
+			return
+	var data = rec["data"]
+	var corpse = load("res://scripts/player_corpse.gd").new()
+	corpse.corpse_key = key
+	corpse.global_position = Vector2(float(data.get("x", 0.0)), float(data.get("y", 0.0)))
+	parent.add_child(corpse)
+
+
+# ============================================================
 # ZOMBIE LOOT
 # ============================================================
 # ~18% chance on standard zombie death. Biased toward consumables.
@@ -3075,6 +3186,7 @@ func save_game(scene_path: String, record_live_zombies: bool = true) -> void:
 		"saved_on_balcony_plane": saved_on_balcony_plane,
 		"killed_zombies": killed_zombies,
 		"world_drops": world_drops,
+		"player_corpses": player_corpses,
 		"roped_balconies": roped_balconies,
 		"balcony_jump_warned": balcony_jump_warned,
 		"door_states": door_states,
@@ -3150,6 +3262,7 @@ func load_game() -> String:
 	saved_on_balcony_plane = bool(data.get("saved_on_balcony_plane", false))
 	killed_zombies = data["killed_zombies"]
 	world_drops = data.get("world_drops", {})
+	player_corpses = data.get("player_corpses", {})
 	roped_balconies = data.get("roped_balconies", {})
 	balcony_jump_warned = data.get("balcony_jump_warned", false)
 	door_states = data["door_states"]

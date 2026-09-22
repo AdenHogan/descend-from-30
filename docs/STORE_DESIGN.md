@@ -202,9 +202,14 @@ customers, resulting in an ever-changing storefront selection.
      modifier math onto direct-write upgrades is misery.
      `WorldState.upgrades` stores owned ids; single upgrade-effects module
      maps id → modifiers
-7. Player-corpse system: on death, record position/floor/scene + wallet
-   balance + inventory into cross-run state; spawn interactable corpse for
-   later characters; loot transfers and clears the record
+7. ✅ Player-corpse system: on death, record position/floor/scene(/apartment) +
+   wallet balance + inventory into cross-run state (`WorldState.player_corpses`,
+   keyed by the dead run); spawn an interactable body (`player_corpse.gd`) for
+   later characters at the death spot; looting credits notes to the wallet +
+   restores items (durability/mag/count preserved) and clears the record —
+   items that don't fit stay on the body for a return trip. Recorded in
+   `game.game_over` (only when a next character exists), spawned from
+   building_floors / room / hallway. Covered by `corpse_recovery_test`.
 8. Save/load for all of the above (**string keys only** — see int-key JSON
    lesson). Upgrades + wallet-unlock live in cross-run persistence block
    (survives death/new-run reset); Bank Notes balance is per-run state

@@ -99,6 +99,16 @@ func game_over() -> void:
 	# character takes over. Only when the THIRD character falls is the playthrough
 	# truly over (a dead character leaves a recoverable corpse — store step 7, future).
 	WorldState.set_run_outcome(WorldState.current_run, "dead")
+	# Record the fallen character's body so the NEXT character can recover its notes + items
+	# (STORE_DESIGN step 7). Only when there IS a next character — the 3rd death ends the arc,
+	# with no one to recover into. Captured now, while the player node + this run's
+	# inventory/wallet still exist (advance_run wipes them below).
+	if WorldState.current_run < WorldState.RUN_NAMES.size():
+		var dead = get_tree().get_first_node_in_group("player")
+		if dead != null:
+			var scene_path: String = get_tree().current_scene.scene_file_path
+			var apt: String = WorldState.current_apartment_id if scene_path == SCENES["room"] else ""
+			WorldState.record_player_corpse(WorldState.current_floor, scene_path, apt, dead.global_position)
 	get_tree().paused = false
 	var next_run: int = WorldState.current_run + 1
 	# Cover the screen to BLACK before advancing the run — otherwise advance_run()'s run-3

@@ -97,6 +97,7 @@ func _ready() -> void:
 		_place_elevator_kit(floor_num)
 		_spawn_maintenance_door(floor_num)
 		_spawn_world_drops(floor_num)
+		WorldState.spawn_player_corpse_into(self, floor_num, scene_file_path, "")
 		# Stair enemies in the backdrop too (frozen scenery), so they scroll into view with
 		# the floor during the pan instead of popping in at the commit. go_live wakes them.
 		_spawn_stair_enemies(floor_num, true)
@@ -151,6 +152,7 @@ func _ready() -> void:
 	_place_elevator_kit(floor_num)
 	_spawn_maintenance_door(floor_num)
 	_spawn_world_drops(floor_num)
+	WorldState.spawn_player_corpse_into(self, floor_num, scene_file_path, "")
 	_spawn_merchant(floor_num)
 	_spawn_barricade_visuals(floor_num)
 	_spawn_stair_enemies(floor_num)

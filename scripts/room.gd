@@ -801,6 +801,9 @@ func _after_modules_ready() -> void:
 
 	_spawn_corpses(WorldState.current_floor, WorldState.current_apartment_id)
 	_spawn_world_drops(WorldState.current_floor)
+	# A character who died INSIDE this apartment leaves a recoverable body here (step 7).
+	WorldState.spawn_player_corpse_into(self, WorldState.current_floor,
+		get_tree().current_scene.scene_file_path, WorldState.current_apartment_id)
 
 func _all_controls(node: Node) -> Array:
 	var out: Array = []

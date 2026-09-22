@@ -176,8 +176,8 @@ setup script; binary from downloads.godotengine.org). Before every commit:
   `balcony_test`, `hud_prompt_test`, `stair_block_test`, `fire_test`,
   `maintenance_test`, `elevator_test`, `run_arc_test`, `enemy_variety_test`,
   `dev_menu_test`, `lighting_test`, `plane_lock_test`, `apartment_window_test`,
-  `scavenge_node_test`, `drop_physics_test`, `softlock_test`, `character_panel_test` — run all
-  36 before commit. (Run ONE godot at a time — a killed/backgrounded headless run can
+  `scavenge_node_test`, `drop_physics_test`, `softlock_test`, `character_panel_test`,
+  `corpse_recovery_test` — run all 37 before commit. (Run ONE godot at a time — a killed/backgrounded headless run can
   linger and block the next, and a GDScript **parse error makes a test scene load but
   never call `quit()`, so it "hangs" until timeout** rather than printing an error line;
   if a suite hangs, check for a parse error and stray `godot` processes first.
@@ -970,7 +970,27 @@ means no rendering — UI layout and art still need an in-editor look.
   (button wiring, hover rim on/off, open→pause→content→close→unpause, refresh on run change);
   the LOOK (shimmer, bounce, layout) needs an in-editor check. (Owner deferred a full inventory
   screen for now.)
-- Next: characters/profiles/stats; **Upgrade offers** polish and player-corpse
-  recovery (store step 7); barricade-keeper NPC; fire smoke/crouch + warning beat;
-  the maintenance **upgrade station** UI (Scrap system, SCRAP_UPGRADES.md).
+- Player-corpse recovery (STORE_DESIGN **step 7**, v1): a mid-arc death is no longer a total
+  economic wipe — the fallen character leaves a **recoverable body** the NEXT character can
+  loot. On death, `game.game_over` calls `WorldState.record_player_corpse(floor, scene,
+  apartment, pos)` (ONLY when a next character exists — the 3rd death ends the arc), snapshotting
+  the dying character's **wallet notes + inventory** (money folds into `notes`; items keep
+  durability/mag/count) into cross-run `WorldState.player_corpses` (keyed by the dead run's
+  number). It **survives `advance_run`** (cross-run — kept, not wiped) and save/load; cleared
+  only by `new_game`. The body is an interactable (`player_corpse.gd`, a code-built Area2D with
+  a soft blue glow, mirroring the world_drop prompt/interact pattern) spawned at the death spot
+  by `WorldState.spawn_player_corpse_into(parent, floor, scene, apt)` — called from
+  `building_floors` (passive + live), `room` (apartments), and `hallway` (floor 30); idempotent
+  via the `player_corpse` group so a stair-pan backdrop + go_live never double it. Looting ([E]
+  / click) credits notes to the wallet (or pockets them as a Bank Notes stack if the wallet is
+  somehow still locked) and restores items that FIT; **items that don't fit stay on the body**
+  for a return trip (the record clears only when the body is empty), so a full inventory doesn't
+  destroy loot. Matching is floor+scene+apartment (a corridor corpse never matches an apartment
+  query, and vice-versa). Covered by `corpse_recovery_test` (record, cross-run survival, save/
+  load, matching, notes+item+durability restore, partial recovery, spawn/dedupe). The LOOK (the
+  placeholder slumped body + glow) needs an in-editor check; lobby deaths aren't handled (no
+  combat at the exit).
+- Next: characters/profiles/stats; **Upgrade offers** polish; barricade-keeper NPC; fire
+  smoke/crouch + warning beat; the maintenance **upgrade station** UI (Scrap system,
+  SCRAP_UPGRADES.md).
 - Not started: balcony descent, quests, character stats.
