@@ -262,6 +262,7 @@ func _take() -> void:
 		added = WorldState.add_to_inventory(current_item_id, amount)
 	if added:
 		WorldState.clear_anchor_item(current_apartment_id, current_anchor_name)
+		WorldState.note_scavenge(current_apartment_id)   # journal stats: items + apartments looted
 		HUD.refresh_inventory()
 		_close(true)
 	else:

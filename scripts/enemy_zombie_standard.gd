@@ -683,6 +683,7 @@ func _exit_tree() -> void:
 
 func _die() -> void:
 	is_dead = true
+	WorldState.note_kill()          # journal stat: enemies felled this run
 	# A follower that dies breaks the chase chain; make sure it's never left dangling as
 	# the in-transit reference either.
 	if is_follower:

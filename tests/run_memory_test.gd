@@ -24,6 +24,7 @@ func _ready() -> void:
 	_test_outcome_and_advance()
 	_test_recover_memory()
 	_test_names()
+	_test_journal_stats()
 	_test_save_load()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
@@ -96,6 +97,34 @@ func _test_names() -> void:
 	print("[canonical character names]")
 	check(WorldState.character_display_name("blond_man") == "The Tenant", "known id maps to its name")
 	check(WorldState.character_display_name("someone_else").length() > 0, "unknown id falls back to a readable name")
+
+
+func _test_journal_stats() -> void:
+	print("[journal stats + map memory]")
+	WorldState.new_game()
+	check(WorldState.run_kills == 0 and WorldState.run_scavenged == 0, "fresh run starts with zero tallies")
+	WorldState.note_kill(); WorldState.note_kill()
+	WorldState.note_scavenge("1201")
+	WorldState.note_scavenge("1201")            # same apartment again
+	WorldState.note_scavenge("1503")
+	check(WorldState.run_kills == 2, "kills counted (2)")
+	check(WorldState.run_scavenged == 3, "scavenged items counted (3)")
+	check(WorldState.run_apartments_looted.size() == 2, "distinct apartments looted (2)")
+	check(WorldState.health_word() == "Healthy", "condition reads in words (Healthy at full health)")
+	WorldState.player_health = 4
+	check(WorldState.health_word() == "Severely Wounded", "condition tracks the health stage")
+	# Map memory.
+	WorldState.note_floor_visited(30)
+	WorldState.note_floor_visited(18)
+	WorldState.note_enemies_on_floor(18)
+	check(WorldState.visited_floors.has("18") and not WorldState.visited_floors.has("5"),
+		"map remembers visited floors only")
+	check(WorldState.floors_enemy_seen.has("18"), "map remembers where enemies were seen")
+	# Per-run tallies reset on the time skip; map memory persists across runs.
+	WorldState.advance_run()
+	check(WorldState.run_kills == 0 and WorldState.run_apartments_looted.is_empty(),
+		"the next character's tallies reset")
+	check(WorldState.visited_floors.has("18"), "map memory carries across the run (cross-run)")
 
 
 func _test_save_load() -> void:

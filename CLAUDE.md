@@ -1015,6 +1015,26 @@ means no rendering — UI layout and art still need an in-editor look.
   chronicle LOOK/wording needs an in-editor read. Future: more trace producers (fires doused,
   bosses felled, keys used), owner-authored finder-thought variety, spending best_depth on
   permanent upgrades.
+- Character JOURNAL / diary (owner ask, v1): the character profile panel is reworked into a worn
+  DIARY (`character_panel.gd` — parchment `StyleBoxFlat`, pixel font, ink palette) that pauses the
+  game. A **status header** ("first page" facts) shows Run N + time-of-day, the character's name,
+  their **CONDITION IN WORDS** (`WorldState.health_word()` maps the 0-5 stage → Healthy…Dying),
+  the current floor, and this run's **tallies**: Felled / Scavenged / Looted N apartments. Three
+  tabs: **Story** (portrait + lore + the cross-run chronicle, folded in from the old "Before
+  you"), **Quests & NPCs** (scaffolding — quests aren't built, so a "No active quests" +
+  residents placeholder), and **Map** — a code-drawn (`_MapView` inner class, custom `_draw`)
+  fog-of-war strip of ALL 30 floors: unvisited floors are dark/hazed, visited floors clear as you
+  descend, the current floor is boxed ("▶ you"), a RED dot marks floors where the dead were seen,
+  a BLUE dot a floor holding one of your corpses. **New journal data in WorldState**: per-run
+  `run_kills` / `run_scavenged` / `run_apartments_looted[]` (reset each run) and cross-run map
+  memory `visited_floors` / `floors_enemy_seen` (persist across runs, cleared by new_game).
+  Wired to real events: `note_kill` in both enemies' `_die`, `note_scavenge(apt)` in
+  `loot_ui._take`, `note_floor_visited` + `note_enemies_on_floor` in the `building_floors` live
+  build. All persisted in the save. Covered by `run_memory_test` (stats count + de-dupe, health
+  word, map memory, per-run reset vs cross-run persistence) + `character_panel_test` (3 tabs).
+  The LOOK (paper styling, map legibility at 30 rows) needs an in-editor read. Future: map
+  markers for last-seen enemy POSITIONS (not just the floor), real quests in the Quests tab,
+  richer per-run stats, owner-authored diary styling.
 - Next: characters/profiles/stats; **Upgrade offers** polish; barricade-keeper NPC; fire
   smoke/crouch + warning beat; the maintenance **upgrade station** UI (Scrap system,
   SCRAP_UPGRADES.md).

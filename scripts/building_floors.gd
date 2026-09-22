@@ -116,6 +116,7 @@ func _ready() -> void:
 
 	# Cross-run memory: this character has now reached this floor (deepest tracked for records).
 	WorldState.note_floor_reached(floor_num)
+	WorldState.note_floor_visited(floor_num)      # reveals this floor on the journal map
 
 	if WorldState.spawn_source == "stair":
 		# WHERE the player emerges is derived from the floor's fixed geometry + the
@@ -151,6 +152,8 @@ func _ready() -> void:
 	_apply_doors(floor_num)
 
 	_spawn_zombies(floor_num, false)
+	if not get_tree().get_nodes_in_group("zombie").is_empty():
+		WorldState.note_enemies_on_floor(floor_num)   # journal map: the dead were sighted here
 	_spawn_corpses(floor_num)
 	_place_elevator_kit(floor_num)
 	_spawn_maintenance_door(floor_num)

@@ -96,6 +96,47 @@ var run_outcomes: Array = ["", "", ""]
 var run_chronicle: Array = []          # of Dictionary, see _blank_chronicle_entry
 var best_depth: int = 30               # deepest floor EVER reached (lowest number); profile record
 
+# JOURNAL / diary stats (the character sheet the health-portrait button opens). Per-run tallies
+# reset each character (new_game / advance_run); the map memory is cross-run within a playthrough.
+var run_kills: int = 0                  # enemies this character has put down this run
+var run_scavenged: int = 0             # items taken from scavenge anchors this run
+var run_apartments_looted: Array = []  # distinct apartment ids this character has looted this run
+var visited_floors: Dictionary = {}    # str(floor) -> true : the MAP's fog-of-war memory
+var floors_enemy_seen: Dictionary = {} # str(floor) -> true : floors where the dead were sighted
+
+const HEALTH_WORDS := ["Healthy", "Hurt", "Injured", "Wounded", "Severely Wounded", "Dying"]
+
+
+func health_word() -> String:
+	# player_health stores the 0..5 HealthState stage (player.gd writes it), so the diary can
+	# show the condition in WORDS, matching the portrait.
+	return HEALTH_WORDS[clampi(player_health, 0, HEALTH_WORDS.size() - 1)]
+
+
+func note_kill() -> void:
+	run_kills += 1
+
+
+func note_scavenge(apartment: String) -> void:
+	run_scavenged += 1
+	if apartment != "" and not (apartment in run_apartments_looted):
+		run_apartments_looted.append(apartment)
+
+
+func note_floor_visited(floor_num: int) -> void:
+	# The map remembers every floor this playthrough has set foot on (fog clears with descent).
+	visited_floors[str(floor_num)] = true
+
+
+func note_enemies_on_floor(floor_num: int) -> void:
+	floors_enemy_seen[str(floor_num)] = true
+
+
+func _reset_run_journal_stats() -> void:
+	run_kills = 0
+	run_scavenged = 0
+	run_apartments_looted = []
+
 
 func _blank_chronicle_entry(character: String = "") -> Dictionary:
 	return {
@@ -633,6 +674,9 @@ func new_game() -> void:
 	player_corpses.clear()
 	run_chronicle.clear()          # a fresh playthrough starts a new chronicle (best_depth persists)
 	_ensure_chronicle()
+	_reset_run_journal_stats()     # journal tallies + map memory start blank
+	visited_floors.clear()
+	floors_enemy_seen.clear()
 	roped_balconies.clear()
 	balcony_jump_warned = false
 	charred_intro_shown = false
@@ -704,6 +748,7 @@ func advance_run() -> bool:
 	max_stamina = 100.0                     # upgrade modifier-fold re-applies on top
 	current_floor = 30
 	note_run_character()                    # stamp this run's chronicle slot with its character
+	_reset_run_journal_stats()              # per-run diary tallies reset (map memory persists)
 	last_rest_floor = 30
 	rest_available = true
 	rest_count = 0
@@ -3303,6 +3348,11 @@ func save_game(scene_path: String, record_live_zombies: bool = true) -> void:
 		"world_drops": world_drops,
 		"player_corpses": player_corpses,
 		"run_chronicle": run_chronicle,
+		"run_kills": run_kills,
+		"run_scavenged": run_scavenged,
+		"run_apartments_looted": run_apartments_looted,
+		"visited_floors": visited_floors,
+		"floors_enemy_seen": floors_enemy_seen,
 		"roped_balconies": roped_balconies,
 		"balcony_jump_warned": balcony_jump_warned,
 		"door_states": door_states,
@@ -3381,6 +3431,11 @@ func load_game() -> String:
 	player_corpses = data.get("player_corpses", {})
 	run_chronicle = data.get("run_chronicle", [])
 	_ensure_chronicle()
+	run_kills = int(data.get("run_kills", 0))
+	run_scavenged = int(data.get("run_scavenged", 0))
+	run_apartments_looted = data.get("run_apartments_looted", [])
+	visited_floors = data.get("visited_floors", {})
+	floors_enemy_seen = data.get("floors_enemy_seen", {})
 	roped_balconies = data.get("roped_balconies", {})
 	balcony_jump_warned = data.get("balcony_jump_warned", false)
 	door_states = data["door_states"]

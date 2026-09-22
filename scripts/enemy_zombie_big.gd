@@ -175,6 +175,7 @@ func _die() -> void:
 	if is_dead:
 		return
 	is_dead = true
+	WorldState.note_kill()          # journal stat: enemies felled this run
 	if on_fire:                    # died alight → the corpse smoulders (smoke, not flame)
 		var sm = BODY_SMOKE.new()
 		sm.position = Vector2(0, -10)
