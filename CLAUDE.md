@@ -176,7 +176,8 @@ setup script; binary from downloads.godotengine.org). Before every commit:
   `balcony_test`, `hud_prompt_test`, `stair_block_test`, `fire_test`,
   `maintenance_test`, `elevator_test`, `run_arc_test`, `enemy_variety_test`,
   `dev_menu_test`, `lighting_test`, `plane_lock_test`, `apartment_window_test`,
-  `scavenge_node_test`, `drop_physics_test`, `softlock_test` — run all 35 before commit. (Run ONE godot at a time — a killed/backgrounded headless run can
+  `scavenge_node_test`, `drop_physics_test`, `softlock_test`, `character_panel_test` — run all
+  36 before commit. (Run ONE godot at a time — a killed/backgrounded headless run can
   linger and block the next, and a GDScript **parse error makes a test scene load but
   never call `quit()`, so it "hangs" until timeout** rather than printing an error line;
   if a suite hangs, check for a parse error and stray `godot` processes first.
@@ -949,6 +950,26 @@ means no rendering — UI layout and art still need an in-editor look.
   shoulder-anchored bust crop upscaled to 281×351 to match the male's framing) is a one-off
   scratchpad script; the Gemini sheets had only **5 panels** (no distinct WOUNDED) so slot 4
   (Wounded) DUPLICATES the "Severely Wounded" frame (owner's call — "double up wounded").
+- Character profile panel (`character_panel.gd`; opened from the HUD): the HUD **health
+  portrait is now a clickable BUTTON** — hovering paints a mild shiny WHITE OUTLINE (an inline
+  canvas_item shader on the `TextureRect`, `hud._PORTRAIT_OUTLINE_SHADER`, rim samples the
+  silhouette's transparent edge + a gentle TIME shimmer; toggled via the `on` uniform) plus a
+  gentle **bounce** (a looping scale-pulse `Tween`, pivot centred), so it reads as clickable.
+  Only the portrait is `MOUSE_FILTER_STOP` (the root Control stays IGNORE, so click-to-move
+  elsewhere is untouched — locked by `click_move_test`). Clicking it opens **`CharacterPanel`**
+  — a centred, tabbed reader that **PAUSES the game** (`get_tree().paused`, owner's call: lore
+  should be comfortably readable) and shows the RUN's current character
+  (`WorldState.current_character()`) at full health, their name/subtitle + a lore body, with a
+  **Profile** tab and an **NPCs** tab (placeholder for uncovered resident stories). All copy is
+  DATA — `CharacterPanel.CHAR_LORE` (per-character `name`/`subtitle`/`lore`, keyed by the
+  portrait-file id) + `NPC_STORIES` — so the owner authors lore in ONE place without touching
+  layout; a missing entry falls back to a prettified id. Built in code (no `.tscn`), added as a
+  child of the HUD CanvasLayer. Close via the ✕, ESC, or a click OUTSIDE the card; closing
+  restores the prior pause state (won't stomp a real pause menu). The panel re-reads the
+  character each open, so it tracks the run's rotating cast. Covered by `character_panel_test`
+  (button wiring, hover rim on/off, open→pause→content→close→unpause, refresh on run change);
+  the LOOK (shimmer, bounce, layout) needs an in-editor check. (Owner deferred a full inventory
+  screen for now.)
 - Next: characters/profiles/stats; **Upgrade offers** polish and player-corpse
   recovery (store step 7); barricade-keeper NPC; fire smoke/crouch + warning beat;
   the maintenance **upgrade station** UI (Scrap system, SCRAP_UPGRADES.md).

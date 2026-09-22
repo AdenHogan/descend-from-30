@@ -9,6 +9,13 @@ const PORTRAIT_STAGES := [
 var _portraits: Array = []
 var _loaded_char: String = ""
 
+# The health portrait is a CLICKABLE BUTTON: hovering gives it a mild shiny white outline
+# + a gentle bounce so it reads as clickable, and a click opens the character profile panel
+# (lore, with tabs for NPC stories).
+var character_panel: Control = null
+var _portrait_outline_mat: ShaderMaterial = null
+var _portrait_bounce: Tween = null
+
 @onready var portrait = $Control/Portrait
 @onready var floor_label = $Control/FloorLabel
 @onready var color_rect = $Control/ColorRect
@@ -83,6 +90,8 @@ func _ready() -> void:
 	_create_speech_bubble()
 	update_floor_label()
 	update_portrait(0)
+	_setup_portrait_button()
+	_create_character_panel()
 	update_mode_indicator()
 	refresh_inventory()
 
@@ -807,6 +816,95 @@ func update_portrait(health_index: int) -> void:
 		return
 	_ensure_portraits()
 	portrait.texture = _portraits[clampi(health_index, 0, _portraits.size() - 1)]
+
+
+# --- Portrait-as-button (hover glow + bounce, click opens the character profile) ----------
+
+# Outline shader: paints a soft white rim on the transparent pixels adjacent to the
+# character silhouette when `on` is 1, with a gentle shimmer so it reads "shiny/clickable".
+const _PORTRAIT_OUTLINE_SHADER := """
+shader_type canvas_item;
+uniform float on = 0.0;
+uniform float width = 1.6;
+uniform vec4 rim : source_color = vec4(1.0, 1.0, 1.0, 1.0);
+void fragment() {
+	vec4 col = texture(TEXTURE, UV);
+	vec4 outc = col;
+	if (on > 0.5 && col.a < 0.35) {
+		vec2 px = TEXTURE_PIXEL_SIZE * width;
+		float a = 0.0;
+		a = max(a, texture(TEXTURE, UV + vec2(px.x, 0.0)).a);
+		a = max(a, texture(TEXTURE, UV + vec2(-px.x, 0.0)).a);
+		a = max(a, texture(TEXTURE, UV + vec2(0.0, px.y)).a);
+		a = max(a, texture(TEXTURE, UV + vec2(0.0, -px.y)).a);
+		a = max(a, texture(TEXTURE, UV + vec2(px.x, px.y)).a);
+		a = max(a, texture(TEXTURE, UV + vec2(-px.x, px.y)).a);
+		a = max(a, texture(TEXTURE, UV + vec2(px.x, -px.y)).a);
+		a = max(a, texture(TEXTURE, UV + vec2(-px.x, -px.y)).a);
+		if (a > 0.35) {
+			float shimmer = 0.72 + 0.28 * sin(TIME * 4.0 + UV.y * 12.0);
+			outc = vec4(rim.rgb, rim.a * shimmer);
+		}
+	}
+	COLOR = outc;
+}
+"""
+
+
+func _setup_portrait_button() -> void:
+	if portrait == null:
+		return
+	# Capture hover/click ON the portrait only (the root Control stays IGNORE, so world
+	# clicks elsewhere — click-to-move — are untouched; this just makes the corner bust live).
+	portrait.mouse_filter = Control.MOUSE_FILTER_STOP
+	portrait.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	portrait.tooltip_text = "Character profile"
+	var sh := Shader.new()
+	sh.code = _PORTRAIT_OUTLINE_SHADER
+	_portrait_outline_mat = ShaderMaterial.new()
+	_portrait_outline_mat.shader = sh
+	_portrait_outline_mat.set_shader_parameter("on", 0.0)
+	portrait.material = _portrait_outline_mat
+	portrait.mouse_entered.connect(func(): _set_portrait_hover(true))
+	portrait.mouse_exited.connect(func(): _set_portrait_hover(false))
+	portrait.gui_input.connect(_on_portrait_gui_input)
+
+
+func _set_portrait_hover(hovered: bool) -> void:
+	if portrait == null:
+		return
+	if _portrait_outline_mat != null:
+		_portrait_outline_mat.set_shader_parameter("on", 1.0 if hovered else 0.0)
+	# Scale from the centre so the bounce doesn't drift the anchored bust.
+	portrait.pivot_offset = portrait.size * 0.5
+	if _portrait_bounce != null and _portrait_bounce.is_valid():
+		_portrait_bounce.kill()
+		_portrait_bounce = null
+	if hovered:
+		# A quick pop, then a gentle continuous pulse — "clickable button" feel.
+		_portrait_bounce = create_tween().set_loops()
+		_portrait_bounce.tween_property(portrait, "scale", Vector2(1.05, 1.05), 0.5)\
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		_portrait_bounce.tween_property(portrait, "scale", Vector2(1.0, 1.0), 0.5)\
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	else:
+		portrait.scale = Vector2.ONE
+
+
+func _on_portrait_gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		open_character_panel()
+		portrait.accept_event()   # Control method — the handler runs on the HUD (a CanvasLayer)
+
+
+func _create_character_panel() -> void:
+	character_panel = preload("res://scripts/character_panel.gd").new()
+	add_child(character_panel)
+
+
+func open_character_panel() -> void:
+	if character_panel != null:
+		character_panel.open()
 
 func update_mode_indicator() -> void:
 	if mode_label == null:
