@@ -174,18 +174,43 @@ func _ready() -> void:
 	panning = false   # defensive: never boot with the guard stuck on
 
 
-func can_pan(target_floor: int) -> bool:
+func can_pan(target_floor: int, stair_side: String = "", direction: String = "") -> bool:
 	if not ENABLED or panning:
 		return false
-	# Only pan between real mid-building floors (1..29). The lobby (0) and the
-	# hallway (30) are structurally different scenes → they keep the plain fade.
-	if target_floor <= 0 or target_floor >= 30:
+	# Every floor of the building pans — 30 (the hallway) and 0 (the lobby) included, so
+	# the whole descent from the top floor to the street reads as ONE continuous building
+	# with no load between floors.
+	if target_floor < 0 or target_floor > 30:
 		return false
 	var scene = get_tree().current_scene
 	if scene == null:
 		return false
 	var p = scene.scene_file_path
-	return p.contains("building_floors") or p.contains("hallway")
+	if not (p.contains("building_floors") or p.contains("hallway") or p.contains("lobby")):
+		return false
+	# The pan is a literal walk up/down ONE physical staircase, so it only works on the
+	# staircase that really connects the two floors (the pure-function layout,
+	# WorldState.stair_down_side). A stairwell that isn't that one — the lobby's LEFT
+	# stairs, which floor 1 has no matching down-stair for — keeps the plain fade rather
+	# than show the player walking across the screen to a stair that isn't there.
+	if stair_side != "" and direction != "":
+		var from_floor: int = target_floor + (1 if direction == "down" else -1)
+		var down_side: String = WorldState.stair_down_side(from_floor)
+		var want: String = down_side if direction == "down" \
+			else ("left" if down_side == "right" else "right")
+		if stair_side != want:
+			return false
+	return true
+
+
+# Which scene IS a floor: the hallway at the top, the lobby at the bottom, and the shared
+# corridor for everything between. The backdrop a pan builds is always the real thing.
+func scene_for_floor(floor_num: int) -> String:
+	if floor_num >= 30:
+		return "res://scenes/hallway.tscn"
+	if floor_num <= 0:
+		return "res://scenes/lobby.tscn"
+	return "res://scenes/building_floors.tscn"
 
 
 func dest_spawn(target_floor: int, down: bool) -> Vector2:
@@ -244,17 +269,15 @@ func pan_to_floor(target_floor: int, direction: String) -> void:
 	# inherit the holder's offset. Add first so its tilemap exists to measure.
 	var holder := Node2D.new()
 	scene.add_child(holder)
-	var backdrop = load("res://scenes/building_floors.tscn").instantiate()
+	var backdrop = load(scene_for_floor(target_floor)).instantiate()
 	backdrop.setup_floor = target_floor
 	backdrop.passive = true
 	holder.add_child(backdrop)
 
-	# Offset = ONE floor's height (the tilemap), so the neighbour sits directly
-	# above/below with the two floors contiguous — no grey gap between them.
-	var spacing := _floor_spacing(backdrop)
-	if spacing <= 0.0:
-		spacing = FLOOR_BAND_H   # fallback if the tilemap can't be measured
-	spacing += SPACING_ADJUST
+	# Offset = ONE floor's height. Every floor's tilemap is exactly the shared band
+	# (FLOOR_BAND_TOP..+FLOOR_BAND_H — locked by transition_seam_test), so floors stack
+	# flush whichever two scenes meet: hallway over corridor, corridor over lobby.
+	var spacing: float = FLOOR_BAND_H + SPACING_ADJUST
 	var floor_offset := spacing * (1.0 if down else -1.0)
 	holder.position = Vector2(0, floor_offset)
 
@@ -762,9 +785,4 @@ func _commit(target_floor: int) -> void:
 	WorldState.current_floor = target_floor
 	WorldState.on_floor_arrived(target_floor)
 	HUD.update_floor_label()
-	var path := "res://scenes/building_floors.tscn"
-	if target_floor == 30:
-		path = "res://scenes/hallway.tscn"
-	elif target_floor <= 0:
-		path = "res://scenes/lobby.tscn"
-	get_tree().change_scene_to_file(path)
+	get_tree().change_scene_to_file(scene_for_floor(target_floor))

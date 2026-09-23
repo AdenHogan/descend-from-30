@@ -940,6 +940,7 @@ func _spawn_zombies(floor_num: int, as_scenery: bool) -> void:
 		var zombie = scene.instantiate()
 		zombie.global_position = pos
 		zombie.spawn_key = key
+		zombie.hp_floor = floor_num          # same HP whether you arrive by stairs or a fade
 		if as_scenery:
 			zombie.add_to_group("pan_scenery")
 		add_child(zombie)
@@ -1000,6 +1001,7 @@ func _spawn_corridor_boss(floor_num: int, as_scenery: bool) -> void:
 	boss.is_corridor_boss = true          # set BEFORE add_child so its _ready boosts it
 	boss.global_position = Vector2(bx, 388.0)
 	boss.spawn_key = key
+	boss.hp_floor = floor_num
 	if as_scenery:
 		boss.add_to_group("pan_scenery")
 	add_child(boss)
@@ -1225,7 +1227,7 @@ func _do_spawn_merchant() -> void:
 		HUD.show_dialogue("Merchant: You rode MY elevator? Cheeky. Fine — you're here now. Let's trade.", "", false, 4.5)
 
 func _spawn_world_drops(floor_num: int) -> void:
-	var scene_path = get_tree().current_scene.scene_file_path
+	var scene_path = scene_file_path   # THIS scene — a pan backdrop is not the current scene yet
 	var drops = WorldState.get_world_drops_for_floor(floor_num, scene_path)
 	if drops.is_empty():
 		return
@@ -1247,7 +1249,7 @@ func _spawn_world_drops(floor_num: int) -> void:
 		add_child(drop)
 
 func _spawn_corpses(floor_num: int) -> void:
-	var scene_path = get_tree().current_scene.scene_file_path
+	var scene_path = scene_file_path   # THIS scene — a pan backdrop is not the current scene yet
 	var corpse_positions = WorldState.get_corpse_positions_for_floor(floor_num, scene_path)
 	if corpse_positions.is_empty():
 		return

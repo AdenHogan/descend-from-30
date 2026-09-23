@@ -289,18 +289,14 @@ func _perform_transition(shift: bool = false) -> void:
 	# so it can play the heavier time-skip caption.
 	# >>> TO ENABLE THE STAIR PAN: set `const ENABLED := true` at the top of
 	#     scripts/stair_pan.gd (that's the toggle — not here / not building_floors).
-	if not shift and StairPan.can_pan(target_floor):
+	if not shift and StairPan.can_pan(target_floor, stair_side, direction):
 		StairPan.pan_to_floor(target_floor, direction)
 		return
 
 	WorldState.current_floor = target_floor
 	WorldState.on_floor_arrived(WorldState.current_floor)
 	HUD.update_floor_label()
-	var scene := "res://scenes/building_floors.tscn"
-	if WorldState.current_floor == 30:
-		scene = "res://scenes/hallway.tscn"
-	elif WorldState.current_floor == 0:
-		scene = "res://scenes/lobby.tscn"
+	var scene := StairPan.scene_for_floor(WorldState.current_floor)
 	if shift:
 		# The crossing was real work — land on the floor you fought toward, after a
 		# held "time passes / the building shifted" beat.

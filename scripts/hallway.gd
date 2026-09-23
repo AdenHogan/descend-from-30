@@ -1,4 +1,4 @@
-extends Node
+extends Node2D
 
 # --- Floor-30 tutorial: the 3004 barricade beat (first run only) -----------
 # Tearing the 3004 barricade is LOUD; a zombie comes up the left stairs drawn
@@ -16,9 +16,26 @@ var barricade_hint_shown: bool = false
 var hall_force_break_done: bool = false
 
 
+# Stair-pan support (same contract as building_floors): StairPan builds floor 30 as a
+# PASSIVE backdrop above floor 29 when you climb back up, so it scrolls into view like
+# any other floor, then promotes it in place with go_live(). Set BEFORE add_child().
+var setup_floor: int = -1
+var passive: bool = false
+var _dormant: Array = []
+const FLOOR_LIGHTING := preload("res://scripts/floor_lighting.gd")
+
+
 func _ready() -> void:
 	if WorldState.master_seed == 0:
 		WorldState.new_game()
+	if passive:
+		# Drawn exactly as it will be once you arrive — corpses, drops, a fallen character,
+		# lamps — but inert: no player, no triggers, no tutorial logic, no tint of its own
+		# (one CanvasModulate per canvas; the live floor's grade covers the pan).
+		PanBackdrop.drop_scene_player(self)
+		_build_world()
+		_dormant = PanBackdrop.make_inert(self)
+		return
 	var player = get_node("Player")
 	WorldState.apply_time_tint(self, 30)   # top of the building — least infected
 	if WorldState.spawn_source == "stair":
@@ -41,15 +58,9 @@ func _ready() -> void:
 	# room.gd _spawn_tutorial_zombie — not out here in the corridor. The
 	# corridor's own scripted zombie is the barricade beat below.)
 
-	# Same framing as building_floors. NOTE the hallway's tilemap is taller than a
-	# floor (243..483 — blue filler above and below the corridor), so it must use
-	# the SHARED floor band, not its own bounds: deriving per-scene gave floor 30
-	# a different zoom from floor 29 and put that blue on screen.
-	var tm = get_node_or_null("TileMapLayer")
-	if tm != null:
-		var cam = player.get_node_or_null("Camera2D")
-		if cam != null:
-			StairPan.apply_floor_camera(cam, StairPan.floor_band(tm))
+	# Same framing as every corridor floor (the tilemap is exactly the shared band,
+	# 243..435 — the old blue filler rows above/below are gone).
+	_frame_camera(player)
 
 	# Say out loud which player the game thinks you are — otherwise "why is the
 	# tutorial running again?" is invisible guesswork.
@@ -59,10 +70,7 @@ func _ready() -> void:
 			WorldState.profile_status().capitalize(),
 			"ON" if WorldState.is_first_run else "skipped"])
 
-	_spawn_corpses(30)
-	_spawn_world_drops(30)
-	# A character who fell here (floor 30) leaves a recoverable body for the next one.
-	WorldState.spawn_player_corpse_into(self, 30, get_tree().current_scene.scene_file_path, "")
+	_build_world()
 	# Journal memory: floor 30 is where every run begins — reveal it on the map.
 	WorldState.note_floor_arrival(self, 30)
 
@@ -72,14 +80,48 @@ func _ready() -> void:
 		WorldState.opener_seen = true
 		add_child(preload("res://scripts/intro_overlay.gd").new())
 
+
+func _build_world() -> void:
+	# Everything that is part of the PLACE (not the arrival): the same whether the floor
+	# loads fresh or is built as a pan backdrop, so nothing pops in when a pan commits.
+	_spawn_corpses(30)
+	_spawn_world_drops(30)
+	# A character who fell here (floor 30) leaves a recoverable body for the next one.
+	WorldState.spawn_player_corpse_into(self, 30, scene_file_path, "")
+	# Real ceiling lamps, like every other floor — otherwise the top floor sits dark at
+	# night beside a lit floor 29 and the pan between them shows the seam.
+	if get_node_or_null("FloorLighting") == null:
+		var lights = FLOOR_LIGHTING.new()
+		lights.name = "FloorLighting"
+		add_child(lights)
+		lights.setup(30)
 	# Diegetic tutorial: blood-scrawled control hints are baked into the scene
 	# (group "tutorial_blood") so they can be positioned/resized in the editor.
 	# They only belong on the FIRST run — hide them otherwise.
 	if not WorldState.is_first_run:
 		for hint in get_tree().get_nodes_in_group("tutorial_blood"):
-			hint.visible = false
+			if is_ancestor_of(hint):
+				hint.visible = false
+
+
+func _frame_camera(player: Node) -> void:
+	PanBackdrop.frame_camera(self, player)
+
+
+# Wake the passive backdrop into the live floor 30, in place (StairPan._adopt reparents the
+# live player in first). No intro, no announce: you walked up here, you didn't load in.
+func go_live() -> void:
+	if not passive:
+		return
+	passive = false
+	PanBackdrop.restore(_dormant)
+	PanBackdrop.wake_scenery(self)
+	WorldState.apply_time_tint(self, 30)
+	WorldState.note_floor_arrival(self, 30)
 
 func _process(_delta: float) -> void:
+	if passive:
+		return
 	if not (WorldState.is_first_run and WorldState.current_floor == 30):
 		return
 	_maybe_hint_barricade()
@@ -215,7 +257,7 @@ func _spawn_hall_zombie() -> void:
 
 
 func _spawn_corpses(floor_num: int) -> void:
-	var scene_path = get_tree().current_scene.scene_file_path
+	var scene_path = scene_file_path   # THIS scene — a pan backdrop is not the current scene yet
 	var corpse_positions = WorldState.get_corpse_positions_for_floor(floor_num, scene_path)
 	if corpse_positions.is_empty():
 		return
@@ -244,7 +286,7 @@ func _spawn_corpses(floor_num: int) -> void:
 		add_child(corpse)
 
 func _spawn_world_drops(floor_num: int) -> void:
-	var scene_path = get_tree().current_scene.scene_file_path
+	var scene_path = scene_file_path   # THIS scene — a pan backdrop is not the current scene yet
 	var drops = WorldState.get_world_drops_for_floor(floor_num, scene_path)
 	if drops.is_empty():
 		return

@@ -274,10 +274,14 @@ func _test_stairpan_guard() -> void:
 	check(sp != null, "StairPan is an autoload singleton")
 	if sp == null:
 		return
-	# Enabled: pans between real floors (not into the lobby / past the top).
+	# Enabled: pans between EVERY floor, lobby (0) and hallway (30) included — but never
+	# off the ends of the building. (The per-staircase + real-scene checks live in
+	# transition_seam_test, which runs them from actual floor scenes.)
 	check(sp.ENABLED, "StairPan is enabled")
-	check(not sp.can_pan(0), "no pan into the lobby (floor 0)")
-	check(not sp.can_pan(30), "no pan up to the hallway (floor 30)")
+	check(not sp.can_pan(-1), "no pan below the lobby")
+	check(not sp.can_pan(31), "no pan above the top floor")
+	check(sp.scene_for_floor(30).ends_with("hallway.tscn") and sp.scene_for_floor(0).ends_with("lobby.tscn")
+		and sp.scene_for_floor(15).ends_with("building_floors.tscn"), "each floor builds its real scene")
 
 
 func _test_pan_targets() -> void:

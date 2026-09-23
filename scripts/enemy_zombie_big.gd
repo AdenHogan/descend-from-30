@@ -15,6 +15,11 @@ var player: Node2D = null
 var state = "idle"
 var state_timer = 0.0
 var spawn_key: String = ""
+# The floor this enemy belongs to, for its seeded HP roll. A stair-pan backdrop builds the
+# NEXT floor while current_floor is still this one, so the spawner sets it explicitly —
+# otherwise the same enemy rolled different HP depending on whether you arrived by stairs
+# or by a fade. -1 = WorldState.current_floor (the live spawn, where they're the same).
+var hp_floor: int = -1
 var drops_key: bool = false
 var key_target_apartment: String = ""
 var key_dropped: bool = false  # Guard against double drops
@@ -121,7 +126,7 @@ func _register_zombie_exceptions() -> void:
 
 
 func _set_hp_from_floor() -> void:
-	var floor_num = WorldState.current_floor
+	var floor_num = hp_floor if hp_floor >= 0 else WorldState.current_floor
 	var rng = RandomNumberGenerator.new()
 	rng.seed = hash(str(WorldState.master_seed) + str(global_position) + str(floor_num))
 	var base = lerp(15.0, 8.0, float(floor_num - 1) / 29.0)
