@@ -25,14 +25,28 @@ const LINES := {
 	# --- Opener: opener_1 is the black-screen title-card line; opener_4/5 play
 	#     in the hallway as the player bangs on their own locked door (3001). ---
 	"opener_1": "Huh? Who the hell is banging on the door!?",
-	"opener_4": "Damn, I locked myself out! Wait, what happened out here?.",
+	"opener_4": "Damn, I locked myself out! Wait, what happened out here?",
 	"opener_5": "Whatever, I need the spare key. The lady in 3003 has it.",
+	# Run 1 WITHOUT the tutorial (a returning player): same lockout, no spare-key errand.
+	"opener_5_free": "No time to hunt for a spare key. I need to get out of this building.",
+	# --- EVERY run opens the same way (owner: "synergy for all three runs"): a black-screen
+	#     cold open (banging + the new character's first line), then the visible lockout at
+	#     3001. run2_/run3_ are the new character's black-screen line; run_lockout_* play at
+	#     the door. run_after_* nods to how the PREVIOUS character's run ended. ---
+	"run2_open": "More banging... How long was I out? It's the afternoon already.",
+	"run3_open": "It's dark. Something is scratching at every door on this floor.",
+	"run_lockout": "The door clicked shut behind me. Locked out - there's no going back in.",
+	"run_after_fell": "I heard screaming on the stairs earlier. Whoever it was didn't make it.",
+	"run_after_escaped": "I heard the lobby doors earlier. Somebody got out. So can I.",
+	# --- Run END cards (the fade to black when a character's story ends) ---
+	"end_died": "YOU DIED",
+	"end_escaped": "YOU ESCAPED",
 	# --- 3003 scripted encounter ---
 	"3003_curiosity": "Mrs Delacroix…? you okay back there?",
 	"3003_push": "Mrs Delacroix, gah, no, not like this!!! - shove her back!",
 	"3003_weapon": "That won't stop her...it. I need a weapon - Search the room!",
 	"3003_weapon_go": "She's getting closer! I need to hurry!",
-	"3003_combat": "A... golf club? She played golf? She was 88! - Swing!.",
+	"3003_combat": "A... golf club? She played golf? She was 88! - Swing!",
 	"3003_combat_go": "What have I done? Two solid hits. I'm so sorry.",
 	"3003_heal": "She scratched me up - I should patch up with those bandages.",
 	"3003_key": "Wait... this isn't my spare key! This is for 3002.",
@@ -49,7 +63,7 @@ const LINES := {
 	# --- Staged stairs gate ---
 	"stairs_key": "Wait, 3003 isn't downstairs, I need the spare key.",
 	"stairs_apts": "Hmmm, maybe I should search the other apartments before I descend.",
-	"stairs_choice": "That thing is dangeorus, if I descend now, I might not be able to come back up. Should I leave these apartments unsearched?",
+	"stairs_choice": "That thing is dangerous. If I descend now, I might not be able to come back up. Should I leave these apartments unsearched?",
 }
 
 var _awaiting: bool = false
@@ -132,10 +146,20 @@ func prompt(text: String, action: String, cb: Callable, hint: String = "", stric
 
 func _default_hint(action: String) -> String:
 	match action:
-		"push": return "[Push]"
-		"interact": return "[E]"
-		"attack": return "[Attack]"
-		_: return "[Continue]"
+		"push", "attack":
+			return "[%s]" % key(action)
+		_: return "[continue]"
+
+
+# The player's CURRENT key for an action, readable in a sentence ("Right-click", "Space",
+# "E") — tutorial lines must never name a key the player has rebound away.
+func key(action: String) -> String:
+	var label: String = SettingsManager.binding_label(action)
+	match label:
+		"Mouse Left": return "Left-click"
+		"Mouse Right": return "Right-click"
+		"Mouse Middle": return "Middle-click"
+	return label
 
 
 func _input(event: InputEvent) -> void:

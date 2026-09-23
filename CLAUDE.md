@@ -182,8 +182,8 @@ setup script; binary from downloads.godotengine.org). Before every commit:
   `maintenance_test`, `elevator_test`, `run_arc_test`, `enemy_variety_test`,
   `dev_menu_test`, `lighting_test`, `plane_lock_test`, `apartment_window_test`,
   `scavenge_node_test`, `drop_physics_test`, `softlock_test`, `character_panel_test`,
-  `corpse_recovery_test`, `run_memory_test`, `attack_input_test`, `character_stats_test`, `transition_seam_test` — run
-  all 41 before commit. (`new_game()` rolls a RANDOM seed, so any test meets any of the four
+  `corpse_recovery_test`, `run_memory_test`, `attack_input_test`, `character_stats_test`, `transition_seam_test`, `run_bookends_test` — run
+  all 42 before commit. (`new_game()` rolls a RANDOM seed, so any test meets any of the four
   characters — an assert on a trait-affected value must be trait-aware; see docs/CHARACTERS.md.) (Run ONE godot at a time — a killed/backgrounded headless run can
   linger and block the next, and a GDScript **parse error makes a test scene load but
   never call `quit()`, so it "hangs" until timeout** rather than printing an error line;
@@ -1099,6 +1099,28 @@ means no rendering — UI layout and art still need an in-editor look.
   tab shows each character's tagline + strengths/weakness (`character_panel.traits_bbcode`).
   Covered by `character_stats_test` (+ `listen_noise_test` made trait-aware — seed 424242 casts
   the Super). Names are still placeholders; balance numbers need a playtest.
+- RUN BOOKENDS + Floor-30 tutorial clean-up (owner: "a synergy for all three runs in how they
+  begin/end"; "the tutorial, the wall text… kind of janky"). **Every run ENDS on an end card**
+  (`Transition.end_card`: slow fade → YOU DIED «<name> fell on Floor N / in apartment … / in the
+  Lobby» or YOU ESCAPED; screen stays black while `advance_run` mutates the world) → the time
+  card → **every run BEGINS on the same cold open** (`intro_overlay.gd`, configured by
+  `hallway.opener_config()`: game title on run 1, the NEW character's name on runs 2/3, banging +
+  handprint + a first line, then the lockout knock at 3001 whose lines nod to how the previous
+  character ended). `opener_seen` is reset per run AND saved (Continue used to replay the whole
+  cold open). New Game fades the menu to black first; the opener's words leave on black before
+  the scene fades in (no smeared crossfade); all cards share the pixel fonts. **Wall text**
+  (`blood_text.gd`): one node per hint, multi-line, SUPERSAMPLED so it's crisp at game zoom,
+  `{action}` placeholders show the player's CURRENT keys; six hints re-laid out in clear wall
+  gaps at door height. Prompt hints: `[continue]` for any-key beats, real key names for teaching
+  beats (`TutorialManager.key`). Dev "New Player — tutorial ON" HUD chatter moved into the F1
+  menu's tutorial button. **Floor 30's right end is solid wall** (the top floor has no up-stair;
+  it was an empty hole with a light), and stairwell window lights only spawn on sides that have
+  a stairwell (`FloorLighting.setup(floor, window_sides)`). **Spawn-plane bug fixed**: the
+  hallway/lobby/corridor scenes placed the Player at y 388 (feet 421), so every fresh run played
+  Floor 30 2px below the floor line — now 386. Tools: `tools/scene_capture.tscn` (scripted
+  rendered capture of any flow: new game, keys, walks, a death) + `tools/pan_capture.tscn`.
+  Locked by `run_bookends_test`. Dialogue is still placeholder — every line lives in
+  `TutorialManager.LINES`.
 - Next (owner's order): the maintenance **upgrade station** + weapon/item upgrades (Scrap
   system, SCRAP_UPGRADES.md) → in-run temporary upgrades → permanent cross-run upgrades
   (`best_depth` is the record hook). Also open: **Upgrade offers** polish; barricade-keeper NPC;

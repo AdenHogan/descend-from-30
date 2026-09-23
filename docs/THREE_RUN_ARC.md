@@ -14,6 +14,21 @@
   Apartment 3001.
 - Session ends when all three character stories have concluded.
 
+**Run bookends (BUILT — owner: "a synergy for all three runs in how they begin/end"):**
+every run ENDS and BEGINS the same way.
+- **End card** (`Transition.end_card`): a slow fade to black, then **YOU DIED** (red) —
+  "<name> fell on Floor N." / "…in apartment 1703 on Floor 17." / "…in the Lobby."
+  (`WorldState.place_in_words`) — or **YOU ESCAPED** (gold) — "<name> made it out of the
+  building." Held, then cleared; the screen stays black while the run advances.
+- **Time card** (existing `to_run_shift`): MORNING / AFTERNOON / NIGHT.
+- **Cold open** (`intro_overlay.gd`, every run, once — `opener_seen` is reset by `new_game` +
+  `advance_run` and SAVED): black screen, banging, the bloody handprint, a title — the game's
+  title on run 1, the NEW character's name on runs 2/3 — over "<who/when>", the character's
+  first line, then the visible **lockout at 3001**. Run 2/3 lockout lines nod to how the
+  previous character's story ended (fell / escaped). All lines: `TutorialManager.LINES`
+  (`opener_*`, `run2_open`, `run3_open`, `run_lockout`, `run_after_*`, `end_*`).
+  Config: `hallway.opener_config()`. Locked by `run_bookends_test`.
+
 **Time skip (uniform, decided):**
 
 | Run | Time of day |

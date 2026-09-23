@@ -163,7 +163,10 @@ static func make_window_light(pos: Vector2, energy_scale: float = 1.0) -> PointL
 	return lt
 
 
-func setup(floor_num: int) -> void:
+func setup(floor_num: int, window_sides: Array = ["left", "right"]) -> void:
+	# window_sides: which stairwells this floor actually HAS (the hallway at 30 has no up
+	# stair on the right, the lobby no left stair) — a window light over a plain wall read
+	# as a glow shining into nothing.
 	z_index = 0
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(str(WorldState.master_seed) + "lights" + str(floor_num) + str(WorldState.current_run))
@@ -211,10 +214,12 @@ func setup(floor_num: int) -> void:
 			"blink_t": rng.randf_range(1.5, 4.0), "on": true,
 		})
 	# Stairwell windows: natural light in from both stair shafts, plus a slanting sunbeam shaft.
-	add_child(make_window_light(Vector2(STAIR_WINDOW_LEFT_X, STAIR_WINDOW_Y)))
-	add_child(make_window_light(Vector2(STAIR_WINDOW_RIGHT_X, STAIR_WINDOW_Y)))
-	_add_window_beam(Vector2(STAIR_WINDOW_LEFT_X, STAIR_WINDOW_Y), 1.25)
-	_add_window_beam(Vector2(STAIR_WINDOW_RIGHT_X, STAIR_WINDOW_Y), 1.25)
+	if "left" in window_sides:
+		add_child(make_window_light(Vector2(STAIR_WINDOW_LEFT_X, STAIR_WINDOW_Y)))
+		_add_window_beam(Vector2(STAIR_WINDOW_LEFT_X, STAIR_WINDOW_Y), 1.25)
+	if "right" in window_sides:
+		add_child(make_window_light(Vector2(STAIR_WINDOW_RIGHT_X, STAIR_WINDOW_Y)))
+		_add_window_beam(Vector2(STAIR_WINDOW_RIGHT_X, STAIR_WINDOW_Y), 1.25)
 
 
 func _add_window_beam(pos: Vector2, length_scale: float = 1.0) -> void:

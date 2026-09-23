@@ -98,6 +98,39 @@ func cover(dur: float = 0.7) -> bool:
 	return true
 
 
+# THE END OF A CHARACTER'S STORY (death or escape) — the bookend to the cold open every run
+# begins with. A slow fade to black, then a heading ("YOU DIED" / "YOU ESCAPED") over one line
+# of where/how ("Mara Voss fell on Floor 17."), held, then cleared — the screen STAYS black and
+# busy, so the caller advances the run out of sight and continues with to_run_shift(...,
+# already_covered=true) or swaps to the game-over card + reveal(). Same labels as the
+# time-of-day card, so the end of one run flows straight into the start of the next.
+const END_DIED_COLOR := Color(0.78, 0.08, 0.06)
+const END_ESCAPED_COLOR := Color(1.00, 0.86, 0.45)
+
+
+func end_card(heading: String, line: String, heading_color: Color, hold: float = 2.4) -> bool:
+	if busy:
+		return false
+	busy = true
+	rect.visible = true
+	await _fade(1.0, 1.1)                                  # slower than a door fade — it's an ending
+	run_title.text = heading
+	run_title.add_theme_color_override("font_color", heading_color)
+	run_sub.text = line
+	run_box.visible = true
+	run_box.modulate.a = 0.0
+	run_box.position.y = 0.0
+	var t_in = create_tween()
+	t_in.tween_property(run_box, "modulate:a", 1.0, 0.7)
+	await t_in.finished
+	await get_tree().create_timer(hold, true).timeout
+	var t_out = create_tween()
+	t_out.tween_property(run_box, "modulate:a", 0.0, 0.5)
+	await t_out.finished
+	run_box.visible = false
+	return true
+
+
 func reveal(dur: float = 0.6) -> void:
 	# Fade the black cover back out (after cover() + a scene swap). Clears busy.
 	await _fade(0.0, dur)

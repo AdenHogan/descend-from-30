@@ -23,29 +23,45 @@ lines below in «guillemets» are temporary.
 > grouped by beat: `opener_*`, `3003_*`, `3002_entry`, `3004_hint`,
 > `hall_*`, `stairs_*`.
 
-## Opener (first-run cold open)
-Two parts, gated by `WorldState.opener_seen` (replays on `new_game()` / F7):
-1. **Title card** (`scripts/intro_overlay.gd`): black screen, a SHORT loud
-   burst of banging while «DESCEND FROM 30» fades in gory red, one player line
-   («what the hell's going on out there?»), a door-slam, then fades to the
-   hallway.
-2. **Visible lockout** (`hallway.start_opener_lockout()`): the player — on
-   screen, not black — steps up and bangs on their own door 3001
-   (`player.knock_door`), gets no answer, and remembers the 3003 spare key.
-Any key / mouse click advances every beat. SFX are placeholder impacts.
+## Opener (cold open — EVERY run, not just the first)
+Gated by `WorldState.opener_seen` (reset by `new_game()` / `advance_run()` / F7, and SAVED, so
+Continue never replays it). New Game fades the menu to black first, so the cold open starts
+from black with no hard cut.
+1. **Title card** (`scripts/intro_overlay.gd`): black screen, a SHORT loud burst of banging, a
+   title fades in gory red over the handprint — «DESCEND FROM 30» on run 1, the new
+   character's NAME on runs 2/3 — with «<who> · <time>» under it, one player line, a
+   door-slam; the words leave on black, THEN the black lifts on the hallway. Same pixel
+   fonts as the time-of-day + end cards. It waits while a Transition (the time card) is up.
+2. **Visible lockout** (`hallway.start_opener_lockout()`): the player — on screen, not
+   black — steps up and bangs on their own door 3001 (`player.knock_door`), gets no answer,
+   and says the run's lockout lines (`hallway.opener_config()`): run 1 tutorial = remember the
+   3003 spare key; run 1 without the tutorial = «no time for a spare key»; runs 2/3 = locked
+   out + a nod to how the previous character's story ended.
+Any key / mouse click advances every beat. SFX are placeholder impacts. See
+THREE_RUN_ARC.md → "Run bookends" for the matching END card.
 
-## Stairwell gating + herding (1C) — STAGED
-The Floor 30 down-stairwell is blocked along the whole mandatory path, with a
-stage-appropriate line + herd each time the player tries it:
-1. **"key"** — 3003 neighbour still up → «check 3003 for the spare key» and
+## Wall text (blood scrawl) — rules
+- ONE `BloodText` node per hint (multi-line text, centred on the node), placed in a CLEAR wall
+  gap between doors at door height (y ~314-346) — never across a door, never at the ceiling
+  (locked by `run_bookends_test`). Current six: Move (3001↔elevator), Run (3002↔3001), Enter
+  (3003↔3002), Listen (3004↔3003), Strike/Stance (3005↔3004), Rest (stairwell↔3005).
+- Keys are LIVE: write `{action}` (e.g. `[{sprint}]`, `{move}`) and the wall shows the player's
+  CURRENT binding (shortest label: `A`, `RMB`) — a rebound key never leaves the wall lying.
+- Drawn SUPERSAMPLED with a thin outline so it's crisp at the ~2.75× game zoom (it used to be
+  rasterised tiny then blown up — "hear" read "hoar").
+- Prompt hints follow the same rule: any-key prompts say `[continue]`; teaching prompts name
+  the real key (`TutorialManager.key(action)` → "Right-click", "Space").
+
+## Stairwell gating + herding (1C)
+(Simplified from the earlier 4-stage gate — this is what's built.) The Floor 30 down-stairwell
+is HARD-blocked only until the 3003 spare key is in hand (`TutorialManager.stair_stage()`):
+1. **"key"** — 3003 neighbour still up → «3003 isn't downstairs, I need the spare key» and
    herd the player to **3003's door**.
-2. **"apts"** — key gotten, 3004 barricade still standing → «search the other
-   apartments first» and herd to the next objective door (3002 if not yet
-   opened, else 3004).
-3. **"choice"** — barricade down, the corridor zombie live, 3004 shut →
-   refusal line only (**no herding into a live zombie**).
-4. **"open"** — corridor zombie dead OR 3004 entered → descent to 29 works
-   normally and ends the tutorial.
+2. **"open"** — key in hand: the player MAY descend at any time. Descending is a ONE-WAY
+   choice (end the tutorial early / leave apartments unsearched), so the first use of the
+   stairs says «stairs_choice» and a second use within 4s commits (the descent is the
+   seamless stair pan to 29, like any floor). On the first run 29 → 30 is refused
+   («no_return»).
 
 ## 3003 — the scripted first apartment
 Layout: living room / kitchen / bedroom (real anchored modules). This
@@ -165,30 +181,12 @@ zombie → choice) → 3005 (open, info) → stairs unlock → descend to 29.
   info; owner-authored final dialogue.
 - Final dialogue/wall text is owner-authored; code ships placeholders.
 
-## Planned (not yet built) — transitions & depth
-- **Depth approach-walk:** player nudges UP the screen (toward the door, −Y)
-  to knock / enter, then back down to the main plane. Framework hook to add on
-  `player.gd` (a reusable `approach(target)` tween); wire into door entry + the
-  opener knock once the knock/door art exists.
-- **Door-open + enter transition:** a reasonably-timed fade (not an instant
-  cut) hallway↔apartment. A `HUD` fade-to-black helper the door/stair calls
-  before `change_scene`.
-- **Seamless stair transition (building_floors doubling):** load the
-  adjacent floor and PAN between them as the player walks the stairs, instead
-  of a hard scene cut — to sell the scale of descending.
-  - **Groundwork DONE + tested:** `building_floors` is now parameterizable —
-    set `setup_floor` + `passive = true` before `add_child()` to build any
-    floor as a backdrop (no player/enemies/corpses/drops/merchant, correct
-    door IDs). `building_floors_test` covers it.
-  - **`StairPan` autoload (scaffold, DISABLED):** `StairPan.pan_to_floor()`
-    instances the target floor as a passive backdrop one screen away, pans a
-    standalone camera across while the player slides toward the stairs, then
-    commits the real floor. `stairwell.gd` already routes through it when
-    `StairPan.can_pan()` is true.
-  - **To finish:** flip `StairPan.ENABLED` and iterate IN-EDITOR — the
-    offset, `PAN_TIME`, the player stair-walk slide, and the backdrop→real-
-    floor hand-off (a micro-fade at the swap) are all feel-tuning that can't
-    be verified headless. Off by default so the demo keeps the safe fade cut.
+## Transitions & depth (BUILT — was "planned")
+- **Depth approach-walk** (`player.approach_door` / `knock_door`) — used by door entry and the
+  opener knock.
+- **Door enter/exit** fade (`Transition.to_scene`).
+- **Seamless stairs everywhere**: every floor 30 → lobby pans (StairPan), no fade — see
+  CLAUDE.md. The first-run 30 → 29 descent is a pan like any other.
 
 ## Testing the tutorial (DEV)
 - **F7** toggles the first-run tutorial on/off and drops you into a fresh

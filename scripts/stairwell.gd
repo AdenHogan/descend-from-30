@@ -140,7 +140,7 @@ func _use_stairs() -> void:
 	# Tutorial run: no going back UP to Floor 30 (its scripted rooms are a
 	# one-way door — actions have consequences). Pause + refuse.
 	if direction == "up" and WorldState.is_first_run and WorldState.current_floor == 29:
-		TutorialManager.prompt(TutorialManager.LINES["no_return"], "interact", _on_no_return, "[E]")
+		TutorialManager.prompt(TutorialManager.LINES["no_return"], "interact", _on_no_return, "[continue]")
 		return
 
 	# Gate the first-run Floor-30 descent until the 3003 key is in hand.

@@ -763,7 +763,8 @@ func advance_run() -> bool:
 
 	current_run += 1
 	record_run_started()                    # stats: the next character enters the building
-	is_first_run = false                    # the tutorial / cold open is run-1 only
+	is_first_run = false                    # the TUTORIAL is run-1 only…
+	opener_seen = false                     # …but every run opens on its own cold open
 
 	# --- FRESH CHARACTER (per-run state, wiped) — mirrors new_game's character block.
 	#     Cross-run rewards (active_upgrades, wallet UNLOCK) are deliberately KEPT. ---
@@ -946,6 +947,16 @@ func apply_time_tint(scene: Node, floor_num: int = -1) -> void:
 		cm.name = "WorldGrade"
 		scene.add_child(cm)
 	cm.color = ambient_color(f)
+
+
+# Where the current character is, in words, for the end card ("on Floor 17", "in apartment
+# 1703 on Floor 17", "in the Lobby").
+func place_in_words(scene_path: String = "") -> String:
+	if scene_path.ends_with("room.tscn") and current_apartment_id != "":
+		return "in apartment %s on Floor %d" % [current_apartment_id, current_floor]
+	if current_floor <= 0:
+		return "in the Lobby"
+	return "on Floor %d" % current_floor
 
 
 func on_floor_arrived(floor_num: int) -> void:
@@ -3493,6 +3504,7 @@ func save_game(scene_path: String, record_live_zombies: bool = true) -> void:
 		"stair_direction": stair_direction,
 		"exit_spawn_x": exit_spawn_x,
 		"is_first_run": is_first_run,
+		"opener_seen": opener_seen,
 		"current_run": current_run,
 		"player_health": player_health,
 		"is_dying": is_dying,
@@ -3576,6 +3588,9 @@ func load_game() -> String:
 	stair_direction = data["stair_direction"]
 	exit_spawn_x = data["exit_spawn_x"]
 	is_first_run = data["is_first_run"]
+	# Old saves predate this flag: treat their opener as already seen (never replay a cold open
+	# on Continue — a save made mid-tutorial used to replay the whole title card).
+	opener_seen = bool(data.get("opener_seen", true))
 	current_run = data["current_run"]
 	player_health = data["player_health"]
 	is_dying = data["is_dying"]

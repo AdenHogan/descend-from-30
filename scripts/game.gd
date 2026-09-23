@@ -66,9 +66,16 @@ func go_to_scene(scene_name: String) -> void:
 	get_tree().change_scene_to_file(SCENES[scene_name])
 
 func new_game() -> void:
+	# Fade the menu out to black first, THEN start: the run opens on its own black cold open
+	# (intro_overlay), so the reveal below is invisible — it just hands black to black instead
+	# of the menu hard-cutting away. (The cold open waits while Transition is busy.)
+	await Transition.cover(0.45)
 	WorldState.new_game()
 	HUD.show_hud()
 	go_to_scene("hallway")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await Transition.reveal(0.2)
 
 func continue_game() -> void:
 	var scene_path = WorldState.load_game()
@@ -122,10 +129,14 @@ func game_over() -> void:
 			WorldState.record_player_corpse(WorldState.current_floor, scene_path, apt, feet)
 	get_tree().paused = false
 	var next_run: int = WorldState.current_run + 1
-	# Cover the screen to BLACK before advancing the run — otherwise advance_run()'s run-3
-	# world mutation (new barricades/props/door states) pops in over the still-visible run-2
-	# death scene. Everything below now happens out of sight.
-	await Transition.cover()
+	# THE END CARD: fade to black on "YOU DIED — <name> fell on Floor N." (the bookend to the
+	# cold open every run starts with). It leaves the screen BLACK, so advance_run()'s world
+	# mutation (new barricades/props/door states) never pops in over the death scene.
+	var here: String = get_tree().current_scene.scene_file_path if get_tree().current_scene else ""
+	var who: String = WorldState.character_display_name(WorldState.current_character())
+	if not await Transition.end_card(TutorialManager.LINES["end_died"],
+			"%s fell %s." % [who, WorldState.place_in_words(here)], Transition.END_DIED_COLOR):
+		await Transition.cover()
 	var arc_over: bool = WorldState.advance_run()
 	if arc_over:
 		# The final character has fallen — the playthrough ends. Reveal onto the game-over card.

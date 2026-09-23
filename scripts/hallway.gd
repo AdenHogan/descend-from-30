@@ -62,23 +62,48 @@ func _ready() -> void:
 	# 243..435 — the old blue filler rows above/below are gone).
 	_frame_camera(player)
 
-	# Say out loud which player the game thinks you are — otherwise "why is the
-	# tutorial running again?" is invisible guesswork.
-	if not WorldState.profile_announced:
-		WorldState.profile_announced = true
-		HUD.show_feedback("%s — tutorial %s" % [
-			WorldState.profile_status().capitalize(),
-			"ON" if WorldState.is_first_run else "skipped"])
-
 	_build_world()
 	# Journal memory: floor 30 is where every run begins — reveal it on the map.
 	WorldState.note_floor_arrival(self, 30)
 
-	# First-run cold open: black screen, banging, locked out, remember the
-	# 3003 spare key. Plays once (opener_seen), then hands to gameplay.
-	if WorldState.is_first_run and WorldState.current_floor == 30 and not WorldState.opener_seen:
+	# EVERY run's cold open (not just the first): black screen, banging, the new character's
+	# first line, then the visible lockout at 3001. Plays once per run (opener_seen is reset by
+	# new_game + advance_run, and saved, so Continue never replays it).
+	if WorldState.current_floor == 30 and not WorldState.opener_seen:
 		WorldState.opener_seen = true
-		add_child(preload("res://scripts/intro_overlay.gd").new())
+		var intro = preload("res://scripts/intro_overlay.gd").new()
+		var cfg := opener_config()
+		intro.title_text = cfg["title"]
+		intro.sub_text = cfg["sub"]
+		intro.line_text = cfg["line"]
+		add_child(intro)
+
+
+# What this run's cold open says — ONE shape for all three runs (the owner's "synergy"): the
+# game's title on run 1, the new character's name on runs 2/3; then the lockout lines, which
+# on runs 2/3 nod to how the previous character's story ended. Lines: TutorialManager.LINES.
+static func opener_config() -> Dictionary:
+	var run: int = WorldState.current_run
+	var who: String = WorldState.character_display_name(WorldState.current_character())
+	var when: String = WorldState.run_name(run)
+	var L: Dictionary = TutorialManager.LINES
+	if run <= 1:
+		return {
+			"title": "DESCEND FROM 30",
+			"sub": "%s  ·  %s" % [who, when],
+			"line": L["opener_1"],
+			"lockout": [L["opener_4"], L["opener_5"] if WorldState.is_first_run else L["opener_5_free"]],
+		}
+	var lockout: Array = [L["run_lockout"]]
+	match str(WorldState.chronicle_entry(run - 1).get("outcome", "")):
+		"fell": lockout.append(L["run_after_fell"])
+		"escaped": lockout.append(L["run_after_escaped"])
+	return {
+		"title": who.to_upper(),
+		"sub": "%s  ·  Floor 30" % when,
+		"line": L["run2_open"] if run == 2 else L["run3_open"],
+		"lockout": lockout,
+	}
 
 
 func _build_world() -> void:
@@ -94,7 +119,7 @@ func _build_world() -> void:
 		var lights = FLOOR_LIGHTING.new()
 		lights.name = "FloorLighting"
 		add_child(lights)
-		lights.setup(30)
+		lights.setup(30, ["left"])   # only the down stairwell — floor 30 is the top
 	# Diegetic tutorial: blood-scrawled control hints are baked into the scene
 	# (group "tutorial_blood") so they can be positioned/resized in the editor.
 	# They only belong on the FIRST run — hide them otherwise.
@@ -150,9 +175,9 @@ func _process(_delta: float) -> void:
 
 func start_opener_lockout() -> void:
 	# Called by intro_overlay after the title fades: the player (visible now,
-	# not on black) steps up and bangs on their own door 3001, gets no answer,
-	# then remembers the 3003 spare key. knock_door provides the up-to-the-door
-	# movement; the lines chain on any key / click.
+	# not on black) steps up and bangs on their own door 3001, gets no answer, and
+	# says this run's lockout lines (opener_config). knock_door provides the
+	# up-to-the-door movement; the lines chain on any key / click.
 	var player = get_tree().get_first_node_in_group("player")
 	var door = get_node_or_null("3001")
 	if player == null:
@@ -163,16 +188,18 @@ func start_opener_lockout() -> void:
 		_opener_lockout_lines()
 
 
+var _lockout_queue: Array = []
+
+
 func _opener_lockout_lines() -> void:
-	TutorialManager.prompt(TutorialManager.LINES["opener_4"], "interact", _opener_lockout_line2, "[continue]")
+	_lockout_queue = opener_config()["lockout"].duplicate()
+	_next_lockout_line()
 
 
-func _opener_lockout_line2() -> void:
-	TutorialManager.prompt(TutorialManager.LINES["opener_5"], "interact", _opener_lockout_done, "[continue]")
-
-
-func _opener_lockout_done() -> void:
-	pass
+func _next_lockout_line() -> void:
+	if _lockout_queue.is_empty():
+		return
+	TutorialManager.prompt(str(_lockout_queue.pop_front()), "interact", _next_lockout_line, "[continue]")
 
 
 func _maybe_hint_barricade() -> void:
@@ -196,7 +223,7 @@ func _maybe_hint_barricade() -> void:
 	barricade_hint_shown = true
 	TutorialManager.prompt(
 		TutorialManager.LINES["3004_hint"],
-		"interact", _on_barricade_hint, "[E] to continue")
+		"interact", _on_barricade_hint, "[continue]")
 
 
 func _on_barricade_hint() -> void:
@@ -227,7 +254,7 @@ func _maybe_break_club_on_force() -> void:
 	HUD.refresh_inventory()
 	if broke:
 		TutorialManager.prompt(TutorialManager.LINES["hall_force_break"],
-			"interact", _on_force_break, "[E]")
+			"interact", _on_force_break, "[continue]")
 
 
 func _on_force_break() -> void:

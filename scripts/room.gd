@@ -1030,7 +1030,8 @@ func _tutorial_process(_delta: float) -> void:
 				if player.has_method("receive_hit"):
 					player.receive_hit(1)
 				TutorialManager.prompt(
-					TutorialManager.LINES["3003_push"], "push", _on_tut_push, "[Push]", true)
+					TutorialManager.LINES["3003_push"], "push", _on_tut_push,
+						"[%s] to shove" % TutorialManager.key("push"), true)
 		TutStep.SCAVENGE:
 			if tut_zombie.is_dead:
 				tut_step = TutStep.DONE
@@ -1044,12 +1045,13 @@ func _tutorial_process(_delta: float) -> void:
 				_tut_equip("012")
 				TutorialManager.prompt(
 					TutorialManager.LINES["3003_combat"], "interact",
-					_on_tut_combat, "[E] to ready up")
+					_on_tut_combat, "[continue] — then swing with [%s]" % TutorialManager.key("attack"))
 		TutStep.COMBAT:
 			if tut_zombie.is_dead:
 				tut_step = TutStep.HEAL
 				TutorialManager.prompt(
-					TutorialManager.LINES["3003_heal"], "interact", _on_tut_heal, "[E], then use the bandages")
+					TutorialManager.LINES["3003_heal"], "interact", _on_tut_heal,
+					"[continue] — then select the bandages and use them [%s]" % TutorialManager.key("item_use"))
 
 
 func _on_tut_push() -> void:
@@ -1061,7 +1063,7 @@ func _on_tut_push() -> void:
 	if is_instance_valid(tut_zombie):
 		tut_zombie.tutorial_stagger()
 	TutorialManager.prompt(
-		TutorialManager.LINES["3003_weapon"], "interact", _on_tut_weapon, "[E] to continue")
+		TutorialManager.LINES["3003_weapon"], "interact", _on_tut_weapon, "[continue]")
 
 
 func _on_tut_weapon() -> void:

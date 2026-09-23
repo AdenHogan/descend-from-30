@@ -8,6 +8,15 @@ extends CanvasLayer
 #     and bangs on 3001, gets no answer, and remembers the 3003 spare key.
 # Placeholder text is in TutorialManager.LINES["opener_*"]; any key / click
 # advances.
+#
+# EVERY RUN opens this way (owner: all three runs begin/end with the same shape). The
+# hallway configures it before add_child(): run 1 shows the game's title, runs 2/3 show the
+# NEW character's name, each over the same banging, handprint and first line, then the same
+# visible lockout at 3001. It waits while a Transition (the time-of-day card) still covers
+# the screen, so it never starts half-way through behind the black.
+var title_text: String = "DESCEND FROM 30"
+var sub_text: String = ""
+var line_text: String = ""
 
 const BANG_STREAMS = [
 	preload("res://assets/audio/impacts/impactWood_heavy_000.ogg"),
@@ -21,11 +30,13 @@ const SCREEN_H = 648.0
 const TITLE_FADE = 1.0
 const BURST_BANGS = 5      # short, rapid
 const BURST_GAP = 0.11     # quick
-const FADE_TIME = 0.5      # shorter than before
+const FADE_TIME = 0.5      # black → scene
+const TEXT_FADE = 0.35     # title/handprint leave FIRST, on black — never smeared over the scene
 
 var black: ColorRect = null
 var gore: Control = null
 var title: Label = null
+var sub: Label = null
 var line: Label = null
 var hint: Label = null
 var sfx: AudioStreamPlayer = null
@@ -54,8 +65,11 @@ func _ready() -> void:
 	add_child(gore)
 
 	title = Label.new()
-	title.text = "DESCEND FROM 30"
-	title.add_theme_font_size_override("font_size", 66)
+	title.text = title_text
+	# Same pixel fonts as the time-of-day card and the end card (Transition), so the cards a
+	# run begins and ends on read as one family.
+	title.add_theme_font_override("font", Transition.TITLE_FONT)
+	title.add_theme_font_size_override("font_size", 62)
 	title.add_theme_color_override("font_color", Color(0.72, 0.05, 0.05))   # gory red
 	title.add_theme_color_override("font_outline_color", Color(0.09, 0.0, 0.0))
 	title.add_theme_constant_override("outline_size", 12)
@@ -66,8 +80,22 @@ func _ready() -> void:
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(title)
 
+	# Who this is + when (e.g. "The Tenant · Morning") — the same line on every run's card.
+	sub = Label.new()
+	sub.text = sub_text
+	sub.add_theme_font_override("font", Transition.SUB_FONT)
+	sub.add_theme_font_size_override("font_size", 18)
+	sub.add_theme_color_override("font_color", Color(0.80, 0.72, 0.70))
+	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sub.position = Vector2(0, SCREEN_H * 0.32 + 88)
+	sub.size = Vector2(SCREEN_W, 30)
+	sub.modulate = Color(1, 1, 1, 0)
+	sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(sub)
+
 	line = Label.new()
-	line.add_theme_font_size_override("font_size", 22)
+	line.add_theme_font_override("font", Transition.SUB_FONT)
+	line.add_theme_font_size_override("font_size", 20)
 	line.add_theme_color_override("font_color", Color(0.92, 0.92, 0.95))
 	line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -79,6 +107,7 @@ func _ready() -> void:
 
 	hint = Label.new()
 	hint.text = "[any key]"
+	hint.add_theme_font_override("font", Transition.SUB_FONT)
 	hint.add_theme_font_size_override("font_size", 14)
 	hint.add_theme_color_override("font_color", Color(1.0, 0.9, 0.35))
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -104,19 +133,26 @@ func _play(stream: AudioStream, vol: float) -> void:
 func _process(delta: float) -> void:
 	if fading:
 		fade_t += delta
-		var a = 1.0 - clampf(fade_t / FADE_TIME, 0.0, 1.0)
-		black.color.a = a
-		title.modulate.a = a
-		gore.modulate.a = a
-		if fade_t >= FADE_TIME:
+		# Two beats: the words + handprint leave on black, THEN the black lifts on the
+		# hallway — a crossfade smeared the title over the scene.
+		var ta = 1.0 - clampf(fade_t / TEXT_FADE, 0.0, 1.0)
+		title.modulate.a = ta
+		sub.modulate.a = ta
+		gore.modulate.a = ta
+		black.color.a = 1.0 - clampf((fade_t - TEXT_FADE) / FADE_TIME, 0.0, 1.0)
+		if fade_t >= TEXT_FADE + FADE_TIME:
 			get_tree().paused = false
 			_hand_to_hallway()
 			queue_free()
 		return
 
+	# Hold at the very start while the time-of-day card (Transition) is still up.
+	if Transition.busy:
+		return
 	t += delta
 	var ta = minf(t / TITLE_FADE, 1.0)
 	title.modulate.a = ta
+	sub.modulate.a = ta
 	gore.modulate.a = ta
 
 	# Short loud banging burst up front, then silence (banged and ran).
@@ -129,7 +165,7 @@ func _process(delta: float) -> void:
 
 	if t >= TITLE_FADE and not line_shown:
 		line_shown = true
-		line.text = TutorialManager.LINES["opener_1"]
+		line.text = line_text if line_text != "" else TutorialManager.LINES["opener_1"]
 		line.visible = true
 		hint.visible = true
 

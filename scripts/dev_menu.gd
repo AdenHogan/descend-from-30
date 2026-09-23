@@ -98,7 +98,10 @@ func _show_main() -> void:
 	_btn("Set Run (time of day) ▸", _sub_run)
 	_btn("Floor Hazard ▸", _sub_hazard)
 	_btn("Wallet + 500 Bank Notes", _wallet)
-	_btn("Toggle Tutorial (reloads Floor 30)", _tutorial)
+	# Which profile the game thinks you are + whether the tutorial runs — this used to be
+	# announced in the HUD on every Floor 30 load, which players saw as stray dev text.
+	_btn("Toggle Tutorial: %s — %s (reloads Floor 30)" % [
+		"ON" if WorldState.is_first_run else "OFF", WorldState.profile_status().capitalize()], _tutorial)
 	_btn("Warp to Floor…", _open_warp)
 	_btn("Spawn Item…", _open_item)
 	_btn("Close (F1)", _close)

@@ -14,8 +14,12 @@ func _on_body_entered(body: Node2D) -> void:
 	WorldState.record_run_survived()
 	WorldState.set_run_outcome(WorldState.current_run, "survived")
 	var next_run: int = WorldState.current_run + 1
-	# Cover to black BEFORE advancing so the run's world mutation never shows on the old scene.
-	await Transition.cover()
+	# The END CARD (same bookend as a death), leaving the screen black BEFORE advancing so the
+	# run's world mutation never shows on the old scene.
+	var who: String = WorldState.character_display_name(WorldState.current_character())
+	if not await Transition.end_card(TutorialManager.LINES["end_escaped"],
+			"%s made it out of the building." % who, Transition.END_ESCAPED_COLOR):
+		await Transition.cover()
 	var arc_over: bool = WorldState.advance_run()
 	if arc_over:
 		# The THIRD character walked out — the whole playthrough is complete.
