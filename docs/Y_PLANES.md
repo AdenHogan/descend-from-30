@@ -8,7 +8,11 @@ slices an actor on the vertical axis, read this file. When you change a value in
 code, update it here in the same commit.
 
 Reference floor: `scenes/building_floors.tscn` (floors 1–29; the corridor is the
-same geometry on every one). Lobby (0) and hallway (30) differ where noted.
+same geometry on every one). Lobby (0) and hallway (30) differ where noted — but their
+TILEMAPS are now the same band as every corridor (Y **243 … 435**, 12 rows, X 115 … 1235):
+the hallway's blue filler rows (435 … 483 and the top row) and the lobby's empty top rows
+(243 … 275) are gone, so all three stack flush at a pitch of 192 in the stair pan (locked by
+`transition_seam_test`). The lobby now has the corridor's end walls too (x ≈ 128 / 1224).
 
 Corridor X span: **115 … 1235** (walls outside that).
 

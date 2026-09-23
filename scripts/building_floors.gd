@@ -1162,6 +1162,16 @@ func _place_elevator_kit(floor_num: int) -> void:
 					and absf(float(d.get("y", 0.0)) - 360.0) < 8.0:
 				WorldState.remove_world_drop(k)
 		return
+	# Repair: a floor first reached by the stair PAN is built while the PREVIOUS floor is still
+	# the current scene, and add_world_drop used to stamp the canister with THAT scene's path —
+	# so a floor 29 reached from the hallway (30) filed its extinguisher under hallway.tscn and
+	# it never showed. Re-file any such wall canister under this scene.
+	for k in WorldState.world_drops.keys():
+		var wd = WorldState.world_drops[k]
+		if int(wd.get("floor", -1)) == floor_num and wd.get("item_id", "") == "036" \
+				and absf(float(wd.get("x", 0.0)) - 929.0) < 2.0 and absf(float(wd.get("y", 0.0)) - 360.0) < 2.0 \
+				and str(wd.get("scene", "")) != scene_file_path:
+			wd["scene"] = scene_file_path
 	var key := str(floor_num) + ":" + str(WorldState.current_run)
 	if WorldState.elevator_kit_placed.get(key, false):
 		return
@@ -1172,7 +1182,7 @@ func _place_elevator_kit(floor_num: int) -> void:
 	# Mounted on the wall to the LEFT of the elevator, halfway between apartment 01
 	# (x 829) and the elevator (x 1029.5) → x 929; y 360 sits it up on the wall at
 	# door height (world_drop draws the extinguisher prop; pickup is the usual walk-up).
-	WorldState.add_world_drop("036", Vector2(929.0, 360.0), floor_num)
+	WorldState.add_world_drop("036", Vector2(929.0, 360.0), floor_num, {"scene": scene_file_path})
 
 
 const MAINT_DOOR_SCENE := preload("res://scenes/door.tscn")

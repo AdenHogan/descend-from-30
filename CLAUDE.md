@@ -116,7 +116,9 @@ constants beats keeping them in sync by hand (see `DOWN_*` / `UP_*` in
   bottom when standing) = **419**. Sizes (W×H px):
   - Screen/viewport **1152×648**
   - Corridor (floors 1–29, `building_floors`) **1120×192** (feet 419; floor/ceiling band Y 243–435; walkable X ~115–1235)
-  - Hallway (floor 30) **1120×240**; Lobby (0) **1120×176**
+  - Hallway (floor 30) and Lobby (0) are ALSO **1120×192**, the SAME band 243–435 (the hallway's
+    old blue filler rows and the lobby's empty top rows are gone; locked by `transition_seam_test`)
+    — every floor is the same shape, which is what lets them stack flush in a stair pan.
   - Apartment shell (`room`) **992×160** (holds 3 modules; interior floor Y 352)
   - Apartment room MODULE **320×144** (`MODULE_WIDTH`=320; 3 side by side; `LEFT_WALL_X`=113)
   - Maintenance **416×176**; Elevator car interior **192×160** (`HALF_W`96/`HALF_H`80, centred in a full-screen dark shaft)
@@ -180,17 +182,16 @@ setup script; binary from downloads.godotengine.org). Before every commit:
   `maintenance_test`, `elevator_test`, `run_arc_test`, `enemy_variety_test`,
   `dev_menu_test`, `lighting_test`, `plane_lock_test`, `apartment_window_test`,
   `scavenge_node_test`, `drop_physics_test`, `softlock_test`, `character_panel_test`,
-  `corpse_recovery_test`, `run_memory_test`, `attack_input_test`, `character_stats_test` — run
-  all 40 before commit. (`new_game()` rolls a RANDOM seed, so any test meets any of the four
+  `corpse_recovery_test`, `run_memory_test`, `attack_input_test`, `character_stats_test`, `transition_seam_test` — run
+  all 41 before commit. (`new_game()` rolls a RANDOM seed, so any test meets any of the four
   characters — an assert on a trait-affected value must be trait-aware; see docs/CHARACTERS.md.) (Run ONE godot at a time — a killed/backgrounded headless run can
   linger and block the next, and a GDScript **parse error makes a test scene load but
   never call `quit()`, so it "hangs" until timeout** rather than printing an error line;
   if a suite hangs, check for a parse error and stray `godot` processes first.
-  `floor_adopt_test` is seed-sensitive: `new_game` rolls a random
-  master seed and it asserts a floor has zombies, so it fails ~occasionally
-  on a 0-zombie seed — a known flake, re-run it. The old `building_floors_test`
-  fire-cell-count flake was fixed by widening the LIGHT "small/patchy" bound to
-  1..12 cells.)
+  No known flakes: a 5×-full-suite flake hunt came back clean, and `floor_adopt_test`'s old
+  0-zombie-seed flake is fixed (it searches for a seed whose merchant floor has zombies). The
+  old `building_floors_test` fire-cell-count flake was fixed by widening the LIGHT
+  "small/patchy" bound to 1..12 cells.)
 
 Note: `tutorial_test` asserts first-run tutorial content, so it needs
 `is_first_run` true — which comes from `tutorial_completed=false` in the active
@@ -313,7 +314,26 @@ means no rendering — UI layout and art still need an in-editor look.
   **Exception**: FIRE + door-fire ARE spawned in the passive build (so a floor panned
   UP toward shows its fire as it scrolls into view, not popping in after the commit);
   `go_live` only spawns fire if the backdrop didn't already (`_fire_field == null`).
-  Lobby (0) and hallway (30) still use the plain fade.
+  **The whole building pans, 30 → lobby, no load anywhere**: the hallway (30) and lobby (0)
+  follow the SAME `setup_floor`/`passive`/`go_live` contract (shared plumbing in
+  `pan_backdrop.gd`), with Node2D roots, the locked floor camera and ceiling lamps, so 29↔30
+  and 1↔0 pan like any other pair (`StairPan.scene_for_floor` picks the real scene; spacing is
+  the shared band height). Only the floor's CANONICAL staircase pans (`can_pan(target, side,
+  dir)` checks `stair_down_side`); anything else keeps the fade. A pried crossing still fades
+  (time-skip caption). The first-run no-return rule (29→30 refused) and "followers don't enter
+  30/lobby" are unchanged by design. **Backdrop gotcha (bug class, fixed)**: a backdrop is
+  built while the PREVIOUS floor is still `current_scene`, so anything that reads
+  `get_tree().current_scene` during the passive build gets the WRONG scene — use the node's own
+  `scene_file_path` (corpse/drop lookups did this and lost floor 29's corpses/drops/extinguisher
+  when reached from 30; `add_world_drop` defaults its scene to the current one, so pass
+  `{"scene": scene_file_path}`). Enemy HP is seeded from `hp_floor` (set by the spawner) for
+  the same reason. **Lobby**: ONE stairwell (right, under floor 1's down stair — the redundant
+  left one was removed per the owner), end walls like every floor (it had none — you could walk
+  off-screen), and its dead spawn inside them (x remapped 50..1300 → 265..1105, keys unchanged
+  so saved kills still match). Locked by `transition_seam_test` (30→0→30 through the REAL
+  stairwells: every trip pans, right scene, player on the line, camera steady, no drift, old
+  floor gone, memory present). `tools/pan_capture.tscn` renders real frames of a transition
+  (xvfb) for a visual check.
 - Stairwell **barricades** + Crowbar (docs/STAIR_BARRICADES.md, v1): some
   stairwells are barricaded with debris and can't be fought — they're pried
   through with a **Crowbar (035)** (new `is_tool, is_crowbar` item, single-use/

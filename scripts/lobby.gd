@@ -11,6 +11,11 @@ const FLOOR_LIGHTING := preload("res://scripts/floor_lighting.gd")
 # Where a fresh standard zombie comes to REST (feet on the 419 floor line). A backdrop has
 # no physics step to settle it, so it's placed there directly or it would warp up on arrival.
 const ZOMBIE_SETTLED_Y := 370.0
+# Walkable span the lobby's dead spawn across — the corridors' own 265..1105 (clear of the
+# end walls and the stairwell). One stairwell only: the RIGHT one, under floor 1's down
+# stair (WorldState.stair_down_side(1)); the redundant left one was removed.
+const LOBBY_SPAWN_MIN_X := 265.0
+const LOBBY_SPAWN_MAX_X := 1105.0
 
 
 func _ready() -> void:
@@ -76,7 +81,12 @@ func _spawn_zombies(as_scenery: bool) -> void:
 		if WorldState.killed_zombies.has(key):
 			continue
 		var zombie = zombie_scene.instantiate()
-		zombie.global_position = pos
+		# The seed spreads them over 50..1300, but the lobby has end walls now (x ~128 /
+		# ~1224, like every floor) — squeeze that spread into the walkable span, clear of
+		# the stairwell, keeping their order + spacing. The KEY stays the seeded one, so
+		# kills/memory recorded before this change still match.
+		var x: float = LOBBY_SPAWN_MIN_X + (pos.x - 50.0) / 1250.0 * (LOBBY_SPAWN_MAX_X - LOBBY_SPAWN_MIN_X)
+		zombie.global_position = Vector2(x, pos.y)
 		zombie.spawn_key = key
 		zombie.hp_floor = 0
 		if as_scenery:

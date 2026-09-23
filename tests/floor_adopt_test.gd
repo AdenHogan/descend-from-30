@@ -120,9 +120,19 @@ func _test_go_live_spawns_fire() -> void:
 func _test_go_live_wakes_everything() -> void:
 	print("[go_live restores a fully live floor]")
 	WorldState.new_game()
-	var f := _floor_with_zombies(25)
-	if not (f in WorldState.MERCHANT_FLOORS):
-		f = 25   # 25 both has a merchant and (usually) zombies; fall here for the merchant check
+	# Needs a MERCHANT floor that has zombies (it checks both wake up). new_game() rolls a
+	# random seed, and floor 25 is empty on some — that was this suite's old ~occasional
+	# flake. Search for a seed that has one, so the test is deterministic.
+	var f := -1
+	for sd in range(1, 2000):
+		WorldState.master_seed = sd
+		for mf in WorldState.MERCHANT_FLOORS:
+			if mf >= 1 and mf <= 29 and WorldState.get_floor_zombie_count(mf) > 0:
+				f = mf
+				break
+		if f != -1:
+			break
+	chk(f != -1, "found a merchant floor with zombies to wake (%d)" % f)
 	WorldState.current_floor = (f + 3) % 29 + 1
 	WorldState.stair_spawn_side = "left"
 	WorldState.stair_direction = "down"

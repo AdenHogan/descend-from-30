@@ -92,8 +92,8 @@ px), or to a clean multiple of them, and tell us your tile size so we can slot i
 |------------------------|-----------------|--------------|-------|
 | Screen / viewport      | **1152 x 648**  | 72 x 40.5    | Fixed render resolution (nearest-filter). |
 | Corridor (mid-floors 1-29, `building_floors`) | **1120 x 192** | 70 x 12 | The main repeated set. Feet line Y 419; ceiling/floor band Y 243-435. Walkable X ~115-1235. Needs the decay-band + variety variants below. |
-| Hallway (floor 30, tutorial) | **1120 x 240** | 70 x 15 | Same width as a corridor, taller tilemap; framed to the same 192px band in view. |
-| Lobby (ground floor)   | **1120 x 176**  | 70 x 11      | Bottom of the building; grotesque decay band. |
+| Hallway (floor 30, tutorial) | **1120 x 192** | 70 x 12 | Same size as a corridor (band Y 243-435) so it stacks flush with floor 29 in the stair pan. |
+| Lobby (ground floor)   | **1120 x 192**  | 70 x 12      | Bottom of the building; same band as a corridor; ONE stairwell (right). Grotesque decay band. |
 | Apartment shell (`room`) | **992 x 160**   | 62 x 10      | The container an apartment's 3 modules sit inside; interior floor at Y 352. |
 | Apartment room MODULE   | **320 x 144**   | 20 x 9       | One furnished room (bedroom / kitchen / bathroom / study / living / dining). **Three sit side by side** to make an apartment. This is the key modular unit, author each room type to exactly 320 x 144, feet/floor at the bottom. |
 | Maintenance room       | **416 x 176**   | 26 x 11      | Small safe utility room (workbench + fuse box). |
