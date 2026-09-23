@@ -631,15 +631,25 @@ func profile_status() -> String:
 const CHARACTERS := ["blond_man", "dark_woman", "bald_man", "blond_woman"]
 
 
+var _cast_cache: Array = []
+var _cast_cache_seed: int = -1
+
+
 func run_cast() -> Array:
 	# A shuffled pick of THREE of the four characters (Fisher-Yates, seeded by master_seed).
+	# Cached per master_seed: every stat getter reads the run's character (traits fold), and
+	# those run every physics frame — no need to re-shuffle each call. Returns a copy.
+	if _cast_cache_seed == master_seed and not _cast_cache.is_empty():
+		return _cast_cache.duplicate()
 	var pool: Array = CHARACTERS.duplicate()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(str(master_seed) + "cast")
 	for i in range(pool.size() - 1, 0, -1):
 		var j: int = rng.randi_range(0, i)
 		var t = pool[i]; pool[i] = pool[j]; pool[j] = t
-	return pool.slice(0, 3)
+	_cast_cache = pool.slice(0, 3)
+	_cast_cache_seed = master_seed
+	return _cast_cache.duplicate()
 
 
 func run_character(run: int) -> String:
@@ -1423,11 +1433,74 @@ const UPGRADE_POOL = {
 var upgrade_offers: Dictionary = {}  # "run:floor" -> {"pair": [id,id], "resolved": bool}
 
 
-func _upgrade_stat_mult(stat: String) -> float:
-	var m = 1.0
+# ============================================================
+# CHARACTER TRAITS — each run's character plays differently
+# ============================================================
+# The run's character (current_character()) is ANOTHER MODIFIER SOURCE in the same fold as
+# upgrades — `mods` use the exact UPGRADE_POOL shape, so every stat getter picks them up and
+# upgrades STACK on top (never direct writes). `flags` are qualitative skills a getter can't
+# express (e.g. exact hearing). `perks` / `flaws` are the player-facing lines the journal shows —
+# keep them in step with `mods` (legibility is absolute, same rule as drawback upgrades).
+# Balance: every character has a clear identity; three trade a strength for a real weakness,
+# the Tenant is the steady all-rounder with modest perks and none.
+const CHARACTER_TRAITS := {
+	"blond_man": {   # The Tenant — all-rounder, the brawler's stamina
+		"tagline": "Steady all-rounder. Shoves and swings for longer.",
+		"perks": ["Pushes cost 30% less stamina (3 → 5 pushes a bar)", "Melee swings cost 15% less stamina"],
+		"flaws": [],
+		"mods": {"push_cost": {"mult": 0.70}, "melee_cost": {"mult": 0.85}},
+		"flags": [],
+	},
+	"blond_woman": {  # The Neighbour — endurance + quiet, but not quick
+		"tagline": "Endures and moves quietly — but she's no sprinter.",
+		"perks": ["Sprinting drains 20% less stamina", "Stamina recovers 15% faster", "Moves 15% quieter"],
+		"flaws": ["Sprints 12% slower"],
+		"mods": {"sprint_drain": {"mult": 0.80}, "stamina_regen": {"mult": 1.15},
+			"noise_mult": {"mult": 0.85}, "sprint_speed": {"mult": 0.88}},
+		"flags": [],
+	},
+	"bald_man": {     # The Super — knows every pipe and floorboard; the building doesn't like him
+		"tagline": "Knows this building by sound. It knows him too.",
+		"perks": ["Hears the EXACT number of enemies behind doors and down the stairs",
+			"Listens 25% faster", "Melee swings cost 10% less stamina"],
+		"flaws": ["Unlucky: about 20% more enemies on each floor"],
+		"mods": {"listen_speed": {"mult": 0.75}, "melee_cost": {"mult": 0.90},
+			"enemy_count": {"mult": 1.20}},
+		"flags": ["exact_hearing"],
+	},
+	"dark_woman": {   # The Nurse — lucky hands, shaky aim
+		"tagline": "Lucky hands, shaky aim.",
+		"perks": ["Scavenge spots hold something 8% more often", "Rare finds are likelier, junk rarer"],
+		"flaws": ["15% lower chance to hit with a gun"],
+		"mods": {"scavenge_bonus": {"add": 0.08}, "loot_luck": {"add": 1.0},
+			"body_bonus": {"add": -0.15}},
+		"flags": [],
+	},
+}
+
+
+func character_traits(cid: String = "") -> Dictionary:
+	return CHARACTER_TRAITS.get(cid if cid != "" else current_character(), {})
+
+
+func has_trait_flag(flag: String) -> bool:
+	return flag in character_traits().get("flags", [])
+
+
+func _stat_mods_sources() -> Array:
+	# Every modifier source in the fold: owned upgrades + the run's character traits.
+	var out: Array = []
 	for id in active_upgrades:
-		var up = UPGRADE_POOL.get(id, {})
-		var mod = up.get("mods", {}).get(stat, {})
+		out.append(UPGRADE_POOL.get(id, {}).get("mods", {}))
+	out.append(character_traits().get("mods", {}))
+	return out
+
+
+func _upgrade_stat_mult(stat: String) -> float:
+	# (Name kept for its many callers — it now folds upgrades AND character traits.)
+	var m = 1.0
+	for mods in _stat_mods_sources():
+		var mod = mods.get(stat, {})
 		if mod.has("mult"):
 			m *= float(mod["mult"])
 	return m
@@ -1435,9 +1508,8 @@ func _upgrade_stat_mult(stat: String) -> float:
 
 func _upgrade_stat_add(stat: String) -> float:
 	var a = 0.0
-	for id in active_upgrades:
-		var up = UPGRADE_POOL.get(id, {})
-		var mod = up.get("mods", {}).get(stat, {})
+	for mods in _stat_mods_sources():
+		var mod = mods.get(stat, {})
 		if mod.has("add"):
 			a += float(mod["add"])
 	return a
@@ -1466,6 +1538,11 @@ func get_listen_speed_mult() -> float: return _upgrade_stat_mult("listen_speed")
 func get_heal_bonus() -> int: return int(_upgrade_stat_add("heal_bonus"))
 func get_scavenge_bonus() -> float: return _upgrade_stat_add("scavenge_bonus")
 func get_noise_mult() -> float: return _upgrade_stat_mult("noise_mult")
+func get_push_cost_mult() -> float: return _upgrade_stat_mult("push_cost")
+func get_melee_cost_mult() -> float: return _upgrade_stat_mult("melee_cost")
+func get_sprint_speed_mult() -> float: return _upgrade_stat_mult("sprint_speed")
+func get_enemy_count_mult() -> float: return _upgrade_stat_mult("enemy_count")
+func get_loot_luck() -> float: return _upgrade_stat_add("loot_luck")
 
 
 func get_upgrade_pair(floor_num: int) -> Array:
@@ -1575,6 +1652,25 @@ const LISTEN_LINES_BELOW = {
 }
 
 
+const _COUNT_WORDS := ["No", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten"]
+
+
+func _count_word(n: int) -> String:
+	return _COUNT_WORDS[n] if n >= 0 and n < _COUNT_WORDS.size() else str(n)
+
+
+func _exact_listen_line(count: int, where: String) -> String:
+	# The Super's EXACT hearing: the report is already TRUE (same seed as the spawner, minus the
+	# killed) — he just says the number instead of a vague category.
+	if where == "below":
+		if count <= 0:
+			return "Nothing moving down there. Not a thing."
+		return "%s on the floor below. I can hear every one of them." % _count_word(count)
+	if count <= 0:
+		return "...Silent. Nothing in there — I'm sure of it."
+	return "%s in there. I can count every step." % _count_word(count)
+
+
 func get_listen_report_for_apartment(apt_id: String) -> Dictionary:
 	var has_big = get_door_state(apt_id) == DoorState.BREACHED
 	var count: int
@@ -1591,11 +1687,16 @@ func get_listen_report_for_apartment(apt_id: String) -> Dictionary:
 				has_big = false
 	count = max(count, 0)
 	var category = _listen_category(count, has_big)
+	var line: String = LISTEN_LINES_APARTMENT[category]
+	# A breach room's count is a stand-in (horde + boss by construction), so even exact hearing
+	# keeps the "something big" read there rather than state a number it can't know.
+	if has_trait_flag("exact_hearing") and not has_big:
+		line = _exact_listen_line(count, "apartment")
 	return {
 		"count": count,
 		"has_big": has_big,
 		"category": category,
-		"line": LISTEN_LINES_APARTMENT[category],
+		"line": line,
 		"nearness": get_listen_nearness("apartment", apt_id),
 	}
 
@@ -1612,11 +1713,14 @@ func get_listen_report_for_floor_below() -> Dictionary:
 			count -= 1
 	count = max(count, 0)
 	var category = _listen_category(count, false)
+	var line: String = LISTEN_LINES_BELOW[category]
+	if has_trait_flag("exact_hearing"):
+		line = _exact_listen_line(count, "below")
 	return {
 		"count": count,
 		"has_big": false,
 		"category": category,
-		"line": LISTEN_LINES_BELOW[category],
+		"line": line,
 		"nearness": get_listen_nearness("floor_below", str(below)),
 	}
 
@@ -1908,6 +2012,24 @@ func descend_from_balcony(apartment_id: String) -> String:
 
 
 func get_floor_zombie_count(floor_num: int) -> int:
+	# The floor's base count, scaled by the run character's luck (The Super draws busier
+	# floors). Counts are small ints, so ×1.2 would round away to nothing: the fractional part
+	# becomes a SEEDED chance of one extra (2 × 1.2 = 2.4 → 3 on 40% of floors). Deterministic
+	# per (floor, run), so the spawner, a stair-pan backdrop and the listen report all agree.
+	var base := _base_floor_zombie_count(floor_num)
+	var mult := get_enemy_count_mult()
+	if base <= 0 or is_equal_approx(mult, 1.0):
+		return base
+	var scaled := float(base) * mult
+	var whole := int(floor(scaled))
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "enemyluck" + str(floor_num) + str(current_run))
+	if rng.randf() < scaled - float(whole):
+		whole += 1
+	return maxi(whole, 0)
+
+
+func _base_floor_zombie_count(floor_num: int) -> int:
 	var rng = RandomNumberGenerator.new()
 	rng.seed = (master_seed ^ (floor_num * 1000003)) & 0xFFFFFFFF
 	var roll = rng.randf()
@@ -2797,6 +2919,18 @@ func get_anchors_for_room(room_type: String) -> Array:
 	return []
 
 
+# Spawn-weight multiplier per item rarity (PROPERTY_SPAWN_RARITY: 1 = rare … 4 = junk) at full
+# loot luck. A lucky character's pools lean toward rare kit and away from junk; unlucky = 1.0.
+const LUCK_RARITY_WEIGHT := {1: 1.6, 2: 1.2, 3: 1.0, 4: 0.55}
+
+
+func luck_weight(rarity: int) -> float:
+	var luck: float = clampf(get_loot_luck(), 0.0, 1.0)
+	if luck <= 0.0:
+		return 1.0
+	return lerpf(1.0, float(LUCK_RARITY_WEIGHT.get(rarity, 1.0)), luck)
+
+
 func get_items_for_anchor(anchor_name: String, apartment_id: String) -> Array:
 	var room_type = get_room_type_for_anchor(anchor_name, apartment_id)
 	if room_type == "":
@@ -2821,6 +2955,9 @@ func get_items_for_anchor(anchor_name: String, apartment_id: String) -> Array:
 			# Bedrooms are the place to find clothes — bump the odds there so
 			# gathering three (for a clothes-rope) isn't a slog.
 			weight *= CLOTHES_BEDROOM_BOOST
+		# Character LUCK (The Nurse): rare finds likelier, junk rarer. Pool contents only, so
+		# the seeded draw at the call site stays deterministic.
+		weight *= luck_weight(int(ItemData.get_item(item_id).get("rarity", 3)))
 		var whole = int(floor(weight))
 		for i in range(whole):
 			valid_items.append(item_id)

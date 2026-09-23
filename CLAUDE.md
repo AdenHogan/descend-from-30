@@ -42,6 +42,9 @@ originals — the markdown here is canonical for development):
   tone, the critical conventions (one feet-baseline, author FLAT so the engine's dynamic
   lighting works, face-right + flip), the full asset list by priority, the sectional
   decay bands, and deliverable/naming spec. Share with any artist.
+- `docs/CHARACTERS.md` — **BUILT v1**: the four characters' stats/traits (the owner's brief →
+  what was built), `WorldState.CHARACTER_TRAITS` as the single source, the new stats, and the
+  testing note (random seeds → random character in every test).
 - `docs/Y_PLANES.md` — **LOCKED reference**: every world-Y plane on a corridor
   floor (the feet line 419, spawn/stand origins, stair triggers, staircase art
   boxes, the player stair-transition slice constants, the stairwell-enemy geometry,
@@ -177,7 +180,9 @@ setup script; binary from downloads.godotengine.org). Before every commit:
   `maintenance_test`, `elevator_test`, `run_arc_test`, `enemy_variety_test`,
   `dev_menu_test`, `lighting_test`, `plane_lock_test`, `apartment_window_test`,
   `scavenge_node_test`, `drop_physics_test`, `softlock_test`, `character_panel_test`,
-  `corpse_recovery_test`, `run_memory_test`, `attack_input_test` — run all 39 before commit. (Run ONE godot at a time — a killed/backgrounded headless run can
+  `corpse_recovery_test`, `run_memory_test`, `attack_input_test`, `character_stats_test` — run
+  all 40 before commit. (`new_game()` rolls a RANDOM seed, so any test meets any of the four
+  characters — an assert on a trait-affected value must be trait-aware; see docs/CHARACTERS.md.) (Run ONE godot at a time — a killed/backgrounded headless run can
   linger and block the next, and a GDScript **parse error makes a test scene load but
   never call `quit()`, so it "hangs" until timeout** rather than printing an error line;
   if a suite hangs, check for a parse error and stray `godot` processes first.
@@ -944,7 +949,8 @@ means no rendering — UI layout and art still need an in-editor look.
   deterministic per playthrough + stable across save/load; `run_character(run)` /
   `current_character()`). `hud.gd` loads the CURRENT run's character's 6 portraits on demand
   (`_ensure_portraits`, reloading when `current_character()` changes as the run advances) — no more
-  hardcoded set. Names / a selectable profile picker are a later job (for now it's a random draw).
+  hardcoded set. Per-character STATS are built (see "CHARACTER STATS" below + docs/CHARACTERS.md);
+  final names / a selectable profile picker are a later job (for now it's a random draw).
   Locked by `run_arc_test._test_run_cast`.
   Prep pipeline (rembg human-seg + isnet fallback on low-contrast panels, alpha solidify,
   shoulder-anchored bust crop upscaled to 281×351 to match the male's framing) is a one-off
@@ -1058,7 +1064,23 @@ means no rendering — UI layout and art still need an in-editor look.
   grounded by feet (+ old saves migrated); a locked-wallet + full-pockets recovery no longer
   destroys the cash (it stays on the body); journal names single-sourced + time-agnostic
   subtitles; escaped characters read "Escaped the building.", the lobby reads "the Lobby".
-- Next: characters/profiles/stats; **Upgrade offers** polish; barricade-keeper NPC; fire
-  smoke/crouch + warning beat; the maintenance **upgrade station** UI (Scrap system,
-  SCRAP_UPGRADES.md).
-- Not started: balcony descent, quests, character stats.
+- CHARACTER STATS / traits (v1, docs/CHARACTERS.md): each run's character plays differently.
+  `WorldState.CHARACTER_TRAITS` holds per-character `mods` (UPGRADE_POOL shape) + `flags` +
+  journal lines; `_stat_mods_sources()` folds the run character's mods into the SAME fold as
+  upgrades (`_upgrade_stat_mult/_add` — names kept for callers), so every getter picks them up
+  and upgrades stack on top. Tenant = more pushes (push ×0.70: 3→5 a bar) + cheaper melee, no
+  weakness; Neighbour = endurance + 15% quieter, sprints 12% slower; Super = EXACT hearing
+  (`exact_hearing` flag → `_exact_listen_line`) + faster listening + cheaper melee, but ~20% more
+  enemies (`enemy_count`, seeded fractional rounding in `get_floor_zombie_count`, wrapping
+  `_base_floor_zombie_count`); Nurse = luck (`loot_luck` → `luck_weight(rarity)` reweights anchor
+  pools toward rare/away from junk) + find rate, but −15% gun hit chance. New stats:
+  `push_cost` / `melee_cost` / `sprint_speed` / `enemy_count` / `loot_luck`. `run_cast()` is now
+  cached per master_seed (the getters read the character every physics frame). The journal Story
+  tab shows each character's tagline + strengths/weakness (`character_panel.traits_bbcode`).
+  Covered by `character_stats_test` (+ `listen_noise_test` made trait-aware — seed 424242 casts
+  the Super). Names are still placeholders; balance numbers need a playtest.
+- Next (owner's order): the maintenance **upgrade station** + weapon/item upgrades (Scrap
+  system, SCRAP_UPGRADES.md) → in-run temporary upgrades → permanent cross-run upgrades
+  (`best_depth` is the record hook). Also open: **Upgrade offers** polish; barricade-keeper NPC;
+  fire smoke/crouch + warning beat.
+- Not started: balcony descent, quests.

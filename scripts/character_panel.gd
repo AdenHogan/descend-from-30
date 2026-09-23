@@ -43,6 +43,7 @@ var status_text: RichTextLabel = null
 var subtitle_label: Label = null
 var lore_text: RichTextLabel = null
 var before_text: RichTextLabel = null
+var traits_text: RichTextLabel = null
 var portrait_rect: TextureRect = null
 var npc_text: RichTextLabel = null
 var map_view: Control = null
@@ -161,6 +162,11 @@ func _build() -> void:
 	story.add_child(right)
 	subtitle_label = _ink_label("", 13, INK_SOFT)
 	right.add_child(subtitle_label)
+	# This character's traits (WorldState.CHARACTER_TRAITS) — what makes this run play differently.
+	traits_text = _ink_rich()
+	traits_text.fit_content = true
+	traits_text.scroll_active = false
+	right.add_child(traits_text)
 	lore_text = _ink_rich()
 	lore_text.custom_minimum_size = Vector2(0, 96)
 	right.add_child(lore_text)
@@ -203,6 +209,7 @@ func _refresh() -> void:
 	var char_name: String = WorldState.character_display_name(cid)   # the ONE name source
 	title_label.text = char_name
 	subtitle_label.text = str(info.get("subtitle", ""))
+	traits_text.text = traits_bbcode(cid)
 	lore_text.text = str(info.get("lore", "No lore recorded yet for %s." % char_name))
 	var tex = load("res://assets/Health_Bar/%s - 1 - Healthy.png" % cid)
 	if tex != null:
@@ -228,6 +235,20 @@ func _refresh() -> void:
 	npc_text.text = q
 	if map_view != null:
 		map_view.queue_redraw()
+
+
+static func traits_bbcode(cid: String) -> String:
+	# Strengths + weaknesses, straight from the trait data the stats fold reads — so what the
+	# journal promises is exactly what the game applies.
+	var t: Dictionary = WorldState.character_traits(cid)
+	if t.is_empty():
+		return ""
+	var out := "[i]%s[/i]\n" % str(t.get("tagline", ""))
+	for p in t.get("perks", []):
+		out += "[color=#2f5a2a]+ %s[/color]\n" % str(p)
+	for f in t.get("flaws", []):
+		out += "[color=#7a2a1f]− %s[/color]\n" % str(f)
+	return out.strip_edges()
 
 
 func _chronicle_bbcode() -> String:

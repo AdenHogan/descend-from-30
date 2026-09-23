@@ -360,7 +360,7 @@ func _physics_process(delta: float) -> void:
 	if WorldState.is_scavenge_mode:
 		current_speed = SCAVENGE_SPEED
 	elif is_sprinting and WorldState.stamina > 0:
-		current_speed = SPRINT_SPEED
+		current_speed = SPRINT_SPEED * WorldState.get_sprint_speed_mult()   # The Neighbour runs slower
 	elif is_crouching:
 		current_speed = CROUCH_SPEED
 	current_speed *= WorldState.get_move_speed_mult()
@@ -593,7 +593,7 @@ func _do_melee_attack(instance: ItemInstance, slot_index: int) -> void:
 	if instance.is_depleted:
 		HUD.show_feedback("It's broken — repair it with a toolbox.")
 		return
-	var stamina_cost = WEAPON_STAMINA_COST.get(weapon_type, 15.0)
+	var stamina_cost = WEAPON_STAMINA_COST.get(weapon_type, 15.0) * WorldState.get_melee_cost_mult()
 	# Attacking requires at least 2 bars (25%). In the red zone you can move but not swing.
 	if WorldState.stamina < WorldState.get_max_stamina() * 0.25 and not WorldState.god_mode:
 		HUD.show_feedback("Too exhausted to swing.")
@@ -747,10 +747,12 @@ func _do_push() -> void:
 		return
 	var now = Time.get_ticks_msec() / 1000.0
 	var time_since_last = now - last_push_time
-	var cost = STAMINA_PUSH_COST
+	# Character traits / upgrades scale the push cost (The Tenant: 3 → 5 pushes a bar).
+	var base_cost: float = STAMINA_PUSH_COST * WorldState.get_push_cost_mult()
+	var cost = base_cost
 	if time_since_last < STAMINA_PUSH_REPEAT_WINDOW:
 		push_count_window += 1
-		cost = STAMINA_PUSH_COST * pow(STAMINA_PUSH_REPEAT_MULT, push_count_window)
+		cost = base_cost * pow(STAMINA_PUSH_REPEAT_MULT, push_count_window)
 	else:
 		push_count_window = 1
 	last_push_time = now

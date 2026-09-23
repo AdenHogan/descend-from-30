@@ -76,8 +76,12 @@ func _test_apartment_report() -> void:
 	var raw_count = WorldState.get_apartment_zombie_count(apt)
 	var report = WorldState.get_listen_report_for_apartment(apt)
 	check(report["count"] == raw_count, "report count matches spawn seed (%d)" % raw_count)
-	check(report["line"] == WorldState.LISTEN_LINES_APARTMENT[report["category"]],
-		"line matches category")
+	# The line depends on WHO is listening: The Super (exact_hearing — this seed casts him as run
+	# 1) states the true number; everyone else hears the category line.
+	var want_apt: String = WorldState._exact_listen_line(report["count"], "apartment") \
+		if WorldState.has_trait_flag("exact_hearing") and not report["has_big"] \
+		else WorldState.LISTEN_LINES_APARTMENT[report["category"]]
+	check(report["line"] == want_apt, "line matches the listener's hearing (%s)" % WorldState.current_character())
 
 	# Record a kill inside that apartment: the report must subtract it.
 	if raw_count > 0:
@@ -114,8 +118,10 @@ func _test_floor_below_report() -> void:
 	var raw = WorldState.get_floor_zombie_count(19)
 	var report = WorldState.get_listen_report_for_floor_below()
 	check(report["count"] == raw, "stairwell read matches floor-19 seed (%d)" % raw)
-	check(report["line"] == WorldState.LISTEN_LINES_BELOW[report["category"]],
-		"below line matches category")
+	var want_below: String = WorldState._exact_listen_line(report["count"], "below") \
+		if WorldState.has_trait_flag("exact_hearing") \
+		else WorldState.LISTEN_LINES_BELOW[report["category"]]
+	check(report["line"] == want_below, "below line matches the listener's hearing (%s)" % WorldState.current_character())
 
 	WorldState.current_floor = 1
 	var lobby = WorldState.get_listen_report_for_floor_below()
