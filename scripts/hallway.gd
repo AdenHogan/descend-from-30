@@ -63,6 +63,8 @@ func _ready() -> void:
 	_spawn_world_drops(30)
 	# A character who fell here (floor 30) leaves a recoverable body for the next one.
 	WorldState.spawn_player_corpse_into(self, 30, get_tree().current_scene.scene_file_path, "")
+	# Journal memory: floor 30 is where every run begins — reveal it on the map.
+	WorldState.note_floor_arrival(self, 30)
 
 	# First-run cold open: black screen, banging, locked out, remember the
 	# 3003 spare key. Plays once (opener_seen), then hands to gameplay.

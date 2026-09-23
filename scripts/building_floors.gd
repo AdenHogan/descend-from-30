@@ -114,10 +114,6 @@ func _ready() -> void:
 		_make_inert()
 		return
 
-	# Cross-run memory: this character has now reached this floor (deepest tracked for records).
-	WorldState.note_floor_reached(floor_num)
-	WorldState.note_floor_visited(floor_num)      # reveals this floor on the journal map
-
 	if WorldState.spawn_source == "stair":
 		# WHERE the player emerges is derived from the floor's fixed geometry + the
 		# direction travelled, NOT from the mutable stair_spawn_side (which a warp/
@@ -152,8 +148,7 @@ func _ready() -> void:
 	_apply_doors(floor_num)
 
 	_spawn_zombies(floor_num, false)
-	if not get_tree().get_nodes_in_group("zombie").is_empty():
-		WorldState.note_enemies_on_floor(floor_num)   # journal map: the dead were sighted here
+	_note_floor_arrival(floor_num)
 	_spawn_corpses(floor_num)
 	_place_elevator_kit(floor_num)
 	_spawn_maintenance_door(floor_num)
@@ -1126,6 +1121,18 @@ func go_live() -> void:
 	_spawn_merchant(floor_num)
 	WorldState.apply_time_tint(self, floor_num)   # a woken pan backdrop gets its ambient here
 	_spawn_floor_lighting(floor_num)              # guarded — passive backdrop already built these
+	# Journal/cross-run memory: arriving by STAIRS is the main way down, and it lands here, not
+	# in the live _ready — so depth, the map's fog and enemy sightings must be recorded here too.
+	_note_floor_arrival(floor_num)
+
+
+func _note_floor_arrival(floor_num: int) -> void:
+	# Live build AND stair-pan go_live both land here (see WorldState.note_floor_arrival).
+	WorldState.note_floor_arrival(self, floor_num)
+
+
+func _has_own_live_zombies() -> bool:
+	return WorldState.scene_has_live_zombies(self)
 
 
 func _apply_doors(floor_num: int) -> void:

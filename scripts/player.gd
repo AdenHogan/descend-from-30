@@ -53,6 +53,12 @@ const GUN_RANGE_MID = 250.0
 
 var is_attacking: bool = false
 var attack_cooldown_timer: float = 0.0
+# ATTACK INPUT BUFFER (owner: "equip item and attack should never have hiccups"). An attack
+# press that arrives while a swing is still cooling down, or while the stance is switching,
+# used to be silently DROPPED. Now it's held for a short window and fires the moment the
+# player can swing — so a press is never lost to timing.
+const ATTACK_BUFFER_TIME := 0.35
+var _attack_buffered_until: float = -1.0
 
 @onready var animated_sprite: AnimatedSprite2D = $AnimatedSprite2D
 
@@ -293,6 +299,7 @@ func _physics_process(delta: float) -> void:
 		attack_cooldown_timer -= delta
 		if attack_cooldown_timer <= 0:
 			is_attacking = false
+	_try_buffered_attack()          # a press queued mid-swing / mid-switch fires as soon as it can
 
 	var direction = Input.get_axis("move_left", "move_right")
 	# Click-to-move: keyboard always overrides; otherwise steer toward the
@@ -997,7 +1004,15 @@ func _reseed_zombies() -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if is_dead or is_dying or is_switching_mode or is_cutscene:
+	if is_dead or is_dying or is_cutscene:
+		return
+	if is_switching_mode:
+		# Nothing else is processed mid-switch — but an attack press is BUFFERED (not dropped)
+		# so it swings the instant the weapon is out.
+		if event.is_action_pressed("attack") and not _is_pointer_click(event) \
+				and _selected_weapon_instance() != null:
+			_buffer_attack(MODE_SWITCH_TIME)
+			get_viewport().set_input_as_handled()
 		return
 	if is_listening:
 		# A click (like keyboard movement/actions in _physics_process) breaks
@@ -1020,18 +1035,12 @@ func _input(event: InputEvent) -> void:
 				get_viewport().set_input_as_handled()
 				return
 
-	# Attack is a rebindable action (default Space, can live on a mouse side
-	# button — see SettingsManager). Combat only.
-	# A MOUSE attack only swings when there's an actual target (a zombie under
-	# the cursor or in reach ahead); on empty ground the click is NOT consumed,
-	# so it falls through to click-to-move. A key/side-button attack always
-	# swings. This is what makes left-click move in combat, not just attack.
-	if not WorldState.is_scavenge_mode and event.is_action_pressed("attack"):
-		if not _is_mouse_over_hud():
-			var from_mouse = event is InputEventMouseButton
-			if not from_mouse or _has_attack_target():
-				_do_attack_action(from_mouse)
-				get_viewport().set_input_as_handled()
+	# Attack is a rebindable action (default Space, can live on a mouse side button —
+	# see SettingsManager). All the rules live in _handle_attack_press.
+	if event.is_action_pressed("attack"):
+		if _handle_attack_press(event):
+			get_viewport().set_input_as_handled()
+			return
 
 	if event.is_action_pressed("item_slot_1"): HUD.select_slot(0)
 	elif event.is_action_pressed("item_slot_2"): HUD.select_slot(1)
@@ -1044,6 +1053,94 @@ func _input(event: InputEvent) -> void:
 			use_item(slot)
 	elif event.is_action_pressed("rest"):
 		do_rest()
+
+
+# --- Attack press handling (one place for every rule) ---------------------------------------
+# Past hiccups this replaces (owner: "pressing Space does nothing until I re-equip"):
+#  • A KEY press was dropped whenever the mouse sat in the bottom HUD band — and right after
+#    clicking an inventory slot to equip, it ALWAYS does. Only a POINTER click is HUD-gated now.
+#  • In scavenge mode a weapon + Space did nothing at all. Now Space DRAWS the weapon
+#    (switches to combat) and swings the moment the stance lands.
+#  • Presses during a swing's cooldown or a stance switch were lost. Now they're buffered.
+#  • Mouse SIDE buttons (rebindable attack) were treated as pointer clicks; they now act like
+#    a key, as the attack binding always intended.
+
+func feet_position() -> Vector2:
+	# Where the player's FEET touch the floor (collision-bottom) — the plane every actor stands on
+	# (419 in a corridor). Things left where the player stood (their corpse) are placed by feet,
+	# never by origin: the origin sits ~33px above the floor.
+	var cs = get_node_or_null("CollisionShape2D")
+	if cs != null and cs.shape is CapsuleShape2D:
+		return Vector2(global_position.x, global_position.y + cs.position.y + cs.shape.height * 0.5)
+	return global_position + Vector2(0, WorldState.PLAYER_FEET_OFFSET)
+
+
+func _is_pointer_click(event: InputEvent) -> bool:
+	# A click that POINTS at something (left/right/middle). Side buttons (4/5) are not pointers —
+	# a rebound attack on them behaves exactly like a key.
+	return event is InputEventMouseButton and event.button_index in [
+		MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT, MOUSE_BUTTON_MIDDLE]
+
+
+static func hud_blocks_attack(pointer: bool, over_hud: bool) -> bool:
+	# Only a POINTER click on the HUD is blocked (clicking a slot must never swing). A key or
+	# side-button attack is NEVER blocked by where the mouse happens to rest.
+	return pointer and over_hud
+
+
+func _selected_weapon_instance():
+	var sel: int = HUD.selected_slot
+	if sel < 0 or sel >= WorldState.inventory.size():
+		return null
+	var inst = WorldState.get_instance_at(sel)
+	if inst == null or not inst.get_data().get("is_weapon", false):
+		return null
+	return inst
+
+
+func _handle_attack_press(event: InputEvent) -> bool:
+	# Returns true when the press was used (consumed). Unused pointer clicks fall through to
+	# click-to-move / click-to-scavenge.
+	if WorldState.loot_open:
+		return false
+	var pointer := _is_pointer_click(event)
+	if hud_blocks_attack(pointer, _is_mouse_over_hud() if pointer else false):
+		return false
+	var weapon = _selected_weapon_instance()
+	if WorldState.is_scavenge_mode:
+		# A pointer click in scavenge mode is click-to-scavenge/move, never a swing. A KEY attack
+		# with a weapon in hand draws it: switch to combat and swing as soon as the stance lands.
+		if pointer or weapon == null:
+			return false
+		if request_mode_toggle():
+			_buffer_attack(MODE_SWITCH_TIME)
+			return true
+		return false
+	if pointer and not _has_attack_target():
+		return false                      # empty-ground click → click-to-move
+	if is_attacking and not pointer and weapon != null:
+		_buffer_attack(0.0)               # mid-swing: queue the next swing instead of dropping it
+		return true
+	_do_attack_action(pointer)
+	return true
+
+
+func _buffer_attack(extra: float) -> void:
+	_attack_buffered_until = Time.get_ticks_msec() / 1000.0 + ATTACK_BUFFER_TIME + extra
+
+
+func _try_buffered_attack() -> void:
+	if _attack_buffered_until < 0.0:
+		return
+	if Time.get_ticks_msec() / 1000.0 > _attack_buffered_until:
+		_attack_buffered_until = -1.0      # window closed — a stale press never fires late
+		return
+	if is_attacking or is_switching_mode or WorldState.is_scavenge_mode or is_dead or is_dying \
+			or is_cutscene or is_listening or WorldState.loot_open:
+		return                             # not yet — keep waiting inside the window
+	_attack_buffered_until = -1.0
+	if _selected_weapon_instance() != null:
+		_do_attack_action(false)
 
 
 const EXTINGUISHER_SPRAY := preload("res://scripts/extinguisher_spray.gd")

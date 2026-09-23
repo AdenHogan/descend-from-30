@@ -45,10 +45,14 @@ func _ready() -> void:
 	check(HUD.character_panel.visible, "click opens the panel")
 	check(get_tree().paused, "opening the profile pauses the game")
 	var cid: String = WorldState.current_character()
-	var expected := str(HUD.character_panel.CHAR_LORE.get(cid, {}).get("name", ""))
-	if expected != "":
-		check(HUD.character_panel.title_label.text == expected,
-			"title shows the current character's name (%s)" % expected)
+	var expected: String = WorldState.character_display_name(cid)
+	check(HUD.character_panel.title_label.text == expected,
+		"title shows the current character's name from the ONE name source (%s)" % expected)
+	check(not HUD.character_panel.CHAR_LORE.get(cid, {}).has("name"),
+		"the journal keeps no second copy of the name")
+	var sub: String = HUD.character_panel.subtitle_label.text.to_lower()
+	check(not ("morning" in sub or "afternoon" in sub or "night" in sub),
+		"the subtitle never claims a time of day (the cast is random per run)")
 	check(HUD.character_panel.portrait_rect.texture != null, "profile shows the character portrait")
 	check(HUD.character_panel.tabs.get_tab_count() == 3, "three tabs (Profile + NPCs + Before You)")
 	check(HUD.character_panel.npc_text.text.length() > 0, "NPC tab has placeholder copy")
@@ -72,6 +76,19 @@ func _ready() -> void:
 		check(HUD.character_panel.title_label.text != first_title or true,
 			"panel refreshes for the new run's character (title=%s)" % HUD.character_panel.title_label.text)
 		HUD.character_panel.close()
+
+	# 6. ESC with the journal open closes the JOURNAL — it must not open the pause menu on top
+	#    (whose Resume would then unpause the game behind a still-open journal).
+	HUD.visible = true
+	get_tree().paused = false
+	HUD.open_character_panel()
+	var esc := InputEventAction.new()
+	esc.action = "ui_cancel"
+	esc.pressed = true
+	Game._input(esc)
+	check(not HUD.character_panel.visible, "ESC closes the journal")
+	check(not PauseMenu.visible, "ESC over the journal does NOT open the pause menu")
+	check(not get_tree().paused, "the game is left unpaused, not stuck behind a menu")
 
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)

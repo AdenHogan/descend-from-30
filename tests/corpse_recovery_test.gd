@@ -27,6 +27,9 @@ func _ready() -> void:
 	_test_partial_recovery()
 	_test_save_load_roundtrip()
 	await _test_spawn_node()
+	await _test_grounding()
+	_test_locked_wallet_full_pockets()
+	await _test_lobby_body()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -130,6 +133,75 @@ func _test_save_load_roundtrip() -> void:
 	check(WorldState.player_corpses.has("2"), "corpse restored from save")
 	check(int(WorldState.player_corpses["2"]["notes"]) == 55, "its notes survived the round-trip")
 	WorldState.delete_save()
+
+
+func _test_locked_wallet_full_pockets() -> void:
+	# No wallet yet + a full inventory: the cash can't be taken — it must STAY on the body.
+	print("[no wallet + full pockets: the cash stays on the body, never destroyed]")
+	WorldState.new_game()
+	WorldState.wallet_unlocked = false
+	WorldState.inventory.clear()
+	for id in ["002", "006", "007", "009", "010"]:
+		WorldState.add_to_inventory(id)          # 5/5 slots, no Bank Notes stack to merge into
+	WorldState.player_corpses["1"] = {"floor": 9, "scene": BUILDING, "apartment_id": "",
+		"x": 500, "y": 419, "feet": true, "notes": 60, "items": []}
+	var s = WorldState.recover_player_corpse("1")
+	check(int(s["notes"]) == 0, "no cash reported as recovered when none could be taken")
+	check(WorldState.player_corpses.has("1") and int(WorldState.player_corpses["1"]["notes"]) == 60,
+		"the 60 notes are still on the body for a return trip")
+	WorldState.inventory.remove_at(4)            # make room
+	s = WorldState.recover_player_corpse("1")
+	check(int(s["notes"]) == 60 and not WorldState.player_corpses.has("1"),
+		"with room, the cash is taken and the body is spent")
+
+
+func _test_lobby_body() -> void:
+	# The lobby has zombies, so characters can fall there (current_floor 0, lobby scene).
+	print("[a character who falls in the lobby leaves a recoverable body there]")
+	WorldState.new_game()
+	const LOBBY := "res://scenes/lobby.tscn"
+	WorldState.record_player_corpse(0, LOBBY, "", Vector2(400, 419))
+	var parent := Node2D.new()
+	add_child(parent)
+	WorldState.spawn_player_corpse_into(parent, 0, LOBBY, "")
+	await get_tree().process_frame
+	check(get_tree().get_nodes_in_group("player_corpse").size() == 1, "the lobby body is placed")
+	parent.queue_free()
+	await get_tree().process_frame
+
+
+func _test_grounding() -> void:
+	# The body must LIE ON the floor line (the dead character's feet), not float at their origin.
+	print("[the body lies on the floor — and older saved bodies are grounded, not lost]")
+	var p = load("res://scenes/player.tscn").instantiate()
+	add_child(p)
+	p.global_position = Vector2(600, 386)          # the corridor player origin
+	await get_tree().process_frame
+	check(absf(p.feet_position().y - 419.0) < 0.5, "player feet = the corridor floor line 419 (got %.1f)" % p.feet_position().y)
+	p.queue_free()
+	WorldState.new_game()
+	var parent := Node2D.new()
+	add_child(parent)
+	# A NEW record stores the feet.
+	WorldState.record_player_corpse(9, BUILDING, "", Vector2(500, 419))
+	WorldState.spawn_player_corpse_into(parent, 9, BUILDING, "")
+	await get_tree().process_frame
+	var bodies = get_tree().get_nodes_in_group("player_corpse")
+	check(bodies.size() == 1 and absf(bodies[0].global_position.y - 419.0) < 0.5, "a new body rests on the floor line")
+	for b in bodies:
+		b.free()
+	# An OLDER save stored the ORIGIN (no `feet` flag) — it must be grounded, not dropped.
+	WorldState.player_corpses.clear()
+	WorldState.player_corpses["1"] = {"floor": 9, "scene": BUILDING, "apartment_id": "",
+		"x": 500, "y": 386, "notes": 5, "items": []}
+	WorldState.spawn_player_corpse_into(parent, 9, BUILDING, "")
+	await get_tree().process_frame
+	bodies = get_tree().get_nodes_in_group("player_corpse")
+	check(bodies.size() == 1, "a body from an older save is still spawned (memory kept)")
+	check(bodies.size() == 1 and absf(bodies[0].global_position.y - 419.0) < 0.5,
+		"and it is grounded on the floor line (386 → 419)")
+	parent.queue_free()
+	await get_tree().process_frame
 
 
 func _test_spawn_node() -> void:

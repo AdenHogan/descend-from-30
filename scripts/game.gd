@@ -50,6 +50,14 @@ func _input(event: InputEvent) -> void:
 	# PauseMenu is an autoload now (not embedded in every scene), so it no
 	# longer blankets the editor viewport and each world scene stays editable.
 	if event.is_action_pressed("ui_cancel") and HUD.visible:
+		# The character journal is a pausing overlay of its own: ESC closes IT first. This handler
+		# runs before the journal's own input, so without this ESC opened the pause menu ON TOP of
+		# the journal — and Resume then unpaused the live game behind a still-open journal.
+		var journal = HUD.get("character_panel")
+		if journal != null and is_instance_valid(journal) and journal.visible:
+			journal.close()
+			get_viewport().set_input_as_handled()
+			return
 		PauseMenu.handle_cancel()
 		get_viewport().set_input_as_handled()
 
@@ -108,7 +116,10 @@ func game_over() -> void:
 		if dead != null:
 			var scene_path: String = get_tree().current_scene.scene_file_path
 			var apt: String = WorldState.current_apartment_id if scene_path == SCENES["room"] else ""
-			WorldState.record_player_corpse(WorldState.current_floor, scene_path, apt, dead.global_position)
+			# FEET, not origin — the body must lie on the floor line, not float above it.
+			var feet: Vector2 = dead.feet_position() if dead.has_method("feet_position") \
+				else dead.global_position + Vector2(0, WorldState.PLAYER_FEET_OFFSET)
+			WorldState.record_player_corpse(WorldState.current_floor, scene_path, apt, feet)
 	get_tree().paused = false
 	var next_run: int = WorldState.current_run + 1
 	# Cover the screen to BLACK before advancing the run — otherwise advance_run()'s run-3

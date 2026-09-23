@@ -58,6 +58,14 @@ corridor floor. Measured (collision-bottom of the CollisionShape2D):
 `base_walk_y` on a zombie is its home line; plane-pursuit may aim the origin at
 the player, but the floor collider resolves feet back to 419.
 
+**Player CORPSE (recoverable body, `player_corpse.gd`)** is placed by the dead character's
+**FEET** — `player.feet_position()` (= origin + 33 → **419** in a corridor) — and drawn LYING
+ON that line (every shape at local y ≤ 0; its detection circle is lifted to local y −20 so it
+overlaps a standing player's capsule). HISTORY: v1 recorded the player's ORIGIN (386), so the
+body floated ~27px above the floor. Records now carry `"feet": true`; an older record without
+it is grounded on spawn by `WorldState.PLAYER_FEET_OFFSET` (33) so saved bodies are kept, not
+lost. Locked by `corpse_recovery_test` (`_test_grounding`).
+
 Apartment interiors (`room.tscn`): module ColorRect is 320×144 at instance y 224, so a
 module spans world Y 224..368; the interior floor is Y 352. Scavenge anchors (Marker2D)
 sit at module-local y 76..131 → world **~300..355** (furniture level). WALL WINDOWS

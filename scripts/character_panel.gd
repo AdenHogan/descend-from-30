@@ -18,14 +18,18 @@ const PAPER := Color(0.90, 0.85, 0.71)
 const INK := Color(0.20, 0.15, 0.09)
 const INK_SOFT := Color(0.36, 0.28, 0.18)
 
+# Per-character lore. NAMES are NOT here — they live ONCE in WorldState.CHARACTER_NAMES (the title,
+# status line and chronicle all read that), so a rename can never make this page disagree with
+# itself. Subtitles must stay TIME-AGNOSTIC: the cast is drawn to runs at random, so any
+# character can be the morning, afternoon or night run (the status header shows which).
 const CHAR_LORE := {
-	"blond_man": {"name": "The Tenant", "subtitle": "Floor 30 — morning",
+	"blond_man": {"subtitle": "A resident of the building.",
 		"lore": "Lore coming soon. (Owner: write this character's story here.)"},
-	"dark_woman": {"name": "The Nurse", "subtitle": "Floor 30 — afternoon",
+	"dark_woman": {"subtitle": "A resident of the building.",
 		"lore": "Lore coming soon. (Owner: write this character's story here.)"},
-	"bald_man": {"name": "The Super", "subtitle": "Floor 30 — night",
+	"bald_man": {"subtitle": "A resident of the building.",
 		"lore": "Lore coming soon. (Owner: write this character's story here.)"},
-	"blond_woman": {"name": "The Neighbour", "subtitle": "Floor 30",
+	"blond_woman": {"subtitle": "A resident of the building.",
 		"lore": "Lore coming soon. (Owner: write this character's story here.)"},
 }
 
@@ -196,18 +200,19 @@ func toggle() -> void:
 func _refresh() -> void:
 	var cid: String = WorldState.current_character()
 	var info: Dictionary = CHAR_LORE.get(cid, {})
-	var pretty := _prettify(cid)
-	title_label.text = str(info.get("name", pretty))
+	var char_name: String = WorldState.character_display_name(cid)   # the ONE name source
+	title_label.text = char_name
 	subtitle_label.text = str(info.get("subtitle", ""))
-	lore_text.text = str(info.get("lore", "No lore recorded yet for %s." % pretty))
+	lore_text.text = str(info.get("lore", "No lore recorded yet for %s." % char_name))
 	var tex = load("res://assets/Health_Bar/%s - 1 - Healthy.png" % cid)
 	if tex != null:
 		portrait_rect.texture = tex
 	# Status header.
-	status_text.text = "[b]Run %d — %s[/b]   ·   %s\nCondition: [b]%s[/b]   ·   Floor %d\nFelled %d   ·   Scavenged %d   ·   Looted %d apartment%s" % [
+	var where := "the Lobby" if WorldState.current_floor == 0 else "Floor %d" % WorldState.current_floor
+	status_text.text = "[b]Run %d — %s[/b]   ·   %s\nCondition: [b]%s[/b]   ·   %s\nFelled %d   ·   Scavenged %d   ·   Looted %d apartment%s" % [
 		WorldState.current_run, WorldState.run_name(WorldState.current_run),
-		WorldState.character_display_name(cid),
-		WorldState.health_word(), WorldState.current_floor,
+		char_name,
+		WorldState.health_word(), where,
 		WorldState.run_kills, WorldState.run_scavenged,
 		WorldState.run_apartments_looted.size(), "" if WorldState.run_apartments_looted.size() == 1 else "s",
 	]
@@ -237,12 +242,17 @@ func _chronicle_bbcode() -> String:
 		var tag := "  [i](now)[/i]" if is_now else ""
 		out += "[b]%s — %s[/b]%s\n" % [WorldState.run_name(run), WorldState.character_display_name(who), tag]
 		var depth := int(e.get("deepest_floor", 30))
+		var depth_txt := "the lobby" if depth == 0 else "floor %d" % depth
 		if is_now:
-			out += "Still descending — floor %d so far.\n" % depth
+			out += "Still descending — %s so far.\n" % depth_txt
 		else:
 			var oc := String(e.get("outcome", ""))
-			var fate := "Fell" if oc == "fell" else ("Escaped" if oc == "escaped" else "Unaccounted for")
-			out += "%s. Deepest: floor %d.\n" % [fate, depth]
+			if oc == "escaped":
+				out += "Escaped the building.\n"
+			elif oc == "fell":
+				out += "Fell on %s.\n" % depth_txt
+			else:
+				out += "Unaccounted for. Last known: %s.\n" % depth_txt
 		var traces: Array = e.get("traces", [])
 		if not traces.is_empty():
 			out += "[i]They left: %s[/i]\n" % ", ".join(traces)
@@ -304,11 +314,11 @@ class _MapView:
 		var gutter := 30.0
 		var barx := gutter + 4.0
 		var barw: float = w - barx - 10.0
-		var rows := 30
+		var rows := 31                          # floors 30 … 1 plus the lobby (0)
 		var rh: float = h / float(rows)
 		var corpses := _corpse_floors()
-		for f in range(1, rows + 1):
-			var y: float = float(rows - f) * rh    # floor 30 at the top, 1 at the bottom
+		for f in range(0, 31):
+			var y: float = float(30 - f) * rh      # floor 30 at the top, the lobby at the bottom
 			var r := Rect2(barx, y + 1.0, barw, rh - 2.0)
 			var visited: bool = WorldState.visited_floors.has(str(f))
 			# Fog: unvisited floors are dark/hazed; visited floors read as clear paper cells.
@@ -324,7 +334,7 @@ class _MapView:
 				draw_rect(r, Color(0.85, 0.28, 0.15), false, 2.0)   # YOU ARE HERE
 				draw_string(FONT, Vector2(barx + 4.0, y + rh - 3.0), "▶ you",
 					HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.15, 0.10, 0.05))
-			# Floor number gutter every 5th floor (+ floor 1 and 30).
-			if f % 5 == 0 or f == 1:
-				draw_string(FONT, Vector2(2.0, y + rh - 3.0), str(f),
+			# Floor number gutter every 5th floor (+ floor 1); "L" marks the lobby.
+			if f == 0 or f % 5 == 0 or f == 1:
+				draw_string(FONT, Vector2(2.0, y + rh - 3.0), "L" if f == 0 else str(f),
 					HORIZONTAL_ALIGNMENT_LEFT, gutter, 11, Color(0.20, 0.15, 0.09))

@@ -132,6 +132,24 @@ func note_enemies_on_floor(floor_num: int) -> void:
 	floors_enemy_seen[str(floor_num)] = true
 
 
+func scene_has_live_zombies(root: Node) -> bool:
+	# Only zombies that belong to `root` (this floor's scene). During a stair pan the floor just
+	# left is still in the tree, so the global group alone would credit ITS dead to this floor.
+	for z in get_tree().get_nodes_in_group("zombie"):
+		if root.is_ancestor_of(z) and not (("is_dead" in z) and z.is_dead):
+			return true
+	return false
+
+
+func note_floor_arrival(root: Node, floor_num: int) -> void:
+	# Everything a floor ARRIVAL records for the journal + cross-run memory — the ONE entry point
+	# for every scene you can arrive in (corridors live or by stair pan, hallway 30, lobby 0).
+	note_floor_reached(floor_num)          # deepest floor + the permanent best_depth record
+	note_floor_visited(floor_num)          # clears this floor's fog on the journal map
+	if scene_has_live_zombies(root):
+		note_enemies_on_floor(floor_num)
+
+
 func _reset_run_journal_stats() -> void:
 	run_kills = 0
 	run_scavenged = 0
@@ -3166,7 +3184,13 @@ func get_world_drops_for_floor(floor_num: int, scene_path: String = "", apartmen
 # PLAYER CORPSE — recover a fallen character's notes + items (STORE_DESIGN step 7)
 # ============================================================
 
+# Player origin → feet (collision-bottom): capsule offset 2 + half-height 31 (docs/Y_PLANES.md —
+# "player origin 386 → feet 419"). Used to ground corpses saved before `feet` positions existed.
+const PLAYER_FEET_OFFSET := 33.0
+
+
 func record_player_corpse(floor_num: int, scene: String, apartment: String, pos: Vector2) -> void:
+	# `pos` is the player's FEET (player.feet_position()) so the body lies on the floor line.
 	# Snapshot the dying character's wallet notes + carried items at the death spot, keyed by
 	# the run that died, so the NEXT character can loot it. Money folds into `notes` (it's
 	# literally on the corpse); everything else is the serialized inventory (durability/mag/
@@ -3184,6 +3208,7 @@ func record_player_corpse(floor_num: int, scene: String, apartment: String, pos:
 		"apartment_id": apartment,
 		"x": snappedf(pos.x, 1.0),
 		"y": snappedf(pos.y, 1.0),
+		"feet": true,             # y is the FEET line (older records stored the origin)
 		"notes": notes,
 		"items": items,
 	}
@@ -3217,13 +3242,16 @@ func recover_player_corpse(key: String) -> Dictionary:
 		return {"notes": 0, "items_taken": 0, "items_left": 0}
 	var data = player_corpses[key]
 	var notes: int = int(data.get("notes", 0))
+	var credited := 0
 	if notes > 0:
 		if wallet_unlocked:
 			wallet_balance += notes
 			HUD.update_wallet()
-		else:
-			add_to_inventory("033", notes)     # no wallet yet — take the cash as a stack
-		data["notes"] = 0
+			credited = notes
+		elif add_to_inventory("033", notes):   # no wallet yet — take the cash as a stack
+			credited = notes
+		# Only what was actually taken leaves the body (a full pocket must never destroy cash).
+		data["notes"] = notes - credited
 	var leftover: Array = []
 	var taken := 0
 	for entry in data.get("items", []):
@@ -3242,11 +3270,12 @@ func recover_player_corpse(key: String) -> Dictionary:
 			leftover.append(entry)
 	data["items"] = leftover
 	HUD.refresh_inventory()
-	if leftover.is_empty():
+	var notes_left: int = int(data.get("notes", 0))
+	if leftover.is_empty() and notes_left <= 0:
 		player_corpses.erase(key)              # body emptied — clear the record
 	else:
-		player_corpses[key] = data             # partial: notes gone, some items left to return for
-	return {"notes": notes, "items_taken": taken, "items_left": leftover.size()}
+		player_corpses[key] = data             # partial: whatever didn't fit stays for a return trip
+	return {"notes": credited, "notes_left": notes_left, "items_taken": taken, "items_left": leftover.size()}
 
 
 func spawn_player_corpse_into(parent: Node, floor_num: int, scene: String, apartment: String = "") -> void:
@@ -3262,7 +3291,12 @@ func spawn_player_corpse_into(parent: Node, floor_num: int, scene: String, apart
 	var data = rec["data"]
 	var corpse = load("res://scripts/player_corpse.gd").new()
 	corpse.corpse_key = key
-	corpse.global_position = Vector2(float(data.get("x", 0.0)), float(data.get("y", 0.0)))
+	# Corpses saved before feet-positioning stored the player's ORIGIN (~33px above the floor);
+	# ground them rather than drop them, so no remembered body is lost or left floating.
+	var y := float(data.get("y", 0.0))
+	if not bool(data.get("feet", false)):
+		y += PLAYER_FEET_OFFSET
+	corpse.global_position = Vector2(float(data.get("x", 0.0)), y)
 	parent.add_child(corpse)
 
 

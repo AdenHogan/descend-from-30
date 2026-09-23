@@ -40,6 +40,11 @@ func _ready() -> void:
 
 	_spawn_corpses(1)
 	_spawn_world_drops(1)
+	# The lobby has zombies, so characters can FALL here too — their body must be recoverable
+	# (game_over records it at current_floor 0 against this scene). And reaching the lobby is
+	# the deepest a character can go: record it for the journal, the map and best_depth.
+	WorldState.spawn_player_corpse_into(self, 0, get_tree().current_scene.scene_file_path, "")
+	WorldState.note_floor_arrival(self, 0)
 
 func _spawn_corpses(floor_num: int) -> void:
 	var scene_path = get_tree().current_scene.scene_file_path

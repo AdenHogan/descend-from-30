@@ -718,12 +718,28 @@ func _discard_slot(slot_index: int) -> void:
 	show_feedback(item_data.get("name", "Item") + " dropped.")
 
 func select_slot(index: int) -> void:
+	var was: int = selected_slot
 	if selected_slot == index:
 		selected_slot = -1
 	else:
 		selected_slot = index
 	_update_slot_highlights()
 	context_menu.visible = false
+	_announce_weapon_selection(was)
+
+
+func _announce_weapon_selection(was: int) -> void:
+	# Re-selecting the equipped slot TOGGLES it off. That used to be silent, so a stray click or
+	# key-press left the player swinging nothing without knowing why. Say it every time.
+	var now_inst = WorldState.get_instance_at(selected_slot) if selected_slot >= 0 and selected_slot < WorldState.inventory.size() else null
+	if now_inst != null and now_inst.get_data().get("is_weapon", false):
+		var n: String = now_inst.get_data().get("name", "weapon")
+		show_feedback(("Equipped %s — it's broken." if now_inst.is_depleted else "Equipped %s.") % n)
+		return
+	if selected_slot == -1 and was >= 0 and was < WorldState.inventory.size():
+		var old = WorldState.get_instance_at(was)
+		if old != null and old.get_data().get("is_weapon", false):
+			show_feedback("Put away %s." % old.get_data().get("name", "weapon"))
 
 func _update_slot_highlights() -> void:
 	for i in range(slots.size()):

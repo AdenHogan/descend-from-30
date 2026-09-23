@@ -23,10 +23,13 @@ func _ready() -> void:
 	z_index = 0                                  # a body lies on the floor layer, under the living
 	add_to_group("player_corpse")
 	# Detection shape (built at runtime so this needs no .tscn).
+	# This node sits ON the floor line (the dead character's feet). Lift the detection circle so
+	# it overlaps the standing player's body (their capsule spans ~62px up from the floor).
 	var cs := CollisionShape2D.new()
 	var shape := CircleShape2D.new()
 	shape.radius = 30.0
 	cs.shape = shape
+	cs.position = Vector2(0, -20)
 	add_child(cs)
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
@@ -39,6 +42,7 @@ func _ready() -> void:
 	_light.energy = 0.0
 	_light.texture_scale = 0.06
 	_light.z_index = 0
+	_light.position = Vector2(0, -8)
 	add_child(_light)
 
 
@@ -109,12 +113,15 @@ func _recover() -> void:
 		parts.append("%d notes" % int(summary["notes"]))
 	if int(summary.get("items_taken", 0)) > 0:
 		parts.append("%d item%s" % [int(summary["items_taken"]), "" if summary["items_taken"] == 1 else "s"])
+	var left_behind: bool = int(summary.get("items_left", 0)) > 0 or int(summary.get("notes_left", 0)) > 0
 	if parts.is_empty():
-		HUD.show_feedback("Nothing to recover — inventory full.")
+		HUD.show_feedback("Your pockets are full — make room to take what they carried.")
+	elif left_behind:
+		HUD.show_feedback("Recovered " + " and ".join(parts) + ". Some is still on them — make room.")
 	else:
 		HUD.show_feedback("Recovered " + " and ".join(parts) + ".")
-	# The body only lingers if items couldn't fit (a return trip); otherwise it's spent.
-	if int(summary.get("items_left", 0)) <= 0:
+	# The body lingers while anything is still on it (a return trip); otherwise it's spent.
+	if not left_behind:
 		HUD.hide_world_prompt(self)
 		queue_free()
 
@@ -125,14 +132,13 @@ func _exit_tree() -> void:
 
 
 func _draw() -> void:
-	# A slumped placeholder body (art pass later): a dark torso + head, brightening a little
-	# when the player is near so it reads as reachable. Faces feet-down on the floor line.
+	# A slumped placeholder body (art pass later): a dark torso + head LYING ON the floor line
+	# (local y = 0 is the floor, so everything is drawn at y <= 0 — never floating, never sunk),
+	# brightening a little when the player is near so it reads as reachable.
 	var lvl := _glow_level()
 	var body_col := Color(0.24, 0.22, 0.26).lerp(Color(0.42, 0.40, 0.48), lvl)
-	# torso (lying)
-	draw_rect(Rect2(-18.0, -6.0, 36.0, 12.0), body_col)
-	# head
-	draw_circle(Vector2(-22.0, 0.0), 7.0, body_col)
-	# a faint rim when near, to sell "interactable"
+	var torso := Rect2(-18.0, -12.0, 36.0, 12.0)     # bottom edge on the floor
+	draw_rect(torso, body_col)
+	draw_circle(Vector2(-24.0, -6.0), 6.0, body_col)  # head resting on the floor
 	if lvl > 0.0:
-		draw_rect(Rect2(-18.0, -6.0, 36.0, 12.0), Color(0.7, 0.8, 1.0, 0.25 * lvl), false, 2.0)
+		draw_rect(torso, Color(0.7, 0.8, 1.0, 0.25 * lvl), false, 2.0)

@@ -25,6 +25,8 @@ func _ready() -> void:
 	_test_recover_memory()
 	_test_names()
 	_test_journal_stats()
+	await _test_stair_pan_arrival()
+	await _test_endpoints_recorded()
 	_test_save_load()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
@@ -125,6 +127,75 @@ func _test_journal_stats() -> void:
 	check(WorldState.run_kills == 0 and WorldState.run_apartments_looted.is_empty(),
 		"the next character's tallies reset")
 	check(WorldState.visited_floors.has("18"), "map memory carries across the run (cross-run)")
+
+
+func _test_stair_pan_arrival() -> void:
+	# The MAIN way down is the stairs, which build the next floor as a passive backdrop and
+	# promote it with go_live() — NOT the live _ready. Journal memory must record there too.
+	print("[arriving by STAIRS (backdrop → go_live) records depth, map + sightings]")
+	WorldState.new_game()
+	WorldState.best_depth = 30
+	WorldState.current_floor = 14
+	WorldState.spawn_source = "stair"
+	WorldState.stair_direction = "down"
+	WorldState.stair_spawn_side = "left"
+	WorldState.pending_pry_arrival_floor = -1
+	WorldState.seed_floor_door_states(14)
+	var bf = load("res://scenes/building_floors.tscn").instantiate()
+	bf.setup_floor = 14
+	bf.passive = true
+	add_child(bf)
+	for i in range(4):
+		await get_tree().process_frame
+	check(not WorldState.visited_floors.has("14"), "a backdrop still a floor away records nothing yet")
+	bf.go_live()
+	await get_tree().process_frame
+	check(WorldState.visited_floors.has("14"), "arriving by stairs reveals the floor on the map")
+	check(int(WorldState.chronicle_entry(1)["deepest_floor"]) == 14, "arriving by stairs records the depth")
+	check(WorldState.best_depth == 14, "arriving by stairs updates the permanent record")
+	check(WorldState.floors_enemy_seen.has("14") == bf._has_own_live_zombies(),
+		"an enemy sighting is recorded exactly when this floor has its own dead")
+	# A zombie belonging to ANOTHER floor (the one just left, still in the tree mid-pan) must not
+	# count as this floor's.
+	var before: bool = bf._has_own_live_zombies()
+	var stranger = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
+	add_child(stranger)
+	await get_tree().process_frame
+	check(bf._has_own_live_zombies() == before, "another floor's zombie isn't credited to this floor")
+	stranger.free()
+	bf.free()
+	await get_tree().process_frame
+
+
+func _test_endpoints_recorded() -> void:
+	# Floor 30 (where every run starts) and the lobby (0, the exit) aren't building_floors scenes —
+	# they must still feed the journal map + depth.
+	print("[floor 30 and the lobby are recorded too]")
+	WorldState.new_game()
+	WorldState.best_depth = 30
+	var root := Node2D.new()
+	add_child(root)
+	WorldState.note_floor_arrival(root, 30)
+	check(WorldState.visited_floors.has("30"), "floor 30 is revealed on the map")
+	WorldState.note_floor_arrival(root, 0)
+	check(WorldState.visited_floors.has("0"), "the lobby is revealed on the map")
+	check(WorldState.best_depth == 0, "reaching the lobby is the deepest record (0)")
+	# A zombie under THIS scene marks a sighting; none → no sighting.
+	check(not WorldState.floors_enemy_seen.has("0"), "no zombies in the scene → no sighting")
+	var z = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
+	root.add_child(z)
+	await get_tree().process_frame
+	WorldState.note_floor_arrival(root, 0)
+	check(WorldState.floors_enemy_seen.has("0"), "a zombie in the scene → a sighting")
+	root.free()
+	# The real scenes are wired: the lobby records itself on arrival.
+	WorldState.visited_floors.clear()
+	var lobby = load("res://scenes/lobby.tscn").instantiate()
+	add_child(lobby)
+	await get_tree().process_frame
+	check(WorldState.visited_floors.has("0"), "arriving in the lobby scene records it")
+	lobby.free()
+	await get_tree().process_frame
 
 
 func _test_save_load() -> void:

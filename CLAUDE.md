@@ -177,7 +177,7 @@ setup script; binary from downloads.godotengine.org). Before every commit:
   `maintenance_test`, `elevator_test`, `run_arc_test`, `enemy_variety_test`,
   `dev_menu_test`, `lighting_test`, `plane_lock_test`, `apartment_window_test`,
   `scavenge_node_test`, `drop_physics_test`, `softlock_test`, `character_panel_test`,
-  `corpse_recovery_test`, `run_memory_test` — run all 38 before commit. (Run ONE godot at a time — a killed/backgrounded headless run can
+  `corpse_recovery_test`, `run_memory_test`, `attack_input_test` — run all 39 before commit. (Run ONE godot at a time — a killed/backgrounded headless run can
   linger and block the next, and a GDScript **parse error makes a test scene load but
   never call `quit()`, so it "hangs" until timeout** rather than printing an error line;
   if a suite hangs, check for a parse error and stray `godot` processes first.
@@ -961,9 +961,11 @@ means no rendering — UI layout and art still need an in-editor look.
   should be comfortably readable) and shows the RUN's current character
   (`WorldState.current_character()`) at full health, their name/subtitle + a lore body, with a
   **Profile** tab and an **NPCs** tab (placeholder for uncovered resident stories). All copy is
-  DATA — `CharacterPanel.CHAR_LORE` (per-character `name`/`subtitle`/`lore`, keyed by the
-  portrait-file id) + `NPC_STORIES` — so the owner authors lore in ONE place without touching
-  layout; a missing entry falls back to a prettified id. Built in code (no `.tscn`), added as a
+  DATA — `CharacterPanel.CHAR_LORE` (per-character `subtitle`/`lore`, keyed by the portrait-file
+  id) + `NPC_STORIES` — so the owner authors lore in ONE place without touching layout. NAMES
+  are NOT in CHAR_LORE: they live only in `WorldState.CHARACTER_NAMES` (read by the title,
+  status line and chronicle). Subtitles must stay TIME-AGNOSTIC — the cast is drawn to runs at
+  random, so any character can be morning, afternoon or night. Built in code (no `.tscn`), added as a
   child of the HUD CanvasLayer. Close via the ✕, ESC, or a click OUTSIDE the card; closing
   restores the prior pause state (won't stomp a real pause menu). The panel re-reads the
   character each open, so it tracks the run's rotating cast. Covered by `character_panel_test`
@@ -988,8 +990,9 @@ means no rendering — UI layout and art still need an in-editor look.
   destroy loot. Matching is floor+scene+apartment (a corridor corpse never matches an apartment
   query, and vice-versa). Covered by `corpse_recovery_test` (record, cross-run survival, save/
   load, matching, notes+item+durability restore, partial recovery, spawn/dedupe). The LOOK (the
-  placeholder slumped body + glow) needs an in-editor check; lobby deaths aren't handled (no
-  combat at the exit).
+  placeholder slumped body + glow) needs an in-editor check. The body is placed by the dead
+  character's FEET and lies on the floor line (see docs/Y_PLANES.md §1); the LOBBY spawns bodies
+  too (it has zombies, so characters can fall there — an earlier note wrongly said otherwise).
 - Cross-run MEMORY / chronicle (owner: "connecting memory across the three runs", v1): the
   three descents are stitched into ONE story via `WorldState.run_chronicle` — a persisted array
   of 3 records (one per run), each `{character, outcome (fell/escaped), deepest_floor, recovered,
@@ -1029,12 +1032,32 @@ means no rendering — UI layout and art still need an in-editor look.
   `run_kills` / `run_scavenged` / `run_apartments_looted[]` (reset each run) and cross-run map
   memory `visited_floors` / `floors_enemy_seen` (persist across runs, cleared by new_game).
   Wired to real events: `note_kill` in both enemies' `_die`, `note_scavenge(apt)` in
-  `loot_ui._take`, `note_floor_visited` + `note_enemies_on_floor` in the `building_floors` live
-  build. All persisted in the save. Covered by `run_memory_test` (stats count + de-dupe, health
+  `loot_ui._take`, and floor ARRIVAL via the ONE entry point `WorldState.note_floor_arrival(root,
+  floor)` (depth + best_depth + map fog + enemy sighting, counting only zombies UNDER `root`) —
+  called from the `building_floors` live build **AND `go_live`** (the stair PAN is the main way
+  down; v1 only hooked the live build, so stairs recorded nothing), `hallway` (30) and `lobby`
+  (0). The map strip includes the LOBBY row ("L"). All persisted in the save. Covered by `run_memory_test` (stats count + de-dupe, health
   word, map memory, per-run reset vs cross-run persistence) + `character_panel_test` (3 tabs).
   The LOOK (paper styling, map legibility at 30 rows) needs an in-editor read. Future: map
   markers for last-seen enemy POSITIONS (not just the floor), real quests in the Quests tab,
   richer per-run stats, owner-authored diary styling.
+- Bug sweep (post-journal) + EQUIP/ATTACK hiccup fix. **Attack never hiccups** (owner: "Space
+  does nothing until I unequip/re-equip"), all rules in `player._handle_attack_press`: (1) the
+  MAIN cause — a KEY attack was dropped whenever the mouse sat in the bottom HUD band, which it
+  always does right after clicking a slot to equip; now only a POINTER click is HUD-gated
+  (`player.hud_blocks_attack`); (2) Space with a weapon in SCAVENGE mode silently did nothing —
+  it now DRAWS the weapon (switches to combat) and swings when the stance lands; (3) presses
+  during a swing's cooldown or a stance switch were dropped — now held in an input BUFFER
+  (`ATTACK_BUFFER_TIME` 0.35s, `_try_buffered_attack`, a stale press never fires late);
+  (4) mouse SIDE buttons (rebindable attack) now act like a key, not a pointer click
+  (`_is_pointer_click`); (5) re-selecting the equipped slot toggles it off — now announced
+  ("Equipped X." / "Put away X.", `hud._announce_weapon_selection`). Locked by
+  `attack_input_test`. Journal/memory fixes: stair-pan arrivals now record depth/map/sightings
+  (above); ESC with the journal open closes the JOURNAL (`game._input` checks it first — it used
+  to open the pause menu on top, whose Resume unpaused the game behind the open journal); corpse
+  grounded by feet (+ old saves migrated); a locked-wallet + full-pockets recovery no longer
+  destroys the cash (it stays on the body); journal names single-sourced + time-agnostic
+  subtitles; escaped characters read "Escaped the building.", the lobby reads "the Lobby".
 - Next: characters/profiles/stats; **Upgrade offers** polish; barricade-keeper NPC; fire
   smoke/crouch + warning beat; the maintenance **upgrade station** UI (Scrap system,
   SCRAP_UPGRADES.md).
