@@ -252,7 +252,7 @@ static func traits_bbcode(cid: String) -> String:
 
 
 # What else is lifting this character (docs/PROGRESSION.md): this run's boons (gone at the time
-# skip) and the profile's permanent Legacy ranks.
+# skip) and the profile's permanent perks (Descent Valour — every game in this save).
 static func progression_bbcode() -> String:
 	var out := ""
 	if not WorldState.run_boons.is_empty():
@@ -260,13 +260,11 @@ static func progression_bbcode() -> String:
 		for id in WorldState.run_boons:
 			names.append(Progression.boon(id).get("name", id))
 		out += "\n[color=#8a5a10]This run: %s[/color]" % ", ".join(names)
-	var legacy: Array = []
-	for id in Progression.LEGACY_PERKS:
-		var r: int = WorldState.legacy_rank(id)
-		if r > 0:
-			legacy.append("%s %d" % [Progression.legacy_perk(id).get("name", id), r])
-	if not legacy.is_empty():
-		out += "\n[color=#2f4a7a]Legacy: %s[/color]" % ", ".join(legacy)
+	if not WorldState.permanent_perks.is_empty():
+		var kept: Array = []
+		for id in WorldState.permanent_perks:
+			kept.append(Progression.perk_info(id).get("name", id))
+		out += "\n[color=#2f4a7a]Legacy: %s[/color]" % ", ".join(kept)
 	return out
 
 

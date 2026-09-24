@@ -3,14 +3,14 @@ extends Node
 # PROGRESSION tiers 2 + 3 (docs/PROGRESSION.md):
 #  - RUN BOONS: the first arrival at a milestone floor (27/22/17/12/7) owes this character a
 #    pick-1-of-2 boon — offered by a HUD badge, never forced; it lasts until the time skip.
-#  - LEGACY: a character's end banks Legacy to the PROFILE (1/floor descended, +10 escaped),
-#    spent on ranked perks that apply forever. All through the one stat fold.
+#  - DESCENT VALOUR: the end of a 3-run session scores each run's depth into Valour (profile) and
+#    offers up to 3 perks ACQUIRED that session (random, unweighted); buy one to keep forever (max
+#    10, tradeable). A permanent perk applies to every new game and leaves the temporary pools.
 # Run: godot --headless res://tests/progression_test.tscn
 
 var failures: int = 0
-var _saved_points := 0
-var _saved_ranks := {}
 var _saved_slot := 1
+var _saved := {}
 
 
 func check(cond: bool, label: String) -> void:
@@ -22,24 +22,31 @@ func check(cond: bool, label: String) -> void:
 
 
 func _ready() -> void:
-	print("=== progression test (run boons + legacy) ===")
+	print("=== progression test (run boons + descent valour) ===")
 	_saved_slot = WorldState.active_slot
-	_saved_points = WorldState.legacy_points
-	_saved_ranks = WorldState.legacy_ranks.duplicate()
-	WorldState.legacy_points = 0
-	WorldState.legacy_ranks = {}
+	_saved = {"valour": WorldState.valour, "perks": WorldState.permanent_perks.duplicate(),
+		"offer": WorldState.valour_offer.duplicate(), "last": WorldState.last_valour.duplicate(true),
+		"seed": WorldState._valour_scored_seed}
+	_clear_valour()
 	_test_milestones()
 	_test_boon_offer_and_fold()
 	_test_boons_are_per_character()
-	_test_legacy_earn()
-	_test_legacy_spend_and_fold()
+	_test_valour_maths()
+	_test_session_perks()
+	_test_finish_session_offer()
+	_test_buy_and_permanence()
+	_test_cap_and_trade()
 	await _test_boon_ui()
 	await _test_legacy_ui()
+	await _test_game_over_screen()
 	_test_journal_line()
 	# Leave the profile exactly as we found it — no test purchases leak into real play / other suites.
 	WorldState.use_slot(_saved_slot)
-	WorldState.legacy_points = _saved_points
-	WorldState.legacy_ranks = _saved_ranks
+	WorldState.valour = _saved["valour"]
+	WorldState.permanent_perks = _saved["perks"]
+	WorldState.valour_offer = _saved["offer"]
+	WorldState.last_valour = _saved["last"]
+	WorldState._valour_scored_seed = _saved["seed"]
 	WorldState.save_profile()
 	get_tree().paused = false
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
@@ -110,44 +117,156 @@ func _test_boons_are_per_character() -> void:
 		"the next character starts with none (and owes milestones afresh)")
 
 
-func _test_legacy_earn() -> void:
-	print("[a character's end banks Legacy to the profile]")
-	WorldState.new_game()
-	WorldState.legacy_points = 0
-	WorldState.note_floor_reached(17)
-	check(WorldState.award_run_legacy(false) == 13, "fell having reached 17 → 13 Legacy")
-	WorldState.advance_run()
-	WorldState.note_floor_reached(0)
-	check(WorldState.award_run_legacy(true) == 40, "escaped from the lobby → 30 + 10 = 40")
-	check(WorldState.legacy_points == 53, "banked (%d)" % WorldState.legacy_points)
-	WorldState.load_profile()
-	check(WorldState.legacy_points == 53, "…in the PROFILE (reload reads it back)")
-	WorldState.new_game()
-	check(WorldState.legacy_points == 53, "a new playthrough keeps it (it's the profile's, not the game's)")
+func _clear_valour() -> void:
+	WorldState.valour = 0
+	WorldState.permanent_perks = []
+	WorldState.valour_offer = []
+	WorldState.last_valour = {}
+	WorldState._valour_scored_seed = 0
 
 
-func _test_legacy_spend_and_fold() -> void:
-	print("[spend Legacy on ranked perks — they stack, permanently]")
+func _test_valour_maths() -> void:
+	print("[Valour per run: depth, weighted toward the bottom, + a bonus for walking out]")
+	check(Progression.valour_for_run(30, false) == 0, "never left floor 30 → 0")
+	check(Progression.valour_for_run(25, false) == 5, "5 floors → 5")
+	check(Progression.valour_for_run(15, false) == 18, "15 floors → 15 + 3 = 18")
+	check(Progression.valour_for_run(10, false) == 26, "20 floors → 20 + 6 = 26")
+	check(Progression.valour_for_run(0, true) == 55, "escaped → 30 + 15 + 10 = 55")
+	var prev := -1
+	var mono := true
+	for f in range(30, -1, -1):
+		var v := Progression.valour_for_run(f, false)
+		mono = mono and v > prev
+		prev = v
+	check(mono, "every floor deeper is worth strictly more")
+
+
+func _test_session_perks() -> void:
+	print("[the session records every perk acquired — merchant AND boons, across all 3 runs]")
 	WorldState.new_game()
-	WorldState.legacy_points = 10
-	WorldState.legacy_ranks = {}
-	var base_stam: float = WorldState.get_max_stamina()
-	check(WorldState.buy_legacy_rank("L_conditioning").contains("15"), "rank 1 of Conditioning costs 15")
-	WorldState.legacy_points = 40
-	check(WorldState.buy_legacy_rank("L_conditioning") == "" and WorldState.legacy_points == 25, "bought rank 1 (25 left)")
-	check(WorldState.buy_legacy_rank("L_conditioning") == "" and WorldState.legacy_points == 0, "rank 2 costs 25 (0 left)")
-	check(is_equal_approx(WorldState.get_max_stamina(), base_stam + 16.0), "two ranks = +16 max stamina (%.0f)" % WorldState.get_max_stamina())
-	WorldState.legacy_points = 999
-	WorldState.buy_legacy_rank("L_muscle")
-	check(WorldState.buy_legacy_rank("L_muscle") == "Maxed.", "a 1-rank perk maxes out")
-	WorldState.load_profile()
-	check(WorldState.legacy_rank("L_conditioning") == 2 and WorldState.legacy_rank("L_muscle") == 1, "ranks are saved in the profile")
+	check(WorldState.session_perks.is_empty(), "a new game starts with none")
+	WorldState.resolve_upgrade_offer(25, "U_slot")
+	WorldState.note_boon_milestone(27)
+	var b: String = WorldState.boon_offer(27)[0]
+	WorldState.take_boon(27, b)
+	check("U_slot" in WorldState.session_perks and b in WorldState.session_perks, "merchant pick + boon both recorded")
 	WorldState.advance_run()
-	check(is_equal_approx(WorldState.get_max_stamina(), base_stam + 16.0), "…and still apply after the time skip")
-	var m: Dictionary = Progression.legacy_mods_at("L_recovery", 3)
-	check(is_equal_approx(m["stamina_regen"]["mult"], pow(1.08, 3)), "a multiplier rank stacks multiplicatively (1.08³)")
-	WorldState.legacy_ranks = {}
-	WorldState.legacy_points = 0
+	check(b in WorldState.session_perks, "the time skip wipes the boon from the character, NOT from the session record")
+	WorldState.save_game("res://scenes/hallway.tscn", false)
+	WorldState.session_perks = []
+	WorldState.load_game()
+	check("U_slot" in WorldState.session_perks and b in WorldState.session_perks, "saved with the game")
+	WorldState.delete_save()
+	WorldState.new_game()
+	check(WorldState.session_perks.is_empty(), "…and a new game clears it")
+
+
+func _finish(depths: Array, outcomes: Array, perks: Array) -> Dictionary:
+	WorldState.new_game()
+	for i in 3:
+		WorldState.run_chronicle[i]["deepest_floor"] = depths[i]
+		WorldState.set_run_outcome(i + 1, outcomes[i])
+	for id in perks:
+		WorldState.note_perk_acquired(id)
+	return WorldState.finish_session()
+
+
+func _test_finish_session_offer() -> void:
+	print("[the session's end: Valour banked to the profile + up to 3 of ITS perks offered]")
+	_clear_valour()
+	var res := _finish([15, 10, 0], ["dead", "dead", "survived"], ["U_slot", "U_melee_s", "B_rage", "U_quiet_s", "B_eye"])
+	check(int(res["total"]) == 18 + 26 + 55, "18 + 26 + 55 = %d" % int(res["total"]))
+	check(WorldState.valour == 99, "banked")
+	check(WorldState.valour_offer.size() == Progression.OFFER_COUNT, "3 offered")
+	var ok := true
+	for id in WorldState.valour_offer:
+		ok = ok and id in ["U_slot", "U_melee_s", "B_rage", "U_quiet_s", "B_eye"]
+	check(ok, "only perks acquired this session (%s)" % str(WorldState.valour_offer))
+	check(WorldState.finish_session()["total"] == 99 and WorldState.valour == 99, "scoring twice never banks twice")
+	WorldState.load_profile()
+	check(WorldState.valour == 99 and WorldState.valour_offer.size() == 3, "Valour + the offer live in the PROFILE")
+	# Uniform (no weighting): over many rolls every acquired perk turns up about equally often.
+	var counts := {}
+	for n in 300:
+		WorldState._valour_scored_seed = 0
+		WorldState.last_valour = {}
+		WorldState.finish_session()
+		for id in WorldState.valour_offer:
+			counts[id] = int(counts.get(id, 0)) + 1
+	var lo := 999
+	var hi := 0
+	for id in counts:
+		lo = mini(lo, counts[id])
+		hi = maxi(hi, counts[id])
+	check(counts.size() == 5 and lo > 120 and hi < 240, "unweighted draw (each ≈180/300: %s)" % str(counts))
+	_clear_valour()
+	_finish([29, 30, 30], ["dead", "dead", "dead"], ["U_speed_s"])
+	check(WorldState.valour_offer == ["U_speed_s"], "one perk acquired → one offered")
+	_clear_valour()
+	_finish([29, 30, 30], ["dead", "dead", "dead"], [])
+	check(WorldState.valour_offer.is_empty() and WorldState.valour == 1, "nothing acquired → no offer, Valour still banked")
+	_clear_valour()
+
+
+func _test_buy_and_permanence() -> void:
+	print("[buy one → it's on for every new game, and gone from the temporary pools]")
+	_clear_valour()
+	_finish([0, 0, 0], ["survived", "survived", "survived"], ["U_slot"])
+	check(WorldState.valour == 165, "three escapes = 165")
+	WorldState.valour = 50
+	check(WorldState.buy_permanent("U_slot").contains("110"), "too poor: Deep Pockets costs 110")
+	WorldState.valour = 165
+	check(WorldState.buy_permanent("U_melee_s") != "", "only what's on offer can be bought")
+	check(WorldState.buy_permanent("U_slot") == "" and WorldState.valour == 55, "bought (165 − 110 = 55)")
+	check(WorldState.valour_offer.is_empty(), "one purchase per session — the offer closes")
+	WorldState.new_game()
+	check(WorldState.get_inventory_slots() == WorldState.MAX_INVENTORY_SLOTS + 1, "a NEW game starts with the extra slot unlocked")
+	var in_pool := false
+	for f in [25, 20, 15, 10, 5]:
+		in_pool = in_pool or "U_slot" in WorldState.get_upgrade_pair(f)
+	for r in 3:
+		WorldState.current_run = r + 1
+		WorldState.upgrade_offers.clear()
+		for f in [25, 20, 15, 10, 5]:
+			in_pool = in_pool or "U_slot" in WorldState.get_upgrade_pair(f)
+	check(not in_pool, "Deep Pockets never shows at the merchant again")
+	WorldState.permanent_perks.append("B_rage")
+	var boon_seen := false
+	for f in Progression.BOON_MILESTONES:
+		boon_seen = boon_seen or "B_rage" in WorldState.boon_offer(f)
+	check(not boon_seen, "a permanent boon leaves the boon pool too")
+	check(WorldState.get_melee_damage_bonus() >= 2, "…and applies (Rage +2 melee)")
+	WorldState.load_profile()
+	check(WorldState.permanent_perks == ["U_slot"], "saved in the profile (the unsaved test add is gone)")
+	# Never offered what you already keep.
+	WorldState.last_valour = {}
+	WorldState._valour_scored_seed = 0
+	WorldState.note_perk_acquired("U_slot")
+	WorldState.note_perk_acquired("U_heal")
+	WorldState.finish_session()
+	check(WorldState.valour_offer == ["U_heal"], "a perk you already keep is never offered")
+	WorldState.decline_valour_offer()
+	check(WorldState.valour_offer.is_empty() and WorldState.valour == 55, "declining keeps the Valour for later")
+	_clear_valour()
+
+
+func _test_cap_and_trade() -> void:
+	print("[10 kept at most — a new one means trading one out; the collection trades out too]")
+	_clear_valour()
+	WorldState.permanent_perks = ["U_stam_s", "U_stam_m", "U_regen_s", "U_sprint_s", "U_speed_s",
+		"U_melee_s", "U_push", "U_head_s", "U_acc", "U_listen"]
+	WorldState.valour_offer = ["U_heal"]
+	WorldState.valour = 100
+	check(WorldState.buy_permanent("U_heal").contains("full"), "full: must pick one to trade out")
+	check(WorldState.buy_permanent("U_heal", "U_heal_nope") != "", "…one you actually hold")
+	var refund := Progression.trade_refund("U_stam_s")
+	check(WorldState.buy_permanent("U_heal", "U_stam_s") == "", "traded Second Wind for Field Medic")
+	check(WorldState.permanent_perks.size() == 10 and "U_heal" in WorldState.permanent_perks and not ("U_stam_s" in WorldState.permanent_perks), "still 10, swapped")
+	check(WorldState.valour == 100 + refund - Progression.perk_cost("U_heal"), "refund %d, cost %d" % [refund, Progression.perk_cost("U_heal")])
+	var before := WorldState.valour
+	check(WorldState.trade_out_permanent("U_push") == Progression.trade_refund("U_push") and WorldState.valour > before, "trading out from the collection refunds part")
+	check(WorldState.permanent_perks.size() == 9, "…and frees a slot")
+	_clear_valour()
 
 
 func _test_boon_ui() -> void:
@@ -165,29 +284,70 @@ func _test_boon_ui() -> void:
 
 
 func _test_legacy_ui() -> void:
-	print("[the profile screen's LEGACY panel]")
+	print("[the profile screen's LEGACY panel: collection + trade out]")
 	var ps = load("res://scenes/profile_select.tscn").instantiate()
 	add_child(ps)
 	await get_tree().process_frame
 	check(ps.get_node_or_null("Nav/LegacyButton") != null, "the profile screen has a LEGACY button")
+	ps.set("_selected", _saved_slot)       # stay on the slot whose profile we restore at the end
+	WorldState.permanent_perks = ["U_quiet_s", "B_eye"]
+	WorldState.valour = 0
+	WorldState.save_profile()
 	ps.open_legacy()
-	WorldState.legacy_points = 20
 	var ui = ps.get("_legacy_ui")
-	check(ui != null and ui.visible, "it opens the Legacy panel")
-	check(ui.buy("L_tread") == "" and WorldState.legacy_rank("L_tread") == 1, "learning a rank from the panel works")
+	check(ui != null and ui.visible and ui.tab == "collection", "it opens on the collection (no offer waiting)")
+	check(ui.trade_out("B_eye") == 0 and "B_eye" in WorldState.permanent_perks, "first press only arms the trade")
+	check(ui.trade_out("B_eye") > 0 and not ("B_eye" in WorldState.permanent_perks), "second press trades it out")
 	ui.close()
 	get_tree().paused = false
 	ps.queue_free()
-	WorldState.legacy_ranks = {}
-	WorldState.legacy_points = 0
+	_clear_valour()
+	await get_tree().process_frame
+
+
+func _test_game_over_screen() -> void:
+	print("[the end-of-session screen shows the Valour and opens the offer]")
+	_clear_valour()
+	_finish([12, 20, 0], ["dead", "dead", "survived"], ["U_slot", "B_rage", "U_heal"])
+	WorldState.valour = 500
+	var go = load("res://scenes/game_over.tscn").instantiate()
+	add_child(go)
+	await get_tree().process_frame
+	var txt := ""
+	for c in go.find_children("*", "Label", true, false):
+		txt += c.text + "\n"
+	check(txt.contains("DESCENT VALOUR") and txt.contains("+%d" % int(WorldState.last_valour["total"])), "the Valour total is on screen")
+	go.open_legacy()
+	var ui = go.legacy_ui
+	check(ui != null and ui.visible and ui.tab == "offer", "the offer tab opens")
+	var pick: String = WorldState.valour_offer[0]
+	check(ui.buy(pick) == "" and pick in WorldState.permanent_perks and ui.tab == "collection", "buying from the screen keeps it (→ collection)")
+	ui.close()
+	get_tree().paused = false
+	go.queue_free()
+	_clear_valour()
+	# Full collection from the UI: first press asks which to trade out, then trades.
+	WorldState.permanent_perks = ["U_stam_s", "U_stam_m", "U_regen_s", "U_sprint_s", "U_speed_s",
+		"U_melee_s", "U_push", "U_head_s", "U_acc", "U_listen"]
+	WorldState.valour_offer = ["U_heal"]
+	WorldState.valour = 100
+	var ui2 = preload("res://scripts/legacy_ui.gd").new()
+	add_child(ui2)
+	ui2.open()
+	check(ui2.buy("U_heal") == "full" and not ("U_heal" in WorldState.permanent_perks), "full → asks for a trade first")
+	check(ui2.buy("U_heal", "U_push") == "" and "U_heal" in WorldState.permanent_perks and not ("U_push" in WorldState.permanent_perks), "picking one trades it for the new perk")
+	ui2.close()
+	ui2.queue_free()
+	get_tree().paused = false
+	_clear_valour()
 	await get_tree().process_frame
 
 
 func _test_journal_line() -> void:
-	print("[the journal shows this run's boons + the legacy]")
+	print("[the journal shows this run's boons + the permanent perks]")
 	WorldState.run_boons = ["B_rage"]
-	WorldState.legacy_ranks = {"L_eye": 2}
+	WorldState.permanent_perks = ["U_heal"]
 	var txt: String = load("res://scripts/character_panel.gd").progression_bbcode()
-	check(txt.contains("Rage") and txt.contains("Knows Where To Look 2"), "listed (%s)" % txt.replace("\n", " "))
+	check(txt.contains("Rage") and txt.contains("Legacy: Field Medic"), "listed (%s)" % txt.replace("\n", " "))
 	WorldState.run_boons = []
-	WorldState.legacy_ranks = {}
+	WorldState.permanent_perks = []

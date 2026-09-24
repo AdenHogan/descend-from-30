@@ -158,10 +158,15 @@ func note_floor_arrival(root: Node, floor_num: int) -> void:
 var run_boons: Array = []              # boon ids taken this run
 var run_milestones_seen: Array = []    # milestone floors already reached this run (str keys)
 var pending_boon_floors: Array = []    # milestones reached whose boon hasn't been chosen yet
-# Tier 3 — LEGACY: the PROFILE's permanent perks (saved in the profile, never wiped by a game).
-var legacy_points: int = 0
-var legacy_ranks: Dictionary = {}      # perk id -> rank (string keys)
-var last_legacy_award: int = 0         # what the character who just ended earned (end card)
+# Every perk ACQUIRED this session (merchant upgrades + run boons, any of the 3 runs) — the pool
+# the end-of-session Descent Valour offer draws from. Game save; cleared by new_game only.
+var session_perks: Array = []
+# Tier 3 — DESCENT VALOUR: the PROFILE's permanent tier (saved in the profile, never wiped by a game).
+var valour: int = 0                    # banked Descent Valour
+var permanent_perks: Array = []        # perk ids kept forever (max Progression.PERMANENT_CAP)
+var valour_offer: Array = []           # the unresolved end-of-session offer (survives a quit)
+var last_valour: Dictionary = {}       # the last session's scoring: {"runs": [...], "total": n}
+var _valour_scored_seed: int = 0       # master_seed already scored (never bank one session twice)
 
 
 func note_boon_milestone(floor_num: int) -> void:
@@ -183,7 +188,7 @@ func note_boon_milestone(floor_num: int) -> void:
 func boon_offer(floor_num: int) -> Array:
 	var pool: Array = []
 	for id in Progression.RUN_BOONS:
-		if not (id in run_boons):
+		if not (id in run_boons) and not (id in permanent_perks):   # a permanent boon is always on
 			pool.append(id)
 	pool.sort()
 	var rng := RandomNumberGenerator.new()
@@ -201,6 +206,7 @@ func take_boon(floor_num: int, boon_id: String) -> String:
 	if not (boon_id in boon_offer(floor_num)):
 		return "Pick one of the two."
 	run_boons.append(boon_id)
+	note_perk_acquired(boon_id)
 	pending_boon_floors.erase(floor_num)
 	HUD.refresh_boon_badge()
 	HUD.update_stamina(stamina, get_max_stamina())
@@ -212,34 +218,84 @@ func skip_boon(floor_num: int) -> void:
 	HUD.refresh_boon_badge()
 
 
-# What the character whose story is ending earns for the profile: 1 per floor below 30 they
-# reached, +10 for walking out. Banked at once (the profile outlives every save).
-func award_run_legacy(escaped: bool) -> int:
-	var deepest: int = int(chronicle_entry(current_run).get("deepest_floor", 30))
-	last_legacy_award = Progression.legacy_for_run(deepest, escaped)
-	legacy_points += last_legacy_award
+func note_perk_acquired(perk_id: String) -> void:
+	if not (perk_id in session_perks):
+		session_perks.append(perk_id)
+
+
+# THE END OF A SESSION (the third character escaped or fell): score every run's depth into
+# Descent Valour, bank it to the profile, and roll the offer — up to OFFER_COUNT perks drawn
+# UNIFORMLY at random (no weighting) from the ones acquired this session, never one already
+# permanent. Idempotent per playthrough. Returns {"runs": [{run, character, deepest, escaped,
+# valour}], "total": n}.
+func finish_session() -> Dictionary:
+	if _valour_scored_seed == master_seed and not last_valour.is_empty():
+		return last_valour
+	_ensure_chronicle()
+	var runs: Array = []
+	var total := 0
+	for i in 3:
+		var e: Dictionary = run_chronicle[i]
+		var escaped := String(e.get("outcome", "")) == "escaped"
+		var deepest: int = 0 if escaped else int(e.get("deepest_floor", 30))
+		var v: int = Progression.valour_for_run(deepest, escaped)
+		total += v
+		runs.append({"run": i + 1, "character": String(e.get("character", "")), "deepest": deepest,
+			"escaped": escaped, "valour": v})
+	valour += total
+	var pool: Array = []
+	for id in session_perks:
+		if not (id in permanent_perks) and not Progression.perk_info(id).is_empty():
+			pool.append(id)
+	var rng := RandomNumberGenerator.new()
+	rng.randomize()
+	valour_offer = []
+	while valour_offer.size() < Progression.OFFER_COUNT and not pool.is_empty():
+		valour_offer.append(pool.pop_at(rng.randi() % pool.size()))
+	last_valour = {"runs": runs, "total": total}
+	_valour_scored_seed = master_seed
 	save_profile()
-	return last_legacy_award
+	return last_valour
 
 
-func legacy_rank(perk_id: String) -> int:
-	return int(legacy_ranks.get(perk_id, 0))
-
-
-# Buy the next rank of a legacy perk ("" on success).
-func buy_legacy_rank(perk_id: String) -> String:
-	if Progression.legacy_perk(perk_id).is_empty():
-		return "Unknown."
-	var rank := legacy_rank(perk_id)
-	var cost := Progression.legacy_next_cost(perk_id, rank)
-	if cost < 0:
-		return "Maxed."
-	if legacy_points < cost:
-		return "Needs %d Legacy (you have %d)." % [cost, legacy_points]
-	legacy_points -= cost
-	legacy_ranks[perk_id] = rank + 1
+# Buy one perk from the offer to keep forever ("" on success). When the collection is FULL,
+# `trade_out` names the permanent perk it replaces (refunded Progression.TRADE_REFUND of its cost).
+func buy_permanent(perk_id: String, trade_out: String = "") -> String:
+	if not (perk_id in valour_offer):
+		return "That perk isn't on offer."
+	var cost := Progression.perk_cost(perk_id)
+	var refund := 0
+	if trade_out != "":
+		if not (trade_out in permanent_perks):
+			return "You don't hold that perk."
+		refund = Progression.trade_refund(trade_out)
+	elif permanent_perks.size() >= Progression.PERMANENT_CAP:
+		return "Your legacy is full — choose one to trade out."
+	if valour + refund < cost:
+		return "Needs %d Valour (you have %d)." % [cost, valour]
+	permanent_perks.erase(trade_out)
+	valour += refund - cost
+	permanent_perks.append(perk_id)
+	valour_offer = []                       # ONE purchase per session
 	save_profile()
 	return ""
+
+
+# Walk away from the offer, keeping the Valour for a later session.
+func decline_valour_offer() -> void:
+	valour_offer = []
+	save_profile()
+
+
+# Trade a permanent perk out from the Legacy screen (frees a slot; refunds part of its cost).
+func trade_out_permanent(perk_id: String) -> int:
+	if not (perk_id in permanent_perks):
+		return 0
+	var refund := Progression.trade_refund(perk_id)
+	permanent_perks.erase(perk_id)
+	valour += refund
+	save_profile()
+	return refund
 
 
 func _reset_run_journal_stats() -> void:
@@ -613,8 +669,11 @@ func load_profile() -> void:
 	runs_successful = 0
 	playtime_seconds = 0.0
 	run_outcomes = ["", "", ""]
-	legacy_points = 0
-	legacy_ranks = {}
+	valour = 0
+	permanent_perks = []
+	valour_offer = []
+	last_valour = {}
+	_valour_scored_seed = 0
 	if cfg.load(profile_path()) == OK:
 		tutorial_completed = bool(cfg.get_value("progress", "tutorial_completed", false))
 		runs_made = int(cfg.get_value("stats", "runs_made", 0))
@@ -622,8 +681,17 @@ func load_profile() -> void:
 		playtime_seconds = float(cfg.get_value("stats", "playtime_seconds", 0.0))
 		run_outcomes = cfg.get_value("stats", "run_outcomes", ["", "", ""])
 		best_depth = int(cfg.get_value("stats", "best_depth", 30))
-		legacy_points = int(cfg.get_value("legacy", "points", 0))          # the profile's permanent tier
-		legacy_ranks = Dictionary(cfg.get_value("legacy", "ranks", {}))
+		# The profile's permanent tier. (An early v1 banked "Legacy" points — carried over as Valour.)
+		valour = int(cfg.get_value("valour", "points", cfg.get_value("legacy", "points", 0)))
+		# Sanitise: known ids only, no duplicates, never over the cap (a hand-edited or old file).
+		permanent_perks = []
+		for id in Array(cfg.get_value("valour", "perks", [])):
+			if not (id in permanent_perks) and not Progression.perk_info(String(id)).is_empty() \
+					and permanent_perks.size() < Progression.PERMANENT_CAP:
+				permanent_perks.append(String(id))
+		valour_offer = Array(cfg.get_value("valour", "offer", []))
+		last_valour = Dictionary(cfg.get_value("valour", "last", {}))
+		_valour_scored_seed = int(cfg.get_value("valour", "scored_seed", 0))
 
 
 func save_profile() -> void:
@@ -635,8 +703,13 @@ func save_profile() -> void:
 	cfg.set_value("stats", "playtime_seconds", playtime_seconds)
 	cfg.set_value("stats", "run_outcomes", run_outcomes)
 	cfg.set_value("stats", "best_depth", best_depth)
-	cfg.set_value("legacy", "points", legacy_points)
-	cfg.set_value("legacy", "ranks", legacy_ranks)
+	if cfg.has_section("legacy"):
+		cfg.erase_section("legacy")           # superseded by [valour]
+	cfg.set_value("valour", "points", valour)
+	cfg.set_value("valour", "perks", permanent_perks)
+	cfg.set_value("valour", "offer", valour_offer)
+	cfg.set_value("valour", "last", last_valour)
+	cfg.set_value("valour", "scored_seed", _valour_scored_seed)
 	# Mirror the headline save facts so the select screen can read one small
 	# file per slot instead of loading three save games.
 	cfg.set_value("resume", "has_save", FileAccess.file_exists(slot_save_path()))
@@ -674,7 +747,7 @@ func slot_summary(slot: int) -> Dictionary:
 		"slot": slot, "exists": false, "tutorial_completed": false,
 		"runs_made": 0, "runs_successful": 0, "playtime_seconds": 0.0,
 		"wallet": 0, "survivors": ["", "", ""],
-		"has_save": false, "floor": 0, "run": 1, "legacy": 0,
+		"has_save": false, "floor": 0, "run": 1, "valour": 0, "permanent": 0,
 	}
 	var cfg := ConfigFile.new()
 	var have_cfg := cfg.load(profile_path(slot)) == OK
@@ -691,7 +764,8 @@ func slot_summary(slot: int) -> Dictionary:
 		out["survivors"] = cfg.get_value("resume", "survivors", ["", "", ""])
 		out["floor"] = int(cfg.get_value("resume", "floor", 0))
 		out["run"] = int(cfg.get_value("resume", "run", 1))
-		out["legacy"] = int(cfg.get_value("legacy", "points", 0))
+		out["valour"] = int(cfg.get_value("valour", "points", cfg.get_value("legacy", "points", 0)))
+		out["permanent"] = Array(cfg.get_value("valour", "perks", [])).size()
 	out["has_save"] = have_save
 	return out
 
@@ -803,6 +877,7 @@ func new_game() -> void:
 	run_boons.clear()
 	run_milestones_seen.clear()
 	pending_boon_floors.clear()
+	session_perks.clear()
 	initialize_paradise_apartments()
 	spawn_source = ""
 	stair_spawn_side = ""
@@ -1691,8 +1766,8 @@ func _stat_mods_sources() -> Array:
 	out.append(character_traits().get("mods", {}))
 	for id in run_boons:                                   # tier 2: this character's boons
 		out.append(Progression.boon(id).get("mods", {}))
-	for id in legacy_ranks:                                # tier 3: the profile's legacy ranks
-		out.append(Progression.legacy_mods_at(id, int(legacy_ranks[id])))
+	for id in permanent_perks:                             # tier 3: the profile's permanent perks
+		out.append(Progression.perk_info(id).get("mods", {}))
 	return out
 
 
@@ -1755,7 +1830,7 @@ func get_upgrade_pair(floor_num: int) -> Array:
 	rng.seed = hash(str(master_seed) + "upgrade" + str(floor_num) + str(current_run))
 	var pool: Array = []
 	for id in UPGRADE_POOL:
-		if id in active_upgrades:
+		if id in active_upgrades or id in permanent_perks:   # a permanent perk is always on
 			continue
 		for i in range(int(UPGRADE_POOL[id]["w"])):
 			pool.append(id)
@@ -1780,6 +1855,7 @@ func resolve_upgrade_offer(floor_num: int, chosen_id: String) -> void:
 	upgrade_offers[key]["resolved"] = true
 	if chosen_id != "" and chosen_id not in active_upgrades:
 		active_upgrades.append(chosen_id)
+		note_perk_acquired(chosen_id)
 		# A max-stamina change must not leave current stamina above the new cap.
 		stamina = min(stamina, get_max_stamina())
 
@@ -3708,6 +3784,7 @@ func save_game(scene_path: String, record_live_zombies: bool = true) -> void:
 		"is_first_run": is_first_run,
 		"opener_seen": opener_seen,
 		"run_boons": run_boons,
+		"session_perks": session_perks,
 		"run_milestones_seen": run_milestones_seen,
 		"pending_boon_floors": pending_boon_floors,
 		"current_run": current_run,
@@ -3799,6 +3876,8 @@ func load_game() -> String:
 	# on Continue — a save made mid-tutorial used to replay the whole title card).
 	opener_seen = bool(data.get("opener_seen", true))
 	run_boons = Array(data.get("run_boons", []))
+	# Older saves predate the session record: rebuild it from what's still visible.
+	session_perks = Array(data.get("session_perks", Array(data.get("active_upgrades", [])) + run_boons))
 	run_milestones_seen = Array(data.get("run_milestones_seen", []))
 	pending_boon_floors = []
 	for f in data.get("pending_boon_floors", []):

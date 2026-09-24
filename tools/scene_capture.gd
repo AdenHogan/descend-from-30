@@ -23,11 +23,16 @@ extends Node
 #   give:<id>[:<lvl>] put an item in the inventory (optionally at a workbench level)
 #   scrap:<n>        set the scrap counter
 #   boon:<floor>     reach a run-boon milestone (queues the HUD badge)
-#   legacy:<n>       set the profile's Legacy points
+#   valour:<n>       set the profile's Descent Valour
+#   perk:<id>        record a perk as acquired this session (the Valour offer's pool)
+#   chron:<run>:<deepest>:<dead|survived>  set a run's deepest floor + outcome (for scoring)
+#   perm:<id>        keep a perk permanently (the profile's collection)
+#   finish           score the session (WorldState.finish_session) → Valour + offer
 #   hud:<method>     call a no-arg HUD method (e.g. open_boon_offer)
 #   kill             kill the player now (player._die → the real Game.game_over flow)
 #   hp:<n>           set health
 #   eval:<method>    call a no-arg method on the current scene
+#   call:<group>:<method>[:<arg>]  call a method on the first node in a group (e.g. modal_panel)
 # Other args: --tutorial=1|0 (first-run tutorial on/off), --seed=<n>.
 
 var _out := "/tmp/cap"
@@ -119,8 +124,18 @@ func _do(step: String) -> void:
 			HUD.refresh_inventory()
 		"boon":
 			WorldState.note_boon_milestone(int(p[1]))
-		"legacy":
-			WorldState.legacy_points = int(p[1])
+		"valour":
+			WorldState.valour = int(p[1])
+		"perk":
+			WorldState.note_perk_acquired(p[1])
+		"chron":
+			WorldState.run_chronicle[int(p[1]) - 1]["deepest_floor"] = int(p[2])
+			WorldState.set_run_outcome(int(p[1]), p[3])
+		"perm":
+			if not (p[1] in WorldState.permanent_perks):
+				WorldState.permanent_perks.append(p[1])
+		"finish":
+			WorldState.finish_session()
 		"hud":
 			if HUD.has_method(p[1]):
 				HUD.call(p[1])
@@ -140,6 +155,14 @@ func _do(step: String) -> void:
 			var pl = _player()
 			if pl != null and pl.has_method("_die"):
 				pl._die()           # the real death path (anim → Game.game_over)
+			await _frames(1)
+		"call":
+			var n = get_tree().get_first_node_in_group(p[1])
+			if n != null and n.has_method(p[2]):
+				if p.size() > 3:
+					n.call(p[2], p[3])
+				else:
+					n.call(p[2])
 			await _frames(1)
 		"eval":
 			var sc = get_tree().current_scene

@@ -47,8 +47,8 @@ func _ready() -> void:
 	_refresh()
 
 
-# LEGACY (docs/PROGRESSION.md, tier 3): the selected slot's permanent perks, bought with what its
-# characters earned. Built in code under the nav so the .tscn stays untouched.
+# LEGACY (docs/PROGRESSION.md, Descent Valour): the selected slot's permanent perks — its
+# collection (trade out) and any unclaimed end-of-session offer. Built in code under the nav so the .tscn stays untouched.
 var _legacy_btn: Button = null
 var _legacy_ui = null
 
@@ -68,7 +68,7 @@ func _add_legacy_button() -> void:
 
 
 func open_legacy() -> void:
-	WorldState.use_slot(_selected)          # the SELECTED slot's profile (its points + ranks)
+	WorldState.use_slot(_selected)          # the SELECTED slot's profile (its Valour + perks)
 	if _legacy_ui == null or not is_instance_valid(_legacy_ui):
 		_legacy_ui = preload("res://scripts/legacy_ui.gd").new()
 		add_child(_legacy_ui)
@@ -207,7 +207,7 @@ func _fill_nav(info: Dictionary) -> void:
 	if new_btn != null:
 		new_btn.text = "NEW GAME (OVERWRITE)" if info["has_save"] else "NEW GAME"
 	if _legacy_btn != null:
-		_legacy_btn.text = "LEGACY  (%d)" % int(info.get("legacy", 0))
+		_legacy_btn.text = "LEGACY  %d/%d" % [int(info.get("permanent", 0)), Progression.PERMANENT_CAP]
 		_legacy_btn.visible = info["exists"]
 	var del := get_node_or_null("Nav/DeleteButton")
 	if del != null:

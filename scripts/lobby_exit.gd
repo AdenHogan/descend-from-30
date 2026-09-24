@@ -17,13 +17,13 @@ func _on_body_entered(body: Node2D) -> void:
 	# The END CARD (same bookend as a death), leaving the screen black BEFORE advancing so the
 	# run's world mutation never shows on the old scene.
 	var who: String = WorldState.character_display_name(WorldState.current_character())
-	var legacy: int = WorldState.award_run_legacy(true)      # permanent tier: banked to the profile
 	if not await Transition.end_card(TutorialManager.LINES["end_escaped"],
-			"%s made it out of the building.\n+%d Legacy" % [who, legacy], Transition.END_ESCAPED_COLOR):
+			"%s made it out of the building." % who, Transition.END_ESCAPED_COLOR):
 		await Transition.cover()
 	var arc_over: bool = WorldState.advance_run()
 	if arc_over:
 		# The THIRD character walked out — the whole playthrough is complete.
+		WorldState.finish_session()      # score the session → Descent Valour + the perk offer
 		WorldState.delete_save()
 		HUD.hide_hud()
 		get_tree().change_scene_to_file("res://scenes/game_over.tscn")

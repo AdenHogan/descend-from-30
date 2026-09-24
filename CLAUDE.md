@@ -1136,17 +1136,22 @@ means no rendering — UI layout and art still need an in-editor look.
   `add_world_drop` returns the key it used), and **New Game leaked the previous game's wallet +
   cash** (`new_game` now resets wallet/scrap). Tools: `scene_capture` gained `give:` / `scrap:`
   steps. Locked by `weapon_upgrade_test`.
-- PROGRESSION tiers 2 + 3 (docs/PROGRESSION.md — a v1 PROPOSAL; merchant upgrades untouched):
-  **Run boons** (temporary, this character): the first arrival at milestone floors 27/22/17/12/7
-  queues a pick-1-of-2 offered by a HUD **"★ BOON — choose"** badge (never a forced pause —
-  pans/fights are never interrupted), wiped by the time skip, kept by a save. **Legacy**
-  (permanent, the PROFILE): a character's end banks 1/floor descended +10 for escaping (shown on
-  the end card), spent on ranked perks from the profile screen's LEGACY button; ranks stack
-  forever. Both are sources in `_stat_mods_sources`. UI: `choice_panel.gd` (shared pausing card)
-  → `boon_offer_ui.gd`, `legacy_ui.gd`; the journal lists both. NOTE for tests: Legacy lives in
-  the PROFILE file — a test that buys ranks must restore them (see `progression_test`), or they'd
-  leak into every other suite's stats. Locked by `progression_test`.
-- Next: owner review of the progression proposal; balance numbers need a playtest. Also open:
+- PROGRESSION tiers 2 + 3 (docs/PROGRESSION.md): **Run boons** (temporary, this character — a v1
+  proposal): the first arrival at milestone floors 27/22/17/12/7 queues a pick-1-of-2 offered by a
+  HUD **"★ BOON — choose"** badge (never a forced pause), wiped by the time skip, kept by a save.
+  **Descent Valour** (permanent — the OWNER'S design, replaced an earlier ranked "Legacy" shop): at
+  the END OF A SESSION (3rd character escapes or dies) `WorldState.finish_session` scores each run's
+  depth into Valour (`d + d²/60`, +10 escaped; banked to the PROFILE, savable) and offers up to 3
+  perks drawn uniformly at random from `session_perks` (every merchant upgrade + run boon ACQUIRED
+  that session). Buy ONE to keep forever (`permanent_perks`, a fold source for every new game in the
+  slot, removed from the merchant + boon pools); max 10, trade out for a 50% refund. UI:
+  `legacy_ui.gd` (Descent offer / Collection tabs) from the end screen (`game_over.gd`, whose layout
+  was also fixed — its anchors had collapsed top-left) and the profile screen's LEGACY button.
+  NOTE for tests: Valour + kept perks live in the PROFILE file — a test that buys must restore them
+  (see `progression_test`), or they'd leak into every other suite's stats. The capture tool
+  (`scene_capture` `valour:`/`perk:`/`perm:`/`chron:`/`finish`/`call:` steps) ALSO writes the profile.
+- Next: owner review of Valour interpretations (3 offered, 50% trade refund, prices); balance
+  numbers need a playtest. Also open:
   **Upgrade offers** polish; barricade-keeper NPC; fire smoke/crouch + warning beat. Also open: **Upgrade offers** polish; barricade-keeper NPC;
   fire smoke/crouch + warning beat.
 - Not started: balcony descent, quests.
