@@ -28,13 +28,14 @@ Gated by `WorldState.opener_seen` (reset by `new_game()` / `advance_run()` / F7,
 Continue never replays it). New Game fades the menu to black first, so the cold open starts
 from black with no hard cut.
 1. **Black screens** (`scripts/intro_overlay.gd`), each its OWN screen, over ONE bloody
-   handprint that stays put throughout (owner's call):
+   handprint that stays put through the title and the time card (owner's call):
    a. **Title** — «DESCEND FROM 30» in gory red, on its own (run 1 only).
    b. **Time card** — the big time-of-day word in its own colour (MORNING gold / AFTERNOON
       orange / NIGHT blue — the Transition time-card look the owner preferred) drifting up,
       with the character's name and the time subtitle under it.
-   c. **The line** — a short loud burst of banging, then the character's line + [any key],
-      a door-slam; the handprint leaves on black, THEN the black lifts on the hallway.
+   c. **The line** — on CLEAN black (the handprint fades out WITH the time card — owner: the red
+      was overwhelming behind the text): a short loud burst of banging, then the character's
+      line + [any key], a door-slam, then the black lifts on the hallway.
    A key during (a)/(b) hurries that screen to its fade (never skips it). Waits while a
    Transition still covers the screen. Runs 2/3 open on (b) — the death/escape end card hands
    straight to it (`Transition.to_run_start`), no separate time card.

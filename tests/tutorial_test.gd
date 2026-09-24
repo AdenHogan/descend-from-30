@@ -263,6 +263,7 @@ func _test_opener() -> void:
 		if intro.line_shown:
 			break
 	check(intro.stage == "line" and intro.card.modulate.a == 0.0, "then the line screen")
+	check(intro.gore.modulate.a == 0.0, "…on clean black — the handprint left with the time card")
 	check(intro.line_shown and intro.line.text == TutorialManager.LINES["opener_1"], "the first line shows")
 	# Any key advances → fade to gameplay.
 	var ev = InputEventKey.new()

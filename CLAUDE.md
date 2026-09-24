@@ -1109,7 +1109,8 @@ means no rendering — UI layout and art still need an in-editor look.
   BEGINS on the same cold open** (`intro_overlay.gd`, configured by `hallway.opener_config()`):
   separate black screens over ONE bloody handprint — the game TITLE on its own (run 1 only) → the
   TIME CARD (big coloured MORNING/AFTERNOON/NIGHT + the character's name + subtitle, the look
-  the owner preferred) → banging + the character's line → the lockout knock at 3001 whose lines
+  the owner preferred; the handprint leaves with it) → banging + the character's line on CLEAN
+  black → the lockout knock at 3001 whose lines
   nod to how the previous character ended. `opener_seen` is reset per run AND saved (Continue used to replay the whole
   cold open). New Game fades the menu to black first; the opener's words leave on black before
   the scene fades in (no smeared crossfade); all cards share the pixel fonts. **Wall text**

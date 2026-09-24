@@ -23,7 +23,8 @@ every run ENDS and BEGINS the same way.
 - **Cold open** (`intro_overlay.gd`, every run, once — `opener_seen` is reset by `new_game` +
   `advance_run` and SAVED), separate black screens over one bloody handprint: the game's
   **title** (run 1 only) → the **time card** (big MORNING / AFTERNOON / NIGHT in its own colour +
-  the character's name + subtitle) → banging and the character's **line** → the visible
+  the character's name + subtitle; the handprint fades out with it) → banging and the character's
+  **line** on clean black → the visible
   **lockout at 3001**. (The end card hands straight to it via `Transition.to_run_start`;
   `to_run_shift`'s separate time card is no longer used between runs.) Run 2/3 lockout lines nod to how the
   previous character's story ended (fell / escaped). All lines: `TutorialManager.LINES`

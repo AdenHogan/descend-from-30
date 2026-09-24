@@ -11,7 +11,7 @@ extends CanvasLayer
 #   1. TITLE      — "DESCEND FROM 30" on its own (run 1 only; empty title_text skips it).
 #   2. TIME CARD  — the big time-of-day word in its own colour (MORNING / AFTERNOON / NIGHT, the
 #                   Transition time-card look the owner preferred) + who this is + a subtitle.
-#   3. THE LINE   — banging, then the character's line ("Who the hell is banging…") + [any key].
+#   3. THE LINE   — on CLEAN black (the handprint leaves with the time card): banging, then the character's line ("Who the hell is banging…") + [any key].
 # Then the black lifts on the hallway and the visible lockout at 3001 plays. The hallway configures
 # it before add_child() (hallway.opener_config). It waits while a Transition still covers the screen.
 var title_text: String = "DESCEND FROM 30"
@@ -40,7 +40,7 @@ const BURST_BANGS = 5      # short, rapid
 const BURST_GAP = 0.11     # quick
 const LINE_DELAY = 0.75    # the banging lands, THEN the line reacts to it
 const FADE_TIME = 0.5      # black → scene
-const TEXT_FADE = 0.35     # handprint leaves FIRST, on black — never smeared over the scene
+const TEXT_FADE = 0.35     # a beat of clean black after the line, before the scene fades in
 
 var black: ColorRect = null
 var gore: Control = null
@@ -152,7 +152,7 @@ func _next_stage(to: String) -> void:
 func skip_to_line() -> void:
 	title.modulate.a = 0.0
 	card.modulate.a = 0.0
-	gore.modulate.a = 1.0
+	gore.modulate.a = 0.0
 	burst_left = 0
 	_next_stage("line")
 	t = LINE_DELAY
@@ -161,8 +161,7 @@ func skip_to_line() -> void:
 func _process(delta: float) -> void:
 	if fading:
 		fade_t += delta
-		# Two beats: the handprint leaves on black, THEN the black lifts on the hallway.
-		gore.modulate.a = 1.0 - clampf(fade_t / TEXT_FADE, 0.0, 1.0)
+		# The black lifts on the hallway (the handprint already left with the time card).
 		black.color.a = 1.0 - clampf((fade_t - TEXT_FADE) / FADE_TIME, 0.0, 1.0)
 		if fade_t >= TEXT_FADE + FADE_TIME:
 			get_tree().paused = false
@@ -174,14 +173,17 @@ func _process(delta: float) -> void:
 	if Transition.busy:
 		return
 	t += delta
-	gore.modulate.a = maxf(gore.modulate.a, minf(t / TITLE_FADE, 1.0))
 	match stage:
 		"title":
 			title.modulate.a = _in_hold_out(t, TITLE_FADE, TITLE_HOLD, OUT_FADE)
+			gore.modulate.a = minf(t / TITLE_FADE, 1.0)            # stays up as the title leaves
 			if t >= TITLE_FADE + TITLE_HOLD + OUT_FADE:
 				_next_stage("card")
 		"card":
 			card.modulate.a = _in_hold_out(t, CARD_FADE, CARD_HOLD, OUT_FADE)
+			# The handprint leaves WITH the time card (owner: the line screen is clean — no red).
+			var g_in: float = 1.0 if title_text != "" else minf(t / CARD_FADE, 1.0)
+			gore.modulate.a = minf(g_in, card.modulate.a) if t >= CARD_FADE + CARD_HOLD else g_in
 			card.position.y = 24.0 * (1.0 - minf(t / (CARD_FADE * 1.5), 1.0))    # drifts up, like before
 			if t >= CARD_FADE + CARD_HOLD + OUT_FADE:
 				_next_stage("line")
