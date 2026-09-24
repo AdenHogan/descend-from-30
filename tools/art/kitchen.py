@@ -246,17 +246,23 @@ def counter_end(c):
     for y in range(36, 47, 3):
         c.hline(298, 312, y, hexc('b9b09a'))
     c.put(304, 39, hexc('b0453a'))
-    # the pedal bin, pulled out onto the floor by the lane (the trash can node)
-    x0, x1, top, base = 284, 304, 96, 116
-    c.shadow(294, base, 12, 2, 110)
-    c.box(x0, top + 4, x1, base - 1, BIN, OUT)
-    c.vline(x0 + 2, top + 5, base - 2, shade(BIN, 1.15))
-    c.vline(x1 - 2, top + 5, base - 2, BIN_DK)
-    c.poly([(x0 - 1, top + 3), (x1 + 1, top + 3), (x1 - 2, top - 3), (x0 + 2, top - 3)], BIN_DK)  # lid, ajar
-    c.poly([(x0 + 3, top - 3), (x0 + 9, top - 6), (x0 + 12, top - 1)], hexc('3a3a36'))           # a bin bag poking out
-    c.rect(x0 + 4, base - 2, x0 + 9, base - 1, OUT)                  # pedal
-    c.rect(266, 108, 272, 111, hexc('d8d2c2'))                       # a broken plate on the floor
-    c.put(270, 107, hexc('d8d2c2')); c.put(274, 110, hexc('d8d2c2'))
+    # rubbish at the end of the counter, against the wall (the trash node): two tied black bin bags,
+    # one split with rubbish spilling onto the lino
+    bag, bag_dk, bag_lt = hexc('2f2e2c'), hexc('222120'), hexc('4a4946')
+    c.shadow(284, 100, 18, 2, 100)
+    c.poly([(268, 100), (268, 88), (272, 80), (280, 78), (286, 82), (288, 92), (287, 100)], bag)
+    c.poly([(276, 78), (279, 72), (282, 72), (283, 78)], bag_dk)            # the knot
+    c.line(271, 84, 276, 97, bag_lt)
+    c.poly([(284, 100), (285, 90), (290, 84), (298, 84), (302, 90), (302, 100)], bag)
+    c.line(292, 86, 300, 97, bag_lt)
+    c.poly([(294, 84), (296, 79), (298, 80), (297, 85)], bag_dk)
+    c.poly([(286, 94), (292, 92), (291, 99)], bag_dk)                      # the split
+    c.rect(288, 97, 292, 99, hexc('b0453a'))                               # a can
+    c.rect(283, 99, 287, 101, hexc('d8d2c2'))                              # paper
+    c.put(279, 101, hexc('c7b16a')); c.put(281, 102, hexc('7a8a5a'))
+    # a broken plate on the floor near the lane
+    c.rect(226, 110, 232, 112, hexc('d8d2c2'))
+    c.put(230, 109, hexc('d8d2c2')); c.put(235, 111, hexc('d8d2c2'))
 
 
 def build():

@@ -1,5 +1,7 @@
 [gd_scene format=3 uid="uid://b7h4576ex5v3h"]
 
+[ext_resource type="Texture2D" path="res://assets/rooms/study.png" id="1_art"]
+
 [node name="Node2D" type="Node2D" unique_id=1019415200]
 
 [node name="ColorRect" type="ColorRect" parent="." unique_id=963950206]
@@ -12,9 +14,15 @@ layout_mode = 0
 offset_right = 318.0
 offset_bottom = 101.0
 theme_override_font_sizes/font_size = 32
+visible = false
 text = "Study"
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="Art" type="Sprite2D" parent="."]
+texture_filter = 1
+texture = ExtResource("1_art")
+centered = false
 
 [node name="Balcony" type="Node2D" parent="."]
 
@@ -155,13 +163,17 @@ theme_override_font_sizes/font_size = 10
 text = "BALCONY"
 
 [node name="anchor_centre_bookcaseupper" type="Marker2D" parent="." unique_id=1477232159]
-position = Vector2(113, 78)
+position = Vector2(114, 42)
+metadata/back_plane = true
 
 [node name="anchor_centre_bookcaselower" type="Marker2D" parent="." unique_id=252669313]
-position = Vector2(124, 106)
+position = Vector2(126, 70)
+metadata/back_plane = true
 
 [node name="anchor_centre_desk" type="Marker2D" parent="." unique_id=1874674597]
-position = Vector2(197, 108)
+position = Vector2(184, 66)
+metadata/back_plane = true
 
 [node name="anchor_right_shelf" type="Marker2D" parent="." unique_id=1034760135]
-position = Vector2(267, 99)
+position = Vector2(291, 42)
+metadata/back_plane = true

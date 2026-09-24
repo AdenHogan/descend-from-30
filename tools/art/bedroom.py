@@ -226,20 +226,35 @@ def bed(c):
     rrect(c, 88, 83, 110, 92, PILLOW, 3)
     c.hline(90, 108, 92, PILLOW_DK)
     c.rect(95, 86, 102, 88, PILLOW_DK)
-    # the duvet: on the top, thrown back from the pillow, draping over the front edge in folds
-    top = [(114, 86), (160, 85), (200, 86), (205, 96), (112, 96)]
-    c.poly(top, DUVET)
-    c.hline(116, 198, 86, DUVET_LT)
-    drape = [(112, 96), (205, 96), (204, 106), (196, 105), (184, 107), (170, 105), (156, 107), (140, 105), (126, 107), (113, 105)]
-    c.poly(drape, DUVET_DK)
-    c.hline(112, 205, 96, DUVET)
-    for fx in (126, 140, 156, 170, 184, 196):          # fold lines on the drape
-        c.vline(fx, 98, 105, shade(DUVET_DK, 0.85))
-    for (a, b) in (((124, 88), (130, 95)), ((150, 87), (148, 95)), ((176, 88), (184, 95))):
-        c.line(a[0], a[1], b[0], b[1], DUVET_DK)           # rumples on top
+    # THE DUVET covers the whole mattress top from the back edge to the footboard, turned down in a
+    # fold at the pillow end, and drapes over the front edge in a soft, uneven hem.
+    xa, xb2 = 112, 208                                   # from just past the pillow to the footboard
+    c.rect(xa, 84, xb2, 97, DUVET)                       # the top, back edge to front edge
+    c.hline(xa, xb2, 84, DUVET_DK)                       # the far edge, tucked against the wall
+    c.hline(xa + 10, xb2, 85, DUVET_LT)
+    # the turned-down fold: a lighter band (the duvet's underside) with a shadow under its lip
+    c.poly([(xa, 84), (xa + 9, 84), (xa + 12, 97), (xa, 97)], shade(DUVET_LT, 1.08))
+    c.line(xa + 9, 84, xa + 12, 97, DUVET_DK)
+    c.vline(xa + 13, 86, 96, shade(DUVET, 0.88))
+    # soft rumples: short light ridges with a shade under them, never hard straight lines
+    for (rx, ry, ln) in ((136, 88, 14), (158, 91, 18), (182, 87, 12), (196, 93, 8)):
+        c.hline(rx, rx + ln, ry, DUVET_LT)
+        c.hline(rx + 2, rx + ln + 1, ry + 1, shade(DUVET, 0.88))
+    # the drape over the front edge (97 -> an uneven hem), darker as it turns away from us
+    hem = [105, 106, 106, 107, 106, 105, 105, 106, 107, 107, 106, 105]
+    step = (xb2 - xa + 1) / len(hem)
+    for k, hy in enumerate(hem):
+        x0d = xa + int(k * step)
+        x1d = xa + int((k + 1) * step) - 1
+        c.rect(x0d, 98, x1d, hy, DUVET_DK)
+        c.hline(x0d, x1d, hy, shade(DUVET_DK, 0.8))
+    c.hline(xa, xb2, 97, DUVET)                          # the rounded front edge
+    c.hline(xa, xb2, 98, shade(DUVET, 0.92))
+    for fx in (128, 151, 173, 194):                      # a few soft folds in the drape
+        c.vline(fx, 100, 104, shade(DUVET_DK, 0.82))
+        c.vline(fx + 1, 99, 103, shade(DUVET_DK, 1.1))
     # a dark stain soaking into the sheet by the pillow
-    c.ellipse(114, 91, 4, 2, BLOOD)
-    c.put(118, 92, BLOOD)
+    c.ellipse(111, 90, 2, 1, BLOOD)
     # footboard (right)
     c.box(x1 - 6, 80, x1, 113, BED_WOOD, WOOD_OUT)
     c.vline(x1 - 5, 81, 112, BED_WOOD_LT)

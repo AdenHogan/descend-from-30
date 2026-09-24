@@ -30,10 +30,26 @@ here (A-D). Not wired into the game yet (step 3 below).
 **Bedroom + kitchen BUILT (owner round 9)**: `tools/art/bedroom.py` (dressing table + mirror, bedside
 + squat lamp, the bed lengthwise with a draped duvet and a box under it, clothes on the carpet, a
 wardrobe with one door ajar) and `tools/art/kitchen.py` (a rounded fridge, the counter run with wall
-cupboards over a tiled splashback, the cooker with a pot on the hob, the sink + drainer, a pedal bin
-out on the floor, a tea towel + calendar). Nodes on the furniture; set-back ones flagged back_plane
-(bedroom: dressing table, bedside, wardrobe top + drawer; kitchen: everything but the bin).
-Bathroom, study, dining room: to do in the same style.
+cupboards over a tiled splashback, the cooker with a pot on the hob, the sink + drainer, bin bags
+against the wall, a tea towel + calendar). Nodes on the furniture; set-back ones flagged back_plane
+(bedroom: dressing table, bedside, wardrobe top + drawer; kitchen: all of them).
+Owner round 10: the duvet now covers the whole mattress top and drapes over the front with an uneven
+hem; the kitchen's pedal bin (an "appliance on the floor") became two tied bin bags against the wall.
+**Bathroom, study, dining room BUILT (round 10)** — all six basic modules now have art:
+- `bathroom.py`: mirrored cabinet hanging open over a pedestal sink, low-cistern toilet, the bath
+  lengthwise with a torn curtain (nodes on either end of the rim — front), a laundry bag on the floor
+  (front), a corner shower. Grimy paint over tiles; an 8px mosaic floor.
+- `study.py`: tall bookcase (upper + lower shelf nodes, one spot), a writing desk with a green lamp
+  under a pinned-up board of notes and red string (desk-top node), the leather chair pulled out, a
+  rug, papers under the R window, shelves over a filing cabinet (node on the shelves). Green paper
+  over dark panelling; parquet.
+- `dining_room.py`: the table pulled forward to the lane with a meal abandoned on it (nodes on either
+  end of the top — front), ladder-back chairs behind, one knocked over in front, a pendant lamp and a
+  scratched-out portrait, a dead plant, a Welsh dresser (drawer + cupboard nodes, one spot). Damask
+  over a cream wainscot; dark boards.
+Study + dining can hold the BALCONY (it covers x 4..96, y 12..126): that strip only has things the
+balcony may hide (radiator, file boxes / sideboard), and the `Art` sprite comes BEFORE the `Balcony`
+node so the balcony draws over it (checked by `apartment_window_test`).
 
 **Rules every module script enforces** (it refuses to write the PNG otherwise):
 1. The runtime window boxes are bare wall (`check_window_boxes`).

@@ -29,7 +29,8 @@ position = Vector2(26, 70)
 metadata/back_plane = true
 
 [node name="anchor_right_trashcan" type="Marker2D" parent="." unique_id=249149841]
-position = Vector2(294, 104)
+position = Vector2(283, 88)
+metadata/back_plane = true
 
 [node name="anchor_left_cupboard" type="Marker2D" parent="." unique_id=1247054906]
 position = Vector2(118, 40)

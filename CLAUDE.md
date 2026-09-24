@@ -1353,8 +1353,11 @@ means no rendering — UI layout and art still need an in-editor look.
   reach up there, no left/right, never auto-returns; S steps down (a click on open floor steps down
   then walks). From the walking line those nodes are out of reach. Saves record the walking line
   (`player.lane_position`). Enemies still reach you up there. Locked by `back_plane_test`.
-  **Bedroom + kitchen art BUILT** (`tools/art/bedroom.py` / `kitchen.py`, nodes on the furniture,
-  set-back ones back_plane). **Floors at doorways**: `module_walls._floor_wedge` parts two rooms'
+  **ALL SIX basic modules have art** (`tools/art/<module>.py`: living room, bedroom, kitchen,
+  bathroom, study, dining room — nodes on the furniture, set-back ones back_plane; anchor NAMES
+  unchanged). On study/dining (balcony-capable) x 4..96 holds only what the balcony may cover and the
+  `Art` sprite sits BEFORE the `Balcony` node so the balcony draws over it. Variants (~5 per module)
+  are the next step. **Floors at doorways**: `module_walls._floor_wedge` parts two rooms'
   floors along the wall's base line in perspective (flipping with the camera like the wall face),
   tiled from each module's FLOOR-ONLY export `assets/rooms/<name>_floor.png` (32px-periodic), with a
   wooden threshold in interior doorways. Generators enforce: window boxes bare, the side-wall sample

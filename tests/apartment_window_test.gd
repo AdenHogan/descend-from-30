@@ -302,12 +302,24 @@ func _test_floor_boundary() -> void:
 	# The floor strips continue each floor seamlessly only if the floor repeats every FLOOR_STRIP px —
 	# checked on each module's FLOOR-ONLY export (no furniture), which is what the wedge tiles.
 	var strip: int = MW.FLOOR_STRIP
-	for mod in ["bedroom", "kitchen"]:
+	for mod in ["bedroom", "kitchen", "bathroom", "study", "dining_room"]:
 		var img: Image = load("res://assets/rooms/%s_floor.png" % mod).get_image()
 		if img.is_compressed():
 			img.decompress()
 		check(img.get_height() == 44 and img.get_width() == 320, "%s: a floor-only export, 320x44" % mod)
 		check(_floor_periodic_below(img, strip, 0), "%s: the floor repeats every %dpx (tiles on seamlessly)" % [mod, strip])
+	# Every basic module carries its art; the placeholder label is hidden (room.gd still reads its
+	# text); on a balcony module the Balcony draws OVER the art (it comes after it in the tree).
+	for mod in ["living_room", "bedroom", "kitchen", "bathroom", "study", "dining_room"]:
+		var inst = load("res://scenes/Room_Modules/%s.tscn" % mod).instantiate()
+		var art = inst.get_node_or_null("Art")
+		check(art is Sprite2D and art.texture != null, "%s: an Art sprite with a texture" % mod)
+		var lbl = inst.get_node_or_null("ColorRect/Label")
+		check(lbl != null and not lbl.visible, "%s: the placeholder label is hidden" % mod)
+		var bal = inst.get_node_or_null("Balcony")
+		if bal != null and art != null:
+			check(bal.get_index() > art.get_index(), "%s: the Balcony draws over the art" % mod)
+		inst.free()
 	# A module's strip comes from that floor-only export — the right edge = its last FLOOR_STRIP columns.
 	var m = load("res://scenes/Room_Modules/kitchen.tscn").instantiate()
 	add_child(m)
