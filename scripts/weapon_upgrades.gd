@@ -43,10 +43,10 @@ const PERKS := {
 	# --- Gun (the doc's tree) ---
 	"G_aim": {"name": "Aim Assist", "desc": "Steadier aim: +10% headshot and +10% body-hit chance.",
 		"mods": {"headshot": {"add": 0.10}, "body": {"add": 0.10}}},
-	# The doc's "doubles durability" — a gun has no durability (it runs on ammo, and forcing a door
-	# DAMAGES it instead), so its toughness perk makes it immune to that damage + a bigger magazine.
-	"G_durable": {"name": "Durable Hand Cannon", "desc": "Forcing a door never damages it, and it holds 6 more rounds.",
-		"mods": {"mag": {"add": 6}}, "flags": ["no_force_damage"]},
+	# The doc's "doubles durability": a gun wears a mark every 6 shots — this makes it every 12
+	# (the owner's call), and forcing a door never damages it.
+	"G_durable": {"name": "Durable Hand Cannon", "desc": "Wears half as fast (a durability mark every 12 shots, not 6), and forcing a door never damages it.",
+		"mods": {"shots_per_mark": {"mult": 2.0}}, "flags": ["no_force_damage"]},
 	"G_silencer": {"name": "Silencer", "desc": "Shots are barely louder than footsteps — they no longer rouse the floor.",
 		"flags": ["silenced"]},
 	"G_pierce": {"name": "Through-and-Through", "desc": "A shot that lands also hits the enemy behind the target.",

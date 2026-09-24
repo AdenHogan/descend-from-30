@@ -15,7 +15,7 @@
   charred apartment anchors — 75% hold a big bag (14–30); an ordinary room's EMPTY anchor — 7%
   a small bag (6–14); maintenance rooms — ~16% of anchors (spare parts, right by the bench).
   Never sold by the merchant.
-- **The bench** — `[E] Upgrade weapons` at the maintenance workbench opens `workbench_ui.gd` (a
+- **The bench** — `[E] Upgrade / salvage` at the maintenance workbench opens `workbench_ui.gd` (a
   pausing panel like the journal): your gun/hammer, the perks each has, the next level's cost and
   the PICK-ONE-OF-TWO. Costs exactly as specced (50 → a spare Lv1 + 80 → a spare Lv2 + 100); the
   LOWEST qualifying spare is fed in, never a better one. Rules + perks: `WeaponUpgrades`
@@ -24,8 +24,32 @@
   (`perk_add` / `perk_mult` / `has_perk_flag`), saved with the item, kept on a corpse, and shown as
   a "LvN" tag on the slot. Gun: Aim Assist, Durable Hand Cannon, Silencer, Through-and-Through,
   Lucky Bullet, Bigger Bang — all wired into real combat.
-  - **Interpretation:** "Durable Hand Cannon doubles durability" — a gun has no durability (it runs
-    on ammo; forcing a door DAMAGES it instead), so it's "forcing never damages it + 6 rounds".
+  - **Durable Hand Cannon** (owner, round 2): the gun now WEARS (below), and this perk halves the
+    wear — a mark every **12** shots instead of 6 — and forcing a door never damages it. (It used
+    to be "+6 rounds" while the gun had no durability.)
+- **Gun wear (built, owner's rule)** — the gun has **8 durability marks** and loses **one every 6
+  rounds fired** (48 shots from new). Only a round actually spent counts (a Lucky Bullet free shot
+  doesn't). Worn out = BROKEN like any weapon: it won't fire, stays in inventory, and a toolbox
+  restores it (and resets the count). The count toward the next mark rides the gun
+  (`ItemInstance.shots_since_mark`, saved/dropped/corpse-carried); `shots_per_mark()` is 6 ×
+  the `shots_per_mark` perk mult. Old saves' guns (no durability yet) load as new. Forcing a door
+  still DAMAGES a gun separately (worse aim + 10-round mag until repaired). The HUD slot shows the
+  durability bar under the mag count.
+- **Salvage (built, owner's call — "give junk a use")** — the workbench's **Salvage** tab breaks
+  any carried item down for scrap (`Salvage` in `salvage.gd`, one table; action
+  `WorldState.salvage_item`). Junk 2–6 each (metal-bearing junk — umbrella ribs, a remote's
+  board — the most); weapons/tools 4–25 (Gun 25, Sword 20, Aluminium Bat / Toolbox 16, Hammer /
+  Crowbar 14…). **Worn items give less:** × (0.4 + 0.6 × durability left) — a broken one still
+  gives 40%; a damaged gun ×0.7; a stack counts every item. An upgraded weapon also returns **40%
+  of the workbench scrap sunk into it**. A loaded gun's rounds come back as bullets. Junk breaks
+  down on one press; anything else asks to confirm. Not salvageable: healing items, clothes/rope,
+  ammo, keys, money, the Scrap Bag.
+  - **Changed from the original spec:** dismantling was planned as a gated "tier-5 perk"; the
+    owner's round-2 note ("we definitely need to incorporate breaking items down") made it a
+    standard bench action. It could still be gated (e.g. behind a Descent Valour perk) if wanted.
+  - **Balance intent:** a bag of junk (~5 slots) is ~15–20 scrap — worth carrying to a bench but
+    no substitute for a charred ruin (14–30 per bag); scrapping a spare weapon is a real choice
+    against keeping it as upgrade feed.
   - **Hammer tree = PLACEHOLDER** (the doc leaves it to the owner): Heavy Head (+1 dmg) / Reinforced
     Handle (×2 durability); Door Breaker (forcing + barricades cost no durability) / Sweeping Blow
     (a swing also hits a 2nd enemy); Skull Splitter (15% to drop an ordinary enemy outright) /
@@ -35,7 +59,7 @@
   stack count; a BROKEN weapon/tool drops too (repairable, and upgrade feed); two drops on one spot
   no longer overwrite each other. (Before: a drop was re-created from its id — a worn weapon came
   back at full durability, an upgraded one would have come back Lv1, broken ones vanished.)
-- **Still open:** the tier-5 **dismantle** perk (break items → scrap); merchant-sold pre-upgraded
+- **Still open:** merchant-sold pre-upgraded
   weapons; more weapon trees; real bench art; balance numbers (playtest).
 >
 > Ties into: `STORE_DESIGN.md` (upgrades/economy), the fire hazard

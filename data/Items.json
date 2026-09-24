@@ -28,7 +28,7 @@
       "ITEM_NAME": "Gun",
       "ITEM_DESCRIPTION": "Pew, pew, pew. Have you ever fired a gun before indoors? They make a lot of noise, and noise draws in enemies!",
       "VALUE_PROPERTY": "is_weapon",
-      "PROPERTY_DURABILITY": "needs ammo",
+      "PROPERTY_DURABILITY": "8 uses, needs ammo; wears one mark every 6 shots",
       "PROPERTY_SPAWN_RARITY": 1,
       "PROPERTY_WEIGHT_SIZE": null
     },

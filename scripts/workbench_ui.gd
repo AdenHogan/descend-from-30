@@ -6,6 +6,8 @@ extends CanvasLayer
 # strips for parts) and the Hades-style PICK ONE OF TWO for that level. Confirm → the weapon
 # levels up and keeps every perk it had. All rules/costs/perks live in WeaponUpgrades; the action
 # itself is WorldState.upgrade_weapon. Built in code (no .tscn). Close: ✕, ESC, or Leave.
+# A second tab, SALVAGE, breaks carried items down for scrap (junk included; worn items give less —
+# values in Salvage, the action WorldState.salvage_item).
 
 const W := 780.0
 const H := 440.0
@@ -28,6 +30,13 @@ var _perk_box: HBoxContainer = null
 var _cost_label: Label = null
 var _upgrade_btn: Button = null
 var _msg: Label = null
+var tab := "upgrade"                 # "upgrade" | "salvage"
+var _upgrade_page: Control = null
+var _salvage_page: Control = null
+var _salvage_grid: GridContainer = null
+var _tab_up: Button = null
+var _tab_salv: Button = null
+var _confirm_salvage: Object = null  # the item whose Break down was pressed once (confirm)
 
 
 func _ready() -> void:
@@ -65,14 +74,36 @@ func _ready() -> void:
 	x.pressed.connect(close)
 	_card.add_child(x)
 
+	_tab_up = _tab_button("Upgrade", Vector2(260, 16))
+	_tab_up.pressed.connect(func(): show_tab("upgrade"))
+	_tab_salv = _tab_button("Salvage", Vector2(390, 16))
+	_tab_salv.pressed.connect(func(): show_tab("salvage"))
+	_upgrade_page = Control.new()
+	_upgrade_page.size = Vector2(W, H)
+	_upgrade_page.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_card.add_child(_upgrade_page)
+	_salvage_page = Control.new()
+	_salvage_page.size = Vector2(W, H)
+	_salvage_page.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_card.add_child(_salvage_page)
+	var shint := _label("Break things down for scrap. Junk is worth a little; worn items give less.", 12, DIM)
+	shint.position = Vector2(24, 58)
+	_salvage_page.add_child(shint)
+	_salvage_grid = GridContainer.new()
+	_salvage_grid.columns = 3
+	_salvage_grid.position = Vector2(24, 86)
+	_salvage_grid.add_theme_constant_override("h_separation", 16)
+	_salvage_grid.add_theme_constant_override("v_separation", 6)
+	_salvage_page.add_child(_salvage_grid)
+
 	var hint := _label("Your weapons", 12, DIM)
 	hint.position = Vector2(24, 58)
-	_card.add_child(hint)
+	_upgrade_page.add_child(hint)
 	_list = VBoxContainer.new()
 	_list.position = Vector2(24, 78)
 	_list.size = Vector2(230, H - 110)
 	_list.add_theme_constant_override("separation", 6)
-	_card.add_child(_list)
+	_upgrade_page.add_child(_list)
 
 	_detail = RichTextLabel.new()
 	_detail.bbcode_enabled = true
@@ -85,26 +116,26 @@ func _ready() -> void:
 	_detail.add_theme_font_size_override("normal_font_size", 13)
 	_detail.add_theme_font_size_override("bold_font_size", 13)
 	_detail.add_theme_color_override("default_color", INK)
-	_card.add_child(_detail)
+	_upgrade_page.add_child(_detail)
 
 	_perk_box = HBoxContainer.new()
 	_perk_box.position = Vector2(276, 186)
 	_perk_box.size = Vector2(W - 300, 130)
 	_perk_box.add_theme_constant_override("separation", 12)
-	_card.add_child(_perk_box)
+	_upgrade_page.add_child(_perk_box)
 
 	_cost_label = _label("", 13, INK)
 	_cost_label.position = Vector2(276, 326)
 	_cost_label.size = Vector2(W - 300, 36)
 	_cost_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_card.add_child(_cost_label)
+	_upgrade_page.add_child(_cost_label)
 
 	_upgrade_btn = Button.new()
 	_upgrade_btn.text = "Upgrade"
 	_upgrade_btn.position = Vector2(W - 184, H - 56)
 	_upgrade_btn.size = Vector2(160, 36)
 	_upgrade_btn.pressed.connect(func(): confirm())
-	_card.add_child(_upgrade_btn)
+	_upgrade_page.add_child(_upgrade_btn)
 	var leave := Button.new()
 	leave.text = "Leave"
 	leave.position = Vector2(W - 300, H - 56)
@@ -116,6 +147,25 @@ func _ready() -> void:
 	_msg.size = Vector2(W - 340, 20)
 	_card.add_child(_msg)
 	visible = false
+
+
+func _tab_button(text: String, pos: Vector2) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.position = pos
+	b.size = Vector2(120, 30)
+	b.toggle_mode = true
+	b.add_theme_font_override("font", FONT)
+	b.add_theme_font_size_override("font_size", 13)
+	_card.add_child(b)
+	return b
+
+
+func show_tab(which: String) -> void:
+	tab = which
+	_confirm_salvage = null
+	_msg.text = ""
+	refresh()
 
 
 func _label(text: String, size: int, col: Color, font: Font = FONT) -> Label:
@@ -134,6 +184,8 @@ func open() -> void:
 	selected_slot = -1
 	chosen_perk = ""
 	_msg.text = ""
+	tab = "upgrade"
+	_confirm_salvage = null
 	var slots := upgradable_slots()
 	if not slots.is_empty():
 		selected_slot = slots[0]
@@ -197,6 +249,13 @@ func _say(t: String) -> String:
 
 func refresh() -> void:
 	_scrap_label.text = "SCRAP  %d" % WorldState.scrap
+	_tab_up.button_pressed = tab == "upgrade"
+	_tab_salv.button_pressed = tab == "salvage"
+	_upgrade_page.visible = tab == "upgrade"
+	_salvage_page.visible = tab == "salvage"
+	if tab == "salvage":
+		_refresh_salvage()
+		return
 	for c in _list.get_children():
 		c.queue_free()
 	for c in _perk_box.get_children():
@@ -256,6 +315,76 @@ func refresh() -> void:
 	_cost_label.text = cost
 	_cost_label.add_theme_color_override("font_color", INK if chk["ok"] else BAD)
 	_upgrade_btn.disabled = not chk["ok"] or chosen_perk == ""
+
+
+# --- SALVAGE ---------------------------------------------------------------------------
+func _refresh_salvage() -> void:
+	for c in _salvage_grid.get_children():
+		_salvage_grid.remove_child(c)
+		c.queue_free()
+	var any := false
+	for i in WorldState.inventory.size():
+		var inst = WorldState.inventory[i]
+		if not Salvage.can_salvage(inst):
+			continue
+		any = true
+		var name: String = inst.get_display_name()
+		if inst.count > 1:
+			name += "  x%d" % inst.count
+		if inst.level > 1:
+			name += "  Lv%d" % inst.level
+		var n := _label(name, 13, INK, FONT_BOLD)
+		n.custom_minimum_size = Vector2(250, 0)
+		_salvage_grid.add_child(n)
+		var st := _label(_condition(inst), 12, DIM)
+		st.custom_minimum_size = Vector2(220, 0)
+		_salvage_grid.add_child(st)
+		var b := Button.new()
+		b.custom_minimum_size = Vector2(210, 30)
+		b.add_theme_font_override("font", FONT)
+		b.add_theme_font_size_override("font_size", 12)
+		var v: int = Salvage.value_of(inst)
+		b.text = ("Confirm?  +%d scrap" if _confirm_salvage == inst else "Break down  +%d") % v
+		b.pressed.connect(salvage.bind(i))
+		_salvage_grid.add_child(b)
+	if not any:
+		var none := _label("Nothing you're carrying is worth breaking down.", 13, DIM)
+		_salvage_grid.add_child(none)
+
+
+func _condition(inst) -> String:
+	if inst.get_data().get("is_junk", false):
+		return "junk"
+	if inst.is_depleted:
+		return "broken"
+	var max_d: int = inst.get_max_durability()
+	var t := ""
+	if max_d > 0 and not inst.get_data().get("single_use", false):
+		t = "%d/%d durability" % [inst.current_durability, max_d]
+	if inst.is_damaged:
+		t += ("  " if t != "" else "") + "damaged"
+	return t
+
+
+# Break the item in `slot` down. Anything but junk takes two presses (arm, then confirm).
+# Returns the scrap gained (0 = armed / nothing).
+func salvage(slot: int) -> int:
+	var inst = WorldState.get_instance_at(slot)
+	if inst == null or not Salvage.can_salvage(inst):
+		return 0
+	if Salvage.needs_confirm(inst) and _confirm_salvage != inst:
+		_confirm_salvage = inst
+		_say("Break down %s? It's gone for good." % inst.get_display_name())
+		refresh()
+		return 0
+	_confirm_salvage = null
+	var name: String = inst.get_display_name()
+	var got: int = WorldState.salvage_item(slot)
+	if got > 0:
+		_play_clank()
+		_say("%s → +%d scrap." % [name, got])
+	refresh()
+	return got
 
 
 func _play_clank() -> void:

@@ -523,7 +523,7 @@ func _maintenance_process(_delta: float) -> void:
 		if e_pressed:
 			_fit_fuses()
 	elif absf(px - _workbench_pos.x) < _STATION_REACH:
-		HUD.show_world_prompt(self, "Workbench  [E] Upgrade weapons", _workbench_pos + Vector2(0, -54))
+		HUD.show_world_prompt(self, "Workbench  [E] Upgrade / salvage", _workbench_pos + Vector2(0, -54))
 		if e_pressed:
 			open_workbench()
 	else:

@@ -1433,6 +1433,24 @@ func add_scrap(amount: int) -> void:
 		HUD.show_feedback("Scrap +%d" % amount)
 
 
+# Break the item in `slot` down for scrap at a workbench (Salvage — values/rules there). A loaded
+# gun's rounds come back as loose bullets first. Returns the scrap gained (0 = can't salvage).
+func salvage_item(slot: int) -> int:
+	if slot < 0 or slot >= inventory.size():
+		return 0
+	var inst = inventory[slot]
+	var gained: int = Salvage.value_of(inst)
+	if gained <= 0:
+		return 0
+	var rounds: int = inst.mag_count
+	inventory.remove_at(slot)
+	if rounds > 0:
+		add_to_inventory("016", rounds)
+	add_scrap(gained)
+	HUD.refresh_inventory()
+	return gained
+
+
 # THE WORKBENCH ACTION: level the weapon in `slot` up by one, taking `perk_id` (one of its two
 # offered perks). Spends the scrap and consumes the spare copy the step needs; the weapon keeps
 # every perk it already had. Returns "" on success, else the reason it can't.
@@ -3982,6 +4000,7 @@ func instance_to_dict(instance) -> Dictionary:
 		"count": instance.count,
 		"mag_count": instance.mag_count,
 		"is_damaged": instance.is_damaged,
+		"shots_since_mark": instance.shots_since_mark,
 		"level": instance.level,
 		"perks": instance.perks.duplicate(),
 	}
@@ -3998,6 +4017,10 @@ func instance_from_dict(entry: Dictionary) -> ItemInstance:
 	instance.is_damaged = bool(entry.get("is_damaged", false))
 	instance.level = int(entry.get("level", 1))
 	instance.perks = Array(entry.get("perks", []))
+	instance.shots_since_mark = int(entry.get("shots_since_mark", 0))
+	# Guns had no durability before they wore (-1 = "runs on ammo"): an old save's gun is as new.
+	if instance.current_durability < 0 and instance.get_max_durability() > 0:
+		instance.current_durability = instance.get_max_durability()
 	return instance
 
 

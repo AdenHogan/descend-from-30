@@ -1131,8 +1131,11 @@ means no rendering — UI layout and art still need an in-editor look.
   spare parts), the maintenance **workbench** UI (`workbench_ui.gd`, pausing, pick-1-of-2 per
   level, 50 → spare Lv1 + 80 → spare Lv2 + 100), per-weapon `level`/`perks` on `ItemInstance`
   through the fold (`perk_add/perk_mult/has_perk_flag`), rules in ONE table (`WeaponUpgrades`).
-  Gun tree as specced (Durable Hand Cannon interpreted: no force damage + 6 rounds); **hammer tree
-  is PLACEHOLDER** for the owner. Also fixed on the way: **discard memory** (a dropped item keeps
+  Gun tree as specced; **hammer tree is PLACEHOLDER** (owner writing it). **Gun wear**: 8 marks,
+  one knocked off every 6 rounds fired (`ItemInstance.register_shot` / `shots_since_mark`, saved);
+  worn out = broken (toolbox); Durable Hand Cannon = a mark per 12 shots + no force damage.
+  **Salvage**: the bench's Salvage tab breaks items down for scrap (`salvage.gd` table — junk 2–6,
+  weapons/tools up to 25, worn items less, upgraded weapons refund 40% of scrap sunk in). Also fixed on the way: **discard memory** (a dropped item keeps
   its full state incl. level/perks; broken weapons drop too; same-spot drops no longer overwrite —
   `add_world_drop` returns the key it used), and **New Game leaked the previous game's wallet +
   cash** (`new_game` now resets wallet/scrap). Tools: `scene_capture` gained `give:` / `scrap:`

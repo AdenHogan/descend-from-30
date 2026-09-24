@@ -29,6 +29,10 @@ func _ready() -> void:
 	_test_hud()
 	await _test_discard_memory()
 	await _test_workbench_ui()
+	_test_gun_wear()
+	await _test_gun_wear_in_play()
+	_test_salvage_values()
+	await _test_salvage_ui()
 	await _test_bench_in_maintenance_room()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
@@ -126,7 +130,7 @@ func _test_perk_effects() -> void:
 	print("[perks apply through the fold]")
 	WorldState.new_game()
 	var g := _gun(2, ["G_durable"])
-	check(g.get_mag_cap() == _gun().get_mag_cap() + 6, "Durable Hand Cannon: +6 rounds (%d)" % g.get_mag_cap())
+	check(g.shots_per_mark() == 12 and _gun().shots_per_mark() == 6, "Durable Hand Cannon: a mark every 12 shots, not 6")
 	var door = load("res://scenes/door.tscn").instantiate()
 	add_child(door)
 	check(door._force_damages_gun(g, g.get_data()) and not g.is_damaged, "…and forcing a door never damages it")
@@ -331,6 +335,131 @@ func _test_workbench_ui() -> void:
 	ui.close()
 	check(not get_tree().paused and not ui.visible, "closing restores play")
 	ui.queue_free()
+	await get_tree().process_frame
+
+
+func _test_gun_wear() -> void:
+	print("[the gun wears: one durability mark every 6 rounds fired]")
+	var g := _gun()
+	check(g.get_max_durability() == 8 and g.current_durability == 8, "a gun has 8 marks of durability")
+	var knocked := 0
+	for i in 12:
+		if g.register_shot():
+			knocked += 1
+	check(knocked == 2 and g.current_durability == 6, "12 shots → 2 marks gone (6 left)")
+	for i in 5:
+		g.register_shot()
+	check(g.current_durability == 6 and g.shots_since_mark == 5, "5 more: still 6 (the 6th knocks the next)")
+	for i in 31:
+		g.register_shot()
+	check(g.current_durability == 0 and g.is_depleted, "48 shots in all → worn out")
+	check(g.is_repairable(), "…repairable with a toolbox")
+	g.repair_full()
+	check(g.current_durability == 8 and not g.is_depleted and g.shots_since_mark == 0, "a toolbox restores it")
+	var d := _gun(2, ["G_durable"])
+	for i in 12:
+		d.register_shot()
+	check(d.current_durability == 7, "Durable Hand Cannon: 12 shots → only 1 mark")
+	g.register_shot()
+	g.register_shot()
+	var back: ItemInstance = WorldState.instance_from_dict(WorldState.instance_to_dict(g))
+	check(back.shots_since_mark == 2 and back.current_durability == 8, "the count toward the next mark is saved with the gun")
+	var old := WorldState.instance_to_dict(_gun())
+	old["current_durability"] = -1
+	old.erase("shots_since_mark")
+	check(WorldState.instance_from_dict(old).current_durability == 8, "an old save's gun (no durability yet) loads as new")
+
+
+func _test_gun_wear_in_play() -> void:
+	print("[firing for real spends marks; a worn-out gun won't fire]")
+	WorldState.new_game()
+	var P = load("res://scenes/player.tscn")
+	var p = P.instantiate()
+	add_child(p)
+	p.global_position = Vector2(400, 386)
+	# A target that never dies (a real zombie would drop after a headshot and end the volley).
+	var src := GDScript.new()
+	src.source_code = "extends Node2D\nvar is_dead := false\nfunc receive_hit_from_gun(_o): pass\n"
+	src.reload()
+	var z := Node2D.new()
+	z.set_script(src)
+	z.add_to_group("zombie")
+	add_child(z)
+	z.global_position = Vector2(460, 370)
+	await get_tree().process_frame
+	var g := _gun()
+	g.mag_count = 18
+	WorldState.inventory = [g]
+	for i in 6:
+		p.is_attacking = false
+		p._do_gun_attack(g, 0)
+	check(g.mag_count == 12 and g.current_durability == 7, "6 rounds fired → one mark gone (%d marks, mag %d)" % [g.current_durability, g.mag_count])
+	g.current_durability = 0
+	g.is_depleted = true
+	p.is_attacking = false
+	p._do_gun_attack(g, 0)
+	check(g.mag_count == 12, "a worn-out gun doesn't fire")
+	p.queue_free()
+	z.queue_free()
+	await get_tree().process_frame
+
+
+func _test_salvage_values() -> void:
+	print("[salvage: junk is worth a little; weapons more; worn ones less]")
+	var junk := ItemInstance.new()
+	junk.setup("032")
+	check(Salvage.value_of(junk) == 6 and not Salvage.needs_confirm(junk), "a broken umbrella → 6 scrap, no confirm needed")
+	var bottle := ItemInstance.new()
+	bottle.setup("024")
+	check(Salvage.value_of(bottle) == 3, "an empty bottle → 3")
+	var h := _hammer()
+	check(Salvage.value_of(h) == 14, "a fresh hammer → 14")
+	h.current_durability = 5
+	check(Salvage.value_of(h) == 10, "half-worn → 14 × (0.4 + 0.6×0.5) = 10")
+	h.current_durability = 0
+	h.is_depleted = true
+	check(Salvage.value_of(h) == 6, "broken → 40% = 6")
+	var lv := _hammer(3, ["H_heavy", "H_sweep"])
+	check(Salvage.value_of(lv) == 14 + 52, "a Lv3 hammer returns 40% of the 130 scrap sunk in (+52)")
+	var gun := _gun()
+	gun.is_damaged = true
+	check(Salvage.value_of(gun) == 18, "a damaged gun → 25 × 0.7 ≈ 18")
+	var fuses := ItemInstance.new()
+	fuses.setup("020")
+	fuses.count = 3
+	check(Salvage.value_of(fuses) == 12, "a stack counts every item (3 fuses → 12)")
+	for id in ["006", "007", "016", "022", "033", "037", "008"]:
+		var it := ItemInstance.new()
+		it.setup(id)
+		check(not Salvage.can_salvage(it), "%s can't be salvaged" % it.get_display_name())
+	WorldState.new_game()
+	var loaded := _gun()
+	loaded.mag_count = 5
+	WorldState.inventory = [junk, loaded]
+	check(WorldState.salvage_item(0) == 6 and WorldState.scrap == 6 and WorldState.scrap_unlocked, "salvaging banks the scrap (and shows the counter)")
+	check(WorldState.salvage_item(0) == 25 and WorldState.get_ammo_total() == 5, "a loaded gun's rounds come back as bullets")
+
+
+func _test_salvage_ui() -> void:
+	print("[the bench's SALVAGE tab]")
+	WorldState.new_game()
+	var bottle := ItemInstance.new()
+	bottle.setup("024")
+	var ban := ItemInstance.new()
+	ban.setup("006")
+	WorldState.inventory = [bottle, ban, _hammer()]
+	var ui = load("res://scripts/workbench_ui.gd").new()
+	add_child(ui)
+	ui.open()
+	ui.show_tab("salvage")
+	check(ui._salvage_page.visible and not ui._upgrade_page.visible, "the tab swaps pages")
+	check(ui.salvage(0) == 3 and WorldState.inventory.size() == 2, "junk breaks down on one press")
+	check(ui.salvage(1) == 0 and WorldState.inventory.size() == 2, "a hammer takes a second press…")
+	check(ui.salvage(1) == 14 and WorldState.inventory.size() == 1 and WorldState.scrap == 17, "…then it's scrap (17 total)")
+	check(ui.salvage(0) == 0, "bandages can't be salvaged")
+	ui.close()
+	ui.queue_free()
+	get_tree().paused = false
 	await get_tree().process_frame
 
 

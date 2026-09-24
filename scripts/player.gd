@@ -700,6 +700,9 @@ func gunshot_noise_radius(instance: ItemInstance) -> float:
 func _do_gun_attack(instance: ItemInstance, _slot_index: int) -> void:
 	# Guns fire from their MAGAZINE (18, or 10 damaged). Loose bullets stay
 	# in inventory until loaded — press the use key on the equipped gun.
+	if instance.is_depleted:
+		HUD.show_feedback("The gun's worn out — repair it with a toolbox.")
+		return
 	if instance.mag_count <= 0:
 		if WorldState.get_ammo_total() > 0:
 			HUD.show_feedback("Magazine empty — use the gun to reload.")
@@ -728,8 +731,11 @@ func _do_gun_attack(instance: ItemInstance, _slot_index: int) -> void:
 	is_attacking = true
 	attack_cooldown_timer = 0.65
 	# Lucky Bullet: sometimes the round isn't spent.
+	# Every round actually expended wears the gun (a mark per 6 shots — docs/SCRAP_UPGRADES.md).
+	var worn_out := false
 	if not (instance.perk_add("free_shot") > 0.0 and randf() < instance.perk_add("free_shot")):
 		instance.mag_count -= 1
+		worn_out = instance.register_shot() and instance.is_depleted
 	HUD.refresh_inventory()
 	animated_sprite.play("gun_shoot")
 	gunshot_player.pitch_scale = randf_range(0.95, 1.05)
@@ -740,6 +746,8 @@ func _do_gun_attack(instance: ItemInstance, _slot_index: int) -> void:
 		"headshot": HUD.show_feedback("Headshot!")
 		"body": HUD.show_feedback("Body shot.")
 		"miss": HUD.show_feedback("Missed.")
+	if worn_out:
+		HUD.show_feedback("The gun's worn out — repair it with a toolbox.")
 	if nearest.has_method("receive_hit_from_gun"):
 		nearest.receive_hit_from_gun(outcome)
 	if outcome != "miss":

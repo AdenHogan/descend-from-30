@@ -10,6 +10,8 @@ var count: int = 1  # Only used for stackable items (Bank Notes, Bullets)
 # worse accuracy, smaller magazine — until repaired with a toolbox).
 var mag_count: int = 0
 var is_damaged: bool = false
+# Guns WEAR (owner): one durability mark is knocked off every GUN_SHOTS_PER_MARK rounds fired.
+var shots_since_mark: int = 0
 # Workbench upgrades (docs/SCRAP_UPGRADES.md): the weapon's level (1-4) and the perks picked on the
 # way up. They ride THIS weapon (serialized with it, kept as it levels) and apply through the
 # modifier fold below — never by writing stats directly. Rules/perks: WeaponUpgrades.
@@ -18,6 +20,27 @@ var perks: Array = []
 
 const MAG_CAP = 18          # Met-issue Glock: 17+1
 const MAG_CAP_DAMAGED = 10
+const GUN_SHOTS_PER_MARK = 6   # rounds fired per durability mark (Durable Hand Cannon doubles it)
+
+
+func shots_per_mark() -> int:
+	return maxi(1, int(round(GUN_SHOTS_PER_MARK * perk_mult("shots_per_mark"))))
+
+
+# A round was fired from this gun: count it, and every shots_per_mark() knock a durability mark
+# off. Returns true when a mark was knocked (the gun may now be worn out — is_depleted).
+func register_shot() -> bool:
+	if get_max_durability() <= 0 or is_depleted:
+		return false
+	shots_since_mark += 1
+	if shots_since_mark < shots_per_mark():
+		return false
+	shots_since_mark = 0
+	current_durability -= 1
+	if current_durability <= 0:
+		current_durability = 0
+		is_depleted = true
+	return true
 
 
 func get_mag_cap() -> int:
@@ -110,6 +133,7 @@ func is_repairable() -> bool:
 func repair_full() -> void:
 	# Toolbox restore: un-break, un-damage, refill durability.
 	is_damaged = false
+	shots_since_mark = 0
 	var max_d = get_max_durability()
 	if max_d > 0:
 		current_durability = max_d

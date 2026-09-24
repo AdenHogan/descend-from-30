@@ -16,7 +16,7 @@
 | 001 | Knife | is_weapon, is_tool | 7 uses | 2.0 | Point sharp end away from user. The knife is a versatile weapon and tool, but its range is limited. |
 | 002 | Hammer | is_weapon, is_tool, can_force_lock | 10 uses | 2.0 | Blunt object goes thwack. Hammers are durable tools that make short work of weak locks and zombie skulls. |
 | 003 | Sword | is_weapon | 15 uses | 1.0 | Study the blade. Swords are uncommon but make light slicey work of the zombie menace! |
-| 004 | Gun | is_weapon | needs ammo | 1.0 | Pew, pew, pew. Have you ever fired a gun before indoors? They make a lot of noise, and noise draws in enemies! |
+| 004 | Gun | is_weapon | 8 uses, needs ammo; wears one mark every 6 shots | 1.0 | Pew, pew, pew. Have you ever fired a gun before indoors? They make a lot of noise, and noise draws in enemies! |
 | 005 | Canned Food | is_throwable | single use, throwable object | 3.0 | You might not be hungry, but a thrown can makes a lot of noise. Could be a useful distraction. |
 | 006 | Bandages | is_health_item | single use, heals 2 states | 2.0 | Walk it off! For boo boos and scrapes, the trusty bandage can get you back on your feet. |
 | 007 | First Aid Kit | is_health_item | single use, heals 3 states | 1.0 | When a bandage just won't cut it, turn to the first aid kit. It could save your life. If you manage to find one! |
