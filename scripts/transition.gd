@@ -52,6 +52,14 @@ func _ready() -> void:
 
 
 func _build_survive_card() -> void:
+	survive_art = TextureRect.new()
+	survive_art.set_anchors_preset(Control.PRESET_FULL_RECT)
+	survive_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	survive_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	survive_art.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST     # crisp pixel art at any scale
+	survive_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	survive_art.visible = false
+	add_child(survive_art)
 	survive_box = VBoxContainer.new()
 	survive_box.set_anchors_preset(Control.PRESET_FULL_RECT)
 	survive_box.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -92,8 +100,8 @@ func _card_label(font: Font, size: int, col: Color) -> Label:
 # forever — survive_max_wait), then crossfade WHITE → BLACK and leave the screen black + busy, so
 # the caller advances the run out of sight and continues with to_run_start / reveal (like
 # end_card). Returns false if a transition was already running.
-func survived_card(heading: String, line: String, stats: Array) -> bool:
-	# `stats` = [label, value] rows (WorldState.run_summary).
+func survived_card(heading: String, line: String, stats: Array, art: Texture2D = null) -> bool:
+	# `stats` = [label, value] rows (WorldState.run_summary); `art` = the outside (optional).
 	if busy:
 		return false
 	busy = true
@@ -129,6 +137,32 @@ func survived_card(heading: String, line: String, stats: Array) -> bool:
 		await get_tree().process_frame
 		waited += get_process_delta_time()
 	_awaiting_continue = false
+	if art != null:
+		# The stats leave; the white dissolves into the world outside; it lingers; then black.
+		var t_fade = create_tween()
+		t_fade.tween_property(survive_box, "modulate:a", 0.0, 0.6)
+		await t_fade.finished
+		survive_box.visible = false
+		survive_art.texture = art
+		survive_art.modulate.a = 0.0
+		survive_art.visible = true
+		var t_art = create_tween()
+		t_art.tween_property(survive_art, "modulate:a", 1.0, 1.6)
+		await t_art.finished
+		_continue_pressed = false
+		_awaiting_continue = true
+		var held := 0.0
+		while not _continue_pressed and held < survive_art_hold:
+			await get_tree().process_frame
+			held += get_process_delta_time()
+		_awaiting_continue = false
+		var t_black = create_tween().set_parallel(true)
+		t_black.tween_property(survive_art, "modulate:a", 0.0, 1.4)
+		t_black.tween_property(rect, "color", Color(0, 0, 0, 1), 1.4)
+		await t_black.finished
+		survive_art.visible = false
+		survive_art.texture = null
+		return true
 	var t_out = create_tween().set_parallel(true)
 	t_out.tween_property(survive_box, "modulate:a", 0.0, 0.6)
 	t_out.tween_property(rect, "color", Color(0, 0, 0, 1), 1.1)   # white → black
@@ -210,6 +244,12 @@ var survive_title: Label = null
 var survive_sub: Label = null
 var survive_stats: GridContainer = null
 var survive_hint: Label = null
+# THE OUTSIDE (owner: "post game art showing how the world is outside the building"): an optional
+# full-screen painting that the white card dissolves into before black — the horror-movie ending
+# where the survivor walks out and their fate stays uncertain. Only shown when art exists
+# (WorldState.escape_art); without it the card goes straight to black, exactly as before.
+var survive_art: TextureRect = null
+var survive_art_hold := 3.5        # how long the outside lingers (a key moves on sooner)
 var survive_min_hold := 2.2        # the stats always read for at least this long…
 var survive_max_wait := 20.0       # …then a key continues; after this it continues by itself
 var _continue_pressed := false

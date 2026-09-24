@@ -1194,7 +1194,9 @@ means no rendering — UI layout and art still need an in-editor look.
   (`leave_for_next`, `handoff_item` in the save / `carry_item` in the profile, `handoff_ui.gd`
   from `lobby_exit`). **Escape flow (owner):** [E] at the lobby door → handoff → step up into the
   doorway → WHITE "YOU SURVIVED" card with the run's stats table (`Transition.survived_card` +
-  `WorldState.run_summary`) → black → next run; `player.escaping` makes the exit un-killable. The cold open releases its pause if freed early (`intro_overlay._exit_tree`). UI:
+  `WorldState.run_summary`) → black → next run; `player.escaping` makes the exit un-killable.
+  Tone = the ambiguous horror-movie ending; an art SLOT is built for the world outside
+  (`assets/escape/escape_<time>.png` → the white card dissolves into it before black; none yet). The cold open releases its pause if freed early (`intro_overlay._exit_tree`). UI:
   `legacy_ui.gd` (Descent offer / Collection tabs) from the end screen (`game_over.gd`, whose layout
   was also fixed — its anchors had collapsed top-left) and the profile screen's LEGACY button.
   NOTE for tests: Valour + kept perks live in the PROFILE file — a test that buys must restore them

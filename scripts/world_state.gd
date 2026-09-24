@@ -425,6 +425,17 @@ func note_run_character() -> void:
 		e["started_playtime"] = playtime_seconds    # the escape card's "time in the building"
 
 
+# The world OUTSIDE the building for this escape (owner: post-game art by the artists). Drop-in:
+# assets/escape/escape_<morning|afternoon|night>.png — the art for the hour this character walked
+# out into. null when not painted yet (the escape card then goes straight to black).
+const ESCAPE_ART_DIR := "res://assets/escape/"
+
+
+func escape_art() -> Texture2D:
+	var path: String = ESCAPE_ART_DIR + "escape_%s.png" % run_name(current_run).to_lower()
+	return load(path) as Texture2D if ResourceLoader.exists(path) else null
+
+
 # The ESCAPE card's run summary (owner: "white fade contains stats and details of the run").
 # [label, value] rows, only the facts that happened; `left_behind` = the handoff item's name.
 func run_summary(left_behind: String = "") -> Array:

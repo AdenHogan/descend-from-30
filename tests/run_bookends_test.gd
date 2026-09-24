@@ -38,6 +38,7 @@ func _ready() -> void:
 	_test_escape_guard_and_summary()
 	await _test_lobby_door_needs_e()
 	await _test_escape_white_card_to_next_run()
+	await _test_escape_art_slot()
 	Engine.time_scale = 1.0
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
@@ -349,4 +350,38 @@ func _test_escape_white_card_to_next_run() -> void:
 	Engine.time_scale = 1.0
 	get_tree().paused = false
 	WorldState.delete_save()
+
+
+func _test_escape_art_slot() -> void:
+	print("[the outside: optional art the white card dissolves into before black]")
+	WorldState.new_game()
+	check(WorldState.escape_art() == null, "no art painted yet → none shown (straight to black)")
+	var img := Image.create(64, 36, false, Image.FORMAT_RGB8)
+	img.fill(Color(0.3, 0.5, 0.7))
+	var tex := ImageTexture.create_from_image(img)
+	Engine.time_scale = 8.0
+	Transition.survive_min_hold = 0.1
+	Transition.survive_max_wait = 0.2
+	Transition.survive_art_hold = 0.2
+	var saw_art := false
+	var state := {"done": false, "ok": false}
+	var run_card := func():
+		state["ok"] = await Transition.survived_card("YOU SURVIVED", "Someone walked out.", [["Felled", "3"]], tex)
+		state["done"] = true
+	run_card.call()
+	var guard := 0
+	while not state["done"] and guard < 6000:           # the card leaves the screen BLACK + busy
+		if Transition.survive_art.visible and Transition.survive_art.texture == tex and Transition.survive_art.modulate.a > 0.9:
+			saw_art = true
+		await get_tree().process_frame
+		guard += 1
+	check(state["ok"], "the card ran to its end")
+	check(saw_art, "the outside faded in, full, after the stats")
+	check(not Transition.survive_art.visible and Transition.survive_art.texture == null, "…and is cleared away afterwards")
+	check(Transition.rect.color.r < 0.05 and is_equal_approx(Transition.rect.color.a, 1.0), "it still ends on BLACK for the next run")
+	await Transition.reveal(0.05)
+	Transition.survive_min_hold = 2.2
+	Transition.survive_max_wait = 20.0
+	Transition.survive_art_hold = 3.5
+	Engine.time_scale = 1.0
 

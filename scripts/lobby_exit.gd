@@ -68,7 +68,7 @@ func leave() -> void:
 	# WHITE card with the run's stats, then white → black; the screen stays black so the run's world
 	# mutation (advance_run) never shows on the old scene.
 	if not await Transition.survived_card(TutorialManager.LINES["end_survived"], line,
-			WorldState.run_summary(left)):
+			WorldState.run_summary(left), WorldState.escape_art()):
 		await Transition.cover()
 	var arc_over: bool = WorldState.advance_run()
 	if arc_over:

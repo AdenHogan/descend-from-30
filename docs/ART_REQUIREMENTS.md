@@ -122,6 +122,22 @@ px), or to a clean multiple of them, and tell us your tile size so we can slot i
   (an ordinary building gone wrong; a sense of descent). Studio name for any credit lockup:
   **Mammoth Games**.
 
+### Endings: the world OUTSIDE (owner's ask, a slot already built)
+When a character escapes the building, the screen blooms white with **YOU SURVIVED** and the
+run's stats, then **dissolves into a painting of the world outside**, then fades to black.
+**Tone: the ambiguous horror-movie ending.** The survivor is out, but their fate is uncertain.
+Not rescue, not doom: an empty street in hard daylight with smoke on the horizon, a small
+figure walking away down a road of abandoned cars, a door swinging shut behind them. It's
+quiet, it's open to interpretation, and something might still be out there.
+- **Three stills, one per hour the character walked out into:** `escape_morning.png`,
+  `escape_afternoon.png`, `escape_night.png`. These are the one exception to "author once,
+  neutrally lit". They are full-screen stills outside the lighting system, so paint the time of
+  day in.
+- **Size:** 1152×648 (the screen), or native pixel art at 384×216 that we scale ×3. Opaque.
+- **Drop-in:** put them in `assets/escape/`. The game picks them up automatically, and no code
+  change is needed (`WorldState.escape_art`). Until they exist, the card goes straight to black.
+- Optional later: a fourth still for the end of a whole three-run session (the last survivor).
+
 ### Tier 1: core actors (replace placeholders)
 - **Player character** (full set). Animations: idle, walk, run, crouch-idle, crouch-walk,
   scavenge (searching a cupboard), **melee attack** (swing), **gun**: idle / walk / run /

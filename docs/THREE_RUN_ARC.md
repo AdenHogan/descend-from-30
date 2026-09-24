@@ -27,7 +27,11 @@ every run ENDS and BEGINS the same way.
   descended, time in the building, felled, searched, apartments looted, quests/residents aided if
   any, this run's Descent Valour, the item left at the door) → **[continue]** (a key, or it moves
   on by itself after 20s — never a dead end) → white crossfades to **BLACK** and the next run's
-  cold open begins (`Transition.survived_card`, `lobby_exit.gd`). Once E is pressed the player is
+  cold open begins (`Transition.survived_card`, `lobby_exit.gd`). **Tone (owner): the ambiguous
+  horror-movie ending** — the hero is out, their fate uncertain. **The outside (slot built, art
+  pending):** when `assets/escape/escape_<morning|afternoon|night>.png` exists, the white card
+  dissolves into that painting of the world outside, lingers (~3.5s, a key moves on), then goes
+  to black (`WorldState.escape_art`; brief in ART_REQUIREMENTS.md "Endings"). Once E is pressed the player is
   `escaping`: no hit, burn or dying countdown can kill them mid-exit (which would run the death
   AND exit flows together).
 - **Cold open** (`intro_overlay.gd`, every run, once — `opener_seen` is reset by `new_game` +
