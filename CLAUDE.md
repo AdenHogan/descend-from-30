@@ -100,6 +100,34 @@ Related: when one constant is read by two features, splitting it into two named
 constants beats keeping them in sync by hand (see `DOWN_*` / `UP_*` in
 `stair_pan.gd`).
 
+## Robustness rules (do not violate — each one is a bug that shipped once)
+
+The bar: players should never meet a break, bug or crash. Every rule below was learned from a
+real failure in this codebase.
+
+1. **Commit only on a clean gate.** `tools/run_all_tests.sh` must exit 0 before any commit — it
+   runs every suite one at a time AND fails a suite that printed a `SCRIPT ERROR`/`Parse Error`
+   even if it said "ALL PASSED". Never chain `git commit` after a test loop in one command (a
+   failure was once pushed that way).
+2. **No silent passes.** A check must be able to FAIL. When renaming/removing a method, grep
+   `tests/` and `tools/` too (a renamed `_open()` left a check "passing" on a script error). When
+   adding an item to a spawn/loot pool, grep tests for that pool's allowed list (a new scrap bag
+   made `maintenance_test` fail only on seeds that rolled it).
+3. **Never ask `get_tree().current_scene` where something belongs.** It is the WRONG scene while
+   a pan/balcony backdrop is built and NULL mid scene-change. Use the node's own
+   `scene_file_path` (`room._own_scene_path()`) or `WorldState.world_scene_of(node)`.
+4. **Check before you touch.** Stored node refs → `is_instance_valid`; physics-only calls
+   (`add_collision_exception_with`…) → `is PhysicsBody2D` first; `%`/`/` on a pool size → prove it
+   can't be empty.
+5. **Never destroy the player's things silently.** `add_to_inventory` adds NOTHING when a stack
+   doesn't fully fit — check its return, or refuse the action up front with a reason (salvaging a
+   loaded gun once deleted its rounds). Items/cash that don't fit stay where they were.
+6. **Every state has a way out.** A transition/flow must never early-return into a dead end
+   (`to_run_start` once did nothing without the cover up, stranding the player on the death
+   screen); a UI must never show an empty choice (an empty boon offer).
+7. **Real player data is sacred.** Any `user://` file goes through `WorldState.data_dir()`, so
+   test and tool runs use `user://test_sandbox/` and can never delete saves or keybinds.
+
 ## Hard-won conventions (do not violate)
 
 - **Y planes: measure, don't eyeball; align by FEET, not origin.** The corridor
@@ -165,7 +193,9 @@ constants beats keeping them in sync by hand (see `DOWN_*` / `UP_*` in
 ## Testing / verification
 
 Headless Godot is available in cloud sessions (installed by the environment
-setup script; binary from downloads.godotengine.org). Before every commit:
+setup script; binary from downloads.godotengine.org). Before every commit run
+**`tools/run_all_tests.sh`** (import + every suite + script-error scan; exit 0 = clean — see
+Robustness rules). What it covers:
 
 - `godot --headless --import` — catches broken scenes, bad UIDs, missing
   resources. Run it after adding new scenes/scripts so their UIDs register.
