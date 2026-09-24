@@ -39,6 +39,7 @@ func _ready() -> void:
 	await _test_fire_spawns()
 	await _test_elevator_arrival_stairs()
 	await _test_enemies_stand_on_the_line_frame_zero()
+	await _test_corridor_art()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -864,3 +865,40 @@ func _test_stair_gates() -> void:
 			pan.can_pan()
 		check(not pan.panning, "%s: a pan whose scene died no longer blocks later pans" % pan.name)
 		pan.panning = false
+
+
+func _test_corridor_art() -> void:
+	# The corridor's painted overlay (tools/art/corridor.py): one per section (high 21-29 / mid
+	# 11-20 / low 1-10), a ruined version per run, sitting right ABOVE the TileMapLayer so doors,
+	# stairs and the elevator still draw over it — in the live build AND the passive pan backdrop.
+	print("[corridor art]")
+	WorldState.new_game()
+	WorldState.tutorial_completed = true
+	WorldState.is_first_run = false
+	var BF = load("res://scripts/building_floors.gd")
+	for case in [[25, 1, "corridor_high.png"], [15, 2, "corridor_mid_r2.png"], [3, 3, "corridor_low_r3.png"]]:
+		var f: int = case[0]
+		WorldState.current_run = case[1]
+		for passive in [false, true]:
+			WorldState.current_floor = f
+			var bf = load("res://scenes/building_floors.tscn").instantiate()
+			bf.setup_floor = f
+			bf.passive = passive
+			add_child(bf)
+			for i in range(2): await get_tree().process_frame
+			var art = bf.get_node_or_null("CorridorArt")
+			var tm = bf.get_node_or_null("TileMapLayer")
+			var label := "floor %d run %d%s" % [f, case[1], " (backdrop)" if passive else ""]
+			check(art is Sprite2D and art.texture != null and art.texture.resource_path.get_file() == case[2],
+				"%s: corridor art %s" % [label, art.texture.resource_path.get_file() if art is Sprite2D and art.texture else "missing"])
+			if art is Sprite2D and tm != null:
+				check(art.get_index() == tm.get_index() + 1, "%s: drawn right above the tilemap" % label)
+				var door = bf.get_node_or_null("apartment01")
+				var elev = bf.get_node_or_null("Elevator")
+				check(door != null and door.get_index() > art.get_index() and elev.get_index() > art.get_index(),
+					"%s: doors + the elevator draw over it" % label)
+				check(art.position == BF.CORRIDOR_ART_POS and art.texture.get_size() == Vector2(1120, 192),
+					"%s: covers the band exactly (115,243 1120x192)" % label)
+			bf.free()
+			await get_tree().process_frame
+	WorldState.current_run = 1

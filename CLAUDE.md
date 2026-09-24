@@ -1370,6 +1370,14 @@ means no rendering — UI layout and art still need an in-editor look.
   wooden threshold in interior doorways. Generators enforce: window boxes bare, the side-wall sample
   columns (x 3, W-4) bare, floor 32px-periodic. Back-plane nodes skip the facing rule (you can't turn
   up there). Locked by `apartment_window_test._test_floor_boundary`.
+- CORRIDOR ART (owner round 10, `tools/art/corridor.py`): floors 1-29 get a painted overlay over
+  the old tile look — `building_floors._apply_corridor_art` adds a `CorridorArt` Sprite2D (115,243,
+  1120x192 = the tilemap's used band) right ABOVE the TileMapLayer, so doors / stairs / elevator /
+  lamps / fire / actors still draw over it; built in the passive pan backdrop too. SECTIONAL IDENTITY:
+  `corridor_section(floor)` high 21-29 (faded hotel: teal damask, mahogany panels, red runner) / mid
+  11-20 (residential: mustard stripes, cream tongue-and-groove) / low 1-10 (institutional: two-tone
+  gloss, pipes, checker lino); each with `_r2`/`_r3` ruined versions picked by run. The hallway (30)
+  and lobby (0) still use their tiles (not done yet). Locked by `building_floors_test._test_corridor_art`.
 - PUSH + CROWDS (owner round 9): a push takes ONE enemy (`player.push_target` — the nearest in
   front; it used to stagger everyone in reach), so a crowd is worked through and gets hits in. The
   BIG zombie can't be stunned or knocked back by a push (it keeps attacking) but a push makes it
