@@ -27,11 +27,17 @@ lines below in «guillemets» are temporary.
 Gated by `WorldState.opener_seen` (reset by `new_game()` / `advance_run()` / F7, and SAVED, so
 Continue never replays it). New Game fades the menu to black first, so the cold open starts
 from black with no hard cut.
-1. **Title card** (`scripts/intro_overlay.gd`): black screen, a SHORT loud burst of banging, a
-   title fades in gory red over the handprint — «DESCEND FROM 30» on run 1, the new
-   character's NAME on runs 2/3 — with «<who> · <time>» under it, one player line, a
-   door-slam; the words leave on black, THEN the black lifts on the hallway. Same pixel
-   fonts as the time-of-day + end cards. It waits while a Transition (the time card) is up.
+1. **Black screens** (`scripts/intro_overlay.gd`), each its OWN screen, over ONE bloody
+   handprint that stays put throughout (owner's call):
+   a. **Title** — «DESCEND FROM 30» in gory red, on its own (run 1 only).
+   b. **Time card** — the big time-of-day word in its own colour (MORNING gold / AFTERNOON
+      orange / NIGHT blue — the Transition time-card look the owner preferred) drifting up,
+      with the character's name and the time subtitle under it.
+   c. **The line** — a short loud burst of banging, then the character's line + [any key],
+      a door-slam; the handprint leaves on black, THEN the black lifts on the hallway.
+   A key during (a)/(b) hurries that screen to its fade (never skips it). Waits while a
+   Transition still covers the screen. Runs 2/3 open on (b) — the death/escape end card hands
+   straight to it (`Transition.to_run_start`), no separate time card.
 2. **Visible lockout** (`hallway.start_opener_lockout()`): the player — on screen, not
    black — steps up and bangs on their own door 3001 (`player.knock_door`), gets no answer,
    and says the run's lockout lines (`hallway.opener_config()`): run 1 tutorial = remember the

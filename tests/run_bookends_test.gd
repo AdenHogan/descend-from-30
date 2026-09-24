@@ -45,23 +45,24 @@ func _test_opener_config() -> void:
 	WorldState.is_first_run = true
 	var c1: Dictionary = HallwayScript.opener_config()
 	var L: Dictionary = TutorialManager.LINES
-	check(c1["title"] == "DESCEND FROM 30" and c1["line"] == L["opener_1"], "run 1: the game's title + the banging line")
+	check(c1["title_text"] == "DESCEND FROM 30" and c1["line_text"] == L["opener_1"], "run 1: the game's title (its own screen) + the banging line")
+	check(c1["time_word"] == "MORNING" and c1["time_color"] == Transition.TIME_WORD_COLORS[0], "run 1's time card: MORNING in its own colour")
 	check(c1["lockout"] == [L["opener_4"], L["opener_5"]], "run 1 (tutorial): the spare-key lockout")
-	check(c1["sub"].contains(WorldState.character_display_name(WorldState.current_character())),
-		"run 1's card names who you are (%s)" % c1["sub"])
+	check(c1["name_text"] == WorldState.character_display_name(WorldState.current_character()),
+		"run 1's card names who you are (%s)" % c1["name_text"])
 	WorldState.is_first_run = false
 	check(HallwayScript.opener_config()["lockout"][1] == L["opener_5_free"], "run 1 without the tutorial: no spare-key errand")
 	WorldState.set_run_outcome(1, "dead")
 	WorldState.advance_run()
 	var c2: Dictionary = HallwayScript.opener_config()
 	var who2: String = WorldState.character_display_name(WorldState.current_character())
-	check(c2["title"] == who2.to_upper(), "run 2: the NEW character's name as the title (%s)" % c2["title"])
-	check(c2["line"] == L["run2_open"] and c2["sub"].begins_with("Afternoon"), "run 2: its own line, afternoon")
+	check(c2["title_text"] == "" and c2["name_text"] == who2, "run 2: no game title — the NEW character on the time card (%s)" % c2["name_text"])
+	check(c2["line_text"] == L["run2_open"] and c2["time_word"] == "AFTERNOON", "run 2: its own line, AFTERNOON")
 	check(c2["lockout"] == [L["run_lockout"], L["run_after_fell"]], "run 2's lockout nods to the character who FELL")
 	WorldState.set_run_outcome(2, "survived")
 	WorldState.advance_run()
 	var c3: Dictionary = HallwayScript.opener_config()
-	check(c3["line"] == L["run3_open"] and c3["sub"].begins_with("Night"), "run 3: its own line, night")
+	check(c3["line_text"] == L["run3_open"] and c3["time_word"] == "NIGHT", "run 3: its own line, NIGHT")
 	check(c3["lockout"] == [L["run_lockout"], L["run_after_escaped"]], "run 3's lockout nods to the one who ESCAPED")
 
 
@@ -211,9 +212,10 @@ func _test_death_to_next_cold_open() -> void:
 			intro = n
 	check(intro != null, "…and the run opens on its cold open")
 	if intro != null:
-		var want: String = WorldState.character_display_name(WorldState.current_character()).to_upper()
-		check(intro.title_text == want and WorldState.current_character() != first,
-			"titled with the NEW character (%s)" % intro.title_text)
+		var want: String = WorldState.character_display_name(WorldState.current_character())
+		check(intro.name_text == want and intro.time_word == "AFTERNOON" and WorldState.current_character() != first,
+			"its time card names the NEW character (%s, %s)" % [intro.name_text, intro.time_word])
+		check(intro.stage == "card", "…and opens straight on the time card (the title is run 1's)")
 		intro.queue_free()
 	get_tree().paused = false
 	WorldState.delete_save()

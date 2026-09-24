@@ -249,13 +249,21 @@ func _test_opener() -> void:
 	add_child(intro)
 	await get_tree().process_frame
 	check(get_tree().paused, "opener pauses the game")
-	check(intro.title.text == "DESCEND FROM 30", "gory title card shows")
+	check(intro.title.text == "DESCEND FROM 30" and intro.stage == "title", "the gory title shows first, on its own")
 	check(intro.black.color.a == 1.0, "starts on a black screen")
-	# Skip past the title fade → the first line should appear.
-	intro.t = intro.TITLE_FADE + 0.1
-	intro.burst_left = 0
-	intro._process(0.02)
-	check(intro.line_shown and intro.line.text == TutorialManager.LINES["opener_1"], "title done → first line shows")
+	# Title → time card → line, each its own screen.
+	for i in 400:
+		intro._process(0.02)
+		if intro.stage != "title":
+			break
+	check(intro.stage == "card" and intro.title.modulate.a == 0.0 and not intro.line_shown, "then the time card, alone (title gone, no line yet)")
+	check(intro.gore.modulate.a == 1.0, "…with the handprint still behind it")
+	for i in 400:
+		intro._process(0.02)
+		if intro.line_shown:
+			break
+	check(intro.stage == "line" and intro.card.modulate.a == 0.0, "then the line screen")
+	check(intro.line_shown and intro.line.text == TutorialManager.LINES["opener_1"], "the first line shows")
 	# Any key advances → fade to gameplay.
 	var ev = InputEventKey.new()
 	ev.keycode = KEY_SPACE

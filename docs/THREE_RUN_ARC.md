@@ -20,11 +20,12 @@ every run ENDS and BEGINS the same way.
   "<name> fell on Floor N." / "…in apartment 1703 on Floor 17." / "…in the Lobby."
   (`WorldState.place_in_words`) — or **YOU ESCAPED** (gold) — "<name> made it out of the
   building." Held, then cleared; the screen stays black while the run advances.
-- **Time card** (existing `to_run_shift`): MORNING / AFTERNOON / NIGHT.
 - **Cold open** (`intro_overlay.gd`, every run, once — `opener_seen` is reset by `new_game` +
-  `advance_run` and SAVED): black screen, banging, the bloody handprint, a title — the game's
-  title on run 1, the NEW character's name on runs 2/3 — over "<who/when>", the character's
-  first line, then the visible **lockout at 3001**. Run 2/3 lockout lines nod to how the
+  `advance_run` and SAVED), separate black screens over one bloody handprint: the game's
+  **title** (run 1 only) → the **time card** (big MORNING / AFTERNOON / NIGHT in its own colour +
+  the character's name + subtitle) → banging and the character's **line** → the visible
+  **lockout at 3001**. (The end card hands straight to it via `Transition.to_run_start`;
+  `to_run_shift`'s separate time card is no longer used between runs.) Run 2/3 lockout lines nod to how the
   previous character's story ended (fell / escaped). All lines: `TutorialManager.LINES`
   (`opener_*`, `run2_open`, `run3_open`, `run_lockout`, `run_after_*`, `end_*`).
   Config: `hallway.opener_config()`. Locked by `run_bookends_test`.
@@ -207,8 +208,8 @@ Floor 30 after run 1:
    door-decay pass, roll fires — **BUILT (v1)**. Both endpoints wired:
    `lobby_exit.gd` (exit) and `game.gd::game_over` (death) set the finishing
    character's outcome, call `advance_run()`, and — unless the arc is over —
-   `Transition.to_run_shift(hallway, next_run)` (a slow fade-to-black title card
-   animating the time-of-day word + subtitle, then the new Floor 30). Death is no
+   `Transition.to_run_start(hallway)` (from the end card's black onto Floor 30's cold open,
+   whose time card animates the time-of-day word + name + subtitle — see "Run bookends"). Death is no
    longer a session-end mid-arc; only the THIRD character concluding ends it
    (`game_over.tscn` now shows the three fates + a win/lose headline). Enemy
    positions reshuffle via a `current_run` salt in `building_floors._spawn_zombies`;

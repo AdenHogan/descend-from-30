@@ -674,11 +674,11 @@ means no rendering — UI layout and art still need an in-editor look.
   caught run-3 boxes appearing on the run-2 death). So everything after `cover()` happens behind
   black: `advance_run()`, then — unless the arc is over — save the fresh run
   (`save_game(hallway, record_live_zombies=false)` so the dead scene's zombies aren't logged into
-  it) and `Transition.to_run_shift(hallway, next_run, 2.0, already_covered=true)` (continues from
-  black into the time-of-day card); the arc-over branch swaps to `game_over.tscn` then
-  `Transition.reveal()`. **Time visuals**:
-  `to_run_shift` is a slow fade-to-black **title card** (game pixel font) animating the
-  time-of-day word MORNING / AFTERNOON / NIGHT + a subtitle, held, then the new Floor 30;
+  it) and `Transition.to_run_start(hallway)` (continues from black onto Floor 30's cold open,
+  which carries the time-of-day card); the arc-over branch swaps to `game_over.tscn` then
+  `Transition.reveal()`. **Time visuals**: the cold open's **time card** (game pixel font)
+  animates the time-of-day word MORNING / AFTERNOON / NIGHT + name + subtitle (`to_run_shift`
+  still exists but is no longer used between runs);
   every world scene sets its **ambient darkness** via `WorldState.apply_time_tint(self,
   floor)` — one `CanvasModulate` (node `WorldGrade`, world only, never the HUD). Only the
   THIRD character concluding ends the playthrough: `game_over.tscn` now shows a win/lose
@@ -1105,11 +1105,12 @@ means no rendering — UI layout and art still need an in-editor look.
 - RUN BOOKENDS + Floor-30 tutorial clean-up (owner: "a synergy for all three runs in how they
   begin/end"; "the tutorial, the wall text… kind of janky"). **Every run ENDS on an end card**
   (`Transition.end_card`: slow fade → YOU DIED «<name> fell on Floor N / in apartment … / in the
-  Lobby» or YOU ESCAPED; screen stays black while `advance_run` mutates the world) → the time
-  card → **every run BEGINS on the same cold open** (`intro_overlay.gd`, configured by
-  `hallway.opener_config()`: game title on run 1, the NEW character's name on runs 2/3, banging +
-  handprint + a first line, then the lockout knock at 3001 whose lines nod to how the previous
-  character ended). `opener_seen` is reset per run AND saved (Continue used to replay the whole
+  Lobby» or YOU ESCAPED; screen stays black while `advance_run` mutates the world) → **every run
+  BEGINS on the same cold open** (`intro_overlay.gd`, configured by `hallway.opener_config()`):
+  separate black screens over ONE bloody handprint — the game TITLE on its own (run 1 only) → the
+  TIME CARD (big coloured MORNING/AFTERNOON/NIGHT + the character's name + subtitle, the look
+  the owner preferred) → banging + the character's line → the lockout knock at 3001 whose lines
+  nod to how the previous character ended. `opener_seen` is reset per run AND saved (Continue used to replay the whole
   cold open). New Game fades the menu to black first; the opener's words leave on black before
   the scene fades in (no smeared crossfade); all cards share the pixel fonts. **Wall text**
   (`blood_text.gd`): one node per hint, multi-line, SUPERSAMPLED so it's crisp at game zoom,

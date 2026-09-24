@@ -13,7 +13,6 @@ func _on_body_entered(body: Node2D) -> void:
 	WorldState.mark_tutorial_completed()   # a full run: definitely not a new player
 	WorldState.record_run_survived()
 	WorldState.set_run_outcome(WorldState.current_run, "survived")
-	var next_run: int = WorldState.current_run + 1
 	# The END CARD (same bookend as a death), leaving the screen black BEFORE advancing so the
 	# run's world mutation never shows on the old scene.
 	var who: String = WorldState.character_display_name(WorldState.current_character())
@@ -34,4 +33,4 @@ func _on_body_entered(body: Node2D) -> void:
 	# Persist the fresh run WITHOUT recording the lobby's zombies into it, then
 	# time-skip into the next character's Floor 30 arrival.
 	WorldState.save_game("res://scenes/hallway.tscn", false)
-	Transition.to_run_shift("res://scenes/hallway.tscn", next_run, 2.0, true)
+	Transition.to_run_start("res://scenes/hallway.tscn")   # → the cold open's time card

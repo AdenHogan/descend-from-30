@@ -138,6 +138,18 @@ func reveal(dur: float = 0.6) -> void:
 	busy = false
 
 
+# The NEXT CHARACTER's start: from the black the end card left, swap to Floor 30 and lift the
+# cover — onto the hallway's own black cold open (intro_overlay), which carries the time-of-day
+# card now (with the handprint), so every run starts on the same screens.
+func to_run_start(path: String) -> void:
+	if not busy:
+		return
+	get_tree().change_scene_to_file(path)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await reveal(0.3)
+
+
 func to_run_shift(path: String, run_index: int, hold: float = 2.0, already_covered: bool = false) -> void:
 	# already_covered = the caller already ran cover() (screen is black, busy is set) so the
 	# run-advance happened out of sight; skip the initial fade and continue from black.

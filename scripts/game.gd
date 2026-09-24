@@ -134,7 +134,6 @@ func game_over() -> void:
 				else dead.global_position + Vector2(0, WorldState.PLAYER_FEET_OFFSET)
 			WorldState.record_player_corpse(WorldState.current_floor, scene_path, apt, feet)
 	get_tree().paused = false
-	var next_run: int = WorldState.current_run + 1
 	# THE END CARD: fade to black on "YOU DIED — <name> fell on Floor N." (the bookend to the
 	# cold open every run starts with). It leaves the screen BLACK, so advance_run()'s world
 	# mutation (new barricades/props/door states) never pops in over the death scene.
@@ -157,4 +156,4 @@ func game_over() -> void:
 	# The next character wakes at Floor 30 after the skip. Persist the fresh run
 	# WITHOUT recording the dead scene's zombies, then time-skip into the hallway.
 	WorldState.save_game("res://scenes/hallway.tscn", false)
-	Transition.to_run_shift("res://scenes/hallway.tscn", next_run, 2.0, true)
+	Transition.to_run_start("res://scenes/hallway.tscn")   # → the cold open's time card

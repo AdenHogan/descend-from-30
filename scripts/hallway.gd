@@ -73,37 +73,38 @@ func _ready() -> void:
 		WorldState.opener_seen = true
 		var intro = preload("res://scripts/intro_overlay.gd").new()
 		var cfg := opener_config()
-		intro.title_text = cfg["title"]
-		intro.sub_text = cfg["sub"]
-		intro.line_text = cfg["line"]
+		for k in ["title_text", "time_word", "time_color", "name_text", "sub_text", "line_text"]:
+			intro.set(k, cfg[k])
 		add_child(intro)
 
 
 # What this run's cold open says — ONE shape for all three runs (the owner's "synergy"): the
-# game's title on run 1, the new character's name on runs 2/3; then the lockout lines, which
-# on runs 2/3 nod to how the previous character's story ended. Lines: TutorialManager.LINES.
+# game's title on its own screen (run 1 only), then the time-of-day card (the big coloured word +
+# who this is + a subtitle) over the bloody handprint, then the character's line; then the lockout
+# lines, which on runs 2/3 nod to how the previous character's story ended. Lines:
+# TutorialManager.LINES.
 static func opener_config() -> Dictionary:
 	var run: int = WorldState.current_run
-	var who: String = WorldState.character_display_name(WorldState.current_character())
-	var when: String = WorldState.run_name(run)
+	var i: int = clampi(run - 1, 0, WorldState.RUN_NAMES.size() - 1)
 	var L: Dictionary = TutorialManager.LINES
+	var cfg := {
+		"title_text": "DESCEND FROM 30" if run <= 1 else "",
+		"time_word": WorldState.RUN_NAMES[i].to_upper(),
+		"time_color": Transition.TIME_WORD_COLORS[i],
+		"name_text": WorldState.character_display_name(WorldState.current_character()),
+		"sub_text": WorldState.TIME_SUBTITLES[i],
+	}
 	if run <= 1:
-		return {
-			"title": "DESCEND FROM 30",
-			"sub": "%s  ·  %s" % [who, when],
-			"line": L["opener_1"],
-			"lockout": [L["opener_4"], L["opener_5"] if WorldState.is_first_run else L["opener_5_free"]],
-		}
+		cfg["line_text"] = L["opener_1"]
+		cfg["lockout"] = [L["opener_4"], L["opener_5"] if WorldState.is_first_run else L["opener_5_free"]]
+		return cfg
+	cfg["line_text"] = L["run2_open"] if run == 2 else L["run3_open"]
 	var lockout: Array = [L["run_lockout"]]
 	match str(WorldState.chronicle_entry(run - 1).get("outcome", "")):
 		"fell": lockout.append(L["run_after_fell"])
 		"escaped": lockout.append(L["run_after_escaped"])
-	return {
-		"title": who.to_upper(),
-		"sub": "%s  ·  Floor 30" % when,
-		"line": L["run2_open"] if run == 2 else L["run3_open"],
-		"lockout": lockout,
-	}
+	cfg["lockout"] = lockout
+	return cfg
 
 
 func _build_world() -> void:
