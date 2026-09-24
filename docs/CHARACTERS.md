@@ -52,6 +52,5 @@ by searching seeds for `run_character(1) == id` (see `character_stats_test._play
 
 ## Next (owner's plan)
 
-1. Upgrade benches — the maintenance-room station + weapon/item upgrades (docs/SCRAP_UPGRADES.md).
-2. In-run temporary upgrades, then permanent ones that stack across runs (`best_depth` is the
-   existing permanent-record hook).
+1. ~~Upgrade benches~~ — BUILT (docs/SCRAP_UPGRADES.md).
+2. ~~In-run temporary + permanent upgrades~~ — BUILT v1 as a proposal (docs/PROGRESSION.md).

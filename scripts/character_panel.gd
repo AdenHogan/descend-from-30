@@ -209,7 +209,7 @@ func _refresh() -> void:
 	var char_name: String = WorldState.character_display_name(cid)   # the ONE name source
 	title_label.text = char_name
 	subtitle_label.text = str(info.get("subtitle", ""))
-	traits_text.text = traits_bbcode(cid)
+	traits_text.text = traits_bbcode(cid) + progression_bbcode()
 	lore_text.text = str(info.get("lore", "No lore recorded yet for %s." % char_name))
 	var tex = load("res://assets/Health_Bar/%s - 1 - Healthy.png" % cid)
 	if tex != null:
@@ -249,6 +249,25 @@ static func traits_bbcode(cid: String) -> String:
 	for f in t.get("flaws", []):
 		out += "[color=#7a2a1f]− %s[/color]\n" % str(f)
 	return out.strip_edges()
+
+
+# What else is lifting this character (docs/PROGRESSION.md): this run's boons (gone at the time
+# skip) and the profile's permanent Legacy ranks.
+static func progression_bbcode() -> String:
+	var out := ""
+	if not WorldState.run_boons.is_empty():
+		var names: Array = []
+		for id in WorldState.run_boons:
+			names.append(Progression.boon(id).get("name", id))
+		out += "\n[color=#8a5a10]This run: %s[/color]" % ", ".join(names)
+	var legacy: Array = []
+	for id in Progression.LEGACY_PERKS:
+		var r: int = WorldState.legacy_rank(id)
+		if r > 0:
+			legacy.append("%s %d" % [Progression.legacy_perk(id).get("name", id), r])
+	if not legacy.is_empty():
+		out += "\n[color=#2f4a7a]Legacy: %s[/color]" % ", ".join(legacy)
+	return out
 
 
 func _chronicle_bbcode() -> String:

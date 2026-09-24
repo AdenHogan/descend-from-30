@@ -148,6 +148,98 @@ func note_floor_arrival(root: Node, floor_num: int) -> void:
 	note_floor_visited(floor_num)          # clears this floor's fog on the journal map
 	if scene_has_live_zombies(root):
 		note_enemies_on_floor(floor_num)
+	note_boon_milestone(floor_num)         # a run-boon milestone reached? (docs/PROGRESSION.md)
+
+
+# ============================================================
+# PROGRESSION tiers 2 + 3 (docs/PROGRESSION.md; data in progression.gd)
+# ============================================================
+# Tier 2 — RUN BOONS: this character only (reset by the time skip).
+var run_boons: Array = []              # boon ids taken this run
+var run_milestones_seen: Array = []    # milestone floors already reached this run (str keys)
+var pending_boon_floors: Array = []    # milestones reached whose boon hasn't been chosen yet
+# Tier 3 — LEGACY: the PROFILE's permanent perks (saved in the profile, never wiped by a game).
+var legacy_points: int = 0
+var legacy_ranks: Dictionary = {}      # perk id -> rank (string keys)
+var last_legacy_award: int = 0         # what the character who just ended earned (end card)
+
+
+func note_boon_milestone(floor_num: int) -> void:
+	# The FIRST time this character reaches a milestone floor it owes them a boon. It isn't forced
+	# on them (no pause on arrival — you may be arriving mid-fight or mid-pan): a HUD badge offers
+	# it, and it waits until they choose.
+	if not (floor_num in Progression.BOON_MILESTONES):
+		return
+	var key := str(floor_num)
+	if key in run_milestones_seen:
+		return
+	run_milestones_seen.append(key)
+	pending_boon_floors.append(floor_num)
+	HUD.refresh_boon_badge()
+
+
+# The two boons offered for a milestone — seeded per (playthrough, run, floor) so a reload offers
+# the same pair; never one this character already has.
+func boon_offer(floor_num: int) -> Array:
+	var pool: Array = []
+	for id in Progression.RUN_BOONS:
+		if not (id in run_boons):
+			pool.append(id)
+	pool.sort()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "boon" + str(floor_num) + str(current_run))
+	var out: Array = []
+	while out.size() < 2 and not pool.is_empty():
+		out.append(pool.pop_at(rng.randi() % pool.size()))
+	return out
+
+
+# Take one of a milestone's two boons ("" on success). skip = decline it (it's gone).
+func take_boon(floor_num: int, boon_id: String) -> String:
+	if not (floor_num in pending_boon_floors):
+		return "No boon waiting."
+	if not (boon_id in boon_offer(floor_num)):
+		return "Pick one of the two."
+	run_boons.append(boon_id)
+	pending_boon_floors.erase(floor_num)
+	HUD.refresh_boon_badge()
+	HUD.update_stamina(stamina, get_max_stamina())
+	return ""
+
+
+func skip_boon(floor_num: int) -> void:
+	pending_boon_floors.erase(floor_num)
+	HUD.refresh_boon_badge()
+
+
+# What the character whose story is ending earns for the profile: 1 per floor below 30 they
+# reached, +10 for walking out. Banked at once (the profile outlives every save).
+func award_run_legacy(escaped: bool) -> int:
+	var deepest: int = int(chronicle_entry(current_run).get("deepest_floor", 30))
+	last_legacy_award = Progression.legacy_for_run(deepest, escaped)
+	legacy_points += last_legacy_award
+	save_profile()
+	return last_legacy_award
+
+
+func legacy_rank(perk_id: String) -> int:
+	return int(legacy_ranks.get(perk_id, 0))
+
+
+# Buy the next rank of a legacy perk ("" on success).
+func buy_legacy_rank(perk_id: String) -> String:
+	if Progression.legacy_perk(perk_id).is_empty():
+		return "Unknown."
+	var rank := legacy_rank(perk_id)
+	var cost := Progression.legacy_next_cost(perk_id, rank)
+	if cost < 0:
+		return "Maxed."
+	if legacy_points < cost:
+		return "Needs %d Legacy (you have %d)." % [cost, legacy_points]
+	legacy_points -= cost
+	legacy_ranks[perk_id] = rank + 1
+	save_profile()
+	return ""
 
 
 func _reset_run_journal_stats() -> void:
@@ -521,6 +613,8 @@ func load_profile() -> void:
 	runs_successful = 0
 	playtime_seconds = 0.0
 	run_outcomes = ["", "", ""]
+	legacy_points = 0
+	legacy_ranks = {}
 	if cfg.load(profile_path()) == OK:
 		tutorial_completed = bool(cfg.get_value("progress", "tutorial_completed", false))
 		runs_made = int(cfg.get_value("stats", "runs_made", 0))
@@ -528,6 +622,8 @@ func load_profile() -> void:
 		playtime_seconds = float(cfg.get_value("stats", "playtime_seconds", 0.0))
 		run_outcomes = cfg.get_value("stats", "run_outcomes", ["", "", ""])
 		best_depth = int(cfg.get_value("stats", "best_depth", 30))
+		legacy_points = int(cfg.get_value("legacy", "points", 0))          # the profile's permanent tier
+		legacy_ranks = Dictionary(cfg.get_value("legacy", "ranks", {}))
 
 
 func save_profile() -> void:
@@ -539,6 +635,8 @@ func save_profile() -> void:
 	cfg.set_value("stats", "playtime_seconds", playtime_seconds)
 	cfg.set_value("stats", "run_outcomes", run_outcomes)
 	cfg.set_value("stats", "best_depth", best_depth)
+	cfg.set_value("legacy", "points", legacy_points)
+	cfg.set_value("legacy", "ranks", legacy_ranks)
 	# Mirror the headline save facts so the select screen can read one small
 	# file per slot instead of loading three save games.
 	cfg.set_value("resume", "has_save", FileAccess.file_exists(slot_save_path()))
@@ -576,7 +674,7 @@ func slot_summary(slot: int) -> Dictionary:
 		"slot": slot, "exists": false, "tutorial_completed": false,
 		"runs_made": 0, "runs_successful": 0, "playtime_seconds": 0.0,
 		"wallet": 0, "survivors": ["", "", ""],
-		"has_save": false, "floor": 0, "run": 1,
+		"has_save": false, "floor": 0, "run": 1, "legacy": 0,
 	}
 	var cfg := ConfigFile.new()
 	var have_cfg := cfg.load(profile_path(slot)) == OK
@@ -593,6 +691,7 @@ func slot_summary(slot: int) -> Dictionary:
 		out["survivors"] = cfg.get_value("resume", "survivors", ["", "", ""])
 		out["floor"] = int(cfg.get_value("resume", "floor", 0))
 		out["run"] = int(cfg.get_value("resume", "run", 1))
+		out["legacy"] = int(cfg.get_value("legacy", "points", 0))
 	out["has_save"] = have_save
 	return out
 
@@ -701,6 +800,9 @@ func new_game() -> void:
 	wallet_balance = 0
 	scrap_unlocked = false
 	scrap = 0
+	run_boons.clear()
+	run_milestones_seen.clear()
+	pending_boon_floors.clear()
 	initialize_paradise_apartments()
 	spawn_source = ""
 	stair_spawn_side = ""
@@ -799,6 +901,9 @@ func advance_run() -> bool:
 	rest_forfeit_pending = false
 	wallet_balance = 0                      # per-run (recoverable from the corpse later)
 	scrap = 0                               # per-run too (the corpse carries it; the unlock stays)
+	run_boons.clear()                       # run boons are THIS character's (docs/PROGRESSION.md)
+	run_milestones_seen.clear()
+	pending_boon_floors.clear()
 	available_upgrades.clear()
 	upgrade_offers.clear()
 	spawn_source = ""
@@ -1584,6 +1689,10 @@ func _stat_mods_sources() -> Array:
 	for id in active_upgrades:
 		out.append(UPGRADE_POOL.get(id, {}).get("mods", {}))
 	out.append(character_traits().get("mods", {}))
+	for id in run_boons:                                   # tier 2: this character's boons
+		out.append(Progression.boon(id).get("mods", {}))
+	for id in legacy_ranks:                                # tier 3: the profile's legacy ranks
+		out.append(Progression.legacy_mods_at(id, int(legacy_ranks[id])))
 	return out
 
 
@@ -3598,6 +3707,9 @@ func save_game(scene_path: String, record_live_zombies: bool = true) -> void:
 		"exit_spawn_x": exit_spawn_x,
 		"is_first_run": is_first_run,
 		"opener_seen": opener_seen,
+		"run_boons": run_boons,
+		"run_milestones_seen": run_milestones_seen,
+		"pending_boon_floors": pending_boon_floors,
 		"current_run": current_run,
 		"player_health": player_health,
 		"is_dying": is_dying,
@@ -3686,6 +3798,11 @@ func load_game() -> String:
 	# Old saves predate this flag: treat their opener as already seen (never replay a cold open
 	# on Continue — a save made mid-tutorial used to replay the whole title card).
 	opener_seen = bool(data.get("opener_seen", true))
+	run_boons = Array(data.get("run_boons", []))
+	run_milestones_seen = Array(data.get("run_milestones_seen", []))
+	pending_boon_floors = []
+	for f in data.get("pending_boon_floors", []):
+		pending_boon_floors.append(int(f))              # JSON reads numbers back as floats
 	current_run = data["current_run"]
 	player_health = data["player_health"]
 	is_dying = data["is_dying"]

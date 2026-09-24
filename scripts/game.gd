@@ -140,8 +140,9 @@ func game_over() -> void:
 	# mutation (new barricades/props/door states) never pops in over the death scene.
 	var here: String = get_tree().current_scene.scene_file_path if get_tree().current_scene else ""
 	var who: String = WorldState.character_display_name(WorldState.current_character())
+	var legacy: int = WorldState.award_run_legacy(false)     # permanent tier: banked to the profile
 	if not await Transition.end_card(TutorialManager.LINES["end_died"],
-			"%s fell %s." % [who, WorldState.place_in_words(here)], Transition.END_DIED_COLOR):
+			"%s fell %s.\n+%d Legacy" % [who, WorldState.place_in_words(here), legacy], Transition.END_DIED_COLOR):
 		await Transition.cover()
 	var arc_over: bool = WorldState.advance_run()
 	if arc_over:

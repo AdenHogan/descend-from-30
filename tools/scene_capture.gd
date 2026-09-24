@@ -22,6 +22,9 @@ extends Node
 #   floor:<n> run:<n> set WorldState.current_floor / current_run
 #   give:<id>[:<lvl>] put an item in the inventory (optionally at a workbench level)
 #   scrap:<n>        set the scrap counter
+#   boon:<floor>     reach a run-boon milestone (queues the HUD badge)
+#   legacy:<n>       set the profile's Legacy points
+#   hud:<method>     call a no-arg HUD method (e.g. open_boon_offer)
 #   kill             kill the player now (player._die → the real Game.game_over flow)
 #   hp:<n>           set health
 #   eval:<method>    call a no-arg method on the current scene
@@ -114,6 +117,14 @@ func _do(step: String) -> void:
 				inst.level = int(p[2])
 			WorldState.inventory.append(inst)
 			HUD.refresh_inventory()
+		"boon":
+			WorldState.note_boon_milestone(int(p[1]))
+		"legacy":
+			WorldState.legacy_points = int(p[1])
+		"hud":
+			if HUD.has_method(p[1]):
+				HUD.call(p[1])
+			await _frames(1)
 		"scrap":
 			WorldState.scrap_unlocked = true
 			WorldState.scrap = int(p[1])

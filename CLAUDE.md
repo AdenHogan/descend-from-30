@@ -45,6 +45,9 @@ originals — the markdown here is canonical for development):
 - `docs/CHARACTERS.md` — **BUILT v1**: the four characters' stats/traits (the owner's brief →
   what was built), `WorldState.CHARACTER_TRAITS` as the single source, the new stats, and the
   testing note (random seeds → random character in every test).
+- `docs/PROGRESSION.md` — **BUILT v1 (a proposal for the owner to steer)**: all four
+  progression tiers in one fold — weapon (workbench), merchant (arc), RUN BOONS (temporary,
+  this character) and LEGACY (permanent, the profile). Data in `scripts/progression.gd`.
 - `docs/Y_PLANES.md` — **LOCKED reference**: every world-Y plane on a corridor
   floor (the feet line 419, spawn/stand origins, stair triggers, staircase art
   boxes, the player stair-transition slice constants, the stairwell-enemy geometry,
@@ -182,8 +185,8 @@ setup script; binary from downloads.godotengine.org). Before every commit:
   `maintenance_test`, `elevator_test`, `run_arc_test`, `enemy_variety_test`,
   `dev_menu_test`, `lighting_test`, `plane_lock_test`, `apartment_window_test`,
   `scavenge_node_test`, `drop_physics_test`, `softlock_test`, `character_panel_test`,
-  `corpse_recovery_test`, `run_memory_test`, `attack_input_test`, `character_stats_test`, `transition_seam_test`, `run_bookends_test`, `weapon_upgrade_test` — run
-  all 43 before commit. (`new_game()` rolls a RANDOM seed, so any test meets any of the four
+  `corpse_recovery_test`, `run_memory_test`, `attack_input_test`, `character_stats_test`, `transition_seam_test`, `run_bookends_test`, `weapon_upgrade_test`, `progression_test` — run
+  all 44 before commit. (`new_game()` rolls a RANDOM seed, so any test meets any of the four
   characters — an assert on a trait-affected value must be trait-aware; see docs/CHARACTERS.md.) (Run ONE godot at a time — a killed/backgrounded headless run can
   linger and block the next, and a GDScript **parse error makes a test scene load but
   never call `quit()`, so it "hangs" until timeout** rather than printing an error line;
@@ -1133,7 +1136,17 @@ means no rendering — UI layout and art still need an in-editor look.
   `add_world_drop` returns the key it used), and **New Game leaked the previous game's wallet +
   cash** (`new_game` now resets wallet/scrap). Tools: `scene_capture` gained `give:` / `scrap:`
   steps. Locked by `weapon_upgrade_test`.
-- Next (owner's order): in-run temporary upgrades → permanent cross-run upgrades
-  (`best_depth` is the record hook). Also open: **Upgrade offers** polish; barricade-keeper NPC;
+- PROGRESSION tiers 2 + 3 (docs/PROGRESSION.md — a v1 PROPOSAL; merchant upgrades untouched):
+  **Run boons** (temporary, this character): the first arrival at milestone floors 27/22/17/12/7
+  queues a pick-1-of-2 offered by a HUD **"★ BOON — choose"** badge (never a forced pause —
+  pans/fights are never interrupted), wiped by the time skip, kept by a save. **Legacy**
+  (permanent, the PROFILE): a character's end banks 1/floor descended +10 for escaping (shown on
+  the end card), spent on ranked perks from the profile screen's LEGACY button; ranks stack
+  forever. Both are sources in `_stat_mods_sources`. UI: `choice_panel.gd` (shared pausing card)
+  → `boon_offer_ui.gd`, `legacy_ui.gd`; the journal lists both. NOTE for tests: Legacy lives in
+  the PROFILE file — a test that buys ranks must restore them (see `progression_test`), or they'd
+  leak into every other suite's stats. Locked by `progression_test`.
+- Next: owner review of the progression proposal; balance numbers need a playtest. Also open:
+  **Upgrade offers** polish; barricade-keeper NPC; fire smoke/crouch + warning beat. Also open: **Upgrade offers** polish; barricade-keeper NPC;
   fire smoke/crouch + warning beat.
 - Not started: balcony descent, quests.

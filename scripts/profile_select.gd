@@ -29,6 +29,7 @@ func _ready() -> void:
 	_connect("Nav/NewGameButton", _on_new_game)
 	_connect("Nav/DeleteButton", _on_delete)
 	_connect("Nav/BackButton", func(): Game.go_to_scene("title"))
+	_add_legacy_button()
 	for slot in range(1, WorldState.SLOT_COUNT + 1):
 		var btn := get_node_or_null("Slot%d/SelectButton" % slot)
 		if btn != null:
@@ -44,6 +45,34 @@ func _ready() -> void:
 			_selected = slot
 			break
 	_refresh()
+
+
+# LEGACY (docs/PROGRESSION.md, tier 3): the selected slot's permanent perks, bought with what its
+# characters earned. Built in code under the nav so the .tscn stays untouched.
+var _legacy_btn: Button = null
+var _legacy_ui = null
+
+
+func _add_legacy_button() -> void:
+	var nav := get_node_or_null("Nav")
+	if nav == null:
+		return
+	_legacy_btn = Button.new()
+	_legacy_btn.name = "LegacyButton"
+	_legacy_btn.flat = true
+	_legacy_btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_legacy_btn.position = Vector2(0, 344)
+	_legacy_btn.size = Vector2(250, 38)
+	_legacy_btn.pressed.connect(open_legacy)
+	nav.add_child(_legacy_btn)
+
+
+func open_legacy() -> void:
+	WorldState.use_slot(_selected)          # the SELECTED slot's profile (its points + ranks)
+	if _legacy_ui == null or not is_instance_valid(_legacy_ui):
+		_legacy_ui = preload("res://scripts/legacy_ui.gd").new()
+		add_child(_legacy_ui)
+	_legacy_ui.open()
 
 
 func _connect(path: String, fn: Callable) -> void:
@@ -177,6 +206,9 @@ func _fill_nav(info: Dictionary) -> void:
 	var new_btn := get_node_or_null("Nav/NewGameButton")
 	if new_btn != null:
 		new_btn.text = "NEW GAME (OVERWRITE)" if info["has_save"] else "NEW GAME"
+	if _legacy_btn != null:
+		_legacy_btn.text = "LEGACY  (%d)" % int(info.get("legacy", 0))
+		_legacy_btn.visible = info["exists"]
 	var del := get_node_or_null("Nav/DeleteButton")
 	if del != null:
 		del.visible = info["exists"]

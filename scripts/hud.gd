@@ -62,6 +62,8 @@ var stamina_bar: Control = null
 var stamina_segments: Array = []
 var wallet_label: Label = null
 var scrap_label: Label = null
+var boon_badge: Button = null          # "a boon is waiting" — click to choose (docs/PROGRESSION.md)
+var boon_ui = null
 var slot_level_labels: Array = []
 var listen_overlay: CanvasLayer = null
 const STAMINA_SEGMENTS = 8
@@ -83,6 +85,7 @@ func _ready() -> void:
 	_create_stamina_bar()
 	_create_wallet_label()
 	_create_scrap_label()
+	_create_boon_badge()
 	_create_dev_warp_prompt()
 	_create_dev_item_prompt()
 	_create_dev_menu()
@@ -463,6 +466,35 @@ func _create_scrap_label() -> void:
 	scrap_label.visible = false
 	$Control.add_child(scrap_label)
 	update_scrap()
+
+
+func _create_boon_badge() -> void:
+	# A milestone floor's run boon is OFFERED, never forced: this badge waits beside the portrait
+	# until the player clicks it (arriving mid-fight or mid-stair-pan must not pause the game).
+	boon_badge = Button.new()
+	boon_badge.text = "★ BOON"
+	boon_badge.position = Vector2(150, SCREEN_H - 96)
+	boon_badge.size = Vector2(150, 30)
+	boon_badge.mouse_filter = Control.MOUSE_FILTER_STOP
+	boon_badge.add_theme_color_override("font_color", Color(1.0, 0.85, 0.35))
+	boon_badge.visible = false
+	boon_badge.pressed.connect(open_boon_offer)
+	$Control.add_child(boon_badge)
+
+
+func refresh_boon_badge() -> void:
+	if boon_badge == null:
+		return
+	var n: int = WorldState.pending_boon_floors.size()
+	boon_badge.visible = n > 0
+	boon_badge.text = "★ BOON — choose" + (" (%d)" % n if n > 1 else "")
+
+
+func open_boon_offer() -> void:
+	if boon_ui == null or not is_instance_valid(boon_ui):
+		boon_ui = preload("res://scripts/boon_offer_ui.gd").new()
+		add_child(boon_ui)
+	boon_ui.open()
 
 
 func update_scrap() -> void:
@@ -979,6 +1011,7 @@ func refresh_inventory() -> void:
 	# or scrap event, and they used to show the previous game's values until the next pickup.
 	update_wallet()
 	update_scrap()
+	refresh_boon_badge()
 	for i in range(slots.size()):
 		var dur = slot_durability_bars[i]
 		if i < WorldState.inventory.size():
