@@ -31,6 +31,9 @@ func _ready() -> void:
 	await _test_backdrop_memory()
 	await _test_backdrop_fire_rules()
 	await _test_upper_fire_spares_backdrop()
+	await _test_enemy_balcony_plane()
+	await _test_balcony_spawn_and_memory()
+	await _test_descent_lands_on_plane()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -500,5 +503,198 @@ func _test_upper_fire_spares_backdrop() -> void:
 		if z.is_dead or z.on_fire:
 			harmed += 1
 	check(below.size() > 0 and harmed == 0, "the apartment below is untouched by the fire above (%d of %d harmed)" % [harmed, below.size()])
+	room.free()
+	await get_tree().process_frame
+
+
+# --- the balcony plane for ENEMIES (scripts/enemy_plane.gd) ----------------------------------
+
+func _plane_room(apt: String) -> Node:
+	WorldState.current_floor = int(apt.left(apt.length() - 2))
+	WorldState.current_apartment_id = apt
+	WorldState.spawn_source = ""
+	WorldState.set_door_state(apt, WorldState.DoorState.OPEN)
+	var room = load("res://scenes/room.tscn").instantiate()
+	add_child(room)
+	return room
+
+
+func _drain_hp(p) -> int:
+	var d := int(p.health_state)
+	if d != 0:
+		p.health_state = 0
+		WorldState.player_health = 0
+		p.is_dying = false
+		WorldState.is_dying = false
+	return d
+
+
+func _test_enemy_balcony_plane() -> void:
+	# Owner: an enemy on the room floor must NOT be able to hit a player out on the balcony — not
+	# unless it climbs up too. It follows the player up, and back down.
+	print("[enemies and the balcony plane]")
+	WorldState.new_game()
+	WorldState.is_first_run = false
+	WorldState.tutorial_completed = true
+	WorldState.god_mode = false
+	WorldState.master_seed = 4242
+	WorldState.apartment_layouts.clear()
+	var apt := "2301"
+	check(WorldState.balcony_slot_in_apartment(apt) >= 0, "2301 has a balcony (seed 4242)")
+	var room := _plane_room(apt)
+	await get_tree().physics_frame
+	for z in get_tree().get_nodes_in_group("zombie"):
+		z.free()
+	check(room.balcony_centers.size() == 1, "the room publishes its balcony centre")
+	var cx: float = room.balcony_centers[0]
+	var p = room.get_node("Player")
+	p.global_position = Vector2(cx, 320)
+	await get_tree().physics_frame
+	p.enter_balcony_plane(cx)
+	for i in range(30):
+		await get_tree().physics_frame
+	check(p.on_balcony_plane, "player is out on the balcony")
+	# A zombie on the floor right under the player.
+	var z = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
+	z.global_position = Vector2(cx + 20, 321)
+	room.add_child(z)
+	z.alert_timer = 30.0
+	await get_tree().physics_frame
+	check(not z.on_balcony_plane, "a floor zombie starts on the floor")
+	check(z._reach_to_player() == INF, "a floor zombie has NO reach to a balcony player")
+	# The player can't hit it from up there either.
+	var w := ItemInstance.new()
+	w.setup("002")
+	WorldState.inventory = [w]
+	var hp0: int = z.current_hp
+	z.on_balcony_plane = false
+	z._plane_climb = 0
+	p.is_attacking = false
+	p.animated_sprite.flip_h = false
+	p._do_melee_attack(w, 0)
+	check(z.current_hp == hp0, "the player can't hit a floor zombie from the balcony")
+	# Let it act: it climbs up after the player, then hits.
+	z.global_position = Vector2(cx + 120, z.global_position.y)
+	var dmg_floor := 0
+	var dmg_plane := 0
+	for i in range(60 * 6):
+		await get_tree().physics_frame
+		p.velocity = Vector2.ZERO
+		var d := _drain_hp(p)
+		if z.on_balcony_plane:
+			dmg_plane += d
+		else:
+			dmg_floor += d
+	check(dmg_floor == 0, "no damage while it was still on the floor (%d)" % dmg_floor)
+	check(z.on_balcony_plane, "it climbed up onto the balcony after the player")
+	check(dmg_plane > 0, "once up, it hits the player (%d)" % dmg_plane)
+	# Feet on the same line as the player's (align by FEET, not origin).
+	var z_feet: float = z._drop_feet_y()
+	var p_feet: float = p.global_position.y + 33.0
+	check(absf(z_feet - p_feet) <= 2.0, "its feet match the player's on the balcony (%.1f vs %.1f)" % [z_feet, p_feet])
+	check(absf(z.position.x - cx) <= 34.5, "it stays between the balcony rails")
+	# Player steps back in → it follows down.
+	p.exit_balcony_plane()
+	for i in range(60 * 2):
+		await get_tree().physics_frame
+	check(not z.on_balcony_plane and z._plane_climb == 0, "it steps back down after the player")
+	check(absf(z._drop_feet_y() - 353.0) <= 2.0, "back on the room floor line (feet %.1f)" % z._drop_feet_y())
+	room.free()
+	await get_tree().process_frame
+	WorldState.inventory = []
+
+
+func _test_balcony_spawn_and_memory() -> void:
+	# Some apartments start with an enemy ALREADY out on the balcony (seeded); it's remembered on
+	# that line, the backdrop shows it there too, and a balcony listen from above hears it.
+	print("[enemies seeded on the balcony]")
+	WorldState.new_game()
+	WorldState.is_first_run = false
+	WorldState.tutorial_completed = true
+	var found := ""
+	for sd in range(1, 400):
+		WorldState.master_seed = sd
+		WorldState.apartment_layouts.clear()
+		WorldState.door_states.clear()
+		for f in range(8, 26):
+			for c in range(1, 6):
+				var a := str(f) + "0" + str(c)
+				if WorldState.balcony_slot_in_apartment(a) < 0:
+					continue
+				if WorldState.get_door_state(a) == WorldState.DoorState.BREACHED or WorldState.apartment_fire_stage(f, c) >= 0:
+					continue
+				var n := WorldState.get_apartment_zombie_count(a)
+				if n > 0 and WorldState.balcony_spawn_pick(a, n) >= 0:
+					found = a
+					break
+			if found != "":
+				break
+		if found != "":
+			break
+	check(found != "", "found an apartment with an enemy seeded on its balcony (%s, seed %d)" % [found, WorldState.master_seed])
+	if found == "":
+		return
+	check(WorldState.apartment_balcony_occupied(found), "a balcony listen from above hears it")
+	var room := _plane_room(found)
+	await get_tree().physics_frame
+	var on_plane: Array = []
+	for z in get_tree().get_nodes_in_group("zombie"):
+		if room.is_ancestor_of(z) and z.on_balcony_plane:
+			on_plane.append(z)
+	check(on_plane.size() == 1, "exactly one enemy starts out on the balcony (%d)" % on_plane.size())
+	var key := ""
+	if on_plane.size() == 1:
+		var z = on_plane[0]
+		key = z.spawn_key
+		check(absf(z._drop_feet_y() - 328.0) <= 2.0, "it stands on the balcony line (feet %.1f)" % z._drop_feet_y())
+	room.free()
+	await get_tree().process_frame
+	check(key != "" and bool(WorldState.zombie_positions.get(key, {}).get("plane", false)), "memory records it on the balcony")
+	# Backdrop (the room below seen during a descent) shows it on the balcony, a floor down.
+	var holder := Node2D.new()
+	add_child(holder)
+	var lower = load("res://scenes/room.tscn").instantiate()
+	lower.passive = true
+	lower.setup_apartment = found
+	lower.position = Vector2(0, 160)
+	holder.add_child(lower)
+	await get_tree().process_frame
+	var bd_plane := 0
+	for z in get_tree().get_nodes_in_group("zombie"):
+		if holder.is_ancestor_of(z) and z.on_balcony_plane and absf(z.global_position.y - (279.0 + 160.0)) <= 2.0:
+			bd_plane += 1
+	check(bd_plane == 1, "the backdrop shows it on the balcony, a floor down (%d)" % bd_plane)
+	holder.free()
+	await get_tree().process_frame
+	# Re-entry restores it on the balcony.
+	room = _plane_room(found)
+	await get_tree().physics_frame
+	var restored := false
+	for z in get_tree().get_nodes_in_group("zombie"):
+		if room.is_ancestor_of(z) and z.spawn_key == key:
+			restored = z.on_balcony_plane
+	check(restored, "re-entering, it's still out on the balcony")
+	room.free()
+	await get_tree().process_frame
+
+
+func _test_descent_lands_on_plane() -> void:
+	# Owner: a descent lands you ON the lower balcony (its plane), not in the apartment — you step
+	# down into the room yourself (S).
+	print("[descent lands on the balcony below]")
+	WorldState.new_game()
+	WorldState.is_first_run = false
+	WorldState.master_seed = 4242
+	WorldState.apartment_layouts.clear()
+	var target := WorldState.descend_from_balcony("2301")
+	check(target == "2201" and WorldState.spawn_source == "balcony", "descending from 2301 targets 2201")
+	var room = load("res://scenes/room.tscn").instantiate()
+	add_child(room)
+	for i in range(3):
+		await get_tree().physics_frame
+	var p = room.get_node("Player")
+	check(p.on_balcony_plane, "the player lands ON the balcony plane")
+	check(absf(p.global_position.y + 33.0 - 328.0) <= 1.0, "feet on the balcony line (%.1f)" % (p.global_position.y + 33.0))
+	check(absf(p.global_position.x - float(room.balcony_centers[0])) <= 34.5, "inside the balcony rails")
 	room.free()
 	await get_tree().process_frame

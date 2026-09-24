@@ -1308,4 +1308,22 @@ means no rendering — UI layout and art still need an in-editor look.
   changed:** enemy "plane pursuit" (`_update_plane_pursuit`) never visibly lifts a zombie onto the
   balcony (gravity holds it on the floor) — it still hits you from the floor, so the balcony is not
   a safe island; and a balcony landing has no grace if a zombie below stands at the balcony.
+  **SUPERSEDED (owner round 8) — the ENEMY BALCONY PLANE is built** (`scripts/enemy_plane.gd`, shared by
+  the standard family + the big): the room publishes `balcony_centers`; an enemy is on the room floor
+  OR out on the balcony (`on_balcony_plane`, feet 328 vs 353 — same line as the player's plane). It only
+  fights what shares its plane (`same_plane`, both directions — the player can't hit a floor zombie from
+  the balcony either) and different planes never collide. An aggro'd enemy walks to the doorway and STEPS
+  UP (~0.4s) after a player out there, and steps DOWN after one who went back in; idle ones sometimes
+  wander up/down. `WorldState.balcony_spawn_pick` seeds one enemy ALREADY on the balcony in ~40% of balcony
+  apartments (live room + backdrop agree); memory records the plane (`plane`/`plane_cx`/`plane_floor_y`,
+  mid-step snaps to the arrival line); a balcony listen from above adds "Something's shuffling right below"
+  (`apartment_balcony_occupied`). The old `_update_plane_pursuit` is gone. A descent lands ON the lower
+  balcony plane (verified + tested). Locked by `balcony_test`.
+  **HURT state (owner round 8, `scripts/enemy_hurt.gd`):** a non-lethal hit blinks the enemy WHITE (flash
+  shader) for `HURT_TIME` 0.5s (big: its 0.6s stagger) — it can't attack and is passable, but is NEVER
+  immune (the knocked-down "ignore every hit for 3s" is gone; a downed enemy takes hits and stays down).
+  The player's swing/shot PREFERS an unhurt enemy in reach (`HURT_PRIORITY_PENALTY`), and hitting hurt
+  enemies in a row misses +5% then +10% (cap) (`player._hurt_miss`). A hurt stun can still be shoved (a
+  Home Run / shove mod follows its own hit). A BURNING big zombie now hits double (4) like every enemy.
+  Locked by `enemy_variety_test`.
 - Not started: quests.

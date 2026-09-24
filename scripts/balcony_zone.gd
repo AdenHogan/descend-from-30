@@ -104,4 +104,10 @@ func _process(delta: float) -> void:
 	elif descendable and Input.is_action_just_pressed("listen") and player.has_method("start_listen"):
 		var below := WorldState.balcony_below(apartment_id)
 		if below != "":
-			player.start_listen(global_position, WorldState.get_listen_report_for_apartment(below))
+			# From up here you also hear whether something's standing OUT on the balcony below —
+			# where you'd land.
+			var report: Dictionary = WorldState.get_listen_report_for_apartment(below)
+			if WorldState.apartment_balcony_occupied(below):
+				report["line"] = str(report.get("line", "")) + "\nSomething's shuffling right below — out on that balcony."
+				report["balcony"] = true
+			player.start_listen(global_position, report)

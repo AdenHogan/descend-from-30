@@ -8,6 +8,9 @@ var selected_index: int = 0
 # BEFORE add_child(), like building_floors' setup_floor/passive.
 var setup_apartment: String = ""
 var passive: bool = false
+# The x of each revealed balcony's centre in this room (read by scripts/enemy_plane.gd so enemies
+# can step up onto it). Filled by _build_modules on live rooms AND the BalconyPan backdrop.
+var balcony_centers: Array = []
 
 # --- 3003 scripted tutorial (first run only) ------------------------------
 # The neighbour encounter is a hand-paced state machine driven from _process:
@@ -203,7 +206,9 @@ func _ready() -> void:
 				apt_rng.seed = hash(str(WorldState.master_seed) + "aptpos" + apartment_id)
 				var zombie_scene = preload("res://scenes/enemy_zombie_standard.tscn")
 				var positions = WorldState.get_zombie_positions(zombie_count, apt_rng, 150.0, 1030.0, 321.0)
-				for pos in positions:
+				var on_balcony := WorldState.balcony_spawn_pick(apartment_id, positions.size())
+				for pi in range(positions.size()):
+					var pos: Vector2 = positions[pi]
 					var key = str(WorldState.current_floor) + ":" + str(snappedf(pos.x, 1.0)) + ":" + str(snappedf(pos.y, 1.0))
 					if WorldState.killed_zombies.has(key):
 						continue
@@ -211,9 +216,10 @@ func _ready() -> void:
 					zombie.global_position = pos
 					zombie.spawn_key = key
 					add_child(zombie)
-					# Living-enemy memory: position + facing + health + alert (was
+					# Living-enemy memory: position + facing + health + alert + which plane (was
 					# position only). See WorldState.apply_saved_zombie.
-					WorldState.apply_saved_zombie(zombie)
+					if not WorldState.apply_saved_zombie(zombie) and pi == on_balcony:
+						_seed_on_balcony(zombie)
 
 	# Interior fire (after enemies, so burning enemies can already be in the room).
 	_spawn_apartment_fire()
@@ -594,6 +600,17 @@ const ROOM_STD_ORIGIN_Y := 304.0       # standard zombie settled origin (feet 35
 const ROOM_BIG_ORIGIN_Y := 308.0       # big zombie settled origin (feet 353)
 const WORLD_DROP := preload("res://scripts/world_drop.gd")   # REST_LIFT (where a drop rests)
 
+# One seeded enemy starts OUT on the balcony (WorldState.balcony_spawn_pick) — placed on the balcony
+# line, a little off-centre. The player on the balcony above can hear it first (balcony listen).
+func _seed_on_balcony(z: Node) -> void:
+	if balcony_centers.is_empty() or not z.has_method("place_on_balcony"):
+		return
+	var cx: float = float(balcony_centers[0])
+	var jit := float(hash(apartment_id + "balconyx") % 25) - 12.0
+	z.position.x = cx + jit
+	z.place_on_balcony(cx, ROOM_STD_ORIGIN_Y)
+
+
 func _burnt_breach(stage: int) -> void:
 	var list: Array = WorldState.get_breached_room_enemies(apartment_id, 150.0, 1030.0, 321.0)
 	if not list.is_empty():
@@ -665,6 +682,8 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 		if bal_node != null:
 			var show_balcony = WorldState.is_balcony_slot(apartment_id, i)
 			bal_node.visible = show_balcony
+			if show_balcony:
+				balcony_centers.append(float(LEFT_WALL_X + i * MODULE_WIDTH + 50))
 			# Natural daylight spills IN from the balcony window (moonlit at night) — so a
 			# balcony apartment is never pitch black even with the power out. Shown on the
 			# backdrop too, so a balcony seen during a descent pan is lit.
@@ -1282,6 +1301,8 @@ func _spawn_passive_enemies(floor_num: int, breached: bool) -> void:
 		if WorldState.apply_saved_zombie(z):
 			var mem: Dictionary = WorldState.zombie_positions[key]
 			z.position = Vector2(float(mem.get("x", pos.x)), float(mem.get("y", pos.y)))
+		elif not breached and i == WorldState.balcony_spawn_pick(apartment_id, positions.size()):
+			_seed_on_balcony(z)          # the same seeded one the live room puts out there
 		z.process_mode = Node.PROCESS_MODE_DISABLED   # frozen scenery
 
 

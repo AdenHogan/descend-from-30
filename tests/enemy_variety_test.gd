@@ -36,6 +36,9 @@ func _ready() -> void:
 	await _test_crawler_behaviour()
 	await _test_enemy_reach()
 	await _test_standard_key_full_pockets()
+	await _test_hurt_state()
+	await _test_hurt_targeting()
+	await _test_burning_big_doubles()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -681,3 +684,121 @@ func _test_standard_key_full_pockets() -> void:
 	check(on_floor, "it's registered on the floor, not at the corpse's origin")
 	holder.free()
 	WorldState.inventory.clear()
+
+
+# --- the HURT state (scripts/enemy_hurt.gd) -------------------------------------------------
+
+func _corridor() -> Node:
+	WorldState.new_game()
+	WorldState.is_first_run = false
+	WorldState.tutorial_completed = true
+	WorldState.god_mode = false
+	WorldState.current_floor = 12
+	WorldState.seed_floor_door_states(12)
+	var bf = load("res://scenes/building_floors.tscn").instantiate()
+	add_child(bf)
+	await get_tree().physics_frame
+	for z in get_tree().get_nodes_in_group("zombie"):
+		if bf.is_ancestor_of(z):
+			z.free()
+	return bf
+
+
+func _test_hurt_state() -> void:
+	# Owner: a hurt enemy blinks white and doesn't attack — but is NEVER immune (a knocked-down one
+	# used to shrug off every hit for 3s).
+	print("[hurt: blink, no attacks, never immune]")
+	var bf = await _corridor()
+	var p = bf.get_node("Player")
+	p.global_position = Vector2(600, 386)
+	var z = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
+	z.global_position = Vector2(620, 370)
+	bf.add_child(z)
+	await get_tree().physics_frame
+	z.current_hp = 20
+	z.receive_damage(1, "blade")
+	check(z.is_hurt() and z.state == "hit", "a non-lethal hit leaves it HURT (state %s)" % z.state)
+	check(load("res://scripts/enemy_hurt.gd").is_blinking(z), "it blinks white")
+	check(z.passable_to_player, "it can be slipped past while hurt")
+	# Right next to the player, it does NOT attack for the hurt window.
+	var dmg := 0
+	for i in range(int(z.HURT_TIME * 60.0) - 2):
+		await get_tree().physics_frame
+		p.velocity = Vector2.ZERO
+		dmg += int(p.health_state)
+		p.health_state = 0
+	check(dmg == 0, "no attacks while hurt (%d)" % dmg)
+	# Knocked down: still takes damage.
+	z._knockdown()
+	var hp1: int = z.current_hp
+	z.receive_damage(2, "blade")
+	check(z.current_hp == hp1 - 2, "a knocked-down enemy still takes hits (%d -> %d)" % [hp1, z.current_hp])
+	check(z.state == "knockdown", "and stays down")
+	bf.free()
+	await get_tree().process_frame
+
+
+func _test_hurt_targeting() -> void:
+	# A swing prefers an UNHURT enemy in reach over a nearer hurt one; hammering hurt ones in a row
+	# costs up to +10% accuracy (5%, then 10%).
+	print("[hurt: target priority + miss ramp]")
+	var bf = await _corridor()
+	var p = bf.get_node("Player")
+	p.global_position = Vector2(600, 386)
+	p.animated_sprite.flip_h = false
+	var near = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
+	near.global_position = Vector2(625, 370)
+	bf.add_child(near)
+	var far = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
+	far.global_position = Vector2(640, 370)
+	bf.add_child(far)
+	await get_tree().physics_frame
+	for z in [near, far]:
+		z.set_physics_process(false)
+		z.current_hp = 20
+	near.hurt_timer = 0.5            # the nearer one is already hurt
+	var w := ItemInstance.new()
+	w.setup("003")
+	WorldState.inventory = [w]
+	WorldState.stamina = WorldState.get_max_stamina()
+	p._hurt_streak = 0
+	p.is_attacking = false
+	p._do_melee_attack(w, 0)
+	check(far.current_hp < 20 and near.current_hp == 20, "the swing takes the UNHURT one, not the nearer hurt one (near %d, far %d)" % [near.current_hp, far.current_hp])
+	# Miss ramp (roll injected).
+	p._hurt_streak = 0
+	check(not p._hurt_miss(near, 0.051) and p._hurt_streak == 1, "1st hit on a hurt enemy: 5%% (0.051 lands)")
+	p._hurt_streak = 0
+	check(p._hurt_miss(near, 0.049), "1st hit on a hurt enemy: 5%% (0.049 misses)")
+	check(p._hurt_miss(near, 0.099), "2nd in a row: 10%% (0.099 misses)")
+	check(not p._hurt_miss(near, 0.101), "3rd in a row: capped at 10%% (0.101 lands)")
+	far.hurt_timer = 0.0
+	far.state = "idle"
+	check(not p._hurt_miss(far, 0.0) and p._hurt_streak == 0, "an unhurt target never misses this way, and resets the streak")
+	WorldState.inventory = []
+	bf.free()
+	await get_tree().process_frame
+
+
+func _test_burning_big_doubles() -> void:
+	# Every enemy alight hits twice as hard — the big zombie too (it used to stay at 2).
+	print("[a burning big zombie hits double]")
+	var bf = await _corridor()
+	var p = bf.get_node("Player")
+	p.global_position = Vector2(600, 386)
+	var big = load("res://scenes/enemy_zombie_big.tscn").instantiate()
+	big.global_position = Vector2(640, 374)
+	bf.add_child(big)
+	await get_tree().physics_frame
+	big.on_fire = true
+	big.player = p
+	big.state = "attack"
+	big.state_timer = 0.0
+	p.health_state = 0
+	await get_tree().physics_frame
+	check(int(p.health_state) == 4, "an alight big hits for 4 (got %d)" % int(p.health_state))
+	p.health_state = 0
+	p.is_dying = false
+	WorldState.is_dying = false
+	bf.free()
+	await get_tree().process_frame

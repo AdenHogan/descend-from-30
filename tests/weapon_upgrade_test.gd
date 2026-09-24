@@ -191,11 +191,14 @@ func _test_melee_perks() -> void:
 		z2.global_position = Vector2(445, 370) if with_second else Vector2(900, 370)
 		z.current_hp = 50
 		z2.current_hp = 50
-		# A bludgeon hit knocks down 55% of the time, and a knocked-down zombie ignores further
-		# blows until it stands — stand them back up so every swing tests the perk, not the dice.
+		# A bludgeon hit knocks down 55% of the time, and a hit leaves it HURT (the player prefers
+		# unhurt targets and misses hurt ones a little more) — reset both so every swing tests the
+		# perk, not the dice.
 		for zz in [z, z2]:
 			zz.state = "idle"
 			zz.state_timer = 0.0
+			zz.hurt_timer = 0.0
+		p._hurt_streak = 0
 		WorldState.stamina = WorldState.get_max_stamina()
 		p.is_attacking = false
 		p._do_melee_attack(w, 0)
@@ -577,6 +580,8 @@ func _test_tuning_in_swings() -> void:
 		z.global_position = Vector2(400 + base_range + p._zombie_body_radius(z) + 10.0, 370)
 		z.current_hp = 50
 		z.state = "idle"
+		z.hurt_timer = 0.0
+		p._hurt_streak = 0
 		WorldState.stamina = WorldState.get_max_stamina()
 		p.is_attacking = false
 		p._do_melee_attack(w, 0)
@@ -869,6 +874,8 @@ func _test_special_mod_effects() -> void:
 		z.current_hp = hp
 		z.is_dead = false
 		z.state = "idle"
+		z.hurt_timer = 0.0
+		p._hurt_streak = 0
 		z.velocity = Vector2.ZERO
 		WorldState.stamina = WorldState.get_max_stamina()
 		p.is_attacking = false

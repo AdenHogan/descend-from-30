@@ -575,6 +575,35 @@ func _get_weapon_damage_type(weapon_type: String) -> String:
 	return "blunt"
 
 
+# The balcony plane: the player only fights what shares its line (room floor vs balcony — see
+# scripts/enemy_plane.gd). A zombie on the floor under the balcony can't be hit from it, and can't
+# hit back, until one of you steps to the other line.
+const ENEMY_PLANE := preload("res://scripts/enemy_plane.gd")
+func _same_plane(zombie: Node) -> bool:
+	return ENEMY_PLANE.same_plane(zombie, self)
+
+
+# HURT enemies (scripts/enemy_hurt.gd) — blinking, can't attack, passable. A swing/shot prefers an
+# unhurt one in reach; hitting hurt ones in a row misses a little more each time (5%, then 10%).
+const HURT_PRIORITY_PENALTY := 1000.0
+const HURT_MISS_STEP := 0.05
+const HURT_MISS_MAX := 0.10
+var _hurt_streak: int = 0
+
+func _is_hurt(zombie: Node) -> bool:
+	return zombie != null and zombie.has_method("is_hurt") and zombie.is_hurt()
+
+func _hurt_miss_chance() -> float:
+	return minf(HURT_MISS_MAX, HURT_MISS_STEP * float(_hurt_streak))
+
+func _hurt_miss(target: Node, roll: float = -1.0) -> bool:
+	if not _is_hurt(target):
+		_hurt_streak = 0
+		return false
+	_hurt_streak += 1
+	return (randf() if roll < 0.0 else roll) < _hurt_miss_chance()
+
+
 func _zombie_body_radius(zombie: Node) -> float:
 	# Melee range is measured to the target's collision EDGE, not its centre.
 	# The boss capsule (radius 35) is wider than a knife's whole range (32), so
@@ -651,21 +680,28 @@ func _do_melee_attack(instance: ItemInstance, slot_index: int) -> void:
 		# genuinely off this plane (balcony / mid-stair) is excluded by the tolerance.
 		var dx = zombie.global_position.x - global_position.x
 		var dy = absf(zombie.global_position.y - global_position.y)
-		if dy > MELEE_PLANE_TOLERANCE:
+		if dy > MELEE_PLANE_TOLERANCE or not _same_plane(zombie):
 			continue
 		var edge_dist = absf(dx) - _zombie_body_radius(zombie)
 		if edge_dist <= attack_range:
 			var facing_right = not animated_sprite.flip_h
 			if (facing_right and dx > -16.0) or (not facing_right and dx < 16.0):
-				# Priority = nearest by horizontal edge distance.
-				if zombie.has_method("receive_damage") and edge_dist < target_dist:
+				# Priority = an UNHURT enemy first (a hurt one is blinking, can't attack and can be
+				# slipped past — work through the pack), then nearest by horizontal edge distance.
+				var key: float = edge_dist + (HURT_PRIORITY_PENALTY if _is_hurt(zombie) else 0.0)
+				if zombie.has_method("receive_damage") and key < target_dist:
 					second = target
 					second_dist = target_dist
-					target_dist = edge_dist
+					target_dist = key
 					target = zombie
-				elif zombie.has_method("receive_damage") and edge_dist < second_dist:
+				elif zombie.has_method("receive_damage") and key < second_dist:
 					second = zombie
-					second_dist = edge_dist
+					second_dist = key
+	if target != null and _hurt_miss(target):
+		# Hammering a hurt enemy again and again costs a little accuracy (up to +10%).
+		HUD.show_feedback("Missed.")
+		target = null
+		second = null
 	if target != null:
 		target.receive_damage(_perk_blow(instance, target, damage), damage_type)
 		hit_something = true
@@ -761,14 +797,18 @@ func _do_gun_attack(instance: ItemInstance, _slot_index: int) -> void:
 	var zombies = get_tree().get_nodes_in_group("zombie")
 	var nearest: Node = null
 	var nearest_dist: float = 9999.0
+	var nearest_key: float = 9999.0
 	for zombie in zombies:
-		if zombie.is_dead:
+		if zombie.is_dead or not _same_plane(zombie):
 			continue
 		var dist = global_position.distance_to(zombie.global_position)
 		var diff = zombie.global_position.x - global_position.x
 		var facing_right = not animated_sprite.flip_h
 		if (facing_right and diff > -16.0) or (not facing_right and diff < 16.0):
-			if dist < nearest_dist:
+			# Unhurt first (a small lean — never past a much nearer target), then nearest.
+			var key: float = dist + (HURT_PRIORITY_PENALTY if _is_hurt(zombie) else 0.0)
+			if key < nearest_key:
+				nearest_key = key
 				nearest_dist = dist
 				nearest = zombie
 	if nearest == null:
@@ -789,6 +829,8 @@ func _do_gun_attack(instance: ItemInstance, _slot_index: int) -> void:
 	gunshot_player.volume_db = -20.0 if instance.has_perk_flag("silenced") else -4.0
 	gunshot_player.play()
 	var outcome = _calculate_gun_outcome(nearest_dist, instance.is_damaged, instance)
+	if outcome != "miss" and _hurt_miss(nearest):
+		outcome = "miss"
 	match outcome:
 		"headshot": HUD.show_feedback("Headshot!")
 		"body": HUD.show_feedback("Body shot.")
@@ -819,7 +861,8 @@ func _gun_perk_followthrough(instance: ItemInstance, target: Node) -> void:
 			if z == target or z.is_dead:
 				continue
 			var past: float = (z.global_position.x - target.global_position.x) * dir
-			if past > 0.0 and past < best and absf(z.global_position.y - target.global_position.y) <= MELEE_PLANE_TOLERANCE:
+			if past > 0.0 and past < best and absf(z.global_position.y - target.global_position.y) <= MELEE_PLANE_TOLERANCE \
+					and _same_plane(z):
 				best = past
 				behind = z
 		if behind != null and behind.has_method("receive_hit_from_gun"):
@@ -894,7 +937,7 @@ func _do_push() -> void:
 		# on top of it — the push read as "shoving blank space". Edge distance fixes that.
 		var dx = zombie.global_position.x - global_position.x
 		var dy = absf(zombie.global_position.y - global_position.y)
-		if dy > MELEE_PLANE_TOLERANCE:
+		if dy > MELEE_PLANE_TOLERANCE or not _same_plane(zombie):
 			continue
 		var edge_dist = absf(dx) - _zombie_body_radius(zombie)
 		if edge_dist <= PUSH_RANGE:

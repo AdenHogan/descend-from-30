@@ -132,13 +132,24 @@ var hp_floor: int = -1
 var max_hp: int = 3
 var current_hp: int = 3
 var is_dead: bool = false
-# The corridor walking line this zombie spawned on. When the player steps up
-# onto a balcony plane, close zombies CLIMB UP after them (the balcony is not a
-# safe island — THREE_RUN_ARC); otherwise they hold their own line.
+# The corridor walking line this zombie spawned on (stair enemies re-ground onto it).
 var base_walk_y: float = 0.0
-const PLANE_PURSUIT_X = 140.0     # close enough in X to start climbing
-const PLANE_PURSUIT_MAX = 60.0    # never chase further off-line than this
-const PLANE_CLIMB_SPEED = 45.0
+# THE BALCONY PLANE (scripts/enemy_plane.gd): which line I'm on in an apartment. I only fight what
+# shares my plane; I step up after a player out on the balcony and down after one who left it.
+const ENEMY_PLANE := preload("res://scripts/enemy_plane.gd")
+const ENEMY_HURT := preload("res://scripts/enemy_hurt.gd")
+var on_balcony_plane: bool = false
+var balcony_center_x: float = 0.0
+var _plane_floor_y: float = 0.0
+var _plane_climb: int = 0                 # +1 stepping up, -1 stepping down, 0 settled
+var _plane_idle_t: float = randf_range(3.0, 10.0)
+var _plane_scale0: Vector2 = Vector2.ZERO
+var _plane_pos0: Vector2 = Vector2.ZERO
+# HURT (scripts/enemy_hurt.gd): a hit that doesn't kill stuns me for HURT_TIME — I blink white,
+# can't attack, and can be slipped past — but I'm never immune: every hit still lands.
+const HURT_TIME := 0.5
+var hurt_timer: float = 0.0
+var _hurt_stun: bool = false     # the current "hit" state is a HURT stun (not a push stagger)
 var passable_to_player: bool = false
 # Gunfire (and future noise sources) override detection range while this runs.
 var alert_timer: float = 0.0
@@ -541,6 +552,10 @@ func _make_passable_to_player() -> void:
 func _try_resolidify() -> void:
 	# Restore solidity only once the player is clear, so the zombie never
 	# re-solidifies while overlapping the player (which would jam both bodies).
+	# Different planes (room floor vs balcony) never collide — the lines overlap in space.
+	if is_instance_valid(player) and not ENEMY_PLANE.same_plane(self, player):
+		_make_passable_to_player()
+		return
 	if on_fire:
 		_make_passable_to_player()   # burning enemies stay passable so a fire cluster can't wall the player
 		return
@@ -581,8 +596,11 @@ func _set_hp_from_floor() -> void:
 func receive_push(force: float) -> void:
 	if stair_mode:
 		_exit_stairwell_mode()   # a shove pulls it off the stairs into normal handling
-	if state == "hit" or state == "recovering" or state == "knockdown" or is_dead:
+	# Already reeling from a PUSH → no re-push. A hurt stun (a blow just landed) CAN be shoved —
+	# that's how a Home Run / shove mod follows its own hit.
+	if (state == "hit" and not _hurt_stun) or state == "recovering" or state == "knockdown" or is_dead:
 		return
+	_hurt_stun = false
 	velocity.x = clamp(force, -200.0, 200.0)
 	state = "hit"
 	state_timer = HIT_DURATION
@@ -637,6 +655,14 @@ const PLANE_REACH_TOLERANCE := 48.0   # same as the player's MELEE_PLANE_TOLERAN
 const PLAYER_HALF_WIDTH := 13.0       # the player's capsule radius
 const REACH_PAST_CONTACT := 7.0       # standard: 30 range - (10 radius + 13) contact
 
+func is_hurt() -> bool:
+	return hurt_timer > 0.0 or state == "knockdown"
+
+
+func place_on_balcony(cx: float, floor_y: float) -> void:
+	ENEMY_PLANE.place(self, cx, floor_y)
+
+
 func _body_half_width() -> float:
 	var cs = get_node_or_null("CollisionShape2D")
 	if cs != null and cs.shape != null:
@@ -647,8 +673,11 @@ func _body_half_width() -> float:
 	return 10.0
 
 func _reach_to_player() -> float:
-	# Horizontal gap to the player, or INF when they're genuinely off this plane.
+	# Horizontal gap to the player, or INF when they're genuinely off this plane (the other side of
+	# the balcony line, or mid-step between the two).
 	if not is_instance_valid(player):
+		return INF
+	if not ENEMY_PLANE.same_plane(self, player):
 		return INF
 	if absf(player.global_position.y - global_position.y) > PLANE_REACH_TOLERANCE:
 		return INF
@@ -670,7 +699,8 @@ func _deliver_attack(distance: float) -> void:
 func receive_damage(amount: int, damage_type: String) -> void:
 	if stair_mode:
 		_exit_stairwell_mode()   # a hit pulls it off the stairs; it's never unkillable
-	if is_dead or state == "knockdown":
+	# NOT immune while knocked down (it used to shrug off every hit for 3s) — a hit always lands.
+	if is_dead:
 		return
 	# Scripted combat: no luck. Exactly two golf-club hits put the neighbour
 	# down, no knockdown/instakill rolls, whatever the weapon's raw damage.
@@ -679,6 +709,7 @@ func receive_damage(amount: int, damage_type: String) -> void:
 		if tutorial_hits >= TUTORIAL_HITS_TO_DIE:
 			_die()
 		else:
+			ENEMY_HURT.blink(self, HURT_TIME)
 			state = "hit"
 			state_timer = HIT_DURATION
 			animated_sprite.play("Hit")
@@ -696,12 +727,27 @@ func receive_damage(amount: int, damage_type: String) -> void:
 		else:
 			_die()
 			return
-	if damage_type == "bludgeon":
+	_hurt()
+	if damage_type == "bludgeon" and state != "knockdown":
 		var rng = RandomNumberGenerator.new()
 		rng.seed = hash(str(WorldState.master_seed) + str(global_position) + str(Time.get_ticks_msec()))
 		if rng.randf() < 0.55:
 			_knockdown()
 			return
+
+
+# A hit that didn't kill: blink white and stagger — no attacking for HURT_TIME, passable like a
+# pushed enemy. A knocked-down enemy stays down (its own timer), still blinking, still hittable.
+func _hurt() -> void:
+	hurt_timer = HURT_TIME
+	ENEMY_HURT.blink(self, HURT_TIME)
+	_make_passable_to_player()
+	if state == "knockdown":
+		return
+	state = "hit"
+	_hurt_stun = true
+	state_timer = HURT_TIME
+	velocity.x = 0.0
 	animated_sprite.play("Hit")
 
 func _knockdown() -> void:
@@ -859,21 +905,6 @@ func receive_hit_from_gun(outcome: String) -> void:
 		"miss":
 			pass
 
-func _update_plane_pursuit(delta: float) -> void:
-	# Balcony is not a safe island: an aggro'd zombie (chasing or attacking) that
-	# is close in X climbs UP onto the player's raised balcony line to keep
-	# attacking, and eases back to its own corridor line when the player drops
-	# back inside. Scripted tutorial zombies never do this (no F30 balconies).
-	if tutorial_scripted or player == null:
-		return
-	var aggro := state in ["chase", "attack"] or alert_timer > 0.0
-	var pursue_y := base_walk_y
-	if aggro and absf(player.global_position.x - global_position.x) < PLANE_PURSUIT_X \
-			and absf(player.global_position.y - base_walk_y) <= PLANE_PURSUIT_MAX:
-		pursue_y = player.global_position.y
-	global_position.y = move_toward(global_position.y, pursue_y, PLANE_CLIMB_SPEED * delta)
-
-
 func _physics_process(delta: float) -> void:
 	if is_dead:
 		return
@@ -894,7 +925,13 @@ func _physics_process(delta: float) -> void:
 		move_and_slide()
 		return
 
-	_update_plane_pursuit(delta)
+	if hurt_timer > 0.0:
+		hurt_timer -= delta
+	# The balcony plane: a step up/down owns the frame; otherwise keep other-plane bodies apart.
+	if ENEMY_PLANE.tick(self, delta):
+		return
+	if is_instance_valid(player) and not ENEMY_PLANE.same_plane(self, player):
+		_make_passable_to_player()
 
 	match state:
 		"knockdown":
@@ -912,6 +949,7 @@ func _physics_process(delta: float) -> void:
 			velocity.x *= PUSH_FRICTION
 			state_timer -= delta
 			if state_timer <= 0:
+				_hurt_stun = false
 				state = "recovering"
 				# Scripted push: double-length recover so the player can turn
 				# and start searching before the shamble begins.
@@ -1000,3 +1038,4 @@ func _physics_process(delta: float) -> void:
 					velocity.x = 0
 					animated_sprite.play("Idle")
 	move_and_slide()
+	ENEMY_PLANE.hold(self)

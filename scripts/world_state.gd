@@ -2531,6 +2531,51 @@ func balcony_slot_in_apartment(apartment_id: String) -> int:
 	return -1
 
 
+# Which of an apartment's seeded zombies starts OUT ON its balcony (index into the room's spawn
+# positions), or -1. Deterministic per (apartment, run) so the live room, the BalconyPan backdrop
+# and the balcony listen all agree. Only apartments that have a balcony.
+const BALCONY_SPAWN_CHANCE := 0.4
+
+func balcony_spawn_pick(apartment_id: String, count: int) -> int:
+	if count <= 0 or balcony_slot_in_apartment(apartment_id) < 0:
+		return -1
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "balconyspawn" + apartment_id + str(current_run))
+	if rng.randf() >= BALCONY_SPAWN_CHANCE:
+		return -1
+	return rng.randi() % count
+
+
+# Is something standing out on this apartment's balcony right now? What a balcony listen from the
+# floor above can pick out. Memory wins (a zombie that stepped up / down since); otherwise the seeded
+# pick, if it's still alive. Burnt rooms and breaches hold nobody out there.
+func apartment_balcony_occupied(apartment_id: String) -> bool:
+	if balcony_slot_in_apartment(apartment_id) < 0:
+		return false
+	var f := _apartment_floor(apartment_id)
+	var col := _apartment_column(apartment_id)
+	if get_door_state(apartment_id) == DoorState.BREACHED or apartment_fire_stage(f, col) in [FIRE_BLAZE, FIRE_CHARRED]:
+		return false
+	var count := get_apartment_zombie_count(apartment_id)
+	if count <= 0:
+		return false
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "aptpos" + apartment_id)
+	var positions: Array = get_zombie_positions(count, rng, 150.0, 1030.0, 321.0)
+	var pick := balcony_spawn_pick(apartment_id, positions.size())
+	for i in range(positions.size()):
+		var pos: Vector2 = positions[i]
+		var key := str(f) + ":" + str(snappedf(pos.x, 1.0)) + ":" + str(snappedf(pos.y, 1.0))
+		if killed_zombies.has(key):
+			continue
+		if zombie_positions.has(key):
+			if bool(zombie_positions[key].get("plane", false)):
+				return true
+		elif i == pick:
+			return true
+	return false
+
+
 func is_balcony_slot(apartment_id: String, slot: int) -> bool:
 	return balcony_slot_in_apartment(apartment_id) == slot
 
@@ -3457,13 +3502,25 @@ func record_zombie(z: Node) -> void:
 	var spr = z.get_node_or_null("AnimatedSprite2D")
 	if spr != null:
 		facing = spr.flip_h
-	zombie_positions[z.spawn_key] = {
+	var rec := {
 		"x": snappedf(z.global_position.x, 1.0),
 		"y": snappedf(z.global_position.y, 1.0),
 		"facing": facing,
 		"hp": z.current_hp,
 		"alert": z.alert_timer,
 	}
+	# The balcony plane (scripts/enemy_plane.gd): remember WHICH line it was on. Mid-step it's
+	# recorded as having arrived (never mid-air — there's no gravity to settle it on return).
+	var climb = z.get("_plane_climb")
+	var on_plane: bool = bool(z.get("on_balcony_plane")) if z.get("on_balcony_plane") != null else false
+	if climb != null and int(climb) != 0:
+		on_plane = int(climb) > 0
+		rec["y"] = snappedf(float(z._plane_floor_y) - (25.0 if on_plane else 0.0), 1.0)
+	if on_plane:
+		rec["plane"] = true
+		rec["plane_cx"] = float(z.balcony_center_x)
+		rec["plane_floor_y"] = float(z._plane_floor_y)
+	zombie_positions[z.spawn_key] = rec
 
 
 # Re-apply a remembered zombie onto a fresh instance. Returns true if there was
@@ -3485,6 +3542,8 @@ func apply_saved_zombie(z: Node) -> bool:
 		z.current_hp = int(s["hp"])
 	if s.has("alert"):
 		z.alert_timer = float(s["alert"])
+	if bool(s.get("plane", false)) and z.has_method("place_on_balcony"):
+		z.place_on_balcony(float(s.get("plane_cx", z.global_position.x)), float(s.get("plane_floor_y", z.global_position.y + 25.0)))
 	return true
 
 

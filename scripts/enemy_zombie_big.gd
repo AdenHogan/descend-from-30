@@ -32,6 +32,19 @@ var max_hp: int = 20
 var current_hp: int = 20
 var is_dead: bool = false
 var detection_range: float = DETECTION_RANGE
+# The balcony plane + hurt blink — same rules as the standard family (scripts/enemy_plane.gd,
+# scripts/enemy_hurt.gd).
+const ENEMY_PLANE := preload("res://scripts/enemy_plane.gd")
+const ENEMY_HURT := preload("res://scripts/enemy_hurt.gd")
+var on_balcony_plane: bool = false
+var balcony_center_x: float = 0.0
+var _plane_floor_y: float = 0.0
+var _plane_climb: int = 0
+var _plane_idle_t: float = randf_range(3.0, 10.0)
+var _plane_scale0: Vector2 = Vector2.ZERO
+var _plane_pos0: Vector2 = Vector2.ZERO
+var _plane_passable: bool = false
+var hurt_timer: float = 0.0
 
 # On fire: a big zombie standing in flame catches too (flame overlay + burn DoT).
 # Big and slow, so it cooks in the fire — same rule as the player and the standard.
@@ -160,10 +173,36 @@ func receive_damage(amount: int, damage_type: String) -> void:
 	if current_hp <= 0:
 		_die()
 		return
-	# Enter hit stagger state
+	# Enter hit stagger state: blink white, no attacking (never immune — the next hit lands too).
+	hurt_timer = HIT_DURATION
+	ENEMY_HURT.blink(self, HIT_DURATION)
 	state = "hit"
 	state_timer = HIT_DURATION
 	animated_sprite.play("Hit")
+
+
+func is_hurt() -> bool:
+	return hurt_timer > 0.0
+
+
+func place_on_balcony(cx: float, floor_y: float) -> void:
+	ENEMY_PLANE.place(self, cx, floor_y)
+
+
+# Different planes never collide (the balcony line overlaps the room floor in space). The big has
+# no push/passable API of its own, so it keeps the exception itself.
+func _plane_collision() -> void:
+	if not is_instance_valid(player) or not (player is PhysicsBody2D):
+		return
+	var differ := not ENEMY_PLANE.same_plane(self, player)
+	if differ and not _plane_passable:
+		add_collision_exception_with(player)
+		player.add_collision_exception_with(self)
+		_plane_passable = true
+	elif not differ and _plane_passable and absf(global_position.x - player.global_position.x) > _attack_reach():
+		remove_collision_exception_with(player)
+		player.remove_collision_exception_with(self)
+		_plane_passable = false
 
 
 func receive_hit_from_gun(outcome: String) -> void:
@@ -261,6 +300,8 @@ func _drop_feet_y() -> float:
 func _reach_to_player() -> float:
 	if not is_instance_valid(player):
 		return INF
+	if not ENEMY_PLANE.same_plane(self, player):
+		return INF
 	if absf(player.global_position.y - global_position.y) > 48.0:
 		return INF
 	return absf(player.global_position.x - global_position.x)
@@ -317,6 +358,11 @@ func _physics_process(delta: float) -> void:
 
 	if alert_timer > 0:
 		alert_timer -= delta
+	if hurt_timer > 0.0:
+		hurt_timer -= delta
+	if ENEMY_PLANE.tick(self, delta):
+		return
+	_plane_collision()
 
 	moan_timer -= delta
 	if moan_timer <= 0.0:
@@ -338,7 +384,7 @@ func _physics_process(delta: float) -> void:
 			if state_timer <= 0:
 				if _reach_to_player() <= _attack_reach():
 					if is_instance_valid(player) and player.has_method("receive_hit"):
-						player.receive_hit(2)
+						player.receive_hit(2 * (2 if on_fire else 1))   # alight = double, like every enemy
 				state = "chase"
 				animated_sprite.play("Walk")
 		"chase", "idle":
@@ -363,3 +409,4 @@ func _physics_process(delta: float) -> void:
 					velocity.x = 0
 					animated_sprite.play("Idle")
 	move_and_slide()
+	ENEMY_PLANE.hold(self)
