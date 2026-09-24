@@ -1,18 +1,19 @@
 [gd_scene format=3 uid="uid://b7h4576ex5v3h"]
 
 [ext_resource type="Texture2D" path="res://assets/rooms/study.png" id="1_art"]
+[ext_resource type="Texture2D" path="res://assets/rooms/study_strip.png" id="2_strip"]
 
-[node name="Node2D" type="Node2D" unique_id=1019415200]
+[node name="Node2D" type="Node2D"]
 
-[node name="ColorRect" type="ColorRect" parent="." unique_id=963950206]
+[node name="ColorRect" type="ColorRect" parent="."]
 offset_right = 320.0
 offset_bottom = 144.0
-color = Color(0.86694926, 0.38374203, 0, 1)
+color = Color(0.4, 0.4, 0.4, 1)
 
-[node name="Label" type="Label" parent="ColorRect" unique_id=745497633]
+[node name="Label" type="Label" parent="ColorRect"]
 layout_mode = 0
 offset_right = 318.0
-offset_bottom = 101.0
+offset_bottom = 100.0
 theme_override_font_sizes/font_size = 32
 visible = false
 text = "Study"
@@ -22,6 +23,11 @@ vertical_alignment = 1
 [node name="Art" type="Sprite2D" parent="."]
 texture_filter = 1
 texture = ExtResource("1_art")
+centered = false
+
+[node name="StripArt" type="Sprite2D" parent="."]
+texture_filter = 1
+texture = ExtResource("2_strip")
 centered = false
 
 [node name="Balcony" type="Node2D" parent="."]
@@ -162,18 +168,36 @@ theme_override_colors/font_color = Color(0.92, 0.92, 0.92, 1)
 theme_override_font_sizes/font_size = 10
 text = "BALCONY"
 
-[node name="anchor_centre_bookcaseupper" type="Marker2D" parent="." unique_id=1477232159]
+[node name="anchor_centre_bookcaseupper" type="Marker2D" parent="."]
 position = Vector2(114, 42)
 metadata/back_plane = true
 
-[node name="anchor_centre_bookcaselower" type="Marker2D" parent="." unique_id=252669313]
+[node name="anchor_centre_bookcaselower" type="Marker2D" parent="."]
 position = Vector2(126, 70)
 metadata/back_plane = true
 
-[node name="anchor_centre_desk" type="Marker2D" parent="." unique_id=1874674597]
-position = Vector2(184, 66)
+[node name="anchor_centre_desk" type="Marker2D" parent="."]
+position = Vector2(188, 88)
+
+[node name="anchor_study_desk_drawer" type="Marker2D" parent="."]
+position = Vector2(208, 105)
+
+[node name="anchor_study_papers" type="Marker2D" parent="."]
+position = Vector2(244, 94)
+
+[node name="anchor_right_shelf" type="Marker2D" parent="."]
+position = Vector2(284, 40)
 metadata/back_plane = true
 
-[node name="anchor_right_shelf" type="Marker2D" parent="." unique_id=1034760135]
-position = Vector2(291, 42)
+[node name="anchor_study_filing" type="Marker2D" parent="."]
+position = Vector2(292, 76)
 metadata/back_plane = true
+
+[node name="anchor_study_file_boxes" type="Marker2D" parent="."]
+position = Vector2(28, 88)
+metadata/back_plane = true
+metadata/balcony_strip = true
+
+[node name="anchor_study_book_pile" type="Marker2D" parent="."]
+position = Vector2(72, 110)
+metadata/balcony_strip = true

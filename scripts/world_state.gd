@@ -2591,6 +2591,17 @@ func apartment_window_side(apartment_id: String, slot: int) -> String:
 	return "left" if (h % 2) == 0 else "right"
 
 
+func module_variant_index(apartment_id: String, slot: int, room_type: String, count: int) -> int:
+	# Which ART VARIANT of a room type a module shows (room.MODULE_VARIANTS) — seeded per
+	# (apartment, slot, type) and NOT per run: the furniture is a physical feature of the flat, so
+	# it stays put across the three runs (the runs change its CONDITION — room._apply_run_art).
+	# The live room and a balcony-pan backdrop of it agree because both ask here.
+	if count <= 1:
+		return 0
+	var h := hash(str(master_seed) + "modvariant" + apartment_id + ":" + str(slot) + ":" + room_type)
+	return absi(h) % count
+
+
 func is_balcony_descendable(apartment_id: String, slot: int) -> bool:
 	# Only the TOP of a pair descends; its partner below is a dead-end. This is what
 	# makes descent one-and-done and never a stack.

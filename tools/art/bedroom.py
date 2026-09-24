@@ -14,7 +14,7 @@ past the module edge at a doorway (scripts/module_walls.gd FLOOR_STRIP).
 import os
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
-from pixlib import Canvas, hexc, shade, mix, SEAM_Y, W, H, check_window_boxes, check_edge_columns, save_floor_strip, floor_is_periodic, rrect
+from pixlib import Canvas, hexc, shade, mix, SEAM_Y, W, H, check_window_boxes, check_edge_columns, save_floor_strip, floor_is_periodic, finish_module, rrect
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 
@@ -366,8 +366,8 @@ def hanging_clothes(c, x, rail):
     c.rect(x + 6, rail + 30, x + 8, rail + 31, hexc('3a2a22'))
 
 
-def build():
-    c = Canvas(seed=21)
+def build(c=None):
+    c = c or Canvas(seed=21)
     wall(c)
     decay(c)
     picture(c)
@@ -380,22 +380,16 @@ def build():
     return c
 
 
+def bare(c):
+    wall(c)
+    decay(c)
+
+
+ANCHORS = [('anchor_wall_left', 37, 60, 'bp'), ('anchor_bedside', 63, 87, 'bp'),
+           ('anchor_bed_pillow', 99, 88, ''), ('anchor_floor_underbed', 152, 110, ''),
+           ('anchor_wall_right_upper', 297, 40, 'bp'), ('anchor_wall_right_lower', 289, 91, 'bp'),
+           ('anchor_bedroom_clothes', 236, 112, '')]
+
+
 if __name__ == '__main__':
-    out = os.path.join(ROOT, 'assets', 'rooms', 'bedroom.png')
-    prev_dir = os.path.join(ROOT, 'docs', 'art_reference', 'modules')
-    os.makedirs(os.path.dirname(out), exist_ok=True)
-    c = build()
-    bare = Canvas(seed=21)
-    wall(bare)
-    decay(bare)
-    bad = check_window_boxes(c.img, bare.img)
-    if bad:
-        sys.exit('furniture inside a runtime window box: %s' % bad[:8])
-    edge = check_edge_columns(c.img, bare.img)
-    if edge:
-        sys.exit('furniture in the edge columns the side walls are painted from: %s' % edge[:8])
-    fl = save_floor_strip(floor, 'bedroom', ROOT, seed=21)
-    if not floor_is_periodic(fl):
-        sys.exit('the floor must repeat every 32px (it tiles on past the module edge at a doorway)')
-    c.save(out, os.path.join(prev_dir, 'bedroom_x4.png'))
-    print('wrote', out, '(window boxes clear)')
+    finish_module('bedroom', 'bedroom', 21, bare, floor, build, ANCHORS)

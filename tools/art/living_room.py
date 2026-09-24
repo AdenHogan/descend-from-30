@@ -10,7 +10,7 @@ the floor in front of the wall/floor seam. Flat/neutral lighting — the engine 
 import os
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
-from pixlib import Canvas, hexc, shade, mix, SEAM_Y, W, H, check_window_boxes, check_edge_columns, save_floor_strip, floor_is_periodic, iso_box, iso_pt, outline_layer, rrect
+from pixlib import Canvas, hexc, shade, mix, SEAM_Y, W, H, check_window_boxes, check_edge_columns, save_floor_strip, finish_module, floor_is_periodic, iso_box, iso_pt, outline_layer, rrect
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 
@@ -132,17 +132,19 @@ def floor(c):
         c.rect(0, y0, W - 1, y1, col)
         c.hline(0, W - 1, y0, PLANK_HI if r > 0 else shade(col, 0.85))
         c.hline(0, W - 1, y1, PLANK_SEAM)
-        # staggered butt joints
-        run = 22 + (y1 - y0) * 9
-        x = (r * 37) % run
+        # staggered butt joints, one plank end per 32px per row (the floor repeats every 32px so
+        # it tiles on seamlessly past the module edge at a doorway)
+        x = (r * 13) % 32
         while x < W:
             c.vline(x, y0 + 1, y1, PLANK_SEAM)
-            x += run + (r * 13 + x) % 17
-        # a little grain
-        for k in range(W // 9):
-            gx = c.rng.randrange(W)
-            gy = c.rng.randrange(y0 + 1, max(y0 + 2, y1))
-            c.hline(gx, gx + c.rng.randrange(3, 8), gy, shade(col, 0.9))
+            x += 32
+        # a little grain, also on the 32px cycle
+        for k in range(4):
+            gx0 = (r * 7 + k * 9) % 32
+            gy = y0 + 1 + (r + k) % max(1, y1 - y0 - 1)
+            ln = 3 + (r + k) % 5
+            for gx in range(gx0 - 32, W, 32):
+                c.hline(max(gx, 0), min(gx + ln, W - 1), gy, shade(col, 0.9))
 
 
 def rug(c):
@@ -494,8 +496,8 @@ def shifted(c, fn, dy, dx=0):
     c.px = c.img.load()
 
 
-def build():
-    c = Canvas(seed=7)
+def build(c=None):
+    c = c or Canvas(seed=7)
     wall(c)
     decay(c)
     picture(c)
@@ -511,21 +513,15 @@ def build():
     return c
 
 
+def bare(c):
+    wall(c)
+    decay(c)
+
+
+ANCHORS = [('anchor_left_bookshelf_upper', 22, 58, 'bp'), ('anchor_left_bookshelf_lower', 35, 86, 'bp'),
+           ('anchor_centre_sofaleft', 114, 103, ''), ('anchor_centre_sofaright', 149, 101, ''),
+           ('anchor_centre_coffeetable', 214, 98, ''), ('anchor_right_chair', 275, 95, 'bp')]
+
+
 if __name__ == '__main__':
-    out = os.path.join(ROOT, 'assets', 'rooms', 'living_room.png')
-    prev_dir = os.path.join(ROOT, 'docs', 'art_reference', 'modules')
-    os.makedirs(os.path.dirname(out), exist_ok=True)
-    os.makedirs(prev_dir, exist_ok=True)
-    c = build()
-    bare = Canvas(seed=7)
-    wall(bare)
-    decay(bare)
-    bad = check_window_boxes(c.img, bare.img)
-    if bad:
-        sys.exit('furniture inside a runtime window box: %s' % bad[:8])
-    edge = check_edge_columns(c.img, bare.img)
-    if edge:
-        sys.exit('furniture in the edge columns the side walls are painted from: %s' % edge[:8])
-    fl = save_floor_strip(floor, 'living_room', ROOT, seed=7)
-    c.save(out, os.path.join(prev_dir, 'living_room_x4.png'))
-    print('wrote', out, '(window boxes clear)')
+    finish_module('living_room', 'living_room', 7, bare, floor, build, ANCHORS)

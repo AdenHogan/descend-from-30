@@ -35,6 +35,20 @@ var tut_step: int = -1          # -1 = not the tutorial apartment
 var tut_zombie: Node = null
 var tut_nodes: Array = []       # the three hidden anchors (junk / health / club)
 
+# Every ART VARIANT of each room type (tools/art/<name>.py writes each scene + its art). A module
+# picks one per (apartment, slot) — WorldState.module_variant_index — so the same room type never
+# looks the same flat to flat; each variant carries its OWN nodes on its OWN furniture. The first
+# entry is the base scene (MODULE_SCENES). Locked by apartment_window_test._test_module_variants.
+const MODULE_VARIANTS = {
+	"bedroom": ["res://scenes/Room_Modules/bedroom.tscn"],
+	"bathroom": ["res://scenes/Room_Modules/bathroom.tscn", "res://scenes/Room_Modules/bathroom_b.tscn",
+		"res://scenes/Room_Modules/bathroom_c.tscn", "res://scenes/Room_Modules/bathroom_d.tscn"],
+	"study": ["res://scenes/Room_Modules/study.tscn"],
+	"kitchen": ["res://scenes/Room_Modules/kitchen.tscn"],
+	"living_room": ["res://scenes/Room_Modules/living_room.tscn"],
+	"dining_room": ["res://scenes/Room_Modules/dining_room.tscn"],
+}
+
 const MODULE_SCENES = {
 	"bedroom": "res://scenes/Room_Modules/bedroom.tscn",
 	"bathroom": "res://scenes/Room_Modules/bathroom.tscn",
@@ -722,7 +736,7 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 			var module_index = i if entrance_side == "left" else 2 - i
 			scene_path = MODULE_SCENES[TUTORIAL_LAYOUTS[apartment_id][module_index]]
 		else:
-			scene_path = MODULE_SCENES[layout[i]]
+			scene_path = module_scene_for(apartment_id, i, layout[i])
 		var scene = load(scene_path)
 		var instance = scene.instantiate()
 		instance.position.x = LEFT_WALL_X + (i * MODULE_WIDTH)
@@ -784,6 +798,7 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 		# at furniture level, world y >= ~300). Added on the passive backdrop too (light only),
 		# so a balcony descent pan shows the neighbouring flat's windows lit.
 		var has_balcony := bal_node != null and WorldState.is_balcony_slot(apartment_id, i)
+		_apply_balcony_strip(instance, has_balcony)
 		if not has_balcony:
 			var side := WorldState.apartment_window_side(apartment_id, i)
 			var wx: float = LEFT_WALL_X + i * MODULE_WIDTH + (MODULE_WINDOW_INSET if side == "left" else MODULE_WIDTH - MODULE_WINDOW_INSET)
@@ -810,6 +825,30 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 	# all the windows just built. Skipped on passive backdrops and on day/afternoon runs.
 	if live and WorldState.current_run == 3:
 		add_child(load("res://scripts/apartment_storm.gd").new())
+
+
+static func module_scene_for(apt: String, slot: int, room_type: String) -> String:
+	# The variant scene this apartment's module shows (seeded, stable across runs).
+	var vs: Array = MODULE_VARIANTS.get(room_type, [])
+	if vs.is_empty():
+		return MODULE_SCENES[room_type]
+	return vs[WorldState.module_variant_index(apt, slot, room_type, vs.size())]
+
+
+func _apply_balcony_strip(module: Node, has_balcony: bool) -> void:
+	# A balcony-capable room (study / dining) may stand furniture where the balcony doors go
+	# (x 4..96) when this slot has NO balcony: its art is the module's StripArt sprite and its
+	# nodes carry metadata/balcony_strip. On a balcony slot both go — the doors are there instead —
+	# and the nodes are removed NOW (not queue_free), before the anchor pass counts them.
+	var strip_art = module.get_node_or_null("StripArt")
+	if strip_art is CanvasItem:
+		strip_art.visible = not has_balcony
+	if not has_balcony:
+		return
+	for c in module.get_children():
+		if c is Marker2D and bool(c.get_meta("balcony_strip", false)):
+			module.remove_child(c)
+			c.free()
 
 
 func _after_modules_ready() -> void:

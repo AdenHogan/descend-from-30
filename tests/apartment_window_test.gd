@@ -24,6 +24,7 @@ func _ready() -> void:
 	await _test_windows_night()
 	await _test_exit_through_door()
 	await _test_floor_boundary()
+	_test_module_variants()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -302,24 +303,21 @@ func _test_floor_boundary() -> void:
 	# The floor strips continue each floor seamlessly only if the floor repeats every FLOOR_STRIP px —
 	# checked on each module's FLOOR-ONLY export (no furniture), which is what the wedge tiles.
 	var strip: int = MW.FLOOR_STRIP
-	for mod in ["bedroom", "kitchen", "bathroom", "study", "dining_room"]:
-		var img: Image = load("res://assets/rooms/%s_floor.png" % mod).get_image()
-		if img.is_compressed():
-			img.decompress()
-		check(img.get_height() == 44 and img.get_width() == 320, "%s: a floor-only export, 320x44" % mod)
-		check(_floor_periodic_below(img, strip, 0), "%s: the floor repeats every %dpx (tiles on seamlessly)" % [mod, strip])
-	# Every basic module carries its art; the placeholder label is hidden (room.gd still reads its
-	# text); on a balcony module the Balcony draws OVER the art (it comes after it in the tree).
-	for mod in ["living_room", "bedroom", "kitchen", "bathroom", "study", "dining_room"]:
-		var inst = load("res://scenes/Room_Modules/%s.tscn" % mod).instantiate()
-		var art = inst.get_node_or_null("Art")
-		check(art is Sprite2D and art.texture != null, "%s: an Art sprite with a texture" % mod)
-		var lbl = inst.get_node_or_null("ColorRect/Label")
-		check(lbl != null and not lbl.visible, "%s: the placeholder label is hidden" % mod)
-		var bal = inst.get_node_or_null("Balcony")
-		if bal != null and art != null:
-			check(bal.get_index() > art.get_index(), "%s: the Balcony draws over the art" % mod)
-		inst.free()
+	var RoomScript = load("res://scripts/room.gd")
+	for rt in RoomScript.MODULE_VARIANTS:
+		for path in RoomScript.MODULE_VARIANTS[rt]:
+			var inst = load(path).instantiate()
+			var art = inst.get_node_or_null("Art")
+			var fp: String = art.texture.resource_path.get_basename() + "_floor.png" if art is Sprite2D and art.texture != null else ""
+			inst.free()
+			check(fp != "" and ResourceLoader.exists(fp), "%s: has a floor-only export" % path.get_file())
+			if fp == "" or not ResourceLoader.exists(fp):
+				continue
+			var img: Image = load(fp).get_image()
+			if img.is_compressed():
+				img.decompress()
+			check(img.get_height() == 44 and img.get_width() == 320, "%s: a floor-only export, 320x44" % fp.get_file())
+			check(_floor_periodic_below(img, strip, 0), "%s: the floor repeats every %dpx (tiles on seamlessly)" % [fp.get_file(), strip])
 	# A module's strip comes from that floor-only export — the right edge = its last FLOOR_STRIP columns.
 	var m = load("res://scenes/Room_Modules/kitchen.tscn").instantiate()
 	add_child(m)
@@ -347,3 +345,85 @@ func _floor_periodic_below(img: Image, strip: int, y0: int) -> bool:
 			if img.get_pixel(x, y) != img.get_pixel(x + strip, y):
 				return false
 	return true
+
+
+func _test_module_variants() -> void:
+	# Every room type's ART VARIANTS (room.MODULE_VARIANTS): each loads as its room type, carries
+	# its art with the placeholder label hidden, enough nodes of its own, node names no other room
+	# type uses (loot memory is keyed apartment:anchor), and on a balcony room the Balcony draws
+	# over the art. Every scene in Room_Modules/ is registered; the pick is seeded + spread.
+	var RoomScript = load("res://scripts/room.gd")
+	var owner_of := {}
+	var registered := {}
+	for rt in RoomScript.MODULE_VARIANTS:
+		var paths: Array = RoomScript.MODULE_VARIANTS[rt]
+		check(paths[0] == RoomScript.MODULE_SCENES[rt], "%s: the base scene is variant 0" % rt)
+		for path in paths:
+			registered[path] = true
+			var inst = load(path).instantiate()
+			var nm: String = path.get_file()
+			var lbl = inst.get_node_or_null("ColorRect/Label")
+			check(lbl != null and lbl.text.to_lower().replace(" ", "_") == rt, "%s: reads as a %s" % [nm, rt])
+			check(lbl != null and not lbl.visible, "%s: the placeholder label is hidden" % nm)
+			var art = inst.get_node_or_null("Art")
+			check(art is Sprite2D and art.texture != null, "%s: an Art sprite with a texture" % nm)
+			var bal = inst.get_node_or_null("Balcony")
+			var strip_art = inst.get_node_or_null("StripArt")
+			if rt in ["study", "dining_room"]:
+				check(bal != null and art != null and bal.get_index() > art.get_index(), "%s: the Balcony draws over the art" % nm)
+				if strip_art != null:
+					check(bal.get_index() > strip_art.get_index(), "%s: …and over the strip furniture" % nm)
+			var n_main := 0
+			for c in inst.get_children():
+				if not (c is Marker2D):
+					continue
+				check(String(c.name).begins_with("anchor_"), "%s: node %s is an anchor_" % [nm, c.name])
+				if not bool(c.get_meta("balcony_strip", false)):
+					n_main += 1
+				var prev = owner_of.get(String(c.name), rt)
+				check(prev == rt, "%s: node %s isn't also a %s node" % [nm, c.name, prev])
+				owner_of[String(c.name)] = rt
+			check(n_main >= 2, "%s: >= 2 nodes outside the balcony strip (%d)" % [nm, n_main])
+			inst.free()
+	var dir := DirAccess.open("res://scenes/Room_Modules")
+	for f in dir.get_files():
+		if f.ends_with(".tscn"):
+			check(registered.has("res://scenes/Room_Modules/" + f), "%s is registered in MODULE_VARIANTS" % f)
+	# the pick: deterministic, in range, and every variant turns up across a floor's worth of flats
+	var n: int = RoomScript.MODULE_VARIANTS["bathroom"].size()
+	var seen := {}
+	var stable := true
+	for f in range(1, 30):
+		for col in range(1, 6):
+			var apt := str(f) + "0" + str(col)
+			var v := WorldState.module_variant_index(apt, 1, "bathroom", n)
+			stable = stable and v == WorldState.module_variant_index(apt, 1, "bathroom", n)
+			stable = stable and v >= 0 and v < n
+			seen[v] = true
+	check(stable, "the variant pick is deterministic and in range")
+	check(seen.size() == n, "every bathroom variant turns up across the building (%d of %d)" % [seen.size(), n])
+	# the balcony strip: hidden with its nodes on a balcony slot, kept otherwise
+	var room = RoomScript.new()
+	for has_bal in [true, false]:
+		var m = load(RoomScript.MODULE_SCENES["study"]).instantiate()
+		var before := 0
+		for c in m.get_children():
+			if c is Marker2D and bool(c.get_meta("balcony_strip", false)):
+				before += 1
+		room._apply_balcony_strip(m, has_bal)
+		var after := 0
+		var total := 0
+		for c in m.get_children():
+			if c is Marker2D:
+				total += 1
+				if bool(c.get_meta("balcony_strip", false)):
+					after += 1
+		var sa = m.get_node_or_null("StripArt")
+		if has_bal:
+			check(before > 0 and after == 0 and total >= 2, "balcony slot: the strip's nodes are removed (%d -> %d), the rest stay (%d)" % [before, after, total])
+			check(sa != null and not sa.visible, "balcony slot: the strip furniture is hidden")
+		else:
+			check(after == before and before > 0, "no balcony: the strip's nodes stay (%d)" % after)
+			check(sa != null and sa.visible, "no balcony: the strip furniture shows")
+		m.free()
+	room.free()

@@ -14,7 +14,7 @@ import os
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
 from pixlib import (Canvas, hexc, shade, W, H, check_window_boxes, check_edge_columns,
-                    save_floor_strip, floor_is_periodic, rrect)
+                    save_floor_strip, floor_is_periodic, rrect, finish_module)
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 SEED = 51
@@ -200,50 +200,50 @@ def board(c):
 
 
 def desk(c):
-    # a writing desk against the wall with a green banker's lamp (node: the desk top)
-    x0, x1, top, base = 152, 216, 70, 100
-    c.shadow(184, base, 34, 2, 100)
-    c.rect(x0 - 2, top, x1 + 2, top + 3, WOOD_LT)                        # the top, seen from above
+    """A pedestal desk pulled out into the room, facing us (node: the desk top): two banks of
+    drawers and a panel between, the top seen from a little above, a green banker's lamp, papers.
+    The chair is tucked in BEHIND it (drawn first) — only its studded back shows over the top."""
+    x0, x1, top, base = 146, 218, 90, 117
+    # the chair behind
+    c.box(172, 70, 192, 90, LEATHER, hexc('2d1410'))
+    c.hline(173, 191, 71, LEATHER_LT)
+    for x in range(174, 191, 3):
+        c.put(x, 73, BRASS)
+    c.shadow(182, base + 1, 40, 3, 110)
+    # the top
+    c.rect(x0 - 2, top, x1 + 2, top + 4, WOOD_LT)
     c.hline(x0 - 2, x1 + 2, top, shade(WOOD_LT, 1.12))
-    c.rect(x0 + 10, top + 1, x1 - 20, top + 2, hexc('3d5a44'))            # leather inlay
-    c.box(x0, top + 4, x0 + 18, base - 1, WOOD, WOOD_OUT)                  # pedestal of drawers
-    for (d0, d1) in ((top + 6, top + 12), (top + 14, top + 20), (top + 22, base - 3)):
-        c.box(x0 + 2, d0, x0 + 16, d1, WOOD, WOOD_DK)
-        c.rect(x0 + 8, (d0 + d1) // 2, x0 + 10, (d0 + d1) // 2, BRASS)
-    c.box(x1 - 18, top + 4, x1, base - 1, WOOD, WOOD_OUT)
-    c.box(x1 - 16, top + 6, x1 - 2, top + 12, WOOD, WOOD_DK)
-    c.rect(x1 - 10, top + 9, x1 - 8, top + 9, BRASS)
-    c.poly([(x1 - 16, top + 15), (x1 - 2, top + 15), (x1 - 1, top + 22), (x1 - 15, top + 22)], WOOD_DK)  # a drawer pulled out
-    c.rect(x1 - 14, top + 14, x1 - 4, top + 15, NOTE)
-    c.rect(x0 + 19, top + 4, x1 - 19, top + 7, WOOD_DK)                    # the knee-hole rail
-    c.rect(x0 + 19, top + 8, x1 - 19, base - 1, hexc('2a1d14'))
-    # on top: the lamp, a typewriter-ish pile of papers, a mug
-    c.rect(160, top - 2, 168, top - 1, BRASS)
-    c.vline(164, top - 12, top - 3, BRASS)
-    c.poly([(156, top - 12), (172, top - 12), (170, top - 17), (158, top - 17)], GREEN_GLASS)
-    c.hline(158, 170, top - 16, GREEN_GLASS_LT)
-    c.poly([(178, top - 1), (196, top - 1), (198, top - 5), (180, top - 5)], NOTE)     # papers
-    c.hline(180, 197, top - 3, NOTE_DK)
-    c.rect(200, top - 5, 204, top - 1, hexc('c9c2b1'))                      # a mug
-    c.put(205, top - 3, hexc('c9c2b1'))
-    c.rect(186, top - 7, 187, top - 5, hexc('2b2622'))                      # a pen
+    c.rect(x0 + 12, top + 1, x1 - 12, top + 3, hexc('3d5a44'))             # leather inlay
+    c.hline(x0 - 2, x1 + 2, top + 4, WOOD_OUT)
+    # two pedestals of drawers + the modesty panel between them
+    for (p0, p1) in ((x0, x0 + 20), (x1 - 20, x1)):
+        c.box(p0, top + 5, p1, base - 1, WOOD, WOOD_OUT)
+        for (d0, d1) in ((top + 7, top + 12), (top + 14, top + 19), (top + 21, base - 3)):
+            c.box(p0 + 2, d0, p1 - 2, d1, WOOD, WOOD_DK)
+            c.hline(p0 + 3, p1 - 3, d0 + 1, WOOD_LT)
+            c.rect((p0 + p1) // 2 - 1, (d0 + d1) // 2, (p0 + p1) // 2 + 1, (d0 + d1) // 2, BRASS)
+    c.box(x0 + 21, top + 5, x1 - 21, base - 6, WOOD_DK, WOOD_OUT)
+    c.box(x0 + 24, top + 8, x1 - 24, base - 9, WOOD_DK, shade(WOOD_DK, 0.8))
+    c.rect(x0 + 21, base - 5, x1 - 21, base - 1, hexc('2a1d14'))           # the dark gap under it
+    # one drawer pulled out, papers spilling from it
+    c.poly([(x1 - 18, top + 14), (x1 - 2, top + 14), (x1 + 1, top + 20), (x1 - 17, top + 20)], WOOD_DK)
+    c.rect(x1 - 16, top + 13, x1 - 3, top + 14, NOTE)
+    c.poly([(x1 + 1, top + 20), (x1 + 8, top + 24), (x1 + 6, base), (x1 + 2, base - 2)], NOTE_DK)
+    # on the top: the lamp (left), papers, a mug, a pen
+    c.rect(152, top - 2, 160, top - 1, BRASS)
+    c.vline(156, top - 13, top - 3, BRASS)
+    c.poly([(148, top - 13), (164, top - 13), (162, top - 18), (150, top - 18)], GREEN_GLASS)
+    c.hline(150, 162, top - 17, GREEN_GLASS_LT)
+    c.poly([(176, top - 1), (196, top - 1), (198, top - 5), (178, top - 5)], NOTE)
+    c.hline(178, 197, top - 3, NOTE_DK)
+    c.line(186, top - 2, 192, top - 4, BLOOD)
+    c.rect(204, top - 5, 208, top - 1, hexc('c9c2b1'))
+    c.put(209, top - 3, hexc('c9c2b1'))
+    c.rect(170, top - 2, 173, top - 1, hexc('2b2622'))
 
 
 def chair(c):
-    # the desk chair, pulled out and turned (leather, studded), base on the lane side (~110)
-    x0, base = 188, 110
-    c.shadow(x0 + 10, base, 12, 2, 110)
-    c.box(x0 + 2, 74, x0 + 20, 92, LEATHER, hexc('2d1410'))                # the back
-    c.hline(x0 + 3, x0 + 19, 75, LEATHER_LT)
-    for x in range(x0 + 4, x0 + 19, 3):
-        c.put(x, 77, BRASS)
-    c.rect(x0, 92, x0 + 22, 97, LEATHER_DK)                                 # the seat
-    c.hline(x0, x0 + 22, 92, LEATHER_LT)
-    c.vline(x0 + 11, 98, base - 3, METAL_DK)                                # swivel column
-    c.line(x0 + 11, base - 3, x0 + 2, base, METAL_DK)                       # star base
-    c.line(x0 + 11, base - 3, x0 + 20, base, METAL_DK)
-    c.hline(x0 + 8, x0 + 14, base - 1, METAL_DK)
-    c.put(x0 + 2, base, METAL); c.put(x0 + 20, base, METAL); c.put(x0 + 11, base, METAL)
+    pass            # (the chair is drawn with the desk — tucked in behind it)
 
 
 def rug(c):
@@ -303,38 +303,50 @@ def right_shelf(c):
     c.rect(x0 + 29, 36, x0 + 33, 43, BOOKS[1])
 
 
-def build():
-    c = Canvas(seed=SEED)
+def book_pile(c):
+    """Books pulled off the shelves and dumped on the floor near the lane (balcony strip, node)."""
+    c.shadow(72, 118, 14, 2, 110)
+    for i, (w_, col) in enumerate(((24, BOOKS[1]), (22, BOOKS[0]), (20, BOOKS[3]), (18, BOOKS[6]), (15, BOOKS[4]))):
+        y = 115 - i * 3
+        x = 60 + (i % 2) * 2
+        c.rect(x, y, x + w_, y + 2, col)
+        c.hline(x, x + w_, y, shade(col, 1.18))
+        c.vline(x + w_, y, y + 2, shade(col, 0.75))
+    c.poly([(84, 102), (92, 99), (94, 103), (86, 106)], BOOKS[5])            # one fallen open
+    c.line(89, 100, 90, 104, NOTE_DK)
+
+
+def strip(c):
+    file_boxes(c)
+    radiator(c)
+    book_pile(c)
+
+
+def build(c=None):
+    c = c or Canvas(seed=SEED)
     wall(c)
     decay(c)
     floor(c)
-    file_boxes(c)
-    radiator(c)
     rug(c)
     bookcase(c)
     board(c)
-    desk(c)
-    chair(c)
     paper_pile(c)
     right_shelf(c)
+    desk(c)
     return c
 
 
+def bare(c):
+    wall(c)
+    decay(c)
+
+
+ANCHORS = [('anchor_centre_bookcaseupper', 114, 42, 'bp'), ('anchor_centre_bookcaselower', 126, 70, 'bp'),
+           ('anchor_centre_desk', 188, 88, ''), ('anchor_study_desk_drawer', 208, 105, ''),
+           ('anchor_study_papers', 244, 94, ''), ('anchor_right_shelf', 284, 40, 'bp'),
+           ('anchor_study_filing', 292, 76, 'bp'),
+           ('anchor_study_file_boxes', 28, 88, 'bp s'), ('anchor_study_book_pile', 72, 110, 's')]
+
+
 if __name__ == '__main__':
-    out = os.path.join(ROOT, 'assets', 'rooms', 'study.png')
-    prev_dir = os.path.join(ROOT, 'docs', 'art_reference', 'modules')
-    c = build()
-    bare = Canvas(seed=SEED)
-    wall(bare)
-    decay(bare)
-    bad = check_window_boxes(c.img, bare.img)
-    if bad:
-        sys.exit('furniture inside a runtime window box: %s' % bad[:8])
-    edge = check_edge_columns(c.img, bare.img)
-    if edge:
-        sys.exit('furniture in the edge columns the side walls are painted from: %s' % edge[:8])
-    fl = save_floor_strip(floor, 'study', ROOT, seed=SEED)
-    if not floor_is_periodic(fl):
-        sys.exit('the floor must repeat every 32px (it tiles on past the module edge at a doorway)')
-    c.save(out, os.path.join(prev_dir, 'study_x4.png'))
-    print('wrote', out, '(window boxes clear)')
+    finish_module('study', 'study', SEED, bare, floor, build, ANCHORS, strip_fn=strip)

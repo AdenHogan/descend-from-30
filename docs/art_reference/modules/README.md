@@ -83,6 +83,36 @@ back corner the room's floor is extended in perspective to the wall's foot. The 
 0..9, so the art's own crown moulding is hidden — future modules needn't draw one. Geometry in
 docs/Y_PLANES.md §1.
 
+## Variants + the one pipeline (owner round 10)
+
+Every module script now goes through `pixlib.finish_module(name, room_type, seed, bare, floor,
+build, anchors, strip_fn=None)`, which renders, CHECKS and exports one variant AND writes its scene
+(`tools/art/modscene.py`) — the furniture and its nodes are defined together in the art script, so
+they can't drift. It refuses to write anything unless: the window boxes + side-wall sample columns
+are bare, the floor repeats every 32px, every node sits ON something drawn (not bare wall/floor),
+below the window line (y >= 40), and there are >= 2 FRONT nodes (reachable from the walking line —
+owner: "you're putting a lot of stuff farther back… keep certain things down and closer to the
+main Y plane"). Node overlays land in `nodes/<name>_nodes.png` here (gold = front, blue = back
+plane, green = balcony strip).
+
+**Variants**: `scenes/Room_Modules/<type>_<v>.tscn` (+ `assets/rooms/<type>_<v>.png`), registered
+in `room.MODULE_VARIANTS`; `WorldState.module_variant_index(apt, slot, type, n)` picks one per
+(apartment, slot) — seeded, NOT per run (the furniture stays; the runs change its condition). Each
+variant carries its own nodes under names no other room type uses (`anchor_<type>_<thing>`).
+
+**Balcony strip** (study / dining): the balcony doors cover x 4..96. That strip of the MAIN art
+must be bare wall + floor (checked); furniture there goes in `strip_fn` → `<name>_strip.png`, a
+`StripArt` sprite, and its nodes are flagged `metadata/balcony_strip`. On a balcony slot
+`room._apply_balcony_strip` hides the strip art and removes those nodes; without a balcony the
+room gets the use of that space.
+
+Built so far: bathroom a (classic — a SHORT roll-top on claw feet, the owner's "horse trough" fix),
+b (70s avocado, a panelled bath), c (gilded — gold tub, gold throne, chandelier), d (wet room —
+a tub behind a drawn curtain, a washing machine, a clothes horse). Study a: the desk pulled out
+into the room facing you (chair tucked behind), books dumped in the strip. Dining a: a precise
+side-on chair at the table's end (the "guillotine" fallen chair is gone), a drinks trolley.
+Kitchen a: a small table pulled out + a box of tins. Living room floor now repeats every 32px.
+
 ## Agreed plan (owner round 9) — in this order, not started beyond step 1
 
 1. Settle the module's design + look (the living room is the example).

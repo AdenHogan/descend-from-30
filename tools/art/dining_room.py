@@ -15,7 +15,7 @@ import os
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
 from pixlib import (Canvas, hexc, shade, W, H, check_window_boxes, check_edge_columns,
-                    save_floor_strip, floor_is_periodic, rrect)
+                    save_floor_strip, floor_is_periodic, rrect, finish_module)
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 SEED = 61
@@ -185,7 +185,7 @@ def pictures(c):
 
 def back_chairs(c):
     # two chairs tucked in behind the table: only their ladder backs show above the top
-    for x0 in (120, 176):
+    for x0 in (134, 184):
         c.rect(x0, 66, x0 + 2, 88, WOOD_DK)
         c.rect(x0 + 16, 66, x0 + 18, 88, WOOD_DK)
         c.rect(x0, 65, x0 + 18, 67, WOOD)
@@ -197,7 +197,7 @@ def back_chairs(c):
 def table(c):
     # pulled forward to the lane (base 114); we look down onto the cloth-covered top (86..95), the
     # cloth hangs over the front edge; a meal left half-eaten (nodes: either end of the top)
-    x0, x1, top, front, base = 106, 212, 86, 95, 114
+    x0, x1, top, front, base = 118, 214, 86, 95, 114
     c.shadow(159, base + 1, 58, 3, 110)
     c.rect(x0 + 4, front, x0 + 7, base, WOOD_DK)                 # legs
     c.rect(x1 - 7, front, x1 - 4, base, WOOD_DK)
@@ -214,42 +214,62 @@ def table(c):
     c.hline(x0, x1, front + 1, CLOTH_LT)
     c.dither(x0 + 2, front + 5, x1 - 2, 103, CLOTH_DK, 0.3)
     # the meal: plates, a tureen, glasses, a candle burnt down, a spill of wine
-    for (px, py) in ((118, 90), (150, 89), (196, 90)):
+    for (px, py) in ((132, 90), (162, 89), (200, 90)):
         c.ellipse(px, py, 7, 2, PLATE_DK)
         c.ellipse(px, py, 6, 1, PLATE)
         c.hline(px - 3, px + 2, py, FOOD)
-    c.put(197, 90, MOULD); c.put(119, 89, MOULD)
-    c.ellipse(170, 88, 8, 3, WINE)                               # the spill, running off the edge
-    c.vline(173, 95, 101, WINE); c.put(173, 102, WINE)
-    c.rect(163, 84, 165, 88, GLASS)                              # a glass, one knocked over
-    c.poly([(176, 90), (184, 89), (184, 91), (176, 92)], GLASS)
-    c.box(132, 80, 142, 88, PLATE, PLATE_DK)                     # the tureen
-    c.hline(131, 143, 80, PLATE_DK)
-    c.put(137, 79, PLATE_DK)
-    c.hline(133, 141, 84, PLATE_BLUE)
-    c.rect(157, 83, 159, 88, CANDLE)                             # the candle in its holder
-    c.hline(155, 161, 89, BRASS)
-    c.dither(155, 88, 161, 88, hexc('d8cfb4'), 0.5)             # wax run
+    c.put(201, 90, MOULD); c.put(133, 89, MOULD)
+    c.ellipse(182, 88, 8, 3, WINE)                               # the spill, running off the edge
+    c.vline(185, 95, 101, WINE); c.put(185, 102, WINE)
+    c.rect(175, 84, 177, 88, GLASS)                              # a glass, one knocked over
+    c.poly([(188, 90), (196, 89), (196, 91), (188, 92)], GLASS)
+    c.box(142, 80, 152, 88, PLATE, PLATE_DK)                     # the tureen
+    c.hline(141, 153, 80, PLATE_DK)
+    c.put(147, 79, PLATE_DK)
+    c.hline(143, 151, 84, PLATE_BLUE)
+    c.rect(167, 83, 169, 88, CANDLE)                             # the candle in its holder
+    c.hline(165, 171, 89, BRASS)
+    c.dither(165, 88, 171, 88, hexc('d8cfb4'), 0.5)             # wax run
 
 
-def fallen_chair(c):
-    # one chair knocked over backwards in front of the table (left end, clear of the balcony), seen
-    # side-on: the back post + back leg lie flat along the boards, the seat stands up on edge, the
-    # front leg sticks out level from the seat's top
-    c.shadow(116, 116, 18, 2, 100)
-    c.rect(98, 113, 132, 114, WOOD)                                     # back post + back leg, flat
-    c.hline(98, 132, 115, WOOD_OUT)
-    c.hline(98, 132, 113, WOOD_LT)
-    c.rect(98, 111, 99, 112, WOOD)                                      # the top rail's end
-    for x in (103, 108, 113):                                           # ladder slats on the floor
-        c.rect(x, 111, x + 2, 112, WOOD_DK)
-    c.rect(118, 100, 121, 112, WOOD)                                    # the seat, on its edge
-    c.vline(118, 100, 112, WOOD_LT)
-    c.vline(122, 100, 112, WOOD_OUT)
-    c.rect(122, 100, 133, 101, WOOD)                                    # the front leg, level
-    c.hline(122, 133, 102, WOOD_OUT)
-    c.rect(132, 102, 133, 104, WOOD_DK)                                 # its foot
-    c.line(123, 104, 131, 111, WOOD_DK)                                 # a stretcher between the legs
+def side_chair(c, x0, base, facing_right=True):
+    """A ladder-back dining chair pulled out from the table, seen exactly side-on: the back post
+    runs from the floor up past the seat to the top rail, the seat is a thin plank, the front leg
+    drops from the seat's far end, a stretcher low between the legs. 14px deep."""
+    d = 1 if facing_right else -1
+    back = x0 if facing_right else x0 + 13          # the back post's x
+    front = x0 + 12 if facing_right else x0 + 1     # the front leg's x
+    seat_y = base - 17
+    c.shadow(x0 + 7, base, 9, 2, 110)
+    c.rect(min(back, back + d), base - 42, max(back, back + d), base, WOOD)           # back post
+    c.vline(back + d, base - 42, base, WOOD_DK)
+    c.rect(min(back, back + d) , base - 43, max(back, back + d), base - 43, WOOD_LT)   # finial
+    for ry in (base - 38, base - 32, base - 26):                                      # ladder rails, end-on
+        c.rect(back + d, ry, back + 2 * d, ry + 1, WOOD_DK)
+    c.rect(min(back, front), seat_y, max(back, front) + 1, seat_y + 2, WOOD)            # seat plank
+    c.hline(min(back, front), max(back, front) + 1, seat_y, WOOD_LT)
+    c.rect(min(front, front + d), seat_y + 3, max(front, front + d), base, WOOD)       # front leg
+    c.vline(front + d, seat_y + 3, base, WOOD_DK)
+    c.hline(min(back, front) + 1, max(back, front), base - 6, WOOD_DK)                # stretcher
+
+
+def trolley(c, x0, base):
+    """A brass drinks trolley pulled out near the lane, bottles on its two shelves (node)."""
+    x1 = x0 + 30
+    c.shadow(x0 + 15, base, 17, 2, 110)
+    for lx in (x0, x1):
+        c.vline(lx, base - 30, base - 2, BRASS)
+        c.ellipse(lx, base - 1, 1, 1, hexc('2a2622'))                   # castors
+    for sy in (base - 30, base - 12):
+        c.rect(x0, sy, x1, sy + 1, hexc('5e3d28'))
+        c.hline(x0, x1, sy, BRASS)
+    for i, (bx, col, h) in enumerate(((x0 + 3, hexc('3a5a3a'), 11), (x0 + 9, hexc('7a4a2a'), 9),
+                                      (x0 + 15, hexc('c9c2b1'), 7), (x0 + 22, hexc('5a1a22'), 10))):
+        c.rect(bx, base - 30 - h, bx + 3, base - 31, col)
+        c.rect(bx + 1, base - 33 - h, bx + 2, base - 31 - h, col)
+    c.rect(x0 + 4, base - 17, x0 + 8, base - 13, GLASS)                 # glasses below, one broken
+    c.rect(x0 + 12, base - 16, x0 + 16, base - 13, GLASS)
+    c.poly([(x0 + 20, base - 13), (x0 + 24, base - 16), (x0 + 26, base - 13)], GLASS)
 
 
 def plant(c):
@@ -318,38 +338,35 @@ def floor_bits(c):
     c.put(271, 108, PLATE)
 
 
-def build():
-    c = Canvas(seed=SEED)
+def strip(c):
+    sideboard(c)
+    radiator(c)
+
+
+def build(c=None):
+    c = c or Canvas(seed=SEED)
     wall(c)
     decay(c)
     floor(c)
-    sideboard(c)
-    radiator(c)
     pictures(c)
     back_chairs(c)
     table(c)
-    fallen_chair(c)
-    plant(c)
+    side_chair(c, 102, 114, facing_right=True)
+    trolley(c, 224, 118)
     dresser(c)
     floor_bits(c)
     return c
 
 
+def bare(c):
+    wall(c)
+    decay(c)
+
+
+ANCHORS = [('anchor_table_left', 128, 90, ''), ('anchor_table_right', 192, 90, ''),
+           ('anchor_dining_trolley', 238, 106, ''), ('anchor_right_upperdrawers', 284, 65, 'bp'),
+           ('anchor_right_lowerdrawers', 300, 85, 'bp'), ('anchor_dining_sideboard', 20, 80, 'bp s')]
+
+
 if __name__ == '__main__':
-    out = os.path.join(ROOT, 'assets', 'rooms', 'dining_room.png')
-    prev_dir = os.path.join(ROOT, 'docs', 'art_reference', 'modules')
-    c = build()
-    bare = Canvas(seed=SEED)
-    wall(bare)
-    decay(bare)
-    bad = check_window_boxes(c.img, bare.img)
-    if bad:
-        sys.exit('furniture inside a runtime window box: %s' % bad[:8])
-    edge = check_edge_columns(c.img, bare.img)
-    if edge:
-        sys.exit('furniture in the edge columns the side walls are painted from: %s' % edge[:8])
-    fl = save_floor_strip(floor, 'dining_room', ROOT, seed=SEED)
-    if not floor_is_periodic(fl):
-        sys.exit('the floor must repeat every 32px (it tiles on past the module edge at a doorway)')
-    c.save(out, os.path.join(prev_dir, 'dining_room_x4.png'))
-    print('wrote', out, '(window boxes clear)')
+    finish_module('dining_room', 'dining_room', SEED, bare, floor, build, ANCHORS, strip_fn=strip)

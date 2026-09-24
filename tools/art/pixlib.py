@@ -245,3 +245,114 @@ def rrect(c, x0, y0, x1, y1, col, r=2):
             if r >= 3 and dy == r - 1:
                 inset = 1
         c.hline(x0 + inset, x1 - inset, y, col)
+
+
+# --- one entry point for every module script -------------------------------------------------
+BALCONY_BOX = (4, 0, 96, H - 1)      # where a balcony-capable module's balcony doors go (study/dining)
+
+
+def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, strip_fn=None):
+    """Render, check and export one module variant, and write its scene.
+
+    wall_fn(c)  — the bare wall (wall + decay): the reference the window/edge checks compare to.
+    floor_fn(c) — the floor alone (exported as <name>_floor.png, must repeat every 32px).
+    build_fn(c) — everything (wall, floor, furniture) EXCEPT the balcony-strip furniture.
+    strip_fn(c) — balcony-capable rooms only: the furniture standing in the balcony strip
+                  (x 4..96); exported separately as <name>_strip.png so room.gd can hide it (and
+                  its nodes) on a balcony slot.
+    anchors     — [(node_name, x, y, flags)], flags 'bp' back plane / 's' balcony strip.
+    """
+    import os
+    import sys
+    from modscene import write_scene, BALCONY_TYPES, ROOT
+    main = Canvas(seed=seed)
+    build_fn(main)
+    full = Canvas(seed=seed)
+    build_fn(full)
+    if strip_fn is not None:
+        strip_fn(full)
+    bare = Canvas(seed=seed)
+    wall_fn(bare)
+    bare_floor = Canvas(seed=seed)
+    wall_fn(bare_floor)
+    floor_fn(bare_floor)
+    errs = []
+    bad = check_window_boxes(full.img, bare.img)
+    if bad:
+        errs.append('furniture inside a runtime window box: %s' % bad[:6])
+    edge = check_edge_columns(full.img, bare.img)
+    if edge:
+        errs.append('furniture in the side-wall sample columns: %s' % edge[:6])
+    if room_type in BALCONY_TYPES:
+        x0, y0, x1, y1 = BALCONY_BOX
+        for y in range(y0, y1 + 1):
+            for x in range(x0, x1 + 1):
+                if main.img.getpixel((x, y)) != bare_floor.img.getpixel((x, y)):
+                    errs.append('balcony strip (x %d..%d) must be bare in the main art — put it in strip_fn: (%d,%d)' % (x0, x1, x, y))
+                    break
+            else:
+                continue
+            break
+    elif strip_fn is not None:
+        errs.append('only balcony-capable rooms have a strip')
+    fl = save_floor_strip(floor_fn, name, ROOT, seed=seed)
+    if not floor_is_periodic(fl):
+        errs.append('the floor must repeat every 32px')
+    # nodes: on furniture, below the window line, the right side of the strip, enough in front
+    n_front = 0
+    n_main = 0
+    for (an, ax, ay, fl_) in anchors:
+        in_strip = 's' in fl_.replace('bp', '')
+        if ay < 40:
+            errs.append('%s: y %d is above the window line (>= 40)' % (an, ay))
+        if not (6 <= ax <= 314):
+            errs.append('%s: x %d off the module' % (an, ax))
+        ref = full if in_strip else main
+        if ref.img.getpixel((ax, ay)) == bare_floor.img.getpixel((ax, ay)):
+            errs.append('%s at (%d,%d) is not on anything drawn' % (an, ax, ay))
+        if room_type in BALCONY_TYPES:
+            if in_strip and ax > 96:
+                errs.append('%s: a strip node must sit in x <= 96' % an)
+            if not in_strip and ax <= 100:
+                errs.append('%s: in the balcony strip — flag it "s"' % an)
+        if not in_strip:
+            n_main += 1
+            if 'bp' not in fl_:
+                n_front += 1
+    if n_main < 2:
+        errs.append('needs >= 2 nodes outside the balcony strip (ANCHOR_RANGES min)')
+    if n_front < 2:
+        errs.append('needs >= 2 FRONT nodes (reachable from the walking line) — owner round 10')
+    if errs:
+        sys.exit(name + ':\n  ' + '\n  '.join(errs))
+    out = os.path.join(ROOT, 'assets', 'rooms', name + '.png')
+    prev = os.path.join(ROOT, 'docs', 'art_reference', 'modules')
+    main.img.save(out)
+    full.img.resize((W * 4, H * 4), Image.NEAREST).save(os.path.join(prev, name + '_x4.png'))
+    if strip_fn is not None:
+        s = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+        for y in range(H):
+            for x in range(W):
+                p = full.img.getpixel((x, y))
+                if p != main.img.getpixel((x, y)):
+                    s.putpixel((x, y), p)
+        s.save(os.path.join(ROOT, 'assets', 'rooms', name + '_strip.png'))
+    _node_overlay(full.img, anchors, os.path.join(prev, 'nodes', name + '_nodes.png'))
+    write_scene(name, room_type, anchors, strip=strip_fn is not None)
+    print('wrote', name, '(%d nodes, %d front)' % (len(anchors), n_front))
+    return full
+
+
+def _node_overlay(img, anchors, path):
+    import os
+    from PIL import ImageDraw
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    im = img.convert('RGBA').resize((W * 4, H * 4), Image.NEAREST)
+    d = ImageDraw.Draw(im)
+    for (an, x, y, fl_) in anchors:
+        c = (80, 160, 255) if 'bp' in fl_ else (255, 200, 40)
+        if 's' in fl_.replace('bp', ''):
+            c = (120, 230, 120)
+        d.ellipse((x * 4 - 9, y * 4 - 9, x * 4 + 9, y * 4 + 9), outline=c, width=3)
+        d.text((x * 4 + 11, y * 4 - 6), an.replace('anchor_', ''), fill=c)
+    im.save(path)

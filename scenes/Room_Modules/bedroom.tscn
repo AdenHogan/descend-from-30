@@ -2,17 +2,17 @@
 
 [ext_resource type="Texture2D" path="res://assets/rooms/bedroom.png" id="1_art"]
 
-[node name="Node2D" type="Node2D" unique_id=1019415200]
+[node name="Node2D" type="Node2D"]
 
-[node name="ColorRect" type="ColorRect" parent="." unique_id=875678134]
+[node name="ColorRect" type="ColorRect" parent="."]
 offset_right = 320.0
 offset_bottom = 144.0
-color = Color(0, 0.6303551, 0.630355, 1)
+color = Color(0.4, 0.4, 0.4, 1)
 
-[node name="Label" type="Label" parent="ColorRect" unique_id=1627051771]
+[node name="Label" type="Label" parent="ColorRect"]
 layout_mode = 0
-offset_right = 319.0
-offset_bottom = 97.0
+offset_right = 318.0
+offset_bottom = 100.0
 theme_override_font_sizes/font_size = 32
 visible = false
 text = "Bedroom"
@@ -24,24 +24,27 @@ texture_filter = 1
 texture = ExtResource("1_art")
 centered = false
 
-[node name="anchor_wall_left" type="Marker2D" parent="." unique_id=151518190]
+[node name="anchor_wall_left" type="Marker2D" parent="."]
 position = Vector2(37, 60)
 metadata/back_plane = true
 
-[node name="anchor_floor_underbed" type="Marker2D" parent="." unique_id=1937513058]
-position = Vector2(152, 110)
-
-[node name="anchor_wall_right_lower" type="Marker2D" parent="." unique_id=137629497]
-position = Vector2(289, 91)
+[node name="anchor_bedside" type="Marker2D" parent="."]
+position = Vector2(63, 87)
 metadata/back_plane = true
 
-[node name="anchor_bed_pillow" type="Marker2D" parent="." unique_id=1336219972]
+[node name="anchor_bed_pillow" type="Marker2D" parent="."]
 position = Vector2(99, 88)
 
-[node name="anchor_wall_right_upper" type="Marker2D" parent="." unique_id=484932088]
+[node name="anchor_floor_underbed" type="Marker2D" parent="."]
+position = Vector2(152, 110)
+
+[node name="anchor_wall_right_upper" type="Marker2D" parent="."]
 position = Vector2(297, 40)
 metadata/back_plane = true
 
-[node name="anchor_bedside" type="Marker2D" parent="." unique_id=444188413]
-position = Vector2(63, 87)
+[node name="anchor_wall_right_lower" type="Marker2D" parent="."]
+position = Vector2(289, 91)
 metadata/back_plane = true
+
+[node name="anchor_bedroom_clothes" type="Marker2D" parent="."]
+position = Vector2(236, 112)

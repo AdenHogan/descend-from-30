@@ -14,7 +14,7 @@ at a doorway (scripts/module_walls.gd FLOOR_STRIP).
 import os
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
-from pixlib import Canvas, hexc, shade, mix, SEAM_Y, W, H, check_window_boxes, check_edge_columns, save_floor_strip, floor_is_periodic, rrect
+from pixlib import Canvas, hexc, shade, mix, SEAM_Y, W, H, check_window_boxes, check_edge_columns, save_floor_strip, floor_is_periodic, finish_module, rrect
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 
@@ -265,8 +265,64 @@ def counter_end(c):
     c.put(230, 109, hexc('d8d2c2')); c.put(235, 111, hexc('d8d2c2'))
 
 
-def build():
-    c = Canvas(seed=33)
+def table(c):
+    # a small kitchen table pulled out toward the lane, under the L window (node: its top), a chair
+    # tucked behind it; an oilcloth with a red check
+    x0, x1, top, base = 54, 100, 94, 121
+    c.shadow(77, base, 26, 2, 110)
+    # the chair behind: only its back shows over the top
+    ch = hexc('6a4a33')
+    c.rect(66, 76, 68, 94, ch)
+    c.rect(84, 76, 86, 94, ch)
+    c.rect(66, 76, 86, 78, shade(ch, 1.15))
+    c.rect(69, 83, 83, 84, ch)
+    # legs (the far pair set back and darker), apron, the top seen from above
+    leg = hexc('5a3d29')
+    c.rect(x0 + 5, top + 8, x0 + 6, base - 3, shade(leg, 0.75))
+    c.rect(x1 - 6, top + 8, x1 - 5, base - 3, shade(leg, 0.75))
+    c.rect(x0 + 2, top + 8, x0 + 4, base, leg)
+    c.rect(x1 - 4, top + 8, x1 - 2, base, leg)
+    c.rect(x0, top + 5, x1, top + 7, shade(leg, 0.85))
+    cloth, check = hexc('d9d2c0'), hexc('b0453a')
+    for y in range(top, top + 5):
+        for x in range(x0 - 2, x1 + 3):
+            on = ((x // 3) + (y // 2)) % 2 == 0
+            c.put(x, y, check if on else cloth)
+    c.hline(x0 - 2, x1 + 2, top, shade(cloth, 0.9))
+    for x in range(x0 - 2, x1 + 3):                     # the cloth's hang over the front edge
+        h = top + 5 + (1 if (x // 5) % 3 == 0 else 0)
+        c.vline(x, top + 5, h, check if (x // 3) % 2 == 0 else cloth)
+    # on it: a teapot, a mug, a tin
+    c.rect(64, top - 5, 72, top - 1, hexc('4f6f8a'))
+    c.hline(65, 71, top - 6, hexc('4f6f8a'))
+    c.put(73, top - 4, hexc('4f6f8a')); c.put(74, top - 5, hexc('4f6f8a'))
+    c.put(63, top - 3, hexc('4f6f8a'))
+    c.rect(80, top - 4, 83, top - 1, hexc('e6dfcc'))
+    c.rect(88, top - 5, 92, top - 1, hexc('b0453a'))
+    c.hline(88, 92, top - 3, hexc('d8d2c2'))
+
+
+def tin_box(c):
+    # a cardboard box of tins dragged out in front of the counter's end (node: the box)
+    x0, x1, top, base = 236, 262, 104, 118
+    c.shadow(249, base, 15, 2, 110)
+    box, box_dk = hexc('a88a5c'), hexc('7d6440')
+    c.box(x0, top, x1, base, box, box_dk)
+    c.hline(x0 + 1, x1 - 1, top + 1, shade(box, 1.1))
+    c.poly([(x0, top), (x0 - 5, top - 4), (x0 - 4, top - 5), (x0 + 1, top - 1)], box_dk)     # flaps
+    c.poly([(x1, top), (x1 + 4, top - 5), (x1 + 5, top - 4), (x1 + 1, top + 1)], box)
+    for i, col in enumerate((hexc('b0453a'), hexc('c9b86a'), hexc('6a8a5a'), hexc('b0453a'))):
+        tx = x0 + 3 + i * 6
+        c.rect(tx, top - 4, tx + 4, top, col)
+        c.hline(tx, tx + 4, top - 4, hexc('c9c7bd'))
+    c.rect(x0 + 6, top + 5, x1 - 6, top + 8, hexc('d8d2c2'))              # a label, scrawled
+    c.hline(x0 + 8, x1 - 9, top + 6, hexc('4a3a2a'))
+    c.rect(266, 114, 271, 118, hexc('c9b86a'))                            # a tin rolled away
+    c.hline(266, 271, 114, hexc('c9c7bd'))
+
+
+def build(c=None):
+    c = c or Canvas(seed=33)
     wall(c)
     decay(c)
     floor(c)
@@ -276,24 +332,22 @@ def build():
     cooker(c)
     sink(c)
     counter_end(c)
+    table(c)
+    tin_box(c)
     return c
 
 
+def bare(c):
+    wall(c)
+    decay(c)
+
+
+ANCHORS = [('anchor_centre_fridge', 26, 70, 'bp'), ('anchor_right_trashcan', 283, 88, 'bp'),
+           ('anchor_left_cupboard', 118, 40, 'bp'), ('anchor_centre_cupboard', 119, 88, 'bp'),
+           ('anchor_centre_oven', 170, 86, 'bp'), ('anchor_right_sink', 204, 70, 'bp'),
+           ('anchor_right_sinkcupboard', 214, 90, 'bp'),
+           ('anchor_kitchen_table', 84, 95, ''), ('anchor_kitchen_tins', 249, 108, '')]
+
+
 if __name__ == '__main__':
-    out = os.path.join(ROOT, 'assets', 'rooms', 'kitchen.png')
-    prev_dir = os.path.join(ROOT, 'docs', 'art_reference', 'modules')
-    c = build()
-    bare = Canvas(seed=33)
-    wall(bare)
-    decay(bare)
-    bad = check_window_boxes(c.img, bare.img)
-    if bad:
-        sys.exit('furniture inside a runtime window box: %s' % bad[:8])
-    edge = check_edge_columns(c.img, bare.img)
-    if edge:
-        sys.exit('furniture in the edge columns the side walls are painted from: %s' % edge[:8])
-    fl = save_floor_strip(floor, 'kitchen', ROOT, seed=33)
-    if not floor_is_periodic(fl):
-        sys.exit('the floor must repeat every 32px (it tiles on past the module edge at a doorway)')
-    c.save(out, os.path.join(prev_dir, 'kitchen_x4.png'))
-    print('wrote', out, '(window boxes clear)')
+    finish_module('kitchen', 'kitchen', 33, bare, floor, build, ANCHORS)

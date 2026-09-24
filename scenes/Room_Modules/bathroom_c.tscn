@@ -1,0 +1,50 @@
+[gd_scene format=3]
+
+[ext_resource type="Texture2D" path="res://assets/rooms/bathroom_c.png" id="1_art"]
+
+[node name="Node2D" type="Node2D"]
+
+[node name="ColorRect" type="ColorRect" parent="."]
+offset_right = 320.0
+offset_bottom = 144.0
+color = Color(0.4, 0.4, 0.4, 1)
+
+[node name="Label" type="Label" parent="ColorRect"]
+layout_mode = 0
+offset_right = 318.0
+offset_bottom = 100.0
+theme_override_font_sizes/font_size = 32
+visible = false
+text = "Bathroom"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Art" type="Sprite2D" parent="."]
+texture_filter = 1
+texture = ExtResource("1_art")
+centered = false
+
+[node name="anchor_bathroom_gilt_mirror" type="Marker2D" parent="."]
+position = Vector2(29, 44)
+metadata/back_plane = true
+
+[node name="anchor_bathroom_washstand" type="Marker2D" parent="."]
+position = Vector2(28, 79)
+metadata/back_plane = true
+
+[node name="anchor_bathroom_gold_throne" type="Marker2D" parent="."]
+position = Vector2(72, 82)
+metadata/back_plane = true
+
+[node name="anchor_bathroom_gold_tub" type="Marker2D" parent="."]
+position = Vector2(136, 88)
+
+[node name="anchor_bathroom_bubbles" type="Marker2D" parent="."]
+position = Vector2(176, 86)
+
+[node name="anchor_bathroom_champagne" type="Marker2D" parent="."]
+position = Vector2(223, 100)
+
+[node name="anchor_bathroom_towel_stand" type="Marker2D" parent="."]
+position = Vector2(239, 78)
+metadata/back_plane = true

@@ -2,16 +2,16 @@
 
 [ext_resource type="Texture2D" path="res://assets/rooms/living_room.png" id="1_art"]
 
-[node name="Node2D" type="Node2D" unique_id=1019415200]
+[node name="Node2D" type="Node2D"]
 
-[node name="ColorRect" type="ColorRect" parent="." unique_id=1568311814]
+[node name="ColorRect" type="ColorRect" parent="."]
 offset_right = 320.0
 offset_bottom = 144.0
-color = Color(0.6784314, 0.34509805, 0.68235296, 1)
+color = Color(0.4, 0.4, 0.4, 1)
 
-[node name="Label" type="Label" parent="ColorRect" unique_id=1490545211]
+[node name="Label" type="Label" parent="ColorRect"]
 layout_mode = 0
-offset_right = 317.0
+offset_right = 318.0
 offset_bottom = 100.0
 theme_override_font_sizes/font_size = 32
 visible = false
@@ -24,23 +24,23 @@ texture_filter = 1
 texture = ExtResource("1_art")
 centered = false
 
-[node name="anchor_left_bookshelf_upper" type="Marker2D" parent="." unique_id=539653209]
+[node name="anchor_left_bookshelf_upper" type="Marker2D" parent="."]
 position = Vector2(22, 58)
 metadata/back_plane = true
 
-[node name="anchor_centre_sofaleft" type="Marker2D" parent="." unique_id=512918010]
-position = Vector2(114, 103)
-
-[node name="anchor_centre_sofaright" type="Marker2D" parent="." unique_id=44908741]
-position = Vector2(149, 101)
-
-[node name="anchor_right_chair" type="Marker2D" parent="." unique_id=237230755]
-position = Vector2(275, 95)
+[node name="anchor_left_bookshelf_lower" type="Marker2D" parent="."]
+position = Vector2(35, 86)
 metadata/back_plane = true
 
-[node name="anchor_centre_coffeetable" type="Marker2D" parent="." unique_id=864448943]
+[node name="anchor_centre_sofaleft" type="Marker2D" parent="."]
+position = Vector2(114, 103)
+
+[node name="anchor_centre_sofaright" type="Marker2D" parent="."]
+position = Vector2(149, 101)
+
+[node name="anchor_centre_coffeetable" type="Marker2D" parent="."]
 position = Vector2(214, 98)
 
-[node name="anchor_left_bookshelf_lower" type="Marker2D" parent="." unique_id=314598524]
-position = Vector2(35, 86)
+[node name="anchor_right_chair" type="Marker2D" parent="."]
+position = Vector2(275, 95)
 metadata/back_plane = true
