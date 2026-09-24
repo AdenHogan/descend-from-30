@@ -64,7 +64,7 @@ func launch(dir: float, from: Vector2) -> void:
 	angular_velocity = dir * SPIN
 	# Don't collide with the thrower on spawn.
 	var player = get_tree().get_first_node_in_group("player")
-	if player != null:
+	if player is PhysicsBody2D:
 		add_collision_exception_with(player)
 
 

@@ -372,6 +372,12 @@ func salvage(slot: int) -> int:
 	var inst = WorldState.get_instance_at(slot)
 	if inst == null or not Salvage.can_salvage(inst):
 		return 0
+	var blocked: String = WorldState.salvage_blocker(slot)
+	if blocked != "":
+		_confirm_salvage = null
+		_say(blocked)
+		refresh()
+		return 0
 	if Salvage.needs_confirm(inst) and _confirm_salvage != inst:
 		_confirm_salvage = inst
 		_say("Break down %s? It's gone for good." % inst.get_display_name())

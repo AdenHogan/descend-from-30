@@ -99,6 +99,12 @@ func _test_boon_offer_and_fold() -> void:
 	check(not ("B_adrenaline" in WorldState.boon_offer(17)), "a boon you have is never offered again this run")
 	WorldState.skip_boon(17)
 	check(WorldState.pending_boon_floors.is_empty(), "passing clears the offer")
+	# Every boon already kept permanently → a milestone owes nothing (no empty badge to dismiss).
+	var kept := WorldState.permanent_perks.duplicate()
+	WorldState.permanent_perks = Progression.RUN_BOONS.keys()
+	WorldState.note_boon_milestone(12)
+	check(WorldState.pending_boon_floors.is_empty(), "nothing left to offer → no badge")
+	WorldState.permanent_perks = kept
 
 
 func _test_boons_are_per_character() -> void:

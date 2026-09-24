@@ -438,6 +438,22 @@ func _test_salvage_values() -> void:
 	WorldState.inventory = [junk, loaded]
 	check(WorldState.salvage_item(0) == 6 and WorldState.scrap == 6 and WorldState.scrap_unlocked, "salvaging banks the scrap (and shows the counter)")
 	check(WorldState.salvage_item(0) == 25 and WorldState.get_ammo_total() == 5, "a loaded gun's rounds come back as bullets")
+	# A FULL gun with no spare room: its 18 rounds can't all fit → refused, nothing lost.
+	WorldState.new_game()
+	var full := _gun()
+	full.mag_count = 18
+	WorldState.inventory = [full]
+	for i in WorldState.get_inventory_slots() - 1:
+		var j := ItemInstance.new()
+		j.setup("024")
+		WorldState.inventory.append(j)
+	check(WorldState.salvage_blocker(0).contains("18 loaded rounds") and WorldState.salvage_item(0) == 0,
+		"a loaded gun with no room for its rounds is refused (%s)" % WorldState.salvage_blocker(0))
+	check(WorldState.inventory[0] == full and full.mag_count == 18, "…and the gun + rounds are untouched")
+	WorldState.inventory.remove_at(1)
+	WorldState.inventory.remove_at(1)
+	check(WorldState.salvage_blocker(0) == "" and WorldState.salvage_item(0) == 25 and WorldState.get_ammo_total() == 18,
+		"with room (3 slots) it breaks down and all 18 rounds come back")
 
 
 func _test_salvage_ui() -> void:

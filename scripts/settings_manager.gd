@@ -4,7 +4,10 @@ extends Node
 # InputMap at startup. Supports keyboard keys AND mouse buttons (so combat
 # actions can live on gaming-mouse side buttons). Autoload: SettingsManager.
 
-const SAVE_PATH = "user://keybinds.cfg"
+# keybinds.cfg beside the profiles — a test run gets its own sandbox (WorldState.data_dir), so
+# settings_test's reset never wipes the player's real bindings.
+func _save_path() -> String:
+	return WorldState.data_dir() + "keybinds.cfg"
 
 # Action -> friendly label. Order here is the menu order.
 const REMAPPABLE = [
@@ -69,8 +72,8 @@ func reset_defaults() -> void:
 		for ev in default_events[action]:
 			InputMap.action_add_event(action, ev)
 	_ensure_attack_action()
-	if FileAccess.file_exists(SAVE_PATH):
-		DirAccess.remove_absolute(SAVE_PATH)
+	if FileAccess.file_exists(_save_path()):
+		DirAccess.remove_absolute(_save_path())
 
 
 func binding_label(action: String) -> String:
@@ -107,12 +110,12 @@ func _save() -> void:
 		if events.is_empty():
 			continue
 		cfg.set_value("binds", action, _encode(events[0]))
-	cfg.save(SAVE_PATH)
+	cfg.save(_save_path())
 
 
 func _load() -> void:
 	var cfg = ConfigFile.new()
-	if cfg.load(SAVE_PATH) != OK:
+	if cfg.load(_save_path()) != OK:
 		return
 	for entry in REMAPPABLE:
 		var action = entry[0]

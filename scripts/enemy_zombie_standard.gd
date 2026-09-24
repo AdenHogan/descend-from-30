@@ -520,7 +520,9 @@ func _make_passable_to_player() -> void:
 	# mechanic lets you shove past. Uses collision exceptions, not layers.
 	if player == null:
 		player = get_tree().get_first_node_in_group("player")
-	if player and not passable_to_player:
+	# Only a physics body can take a collision exception (a scene/test may put a plain node in
+	# the player group) — and never a freed one.
+	if is_instance_valid(player) and player is PhysicsBody2D and not passable_to_player:
 		add_collision_exception_with(player)
 		player.add_collision_exception_with(self)
 		passable_to_player = true
@@ -531,7 +533,7 @@ func _try_resolidify() -> void:
 	if on_fire:
 		_make_passable_to_player()   # burning enemies stay passable so a fire cluster can't wall the player
 		return
-	if not passable_to_player or player == null:
+	if not passable_to_player or not is_instance_valid(player) or not (player is PhysicsBody2D):
 		return
 	# Re-solidify only once the player is HORIZONTALLY clear of my body — a flat 26px
 	# center distance re-solidified while a WIDE body (the crawler is 80px wide) still
@@ -713,7 +715,7 @@ func _die() -> void:
 			"x": snappedf(global_position.x, 1.0),
 			"y": snappedf(global_position.y, 1.0),
 			"floor": WorldState.current_floor,
-			"scene": get_tree().current_scene.scene_file_path,
+			"scene": WorldState.world_scene_of(self),   # the floor it's IN, not current_scene
 			"apartment_id": WorldState.current_apartment_id,
 			"type": "standard"
 		}

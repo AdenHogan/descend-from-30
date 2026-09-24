@@ -196,9 +196,15 @@ setup script; binary from downloads.godotengine.org). Before every commit:
   old `building_floors_test` fire-cell-count flake was fixed by widening the LIGHT
   "small/patchy" bound to 1..12 cells.)
 
+**Test sandbox:** any run launched with a `res://tests/` or `res://tools/` scene reads and writes
+saves, profiles and keybinds under **`user://test_sandbox/`** (`WorldState.data_dir()`), never the
+player's real `user://` files — `profile_test`/`profile_ui_test` DELETE slots, `settings_test`
+resets keybinds, and most suites rewrite the profile (tutorial flag, Valour, kept perks). Any new
+`user://` file must go through `data_dir()` too.
+
 Note: `tutorial_test` asserts first-run tutorial content, so it needs
 `is_first_run` true — which comes from `tutorial_completed=false` in the active
-profile (`user://…profile.cfg`). A profile left with the tutorial completed
+profile (`user://test_sandbox/…profile.cfg` under tests). A profile left with the tutorial completed
 makes that flag false and the tutorial apartments seed procedurally, failing the
 spec asserts. Reset the flag (or the profile) if the tutorial suite starts
 failing on procedural content.

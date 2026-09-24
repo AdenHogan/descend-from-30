@@ -67,11 +67,29 @@ var active_slot: int = 1
 # plus a small mirror of the save's headline facts (floor, which run of the
 # arc) so the select screen can describe a slot without parsing its save JSON.
 func profile_path(slot: int = -1) -> String:
-	return "user://slot_%d_profile.cfg" % (active_slot if slot < 0 else slot)
+	return data_dir() + "slot_%d_profile.cfg" % (active_slot if slot < 0 else slot)
 
 
 func slot_save_path(slot: int = -1) -> String:
-	return "user://slot_%d_save.json" % (active_slot if slot < 0 else slot)
+	return data_dir() + "slot_%d_save.json" % (active_slot if slot < 0 else slot)
+
+
+# Where saves, profiles and keybinds live. A TEST or DEV-TOOL run (launched with a res://tests/
+# or res://tools/ scene) gets its own sandbox folder, so running the suite never touches the
+# player's real saves: profile_test / profile_ui_test DELETE slots, settings_test resets the
+# keybinds, and most suites rewrite the profile (tutorial flag, Descent Valour, kept perks).
+var _data_dir := ""
+
+
+func data_dir() -> String:
+	if _data_dir == "":
+		_data_dir = "user://"
+		for a in OS.get_cmdline_args():
+			if a.begins_with("res://tests/") or a.begins_with("res://tools/"):
+				_data_dir = "user://test_sandbox/"
+				DirAccess.make_dir_recursive_absolute(_data_dir)
+				break
+	return _data_dir
 
 
 var tutorial_completed: bool = false
@@ -179,6 +197,9 @@ func note_boon_milestone(floor_num: int) -> void:
 	if key in run_milestones_seen:
 		return
 	run_milestones_seen.append(key)
+	# Nothing left to offer (every boon taken this run or kept permanently) → no empty badge.
+	if boon_offer(floor_num).is_empty():
+		return
 	pending_boon_floors.append(floor_num)
 	HUD.refresh_boon_badge()
 
@@ -1433,10 +1454,30 @@ func add_scrap(amount: int) -> void:
 		HUD.show_feedback("Scrap +%d" % amount)
 
 
+# Why the item in `slot` can't be broken down right now ("" = it can). A loaded gun's rounds must
+# fit back in the pockets — add_to_inventory adds NOTHING when a stack doesn't fully fit, so
+# salvaging a full gun with no room used to delete every round.
+func salvage_blocker(slot: int) -> String:
+	if slot < 0 or slot >= inventory.size():
+		return "Nothing there."
+	var inst = inventory[slot]
+	if not Salvage.can_salvage(inst):
+		return "That can't be broken down."
+	var rounds: int = inst.mag_count
+	if rounds > 0:
+		var room: int = (get_inventory_slots() - inventory.size() + 1) * MAX_AMMO_PER_SLOT
+		for other in inventory:
+			if other != inst and other.item_id == "016":
+				room += MAX_AMMO_PER_SLOT - other.count
+		if rounds > room:
+			return "No room for its %d loaded rounds — make space first." % rounds
+	return ""
+
+
 # Break the item in `slot` down for scrap at a workbench (Salvage — values/rules there). A loaded
 # gun's rounds come back as loose bullets first. Returns the scrap gained (0 = can't salvage).
 func salvage_item(slot: int) -> int:
-	if slot < 0 or slot >= inventory.size():
+	if salvage_blocker(slot) != "":
 		return 0
 	var inst = inventory[slot]
 	var gained: int = Salvage.value_of(inst)
@@ -3577,6 +3618,19 @@ func get_breached_boss_key_target(apartment_id: String) -> String:
 
 # Returns the key the drop was filed under (nudged off an occupied spot) — a caller that also
 # spawns the live pickup must give it THIS key, or picking it up would clear the wrong record.
+# The world scene a node lives in: its nearest ANCESTOR instantiated from a file (the floor /
+# apartment root) — not get_tree().current_scene, which is a different scene while a pan backdrop
+# is live and null mid scene-change (the backdrop bug class). Falls back to the current scene.
+func world_scene_of(node: Node) -> String:
+	var n: Node = node.get_parent() if node != null else null
+	while n != null and n != get_tree().root:
+		if n.scene_file_path != "":
+			return n.scene_file_path
+		n = n.get_parent()
+	var cs = get_tree().current_scene
+	return cs.scene_file_path if cs != null else ""
+
+
 func add_world_drop(item_id: String, pos: Vector2, floor_num: int, extra: Dictionary = {}) -> String:
 	var key = str(floor_num) + ":" + str(snappedf(pos.x, 1.0)) + ":" + str(snappedf(pos.y, 1.0))
 	# Two drops on the same spot used to share a key, so the second silently REPLACED the first
@@ -3586,12 +3640,16 @@ func add_world_drop(item_id: String, pos: Vector2, floor_num: int, extra: Dictio
 		pos.x += 1.0
 		guard += 1
 		key = str(floor_num) + ":" + str(snappedf(pos.x, 1.0)) + ":" + str(snappedf(pos.y, 1.0))
+	# The scene defaults to the current one — looked up only when the caller didn't name it
+	# (an eager default crashed when current_scene was null mid scene-change).
+	var scene_path: String = String(extra["scene"]) if extra.has("scene") else \
+		(get_tree().current_scene.scene_file_path if get_tree().current_scene != null else "")
 	world_drops[key] = {
 		"item_id": item_id,
 		"x": snappedf(pos.x, 1.0),
 		"y": snappedf(pos.y, 1.0),
 		"floor": floor_num,
-		"scene": extra.get("scene", get_tree().current_scene.scene_file_path),
+		"scene": scene_path,
 		"apartment_id": extra.get("apartment_id", current_apartment_id),
 		"target_apartment": extra.get("target_apartment", ""),
 		"amount": extra.get("amount", 0),

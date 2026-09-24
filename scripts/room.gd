@@ -303,6 +303,17 @@ func _is_maintenance() -> bool:
 	return scene_file_path.ends_with("maintenance.tscn")
 
 
+# This room's OWN scene path (room.tscn / maintenance.tscn) — never get_tree().current_scene,
+# which is the WRONG scene while a BalconyPan backdrop is built and null mid scene-change (the
+# backdrop bug class — see CLAUDE.md). Falls back to the current scene only if this node wasn't
+# instantiated from a file.
+func _own_scene_path() -> String:
+	if scene_file_path != "":
+		return scene_file_path
+	var cs = get_tree().current_scene
+	return cs.scene_file_path if cs != null else ""
+
+
 func _maintenance_key() -> String:
 	# Per (floor, run) so its two anchors' searched/looted state persists on re-entry,
 	# like an apartment's. Not a real apartment id (won't collide with "FF0A" ids).
@@ -826,7 +837,7 @@ func _after_modules_ready() -> void:
 	_spawn_world_drops(WorldState.current_floor)
 	# A character who died INSIDE this apartment leaves a recoverable body here (step 7).
 	WorldState.spawn_player_corpse_into(self, WorldState.current_floor,
-		get_tree().current_scene.scene_file_path, WorldState.current_apartment_id)
+		_own_scene_path(), WorldState.current_apartment_id)
 
 func _all_controls(node: Node) -> Array:
 	var out: Array = []
@@ -1210,7 +1221,7 @@ func _spawn_passive_enemies(floor_num: int, breached: bool) -> void:
 
 
 func _spawn_world_drops(floor_num: int, apt_override: String = "") -> void:
-	var scene_path = get_tree().current_scene.scene_file_path
+	var scene_path = _own_scene_path()
 	var apt := apt_override if apt_override != "" else WorldState.current_apartment_id
 	var drops = WorldState.get_world_drops_for_floor(floor_num, scene_path, apt)
 	if drops.is_empty():
@@ -1262,7 +1273,7 @@ func _spawn_breached_enemies() -> void:
 
 
 func _spawn_corpses(floor_num: int, apt_id: String = "") -> void:
-	var scene_path = get_tree().current_scene.scene_file_path
+	var scene_path = _own_scene_path()
 	var corpse_positions = WorldState.get_corpse_positions_for_floor(floor_num, scene_path, apt_id)
 	if corpse_positions.is_empty():
 		return

@@ -142,12 +142,13 @@ func reveal(dur: float = 0.6) -> void:
 # cover — onto the hallway's own black cold open (intro_overlay), which carries the time-of-day
 # card now (with the handprint), so every run starts on the same screens.
 func to_run_start(path: String) -> void:
-	if not busy:
-		return
+	# Always load the next run — even if the cover somehow isn't up (returning early here would
+	# strand the player on the death/escape screen with no way on).
 	get_tree().change_scene_to_file(path)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	await reveal(0.3)
+	if busy:
+		await reveal(0.3)
 
 
 func to_run_shift(path: String, run_index: int, hold: float = 2.0, already_covered: bool = false) -> void:
