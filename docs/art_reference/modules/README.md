@@ -128,6 +128,18 @@ posters, rugs, lamps, walls + tiling floors).
   c formal (grandfather clock, candelabra) / d barricaded (the table flipped on its side).
 Study + dining variants each put their own furniture in the balcony strip (see above).
 
+**The runs (owner round 10 — "their run 2 and 3 looks as things get a bit more dilapidated and then
+more so")**: every variant also gets `<name>_r2` / `_r3` textures (+ their own `_floor.png` and
+`_strip.png`), GENERATED from its own layers by `pixlib.run_looks` inside `finish_module`, so any new
+variant gets them for free. Afternoon: walls a shade darker, a couple of damp blooms (organic outlines
+with a broken tide line — never clean circles), cracks, a peeled strip, a smear of blood, periodic floor
+grime + a little debris. Night: darker again, more damp, cracks and peeling, holes knocked through to
+the lath, black mould along the top, grime up the lower wall, a handprint, stains + plaster debris
+everywhere. Decals land only on visible bare wall/floor (behind the furniture, never on it) and stay
+off the side-wall sample columns; the floor grime is 32px-periodic and identical in the floor export,
+so doorway wedges match. `room.apply_run_art(module, run)` swaps the textures (Art + StripArt); nodes
+never move. Previews: `runs/<name>_runs.png` (morning / afternoon / night).
+
 ## Agreed plan (owner round 9) — in this order, not started beyond step 1
 
 1. Settle the module's design + look (the living room is the example).

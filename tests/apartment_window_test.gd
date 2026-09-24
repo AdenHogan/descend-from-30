@@ -313,11 +313,16 @@ func _test_floor_boundary() -> void:
 			check(fp != "" and ResourceLoader.exists(fp), "%s: has a floor-only export" % path.get_file())
 			if fp == "" or not ResourceLoader.exists(fp):
 				continue
-			var img: Image = load(fp).get_image()
-			if img.is_compressed():
-				img.decompress()
-			check(img.get_height() == 44 and img.get_width() == 320, "%s: a floor-only export, 320x44" % fp.get_file())
-			check(_floor_periodic_below(img, strip, 0), "%s: the floor repeats every %dpx (tiles on seamlessly)" % [fp.get_file(), strip])
+			var base_fp: String = fp.substr(0, fp.length() - "_floor.png".length())
+			for f2 in [fp, base_fp + "_r2_floor.png", base_fp + "_r3_floor.png"]:
+				check(ResourceLoader.exists(f2), "%s exists" % f2.get_file())
+				if not ResourceLoader.exists(f2):
+					continue
+				var img: Image = load(f2).get_image()
+				if img.is_compressed():
+					img.decompress()
+				check(img.get_height() == 44 and img.get_width() == 320, "%s: a floor-only export, 320x44" % f2.get_file())
+				check(_floor_periodic_below(img, strip, 0), "%s: the floor repeats every %dpx (tiles on seamlessly)" % [f2.get_file(), strip])
 	# A module's strip comes from that floor-only export — the right edge = its last FLOOR_STRIP columns.
 	var m = load("res://scenes/Room_Modules/kitchen.tscn").instantiate()
 	add_child(m)
@@ -389,6 +394,25 @@ func _test_module_variants() -> void:
 	for f in dir.get_files():
 		if f.ends_with(".tscn"):
 			check(registered.has("res://scenes/Room_Modules/" + f), "%s is registered in MODULE_VARIANTS" % f)
+	# the runs: every variant has a run-2 and run-3 look (art, floor export, strip), swapped in by run
+	for rt in RoomScript.MODULE_VARIANTS:
+		for path in RoomScript.MODULE_VARIANTS[rt]:
+			var nm2: String = path.get_file()
+			for run in [1, 2, 3]:
+				var inst = load(path).instantiate()
+				var base_art: String = inst.get_node("Art").texture.resource_path
+				RoomScript.apply_run_art(inst, run)
+				var got: String = inst.get_node("Art").texture.resource_path
+				if run == 1:
+					check(got == base_art, "%s run 1: the morning art" % nm2)
+				else:
+					var want: String = base_art.get_basename() + "_r%d.png" % run
+					check(got == want, "%s run %d: %s" % [nm2, run, got.get_file()])
+					check(ResourceLoader.exists(got.get_basename() + "_floor.png"), "%s run %d: its floor export exists" % [nm2, run])
+					var sa = inst.get_node_or_null("StripArt")
+					if sa != null:
+						check(sa.texture.resource_path.ends_with("_r%d_strip.png" % run), "%s run %d: the strip furniture follows (%s)" % [nm2, run, sa.texture.resource_path.get_file()])
+				inst.free()
 	# the pick: deterministic, in range, and every variant turns up across a floor's worth of flats
 	var n: int = RoomScript.MODULE_VARIANTS["bathroom"].size()
 	var seen := {}

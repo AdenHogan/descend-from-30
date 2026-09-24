@@ -1362,7 +1362,9 @@ means no rendering — UI layout and art still need an in-editor look.
   `WorldState.module_variant_index` (seeded per apartment+slot, stable across runs); each carries
   its own nodes, names unique to its room type (`anchor_<type>_<thing>`). Study/dining BALCONY STRIP
   (x 4..96): furniture there is a `StripArt` sprite + nodes flagged `balcony_strip`, removed on a
-  balcony slot by `room._apply_balcony_strip`. Locked by `apartment_window_test._test_module_variants`. **Floors at doorways**: `module_walls._floor_wedge` parts two rooms'
+  balcony slot by `room._apply_balcony_strip`. RUN LOOKS: each variant also has generated `_r2`/`_r3`
+  textures (more damp/cracks/holes/mould/blood/debris; `pixlib.run_looks`), swapped in by
+  `room.apply_run_art(module, WorldState.current_run)`. Locked by `apartment_window_test._test_module_variants`. **Floors at doorways**: `module_walls._floor_wedge` parts two rooms'
   floors along the wall's base line in perspective (flipping with the camera like the wall face),
   tiled from each module's FLOOR-ONLY export `assets/rooms/<name>_floor.png` (32px-periodic), with a
   wooden threshold in interior doorways. Generators enforce: window boxes bare, the side-wall sample

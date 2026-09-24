@@ -341,6 +341,12 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
                     s.putpixel((x, y), p)
         s.save(os.path.join(ROOT, 'assets', 'rooms', name + '_strip.png'))
     _node_overlay(full.img, anchors, os.path.join(prev, 'nodes', name + '_nodes.png'))
+    runs = run_looks(name, ROOT, main.img, full.img, bare.img, bare_floor.img, floor_fn, seed, strip_fn is not None)
+    sheet = Image.new('RGBA', (W * 2, H * 2 * 3), (0, 0, 0, 255))
+    for i, im in enumerate((full.img, runs[2], runs[3])):
+        sheet.paste(im.resize((W * 2, H * 2), Image.NEAREST), (0, H * 2 * i))
+    os.makedirs(os.path.join(prev, 'runs'), exist_ok=True)
+    sheet.save(os.path.join(prev, 'runs', name + '_runs.png'))
     write_scene(name, room_type, anchors, strip=strip_fn is not None)
     print('wrote', name, '(%d nodes, %d front)' % (len(anchors), n_front))
     return full
@@ -359,3 +365,241 @@ def _node_overlay(img, anchors, path):
         d.ellipse((x * 4 - 9, y * 4 - 9, x * 4 + 9, y * 4 + 9), outline=c, width=3)
         d.text((x * 4 + 11, y * 4 - 6), an.replace('anchor_', ''), fill=c)
     im.save(path)
+
+
+# --- the runs: the same room, more ruined -----------------------------------------------------
+# Run 2 (afternoon) and run 3 (night) show the SAME furniture in a worse state: the building has
+# been rotting since the morning. Generated from the variant's own layers so every variant gets it:
+#   wall  — darker, damp blooms with tide lines, cracks, peeled paper, (run 3) holes to the lath,
+#           black mould, blood;
+#   floor — periodic grime (identical in the floor-only export, so the doorway wedges match) plus
+#           debris + stains on the room's own floor;
+#   furniture — a little darker and dustier.
+# Written as <name>_r2 / _r3 (.png, _floor.png, _strip.png); room._apply_run_art swaps them in.
+DECAY = {2: dict(wall=0.93, furn=0.95, floor=0.95, damp=2, cracks=2, peel=1, holes=0, blood=1,
+                 mould=0.0, debris=7, stains=2, grime=0.10),
+         3: dict(wall=0.85, furn=0.88, floor=0.88, damp=4, cracks=5, peel=3, holes=2, blood=3,
+                 mould=0.35, debris=16, stains=5, grime=0.22)}
+
+
+def _mul(p, f):
+    return (int(p[0] * f), int(p[1] * f), int(p[2] * f), p[3])
+
+
+def _floor_grime(img, y0, level, dirt):
+    """A 32px-periodic grime + darken over the floor rows (applied identically to the room art's
+    visible floor and to the floor-only export)."""
+    d = DECAY[level]
+    px = img.load()
+    w, h = img.size
+    for y in range(y0, h):
+        for x in range(w):
+            p = px[x, y]
+            if p[3] == 0:
+                continue
+            p = _mul(p, d['floor'])
+            k = (x * 11 + y * 7 + (y * y) % 3) % 32
+            if k < int(32 * d['grime']):
+                p = (int(p[0] * 0.8 + dirt[0] * 0.2), int(p[1] * 0.8 + dirt[1] * 0.2), int(p[2] * 0.8 + dirt[2] * 0.2), p[3])
+            px[x, y] = p
+
+
+def run_looks(name, root, main_img, full_img, bare_wall_img, bare_floor_img, floor_fn, seed, has_strip):
+    import os
+    out = {}
+    for level in (2, 3):
+        d = DECAY[level]
+        rng = random.Random(hash((name, level, seed)) & 0xffffffff)
+        # masks from the layers: WALL = visible bare wall (y < 100), FLOOR = visible bare floor
+        m = main_img.copy()
+        f = full_img.copy()
+        mp, fp = m.load(), f.load()
+        wall_px = bare_wall_img.load()
+        floor_px = bare_floor_img.load()
+        is_wall = [[False] * H for _ in range(W)]
+        is_floor = [[False] * H for _ in range(W)]
+        mo, fo = main_img.load(), full_img.load()
+        in_strip = [[fo[x, y] != mo[x, y] for y in range(H)] for x in range(W)]
+        for y in range(H):
+            for x in range(W):
+                if y < SEAM_Y and mp[x, y] == wall_px[x, y]:
+                    is_wall[x][y] = True
+                elif y >= SEAM_Y and mp[x, y] == floor_px[x, y]:
+                    is_floor[x][y] = True
+        # base tone: walls darker, furniture a little darker (floor via the periodic grime)
+        for img, pxs in ((m, mp), (f, fp)):
+            for y in range(H):
+                for x in range(W):
+                    if is_wall[x][y] and pxs[x, y] == wall_px[x, y]:
+                        pxs[x, y] = _mul(pxs[x, y], d['wall'])
+                    elif not is_floor[x][y] or pxs[x, y] != floor_px[x, y]:
+                        pxs[x, y] = _mul(pxs[x, y], d['furn'])
+        dirt = (58, 46, 34)
+        for img in (m, f):
+            fl_img = img.crop((0, SEAM_Y, W, H))
+            _floor_grime(fl_img, 0, level, dirt)
+            fl_px = fl_img.load()
+            px = img.load()
+            for y in range(SEAM_Y, H):
+                for x in range(W):
+                    if is_floor[x][y] and px[x, y] == floor_px[x, y]:
+                        px[x, y] = fl_px[x, y - SEAM_Y]
+        cv = Canvas(seed=seed)
+        cv.img = m
+        cv.px = mp
+        cf = Canvas(seed=seed)
+        cf.img = f
+        cf.px = fp
+
+        def on_wall(x, y):
+            return 8 <= x <= W - 9 and 6 <= y < SEAM_Y - 1 and is_wall[x][y]
+
+        def put_both(x, y, col):
+            if on_wall(x, y):
+                cv.put(x, y, col)
+                if not in_strip[x][y]:
+                    cf.put(x, y, col)
+
+        def floor_put(x, y, col):
+            if 0 <= x < W and SEAM_Y + 2 <= y < H and is_floor[x][y]:
+                cv.put(x, y, col)
+                if not in_strip[x][y]:
+                    cf.put(x, y, col)
+
+        base_wall = wall_px[W // 2, 40]
+        damp = _mul(base_wall, 0.74)
+        tide = _mul(base_wall, 0.6)
+        plaster = mix(base_wall, (206, 196, 172, 255), 0.45)
+        import math
+
+        def blob(cx0, cy0, rx, ry):
+            """An irregular organic outline: radius wobbles with angle (never a clean ellipse)."""
+            ph = [rng.random() * 6.28 for _ in range(3)]
+
+            def inside(x, y):
+                ang = math.atan2((y - cy0) / ry, (x - cx0) / rx)
+                k = 1.0 + 0.28 * math.sin(3 * ang + ph[0]) + 0.16 * math.sin(5 * ang + ph[1]) + 0.08 * math.sin(9 * ang + ph[2])
+                return (((x - cx0) / rx) ** 2 + ((y - cy0) / ry) ** 2) ** 0.5 / k
+            return inside
+        # damp blooms: a soft stipple, a broken tide line, heavier toward the top edge
+        for _ in range(d['damp']):
+            sx, sy = rng.randrange(20, W - 20), rng.randrange(8, 56)
+            rx, ry = rng.randrange(10, 24), rng.randrange(7, 14)
+            f_ = blob(sx, sy, rx, ry)
+            for y in range(sy - 2 * ry, sy + 2 * ry + 1):
+                for x in range(sx - 2 * rx, sx + 2 * rx + 1):
+                    dd = f_(x, y)
+                    if dd <= 0.86:
+                        if (x * 3 + y * 5) % 4 == 0 or (dd < 0.5 and (x + y) % 2 == 0):
+                            put_both(x, y, (damp[0], damp[1], damp[2], 90))
+                    elif dd <= 1.0 and (x + 2 * y) % 3 != 0:
+                        put_both(x, y, (tide[0], tide[1], tide[2], 110))
+        # cracks: jagged random walks, mostly downward, with a light lip on one side
+        for _ in range(d['cracks']):
+            x, y = rng.randrange(14, W - 14), rng.randrange(8, 50)
+            for k in range(rng.randrange(10, 30)):
+                put_both(x, y, _mul(base_wall, 0.45))
+                if k % 4 == 2:
+                    put_both(x + 1, y, mix(base_wall, (230, 222, 205, 255), 0.25))
+                x += rng.choice((-1, 0, 1, 1))
+                y += rng.choice((1, 1, 0))
+        # peeled paper: a strip curling off, the plaster behind a paler wall tone
+        for _ in range(d['peel']):
+            x0, y0 = rng.randrange(16, W - 30), rng.randrange(14, 66)
+            w, h = rng.randrange(5, 9), rng.randrange(10, 18)
+            for y in range(y0, y0 + h):
+                shrink = (y - y0) // 3
+                for x in range(x0 + shrink // 2, x0 + w - shrink // 2):
+                    put_both(x, y, plaster)
+            for k in range(h - 4):                                  # the curling flap, in shadow
+                put_both(x0 + w + k // 5, y0 + k, _mul(base_wall, 0.62))
+                put_both(x0 + w + 1 + k // 5, y0 + k, _mul(base_wall, 0.8))
+        # holes knocked through to the lath (run 3): ragged, dark, the lath strips showing
+        for _ in range(d['holes']):
+            cx0, cy0 = rng.randrange(24, W - 24), rng.randrange(20, 70)
+            rx, ry = rng.randrange(5, 9), rng.randrange(4, 7)
+            f_ = blob(cx0, cy0, rx, ry)
+            for y in range(cy0 - 2 * ry, cy0 + 2 * ry + 1):
+                for x in range(cx0 - 2 * rx, cx0 + 2 * rx + 1):
+                    dd = f_(x, y)
+                    if dd <= 1.0:
+                        put_both(x, y, (38, 29, 23, 255) if (y - cy0) % 3 else (104, 76, 50, 255))
+                    elif dd <= 1.3 and (x + y) % 3:
+                        put_both(x, y, plaster)
+        # grime: the lower wall darkens toward the skirting (hands, damp, soot)
+        for y in range(70, SEAM_Y - 6):
+            a_ = int(90 * d['grime'] * (y - 70) / 24.0)
+            for x in range(8, W - 8):
+                if (x + y) % 2 == 0:
+                    put_both(x, y, (30, 24, 18, a_))
+        # black mould creeping along the top
+        if d['mould'] > 0:
+            for _ in range(3):
+                x0 = rng.randrange(8, W - 60)
+                for y in range(6, 6 + rng.randrange(10, 22)):
+                    for x in range(x0, x0 + rng.randrange(30, 60)):
+                        if rng.random() < d['mould'] * (1.0 - (y - 6) / 24.0):
+                            put_both(x, y, (38, 46, 34, 150))
+        # blood: a smear with drips, (run 3) a handprint + a splatter
+        blood = (74, 29, 27, 170)
+        for i in range(d['blood']):
+            x0, y0 = rng.randrange(20, W - 30), rng.randrange(30, 80)
+            ln = rng.randrange(8, 20)
+            for k in range(ln):
+                put_both(x0 + k, y0 + k // 4, blood)
+                put_both(x0 + k, y0 + 1 + k // 4, blood)
+            for k in range(rng.randrange(2, 5)):
+                dx = x0 + rng.randrange(0, ln)
+                for y in range(y0 + 2, y0 + 2 + rng.randrange(4, 16)):
+                    put_both(dx, y, blood)
+            if level == 3 and i == 0:
+                hx, hy = rng.randrange(24, W - 24), rng.randrange(36, 70)
+                for (dx, dy) in ((0, 0), (1, 0), (2, 0), (0, 1), (1, 1), (2, 1), (3, 1), (0, 2), (1, 2), (2, 2), (3, 2), (1, 3), (2, 3)):
+                    put_both(hx + dx, hy + dy, blood)
+                for fx in range(4):
+                    for fy in range(1, 4 + (fx % 2)):
+                        put_both(hx + fx, hy - fy, blood)
+                put_both(hx - 1, hy + 1, blood); put_both(hx - 2, hy, blood)
+        # floor: stains + debris (plaster chunks, paper, glass)
+        for _ in range(d['stains']):
+            sx, sy = rng.randrange(10, W - 10), rng.randrange(106, 140)
+            rx, ry = rng.randrange(4, 10), rng.randrange(1, 3)
+            col = rng.choice([(58, 20, 18, 140), (40, 34, 26, 120)])
+            for y in range(sy - ry, sy + ry + 1):
+                for x in range(sx - rx, sx + rx + 1):
+                    if ((x - sx) / rx) ** 2 + ((y - sy) / max(ry, 1)) ** 2 <= 1.0:
+                        floor_put(x, y, col)
+        for _ in range(d['debris']):
+            x, y = rng.randrange(6, W - 6), rng.randrange(103, 142)
+            kind = rng.random()
+            if kind < 0.5:
+                for (dx, dy) in ((0, 0), (1, 0), (0, -1), (2, 0)):
+                    floor_put(x + dx, y + dy, plaster)
+                floor_put(x + 1, y + 1, _mul(plaster, 0.6))
+            elif kind < 0.8:
+                for dx in range(5):
+                    floor_put(x + dx, y, (214, 208, 190, 255))
+                    floor_put(x + dx, y + 1, (190, 184, 166, 255))
+            else:
+                floor_put(x, y, (200, 220, 222, 255))
+                floor_put(x + 2, y + 1, (160, 180, 184, 255))
+        # write
+        suffix = '_r%d' % level
+        m.save(os.path.join(root, 'assets', 'rooms', name + suffix + '.png'))
+        fl = Canvas(seed=seed)
+        floor_fn(fl)
+        strip = fl.img.crop((0, SEAM_Y, W, H))
+        _floor_grime(strip, 0, level, dirt)
+        strip.save(os.path.join(root, 'assets', 'rooms', name + suffix + '_floor.png'))
+        if has_strip:
+            s = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+            spx = s.load()
+            for y in range(H):
+                for x in range(W):
+                    if full_img.getpixel((x, y)) != main_img.getpixel((x, y)):
+                        spx[x, y] = fp[x, y]
+            s.save(os.path.join(root, 'assets', 'rooms', name + suffix + '_strip.png'))
+        if not floor_is_periodic(strip):
+            raise SystemExit('%s%s: the run floor must repeat every 32px' % (name, suffix))
+        out[level] = f
+    return out

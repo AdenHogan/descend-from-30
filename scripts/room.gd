@@ -749,6 +749,7 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 		instance.add_to_group("room_module")
 		add_child(instance)
 		built_modules.append(instance)
+		apply_run_art(instance, WorldState.current_run)
 		# The module's background ColorRect (+ its Label) is a Control that
 		# defaults to MOUSE_FILTER_STOP, so it swallows every world click over
 		# the apartment — click-to-move dies inside rooms (works in hallways,
@@ -838,6 +839,28 @@ static func module_scene_for(apt: String, slot: int, room_type: String) -> Strin
 	if vs.is_empty():
 		return MODULE_SCENES[room_type]
 	return vs[WorldState.module_variant_index(apt, slot, room_type, vs.size())]
+
+
+static func apply_run_art(module: Node, run: int) -> void:
+	# The same furniture, more ruined as the arc goes on: run 2 (afternoon) and run 3 (night) swap
+	# the module's art for its <name>_r2 / _r3 textures (tools/art: pixlib.run_looks — damp,
+	# cracks, peeled paper, holes, mould, blood, debris). Nodes don't move. The doorway floor wedges
+	# follow on their own: module_walls reads <art>_floor.png, and each run texture has its own.
+	# A texture without a run version (tutorial modules) keeps its morning look.
+	if run < 2:
+		return
+	for n in ["Art", "StripArt"]:
+		var spr = module.get_node_or_null(n)
+		if not (spr is Sprite2D) or spr.texture == null or spr.texture.resource_path == "":
+			continue
+		var base: String = spr.texture.resource_path.get_basename()
+		if base.ends_with("_strip"):
+			base = base.substr(0, base.length() - 6)
+		for r in range(run, 1, -1):
+			var p: String = base + "_r%d" % r + ("_strip" if n == "StripArt" else "") + ".png"
+			if ResourceLoader.exists(p):
+				spr.texture = load(p)
+				break
 
 
 func _apply_balcony_strip(module: Node, has_balcony: bool) -> void:
