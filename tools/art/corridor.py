@@ -36,10 +36,11 @@ ELEVATOR = (880, 950)
 KIT_X = 814                                  # wall extinguisher / maintenance door
 WALL_TOP, RAIL_Y, SKIRT_Y, FLOOR_Y = 16, 96, 154, 160
 SPOTS = [265, 392, 518, 647]                 # between doors: pictures / notices
+LAYOUT = {'recess': (0, 1), 'spots': SPOTS}  # set per scene (hallway: left stair only; lobby: right)
 
 
 def clear_of_openings(x):
-    for (a, b) in RECESS:
+    for (a, b) in [RECESS[i] for i in LAYOUT['recess']]:
         if a - 4 <= x <= b + 20:
             return False
     return True
@@ -58,7 +59,7 @@ def ceiling(c, col, cornice, cornice_hi):
 def recesses(c, wall):
     """The stairwell shafts behind the openings: a dim wall with a darker band at the top."""
     dim = shade(wall, 0.45)
-    for (a, b) in RECESS:
+    for (a, b) in [RECESS[i] for i in LAYOUT['recess']]:
         c.rect(a, WALL_TOP, b, FLOOR_Y - 1, dim)
         c.dither(a, WALL_TOP, b, WALL_TOP + 20, shade(dim, 0.7), 0.5)
         c.vline(a, WALL_TOP, FLOOR_Y - 1, shade(dim, 0.6))
@@ -67,7 +68,8 @@ def recesses(c, wall):
 
 def pilasters(c, col, hi, out):
     """Moulded door-casing pilasters framing each stair opening + the corridor's end walls."""
-    for (a, b) in PILASTER:
+    inner = {0: PILASTER[1], 1: PILASTER[2]}
+    for (a, b) in [PILASTER[0], PILASTER[3]] + [inner[i] for i in LAYOUT['recess']]:
         c.rect(a, WALL_TOP - 2, b, FLOOR_Y - 1, col)
         c.vline(a, WALL_TOP - 2, FLOOR_Y - 1, out)
         c.vline(b, WALL_TOP - 2, FLOOR_Y - 1, out)
@@ -75,7 +77,7 @@ def pilasters(c, col, hi, out):
         c.vline(b - 3, WALL_TOP, FLOOR_Y - 4, shade(col, 0.8))
         c.rect(a, FLOOR_Y - 8, b, FLOOR_Y - 1, shade(col, 0.8))           # plinth block
         c.hline(a, b, FLOOR_Y - 8, hi)
-    for (a, b) in RECESS:                                                   # the lintel over each opening
+    for (a, b) in [RECESS[i] for i in LAYOUT['recess']]:                   # the lintel over each opening
         c.rect(a, WALL_TOP - 2, b, WALL_TOP + 2, col)
         c.hline(a, b, WALL_TOP + 2, out)
         c.hline(a, b, WALL_TOP - 1, hi)
@@ -118,9 +120,10 @@ def frame(c, cx, y0, w, h, fr, fill):
 
 
 # --- the three sections ----------------------------------------------------------------------
-def high(c):
+def high(c, wall=None, motif=None):
     """Upper floors: a faded hotel-like hallway."""
-    wall, wall_dk, motif = hexc('3f5a5a'), hexc('365050'), hexc('7a8a6a')
+    wall = wall or hexc('3f5a5a')
+    motif = motif or hexc('7a8a6a')
     ceiling(c, hexc('c9c0a8'), hexc('d8cfb4'), hexc('ece4cc'))
     c.rect(0, WALL_TOP, CW - 1, RAIL_Y - 1, wall)
     for y in range(WALL_TOP + 6, RAIL_Y - 4, 12):                            # damask diamonds
@@ -145,7 +148,7 @@ def high(c):
     runner(c, hexc('7a2424'), hexc('b58f4a'), hexc('a8483a'))
     recesses(c, wall)
     pilasters(c, hexc('5e3828'), hexc('7a4a34'), hexc('2a1810'))
-    for i, x in enumerate(SPOTS):
+    for i, x in enumerate(LAYOUT['spots']):
         if i % 2 == 0:
             frame(c, x, 34, 28, 22, hexc('b58f4a'), [hexc('6a7a5a'), hexc('5a4a3e')][i // 2])
             c.poly([(x - 12, 51), (x - 4, 44), (x + 4, 48), (x + 12, 42), (x + 12, 53), (x - 12, 53)], hexc('4a5a3a'))
@@ -181,7 +184,7 @@ def mid(c):
     runner(c, hexc('6a5040'), hexc('4a3428'), hexc('8a6a54'))
     recesses(c, wall)
     pilasters(c, hexc('d6cbb0'), hexc('ece4cc'), hexc('7a6a50'))
-    for i, x in enumerate(SPOTS):
+    for i, x in enumerate(LAYOUT['spots']):
         if i % 2 == 0:
             frame(c, x, 36, 24, 18, hexc('6b4a2c'), hexc('9c9282'))
         else:
@@ -216,7 +219,7 @@ def low(c):
     c.hline(0, CW - 1, FLOOR_Y, hexc('3a3e36'))
     recesses(c, upper)
     pilasters(c, hexc('7a8480'), hexc('9aa3a0'), hexc('3a403e'))
-    for i, x in enumerate(SPOTS):                                               # notices, a fire-drill card
+    for i, x in enumerate(LAYOUT['spots']):                                               # notices, a fire-drill card
         if i % 2 == 0:
             c.box(x - 9, 36, x + 9, 58, hexc('e6e2d6'), hexc('6a6a66'))
             c.rect(x - 7, 38, x + 7, 42, hexc('a8322c'))
@@ -225,6 +228,74 @@ def low(c):
         else:
             c.box(x - 6, 40, x + 6, 52, hexc('a8322c'), hexc('5a1a16'))          # an alarm call point
             c.rect(x - 3, 43, x + 3, 49, hexc('e6e2d6'))
+    c.box(860, 40, 872, 50, hexc('2e5a3a'), hexc('1a3020'))
+    c.rect(862, 43, 870, 46, hexc('d8e8c8'))
+
+
+def lobby(c):
+    """The ground floor: a once-smart entrance hall — marble wainscot, a bank of brass mailboxes,
+    a residents' notice board, a floor directory by the lift, big marble floor tiles, a doormat."""
+    wall = hexc('c9b894')
+    ceiling(c, hexc('d6cbb0'), hexc('e2d8be'), hexc('f0e8d0'))
+    c.rect(0, WALL_TOP, CW - 1, RAIL_Y - 1, wall)
+    for x in range(0, CW, 64):                                                  # plaster panels
+        c.box(x + 6, WALL_TOP + 8, x + 57, RAIL_Y - 8, wall, shade(wall, 0.88))
+    c.rect(0, RAIL_Y, CW - 1, RAIL_Y + 3, hexc('8a7a5a'))
+    c.hline(0, CW - 1, RAIL_Y, hexc('b0a078'))
+    marble, vein = hexc('d8d2c4'), hexc('b8b0a0')
+    c.rect(0, RAIL_Y + 4, CW - 1, SKIRT_Y - 1, marble)
+    rng = random.Random(7)
+    for _ in range(90):                                                         # veins
+        x, y = rng.randrange(0, CW), rng.randrange(RAIL_Y + 5, SKIRT_Y - 2)
+        for k in range(rng.randrange(5, 14)):
+            if 0 <= x < CW and RAIL_Y + 4 <= y < SKIRT_Y:
+                c.put(x, y, vein)
+            x += rng.choice((-1, 1, 1))
+            y += rng.choice((0, 1, -1, 1))
+    for x in range(0, CW, 48):
+        c.vline(x, RAIL_Y + 4, SKIRT_Y - 1, hexc('a8a090'))
+    c.rect(0, SKIRT_Y, CW - 1, FLOOR_Y - 1, hexc('3a3430'))
+    c.hline(0, CW - 1, SKIRT_Y, hexc('5a524a'))
+    rows = [160, 168, 178, 192]                                                 # big marble floor tiles
+    for r in range(len(rows) - 1):
+        y0, y1 = rows[r], rows[r + 1] - 1
+        for x in range(0, CW, 32):
+            c.rect(x, y0, x + 31, y1, hexc('d8d2c4') if ((x // 32) + r) % 2 else hexc('3e3a36'))
+            c.vline(x, y0, y1, hexc('8a8478'))
+        c.hline(0, CW - 1, y0, hexc('8a8478'))
+    c.rect(500, 170, 580, 186, hexc('5a3a2a'))                                  # a doormat at the exit
+    c.hline(500, 580, 170, hexc('7a4a34'))
+    for x in range(504, 578, 4):
+        c.vline(x, 172, 184, hexc('4a2e20'))
+    recesses(c, wall)
+    pilasters(c, hexc('8a7a5a'), hexc('b0a078'), hexc('3a3228'))
+    # the mailbox bank: brass doors in a grid, a few hanging open, letters on the floor below
+    x0, y0, cols, rows_ = 150, 34, 8, 4
+    c.box(x0 - 3, y0 - 3, x0 + cols * 16 + 2, y0 + rows_ * 13 + 2, hexc('6b4a31'), hexc('3a2718'))
+    for r in range(rows_):
+        for k in range(cols):
+            bx, by = x0 + k * 16, y0 + r * 13
+            if (r * cols + k) in (5, 13, 22):
+                c.rect(bx, by, bx + 14, by + 11, hexc('1e1a16'))
+                c.poly([(bx, by), (bx - 5, by + 2), (bx - 5, by + 12), (bx, by + 11)], hexc('b58f4a'))
+                c.rect(bx + 3, by + 6, bx + 10, by + 10, hexc('e6e0cc'))
+                continue
+            c.box(bx, by, bx + 14, by + 11, hexc('b58f4a'), hexc('7a5a2a'))
+            c.rect(bx + 3, by + 3, bx + 11, by + 4, hexc('3a2a1a'))
+            c.put(bx + 12, by + 8, hexc('7a5a2a'))
+            c.rect(bx + 3, by + 7, bx + 8, by + 8, hexc('e6e0cc'))
+    for (lx, ly) in ((170, 164), (186, 167), (214, 163), (262, 168)):
+        c.rect(lx, ly, lx + 6, ly + 3, hexc('e6e0cc'))
+        c.hline(lx, lx + 6, ly + 3, hexc('b9b3a4'))
+    c.box(360, 30, 404, 64, hexc('9a7650'), hexc('3b2718'))                     # the notice board
+    c.rect(364, 34, 380, 46, hexc('e6dfcc')); c.rect(384, 36, 400, 50, hexc('d9c24a'))
+    c.rect(366, 50, 382, 60, hexc('e88aa0'))
+    for y in range(37, 45, 2):
+        c.hline(366, 378, y, hexc('8a8270'))
+    c.box(800, 26, 850, 70, hexc('2a2622'), hexc('111010'))                     # the floor directory
+    for i, y in enumerate(range(30, 67, 4)):
+        c.hline(804, 822 + (i * 7) % 20, y, hexc('d9c690'))
+        c.put(846, y, hexc('d9c690'))
     c.box(860, 40, 872, 50, hexc('2e5a3a'), hexc('1a3020'))
     c.rect(862, 43, 870, 46, hexc('d8e8c8'))
 
@@ -341,6 +412,16 @@ def ruin(img, level, seed):
 
 
 SECTIONS = {'high': (high, 71), 'mid': (mid, 72), 'low': (low, 73)}
+# the endpoint floors: floor 30 (hallway — the upper look, only the LEFT stair, and no pictures:
+# the tutorial's wall hints live between its doors) and the lobby (0 — only the RIGHT stair).
+def hallway(c):
+    # floor 30: the same hotel hallway in a PALE cream damask, so the tutorial's blood-red wall
+    # hints read clearly (red on the dark teal was hard to read)
+    high(c, wall=hexc('cdbf9c'), motif=hexc('b9a882'))
+
+
+SCENES = {'hallway': (hallway, 74, {'recess': (0,), 'spots': []}),
+          'lobby': (lobby, 75, {'recess': (1,), 'spots': []})}
 
 
 def main():
@@ -350,7 +431,11 @@ def main():
     os.makedirs(out_dir, exist_ok=True)
     os.makedirs(prev_dir, exist_ok=True)
     rows = []
-    for name, (fn, seed) in SECTIONS.items():
+    jobs = [(n, fn, seed, {'recess': (0, 1), 'spots': SPOTS}) for n, (fn, seed) in SECTIONS.items()]
+    jobs += [(n, fn, seed, lay) for n, (fn, seed, lay) in SCENES.items()]
+    for name, fn, seed, lay in jobs:
+        LAYOUT.clear()
+        LAYOUT.update(lay)
         c = Canvas(w=CW, h=CH, seed=seed)
         fn(c)
         holes = [(x, y) for y in range(CH) for x in range(CW) if c.img.getpixel((x, y))[3] != 255]

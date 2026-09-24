@@ -110,6 +110,8 @@ static func opener_config() -> Dictionary:
 func _build_world() -> void:
 	# Everything that is part of the PLACE (not the arrival): the same whether the floor
 	# loads fresh or is built as a pan backdrop, so nothing pops in when a pan commits.
+	load("res://scripts/building_floors.gd").add_corridor_art(self,
+		load("res://scripts/building_floors.gd").corridor_art_named("corridor_hallway", WorldState.current_run))
 	_spawn_corpses(30)
 	_spawn_world_drops(30)
 	# A character who fell here (floor 30) leaves a recoverable body for the next one.

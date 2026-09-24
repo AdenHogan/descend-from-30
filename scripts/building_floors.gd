@@ -82,30 +82,38 @@ static func corridor_section(floor_num: int) -> String:
 
 static func corridor_art_path(floor_num: int, run: int) -> String:
 	# tools/art/corridor.py — per section, with a run-2 / run-3 (more ruined) version.
-	var base := "res://assets/corridor/corridor_%s" % corridor_section(floor_num)
+	return corridor_art_named("corridor_%s" % corridor_section(floor_num), run)
+
+
+static func corridor_art_named(name: String, run: int) -> String:
+	var base := "res://assets/corridor/" + name
 	for r in range(clampi(run, 1, 3), 1, -1):
 		if ResourceLoader.exists(base + "_r%d.png" % r):
 			return base + "_r%d.png" % r
 	return base + ".png"
 
 
-func _apply_corridor_art(floor_num: int) -> void:
+static func add_corridor_art(root: Node, path: String) -> void:
 	# A painted overlay over the old tile look, placed right ABOVE the TileMapLayer so every door,
 	# stair sprite, the elevator, lamps, fire and actors still draw over it (same z, later in the
-	# tree). Built in the passive (stair-pan backdrop) build too — it's in the path both take.
-	var path := corridor_art_path(floor_num, WorldState.current_run)
-	if not ResourceLoader.exists(path):
+	# tree). Shared by the floors 1-29, the hallway (30) and the lobby (0); built in their passive
+	# (stair-pan backdrop) builds too — the paths both take.
+	if not ResourceLoader.exists(path) or root.get_node_or_null("CorridorArt") != null:
 		return
-	var tm = get_node_or_null("TileMapLayer")
 	var art := Sprite2D.new()
 	art.name = "CorridorArt"
 	art.texture = load(path)
 	art.centered = false
 	art.position = CORRIDOR_ART_POS
 	art.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	add_child(art)
+	root.add_child(art)
+	var tm = root.get_node_or_null("TileMapLayer")
 	if tm != null:
-		move_child(art, tm.get_index() + 1)
+		root.move_child(art, tm.get_index() + 1)
+
+
+func _apply_corridor_art(floor_num: int) -> void:
+	add_corridor_art(self, corridor_art_path(floor_num, WorldState.current_run))
 
 
 func _ready() -> void:

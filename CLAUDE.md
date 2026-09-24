@@ -1376,8 +1376,12 @@ means no rendering — UI layout and art still need an in-editor look.
   lamps / fire / actors still draw over it; built in the passive pan backdrop too. SECTIONAL IDENTITY:
   `corridor_section(floor)` high 21-29 (faded hotel: teal damask, mahogany panels, red runner) / mid
   11-20 (residential: mustard stripes, cream tongue-and-groove) / low 1-10 (institutional: two-tone
-  gloss, pipes, checker lino); each with `_r2`/`_r3` ruined versions picked by run. The hallway (30)
-  and lobby (0) still use their tiles (not done yet). Locked by `building_floors_test._test_corridor_art`.
+  gloss, pipes, checker lino); each with `_r2`/`_r3` ruined versions picked by run. The endpoint
+  floors have their own: `corridor_hallway` (30 — the hotel look in PALE cream so the tutorial's red
+  wall hints read; left stair only, no pictures) and `corridor_lobby` (0 — marble, a bank of brass
+  mailboxes, notice board, floor directory, doormat; right stair only), added from their `_build_world`
+  (live + backdrop) via the shared `building_floors.add_corridor_art`. Locked by
+  `building_floors_test._test_corridor_art`.
 - PUSH + CROWDS (owner round 9): a push takes ONE enemy (`player.push_target` — the nearest in
   front; it used to stagger everyone in reach), so a crowd is worked through and gets hits in. The
   BIG zombie can't be stunned or knocked back by a push (it keeps attacking) but a push makes it

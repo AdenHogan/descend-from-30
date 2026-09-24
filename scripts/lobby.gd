@@ -57,6 +57,8 @@ func _ready() -> void:
 func _build_world(as_scenery: bool) -> void:
 	# Everything that belongs to the PLACE — identical for a fresh load and a pan backdrop,
 	# so the commit shows exactly what already scrolled into view.
+	load("res://scripts/building_floors.gd").add_corridor_art(self,
+		load("res://scripts/building_floors.gd").corridor_art_named("corridor_lobby", WorldState.current_run))
 	_spawn_zombies(as_scenery)
 	_spawn_corpses(1)
 	_spawn_world_drops(1)

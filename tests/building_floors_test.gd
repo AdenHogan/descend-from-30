@@ -901,4 +901,23 @@ func _test_corridor_art() -> void:
 					"%s: covers the band exactly (115,243 1120x192)" % label)
 			bf.free()
 			await get_tree().process_frame
+	# the endpoint floors: the hallway (30) and the lobby (0), live + backdrop
+	for case in [["res://scenes/hallway.tscn", 30, "corridor_hallway"], ["res://scenes/lobby.tscn", 0, "corridor_lobby"]]:
+		for run in [1, 3]:
+			WorldState.current_run = run
+			for passive in [false, true]:
+				WorldState.current_floor = case[1]
+				var sc = load(case[0]).instantiate()
+				sc.passive = passive
+				add_child(sc)
+				for i in range(2): await get_tree().process_frame
+				var art = sc.get_node_or_null("CorridorArt")
+				var tm = sc.get_node_or_null("TileMapLayer")
+				var want: String = case[2] + (".png" if run == 1 else "_r3.png")
+				var label := "%s run %d%s" % [case[2], run, " (backdrop)" if passive else ""]
+				check(art is Sprite2D and art.texture != null and art.texture.resource_path.get_file() == want,
+					"%s: %s" % [label, art.texture.resource_path.get_file() if art is Sprite2D and art.texture else "missing"])
+				check(art is Sprite2D and tm != null and art.get_index() == tm.get_index() + 1, "%s: right above the tilemap" % label)
+				sc.free()
+				await get_tree().process_frame
 	WorldState.current_run = 1
