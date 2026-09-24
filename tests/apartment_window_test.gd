@@ -94,6 +94,24 @@ func _test_windows_day() -> void:
 				min_anchor_y = minf(min_anchor_y, m.global_position.y + c.position.y)
 	check(min_anchor_y > wy, "every scavenge node sits below the window centre (lowest %.0f > %.0f)" % [min_anchor_y, wy])
 	check(get_tree().get_nodes_in_group("apt_storm").is_empty(), "no storm on a day run")
+	# MODULE WALLS (owner round 9): a perspective wall at every boundary, the face toward the camera.
+	var mw = room.get_node_or_null("ModuleWalls")
+	check(mw != null, "the room builds its module walls")
+	if mw != null:
+		var bs: Array = mw.boundaries
+		check(bs.size() == 4, "4 walls: two ends + two partitions (%d)" % bs.size())
+		var interior_doors := 0
+		var outside := 0
+		for b in bs:
+			if b["left"] != null and b["right"] != null and b["door"]:
+				interior_doors += 1
+			if b["outside"]:
+				outside += 1
+		check(interior_doors == 2, "both partitions have a doorway (%d)" % interior_doors)
+		check(outside == 1, "exactly one end is the entrance (doorway to the corridor) (%d)" % outside)
+		var mid: Dictionary = bs[1]
+		check(mw.facing_room(mid, float(mid["x"]) - 50.0) == mid["left"], "camera left of a partition sees the LEFT room's wall")
+		check(mw.facing_room(mid, float(mid["x"]) + 50.0) == mid["right"], "…and from the right, the RIGHT room's wall (never inverted)")
 	# Every window / balcony door casts a slanting light BEAM (window_beam.gd) that carries a
 	# real PointLight2D — so the shaft actually lights the room, not just a painted overlay.
 	var beams := get_tree().get_nodes_in_group("window_beam")

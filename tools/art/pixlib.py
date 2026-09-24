@@ -149,3 +149,59 @@ def check_window_boxes(full, wall_only):
                 if full.getpixel((x, y)) != wall_only.getpixel((x, y)):
                     bad.append((name, x, y))
     return bad
+
+
+# --- 2:1 pixel ISOMETRIC boxes (clean angled furniture) -------------------------------------
+# A piece turned three-quarters (its front facing lower-left) is built from boxes in 2:1 iso:
+# every edge steps exactly 2px across per 1px up/down — no jaggy slopes. Axes (per unit):
+#   W = (2, 1)   along the piece's width  (its front edge runs down-right)
+#   D = (2, -1)  into its depth           (front → back runs up-right)
+#   height in plain pixels, up the screen.
+ISO_W = (2, 1)
+ISO_D = (2, -1)
+
+
+def iso_pt(ox, oy, w, d, h):
+    return (ox + ISO_W[0] * w + ISO_D[0] * d, oy + ISO_W[1] * w + ISO_D[1] * d - h)
+
+
+def iso_box(c, ox, oy, w0, w1, d0, d1, h0, h1, top, front, side, faces=('top', 'front', 'side')):
+    """A box from (w0,d0,h0) to (w1,d1,h1). Draws the three faces a lower-left-facing piece shows:
+    FRONT (the d0 plane, facing lower-left), SIDE (the w1 plane, facing lower-right) and TOP."""
+    P = lambda w, d, h: iso_pt(ox, oy, w, d, h)
+    if 'side' in faces and side is not None:
+        c.poly([P(w1, d0, h0), P(w1, d1, h0), P(w1, d1, h1), P(w1, d0, h1)], side)
+    if 'front' in faces and front is not None:
+        c.poly([P(w0, d0, h0), P(w1, d0, h0), P(w1, d0, h1), P(w0, d0, h1)], front)
+    if 'top' in faces and top is not None:
+        c.poly([P(w0, d0, h1), P(w1, d0, h1), P(w1, d1, h1), P(w0, d1, h1)], top)
+
+
+def outline_layer(img, color):
+    """1px outer outline around everything opaque on a transparent layer (a clean silhouette)."""
+    px = img.load()
+    w, h = img.size
+    add = []
+    for y in range(h):
+        for x in range(w):
+            if px[x, y][3] != 0:
+                continue
+            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                nx, ny = x + dx, y + dy
+                if 0 <= nx < w and 0 <= ny < h and px[nx, ny][3] == 255:
+                    add.append((x, y))
+                    break
+    for (x, y) in add:
+        px[x, y] = color
+
+
+def rrect(c, x0, y0, x1, y1, col, r=2):
+    """Filled rectangle with rounded corners (radius r, pixel-art style — stepped, no AA)."""
+    for y in range(y0, y1 + 1):
+        inset = 0
+        dy = min(y - y0, y1 - y)
+        if dy < r:
+            inset = r - dy
+            if r >= 3 and dy == r - 1:
+                inset = 1
+        c.hline(x0 + inset, x1 - inset, y, col)

@@ -10,7 +10,7 @@ the floor in front of the wall/floor seam. Flat/neutral lighting — the engine 
 import os
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
-from pixlib import Canvas, hexc, shade, mix, SEAM_Y, W, H, check_window_boxes
+from pixlib import Canvas, hexc, shade, mix, SEAM_Y, W, H, check_window_boxes, iso_box, iso_pt, outline_layer, rrect
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 
@@ -354,52 +354,108 @@ def sofa(c):
     c.put(104, 116, THROW_DK); c.put(108, 116, THROW_DK); c.put(112, 115, THROW_DK)   # tassels
 
 
+def _part(c, x0, y0, x1, y1, base, lt, dk, out, r=2):
+    """One upholstered part the sofa's way: a rounded block with its OWN 1px outline, a light top
+    line and a darker underside — so each part stays readable where parts overlap."""
+    rrect(c, x0, y0, x1, y1, out, r)
+    rrect(c, x0 + 1, y0 + 1, x1 - 1, y1 - 1, base, max(r - 1, 0))
+    c.hline(x0 + 1 + (1 if r > 1 else 0), x1 - 1 - (1 if r > 1 else 0), y0 + 1, lt)
+    c.hline(x0 + 2, x1 - 2, y1 - 1, dk)
+
+
+def wingback(c, ox, oy, pal=None):
+    """A leather wingback seen from its side, turned to face LEFT toward the sofa: a tall winged
+    back on the right, the seat cushion peeking over a long rolled arm with a scrolled front, the
+    side panel below on turned legs. Built like the sofa — few parts, each outlined, strong
+    light/dark steps — in an oxblood leather that stands off the brown panelling and floor.
+    (ox, oy) = top-left of its 36x41 box; the legs stand on oy + 40."""
+    base, lt, dk, out = pal or (hexc('7a302b'), hexc('9a4a40'), hexc('5a211e'), hexc('2a1210'))
+    X = lambda x: ox + x
+    Y = lambda y: oy + y
+    # legs first — the body covers their tops
+    for lx in (7, 29):
+        c.rect(X(lx), Y(33), X(lx + 1), Y(39), TABLE_LEG)
+        c.put(X(lx), Y(33), hexc('6b4a31'))
+        c.put(X(lx), Y(40), TABLE_LEG)
+    c.rect(X(24), Y(33), X(24), Y(37), shade(TABLE_LEG, 0.8))        # a far leg, set back
+    # BACK: tall, rounded, with the wing flaring forward at the top
+    _part(c, X(22), Y(1), X(33), Y(30), base, lt, dk, out, 3)
+    _part(c, X(19), Y(3), X(25), Y(17), base, lt, dk, out, 2)        # the wing
+    c.vline(X(31), Y(4), Y(28), dk)                                    # the back's rear edge in shade
+    for by in (8, 14, 20):                                             # buttoned piping down the back
+        c.put(X(27), Y(by), dk)
+        c.put(X(28), Y(by - 1), lt)
+    # SEAT CUSHION peeking over the arm (the far side of the seat, seen from a little above)
+    _part(c, X(6), Y(13), X(23), Y(18), lt, shade(lt, 1.12), base, out, 2)
+    # SIDE PANEL: the body under the arm
+    _part(c, X(4), Y(20), X(32), Y(34), base, base, dk, out, 1)
+    c.hline(X(6), X(30), Y(32), dk)
+    c.vline(X(8), Y(22), Y(31), shade(base, 1.1))                      # piping at the front
+    # the ARM: a long bolster with a rolled scroll at the front
+    _part(c, X(2), Y(16), X(29), Y(22), base, lt, dk, out, 3)
+    # the arm's rolled front: a rounded end with a piping seam where the roll meets the arm
+    c.vline(X(6), Y(18), Y(20), dk)
+    c.vline(X(7), Y(18), Y(20), shade(lt, 1.08))
+    c.put(X(3), Y(18), shade(lt, 1.1))
+    # wear: a split along the arm, a scuff on the cushion
+    c.hline(X(15), X(18), Y(17), dk)
+    c.put(X(11), Y(14), shade(lt, 1.2))
+    c.shadow(ox + 19, oy + 40, 19, 2, 110)
+
+
 def armchair(c):
-    """A tufted leather wingback turned three-quarters toward the room (facing front-left, at the
-    sofa). Surfaces read by tone, not light: tops lightest, faces toward us mid, far sides darkest."""
-    c.shadow(270, 115, 21, 3, 110)
-    # far (right) arm, tucked behind
-    c.poly([(281, 94), (290, 92), (291, 101), (283, 104)], CHAIR_DK)
-    c.line(281, 94, 290, 92, CHAIR_OUT); c.vline(291, 92, 101, CHAIR_OUT)
-    # the back: arched top, tufted face
-    back = [(266, 94), (266, 84), (268, 80), (271, 77), (276, 76), (282, 77), (286, 80), (288, 84), (288, 99), (270, 96)]
-    c.poly(back, CHAIR)
-    c.poly([(268, 93), (268, 85), (271, 80), (276, 79), (282, 80), (285, 83), (286, 86), (286, 97), (270, 94)], CHAIR_LT)
-    for (bx, by) in ((272, 83), (278, 84), (283, 86), (272, 88), (278, 89), (283, 91)):   # buttons + creases
-        c.put(bx, by, CHAIR_DK)
-        c.put(bx + 1, by + 1, shade(CHAIR_LT, 1.08))
-    for (x0, y0, x1, y1) in ((266, 84, 268, 80), (268, 80, 271, 77), (271, 77, 276, 76), (276, 76, 282, 77),
-                             (282, 77, 286, 80), (286, 80, 288, 84)):
-        c.line(x0, y0, x1, y1, CHAIR_OUT)
-    c.vline(288, 84, 99, CHAIR_OUT)
-    # the near wing, stepping out toward us from the back's left edge
-    c.poly([(262, 84), (266, 82), (266, 95), (262, 97)], CHAIR_DK)
-    c.line(262, 84, 266, 82, CHAIR_OUT); c.vline(262, 84, 96, CHAIR_OUT)
-    # seat cushion (top lightest) with a rolled front edge
-    c.poly([(254, 99), (268, 95), (284, 99), (271, 103)], CHAIR_HI)
-    c.line(254, 99, 271, 103, shade(CHAIR_HI, 1.1))
-    c.poly([(254, 100), (271, 104), (271, 106), (254, 102)], CHAIR_LT)
-    c.line(271, 103, 284, 99, shade(CHAIR_HI, 0.88))
-    # the seat base under the cushion: front face (toward us) + right face (darker)
-    c.poly([(253, 102), (271, 106), (271, 111), (253, 107)], CHAIR)
-    c.poly([(271, 106), (284, 101), (284, 106), (271, 111)], CHAIR_DK)
-    c.line(253, 107, 271, 111, CHAIR_OUT); c.line(271, 111, 284, 106, CHAIR_OUT)
-    c.vline(284, 99, 106, CHAIR_OUT)
-    # the near (left) arm: top, a scrolled front, and the inner face into the seat
-    c.poly([(253, 96), (266, 90), (266, 95), (254, 101)], CHAIR)                  # inner face
-    c.poly([(249, 93), (262, 88), (266, 90), (253, 96)], CHAIR_HI)                # arm top
-    c.poly([(249, 93), (253, 96), (253, 109), (249, 106)], CHAIR_LT)              # scroll front
-    c.put(250, 95, CHAIR_DK); c.put(251, 96, CHAIR_DK); c.put(251, 97, CHAIR_HI)  # the scroll's curl
-    c.line(249, 93, 262, 88, CHAIR_OUT); c.line(262, 88, 266, 90, CHAIR_OUT)
-    c.vline(249, 93, 106, CHAIR_OUT); c.line(249, 106, 253, 109, CHAIR_OUT)
-    c.vline(253, 97, 108, shade(CHAIR, 0.8))
-    # turned wooden legs
-    for (lx, ly) in ((250, 107), (269, 111), (283, 106)):
-        c.rect(lx, ly, lx + 1, ly + 2, TABLE_LEG)
-        c.put(lx, ly + 3, OUT)
-    # wear: a split on the arm top, scuffed piping on the seat edge
-    c.line(256, 91, 259, 90, CHAIR_DK)
-    c.put(260, 104, shade(CHAIR_HI, 1.15)); c.put(265, 105, shade(CHAIR_HI, 1.15))
+    # (owner round 9: the armchair was problematic — removed; the right side now has a chest of
+    # drawers against the back wall, a set-back scavenge spot like the bookshelf.)
+    pass
+
+
+DRESS = hexc('b3a687')         # a painted dresser, cream gone grey with age
+DRESS_LT = hexc('c6ba9b')
+DRESS_DK = hexc('938767')
+DRESS_OUT = hexc('4a3d2a')
+BRASS = hexc('a8864a')
+
+
+def chest_of_drawers(c):
+    """A painted chest of drawers against the back wall on the right (set back like the bookshelf —
+    a future scavenge spot on the upper plane). Three drawers, one pulled out and rummaged; chipped
+    paint showing the wood; a few things on top kept right of the R window box (x > 270)."""
+    x0, x1, top, base = 256, 294, 68, 101
+    c.shadow(275, base + 1, 21, 2, 90)
+    c.box(x0, top, x1, base - 2, DRESS, DRESS_OUT)
+    c.hline(x0 - 1, x1 + 1, top, DRESS_OUT)                      # the top overhangs a little
+    c.hline(x0, x1, top + 1, DRESS_LT)
+    c.hline(x0 + 1, x1 - 1, top + 3, DRESS_DK)
+    # bun feet
+    for fx in (x0 + 2, x1 - 4):
+        c.rect(fx, base - 1, fx + 2, base, TABLE_LEG)
+    # drawers: two closed, the bottom one pulled out
+    rows = [(top + 5, top + 13), (top + 15, top + 22)]
+    for (ry0, ry1) in rows:
+        c.box(x0 + 2, ry0, x1 - 2, ry1, DRESS, DRESS_DK)
+        c.hline(x0 + 3, x1 - 3, ry0 + 1, DRESS_LT)
+        for hx in (x0 + 10, x1 - 11):
+            c.rect(hx, (ry0 + ry1) // 2, hx + 2, (ry0 + ry1) // 2, BRASS)
+    # the open drawer: its front sits proud, the dark inside shows, clothes spill over the lip
+    c.rect(x0 + 2, top + 24, x1 - 2, top + 25, hexc('2c221a'))
+    c.box(x0 + 1, top + 26, x1 - 1, base - 3, DRESS, DRESS_OUT)
+    c.hline(x0 + 2, x1 - 2, top + 27, DRESS_LT)
+    c.rect(x0 + 14, top + 29, x0 + 16, top + 29, BRASS)
+    c.rect(x1 - 17, top + 29, x1 - 15, top + 29, BRASS)
+    c.poly([(x0 + 6, top + 24), (x0 + 13, top + 23), (x0 + 12, top + 31), (x0 + 8, top + 30)], hexc('6e7f8a'))   # a shirt sleeve
+    c.poly([(x1 - 12, top + 24), (x1 - 5, top + 24), (x1 - 7, top + 28)], hexc('b8a0a8'))                       # a scarf
+    # chipped paint showing wood
+    for (cx_, cy_) in ((x0 + 5, top + 8), (x1 - 6, top + 18), (x0 + 20, top + 12), (x1 - 3, top + 7)):
+        c.put(cx_, cy_, SHELF_HI)
+        c.put(cx_ + 1, cy_, SHELF)
+    # on top (x > 270): a lace runner, a small photo, a vase of dead flowers
+    c.hline(272, 292, top - 1, hexc('d9d0bc'))
+    c.box(274, top - 8, 280, top - 2, FRAME, FRAME_DK)
+    c.rect(276, top - 6, 278, top - 4, hexc('8c8272'))
+    c.box(285, top - 7, 289, top - 1, hexc('5e6f78'), hexc('3b464c'))
+    for (fx, fy) in ((285, top - 12), (287, top - 14), (289, top - 11)):
+        c.line(287, top - 7, fx, fy, LEAF_DEAD[0])
+        c.put(fx, fy, hexc('8a5a4a'))
 
 
 def coffee_table(c):
@@ -450,9 +506,8 @@ def build():
     shifted(c, lamp, -12, 4)
     shifted(c, plant, -10, 3)
     shifted(c, sofa, -10, 3)            # its back stays right of the L window box (x>=95)
-    shifted(c, armchair, 0, 9)          # its back stays right of the R window box (x<=270)
+    chest_of_drawers(c)
     coffee_table(c)
-    shifted(c, floor_box, -8)
     return c
 
 

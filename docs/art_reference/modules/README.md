@@ -22,8 +22,20 @@ in the front of the couch/table/chair. Every script asserts the runtime window b
 (`pixlib.check_window_boxes`) and refuses to write the PNG otherwise.
 
 Status: living room v2 (owner feedback round 9: taller coffee table, everything pulled back off the
-walking line, the blue chair replaced with a leather wingback turned three-quarters toward the room).
+walking line; the armchair was dropped (the owner: "problematic") for a painted CHEST OF DRAWERS on
+the right — a second set-back scavenge spot for the future upper plane; the stray floor box went).
+Style VARIANTS to compare: `python3 tools/art/living_room_variants.py` → `assets/rooms/living_room_
+{b,c,d}.png` (B mid-century, C run-down, D parlour) + the side-by-side `living_room_variants.png`
+here (A-D). Not wired into the game yet (step 3 below).
 Bedroom, kitchen, bathroom, study, dining room: to do in the same style once the look is signed off.
+
+**Module walls (`scripts/module_walls.gd`, built by `room._build_modules`):** the partitions between
+the three modules (with a doorway over the walking lane) and the two end walls (the entrance end
+gets the same doorway, dark beyond) are drawn LIVE in perspective from the camera (horizon y 190),
+so the face you see is always the one turned toward you and flips as you walk through — never a
+painted, half-the-time-inverted wall. Each face samples its OWN module's art at the edge column, so
+wallpaper, rail and skirting continue round the corner for any module or variant with no wiring.
+Visual only (no collision). Locked by `apartment_window_test`.
 
 ## Agreed plan (owner round 9) — in this order, not started beyond step 1
 

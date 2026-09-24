@@ -650,6 +650,7 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 	# The three interior modules + balcony art. `live` also spawns the balcony
 	# descent zone (interactive) — passive backdrops get art only.
 	var layout = WorldState.get_apartment_layout(apartment_id)
+	var built_modules: Array = []
 	for i in range(3):
 		var scene_path: String
 		if WorldState.is_first_run and TUTORIAL_LAYOUTS.has(apartment_id):
@@ -663,6 +664,7 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 		instance.position.y = 224
 		instance.add_to_group("room_module")
 		add_child(instance)
+		built_modules.append(instance)
 		# The module's background ColorRect (+ its Label) is a Control that
 		# defaults to MOUSE_FILTER_STOP, so it swallows every world click over
 		# the apartment — click-to-move dies inside rooms (works in hallways,
@@ -723,6 +725,14 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 			var window = load("res://scripts/apartment_window.gd").new()
 			add_child(window)
 			window.setup(Vector2(wx, MODULE_WINDOW_Y), live)
+
+	# The walls BETWEEN the modules (and at both ends), drawn in live perspective so the flat reads
+	# as the inside of a box and each doorway shows the right face from either side
+	# (scripts/module_walls.gd). Visual only. Added after the modules/windows so it draws over them.
+	var walls = load("res://scripts/module_walls.gd").new()
+	walls.name = "ModuleWalls"
+	add_child(walls)
+	walls.setup(built_modules, float(LEFT_WALL_X), float(MODULE_WIDTH), entrance_side)
 
 	# One storm driver per LIVE night apartment: rain hiss + synced lightning/thunder across
 	# all the windows just built. Skipped on passive backdrops and on day/afternoon runs.
