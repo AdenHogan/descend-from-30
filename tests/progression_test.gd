@@ -45,6 +45,8 @@ func _ready() -> void:
 	await _test_legacy_ui()
 	await _test_game_over_screen()
 	_test_journal_line()
+	_test_desirability_column()
+	_test_perk_luck()
 	# Leave the profile exactly as we found it — no test purchases leak into real play / other suites.
 	WorldState.use_slot(_saved_slot)
 	WorldState.valour = _saved["valour"]
@@ -609,3 +611,127 @@ func _test_journal_line() -> void:
 	check(txt.contains("Rage") and txt.contains("Legacy: Field Medic"), "listed (%s)" % txt.replace("\n", " "))
 	WorldState.run_boons = []
 	WorldState.permanent_perks = []
+
+
+func _test_desirability_column() -> void:
+	print("[every perk carries a desirability 1-5; the perk table doc is generated and current]")
+	var bad: Array = []
+	for id in WorldState.UPGRADE_POOL:
+		var d = WorldState.UPGRADE_POOL[id].get("d", null)
+		if typeof(d) != TYPE_INT or d < 1 or d > 5:
+			bad.append(id)
+	for id in Progression.RUN_BOONS:
+		var d = Progression.RUN_BOONS[id].get("d", null)
+		if typeof(d) != TYPE_INT or d < 1 or d > 5:
+			bad.append(id)
+	check(bad.is_empty(), "no perk is missing its desirability (%s)" % str(bad))
+	var f := FileAccess.open("res://docs/PERKS.md", FileAccess.READ)
+	var doc: String = f.get_as_text() if f != null else ""
+	check(doc == Progression.perk_table_markdown(),
+		"docs/PERKS.md matches the data (stale → run godot --headless res://tools/perk_table.tscn)")
+	check(doc.contains("`U_fortune`") and doc.contains("`B_rage`"), "…and lists merchant upgrades and run boons")
+
+
+# Mean desirability of what a draw hands out, over many seeds.
+func _mean_d(samples: Array) -> float:
+	var t := 0.0
+	for id in samples:
+		t += Progression.desirability(id)
+	return t / maxf(1.0, float(samples.size()))
+
+
+func _test_perk_luck() -> void:
+	print("[Fortune's Favour: offers lean toward desirable perks — still only ever what you selected]")
+	check(is_equal_approx(Progression.desire_weight("U_slot", 0.0), 1.0) and is_equal_approx(Progression.desire_weight("U_db_headslow", 0.0), 1.0),
+		"no luck → every perk weighs the same as before")
+	check(Progression.desire_weight("U_slot", 1.0) > 2.0 and Progression.desire_weight("U_db_headslow", 1.0) < 0.5,
+		"with luck a d5 perk is >2x likelier, a d1 <0.5x")
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	var two: Array = Progression.weighted_draw(rng, ["U_slot"], 3, 1.0)
+	check(two == ["U_slot"], "a short pool gives what it has — no duplicates")
+	var many: Array = Progression.weighted_draw(rng, ["U_slot", "U_heal", "U_push", "U_listen"], 4, 1.0)
+	var uniq := {}
+	for id in many:
+		uniq[id] = true
+	check(many.size() == 4 and uniq.size() == 4, "a full draw never repeats")
+	WorldState.new_game()
+	check(WorldState.get_perk_luck() == 0.0, "a fresh game has no perk luck")
+	WorldState.active_upgrades = ["U_fortune"]
+	check(is_equal_approx(WorldState.get_perk_luck(), 1.0), "Fortune's Favour gives 1")
+	# Merchant pairs: across many games, luck lifts the average desirability offered.
+	var plain: Array = []
+	var lucky: Array = []
+	for n in 150:
+		for with_luck in [false, true]:
+			WorldState.new_game()
+			WorldState.master_seed = 9000 + n
+			WorldState.active_upgrades = ["U_fortune"] if with_luck else []
+			WorldState.upgrade_offers.clear()
+			var pair: Array = WorldState.get_upgrade_pair(25)
+			(lucky if with_luck else plain).append_array(pair)
+	check(_mean_d(lucky) > _mean_d(plain) + 0.25, "merchant pairs lean desirable (d %.2f vs %.2f)" % [_mean_d(lucky), _mean_d(plain)])
+	var dup := false
+	for i in range(0, lucky.size(), 2):
+		dup = dup or lucky[i] == lucky[i + 1] or lucky[i] == "U_fortune" or lucky[i + 1] == "U_fortune"
+	check(not dup, "a lucky pair never repeats itself or offers what you already own")
+	# Boons.
+	var bp: Array = []
+	var bl: Array = []
+	for n in 150:
+		for with_luck in [false, true]:
+			WorldState.new_game()
+			WorldState.master_seed = 7000 + n
+			WorldState.active_upgrades = ["U_fortune"] if with_luck else []
+			(bl if with_luck else bp).append_array(WorldState.boon_offer(22))
+	var boon_ds := {}
+	for id in Progression.RUN_BOONS:
+		boon_ds[Progression.desirability(id)] = true
+	if boon_ds.size() < 2:
+		check(true, "(every boon shares one desirability — nothing for luck to tilt)")
+	else:
+		check(_mean_d(bl) > _mean_d(bp), "boon offers lean desirable (d %.2f vs %.2f)" % [_mean_d(bl), _mean_d(bp)])
+	# The end-of-game offer: ONLY what you selected, tilted toward the coveted.
+	_clear_valour()
+	# The most coveted merchant perk (whatever the owner has rated highest) among five of the least.
+	var by_d: Array = WorldState.UPGRADE_POOL.keys().filter(func(id): return id != "U_fortune")
+	by_d.sort_custom(func(a, b): return Progression.desirability(a) > Progression.desirability(b))
+	var star: String = by_d[0]
+	var picked := [star]
+	picked.append_array(by_d.slice(by_d.size() - 5))
+	var hits_plain := 0
+	var hits_lucky := 0
+	for n in 200:
+		for with_luck in [false, true]:
+			WorldState.new_game()
+			WorldState.active_upgrades = ["U_fortune"] if with_luck else []
+			WorldState.session_perks = picked.duplicate()
+			WorldState._valour_scored_seed = 0
+			WorldState.last_valour = {}
+			WorldState.finish_session()
+			var ok := WorldState.valour_offer.size() == Progression.OFFER_COUNT
+			for id in WorldState.valour_offer:
+				ok = ok and id in picked
+			if not ok:
+				check(false, "the offer is only ever selected perks, 3 of them (%s)" % str(WorldState.valour_offer))
+				_clear_valour()
+				return
+			if star in WorldState.valour_offer:
+				if with_luck:
+					hits_lucky += 1
+				else:
+					hits_plain += 1
+	check(hits_lucky > hits_plain + 20, "the coveted perk (%s) turns up more with luck (%d vs %d of 200)" % [star, hits_lucky, hits_plain])
+	WorldState.new_game()
+	WorldState.active_upgrades = ["U_fortune"]
+	WorldState.session_perks = ["U_slot"]
+	WorldState._valour_scored_seed = 0
+	WorldState.last_valour = {}
+	WorldState.finish_session()
+	check(WorldState.valour_offer == ["U_slot"], "one selected → one offered, even with luck (no padding)")
+	WorldState.permanent_perks = ["U_fortune"]
+	WorldState.active_upgrades = []
+	check(is_equal_approx(WorldState.get_perk_luck(), 1.0), "kept forever, it works in every game")
+	check(Progression.perk_cost("U_fortune") == 400, "…for 400 Valour")
+	_clear_valour()
+	WorldState.save_profile()

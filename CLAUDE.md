@@ -48,6 +48,9 @@ originals — the markdown here is canonical for development):
 - `docs/PROGRESSION.md` — **BUILT v1 (a proposal for the owner to steer)**: all four
   progression tiers in one fold — weapon (workbench), merchant (arc), RUN BOONS (temporary,
   this character) and LEGACY (permanent, the profile). Data in `scripts/progression.gd`.
+- `docs/PERKS.md` — **GENERATED** perk list (every merchant upgrade + run boon: rarity `w`,
+  DESIRABILITY `d` 1-5, Valour price). Don't hand-edit: change the pools, then run
+  `godot --headless res://tools/perk_table.tscn` (progression_test fails if it's stale).
 - `docs/Y_PLANES.md` — **LOCKED reference**: every world-Y plane on a corridor
   floor (the feet line 419, spawn/stand origins, stair triggers, staircase art
   boxes, the player stair-transition slice constants, the stairwell-enemy geometry,
@@ -1236,8 +1239,12 @@ means no rendering — UI layout and art still need an in-editor look.
   panel or brave bonus without one), the special mods and their numbers (20% ignite, +5% per
   heirloom tier, ~6 s weapon burn), and KEEPING "burning enemies hit twice as hard" for weapon-lit
   fire as the fire weapon's risk.
-- Next: still open — whether a perk acquired this session should always be offered once affordable
-  (Valour "targeting"); 3 offered vs 2 and the 50% trade refund; the hammer tree + more specials
+- **Perk targeting + luck (round 6):** the end-of-game offer stays ONLY perks selected that game
+  (owner: farming = replaying); every perk has a DESIRABILITY `d` 1-5 (docs/PERKS.md, generated);
+  the merchant upgrade **Fortune's Favour** (`U_fortune`, `perk_luck`) tilts merchant pairs, boons and
+  the end offer toward high-`d` perks (`Progression.desire_weight`/`weighted_draw`); no luck = the
+  original draws, untouched. Locked by `progression_test`.
+- Next: still open — 3 offered vs 2 and the 50% trade refund; the hammer tree + more specials
   (owner content); balance numbers need a playtest. Also open: **Upgrade offers** polish;
   barricade-keeper NPC; fire smoke/crouch + warning beat.
 - Not started: balcony descent, quests.

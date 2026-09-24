@@ -214,6 +214,9 @@ func boon_offer(floor_num: int) -> Array:
 	pool.sort()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(str(master_seed) + "boon" + str(floor_num) + str(current_run))
+	var luck := get_perk_luck()
+	if luck > 0.0:                          # Fortune's Favour: lean toward the desirable ones
+		return Progression.weighted_draw(rng, pool, 2, luck)
 	var out: Array = []
 	while out.size() < 2 and not pool.is_empty():
 		out.append(pool.pop_at(rng.randi() % pool.size()))
@@ -277,8 +280,13 @@ func finish_session() -> Dictionary:
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
 	valour_offer = []
-	while valour_offer.size() < Progression.OFFER_COUNT and not pool.is_empty():
-		valour_offer.append(pool.pop_at(rng.randi() % pool.size()))
+	var luck := get_perk_luck()
+	if luck > 0.0:
+		# Fortune's Favour: still ONLY perks selected this game — just likelier the coveted ones.
+		valour_offer = Progression.weighted_draw(rng, pool, Progression.OFFER_COUNT, luck)
+	else:
+		while valour_offer.size() < Progression.OFFER_COUNT and not pool.is_empty():
+			valour_offer.append(pool.pop_at(rng.randi() % pool.size()))
 	last_valour = {"runs": runs, "total": total}
 	_valour_scored_seed = master_seed
 	save_profile()
@@ -1981,50 +1989,57 @@ func sell_item(slot_index: int, floor_num: int) -> bool:
 # live in `active_upgrades` (cross-run persistence block).
 #
 # mods entries: {"<stat>": {"mult": x}} and/or {"<stat>": {"add": y}}.
+# `w` = how OFTEN the merchant offers it (rarity weight); `d` = DESIRABILITY 1-5 (owner, round 6 — how
+# much a player wants it: 5 = coveted). `d` only matters under perk luck (Fortune's Favour), which
+# tilts every offer toward high-`d` perks (Progression.desire_weight). Every perk must carry both
+# (progression_test checks); the readable table is docs/PERKS.md (generated — tools/perk_table).
 # Drawbacks simply carry both a beneficial and a costly mod; legibility is
 # absolute — the description states both halves.
 const UPGRADE_POOL = {
 	# ---- Stamina (weighted common — the bread-and-butter pick) ----
-	"U_stam_s": {"name": "Second Wind", "desc": "+15 max stamina", "w": 6, "drawback": false, "mods": {"max_stamina": {"add": 15}}},
-	"U_stam_m": {"name": "Marathoner", "desc": "+30 max stamina", "w": 4, "drawback": false, "mods": {"max_stamina": {"add": 30}}},
-	"U_stam_l": {"name": "Iron Lungs", "desc": "+50 max stamina", "w": 2, "drawback": false, "mods": {"max_stamina": {"add": 50}}},
-	"U_regen_s": {"name": "Quick Recovery", "desc": "+25% stamina regen", "w": 5, "drawback": false, "mods": {"stamina_regen": {"mult": 1.25}}},
-	"U_regen_m": {"name": "Deep Breaths", "desc": "+50% stamina regen", "w": 3, "drawback": false, "mods": {"stamina_regen": {"mult": 1.5}}},
-	"U_sprint_s": {"name": "Efficient Stride", "desc": "-20% sprint stamina cost", "w": 4, "drawback": false, "mods": {"sprint_drain": {"mult": 0.8}}},
-	"U_sprint_m": {"name": "Featherfoot", "desc": "-35% sprint stamina cost", "w": 2, "drawback": false, "mods": {"sprint_drain": {"mult": 0.65}}},
+	"U_stam_s": {"name": "Second Wind", "desc": "+15 max stamina", "w": 6, "d": 2, "drawback": false, "mods": {"max_stamina": {"add": 15}}},
+	"U_stam_m": {"name": "Marathoner", "desc": "+30 max stamina", "w": 4, "d": 3, "drawback": false, "mods": {"max_stamina": {"add": 30}}},
+	"U_stam_l": {"name": "Iron Lungs", "desc": "+50 max stamina", "w": 2, "d": 4, "drawback": false, "mods": {"max_stamina": {"add": 50}}},
+	"U_regen_s": {"name": "Quick Recovery", "desc": "+25% stamina regen", "w": 5, "d": 2, "drawback": false, "mods": {"stamina_regen": {"mult": 1.25}}},
+	"U_regen_m": {"name": "Deep Breaths", "desc": "+50% stamina regen", "w": 3, "d": 3, "drawback": false, "mods": {"stamina_regen": {"mult": 1.5}}},
+	"U_sprint_s": {"name": "Efficient Stride", "desc": "-20% sprint stamina cost", "w": 4, "d": 2, "drawback": false, "mods": {"sprint_drain": {"mult": 0.8}}},
+	"U_sprint_m": {"name": "Featherfoot", "desc": "-35% sprint stamina cost", "w": 2, "d": 3, "drawback": false, "mods": {"sprint_drain": {"mult": 0.65}}},
 	# ---- Inventory (weighted more common per the doc) ----
-	"U_slot": {"name": "Deep Pockets", "desc": "+1 inventory slot", "w": 7, "drawback": false, "mods": {"inventory_slots": {"add": 1}}},
+	"U_slot": {"name": "Deep Pockets", "desc": "+1 inventory slot", "w": 7, "d": 5, "drawback": false, "mods": {"inventory_slots": {"add": 1}}},
 	# ---- Movement ----
-	"U_speed_s": {"name": "Fleet", "desc": "+10% move speed", "w": 4, "drawback": false, "mods": {"move_speed": {"mult": 1.10}}},
-	"U_speed_m": {"name": "Sprinter's Legs", "desc": "+18% move speed", "w": 2, "drawback": false, "mods": {"move_speed": {"mult": 1.18}}},
+	"U_speed_s": {"name": "Fleet", "desc": "+10% move speed", "w": 4, "d": 3, "drawback": false, "mods": {"move_speed": {"mult": 1.10}}},
+	"U_speed_m": {"name": "Sprinter's Legs", "desc": "+18% move speed", "w": 2, "d": 4, "drawback": false, "mods": {"move_speed": {"mult": 1.18}}},
 	# ---- Melee ----
-	"U_melee_s": {"name": "Strong Arm", "desc": "+1 melee damage", "w": 4, "drawback": false, "mods": {"melee_damage": {"add": 1}}},
-	"U_melee_m": {"name": "Crushing Blows", "desc": "+2 melee damage", "w": 2, "drawback": false, "mods": {"melee_damage": {"add": 2}}},
-	"U_push": {"name": "Bruiser", "desc": "+40% push force", "w": 3, "drawback": false, "mods": {"push_force": {"mult": 1.4}}},
+	"U_melee_s": {"name": "Strong Arm", "desc": "+1 melee damage", "w": 4, "d": 3, "drawback": false, "mods": {"melee_damage": {"add": 1}}},
+	"U_melee_m": {"name": "Crushing Blows", "desc": "+2 melee damage", "w": 2, "d": 4, "drawback": false, "mods": {"melee_damage": {"add": 2}}},
+	"U_push": {"name": "Bruiser", "desc": "+40% push force", "w": 3, "d": 2, "drawback": false, "mods": {"push_force": {"mult": 1.4}}},
 	# ---- Guns ----
-	"U_head_s": {"name": "Steady Aim", "desc": "+8% headshot chance", "w": 4, "drawback": false, "mods": {"headshot_bonus": {"add": 0.08}}},
-	"U_head_m": {"name": "Marksman", "desc": "+15% headshot chance", "w": 2, "drawback": false, "mods": {"headshot_bonus": {"add": 0.15}}},
-	"U_acc": {"name": "Trigger Discipline", "desc": "+12% hit (body) chance", "w": 3, "drawback": false, "mods": {"body_bonus": {"add": 0.12}}},
-	"U_mag_s": {"name": "Extended Mag", "desc": "+6 magazine capacity", "w": 3, "drawback": false, "mods": {"mag_capacity": {"add": 6}}},
-	"U_mag_m": {"name": "Drum Mag", "desc": "+12 magazine capacity", "w": 1, "drawback": false, "mods": {"mag_capacity": {"add": 12}}},
+	"U_head_s": {"name": "Steady Aim", "desc": "+8% headshot chance", "w": 4, "d": 2, "drawback": false, "mods": {"headshot_bonus": {"add": 0.08}}},
+	"U_head_m": {"name": "Marksman", "desc": "+15% headshot chance", "w": 2, "d": 4, "drawback": false, "mods": {"headshot_bonus": {"add": 0.15}}},
+	"U_acc": {"name": "Trigger Discipline", "desc": "+12% hit (body) chance", "w": 3, "d": 3, "drawback": false, "mods": {"body_bonus": {"add": 0.12}}},
+	"U_mag_s": {"name": "Extended Mag", "desc": "+6 magazine capacity", "w": 3, "d": 2, "drawback": false, "mods": {"mag_capacity": {"add": 6}}},
+	"U_mag_m": {"name": "Drum Mag", "desc": "+12 magazine capacity", "w": 1, "d": 3, "drawback": false, "mods": {"mag_capacity": {"add": 12}}},
 	# ---- Utility ----
-	"U_listen": {"name": "Keen Ear", "desc": "-30% listen time", "w": 3, "drawback": false, "mods": {"listen_speed": {"mult": 0.7}}},
-	"U_heal": {"name": "Field Medic", "desc": "Healing items restore +1 state", "w": 3, "drawback": false, "mods": {"heal_bonus": {"add": 1}}},
-	"U_scav_s": {"name": "Scavenger", "desc": "+8% scavenge find rate", "w": 4, "drawback": false, "mods": {"scavenge_bonus": {"add": 0.08}}},
-	"U_scav_m": {"name": "Sticky Fingers", "desc": "+15% scavenge find rate", "w": 2, "drawback": false, "mods": {"scavenge_bonus": {"add": 0.15}}},
-	"U_quiet_s": {"name": "Soft Soles", "desc": "-20% movement noise", "w": 4, "drawback": false, "mods": {"noise_mult": {"mult": 0.8}}},
-	"U_quiet_m": {"name": "Ghost", "desc": "-40% movement noise", "w": 2, "drawback": false, "mods": {"noise_mult": {"mult": 0.6}}},
-	"U_tinker": {"name": "Tinkerer", "desc": "Dismantling at a workbench yields 2.5x the scrap", "w": 3, "drawback": false, "mods": {"salvage_yield": {"mult": 2.5}}},
-	"U_nightvision": {"name": "Night Eyes", "desc": "See much further in the dark (matters most at night)", "w": 3, "drawback": false, "mods": {"night_vision": {"add": 1.0}}},
+	"U_listen": {"name": "Keen Ear", "desc": "-30% listen time", "w": 3, "d": 2, "drawback": false, "mods": {"listen_speed": {"mult": 0.7}}},
+	"U_heal": {"name": "Field Medic", "desc": "Healing items restore +1 state", "w": 3, "d": 4, "drawback": false, "mods": {"heal_bonus": {"add": 1}}},
+	"U_scav_s": {"name": "Scavenger", "desc": "+8% scavenge find rate", "w": 4, "d": 3, "drawback": false, "mods": {"scavenge_bonus": {"add": 0.08}}},
+	"U_scav_m": {"name": "Sticky Fingers", "desc": "+15% scavenge find rate", "w": 2, "d": 4, "drawback": false, "mods": {"scavenge_bonus": {"add": 0.15}}},
+	"U_quiet_s": {"name": "Soft Soles", "desc": "-20% movement noise", "w": 4, "d": 2, "drawback": false, "mods": {"noise_mult": {"mult": 0.8}}},
+	"U_quiet_m": {"name": "Ghost", "desc": "-40% movement noise", "w": 2, "d": 4, "drawback": false, "mods": {"noise_mult": {"mult": 0.6}}},
+	"U_tinker": {"name": "Tinkerer", "desc": "Dismantling at a workbench yields 2.5x the scrap", "w": 3, "d": 4, "drawback": false, "mods": {"salvage_yield": {"mult": 2.5}}},
+	"U_nightvision": {"name": "Night Eyes", "desc": "See much further in the dark (matters most at night)", "w": 3, "d": 4, "drawback": false, "mods": {"night_vision": {"add": 1.0}}},
+	# The META perk (owner, round 6): the offers you meet lean toward the perks worth keeping (their
+	# `d` desirability) — merchant pairs, run boons and the end-of-game Valour offer alike.
+	"U_fortune": {"name": "Fortune's Favour", "desc": "Offers lean toward the perks worth keeping", "w": 3, "d": 4, "drawback": false, "mods": {"perk_luck": {"add": 1.0}}},
 	# ---- Drawbacks (rarer; both halves stated — legibility is absolute) ----
-	"U_db_slotstam": {"name": "Pack Mule", "desc": "+1 inventory slot, but -25% max stamina", "w": 2, "drawback": true, "mods": {"inventory_slots": {"add": 1}, "max_stamina": {"mult": 0.75}}},
-	"U_db_glass": {"name": "Glass Cannon", "desc": "+2 melee damage, but -30% max stamina", "w": 2, "drawback": true, "mods": {"melee_damage": {"add": 2}, "max_stamina": {"mult": 0.7}}},
-	"U_db_speedquiet": {"name": "Reckless Dash", "desc": "+20% move speed, but +40% movement noise", "w": 2, "drawback": true, "mods": {"move_speed": {"mult": 1.2}, "noise_mult": {"mult": 1.4}}},
-	"U_db_headslow": {"name": "Aim Down", "desc": "+18% headshot chance, but -20% move speed", "w": 2, "drawback": true, "mods": {"headshot_bonus": {"add": 0.18}, "move_speed": {"mult": 0.8}}},
-	"U_db_quietweak": {"name": "Careful Steps", "desc": "-40% movement noise, but -1 melee damage", "w": 2, "drawback": true, "mods": {"noise_mult": {"mult": 0.6}, "melee_damage": {"add": -1}}},
-	"U_db_scavloud": {"name": "Rummager", "desc": "+15% scavenge rate, but +30% movement noise", "w": 2, "drawback": true, "mods": {"scavenge_bonus": {"add": 0.15}, "noise_mult": {"mult": 1.3}}},
-	"U_db_magstam": {"name": "Loadbearer", "desc": "+12 magazine capacity, but -20% max stamina", "w": 1, "drawback": true, "mods": {"mag_capacity": {"add": 12}, "max_stamina": {"mult": 0.8}}},
-	"U_db_regenslow": {"name": "Adrenaline Junkie", "desc": "+50% stamina regen, but -15% move speed", "w": 2, "drawback": true, "mods": {"stamina_regen": {"mult": 1.5}, "move_speed": {"mult": 0.85}}},
+	"U_db_slotstam": {"name": "Pack Mule", "desc": "+1 inventory slot, but -25% max stamina", "w": 2, "d": 4, "drawback": true, "mods": {"inventory_slots": {"add": 1}, "max_stamina": {"mult": 0.75}}},
+	"U_db_glass": {"name": "Glass Cannon", "desc": "+2 melee damage, but -30% max stamina", "w": 2, "d": 2, "drawback": true, "mods": {"melee_damage": {"add": 2}, "max_stamina": {"mult": 0.7}}},
+	"U_db_speedquiet": {"name": "Reckless Dash", "desc": "+20% move speed, but +40% movement noise", "w": 2, "d": 2, "drawback": true, "mods": {"move_speed": {"mult": 1.2}, "noise_mult": {"mult": 1.4}}},
+	"U_db_headslow": {"name": "Aim Down", "desc": "+18% headshot chance, but -20% move speed", "w": 2, "d": 1, "drawback": true, "mods": {"headshot_bonus": {"add": 0.18}, "move_speed": {"mult": 0.8}}},
+	"U_db_quietweak": {"name": "Careful Steps", "desc": "-40% movement noise, but -1 melee damage", "w": 2, "d": 1, "drawback": true, "mods": {"noise_mult": {"mult": 0.6}, "melee_damage": {"add": -1}}},
+	"U_db_scavloud": {"name": "Rummager", "desc": "+15% scavenge rate, but +30% movement noise", "w": 2, "d": 2, "drawback": true, "mods": {"scavenge_bonus": {"add": 0.15}, "noise_mult": {"mult": 1.3}}},
+	"U_db_magstam": {"name": "Loadbearer", "desc": "+12 magazine capacity, but -20% max stamina", "w": 1, "d": 2, "drawback": true, "mods": {"mag_capacity": {"add": 12}, "max_stamina": {"mult": 0.8}}},
+	"U_db_regenslow": {"name": "Adrenaline Junkie", "desc": "+50% stamina regen, but -15% move speed", "w": 2, "d": 2, "drawback": true, "mods": {"stamina_regen": {"mult": 1.5}, "move_speed": {"mult": 0.85}}},
 }
 
 # Per-visit upgrade offer state (seeded pairs; resolution persists per visit).
@@ -2146,6 +2161,7 @@ func get_sprint_speed_mult() -> float: return _upgrade_stat_mult("sprint_speed")
 func get_enemy_count_mult() -> float: return _upgrade_stat_mult("enemy_count")
 func get_loot_luck() -> float: return _upgrade_stat_add("loot_luck")
 func get_salvage_yield_mult() -> float: return _upgrade_stat_mult("salvage_yield")
+func get_perk_luck() -> float: return maxf(0.0, _upgrade_stat_add("perk_luck"))
 
 
 func get_upgrade_pair(floor_num: int) -> Array:
@@ -2156,6 +2172,17 @@ func get_upgrade_pair(floor_num: int) -> Array:
 		return upgrade_offers[key]["pair"]
 	var rng = RandomNumberGenerator.new()
 	rng.seed = hash(str(master_seed) + "upgrade" + str(floor_num) + str(current_run))
+	var luck := get_perk_luck()
+	if luck > 0.0:
+		# Fortune's Favour: the same rarity weights, tilted toward desirable perks.
+		var candidates: Array = []
+		for id in UPGRADE_POOL:
+			if not (id in active_upgrades or id in permanent_perks):
+				candidates.append(id)
+		var lucky: Array = Progression.weighted_draw(rng, candidates, 2, luck,
+			func(id): return float(UPGRADE_POOL[id]["w"]))
+		upgrade_offers[key] = {"pair": lucky, "resolved": false}
+		return lucky
 	var pool: Array = []
 	for id in UPGRADE_POOL:
 		if id in active_upgrades or id in permanent_perks:   # a permanent perk is always on
