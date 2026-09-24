@@ -55,5 +55,30 @@ func _ready() -> void:
 	check(started and player.is_switching_mode, "mode button starts a scavenge↔combat switch")
 	player.queue_free()
 
+	_test_variant_anchor_pools()
+
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
+
+
+func _test_variant_anchor_pools() -> void:
+	# A module ART VARIANT puts its own nodes on its own furniture under names of its own. The loot
+	# pool used to come ONLY from a fixed per-type name list, so a new name silently held nothing.
+	# The room now passes the module's room type; the built-in names must get the SAME pools as before.
+	print("[variant nodes get their room's loot pool]")
+	WorldState.new_game()
+	var apt := "1504"
+	var layout: Array = WorldState.get_apartment_layout(apt)
+	var rt: String = layout[0]
+	var novel := WorldState.get_items_for_anchor("anchor_variant_new_spot", apt, rt)
+	check(WorldState.get_items_for_anchor("anchor_variant_new_spot", apt).is_empty(),
+		"a name the fixed list doesn't know has no pool by name alone (the old trap)")
+	check(not novel.is_empty(), "…but with its module's room type (%s) it gets that room's pool (%d)" % [rt, novel.size()])
+	var same := true
+	for t in layout:
+		for a in WorldState.get_anchors_for_room(t):
+			if WorldState.get_items_for_anchor(a, apt) != WorldState.get_items_for_anchor(a, apt, t):
+				same = false
+			if WorldState.get_items_for_anchor_weighted(a, apt, 2) != WorldState.get_items_for_anchor_weighted(a, apt, 2, t):
+				same = false
+	check(same, "every built-in node gets exactly the same pool as before (layout %s)" % str(layout))

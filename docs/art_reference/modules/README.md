@@ -57,6 +57,17 @@ docs/Y_PLANES.md §1.
    and saved by name — `anchor_right_chair` now sits on the drawers).
 3. Build ~5 VARIANTS per module (different furniture / arrangement / decay) so a room type never
    looks the same twice — seeded per apartment like the layouts.
+   **Nodes are seed-dependent and belong to the variant** (owner round 9): each variant scene
+   carries its OWN `Marker2D` nodes on its OWN furniture (a mid-century room with a TV console has a
+   TV node, not a chair node). Per apartment, `room.gd` shuffles that module's markers with a seed of
+   `master_seed + apartment + room type` and activates `ANCHOR_RANGES[type]` of them (living room
+   2-5, clamped to however many the variant has) — so NOT every node spawns, and which ones do
+   follows the seed. Two different living rooms therefore show different node sets from their
+   different furniture; with the same marker count/order they may happen to pick the same slots —
+   either is fine by design. A variant may use NEW node names: the room passes the module's room
+   type to the loot lookup (`get_items_for_anchor(name, apt, room_type)`), so a new name gets the
+   room's pool (before, only the fixed per-type name list did — a new name held nothing). Locked
+   by `loot_test._test_variant_anchor_pools`.
 4. A second, deeper **scavenge Y plane**: pressing E on a node set back in the room (the bookshelf)
    walks the player UP into the scene to it, searches, and steps back down to the walking line —
    purely visual, not a movement plane. Enemies could stand on that upper plane and come down to

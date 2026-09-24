@@ -3642,8 +3642,12 @@ func luck_weight(rarity: int) -> float:
 	return lerpf(1.0, float(LUCK_RARITY_WEIGHT.get(rarity, 1.0)), luck)
 
 
-func get_items_for_anchor(anchor_name: String, apartment_id: String) -> Array:
-	var room_type = get_room_type_for_anchor(anchor_name, apartment_id)
+func get_items_for_anchor(anchor_name: String, apartment_id: String, room_type: String = "") -> Array:
+	# room_type: the module the node lives in, when the caller knows it (room.gd does). A module ART
+	# VARIANT places its own nodes on its own furniture under names of its own, which the fixed
+	# per-type name list below can't know — without this they'd silently never hold loot.
+	if room_type == "":
+		room_type = get_room_type_for_anchor(anchor_name, apartment_id)
 	if room_type == "":
 		return []
 	var valid_items = []
@@ -3685,8 +3689,8 @@ func get_items_for_anchor(anchor_name: String, apartment_id: String) -> Array:
 # in the fight, so weight the pool toward weapons and bullets, and thin out junk.
 # `tier` scales the effect: 0 = quiet room (no change), 1-3 = increasing density.
 # Deterministic — only changes pool contents, not the RNG draw sequence at the call site.
-func get_items_for_anchor_weighted(anchor_name: String, apartment_id: String, tier: int) -> Array:
-	var base = get_items_for_anchor(anchor_name, apartment_id)
+func get_items_for_anchor_weighted(anchor_name: String, apartment_id: String, tier: int, room_type: String = "") -> Array:
+	var base = get_items_for_anchor(anchor_name, apartment_id, room_type)
 	if tier <= 0 or base.is_empty():
 		return base
 

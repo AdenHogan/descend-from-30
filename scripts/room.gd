@@ -937,7 +937,7 @@ func _after_modules_ready() -> void:
 				if passed_spawn_roll and not already_searched:
 					WorldState.set_anchor_key(apartment_id, anchor.name, key_target)
 			else:
-				var valid_items = WorldState.get_items_for_anchor_weighted(anchor.name, apartment_id, density_tier)
+				var valid_items = WorldState.get_items_for_anchor_weighted(anchor.name, apartment_id, density_tier, room_type)
 				if valid_items.is_empty():
 					continue
 				var item_id = valid_items[apt_rng_items.randi() % valid_items.size()]
