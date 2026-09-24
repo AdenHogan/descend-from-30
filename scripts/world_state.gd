@@ -265,7 +265,7 @@ func finish_session() -> Dictionary:
 		var deepest: int = 0 if escaped else int(e.get("deepest_floor", 30))
 		var quests: int = int(e.get("quests_completed", 0))
 		var npcs: int = int(e.get("npcs_aided", 0))
-		var v: int = Progression.valour_for_run(deepest, escaped, quests, npcs, bool(e.get("braved", false)))
+		var v: int = Progression.valour_for_run(deepest, escaped, quests, npcs, _door_valour_of(e))
 		total += v
 		runs.append({"run": i + 1, "character": String(e.get("character", "")), "deepest": deepest,
 			"escaped": escaped, "quests": quests, "npcs": npcs, "valour": v})
@@ -315,8 +315,10 @@ func decline_valour_offer() -> void:
 
 
 # --- THE DOOR STASH (owner, round 3 — "a little like the Arc Raiders safe pocket") -----------
-# Pressing to leave the lobby door, an escaping character chooses: TAKE EVERYTHING and brave the
-# unknown (+VALOUR_BRAVE_BONUS Valour), or LEAVE ONE item by the door. A left item is STASHED FOR A
+# Pressing to leave the lobby door, an escaping character's kit is SCRAPPED AT THE DOOR for Valour
+# (Progression.door_valour — every weapon's worth by level, + DOOR_BRAVE_BONUS for leaving nothing
+# behind: "brave the unknown"), or they LEAVE ONE item by the door, forfeiting that item's worth and
+# the brave bonus (round 4: "a real hard choice"). A left item is STASHED FOR A
 # FUTURE GAME SESSION — never handed to the next characters of THIS session. The next game's first
 # character gets it free from the shopkeeper at their first merchant visit (floor 25), right after
 # that visit's upgrade pick. It keeps its full state (level, perks, durability — an upgraded
@@ -367,13 +369,26 @@ func commit_door_stash() -> void:
 
 
 func _handoff_label(inst) -> String:
-	return inst.get_display_name() + (" Lv%d" % inst.level if inst.level > 1 else "")
+	return inst.get_display_name() + (" " + inst.tier_label() if inst.level > 1 else "")
 
 
-# This escaping character took EVERYTHING out (left nothing by the door) — braved the unknown.
-func note_braved() -> void:
+# THE DOOR, scored: the escaping character's kit (what's still in the pockets — a stashed item has
+# already left them) is scrapped for Valour; `braved` (nothing left by the door) adds the brave
+# bonus. Recorded in the chronicle for finish_session + the white card. Returns the Valour.
+func note_door_scrap(braved: bool) -> int:
 	_ensure_chronicle()
-	run_chronicle[clampi(current_run - 1, 0, 2)]["braved"] = true
+	var e: Dictionary = run_chronicle[clampi(current_run - 1, 0, 2)]
+	var v: int = Progression.DOOR_BRAVE_BONUS if braved else 0
+	var melted: Array = []
+	for inst in inventory:
+		var w: int = Progression.door_worth(inst)
+		if w > 0:
+			v += w
+			melted.append(inst.get_display_name())
+	e["braved"] = braved
+	e["door_valour"] = v
+	e["door_scrapped"] = melted
+	return v
 
 
 func handoff_pending() -> bool:
@@ -388,6 +403,7 @@ func collect_handoff_gifts() -> Dictionary:
 	var still: Array = []
 	for data in handoff_items:
 		var inst = instance_from_dict(data)
+		inst.crossings += 1                 # it came through the lobby door into a later game
 		if add_instance_to_inventory(inst):
 			out["given"].append(_handoff_label(inst))
 		else:
@@ -439,7 +455,9 @@ func _blank_chronicle_entry(character: String = "") -> Dictionary:
 		"quests_completed": 0,     # Descent Valour counts these (docs/PROGRESSION.md)
 		"npcs_aided": 0,
 		"left_behind": "",         # the item they left by the door when they escaped (display name)
-		"braved": false,           # escaped carrying everything out → the Valour bonus
+		"braved": false,           # escaped leaving nothing by the door → the brave bonus
+		"door_valour": 0,          # what their kit scrapped for at the door (Progression.door_valour)
+		"door_scrapped": [],       # the weapons that melted
 	}
 
 
@@ -495,13 +513,23 @@ func run_summary(left_behind: String = "") -> Array:
 		out.append(["Quests completed", str(q)])
 	if n > 0:
 		out.append(["Residents aided", str(n)])
-	var braved: bool = bool(e.get("braved", false))
-	if braved:
-		out.append(["Braved the unknown", "carried everything out"])
-	out.append(["Descent Valour", "+%d" % Progression.valour_for_run(0, true, q, n, braved)])
+	var door: int = _door_valour_of(e)
+	if bool(e.get("braved", false)):
+		out.append(["Braved the unknown", "left nothing behind"])
+	var melted: Array = Array(e.get("door_scrapped", []))
+	if not melted.is_empty():
+		out.append(["Scrapped at the door", ", ".join(PackedStringArray(melted.slice(0, 2))) + (" +%d more" % (melted.size() - 2) if melted.size() > 2 else "")])
 	if left_behind != "":
 		out.append(["Left by the door", left_behind + " (for your next game)"])
+	out.append(["Descent Valour", "+%d" % Progression.valour_for_run(0, true, q, n, door)])
 	return out
+
+
+# A chronicle entry's door Valour (an older save recorded only "braved": score it as the bonus).
+func _door_valour_of(e: Dictionary) -> int:
+	if e.has("door_valour"):
+		return int(e["door_valour"])
+	return Progression.DOOR_BRAVE_BONUS if bool(e.get("braved", false)) else 0
 
 
 func note_floor_reached(floor_num: int) -> void:
@@ -1654,31 +1682,106 @@ func salvage_item(slot: int) -> int:
 	return gained
 
 
-# THE WORKBENCH ACTION: level the weapon in `slot` up by one, taking `perk_id` (one of its two
-# offered perks). Spends the scrap and consumes the spare copy the step needs; the weapon keeps
-# every perk it already had. Returns "" on success, else the reason it can't.
-func upgrade_weapon(slot: int, perk_id: String) -> String:
+# THE WORKBENCH ACTION: level the weapon in `slot` up by one. `perk_id` is one of its two offered
+# perks when it has a tree ("" when that level has none). Spends the scrap (an heirloom step's
+# scrap was already paid in instalments — forge_heirloom) and consumes the spare the step needs;
+# the weapon keeps every perk + tuning it had and gains POINTS_PER_LEVEL tuning points. Reaching
+# Lv4 makes it LEGENDARY: it earns a title. Returns "" on success, else the reason it can't.
+func upgrade_weapon(slot: int, perk_id: String = "") -> String:
 	if slot < 0 or slot >= inventory.size():
 		return "Nothing there."
 	var inst = inventory[slot]
 	var chk: Dictionary = WeaponUpgrades.check(inst, inventory, scrap)
 	if not chk["ok"]:
 		return chk["reason"]
-	if not (perk_id in WeaponUpgrades.next_choices(inst)):
+	var choices: Array = WeaponUpgrades.next_choices(inst)
+	if not choices.is_empty() and not (perk_id in choices):
 		return "Pick one of the two upgrades."
+	if choices.is_empty():
+		perk_id = ""
 	var base_max: int = inst.get_max_durability()
-	scrap -= int(chk["scrap"])
-	var feed: int = int(chk["feed_index"])
-	if feed >= 0:
-		inventory.remove_at(feed)       # stripped for parts (its own state is discarded)
-	inst.level += 1
-	inst.perks.append(perk_id)
-	# A durability perk takes effect at once: the new headroom is added to what's left.
+	var to: int = inst.level + 1
+	if chk["heirloom"]:
+		inst.forge_paid = maxi(0, inst.forge_paid - int(WeaponUpgrades.step_cost(to)["scrap"]))
+	else:
+		scrap -= int(chk["scrap"])
+		var feed: int = int(chk["feed_index"])
+		if feed >= 0:
+			inventory.remove_at(feed)       # stripped for parts (its own state is discarded)
+	inst.level = to
+	if perk_id != "":
+		inst.perks.append(perk_id)
+	_apply_durability_headroom(inst, base_max)
+	if inst.level >= WeaponUpgrades.LEGENDARY_LEVEL and inst.title == "":
+		inst.title = WeaponUpgrades.generate_title(inst,
+			str(master_seed) + "title" + inst.item_id + str(current_run) + str(inst.perks) + str(inst.tuning))
+		inst.forged_by = "%s:%d" % [current_character(), current_run]
+		add_run_trace("Forged %s" % inst.get_display_name())
+	HUD.update_scrap()
+	HUD.refresh_inventory()
+	return ""
+
+
+# A durability boost (perk or tuning) takes effect at once: the new headroom is added to what's left.
+func _apply_durability_headroom(inst, base_max: int) -> void:
 	var new_max: int = inst.get_max_durability()
 	if new_max > base_max and base_max > 0:
 		inst.current_durability += new_max - base_max
 		inst.is_depleted = inst.current_durability <= 0
+
+
+# TUNING: put points into the weapon's own stat sheet. `alloc` = {stat id: ranks to add}. All or
+# nothing — "" on success, else why not (WeaponUpgrades.tuning_error). Points, once set, are set.
+func tune_weapon(slot: int, alloc: Dictionary) -> String:
+	if slot < 0 or slot >= inventory.size():
+		return "Nothing there."
+	var inst = inventory[slot]
+	var err: String = WeaponUpgrades.tuning_error(inst, alloc)
+	if err != "":
+		return err
+	var base_max: int = inst.get_max_durability()
+	for id in alloc:
+		if int(alloc[id]) > 0:
+			inst.tuning[id] = int(inst.tuning.get(id, 0)) + int(alloc[id])
+	_apply_durability_headroom(inst, base_max)
+	HUD.refresh_inventory()
+	return ""
+
+
+# HEIRLOOM INSTALMENT: pour up to `amount` scrap into a legendary weapon's next heirloom tier. The
+# scrap rides the weapon (forge_paid) — lose the weapon, lose it. Paid in full AND crossed the door
+# enough times → the tier completes at once. Returns "" on success, else why not.
+func forge_heirloom(slot: int, amount: int) -> String:
+	if slot < 0 or slot >= inventory.size():
+		return "Nothing there."
+	var inst = inventory[slot]
+	if not WeaponUpgrades.can_upgrade(inst.item_id) or inst.level < WeaponUpgrades.LEGENDARY_LEVEL:
+		return "Only a legendary weapon can be forged further."
+	if inst.level >= WeaponUpgrades.MAX_LEVEL:
+		return "Fully upgraded."
+	var owed: int = int(WeaponUpgrades.step_cost(inst.level + 1)["scrap"]) - inst.forge_paid
+	var pay: int = mini(mini(amount, scrap), owed)
+	if owed > 0 and pay <= 0:
+		return "No scrap to put in."
+	inst.forge_paid += maxi(0, pay)
+	scrap -= maxi(0, pay)
 	HUD.update_scrap()
+	if WeaponUpgrades.check(inst, inventory, scrap)["ok"]:
+		return upgrade_weapon(slot, "")
+	return ""
+
+
+# Rename a legendary weapon. "" on success, else why not.
+func rename_weapon(slot: int, text: String) -> String:
+	if slot < 0 or slot >= inventory.size():
+		return "Nothing there."
+	var inst = inventory[slot]
+	if inst.level < WeaponUpgrades.LEGENDARY_LEVEL:
+		return "Only a legendary weapon earns a name."
+	var t: String = WeaponUpgrades.clean_title(text)
+	if t == "":
+		return "Give it a name (letters and numbers)."
+	inst.title = t
 	HUD.refresh_inventory()
 	return ""
 
@@ -4231,6 +4334,11 @@ func instance_to_dict(instance) -> Dictionary:
 		"shots_since_mark": instance.shots_since_mark,
 		"level": instance.level,
 		"perks": instance.perks.duplicate(),
+		"tuning": instance.tuning.duplicate(),
+		"title": instance.title,
+		"forged_by": instance.forged_by,
+		"crossings": instance.crossings,
+		"forge_paid": instance.forge_paid,
 	}
 
 
@@ -4245,6 +4353,18 @@ func instance_from_dict(entry: Dictionary) -> ItemInstance:
 	instance.is_damaged = bool(entry.get("is_damaged", false))
 	instance.level = int(entry.get("level", 1))
 	instance.perks = Array(entry.get("perks", []))
+	# JSON brings numbers back as floats: tuning ranks are ints.
+	var tun: Dictionary = {}
+	var raw_tuning = entry.get("tuning", {})
+	if raw_tuning is Dictionary:
+		for id in raw_tuning:
+			if WeaponUpgrades.STATS.has(String(id)) and int(raw_tuning[id]) > 0:
+				tun[String(id)] = int(raw_tuning[id])
+	instance.tuning = tun
+	instance.title = String(entry.get("title", ""))
+	instance.forged_by = String(entry.get("forged_by", ""))
+	instance.crossings = int(entry.get("crossings", 0))
+	instance.forge_paid = int(entry.get("forge_paid", 0))
 	instance.shots_since_mark = int(entry.get("shots_since_mark", 0))
 	# Guns had no durability before they wore (-1 = "runs on ammo"): an old save's gun is as new.
 	if instance.current_durability < 0 and instance.get_max_durability() > 0:

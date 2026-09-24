@@ -65,6 +65,69 @@
   back at full durability, an upgraded one would have come back Lv1, broken ones vanished.)
 - **Still open:** merchant-sold pre-upgraded
   weapons; more weapon trees; real bench art; balance numbers (playtest).
+
+## What's built (v2): make it YOURS — tuning, legendary names, heirlooms
+
+Owner, round 4: *"re-look at weapons so players can really add their own stats within scope, so
+upgraded weapons feel like their own. At legendary those weapons get a cool title so they feel
+personal"* + *"legendary +++ tiers that really make these weapons sing if you can keep hold of
+them… like a new game plus, certain upgrades can only happen there"*. All data in
+`WeaponUpgrades` (`weapon_upgrades.gd`); locked by `weapon_upgrade_test`.
+
+- **Seven levels.** Lv1-3 ordinary → **Lv4 LEGENDARY** → **Lv5/6/7 = Legendary + / ++ / +++**
+  (heirloom tiers). `WeaponUpgrades.tier_name` / `ItemInstance.tier_label` ("Legendary +") /
+  `tier_tag` (HUD slot: "Lv2", "LEG", "LEG++").
+- **Every weapon levels now** (knife, sword, gun, golf club, cricket bat, baseball bat, aluminium
+  bat, hammer — `WeaponUpgrades.KIND`). A weapon WITH a perk tree (gun, hammer) still picks one of
+  two perks at Lv2-4; one without levels on tuning alone (trees for the others are future content).
+- **Feed by FAMILY** (so a rare sword or bat can reach legendary at all): a Lv3/Lv4 step strips a
+  spare of the same weapon OR the same melee family — **blades** (knife, sword) / **blunt** (hammer,
+  golf club, cricket bat, baseball bat, aluminium bat). The gun still needs a gun (the owner's
+  spec). An exact copy is preferred at the same level; a **legendary is never fed**.
+- **TUNING — the weapon's own stat sheet.** Every level-up grants **2 points** (`POINTS_PER_LEVEL`:
+  6 by Legendary, 12 by +++). The player spends them at the bench's **Tune** tab (stage with − / +,
+  then **Set in steel** — points are permanent; no respec, so the build is theirs). Each stat has
+  a **cap** (the "within scope"), and **each heirloom tier lifts every cap by one** — the crazy
+  numbers exist only on heirlooms. Applied through the same per-weapon fold as perks
+  (`ItemInstance.perk_add/perk_mult` now sum tuning ranks too), so combat reads one number.
+
+  | Melee stat | Per rank | Cap (Lv≤4) | Gun stat | Per rank | Cap |
+  |---|---|---|---|---|---|
+  | Weight | +1 damage | 1 | Sights | +4% head + body hit | 3 |
+  | Edge | +4% chance to drop an ordinary enemy | 3 | Magazine | +2 rounds | 3 |
+  | Reach | +6 px reach | 3 | Oiled | wears 25% slower | 4 |
+  | Handling | swing recovers 8% faster | 3 | Hand-loaded | +5% free shot | 3 |
+  | Balance | swing −10% stamina | 3 | | | |
+  | Temper | +25% durability | 4 | | | |
+
+  Reach and Handling are NEW combat hooks (`player._do_melee_attack`: range + `perk_add("reach")`,
+  cooldown × `perk_mult("cooldown")`); the rest reuse the perk stats.
+- **LEGENDARY names.** Reaching Lv4 draws a **title** from a word bank keyed by what the weapon is
+  best at — its highest-ranked tuning, else its latest perk's flavour (`title_theme`,
+  `TITLE_BANKS`: Weight → "Widowmaker", "Bonebreaker"…; Reach → "Long Goodbye"…; Silencer →
+  "Lullaby"…; Bigger Bang → "Housewarming"…). It reads **Hammer "Widowmaker"** everywhere
+  (`get_display_name`), remembers who forged it (`forged_by`, shown on the bench: "Forged by X,
+  afternoon"), leaves a trace in the chronicle, and **the player can rename it** on the Tune tab
+  (`rename_weapon`; printable ASCII for the pixel font, 18 chars).
+- **HEIRLOOM tiers — the new game plus.** Beyond Legendary a weapon needs to have **crossed the
+  lobby door** — been left by the door at an escape and collected from the shopkeeper in a LATER
+  game — **1 / 2 / 3 times** for + / ++ / +++ (`crossings`, counted when the shopkeeper hands it
+  over). So +++ takes at least four games with the same weapon. Scrap is paid in **INSTALMENTS
+  that ride the weapon** (`forge_paid`; bench **Upgrade** tab becomes "THE HEIRLOOM FORGE": Put in
+  25 / Put in all I can) — any character holding it can add to it, even before it has crossed, and
+  the tier completes the moment it's paid AND crossed (`forge_heirloom`). **Lose the weapon, lose
+  the investment** — the keep-hold-of-it tension. Costs `HEIRLOOM`: **+ 400 / ++ 500 / +++ 600**,
+  sized against the measured income below (each about two to three characters' scrap).
+- **Salvage** now refunds 40% of EVERYTHING sunk in (`scrap_sunk`: levels + heirloom tiers +
+  instalments). **At the door** a weapon is worth Valour by level (docs/PROGRESSION.md "The door").
+- **Measured scrap income** (`tools/economy_report.tscn` — builds every apartment on every floor
+  with the real loot rolls; `-- --seeds=N`, slow — ~25 min a seed): the whole building holds
+  **~630 scrap in run 1, ~1,090 in run 2** (more charred ruins as the fire climbs) **and ~420 in
+  run 3**, i.e. 3-7 per apartment, + ~27 in the maintenance rooms. A character who searches ~45
+  apartments on the way down (1-2 a floor) finds **~200**. So Lv1 → Legendary (230 + spares) is
+  one thorough character; each heirloom tier is two to three. (One seed measured; the run-1 figure
+  matched a second partial run. Treat it as a ceiling-based estimate until a playtest logs real
+  hauls.)
 >
 > Ties into: `STORE_DESIGN.md` (upgrades/economy), the fire hazard
 > (`CLAUDE.md` Hazard 3), `THREE_RUN_ARC.md` (escalation across runs), and

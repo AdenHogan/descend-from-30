@@ -66,10 +66,7 @@ static func value_of(inst) -> int:
 	if inst.is_damaged:
 		v *= DAMAGED_GUN
 	v *= maxi(1, inst.count)
-	var invested := 0
-	for lvl in range(2, inst.level + 1):
-		invested += int(WeaponUpgrades.step_cost(lvl).get("scrap", 0))
-	v += invested * INVESTED_REFUND
+	v += WeaponUpgrades.scrap_sunk(inst) * INVESTED_REFUND     # levels, heirloom tiers, instalments
 	return maxi(1, int(round(v * yield_mult())))
 
 

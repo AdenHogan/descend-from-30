@@ -90,8 +90,8 @@ func _build_offer() -> void:
 	var offer: Array = WorldState.valour_offer
 	var total: int = int(WorldState.last_valour.get("total", 0))
 	var head := label("", 13, INK)
+	head.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART   # before the size, or it grows to one line
 	head.size = Vector2(_body.size.x, 40)
-	head.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_body.add_child(head)
 	if offer.is_empty():
 		head.text = "No perks on offer.\n\nAt the end of a three-run session you're offered perks your characters picked up along the way — keep one forever with Descent Valour."
@@ -105,8 +105,10 @@ func _build_offer() -> void:
 		var d: Dictionary = Progression.perk_info(id)
 		var cost: int = int(d.get("cost", 0))
 		var kind := "Run boon" if d.get("kind", "") == "boon" else "Merchant upgrade"
+		var short := maxi(0, cost - WorldState.valour)
 		var b := choice_button(String(d.get("name", id)),
-			"%s\n\n%s\n\nKeep forever — %d Valour" % [d.get("desc", ""), kind, cost], cw, 170)
+			"%s\n\n%s\n\nKeep forever — %d Valour%s" % [d.get("desc", ""), kind, cost,
+				("\n(%d to go)" % short) if short > 0 else ""], cw, 170)
 		b.position = Vector2(i * (cw + 12.0), 40)
 		b.size = Vector2(cw, 170)
 		b.disabled = WorldState.valour < cost and WorldState.permanent_perks.size() < Progression.PERMANENT_CAP
@@ -173,8 +175,8 @@ func decline() -> void:
 func _build_collection() -> void:
 	if WorldState.permanent_perks.is_empty():
 		var none := label("Nothing kept yet.\n\nFinish a three-run session and spend Descent Valour on a perk you found — it stays with every new game in this save.", 13, DIM)
-		none.size = Vector2(_body.size.x, 120)
 		none.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		none.size = Vector2(_body.size.x, 120)
 		_body.add_child(none)
 		return
 	var grid := GridContainer.new()                   # name | what it does | trade out — aligned

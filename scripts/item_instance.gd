@@ -17,6 +17,16 @@ var shots_since_mark: int = 0
 # modifier fold below — never by writing stats directly. Rules/perks: WeaponUpgrades.
 var level: int = 1
 var perks: Array = []
+# Tuning (docs/SCRAP_UPGRADES.md "Tuning"): the points the player put into this weapon's own stat
+# sheet — {stat id: ranks}. WeaponUpgrades.STATS says what each rank does.
+var tuning: Dictionary = {}
+# Legendary (Lv4+): its TITLE ("Widowmaker" — generated, renamable) and who forged it.
+var title: String = ""
+var forged_by: String = ""          # "<character id>:<run>" when it became legendary
+# Heirloom (Lv5-7): times it crossed the lobby door into a later game, and scrap already paid
+# toward its next heirloom tier (instalments ride the weapon).
+var crossings: int = 0
+var forge_paid: int = 0
 
 const MAG_CAP = 18          # Met-issue Glock: 17+1
 const MAG_CAP_DAMAGED = 10
@@ -49,10 +59,14 @@ func get_mag_cap() -> int:
 
 
 # --- the per-weapon modifier fold (base × ∏mult + Σadd) -----------------------------
+# Two sources: the perks picked on the way up (each a flat add / a multiplier) and the tuning
+# ranks (each rank adds `add`, or moves the multiplier by `mult` — ×(1 + ranks × mult)).
 func perk_add(stat: String) -> float:
 	var total := 0.0
 	for p in perks:
 		total += float(WeaponUpgrades.perk(p).get("mods", {}).get(stat, {}).get("add", 0.0))
+	for id in tuning:
+		total += int(tuning[id]) * float(WeaponUpgrades.stat(id).get("mods", {}).get(stat, {}).get("add", 0.0))
 	return total
 
 
@@ -60,6 +74,10 @@ func perk_mult(stat: String) -> float:
 	var total := 1.0
 	for p in perks:
 		total *= float(WeaponUpgrades.perk(p).get("mods", {}).get(stat, {}).get("mult", 1.0))
+	for id in tuning:
+		var step := float(WeaponUpgrades.stat(id).get("mods", {}).get(stat, {}).get("mult", 0.0))
+		if step != 0.0:
+			total *= maxf(0.1, 1.0 + int(tuning[id]) * step)
 	return total
 
 
@@ -101,7 +119,23 @@ func get_display_name() -> String:
 	var data = get_data()
 	if data.get("is_key", false) and target_apartment != "":
 		return "Key — Apt " + target_apartment
+	if title != "":
+		return '%s "%s"' % [data.get("name", "Unknown"), title]
 	return data.get("name", "Unknown")
+
+
+# The level as a player reads it: "", "Lv2", "Lv3", "Legendary", "Legendary +" … "+++".
+func tier_label() -> String:
+	return "" if level <= 1 else WeaponUpgrades.tier_name(level)
+
+
+# Short form for the HUD slot tag: "Lv2", "Lv3", "LEG", "LEG+" … "LEG+++".
+func tier_tag() -> String:
+	if level <= 1:
+		return ""
+	if level < WeaponUpgrades.LEGENDARY_LEVEL:
+		return "Lv%d" % level
+	return "LEG" + "+".repeat(level - WeaponUpgrades.LEGENDARY_LEVEL)
 
 
 func get_data() -> Dictionary:

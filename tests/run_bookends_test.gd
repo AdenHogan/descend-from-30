@@ -264,13 +264,18 @@ func _test_escape_guard_and_summary() -> void:
 	check(not rows.has("Residents aided"), "a fact that didn't happen isn't listed")
 	check(String(rows.get("Left by the door", "")).begins_with("Hammer Lv3") and not rows.has("Braved the unknown"),
 		"the stashed item (for the next game), no brave row")
-	WorldState.note_braved()
+	var knife := ItemInstance.new()
+	knife.setup("001")
+	WorldState.inventory = [knife]
+	var door: int = WorldState.note_door_scrap(true)
 	var plain := {}
 	for r in WorldState.run_summary():
 		plain[r[0]] = r[1]
 	check(not plain.has("Left by the door"), "nothing left → no stash row")
-	check(plain.has("Braved the unknown") and plain.get("Descent Valour") == "+%d" % Progression.valour_for_run(0, true, 1, 0, true),
-		"took everything → the brave row + its Valour")
+	check(plain.has("Braved the unknown") and String(plain.get("Scrapped at the door", "")).contains("Knife"),
+		"left nothing → the brave row + what was scrapped (%s)" % str(plain))
+	check(door == Progression.DOOR_BRAVE_BONUS + Progression.DOOR_WORTH[1]
+		and plain.get("Descent Valour") == "+%d" % Progression.valour_for_run(0, true, 1, 0, door), "…and its Valour (+%d at the door)" % door)
 
 
 func _lobby_with_player() -> Array:

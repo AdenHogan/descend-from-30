@@ -21,7 +21,7 @@ every run ENDS and BEGINS the same way.
   (`WorldState.place_in_words`). Held, then cleared; the screen stays black while the run
   advances.
 - **Escape (owner, BUILT):** at the lobby door the player presses **[E] Leave the building** (walking
-  past no longer ends the run by accident) → THE DOOR choice (take everything / leave one item) → **steps up into the doorway** (the
+  past no longer ends the run by accident) → THE DOOR choice (scrap the kit for Valour / leave one item) → **steps up into the doorway** (the
   apartment-door depth walk) → the screen blooms **WHITE**: **YOU SURVIVED**, "<name> walked out
   into the <morning/afternoon/night>.", and a table of the run's stats (`WorldState.run_summary`:
   descended, time in the building, felled, searched, apartments looted, quests/residents aided if
@@ -60,14 +60,18 @@ fiction is fixed time-of-day; the difficulty curve is authored, not emergent.
 - Reaching the lobby and exiting ends that character's story — success, not
   game end.
 - **DESCENT BOON — DECIDED (owner) + BUILT:** the descent boon IS Descent Valour (escaping
-  adds +10 to that run's Valour — docs/PROGRESSION.md), **plus THE DOOR** (owner, round 3 — "a
+  adds +10 to that run's Valour, plus what the kit scraps for at the door — docs/PROGRESSION.md), **plus THE DOOR** (owner, round 3 — "a
   little like the Arc Raiders safe pocket"): pressing to leave, the escaping character chooses
-  (`handoff_ui.gd`, titled THE DOOR):
-  - **Take everything and brave the unknown** → **+10 Valour** (`VALOUR_BRAVE_BONUS`, on top of
-    the escape bonus; chronicle `braved`, `WorldState.note_braved`). Nothing to leave counts as
-    taking everything; so does ESC/✕.
-  - **Leave ONE item by the door** (`WorldState.leave_for_next`) — any weapon/item except keys and
-    cash, with its FULL state (upgrade level, perks, durability — an upgraded legendary weapon
+  (`handoff_ui.gd`, titled THE DOOR). **Round 4 (owner: "+10 doesn't feel worth it… it has to be
+  a real hard choice")** — the door is now priced in Valour, with the numbers on every button:
+  - **Scrap it all, brave the unknown** → the character's whole KIT is scrapped at the door for
+    Valour: every weapon's worth by level (`Progression.DOOR_WORTH` — Lv1 5, Lv2 20, Lv3 40,
+    **Legendary 70**, + 110, ++ 160, +++ 220, plus 20% of heirloom scrap already put in) **+ 25 for
+    leaving nothing behind** (`DOOR_BRAVE_BONUS`). Nothing to leave counts as braving; so does ESC/✕.
+    Recorded by `WorldState.note_door_scrap` (chronicle `door_valour`, `door_scrapped`, `braved`).
+  - **Leave ONE item by the door** (`WorldState.leave_for_next`) — the REST of the kit still melts,
+    but that item's worth and the brave bonus are forfeit (so keeping a legendary costs 70 + 25 =
+    95 Valour; a +++ heirloom ~245). Any weapon/item except keys and cash, with its FULL state (upgrade level, perks, durability — an upgraded legendary weapon
     carries over as-is). It is **stashed for a FUTURE GAME SESSION, never this one**: the
     session's later characters (runs 2/3) do NOT receive it. The stash lives in the **profile**
     (`carry_items`); the next game's `new_game` hands it to the shopkeeper (`handoff_items`), who
@@ -79,7 +83,10 @@ fiction is fixed time-of-day; the difficulty curve is authored, not emergent.
   - **No duplication:** the choice is held in `door_stash_pending` and only written to the profile
     (`commit_door_stash`) after `advance_run`, beside the save that drops it from the pockets. Quit
     during the white card → the last save still has it in the pockets, and it is not stashed.
-  The white card lists "Braved the unknown" or "Left by the door: X (for your next game)". One item
+  The white card lists "Braved the unknown", "Scrapped at the door: …" and/or "Left by the door: X
+  (for your next game)". Why it's hard: a middling game earns ~100 Valour keeping your best weapon,
+  ~200 scrapping it, and the top permanent perks cost ~450-550 — **2-3 games vs 5-6** — while the
+  kept weapon is the only way to reach the heirloom tiers (docs/SCRAP_UPGRADES.md v2). One item
   per escape — "reward but not too much reward". Locked by `progression_test` (incl. a real
   shop-screen run) + `run_bookends_test`.
 - A character who exits takes their notes and inventory OUT of the building —

@@ -34,6 +34,12 @@ func _ready() -> void:
 	_test_salvage_values()
 	await _test_salvage_ui()
 	await _test_bench_in_maintenance_room()
+	_test_tuning()
+	await _test_tuning_in_swings()
+	_test_treeless_and_family_feed()
+	_test_legendary_title()
+	_test_heirloom_forge()
+	await _test_bench_tune_and_forge_ui()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -119,7 +125,8 @@ func _test_costs_and_feed() -> void:
 	WorldState.inventory = [gun, _gun(2)]
 	check(WorldState.upgrade_weapon(0, "G_bang") == "" and gun.level == 4 and WorldState.scrap == 320,
 		"Lv3 → Lv4 with a spare Lv2 + 100")
-	check(WorldState.upgrade_weapon(0, "G_lucky") == "Fully upgraded.", "Lv4 is the cap")
+	check(gun.title != "", "Lv4 = LEGENDARY: it earned a name (%s)" % gun.get_display_name())
+	check(WorldState.upgrade_weapon(0, "").contains("lobby door"), "beyond Legendary only a weapon that crossed the lobby door can go")
 	var junk := ItemInstance.new()
 	junk.setup("005")
 	WorldState.inventory = [junk]
@@ -503,4 +510,227 @@ func _test_bench_in_maintenance_room() -> void:
 		ui.close()
 	get_tree().paused = false
 	room.queue_free()
+	await get_tree().process_frame
+
+
+func _knife(level: int = 1) -> ItemInstance:
+	var k := ItemInstance.new()
+	k.setup("001")
+	k.level = level
+	return k
+
+
+func _test_tuning() -> void:
+	print("[TUNING: every level gives points for the weapon's own stat sheet, within caps]")
+	WorldState.new_game()
+	var h := _hammer()
+	WorldState.inventory = [h]
+	check(WeaponUpgrades.points_free(h) == 0 and WorldState.tune_weapon(0, {"T_reach": 1}) != "", "a Lv1 weapon has no points")
+	WorldState.scrap = 50
+	WorldState.upgrade_weapon(0, "H_heavy")
+	check(WeaponUpgrades.points_free(h) == WeaponUpgrades.POINTS_PER_LEVEL, "a level-up gives %d points" % WeaponUpgrades.POINTS_PER_LEVEL)
+	check(WorldState.tune_weapon(0, {"T_drum": 1}) != "", "a hammer can't take a gun's stats")
+	check(WorldState.tune_weapon(0, {"T_reach": -1}) != "", "points can't be taken back")
+	check(WorldState.tune_weapon(0, {"T_weight": 2}).contains("maxed"), "Weight caps at %d before Legendary" % WeaponUpgrades.STATS["T_weight"]["cap"])
+	check(WorldState.tune_weapon(0, {"T_reach": 3}).contains("Only 2"), "can't spend more than you have")
+	var before_max: int = h.get_max_durability()
+	var before_cur: int = h.current_durability
+	check(WorldState.tune_weapon(0, {"T_reach": 1, "T_temper": 1}) == "", "two points set: Reach + Temper")
+	check(WeaponUpgrades.points_free(h) == 0 and h.tuning == {"T_reach": 1, "T_temper": 1}, "spent")
+	check(is_equal_approx(h.perk_add("reach"), 6.0), "Reach: +6 px")
+	check(h.get_max_durability() == int(round(before_max * 1.25)) and h.current_durability == before_cur + (h.get_max_durability() - before_max),
+		"Temper: +25%% durability, headroom added at once (%d → %d)" % [before_max, h.get_max_durability()])
+	var t := _hammer(3, ["H_heavy", "H_sweep"])
+	t.tuning = {"T_balance": 3, "T_handling": 2, "T_weight": 1}
+	check(is_equal_approx(t.perk_mult("stamina"), 0.7) and is_equal_approx(t.perk_mult("cooldown"), 0.84), "Balance ×0.7 stamina, Handling ×0.84 swing time")
+	check(int(t.perk_add("damage")) == 2, "Weight stacks with Heavy Head (+2)")
+	var g := _gun(2, ["G_aim"])
+	g.tuning = {"T_drum": 2, "T_sights": 1, "T_oiled": 2, "T_handload": 1}
+	check(g.get_mag_cap() == ItemInstance.MAG_CAP + 4 + WorldState.get_gun_mag_bonus(), "Magazine +2 a rank")
+	check(is_equal_approx(g.perk_add("headshot"), 0.14) and g.shots_per_mark() == 9 and is_equal_approx(g.perk_add("free_shot"), 0.05),
+		"Sights / Oiled / Hand-loaded reach the gun")
+	var back: ItemInstance = WorldState.instance_from_dict(JSON.parse_string(JSON.stringify(WorldState.instance_to_dict(t))))
+	check(back.tuning == {"T_balance": 3, "T_handling": 2, "T_weight": 1} and typeof(back.tuning["T_balance"]) == TYPE_INT,
+		"tuning survives a JSON save as ints (%s)" % str(back.tuning))
+	var bad := WorldState.instance_to_dict(_hammer())
+	bad["tuning"] = {"T_nope": 3, "T_reach": 0}
+	check(WorldState.instance_from_dict(bad).tuning.is_empty(), "unknown / empty stats are dropped on load")
+
+
+func _test_tuning_in_swings() -> void:
+	print("[tuning reaches real swings: Reach lands a blow a plain weapon can't; Handling recovers faster]")
+	WorldState.new_game()
+	WorldState.god_mode = false
+	var p = load("res://scenes/player.tscn").instantiate()
+	add_child(p)
+	var z = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
+	add_child(z)
+	await get_tree().physics_frame
+	z.set_physics_process(false)
+	z.set_process(false)
+	var base_range: float = p.WEAPON_RANGES["bat"]
+	var swing := func(w: ItemInstance) -> int:
+		p.global_position = Vector2(400, 386)
+		p.animated_sprite.flip_h = false
+		z.global_position = Vector2(400 + base_range + p._zombie_body_radius(z) + 10.0, 370)
+		z.current_hp = 50
+		z.state = "idle"
+		WorldState.stamina = WorldState.get_max_stamina()
+		p.is_attacking = false
+		p._do_melee_attack(w, 0)
+		return 50 - z.current_hp
+	var plain := _hammer(2, ["H_heavy"])
+	var long := _hammer(2, ["H_heavy"])
+	long.tuning = {"T_reach": 2}
+	check(swing.call(plain) == 0, "10 px past a hammer's reach: a plain swing misses")
+	check(swing.call(long) > 0, "…Reach 2 (+12 px) lands it")
+	var quick := _hammer(2, ["H_heavy"])
+	quick.tuning = {"T_handling": 2}
+	swing.call(quick)
+	check(is_equal_approx(p.attack_cooldown_timer, p.WEAPON_COOLDOWN["bat"] * 0.84), "Handling 2: the swing recovers in %.2fs, not %.2fs" % [p.attack_cooldown_timer, p.WEAPON_COOLDOWN["bat"]])
+	p.queue_free()
+	z.queue_free()
+	await get_tree().physics_frame
+
+
+func _test_treeless_and_family_feed() -> void:
+	print("[every weapon levels now; a spare of the same FAMILY can be stripped for parts]")
+	WorldState.new_game()
+	var sword := ItemInstance.new()
+	sword.setup("003")
+	WorldState.inventory = [sword]
+	WorldState.scrap = 500
+	check(WeaponUpgrades.can_upgrade("003") and not WeaponUpgrades.has_perk_tree("003"), "a sword has no perk tree but the bench works on it")
+	check(WorldState.upgrade_weapon(0) == "" and sword.level == 2 and sword.perks.is_empty(), "Lv2 on tuning alone")
+	check(WorldState.upgrade_weapon(0).contains("blade"), "Lv3 needs a spare blade (%s)" % WorldState.upgrade_weapon(0))
+	var bat := ItemInstance.new()
+	bat.setup("014")
+	WorldState.inventory = [sword, bat]
+	check(WeaponUpgrades.find_feed(sword, WorldState.inventory) == -1, "a bat is the wrong family for a sword")
+	WorldState.inventory = [sword, bat, _knife()]
+	check(WeaponUpgrades.find_feed(sword, WorldState.inventory) == 2, "a knife is a blade — it feeds a sword")
+	var twin := ItemInstance.new()
+	twin.setup("003")
+	WorldState.inventory = [_knife(), sword, twin]
+	check(WeaponUpgrades.find_feed(sword, WorldState.inventory) == 2, "an exact copy is preferred at the same level")
+	var hammer := _hammer(3)
+	var legend := _hammer(4)
+	WorldState.inventory = [hammer, legend]
+	check(WeaponUpgrades.find_feed(hammer, WorldState.inventory) == -1, "a legendary is never stripped for parts")
+	var gun := _gun(2)
+	WorldState.inventory = [gun, _hammer(1)]
+	check(WeaponUpgrades.find_feed(gun, WorldState.inventory) == -1, "a gun still needs a gun")
+	var junk := ItemInstance.new()
+	junk.setup("024")
+	check(not WeaponUpgrades.can_upgrade(junk.item_id), "junk isn't a weapon")
+
+
+func _test_legendary_title() -> void:
+	print("[LEGENDARY (Lv4): a name from how it was built — and the player can rename it]")
+	WorldState.new_game()
+	var k := _knife(3)
+	k.tuning = {"T_reach": 3, "T_balance": 1}
+	check(WeaponUpgrades.title_theme(k) == "T_reach", "its best stat sets the theme")
+	WorldState.inventory = [k, _knife(2)]
+	WorldState.scrap = 100
+	check(WorldState.upgrade_weapon(0) == "" and k.level == 4, "Lv3 → Legendary")
+	check(k.title in WeaponUpgrades.TITLE_BANKS["T_reach"], "named from the Reach bank (%s)" % k.title)
+	check(k.get_display_name() == 'Knife "%s"' % k.title and k.tier_label() == "Legendary" and k.tier_tag() == "LEG",
+		"reads %s — Legendary (LEG on the slot)" % k.get_display_name())
+	check(k.forged_by.begins_with(WorldState.current_character() + ":1"), "remembers who forged it (%s)" % k.forged_by)
+	check(WorldState.upgrade_weapon(0).contains("lobby door"), "and goes no further this game")
+	check(WorldState.rename_weapon(0, "  My  \"Old\" Friend  ") == "" and k.title == "My Old Friend", "renamed (cleaned: %s)" % k.title)
+	check(WorldState.rename_weapon(0, "!!!!!!!!!!!!!!!!!!!!!!!!!!!!") == "" and k.title.length() <= WeaponUpgrades.TITLE_MAX_LEN, "capped at %d" % WeaponUpgrades.TITLE_MAX_LEN)
+	check(WorldState.rename_weapon(0, "   ") != "", "an empty name is refused")
+	WorldState.inventory = [_knife(3)]
+	check(WorldState.rename_weapon(0, "Nope") != "", "only a legendary earns a name")
+	var fresh := _gun(1)
+	check(WeaponUpgrades.title_theme(fresh) == "any" and WeaponUpgrades.generate_title(fresh, "x") in WeaponUpgrades.TITLE_BANKS["any"], "no build yet → a plain keepsake name")
+	var boom := _gun(3, ["G_aim", "G_silencer"])
+	boom.perks.append("G_bang")
+	check(WeaponUpgrades.title_theme(boom) == "boom", "an untuned weapon takes its latest perk's flavour")
+	var named := _knife(4)
+	named.title = "Hush"
+	named.forged_by = "bald_man:2"
+	var back: ItemInstance = WorldState.instance_from_dict(JSON.parse_string(JSON.stringify(WorldState.instance_to_dict(named))))
+	check(back.title == "Hush" and back.forged_by == "bald_man:2", "its name survives a save")
+
+
+func _test_heirloom_forge() -> void:
+	print("[HEIRLOOM + ++ +++: only after crossing the lobby door into a later game; scrap in instalments]")
+	WorldState.new_game()
+	var h := _hammer(4, ["H_heavy", "H_sweep", "H_skull"])
+	h.title = "Widowmaker"
+	WorldState.inventory = [h]
+	WorldState.scrap = 100
+	var cost5: int = WeaponUpgrades.HEIRLOOM[5]["scrap"]
+	check(WorldState.forge_heirloom(0, 60) == "" and h.forge_paid == 60 and WorldState.scrap == 40 and h.level == 4,
+		"60 put in — it rides the weapon, even before it has crossed")
+	check(WeaponUpgrades.check(h, WorldState.inventory, WorldState.scrap)["reason"].contains("lobby door"), "not yet: it hasn't crossed the door")
+	var d: Dictionary = WorldState.instance_to_dict(h)
+	var carried: ItemInstance = WorldState.instance_from_dict(JSON.parse_string(JSON.stringify(d)))
+	check(carried.forge_paid == 60, "the instalment survives a save / a corpse / the door stash")
+	print("[crossing: stashed at an escape, collected in a later game]")
+	WorldState.inventory = [h]
+	WorldState.leave_for_next(0)
+	WorldState.advance_run()
+	WorldState.commit_door_stash()
+	WorldState.new_game()
+	var res: Dictionary = WorldState.collect_handoff_gifts()
+	var got = WorldState.get_instance_at(0)
+	check(res["given"].size() == 1 and got.crossings == 1 and got.title == "Widowmaker" and got.forge_paid == 60,
+		"collected in the next game: 1 crossing, name + instalment intact")
+	WorldState.scrap = 1000
+	check(WorldState.forge_heirloom(0, 9999) == "" and got.level == 5, "paid the rest → Legendary + at once")
+	check(WorldState.scrap == 1000 - (cost5 - 60) and got.forge_paid == 0, "only what was owed was taken (%d)" % WorldState.scrap)
+	check(got.get_display_name().contains("Widowmaker") and got.tier_label() == "Legendary +" and got.tier_tag() == "LEG+", "Legendary +")
+	check(WeaponUpgrades.points_earned(got) == WeaponUpgrades.POINTS_PER_LEVEL * 4 and WeaponUpgrades.cap_for(got, "T_weight") == 2,
+		"more points, and every stat can go one higher (Weight cap 2)")
+	check(WorldState.forge_heirloom(0, 50) == "" and got.level == 5 and got.forge_paid == 50, "++ can be paid toward…")
+	check(WeaponUpgrades.check(got, WorldState.inventory, WorldState.scrap)["reason"].contains("1/2"), "…but needs a 2nd crossing")
+	check(Salvage.value_of(got) > Salvage.value_of(_hammer(4)), "salvage refunds a share of the heirloom scrap too")
+	got.crossings = 3
+	got.level = 7
+	check(WorldState.forge_heirloom(0, 10) == "Fully upgraded." and WeaponUpgrades.check(got, WorldState.inventory, 999)["reason"] == "Fully upgraded.",
+		"Legendary +++ is the top")
+	check(WeaponUpgrades.tier_name(7) == "Legendary +++", "reads Legendary +++")
+	var lv3 := _hammer(3)
+	WorldState.inventory = [lv3]
+	check(WorldState.forge_heirloom(0, 10).contains("legendary"), "only a legendary goes to the forge")
+	WorldState.carry_items = []
+	WorldState.save_profile()
+
+
+func _test_bench_tune_and_forge_ui() -> void:
+	print("[the bench's TUNE tab + the forge]")
+	WorldState.new_game()
+	var h := _hammer(2, ["H_heavy"])
+	WorldState.inventory = [h]
+	var ui = load("res://scripts/workbench_ui.gd").new()
+	add_child(ui)
+	ui.open()
+	ui.show_tab("tune")
+	check(ui._tune_page.visible and not ui._upgrade_page.visible, "the Tune tab shows")
+	ui.stage_point("T_reach", 1)
+	ui.stage_point("T_reach", 1)
+	ui.stage_point("T_reach", 1)
+	check(ui.staged == {"T_reach": 2}, "staging stops at the points you have (%s)" % str(ui.staged))
+	check(h.tuning.is_empty(), "staged isn't set")
+	ui.stage_point("T_reach", -1)
+	ui.stage_point("T_balance", 1)
+	check(ui.set_tuning() == "" and h.tuning == {"T_reach": 1, "T_balance": 1}, "Set in steel → applied")
+	check(not ui._name_row.visible, "no rename for a Lv2")
+	var legend := _hammer(4, ["H_heavy", "H_sweep", "H_skull"])
+	legend.title = "Doorstop"
+	WorldState.inventory = [legend]
+	WorldState.scrap = 30
+	ui.select_weapon(0)
+	check(ui._name_row.visible, "a legendary shows its name field")
+	check(ui.rename("Grandad") == "" and legend.title == "Grandad", "renamed from the bench")
+	ui.show_tab("upgrade")
+	check(ui._forge_box.get_child_count() > 0 and ui._perk_box.get_child_count() == 0, "past Legendary, the Upgrade tab is the forge")
+	check(ui.forge(25) == "" and legend.forge_paid == 25 and WorldState.scrap == 5, "Put in 25")
+	ui.close()
+	ui.queue_free()
+	get_tree().paused = false
 	await get_tree().process_frame

@@ -1058,7 +1058,7 @@ func refresh_inventory() -> void:
 				key_label.visible = false
 
 			if i < slot_level_labels.size():
-				slot_level_labels[i].text = "Lv%d" % instance.level
+				slot_level_labels[i].text = instance.tier_tag()
 				slot_level_labels[i].visible = instance.level > 1
 			var max_dur = instance.get_max_durability()   # perks can raise it (Reinforced Handle)
 			if max_dur > 0 and not item_data.get("single_use", false):

@@ -40,26 +40,32 @@ the session is scored and the player may keep ONE perk they found along the way 
 
 - **Earning Valour** (`Progression.valour_for_run`, summed over the three runs): each run earns
   by the deepest floor that character reached, weighted toward the bottom, plus a bonus for
-  walking out: `d + floor(d² / 60)` where `d` = floors below 30, **+10 if they escaped**, and a
-  further **+10 if they braved the unknown** (took everything out rather than leaving an item by
-  the door — `VALOUR_BRAVE_BONUS`).
+  walking out: `d + floor(d² / 60)` where `d` = floors below 30, **+10 if they escaped**, plus
+  **what their kit scrapped for at the door** (below).
 
   | Deepest | Valour |
   |---|---|
   | 25 (5 floors) | 5 |
   | 15 | 18 |
   | 10 | 26 |
-  | Lobby (escaped) | 30 + 15 + 10 = **55** |
+  | Lobby (escaped) | 30 + 15 + 10 = **55** + the door |
 
-  Three escapes = 165. **Quests + NPCs count too (owner):** each quest completed that run
-  **+8**, each NPC aided **+4** (`VALOUR_PER_QUEST` / `VALOUR_PER_NPC`). Quests aren't built
-  yet — the quest system calls `WorldState.note_quest_completed()` / `note_npc_aided()` (per-run
-  counts in the chronicle), and the end screen shows them per run. Valour is banked to the
-  **profile** at once and can be **saved** across sessions (the player may take nothing).
-- **The descent boon** (owner): Valour IS the descent boon, plus THE DOOR — an escaping character
-  either takes everything (+10 Valour) or leaves ONE item by the door, stashed for the NEXT GAME
-  (not this session's later characters); the next game's shopkeeper hands it over free after the
-  first shop upgrade (floor 25) — see THREE_RUN_ARC.md "Descent boon".
+  **Quests + NPCs count too (owner):** each quest completed that run **+8**, each NPC aided **+4**
+  (`VALOUR_PER_QUEST` / `VALOUR_PER_NPC`). Quests aren't built yet — the quest system calls
+  `WorldState.note_quest_completed()` / `note_npc_aided()` (per-run counts in the chronicle), and
+  the end screen shows them per run. Valour is banked to the **profile** at once and can be
+  **saved** across sessions (the player may take nothing).
+- **The door** (owner, round 4 — "+10 doesn't feel worth it… a real hard choice"): an escaping
+  character's kit is **scrapped at the door** for Valour — each weapon by level
+  (`DOOR_WORTH`: Lv1 5, Lv2 20, Lv3 40, **Legendary 70**, + 110, ++ 160, +++ 220; + 20% of any
+  heirloom scrap already put in) **+ 25 for leaving nothing behind** (`DOOR_BRAVE_BONUS`) — OR they
+  leave ONE item by the door for their next game and forfeit its worth + the bonus
+  (`Progression.door_valour`, `WorldState.note_door_scrap`). The handoff panel prints the Valour
+  on every button. See THREE_RUN_ARC.md "Descent boon".
+- **The economy it's sized for** (a middling game: one escape, two deaths around floors 15 and 10
+  = 18 + 26 + 55): **~100 Valour** keeping your legendary by the door, **~200** scrapping it
+  (+70 + 25 + the rest of the kit). Three escapes ≈ 165 base + three kits. Prices below put the top
+  perks at **~450-550 → 5-6 games one way, 2-3 the other** — the owner's target.
 - **The offer** (`WorldState.finish_session`, called at the arc end in `game.gd` / `lobby_exit.gd`):
   up to **3** (`OFFER_COUNT`) perks drawn **uniformly at random — no weighting** — from the perks
   **acquired this session** (`WorldState.session_perks`: every merchant upgrade taken + every run
@@ -67,9 +73,10 @@ the session is scored and the player may keep ONE perk they found along the way 
   New Game). A perk already kept is never offered. So to keep a perk you must farm it that session.
   The offer is stored in the profile until resolved, so quitting on the end screen doesn't lose it
   (it's reachable from the profile screen's LEGACY panel). Scoring is idempotent per playthrough.
-- **Buying** (`buy_permanent`): ONE perk per session. Cost by the merchant's rarity weight (w6-7: 30,
-  w4-5: 40, w3: 55, w2: 70, w1: 90), drawbacks −20, run boons flat 60; overrides where rarity lies
-  about permanent value: **Deep Pockets 110**, Pack Mule 70.
+- **Buying** (`buy_permanent`): ONE perk per session. **Round 4 prices** (×5, so a perk is a goal
+  across games): cost by the merchant's rarity weight (w6-7: 150, w4-5: 200, w3: 275, w2: 350,
+  w1: 450), drawbacks −100, run boons flat 250; overrides where rarity lies about permanent value:
+  **Deep Pockets 550**, Pack Mule 350. (v1 was 30-110 — one game bought anything.)
 - **Permanent perks** (`WorldState.permanent_perks`, profile `[valour]`) are a source in the stat fold
   for every run of every new game in that save slot — e.g. Deep Pockets kept = every game starts with
   the 6th slot open. A kept perk is **removed from the temporary pools** (merchant offers +

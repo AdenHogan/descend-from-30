@@ -3,27 +3,97 @@ extends RefCounted
 
 # THE WORKBENCH'S RULES (docs/SCRAP_UPGRADES.md) — one data table, edited in one place.
 #
-# Each supported weapon has a static tree: at every level (2, 3, 4) the player PICKS ONE of two
-# perks. A weapon KEEPS every perk it has as it levels (they accumulate up the tiers). Perks are
-# per-ITEM-INSTANCE (they ride the weapon, like durability) and apply through the modifier fold
-# (base × ∏mult + Σadd — never direct writes): ItemInstance.perk_add / perk_mult / has_perk_flag.
+# A weapon climbs SEVEN levels:
+#   Lv1-3  ordinary        — every level-up grants TUNING POINTS the player spends on the weapon's
+#                            own stat sheet (below), within caps; a weapon with a TREE also picks
+#                            one of two perks per level (gun + hammer today).
+#   Lv4    LEGENDARY       — it earns a TITLE (generated from how it was built; the player can
+#                            rename it). "Hammer "Widowmaker"".
+#   Lv5-7  HEIRLOOM + ++ +++ — only for a weapon that has CROSSED THE LOBBY DOOR (stashed at an
+#                            escape, collected in a later game) 1 / 2 / 3 times: the new-game-plus
+#                            upgrades. Scrap is paid in INSTALMENTS that ride the weapon, so several
+#                            characters (and games) can feed it. Each tier grants more points and
+#                            lifts every stat cap by one — the "crazy stats" only heirlooms reach.
 #
-# Cost of each step = scrap + (from Lv3) a spare copy of the SAME weapon as feed material:
-#   Lv1 → Lv2: 50 scrap
-#   Lv2 → Lv3: a spare Lv1 + 80 scrap
-#   Lv3 → Lv4: a spare Lv2 + 100 scrap          (the doc's worked example)
-# The weapon being upgraded is the TARGET (keeps its perks); the feed is consumed.
+# Everything rides THIS weapon instance (level, perks, tuning, title, crossings, forge_paid —
+# serialized with it, carried on a corpse and through the door stash) and applies through the
+# modifier fold (base × ∏mult + Σadd — never direct writes): ItemInstance.perk_add / perk_mult /
+# has_perk_flag.
 
-const MAX_LEVEL := 4
+const MAX_LEVEL := 7
+const LEGENDARY_LEVEL := 4
 
+# Lv1→2, 2→3, 3→4: scrap + (from Lv3) a spare weapon stripped for parts (the lowest qualifying
+# one is used, never a better one). The spare is the SAME weapon, or — for melee — any weapon of
+# the same FAMILY (FAMILY below), so a rare blade or bat can still reach legendary.
 const STEP_COST := {
 	2: {"scrap": 50, "feed_level": 0},     # feed_level 0 = no spare needed
 	3: {"scrap": 80, "feed_level": 1},
 	4: {"scrap": 100, "feed_level": 2},
 }
 
-# Item id → {level: [perk A, perk B]}. Gun + Hammer first (owner's call); add a weapon by adding
-# a tree here.
+# Heirloom tiers: crossings needed + scrap paid in instalments (WorldState.forge_heirloom). Sized
+# against tools/economy_report (docs/SCRAP_UPGRADES.md v2): a character who searches ~45 apartments
+# on the way down finds ~200 scrap, so each tier is two to three characters' worth.
+const HEIRLOOM := {
+	5: {"crossings": 1, "scrap": 400},
+	6: {"crossings": 2, "scrap": 500},
+	7: {"crossings": 3, "scrap": 600},
+}
+
+const POINTS_PER_LEVEL := 2          # tuning points each level above 1 grants (Lv4 = 6, Lv7 = 12)
+
+# Which weapons the bench works on, and their stat sheet. "melee" / "gun".
+const KIND := {
+	"001": "melee",   # Knife
+	"002": "melee",   # Hammer
+	"003": "melee",   # Sword
+	"004": "gun",     # Gun
+	"012": "melee",   # Golf Club
+	"013": "melee",   # Cricket Bat
+	"014": "melee",   # Baseball Bat
+	"017": "melee",   # Aluminium Baseball Bat
+}
+
+# Melee families for upgrade feed (a spare of the same family can be stripped for parts).
+const FAMILY := {
+	"001": "blade", "003": "blade",
+	"002": "blunt", "012": "blunt", "013": "blunt", "014": "blunt", "017": "blunt",
+	"004": "gun",
+}
+
+# THE STAT SHEET — what a player can put their points into. Per rank: `add` adds to a fold stat,
+# `mult` moves a fold stat's multiplier by that much (×(1 + ranks × mult)). `cap` = most ranks at
+# Lv1-4; each heirloom tier lifts every cap by one. Fold stat names are the ones combat reads
+# (ItemInstance.perk_add / perk_mult): damage, execute, reach, cooldown, stamina, durability,
+# headshot, body, mag, shots_per_mark, free_shot.
+const STATS := {
+	# --- melee ---
+	"T_weight": {"kind": "melee", "name": "Weight", "desc": "+1 damage", "cap": 1,
+		"mods": {"damage": {"add": 1}}},
+	"T_edge": {"kind": "melee", "name": "Edge", "desc": "+4% to drop an ordinary enemy", "cap": 3,
+		"mods": {"execute": {"add": 0.04}}},
+	"T_reach": {"kind": "melee", "name": "Reach", "desc": "+6 px reach", "cap": 3,
+		"mods": {"reach": {"add": 6.0}}},
+	"T_handling": {"kind": "melee", "name": "Handling", "desc": "8% faster swings", "cap": 3,
+		"mods": {"cooldown": {"mult": -0.08}}},
+	"T_balance": {"kind": "melee", "name": "Balance", "desc": "-10% swing stamina", "cap": 3,
+		"mods": {"stamina": {"mult": -0.10}}},
+	"T_temper": {"kind": "melee", "name": "Temper", "desc": "+25% durability", "cap": 4,
+		"mods": {"durability": {"mult": 0.25}}},
+	# --- gun ---
+	"T_sights": {"kind": "gun", "name": "Sights", "desc": "+4% head + body hits", "cap": 3,
+		"mods": {"headshot": {"add": 0.04}, "body": {"add": 0.04}}},
+	"T_drum": {"kind": "gun", "name": "Magazine", "desc": "+2 rounds", "cap": 3,
+		"mods": {"mag": {"add": 2}}},
+	"T_oiled": {"kind": "gun", "name": "Oiled", "desc": "wears 25% slower", "cap": 4,
+		"mods": {"shots_per_mark": {"mult": 0.25}}},
+	"T_handload": {"kind": "gun", "name": "Hand-loaded", "desc": "+5% free shots", "cap": 3,
+		"mods": {"free_shot": {"add": 0.05}}},
+}
+
+# Item id → {level: [perk A, perk B]}. A weapon WITH a tree also picks one of two perks at Lv2-4;
+# one without levels on tuning alone. Add a weapon's tree here.
 const TREES := {
 	"004": {   # Gun
 		2: ["G_aim", "G_durable"],
@@ -42,36 +112,65 @@ const TREES := {
 const PERKS := {
 	# --- Gun (the doc's tree) ---
 	"G_aim": {"name": "Aim Assist", "desc": "Steadier aim: +10% headshot and +10% body-hit chance.",
-		"mods": {"headshot": {"add": 0.10}, "body": {"add": 0.10}}},
+		"mods": {"headshot": {"add": 0.10}, "body": {"add": 0.10}}, "title": "T_sights"},
 	# The doc's "doubles durability": a gun wears a mark every 6 shots — this makes it every 12
 	# (the owner's call), and forcing a door never damages it.
 	"G_durable": {"name": "Durable Hand Cannon", "desc": "Wears half as fast (a durability mark every 12 shots, not 6), and forcing a door never damages it.",
-		"mods": {"shots_per_mark": {"mult": 2.0}}, "flags": ["no_force_damage"]},
+		"mods": {"shots_per_mark": {"mult": 2.0}}, "flags": ["no_force_damage"], "title": "T_oiled"},
 	"G_silencer": {"name": "Silencer", "desc": "Shots are barely louder than footsteps — they no longer rouse the floor.",
-		"flags": ["silenced"]},
+		"flags": ["silenced"], "title": "silent"},
 	"G_pierce": {"name": "Through-and-Through", "desc": "A shot that lands also hits the enemy behind the target.",
-		"flags": ["pierce"]},
+		"flags": ["pierce"], "title": "T_sights"},
 	"G_lucky": {"name": "Lucky Bullet", "desc": "30% chance a shot doesn't use up a round.",
-		"mods": {"free_shot": {"add": 0.30}}},
+		"mods": {"free_shot": {"add": 0.30}}, "title": "T_handload"},
 	"G_bang": {"name": "Bigger Bang", "desc": "Volatile rounds: a hit also blasts every enemy close to the target.",
-		"flags": ["blast"]},
+		"flags": ["blast"], "title": "boom"},
 	# --- Hammer (PLACEHOLDER — owner to define) ---
 	"H_heavy": {"name": "Heavy Head", "desc": "+1 damage with every blow.",
-		"mods": {"damage": {"add": 1}}},
+		"mods": {"damage": {"add": 1}}, "title": "T_weight"},
 	"H_reinforced": {"name": "Reinforced Handle", "desc": "Twice the durability.",
-		"mods": {"durability": {"mult": 2.0}}},
+		"mods": {"durability": {"mult": 2.0}}, "title": "T_temper"},
 	"H_doorbreaker": {"name": "Door Breaker", "desc": "Forcing locks and tearing down barricades costs it no durability.",
-		"flags": ["free_force"]},
+		"flags": ["free_force"], "title": "T_temper"},
 	"H_sweep": {"name": "Sweeping Blow", "desc": "A swing also strikes a second enemy in reach.",
-		"flags": ["sweep"]},
+		"flags": ["sweep"], "title": "T_reach"},
 	"H_skull": {"name": "Skull Splitter", "desc": "15% chance a blow drops an ordinary enemy outright.",
-		"mods": {"execute": {"add": 0.15}}},
+		"mods": {"execute": {"add": 0.15}}, "title": "T_edge"},
 	"H_feather": {"name": "Featherweight", "desc": "Swings cost 40% less stamina.",
-		"mods": {"stamina": {"mult": 0.6}}},
+		"mods": {"stamina": {"mult": 0.6}}, "title": "T_balance"},
 }
 
+# LEGENDARY TITLES — word banks keyed by what the weapon is best at (its highest-ranked stat, or
+# the flavour of its perks). One is drawn (seeded, stable) when it reaches Lv4; the player can
+# rename it at the bench. Add words freely.
+const TITLE_BANKS := {
+	"T_weight": ["Widowmaker", "Bonebreaker", "The Last Word", "Heavy Heart", "Doorstop"],
+	"T_edge": ["Lights Out", "Mercy", "Coin Toss", "Quiet Night", "Goodnight"],
+	"T_reach": ["Long Goodbye", "Arm's Length", "Keep Away", "Stay Back", "The Long Arm"],
+	"T_handling": ["Hummingbird", "Quickstep", "Rattle", "Flicker", "Twitch"],
+	"T_balance": ["Tireless", "Second Wind", "Featherfall", "Easy Does It", "Night Shift"],
+	"T_temper": ["Old Faithful", "The Unbroken", "Stubborn Thing", "Ironside", "Heirloom"],
+	"T_sights": ["Dead Eye", "True North", "The Surgeon", "Pinhole", "Steady Hand"],
+	"T_drum": ["Chatterbox", "Long Sermon", "Full House", "Loudmouth", "Encore"],
+	"T_oiled": ["Old Reliable", "Workhorse", "Never Jams", "Clockwork", "Sweetheart"],
+	"T_handload": ["Lucky Penny", "Four-Leaf", "Borrowed Time", "Last Chance", "Rabbit's Foot"],
+	"silent": ["Hush", "Lullaby", "Whisper", "Library", "Sleepwalker"],
+	"boom": ["Housewarming", "Fireworks", "Thunderclap", "Big Finish", "Landlord"],
+	"any": ["Keepsake", "The Survivor", "Stairwell", "Floor Thirty", "Good Neighbour"],
+}
+const TITLE_MAX_LEN := 18
 
+
+static func can_upgrade(item_id: String) -> bool:
+	return KIND.has(item_id)
+
+
+# Kept for callers that ask "does the bench rework this?" (any weapon on the sheet now).
 static func has_tree(item_id: String) -> bool:
+	return can_upgrade(item_id)
+
+
+static func has_perk_tree(item_id: String) -> bool:
 	return TREES.has(item_id)
 
 
@@ -79,19 +178,107 @@ static func perk(id: String) -> Dictionary:
 	return PERKS.get(id, {})
 
 
-# The two perks offered for this weapon's NEXT level ([] at max level / no tree).
+static func stat(id: String) -> Dictionary:
+	return STATS.get(id, {})
+
+
+static func kind_of(item_id: String) -> String:
+	return String(KIND.get(item_id, ""))
+
+
+# The stat ids this weapon can be tuned in, in display order.
+static func stats_for(item_id: String) -> Array:
+	var k := kind_of(item_id)
+	var out: Array = []
+	for id in STATS:
+		if STATS[id]["kind"] == k:
+			out.append(id)
+	return out
+
+
+static func tier_name(level: int) -> String:
+	if level < LEGENDARY_LEVEL:
+		return "Lv%d" % level
+	if level == LEGENDARY_LEVEL:
+		return "Legendary"
+	return "Legendary " + "+".repeat(level - LEGENDARY_LEVEL)
+
+
+static func is_heirloom_step(to_level: int) -> bool:
+	return HEIRLOOM.has(to_level)
+
+
+# The two perks offered for this weapon's NEXT level ([] when it has no tree / no perk that level).
 static func next_choices(inst) -> Array:
-	if inst == null or not has_tree(inst.item_id) or inst.level >= MAX_LEVEL:
+	if inst == null or not has_perk_tree(inst.item_id) or inst.level >= MAX_LEVEL:
 		return []
 	return TREES[inst.item_id].get(inst.level + 1, [])
 
 
 static func step_cost(to_level: int) -> Dictionary:
+	if HEIRLOOM.has(to_level):
+		return {"scrap": int(HEIRLOOM[to_level]["scrap"]), "feed_level": 0}
 	return STEP_COST.get(to_level, {})
 
 
-# Index (in `inventory`) of the spare copy that would be consumed as feed for `inst`'s next step,
-# or -1. The lowest-level qualifying copy is used, so a better spare is never burnt by accident.
+# --- tuning --------------------------------------------------------------------------------
+static func points_earned(inst) -> int:
+	return POINTS_PER_LEVEL * maxi(0, inst.level - 1)
+
+
+static func points_spent(inst) -> int:
+	var n := 0
+	for id in inst.tuning:
+		n += int(inst.tuning[id])
+	return n
+
+
+static func points_free(inst) -> int:
+	return maxi(0, points_earned(inst) - points_spent(inst))
+
+
+# Most ranks this weapon can hold in `stat_id` at its level: the base cap, +1 per heirloom tier.
+static func cap_for(inst, stat_id: String) -> int:
+	return int(STATS.get(stat_id, {}).get("cap", 0)) + maxi(0, inst.level - LEGENDARY_LEVEL)
+
+
+# Can `alloc` ({stat: extra ranks}) be added to this weapon now? "" = yes, else why not.
+static func tuning_error(inst, alloc: Dictionary) -> String:
+	if inst == null or not can_upgrade(inst.item_id):
+		return "The bench can't rework this."
+	var total := 0
+	var valid: Array = stats_for(inst.item_id)
+	for id in alloc:
+		var n := int(alloc[id])
+		if n < 0:
+			return "Points, once set, are set."
+		if n == 0:
+			continue
+		if not (id in valid):
+			return "That isn't something this weapon can take."
+		if int(inst.tuning.get(id, 0)) + n > cap_for(inst, id):
+			return "%s is maxed at this level." % STATS[id]["name"]
+		total += n
+	if total == 0:
+		return "Nothing to set."
+	if total > points_free(inst):
+		return "Only %d point%s to spend." % [points_free(inst), "" if points_free(inst) == 1 else "s"]
+	return ""
+
+
+# --- feed ---------------------------------------------------------------------------------
+static func _feeds(inst, other) -> bool:
+	if other == inst:
+		return false
+	if other.item_id == inst.item_id:
+		return true
+	var fam := String(FAMILY.get(inst.item_id, ""))
+	return fam != "" and fam != "gun" and String(FAMILY.get(other.item_id, "")) == fam
+
+
+# Index (in `inventory`) of the spare that would be consumed as feed for `inst`'s next step, or -1.
+# The lowest-level qualifying spare is used, so a better one is never burnt by accident; an exact
+# copy is preferred over a family member at the same level. A titled (legendary) weapon is never fed.
 static func find_feed(inst, inventory: Array) -> int:
 	var cost := step_cost(inst.level + 1)
 	var need: int = int(cost.get("feed_level", 0))
@@ -100,32 +287,108 @@ static func find_feed(inst, inventory: Array) -> int:
 	var best := -1
 	for i in inventory.size():
 		var other = inventory[i]
-		if other == inst or other.item_id != inst.item_id or other.level < need:
+		if other == inst or other.level < need or other.level >= LEGENDARY_LEVEL or not _feeds(inst, other):
 			continue
-		if best == -1 or other.level < inventory[best].level:
+		if best == -1:
+			best = i
+			continue
+		var b = inventory[best]
+		if other.level < b.level or (other.level == b.level and other.item_id == inst.item_id and b.item_id != inst.item_id):
 			best = i
 	return best
 
 
-# Can `inst` go up a level right now? {ok, reason, scrap, feed_level, feed_index}.
+static func feed_label(inst, feed_level: int) -> String:
+	var fam := String(FAMILY.get(inst.item_id, ""))
+	if fam == "blade":
+		return "a spare Lv%d blade (knife or sword)" % feed_level
+	if fam == "blunt":
+		return "a spare Lv%d bat, club or hammer" % feed_level
+	return "a spare Lv%d %s" % [feed_level, inst.get_data().get("name", "weapon")]
+
+
+# Can `inst` go up a level right now? {ok, reason, scrap, feed_level, feed_index, heirloom}.
+# An heirloom step is paid in instalments (forge_paid), so `scrap` is what's STILL owed.
 static func check(inst, inventory: Array, scrap: int) -> Dictionary:
-	var out := {"ok": false, "reason": "", "scrap": 0, "feed_level": 0, "feed_index": -1}
-	if inst == null or not has_tree(inst.item_id):
+	var out := {"ok": false, "reason": "", "scrap": 0, "feed_level": 0, "feed_index": -1, "heirloom": false}
+	if inst == null or not can_upgrade(inst.item_id):
 		out["reason"] = "The bench can't rework this."
 		return out
 	if inst.level >= MAX_LEVEL:
 		out["reason"] = "Fully upgraded."
 		return out
-	var cost := step_cost(inst.level + 1)
+	var to: int = inst.level + 1
+	var cost := step_cost(to)
+	if is_heirloom_step(to):
+		out["heirloom"] = true
+		out["scrap"] = maxi(0, int(cost["scrap"]) - inst.forge_paid)
+		var need: int = int(HEIRLOOM[to]["crossings"])
+		if inst.crossings < need:
+			out["reason"] = "Only a weapon carried through the lobby door into a later game can go further (%d/%d crossings)." % [inst.crossings, need]
+			return out
+		if out["scrap"] > 0:
+			out["reason"] = "Forge it: %d more scrap to put in." % out["scrap"]
+			return out
+		out["ok"] = true
+		return out
 	out["scrap"] = int(cost.get("scrap", 0))
 	out["feed_level"] = int(cost.get("feed_level", 0))
 	if out["feed_level"] > 0:
 		out["feed_index"] = find_feed(inst, inventory)
 		if out["feed_index"] == -1:
-			out["reason"] = "Needs a spare Lv%d %s to strip for parts." % [out["feed_level"], inst.get_display_name()]
+			out["reason"] = "Needs %s to strip for parts." % feed_label(inst, out["feed_level"])
 			return out
 	if scrap < out["scrap"]:
 		out["reason"] = "Needs %d scrap (you have %d)." % [out["scrap"], scrap]
 		return out
 	out["ok"] = true
 	return out
+
+
+# Every bit of workbench scrap this weapon has swallowed (levels, heirloom tiers, instalments) —
+# salvage refunds a share, and it's part of what the weapon is worth at the door.
+static func scrap_sunk(inst) -> int:
+	var n := 0
+	for lvl in range(2, inst.level + 1):
+		n += int(step_cost(lvl).get("scrap", 0))
+	return n + maxi(0, inst.forge_paid)
+
+
+# --- titles -------------------------------------------------------------------------------
+# What the weapon is best at: its highest-ranked tuning (ties → sheet order), else the flavour of
+# its latest perk, else "any".
+static func title_theme(inst) -> String:
+	var best := ""
+	var best_n := 0
+	for id in stats_for(inst.item_id):
+		var n := int(inst.tuning.get(id, 0))
+		if n > best_n:
+			best_n = n
+			best = id
+	if best != "":
+		return best
+	for i in range(inst.perks.size() - 1, -1, -1):
+		var t := String(perk(inst.perks[i]).get("title", ""))
+		if TITLE_BANKS.has(t):
+			return t
+	return "any"
+
+
+static func generate_title(inst, seed_text: String) -> String:
+	var bank: Array = TITLE_BANKS.get(title_theme(inst), TITLE_BANKS["any"])
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(seed_text)
+	return String(bank[rng.randi() % bank.size()])
+
+
+# A player-typed name, made safe: printable ASCII only (the pixel font), trimmed, capped. "" = invalid.
+static func clean_title(text: String) -> String:
+	var out := ""
+	for ch in text.strip_edges():
+		var c := ch.unicode_at(0)
+		if c >= 32 and c < 127 and ch != "\"":
+			out += ch
+	out = out.strip_edges()
+	while out.contains("  "):
+		out = out.replace("  ", " ")
+	return out.left(TITLE_MAX_LEN).strip_edges()

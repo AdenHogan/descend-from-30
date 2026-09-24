@@ -46,29 +46,59 @@ const RUN_BOONS := {
 const VALOUR_ESCAPE_BONUS := 10
 const VALOUR_PER_QUEST := 8             # each quest completed that run (owner: quests + NPCs count)
 const VALOUR_PER_NPC := 4               # each NPC aided that run
-const VALOUR_BRAVE_BONUS := 10          # escaped carrying EVERYTHING out — nothing left by the door
+# THE DOOR (owner, round 4 — "a real hard choice"): an escaping character's KIT is scrapped at the
+# door for Valour — every weapon's worth (DOOR_WORTH by level + a share of heirloom scrap put in) —
+# UNLESS they leave one item by the door for their next game (the stash), which forfeits THAT
+# item's worth and the brave bonus. So the price of keeping a weapon you built is exactly what it
+# would have melted for.
+const DOOR_BRAVE_BONUS := 25            # left nothing by the door — braved the unknown
+const DOOR_WORTH := {1: 5, 2: 20, 3: 40, 4: 70, 5: 110, 6: 160, 7: 220}
+const DOOR_FORGE_SHARE := 0.2           # heirloom scrap already put in counts this much toward worth
 const VALOUR_DEPTH_CURVE := 60.0        # floors descended d → d + floor(d² / curve)
 const OFFER_COUNT := 3                   # perks offered at the end of a session
 const PERMANENT_CAP := 10                # permanent perks a profile can hold at once
 const TRADE_REFUND := 0.5                # trading a permanent perk out refunds this share of its cost
 
 # Cost by the merchant's rarity weight `w` (rarer = pricier), drawbacks cheaper, boons flat.
-const COST_BY_WEIGHT := {7: 30, 6: 30, 5: 40, 4: 40, 3: 55, 2: 70, 1: 90}
-const DRAWBACK_DISCOUNT := 20
-const BOON_COST := 60
+# SIZED (owner, round 4) so a coveted perk is a goal you work toward across games: a middling game
+# (one escape, two deaths mid-building) earns ~100 Valour if you keep your best weapon by the door,
+# ~200 if you scrap it — so the top perks (~450-550) take 5-6 games one way, 2-3 the other.
+const COST_BY_WEIGHT := {7: 150, 6: 150, 5: 200, 4: 200, 3: 275, 2: 350, 1: 450}
+const DRAWBACK_DISCOUNT := 100
+const BOON_COST := 250
 # Explicit prices where rarity lies about permanent value (+1 slot forever is the big prize).
-const COST_OVERRIDE := {"U_slot": 110, "U_db_slotstam": 70}
+const COST_OVERRIDE := {"U_slot": 550, "U_db_slotstam": 350}
 
 
 # Valour one run earns: floors descended below 30 (their deepest), weighted toward depth, +bonus
 # for escaping, + quests completed and NPCs aided. d=5 → 5, d=15 → 18, d=20 → 26, d=30 (lobby)
 # → 45 (+10 escaped = 55); each quest +8, each NPC aided +4.
+# `door` = what the character's kit was scrapped for at the lobby door (door_valour) — escapes only.
 static func valour_for_run(deepest_floor: int, escaped: bool, quests: int = 0, npcs: int = 0,
-		braved: bool = false) -> int:
+		door: int = 0) -> int:
 	var d := clampi(30 - deepest_floor, 0, 30)
 	return d + int(floor(d * d / VALOUR_DEPTH_CURVE)) + (VALOUR_ESCAPE_BONUS if escaped else 0) \
 		+ maxi(0, quests) * VALOUR_PER_QUEST + maxi(0, npcs) * VALOUR_PER_NPC \
-		+ (VALOUR_BRAVE_BONUS if escaped and braved else 0)
+		+ (maxi(0, door) if escaped else 0)
+
+
+# What one item melts for at the lobby door: weapons by level (+ a share of heirloom scrap already
+# put in); anything that isn't a weapon the bench works on is worth nothing there.
+static func door_worth(inst) -> int:
+	if inst == null or not WeaponUpgrades.can_upgrade(inst.item_id):
+		return 0
+	var lvl := clampi(inst.level, 1, WeaponUpgrades.MAX_LEVEL)
+	return int(DOOR_WORTH.get(lvl, 0)) + int(floor(maxi(0, inst.forge_paid) * DOOR_FORGE_SHARE))
+
+
+# The Valour a kit scraps for at the door. `stashed` = the index left by the door (-1 = none: every
+# item melts AND the brave bonus is earned).
+static func door_valour(items: Array, stashed: int = -1) -> int:
+	var v := 0 if stashed >= 0 else DOOR_BRAVE_BONUS
+	for i in items.size():
+		if i != stashed:
+			v += door_worth(items[i])
+	return v
 
 
 # Everything about a perk that can become permanent: a merchant upgrade (U_*) or a run boon (B_*).

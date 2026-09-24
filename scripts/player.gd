@@ -613,16 +613,16 @@ func _do_melee_attack(instance: ItemInstance, slot_index: int) -> void:
 		HUD.update_stamina(WorldState.stamina, WorldState.get_max_stamina())
 
 	is_attacking = true
-	attack_cooldown_timer = WEAPON_COOLDOWN.get(weapon_type, 0.5)
+	attack_cooldown_timer = WEAPON_COOLDOWN.get(weapon_type, 0.5) * instance.perk_mult("cooldown")   # tuning: Handling
 	animated_sprite.play("katana_attack_continuous")
 	# Swing sound: slice for blades, thunk for blunt weapons.
 	melee_player.stream = (MELEE_SLICE if weapon_type in ["knife", "sword"] else MELEE_THUNK).pick_random()
 	melee_player.pitch_scale = randf_range(0.9, 1.1)
 	melee_player.play()
 
-	var attack_range = WEAPON_RANGES.get(weapon_type, 40.0)
+	var attack_range = WEAPON_RANGES.get(weapon_type, 40.0) + instance.perk_add("reach")      # tuning: Reach
 	var damage = WEAPON_DAMAGE.get(weapon_type, 1) + WorldState.get_melee_damage_bonus() \
-		+ int(instance.perk_add("damage"))       # workbench perk (Heavy Head)
+		+ int(instance.perk_add("damage"))       # workbench perk (Heavy Head) + tuning (Weight)
 	damage = max(damage, 1)
 	var damage_type = _get_weapon_damage_type(weapon_type)
 	var hit_something = false
@@ -1288,7 +1288,7 @@ func _do_attack_action(from_mouse: bool) -> void:
 	# a key/side-button attack just swings at whatever's in front.
 	if from_mouse:
 		var clicked = _zombie_under_cursor()
-		var reach = WEAPON_RANGES.get(weapon_type, 40.0) + 40.0
+		var reach = WEAPON_RANGES.get(weapon_type, 40.0) + instance.perk_add("reach") + 40.0
 		if clicked != null and global_position.distance_to(clicked.global_position) > reach:
 			var approach = clicked.global_position.x - signf(clicked.global_position.x - global_position.x) * reach * 0.6
 			set_move_target(approach)

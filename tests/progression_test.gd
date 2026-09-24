@@ -153,19 +153,53 @@ func _test_valour_maths() -> void:
 		prev = v
 	check(mono, "every floor deeper is worth strictly more")
 	check(Progression.valour_for_run(15, false, 2, 1) == 18 + 16 + 4, "quests (+8 each) and NPCs aided (+4 each) add on")
-	check(Progression.valour_for_run(0, true, 0, 0, true) == 55 + Progression.VALOUR_BRAVE_BONUS, "braving the unknown (took everything) adds its bonus")
-	check(Progression.valour_for_run(10, false, 0, 0, true) == 26, "…only for a character who actually walked out")
-	print("[the session score counts a braved escape]")
+	check(Progression.valour_for_run(0, true, 0, 0, 95) == 55 + 95, "the kit scrapped at the door adds on")
+	check(Progression.valour_for_run(10, false, 0, 0, 95) == 26, "…only for a character who actually walked out")
+	print("[THE DOOR: every weapon melts for its worth; leaving one forfeits it AND the brave bonus]")
+	var lv4 := _hammer_lv3()
+	lv4.level = 4
+	var lv1 := ItemInstance.new()
+	lv1.setup("001")
+	var junk := ItemInstance.new()
+	junk.setup("024")
+	check(Progression.door_worth(lv4) == Progression.DOOR_WORTH[4] and Progression.door_worth(lv1) == Progression.DOOR_WORTH[1]
+		and Progression.door_worth(junk) == 0, "worth by level; junk melts for nothing")
+	var kit := [lv4, lv1, junk]
+	var all_v: int = Progression.door_valour(kit, -1)
+	check(all_v == Progression.DOOR_BRAVE_BONUS + Progression.DOOR_WORTH[4] + Progression.DOOR_WORTH[1], "scrap it all: bonus + every weapon (%d)" % all_v)
+	check(Progression.door_valour(kit, 0) == Progression.DOOR_WORTH[1], "keep the legendary: only the knife melts (%d)" % Progression.door_valour(kit, 0))
+	check(all_v - Progression.door_valour(kit, 0) == Progression.DOOR_BRAVE_BONUS + Progression.DOOR_WORTH[4],
+		"the price of keeping it = its worth + the brave bonus")
+	var heir := _hammer_lv3()
+	heir.level = 5
+	heir.forge_paid = 100
+	check(Progression.door_worth(heir) == Progression.DOOR_WORTH[5] + 20, "an heirloom counts a share of the scrap already put in (+20)")
+	var worths: Array = []
+	for l in range(1, 8):
+		worths.append(Progression.DOOR_WORTH[l])
+	var rising := true
+	for i in range(1, worths.size()):
+		rising = rising and worths[i] > worths[i - 1]
+	check(rising, "every level is worth more at the door")
+	print("[the session score counts what each escape scrapped at the door]")
 	_clear_valour()
 	WorldState.new_game()
 	for i in 3:
 		WorldState.run_chronicle[i]["deepest_floor"] = 0
 		WorldState.set_run_outcome(i + 1, "survived")
 	WorldState.current_run = 2
-	WorldState.note_braved()
+	WorldState.inventory = [lv4, lv1]
+	var door2: int = WorldState.note_door_scrap(true)
+	check(door2 == all_v and WorldState.chronicle_entry(2)["braved"], "run 2 braved: its kit scrapped for %d" % door2)
 	WorldState.current_run = 3
+	WorldState.inventory = [lv1]
+	check(WorldState.note_door_scrap(false) == Progression.DOOR_WORTH[1], "run 3 left something: the rest melts, no bonus")
 	var s: Dictionary = WorldState.finish_session()
-	check(int(s.get("total", -1)) == 3 * 55 + Progression.VALOUR_BRAVE_BONUS, "3 escapes, one braved → 165 + %d (got %s)" % [Progression.VALOUR_BRAVE_BONUS, str(s)])
+	check(int(s.get("total", -1)) == 3 * 55 + door2 + Progression.DOOR_WORTH[1], "3 escapes + the door (got %s)" % str(s.get("total")))
+	var old := WorldState._blank_chronicle_entry()
+	old.erase("door_valour")
+	old["braved"] = true
+	check(WorldState._door_valour_of(old) == Progression.DOOR_BRAVE_BONUS, "an older save's braved escape scores the bonus")
 	_clear_valour()
 	WorldState.save_profile()
 
@@ -242,11 +276,11 @@ func _test_buy_and_permanence() -> void:
 	_clear_valour()
 	_finish([0, 0, 0], ["survived", "survived", "survived"], ["U_slot"])
 	check(WorldState.valour == 165, "three escapes = 165")
-	WorldState.valour = 50
-	check(WorldState.buy_permanent("U_slot").contains("110"), "too poor: Deep Pockets costs 110")
 	WorldState.valour = 165
+	check(WorldState.buy_permanent("U_slot").contains("550"), "too poor: Deep Pockets costs 550 — a goal across games")
+	WorldState.valour = 600
 	check(WorldState.buy_permanent("U_melee_s") != "", "only what's on offer can be bought")
-	check(WorldState.buy_permanent("U_slot") == "" and WorldState.valour == 55, "bought (165 − 110 = 55)")
+	check(WorldState.buy_permanent("U_slot") == "" and WorldState.valour == 50, "bought (600 − 550 = 50)")
 	check(WorldState.valour_offer.is_empty(), "one purchase per session — the offer closes")
 	WorldState.new_game()
 	check(WorldState.get_inventory_slots() == WorldState.MAX_INVENTORY_SLOTS + 1, "a NEW game starts with the extra slot unlocked")
@@ -275,7 +309,7 @@ func _test_buy_and_permanence() -> void:
 	WorldState.finish_session()
 	check(WorldState.valour_offer == ["U_heal"], "a perk you already keep is never offered")
 	WorldState.decline_valour_offer()
-	check(WorldState.valour_offer.is_empty() and WorldState.valour == 55, "declining keeps the Valour for later")
+	check(WorldState.valour_offer.is_empty() and WorldState.valour == 50, "declining keeps the Valour for later")
 	_clear_valour()
 
 
@@ -285,13 +319,13 @@ func _test_cap_and_trade() -> void:
 	WorldState.permanent_perks = ["U_stam_s", "U_stam_m", "U_regen_s", "U_sprint_s", "U_speed_s",
 		"U_melee_s", "U_push", "U_head_s", "U_acc", "U_listen"]
 	WorldState.valour_offer = ["U_heal"]
-	WorldState.valour = 100
+	WorldState.valour = 1000
 	check(WorldState.buy_permanent("U_heal").contains("full"), "full: must pick one to trade out")
 	check(WorldState.buy_permanent("U_heal", "U_heal_nope") != "", "…one you actually hold")
 	var refund := Progression.trade_refund("U_stam_s")
 	check(WorldState.buy_permanent("U_heal", "U_stam_s") == "", "traded Second Wind for Field Medic")
 	check(WorldState.permanent_perks.size() == 10 and "U_heal" in WorldState.permanent_perks and not ("U_stam_s" in WorldState.permanent_perks), "still 10, swapped")
-	check(WorldState.valour == 100 + refund - Progression.perk_cost("U_heal"), "refund %d, cost %d" % [refund, Progression.perk_cost("U_heal")])
+	check(WorldState.valour == 1000 + refund - Progression.perk_cost("U_heal"), "refund %d, cost %d" % [refund, Progression.perk_cost("U_heal")])
 	var before := WorldState.valour
 	check(WorldState.trade_out_permanent("U_push") == Progression.trade_refund("U_push") and WorldState.valour > before, "trading out from the collection refunds part")
 	check(WorldState.permanent_perks.size() == 9, "…and frees a slot")
@@ -515,7 +549,7 @@ func _test_game_over_screen() -> void:
 	print("[the end-of-session screen shows the Valour and opens the offer]")
 	_clear_valour()
 	_finish([12, 20, 0], ["dead", "dead", "survived"], ["U_slot", "B_rage", "U_heal"])
-	WorldState.valour = 500
+	WorldState.valour = 2000
 	var go = load("res://scenes/game_over.tscn").instantiate()
 	add_child(go)
 	await get_tree().process_frame
@@ -536,7 +570,7 @@ func _test_game_over_screen() -> void:
 	WorldState.permanent_perks = ["U_stam_s", "U_stam_m", "U_regen_s", "U_sprint_s", "U_speed_s",
 		"U_melee_s", "U_push", "U_head_s", "U_acc", "U_listen"]
 	WorldState.valour_offer = ["U_heal"]
-	WorldState.valour = 100
+	WorldState.valour = 1000
 	var ui2 = preload("res://scripts/legacy_ui.gd").new()
 	add_child(ui2)
 	ui2.open()

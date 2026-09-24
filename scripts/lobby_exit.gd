@@ -3,8 +3,8 @@ extends Area2D
 # THE WAY OUT (owner): at the lobby door the player presses [E] — steps up into the doorway (the
 # same depth walk as an apartment door) — the screen blooms WHITE: "YOU SURVIVED", who, and the
 # run's stats — then fades to black and the next character's run begins (or the arc ends). Before
-# stepping up they choose: take everything (+Valour) or leave ONE item by the door, stashed for the
-# NEXT game (WorldState "THE DOOR STASH").
+# stepping up they choose: scrap the whole kit at the door for Valour, or leave ONE item by the door
+# for their NEXT game (WorldState "THE DOOR STASH") and forfeit its worth.
 # Walking past the door no longer ends the run by accident; leaving is a choice.
 
 var _leaving := false          # the exit runs ONCE
@@ -53,11 +53,10 @@ func leave() -> void:
 	var player = get_tree().get_first_node_in_group("player")
 	if player != null:
 		player.escaping = true             # committed: no hit or dying countdown can undo it now
-	# THE DOOR: take everything and brave the unknown (+Valour), or leave one item by the door for
-	# a FUTURE game (the stash). Nothing to leave counts as taking everything.
+	# THE DOOR: the kit is scrapped for Valour (+ a bonus for leaving nothing behind), or ONE item is
+	# left by the door for a FUTURE game (the stash) — forfeiting its worth. Nothing to leave = braved.
 	var left: String = await _offer_handoff()
-	if left == "":
-		WorldState.note_braved()
+	WorldState.note_door_scrap(left == "")   # the rest of the kit is scrapped at the door for Valour
 	# Step up into the doorway, like any door.
 	if player != null and is_instance_valid(player) and player.has_method("approach_door"):
 		await player.approach_door(global_position)

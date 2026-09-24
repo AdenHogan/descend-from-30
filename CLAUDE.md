@@ -216,7 +216,7 @@ Robustness rules). What it covers:
   `dev_menu_test`, `lighting_test`, `plane_lock_test`, `apartment_window_test`,
   `scavenge_node_test`, `drop_physics_test`, `softlock_test`, `character_panel_test`,
   `corpse_recovery_test`, `run_memory_test`, `attack_input_test`, `character_stats_test`, `transition_seam_test`, `run_bookends_test`, `weapon_upgrade_test`, `progression_test` — run
-  all 44 before commit. (`new_game()` rolls a RANDOM seed, so any test meets any of the four
+  all 44 before commit. Balance tool: `tools/economy_report.tscn` (scrap per run, ~25 min a seed). (`new_game()` rolls a RANDOM seed, so any test meets any of the four
   characters — an assert on a trait-affected value must be trait-aware; see docs/CHARACTERS.md.) (Run ONE godot at a time — a killed/backgrounded headless run can
   linger and block the next, and a GDScript **parse error makes a test scene load but
   never call `quit()`, so it "hangs" until timeout** rather than printing an error line;
@@ -1179,6 +1179,18 @@ means no rendering — UI layout and art still need an in-editor look.
   `add_world_drop` returns the key it used), and **New Game leaked the previous game's wallet +
   cash** (`new_game` now resets wallet/scrap). Tools: `scene_capture` gained `give:` / `scrap:`
   steps. Locked by `weapon_upgrade_test`.
+  **v2 — make it YOURS (owner round 4; SCRAP_UPGRADES.md "What's built (v2)")**: SEVEN levels —
+  Lv1-3 → **Lv4 LEGENDARY** → **Legendary + / ++ / +++** (heirloom). **Every weapon levels** (`KIND`;
+  tree-less ones on tuning alone; feed by FAMILY — blades / blunt — so a rare sword can get there;
+  a legendary is never fed). **Tuning**: 2 points a level spent on the weapon's own stat sheet
+  (`STATS`: melee Weight/Edge/Reach/Handling/Balance/Temper, gun Sights/Magazine/Oiled/Hand-loaded)
+  within caps, each heirloom tier lifts every cap by one; bench **Tune** tab (stage − / +, "Set in
+  steel", no respec); same fold as perks (`ItemInstance.tuning`); Reach + Handling are new combat
+  hooks in `_do_melee_attack`. **Legendary names**: a title from what it's best at (`TITLE_BANKS`),
+  reads `Hammer "Widowmaker"`, remembers `forged_by`, renamable (`rename_weapon`). **Heirlooms**:
+  need 1/2/3 lobby-door CROSSINGS (`crossings`, +1 when the shopkeeper hands a stashed item over in a
+  later game) + scrap paid in INSTALMENTS that ride the weapon (`forge_paid`, `forge_heirloom`; 400 /
+  500 / 600, sized by `tools/economy_report.tscn` ≈ 200 scrap per character). HUD tags "LEG", "LEG+".
 - PROGRESSION tiers 2 + 3 (docs/PROGRESSION.md): **Run boons** (temporary, this character — a v1
   proposal): the first arrival at milestone floors 27/22/17/12/7 queues a pick-1-of-2 offered by a
   HUD **"★ BOON — choose"** badge (never a forced pause), wiped by the time skip, kept by a save.
@@ -1187,9 +1199,15 @@ means no rendering — UI layout and art still need an in-editor look.
   depth into Valour (`d + d²/60`, +10 escaped; banked to the PROFILE, savable) and offers up to 3
   perks drawn uniformly at random from `session_perks` (every merchant upgrade + run boon ACQUIRED
   that session). Buy ONE to keep forever (`permanent_perks`, a fold source for every new game in the
-  slot, removed from the merchant + boon pools); max 10, trade out for a 50% refund. Quests
+  slot, removed from the merchant + boon pools); max 10, trade out for a 50% refund; the offer card
+  shows "(N to go)" when unaffordable. Quests
   completed (+8) and NPCs aided (+4) also score (`note_quest_completed`/`note_npc_aided` hooks —
-  quests not built yet). **Descent boon = Valour + THE DOOR** (an Arc-Raiders-style safe pocket): pressing to
+  quests not built yet). **Round 4 (owner: "+10 doesn't feel worth it… a real hard choice")**: the kit
+  is SCRAPPED AT THE DOOR for Valour — each weapon by level (`Progression.DOOR_WORTH`: Legendary 70,
+  +++ 220, + 20% of heirloom scrap put in) + 25 for leaving nothing behind (`door_valour`,
+  `note_door_scrap`) — or one item is kept by the door and its worth + the bonus are forfeit; every
+  button on the door panel shows its Valour. Perk prices ×5 (150-450, Deep Pockets 550) so a
+  coveted perk is 5-6 games keeping your weapon, 2-3 scrapping it. **Descent boon = Valour + THE DOOR** (an Arc-Raiders-style safe pocket): pressing to
   leave, an escaping character either TAKES EVERYTHING (braves the unknown, +10 Valour, chronicle
   `braved`) or leaves ONE item (full state, upgrades kept) by the door — stashed for a FUTURE GAME,
   never this session's later characters. `leave_for_next` → `door_stash_pending` →
