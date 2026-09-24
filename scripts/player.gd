@@ -6,6 +6,7 @@ const CROUCH_SPEED = 60.0
 const SCAVENGE_SPEED = 80.0
 const PUSH_DURATION = 0.8
 const PUSH_RANGE = 40.0
+const PUSH_BEHIND_PENALTY := 40.0   # a push prefers the enemy in front of you over one behind
 const PUSH_FORCE = 100.0
 const MODE_SWITCH_TIME = 0.2
 
@@ -926,28 +927,41 @@ func _do_push() -> void:
 	is_pushing = true
 	push_timer = PUSH_DURATION
 	animated_sprite.play("punch_jab")
-	var zombies = get_tree().get_nodes_in_group("zombie")
-	for zombie in zombies:
-		if ("is_dead" in zombie) and zombie.is_dead:
+	var target = push_target()
+	if target == null:
+		return
+	# ONE body per push (owner round 9: "push should never mass stun, only ever one by one" — a
+	# shove into a packed crowd used to stagger every enemy in range at once). A crowd has to be
+	# worked through, and it gets its hits in while you do.
+	var push_dir = signf(target.global_position.x - global_position.x)
+	if push_dir == 0.0:
+		push_dir = -1.0 if animated_sprite.flip_h else 1.0
+	if target.has_method("receive_push"):
+		target.receive_push(push_dir * PUSH_FORCE * WorldState.get_push_mult())
+
+
+func push_target():
+	# The single enemy a push would land on: the nearest body (by HORIZONTAL edge distance — height-
+	# independent, so the ~18px origin gap between rigs and the wide low Crawler never dodge it) on my
+	# plane within PUSH_RANGE, preferring the side I'm facing. null when nothing is in reach.
+	var best = null
+	var best_score := INF
+	var facing := -1.0 if animated_sprite.flip_h else 1.0
+	for zombie in get_tree().get_nodes_in_group("zombie"):
+		if not is_instance_valid(zombie) or (("is_dead" in zombie) and zombie.is_dead):
 			continue
-		# HEIGHT-INDEPENDENT reach, same as melee: gate on HORIZONTAL edge distance
-		# (centre minus the target's real half-width) plus a vertical tolerance. Raw
-		# distance_to folded the rigs' ~18px origin gap into every check, and for the
-		# WIDE, LOW Crawler (80px box, low to the floor) it missed unless you were right
-		# on top of it — the push read as "shoving blank space". Edge distance fixes that.
 		var dx = zombie.global_position.x - global_position.x
 		var dy = absf(zombie.global_position.y - global_position.y)
 		if dy > MELEE_PLANE_TOLERANCE or not _same_plane(zombie):
 			continue
 		var edge_dist = absf(dx) - _zombie_body_radius(zombie)
-		if edge_dist <= PUSH_RANGE:
-			# General push for EVERY enemy now, Crawler included: it gets a real
-			# knockback like the rest (the old Crawler-only KICK-STUN is dropped).
-			var push_dir = signf(dx)
-			if push_dir == 0.0:
-				push_dir = -1.0 if animated_sprite.flip_h else 1.0
-			if zombie.has_method("receive_push"):
-				zombie.receive_push(push_dir * PUSH_FORCE * WorldState.get_push_mult())
+		if edge_dist > PUSH_RANGE:
+			continue
+		var score: float = edge_dist + (0.0 if signf(dx) == facing or dx == 0.0 else PUSH_BEHIND_PENALTY)
+		if score < best_score:
+			best_score = score
+			best = zombie
+	return best
 
 
 func request_mode_toggle() -> bool:

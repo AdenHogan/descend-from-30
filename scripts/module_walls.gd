@@ -23,14 +23,17 @@ extends Node2D
 const TOP := 224.0          # module top (back-plane row 0) — room.gd places modules at y 224
 const SEAM := 324.0         # where the back wall meets the floor (module-local 100)
 const ROWS := 100           # back-plane rows from TOP to SEAM
-const VY := 190.0           # the horizon (eye height): above the room — we look down on the floor
+const VY := 224.0           # the horizon (eye height) = the CEILING line (owner round 9: the old 190
+                            # tipped every wall top down into a heavy slab wedge — "ceilings too low").
+                            # Wall tops stay level on the ceiling; only the floor recedes.
 const FRONT_FLOOR := 360.0  # the near cut plane's floor line (just in front of the feet line 353)
 const DOOR_FLOOR := 338.0   # the doorway starts this deep (floor y) — the lane runs through it
-const DOOR_ROWS := 42       # the lintel: back-plane rows 0..41 are wall above the doorway
+const DOOR_ROWS := 18       # the lintel: back-plane rows 0..17 are wall above the doorway — high enough
+                            # that the tallest enemy (spitter, drawn top 257) walks under it at the lane
 const ENTRANCE_FRONT := 356.0  # the FRONT door's near jamb (floor y): wall stands between it and
                                # the front cut, so it reads as a door IN the wall
 const MOD_ROWS := 144       # the module's full height (wall + floor) — the floor rows are sampled too
-const BAND_BOTTOM := 367.0  # never draw into the flat below (a balcony pan stacks them)
+const BAND_BOTTOM := 375.0  # room.ROOM_BAND_TOP + 160: never draw into the flat below (a balcony pan stacks them)
 const HALF_T := 2.0         # half the wall's thickness (back-plane px)
 const FACE_SHADE := 0.82    # a turned surface reads a little darker (ambient only)
 const CUT_COL := Color(0.24, 0.18, 0.13)   # the cut section: warm plaster-brown, not a black bar

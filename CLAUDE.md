@@ -1335,6 +1335,21 @@ means no rendering — UI layout and art still need an in-editor look.
   art (`tools/art/living_room.py` → `assets/rooms/living_room.png`, variants B-D not yet wired);
   the partitions/end walls are drawn LIVE in perspective (`module_walls.gd`) and the flat's frame is
   a cross-section SHELL (`room_shell.gd`: ceiling slab + end-wall sections + framed front door) that
-  replaces the hidden stone tiles; the room camera reaches 32px past the tiles. Locked by
-  `apartment_window_test`. Maintenance rooms keep their tiles (no modules).
+  replaces the hidden stone tiles. Round 9b: horizon at the ceiling (VY 224 — no slab wedge), tall
+  doorways (lintel ~247 at the lane, the tallest enemy passes under), a thin frame (band 215..375:
+  9px slab + the flat's floor edge), the camera solved to show 5px past each end wall, and the SOLID
+  walls + exit trigger moved to the drawn wall's foot (no invisible wall ~33px short). Standard zombie
+  sprite dropped 1 art px (its dark boots vanished on dark floors). All in docs/Y_PLANES.md §1.
+  Locked by `apartment_window_test`. Maintenance rooms keep their tiles (no modules).
+- PUSH + CROWDS (owner round 9): a push takes ONE enemy (`player.push_target` — the nearest in
+  front; it used to stagger everyone in reach), so a crowd is worked through and gets hits in. The
+  BIG zombie can't be stunned or knocked back by a push (it keeps attacking) but a push makes it
+  passable for `PUSH_PASS_TIME` 1.6s (≈0.8s after the push lock) so you can slip past — solid again
+  once you're clear. CROWD SPACING (`scripts/enemy_crowd.gd`): enemies never collide with each other
+  (the swarm fix), so a pack used to draw as ONE blob; each engaged enemy now takes a RANK on its side
+  of the player (0 = nearest) and stands `GAP` 13px × rank further back; ranks 0-3 still strike from
+  their spot (reach + rank × GAP — a crowd fights together, not single file), deeper ranks hold facing
+  you, anyone too close for its spot shuffles back. Recomputed every frame (no stuck queue). Standard
+  family + big. Locked by `enemy_variety_test` (`_test_push_one_at_a_time`, `_test_big_push_past`,
+  `_test_crowd_spacing`).
 - Not started: quests.

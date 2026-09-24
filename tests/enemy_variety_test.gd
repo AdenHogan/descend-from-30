@@ -39,6 +39,9 @@ func _ready() -> void:
 	await _test_hurt_state()
 	await _test_hurt_targeting()
 	await _test_burning_big_doubles()
+	await _test_push_one_at_a_time()
+	await _test_big_push_past()
+	await _test_crowd_spacing()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -800,5 +803,116 @@ func _test_burning_big_doubles() -> void:
 	p.health_state = 0
 	p.is_dying = false
 	WorldState.is_dying = false
+	bf.free()
+	await get_tree().process_frame
+
+
+func _test_push_one_at_a_time() -> void:
+	# Owner round 9: a push into a packed crowd staggered EVERY enemy in range — it must only ever
+	# take one, the nearest in front.
+	print("[push: one enemy per push]")
+	var bf = await _corridor()
+	var p = bf.get_node("Player")
+	p.global_position = Vector2(600, 386)
+	p.animated_sprite.flip_h = false
+	WorldState.god_mode = true
+	var zs := []
+	for x in [622.0, 630.0, 638.0, 585.0]:
+		var z = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
+		z.global_position = Vector2(x, 370)
+		bf.add_child(z)
+		zs.append(z)
+	await get_tree().physics_frame
+	for z in zs:
+		z.set_physics_process(false)
+		z.state = "chase"
+	p._do_push()
+	var pushed := 0
+	for z in zs:
+		if z.state == "hit":
+			pushed += 1
+	check(pushed == 1, "a push staggers exactly ONE of 4 enemies in reach (%d)" % pushed)
+	check(zs[0].state == "hit", "…the nearest one in FRONT, not the one behind (front %s, behind %s)" % [zs[0].state, zs[3].state])
+	WorldState.god_mode = false
+	bf.free()
+	await get_tree().process_frame
+
+
+func _test_big_push_past() -> void:
+	# The big one can't be stunned or shoved — it keeps attacking — but a push opens a gap to slip past.
+	print("[push: the big one lets you past, unstunned]")
+	var bf = await _corridor()
+	var p = bf.get_node("Player")
+	p.global_position = Vector2(600, 386)
+	p.animated_sprite.flip_h = false
+	var big = load("res://scenes/enemy_zombie_big.tscn").instantiate()
+	big.global_position = Vector2(660, 374)
+	bf.add_child(big)
+	for i in range(20):
+		await get_tree().physics_frame
+	big.player = p
+	check(not p.get_collision_exceptions().has(big), "the big one blocks you before the push")
+	var x0: float = big.global_position.x
+	WorldState.stamina = WorldState.get_max_stamina()
+	p.global_position.x = big.global_position.x - 50.0
+	p._do_push()
+	check(big.state != "hit", "no stun (state %s)" % big.state)
+	check(p.get_collision_exceptions().has(big) and big.is_push_passable(), "…but you can slip past it")
+	# walk straight through it
+	Input.action_press("move_right")
+	for i in range(110):
+		await get_tree().physics_frame
+	Input.action_release("move_right")
+	check(p.global_position.x > big.global_position.x + 10.0, "the player got past it (%.1f vs big %.1f)" % [p.global_position.x, big.global_position.x])
+	check(absf(big.global_position.x - x0) < 40.0, "the big one itself wasn't knocked back (moved %.1f)" % absf(big.global_position.x - x0))
+	# once clear and the window's over, it's solid again
+	p.global_position.x = big.global_position.x + 160.0
+	for i in range(80):
+		await get_tree().physics_frame
+		p.velocity = Vector2.ZERO
+	check(not p.get_collision_exceptions().has(big), "solid again once you're clear")
+	bf.free()
+	await get_tree().process_frame
+
+
+func _test_crowd_spacing() -> void:
+	# Owner round 9: five enemies drew as ONE blob on top of the player. A pack now fans out by crowd
+	# rank (enemy_crowd.gd): distinct x per body, the front few all still attacking.
+	print("[crowd: a pack fans out into distinct, attacking bodies]")
+	var bf = await _corridor()
+	var p = bf.get_node("Player")
+	p.global_position = Vector2(600, 386)
+	WorldState.god_mode = true
+	var zs := []
+	for i in range(5):
+		var z = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
+		z.global_position = Vector2(700.0 + float(i) * 2.0, 370)      # all piled on one spot
+		bf.add_child(z)
+		zs.append(z)
+	await get_tree().physics_frame
+	for z in zs:
+		z.alert_timer = 30.0
+		z.current_hp = 50
+	var attacks := {}
+	for i in range(360):
+		await get_tree().physics_frame
+		p.velocity = Vector2.ZERO
+		for z in zs:
+			if z.state == "attack":
+				attacks[z.get_instance_id()] = true
+	var xs := []
+	for z in zs:
+		xs.append(z.global_position.x)
+	xs.sort()
+	var min_gap := INF
+	for i in range(1, xs.size()):
+		min_gap = minf(min_gap, xs[i] - xs[i - 1])
+	check(min_gap >= 9.0, "the pack stands apart (smallest gap %.1f px; xs %s)" % [min_gap, str(xs)])
+	check(attacks.size() >= 3, "several of them attack together, not single file (%d attacked)" % attacks.size())
+	var ranks := {}
+	for z in zs:
+		ranks[load("res://scripts/enemy_crowd.gd").rank(z, p)] = true
+	check(ranks.size() == 5, "every body has its own rank (%s)" % str(ranks.keys()))
+	WorldState.god_mode = false
 	bf.free()
 	await get_tree().process_frame

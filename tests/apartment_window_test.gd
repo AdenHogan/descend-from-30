@@ -135,9 +135,44 @@ func _test_windows_day() -> void:
 		check(absf(shell.end_cut_x(lx, cx) - l_face.x) < 0.01, "left section starts at the wall face's front edge")
 		check(absf(shell.end_cut_x(rx, cx) - r_face.x) < 0.01, "right section starts at the wall face's front edge")
 		var cam = room.get_node("Player/Camera2D")
-		var tb: Rect2 = StairPan.clean_bounds(tm)
-		check(cam.limit_left == int(floor(tb.position.x - room.SHELL_VIEW_MARGIN)) and cam.limit_right == int(ceil(tb.end.x + room.SHELL_VIEW_MARGIN)),
-			"camera reaches past the tiles so the ends are in shot (%d..%d)" % [cam.limit_left, cam.limit_right])
+		var half_view: float = get_viewport().get_visible_rect().size.x / cam.zoom.x / 2.0
+		# The camera pinned at an end shows only a sliver of section past the wall's cut (no wasted band).
+		var shown_l: float = shell.end_cut_x(lx, float(cam.limit_left) + half_view) - float(cam.limit_left)
+		var shown_r: float = float(cam.limit_right) - shell.end_cut_x(rx, float(cam.limit_right) - half_view)
+		check(absf(shown_l - shell.SECTION_SHOW) <= 1.0 and absf(shown_r - shell.SECTION_SHOW) <= 1.0,
+			"pinned at an end, only ~%.0fpx of section shows (L %.1f / R %.1f)" % [shell.SECTION_SHOW, shown_l, shown_r])
+		# The solid walls sit where the DRAWN wall meets the floor at the lane (no invisible wall short of it).
+		var lw = room.get_node("LeftWall")
+		var lcol = lw.get_node("CollisionShape2D")
+		var l_edge: float = lw.position.x + lcol.position.x + lcol.shape.size.x / 2.0
+		var rw = room.get_node("RightWall")
+		var rcol = rw.get_node("CollisionShape2D")
+		var r_edge: float = rw.position.x + rcol.position.x - rcol.shape.size.x / 2.0
+		check(absf(l_edge - room.wall_foot_left) < 0.5 and absf(r_edge - room.wall_foot_right) < 0.5,
+			"wall collision = the drawn wall's foot (L %.1f/%.1f, R %.1f/%.1f)" % [l_edge, room.wall_foot_left, r_edge, room.wall_foot_right])
+		check(room.wall_foot_left < 100.0 and room.wall_foot_right > 1086.0,
+			"the player reaches further than the old tile walls (112 / 1074): %.1f / %.1f" % [room.wall_foot_left, room.wall_foot_right])
+		var door = room.get_node("Area2D")
+		var foot_entry: float = room.wall_foot_left if WorldState.get_entrance_side(APT) == "left" else room.wall_foot_right
+		check(absf(door.position.x - foot_entry) <= 2.5, "the exit trigger sits at the drawn front door (%.1f vs %.1f)" % [door.position.x, foot_entry])
+		# Doorways are tall enough for the tallest enemy (spitter, drawn top 257 at the lane) to pass under.
+		var lintel_y: float = MW.TOP + float(MW.DOOR_ROWS) * MW._s_for_floor(room.ROOM_FEET_Y)
+		check(lintel_y < 257.0 - 4.0, "a doorway's lintel at the lane (%.1f) clears the tallest enemy (257)" % lintel_y)
+		check(room.ROOM_BAND_TOP == load("res://scripts/balcony_pan.gd").ROOM_BAND_TOP,
+			"balcony_pan's band top matches the room's (%.0f)" % room.ROOM_BAND_TOP)
+		check(room.ROOM_BAND_TOP + room.ROOM_BAND_H == shell.BAND_BOTTOM, "the shell ends at the band bottom")
+		# Walk the player into the solid (non-entrance) end: it stops with its body at the drawn wall.
+		var p = room.get_node("Player")
+		var solid_left := WorldState.get_entrance_side(APT) != "left"
+		p.global_position.x = 200.0 if solid_left else 986.0
+		var act := "move_left" if solid_left else "move_right"
+		Input.action_press(act)
+		for i in range(150):
+			await get_tree().physics_frame
+		Input.action_release(act)
+		var body_edge: float = p.global_position.x - 13.0 if solid_left else p.global_position.x + 13.0
+		var foot: float = room.wall_foot_left if solid_left else room.wall_foot_right
+		check(absf(body_edge - foot) < 3.0, "walking into the end wall stops the body AT the drawn wall (%.1f vs %.1f)" % [body_edge, foot])
 	# Every window / balcony door casts a slanting light BEAM (window_beam.gd) that carries a
 	# real PointLight2D — so the shaft actually lights the room, not just a painted overlay.
 	var beams := get_tree().get_nodes_in_group("window_beam")

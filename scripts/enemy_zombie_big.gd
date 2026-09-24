@@ -36,6 +36,10 @@ var detection_range: float = DETECTION_RANGE
 # scripts/enemy_hurt.gd).
 const ENEMY_PLANE := preload("res://scripts/enemy_plane.gd")
 const ENEMY_HURT := preload("res://scripts/enemy_hurt.gd")
+const ENEMY_CROWD := preload("res://scripts/enemy_crowd.gd")
+const PUSH_PASS_TIME := 1.6   # a shove can't stun or move the big one — it opens a gap to slip past (the
+                              # push itself locks you 0.8s, so this leaves ~0.8s to step in; once
+                              # overlapping it stays passable until you're clear — never a jam)
 var on_balcony_plane: bool = false
 var balcony_center_x: float = 0.0
 var _plane_floor_y: float = 0.0
@@ -44,6 +48,8 @@ var _plane_idle_t: float = randf_range(3.0, 10.0)
 var _plane_scale0: Vector2 = Vector2.ZERO
 var _plane_pos0: Vector2 = Vector2.ZERO
 var _plane_passable: bool = false
+var _crowd_bonus: float = 0.0      # extra reach my crowd rank gave the attack in progress (enemy_crowd.gd)
+var _push_pass_timer: float = 0.0  # a push can't move me, but lets the player slip past for this long
 var hurt_timer: float = 0.0
 
 # On fire: a big zombie standing in flame catches too (flame overlay + burn DoT).
@@ -157,8 +163,26 @@ func _set_hp_from_floor() -> void:
 
 
 func receive_push(_force: float) -> void:
-	# The boss cannot be pushed — pushing should not work on the big zombie.
-	return
+	# The big one can't be shoved back or stunned — it keeps attacking — but a push still makes
+	# ROOM: for PUSH_PASS_TIME the player can slip past it (owner round 9: "push to allow movement
+	# past it… could help turn the battle"). It stays passable until the player is clear.
+	if is_dead:
+		return
+	_push_pass_timer = PUSH_PASS_TIME
+	if is_instance_valid(player) and player is PhysicsBody2D and not _plane_passable:
+		add_collision_exception_with(player)
+		player.add_collision_exception_with(self)
+		_plane_passable = true
+	# a small visible give (the sprite rocks back), no knockback and no stun
+	if animated_sprite != null:
+		var back := -4.0 if (is_instance_valid(player) and player.global_position.x > global_position.x) else 4.0
+		var tw := create_tween()
+		tw.tween_property(animated_sprite, "position:x", back, 0.08)
+		tw.tween_property(animated_sprite, "position:x", 0.0, 0.14)
+
+
+func is_push_passable() -> bool:
+	return _push_pass_timer > 0.0 or _plane_passable
 
 
 func receive_damage(amount: int, damage_type: String) -> void:
@@ -199,7 +223,8 @@ func _plane_collision() -> void:
 		add_collision_exception_with(player)
 		player.add_collision_exception_with(self)
 		_plane_passable = true
-	elif not differ and _plane_passable and absf(global_position.x - player.global_position.x) > _attack_reach():
+	elif not differ and _plane_passable and _push_pass_timer <= 0.0 \
+			and absf(global_position.x - player.global_position.x) > _body_clearance():
 		remove_collision_exception_with(player)
 		player.remove_collision_exception_with(self)
 		_plane_passable = false
@@ -306,6 +331,15 @@ func _reach_to_player() -> float:
 		return INF
 	return absf(player.global_position.x - global_position.x)
 
+func _body_clearance() -> float:
+	# Horizontal gap at which my body and the player's are guaranteed apart (re-solidify only then).
+	var half := 35.0
+	var cs = get_node_or_null("CollisionShape2D")
+	if cs != null and cs.shape is CapsuleShape2D:
+		half = cs.shape.radius
+	return half + 13.0 + 8.0
+
+
 func _attack_reach() -> float:
 	var half := 35.0
 	var cs = get_node_or_null("CollisionShape2D")
@@ -360,6 +394,8 @@ func _physics_process(delta: float) -> void:
 		alert_timer -= delta
 	if hurt_timer > 0.0:
 		hurt_timer -= delta
+	if _push_pass_timer > 0.0:
+		_push_pass_timer -= delta
 	if ENEMY_PLANE.tick(self, delta):
 		return
 	_plane_collision()
@@ -382,7 +418,7 @@ func _physics_process(delta: float) -> void:
 			velocity.x = 0
 			state_timer -= delta
 			if state_timer <= 0:
-				if _reach_to_player() <= _attack_reach():
+				if _reach_to_player() <= _attack_reach() + _crowd_bonus:
 					if is_instance_valid(player) and player.has_method("receive_hit"):
 						player.receive_hit(2 * (2 if on_fire else 1))   # alight = double, like every enemy
 				state = "chase"
@@ -393,11 +429,27 @@ func _physics_process(delta: float) -> void:
 			if player != null:
 				var distance = global_position.distance_to(player.global_position)
 				var effective_detection = detection_range if alert_timer <= 0 else 2000.0
-				if _reach_to_player() <= _attack_reach():
+				var reach := _reach_to_player()
+				var crank: int = ENEMY_CROWD.rank(self, player)
+				var stand: float = ENEMY_CROWD.stand_distance(crank, _attack_reach())
+				if crank > 0 and reach < stand - 6.0:
+					# too close for my crowd spot (enemy_crowd.gd): shuffle back, facing the player
+					state = "chase"
+					var face = sign(player.global_position.x - global_position.x)
+					velocity.x = -face * SPEED * 0.5
+					animated_sprite.flip_h = face < 0
+					animated_sprite.play("Walk")
+				elif reach <= _attack_reach() + ENEMY_CROWD.reach_bonus(crank):
+					_crowd_bonus = ENEMY_CROWD.reach_bonus(crank)
 					state = "attack"
 					state_timer = 1.2
 					animated_sprite.flip_h = (player.global_position.x - global_position.x) < 0
 					animated_sprite.play("Attack")
+				elif crank > ENEMY_CROWD.MAX_ATTACK_RANK and reach <= stand and distance <= effective_detection:
+					state = "chase"
+					velocity.x = 0
+					animated_sprite.flip_h = player.global_position.x < global_position.x
+					animated_sprite.play("Idle")
 				elif distance <= effective_detection:
 					state = "chase"
 					var direction = sign(player.global_position.x - global_position.x)

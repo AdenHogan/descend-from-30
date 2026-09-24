@@ -4,6 +4,10 @@ extends CharacterBody2D
 # (crawler / long-arm / spitter — each `extends` this script) can override them in
 # _ready() to differentiate itself. Defaults are the standard zombie's values, so a
 # plain standard behaves exactly as before. No other script reads these statically.
+const ENEMY_CROWD := preload("res://scripts/enemy_crowd.gd")
+const CROWD_BACKOFF_SLACK := 6.0   # px inside my crowd spot before I shuffle back
+const CROWD_BACKOFF_SPEED := 0.5   # × my speed while shuffling back
+var _crowd_bonus: float = 0.0      # extra reach my crowd rank gave the attack in progress
 var SPEED := 40.0
 var DETECTION_RANGE := 100.0
 var ATTACK_RANGE := 30.0
@@ -691,7 +695,7 @@ func _attack_reach() -> float:
 # (and crawler / long-arm) strike in melee; the spitter overrides this to launch a
 # projectile instead. Base = a melee hit if the player is still within reach.
 func _deliver_attack(distance: float) -> void:
-	if distance <= _attack_reach():
+	if distance <= _attack_reach() + _crowd_bonus:
 		if player and player.has_method("receive_hit"):
 			player.receive_hit(ATTACK_DAMAGE * (2 if on_fire else 1))
 
@@ -1023,10 +1027,29 @@ func _physics_process(delta: float) -> void:
 				var effective_detection = DETECTION_RANGE if alert_timer <= 0 else 2000.0
 				if tutorial_scripted:
 					effective_detection = 2000.0  # always aware once released
-				if _reach_to_player() <= _attack_reach():
+				# CROWD SPACING (enemy_crowd.gd): my rank on my side of the player sets where I stand,
+				# so a pack fans out into distinct bodies; ranks 1-3 still strike from their spot.
+				var reach := _reach_to_player()
+				var crank: int = -1 if tutorial_scripted else ENEMY_CROWD.rank(self, player)
+				var stand: float = ENEMY_CROWD.stand_distance(crank, _attack_reach())
+				if crank > 0 and reach < stand - CROWD_BACKOFF_SLACK:
+					# too close for my place (a stack): shuffle back, still facing the player
+					state = "chase"
+					var face = sign(player.global_position.x - global_position.x)
+					velocity.x = -face * move_speed * CROWD_BACKOFF_SPEED
+					animated_sprite.flip_h = face < 0
+					animated_sprite.play("Walk")
+				elif reach <= _attack_reach() + ENEMY_CROWD.reach_bonus(crank):
+					_crowd_bonus = ENEMY_CROWD.reach_bonus(crank)
 					state = "attack"
 					state_timer = 0.8
 					animated_sprite.play("Attack")
+				elif crank > ENEMY_CROWD.MAX_ATTACK_RANK and reach <= stand and distance <= effective_detection:
+					# deep in the pack: hold my place, facing the player, until one opens up
+					state = "chase"
+					velocity.x = 0
+					animated_sprite.flip_h = player.global_position.x < global_position.x
+					animated_sprite.play("Idle")
 				elif distance <= effective_detection:
 					state = "chase"
 					var direction = sign(player.global_position.x - global_position.x)

@@ -75,9 +75,10 @@ const UI_FONT = preload("res://assets/fonts/PixelOperator8.ttf")
 # (StairPan.apply_floor_camera) so it stops at the walls/ceiling instead of
 # drifting into the grey void beside or above the apartment — same treatment
 # building_floors gives a corridor. The tight band zooms the view in to fill it.
-const ROOM_BAND_TOP := 207.0
+const ROOM_BAND_TOP := 215.0   # 8px lower than the old 207: a thin ceiling slab + this flat's floor edge (room_shell)
 const ROOM_BAND_H := 160.0
-const SHELL_VIEW_MARGIN := 32.0   # the camera's extra reach past the tiles at each end (room_shell.gd)
+var wall_foot_left := 0.0    # where each end wall meets the floor at the lane (set by _fit_view_and_walls)
+var wall_foot_right := 0.0
 
 # Interior fire (Hazard 3 inside apartments). apartment_fire.gd is a no-sim, procedurally
 # placed fire keyed to WorldState.apartment_active_fire_stage(floor,apt): LIGHT near the
@@ -262,11 +263,45 @@ func _frame_camera(player: Node) -> void:
 		return
 	var b = StairPan.clean_bounds(tm)
 	var band = Rect2(Vector2(b.position.x, ROOM_BAND_TOP), Vector2(b.size.x, ROOM_BAND_H))
-	if get_node_or_null("RoomShell") != null:
-		# An apartment's end walls are drawn in perspective: let the view reach a little past the old
-		# tile bounds so the front door and each wall's front cut are actually in shot.
-		band = band.grow_individual(SHELL_VIEW_MARGIN, 0.0, SHELL_VIEW_MARGIN, 0.0)
 	StairPan.apply_floor_camera(cam, band)
+	if get_node_or_null("RoomShell") != null:
+		_fit_view_and_walls(cam)
+
+
+func _fit_view_and_walls(cam: Camera2D) -> void:
+	# An apartment's end walls are drawn in perspective (module_walls / room_shell), so (1) the camera
+	# reaches just far enough to show each end wall's face + a sliver of section, and (2) the solid
+	# walls — and the exit trigger — move to where the drawn wall meets the floor at the walking lane,
+	# so the player is stopped by the wall they SEE, not an invisible one short of it (owner round 9).
+	var vw: float = get_viewport().get_visible_rect().size.x
+	if vw <= 1.0 or cam.zoom.x <= 0.0:
+		return
+	var half_view: float = vw / cam.zoom.x / 2.0
+	var shell_script = load("res://scripts/room_shell.gd")
+	var half_t: float = load("res://scripts/module_walls.gd").HALF_T
+	var inner_l: float = float(LEFT_WALL_X) + half_t
+	var inner_r: float = float(LEFT_WALL_X + 3 * MODULE_WIDTH) - half_t
+	var lim: Vector2 = shell_script.camera_limits_x(inner_l, inner_r, half_view)
+	cam.limit_left = int(floor(lim.x))
+	cam.limit_right = int(ceil(lim.y))
+	wall_foot_left = shell_script.wall_foot_x(inner_l, float(cam.limit_left) + half_view)
+	wall_foot_right = shell_script.wall_foot_x(inner_r, float(cam.limit_right) - half_view)
+	_place_wall_inner_edge($LeftWall, wall_foot_left, true)
+	_place_wall_inner_edge($RightWall, wall_foot_right, false)
+	var door = get_node_or_null("Area2D")
+	if door != null and not _is_maintenance():
+		var left_entry := WorldState.get_entrance_side(apartment_id) == "left"
+		door.position.x = wall_foot_left + 2.0 if left_entry else wall_foot_right - 2.0
+
+
+func _place_wall_inner_edge(wall: Node2D, inner_x: float, is_left: bool) -> void:
+	# Move a wall body so its ROOM-side collision edge sits at inner_x.
+	var col = wall.get_node_or_null("CollisionShape2D")
+	if col == null or not (col.shape is RectangleShape2D):
+		return
+	var half_w: float = col.shape.size.x / 2.0
+	var edge_off: float = col.position.x + (half_w if is_left else -half_w)
+	wall.position.x = inner_x - edge_off
 
 
 func _exit_tree() -> void:

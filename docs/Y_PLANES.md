@@ -83,15 +83,25 @@ owner round 9) → 262. Still ABOVE every scavenge node. Module art keeps the wi
 at world Y 210. Per-module blueprints: `tools/gen_module_blueprint.py`.
 
 Apartment PERSPECTIVE + SHELL (`module_walls.gd`, `room_shell.gd`, owner round 9): horizon
-`VY` **190**; back wall top `TOP` 224, wall/floor seam `SEAM` **324**; depth scale
-`s = (floor_y − 190) / (324 − 190)`. The FRONT cut plane is floor y **360** (s ≈ 1.269); interior
-doorways start at floor y 338, the FRONT DOOR spans floor y 338..356 (a jamb before the cut).
-The CEILING SLAB runs from the band top **207** down to the back-wall top projected onto the
-front plane, **≈233.07** (`RoomShell.ceiling_cut_y()`) — so it covers module rows 0..9 (the art's
-crown moulding) and must stay above the window boxes' top (234). The shell never draws below
-**367** (band bottom), so two flats stacked 160 apart in a balcony pan meet flush: the lower
-flat's slab (367..393) is the floor under the upper one. The stone TileMapLayer is hidden (no
-collision on it); the room camera reaches `SHELL_VIEW_MARGIN` 32px past its bounds at each end.
+`VY` **224 = the ceiling line** (was 190: it tipped every wall top down into a heavy slab wedge —
+"ceilings too low"); back wall top `TOP` 224, wall/floor seam `SEAM` **324**; depth scale
+`s = (floor_y − 224) / 100`, so wall tops stay level on the ceiling and only the floor recedes. The
+FRONT cut plane is floor y **360** (s 1.36); the walking lane (feet 353) is s 1.29. Interior
+doorways start at floor y 338; their LINTEL is back-plane rows 0..17 (`DOOR_ROWS` 18) → **y ≈247 at
+the lane**, clear of the tallest enemy's drawn top (spitter 257, big 260). The FRONT DOOR spans floor
+y 338..356. The room CAMERA BAND is **215..375** (`room.ROOM_BAND_TOP` 215 == `balcony_pan`'s copy,
+checked): a 9px ceiling slab (215..224, plaster edge at its foot) and 7px of this flat's own floor in
+section (368..375, boards on top) — stacked 160 apart in a balcony pan they make one slab. The
+camera's horizontal limits are SOLVED so a pinned view shows only `SECTION_SHOW` 5px past each end
+wall's cut, and the SOLID end walls + exit trigger sit where the drawn wall meets the floor at the
+lane (`room.wall_foot_left/right` ≈ 78.9 / 1107.1 at 1152 wide) — the player stops at the wall they
+see (was 112 / 1074, an invisible wall ~33px short). The stone TileMapLayer is hidden (no collision).
+
+Actor DRAWN FEET (measured, `tools/measure_rigs.gd` per frame): player lowest opaque pixel = 352
+(collision 353). Big / crawler / long-arm / spitter draw 3px BELOW their collision foot (355). The
+standard's lowest rows are near-black boots that vanish on dark floors, so it read a boot higher
+than everyone else; its sprite is dropped one art pixel (`offset.y = 1` × scale 3 → soles at 355),
+matching the other enemy rigs.
 
 ---
 

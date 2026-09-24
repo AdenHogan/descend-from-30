@@ -45,7 +45,7 @@ const LEFT_WALL_X := 113.0
 const MODULE_WIDTH := 320.0
 # The apartment interior band (matches room.gd ROOM_BAND_*): the live room locks
 # the camera to this; the descent extends the bottom by one floor.
-const ROOM_BAND_TOP := 207.0
+const ROOM_BAND_TOP := 215.0   # == room.ROOM_BAND_TOP (checked by apartment_window_test)
 const ROOM_BAND_H := 160.0
 
 const SHRED_SHADER := """
