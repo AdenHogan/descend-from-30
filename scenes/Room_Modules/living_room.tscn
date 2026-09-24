@@ -25,19 +25,19 @@ texture = ExtResource("1_art")
 centered = false
 
 [node name="anchor_left_bookshelf_upper" type="Marker2D" parent="." unique_id=539653209]
-position = Vector2(36, 89)
+position = Vector2(26, 71)
 
 [node name="anchor_centre_sofaleft" type="Marker2D" parent="." unique_id=512918010]
-position = Vector2(107, 114)
+position = Vector2(114, 103)
 
 [node name="anchor_centre_sofaright" type="Marker2D" parent="." unique_id=44908741]
-position = Vector2(151, 114)
+position = Vector2(149, 101)
 
 [node name="anchor_right_chair" type="Marker2D" parent="." unique_id=237230755]
-position = Vector2(270, 116)
+position = Vector2(275, 95)
 
 [node name="anchor_centre_coffeetable" type="Marker2D" parent="." unique_id=864448943]
-position = Vector2(218, 122)
+position = Vector2(214, 98)
 
 [node name="anchor_left_bookshelf_lower" type="Marker2D" parent="." unique_id=314598524]
-position = Vector2(36, 118)
+position = Vector2(35, 86)

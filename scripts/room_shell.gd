@@ -73,6 +73,11 @@ static func wall_foot_x(inner_x: float, cam_x: float) -> float:
 	return cam_x + (inner_x - cam_x) * MW._s_for_floor(WALK_FEET_Y)
 
 
+static func door_face_x(inner_x: float, cam_x: float, floor_y: float) -> float:
+	# The entrance wall's face (where the front door is cut) at a given floor depth.
+	return cam_x + (inner_x - cam_x) * MW._s_for_floor(floor_y)
+
+
 static func ceiling_cut_y() -> float:
 	# The back wall's top (module row 0) projected to the front cut plane: where the slab's underside
 	# sits, so the partitions' front cuts rise straight into it.

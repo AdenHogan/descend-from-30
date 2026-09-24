@@ -105,6 +105,8 @@ var mode_switch_timer = 0.0
 # meets the floor, not float up into the doorway (playtest — 26 was too high).
 const APPROACH_DEPTH = 12.0     # how far "into" the hallway (up) the player steps
 const APPROACH_TIME = 0.35
+const EXIT_STEP_TIME = 0.30     # walking out of an apartment: into the door's threshold…
+const EXIT_THROUGH_TIME = 0.45  # …then on through it, fading into the corridor's dark
 # Melee reach is HEIGHT-INDEPENDENT: the corridor is one plane, but the rigs have
 # different ORIGINS (player ~388, zombies ~370-374 — feet all on 419), so a euclidean
 # distance folds an ~18px vertical gap into every range check and shortens reach. We gate
@@ -996,6 +998,33 @@ func approach_door(door_global: Vector2, on_arrive: Callable = Callable()) -> vo
 	is_cutscene = false
 	if on_arrive.is_valid():
 		on_arrive.call()
+
+
+func can_walk_out() -> bool:
+	return not (is_cutscene or is_dead or is_dying or escaping)
+
+
+func walk_out_through(threshold: Vector2, beyond: Vector2, on_done: Callable = Callable()) -> void:
+	# Leave an apartment through its drawn front door: step into the threshold (up to the door's
+	# depth), then on through the opening into the dark beyond, fading as the corridor swallows us —
+	# then on_done (the scene change). Untouchable meanwhile, like the lobby escape: we're out the door.
+	if not can_walk_out():
+		if on_done.is_valid():
+			on_done.call()
+		return
+	is_cutscene = true
+	escaping = true
+	_clear_move_target()
+	velocity = Vector2.ZERO
+	animated_sprite.flip_h = beyond.x < global_position.x
+	animated_sprite.play("walk")
+	var tw = create_tween()
+	tw.tween_property(self, "global_position", threshold, EXIT_STEP_TIME)
+	tw.tween_property(self, "global_position", beyond, EXIT_THROUGH_TIME)
+	tw.parallel().tween_property(self, "modulate", Color(0.05, 0.04, 0.05, 0.0), EXIT_THROUGH_TIME)
+	await tw.finished
+	if on_done.is_valid():
+		on_done.call()
 
 
 func knock_door(door_global: Vector2, on_done: Callable = Callable()) -> void:

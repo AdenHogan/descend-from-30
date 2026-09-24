@@ -50,9 +50,11 @@ docs/Y_PLANES.md §1.
 ## Agreed plan (owner round 9) — in this order, not started beyond step 1
 
 1. Settle the module's design + look (the living room is the example).
-2. Move the scavenge nodes (`Marker2D`s) onto the furniture as drawn. **Today the living room's
-   nodes still sit at their OLD spots** (e.g. the sofa nodes at y 114 now fall on the sofa's front,
-   the coffee-table node at 122 below the table) — deliberately left until the look is agreed.
+2. Move the scavenge nodes (`Marker2D`s) onto the furniture as drawn. **Living room DONE** (owner
+   round 9): bookshelf middle shelf (26,71) + the gap in its bottom row (35,86), the sofa's left
+   cushion under the throw (114,103) + the slashed right cushion (149,101), the coffee-table top
+   (214,98), the chest of drawers' open drawer (275,95). Anchor NAMES are unchanged (loot is seeded
+   and saved by name — `anchor_right_chair` now sits on the drawers).
 3. Build ~5 VARIANTS per module (different furniture / arrangement / decay) so a room type never
    looks the same twice — seeded per apartment like the layouts.
 4. A second, deeper **scavenge Y plane**: pressing E on a node set back in the room (the bookshelf)

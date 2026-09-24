@@ -22,6 +22,7 @@ func _ready() -> void:
 	_test_seeded_side()
 	await _test_windows_day()
 	await _test_windows_night()
+	await _test_exit_through_door()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -214,3 +215,69 @@ func _test_windows_night() -> void:
 	check(rain_found, "night windows carry rain particles")
 	room.queue_free()
 	await get_tree().process_frame
+
+
+func _test_exit_through_door() -> void:
+	# Owner round 9: the player LEAVES THROUGH the drawn front door — steps into its threshold and out
+	# through the opening, fading into the corridor — on either side, whatever module is at that end.
+	print("[exit: walk out through the drawn front door, both sides]")
+	var done := {}
+	for f in range(10, 29):
+		for col in range(1, 6):
+			var apt := str(f) + "0" + str(col)
+			WorldState.new_game()
+			var side := WorldState.get_entrance_side(apt)
+			if done.has(side):
+				continue
+			done[side] = true
+			WorldState.is_first_run = false
+			WorldState.current_run = 1
+			WorldState.current_apartment_id = apt
+			WorldState.current_floor = f
+			WorldState.spawn_source = ""
+			WorldState.god_mode = true
+			var room = load("res://scenes/room.tscn").instantiate()
+			add_child(room)
+			for i in range(5):
+				await get_tree().physics_frame
+			for z in get_tree().get_nodes_in_group("zombie"):
+				if room.is_ancestor_of(z):
+					z.queue_free()
+			var p = room.get_node("Player")
+			var door = room.get_node("Area2D")
+			var left := side == "left"
+			var out := -1.0 if left else 1.0
+			var called := [false]
+			door.leave_override = func(): called[0] = true
+			var pts: Array = room.exit_walk_points(p)
+			check(pts.size() == 2, "%s entrance (%s): the room knows where its front door is" % [side, apt])
+			if pts.size() != 2:
+				room.free()
+				continue
+			# The walk's door x is where module_walls DRAWS the door (its face at the door's mid-depth).
+			var cam = p.get_node("Camera2D")
+			var half_view: float = get_viewport().get_visible_rect().size.x / cam.zoom.x / 2.0
+			var cam_x: float = (float(cam.limit_left) + half_view) if left else (float(cam.limit_right) - half_view)
+			var mw = load("res://scripts/module_walls.gd")
+			var inner: float = (float(room.LEFT_WALL_X) + mw.HALF_T) if left else (float(room.LEFT_WALL_X + 3 * room.MODULE_WIDTH) - mw.HALF_T)
+			var face: float = cam_x + (inner - cam_x) * mw._s_for_floor(room.exit_door_floor_y())
+			check(absf((pts[0].x + pts[1].x) * 0.5 - (face + out * 9.5)) < 0.6,
+				"%s: the walk goes through the drawn door (face %.1f; threshold %.1f, beyond %.1f)" % [side, face, pts[0].x, pts[1].x])
+			var y0: float = p.global_position.y
+			var act := "move_left" if left else "move_right"
+			Input.action_press(act)
+			var frames := 0
+			while not called[0] and frames < 900:
+				await get_tree().physics_frame
+				frames += 1
+			Input.action_release(act)
+			check(called[0], "%s: walking into the entrance leaves the room (%d frames)" % [side, frames])
+			check((p.global_position.x - face) * out > 10.0, "%s: …having walked out PAST the door's face (%.1f vs %.1f)" % [side, p.global_position.x, face])
+			check(p.global_position.y < y0 - 3.0, "%s: …stepping up into the door's depth (y %.1f -> %.1f)" % [side, y0, p.global_position.y])
+			check(p.modulate.a < 0.05, "%s: …and fading into the corridor's dark (alpha %.2f)" % [side, p.modulate.a])
+			WorldState.god_mode = false
+			room.free()
+			await get_tree().process_frame
+		if done.size() == 2:
+			break
+	check(done.size() == 2, "both a left and a right entrance were tested (%s)" % str(done.keys()))

@@ -1341,6 +1341,12 @@ means no rendering — UI layout and art still need an in-editor look.
   walls + exit trigger moved to the drawn wall's foot (no invisible wall ~33px short). Standard zombie
   sprite dropped 1 art px (its dark boots vanished on dark floors). All in docs/Y_PLANES.md §1.
   Locked by `apartment_window_test`. Maintenance rooms keep their tiles (no modules).
+  **Leaving an apartment walks OUT THROUGH the drawn front door** (either side, any end module):
+  `door_open.gd` asks the room for `exit_walk_points` (the door's face at its mid-depth 347, from
+  module_walls' geometry) and `player.walk_out_through` steps into the threshold, on through the
+  opening while fading into the dark, THEN the scene changes (untouchable meanwhile, like the lobby
+  escape). A room with no drawn door (maintenance) still leaves at once. Living-room scavenge nodes
+  now sit ON the furniture (names unchanged — loot is seeded by anchor name).
 - PUSH + CROWDS (owner round 9): a push takes ONE enemy (`player.push_target` — the nearest in
   front; it used to stagger everyone in reach), so a crowd is worked through and gets hits in. The
   BIG zombie can't be stunned or knocked back by a push (it keeps attacking) but a push makes it

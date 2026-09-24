@@ -79,6 +79,8 @@ const ROOM_BAND_TOP := 215.0   # 8px lower than the old 207: a thin ceiling slab
 const ROOM_BAND_H := 160.0
 var wall_foot_left := 0.0    # where each end wall meets the floor at the lane (set by _fit_view_and_walls)
 var wall_foot_right := 0.0
+var _exit_door_x := 0.0      # the front door's face at its mid-depth (set by _fit_view_and_walls)
+var _exit_outward := 0.0     # -1 = the door is at the left end, +1 = the right; 0 = no drawn door
 
 # Interior fire (Hazard 3 inside apartments). apartment_fire.gd is a no-sim, procedurally
 # placed fire keyed to WorldState.apartment_active_fire_stage(floor,apt): LIGHT near the
@@ -292,6 +294,25 @@ func _fit_view_and_walls(cam: Camera2D) -> void:
 	if door != null and not _is_maintenance():
 		var left_entry := WorldState.get_entrance_side(apartment_id) == "left"
 		door.position.x = wall_foot_left + 2.0 if left_entry else wall_foot_right - 2.0
+		# Where the drawn front door is (module_walls._front_door), so the exit can walk THROUGH it.
+		var cam_x: float = float(cam.limit_left) + half_view if left_entry else float(cam.limit_right) - half_view
+		_exit_door_x = shell_script.door_face_x(inner_l if left_entry else inner_r, cam_x, exit_door_floor_y())
+		_exit_outward = -1.0 if left_entry else 1.0
+
+
+static func exit_door_floor_y() -> float:
+	# The front door's mid-depth, from the geometry that draws it (module_walls: 338 .. 356 → 347).
+	var mw = load("res://scripts/module_walls.gd")
+	return (mw.DOOR_FLOOR + mw.ENTRANCE_FRONT) * 0.5
+
+
+func exit_walk_points(player: Node2D) -> Array:
+	# [threshold, beyond] for the player's walk out through the front door (door_open.gd): step up to
+	# the door's mid-depth just inside its opening, then on through it. [] = no drawn door here.
+	if _exit_outward == 0.0 or not is_instance_valid(player):
+		return []
+	var y: float = player.global_position.y + (exit_door_floor_y() - ROOM_FEET_Y)
+	return [Vector2(_exit_door_x - _exit_outward * 3.0, y), Vector2(_exit_door_x + _exit_outward * EXIT_WALK_BEYOND, y)]
 
 
 func _place_wall_inner_edge(wall: Node2D, inner_x: float, is_left: bool) -> void:
@@ -636,6 +657,7 @@ func _spawn_apartment_fire() -> void:
 # player 320). Anything placed WITHOUT physics (a burnt corpse, a recorded body, a floor drop) must
 # be put on these settled lines directly, or it sits ~17px sunk into the floor. See docs/Y_PLANES.md.
 const ROOM_FEET_Y := 353.0
+const EXIT_WALK_BEYOND := 22.0     # how far past the door's face the exit walk carries the player
 const ROOM_STD_ORIGIN_Y := 304.0       # standard zombie settled origin (feet 353)
 const ROOM_BIG_ORIGIN_Y := 308.0       # big zombie settled origin (feet 353)
 const WORLD_DROP := preload("res://scripts/world_drop.gd")   # REST_LIFT (where a drop rests)
