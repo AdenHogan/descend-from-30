@@ -28,6 +28,9 @@ func _ready() -> void:
 	await _test_bottom_balcony_access()
 	_test_pan_gating()
 	await _test_balcony_plane_restore()
+	await _test_backdrop_memory()
+	await _test_backdrop_fire_rules()
+	await _test_upper_fire_spares_backdrop()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -337,4 +340,165 @@ func _test_balcony_plane_restore() -> void:
 	check(player.animated_sprite.scale.y < base_scale_y,
 		"sprite is depth-scaled while on the plane")
 	player.queue_free()
+	await get_tree().process_frame
+
+
+# --- repair pass: the backdrop (the apartment BELOW, stacked one floor down) ---------------
+
+func _apt_with_zombies() -> String:
+	for f in range(20, 5, -1):
+		for i in range(1, 6):
+			var a := str(f) + "0" + str(i)
+			if WorldState.get_door_state(a) != WorldState.DoorState.BREACHED \
+					and WorldState.get_apartment_zombie_count(a) > 0 and WorldState.apartment_fire_stage(f, i) < 0:
+				return a
+	return ""
+
+
+func _backdrop(apt: String) -> Node:
+	var holder := Node2D.new()
+	add_child(holder)
+	var lower = load("res://scenes/room.tscn").instantiate()
+	lower.passive = true
+	lower.setup_apartment = apt
+	lower.position = Vector2(0, 160)             # BalconyPan.STACK_OFFSET
+	holder.add_child(lower)
+	return holder
+
+
+func _test_backdrop_memory() -> void:
+	# A remembered zombie in the backdrop was applied in WORLD space (it stood in the apartment
+	# ABOVE); freeing the backdrop recorded its +160 position (it came back under the floor).
+	print("[backdrop zombies: local memory, never recorded]")
+	WorldState.new_game()
+	WorldState.is_first_run = false
+	WorldState.master_seed = 4242
+	WorldState.current_run = 1
+	var apt := _apt_with_zombies()
+	check(apt != "", "found an apartment with zombies (%s)" % apt)
+	if apt == "":
+		return
+	WorldState.current_floor = int(apt.left(apt.length() - 2))
+	WorldState.current_apartment_id = apt
+	# Fresh (no memory): frozen on the SETTLED line one floor down, not the 321 spawn line.
+	var h := _backdrop(apt)
+	await get_tree().process_frame
+	var ok_fresh := true
+	var n := 0
+	for z in get_tree().get_nodes_in_group("zombie"):
+		if h.is_ancestor_of(z):
+			n += 1
+			ok_fresh = ok_fresh and absf(z.global_position.y - (304.0 + 160.0)) < 5.0
+	check(n > 0 and ok_fresh, "fresh backdrop zombies sit on the settled line a floor down (%d)" % n)
+	h.free()
+	await get_tree().process_frame
+	check(WorldState.zombie_positions.is_empty(), "freeing the backdrop records NOTHING into memory")
+	# A live visit writes memory; the backdrop then shows them a floor DOWN, memory untouched.
+	var room = load("res://scenes/room.tscn").instantiate()
+	add_child(room)
+	for i in range(3):
+		await get_tree().physics_frame
+	room.free()
+	await get_tree().process_frame
+	var before: Dictionary = WorldState.zombie_positions.duplicate(true)
+	check(not before.is_empty(), "a live visit remembers its zombies")
+	h = _backdrop(apt)
+	await get_tree().process_frame
+	var below := true
+	for z in get_tree().get_nodes_in_group("zombie"):
+		if h.is_ancestor_of(z):
+			below = below and z.global_position.y > 400.0
+	check(below, "remembered zombies show a floor DOWN in the backdrop, not up in the room above")
+	h.free()
+	await get_tree().process_frame
+	check(WorldState.zombie_positions == before, "memory is unchanged after the backdrop is freed")
+
+
+func _test_backdrop_fire_rules() -> void:
+	# The backdrop must match what the live room will show (CHARRED = nobody, BLAZE = burnt
+	# corpses) — it showed the frozen live pack, which vanished on landing.
+	print("[backdrop follows the room's fire rules]")
+	WorldState.new_game()
+	WorldState.is_first_run = false
+	WorldState.master_seed = 4242
+	WorldState.current_run = 1
+	var f := 12
+	WorldState.dev_fire_origin = f
+	for mode in [WorldState.DEV_HAZARD_FIRE3, WorldState.DEV_HAZARD_FIRE2]:
+		WorldState.dev_hazard_mode = mode
+		var apt := ""
+		var stage := -1
+		for i in range(1, 6):
+			var st := WorldState.apartment_fire_stage(f, i)
+			if st == (WorldState.FIRE_CHARRED if mode == WorldState.DEV_HAZARD_FIRE3 else WorldState.FIRE_BLAZE):
+				apt = str(f) + "0" + str(i)
+				stage = st
+				break
+		if apt == "":
+			check(false, "found a %s apartment" % ("charred" if mode == WorldState.DEV_HAZARD_FIRE3 else "blazing"))
+			continue
+		WorldState.current_floor = f + 1
+		var h := _backdrop(apt)
+		await get_tree().process_frame
+		var alive := 0
+		var dead := 0
+		for z in get_tree().get_nodes_in_group("zombie"):
+			if h.is_ancestor_of(z):
+				if z.is_dead:
+					dead += 1
+				else:
+					alive += 1
+		check(alive == 0, "%s backdrop holds no live enemy (%d)" % [apt, alive])
+		if stage == WorldState.FIRE_BLAZE:
+			check(dead >= 1, "a BLAZE backdrop shows its burnt corpses (%d)" % dead)
+		h.free()
+		await get_tree().process_frame
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
+	WorldState.dev_fire_origin = -1
+
+
+func _test_upper_fire_spares_backdrop() -> void:
+	# The upper room's fire loop took EVERY zombie in the group (x-only test), so a burning room
+	# above burned the frozen backdrop zombies below to death while you stood on the balcony.
+	print("[a burning room does not burn the apartment below]")
+	WorldState.new_game()
+	WorldState.is_first_run = false
+	WorldState.master_seed = 4242
+	WorldState.current_run = 1
+	var apt := _apt_with_zombies()
+	if apt == "":
+		return
+	var f := int(apt.left(apt.length() - 2))
+	WorldState.current_floor = f + 1
+	WorldState.current_apartment_id = str(f + 1) + apt.right(2)
+	var room = load("res://scenes/room.tscn").instantiate()
+	add_child(room)
+	await get_tree().process_frame
+	# Light the WHOLE upper room.
+	var af = load("res://scripts/apartment_fire.gd").new()
+	af.stage = WorldState.FIRE_BLAZE
+	af.seed_salt = "x"
+	room.add_child(af)
+	af._spots = []
+	for x in range(150, 1060, 40):
+		af._spots.append({"x": float(x), "sz": 1.0})
+	room._apt_fire = af
+	var lower = load("res://scenes/room.tscn").instantiate()
+	lower.passive = true
+	lower.setup_apartment = apt
+	lower.position = Vector2(0, 160)
+	room.add_child(lower)
+	await get_tree().process_frame
+	var below: Array = []
+	for z in get_tree().get_nodes_in_group("zombie"):
+		if lower.is_ancestor_of(z):
+			below.append(z)
+	for i in range(240):
+		room._apartment_fire_process(1.0 / 60.0)
+	var harmed := 0
+	for z in below:
+		if z.is_dead or z.on_fire:
+			harmed += 1
+	check(below.size() > 0 and harmed == 0, "the apartment below is untouched by the fire above (%d of %d harmed)" % [harmed, below.size()])
+	room.free()
 	await get_tree().process_frame

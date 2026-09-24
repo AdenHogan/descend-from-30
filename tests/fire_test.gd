@@ -700,9 +700,13 @@ func _test_burnt_breach() -> void:
 		check(live == 0, "visit %d: no live enemies in the charred breach (%d)" % [visit + 1, live])
 		var keys := 0
 		var drops: Dictionary = WorldState.get_world_drops_for_floor(f, room.scene_file_path, apt)
+		var key_on_floor := true
 		for k in drops:
 			if drops[k]["item_id"] == "022":
 				keys += 1
+				# Rests on the MEASURED room feet line (353) less REST_LIFT, not 17px under it.
+				key_on_floor = key_on_floor and absf(float(drops[k]["y"]) - (353.0 - 7.0)) < 1.5
+		check(key_on_floor, "visit %d: the key rests on the room floor line" % [visit + 1])
 		if target != "":
 			check(keys == 1, "visit %d: exactly one boss key lies in the ashes (%d)" % [visit + 1, keys])
 		else:
@@ -713,7 +717,7 @@ func _test_burnt_breach() -> void:
 	for k in WorldState.killed_zombies:
 		var rec = WorldState.killed_zombies[k]
 		if rec is Dictionary and rec.get("apartment_id", "") == apt and rec.get("type", "") == "big":
-			dead_boss = true
+			dead_boss = absf(float(rec.get("y", 0.0)) - 308.0) < 1.5    # a settled big zombie's origin
 	check(dead_boss, "the breach boss is recorded dead (its burnt body lies there)")
 	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
 	WorldState.dev_fire_origin = -1

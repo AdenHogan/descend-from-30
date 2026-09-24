@@ -259,7 +259,10 @@ func _frame_camera(player: Node) -> void:
 
 
 func _exit_tree() -> void:
-	# Don't leave the interior-fire haze lingering over the next scene.
+	# Don't leave the interior-fire haze lingering over the next scene. (Not a backdrop: freeing
+	# the apartment below on stepping back in used to clear the LIVE room's haze.)
+	if passive:
+		return
 	if HUD.has_method("set_smoke_fog"):
 		HUD.set_smoke_fog(false)
 
@@ -281,8 +284,12 @@ func _apartment_fire_process(delta: float) -> void:
 				player.receive_hit(1)
 		else:
 			_fire_dmg_acc = 0.0
-	# Enemies catch fire in the room too (skip dead corpses so they never re-light).
+	# Enemies catch fire in the room too (skip dead corpses so they never re-light). Only THIS
+	# room's own: the fire test is x-only, and a BalconyPan backdrop (the apartment below) is in
+	# the tree too — its frozen zombies were being burned to death by the fire a floor up.
 	for z in get_tree().get_nodes_in_group("zombie"):
+		if WorldState.owning_scene_root(z) != self:
+			continue
 		if ("is_dead" in z) and z.is_dead:
 			if ("on_fire" in z) and z.on_fire:
 				z.on_fire = false
@@ -578,7 +585,14 @@ func _spawn_apartment_fire() -> void:
 # A breached room that burned. Its boss carried a KEY to another apartment — never lose it: the
 # boss is recorded dead (its burnt body lies there on every visit) and the key is left in the ashes
 # where it stood, once. BLAZE also leaves a couple of smouldering corpses of the pack.
-const ROOM_FEET_Y := 370.0             # room enemies stand at origin 321 → feet 370 (where drops rest)
+# The apartment FEET line (every actor's collision-bottom when standing) — MEASURED: 353. Enemies
+# spawn at origin 321 and physics-settle UP onto it (standard → origin 304, big/crawler → 308, the
+# player 320). Anything placed WITHOUT physics (a burnt corpse, a recorded body, a floor drop) must
+# be put on these settled lines directly, or it sits ~17px sunk into the floor. See docs/Y_PLANES.md.
+const ROOM_FEET_Y := 353.0
+const ROOM_STD_ORIGIN_Y := 304.0       # standard zombie settled origin (feet 353)
+const ROOM_BIG_ORIGIN_Y := 308.0       # big zombie settled origin (feet 353)
+const WORLD_DROP := preload("res://scripts/world_drop.gd")   # REST_LIFT (where a drop rests)
 
 func _burnt_breach(stage: int) -> void:
 	var list: Array = WorldState.get_breached_room_enemies(apartment_id, 150.0, 1030.0, 321.0)
@@ -586,12 +600,14 @@ func _burnt_breach(stage: int) -> void:
 		var pos: Vector2 = list[0]["position"]
 		var key := str(WorldState.current_floor) + ":" + str(snappedf(pos.x, 1.0)) + ":" + str(snappedf(pos.y, 1.0))
 		if not WorldState.killed_zombies.has(key):
-			WorldState.killed_zombies[key] = {"x": snappedf(pos.x, 1.0), "y": snappedf(pos.y, 1.0),
+			# The KEY stays the spawn key (so the live spawn skips it); the body lies where a
+			# settled big zombie would.
+			WorldState.killed_zombies[key] = {"x": snappedf(pos.x, 1.0), "y": ROOM_BIG_ORIGIN_Y,
 				"floor": WorldState.current_floor, "scene": _own_scene_path(),
 				"apartment_id": apartment_id, "type": "big"}
 			var target: String = WorldState.get_breached_boss_key_target(apartment_id)
 			if target != "":
-				WorldState.add_world_drop("022", Vector2(pos.x, ROOM_FEET_Y - 7.0), WorldState.current_floor,
+				WorldState.add_world_drop("022", Vector2(pos.x, ROOM_FEET_Y - WORLD_DROP.REST_LIFT), WorldState.current_floor,
 					{"target_apartment": target, "scene": _own_scene_path(), "apartment_id": apartment_id})
 	if stage == WorldState.FIRE_BLAZE:
 		_spawn_burnt_corpses(1 + (hash(apartment_id) % 2))
@@ -605,7 +621,9 @@ func _spawn_burnt_corpses(count: int) -> void:
 	rng.seed = hash(str(WorldState.master_seed) + "burntcorpse" + apartment_id)
 	for k in range(count):
 		var z = zombie_scene.instantiate()
-		z.global_position = Vector2(280.0 + rng.randf() * 620.0, 321.0)
+		# Placed straight onto the settled line (no physics runs on a burnt corpse — at the 321
+		# spawn line it lay sunk ~17px into the floor). Local position: this may be a backdrop.
+		z.position = Vector2(280.0 + rng.randf() * 620.0, ROOM_STD_ORIGIN_Y)
 		add_child(z)
 		if z.has_method("make_burnt_corpse"):
 			z.make_burnt_corpse()
@@ -1203,8 +1221,16 @@ func _populate_passive_backdrop() -> void:
 	var floor_num = WorldState._apartment_floor(apartment_id)
 	if floor_num <= 0:
 		return
+	# The SAME fire rules the live room applies (a backdrop that disagreed showed a frozen pack
+	# that vanished on landing): CHARRED = nobody, BLAZE = 1-2 burnt corpses, a burnt BREACH =
+	# its pack burned too (its boss body + key come from the saved records once visited).
 	var door_state = WorldState.get_door_state(apartment_id)
-	if door_state == WorldState.DoorState.BREACHED:
+	var afs := WorldState.apartment_fire_stage(floor_num, _apt_index())
+	if afs == WorldState.FIRE_BLAZE:
+		_spawn_burnt_corpses(1 + (hash(apartment_id) % 2))
+	elif afs == WorldState.FIRE_CHARRED:
+		pass
+	elif door_state == WorldState.DoorState.BREACHED:
 		_spawn_passive_enemies(floor_num, true)
 	else:
 		_spawn_passive_enemies(floor_num, false)
@@ -1239,11 +1265,23 @@ func _spawn_passive_enemies(floor_num: int, breached: bool) -> void:
 		var key = str(floor_num) + ":" + str(snappedf(pos.x, 1.0)) + ":" + str(snappedf(pos.y, 1.0))
 		if WorldState.killed_zombies.has(key):
 			continue
-		var z = (big_scene if (big_first and i == 0) else std_scene).instantiate()
-		z.global_position = pos
+		var is_big: bool = big_first and i == 0
+		var z = (big_scene if is_big else std_scene).instantiate()
+		# Frozen scenery never physics-settles: put it straight on the line the live one settles
+		# onto (spawned at 321 it hung 17px low, then jumped up on landing). Key keeps the 321.
+		z.position = Vector2(pos.x, ROOM_BIG_ORIGIN_Y if is_big else ROOM_STD_ORIGIN_Y)
 		z.spawn_key = key
+		# Scenery, not a resident: record_zombie skips pan_scenery, so freeing the backdrop (step
+		# back inside, or the commit) never writes its +1-floor world position into the live
+		# apartment's memory (it came back 160px under the floor).
+		z.add_to_group("pan_scenery")
 		add_child(z)
-		WorldState.apply_saved_zombie(z)
+		# Memory is stored in the apartment's OWN coordinates; this room sits a floor down in the
+		# pan, so apply it LOCALLY (apply_saved_zombie sets global_position — it put a remembered
+		# zombie up in the apartment ABOVE, 160px too high).
+		if WorldState.apply_saved_zombie(z):
+			var mem: Dictionary = WorldState.zombie_positions[key]
+			z.position = Vector2(float(mem.get("x", pos.x)), float(mem.get("y", pos.y)))
 		z.process_mode = Node.PROCESS_MODE_DISABLED   # frozen scenery
 
 

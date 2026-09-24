@@ -71,7 +71,7 @@ it is grounded on spawn by `WorldState.PLAYER_FEET_OFFSET` (33) so saved bodies 
 lost. Locked by `corpse_recovery_test` (`_test_grounding`).
 
 Apartment interiors (`room.tscn`): module ColorRect is 320×144 at instance y 224, so a
-module spans world Y 224..368; the interior floor is Y 352. Scavenge anchors (Marker2D)
+module spans world Y 224..368; the interior floor is Y 352. **Apartment FEET line = 353** (measured: every actor's collision-bottom once settled). Enemies spawn at origin 321 and physics-settle UP onto it — standard → origin **304**, big/crawler → **308**; the player stands at **320**. Anything placed WITHOUT physics (burnt corpses, a recorded body, a floor drop = 353 − REST_LIFT, frozen BalconyPan backdrop scenery) goes straight onto those settled lines (`room.ROOM_FEET_Y` / `ROOM_STD_ORIGIN_Y` / `ROOM_BIG_ORIGIN_Y`) — at 321 they sat ~17px sunk into the floor. Scavenge anchors (Marker2D)
 sit at module-local y 76..131 → world **~300..355** (furniture level). WALL WINDOWS
 (`apartment_window.gd`, one per non-balcony module, seeded left/right) sit at a NATURAL
 mid-upper-wall height, world Y **284** (`room.MODULE_WINDOW_Y`, module-local 60) — ABOVE

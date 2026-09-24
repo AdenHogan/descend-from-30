@@ -457,6 +457,10 @@ func _process(delta: float) -> void:
 		# Enemies standing in the flames CATCH FIRE: a flame overlay + DOUBLE-damage
 		# attacks. They go out the moment they step clear.
 		for z in get_tree().get_nodes_in_group("zombie"):
+			# Only THIS floor's own enemies: the fire test is x-only, and during a stair pan the
+			# neighbouring floor's frozen scenery hangs under this scene too — it was burning.
+			if WorldState.owning_scene_root(z) != self:
+				continue
 			# A DEAD corpse doesn't burn — clear any flame it still carries (so the fire
 			# vanishes the instant it dies) and never re-light it while it lingers.
 			if ("is_dead" in z) and z.is_dead:

@@ -3937,6 +3937,18 @@ func get_breached_boss_key_target(apartment_id: String) -> String:
 # The world scene a node lives in: its nearest ANCESTOR instantiated from a file (the floor /
 # apartment root) — not get_tree().current_scene, which is a different scene while a pan backdrop
 # is live and null mid scene-change (the backdrop bug class). Falls back to the current scene.
+# The world-scene NODE a node belongs to: its nearest ancestor instanced from a scene file (a
+# floor, a room, a backdrop). Unlike world_scene_of (a path), this tells a live floor apart from a
+# pan backdrop of the same scene hanging underneath it.
+func owning_scene_root(node: Node) -> Node:
+	var n: Node = node.get_parent() if node != null else null
+	while n != null and n != get_tree().root:
+		if n.scene_file_path != "":
+			return n
+		n = n.get_parent()
+	return null
+
+
 func world_scene_of(node: Node) -> String:
 	var n: Node = node.get_parent() if node != null else null
 	while n != null and n != get_tree().root:

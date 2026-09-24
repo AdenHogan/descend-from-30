@@ -1272,4 +1272,18 @@ means no rendering — UI layout and art still need an in-editor look.
 - Next: still open — the hammer tree + more specials
   (owner content); balance numbers need a playtest. Also open: **Upgrade offers** polish;
   barricade-keeper NPC; fire smoke/crouch + warning beat.
-- Not started: balcony descent, quests.
+- Balcony descent (THREE_RUN_ARC balcony route) IS built: `balcony_zone.gd` (W steps onto the
+  balcony plane, W again goes over the rail), `player.enter/exit/arrive_on/restore_balcony_plane`,
+  rope/clothes lash or a confirmed jump, and `BalconyPan` (the apartment below prefetched as a
+  PASSIVE `room.tscn` backdrop one floor down, the wall "shred", held-frame commit). **Repair pass
+  (v1):** the backdrop's zombies are `pan_scenery` (freeing it recorded their +160 position into
+  the live apartment's memory — they came back under the floor) and saved memory is applied in the
+  room's LOCAL space (it put them up in the apartment above); frozen scenery sits on the SETTLED
+  line (304/308, not the 321 spawn line); the backdrop follows the live room's fire rules
+  (CHARRED = nobody, BLAZE = burnt corpses); the upper room's fire loop only touches its OWN
+  enemies (`WorldState.owning_scene_root`) — it burned the frozen zombies below to death; a freed
+  backdrop no longer clears the live room's smoke haze. Locked by `balcony_test`. **Known, not
+  changed:** enemy "plane pursuit" (`_update_plane_pursuit`) never visibly lifts a zombie onto the
+  balcony (gravity holds it on the floor) — it still hits you from the floor, so the balcony is not
+  a safe island; and a balcony landing has no grace if a zombie below stands at the balcony.
+- Not started: quests.
