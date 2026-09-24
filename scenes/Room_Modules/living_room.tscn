@@ -1,5 +1,7 @@
 [gd_scene format=3 uid="uid://bw3qr141accvl"]
 
+[ext_resource type="Texture2D" path="res://assets/rooms/living_room.png" id="1_art"]
+
 [node name="Node2D" type="Node2D" unique_id=1019415200]
 
 [node name="ColorRect" type="ColorRect" parent="." unique_id=1568311814]
@@ -12,9 +14,15 @@ layout_mode = 0
 offset_right = 317.0
 offset_bottom = 100.0
 theme_override_font_sizes/font_size = 32
+visible = false
 text = "Living Room"
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="Art" type="Sprite2D" parent="."]
+texture_filter = 1
+texture = ExtResource("1_art")
+centered = false
 
 [node name="anchor_left_bookshelf_upper" type="Marker2D" parent="." unique_id=539653209]
 position = Vector2(36, 89)
