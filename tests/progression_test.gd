@@ -646,6 +646,21 @@ func _test_perk_luck() -> void:
 		"no luck → every perk weighs the same as before")
 	check(Progression.desire_weight("U_slot", 1.0) > 2.0 and Progression.desire_weight("U_db_headslow", 1.0) < 0.5,
 		"with luck a d5 perk is >2x likelier, a d1 <0.5x")
+	# The MECHANISM's size, independent of the ratings: pit the highest-rated perk against the lowest
+	# in a single draw; how often the high one wins must match the formula for whatever their d are.
+	var ids: Array = WorldState.UPGRADE_POOL.keys()
+	ids.sort_custom(func(a, b): return Progression.desirability(a) > Progression.desirability(b))
+	var hi: String = ids[0]
+	var lo: String = ids[ids.size() - 1]
+	var expect: float = Progression.desire_weight(hi, 1.0) / (Progression.desire_weight(hi, 1.0) + Progression.desire_weight(lo, 1.0))
+	var mrng := RandomNumberGenerator.new()
+	mrng.seed = 11
+	var wins := 0
+	for n in 4000:
+		if Progression.weighted_draw(mrng, [hi, lo], 1, 1.0)[0] == hi:
+			wins += 1
+	check(absf(wins / 4000.0 - expect) < 0.03, "the tilt matches its formula (%s d%d vs %s d%d: %.3f, expected %.3f)" % [hi,
+		Progression.desirability(hi), lo, Progression.desirability(lo), wins / 4000.0, expect])
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7
 	var two: Array = Progression.weighted_draw(rng, ["U_slot"], 3, 1.0)
@@ -670,7 +685,9 @@ func _test_perk_luck() -> void:
 			WorldState.upgrade_offers.clear()
 			var pair: Array = WorldState.get_upgrade_pair(25)
 			(lucky if with_luck else plain).append_array(pair)
-	check(_mean_d(lucky) > _mean_d(plain) + 0.25, "merchant pairs lean desirable (d %.2f vs %.2f)" % [_mean_d(lucky), _mean_d(plain)])
+	# Direction only: the SIZE of the lean depends on how the owner rates perks (design data that is
+	# meant to change), so a fixed margin here would fail on a re-rating while the code is fine.
+	check(_mean_d(lucky) > _mean_d(plain), "merchant pairs lean desirable (d %.2f vs %.2f)" % [_mean_d(lucky), _mean_d(plain)])
 	var dup := false
 	for i in range(0, lucky.size(), 2):
 		dup = dup or lucky[i] == lucky[i + 1] or lucky[i] == "U_fortune" or lucky[i + 1] == "U_fortune"
@@ -704,6 +721,7 @@ func _test_perk_luck() -> void:
 	for n in 200:
 		for with_luck in [false, true]:
 			WorldState.new_game()
+			WorldState.offer_rng_seed = 3000 + n        # the same dice for both — only luck differs
 			WorldState.active_upgrades = ["U_fortune"] if with_luck else []
 			WorldState.session_perks = picked.duplicate()
 			WorldState._valour_scored_seed = 0
@@ -721,7 +739,14 @@ func _test_perk_luck() -> void:
 					hits_lucky += 1
 				else:
 					hits_plain += 1
-	check(hits_lucky > hits_plain + 20, "the coveted perk (%s) turns up more with luck (%d vs %d of 200)" % [star, hits_lucky, hits_plain])
+	WorldState.offer_rng_seed = 0
+	var low_max := 0
+	for id in picked.slice(1):
+		low_max = maxi(low_max, Progression.desirability(id))
+	if Progression.desirability(star) <= low_max:
+		check(true, "(the top-rated perk isn't rated above the rest — nothing for luck to favour)")
+	else:
+		check(hits_lucky > hits_plain, "the coveted perk (%s) turns up more with luck (%d vs %d of 200)" % [star, hits_lucky, hits_plain])
 	WorldState.new_game()
 	WorldState.active_upgrades = ["U_fortune"]
 	WorldState.session_perks = ["U_slot"]
@@ -733,5 +758,40 @@ func _test_perk_luck() -> void:
 	WorldState.active_upgrades = []
 	check(is_equal_approx(WorldState.get_perk_luck(), 1.0), "kept forever, it works in every game")
 	check(Progression.perk_cost("U_fortune") == 400, "…for 400 Valour")
+	print("[a perk traded out of a full collection goes back into the pools]")
+	_clear_valour()
+	WorldState.new_game()
+	var ten := ["U_slot", "U_stam_m", "U_regen_s", "U_sprint_s", "U_speed_s",
+		"U_melee_s", "U_push", "U_head_s", "U_acc", "B_rage"]
+	WorldState.permanent_perks = ten.duplicate()
+	var in_merchant := func(id: String) -> bool:
+		for r in 3:
+			WorldState.current_run = r + 1
+			WorldState.upgrade_offers.clear()
+			for fl in [25, 20, 15, 10, 5]:
+				for seed_n in 40:
+					WorldState.master_seed = 500 + seed_n
+					WorldState.upgrade_offers.clear()
+					if id in WorldState.get_upgrade_pair(fl):
+						return true
+		return false
+	var in_boons := func(id: String) -> bool:
+		for seed_n in 200:
+			WorldState.master_seed = 800 + seed_n
+			if id in WorldState.boon_offer(22):
+				return true
+		return false
+	check(not in_merchant.call("U_slot") and not in_boons.call("B_rage"), "while kept: never offered in a run")
+	WorldState.valour_offer = ["U_heal"]
+	WorldState.valour = 1000
+	check(WorldState.buy_permanent("U_heal", "U_slot") == "", "full collection: Field Medic in, Deep Pockets traded out")
+	check(in_merchant.call("U_slot"), "…and Deep Pockets is back in the merchant's pool")
+	check(WorldState.trade_out_permanent("B_rage") > 0 and in_boons.call("B_rage"), "a boon traded out from the collection is back in the boon pool")
+	WorldState.current_run = 1
+	WorldState.session_perks = ["U_slot"]
+	WorldState._valour_scored_seed = 0
+	WorldState.last_valour = {}
+	WorldState.finish_session()
+	check(WorldState.valour_offer == ["U_slot"], "…and can be offered at a game's end again once you've picked it up")
 	_clear_valour()
 	WorldState.save_profile()

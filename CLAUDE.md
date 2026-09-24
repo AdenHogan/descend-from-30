@@ -1244,7 +1244,12 @@ means no rendering — UI layout and art still need an in-editor look.
   the merchant upgrade **Fortune's Favour** (`U_fortune`, `perk_luck`) tilts merchant pairs, boons and
   the end offer toward high-`d` perks (`Progression.desire_weight`/`weighted_draw`); no luck = the
   original draws, untouched. Locked by `progression_test`.
-- Next: still open — 3 offered vs 2 and the 50% trade refund; the hammer tree + more specials
+- **Round 7 (owner):** end-of-game offer stays at **3** (pick one — a real choice among many
+  perks); a perk traded out of a full collection **returns to the pools**. Test note: the perk-luck
+  checks assert the DIRECTION of the lean on live data and the SIZE via the formula on the
+  highest-vs-lowest rated perk, so re-rating perks can't break them; `WorldState.offer_rng_seed`
+  (tests only) makes the end-of-game draw repeatable.
+- Next: still open — the hammer tree + more specials
   (owner content); balance numbers need a playtest. Also open: **Upgrade offers** polish;
   barricade-keeper NPC; fire smoke/crouch + warning beat.
 - Not started: balcony descent, quests.

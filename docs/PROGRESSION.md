@@ -69,6 +69,8 @@ the session is scored and the player may keep ONE perk they found along the way 
   = 18 + 26 + 55): **~100 Valour** keeping your legendary by the door, **~200** scrapping it
   (+70 + 25 + the rest of the kit). Three escapes ≈ 165 base + three kits. Prices below put the top
   perks at **~450-550 → 5-6 games one way, 2-3 the other** — the owner's target.
+- **Three on offer — DECIDED (owner, round 7):** "the amount of perks available will be
+  significant and they can only choose one, meaning they need to carefully consider what they want."
 - **The offer** (`WorldState.finish_session`, called at the arc end in `game.gd` / `lobby_exit.gd`):
   up to **3** (`OFFER_COUNT`) perks drawn **at random** from the perks
   **acquired this session** (`WorldState.session_perks`: every merchant upgrade taken + every run
@@ -101,7 +103,9 @@ the session is scored and the player may keep ONE perk they found along the way 
   run-boon offers).
 - **Cap 10** (`PERMANENT_CAP`). Buying with a full collection asks which kept perk to **trade out**.
   The LEGACY panel's **Collection** tab also trades perks out (two presses to confirm). Trading out
-  refunds **half** its cost (`TRADE_REFUND`).
+  refunds **half** its cost (`TRADE_REFUND`). **A traded-out perk goes back into the pools** (owner, round 7):
+  the merchant pairs and boon offers only skip perks you currently KEEP, so it can be offered in a
+  run again, picked up, and turn up in a later game's end offer (locked by `progression_test`).
 - **UI**: `legacy_ui.gd` — tabs *Descent offer* / *Collection N/10*. The end-of-session screen
   (`game_over.gd`) lists each run's depth → Valour and the total, then opens the offer; the profile
   screen's **LEGACY N/10** button opens the same panel. The journal lists kept perks.

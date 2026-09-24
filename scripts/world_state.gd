@@ -252,6 +252,10 @@ func note_perk_acquired(perk_id: String) -> void:
 # UNIFORMLY at random (no weighting) from the ones acquired this session, never one already
 # permanent. Idempotent per playthrough. Returns {"runs": [{run, character, deepest, escaped,
 # valour}], "total": n}.
+# Tests only: a non-zero seed makes the end-of-game draw repeatable (0 = truly random, the game).
+var offer_rng_seed: int = 0
+
+
 func finish_session() -> Dictionary:
 	if _valour_scored_seed == master_seed and not last_valour.is_empty():
 		return last_valour
@@ -278,7 +282,10 @@ func finish_session() -> Dictionary:
 		if not (id in permanent_perks) and not Progression.perk_info(id).is_empty():
 			pool.append(id)
 	var rng := RandomNumberGenerator.new()
-	rng.randomize()
+	if offer_rng_seed != 0:
+		rng.seed = offer_rng_seed           # tests only: a repeatable draw
+	else:
+		rng.randomize()
 	valour_offer = []
 	var luck := get_perk_luck()
 	if luck > 0.0:
