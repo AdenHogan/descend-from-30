@@ -371,6 +371,15 @@ var zombie_positions: Dictionary = {}
 # NOTE: balance reset on run-advance is wired when the time-skip pass is built.
 var wallet_unlocked: bool = false
 var wallet_balance: int = 0
+# SCRAP (docs/SCRAP_UPGRADES.md) — the second currency, spent only at a maintenance-room
+# workbench to upgrade the weapon you carry. A COUNTER like the wallet, never an inventory
+# item: a Scrap Bag pickup (037) just adds to it. The counter appears once the first bag is
+# found (scrap_unlocked — cross-run, like the wallet unlock); the BALANCE belongs to the
+# character (per-run, reset by the time skip, recoverable from their corpse — totals merge).
+var scrap_unlocked: bool = false
+var scrap: int = 0
+const SCRAP_BAG_NATURAL := Vector2i(6, 14)     # a bag found in ordinary scavenging
+const SCRAP_BAG_CHARRED := Vector2i(14, 30)    # a burnt-out apartment's salvage (the main faucet)
 var barricade_progress: Dictionary = {}
 
 # --- Heavy stairwell hordes (crowbar crossing) ----------------------------
@@ -686,6 +695,12 @@ func new_game() -> void:
 	rest_forfeit_pending = false
 	active_upgrades.clear()
 	available_upgrades.clear()
+	# A new PLAYTHROUGH starts with no wallet / scrap (both used to survive a second New Game
+	# in the same app session — the previous game's cash rode into the new one).
+	wallet_unlocked = false
+	wallet_balance = 0
+	scrap_unlocked = false
+	scrap = 0
 	initialize_paradise_apartments()
 	spawn_source = ""
 	stair_spawn_side = ""
@@ -783,6 +798,7 @@ func advance_run() -> bool:
 	rest_count = 0
 	rest_forfeit_pending = false
 	wallet_balance = 0                      # per-run (recoverable from the corpse later)
+	scrap = 0                               # per-run too (the corpse carries it; the unlock stays)
 	available_upgrades.clear()
 	upgrade_offers.clear()
 	spawn_source = ""
@@ -987,6 +1003,11 @@ func add_to_inventory(item_id: String, amount: int = 0) -> bool:
 		if wallet_unlocked:
 			return add_to_inventory("033", 5 + randi() % 11)
 		unlock_wallet()
+		return true
+	# A Scrap Bag never takes a slot: it's emptied straight into the scrap counter (works with
+	# a full inventory). `amount` <= 0 rolls an ordinary bag; charred-room bags pass theirs.
+	if ItemData.get_item(item_id).get("is_scrap", false):
+		add_scrap(amount if amount > 0 else SCRAP_BAG_NATURAL.x + randi() % (SCRAP_BAG_NATURAL.y - SCRAP_BAG_NATURAL.x + 1))
 		return true
 	if ItemData.get_item(item_id).get("is_money", false):
 		var add_amount = amount
@@ -1200,6 +1221,65 @@ func consume_descent_rope() -> bool:
 			inventory.remove_at(i)
 			removed += 1
 	return true
+
+
+# Scrap in an apartment anchor: 0 = none, else the bag's amount. Its OWN seeded RNG (never the
+# room's loot sequence, so adding scrap shifted no other roll). A CHARRED ruin is the main faucet —
+# most anchors hold a big bag (the fire's risk/reward); an ordinary room only rarely turns one up,
+# and only in an anchor that rolled nothing else.
+const SCRAP_CHANCE_CHARRED := 0.75
+const SCRAP_CHANCE_NATURAL := 0.07
+
+
+func scrap_bag_for_anchor(apartment_id: String, anchor_name: String, charred: bool) -> int:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "scrap" + apartment_id + anchor_name + str(current_run))
+	var band: Vector2i = SCRAP_BAG_CHARRED if charred else SCRAP_BAG_NATURAL
+	if rng.randf() >= (SCRAP_CHANCE_CHARRED if charred else SCRAP_CHANCE_NATURAL):
+		return 0
+	return rng.randi_range(band.x, band.y)
+
+
+func add_scrap(amount: int) -> void:
+	if amount <= 0:
+		return
+	var first := not scrap_unlocked
+	scrap_unlocked = true
+	scrap += amount
+	HUD.update_scrap()
+	if first:
+		HUD.show_feedback("Scrap +%d — salvage for a workbench (maintenance rooms, every 3 floors)." % amount)
+	else:
+		HUD.show_feedback("Scrap +%d" % amount)
+
+
+# THE WORKBENCH ACTION: level the weapon in `slot` up by one, taking `perk_id` (one of its two
+# offered perks). Spends the scrap and consumes the spare copy the step needs; the weapon keeps
+# every perk it already had. Returns "" on success, else the reason it can't.
+func upgrade_weapon(slot: int, perk_id: String) -> String:
+	if slot < 0 or slot >= inventory.size():
+		return "Nothing there."
+	var inst = inventory[slot]
+	var chk: Dictionary = WeaponUpgrades.check(inst, inventory, scrap)
+	if not chk["ok"]:
+		return chk["reason"]
+	if not (perk_id in WeaponUpgrades.next_choices(inst)):
+		return "Pick one of the two upgrades."
+	var base_max: int = inst.get_max_durability()
+	scrap -= int(chk["scrap"])
+	var feed: int = int(chk["feed_index"])
+	if feed >= 0:
+		inventory.remove_at(feed)       # stripped for parts (its own state is discarded)
+	inst.level += 1
+	inst.perks.append(perk_id)
+	# A durability perk takes effect at once: the new headroom is added to what's left.
+	var new_max: int = inst.get_max_durability()
+	if new_max > base_max and base_max > 0:
+		inst.current_durability += new_max - base_max
+		inst.is_depleted = inst.current_durability <= 0
+	HUD.update_scrap()
+	HUD.refresh_inventory()
+	return ""
 
 
 func unlock_wallet() -> void:
@@ -3292,8 +3372,17 @@ func get_breached_boss_key_target(apartment_id: String) -> String:
 # ============================================================
 # Persisted pickups — boss drops (inventory full), zombie loot, discarded items.
 
-func add_world_drop(item_id: String, pos: Vector2, floor_num: int, extra: Dictionary = {}) -> void:
+# Returns the key the drop was filed under (nudged off an occupied spot) — a caller that also
+# spawns the live pickup must give it THIS key, or picking it up would clear the wrong record.
+func add_world_drop(item_id: String, pos: Vector2, floor_num: int, extra: Dictionary = {}) -> String:
 	var key = str(floor_num) + ":" + str(snappedf(pos.x, 1.0)) + ":" + str(snappedf(pos.y, 1.0))
+	# Two drops on the same spot used to share a key, so the second silently REPLACED the first
+	# (drop two spare guns in one place → one came back). Nudge along until the key is free.
+	var guard := 0
+	while world_drops.has(key) and guard < 64:
+		pos.x += 1.0
+		guard += 1
+		key = str(floor_num) + ":" + str(snappedf(pos.x, 1.0)) + ":" + str(snappedf(pos.y, 1.0))
 	world_drops[key] = {
 		"item_id": item_id,
 		"x": snappedf(pos.x, 1.0),
@@ -3302,8 +3391,12 @@ func add_world_drop(item_id: String, pos: Vector2, floor_num: int, extra: Dictio
 		"scene": extra.get("scene", get_tree().current_scene.scene_file_path),
 		"apartment_id": extra.get("apartment_id", current_apartment_id),
 		"target_apartment": extra.get("target_apartment", ""),
-		"amount": extra.get("amount", 0)
+		"amount": extra.get("amount", 0),
+		# A DISCARDED item remembers exactly what it was (instance_to_dict) — picking it back up
+		# returns that same weapon, not a fresh one. Empty for ordinary loot.
+		"instance": extra.get("instance", {}),
 	}
+	return key
 
 
 func remove_world_drop(drop_key: String) -> void:
@@ -3358,6 +3451,7 @@ func record_player_corpse(floor_num: int, scene: String, apartment: String, pos:
 		"y": snappedf(pos.y, 1.0),
 		"feet": true,             # y is the FEET line (older records stored the origin)
 		"notes": notes,
+		"scrap": scrap,           # their scrap total — MERGES into the finder's on recovery
 		"items": items,
 	}
 
@@ -3400,19 +3494,17 @@ func recover_player_corpse(key: String) -> Dictionary:
 			credited = notes
 		# Only what was actually taken leaves the body (a full pocket must never destroy cash).
 		data["notes"] = notes - credited
+	# Their scrap total MERGES into yours (a counter — never two separate "bags").
+	var scrap_found: int = int(data.get("scrap", 0))
+	if scrap_found > 0:
+		add_scrap(scrap_found)
+		data["scrap"] = 0
 	var leftover: Array = []
 	var taken := 0
 	for entry in data.get("items", []):
 		if inventory.size() < get_inventory_slots():
-			var inst = ItemInstance.new()
-			inst.item_id = entry["item_id"]
-			inst.current_durability = int(entry.get("current_durability", 0))
-			inst.is_depleted = bool(entry.get("is_depleted", false))
-			inst.target_apartment = entry.get("target_apartment", "")
-			inst.count = int(entry.get("count", 1))
-			inst.mag_count = int(entry.get("mag_count", 0))
-			inst.is_damaged = bool(entry.get("is_damaged", false))
-			inventory.append(inst)
+			# Rebuilt exactly as it was carried — durability, magazine, workbench level + perks.
+			inventory.append(instance_from_dict(entry))
 			taken += 1
 		else:
 			leftover.append(entry)
@@ -3423,7 +3515,8 @@ func recover_player_corpse(key: String) -> Dictionary:
 		player_corpses.erase(key)              # body emptied — clear the record
 	else:
 		player_corpses[key] = data             # partial: whatever didn't fit stays for a return trip
-	return {"notes": credited, "notes_left": notes_left, "items_taken": taken, "items_left": leftover.size()}
+	return {"notes": credited, "notes_left": notes_left, "scrap": scrap_found,
+		"items_taken": taken, "items_left": leftover.size()}
 
 
 func spawn_player_corpse_into(parent: Node, floor_num: int, scene: String, apartment: String = "") -> void:
@@ -3554,6 +3647,8 @@ func save_game(scene_path: String, record_live_zombies: bool = true) -> void:
 		"zombie_positions": zombie_positions,
 		"wallet_unlocked": wallet_unlocked,
 		"wallet_balance": wallet_balance,
+		"scrap_unlocked": scrap_unlocked,
+		"scrap": scrap,
 		"barricade_progress": barricade_progress,
 		"merchant_stock": merchant_stock,
 		"legendary_hold": legendary_hold,
@@ -3641,6 +3736,8 @@ func load_game() -> String:
 	zombie_positions = data.get("zombie_positions", {})
 	wallet_unlocked = data.get("wallet_unlocked", false)
 	wallet_balance = int(data.get("wallet_balance", 0))
+	scrap_unlocked = bool(data.get("scrap_unlocked", false))
+	scrap = int(data.get("scrap", 0))
 	floor_states_seeded = {}
 	for k in data["floor_states_seeded"]:
 		floor_states_seeded[int(k)] = data["floor_states_seeded"][k]
@@ -3677,30 +3774,53 @@ func delete_save() -> void:
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(slot_save_path()))
 
 
+# ONE item's full state as JSON-safe data, and back. Used by the save, a corpse, and a dropped
+# item — so a weapon keeps its durability / magazine / damage / workbench level + perks wherever it
+# goes, never re-rolled or reset.
+func instance_to_dict(instance) -> Dictionary:
+	return {
+		"item_id": instance.item_id,
+		"current_durability": instance.current_durability,
+		"is_depleted": instance.is_depleted,
+		"target_apartment": instance.target_apartment,
+		"count": instance.count,
+		"mag_count": instance.mag_count,
+		"is_damaged": instance.is_damaged,
+		"level": instance.level,
+		"perks": instance.perks.duplicate(),
+	}
+
+
+func instance_from_dict(entry: Dictionary) -> ItemInstance:
+	var instance = ItemInstance.new()
+	instance.item_id = entry["item_id"]
+	instance.current_durability = int(entry.get("current_durability", 0))
+	instance.is_depleted = bool(entry.get("is_depleted", false))
+	instance.target_apartment = entry.get("target_apartment", "")
+	instance.count = int(entry.get("count", 1))
+	instance.mag_count = int(entry.get("mag_count", 0))
+	instance.is_damaged = bool(entry.get("is_damaged", false))
+	instance.level = int(entry.get("level", 1))
+	instance.perks = Array(entry.get("perks", []))
+	return instance
+
+
+# Put a specific, already-built item back in a free slot (a picked-up drop keeps its state).
+func add_instance_to_inventory(instance) -> bool:
+	if instance == null or inventory.size() >= get_inventory_slots():
+		return false
+	inventory.append(instance)
+	return true
+
+
 func _serialize_inventory() -> Array:
 	var result = []
 	for instance in inventory:
-		result.append({
-			"item_id": instance.item_id,
-			"current_durability": instance.current_durability,
-			"is_depleted": instance.is_depleted,
-			"target_apartment": instance.target_apartment,
-			"count": instance.count,
-			"mag_count": instance.mag_count,
-			"is_damaged": instance.is_damaged,
-		})
+		result.append(instance_to_dict(instance))
 	return result
 
 
 func _deserialize_inventory(data: Array) -> void:
 	inventory.clear()
 	for entry in data:
-		var instance = ItemInstance.new()
-		instance.item_id = entry["item_id"]
-		instance.current_durability = entry["current_durability"]
-		instance.is_depleted = entry["is_depleted"]
-		instance.target_apartment = entry.get("target_apartment", "")
-		instance.count = int(entry.get("count", 1))
-		instance.mag_count = int(entry.get("mag_count", 0))
-		instance.is_damaged = bool(entry.get("is_damaged", false))
-		inventory.append(instance)
+		inventory.append(instance_from_dict(entry))

@@ -61,6 +61,8 @@ var drag_icon: TextureRect = null
 var stamina_bar: Control = null
 var stamina_segments: Array = []
 var wallet_label: Label = null
+var scrap_label: Label = null
+var slot_level_labels: Array = []
 var listen_overlay: CanvasLayer = null
 const STAMINA_SEGMENTS = 8
 const STAMINA_BAR_W = 14.0
@@ -80,6 +82,7 @@ func _ready() -> void:
 	_create_context_menu()
 	_create_stamina_bar()
 	_create_wallet_label()
+	_create_scrap_label()
 	_create_dev_warp_prompt()
 	_create_dev_item_prompt()
 	_create_dev_menu()
@@ -181,6 +184,18 @@ func _create_slot_icons() -> void:
 		key_label.visible = false
 		slot.add_child(key_label)
 		slot_key_labels.append(key_label)
+		# Workbench level tag ("Lv3") in the slot's bottom-left, clear of the top tag.
+		var lv_label = Label.new()
+		lv_label.add_theme_font_size_override("font_size", 10)
+		lv_label.add_theme_color_override("font_color", Color(1.0, 0.82, 0.3, 1.0))
+		lv_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.95))
+		lv_label.add_theme_constant_override("outline_size", 3)
+		lv_label.position = Vector2(3, SLOT_SIZE - 22)
+		lv_label.size = Vector2(SLOT_SIZE - 6, 14)
+		lv_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		lv_label.visible = false
+		slot.add_child(lv_label)
+		slot_level_labels.append(lv_label)
 
 		slot_durability_bars.append({"bg": dur_bg, "fill": dur_fill})
 
@@ -434,6 +449,27 @@ func _create_dev_menu() -> void:
 	# eight function keys (and nothing on F8, which the editor steals as Stop).
 	var menu = preload("res://scripts/dev_menu.gd").new()
 	$Control.add_child(menu)
+
+
+func _create_scrap_label() -> void:
+	# The scrap counter — same treatment as the wallet, one line above it (docs/SCRAP_UPGRADES.md).
+	scrap_label = Label.new()
+	scrap_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	scrap_label.add_theme_font_size_override("font_size", 12)
+	scrap_label.add_theme_color_override("font_color", Color(0.85, 0.72, 0.45, 1.0))
+	scrap_label.position = Vector2(SCREEN_W - (SLOT_SIZE + 8) * 6 - 8, SCREEN_H - BAR_H - 32)
+	scrap_label.size = Vector2((SLOT_SIZE + 8) * 6, 16)
+	scrap_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	scrap_label.visible = false
+	$Control.add_child(scrap_label)
+	update_scrap()
+
+
+func update_scrap() -> void:
+	if scrap_label == null:
+		return
+	scrap_label.visible = WorldState.scrap_unlocked
+	scrap_label.text = "SCRAP  " + str(WorldState.scrap)
 
 
 func update_wallet() -> void:
@@ -700,14 +736,7 @@ func _discard_slot(slot_index: int) -> void:
 		return
 	var instance = WorldState.get_instance_at(slot_index)
 	var item_data = instance.get_data()
-	if not instance.is_depleted:
-		var player = get_tree().get_first_node_in_group("player")
-		if player != null:
-			var drop_pos = player.global_position + Vector2(randf_range(-20, 20), 0)
-			var extra = {}
-			if instance.target_apartment != "":
-				extra["target_apartment"] = instance.target_apartment
-			WorldState.add_world_drop(instance.item_id, drop_pos, WorldState.current_floor, extra)
+	_drop_to_world(instance)
 	if selected_slot > slot_index:
 		selected_slot -= 1
 	elif selected_slot == slot_index:
@@ -716,6 +745,29 @@ func _discard_slot(slot_index: int) -> void:
 	_update_slot_highlights()
 	refresh_inventory()
 	show_feedback(item_data.get("name", "Item") + " dropped.")
+
+# Put a discarded item on the floor WITH ITS MEMORY (docs/SCRAP_UPGRADES.md "discard memory"):
+# a weapon keeps its durability / magazine / damage / workbench level + perks, a stack keeps its
+# count, and a BROKEN weapon or tool still drops (it's repairable, and upgrade feed) — an accidental
+# drop is always recoverable exactly as it was. Only a used-up consumable just goes.
+func _drop_to_world(instance) -> void:
+	if instance.is_depleted and not instance.is_repairable():
+		return
+	var player = get_tree().get_first_node_in_group("player")
+	if player == null:
+		return
+	var d: Dictionary = instance.get_data()
+	var drop_pos = player.global_position + Vector2(randf_range(-20, 20), 0)
+	var extra = {}
+	if instance.target_apartment != "":
+		extra["target_apartment"] = instance.target_apartment
+	if d.get("is_money", false) or d.get("is_ammo", false) or d.get("is_fuse", false) \
+			or (d.get("is_throwable", false) and instance.count > 1):
+		extra["amount"] = instance.count          # a stack comes back as the same count
+	else:
+		extra["instance"] = WorldState.instance_to_dict(instance)
+	WorldState.add_world_drop(instance.item_id, drop_pos, WorldState.current_floor, extra)
+
 
 func select_slot(index: int) -> void:
 	var was: int = selected_slot
@@ -774,17 +826,7 @@ func _context_discard() -> void:
 	context_menu.visible = false
 	if context_slot >= 0 and context_slot < WorldState.inventory.size():
 		var instance = WorldState.get_instance_at(context_slot)
-		var item_data = instance.get_data()
-		var is_broken = item_data.get("is_weapon", false) and instance.is_depleted
-		var is_consumed = not item_data.get("is_weapon", false) and instance.is_depleted
-		if not is_broken and not is_consumed:
-			var player = get_tree().get_first_node_in_group("player")
-			if player != null:
-				var drop_pos = player.global_position + Vector2(randf_range(-20, 20), 0)
-				var extra = {}
-				if instance.target_apartment != "":
-					extra["target_apartment"] = instance.target_apartment
-				WorldState.add_world_drop(instance.item_id, drop_pos, WorldState.current_floor, extra)
+		_drop_to_world(instance)
 		if selected_slot > context_slot:
 			selected_slot -= 1
 		elif selected_slot == context_slot:
@@ -933,6 +975,10 @@ func update_mode_indicator() -> void:
 		mode_label.modulate = Color(1.0, 0.3, 0.3, 1.0)
 
 func refresh_inventory() -> void:
+	# The two counters ride along: a New Game / load / time skip changes them without a wallet
+	# or scrap event, and they used to show the previous game's values until the next pickup.
+	update_wallet()
+	update_scrap()
 	for i in range(slots.size()):
 		var dur = slot_durability_bars[i]
 		if i < WorldState.inventory.size():
@@ -978,7 +1024,10 @@ func refresh_inventory() -> void:
 				key_label.add_theme_color_override("font_color", Color(0.05, 0.05, 0.05, 1.0))
 				key_label.visible = false
 
-			var max_dur = item_data.get("max_durability", -1)
+			if i < slot_level_labels.size():
+				slot_level_labels[i].text = "Lv%d" % instance.level
+				slot_level_labels[i].visible = instance.level > 1
+			var max_dur = instance.get_max_durability()   # perks can raise it (Reinforced Handle)
 			if max_dur > 0 and not item_data.get("single_use", false):
 				var ratio = float(instance.current_durability) / float(max_dur)
 				dur["bg"].visible = true
@@ -998,6 +1047,8 @@ func refresh_inventory() -> void:
 			dur["bg"].visible = false
 			dur["fill"].visible = false
 			slot_key_labels[i].visible = false
+			if i < slot_level_labels.size():
+				slot_level_labels[i].visible = false
 	_update_slot_highlights()
 	_update_slot_locks()
 

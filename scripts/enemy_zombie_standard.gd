@@ -760,11 +760,11 @@ func _drop_tutorial_cash() -> void:
 	# position so a re-entry loads it on the floor (not floating), then toss the live one.
 	var feet := _drop_feet_y()
 	var rest = Vector2(global_position.x, feet - WORLD_DROP.REST_LIFT)
-	WorldState.add_world_drop("033", rest, WorldState.current_floor, {"amount": tutorial_cash_drop})
+	var cash_key: String = WorldState.add_world_drop("033", rest, WorldState.current_floor, {"amount": tutorial_cash_drop})
 	var drop = preload("res://scenes/world_drop.tscn").instantiate()
 	drop.item_id = "033"
 	drop.amount = tutorial_cash_drop
-	drop.drop_key = str(WorldState.current_floor) + ":" + str(snappedf(rest.x, 1.0)) + ":" + str(snappedf(rest.y, 1.0))
+	drop.drop_key = cash_key
 	get_parent().add_child(drop)
 	drop.toss(global_position, feet, 1.0 if randf() < 0.5 else -1.0)
 	HUD.show_feedback("It was carrying cash — grab it.")

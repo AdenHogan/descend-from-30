@@ -17,9 +17,9 @@ originals — the markdown here is canonical for development):
   fires, balcony descent, fresh-character state. Agreed, pre-implementation.
 - `docs/STORE_DESIGN.md` — **FINAL v3**: bank notes, wallet, merchant, shop
   rotation, free pick-1-of-2 upgrades, corpse recovery, implementation order.
-- `docs/SCRAP_UPGRADES.md` — **AGREED, pre-implementation**: Scrap (a 2nd
-  currency) to upgrade weapons at a maintenance-room station; charred apartments
-  are the main scrap faucet → fire becomes risk/reward. Not built yet.
+- `docs/SCRAP_UPGRADES.md` — **BUILT v1**: Scrap (a 2nd currency, a counter like the
+  wallet) to upgrade weapons at a maintenance-room workbench; charred apartments are the
+  main scrap faucet → fire becomes risk/reward. See its "What's built" section.
 - `docs/MAINTENANCE_ELEVATOR.md` — **AGREED, pre-implementation**: the
   maintenance room (`maintenance.tscn`, safe room, every 3 floors, hosts the
   upgrade station + fuse box), fuses (stack 3) powering a single-use **elevator**
@@ -182,8 +182,8 @@ setup script; binary from downloads.godotengine.org). Before every commit:
   `maintenance_test`, `elevator_test`, `run_arc_test`, `enemy_variety_test`,
   `dev_menu_test`, `lighting_test`, `plane_lock_test`, `apartment_window_test`,
   `scavenge_node_test`, `drop_physics_test`, `softlock_test`, `character_panel_test`,
-  `corpse_recovery_test`, `run_memory_test`, `attack_input_test`, `character_stats_test`, `transition_seam_test`, `run_bookends_test` — run
-  all 42 before commit. (`new_game()` rolls a RANDOM seed, so any test meets any of the four
+  `corpse_recovery_test`, `run_memory_test`, `attack_input_test`, `character_stats_test`, `transition_seam_test`, `run_bookends_test`, `weapon_upgrade_test` — run
+  all 43 before commit. (`new_game()` rolls a RANDOM seed, so any test meets any of the four
   characters — an assert on a trait-affected value must be trait-aware; see docs/CHARACTERS.md.) (Run ONE godot at a time — a killed/backgrounded headless run can
   linger and block the next, and a GDScript **parse error makes a test scene load but
   never call `quit()`, so it "hangs" until timeout** rather than printing an error line;
@@ -1121,8 +1121,19 @@ means no rendering — UI layout and art still need an in-editor look.
   rendered capture of any flow: new game, keys, walks, a death) + `tools/pan_capture.tscn`.
   Locked by `run_bookends_test`. Dialogue is still placeholder — every line lives in
   `TutorialManager.LINES`.
-- Next (owner's order): the maintenance **upgrade station** + weapon/item upgrades (Scrap
-  system, SCRAP_UPGRADES.md) → in-run temporary upgrades → permanent cross-run upgrades
+- SCRAP + the WORKBENCH (docs/SCRAP_UPGRADES.md, v1 — full detail there): scrap counter (Scrap
+  Bag 037 never takes a slot; per-character balance, merges on corpse recovery; HUD "SCRAP N"),
+  faucets on their own seeded RNG (charred ruins big, ordinary rooms a trickle, maintenance rooms
+  spare parts), the maintenance **workbench** UI (`workbench_ui.gd`, pausing, pick-1-of-2 per
+  level, 50 → spare Lv1 + 80 → spare Lv2 + 100), per-weapon `level`/`perks` on `ItemInstance`
+  through the fold (`perk_add/perk_mult/has_perk_flag`), rules in ONE table (`WeaponUpgrades`).
+  Gun tree as specced (Durable Hand Cannon interpreted: no force damage + 6 rounds); **hammer tree
+  is PLACEHOLDER** for the owner. Also fixed on the way: **discard memory** (a dropped item keeps
+  its full state incl. level/perks; broken weapons drop too; same-spot drops no longer overwrite —
+  `add_world_drop` returns the key it used), and **New Game leaked the previous game's wallet +
+  cash** (`new_game` now resets wallet/scrap). Tools: `scene_capture` gained `give:` / `scrap:`
+  steps. Locked by `weapon_upgrade_test`.
+- Next (owner's order): in-run temporary upgrades → permanent cross-run upgrades
   (`best_depth` is the record hook). Also open: **Upgrade offers** polish; barricade-keeper NPC;
   fire smoke/crouch + warning beat.
 - Not started: balcony descent, quests.

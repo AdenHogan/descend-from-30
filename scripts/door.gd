@@ -500,6 +500,8 @@ func _resolve_force() -> void:
 	var item_data = instance.get_data()
 	if _force_damages_gun(instance, item_data):
 		pass  # gun took damage instead of durability
+	elif instance.has_perk_flag("free_force"):
+		HUD.show_feedback("Lock forced." if force_is_lock else "Door forced open.")   # Door Breaker: no wear
 	else:
 		instance.use()
 		if instance.is_depleted:
@@ -530,6 +532,8 @@ func _force_damages_gun(instance: ItemInstance, item_data: Dictionary) -> bool:
 	var name_l = item_data.get("name", "").to_lower()
 	if not (name_l.contains("gun") or name_l.contains("pistol") or name_l.contains("rifle")):
 		return false
+	if instance.has_perk_flag("no_force_damage"):
+		return true   # Durable Hand Cannon: it's a gun (no durability spent) and it shrugs it off
 	if not instance.is_damaged:
 		instance.is_damaged = true
 		var spill = instance.mag_count - instance.get_mag_cap()
@@ -593,7 +597,7 @@ func _tick_barricade_removal(delta: float) -> void:
 
 	# Durability — debit progressively so a full removal costs BARRICADE_DURABILITY_COST.
 	# target_spend grows with progress; we apply use() each time it crosses an integer.
-	if removal_tool_instance != null:
+	if removal_tool_instance != null and not removal_tool_instance.has_perk_flag("free_force"):
 		var target_spend = int(floor(removal_fraction * BARRICADE_DURABILITY_COST))
 		while removal_durability_spent < target_spend:
 			removal_tool_instance.use()

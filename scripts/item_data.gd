@@ -102,6 +102,7 @@ func _load_data() -> void:
 			"is_crowbar": properties.has("is_crowbar"),
 			"is_extinguisher": properties.has("is_extinguisher"),
 			"is_fuse": properties.has("is_fuse"),
+			"is_scrap": properties.has("is_scrap"),
 			"single_use": durability_data["single_use"],
 			"max_durability": durability_data["max_durability"],
 			"heals_states": durability_data["heals_states"],

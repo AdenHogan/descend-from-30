@@ -20,6 +20,8 @@ extends Node
 #   x:<px>           teleport the player to x (on the corridor plane)
 #   go:<px>          walk the player to x (click-to-move target) and wait until arrived
 #   floor:<n> run:<n> set WorldState.current_floor / current_run
+#   give:<id>[:<lvl>] put an item in the inventory (optionally at a workbench level)
+#   scrap:<n>        set the scrap counter
 #   kill             kill the player now (player._die → the real Game.game_over flow)
 #   hp:<n>           set health
 #   eval:<method>    call a no-arg method on the current scene
@@ -104,6 +106,18 @@ func _do(step: String) -> void:
 					else:
 						await _frames(1)
 					guard += 1
+		"give":
+			# give:<item id>[:<workbench level>]
+			var inst := ItemInstance.new()
+			inst.setup(p[1])
+			if p.size() > 2:
+				inst.level = int(p[2])
+			WorldState.inventory.append(inst)
+			HUD.refresh_inventory()
+		"scrap":
+			WorldState.scrap_unlocked = true
+			WorldState.scrap = int(p[1])
+			HUD.refresh_inventory()
 		"floor":
 			WorldState.current_floor = int(p[1])
 		"run":

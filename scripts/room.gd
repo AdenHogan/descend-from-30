@@ -313,11 +313,13 @@ func _maintenance_loot(rng: RandomNumberGenerator) -> String:
 	# A maintenance room is where you find repair gear and spare parts: heavily weighted
 	# to Toolbox (019) and Fuse (020), with the odd bank-notes bundle; sometimes empty.
 	var r := rng.randf()
-	if r < 0.40:
+	if r < 0.36:
 		return "019"   # Toolbox (repairs)
-	elif r < 0.70:
+	elif r < 0.64:
 		return "020"   # Fuse (powers the elevator)
-	elif r < 0.85:
+	elif r < 0.80:
+		return "037"   # Scrap Bag — spare parts, spendable at the workbench right here
+	elif r < 0.90:
 		return "033"   # Bank Notes
 	return ""          # empty this time
 
@@ -431,6 +433,18 @@ func _build_maintenance_props() -> void:
 	_refresh_fuse_slots()
 
 
+var _workbench_ui = null
+
+
+# The scrap upgrade station (docs/SCRAP_UPGRADES.md) — a pausing panel over the room.
+func open_workbench() -> void:
+	if _workbench_ui == null or not is_instance_valid(_workbench_ui):
+		_workbench_ui = preload("res://scripts/workbench_ui.gd").new()
+		add_child(_workbench_ui)
+	HUD.hide_world_prompt(self)
+	_workbench_ui.open()
+
+
 func _refresh_fuse_slots() -> void:
 	# Recolour the three slots: fitted = amber (or green once powered), empty = dark.
 	var lit := WorldState.elevator_fuses_loaded
@@ -509,9 +523,9 @@ func _maintenance_process(_delta: float) -> void:
 		if e_pressed:
 			_fit_fuses()
 	elif absf(px - _workbench_pos.x) < _STATION_REACH:
-		HUD.show_world_prompt(self, "Workbench  [E]  (weapon upgrades — coming soon)", _workbench_pos + Vector2(0, -54))
+		HUD.show_world_prompt(self, "Workbench  [E] Upgrade weapons", _workbench_pos + Vector2(0, -54))
 		if e_pressed:
-			HUD.show_feedback("Workbench — weapon upgrades will live here (the Scrap system).")
+			open_workbench()
 	else:
 		HUD.hide_world_prompt(self)
 
@@ -752,6 +766,15 @@ func _after_modules_ready() -> void:
 				anchor.set_process(true)
 
 			var passed_spawn_roll = apt_rng_items.randf() <= spawn_chance
+
+			# SCRAP (docs/SCRAP_UPGRADES.md): a charred ruin's anchors hold salvage instead of loot;
+			# an ordinary empty anchor occasionally does. Own RNG — the loot sequence is untouched.
+			if not passed_spawn_roll and not already_searched and not tutorial_apartment:
+				var bag := WorldState.scrap_bag_for_anchor(apartment_id, anchor.name,
+					WorldState.is_apartment_charred(_fnum, _anum))
+				if bag > 0:
+					WorldState.set_anchor_item(apartment_id, anchor.name, "037")
+					WorldState.set_anchor_amount(apartment_id, anchor.name, bag)
 
 			# Check if this anchor should spawn a key instead of a regular item
 			var floor_num = int(apartment_id.left(apartment_id.length() - 2))
@@ -1198,6 +1221,7 @@ func _spawn_world_drops(floor_num: int, apt_override: String = "") -> void:
 		var drop = drop_scene.instantiate()
 		drop.item_id = data["item_id"]
 		drop.amount = int(data.get("amount", 0))
+		drop.instance_data = data.get("instance", {})
 		drop.drop_key = drop_key
 		drop.target_apartment = data.get("target_apartment", "")
 		drop.global_position = Vector2(data["x"], data["y"])

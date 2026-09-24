@@ -209,8 +209,7 @@ func _die() -> void:
 	var feet := _drop_feet_y()
 	var money_amount = (70 + randi() % 61) if is_corridor_boss else (30 + randi() % 31)
 	var money_rest = Vector2(global_position.x + 26.0, feet - WORLD_DROP.REST_LIFT)
-	var money_key = str(WorldState.current_floor) + ":" + str(snappedf(money_rest.x, 1.0)) + ":" + str(snappedf(money_rest.y, 1.0))
-	WorldState.add_world_drop("033", money_rest, WorldState.current_floor, {"amount": money_amount})
+	var money_key: String = WorldState.add_world_drop("033", money_rest, WorldState.current_floor, {"amount": money_amount})
 	var money_drop = preload("res://scenes/world_drop.tscn").instantiate()
 	money_drop.item_id = "033"
 	money_drop.amount = money_amount
@@ -222,8 +221,7 @@ func _die() -> void:
 	if is_corridor_boss:
 		var loot_id: String = WorldState.boss_loot_item(spawn_key)
 		var loot_rest = Vector2(global_position.x - 26.0, feet - WORLD_DROP.REST_LIFT)
-		var loot_key = str(WorldState.current_floor) + ":" + str(snappedf(loot_rest.x, 1.0)) + ":" + str(snappedf(loot_rest.y, 1.0))
-		WorldState.add_world_drop(loot_id, loot_rest, WorldState.current_floor, {})
+		var loot_key: String = WorldState.add_world_drop(loot_id, loot_rest, WorldState.current_floor, {})
 		var loot_drop = preload("res://scenes/world_drop.tscn").instantiate()
 		loot_drop.item_id = loot_id
 		loot_drop.drop_key = loot_key

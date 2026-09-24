@@ -53,6 +53,12 @@ func _input(event: InputEvent) -> void:
 		# The character journal is a pausing overlay of its own: ESC closes IT first. This handler
 		# runs before the journal's own input, so without this ESC opened the pause menu ON TOP of
 		# the journal — and Resume then unpaused the live game behind a still-open journal.
+		# Any open modal panel (the workbench, …) closes first, same as the journal below.
+		for m in get_tree().get_nodes_in_group("modal_panel"):
+			if m.visible and m.has_method("close"):
+				m.close()
+				get_viewport().set_input_as_handled()
+				return
 		var journal = HUD.get("character_panel")
 		if journal != null and is_instance_valid(journal) and journal.visible:
 			journal.close()

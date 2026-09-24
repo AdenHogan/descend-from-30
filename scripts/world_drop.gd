@@ -16,6 +16,7 @@ var item_id: String = ""
 var target_apartment: String = ""
 var drop_key: String = ""
 var amount: int = 0  # Bank Notes bundle size; 0 = roll default on pickup
+var instance_data: Dictionary = {}  # a DISCARDED item's full state — picked up as that same item
 
 var player: Node2D = null
 var player_nearby: bool = false
@@ -154,6 +155,14 @@ func _try_pickup() -> void:
 		added = WorldState.add_key_to_inventory(target_apartment)
 		if added:
 			HUD.show_feedback("Key — Apt " + target_apartment + " picked up.")
+			HUD.refresh_inventory()
+		else:
+			HUD.show_feedback("Inventory full.")
+			return
+	elif not instance_data.is_empty():
+		added = WorldState.add_instance_to_inventory(WorldState.instance_from_dict(instance_data))
+		if added:
+			HUD.show_feedback(ItemData.get_item(item_id).get("name", "Item") + " picked up.")
 			HUD.refresh_inventory()
 		else:
 			HUD.show_feedback("Inventory full.")

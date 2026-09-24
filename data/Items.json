@@ -287,6 +287,14 @@
       "PROPERTY_DURABILITY": "2 uses",
       "PROPERTY_SPAWN_RARITY": 2,
       "PROPERTY_WEIGHT_SIZE": null
+    },
+    "037": {
+      "ITEM_NAME": "Scrap Bag",
+      "ITEM_DESCRIPTION": "A sack of salvage — twisted metal, springs, wire, scorched fittings. Worthless to the merchant; worth a lot at a workbench.",
+      "VALUE_PROPERTY": "is_scrap",
+      "PROPERTY_DURABILITY": "single use",
+      "PROPERTY_SPAWN_RARITY": 3,
+      "PROPERTY_WEIGHT_SIZE": null
     }
   },
   "ROOM_SPAWN_POOLS": {

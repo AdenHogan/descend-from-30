@@ -1,8 +1,42 @@
 # DF30 — Scrap & Item Upgrades
 
-> **Status: AGREED design direction, pre-implementation.** Owner-proposed
-> during the fire-hazard work; this doc captures the idea so it survives across
-> sessions. Nothing here is built yet — it is the spec to build against.
+> **Status: BUILT v1** (the spec below is what it was built against; the notes in
+> "What's built" record the interpretations + what's still open). Locked by
+> `tests/weapon_upgrade_test`.
+
+## What's built (v1)
+
+- **Scrap counter** — `WorldState.scrap` (per-character: reset by the time skip, carried on the
+  corpse and MERGED into the finder's total) + `scrap_unlocked` (the HUD counter appears with the
+  first bag; cross-run like the wallet unlock). **Scrap Bag (037)** never takes a slot:
+  `add_to_inventory("037")` empties it into the counter (works with full pockets). HUD: "SCRAP N"
+  above the wallet.
+- **Faucets** (each on its OWN seeded RNG, so no other loot roll shifted):
+  charred apartment anchors — 75% hold a big bag (14–30); an ordinary room's EMPTY anchor — 7%
+  a small bag (6–14); maintenance rooms — ~16% of anchors (spare parts, right by the bench).
+  Never sold by the merchant.
+- **The bench** — `[E] Upgrade weapons` at the maintenance workbench opens `workbench_ui.gd` (a
+  pausing panel like the journal): your gun/hammer, the perks each has, the next level's cost and
+  the PICK-ONE-OF-TWO. Costs exactly as specced (50 → a spare Lv1 + 80 → a spare Lv2 + 100); the
+  LOWEST qualifying spare is fed in, never a better one. Rules + perks: `WeaponUpgrades`
+  (`weapon_upgrades.gd`, one table). Action: `WorldState.upgrade_weapon(slot, perk)`.
+- **Per-weapon perks** on `ItemInstance` (`level`, `perks`), applied through the fold
+  (`perk_add` / `perk_mult` / `has_perk_flag`), saved with the item, kept on a corpse, and shown as
+  a "LvN" tag on the slot. Gun: Aim Assist, Durable Hand Cannon, Silencer, Through-and-Through,
+  Lucky Bullet, Bigger Bang — all wired into real combat.
+  - **Interpretation:** "Durable Hand Cannon doubles durability" — a gun has no durability (it runs
+    on ammo; forcing a door DAMAGES it instead), so it's "forcing never damages it + 6 rounds".
+  - **Hammer tree = PLACEHOLDER** (the doc leaves it to the owner): Heavy Head (+1 dmg) / Reinforced
+    Handle (×2 durability); Door Breaker (forcing + barricades cost no durability) / Sweeping Blow
+    (a swing also hits a 2nd enemy); Skull Splitter (15% to drop an ordinary enemy outright) /
+    Featherweight (−40% swing stamina). Rename/rebalance in `WeaponUpgrades.PERKS`.
+- **Discard memory (built)** — a dropped item now remembers EXACTLY what it was
+  (`WorldState.instance_to_dict` on the world drop): durability, magazine, damage, level + perks,
+  stack count; a BROKEN weapon/tool drops too (repairable, and upgrade feed); two drops on one spot
+  no longer overwrite each other. (Before: a drop was re-created from its id — a worn weapon came
+  back at full durability, an upgraded one would have come back Lv1, broken ones vanished.)
+- **Still open:** the tier-5 **dismantle** perk (break items → scrap); merchant-sold pre-upgraded
+  weapons; more weapon trees; real bench art; balance numbers (playtest).
 >
 > Ties into: `STORE_DESIGN.md` (upgrades/economy), the fire hazard
 > (`CLAUDE.md` Hazard 3), `THREE_RUN_ARC.md` (escalation across runs), and

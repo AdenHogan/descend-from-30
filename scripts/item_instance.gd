@@ -10,6 +10,11 @@ var count: int = 1  # Only used for stackable items (Bank Notes, Bullets)
 # worse accuracy, smaller magazine — until repaired with a toolbox).
 var mag_count: int = 0
 var is_damaged: bool = false
+# Workbench upgrades (docs/SCRAP_UPGRADES.md): the weapon's level (1-4) and the perks picked on the
+# way up. They ride THIS weapon (serialized with it, kept as it levels) and apply through the
+# modifier fold below — never by writing stats directly. Rules/perks: WeaponUpgrades.
+var level: int = 1
+var perks: Array = []
 
 const MAG_CAP = 18          # Met-issue Glock: 17+1
 const MAG_CAP_DAMAGED = 10
@@ -17,7 +22,37 @@ const MAG_CAP_DAMAGED = 10
 
 func get_mag_cap() -> int:
 	var base = MAG_CAP_DAMAGED if is_damaged else MAG_CAP
-	return base + WorldState.get_gun_mag_bonus()
+	return base + WorldState.get_gun_mag_bonus() + int(perk_add("mag"))
+
+
+# --- the per-weapon modifier fold (base × ∏mult + Σadd) -----------------------------
+func perk_add(stat: String) -> float:
+	var total := 0.0
+	for p in perks:
+		total += float(WeaponUpgrades.perk(p).get("mods", {}).get(stat, {}).get("add", 0.0))
+	return total
+
+
+func perk_mult(stat: String) -> float:
+	var total := 1.0
+	for p in perks:
+		total *= float(WeaponUpgrades.perk(p).get("mods", {}).get(stat, {}).get("mult", 1.0))
+	return total
+
+
+func has_perk_flag(flag: String) -> bool:
+	for p in perks:
+		if flag in WeaponUpgrades.perk(p).get("flags", []):
+			return true
+	return false
+
+
+# This weapon's durability ceiling: the item's base × its perks (Reinforced Handle doubles it).
+func get_max_durability() -> int:
+	var base := int(get_data().get("max_durability", -1))
+	if base <= 0:
+		return base
+	return int(round(base * perk_mult("durability")))
 
 
 func setup(id: String) -> void:
@@ -75,8 +110,7 @@ func is_repairable() -> bool:
 func repair_full() -> void:
 	# Toolbox restore: un-break, un-damage, refill durability.
 	is_damaged = false
-	var d = get_data()
-	var max_d = int(d.get("max_durability", -1))
+	var max_d = get_max_durability()
 	if max_d > 0:
 		current_durability = max_d
 		is_depleted = false
@@ -86,7 +120,7 @@ func repair(amount: int) -> void:
 	var data = get_data()
 	if data.get("single_use", false):
 		return
-	var max_d = data.get("max_durability", -1)
+	var max_d = get_max_durability()
 	if max_d <= 0:
 		return
 	current_durability = min(current_durability + amount, max_d)

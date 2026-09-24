@@ -593,7 +593,8 @@ func _do_melee_attack(instance: ItemInstance, slot_index: int) -> void:
 	if instance.is_depleted:
 		HUD.show_feedback("It's broken — repair it with a toolbox.")
 		return
-	var stamina_cost = WEAPON_STAMINA_COST.get(weapon_type, 15.0) * WorldState.get_melee_cost_mult()
+	var stamina_cost = WEAPON_STAMINA_COST.get(weapon_type, 15.0) * WorldState.get_melee_cost_mult() \
+		* instance.perk_mult("stamina")          # workbench perk (Featherweight)
 	# Attacking requires at least 2 bars (25%). In the red zone you can move but not swing.
 	if WorldState.stamina < WorldState.get_max_stamina() * 0.25 and not WorldState.god_mode:
 		HUD.show_feedback("Too exhausted to swing.")
@@ -616,7 +617,8 @@ func _do_melee_attack(instance: ItemInstance, slot_index: int) -> void:
 	melee_player.play()
 
 	var attack_range = WEAPON_RANGES.get(weapon_type, 40.0)
-	var damage = WEAPON_DAMAGE.get(weapon_type, 1) + WorldState.get_melee_damage_bonus()
+	var damage = WEAPON_DAMAGE.get(weapon_type, 1) + WorldState.get_melee_damage_bonus() \
+		+ int(instance.perk_add("damage"))       # workbench perk (Heavy Head)
 	damage = max(damage, 1)
 	var damage_type = _get_weapon_damage_type(weapon_type)
 	var hit_something = false
@@ -628,6 +630,8 @@ func _do_melee_attack(instance: ItemInstance, slot_index: int) -> void:
 	# boss behind the zombie that's currently mauling you. (Was random pick.)
 	var target: Node = null
 	var target_dist: float = 99999.0
+	var second: Node = null                   # the next-nearest, for a Sweeping Blow
+	var second_dist: float = 99999.0
 	for zombie in zombies:
 		if zombie.is_dead:
 			continue
@@ -648,11 +652,19 @@ func _do_melee_attack(instance: ItemInstance, slot_index: int) -> void:
 			if (facing_right and dx > -16.0) or (not facing_right and dx < 16.0):
 				# Priority = nearest by horizontal edge distance.
 				if zombie.has_method("receive_damage") and edge_dist < target_dist:
+					second = target
+					second_dist = target_dist
 					target_dist = edge_dist
 					target = zombie
+				elif zombie.has_method("receive_damage") and edge_dist < second_dist:
+					second = zombie
+					second_dist = edge_dist
 	if target != null:
-		target.receive_damage(damage, damage_type)
+		target.receive_damage(_perk_blow(instance, target, damage), damage_type)
 		hit_something = true
+		# Sweeping Blow: the same swing also catches the next enemy in reach.
+		if second != null and instance.has_perk_flag("sweep") and not second.is_dead:
+			second.receive_damage(_perk_blow(instance, second, damage), damage_type)
 
 	if hit_something:
 		instance.use()
@@ -666,6 +678,23 @@ func _do_melee_attack(instance: ItemInstance, slot_index: int) -> void:
 			HUD.show_feedback(weapon_name + " broke — repair it with a toolbox.")
 		else:
 			HUD.refresh_inventory()
+
+
+# A melee blow's damage after the weapon's perks: Skull Splitter can drop an ORDINARY enemy
+# outright (never a big/boss).
+func _perk_blow(instance: ItemInstance, target: Node, damage: int) -> int:
+	var execute: float = instance.perk_add("execute")
+	if execute > 0.0 and not target.is_in_group("big_zombie") and randf() < execute:
+		HUD.show_feedback("Skull split.")
+		return 999
+	return damage
+
+
+# How far a shot from this gun is heard. A Silencer drops it to footstep level.
+func gunshot_noise_radius(instance: ItemInstance) -> float:
+	if instance != null and instance.has_perk_flag("silenced"):
+		return WorldState.NOISE_RADIUS["walk"]
+	return WorldState.NOISE_RADIUS["gunshot"]
 
 
 func _do_gun_attack(instance: ItemInstance, _slot_index: int) -> void:
@@ -698,23 +727,56 @@ func _do_gun_attack(instance: ItemInstance, _slot_index: int) -> void:
 	# Only now commit the shot — no target means no ammo spent.
 	is_attacking = true
 	attack_cooldown_timer = 0.65
-	instance.mag_count -= 1
+	# Lucky Bullet: sometimes the round isn't spent.
+	if not (instance.perk_add("free_shot") > 0.0 and randf() < instance.perk_add("free_shot")):
+		instance.mag_count -= 1
 	HUD.refresh_inventory()
 	animated_sprite.play("gun_shoot")
 	gunshot_player.pitch_scale = randf_range(0.95, 1.05)
+	gunshot_player.volume_db = -20.0 if instance.has_perk_flag("silenced") else -4.0
 	gunshot_player.play()
-	var outcome = _calculate_gun_outcome(nearest_dist, instance.is_damaged)
+	var outcome = _calculate_gun_outcome(nearest_dist, instance.is_damaged, instance)
 	match outcome:
 		"headshot": HUD.show_feedback("Headshot!")
 		"body": HUD.show_feedback("Body shot.")
 		"miss": HUD.show_feedback("Missed.")
 	if nearest.has_method("receive_hit_from_gun"):
 		nearest.receive_hit_from_gun(outcome)
-	# Gunfire is LOUD (GDD: noise draws enemies) — whole-floor noise event.
-	WorldState.emit_noise(global_position, WorldState.NOISE_RADIUS["gunshot"], 6.0)
+	if outcome != "miss":
+		_gun_perk_followthrough(instance, nearest)
+	# Gunfire is LOUD (GDD: noise draws enemies) — whole-floor noise event. (A Silencer isn't.)
+	var silenced: bool = instance.has_perk_flag("silenced")
+	WorldState.emit_noise(global_position, gunshot_noise_radius(instance), 1.0 if silenced else 6.0)
 
 
-func _calculate_gun_outcome(distance: float, damaged: bool = false) -> String:
+const BLAST_RADIUS := 70.0
+
+
+# What a LANDED shot does beyond its target, from the gun's perks: Through-and-Through also
+# hits the next enemy behind it; Bigger Bang blasts everything close to it.
+func _gun_perk_followthrough(instance: ItemInstance, target: Node) -> void:
+	if instance.has_perk_flag("pierce"):
+		var dir: float = signf(target.global_position.x - global_position.x)
+		var behind: Node = null
+		var best := 99999.0
+		for z in get_tree().get_nodes_in_group("zombie"):
+			if z == target or z.is_dead:
+				continue
+			var past: float = (z.global_position.x - target.global_position.x) * dir
+			if past > 0.0 and past < best and absf(z.global_position.y - target.global_position.y) <= MELEE_PLANE_TOLERANCE:
+				best = past
+				behind = z
+		if behind != null and behind.has_method("receive_hit_from_gun"):
+			behind.receive_hit_from_gun("body")
+	if instance.has_perk_flag("blast"):
+		for z in get_tree().get_nodes_in_group("zombie"):
+			if z == target or z.is_dead or not z.has_method("receive_damage"):
+				continue
+			if z.global_position.distance_to(target.global_position) <= BLAST_RADIUS:
+				z.receive_damage(1, "blast")
+
+
+func _calculate_gun_outcome(distance: float, damaged: bool = false, instance: ItemInstance = null) -> String:
 	# Rebalanced after playtest: headshots (instant kill) are RARE now.
 	# Upgrades and rare/legendary guns will buff these odds later; a damaged
 	# gun (used to force a door) shoots markedly worse until repaired.
@@ -731,8 +793,11 @@ func _calculate_gun_outcome(distance: float, damaged: bool = false) -> String:
 		body *= 0.65
 	# Upgrades (Steady Aim, Marksman, Trigger Discipline) and — later — rare
 	# guns sharpen the odds.
-	head = clamp(head + WorldState.get_headshot_bonus(), 0.0, 0.95)
-	body = clamp(body + WorldState.get_body_bonus(), 0.0, 1.0 - head)
+	# The gun's own workbench perks (Aim Assist) stack in the same fold.
+	var perk_head: float = instance.perk_add("headshot") if instance != null else 0.0
+	var perk_body: float = instance.perk_add("body") if instance != null else 0.0
+	head = clamp(head + WorldState.get_headshot_bonus() + perk_head, 0.0, 0.95)
+	body = clamp(body + WorldState.get_body_bonus() + perk_body, 0.0, 1.0 - head)
 	var rng = RandomNumberGenerator.new()
 	rng.seed = hash(str(WorldState.master_seed) + str(Time.get_ticks_msec()))
 	var roll = rng.randf()
