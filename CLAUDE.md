@@ -1191,6 +1191,13 @@ means no rendering — UI layout and art still need an in-editor look.
   need 1/2/3 lobby-door CROSSINGS (`crossings`, +1 when the shopkeeper hands a stashed item over in a
   later game) + scrap paid in INSTALMENTS that ride the weapon (`forge_paid`, `forge_heirloom`; 400 /
   500 / 600, sized by `tools/economy_report.tscn` ≈ 200 scrap per character). HUD tags "LEG", "LEG+".
+  **SPECIAL MODS (round 5 — "add fire to your sword… real upgrades that make a weapon special")**:
+  every level-up without a tree perk (tree-less Lv2-4, every heirloom tier) offers a pick of two
+  (`WeaponUpgrades.MODS`: Fuel-Soaked / Incendiary 20% ignite, Serrated 30% wound, Bell-Ringer /
+  Stopping Power knockdown, Home Run shove, Second Wind stamina-on-kill, Mended free killing blow,
+  Cleave, Quick Hands); chances +5% per heirloom tier. `player._weapon_mods_on_hit`; burns/wounds are a
+  `WeaponAffliction` node + the enemies' `weapon_lit` flag (floor fire can't snuff it). Titles name the
+  newest special first ("Firestarter").
 - PROGRESSION tiers 2 + 3 (docs/PROGRESSION.md): **Run boons** (temporary, this character — a v1
   proposal): the first arrival at milestone floors 27/22/17/12/7 queues a pick-1-of-2 offered by a
   HUD **"★ BOON — choose"** badge (never a forced pause), wiped by the time skip, kept by a save.
@@ -1203,7 +1210,8 @@ means no rendering — UI layout and art still need an in-editor look.
   shows "(N to go)" when unaffordable. Quests
   completed (+8) and NPCs aided (+4) also score (`note_quest_completed`/`note_npc_aided` hooks —
   quests not built yet). **Round 4 (owner: "+10 doesn't feel worth it… a real hard choice")**: the kit
-  is SCRAPPED AT THE DOOR for Valour — each weapon by level (`Progression.DOOR_WORTH`: Legendary 70,
+  is SCRAPPED AT THE DOOR for Valour — each UPGRADED weapon by level (Lv1 / tools / junk = 0 and
+  can't be stored — round 5) (`Progression.DOOR_WORTH`: Legendary 70,
   +++ 220, + 20% of heirloom scrap put in) + 25 for leaving nothing behind (`door_valour`,
   `note_door_scrap`) — or one item is kept by the door and its worth + the bonus are forfeit; every
   button on the door panel shows its Valour. Perk prices ×5 (150-450, Deep Pockets 550) so a

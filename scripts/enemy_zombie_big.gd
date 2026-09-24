@@ -39,6 +39,10 @@ const ENEMY_FIRE := preload("res://scripts/enemy_fire.gd")
 const BODY_SMOKE := preload("res://scripts/body_smoke.gd")
 var on_fire: bool = false: set = _set_on_fire
 var _fire_fx = null
+# Set alight by a WEAPON (a Fuel-Soaked / Incendiary mod — WeaponAffliction): the floor's fire
+# bookkeeping resets on_fire from the fire field every frame, so while this is set it can't put
+# the weapon's fire out. Cleared when the burn runs out or I die.
+var weapon_lit: bool = false
 var _burn_acc: float = 0.0
 const BURN_INTERVAL := 1.5
 
@@ -46,6 +50,8 @@ const BURN_INTERVAL := 1.5
 func _set_on_fire(v: bool) -> void:
 	if v == on_fire:
 		return
+	if not v and weapon_lit and not is_dead:
+		return                         # a weapon-set fire burns on until WeaponAffliction ends it
 	on_fire = v
 	if not v:
 		_burn_acc = 0.0

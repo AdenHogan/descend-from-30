@@ -266,6 +266,7 @@ func _test_escape_guard_and_summary() -> void:
 		"the stashed item (for the next game), no brave row")
 	var knife := ItemInstance.new()
 	knife.setup("001")
+	knife.level = 2
 	WorldState.inventory = [knife]
 	var door: int = WorldState.note_door_scrap(true)
 	var plain := {}
@@ -274,7 +275,7 @@ func _test_escape_guard_and_summary() -> void:
 	check(not plain.has("Left by the door"), "nothing left → no stash row")
 	check(plain.has("Braved the unknown") and String(plain.get("Scrapped at the door", "")).contains("Knife"),
 		"left nothing → the brave row + what was scrapped (%s)" % str(plain))
-	check(door == Progression.DOOR_BRAVE_BONUS + Progression.DOOR_WORTH[1]
+	check(door == Progression.DOOR_BRAVE_BONUS + Progression.DOOR_WORTH[2]
 		and plain.get("Descent Valour") == "+%d" % Progression.valour_for_run(0, true, 1, 0, door), "…and its Valour (+%d at the door)" % door)
 
 
@@ -345,8 +346,9 @@ func _test_escape_white_card_to_next_run() -> void:
 	for c in Transition.survive_stats.get_children():
 		cells.append(c.text)
 	check("Descended" in cells and "all 30 floors" in cells, "…carrying the run's stats (%s)" % str(cells))
-	check("Braved the unknown" in cells and bool(WorldState.chronicle_entry(1).get("braved", false)),
-		"nothing left by the door → braved the unknown (the Valour bonus)")
+	check(not ("Braved the unknown" in cells) and not bool(WorldState.chronicle_entry(1).get("braved", false))
+		and int(WorldState.chronicle_entry(1).get("door_valour", -1)) == 0,
+		"empty-handed (no upgraded weapon): no door choice, no brave bonus, nothing scrapped")
 	guard = 0
 	while Transition.busy and guard < 4000:
 		await get_tree().process_frame

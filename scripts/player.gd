@@ -666,11 +666,17 @@ func _do_melee_attack(instance: ItemInstance, slot_index: int) -> void:
 	if target != null:
 		target.receive_damage(_perk_blow(instance, target, damage), damage_type)
 		hit_something = true
+		_weapon_mods_on_hit(instance, target)
 		# Sweeping Blow: the same swing also catches the next enemy in reach.
 		if second != null and instance.has_perk_flag("sweep") and not second.is_dead:
 			second.receive_damage(_perk_blow(instance, second, damage), damage_type)
+			_weapon_mods_on_hit(instance, second)
 
-	if hit_something:
+	# Mended: a killing blow doesn't wear the weapon.
+	var free_blow: bool = target != null and target.is_dead and not WeaponUpgrades.procs(instance, "kill_mend").is_empty()
+	if hit_something and free_blow:
+		HUD.refresh_inventory()
+	elif hit_something:
 		instance.use()
 		if instance.is_depleted:
 			# Broken weapons now STAY in inventory as a repairable item (item
@@ -682,6 +688,40 @@ func _do_melee_attack(instance: ItemInstance, slot_index: int) -> void:
 			HUD.show_feedback(weapon_name + " broke — repair it with a toolbox.")
 		else:
 			HUD.refresh_inventory()
+
+
+# SPECIAL MODS (docs/SCRAP_UPGRADES.md "Special mods") — what a LANDED hit does beyond its damage,
+# rolled per mod at its chance (which grows with the weapon's heirloom tier): set it alight, open a
+# wound, knock it flat (ordinary enemies only — not a big/boss), shove it; a KILL can refund stamina
+# (Mended — a killing blow costs no durability — is applied where the swing wears the weapon.)
+# `roll` is injectable so tests can force the dice.
+func _weapon_mods_on_hit(instance: ItemInstance, target: Node, roll: Callable = Callable()) -> void:
+	if instance == null or target == null or not is_instance_valid(target):
+		return
+	var dice: Callable = roll
+	if not dice.is_valid():
+		dice = func() -> float: return randf()
+	var killed: bool = ("is_dead" in target) and target.is_dead
+	if not killed:
+		for m in WeaponUpgrades.procs(instance, "ignite"):
+			if dice.call() < m[1] and WeaponAffliction.ignite(target):
+				HUD.show_feedback("It catches fire.")
+				break
+		for m in WeaponUpgrades.procs(instance, "bleed"):
+			if dice.call() < m[1]:
+				WeaponAffliction.bleed(target)
+				break
+		for m in WeaponUpgrades.procs(instance, "knockdown"):
+			if dice.call() < m[1] and target.has_method("_knockdown") and not target.is_in_group("big_zombie") \
+					and ("state" in target) and target.state != "knockdown":
+				target._knockdown()
+				break
+		if not WeaponUpgrades.procs(instance, "shove").is_empty() and target.has_method("receive_push"):
+			target.receive_push(signf(target.global_position.x - global_position.x) * PUSH_FORCE * WorldState.get_push_mult())
+	else:
+		for m in WeaponUpgrades.procs(instance, "kill_stamina"):
+			WorldState.stamina = minf(WorldState.get_max_stamina(), WorldState.stamina + WorldState.get_max_stamina() * m[1])
+			HUD.update_stamina(WorldState.stamina, WorldState.get_max_stamina())
 
 
 # A melee blow's damage after the weapon's perks: Skull Splitter can drop an ORDINARY enemy
@@ -733,7 +773,7 @@ func _do_gun_attack(instance: ItemInstance, _slot_index: int) -> void:
 		return
 	# Only now commit the shot — no target means no ammo spent.
 	is_attacking = true
-	attack_cooldown_timer = 0.65
+	attack_cooldown_timer = 0.65 * instance.perk_mult("gun_cooldown")     # special mod: Quick Hands
 	# Lucky Bullet: sometimes the round isn't spent.
 	# Every round actually expended wears the gun (a mark per 6 shots — docs/SCRAP_UPGRADES.md).
 	var worn_out := false
@@ -756,6 +796,7 @@ func _do_gun_attack(instance: ItemInstance, _slot_index: int) -> void:
 		nearest.receive_hit_from_gun(outcome)
 	if outcome != "miss":
 		_gun_perk_followthrough(instance, nearest)
+		_weapon_mods_on_hit(instance, nearest)
 	# Gunfire is LOUD (GDD: noise draws enemies) — whole-floor noise event. (A Silencer isn't.)
 	var silenced: bool = instance.has_perk_flag("silenced")
 	WorldState.emit_noise(global_position, gunshot_noise_radius(instance), 1.0 if silenced else 6.0)

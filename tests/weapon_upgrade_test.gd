@@ -40,6 +40,8 @@ func _ready() -> void:
 	_test_legendary_title()
 	_test_heirloom_forge()
 	await _test_bench_tune_and_forge_ui()
+	_test_special_mod_offers()
+	await _test_special_mod_effects()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -601,8 +603,11 @@ func _test_treeless_and_family_feed() -> void:
 	WorldState.inventory = [sword]
 	WorldState.scrap = 500
 	check(WeaponUpgrades.can_upgrade("003") and not WeaponUpgrades.has_perk_tree("003"), "a sword has no perk tree but the bench works on it")
-	check(WorldState.upgrade_weapon(0) == "" and sword.level == 2 and sword.perks.is_empty(), "Lv2 on tuning alone")
-	check(WorldState.upgrade_weapon(0).contains("blade"), "Lv3 needs a spare blade (%s)" % WorldState.upgrade_weapon(0))
+	var offer: Array = WeaponUpgrades.next_choices(sword)
+	check(offer.size() == 2 and WeaponUpgrades.is_mod(offer[0]) and WeaponUpgrades.is_mod(offer[1]), "…so its levels offer two SPECIAL mods (%s)" % str(offer))
+	check(WorldState.upgrade_weapon(0) == "Pick one of the two upgrades.", "a special must be picked")
+	check(WorldState.upgrade_weapon(0, offer[0]) == "" and sword.level == 2 and sword.perks == [offer[0]], "Lv2 with its special")
+	check(WorldState.upgrade_weapon(0, WeaponUpgrades.next_choices(sword)[0]).contains("blade"), "Lv3 needs a spare blade")
 	var bat := ItemInstance.new()
 	bat.setup("014")
 	WorldState.inventory = [sword, bat]
@@ -633,8 +638,10 @@ func _test_legendary_title() -> void:
 	check(WeaponUpgrades.title_theme(k) == "T_reach", "its best stat sets the theme")
 	WorldState.inventory = [k, _knife(2)]
 	WorldState.scrap = 100
-	check(WorldState.upgrade_weapon(0) == "" and k.level == 4, "Lv3 → Legendary")
-	check(k.title in WeaponUpgrades.TITLE_BANKS["T_reach"], "named from the Reach bank (%s)" % k.title)
+	var special: String = WeaponUpgrades.next_choices(k)[0]
+	check(WorldState.upgrade_weapon(0, special) == "" and k.level == 4, "Lv3 → Legendary (with %s)" % special)
+	var theme: String = String(WeaponUpgrades.perk(special).get("title", ""))
+	check(k.title in WeaponUpgrades.TITLE_BANKS[theme], "named for its special first (%s: %s)" % [theme, k.title])
 	check(k.get_display_name() == 'Knife "%s"' % k.title and k.tier_label() == "Legendary" and k.tier_tag() == "LEG",
 		"reads %s — Legendary (LEG on the slot)" % k.get_display_name())
 	check(k.forged_by.begins_with(WorldState.current_character() + ":1"), "remembers who forged it (%s)" % k.forged_by)
@@ -681,8 +688,12 @@ func _test_heirloom_forge() -> void:
 	check(res["given"].size() == 1 and got.crossings == 1 and got.title == "Widowmaker" and got.forge_paid == 60,
 		"collected in the next game: 1 crossing, name + instalment intact")
 	WorldState.scrap = 1000
-	check(WorldState.forge_heirloom(0, 9999) == "" and got.level == 5, "paid the rest → Legendary + at once")
-	check(WorldState.scrap == 1000 - (cost5 - 60) and got.forge_paid == 0, "only what was owed was taken (%d)" % WorldState.scrap)
+	check(WorldState.forge_heirloom(0, 9999) == "" and got.level == 4 and got.forge_paid == cost5, "paid the rest → ready")
+	check(WorldState.scrap == 1000 - (cost5 - 60), "only what was owed was taken (%d)" % WorldState.scrap)
+	var tier_offer: Array = WeaponUpgrades.next_choices(got)
+	check(tier_offer.size() == 2 and WeaponUpgrades.is_mod(tier_offer[0]), "the tier offers two specials (%s)" % str(tier_offer))
+	check(WorldState.upgrade_weapon(0, tier_offer[1]) == "" and got.level == 5 and got.forge_paid == 0 and tier_offer[1] in got.perks,
+		"picked → Legendary +")
 	check(got.get_display_name().contains("Widowmaker") and got.tier_label() == "Legendary +" and got.tier_tag() == "LEG+", "Legendary +")
 	check(WeaponUpgrades.points_earned(got) == WeaponUpgrades.POINTS_PER_LEVEL * 4 and WeaponUpgrades.cap_for(got, "T_weight") == 2,
 		"more points, and every stat can go one higher (Weight cap 2)")
@@ -734,3 +745,168 @@ func _test_bench_tune_and_forge_ui() -> void:
 	ui.queue_free()
 	get_tree().paused = false
 	await get_tree().process_frame
+
+
+func _test_special_mod_offers() -> void:
+	print("[SPECIAL MODS: every level without a tree perk offers two real specials]")
+	WorldState.new_game()
+	var sw := ItemInstance.new()
+	sw.setup("003")
+	var a: Array = WeaponUpgrades.next_choices(sw)
+	check(a == WeaponUpgrades.next_choices(sw), "the offer is stable while you think")
+	for id in a:
+		check("melee" in WeaponUpgrades.MODS[id]["pool"], "%s is a melee special" % id)
+	var g := _gun(4, ["G_aim", "G_silencer", "G_lucky"])
+	for id in WeaponUpgrades.next_choices(g):
+		check("gun" in WeaponUpgrades.MODS[id]["pool"], "the gun's heirloom tier offers gun specials (%s)" % id)
+	check(WeaponUpgrades.next_choices(_hammer(1)) == WeaponUpgrades.TREES["002"][2], "a tree weapon still gets its tree at Lv2-4")
+	var owned := _knife(4)
+	owned.perks = ["X_fire", "X_serrated", "X_bell", "X_homerun", "X_wind"]
+	var left: Array = WeaponUpgrades.next_choices(owned)
+	check(not ("X_fire" in left) and not ("X_wind" in left), "never offered one it already has (%s)" % str(left))
+	var sweeper := _hammer(4, ["H_heavy", "H_sweep", "H_skull"])
+	var seen_cleave := false
+	for lvl in [4, 5, 6]:
+		sweeper.level = lvl
+		seen_cleave = seen_cleave or "X_cleave" in WeaponUpgrades.next_choices(sweeper)
+	check(not seen_cleave, "Cleave isn't offered to a weapon that already sweeps")
+	var f := _knife(4)
+	f.perks = ["X_fire"]
+	check(WeaponUpgrades.describe(f, "X_fire").contains("20%"), "Fuel-Soaked at Legendary: 20%%")
+	f.level = 6
+	check(WeaponUpgrades.describe(f, "X_fire").contains("30%") and is_equal_approx(WeaponUpgrades.mod_chance(f, "X_fire"), 0.30),
+		"…30%% at Legendary ++ — heirlooms make specials sing")
+	var fire_sword := ItemInstance.new()
+	fire_sword.setup("003")
+	fire_sword.level = 4
+	fire_sword.perks = ["X_bell", "X_fire"]
+	check(WeaponUpgrades.title_theme(fire_sword) == "fire", "a fire sword is named for its fire (%s)" % WeaponUpgrades.generate_title(fire_sword, "x"))
+	var back: ItemInstance = WorldState.instance_from_dict(JSON.parse_string(JSON.stringify(WorldState.instance_to_dict(fire_sword))))
+	check(back.perks == ["X_bell", "X_fire"], "specials survive a save")
+	var q := _gun(4, ["X_quick"])
+	check(is_equal_approx(q.perk_mult("gun_cooldown"), 0.7), "Quick Hands: 30%% faster fire")
+
+
+func _test_special_mod_effects() -> void:
+	print("[SPECIAL MODS in play: fire, wounds, knockdowns, shoves, second wind, mended]")
+	WorldState.new_game()
+	WorldState.god_mode = false
+	var p = load("res://scenes/player.tscn").instantiate()
+	add_child(p)
+	var z = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
+	add_child(z)
+	var big = load("res://scenes/enemy_zombie_big.tscn").instantiate()
+	add_child(big)
+	await get_tree().physics_frame
+	for e in [z, big]:
+		e.set_physics_process(false)
+		e.set_process(false)
+	z.current_hp = 50
+	var always := func() -> float: return 0.0
+	var never := func() -> float: return 0.99
+	var fire := _knife(4)
+	fire.perks = ["X_fire"]
+	p._weapon_mods_on_hit(fire, z, never)
+	check(not z.on_fire, "a miss of the dice: no fire")
+	p._weapon_mods_on_hit(fire, z, always)
+	check(z.on_fire and z.weapon_lit, "Fuel-Soaked: it catches fire")
+	z.on_fire = false                                   # what a fire floor does every frame off the flames
+	check(z.on_fire, "the floor's fire bookkeeping can't put a weapon-set fire out")
+	var aff = z.get_node_or_null(WeaponAffliction.NODE_NAME)
+	for i in 7:
+		aff._physics_process(1.0)
+	check(z.current_hp < 50 and not z.on_fire and not z.weapon_lit, "it burns (%d hp) and goes out after ~6s" % z.current_hp)
+	await get_tree().process_frame
+	z.current_hp = 50
+	var serr := _knife(4)
+	serr.perks = ["X_serrated"]
+	p._weapon_mods_on_hit(serr, z, always)
+	aff = z.get_node_or_null(WeaponAffliction.NODE_NAME)
+	for i in 6:
+		if is_instance_valid(aff):
+			aff._physics_process(1.0)
+	check(z.current_hp == 47, "Serrated: a wound bleeds 3 more damage (%d)" % z.current_hp)
+	await get_tree().process_frame
+	var bell := _hammer(4, ["H_heavy", "H_sweep", "H_skull"])
+	bell.perks.append("X_bell")
+	z.state = "idle"
+	p._weapon_mods_on_hit(bell, z, always)
+	check(z.state == "knockdown", "Bell-Ringer: knocked flat")
+	big.state = "idle"
+	p._weapon_mods_on_hit(bell, big, always)
+	check(big.state != "knockdown", "…but a big one / a boss can't be")
+	p._weapon_mods_on_hit(fire, big, always)
+	check(big.on_fire, "…though it burns like anything else")
+	z.state = "idle"
+	z.velocity = Vector2.ZERO
+	p.global_position = Vector2(400, 386)
+	z.global_position = Vector2(430, 370)
+	var hr := _knife(4)
+	hr.perks = ["X_homerun"]
+	p._weapon_mods_on_hit(hr, z, never)
+	check(z.velocity.x > 0.0 and z.state == "hit", "Home Run: every hit shoves it back (%.0f)" % z.velocity.x)
+	var wind := _knife(4)
+	wind.perks = ["X_wind"]
+	WorldState.stamina = 10.0
+	z.is_dead = true
+	p._weapon_mods_on_hit(wind, z, never)
+	check(is_equal_approx(WorldState.stamina, 10.0 + WorldState.get_max_stamina() * 0.30), "Second Wind: a kill gives back 30%% stamina")
+	z.is_dead = false
+	var tut = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
+	tut.tutorial_scripted = true
+	add_child(tut)
+	await get_tree().physics_frame
+	tut.set_physics_process(false)
+	p._weapon_mods_on_hit(fire, tut, always)
+	check(not tut.on_fire, "the scripted tutorial neighbour is never afflicted")
+	tut.queue_free()
+	print("[in a real swing: Home Run shoves; Mended makes a killing blow free]")
+	z.set_physics_process(false)
+	var swing := func(w: ItemInstance, hp: int) -> void:
+		p.global_position = Vector2(400, 386)
+		p.animated_sprite.flip_h = false
+		z.global_position = Vector2(440, 370)
+		z.current_hp = hp
+		z.is_dead = false
+		z.state = "idle"
+		z.velocity = Vector2.ZERO
+		WorldState.stamina = WorldState.get_max_stamina()
+		p.is_attacking = false
+		p._do_melee_attack(w, 0)
+	var sword := ItemInstance.new()
+	sword.setup("003")
+	sword.level = 2
+	sword.perks = ["X_homerun"]
+	swing.call(sword, 50)
+	check(z.velocity.x > 0.0, "a real sword swing shoves with Home Run")
+	var mend := ItemInstance.new()
+	mend.setup("003")
+	mend.level = 2
+	mend.perks = ["X_mend"]
+	var d0: int = mend.current_durability
+	swing.call(mend, 50)
+	check(mend.current_durability == d0 - 1, "Mended: an ordinary hit still wears it (%d → %d)" % [d0, mend.current_durability])
+	var killed := false
+	var free_kill := false
+	for i in 20:                                      # blades sometimes leave it on 1 hp — keep swinging
+		var before: int = mend.current_durability
+		swing.call(mend, 1)
+		if z.is_dead:
+			killed = true
+			free_kill = mend.current_durability == before
+			break
+		mend.current_durability = d0                  # (a non-killing try wore it — top it back up)
+	check(killed and free_kill, "…a killing blow costs nothing")
+	var q := _gun(2, ["G_aim"])
+	q.perks.append("X_quick")
+	q.mag_count = 5
+	z.is_dead = false
+	z.current_hp = 50
+	WorldState.inventory = [q]
+	p.is_attacking = false
+	p._do_gun_attack(q, 0)
+	check(is_equal_approx(p.attack_cooldown_timer, 0.65 * 0.7), "Quick Hands: the gun recovers in %.3fs" % p.attack_cooldown_timer)
+	p.queue_free()
+	z.queue_free()
+	big.queue_free()
+	await get_tree().physics_frame

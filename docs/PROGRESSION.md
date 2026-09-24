@@ -56,10 +56,13 @@ the session is scored and the player may keep ONE perk they found along the way 
   the end screen shows them per run. Valour is banked to the **profile** at once and can be
   **saved** across sessions (the player may take nothing).
 - **The door** (owner, round 4 — "+10 doesn't feel worth it… a real hard choice"): an escaping
-  character's kit is **scrapped at the door** for Valour — each weapon by level
-  (`DOOR_WORTH`: Lv1 5, Lv2 20, Lv3 40, **Legendary 70**, + 110, ++ 160, +++ 220; + 20% of any
-  heirloom scrap already put in) **+ 25 for leaving nothing behind** (`DOOR_BRAVE_BONUS`) — OR they
-  leave ONE item by the door for their next game and forfeit its worth + the bonus
+  character's kit is **scrapped at the door** for Valour — each UPGRADED weapon by level
+  (`DOOR_WORTH`: Lv2 20, Lv3 40, **Legendary 70**, + 110, ++ 160, +++ 220; + 20% of any heirloom
+  scrap already put in) **+ 25 for leaving nothing behind** (`DOOR_BRAVE_BONUS`) — OR they leave ONE
+  upgraded weapon by the door for their next game and forfeit its worth + the bonus. **Round 5
+  (owner: "only upgraded weapons can be stored — we don't want any old junk scrappable for max
+  Valour")**: a Lv1 weapon, tools and junk are worth NOTHING at the door and can't be left there;
+  with no upgraded weapon there's no choice, so no panel and no brave bonus
   (`Progression.door_valour`, `WorldState.note_door_scrap`). The handoff panel prints the Valour
   on every button. See THREE_RUN_ARC.md "Descent boon".
 - **The economy it's sized for** (a middling game: one escape, two deaths around floors 15 and 10

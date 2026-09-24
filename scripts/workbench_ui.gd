@@ -321,7 +321,7 @@ func confirm() -> String:
 		return _say(err)
 	# The feed copy may have sat BEFORE the target, shifting its slot — find it again.
 	selected_slot = WorldState.inventory.find(inst)
-	var perk_name: String = WeaponUpgrades.perk(chosen_perk).get("name", "") if chosen_perk != "" else ""
+	var perk_name: String = String(WeaponUpgrades.perk(chosen_perk).get("name", "")) if chosen_perk != "" else ""
 	chosen_perk = ""
 	_play_clank()
 	refresh()
@@ -482,9 +482,20 @@ func _refresh_upgrade() -> void:
 	var txt := _header_bbcode(inst)
 	if inst.perks.is_empty():
 		txt += "\n[color=#%s]No perks yet.[/color]" % DIM.to_html(false)
+	var compact: bool = inst.perks.size() > 2      # a long list: names (+ live chance) only, so it fits
+	var parts: PackedStringArray = []
 	for p in inst.perks:
 		var d: Dictionary = WeaponUpgrades.perk(p)
-		txt += "\n[color=#%s]✔ %s[/color] — %s" % [GOLD.to_html(false), d.get("name", p), d.get("desc", "")]
+		var col: Color = LEGEND if WeaponUpgrades.is_mod(p) else GOLD
+		if compact:
+			var pct := ""
+			if WeaponUpgrades.mod_chance(inst, p) > 0.0 and WeaponUpgrades.mod_chance(inst, p) < 1.0:
+				pct = " %d%%" % int(round(WeaponUpgrades.mod_chance(inst, p) * 100.0))
+			parts.append("[color=#%s]✔ %s%s[/color]" % [col.to_html(false), d.get("name", p), pct])
+		else:
+			txt += "\n[color=#%s]✔ %s[/color] — %s" % [col.to_html(false), d.get("name", p), WeaponUpgrades.describe(inst, p)]
+	if compact:
+		txt += "\n" + "   ".join(parts)
 	_detail.text = txt
 	if inst.level >= WeaponUpgrades.MAX_LEVEL:
 		_cost_label.text = "Legendary +++. There is nothing more the bench can do — only you."
@@ -492,7 +503,7 @@ func _refresh_upgrade() -> void:
 		_upgrade_btn.disabled = true
 		return
 	var chk: Dictionary = WeaponUpgrades.check(inst, WorldState.inventory, WorldState.scrap)
-	if chk["heirloom"]:
+	if chk["heirloom"] and not chk["ok"]:
 		_refresh_forge(inst, chk)
 		return
 	var choices: Array = WeaponUpgrades.next_choices(inst)
@@ -502,19 +513,25 @@ func _refresh_upgrade() -> void:
 		card.toggle_mode = true
 		card.button_pressed = pid == chosen_perk
 		card.custom_minimum_size = Vector2((W - RIGHT_X - 36) * 0.5, 124)
-		card.text = "%s\n\n%s" % [d.get("name", pid), d.get("desc", "")]
+		var special: bool = WeaponUpgrades.is_mod(pid)
+		card.text = "%s%s\n\n%s" % ["SPECIAL: " if special else "", d.get("name", pid), WeaponUpgrades.describe(inst, pid)]
+		if special:
+			card.add_theme_color_override("font_color", LEGEND)
+			card.add_theme_color_override("font_pressed_color", GOLD)
 		card.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		card.add_theme_font_override("font", FONT)
 		card.add_theme_font_size_override("font_size", 12)
 		card.pressed.connect(choose_perk.bind(pid))
 		_perk_box.add_child(card)
 	if choices.is_empty():
-		var l := _label("No perk tree for this one (yet) — every level still gives it %d tuning points to make it your own." % WeaponUpgrades.POINTS_PER_LEVEL, 12, DIM)
+		var l := _label("It already has every special the bench knows — this level gives it %d more tuning points." % WeaponUpgrades.POINTS_PER_LEVEL, 12, DIM)
 		l.custom_minimum_size = Vector2(W - RIGHT_X - 24, 0)
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_perk_box.add_child(l)
 	var to: int = inst.level + 1
 	var cost := "%s costs %d scrap" % [WeaponUpgrades.tier_name(to), chk["scrap"]]
+	if chk["heirloom"]:
+		cost = "Paid and carried through the door — %s is ready" % WeaponUpgrades.tier_name(to)
 	if chk["feed_level"] > 0:
 		cost += " + %s (stripped for parts)" % WeaponUpgrades.feed_label(inst, chk["feed_level"])
 	cost += ".  +%d tuning points." % WeaponUpgrades.POINTS_PER_LEVEL
@@ -524,7 +541,7 @@ func _refresh_upgrade() -> void:
 		cost += "\n" + chk["reason"]
 	_cost_label.text = cost
 	_cost_label.add_theme_color_override("font_color", INK if chk["ok"] else BAD)
-	_upgrade_btn.text = "Upgrade"
+	_upgrade_btn.text = "Temper" if chk["heirloom"] else "Upgrade"
 	_upgrade_btn.visible = true
 	_upgrade_btn.disabled = not chk["ok"] or (not choices.is_empty() and chosen_perk == "")
 

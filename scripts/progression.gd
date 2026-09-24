@@ -52,7 +52,9 @@ const VALOUR_PER_NPC := 4               # each NPC aided that run
 # item's worth and the brave bonus. So the price of keeping a weapon you built is exactly what it
 # would have melted for.
 const DOOR_BRAVE_BONUS := 25            # left nothing by the door — braved the unknown
-const DOOR_WORTH := {1: 5, 2: 20, 3: 40, 4: 70, 5: 110, 6: 160, 7: 220}
+# Only UPGRADED weapons count (owner, round 5: "we don't want any old junk scrappable for max valour
+# at the door") — a Lv1 weapon, a tool or junk melts for nothing, and can't be left by the door.
+const DOOR_WORTH := {1: 0, 2: 20, 3: 40, 4: 70, 5: 110, 6: 160, 7: 220}
 const DOOR_FORGE_SHARE := 0.2           # heirloom scrap already put in counts this much toward worth
 const VALOUR_DEPTH_CURVE := 60.0        # floors descended d → d + floor(d² / curve)
 const OFFER_COUNT := 3                   # perks offered at the end of a session
@@ -82,23 +84,26 @@ static func valour_for_run(deepest_floor: int, escaped: bool, quests: int = 0, n
 		+ (maxi(0, door) if escaped else 0)
 
 
-# What one item melts for at the lobby door: weapons by level (+ a share of heirloom scrap already
-# put in); anything that isn't a weapon the bench works on is worth nothing there.
+# What one item melts for at the lobby door: UPGRADED weapons by level (+ a share of heirloom scrap
+# already put in); anything else — a Lv1 weapon, tools, junk — is worth nothing there.
 static func door_worth(inst) -> int:
-	if inst == null or not WeaponUpgrades.can_upgrade(inst.item_id):
+	if inst == null or not WeaponUpgrades.can_upgrade(inst.item_id) or inst.level < 2:
 		return 0
 	var lvl := clampi(inst.level, 1, WeaponUpgrades.MAX_LEVEL)
 	return int(DOOR_WORTH.get(lvl, 0)) + int(floor(maxi(0, inst.forge_paid) * DOOR_FORGE_SHARE))
 
 
 # The Valour a kit scraps for at the door. `stashed` = the index left by the door (-1 = none: every
-# item melts AND the brave bonus is earned).
+# item melts AND — if there was an upgraded weapon to give up — the brave bonus is earned).
 static func door_valour(items: Array, stashed: int = -1) -> int:
-	var v := 0 if stashed >= 0 else DOOR_BRAVE_BONUS
+	var v := 0
+	var any := false
 	for i in items.size():
+		var w := door_worth(items[i])
+		any = any or w > 0
 		if i != stashed:
-			v += door_worth(items[i])
-	return v
+			v += w
+	return v + (DOOR_BRAVE_BONUS if stashed < 0 and any else 0)
 
 
 # Everything about a perk that can become permanent: a merchant upgrade (U_*) or a run boon (B_*).

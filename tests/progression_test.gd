@@ -160,14 +160,22 @@ func _test_valour_maths() -> void:
 	lv4.level = 4
 	var lv1 := ItemInstance.new()
 	lv1.setup("001")
+	lv1.level = 2                                   # an UPGRADED knife
+	var plain := ItemInstance.new()
+	plain.setup("014")                              # a Lv1 bat — not upgraded
 	var junk := ItemInstance.new()
 	junk.setup("024")
-	check(Progression.door_worth(lv4) == Progression.DOOR_WORTH[4] and Progression.door_worth(lv1) == Progression.DOOR_WORTH[1]
-		and Progression.door_worth(junk) == 0, "worth by level; junk melts for nothing")
-	var kit := [lv4, lv1, junk]
+	var tool := ItemInstance.new()
+	tool.setup("019")                               # a toolbox
+	check(Progression.door_worth(lv4) == Progression.DOOR_WORTH[4] and Progression.door_worth(lv1) == Progression.DOOR_WORTH[2],
+		"upgraded weapons are worth Valour by level")
+	check(Progression.door_worth(plain) == 0 and Progression.door_worth(junk) == 0 and Progression.door_worth(tool) == 0,
+		"a Lv1 weapon, junk or a tool melt for NOTHING (no stuffing pockets for Valour)")
+	check(Progression.door_valour([plain, junk, tool, plain], -1) == 0, "a kit with no upgraded weapon earns nothing — not even the brave bonus")
+	var kit := [lv4, lv1, junk, plain]
 	var all_v: int = Progression.door_valour(kit, -1)
-	check(all_v == Progression.DOOR_BRAVE_BONUS + Progression.DOOR_WORTH[4] + Progression.DOOR_WORTH[1], "scrap it all: bonus + every weapon (%d)" % all_v)
-	check(Progression.door_valour(kit, 0) == Progression.DOOR_WORTH[1], "keep the legendary: only the knife melts (%d)" % Progression.door_valour(kit, 0))
+	check(all_v == Progression.DOOR_BRAVE_BONUS + Progression.DOOR_WORTH[4] + Progression.DOOR_WORTH[2], "scrap it all: bonus + every upgraded weapon (%d)" % all_v)
+	check(Progression.door_valour(kit, 0) == Progression.DOOR_WORTH[2], "keep the legendary: only the knife melts (%d)" % Progression.door_valour(kit, 0))
 	check(all_v - Progression.door_valour(kit, 0) == Progression.DOOR_BRAVE_BONUS + Progression.DOOR_WORTH[4],
 		"the price of keeping it = its worth + the brave bonus")
 	var heir := _hammer_lv3()
@@ -193,9 +201,13 @@ func _test_valour_maths() -> void:
 	check(door2 == all_v and WorldState.chronicle_entry(2)["braved"], "run 2 braved: its kit scrapped for %d" % door2)
 	WorldState.current_run = 3
 	WorldState.inventory = [lv1]
-	check(WorldState.note_door_scrap(false) == Progression.DOOR_WORTH[1], "run 3 left something: the rest melts, no bonus")
+	check(WorldState.note_door_scrap(false) == Progression.DOOR_WORTH[2], "run 3 left something: the rest melts, no bonus")
+	WorldState.current_run = 1
+	WorldState.inventory = [plain, junk]
+	check(WorldState.note_door_scrap(true) == 0, "run 1 had nothing upgraded: no choice, no Valour at the door")
+	WorldState.current_run = 3
 	var s: Dictionary = WorldState.finish_session()
-	check(int(s.get("total", -1)) == 3 * 55 + door2 + Progression.DOOR_WORTH[1], "3 escapes + the door (got %s)" % str(s.get("total")))
+	check(int(s.get("total", -1)) == 3 * 55 + door2 + Progression.DOOR_WORTH[2], "3 escapes + the door (got %s)" % str(s.get("total")))
 	var old := WorldState._blank_chronicle_entry()
 	old.erase("door_valour")
 	old["braved"] = true
@@ -382,8 +394,14 @@ func _test_handoff_in_session() -> void:
 	var notes := ItemInstance.new()
 	notes.setup("033")
 	var h := _hammer_lv3()
+	var plain := ItemInstance.new()
+	plain.setup("014")
+	var med := ItemInstance.new()
+	med.setup("007")
+	WorldState.inventory = [key, notes, h, plain, med]
+	check(WorldState.handoff_candidates() == [2], "ONLY upgraded weapons can be left — not keys, cash, a Lv1 bat or a medkit (%s)" % str(WorldState.handoff_candidates()))
+	check(WorldState.leave_for_next(3) == "" and WorldState.leave_for_next(4) == "", "…refused for the Lv1 bat and the medkit")
 	WorldState.inventory = [key, notes, h]
-	check(WorldState.handoff_candidates() == [2], "keys and cash can't be handed on (%s)" % str(WorldState.handoff_candidates()))
 	check(WorldState.leave_for_next(0) == "", "…refused for a key")
 	check(WorldState.leave_for_next(2) == "Hammer Lv3" and WorldState.inventory.size() == 2, "the hammer is left behind")
 	check(WorldState.chronicle_entry(1)["left_behind"] == "Hammer Lv3", "the chronicle remembers it")

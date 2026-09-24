@@ -92,8 +92,9 @@ const STATS := {
 		"mods": {"free_shot": {"add": 0.05}}},
 }
 
-# Item id → {level: [perk A, perk B]}. A weapon WITH a tree also picks one of two perks at Lv2-4;
-# one without levels on tuning alone. Add a weapon's tree here.
+# Item id → {level: [perk A, perk B]}. A weapon WITH a tree picks one of these two at Lv2-4. Every
+# OTHER level-up — a tree-less weapon's Lv2-4, and EVERY heirloom tier — offers two SPECIAL MODS
+# (MODS below, seeded per weapon + level). Add a weapon's tree here.
 const TREES := {
 	"004": {   # Gun
 		2: ["G_aim", "G_durable"],
@@ -140,6 +141,37 @@ const PERKS := {
 		"mods": {"stamina": {"mult": 0.6}}, "title": "T_balance"},
 }
 
+# SPECIAL MODS (owner, round 5: "add fire to your sword so striking an enemy has a 20% chance of
+# setting it on fire — real upgrades that make a weapon special"). Offered in pairs at every level-up
+# that has no tree perk; a weapon never gets the same mod twice. `proc` = what it does on a landed
+# hit / kill (player._weapon_mods_on_hit): ignite (WeaponAffliction burn), bleed (a wound), knockdown
+# (an ordinary enemy — not a big/boss — is knocked flat), shove (a real push), kill_stamina (a kill
+# refunds that share of max stamina), kill_mend (a killing blow costs no durability). `chance` grows
+# by `per_tier` with each heirloom tier the weapon reaches — heirlooms make their specials sing.
+# Plain stat mods use `mods` / `flags` like any perk.
+const MODS := {
+	"X_fire": {"name": "Fuel-Soaked", "pool": ["melee"], "proc": "ignite", "chance": 0.20, "per_tier": 0.05, "title": "fire",
+		"desc": "A hit has a %d%% chance to set the enemy alight. (Burning enemies hit twice as hard — finish them.)"},
+	"X_incendiary": {"name": "Incendiary Rounds", "pool": ["gun"], "proc": "ignite", "chance": 0.20, "per_tier": 0.05, "title": "fire",
+		"desc": "A shot that lands has a %d%% chance to set the enemy alight. (Burning enemies hit twice as hard.)"},
+	"X_serrated": {"name": "Serrated", "pool": ["melee"], "proc": "bleed", "chance": 0.30, "per_tier": 0.05, "title": "bleed",
+		"desc": "A hit has a %d%% chance to open a wound: 3 more damage over the next few seconds."},
+	"X_bell": {"name": "Bell-Ringer", "pool": ["melee"], "proc": "knockdown", "chance": 0.25, "per_tier": 0.05, "title": "stagger",
+		"desc": "A hit has a %d%% chance to knock an ordinary enemy flat."},
+	"X_stopping": {"name": "Stopping Power", "pool": ["gun"], "proc": "knockdown", "chance": 0.30, "per_tier": 0.05, "title": "stagger",
+		"desc": "A shot that lands has a %d%% chance to knock an ordinary enemy flat."},
+	"X_homerun": {"name": "Home Run", "pool": ["melee"], "proc": "shove", "chance": 1.0, "per_tier": 0.0, "title": "shove",
+		"desc": "Every hit shoves the enemy back, like a push."},
+	"X_wind": {"name": "Second Wind", "pool": ["melee", "gun"], "proc": "kill_stamina", "chance": 0.30, "per_tier": 0.05, "title": "wind",
+		"desc": "A kill with it gives back %d%% of your stamina."},
+	"X_mend": {"name": "Mended", "pool": ["melee"], "proc": "kill_mend", "chance": 1.0, "per_tier": 0.0, "title": "T_temper",
+		"desc": "A killing blow doesn't wear it."},
+	"X_cleave": {"name": "Cleave", "pool": ["melee"], "flags": ["sweep"], "title": "T_reach",
+		"desc": "A swing also strikes a second enemy in reach."},
+	"X_quick": {"name": "Quick Hands", "pool": ["gun"], "mods": {"gun_cooldown": {"mult": 0.70}}, "title": "T_drum",
+		"desc": "Fires 30% faster."},
+}
+
 # LEGENDARY TITLES — word banks keyed by what the weapon is best at (its highest-ranked stat, or
 # the flavour of its perks). One is drawn (seeded, stable) when it reaches Lv4; the player can
 # rename it at the bench. Add words freely.
@@ -156,6 +188,11 @@ const TITLE_BANKS := {
 	"T_handload": ["Lucky Penny", "Four-Leaf", "Borrowed Time", "Last Chance", "Rabbit's Foot"],
 	"silent": ["Hush", "Lullaby", "Whisper", "Library", "Sleepwalker"],
 	"boom": ["Housewarming", "Fireworks", "Thunderclap", "Big Finish", "Landlord"],
+	"fire": ["Firestarter", "Kindling", "Matchstick", "Hearthside", "Bonfire"],
+	"bleed": ["Paper Cut", "Letter Opener", "Red Ribbon", "Tenderiser", "The Barber"],
+	"stagger": ["Doorbell", "Knock Knock", "Wake-Up Call", "Last Orders", "Bedtime"],
+	"shove": ["Home Run", "Eviction Notice", "Moving Day", "Out You Go", "Bouncer"],
+	"wind": ["Second Wind", "Deep Breath", "Pick-Me-Up", "Morning Coffee", "Stairmaster"],
 	"any": ["Keepsake", "The Survivor", "Stairwell", "Floor Thirty", "Good Neighbour"],
 }
 const TITLE_MAX_LEN := 18
@@ -175,7 +212,60 @@ static func has_perk_tree(item_id: String) -> bool:
 
 
 static func perk(id: String) -> Dictionary:
+	if MODS.has(id):
+		return MODS[id]
 	return PERKS.get(id, {})
+
+
+static func is_mod(id: String) -> bool:
+	return MODS.has(id)
+
+
+# The chance a mod's proc fires on THIS weapon: its base, + per_tier for each heirloom tier.
+static func mod_chance(inst, id: String) -> float:
+	var m: Dictionary = MODS.get(id, {})
+	return clampf(float(m.get("chance", 0.0)) + float(m.get("per_tier", 0.0)) * maxi(0, inst.level - LEGENDARY_LEVEL), 0.0, 1.0)
+
+
+# A perk / mod's description, with this weapon's live chance filled in ("20%" → "30%" at ++).
+static func describe(inst, id: String) -> String:
+	var d: Dictionary = perk(id)
+	var text := String(d.get("desc", ""))
+	if MODS.has(id) and text.contains("%d"):
+		var c: float = mod_chance(inst, id) if inst != null else float(d.get("chance", 0.0))
+		return text % int(round(c * 100.0))
+	return text
+
+
+# The weapon's mods with a given proc, as [[mod id, chance], ...].
+static func procs(inst, proc: String) -> Array:
+	var out: Array = []
+	if inst == null:
+		return out
+	for p in inst.perks:
+		if MODS.has(p) and String(MODS[p].get("proc", "")) == proc:
+			out.append([p, mod_chance(inst, p)])
+	return out
+
+
+# Two special mods for this weapon's next level: from its kind's pool, never one it already has
+# (nor Cleave on a weapon that already sweeps), seeded per weapon + level so the offer is stable
+# while you think about it (and across a save).
+static func mod_pair(inst) -> Array:
+	var kind := kind_of(inst.item_id)
+	var pool: Array = []
+	for id in MODS:
+		if not (kind in MODS[id]["pool"]) or id in inst.perks:
+			continue
+		if "sweep" in MODS[id].get("flags", []) and inst.has_perk_flag("sweep"):
+			continue
+		pool.append(id)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(WorldState.master_seed) + "mods" + inst.item_id + str(inst.level) + ",".join(PackedStringArray(inst.perks)))
+	var out: Array = []
+	while out.size() < 2 and not pool.is_empty():
+		out.append(pool.pop_at(rng.randi() % pool.size()))
+	return out
 
 
 static func stat(id: String) -> Dictionary:
@@ -208,11 +298,14 @@ static func is_heirloom_step(to_level: int) -> bool:
 	return HEIRLOOM.has(to_level)
 
 
-# The two perks offered for this weapon's NEXT level ([] when it has no tree / no perk that level).
+# The two choices for this weapon's NEXT level: its tree's pair at Lv2-4, otherwise two special
+# mods ([] at max level / not a weapon the bench works on).
 static func next_choices(inst) -> Array:
-	if inst == null or not has_perk_tree(inst.item_id) or inst.level >= MAX_LEVEL:
+	if inst == null or not can_upgrade(inst.item_id) or inst.level >= MAX_LEVEL:
 		return []
-	return TREES[inst.item_id].get(inst.level + 1, [])
+	if has_perk_tree(inst.item_id) and TREES[inst.item_id].has(inst.level + 1):
+		return TREES[inst.item_id][inst.level + 1]
+	return mod_pair(inst)
 
 
 static func step_cost(to_level: int) -> Dictionary:
@@ -355,9 +448,14 @@ static func scrap_sunk(inst) -> int:
 
 
 # --- titles -------------------------------------------------------------------------------
-# What the weapon is best at: its highest-ranked tuning (ties → sheet order), else the flavour of
-# its latest perk, else "any".
+# What the weapon is best at: its newest special mod, else its highest-ranked tuning (ties → sheet
+# order), else the flavour of its latest perk, else "any".
 static func title_theme(inst) -> String:
+	# A SPECIAL mod names it first (a fire sword is a Firestarter), newest first…
+	for i in range(inst.perks.size() - 1, -1, -1):
+		if MODS.has(inst.perks[i]) and TITLE_BANKS.has(String(MODS[inst.perks[i]].get("title", ""))):
+			return String(MODS[inst.perks[i]]["title"])
+	# …then its best-tuned stat, then a tree perk's flavour.
 	var best := ""
 	var best_n := 0
 	for id in stats_for(inst.item_id):

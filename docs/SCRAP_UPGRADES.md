@@ -115,9 +115,38 @@ them… like a new game plus, certain upgrades can only happen there"*. All data
   over). So +++ takes at least four games with the same weapon. Scrap is paid in **INSTALMENTS
   that ride the weapon** (`forge_paid`; bench **Upgrade** tab becomes "THE HEIRLOOM FORGE": Put in
   25 / Put in all I can) — any character holding it can add to it, even before it has crossed, and
-  the tier completes the moment it's paid AND crossed (`forge_heirloom`). **Lose the weapon, lose
+  once it's paid AND crossed the bench offers the tier's two specials (`forge_heirloom` →
+  `upgrade_weapon`). **Lose the weapon, lose
   the investment** — the keep-hold-of-it tension. Costs `HEIRLOOM`: **+ 400 / ++ 500 / +++ 600**,
   sized against the measured income below (each about two to three characters' scrap).
+- **SPECIAL MODS — real upgrades that make a weapon special** (owner, round 5: *"add fire to your
+  sword so striking an enemy has a 20% chance of setting it on fire"*). Every level-up that has no
+  tree perk — a tree-less weapon's Lv2-4 and **every heirloom tier** (gun and hammer too) — offers a
+  **pick of two specials** (`WeaponUpgrades.MODS`, seeded per weapon + level, never one it already
+  has). Proc chances **grow +5% with each heirloom tier** (`mod_chance`; the bench shows the live
+  number), so an heirloom's specials sing. Hooked in `player._weapon_mods_on_hit` (melee swing,
+  Sweeping/Cleave second target, landed gun shots):
+
+  | Special | Pool | Effect |
+  |---|---|---|
+  | **Fuel-Soaked** | melee | 20% a hit sets the enemy alight (~6 s burn) |
+  | **Incendiary Rounds** | gun | 20% a landed shot sets it alight |
+  | **Serrated** | melee | 30% a hit opens a wound: 3 more damage over ~4.5 s |
+  | **Bell-Ringer** | melee | 25% a hit knocks an ordinary enemy flat |
+  | **Stopping Power** | gun | 30% a landed shot knocks an ordinary enemy flat |
+  | **Home Run** | melee | every hit shoves the enemy back (a real push) |
+  | **Second Wind** | both | 30% of max stamina back on a kill |
+  | **Mended** | melee | a killing blow costs no durability |
+  | **Cleave** | melee | a swing also strikes a second enemy (not offered if it already sweeps) |
+  | **Quick Hands** | gun | fires 30% faster |
+
+  Burns and wounds are a `WeaponAffliction` node on the enemy (every rig — standard, crawler,
+  long-arm, spitter, big/boss); a `weapon_lit` flag keeps a weapon-set fire from being put out by
+  the floor's fire bookkeeping. Big zombies/bosses can't be knocked flat or shoved (as before) but
+  do burn and bleed; the scripted tutorial neighbour is never afflicted. **Burning enemies hit twice
+  as hard** — the world's existing fire rule, kept on purpose as the risk of a fire weapon (one
+  line to change if it plays badly). Titles take their theme from the newest special first — a fire
+  sword is a "Firestarter", "Kindling"… (`TITLE_BANKS` fire / bleed / stagger / shove / wind).
 - **Salvage** now refunds 40% of EVERYTHING sunk in (`scrap_sunk`: levels + heirloom tiers +
   instalments). **At the door** a weapon is worth Valour by level (docs/PROGRESSION.md "The door").
 - **Measured scrap income** (`tools/economy_report.tscn` — builds every apartment on every floor

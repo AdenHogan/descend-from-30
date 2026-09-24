@@ -334,15 +334,13 @@ var carry_items: Array = []            # stashed for the NEXT game (profile)
 var door_stash_pending: Array = []
 
 
-# Inventory slots that can be handed on: anything but keys (their doors belong to this building's
-# past) and loose cash.
+# Inventory slots that can be left by the door: UPGRADED weapons only (owner, round 5 — "we don't
+# want any old junk"). Lv1 weapons, tools, junk, keys and cash stay out of the stash.
 func handoff_candidates() -> Array:
 	var out: Array = []
 	for i in inventory.size():
-		var d: Dictionary = inventory[i].get_data()
-		if d.get("is_key", false) or d.get("is_money", false):
-			continue
-		out.append(i)
+		if Progression.door_worth(inventory[i]) > 0:
+			out.append(i)
 	return out
 
 
@@ -378,6 +376,8 @@ func _handoff_label(inst) -> String:
 func note_door_scrap(braved: bool) -> int:
 	_ensure_chronicle()
 	var e: Dictionary = run_chronicle[clampi(current_run - 1, 0, 2)]
+	# Braving only counts when there was something worth keeping (an upgraded weapon) to give up.
+	braved = braved and not handoff_candidates().is_empty()
 	var v: int = Progression.DOOR_BRAVE_BONUS if braved else 0
 	var melted: Array = []
 	for inst in inventory:
@@ -1750,7 +1750,7 @@ func tune_weapon(slot: int, alloc: Dictionary) -> String:
 
 # HEIRLOOM INSTALMENT: pour up to `amount` scrap into a legendary weapon's next heirloom tier. The
 # scrap rides the weapon (forge_paid) — lose the weapon, lose it. Paid in full AND crossed the door
-# enough times → the tier completes at once. Returns "" on success, else why not.
+# enough times → the tier is ready: the bench offers its special mods. Returns "" on success.
 func forge_heirloom(slot: int, amount: int) -> String:
 	if slot < 0 or slot >= inventory.size():
 		return "Nothing there."
@@ -1766,7 +1766,9 @@ func forge_heirloom(slot: int, amount: int) -> String:
 	inst.forge_paid += maxi(0, pay)
 	scrap -= maxi(0, pay)
 	HUD.update_scrap()
-	if WeaponUpgrades.check(inst, inventory, scrap)["ok"]:
+	# Paid AND crossed: with nothing to choose it completes now; otherwise the bench offers the tier's
+	# two special mods and the player picks (upgrade_weapon).
+	if WeaponUpgrades.check(inst, inventory, scrap)["ok"] and WeaponUpgrades.next_choices(inst).is_empty():
 		return upgrade_weapon(slot, "")
 	return ""
 

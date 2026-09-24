@@ -65,13 +65,15 @@ fiction is fixed time-of-day; the difficulty curve is authored, not emergent.
   (`handoff_ui.gd`, titled THE DOOR). **Round 4 (owner: "+10 doesn't feel worth it… it has to be
   a real hard choice")** — the door is now priced in Valour, with the numbers on every button:
   - **Scrap it all, brave the unknown** → the character's whole KIT is scrapped at the door for
-    Valour: every weapon's worth by level (`Progression.DOOR_WORTH` — Lv1 5, Lv2 20, Lv3 40,
+    Valour: every UPGRADED weapon's worth by level (`Progression.DOOR_WORTH` — Lv2 20, Lv3 40,
     **Legendary 70**, + 110, ++ 160, +++ 220, plus 20% of heirloom scrap already put in) **+ 25 for
-    leaving nothing behind** (`DOOR_BRAVE_BONUS`). Nothing to leave counts as braving; so does ESC/✕.
+    leaving nothing behind** (`DOOR_BRAVE_BONUS`). ESC/✕ counts as scrapping it all. **Round 5:** only
+    upgraded weapons count or can be left (no stuffing pockets with junk / Lv1 weapons for Valour); a
+    character with no upgraded weapon gets no panel and no brave bonus.
     Recorded by `WorldState.note_door_scrap` (chronicle `door_valour`, `door_scrapped`, `braved`).
-  - **Leave ONE item by the door** (`WorldState.leave_for_next`) — the REST of the kit still melts,
-    but that item's worth and the brave bonus are forfeit (so keeping a legendary costs 70 + 25 =
-    95 Valour; a +++ heirloom ~245). Any weapon/item except keys and cash, with its FULL state (upgrade level, perks, durability — an upgraded legendary weapon
+  - **Leave ONE upgraded weapon by the door** (`WorldState.leave_for_next`) — the REST of the kit
+    still melts, but that weapon's worth and the brave bonus are forfeit (so keeping a legendary
+    costs 70 + 25 = 95 Valour; a +++ heirloom ~245). Upgraded weapons only (round 5), with its FULL state (upgrade level, perks, durability — an upgraded legendary weapon
     carries over as-is). It is **stashed for a FUTURE GAME SESSION, never this one**: the
     session's later characters (runs 2/3) do NOT receive it. The stash lives in the **profile**
     (`carry_items`); the next game's `new_game` hands it to the shopkeeper (`handoff_items`), who
