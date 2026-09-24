@@ -27,6 +27,7 @@ var apartment_id: String = ""
 var player: Node = null
 var is_in_range: bool = false
 var is_selected: bool = false
+var back_spot: Node = null     # set by back_plane_spot.gd: a set-back node, reachable only from that spot
 
 var _t: float = 0.0
 var _tex: Texture2D = null
@@ -92,7 +93,7 @@ func _process(delta: float) -> void:
 	_t += delta
 	var dist = global_position.distance_to(player.global_position)
 	var was_in_range = is_in_range
-	is_in_range = dist <= INTERACT_DISTANCE
+	is_in_range = dist <= INTERACT_DISTANCE and _plane_ok()
 	if was_in_range and not is_in_range:
 		WorldState.interaction_handled = false
 	# Drive the real light to match the orb, with the same gentle pulse; colour follows the
@@ -107,6 +108,15 @@ func _process(delta: float) -> void:
 		_light.energy = lvl * 0.5 * pulse
 		_light.texture_scale = 0.035 + 0.025 * lvl
 	queue_redraw()
+
+
+func _plane_ok() -> bool:
+	# A node set back on furniture is only in reach from ITS back-plane spot; every other node only
+	# from the walking line (never while stepped up at the bookshelf).
+	var ps = player.get("back_spot") if player != null else null
+	if back_spot != null:
+		return ps == back_spot
+	return ps == null
 
 
 func _palette() -> Dictionary:

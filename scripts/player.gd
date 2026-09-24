@@ -105,6 +105,7 @@ var mode_switch_timer = 0.0
 # meets the floor, not float up into the doorway (playtest — 26 was too high).
 const APPROACH_DEPTH = 12.0     # how far "into" the hallway (up) the player steps
 const APPROACH_TIME = 0.35
+const BACK_STEP_TIME = 0.28     # stepping up to / down from set-back furniture (the back plane)
 const EXIT_STEP_TIME = 0.30     # walking out of an apartment: into the door's threshold…
 const EXIT_THROUGH_TIME = 0.45  # …then on through it, fading into the corridor's dark
 # Melee reach is HEIGHT-INDEPENDENT: the corridor is one plane, but the rigs have
@@ -138,6 +139,10 @@ const BALCONY_PLANE_SCALE = 0.88
 const BALCONY_HALF_WIDTH = 34.0
 const BALCONY_STEP_TIME = 0.35
 var on_balcony_plane: bool = false
+var back_spot: Node = null          # the BACK (scavenge) plane spot we're stepped up to (back_plane_spot.gd)
+var _back_return_y := 0.0           # the walking line to step back down to
+var _back_base_scale := Vector2.ONE
+var _back_stepping := false         # mid step-up / step-down tween
 var balcony_plane_y: float = 0.0
 var balcony_center_x: float = 0.0
 var _plane_return_y: float = 0.0
@@ -328,6 +333,16 @@ func _physics_process(delta: float) -> void:
 			_arrive_at_move_target()
 		else:
 			direction = signf(dx)
+	# Stepped up at set-back furniture (the BACK plane): not a walking plane — no left/right up here.
+	# S steps back down to the walking line; a click elsewhere steps down first, then walks there.
+	if back_spot != null:
+		if not is_instance_valid(back_spot):
+			_drop_back_plane()
+		elif Input.is_action_just_pressed("move_down") and not WorldState.loot_open:
+			exit_back_plane()
+		elif has_move_target and not _target_on_back_spot():
+			exit_back_plane(true)
+		direction = 0
 	# Sprint requires a small stamina floor to (re)engage. Without this, stamina
 	# ticking a sliver above 0 between frames lets sprint flicker back on at zero.
 	var can_sprint_stamina = WorldState.stamina > STAMINA_SPRINT_DRAIN * 0.2 or WorldState.god_mode
@@ -1077,6 +1092,14 @@ func _clear_move_target() -> void:
 
 func _arrive_at_move_target() -> void:
 	has_move_target = false
+	if pending_anchor != null and is_instance_valid(pending_anchor) \
+			and pending_anchor.get("back_spot") != null and pending_anchor.back_spot != back_spot:
+		# A node set back on the furniture: step up to it first, then search it.
+		var node = pending_anchor
+		pending_anchor = null
+		pending_attack = null
+		enter_back_plane(node.back_spot, node)
+		return
 	if pending_anchor != null and is_instance_valid(pending_anchor):
 		WorldState.interaction_handled = false
 		auto_stance_for_anchor(pending_anchor.global_position.y)
@@ -1691,6 +1714,81 @@ func enter_balcony_plane(center_x: float, below_apartment: String = "", slot: in
 	is_cutscene = false
 	on_balcony_plane = true
 	HUD.show_feedback("Out on the balcony — [S] steps back inside.")
+
+
+func enter_back_plane(spot: Node, then_search: Node = null) -> void:
+	# Step UP into the scene to stand at set-back furniture (back_plane_spot.gd): a short owned move
+	# to the spot's x, up `spot.rise` onto the back line, sprite a touch smaller (same depth as a
+	# balcony). Enemies still reach you up here (it isn't a separate combat plane — a step back, not
+	# a hiding place). Optionally search a node the moment we arrive (a click on it from below).
+	if spot == null or not is_instance_valid(spot) or back_spot != null or on_balcony_plane:
+		return
+	if is_cutscene or is_dead or is_dying or is_lashing or is_listening or is_switching_mode:
+		return
+	is_cutscene = true
+	_back_stepping = true
+	_clear_move_target()
+	velocity = Vector2.ZERO
+	_back_return_y = global_position.y
+	_back_base_scale = animated_sprite.scale
+	var t = create_tween().set_parallel(true)
+	t.tween_property(self, "global_position", Vector2(spot.global_position.x, _back_return_y - spot.rise),
+		BACK_STEP_TIME).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	t.tween_property(animated_sprite, "scale", _back_base_scale * spot.plane_scale, BACK_STEP_TIME)
+	await t.finished
+	_back_stepping = false
+	is_cutscene = false
+	if not is_instance_valid(spot):
+		_drop_back_plane()
+		return
+	back_spot = spot
+	if then_search != null and is_instance_valid(then_search) and then_search.has_method("try_interact"):
+		WorldState.interaction_handled = false
+		then_search.set("is_in_range", true)   # reach is re-checked each frame; this frame it's ours
+		then_search.try_interact()
+
+
+func exit_back_plane(keep_target: bool = false) -> void:
+	# S (or a click elsewhere): step back DOWN to the walking line. keep_target carries a pending
+	# click-to-move / click-to-scavenge on through once we've landed.
+	if back_spot == null or _back_stepping:
+		return
+	back_spot = null
+	is_cutscene = true
+	_back_stepping = true
+	var keep := keep_target and has_move_target
+	var tx := move_target_x
+	var ta = pending_anchor
+	_clear_move_target()
+	var t = create_tween().set_parallel(true)
+	t.tween_property(self, "global_position", Vector2(global_position.x, _back_return_y), BACK_STEP_TIME) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	t.tween_property(animated_sprite, "scale", _back_base_scale, BACK_STEP_TIME)
+	await t.finished
+	_back_stepping = false
+	is_cutscene = false
+	if keep:
+		set_move_target(tx, ta if (ta != null and is_instance_valid(ta)) else null)
+
+
+func _drop_back_plane() -> void:
+	# The spot went away under us (scene teardown): land on the walking line at once.
+	back_spot = null
+	global_position.y = _back_return_y
+	animated_sprite.scale = _back_base_scale
+
+
+func _target_on_back_spot() -> bool:
+	# A click-to-scavenge on one of THIS spot's nodes stays up here (room.gd opens it directly).
+	return pending_anchor != null and is_instance_valid(pending_anchor) and pending_anchor.get("back_spot") == back_spot
+
+
+func lane_position() -> Vector2:
+	# Where to SAVE the player: always on the walking line — a save made up at set-back furniture (or
+	# mid-step) loads standing on the floor in front of it, never floating on a plane that isn't there.
+	if back_spot != null or _back_stepping:
+		return Vector2(global_position.x, _back_return_y)
+	return global_position
 
 
 func exit_balcony_plane() -> void:

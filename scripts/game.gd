@@ -94,8 +94,9 @@ func continue_game() -> void:
 func save_and_quit(go_to_desktop: bool) -> void:
 	var player = get_tree().get_first_node_in_group("player")
 	if player:
-		WorldState.saved_player_x = player.global_position.x
-		WorldState.saved_player_y = player.global_position.y
+		var at: Vector2 = player.lane_position() if player.has_method("lane_position") else player.global_position
+		WorldState.saved_player_x = at.x
+		WorldState.saved_player_y = at.y
 		# Remember if we were out on a balcony plane, so the load can re-establish
 		# it (the saved Y alone can't — see player.restore_balcony_plane).
 		WorldState.saved_on_balcony_plane = bool(player.get("on_balcony_plane"))

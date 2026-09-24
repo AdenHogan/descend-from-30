@@ -68,7 +68,15 @@ docs/Y_PLANES.md §1.
    type to the loot lookup (`get_items_for_anchor(name, apt, room_type)`), so a new name gets the
    room's pool (before, only the fixed per-type name list did — a new name held nothing). Locked
    by `loot_test._test_variant_anchor_pools`.
-4. A second, deeper **scavenge Y plane**: pressing E on a node set back in the room (the bookshelf)
-   walks the player UP into the scene to it, searches, and steps back down to the walking line —
-   purely visual, not a movement plane. Enemies could stand on that upper plane and come down to
-   attack. (Reuses the balcony-plane / door approach-walk machinery.)
+4. **BUILT — the BACK (scavenge) plane** (`scripts/back_plane_spot.gd`): flag a node set back on
+   furniture with `metadata/back_plane = true` in its module scene (living room: both bookshelf
+   nodes + the drawers). Per room, flagged nodes that SPAWNED this seed group into spots (within
+   40px in one module → one spot, e.g. both bookshelf nodes). In scavenge mode near a spot a small ↑
+   shows; **W** (or clicking one of its nodes — it walks there first) steps the player UP to feet 328
+   (the balcony plane's depth, same 0.88 scale). Up there only that spot's nodes are in reach (Tab /
+   wheel / click picks between them), no walking-line node is, and there's no left/right movement;
+   the game never sends you down — **S** steps back (a click on open floor steps down first, then
+   walks). Set-back nodes are NOT searchable from the walking line any more. A save made up there
+   loads on the walking line (`player.lane_position`). Enemies still reach you up there (a step
+   back, not a hiding place). Not built yet: enemies standing on the back plane. Locked by
+   `back_plane_test`.

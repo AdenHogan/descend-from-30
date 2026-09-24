@@ -103,6 +103,10 @@ standard's lowest rows are near-black boots that vanish on dark floors, so it re
 than everyone else; its sprite is dropped one art pixel (`offset.y = 1` × scale 3 → soles at 355),
 matching the other enemy rigs.
 
+BACK (scavenge) PLANE (`back_plane_spot.gd`): stepping up to set-back furniture puts the player's
+FEET at **328** (`room.ROOM_FEET_Y` 353 − `BACK_PLANE_RISE` 25; origin 295) — the same depth as the
+balcony plane, same 0.88 sprite scale. No x movement up there; saves record the walking line.
+
 ---
 
 ## 2. Spawn / arrival planes (`building_floors.gd`, `stair_pan.gd` — must match)

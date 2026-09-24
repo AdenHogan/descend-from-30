@@ -657,6 +657,8 @@ func _spawn_apartment_fire() -> void:
 # player 320). Anything placed WITHOUT physics (a burnt corpse, a recorded body, a floor drop) must
 # be put on these settled lines directly, or it sits ~17px sunk into the floor. See docs/Y_PLANES.md.
 const ROOM_FEET_Y := 353.0
+const BACK_PLANE_RISE := 25.0      # set-back furniture's scavenge plane: feet 328 (= the balcony plane's depth)
+const BACK_SPOT_CLUSTER := 40.0    # flagged nodes this close (x) share one back-plane spot
 const EXIT_WALK_BEYOND := 22.0     # how far past the door's face the exit walk carries the player
 const ROOM_STD_ORIGIN_Y := 304.0       # standard zombie settled origin (feet 353)
 const ROOM_BIG_ORIGIN_Y := 308.0       # big zombie settled origin (feet 353)
@@ -975,12 +977,55 @@ func _after_modules_ready() -> void:
 		for anchor in module.get_children():
 			if anchor.has_method("try_interact") and anchor.visible:
 				interactables.append(anchor)
+	_build_back_plane_spots()
 
 	_spawn_corpses(WorldState.current_floor, WorldState.current_apartment_id)
 	_spawn_world_drops(WorldState.current_floor)
 	# A character who died INSIDE this apartment leaves a recoverable body here (step 7).
 	WorldState.spawn_player_corpse_into(self, WorldState.current_floor,
 		_own_scene_path(), WorldState.current_apartment_id)
+
+func _build_back_plane_spots() -> void:
+	# One BACK-PLANE spot (back_plane_spot.gd) per cluster of set-back scavenge nodes that spawned
+	# this seed — nodes flagged `back_plane` in their module scene (the bookshelf, the drawers).
+	# Nodes of one module within BACK_SPOT_CLUSTER px of each other share a spot (both bookshelf
+	# nodes → one step up, pick either up there). No flagged node spawned → no spot.
+	var by_module := {}
+	for a in interactables:
+		if not is_instance_valid(a) or not a.visible or not a.has_meta("back_plane") or not bool(a.get_meta("back_plane")):
+			continue
+		var m = a.get_parent()
+		if not by_module.has(m):
+			by_module[m] = []
+		by_module[m].append(a)
+	var plane_feet: float = ROOM_FEET_Y - BACK_PLANE_RISE
+	var plane_scale: float = load("res://scripts/player.gd").BALCONY_PLANE_SCALE   # same depth as a balcony
+	for m in by_module:
+		var nodes: Array = by_module[m]
+		nodes.sort_custom(func(p, q): return p.global_position.x < q.global_position.x)
+		var cluster: Array = []
+		for a in nodes:
+			if not cluster.is_empty() and a.global_position.x - cluster[cluster.size() - 1].global_position.x > BACK_SPOT_CLUSTER:
+				_add_back_spot(cluster, plane_feet, plane_scale)
+				cluster = []
+			cluster.append(a)
+		if not cluster.is_empty():
+			_add_back_spot(cluster, plane_feet, plane_scale)
+
+
+func _add_back_spot(nodes: Array, plane_feet: float, plane_scale: float) -> void:
+	var cx := 0.0
+	for a in nodes:
+		cx += a.global_position.x
+	cx /= float(nodes.size())
+	# The room root's origin in the world (it isn't a Node2D): a module's global minus local position.
+	var module: Node2D = nodes[0].get_parent()
+	var origin: Vector2 = module.global_position - module.position
+	var spot = load("res://scripts/back_plane_spot.gd").new()
+	spot.position = Vector2(cx - origin.x, plane_feet)
+	add_child(spot)
+	spot.setup(nodes, BACK_PLANE_RISE, plane_scale)
+
 
 func _all_controls(node: Node) -> Array:
 	var out: Array = []
