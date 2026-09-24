@@ -1,5 +1,7 @@
 [gd_scene format=3 uid="uid://djb80moaortdj"]
 
+[ext_resource type="Texture2D" path="res://assets/rooms/bedroom.png" id="1_art"]
+
 [node name="Node2D" type="Node2D" unique_id=1019415200]
 
 [node name="ColorRect" type="ColorRect" parent="." unique_id=875678134]
@@ -12,24 +14,34 @@ layout_mode = 0
 offset_right = 319.0
 offset_bottom = 97.0
 theme_override_font_sizes/font_size = 32
+visible = false
 text = "Bedroom"
 horizontal_alignment = 1
 vertical_alignment = 1
 
+[node name="Art" type="Sprite2D" parent="."]
+texture_filter = 1
+texture = ExtResource("1_art")
+centered = false
+
 [node name="anchor_wall_left" type="Marker2D" parent="." unique_id=151518190]
-position = Vector2(33, 93)
+position = Vector2(37, 60)
+metadata/back_plane = true
 
 [node name="anchor_floor_underbed" type="Marker2D" parent="." unique_id=1937513058]
-position = Vector2(137, 131)
+position = Vector2(152, 110)
 
 [node name="anchor_wall_right_lower" type="Marker2D" parent="." unique_id=137629497]
-position = Vector2(277, 123)
+position = Vector2(289, 91)
+metadata/back_plane = true
 
 [node name="anchor_bed_pillow" type="Marker2D" parent="." unique_id=1336219972]
-position = Vector2(125, 104)
+position = Vector2(99, 88)
 
 [node name="anchor_wall_right_upper" type="Marker2D" parent="." unique_id=484932088]
-position = Vector2(276, 97)
+position = Vector2(297, 40)
+metadata/back_plane = true
 
 [node name="anchor_bedside" type="Marker2D" parent="." unique_id=444188413]
-position = Vector2(203, 115)
+position = Vector2(63, 87)
+metadata/back_plane = true

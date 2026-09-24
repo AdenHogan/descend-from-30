@@ -23,6 +23,7 @@ func _ready() -> void:
 	await _test_windows_day()
 	await _test_windows_night()
 	await _test_exit_through_door()
+	await _test_floor_boundary()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -281,3 +282,56 @@ func _test_exit_through_door() -> void:
 		if done.size() == 2:
 			break
 	check(done.size() == 2, "both a left and a right entrance were tested (%s)" % str(done.keys()))
+
+
+func _test_floor_boundary() -> void:
+	# Owner round 9: where two rooms meet, their FLOORS part along the wall's base line in perspective
+	# (not the module's vertical edge), flipping side with the camera — like the wall face above.
+	print("[floors part along the wall's base line, flipping with the camera]")
+	var MW = load("res://scripts/module_walls.gd")
+	var mw = MW.new()
+	add_child(mw)
+	var xb := 433.0
+	check(absf(mw.floor_boundary_x(xb, 300.0, MW.SEAM) - xb) < 0.01, "at the back (the seam) the boundary is the module edge")
+	var near_l: float = mw.floor_boundary_x(xb, 300.0, 353.0)
+	var near_r: float = mw.floor_boundary_x(xb, 560.0, 353.0)
+	check(near_l > xb + 10.0, "camera LEFT of the wall: at the lane the left room's floor runs on past the edge (%.1f > %.0f)" % [near_l, xb])
+	check(near_r < xb - 10.0, "camera RIGHT: the right room's floor runs back past it (%.1f < %.0f)" % [near_r, xb])
+	check(mw.floor_boundary_x(xb, 300.0, 360.0) > near_l, "…and the wedge widens toward the front")
+	mw.free()
+	# The floor strips continue each floor seamlessly only if the floor repeats every FLOOR_STRIP px —
+	# checked on each module's FLOOR-ONLY export (no furniture), which is what the wedge tiles.
+	var strip: int = MW.FLOOR_STRIP
+	for mod in ["bedroom", "kitchen"]:
+		var img: Image = load("res://assets/rooms/%s_floor.png" % mod).get_image()
+		if img.is_compressed():
+			img.decompress()
+		check(img.get_height() == 44 and img.get_width() == 320, "%s: a floor-only export, 320x44" % mod)
+		check(_floor_periodic_below(img, strip, 0), "%s: the floor repeats every %dpx (tiles on seamlessly)" % [mod, strip])
+	# A module's strip comes from that floor-only export — the right edge = its last FLOOR_STRIP columns.
+	var m = load("res://scenes/Room_Modules/kitchen.tscn").instantiate()
+	add_child(m)
+	var w2 = MW.new()
+	add_child(w2)
+	var tex: Texture2D = w2._floor_strip(m, true)
+	var fl: Image = load("res://assets/rooms/kitchen_floor.png").get_image()
+	if fl.is_compressed():
+		fl.decompress()
+	var sim: Image = tex.get_image()
+	check(sim.get_width() == strip and sim.get_height() == 44, "the strip is %dx44 (got %dx%d)" % [strip, sim.get_width(), sim.get_height()])
+	var same := true
+	for y in range(44):
+		for x in range(strip):
+			if sim.get_pixel(x, y) != fl.get_pixel(fl.get_width() - strip + x, y):
+				same = false
+	check(same, "…cut from the FLOOR-ONLY export's right edge (no bin smeared into the next room)")
+	w2.free()
+	m.free()
+
+
+func _floor_periodic_below(img: Image, strip: int, y0: int) -> bool:
+	for y in range(y0, img.get_height()):
+		for x in range(img.get_width() - strip):
+			if img.get_pixel(x, y) != img.get_pixel(x + strip, y):
+				return false
+	return true

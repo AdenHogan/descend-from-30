@@ -151,6 +151,46 @@ def check_window_boxes(full, wall_only):
     return bad
 
 
+EDGE_COLS = (3, W - 4)   # module_walls samples each wall face from exactly these columns — furniture
+                         # there smears along the side wall
+
+
+def check_edge_columns(full, wall_only):
+    """The partition/end-wall faces are painted from the module's edge columns (scripts/module_walls.gd
+    _column: x 3 and W-4, rows 0..99). Furniture there would be smeared along the side wall, so those
+    columns of the wall rows must be bare wall. Returns [] when clean."""
+    bad = []
+    for x in EDGE_COLS:
+        for y in range(0, SEAM_Y):
+            if full.getpixel((x, y)) != wall_only.getpixel((x, y)):
+                bad.append((x, y))
+    return bad
+
+
+def save_floor_strip(floor_fn, name, root, seed=1):
+    """Export the module's FLOOR ALONE (rows SEAM_Y..H-1, no furniture/shadows) as
+    assets/rooms/<name>_floor.png. scripts/module_walls.gd tiles it across the floor wedge where two
+    rooms meet at a doorway, so nothing standing on the floor near the edge is ever smeared into the
+    next room. Floors should repeat every 32px (FLOOR_STRIP) so the continuation is seamless."""
+    import os
+    c = Canvas(seed=seed)
+    floor_fn(c)
+    strip = c.img.crop((0, SEAM_Y, W, H))
+    path = os.path.join(root, 'assets', 'rooms', name + '_floor.png')
+    strip.save(path)
+    return strip
+
+
+def floor_is_periodic(strip, period=32):
+    """True when the floor-only image repeats every `period` px horizontally."""
+    w, h = strip.size
+    for y in range(h):
+        for x in range(w - period):
+            if strip.getpixel((x, y)) != strip.getpixel((x + period, y)):
+                return False
+    return True
+
+
 # --- 2:1 pixel ISOMETRIC boxes (clean angled furniture) -------------------------------------
 # A piece turned three-quarters (its front facing lower-left) is built from boxes in 2:1 iso:
 # every edge steps exactly 2px across per 1px up/down — no jaggy slopes. Axes (per unit):

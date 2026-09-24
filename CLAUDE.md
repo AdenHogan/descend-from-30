@@ -1353,6 +1353,13 @@ means no rendering — UI layout and art still need an in-editor look.
   reach up there, no left/right, never auto-returns; S steps down (a click on open floor steps down
   then walks). From the walking line those nodes are out of reach. Saves record the walking line
   (`player.lane_position`). Enemies still reach you up there. Locked by `back_plane_test`.
+  **Bedroom + kitchen art BUILT** (`tools/art/bedroom.py` / `kitchen.py`, nodes on the furniture,
+  set-back ones back_plane). **Floors at doorways**: `module_walls._floor_wedge` parts two rooms'
+  floors along the wall's base line in perspective (flipping with the camera like the wall face),
+  tiled from each module's FLOOR-ONLY export `assets/rooms/<name>_floor.png` (32px-periodic), with a
+  wooden threshold in interior doorways. Generators enforce: window boxes bare, the side-wall sample
+  columns (x 3, W-4) bare, floor 32px-periodic. Back-plane nodes skip the facing rule (you can't turn
+  up there). Locked by `apartment_window_test._test_floor_boundary`.
 - PUSH + CROWDS (owner round 9): a push takes ONE enemy (`player.push_target` — the nearest in
   front; it used to stagger everyone in reach), so a crowd is worked through and gets hits in. The
   BIG zombie can't be stunned or knocked back by a push (it keeps attacking) but a push makes it

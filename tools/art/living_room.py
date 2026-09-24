@@ -10,7 +10,7 @@ the floor in front of the wall/floor seam. Flat/neutral lighting — the engine 
 import os
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
-from pixlib import Canvas, hexc, shade, mix, SEAM_Y, W, H, check_window_boxes, iso_box, iso_pt, outline_layer, rrect
+from pixlib import Canvas, hexc, shade, mix, SEAM_Y, W, H, check_window_boxes, check_edge_columns, save_floor_strip, floor_is_periodic, iso_box, iso_pt, outline_layer, rrect
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 
@@ -523,5 +523,9 @@ if __name__ == '__main__':
     bad = check_window_boxes(c.img, bare.img)
     if bad:
         sys.exit('furniture inside a runtime window box: %s' % bad[:8])
+    edge = check_edge_columns(c.img, bare.img)
+    if edge:
+        sys.exit('furniture in the edge columns the side walls are painted from: %s' % edge[:8])
+    fl = save_floor_strip(floor, 'living_room', ROOT, seed=7)
     c.save(out, os.path.join(prev_dir, 'living_room_x4.png'))
     print('wrote', out, '(window boxes clear)')

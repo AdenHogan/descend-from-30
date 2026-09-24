@@ -43,7 +43,10 @@ const OUTSIDE_COL := Color(0.05, 0.045, 0.05)
 const CORRIDOR_FLOOR := Color(0.16, 0.12, 0.09)   # a glimpse of the corridor floor through the door
 const THRESHOLD := Color(0.46, 0.36, 0.24)
 
+const FLOOR_STRIP := 32      # module FLOORS repeat every 32px (tools/art: planks/carpet/tiles) — the
+                             # wedge below continues a floor by tiling its last/first 32 columns
 var boundaries: Array = []     # [{x, left_mod, right_mod, door, outside}]
+var _strips: Dictionary = {}   # module instance id + side → ImageTexture of its floor edge strip
 var _cols: Dictionary = {}     # module instance id + side → Array[Color] (ROWS rows)
 
 
@@ -59,6 +62,8 @@ func setup(module_nodes: Array, left_x: float, width: float, entrance_side: Stri
 		var entrance := is_end and ((i == 0 and entrance_side == "left") or (i == n and entrance_side != "left"))
 		boundaries.append({"x": x, "left": lm, "right": rm, "door": (not is_end) or entrance, "outside": entrance})
 	z_index = 0
+	texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED   # the floor strips tile across the wedges
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	queue_redraw()
 
 
@@ -132,6 +137,17 @@ func _draw() -> void:
 	var cx := _cam_x()
 	var s_front := _s_for_floor(FRONT_FLOOR)
 	var s_door := _s_for_floor(DOOR_FLOOR)
+	# FLOORS first (owner round 9: "when the player moves between modules the boundary line on the
+	# floor, just like the wall above, needs to move from one side to the other"). Where two rooms
+	# meet, their floors part along the wall's BASE LINE in perspective — not the module's vertical
+	# edge — so the floor of the room whose wall face we see runs on past the edge to that line,
+	# and flips sides as the camera crosses the wall. Doorways get a threshold along it.
+	for b in boundaries:
+		var room_f = facing_room(b, cx)
+		if room_f != null:
+			_floor_wedge(cx, float(b["x"]), room_f, cx < float(b["x"]))
+			if b["door"] and not b["outside"]:
+				_threshold(cx, float(b["x"]))
 	for b in boundaries:
 		var xb: float = b["x"]
 		# Which face points at the camera: camera LEFT of the wall → the wall's left face, i.e. the
@@ -142,9 +158,6 @@ func _draw() -> void:
 		var cols: Array = _column(room, cam_left) if room != null else []
 		if room == null:
 			continue      # looking at an end wall from outside the room — never happens in play
-		var is_end: bool = b["left"] == null or b["right"] == null
-		if is_end:
-			_floor_wedge(cx, xb, cols)
 		if b["outside"]:
 			_front_door(cx, xb, face_x, cols, s_door, s_front)
 		elif b["door"]:
@@ -162,18 +175,71 @@ func _draw() -> void:
 		draw_line(_p(cx, face_x, TOP, 1.0), _p(cx, face_x, SEAM, 1.0), Color(0, 0, 0, 0.25), 1.0)
 
 
-func _floor_wedge(cx: float, xb: float, cols: Array) -> void:
-	# Beyond an END wall's back corner the room's floor still runs out to the wall's foot in
-	# perspective (the module art stops at the back-plane edge): extend each floor row with its own
-	# edge colour from the module edge to where the wall meets the floor at that depth.
-	for r in range(ROWS, MOD_ROWS):
-		var y := TOP + float(r)
-		if y >= BAND_BOTTOM:
-			break
-		var s := _s_for_floor(y + 0.5)
-		var xw := cx + (xb - cx) * s
-		var col: Color = cols[r] if cols.size() > r else Color(0.3, 0.25, 0.2)
-		draw_rect(Rect2(minf(xw, xb), y, absf(xb - xw), 1.0), col)
+func _floor_wedge(cx: float, xb: float, room: Node, room_is_left: bool) -> void:
+	# The triangle between the module edge (x = xb) and the wall's base line x_w(y) = cx + (xb−cx)·s(y)
+	# — zero at the seam, widest at the front — belongs to `room` (the room on the camera's side of
+	# the wall). Paint it with that room's own floor, tiled on from its edge strip so the pattern
+	# carries straight on (module floors repeat every FLOOR_STRIP px).
+	var strip: Texture2D = _floor_strip(room, room_is_left)
+	var rows := float(MOD_ROWS - ROWS)
+	var bot := minf(TOP + float(MOD_ROWS), BAND_BOTTOM)
+	var xw := cx + (xb - cx) * _s_for_floor(bot)
+	var vb := (bot - SEAM) / rows
+	var p := float(strip.get_width())
+	draw_polygon(PackedVector2Array([Vector2(xb, SEAM), Vector2(xb, bot), Vector2(xw, bot)]),
+		PackedColorArray([Color.WHITE, Color.WHITE, Color.WHITE]),
+		PackedVector2Array([Vector2(0.0, 0.0), Vector2(0.0, vb), Vector2((xw - xb) / p, vb)]), strip)
+
+
+func _threshold(cx: float, xb: float) -> void:
+	# A doorway's saddle: a strip of wood along the floor boundary where the opening is.
+	var a := Vector2(cx + (xb - cx) * _s_for_floor(DOOR_FLOOR), DOOR_FLOOR)
+	var b := Vector2(cx + (xb - cx) * _s_for_floor(FRONT_FLOOR), FRONT_FLOOR)
+	draw_line(a, b, TRIM_COL, 2.0)
+	draw_line(a + Vector2(1, 0), b + Vector2(1, 0), TRIM_LT, 1.0)
+
+
+func floor_boundary_x(xb: float, cam_x: float, floor_y: float) -> float:
+	# Where two rooms' floors meet at a given floor depth (the wall's base line) — for tests/tools.
+	return cam_x + (xb - cam_x) * _s_for_floor(floor_y)
+
+
+func _floor_strip(mod: Node, right_edge: bool) -> Texture2D:
+	# The module's floor (rows below the seam), FLOOR_STRIP px wide, from its right or left edge.
+	var key := str(mod.get_instance_id()) + (":fr" if right_edge else ":fl")
+	if _strips.has(key):
+		return _strips[key]
+	var h := MOD_ROWS - ROWS
+	var out: Image = null
+	var art = mod.get_node_or_null("Art")
+	if art is Sprite2D and art.texture != null:
+		# Prefer the module's FLOOR-ONLY export (tools/art: <name>_floor.png, rows below the seam, no
+		# furniture) so nothing standing near the edge — a bin, a lamp's shadow — is tiled into the
+		# next room; fall back to the art's own floor rows.
+		var floor_path: String = art.texture.resource_path.get_basename() + "_floor.png"
+		var img: Image = null
+		var y0 := ROWS
+		if art.texture.resource_path != "" and ResourceLoader.exists(floor_path):
+			img = (load(floor_path) as Texture2D).get_image()
+			y0 = 0
+		else:
+			img = art.texture.get_image()
+		if img != null and img.get_width() >= FLOOR_STRIP and img.get_height() >= y0 + h:
+			if img.is_compressed():
+				img.decompress()
+			var x0: int = img.get_width() - FLOOR_STRIP if right_edge else 0
+			out = img.get_region(Rect2i(x0, y0, FLOOR_STRIP, h))
+	if out == null:
+		# a placeholder module: its flat colour
+		out = Image.create(1, h, false, Image.FORMAT_RGBA8)
+		var flat := Color(0.4, 0.4, 0.4)
+		var rect = mod.get_node_or_null("ColorRect")
+		if rect is ColorRect:
+			flat = rect.color
+		out.fill(flat)
+	var tex := ImageTexture.create_from_image(out)
+	_strips[key] = tex
+	return tex
 
 
 func _front_door(cx: float, xb: float, face_x: float, cols: Array, s_door: float, s_front: float) -> void:

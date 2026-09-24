@@ -27,7 +27,27 @@ the right — a second set-back scavenge spot for the future upper plane; the st
 Style VARIANTS to compare: `python3 tools/art/living_room_variants.py` → `assets/rooms/living_room_
 {b,c,d}.png` (B mid-century, C run-down, D parlour) + the side-by-side `living_room_variants.png`
 here (A-D). Not wired into the game yet (step 3 below).
-Bedroom, kitchen, bathroom, study, dining room: to do in the same style once the look is signed off.
+**Bedroom + kitchen BUILT (owner round 9)**: `tools/art/bedroom.py` (dressing table + mirror, bedside
++ squat lamp, the bed lengthwise with a draped duvet and a box under it, clothes on the carpet, a
+wardrobe with one door ajar) and `tools/art/kitchen.py` (a rounded fridge, the counter run with wall
+cupboards over a tiled splashback, the cooker with a pot on the hob, the sink + drainer, a pedal bin
+out on the floor, a tea towel + calendar). Nodes on the furniture; set-back ones flagged back_plane
+(bedroom: dressing table, bedside, wardrobe top + drawer; kitchen: everything but the bin).
+Bathroom, study, dining room: to do in the same style.
+
+**Rules every module script enforces** (it refuses to write the PNG otherwise):
+1. The runtime window boxes are bare wall (`check_window_boxes`).
+2. The two columns the side walls are painted from (x 3 and W-4, wall rows) are bare wall
+   (`check_edge_columns`) — else a partition face wears the furniture (a wardrobe at the edge striped
+   the bedroom's side wall).
+3. The FLOOR is exported ALONE as `assets/rooms/<name>_floor.png` (`save_floor_strip`) and must repeat
+   every 32px (`floor_is_periodic`; the living room's planks predate this and don't).
+
+**Floors at a doorway (`module_walls._floor_wedge`)**: two rooms' floors part along the wall's BASE
+LINE in perspective, not the module's vertical edge — the room whose wall face you see has its floor
+run on past the edge to that line (a triangle: zero at the seam, widest at the front), tiled from
+its floor-only export so nothing standing near the edge smears across; it flips with the camera like
+the wall face above. Interior doorways get a wooden threshold along it.
 
 **Module walls (`scripts/module_walls.gd`, built by `room._build_modules`):** the partitions between
 the three modules (with a doorway over the walking lane) and the two end walls (the entrance end

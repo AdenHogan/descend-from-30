@@ -1521,6 +1521,10 @@ func _spawn_corpses(floor_num: int, apt_id: String = "") -> void:
 func _is_anchor_selectable(anchor: Node) -> bool:
 	if not anchor.is_in_range:
 		return false
+	# Stepped up at set-back furniture you can't turn (no walking up there), so every node of the
+	# spot is on offer, either side of you — Tab / wheel / click between them.
+	if anchor.get("back_spot") != null:
+		return true
 	if WorldState.is_anchor_searched(anchor.apartment_id, anchor.name):
 		var has_item = WorldState.get_anchor_item(anchor.apartment_id, anchor.name) != "" or \
 					   WorldState.is_anchor_a_key(anchor.apartment_id, anchor.name)
