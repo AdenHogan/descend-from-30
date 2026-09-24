@@ -1241,7 +1241,7 @@ means no rendering — UI layout and art still need an in-editor look.
   fire as the fire weapon's risk.
 - **Perk targeting + luck (round 6):** the end-of-game offer stays ONLY perks selected that game
   (owner: farming = replaying); every perk has a DESIRABILITY `d` 1-5 (docs/PERKS.md, generated);
-  the merchant upgrade **Fortune's Favour** (`U_fortune`, `perk_luck`) tilts merchant pairs, boons and
+  the RARE (w1, ~1 game in 4) merchant upgrade **Fortune's Favour** (`U_fortune`, `perk_luck`) tilts merchant pairs, boons and
   the end offer toward high-`d` perks (`Progression.desire_weight`/`weighted_draw`); no luck = the
   original draws, untouched. Locked by `progression_test`.
 - **Round 7 (owner):** end-of-game offer stays at **3** (pick one — a real choice among many

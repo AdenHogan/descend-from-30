@@ -2037,7 +2037,7 @@ const UPGRADE_POOL = {
 	"U_nightvision": {"name": "Night Eyes", "desc": "See much further in the dark (matters most at night)", "w": 3, "d": 4, "drawback": false, "mods": {"night_vision": {"add": 1.0}}},
 	# The META perk (owner, round 6): the offers you meet lean toward the perks worth keeping (their
 	# `d` desirability) — merchant pairs, run boons and the end-of-game Valour offer alike.
-	"U_fortune": {"name": "Fortune's Favour", "desc": "Offers lean toward the perks worth keeping", "w": 3, "d": 4, "drawback": false, "mods": {"perk_luck": {"add": 1.0}}},
+	"U_fortune": {"name": "Fortune's Favour", "desc": "Offers lean toward the perks worth keeping", "w": 1, "d": 4, "drawback": false, "mods": {"perk_luck": {"add": 1.0}}},
 	# ---- Drawbacks (rarer; both halves stated — legibility is absolute) ----
 	"U_db_slotstam": {"name": "Pack Mule", "desc": "+1 inventory slot, but -25% max stamina", "w": 2, "d": 4, "drawback": true, "mods": {"inventory_slots": {"add": 1}, "max_stamina": {"mult": 0.75}}},
 	"U_db_glass": {"name": "Glass Cannon", "desc": "+2 melee damage, but -30% max stamina", "w": 2, "d": 2, "drawback": true, "mods": {"melee_damage": {"add": 2}, "max_stamina": {"mult": 0.7}}},

@@ -37,7 +37,7 @@ Edit the data in `scripts/world_state.gd` `UPGRADE_POOL` (merchant upgrades) and
 | `U_quiet_m` | Ghost | Merchant | -40% movement noise | 2 | 4 | 350 |
 | `U_tinker` | Tinkerer | Merchant | Dismantling at a workbench yields 2.5x the scrap | 3 | 4 | 275 |
 | `U_nightvision` | Night Eyes | Merchant | See much further in the dark (matters most at night) | 3 | 4 | 275 |
-| `U_fortune` | Fortune's Favour | Merchant | Offers lean toward the perks worth keeping | 3 | 4 | 400 |
+| `U_fortune` | Fortune's Favour | Merchant | Offers lean toward the perks worth keeping | 1 | 4 | 400 |
 | `U_db_slotstam` | Pack Mule | Merchant (drawback) | +1 inventory slot, but -25% max stamina | 2 | 4 | 350 |
 | `U_db_glass` | Glass Cannon | Merchant (drawback) | +2 melee damage, but -30% max stamina | 2 | 2 | 250 |
 | `U_db_speedquiet` | Reckless Dash | Merchant (drawback) | +20% move speed, but +40% movement noise | 2 | 2 | 250 |
