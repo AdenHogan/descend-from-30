@@ -34,6 +34,8 @@ func _ready() -> void:
 	await _test_corridor_boss()
 	await _test_run_opening_grace()
 	await _test_crawler_behaviour()
+	await _test_enemy_reach()
+	await _test_standard_key_full_pockets()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -587,3 +589,95 @@ func _heavy_keys(floor_num: int, passive: bool) -> Array:
 	bf.queue_free()
 	await get_tree().process_frame
 	return keys
+
+
+# --- repair pass: enemy reach -------------------------------------------------------------
+
+func _hits_on_still_player(kind: String) -> Dictionary:
+	# A real corridor floor, one enemy walking at a STILL, solid player for 5s. Returns the
+	# closest horizontal approach and the damage dealt.
+	WorldState.new_game()
+	WorldState.is_first_run = false
+	WorldState.tutorial_completed = true
+	WorldState.god_mode = false
+	WorldState.current_floor = 12
+	WorldState.seed_floor_door_states(12)
+	var bf = load("res://scenes/building_floors.tscn").instantiate()
+	add_child(bf)
+	await get_tree().physics_frame
+	for z in get_tree().get_nodes_in_group("zombie"):
+		if bf.is_ancestor_of(z):
+			z.free()
+	var p = bf.get_node("Player")
+	p.global_position = Vector2(600, 386)
+	var z = load("res://scenes/enemy_zombie_%s.tscn" % kind).instantiate()
+	z.global_position = Vector2(680, 370 if kind == "standard" else 374)
+	bf.add_child(z)
+	var dmg := 0
+	var mind := 9999.0
+	for i in range(60 * 5):
+		await get_tree().physics_frame
+		p.velocity = Vector2.ZERO
+		mind = minf(mind, absf(z.global_position.x - p.global_position.x))
+		if p.health_state != 0:
+			dmg += int(p.health_state)
+			p.health_state = 0
+			WorldState.player_health = 0
+			p.is_dying = false
+			WorldState.is_dying = false
+	var out := {"dmg": dmg, "min_dx": mind, "reach": z._attack_reach() if z.has_method("_attack_reach") else float(z.ATTACK_RANGE)}
+	bf.free()
+	await get_tree().process_frame
+	return out
+
+
+func _test_enemy_reach() -> void:
+	# The AI measured reach ORIGIN-to-origin (euclidean), folding the rigs' origin gap into
+	# every check, and never allowed for body width: the 80px crawler is stopped 53px from the
+	# player by collision, beyond its 30px range — it could NEVER bite a solid player.
+	print("[enemy reach: horizontal, never shorter than contact]")
+	for kind in ["standard", "crawler", "longarm", "big"]:
+		var r: Dictionary = await _hits_on_still_player(kind)
+		check(r["dmg"] > 0, "%s lands hits on a still, solid player (dmg %d, closest %.1f, reach %.1f)" % [kind, r["dmg"], r["min_dx"], r["reach"]])
+		check(r["min_dx"] <= r["reach"] + 0.5, "%s's reach covers the gap it can close to" % kind)
+	# Reach numbers: designed range kept, contact + 7 for wide bodies.
+	var std = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
+	add_child(std)
+	check(absf(std._attack_reach() - 30.0) < 0.01, "standard reach stays its designed 30 (%.1f)" % std._attack_reach())
+	std.free()
+	var la = load("res://scenes/enemy_zombie_longarm.tscn").instantiate()
+	add_child(la)
+	check(absf(la._attack_reach() - 62.0) < 0.01, "long-arm reach stays its designed 62 (%.1f)" % la._attack_reach())
+	la.free()
+
+
+func _test_standard_key_full_pockets() -> void:
+	# A standard zombie carrying a key (the tutorial neighbour's 3002 key) killed with full
+	# pockets only REGISTERED it mid-air — no pickup until re-entry, and that key gates the stairs.
+	print("[a key-carrier killed with full pockets drops a live key]")
+	WorldState.new_game()
+	WorldState.current_floor = 30
+	WorldState.inventory.clear()
+	for id in ["002", "006", "007", "009", "019"]:
+		WorldState.add_to_inventory(id)
+	var holder := Node2D.new()
+	add_child(holder)
+	var z = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
+	z.global_position = Vector2(500, 370)
+	holder.add_child(z)
+	z.set_physics_process(false)
+	z.key_target_apartment = "3002"
+	z._drop_key()
+	var live = null
+	for c in holder.get_children():
+		if c != z and c.get("item_id") == "022":
+			live = c
+	check(live != null, "the key lands as a live pickup")
+	var on_floor := false
+	for k in WorldState.world_drops:
+		var d = WorldState.world_drops[k]
+		if d["item_id"] == "022" and d.get("target_apartment", "") == "3002":
+			on_floor = float(d["y"]) > 400.0      # rests by the feet (419 - REST_LIFT), not mid-air at 370
+	check(on_floor, "it's registered on the floor, not at the corpse's origin")
+	holder.free()
+	WorldState.inventory.clear()

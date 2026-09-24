@@ -255,6 +255,24 @@ func _drop_feet_y() -> float:
 	return global_position.y + 45.0
 
 
+# Reach: horizontal + plane tolerance, never shorter than contact — see the standard's
+# _attack_reach (its 35px capsule stops it 48px from the player; the old 50px euclidean range
+# only just reached across the origin gap).
+func _reach_to_player() -> float:
+	if not is_instance_valid(player):
+		return INF
+	if absf(player.global_position.y - global_position.y) > 48.0:
+		return INF
+	return absf(player.global_position.x - global_position.x)
+
+func _attack_reach() -> float:
+	var half := 35.0
+	var cs = get_node_or_null("CollisionShape2D")
+	if cs != null and cs.shape is CapsuleShape2D:
+		half = cs.shape.radius
+	return maxf(ATTACK_RANGE, half + 13.0 + 7.0)
+
+
 func _drop_key() -> void:
 	var added = WorldState.add_key_to_inventory(key_target_apartment)
 	if added:
@@ -318,9 +336,8 @@ func _physics_process(delta: float) -> void:
 			velocity.x = 0
 			state_timer -= delta
 			if state_timer <= 0:
-				var distance = global_position.distance_to(player.global_position)
-				if distance <= ATTACK_RANGE:
-					if player and player.has_method("receive_hit"):
+				if _reach_to_player() <= _attack_reach():
+					if is_instance_valid(player) and player.has_method("receive_hit"):
 						player.receive_hit(2)
 				state = "chase"
 				animated_sprite.play("Walk")
@@ -330,7 +347,7 @@ func _physics_process(delta: float) -> void:
 			if player != null:
 				var distance = global_position.distance_to(player.global_position)
 				var effective_detection = detection_range if alert_timer <= 0 else 2000.0
-				if distance <= ATTACK_RANGE:
+				if _reach_to_player() <= _attack_reach():
 					state = "attack"
 					state_timer = 1.2
 					animated_sprite.flip_h = (player.global_position.x - global_position.x) < 0

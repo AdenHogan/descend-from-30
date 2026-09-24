@@ -996,6 +996,20 @@ means no rendering — UI layout and art still need an in-editor look.
   overlapping the player and the engine hard-separated them, shoving the Y-pinned player sideways
   into a lodge. Locked by `softlock_test` (player escapes a solid standard / Big-boss / crawler;
   body released once clear; wall-only is a no-op; clearance covers the crawler).
+  **Enemy reach (repair pass, MEASURED):** enemy AI measured reach ORIGIN-to-origin (euclidean) —
+  the same origin-gap bug the player's melee had — and never allowed for body width, so the
+  80px-wide **crawler was stopped by collision 53px from the player, beyond its 30px range: it could
+  never bite a solid player** (0 damage in 5s against a still player). Now `_reach_to_player()` =
+  HORIZONTAL |dx| (INF past a 48px plane tolerance) and `_attack_reach()` = max(ATTACK_RANGE, body
+  half-width + 13 + 7) (standard + big). Reach: standard 30 (was 25.4 horizontal), long-arm 62 (60.8),
+  big 55 (~48.5, only at contact), crawler 60 (never). Damage vs a still player before → after:
+  standard 8 → 8, big 10 → 10, long-arm 9 → 9, crawler **0 → 16**. A key-carrying STANDARD (the
+  tutorial neighbour's 3002 key) killed with full pockets now drops the key LIVE on the floor (it was
+  registered mid-air, invisible until re-entry — and that key gates the tutorial stairs). Locked by
+  `enemy_variety_test` (`_test_enemy_reach`, `_test_standard_key_full_pockets`). **Flagged, not
+  changed (owner's call):** a KNOCKED-DOWN enemy ignores all melee for its 3s (`receive_damage`
+  returns early on `state == "knockdown"`; then 60% get up / 40% die) — reads like a whiff; and a
+  BURNING big zombie still hits for 2 (the standard doubles on fire; the big doesn't).
   **Corridor bosses (runs 2/3):** a floor may set ONE roaming boss loose — a tougher Big
   Zombie (`enemy_zombie_big.is_corridor_boss`: ~1.6×+6 HP, elite red tint, in group
   `corridor_boss`). It guards nothing so drops **NO key**, but drops a **fatter money

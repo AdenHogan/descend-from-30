@@ -627,11 +627,42 @@ func tutorial_stagger() -> void:
 	_make_passable_to_player()
 
 
+# ENEMY REACH, measured like the player's melee (player._do_melee_attack): HORIZONTAL distance with
+# a vertical plane tolerance — never the euclidean distance between ORIGINS, which folds the rigs'
+# inherent origin gap (player 386 vs standard 370 / others 374) into every check and quietly cut
+# each enemy's reach. And never shorter than CONTACT: a wide body (the 80px crawler) is stopped by
+# collision 53px from the player, so a 30px centre-to-centre range meant it could NEVER hit a solid
+# player. Reach = max(designed ATTACK_RANGE, contact + the standard's own 7px past contact).
+const PLANE_REACH_TOLERANCE := 48.0   # same as the player's MELEE_PLANE_TOLERANCE
+const PLAYER_HALF_WIDTH := 13.0       # the player's capsule radius
+const REACH_PAST_CONTACT := 7.0       # standard: 30 range - (10 radius + 13) contact
+
+func _body_half_width() -> float:
+	var cs = get_node_or_null("CollisionShape2D")
+	if cs != null and cs.shape != null:
+		if cs.shape is RectangleShape2D:
+			return cs.shape.size.x * 0.5
+		if cs.shape is CapsuleShape2D or cs.shape is CircleShape2D:
+			return cs.shape.radius
+	return 10.0
+
+func _reach_to_player() -> float:
+	# Horizontal gap to the player, or INF when they're genuinely off this plane.
+	if not is_instance_valid(player):
+		return INF
+	if absf(player.global_position.y - global_position.y) > PLANE_REACH_TOLERANCE:
+		return INF
+	return absf(player.global_position.x - global_position.x)
+
+func _attack_reach() -> float:
+	return maxf(ATTACK_RANGE, _body_half_width() + PLAYER_HALF_WIDTH + REACH_PAST_CONTACT)
+
+
 # The MOMENT an attack lands (end of the attack windup). Overridable: the standard
 # (and crawler / long-arm) strike in melee; the spitter overrides this to launch a
 # projectile instead. Base = a melee hit if the player is still within reach.
 func _deliver_attack(distance: float) -> void:
-	if distance <= ATTACK_RANGE:
+	if distance <= _attack_reach():
 		if player and player.has_method("receive_hit"):
 			player.receive_hit(ATTACK_DAMAGE * (2 if on_fire else 1))
 
@@ -801,7 +832,17 @@ func _drop_key() -> void:
 	if added:
 		HUD.show_feedback("Key — Apt " + key_target_apartment + " found!")
 	else:
-		WorldState.add_world_drop("022", global_position, WorldState.current_floor, {"target_apartment": key_target_apartment})
+		# Full pockets: the key lands LIVE on the floor by the corpse (it was only registered, mid-air,
+		# with no pickup — invisible until re-entry; the tutorial's 3002 key gates the stairs).
+		var feet := _drop_feet_y()
+		var dk: String = WorldState.add_world_drop("022", Vector2(global_position.x, feet - WORLD_DROP.REST_LIFT),
+			WorldState.current_floor, {"target_apartment": key_target_apartment, "scene": WorldState.world_scene_of(self)})
+		var kd = preload("res://scenes/world_drop.tscn").instantiate()
+		kd.item_id = "022"
+		kd.target_apartment = key_target_apartment
+		kd.drop_key = dk
+		get_parent().add_child(kd)
+		kd.toss(global_position, feet, 1.0)
 		HUD.show_feedback("Key dropped nearby — inventory full.")
 
 
@@ -886,8 +927,7 @@ func _physics_process(delta: float) -> void:
 			velocity.x = 0
 			state_timer -= delta
 			if state_timer <= 0:
-				var distance = global_position.distance_to(player.global_position)
-				_deliver_attack(distance)
+				_deliver_attack(_reach_to_player())
 				state = "chase"
 				animated_sprite.play("Walk")
 		"distracted":
@@ -945,7 +985,7 @@ func _physics_process(delta: float) -> void:
 				var effective_detection = DETECTION_RANGE if alert_timer <= 0 else 2000.0
 				if tutorial_scripted:
 					effective_detection = 2000.0  # always aware once released
-				if distance <= ATTACK_RANGE:
+				if _reach_to_player() <= _attack_reach():
 					state = "attack"
 					state_timer = 0.8
 					animated_sprite.play("Attack")
