@@ -32,9 +32,9 @@ func _ready() -> void:
 	var ok_items := true
 	for a in m.interactables:
 		var it: String = WorldState.get_anchor_item(a.apartment_id, a.name)
-		if it != "" and not (it in ["019", "020", "033"]):
+		if it != "" and not (it in ["019", "020", "033", "037"]):   # 037 = scrap bag (spare parts)
 			ok_items = false
-	chk(ok_items, "anchor loot is maintenance-appropriate (toolbox/fuse/notes/empty)")
+	chk(ok_items, "anchor loot is maintenance-appropriate (toolbox/fuse/notes/scrap/empty)")
 	m.free()
 	await get_tree().process_frame
 	print("=== %s (%d failures) ===" % ["ALL PASSED" if fails == 0 else "FAILED", fails])
