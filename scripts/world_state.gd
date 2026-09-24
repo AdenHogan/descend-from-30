@@ -265,7 +265,7 @@ func finish_session() -> Dictionary:
 		var deepest: int = 0 if escaped else int(e.get("deepest_floor", 30))
 		var quests: int = int(e.get("quests_completed", 0))
 		var npcs: int = int(e.get("npcs_aided", 0))
-		var v: int = Progression.valour_for_run(deepest, escaped, quests, npcs)
+		var v: int = Progression.valour_for_run(deepest, escaped, quests, npcs, bool(e.get("braved", false)))
 		total += v
 		runs.append({"run": i + 1, "character": String(e.get("character", "")), "deepest": deepest,
 			"escaped": escaped, "quests": quests, "npcs": npcs, "valour": v})
@@ -314,18 +314,22 @@ func decline_valour_offer() -> void:
 	save_profile()
 
 
-# --- THE HANDOFF (owner: "a successful exit will also allow for a weapon or item to carry over,
-# on top of the purchased Valour upgrade, including upgraded legendary weapons"; round 2: "more
-# organically — collect a stored item from the shop keeper on floor 25, given for free after the
-# first upgrade as a gift") -------------------------------------------------------------------
-# A character who ESCAPES leaves ONE item behind. The SHOPKEEPER keeps it, and the next character
-# gets it free at their first shop visit (floor 25), right after that visit's upgrade pick. The
-# item keeps its full state (level, perks, durability). One item per escape: reward, not too much.
-# Never lost: a skipped floor 25 (elevator, a burning floor the merchant shelters from) → the next
-# merchant visit; full pockets → the merchant keeps it till there's room; unclaimed when the
-# session ends → it carries into the next game; two escapes → the merchant holds both.
-var handoff_items: Array = []          # held by the shopkeeper THIS game (game save)
-var carry_items: Array = []            # waiting for the next GAME (profile)
+# --- THE DOOR STASH (owner, round 3 — "a little like the Arc Raiders safe pocket") -----------
+# Pressing to leave the lobby door, an escaping character chooses: TAKE EVERYTHING and brave the
+# unknown (+VALOUR_BRAVE_BONUS Valour), or LEAVE ONE item by the door. A left item is STASHED FOR A
+# FUTURE GAME SESSION — never handed to the next characters of THIS session. The next game's first
+# character gets it free from the shopkeeper at their first merchant visit (floor 25), right after
+# that visit's upgrade pick. It keeps its full state (level, perks, durability — an upgraded
+# legendary weapon carries over as-is). Never lost: a skipped floor 25 → the next merchant visit;
+# full pockets → he keeps it till there's room; several escapes → all stashed; unclaimed at the end
+# of that game → it rolls to the one after.
+var handoff_items: Array = []          # the stash the shopkeeper holds THIS game (game save)
+var carry_items: Array = []            # stashed for the NEXT game (profile)
+# Left at the door but NOT yet written to the profile: committed (commit_door_stash) only once the
+# exit is past the point of no return, right beside the save that drops it from the pockets. Quit
+# during the white card → the item is still in the last save's pockets and NOT in the stash (never
+# duplicated, never lost). Transient — never saved.
+var door_stash_pending: Array = []
 
 
 # Inventory slots that can be handed on: anything but keys (their doors belong to this building's
@@ -348,18 +352,28 @@ func leave_for_next(slot: int) -> String:
 	var label: String = _handoff_label(inst)
 	var data: Dictionary = instance_to_dict(inst)
 	inventory.remove_at(slot)
-	if current_run >= RUN_NAMES.size():
-		carry_items.append(data)            # the arc ends here — it waits for the next game
-		save_profile()
-	else:
-		handoff_items.append(data)
+	door_stash_pending.append(data)         # for the NEXT game session — not this one's runs
 	_ensure_chronicle()
 	run_chronicle[clampi(current_run - 1, 0, 2)]["left_behind"] = label
 	return label
 
 
+func commit_door_stash() -> void:
+	if door_stash_pending.is_empty():
+		return
+	carry_items.append_array(door_stash_pending)
+	door_stash_pending = []
+	save_profile()
+
+
 func _handoff_label(inst) -> String:
 	return inst.get_display_name() + (" Lv%d" % inst.level if inst.level > 1 else "")
+
+
+# This escaping character took EVERYTHING out (left nothing by the door) — braved the unknown.
+func note_braved() -> void:
+	_ensure_chronicle()
+	run_chronicle[clampi(current_run - 1, 0, 2)]["braved"] = true
 
 
 func handoff_pending() -> bool:
@@ -424,7 +438,8 @@ func _blank_chronicle_entry(character: String = "") -> Dictionary:
 		"thoughts": [],            # collected lore + later characters' comments about them
 		"quests_completed": 0,     # Descent Valour counts these (docs/PROGRESSION.md)
 		"npcs_aided": 0,
-		"left_behind": "",         # the item they handed on when they escaped (display name)
+		"left_behind": "",         # the item they left by the door when they escaped (display name)
+		"braved": false,           # escaped carrying everything out → the Valour bonus
 	}
 
 
@@ -480,9 +495,12 @@ func run_summary(left_behind: String = "") -> Array:
 		out.append(["Quests completed", str(q)])
 	if n > 0:
 		out.append(["Residents aided", str(n)])
-	out.append(["Descent Valour", "+%d" % Progression.valour_for_run(0, true, q, n)])
+	var braved: bool = bool(e.get("braved", false))
+	if braved:
+		out.append(["Braved the unknown", "carried everything out"])
+	out.append(["Descent Valour", "+%d" % Progression.valour_for_run(0, true, q, n, braved)])
 	if left_behind != "":
-		out.append(["Left with the shopkeeper", left_behind])
+		out.append(["Left by the door", left_behind + " (for your next game)"])
 	return out
 
 
@@ -1094,6 +1112,7 @@ func new_game() -> void:
 	pending_dev_feedback = ""
 	note_run_character()           # stamp run 1's chronicle slot with its character
 	# A character who ESCAPED at the end of the last game left something — the shopkeeper has it.
+	door_stash_pending = []
 	handoff_items = carry_items.duplicate(true)
 	if not carry_items.is_empty():
 		carry_items = []
@@ -4100,6 +4119,7 @@ func load_game() -> String:
 	run_boons = Array(data.get("run_boons", []))
 	# Older saves predate the session record: rebuild it from what's still visible.
 	handoff_items = Array(data.get("handoff_items", []))
+	door_stash_pending = []            # an uncommitted door choice belongs to the abandoned timeline
 	var old_handoff: Dictionary = Dictionary(data.get("handoff_item", {}))   # v1 save: one item
 	if not old_handoff.is_empty():
 		handoff_items.append(old_handoff)

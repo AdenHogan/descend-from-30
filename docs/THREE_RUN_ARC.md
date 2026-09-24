@@ -21,11 +21,11 @@ every run ENDS and BEGINS the same way.
   (`WorldState.place_in_words`). Held, then cleared; the screen stays black while the run
   advances.
 - **Escape (owner, BUILT):** at the lobby door the player presses **[E] Leave the building** (walking
-  past no longer ends the run by accident) → the handoff choice → **steps up into the doorway** (the
+  past no longer ends the run by accident) → THE DOOR choice (take everything / leave one item) → **steps up into the doorway** (the
   apartment-door depth walk) → the screen blooms **WHITE**: **YOU SURVIVED**, "<name> walked out
   into the <morning/afternoon/night>.", and a table of the run's stats (`WorldState.run_summary`:
   descended, time in the building, felled, searched, apartments looted, quests/residents aided if
-  any, this run's Descent Valour, the item left at the door) → **[continue]** (a key, or it moves
+  any, braved the unknown, this run's Descent Valour, the item left at the door) → **[continue]** (a key, or it moves
   on by itself after 20s — never a dead end) → white crossfades to **BLACK** and the next run's
   cold open begins (`Transition.survived_card`, `lobby_exit.gd`). **Tone (owner): the ambiguous
   horror-movie ending** — the hero is out, their fate uncertain. **The outside (slot built, art
@@ -60,21 +60,28 @@ fiction is fixed time-of-day; the difficulty curve is authored, not emergent.
 - Reaching the lobby and exiting ends that character's story — success, not
   game end.
 - **DESCENT BOON — DECIDED (owner) + BUILT:** the descent boon IS Descent Valour (escaping
-  adds +10 to that run's Valour — docs/PROGRESSION.md), **plus THE HANDOFF**: stepping out of
-  the lobby, the escaping character may leave **ONE item** at the door (`handoff_ui.gd` →
-  `WorldState.leave_for_next`) — any weapon/item except keys and cash, with its FULL state
-  (upgrade level, perks, durability — an upgraded legendary weapon carries over as-is).
-  **Collected ORGANICALLY (owner, round 2):** the item doesn't appear in the next character's
-  pockets — the **SHOPKEEPER keeps it**, and at their first shop visit (**floor 25**) he hints at
-  it in his greeting ("Someone left something with me for you. Business first.") and hands it
-  over **free, right after that visit's upgrade pick**, as a gift (`shop_ui._give_handoff_gift`,
-  `WorldState.handoff_items` / `collect_handoff_gifts`). Never lost: a skipped floor 25 (elevator
-  ride past it, a burning floor the merchant shelters from) → the next merchant visit; full
-  pockets → he keeps it till there's room; two escapes → he holds both; still unclaimed when the
-  session ends → it moves to the next game (`carry_items`, profile). After the THIRD run it
-  waits for the next game's first character's shopkeeper, on top of any Valour perk bought. One
-  item per escape — "reward but not too much reward". The white card lists it ("Left with the
-  shopkeeper"). Locked by `progression_test` (incl. a real shop-screen run).
+  adds +10 to that run's Valour — docs/PROGRESSION.md), **plus THE DOOR** (owner, round 3 — "a
+  little like the Arc Raiders safe pocket"): pressing to leave, the escaping character chooses
+  (`handoff_ui.gd`, titled THE DOOR):
+  - **Take everything and brave the unknown** → **+10 Valour** (`VALOUR_BRAVE_BONUS`, on top of
+    the escape bonus; chronicle `braved`, `WorldState.note_braved`). Nothing to leave counts as
+    taking everything; so does ESC/✕.
+  - **Leave ONE item by the door** (`WorldState.leave_for_next`) — any weapon/item except keys and
+    cash, with its FULL state (upgrade level, perks, durability — an upgraded legendary weapon
+    carries over as-is). It is **stashed for a FUTURE GAME SESSION, never this one**: the
+    session's later characters (runs 2/3) do NOT receive it. The stash lives in the **profile**
+    (`carry_items`); the next game's `new_game` hands it to the shopkeeper (`handoff_items`), who
+    hints at it in his greeting ("Somebody left something by the lobby door, a while back…
+    Business first.") and gives it **free, right after that first visit's upgrade pick** (floor
+    25; `shop_ui._give_handoff_gift`, `collect_handoff_gifts`). Never lost: a skipped floor 25 →
+    the next merchant visit; full pockets → he keeps it till there's room; several escapes in a
+    session → all stashed; still unclaimed when that next game ends → it rolls to the one after.
+  - **No duplication:** the choice is held in `door_stash_pending` and only written to the profile
+    (`commit_door_stash`) after `advance_run`, beside the save that drops it from the pockets. Quit
+    during the white card → the last save still has it in the pockets, and it is not stashed.
+  The white card lists "Braved the unknown" or "Left by the door: X (for your next game)". One item
+  per escape — "reward but not too much reward". Locked by `progression_test` (incl. a real
+  shop-screen run) + `run_bookends_test`.
 - A character who exits takes their notes and inventory OUT of the building —
   no corpse, nothing to recover. **DELIBERATE:** escaping is the selfish
   outcome; dying reachable is the generous one. (See `STORE_DESIGN.md` —

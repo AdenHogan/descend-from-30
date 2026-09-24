@@ -1,9 +1,8 @@
 extends ChoicePanel
 
-# THE HANDOFF (docs/THREE_RUN_ARC.md "Descent boon"; data in WorldState.leave_for_next). Shown as
-# an escaping character steps out of the lobby: leave ONE item at the door for whoever comes next
-# (the next character this session, or the next game's first character after the third run), or
-# take everything. Emits `decided(slot)` exactly once — -1 when nothing is left (ESC / ✕ / "take
+# THE DOOR (docs/THREE_RUN_ARC.md "Descent boon"; data in WorldState.leave_for_next). Shown as an
+# escaping character presses to leave the lobby: TAKE EVERYTHING and brave the unknown (+Valour),
+# or LEAVE ONE item by the door — stashed for a FUTURE game (never this session's next runs). Emits `decided(slot)` exactly once — -1 when nothing is left (ESC / ✕ / "take
 # everything" all count), so the exit flow awaiting it can never hang.
 
 signal decided(slot: int)
@@ -15,10 +14,8 @@ var _grid: GridContainer = null
 
 
 func _ready() -> void:
-	build_card("LEAVE SOMETHING BEHIND?", W, H, Color(0.85, 0.72, 0.40))
-	var last_run: bool = WorldState.current_run >= WorldState.RUN_NAMES.size()
-	var sub := label(("You're out. Leave one thing behind? The shopkeeper will keep it for your NEXT game's first survivor."
-		if last_run else "You're out. Leave one thing behind? The shopkeeper will hand it to whoever comes down next."), 12, DIM)
+	build_card("THE DOOR", W, H, Color(0.85, 0.72, 0.40))
+	var sub := label("Take everything and brave the unknown (+%d Valour), or leave one thing by the door. The building keeps it for your NEXT game." % Progression.VALOUR_BRAVE_BONUS, 12, DIM)
 	sub.position = Vector2(24, 54)
 	sub.size = Vector2(W - 48, 36)
 	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -30,9 +27,9 @@ func _ready() -> void:
 	_grid.add_theme_constant_override("v_separation", 8)
 	card.add_child(_grid)
 	var none := Button.new()
-	none.text = "Take everything with me"
+	none.text = "Take everything: brave the unknown  (+%d Valour)" % Progression.VALOUR_BRAVE_BONUS
 	none.position = Vector2(24, H - 56)
-	none.size = Vector2(260, 34)
+	none.size = Vector2(W - 48, 34)
 	none.pressed.connect(choose.bind(-1))
 	card.add_child(none)
 

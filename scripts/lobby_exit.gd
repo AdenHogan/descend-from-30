@@ -3,7 +3,8 @@ extends Area2D
 # THE WAY OUT (owner): at the lobby door the player presses [E] — steps up into the doorway (the
 # same depth walk as an apartment door) — the screen blooms WHITE: "YOU SURVIVED", who, and the
 # run's stats — then fades to black and the next character's run begins (or the arc ends). Before
-# stepping up they may leave ONE item at the door for whoever comes next (the handoff).
+# stepping up they choose: take everything (+Valour) or leave ONE item by the door, stashed for the
+# NEXT game (WorldState "THE DOOR STASH").
 # Walking past the door no longer ends the run by accident; leaving is a choice.
 
 var _leaving := false          # the exit runs ONCE
@@ -52,8 +53,11 @@ func leave() -> void:
 	var player = get_tree().get_first_node_in_group("player")
 	if player != null:
 		player.escaping = true             # committed: no hit or dying countdown can undo it now
-	# THE HANDOFF first: leave one item at the door for whoever comes next (or the next game).
+	# THE DOOR: take everything and brave the unknown (+Valour), or leave one item by the door for
+	# a FUTURE game (the stash). Nothing to leave counts as taking everything.
 	var left: String = await _offer_handoff()
+	if left == "":
+		WorldState.note_braved()
 	# Step up into the doorway, like any door.
 	if player != null and is_instance_valid(player) and player.has_method("approach_door"):
 		await player.approach_door(global_position)
@@ -71,6 +75,9 @@ func leave() -> void:
 			WorldState.run_summary(left), WorldState.escape_art()):
 		await Transition.cover()
 	var arc_over: bool = WorldState.advance_run()
+	# Past the point of no return: the door stash goes into the profile NOW, beside the save that
+	# drops the item from the pockets (a quit during the card never duplicates or loses it).
+	WorldState.commit_door_stash()
 	if arc_over:
 		# The THIRD character walked out — the whole playthrough is complete.
 		WorldState.finish_session()      # score the session → Descent Valour + the perk offer

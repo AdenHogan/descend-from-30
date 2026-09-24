@@ -1189,12 +1189,14 @@ means no rendering — UI layout and art still need an in-editor look.
   that session). Buy ONE to keep forever (`permanent_perks`, a fold source for every new game in the
   slot, removed from the merchant + boon pools); max 10, trade out for a 50% refund. Quests
   completed (+8) and NPCs aided (+4) also score (`note_quest_completed`/`note_npc_aided` hooks —
-  quests not built yet). **Descent boon = Valour + THE HANDOFF**: an escaping character leaves ONE
-  item (full state, upgrades kept) with the SHOPKEEPER, who hands it FREE to the next character
-  after their first shop upgrade (floor 25; the next visit if 25 is skipped; kept if pockets are
-  full) — or, after run 3, to the next game's first character (`leave_for_next`, `handoff_items`
-  in the save / `carry_items` in the profile, `shop_ui._give_handoff_gift`, `handoff_ui.gd` from
-  `lobby_exit`; unclaimed gifts at session end move to the next game). **Escape flow (owner):** [E] at the lobby door → handoff → step up into the
+  quests not built yet). **Descent boon = Valour + THE DOOR** (an Arc-Raiders-style safe pocket): pressing to
+  leave, an escaping character either TAKES EVERYTHING (braves the unknown, +10 Valour, chronicle
+  `braved`) or leaves ONE item (full state, upgrades kept) by the door — stashed for a FUTURE GAME,
+  never this session's later characters. `leave_for_next` → `door_stash_pending` →
+  `commit_door_stash` (after `advance_run`, so a quit mid-card never duplicates it) → profile
+  `carry_items` → the next `new_game` moves it to `handoff_items` → that game's shopkeeper gives it
+  FREE after the first upgrade pick (floor 25; next visit if skipped; kept if pockets full; unclaimed
+  at session end rolls on) (`shop_ui._give_handoff_gift`, `handoff_ui.gd` from `lobby_exit`). **Escape flow (owner):** [E] at the lobby door → THE DOOR choice → step up into the
   doorway → WHITE "YOU SURVIVED" card with the run's stats table (`Transition.survived_card` +
   `WorldState.run_summary`) → black → next run; `player.escaping` makes the exit un-killable.
   Tone = the ambiguous horror-movie ending; an art SLOT is built for the world outside

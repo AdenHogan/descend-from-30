@@ -153,6 +153,21 @@ func _test_valour_maths() -> void:
 		prev = v
 	check(mono, "every floor deeper is worth strictly more")
 	check(Progression.valour_for_run(15, false, 2, 1) == 18 + 16 + 4, "quests (+8 each) and NPCs aided (+4 each) add on")
+	check(Progression.valour_for_run(0, true, 0, 0, true) == 55 + Progression.VALOUR_BRAVE_BONUS, "braving the unknown (took everything) adds its bonus")
+	check(Progression.valour_for_run(10, false, 0, 0, true) == 26, "…only for a character who actually walked out")
+	print("[the session score counts a braved escape]")
+	_clear_valour()
+	WorldState.new_game()
+	for i in 3:
+		WorldState.run_chronicle[i]["deepest_floor"] = 0
+		WorldState.set_run_outcome(i + 1, "survived")
+	WorldState.current_run = 2
+	WorldState.note_braved()
+	WorldState.current_run = 3
+	var s: Dictionary = WorldState.finish_session()
+	check(int(s.get("total", -1)) == 3 * 55 + Progression.VALOUR_BRAVE_BONUS, "3 escapes, one braved → 165 + %d (got %s)" % [Progression.VALOUR_BRAVE_BONUS, str(s)])
+	_clear_valour()
+	WorldState.save_profile()
 
 
 func _test_session_perks() -> void:
@@ -325,7 +340,8 @@ func _hammer_lv3() -> ItemInstance:
 
 
 func _test_handoff_in_session() -> void:
-	print("[an ESCAPE leaves one item with the SHOPKEEPER — the next character gets it free at floor 25]")
+	print("[THE DOOR: a left item is stashed for the NEXT GAME — never this session's next characters]")
+	_clear_valour()
 	WorldState.new_game()
 	var key := ItemInstance.new()
 	key.setup_key("022", "2903")
@@ -337,14 +353,21 @@ func _test_handoff_in_session() -> void:
 	check(WorldState.leave_for_next(0) == "", "…refused for a key")
 	check(WorldState.leave_for_next(2) == "Hammer Lv3" and WorldState.inventory.size() == 2, "the hammer is left behind")
 	check(WorldState.chronicle_entry(1)["left_behind"] == "Hammer Lv3", "the chronicle remembers it")
-	WorldState.save_game("res://scenes/hallway.tscn", false)
-	WorldState.handoff_items = []
-	WorldState.load_game()
-	check(WorldState.handoff_pending(), "a save keeps it with the shopkeeper")
-	WorldState.delete_save()
+	check(not WorldState.handoff_pending(), "NOT with this game's shopkeeper")
+	check(WorldState.carry_items.is_empty() and WorldState.door_stash_pending.size() == 1,
+		"not in the profile until the exit is committed (a quit mid-card can't duplicate it)")
 	WorldState.set_run_outcome(1, "survived")
 	WorldState.advance_run()
-	check(WorldState.inventory.is_empty() and WorldState.handoff_pending(), "the next character does NOT start with it — the shopkeeper holds it")
+	WorldState.commit_door_stash()
+	check(WorldState.door_stash_pending.is_empty() and WorldState.carry_items.size() == 1, "committed → the profile's stash")
+	check(WorldState.inventory.is_empty() and not WorldState.handoff_pending(), "character 2 doesn't get it — not in pockets, not at the shop")
+	WorldState.advance_run()
+	check(not WorldState.handoff_pending(), "…nor character 3")
+	WorldState.carry_items = []
+	WorldState.load_profile()
+	check(WorldState.carry_items.size() == 1, "the stash survives in the profile")
+	WorldState.new_game()
+	check(WorldState.handoff_pending() and WorldState.carry_items.is_empty(), "the NEXT game's shopkeeper has it")
 	var res: Dictionary = WorldState.collect_handoff_gifts()
 	check(res["given"] == ["Hammer Lv3"] and not WorldState.handoff_pending(), "collected from the shopkeeper")
 	var got = WorldState.inventory[0]
@@ -362,11 +385,25 @@ func _test_handoff_in_session() -> void:
 	check(res["given"].is_empty() and res["kept"] == ["Hammer Lv3"] and WorldState.handoff_pending(), "no room → kept for later")
 	WorldState.inventory.remove_at(0)
 	check(WorldState.collect_handoff_gifts()["given"] == ["Hammer Lv3"], "room made → handed over")
-	print("[two escapes before collecting → the shopkeeper holds both]")
+	print("[two escapes in a session → both stashed for the next game]")
+	WorldState.carry_items = []
 	WorldState.inventory = [_hammer_lv3(), _hammer_lv3()]
 	WorldState.leave_for_next(0)
+	WorldState.commit_door_stash()
 	WorldState.leave_for_next(0)
-	check(WorldState.handoff_items.size() == 2, "both kept")
+	WorldState.commit_door_stash()
+	check(WorldState.carry_items.size() == 2 and WorldState.handoff_items.is_empty(), "both stashed, none this game")
+	print("[quit mid-card: an uncommitted stash is dropped on a load — the item is still in that save's pockets]")
+	WorldState.carry_items = []
+	WorldState.inventory = [_hammer_lv3()]
+	WorldState.save_game("res://scenes/lobby.tscn", false)
+	WorldState.leave_for_next(0)
+	WorldState.load_game()
+	WorldState.delete_save()
+	check(WorldState.door_stash_pending.is_empty() and WorldState.carry_items.is_empty(), "not stashed")
+	check(WorldState.inventory.size() == 1 and WorldState.inventory[0].item_id == "002", "still in the pockets — never duplicated, never lost")
+	_clear_valour()
+	WorldState.save_profile()
 
 
 func _test_handoff_next_game() -> void:
@@ -376,6 +413,7 @@ func _test_handoff_next_game() -> void:
 	WorldState.current_run = 3
 	WorldState.inventory = [_hammer_lv3()]
 	WorldState.leave_for_next(0)
+	WorldState.commit_door_stash()
 	check(not WorldState.handoff_pending() and WorldState.carry_items.size() == 1, "it waits in the PROFILE, not this game")
 	WorldState.carry_items = []
 	WorldState.load_profile()

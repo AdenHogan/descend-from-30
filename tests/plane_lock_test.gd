@@ -31,7 +31,14 @@ func _test_player_feet_on_enemy_plane() -> void:
 	# on the shared floor line 419, never above or below. The old stair spawn (origin
 	# 391) sat the player 5px LOW (feet 424), so it stood under the enemies and its legs
 	# poked beneath corpses. A real floor arrival must land it feet-on-419.
+	# ~8% of seeds roll an EMPTY floor 15 (get_floor_zombie_count → 0) — nothing to compare, the
+	# test used to fail on those seeds. Search for a seed whose floor 15 has the dead.
 	WorldState.new_game()
+	for tries in 60:
+		if WorldState.get_floor_zombie_count(15) > 0:
+			break
+		WorldState.new_game()
+	check(WorldState.get_floor_zombie_count(15) > 0, "found a seed with the dead on floor 15")
 	WorldState.current_floor = 15
 	WorldState.spawn_source = "stair"
 	WorldState.stair_direction = "down"

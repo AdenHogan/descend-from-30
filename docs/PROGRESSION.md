@@ -40,7 +40,9 @@ the session is scored and the player may keep ONE perk they found along the way 
 
 - **Earning Valour** (`Progression.valour_for_run`, summed over the three runs): each run earns
   by the deepest floor that character reached, weighted toward the bottom, plus a bonus for
-  walking out: `d + floor(d² / 60)` where `d` = floors below 30, **+10 if they escaped**.
+  walking out: `d + floor(d² / 60)` where `d` = floors below 30, **+10 if they escaped**, and a
+  further **+10 if they braved the unknown** (took everything out rather than leaving an item by
+  the door — `VALOUR_BRAVE_BONUS`).
 
   | Deepest | Valour |
   |---|---|
@@ -54,9 +56,10 @@ the session is scored and the player may keep ONE perk they found along the way 
   yet — the quest system calls `WorldState.note_quest_completed()` / `note_npc_aided()` (per-run
   counts in the chronicle), and the end screen shows them per run. Valour is banked to the
   **profile** at once and can be **saved** across sessions (the player may take nothing).
-- **The descent boon** (owner): Valour IS the descent boon, plus an escaping character leaves
-  ONE item with the SHOPKEEPER, handed free to the next character after their first shop
-  upgrade (floor 25) — see THREE_RUN_ARC.md "Descent boon" (the handoff).
+- **The descent boon** (owner): Valour IS the descent boon, plus THE DOOR — an escaping character
+  either takes everything (+10 Valour) or leaves ONE item by the door, stashed for the NEXT GAME
+  (not this session's later characters); the next game's shopkeeper hands it over free after the
+  first shop upgrade (floor 25) — see THREE_RUN_ARC.md "Descent boon".
 - **The offer** (`WorldState.finish_session`, called at the arc end in `game.gd` / `lobby_exit.gd`):
   up to **3** (`OFFER_COUNT`) perks drawn **uniformly at random — no weighting** — from the perks
   **acquired this session** (`WorldState.session_perks`: every merchant upgrade taken + every run

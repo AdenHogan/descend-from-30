@@ -144,7 +144,7 @@ func open(floor_num: int, greeting: String) -> void:
 	# Something left for this character by one who got out (the handoff) — hinted up front, handed
 	# over once this visit's upgrade is settled.
 	if WorldState.handoff_pending() and not WorldState.is_upgrade_offer_resolved(floor_num):
-		dialogue_label.text += "\n\"Someone left something with me for you. Business first.\""
+		dialogue_label.text += "\n\"Somebody left something by the lobby door, a while back. I kept it for you. Business first.\""
 	pending_confirm = -1
 	refuse_armed = false
 	_refresh()
@@ -175,7 +175,7 @@ func _give_handoff_gift() -> Dictionary:
 	var res: Dictionary = WorldState.collect_handoff_gifts()
 	var lines: Array = []
 	if not res["given"].is_empty():
-		lines.append("\"Here. Someone who got out left this for you: %s. No charge.\"" % ", ".join(res["given"]))
+		lines.append("\"Here. Left by the door by someone who got out: %s. No charge.\"" % ", ".join(res["given"]))
 		HUD.refresh_inventory()
 		HUD.show_feedback("Gift: " + ", ".join(res["given"]))
 	if not res["kept"].is_empty():
