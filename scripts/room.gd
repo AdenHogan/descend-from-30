@@ -77,6 +77,7 @@ const UI_FONT = preload("res://assets/fonts/PixelOperator8.ttf")
 # building_floors gives a corridor. The tight band zooms the view in to fill it.
 const ROOM_BAND_TOP := 207.0
 const ROOM_BAND_H := 160.0
+const SHELL_VIEW_MARGIN := 32.0   # the camera's extra reach past the tiles at each end (room_shell.gd)
 
 # Interior fire (Hazard 3 inside apartments). apartment_fire.gd is a no-sim, procedurally
 # placed fire keyed to WorldState.apartment_active_fire_stage(floor,apt): LIGHT near the
@@ -261,6 +262,10 @@ func _frame_camera(player: Node) -> void:
 		return
 	var b = StairPan.clean_bounds(tm)
 	var band = Rect2(Vector2(b.position.x, ROOM_BAND_TOP), Vector2(b.size.x, ROOM_BAND_H))
+	if get_node_or_null("RoomShell") != null:
+		# An apartment's end walls are drawn in perspective: let the view reach a little past the old
+		# tile bounds so the front door and each wall's front cut are actually in shot.
+		band = band.grow_individual(SHELL_VIEW_MARGIN, 0.0, SHELL_VIEW_MARGIN, 0.0)
 	StairPan.apply_floor_camera(cam, band)
 
 
@@ -733,6 +738,13 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 	walls.name = "ModuleWalls"
 	add_child(walls)
 	walls.setup(built_modules, float(LEFT_WALL_X), float(MODULE_WIDTH), entrance_side)
+	# The flat's frame — ceiling slab + end walls in cross-section — replacing the stone tiles
+	# (scripts/room_shell.gd). After the walls so their front cuts run up into the slab.
+	var shell = load("res://scripts/room_shell.gd").new()
+	shell.name = "RoomShell"
+	add_child(shell)
+	var tb := StairPan.clean_bounds(get_node_or_null("TileMapLayer"))
+	shell.setup(tb, [float(LEFT_WALL_X), float(LEFT_WALL_X + 3 * MODULE_WIDTH)])
 
 	# One storm driver per LIVE night apartment: rain hiss + synced lightning/thunder across
 	# all the windows just built. Skipped on passive backdrops and on day/afternoon runs.

@@ -1331,4 +1331,10 @@ means no rendering — UI layout and art still need an in-editor look.
   enemies in a row misses +5% then +10% (cap) (`player._hurt_miss`). A hurt stun can still be shoved (a
   Home Run / shove mod follows its own hit). A BURNING big zombie now hits double (4) like every enemy.
   Locked by `enemy_variety_test`.
+- Room-module ART (round 9, docs/art_reference/modules/README.md): the living room is real pixel
+  art (`tools/art/living_room.py` → `assets/rooms/living_room.png`, variants B-D not yet wired);
+  the partitions/end walls are drawn LIVE in perspective (`module_walls.gd`) and the flat's frame is
+  a cross-section SHELL (`room_shell.gd`: ceiling slab + end-wall sections + framed front door) that
+  replaces the hidden stone tiles; the room camera reaches 32px past the tiles. Locked by
+  `apartment_window_test`. Maintenance rooms keep their tiles (no modules).
 - Not started: quests.

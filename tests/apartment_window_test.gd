@@ -112,6 +112,32 @@ func _test_windows_day() -> void:
 		var mid: Dictionary = bs[1]
 		check(mw.facing_room(mid, float(mid["x"]) - 50.0) == mid["left"], "camera left of a partition sees the LEFT room's wall")
 		check(mw.facing_room(mid, float(mid["x"]) + 50.0) == mid["right"], "…and from the right, the RIGHT room's wall (never inverted)")
+	# ROOM SHELL (owner round 9): the stone tiles are replaced by a cross-section frame that meets
+	# the module walls exactly — the slab's underside where the partitions' front cuts top out, each
+	# end section starting where that end wall's face ends — and the camera reaches past the tiles.
+	var shell = room.get_node_or_null("RoomShell")
+	check(shell != null, "the room builds its shell")
+	var tm = room.get_node_or_null("TileMapLayer")
+	check(tm != null and not tm.visible, "the old stone tiles are hidden")
+	if shell != null and mw != null:
+		var MW = load("res://scripts/module_walls.gd")
+		var bs: Array = mw.boundaries
+		var s_front: float = MW._s_for_floor(MW.FRONT_FLOOR)
+		var cx := 600.0
+		var part_top: Vector2 = mw._p(cx, float(bs[1]["x"]), MW.TOP, s_front)
+		check(absf(shell.ceiling_cut_y() - part_top.y) < 0.01,
+			"slab underside %.2f == partition front top %.2f" % [shell.ceiling_cut_y(), part_top.y])
+		check(shell.ceiling_cut_y() < room.MODULE_WINDOW_Y - 28.0, "the slab clears the wall windows' top (%.1f)" % shell.ceiling_cut_y())
+		var lx: float = bs[0]["x"]
+		var rx: float = bs[bs.size() - 1]["x"]
+		var l_face: Vector2 = mw._p(cx, lx + MW.HALF_T, MW.TOP, s_front)   # left end's room-side face
+		var r_face: Vector2 = mw._p(cx, rx - MW.HALF_T, MW.TOP, s_front)
+		check(absf(shell.end_cut_x(lx, cx) - l_face.x) < 0.01, "left section starts at the wall face's front edge")
+		check(absf(shell.end_cut_x(rx, cx) - r_face.x) < 0.01, "right section starts at the wall face's front edge")
+		var cam = room.get_node("Player/Camera2D")
+		var tb: Rect2 = StairPan.clean_bounds(tm)
+		check(cam.limit_left == int(floor(tb.position.x - room.SHELL_VIEW_MARGIN)) and cam.limit_right == int(ceil(tb.end.x + room.SHELL_VIEW_MARGIN)),
+			"camera reaches past the tiles so the ends are in shot (%d..%d)" % [cam.limit_left, cam.limit_right])
 	# Every window / balcony door casts a slanting light BEAM (window_beam.gd) that carries a
 	# real PointLight2D — so the shaft actually lights the room, not just a painted overlay.
 	var beams := get_tree().get_nodes_in_group("window_beam")

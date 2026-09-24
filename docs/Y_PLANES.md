@@ -82,6 +82,17 @@ owner round 9) → 262. Still ABOVE every scavenge node. Module art keeps the wi
 (`tools/art/pixlib.py` WIN_L/WIN_R, checked on every generate). The balcony window light stays
 at world Y 210. Per-module blueprints: `tools/gen_module_blueprint.py`.
 
+Apartment PERSPECTIVE + SHELL (`module_walls.gd`, `room_shell.gd`, owner round 9): horizon
+`VY` **190**; back wall top `TOP` 224, wall/floor seam `SEAM` **324**; depth scale
+`s = (floor_y − 190) / (324 − 190)`. The FRONT cut plane is floor y **360** (s ≈ 1.269); interior
+doorways start at floor y 338, the FRONT DOOR spans floor y 338..356 (a jamb before the cut).
+The CEILING SLAB runs from the band top **207** down to the back-wall top projected onto the
+front plane, **≈233.07** (`RoomShell.ceiling_cut_y()`) — so it covers module rows 0..9 (the art's
+crown moulding) and must stay above the window boxes' top (234). The shell never draws below
+**367** (band bottom), so two flats stacked 160 apart in a balcony pan meet flush: the lower
+flat's slab (367..393) is the floor under the upper one. The stone TileMapLayer is hidden (no
+collision on it); the room camera reaches `SHELL_VIEW_MARGIN` 32px past its bounds at each end.
+
 ---
 
 ## 2. Spawn / arrival planes (`building_floors.gd`, `stair_pan.gd` — must match)

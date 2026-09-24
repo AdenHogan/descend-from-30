@@ -37,6 +37,16 @@ painted, half-the-time-inverted wall. Each face samples its OWN module's art at 
 wallpaper, rail and skirting continue round the corner for any module or variant with no wiring.
 Visual only (no collision). Locked by `apartment_window_test`.
 
+**Room shell (`scripts/room_shell.gd`):** the old stone-block tiles round the flat are HIDDEN and
+replaced by a clean building CROSS-SECTION cut at the same front plane as the partitions: a
+ceiling slab across the whole flat (the flat above's floorboards on top, a plaster ceiling edge
+underneath), solid end-wall sections that turn that edge down each side, and a framed FRONT DOOR
+in the entrance end wall (architrave, threshold, dark corridor beyond). Beyond each end wall's
+back corner the room's floor is extended in perspective to the wall's foot. The camera reaches
+32px past the old tile bounds so the door and end cuts are in shot. The slab covers module rows
+0..9, so the art's own crown moulding is hidden — future modules needn't draw one. Geometry in
+docs/Y_PLANES.md §1.
+
 ## Agreed plan (owner round 9) — in this order, not started beyond step 1
 
 1. Settle the module's design + look (the living room is the example).

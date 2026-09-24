@@ -27,12 +27,18 @@ const VY := 190.0           # the horizon (eye height): above the room — we lo
 const FRONT_FLOOR := 360.0  # the near cut plane's floor line (just in front of the feet line 353)
 const DOOR_FLOOR := 338.0   # the doorway starts this deep (floor y) — the lane runs through it
 const DOOR_ROWS := 42       # the lintel: back-plane rows 0..41 are wall above the doorway
+const ENTRANCE_FRONT := 356.0  # the FRONT door's near jamb (floor y): wall stands between it and
+                               # the front cut, so it reads as a door IN the wall
+const MOD_ROWS := 144       # the module's full height (wall + floor) — the floor rows are sampled too
+const BAND_BOTTOM := 367.0  # never draw into the flat below (a balcony pan stacks them)
 const HALF_T := 2.0         # half the wall's thickness (back-plane px)
 const FACE_SHADE := 0.82    # a turned surface reads a little darker (ambient only)
 const CUT_COL := Color(0.24, 0.18, 0.13)   # the cut section: warm plaster-brown, not a black bar
 const TRIM_COL := Color(0.30, 0.21, 0.14)
 const TRIM_LT := Color(0.40, 0.29, 0.19)
 const OUTSIDE_COL := Color(0.05, 0.045, 0.05)
+const CORRIDOR_FLOOR := Color(0.16, 0.12, 0.09)   # a glimpse of the corridor floor through the door
+const THRESHOLD := Color(0.46, 0.36, 0.24)
 
 var boundaries: Array = []     # [{x, left_mod, right_mod, door, outside}]
 var _cols: Dictionary = {}     # module instance id + side → Array[Color] (ROWS rows)
@@ -71,7 +77,7 @@ func _column(mod: Node, right_edge: bool) -> Array:
 	var rect = mod.get_node_or_null("ColorRect")
 	if rect is ColorRect:
 		flat = rect.color
-	for r in range(ROWS):
+	for r in range(MOD_ROWS):
 		if img != null:
 			var sx: int = img.get_width() - 4 if right_edge else 3
 			out.append(img.get_pixel(sx, clampi(r, 0, img.get_height() - 1)))
@@ -133,14 +139,14 @@ func _draw() -> void:
 		var cols: Array = _column(room, cam_left) if room != null else []
 		if room == null:
 			continue      # looking at an end wall from outside the room — never happens in play
-		if b["door"]:
+		var is_end: bool = b["left"] == null or b["right"] == null
+		if is_end:
+			_floor_wedge(cx, xb, cols)
+		if b["outside"]:
+			_front_door(cx, xb, face_x, cols, s_door, s_front)
+		elif b["door"]:
 			_face(cx, face_x, 1.0, s_door, 0, ROWS, cols, FACE_SHADE)          # the stub to the back wall
 			_face(cx, face_x, s_door, s_front, 0, DOOR_ROWS, cols, FACE_SHADE) # the lintel
-			if b["outside"]:
-				# the entrance: through it, the dark of the corridor
-				draw_colored_polygon(PackedVector2Array([_p(cx, face_x, TOP + DOOR_ROWS, s_door),
-					_p(cx, face_x, TOP + DOOR_ROWS, s_front), _p(cx, face_x, SEAM, s_front),
-					_p(cx, face_x, SEAM, s_door)]), OUTSIDE_COL)
 			# jamb (the stub's front edge) + lintel trim + the lintel's front cut
 			_slab(cx, xb, s_door, DOOR_ROWS, ROWS, TRIM_COL)
 			draw_line(_p(cx, face_x, TOP + DOOR_ROWS, s_door), _p(cx, face_x, SEAM, s_door), TRIM_LT, 1.0)
@@ -151,3 +157,41 @@ func _draw() -> void:
 			_slab(cx, xb, s_front, 0, ROWS, CUT_COL)
 		# the corner where the wall meets the back wall
 		draw_line(_p(cx, face_x, TOP, 1.0), _p(cx, face_x, SEAM, 1.0), Color(0, 0, 0, 0.25), 1.0)
+
+
+func _floor_wedge(cx: float, xb: float, cols: Array) -> void:
+	# Beyond an END wall's back corner the room's floor still runs out to the wall's foot in
+	# perspective (the module art stops at the back-plane edge): extend each floor row with its own
+	# edge colour from the module edge to where the wall meets the floor at that depth.
+	for r in range(ROWS, MOD_ROWS):
+		var y := TOP + float(r)
+		if y >= BAND_BOTTOM:
+			break
+		var s := _s_for_floor(y + 0.5)
+		var xw := cx + (xb - cx) * s
+		var col: Color = cols[r] if cols.size() > r else Color(0.3, 0.25, 0.2)
+		draw_rect(Rect2(minf(xw, xb), y, absf(xb - xw), 1.0), col)
+
+
+func _front_door(cx: float, xb: float, face_x: float, cols: Array, s_door: float, s_front: float) -> void:
+	# The flat's FRONT DOOR in the entrance end wall: a real opening with wall on both sides (the
+	# stub to the back wall, a jamb between it and the front cut), an architrave round it, a
+	# threshold, and the dark corridor beyond with a sliver of its floor.
+	var s_ent := _s_for_floor(ENTRANCE_FRONT)
+	_face(cx, face_x, 1.0, s_door, 0, ROWS, cols, FACE_SHADE)          # back stub
+	_face(cx, face_x, s_door, s_ent, 0, DOOR_ROWS, cols, FACE_SHADE)   # over the door
+	_face(cx, face_x, s_ent, s_front, 0, ROWS, cols, FACE_SHADE)       # front jamb
+	var top := TOP + DOOR_ROWS
+	var q := PackedVector2Array([_p(cx, face_x, top, s_door), _p(cx, face_x, top, s_ent),
+		_p(cx, face_x, SEAM, s_ent), _p(cx, face_x, SEAM, s_door)])
+	draw_colored_polygon(q, OUTSIDE_COL)
+	# the corridor's floor, just visible past the threshold (the bottom few rows of the opening)
+	draw_colored_polygon(PackedVector2Array([_p(cx, face_x, SEAM - 5.0, s_door), _p(cx, face_x, SEAM - 5.0, s_ent),
+		_p(cx, face_x, SEAM, s_ent), _p(cx, face_x, SEAM, s_door)]), CORRIDOR_FLOOR)
+	# architrave: head + both jambs, a light inner edge, and the threshold across the floor
+	draw_line(_p(cx, face_x, top - 1.0, s_door), _p(cx, face_x, top - 1.0, s_ent), TRIM_COL, 3.0)
+	draw_line(_p(cx, face_x, top - 1.0, s_door), _p(cx, face_x, SEAM, s_door), TRIM_COL, 3.0)
+	draw_line(_p(cx, face_x, top - 1.0, s_ent), _p(cx, face_x, SEAM, s_ent), TRIM_COL, 3.0)
+	draw_line(_p(cx, face_x, top + 1.0, s_door), _p(cx, face_x, top + 1.0, s_ent), TRIM_LT, 1.0)
+	draw_line(_p(cx, face_x, SEAM, s_door), _p(cx, face_x, SEAM, s_ent), THRESHOLD, 2.0)
+	_slab(cx, xb, s_front, 0, ROWS, CUT_COL)
