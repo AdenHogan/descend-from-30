@@ -3,14 +3,14 @@ tools/art/living_room.py (variant A): the walking lane stays clear, both runtime
 bare wall, and each room has a SET-BACK piece on the left and the right (future scavenge spots on
 an upper plane). Front-facing furniture only (the angled armchair was dropped, owner round 9).
 
-Run:  python3 tools/art/living_room_variants.py
-Out:  assets/rooms/living_room_{b,c,d}.png + docs/art_reference/modules/living_room_variants.png
-      (A-D side by side, 3x). Not wired into the game yet — variant selection is a later step.
+Run:  python3 tools/art/living_room_variants.py [b c d]
+Out:  assets/rooms/living_room_{b,c,d}.png (+ _floor.png), scenes/Room_Modules/living_room_{b,c,d}.tscn
+      (wired: room.MODULE_VARIANTS), previews + node overlays in docs/art_reference/modules/.
 """
 import os
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
-from pixlib import Canvas, hexc, shade, mix, SEAM_Y, W, H, check_window_boxes, rrect
+from pixlib import Canvas, hexc, shade, mix, SEAM_Y, W, H, check_window_boxes, rrect, finish_module
 import living_room as lr
 
 ROOT = lr.ROOT
@@ -33,28 +33,31 @@ def plain_wall(c, base, trim, skirt, texture=None):
 
 
 def parquet_floor(c, a, b, seam):
-    """Brick-laid parquet, rows taller toward the viewer."""
-    rows = [101, 104, 108, 113, 119, 126, 134, 144]
+    """Brick-laid parquet, 16px blocks (two colours → the floor repeats every 32px), rows taller
+    toward the viewer, alternate rows offset half a block."""
+    rows = [100, 104, 108, 113, 119, 126, 134, 144]
     for r in range(len(rows) - 1):
         y0, y1 = rows[r], rows[r + 1] - 1
-        blk = 10 + (y1 - y0) * 3
-        off = (r % 2) * (blk // 2)
-        x = -off
-        k = 0
-        while x < W:
+        off = (r % 2) * 8
+        for k, x in enumerate(range(-off, W, 16)):
             col = a if (k + r) % 2 == 0 else b
-            c.rect(max(x, 0), y0, min(x + blk - 1, W - 1), y1, col)
-            c.vline(max(x, 0), y0, y1, seam)
-            x += blk
-            k += 1
+            c.rect(max(x, 0), y0, min(x + 15, W - 1), y1, col)
+            if x >= 0:
+                c.vline(x, y0, y1, seam)
         c.hline(0, W - 1, y1, seam)
         c.hline(0, W - 1, y0, shade(a, 1.1))
 
 
 def carpet_floor(c, base, fleck_lt, fleck_dk):
-    c.rect(0, 101, W - 1, H - 1, base)
-    c.dither(0, 101, W - 1, H - 1, fleck_lt, 0.12, 'random')
-    c.dither(0, 101, W - 1, H - 1, fleck_dk, 0.10, 'random')
+    """Cord carpet: flecks on a 32px-periodic hash (so it tiles at a doorway)."""
+    c.rect(0, 100, W - 1, H - 1, base)
+    for y in range(100, H):
+        for x in range(W):
+            k = (x * 7 + y * 13 + (y * y) % 5) % 32
+            if k in (3, 11, 26):
+                c.put(x, y, fleck_lt)
+            elif k in (7, 19):
+                c.put(x, y, fleck_dk)
     c.dither(0, 101, W - 1, 103, hexc('1f1d1c', 90), 0.5)
 
 
@@ -87,14 +90,16 @@ def frame(c, x0, y0, x1, y1, fr, fr_dk, fill):
 
 # --- B: MID-CENTURY ----------------------------------------------------------------------------
 
-def variant_b():
-    c = Canvas(seed=21)
+def b_wall(c):
     TEAL = hexc('3f6663')
     plain_wall(c, TEAL, hexc('7a5537'), hexc('6b4a31'), hexc('466f6b'))
     # a water streak running down from the ceiling
     for y in range(4, 60):
         c.put(206 + (y // 11) % 2, y, hexc('35544f'))
     c.dither(203, 4, 211, 14, hexc('35544f'), 0.5)
+
+
+def b_decor(c):
     # an abstract print above the sofa
     frame(c, 108, 30, 150, 56, hexc('d9cfb8'), hexc('8a826d'), hexc('d9cfb8'))
     c.rect(113, 35, 128, 51, hexc('c8783b'))
@@ -105,13 +110,18 @@ def variant_b():
         c.line(190, 42, 190 + dx, 42 + dy, hexc('b58f4a'))
     c.ellipse(190, 42, 3, 3, hexc('d9c690'))
     c.put(190, 41, lr.OUT)
-    c.wall_snap = c.img.copy()
+
+
+def b_floor(c):
     parquet_floor(c, hexc('8a6443'), hexc('7c5a3b'), hexc('5b3e28'))
+
+
+def b_furniture(c):
     # an oval mustard rug
     def rug(cc):
-        cc.ellipse(170, 121, 96, 13, hexc('8d6a2c'))
-        cc.ellipse(170, 121, 93, 11, hexc('b58a3a'))
-        cc.dither(80, 110, 260, 132, hexc('a47c33'), 0.25, 'random')
+        cc.ellipse(206, 121, 90, 13, hexc('8d6a2c'))
+        cc.ellipse(206, 121, 87, 11, hexc('b58a3a'))
+        cc.dither(122, 110, 290, 132, hexc('a47c33'), 0.25, 'random')
     rug(c)
     # LEFT set-back: a teak shelving unit — records below, ornaments above
     x0, x1, top = 12, 48, 44
@@ -128,43 +138,43 @@ def variant_b():
     c.rect(18, 53, 30, 59, hexc('b58a3a'))                          # books lying flat
     c.rect(34, 55, 44, 59, hexc('a8453a'))
     # the rust sofa
-    sofa_as(c, (hexc('a4532e'), hexc('843f22'), hexc('bd6a41'), hexc('4a2412')), (hexc('d2c6a8'), hexc('b6aa8c')))
-    # a kidney coffee table on hairpin legs
-    c.shadow(214, 117, 26, 2, 100)
-    c.ellipse(214, 101, 24, 4, hexc('8a6443'))
-    c.ellipse(214, 100, 23, 3, hexc('9e7550'))
-    for lx in (196, 232):
-        c.line(lx, 104, lx - 2, 116, hexc('2a2a2c'))
-    c.rect(206, 95, 210, 99, hexc('d9cfb8'))
-    c.ellipse(222, 99, 4, 1, hexc('c8783b'))
-    # RIGHT set-back: a wooden console TV (screen cracked)
-    x0, x1, top = 258, 294, 70
-    c.shadow(276, 101, 20, 2, 90)
-    c.box(x0, top, x1, 97, hexc('7c5a3b'), hexc('3f2a1b'))
-    c.hline(x0 + 1, x1 - 1, top + 1, hexc('9e7550'))
-    c.box(x0 + 3, top + 4, x0 + 24, top + 20, hexc('2c3431'), hexc('1a1f1d'))
-    c.rect(x0 + 5, top + 6, x0 + 9, top + 8, hexc('4b5a55'))
-    c.line(x0 + 10, top + 7, x0 + 19, top + 17, hexc('7d8b86'))
-    c.line(x0 + 14, top + 8, x0 + 12, top + 15, hexc('7d8b86'))
-    for gy in range(top + 5, top + 21, 2):                          # speaker grille
-        c.hline(x0 + 27, x1 - 3, gy, hexc('5b3e28'))
-    for lx in (x0 + 3, x1 - 4):
-        c.rect(lx, 98, lx + 1, 100, hexc('2a2a2c'))
-    c.rect(x0 + 26, top - 6, x0 + 28, top - 1, hexc('b58f4a'))       # a brass lamp base on top
-    c.poly([(x0 + 23, top - 12), (x0 + 31, top - 12), (x0 + 29, top - 6), (x0 + 25, top - 6)], hexc('d9c690'))
-    # a big rubber plant in the corner, some leaves browning
-    c.shadow(308, 113, 8, 2, 80)
-    c.poly([(302, 100), (314, 100), (312, 112), (304, 112)], hexc('d9cfb8'))
-    for i, (lx, ly) in enumerate(((300, 70), (306, 62), (313, 72), (298, 84), (315, 86), (307, 80))):
+    sofa_as(c, (hexc('a4532e'), hexc('843f22'), hexc('bd6a41'), hexc('4a2412')), (hexc('d2c6a8'), hexc('b6aa8c')), dx=102)
+    def _table(c):
+        # a kidney coffee table on hairpin legs
+        c.shadow(214, 117, 26, 2, 100)
+        c.ellipse(214, 101, 24, 4, hexc('8a6443'))
+        c.ellipse(214, 100, 23, 3, hexc('9e7550'))
+        for lx in (196, 232):
+            c.line(lx, 104, lx - 2, 116, hexc('2a2a2c'))
+        c.rect(206, 95, 210, 99, hexc('d9cfb8'))
+        c.ellipse(222, 99, 4, 1, hexc('c8783b'))
+    lr.shifted(c, _table, 0, -58)
+    def _tv(c):
+        # RIGHT set-back: a wooden console TV (screen cracked)
+        x0, x1, top = 258, 294, 70
+        c.shadow(276, 101, 20, 2, 90)
+        c.box(x0, top, x1, 97, hexc('7c5a3b'), hexc('3f2a1b'))
+        c.hline(x0 + 1, x1 - 1, top + 1, hexc('9e7550'))
+        c.box(x0 + 3, top + 4, x0 + 24, top + 20, hexc('2c3431'), hexc('1a1f1d'))
+        c.rect(x0 + 5, top + 6, x0 + 9, top + 8, hexc('4b5a55'))
+        c.line(x0 + 10, top + 7, x0 + 19, top + 17, hexc('7d8b86'))
+        c.line(x0 + 14, top + 8, x0 + 12, top + 15, hexc('7d8b86'))
+        for gy in range(top + 5, top + 21, 2):                          # speaker grille
+            c.hline(x0 + 27, x1 - 3, gy, hexc('5b3e28'))
+        for lx in (x0 + 3, x1 - 4):
+            c.rect(lx, 98, lx + 1, 100, hexc('2a2a2c'))
+        c.rect(x0 + 26, top - 6, x0 + 28, top - 1, hexc('b58f4a'))       # a brass lamp base on top
+        c.poly([(x0 + 23, top - 12), (x0 + 31, top - 12), (x0 + 29, top - 6), (x0 + 25, top - 6)], hexc('d9c690'))
+    lr.shifted(c, _tv, 0, -158)
+    # a big rubber plant in the corner, some leaves browning (clear of the side-wall column x 316)
+    c.shadow(302, 113, 8, 2, 80)
+    c.poly([(296, 100), (308, 100), (306, 112), (298, 112)], hexc('d9cfb8'))
+    for i, (lx, ly) in enumerate(((294, 70), (300, 62), (307, 72), (292, 84), (309, 86), (301, 80))):
         c.ellipse(lx, ly, 4, 6, hexc('4d6a3c') if i % 3 else hexc('7c6a38'))
-        c.line(308, 99, lx, ly + 5, hexc('3e5530'))
-    return c
+        c.line(302, 99, lx, ly + 5, hexc('3e5530'))
 
 
-# --- C: RUN-DOWN FLAT --------------------------------------------------------------------------
-
-def variant_c():
-    c = Canvas(seed=33)
+def c_wall(c):
     plain_wall(c, hexc('9b978a'), hexc('8a867a'), hexc('6f6c63'), hexc('a6a293'))
     # damp: greenish-brown blooms creeping from the corners
     for (sx, sy, rx, ry) in ((10, 14, 22, 16), (300, 80, 26, 14), (160, 6, 30, 7)):
@@ -177,6 +187,9 @@ def variant_c():
     # a fist-sized hole in the plaster
     c.ellipse(212, 58, 4, 3, hexc('3b3530'))
     c.ellipse(212, 58, 5, 4, hexc('b9b2a0', 90))
+
+
+def c_decor(c):
     # posters, taped up — one torn half off
     c.rect(104, 26, 130, 60, hexc('2b2a33'))
     c.rect(108, 30, 126, 44, hexc('b8453a'))
@@ -186,8 +199,13 @@ def variant_c():
         c.put(tx, ty, hexc('d9d0bc'))
     c.poly([(140, 30), (160, 28), (161, 44), (150, 50), (140, 46)], hexc('c9b25a'))
     c.poly([(150, 50), (161, 44), (158, 58)], hexc('b7a04e'))             # the torn flap hanging
-    c.wall_snap = c.img.copy()
+
+
+def c_floor(c):
     carpet_floor(c, hexc('59605f'), hexc('6b7271'), hexc('474d4c'))
+
+
+def c_furniture(c):
     c.ellipse(120, 128, 10, 3, hexc('3f3a33', 120))                        # stains
     c.ellipse(236, 136, 7, 2, hexc('4a2520', 110))
     # LEFT set-back: milk crates stacked as shelving
@@ -205,19 +223,21 @@ def variant_c():
         c.rect(bx, 88, bx + 1, 98, col)
     c.rect(15, 66, 26, 73, hexc('1f1f22'))                                 # records
     # the couch: a slumped grey sofa with a sleeping bag
-    sofa_as(c, (hexc('6d6e70'), hexc('555658'), hexc('848587'), hexc('2c2d2f')), (hexc('3f5f7a'), hexc('33506a')))
-    # a pallet table: pizza box, cans
-    c.shadow(214, 117, 26, 2, 100)
-    for py in (104, 110):
-        c.rect(190, py, 238, py + 2, hexc('a58a5d'))
-        c.hline(190, 238, py, hexc('b99c6b'))
-    for lx in (191, 213, 236):
-        c.rect(lx, 104, lx + 1, 116, hexc('8a7048'))
-    c.box(196, 99, 214, 103, hexc('c9b58a'), hexc('8a7a55'))                # pizza box
-    for cx_ in (220, 225, 229):
-        c.rect(cx_, 98, cx_ + 2, 103, hexc('9aa3a8'))
-        c.hline(cx_, cx_ + 2, 98, hexc('c9d0d4'))
-    c.rect(241, 114, 244, 116, hexc('9aa3a8'))                              # a can on the floor
+    sofa_as(c, (hexc('6d6e70'), hexc('555658'), hexc('848587'), hexc('2c2d2f')), (hexc('3f5f7a'), hexc('33506a')), dx=48)
+    def _pallet(c):
+        # a pallet table: pizza box, cans
+        c.shadow(214, 117, 26, 2, 100)
+        for py in (104, 110):
+            c.rect(190, py, 238, py + 2, hexc('a58a5d'))
+            c.hline(190, 238, py, hexc('b99c6b'))
+        for lx in (191, 213, 236):
+            c.rect(lx, 104, lx + 1, 116, hexc('8a7048'))
+        c.box(196, 99, 214, 103, hexc('c9b58a'), hexc('8a7a55'))                # pizza box
+        for cx_ in (220, 225, 229):
+            c.rect(cx_, 98, cx_ + 2, 103, hexc('9aa3a8'))
+            c.hline(cx_, cx_ + 2, 98, hexc('c9d0d4'))
+        c.rect(241, 114, 244, 116, hexc('9aa3a8'))                              # a can on the floor
+    lr.shifted(c, _pallet, 0, -128)
     # RIGHT set-back: a CRT TV on two crates, a console + cables
     c.shadow(276, 101, 20, 2, 90)
     c.box(260, 84, 290, 100, hexc('3a3a3d'), hexc('1c1c1e'))
@@ -235,14 +255,15 @@ def variant_c():
     c.rect(305, 70, 307, 89, hexc('4a3020'))
     c.rect(304, 66, 308, 70, hexc('2a1c14'))
     c.line(305, 71, 300, 84, hexc('d9d0bc'))
-    return c
+
 
 
 # --- D: GRANDMOTHER'S PARLOUR ------------------------------------------------------------------
 
-def variant_d():
-    c = Canvas(seed=44)
-    ROSE = hexc('9a6d70')
+ROSE = hexc('9a6d70')
+
+
+def d_wall(c):
     c.rect(0, 0, W - 1, 71, ROSE)
     for y in range(8, 70, 10):                                             # rosebud sprigs
         off = 0 if (y // 10) % 2 == 0 else 6
@@ -264,6 +285,9 @@ def variant_d():
     c.img.paste(tmp.img.crop((0, 70, W, 101)), (0, 70))
     c.px = c.img.load()
     lr.WAINS, lr.WAINS_LINE, lr.WAINS_HI, lr.RAIL, lr.RAIL_HI, lr.RAIL_LO, lr.SKIRT, lr.SKIRT_HI = keep
+
+
+def d_decor(c):
     # oval portraits (one slashed)
     for (cx_, col) in ((122, hexc('7c6a5a')), (144, hexc('6a5a4c'))):
         c.ellipse(cx_, 38, 8, 11, hexc('b58f4a'))
@@ -275,8 +299,13 @@ def variant_d():
     c.vline(198, 31, 43, shade(hexc('c0b39c'), 0.8))
     c.poly([(205, 30), (209, 32), (211, 40), (208, 46), (206, 44)], shade(ROSE, 0.75))
     c.line(205, 30, 208, 46, shade(ROSE, 0.6))
-    c.wall_snap = c.img.copy()
+
+
+def d_floor(c):
     lr.floor(c)
+
+
+def d_furniture(c):
     # an ornate green carpet with a gold border
     top, bot = 106, 130
     c.poly([(80, top), (252, top), (264, bot), (68, bot)], hexc('b58f4a'))
@@ -305,26 +334,28 @@ def variant_d():
     c.rect(26, 60, 29, 64, hexc('7c6a5a'))
     c.poly([(38, 66), (44, 66), (41, 57)], hexc('5a352b'))                  # metronome
     # the chintz sofa (cream with roses)
-    sofa_as(c, (hexc('c8b89a'), hexc('a99a7c'), hexc('d9cbb0'), hexc('5e5040')), (hexc('a0505a'), hexc('7c3a42')))
+    sofa_as(c, (hexc('c8b89a'), hexc('a99a7c'), hexc('d9cbb0'), hexc('5e5040')), (hexc('a0505a'), hexc('7c3a42')), dx=40)
     rng = c.rng
     for _ in range(40):                                                     # the chintz print
-        x = rng.randrange(92, 175)
+        x = rng.randrange(129, 212)
         y = rng.randrange(82, 110)
         if c.px[x, y][:3] in ((0xc8, 0xb8, 0x9a), (0xd9, 0xcb, 0xb0)):
             c.put(x, y, hexc('a0505a'))
             c.put(x + 1, y, hexc('6f7d58'))
-    # a mahogany tea table: a doily, a teapot, a toppled cup
-    c.shadow(214, 117, 24, 2, 100)
-    c.ellipse(214, 101, 22, 4, hexc('3a2019'))
-    c.ellipse(214, 100, 21, 3, hexc('5a352b'))
-    c.ellipse(214, 99, 10, 2, hexc('e6ddc8'))
-    for lx in (198, 230):
-        c.rect(lx, 104, lx + 1, 116, hexc('2a1712'))
-        c.put(lx - 1, 116, hexc('2a1712'))
-    c.ellipse(210, 95, 4, 3, hexc('e6ddc8'))
-    c.rect(214, 94, 216, 95, hexc('e6ddc8'))
-    c.ellipse(222, 99, 2, 1, hexc('e6ddc8'))
-    c.put(224, 100, hexc('7a4a2a'))
+    def _tea(c):
+        # a mahogany tea table: a doily, a teapot, a toppled cup
+        c.shadow(214, 117, 24, 2, 100)
+        c.ellipse(214, 101, 22, 4, hexc('3a2019'))
+        c.ellipse(214, 100, 21, 3, hexc('5a352b'))
+        c.ellipse(214, 99, 10, 2, hexc('e6ddc8'))
+        for lx in (198, 230):
+            c.rect(lx, 104, lx + 1, 116, hexc('2a1712'))
+            c.put(lx - 1, 116, hexc('2a1712'))
+        c.ellipse(210, 95, 4, 3, hexc('e6ddc8'))
+        c.rect(214, 94, 216, 95, hexc('e6ddc8'))
+        c.ellipse(222, 99, 2, 1, hexc('e6ddc8'))
+        c.put(224, 100, hexc('7a4a2a'))
+    lr.shifted(c, _tea, 0, -132)
     # RIGHT set-back: a glass-front china cabinet
     c.shadow(276, 101, 20, 2, 90)
     x0, x1, top = 258, 294, 67
@@ -344,33 +375,43 @@ def variant_d():
     lamp_shade(c, 306, hexc('d6b78a'), hexc('a8864a'), hexc('3a2019'), top=58)
     for fx in range(298, 315, 2):
         c.vline(fx, 71, 73, hexc('a8864a'))
-    return c
 
 
-def build_all():
-    return {'a': lr.build(), 'b': variant_b(), 'c': variant_c(), 'd': variant_d()}
+
+
+
+def _variant(wall, decor, floor, furniture, seed):
+    def bare(c):
+        wall(c)
+
+    def build(c):
+        wall(c)
+        decor(c)
+        floor(c)
+        furniture(c)
+        return c
+    return bare, floor, build
+
+
+B_ANCHORS = [('anchor_living_records', 30, 86, 'bp'), ('anchor_living_teak_shelf', 38, 72, 'bp'),
+             ('anchor_living_console_tv', 118, 82, 'bp'), ('anchor_living_kidney_table', 156, 100, ''),
+             ('anchor_centre_sofaleft', 213, 103, ''), ('anchor_centre_sofaright', 248, 101, '')]
+C_ANCHORS = [('anchor_living_crates', 22, 68, 'bp'), ('anchor_living_crate_books', 36, 92, 'bp'),
+             ('anchor_living_pallet_table', 77, 101, ''), ('anchor_centre_sofaleft', 159, 103, ''),
+             ('anchor_centre_sofaright', 194, 101, ''), ('anchor_living_crt', 272, 90, 'bp')]
+D_ANCHORS = [('anchor_living_piano', 26, 74, 'bp'), ('anchor_living_tea_table', 82, 99, ''),
+             ('anchor_centre_sofaleft', 151, 103, ''), ('anchor_centre_sofaright', 186, 101, ''),
+             ('anchor_living_china_cabinet', 276, 76, 'bp'), ('anchor_living_cabinet_cupboard', 270, 90, 'bp')]
+
+VARIANTS = {
+    'b': ('living_room_b', 21, (b_wall, b_decor, b_floor, b_furniture), B_ANCHORS),
+    'c': ('living_room_c', 33, (c_wall, c_decor, c_floor, c_furniture), C_ANCHORS),
+    'd': ('living_room_d', 44, (d_wall, d_decor, d_floor, d_furniture), D_ANCHORS),
+}
 
 
 if __name__ == '__main__':
-    rooms = build_all()
-    from PIL import Image
-    ok = True
-    for k, cv in rooms.items():
-        if k == 'a':
-            continue
-        bad = check_window_boxes(cv.img, cv.wall_snap)
-        if bad:
-            ok = False
-            print('variant %s: something inside a runtime window box: %s' % (k, bad[:6]))
-            continue
-        cv.save(os.path.join(ROOT, 'assets', 'rooms', 'living_room_%s.png' % k))
-    s = 3
-    sheet = Image.new('RGBA', (W * s * 2 + 12, H * s * 2 + 12), (18, 18, 20, 255))
-    for i, k in enumerate('abcd'):
-        im = rooms[k].img.resize((W * s, H * s), Image.NEAREST)
-        sheet.paste(im, ((i % 2) * (W * s + 12), (i // 2) * (H * s + 12)))
-    out = os.path.join(ROOT, 'docs', 'art_reference', 'modules', 'living_room_variants.png')
-    sheet.save(out)
-    print('wrote', out)
-    if not ok:
-        sys.exit(1)
+    for v in (sys.argv[1:] or sorted(VARIANTS)):
+        name, seed, fns, anchors = VARIANTS[v]
+        bare, floor, build = _variant(*fns, seed)
+        finish_module(name, 'living_room', seed, bare, floor, build, anchors)

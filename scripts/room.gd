@@ -40,13 +40,18 @@ var tut_nodes: Array = []       # the three hidden anchors (junk / health / club
 # looks the same flat to flat; each variant carries its OWN nodes on its OWN furniture. The first
 # entry is the base scene (MODULE_SCENES). Locked by apartment_window_test._test_module_variants.
 const MODULE_VARIANTS = {
-	"bedroom": ["res://scenes/Room_Modules/bedroom.tscn"],
+	"bedroom": ["res://scenes/Room_Modules/bedroom.tscn", "res://scenes/Room_Modules/bedroom_b.tscn",
+		"res://scenes/Room_Modules/bedroom_c.tscn", "res://scenes/Room_Modules/bedroom_d.tscn"],
 	"bathroom": ["res://scenes/Room_Modules/bathroom.tscn", "res://scenes/Room_Modules/bathroom_b.tscn",
 		"res://scenes/Room_Modules/bathroom_c.tscn", "res://scenes/Room_Modules/bathroom_d.tscn"],
-	"study": ["res://scenes/Room_Modules/study.tscn"],
-	"kitchen": ["res://scenes/Room_Modules/kitchen.tscn"],
-	"living_room": ["res://scenes/Room_Modules/living_room.tscn"],
-	"dining_room": ["res://scenes/Room_Modules/dining_room.tscn"],
+	"study": ["res://scenes/Room_Modules/study.tscn", "res://scenes/Room_Modules/study_b.tscn",
+		"res://scenes/Room_Modules/study_c.tscn", "res://scenes/Room_Modules/study_d.tscn"],
+	"kitchen": ["res://scenes/Room_Modules/kitchen.tscn", "res://scenes/Room_Modules/kitchen_b.tscn",
+		"res://scenes/Room_Modules/kitchen_c.tscn", "res://scenes/Room_Modules/kitchen_d.tscn"],
+	"living_room": ["res://scenes/Room_Modules/living_room.tscn", "res://scenes/Room_Modules/living_room_b.tscn",
+		"res://scenes/Room_Modules/living_room_c.tscn", "res://scenes/Room_Modules/living_room_d.tscn"],
+	"dining_room": ["res://scenes/Room_Modules/dining_room.tscn", "res://scenes/Room_Modules/dining_room_b.tscn",
+		"res://scenes/Room_Modules/dining_room_c.tscn", "res://scenes/Room_Modules/dining_room_d.tscn"],
 }
 
 const MODULE_SCENES = {

@@ -1,0 +1,196 @@
+[gd_scene format=3]
+
+[ext_resource type="Texture2D" path="res://assets/rooms/dining_room_c.png" id="1_art"]
+[ext_resource type="Texture2D" path="res://assets/rooms/dining_room_c_strip.png" id="2_strip"]
+
+[node name="Node2D" type="Node2D"]
+
+[node name="ColorRect" type="ColorRect" parent="."]
+offset_right = 320.0
+offset_bottom = 144.0
+color = Color(0.4, 0.4, 0.4, 1)
+
+[node name="Label" type="Label" parent="ColorRect"]
+layout_mode = 0
+offset_right = 318.0
+offset_bottom = 100.0
+theme_override_font_sizes/font_size = 32
+visible = false
+text = "Dining Room"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Art" type="Sprite2D" parent="."]
+texture_filter = 1
+texture = ExtResource("1_art")
+centered = false
+
+[node name="StripArt" type="Sprite2D" parent="."]
+texture_filter = 1
+texture = ExtResource("2_strip")
+centered = false
+
+[node name="Balcony" type="Node2D" parent="."]
+
+[node name="Sky" type="ColorRect" parent="Balcony"]
+offset_left = 12.0
+offset_top = 18.0
+offset_right = 88.0
+offset_bottom = 120.0
+color = Color(0.47, 0.74, 0.98, 1)
+
+[node name="Sun" type="Polygon2D" parent="Balcony"]
+polygon = PackedVector2Array(70, 22, 76, 24, 78, 30, 76, 36, 70, 38, 64, 36, 62, 30, 64, 24)
+color = Color(1, 0.95, 0.55, 1)
+
+[node name="SkylineA" type="ColorRect" parent="Balcony"]
+offset_left = 30.0
+offset_top = 34.0
+offset_right = 48.0
+offset_bottom = 57.0
+color = Color(0.24, 0.44, 0.68, 1)
+
+[node name="SkylineB" type="ColorRect" parent="Balcony"]
+offset_left = 52.0
+offset_top = 28.0
+offset_right = 68.0
+offset_bottom = 57.0
+color = Color(0.24, 0.44, 0.68, 1)
+
+[node name="Floor" type="Polygon2D" parent="Balcony"]
+polygon = PackedVector2Array(12, 118, 88, 118, 66, 74, 34, 74)
+color = Color(0.44, 0.44, 0.48, 1)
+
+[node name="FloorSeam" type="Polygon2D" parent="Balcony"]
+polygon = PackedVector2Array(34, 74, 66, 74, 62, 80, 38, 80)
+color = Color(0.36, 0.36, 0.4, 1)
+
+[node name="LeftWall" type="Polygon2D" parent="Balcony"]
+polygon = PackedVector2Array(12, 18, 12, 118, 34, 74, 34, 68)
+color = Color(0.3, 0.3, 0.34, 1)
+
+[node name="RightWall" type="Polygon2D" parent="Balcony"]
+polygon = PackedVector2Array(88, 18, 88, 118, 66, 74, 66, 68)
+color = Color(0.26, 0.26, 0.3, 1)
+
+[node name="TopRail" type="ColorRect" parent="Balcony"]
+offset_left = 33.0
+offset_top = 57.0
+offset_right = 67.0
+offset_bottom = 61.0
+color = Color(0.16, 0.16, 0.18, 1)
+
+[node name="BottomRail" type="ColorRect" parent="Balcony"]
+offset_left = 34.0
+offset_top = 71.0
+offset_right = 66.0
+offset_bottom = 75.0
+color = Color(0.16, 0.16, 0.18, 1)
+
+[node name="Bar1" type="ColorRect" parent="Balcony"]
+offset_left = 38.0
+offset_top = 60.0
+offset_right = 41.0
+offset_bottom = 73.0
+color = Color(0.22, 0.22, 0.25, 1)
+
+[node name="Bar2" type="ColorRect" parent="Balcony"]
+offset_left = 46.0
+offset_top = 60.0
+offset_right = 49.0
+offset_bottom = 73.0
+color = Color(0.22, 0.22, 0.25, 1)
+
+[node name="Bar3" type="ColorRect" parent="Balcony"]
+offset_left = 54.0
+offset_top = 60.0
+offset_right = 57.0
+offset_bottom = 73.0
+color = Color(0.22, 0.22, 0.25, 1)
+
+[node name="Bar4" type="ColorRect" parent="Balcony"]
+offset_left = 62.0
+offset_top = 60.0
+offset_right = 65.0
+offset_bottom = 73.0
+color = Color(0.22, 0.22, 0.25, 1)
+
+[node name="FrameTop" type="ColorRect" parent="Balcony"]
+offset_left = 4.0
+offset_top = 12.0
+offset_right = 96.0
+offset_bottom = 20.0
+color = Color(0.16, 0.13, 0.11, 1)
+
+[node name="FrameLeft" type="ColorRect" parent="Balcony"]
+offset_left = 4.0
+offset_top = 12.0
+offset_right = 12.0
+offset_bottom = 124.0
+color = Color(0.16, 0.13, 0.11, 1)
+
+[node name="FrameRight" type="ColorRect" parent="Balcony"]
+offset_left = 88.0
+offset_top = 12.0
+offset_right = 96.0
+offset_bottom = 124.0
+color = Color(0.16, 0.13, 0.11, 1)
+
+[node name="Sill" type="ColorRect" parent="Balcony"]
+offset_left = 6.0
+offset_top = 118.0
+offset_right = 94.0
+offset_bottom = 126.0
+color = Color(0.2, 0.17, 0.14, 1)
+
+[node name="DoorLeaf" type="Polygon2D" parent="Balcony"]
+polygon = PackedVector2Array(14, 22, 30, 25, 28, 116, 14, 116)
+color = Color(0.72, 0.75, 0.8, 1)
+
+[node name="DoorLeafGlass" type="Polygon2D" parent="Balcony"]
+polygon = PackedVector2Array(17, 30, 27, 32, 25, 108, 17, 108)
+color = Color(0.5, 0.66, 0.82, 1)
+
+[node name="DoorRight" type="Polygon2D" parent="Balcony"]
+polygon = PackedVector2Array(70, 25, 86, 22, 86, 116, 72, 116)
+color = Color(0.68, 0.71, 0.76, 1)
+
+[node name="DoorRightGlass" type="Polygon2D" parent="Balcony"]
+polygon = PackedVector2Array(73, 32, 83, 30, 83, 108, 74, 108)
+color = Color(0.48, 0.62, 0.78, 1)
+
+[node name="Tag" type="Label" parent="Balcony"]
+offset_left = 8.0
+offset_top = 0.0
+offset_right = 72.0
+offset_bottom = 12.0
+theme_override_colors/font_color = Color(0.92, 0.92, 0.92, 1)
+theme_override_font_sizes/font_size = 10
+text = "BALCONY"
+
+[node name="anchor_dining_china_cabinet" type="Marker2D" parent="."]
+position = Vector2(28, 52)
+metadata/back_plane = true
+metadata/balcony_strip = true
+
+[node name="anchor_dining_cabinet_cupboard" type="Marker2D" parent="."]
+position = Vector2(20, 86)
+metadata/back_plane = true
+metadata/balcony_strip = true
+
+[node name="anchor_dining_grandfather_clock" type="Marker2D" parent="."]
+position = Vector2(113, 70)
+metadata/back_plane = true
+
+[node name="anchor_table_left" type="Marker2D" parent="."]
+position = Vector2(142, 95)
+
+[node name="anchor_table_right" type="Marker2D" parent="."]
+position = Vector2(222, 95)
+
+[node name="anchor_dining_candelabra" type="Marker2D" parent="."]
+position = Vector2(180, 84)
+
+[node name="anchor_right_upperdrawers" type="Marker2D" parent="."]
+position = Vector2(280, 80)
+metadata/back_plane = true

@@ -295,6 +295,9 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
             break
     elif strip_fn is not None:
         errs.append('only balcony-capable rooms have a strip')
+    holes = [(x, y) for y in range(H) for x in range(W) if main.img.getpixel((x, y))[3] != 255]
+    if holes:
+        errs.append('transparent pixels in the art (they show the grey placeholder in game): %s' % holes[:6])
     fl = save_floor_strip(floor_fn, name, ROOT, seed=seed)
     if not floor_is_periodic(fl):
         errs.append('the floor must repeat every 32px')

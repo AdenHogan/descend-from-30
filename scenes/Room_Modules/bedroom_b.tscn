@@ -1,0 +1,49 @@
+[gd_scene format=3]
+
+[ext_resource type="Texture2D" path="res://assets/rooms/bedroom_b.png" id="1_art"]
+
+[node name="Node2D" type="Node2D"]
+
+[node name="ColorRect" type="ColorRect" parent="."]
+offset_right = 320.0
+offset_bottom = 144.0
+color = Color(0.4, 0.4, 0.4, 1)
+
+[node name="Label" type="Label" parent="ColorRect"]
+layout_mode = 0
+offset_right = 318.0
+offset_bottom = 100.0
+theme_override_font_sizes/font_size = 32
+visible = false
+text = "Bedroom"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Art" type="Sprite2D" parent="."]
+texture_filter = 1
+texture = ExtResource("1_art")
+centered = false
+
+[node name="anchor_bedroom_desk" type="Marker2D" parent="."]
+position = Vector2(28, 70)
+metadata/back_plane = true
+
+[node name="anchor_bedroom_desk_drawer" type="Marker2D" parent="."]
+position = Vector2(14, 88)
+metadata/back_plane = true
+
+[node name="anchor_bedroom_clothes_pile" type="Marker2D" parent="."]
+position = Vector2(78, 113)
+
+[node name="anchor_bedroom_beanbag" type="Marker2D" parent="."]
+position = Vector2(130, 109)
+
+[node name="anchor_bed_pillow" type="Marker2D" parent="."]
+position = Vector2(266, 88)
+
+[node name="anchor_floor_underbed" type="Marker2D" parent="."]
+position = Vector2(216, 110)
+
+[node name="anchor_bedroom_crate" type="Marker2D" parent="."]
+position = Vector2(301, 90)
+metadata/back_plane = true

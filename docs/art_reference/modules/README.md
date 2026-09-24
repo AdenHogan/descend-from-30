@@ -106,12 +106,27 @@ must be bare wall + floor (checked); furniture there goes in `strip_fn` → `<na
 `room._apply_balcony_strip` hides the strip art and removes those nodes; without a balcony the
 room gets the use of that space.
 
-Built so far: bathroom a (classic — a SHORT roll-top on claw feet, the owner's "horse trough" fix),
-b (70s avocado, a panelled bath), c (gilded — gold tub, gold throne, chandelier), d (wet room —
-a tub behind a drawn curtain, a washing machine, a clothes horse). Study a: the desk pulled out
-into the room facing you (chair tucked behind), books dumped in the strip. Dining a: a precise
-side-on chair at the table's end (the "guillotine" fallen chair is gone), a drinks trolley.
-Kitchen a: a small table pulled out + a box of tins. Living room floor now repeats every 32px.
+**All 24 variants BUILT (round 10) — 4 per room type** (overview: `all_variants.png` here; rebuild
+everything with `python3 tools/art/build_all.py`, deterministic — an unchanged script re-writes
+byte-identical PNGs). Scripts: `<type>.py` = variant a, `<type>_variants.py` = b-d (bathroom keeps all
+four in `bathroom.py`); shared pieces in `tools/art/furn.py` (chest, shelves, table, chairs, boxes,
+posters, rugs, lamps, walls + tiling floors).
+- living room: a green sofa + bookshelf / b teak mid-century (TV left, sofa right) / c run-down flat
+  (crates, pallet table, CRT) / d grandmother's parlour (piano, chintz sofa, china cabinet).
+- bedroom: a dressing table + wardrobe / b teenager's (desk + CRT, beanbag, bed on the right) /
+  c sick room (iron bedstead, drip, wheelchair, med trolley) / d squat (mattress on the floor,
+  clothes rail, backpack, crates).
+- kitchen: a counter run + a table pulled out / b 60s galley (yellow units, formica dinette) /
+  c farmhouse (range in a brick recess, butler sink, pine table + bench) / d student wreck (open
+  fridge, dishes, microwave, camping table, pizza boxes).
+- bathroom: a SHORT roll-top on claw feet (the owner's "horse trough" fix) / b 70s avocado
+  (panelled bath) / c gilded (gold tub + throne, chandelier) / d wet room (curtained tub, washer,
+  clothes horse).
+- study: desk pulled out into the room / b 90s home office / c library (two bookcases + ladder,
+  wingback, globe) / d prepper's radio room.
+- dining room: table + side-on chair + drinks trolley / b 70s round table + serving hatch /
+  c formal (grandfather clock, candelabra) / d barricaded (the table flipped on its side).
+Study + dining variants each put their own furniture in the balcony strip (see above).
 
 ## Agreed plan (owner round 9) — in this order, not started beyond step 1
 

@@ -1,0 +1,46 @@
+[gd_scene format=3]
+
+[ext_resource type="Texture2D" path="res://assets/rooms/living_room_d.png" id="1_art"]
+
+[node name="Node2D" type="Node2D"]
+
+[node name="ColorRect" type="ColorRect" parent="."]
+offset_right = 320.0
+offset_bottom = 144.0
+color = Color(0.4, 0.4, 0.4, 1)
+
+[node name="Label" type="Label" parent="ColorRect"]
+layout_mode = 0
+offset_right = 318.0
+offset_bottom = 100.0
+theme_override_font_sizes/font_size = 32
+visible = false
+text = "Living Room"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Art" type="Sprite2D" parent="."]
+texture_filter = 1
+texture = ExtResource("1_art")
+centered = false
+
+[node name="anchor_living_piano" type="Marker2D" parent="."]
+position = Vector2(26, 74)
+metadata/back_plane = true
+
+[node name="anchor_living_tea_table" type="Marker2D" parent="."]
+position = Vector2(82, 99)
+
+[node name="anchor_centre_sofaleft" type="Marker2D" parent="."]
+position = Vector2(151, 103)
+
+[node name="anchor_centre_sofaright" type="Marker2D" parent="."]
+position = Vector2(186, 101)
+
+[node name="anchor_living_china_cabinet" type="Marker2D" parent="."]
+position = Vector2(276, 76)
+metadata/back_plane = true
+
+[node name="anchor_living_cabinet_cupboard" type="Marker2D" parent="."]
+position = Vector2(270, 90)
+metadata/back_plane = true
