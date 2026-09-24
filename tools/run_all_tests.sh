@@ -9,7 +9,7 @@
 cd "$(dirname "$0")/.." || exit 2
 LOG_DIR="${TEST_LOG_DIR:-/tmp/df30_tests}"
 mkdir -p "$LOG_DIR"
-if pgrep -f "godot --headless" >/dev/null; then
+if pgrep -x godot >/dev/null; then
 	echo "A headless godot is already running — stop it first (suites must run one at a time)." >&2
 	exit 2
 fi

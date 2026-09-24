@@ -1,13 +1,15 @@
 class_name Salvage
 extends RefCounted
 
-# BREAKING ITEMS DOWN FOR SCRAP (docs/SCRAP_UPGRADES.md, "Salvage") — at a maintenance-room
-# workbench, any salvageable item can be stripped for scrap. Junk finally has a use (a few scrap
-# each, so carrying it to a bench is a real slots-vs-scrap choice); weapons and tools are worth
-# more, but a WORN one is worth less. Every number lives here.
+# BREAKING ITEMS DOWN FOR SCRAP (docs/SCRAP_UPGRADES.md, "Salvage") — ONLY at a maintenance-room
+# workbench (owner: inventory must not be in-and-out easily, or the small pockets lose their
+# tension). Without help it pays RUBBISH scrap (YIELD_BASE); the "Tinkerer" merchant upgrade
+# (offered at the every-five-floors merchant pick) raises the yield. BASE is the value at FULL
+# yield. Every number lives here.
 #
-#   value = BASE[id] × wear × (0.7 if a damaged gun) × stack count  + 40% of any workbench scrap
-#           the weapon had sunk into it,  rounded, at least 1.
+#   value = (BASE[id] × wear × (0.7 if a damaged gun) × stack count  + 40% of any workbench
+#            scrap the weapon had sunk into it) × yield,  rounded, at least 1.
+#   yield = YIELD_BASE × WorldState salvage_yield fold (Tinkerer ×2.5 → full).
 #   wear  = 0.4 + 0.6 × (durability left / max)  — a broken item still gives 40%.
 # Not salvageable (value 0): healing items, clothes/rope, ammo, keys, money, the Scrap Bag.
 
@@ -43,6 +45,7 @@ const BASE := {
 	"036": 12,  # Fire Extinguisher
 }
 
+const YIELD_BASE := 0.4            # rubbish scrap without the Tinkerer upgrade
 const WORN_FLOOR := 0.4             # what a broken / fully worn item is still worth
 const DAMAGED_GUN := 0.7
 const INVESTED_REFUND := 0.4        # share of workbench scrap an upgraded weapon gives back
@@ -67,7 +70,12 @@ static func value_of(inst) -> int:
 	for lvl in range(2, inst.level + 1):
 		invested += int(WeaponUpgrades.step_cost(lvl).get("scrap", 0))
 	v += invested * INVESTED_REFUND
-	return maxi(1, int(round(v)))
+	return maxi(1, int(round(v * yield_mult())))
+
+
+# How well this character strips things down: YIELD_BASE, lifted by upgrades (Tinkerer).
+static func yield_mult() -> float:
+	return YIELD_BASE * WorldState.get_salvage_yield_mult()
 
 
 # Worth confirming first (a second press) — anything that isn't plain junk.

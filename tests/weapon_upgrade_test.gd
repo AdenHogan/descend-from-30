@@ -405,7 +405,9 @@ func _test_gun_wear_in_play() -> void:
 
 
 func _test_salvage_values() -> void:
-	print("[salvage: junk is worth a little; weapons more; worn ones less]")
+	print("[salvage: junk is worth a little; weapons more; worn ones less (full yield: Tinkerer)]")
+	WorldState.new_game()
+	WorldState.active_upgrades = ["U_tinker"]            # the Tinkerer merchant upgrade → full yield
 	var junk := ItemInstance.new()
 	junk.setup("032")
 	check(Salvage.value_of(junk) == 6 and not Salvage.needs_confirm(junk), "a broken umbrella → 6 scrap, no confirm needed")
@@ -428,6 +430,13 @@ func _test_salvage_values() -> void:
 	fuses.setup("020")
 	fuses.count = 3
 	check(Salvage.value_of(fuses) == 12, "a stack counts every item (3 fuses → 12)")
+	print("[without the Tinkerer, dismantling pays rubbish (40%)]")
+	WorldState.active_upgrades = []
+	h.current_durability = 10
+	h.is_depleted = false
+	check(Salvage.value_of(junk) == 2 and Salvage.value_of(bottle) == 1, "umbrella 6 → 2, bottle 3 → 1")
+	check(Salvage.value_of(h) == 6 and Salvage.value_of(_gun()) == 10, "hammer 14 → 6, gun 25 → 10")
+	check(WorldState.UPGRADE_POOL.has("U_tinker"), "the Tinkerer is a merchant (every-five-floors) upgrade")
 	for id in ["006", "007", "016", "022", "033", "037", "008"]:
 		var it := ItemInstance.new()
 		it.setup(id)
@@ -436,8 +445,8 @@ func _test_salvage_values() -> void:
 	var loaded := _gun()
 	loaded.mag_count = 5
 	WorldState.inventory = [junk, loaded]
-	check(WorldState.salvage_item(0) == 6 and WorldState.scrap == 6 and WorldState.scrap_unlocked, "salvaging banks the scrap (and shows the counter)")
-	check(WorldState.salvage_item(0) == 25 and WorldState.get_ammo_total() == 5, "a loaded gun's rounds come back as bullets")
+	check(WorldState.salvage_item(0) == 2 and WorldState.scrap == 2 and WorldState.scrap_unlocked, "salvaging banks the scrap (and shows the counter)")
+	check(WorldState.salvage_item(0) == 10 and WorldState.get_ammo_total() == 5, "a loaded gun's rounds come back as bullets")
 	# A FULL gun with no spare room: its 18 rounds can't all fit → refused, nothing lost.
 	WorldState.new_game()
 	var full := _gun()
@@ -452,7 +461,7 @@ func _test_salvage_values() -> void:
 	check(WorldState.inventory[0] == full and full.mag_count == 18, "…and the gun + rounds are untouched")
 	WorldState.inventory.remove_at(1)
 	WorldState.inventory.remove_at(1)
-	check(WorldState.salvage_blocker(0) == "" and WorldState.salvage_item(0) == 25 and WorldState.get_ammo_total() == 18,
+	check(WorldState.salvage_blocker(0) == "" and WorldState.salvage_item(0) == 10 and WorldState.get_ammo_total() == 18,
 		"with room (3 slots) it breaks down and all 18 rounds come back")
 
 
@@ -469,9 +478,9 @@ func _test_salvage_ui() -> void:
 	ui.open()
 	ui.show_tab("salvage")
 	check(ui._salvage_page.visible and not ui._upgrade_page.visible, "the tab swaps pages")
-	check(ui.salvage(0) == 3 and WorldState.inventory.size() == 2, "junk breaks down on one press")
+	check(ui.salvage(0) == 1 and WorldState.inventory.size() == 2, "junk breaks down on one press")
 	check(ui.salvage(1) == 0 and WorldState.inventory.size() == 2, "a hammer takes a second press…")
-	check(ui.salvage(1) == 14 and WorldState.inventory.size() == 1 and WorldState.scrap == 17, "…then it's scrap (17 total)")
+	check(ui.salvage(1) == 6 and WorldState.inventory.size() == 1 and WorldState.scrap == 7, "…then it's scrap (7 total)")
 	check(ui.salvage(0) == 0, "bandages can't be salvaged")
 	ui.close()
 	ui.queue_free()

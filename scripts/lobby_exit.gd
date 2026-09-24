@@ -1,11 +1,15 @@
 extends Area2D
 
+var _leaving := false          # the exit runs ONCE (the handoff pause could let it re-trigger)
+
+
 func _ready() -> void:
 	body_entered.connect(_on_body_entered)
 
 func _on_body_entered(body: Node2D) -> void:
-	if body.name != "Player":
+	if body.name != "Player" or _leaving:
 		return
+	_leaving = true
 	# Reaching the lobby and stepping out ENDS this character's story — a success.
 	# They take their notes and inventory OUT of the building (no corpse to recover;
 	# escaping is the selfish outcome — see docs/THREE_RUN_ARC.md). Per the arc, this
@@ -16,8 +20,13 @@ func _on_body_entered(body: Node2D) -> void:
 	# The END CARD (same bookend as a death), leaving the screen black BEFORE advancing so the
 	# run's world mutation never shows on the old scene.
 	var who: String = WorldState.character_display_name(WorldState.current_character())
-	if not await Transition.end_card(TutorialManager.LINES["end_escaped"],
-			"%s made it out of the building." % who, Transition.END_ESCAPED_COLOR):
+	# THE HANDOFF: leave one item at the door for whoever comes next (or the next game).
+	var line := "%s made it out of the building." % who
+	var left: String = await _offer_handoff()
+	if left != "":
+		line += "\nThe %s waits by the door for %s." % [left,
+			"the next game" if WorldState.current_run >= WorldState.RUN_NAMES.size() else "whoever comes next"]
+	if not await Transition.end_card(TutorialManager.LINES["end_escaped"], line, Transition.END_ESCAPED_COLOR):
 		await Transition.cover()
 	var arc_over: bool = WorldState.advance_run()
 	if arc_over:
@@ -34,3 +43,15 @@ func _on_body_entered(body: Node2D) -> void:
 	# time-skip into the next character's Floor 30 arrival.
 	WorldState.save_game("res://scenes/hallway.tscn", false)
 	Transition.to_run_start("res://scenes/hallway.tscn")   # → the cold open's time card
+
+
+# Ask which item to leave behind (if there's anything to leave). Returns its name, "" for none.
+func _offer_handoff() -> String:
+	if WorldState.handoff_candidates().is_empty():
+		return ""
+	var ui = preload("res://scripts/handoff_ui.gd").new()
+	get_tree().root.add_child(ui)
+	ui.open()
+	var slot: int = await ui.decided
+	ui.queue_free()
+	return WorldState.leave_for_next(slot) if slot >= 0 else ""

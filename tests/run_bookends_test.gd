@@ -34,6 +34,7 @@ func _ready() -> void:
 	_test_prompt_hints_name_keys()
 	await _test_end_card()
 	await _test_death_to_next_cold_open()
+	await _test_opener_never_strands_pause()
 	Engine.time_scale = 1.0
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
@@ -219,3 +220,17 @@ func _test_death_to_next_cold_open() -> void:
 		intro.queue_free()
 	get_tree().paused = false
 	WorldState.delete_save()
+
+
+func _test_opener_never_strands_pause() -> void:
+	print("[a cold open freed mid-way (scene change) never leaves the game paused]")
+	await get_tree().process_frame                # let the previous test's opener finish freeing
+	await get_tree().process_frame
+	get_tree().paused = false
+	var intro = preload("res://scripts/intro_overlay.gd").new()
+	add_child(intro)
+	await get_tree().process_frame
+	check(get_tree().paused, "the cold open pauses play")
+	intro.queue_free()
+	await get_tree().process_frame
+	check(not get_tree().paused, "freed before it finished → play is unpaused, not stranded")

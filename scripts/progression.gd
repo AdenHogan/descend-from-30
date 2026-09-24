@@ -44,6 +44,8 @@ const RUN_BOONS := {
 # NO weighting — and ONE may be bought to keep forever. A permanent perk applies to every run of
 # every new game in that save slot and is removed from the temporary pools (merchant + boons).
 const VALOUR_ESCAPE_BONUS := 10
+const VALOUR_PER_QUEST := 8             # each quest completed that run (owner: quests + NPCs count)
+const VALOUR_PER_NPC := 4               # each NPC aided that run
 const VALOUR_DEPTH_CURVE := 60.0        # floors descended d → d + floor(d² / curve)
 const OFFER_COUNT := 3                   # perks offered at the end of a session
 const PERMANENT_CAP := 10                # permanent perks a profile can hold at once
@@ -58,10 +60,12 @@ const COST_OVERRIDE := {"U_slot": 110, "U_db_slotstam": 70}
 
 
 # Valour one run earns: floors descended below 30 (their deepest), weighted toward depth, +bonus
-# for escaping. d=5 → 5, d=15 → 18, d=20 → 26, d=30 (lobby) → 45 (+10 escaped = 55).
-static func valour_for_run(deepest_floor: int, escaped: bool) -> int:
+# for escaping, + quests completed and NPCs aided. d=5 → 5, d=15 → 18, d=20 → 26, d=30 (lobby)
+# → 45 (+10 escaped = 55); each quest +8, each NPC aided +4.
+static func valour_for_run(deepest_floor: int, escaped: bool, quests: int = 0, npcs: int = 0) -> int:
 	var d := clampi(30 - deepest_floor, 0, 30)
-	return d + int(floor(d * d / VALOUR_DEPTH_CURVE)) + (VALOUR_ESCAPE_BONUS if escaped else 0)
+	return d + int(floor(d * d / VALOUR_DEPTH_CURVE)) + (VALOUR_ESCAPE_BONUS if escaped else 0) \
+		+ maxi(0, quests) * VALOUR_PER_QUEST + maxi(0, npcs) * VALOUR_PER_NPC
 
 
 # Everything about a perk that can become permanent: a merchant upgrade (U_*) or a run boon (B_*).

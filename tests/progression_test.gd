@@ -26,7 +26,7 @@ func _ready() -> void:
 	_saved_slot = WorldState.active_slot
 	_saved = {"valour": WorldState.valour, "perks": WorldState.permanent_perks.duplicate(),
 		"offer": WorldState.valour_offer.duplicate(), "last": WorldState.last_valour.duplicate(true),
-		"seed": WorldState._valour_scored_seed}
+		"seed": WorldState._valour_scored_seed, "carry": WorldState.carry_item.duplicate(true)}
 	_clear_valour()
 	_test_milestones()
 	_test_boon_offer_and_fold()
@@ -36,6 +36,10 @@ func _ready() -> void:
 	_test_finish_session_offer()
 	_test_buy_and_permanence()
 	_test_cap_and_trade()
+	_test_quest_valour()
+	_test_handoff_in_session()
+	_test_handoff_next_game()
+	await _test_handoff_ui()
 	await _test_boon_ui()
 	await _test_legacy_ui()
 	await _test_game_over_screen()
@@ -47,6 +51,7 @@ func _ready() -> void:
 	WorldState.valour_offer = _saved["offer"]
 	WorldState.last_valour = _saved["last"]
 	WorldState._valour_scored_seed = _saved["seed"]
+	WorldState.carry_item = _saved["carry"]
 	WorldState.save_profile()
 	get_tree().paused = false
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
@@ -129,6 +134,7 @@ func _clear_valour() -> void:
 	WorldState.valour_offer = []
 	WorldState.last_valour = {}
 	WorldState._valour_scored_seed = 0
+	WorldState.carry_item = {}
 
 
 func _test_valour_maths() -> void:
@@ -145,6 +151,7 @@ func _test_valour_maths() -> void:
 		mono = mono and v > prev
 		prev = v
 	check(mono, "every floor deeper is worth strictly more")
+	check(Progression.valour_for_run(15, false, 2, 1) == 18 + 16 + 4, "quests (+8 each) and NPCs aided (+4 each) add on")
 
 
 func _test_session_perks() -> void:
@@ -286,6 +293,110 @@ func _test_boon_ui() -> void:
 	var pick: String = WorldState.boon_offer(27)[1]
 	check(ui.choose(pick) == "" and pick in WorldState.run_boons, "choosing takes the boon")
 	check(not ui.visible and not get_tree().paused and not HUD.boon_badge.visible, "…closes, resumes play, clears the badge")
+	await get_tree().process_frame
+
+
+func _test_quest_valour() -> void:
+	print("[quests completed + NPCs aided count toward the session's Valour]")
+	_clear_valour()
+	WorldState.new_game()
+	WorldState.note_quest_completed()
+	WorldState.note_npc_aided()
+	WorldState.note_npc_aided()
+	WorldState.current_run = 2
+	WorldState.note_quest_completed()
+	for i in 3:
+		WorldState.run_chronicle[i]["deepest_floor"] = 30
+		WorldState.set_run_outcome(i + 1, "dead")
+	var res: Dictionary = WorldState.finish_session()
+	check(int(res["total"]) == 8 + 4 + 4 + 8, "run 1: a quest + 2 aided, run 2: a quest → 24 (%d)" % int(res["total"]))
+	check(int(res["runs"][0]["quests"]) == 1 and int(res["runs"][0]["npcs"]) == 2, "the breakdown carries the counts")
+	_clear_valour()
+
+
+func _hammer_lv3() -> ItemInstance:
+	var h := ItemInstance.new()
+	h.setup("002")
+	h.level = 3
+	h.perks = ["H_heavy", "H_sweep"]
+	h.current_durability = 7
+	return h
+
+
+func _test_handoff_in_session() -> void:
+	print("[an ESCAPE leaves one item at the door — the next character starts with it, upgrades intact]")
+	WorldState.new_game()
+	var key := ItemInstance.new()
+	key.setup_key("022", "2903")
+	var notes := ItemInstance.new()
+	notes.setup("033")
+	var h := _hammer_lv3()
+	WorldState.inventory = [key, notes, h]
+	check(WorldState.handoff_candidates() == [2], "keys and cash can't be handed on (%s)" % str(WorldState.handoff_candidates()))
+	check(WorldState.leave_for_next(0) == "", "…refused for a key")
+	check(WorldState.leave_for_next(2) == "Hammer Lv3" and WorldState.inventory.size() == 2, "the hammer is left at the door")
+	check(WorldState.chronicle_entry(1)["left_behind"] == "Hammer Lv3", "the chronicle remembers it")
+	WorldState.save_game("res://scenes/hallway.tscn", false)
+	WorldState.handoff_item = {}
+	WorldState.load_game()
+	check(not WorldState.handoff_item.is_empty(), "a save keeps it waiting")
+	WorldState.delete_save()
+	WorldState.set_run_outcome(1, "survived")
+	WorldState.advance_run()
+	check(WorldState.inventory.size() == 1, "the next character starts with it — and only it")
+	var got = WorldState.inventory[0]
+	check(got.item_id == "002" and got.level == 3 and got.perks == ["H_heavy", "H_sweep"] and got.current_durability == 7,
+		"same hammer: Lv3, its perks, its wear")
+	check(WorldState.handoff_item.is_empty() and WorldState.carry_item.is_empty(), "handed over once, nothing left pending")
+	WorldState.advance_run()
+	check(WorldState.inventory.is_empty(), "…and it doesn't come back a second time")
+
+
+func _test_handoff_next_game() -> void:
+	print("[escaping the THIRD run leaves it for the next game's first character]")
+	_clear_valour()
+	WorldState.new_game()
+	WorldState.current_run = 3
+	WorldState.inventory = [_hammer_lv3()]
+	WorldState.leave_for_next(0)
+	check(WorldState.handoff_item.is_empty() and not WorldState.carry_item.is_empty(), "it waits in the PROFILE, not this game")
+	WorldState.carry_item = {}
+	WorldState.load_profile()
+	check(not WorldState.carry_item.is_empty(), "saved in the profile")
+	WorldState.new_game()
+	check(WorldState.inventory.size() == 1 and WorldState.inventory[0].level == 3, "the next game's first character starts with it")
+	check(WorldState.carry_item.is_empty(), "…once")
+	WorldState.load_profile()
+	check(WorldState.carry_item.is_empty(), "and the profile agrees (no second copy next game)")
+	WorldState.new_game()
+	check(WorldState.inventory.is_empty(), "a later new game starts empty")
+	_clear_valour()
+	WorldState.save_profile()
+
+
+func _test_handoff_ui() -> void:
+	print("[the handoff panel: pick one, or leave nothing — it never leaves the exit waiting]")
+	WorldState.new_game()
+	WorldState.inventory = [_hammer_lv3()]
+	var ui = preload("res://scripts/handoff_ui.gd").new()
+	add_child(ui)
+	var got := [-99]
+	ui.decided.connect(func(s): got[0] = s)
+	ui.open()
+	check(ui.visible and get_tree().paused, "it opens and pauses")
+	ui.close()                                   # ESC / ✕
+	check(got[0] == -1 and not ui.visible and not get_tree().paused, "closing = take everything (-1), play resumes")
+	ui.choose(0)
+	check(got[0] == -1, "it answers only once")
+	ui.queue_free()
+	var ui2 = preload("res://scripts/handoff_ui.gd").new()
+	add_child(ui2)
+	ui2.decided.connect(func(s): got[0] = s)
+	ui2.open()
+	ui2.choose(0)
+	check(got[0] == 0, "picking an item reports its slot")
+	ui2.queue_free()
+	get_tree().paused = false
 	await get_tree().process_frame
 
 

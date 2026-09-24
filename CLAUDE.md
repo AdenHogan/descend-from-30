@@ -1171,8 +1171,10 @@ means no rendering — UI layout and art still need an in-editor look.
   Gun tree as specced; **hammer tree is PLACEHOLDER** (owner writing it). **Gun wear**: 8 marks,
   one knocked off every 6 rounds fired (`ItemInstance.register_shot` / `shots_since_mark`, saved);
   worn out = broken (toolbox); Durable Hand Cannon = a mark per 12 shots + no force damage.
-  **Salvage**: the bench's Salvage tab breaks items down for scrap (`salvage.gd` table — junk 2–6,
-  weapons/tools up to 25, worn items less, upgraded weapons refund 40% of scrap sunk in). Also fixed on the way: **discard memory** (a dropped item keeps
+  **Salvage**: the bench's Salvage tab breaks items down for scrap — BENCH-ONLY (keeps inventory
+  pressure), RUBBISH yield by default (`Salvage.YIELD_BASE` 0.4), the **Tinkerer** merchant
+  upgrade (`U_tinker`, `salvage_yield` ×2.5) raises it to full (`salvage.gd` table — junk 2–6,
+  weapons/tools up to 25 at full; worn items less; upgraded weapons refund 40% of scrap sunk in). Also fixed on the way: **discard memory** (a dropped item keeps
   its full state incl. level/perks; broken weapons drop too; same-spot drops no longer overwrite —
   `add_world_drop` returns the key it used), and **New Game leaked the previous game's wallet +
   cash** (`new_game` now resets wallet/scrap). Tools: `scene_capture` gained `give:` / `scrap:`
@@ -1185,7 +1187,12 @@ means no rendering — UI layout and art still need an in-editor look.
   depth into Valour (`d + d²/60`, +10 escaped; banked to the PROFILE, savable) and offers up to 3
   perks drawn uniformly at random from `session_perks` (every merchant upgrade + run boon ACQUIRED
   that session). Buy ONE to keep forever (`permanent_perks`, a fold source for every new game in the
-  slot, removed from the merchant + boon pools); max 10, trade out for a 50% refund. UI:
+  slot, removed from the merchant + boon pools); max 10, trade out for a 50% refund. Quests
+  completed (+8) and NPCs aided (+4) also score (`note_quest_completed`/`note_npc_aided` hooks —
+  quests not built yet). **Descent boon = Valour + THE HANDOFF**: an escaping character leaves ONE
+  item (full state, upgrades kept) for the next character — or, after run 3, the next game's first
+  (`leave_for_next`, `handoff_item` in the save / `carry_item` in the profile, `handoff_ui.gd`
+  from `lobby_exit`). The cold open releases its pause if freed early (`intro_overlay._exit_tree`). UI:
   `legacy_ui.gd` (Descent offer / Collection tabs) from the end screen (`game_over.gd`, whose layout
   was also fixed — its anchors had collapsed top-left) and the profile screen's LEGACY button.
   NOTE for tests: Valour + kept perks live in the PROFILE file — a test that buys must restore them

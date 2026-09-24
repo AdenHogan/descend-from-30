@@ -45,9 +45,15 @@ fiction is fixed time-of-day; the difficulty curve is authored, not emergent.
 **Victory & the exit:**
 - Reaching the lobby and exiting ends that character's story — success, not
   game end.
-- A successful exit grants the next character a **DESCENT BOON**. Content pool
-  TBD — candidate scale: a weapon, no stamina drain for ten floors, an extra
-  health state ("SUPER HEALTHY"). Compounding for double-escape: still open.
+- **DESCENT BOON — DECIDED (owner) + BUILT:** the descent boon IS Descent Valour (escaping
+  adds +10 to that run's Valour — docs/PROGRESSION.md), **plus THE HANDOFF**: stepping out of
+  the lobby, the escaping character may leave **ONE item** at the door (`handoff_ui.gd` →
+  `WorldState.leave_for_next`) — any weapon/item except keys and cash, with its FULL state
+  (upgrade level, perks, durability — an upgraded legendary weapon carries over as-is). The next
+  character this session starts with it; after the THIRD run it waits in the PROFILE for the
+  next game's first character (`carry_item`), on top of any Valour perk bought. One item, only
+  on an escape — "reward but not too much reward". The end card names it ("The Hammer Lv3
+  waits by the door for whoever comes next"). Locked by `progression_test`.
 - A character who exits takes their notes and inventory OUT of the building —
   no corpse, nothing to recover. **DELIBERATE:** escaping is the selfish
   outcome; dying reachable is the generous one. (See `STORE_DESIGN.md` —

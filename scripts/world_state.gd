@@ -259,10 +259,12 @@ func finish_session() -> Dictionary:
 		var e: Dictionary = run_chronicle[i]
 		var escaped := String(e.get("outcome", "")) == "escaped"
 		var deepest: int = 0 if escaped else int(e.get("deepest_floor", 30))
-		var v: int = Progression.valour_for_run(deepest, escaped)
+		var quests: int = int(e.get("quests_completed", 0))
+		var npcs: int = int(e.get("npcs_aided", 0))
+		var v: int = Progression.valour_for_run(deepest, escaped, quests, npcs)
 		total += v
 		runs.append({"run": i + 1, "character": String(e.get("character", "")), "deepest": deepest,
-			"escaped": escaped, "valour": v})
+			"escaped": escaped, "quests": quests, "npcs": npcs, "valour": v})
 	valour += total
 	var pool: Array = []
 	for id in session_perks:
@@ -308,6 +310,69 @@ func decline_valour_offer() -> void:
 	save_profile()
 
 
+# --- THE HANDOFF (owner: "a successful exit will also allow for a weapon or item to carry over,
+# on top of the purchased Valour upgrade, including upgraded legendary weapons") ---------------
+# A character who ESCAPES leaves ONE item at the door for whoever comes next — the next character
+# this session, or (after the 3rd run) the first character of the next game. The item keeps its
+# full state (level, perks, durability). One item, only on an escape: reward, not too much.
+var handoff_item: Dictionary = {}      # for the NEXT character this session (game save)
+var carry_item: Dictionary = {}        # for the next GAME's first character (profile)
+
+
+# Inventory slots that can be handed on: anything but keys (their doors belong to this building's
+# past) and loose cash.
+func handoff_candidates() -> Array:
+	var out: Array = []
+	for i in inventory.size():
+		var d: Dictionary = inventory[i].get_data()
+		if d.get("is_key", false) or d.get("is_money", false):
+			continue
+		out.append(i)
+	return out
+
+
+# Leave the item in `slot` for whoever comes next. Returns its display name ("" = not allowed).
+func leave_for_next(slot: int) -> String:
+	if not (slot in handoff_candidates()):
+		return ""
+	var inst = inventory[slot]
+	var label: String = inst.get_display_name() + (" Lv%d" % inst.level if inst.level > 1 else "")
+	var data: Dictionary = instance_to_dict(inst)
+	inventory.remove_at(slot)
+	if current_run >= RUN_NAMES.size():
+		carry_item = data                   # the arc ends here — it waits for the next game
+		save_profile()
+	else:
+		handoff_item = data
+	_ensure_chronicle()
+	run_chronicle[clampi(current_run - 1, 0, 2)]["left_behind"] = label
+	return label
+
+
+# The new character finds what was left for them (called at the time skip + New Game).
+func _grant_handoff() -> void:
+	if handoff_item.is_empty():
+		return
+	var inst = instance_from_dict(handoff_item)
+	handoff_item = {}
+	if not add_instance_to_inventory(inst):
+		inventory.append(inst)              # a fresh character has empty pockets — never lose it
+
+
+# Quests + NPCs feed Descent Valour (owner). Quests aren't built yet — these are the hooks the
+# quest system calls; each counts toward THIS run's score.
+func note_quest_completed() -> void:
+	_ensure_chronicle()
+	var e: Dictionary = run_chronicle[clampi(current_run - 1, 0, 2)]
+	e["quests_completed"] = int(e.get("quests_completed", 0)) + 1
+
+
+func note_npc_aided() -> void:
+	_ensure_chronicle()
+	var e: Dictionary = run_chronicle[clampi(current_run - 1, 0, 2)]
+	e["npcs_aided"] = int(e.get("npcs_aided", 0)) + 1
+
+
 # Trade a permanent perk out from the Legacy screen (frees a slot; refunds part of its cost).
 func trade_out_permanent(perk_id: String) -> int:
 	if not (perk_id in permanent_perks):
@@ -333,6 +398,9 @@ func _blank_chronicle_entry(character: String = "") -> Dictionary:
 		"recovered": false,        # has a later character reached this body + read their memory?
 		"traces": [],              # world marks this character left (immersion)
 		"thoughts": [],            # collected lore + later characters' comments about them
+		"quests_completed": 0,     # Descent Valour counts these (docs/PROGRESSION.md)
+		"npcs_aided": 0,
+		"left_behind": "",         # the item they handed on when they escaped (display name)
 	}
 
 
@@ -695,6 +763,7 @@ func load_profile() -> void:
 	valour_offer = []
 	last_valour = {}
 	_valour_scored_seed = 0
+	carry_item = {}
 	if cfg.load(profile_path()) == OK:
 		tutorial_completed = bool(cfg.get_value("progress", "tutorial_completed", false))
 		runs_made = int(cfg.get_value("stats", "runs_made", 0))
@@ -713,6 +782,7 @@ func load_profile() -> void:
 		valour_offer = Array(cfg.get_value("valour", "offer", []))
 		last_valour = Dictionary(cfg.get_value("valour", "last", {}))
 		_valour_scored_seed = int(cfg.get_value("valour", "scored_seed", 0))
+		carry_item = Dictionary(cfg.get_value("valour", "carry_item", {}))
 
 
 func save_profile() -> void:
@@ -731,6 +801,7 @@ func save_profile() -> void:
 	cfg.set_value("valour", "offer", valour_offer)
 	cfg.set_value("valour", "last", last_valour)
 	cfg.set_value("valour", "scored_seed", _valour_scored_seed)
+	cfg.set_value("valour", "carry_item", carry_item)
 	# Mirror the headline save facts so the select screen can read one small
 	# file per slot instead of loading three save games.
 	cfg.set_value("resume", "has_save", FileAccess.file_exists(slot_save_path()))
@@ -955,6 +1026,13 @@ func new_game() -> void:
 	dev_fire_origin = -1
 	pending_dev_feedback = ""
 	note_run_character()           # stamp run 1's chronicle slot with its character
+	handoff_item = {}
+	# A character who ESCAPED at the end of the last game left something for this one.
+	if not carry_item.is_empty():
+		handoff_item = carry_item
+		carry_item = {}
+		save_profile()
+		_grant_handoff()
 
 
 # Advance to the NEXT character run — THE TIME SKIP (docs/THREE_RUN_ARC.md). The
@@ -1052,6 +1130,7 @@ func advance_run() -> bool:
 	balcony_jump_warned = false
 	balcony_arrival_hurt = false
 	balcony_pending_injury = 0
+	_grant_handoff()                         # the item the escaped character left at the door
 	return false
 
 
@@ -1747,6 +1826,7 @@ const UPGRADE_POOL = {
 	"U_scav_m": {"name": "Sticky Fingers", "desc": "+15% scavenge find rate", "w": 2, "drawback": false, "mods": {"scavenge_bonus": {"add": 0.15}}},
 	"U_quiet_s": {"name": "Soft Soles", "desc": "-20% movement noise", "w": 4, "drawback": false, "mods": {"noise_mult": {"mult": 0.8}}},
 	"U_quiet_m": {"name": "Ghost", "desc": "-40% movement noise", "w": 2, "drawback": false, "mods": {"noise_mult": {"mult": 0.6}}},
+	"U_tinker": {"name": "Tinkerer", "desc": "Dismantling at a workbench yields 2.5x the scrap", "w": 3, "drawback": false, "mods": {"salvage_yield": {"mult": 2.5}}},
 	"U_nightvision": {"name": "Night Eyes", "desc": "See much further in the dark (matters most at night)", "w": 3, "drawback": false, "mods": {"night_vision": {"add": 1.0}}},
 	# ---- Drawbacks (rarer; both halves stated — legibility is absolute) ----
 	"U_db_slotstam": {"name": "Pack Mule", "desc": "+1 inventory slot, but -25% max stamina", "w": 2, "drawback": true, "mods": {"inventory_slots": {"add": 1}, "max_stamina": {"mult": 0.75}}},
@@ -1877,6 +1957,7 @@ func get_melee_cost_mult() -> float: return _upgrade_stat_mult("melee_cost")
 func get_sprint_speed_mult() -> float: return _upgrade_stat_mult("sprint_speed")
 func get_enemy_count_mult() -> float: return _upgrade_stat_mult("enemy_count")
 func get_loot_luck() -> float: return _upgrade_stat_add("loot_luck")
+func get_salvage_yield_mult() -> float: return _upgrade_stat_mult("salvage_yield")
 
 
 func get_upgrade_pair(floor_num: int) -> Array:
@@ -3861,6 +3942,7 @@ func save_game(scene_path: String, record_live_zombies: bool = true) -> void:
 		"opener_seen": opener_seen,
 		"run_boons": run_boons,
 		"session_perks": session_perks,
+		"handoff_item": handoff_item,
 		"run_milestones_seen": run_milestones_seen,
 		"pending_boon_floors": pending_boon_floors,
 		"current_run": current_run,
@@ -3953,6 +4035,7 @@ func load_game() -> String:
 	opener_seen = bool(data.get("opener_seen", true))
 	run_boons = Array(data.get("run_boons", []))
 	# Older saves predate the session record: rebuild it from what's still visible.
+	handoff_item = Dictionary(data.get("handoff_item", {}))
 	session_perks = Array(data.get("session_perks", Array(data.get("active_upgrades", [])) + run_boons))
 	run_milestones_seen = Array(data.get("run_milestones_seen", []))
 	pending_boon_floors = []

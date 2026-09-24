@@ -35,8 +35,13 @@
   the `shots_per_mark` perk mult. Old saves' guns (no durability yet) load as new. Forcing a door
   still DAMAGES a gun separately (worse aim + 10-round mag until repaired). The HUD slot shows the
   durability bar under the mag count.
-- **Salvage (built, owner's call — "give junk a use")** — the workbench's **Salvage** tab breaks
-  any carried item down for scrap (`Salvage` in `salvage.gd`, one table; action
+- **Salvage (built, owner's calls — "give junk a use"; round 3: bench-only + Tinkerer)** — the
+  workbench's **Salvage** tab breaks any carried item down for scrap. **Only at a workbench** —
+  never anywhere — so inventory can't go in and out easily and the small pockets keep their
+  tension. By default it pays **RUBBISH scrap** (`Salvage.YIELD_BASE` 0.4 × the values below);
+  the **Tinkerer** merchant upgrade (`U_tinker`, offered at the every-five-floors merchant pick;
+  can be kept forever via Descent Valour) raises the yield ×2.5 to the FULL values. There is no
+  extra incentive for using the bench itself (benches come every 3 floors). Full-yield values (`Salvage` in `salvage.gd`, one table; action
   `WorldState.salvage_item`). Junk 2–6 each (metal-bearing junk — umbrella ribs, a remote's
   board — the most); weapons/tools 4–25 (Gun 25, Sword 20, Aluminium Bat / Toolbox 16, Hammer /
   Crowbar 14…). **Worn items give less:** × (0.4 + 0.6 × durability left) — a broken one still
@@ -44,12 +49,11 @@
   of the workbench scrap sunk into it**. A loaded gun's rounds come back as bullets. Junk breaks
   down on one press; anything else asks to confirm. Not salvageable: healing items, clothes/rope,
   ammo, keys, money, the Scrap Bag.
-  - **Changed from the original spec:** dismantling was planned as a gated "tier-5 perk"; the
-    owner's round-2 note ("we definitely need to incorporate breaking items down") made it a
-    standard bench action. It could still be gated (e.g. behind a Descent Valour perk) if wanted.
-  - **Balance intent:** a bag of junk (~5 slots) is ~15–20 scrap — worth carrying to a bench but
-    no substitute for a charred ruin (14–30 per bag); scrapping a spare weapon is a real choice
-    against keeping it as upgrade feed.
+  - **Supersedes the original spec's gated "tier-5 dismantle perk"** (owner): dismantling is
+    always available at a bench, and the upgrade now improves the YIELD instead of unlocking it.
+  - **Balance intent:** without the Tinkerer a bag of junk (~5 slots) is ~6–8 scrap and a spare
+    gun 10 — a trickle; with it, ~15–20 and 25. Never a substitute for a charred ruin (14–30 per
+    bag); scrapping a spare weapon stays a real choice against keeping it as upgrade feed.
   - **Hammer tree = PLACEHOLDER** (the doc leaves it to the owner): Heavy Head (+1 dmg) / Reinforced
     Handle (×2 durability); Door Breaker (forcing + barricades cost no durability) / Sweeping Blow
     (a swing also hits a 2nd enemy); Skull Splitter (15% to drop an ordinary enemy outright) /

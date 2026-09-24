@@ -134,6 +134,17 @@ func _ready() -> void:
 
 	stage = "title" if title_text != "" else "card"
 	get_tree().paused = true
+	_holding_pause = true
+
+
+var _holding_pause := false
+
+
+# Freed before finishing (a scene change mid-opener) → never leave the game paused behind us.
+func _exit_tree() -> void:
+	if _holding_pause:
+		_holding_pause = false
+		get_tree().paused = false
 
 
 func _play(stream: AudioStream, vol: float) -> void:
@@ -165,6 +176,7 @@ func _process(delta: float) -> void:
 		black.color.a = 1.0 - clampf((fade_t - TEXT_FADE) / FADE_TIME, 0.0, 1.0)
 		if fade_t >= TEXT_FADE + FADE_TIME:
 			get_tree().paused = false
+			_holding_pause = false
 			_hand_to_hallway()
 			queue_free()
 		return

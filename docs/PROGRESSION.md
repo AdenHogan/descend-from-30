@@ -49,8 +49,13 @@ the session is scored and the player may keep ONE perk they found along the way 
   | 10 | 26 |
   | Lobby (escaped) | 30 + 15 + 10 = **55** |
 
-  Three escapes = 165. Valour is banked to the **profile** at once and can be **saved** across
-  sessions (the player may take nothing).
+  Three escapes = 165. **Quests + NPCs count too (owner):** each quest completed that run
+  **+8**, each NPC aided **+4** (`VALOUR_PER_QUEST` / `VALOUR_PER_NPC`). Quests aren't built
+  yet — the quest system calls `WorldState.note_quest_completed()` / `note_npc_aided()` (per-run
+  counts in the chronicle), and the end screen shows them per run. Valour is banked to the
+  **profile** at once and can be **saved** across sessions (the player may take nothing).
+- **The descent boon** (owner): Valour IS the descent boon, plus an escaping character leaves
+  ONE item for whoever comes next — see THREE_RUN_ARC.md "Descent boon" (the handoff).
 - **The offer** (`WorldState.finish_session`, called at the arc end in `game.gd` / `lobby_exit.gd`):
   up to **3** (`OFFER_COUNT`) perks drawn **uniformly at random — no weighting** — from the perks
   **acquired this session** (`WorldState.session_perks`: every merchant upgrade taken + every run

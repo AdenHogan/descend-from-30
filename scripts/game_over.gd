@@ -62,10 +62,21 @@ func _build_ui() -> void:
 			var r: Dictionary = scored[i]
 			var where := "the Lobby" if bool(r.get("escaped", false)) else "Floor %d" % int(r.get("deepest", 30))
 			line = "%s:  %s  (%s)  +%d" % [name, verb, where, int(r.get("valour", 0))]
+			var extra: Array = []
+			if int(r.get("quests", 0)) > 0:
+				extra.append("%d quest%s" % [int(r["quests"]), "" if int(r["quests"]) == 1 else "s"])
+			if int(r.get("npcs", 0)) > 0:
+				extra.append("%d aided" % int(r["npcs"]))
+			if not extra.is_empty():
+				line += "  [%s]" % ", ".join(extra)
 		lines.append(line)
 	if not scored.is_empty():
 		lines.append("")
 		lines.append("DESCENT VALOUR  +%d   (banked %d)" % [int(WorldState.last_valour.get("total", 0)), WorldState.valour])
+	if not WorldState.carry_item.is_empty():
+		var it = WorldState.instance_from_dict(WorldState.carry_item)
+		lines.append("Waiting at the door for your next game: %s%s" % [it.get_display_name(),
+			" Lv%d" % it.level if it.level > 1 else ""])
 	fates.text = "\n".join(lines)
 	fates.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	fates.add_theme_font_override("font", preload("res://assets/fonts/PixelOperator8.ttf"))
