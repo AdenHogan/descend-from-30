@@ -59,13 +59,13 @@ const TUTORIAL_LAYOUTS = {
 
 const MODULE_WIDTH = 320
 const LEFT_WALL_X = 113
-# Wall-window placement inside a module. Y is a NATURAL mid-upper-wall height (world 284 =
-# module-local 60, roughly the wall's vertical middle above the floor at local 128) — a
-# window belongs on the wall, not jammed at the ceiling. It sits ABOVE the scavenge nodes
-# (which are furniture-level, world y ~300+), so the window reads higher than the furniture
-# without obscuring a node's interaction point; furniture naturally sitting under a window is
-# fine. INSET is how far in from the module edge the left/right window slot sits.
-const MODULE_WINDOW_Y := 284.0
+# Wall-window placement inside a module. Y sits the whole window ON THE WALLPAPER band of the
+# module art (world 262 = module-local 38: pane + frame span local ~10..66, under the crown
+# moulding at 0..5 and above the chair rail at 70). At the old 284 (local 60) the window ran down
+# through the chair rail into the panelling and over the furniture set against the wall (owner
+# round 9, the first real module art). It stays ABOVE every scavenge node. INSET is how far in
+# from the module edge the left/right window slot sits.
+const MODULE_WINDOW_Y := 262.0
 const MODULE_WINDOW_INSET := 72.0
 const CLICK_RADIUS = 10.0
 const UI_FONT = preload("res://assets/fonts/PixelOperator8.ttf")

@@ -8,8 +8,8 @@ directional light — the engine's 2D lights do that.
 Module geometry (docs/art_reference/blueprints, docs/Y_PLANES.md):
   320 x 144 px. Wall/floor seam (skirting) at y ~100. Room floor line = local 128; the player's
   feet = 129. The balcony plane (study/dining modules) is feet 104.
-  Runtime WALL WINDOWS may appear at L (50..94, 34..86) or R (226..270, 34..86) — keep tall
-  furniture and wall decor out of those boxes.
+  Runtime WALL WINDOWS may appear at L (50..94, 10..66) or R (226..270, 10..66) — on the
+  wallpaper band above the chair rail. Keep wall decor out of those boxes.
 """
 from PIL import Image
 import random
@@ -17,8 +17,8 @@ import random
 W, H = 320, 144
 SEAM_Y = 100        # wall meets floor (top of the skirting shadow)
 FLOOR_Y = 128       # the room floor line (feet 129)
-WIN_L = (50, 34, 94, 86)
-WIN_R = (226, 34, 270, 86)
+WIN_L = (50, 10, 94, 66)      # room.MODULE_WINDOW_Y 262 = local 38; pane 44x52 + frame
+WIN_R = (226, 10, 270, 66)
 
 
 def hexc(h, a=255):

@@ -70,12 +70,21 @@ func _test_windows_day() -> void:
 	var windows := get_tree().get_nodes_in_group("apt_window_light")
 	check(windows.size() == _expected_windows(APT),
 		"one window per non-balcony module (%d, expected %d)" % [windows.size(), _expected_windows(APT)])
-	# Every window rides a natural mid-upper-wall height (world 284), not the ceiling.
+	# Every window sits on the wallpaper band (world 262 = module-local 38 — above the chair rail
+	# at local 70, below the crown moulding), read from the room's own constant.
+	var wy: float = room.MODULE_WINDOW_Y
+	check(absf(wy - 262.0) < 0.5, "the window line is world 262 (module-local 38)")
 	var win_y_ok := true
 	for w in windows:
-		if absf(w.global_position.y - 284.0) > 1.0:
+		if absf(w.global_position.y - wy) > 1.0:
 			win_y_ok = false
-	check(win_y_ok, "windows sit at the natural wall height (y 284)")
+	check(win_y_ok, "windows sit on the wallpaper band (y %.0f)" % wy)
+	# The whole pane + frame stays on the wallpaper: above the chair rail (module-local 70), below
+	# the crown moulding (local 5).
+	var PW = load("res://scripts/apartment_window.gd")
+	var top_local: float = wy - 224.0 - PW.PANE_HALF_H - 1.5
+	var bot_local: float = wy - 224.0 + PW.PANE_HALF_H + 1.5
+	check(top_local >= 6.0 and bot_local <= 69.0, "window spans local %.1f..%.1f, inside the wallpaper band 6..69" % [top_local, bot_local])
 	# The window CENTRE sits ABOVE every scavenge node (window higher on the wall than the
 	# furniture), so it never obscures a node's interaction point — a node may sit under it.
 	var min_anchor_y := 100000.0
@@ -83,7 +92,7 @@ func _test_windows_day() -> void:
 		for c in m.get_children():
 			if c is Marker2D:
 				min_anchor_y = minf(min_anchor_y, m.global_position.y + c.position.y)
-	check(min_anchor_y > 284.0, "every scavenge node sits below the window centre (lowest %.0f > 284)" % min_anchor_y)
+	check(min_anchor_y > wy, "every scavenge node sits below the window centre (lowest %.0f > %.0f)" % [min_anchor_y, wy])
 	check(get_tree().get_nodes_in_group("apt_storm").is_empty(), "no storm on a day run")
 	# Every window / balcony door casts a slanting light BEAM (window_beam.gd) that carries a
 	# real PointLight2D — so the shaft actually lights the room, not just a painted overlay.

@@ -10,7 +10,7 @@ code so they're regenerable and exactly on the module geometry:
 
 Rules each module follows (docs/ART_REQUIREMENTS.md): flat / neutrally lit (the engine lights it),
 soft contact shadows only; every scavenge anchor (`Marker2D` in the module scene) sits ON a piece of
-furniture; nothing tall in the runtime window boxes L (50..94, 34..86) / R (226..270, 34..86);
+furniture; nothing in the runtime window boxes L (50..94, 10..66) / R (226..270, 10..66) — the wallpaper band;
 furniture bases in front of the seam, never below the floor line 128.
 
 The module scene shows the art as an `Art` Sprite2D over the old ColorRect; the ColorRect's Label is

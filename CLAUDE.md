@@ -802,8 +802,8 @@ means no rendering — UI layout and art still need an in-editor look.
   module gets ONE window at a seeded LEFT/RIGHT wall slot (`WorldState.apartment_window_side`,
   stable across runs — a physical feature). The two slots are the hook for a future module-art
   pass to vary which walls are glazed (one/both/none) so rooms aren't samey; today each
-  non-balcony module has exactly one. Placed at a NATURAL mid-upper-wall height (world Y 284,
-  `room.MODULE_WINDOW_Y`, module-local 60) — ABOVE the scavenge nodes (furniture-level, world
+  non-balcony module has exactly one. Placed ON THE WALLPAPER band (world Y 262 since owner round 9 — was 284, which ran through the chair rail of the real module art;
+  `room.MODULE_WINDOW_Y`, module-local 38) — ABOVE the scavenge nodes (furniture-level, world
   Y ~300+) so it never obscures a node, but not jammed at the ceiling (an earlier Y 252 read
   unnatural). A node may sit under a window (fine). Per-module grid blueprints via
   `tools/gen_module_blueprint.py` → `docs/art_reference/blueprints/` (reads the real .tscn, so

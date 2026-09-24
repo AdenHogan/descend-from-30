@@ -73,11 +73,13 @@ lost. Locked by `corpse_recovery_test` (`_test_grounding`).
 Apartment interiors (`room.tscn`): module ColorRect is 320×144 at instance y 224, so a
 module spans world Y 224..368; the interior floor is Y 352. **Apartment FEET line = 353** (measured: every actor's collision-bottom once settled). Enemies spawn at origin 321 and physics-settle UP onto it — standard → origin **304**, big/crawler → **308**; the player stands at **320**. Anything placed WITHOUT physics (burnt corpses, a recorded body, a floor drop = 353 − REST_LIFT, frozen BalconyPan backdrop scenery) goes straight onto those settled lines (`room.ROOM_FEET_Y` / `ROOM_STD_ORIGIN_Y` / `ROOM_BIG_ORIGIN_Y`) — at 321 they sat ~17px sunk into the floor. Scavenge anchors (Marker2D)
 sit at module-local y 76..131 → world **~300..355** (furniture level). WALL WINDOWS
-(`apartment_window.gd`, one per non-balcony module, seeded left/right) sit at a NATURAL
-mid-upper-wall height, world Y **284** (`room.MODULE_WINDOW_Y`, module-local 60) — ABOVE
-every scavenge node so they never obscure a node's interaction point, but not jammed at the
-ceiling (an earlier build put them at Y 252 to force a big gap, which read unnatural). A
-node may sit under a window (a sofa below a window is fine). The balcony window light stays
+(`apartment_window.gd`, one per non-balcony module, seeded left/right) sit ON THE WALLPAPER
+band of the module art: world Y **262** (`room.MODULE_WINDOW_Y`, module-local 38; pane + frame
+span local ~10..66, under the crown moulding at 0..5 and above the chair rail at 70). History:
+252 (forced gap, read jammed at the ceiling on the flat placeholder) → 284 (local 60 — once the
+real module art landed it ran through the chair rail into the panelling and over the furniture,
+owner round 9) → 262. Still ABOVE every scavenge node. Module art keeps the window boxes bare
+(`tools/art/pixlib.py` WIN_L/WIN_R, checked on every generate). The balcony window light stays
 at world Y 210. Per-module blueprints: `tools/gen_module_blueprint.py`.
 
 ---
