@@ -48,6 +48,102 @@ func _ready() -> void:
 	label.modulate.a = 0.0
 	add_child(label)
 	_build_run_card()
+	_build_survive_card()
+
+
+func _build_survive_card() -> void:
+	survive_box = VBoxContainer.new()
+	survive_box.set_anchors_preset(Control.PRESET_FULL_RECT)
+	survive_box.alignment = BoxContainer.ALIGNMENT_CENTER
+	survive_box.add_theme_constant_override("separation", 14)
+	survive_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	survive_box.visible = false
+	add_child(survive_box)
+	survive_title = _card_label(TITLE_FONT, 64, SURVIVE_HEADING)
+	survive_box.add_child(survive_title)
+	survive_sub = _card_label(SUB_FONT, 22, SURVIVE_INK)
+	survive_box.add_child(survive_sub)
+	# The stats: a two-column table (labels right-aligned, values left) centred under the heading.
+	var centre := CenterContainer.new()
+	centre.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	survive_box.add_child(centre)
+	survive_stats = GridContainer.new()
+	survive_stats.columns = 2
+	survive_stats.add_theme_constant_override("h_separation", 26)
+	survive_stats.add_theme_constant_override("v_separation", 8)
+	survive_stats.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	centre.add_child(survive_stats)
+	survive_hint = _card_label(SUB_FONT, 14, SURVIVE_DIM)
+	survive_hint.text = "[continue]"
+	survive_box.add_child(survive_hint)
+
+
+func _card_label(font: Font, size: int, col: Color) -> Label:
+	var l := Label.new()
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.add_theme_font_override("font", font)
+	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_color_override("font_color", col)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return l
+
+
+# The escape: fade to WHITE, show the heading + who + the run's stats, wait for a key (never
+# forever — survive_max_wait), then crossfade WHITE → BLACK and leave the screen black + busy, so
+# the caller advances the run out of sight and continues with to_run_start / reveal (like
+# end_card). Returns false if a transition was already running.
+func survived_card(heading: String, line: String, stats: Array) -> bool:
+	# `stats` = [label, value] rows (WorldState.run_summary).
+	if busy:
+		return false
+	busy = true
+	rect.color = Color(1, 1, 1, 0)
+	rect.visible = true
+	await _fade(1.0, 1.4)                                   # a slow bloom of daylight
+	survive_title.text = heading
+	survive_sub.text = line
+	for c in survive_stats.get_children():
+		survive_stats.remove_child(c)
+		c.queue_free()
+	for row in stats:
+		var k := _card_label(SUB_FONT, 18, SURVIVE_DIM)
+		k.text = String(row[0])
+		k.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		survive_stats.add_child(k)
+		var v := _card_label(SUB_FONT, 18, SURVIVE_INK)
+		v.text = String(row[1])
+		v.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		survive_stats.add_child(v)
+	survive_hint.visible = false
+	survive_box.modulate.a = 0.0
+	survive_box.visible = true
+	var t_in = create_tween()
+	t_in.tween_property(survive_box, "modulate:a", 1.0, 0.8)
+	await t_in.finished
+	await get_tree().create_timer(survive_min_hold, true).timeout
+	survive_hint.visible = true
+	_continue_pressed = false
+	_awaiting_continue = true
+	var waited := 0.0
+	while not _continue_pressed and waited < survive_max_wait:
+		await get_tree().process_frame
+		waited += get_process_delta_time()
+	_awaiting_continue = false
+	var t_out = create_tween().set_parallel(true)
+	t_out.tween_property(survive_box, "modulate:a", 0.0, 0.6)
+	t_out.tween_property(rect, "color", Color(0, 0, 0, 1), 1.1)   # white → black
+	await t_out.finished
+	survive_box.visible = false
+	return true
+
+
+func _input(event: InputEvent) -> void:
+	if not _awaiting_continue:
+		return
+	if (event is InputEventKey and event.pressed and not event.echo) \
+			or (event is InputEventMouseButton and event.pressed):
+		_continue_pressed = true
+		get_viewport().set_input_as_handled()
 
 
 func _build_run_card() -> void:
@@ -104,8 +200,22 @@ func cover(dur: float = 0.7) -> bool:
 # busy, so the caller advances the run out of sight and continues with to_run_shift(...,
 # already_covered=true) or swaps to the game-over card + reveal(). Same labels as the
 # time-of-day card, so the end of one run flows straight into the start of the next.
+# THE ESCAPE CARD (owner): stepping out of the lobby fades to WHITE — "YOU SURVIVED", who, and the
+# run's stats — then crossfades to black for the next run. Dark ink on white.
+const SURVIVE_INK := Color(0.16, 0.13, 0.10)
+const SURVIVE_DIM := Color(0.38, 0.34, 0.30)
+const SURVIVE_HEADING := Color(0.62, 0.48, 0.12)
+var survive_box: VBoxContainer = null
+var survive_title: Label = null
+var survive_sub: Label = null
+var survive_stats: GridContainer = null
+var survive_hint: Label = null
+var survive_min_hold := 2.2        # the stats always read for at least this long…
+var survive_max_wait := 20.0       # …then a key continues; after this it continues by itself
+var _continue_pressed := false
+var _awaiting_continue := false
+
 const END_DIED_COLOR := Color(0.78, 0.08, 0.06)
-const END_ESCAPED_COLOR := Color(1.00, 0.86, 0.45)
 
 
 func end_card(heading: String, line: String, heading_color: Color, hold: float = 2.4) -> bool:

@@ -40,7 +40,7 @@ const LINES := {
 	"run_after_escaped": "I heard the lobby doors earlier. Somebody got out. So can I.",
 	# --- Run END cards (the fade to black when a character's story ends) ---
 	"end_died": "YOU DIED",
-	"end_escaped": "YOU ESCAPED",
+	"end_survived": "YOU SURVIVED",      # the white escape card (lobby door)
 	# --- 3003 scripted encounter ---
 	"3003_curiosity": "Mrs Delacroix…? you okay back there?",
 	"3003_push": "Mrs Delacroix, gah, no, not like this!!! - shove her back!",

@@ -86,7 +86,9 @@ func _spawn_zombies(as_scenery: bool) -> void:
 		# the stairwell, keeping their order + spacing. The KEY stays the seeded one, so
 		# kills/memory recorded before this change still match.
 		var x: float = LOBBY_SPAWN_MIN_X + (pos.x - 50.0) / 1250.0 * (LOBBY_SPAWN_MAX_X - LOBBY_SPAWN_MIN_X)
-		zombie.global_position = Vector2(x, pos.y)
+		# Standing on the floor line from the first frame (feet 419) — not the seed's 388 lifted by
+		# physics later (a paused frame showed them 18px sunk). The key keeps the seeded 388.
+		zombie.global_position = Vector2(x, ZOMBIE_SETTLED_Y)
 		zombie.spawn_key = key
 		zombie.hp_floor = 0
 		if as_scenery:

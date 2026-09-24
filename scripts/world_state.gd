@@ -422,6 +422,33 @@ func note_run_character() -> void:
 	if String(e.get("character", "")) == "":
 		e["character"] = current_character()
 		e["deepest_floor"] = current_floor
+		e["started_playtime"] = playtime_seconds    # the escape card's "time in the building"
+
+
+# The ESCAPE card's run summary (owner: "white fade contains stats and details of the run").
+# [label, value] rows, only the facts that happened; `left_behind` = the handoff item's name.
+func run_summary(left_behind: String = "") -> Array:
+	_ensure_chronicle()
+	var e: Dictionary = run_chronicle[clampi(current_run - 1, 0, 2)]
+	var out: Array = [["Descended", "all 30 floors"]]
+	var secs: float = maxf(0.0, playtime_seconds - float(e.get("started_playtime", playtime_seconds)))
+	if secs >= 1.0:
+		@warning_ignore("integer_division")
+		out.append(["Time in the building", "%d:%02d" % [int(secs) / 60, int(secs) % 60]])
+	out.append(["Felled", str(run_kills)])
+	out.append(["Searched", str(run_scavenged)])
+	if not run_apartments_looted.is_empty():
+		out.append(["Apartments looted", str(run_apartments_looted.size())])
+	var q: int = int(e.get("quests_completed", 0))
+	var n: int = int(e.get("npcs_aided", 0))
+	if q > 0:
+		out.append(["Quests completed", str(q)])
+	if n > 0:
+		out.append(["Residents aided", str(n)])
+	out.append(["Descent Valour", "+%d" % Progression.valour_for_run(0, true, q, n)])
+	if left_behind != "":
+		out.append(["Left at the door", left_behind])
+	return out
 
 
 func note_floor_reached(floor_num: int) -> void:

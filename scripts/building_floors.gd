@@ -938,7 +938,10 @@ func _spawn_zombies(floor_num: int, as_scenery: bool) -> void:
 		var etype: String = WorldState.enemy_type_for(floor_num, key)
 		var scene = ENEMY_SCENES.get(etype, zombie_scene)
 		var zombie = scene.instantiate()
-		zombie.global_position = pos
+		# Spawn STANDING on the floor line (feet 419, this rig's own measured origin) — never at the
+		# seed's 388 and rely on a physics step to lift it: any paused/first frame showed it 18px
+		# sunk. The KEY keeps the seeded 388 so saved kills/memory still match.
+		zombie.global_position = Vector2(pos.x, ENEMY_SETTLED_Y.get(etype, ZOMBIE_SETTLED_Y))
 		zombie.spawn_key = key
 		zombie.hp_floor = floor_num          # same HP whether you arrive by stairs or a fade
 		if as_scenery:
@@ -999,7 +1002,7 @@ func _spawn_corridor_boss(floor_num: int, as_scenery: bool) -> void:
 	var bx: float = rng.randf_range(360.0, 1000.0)
 	var boss = ENEMY_SCENES["zombie_big"].instantiate()
 	boss.is_corridor_boss = true          # set BEFORE add_child so its _ready boosts it
-	boss.global_position = Vector2(bx, 388.0)
+	boss.global_position = Vector2(bx, BIG_ZOMBIE_SETTLED_Y)   # standing on the line from frame 0
 	boss.spawn_key = key
 	boss.hp_floor = floor_num
 	if as_scenery:

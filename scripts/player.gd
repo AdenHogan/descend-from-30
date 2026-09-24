@@ -113,6 +113,10 @@ const APPROACH_TIME = 0.35
 const MELEE_PLANE_TOLERANCE = 48.0
 const KNOCK_PAUSE = 0.5
 var is_cutscene: bool = false
+# Set when the player commits to leaving the building (lobby door): from here the escape can't be
+# undone by a stray hit or the dying countdown — it would otherwise run BOTH the death flow and the
+# exit flow at once.
+var escaping: bool = false
 # Balcony descent (THREE_RUN_ARC): lashing a rope is a timed, SILENT channel the
 # player stands still for — and can be interrupted by a hit. Once lashed the rope
 # stays as a permanent balcony fixture (WorldState.roped_balconies).
@@ -238,8 +242,8 @@ func _physics_process(delta: float) -> void:
 	if is_dead:
 		return
 
-	# A scripted approach/knock owns the body — skip normal control.
-	if is_cutscene:
+	# A scripted approach/knock owns the body — skip normal control. Escaping = the same, for good.
+	if is_cutscene or escaping:
 		return
 
 	# Lashing a rope: rooted and silent, vulnerable to a hit (which cancels it).
@@ -1045,12 +1049,14 @@ func _roll_listen_ambush() -> void:
 	if not far_zombies.is_empty() and roll < LISTEN_AMBUSH_ALERT_CHANCE:
 		far_zombies.pick_random().alert_to_noise(10.0)
 	elif not any_living and roll < LISTEN_AMBUSH_SPAWN_CHANCE:
-		var scene_path = get_tree().current_scene.scene_file_path
+		var scene_path: String = WorldState.world_scene_of(self)       # the floor I'm ON (rule 3)
 		if scene_path.contains("building_floors") or scene_path.contains("hallway"):
 			var zombie = preload("res://scenes/enemy_zombie_standard.tscn").instantiate()
 			var side = 1.0 if randf() < 0.5 else -1.0
-			zombie.global_position = Vector2(clamp(global_position.x + side * 500.0, 50.0, 1300.0), 388.0)
-			get_tree().current_scene.add_child(zombie)
+			# Inside the corridor's walls (the old 50..1300 clamp could drop it past an end wall) and
+			# standing on the floor line from frame 0 (standard origin 370 = feet 419).
+			zombie.global_position = Vector2(clamp(global_position.x + side * 500.0, 265.0, 1105.0), 370.0)
+			get_parent().add_child(zombie)
 			zombie.alert_to_noise(10.0)
 
 
@@ -1486,7 +1492,7 @@ func heal(states: int) -> bool:
 
 
 func receive_hit(amount: int = 1) -> void:
-	if is_dead or is_dying:
+	if is_dead or is_dying or escaping:
 		return
 	if WorldState.god_mode:
 		return
@@ -1690,6 +1696,8 @@ func _do_balcony_descent(apartment_id: String, slot: int, is_jump: bool) -> void
 
 
 func take_damage(amount: int = 1) -> void:
+	if escaping:
+		return            # out the door — nothing in the building can hurt them now
 	for i in range(amount):
 		if health_state < HealthState.DYING:
 			health_state = (health_state + 1) as HealthState
@@ -1703,6 +1711,8 @@ func take_damage(amount: int = 1) -> void:
 
 
 func _die() -> void:
+	if escaping:
+		return
 	is_dead = true
 	is_dying = false
 	WorldState.is_dying = false

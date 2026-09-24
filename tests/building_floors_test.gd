@@ -35,6 +35,7 @@ func _ready() -> void:
 	await _test_follower_resident()
 	await _test_fire_spawns()
 	await _test_elevator_arrival_stairs()
+	await _test_enemies_stand_on_the_line_frame_zero()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -727,3 +728,43 @@ func _test_fire_spawns() -> void:
 	bf.queue_free()
 	await get_tree().process_frame
 	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
+
+
+# Every standing enemy spawns with its FEET on the corridor floor line (419) on the very first
+# frame — no physics step needed. They used to spawn at the seed's 388 and wait to be lifted, so
+# any paused or first frame showed them sunk 18px (the owner saw it in the lobby). Covers the
+# corridor mix (run 3 = every type + bosses), the lobby, and the Floor 30 hallway.
+func _test_enemies_stand_on_the_line_frame_zero() -> void:
+	print("[enemies stand on the floor line (feet 419) from frame 0 — no physics needed]")
+	var bad: Array = []
+	var seen := 0
+	var cases := []
+	for s in [11, 22, 33, 44, 55, 66]:
+		cases.append(["res://scenes/building_floors.tscn", 8, 3, s])
+		cases.append(["res://scenes/building_floors.tscn", 18, 2, s])
+		cases.append(["res://scenes/lobby.tscn", 0, 1, s])
+	for c in cases:
+		WorldState.new_game()
+		WorldState.tutorial_completed = true
+		WorldState.is_first_run = false
+		WorldState.master_seed = int(c[3]) * 7919
+		WorldState.current_run = int(c[2])
+		WorldState.current_floor = int(c[1])
+		var inst = load(c[0]).instantiate()
+		get_tree().paused = true                       # no physics step can lift anything
+		add_child(inst)
+		for z in inst.find_children("*", "CharacterBody2D", true, false):
+			if not z.is_in_group("zombie") or z.get("stair_mode"):
+				continue                               # stair enemies lurk in the shaft by design
+			var cs = z.get_node_or_null("CollisionShape2D")
+			if cs == null or cs.shape == null:
+				continue
+			seen += 1
+			var feet := int(round(cs.global_position.y + cs.shape.get_rect().end.y))
+			if feet != 419:
+				bad.append("%s f%d r%d %s feet %d" % [String(c[0]).get_file(), c[1], c[2], z.scene_file_path.get_file(), feet])
+		inst.queue_free()
+		get_tree().paused = false
+		await get_tree().process_frame
+	check(seen > 20, "measured a real crowd (%d enemies)" % seen)
+	check(bad.is_empty(), "every one's feet on 419 %s" % ("" if bad.is_empty() else str(bad)))

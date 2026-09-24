@@ -270,7 +270,7 @@ func _release_hall_zombie() -> void:
 
 func _spawn_hall_zombie() -> void:
 	var zombie = preload("res://scenes/enemy_zombie_standard.tscn").instantiate()
-	zombie.global_position = Vector2(HALL_ZOMBIE_SPAWN_X, 388.0)
+	zombie.global_position = Vector2(HALL_ZOMBIE_SPAWN_X, 370.0)   # feet on 419 from frame 0 (standard rig)
 	zombie.spawn_key = TutorialManager.HALLWAY_ZOMBIE_KEY
 	zombie.tutorial_scripted = true   # deterministic 2-hit kill, no RNG
 	zombie.tutorial_frozen = true

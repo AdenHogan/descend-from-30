@@ -18,8 +18,18 @@
 every run ENDS and BEGINS the same way.
 - **End card** (`Transition.end_card`): a slow fade to black, then **YOU DIED** (red) —
   "<name> fell on Floor N." / "…in apartment 1703 on Floor 17." / "…in the Lobby."
-  (`WorldState.place_in_words`) — or **YOU ESCAPED** (gold) — "<name> made it out of the
-  building." Held, then cleared; the screen stays black while the run advances.
+  (`WorldState.place_in_words`). Held, then cleared; the screen stays black while the run
+  advances.
+- **Escape (owner, BUILT):** at the lobby door the player presses **[E] Leave the building** (walking
+  past no longer ends the run by accident) → the handoff choice → **steps up into the doorway** (the
+  apartment-door depth walk) → the screen blooms **WHITE**: **YOU SURVIVED**, "<name> walked out
+  into the <morning/afternoon/night>.", and a table of the run's stats (`WorldState.run_summary`:
+  descended, time in the building, felled, searched, apartments looted, quests/residents aided if
+  any, this run's Descent Valour, the item left at the door) → **[continue]** (a key, or it moves
+  on by itself after 20s — never a dead end) → white crossfades to **BLACK** and the next run's
+  cold open begins (`Transition.survived_card`, `lobby_exit.gd`). Once E is pressed the player is
+  `escaping`: no hit, burn or dying countdown can kill them mid-exit (which would run the death
+  AND exit flows together).
 - **Cold open** (`intro_overlay.gd`, every run, once — `opener_seen` is reset by `new_game` +
   `advance_run` and SAVED), separate black screens over one bloody handprint: the game's
   **title** (run 1 only) → the **time card** (big MORNING / AFTERNOON / NIGHT in its own colour +

@@ -35,6 +35,9 @@ func _ready() -> void:
 	await _test_end_card()
 	await _test_death_to_next_cold_open()
 	await _test_opener_never_strands_pause()
+	_test_escape_guard_and_summary()
+	await _test_lobby_door_needs_e()
+	await _test_escape_white_card_to_next_run()
 	Engine.time_scale = 1.0
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
@@ -234,3 +237,116 @@ func _test_opener_never_strands_pause() -> void:
 	intro.queue_free()
 	await get_tree().process_frame
 	check(not get_tree().paused, "freed before it finished → play is unpaused, not stranded")
+
+
+func _test_escape_guard_and_summary() -> void:
+	print("[committing to leave: no hit or dying countdown can undo it; the card's run summary]")
+	WorldState.new_game()
+	var p = load("res://scenes/player.tscn").instantiate()
+	add_child(p)
+	p.escaping = true
+	var hp_before: int = p.health_state
+	p.receive_hit(3)
+	p.take_damage(3)
+	p._die()
+	check(p.health_state == hp_before and not p.is_dead, "an escaping player can't be hurt or killed")
+	p.queue_free()
+	WorldState.run_kills = 7
+	WorldState.run_scavenged = 12
+	WorldState.run_apartments_looted = ["2901", "2903"]
+	WorldState.note_quest_completed()
+	var rows := {}
+	for r in WorldState.run_summary("Hammer Lv3"):
+		rows[r[0]] = r[1]
+	check(rows.get("Felled") == "7" and rows.get("Searched") == "12" and rows.get("Apartments looted") == "2", "kills / searches / apartments (%s)" % str(rows))
+	check(rows.get("Quests completed") == "1" and rows.get("Descent Valour") == "+%d" % Progression.valour_for_run(0, true, 1, 0), "quests + this run's Valour")
+	check(not rows.has("Residents aided"), "a fact that didn't happen isn't listed")
+	check(rows.get("Left at the door") == "Hammer Lv3", "the handoff item")
+	var plain := {}
+	for r in WorldState.run_summary():
+		plain[r[0]] = r[1]
+	check(not plain.has("Left at the door"), "no handoff → no row")
+
+
+func _lobby_with_player() -> Array:
+	var stub := Node.new()
+	get_tree().root.add_child.call_deferred(stub)
+	await get_tree().process_frame
+	get_tree().current_scene = stub
+	get_tree().change_scene_to_file("res://scenes/lobby.tscn")
+	for i in 6:
+		await get_tree().process_frame
+	var lobby = get_tree().current_scene
+	var exit = null
+	for n in lobby.find_children("*", "Area2D", true, false):
+		if n.get_script() == load("res://scripts/lobby_exit.gd"):
+			exit = n
+	return [lobby, exit, get_tree().get_first_node_in_group("player")]
+
+
+func _test_lobby_door_needs_e() -> void:
+	print("[standing at the lobby door no longer ends the run — leaving is [E]]")
+	WorldState.new_game()
+	WorldState.current_floor = 0
+	WorldState.inventory = []
+	var r: Array = await _lobby_with_player()
+	var exit = r[1]
+	var p = r[2]
+	check(exit != null and p != null, "lobby has its exit + the player")
+	for z in get_tree().get_nodes_in_group("zombie"):
+		z.queue_free()
+	p.global_position = exit.global_position + Vector2(0, 23)
+	for i in 30:
+		await get_tree().physics_frame
+	check(exit._player_near and not exit._leaving, "at the door: prompt, but still in the building")
+	check(WorldState.chronicle_entry(1)["outcome"] == "" and WorldState.current_run == 1,
+		"…the run hasn't ended (%s)" % WorldState.chronicle_entry(1)["outcome"])
+
+
+func _test_escape_white_card_to_next_run() -> void:
+	print("[E at the door: step up → WHITE 'YOU SURVIVED' + stats → black → the next run]")
+	WorldState.new_game()
+	WorldState.current_floor = 0
+	WorldState.inventory = []
+	var r: Array = await _lobby_with_player()
+	var exit = r[1]
+	var p = r[2]
+	for z in get_tree().get_nodes_in_group("zombie"):
+		z.queue_free()
+	Engine.time_scale = 8.0
+	Transition.survive_min_hold = 0.1
+	Transition.survive_max_wait = 0.2               # no key in a headless test: auto-continue
+	var start_y: float = p.global_position.y
+	exit.leave()
+	var saw_white := false
+	var saw_card := false
+	var guard := 0
+	while WorldState.current_run == 1 and guard < 6000:
+		await get_tree().process_frame
+		guard += 1
+		if Transition.rect.visible and Transition.rect.color.r > 0.9 and Transition.rect.color.a > 0.9:
+			saw_white = true
+		if Transition.survive_box.visible and Transition.survive_title.text == "YOU SURVIVED":
+			saw_card = true
+	check(p.escaping, "the player committed to leaving")
+	check(WorldState.chronicle_entry(1)["outcome"] == "escaped", "the run ended as a survival")
+	check(saw_white and saw_card, "the screen bloomed WHITE with the YOU SURVIVED card")
+	var cells: Array = []
+	for c in Transition.survive_stats.get_children():
+		cells.append(c.text)
+	check("Descended" in cells and "all 30 floors" in cells, "…carrying the run's stats (%s)" % str(cells))
+	guard = 0
+	while Transition.busy and guard < 4000:
+		await get_tree().process_frame
+		guard += 1
+	for i in 4:
+		await get_tree().process_frame
+	check(WorldState.current_run == 2, "the next run began")
+	check(Transition.rect.color.r < 0.05 and Transition.rect.color.g < 0.05, "the cover is back to BLACK for every later fade")
+	check(get_tree().current_scene.scene_file_path.ends_with("hallway.tscn"), "…on Floor 30")
+	Transition.survive_min_hold = 2.2
+	Transition.survive_max_wait = 20.0
+	Engine.time_scale = 1.0
+	get_tree().paused = false
+	WorldState.delete_save()
+

@@ -86,16 +86,20 @@ at world Y 210. Per-module blueprints: `tools/gen_module_blueprint.py`.
 
 | Const                 | value          | meaning                                  |
 |-----------------------|----------------|------------------------------------------|
-| `SPAWN_LEFT_TOP`      | (148, **391**) | left stair arrival, came from below (up) |
-| `SPAWN_LEFT_BOTTOM`   | (188, **391**) | left stair arrival, came from above (dn) |
-| `SPAWN_RIGHT_TOP`     | (1201, **391**)| right stair arrival (up)                 |
-| `SPAWN_RIGHT_BOTTOM`  | (1162, **391**)| right stair arrival (dn)                 |
-| `CORRIDOR_PLANE_Y`    | **391**        | player spawn/walk plane (== SPAWN_*.y)   |
-| normal zombie spawn y | **388**        | `_spawn_zombies` seeds origins here      |
-| elevator/other spawn  | **388**        | `player.global_position.y = 388` fallback|
+| `SPAWN_LEFT_TOP`      | (148, **386**) | left stair arrival, came from below (up) |
+| `SPAWN_LEFT_BOTTOM`   | (188, **386**) | left stair arrival, came from above (dn) |
+| `SPAWN_RIGHT_TOP`     | (1201, **386**)| right stair arrival (up)                 |
+| `SPAWN_RIGHT_BOTTOM`  | (1162, **386**)| right stair arrival (dn)                 |
+| `CORRIDOR_PLANE_Y` / `PLAYER_PLANE_Y` | **386** | player spawn/walk origin (feet 419) |
+| zombie seed y         | 388 (KEY only) | the seed's y stays in spawn keys so saved kills match — never a position |
+| zombie SPAWN position | **370 / 374**  | each rig's own settled origin (`ENEMY_SETTLED_Y`: standard 370, big/crawler/long-arm/spitter 374) — feet on 419 from FRAME 0 |
 
-Note **391 is the player SPAWN origin, not the feet line.** Do not use 391 to
-place a zombie on the floor — use origin 370 (feet 419).
+(This table read 391/388 until the sweep that re-measured it — those were stale.) **Enemies
+spawn STANDING on their line** (corridor, lobby, corridor boss, Floor 30 tutorial zombie, the
+listen-ambush spawn): spawning at 388 and waiting for physics to lift them showed them 18px sunk
+on any paused/first frame (the owner saw it in the lobby). Locked by
+`building_floors_test._test_enemies_stand_on_the_line_frame_zero` (physics paused; every standing
+enemy's feet == 419). The player origin 386 is NOT an enemy value — each rig uses its own.
 
 ---
 
