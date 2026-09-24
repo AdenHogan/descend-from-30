@@ -144,8 +144,10 @@ them… like a new game plus, certain upgrades can only happen there"*. All data
   long-arm, spitter, big/boss); a `weapon_lit` flag keeps a weapon-set fire from being put out by
   the floor's fire bookkeeping. Big zombies/bosses can't be knocked flat or shoved (as before) but
   do burn and bleed; the scripted tutorial neighbour is never afflicted. **Burning enemies hit twice
-  as hard** — the world's existing fire rule, kept on purpose as the risk of a fire weapon (one
-  line to change if it plays badly). Titles take their theme from the newest special first — a fire
+  as hard** — the world's existing fire rule, kept on purpose as the risk of a fire weapon.
+  **Owner-approved (round 5):** the specials list, 20% ignite, +5% per heirloom tier, the ~6 s
+  burn, and keeping the double damage. More specials welcome (each is a `MODS` row; new kinds of
+  effect need a proc in `_weapon_mods_on_hit`). Titles take their theme from the newest special first — a fire
   sword is a "Firestarter", "Kindling"… (`TITLE_BANKS` fire / bleed / stagger / shove / wind).
 - **Salvage** now refunds 40% of EVERYTHING sunk in (`scrap_sunk`: levels + heirloom tiers +
   instalments). **At the door** a weapon is worth Valour by level (docs/PROGRESSION.md "The door").

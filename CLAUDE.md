@@ -1216,8 +1216,8 @@ means no rendering — UI layout and art still need an in-editor look.
   `note_door_scrap`) — or one item is kept by the door and its worth + the bonus are forfeit; every
   button on the door panel shows its Valour. Perk prices ×5 (150-450, Deep Pockets 550) so a
   coveted perk is 5-6 games keeping your weapon, 2-3 scrapping it. **Descent boon = Valour + THE DOOR** (an Arc-Raiders-style safe pocket): pressing to
-  leave, an escaping character either TAKES EVERYTHING (braves the unknown, +10 Valour, chronicle
-  `braved`) or leaves ONE item (full state, upgrades kept) by the door — stashed for a FUTURE GAME,
+  leave, an escaping character either SCRAPS THE KIT for Valour (above; chronicle `braved` /
+  `door_valour`) or leaves ONE upgraded weapon (full state, upgrades kept) by the door — stashed for a FUTURE GAME,
   never this session's later characters. `leave_for_next` → `door_stash_pending` →
   `commit_door_stash` (after `advance_run`, so a quit mid-card never duplicates it) → profile
   `carry_items` → the next `new_game` moves it to `handoff_items` → that game's shopkeeper gives it
@@ -1232,8 +1232,12 @@ means no rendering — UI layout and art still need an in-editor look.
   NOTE for tests: Valour + kept perks live in the PROFILE file — a test that buys must restore them
   (see `progression_test`), or they'd leak into every other suite's stats. The capture tool
   (`scene_capture` `valour:`/`perk:`/`perm:`/`chron:`/`finish`/`call:` steps) ALSO writes the profile.
-- Next: owner review of Valour interpretations (3 offered, 50% trade refund, prices); balance
-  numbers need a playtest. Also open:
-  **Upgrade offers** polish; barricade-keeper NPC; fire smoke/crouch + warning beat. Also open: **Upgrade offers** polish; barricade-keeper NPC;
-  fire smoke/crouch + warning beat.
+- **Owner-approved (round 5):** the door rules (only upgraded weapons stored / worth Valour, no
+  panel or brave bonus without one), the special mods and their numbers (20% ignite, +5% per
+  heirloom tier, ~6 s weapon burn), and KEEPING "burning enemies hit twice as hard" for weapon-lit
+  fire as the fire weapon's risk.
+- Next: still open — whether a perk acquired this session should always be offered once affordable
+  (Valour "targeting"); 3 offered vs 2 and the 50% trade refund; the hammer tree + more specials
+  (owner content); balance numbers need a playtest. Also open: **Upgrade offers** polish;
+  barricade-keeper NPC; fire smoke/crouch + warning beat.
 - Not started: balcony descent, quests.

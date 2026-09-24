@@ -62,7 +62,7 @@ the session is scored and the player may keep ONE perk they found along the way 
   upgraded weapon by the door for their next game and forfeit its worth + the bonus. **Round 5
   (owner: "only upgraded weapons can be stored — we don't want any old junk scrappable for max
   Valour")**: a Lv1 weapon, tools and junk are worth NOTHING at the door and can't be left there;
-  with no upgraded weapon there's no choice, so no panel and no brave bonus
+  with no upgraded weapon there's no choice, so no panel and no brave bonus (owner-approved)
   (`Progression.door_valour`, `WorldState.note_door_scrap`). The handoff panel prints the Valour
   on every button. See THREE_RUN_ARC.md "Descent boon".
 - **The economy it's sized for** (a middling game: one escape, two deaths around floors 15 and 10
