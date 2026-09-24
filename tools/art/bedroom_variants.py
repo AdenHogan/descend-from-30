@@ -369,10 +369,100 @@ D_ANCHORS = [('anchor_bedroom_crates', 26, 70, 'bp'), ('anchor_bedroom_backpack'
              ('anchor_bedroom_clothes_rail', 238, 96, ''), ('anchor_bedroom_boxes', 292, 86, 'bp')]
 
 
+# ============================================================================================
+# E — a child's room
+# ============================================================================================
+E_WALL = hexc('b9c9d6')
+
+
+def e_wall(c):
+    F.wall_plain(c, E_WALL, hexc('8a9aa6'), hexc('e0dcd0'))
+    for y in range(22, 60, 16):                                                  # a duck frieze... in rows
+        off = 0 if ((y - 22) // 16) % 2 == 0 else 12
+        for x in range(off + 6, 320, 24):
+            c.ellipse(x, y, 3, 2, hexc('e6d27a'))
+            c.put(x + 3, y - 2, hexc('e6d27a')); c.put(x + 4, y - 2, hexc('d98a4a'))
+    c.rect(0, 62, 319, 65, hexc('e6d27a'))                                       # a border strip
+    for x in range(0, 320, 8):
+        c.rect(x, 63, x + 3, 64, hexc('7aa0c8'))
+    for i in range(5):
+        c.ellipse(262 + i * 6, 16 + (i % 2) * 3, 8, 5, hexc('7a8a8a', 60))
+
+
+def e_decor(c):
+    # height marks pencilled up the door frame side of the wall, the last one much later
+    for (y, w) in ((82, 6), (76, 6), (70, 6), (64, 6), (52, 8)):
+        c.hline(100, 100 + w, y, hexc('4a4a4a'))
+    c.line(104, 50, 110, 44, BLOOD)
+    c.box(170, 24, 196, 46, hexc('e6e0cc'), hexc('8a8270'))                      # a crayon drawing
+    c.line(174, 42, 180, 32, hexc('3a7a3a')); c.ellipse(186, 30, 3, 3, hexc('d9c24a'))
+    for (x, col) in ((176, hexc('3a3a3a')), (182, hexc('3a3a3a')), (188, hexc('a8322c'))):
+        c.vline(x, 36, 42, col); c.ellipse(x, 35, 1, 1, col)
+
+
+def e_floor(c):
+    F.floor_carpet(c, hexc('7a9ab0'), hexc('8aaac0'), hexc('6a8aa0'), worn=hexc('92b0c4'))
+
+
+def e_furniture(c):
+    # a dollhouse on a low table against the wall (x < 50)
+    c.shadow(27, 100, 22, 2, 100)
+    c.rect(8, 80, 46, 82, F.PINE[1]); c.rect(10, 83, 12, 99, F.PINE[2]); c.rect(42, 83, 44, 99, F.PINE[2])
+    c.poly([(10, 58), (27, 44), (44, 58)], hexc('a8322c'))
+    c.box(12, 58, 42, 79, hexc('e6e0cc'), hexc('8a8270'))
+    c.rect(14, 60, 26, 68, hexc('7aa0c8')); c.rect(28, 60, 40, 68, hexc('d9a0b0'))
+    c.rect(14, 70, 26, 78, hexc('d9c24a')); c.rect(28, 70, 40, 78, hexc('1e1a16'))           # one room dark
+    c.rect(31, 73, 33, 77, hexc('e6ddc8'))                                                    # a tiny figure in it
+    # a rocking horse out on the carpet
+    c.shadow(76, 121, 14, 2, 110)
+    for x in range(60, 95):                                                                   # the curved rocker
+        y = 121 - int(((x - 77) / 17.0) ** 2 * 6)
+        c.put(x, y, F.WOOD[0]); c.put(x, y - 1, F.WOOD[1])
+    c.line(68, 119, 72, 106, F.WOOD[0]); c.line(86, 119, 82, 106, F.WOOD[0])
+    rrect(c, 66, 98, 88, 107, hexc('e6e0cc'), 3)                                              # body
+    c.poly([(84, 99), (92, 90), (96, 92), (90, 101)], hexc('e6e0cc'))                         # neck + head
+    c.put(93, 92, hexc('1e1a16'))
+    c.poly([(86, 98), (90, 90), (88, 98)], hexc('8a4a2a'))                                    # mane
+    c.rect(72, 97, 78, 99, hexc('a8322c'))                                                    # saddle
+    # a small bed with a teddy, pushed against the wall
+    x0, x1 = 118, 196
+    c.shadow((x0 + x1) // 2, 116, (x1 - x0) // 2 + 3, 3, 110)
+    c.box(x0, 76, x0 + 6, 114, hexc('e6e0cc'), hexc('8a8270'))                               # white headboard
+    c.box(x1 - 5, 84, x1, 114, hexc('e6e0cc'), hexc('8a8270'))
+    c.rect(x0 + 6, 104, x1 - 5, 108, hexc('e6e0cc'))
+    c.hline(x0 + 6, x1 - 5, 108, hexc('8a8270'))
+    for lx in (x0 + 8, x1 - 9):
+        c.rect(lx, 109, lx + 2, 114, hexc('8a8270'))
+    mattress_top(c, x0 + 6, x1 - 6, 88, 97, hexc('d98aa0'), hexc('b86a80'), hexc('e8a8b8'))
+    c.ellipse(134, 86, 5, 5, hexc('9a6a3a')); c.ellipse(130, 81, 2, 2, hexc('9a6a3a'))       # the teddy
+    c.ellipse(138, 81, 2, 2, hexc('9a6a3a')); c.put(133, 85, hexc('1e1a16')); c.put(136, 85, hexc('1e1a16'))
+    c.ellipse(134, 93, 4, 3, hexc('9a6a3a'))
+    c.line(130, 94, 140, 90, BLOOD)
+    # a toy chest out by the lane, lid up, toys spilling
+    c.shadow(232, 121, 16, 2, 110)
+    c.box(218, 106, 246, 121, hexc('7aa0c8'), hexc('3a5a78'))
+    c.hline(219, 245, 107, hexc('9ac0e0'))
+    c.poly([(218, 106), (246, 106), (244, 96), (220, 96)], hexc('5a80a8'))                    # the lid, open
+    c.rect(222, 102, 228, 106, hexc('d9c24a')); c.ellipse(236, 104, 3, 3, hexc('a8322c'))
+    c.rect(250, 118, 256, 121, hexc('4e8a5a')); c.ellipse(262, 119, 2, 2, hexc('d9c24a'))
+    # a small white wardrobe in the corner
+    c.shadow(292, 100, 16, 2, 100)
+    c.box(278, 36, 306, 99, hexc('e6e0cc'), hexc('8a8270'))
+    c.vline(292, 38, 97, hexc('b9b3a4'))
+    c.rect(289, 64, 290, 68, hexc('d9c24a')); c.rect(294, 64, 295, 68, hexc('d9c24a'))
+    c.poly([(278, 36), (306, 36), (304, 32), (280, 32)], hexc('d98aa0'))
+
+
+E_ANCHORS = [('anchor_bedroom_dollhouse', 34, 74, 'bp'), ('anchor_bedroom_rocking_horse', 76, 102, ''),
+             ('anchor_bed_pillow', 134, 88, ''), ('anchor_bedroom_toy_chest', 232, 112, ''),
+             ('anchor_bedroom_small_wardrobe', 292, 70, 'bp')]
+
+
 VARIANTS = {
     'b': ('bedroom_b', 22, (b_wall, b_decor, b_floor, b_furniture), B_ANCHORS),
     'c': ('bedroom_c', 23, (c_wall, c_decor, c_floor, c_furniture), C_ANCHORS),
     'd': ('bedroom_d', 24, (d_wall, d_decor, d_floor, d_furniture), D_ANCHORS),
+    'e': ('bedroom_e', 25, (e_wall, e_decor, e_floor, e_furniture), E_ANCHORS),
 }
 
 

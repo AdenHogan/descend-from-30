@@ -1,0 +1,47 @@
+[gd_scene format=3]
+
+[ext_resource type="Texture2D" path="res://assets/rooms/bathroom_e.png" id="1_art"]
+
+[node name="Node2D" type="Node2D"]
+
+[node name="ColorRect" type="ColorRect" parent="."]
+offset_right = 320.0
+offset_bottom = 144.0
+color = Color(0.4, 0.4, 0.4, 1)
+
+[node name="Label" type="Label" parent="ColorRect"]
+layout_mode = 0
+offset_right = 318.0
+offset_bottom = 100.0
+theme_override_font_sizes/font_size = 32
+visible = false
+text = "Bathroom"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Art" type="Sprite2D" parent="."]
+texture_filter = 1
+texture = ExtResource("1_art")
+centered = false
+
+[node name="anchor_bathroom_glass_shelf" type="Marker2D" parent="."]
+position = Vector2(23, 47)
+metadata/back_plane = true
+
+[node name="anchor_wall_sink" type="Marker2D" parent="."]
+position = Vector2(28, 74)
+metadata/back_plane = true
+
+[node name="anchor_centre_toilet" type="Marker2D" parent="."]
+position = Vector2(70, 82)
+metadata/back_plane = true
+
+[node name="anchor_bathroom_pink_tub" type="Marker2D" parent="."]
+position = Vector2(148, 84)
+
+[node name="anchor_bathroom_hamper" type="Marker2D" parent="."]
+position = Vector2(214, 108)
+
+[node name="anchor_bathroom_frosted_cabinet" type="Marker2D" parent="."]
+position = Vector2(292, 82)
+metadata/back_plane = true

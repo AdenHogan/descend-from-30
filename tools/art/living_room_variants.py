@@ -380,6 +380,98 @@ def d_furniture(c):
 
 
 
+# --- E: HUNTING LODGE --------------------------------------------------------------------------
+
+def e_wall(c):
+    import furn as F
+    F.wall_plain(c, hexc('3e4a36'), hexc('2e3628'), hexc('3a2618'), rail=hexc('6b4a31'), rail_y=58)
+    c.rect(0, 60, W - 1, 93, hexc('6b4a31'))                                     # vertical boarding
+    for x in range(0, W, 7):
+        c.vline(x, 60, 93, hexc('5a3d28'))
+        c.vline(x + 1, 60, 93, hexc('7a5638'))
+    c.rect(0, 58, W - 1, 60, hexc('8a6443'))
+    c.hline(0, W - 1, 58, hexc('9e7550'))
+    for i in range(5):
+        c.ellipse(212 + i * 6, 16 + (i % 2) * 3, 8, 5, hexc('2e3628', 70))
+
+
+def e_decor(c):
+    # antlers on a shield plaque, a hunting print
+    cx = 162
+    c.poly([(cx - 6, 34), (cx + 6, 34), (cx + 5, 46), (cx, 50), (cx - 5, 46)], hexc('6b4a31'))
+    c.poly([(cx - 3, 36), (cx + 3, 36), (cx + 2, 42), (cx - 2, 42)], hexc('8a7a6a'))
+    for d in (-1, 1):
+        pts = [(cx + 3 * d, 36), (cx + 10 * d, 30), (cx + 16 * d, 22), (cx + 20 * d, 14)]
+        for a, b in zip(pts, pts[1:]):
+            c.line(a[0], a[1], b[0], b[1], hexc('d9cfb8'))
+        c.line(cx + 10 * d, 30, cx + 14 * d, 34, hexc('d9cfb8'))
+        c.line(cx + 16 * d, 22, cx + 22 * d, 24, hexc('d9cfb8'))
+        c.line(cx + 16 * d, 22, cx + 14 * d, 14, hexc('d9cfb8'))
+    frame(c, 196, 26, 220, 46, hexc('b58f4a'), hexc('7a6a4a'), hexc('6a7a5a'))
+    c.poly([(200, 40), (206, 34), (212, 38), (216, 32), (216, 42), (200, 42)], hexc('4a5a3a'))
+
+
+def e_floor(c):
+    import furn as F
+    F.floor_planks(c, [hexc('5e4230'), hexc('563c2a'), hexc('644734')], hexc('36261a'))
+
+
+def e_furniture(c):
+    import furn as F
+    # a gun cabinet on the left (x < 50): glass door, rifle racks, one slot empty
+    c.shadow(26, 101, 20, 2, 100)
+    c.box(8, 22, 44, 99, hexc('4a2e1e'), hexc('24160e'))
+    c.rect(11, 25, 41, 80, hexc('2a1d14'))
+    for i, gx in enumerate((15, 22, 29, 36)):
+        if i == 2:
+            c.rect(gx - 1, 72, gx + 1, 78, hexc('5a3a26'))                      # the empty cradle
+            continue
+        c.rect(gx, 30, gx + 1, 76, hexc('3a3a36'))                             # barrel
+        c.rect(gx - 1, 60, gx + 2, 78, hexc('7a4a2a'))                         # stock
+    for y in range(25, 81):
+        for x in range(11, 42):
+            if (x + y) % 9 == 0:
+                c.put(x, y, hexc('9ab0b0', 90))                                # glass sheen
+    c.box(11, 83, 41, 96, hexc('4a2e1e'), hexc('24160e'))
+    c.rect(24, 88, 28, 89, F.BRASS)
+    # a stone fireplace against the wall: mantel, dead grate, poker set
+    c.shadow(128, 101, 28, 2, 100)
+    c.rect(102, 52, 154, 56, hexc('6b4a31'))                                   # the mantel
+    c.hline(102, 154, 52, hexc('8a6443'))
+    for y in range(57, 100, 5):
+        off = 0 if (y // 5) % 2 == 0 else 5
+        for x in range(104 + off, 153, 10):
+            c.rect(x, y, x + 8, y + 3, hexc('8a8478'))
+            c.hline(x, x + 8, y, hexc('a09a8c'))
+    c.rect(114, 70, 142, 99, hexc('1e1a16'))                                   # the firebox
+    c.poly([(114, 70), (142, 70), (138, 66), (118, 66)], hexc('6a645a'))
+    c.rect(118, 92, 138, 94, hexc('3a3a36'))                                   # the grate
+    for x in range(120, 137, 4):
+        c.vline(x, 88, 92, hexc('3a3a36'))
+    c.dither(118, 94, 138, 98, hexc('8a8278'), 0.5)                            # ash
+    c.rect(120, 46, 126, 51, hexc('c9c2b1')); c.rect(130, 44, 134, 51, hexc('7a4a2a'))   # a clock + a decanter
+    c.rect(146, 74, 147, 99, hexc('3a3a36')); c.hline(144, 149, 99, hexc('3a3a36'))       # poker stand
+    # a game bag slumped on the floor by the lane
+    c.shadow(92, 121, 10, 2, 110)
+    c.poly([(82, 121), (84, 108), (94, 104), (102, 110), (102, 121)], hexc('6a6a4a'))
+    c.line(86, 108, 98, 104, hexc('3a3a28'))
+    c.rect(88, 112, 98, 116, hexc('5a5a3e'))
+    # a chesterfield in oxblood leather, and a bear-skin rug before it
+    sofa_as(c, (hexc('6e2a24'), hexc('55201c'), hexc('84403a'), hexc('2a100e')), (hexc('7a8a6a'), hexc('5a6a4a')), dx=92)
+    bear, bear_dk = hexc('9a7450'), hexc('6a4a34')
+    c.poly([(118, 126), (128, 120), (132, 116), (140, 120), (170, 119), (178, 115), (184, 120), (196, 124),
+            (184, 128), (178, 132), (170, 128), (140, 129), (132, 133), (128, 129)], bear)   # the pelt, legs out
+    c.poly([(196, 124), (206, 120), (212, 123), (208, 128)], bear)                              # the head
+    c.put(206, 122, hexc('1e1a16')); c.put(211, 124, hexc('d9cfb8'))
+    c.line(140, 124, 170, 124, bear_dk)
+    F.floor_lamp(c, 300, 60, 114, hexc('c9ab7e'), hexc('3a2a1a'))
+
+
+E_ANCHORS = [('anchor_living_gun_cabinet', 26, 56, 'bp'), ('anchor_living_fireplace', 128, 90, 'bp'),
+             ('anchor_living_game_bag', 92, 112, ''), ('anchor_centre_sofaleft', 203, 103, ''),
+             ('anchor_centre_sofaright', 238, 101, '')]
+
+
 def _variant(wall, decor, floor, furniture, seed):
     def bare(c):
         wall(c)
@@ -407,6 +499,7 @@ VARIANTS = {
     'b': ('living_room_b', 21, (b_wall, b_decor, b_floor, b_furniture), B_ANCHORS),
     'c': ('living_room_c', 33, (c_wall, c_decor, c_floor, c_furniture), C_ANCHORS),
     'd': ('living_room_d', 44, (d_wall, d_decor, d_floor, d_furniture), D_ANCHORS),
+    'e': ('living_room_e', 45, (e_wall, e_decor, e_floor, e_furniture), E_ANCHORS),
 }
 
 

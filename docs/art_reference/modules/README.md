@@ -106,7 +106,7 @@ must be bare wall + floor (checked); furniture there goes in `strip_fn` → `<na
 `room._apply_balcony_strip` hides the strip art and removes those nodes; without a balcony the
 room gets the use of that space.
 
-**All 24 variants BUILT (round 10) — 4 per room type** (overview: `all_variants.png` here; rebuild
+**All 30 variants BUILT (round 10) — 5 per room type** (overview: `all_variants.png` here; rebuild
 everything with `python3 tools/art/build_all.py`, deterministic — an unchanged script re-writes
 byte-identical PNGs). Scripts: `<type>.py` = variant a, `<type>_variants.py` = b-d (bathroom keeps all
 four in `bathroom.py`); shared pieces in `tools/art/furn.py` (chest, shelves, table, chairs, boxes,
@@ -126,6 +126,11 @@ posters, rugs, lamps, walls + tiling floors).
   wingback, globe) / d prepper's radio room.
 - dining room: table + side-on chair + drinks trolley / b 70s round table + serving hatch /
   c formal (grandfather clock, candelabra) / d barricaded (the table flipped on its side).
+- 5th variants (e): living room hunting lodge (gun cabinet, stone fireplace, chesterfield,
+  bear-skin rug) / bedroom a child's room (dollhouse, rocking horse, toy chest) / kitchen the
+  hoarder (newspaper stacks, bags, cat tins) / bathroom pink 50s suite / study artist's studio
+  (canvases, an easel with a smeared portrait, a trestle table) / dining room an abandoned birthday
+  party (bunting, cake, party hats, unopened presents in the strip).
 Study + dining variants each put their own furniture in the balcony strip (see above).
 
 **The runs (owner round 10 — "their run 2 and 3 looks as things get a bit more dilapidated and then

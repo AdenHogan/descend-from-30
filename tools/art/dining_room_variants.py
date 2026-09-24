@@ -296,10 +296,104 @@ D_ANCHORS = [('anchor_dining_broken_chairs', 28, 86, 'bp s'), ('anchor_dining_la
              ('anchor_dining_mattress', 283, 64, 'bp'), ('anchor_dining_hammer', 236, 116, '')]
 
 
+# ============================================================================================
+# E — a birthday party, abandoned
+# ============================================================================================
+PARTY = [hexc('d86a5a'), hexc('5a8ac0'), hexc('e6c24a'), hexc('6aa06a'), hexc('b07ab8')]
+
+
+def e_wall(c):
+    F.wall_plain(c, hexc('d9c9a0'), hexc('a8986e'), hexc('6a5438'), rail=hexc('8a6443'), rail_y=64)
+    F.wall_motif(c, hexc('c9b98e'), hexc('b0a078'), y1=60)
+    c.rect(0, 66, 319, 93, hexc('b9a880'))
+    for i in range(5):
+        c.ellipse(24 + i * 6, 18 + (i % 2) * 3, 8, 5, hexc('8a7a50', 60))
+
+
+def e_decor(c):
+    # bunting strung across the wall, a hand-painted banner, a few balloons gone soft
+    for (x0, x1, sag) in ((100, 222, 8),):
+        prev = None
+        for x in range(x0, x1 + 1):
+            t = (x - x0) / float(x1 - x0)
+            y = 20 + int(4 * sag * t * (1 - t))
+            if prev:
+                c.line(prev[0], prev[1], x, y, hexc('6a5438'))
+            prev = (x, y)
+            if (x - x0) % 10 == 0 and x0 < x < x1:
+                col = PARTY[((x - x0) // 10) % len(PARTY)]
+                c.poly([(x - 3, y + 1), (x + 3, y + 1), (x, y + 7)], col)
+    c.rect(122, 34, 200, 44, hexc('efe8d8'))                                     # the banner
+    for (x, col) in ((128, PARTY[0]), (138, PARTY[1]), (148, PARTY[2]), (158, PARTY[3]),
+                     (170, PARTY[4]), (180, PARTY[0]), (190, PARTY[1])):
+        c.rect(x, 36, x + 5, 42, col)
+    for (x, y, col) in ((108, 50, PARTY[1]), (214, 52, PARTY[0])):
+        c.ellipse(x, y, 5, 6, col)
+        c.ellipse(x - 2, y - 2, 1, 2, shade(col, 1.3))
+        c.line(x, y + 6, x + 2, y + 18, hexc('9a927e'))
+
+
+def e_floor(c):
+    F.floor_carpet(c, hexc('8a5a4a'), hexc('9a6a58'), hexc('7a4a3c'), worn=hexc('a07060'))
+
+
+def e_strip(c):
+    # a pile of wrapped presents, never opened, and one that was
+    c.shadow(28, 100, 22, 2, 100)
+    for (x0, y0, x1, col, rib) in ((8, 84, 30, PARTY[1], PARTY[2]), (28, 88, 46, PARTY[0], PARTY[3]),
+                                   (14, 72, 34, PARTY[4], PARTY[2])):
+        c.box(x0, y0, x1, 99 if y0 > 80 else 83, col, shade(col, 0.6))
+        c.vline((x0 + x1) // 2, y0, 99 if y0 > 80 else 83, rib)
+        c.hline(x0, x1, y0 + 4, rib)
+    c.poly([(22, 72), (26, 66), (30, 72)], PARTY[2])
+    # a torn-open box out by the lane, something dark inside
+    c.shadow(72, 121, 12, 2, 110)
+    c.box(62, 108, 84, 121, PARTY[3], shade(PARTY[3], 0.6))
+    c.rect(64, 110, 82, 113, hexc('1e1a16'))
+    c.poly([(62, 108), (56, 102), (58, 100), (64, 106)], PARTY[3])
+    c.poly([(84, 108), (92, 104), (92, 106), (85, 110)], PARTY[3])
+    c.line(58, 118, 50, 121, hexc('efe8d8'))
+
+
+def e_furniture(c):
+    # the party table out in the room: a cake with the candles burnt down, paper plates, hats
+    F.chair_back(c, 132, 70, 94, F.PINE, width=14)
+    F.chair_back(c, 176, 70, 94, F.PINE, width=14)
+    F.chair_back(c, 214, 70, 94, F.PINE, width=14)
+    F.table_front(c, 116, 244, 92, 120, F.PINE, depth=6, cloth=hexc('efe8d8'), cloth_dk=hexc('d0c8b4'), hem=104)
+    for x in range(118, 244, 8):                                                  # a paper cloth, printed
+        c.put(x, 95, PARTY[(x // 8) % len(PARTY)])
+    c.ellipse(180, 90, 12, 2, hexc('e6ddc8'))                                     # the cake
+    c.rect(170, 82, 190, 89, hexc('d98aa0'))
+    c.hline(170, 190, 82, hexc('f0d0dc'))
+    c.dither(170, 84, 190, 86, hexc('efe8d8'), 0.5)
+    c.poly([(184, 82), (190, 82), (190, 89), (186, 89)], hexc('8a5a3a'))           # a slice cut, the sponge showing
+    for x in (174, 178, 182):
+        c.rect(x, 78, x, 81, PARTY[x % 5])
+    c.put(178, 77, hexc('3a2a1a'))
+    for (x, col) in ((136, PARTY[0]), (152, PARTY[1]), (206, PARTY[3]), (226, PARTY[4])):
+        c.ellipse(x, 92, 6, 1, hexc('efe8d8'))
+        c.poly([(x - 3, 90), (x + 3, 90), (x, 83)], col)                          # party hats left on the plates
+    c.ellipse(212, 96, 4, 1, BLOOD)
+    # a sideboard with a cassette player and a stack of paper cups
+    F.chest(c, 250, 310, 72, 100, F.PINE, drawers=2, open_row=0)
+    c.box(274, 62, 296, 71, hexc('3a3a3d'), hexc('1c1c1e'))
+    c.ellipse(280, 66, 2, 2, hexc('9aa3a8')); c.ellipse(290, 66, 2, 2, hexc('9aa3a8'))
+    c.rect(300, 60, 305, 71, hexc('efe8d8'))
+    for y in range(62, 71, 2):
+        c.hline(300, 305, y, hexc('d0c8b4'))
+
+
+E_ANCHORS = [('anchor_dining_presents', 24, 80, 'bp s'), ('anchor_dining_torn_box', 72, 112, 's'),
+             ('anchor_table_left', 140, 94, ''), ('anchor_dining_cake', 180, 86, ''),
+             ('anchor_table_right', 226, 94, ''), ('anchor_right_upperdrawers', 280, 82, 'bp')]
+
+
 VARIANTS = {
     'b': ('dining_room_b', 62, (b_wall, b_decor, b_floor, b_furniture, b_strip), B_ANCHORS),
     'c': ('dining_room_c', 63, (c_wall, c_decor, c_floor, c_furniture, c_strip), C_ANCHORS),
     'd': ('dining_room_d', 64, (d_wall, d_decor, d_floor, d_furniture, d_strip), D_ANCHORS),
+    'e': ('dining_room_e', 65, (e_wall, e_decor, e_floor, e_furniture, e_strip), E_ANCHORS),
 }
 
 

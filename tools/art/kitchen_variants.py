@@ -364,10 +364,87 @@ D_ANCHORS = [('anchor_centre_fridge', 24, 60, 'bp'), ('anchor_kitchen_camp_table
              ('anchor_right_trashcan', 292, 90, 'bp')]
 
 
+# ============================================================================================
+# E — the hoarder
+# ============================================================================================
+E_WALL = hexc('b8a888')
+
+
+def e_wall(c):
+    F.wall_plain(c, E_WALL, hexc('8a7a5e'), hexc('4a3a2a'), texture=hexc('a89878'))
+    c.rect(0, 60, 319, 93, hexc('c9b894'))                                      # old tiles, nicotine yellow
+    for y in range(60, 94, 8):
+        c.hline(0, 319, y, hexc('a89878'))
+    for x in range(0, 320, 8):
+        c.vline(x, 60, 93, hexc('a89878'))
+    c.dither(0, 6, 319, 30, hexc('8a7a4a', 60), 0.3, pattern='random')          # smoke-stained ceiling line
+
+
+def e_decor(c):
+    for (x, y) in ((110, 24), (126, 30), (140, 22), (196, 28), (212, 34)):     # clippings pinned everywhere
+        c.rect(x, y, x + 10, y + 12, hexc('d9d0b0'))
+        for yy in range(y + 2, y + 11, 2):
+            c.hline(x + 1, x + 8, yy, hexc('8a8270'))
+    c.line(115, 20, 216, 40, hexc('a8322c'))                                    # string between them
+
+
+def e_floor(c):
+    F.floor_lino(c, hexc('8a7a5e'), hexc('a08e6e'), size=16)
+
+
+def paper_stack(c, x0, base, h, w=16, lean=0):
+    c.shadow(x0 + w // 2, base, w // 2 + 2, 1, 110)
+    for i in range(0, h, 3):
+        dx = (lean * i) // max(h, 1)
+        col = hexc('d8cfb4') if (i // 3) % 3 else hexc('c9bf9e')
+        c.rect(x0 + dx, base - i - 2, x0 + dx + w, base - i, col)
+        c.hline(x0 + dx, x0 + dx + w, base - i, hexc('9a927e'))
+    c.rect(x0 + 3 + lean, base - h - 1, x0 + w - 4 + lean, base - h, hexc('a8322c'))   # string
+
+
+def e_furniture(c):
+    # the old cooker + a counter buried in stuff, against the wall
+    base_units(c, 100, 200, 72, (hexc('d6cfb8'), hexc('e6e0cc'), hexc('b9b29a'), hexc('5e584a')),
+               hexc('8a8270'), hexc('4a4638'), doors=5, open_door=3)
+    cooker(c, 202, 72, hexc('e6e0cc'), hexc('c9c2b1'), hexc('5e584a'))
+    for (x, h, col) in ((104, 10, hexc('9aa3a8')), (110, 14, hexc('c9b86a')), (118, 8, hexc('b0453a')),
+                        (126, 16, hexc('d8cfb4')), (140, 12, hexc('9aa3a8')), (150, 6, hexc('7a8a5a')),
+                        (160, 18, hexc('d8cfb4')), (176, 9, hexc('c9b86a')), (186, 13, hexc('9aa3a8'))):
+        c.rect(x, 71 - h, x + 7, 71, col)                                        # piled tins, jars, papers
+        c.hline(x, x + 7, 71 - h, shade(col, 1.15))
+    c.rect(206, 64, 224, 69, hexc('7a6a58'))                                     # a pile of pans on the hob
+    c.rect(209, 59, 221, 63, hexc('5a5249'))
+    # newspaper stacks along the left wall, one toppled
+    for (x, h, lean) in ((8, 40, 1), (26, 52, -1), (44, 30, 0)):
+        paper_stack(c, x, 99, h, 16, lean)
+    c.poly([(62, 121), (90, 116), (92, 120), (64, 124)], hexc('d8cfb4'))          # a toppled stack by the lane
+    c.poly([(66, 118), (94, 113), (95, 116), (67, 121)], hexc('c9bf9e'))
+    c.line(64, 122, 92, 117, hexc('9a927e'))
+    # a table out in the room buried in plastic bags + cat food tins
+    F.table_front(c, 236, 296, 96, 121, F.WOOD, depth=5)
+    for (x, col) in ((238, hexc('e6e0cc')), (252, hexc('c0453a')), (266, hexc('e6e0cc')), (280, hexc('4e6ea0'))):
+        rrect(c, x, 86, x + 12, 96, col, 3)                                     # a tied carrier bag
+        c.poly([(x + 3, 87), (x + 5, 81), (x + 7, 87)], col)                     # its knotted handles
+        c.poly([(x + 6, 87), (x + 9, 82), (x + 10, 87)], shade(col, 0.85))
+        c.line(x + 2, 90, x + 9, 94, shade(col, 0.82))
+    for x in range(240, 294, 6):
+        c.rect(x, 116, x + 4, 120, hexc('b9bfc1'))
+        c.hline(x, x + 4, 116, hexc('d8e0e2'))
+    # a cat bowl, a cat nowhere to be seen
+    c.ellipse(212, 118, 6, 2, hexc('a8322c'))
+    c.ellipse(212, 117, 4, 1, hexc('6a4a2a'))
+
+
+E_ANCHORS = [('anchor_kitchen_paper_stacks', 32, 70, 'bp'), ('anchor_kitchen_toppled_papers', 78, 118, ''),
+             ('anchor_kitchen_buried_counter', 150, 80, 'bp'), ('anchor_centre_oven', 214, 88, 'bp'),
+             ('anchor_kitchen_bag_table', 258, 90, ''), ('anchor_kitchen_cat_tins', 262, 118, '')]
+
+
 VARIANTS = {
     'b': ('kitchen_b', 34, (b_wall, b_decor, b_floor, b_furniture), B_ANCHORS),
     'c': ('kitchen_c', 35, (c_wall, c_decor, c_floor, c_furniture), C_ANCHORS),
     'd': ('kitchen_d', 36, (d_wall, d_decor, d_floor, d_furniture), D_ANCHORS),
+    'e': ('kitchen_e', 37, (e_wall, e_decor, e_floor, e_furniture), E_ANCHORS),
 }
 
 

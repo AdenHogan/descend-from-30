@@ -758,11 +758,115 @@ D_ANCHORS = [('anchor_bathroom_small_sink', 27, 70, 'bp'), ('anchor_bathroom_gri
              ('anchor_bathroom_washer', 280, 88, 'bp')]
 
 
+# ============================================================================================
+# E — pink 50s
+# ============================================================================================
+PINK = hexc('e0a8b4')
+PINK_LT = hexc('efc4cc')
+PINK_DK = hexc('c08894')
+PINK_OUT = hexc('6a4048')
+E_TILE = hexc('e8c4c8')
+E_TILE_DK = hexc('d8b0b6')
+E_TRIM = hexc('26262a')
+
+
+def e_wall(c):
+    c.rect(0, 0, W - 1, 93, hexc('d8d0c0'))
+    crown(c, hexc('a89a88'), hexc('c0b4a0'))
+    tiled_wall(c, 44, E_TILE, E_TILE_DK, hexc('b89aa0'), E_TRIM, size=8)
+    c.rect(0, 58, W - 1, 59, E_TRIM)                                            # a black pencil-tile line
+    c.dither(0, 6, 40, 18, MOULD, 0.35, pattern='random')
+    c.dither(286, 6, W - 1, 20, MOULD, 0.35, pattern='random')
+
+
+def e_floor(c):
+    # black and white hexagon-ish mosaic: offset 8px blocks (repeats every 32px)
+    c.rect(0, 100, W - 1, H - 1, hexc('e6e2d8'))
+    rows = [100, 104, 109, 115, 122, 130, 139, 144]
+    for r in range(len(rows) - 1):
+        y0, y1 = rows[r], rows[r + 1] - 1
+        off = 4 if r % 2 else 0
+        for x in range(-8, W, 8):
+            col = hexc('2e2e33') if ((x + 8) // 8 + r) % 4 == 0 else hexc('e6e2d8')
+            c.rect(max(0, x + off), y0, min(W - 1, x + off + 7), y1, col)
+            if 0 <= x + off < W:
+                c.vline(x + off, y0, y1, hexc('b9b5ab'))
+        c.hline(0, W - 1, y0, hexc('b9b5ab'))
+    c.hline(0, W - 1, 100, hexc('7a766c'))
+
+
+def e_build(c):
+    e_wall(c)
+    e_floor(c)
+    # a round mirror with a pink frame + a glass shelf of bottles over a pink pedestal sink
+    c.ellipse(28, 34, 12, 12, PINK_DK)
+    c.ellipse(28, 34, 10, 10, MIRROR)
+    c.line(22, 40, 32, 26, MIRROR_HI)
+    c.rect(14, 50, 42, 51, hexc('c9d8d8'))
+    for (x, col) in ((16, hexc('e8a0b0')), (22, hexc('7ab0c8')), (30, hexc('e0d9b8')), (36, hexc('c07a3a'))):
+        c.rect(x, 45, x + 3, 49, col)
+    pedestal_sink(c, 28, 70, porc=PINK, porc_dk=PINK_DK, out=PINK_OUT)
+    toilet(c, 70, porc=PINK, out=PINK_OUT, seat=hexc('26262a'))
+    c.rect(86, 80, 91, 86, hexc('efe8d8'))
+    # a short pink tub on a tiled plinth, pulled to the lane, a shower curtain drawn back
+    x0, x1, rim = 110, 186, 82
+    c.hline(x0 - 2, x1 + 2, 24, CHROME_DK)
+    cur = hexc('efe8d8')
+    c.poly([(x1 - 12, 25), (x1 + 2, 25), (x1 + 2, rim - 2), (x1 - 8, rim - 4)], cur)
+    for fx in (x1 - 9, x1 - 5, x1 - 1):
+        c.line(fx, 26, fx - 1, rim - 4, hexc('d0c8b4'))
+    for (x, y) in ((x1 - 8, 36), (x1 - 3, 50), (x1 - 7, 64)):                   # little pink fish on it
+        c.rect(x, y, x + 3, y + 1, PINK_DK)
+    c.shadow((x0 + x1) // 2, rim + 27, (x1 - x0) // 2 + 3, 3, 110)
+    rrect(c, x0, rim, x1, rim + 5, PINK_OUT, 3)
+    rrect(c, x0 + 1, rim + 1, x1 - 1, rim + 4, PINK_LT, 2)
+    c.rect(x0 + 5, rim + 2, x1 - 5, rim + 3, hexc('8a6a74'))
+    c.box(x0, rim + 6, x1, rim + 26, E_TILE, PINK_OUT)                          # the tiled plinth
+    for y in range(rim + 10, rim + 26, 6):
+        c.hline(x0 + 1, x1 - 1, y, hexc('b89aa0'))
+    for x in range(x0 + 6, x1, 8):
+        c.vline(x, rim + 7, rim + 25, hexc('b89aa0'))
+    c.rect(x0 + 6, rim - 8, x0 + 8, rim - 1, CHROME)                             # taps
+    c.rect(x0 + 12, rim - 8, x0 + 14, rim - 1, CHROME)
+    c.hline(x0 + 5, x0 + 15, rim - 8, CHROME_DK)
+    c.line(150, rim + 6, 152, rim + 20, BLOOD)
+    # a pink fluffy bath mat + a laundry hamper by the lane
+    c.poly([(124, 112), (170, 112), (172, 118), (122, 118)], PINK_LT)
+    c.dither(124, 113, 170, 117, PINK, 0.5)
+    c.shadow(214, 121, 12, 2, 110)
+    c.poly([(202, 100), (226, 100), (224, 121), (204, 121)], hexc('efe8d8'))
+    for y in range(103, 121, 3):
+        c.hline(203, 225, y, hexc('d0c8b4'))
+    c.rect(200, 97, 228, 100, PINK_DK)
+    c.poly([(206, 97), (212, 91), (216, 97)], TOWELS[1])
+    # a vanity stool + a frosted-glass cabinet on the right
+    c.shadow(242, 100, 8, 1, 90)
+    c.ellipse(242, 84, 8, 3, PINK)
+    for lx in (236, 248):
+        c.vline(lx, 86, 99, CHROME_DK)
+    c.box(276, 30, 308, 99, hexc('efe8d8'), PINK_OUT)
+    c.box(279, 34, 305, 64, hexc('c9d0d4'), PINK_OUT)
+    c.dither(280, 35, 304, 63, hexc('e6ecee'), 0.5)
+    c.box(279, 68, 305, 96, hexc('efe8d8'), PINK_DK)
+    c.rect(290, 80, 294, 80, CHROME)
+    return c
+
+
+def e_bare(c):
+    e_wall(c)
+
+
+E_ANCHORS = [('anchor_bathroom_glass_shelf', 23, 47, 'bp'), ('anchor_wall_sink', 28, 74, 'bp'),
+             ('anchor_centre_toilet', 70, 82, 'bp'), ('anchor_bathroom_pink_tub', 148, 84, ''),
+             ('anchor_bathroom_hamper', 214, 108, ''), ('anchor_bathroom_frosted_cabinet', 292, 82, 'bp')]
+
+
 VARIANTS = {
     'a': ('bathroom', 41, a_bare, a_floor, a_build, A_ANCHORS),
     'b': ('bathroom_b', 42, b_bare, b_floor, b_build, B_ANCHORS),
     'c': ('bathroom_c', 43, c_bare, c_floor, c_build, C_ANCHORS),
     'd': ('bathroom_d', 44, d_bare, d_floor, d_build, D_ANCHORS),
+    'e': ('bathroom_e', 45, e_bare, e_floor, e_build, E_ANCHORS),
 }
 
 

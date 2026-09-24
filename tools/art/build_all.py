@@ -1,5 +1,5 @@
 """Rebuild EVERY room module variant (art + floor + strip + scene + previews) and the overview sheet
-docs/art_reference/modules/all_variants.png (one row per room type, variants a-d across).
+docs/art_reference/modules/all_variants.png (one row per room type, variants a-e across).
 
 Run:  python3 tools/art/build_all.py
 """
@@ -25,11 +25,11 @@ def main():
     from PIL import Image, ImageDraw
     sc, pad = 2, 6
     w, h = 320 * sc, 144 * sc
-    sheet = Image.new('RGB', (4 * (w + pad) + pad, len(TYPES) * (h + pad + 12) + pad), (18, 18, 20))
+    sheet = Image.new('RGB', (5 * (w + pad) + pad, len(TYPES) * (h + pad + 12) + pad), (18, 18, 20))
     d = ImageDraw.Draw(sheet)
     prev = os.path.join(ROOT, 'docs', 'art_reference', 'modules')
     for r, t in enumerate(TYPES):
-        for k, v in enumerate(['', '_b', '_c', '_d']):
+        for k, v in enumerate(['', '_b', '_c', '_d', '_e']):
             p = os.path.join(prev, t + v + '_x4.png')
             if not os.path.exists(p):
                 continue

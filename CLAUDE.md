@@ -1353,7 +1353,7 @@ means no rendering — UI layout and art still need an in-editor look.
   reach up there, no left/right, never auto-returns; S steps down (a click on open floor steps down
   then walks). From the walking line those nodes are out of reach. Saves record the walking line
   (`player.lane_position`). Enemies still reach you up there. Locked by `back_plane_test`.
-  **ALL SIX modules have art, 4 VARIANTS each (24)** — docs/art_reference/modules/README.md.
+  **ALL SIX modules have art, 5 VARIANTS each (30)** — docs/art_reference/modules/README.md.
   ONE pipeline: `pixlib.finish_module` renders + CHECKS + exports a variant AND writes its scene
   (`tools/art/modscene.py`), so furniture and nodes live together in the art script (don't hand-edit
   module .tscn files — regenerate: `python3 tools/art/build_all.py`). It refuses: window boxes / wall

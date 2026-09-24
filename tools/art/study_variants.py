@@ -275,10 +275,110 @@ D_ANCHORS = [('anchor_study_tins', 26, 62, 'bp s'), ('anchor_study_gas_mask', 75
              ('anchor_right_shelf', 292, 66, 'bp')]
 
 
+# ============================================================================================
+# E — artist's studio
+# ============================================================================================
+SPLASH = [hexc('c0453a'), hexc('3a6a9a'), hexc('d9b43a'), hexc('4e8a5a'), hexc('7a3a6a')]
+
+
+def e_wall(c):
+    F.wall_plain(c, hexc('d8d2c4'), hexc('a8a294'), hexc('8a8478'), texture=hexc('ccc6b8'))
+    for x in range(0, 320, 16):                                                   # whitewashed brick
+        for y in range(16, 92, 8):
+            off = 8 if (y // 8) % 2 else 0
+            c.hline(0, 319, y, hexc('c9c3b5'))
+            c.vline((x + off) % 320, y, y + 7, hexc('c9c3b5'))
+    for i in range(4):
+        c.ellipse(26 + i * 7, 18 + (i % 2) * 3, 8, 5, hexc('9a9486', 60))
+
+
+def e_decor(c):
+    rng = Canvas(seed=91).rng
+    for _ in range(40):                                                           # paint flicked on the wall
+        x, y = rng.randrange(104, 270), rng.randrange(40, 92)
+        if 226 <= x <= 270 and y <= 66:
+            continue
+        col = rng.choice(SPLASH)
+        c.put(x, y, col)
+        if rng.random() < 0.4:
+            c.put(x + 1, y, col); c.put(x, y + 1, col)
+
+
+def e_floor(c):
+    F.floor_planks(c, [hexc('9a8a70'), hexc('928266'), hexc('a09076')], hexc('6a5e4a'))
+    for y in range(104, 144):                                                     # paint drips, periodic
+        for x in range(320):
+            k = (x * 13 + y * 7) % 32
+            if k == 9 and y % 5 == 0:
+                c.put(x, y, SPLASH[((x % 32) // 7) % len(SPLASH)])
+
+
+def e_strip(c):
+    # a plan chest with rolled drawings + tins of paint on the floor
+    F.chest(c, 8, 46, 70, 100, F.WOOD, drawers=4, open_row=1)
+    for (x, col) in ((12, hexc('e6e0cc')), (20, hexc('d9d0b0')), (30, hexc('e6e0cc'))):
+        c.rect(x, 64, x + 10, 69, col)
+        c.ellipse(x, 66, 1, 2, shade(col, 0.8))
+    c.shadow(72, 121, 14, 2, 110)
+    for (x, col) in ((60, SPLASH[0]), (70, SPLASH[1]), (80, SPLASH[2])):
+        c.box(x, 110, x + 8, 121, hexc('9aa3a8'), hexc('5a6064'))
+        c.rect(x + 1, 112, x + 7, 116, col)
+        c.line(x + 1, 110, x + 4, 106, hexc('5a6064'))
+    c.rect(88, 118, 96, 120, SPLASH[3])
+
+
+def e_furniture(c):
+    # canvases stacked against the wall
+    c.shadow(128, 100, 26, 2, 100)
+    for i, (x0, top, col) in enumerate(((104, 40, hexc('d8cfb4')), (112, 48, hexc('c9bf9e')), (120, 58, hexc('d8cfb4')),
+                                         (132, 52, hexc('b9ae8e')))):
+        c.box(x0, top, x0 + 26, 99, col, hexc('7a6a50'))
+        c.rect(x0 + 2, top + 2, x0 + 24, 97, shade(col, 0.95))
+    c.rect(134, 54, 156, 97, hexc('3a5a7a'))                                      # the front one painted: a sea
+    c.rect(134, 76, 156, 97, hexc('2a4a5a'))
+    c.poly([(138, 76), (146, 68), (152, 76)], hexc('e6e0cc'))
+    # the easel out in the room, a portrait with its face smeared out
+    c.shadow(186, 121, 14, 2, 110)
+    c.line(176, 121, 184, 64, F.PINE[2]); c.line(196, 121, 188, 64, F.PINE[2]); c.line(186, 121, 186, 70, F.PINE[3])
+    c.rect(170, 104, 202, 106, F.PINE[1])                                          # the tray
+    c.box(172, 66, 200, 103, hexc('e6e0cc'), hexc('7a6a50'))
+    c.rect(174, 68, 198, 101, hexc('8a7a6a'))
+    c.ellipse(186, 80, 7, 9, hexc('c8b39a'))
+    c.rect(178, 90, 194, 101, hexc('3a3a4a'))
+    for (x, y) in ((180, 74), (184, 78), (188, 76), (182, 84), (190, 82)):          # the smear
+        c.line(x, y, x + 6, y + 3, hexc('5a1a16'))
+    for (x, col) in ((174, SPLASH[0]), (180, SPLASH[1]), (188, SPLASH[2])):
+        c.rect(x, 102, x + 3, 103, col)
+    # a paint-spattered trestle table out by the lane: jars of brushes, a palette
+    F.table_front(c, 214, 268, 96, 121, (hexc('b9ae92'), hexc('c9c0a8'), hexc('8a8270'), hexc('4a4638')), depth=5)
+    for (x, y, col) in ((218, 98, SPLASH[0]), (230, 99, SPLASH[1]), (244, 97, SPLASH[2]), (258, 100, SPLASH[3])):
+        c.put(x, y, col); c.put(x + 1, y, col)
+    for x in (220, 228):
+        c.rect(x, 88, x + 5, 95, hexc('b9c4c4'))
+        for bx in (x + 1, x + 3):
+            c.line(bx, 88, bx - 1 + (bx - x), 82, F.PINE[2])
+    c.ellipse(250, 94, 9, 2, F.PINE[1])
+    for (x, col) in ((244, SPLASH[0]), (248, SPLASH[1]), (252, SPLASH[2]), (256, SPLASH[4])):
+        c.put(x, 94, col)
+    # shelves of jars and rags on the right
+    F.shelves(c, 276, 310, 40, 100, F.PINE, [58, 78, 96], c.rng, fill=0.0)
+    for (y, n) in ((58, 5), (78, 4), (96, 5)):
+        for k in range(n):
+            x = 280 + k * 6
+            c.rect(x, y - 7, x + 4, y - 1, hexc('b9c4c4'))
+            c.rect(x + 1, y - 5, x + 3, y - 2, SPLASH[(k + y) % len(SPLASH)])
+
+
+E_ANCHORS = [('anchor_study_plan_chest', 26, 88, 'bp s'), ('anchor_study_paint_tins', 74, 114, 's'),
+             ('anchor_study_canvases', 124, 70, 'bp'), ('anchor_study_easel', 186, 104, ''),
+             ('anchor_study_trestle', 240, 97, ''), ('anchor_right_shelf', 292, 70, 'bp')]
+
+
 VARIANTS = {
     'b': ('study_b', 52, (b_wall, b_decor, b_floor, b_furniture, b_strip), B_ANCHORS),
     'c': ('study_c', 53, (c_wall, c_decor, c_floor, c_furniture, c_strip), C_ANCHORS),
     'd': ('study_d', 54, (d_wall, d_decor, d_floor, d_furniture, d_strip), D_ANCHORS),
+    'e': ('study_e', 55, (e_wall, e_decor, e_floor, e_furniture, e_strip), E_ANCHORS),
 }
 
 
