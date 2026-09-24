@@ -1349,7 +1349,7 @@ means no rendering — UI layout and art still need an in-editor look.
   now sit ON the furniture (names unchanged — loot is seeded by anchor name).
   **BACK (scavenge) PLANE** (`back_plane_spot.gd`, owner round 9): nodes flagged `metadata/back_plane`
   (bookshelf ×2, drawers) are reached by stepping UP to the furniture — W near it or clicking a node
-  (walks there first) → feet 328, scale 0.88 (the balcony plane's depth); only that spot's nodes are in
+  (walks there first) → feet 339 (in FRONT of the furniture's base 324, not on it), perspective scale ≈0.89; only that spot's nodes are in
   reach up there, no left/right, never auto-returns; S steps down (a click on open floor steps down
   then walks). From the walking line those nodes are out of reach. Saves record the walking line
   (`player.lane_position`). Enemies still reach you up there. Locked by `back_plane_test`.

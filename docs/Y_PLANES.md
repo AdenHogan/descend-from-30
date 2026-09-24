@@ -104,8 +104,9 @@ than everyone else; its sprite is dropped one art pixel (`offset.y = 1` × scale
 matching the other enemy rigs.
 
 BACK (scavenge) PLANE (`back_plane_spot.gd`): stepping up to set-back furniture puts the player's
-FEET at **328** (`room.ROOM_FEET_Y` 353 − `BACK_PLANE_RISE` 25; origin 295) — the same depth as the
-balcony plane, same 0.88 sprite scale. No x movement up there; saves record the walking line.
+FEET at **339** (`room.ROOM_FEET_Y` 353 − `BACK_PLANE_RISE` 14; origin 306) — ~15px IN FRONT of the
+furniture's base (324): at 328 the player read as standing ON the bookshelf's bottom (owner round 9).
+Sprite scale = the room perspective between the lines, s(339)/s(353) ≈ 0.89. No x movement up there; saves record the walking line.
 
 ---
 

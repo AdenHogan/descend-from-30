@@ -72,8 +72,9 @@ docs/Y_PLANES.md §1.
    furniture with `metadata/back_plane = true` in its module scene (living room: both bookshelf
    nodes + the drawers). Per room, flagged nodes that SPAWNED this seed group into spots (within
    40px in one module → one spot, e.g. both bookshelf nodes). In scavenge mode near a spot a small ↑
-   shows; **W** (or clicking one of its nodes — it walks there first) steps the player UP to feet 328
-   (the balcony plane's depth, same 0.88 scale). Up there only that spot's nodes are in reach (Tab /
+   shows; **W** (or clicking one of its nodes — it walks there first) steps the player UP to feet 339
+   (~15px in front of the furniture's base — at 328 they looked like they stood ON it), scaled by the
+   room's perspective (≈0.89). Up there only that spot's nodes are in reach (Tab /
    wheel / click picks between them), no walking-line node is, and there's no left/right movement;
    the game never sends you down — **S** steps back (a click on open floor steps down first, then
    walks). Set-back nodes are NOT searchable from the walking line any more. A save made up there

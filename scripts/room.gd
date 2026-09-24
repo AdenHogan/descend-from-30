@@ -657,7 +657,8 @@ func _spawn_apartment_fire() -> void:
 # player 320). Anything placed WITHOUT physics (a burnt corpse, a recorded body, a floor drop) must
 # be put on these settled lines directly, or it sits ~17px sunk into the floor. See docs/Y_PLANES.md.
 const ROOM_FEET_Y := 353.0
-const BACK_PLANE_RISE := 25.0      # set-back furniture's scavenge plane: feet 328 (= the balcony plane's depth)
+const BACK_PLANE_RISE := 14.0      # set-back furniture's scavenge plane: feet 339 — IN FRONT of the furniture's base
+                                   # (bookshelf/drawers stand at 324; at 328 the player read as standing ON them)
 const BACK_SPOT_CLUSTER := 40.0    # flagged nodes this close (x) share one back-plane spot
 const EXIT_WALK_BEYOND := 22.0     # how far past the door's face the exit walk carries the player
 const ROOM_STD_ORIGIN_Y := 304.0       # standard zombie settled origin (feet 353)
@@ -999,7 +1000,9 @@ func _build_back_plane_spots() -> void:
 			by_module[m] = []
 		by_module[m].append(a)
 	var plane_feet: float = ROOM_FEET_Y - BACK_PLANE_RISE
-	var plane_scale: float = load("res://scripts/player.gd").BALCONY_PLANE_SCALE   # same depth as a balcony
+	# The sprite shrinks by the room's own perspective between the walking line and the plane.
+	var mw = load("res://scripts/module_walls.gd")
+	var plane_scale: float = mw._s_for_floor(plane_feet) / mw._s_for_floor(ROOM_FEET_Y)
 	for m in by_module:
 		var nodes: Array = by_module[m]
 		nodes.sort_custom(func(p, q): return p.global_position.x < q.global_position.x)
