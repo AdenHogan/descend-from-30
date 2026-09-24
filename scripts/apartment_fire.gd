@@ -58,6 +58,33 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
+	_update_lights()
+
+
+# Burning spots throw a small flickering orange glow, like the corridor fire (fire_field): without
+# it an apartment fire at night was dull unlit sprites in the dark. One light per spot, gone the
+# moment the spot is doused.
+const FIRE_LIGHT_COLOR := Color(1.0, 0.52, 0.16)
+const FLOOR_LIGHTING := preload("res://scripts/floor_lighting.gd")
+var _lights: Array = []
+
+
+func _update_lights() -> void:
+	while _lights.size() < _spots.size():
+		var lt := PointLight2D.new()
+		lt.texture = FLOOR_LIGHTING.light_texture()
+		lt.color = FIRE_LIGHT_COLOR
+		lt.z_index = 0
+		add_child(lt)
+		_lights.append(lt)
+	for i in range(_lights.size()):
+		var lt: PointLight2D = _lights[i]
+		if i >= _spots.size():
+			lt.energy = 0.0
+			continue
+		lt.position = Vector2(float(_spots[i]["x"]), base_y - 28.0)
+		lt.texture_scale = 0.8 if stage >= STAGE_BLAZE else 0.6
+		lt.energy = (0.55 if stage >= STAGE_BLAZE else 0.42) * (0.82 + 0.15 * sin(_t * 10.0 + float(i) * 1.9))
 
 
 func _load_textures() -> void:
@@ -168,11 +195,11 @@ func _spawn_layers() -> void:
 
 func draw_layer(canvas: CanvasItem, which: int) -> void:
 	if which == LYR_BACK:
+		_draw_char_scars(canvas)      # scorch lies on the floor BEHIND the player (walk over it)
 		_draw_tall_flames(canvas)     # tall flames rise BEHIND the player
 		# NO smoulder smoke off scorched patches: smoke must always have fire in front of it.
 		_draw_smoke(canvas)           # active-fire smoke plumes (behind each burning spot's bed)
 	else:
-		_draw_char_scars(canvas)      # scorch on the floor, in front
 		_draw_beds(canvas)            # fire tile bed at the player's feet (walk through)
 
 
@@ -228,11 +255,17 @@ func _blit_anim(canvas: CanvasItem, tex: Texture2D, px: int, cx: float, by: floa
 
 
 func _draw_char_scars(canvas: CanvasItem) -> void:
+	# FLAT, soft scorch smudges on the floor (squashed translucent ellipses) — the same look as the
+	# corridor's (fire_field._char_scar). No wall smear: tall dark ovals on a wall read as figures.
+	# These used to
+	# be opaque black circles drawn IN FRONT of the player: a charred room read as black balls.
 	for x in _scars:
 		var xf: float = float(x)
 		for k in range(3):
 			var hx: float = _hash01(xf * 2.0 + float(k) * 1.3)
-			canvas.draw_circle(Vector2(xf + (hx - 0.5) * 30.0, base_y - 1.0 + hx * 3.0), 4.0 + hx * 3.5, CHAR_COL)
+			canvas.draw_set_transform(Vector2(xf + (hx - 0.5) * 30.0, base_y - 4.0 + hx * 3.0), 0.0, Vector2(1.0, 0.2))
+			canvas.draw_circle(Vector2.ZERO, 16.0 + hx * 10.0, Color(CHAR_COL.r, CHAR_COL.g, CHAR_COL.b, 0.34))
+	canvas.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 func _draw_smoke(canvas: CanvasItem) -> void:

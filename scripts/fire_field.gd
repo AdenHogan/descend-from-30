@@ -193,12 +193,24 @@ func extinguish_at(x: float, radius: float) -> void:
 	# landed). A COOL cell in the blast is left untouched, so spraying bare floor leaves NO
 	# fake ash/smoke. The burnt-out (SPENT) cells act as firebreaks, so the doused patch
 	# can't re-ignite from a neighbour.
-	var a := cell_at(x - radius)
-	var b := cell_at(x + radius)
-	for i in range(a, b + 1):
+	var r := _cells_in(x - radius, x + radius)
+	for i in range(r.x, r.y + 1):
 		if state_of(i) == BURNING:
 			heat[i] = 0.0
 			fuel[i] = 0.0
+
+
+# The cells a world-x RANGE actually overlaps, as Vector2i(first, last) — (0, -1) (an empty loop)
+# when the range lies wholly off the fire span. The clamped cell_at() snapped an off-span range onto
+# the edge cell, so a spray aimed past the end of the corridor still doused the end cell, and a
+# door decal past the span read the edge cell as "burning near" (same bug class as the old
+# is_burning_at clamp — see cell_of_unclamped).
+func _cells_in(x0: float, x1: float) -> Vector2i:
+	var a := cell_of_unclamped(minf(x0, x1))
+	var b := cell_of_unclamped(maxf(x0, x1))
+	if b < 0 or a >= cell_count:
+		return Vector2i(0, -1)
+	return Vector2i(maxi(a, 0), mini(b, cell_count - 1))
 
 
 func cell_of_unclamped(x: float) -> int:
@@ -246,9 +258,8 @@ func burning_near(x: float, radius: float) -> bool:
 	# True if any cell within `radius` px of x is BURNING. Used to clear door-frame flames
 	# the moment the corridor fire beside that door is doused — so nothing burns where the
 	# fire is out.
-	var a := cell_at(x - radius)
-	var b := cell_at(x + radius)
-	for i in range(a, b + 1):
+	var r := _cells_in(x - radius, x + radius)
+	for i in range(r.x, r.y + 1):
 		if state_of(i) == BURNING:
 			return true
 	return false
@@ -642,18 +653,29 @@ func _draw_tall_flames(canvas: CanvasItem) -> void:
 
 
 func _char_scar(canvas: CanvasItem, i: int, cx: float) -> void:
-	# An irregular charred patch (overlapping blobs, not a clean rect).
+	# Where the fire burnt out: a FLAT scorch smudge lying on the floor (squashed, soft,
+	# translucent ellipses — it reads as burnt floor seen at an angle). It used to be three OPAQUE
+	# black circles per cell on the actor layer — a charred floor read as a row of black balls.
+	# (No wall smear: tall dark ovals on the wall read as standing figures.)
 	for k in range(3):
-		var hx := _hash01(float(i) * 2.0 + float(k) * 1.3)
-		canvas.draw_circle(Vector2(cx + (hx - 0.5) * CELL_W * 0.85, FIRE_BASE_Y - 1.0 + hx * 3.0), 4.0 + hx * 3.5, CHAR_COL)
+		var hx := _hash01(float(i) * 2.0 + float(k) * 1.3 + float(floor_num) * 0.37)
+		var r := CELL_W * (0.36 + 0.24 * hx)
+		var ox := (hx - 0.5) * CELL_W * 0.7
+		canvas.draw_set_transform(Vector2(cx + ox, FIRE_BASE_Y - 6.0 + hx * 3.0), 0.0, Vector2(1.0, 0.2))
+		canvas.draw_circle(Vector2.ZERO, r, Color(CHAR_COL.r, CHAR_COL.g, CHAR_COL.b, 0.34))
+	canvas.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+func _draw_scorch(canvas: CanvasItem) -> void:
+	for i in range(cell_count):
+		if state_of(i) == SPENT and not _in_stair_keepout(cell_x(i)):
+			_char_scar(canvas, i, cell_x(i))
 
 
 func _draw() -> void:
-	# The field itself (z1) only marks char scars where the fire burnt out; the fire
-	# sprites are drawn on the depth layers so the player sits amongst them.
-	for i in range(cell_count):
-		if state_of(i) == SPENT:
-			_char_scar(self, i, cell_x(i))
+	# The field itself (z1, the actors' layer) draws nothing: scorch lies on the floor BEHIND the
+	# actors (back layer), the fire sprites on the depth layers so the player sits amongst them.
+	pass
 
 
 # The floor-to-wall seam sits a little above the front floor line; a smaller fire
@@ -672,6 +694,7 @@ func _draw_back(canvas: CanvasItem) -> void:
 	# front bed so the gaps don't line up.
 	# avoid_doors=true keeps the depth bed OUT of doorways (beside a door is fine, not
 	# straight across it); the extra patch_carve breaks up its line into clumps.
+	_draw_scorch(canvas)            # burnt-out floor first, under everything
 	_draw_ground_fire(canvas, BACK_SEAM_Y, 0.9, 0.0, 0.6, _tile_scale() * 0.58, -1.0, true, 0.0, 1)   # DEPTH bed (side 1), avoids doors
 	_draw_stair_fire(canvas)        # the THIRD plane — fire on the down-stairwell top step
 	_draw_tall_flames(canvas)

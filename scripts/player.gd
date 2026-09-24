@@ -239,6 +239,15 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	# The hit flash (pure red modulate) must wear off whatever state we're in — it used to tick
+	# only on the normal-movement path below, so a hit taken while dying, listening, switching
+	# stance or mid-cutscene (door approach, stair/balcony step) left the player SOLID RED until
+	# that state ended (the whole dying countdown). Ticked first, before any early return.
+	if is_hit:
+		hit_flash_timer -= delta
+		if hit_flash_timer <= 0:
+			is_hit = false
+			animated_sprite.modulate = Color(1, 1, 1, 1)
 	if is_dead:
 		return
 
@@ -330,12 +339,6 @@ func _physics_process(delta: float) -> void:
 		push_timer -= delta
 		if push_timer <= 0:
 			is_pushing = false
-
-	if is_hit:
-		hit_flash_timer -= delta
-		if hit_flash_timer <= 0:
-			is_hit = false
-			animated_sprite.modulate = Color(1, 1, 1, 1)
 
 	# Actively running (sprint gait, moving): lets the player DASH through fire unburned.
 	is_running = is_sprinting and direction != 0 and (WorldState.stamina > 0 or WorldState.god_mode)
@@ -1391,6 +1394,22 @@ func _is_mouse_over_hud() -> bool:
 	return false
 
 
+# The fire in the scene the PLAYER is standing in. A stair-pan / balcony backdrop builds another
+# floor or apartment — fire and all — in the same tree, so "the first fire_field" could be the one
+# a floor away (a spray on a balcony doused the flat below). Both hang off their scene's root, as
+# the player does, so match the parent; fall back to any only if none shares it.
+func _my_fire_field() -> Node:
+	var any: Node = null
+	for f in get_tree().get_nodes_in_group("fire_field"):
+		if not is_instance_valid(f):
+			continue
+		if f.get_parent() == get_parent():
+			return f
+		if any == null:
+			any = f
+	return any
+
+
 func use_item(slot_index: int) -> void:
 	if slot_index < 0 or slot_index >= WorldState.inventory.size():
 		return
@@ -1442,7 +1461,7 @@ func use_item(slot_index: int) -> void:
 	elif item_data.get("is_extinguisher", false):
 		# Fire Extinguisher (036): a jet of retardant that blows OVER the fire, then the
 		# flames drop out ~1s later (doused, not instant) leaving rising black smoulder.
-		var field = get_tree().get_first_node_in_group("fire_field")
+		var field = _my_fire_field()
 		if field == null or not field.any_burning():
 			HUD.show_feedback("Nothing to put out here.")
 			return

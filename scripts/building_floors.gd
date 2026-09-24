@@ -59,7 +59,7 @@ func _exit_tree() -> void:
 		HUD.set_smoke_fog(false)
 	if _fire_field != null and is_instance_valid(_fire_field):
 		var floor_num: int = _built_floor if _built_floor >= 0 else (setup_floor if setup_floor >= 0 else WorldState.current_floor)
-		WorldState.set_fire_cells(floor_num, _fire_field.export_state())
+		WorldState.set_fire_cells(floor_num, _fire_field.export_state(), _fire_field.stage)
 
 
 var _built_floor: int = -1             # the floor THIS scene built (for _exit_tree save)
@@ -428,7 +428,7 @@ func _process(delta: float) -> void:
 		_fire_save_acc += delta
 		if _fire_save_acc >= 0.6:
 			_fire_save_acc = 0.0
-			WorldState.set_fire_cells(_built_floor, _fire_field.export_state())
+			WorldState.set_fire_cells(_built_floor, _fire_field.export_state(), _fire_field.stage)
 	# Fire damage: standing/walking in flame costs health on a cadence. Fire never BLOCKS —
 	# you can always pass through it. RUNNING (sprint) through it takes NO burn: a dash gets you
 	# across unscathed, so the player chooses — sprint the gauntlet, or walk and take the hits
@@ -686,11 +686,12 @@ func _spawn_fire(floor_num: int) -> void:
 				var ax: float = float(WorldState.APARTMENT_X[apt])
 				_fire_field.ignite_span(ax - 22.0, ax + 22.0)
 	# Restore the fire's SPREAD from a previous visit this run (so it doesn't reset
-	# to the spawn pattern every time you step out and back in). NOT on a CHARRED
+	# to the spawn pattern every time you step out and back in) — only a snapshot taken at
+	# THIS stage (a different stage's spread would erase this one's pattern). NOT on a CHARRED
 	# ruin — a run-3 origin is burnt out, and importing a stale burning snapshot from
 	# an earlier level (a real problem when F2-cycling lv1/lv2 -> lv3 in one run) would
 	# re-light the ruin. char_all wins; the next periodic snapshot rewrites it clean.
-	if stage != WorldState.FIRE_CHARRED and WorldState.has_fire_cells(floor_num):
+	if stage != WorldState.FIRE_CHARRED and WorldState.has_fire_cells(floor_num, stage):
 		_fire_field.import_state(WorldState.get_fire_cells(floor_num))
 	# Cap how far it may CREEP within the run. A run-1 LIGHT fire is ALLOWED to creep
 	# — slowly (~15s/cell) — across a good chunk of the floor and toward nearby

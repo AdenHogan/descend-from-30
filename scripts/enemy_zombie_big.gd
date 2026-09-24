@@ -260,8 +260,20 @@ func _drop_key() -> void:
 	if added:
 		HUD.show_feedback("Key — Apt " + key_target_apartment + " found!")
 	else:
-		# Inventory full — spawn as world drop at corpse position
-		WorldState.add_world_drop("022", global_position, WorldState.current_floor, {"target_apartment": key_target_apartment})
+		# Inventory full — the key lands on the floor by the corpse. It used to be only REGISTERED
+		# (at the corpse's origin, mid-air) with no pickup spawned, so it was invisible until you
+		# left and came back. Now it's registered at the rested floor spot AND tossed out live.
+		var feet := _drop_feet_y()
+		var rest := Vector2(global_position.x, feet - WORLD_DROP.REST_LIFT)
+		var scene_path: String = WorldState.world_scene_of(self)
+		var dk: String = WorldState.add_world_drop("022", rest, WorldState.current_floor,
+			{"target_apartment": key_target_apartment, "scene": scene_path})
+		var kd = preload("res://scenes/world_drop.tscn").instantiate()
+		kd.item_id = "022"
+		kd.target_apartment = key_target_apartment
+		kd.drop_key = dk
+		get_parent().add_child(kd)
+		kd.toss(global_position, feet, 1.0)
 		HUD.show_feedback("Key dropped nearby — inventory full.")
 
 

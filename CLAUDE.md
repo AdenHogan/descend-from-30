@@ -522,7 +522,12 @@ means no rendering — UI layout and art still need an in-editor look.
   fixed by STAGE so a plume never morphs short↔long (LIGHT = small `Cycled_smoke` wisp,
   BLAZE = short `Cycled_smoke_long` column), with the height varied a lot per zone by a
   STABLE seed. Cap 5 blaze / 3 light (some spots, not everywhere), drawn BEHIND the
-  player (z0). (`_draw_smoke`, the old z4 layer, stays a no-op.) **Aftermath smoke**: fire
+  player (z0). (`_draw_smoke`, the old z4 layer, stays a no-op.) **NOT CURRENTLY DRAWN
+  (audited in the fire repair pass):** `_draw_smoulder_plumes`, `_draw_front_smoke` and
+  `_draw_scatter_bits` still exist in `fire_field.gd` but NOTHING calls them — the text below
+  describing them is the design, not today's render. A doused/charred stretch shows the flat
+  SCORCH smudges (`_draw_scorch`, back layer) + the HUD haze, no rising smoulder plumes. Owner
+  to decide whether to re-wire them. **Aftermath smoke**: fire
   leaves SMOKE, not stray flames. The scatter flame-bits (`_draw_scatter_bits`) are now
   gated PER-CELL (`is_burning_at`) — they used to strew across the whole burning span, so
   dousing the middle stranded flame wisps on doused ground that re-spraying couldn't clear;
@@ -613,6 +618,21 @@ means no rendering — UI layout and art still need an in-editor look.
   spawn fire/barricades/hordes/door-fire (it now does); without that, arriving via
   stairs left a fire floor with NO fire, while an apartment round-trip (the fade
   path, full `_ready`) was fine. Locked by `floor_adopt_test`.
+  **Repair pass (fire, v1):** (1) fire snapshots are STAGE-TAGGED (`set_fire_cells(floor,
+  cells, stage)` → `{"stage","cells"}`; `has_fire_cells(floor, stage)` rejects a snapshot from
+  another stage; old bare arrays still load) — switching dev lv1 → lv2 in one run brought the
+  BLAZE back as the lv1 patch. (2) `extinguish_at` / `burning_near` use `_cells_in` (unclamped):
+  a spray or door check wholly OFF the span touches nothing (the clamp doused the end cell).
+  (3) Burnt-out cells draw FLAT, soft scorch smudges on the back layer (`_draw_scorch`) — they
+  were opaque black circles on the actor layer ("a row of black balls"); `fire_field._draw` is
+  now empty. (4) Apartment fire casts real light (one flickering PointLight2D per spot, dark
+  when doused). (5) The extinguisher sprays the fire under the player's OWN parent
+  (`player._my_fire_field`), not the group's first (wrong during a pan). (6) The player's red
+  hit flash ticks BEFORE the early returns (cutscene/dying/listening left it stuck red).
+  (7) A BREACHED apartment that burned (BLAZE/CHARRED) has no live boss + pack: the boss is
+  recorded dead and its key lies in the ashes once (`room._burnt_breach`). (8) A boss killed
+  with full pockets tosses its key out LIVE on the floor (it used to be registered mid-air and
+  invisible until re-entry). All locked by `fire_test` (each check proven to fail on the old code).
   **Door fire**: a burning apartment's door has flames climbing the two FRAME EDGES
   only (`building_floors._spawn_door_fire` + `fire_decal.gd`, folder 3), at z0 behind
   the player — the doorway itself stays clear so the door is visible/enterable (a big

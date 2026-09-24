@@ -3045,16 +3045,29 @@ func _fire_cells_key(floor_num: int) -> String:
 	return str(floor_num) + ":" + str(current_run)
 
 
-func has_fire_cells(floor_num: int) -> bool:
-	return fire_cells.has(_fire_cells_key(floor_num))
+# A snapshot is only valid for the fire STAGE it was taken at: {"stage": s, "cells": [...]}. If the
+# floor's stage has changed since (the dev hazard menu switching lv1 → lv2 in one run, or anything
+# else that re-derives the stage), restoring the old spread would overwrite the new stage's
+# ignition pattern — a BLAZE came back as the lv1 patch. `stage` -1 = any (old saves stored a
+# bare array; those keep restoring as before).
+func has_fire_cells(floor_num: int, stage: int = -1) -> bool:
+	var rec = fire_cells.get(_fire_cells_key(floor_num), null)
+	if rec == null:
+		return false
+	if rec is Dictionary and stage >= 0 and int(rec.get("stage", -1)) != stage:
+		return false
+	return true
 
 
 func get_fire_cells(floor_num: int) -> Array:
-	return fire_cells.get(_fire_cells_key(floor_num), [])
+	var rec = fire_cells.get(_fire_cells_key(floor_num), [])
+	if rec is Dictionary:
+		return Array(rec.get("cells", []))
+	return Array(rec)
 
 
-func set_fire_cells(floor_num: int, states: Array) -> void:
-	fire_cells[_fire_cells_key(floor_num)] = states
+func set_fire_cells(floor_num: int, states: Array, stage: int = -1) -> void:
+	fire_cells[_fire_cells_key(floor_num)] = {"stage": stage, "cells": states}
 
 
 func fire_spawn_kind(floor_num: int) -> int:

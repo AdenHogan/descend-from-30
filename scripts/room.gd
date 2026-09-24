@@ -174,7 +174,12 @@ func _ready() -> void:
 
 	# Spawn enemies — breached rooms use separate system with Big Zombie boss
 	var door_state = WorldState.get_door_state(apartment_id)
-	if door_state == WorldState.DoorState.BREACHED:
+	var breach_fire := WorldState.apartment_fire_stage(_apt_floor(), _apt_index())
+	if door_state == WorldState.DoorState.BREACHED and breach_fire in [WorldState.FIRE_CHARRED, WorldState.FIRE_BLAZE]:
+		# A breached apartment that BURNED: its pack burned with it (the fire rules below apply
+		# to breached rooms too — a charred ruin used to still hold a live boss + pack).
+		_burnt_breach(breach_fire)
+	elif door_state == WorldState.DoorState.BREACHED:
 		_spawn_breached_enemies()
 	elif WorldState.is_first_run and apartment_id == "3003":
 		# The scripted first encounter: one zombie at the BACK of 3003 (the
@@ -568,6 +573,28 @@ func _spawn_apartment_fire() -> void:
 	_apt_fire.seed_salt = apartment_id
 	add_child(_apt_fire)
 	_apt_fire_was_burning = _apt_fire.any_burning()
+
+
+# A breached room that burned. Its boss carried a KEY to another apartment — never lose it: the
+# boss is recorded dead (its burnt body lies there on every visit) and the key is left in the ashes
+# where it stood, once. BLAZE also leaves a couple of smouldering corpses of the pack.
+const ROOM_FEET_Y := 370.0             # room enemies stand at origin 321 → feet 370 (where drops rest)
+
+func _burnt_breach(stage: int) -> void:
+	var list: Array = WorldState.get_breached_room_enemies(apartment_id, 150.0, 1030.0, 321.0)
+	if not list.is_empty():
+		var pos: Vector2 = list[0]["position"]
+		var key := str(WorldState.current_floor) + ":" + str(snappedf(pos.x, 1.0)) + ":" + str(snappedf(pos.y, 1.0))
+		if not WorldState.killed_zombies.has(key):
+			WorldState.killed_zombies[key] = {"x": snappedf(pos.x, 1.0), "y": snappedf(pos.y, 1.0),
+				"floor": WorldState.current_floor, "scene": _own_scene_path(),
+				"apartment_id": apartment_id, "type": "big"}
+			var target: String = WorldState.get_breached_boss_key_target(apartment_id)
+			if target != "":
+				WorldState.add_world_drop("022", Vector2(pos.x, ROOM_FEET_Y - 7.0), WorldState.current_floor,
+					{"target_apartment": target, "scene": _own_scene_path(), "apartment_id": apartment_id})
+	if stage == WorldState.FIRE_BLAZE:
+		_spawn_burnt_corpses(1 + (hash(apartment_id) % 2))
 
 
 func _spawn_burnt_corpses(count: int) -> void:

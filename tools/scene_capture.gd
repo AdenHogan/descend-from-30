@@ -17,10 +17,11 @@ extends Node
 #   k:<KEY>          tap a physical key (SPACE, E, W, ESCAPE, Q ...)
 #   a:<action>       tap an input action (interact, attack, push, move_up ...)
 #   hold:<action>:<n> hold an action for n frames (screenshots every 10)
-#   x:<px>           teleport the player to x (on the corridor plane)
+#   x:<px>           teleport the player to x (keeping its current floor line)
 #   go:<px>          walk the player to x (click-to-move target) and wait until arrived
 #   floor:<n> run:<n> set WorldState.current_floor / current_run
 #   give:<id>[:<lvl>] put an item in the inventory (optionally at a workbench level)
+#   sel:<n>          select an inventory slot (what the attack key uses)
 #   scrap:<n>        set the scrap counter
 #   boon:<floor>     reach a run-boon milestone (queues the HUD badge)
 #   valour:<n>       set the profile's Descent Valour
@@ -31,6 +32,7 @@ extends Node
 #   hud:<method>     call a no-arg HUD method (e.g. open_boon_offer)
 #   kill             kill the player now (player._die → the real Game.game_over flow)
 #   hp:<n>           set health
+#   ws:<prop>:<val>  set any WorldState field (e.g. ws:current_apartment_id:2003, ws:dev_hazard_mode:3)
 #   eval:<method>    call a no-arg method on the current scene
 #   call:<group>:<method>[:<arg>]  call a method on the first node in a group (e.g. modal_panel)
 # Other args: --tutorial=1|0 (first-run tutorial on/off), --seed=<n>.
@@ -101,7 +103,7 @@ func _do(step: String) -> void:
 		"x":
 			var pl = _player()
 			if pl != null:
-				pl.global_position = Vector2(float(p[1]), 386.0)
+				pl.global_position.x = float(p[1])     # keep the scene's own floor line (rooms ≠ corridor)
 			await _frames(1)
 		"go":
 			var pl = _player()
@@ -122,6 +124,8 @@ func _do(step: String) -> void:
 				inst.level = int(p[2])
 			WorldState.inventory.append(inst)
 			HUD.refresh_inventory()
+		"sel":
+			HUD.select_slot(int(p[1]))
 		"boon":
 			WorldState.note_boon_milestone(int(p[1]))
 		"valour":
@@ -148,6 +152,18 @@ func _do(step: String) -> void:
 			WorldState.current_floor = int(p[1])
 		"run":
 			WorldState.current_run = int(p[1])
+		"ws":
+			# ws:<property>:<value> — set any WorldState field (ints/floats/bools parsed, else a string)
+			var v: String = p[2] if p.size() > 2 else ""
+			var cur = WorldState.get(p[1])
+			if typeof(cur) == TYPE_INT:
+				WorldState.set(p[1], int(v))
+			elif typeof(cur) == TYPE_FLOAT:
+				WorldState.set(p[1], float(v))
+			elif typeof(cur) == TYPE_BOOL:
+				WorldState.set(p[1], v == "1" or v == "true")
+			else:
+				WorldState.set(p[1], v)
 		"hp":
 			WorldState.player_health = int(p[1])
 		"kill":

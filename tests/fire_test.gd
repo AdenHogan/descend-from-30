@@ -32,6 +32,13 @@ func _ready() -> void:
 	_test_extinguish_aftermath()
 	_test_fire_hot_at()
 	_test_stair_fire()
+	_test_snapshot_stage()
+	_test_off_span_douse()
+	_test_my_fire_field()
+	await _test_apartment_fire_lights()
+	await _test_hit_flash_clears()
+	await _test_burnt_breach()
+	await _test_full_pack_key_drop()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -545,3 +552,205 @@ func _test_extinguish_aftermath() -> void:
 	check(spent_after > 0, "dousing fire leaves ash where it burned (spent = %d)" % spent_after)
 	check(ff.has_smoulder(), "doused fire smoulders")
 	ff.free()
+
+
+# --- repair-pass regressions (each locks a shipped fire bug) -----------------
+
+func _test_snapshot_stage() -> void:
+	# A fire snapshot only restores onto the SAME stage it was taken at: switching lv1 → lv2 in
+	# one run brought the BLAZE back as the lv1 patch (the stale LIGHT snapshot overwrote it).
+	print("[fire snapshot is tied to its stage]")
+	WorldState.fire_cells.clear()
+	WorldState.current_run = 1
+	WorldState.set_fire_cells(24, [1, 2, 3], WorldState.FIRE_LIGHT)
+	check(WorldState.has_fire_cells(24, WorldState.FIRE_LIGHT), "snapshot restores on the stage it was taken at")
+	check(not WorldState.has_fire_cells(24, WorldState.FIRE_BLAZE), "a LIGHT snapshot is REJECTED once the floor is BLAZE")
+	check(WorldState.get_fire_cells(24) == [1, 2, 3], "cells read back from the stage-tagged record")
+	# Old saves stored a bare array — still accepted for any stage.
+	WorldState.fire_cells[WorldState._fire_cells_key(24)] = [4, 5]
+	check(WorldState.has_fire_cells(24, WorldState.FIRE_BLAZE), "an old bare-array snapshot is still accepted")
+	check(WorldState.get_fire_cells(24) == [4, 5], "an old bare-array snapshot still reads back")
+	WorldState.fire_cells.clear()
+
+
+func _test_off_span_douse() -> void:
+	# A spray / door check wholly OFF the fire span touches nothing (cell_at clamped it onto the
+	# edge cell — spraying past the corridor end doused the end cell).
+	print("[extinguish / burning_near off the span]")
+	var ff = load("res://scripts/fire_field.gd").new()
+	ff.stage = WorldState.FIRE_BLAZE
+	ff.spread_cap = 1000000
+	add_child(ff)
+	ff.set_process(false)
+	var last: int = ff.cell_count - 1
+	ff.ignite_span(ff.cell_x(0), ff.cell_x(0))
+	ff.ignite_span(ff.cell_x(last), ff.cell_x(last))
+	var left_x: float = ff.cell_x(0) - ff.CELL_W * 3.0
+	var right_x: float = ff.cell_x(last) + ff.CELL_W * 3.0
+	check(not ff.burning_near(left_x, 20.0), "burning_near well left of the span is false")
+	check(not ff.burning_near(right_x, 20.0), "burning_near well right of the span is false")
+	check(ff.burning_near(ff.cell_x(0), 20.0), "burning_near ON the burning edge cell is true")
+	ff.extinguish_at(left_x, 20.0)
+	ff.extinguish_at(right_x, 20.0)
+	check(ff.state_of(0) == ff.BURNING, "a spray left of the span leaves the edge cell burning")
+	check(ff.state_of(last) == ff.BURNING, "a spray right of the span leaves the edge cell burning")
+	ff.extinguish_at(ff.cell_x(0), 20.0)
+	check(ff.state_of(0) == ff.SPENT, "a spray ON the edge cell still douses it")
+	ff.free()
+
+
+func _test_my_fire_field() -> void:
+	# The extinguisher sprays the fire in the player's OWN scene — during a pan/backdrop two
+	# fire fields exist and the group's first could be the other floor's.
+	print("[extinguisher targets the fire under the player's own scene]")
+	var other := Node2D.new()
+	var mine := Node2D.new()
+	add_child(other)
+	add_child(mine)
+	var ff_other = load("res://scripts/fire_field.gd").new()
+	other.add_child(ff_other)
+	ff_other.set_process(false)
+	var ff_mine = load("res://scripts/fire_field.gd").new()
+	mine.add_child(ff_mine)
+	ff_mine.set_process(false)
+	var p = load("res://scenes/player.tscn").instantiate()
+	mine.add_child(p)
+	p.set_physics_process(false)
+	check(p._my_fire_field() == ff_mine, "picks the fire field under the player's own parent")
+	other.free()
+	mine.free()
+
+
+func _test_apartment_fire_lights() -> void:
+	# Apartment fire throws real light (it was unlit sprites in the dark at night); a doused spot's
+	# light goes dark.
+	print("[apartment fire casts light; doused spots go dark]")
+	var af = load("res://scripts/apartment_fire.gd").new()
+	af.stage = WorldState.FIRE_BLAZE
+	af.seed_salt = "1502"
+	add_child(af)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var lights: Array = []
+	for c in af.get_children():
+		if c is PointLight2D:
+			lights.append(c)
+	check(af.any_burning(), "a BLAZE apartment fire has burning spots")
+	check(lights.size() >= af._spots.size() and lights.size() > 0,
+		"one fire light per burning spot (%d lights, %d spots)" % [lights.size(), af._spots.size()])
+	var lit := true
+	for lt in lights:
+		lit = lit and lt.energy > 0.0
+	check(lit, "every spot light is on")
+	af.extinguish_at(600.0, 2000.0)
+	await get_tree().process_frame
+	var dark := true
+	for lt in lights:
+		dark = dark and lt.energy == 0.0
+	check(not af.any_burning() and dark, "dousing every spot puts every fire light out")
+	af.free()
+
+
+func _test_hit_flash_clears() -> void:
+	# The red hit flash was only ticked AFTER the early returns (cutscene, dying, listening...), so
+	# a hit landing in one of those states left the player solid red.
+	print("[hit flash clears even through an early-return state]")
+	var p = load("res://scenes/player.tscn").instantiate()
+	add_child(p)
+	await get_tree().physics_frame
+	p.flash_hurt()
+	p.is_cutscene = true
+	check(p.animated_sprite.modulate == Color(1, 0, 0, 1), "hit flash turns the player red")
+	var t := 0.0
+	while t < p.HIT_FLASH_DURATION + 0.3:
+		await get_tree().physics_frame
+		t += get_physics_process_delta_time()
+	check(p.animated_sprite.modulate == Color(1, 1, 1, 1), "the flash wears off during a cutscene")
+	check(not p.is_hit, "is_hit clears during a cutscene")
+	p.free()
+
+
+func _test_burnt_breach() -> void:
+	# A breached apartment on a charred floor used to still hold a live boss + pack. Now its pack
+	# burned: no live enemies, the boss recorded dead, and its key left in the ashes — ONCE.
+	print("[a burnt breached apartment: no live pack, key kept]")
+	WorldState.new_game()
+	WorldState.is_first_run = false
+	WorldState.master_seed = 4242
+	WorldState.current_run = 1
+	var f := 12
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_FIRE3      # origin CHARRED → every apt charred
+	WorldState.dev_fire_origin = f
+	var apt := str(f) + "03"
+	check(WorldState.apartment_fire_stage(f, 3) == WorldState.FIRE_CHARRED, "test apartment is charred")
+	WorldState.set_door_state(apt, WorldState.DoorState.BREACHED)
+	WorldState.current_apartment_id = apt
+	WorldState.current_floor = f
+	WorldState.spawn_source = ""
+	var target: String = WorldState.get_breached_boss_key_target(apt)
+	for visit in range(2):
+		var room = load("res://scenes/room.tscn").instantiate()
+		add_child(room)
+		for i in range(4):
+			await get_tree().process_frame
+		var live := 0
+		for z in get_tree().get_nodes_in_group("zombie"):
+			if room.is_ancestor_of(z) and not z.is_dead:
+				live += 1
+		check(live == 0, "visit %d: no live enemies in the charred breach (%d)" % [visit + 1, live])
+		var keys := 0
+		var drops: Dictionary = WorldState.get_world_drops_for_floor(f, room.scene_file_path, apt)
+		for k in drops:
+			if drops[k]["item_id"] == "022":
+				keys += 1
+		if target != "":
+			check(keys == 1, "visit %d: exactly one boss key lies in the ashes (%d)" % [visit + 1, keys])
+		else:
+			check(keys == 0, "visit %d: no key when the boss had no target" % [visit + 1])
+		room.free()
+		await get_tree().process_frame
+	var dead_boss := false
+	for k in WorldState.killed_zombies:
+		var rec = WorldState.killed_zombies[k]
+		if rec is Dictionary and rec.get("apartment_id", "") == apt and rec.get("type", "") == "big":
+			dead_boss = true
+	check(dead_boss, "the breach boss is recorded dead (its burnt body lies there)")
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
+	WorldState.dev_fire_origin = -1
+
+
+func _test_full_pack_key_drop() -> void:
+	# A boss killed with full pockets only REGISTERED its key (mid-air, at its origin) and spawned no
+	# pickup — the key was invisible until you left and came back. Now it lands live on the floor.
+	print("[boss key with full pockets lands as a live pickup]")
+	WorldState.new_game()
+	WorldState.current_floor = 12
+	WorldState.inventory.clear()
+	for id in ["002", "006", "007", "009", "019"]:
+		WorldState.add_to_inventory(id)
+	var holder := Node2D.new()
+	add_child(holder)
+	var big = load("res://scenes/enemy_zombie_big.tscn").instantiate()
+	big.global_position = Vector2(600, 374)
+	holder.add_child(big)
+	big.set_physics_process(false)
+	big.key_target_apartment = "1404"
+	big._drop_key()
+	var live_key = null
+	for c in holder.get_children():
+		if c != big and c.get("item_id") == "022":
+			live_key = c
+	check(live_key != null, "a live key pickup is spawned beside the corpse")
+	var reg := 0
+	var on_floor := true
+	for k in WorldState.world_drops:
+		var d = WorldState.world_drops[k]
+		if d["item_id"] == "022" and d.get("target_apartment", "") == "1404":
+			reg += 1
+			on_floor = on_floor and float(d["y"]) > 374.0
+	check(reg == 1, "the key is registered once (%d)" % reg)
+	check(on_floor, "registered at the floor rest spot, not the corpse's mid-air origin")
+	if live_key != null:
+		check(live_key.drop_key != "", "the live pickup is tied to its saved record")
+	holder.free()
+	WorldState.inventory.clear()
