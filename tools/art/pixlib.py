@@ -13,6 +13,7 @@ Module geometry (docs/art_reference/blueprints, docs/Y_PLANES.md):
 """
 from PIL import Image
 import random
+import zlib
 
 W, H = 320, 144
 SEAM_Y = 100        # wall meets floor (top of the skirting shadow)
@@ -409,7 +410,7 @@ def run_looks(name, root, main_img, full_img, bare_wall_img, bare_floor_img, flo
     out = {}
     for level in (2, 3):
         d = DECAY[level]
-        rng = random.Random(hash((name, level, seed)) & 0xffffffff)
+        rng = random.Random(zlib.crc32(("%s:%d:%d" % (name, level, seed)).encode()))
         # masks from the layers: WALL = visible bare wall (y < 100), FLOOR = visible bare floor
         m = main_img.copy()
         f = full_img.copy()
