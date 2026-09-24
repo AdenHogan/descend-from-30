@@ -37,7 +37,8 @@ position = Vector2(70, 83)
 metadata/back_plane = true
 
 [node name="anchor_bathroom_mop_bucket" type="Marker2D" parent="."]
-position = Vector2(121, 108)
+position = Vector2(103, 90)
+metadata/back_plane = true
 
 [node name="anchor_bathroom_bath_taps" type="Marker2D" parent="."]
 position = Vector2(172, 80)

@@ -29,7 +29,7 @@ position = Vector2(26, 70)
 metadata/back_plane = true
 
 [node name="anchor_bedroom_backpack" type="Marker2D" parent="."]
-position = Vector2(70, 108)
+position = Vector2(90, 103)
 
 [node name="anchor_bed_pillow" type="Marker2D" parent="."]
 position = Vector2(112, 104)

@@ -174,7 +174,8 @@ metadata/back_plane = true
 metadata/balcony_strip = true
 
 [node name="anchor_study_paint_tins" type="Marker2D" parent="."]
-position = Vector2(74, 114)
+position = Vector2(64, 94)
+metadata/back_plane = true
 metadata/balcony_strip = true
 
 [node name="anchor_study_canvases" type="Marker2D" parent="."]

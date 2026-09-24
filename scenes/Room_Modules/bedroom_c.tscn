@@ -37,9 +37,9 @@ position = Vector2(170, 92)
 [node name="anchor_bed_pillow" type="Marker2D" parent="."]
 position = Vector2(124, 89)
 
-[node name="anchor_bedroom_pill_cabinet" type="Marker2D" parent="."]
-position = Vector2(246, 86)
-metadata/back_plane = true
-
 [node name="anchor_bedroom_med_trolley" type="Marker2D" parent="."]
-position = Vector2(286, 90)
+position = Vector2(239, 88)
+
+[node name="anchor_bedroom_pill_cabinet" type="Marker2D" parent="."]
+position = Vector2(292, 86)
+metadata/back_plane = true

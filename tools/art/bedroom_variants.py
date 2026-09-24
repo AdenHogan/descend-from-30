@@ -103,17 +103,21 @@ def b_furniture(c):
     c.rect(30, 104, 50, 108, hexc('26262a'))
     c.vline(40, 109, 116, hexc('3a3a3d'))
     c.line(40, 116, 32, 119, hexc('3a3a3d')); c.line(40, 116, 48, 119, hexc('3a3a3d'))
-    # a clothes pile + trainers out on the carpet
-    c.poly([(60, 118), (68, 110), (80, 108), (90, 112), (94, 119)], CLOTH[1])
-    c.poly([(66, 118), (74, 112), (84, 114), (86, 120)], CLOTH[5])
-    c.line(70, 113, 82, 117, shade(CLOTH[1], 0.8))
-    c.rect(96, 116, 104, 119, hexc('e0dcd0')); c.hline(96, 104, 119, hexc('a8322c'))
-    # a beanbag slumped in the middle of the room
-    c.shadow(128, 121, 16, 2, 110)
-    c.poly([(112, 121), (113, 110), (120, 102), (132, 100), (142, 106), (146, 115), (144, 121)], hexc('a8522c'))
-    c.poly([(116, 112), (124, 104), (132, 103), (126, 110)], shade(hexc('a8522c'), 1.15))
-    c.line(118, 118, 140, 118, shade(hexc('a8522c'), 0.8))
-    c.rect(128, 110, 134, 113, hexc('3a3a3d'))                                             # a controller on it
+    def _clothes(c):
+        # a clothes pile + trainers dropped at the foot of the bed
+        c.poly([(60, 118), (68, 110), (80, 108), (90, 112), (94, 119)], CLOTH[1])
+        c.poly([(66, 118), (74, 112), (84, 114), (86, 120)], CLOTH[5])
+        c.line(70, 113, 82, 117, shade(CLOTH[1], 0.8))
+        c.rect(96, 116, 104, 119, hexc('e0dcd0')); c.hline(96, 104, 119, hexc('a8322c'))
+    F.moved(c, _clothes, 64, -4)
+    def _beanbag(c):
+        # a beanbag slumped against the wall under the posters
+        c.shadow(128, 121, 16, 2, 110)
+        c.poly([(112, 121), (113, 110), (120, 102), (132, 100), (142, 106), (146, 115), (144, 121)], hexc('a8522c'))
+        c.poly([(116, 112), (124, 104), (132, 103), (126, 110)], shade(hexc('a8522c'), 1.15))
+        c.line(118, 118, 140, 118, shade(hexc('a8522c'), 0.8))
+        c.rect(128, 110, 134, 113, hexc('3a3a3d'))                                             # a controller on it
+    F.moved(c, _beanbag, -12, -19)
     # the single bed on the RIGHT: headboard at the right end
     x0, x1 = 166, 286
     c.shadow((x0 + x1) // 2, 116, (x1 - x0) // 2 + 3, 3, 110)
@@ -142,7 +146,7 @@ def b_furniture(c):
 
 
 B_ANCHORS = [('anchor_bedroom_desk', 28, 70, 'bp'), ('anchor_bedroom_desk_drawer', 14, 88, 'bp'),
-             ('anchor_bedroom_clothes_pile', 78, 113, ''), ('anchor_bedroom_beanbag', 130, 109, ''),
+             ('anchor_bedroom_clothes_pile', 142, 109, ''), ('anchor_bedroom_beanbag', 118, 90, 'bp'),
              ('anchor_bed_pillow', 266, 88, ''), ('anchor_floor_underbed', 216, 110, ''),
              ('anchor_bedroom_crate', 301, 90, 'bp')]
 
@@ -267,18 +271,19 @@ def c_furniture(c):
     wheelchair(c, 58, 120)
     drip_stand(c, 104, 116)
     iron_bed(c, 108, 226, 116)
-    # a bedside cabinet crowded with pill bottles (under the R window box, top >= 67)
-    F.chest(c, 234, 258, 76, 100, F.WOOD, drawers=2)
-    for (bx, h, col) in ((236, 6, hexc('c07a3a')), (240, 4, hexc('e0d9b8')), (244, 7, hexc('c07a3a')),
-                         (248, 5, hexc('6f8fa0')), (252, 4, hexc('e0d9b8'))):
+    # the medicine trolley pulled up beside the foot of the bed
+    med_trolley(c, 230, 118)
+    # a cabinet crowded with pill bottles, against the wall in the corner
+    F.chest(c, 280, 304, 76, 100, F.WOOD, drawers=2)
+    for (bx, h, col) in ((282, 6, hexc('c07a3a')), (286, 4, hexc('e0d9b8')), (290, 7, hexc('c07a3a')),
+                         (294, 5, hexc('6f8fa0')), (298, 4, hexc('e0d9b8'))):
         c.rect(bx, 75 - h, bx + 2, 75, col)
-    c.rect(254, 72, 257, 75, hexc('d9d0bc'))
-    med_trolley(c, 276, 120)
+    c.rect(300, 72, 303, 75, hexc('d9d0bc'))
 
 
 C_ANCHORS = [('anchor_bedroom_wardrobe', 18, 60, 'bp'), ('anchor_bedroom_wheelchair', 72, 99, ''),
              ('anchor_bedroom_quilt', 170, 92, ''), ('anchor_bed_pillow', 124, 89, ''),
-             ('anchor_bedroom_pill_cabinet', 246, 86, 'bp'), ('anchor_bedroom_med_trolley', 286, 90, '')]
+             ('anchor_bedroom_med_trolley', 239, 88, ''), ('anchor_bedroom_pill_cabinet', 292, 86, 'bp')]
 
 
 # ============================================================================================
@@ -326,12 +331,14 @@ def d_furniture(c):
         c.rect(x, 79 - h, x + 2, 79, hexc('9aa3a8'))
     F.candle(c, 44, 79, 6)
     c.dither(40, 70, 48, 73, hexc('2a2622', 60), 0.5)
-    # a backpack slumped out on the floor
-    c.shadow(70, 121, 10, 2, 110)
-    c.poly([(60, 121), (61, 106), (66, 100), (76, 100), (80, 106), (80, 121)], hexc('4a5a3a'))
-    c.rect(62, 110, 78, 116, hexc('3a4a2e'))
-    c.line(64, 102, 64, 108, hexc('2e3a24')); c.line(76, 102, 76, 108, hexc('2e3a24'))
-    c.rect(68, 99, 72, 101, hexc('2e3a24'))
+    def _backpack(c):
+        # a backpack dumped beside the head of the mattress
+        c.shadow(70, 121, 10, 2, 110)
+        c.poly([(60, 121), (61, 106), (66, 100), (76, 100), (80, 106), (80, 121)], hexc('4a5a3a'))
+        c.rect(62, 110, 78, 116, hexc('3a4a2e'))
+        c.line(64, 102, 64, 108, hexc('2e3a24')); c.line(76, 102, 76, 108, hexc('2e3a24'))
+        c.rect(68, 99, 72, 101, hexc('2e3a24'))
+    F.moved(c, _backpack, 20, -5)
     # the mattress on the floor, a sleeping bag half off it
     x0, x1 = 100, 204
     c.shadow((x0 + x1) // 2, 117, (x1 - x0) // 2 + 3, 2, 110)
@@ -364,7 +371,7 @@ def d_furniture(c):
     F.cardboard_box(c, 282, 304, 62, 77, open_flaps=True, label=False)
 
 
-D_ANCHORS = [('anchor_bedroom_crates', 26, 70, 'bp'), ('anchor_bedroom_backpack', 70, 108, ''),
+D_ANCHORS = [('anchor_bedroom_crates', 26, 70, 'bp'), ('anchor_bedroom_backpack', 90, 103, ''),
              ('anchor_bed_pillow', 112, 104, ''), ('anchor_bedroom_sleeping_bag', 170, 108, ''),
              ('anchor_bedroom_clothes_rail', 238, 96, ''), ('anchor_bedroom_boxes', 292, 86, 'bp')]
 
@@ -413,17 +420,19 @@ def e_furniture(c):
     c.rect(14, 60, 26, 68, hexc('7aa0c8')); c.rect(28, 60, 40, 68, hexc('d9a0b0'))
     c.rect(14, 70, 26, 78, hexc('d9c24a')); c.rect(28, 70, 40, 78, hexc('1e1a16'))           # one room dark
     c.rect(31, 73, 33, 77, hexc('e6ddc8'))                                                    # a tiny figure in it
-    # a rocking horse out on the carpet
-    c.shadow(76, 121, 14, 2, 110)
-    for x in range(60, 95):                                                                   # the curved rocker
-        y = 121 - int(((x - 77) / 17.0) ** 2 * 6)
-        c.put(x, y, F.WOOD[0]); c.put(x, y - 1, F.WOOD[1])
-    c.line(68, 119, 72, 106, F.WOOD[0]); c.line(86, 119, 82, 106, F.WOOD[0])
-    rrect(c, 66, 98, 88, 107, hexc('e6e0cc'), 3)                                              # body
-    c.poly([(84, 99), (92, 90), (96, 92), (90, 101)], hexc('e6e0cc'))                         # neck + head
-    c.put(93, 92, hexc('1e1a16'))
-    c.poly([(86, 98), (90, 90), (88, 98)], hexc('8a4a2a'))                                    # mane
-    c.rect(72, 97, 78, 99, hexc('a8322c'))                                                    # saddle
+    def _horse(c):
+        # a rocking horse out on the carpet
+        c.shadow(76, 121, 14, 2, 110)
+        for x in range(60, 95):                                                                   # the curved rocker
+            y = 121 - int(((x - 77) / 17.0) ** 2 * 6)
+            c.put(x, y, F.WOOD[0]); c.put(x, y - 1, F.WOOD[1])
+        c.line(68, 119, 72, 106, F.WOOD[0]); c.line(86, 119, 82, 106, F.WOOD[0])
+        rrect(c, 66, 98, 88, 107, hexc('e6e0cc'), 3)                                              # body
+        c.poly([(84, 99), (92, 90), (96, 92), (90, 101)], hexc('e6e0cc'))                         # neck + head
+        c.put(93, 92, hexc('1e1a16'))
+        c.poly([(86, 98), (90, 90), (88, 98)], hexc('8a4a2a'))                                    # mane
+        c.rect(72, 97, 78, 99, hexc('a8322c'))                                                    # saddle
+    F.moved(c, _horse, 0, -4)
     # a small bed with a teddy, pushed against the wall
     x0, x1 = 118, 196
     c.shadow((x0 + x1) // 2, 116, (x1 - x0) // 2 + 3, 3, 110)
@@ -438,13 +447,15 @@ def e_furniture(c):
     c.ellipse(138, 81, 2, 2, hexc('9a6a3a')); c.put(133, 85, hexc('1e1a16')); c.put(136, 85, hexc('1e1a16'))
     c.ellipse(134, 93, 4, 3, hexc('9a6a3a'))
     c.line(130, 94, 140, 90, BLOOD)
-    # a toy chest out by the lane, lid up, toys spilling
-    c.shadow(232, 121, 16, 2, 110)
-    c.box(218, 106, 246, 121, hexc('7aa0c8'), hexc('3a5a78'))
-    c.hline(219, 245, 107, hexc('9ac0e0'))
-    c.poly([(218, 106), (246, 106), (244, 96), (220, 96)], hexc('5a80a8'))                    # the lid, open
-    c.rect(222, 102, 228, 106, hexc('d9c24a')); c.ellipse(236, 104, 3, 3, hexc('a8322c'))
-    c.rect(250, 118, 256, 121, hexc('4e8a5a')); c.ellipse(262, 119, 2, 2, hexc('d9c24a'))
+    def _toys(c):
+        # a toy chest at the foot of the bed, lid up, toys spilling
+        c.shadow(232, 121, 16, 2, 110)
+        c.box(218, 106, 246, 121, hexc('7aa0c8'), hexc('3a5a78'))
+        c.hline(219, 245, 107, hexc('9ac0e0'))
+        c.poly([(218, 106), (246, 106), (244, 96), (220, 96)], hexc('5a80a8'))                    # the lid, open
+        c.rect(222, 102, 228, 106, hexc('d9c24a')); c.ellipse(236, 104, 3, 3, hexc('a8322c'))
+        c.rect(250, 118, 256, 121, hexc('4e8a5a')); c.ellipse(262, 119, 2, 2, hexc('d9c24a'))
+    F.moved(c, _toys, -20, -5)
     # a small white wardrobe in the corner
     c.shadow(292, 100, 16, 2, 100)
     c.box(278, 36, 306, 99, hexc('e6e0cc'), hexc('8a8270'))
@@ -453,8 +464,8 @@ def e_furniture(c):
     c.poly([(278, 36), (306, 36), (304, 32), (280, 32)], hexc('d98aa0'))
 
 
-E_ANCHORS = [('anchor_bedroom_dollhouse', 34, 74, 'bp'), ('anchor_bedroom_rocking_horse', 76, 102, ''),
-             ('anchor_bed_pillow', 134, 88, ''), ('anchor_bedroom_toy_chest', 232, 112, ''),
+E_ANCHORS = [('anchor_bedroom_dollhouse', 34, 74, 'bp'), ('anchor_bedroom_rocking_horse', 76, 98, ''),
+             ('anchor_bed_pillow', 134, 88, ''), ('anchor_bedroom_toy_chest', 212, 107, ''),
              ('anchor_bedroom_small_wardrobe', 292, 70, 'bp')]
 
 

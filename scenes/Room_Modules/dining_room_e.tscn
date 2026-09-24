@@ -174,7 +174,8 @@ metadata/back_plane = true
 metadata/balcony_strip = true
 
 [node name="anchor_dining_torn_box" type="Marker2D" parent="."]
-position = Vector2(72, 112)
+position = Vector2(64, 91)
+metadata/back_plane = true
 metadata/balcony_strip = true
 
 [node name="anchor_table_left" type="Marker2D" parent="."]

@@ -199,5 +199,6 @@ metadata/back_plane = true
 metadata/balcony_strip = true
 
 [node name="anchor_study_book_pile" type="Marker2D" parent="."]
-position = Vector2(72, 110)
+position = Vector2(60, 94)
+metadata/back_plane = true
 metadata/balcony_strip = true

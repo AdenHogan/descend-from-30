@@ -44,7 +44,11 @@ position = Vector2(202, 64)
 metadata/back_plane = true
 
 [node name="anchor_kitchen_pizza_boxes" type="Marker2D" parent="."]
-position = Vector2(256, 108)
+position = Vector2(254, 92)
+metadata/back_plane = true
+
+[node name="anchor_kitchen_kettle" type="Marker2D" parent="."]
+position = Vector2(76, 94)
 
 [node name="anchor_right_trashcan" type="Marker2D" parent="."]
 position = Vector2(292, 90)

@@ -295,7 +295,7 @@ def a_build(c):
     c.vline(x0 + 12, rim - 2, rim + 13, shade(TOWELS[3], 0.8))
     c.line(150, rim + 4, 152, rim + 15, BLOOD)
     c.put(153, rim + 16, BLOOD)
-    wicker_basket(c, 196, 220, 102, 118)
+    wicker_basket(c, 198, 222, 84, 100)                                # against the wall, under the rail
     towel_rail(c, 232, 262, 70)
     shower_corner(c, 274, 308, 16, shade(A_TILE, 0.95), A_GROUT)
     c.dither(274, 90, 308, 95, MOULD, 0.5)
@@ -310,7 +310,7 @@ def a_bare(c):
 
 A_ANCHORS = [('anchor_wall_cabinet', 27, 42, 'bp'), ('anchor_wall_sink', 27, 74, 'bp'),
              ('anchor_centre_toilet', 70, 80, 'bp'), ('anchor_bath_left', 122, 83, ''),
-             ('anchor_bath_right', 166, 83, ''), ('anchor_floor_laundrybag', 208, 104, ''),
+             ('anchor_bath_right', 166, 83, ''), ('anchor_floor_laundrybag', 210, 88, 'bp'),
              ('anchor_wall_shower', 291, 68, 'bp')]
 
 
@@ -437,7 +437,7 @@ def b_build(c):
     vanity_unit(c, 8, 46, 72)
     toilet(c, 70, porc=AVO, out=AVO_OUT, lid_up=True, seat=hexc('d9cfa8'))
     c.rect(86, 80, 91, 86, hexc('ece6d6'))                               # a roll on the cistern's side
-    mop_bucket(c, 112, 119)
+    mop_bucket(c, 94, 100)                                             # by the toilet, against the wall
     # a shaggy bath mat in front of the bath, rucked up
     c.poly([(176, 110), (224, 110), (228, 118), (172, 118)], hexc('d9a24a'))
     c.dither(174, 111, 226, 117, hexc('b8863a'), 0.5)
@@ -459,7 +459,7 @@ def b_bare(c):
 
 
 B_ANCHORS = [('anchor_bathroom_vanity', 20, 84, 'bp'), ('anchor_bathroom_mirror_shelf', 19, 53, 'bp'),
-             ('anchor_bathroom_avocado_toilet', 70, 83, 'bp'), ('anchor_bathroom_mop_bucket', 121, 108, ''),
+             ('anchor_bathroom_avocado_toilet', 70, 83, 'bp'), ('anchor_bathroom_mop_bucket', 103, 90, 'bp'),
              ('anchor_bathroom_bath_taps', 172, 80, ''), ('anchor_bathroom_bath_panel', 226, 98, ''),
              ('anchor_bathroom_radio_stool', 280, 74, 'bp')]
 
@@ -830,15 +830,15 @@ def e_build(c):
     c.rect(x0 + 12, rim - 8, x0 + 14, rim - 1, CHROME)
     c.hline(x0 + 5, x0 + 15, rim - 8, CHROME_DK)
     c.line(150, rim + 6, 152, rim + 20, BLOOD)
-    # a pink fluffy bath mat + a laundry hamper by the lane
+    # a pink fluffy bath mat in front of the tub + a laundry hamper against the wall beside it
     c.poly([(124, 112), (170, 112), (172, 118), (122, 118)], PINK_LT)
     c.dither(124, 113, 170, 117, PINK, 0.5)
-    c.shadow(214, 121, 12, 2, 110)
-    c.poly([(202, 100), (226, 100), (224, 121), (204, 121)], hexc('efe8d8'))
-    for y in range(103, 121, 3):
+    c.shadow(214, 100, 12, 2, 100)
+    c.poly([(202, 81), (226, 81), (224, 100), (204, 100)], hexc('efe8d8'))
+    for y in range(84, 100, 3):
         c.hline(203, 225, y, hexc('d0c8b4'))
-    c.rect(200, 97, 228, 100, PINK_DK)
-    c.poly([(206, 97), (212, 91), (216, 97)], TOWELS[1])
+    c.rect(200, 78, 228, 81, PINK_DK)
+    c.poly([(206, 78), (212, 72), (216, 78)], TOWELS[1])
     # a vanity stool + a frosted-glass cabinet on the right
     c.shadow(242, 100, 8, 1, 90)
     c.ellipse(242, 84, 8, 3, PINK)
@@ -858,7 +858,7 @@ def e_bare(c):
 
 E_ANCHORS = [('anchor_bathroom_glass_shelf', 23, 47, 'bp'), ('anchor_wall_sink', 28, 74, 'bp'),
              ('anchor_centre_toilet', 70, 82, 'bp'), ('anchor_bathroom_pink_tub', 148, 84, ''),
-             ('anchor_bathroom_hamper', 214, 108, ''), ('anchor_bathroom_frosted_cabinet', 292, 82, 'bp')]
+             ('anchor_bathroom_hamper', 214, 90, 'bp'), ('anchor_bathroom_pink_taps', 117, 78, ''), ('anchor_bathroom_frosted_cabinet', 292, 82, 'bp')]
 
 
 VARIANTS = {

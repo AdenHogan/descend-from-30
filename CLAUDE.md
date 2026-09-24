@@ -1367,7 +1367,10 @@ means no rendering — UI layout and art still need an in-editor look.
   (x 4..96): furniture there is a `StripArt` sprite + nodes flagged `balcony_strip`, removed on a
   balcony slot by `room._apply_balcony_strip`. RUN LOOKS: each variant also has generated `_r2`/`_r3`
   textures (more damp/cracks/holes/mould/blood/debris; `pixlib.run_looks`), swapped in by
-  `room.apply_run_art(module, WorldState.current_run)`. Locked by `apartment_window_test._test_module_variants`. **Floors at doorways**: `module_walls._floor_wedge` parts two rooms'
+  `room.apply_run_art(module, WorldState.current_run)`. PLACEMENT RULE (owner round 11): loose things
+  (bags, boxes, buckets, piles, tins) never stand alone mid-floor — against a wall or beside/on the
+  furniture they belong with; only real furniture (tables, chairs, beds, sofas, easels, rails) stands
+  out toward the lane and carries the front nodes (modules README). Locked by `apartment_window_test._test_module_variants`. **Floors at doorways**: `module_walls._floor_wedge` parts two rooms'
   floors along the wall's base line in perspective (flipping with the camera like the wall face),
   tiled from each module's FLOOR-ONLY export `assets/rooms/<name>_floor.png` (32px-periodic), with a
   wooden threshold in interior doorways. Generators enforce: window boxes bare, the side-wall sample

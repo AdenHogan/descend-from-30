@@ -82,11 +82,14 @@ def b_strip(c):
     c.box(12, 82, 44, 97, F.TEAK[0], F.TEAK[2])
     c.rect(26, 88, 30, 88, F.BRASS)
     c.poly([(12, 80), (44, 80), (48, 84), (8, 84)], F.TEAK[1])                                # the drop flap
-    c.shadow(72, 120, 12, 2, 110)
-    rrect(c, 60, 106, 84, 120, hexc('8a4a2a'), 4)
-    c.hline(62, 82, 107, hexc('a8623a'))
-    for x in range(64, 82, 4):
-        c.vline(x, 109, 118, hexc('6a3a20'))
+    def _pouffe(c):
+        # (a leather pouffe beside the cabinet)
+        c.shadow(72, 120, 12, 2, 110)
+        rrect(c, 60, 106, 84, 120, hexc('8a4a2a'), 4)
+        c.hline(62, 82, 107, hexc('a8623a'))
+        for x in range(64, 82, 4):
+            c.vline(x, 109, 118, hexc('6a3a20'))
+    F.moved(c, _pouffe, -10, -16)
 
 
 def b_furniture(c):
@@ -114,7 +117,7 @@ def b_furniture(c):
         c.rect(x, 58, x + 2, 71, col)                                                           # records leant up
 
 
-B_ANCHORS = [('anchor_dining_drinks_cabinet', 26, 72, 'bp s'), ('anchor_dining_pouffe', 72, 110, 's'),
+B_ANCHORS = [('anchor_dining_drinks_cabinet', 26, 72, 'bp s'), ('anchor_dining_pouffe', 62, 94, 's'),
              ('anchor_table_left', 138, 93, ''), ('anchor_table_right', 164, 93, ''),
              ('anchor_dining_tulip_chair', 196, 104, ''), ('anchor_dining_record_player', 281, 67, 'bp'),
              ('anchor_right_lowerdrawers', 276, 88, 'bp')]
@@ -247,14 +250,16 @@ def d_strip(c):
     c.rect(14, 86, 34, 88, F.WOOD[1])                                                         # a seat
     c.rect(26, 74, 44, 76, F.WOOD[1])
     c.line(38, 70, 38, 62, F.WOOD[0]); c.line(44, 72, 44, 64, F.WOOD[0])
-    # a lantern + tins out by the lane
-    c.shadow(72, 120, 10, 2, 110)
-    for (x, col) in ((62, hexc('b0453a')), (68, hexc('c9b86a')), (74, hexc('b0453a'))):
-        c.rect(x, 113, x + 4, 120, col)
-        c.hline(x, x + 4, 113, hexc('c9c7bd'))
-    c.box(80, 104, 90, 120, hexc('3a3a36'), hexc('1c1c1a'))
-    c.rect(82, 107, 88, 116, hexc('d9b44a'))
-    c.hline(81, 89, 104, hexc('5a5a52'))
+    def _lantern(c):
+        # a lantern + tins set down against the wall beside the broken chairs
+        c.shadow(72, 120, 10, 2, 110)
+        for (x, col) in ((62, hexc('b0453a')), (68, hexc('c9b86a')), (74, hexc('b0453a'))):
+            c.rect(x, 113, x + 4, 120, col)
+            c.hline(x, x + 4, 113, hexc('c9c7bd'))
+        c.box(80, 104, 90, 120, hexc('3a3a36'), hexc('1c1c1a'))
+        c.rect(82, 107, 88, 116, hexc('d9b44a'))
+        c.hline(81, 89, 104, hexc('5a5a52'))
+    F.moved(c, _lantern, -12, -21)
 
 
 def d_furniture(c):
@@ -282,18 +287,18 @@ def d_furniture(c):
     for y in range(36, 98, 8):
         c.hline(274, 292, y, hexc('b9b09a'))
     c.dither(276, 60, 290, 80, hexc('8a7a52', 90), 0.4, pattern='random')
-    # planks leaning up by the corner, a hammer on the floor
+    # planks leaning up by the corner; the hammer dropped beside the barricade
     for (x, col) in ((297, hexc('8a6a44')), (301, hexc('9a7a4e')), (305, hexc('7a5a38'))):
         c.line(x, 100, x + 4, 40, col)
         c.line(x + 1, 100, x + 5, 40, col)
-    c.shadow(236, 120, 8, 1, 110)
-    c.rect(226, 116, 244, 118, F.WOOD[1])
-    c.rect(240, 112, 246, 118, hexc('5a5a52'))
+    c.shadow(228, 120, 8, 1, 110)                                             # the hammer, dropped at the table's foot
+    c.rect(218, 116, 236, 118, F.WOOD[1])
+    c.rect(232, 112, 238, 118, hexc('5a5a52'))
 
 
-D_ANCHORS = [('anchor_dining_broken_chairs', 28, 86, 'bp s'), ('anchor_dining_lantern', 85, 112, 's'),
+D_ANCHORS = [('anchor_dining_broken_chairs', 28, 86, 'bp s'), ('anchor_dining_lantern', 73, 91, 'bp s'),
              ('anchor_dining_behind_table', 168, 90, ''), ('anchor_table_right', 204, 110, ''),
-             ('anchor_dining_mattress', 283, 64, 'bp'), ('anchor_dining_hammer', 236, 116, '')]
+             ('anchor_dining_mattress', 283, 64, 'bp'), ('anchor_dining_hammer', 228, 116, '')]
 
 
 # ============================================================================================
@@ -346,13 +351,15 @@ def e_strip(c):
         c.vline((x0 + x1) // 2, y0, 99 if y0 > 80 else 83, rib)
         c.hline(x0, x1, y0 + 4, rib)
     c.poly([(22, 72), (26, 66), (30, 72)], PARTY[2])
-    # a torn-open box out by the lane, something dark inside
-    c.shadow(72, 121, 12, 2, 110)
-    c.box(62, 108, 84, 121, PARTY[3], shade(PARTY[3], 0.6))
-    c.rect(64, 110, 82, 113, hexc('1e1a16'))
-    c.poly([(62, 108), (56, 102), (58, 100), (64, 106)], PARTY[3])
-    c.poly([(84, 108), (92, 104), (92, 106), (85, 110)], PARTY[3])
-    c.line(58, 118, 50, 121, hexc('efe8d8'))
+    def _box(c):
+        # a torn-open box beside the pile of presents, something dark inside
+        c.shadow(72, 121, 12, 2, 110)
+        c.box(62, 108, 84, 121, PARTY[3], shade(PARTY[3], 0.6))
+        c.rect(64, 110, 82, 113, hexc('1e1a16'))
+        c.poly([(62, 108), (56, 102), (58, 100), (64, 106)], PARTY[3])
+        c.poly([(84, 108), (92, 104), (92, 106), (85, 110)], PARTY[3])
+        c.line(58, 118, 50, 121, hexc('efe8d8'))
+    F.moved(c, _box, -8, -21)
 
 
 def e_furniture(c):
@@ -384,7 +391,7 @@ def e_furniture(c):
         c.hline(300, 305, y, hexc('d0c8b4'))
 
 
-E_ANCHORS = [('anchor_dining_presents', 24, 80, 'bp s'), ('anchor_dining_torn_box', 72, 112, 's'),
+E_ANCHORS = [('anchor_dining_presents', 24, 80, 'bp s'), ('anchor_dining_torn_box', 64, 91, 'bp s'),
              ('anchor_table_left', 140, 94, ''), ('anchor_dining_cake', 180, 86, ''),
              ('anchor_table_right', 226, 94, ''), ('anchor_right_upperdrawers', 280, 82, 'bp')]
 

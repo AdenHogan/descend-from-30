@@ -303,3 +303,16 @@ def floor_lino(c, a, b, size=16, line=None):
             c.hline(0, W_ - 1, y0, line)
     c.hline(0, W_ - 1, 100, shade(a, 0.5))
     c.hline(0, W_ - 1, 101, shade(a, 0.72))
+
+
+def moved(c, fn, dx, dy):
+    """Draw `fn` on its own transparent layer and composite it shifted by (dx, dy) — to put a piece
+    (with its shadow) somewhere else without rewriting every coordinate in it."""
+    from PIL import Image
+    from pixlib import Canvas
+    lyr = Canvas(w=c.w, h=c.h, bg=(0, 0, 0, 0), seed=11)
+    fn(lyr)
+    out = Image.new('RGBA', (c.w, c.h), (0, 0, 0, 0))
+    out.paste(lyr.img, (dx, dy), lyr.img)
+    c.img.alpha_composite(out)
+    c.px = c.img.load()

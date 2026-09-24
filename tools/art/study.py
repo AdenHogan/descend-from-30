@@ -304,7 +304,8 @@ def right_shelf(c):
 
 
 def book_pile(c):
-    """Books pulled off the shelves and dumped on the floor near the lane (balcony strip, node)."""
+    """Books pulled off the shelves and piled on the floor (balcony strip, node) — strip() moves it
+    against the radiator."""
     c.shadow(72, 118, 14, 2, 110)
     for i, (w_, col) in enumerate(((24, BOOKS[1]), (22, BOOKS[0]), (20, BOOKS[3]), (18, BOOKS[6]), (15, BOOKS[4]))):
         y = 115 - i * 3
@@ -317,9 +318,10 @@ def book_pile(c):
 
 
 def strip(c):
+    import furn as F
     file_boxes(c)
     radiator(c)
-    book_pile(c)
+    F.moved(c, book_pile, -12, -16)            # piled on the floor against the radiator, not out in the room
 
 
 def build(c=None):
@@ -345,7 +347,7 @@ ANCHORS = [('anchor_centre_bookcaseupper', 114, 42, 'bp'), ('anchor_centre_bookc
            ('anchor_centre_desk', 188, 88, ''), ('anchor_study_desk_drawer', 208, 105, ''),
            ('anchor_study_papers', 244, 94, ''), ('anchor_right_shelf', 284, 40, 'bp'),
            ('anchor_study_filing', 292, 76, 'bp'),
-           ('anchor_study_file_boxes', 28, 88, 'bp s'), ('anchor_study_book_pile', 72, 110, 's')]
+           ('anchor_study_file_boxes', 28, 88, 'bp s'), ('anchor_study_book_pile', 60, 94, 'bp s')]
 
 
 if __name__ == '__main__':

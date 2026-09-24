@@ -260,17 +260,19 @@ def c_furniture(c):
     c.rect(254, 86, 259, 93, hexc('5f7896'))
     c.line(266, 93, 276, 92, hexc('b9bfc1'))
     c.ellipse(270, 95, 3, 1, BLOOD)
-    # a basket of veg on the floor by the lane
-    c.shadow(112, 121, 10, 2, 110)
-    c.poly([(102, 110), (122, 110), (120, 121), (104, 121)], hexc('b39a6a'))
-    for y in range(112, 121, 3):
-        c.hline(103, 121, y, hexc('8a7348'))
-    c.ellipse(108, 108, 3, 2, hexc('c9904a')); c.ellipse(115, 108, 3, 2, hexc('7a8a3a'))
-    c.poly([(117, 106), (124, 100), (122, 108)], hexc('4e7e3a'))
+    def _veg(c):
+        # a basket of veg set down on the table
+        c.shadow(112, 121, 10, 2, 110)
+        c.poly([(102, 110), (122, 110), (120, 121), (104, 121)], hexc('b39a6a'))
+        for y in range(112, 121, 3):
+            c.hline(103, 121, y, hexc('8a7348'))
+        c.ellipse(108, 108, 3, 2, hexc('c9904a')); c.ellipse(115, 108, 3, 2, hexc('7a8a3a'))
+        c.poly([(117, 106), (124, 100), (122, 108)], hexc('4e7e3a'))
+    F.moved(c, _veg, 108, -27)
 
 
 C_ANCHORS = [('anchor_kitchen_pine_dresser', 26, 40, 'bp'), ('anchor_kitchen_dresser_drawer', 27, 88, 'bp'),
-             ('anchor_kitchen_butler_sink', 72, 78, 'bp'), ('anchor_kitchen_veg_basket', 112, 112, ''),
+             ('anchor_kitchen_butler_sink', 72, 78, 'bp'), ('anchor_kitchen_veg_basket', 220, 86, ''),
              ('anchor_centre_oven', 146, 84, 'bp'), ('anchor_kitchen_pine_table', 248, 97, ''),
              ('anchor_kitchen_bench', 238, 113, '')]
 
@@ -342,13 +344,15 @@ def d_furniture(c):
     c.line(90, 101, 98, 121, hexc('7b8083')); c.line(98, 101, 90, 121, hexc('7b8083'))
     c.rect(72, 90, 80, 97, hexc('9aa3a8')); c.put(81, 92, hexc('9aa3a8'))
     c.rect(86, 93, 90, 97, hexc('e6ddc8')); c.rect(93, 94, 97, 97, hexc('4e6ea0'))
-    # pizza boxes stacked up by the lane, one open
-    c.shadow(254, 121, 16, 2, 110)
-    for i in range(5):
-        y = 117 - i * 3
-        c.box(240 + (i % 2), y, 268 + (i % 2), y + 3, hexc('c9b58a'), hexc('8a7a55'))
-    c.poly([(241, 102), (269, 102), (272, 96), (244, 96)], hexc('d8c79a'))
-    c.ellipse(256, 101, 8, 1, hexc('b0653a'))
+    def _pizza(c):
+        # pizza boxes stacked against the wall by the bins, one open
+        c.shadow(254, 121, 16, 2, 110)
+        for i in range(5):
+            y = 117 - i * 3
+            c.box(240 + (i % 2), y, 268 + (i % 2), y + 3, hexc('c9b58a'), hexc('8a7a55'))
+        c.poly([(241, 102), (269, 102), (272, 96), (244, 96)], hexc('d8c79a'))
+        c.ellipse(256, 101, 8, 1, hexc('b0653a'))
+    F.moved(c, _pizza, -2, -18)
     # bin bags against the wall (right)
     bag, bag_lt = hexc('2f2e2c'), hexc('4a4946')
     c.shadow(292, 100, 18, 2, 100)
@@ -360,7 +364,7 @@ def d_furniture(c):
 
 D_ANCHORS = [('anchor_centre_fridge', 24, 60, 'bp'), ('anchor_kitchen_camp_table', 88, 95, ''),
              ('anchor_kitchen_dishes', 146, 70, 'bp'), ('anchor_kitchen_student_cupboard', 186, 84, 'bp'),
-             ('anchor_kitchen_microwave', 202, 64, 'bp'), ('anchor_kitchen_pizza_boxes', 256, 108, ''),
+             ('anchor_kitchen_microwave', 202, 64, 'bp'), ('anchor_kitchen_pizza_boxes', 254, 92, 'bp'), ('anchor_kitchen_kettle', 76, 94, ''),
              ('anchor_right_trashcan', 292, 90, 'bp')]
 
 
@@ -417,9 +421,9 @@ def e_furniture(c):
     # newspaper stacks along the left wall, one toppled
     for (x, h, lean) in ((8, 40, 1), (26, 52, -1), (44, 30, 0)):
         paper_stack(c, x, 99, h, 16, lean)
-    c.poly([(62, 121), (90, 116), (92, 120), (64, 124)], hexc('d8cfb4'))          # a toppled stack by the lane
-    c.poly([(66, 118), (94, 113), (95, 116), (67, 121)], hexc('c9bf9e'))
-    c.line(64, 122, 92, 117, hexc('9a927e'))
+    c.poly([(60, 105), (88, 100), (90, 104), (62, 108)], hexc('d8cfb4'))          # a stack toppled off the pile
+    c.poly([(64, 102), (92, 97), (93, 100), (65, 105)], hexc('c9bf9e'))
+    c.line(62, 106, 90, 101, hexc('9a927e'))
     # a table out in the room buried in plastic bags + cat food tins
     F.table_front(c, 236, 296, 96, 121, F.WOOD, depth=5)
     for (x, col) in ((238, hexc('e6e0cc')), (252, hexc('c0453a')), (266, hexc('e6e0cc')), (280, hexc('4e6ea0'))):
@@ -430,12 +434,12 @@ def e_furniture(c):
     for x in range(240, 294, 6):
         c.rect(x, 116, x + 4, 120, hexc('b9bfc1'))
         c.hline(x, x + 4, 116, hexc('d8e0e2'))
-    # a cat bowl, a cat nowhere to be seen
-    c.ellipse(212, 118, 6, 2, hexc('a8322c'))
-    c.ellipse(212, 117, 4, 1, hexc('6a4a2a'))
+    # a cat bowl by the cooker, a cat nowhere to be seen
+    c.ellipse(190, 102, 6, 2, hexc('a8322c'))
+    c.ellipse(190, 101, 4, 1, hexc('6a4a2a'))
 
 
-E_ANCHORS = [('anchor_kitchen_paper_stacks', 32, 70, 'bp'), ('anchor_kitchen_toppled_papers', 78, 118, ''),
+E_ANCHORS = [('anchor_kitchen_paper_stacks', 32, 70, 'bp'), ('anchor_kitchen_toppled_papers', 76, 102, 'bp'),
              ('anchor_kitchen_buried_counter', 150, 80, 'bp'), ('anchor_centre_oven', 214, 88, 'bp'),
              ('anchor_kitchen_bag_table', 258, 90, ''), ('anchor_kitchen_cat_tins', 262, 118, '')]
 

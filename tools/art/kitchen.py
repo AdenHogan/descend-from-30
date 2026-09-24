@@ -260,9 +260,9 @@ def counter_end(c):
     c.rect(288, 97, 292, 99, hexc('b0453a'))                               # a can
     c.rect(283, 99, 287, 101, hexc('d8d2c2'))                              # paper
     c.put(279, 101, hexc('c7b16a')); c.put(281, 102, hexc('7a8a5a'))
-    # a broken plate on the floor near the lane
-    c.rect(226, 110, 232, 112, hexc('d8d2c2'))
-    c.put(230, 109, hexc('d8d2c2')); c.put(235, 111, hexc('d8d2c2'))
+    # a broken plate dropped at the foot of the counter
+    c.rect(214, 101, 219, 102, hexc('d8d2c2'))
+    c.put(217, 100, hexc('d8d2c2')); c.put(222, 102, hexc('d8d2c2'))
 
 
 def table(c):
@@ -303,8 +303,8 @@ def table(c):
 
 
 def tin_box(c):
-    # a cardboard box of tins dragged out in front of the counter's end (node: the box)
-    x0, x1, top, base = 236, 262, 104, 118
+    # a cardboard box of tins on the floor against the end of the counter (node: the box)
+    x0, x1, top, base = 236, 262, 88, 101
     c.shadow(249, base, 15, 2, 110)
     box, box_dk = hexc('a88a5c'), hexc('7d6440')
     c.box(x0, top, x1, base, box, box_dk)
@@ -317,8 +317,8 @@ def tin_box(c):
         c.hline(tx, tx + 4, top - 4, hexc('c9c7bd'))
     c.rect(x0 + 6, top + 5, x1 - 6, top + 8, hexc('d8d2c2'))              # a label, scrawled
     c.hline(x0 + 8, x1 - 9, top + 6, hexc('4a3a2a'))
-    c.rect(266, 114, 271, 118, hexc('c9b86a'))                            # a tin rolled away
-    c.hline(266, 271, 114, hexc('c9c7bd'))
+    c.rect(230, 98, 234, 101, hexc('c9b86a'))                             # a tin rolled off the pile
+    c.hline(230, 234, 98, hexc('c9c7bd'))
 
 
 def build(c=None):
@@ -346,7 +346,8 @@ ANCHORS = [('anchor_centre_fridge', 26, 70, 'bp'), ('anchor_right_trashcan', 283
            ('anchor_left_cupboard', 118, 40, 'bp'), ('anchor_centre_cupboard', 119, 88, 'bp'),
            ('anchor_centre_oven', 170, 86, 'bp'), ('anchor_right_sink', 204, 70, 'bp'),
            ('anchor_right_sinkcupboard', 214, 90, 'bp'),
-           ('anchor_kitchen_table', 84, 95, ''), ('anchor_kitchen_tins', 249, 108, '')]
+           ('anchor_kitchen_table', 84, 95, ''), ('anchor_kitchen_teapot', 68, 91, ''),
+           ('anchor_kitchen_tins', 249, 92, 'bp')]
 
 
 if __name__ == '__main__':

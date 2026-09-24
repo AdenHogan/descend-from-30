@@ -174,7 +174,8 @@ metadata/back_plane = true
 metadata/balcony_strip = true
 
 [node name="anchor_study_floor_books" type="Marker2D" parent="."]
-position = Vector2(72, 112)
+position = Vector2(60, 96)
+metadata/back_plane = true
 metadata/balcony_strip = true
 
 [node name="anchor_centre_bookcaseupper" type="Marker2D" parent="."]
@@ -192,7 +193,7 @@ position = Vector2(134, 96)
 position = Vector2(168, 101)
 
 [node name="anchor_study_globe" type="Marker2D" parent="."]
-position = Vector2(250, 100)
+position = Vector2(262, 97)
 
 [node name="anchor_right_shelf" type="Marker2D" parent="."]
 position = Vector2(292, 64)

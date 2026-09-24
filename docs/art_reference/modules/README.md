@@ -133,6 +133,16 @@ posters, rugs, lamps, walls + tiling floors).
   party (bunting, cake, party hats, unopened presents in the strip).
 Study + dining variants each put their own furniture in the balcony strip (see above).
 
+**PLACEMENT RULE (owner round 11 — "things strangely placed on the floor in the middle of nowhere…
+be reasonable rather than silly")**: a LOOSE thing (a bag, basket, bucket, box, pile of books or
+papers, tins, a dropped tool) never stands alone out on the floor. It goes against the wall, or
+right beside / under / on the furniture it belongs with (clothes at the foot of the bed, a toy chest
+at the bed's end, a trolley pulled up to the bed, a basket ON the table, tins against the counter,
+a hammer at the foot of the barricade). Only real furniture that people stand out in a room — tables,
+chairs, beds, sofas, easels, clothes rails / airers, a rocking horse — goes out toward the lane, and
+that's what carries the FRONT nodes (two nodes on one table is fine). Move a piece as a unit with
+`furn.moved(c, fn, dx, dy)` (it keeps its shadow).
+
 **The runs (owner round 10 — "their run 2 and 3 looks as things get a bit more dilapidated and then
 more so")**: every variant also gets `<name>_r2` / `_r3` textures (+ their own `_floor.png` and
 `_strip.png`), GENERATED from its own layers by `pixlib.run_looks` inside `finish_module`, so any new

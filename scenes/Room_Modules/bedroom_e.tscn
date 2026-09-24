@@ -29,13 +29,13 @@ position = Vector2(34, 74)
 metadata/back_plane = true
 
 [node name="anchor_bedroom_rocking_horse" type="Marker2D" parent="."]
-position = Vector2(76, 102)
+position = Vector2(76, 98)
 
 [node name="anchor_bed_pillow" type="Marker2D" parent="."]
 position = Vector2(134, 88)
 
 [node name="anchor_bedroom_toy_chest" type="Marker2D" parent="."]
-position = Vector2(232, 112)
+position = Vector2(212, 107)
 
 [node name="anchor_bedroom_small_wardrobe" type="Marker2D" parent="."]
 position = Vector2(292, 70)

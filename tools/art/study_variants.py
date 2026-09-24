@@ -49,15 +49,18 @@ def b_floor(c):
 
 
 def b_strip(c):
-    # a low bookshelf against the wall + a stack of box files dumped on the floor
+    # a low bookshelf against the wall + a stack of box files on the floor beside it
     F.shelves(c, 8, 46, 70, 100, F.TEAK, [83, 96], c.rng)
     c.rect(10, 66, 22, 69, hexc('d6cfb8')); c.rect(28, 64, 36, 69, hexc('4e8a5a'))          # a desk tidy, a plant
     c.poly([(26, 64), (30, 58), (34, 62), (38, 57), (40, 64)], hexc('5e8240'))
-    c.shadow(72, 120, 14, 2, 110)
-    for i, col in enumerate((hexc('2f4a63'), hexc('7a2e28'), hexc('2f4a63'), hexc('5d6b3a'))):
-        y = 116 - i * 5
-        c.box(60 + (i % 2) * 3, y, 84 + (i % 2) * 3, y + 4, col, shade(col, 0.6))
-        c.rect(64 + (i % 2) * 3, y + 1, 70 + (i % 2) * 3, y + 3, hexc('e6e0cc'))
+    def _files(c):
+        # (box files)
+        c.shadow(72, 120, 14, 2, 110)
+        for i, col in enumerate((hexc('2f4a63'), hexc('7a2e28'), hexc('2f4a63'), hexc('5d6b3a'))):
+            y = 116 - i * 5
+            c.box(60 + (i % 2) * 3, y, 84 + (i % 2) * 3, y + 4, col, shade(col, 0.6))
+            c.rect(64 + (i % 2) * 3, y + 1, 70 + (i % 2) * 3, y + 3, hexc('e6e0cc'))
+    F.moved(c, _files, -10, -21)
 
 
 def b_furniture(c):
@@ -87,17 +90,21 @@ def b_furniture(c):
     c.vline(160, 109, 115, hexc('26262a'))
     c.line(160, 115, 150, 119, hexc('26262a')); c.line(160, 115, 170, 119, hexc('26262a'))
     c.put(150, 119, hexc('111114')); c.put(170, 119, hexc('111114')); c.put(160, 119, hexc('111114'))
-    # a printer on a little stand out in the room, paper spilling
-    c.shadow(214, 119, 14, 2, 110)
-    c.rect(202, 96, 226, 98, BEIGE[1])
-    c.hline(202, 226, 96, BEIGE[3])
-    for lx in (203, 225):
-        c.vline(lx, 99, 118, BEIGE[2])
-    c.hline(203, 225, 112, BEIGE[2])
-    c.box(204, 86, 224, 95, BEIGE[0], BEIGE[3])
-    c.rect(208, 88, 220, 89, hexc('26262a'))
-    c.poly([(210, 95), (220, 95), (224, 104), (214, 104)], hexc('f0ece2'))
-    c.poly([(222, 114), (232, 112), (236, 117), (226, 119)], hexc('f0ece2'))
+    def _printer(c):
+        # a printer on a little stand against the wall beside the desk, paper spilling
+        c.shadow(214, 119, 14, 2, 110)
+        c.rect(202, 96, 226, 98, BEIGE[1])
+        c.hline(202, 226, 96, BEIGE[3])
+        for lx in (203, 225):
+            c.vline(lx, 99, 118, BEIGE[2])
+        c.hline(203, 225, 112, BEIGE[2])
+        c.box(204, 86, 224, 95, BEIGE[0], BEIGE[3])
+        c.rect(208, 88, 220, 89, hexc('26262a'))
+        c.poly([(210, 95), (220, 95), (224, 104), (214, 104)], hexc('f0ece2'))
+        c.poly([(222, 114), (232, 112), (236, 117), (226, 119)], hexc('f0ece2'))
+    F.moved(c, _printer, -14, -18)
+    # an old armchair pulled up near the lane for reading printouts
+    LR.wingback(c, 214, 80, (hexc('6a6a5a'), hexc('7e7e6c'), hexc('545446'), hexc('26261e')))
     # a wastepaper basket under the R window box + box files on a shelf on the right
     c.shadow(248, 100, 8, 2, 90)                                                             # a wastepaper basket
     c.poly([(241, 86), (255, 86), (253, 99), (243, 99)], hexc('3a3a44'))
@@ -110,9 +117,10 @@ def b_furniture(c):
         c.rect(x + 1, 68, x + 4, 70, hexc('e6e0cc'))
 
 
-B_ANCHORS = [('anchor_study_low_shelf', 26, 88, 'bp s'), ('anchor_study_box_files', 74, 108, 's'),
+B_ANCHORS = [('anchor_study_low_shelf', 26, 88, 'bp s'), ('anchor_study_box_files', 64, 88, 'bp s'),
              ('anchor_centre_desk', 146, 66, 'bp'), ('anchor_study_desk_drawer', 119, 88, 'bp'),
-             ('anchor_study_office_chair', 160, 100, ''), ('anchor_study_printer', 214, 90, ''),
+             ('anchor_study_office_chair', 160, 100, ''), ('anchor_study_printer', 200, 72, 'bp'),
+             ('anchor_study_armchair', 226, 95, ''),
              ('anchor_right_shelf', 292, 70, 'bp')]
 
 
@@ -139,12 +147,15 @@ def c_floor(c):
 
 def c_strip(c):
     F.shelves(c, 8, 46, 18, 100, F.WOOD, [34, 50, 66, 82, 96], c.rng)
-    c.shadow(72, 120, 14, 2, 110)
-    for i, col in enumerate((F.BOOKS[1], F.BOOKS[0], F.BOOKS[5], F.BOOKS[3])):
-        y = 117 - i * 3
-        c.rect(60 + i, y, 84 - i, y + 2, col)
-        c.hline(60 + i, 84 - i, y, shade(col, 1.2))
-    c.poly([(86, 106), (94, 103), (96, 107), (88, 110)], F.BOOKS[6])
+    def _books(c):
+        # (books pulled off the shelf, piled at its foot)
+        c.shadow(72, 120, 14, 2, 110)
+        for i, col in enumerate((F.BOOKS[1], F.BOOKS[0], F.BOOKS[5], F.BOOKS[3])):
+            y = 117 - i * 3
+            c.rect(60 + i, y, 84 - i, y + 2, col)
+            c.hline(60 + i, 84 - i, y, shade(col, 1.2))
+        c.poly([(86, 106), (94, 103), (96, 107), (88, 110)], F.BOOKS[6])
+    F.moved(c, _books, -12, -16)
 
 
 def globe(c, cx, base):
@@ -172,7 +183,7 @@ def c_furniture(c):
     c.rect(164, 100, 172, 103, F.BOOKS[0]); c.hline(164, 172, 100, shade(F.BOOKS[0], 1.2))
     c.rect(174, 99, 177, 103, hexc('c9c2b1'))
     F.floor_lamp(c, 188, 66, 121, hexc('c9ab7e'), hexc('3a2a1a'))
-    globe(c, 250, 121)
+    globe(c, 262, 118)                                                           # beside the writing slope
     # a writing slope on the right against the wall
     F.chest(c, 276, 310, 70, 100, F.WOOD, drawers=3, open_row=0)
     c.poly([(278, 69), (308, 69), (304, 60), (282, 60)], F.WOOD[1])
@@ -180,10 +191,10 @@ def c_furniture(c):
     c.line(302, 58, 306, 50, hexc('2b2622'))
 
 
-C_ANCHORS = [('anchor_study_tall_shelf', 28, 58, 'bp s'), ('anchor_study_floor_books', 72, 112, 's'),
+C_ANCHORS = [('anchor_study_tall_shelf', 28, 58, 'bp s'), ('anchor_study_floor_books', 60, 96, 'bp s'),
              ('anchor_centre_bookcaseupper', 120, 40, 'bp'), ('anchor_centre_bookcaselower', 122, 72, 'bp'),
              ('anchor_study_wingback', 134, 96, ''), ('anchor_study_side_table', 168, 101, ''),
-             ('anchor_study_globe', 250, 100, ''), ('anchor_right_shelf', 292, 64, 'bp')]
+             ('anchor_study_globe', 262, 97, ''), ('anchor_right_shelf', 292, 64, 'bp')]
 
 
 # ============================================================================================
@@ -219,18 +230,20 @@ def d_strip(c):
             col = [hexc('b0453a'), hexc('c9b86a'), hexc('6a8a5a')][(x // 5 + y) % 3]
             c.rect(x, y - h, x + 3, y - 1, col)
             c.hline(x, x + 3, y - h, hexc('c9c7bd'))
-    # an ammo crate out by the lane with a gas mask dumped on it
-    c.shadow(76, 121, 12, 2, 110)
-    c.box(64, 106, 88, 121, hexc('5a6a4a'), hexc('2e3a24'))
-    c.hline(65, 87, 107, hexc('6a7a5a'))
-    c.rect(70, 112, 82, 114, hexc('d9d0b0'))
-    c.rect(62, 108, 63, 111, hexc('3a3a36')); c.rect(89, 108, 90, 111, hexc('3a3a36'))     # handles
-    rrect(c, 68, 96, 82, 105, hexc('3a3a36'), 3)                                             # the mask
-    c.ellipse(72, 99, 2, 2, hexc('9aa3a8')); c.ellipse(78, 99, 2, 2, hexc('9aa3a8'))
-    c.ellipse(72, 99, 1, 1, hexc('4a5a6a')); c.ellipse(78, 99, 1, 1, hexc('4a5a6a'))
-    c.rect(73, 103, 77, 107, hexc('5a5a52'))                                                 # the filter
-    c.hline(73, 77, 105, hexc('3a3a36'))
-    c.line(68, 97, 62, 104, hexc('26262a'))                                                  # its strap
+    def _crate(c):
+        # an ammo crate against the wall by the shelves, a gas mask dumped on it
+        c.shadow(76, 121, 12, 2, 110)
+        c.box(64, 106, 88, 121, hexc('5a6a4a'), hexc('2e3a24'))
+        c.hline(65, 87, 107, hexc('6a7a5a'))
+        c.rect(70, 112, 82, 114, hexc('d9d0b0'))
+        c.rect(62, 108, 63, 111, hexc('3a3a36')); c.rect(89, 108, 90, 111, hexc('3a3a36'))     # handles
+        rrect(c, 68, 96, 82, 105, hexc('3a3a36'), 3)                                             # the mask
+        c.ellipse(72, 99, 2, 2, hexc('9aa3a8')); c.ellipse(78, 99, 2, 2, hexc('9aa3a8'))
+        c.ellipse(72, 99, 1, 1, hexc('4a5a6a')); c.ellipse(78, 99, 1, 1, hexc('4a5a6a'))
+        c.rect(73, 103, 77, 107, hexc('5a5a52'))                                                 # the filter
+        c.hline(73, 77, 105, hexc('3a3a36'))
+        c.line(68, 97, 62, 104, hexc('26262a'))                                                  # its strap
+    F.moved(c, _crate, -12, -21)
 
 
 def d_furniture(c):
@@ -250,16 +263,24 @@ def d_furniture(c):
     c.line(174, 71, 180, 48, hexc('26262a')); c.ellipse(180, 47, 2, 2, hexc('26262a'))     # a desk mic
     c.rect(114, 84, 138, 91, hexc('9a7a4e'))                                                 # a battery box
     c.line(182, 72, 216, 20, hexc('26262a'))                                                 # the antenna lead up the wall
-    # supply crates + jerry cans out in the room
-    c.shadow(214, 121, 18, 2, 110)
-    for (x0, y0, col) in ((198, 104, hexc('5a6a4a')), (214, 104, hexc('4e5e40')), (204, 90, hexc('5a6a4a'))):
-        c.box(x0, y0, x0 + 15, y0 + 13 if y0 == 90 else 121, col, shade(col, 0.6))
-        c.rect(x0 + 4, y0 + 4, x0 + 11, y0 + 6, hexc('d9d0b0'))
-    for (x, col) in ((236, hexc('a8322c')), (250, hexc('4a5a3a'))):
-        c.shadow(x + 6, 121, 7, 1, 110)
-        c.box(x, 102, x + 12, 121, col, shade(col, 0.55))
-        c.rect(x + 8, 98, x + 10, 101, shade(col, 0.7))
-        c.line(x + 2, 104, x + 10, 118, shade(col, 0.8)); c.line(x + 10, 104, x + 2, 118, shade(col, 0.8))
+    def _supplies(c):
+        # supply crates + jerry cans stacked against the wall
+        c.shadow(214, 121, 18, 2, 110)
+        for (x0, y0, col) in ((198, 104, hexc('5a6a4a')), (214, 104, hexc('4e5e40')), (204, 90, hexc('5a6a4a'))):
+            c.box(x0, y0, x0 + 15, y0 + 13 if y0 == 90 else 121, col, shade(col, 0.6))
+            c.rect(x0 + 4, y0 + 4, x0 + 11, y0 + 6, hexc('d9d0b0'))
+        for (x, col) in ((236, hexc('a8322c')), (250, hexc('4a5a3a'))):
+            c.shadow(x + 6, 121, 7, 1, 110)
+            c.box(x, 102, x + 12, 121, col, shade(col, 0.55))
+            c.rect(x + 8, 98, x + 10, 101, shade(col, 0.7))
+            c.line(x + 2, 104, x + 10, 118, shade(col, 0.8)); c.line(x + 10, 104, x + 2, 118, shade(col, 0.8))
+    F.moved(c, _supplies, 0, -21)
+    # a folding planning table out in the room: a map weighed down with a radio handset, a torch
+    F.table_front(c, 190, 252, 98, 121, F.METAL, depth=5)
+    c.rect(196, 96, 232, 99, hexc('d9d0b0'))
+    c.line(200, 97, 226, 98, hexc('a8322c'))
+    c.rect(236, 93, 244, 97, hexc('3a3a36')); c.line(244, 94, 248, 90, hexc('26262a'))
+    c.rect(210, 95, 216, 96, hexc('d9b43a'))
     # a camp bed folded against the wall on the right
     c.shadow(292, 100, 16, 2, 100)
     c.box(278, 40, 306, 99, hexc('5a6a4a'), hexc('2e3a24'))
@@ -269,9 +290,10 @@ def d_furniture(c):
     c.hline(284, 300, 64, hexc('26262a'))
 
 
-D_ANCHORS = [('anchor_study_tins', 26, 62, 'bp s'), ('anchor_study_gas_mask', 75, 108, 's'),
+D_ANCHORS = [('anchor_study_tins', 26, 62, 'bp s'), ('anchor_study_gas_mask', 63, 87, 'bp s'),
              ('anchor_study_radio', 130, 64, 'bp'), ('anchor_centre_desk', 126, 86, 'bp'),
-             ('anchor_study_crates', 212, 98, ''), ('anchor_study_jerry_cans', 243, 108, ''),
+             ('anchor_study_crates', 212, 77, 'bp'), ('anchor_study_map_table', 214, 97, ''),
+             ('anchor_study_handset', 240, 95, ''),
              ('anchor_right_shelf', 292, 66, 'bp')]
 
 
@@ -319,12 +341,15 @@ def e_strip(c):
     for (x, col) in ((12, hexc('e6e0cc')), (20, hexc('d9d0b0')), (30, hexc('e6e0cc'))):
         c.rect(x, 64, x + 10, 69, col)
         c.ellipse(x, 66, 1, 2, shade(col, 0.8))
-    c.shadow(72, 121, 14, 2, 110)
-    for (x, col) in ((60, SPLASH[0]), (70, SPLASH[1]), (80, SPLASH[2])):
-        c.box(x, 110, x + 8, 121, hexc('9aa3a8'), hexc('5a6064'))
-        c.rect(x + 1, 112, x + 7, 116, col)
-        c.line(x + 1, 110, x + 4, 106, hexc('5a6064'))
-    c.rect(88, 118, 96, 120, SPLASH[3])
+    def _tins(c):
+        # (paint tins against the wall beside the chest)
+        c.shadow(72, 121, 14, 2, 110)
+        for (x, col) in ((60, SPLASH[0]), (70, SPLASH[1]), (80, SPLASH[2])):
+            c.box(x, 110, x + 8, 121, hexc('9aa3a8'), hexc('5a6064'))
+            c.rect(x + 1, 112, x + 7, 116, col)
+            c.line(x + 1, 110, x + 4, 106, hexc('5a6064'))
+        c.rect(88, 118, 96, 120, SPLASH[3])
+    F.moved(c, _tins, -10, -21)
 
 
 def e_furniture(c):
@@ -369,7 +394,7 @@ def e_furniture(c):
             c.rect(x + 1, y - 5, x + 3, y - 2, SPLASH[(k + y) % len(SPLASH)])
 
 
-E_ANCHORS = [('anchor_study_plan_chest', 26, 88, 'bp s'), ('anchor_study_paint_tins', 74, 114, 's'),
+E_ANCHORS = [('anchor_study_plan_chest', 26, 88, 'bp s'), ('anchor_study_paint_tins', 64, 94, 'bp s'),
              ('anchor_study_canvases', 124, 70, 'bp'), ('anchor_study_easel', 186, 104, ''),
              ('anchor_study_trestle', 240, 97, ''), ('anchor_right_shelf', 292, 70, 'bp')]
 

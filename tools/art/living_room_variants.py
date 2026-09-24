@@ -451,11 +451,13 @@ def e_furniture(c):
     c.dither(118, 94, 138, 98, hexc('8a8278'), 0.5)                            # ash
     c.rect(120, 46, 126, 51, hexc('c9c2b1')); c.rect(130, 44, 134, 51, hexc('7a4a2a'))   # a clock + a decanter
     c.rect(146, 74, 147, 99, hexc('3a3a36')); c.hline(144, 149, 99, hexc('3a3a36'))       # poker stand
-    # a game bag slumped on the floor by the lane
-    c.shadow(92, 121, 10, 2, 110)
-    c.poly([(82, 121), (84, 108), (94, 104), (102, 110), (102, 121)], hexc('6a6a4a'))
-    c.line(86, 108, 98, 104, hexc('3a3a28'))
-    c.rect(88, 112, 98, 116, hexc('5a5a3e'))
+    def _bag(c):
+        # a game bag slumped against the wall beside the gun cabinet
+        c.shadow(92, 121, 10, 2, 110)
+        c.poly([(82, 121), (84, 108), (94, 104), (102, 110), (102, 121)], hexc('6a6a4a'))
+        c.line(86, 108, 98, 104, hexc('3a3a28'))
+        c.rect(88, 112, 98, 116, hexc('5a5a3e'))
+    F.moved(c, _bag, -34, -21)
     # a chesterfield in oxblood leather, and a bear-skin rug before it
     sofa_as(c, (hexc('6e2a24'), hexc('55201c'), hexc('84403a'), hexc('2a100e')), (hexc('7a8a6a'), hexc('5a6a4a')), dx=92)
     bear, bear_dk = hexc('9a7450'), hexc('6a4a34')
@@ -468,7 +470,7 @@ def e_furniture(c):
 
 
 E_ANCHORS = [('anchor_living_gun_cabinet', 26, 56, 'bp'), ('anchor_living_fireplace', 128, 90, 'bp'),
-             ('anchor_living_game_bag', 92, 112, ''), ('anchor_centre_sofaleft', 203, 103, ''),
+             ('anchor_living_game_bag', 58, 91, 'bp'), ('anchor_centre_sofaleft', 203, 103, ''),
              ('anchor_centre_sofaright', 238, 101, '')]
 
 

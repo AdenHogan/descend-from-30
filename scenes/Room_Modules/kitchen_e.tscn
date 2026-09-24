@@ -29,7 +29,8 @@ position = Vector2(32, 70)
 metadata/back_plane = true
 
 [node name="anchor_kitchen_toppled_papers" type="Marker2D" parent="."]
-position = Vector2(78, 118)
+position = Vector2(76, 102)
+metadata/back_plane = true
 
 [node name="anchor_kitchen_buried_counter" type="Marker2D" parent="."]
 position = Vector2(150, 80)

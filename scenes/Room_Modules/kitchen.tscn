@@ -55,5 +55,9 @@ metadata/back_plane = true
 [node name="anchor_kitchen_table" type="Marker2D" parent="."]
 position = Vector2(84, 95)
 
+[node name="anchor_kitchen_teapot" type="Marker2D" parent="."]
+position = Vector2(68, 91)
+
 [node name="anchor_kitchen_tins" type="Marker2D" parent="."]
-position = Vector2(249, 108)
+position = Vector2(249, 92)
+metadata/back_plane = true
