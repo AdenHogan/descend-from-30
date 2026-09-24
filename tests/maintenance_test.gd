@@ -35,6 +35,16 @@ func _ready() -> void:
 		if it != "" and not (it in ["019", "020", "033", "037"]):   # 037 = scrap bag (spare parts)
 			ok_items = false
 	chk(ok_items, "anchor loot is maintenance-appropriate (toolbox/fuse/notes/scrap/empty)")
+	# The painted room (tools/art/maintenance.py) right above the tilemap, the stations where they
+	# always were, and the three live fuse-slot lights on top of the art (the placeholder bench /
+	# fuse-box polygons are gone).
+	var art = m.get_node_or_null("MaintenanceArt")
+	var tm = m.get_node_or_null("TileMapLayer")
+	chk(art is Sprite2D and art.texture != null and tm != null and art.get_index() == tm.get_index() + 1,
+		"the maintenance room art sits right above the tilemap")
+	chk(m.get_node_or_null("Workbench") == null and m.get_node_or_null("FuseBox") == null, "no placeholder bench / fuse box polygons")
+	chk(m._fuse_slots.size() == 3 and m._fuse_slots[0].get_index() > art.get_index(), "three live fuse-slot lights, drawn over the art")
+	chk(m._workbench_pos == Vector2(190, 352) and m._fuse_box_pos == Vector2(312, 290), "the stations keep their positions")
 	m.free()
 	await get_tree().process_frame
 	print("=== %s (%d failures) ===" % ["ALL PASSED" if fails == 0 else "FAILED", fails])

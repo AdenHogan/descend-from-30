@@ -702,8 +702,11 @@ means no rendering — UI layout and art still need an in-editor look.
   both the data and render layers). ONE-WAY **left doorway** (hole in the bricks);
   spawn just inside it, exit trigger sits in the hole. Two toolbox/fuse-weighted
   scavenge anchors (glow fixed: `set_process(true)` after runtime `set_script`).
-  Placeholder **workbench** + **fuse-box** ColorRect props (upgrade station UI is
-  future — the Scrap system). **Fuse (020)** now `is_fuse` + **stacks to 3/slot**
+  **Room art** (owner round 10, `tools/art/maintenance.py` → `assets/rooms/maintenance.png`, a
+  `MaintenanceArt` overlay above the tilemap): blockwork + pipes, a pegboard over the **workbench**,
+  the **fuse box** (door open; its 3 slot lights stay live Polygon2Ds on top), a wired-glass window,
+  a crate + tool chest under the two loot nodes. Station positions/reach unchanged (placeholder
+  polygons remain only as a fallback if the art is missing). **Fuse (020)** now `is_fuse` + **stacks to 3/slot**
   (`MAX_FUSE_PER_SLOT`); at the fuse box **[E] fits carried fuses** (accumulates
   across visits), and 3 **powers the elevator** (ding + hum). Power is a **single
   global per-run charge** (`elevator_powered`/`elevator_fuses_loaded`, saved,

@@ -503,7 +503,33 @@ var _fuse_box_active: bool = false
 var _workbench_pos: Vector2 = Vector2.ZERO
 var _fuse_slots: Array = []           # the 3 slot rects, recoloured to show fitted count
 
+const MAINTENANCE_ART := "res://assets/rooms/maintenance.png"   # tools/art/maintenance.py
+const MAINTENANCE_ART_POS := Vector2(97, 208)                     # the tilemap's used rect (416 x 176)
+
+
 func _build_maintenance_props() -> void:
+	# The painted room (tools/art/maintenance.py): blockwork + pipes, a pegboard over the WORKBENCH,
+	# the FUSE BOX with its door open, a wired-glass window, a crate + tool chest under the loot
+	# nodes — right above the tilemap. The stations keep their positions/reach; only the three
+	# fuse-slot lights stay live (drawn over the art) so the 0-3 power state still reads.
+	if ResourceLoader.exists(MAINTENANCE_ART):
+		var art := Sprite2D.new()
+		art.name = "MaintenanceArt"
+		art.texture = load(MAINTENANCE_ART)
+		art.centered = false
+		art.position = MAINTENANCE_ART_POS
+		art.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		add_child(art)
+		var tm = get_node_or_null("TileMapLayer")
+		if tm != null:
+			move_child(art, tm.get_index() + 1)
+		_workbench_pos = Vector2(_WORKBENCH_X, _FLOOR_Y)
+		_fuse_box_pos = Vector2(_FUSE_BOX_X, _FUSE_BOX_Y)
+		_add_fuse_slots()
+		_fuse_box_active = true
+		_refresh_fuse_slots()
+		return
+	# (fallback) placeholder fixtures.
 	# Upgrade workbench — a wooden bench on the floor (the scrap upgrade station goes here).
 	var bench := Polygon2D.new()
 	bench.name = "Workbench"
@@ -535,7 +561,14 @@ func _build_maintenance_props() -> void:
 	rim.color = Color(0.2, 0.22, 0.25)
 	rim.position = Vector2(_FUSE_BOX_X, _FUSE_BOX_Y)
 	add_child(rim)
-	# Three vertical fuse slots inside the box.
+	_add_fuse_slots()
+	_fuse_box_pos = fuse.position
+	_fuse_box_active = true
+	_refresh_fuse_slots()
+
+
+func _add_fuse_slots() -> void:
+	# Three vertical fuse slots inside the box, recoloured by _refresh_fuse_slots (0-3 fitted).
 	for i in range(3):
 		var slot := Polygon2D.new()
 		slot.polygon = PackedVector2Array([Vector2(-4, -13), Vector2(4, -13), Vector2(4, 13), Vector2(-4, 13)])
@@ -543,9 +576,6 @@ func _build_maintenance_props() -> void:
 		slot.position = Vector2(_FUSE_BOX_X - 11 + i * 11, _FUSE_BOX_Y + 2)
 		add_child(slot)
 		_fuse_slots.append(slot)
-	_fuse_box_pos = fuse.position
-	_fuse_box_active = true
-	_refresh_fuse_slots()
 
 
 var _workbench_ui = null
