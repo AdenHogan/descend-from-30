@@ -73,10 +73,11 @@ func _build_ui() -> void:
 	if not scored.is_empty():
 		lines.append("")
 		lines.append("DESCENT VALOUR  +%d   (banked %d)" % [int(WorldState.last_valour.get("total", 0)), WorldState.valour])
-	if not WorldState.carry_item.is_empty():
-		var it = WorldState.instance_from_dict(WorldState.carry_item)
-		lines.append("Waiting at the door for your next game: %s%s" % [it.get_display_name(),
-			" Lv%d" % it.level if it.level > 1 else ""])
+	if not WorldState.carry_items.is_empty():
+		var names: Array = []
+		for d in WorldState.carry_items:
+			names.append(WorldState._handoff_label(WorldState.instance_from_dict(d)))
+		lines.append("The shopkeeper keeps for your next game: %s" % ", ".join(names))
 	fates.text = "\n".join(lines)
 	fates.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	fates.add_theme_font_override("font", preload("res://assets/fonts/PixelOperator8.ttf"))

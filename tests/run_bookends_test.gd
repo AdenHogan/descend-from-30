@@ -262,11 +262,11 @@ func _test_escape_guard_and_summary() -> void:
 	check(rows.get("Felled") == "7" and rows.get("Searched") == "12" and rows.get("Apartments looted") == "2", "kills / searches / apartments (%s)" % str(rows))
 	check(rows.get("Quests completed") == "1" and rows.get("Descent Valour") == "+%d" % Progression.valour_for_run(0, true, 1, 0), "quests + this run's Valour")
 	check(not rows.has("Residents aided"), "a fact that didn't happen isn't listed")
-	check(rows.get("Left at the door") == "Hammer Lv3", "the handoff item")
+	check(rows.get("Left with the shopkeeper") == "Hammer Lv3", "the handoff item")
 	var plain := {}
 	for r in WorldState.run_summary():
 		plain[r[0]] = r[1]
-	check(not plain.has("Left at the door"), "no handoff → no row")
+	check(not plain.has("Left with the shopkeeper"), "no handoff → no row")
 
 
 func _lobby_with_player() -> Array:

@@ -17,8 +17,8 @@ var _grid: GridContainer = null
 func _ready() -> void:
 	build_card("LEAVE SOMETHING BEHIND?", W, H, Color(0.85, 0.72, 0.40))
 	var last_run: bool = WorldState.current_run >= WorldState.RUN_NAMES.size()
-	var sub := label(("You're out. Leave one thing at the door for your NEXT game's first survivor?"
-		if last_run else "You're out. Leave one thing at the door for whoever comes down next?"), 12, DIM)
+	var sub := label(("You're out. Leave one thing behind? The shopkeeper will keep it for your NEXT game's first survivor."
+		if last_run else "You're out. Leave one thing behind? The shopkeeper will hand it to whoever comes down next."), 12, DIM)
 	sub.position = Vector2(24, 54)
 	sub.size = Vector2(W - 48, 36)
 	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

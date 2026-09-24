@@ -252,6 +252,10 @@ func note_perk_acquired(perk_id: String) -> void:
 func finish_session() -> Dictionary:
 	if _valour_scored_seed == master_seed and not last_valour.is_empty():
 		return last_valour
+	# Anything the shopkeeper still holds, unclaimed, goes with the player to the next game — never lost.
+	for data in handoff_items:
+		carry_items.append(data)
+	handoff_items = []
 	_ensure_chronicle()
 	var runs: Array = []
 	var total := 0
@@ -311,12 +315,17 @@ func decline_valour_offer() -> void:
 
 
 # --- THE HANDOFF (owner: "a successful exit will also allow for a weapon or item to carry over,
-# on top of the purchased Valour upgrade, including upgraded legendary weapons") ---------------
-# A character who ESCAPES leaves ONE item at the door for whoever comes next — the next character
-# this session, or (after the 3rd run) the first character of the next game. The item keeps its
-# full state (level, perks, durability). One item, only on an escape: reward, not too much.
-var handoff_item: Dictionary = {}      # for the NEXT character this session (game save)
-var carry_item: Dictionary = {}        # for the next GAME's first character (profile)
+# on top of the purchased Valour upgrade, including upgraded legendary weapons"; round 2: "more
+# organically — collect a stored item from the shop keeper on floor 25, given for free after the
+# first upgrade as a gift") -------------------------------------------------------------------
+# A character who ESCAPES leaves ONE item behind. The SHOPKEEPER keeps it, and the next character
+# gets it free at their first shop visit (floor 25), right after that visit's upgrade pick. The
+# item keeps its full state (level, perks, durability). One item per escape: reward, not too much.
+# Never lost: a skipped floor 25 (elevator, a burning floor the merchant shelters from) → the next
+# merchant visit; full pockets → the merchant keeps it till there's room; unclaimed when the
+# session ends → it carries into the next game; two escapes → the merchant holds both.
+var handoff_items: Array = []          # held by the shopkeeper THIS game (game save)
+var carry_items: Array = []            # waiting for the next GAME (profile)
 
 
 # Inventory slots that can be handed on: anything but keys (their doors belong to this building's
@@ -336,27 +345,42 @@ func leave_for_next(slot: int) -> String:
 	if not (slot in handoff_candidates()):
 		return ""
 	var inst = inventory[slot]
-	var label: String = inst.get_display_name() + (" Lv%d" % inst.level if inst.level > 1 else "")
+	var label: String = _handoff_label(inst)
 	var data: Dictionary = instance_to_dict(inst)
 	inventory.remove_at(slot)
 	if current_run >= RUN_NAMES.size():
-		carry_item = data                   # the arc ends here — it waits for the next game
+		carry_items.append(data)            # the arc ends here — it waits for the next game
 		save_profile()
 	else:
-		handoff_item = data
+		handoff_items.append(data)
 	_ensure_chronicle()
 	run_chronicle[clampi(current_run - 1, 0, 2)]["left_behind"] = label
 	return label
 
 
-# The new character finds what was left for them (called at the time skip + New Game).
-func _grant_handoff() -> void:
-	if handoff_item.is_empty():
-		return
-	var inst = instance_from_dict(handoff_item)
-	handoff_item = {}
-	if not add_instance_to_inventory(inst):
-		inventory.append(inst)              # a fresh character has empty pockets — never lose it
+func _handoff_label(inst) -> String:
+	return inst.get_display_name() + (" Lv%d" % inst.level if inst.level > 1 else "")
+
+
+func handoff_pending() -> bool:
+	return not handoff_items.is_empty()
+
+
+# The shopkeeper hands over what was left (called by the shop once THIS visit's upgrade is
+# resolved). Everything that fits goes to the pockets; what doesn't stays with the merchant for a
+# later visit. Returns {"given": [labels], "kept": [labels]}.
+func collect_handoff_gifts() -> Dictionary:
+	var out := {"given": [], "kept": []}
+	var still: Array = []
+	for data in handoff_items:
+		var inst = instance_from_dict(data)
+		if add_instance_to_inventory(inst):
+			out["given"].append(_handoff_label(inst))
+		else:
+			still.append(data)
+			out["kept"].append(_handoff_label(inst))
+	handoff_items = still
+	return out
 
 
 # Quests + NPCs feed Descent Valour (owner). Quests aren't built yet — these are the hooks the
@@ -458,7 +482,7 @@ func run_summary(left_behind: String = "") -> Array:
 		out.append(["Residents aided", str(n)])
 	out.append(["Descent Valour", "+%d" % Progression.valour_for_run(0, true, q, n)])
 	if left_behind != "":
-		out.append(["Left at the door", left_behind])
+		out.append(["Left with the shopkeeper", left_behind])
 	return out
 
 
@@ -801,7 +825,7 @@ func load_profile() -> void:
 	valour_offer = []
 	last_valour = {}
 	_valour_scored_seed = 0
-	carry_item = {}
+	carry_items = []
 	if cfg.load(profile_path()) == OK:
 		tutorial_completed = bool(cfg.get_value("progress", "tutorial_completed", false))
 		runs_made = int(cfg.get_value("stats", "runs_made", 0))
@@ -820,7 +844,10 @@ func load_profile() -> void:
 		valour_offer = Array(cfg.get_value("valour", "offer", []))
 		last_valour = Dictionary(cfg.get_value("valour", "last", {}))
 		_valour_scored_seed = int(cfg.get_value("valour", "scored_seed", 0))
-		carry_item = Dictionary(cfg.get_value("valour", "carry_item", {}))
+		carry_items = Array(cfg.get_value("valour", "carry_items", []))
+		var old_carry: Dictionary = Dictionary(cfg.get_value("valour", "carry_item", {}))   # v1 key
+		if not old_carry.is_empty():
+			carry_items.append(old_carry)
 
 
 func save_profile() -> void:
@@ -839,7 +866,9 @@ func save_profile() -> void:
 	cfg.set_value("valour", "offer", valour_offer)
 	cfg.set_value("valour", "last", last_valour)
 	cfg.set_value("valour", "scored_seed", _valour_scored_seed)
-	cfg.set_value("valour", "carry_item", carry_item)
+	if cfg.has_section_key("valour", "carry_item"):
+		cfg.erase_section_key("valour", "carry_item")   # v1 single slot → carry_items
+	cfg.set_value("valour", "carry_items", carry_items)
 	# Mirror the headline save facts so the select screen can read one small
 	# file per slot instead of loading three save games.
 	cfg.set_value("resume", "has_save", FileAccess.file_exists(slot_save_path()))
@@ -1064,13 +1093,11 @@ func new_game() -> void:
 	dev_fire_origin = -1
 	pending_dev_feedback = ""
 	note_run_character()           # stamp run 1's chronicle slot with its character
-	handoff_item = {}
-	# A character who ESCAPED at the end of the last game left something for this one.
-	if not carry_item.is_empty():
-		handoff_item = carry_item
-		carry_item = {}
+	# A character who ESCAPED at the end of the last game left something — the shopkeeper has it.
+	handoff_items = carry_items.duplicate(true)
+	if not carry_items.is_empty():
+		carry_items = []
 		save_profile()
-		_grant_handoff()
 
 
 # Advance to the NEXT character run — THE TIME SKIP (docs/THREE_RUN_ARC.md). The
@@ -1168,7 +1195,6 @@ func advance_run() -> bool:
 	balcony_jump_warned = false
 	balcony_arrival_hurt = false
 	balcony_pending_injury = 0
-	_grant_handoff()                         # the item the escaped character left at the door
 	return false
 
 
@@ -3980,7 +4006,7 @@ func save_game(scene_path: String, record_live_zombies: bool = true) -> void:
 		"opener_seen": opener_seen,
 		"run_boons": run_boons,
 		"session_perks": session_perks,
-		"handoff_item": handoff_item,
+		"handoff_items": handoff_items,
 		"run_milestones_seen": run_milestones_seen,
 		"pending_boon_floors": pending_boon_floors,
 		"current_run": current_run,
@@ -4073,7 +4099,10 @@ func load_game() -> String:
 	opener_seen = bool(data.get("opener_seen", true))
 	run_boons = Array(data.get("run_boons", []))
 	# Older saves predate the session record: rebuild it from what's still visible.
-	handoff_item = Dictionary(data.get("handoff_item", {}))
+	handoff_items = Array(data.get("handoff_items", []))
+	var old_handoff: Dictionary = Dictionary(data.get("handoff_item", {}))   # v1 save: one item
+	if not old_handoff.is_empty():
+		handoff_items.append(old_handoff)
 	session_perks = Array(data.get("session_perks", Array(data.get("active_upgrades", [])) + run_boons))
 	run_milestones_seen = Array(data.get("run_milestones_seen", []))
 	pending_boon_floors = []

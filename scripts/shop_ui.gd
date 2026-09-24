@@ -85,6 +85,9 @@ func _build_ui() -> void:
 	dialogue_label = Label.new()
 	dialogue_label.add_theme_font_size_override("font_size", 12)
 	dialogue_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.6, 1.0))
+	# Wrap within the panel — a long line (the handoff gift) must never stretch the shop off-screen.
+	dialogue_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	dialogue_label.custom_minimum_size = Vector2(PANEL_W - 60, 0)
 	vbox.add_child(dialogue_label)
 
 	# Tab bar
@@ -138,6 +141,10 @@ func open(floor_num: int, greeting: String) -> void:
 	current_floor = floor_num
 	stock = WorldState.get_merchant_stock(floor_num)
 	dialogue_label.text = "\"" + greeting + "\""
+	# Something left for this character by one who got out (the handoff) — hinted up front, handed
+	# over once this visit's upgrade is settled.
+	if WorldState.handoff_pending() and not WorldState.is_upgrade_offer_resolved(floor_num):
+		dialogue_label.text += "\n\"Someone left something with me for you. Business first.\""
 	pending_confirm = -1
 	refuse_armed = false
 	_refresh()
@@ -156,6 +163,26 @@ func _show_tab(tab: String) -> void:
 	tab_shop_btn.disabled = tab == "shop"
 	if tab == "upgrades":
 		_refresh_upgrades()
+	elif WorldState.is_upgrade_offer_resolved(current_floor):
+		_give_handoff_gift()
+
+
+# THE GIFT (owner): after the visit's upgrade, the shopkeeper hands over what an escaped character
+# left behind — free. What doesn't fit stays with him for a later visit (never lost).
+func _give_handoff_gift() -> Dictionary:
+	if not WorldState.handoff_pending():
+		return {"given": [], "kept": []}
+	var res: Dictionary = WorldState.collect_handoff_gifts()
+	var lines: Array = []
+	if not res["given"].is_empty():
+		lines.append("\"Here. Someone who got out left this for you: %s. No charge.\"" % ", ".join(res["given"]))
+		HUD.refresh_inventory()
+		HUD.show_feedback("Gift: " + ", ".join(res["given"]))
+	if not res["kept"].is_empty():
+		lines.append("\"Your hands are full. I'll hold the %s till you're lighter.\"" % ", ".join(res["kept"]))
+	dialogue_label.text = "\n".join(lines)
+	_refresh()
+	return res
 
 
 func close() -> void:

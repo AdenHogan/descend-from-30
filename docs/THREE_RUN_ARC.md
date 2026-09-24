@@ -63,11 +63,18 @@ fiction is fixed time-of-day; the difficulty curve is authored, not emergent.
   adds +10 to that run's Valour — docs/PROGRESSION.md), **plus THE HANDOFF**: stepping out of
   the lobby, the escaping character may leave **ONE item** at the door (`handoff_ui.gd` →
   `WorldState.leave_for_next`) — any weapon/item except keys and cash, with its FULL state
-  (upgrade level, perks, durability — an upgraded legendary weapon carries over as-is). The next
-  character this session starts with it; after the THIRD run it waits in the PROFILE for the
-  next game's first character (`carry_item`), on top of any Valour perk bought. One item, only
-  on an escape — "reward but not too much reward". The end card names it ("The Hammer Lv3
-  waits by the door for whoever comes next"). Locked by `progression_test`.
+  (upgrade level, perks, durability — an upgraded legendary weapon carries over as-is).
+  **Collected ORGANICALLY (owner, round 2):** the item doesn't appear in the next character's
+  pockets — the **SHOPKEEPER keeps it**, and at their first shop visit (**floor 25**) he hints at
+  it in his greeting ("Someone left something with me for you. Business first.") and hands it
+  over **free, right after that visit's upgrade pick**, as a gift (`shop_ui._give_handoff_gift`,
+  `WorldState.handoff_items` / `collect_handoff_gifts`). Never lost: a skipped floor 25 (elevator
+  ride past it, a burning floor the merchant shelters from) → the next merchant visit; full
+  pockets → he keeps it till there's room; two escapes → he holds both; still unclaimed when the
+  session ends → it moves to the next game (`carry_items`, profile). After the THIRD run it
+  waits for the next game's first character's shopkeeper, on top of any Valour perk bought. One
+  item per escape — "reward but not too much reward". The white card lists it ("Left with the
+  shopkeeper"). Locked by `progression_test` (incl. a real shop-screen run).
 - A character who exits takes their notes and inventory OUT of the building —
   no corpse, nothing to recover. **DELIBERATE:** escaping is the selfish
   outcome; dying reachable is the generous one. (See `STORE_DESIGN.md` —

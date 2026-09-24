@@ -1190,9 +1190,11 @@ means no rendering — UI layout and art still need an in-editor look.
   slot, removed from the merchant + boon pools); max 10, trade out for a 50% refund. Quests
   completed (+8) and NPCs aided (+4) also score (`note_quest_completed`/`note_npc_aided` hooks —
   quests not built yet). **Descent boon = Valour + THE HANDOFF**: an escaping character leaves ONE
-  item (full state, upgrades kept) for the next character — or, after run 3, the next game's first
-  (`leave_for_next`, `handoff_item` in the save / `carry_item` in the profile, `handoff_ui.gd`
-  from `lobby_exit`). **Escape flow (owner):** [E] at the lobby door → handoff → step up into the
+  item (full state, upgrades kept) with the SHOPKEEPER, who hands it FREE to the next character
+  after their first shop upgrade (floor 25; the next visit if 25 is skipped; kept if pockets are
+  full) — or, after run 3, to the next game's first character (`leave_for_next`, `handoff_items`
+  in the save / `carry_items` in the profile, `shop_ui._give_handoff_gift`, `handoff_ui.gd` from
+  `lobby_exit`; unclaimed gifts at session end move to the next game). **Escape flow (owner):** [E] at the lobby door → handoff → step up into the
   doorway → WHITE "YOU SURVIVED" card with the run's stats table (`Transition.survived_card` +
   `WorldState.run_summary`) → black → next run; `player.escaping` makes the exit un-killable.
   Tone = the ambiguous horror-movie ending; an art SLOT is built for the world outside

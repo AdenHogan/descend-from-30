@@ -26,7 +26,7 @@ func _ready() -> void:
 	_saved_slot = WorldState.active_slot
 	_saved = {"valour": WorldState.valour, "perks": WorldState.permanent_perks.duplicate(),
 		"offer": WorldState.valour_offer.duplicate(), "last": WorldState.last_valour.duplicate(true),
-		"seed": WorldState._valour_scored_seed, "carry": WorldState.carry_item.duplicate(true)}
+		"seed": WorldState._valour_scored_seed, "carry": WorldState.carry_items.duplicate(true)}
 	_clear_valour()
 	_test_milestones()
 	_test_boon_offer_and_fold()
@@ -39,6 +39,7 @@ func _ready() -> void:
 	_test_quest_valour()
 	_test_handoff_in_session()
 	_test_handoff_next_game()
+	await _test_handoff_shop_gift()
 	await _test_handoff_ui()
 	await _test_boon_ui()
 	await _test_legacy_ui()
@@ -51,7 +52,7 @@ func _ready() -> void:
 	WorldState.valour_offer = _saved["offer"]
 	WorldState.last_valour = _saved["last"]
 	WorldState._valour_scored_seed = _saved["seed"]
-	WorldState.carry_item = _saved["carry"]
+	WorldState.carry_items = _saved["carry"]
 	WorldState.save_profile()
 	get_tree().paused = false
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
@@ -134,7 +135,7 @@ func _clear_valour() -> void:
 	WorldState.valour_offer = []
 	WorldState.last_valour = {}
 	WorldState._valour_scored_seed = 0
-	WorldState.carry_item = {}
+	WorldState.carry_items = []
 
 
 func _test_valour_maths() -> void:
@@ -324,7 +325,7 @@ func _hammer_lv3() -> ItemInstance:
 
 
 func _test_handoff_in_session() -> void:
-	print("[an ESCAPE leaves one item at the door — the next character starts with it, upgrades intact]")
+	print("[an ESCAPE leaves one item with the SHOPKEEPER — the next character gets it free at floor 25]")
 	WorldState.new_game()
 	var key := ItemInstance.new()
 	key.setup_key("022", "2903")
@@ -334,44 +335,94 @@ func _test_handoff_in_session() -> void:
 	WorldState.inventory = [key, notes, h]
 	check(WorldState.handoff_candidates() == [2], "keys and cash can't be handed on (%s)" % str(WorldState.handoff_candidates()))
 	check(WorldState.leave_for_next(0) == "", "…refused for a key")
-	check(WorldState.leave_for_next(2) == "Hammer Lv3" and WorldState.inventory.size() == 2, "the hammer is left at the door")
+	check(WorldState.leave_for_next(2) == "Hammer Lv3" and WorldState.inventory.size() == 2, "the hammer is left behind")
 	check(WorldState.chronicle_entry(1)["left_behind"] == "Hammer Lv3", "the chronicle remembers it")
 	WorldState.save_game("res://scenes/hallway.tscn", false)
-	WorldState.handoff_item = {}
+	WorldState.handoff_items = []
 	WorldState.load_game()
-	check(not WorldState.handoff_item.is_empty(), "a save keeps it waiting")
+	check(WorldState.handoff_pending(), "a save keeps it with the shopkeeper")
 	WorldState.delete_save()
 	WorldState.set_run_outcome(1, "survived")
 	WorldState.advance_run()
-	check(WorldState.inventory.size() == 1, "the next character starts with it — and only it")
+	check(WorldState.inventory.is_empty() and WorldState.handoff_pending(), "the next character does NOT start with it — the shopkeeper holds it")
+	var res: Dictionary = WorldState.collect_handoff_gifts()
+	check(res["given"] == ["Hammer Lv3"] and not WorldState.handoff_pending(), "collected from the shopkeeper")
 	var got = WorldState.inventory[0]
 	check(got.item_id == "002" and got.level == 3 and got.perks == ["H_heavy", "H_sweep"] and got.current_durability == 7,
 		"same hammer: Lv3, its perks, its wear")
-	check(WorldState.handoff_item.is_empty() and WorldState.carry_item.is_empty(), "handed over once, nothing left pending")
-	WorldState.advance_run()
-	check(WorldState.inventory.is_empty(), "…and it doesn't come back a second time")
+	check(WorldState.collect_handoff_gifts()["given"].is_empty(), "…only once")
+	print("[full pockets: the shopkeeper keeps it — never lost]")
+	WorldState.handoff_items = [WorldState.instance_to_dict(_hammer_lv3())]
+	WorldState.inventory = []
+	for i in WorldState.get_inventory_slots():
+		var j := ItemInstance.new()
+		j.setup("024")
+		WorldState.inventory.append(j)
+	res = WorldState.collect_handoff_gifts()
+	check(res["given"].is_empty() and res["kept"] == ["Hammer Lv3"] and WorldState.handoff_pending(), "no room → kept for later")
+	WorldState.inventory.remove_at(0)
+	check(WorldState.collect_handoff_gifts()["given"] == ["Hammer Lv3"], "room made → handed over")
+	print("[two escapes before collecting → the shopkeeper holds both]")
+	WorldState.inventory = [_hammer_lv3(), _hammer_lv3()]
+	WorldState.leave_for_next(0)
+	WorldState.leave_for_next(0)
+	check(WorldState.handoff_items.size() == 2, "both kept")
 
 
 func _test_handoff_next_game() -> void:
-	print("[escaping the THIRD run leaves it for the next game's first character]")
+	print("[escaping the THIRD run: the shopkeeper keeps it for the next game (and anything unclaimed)]")
 	_clear_valour()
 	WorldState.new_game()
 	WorldState.current_run = 3
 	WorldState.inventory = [_hammer_lv3()]
 	WorldState.leave_for_next(0)
-	check(WorldState.handoff_item.is_empty() and not WorldState.carry_item.is_empty(), "it waits in the PROFILE, not this game")
-	WorldState.carry_item = {}
+	check(not WorldState.handoff_pending() and WorldState.carry_items.size() == 1, "it waits in the PROFILE, not this game")
+	WorldState.carry_items = []
 	WorldState.load_profile()
-	check(not WorldState.carry_item.is_empty(), "saved in the profile")
+	check(WorldState.carry_items.size() == 1, "saved in the profile")
 	WorldState.new_game()
-	check(WorldState.inventory.size() == 1 and WorldState.inventory[0].level == 3, "the next game's first character starts with it")
-	check(WorldState.carry_item.is_empty(), "…once")
+	check(WorldState.inventory.is_empty() and WorldState.handoff_pending(), "the next game's shopkeeper has it (not the pockets)")
+	check(WorldState.carry_items.is_empty(), "moved out of the profile…")
 	WorldState.load_profile()
-	check(WorldState.carry_item.is_empty(), "and the profile agrees (no second copy next game)")
+	check(WorldState.carry_items.is_empty(), "…for good (no second copy next game)")
+	print("[an UNCLAIMED gift when the session ends goes to the next game — never lost]")
+	for i in 3:
+		WorldState.run_chronicle[i]["deepest_floor"] = 30
+		WorldState.set_run_outcome(i + 1, "dead")
+	WorldState.finish_session()
+	check(not WorldState.handoff_pending() and WorldState.carry_items.size() == 1, "unclaimed → carried to the next game")
 	WorldState.new_game()
-	check(WorldState.inventory.is_empty(), "a later new game starts empty")
+	check(WorldState.handoff_pending(), "…and the next game's shopkeeper has it")
+	WorldState.new_game()
+	check(not WorldState.handoff_pending(), "a later new game has nothing (collected or not, it moved once)")
 	_clear_valour()
 	WorldState.save_profile()
+
+
+func _test_handoff_shop_gift() -> void:
+	print("[the shop: greeting hints at it; after the visit's upgrade pick, it's given free]")
+	WorldState.new_game()
+	WorldState.handoff_items = [WorldState.instance_to_dict(_hammer_lv3())]
+	WorldState.inventory = []
+	WorldState.current_floor = 25
+	var shop = load("res://scenes/shop_ui.tscn").instantiate()
+	add_child(shop)
+	await get_tree().process_frame
+	shop.open(25, "Well, look who it is.")
+	check(shop.dialogue_label.text.contains("left something"), "the greeting hints something's waiting")
+	check(WorldState.inventory.is_empty(), "…but nothing before the upgrade is settled")
+	shop._show_tab("shop")                              # peeking at the shop first doesn't release it
+	check(WorldState.inventory.is_empty() and WorldState.handoff_pending(), "no gift until the upgrade is resolved")
+	var pair: Array = WorldState.get_upgrade_pair(25)
+	shop._on_take_upgrade(pair[0])
+	check(WorldState.inventory.size() == 1 and WorldState.inventory[0].level == 3, "after the upgrade pick: the hammer, free")
+	check(shop.dialogue_label.text.contains("No charge"), "the shopkeeper says so (%s)" % shop.dialogue_label.text)
+	check(not WorldState.handoff_pending(), "nothing left waiting")
+	shop.close()
+	shop._show_tab("shop")
+	check(WorldState.inventory.size() == 1, "re-opening doesn't hand out a second one")
+	shop.queue_free()
+	await get_tree().process_frame
 
 
 func _test_handoff_ui() -> void:
