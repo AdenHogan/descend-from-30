@@ -3277,7 +3277,8 @@ var pending_pry_arrival_floor: int = -1
 # it's always null at save time). `follower_streak` counts how many floors it has chased
 # you across in a row (the "whole way down" chase); reset when the chain breaks.
 # `followed_away` holds the spawn_keys of enemies that LEFT their floor by following you,
-# so their origin-floor slot never re-spawns a duplicate.
+# so their origin-floor slot never re-spawns a duplicate. SAVED (unlike follower_node): the
+# follower lives on as a resident of the floor it reached, so a load must not re-seed it.
 var follower_node: Node = null
 var follower_streak: int = 0
 var followed_away: Dictionary = {}
@@ -4215,6 +4216,9 @@ func save_game(scene_path: String, record_live_zombies: bool = true) -> void:
 		"saved_player_y": saved_player_y,
 		"saved_on_balcony_plane": saved_on_balcony_plane,
 		"killed_zombies": killed_zombies,
+		# An enemy that followed you off a floor must not re-spawn there after a load (it lives on
+		# as a resident of the floor it followed you to — that'd be a duplicate).
+		"followed_away": followed_away,
 		"world_drops": world_drops,
 		"player_corpses": player_corpses,
 		"run_chronicle": run_chronicle,
@@ -4314,6 +4318,7 @@ func load_game() -> String:
 	saved_player_y = data["saved_player_y"]
 	saved_on_balcony_plane = bool(data.get("saved_on_balcony_plane", false))
 	killed_zombies = data["killed_zombies"]
+	followed_away = data.get("followed_away", {})
 	world_drops = data.get("world_drops", {})
 	player_corpses = data.get("player_corpses", {})
 	run_chronicle = data.get("run_chronicle", [])

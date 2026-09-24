@@ -333,8 +333,12 @@ func _spawn_stair_enemies(floor_num: int, as_scenery: bool = false) -> void:
 
 # One resident follower per floor, remembered under this key so it persists across
 # non-stair exits (an apartment/elevator trip) like any other floor zombie.
-func _follower_res_key(floor_num: int) -> String:
-	return "followerR:%d" % floor_num
+# A follower's resident memory key on the floor it landed on. UNIQUE per enemy (its origin seed
+# slot): it used to be one key per FLOOR, so a second follower landing where the first had been
+# killed inherited the kill record and silently vanished on your return (and two living ones
+# shared one memory slot). Old saves' bare "followerR:<floor>" still restores.
+func _follower_res_key(floor_num: int, origin: String = "") -> String:
+	return "followerR:%d" % floor_num if origin == "" else "followerR:%d:%s" % [floor_num, origin]
 
 
 func _spawn_follower(floor_num: int) -> void:
@@ -345,10 +349,9 @@ func _spawn_follower(floor_num: int) -> void:
 	#   2. It was already RESIDENT here and the player left/returned by a non-stair route
 	#      (apartment/elevator): restore it from memory as an ordinary floor zombie.
 	# Both persist under _follower_res_key so the enemy is remembered floor-to-floor.
-	var res_key := _follower_res_key(floor_num)
-
 	if WorldState.follower_node != null and is_instance_valid(WorldState.follower_node):
 		var z = WorldState.follower_node
+		var res_key := _follower_res_key(floor_num, str(z.follow_origin))
 		WorldState.follower_node = null
 		var arrived_left: bool = WorldState.stair_spawn_side != "right"
 		# The active stairwell trigger on the side the player arrived on (its return path).
@@ -382,20 +385,25 @@ func _spawn_follower(floor_num: int) -> void:
 	# No live node in transit — restore a resident follower if one is remembered here and
 	# it isn't dead. Ordinary floor zombie (already on the corridor; no emerge).
 	WorldState.follower_node = null
-	if WorldState.killed_zombies.has(res_key):
-		return
-	if not WorldState.zombie_positions.has(res_key):
-		return
-	var r = preload("res://scenes/enemy_zombie_standard.tscn").instantiate()
-	r.spawn_key = res_key
-	r.is_follower = true
-	r.add_to_group("stair_enemy")
-	add_child(r)
-	WorldState.apply_saved_zombie(r)           # restore its remembered spot + hp
-	r.global_position.y = STAIR_STAND_Y         # grounded on the floor line, never mid-air
-	r.base_walk_y = STAIR_STAND_Y
-	r.stair_mode = false
-	r._make_passable_to_player()
+	var legacy := _follower_res_key(floor_num)
+	var prefix := legacy + ":"
+	for k in WorldState.zombie_positions.keys():
+		var res_key := str(k)
+		if res_key != legacy and not res_key.begins_with(prefix):
+			continue
+		if WorldState.killed_zombies.has(res_key):
+			continue
+		var r = preload("res://scenes/enemy_zombie_standard.tscn").instantiate()
+		r.spawn_key = res_key
+		r.is_follower = true
+		r.follow_origin = res_key.substr(prefix.length()) if res_key.begins_with(prefix) else ""
+		r.add_to_group("stair_enemy")
+		add_child(r)
+		WorldState.apply_saved_zombie(r)           # restore its remembered spot + hp
+		r.global_position.y = STAIR_STAND_Y         # grounded on the floor line, never mid-air
+		r.base_walk_y = STAIR_STAND_Y
+		r.stair_mode = false
+		r._make_passable_to_player()
 
 
 # How close (px) to a horde stairwell the first-approach warning fires. The

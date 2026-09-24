@@ -58,6 +58,9 @@ void fragment() { if (wy > band_top && wy < band_bottom) discard; }
 """
 
 var panning := false
+# The room the running pan belongs to — if it's torn down mid-pan (quit / load), the awaits never
+# resume; can_pan() clears the stuck flag rather than fade every later descent (see StairPan).
+var _pan_owner: Node = null
 
 # PREFETCH: the lower apartment is built the instant the player steps ONTO the
 # balcony (enter_balcony_plane), NOT when they commit to the drop — so the floor
@@ -69,6 +72,8 @@ var _pref_apartment := ""
 
 
 func can_pan() -> bool:
+	if panning and not is_instance_valid(_pan_owner):
+		panning = false
 	if not ENABLED or panning:
 		return false
 	var scene = get_tree().current_scene
@@ -131,6 +136,7 @@ func pan_down(target_apartment: String, slot: int, roped: bool) -> void:
 	panning = true
 	var tree = get_tree()
 	var scene = tree.current_scene
+	_pan_owner = scene
 	var player = tree.get_first_node_in_group("player") as Node2D
 	var sprite = player.get_node_or_null("AnimatedSprite2D")
 

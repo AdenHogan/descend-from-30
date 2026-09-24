@@ -168,6 +168,10 @@ const SPAWN_RIGHT_TOP := Vector2(1201, 386)
 const SPAWN_RIGHT_BOTTOM := Vector2(1162, 386)
 
 var panning := false   # true only WHILE a pan runs; if it starts true, can_pan() never fires
+# The scene the running pan belongs to. If it's torn down mid-pan (quit to title / load from the
+# pause menu), the pan's awaits never resume and `panning` stayed true for the rest of the session
+# — every later crossing silently fell back to the fade. can_pan() clears it when the owner's gone.
+var _pan_owner: Node = null
 
 
 func _ready() -> void:
@@ -175,6 +179,8 @@ func _ready() -> void:
 
 
 func can_pan(target_floor: int, stair_side: String = "", direction: String = "") -> bool:
+	if panning and not is_instance_valid(_pan_owner):
+		panning = false
 	if not ENABLED or panning:
 		return false
 	# Every floor of the building pans — 30 (the hallway) and 0 (the lobby) included, so
@@ -254,6 +260,7 @@ func pan_to_floor(target_floor: int, direction: String) -> void:
 		return
 
 	panning = true
+	_pan_owner = scene
 	player.is_cutscene = true   # freeze normal control during the pan
 	# Drop any click-to-move target from walking INTO the stairwell. Adoption keeps
 	# the same player instance, so without this the stale target survives the pan

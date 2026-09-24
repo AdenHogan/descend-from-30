@@ -175,6 +175,9 @@ var distraction_timer: float = 0.0
 # `left_floor` tells _exit_tree NOT to record it on the floor it just left; `_in_transit`
 # is true only while it's parked between floors (frozen, hidden, out of groups).
 var is_follower: bool = false
+# The seed slot this enemy ORIGINALLY spawned in (set on its first follow, kept through a chain),
+# so its resident key on each floor it lands on is unique — see building_floors._follower_res_key.
+var follow_origin: String = ""
 var left_floor: bool = false
 var _in_transit: bool = false
 
@@ -183,6 +186,8 @@ func begin_follow() -> void:
 	# Take this live node OUT of the current floor and park it on the SceneTree root so it
 	# survives the scene teardown (both the pan's adopt and a fade's change_scene). Frozen,
 	# hidden, and out of every group so nothing on the old floor touches it in transit.
+	if follow_origin == "":
+		follow_origin = spawn_key
 	is_follower = true
 	left_floor = true
 	_in_transit = true

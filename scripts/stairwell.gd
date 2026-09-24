@@ -137,6 +137,12 @@ func _herd_back(body: Node2D) -> void:
 
 
 func _use_stairs() -> void:
+	# Only a player in control takes the stairs. A DEAD one (the 2s death beat), mid-cutscene
+	# (a pan, a door approach), escaping, or lashing a rope used to be able to press W and change
+	# floors — a death then lost its game-over (the old player was freed mid-await).
+	var who = get_tree().get_first_node_in_group("player")
+	if who == null or who.is_dead or who.is_cutscene or who.escaping or who.is_lashing:
+		return
 	# Tutorial run: no going back UP to Floor 30 (its scripted rooms are a
 	# one-way door — actions have consequences). Pause + refuse.
 	if direction == "up" and WorldState.is_first_run and WorldState.current_floor == 29:

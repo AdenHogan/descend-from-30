@@ -33,6 +33,9 @@ func _ready() -> void:
 	await _test_stair_enemy_return_grounded()
 	await _test_follower_same_node()
 	await _test_follower_resident()
+	await _test_follower_unique_keys()
+	_test_followed_away_saved()
+	await _test_stair_gates()
 	await _test_fire_spawns()
 	await _test_elevator_arrival_stairs()
 	await _test_enemies_stand_on_the_line_frame_zero()
@@ -768,3 +771,96 @@ func _test_enemies_stand_on_the_line_frame_zero() -> void:
 		await get_tree().process_frame
 	check(seen > 20, "measured a real crowd (%d enemies)" % seen)
 	check(bad.is_empty(), "every one's feet on 419 %s" % ("" if bad.is_empty() else str(bad)))
+
+
+func _test_follower_unique_keys() -> void:
+	# Residents used to share ONE key per floor: a second follower landing where the first was
+	# killed inherited that kill record and vanished on your return. Keys are per-enemy now.
+	print("[follower residents: one key per enemy]")
+	WorldState.new_game(); WorldState.tutorial_completed = true; WorldState.is_first_run = false
+	WorldState.follower_node = null
+	WorldState.current_floor = 12; WorldState.spawn_source = "stair"
+	WorldState.stair_direction = "down"; WorldState.stair_spawn_side = "left"
+	WorldState.seed_floor_door_states(12)
+	WorldState.zombie_positions["followerR:12:13:300:370"] = {"x": 500.0, "y": 370.0, "facing": false, "hp": 3, "alert": 0.0}
+	WorldState.zombie_positions["followerR:12:13:700:370"] = {"x": 800.0, "y": 370.0, "facing": false, "hp": 2, "alert": 0.0}
+	WorldState.killed_zombies["followerR:12:13:300:370"] = {"floor": 12}     # the first one died here
+	var bf = load("res://scenes/building_floors.tscn").instantiate()
+	add_child(bf)
+	await get_tree().process_frame
+	var found: Array = []
+	for z in get_tree().get_nodes_in_group("stair_enemy"):
+		if bf.is_ancestor_of(z) and str(z.spawn_key).begins_with("followerR:12"):
+			found.append(z.spawn_key)
+	check(found == ["followerR:12:13:700:370"], "the living follower is restored, the dead one isn't (%s)" % str(found))
+	for z in get_tree().get_nodes_in_group("stair_enemy"):
+		if bf.is_ancestor_of(z) and z.spawn_key == "followerR:12:13:700:370":
+			check(z.follow_origin == "13:700:370", "a restored resident keeps its origin slot (%s)" % z.follow_origin)
+	# The key a live follower gets on arrival carries its origin, so it can't collide.
+	var k: String = bf._follower_res_key(12, "13:700:370")
+	check(k == "followerR:12:13:700:370", "resident key is per enemy (%s)" % k)
+	bf.queue_free(); await get_tree().process_frame
+	WorldState.zombie_positions.clear()
+	WorldState.killed_zombies.clear()
+
+
+func _test_followed_away_saved() -> void:
+	# followed_away wasn't saved: after a load the floor a follower LEFT re-seeded it while it
+	# also lived on as a resident where it followed you — a duplicate.
+	print("[followed_away survives save/load]")
+	WorldState.new_game()
+	WorldState.followed_away["13:300:370"] = true
+	WorldState.save_game("res://scenes/building_floors.tscn", false)
+	WorldState.followed_away.clear()
+	WorldState.load_game()
+	check(WorldState.followed_away.has("13:300:370"), "an enemy that followed you away stays gone after a load")
+	WorldState.followed_away.clear()
+
+
+func _test_stair_gates() -> void:
+	# A dead / scripted player could press W on the stairs and change floor (a death then lost
+	# its game-over). And a pan torn down mid-way left `panning` stuck for the session.
+	print("[stairs: only a player in control; pans never stick]")
+	WorldState.new_game(); WorldState.tutorial_completed = true; WorldState.is_first_run = false
+	WorldState.current_floor = 12; WorldState.spawn_source = ""
+	WorldState.seed_floor_door_states(12)
+	# Observable without leaving the floor: every stairwell barricaded + a crowbar in hand, so a
+	# player IN CONTROL starts a pry (is_prying) — and one who isn't must not.
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_BARRICADE
+	WorldState.add_to_inventory("035")
+	var bf = load("res://scenes/building_floors.tscn").instantiate()
+	add_child(bf)
+	await get_tree().process_frame
+	var p = bf.get_node("Player")
+	var trig = null
+	for n in bf.find_children("*", "Area2D", true, false):
+		if n.has_method("_use_stairs") and n.process_mode != Node.PROCESS_MODE_DISABLED and n.direction == "down":
+			trig = n
+			break
+	check(trig != null, "found a live down-stair trigger")
+	if trig != null:
+		check(WorldState.is_stair_blocked(trig._choke_floor()) and WorldState.has_crowbar(), "setup: barricaded + crowbar")
+		for state in ["is_dead", "is_cutscene", "escaping", "is_lashing"]:
+			p.set(state, true)
+			trig._use_stairs()
+			check(not trig.is_prying and WorldState.current_floor == 12,
+				"a player with %s can't use the stairs" % state)
+			trig._cancel_pry("")
+			p.set(state, false)
+		trig._use_stairs()
+		check(trig.is_prying, "control: a player in control does start the pry")
+		trig._cancel_pry("")
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
+	bf.queue_free(); await get_tree().process_frame
+	for pan in [StairPan, BalconyPan]:
+		var owner_node := Node.new()
+		add_child(owner_node)
+		pan.panning = true
+		pan._pan_owner = owner_node
+		owner_node.free()
+		if pan == StairPan:
+			pan.can_pan(11, "", "")
+		else:
+			pan.can_pan()
+		check(not pan.panning, "%s: a pan whose scene died no longer blocks later pans" % pan.name)
+		pan.panning = false

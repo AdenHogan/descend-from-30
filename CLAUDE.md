@@ -487,7 +487,15 @@ means no rendering — UI layout and art still need an in-editor look.
   follower's key is `followerR:<floor>`, so a NON-stair exit (apartment/elevator) records it
   and `_spawn_follower` restores it grounded on return (a killed one stays dead). `follower_
   streak` counts consecutive floors the SAME enemy has chased you across (the "whole way
-  down" achievement hook; HUD nudge at 3+); reset when the chain breaks or it dies. NOT on a
+  down" achievement hook; HUD nudge at 3+); reset when the chain breaks or it dies. **Repair pass
+  (stairs v1):** resident keys are now PER ENEMY — `followerR:<floor>:<origin seed slot>`
+  (`enemy.follow_origin`, set on its first follow, kept through a chain); the old one-key-per-floor
+  let a second follower inherit the first's kill record and vanish (old bare keys still restore);
+  `followed_away` is SAVED (a load re-seeded a follower on the floor it left — a duplicate);
+  `stairwell._use_stairs` refuses a dead / cutscene / escaping / lashing player (a dead player
+  could change floor mid death-beat and lose the game-over); `StairPan`/`BalconyPan` track the
+  pan's owner scene and clear a `panning` flag stuck by a mid-pan teardown (quit/load) — it made
+  every later crossing fade. Locked by `building_floors_test`. NOT on a
   pried crossing (a shift re-rolls the world). Cleared by `new_game`; `followed_away` also by
   `shift_building`. (`horde_echo.gd` unused. Earlier follower attempt spawned a fresh copy
   carrying hp — replaced with the real same-node hand-off. Earlier stair-enemy: v2 bespoke
