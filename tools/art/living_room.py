@@ -10,7 +10,7 @@ the floor in front of the wall/floor seam. Flat/neutral lighting — the engine 
 import os
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
-from pixlib import Canvas, hexc, shade, mix, SEAM_Y, W, H
+from pixlib import Canvas, hexc, shade, mix, SEAM_Y, W, H, check_window_boxes
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 
@@ -55,10 +55,11 @@ STUFF = hexc('d8cfbb')
 THROW = hexc('5a6e79')
 THROW_DK = hexc('46575f')
 
-CHAIR = hexc('4f6f6b')
-CHAIR_DK = hexc('3e5855')
-CHAIR_LT = hexc('61817c')
-CHAIR_OUT = hexc('24302e')
+CHAIR = hexc('6b4331')          # worn oxblood-brown leather
+CHAIR_DK = hexc('54331f')
+CHAIR_LT = hexc('825540')
+CHAIR_OUT = hexc('2b1a11')
+CHAIR_HI = hexc('93654c')
 
 TABLE_TOP = hexc('7b5537')
 TABLE_EDGE = hexc('5e3f28')
@@ -354,46 +355,87 @@ def sofa(c):
 
 
 def armchair(c):
-    x0, x1, base = 252, 290, 124
-    c.shadow(271, base + 1, 21, 3, 110)
-    c.rect(x0 + 5, 94, x1 - 5, 110, CHAIR)
-    c.hline(x0 + 6, x1 - 6, 93, CHAIR_OUT)
-    c.hline(x0 + 6, x1 - 6, 94, CHAIR_LT)
-    c.rect(x0 + 5, 106, x1 - 5, 110, CHAIR_DK)
-    c.rect(x0 + 7, 110, x1 - 7, 117, CHAIR_LT)          # seat (node 270,116)
-    c.hline(x0 + 7, x1 - 7, 117, CHAIR_DK)
-    c.rect(x0 + 4, 118, x1 - 4, 122, CHAIR)
-    c.hline(x0 + 4, x1 - 4, 122, CHAIR_DK)
-    for ax0 in (x0, x1 - 7):
-        c.rect(ax0, 101, ax0 + 7, 122, CHAIR)
-        c.hline(ax0 + 1, ax0 + 6, 100, CHAIR_OUT)
-        c.hline(ax0 + 1, ax0 + 6, 101, CHAIR_LT)
-        c.vline(ax0, 101, 122, CHAIR_OUT)
-        c.vline(ax0 + 7, 101, 122, CHAIR_OUT)
-    c.vline(x0 + 5, 94, 100, CHAIR_OUT)
-    c.vline(x1 - 5, 94, 100, CHAIR_OUT)
-    c.hline(x0, x1, 123, CHAIR_OUT)
-    for lx in (x0 + 3, x1 - 4):
-        c.rect(lx, 123, lx + 1, base, OUT)
-    # a split seam on the back
-    c.line(262, 97, 266, 101, CHAIR_DK)
+    """A tufted leather wingback turned three-quarters toward the room (facing front-left, at the
+    sofa). Surfaces read by tone, not light: tops lightest, faces toward us mid, far sides darkest."""
+    c.shadow(270, 115, 21, 3, 110)
+    # far (right) arm, tucked behind
+    c.poly([(281, 94), (290, 92), (291, 101), (283, 104)], CHAIR_DK)
+    c.line(281, 94, 290, 92, CHAIR_OUT); c.vline(291, 92, 101, CHAIR_OUT)
+    # the back: arched top, tufted face
+    back = [(266, 94), (266, 84), (268, 80), (271, 77), (276, 76), (282, 77), (286, 80), (288, 84), (288, 99), (270, 96)]
+    c.poly(back, CHAIR)
+    c.poly([(268, 93), (268, 85), (271, 80), (276, 79), (282, 80), (285, 83), (286, 86), (286, 97), (270, 94)], CHAIR_LT)
+    for (bx, by) in ((272, 83), (278, 84), (283, 86), (272, 88), (278, 89), (283, 91)):   # buttons + creases
+        c.put(bx, by, CHAIR_DK)
+        c.put(bx + 1, by + 1, shade(CHAIR_LT, 1.08))
+    for (x0, y0, x1, y1) in ((266, 84, 268, 80), (268, 80, 271, 77), (271, 77, 276, 76), (276, 76, 282, 77),
+                             (282, 77, 286, 80), (286, 80, 288, 84)):
+        c.line(x0, y0, x1, y1, CHAIR_OUT)
+    c.vline(288, 84, 99, CHAIR_OUT)
+    # the near wing, stepping out toward us from the back's left edge
+    c.poly([(262, 84), (266, 82), (266, 95), (262, 97)], CHAIR_DK)
+    c.line(262, 84, 266, 82, CHAIR_OUT); c.vline(262, 84, 96, CHAIR_OUT)
+    # seat cushion (top lightest) with a rolled front edge
+    c.poly([(254, 99), (268, 95), (284, 99), (271, 103)], CHAIR_HI)
+    c.line(254, 99, 271, 103, shade(CHAIR_HI, 1.1))
+    c.poly([(254, 100), (271, 104), (271, 106), (254, 102)], CHAIR_LT)
+    c.line(271, 103, 284, 99, shade(CHAIR_HI, 0.88))
+    # the seat base under the cushion: front face (toward us) + right face (darker)
+    c.poly([(253, 102), (271, 106), (271, 111), (253, 107)], CHAIR)
+    c.poly([(271, 106), (284, 101), (284, 106), (271, 111)], CHAIR_DK)
+    c.line(253, 107, 271, 111, CHAIR_OUT); c.line(271, 111, 284, 106, CHAIR_OUT)
+    c.vline(284, 99, 106, CHAIR_OUT)
+    # the near (left) arm: top, a scrolled front, and the inner face into the seat
+    c.poly([(253, 96), (266, 90), (266, 95), (254, 101)], CHAIR)                  # inner face
+    c.poly([(249, 93), (262, 88), (266, 90), (253, 96)], CHAIR_HI)                # arm top
+    c.poly([(249, 93), (253, 96), (253, 109), (249, 106)], CHAIR_LT)              # scroll front
+    c.put(250, 95, CHAIR_DK); c.put(251, 96, CHAIR_DK); c.put(251, 97, CHAIR_HI)  # the scroll's curl
+    c.line(249, 93, 262, 88, CHAIR_OUT); c.line(262, 88, 266, 90, CHAIR_OUT)
+    c.vline(249, 93, 106, CHAIR_OUT); c.line(249, 106, 253, 109, CHAIR_OUT)
+    c.vline(253, 97, 108, shade(CHAIR, 0.8))
+    # turned wooden legs
+    for (lx, ly) in ((250, 107), (269, 111), (283, 106)):
+        c.rect(lx, ly, lx + 1, ly + 2, TABLE_LEG)
+        c.put(lx, ly + 3, OUT)
+    # wear: a split on the arm top, scuffed piping on the seat edge
+    c.line(256, 91, 259, 90, CHAIR_DK)
+    c.put(260, 104, shade(CHAIR_HI, 1.15)); c.put(265, 105, shade(CHAIR_HI, 1.15))
 
 
 def coffee_table(c):
-    x0, x1 = 194, 242
-    c.shadow(218, 128, 26, 2, 100)
-    c.poly([(x0 + 3, 116), (x1 - 3, 116), (x1, 120), (x0, 120)], TABLE_TOP)   # top (node 218,122)
-    c.hline(x0 + 3, x1 - 3, 116, shade(TABLE_TOP, 1.1))
-    c.rect(x0, 121, x1, 123, TABLE_EDGE)
-    for lx in (x0 + 2, x1 - 3):
-        c.rect(lx, 124, lx + 1, 127, TABLE_LEG)
+    """A low-ish wooden coffee table, pulled back off the walking line and a little taller."""
+    x0, x1 = 190, 240
+    c.shadow(215, 117, 27, 2, 100)
+    c.poly([(x0 + 4, 97), (x1 - 4, 97), (x1, 102), (x0, 102)], TABLE_TOP)     # top surface
+    c.hline(x0 + 4, x1 - 4, 97, shade(TABLE_TOP, 1.12))
+    c.rect(x0, 103, x1, 106, TABLE_EDGE)                                      # apron
+    c.hline(x0, x1, 106, shade(TABLE_EDGE, 0.8))
+    for lx in (x0 + 2, x1 - 3):                                               # front legs
+        c.rect(lx, 107, lx + 1, 116, TABLE_LEG)
+    for lx in (x0 + 7, x1 - 8):                                               # back legs, set in
+        c.rect(lx, 107, lx, 111, shade(TABLE_LEG, 0.85))
+    c.rect(x0 + 3, 111, x1 - 3, 111, shade(TABLE_EDGE, 0.85))                  # a lower stretcher
     # on the table: a mug, a couple of magazines, an ashtray
-    c.rect(203, 112, 207, 117, CLOCK_FACE)
-    c.vline(203, 112, 117, shade(CLOCK_FACE, 0.8))
-    c.put(208, 113, CLOCK_FACE); c.put(208, 115, CLOCK_FACE); c.put(209, 114, CLOCK_FACE)
-    c.rect(222, 117, 234, 118, hexc('7f8f98'))
-    c.rect(224, 116, 236, 117, hexc('b7584a'))
-    c.ellipse(214, 118, 3, 1, hexc('6c6a66'))
+    c.rect(199, 93, 203, 98, CLOCK_FACE)
+    c.vline(199, 93, 98, shade(CLOCK_FACE, 0.8))
+    c.put(204, 94, CLOCK_FACE); c.put(204, 96, CLOCK_FACE); c.put(205, 95, CLOCK_FACE)
+    c.rect(218, 99, 230, 100, hexc('7f8f98'))
+    c.rect(220, 98, 232, 99, hexc('b7584a'))
+    c.ellipse(210, 100, 3, 1, hexc('6c6a66'))
+    # magazines slipped off onto the floor
+    c.rect(236, 114, 244, 115, hexc('7f8f98'))
+
+
+def shifted(c, fn, dy, dx=0):
+    """Draw `fn` on its own transparent layer and composite it moved by (dx, dy) — dy negative =
+    back, away from the player's walking line at feet 129; dx keeps pieces clear of window boxes."""
+    from PIL import Image
+    lyr = Canvas(bg=(0, 0, 0, 0), seed=11)
+    fn(lyr)
+    moved = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+    moved.paste(lyr.img, (dx, dy), lyr.img)
+    c.img.alpha_composite(moved)
+    c.px = c.img.load()
 
 
 def build():
@@ -403,14 +445,14 @@ def build():
     picture(c)
     clock(c)
     floor(c)
-    rug(c)
+    shifted(c, rug, -8)
     bookshelf(c)
-    lamp(c)
-    plant(c)
-    sofa(c)
-    armchair(c)
+    shifted(c, lamp, -12, 4)
+    shifted(c, plant, -10, 3)
+    shifted(c, sofa, -10, 3)            # its back stays right of the L window box (x>=95)
+    shifted(c, armchair, 0, 9)          # its back stays right of the R window box (x<=270)
     coffee_table(c)
-    floor_box(c)
+    shifted(c, floor_box, -8)
     return c
 
 
@@ -420,5 +462,11 @@ if __name__ == '__main__':
     os.makedirs(os.path.dirname(out), exist_ok=True)
     os.makedirs(prev_dir, exist_ok=True)
     c = build()
+    bare = Canvas(seed=7)
+    wall(bare)
+    decay(bare)
+    bad = check_window_boxes(c.img, bare.img)
+    if bad:
+        sys.exit('furniture inside a runtime window box: %s' % bad[:8])
     c.save(out, os.path.join(prev_dir, 'living_room_x4.png'))
-    print('wrote', out)
+    print('wrote', out, '(window boxes clear)')

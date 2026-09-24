@@ -137,3 +137,15 @@ class Canvas:
         self.img.save(path)
         if preview_path:
             self.img.resize((self.w * scale, self.h * scale), Image.NEAREST).save(preview_path)
+
+
+def check_window_boxes(full, wall_only):
+    """The runtime wall windows (L/R) must land on bare wall: every pixel inside both boxes must
+    equal the wall-only render. Returns [] when clean, else a list of offending (box, x, y)."""
+    bad = []
+    for name, (x0, y0, x1, y1) in (('L', WIN_L), ('R', WIN_R)):
+        for y in range(y0, y1 + 1):
+            for x in range(x0, x1 + 1):
+                if full.getpixel((x, y)) != wall_only.getpixel((x, y)):
+                    bad.append((name, x, y))
+    return bad

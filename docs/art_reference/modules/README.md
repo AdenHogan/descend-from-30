@@ -16,5 +16,24 @@ furniture bases in front of the seam, never below the floor line 128.
 The module scene shows the art as an `Art` Sprite2D over the old ColorRect; the ColorRect's Label is
 hidden but KEPT (room.gd reads its text for the room type).
 
-Status: living room done (see `living_room_ingame_*.png` for morning / afternoon / night renders).
-Bedroom, kitchen, bathroom, study, dining room: to do in the same style.
+**Walking lane (owner round 9):** furniture sits BACK from the player's feet line (129) — bases at
+~112-116, leaving a clear strip of floor in front, so the player never looks like they're standing
+in the front of the couch/table/chair. Every script asserts the runtime window boxes are bare wall
+(`pixlib.check_window_boxes`) and refuses to write the PNG otherwise.
+
+Status: living room v2 (owner feedback round 9: taller coffee table, everything pulled back off the
+walking line, the blue chair replaced with a leather wingback turned three-quarters toward the room).
+Bedroom, kitchen, bathroom, study, dining room: to do in the same style once the look is signed off.
+
+## Agreed plan (owner round 9) — in this order, not started beyond step 1
+
+1. Settle the module's design + look (the living room is the example).
+2. Move the scavenge nodes (`Marker2D`s) onto the furniture as drawn. **Today the living room's
+   nodes still sit at their OLD spots** (e.g. the sofa nodes at y 114 now fall on the sofa's front,
+   the coffee-table node at 122 below the table) — deliberately left until the look is agreed.
+3. Build ~5 VARIANTS per module (different furniture / arrangement / decay) so a room type never
+   looks the same twice — seeded per apartment like the layouts.
+4. A second, deeper **scavenge Y plane**: pressing E on a node set back in the room (the bookshelf)
+   walks the player UP into the scene to it, searches, and steps back down to the walking line —
+   purely visual, not a movement plane. Enemies could stand on that upper plane and come down to
+   attack. (Reuses the balcony-plane / door approach-walk machinery.)
