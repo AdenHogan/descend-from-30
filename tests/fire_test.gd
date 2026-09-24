@@ -39,6 +39,7 @@ func _ready() -> void:
 	await _test_hit_flash_clears()
 	await _test_burnt_breach()
 	await _test_full_pack_key_drop()
+	await _test_soft_smoke()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -758,3 +759,58 @@ func _test_full_pack_key_drop() -> void:
 		check(live_key.drop_key != "", "the live pickup is tied to its saved record")
 	holder.free()
 	WorldState.inventory.clear()
+
+
+func _kinds_under(n: Node) -> Dictionary:
+	var out := {}
+	for c in n.find_children("*", "CPUParticles2D", true, false):
+		if c.get("kind") != null and (c.emitting or c.kind == "billow"):
+			out[c.kind] = int(out.get(c.kind, 0)) + 1
+	return out
+
+
+func _test_soft_smoke() -> void:
+	# Owner round 8: the aftermath was "very ugly" (black circles) with "no smoke really". Smoke is now
+	# soft particle emitters: burning ground smokes, a doused stretch BILLOWS then smoulders, bare
+	# ground has none; the sprite plumes and blob scorch are gone.
+	print("[soft smoke: fire smokes, doused billows + smoulders, bare is clean]")
+	var ff = load("res://scripts/fire_field.gd").new()
+	ff.stage = WorldState.FIRE_BLAZE
+	ff.spread_cap = 1000000
+	add_child(ff)
+	ff.set_process(false)
+	ff._sync_smoke()
+	check(_kinds_under(ff).is_empty(), "no fire, no smoke")
+	var mid: int = ff.cell_count / 2
+	ff.ignite_span(ff.cell_x(mid - 2), ff.cell_x(mid + 2))
+	ff._sync_smoke()
+	var k1 := _kinds_under(ff)
+	check(int(k1.get("fire", 0)) >= 2 and not k1.has("smoulder"), "burning cells smoke (%s)" % str(k1))
+	ff.extinguish_at(ff.cell_x(mid), 300.0)
+	ff._sync_smoke()
+	var k2 := _kinds_under(ff)
+	check(int(k2.get("billow", 0)) >= 1, "dousing billows (%s)" % str(k2))
+	check(int(k2.get("smoulder", 0)) >= 1, "then it smoulders (%s)" % str(k2))
+	check(not k2.has("fire") or int(k2.get("fire", 0)) == 0, "no fire smoke once it's out (%s)" % str(k2))
+	check(not ff.has_method("_draw_smoke_plumes"), "the sprite smoke plumes are gone")
+	ff.free()
+	# Apartment fire: same smoke.
+	var af = load("res://scripts/apartment_fire.gd").new()
+	af.stage = WorldState.FIRE_BLAZE
+	af.seed_salt = "1502"
+	add_child(af)
+	af.set_process(false)
+	af._sync_smoke()
+	var a1 := _kinds_under(af)
+	check(int(a1.get("fire", 0)) == af._spots.size() and af._spots.size() > 0, "each burning spot smokes (%s)" % str(a1))
+	af.extinguish_at(600.0, 2000.0)
+	af._sync_smoke()
+	var a2 := _kinds_under(af)
+	check(int(a2.get("billow", 0)) >= 1 and int(a2.get("smoulder", 0)) >= 1, "a doused room billows + smoulders (%s)" % str(a2))
+	af.free()
+	# A corpse that died alight smoulders with the same soft smoke (not the old sprite blob).
+	var bs = load("res://scripts/body_smoke.gd").new()
+	add_child(bs)
+	check(_kinds_under(bs).get("body", 0) == 1, "a burnt corpse smoulders softly")
+	bs.free()
+	await get_tree().process_frame

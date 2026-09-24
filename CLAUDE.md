@@ -530,12 +530,17 @@ means no rendering — UI layout and art still need an in-editor look.
   fixed by STAGE so a plume never morphs short↔long (LIGHT = small `Cycled_smoke` wisp,
   BLAZE = short `Cycled_smoke_long` column), with the height varied a lot per zone by a
   STABLE seed. Cap 5 blaze / 3 light (some spots, not everywhere), drawn BEHIND the
-  player (z0). (`_draw_smoke`, the old z4 layer, stays a no-op.) **NOT CURRENTLY DRAWN
-  (audited in the fire repair pass):** `_draw_smoulder_plumes`, `_draw_front_smoke` and
-  `_draw_scatter_bits` still exist in `fire_field.gd` but NOTHING calls them — the text below
-  describing them is the design, not today's render. A doused/charred stretch shows the flat
-  SCORCH smudges (`_draw_scorch`, back layer) + the HUD haze, no rising smoulder plumes. Owner
-  to decide whether to re-wire them. **Aftermath smoke**: fire
+  player (z0). (`_draw_smoke`, the old z4 layer, stays a no-op.) **SMOKE REBUILT (owner round 8 — "the aftermath
+  of dousing is very very ugly… black circles everywhere… no smoke really"):** ALL fire smoke is now soft
+  PARTICLE smoke (`scripts/soft_smoke.gd`, CPUParticles2D with a code-made soft puff texture, local
+  coords): one emitter per pair of cells (corridor) / per spot (apartment), kinds `fire` (dark, dense,
+  over burning ground), `billow` (a one-shot pale burst the moment a stretch is DOUSED), `smoulder`
+  (sparse pale wisps over doused/charred ground — lingering), `body` (a corpse that died alight,
+  `body_smoke.gd`). `SoftSmoke.sync` swaps/retire emitters as cells change (never pops). Burnt floor =
+  thin ragged SOOT STREAKS (`SoftSmoke.draw_soot`) — no circles/ellipses anywhere. The purchased
+  smoke-sprite plumes (`_draw_smoke_plumes` & co.) and the old "no smoke off spent ground" rule are GONE.
+  The text below describing sprite plumes / smoulder sprites is HISTORY. `_draw_scatter_bits` is still
+  unused. Locked by `fire_test._test_soft_smoke`. **Aftermath smoke**: fire
   leaves SMOKE, not stray flames. The scatter flame-bits (`_draw_scatter_bits`) are now
   gated PER-CELL (`is_burning_at`) — they used to strew across the whole burning span, so
   dousing the middle stranded flame wisps on doused ground that re-spraying couldn't clear;

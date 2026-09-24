@@ -385,7 +385,52 @@ func _process(delta: float) -> void:
 		_acc -= SIM_DT
 		tick(SIM_DT)
 	_update_fire_lights()
+	_smoke_sync_t -= delta
+	if _smoke_sync_t <= 0.0:
+		_smoke_sync_t = 0.25
+		_sync_smoke()
 	queue_redraw()
+
+
+# --- SMOKE (scripts/soft_smoke.gd): soft particle smoke, one emitter per pair of cells ----------
+# Burning cells smoke dark and steady; a stretch you DOUSE billows once (a pale burst) and then
+# smoulders thinly; a charred ruin smoulders. Replaces the smoke-sprite stamps (small, hard,
+# dark-outlined blobs — they read as black circles) and the old "no smoke off spent ground" rule
+# (owner round 8: the aftermath had "no smoke really" and looked very ugly).
+const SOFT_SMOKE := preload("res://scripts/soft_smoke.gd")
+var _smoke_nodes: Dictionary = {}
+var _smoke_sync_t: float = 0.0
+var _smoke_synced_once: bool = false
+var _back_layer: Node2D = null
+
+
+func _smoke_wanted() -> Dictionary:
+	var wanted := {}
+	var i := 0
+	var pair := 0
+	while i < cell_count:
+		var burning := false
+		var spent := false
+		for j in [i, i + 1]:
+			if j < cell_count:
+				var st := state_of(j)
+				if st == BURNING:
+					burning = true
+				elif st == SPENT:
+					spent = true
+		var cx: float = cell_x(i) + (CELL_W * 0.5 if i + 1 < cell_count else 0.0)
+		if (burning or spent) and not _in_stair_keepout(cx):
+			wanted[pair] = {"kind": "fire" if burning else "smoulder", "x": cx, "y": FIRE_BASE_Y - 8.0, "w": CELL_W * 2.0}
+		i += 2
+		pair += 1
+	return wanted
+
+
+func _sync_smoke() -> void:
+	if _back_layer == null or not is_instance_valid(_back_layer):
+		return
+	SOFT_SMOKE.sync(_back_layer, _smoke_nodes, _smoke_wanted(), not _smoke_synced_once)
+	_smoke_synced_once = true
 
 
 # --- render (layered pixel flames + additive glow + choking smoke) ----------
@@ -412,8 +457,6 @@ const FIRE_LAYER := preload("res://scripts/fire_layer.gd")
 var _tile_tex: Array = []           # Fire_tiles variants (folder 2) — the floor bed
 var _flame_tex: Array = []          # Flame variants (folder 3) — mid single flames
 var _bonfire_tex: Texture2D = null  # 1 Fire/Idle (folder 1) — big tall bonfire
-var _smoke_reg: Array = []          # Cycled_smoke (128²) — a wispy plume for smaller patches
-var _smoke_long: Array = []         # Cycled_smoke_long (32×129) — tall column for big patches
 
 
 func _load_fire_textures() -> void:
@@ -426,14 +469,6 @@ func _load_fire_textures() -> void:
 		if fl != null:
 			_flame_tex.append(fl)
 	_bonfire_tex = load(base + "1 Fire/Idle.png")
-	var sm := "res://assets/smoke-effects-pixel-art/PNG/"
-	for i in range(1, SMOKE_FRAMES + 1):
-		var r = load(sm + "Cycled_smoke/Cycled_smoke%d.png" % i)
-		if r != null:
-			_smoke_reg.append(r)
-		var lg = load(sm + "Cycled_smoke_long/Cycled_smoke_long%d.png" % i)
-		if lg != null:
-			_smoke_long.append(lg)
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST   # crisp pixels, no blur
 
 
@@ -450,6 +485,8 @@ func _spawn_layers() -> void:
 		lyr.z_index = int(spec[1])
 		lyr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		add_child(lyr)
+		if int(spec[0]) == LYR_BACK:
+			_back_layer = lyr            # the smoke emitters rise from here, behind the actors
 
 
 func draw_layer(canvas: CanvasItem, which: int) -> void:
@@ -653,17 +690,9 @@ func _draw_tall_flames(canvas: CanvasItem) -> void:
 
 
 func _char_scar(canvas: CanvasItem, i: int, cx: float) -> void:
-	# Where the fire burnt out: a FLAT scorch smudge lying on the floor (squashed, soft,
-	# translucent ellipses — it reads as burnt floor seen at an angle). It used to be three OPAQUE
-	# black circles per cell on the actor layer — a charred floor read as a row of black balls.
-	# (No wall smear: tall dark ovals on the wall read as standing figures.)
-	for k in range(3):
-		var hx := _hash01(float(i) * 2.0 + float(k) * 1.3 + float(floor_num) * 0.37)
-		var r := CELL_W * (0.36 + 0.24 * hx)
-		var ox := (hx - 0.5) * CELL_W * 0.7
-		canvas.draw_set_transform(Vector2(cx + ox, FIRE_BASE_Y - 6.0 + hx * 3.0), 0.0, Vector2(1.0, 0.2))
-		canvas.draw_circle(Vector2.ZERO, r, Color(CHAR_COL.r, CHAR_COL.g, CHAR_COL.b, 0.34))
-	canvas.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	# Where the fire burnt out: thin ragged SOOT STREAKS along the floor + a few ash flecks. Never
+	# blobs — opaque circles, then flat ellipses, both read as rows of black balls (owner round 8).
+	SOFT_SMOKE.draw_soot(canvas, cx, FIRE_BASE_Y - 1.0, CELL_W, float(i) * 3.1 + float(floor_num) * 0.37)
 
 
 func _draw_scorch(canvas: CanvasItem) -> void:
@@ -698,9 +727,7 @@ func _draw_back(canvas: CanvasItem) -> void:
 	_draw_ground_fire(canvas, BACK_SEAM_Y, 0.9, 0.0, 0.6, _tile_scale() * 0.58, -1.0, true, 0.0, 1)   # DEPTH bed (side 1), avoids doors
 	_draw_stair_fire(canvas)        # the THIRD plane — fire on the down-stairwell top step
 	_draw_tall_flames(canvas)
-	# NO smoulder smoke: smoke must NEVER rise on its own — there must always be a fireball
-	# or a fire tile in front of it. Doused/charred (spent) ground has no fire, so no smoke.
-	_draw_smoke_plumes(canvas)
+	# Smoke is the soft particle emitters under this layer (_sync_smoke) — no sprite plumes.
 
 
 # --- the third plane: fire on the DOWN stairwell -------------------------------
@@ -755,116 +782,6 @@ func _draw_stair_fire(canvas: CanvasItem) -> void:
 			canvas.draw_texture_rect_region(_flame_tex[k % _flame_tex.size()], Rect2(cx - fw * 0.5, STAIR_BASE_Y - hk, fw, hk), f_src, Color(1.0, 1.0, 1.0, 1.0))
 
 
-# --- smoke plumes (real smoke-sprite loops rising off the fire) ----------------
-# Scan the corridor in FIXED zones; the zones with the MOST fire smoke, each plume
-# EMBEDDED at the centroid of that zone's burning cells (so it rises from ON the fire,
-# never stuck to a bare patch of wall). The TYPE is fixed by STAGE — a LIGHT fire's
-# smoke is always the small `Cycled_smoke` wisp, a BLAZE's always the `Cycled_smoke_long`
-# column — so a plume is a DISTINCT thing and never morphs short↔long. Height varies a
-# little per zone (stable seed), and the long column is kept short enough to clear the
-# ceiling. Drawn BEHIND the player (z0) so it rises up the wall.
-const SMOKE_ZONE_W := 180.0        # scan the span in fixed zones this wide (~4 cells)
-const SMOKE_ZONE_MIN := 3          # a zone with a few burning cells smokes (more visible stacks)
-
-
-func _smoke_zones() -> Array:
-	# Eligible zones (enough fire), each with the CENTROID of its burning cells (= the x to
-	# rise from), sorted biggest-fire first. Shared by the depth + foreground smoke passes.
-	var zones: Array = []
-	var zi := 0
-	var zx := FIRE_MIN_X + SMOKE_ZONE_W * 0.5
-	while zx < FIRE_MAX_X:
-		var ca := cell_at(zx - SMOKE_ZONE_W * 0.5)
-		var cb := cell_at(zx + SMOKE_ZONE_W * 0.5)
-		var burn := 0
-		var sumx := 0.0
-		for i in range(ca, cb + 1):
-			if state_of(i) == BURNING:
-				burn += 1
-				sumx += cell_x(i)
-		if burn >= SMOKE_ZONE_MIN:
-			zones.append({"i": zi, "burn": burn, "cx": sumx / float(burn), "zx": zx})
-		zx += SMOKE_ZONE_W
-		zi += 1
-	zones.sort_custom(func(a, b): return int(a["burn"]) > int(b["burn"]))
-	return zones
-
-
-func _draw_smoke_plumes(canvas: CanvasItem) -> void:
-	# DEPTH smoke: plumes rising off the fire up the wall, BEHIND the player (z0). Bumped a
-	# couple higher so the burning corridor clearly smokes.
-	if _smoke_reg.is_empty() and _smoke_long.is_empty():
-		return
-	var zones := _smoke_zones()
-	if zones.is_empty():
-		return
-	var big := stage >= STAGE_BLAZE
-	var cap := mini(7 if big else 5, zones.size())      # a couple more stacks than before
-	var tw := float(TILE_PX) * _tile_scale()
-	var placed := 0
-	var placed_xs: Array = []
-	for z in zones:
-		if placed >= cap:
-			break
-		# Snap the plume onto an actually-RENDERED front-bed tile in the zone (the fire is
-		# PATCHY, so the sim centroid can sit over a gap) so smoke rises from behind a tile.
-		var cx := _front_tile_near(float(z["cx"]), float(z["zx"]) - SMOKE_ZONE_W * 0.5, float(z["zx"]) + SMOKE_ZONE_W * 0.5, tw)
-		if cx < 0.0:
-			continue
-		if _too_close(cx, placed_xs, 150.0):   # never stack plumes — a small fire clusters its zones
-			continue
-		placed_xs.append(cx)
-		var s := float(int(z["i"])) * 5.3 + float(floor_num) * 1.7          # STABLE per zone (no morph)
-		var frame := int(_t * SMOKE_FPS + s) % SMOKE_FRAMES
-		if big and not _smoke_long.is_empty():
-			_blit_smoke(canvas, _smoke_long[frame], 32.0, 129.0, cx, 0.55 + 0.6 * _hash01(s))
-		elif not _smoke_reg.is_empty():
-			# 128-wide sprite squished into a ~62px-wide dest = a thin rising WISP, not a big
-			# blocky square (which read as a dark grid over a clean door).
-			_blit_smoke(canvas, _smoke_reg[frame], 62.0, 122.0, cx, 0.5 + 0.42 * _hash01(s))
-		placed += 1
-
-
-func _draw_front_smoke(canvas: CanvasItem) -> void:
-	# FOREGROUND smoke: two extra stacks rising IN FRONT of the player (z2), over the
-	# nearest/biggest fire, so smoke reads in the foreground too — semi-transparent so it
-	# doesn't hide the player. Placed on the LEAST-dense of the top zones so it isn't at the
-	# exact x of a depth plume (foreground + depth smoke sit at different spots).
-	if _smoke_reg.is_empty():
-		return
-	var zones := _smoke_zones()
-	if zones.is_empty():
-		return
-	var tw := float(TILE_PX) * _tile_scale()
-	var want := 2
-	var placed := 0
-	var placed_xs: Array = []
-	# walk from the SMALLER of the qualifying zones so we don't double the biggest one
-	for zi in range(zones.size() - 1, -1, -1):
-		if placed >= want:
-			break
-		var z = zones[zi]
-		var cx := _front_tile_near(float(z["cx"]), float(z["zx"]) - SMOKE_ZONE_W * 0.5, float(z["zx"]) + SMOKE_ZONE_W * 0.5, tw)
-		if cx < 0.0:
-			continue
-		if _too_close(cx, placed_xs, 170.0):   # keep foreground stacks apart (no dark pile-up)
-			continue
-		placed_xs.append(cx)
-		var s := float(int(z["i"])) * 3.1 + float(floor_num) * 2.3
-		var frame := int(_t * SMOKE_FPS + s) % SMOKE_FRAMES
-		var h := 122.0 * (0.5 + 0.3 * _hash01(s))
-		var w := h * 0.5                                 # thin rising wisp, not a square blob
-		canvas.draw_texture_rect(_smoke_reg[frame], Rect2(cx - w * 0.5, FIRE_BASE_Y - 2.0 - h, w, h), false, Color(1.0, 1.0, 1.0, 0.42))
-		placed += 1
-
-
-func _too_close(x: float, xs: Array, gap: float) -> bool:
-	for px in xs:
-		if absf(float(px) - x) < gap:
-			return true
-	return false
-
-
 func has_smoulder() -> bool:
 	# True if any cell is a doused/charred (SPENT) ruin — i.e. there's smoke to show
 	# even though nothing is actively BURNING. Drives the HUD haze on a charred floor.
@@ -872,63 +789,6 @@ func has_smoulder() -> bool:
 		if state_of(i) == SPENT:
 			return true
 	return false
-
-
-func _draw_smoulder_plumes(canvas: CanvasItem) -> void:
-	# Smoke rising from DOUSED / CHARRED (spent) ground — the AFTERMATH of fire. Greyer,
-	# thinner and more numerous than active-fire smoke, so a stretch you've just put out
-	# (and a fully charred ruin) SMOULDERS heavily instead of leaving bare scorch marks.
-	if _smoke_reg.is_empty():
-		return
-	var i := 0
-	while i < cell_count:
-		if state_of(i) == SPENT:
-			var s := float(i) * 3.7 + float(floor_num) * 1.9
-			if _hash01(s) < 0.72:                      # a plume on most spent cells, with gaps
-				var cx := cell_x(i)
-				var frame := int(_t * SMOKE_FPS + s) % SMOKE_FRAMES
-				_blit_smoulder(canvas, _smoke_reg[frame], cx, 0.44 + 0.36 * _hash01(s * 1.7))
-			i += 2                                      # step so plumes don't stack every cell
-		else:
-			i += 1
-
-
-func _blit_smoulder(canvas: CanvasItem, tex: Texture2D, cx: float, sc: float) -> void:
-	if tex == null:
-		return
-	var w := 128.0 * sc
-	var h := 128.0 * sc
-	var base_y := FIRE_BASE_Y - 6.0                    # rises off the scorched floor
-	# grey + semi-transparent: smoulder, not a fresh fire's warm smoke
-	canvas.draw_texture_rect(tex, Rect2(cx - w * 0.5, base_y - h, w, h), false, Color(0.62, 0.60, 0.58, 0.5))
-
-
-func _front_tile_near(target: float, x0: float, x1: float, tw: float) -> float:
-	# The x (tile centre) of the nearest RENDERED FRONT-bed tile within [x0,x1] — a burning
-	# kind-0 cell that actually draws a front tile (z2, in front of the smoke), and not in the
-	# stair keep-out. So a plume ALWAYS has a fire tile in front of it, never rising on its
-	# own over bare or back-only ground. -1 if none.
-	var best := -1.0
-	var best_d := 1.0e9
-	var x := FIRE_MIN_X
-	while x <= FIRE_MAX_X:
-		var cx := x + tw * 0.5
-		if cx >= x0 and cx <= x1 and is_burning_at(cx) and _cell_kind(cx) == 0 and not _in_stair_keepout(cx):
-			var d := absf(cx - target)
-			if d < best_d:
-				best_d = d
-				best = cx
-		x += tw
-	return best
-
-
-func _blit_smoke(canvas: CanvasItem, tex: Texture2D, fw: float, fh: float, cx: float, sc: float) -> void:
-	if tex == null:
-		return
-	var w := fw * sc
-	var h := fh * sc
-	var base_y := FIRE_BASE_Y - 14.0                       # rise from the fire bed, a touch higher for visibility but still BEHIND the front tiles (bed spans ~395..421)
-	canvas.draw_texture_rect(tex, Rect2(cx - w * 0.5, base_y - h, w, h), false, Color(1.0, 1.0, 1.0, 0.72))
 
 
 func _draw_scatter_bits(canvas: CanvasItem) -> void:

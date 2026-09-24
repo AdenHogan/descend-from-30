@@ -22,8 +22,6 @@ const BONFIRE_PX := 64
 const FLAME_PX := 32
 const TILE_FRAMES := 6
 const TILE_FPS := 12.0
-const SMOKE_FRAMES := 6
-const SMOKE_FPS := 8.0
 
 const LYR_BACK := 0
 const LYR_FRONT := 2
@@ -46,7 +44,6 @@ var _t: float = 0.0
 var _tile_tex: Array = []
 var _flame_tex: Array = []
 var _bonfire_tex: Texture2D = null
-var _smoke_reg: Array = []
 
 
 func _ready() -> void:
@@ -59,6 +56,36 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	_t += delta
 	_update_lights()
+	_smoke_sync_t -= delta
+	if _smoke_sync_t <= 0.0:
+		_smoke_sync_t = 0.25
+		_sync_smoke()
+
+
+# SMOKE: the same soft particle smoke as the corridor (scripts/soft_smoke.gd) — a burning spot smokes,
+# a doused one billows then smoulders, a charred room smoulders. Keyed by the spot's x, so dousing a
+# spot turns its fire smoke into a billow + smoulder in place.
+const SOFT_SMOKE := preload("res://scripts/soft_smoke.gd")
+var _smoke_nodes: Dictionary = {}
+var _smoke_sync_t: float = 0.0
+var _smoke_synced_once: bool = false
+var _back_layer: Node2D = null
+
+
+func _sync_smoke() -> void:
+	if _back_layer == null or not is_instance_valid(_back_layer):
+		return
+	var wanted := {}
+	for sp in _spots:
+		var x: float = float(sp["x"])
+		wanted[int(round(x))] = {"kind": "fire", "x": x, "y": base_y - 10.0,
+			"w": 40.0 * float(sp["sz"]) * (1.4 if stage >= STAGE_BLAZE else 1.0)}
+	for x in _scars:
+		var k := int(round(float(x)))
+		if not wanted.has(k):
+			wanted[k] = {"kind": "smoulder", "x": float(x), "y": base_y - 6.0, "w": 44.0}
+	SOFT_SMOKE.sync(_back_layer, _smoke_nodes, wanted, not _smoke_synced_once)
+	_smoke_synced_once = true
 
 
 # Burning spots throw a small flickering orange glow, like the corridor fire (fire_field): without
@@ -97,11 +124,6 @@ func _load_textures() -> void:
 		if fl != null:
 			_flame_tex.append(fl)
 	_bonfire_tex = load(base + "1 Fire/Idle.png")
-	var sm := "res://assets/smoke-effects-pixel-art/PNG/Cycled_smoke/Cycled_smoke%d.png"
-	for i in range(1, SMOKE_FRAMES + 1):
-		var r = load(sm % i)
-		if r != null:
-			_smoke_reg.append(r)
 
 
 func _rng() -> RandomNumberGenerator:
@@ -191,14 +213,15 @@ func _spawn_layers() -> void:
 		lyr.z_index = int(spec[1])
 		lyr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		add_child(lyr)
+		if int(spec[0]) == LYR_BACK:
+			_back_layer = lyr
 
 
 func draw_layer(canvas: CanvasItem, which: int) -> void:
 	if which == LYR_BACK:
-		_draw_char_scars(canvas)      # scorch lies on the floor BEHIND the player (walk over it)
+		_draw_char_scars(canvas)      # soot lies on the floor BEHIND the player (walk over it)
 		_draw_tall_flames(canvas)     # tall flames rise BEHIND the player
-		# NO smoulder smoke off scorched patches: smoke must always have fire in front of it.
-		_draw_smoke(canvas)           # active-fire smoke plumes (behind each burning spot's bed)
+		# Smoke = the soft particle emitters under this layer (_sync_smoke).
 	else:
 		_draw_beds(canvas)            # fire tile bed at the player's feet (walk through)
 
@@ -255,55 +278,10 @@ func _blit_anim(canvas: CanvasItem, tex: Texture2D, px: int, cx: float, by: floa
 
 
 func _draw_char_scars(canvas: CanvasItem) -> void:
-	# FLAT, soft scorch smudges on the floor (squashed translucent ellipses) — the same look as the
-	# corridor's (fire_field._char_scar). No wall smear: tall dark ovals on a wall read as figures.
-	# These used to
-	# be opaque black circles drawn IN FRONT of the player: a charred room read as black balls.
+	# Thin ragged SOOT STREAKS on the floor where fire was (the corridor's look, fire_field._char_scar)
+	# — never blobs: circles, then flat ellipses, both read as rows of black balls (owner round 8).
 	for x in _scars:
 		var xf: float = float(x)
-		for k in range(3):
-			var hx: float = _hash01(xf * 2.0 + float(k) * 1.3)
-			canvas.draw_set_transform(Vector2(xf + (hx - 0.5) * 30.0, base_y - 4.0 + hx * 3.0), 0.0, Vector2(1.0, 0.2))
-			canvas.draw_circle(Vector2.ZERO, 16.0 + hx * 10.0, Color(CHAR_COL.r, CHAR_COL.g, CHAR_COL.b, 0.34))
-	canvas.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		SOFT_SMOKE.draw_soot(canvas, xf, base_y - 2.0, 52.0, xf * 0.37)
 
 
-func _draw_smoke(canvas: CanvasItem) -> void:
-	# A plume rising off each burning spot (bigger on a BLAZE).
-	if _smoke_reg.is_empty():
-		return
-	for s in _spots:
-		var cx: float = float(s["x"])
-		var sd: float = cx * 0.31
-		var frame: int = int(_t * SMOKE_FPS + sd) % SMOKE_FRAMES
-		var sc: float = (0.45 if stage >= STAGE_BLAZE else 0.32) + 0.25 * _hash01(sd)
-		_blit_smoke(canvas, _smoke_reg[frame], cx, sc, 0.7)
-
-
-func _draw_smoulder(canvas: CanvasItem) -> void:
-	# Grey smoulder off scorched/charred patches — a doused or burnt-out room stays smoky.
-	if _smoke_reg.is_empty():
-		return
-	for x in _scars:
-		var xf: float = float(x)
-		var sd: float = xf * 0.53
-		if _hash01(sd) > 0.7:
-			continue
-		var frame: int = int(_t * SMOKE_FPS + sd) % SMOKE_FRAMES
-		_blit_smoulder(canvas, _smoke_reg[frame], xf, 0.4 + 0.3 * _hash01(sd * 1.7))
-
-
-func _blit_smoke(canvas: CanvasItem, tex: Texture2D, cx: float, sc: float, alpha: float) -> void:
-	if tex == null:
-		return
-	var w := 128.0 * sc
-	var h := 128.0 * sc
-	canvas.draw_texture_rect(tex, Rect2(cx - w * 0.5, base_y - 10.0 - h, w, h), false, Color(1.0, 1.0, 1.0, alpha))
-
-
-func _blit_smoulder(canvas: CanvasItem, tex: Texture2D, cx: float, sc: float) -> void:
-	if tex == null:
-		return
-	var w := 128.0 * sc
-	var h := 128.0 * sc
-	canvas.draw_texture_rect(tex, Rect2(cx - w * 0.5, base_y - 6.0 - h, w, h), false, Color(0.62, 0.60, 0.58, 0.5))
