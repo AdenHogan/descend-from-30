@@ -178,6 +178,9 @@ tall-backed chair, `'club'` the low one. The module script passes
 `_r2`/`_r3` looks carry the changed chair (and re-checks every node is still on drawn pixels).
 Plans: living A {2 blood, 3 tipped}, B {3 tipped}, D {2 side, 3 side}, E {2 blood, 3 blood};
 study B {3 side}, C {2 blood, 3 tipped}. Seeded by `key` + run, so it's stable.
+The OFFICE CHAIR does the same (round 13b — "a computer chair that has been knocked over too"):
+`C3.office_chair_at(c, cx, base_y, yaw, pal, plan={run: 'ok'|'down'|'down_blood'}, key)` — on its side,
+base and casters sticking out; study B {2 down, 3 down_blood}.
 
 **SEAT THE ROOM SENSIBLY (owner round 13 — "if a room has a TV then the furniture should be facing
 it … if there is no TV it's weird a sofa would be facing forward and the armchair facing away")**:
@@ -189,6 +192,14 @@ it … if there is no TV it's weird a sofa would be facing forward and the armch
   grille slats on the set's own face so they turn with it.
 - A room WITHOUT one: the sofa faces the room and the armchair sits across the coffee table from it,
   turned back toward the sofa (a conversation group — living A), or turned to the fire (E).
+- EVEN SPACING (round 13b — "good even spacing across the modules is essential for our scavenge
+  nodes"; the right ends had piled up): one piece every ~50-60px across the whole 320, so the nodes
+  spread the width. Living A: bookshelf | sofa | coffee table | armchair | drawers. D: piano |
+  armchair | tea table | sofa | china cabinet. E: gun cabinet | armchair turned to the fire | the
+  fireplace in the MIDDLE under the antlers (basket + poker on its hearth) | sofa. Study B: strip
+  shelves | desk + office chair | printer stand | armchair + side table | a bin in the corner. Drop a
+  lamp / plant rather than squeeze it in. Sofas stay STRAIGHT (round 13b: a turned sofa "looks
+  smaller than desired … strange").
 - No throws / blankets over sofas ("looks like a blanket or a bulletproof vest… unclean and weird"), no
   peeling wallpaper strips in the run-1 look (the run looks add the damage), and a fireplace is
   drawn mirror-symmetric (E is pixel-exact about x 128 apart from the clock hand).

@@ -58,30 +58,51 @@ def b_strip(c):
 
 
 def b_furniture(c):
-    # the computer desk against the wall
-    c.shadow(146, 100, 36, 2, 100)
-    c.rect(108, 70, 184, 73, BEIGE[1])
-    c.hline(108, 184, 70, BEIGE[3])
-    c.hline(108, 184, 73, BEIGE[2])
-    c.box(110, 74, 128, 99, BEIGE[0], BEIGE[3])
-    for (d0, d1) in ((76, 83), (85, 92)):
-        c.box(112, d0, 126, d1, BEIGE[0], BEIGE[2])
-        c.rect(117, (d0 + d1) // 2, 121, (d0 + d1) // 2, hexc('7e8486'))
-    c.rect(180, 74, 182, 99, BEIGE[2])
-    c.box(132, 48, 160, 68, BEIGE[0], BEIGE[3])                                               # the monitor
-    c.rect(135, 51, 157, 64, hexc('1e2a3a'))
-    c.rect(138, 54, 150, 55, hexc('3a5a8a'))
-    c.rect(142, 68, 150, 69, BEIGE[2])
-    c.box(162, 56, 178, 69, BEIGE[0], BEIGE[3])                                               # the tower
-    c.rect(164, 59, 176, 60, BEIGE[2]); c.put(170, 64, hexc('4e8a5a'))
-    c.rect(130, 69, 158, 69, hexc('e6e0cc'))                                                  # keyboard
-    c.rect(112, 64, 118, 69, hexc('e6e0cc')); c.put(119, 66, hexc('e6e0cc'))                  # a mug
+    # EVEN SPACING (owner round 13b — "good even spacing across the modules is essential for our
+    # scavenge nodes"): strip shelves | desk + office chair | printer stand | armchair turned to the
+    # desk + its side table | a bin in the corner — the right end no longer piles up (the tall shelf
+    # that sat behind the side table went).
+    def desk(c):
+        # the computer desk against the wall
+        c.shadow(146, 100, 36, 2, 100)
+        c.rect(108, 70, 184, 73, BEIGE[1])
+        c.hline(108, 184, 70, BEIGE[3])
+        c.hline(108, 184, 73, BEIGE[2])
+        c.box(110, 74, 128, 99, BEIGE[0], BEIGE[3])
+        for (d0, d1) in ((76, 83), (85, 92)):
+            c.box(112, d0, 126, d1, BEIGE[0], BEIGE[2])
+            c.rect(117, (d0 + d1) // 2, 121, (d0 + d1) // 2, hexc('7e8486'))
+        c.rect(180, 74, 182, 99, BEIGE[2])
+        c.box(132, 48, 160, 68, BEIGE[0], BEIGE[3])                                           # the monitor
+        c.rect(135, 51, 157, 64, hexc('1e2a3a'))
+        c.rect(138, 54, 150, 55, hexc('3a5a8a'))
+        c.rect(142, 68, 150, 69, BEIGE[2])
+        c.box(162, 56, 178, 69, BEIGE[0], BEIGE[3])                                           # the tower
+        c.rect(164, 59, 176, 60, BEIGE[2]); c.put(170, 64, hexc('4e8a5a'))
+        c.rect(130, 69, 158, 69, hexc('e6e0cc'))                                              # keyboard
+        c.rect(112, 64, 118, 69, hexc('e6e0cc')); c.put(119, 66, hexc('e6e0cc'))              # a mug
+    F.moved(c, desk, -8, 0)
     # an office chair rolled out from the desk and left swivelled at an angle (owner round 13: the
     # square-on chair "looks a bit weird" — built in 3D like the armchairs)
-    C3.draw_model(c, 160, 118, C3.office_chair(), 40,
-                  {'fab': hexc('3a3a44'), 'metal': hexc('2a2a30')}, outline=hexc('141418'), srad=13)
+    C3.office_chair_at(c, 140, 118, 40, {'fab': hexc('3a3a44'), 'metal': hexc('2a2a30')},
+                       plan={2: 'down', 3: 'down_blood'}, key='study_b_office', outline=hexc('141418'))
+    PAPER, PAPER_DK, INK = hexc('f0ece2'), hexc('d6d0c2'), hexc('b3aea3')
+
+    def words(c, xa, ya, xb, yb, rng):
+        """One line of 'writing': short pale dashes with 1px gaps along a line — reads as text."""
+        n = max(int(abs(xb - xa)), 1)
+        k, word = 0, rng.randrange(2, 5)
+        while k <= n:
+            if word > 0:
+                t = k / n
+                c.put(int(round(xa + (xb - xa) * t)), int(round(ya + (yb - ya) * t)), INK)
+                word -= 1
+            else:
+                word = rng.randrange(2, 5)
+            k += 1
+
     def _printer(c):
-        # a printer on a little stand against the wall beside the desk, paper spilling
+        # a printer on a little stand against the wall beside the desk
         c.shadow(214, 119, 14, 2, 110)
         c.rect(202, 96, 226, 98, BEIGE[1])
         c.hline(202, 226, 96, BEIGE[3])
@@ -90,52 +111,45 @@ def b_furniture(c):
         c.hline(203, 225, 112, BEIGE[2])
         c.box(204, 86, 224, 95, BEIGE[0], BEIGE[3])
         c.rect(208, 88, 220, 89, hexc('26262a'))
-        # owner round 13: a sheet hanging out of the printer, and a couple of printed sheets that
-        # slid off onto the floor at the foot of the stand (no loose scraps elsewhere)
-        PAPER, PAPER_DK, INK = hexc('f0ece2'), hexc('cfc9ba'), hexc('8a8a90')
-        c.poly([(209, 94), (220, 94), (221, 101), (219, 106), (210, 105)], PAPER)   # hanging over the edge
+        # owner round 13: a sheet hanging out of the printer (its writing pale, broken dashes)
+        c.poly([(209, 94), (220, 94), (221, 101), (219, 106), (210, 105)], PAPER)
         c.vline(209, 95, 105, PAPER_DK)
         c.hline(211, 218, 105, PAPER_DK)
-        for k, y in enumerate(range(97, 104, 2)):
-            c.hline(211, 218 - (3 if k % 2 else 0), y, INK)
+        for y in range(97, 104, 2):
+            words(c, 211, y, 218 if y % 4 == 1 else 215, y, c.rng)
+    F.moved(c, _printer, -18, -18)
 
-        def sheet(pts):
-            c.poly(pts, PAPER)
-            (x0, y0), (x1, y1) = pts[0], pts[1]
-            c.line(pts[3][0], pts[3][1], pts[2][0], pts[2][1], PAPER_DK)
-            for t in (0.25, 0.5, 0.75):
-                ax, ay = x0 + 2 + (pts[3][0] - x0) * t, y0 + (pts[3][1] - y0) * t
-                c.line(int(ax), int(ay), int(ax + (x1 - x0) * 0.7), int(ay + (y1 - y0) * 0.7), INK)
-        sheet([(201, 117), (214, 116), (217, 122), (204, 123)])
-        sheet([(214, 119), (228, 118), (230, 124), (216, 125)])
-    F.moved(c, _printer, -14, -18)
-    # an old armchair pulled up near the lane for reading printouts
-    # a wastepaper basket against the wall behind the chair + box files on a shelf on the right
-    c.shadow(248, 100, 8, 2, 90)                                                             # a wastepaper basket
-    c.poly([(241, 86), (255, 86), (253, 99), (243, 99)], hexc('3a3a44'))
-    for x in range(243, 254, 3):
+    def sheet(pts):
+        # a printed sheet lying flat on the FLOOR (below the skirting line): pale dashed lines of text
+        c.poly(pts, PAPER)
+        c.line(pts[3][0], pts[3][1], pts[2][0], pts[2][1], PAPER_DK)
+        (x0, y0), (x1, y1), (x2, y2), (x3, y3) = pts
+        for t in (0.35, 0.7):
+            words(c, x0 + (x3 - x0) * t + 2, y0 + (y3 - y0) * t, x1 + (x2 - x1) * t - 2, y1 + (y2 - y1) * t, c.rng)
+    # two sheets that slid off the stand onto the floor at its foot
+    sheet([(183, 104), (197, 103), (200, 108), (186, 109)])
+    sheet([(196, 106), (211, 106), (213, 111), (198, 111)])
+    # the armchair pulled up for reading printouts, turned toward the desk, a side table at its elbow
+    C3.armchair(c, 238, 117, 35, {'fab': hexc('6a6a5a'), 'fab_lt': hexc('7a7a68'), 'wood': hexc('3a2a1e')},
+                style='club', plan={3: 'side'}, key='study_b')
+    F.table_front(c, 262, 290, 106, 121, F.TEAK, depth=4)
+    c.rect(266, 103, 270, 107, hexc('e6e0cc')); c.put(271, 104, hexc('e6e0cc'))            # a mug
+    c.hline(266, 270, 103, hexc('4a3a2a'))
+    c.poly([(274, 107), (285, 106), (287, 108), (276, 109)], PAPER)                        # printouts
+    c.poly([(276, 105), (286, 104), (288, 106), (278, 107)], hexc('e6e0cc'))
+    c.line(280, 105, 285, 104, hexc('2a3a6a'))
+    # a wastepaper basket against the wall in the corner
+    c.shadow(303, 100, 8, 2, 90)
+    c.poly([(296, 86), (310, 86), (308, 99), (298, 99)], hexc('3a3a44'))
+    for x in range(298, 309, 3):
         c.vline(x, 87, 98, hexc('4a4a56'))
-    # (drawn after the basket against the wall, so it sits in front of it)
-    C3.armchair(c, 233, 117, 35, {'fab': hexc('6a6a5a'), 'fab_lt': hexc('7a7a68'), 'wood': hexc('3a2a1e')},
-                style='club', plan={3: 'side'}, key='study_b')                 # turned toward the desk
-    # a low side table at its elbow: a mug, a slew of printouts, a biro (the chair has company)
-    F.table_front(c, 256, 286, 106, 121, F.TEAK, depth=4)
-    c.rect(260, 103, 264, 107, hexc('e6e0cc')); c.put(265, 104, hexc('e6e0cc'))            # a mug
-    c.hline(260, 264, 103, hexc('4a3a2a'))
-    c.poly([(268, 107), (280, 106), (282, 108), (270, 109)], hexc('f0ece2'))               # printouts
-    c.poly([(270, 105), (281, 104), (283, 106), (272, 107)], hexc('e6e0cc'))
-    c.line(274, 105, 279, 104, hexc('2a3a6a'))
-    F.shelves(c, 276, 310, 40, 100, F.TEAK, [58, 78, 96], c.rng, fill=0.6)
-    for (x, col) in ((280, hexc('2f4a63')), (286, hexc('7a2e28')), (292, hexc('2f4a63'))):
-        c.rect(x, 64, x + 5, 77, col)
-        c.rect(x + 1, 68, x + 4, 70, hexc('e6e0cc'))
 
 
 B_ANCHORS = [('anchor_study_low_shelf', 26, 88, 'bp s'), ('anchor_study_box_files', 64, 88, 'bp s'),
-             ('anchor_centre_desk', 146, 66, 'bp'), ('anchor_study_desk_drawer', 119, 88, 'bp'),
-             ('anchor_study_office_chair', 160, 100, ''), ('anchor_study_printer', 200, 72, 'bp'),
-             ('anchor_study_armchair', 226, 95, ''),
-             ('anchor_right_shelf', 292, 70, 'bp')]
+             ('anchor_centre_desk', 160, 66, 'bp'), ('anchor_study_desk_drawer', 111, 88, 'bp'),
+             ('anchor_study_office_chair', 140, 100, ''), ('anchor_study_printer', 196, 72, 'bp'),
+             ('anchor_study_armchair', 234, 98, ''),
+             ('anchor_study_side_table', 278, 107, '')]
 
 
 # ============================================================================================

@@ -283,14 +283,16 @@ def d_floor(c):
 
 
 def d_furniture(c):
+    # EVEN SPACING (owner round 13b): piano | armchair turned to the sofa | tea table | sofa | china
+    # cabinet — one piece every ~50px, the group sitting on the carpet in the middle.
     # an ornate green carpet with a gold border
     top, bot = 106, 130
-    c.poly([(80, top), (252, top), (264, bot), (68, bot)], hexc('b58f4a'))
-    c.poly([(84, top + 2), (248, top + 2), (259, bot - 2), (73, bot - 2)], hexc('3f5a45'))
-    for cx_ in (110, 166, 222):
+    c.poly([(74, top), (246, top), (258, bot), (62, bot)], hexc('b58f4a'))
+    c.poly([(78, top + 2), (242, top + 2), (253, bot - 2), (67, bot - 2)], hexc('3f5a45'))
+    for cx_ in (104, 160, 216):
         c.ellipse(cx_, 118, 12, 4, hexc('5a7a5e'))
         c.ellipse(cx_, 118, 5, 2, hexc('a0505a'))
-    for x in range(69, 264, 2):
+    for x in range(63, 258, 2):
         c.vline(x, bot + 1, bot + 2, hexc('d9cfb8'))
     # LEFT set-back: an upright piano, photos and a metronome on top
     c.shadow(32, 101, 24, 3, 90)
@@ -311,31 +313,31 @@ def d_furniture(c):
     c.rect(26, 60, 29, 64, hexc('7c6a5a'))
     c.poly([(38, 66), (44, 66), (41, 57)], hexc('5a352b'))                  # metronome
     # the chintz sofa (cream with roses)
-    sofa_as(c, (hexc('c8b89a'), hexc('a99a7c'), hexc('d9cbb0'), hexc('5e5040')), dx=40)
+    sofa_as(c, (hexc('c8b89a'), hexc('a99a7c'), hexc('d9cbb0'), hexc('5e5040')), dx=66)
     rng = c.rng
     for _ in range(40):                                                     # the chintz print
-        x = rng.randrange(129, 212)
+        x = rng.randrange(155, 238)
         y = rng.randrange(82, 110)
         if c.px[x, y][:3] in ((0xc8, 0xb8, 0x9a), (0xd9, 0xcb, 0xb0)):
             c.put(x, y, hexc('a0505a'))
             c.put(x + 1, y, hexc('6f7d58'))
     def _tea(c):
-        # a mahogany tea table: a doily, a teapot, a toppled cup
-        c.shadow(214, 117, 24, 2, 100)
-        c.ellipse(214, 101, 22, 4, hexc('3a2019'))
-        c.ellipse(214, 100, 21, 3, hexc('5a352b'))
-        c.ellipse(214, 99, 10, 2, hexc('e6ddc8'))
-        for lx in (198, 230):
+        # a small mahogany tea table: a doily, a teapot, a toppled cup
+        c.shadow(214, 117, 18, 2, 100)
+        c.ellipse(214, 101, 16, 4, hexc('3a2019'))
+        c.ellipse(214, 100, 15, 3, hexc('5a352b'))
+        c.ellipse(214, 99, 9, 2, hexc('e6ddc8'))
+        for lx in (203, 225):
             c.rect(lx, 104, lx + 1, 116, hexc('2a1712'))
             c.put(lx - 1, 116, hexc('2a1712'))
         c.ellipse(210, 95, 4, 3, hexc('e6ddc8'))
         c.rect(214, 94, 216, 95, hexc('e6ddc8'))
         c.ellipse(222, 99, 2, 1, hexc('e6ddc8'))
         c.put(224, 100, hexc('7a4a2a'))
-    lr.shifted(c, _tea, 0, -132)
+    lr.shifted(c, _tea, 0, -90)
     # RIGHT set-back: a glass-front china cabinet
-    c.shadow(276, 101, 20, 2, 90)
-    x0, x1, top = 258, 294, 67
+    c.shadow(280, 101, 20, 2, 90)
+    x0, x1, top = 262, 298, 67
     c.box(x0, top, x1, 99, hexc('3a2019'), hexc('1f110d'))
     c.box(x0 + 3, top + 3, x1 - 3, top + 20, hexc('9fb3b0'), hexc('2a1712'))
     c.vline((x0 + x1) // 2, top + 3, top + 20, hexc('2a1712'))
@@ -348,10 +350,6 @@ def d_furniture(c):
     c.put((x0 + x1) // 2 - 2, top + 28, hexc('b58f4a'))
     c.put((x0 + x1) // 2 + 2, top + 28, hexc('b58f4a'))
     c.line(x0 + 5, top + 5, x0 + 12, top + 17, hexc('d6e2e0'))              # a crack in the glass
-    # a fringed standard lamp
-    lamp_shade(c, 306, hexc('d6b78a'), hexc('a8864a'), hexc('3a2019'), top=58)
-    for fx in range(298, 315, 2):
-        c.vline(fx, 71, 73, hexc('a8864a'))
 
 
 
@@ -413,10 +411,12 @@ def e_furniture(c):
     c.rect(24, 88, 28, 89, F.BRASS)
     # a stone fireplace against the wall, SYMMETRIC about x 128 (owner round 13): hearth, stone
     # surround laid in courses mirrored about the centre, an arched firebox with the grate and its
-    # charred logs centred, a candlestick at each end of the mantel and the clock in the middle.
+    # charred logs centred, a candlestick at each end of the mantel, the antlers above the middle.
     # The poker stand stands on the hearth to the right, a log basket to the left (the old game bag
     # slumped on the floor went — owner: "strange items just on the floor").
-    FX = 128
+    # EVEN SPACING (owner round 13b): gun cabinet | armchair turned to the fire | the fireplace in the
+    # MIDDLE under the antlers | sofa — the room's pieces spread across it, not piled on the right.
+    FX = 160
     STONE, STONE_HI, MORTAR = hexc('8a8478'), hexc('a09a8c'), hexc('5e584e')
     c.shadow(FX, 101, 32, 2, 100)
     c.rect(FX - 30, 97, FX + 30, 100, hexc('7a7468'))                          # the hearth slab
@@ -453,9 +453,6 @@ def e_furniture(c):
     for dx in (-22, 22):                                                       # candlesticks
         c.rect(FX + dx - 1, 49, FX + dx + 1, 51, hexc('b58f4a'))
         c.vline(FX + dx, 44, 48, hexc('e6ddc8'))
-    c.rect(FX - 3, 44, FX + 3, 51, hexc('4a3020'))                              # the mantel clock
-    c.rect(FX - 2, 45, FX + 2, 48, hexc('c9c2b1'))
-    c.put(FX, 46, hexc('2a1c14')); c.put(FX + 1, 47, hexc('2a1c14'))
     # the poker stand on the hearth, right
     c.vline(FX + 34, 72, 99, hexc('3a3a36')); c.hline(FX + 31, FX + 37, 99, hexc('3a3a36'))
     c.hline(FX + 31, FX + 37, 74, hexc('3a3a36'))
@@ -473,19 +470,18 @@ def e_furniture(c):
         for x in range(bx0 + 1 + (y // 2) % 2, bx1, 2):
             c.put(x, y, hexc('a6844a'))
     # a chesterfield in oxblood leather, and a bear-skin rug before it
-    sofa_as(c, (hexc('6e2a24'), hexc('55201c'), hexc('84403a'), hexc('2a100e')), dx=92)
+    sofa_as(c, (hexc('6e2a24'), hexc('55201c'), hexc('84403a'), hexc('2a100e')), dx=128)
     bear, bear_dk = hexc('9a7450'), hexc('6a4a34')
     c.poly([(118, 126), (128, 120), (132, 116), (140, 120), (170, 119), (178, 115), (184, 120), (196, 124),
             (184, 128), (178, 132), (170, 128), (140, 129), (132, 133), (128, 129)], bear)   # the pelt, legs out
     c.poly([(196, 124), (206, 120), (212, 123), (208, 128)], bear)                              # the head
     c.put(206, 122, hexc('1e1a16')); c.put(211, 124, hexc('d9cfb8'))
     c.line(140, 124, 170, 124, bear_dk)
-    F.floor_lamp(c, 300, 60, 114, hexc('c9ab7e'), hexc('3a2a1a'))
 
 
-E_ANCHORS = [('anchor_living_gun_cabinet', 26, 56, 'bp'), ('anchor_living_fireplace', 128, 90, 'bp'),
-             ('anchor_living_log_basket', 88, 92, 'bp'), ('anchor_centre_sofaleft', 203, 103, ''),
-             ('anchor_centre_sofaright', 238, 101, ''), ('anchor_living_armchair', 280, 104, '')]
+E_ANCHORS = [('anchor_living_gun_cabinet', 26, 56, 'bp'), ('anchor_living_fireplace', 160, 90, 'bp'),
+             ('anchor_living_log_basket', 120, 92, 'bp'), ('anchor_centre_sofaleft', 239, 103, ''),
+             ('anchor_centre_sofaright', 274, 101, ''), ('anchor_living_armchair', 78, 104, '')]
 
 
 # Turned armchairs (tools/art/chair3d.py — built in 3D so the angle is right), each grouped with
@@ -500,13 +496,13 @@ def b_chair(c):
 
 
 def d_chair(c):
-    C3.armchair(c, 236, 118, 35, {'fab': hexc('6a7a5a'), 'fab_lt': hexc('7a8a68'), 'wood': hexc('4a2e1e')},
+    C3.armchair(c, 82, 118, -35, {'fab': hexc('6a7a5a'), 'fab_lt': hexc('7a8a68'), 'wood': hexc('4a2e1e')},
                 style='wing', plan={2: 'side', 3: 'side'}, key='living_d')      # sage tall-back, at the rug's end
 
 
 def e_chair(c):
-    C3.armchair(c, 282, 118, 38, {'fab': hexc('8a5a34'), 'fab_lt': hexc('9a6a40'), 'wood': hexc('2e1e14')},
-                style='wing', plan={2: 'blood', 3: 'blood'}, key='living_e')    # tan leather, by the lamp
+    C3.armchair(c, 78, 118, -40, {'fab': hexc('8a5a34'), 'fab_lt': hexc('9a6a40'), 'wood': hexc('2e1e14')},
+                style='wing', plan={2: 'blood', 3: 'blood'}, key='living_e')    # tan leather, turned to the fire
 
 
 def _with(furniture, chair):
@@ -536,10 +532,10 @@ B_ANCHORS = [('anchor_living_records', 290, 86, 'bp'), ('anchor_living_teak_shel
 C_ANCHORS = [('anchor_living_crates', 22, 68, 'bp'), ('anchor_living_crate_books', 36, 92, 'bp'),
              ('anchor_living_pallet_table', 203, 101, ''), ('anchor_centre_sofaleft', 132, 106, ''),
              ('anchor_centre_sofaright', 160, 100, ''), ('anchor_living_crt', 286, 84, 'bp')]
-D_ANCHORS = [('anchor_living_piano', 26, 74, 'bp'), ('anchor_living_tea_table', 82, 99, ''),
-             ('anchor_centre_sofaleft', 151, 103, ''), ('anchor_centre_sofaright', 186, 101, ''),
-             ('anchor_living_china_cabinet', 276, 76, 'bp'), ('anchor_living_cabinet_cupboard', 270, 90, 'bp'),
-             ('anchor_living_armchair', 234, 104, '')]
+D_ANCHORS = [('anchor_living_piano', 26, 74, 'bp'), ('anchor_living_tea_table', 124, 99, ''),
+             ('anchor_centre_sofaleft', 177, 103, ''), ('anchor_centre_sofaright', 212, 101, ''),
+             ('anchor_living_china_cabinet', 280, 76, 'bp'), ('anchor_living_cabinet_cupboard', 274, 90, 'bp'),
+             ('anchor_living_armchair', 82, 104, '')]
 
 VARIANTS = {
     'b': ('living_room_b', 21, (b_wall, b_decor, b_floor, _with(b_furniture, b_chair)), B_ANCHORS),

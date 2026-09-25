@@ -179,23 +179,22 @@ metadata/back_plane = true
 metadata/balcony_strip = true
 
 [node name="anchor_centre_desk" type="Marker2D" parent="."]
-position = Vector2(146, 66)
+position = Vector2(160, 66)
 metadata/back_plane = true
 
 [node name="anchor_study_desk_drawer" type="Marker2D" parent="."]
-position = Vector2(119, 88)
+position = Vector2(111, 88)
 metadata/back_plane = true
 
 [node name="anchor_study_office_chair" type="Marker2D" parent="."]
-position = Vector2(160, 100)
+position = Vector2(140, 100)
 
 [node name="anchor_study_printer" type="Marker2D" parent="."]
-position = Vector2(200, 72)
+position = Vector2(196, 72)
 metadata/back_plane = true
 
 [node name="anchor_study_armchair" type="Marker2D" parent="."]
-position = Vector2(226, 95)
+position = Vector2(234, 98)
 
-[node name="anchor_right_shelf" type="Marker2D" parent="."]
-position = Vector2(292, 70)
-metadata/back_plane = true
+[node name="anchor_study_side_table" type="Marker2D" parent="."]
+position = Vector2(278, 107)

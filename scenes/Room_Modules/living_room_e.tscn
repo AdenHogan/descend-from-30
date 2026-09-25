@@ -29,18 +29,18 @@ position = Vector2(26, 56)
 metadata/back_plane = true
 
 [node name="anchor_living_fireplace" type="Marker2D" parent="."]
-position = Vector2(128, 90)
+position = Vector2(160, 90)
 metadata/back_plane = true
 
 [node name="anchor_living_log_basket" type="Marker2D" parent="."]
-position = Vector2(88, 92)
+position = Vector2(120, 92)
 metadata/back_plane = true
 
 [node name="anchor_centre_sofaleft" type="Marker2D" parent="."]
-position = Vector2(203, 103)
+position = Vector2(239, 103)
 
 [node name="anchor_centre_sofaright" type="Marker2D" parent="."]
-position = Vector2(238, 101)
+position = Vector2(274, 101)
 
 [node name="anchor_living_armchair" type="Marker2D" parent="."]
-position = Vector2(280, 104)
+position = Vector2(78, 104)

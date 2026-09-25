@@ -179,6 +179,26 @@ def office_chair():
     return m
 
 
+def office_chair_at(c, cx, base_y, yaw, pal, plan=None, key='office', outline=None):
+    """The office chair with a per-run state like the armchairs (owner round 13b — "a computer
+    chair that has been knocked over too"): plan {run: 'ok' | 'down' | 'down_blood'} — 'down' =
+    knocked onto its side (base and casters sticking out), 'down_blood' = and bloodied, a pool
+    beside it. Placed and stained in 3D like the armchairs."""
+    state = (plan or {}).get(RUN, 'ok')
+    model = office_chair()
+    if state == 'ok':
+        return draw_model(c, cx, base_y, model, yaw, pal, outline, srad=13)
+    model = fall(model, 'side', 8.0 if yaw >= 0 else -8.0)
+    r = draw_model(c, cx, base_y, model, yaw * 1.2, pal, outline, shadow='footprint')
+    if r and state == 'down_blood':
+        import zlib
+        cbuf, pbuf, sbuf = r
+        _bloody(c, cx, base_y, cbuf, pbuf, sbuf, random.Random(zlib.crc32(('%s:%d' % (key, RUN)).encode())),
+                heavy=True, fallen=True, blobs=[((0.0, -2.0, 16.5), 6.5), ((0.0, 9.0, 26.0), 5.5)],
+                skip=('leg', 'caster', 'post', 'spine'))
+    return r
+
+
 def draw_model(c, cx, base_y, model, yaw, pal, outline=None, shadow='round', srad=19):
     """Render any model onto the canvas like the chairs (creases, silhouette, contact shadow)."""
     cbuf, pbuf, zbuf, sbuf = render(model, yaw, pal)
@@ -373,20 +393,24 @@ def _footprint_shadow(c, cx, base_y, model, yaw):
 BLOOD = ((58, 14, 12, 255), (92, 24, 20, 235), (92, 24, 20, 170))
 
 
-def _bloody(c, cx, base_y, cbuf, pbuf, sbuf, rng, heavy, fallen, underside=False):
+def _bloody(c, cx, base_y, cbuf, pbuf, sbuf, rng, heavy, fallen, underside=False, blobs=None,
+            skip=('leg',)):
     """Blood soaked into the seat and up the back cushion, over the seat's front edge — placed on
     the UPRIGHT chair's own surfaces (`sbuf`: where each pixel is on the chair), so a knocked-over
     chair carries its stain at the chair's angle, not the screen's. Then blood on the floor: drips
     under a standing chair, a pool spread out beside a fallen one."""
     ox = rng.uniform(-4, 4)
-    blobs = [((ox, rng.uniform(-6, 0), 13.5), rng.uniform(5.5, 7.5) * (1.25 if heavy else 1.0)),
-             ((ox + rng.uniform(-3, 3), 3.0, 21.0), rng.uniform(4.5, 6.5) * (1.2 if heavy else 1.0))]
+    if blobs is None:
+        blobs = [((ox, rng.uniform(-6, 0), 13.5), rng.uniform(5.5, 7.5) * (1.25 if heavy else 1.0)),
+                 ((ox + rng.uniform(-3, 3), 3.0, 21.0), rng.uniform(4.5, 6.5) * (1.2 if heavy else 1.0))]
+    else:
+        blobs = [((p[0] + ox * 0.5, p[1], p[2]), r) for (p, r) in blobs]
     if underside:        # on its back the seat faces away: blood splashed over the bare underside
         blobs.append(((ox, rng.uniform(-3, 3), 4.0), rng.uniform(6.5, 8.5)))
     ph = [rng.uniform(0, 6.28) for _ in range(3)]
     stain = {}
     for (x, y), q in sbuf.items():
-        if pbuf[(x, y)] == 'leg':
+        if pbuf[(x, y)].startswith(skip):
             continue
         d = 9.0
         for (cpos, rad) in blobs:

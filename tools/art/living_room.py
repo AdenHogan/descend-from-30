@@ -486,17 +486,16 @@ def build(c=None):
     picture(c)
     clock(c)
     floor(c)
-    shifted(c, rug, -8)
+    shifted(c, rug, -8, -6)
     bookshelf(c)
-    shifted(c, lamp, -12, 4)
-    # a CONVERSATION GROUP (owner round 13 — no TV here, so the sofa faces the room and the armchair
-    # sits across the coffee table from it, turned back toward the sofa)
-    shifted(c, plant, -10, -20)
-    shifted(c, sofa, -10, -24)
-    chest_of_drawers(c)
-    shifted(c, coffee_table, 0, -10)
+    # EVEN SPACING (owner round 13b — "good even spacing across the modules is essential for our
+    # scavenge nodes"): bookshelf | sofa | coffee table | armchair turned back to the sofa | drawers,
+    # one piece every ~55px, nodes spread the whole width (no lamp / plant crowding the right end).
+    shifted(c, sofa, -10, -18)
+    shifted(c, chest_of_drawers, 0, 6)
+    shifted(c, coffee_table, 0, -26)
     import chair3d as C3                  # an oxblood club chair across the table, turned to the sofa
-    C3.armchair(c, 246, 118, 40, {'fab': hexc('7a302b'), 'fab_lt': hexc('8e3a33'), 'wood': hexc('3a2618')},
+    C3.armchair(c, 238, 118, 40, {'fab': hexc('7a302b'), 'fab_lt': hexc('8e3a33'), 'wood': hexc('3a2618')},
                 style='club', plan={2: 'blood', 3: 'tipped'}, key='living_a')
     return c
 
@@ -507,9 +506,9 @@ def bare(c):
 
 
 ANCHORS = [('anchor_left_bookshelf_upper', 22, 58, 'bp'), ('anchor_left_bookshelf_lower', 35, 86, 'bp'),
-           ('anchor_centre_sofaleft', 90, 103, ''), ('anchor_centre_sofaright', 125, 101, ''),
-           ('anchor_centre_coffeetable', 204, 98, ''), ('anchor_right_chair', 275, 95, 'bp'),
-           ('anchor_living_armchair', 248, 104, '')]
+           ('anchor_centre_sofaleft', 96, 103, ''), ('anchor_centre_sofaright', 131, 101, ''),
+           ('anchor_centre_coffeetable', 188, 98, ''), ('anchor_right_chair', 281, 78, 'bp'),
+           ('anchor_living_armchair', 238, 104, '')]
 
 
 if __name__ == '__main__':
