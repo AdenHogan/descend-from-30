@@ -1,7 +1,8 @@
 """Living room STYLE variants (mockups for the owner to compare) — same module geometry and rules as
 tools/art/living_room.py (variant A): the walking lane stays clear, both runtime window boxes stay
 bare wall, and each room has a SET-BACK piece on the left and the right (future scavenge spots on
-an upper plane). Turned seating (armchairs, B/C's sofas and TVs) is built in 3D by chair3d.py.
+an upper plane). Turned armchairs are built in 3D by chair3d.py; sofas stay straight (B/C show
+one from behind, facing the TV).
 
 Run:  python3 tools/art/living_room_variants.py [b c d]
 Out:  assets/rooms/living_room_{b,c,d}.png (+ _floor.png), scenes/Room_Modules/living_room_{b,c,d}.tscn
@@ -99,56 +100,105 @@ def b_wall(c):
 
 def b_decor(c):
     # an abstract print above the sofa
-    frame(c, 108, 30, 150, 56, hexc('d9cfb8'), hexc('8a826d'), hexc('d9cfb8'))
-    c.rect(113, 35, 128, 51, hexc('c8783b'))
-    c.ellipse(137, 42, 7, 7, hexc('d8a641'))
-    c.rect(131, 46, 145, 51, hexc('3d5c63'))
-    # a starburst clock
+    frame(c, 176, 30, 218, 56, hexc('d9cfb8'), hexc('8a826d'), hexc('d9cfb8'))
+    c.rect(181, 35, 196, 51, hexc('c8783b'))
+    c.ellipse(205, 42, 7, 7, hexc('d8a641'))
+    c.rect(199, 46, 213, 51, hexc('3d5c63'))
+    # a starburst clock (between the left window and the TV)
     for dx, dy in ((0, -9), (6, -6), (9, 0), (6, 6), (0, 9), (-6, 6), (-9, 0), (-6, -6)):
-        c.line(190, 42, 190 + dx, 42 + dy, hexc('b58f4a'))
-    c.ellipse(190, 42, 3, 3, hexc('d9c690'))
-    c.put(190, 41, lr.OUT)
+        c.line(112, 42, 112 + dx, 42 + dy, hexc('b58f4a'))
+    c.ellipse(112, 42, 3, 3, hexc('d9c690'))
+    c.put(112, 41, lr.OUT)
 
 
 def b_floor(c):
     parquet_floor(c, hexc('8a6443'), hexc('7c5a3b'), hexc('5b3e28'))
 
 
+def sofa_back(c, cx, base, pal, wear=False):
+    """The owner-approved sofa seen from BEHIND (round 13b — a TV room: the sofa faces the set on the
+    back wall, full width, never turned): the same silhouette as the front view — a tall back panel
+    between two lower arms — with piping along the top, the panel seams, a skirt and the back legs.
+    `wear` adds a split with stuffing and a stain (the student flat)."""
+    SOFA, SOFA_DK, SOFA_LT, SOFA_OUT = pal
+    x0, x1, b = cx - 43, cx + 43, base
+    c.shadow(cx, b + 1, 46, 3, 110)
+    for lx in (x0 + 5, x1 - 6):                                         # the back legs
+        c.rect(lx, b - 1, lx + 1, b, lr.OUT)
+    # the back panel
+    rrect(c, x0 + 6, b - 35, x1 - 6, b - 2, SOFA_OUT, 3)
+    rrect(c, x0 + 7, b - 34, x1 - 7, b - 3, SOFA, 2)
+    c.hline(x0 + 9, x1 - 9, b - 34, SOFA_LT)                            # the top, seen from a little above
+    c.hline(x0 + 8, x1 - 8, b - 33, shade(SOFA_LT, 0.94))
+    c.hline(x0 + 8, x1 - 8, b - 31, SOFA_DK)                            # piping
+    for k in (1, 2):                                                    # panel seams
+        sx = x0 + 6 + (x1 - x0 - 12) * k // 3
+        c.vline(sx, b - 30, b - 10, shade(SOFA, 0.88))
+    c.rect(x0 + 7, b - 9, x1 - 7, b - 3, SOFA_DK)                        # the skirt
+    c.hline(x0 + 7, x1 - 7, b - 9, shade(SOFA_DK, 0.85))
+    c.dither(x0 + 8, b - 29, x1 - 8, b - 11, shade(SOFA, 0.95), 0.12, 'random')
+    # the arms, lower, at each end
+    for ax0 in (x0, x1 - 9):
+        rrect(c, ax0, b - 27, ax0 + 9, b - 2, SOFA_OUT, 2)
+        rrect(c, ax0 + 1, b - 26, ax0 + 8, b - 3, SOFA, 1)
+        c.hline(ax0 + 2, ax0 + 7, b - 26, SOFA_LT)
+        c.rect(ax0 + 1, b - 9, ax0 + 8, b - 3, SOFA_DK)
+    for lx in (x0 + 1, x1 - 3):                                         # the front legs, peeking under the arms
+        c.rect(lx, b - 1, lx + 1, b, lr.OUT)
+    if wear:
+        c.line(cx + 10, b - 26, cx + 18, b - 21, SOFA_OUT)                # a split, stuffing showing
+        for (px_, py_) in ((cx + 12, b - 25), (cx + 14, b - 24), (cx + 16, b - 22), (cx + 13, b - 23)):
+            c.put(px_, py_, lr.STUFF)
+        c.ellipse(cx - 18, b - 16, 5, 3, shade(SOFA, 0.8))                  # a stain
+
+
 def b_furniture(c):
-    # WATCHING THE TELLY (owner round 13 — "if a room has a TV the furniture should be facing it"):
-    # the console TV stands turned in the left corner, the armchair and the sofa are turned toward it
-    # across the kidney table — all built in 3D (chair3d) so the angles hold together.
-    def rug(cc):
-        cc.ellipse(166, 121, 92, 13, hexc('8d6a2c'))
-        cc.ellipse(166, 121, 89, 11, hexc('b58a3a'))
-        cc.dither(80, 110, 252, 132, hexc('a47c33'), 0.25, 'random')
-    rug(c)
-    # RIGHT set-back: a teak shelving unit — records below, ornaments above (right of the R window box)
-    def shelf(c):
-        x0, x1, top = 12, 48, 44
-        c.shadow(30, 101, 21, 3, 90)
-        for sx in (x0, x1 - 2):
-            c.rect(sx, top, sx + 2, 100, hexc('6b4a31'))
-        for sy in (top, 60, 76, 92):
-            c.rect(x0, sy, x1, sy + 1, hexc('8a6443'))
-            c.hline(x0, x1, sy, hexc('9e7550'))
-        for i, rx in enumerate(range(16, 45, 2)):                     # records, spines out
-            c.vline(rx, 80, 91, [hexc('1f1f22'), hexc('a8453a'), hexc('2f3a55'), hexc('d8c79a')][i % 4])
-        c.ellipse(22, 72, 3, 4, hexc('c8783b'))                        # a vase
-        c.rect(32, 68, 42, 75, hexc('3d5c63'))                          # a boxed set
-        c.rect(18, 53, 30, 59, hexc('b58a3a'))                          # books lying flat
-        c.rect(34, 55, 44, 59, hexc('a8453a'))
-        c.poly([(38, 43), (44, 43), (43, 38), (39, 38)], hexc('d9cfb8'))   # a little potted plant on top
-        for (lx, ly) in ((37, 33), (41, 30), (45, 34)):
-            c.line(41, 38, lx, ly, hexc('4d6a3c'))
-    lr.shifted(c, shelf, 0, 260)
-    # the TV, turned in the corner toward the seats
-    tv = C3.draw_model(c, 34, 104, C3.console_tv(), -40,
-                       {'wood': hexc('7c5a3b'), 'metal': hexc('2a2a2c'), 'screen': hexc('2c3431'),
-                        'grille': hexc('6b4a31')}, outline=hexc('3f2a1b'), srad=17)
-    C3.screen_detail(c, 34, 104, *tv, cracked=True, grille=hexc('4a3020'))
+    # WATCHING THE TELLY FROM BEHIND (owner round 13b, picked from mockups): the TV sits centred
+    # against the back wall on a teak sideboard, the rust sofa faces it with its BACK to us (straight,
+    # full width), the armchair on the right turned toward the set; the kidney table on the left,
+    # the shelving + rubber plant at the ends — evenly spaced.
+    CX = 150
+    c.ellipse(CX, 121, 88, 12, hexc('8d6a2c'))                           # an oval mustard rug
+    c.ellipse(CX, 121, 85, 10, hexc('b58a3a'))
+    c.dither(CX - 80, 111, CX + 80, 131, hexc('a47c33'), 0.25, 'random')
+    # LEFT set-back: a teak shelving unit — records below, ornaments above
+    x0, x1, top = 12, 48, 44
+    c.shadow(30, 101, 21, 3, 90)
+    for sx in (x0, x1 - 2):
+        c.rect(sx, top, sx + 2, 100, hexc('6b4a31'))
+    for sy in (top, 60, 76, 92):
+        c.rect(x0, sy, x1, sy + 1, hexc('8a6443'))
+        c.hline(x0, x1, sy, hexc('9e7550'))
+    for i, rx in enumerate(range(16, 45, 2)):                             # records, spines out
+        c.vline(rx, 80, 91, [hexc('1f1f22'), hexc('a8453a'), hexc('2f3a55'), hexc('d8c79a')][i % 4])
+    c.ellipse(22, 72, 3, 4, hexc('c8783b'))                                # a vase
+    c.rect(32, 68, 42, 75, hexc('3d5c63'))                                  # a boxed set
+    c.rect(18, 53, 30, 59, hexc('b58a3a'))                                  # books lying flat
+    c.rect(34, 55, 44, 59, hexc('a8453a'))
+    # the sideboard + the wooden TV on it (screen cracked), rabbit ears — tall enough that the
+    # sideboard's top shows over the sofa (else the set reads as perched on the sofa's back)
+    TEAK, TEAK_DK, TEAK_LT = hexc('7c5a3b'), hexc('3f2a1b'), hexc('9e7550')
+    c.shadow(CX, 101, 36, 2, 90)
+    c.box(CX - 34, 72, CX + 34, 97, TEAK, TEAK_DK)
+    c.hline(CX - 33, CX + 33, 73, TEAK_LT)
+    c.hline(CX - 33, CX + 33, 75, TEAK_DK)
+    for sx in (CX - 11, CX + 11):
+        c.vline(sx, 76, 95, TEAK_DK)
+    for lx in (CX - 31, CX + 30):
+        c.rect(lx, 98, lx + 1, 100, hexc('2a2a2c'))
+    T = -12
+    c.box(CX - 15, 60 + T, CX + 15, 83 + T, TEAK, TEAK_DK)
+    c.hline(CX - 14, CX + 14, 61 + T, TEAK_LT)
+    c.box(CX - 12, 63 + T, CX + 5, 80 + T, hexc('2c3431'), hexc('1a1f1d'))
+    c.rect(CX - 10, 65 + T, CX - 7, 66 + T, hexc('4b5a55'))
+    c.line(CX - 6, 66 + T, CX + 2, 76 + T, hexc('7d8b86'))
+    c.line(CX - 2, 67 + T, CX - 4, 74 + T, hexc('7d8b86'))
+    for gy in range(64 + T, 80 + T, 2):                                     # speaker grille
+        c.hline(CX + 8, CX + 12, gy, hexc('5b3e28'))
+    c.line(CX - 2, 60 + T, CX - 9, 50 + T, hexc('2a2a2c'))
+    c.line(CX + 2, 60 + T, CX + 8, 49 + T, hexc('2a2a2c'))
+    # the kidney coffee table on the left
     def _table(c):
-        # a kidney coffee table on hairpin legs
         c.shadow(214, 117, 26, 2, 100)
         c.ellipse(214, 101, 24, 4, hexc('8a6443'))
         c.ellipse(214, 100, 23, 3, hexc('9e7550'))
@@ -156,10 +206,17 @@ def b_furniture(c):
             c.line(lx, 104, lx - 2, 116, hexc('2a2a2c'))
         c.rect(206, 95, 210, 99, hexc('d9cfb8'))
         c.ellipse(222, 99, 4, 1, hexc('c8783b'))
-    lr.shifted(c, _table, 0, -56)
-    # the rust sofa, turned toward the TV
-    C3.draw_model(c, 226, 121, C3.sofa_model(), 35,
-                  {'fab': hexc('a4532e'), 'fab_lt': hexc('bd6a41'), 'wood': hexc('2e1e14')}, srad=36)
+    lr.shifted(c, _table, 0, -140)
+    # the rust sofa, its back to us, facing the set
+    sofa_back(c, CX, 118, (hexc('a4532e'), hexc('843f22'), hexc('bd6a41'), hexc('4a2412')))
+    # a big rubber plant in the corner, some leaves browning (clear of the side-wall column x 316)
+    def plant(c):
+        c.shadow(302, 113, 8, 2, 80)
+        c.poly([(296, 100), (308, 100), (306, 112), (298, 112)], hexc('d9cfb8'))
+        for i, (lx, ly) in enumerate(((294, 70), (300, 62), (307, 72), (292, 84), (309, 86), (301, 80))):
+            c.ellipse(lx, ly, 4, 6, hexc('4d6a3c') if i % 3 else hexc('7c6a38'))
+            c.line(302, 99, lx, ly + 5, hexc('3e5530'))
+    lr.shifted(c, plant, -10, 0)
 
 
 def c_wall(c):
@@ -208,19 +265,11 @@ def c_furniture(c):
         col = lr.BOOKS[i % len(lr.BOOKS)]
         c.rect(bx, 88, bx + 1, 98, col)
     c.rect(15, 66, 26, 73, hexc('1f1f22'))                                 # records
-    def guitar(c):
-        # a guitar leaning against the wall beside the crates, a string snapped
-        c.ellipse(306, 102, 5, 7, hexc('a86a3a'))
-        c.ellipse(306, 94, 4, 5, hexc('a86a3a'))
-        c.ellipse(306, 100, 2, 2, hexc('2a1c14'))
-        c.rect(305, 70, 307, 89, hexc('4a3020'))
-        c.rect(304, 66, 308, 70, hexc('2a1c14'))
-        c.line(305, 71, 300, 84, hexc('d9d0bc'))
-    lr.shifted(c, guitar, 1, -246)
-    # WATCHING THE TELLY (owner round 13): the slumped grey sofa turned toward the CRT, which sits
-    # on two crates in the right corner turned back toward it, the pallet table between them.
-    C3.draw_model(c, 146, 121, C3.sofa_model(), -35,
-                  {'fab': hexc('7a7b7e'), 'fab_lt': hexc('939497'), 'wood': hexc('2c2d2f')}, srad=36)
+    # WATCHING THE TELLY FROM BEHIND (owner round 13b): the CRT on two crates centred against the
+    # back wall, the slumped grey sofa facing it with its back to us; the pallet table on the left,
+    # a guitar against the wall and a beanbag on the right — evenly spaced.
+    CX = 176
+
     def _pallet(c):
         # a pallet table: pizza box, cans
         c.shadow(214, 117, 26, 2, 100)
@@ -233,11 +282,38 @@ def c_furniture(c):
         for cx_ in (220, 225, 229):
             c.rect(cx_, 98, cx_ + 2, 103, hexc('9aa3a8'))
             c.hline(cx_, cx_ + 2, 98, hexc('c9d0d4'))
-    lr.shifted(c, _pallet, 0, -2)
-    tv = C3.draw_model(c, 286, 104, C3.crt_on_crates(), 40,
-                       {'crate': hexc('a8453a'), 'crate2': hexc('2f4f7a'), 'tv': hexc('4a4a4d'),
-                        'screen': hexc('23302c')}, outline=hexc('1c1c1e'), srad=16)
-    C3.screen_detail(c, 286, 104, *tv)
+    lr.shifted(c, _pallet, 0, -126)
+    # the CRT on two crates, a console + its cable
+    def _tv(c):
+        c.shadow(276, 101, 20, 2, 90)
+        for (y0, y1, col) in ((87, 100, hexc('2f4f7a')), (73, 86, hexc('a8453a'))):   # two crates, stacked
+            c.box(260, y0, 290, y1, col, shade(col, 0.6))
+            c.rect(262, y0 + 2, 288, y1 - 2, shade(col, 0.45))
+            for gx in range(264, 288, 5):
+                c.vline(gx, y0 + 2, y0 + 4, col)
+        c.box(262, 56, 290, 72, hexc('4a4a4d'), hexc('1c1c1e'))              # the CRT on top
+        c.box(265, 58, 285, 69, hexc('23302c'), hexc('111615'))
+        c.rect(267, 60, 271, 61, hexc('3e524b'))
+        c.rect(265, 91, 279, 94, hexc('5a5a5f'))                             # a console in the lower crate
+    lr.shifted(c, _tv, 0, CX - 276)
+    sofa_back(c, CX, 118, (hexc('6d6e70'), hexc('555658'), hexc('848587'), hexc('2c2d2f')), wear=True)
+    def guitar(c):
+        # a guitar leaning against the wall, a string snapped
+        c.ellipse(306, 102, 5, 7, hexc('a86a3a'))
+        c.ellipse(306, 94, 4, 5, hexc('a86a3a'))
+        c.ellipse(306, 100, 2, 2, hexc('2a1c14'))
+        c.rect(305, 70, 307, 89, hexc('4a3020'))
+        c.rect(304, 66, 308, 70, hexc('2a1c14'))
+        c.line(305, 71, 300, 84, hexc('d9d0bc'))
+    lr.shifted(c, guitar, 1, -52)
+    # a slumped beanbag in the corner
+    BB, BB_DK, BB_LT = hexc('7a2e28'), hexc('551f1b'), hexc('94403a')
+    c.shadow(292, 112, 16, 2, 110)
+    c.ellipse(292, 104, 15, 9, hexc('2a1210'))
+    c.ellipse(292, 104, 14, 8, BB)
+    c.ellipse(292, 108, 13, 4, BB_DK)
+    c.ellipse(288, 100, 6, 3, BB_LT)
+    c.line(284, 105, 298, 103, BB_DK)
 
 
 # --- D: GRANDMOTHER'S PARLOUR ------------------------------------------------------------------
@@ -491,7 +567,7 @@ import chair3d as C3
 
 
 def b_chair(c):
-    C3.armchair(c, 104, 118, 70, {'fab': hexc('a8843a'), 'fab_lt': hexc('b8944a'), 'wood': hexc('3a2618')},
+    C3.armchair(c, 240, 118, 110, {'fab': hexc('a8843a'), 'fab_lt': hexc('b8944a'), 'wood': hexc('3a2618')},
                 style='club', plan={3: 'tipped'}, key='living_b')              # mustard, facing the telly
 
 
@@ -525,13 +601,13 @@ def _variant(wall, decor, floor, furniture, seed):
     return bare, floor, build
 
 
-B_ANCHORS = [('anchor_living_records', 290, 86, 'bp'), ('anchor_living_teak_shelf', 298, 72, 'bp'),
-             ('anchor_living_console_tv', 34, 86, 'bp'), ('anchor_living_kidney_table', 158, 100, ''),
-             ('anchor_centre_sofaleft', 212, 106, ''), ('anchor_centre_sofaright', 240, 100, ''),
-             ('anchor_living_armchair', 104, 104, '')]
+B_ANCHORS = [('anchor_living_records', 30, 86, 'bp'), ('anchor_living_teak_shelf', 38, 72, 'bp'),
+             ('anchor_living_console_tv', 146, 58, 'bp'), ('anchor_living_kidney_table', 76, 100, ''),
+             ('anchor_centre_sofaleft', 128, 100, ''), ('anchor_centre_sofaright', 172, 98, ''),
+             ('anchor_living_armchair', 240, 104, '')]
 C_ANCHORS = [('anchor_living_crates', 22, 68, 'bp'), ('anchor_living_crate_books', 36, 92, 'bp'),
-             ('anchor_living_pallet_table', 203, 101, ''), ('anchor_centre_sofaleft', 132, 106, ''),
-             ('anchor_centre_sofaright', 160, 100, ''), ('anchor_living_crt', 286, 84, 'bp')]
+             ('anchor_living_pallet_table', 79, 101, ''), ('anchor_centre_sofaleft', 154, 100, ''),
+             ('anchor_centre_sofaright', 198, 98, ''), ('anchor_living_crt', 170, 64, 'bp')]
 D_ANCHORS = [('anchor_living_piano', 26, 74, 'bp'), ('anchor_living_tea_table', 124, 99, ''),
              ('anchor_centre_sofaleft', 177, 103, ''), ('anchor_centre_sofaright', 212, 101, ''),
              ('anchor_living_china_cabinet', 280, 76, 'bp'), ('anchor_living_cabinet_cupboard', 274, 90, 'bp'),

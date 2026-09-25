@@ -112,9 +112,9 @@ byte-identical PNGs). Scripts: `<type>.py` = variant a, `<type>_variants.py` = b
 four in `bathroom.py`); shared pieces in `tools/art/furn.py` (chest, shelves, table, chairs, boxes,
 posters, rugs, lamps, walls + tiling floors).
 - living room: a green sofa + coffee table + armchair (a conversation group) / b teak mid-century
-  (console TV turned in the left corner, armchair + sofa turned to it) / c run-down flat (crates, a
-  grey sofa turned to a CRT on crates in the right corner, the pallet table between) / d
-  grandmother's parlour (piano, chintz sofa, china cabinet).
+  (the TV on a sideboard against the back wall, the sofa facing it from in front, back to us, the
+  armchair turned to it) / c run-down flat (the same, a CRT on crates; pallet table, guitar,
+  beanbag) / d grandmother's parlour (piano, chintz sofa, china cabinet).
 - bedroom: a dressing table + wardrobe / b teenager's (desk + CRT, beanbag, bed on the right) /
   c sick room (iron bedstead, drip, wheelchair, med trolley) / d squat (mattress on the floor,
   clothes rail, backpack, crates).
@@ -184,12 +184,14 @@ base and casters sticking out; study B {2 down, 3 down_blood}.
 
 **SEAT THE ROOM SENSIBLY (owner round 13 — "if a room has a TV then the furniture should be facing
 it … if there is no TV it's weird a sofa would be facing forward and the armchair facing away")**:
-- A room WITH A TV: the set stands turned in a CORNER (never flat against the back wall behind the
-  seats), and the sofa and armchair are turned toward it — living B, C. That needs angled sofas and
-  sets, so `chair3d` also builds them: `sofa_model(width, seats)` (the armchair's make, one seat + back
-  cushion per place), `console_tv()`, `crt_on_crates()`, `office_chair()` (five-star base) — drawn with
-  `C3.draw_model(c, cx, base_y, model, yaw, pal, outline, srad)`; `screen_detail` puts glare / a crack /
-  grille slats on the set's own face so they turn with it.
+- A room WITH A TV (round 13b, the owner picked "watch from behind" from mockups — a turned sofa
+  "looks smaller than desired … strange"): the set stands CENTRED against the back wall on a stand
+  tall enough that the stand's top shows over the sofa (else the set reads as perched on the sofa's
+  back), and the STRAIGHT full-width sofa faces it with its back to us (`sofa_back` in
+  living_room_variants.py — the front view's silhouette: back panel between lower arms, piping,
+  seams, skirt, legs). The armchair sits to one side turned toward the set (B: yaw 110). Living B,
+  C. (`chair3d` can still build turned sofas / TVs — `sofa_model`, `console_tv`, `crt_on_crates`,
+  drawn with `draw_model` + `screen_detail` — but don't turn a sofa.) `office_chair()` is 3D too.
 - A room WITHOUT one: the sofa faces the room and the armchair sits across the coffee table from it,
   turned back toward the sofa (a conversation group — living A), or turned to the fire (E).
 - EVEN SPACING (round 13b — "good even spacing across the modules is essential for our scavenge
