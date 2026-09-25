@@ -1135,6 +1135,7 @@ func new_game() -> void:
 	fire_dealt_with.clear()
 	fire_origin_x.clear()
 	fire_cells.clear()
+	fire_scars.clear()
 	apartment_fire_out.clear()
 	hazard_approach_warned.clear()
 	pending_pry_arrival_floor = -1
@@ -3219,6 +3220,40 @@ func fire_stage(floor_num: int) -> int:
 	return max(fire_intensity(floor_num), 0)
 
 
+# FIRE SCARS — fire leaves its mark on the building. Which thirds of a floor's corridor have ever
+# burned this arc (bit 1 left / 2 middle / 4 right, split at these world x's), recorded from the
+# fire's cells (burning OR burnt out / doused) by building_floors. Cross-run: the soot and char
+# stay after the fire is out, and after the time skip (the fire's per-run spread is wiped, the
+# walls aren't). Saved; cleared only by new_game. building_floors shows the matching
+# assets/corridor/fire_<zone>.png over the corridor.
+const FIRE_SCAR_SPLITS := [488.0, 861.0]
+var fire_scars: Dictionary = {}
+
+
+func note_fire_scar(floor_num: int, world_x: float) -> void:
+	var bit := 1 if world_x < FIRE_SCAR_SPLITS[0] else (2 if world_x < FIRE_SCAR_SPLITS[1] else 4)
+	var k := str(floor_num)
+	fire_scars[k] = int(fire_scars.get(k, 0)) | bit
+
+
+func fire_scar_zone(floor_num: int) -> String:
+	# "" (never burned), "l", "m", "r", "lm", "mr", or "all" (both ends, or everything).
+	match int(fire_scars.get(str(floor_num), 0)):
+		0:
+			return ""
+		1:
+			return "l"
+		2:
+			return "m"
+		4:
+			return "r"
+		3:
+			return "lm"
+		6:
+			return "mr"
+	return "all"
+
+
 func mark_fire_dealt_with(floor_num: int) -> void:
 	# The player FULLY put out the fire on this floor. It only halts the chain if
 	# this floor is the SOURCE (an origin) — dousing a spread floor without killing
@@ -4315,6 +4350,7 @@ func save_game(scene_path: String, record_live_zombies: bool = true) -> void:
 		"fire_dealt_with": fire_dealt_with,
 		"fire_origin_x": fire_origin_x,
 		"fire_cells": fire_cells,
+		"fire_scars": fire_scars,
 		"apartment_fire_out": apartment_fire_out,
 		"zombie_positions": zombie_positions,
 		"wallet_unlocked": wallet_unlocked,
@@ -4415,6 +4451,11 @@ func load_game() -> String:
 	fire_dealt_with = data.get("fire_dealt_with", {})
 	fire_origin_x = data.get("fire_origin_x", {})
 	fire_cells = data.get("fire_cells", {})
+	fire_scars = {}
+	var scars = data.get("fire_scars", {})
+	if scars is Dictionary:
+		for k in scars:
+			fire_scars[str(k)] = int(scars[k])      # JSON brings the bitmask back as a float
 	apartment_fire_out = data.get("apartment_fire_out", {})
 	# JSON round-trips all dictionary keys as strings; this dict is keyed by int
 	# floor numbers, so convert keys back or every loaded game re-seeds its floors.

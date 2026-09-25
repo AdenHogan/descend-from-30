@@ -60,6 +60,7 @@ func _exit_tree() -> void:
 	if _fire_field != null and is_instance_valid(_fire_field):
 		var floor_num: int = _built_floor if _built_floor >= 0 else (setup_floor if setup_floor >= 0 else WorldState.current_floor)
 		WorldState.set_fire_cells(floor_num, _fire_field.export_state(), _fire_field.stage)
+		_note_fire_scars(floor_num)
 
 
 var _built_floor: int = -1             # the floor THIS scene built (for _exit_tree save)
@@ -72,23 +73,35 @@ const CORRIDOR_ART_POS := Vector2(115, 243)   # the tilemap's used rect (1120 x 
 const CORRIDOR_VARIANTS := ["a", "b", "c"]
 
 
+static func corridor_section(floor_num: int) -> String:
+	# The building reads differently as you descend (docs/ART_REQUIREMENTS.md sectional identity):
+	# the upper floors a faded hotel-like hallway, the middle tired residential, the lower
+	# institutional. Same bands as the enemy tables (LOW 1-10 / MID 11-20 / HIGH 21-29).
+	if floor_num >= 21:
+		return "high"
+	if floor_num >= 11:
+		return "mid"
+	return "low"
+
+
 static func corridor_wear(floor_num: int) -> int:
-	# The building gets more run-down the further down you go (docs/ART_REQUIREMENTS.md sectional
-	# identity): 0 kept up (29-24) .. 1 tired (23-18) .. 2 neglected (17-12) .. 3 run down (11-6)
-	# .. 4 derelict (5-1). A pure function of the floor, like everything else about its layout.
+	# ...and it gets more run-down the further down you go, inside each look too: 0 kept up
+	# (29-24) .. 1 (23-18) .. 2 (17-12) .. 3 (11-6) .. 4 derelict (5-1). A pure function of the
+	# floor, like everything else about its layout.
 	return clampi((29 - floor_num) / 6, 0, 4)
 
 
 static func corridor_variant(floor_num: int) -> String:
-	# Three near-identical versions of each wear level (paint tone, floor, rail, fixture order),
-	# seeded per floor so neighbouring floors aren't copies. Stable across runs and re-entry.
+	# Three near-identical versions of each look (palette shift, picture order, one extra
+	# fixture), seeded per floor so neighbouring floors aren't copies. Stable across runs.
 	var h := hash(str(WorldState.master_seed) + "corridor_variant" + str(floor_num))
 	return CORRIDOR_VARIANTS[posmod(h, CORRIDOR_VARIANTS.size())]
 
 
 static func corridor_art_path(floor_num: int, run: int) -> String:
-	# tools/art/corridor.py — per wear level + variant, with a run-2 / run-3 (more ruined) version.
-	return corridor_art_named("corridor_w%d%s" % [corridor_wear(floor_num), corridor_variant(floor_num)], run)
+	# tools/art/corridor.py — per look + wear + variant, with a run-2 / run-3 (the time skip) version.
+	return corridor_art_named("corridor_%s_w%d%s" % [corridor_section(floor_num), corridor_wear(floor_num),
+		corridor_variant(floor_num)], run)
 
 
 static func corridor_art_named(name: String, run: int) -> String:
@@ -164,6 +177,7 @@ func _ready() -> void:
 		# visual/sim only (no collision), so _make_inert leaves it alone; go_live sees
 		# it's already here and doesn't re-spawn.
 		_spawn_fire(floor_num)
+		_apply_fire_scars(floor_num)
 		_spawn_door_fire(floor_num)
 		# Ceiling lamps in the backdrop too, so they scroll into view with the floor during
 		# a stair pan instead of popping in at the commit (go_live guards against a re-spawn).
@@ -216,6 +230,7 @@ func _ready() -> void:
 	_spawn_stair_enemies(floor_num)
 	_spawn_follower(floor_num)
 	_spawn_fire(floor_num)
+	_apply_fire_scars(floor_num)
 	_spawn_door_fire(floor_num)
 	WorldState.apply_time_tint(self, floor_num)   # ambient darkness the real lights punch through
 	_spawn_floor_lighting(floor_num)              # real ceiling lamps
@@ -494,6 +509,7 @@ func _process(delta: float) -> void:
 		if _fire_save_acc >= 0.6:
 			_fire_save_acc = 0.0
 			WorldState.set_fire_cells(_built_floor, _fire_field.export_state(), _fire_field.stage)
+			_note_fire_scars(_built_floor)
 	# Fire damage: standing/walking in flame costs health on a cadence. Fire never BLOCKS —
 	# you can always pass through it. RUNNING (sprint) through it takes NO burn: a dash gets you
 	# across unscathed, so the player chooses — sprint the gauntlet, or walk and take the hits
@@ -772,6 +788,48 @@ func _spawn_fire(floor_num: int) -> void:
 	_fire_field.spread_cap = maxi(_fire_field.burning_count(), _cap)
 	_fire_was_burning = _fire_field.any_burning()
 	_tint_fire_doors(floor_num)
+
+
+func _apply_fire_scars(floor_num: int) -> void:
+	# Fire leaves its mark on the building: record where this floor's fire has burned (its cells,
+	# burning or burnt out) and lay the matching soot + char over the corridor. The scars are
+	# cross-run (WorldState.fire_scars), so a floor that burned earlier still shows it once the
+	# fire's out or gone. Called after _spawn_fire in the live build, the passive pan backdrop
+	# and go_live (guarded, so never twice).
+	_note_fire_scars(floor_num)
+	add_fire_scar_art(self, WorldState.fire_scar_zone(floor_num))
+
+
+func _note_fire_scars(floor_num: int) -> void:
+	if _fire_field == null or not is_instance_valid(_fire_field) or floor_num < 0:
+		return
+	var states: Array = _fire_field.export_state()
+	for i in range(states.size()):
+		if int(states[i]) != FIRE_FIELD.COOL:
+			WorldState.note_fire_scar(floor_num, _fire_field.cell_x(i))
+
+
+static func add_fire_scar_art(root: Node, zone: String) -> void:
+	# tools/art/corridor.py fire_<zone>.png: soot up the walls and over the door heads, a black
+	# ceiling, charred floor. Drawn right AFTER the Elevator — above the corridor art, the doors
+	# and the elevator (soot climbs the door frames too) but below the staircases and everything
+	# spawned at runtime (fire, lamps, corpses, drops; actors are z 1). Alpha-blended, so the
+	# time-of-day darkness + lights treat it exactly like the wall under it.
+	if zone == "" or root.get_node_or_null("CorridorFire") != null:
+		return
+	var path := "res://assets/corridor/fire_%s.png" % zone
+	if not ResourceLoader.exists(path):
+		return
+	var art := Sprite2D.new()
+	art.name = "CorridorFire"
+	art.texture = load(path)
+	art.centered = false
+	art.position = CORRIDOR_ART_POS
+	art.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	root.add_child(art)
+	var anchor = root.get_node_or_null("Elevator")
+	if anchor != null:
+		root.move_child(art, anchor.get_index() + 1)
 
 
 func _ignite_light_patch(floor_num: int, origin_x: float) -> void:
@@ -1193,6 +1251,7 @@ func go_live() -> void:
 	if _fire_field == null:            # the passive backdrop already built the fire
 		_spawn_fire(floor_num)
 		_spawn_door_fire(floor_num)
+	_apply_fire_scars(floor_num)       # guarded — the backdrop already added its overlay
 	_spawn_merchant(floor_num)
 	WorldState.apply_time_tint(self, floor_num)   # a woken pan backdrop gets its ambient here
 	_spawn_floor_lighting(floor_num)              # guarded — passive backdrop already built these

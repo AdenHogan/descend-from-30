@@ -40,6 +40,7 @@ func _ready() -> void:
 	await _test_elevator_arrival_stairs()
 	await _test_enemies_stand_on_the_line_frame_zero()
 	await _test_corridor_art()
+	await _test_fire_scars()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -868,10 +869,11 @@ func _test_stair_gates() -> void:
 
 
 func _test_corridor_art() -> void:
-	# The corridor's painted overlay (tools/art/corridor.py): a WEAR level by floor (0 kept up at
-	# the top .. 4 derelict at the bottom), one of three near-identical variants seeded per floor,
-	# a ruined version per run — sitting right ABOVE the TileMapLayer so doors, stairs and the
-	# elevator still draw over it, in the live build AND the passive pan backdrop.
+	# The corridor's painted overlay (tools/art/corridor.py): a LOOK by section (high 21-29 / mid
+	# 11-20 / low 1-10), a WEAR level by floor (0 kept up at the top .. 4 derelict at the bottom),
+	# one of three near-identical variants seeded per floor, a version per run (the time skip) —
+	# sitting right ABOVE the TileMapLayer so doors, stairs and the elevator still draw over it,
+	# in the live build AND the passive pan backdrop.
 	print("[corridor art]")
 	WorldState.new_game()
 	WorldState.tutorial_completed = true
@@ -880,6 +882,9 @@ func _test_corridor_art() -> void:
 	var wear_of := {29: 0, 24: 0, 23: 1, 18: 1, 17: 2, 12: 2, 11: 3, 6: 3, 5: 4, 1: 4}
 	for f in wear_of:
 		check(BF.corridor_wear(f) == wear_of[f], "floor %d: wear %d (got %d)" % [f, wear_of[f], BF.corridor_wear(f)])
+	for f in [29, 21, 20, 11, 10, 1]:
+		var want := "high" if f >= 21 else ("mid" if f >= 11 else "low")
+		check(BF.corridor_section(f) == want, "floor %d: the %s look (got %s)" % [f, want, BF.corridor_section(f)])
 	var seen := {}
 	var last_wear := -1
 	for f in range(29, 0, -1):
@@ -889,7 +894,7 @@ func _test_corridor_art() -> void:
 		check(v == BF.corridor_variant(f), "floor %d: variant stable" % f)
 		seen[v] = true
 		for r in ["", "_r2", "_r3"]:
-			var p := "res://assets/corridor/corridor_w%d%s%s.png" % [BF.corridor_wear(f), v, r]
+			var p := "res://assets/corridor/corridor_%s_w%d%s%s.png" % [BF.corridor_section(f), BF.corridor_wear(f), v, r]
 			check(ResourceLoader.exists(p), "floor %d: %s exists" % [f, p.get_file()])
 	check(seen.size() == 3, "all three variants turn up across the building (%s)" % str(seen.keys()))
 	var other_seed := false
@@ -907,7 +912,7 @@ func _test_corridor_art() -> void:
 	for case in [[25, 1, ""], [15, 2, "_r2"], [3, 3, "_r3"]]:
 		var f: int = case[0]
 		WorldState.current_run = case[1]
-		case[2] = "corridor_w%d%s%s.png" % [BF.corridor_wear(f), BF.corridor_variant(f), case[2]]
+		case[2] = "corridor_%s_w%d%s%s.png" % [BF.corridor_section(f), BF.corridor_wear(f), BF.corridor_variant(f), case[2]]
 		for passive in [false, true]:
 			WorldState.current_floor = f
 			var bf = load("res://scenes/building_floors.tscn").instantiate()
@@ -950,3 +955,103 @@ func _test_corridor_art() -> void:
 				sc.free()
 				await get_tree().process_frame
 	WorldState.current_run = 1
+
+
+func _test_fire_scars() -> void:
+	# Fire changes the building: where a floor's fire has burned (burning or put out) is recorded
+	# per third of the corridor (WorldState.fire_scars) and shown as a soot/char overlay above the
+	# doors (assets/corridor/fire_<zone>.png). The scars outlive the fire, the time skip and a load.
+	print("[fire scars]")
+	WorldState.new_game()
+	WorldState.tutorial_completed = true
+	WorldState.is_first_run = false
+	check(WorldState.fire_scars.is_empty(), "a new game starts unburnt")
+	# the thirds -> the six zones
+	var zones := {[300.0]: "l", [600.0]: "m", [1000.0]: "r", [300.0, 600.0]: "lm", [600.0, 1000.0]: "mr",
+		[300.0, 1000.0]: "all", [300.0, 600.0, 1000.0]: "all"}
+	for xs in zones:
+		WorldState.fire_scars.clear()
+		for x in xs:
+			WorldState.note_fire_scar(12, x)
+		check(WorldState.fire_scar_zone(12) == zones[xs], "burnt at %s -> zone %s (got %s)" % [str(xs), zones[xs], WorldState.fire_scar_zone(12)])
+	WorldState.fire_scars.clear()
+	check(WorldState.fire_scar_zone(12) == "", "never burned -> no zone")
+	for z in ["l", "m", "r", "lm", "mr", "all"]:
+		check(ResourceLoader.exists("res://assets/corridor/fire_%s.png" % z), "fire_%s.png exists" % z)
+	# an unburnt floor has no overlay
+	var f := 14
+	for cand in range(14, 29):                          # a floor with no fire of its own this game
+		if WorldState.fire_intensity(cand) < 0:
+			f = cand
+			break
+	check(WorldState.fire_intensity(f) < 0, "found an unburnt floor (%d)" % f)
+	WorldState.current_floor = f
+	var bf = load("res://scenes/building_floors.tscn").instantiate()
+	bf.setup_floor = f
+	add_child(bf)
+	for i in range(2): await get_tree().process_frame
+	check(bf.get_node_or_null("CorridorFire") == null and WorldState.fire_scar_zone(f) == "",
+		"no fire, no scars -> no overlay")
+	bf.free()
+	await get_tree().process_frame
+	# a real fire on the floor (dev lv3 = charred ruin) scars it, live and as a pan backdrop
+	WorldState.fire_scars.clear()
+	WorldState.dev_fire_origin = f
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_FIRE3
+	for passive in [true, false]:
+		WorldState.current_floor = f
+		bf = load("res://scenes/building_floors.tscn").instantiate()
+		bf.setup_floor = f
+		bf.passive = passive
+		add_child(bf)
+		for i in range(2): await get_tree().process_frame
+		var label := " (backdrop)" if passive else ""
+		check(WorldState.fire_scar_zone(f) == "all", "a charred floor is scarred end to end%s (got '%s')" % [label, WorldState.fire_scar_zone(f)])
+		var fire = bf.get_node_or_null("CorridorFire")
+		check(fire is Sprite2D and fire.texture.resource_path.get_file() == "fire_all.png", "the soot overlay is up%s" % label)
+		if fire is Sprite2D:
+			var elev = bf.get_node_or_null("Elevator")
+			var door = bf.get_node_or_null("apartment03")
+			var art = bf.get_node_or_null("CorridorArt")
+			check(fire.get_index() > elev.get_index() and fire.get_index() > door.get_index() and fire.get_index() > art.get_index(),
+				"soot draws over the corridor, the doors and the elevator%s" % label)
+			var stairs = bf.get_node_or_null("HallwayStaircaseLeft")
+			check(stairs == null or fire.get_index() < stairs.get_index(), "...but under the staircases%s" % label)
+			check(fire.position == load("res://scripts/building_floors.gd").CORRIDOR_ART_POS and fire.texture.get_size() == Vector2(1120, 192), "covers the band%s" % label)
+		bf.free()
+		await get_tree().process_frame
+	# a small fire (lv1) scars only its own stretch
+	WorldState.fire_scars.clear()
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_FIRE
+	WorldState.current_floor = f
+	bf = load("res://scenes/building_floors.tscn").instantiate()
+	bf.setup_floor = f
+	add_child(bf)
+	for i in range(2): await get_tree().process_frame
+	var small := WorldState.fire_scar_zone(f)
+	check(small in ["l", "m", "r", "lm", "mr"], "a small fire scars part of the floor, not all of it (got '%s')" % small)
+	bf.free()
+	await get_tree().process_frame
+	# the fire goes (dev off / next run) — the scars stay, on the floor and in the save
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
+	WorldState.dev_fire_origin = -1
+	WorldState.advance_run()
+	check(WorldState.fire_scar_zone(f) == small, "the scars survive the time skip")
+	WorldState.current_floor = f
+	bf = load("res://scenes/building_floors.tscn").instantiate()
+	bf.setup_floor = f
+	add_child(bf)
+	for i in range(2): await get_tree().process_frame
+	var fire2 = bf.get_node_or_null("CorridorFire")
+	check(fire2 is Sprite2D and fire2.texture.resource_path.get_file() == "fire_%s.png" % small,
+		"the burnt stretch still shows after the fire's gone")
+	bf.free()
+	await get_tree().process_frame
+	WorldState.save_game("res://scenes/building_floors.tscn", false)
+	WorldState.fire_scars.clear()
+	WorldState.load_game()
+	check(WorldState.fire_scar_zone(f) == small, "the scars survive save + load (got '%s')" % WorldState.fire_scar_zone(f))
+	WorldState.new_game()
+	check(WorldState.fire_scars.is_empty(), "a new game's building is unburnt again")
+	WorldState.current_run = 1
+
