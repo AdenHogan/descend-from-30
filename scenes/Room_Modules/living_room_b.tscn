@@ -47,5 +47,5 @@ position = Vector2(240, 104)
 [node name="Lights" type="Node2D" parent="."]
 
 [node name="lamp_0" type="Node2D" parent="Lights"]
-position = Vector2(124, 68)
+position = Vector2(124, 72)
 metadata/kind = "table"

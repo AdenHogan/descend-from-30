@@ -319,7 +319,7 @@ def book_pile(c):
 def strip(c):
     from pixlib import setback
     setback(c, file_boxes, depth=3, top=66, x_range=(12, 44))
-    radiator(c)
+    setback(c, radiator, depth=2, top=74, x_range=(54, 90))              # stands off the wall on its brackets
     setback(c, book_pile, depth=3, top=84, x_range=(46, 76))   # on a low cabinet against the radiator
 
 

@@ -44,26 +44,26 @@ metadata/back_plane = true
 metadata/balcony_strip = true
 
 [node name="anchor_study_floor_books" type="Marker2D" parent="."]
-position = Vector2(60, 99)
+position = Vector2(60, 101)
 metadata/back_plane = true
 metadata/balcony_strip = true
 
 [node name="anchor_centre_bookcaseupper" type="Marker2D" parent="."]
-position = Vector2(120, 44)
+position = Vector2(120, 46)
 metadata/back_plane = true
 
 [node name="anchor_centre_bookcaselower" type="Marker2D" parent="."]
-position = Vector2(122, 76)
+position = Vector2(122, 78)
 metadata/back_plane = true
 
 [node name="anchor_study_wingback" type="Marker2D" parent="."]
-position = Vector2(194, 100)
+position = Vector2(194, 102)
 
 [node name="anchor_study_side_table" type="Marker2D" parent="."]
 position = Vector2(228, 101)
 
 [node name="anchor_right_shelf" type="Marker2D" parent="."]
-position = Vector2(292, 68)
+position = Vector2(292, 70)
 metadata/back_plane = true
 
 [node name="Lights" type="Node2D" parent="."]

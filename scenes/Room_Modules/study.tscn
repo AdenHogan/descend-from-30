@@ -39,11 +39,11 @@ texture = ExtResource("3_balcony")
 centered = false
 
 [node name="anchor_centre_bookcaseupper" type="Marker2D" parent="."]
-position = Vector2(114, 46)
+position = Vector2(114, 48)
 metadata/back_plane = true
 
 [node name="anchor_centre_bookcaselower" type="Marker2D" parent="."]
-position = Vector2(126, 74)
+position = Vector2(126, 76)
 metadata/back_plane = true
 
 [node name="anchor_centre_desk" type="Marker2D" parent="."]
@@ -64,7 +64,7 @@ position = Vector2(292, 80)
 metadata/back_plane = true
 
 [node name="anchor_study_file_boxes" type="Marker2D" parent="."]
-position = Vector2(28, 91)
+position = Vector2(28, 93)
 metadata/back_plane = true
 metadata/balcony_strip = true
 

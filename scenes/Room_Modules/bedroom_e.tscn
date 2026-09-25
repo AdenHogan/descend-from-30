@@ -25,7 +25,7 @@ texture = ExtResource("1_art")
 centered = false
 
 [node name="anchor_bedroom_dollhouse" type="Marker2D" parent="."]
-position = Vector2(31, 78)
+position = Vector2(31, 80)
 metadata/back_plane = true
 
 [node name="anchor_bedroom_rocking_horse" type="Marker2D" parent="."]
@@ -38,7 +38,7 @@ position = Vector2(134, 88)
 position = Vector2(212, 107)
 
 [node name="anchor_bedroom_small_wardrobe" type="Marker2D" parent="."]
-position = Vector2(292, 74)
+position = Vector2(292, 76)
 metadata/back_plane = true
 
 [node name="Lights" type="Node2D" parent="."]

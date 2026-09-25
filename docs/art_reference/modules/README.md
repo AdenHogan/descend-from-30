@@ -254,6 +254,27 @@ piece's top face off a window box. Depths used: shelves 3-4, chests / cabinets 5
 5-6, counter runs 7 (true rake 1.0, so worktops stay below the window boxes). A piece near a window box
 moved 3 px outward so its new side panel stays clear (its nodes moved with it).
 
+**ROUND 15 — MORE DEPTH, AND FIXTURES IN TRUE PERSPECTIVE (owner: "I am still seeing items flat against
+the wall. This toilet looks like it is painted onto the background")**:
+- Every `setback` depth is multiplied by `pixlib.DEPTH_GAIN` (1.6, capped at `DEPTH_MAX` 11 incl.
+  `forward` — 11 keeps the step-up stand zone, rows 102-114, clear): shelves 3 → 5, chests 4-5 → 6-8,
+  counters 7 → 11. The depths written in the scripts are the ORIGINAL values. If the gained depth would
+  rake a top into a window box or a side-wall sample column, setback backs off one px at a time
+  (never below the written depth), so the checks can't fail because of the gain.
+- Fixtures whose SHAPE matters are drawn in true perspective instead of extruded: `pixlib.pp(x, y, d)`
+  brings a wall-coord point d px out from the wall (scale (100+d)/100 about x 160, y 0), `pbox` draws
+  a box between two depths (front, lit top, the side facing the middle, outline) and `pellipse` a
+  flat ellipse at a height (a seat, a basin rim, a stool top). Built this way: every TOILET (cistern
+  box, seat + lid or open bowl from above, the bowl down to its foot), every BASIN (the rim and the
+  bowl seen from above, on a pedestal or brackets), the built-in BATHS (`bathroom.bath_box`: we look
+  over the rim into the tub — the curtained one's curtain hangs at its FRONT edge), the shower tray,
+  the roll-top baths' openings, the child's TOY CHEST (lid up, toys inside). Fixture functions take the
+  on-screen x the old flat art used (`bathroom._wall_x`), so nodes stay on them.
+- Radiators stand off the wall (setback 2 → 3).
+- Audit: `FLAT_REPORT=1 python3 tools/art/build_all.py` prints, per module, column runs where
+  something stands on the seam with nothing in front of it (a piece with no depth). Table tops and
+  the edges of side panels trip it too — read the flagged spots, don't chase zero.
+
 **RUN LOOKS, round 14**: the afternoon / night decals were redrawn — damp is a FILLED water stain with
 a tide line, an inner ring and runs weeping down (it was a dotted outline); torn wallpaper is a ragged
 patch to the plaster with the paper's torn core along its edge and a curled corner (it was a floating

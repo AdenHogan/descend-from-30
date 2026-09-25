@@ -29,11 +29,11 @@ position = Vector2(28, 45)
 metadata/back_plane = true
 
 [node name="anchor_kitchen_base_units" type="Marker2D" parent="."]
-position = Vector2(60, 91)
+position = Vector2(60, 95)
 metadata/back_plane = true
 
 [node name="anchor_centre_oven" type="Marker2D" parent="."]
-position = Vector2(111, 95)
+position = Vector2(111, 99)
 metadata/back_plane = true
 
 [node name="anchor_kitchen_formica_table" type="Marker2D" parent="."]
@@ -43,7 +43,7 @@ position = Vector2(196, 94)
 position = Vector2(158, 102)
 
 [node name="anchor_kitchen_larder" type="Marker2D" parent="."]
-position = Vector2(292, 78)
+position = Vector2(292, 79)
 metadata/back_plane = true
 
 [node name="Lights" type="Node2D" parent="."]

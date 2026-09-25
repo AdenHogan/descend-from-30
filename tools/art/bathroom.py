@@ -20,7 +20,7 @@ import os
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
 from pixlib import persp
-from pixlib import Canvas, hexc, shade, mix, W, H, finish_module, rrect, setback
+from pixlib import Canvas, hexc, shade, mix, W, H, finish_module, rrect, setback, pp, pbox, pellipse
 
 # --- shared palette ---------------------------------------------------------------------------
 PORC = hexc('e1e0d6')
@@ -84,39 +84,129 @@ def crown(c, col, hi):
     c.hline(0, W - 1, 5, shade(col, 0.8))
 
 
-def pedestal_sink(c, cx, top, porc=PORC, porc_dk=PORC_DK, out=PORC_OUT, tap=CHROME):
-    """A pedestal basin centred on cx, its bowl rim at `top`, the pedestal down to 99."""
-    c.shadow(cx, 100, 12, 2, 90)
-    c.rect(cx - 3, top + 10, cx + 3, 99, porc)
-    c.vline(cx + 2, top + 10, 99, porc_dk)
-    c.vline(cx - 3, top + 10, 99, out)
-    c.vline(cx + 3, top + 10, 99, out)
-    rrect(c, cx - 15, top, cx + 15, top + 10, out, 3)
-    rrect(c, cx - 14, top + 1, cx + 14, top + 9, porc, 3)
-    c.hline(cx - 12, cx + 12, top + 2, porc_dk)
-    c.rect(cx - 9, top + 3, cx + 9, top + 5, shade(porc, 0.86))
-    c.rect(cx - 1, top - 4, cx + 1, top - 1, tap)
-    c.put(cx + 1, top, shade(tap, 0.7))
+# The fixtures stand OUT from the wall in true perspective (owner round 15: "this toilet looks like
+# it is painted onto the background"): each is described in wall coordinates + how far it comes out
+# (pixlib.pp / pbox / pellipse), so we look DOWN into a basin, onto a seat and a cistern lid, and the
+# side facing the middle of the room shows.
+def _ipt(p_):
+    return (int(round(p_[0])), int(round(p_[1])))
+
+
+def _wall_x(x, d):
+    """The wall-coord x that lands on screen x when brought d px out (callers place fixtures by where
+    they SHOW, the old flat coordinates)."""
+    return 160 + (x - 160) * 100.0 / (100 + d)
+
+
+def pedestal_sink(c, cx, top, porc=PORC, porc_dk=PORC_DK, out=PORC_OUT, tap=CHROME, pedestal=True):
+    """A pedestal basin centred on cx: its rim at wall-height `top`, 2..14 px out from the wall (we
+    look down into the bowl), the pedestal standing on the floor ~6 px out."""
+    cx = _wall_x(cx, 8)
+    if pedestal:
+        _pedestal(c, cx, top, porc, porc_dk, out)
+    _basin(c, cx, top, porc, porc_dk, out, tap)
+
+
+def _pedestal(c, cx, top, porc, porc_dk, out):
+    foot = pp(cx, 100, 7)
+    c.shadow(foot[0], foot[1] + 1, 9, 2, 100)
+    # the pedestal: a column from under the bowl to a flared foot on the floor
+    p0, p1 = pp(cx - 3, top + 9, 7), pp(cx + 3, top + 9, 7)
+    q0, q1 = pp(cx - 3, 97, 7), pp(cx + 3, 97, 7)
+    c.poly([_ipt(p0), _ipt(p1), _ipt(q1), _ipt(q0)], porc)
+    c.vline(_ipt(q1)[0] - 1, _ipt(p1)[1], _ipt(q1)[1], porc_dk)
+    c.line(*_ipt(p0), *_ipt(q0), out)
+    c.line(*_ipt(p1), *_ipt(q1), out)
+    pellipse(c, cx, 100, 4, 10, 6, out)
+    pellipse(c, cx, 99, 5, 9, 5, porc)
+
+
+def _basin(c, cx, top, porc, porc_dk, out, tap):
+    # the bowl's belly under the rim, curving in to the pedestal
+    b = [_ipt(pp(cx - 13, top + 1, 9)), _ipt(pp(cx + 13, top + 1, 9)), _ipt(pp(cx + 4, top + 10, 7)),
+         _ipt(pp(cx - 4, top + 10, 7))]
+    c.poly(b, shade(porc, 0.9))
+    c.line(*b[0], *b[3], out)
+    c.line(*b[1], *b[2], out)
+    c.hline(b[3][0], b[2][0], b[2][1], out)
+    c.line(b[1][0] - 2, b[1][1] + 1, b[2][0] - 1, b[2][1] - 1, porc_dk)
+    # the rim + the basin seen from above: its back inner wall lit, the bottom in shadow
+    rx_, ry_, rrx, rry = pellipse(c, cx, top, 1, 15, 15, out)
+    pellipse(c, cx, top, 2, 14, 14, porc)
+    pellipse(c, cx, top, 3, 11, 11, shade(porc, 0.84))
+    pellipse(c, cx, top, 6, 11, 8, shade(porc, 0.68))
+    c.hline(int(rx_ - rrx + 3), int(rx_ + rrx - 3), int(round(ry_ + rry)) - 1, shade(porc, 1.12))   # the lit front lip
+    d = _ipt(pp(cx, top, 9))
+    c.put(d[0], d[1], shade(porc, 0.4))                                 # the plughole
+    # the tap at the back of the rim, its spout over the bowl
+    t = _ipt(pp(cx, top - 4, 2))
+    c.rect(t[0] - 1, t[1], t[0] + 1, t[1] + 3, tap)
+    c.put(t[0] + 1, t[1] + 3, shade(tap, 0.7))
+    c.hline(t[0] - 1, t[0] + 1, t[1] + 4, shade(tap, 0.8))
 
 
 def toilet(c, cx, porc=PORC, out=PORC_OUT, lid_up=False, seat=None, lever=CHROME):
-    """A low-cistern toilet against the wall, centred on cx (cistern top 67 — under the L box)."""
-    c.shadow(cx, 100, 13, 2, 90)
-    c.box(cx - 10, 67, cx + 10, 77, porc, out)
-    c.hline(cx - 9, cx + 9, 68, shade(porc, 1.08))
-    c.rect(cx + 7, 70, cx + 9, 71, lever)
+    """A close-coupled toilet centred on cx: the cistern against the wall (top at wall-height 67 —
+    under the L window box) 0..4 px out, the bowl 3..11 px out with its seat seen from above, the
+    foot on the floor. `lid_up` shows the lid standing against the cistern and the bowl open."""
+    cx = _wall_x(cx, 6)
+    seat = seat or porc
+    lit, dk = shade(porc, 1.1), shade(porc, 0.8)
+    foot = pp(cx, 100, 7)
+    c.shadow(foot[0], foot[1] + 1, 11, 2, 110)
+    # the bowl's body: from under the seat down to a narrower foot
+    a0, a1 = pp(cx - 10, 84, 9), pp(cx + 10, 84, 9)
+    b0, b1 = pp(cx - 6, 98, 8), pp(cx + 6, 98, 8)
+    body = [_ipt(a0), _ipt(a1), _ipt(b1), _ipt(b0)]
+    c.poly(body, porc)
+    c.line(*body[0], *body[3], out)
+    c.line(*body[1], *body[2], out)
+    side = 1 if cx < 160 else -1                                          # the side toward the room's middle
+    edge = body[1] if side > 0 else body[0]
+    for k in range(1, 4):
+        c.line(edge[0] - side * k, edge[1] + 2, (body[2] if side > 0 else body[3])[0] - side * k,
+               (body[2] if side > 0 else body[3])[1], shade(porc, 0.9 - 0.04 * k) if k == 1 else dk)
+    pellipse(c, cx, 100, 4, 10, 8, out)                                    # the foot
+    pellipse(c, cx, 99, 5, 9, 7, shade(porc, 0.92))
+    # the cistern, a box against the wall
+    f = pbox(c, cx - 9, 67, cx + 9, 78, 0, 4, porc, lit, dk, out)
+    c.rect(f['fr'][0] - 4, f['fl'][1] + 3, f['fr'][0] - 2, f['fl'][1] + 4, lever)
+    # the neck between cistern and bowl
+    n0, n1 = _ipt(pp(cx - 7, 78, 4)), _ipt(pp(cx + 7, 84, 4))
+    c.rect(n0[0], n0[1] + 1, n1[0], n1[1], dk)
+    # the seat on the bowl's rim, seen from above
+    pellipse(c, cx, 84, 2, 12, 12, out)
+    pellipse(c, cx, 84, 3, 11, 11, seat)
+    ex, ey, erx, ery = pellipse(c, cx, 84, 3, 11, 11, seat)
     if lid_up:
-        c.box(cx - 9, 70, cx + 9, 78, seat or porc, out)          # the lid up against the cistern
-    rrect(c, cx - 12, 78, cx + 12, 88, out, 4)
-    rrect(c, cx - 11, 79, cx + 11, 87, seat or porc, 4)
-    if lid_up:
-        rrect(c, cx - 8, 81, cx + 8, 86, shade(porc, 0.55), 3)   # the dark bowl
+        pellipse(c, cx, 84, 5, 10, 7, shade(porc, 0.62))                   # the open bowl
+        pellipse(c, cx, 84, 6, 9, 4, mix(shade(porc, 0.55), (96, 120, 110, 255), 0.35))
+        # the lid standing up against the cistern
+        l0, l1 = _ipt(pp(cx - 8, 70, 4)), _ipt(pp(cx + 8, 83, 4))
+        rrect(c, l0[0], l0[1], l1[0], l1[1], out, 3)
+        rrect(c, l0[0] + 1, l0[1] + 1, l1[0] - 1, l1[1] - 1, seat, 3)
+        c.hline(l0[0] + 3, l1[0] - 3, l0[1] + 2, shade(seat, 1.12))
     else:
-        c.hline(cx - 9, cx + 9, 80, shade(porc, 1.08))
-    c.poly([(cx - 8, 88), (cx + 8, 88), (cx + 5, 99), (cx - 5, 99)], porc)
-    c.line(cx - 8, 88, cx - 5, 99, out)
-    c.line(cx + 8, 88, cx + 5, 99, out)
-    c.hline(cx - 5, cx + 5, 99, out)
+        c.hline(int(ex - erx + 3), int(ex + erx - 3), int(round(ey - ery)) + 1, shade(seat, 1.15))   # the closed lid, lit
+        c.hline(int(ex - erx + 2), int(ex + erx - 2), int(round(ey + ery)), shade(seat, 0.82))
+
+
+def bath_box(c, x0, x1, yw, d, body, lit, dk, out, inside):
+    """A built-in bath against the wall in true perspective: its FRONT spans screen x0..x1 at d px out
+    (the old flat coordinates), its rim at wall-height yw. We look down over the rim into the tub: the
+    inner back wall in light, the bottom darker. Returns (the front face corners, wall x0, wall x1)."""
+    wx0, wx1 = _wall_x(x0, d), _wall_x(x1, d)
+    foot = pp((wx0 + wx1) / 2, 100, d)
+    c.shadow(foot[0], foot[1] + 1, (x1 - x0) // 2 + 3, 2, 110)
+    f = pbox(c, wx0, yw, wx1, 100, 0, d, body, lit, dk, out)
+    q = [_ipt(pp(wx0 + 4, yw, 2)), _ipt(pp(wx1 - 4, yw, 2)), _ipt(pp(wx1 - 4, yw, d - 2)), _ipt(pp(wx0 + 4, yw, d - 2))]
+    c.poly(q, shade(inside, 1.12))
+    q2 = [_ipt(pp(wx0 + 6, yw, 5)), _ipt(pp(wx1 - 6, yw, 5)), _ipt(pp(wx1 - 5, yw, d - 2)), _ipt(pp(wx0 + 5, yw, d - 2))]
+    c.poly(q2, inside)
+    c.line(*q[0], *q[1], shade(inside, 0.7))                            # the rim's shadow on the far wall
+    c.line(*q[0], *q[3], shade(inside, 0.85))
+    c.line(*q[3], *q[2], shade(lit, 1.05))                              # the near lip, lit
+    return f, wx0, wx1
 
 
 def clawfoot_tub(c, x0, x1, rim, porc, porc_lt, porc_dk, out, feet, inside, water=None):
@@ -141,11 +231,15 @@ def clawfoot_tub(c, x0, x1, rim, porc, porc_lt, porc_dk, out, feet, inside, wate
     for (ex0, ex1) in ((x0, x0 + 9), (x1 - 9, x1)):                  # the rolled ends stand proud
         rrect(c, ex0, rim - 3, ex1, rim + 1, out, 2)
         rrect(c, ex0 + 1, rim - 2, ex1 - 1, rim, porc_lt, 1)
-    c.hline(x0 + 9, x1 - 9, rim, porc_lt)                             # the lip, lit
-    c.rect(x0 + 5, rim + 1, x1 - 5, rim + 2, inside)                  # the inside, glimpsed
-    if water is not None:
-        c.hline(x0 + 8, x1 - 8, rim + 2, water)
-    c.hline(x0 + 2, x1 - 2, rim + 3, porc_lt)
+    # the top seen from above (owner round 15): a rolled rim round an oval opening — the inside's far
+    # wall lit, the water (or the bottom) below the near lip
+    rrect(c, x0 + 1, rim - 4, x1 - 1, rim + 3, out, 4)
+    rrect(c, x0 + 2, rim - 3, x1 - 2, rim + 2, porc_lt, 4)
+    rrect(c, x0 + 6, rim - 2, x1 - 6, rim + 1, shade(inside, 1.25), 2)
+    c.hline(x0 + 8, x1 - 8, rim, inside)
+    c.hline(x0 + 8, x1 - 8, rim + 1, water if water is not None else shade(inside, 0.85))
+    c.hline(x0 + 6, x1 - 6, rim - 2, shade(inside, 0.8))
+    c.hline(x0 + 3, x1 - 3, rim + 3, porc_lt)
     c.dither(x0 + 6, body_bot - 5, x1 - 6, body_bot - 1, porc_dk, 0.5)
     for fx in (x0 + 7, x1 - 7):                                       # front claw feet
         c.rect(fx - 1, body_bot - 1, fx + 1, base - 2, feet)
@@ -173,7 +267,7 @@ def shower_corner(c, x0, x1, top, tile, grout, tray=PORC, tray_out=PORC_OUT):
     c.rect(x0, top, x1, 99, tile)
     for y in range(top + 4, 99, 8):
         c.hline(x0, x1, y, grout)
-    c.box(x0 - 2, 96, x1 + 2, 100, tray, tray_out)
+    pbox(c, x0 - 2, 95, x1 - 5, 100, 0, 8, tray, shade(tray, 1.08), shade(tray, 0.75), tray_out)
     c.rect(x1 - 6, top + 6, x1 - 5, top + 20, CHROME_DK)
     c.rect(x1 - 12, top + 6, x1 - 6, top + 7, CHROME_DK)
     c.rect(x1 - 15, top + 8, x1 - 10, top + 9, CHROME)
@@ -388,32 +482,32 @@ def vanity_unit(c, x0, x1, top):
 
 
 def panel_bath(c, x0, x1, rim):
-    """A rectangular built-in bath with a front panel, along the wall; a glass screen at the tap end."""
-    base = rim + 26
-    c.shadow((x0 + x1) // 2, base + 1, (x1 - x0) // 2 + 2, 2, 110)
-    c.rect(x0, rim, x1, rim + 3, AVO_LT)                                # the rim, seen from above
-    c.hline(x0, x1, rim, AVO_OUT)
-    c.rect(x0 + 4, rim + 1, x1 - 4, rim + 2, AVO_DK)                    # the inside edge
-    c.box(x0, rim + 4, x1, base, AVO, AVO_OUT)                          # the panel
-    c.hline(x0 + 1, x1 - 1, rim + 5, AVO_LT)
-    c.box(x0 + 4, rim + 8, x1 - 4, base - 4, AVO, AVO_DK)               # a moulded inset
-    c.dither(x0 + 5, base - 8, x1 - 5, base - 5, AVO_DK, 0.5)
-    c.hline(x0, x1, base + 1, shade(AVO_OUT, 0.7))
+    """A rectangular built-in bath with a front panel, along the wall, 12 px deep (we look down into
+    it); a glass screen at the tap end, taps on the wall."""
+    d = 12
+    f, wx0, wx1 = bath_box(c, x0, x1, rim + 2, d, AVO, AVO_LT, AVO_DK, AVO_OUT, hexc('5f6a34'))
+    fl, fr, fbl = f['fl'], f['fr'], f['fbl']
+    c.hline(fl[0] + 1, fr[0] - 1, fl[1] + 1, AVO_LT)
+    c.box(fl[0] + 4, fl[1] + 4, fr[0] - 4, fbl[1] - 4, AVO, AVO_DK)      # a moulded inset
+    c.dither(fl[0] + 5, fbl[1] - 8, fr[0] - 5, fbl[1] - 5, AVO_DK, 0.5)
+    c.hline(fl[0], fr[0], fbl[1] + 1, shade(AVO_OUT, 0.7))
     # the panel's been kicked in at one corner — the dark cavity under the tub shows
-    c.poly([(x0 + 10, base - 1), (x0 + 16, rim + 14), (x0 + 26, rim + 16), (x0 + 30, base - 1)], hexc('1e1a16'))
-    c.line(x0 + 16, rim + 14, x0 + 26, rim + 16, AVO_LT)
-    # taps (left end) + a glass screen hinged at the wall (kept between the window boxes)
-    c.rect(x0 + 4, rim - 8, x0 + 6, rim - 1, CHROME)
-    c.rect(x0 + 10, rim - 8, x0 + 12, rim - 1, CHROME)
-    c.hline(x0 + 3, x0 + 13, rim - 8, CHROME_DK)
-    for y in range(26, rim):
-        for x in range(x0 + 14, x0 + 25):
+    bx, by = fl[0], fbl[1]
+    c.poly([(bx + 10, by - 1), (bx + 16, by - 12), (bx + 26, by - 10), (bx + 30, by - 1)], hexc('1e1a16'))
+    c.line(bx + 16, by - 12, bx + 26, by - 10, AVO_LT)
+    # taps on the wall (left end) + a glass screen standing on the back of the rim
+    tx = int(round(wx0))
+    c.rect(tx + 4, rim - 6, tx + 6, rim + 1, CHROME)
+    c.rect(tx + 10, rim - 6, tx + 12, rim + 1, CHROME)
+    c.hline(tx + 3, tx + 13, rim - 6, CHROME_DK)
+    for y in range(26, rim + 2):
+        for x in range(tx + 14, tx + 25):
             c.put(x, y, GLASS)
-    c.vline(x0 + 25, 26, rim - 1, CHROME_DK)
-    c.hline(x0 + 14, x0 + 25, 26, CHROME_DK)
-    c.line(x0 + 17, rim - 8, x0 + 22, 34, hexc('dde6e6'))
-    c.rect(x0 + 2, 30, x0 + 3, 52, CHROME_DK)                           # a shower riser
-    c.rect(x0 + 2, 30, x0 + 7, 32, CHROME)
+    c.vline(tx + 25, 26, rim + 1, CHROME_DK)
+    c.hline(tx + 14, tx + 25, 26, CHROME_DK)
+    c.line(tx + 17, rim - 8, tx + 22, 34, hexc('dde6e6'))
+    c.rect(tx + 2, 30, tx + 3, 52, CHROME_DK)                             # a shower riser
+    c.rect(tx + 2, 30, tx + 7, 32, CHROME)
 
 
 def mop_bucket(c, x0, base):
@@ -442,8 +536,8 @@ def b_build(c):
     c.rect(86, 80, 91, 86, hexc('ece6d6'))                               # a roll on the cistern's side
     mop_bucket(c, 94, 100)                                             # by the toilet, against the wall
     # a shaggy bath mat in front of the bath, rucked up
-    c.poly([(176, 110), (224, 110), (228, 118), (172, 118)], hexc('d9a24a'))
-    c.dither(174, 111, 226, 117, hexc('b8863a'), 0.5)
+    c.poly([(176, 115), (224, 115), (228, 122), (172, 122)], hexc('d9a24a'))
+    c.dither(174, 116, 226, 121, hexc('b8863a'), 0.5)
     panel_bath(c, 158, 246, 76)
     def _stool(c):
         c.rect(270, 78, 290, 99, hexc('9a8660'))                         # a stool with a radio
@@ -662,31 +756,36 @@ def d_floor(c):
 
 def curtained_tub(c, x0, x1, rim):
     """A plastic curtain drawn right across the front of the bath — you can't see what's behind it;
-    a hand has pulled one corner aside. The rail runs on the wall above."""
-    base = rim + 26
-    c.shadow((x0 + x1) // 2, base + 1, (x1 - x0) // 2 + 2, 2, 110)
-    c.box(x0, rim, x1, base, PORC, PORC_OUT)                             # the tub's end, glimpsed
-    c.hline(x0 + 1, x1 - 1, rim + 1, PORC_LT)
+    a hand has pulled one corner aside. The rail runs from the wall at each end out over the tub's
+    front edge, so the curtain hangs at the FRONT of the bath, 12 px out."""
+    d = 12
+    f, wx0, wx1 = bath_box(c, x0, x1, rim, d, PORC, PORC_LT, PORC_DK, PORC_OUT, hexc('8a8a70'))
+    fl, fr, fbl = f['fl'], f['fr'], f['fbl']
+    c.hline(fl[0] + 1, fr[0] - 1, fl[1] + 1, PORC_LT)
     cur = hexc('c9c48a', 235)
-    c.hline(x0 - 2, x1 + 2, 30, CHROME_DK)
-    for x in range(x0 + 12, x1 + 1):                                     # the curtain, hanging in folds
-        top = 31
-        bot = base - 2 + (1 if (x // 4) % 2 else 0)
-        c.vline(x, top, bot, cur)
-        if (x - x0) % 7 == 0:
-            c.vline(x, top, bot, shade(cur, 0.82))
-        if (x - x0) % 7 == 3:
-            c.vline(x, top, bot, shade(cur, 1.08))
-    for x in range(x0 + 12, x1 + 1, 6):                                  # rings
-        c.put(x, 31, CHROME)
-    c.dither(x0 + 12, base - 20, x1, base - 3, hexc('7a7a4a', 90), 0.4, pattern='random')   # grime at the hem
-    for (fx, fy) in ((x0 + 30, 44), (x0 + 50, 40), (x0 + 40, 58)):     # ducks printed on it
+    rt = int(round(30 * (100 + d) / 100.0))                              # the rail at the front
+    for wx in (wx0 + 12, wx1):                                           # its ends run back to the wall
+        a_, b_ = _ipt(pp(wx, 30, 0)), _ipt(pp(wx, 30, d))
+        c.line(a_[0], a_[1], b_[0], b_[1], CHROME_DK)
+    left = _ipt(pp(wx0 + 12, 30, d))[0]
+    c.hline(left - 2, fr[0] + 2, rt, CHROME_DK)
+    for x in range(left, fr[0] + 1):                                     # the curtain, hanging in folds
+        bot = fbl[1] - 2 + (1 if (x // 4) % 2 else 0)
+        c.vline(x, rt + 1, bot, cur)
+        if (x - left) % 7 == 0:
+            c.vline(x, rt + 1, bot, shade(cur, 0.82))
+        if (x - left) % 7 == 3:
+            c.vline(x, rt + 1, bot, shade(cur, 1.08))
+    for x in range(left, fr[0] + 1, 6):                                  # rings
+        c.put(x, rt + 1, CHROME)
+    c.dither(left, fbl[1] - 20, fr[0], fbl[1] - 3, hexc('7a7a4a', 90), 0.4, pattern='random')   # grime at the hem
+    for (fx, fy) in ((left + 18, rt + 14), (left + 38, rt + 10), (left + 28, rt + 28)):     # ducks printed on it
         c.rect(fx, fy, fx + 4, fy + 3, hexc('d9b43a'))
         c.put(fx + 5, fy + 1, hexc('c06a2a'))
-    c.poly([(x0 + 12, 31), (x0 + 16, 31), (x0 + 22, base - 2), (x0 + 12, base - 4)], shade(cur, 0.9))
-    c.line(x0 + 12, 31, x0 + 12, base - 4, shade(cur, 0.7))
-    c.line(x0 + 24, 70, x0 + 30, 88, BLOOD)                              # a smear down the plastic
-    c.line(x0 + 26, 70, x0 + 31, 84, BLOOD)
+    c.poly([(left, rt + 1), (left + 4, rt + 1), (left + 10, fbl[1] - 2), (left, fbl[1] - 4)], shade(cur, 0.9))
+    c.line(left, rt + 1, left, fbl[1] - 4, shade(cur, 0.7))
+    c.line(left + 12, rt + 40, left + 18, rt + 58, BLOOD)                # a smear down the plastic
+    c.line(left + 14, rt + 40, left + 19, rt + 54, BLOOD)
 
 
 def washing_machine(c, x0, top):
@@ -744,12 +843,13 @@ def d_build(c):
     c.rect(16, 34, 38, 52, MIRROR)
     c.line(18, 50, 34, 36, MIRROR_HI)
     c.line(24, 36, 30, 50, shade(MIRROR, 0.75)); c.line(30, 50, 36, 44, shade(MIRROR, 0.75))
-    rrect(c, 12, 66, 42, 74, PORC_OUT, 3)
-    rrect(c, 13, 67, 41, 73, PORC, 3)
-    c.rect(26, 60, 28, 65, CHROME_DK)
-    c.line(16, 75, 18, 84, IRON); c.line(38, 75, 36, 84, IRON)           # brackets
-    c.vline(27, 75, 99, IRON)                                            # the waste pipe
+    c.vline(27, 75, 99, IRON)                                            # the waste pipe, down the wall
     c.rect(24, 92, 30, 97, RUST)
+    for bx in (18, 36):                                                  # brackets out from the wall
+        c.line(bx, 84, bx, 76, IRON)
+        c.line(bx, 84, bx - (1 if bx < 27 else -1), 78, shade(IRON, 0.8))
+    pedestal_sink(c, 27, 67, pedestal=False)
+    c.dither(16, 70, 38, 74, hexc('8a7a5a', 120), 0.4, pattern='random')  # grime in the basin
     toilet(c, 70, lid_up=True, seat=hexc('b9b4a4'))
     c.dither(60, 67, 80, 70, MOULD, 0.5)
     c.rect(86, 88, 96, 99, hexc('d8d2c2'))                               # toilet rolls stacked
@@ -832,22 +932,22 @@ def e_build(c):
         c.line(fx, 26, fx - 1, rim - 4, hexc('d0c8b4'))
     for (x, y) in ((x1 - 8, 36), (x1 - 3, 50), (x1 - 7, 64)):                   # little pink fish on it
         c.rect(x, y, x + 3, y + 1, PINK_DK)
-    c.shadow((x0 + x1) // 2, rim + 27, (x1 - x0) // 2 + 3, 3, 110)
-    rrect(c, x0, rim, x1, rim + 5, PINK_OUT, 3)
-    rrect(c, x0 + 1, rim + 1, x1 - 1, rim + 4, PINK_LT, 2)
-    c.rect(x0 + 5, rim + 2, x1 - 5, rim + 3, hexc('8a6a74'))
-    c.box(x0, rim + 6, x1, rim + 26, E_TILE, PINK_OUT)                          # the tiled plinth
-    for y in range(rim + 10, rim + 26, 6):
-        c.hline(x0 + 1, x1 - 1, y, hexc('b89aa0'))
-    for x in range(x0 + 6, x1, 8):
-        c.vline(x, rim + 7, rim + 25, hexc('b89aa0'))
-    c.rect(x0 + 6, rim - 8, x0 + 8, rim - 1, CHROME)                             # taps
-    c.rect(x0 + 12, rim - 8, x0 + 14, rim - 1, CHROME)
-    c.hline(x0 + 5, x0 + 15, rim - 8, CHROME_DK)
-    c.line(150, rim + 6, 152, rim + 20, BLOOD)
+    f, wx0, wx1 = bath_box(c, x0, x1, rim, 12, E_TILE, PINK_LT, shade(E_TILE, 0.72), PINK_OUT, hexc('b07a86'))
+    fl, fr, fbl = f['fl'], f['fr'], f['fbl']
+    for y in range(fl[1] + 5, fbl[1], 6):                                         # the tiled plinth
+        c.hline(fl[0] + 1, fr[0] - 1, y, hexc('b89aa0'))
+    for x in range(fl[0] + 6, fr[0], 8):
+        c.vline(x, fl[1] + 1, fbl[1] - 1, hexc('b89aa0'))
+    c.hline(fl[0], fr[0], fl[1], PINK_OUT)
+    c.hline(fl[0] + 1, fr[0] - 1, fl[1] + 1, PINK_LT)
+    tx = int(round(wx0))
+    c.rect(tx + 2, rim - 8, tx + 4, rim, CHROME)                                  # taps on the wall
+    c.rect(tx + 8, rim - 8, tx + 10, rim, CHROME)
+    c.hline(tx + 1, tx + 11, rim - 8, CHROME_DK)
+    c.line(150, rim + 12, 152, rim + 24, BLOOD)
     # a pink fluffy bath mat in front of the tub + a laundry hamper against the wall beside it
-    c.poly([(124, 112), (170, 112), (172, 118), (122, 118)], PINK_LT)
-    c.dither(124, 113, 170, 117, PINK, 0.5)
+    c.poly([(124, 115), (170, 115), (172, 121), (122, 121)], PINK_LT)
+    c.dither(124, 116, 170, 120, PINK, 0.5)
     def _hamper(c):
         c.shadow(214, 100, 12, 2, 100)
         c.poly([(202, 81), (226, 81), (224, 100), (204, 100)], hexc('efe8d8'))

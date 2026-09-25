@@ -25,22 +25,22 @@ texture = ExtResource("1_art")
 centered = false
 
 [node name="anchor_centre_fridge" type="Marker2D" parent="."]
-position = Vector2(21, 65)
+position = Vector2(21, 68)
 metadata/back_plane = true
 
 [node name="anchor_kitchen_camp_table" type="Marker2D" parent="."]
 position = Vector2(88, 95)
 
 [node name="anchor_kitchen_dishes" type="Marker2D" parent="."]
-position = Vector2(146, 77)
+position = Vector2(146, 81)
 metadata/back_plane = true
 
 [node name="anchor_kitchen_student_cupboard" type="Marker2D" parent="."]
-position = Vector2(186, 91)
+position = Vector2(186, 95)
 metadata/back_plane = true
 
 [node name="anchor_kitchen_microwave" type="Marker2D" parent="."]
-position = Vector2(202, 71)
+position = Vector2(202, 75)
 metadata/back_plane = true
 
 [node name="anchor_kitchen_pizza_boxes" type="Marker2D" parent="."]

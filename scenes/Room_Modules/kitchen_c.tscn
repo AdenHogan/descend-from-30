@@ -33,14 +33,14 @@ position = Vector2(24, 93)
 metadata/back_plane = true
 
 [node name="anchor_kitchen_butler_sink" type="Marker2D" parent="."]
-position = Vector2(72, 82)
+position = Vector2(72, 84)
 metadata/back_plane = true
 
 [node name="anchor_kitchen_veg_basket" type="Marker2D" parent="."]
 position = Vector2(220, 86)
 
 [node name="anchor_centre_oven" type="Marker2D" parent="."]
-position = Vector2(146, 90)
+position = Vector2(146, 94)
 metadata/back_plane = true
 
 [node name="anchor_kitchen_pine_table" type="Marker2D" parent="."]

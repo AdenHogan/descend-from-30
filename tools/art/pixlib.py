@@ -382,6 +382,17 @@ SETBACKS = []           # [(opaque-pixel set of the piece as drawn, depth)] — 
 VP_X = W // 2
 
 
+DEPTH_GAIN = 1.6        # owner round 15 ("I am still seeing items flat against the wall"): every
+DEPTH_MAX = 11          # set-back piece stands this much further out than first drawn (3 → 5, 4 → 6,
+                        # 5 → 8, 7 → 11); 11 keeps the step-up stand zone (rows 102-114) clear
+
+
+def setback_depth(depth, forward=0):
+    if depth <= 0:
+        return 0
+    return max(depth, min(DEPTH_MAX - forward, int(round(depth * DEPTH_GAIN))))
+
+
 def setback(c, fn, depth=5, top=None, x_range=None, vpx=VP_X, rake=None, forward=0):
     """Draw `fn` (a set-back piece, base on the seam) with real depth — see above.
     depth   — how far forward its front comes (px of floor): ~3 shelves, 5 chests, 6-7 wardrobes.
@@ -392,6 +403,36 @@ def setback(c, fn, depth=5, top=None, x_range=None, vpx=VP_X, rake=None, forward
     forward — stand it this much further out from the wall first (a box in front of a counter that
               itself came forward); depth 0 + forward = a plain move forward, no extrusion."""
     rake = TOP_RAKE if rake is None else rake
+    want = setback_depth(depth, forward)
+    for d in range(want, depth - 1, -1):          # the gained depth, backed off if its top would rake
+        n0 = len(LIGHTS)                          # into a window box / a side-wall sample column
+        ext, lyr_img, opaque = _setback_render(fn, d, top, x_range, vpx, rake, forward)
+        if d <= depth or _setback_clear(ext, lyr_img, d + forward):
+            break
+        del LIGHTS[n0:]
+    SETBACKS.append((opaque, d + forward))
+    c.img.alpha_composite(ext)
+    moved = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+    moved.paste(lyr_img, (0, d + forward), lyr_img)
+    c.img.alpha_composite(moved)
+    c.px = c.img.load()
+
+
+def _setback_clear(ext, lyr_img, shift):
+    ep, lp = ext.load(), lyr_img.load()
+    for (x0, y0, x1, y1) in (WIN_L, WIN_R):
+        for y in range(y0, y1 + 1):
+            for x in range(x0, x1 + 1):
+                if ep[x, y][3] or (0 <= y - shift and lp[x, y - shift][3]):
+                    return False
+    for x in EDGE_COLS:
+        for y in range(0, SEAM_Y):
+            if ep[x, y][3] or (0 <= y - shift and lp[x, y - shift][3]):
+                return False
+    return True
+
+
+def _setback_render(fn, depth, top, x_range, vpx, rake, forward):
     lyr = Canvas(bg=(0, 0, 0, 0), seed=11)
     push_light_offset(0, depth + forward)
     try:
@@ -404,7 +445,6 @@ def setback(c, fn, depth=5, top=None, x_range=None, vpx=VP_X, rake=None, forward
         for x in range(W):
             if sp[x, y][3] == 255:
                 opaque.add((x, y))
-    SETBACKS.append((opaque, depth + forward))
     back = SEAM_Y + forward                        # where its back stands
     body = set()
     ytop = top if top is not None else min((y for (x, y) in opaque), default=0)
@@ -454,11 +494,68 @@ def setback(c, fn, depth=5, top=None, x_range=None, vpx=VP_X, rake=None, forward
             if nq not in best and nq not in front:
                 ep[q[0], q[1]] = outline_col[:3] + (255,)
                 break
-    c.img.alpha_composite(ext)
-    moved = Image.new('RGBA', (W, H), (0, 0, 0, 0))
-    moved.paste(lyr.img, (0, depth + forward), lyr.img)
-    c.img.alpha_composite(moved)
-    c.px = c.img.load()
+    return ext, lyr.img, opaque
+
+
+# --- A TRUE-PERSPECTIVE BOX (owner round 15 — "this toilet looks like it is painted onto the
+# background"): for pieces whose shape matters (a toilet, a basin, a bath), describe it in WALL
+# coordinates (x, y as if drawn flat on the back wall; y 100 = the floor) plus how far it stands
+# out from the wall (depth d, px of floor), and project: a point d px out is scaled by (100 + d) / 100
+# about the vanishing point (VP_X, the ceiling line y 0). So a floor-standing piece's feet land on
+# y 100 + d, its top shows (we look down on it), and the side facing the room's middle shows.
+def pp(x, y, d, vpx=VP_X):
+    """Wall-coord point (x, y) brought d px out from the back wall → art coords (floats)."""
+    s = (SEAM_Y + d) / float(SEAM_Y)
+    return (vpx + (x - vpx) * s, y * s)
+
+
+def _ip(p_):
+    return (int(round(p_[0])), int(round(p_[1])))
+
+
+def pbox(c, x0, y0, x1, y1, d0, d1, front, top=None, side=None, out=None, vpx=VP_X):
+    """A box: wall-coord rect x0..x1 × y0..y1 filling depths d0..d1 out from the wall. Draws the
+    side facing the vanishing point, the top, then the front; `out` outlines the silhouette.
+    Returns the projected corners {'fl','fr','fbl','fbr','bl','br'} (front-top-left, front-top-right,
+    front-bottom-left, front-bottom-right, back-top-left, back-top-right) for decoration."""
+    top = top if top is not None else shade(front, 1.12)
+    side = side if side is not None else shade(front, 0.72)
+    fl, fr = _ip(pp(x0, y0, d1, vpx)), _ip(pp(x1, y0, d1, vpx))
+    fbl, fbr = _ip(pp(x0, y1, d1, vpx)), _ip(pp(x1, y1, d1, vpx))
+    bl, br = _ip(pp(x0, y0, d0, vpx)), _ip(pp(x1, y0, d0, vpx))
+    bbl, bbr = _ip(pp(x0, y1, d0, vpx)), _ip(pp(x1, y1, d0, vpx))
+    if x1 < vpx:                                   # left of the middle: its right side shows
+        c.poly([br, fr, fbr, bbr], side)
+    elif x0 > vpx:                                 # right of the middle: its left side shows
+        c.poly([bl, fl, fbl, bbl], side)
+    c.poly([bl, br, fr, fl], top)
+    c.rect(fl[0], fl[1], fbr[0], fbr[1], front)
+    if out is not None:
+        c.line(bl[0], bl[1], br[0], br[1], out)
+        c.line(fl[0], fl[1], bl[0], bl[1], out)
+        c.line(fr[0], fr[1], br[0], br[1], out)
+        if x1 < vpx:
+            c.line(br[0], br[1], bbr[0], bbr[1], out)
+            c.line(bbr[0], bbr[1], fbr[0], fbr[1], out)
+        elif x0 > vpx:
+            c.line(bl[0], bl[1], bbl[0], bbl[1], out)
+            c.line(bbl[0], bbl[1], fbl[0], fbl[1], out)
+        c.hline(fl[0], fr[0], fl[1], out)
+        c.hline(fbl[0], fbr[0], fbl[1], out)
+        c.vline(fl[0], fl[1], fbl[1], out)
+        c.vline(fr[0], fr[1], fbr[1], out)
+    return {'fl': fl, 'fr': fr, 'fbl': fbl, 'fbr': fbr, 'bl': bl, 'br': br}
+
+
+def pellipse(c, cx, y, d0, d1, rx, col, vpx=VP_X):
+    """A flat horizontal ellipse (a seat, a basin rim, a stool top) at wall-height y, spanning depths
+    d0..d1 out from the wall, rx wide (wall coords), seen from above in perspective."""
+    dm = (d0 + d1) / 2.0
+    ccx, _ = pp(cx, y, dm, vpx)
+    ya, yb = pp(cx, y, d0, vpx)[1], pp(cx, y, d1, vpx)[1]
+    s = (SEAM_Y + dm) / float(SEAM_Y)
+    c.ellipse(ccx, (ya + yb) / 2.0, rx * s, max(0.6, (yb - ya) / 2.0), col)
+    return (ccx, (ya + yb) / 2.0, rx * s, (yb - ya) / 2.0)
 
 
 def _setback_anchor(ax, ay):
@@ -593,6 +690,20 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
     for (lx, ly, lk, lf) in lights:
         if not (0 <= lx < W and 0 <= ly < H):
             errs.append('light fixture %s at (%d,%d) is off the module' % (lk, lx, ly))
+    if os.environ.get('FLAT_REPORT'):               # audit: pieces standing on the seam with no depth
+        runs_, cur_ = [], []
+        for x in range(W):
+            up = all(full.img.getpixel((x, y)) != bare_floor.img.getpixel((x, y)) for y in (96, 97, 98))
+            fwd = any(full.img.getpixel((x, y)) != bare_floor.img.getpixel((x, y)) for y in (104, 105))
+            if up and not fwd:
+                cur_.append(x)
+            elif cur_:
+                runs_.append(cur_); cur_ = []
+        if cur_:
+            runs_.append(cur_)
+        runs_ = [(r[0], r[-1]) for r in runs_ if len(r) >= 3]
+        if runs_:
+            print('FLAT %s: %s' % (name, runs_))
     bp = check_back_plane_clear(full.img, bare_floor.img, anchors)
     if bp and os.environ.get('BP_REPORT'):          # audit mode: list every module, don't stop
         print('BP %s run 1: %s' % (name, bp))

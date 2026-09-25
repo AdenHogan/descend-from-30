@@ -337,7 +337,7 @@ def dresser(c):
 def strip(c):
     from pixlib import setback
     setback(c, sideboard, depth=4, top=70, x_range=(7, 47), rake=1.0)     # with depth (owner round 14)
-    radiator(c)
+    setback(c, radiator, depth=2, top=76, x_range=(56, 90))              # stands off the wall on its brackets
 
 
 def build(c=None):

@@ -25,7 +25,7 @@ texture = ExtResource("1_art")
 centered = false
 
 [node name="anchor_bathroom_vanity" type="Marker2D" parent="."]
-position = Vector2(20, 88)
+position = Vector2(20, 90)
 metadata/back_plane = true
 
 [node name="anchor_bathroom_mirror_shelf" type="Marker2D" parent="."]
@@ -47,7 +47,7 @@ position = Vector2(172, 80)
 position = Vector2(226, 98)
 
 [node name="anchor_bathroom_radio_stool" type="Marker2D" parent="."]
-position = Vector2(280, 77)
+position = Vector2(280, 79)
 metadata/back_plane = true
 
 [node name="Lights" type="Node2D" parent="."]

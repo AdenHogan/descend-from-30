@@ -25,7 +25,7 @@ texture = ExtResource("1_art")
 centered = false
 
 [node name="anchor_living_piano" type="Marker2D" parent="."]
-position = Vector2(22, 79)
+position = Vector2(22, 82)
 metadata/back_plane = true
 
 [node name="anchor_living_tea_table" type="Marker2D" parent="."]
@@ -38,11 +38,11 @@ position = Vector2(177, 103)
 position = Vector2(212, 101)
 
 [node name="anchor_living_china_cabinet" type="Marker2D" parent="."]
-position = Vector2(283, 81)
+position = Vector2(283, 84)
 metadata/back_plane = true
 
 [node name="anchor_living_cabinet_cupboard" type="Marker2D" parent="."]
-position = Vector2(277, 95)
+position = Vector2(277, 98)
 metadata/back_plane = true
 
 [node name="anchor_living_armchair" type="Marker2D" parent="."]
@@ -51,7 +51,7 @@ position = Vector2(82, 104)
 [node name="Lights" type="Node2D" parent="."]
 
 [node name="lamp_0" type="Node2D" parent="Lights"]
-position = Vector2(293, 62)
+position = Vector2(293, 65)
 metadata/kind = "table"
 
 [node name="lamp_1" type="Node2D" parent="Lights"]

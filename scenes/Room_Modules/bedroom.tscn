@@ -25,11 +25,11 @@ texture = ExtResource("1_art")
 centered = false
 
 [node name="anchor_wall_left" type="Marker2D" parent="."]
-position = Vector2(37, 65)
+position = Vector2(37, 68)
 metadata/back_plane = true
 
 [node name="anchor_bedside" type="Marker2D" parent="."]
-position = Vector2(63, 91)
+position = Vector2(63, 93)
 metadata/back_plane = true
 
 [node name="anchor_bed_pillow" type="Marker2D" parent="."]
@@ -56,5 +56,5 @@ position = Vector2(160, 4)
 metadata/kind = "flush"
 
 [node name="lamp_1" type="Node2D" parent="Lights"]
-position = Vector2(63, 76)
+position = Vector2(63, 78)
 metadata/kind = "table"

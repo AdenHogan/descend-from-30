@@ -49,11 +49,11 @@ metadata/back_plane = true
 metadata/balcony_strip = true
 
 [node name="anchor_study_radio" type="Marker2D" parent="."]
-position = Vector2(130, 69)
+position = Vector2(130, 72)
 metadata/back_plane = true
 
 [node name="anchor_centre_desk" type="Marker2D" parent="."]
-position = Vector2(126, 91)
+position = Vector2(126, 94)
 metadata/back_plane = true
 
 [node name="anchor_study_crates" type="Marker2D" parent="."]
@@ -67,7 +67,7 @@ position = Vector2(214, 97)
 position = Vector2(240, 95)
 
 [node name="anchor_right_shelf" type="Marker2D" parent="."]
-position = Vector2(292, 69)
+position = Vector2(292, 71)
 metadata/back_plane = true
 
 [node name="Lights" type="Node2D" parent="."]

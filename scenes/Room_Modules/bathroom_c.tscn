@@ -29,7 +29,7 @@ position = Vector2(29, 44)
 metadata/back_plane = true
 
 [node name="anchor_bathroom_washstand" type="Marker2D" parent="."]
-position = Vector2(28, 83)
+position = Vector2(28, 85)
 metadata/back_plane = true
 
 [node name="anchor_bathroom_gold_throne" type="Marker2D" parent="."]

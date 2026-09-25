@@ -56,7 +56,7 @@ position = Vector2(303, 89)
 metadata/back_plane = true
 
 [node name="anchor_dining_sideboard" type="Marker2D" parent="."]
-position = Vector2(20, 84)
+position = Vector2(20, 86)
 metadata/back_plane = true
 metadata/balcony_strip = true
 

@@ -49,7 +49,7 @@ metadata/back_plane = true
 metadata/balcony_strip = true
 
 [node name="anchor_dining_grandfather_clock" type="Marker2D" parent="."]
-position = Vector2(113, 73)
+position = Vector2(113, 75)
 metadata/back_plane = true
 
 [node name="anchor_table_left" type="Marker2D" parent="."]
@@ -62,7 +62,7 @@ position = Vector2(222, 95)
 position = Vector2(180, 84)
 
 [node name="anchor_right_upperdrawers" type="Marker2D" parent="."]
-position = Vector2(280, 84)
+position = Vector2(280, 86)
 metadata/back_plane = true
 
 [node name="Lights" type="Node2D" parent="."]

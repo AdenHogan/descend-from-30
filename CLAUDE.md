@@ -1443,6 +1443,11 @@ means no rendering — UI layout and art still need an in-editor look.
   soaked duvet, a drag trail — via `chair3d.RUN`), bathroom (E's door-like frosted cabinet is a linen
   cupboard with towels + rolls), study (A's room-facing desk shows a panelled front — its drawers face
   the chair) and dining passes done: every set-back piece in all 30 rooms has depth.
+  **Round 15** ("still seeing items flat against the wall… this toilet looks painted onto the
+  background"): every setback is 1.6× deeper (`pixlib.DEPTH_GAIN`, cap 11, auto back-off off window
+  boxes), and toilets / basins / built-in baths / the shower tray / the toy chest are drawn in TRUE
+  perspective (`pixlib.pp` / `pbox` / `pellipse`, `bathroom.bath_box`) — seats, basins and tubs seen
+  from above. Audit flat pieces with `FLAT_REPORT=1 python3 tools/art/build_all.py` (modules README).
 - CORRIDOR ART (owner round 10, `tools/art/corridor.py`): floors 1-29 get a painted overlay over
   the old tile look — `building_floors._apply_corridor_art` adds a `CorridorArt` Sprite2D (115,243,
   1120x192 = the tilemap's used band) right ABOVE the TileMapLayer, so doors / stairs / elevator /
