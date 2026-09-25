@@ -55,9 +55,11 @@ LAYOUT = {'recess': (0, 1), 'spots': SPOTS}  # set per scene (hallway: left stai
 DOOR_TOP = 74                                # door sprites cover y >= ~79 at DOORS ±28
 ELEV_TOP = 64                                # the elevator sprite covers y >= ~69
 EXIT_SIGN = (860, 40, 872, 50)
+PIC_DY = 26                                  # pictures hang just above the rail, not at the ceiling
 # wear geometry, set per section (set_geom): the dado rail's top, the lower wall's top, skirting
 DADO_Y, LOWER_Y, SKIRT_TOP = RAIL_Y, 100, SKIRT_Y
 G = {}
+LAST_TAKEN = []                              # what the last corridor() put on the wall/floor
 
 
 def clear_of_openings(x):
@@ -197,21 +199,21 @@ def console_table(c, cx, wood, top):
 
 
 def mirror(c, cx, fr):
-    x0 = cx - 9
-    c.box(x0, 30, x0 + 18, 58, fr, shade(fr, 0.55))
-    c.rect(x0 + 2, 32, x0 + 16, 56, hexc('9aa8a8'))
-    c.line(x0 + 4, 50, x0 + 12, 34, hexc('c8d4d2'))
-    c.line(x0 + 6, 52, x0 + 14, 38, hexc('b0bebc'))
+    x0, d = cx - 9, PIC_DY
+    c.box(x0, 30 + d, x0 + 18, 58 + d, fr, shade(fr, 0.55))
+    c.rect(x0 + 2, 32 + d, x0 + 16, 56 + d, hexc('9aa8a8'))
+    c.line(x0 + 4, 50 + d, x0 + 12, 34 + d, hexc('c8d4d2'))
+    c.line(x0 + 6, 52 + d, x0 + 14, 38 + d, hexc('b0bebc'))
 
 
 def hose_reel(c, cx):
     """A fire-hose reel cabinet: red box, glass door, the reel inside."""
-    x0 = cx - 11
-    c.box(x0, 30, x0 + 22, 58, hexc('b8322a'), hexc('5a1a16'))
-    c.rect(x0 + 3, 33, x0 + 19, 55, hexc('7a8a8a'))
-    c.ellipse(cx, 44, 7, 7, hexc('a82a22'))
-    c.ellipse(cx, 44, 3, 3, hexc('3a2a26'))
-    c.rect(x0 + 3, 33, x0 + 19, 34, hexc('b8c8c8'))
+    x0, d = cx - 11, PIC_DY
+    c.box(x0, 30 + d, x0 + 22, 58 + d, hexc('b8322a'), hexc('5a1a16'))
+    c.rect(x0 + 3, 33 + d, x0 + 19, 55 + d, hexc('7a8a8a'))
+    c.ellipse(cx, 44 + d, 7, 7, hexc('a82a22'))
+    c.ellipse(cx, 44 + d, 3, 3, hexc('3a2a26'))
+    c.rect(x0 + 3, 33 + d, x0 + 19, 34 + d, hexc('b8c8c8'))
 
 
 # --- the three sections, and their near-identical variants -----------------------------------
@@ -274,14 +276,15 @@ def high(c, P, occ):
     for i, x in enumerate(LAYOUT['spots']):
         kind = P['pics'][i]
         if kind == 'land':
-            frame(c, x, 34, 28, 22, hexc('b58f4a'), hexc(P['fills'][(i // 2) % 2]))
-            c.poly([(x - 12, 51), (x - 4, 44), (x + 4, 48), (x + 12, 42), (x + 12, 53), (x - 12, 53)], hexc('4a5a3a'))
+            frame(c, x, 34 + PIC_DY, 28, 22, hexc('b58f4a'), hexc(P['fills'][(i // 2) % 2]))
+            c.poly([(x - 12, 51 + PIC_DY), (x - 4, 44 + PIC_DY), (x + 4, 48 + PIC_DY), (x + 12, 42 + PIC_DY),
+                    (x + 12, 53 + PIC_DY), (x - 12, 53 + PIC_DY)], hexc('4a5a3a'))
         elif kind == 'port':
-            frame(c, x, 36, 18, 22, hexc('b58f4a'), hexc('5a4a3e'))
-            c.ellipse(x, 44, 3, 4, hexc('c8b39a'))
+            frame(c, x, 36 + PIC_DY, 18, 22, hexc('b58f4a'), hexc('5a4a3e'))
+            c.ellipse(x, 44 + PIC_DY, 3, 4, hexc('c8b39a'))
         else:
             mirror(c, x, hexc('b58f4a'))
-        occ.append((x - 17, 24, x + 17, 62))
+        occ.append((x - 17, 24 + PIC_DY, x + 17, 62 + PIC_DY))
         if P.get('console') == i:
             console_table(c, x, hexc('4a2a1e'), hexc('6e4230'))
             occ.append((x - 16, 104, x + 16, FLOOR_Y + 2))
@@ -318,12 +321,13 @@ def mid(c, P, occ):
     light_switches(c, hexc('e6e0cc'))
     for i, x in enumerate(LAYOUT['spots']):
         if P['pics'][i] == 'frame':
-            frame(c, x, 36, 24, 18, hexc('6b4a2c'), hexc('9c9282'))
+            frame(c, x, 36 + PIC_DY, 24, 18, hexc('6b4a2c'), hexc('9c9282'))
         else:
-            c.box(x - 12, 30, x + 12, 56, hexc('9a7650'), hexc('3b2718'))         # a residents' board
-            c.rect(x - 9, 33, x - 1, 42, hexc('e6dfcc')); c.rect(x + 1, 35, x + 9, 46, hexc('d9c24a'))
-            c.rect(x - 8, 45, x, 53, hexc('e6dfcc'))
-        occ.append((x - 17, 24, x + 17, 62))
+            d = PIC_DY
+            c.box(x - 12, 30 + d, x + 12, 56 + d, hexc('9a7650'), hexc('3b2718'))         # a residents' board
+            c.rect(x - 9, 33 + d, x - 1, 42 + d, hexc('e6dfcc')); c.rect(x + 1, 35 + d, x + 9, 46 + d, hexc('d9c24a'))
+            c.rect(x - 8, 45 + d, x, 53 + d, hexc('e6dfcc'))
+        occ.append((x - 17, 24 + PIC_DY, x + 17, 62 + PIC_DY))
         if P.get('radiators'):
             radiator(c, x)
             occ.append((x - 20, 124, x + 17, FLOOR_Y - 1))
@@ -358,17 +362,18 @@ def low(c, P, occ):
     light_switches(c, hexc('c8ccc4'))
     for i, x in enumerate(LAYOUT['spots']):                                     # notices, a fire-drill card
         kind = P['pics'][i]
+        d = PIC_DY
         if kind == 'notice':
-            c.box(x - 9, 36, x + 9, 58, hexc('e6e2d6'), hexc('6a6a66'))
-            c.rect(x - 7, 38, x + 7, 42, hexc('a8322c'))
-            for y in range(45, 57, 3):
+            c.box(x - 9, 36 + d, x + 9, 58 + d, hexc('e6e2d6'), hexc('6a6a66'))
+            c.rect(x - 7, 38 + d, x + 7, 42 + d, hexc('a8322c'))
+            for y in range(45 + d, 57 + d, 3):
                 c.hline(x - 6, x + 6, y, hexc('8a8a86'))
         elif kind == 'call':
-            c.box(x - 6, 40, x + 6, 52, hexc('a8322c'), hexc('5a1a16'))          # an alarm call point
-            c.rect(x - 3, 43, x + 3, 49, hexc('e6e2d6'))
+            c.box(x - 6, 40 + d, x + 6, 52 + d, hexc('a8322c'), hexc('5a1a16'))          # an alarm call point
+            c.rect(x - 3, 43 + d, x + 3, 49 + d, hexc('e6e2d6'))
         else:
             hose_reel(c, x)
-        occ.append((x - 17, 24, x + 17, 62))
+        occ.append((x - 17, 24 + PIC_DY, x + 17, 62 + PIC_DY))
     exit_sign(c)
 
 
@@ -505,12 +510,14 @@ def _lum(p):
 
 def picture_damage(c, bare, score_of, rng_seed):
     """`bare` is the same corridor drawn without its pictures, so a moved / missing picture
-    leaves the real wall behind it. `score_of(i)` is how far spot i has gone (0 fine .. 1+)."""
+    leaves the real wall behind it. `score_of(i)` is how far spot i has gone (0 fine .. 1+).
+    Returns the rects of pictures now lying on the floor (so nothing else is put there)."""
     rng = random.Random(rng_seed)
+    fallen = []
     for i, cx in enumerate(LAYOUT['spots']):
         tilt = rng.choice((-1, 1))
         s = score_of(i)
-        x0, y0, x1, y1 = cx - 18, 22, cx + 18, 64
+        x0, y0, x1, y1 = cx - 18, 22 + PIC_DY, cx + 18, min(64 + PIC_DY, RAIL_Y - 1)
         mask = [(x, y) for y in range(y0, y1 + 1) for x in range(x0, x1 + 1)
                 if c.px[x, y] != bare.getpixel((x, y))]
         if s < 0.45 or not mask:
@@ -547,6 +554,8 @@ def picture_damage(c, bare, score_of, rng_seed):
         for k in range(8):                                           # broken glass
             gx, gy = cx + dx + rng.randrange(-20, 21), FLOOR_Y + 3 + rng.randrange(0, 5)
             c.px[gx, gy] = (196, 214, 214, 255)
+        fallen.append((cx + dx - 24, FLOOR_Y + 3 - (bot - top) - 2, cx + dx + 24, FLOOR_Y + 8))
+    return fallen
 
 
 # --- wear -------------------------------------------------------------------------------------
@@ -567,13 +576,15 @@ WEAR = {
             peel=9, kick=3, holes=4, mould=0.5, streaks=7, torn=4, tape=2,
             bags=4, boxes=2, debris=30, ceil_stain=4),
 }
-# Run 2 / run 3 (the time skip): the same corridor, more of the same damage on top, and blood.
+# Run 2 / run 3 (the time skip): the same corridor, more of the same damage on top. (The blood,
+# bullet holes, scrawls etc. are per-FLOOR runtime decals — scripts/corridor_decals.gd — so they
+# differ floor to floor instead of repeating with the baked image.)
 _NONE = {k: 0 for k in WEAR[0]}
 RUN_EXTRA = {
     2: dict(_NONE, dim=0.95, scuffs=20, stains=6, tide=1, cracks=3, peel=2,
-            graffiti=1, debris=10, bags=1, blood=2),
+            graffiti=1, debris=10, bags=1, blood=0),
     3: dict(_NONE, dim=0.88, scuffs=30, stains=12, tide=2, cracks=6, peel=4, holes=1,
-            kick=1, graffiti=2, mould=0.2, torn=1, debris=24, bags=2, blood=5),
+            kick=1, graffiti=2, mould=0.2, torn=1, debris=24, bags=2, blood=0),
 }
 TAN = (140, 112, 76, 255)
 
@@ -945,7 +956,7 @@ def corridor(section, variant, level, run, seed):
     fragile = random.Random(seed * 13 + 5)
     frag = [fragile.random() for _ in spots]
     # how far each picture has gone: depth + the time skip + how loosely it was hung
-    picture_damage(c, bare.img, lambda i: level * 0.2 + (run - 1) * 0.22 + frag[i] * 0.45, seed + 3)
+    occ += picture_damage(c, bare.img, lambda i: level * 0.2 + (run - 1) * 0.22 + frag[i] * 0.45, seed + 3)
     doormats(c, P.get('mats', ()), min(4, level + run - 1))
     sp = Spots(occ + [EXIT_SIGN] + [(d + 32, 85, d + 38, 92) for d in DOORS])
     w = WEAR[level]
@@ -968,6 +979,7 @@ def corridor(section, variant, level, run, seed):
             wear_floor(c, x, sp, rr)
             props(c, x, sp, rr, zones)
             blood(c, x['blood'], sp, rr, zones)
+    LAST_TAKEN[:] = sp.taken
     return c.img
 
 
@@ -1001,100 +1013,121 @@ def _vnoise(seed):
 
 
 def fire_overlay(zone, seed):
+    """Soot and char where the corridor burned: the smoke banked under the ceiling and left a
+    black band that fades down the wall, blotchy staining, charred patches low on the wall where
+    it burned hottest, soot over the door heads, the paper burnt through to the plaster in places,
+    a charred runner and ash along the skirting. No shapes — everything is noise-driven."""
     from PIL import Image
     a, b = FIRE_ZONES[zone]
     img = Image.new('RGBA', (CW, CH), (0, 0, 0, 0))
     px = img.load()
     rng = random.Random(seed)
-    noise = _vnoise(seed)
-    grain = _vnoise(seed + 1)
-    feather = 70
+    big = _vnoise(seed)
+    fine = _vnoise(seed + 1)
+    feather = 80
 
     def edge(x, y):                                         # 0 outside .. 1 well inside the zone
-        k = 1.0                                             # (a ragged, wandering boundary)
-        wob = 40 * (noise(3.0, y * 1.5) - 0.5)
+        k = 1.0
+        wob = 50 * (big(5.0, y * 1.2) - 0.5)
         if a > 0:
             k = min(k, (x - a - wob) / feather)
         if b < CW:
             k = min(k, (b - x + wob) / feather)
         return max(0.0, min(1.0, k))
-    # the burn points: where it burned hottest — each throws a V of soot up the wall
-    pts = []
-    x = a + rng.randrange(30, 70)
+    # where it burned hottest: charred patches low on the wall + char on the floor below
+    hot = []
+    x = a + rng.randrange(30, 80)
     while x < b - 30:
-        pts.append((x, rng.randrange(128, 156), rng.uniform(0.28, 0.62), rng.uniform(0.3, 0.75)))
-        x += rng.randrange(70, 160)
-    heads = [d for d in DOORS if a + 20 < d < b - 20]         # smoke poured out of these flats
-    soot = (30, 25, 22)
+        hot.append((x, rng.randrange(18, 34), rng.randrange(22, 40)))
+        x += rng.randrange(90, 190)
+    heads = [d for d in DOORS if a + 20 < d < b - 20]
+    blobs = [(_blob(rng, hx, 138, rx, ry), hx, rx, ry) for (hx, rx, ry) in hot]
+    soot = (28, 23, 20)
     for y in range(CH):
         for x in range(CW):
             e = edge(x, y)
             if e <= 0.0:
                 continue
-            n = noise(x, y)
-            if y < WALL_TOP:                                     # the ceiling: blackest of all
-                s = 0.8 + 0.12 * n
+            n, f = big(x, y), fine(x * 1.7, y * 1.7)
+            if y < WALL_TOP:
+                s = 0.84 + 0.1 * n                               # the ceiling: blackest
             elif y < FLOOR_Y:
-                # the hot smoke layer banked down from the ceiling to a wavering line
-                line = 34 + 30 * noise(x * 0.5, 7.0)
-                s = 0.78 - 0.3 * (y - WALL_TOP) / max(1.0, line - WALL_TOP) if y < line else \
-                    max(0.1, 0.48 * (1.0 - (y - line) / 30.0))
-                for (bx, by, spread, st) in pts:                  # V-plumes above the burn points
-                    if y < by:
-                        h = by - y
-                        half = h * spread + 4 + 10 * (grain(x * 0.7, y) - 0.5)
-                        dx = abs(x - bx)
+                # the smoke layer: dense under the ceiling, a soft wavering lower edge
+                line = 40 + 34 * big(x * 0.35, 3.0)
+                d = y - line
+                s = 0.72 - 0.22 * (y - WALL_TOP) / max(1.0, line - WALL_TOP) if d < 0 else 0.5 * math.exp(-d / 18.0)
+                s = max(s, 0.06)
+                for d0 in heads:                                 # soot rolled out over the door head
+                    dx, dy = (x - d0) / 40.0, (y - (DOOR_TOP - 4)) / 30.0
+                    g = math.exp(-(dx * dx + dy * dy) * 1.6)
+                    if y > DOOR_TOP and abs(x - d0) < 29:        # the door face: scorched from the top
+                        g = max(g, 0.55 * math.exp(-(y - DOOR_TOP) / 26.0))
+                    s = max(s, 0.62 * g)
+                for (fb, hx, rx, ry) in blobs:                   # a smoky scorch rising off the floor
+                    t = (FLOOR_Y - y) / float(ry * 2.4)          # 0 at the skirting .. 1 at its top
+                    if 0.0 <= t < 1.0:
+                        cxw = hx + 14 * (big(hx * 0.3, y * 0.9) - 0.5) * (1 + 2 * t)   # wanders
+                        half = rx * (1.0 - 0.45 * t) * (0.8 + 0.4 * f)
+                        dx = abs(x - cxw)
                         if dx < half + 12:
-                            k = max(0.0, min(1.0, (half + 12 - dx) / 14.0))
-                            s = max(s, st * k * (1.0 - 0.35 * h / 140.0) + 0.1)
-                for d in heads:                                   # soot curling up over the door head
-                    if y < DOOR_TOP + 8:
-                        h = DOOR_TOP + 8 - y
-                        half = 26 + h * 0.45 + 12 * (grain(x, y * 0.6) - 0.5)
-                        dx = abs(x - d)
-                        if dx < half:
-                            s = max(s, (0.62 - 0.004 * h) * min(1.0, (half - dx) / 16.0))
-                    elif abs(x - d) < 29:                          # the door itself, scorched
-                        s = max(s, 0.34 * (1.0 - (y - DOOR_TOP) / 86.0))
+                            soft = max(0.0, min(1.0, (half + 12 - dx) / 16.0))
+                            s = max(s, 0.8 * soft * math.exp(-t * 2.4))
             else:
-                s = 0.2 + 0.25 * n                               # the floor, grimed
-            s *= (0.72 + 0.56 * n) * e
+                s = 0.22 + 0.3 * n                               # the floor, grimed
+            s *= (0.7 + 0.6 * n) * (0.85 + 0.3 * f) * e
             if RECESS[0][0] <= x <= RECESS[0][1] or RECESS[1][0] <= x <= RECESS[1][1]:
                 s *= 0.55                                        # the stair shafts, less so
-            s = min(0.9, s)
+            s = min(0.92, s)
             if s > 0.03:
                 px[x, y] = soot + (int(255 * s),)
-    # char on the floor: the runner / lino burnt black in clumps, scorched brown at the edges
-    for (bx, by, spread, st) in pts:
-        cx0 = bx + rng.randrange(-20, 21)
-        f = _blob(rng, cx0, 176, rng.randrange(30, 64), rng.randrange(9, 15))
+    # the paper burnt through: ragged holes to the plaster with a scorched brown-black rim
+    for _ in range(max(1, (b - a) // 170)):
+        cx0 = rng.randrange(a + 30, b - 30)
+        if any(abs(cx0 - d) < 34 for d in DOORS) or any(abs(cx0 - s_) < 22 for s_ in SPOTS):
+            continue
+        cy0 = rng.randrange(30, 80)
+        fb = _blob(rng, cx0, cy0, rng.randrange(7, 14), rng.randrange(8, 16))
+        for y in range(cy0 - 26, cy0 + 26):
+            for x in range(cx0 - 30, cx0 + 30):
+                if not (0 <= x < CW and WALL_TOP < y < SKIRT_Y) or edge(x, y) < 0.5:
+                    continue
+                k = fb(x, y) + 0.3 * (fine(x * 2.0, y * 2.0) - 0.5)
+                if k < 0.75:
+                    px[x, y] = (176, 162, 138, 255) if (x + 2 * y) % 5 else (150, 138, 118, 255)
+                elif k < 0.9:
+                    px[x, y] = (92, 58, 34, 255)
+                elif k < 1.05:
+                    px[x, y] = (22, 16, 12, 255)
+    # char on the floor below the hottest spots, in clumps; scorched brown at the edges
+    for (hx, rx, ry) in hot:
+        cx0 = hx + rng.randrange(-16, 17)
+        fb = _blob(rng, cx0, 176, rng.randrange(34, 66), rng.randrange(9, 15))
         for y in range(FLOOR_Y + 1, CH):
             for x in range(max(0, cx0 - 100), min(CW, cx0 + 100)):
                 if edge(x, y) < 0.5:
                     continue
-                d = f(x, y) + 0.35 * (grain(x * 1.6, y * 1.6) - 0.5)
-                if d <= 0.85:
-                    g = grain(x * 2.3, y * 2.3)
-                    px[x, y] = (16, 12, 10, 255) if g < 0.62 else (46, 40, 36, 255) if g < 0.78 else (92, 86, 80, 255)
-                elif d <= 1.1:
-                    px[x, y] = (58, 34, 22, 190)                     # scorched, not burnt through
+                k = fb(x, y) + 0.4 * (fine(x * 1.6, y * 1.6) - 0.5)
+                if k <= 0.85:
+                    g = fine(x * 2.3, y * 2.3)
+                    px[x, y] = (16, 12, 10, 255) if g < 0.62 else (46, 40, 36, 255) if g < 0.8 else (92, 86, 80, 255)
+                elif k <= 1.1:
+                    px[x, y] = (58, 34, 22, 180)
     # ash drifted along the skirting, blistered paint in the hot band
     for x in range(CW):
         e = edge(x, FLOOR_Y)
         if e <= 0.2:
             continue
-        depth = int(1 + 3 * grain(x * 0.3, 3.0))
+        depth = int(1 + 3 * fine(x * 0.3, 3.0))
         for k in range(depth):
             if rng.random() < e * 0.9:
                 px[x, FLOOR_Y + k] = (124, 118, 110, 255) if k < depth - 1 else (86, 80, 74, 255)
-    for _ in range(int((b - a) / 4)):
-        x, y = rng.randrange(a, b), rng.randrange(WALL_TOP + 26, 120)
+    for _ in range(int((b - a) / 5)):
+        x, y = rng.randrange(a, b), rng.randrange(WALL_TOP + 30, 110)
         if edge(x, y) > 0.4 and not (y >= DOOR_TOP and any(abs(x - d) < 30 for d in DOORS)):
-            px[x, y] = (160, 146, 126, 190)                          # a blister's raised rim
+            px[x, y] = (150, 136, 118, 170)
             if y + 1 < CH:
-                px[x, y + 1] = (18, 14, 12, 210)
-    # charred scraps + fallen ceiling along the wall base
-    for _ in range(int((b - a) / 12)):
+                px[x, y + 1] = (18, 14, 12, 200)
+    for _ in range(int((b - a) / 12)):                       # charred scraps along the wall base
         x = rng.randrange(max(4, a), min(CW - 6, b))
         if edge(x, FLOOR_Y) < 0.4:
             continue
@@ -1120,6 +1153,7 @@ def main():
     os.makedirs(prev_dir, exist_ok=True)
     made = {}
     keep = set()
+    layout = {}
 
     def save(name, im):
         if not name.startswith('fire_'):
@@ -1138,6 +1172,12 @@ def main():
                     LAYOUT.update({'recess': (0, 1), 'spots': SPOTS})
                     name = 'corridor_%s_w%d%s%s' % (section, level, variant, '' if run == 1 else '_r%d' % run)
                     save(name, corridor(section, variant, level, run, seed))
+                    base = 'corridor_%s_w%d%s' % (section, level, variant)
+                    rects = layout.setdefault(base, [])
+                    for r in LAST_TAKEN:                  # everything taken in ANY run's look
+                        r = [int(v) for v in r]
+                        if r not in rects:
+                            rects.append(r)
             print('wrote corridor_%s_w%d (a/b/c, runs 1-3)' % (section, level))
     SECTION['hallway'] = dict(SECTION['high'], variants={'h': HALLWAY})
     for run in (1, 2, 3):
@@ -1151,6 +1191,11 @@ def main():
         lobby(c)
         save('corridor_lobby' + ('' if run == 1 else '_r%d' % run), c.img if run == 1 else ruin(c.img.copy(), run, 75))
     print('wrote corridor_hallway, corridor_lobby')
+    import json
+    with open(os.path.join(out_dir, 'corridor_layout.json'), 'w') as fh:     # for corridor_decals.gd
+        json.dump({'note': 'tools/art/corridor.py: per base image, local rects [x0,y0,x1,y1] already '
+                           'holding a fixture, picture, prop or damage in any run look',
+                   'taken': layout}, fh, separators=(',', ':'))
     LAYOUT.clear()
     LAYOUT.update({'recess': (0, 1), 'spots': SPOTS})
     for i, zone in enumerate(FIRE_ZONES):
@@ -1173,7 +1218,7 @@ def main():
                 im.paste(made[n], (0, (CH + 4) * i))
         im.save(os.path.join(prev_dir, out))
     for f in os.listdir(prev_dir):                         # previews: rebuilt from scratch
-        if f.endswith('.png') or f.endswith('.png.import'):
+        if (f.endswith('.png') or f.endswith('.png.import')) and not f.startswith('corridor_decals'):
             os.remove(os.path.join(prev_dir, f))
     sheet(['corridor_high_w0a', 'corridor_high_w1a', 'corridor_mid_w1a', 'corridor_mid_w2a',
            'corridor_mid_w3a', 'corridor_low_w3a', 'corridor_low_w4a'], 'corridor_descent.png')

@@ -67,7 +67,8 @@ var _built_floor: int = -1             # the floor THIS scene built (for _exit_t
 var _stair_backdrop_built: bool = false  # true if the passive backdrop already spawned this floor's stair enemies (go_live wakes them instead of re-spawning)
 
 
-const CORRIDOR_ART_POS := Vector2(115, 243)   # the tilemap's used rect (1120 x 192) — the band
+const CORRIDOR_ART_POS := Vector2(115, 243)
+const CORRIDOR_DECALS := preload("res://scripts/corridor_decals.gd")   # the tilemap's used rect (1120 x 192) — the band
 
 
 const CORRIDOR_VARIANTS := ["a", "b", "c"]
@@ -98,10 +99,13 @@ static func corridor_variant(floor_num: int) -> String:
 	return CORRIDOR_VARIANTS[posmod(h, CORRIDOR_VARIANTS.size())]
 
 
+static func corridor_base_name(floor_num: int) -> String:
+	return "corridor_%s_w%d%s" % [corridor_section(floor_num), corridor_wear(floor_num), corridor_variant(floor_num)]
+
+
 static func corridor_art_path(floor_num: int, run: int) -> String:
 	# tools/art/corridor.py — per look + wear + variant, with a run-2 / run-3 (the time skip) version.
-	return corridor_art_named("corridor_%s_w%d%s" % [corridor_section(floor_num), corridor_wear(floor_num),
-		corridor_variant(floor_num)], run)
+	return corridor_art_named(corridor_base_name(floor_num), run)
 
 
 static func corridor_art_named(name: String, run: int) -> String:
@@ -133,6 +137,9 @@ static func add_corridor_art(root: Node, path: String) -> void:
 
 func _apply_corridor_art(floor_num: int) -> void:
 	add_corridor_art(self, corridor_art_path(floor_num, WorldState.current_run))
+	# ...and this floor's own dressing + horror on top of it (scripts/corridor_decals.gd), so
+	# floors that share a baked image still never look alike; more horror deeper / later.
+	CORRIDOR_DECALS.add_to(self, floor_num, WorldState.current_run, corridor_base_name(floor_num), CORRIDOR_ART_POS)
 
 
 func _ready() -> void:

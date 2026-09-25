@@ -1390,20 +1390,38 @@ means no rendering — UI layout and art still need an in-editor look.
   torn runner (to the boards) or lino (to the screed), bin bags, and the pictures fail (askew →
   missing, leaving an unfaded patch + the nail → fallen at the skirting); damage CLUSTERS in a few
   seeded stretches and never lands on a door/picture/fixture/stair/the elevator (`Spots`). TIME — the
-  `_r2`/`_r3` files redraw the SAME corridor and add more of the same + blood (`RUN_EXTRA`), and the
-  loosest pictures keep failing. FIRE — `WorldState.fire_scars` (cross-run, saved, cleared by
+  `_r2`/`_r3` files redraw the SAME corridor and add more of the same damage (`RUN_EXTRA`), and the
+  loosest pictures keep failing. Pictures/boards/notices hang at eye level just above the rail
+  (`PIC_DY`, owner: "no one looks up near the ceiling"). PER-FLOOR DECALS (`scripts/corridor_decals.gd`
+  + sprites from `tools/art/corridor_decals.py`, owner: "shouldn't feel like the same corridors"):
+  seeded per floor — DRESSING (plants, shoes, a shoe rack, parcels, a chair, a scooter, posters...;
+  fewer and more abandoned by wear; later runs remove some, knock a plant / chair over) and HORROR
+  (blood smears, handprints, spatter, bullet bursts, claw gouges, slide-down smears, blood scrawls
+  "HELP"/"DONT GO DOWN"…, pools / drag trails / footprints / casings, and on plain door faces
+  bullet holes, a bloody hand, the rescue teams' orange search X). `horror_level(floor, run)` =
+  0.06 + 0.2×wear + 0.32×(run-1): 22 candidates with rising thresholds are generated in ONE fixed
+  order and a floor shows the prefix under its level, so run 1's marks stay on runs 2/3 with more
+  added. Placement avoids doors / elevator / extinguisher / stair openings / exit sign / switches
+  and everything the baked image holds (`assets/corridor/corridor_layout.json`, written by
+  corridor.py — the union over that image's run looks). Nodes: `CorridorDecals` right after
+  `CorridorArt` (under the doors), `CorridorDoorDecals` right after `Elevator`. The baked blood was
+  moved here. FIRE — `WorldState.fire_scars` (cross-run, saved, cleared by
   new_game) records which thirds of the corridor have burned (from the fire field's non-COOL cells,
   noted after `_spawn_fire`, on the 0.6s snapshot and on exit); `building_floors._apply_fire_scars`
   lays `assets/corridor/fire_<l|m|r|lm|mr|all>.png` (`fire_scar_zone`) right after the `Elevator`
   node — over the art, doors and elevator (soot climbs the door heads), under the staircases and all
-  runtime nodes; alpha-blended so the time-of-day lighting treats it like the wall. Files
+  runtime nodes; alpha-blended so the time-of-day lighting treats it like the wall. The look is all
+  noise-driven (owner: the earlier V-plumes read as "inverted ant hills"): smoke banked under a black
+  ceiling with a wavering lower edge, smoky scorch rising off the skirting, soot rolled over the door
+  heads, paper burnt through to the plaster, a charred runner, ash along the skirting. Files
   `corridor_<section>_w<level><variant>[_r2|_r3].png`. The endpoint
   floors have their own: `corridor_hallway` (30 — the wear-0 look, variant a, pale so the tutorial's
   red wall hints read; no pictures, left stair only — it takes the time-skip looks too) and
   `corridor_lobby` (0 — marble, a bank of brass mailboxes, notice board, floor directory, doormat;
   right stair only; keeps its older run overlay `ruin`), added from their `_build_world` (live +
   backdrop) via the shared `building_floors.add_corridor_art`. Locked by
-  `building_floors_test._test_corridor_art` + `_test_fire_scars`.
+  `building_floors_test._test_corridor_art` + `_test_fire_scars` + `_test_corridor_decals`. The
+  hallway (30) and lobby don't take the per-floor decals yet.
 - PUSH + CROWDS (owner round 9): a push takes ONE enemy (`player.push_target` — the nearest in
   front; it used to stagger everyone in reach), so a crowd is worked through and gets hits in. The
   BIG zombie can't be stunned or knocked back by a push (it keeps attacking) but a push makes it

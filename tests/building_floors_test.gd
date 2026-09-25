@@ -41,6 +41,7 @@ func _ready() -> void:
 	await _test_enemies_stand_on_the_line_frame_zero()
 	await _test_corridor_art()
 	await _test_fire_scars()
+	await _test_corridor_decals()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -1053,5 +1054,99 @@ func _test_fire_scars() -> void:
 	check(WorldState.fire_scar_zone(f) == small, "the scars survive save + load (got '%s')" % WorldState.fire_scar_zone(f))
 	WorldState.new_game()
 	check(WorldState.fire_scars.is_empty(), "a new game's building is unburnt again")
+	WorldState.current_run = 1
+
+
+func _test_corridor_decals() -> void:
+	# Per-floor dressing + horror over the baked corridor (scripts/corridor_decals.gd): seeded per
+	# floor, more horror deeper and later in the day, what run 1 showed still there later, and
+	# never over a door, the elevator, the extinguisher or anything the baked image holds.
+	print("[corridor decals]")
+	WorldState.new_game()
+	WorldState.tutorial_completed = true
+	WorldState.is_first_run = false
+	var BF = load("res://scripts/building_floors.gd")
+	var CD = load("res://scripts/corridor_decals.gd")
+	check(CD.horror_level(29, 1) < CD.horror_level(12, 1) and CD.horror_level(12, 1) < CD.horror_level(2, 1),
+		"horror rises with depth")
+	check(CD.horror_level(20, 1) < CD.horror_level(20, 2) and CD.horror_level(20, 2) < CD.horror_level(20, 3),
+		"horror rises through the day")
+	var dressing := {}
+	for n in CD.DRESSING_KEPT + CD.DRESSING_TIRED + CD.DRESSING_GONE + ["plant_fallen", "chair_down"]:
+		dressing[n] = true
+	var horror_of := func(plan: Array) -> Array:
+		var out: Array = []
+		for d in plan:
+			if d["layer"] == "wall" and not dressing.has(d["name"]):
+				out.append(str(d["name"]) + "@" + str(d["pos"]))
+		return out
+	var top: int = 0
+	var bottom: int = 0
+	var seen_names := {}
+	for f in range(1, 30):
+		var base: String = BF.corridor_base_name(f)
+		var taken: Array = CD._taken_for(base)
+		var runs: Array = []
+		for run in [1, 2, 3]:
+			var plan: Array = CD.plan(f, run, base)
+			check(plan == CD.plan(f, run, base), "floor %d run %d: the same every time" % [f, run])
+			runs.append(horror_of.call(plan))
+			for d in plan:
+				seen_names[d["name"]] = true
+				var tex = load(CD.DIR + d["name"] + ".png")
+				check(tex != null, "floor %d: decal %s exists" % [f, d["name"]])
+				if tex == null or d["layer"] != "wall":
+					continue
+				var r := Rect2(d["pos"], tex.get_size())
+				var bad := ""
+				if r.position.y < CD.FLOOR_Y:                  # on the wall
+					if CD._blocked(r, false):
+						bad = "a door / the elevator / the extinguisher"
+					for t in taken:
+						if (t as Rect2).intersects(r):
+							bad = "the baked art's %s" % str(t)
+				if bad != "":
+					check(false, "floor %d run %d: %s sits on %s" % [f, run, d["name"], bad])
+			if f >= 26 and run == 1:
+				top += runs[-1].size()
+			if f <= 4 and run == 3:
+				bottom += runs[-1].size()
+		for h in runs[0]:
+			if not (h in runs[1] and h in runs[2]):
+				check(false, "floor %d: run 1's %s is still there later in the day" % [f, h])
+				break
+		check(runs[0].size() <= runs[1].size() and runs[1].size() <= runs[2].size(),
+			"floor %d: more horror each run (%d, %d, %d)" % [f, runs[0].size(), runs[1].size(), runs[2].size()])
+	check(bottom > top * 3 and bottom >= 20, "the bottom at night (%d) is far worse than the top in the morning (%d)" % [bottom, top])
+	check(seen_names.size() >= 25, "a wide spread of decals turns up across the building (%d kinds)" % seen_names.size())
+	# two floors sharing one baked image still differ
+	var by_base := {}
+	var differ := false
+	for f in range(1, 30):
+		var base: String = BF.corridor_base_name(f)
+		if by_base.has(base) and str(CD.plan(f, 2, base)) != str(CD.plan(by_base[base], 2, base)):
+			differ = true
+		by_base[base] = f
+	check(differ, "floors that share a baked corridor are dressed differently")
+	# in the scene: wall decals right above the art (under the doors), door marks over the doors
+	for passive in [false, true]:
+		WorldState.current_run = 3
+		WorldState.current_floor = 3
+		var bf = load("res://scenes/building_floors.tscn").instantiate()
+		bf.setup_floor = 3
+		bf.passive = passive
+		add_child(bf)
+		for i in range(2): await get_tree().process_frame
+		var label := " (backdrop)" if passive else ""
+		var wall = bf.get_node_or_null("CorridorDecals")
+		var door = bf.get_node_or_null("CorridorDoorDecals")
+		var art = bf.get_node_or_null("CorridorArt")
+		var elev = bf.get_node_or_null("Elevator")
+		check(wall != null and art != null and wall.get_index() == art.get_index() + 1, "decals right above the corridor art%s" % label)
+		check(wall != null and wall.get_index() < bf.get_node("apartment01").get_index(), "...under the doors%s" % label)
+		check(door != null and elev != null and door.get_index() > elev.get_index(), "door marks draw over the doors%s" % label)
+		check(wall != null and wall.get_child_count() >= 8, "floor 3 on the third night is a mess (%d)" % (wall.get_child_count() if wall else 0))
+		bf.free()
+		await get_tree().process_frame
 	WorldState.current_run = 1
 
