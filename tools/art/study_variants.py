@@ -106,7 +106,7 @@ def b_furniture(c):
     c.ellipse(246, 84, 3, 2, hexc('f0ece2')); c.ellipse(251, 83, 2, 2, hexc('e6e0cc'))
     # (drawn after the basket against the wall, so it sits in front of it)
     C3.armchair(c, 233, 117, 35, {'fab': hexc('6a6a5a'), 'fab_lt': hexc('7a7a68'), 'wood': hexc('3a2a1e')},
-                style='club')                                                    # turned toward the desk
+                style='club', plan={3: 'tipped'}, key='study_b')               # turned toward the desk
     # a low side table at its elbow: a mug, a slew of printouts, a biro (the chair has company)
     F.table_front(c, 256, 286, 106, 121, F.TEAK, depth=4)
     c.rect(260, 103, 264, 107, hexc('e6e0cc')); c.put(265, 104, hexc('e6e0cc'))            # a mug
@@ -174,7 +174,7 @@ def c_furniture(c):
     for x in range(110, 209, 2):                                                   # fringe
         c.put(x, 125, hexc('d8ccb0'))
     C3.armchair(c, 141, 117, -30, {'fab': hexc('3e5a4a'), 'fab_lt': hexc('4a6a58'), 'wood': hexc('3a2618')},
-                style='wing')                                                    # turned toward the lamp
+                style='wing', plan={2: 'blood', 3: 'tipped'}, key='study_c')   # turned toward the lamp
     c.shadow(170, 121, 9, 2, 110)
     c.ellipse(170, 104, 9, 2, F.WOOD[1])
     c.vline(170, 106, 119, F.WOOD[0])
@@ -424,4 +424,5 @@ if __name__ == '__main__':
     for v in (sys.argv[1:] or sorted(VARIANTS)):
         name, seed, fns, anchors = VARIANTS[v]
         bare, floor, build, strip = make(fns)
-        finish_module(name, 'study', seed, bare, floor, build, anchors, strip_fn=strip)
+        finish_module(name, 'study', seed, bare, floor, build, anchors, strip_fn=strip,
+                      per_run=lambda r: setattr(C3, 'RUN', r))

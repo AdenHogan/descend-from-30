@@ -512,7 +512,7 @@ def build(c=None):
     coffee_table(c)
     import chair3d as C3                  # an oxblood club chair at the rug's end, turned to the sofa
     C3.armchair(c, 64, 118, -35, {'fab': hexc('7a302b'), 'fab_lt': hexc('8e3a33'), 'wood': hexc('3a2618')},
-                style='club')
+                style='club', plan={2: 'blood', 3: 'tipped'}, key='living_a')
     return c
 
 
@@ -528,4 +528,6 @@ ANCHORS = [('anchor_left_bookshelf_upper', 22, 58, 'bp'), ('anchor_left_bookshel
 
 
 if __name__ == '__main__':
-    finish_module('living_room', 'living_room', 7, bare, floor, build, ANCHORS)
+    import chair3d
+    finish_module('living_room', 'living_room', 7, bare, floor, build, ANCHORS,
+                  per_run=lambda r: setattr(chair3d, 'RUN', r))

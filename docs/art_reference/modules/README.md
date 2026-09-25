@@ -155,7 +155,19 @@ with the rooms' view (depth recedes up the screen), a z-buffer, flat top-left li
 `armchair_angles.png`. Studies B and C use it, and four living rooms: A (oxblood club chair at the
 rug's end, turned to the sofa), B (mustard, watching the TV), D (sage wingback at the rug's end), E
 (tan leather wingback by the lamp, turned to the fire) — each with an `anchor_living_armchair` front
-node. C (the bare student flat) has none.
+node. C (the bare student flat) has none. **Yaw sign (round 12 fix — "consistently the wrong way
+round")**: +yaw turns the chair's FRONT to screen-LEFT, −yaw to screen-RIGHT (`_rot` negates it);
+it used to be backwards, so every chair faced away from its sofa/TV/fire.
+**Per-run chair states** (owner: "for run 2 and run 3 … sometimes a version where the chair is
+knocked back and blood stains on it"): `armchair(..., plan={run: 'ok'|'blood'|'tipped'}, key=...)`.
+`blood` = a noisy stain soaked into the seat + drips + drops on the floor (heavier on run 3);
+`tipped` = shoved back and rocked over ~26° onto its back legs against the wall, turned askew, the
+seat cushion thrown onto the floor in front, bloodied, grounded by its own footprint shadow (fully
+on its back or side was tried — at this size it reads as a lump). The module script passes
+`finish_module(per_run=lambda r: setattr(C3, 'RUN', r))`, which REBUILDS the module per run so the
+`_r2`/`_r3` looks carry the changed chair (and re-checks every node is still on drawn pixels).
+Plans: living A {2 blood, 3 tipped}, B {3 tipped}, D {2 tipped, 3 tipped}, E {2 blood, 3 blood};
+study B {3 tipped}, C {2 blood, 3 tipped}. Seeded by `key` + run, so it's stable.
 
 **The runs (owner round 10 — "their run 2 and 3 looks as things get a bit more dilapidated and then
 more so")**: every variant also gets `<name>_r2` / `_r3` textures (+ their own `_floor.png` and

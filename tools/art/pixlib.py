@@ -252,7 +252,7 @@ def rrect(c, x0, y0, x1, y1, col, r=2):
 BALCONY_BOX = (4, 0, 96, H - 1)      # where a balcony-capable module's balcony doors go (study/dining)
 
 
-def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, strip_fn=None):
+def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, strip_fn=None, per_run=None):
     """Render, check and export one module variant, and write its scene.
 
     wall_fn(c)  — the bare wall (wall + decay): the reference the window/edge checks compare to.
@@ -262,6 +262,10 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
                   (x 4..96); exported separately as <name>_strip.png so room.gd can hide it (and
                   its nodes) on a balcony slot.
     anchors     — [(node_name, x, y, flags)], flags 'bp' back plane / 's' balcony strip.
+    per_run     — optional per_run(run): called before REBUILDING the module for runs 2 and 3 (and
+                  with 1 after), so furniture can change between runs (a chair knocked back and
+                  bloodied — chair3d.RUN). The run looks then age THOSE images, and every node is
+                  checked to still sit on something drawn in them. None = the run looks age run 1.
     """
     import os
     import sys
@@ -342,7 +346,24 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
                     s.putpixel((x, y), p)
         s.save(os.path.join(ROOT, 'assets', 'rooms', name + '_strip.png'))
     _node_overlay(full.img, anchors, os.path.join(prev, 'nodes', name + '_nodes.png'))
-    runs = run_looks(name, ROOT, main.img, full.img, bare.img, bare_floor.img, floor_fn, seed, strip_fn is not None)
+    per_level = {}
+    if per_run is not None:
+        for lv in (2, 3):
+            per_run(lv)
+            mr = Canvas(seed=seed)
+            build_fn(mr)
+            fr = Canvas(seed=seed)
+            build_fn(fr)
+            if strip_fn is not None:
+                strip_fn(fr)
+            per_level[lv] = (mr.img, fr.img)
+            for (an, ax, ay, fl_) in anchors:
+                ref = fr if 's' in fl_.replace('bp', '') else mr
+                if ref.img.getpixel((ax, ay)) == bare_floor.img.getpixel((ax, ay)):
+                    sys.exit('%s: %s at (%d,%d) is not on anything drawn in the run-%d look' % (name, an, ax, ay, lv))
+        per_run(1)
+    runs = run_looks(name, ROOT, main.img, full.img, bare.img, bare_floor.img, floor_fn, seed, strip_fn is not None,
+                     per_level=per_level)
     sheet = Image.new('RGBA', (W * 2, H * 2 * 3), (0, 0, 0, 255))
     for i, im in enumerate((full.img, runs[2], runs[3])):
         sheet.paste(im.resize((W * 2, H * 2), Image.NEAREST), (0, H * 2 * i))
@@ -405,21 +426,24 @@ def _floor_grime(img, y0, level, dirt):
             px[x, y] = p
 
 
-def run_looks(name, root, main_img, full_img, bare_wall_img, bare_floor_img, floor_fn, seed, has_strip):
+def run_looks(name, root, main_img, full_img, bare_wall_img, bare_floor_img, floor_fn, seed, has_strip,
+              per_level=None):
     import os
     out = {}
     for level in (2, 3):
         d = DECAY[level]
         rng = random.Random(zlib.crc32(("%s:%d:%d" % (name, level, seed)).encode()))
+        # this run's own furniture (per_run rebuilds), else run 1's
+        base_main, base_full = (per_level or {}).get(level, (main_img, full_img))
         # masks from the layers: WALL = visible bare wall (y < 100), FLOOR = visible bare floor
-        m = main_img.copy()
-        f = full_img.copy()
+        m = base_main.copy()
+        f = base_full.copy()
         mp, fp = m.load(), f.load()
         wall_px = bare_wall_img.load()
         floor_px = bare_floor_img.load()
         is_wall = [[False] * H for _ in range(W)]
         is_floor = [[False] * H for _ in range(W)]
-        mo, fo = main_img.load(), full_img.load()
+        mo, fo = base_main.load(), base_full.load()
         in_strip = [[fo[x, y] != mo[x, y] for y in range(H)] for x in range(W)]
         for y in range(H):
             for x in range(W):
@@ -597,7 +621,7 @@ def run_looks(name, root, main_img, full_img, bare_wall_img, bare_floor_img, flo
             spx = s.load()
             for y in range(H):
                 for x in range(W):
-                    if full_img.getpixel((x, y)) != main_img.getpixel((x, y)):
+                    if base_full.getpixel((x, y)) != base_main.getpixel((x, y)):
                         spx[x, y] = fp[x, y]
             s.save(os.path.join(root, 'assets', 'rooms', name + suffix + '_strip.png'))
         if not floor_is_periodic(strip):

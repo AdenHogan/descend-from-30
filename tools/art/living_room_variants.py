@@ -482,17 +482,17 @@ import chair3d as C3
 
 def b_chair(c):
     C3.armchair(c, 64, 118, -40, {'fab': hexc('a8843a'), 'fab_lt': hexc('b8944a'), 'wood': hexc('3a2618')},
-                style='club')                                                   # mustard, facing the telly
+                style='club', plan={3: 'tipped'}, key='living_b')              # mustard, facing the telly
 
 
 def d_chair(c):
     C3.armchair(c, 236, 118, 35, {'fab': hexc('6a7a5a'), 'fab_lt': hexc('7a8a68'), 'wood': hexc('4a2e1e')},
-                style='wing')                                                   # sage wingback, at the rug's end
+                style='wing', plan={2: 'tipped', 3: 'tipped'}, key='living_d')  # sage wingback, at the rug's end
 
 
 def e_chair(c):
     C3.armchair(c, 282, 118, 38, {'fab': hexc('8a5a34'), 'fab_lt': hexc('9a6a40'), 'wood': hexc('2e1e14')},
-                style='wing')                                                   # tan leather, by the lamp
+                style='wing', plan={2: 'blood', 3: 'blood'}, key='living_e')    # tan leather, by the lamp
 
 
 def _with(furniture, chair):
@@ -539,4 +539,5 @@ if __name__ == '__main__':
     for v in (sys.argv[1:] or sorted(VARIANTS)):
         name, seed, fns, anchors = VARIANTS[v]
         bare, floor, build = _variant(*fns, seed)
-        finish_module(name, 'living_room', seed, bare, floor, build, anchors)
+        finish_module(name, 'living_room', seed, bare, floor, build, anchors,
+                      per_run=lambda r: setattr(C3, 'RUN', r))
