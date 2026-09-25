@@ -106,7 +106,7 @@ def b_furniture(c):
     c.ellipse(246, 84, 3, 2, hexc('f0ece2')); c.ellipse(251, 83, 2, 2, hexc('e6e0cc'))
     # (drawn after the basket against the wall, so it sits in front of it)
     C3.armchair(c, 233, 117, 35, {'fab': hexc('6a6a5a'), 'fab_lt': hexc('7a7a68'), 'wood': hexc('3a2a1e')},
-                style='club', plan={3: 'tipped'}, key='study_b')               # turned toward the desk
+                style='club', plan={3: 'side'}, key='study_b')                 # turned toward the desk
     # a low side table at its elbow: a mug, a slew of printouts, a biro (the chair has company)
     F.table_front(c, 256, 286, 106, 121, F.TEAK, depth=4)
     c.rect(260, 103, 264, 107, hexc('e6e0cc')); c.put(265, 104, hexc('e6e0cc'))            # a mug

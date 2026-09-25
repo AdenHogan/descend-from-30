@@ -487,7 +487,7 @@ def b_chair(c):
 
 def d_chair(c):
     C3.armchair(c, 236, 118, 35, {'fab': hexc('6a7a5a'), 'fab_lt': hexc('7a8a68'), 'wood': hexc('4a2e1e')},
-                style='wing', plan={2: 'tipped', 3: 'tipped'}, key='living_d')  # sage wingback, at the rug's end
+                style='wing', plan={2: 'side', 3: 'side'}, key='living_d')      # sage tall-back, at the rug's end
 
 
 def e_chair(c):

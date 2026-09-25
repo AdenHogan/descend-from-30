@@ -2,7 +2,7 @@
 
 Drawing a chair turned three-quarters by hand keeps coming out wrong (owner: "you can draw them
 from the front and the side but not from an angle"), so the chair is BUILT — a seat base, a seat
-cushion, two arms with rolled tops, a (winged) back and four legs, as boxes and prisms in 3D —
+cushion, two arms with rolled tops, a low (club) or tall back and four legs, as boxes and prisms in 3D —
 turned by `yaw` and projected with the rooms' view (straight on, looking a little down: depth
 recedes UP the screen). A z-buffer sorts it out; each face is lit by the rooms' flat top-left
 light and snapped to a 5-tone ramp of the upholstery colour, then outlined: the silhouette in the
@@ -15,10 +15,11 @@ Units: 1 unit = 1 px at the rooms' scale. The chair stands on z = 0 at its footp
       yaw         degrees; 0 = facing us, +35 = turned to face screen-LEFT (three-quarters),
                   -35 = to face screen-RIGHT, 90 = side-on facing left. (Round 12 fix: the sign
                   was backwards — every chair faced away from what it was grouped with.)
-      plan        optional {run: 'ok' | 'blood' | 'tipped'}: how this chair looks on runs 2/3 —
-                  blood-stained, or knocked over BACKWARDS (a real 3D fall about its back legs,
-                  so it lands right at any yaw) and bloodied. pixlib.finish_module(per_run=...)
-                  rebuilds a module per run with RUN set, so the run looks can differ.
+      plan        optional {run: 'ok' | 'blood' | 'tipped' | 'side'}: how this chair looks on
+                  runs 2/3 — blood-stained, or knocked over flat on its back / onto its side (a
+                  real 3D fall, so it lands right at any yaw) and bloodied; the stain is placed on
+                  the upright chair's surfaces, so it follows the chair's angle. pixlib.
+                  finish_module(per_run=...) rebuilds a module per run with RUN set.
 """
 import math
 import random
@@ -53,7 +54,10 @@ def ramp(col, n=5):
 
 class Model:
     def __init__(self):
-        self.faces = []          # (points3d[list], part_id, material)
+        self.faces = []          # (points3d[list], part_id, material, source points)
+
+    def add(self, pts, part, mat):
+        self.faces.append((pts, part, mat, list(pts)))
 
     def box(self, x0, x1, y0, y1, z0, z1, part, mat, bevel=0.0):
         """An axis-aligned box (x right, y depth into the room, z up); `bevel` cuts its top edges."""
@@ -64,17 +68,17 @@ class Model:
                  P(x0, y0, z1), P(x1, y0, z1), P(x1, y1, z1), P(x0, y1, z1)]
             quads = [(0, 1, 5, 4), (1, 2, 6, 5), (2, 3, 7, 6), (3, 0, 4, 7), (4, 5, 6, 7), (3, 2, 1, 0)]
             for q in quads:
-                self.faces.append(([c[i] for i in q], part, mat))
+                self.add([c[i] for i in q], part, mat)
             return
         # a bevelled top: the top face inset by b, slanted faces down to the sides
         zt = z1 - b
         self.box(x0, x1, y0, y1, z0, zt, part, mat)
         top = [(x0 + b, y0 + b, z1), (x1 - b, y0 + b, z1), (x1 - b, y1 - b, z1), (x0 + b, y1 - b, z1)]
         rim = [(x0, y0, zt), (x1, y0, zt), (x1, y1, zt), (x0, y1, zt)]
-        self.faces.append((top, part, mat))
+        self.add(top, part, mat)
         for i in range(4):
             j = (i + 1) % 4
-            self.faces.append(([rim[i], rim[j], top[j], top[i]], part, mat))
+            self.add([rim[i], rim[j], top[j], top[i]], part, mat)
 
     def roll(self, x0, x1, y0, y1, zc, r, part, mat, sides=7):
         """A rolled arm top: a half-cylinder along the depth axis, centred at x=(x0+x1)/2."""
@@ -85,11 +89,11 @@ class Model:
             pts.append((xc + math.cos(a) * r, zc + math.sin(a) * r))
         for k in range(sides):
             (xa, za), (xb, zb) = pts[k], pts[k + 1]
-            self.faces.append(([(xa, y0, za), (xb, y0, zb), (xb, y1, zb), (xa, y1, za)], part, mat))
+            self.add([(xa, y0, za), (xb, y0, zb), (xb, y1, zb), (xa, y1, za)], part, mat)
         cap_f = [(x, y0, z) for (x, z) in pts]
         cap_b = [(x, y1, z) for (x, z) in reversed(pts)]
-        self.faces.append((cap_f, part, mat))
-        self.faces.append((cap_b, part, mat))
+        self.add(cap_f, part, mat)
+        self.add(cap_b, part, mat)
 
 
 def build(style, cushion=True):
@@ -108,10 +112,6 @@ def build(style, cushion=True):
     back_top = 36 if style == 'wing' else 30
     m.box(-hw, hw, hd - 6, hd, 12, back_top, 'back', 'fab', bevel=2.0)          # the back
     m.box(-hw + 5, hw - 5, hd - 9, hd - 6, 15, back_top - 4, 'backcush', 'fab_lt', bevel=1.2)
-    if style == 'wing':                                                          # the wings
-        for side in (-1, 1):
-            wx0, wx1 = (-hw, -hw + 4) if side < 0 else (hw - 4, hw)
-            m.box(wx0, wx1, hd - 14, hd - 6, 20, back_top - 3, 'wing%d' % side, 'fab', bevel=1.0)
     return m
 
 
@@ -142,10 +142,10 @@ def _normal(pts):
 def render(model, yaw, pal, size=64):
     """-> dict pixel -> colour, plus bounds. pal: {'fab': col, 'fab_lt': col, 'wood': col}."""
     ramps = {k: ramp(v) for k, v in pal.items()}
-    zbuf, cbuf, pbuf = {}, {}, {}
+    zbuf, cbuf, pbuf, sbuf = {}, {}, {}, {}
     view = _norm((0.0, 1.0, -0.4))  # the viewer looks INTO the room (+y) and a little down
     centre = {}                     # each part's centre, to point every face normal OUTWARD
-    for (pts, part, mat) in model.faces:
+    for (pts, part, mat, src) in model.faces:
         for p in pts:
             acc = centre.setdefault(part, [0.0, 0.0, 0.0, 0])
             for i in range(3):
@@ -153,7 +153,7 @@ def render(model, yaw, pal, size=64):
             acc[3] += 1
     for part, acc in centre.items():
         centre[part] = _rot((acc[0] / acc[3], acc[1] / acc[3], acc[2] / acc[3]), yaw)
-    for (pts, part, mat) in model.faces:
+    for (pts, part, mat, src) in model.faces:
         rp = [_rot(p, yaw) for p in pts]
         n = _normal(rp)
         fc = tuple(sum(p[i] for p in rp) / len(rp) for i in range(3))
@@ -173,11 +173,12 @@ def render(model, yaw, pal, size=64):
         sp = [_proj(p) for p in rp]
         dp = [_depth(p) for p in rp]
         for i in range(1, len(sp) - 1):                              # fan into triangles
-            _tri(sp[0], sp[i], sp[i + 1], dp[0], dp[i], dp[i + 1], col, part, zbuf, cbuf, pbuf)
-    return cbuf, pbuf, zbuf
+            _tri(sp[0], sp[i], sp[i + 1], dp[0], dp[i], dp[i + 1], col, part, zbuf, cbuf, pbuf,
+                 (src[0], src[i], src[i + 1]), sbuf)
+    return cbuf, pbuf, zbuf, sbuf
 
 
-def _tri(a, b, c, da, db, dc, col, part, zbuf, cbuf, pbuf):
+def _tri(a, b, c, da, db, dc, col, part, zbuf, cbuf, pbuf, src=None, sbuf=None):
     minx, maxx = int(math.floor(min(a[0], b[0], c[0]))), int(math.ceil(max(a[0], b[0], c[0])))
     miny, maxy = int(math.floor(min(a[1], b[1], c[1]))), int(math.ceil(max(a[1], b[1], c[1])))
     den = (b[1] - c[1]) * (a[0] - c[0]) + (c[0] - b[0]) * (a[1] - c[1])
@@ -196,36 +197,45 @@ def _tri(a, b, c, da, db, dc, col, part, zbuf, cbuf, pbuf):
                 zbuf[(x, y)] = d
                 cbuf[(x, y)] = col
                 pbuf[(x, y)] = part
+                if sbuf is not None:           # where on the UPRIGHT chair this pixel is
+                    sbuf[(x, y)] = tuple(w1 * src[0][i] + w2 * src[1][i] + w3 * src[2][i] for i in range(3))
 
 
-def tip_over(model, deg=78.0, roll=7.0):
-    """Knock the chair over BACKWARDS: rotate it about its back-bottom edge until the back lies on
-    the floor and the seat front / legs point up, with a slight roll so it lies a little askew."""
-    hd = 12.0
-    a, r = math.radians(deg), math.radians(roll)
+def fall(model, how='back', lean=6.0):
+    """Knock the chair OVER: 'back' = rotated 90 deg about its back-bottom edge so it lies on its
+    back (underside and legs toward us, the back cushion facing the ceiling); 'side' = rolled 90 deg
+    onto its right arm (lean > 0) or left arm (lean < 0). `lean` also tips it a few degrees askew.
+    The footprint is re-centred on the chair's old spot and it's set down on the floor."""
+    hd, hw = 12.0, 14.0
+    sd = 1.0 if lean >= 0 else -1.0
+    r = math.radians(abs(lean)) * sd
     out = Model()
-    zs = []
-    for (pts, part, mat) in model.faces:
+    for (pts, part, mat, src) in model.faces:
         np_ = []
         for (x, y, z) in pts:
-            dy, dz = y - hd, z
-            y2 = hd + dy * math.cos(a) + dz * math.sin(a)
-            z2 = -dy * math.sin(a) + dz * math.cos(a)
-            x2 = x * math.cos(r) - z2 * math.sin(r)            # a little roll onto one arm
-            z3 = x * math.sin(r) + z2 * math.cos(r)
-            np_.append((x2, y2 - hd * 0.9, z3))
-            zs.append(z3)
-        out.faces.append((np_, part, mat))
-    lift = -min(zs)
-    out.faces = [([(x, y, z + lift) for (x, y, z) in pts], part, mat) for (pts, part, mat) in out.faces]
+            if how == 'back':
+                x, y, z = x, hd + z, hd - y                # about the edge y = hd, z = 0
+                x, z = x * math.cos(r) - z * math.sin(r), x * math.sin(r) + z * math.cos(r)
+            else:
+                ex = hw * sd                               # about the bottom edge of that arm
+                x, z = ex + z * sd, -(x - ex) * sd
+                y, z = y * math.cos(r) - z * math.sin(r), y * math.sin(r) + z * math.cos(r)
+            np_.append((x, y, z))
+        out.faces.append((np_, part, mat, src))
+    allp = [p for f in out.faces for p in f[0]]
+    mx = (min(p[0] for p in allp) + max(p[0] for p in allp)) / 2
+    my = (min(p[1] for p in allp) + max(p[1] for p in allp)) / 2
+    mz = min(p[2] for p in allp)
+    out.faces = [([(x - mx, y - my, z - mz) for (x, y, z) in pts], part, mat, src)
+                 for (pts, part, mat, src) in out.faces]
     return out
 
 
 def _footprint_shadow(c, cx, base_y, model, yaw):
-    """The chair's own footprint darkened on the floor (every point dropped to z = 0) — grounds a
-    tipped chair whose raised front legs no longer sit on the round contact shadow."""
+    """The chair's own footprint darkened on the floor (every point dropped to z = 0) — a fallen
+    chair's shape, not the round contact shadow of one standing."""
     pts = sorted({(cx + x, base_y - y * DEPTH_K + 1)
-                  for (ps, part, mat) in model.faces for (x, y, z) in (_rot(p, yaw) for p in ps)})
+                  for (ps, part, mat, src) in model.faces for (x, y, z) in (_rot(p, yaw) for p in ps)})
     cr = lambda o, a, b: (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
     lo, up = [], []
     for p in pts:
@@ -244,61 +254,96 @@ def _footprint_shadow(c, cx, base_y, model, yaw):
                 c.put(x, y, (20, 14, 12, 95))
 
 
-def _bloody(c, cx, base_y, cbuf, pbuf, rng, heavy, parts=('cushion', 'backcush')):
-    """Blood soaked into the seat, run down the front, dripped on the floor under it."""
-    seat = [p for p in cbuf if pbuf[p] in parts] or list(cbuf)
-    mx = sum(x for x, y in seat) / len(seat)
-    my = sum(y for x, y in seat) / len(seat)
-    ox, oy = mx + rng.uniform(-3, 3), my + rng.uniform(-1, 2)
-    rx, ry = rng.uniform(4.5, 7.0) * (1.3 if heavy else 1.0), rng.uniform(2.5, 4.0)
+BLOOD = ((58, 14, 12, 255), (92, 24, 20, 235), (92, 24, 20, 170))
+
+
+def _bloody(c, cx, base_y, cbuf, pbuf, sbuf, rng, heavy, fallen, underside=False):
+    """Blood soaked into the seat and up the back cushion, over the seat's front edge — placed on
+    the UPRIGHT chair's own surfaces (`sbuf`: where each pixel is on the chair), so a knocked-over
+    chair carries its stain at the chair's angle, not the screen's. Then blood on the floor: drips
+    under a standing chair, a pool spread out beside a fallen one."""
+    ox = rng.uniform(-4, 4)
+    blobs = [((ox, rng.uniform(-6, 0), 13.5), rng.uniform(5.5, 7.5) * (1.25 if heavy else 1.0)),
+             ((ox + rng.uniform(-3, 3), 3.0, 21.0), rng.uniform(4.5, 6.5) * (1.2 if heavy else 1.0))]
+    if underside:        # on its back the seat faces away: blood splashed over the bare underside
+        blobs.append(((ox, rng.uniform(-3, 3), 4.0), rng.uniform(6.5, 8.5)))
     ph = [rng.uniform(0, 6.28) for _ in range(3)]
     stain = {}
-    for (x, y) in cbuf:
-        a = math.atan2((y - oy) / ry, (x - ox) / rx)
-        k = 1.0 + 0.3 * math.sin(3 * a + ph[0]) + 0.15 * math.sin(5 * a + ph[1]) + 0.1 * math.sin(9 * a + ph[2])
-        d = (((x - ox) / rx) ** 2 + ((y - oy) / ry) ** 2) ** 0.5 / k
+    for (x, y), q in sbuf.items():
+        if pbuf[(x, y)] == 'leg':
+            continue
+        d = 9.0
+        for (cpos, rad) in blobs:
+            dx, dy, dz = q[0] - cpos[0], q[1] - cpos[1], q[2] - cpos[2]
+            a = math.atan2(dy + dz, dx)
+            k = 1.0 + 0.3 * math.sin(3 * a + ph[0]) + 0.15 * math.sin(5 * a + ph[1]) + 0.1 * math.sin(9 * a + ph[2])
+            d = min(d, math.sqrt(dx * dx + dy * dy + dz * dz) / (rad * k))
         if d < 0.7:
-            stain[(x, y)] = (58, 14, 12, 255)
+            stain[(x, y)] = BLOOD[0]
         elif d < 1.0:
-            stain[(x, y)] = (92, 24, 20, 235)
+            stain[(x, y)] = BLOOD[1]
         elif d < 1.2 and rng.random() < 0.5:
-            stain[(x, y)] = (92, 24, 20, 170)
+            stain[(x, y)] = BLOOD[2]
     for (x, y), col in stain.items():
         c.put(cx + x, base_y + y, col)
-    bottom = {}
-    for (x, y) in stain:                                     # drips run down the chair's front
-        if y > bottom.get(x, -99):
-            bottom[x] = y
-    for x in rng.sample(sorted(bottom), min(len(bottom), 3 if heavy else 2)):
-        y = bottom[x]
-        for k in range(1, rng.randrange(3, 9)):
-            if (x, y + k) in cbuf:
-                c.put(cx + x, base_y + y + k, (82, 20, 17, 230))
     floor_y = max(y for x, y in cbuf)
-    for k in range(rng.randrange(3, 7) + (4 if heavy else 0)):   # and on the floor under it
-        x = int(ox) + rng.randrange(-10, 11)
-        y = floor_y + rng.randrange(1, 4)
+    if not fallen or underside:
+        bottom = {}
+        for (x, y) in stain:                                 # drips run down the chair's front
+            if y > bottom.get(x, -99):
+                bottom[x] = y
+        for x in rng.sample(sorted(bottom), min(len(bottom), 3 if heavy else 2)):
+            y = bottom[x]
+            for k in range(1, rng.randrange(3, 9)):
+                if (x, y + k) in cbuf:
+                    c.put(cx + x, base_y + y + k, (82, 20, 17, 230))
+    if not fallen:
+        mx = int(sum(x for x, y in stain) / len(stain)) if stain else 0
+        for k in range(rng.randrange(3, 7) + (4 if heavy else 0)):   # and on the floor under it
+            x = mx + rng.randrange(-10, 11)
+            y = floor_y + rng.randrange(1, 4)
+            if (x, y) not in cbuf:
+                c.put(cx + x, base_y + y, (74, 18, 15, 220))
+                if heavy and rng.random() < 0.5:
+                    c.put(cx + x + 1, base_y + y, (74, 18, 15, 200))
+        return
+    # fallen: it ran out of the seat and pooled on the floor along the chair's front
+    xs = [x for (x, y) in cbuf if y >= floor_y - 2]
+    px = rng.uniform(min(xs), max(xs)) if xs else 0
+    prx, pry = rng.uniform(7, 10) * (1.2 if heavy else 1.0), rng.uniform(1.8, 2.6)
+    py = floor_y + 1
+    for y in range(int(py - pry) - 1, int(py + pry) + 2):
+        for x in range(int(px - prx) - 1, int(px + prx) + 2):
+            a = math.atan2((y - py) / pry, (x - px) / prx)
+            k = 1.0 + 0.25 * math.sin(3 * a + ph[1]) + 0.12 * math.sin(7 * a + ph[2])
+            d = math.hypot((x - px) / prx, (y - py) / pry) / k
+            if (x, y) in cbuf or d > 1.0:
+                continue
+            c.put(cx + x, base_y + y, BLOOD[0] if d < 0.65 else (74, 18, 15, 215))
+    for k in range(rng.randrange(4, 8)):                     # and spatter around it
+        x = int(px) + rng.randrange(-16, 17)
+        y = floor_y + rng.randrange(-1, 5)
         if (x, y) not in cbuf:
-            c.put(cx + x, base_y + y, (74, 18, 15, 220))
-            if heavy and rng.random() < 0.5:
-                c.put(cx + x + 1, base_y + y, (74, 18, 15, 200))
+            c.put(cx + x, base_y + y, (74, 18, 15, 210))
 
 
 def armchair(c, cx, base_y, yaw, pal, style='wing', outline=None, shadow=True, plan=None, key='chair'):
     """Draw a turned armchair onto a pixlib Canvas: footprint centre at (cx, base_y) on screen."""
     state = (plan or {}).get(RUN, 'ok')
-    model = build(style)
-    if state == 'tipped':
-        # KNOCKED BACK: shoved back, turned askew and rocked over onto its back legs against the
-        # wall behind it, the seat cushion thrown out onto the floor in front. (Fully on its back
-        # or its side reads as a lump at this size — the seat and arms vanish — so it rests
-        # leaning, the seat still showing; the footprint shadow keeps it on the floor.)
-        model = tip_over(build(style, cushion=False), 26.0, 5.0 if yaw >= 0 else -5.0)
+    fallen = state in ('tipped', 'side')
+    model = build(style, cushion=not fallen)
+    if fallen:
+        # KNOCKED OVER (owner round 13 — "on its back, knocked over, rather than precariously
+        # balancing"): flat on its back, underside and legs toward us — or rolled onto an arm — a
+        # little askew, the seat cushion thrown out onto the floor beside it.
         side = 1 if yaw >= 0 else -1
-        model.box(-8 - 5 * side, 8 - 5 * side, -31, -16, 0, 3, 'cushion', 'fab_lt', bevel=1.0)
-        yaw = yaw * 1.3
-        base_y -= 5
-    cbuf, pbuf, zbuf = render(model, yaw, pal)
+        model = fall(model, 'back' if state == 'tipped' else 'side', 6.0 * side)
+        allp = [p for f in model.faces for p in f[0]]
+        y0 = min(p[1] for p in allp)
+        x1 = max(p[0] for p in allp) if side < 0 else min(p[0] for p in allp)
+        cx0 = x1 + 4 * side if side < 0 else x1 - 20
+        model.box(cx0, cx0 + 16, y0 - 16, y0 - 1, 0, 3, 'cushion', 'fab_lt', bevel=1.0)
+    cbuf, pbuf, zbuf, sbuf = render(model, yaw, pal)
     if not cbuf:
         return
     out = outline or tuple(int(v * 0.3) for v in pal['fab'][:3]) + (255,)
@@ -310,7 +355,7 @@ def armchair(c, cx, base_y, yaw, pal, style='wing', outline=None, shadow=True, p
             if q in pbuf and pbuf[q] != part and abs(zbuf[q] - zbuf[(x, y)]) > 1.5:
                 far = q if zbuf[q] > zbuf[(x, y)] else (x, y)
                 crease[far] = True
-    if shadow and state == 'tipped':
+    if shadow and fallen:
         _footprint_shadow(c, cx, base_y, model, yaw)
     elif shadow:
         c.shadow(cx, base_y, 19, 3, 110)
@@ -322,11 +367,11 @@ def armchair(c, cx, base_y, yaw, pal, style='wing', outline=None, shadow=True, p
         for (dx, dy) in ((1, 0), (-1, 0), (0, 1), (0, -1)):
             if (x + dx, y + dy) not in cbuf:
                 c.put(cx + x + dx, base_y + y + dy, out)
-    if state in ('blood', 'tipped'):
+    if state != 'ok':
         import zlib
-        _bloody(c, cx, base_y, cbuf, pbuf, random.Random(zlib.crc32(('%s:%d' % (key, RUN)).encode())),
-                heavy=(state == 'tipped' or RUN >= 3),
-                parts=('backcush', 'base') if state == 'tipped' else ('cushion', 'backcush'))
+        seat = {p: q for p, q in sbuf.items() if pbuf[p] != 'cushion' or not fallen}
+        _bloody(c, cx, base_y, cbuf, pbuf, seat, random.Random(zlib.crc32(('%s:%d' % (key, RUN)).encode())),
+                heavy=(fallen or RUN >= 3), fallen=fallen, underside=(state == 'tipped'))
     return {'bbox': (cx + min(x for x, y in cbuf) - 1, base_y + min(y for x, y in cbuf) - 1,
                      cx + max(x for x, y in cbuf) + 1, base_y + max(y for x, y in cbuf) + 1)}
 
@@ -347,7 +392,7 @@ if __name__ == '__main__':
     RUN = 3
     for i, yaw in enumerate((35, -35, 40, -40)):
         armchair(c, 40 + i * 100, 140, yaw, pal if i % 2 == 0 else pal2, style='wing' if i < 2 else 'club',
-                 plan={3: 'tipped' if i != 2 else 'blood'}, key='prev%d' % i)
+                 plan={3: ('tipped', 'side', 'blood', 'tipped')[i]}, key='prev%d' % i)
     RUN = 1
     out = os.path.join(os.path.dirname(__file__), '..', '..', 'docs', 'art_reference', 'modules', 'armchair_angles.png')
     c.img.resize((420 * 3, 150 * 3), Image.NEAREST).save(out)

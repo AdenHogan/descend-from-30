@@ -148,7 +148,7 @@ Round 12 (owner: box files stacked on the study floor — "they should be stored
 
 **ARMCHAIRS AT AN ANGLE (owner round 12 — "you can draw them from the front and the side but not
 from an angle")**: never hand-draw a turned armchair. `tools/art/chair3d.py` BUILDS the chair (seat
-base, cushion, rolled arms, a club or winged back, legs) in 3D, turns it by `yaw` and renders it
+base, cushion, rolled arms, a low club or tall back, legs) in 3D, turns it by `yaw` and renders it
 with the rooms' view (depth recedes up the screen), a z-buffer, flat top-left light snapped to a
 5-tone ramp and pixel outlines: `C3.armchair(c, cx, base_y, yaw, {'fab','fab_lt','wood'}, style)`.
 0 = facing us, ±30..40 = three-quarters, 90 = side-on. Preview of every angle:
@@ -159,15 +159,22 @@ node. C (the bare student flat) has none. **Yaw sign (round 12 fix — "consiste
 round")**: +yaw turns the chair's FRONT to screen-LEFT, −yaw to screen-RIGHT (`_rot` negates it);
 it used to be backwards, so every chair faced away from its sofa/TV/fire.
 **Per-run chair states** (owner: "for run 2 and run 3 … sometimes a version where the chair is
-knocked back and blood stains on it"): `armchair(..., plan={run: 'ok'|'blood'|'tipped'}, key=...)`.
-`blood` = a noisy stain soaked into the seat + drips + drops on the floor (heavier on run 3);
-`tipped` = shoved back and rocked over ~26° onto its back legs against the wall, turned askew, the
-seat cushion thrown onto the floor in front, bloodied, grounded by its own footprint shadow (fully
-on its back or side was tried — at this size it reads as a lump). The module script passes
+knocked back and blood stains on it"; round 13: "on its back, knocked over, rather than precariously
+balancing"): `armchair(..., plan={run: 'ok'|'blood'|'tipped'|'side'}, key=...)`.
+`tipped` = knocked flat ON ITS BACK (underside + legs toward us, a few degrees askew); `side` = rolled
+onto an arm (the seat opening shows); both throw the seat cushion onto the floor beside it, sit on
+their own footprint shadow and pool blood on the floor. BLOOD IS PLACED IN 3D: every rendered pixel
+remembers where it is on the UPRIGHT chair (`render` returns `sbuf`), and the stain is noisy blobs on
+the seat, up the back cushion and over the seat's front edge in that space — so it follows the
+chair's angle whatever way it lies (round 13: a screen-space ellipse stayed horizontal on a fallen
+chair). On its back the seat faces away from us, so a splash goes over the bare underside too, with
+drips down it. `blood` = the same stain on the standing chair + drips + drops on the floor (heavier on
+run 3). No WINGS (round 13: "bulked out areas … don't need to be there") — `style='wing'` is now the
+tall-backed chair, `'club'` the low one. The module script passes
 `finish_module(per_run=lambda r: setattr(C3, 'RUN', r))`, which REBUILDS the module per run so the
 `_r2`/`_r3` looks carry the changed chair (and re-checks every node is still on drawn pixels).
-Plans: living A {2 blood, 3 tipped}, B {3 tipped}, D {2 tipped, 3 tipped}, E {2 blood, 3 blood};
-study B {3 tipped}, C {2 blood, 3 tipped}. Seeded by `key` + run, so it's stable.
+Plans: living A {2 blood, 3 tipped}, B {3 tipped}, D {2 side, 3 side}, E {2 blood, 3 blood};
+study B {3 side}, C {2 blood, 3 tipped}. Seeded by `key` + run, so it's stable.
 
 **The runs (owner round 10 — "their run 2 and 3 looks as things get a bit more dilapidated and then
 more so")**: every variant also gets `<name>_r2` / `_r3` textures (+ their own `_floor.png` and
