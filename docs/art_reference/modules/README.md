@@ -111,8 +111,10 @@ everything with `python3 tools/art/build_all.py`, deterministic — an unchanged
 byte-identical PNGs). Scripts: `<type>.py` = variant a, `<type>_variants.py` = b-d (bathroom keeps all
 four in `bathroom.py`); shared pieces in `tools/art/furn.py` (chest, shelves, table, chairs, boxes,
 posters, rugs, lamps, walls + tiling floors).
-- living room: a green sofa + bookshelf / b teak mid-century (TV left, sofa right) / c run-down flat
-  (crates, pallet table, CRT) / d grandmother's parlour (piano, chintz sofa, china cabinet).
+- living room: a green sofa + coffee table + armchair (a conversation group) / b teak mid-century
+  (console TV turned in the left corner, armchair + sofa turned to it) / c run-down flat (crates, a
+  grey sofa turned to a CRT on crates in the right corner, the pallet table between) / d
+  grandmother's parlour (piano, chintz sofa, china cabinet).
 - bedroom: a dressing table + wardrobe / b teenager's (desk + CRT, beanbag, bed on the right) /
   c sick room (iron bedstead, drip, wheelchair, med trolley) / d squat (mattress on the floor,
   clothes rail, backpack, crates).
@@ -122,12 +124,13 @@ posters, rugs, lamps, walls + tiling floors).
 - bathroom: a SHORT roll-top on claw feet (the owner's "horse trough" fix) / b 70s avocado
   (panelled bath) / c gilded (gold tub + throne, chandelier) / d wet room (curtained tub, washer,
   clothes horse).
-- study: desk pulled out into the room / b 90s home office / c library (two bookcases + ladder,
+- study: desk pulled out into the room / b 90s home office (a 3D office chair swivelled at an angle; a
+  printout hanging from the printer and two printed sheets slid onto the floor at its stand) / c library (two bookcases + ladder,
   wingback, globe) / d prepper's radio room.
 - dining room: table + side-on chair + drinks trolley / b 70s round table + serving hatch /
   c formal (grandfather clock, candelabra) / d barricaded (the table flipped on its side).
-- 5th variants (e): living room hunting lodge (gun cabinet, stone fireplace, chesterfield,
-  bear-skin rug) / bedroom a child's room (dollhouse, rocking horse, toy chest) / kitchen the
+- 5th variants (e): living room hunting lodge (gun cabinet, a SYMMETRIC stone fireplace with a log
+  basket and poker stand on the hearth, chesterfield, bear-skin rug) / bedroom a child's room (dollhouse, rocking horse, toy chest) / kitchen the
   hoarder (newspaper stacks, bags, cat tins) / bathroom pink 50s suite / study artist's studio
   (canvases, an easel with a smeared portrait, a trestle table) / dining room an abandoned birthday
   party (bunting, cake, party hats, unopened presents in the strip).
@@ -175,6 +178,20 @@ tall-backed chair, `'club'` the low one. The module script passes
 `_r2`/`_r3` looks carry the changed chair (and re-checks every node is still on drawn pixels).
 Plans: living A {2 blood, 3 tipped}, B {3 tipped}, D {2 side, 3 side}, E {2 blood, 3 blood};
 study B {3 side}, C {2 blood, 3 tipped}. Seeded by `key` + run, so it's stable.
+
+**SEAT THE ROOM SENSIBLY (owner round 13 — "if a room has a TV then the furniture should be facing
+it … if there is no TV it's weird a sofa would be facing forward and the armchair facing away")**:
+- A room WITH A TV: the set stands turned in a CORNER (never flat against the back wall behind the
+  seats), and the sofa and armchair are turned toward it — living B, C. That needs angled sofas and
+  sets, so `chair3d` also builds them: `sofa_model(width, seats)` (the armchair's make, one seat + back
+  cushion per place), `console_tv()`, `crt_on_crates()`, `office_chair()` (five-star base) — drawn with
+  `C3.draw_model(c, cx, base_y, model, yaw, pal, outline, srad)`; `screen_detail` puts glare / a crack /
+  grille slats on the set's own face so they turn with it.
+- A room WITHOUT one: the sofa faces the room and the armchair sits across the coffee table from it,
+  turned back toward the sofa (a conversation group — living A), or turned to the fire (E).
+- No throws / blankets over sofas ("looks like a blanket or a bulletproof vest… unclean and weird"), no
+  peeling wallpaper strips in the run-1 look (the run looks add the damage), and a fireplace is
+  drawn mirror-symmetric (E is pixel-exact about x 128 apart from the clock hand).
 
 **The runs (owner round 10 — "their run 2 and 3 looks as things get a bit more dilapidated and then
 more so")**: every variant also gets `<name>_r2` / `_r3` textures (+ their own `_floor.png` and

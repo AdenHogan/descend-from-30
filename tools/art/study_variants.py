@@ -76,14 +76,10 @@ def b_furniture(c):
     c.rect(164, 59, 176, 60, BEIGE[2]); c.put(170, 64, hexc('4e8a5a'))
     c.rect(130, 69, 158, 69, hexc('e6e0cc'))                                                  # keyboard
     c.rect(112, 64, 118, 69, hexc('e6e0cc')); c.put(119, 66, hexc('e6e0cc'))                  # a mug
-    # an office chair rolled out toward the lane
-    c.shadow(160, 119, 12, 2, 110)
-    c.box(150, 88, 170, 104, hexc('3a3a44'), hexc('1c1c22'))
-    c.rect(148, 104, 172, 108, hexc('3a3a44'))
-    c.hline(148, 172, 104, hexc('4a4a56'))
-    c.vline(160, 109, 115, hexc('26262a'))
-    c.line(160, 115, 150, 119, hexc('26262a')); c.line(160, 115, 170, 119, hexc('26262a'))
-    c.put(150, 119, hexc('111114')); c.put(170, 119, hexc('111114')); c.put(160, 119, hexc('111114'))
+    # an office chair rolled out from the desk and left swivelled at an angle (owner round 13: the
+    # square-on chair "looks a bit weird" — built in 3D like the armchairs)
+    C3.draw_model(c, 160, 118, C3.office_chair(), 40,
+                  {'fab': hexc('3a3a44'), 'metal': hexc('2a2a30')}, outline=hexc('141418'), srad=13)
     def _printer(c):
         # a printer on a little stand against the wall beside the desk, paper spilling
         c.shadow(214, 119, 14, 2, 110)
@@ -94,16 +90,31 @@ def b_furniture(c):
         c.hline(203, 225, 112, BEIGE[2])
         c.box(204, 86, 224, 95, BEIGE[0], BEIGE[3])
         c.rect(208, 88, 220, 89, hexc('26262a'))
-        c.poly([(210, 95), (220, 95), (224, 104), (214, 104)], hexc('f0ece2'))
-        c.poly([(222, 114), (232, 112), (236, 117), (226, 119)], hexc('f0ece2'))
+        # owner round 13: a sheet hanging out of the printer, and a couple of printed sheets that
+        # slid off onto the floor at the foot of the stand (no loose scraps elsewhere)
+        PAPER, PAPER_DK, INK = hexc('f0ece2'), hexc('cfc9ba'), hexc('8a8a90')
+        c.poly([(209, 94), (220, 94), (221, 101), (219, 106), (210, 105)], PAPER)   # hanging over the edge
+        c.vline(209, 95, 105, PAPER_DK)
+        c.hline(211, 218, 105, PAPER_DK)
+        for k, y in enumerate(range(97, 104, 2)):
+            c.hline(211, 218 - (3 if k % 2 else 0), y, INK)
+
+        def sheet(pts):
+            c.poly(pts, PAPER)
+            (x0, y0), (x1, y1) = pts[0], pts[1]
+            c.line(pts[3][0], pts[3][1], pts[2][0], pts[2][1], PAPER_DK)
+            for t in (0.25, 0.5, 0.75):
+                ax, ay = x0 + 2 + (pts[3][0] - x0) * t, y0 + (pts[3][1] - y0) * t
+                c.line(int(ax), int(ay), int(ax + (x1 - x0) * 0.7), int(ay + (y1 - y0) * 0.7), INK)
+        sheet([(201, 117), (214, 116), (217, 122), (204, 123)])
+        sheet([(214, 119), (228, 118), (230, 124), (216, 125)])
     F.moved(c, _printer, -14, -18)
     # an old armchair pulled up near the lane for reading printouts
-    # a wastepaper basket under the R window box + box files on a shelf on the right
+    # a wastepaper basket against the wall behind the chair + box files on a shelf on the right
     c.shadow(248, 100, 8, 2, 90)                                                             # a wastepaper basket
     c.poly([(241, 86), (255, 86), (253, 99), (243, 99)], hexc('3a3a44'))
     for x in range(243, 254, 3):
         c.vline(x, 87, 98, hexc('4a4a56'))
-    c.ellipse(246, 84, 3, 2, hexc('f0ece2')); c.ellipse(251, 83, 2, 2, hexc('e6e0cc'))
     # (drawn after the basket against the wall, so it sits in front of it)
     C3.armchair(c, 233, 117, 35, {'fab': hexc('6a6a5a'), 'fab_lt': hexc('7a7a68'), 'wood': hexc('3a2a1e')},
                 style='club', plan={3: 'side'}, key='study_b')                 # turned toward the desk

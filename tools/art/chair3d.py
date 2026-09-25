@@ -96,23 +96,139 @@ class Model:
         self.add(cap_b, part, mat)
 
 
-def build(style, cushion=True):
+def build(style, cushion=True, width=28.0, seats=1):
+    """An armchair — or, with `width` ~76 and `seats` 2-3, a SOFA of the same make (same arms,
+    base, back; one seat + back cushion per place)."""
     m = Model()
-    W, D = 28.0, 24.0
+    W, D = width, 24.0 if seats == 1 else 26.0
     hw, hd = W / 2, D / 2
     for (lx, ly) in ((-hw + 2, -hd + 2), (hw - 3, -hd + 2), (-hw + 2, hd - 3), (hw - 3, hd - 3)):
         m.box(lx, lx + 2.0, ly, ly + 2.0, 0, 4, 'leg', 'wood')
     m.box(-hw, hw, -hd, hd, 4, 12, 'base', 'fab', bevel=1.0)                      # the seat base
-    if cushion:
-        m.box(-hw + 5, hw - 5, -hd + 1, hd - 6, 12, 15, 'cushion', 'fab_lt', bevel=1.2)  # the cushion
+    inner0, inner1 = -hw + 5, hw - 5
+    step = (inner1 - inner0) / seats
+    back_top = 36 if style == 'wing' else 30 if seats == 1 else 29
+    for k in range(seats):
+        a, b = inner0 + step * k + (0.3 if k else 0), inner0 + step * (k + 1) - (0.3 if k < seats - 1 else 0)
+        suffix = '' if seats == 1 else str(k)
+        if cushion:
+            m.box(a, b, -hd + 1, hd - 6, 12, 15, 'cushion' + suffix, 'fab_lt', bevel=1.2)  # the cushion
+        m.box(a, b, hd - 9, hd - 6, 15, back_top - 4, 'backcush' + suffix, 'fab_lt', bevel=1.2)
     for side in (-1, 1):                                                          # the arms
         ax0, ax1 = (-hw, -hw + 5) if side < 0 else (hw - 5, hw)
         m.box(ax0, ax1, -hd, hd - 2, 12, 18, 'arm%d' % side, 'fab')
         m.roll(ax0 - 0.4, ax1 + 0.4, -hd - 0.6, hd - 2, 18, 2.8, 'arm%d' % side, 'fab')
-    back_top = 36 if style == 'wing' else 30
     m.box(-hw, hw, hd - 6, hd, 12, back_top, 'back', 'fab', bevel=2.0)          # the back
-    m.box(-hw + 5, hw - 5, hd - 9, hd - 6, 15, back_top - 4, 'backcush', 'fab_lt', bevel=1.2)
     return m
+
+
+def sofa_model(width=76.0, seats=3):
+    return build('club', True, width, seats)
+
+
+def console_tv():
+    """A wooden console TV on splayed legs: a cabinet, the screen on the left of its face, a speaker
+    grille on the right. Front = -y (faces the way yaw turns it, like the chairs)."""
+    m = Model()
+    hw, hd = 17.0, 8.0
+    for (lx, ly) in ((-hw + 2, -hd + 1), (hw - 4, -hd + 1), (-hw + 2, hd - 3), (hw - 4, hd - 3)):
+        m.box(lx, lx + 2.0, ly, ly + 2.0, 0, 5, 'leg', 'metal')
+    m.box(-hw, hw, -hd, hd, 5, 30, 'cab', 'wood', bevel=0.8)
+    m.box(-hw + 3, 3.0, -hd - 0.6, -hd, 9, 27, 'screen', 'screen')
+    m.box(5.0, hw - 3, -hd - 0.4, -hd, 9, 27, 'grille', 'grille')
+    return m
+
+
+def crt_on_crates():
+    """A small CRT TV on two stacked milk crates (the student flat), a console on the lower crate."""
+    m = Model()
+    m.box(-11, 11, -9, 9, 0, 11, 'crate0', 'crate')
+    m.box(-11, 11, -9, 9, 11.2, 22, 'crate1', 'crate2')
+    m.box(-9, 9, -7, 9, 22.2, 38, 'tv', 'tv')
+    m.box(-7, 7, -7.6, -7, 24.5, 36, 'screen', 'screen')
+    m.box(-6, 5, -9.5, -9, 3, 7, 'console', 'tv')
+    return m
+
+
+def office_chair():
+    """A swivel office chair: a five-star base on casters, a gas post, a padded seat and a back on a
+    steel spine. Front = -y like the armchairs, so `yaw` turns it the same way."""
+    m = Model()
+
+    def arm(ang, z0, z1, length, half_w, part, mat):
+        ca, sa = math.cos(ang), math.sin(ang)
+        pts = []
+        for (u, v) in ((0.0, -half_w), (length, -half_w), (length, half_w), (0.0, half_w)):
+            pts.append((u * ca - v * sa, u * sa + v * ca))
+        bot = [(x, y, z0) for (x, y) in pts]
+        top = [(x, y, z1) for (x, y) in pts]
+        for i in range(4):
+            j = (i + 1) % 4
+            m.add([bot[i], bot[j], top[j], top[i]], part, mat)
+        m.add(top, part, mat)
+        m.add(list(reversed(bot)), part, mat)
+    for k in range(5):
+        ang = math.radians(90 + 72 * k)
+        arm(ang, 1.5, 3.0, 11.0, 1.0, 'leg%d' % k, 'metal')
+        ex, ey = 10.5 * math.cos(ang), 10.5 * math.sin(ang)
+        m.box(ex - 1.2, ex + 1.2, ey - 1.2, ey + 1.2, 0, 1.6, 'caster%d' % k, 'metal')
+    m.box(-1.2, 1.2, -1.2, 1.2, 3, 13, 'post', 'metal')
+    m.box(-9, 9, -9, 8, 13, 16.5, 'seat', 'fab', bevel=1.2)
+    m.box(-1.2, 1.2, 7, 9, 14, 20, 'spine', 'metal')
+    m.box(-8, 8, 8, 10.5, 19, 33, 'back', 'fab', bevel=1.5)
+    return m
+
+
+def draw_model(c, cx, base_y, model, yaw, pal, outline=None, shadow='round', srad=19):
+    """Render any model onto the canvas like the chairs (creases, silhouette, contact shadow)."""
+    cbuf, pbuf, zbuf, sbuf = render(model, yaw, pal)
+    if not cbuf:
+        return None
+    main = pal.get('fab', next(iter(pal.values())))
+    out = outline or tuple(int(v * 0.3) for v in main[:3]) + (255,)
+    crease = {}
+    for (x, y), col in cbuf.items():
+        part = pbuf[(x, y)]
+        for (dx, dy) in ((1, 0), (0, 1)):
+            q = (x + dx, y + dy)
+            if q in pbuf and pbuf[q] != part and abs(zbuf[q] - zbuf[(x, y)]) > 1.5:
+                crease[q if zbuf[q] > zbuf[(x, y)] else (x, y)] = True
+    if shadow == 'footprint':
+        _footprint_shadow(c, cx, base_y, model, yaw)
+    elif shadow:
+        c.shadow(cx, base_y, srad, 3, 110)
+    for (x, y), col in cbuf.items():
+        if crease.get((x, y)):
+            col = tuple(int(v * 0.72) for v in col[:3]) + (255,)
+        c.put(cx + x, base_y + y, col)
+    for (x, y) in cbuf:
+        for (dx, dy) in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            if (x + dx, y + dy) not in cbuf:
+                c.put(cx + x + dx, base_y + y + dy, out)
+    return cbuf, pbuf, sbuf
+
+
+def screen_detail(c, cx, base_y, cbuf, pbuf, sbuf, cracked=False, grille=None):
+    """Glass glare on a screen and (optionally) a crack, placed on the screen's own face (so they
+    turn with the set); speaker-grille slats likewise."""
+    zs = [q[2] for p, q in sbuf.items() if pbuf[p] == 'screen']
+    xs = [q[0] for p, q in sbuf.items() if pbuf[p] == 'screen']
+    if not zs:
+        return
+    x0, x1, z0, z1 = min(xs), max(xs), min(zs), max(zs)
+    for p, q in sbuf.items():
+        if pbuf[p] == 'screen':
+            u, v = (q[0] - x0) / max(x1 - x0, 1), (z1 - q[2]) / max(z1 - z0, 1)
+            col = None
+            if 0.08 < u < 0.3 and 0.08 < v < 0.22:
+                col = (150, 170, 164, 150)                   # a soft glare, top-left
+            if cracked and (abs(v - (0.15 + 0.9 * (u - 0.35))) < 0.045 and 0.35 < u < 0.95
+                            or abs(u - (0.62 - 0.3 * v)) < 0.04 and 0.2 < v < 0.8):
+                col = (190, 200, 196, 220)
+            if col:
+                c.put(cx + p[0], base_y + p[1], col)
+        elif grille and pbuf[p] == 'grille' and int(round(q[2])) % 2 == 0:
+            c.put(cx + p[0], base_y + p[1], grille)
 
 
 def _rot(p, yaw):

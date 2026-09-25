@@ -1143,7 +1143,15 @@ func _test_corridor_decals() -> void:
 			differ = true
 		by_base[base] = f
 	check(differ, "floors that share a baked corridor are dressed differently")
-	# in the scene: wall decals right above the art (under the doors), door marks over the doors
+	# in the scene: wall decals right above the art (under the doors), door marks over the doors.
+	# A pinned seed: how much fits on a floor varies by seed (~1 in 400 plans only 7), so "a mess"
+	# is judged on a known building, and the scene must show EXACTLY the plan on any.
+	WorldState.master_seed = 424242
+	var expect_wall := 0
+	for d in CD.plan(3, 3, BF.corridor_base_name(3)):
+		if d["layer"] != "door":
+			expect_wall += 1
+	check(expect_wall >= 8, "floor 3 on the third night is a mess (%d)" % expect_wall)
 	for passive in [false, true]:
 		WorldState.current_run = 3
 		WorldState.current_floor = 3
@@ -1160,7 +1168,8 @@ func _test_corridor_decals() -> void:
 		check(wall != null and art != null and wall.get_index() == art.get_index() + 1, "decals right above the corridor art%s" % label)
 		check(wall != null and wall.get_index() < bf.get_node("apartment01").get_index(), "...under the doors%s" % label)
 		check(door != null and elev != null and door.get_index() > elev.get_index(), "door marks draw over the doors%s" % label)
-		check(wall != null and wall.get_child_count() >= 8, "floor 3 on the third night is a mess (%d)" % (wall.get_child_count() if wall else 0))
+		check(wall != null and wall.get_child_count() == expect_wall,
+			"the scene shows exactly the plan's wall decals%s (%d vs %d)" % [label, wall.get_child_count() if wall else -1, expect_wall])
 		bf.free()
 		await get_tree().process_frame
 	WorldState.current_run = 1

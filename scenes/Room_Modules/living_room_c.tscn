@@ -33,14 +33,14 @@ position = Vector2(36, 92)
 metadata/back_plane = true
 
 [node name="anchor_living_pallet_table" type="Marker2D" parent="."]
-position = Vector2(77, 101)
+position = Vector2(203, 101)
 
 [node name="anchor_centre_sofaleft" type="Marker2D" parent="."]
-position = Vector2(159, 103)
+position = Vector2(132, 106)
 
 [node name="anchor_centre_sofaright" type="Marker2D" parent="."]
-position = Vector2(194, 101)
+position = Vector2(160, 100)
 
 [node name="anchor_living_crt" type="Marker2D" parent="."]
-position = Vector2(272, 90)
+position = Vector2(286, 84)
 metadata/back_plane = true

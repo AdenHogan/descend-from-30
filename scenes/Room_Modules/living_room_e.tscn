@@ -32,8 +32,8 @@ metadata/back_plane = true
 position = Vector2(128, 90)
 metadata/back_plane = true
 
-[node name="anchor_living_game_bag" type="Marker2D" parent="."]
-position = Vector2(58, 91)
+[node name="anchor_living_log_basket" type="Marker2D" parent="."]
+position = Vector2(88, 92)
 metadata/back_plane = true
 
 [node name="anchor_centre_sofaleft" type="Marker2D" parent="."]

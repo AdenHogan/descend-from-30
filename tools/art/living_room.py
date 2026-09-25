@@ -52,8 +52,6 @@ SOFA_DK = hexc('84692f')
 SOFA_LT = hexc('b6974f')
 SOFA_OUT = hexc('4c3b1b')
 STUFF = hexc('d8cfbb')
-THROW = hexc('5a6e79')
-THROW_DK = hexc('46575f')
 
 CHAIR = hexc('6b4331')          # worn oxblood-brown leather
 CHAIR_DK = hexc('54331f')
@@ -262,13 +260,6 @@ def decay(c):
                 d = ((x - sx) / rx) ** 2 + ((y - sy) / ry) ** 2
                 if 0.8 <= d <= 1.0 and y > 5:
                     c.put(x, y, hexc('5e5838', 110))
-    # peeling wallpaper by the sofa: a strip lifting off the plaster, curling down
-    c.poly([(161, 50), (167, 50), (168, 66), (164, 70), (160, 64)], PLASTER)
-    c.vline(160, 51, 63, shade(PLASTER, 0.8))
-    c.dither(161, 52, 166, 66, shade(PLASTER, 0.92), 0.3, 'random')
-    c.poly([(167, 50), (171, 52), (173, 60), (170, 66), (168, 64)], shade(WALL, 0.8))   # the flap's underside
-    c.line(167, 50, 170, 66, shade(WALL, 0.62))
-    c.line(171, 52, 173, 60, WALL_MOTIF)
     # something dragged along the wainscot low on the right (old, dark)
     for x in range(232, 252):
         y = 86 + (x - 232) // 6
@@ -348,12 +339,6 @@ def sofa(c):
     c.line(140, 110, 147, 113, OUT)
     c.put(142, 110, STUFF); c.put(144, 111, STUFF); c.put(143, 112, STUFF); c.put(146, 112, STUFF)
     c.put(145, 110, STUFF)
-    # a throw slung over the back, spilling onto the left cushion
-    c.poly([(100, 89), (116, 88), (118, 104), (114, 114), (104, 115), (100, 108)], THROW)
-    c.line(100, 89, 100, 108, THROW_DK)
-    for y in range(93, 113, 4):
-        c.hline(102, 115, y, THROW_DK)
-    c.put(104, 116, THROW_DK); c.put(108, 116, THROW_DK); c.put(112, 115, THROW_DK)   # tassels
 
 
 def _part(c, x0, y0, x1, y1, base, lt, dk, out, r=2):
@@ -480,8 +465,6 @@ def coffee_table(c):
     c.rect(218, 99, 230, 100, hexc('7f8f98'))
     c.rect(220, 98, 232, 99, hexc('b7584a'))
     c.ellipse(210, 100, 3, 1, hexc('6c6a66'))
-    # magazines slipped off onto the floor
-    c.rect(236, 114, 244, 115, hexc('7f8f98'))
 
 
 def shifted(c, fn, dy, dx=0):
@@ -506,12 +489,14 @@ def build(c=None):
     shifted(c, rug, -8)
     bookshelf(c)
     shifted(c, lamp, -12, 4)
-    shifted(c, plant, -10, 3)
-    shifted(c, sofa, -10, 3)            # its back stays right of the L window box (x>=95)
+    # a CONVERSATION GROUP (owner round 13 — no TV here, so the sofa faces the room and the armchair
+    # sits across the coffee table from it, turned back toward the sofa)
+    shifted(c, plant, -10, -20)
+    shifted(c, sofa, -10, -24)
     chest_of_drawers(c)
-    coffee_table(c)
-    import chair3d as C3                  # an oxblood club chair at the rug's end, turned to the sofa
-    C3.armchair(c, 64, 118, -35, {'fab': hexc('7a302b'), 'fab_lt': hexc('8e3a33'), 'wood': hexc('3a2618')},
+    shifted(c, coffee_table, 0, -10)
+    import chair3d as C3                  # an oxblood club chair across the table, turned to the sofa
+    C3.armchair(c, 246, 118, 40, {'fab': hexc('7a302b'), 'fab_lt': hexc('8e3a33'), 'wood': hexc('3a2618')},
                 style='club', plan={2: 'blood', 3: 'tipped'}, key='living_a')
     return c
 
@@ -522,9 +507,9 @@ def bare(c):
 
 
 ANCHORS = [('anchor_left_bookshelf_upper', 22, 58, 'bp'), ('anchor_left_bookshelf_lower', 35, 86, 'bp'),
-           ('anchor_centre_sofaleft', 114, 103, ''), ('anchor_centre_sofaright', 149, 101, ''),
-           ('anchor_centre_coffeetable', 214, 98, ''), ('anchor_right_chair', 275, 95, 'bp'),
-           ('anchor_living_armchair', 66, 104, '')]
+           ('anchor_centre_sofaleft', 90, 103, ''), ('anchor_centre_sofaright', 125, 101, ''),
+           ('anchor_centre_coffeetable', 204, 98, ''), ('anchor_right_chair', 275, 95, 'bp'),
+           ('anchor_living_armchair', 248, 104, '')]
 
 
 if __name__ == '__main__':
