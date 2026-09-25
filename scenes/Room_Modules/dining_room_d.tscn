@@ -190,3 +190,10 @@ metadata/back_plane = true
 
 [node name="anchor_dining_hammer" type="Marker2D" parent="."]
 position = Vector2(228, 116)
+
+[node name="Lights" type="Node2D" parent="."]
+
+[node name="lamp_0" type="Node2D" parent="Lights"]
+position = Vector2(73, 90)
+metadata/kind = "lantern"
+metadata/balcony_strip = true

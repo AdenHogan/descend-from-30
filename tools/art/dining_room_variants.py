@@ -115,7 +115,7 @@ def b_furniture(c):
     c.line(291, 65, 285, 67, SILVER)
     for (x, col) in ((299, hexc('d86a3a')), (302, hexc('2f4a63')), (305, hexc('d9c24a'))):
         c.rect(x, 58, x + 2, 71, col)                                                           # records leant up
-
+    F.pendant(c, 140, 22, 'orange', dome=True)                                    # a 70s dome pendant
 
 B_ANCHORS = [('anchor_dining_drinks_cabinet', 26, 72, 'bp s'), ('anchor_dining_pouffe', 62, 94, 's'),
              ('anchor_table_left', 138, 93, ''), ('anchor_table_right', 164, 93, ''),
@@ -206,7 +206,7 @@ def c_furniture(c):
     c.rect(276, 66, 282, 71, SILVER); c.put(283, 68, SILVER)
     c.rect(288, 60, 294, 71, SILVER); c.hline(286, 296, 60, SILVER)
     c.ellipse(303, 70, 5, 1, SILVER)
-
+    F.flush_light(c, 177)                                                         # above the portraits
 
 C_ANCHORS = [('anchor_dining_china_cabinet', 28, 52, 'bp s'), ('anchor_dining_cabinet_cupboard', 20, 86, 'bp s'),
              ('anchor_dining_grandfather_clock', 113, 70, 'bp'), ('anchor_table_left', 142, 95, ''),
@@ -259,6 +259,7 @@ def d_strip(c):
         c.box(80, 104, 90, 120, hexc('3a3a36'), hexc('1c1c1a'))
         c.rect(82, 107, 88, 116, hexc('d9b44a'))
         c.hline(81, 89, 104, hexc('5a5a52'))
+        F.light(85, 111, 'lantern')
     F.moved(c, _lantern, -12, -21)
 
 
@@ -389,7 +390,7 @@ def e_furniture(c):
     c.rect(300, 60, 305, 71, hexc('efe8d8'))
     for y in range(62, 71, 2):
         c.hline(300, 305, y, hexc('d0c8b4'))
-
+    F.flush_light(c, 160)
 
 E_ANCHORS = [('anchor_dining_presents', 24, 80, 'bp s'), ('anchor_dining_torn_box', 64, 91, 'bp s'),
              ('anchor_table_left', 140, 94, ''), ('anchor_dining_cake', 180, 86, ''),

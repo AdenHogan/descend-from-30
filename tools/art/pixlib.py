@@ -16,6 +16,32 @@ import random
 import zlib
 
 W, H = 320, 144
+
+# LIGHT FIXTURES (owner round 14 — lamps on desks / drawers / coffee tables + ceiling lights, lit for
+# real in the evening and at night): the lamp helpers in furn.py draw a fixture AND register its bulb
+# here; finish_module collects them from the render and writes them into the module scene as a
+# `Lights` container (scripts/apartment_lights.gd turns them on, off, flickering or cutting out).
+# moved()/shifted() push their offset so a lamp drawn inside a moved piece lands where it's drawn.
+LIGHT_KINDS = ('table', 'desk', 'floor', 'lava', 'lantern', 'pendant', 'bulb', 'flush', 'tube', 'chandelier')
+LIGHTS = []
+_LIGHT_OFF = [(0, 0)]
+
+
+def light(x, y, kind):
+    assert kind in LIGHT_KINDS, kind
+    ox, oy = _LIGHT_OFF[-1]
+    LIGHTS.append((int(round(x + ox)), int(round(y + oy)), kind))
+
+
+def push_light_offset(dx, dy):
+    ox, oy = _LIGHT_OFF[-1]
+    _LIGHT_OFF.append((ox + dx, oy + dy))
+
+
+def pop_light_offset():
+    _LIGHT_OFF.pop()
+
+
 SEAM_Y = 100        # wall meets floor (top of the skirting shadow)
 FLOOR_Y = 128       # the room floor line (feet 129)
 WIN_L = (50, 10, 94, 66)      # room.MODULE_WINDOW_Y 262 = local 38; pane 44x52 + frame
@@ -299,12 +325,18 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
     import os
     import sys
     from modscene import write_scene, BALCONY_TYPES, ROOT
+    LIGHTS.clear()
     main = Canvas(seed=seed)
     build_fn(main)
+    main_lights = list(LIGHTS)
+    LIGHTS.clear()
     full = Canvas(seed=seed)
     build_fn(full)
+    n_main = len(LIGHTS)
     if strip_fn is not None:
         strip_fn(full)
+    strip_lights = LIGHTS[n_main:]
+    lights = [(x, y, k, '') for (x, y, k) in main_lights] + [(x, y, k, 's') for (x, y, k) in strip_lights]
     bare = Canvas(seed=seed)
     wall_fn(bare)
     bare_floor = Canvas(seed=seed)
@@ -360,6 +392,9 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
         errs.append('needs >= 2 nodes outside the balcony strip (ANCHOR_RANGES min)')
     if n_front < 2:
         errs.append('needs >= 2 FRONT nodes (reachable from the walking line) — owner round 10')
+    for (lx, ly, lk, lf) in lights:
+        if not (0 <= lx < W and 0 <= ly < H):
+            errs.append('light fixture %s at (%d,%d) is off the module' % (lk, lx, ly))
     bp = check_back_plane_clear(full.img, bare_floor.img, anchors)
     if bp and os.environ.get('BP_REPORT'):          # audit mode: list every module, don't stop
         print('BP %s run 1: %s' % (name, bp))
@@ -412,8 +447,8 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
         sheet.paste(im.resize((W * 2, H * 2), Image.NEAREST), (0, H * 2 * i))
     os.makedirs(os.path.join(prev, 'runs'), exist_ok=True)
     sheet.save(os.path.join(prev, 'runs', name + '_runs.png'))
-    write_scene(name, room_type, anchors, strip=strip_fn is not None)
-    print('wrote', name, '(%d nodes, %d front)' % (len(anchors), n_front))
+    write_scene(name, room_type, anchors, strip=strip_fn is not None, lights=lights)
+    print('wrote', name, '(%d nodes, %d front, %d lights)' % (len(anchors), n_front, len(lights)))
     return full
 
 

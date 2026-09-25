@@ -222,8 +222,8 @@ Robustness rules). What it covers:
   `maintenance_test`, `elevator_test`, `run_arc_test`, `enemy_variety_test`,
   `dev_menu_test`, `lighting_test`, `plane_lock_test`, `apartment_window_test`,
   `scavenge_node_test`, `drop_physics_test`, `softlock_test`, `character_panel_test`,
-  `corpse_recovery_test`, `run_memory_test`, `attack_input_test`, `character_stats_test`, `transition_seam_test`, `run_bookends_test`, `weapon_upgrade_test`, `progression_test`, `back_plane_test` — run
-  all 45 before commit. Balance tool: `tools/economy_report.tscn` (scrap per run, ~25 min a seed). (`new_game()` rolls a RANDOM seed, so any test meets any of the four
+  `corpse_recovery_test`, `run_memory_test`, `attack_input_test`, `character_stats_test`, `transition_seam_test`, `run_bookends_test`, `weapon_upgrade_test`, `progression_test`, `back_plane_test`,
+  `apartment_lamp_test` — run all 46 before commit. Balance tool: `tools/economy_report.tscn` (scrap per run, ~25 min a seed). (`new_game()` rolls a RANDOM seed, so any test meets any of the four
   characters — an assert on a trait-affected value must be trait-aware; see docs/CHARACTERS.md.) (Run ONE godot at a time — a killed/backgrounded headless run can
   linger and block the next, and a GDScript **parse error makes a test scene load but
   never call `quit()`, so it "hangs" until timeout** rather than printing an error line;
@@ -1389,6 +1389,19 @@ means no rendering — UI layout and art still need an in-editor look.
   wooden threshold in interior doorways. Generators enforce: window boxes bare, the side-wall sample
   columns (x 3, W-4) bare, floor 32px-periodic. Back-plane nodes skip the facing rule (you can't turn
   up there). Locked by `apartment_window_test._test_floor_boundary`.
+- APARTMENT LAMPS (owner round 14, `scripts/apartment_lights.gd`; full detail in
+  docs/art_reference/modules/README.md "LAMPS"): all 30 module variants draw UNLIT fixtures (table /
+  desk / floor lamps, a lava lamp, lanterns, pendants, bare bulbs, flush lights, tubes, a chandelier —
+  `furn.py` helpers that register the bulb via `pixlib.light`), written into each module scene as a
+  `Lights` container of Node2D markers (NOT Marker2D — room.gd takes every Marker2D for a scavenge
+  node). `room._build_modules` adds one `apartment_lights` per module (live + balcony backdrop): the
+  MORNING lights nothing; afternoon / night a flat has power by seed (never a BLAZE / CHARRED one; a
+  battery lantern ignores power), each fixture is on by seed (flat + slot + fixture + run — no two
+  flats alike, re-entry stable) and is steady / flickering / CUTTING OUT (dark, then stutters back on;
+  a tube blinks), far more unstable at night. Real PointLight2Ds (round pool on furniture, the
+  corridor's downward cone from the ceiling) + an additive shade glow. The blueprints mark each
+  fixture. Locked by `apartment_lamp_test`. Also round 14: the back-plane ↑ hint shows only in the
+  TUTORIAL (owner: clunky in the active game; W still works) — `back_plane_test`.
 - CORRIDOR ART (owner round 10, `tools/art/corridor.py`): floors 1-29 get a painted overlay over
   the old tile look — `building_floors._apply_corridor_art` adds a `CorridorArt` Sprite2D (115,243,
   1120x192 = the tilemap's used band) right ABOVE the TileMapLayer, so doors / stairs / elevator /

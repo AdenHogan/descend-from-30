@@ -197,6 +197,8 @@ def bedside(c):
     c.poly([(58, 67), (68, 67), (71, 74), (55, 74)], LAMP_SHADE)
     c.hline(55, 71, 74, LAMP_SHADE_DK)
     c.vline(63, 75, top - 5, LAMP_BASE)
+    from pixlib import light
+    light(63, 72, 'table')
     # a glass of water
     c.rect(69, top - 4, 71, top - 1, hexc('a9b6b7'))
 
@@ -371,6 +373,8 @@ def build(c=None):
     wall(c)
     decay(c)
     picture(c)
+    import furn as F
+    F.flush_light(c, 160)                 # a ceiling dome over the bed
     floor(c)
     dressing_table(c)
     bedside(c)

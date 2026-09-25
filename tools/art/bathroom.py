@@ -301,6 +301,8 @@ def a_build(c):
     c.dither(274, 90, 308, 95, MOULD, 0.5)
     c.rect(278, 56, 283, 62, hexc('d7c2a0'))                          # soap on the ledge
     c.rect(276, 62, 285, 63, CHROME_DK)
+    import furn as F
+    F.flush_light(c, 130)                                               # a ceiling dome
     return c
 
 
@@ -449,6 +451,8 @@ def b_build(c):
     c.line(286, 68, 294, 50, CHROME_DK)                                  # its aerial
     c.rect(296, 70, 308, 99, hexc('c9b48a'))                             # a laundry hamper
     c.box(296, 68, 308, 71, hexc('9a8660'), hexc('6a5638'))
+    import furn as F
+    F.flush_light(c, 110)
     return c
 
 
@@ -524,6 +528,8 @@ def chandelier(c, cx):
     for dx in (-10, -4, 4, 10):                                          # crystals
         c.put(cx + dx, 23, hexc('cfe0e6')); c.put(cx + dx, 25, hexc('cfe0e6'))
     c.put(cx + 2, 24, hexc('cfe0e6'))
+    from pixlib import light
+    light(cx, 18, 'chandelier')
 
 
 def gilt_mirror(c, x0, y0, x1, y1):
@@ -741,6 +747,8 @@ def d_build(c):
     curtained_tub(c, 106, 178, 80)
     clothes_horse(c, 204, 244, 121)
     washing_machine(c, 274, 60)
+    import furn as F
+    F.bare_bulb(c, 200, 22)
     return c
 
 
@@ -845,6 +853,8 @@ def e_build(c):
     c.dither(280, 35, 304, 63, hexc('e6ecee'), 0.5)
     c.box(279, 68, 305, 96, hexc('efe8d8'), PINK_DK)
     c.rect(290, 80, 294, 80, CHROME)
+    import furn as F
+    F.flush_light(c, 100)
     return c
 
 

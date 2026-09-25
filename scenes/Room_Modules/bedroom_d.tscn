@@ -43,3 +43,9 @@ position = Vector2(238, 96)
 [node name="anchor_bedroom_boxes" type="Marker2D" parent="."]
 position = Vector2(292, 86)
 metadata/back_plane = true
+
+[node name="Lights" type="Node2D" parent="."]
+
+[node name="lamp_0" type="Node2D" parent="Lights"]
+position = Vector2(42, 73)
+metadata/kind = "lantern"

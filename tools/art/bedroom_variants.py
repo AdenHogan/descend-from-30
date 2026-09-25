@@ -140,6 +140,8 @@ def b_furniture(c):
         c.hline(293, 309, gy, hexc('7c6140'))
     c.poly([(296, 81), (300, 66), (304, 81)], hexc('7a3a6a'))
     c.ellipse(300, 74, 2, 3, hexc('d98a4a')); c.ellipse(299, 78, 1, 1, hexc('d98a4a'))
+    F.light(300, 74, 'lava')
+    F.flush_light(c, 148)                                                                  # the ceiling dome
     c.box(304, 76, 309, 81, hexc('26262a'), hexc('111114'))
     c.put(306, 78, hexc('c0453a'))
 
@@ -278,6 +280,7 @@ def c_furniture(c):
                          (294, 5, hexc('6f8fa0')), (298, 4, hexc('e0d9b8'))):
         c.rect(bx, 75 - h, bx + 2, 75, col)
     c.rect(300, 72, 303, 75, hexc('d9d0bc'))
+    F.flush_light(c, 167)                                                                  # a dome over the bed
 
 
 C_ANCHORS = [('anchor_bedroom_wardrobe', 18, 60, 'bp'), ('anchor_bedroom_wheelchair', 72, 99, ''),
@@ -328,8 +331,7 @@ def d_furniture(c):
     c.rect(24, 53, 28, 54, hexc('6d6c64'))
     for (x, h) in ((10, 4), (14, 6), (38, 5)):
         c.rect(x, 79 - h, x + 2, 79, hexc('9aa3a8'))
-    F.candle(c, 44, 79, 6)
-    c.dither(40, 70, 48, 73, hexc('2a2622', 60), 0.5)
+    F.lantern(c, 42, 79)                                                                   # a battery lantern
     def _backpack(c):
         # a backpack dumped beside the head of the mattress
         c.shadow(70, 121, 10, 2, 110)
@@ -419,6 +421,7 @@ def e_furniture(c):
     c.rect(14, 60, 26, 68, hexc('7aa0c8')); c.rect(28, 60, 40, 68, hexc('d9a0b0'))
     c.rect(14, 70, 26, 78, hexc('d9c24a')); c.rect(28, 70, 40, 78, hexc('1e1a16'))           # one room dark
     c.rect(31, 73, 33, 77, hexc('e6ddc8'))                                                    # a tiny figure in it
+    F.pendant(c, 140, 20, 'white', dome=True)                                                 # a paper-shade pendant
     def _horse(c):
         # a rocking horse out on the carpet
         c.shadow(76, 121, 14, 2, 110)

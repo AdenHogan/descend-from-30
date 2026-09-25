@@ -841,6 +841,14 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 		# so a balcony descent pan shows the neighbouring flat's windows lit.
 		var has_balcony := bal_node != null and WorldState.is_balcony_slot(apartment_id, i)
 		_apply_balcony_strip(instance, has_balcony)
+		# The module's LAMPS (scripts/apartment_lights.gd): its drawn fixtures lit or not, steady /
+		# flickering / cutting out — seeded per flat + run, so no two flats light alike. Live and
+		# backdrop alike (a balcony descent sees the flat below lit the same way).
+		var lamps = load("res://scripts/apartment_lights.gd").new()
+		lamps.name = "Lamps%d" % i
+		add_child(lamps)
+		lamps.setup(instance, apartment_id, i, WorldState.current_run,
+			WorldState.apartment_fire_stage(_apt_floor(), _apt_index()), has_balcony)
 		if not has_balcony:
 			var side := WorldState.apartment_window_side(apartment_id, i)
 			var wx: float = LEFT_WALL_X + i * MODULE_WIDTH + (MODULE_WINDOW_INSET if side == "left" else MODULE_WIDTH - MODULE_WINDOW_INSET)

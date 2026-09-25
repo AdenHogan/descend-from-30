@@ -6,7 +6,7 @@ overlapping pieces stay readable. Coordinates are module-local (320 x 144; wall/
 walking line 129). Pieces against the back wall stand on y 99/100; pieces out in the room stand
 on 108..122 (the nearer, the bigger y).
 """
-from pixlib import hexc, shade, rrect
+from pixlib import hexc, shade, rrect, light
 
 WOOD = (hexc('5e3d28'), hexc('76513a'), hexc('472d1d'), hexc('27180f'))
 PINE = (hexc('b58a55'), hexc('c9a06a'), hexc('93703f'), hexc('4a3620'))
@@ -194,6 +194,7 @@ def floor_lamp(c, x, top, base, shade_col, pole):
     c.hline(x - 8, x + 8, top + 11, shade(shade_col, 0.8))
     c.vline(x, top + 12, base - 1, pole)
     c.ellipse(x, base, 4, 1, pole)
+    light(x, top + 8, 'floor')
 
 
 def candle(c, x, base, h=5):
@@ -309,9 +310,13 @@ def moved(c, fn, dx, dy):
     """Draw `fn` on its own transparent layer and composite it shifted by (dx, dy) — to put a piece
     (with its shadow) somewhere else without rewriting every coordinate in it."""
     from PIL import Image
-    from pixlib import Canvas
+    from pixlib import Canvas, push_light_offset, pop_light_offset
     lyr = Canvas(w=c.w, h=c.h, bg=(0, 0, 0, 0), seed=11)
-    fn(lyr)
+    push_light_offset(dx, dy)
+    try:
+        fn(lyr)
+    finally:
+        pop_light_offset()
     out = Image.new('RGBA', (c.w, c.h), (0, 0, 0, 0))
     out.paste(lyr.img, (dx, dy), lyr.img)
     c.img.alpha_composite(out)
@@ -390,3 +395,95 @@ def magazine_rack(c, x0, x1, top, base, metal=None, papers=None):
         c.vline(x, top, base - 3, metal)
     c.line(x0, base - 3, x0 - 1, base, metal)                    # feet
     c.line(x1, base - 3, x1 + 1, base, metal)
+
+
+# --- LIGHT FIXTURES (owner round 14) ---------------------------------------------------------------
+# Each draws the fixture UNLIT (the engine lights it) and registers its bulb (pixlib.light) — the
+# runtime (scripts/apartment_lights.gd) decides per apartment + run whether it's on, steady,
+# flickering or cutting out. Ceiling fixtures hang from y 0 (the ceiling line); keep them out of the
+# window boxes' columns (x 50-94, 226-270) when they hang lower than y 10.
+LAMP_SHADES = {'cream': (hexc('d9c9a0'), hexc('b7a67c')), 'rose': (hexc('c98f8a'), hexc('a06a66')),
+               'green': (hexc('4e7a5a'), hexc('365a40')), 'mustard': (hexc('c9a03a'), hexc('9c7a28')),
+               'white': (hexc('e6e0d0'), hexc('bdb6a4')), 'orange': (hexc('d0763a'), hexc('a65a28')),
+               'teal': (hexc('4f8a86'), hexc('356662'))}
+
+
+def table_lamp(c, x, surface, shade='cream', base=None, tall=False):
+    """A table lamp standing on a surface (a desk, the top of a chest, a coffee / side table):
+    a small foot, a stem, a tapered fabric shade. `surface` = the y the foot stands on."""
+    sc, sd = LAMP_SHADES[shade]
+    bc = base or hexc('8a6a44')
+    h = 8 if tall else 5
+    c.rect(x - 2, surface - 1, x + 2, surface, bc)                       # the foot
+    c.hline(x - 2, x + 2, surface, shade_col(bc, 0.7))
+    c.vline(x, surface - 1 - h, surface - 2, bc)                          # the stem
+    top = surface - 2 - h - 7
+    c.poly([(x - 3, top), (x + 3, top), (x + 5, top + 7), (x - 5, top + 7)], sc)
+    c.hline(x - 5, x + 5, top + 7, sd)
+    c.hline(x - 3, x + 3, top, shade_col(sc, 1.08))
+    light(x, top + 5, 'table')
+
+
+def desk_lamp(c, x, surface, col=None, facing=1):
+    """An angled desk lamp (anglepoise): a heavy foot, two arms, a cone head tipped at the desk."""
+    k = col or hexc('3a3a40')
+    c.rect(x - 3, surface - 1, x + 3, surface, k)
+    c.line(x, surface - 2, x - 2 * facing, surface - 9, k)
+    c.line(x - 2 * facing, surface - 9, x + 4 * facing, surface - 14, k)
+    hx = x + 6 * facing
+    c.poly([(hx - 3, surface - 16), (hx + 3, surface - 16), (hx + 4, surface - 11), (hx - 4, surface - 11)], k)
+    c.hline(hx - 4, hx + 4, surface - 11, shade_col(k, 1.4))
+    light(hx, surface - 11, 'desk')
+
+
+def pendant(c, x, drop=24, shade='cream', dome=False):
+    """A pendant hanging from the ceiling: a cord and a shade (a cone, or a dome)."""
+    sc, sd = LAMP_SHADES[shade]
+    c.vline(x, 0, drop - 6, hexc('2a2622'))
+    if dome:
+        c.ellipse(x, drop - 2, 7, 4, sc)
+        c.rect(x - 7, drop - 2, x + 7, drop, sc)
+        c.hline(x - 7, x + 7, drop, sd)
+    else:
+        c.poly([(x - 2, drop - 6), (x + 2, drop - 6), (x + 7, drop), (x - 7, drop)], sc)
+        c.hline(x - 7, x + 7, drop, sd)
+    c.put(x, drop + 1, hexc('f0e6c8'))                                      # the bulb peeking out
+    light(x, drop + 1, 'pendant')
+
+
+def bare_bulb(c, x, drop=26):
+    """A bare bulb on a flex — the cheap / stripped-out flat."""
+    c.vline(x, 0, drop - 3, hexc('2a2622'))
+    c.rect(x - 1, drop - 3, x + 1, drop - 2, hexc('6a6a66'))
+    c.ellipse(x, drop, 2, 2, hexc('e6e0cc'))
+    light(x, drop, 'bulb')
+
+
+def flush_light(c, x):
+    """A flush ceiling dome."""
+    c.ellipse(x, 1, 8, 3, hexc('e6e0d0'))
+    c.hline(x - 8, x + 8, 0, hexc('bdb6a4'))
+    c.hline(x - 6, x + 6, 3, hexc('c9c2b0'))
+    light(x, 4, 'flush')
+
+
+def tube_light(c, x, w=34):
+    """A fluorescent batten on the ceiling (kitchens, home offices)."""
+    c.rect(x - w // 2, 0, x + w // 2, 2, hexc('c9c6bc'))
+    c.hline(x - w // 2 + 1, x + w // 2 - 1, 3, hexc('eef0ec'))
+    c.put(x - w // 2, 3, hexc('8a8880')); c.put(x + w // 2, 3, hexc('8a8880'))
+    light(x, 3, 'tube')
+
+
+def lantern(c, x, surface):
+    """A battery camping lantern (it works without the flat's power)."""
+    c.rect(x - 3, surface - 2, x + 3, surface, hexc('3a4a3a'))
+    c.rect(x - 2, surface - 9, x + 2, surface - 3, hexc('d8d8c8'))
+    c.vline(x - 3, surface - 9, surface - 3, hexc('3a4a3a')); c.vline(x + 3, surface - 9, surface - 3, hexc('3a4a3a'))
+    c.rect(x - 3, surface - 11, x + 3, surface - 10, hexc('3a4a3a'))
+    c.line(x - 2, surface - 12, x, surface - 14, hexc('2a2a2a')); c.line(x, surface - 14, x + 2, surface - 12, hexc('2a2a2a'))
+    light(x, surface - 6, 'lantern')
+
+
+def shade_col(col, f):
+    return shade(col, f)

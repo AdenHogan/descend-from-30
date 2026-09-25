@@ -144,7 +144,7 @@ def b_furniture(c):
     c.poly([(296, 86), (310, 86), (308, 99), (298, 99)], hexc('3a3a44'))
     for x in range(298, 309, 3):
         c.vline(x, 87, 98, hexc('4a4a56'))
-
+    F.tube_light(c, 220)                                                 # the office fluorescent
 
 B_ANCHORS = [('anchor_study_low_shelf', 26, 88, 'bp s'), ('anchor_study_box_files', 64, 88, 'bp s'),
              ('anchor_centre_desk', 128, 62, 'bp'), ('anchor_study_desk_drawer', 111, 88, 'bp'),
@@ -318,7 +318,7 @@ def d_furniture(c):
     c.rect(280, 44, 304, 46, hexc('7a8a6a'))
     c.rect(284, 60, 300, 72, hexc('3a3a36'))                                                 # a sleeping roll strapped to it
     c.hline(284, 300, 64, hexc('26262a'))
-
+    F.bare_bulb(c, 216, 22)
 
 D_ANCHORS = [('anchor_study_tins', 26, 62, 'bp s'), ('anchor_study_gas_mask', 63, 87, 'bp s'),
              ('anchor_study_radio', 130, 64, 'bp'), ('anchor_centre_desk', 126, 86, 'bp'),
@@ -422,7 +422,7 @@ def e_furniture(c):
             x = 280 + k * 6
             c.rect(x, y - 7, x + 4, y - 1, hexc('b9c4c4'))
             c.rect(x + 1, y - 5, x + 3, y - 2, SPLASH[(k + y) % len(SPLASH)])
-
+    F.bare_bulb(c, 160, 24)
 
 E_ANCHORS = [('anchor_study_plan_chest', 26, 88, 'bp s'), ('anchor_study_paint_tins', 64, 94, 'bp s'),
              ('anchor_study_canvases', 124, 70, 'bp'), ('anchor_study_easel', 186, 104, ''),

@@ -199,6 +199,8 @@ def b_furniture(c):
         c.hline(CX + 8, CX + 12, gy, hexc('5b3e28'))
     c.line(CX - 2, 60 + T, CX - 9, 50 + T, hexc('2a2a2c'))
     c.line(CX + 2, 60 + T, CX + 8, 49 + T, hexc('2a2a2c'))
+    import furn as F
+    F.table_lamp(c, CX - 26, 71, 'mustard')                          # a lamp at the sideboard's end
     # the kidney coffee table on the left
     def _table(c):
         c.shadow(214, 117, 26, 2, 100)
@@ -316,6 +318,8 @@ def c_furniture(c):
     c.ellipse(292, 108, 13, 4, BB_DK)
     c.ellipse(288, 100, 6, 3, BB_LT)
     c.line(284, 105, 298, 103, BB_DK)
+    import furn as F
+    F.bare_bulb(c, 202, 30)                                          # a bare bulb on a flex
 
 
 # --- D: GRANDMOTHER'S PARLOUR ------------------------------------------------------------------
@@ -428,6 +432,9 @@ def d_furniture(c):
     c.put((x0 + x1) // 2 - 2, top + 28, hexc('b58f4a'))
     c.put((x0 + x1) // 2 + 2, top + 28, hexc('b58f4a'))
     c.line(x0 + 5, top + 5, x0 + 12, top + 17, hexc('d6e2e0'))              # a crack in the glass
+    import furn as F
+    F.table_lamp(c, 290, top - 1, 'rose', base=hexc('b58f4a'))              # a lamp on the cabinet
+    F.pendant(c, 196, 22, 'cream', dome=True)
 
 
 
@@ -555,6 +562,8 @@ def e_furniture(c):
     c.poly([(196, 124), (206, 120), (212, 123), (208, 128)], bear)                              # the head
     c.put(206, 122, hexc('1e1a16')); c.put(211, 124, hexc('d9cfb8'))
     c.line(140, 124, 170, 124, bear_dk)
+    import furn as F
+    F.pendant(c, 296, 22, 'mustard')                                 # over the chesterfield
 
 
 E_ANCHORS = [('anchor_living_gun_cabinet', 26, 56, 'bp'), ('anchor_living_fireplace', 160, 90, 'bp'),

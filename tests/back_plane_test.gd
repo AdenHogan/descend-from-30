@@ -113,6 +113,22 @@ func _test_back_plane() -> void:
 		if a.is_in_range:
 			any_reach = true
 	check(not any_reach, "from the walking line the set-back nodes are out of reach")
+	# The ↑ hint is TUTORIAL-ONLY (owner playtest: clunky in the active game); W works regardless.
+	# Checked synchronously so the tutorial flags are only flipped for the one call.
+	var keep_scav: bool = WorldState.is_scavenge_mode
+	WorldState.is_scavenge_mode = true
+	spot._process(0.016)
+	check(not spot._arrow.visible, "no ↑ hint over the furniture outside the tutorial")
+	var keep_first: bool = WorldState.is_first_run
+	var keep_floor: int = WorldState.current_floor
+	WorldState.is_first_run = true
+	WorldState.current_floor = 30
+	spot._process(0.016)
+	check(spot._arrow.visible, "the ↑ hint still shows in the tutorial")
+	WorldState.is_first_run = keep_first
+	WorldState.current_floor = keep_floor
+	spot._process(0.016)
+	WorldState.is_scavenge_mode = keep_scav
 	# W steps up.
 	await _tap("move_up")
 	await _settle(30)

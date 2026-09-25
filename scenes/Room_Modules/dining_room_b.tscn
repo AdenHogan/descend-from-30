@@ -193,3 +193,9 @@ metadata/back_plane = true
 [node name="anchor_right_lowerdrawers" type="Marker2D" parent="."]
 position = Vector2(276, 88)
 metadata/back_plane = true
+
+[node name="Lights" type="Node2D" parent="."]
+
+[node name="lamp_0" type="Node2D" parent="Lights"]
+position = Vector2(140, 23)
+metadata/kind = "pendant"

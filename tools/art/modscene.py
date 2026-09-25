@@ -10,6 +10,10 @@ Scene shape (what scripts/room.gd expects):
     Balcony    Node2D    (balcony-capable rooms — the placeholder balcony art, drawn OVER the art)
     anchor_*   Marker2D  metadata/back_plane (set back on furniture), metadata/balcony_strip (in the
                balcony strip — room.gd removes it on a balcony slot)
+    Lights     Node2D    the light FIXTURES drawn in the art (lamps, ceiling lights): lamp_<n> Node2D
+               children at the bulb, metadata/kind (+ metadata/balcony_strip). NOT Marker2D — room.gd
+               treats every direct Marker2D child as a scavenge anchor. scripts/apartment_lights.gd
+               lights them.
 
 An existing scene's uid is kept so nothing that references it breaks.
 """
@@ -23,7 +27,7 @@ LABELS = {'bedroom': 'Bedroom', 'bathroom': 'Bathroom', 'kitchen': 'Kitchen', 's
 BALCONY_TYPES = ('study', 'dining_room')
 
 
-def write_scene(name, room_type, anchors, strip=False):
+def write_scene(name, room_type, anchors, strip=False, lights=()):
     """anchors: [(node_name, x, y, flags)] — flags a string containing 'bp' (back plane) and/or
     's' (balcony strip)."""
     path = os.path.join(ROOT, 'scenes', 'Room_Modules', name + '.tscn')
@@ -63,5 +67,14 @@ def write_scene(name, room_type, anchors, strip=False):
         if 's' in flags.replace('bp', ''):
             out.append('metadata/balcony_strip = true')
         out.append('')
+    if lights:
+        out += ['[node name="Lights" type="Node2D" parent="."]', '']
+        for i, (x, y, kind, flags) in enumerate(lights):
+            out.append('[node name="lamp_%d" type="Node2D" parent="Lights"]' % i)
+            out.append('position = Vector2(%d, %d)' % (x, y))
+            out.append('metadata/kind = "%s"' % kind)
+            if 's' in flags:
+                out.append('metadata/balcony_strip = true')
+            out.append('')
     open(path, 'w').write('\n'.join(out))
     return path

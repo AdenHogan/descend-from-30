@@ -202,3 +202,9 @@ metadata/balcony_strip = true
 position = Vector2(60, 94)
 metadata/back_plane = true
 metadata/balcony_strip = true
+
+[node name="Lights" type="Node2D" parent="."]
+
+[node name="lamp_0" type="Node2D" parent="Lights"]
+position = Vector2(156, 77)
+metadata/kind = "desk"

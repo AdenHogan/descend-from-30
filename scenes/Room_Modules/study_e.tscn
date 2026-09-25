@@ -191,3 +191,9 @@ position = Vector2(240, 97)
 [node name="anchor_right_shelf" type="Marker2D" parent="."]
 position = Vector2(292, 70)
 metadata/back_plane = true
+
+[node name="Lights" type="Node2D" parent="."]
+
+[node name="lamp_0" type="Node2D" parent="Lights"]
+position = Vector2(160, 24)
+metadata/kind = "bulb"

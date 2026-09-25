@@ -16,7 +16,7 @@ then run `python3 tools/gen_module_blueprint.py`.
 | `template/module_template_balcony.png` | the same for balcony-capable rooms (study, dining room), with the balcony strip | those two room types |
 | `template/module_guide_1x.png` | a **320 × 144 transparent guide layer**, pixel-exact | put it on a layer in your editor over your canvas |
 | `template/module_guide_balcony_1x.png` | the guide layer with the balcony strip | study / dining room |
-| `rooms/<type>/<module>_blueprint.png` | every existing room (30): its art dimmed, planes, nodes, step-up spots checked | worked examples, and a record of each room's node layout |
+| `rooms/<type>/<module>_blueprint.png` | every existing room (30): its art dimmed, planes, nodes, light fixtures, step-up spots checked | worked examples, and a record of each room's node layout |
 | `rooms/<type>/<type>_sheet.png` | a room type's five variants on one page | comparing variants |
 
 ## The canvas
@@ -75,6 +75,16 @@ A room typically has **5–8 nodes**; one visit activates only some of them (`ro
 ANCHOR_RANGES: 2–5, study and dining 2–4). Name each `anchor_<roomtype>_<thing>` (e.g.
 `anchor_study_printer`) — loot is seeded by the name, so names are unique within a room type.
 
+## Light fixtures
+
+Draw lamps and ceiling lights **unlit** (a lampshade, a bulb on a flex, a tube) — the game lights
+them. Every fixture has one point at its BULB (pale sun on the blueprints) with a kind: `table`,
+`desk`, `floor`, `lava`, `lantern` (battery — works with the power off), `pendant`, `bulb`, `flush`,
+`tube`, `chandelier`. In the afternoon and at night the game turns some of them on (seeded per flat —
+never the same pattern twice; the night flickers and cuts out more; nothing in the morning; a burnt
+flat has no power). Every room has at least one; ceiling lights hang from y 0–26, lamps stand on the
+furniture they belong to (a chest, a desk, a bedside table) — never loose on the floor.
+
 ## Layout rules (owner rounds 9–13)
 
 - **Spread it out**: one piece every ~50–60 px across the whole 320, so the nodes spread with it.
@@ -96,7 +106,8 @@ ANCHOR_RANGES: 2–5, study and dining 2–4). Name each `anchor_<roomtype>_<thi
    across (it's tiled where two rooms meet at a doorway).
 3. Study / dining only: `<type>_<variant>_strip.png` — 320 × 144, transparent except the strip's
    furniture (x 4–96).
-4. A node list: `name, x, y, kind` (front / back / strip), in the room's local pixels.
+4. A node list: `name, x, y, kind` (front / back / strip), in the room's local pixels — and a light
+   list: `x, y, kind` at each fixture's bulb (strip fixtures marked).
 5. Optional: run-2 / run-3 versions of furniture that changes (a chair knocked over). The run looks
    (damp, cracks, mould, debris) are aged automatically by our pipeline from the run-1 art.
 

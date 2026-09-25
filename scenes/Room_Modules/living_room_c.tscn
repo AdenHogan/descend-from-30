@@ -43,3 +43,9 @@ position = Vector2(198, 98)
 
 [node name="anchor_living_beanbag" type="Marker2D" parent="."]
 position = Vector2(292, 102)
+
+[node name="Lights" type="Node2D" parent="."]
+
+[node name="lamp_0" type="Node2D" parent="Lights"]
+position = Vector2(202, 30)
+metadata/kind = "bulb"

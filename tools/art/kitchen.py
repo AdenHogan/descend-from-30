@@ -334,6 +334,8 @@ def build(c=None):
     counter_end(c)
     table(c)
     tin_box(c)
+    import furn as F
+    F.tube_light(c, 160)                  # a fluorescent batten above the wall cupboards
     return c
 
 

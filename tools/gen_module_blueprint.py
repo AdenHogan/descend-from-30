@@ -27,6 +27,7 @@ Out:  docs/blueprints/template/  module_template.png, module_template_balcony.pn
                                  to draw over — transparent, pixel-exact)
       docs/blueprints/rooms/<type>/<module>_blueprint.png + <type>_sheet.png
 """
+import math
 import os
 import re
 import sys
@@ -80,6 +81,7 @@ PLANES = [  # (y, label, world, colour, style)
 ]
 
 C_FRONT, C_BACK, C_STRIP = (255, 196, 48), (96, 168, 255), (112, 214, 120)
+C_LAMP = (255, 250, 196)                  # a bulb: pale white-yellow, a sun not a ring
 BG, INK, SUB = (16, 19, 26), (232, 236, 244), (150, 158, 172)
 S = 3
 ML, MT, MR, MB = 74, 112, 420, 118
@@ -112,6 +114,29 @@ def parse_nodes(name):
         out.append({"name": m.group(1), "x": float(m.group(2)), "y": float(m.group(3)),
                     "bp": "back_plane = true" in meta, "strip": "balcony_strip = true" in meta})
     return out
+
+
+def parse_lights(name):
+    """The room's light fixtures (the `Lights` container — Node2D markers the game lights at runtime,
+    scripts/apartment_lights.gd): [{x, y, kind, strip}]."""
+    txt = open(os.path.join(MODULES_DIR, name + ".tscn")).read()
+    out = []
+    for m in re.finditer(r'\[node name="[^"]+" type="Node2D" parent="Lights"\]\s*\n\s*position = Vector2\(([-\d.]+),\s*([-\d.]+)\)'
+                         r'\s*\n\s*metadata/kind = "(\w+)"((?:\s*\n\s*metadata/\w+ = \w+)*)', txt):
+        out.append({"x": float(m.group(1)), "y": float(m.group(2)), "kind": m.group(3),
+                    "strip": "balcony_strip = true" in m.group(4)})
+    return out
+
+
+def _lamp_mark(d, cx, cy, label=None):
+    """A pale sun: where a fixture's bulb is (the game puts a real light there)."""
+    for k in range(8):
+        a = k * math.pi / 4
+        d.line([cx + math.cos(a) * 6, cy + math.sin(a) * 6, cx + math.cos(a) * 11, cy + math.sin(a) * 11],
+               fill=C_LAMP, width=2)
+    d.ellipse([cx - 4, cy - 4, cx + 4, cy + 4], fill=C_LAMP)
+    if label:
+        d.text((cx - d.textlength(label, font=F_M) / 2, cy + 12), label, font=F_M, fill=C_LAMP)
 
 
 def room_type(name):
@@ -185,7 +210,7 @@ def build(name, template=None):
     t = room_type(name) if template is None else ("study" if template == "balcony" else "")
     nodes = parse_nodes(name) if template is None else []
     Wc, Hc = ML + MW * S + MR, MT + MH * S + MB
-    img = Image.new("RGB", (Wc, Hc), BG)
+    img = Image.new("RGB", (Wc, Hc + 400), BG)          # cropped at the end to fit the right-hand list
     if template is None:
         art = Image.open(os.path.join(ROOMS_DIR, name + ".png")).convert("RGBA")
         strip_p = os.path.join(ROOMS_DIR, name + "_strip.png")
@@ -259,6 +284,11 @@ def build(name, template=None):
         lane_x = max(range(24, MW - 24, 4), key=lambda x: min([abs(x - n["x"]) for n in nodes] or [MW]))
         _ghost(d, lane_x, LANE_FEET, 1.0, C_FRONT, "player on the lane")
 
+    # the light fixtures (under the nodes, so a node label always wins)
+    lights = parse_lights(name) if template is None else []
+    for l in lights:
+        _lamp_mark(d, X(l["x"]), Y(l["y"]), l["kind"])
+
     # the nodes
     for n in nodes:
         col = C_STRIP if n["strip"] else C_BACK if n["bp"] else C_FRONT
@@ -310,16 +340,33 @@ def build(name, template=None):
         if group:
             d.text((x + 22, y), tag, font=F_M, fill=col)
             y += 21
+    if template is not None:
+        y += 8
+        for line, col in (("LIGHTS (fixtures)", INK), ("pale sun = a lamp's bulb: the art draws it", C_LAMP),
+                          ("UNLIT; the game lights it (afternoon /", SUB), ("night, seeded per flat).", SUB)):
+            d.text((x, y), line, font=F_B if col == INK else F_M, fill=col)
+            y += 22 if col == INK else 17
+    elif lights:
+        d.text((x, y), "LIGHTS  %d" % len(lights), font=F_B, fill=INK)
+        y += 20
+        for l in lights:
+            d.ellipse([x + 5, y + 4, x + 13, y + 12], fill=C_LAMP)
+            d.text((x + 22, y), "%s (%d,%d)%s" % (l["kind"], l["x"], l["y"], "  strip" if l["strip"] else ""),
+                   font=F_M, fill=INK)
+            y += 17
+        d.text((x + 22, y), "lit at runtime, afternoon / night", font=F_M, fill=C_LAMP)
+        y += 21
 
     # bottom key, two columns
     keys = ((C_FRONT, "front node (reached from the walking lane)"), (C_BACK, "back-plane node / clear stand zone"),
             ((230, 70, 70), "stand zone BLOCKED by a front piece"), (C_STRIP, "balcony-strip node / the strip"),
-            ((240, 196, 96), "window box (kept bare wall)"), ((214, 110, 214), "wall-face sample columns x 3 / 316"))
+            ((240, 196, 96), "window box (kept bare wall)"), ((214, 110, 214), "wall-face sample columns x 3 / 316"),
+            (C_LAMP, "light fixture (the bulb; lit by the game)"))
     for i, (col, txt) in enumerate(keys):
-        kx, ky = ML + (i // 3) * 470, Y(MH) + 30 + (i % 3) * 18
+        kx, ky = ML + (i // 4) * 470, Y(MH) + 30 + (i % 4) * 18
         d.rectangle([kx, ky + 3, kx + 12, ky + 15], fill=col)
         d.text((kx + 20, ky), txt, font=F_M, fill=INK)
-    return img
+    return img.crop((0, 0, Wc, max(Hc, int(y) + 14)))
 
 
 def guide_layer(balcony):
@@ -350,11 +397,15 @@ def all_modules():
 
 
 def sheet(items):
-    w, h = items[0][1].size
-    sw, sh = w // 2, h // 2
-    out = Image.new("RGB", (sw, sh * len(items)), BG)
-    for i, (_, im) in enumerate(sorted(items, key=lambda it: it[0])):
-        out.paste(im.resize((sw, sh), Image.LANCZOS), (0, i * sh))
+    # (blueprints can differ in height — a long node + light list grows the canvas)
+    items = sorted(items, key=lambda it: it[0])
+    sw = items[0][1].size[0] // 2
+    hs = [im.size[1] // 2 for _, im in items]
+    out = Image.new("RGB", (sw, sum(hs)), BG)
+    y = 0
+    for (_, im), sh in zip(items, hs):
+        out.paste(im.resize((sw, sh), Image.LANCZOS), (0, y))
+        y += sh
     return out
 
 

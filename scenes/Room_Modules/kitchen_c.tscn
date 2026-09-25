@@ -48,3 +48,9 @@ position = Vector2(248, 97)
 
 [node name="anchor_kitchen_bench" type="Marker2D" parent="."]
 position = Vector2(238, 113)
+
+[node name="Lights" type="Node2D" parent="."]
+
+[node name="lamp_0" type="Node2D" parent="Lights"]
+position = Vector2(290, 25)
+metadata/kind = "pendant"

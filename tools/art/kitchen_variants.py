@@ -155,7 +155,7 @@ def b_furniture(c):
         c.rect(x, 74, x + 3, 79, col)
     c.poly([(310, 58), (314, 60), (314, 94), (310, 96)], YEL[0])                             # the door, swung
     c.rect(304, 36, 305, 42, CHROME)
-
+    F.pendant(c, 132, 24, 'orange', dome=True)                                    # over the table (clear of the clock)
 
 B_ANCHORS = [('anchor_kitchen_wall_units', 28, 42, 'bp'), ('anchor_kitchen_base_units', 60, 84, 'bp'),
              ('anchor_centre_oven', 111, 88, 'bp'), ('anchor_kitchen_formica_table', 196, 94, ''),
@@ -269,7 +269,7 @@ def c_furniture(c):
         c.ellipse(108, 108, 3, 2, hexc('c9904a')); c.ellipse(115, 108, 3, 2, hexc('7a8a3a'))
         c.poly([(117, 106), (124, 100), (122, 108)], hexc('4e7e3a'))
     F.moved(c, _veg, 108, -27)
-
+    F.pendant(c, 290, 24, 'green')                                                # over the pine table
 
 C_ANCHORS = [('anchor_kitchen_pine_dresser', 26, 40, 'bp'), ('anchor_kitchen_dresser_drawer', 27, 88, 'bp'),
              ('anchor_kitchen_butler_sink', 72, 78, 'bp'), ('anchor_kitchen_veg_basket', 220, 86, ''),
@@ -360,7 +360,7 @@ def d_furniture(c):
     c.poly([(286, 78), (288, 72), (291, 73), (290, 79)], hexc('222120'))
     c.poly([(292, 100), (294, 88), (302, 82), (310, 88), (310, 100)], bag)
     c.line(280, 84, 286, 97, bag_lt); c.line(300, 86, 306, 98, bag_lt)
-
+    F.bare_bulb(c, 160, 26)
 
 D_ANCHORS = [('anchor_centre_fridge', 24, 60, 'bp'), ('anchor_kitchen_camp_table', 88, 95, ''),
              ('anchor_kitchen_dishes', 146, 70, 'bp'), ('anchor_kitchen_student_cupboard', 186, 84, 'bp'),
@@ -437,7 +437,7 @@ def e_furniture(c):
     # a cat bowl by the cooker, a cat nowhere to be seen
     c.ellipse(190, 102, 6, 2, hexc('a8322c'))
     c.ellipse(190, 101, 4, 1, hexc('6a4a2a'))
-
+    F.bare_bulb(c, 300, 24)
 
 E_ANCHORS = [('anchor_kitchen_paper_stacks', 32, 70, 'bp'), ('anchor_kitchen_toppled_papers', 76, 102, 'bp'),
              ('anchor_kitchen_buried_counter', 150, 80, 'bp'), ('anchor_centre_oven', 214, 88, 'bp'),

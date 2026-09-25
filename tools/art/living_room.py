@@ -439,10 +439,8 @@ def chest_of_drawers(c):
     c.hline(272, 292, top - 1, hexc('d9d0bc'))
     c.box(274, top - 8, 280, top - 2, FRAME, FRAME_DK)
     c.rect(276, top - 6, 278, top - 4, hexc('8c8272'))
-    c.box(285, top - 7, 289, top - 1, hexc('5e6f78'), hexc('3b464c'))
-    for (fx, fy) in ((285, top - 12), (287, top - 14), (289, top - 11)):
-        c.line(287, top - 7, fx, fy, LEAF_DEAD[0])
-        c.put(fx, fy, hexc('8a5a4a'))
+    import furn as F                                               # a table lamp (was a vase of dead flowers)
+    F.table_lamp(c, 288, top - 1, 'cream')
 
 
 def coffee_table(c):
@@ -472,7 +470,12 @@ def shifted(c, fn, dy, dx=0):
     back, away from the player's walking line at feet 129; dx keeps pieces clear of window boxes."""
     from PIL import Image
     lyr = Canvas(bg=(0, 0, 0, 0), seed=11)
-    fn(lyr)
+    from pixlib import push_light_offset, pop_light_offset
+    push_light_offset(dx, dy)
+    try:
+        fn(lyr)
+    finally:
+        pop_light_offset()
     moved = Image.new('RGBA', (W, H), (0, 0, 0, 0))
     moved.paste(lyr.img, (dx, dy), lyr.img)
     c.img.alpha_composite(moved)
@@ -497,6 +500,8 @@ def build(c=None):
     import chair3d as C3                  # an oxblood club chair across the table, turned to the sofa
     C3.armchair(c, 238, 118, 40, {'fab': hexc('7a302b'), 'fab_lt': hexc('8e3a33'), 'wood': hexc('3a2618')},
                 style='club', plan={2: 'blood', 3: 'tipped'}, key='living_a')
+    import furn as F
+    F.pendant(c, 168, 22, 'rose')          # a pendant over the sofa and table (clear of the picture + clock)
     return c
 
 

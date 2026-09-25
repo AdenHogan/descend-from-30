@@ -71,7 +71,10 @@ func _process(delta: float) -> void:
 		return
 	var can_offer: bool = WorldState.is_scavenge_mode and has_live_node() and player.get("back_spot") == null \
 		and player.get("on_balcony_plane") != true and player.get("is_cutscene") != true and player_near(player)
-	_arrow.visible = can_offer
+	# The bobbing ↑ hint shows only in the TUTORIAL (owner playtest: "the movement up feels a little
+	# clunky with that arrow… keep it in the tutorial, remove it from the active game"). W / a click
+	# on a node still steps up everywhere — only the hint is tutorial-only.
+	_arrow.visible = can_offer and TutorialManager.is_active()
 	if not can_offer:
 		return
 	_t += delta

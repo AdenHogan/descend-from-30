@@ -48,3 +48,13 @@ metadata/back_plane = true
 
 [node name="anchor_bedroom_clothes" type="Marker2D" parent="."]
 position = Vector2(236, 112)
+
+[node name="Lights" type="Node2D" parent="."]
+
+[node name="lamp_0" type="Node2D" parent="Lights"]
+position = Vector2(160, 4)
+metadata/kind = "flush"
+
+[node name="lamp_1" type="Node2D" parent="Lights"]
+position = Vector2(63, 72)
+metadata/kind = "table"

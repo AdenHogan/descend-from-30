@@ -234,6 +234,8 @@ def desk(c):
     c.vline(156, top - 13, top - 3, BRASS)
     c.poly([(148, top - 13), (164, top - 13), (162, top - 18), (150, top - 18)], GREEN_GLASS)
     c.hline(150, 162, top - 17, GREEN_GLASS_LT)
+    from pixlib import light
+    light(156, top - 13, 'desk')                                            # the green banker's lamp
     c.poly([(176, top - 1), (196, top - 1), (198, top - 5), (178, top - 5)], NOTE)
     c.hline(178, 197, top - 3, NOTE_DK)
     c.line(186, top - 2, 192, top - 4, BLOOD)

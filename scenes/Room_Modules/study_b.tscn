@@ -198,3 +198,9 @@ position = Vector2(234, 98)
 
 [node name="anchor_study_side_table" type="Marker2D" parent="."]
 position = Vector2(278, 107)
+
+[node name="Lights" type="Node2D" parent="."]
+
+[node name="lamp_0" type="Node2D" parent="Lights"]
+position = Vector2(220, 3)
+metadata/kind = "tube"

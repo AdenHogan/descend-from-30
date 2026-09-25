@@ -228,6 +228,33 @@ off the side-wall sample columns; the floor grime is 32px-periodic and identical
 so doorway wedges match. `room.apply_run_art(module, run)` swaps the textures (Art + StripArt); nodes
 never move. Previews: `runs/<name>_runs.png` (morning / afternoon / night).
 
+**LAMPS (owner round 14 — "lamps… some will be on with real lighting in evening and night scenes.
+Flickering, cutting out, turning back on, especially in the night scenes. Not always… lighting can't
+match room to room… having light sources in apartments including ceiling lights is important")**:
+every one of the 30 variants carries at least one fixture, drawn UNLIT by the `furn.py` helpers —
+`table_lamp` (on a chest / sideboard / bedside), `desk_lamp`, `floor_lamp`, `lantern` (battery),
+`pendant` (plain or dome shade), `bare_bulb` (a flex from the ceiling), `flush_light`, `tube_light`,
+plus a few bespoke ones (living-A chest lamp, bedroom-B lava lamp, bathroom-C chandelier, dining-D
+lantern on the strip). Each helper calls `pixlib.light(x, y, kind)` at the BULB, and `finish_module`
+writes those into the module scene as a `Lights` container of `Node2D` markers (`metadata/kind`,
+`metadata/balcony_strip` for strip furniture) — NOT `Marker2D`, because `room.gd` takes every
+Marker2D child of a module for a scavenge node. At runtime `scripts/apartment_lights.gd` (one per
+module, added by `room._build_modules`, live rooms + the balcony-pan backdrop) decides per flat:
+- **the morning** (run 1) is daylight — nothing on;
+- **power**: a flat has mains power 72% of afternoons / 62% of nights (seeded per flat + run); a
+  BLAZE / CHARRED flat never; a battery lantern ignores it;
+- **each fixture** in a powered flat is on 55% (afternoon) / 70% (night), seeded per flat + slot +
+  fixture + run — so no two flats light alike, and re-entry is stable;
+- **behaviour**: steady / flicker / cutout (on 2.5-9 s → DARK 0.4-3.5 s → stutters back on), mix
+  62/22/16 in the afternoon and 30/32/38 at night; a tube's flicker is a fluorescent BLINK, a
+  lantern gutters but never cuts out;
+- a lit fixture is a real PointLight2D (a round pool for a lamp on furniture, the corridor lamps'
+  downward cone for a ceiling light) + a small additive glow on the shade. Energies sit in the
+  corridor lamps' budget (round 0.70 / 1.20, cone 0.85 / 1.50 afternoon / night).
+Tuning is all tables at the top of `apartment_lights.gd`. The blueprints mark each fixture (a pale
+sun at the bulb). Locked by `apartment_lamp_test`. The LOOK (pool sizes, flicker feel) needs an
+in-editor check.
+
 ## Agreed plan (owner round 9) — in this order, not started beyond step 1
 
 1. Settle the module's design + look (the living room is the example).
@@ -253,7 +280,8 @@ never move. Previews: `runs/<name>_runs.png` (morning / afternoon / night).
    furniture with `metadata/back_plane = true` in its module scene (living room: both bookshelf
    nodes + the drawers). Per room, flagged nodes that SPAWNED this seed group into spots (within
    40px in one module → one spot, e.g. both bookshelf nodes). In scavenge mode near a spot a small ↑
-   shows; **W** (or clicking one of its nodes — it walks there first) steps the player UP to feet 339
+   shows **in the tutorial only** (owner round 14: "the movement up feels a little clunky with that
+   arrow… keep and use the arrow in the tutorial, but remove it from active game"); **W** (or clicking one of its nodes — it walks there first) steps the player UP to feet 339
    (~15px in front of the furniture's base — at 328 they looked like they stood ON it), scaled by the
    room's perspective (≈0.89). Up there only that spot's nodes are in reach (Tab /
    wheel / click picks between them), no walking-line node is, and there's no left/right movement;

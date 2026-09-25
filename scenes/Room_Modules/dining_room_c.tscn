@@ -194,3 +194,9 @@ position = Vector2(180, 84)
 [node name="anchor_right_upperdrawers" type="Marker2D" parent="."]
 position = Vector2(280, 80)
 metadata/back_plane = true
+
+[node name="Lights" type="Node2D" parent="."]
+
+[node name="lamp_0" type="Node2D" parent="Lights"]
+position = Vector2(177, 4)
+metadata/kind = "flush"

@@ -181,6 +181,8 @@ def pictures(c):
     c.poly([(150, 40), (166, 40), (170, 48), (146, 48)], SHADE)
     c.hline(146, 170, 48, SHADE_DK)
     c.hline(151, 165, 41, shade(SHADE, 1.1))
+    from pixlib import light
+    light(158, 46, 'pendant')
 
 
 def back_chairs(c):
