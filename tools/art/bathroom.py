@@ -19,7 +19,7 @@ against the back wall are back-plane ('bp').
 import os
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
-from pixlib import Canvas, hexc, shade, mix, W, H, finish_module, rrect
+from pixlib import Canvas, hexc, shade, mix, W, H, finish_module, rrect, setback
 
 # --- shared palette ---------------------------------------------------------------------------
 PORC = hexc('e1e0d6')
@@ -295,7 +295,7 @@ def a_build(c):
     c.vline(x0 + 12, rim - 2, rim + 13, shade(TOWELS[3], 0.8))
     c.line(150, rim + 4, 152, rim + 15, BLOOD)
     c.put(153, rim + 16, BLOOD)
-    wicker_basket(c, 198, 222, 84, 100)                                # against the wall, under the rail
+    setback(c, lambda l: wicker_basket(l, 198, 222, 84, 100), depth=3, top=84)   # against the wall, under the rail
     towel_rail(c, 232, 262, 70)
     shower_corner(c, 274, 308, 16, shade(A_TILE, 0.95), A_GROUT)
     c.dither(274, 90, 308, 95, MOULD, 0.5)
@@ -434,7 +434,7 @@ def b_build(c):
     c.line(24, 34, 34, 44, shade(MIRROR, 0.8))                           # cracked
     c.rect(14, 56, 42, 57, hexc('e0d6c0'))
     c.rect(18, 51, 21, 55, hexc('e8a0b0')); c.rect(26, 52, 28, 55, hexc('7ab0c8'))
-    vanity_unit(c, 8, 46, 72)
+    setback(c, lambda l: vanity_unit(l, 8, 46, 72), depth=4, top=69, x_range=(7, 47), rake=1.0)   # with depth (round 14)
     toilet(c, 70, porc=AVO, out=AVO_OUT, lid_up=True, seat=hexc('d9cfa8'))
     c.rect(86, 80, 91, 86, hexc('ece6d6'))                               # a roll on the cistern's side
     mop_bucket(c, 94, 100)                                             # by the toilet, against the wall
@@ -442,15 +442,20 @@ def b_build(c):
     c.poly([(176, 110), (224, 110), (228, 118), (172, 118)], hexc('d9a24a'))
     c.dither(174, 111, 226, 117, hexc('b8863a'), 0.5)
     panel_bath(c, 158, 246, 76)
-    c.rect(270, 78, 290, 99, hexc('9a8660'))                             # a stool with a radio
-    c.hline(270, 290, 78, hexc('c9b48a'))
-    c.rect(272, 80, 274, 99, hexc('7a6648')); c.rect(286, 80, 288, 99, hexc('7a6648'))
-    c.box(272, 68, 288, 77, hexc('3e3a36'), hexc('1e1a16'))
-    c.rect(274, 70, 280, 75, CHROME)
-    c.put(284, 72, hexc('d9a24a'))
-    c.line(286, 68, 294, 50, CHROME_DK)                                  # its aerial
-    c.rect(296, 70, 308, 99, hexc('c9b48a'))                             # a laundry hamper
-    c.box(296, 68, 308, 71, hexc('9a8660'), hexc('6a5638'))
+    def _stool(c):
+        c.rect(270, 78, 290, 99, hexc('9a8660'))                         # a stool with a radio
+        c.hline(270, 290, 78, hexc('c9b48a'))
+        c.rect(272, 80, 274, 99, hexc('7a6648')); c.rect(286, 80, 288, 99, hexc('7a6648'))
+        c.box(272, 68, 288, 77, hexc('3e3a36'), hexc('1e1a16'))
+        c.rect(274, 70, 280, 75, CHROME)
+        c.put(284, 72, hexc('d9a24a'))
+        c.line(286, 68, 294, 50, CHROME_DK)                              # its aerial
+
+    def _hamper(c):
+        c.rect(296, 70, 308, 99, hexc('c9b48a'))                         # a laundry hamper
+        c.box(296, 68, 308, 71, hexc('9a8660'), hexc('6a5638'))
+    setback(c, _stool, depth=3, top=78, x_range=(270, 290))
+    setback(c, _hamper, depth=3, top=68)
     import furn as F
     F.flush_light(c, 110)
     return c
@@ -573,7 +578,7 @@ def c_build(c):
     c_wall(c)
     c_floor(c)
     gilt_mirror(c, 14, 20, 44, 52)
-    washstand(c, 10, 46, 72)
+    setback(c, lambda l: washstand(l, 10, 46, 72), depth=4, top=72, x_range=(9, 47), rake=1.0)
     toilet(c, 72, porc=GOLD, out=GOLD_OUT, seat=hexc('7a1f2a'), lever=GOLD_LT)   # a red velvet seat
     chandelier(c, 160)
     # a leopard rug under the tub
@@ -746,7 +751,7 @@ def d_build(c):
     c.hline(86, 96, 93, shade(hexc('d8d2c2'), 0.8))
     curtained_tub(c, 106, 178, 80)
     clothes_horse(c, 204, 244, 121)
-    washing_machine(c, 274, 60)
+    setback(c, lambda l: washing_machine(l, 277, 60), depth=5, top=60, x_range=(277, 309), rake=1.0)
     import furn as F
     F.bare_bulb(c, 200, 22)
     return c
@@ -759,7 +764,7 @@ def d_bare(c):
 D_ANCHORS = [('anchor_bathroom_small_sink', 27, 70, 'bp'), ('anchor_bathroom_grim_toilet', 70, 84, 'bp'),
              ('anchor_bathroom_toilet_rolls', 91, 94, 'bp'), ('anchor_bathroom_behind_curtain', 150, 84, ''),
              ('anchor_bathroom_curtain_corner', 118, 94, ''), ('anchor_bathroom_clothes_horse', 226, 100, ''),
-             ('anchor_bathroom_washer', 280, 88, 'bp')]
+             ('anchor_bathroom_washer', 283, 88, 'bp')]
 
 
 # ============================================================================================
@@ -837,25 +842,55 @@ def e_build(c):
     # a pink fluffy bath mat in front of the tub + a laundry hamper against the wall beside it
     c.poly([(124, 112), (170, 112), (172, 118), (122, 118)], PINK_LT)
     c.dither(124, 113, 170, 117, PINK, 0.5)
-    c.shadow(214, 100, 12, 2, 100)
-    c.poly([(202, 81), (226, 81), (224, 100), (204, 100)], hexc('efe8d8'))
-    for y in range(84, 100, 3):
-        c.hline(203, 225, y, hexc('d0c8b4'))
-    c.rect(200, 78, 228, 81, PINK_DK)
-    c.poly([(206, 78), (212, 72), (216, 78)], TOWELS[1])
+    def _hamper(c):
+        c.shadow(214, 100, 12, 2, 100)
+        c.poly([(202, 81), (226, 81), (224, 100), (204, 100)], hexc('efe8d8'))
+        for y in range(84, 100, 3):
+            c.hline(203, 225, y, hexc('d0c8b4'))
+        c.rect(200, 78, 228, 81, PINK_DK)
+        c.poly([(206, 78), (212, 72), (216, 78)], TOWELS[1])
+    setback(c, _hamper, depth=3, top=78, x_range=(200, 228))
     # a vanity stool + a frosted-glass cabinet on the right
     c.shadow(242, 100, 8, 1, 90)
     c.ellipse(242, 84, 8, 3, PINK)
     for lx in (236, 248):
         c.vline(lx, 86, 99, CHROME_DK)
-    c.box(276, 30, 308, 99, hexc('efe8d8'), PINK_OUT)
-    c.box(279, 34, 305, 64, hexc('c9d0d4'), PINK_OUT)
-    c.dither(280, 35, 304, 63, hexc('e6ecee'), 0.5)
-    c.box(279, 68, 305, 96, hexc('efe8d8'), PINK_DK)
-    c.rect(290, 80, 294, 80, CHROME)
+    # a LINEN CUPBOARD on the right (owner round 14: the old tall frosted-glass cabinet "looks like a
+    # door. It isn't a door. Players will think it's a door"): chest height, a cornice, open shelves of
+    # folded towels + toilet rolls, two little doors below, bun feet — and depth, so it's a piece of
+    # furniture standing in the room, not a panel in the wall
+    setback(c, _linen_cupboard, depth=5, top=44, x_range=(277, 309), rake=1.0)
     import furn as F
     F.flush_light(c, 100)
     return c
+
+
+def _linen_cupboard(c):
+    x0, x1, top = 278, 308, 46
+    body, body_dk, trim = hexc('efe8d8'), hexc('c9c0ae'), PINK_DK
+    c.shadow(293, 100, 17, 2, 100)
+    c.rect(x0 - 1, top - 2, x1 + 1, top, trim)                                  # the cornice
+    c.hline(x0 - 1, x1 + 1, top - 2, shade(trim, 1.2))
+    c.box(x0, top + 1, x1, 95, body, PINK_OUT)
+    c.rect(x0 + 2, top + 3, x1 - 2, 70, hexc('b8aaa8'))                         # the open shelves
+    c.rect(x0 + 2, 58, x1 - 2, 59, body)
+    c.hline(x0 + 2, x1 - 2, 58, shade(body, 1.05))
+    for (tx, ty, col) in ((x0 + 4, 53, TOWELS[1]), (x0 + 4, 50, hexc('f4f0e6')), (x0 + 4, 47, TOWELS[1]),
+                          (x0 + 16, 54, hexc('f4f0e6')), (x0 + 16, 51, PINK)):  # folded towels
+        c.rect(tx, ty, tx + 10, ty + 3, col)
+        c.hline(tx, tx + 10, ty + 3, shade(col, 0.8))
+        c.vline(tx + 10, ty, ty + 3, shade(col, 0.85))
+    for k in range(4):                                                         # toilet rolls
+        rx = x0 + 4 + k * 6
+        c.rect(rx, 64, rx + 4, 69, hexc('f4f0e6'))
+        c.put(rx + 2, 66, hexc('b8b0a0'))
+    c.rect(x0 + 2, 70, x1 - 2, 71, body)
+    for (d0, d1) in ((x0 + 2, (x0 + x1) // 2 - 1), ((x0 + x1) // 2 + 1, x1 - 2)):   # two small doors
+        c.box(d0, 73, d1, 93, body, body_dk)
+        c.box(d0 + 2, 75, d1 - 2, 91, body, body_dk)
+    c.put((x0 + x1) // 2 - 3, 83, CHROME); c.put((x0 + x1) // 2 + 3, 83, CHROME)
+    for fx in (x0 + 1, x1 - 3):                                                 # bun feet
+        c.rect(fx, 96, fx + 2, 99, PINK_OUT)
 
 
 def e_bare(c):

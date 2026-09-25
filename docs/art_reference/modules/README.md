@@ -264,6 +264,16 @@ edge, a page edge) in living A and the study bookcase. KITCHEN pass: worktops, f
 wall units with depth; E's carrier bags have loop handles (they read as garlic) and its toppled stack
 fans out as newspapers (it read as planks).
 
+**BEDROOM / BATHROOM / STUDY / DINING passes (round 14)**: depth on every set-back piece; bedroom B's
+desk is symmetric (a pedestal each end, the CRT centred — "the monitor goes over the right side… no
+symmetry") and its posters are readable (`furn.poster_gig` / `poster_film` / `poster_map` /
+`poster_game`, text in the 3x5 `furn.text3`); the child's room (bedroom E) has more toys, each where a
+toy is put away (a wall shelf of blocks / a bunny / a car, a block tower by the dollhouse, a ball by the
+wardrobe, a rag doll on the bed) and at NIGHT heavier blood (small handprints at a child's height, the
+duvet soaked, spatter on the dollhouse, a drag trail and small footprints) drawn from `chair3d.RUN`;
+bathroom E's tall frosted cabinet ("looks like a door") is a chest-height linen cupboard; study A's
+desk faces the room with the chair behind it, so we see its panelled FRONT (its drawers face the chair).
+
 **LAMPS (owner round 14 — "lamps… some will be on with real lighting in evening and night scenes.
 Flickering, cutting out, turning back on, especially in the night scenes. Not always… lighting can't
 match room to room… having light sources in apartments including ceiling lights is important")**:

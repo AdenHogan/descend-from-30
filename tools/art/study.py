@@ -201,9 +201,11 @@ def board(c):
 
 
 def desk(c):
-    """A pedestal desk pulled out into the room, facing us (node: the desk top): two banks of
-    drawers and a panel between, the top seen from a little above, a green banker's lamp, papers.
-    The chair is tucked in BEHIND it (drawn first) — only its studded back shows over the top."""
+    """A pedestal desk pulled out into the room, facing us (node: the desk top), the top seen from a
+    little above, a green banker's lamp, papers. The chair is tucked in BEHIND it (drawn first) — only
+    its studded back shows over the top. So we see the desk's FRONT: panelled pedestals and a modesty
+    panel — its drawers face the chair, on the far side (owner round 14: "people would have their
+    drawers where their chair is")."""
     x0, x1, top, base = 146, 218, 90, 117
     # the chair behind
     c.box(172, 70, 192, 90, LEATHER, hexc('2d1410'))
@@ -216,20 +218,19 @@ def desk(c):
     c.hline(x0 - 2, x1 + 2, top, shade(WOOD_LT, 1.12))
     c.rect(x0 + 12, top + 1, x1 - 12, top + 3, hexc('3d5a44'))             # leather inlay
     c.hline(x0 - 2, x1 + 2, top + 4, WOOD_OUT)
-    # two pedestals of drawers + the modesty panel between them
+    # the two pedestals' backs, panelled + the modesty panel between them
     for (p0, p1) in ((x0, x0 + 20), (x1 - 20, x1)):
         c.box(p0, top + 5, p1, base - 1, WOOD, WOOD_OUT)
-        for (d0, d1) in ((top + 7, top + 12), (top + 14, top + 19), (top + 21, base - 3)):
-            c.box(p0 + 2, d0, p1 - 2, d1, WOOD, WOOD_DK)
-            c.hline(p0 + 3, p1 - 3, d0 + 1, WOOD_LT)
-            c.rect((p0 + p1) // 2 - 1, (d0 + d1) // 2, (p0 + p1) // 2 + 1, (d0 + d1) // 2, BRASS)
+        for (d0, d1) in ((top + 7, top + 15), (top + 17, base - 3)):          # raised panels, no knobs
+            c.box(p0 + 3, d0, p1 - 3, d1, WOOD, WOOD_DK)
+            c.hline(p0 + 4, p1 - 4, d0 + 1, WOOD_LT)
+            c.vline(p0 + 4, d0 + 1, d1 - 1, WOOD_LT)
     c.box(x0 + 21, top + 5, x1 - 21, base - 6, WOOD_DK, WOOD_OUT)
     c.box(x0 + 24, top + 8, x1 - 24, base - 9, WOOD_DK, shade(WOOD_DK, 0.8))
     c.rect(x0 + 21, base - 5, x1 - 21, base - 1, hexc('2a1d14'))           # the dark gap under it
-    # one drawer pulled out, papers spilling from it
-    c.poly([(x1 - 18, top + 14), (x1 - 2, top + 14), (x1 + 1, top + 20), (x1 - 17, top + 20)], WOOD_DK)
-    c.rect(x1 - 16, top + 13, x1 - 3, top + 14, NOTE)
-    c.poly([(x1 + 1, top + 20), (x1 + 8, top + 24), (x1 + 6, base), (x1 + 2, base - 2)], NOTE_DK)
+    # papers slid off the top, down the side of the desk
+    c.poly([(x1 + 1, top + 4), (x1 + 8, top + 10), (x1 + 6, base), (x1 + 2, base - 2)], NOTE_DK)
+    c.poly([(x1 + 2, top + 12), (x1 + 9, top + 16), (x1 + 8, top + 22), (x1 + 2, top + 18)], NOTE)
     # on the top: the lamp (left), papers, a mug, a pen
     c.rect(152, top - 2, 160, top - 1, BRASS)
     c.vline(156, top - 13, top - 3, BRASS)
@@ -269,8 +270,7 @@ def paper_pile(c):
     F.magazine_rack(c, 232, 258, 86, 101)
 
 
-def right_shelf(c):
-    # shelving over a filing cabinet in the corner, right of the R window box (node: the shelves)
+def filing_cabinet(c):
     x0, x1 = 274, 310
     c.shadow(292, 100, 20, 2, 100)
     # the filing cabinet
@@ -282,7 +282,11 @@ def right_shelf(c):
         c.rect(286, d0 + 6, 290, d0 + 8, NOTE)                                 # card labels
     c.poly([(x0 + 4, 77), (x1 - 4, 77), (x1 - 2, 82), (x0 + 2, 82)], METAL_DK)  # a drawer yanked open
     c.rect(x0 + 6, 74, x1 - 6, 77, NOTE)
-    # two wall shelves above, on brackets
+
+
+def right_shelf(c):
+    # two wall shelves above the filing cabinet, on brackets (node: the shelves)
+    x0, x1 = 274, 310
     for sy in (24, 44):
         c.rect(x0, sy, x1, sy + 1, WOOD_LT)
         c.hline(x0, x1, sy + 2, WOOD_OUT)
@@ -311,10 +315,10 @@ def book_pile(c):
 
 
 def strip(c):
-    import furn as F
-    file_boxes(c)
+    from pixlib import setback
+    setback(c, file_boxes, depth=3, top=66, x_range=(12, 44))
     radiator(c)
-    book_pile(c)                               # on a low cabinet against the radiator
+    setback(c, book_pile, depth=3, top=84, x_range=(46, 76))   # on a low cabinet against the radiator
 
 
 def build(c=None):
@@ -323,9 +327,12 @@ def build(c=None):
     decay(c)
     floor(c)
     rug(c)
-    bookcase(c)
+    # WITH DEPTH (owner round 14): the bookcase, the filing cabinet (the strip's pieces in strip())
+    from pixlib import setback
+    setback(c, bookcase, depth=4, top=12, x_range=(99, 141), rake=1.0)
     board(c)
     paper_pile(c)
+    setback(c, filing_cabinet, depth=4, top=62, x_range=(276, 308))
     right_shelf(c)
     desk(c)
     return c

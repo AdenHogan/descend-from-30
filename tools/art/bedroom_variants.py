@@ -68,10 +68,11 @@ def b_wall(c):
 
 
 def b_decor(c):
-    F.poster(c, 8, 18, 42, 48, hexc('1e1e24'), hexc('a8322c'), hexc('d8cfb4'))          # band poster
-    F.poster(c, 102, 22, 128, 58, hexc('d9c24a'), hexc('2f4a63'), hexc('1e1e24'), torn=True)
-    F.poster(c, 186, 24, 212, 54, hexc('7a3a6a'), hexc('d98a4a'), hexc('d8cfb4'))
-    F.poster(c, 278, 20, 308, 44, hexc('26262a'), hexc('4e8a5a'), hexc('c9c2b1'))
+    # posters you can read (owner round 14: the abstract colour blocks "don't really make any sense")
+    F.poster_gig(c, 10, 18, 40, 48, 'ROCK', paper=hexc('e8dcc0'), ink=hexc('1e1e24'), spot=hexc('c8322a'))
+    F.poster_film(c, 102, 22, 128, 58, 'NIGHT', torn=True)
+    F.poster_map(c, 180, 26, 216, 50)
+    F.poster_game(c, 278, 20, 308, 44, 'SPACE')
     c.line(172, 60, 180, 58, hexc('1e1e24'))                                             # a scrawl
     c.line(180, 58, 176, 64, hexc('1e1e24'))
 
@@ -80,22 +81,32 @@ def b_floor(c):
     F.floor_carpet(c, hexc('5a5f7a'), hexc('6a6f8a'), hexc('4a4f68'), worn=hexc('70748e'))
 
 
+def _b_desk(c):
+    # the desk against the wall (x < 50), SYMMETRIC (owner round 14: the monitor sat over a one-sided
+    # pedestal and "goes over the right side… no symmetry"): a pedestal of drawers at each end, the
+    # CRT centred on the top, the keyboard centred under it, two cans at the end
+    x0, x1, cx = 6, 48, 27
+    c.shadow(cx, 100, 22, 2, 100)
+    c.rect(x0, 72, x1, 74, F.PINE[1])
+    c.hline(x0, x1, 72, F.PINE[3])
+    for (p0, p1) in ((x0 + 2, x0 + 12), (x1 - 12, x1 - 2)):
+        c.box(p0, 75, p1, 99, F.PINE[0], F.PINE[3])
+        for (d0, d1) in ((77, 84), (86, 93)):
+            c.box(p0 + 2, d0, p1 - 2, d1, F.PINE[0], F.PINE[2])
+            c.put((p0 + p1) // 2, (d0 + d1) // 2, F.BRASS)
+    c.rect(x0 + 13, 75, x1 - 13, 77, F.PINE[2])                                            # the modesty rail
+    c.box(cx - 11, 52, cx + 11, 70, hexc('c9c2b1'), hexc('6d6a60'))                        # CRT
+    c.rect(cx - 8, 55, cx + 8, 66, hexc('22302c'))
+    c.rect(cx - 6, 57, cx - 2, 58, hexc('3e524b'))
+    c.rect(cx - 5, 70, cx + 5, 71, hexc('a9a496'))                                          # its foot
+    c.rect(cx - 10, 69, cx + 10, 71, hexc('d8d2c2'))                                        # keyboard
+    c.hline(cx - 9, cx + 9, 70, hexc('b8b2a2'))
+    c.rect(x1 - 5, 67, x1 - 3, 71, hexc('b0453a'))                                          # a can
+
+
 def b_furniture(c):
-    # the desk against the wall (x < 50): an old CRT monitor, a keyboard, cans
-    c.shadow(27, 100, 22, 2, 100)
-    c.rect(6, 72, 48, 74, F.PINE[1])
-    c.hline(6, 48, 72, F.PINE[3])
-    c.box(8, 75, 20, 99, F.PINE[0], F.PINE[3])
-    for (d0, d1) in ((77, 84), (86, 93)):
-        c.box(10, d0, 18, d1, F.PINE[0], F.PINE[2])
-        c.put(14, (d0 + d1) // 2, F.BRASS)
-    c.rect(44, 75, 46, 99, F.PINE[2])
-    c.box(16, 52, 38, 70, hexc('c9c2b1'), hexc('6d6a60'))                                  # CRT
-    c.rect(19, 55, 35, 66, hexc('22302c'))
-    c.rect(21, 57, 25, 58, hexc('3e524b'))
-    c.rect(22, 70, 32, 71, hexc('a9a496'))
-    c.rect(14, 69, 36, 71, hexc('d8d2c2'))                                                 # keyboard
-    c.rect(40, 67, 42, 71, hexc('b0453a')); c.rect(44, 68, 46, 71, hexc('4e8a5a'))          # cans
+    from pixlib import setback
+    setback(c, _b_desk, depth=5, top=72, x_range=(6, 48), rake=1.0)
     # the desk chair rolled back from the desk and swivelled toward the room (3D, like the study's) —
     # clear of the desk's back-plane spot, upright or knocked over (owner round 13b)
     import chair3d as C3
@@ -107,7 +118,7 @@ def b_furniture(c):
         c.poly([(66, 118), (74, 112), (84, 114), (86, 120)], CLOTH[5])
         c.line(70, 113, 82, 117, shade(CLOTH[1], 0.8))
         c.rect(96, 116, 104, 119, hexc('e0dcd0')); c.hline(96, 104, 119, hexc('a8322c'))
-    F.moved(c, _clothes, 64, -4)
+    F.moved(c, _clothes, 72, -4)                                  # against the bed's foot
     def _beanbag(c):
         # a beanbag slumped against the wall under the posters
         c.shadow(128, 121, 16, 2, 110)
@@ -134,20 +145,22 @@ def b_furniture(c):
     c.box(200, 108, 220, 113, hexc('d9d0bc'), hexc('8a8270'))                               # a shoebox under it
     c.rect(204, 110, 208, 111, hexc('a8322c'))
     # a crate as a bedside table in the corner: a lava lamp, an alarm clock
-    c.shadow(301, 100, 10, 2, 90)
-    c.box(292, 82, 310, 99, hexc('9a7a4e'), hexc('5e4a2e'))
-    for gy in (86, 91, 96):
-        c.hline(293, 309, gy, hexc('7c6140'))
-    c.poly([(296, 81), (300, 66), (304, 81)], hexc('7a3a6a'))
-    c.ellipse(300, 74, 2, 3, hexc('d98a4a')); c.ellipse(299, 78, 1, 1, hexc('d98a4a'))
-    F.light(300, 74, 'lava')
+    def _crate(c):
+        c.shadow(301, 100, 10, 2, 90)
+        c.box(292, 82, 310, 99, hexc('9a7a4e'), hexc('5e4a2e'))
+        for gy in (86, 91, 96):
+            c.hline(293, 309, gy, hexc('7c6140'))
+        c.poly([(296, 81), (300, 66), (304, 81)], hexc('7a3a6a'))
+        c.ellipse(300, 74, 2, 3, hexc('d98a4a')); c.ellipse(299, 78, 1, 1, hexc('d98a4a'))
+        F.light(300, 74, 'lava')
+        c.box(304, 76, 309, 81, hexc('26262a'), hexc('111114'))
+        c.put(306, 78, hexc('c0453a'))
+    setback(c, _crate, depth=3, top=82, x_range=(292, 310))
     F.flush_light(c, 148)                                                                  # the ceiling dome
-    c.box(304, 76, 309, 81, hexc('26262a'), hexc('111114'))
-    c.put(306, 78, hexc('c0453a'))
 
 
 B_ANCHORS = [('anchor_bedroom_desk', 28, 70, 'bp'), ('anchor_bedroom_desk_drawer', 14, 88, 'bp'),
-             ('anchor_bedroom_clothes_pile', 142, 109, ''), ('anchor_bedroom_beanbag', 118, 90, 'bp'),
+             ('anchor_bedroom_clothes_pile', 150, 109, ''), ('anchor_bedroom_beanbag', 118, 90, 'bp'),
              ('anchor_bed_pillow', 260, 88, ''), ('anchor_floor_underbed', 210, 110, ''),
              ('anchor_bedroom_crate', 301, 90, 'bp')]
 
@@ -261,6 +274,15 @@ def med_trolley(c, x0, base):
 
 
 def c_furniture(c):
+    # WITH DEPTH (owner round 14): the wardrobe (3px left, clear of window L), the pill cabinet
+    from pixlib import setback
+    setback(c, lambda l: F.moved(l, _c_wardrobe, -3, 0), depth=5, top=23, x_range=(4, 42), rake=1.0)
+    _c_rest(c)
+    setback(c, _c_cabinet, depth=4, top=76, x_range=(279, 305))
+    F.flush_light(c, 167)                                                                  # a dome over the bed
+
+
+def _c_wardrobe(c):
     # a tall wardrobe with a mirror door on the far left (x < 50)
     c.shadow(26, 100, 20, 2, 100)
     c.box(8, 26, 44, 99, F.WOOD[0], F.WOOD[3])
@@ -269,21 +291,26 @@ def c_furniture(c):
     c.box(27, 30, 42, 94, hexc('8b9aa0'), F.WOOD[2])
     c.line(30, 88, 39, 36, hexc('b8c3c4'))
     c.rect(24, 60, 25, 64, F.BRASS); c.rect(27, 60, 28, 64, F.BRASS)
+
+
+def _c_rest(c):
     wheelchair(c, 58, 120)
     drip_stand(c, 104, 116)
     iron_bed(c, 108, 226, 116)
     # the medicine trolley pulled up beside the foot of the bed
     med_trolley(c, 230, 118)
+
+
+def _c_cabinet(c):
     # a cabinet crowded with pill bottles, against the wall in the corner
     F.chest(c, 280, 304, 76, 100, F.WOOD, drawers=2)
     for (bx, h, col) in ((282, 6, hexc('c07a3a')), (286, 4, hexc('e0d9b8')), (290, 7, hexc('c07a3a')),
                          (294, 5, hexc('6f8fa0')), (298, 4, hexc('e0d9b8'))):
         c.rect(bx, 75 - h, bx + 2, 75, col)
     c.rect(300, 72, 303, 75, hexc('d9d0bc'))
-    F.flush_light(c, 167)                                                                  # a dome over the bed
 
 
-C_ANCHORS = [('anchor_bedroom_wardrobe', 18, 60, 'bp'), ('anchor_bedroom_wheelchair', 72, 99, ''),
+C_ANCHORS = [('anchor_bedroom_wardrobe', 15, 60, 'bp'), ('anchor_bedroom_wheelchair', 72, 99, ''),
              ('anchor_bedroom_quilt', 170, 92, ''), ('anchor_bed_pillow', 124, 89, ''),
              ('anchor_bedroom_med_trolley', 239, 88, ''), ('anchor_bedroom_pill_cabinet', 292, 86, 'bp')]
 
@@ -321,6 +348,20 @@ def d_floor(c):
 
 
 def d_furniture(c):
+    # WITH DEPTH (owner round 14): the crates (3px left, clear of window L), the boxes in the corner
+    from pixlib import setback
+    setback(c, lambda l: F.moved(l, _d_crates, -3, 0), depth=4, top=62, x_range=(5, 43), rake=1.0)
+    setback(c, _d_boxes, depth=4, top=62, x_range=(276, 308))
+    _d_rest(c)
+
+
+def _d_boxes(c):
+    # boxes stacked against the wall, right corner
+    F.cardboard_box(c, 276, 308, 78, 99, open_flaps=False)
+    F.cardboard_box(c, 282, 304, 62, 77, open_flaps=True, label=False)
+
+
+def _d_crates(c):
     # crates against the wall on the left: a camping stove, cans, candles
     c.shadow(28, 100, 22, 2, 100)
     for (cx0, cy0, col) in ((8, 80, hexc('9a7a4e')), (28, 80, hexc('8a6a44')), (16, 62, hexc('9a7a4e'))):
@@ -332,6 +373,9 @@ def d_furniture(c):
     for (x, h) in ((10, 4), (14, 6), (38, 5)):
         c.rect(x, 79 - h, x + 2, 79, hexc('9aa3a8'))
     F.lantern(c, 42, 79)                                                                   # a battery lantern
+
+
+def _d_rest(c):
     def _backpack(c):
         # a backpack dumped beside the head of the mattress
         c.shadow(70, 121, 10, 2, 110)
@@ -367,12 +411,9 @@ def d_furniture(c):
         c.line(hx, rtop + 1, hx + 3, rtop + 4, hexc('6d6c64'))
         c.poly([(hx - 4, rtop + 4), (hx + 4, rtop + 4), (hx + 5, rtop + 4 + ln), (hx - 5, rtop + 4 + ln)], col)
         c.vline(hx, rtop + 6, rtop + 3 + ln, shade(col, 0.8))
-    # boxes stacked against the wall, right corner
-    F.cardboard_box(c, 276, 308, 78, 99, open_flaps=False)
-    F.cardboard_box(c, 282, 304, 62, 77, open_flaps=True, label=False)
 
 
-D_ANCHORS = [('anchor_bedroom_crates', 26, 70, 'bp'), ('anchor_bedroom_backpack', 90, 103, ''),
+D_ANCHORS = [('anchor_bedroom_crates', 23, 70, 'bp'), ('anchor_bedroom_backpack', 90, 103, ''),
              ('anchor_bed_pillow', 112, 104, ''), ('anchor_bedroom_sleeping_bag', 170, 108, ''),
              ('anchor_bedroom_clothes_rail', 238, 96, ''), ('anchor_bedroom_boxes', 292, 86, 'bp')]
 
@@ -413,6 +454,18 @@ def e_floor(c):
 
 
 def e_furniture(c):
+    # WITH DEPTH (owner round 14): the dollhouse table (3px left), the little wardrobe
+    from pixlib import setback
+    setback(c, lambda l: F.moved(l, _e_dollhouse, -3, 0), depth=4, top=80, x_range=(5, 43), rake=1.0)
+    _e_toys_wall(c)
+    _e_rest(c)
+    setback(c, _e_wardrobe, depth=4, top=32, x_range=(278, 306), rake=1.0)
+    import chair3d
+    if chair3d.RUN >= 3:
+        _e_night_blood(c)
+
+
+def _e_dollhouse(c):
     # a dollhouse on a low table against the wall (x < 50)
     c.shadow(27, 100, 22, 2, 100)
     c.rect(8, 80, 46, 82, F.PINE[1]); c.rect(10, 83, 12, 99, F.PINE[2]); c.rect(42, 83, 44, 99, F.PINE[2])
@@ -421,6 +474,43 @@ def e_furniture(c):
     c.rect(14, 60, 26, 68, hexc('7aa0c8')); c.rect(28, 60, 40, 68, hexc('d9a0b0'))
     c.rect(14, 70, 26, 78, hexc('d9c24a')); c.rect(28, 70, 40, 78, hexc('1e1a16'))           # one room dark
     c.rect(31, 73, 33, 77, hexc('e6ddc8'))                                                    # a tiny figure in it
+
+
+# the child's room gets MORE TOYS (owner round 14: "I love the child's bedroom, add more toys") —
+# each where a toy would be put away: on a wall shelf, stacked against the wall, sat on the bed
+TOY_R, TOY_Y, TOY_B, TOY_G = hexc('c8423a'), hexc('e6c24a'), hexc('4a7ac0'), hexc('5aa05a')
+
+
+def _block(c, x, y, col):
+    c.box(x, y, x + 4, y + 4, col, shade(col, 0.6))
+    c.put(x + 2, y + 2, hexc('f0ead8'))
+
+
+def _e_toys_wall(c):
+    # a painted shelf on brackets (clear of the window boxes: x 200..224): blocks, a bunny, a car
+    c.rect(198, 56, 224, 57, hexc('e6e0cc'))
+    c.hline(198, 224, 58, hexc('8a8270'))
+    for bx in (201, 221):
+        c.vline(bx, 59, 62, hexc('8a8270'))
+    _block(c, 200, 51, TOY_R); _block(c, 205, 51, TOY_B); _block(c, 202, 46, TOY_Y)
+    c.ellipse(214, 52, 3, 3, hexc('e8e2d8'))                                     # the bunny
+    c.vline(212, 45, 49, hexc('e8e2d8')); c.vline(215, 45, 49, hexc('e8e2d8'))
+    c.put(212, 46, hexc('e8a8b8')); c.put(215, 46, hexc('e8a8b8'))
+    c.put(213, 51, hexc('1e1a16')); c.put(215, 51, hexc('1e1a16'))
+    c.rect(218, 52, 223, 54, TOY_R); c.rect(219, 50, 222, 51, TOY_R)             # a toy car
+    c.put(219, 55, hexc('1e1a16')); c.put(222, 55, hexc('1e1a16'))
+    # a tower of blocks stacked against the wall beside the dollhouse table
+    for i, (dx, col) in enumerate(((0, TOY_B), (5, TOY_R), (2, TOY_Y), (1, TOY_G))):
+        _block(c, 50 + dx, 95 - (0 if i < 2 else 5 * (i - 1)), col)
+    c.poly([(52, 85), (55, 80), (58, 85)], TOY_R)                                # a roof block on top
+    # a ball against the wall under the window, by the wardrobe
+    c.shadow(266, 100, 5, 1, 80)
+    c.ellipse(266, 96, 4, 4, TOY_R)
+    c.hline(262, 270, 96, hexc('f0ead8'))
+    c.put(264, 94, hexc('f0a8a0'))
+
+
+def _e_rest(c):
     F.pendant(c, 140, 20, 'white', dome=True)                                                 # a paper-shade pendant
     def _horse(c):
         # a rocking horse out on the carpet
@@ -449,6 +539,12 @@ def e_furniture(c):
     c.ellipse(138, 81, 2, 2, hexc('9a6a3a')); c.put(133, 85, hexc('1e1a16')); c.put(136, 85, hexc('1e1a16'))
     c.ellipse(134, 93, 4, 3, hexc('9a6a3a'))
     c.line(130, 94, 140, 90, BLOOD)
+    # a rag doll sat against the foot of the bed
+    c.ellipse(184, 88, 2, 2, hexc('f0d8c0'))                                                 # head
+    c.rect(182, 85, 186, 86, hexc('c87a3a'))                                                 # woollen hair
+    c.put(183, 88, hexc('1e1a16')); c.put(185, 88, hexc('1e1a16'))
+    c.poly([(181, 91), (187, 91), (189, 97), (179, 97)], hexc('7a9ad0'))                      # dress
+    c.put(179, 97, hexc('f0d8c0')); c.put(189, 97, hexc('f0d8c0'))
     def _toys(c):
         # a toy chest at the foot of the bed, lid up, toys piled inside (none strewn on the floor)
         c.shadow(232, 121, 16, 2, 110)
@@ -457,6 +553,9 @@ def e_furniture(c):
         c.poly([(218, 106), (246, 106), (244, 96), (220, 96)], hexc('5a80a8'))                    # the lid, open
         c.rect(222, 102, 228, 106, hexc('d9c24a')); c.ellipse(236, 104, 3, 3, hexc('a8322c'))
     F.moved(c, _toys, -20, -5)
+
+
+def _e_wardrobe(c):
     # a small white wardrobe in the corner
     c.shadow(292, 100, 16, 2, 100)
     c.box(278, 36, 306, 99, hexc('e6e0cc'), hexc('8a8270'))
@@ -465,7 +564,36 @@ def e_furniture(c):
     c.poly([(278, 36), (306, 36), (304, 32), (280, 32)], hexc('d98aa0'))
 
 
-E_ANCHORS = [('anchor_bedroom_dollhouse', 34, 74, 'bp'), ('anchor_bedroom_rocking_horse', 76, 98, ''),
+def _e_night_blood(c):
+    # NIGHT (owner round 14: "it's grim but also in run 3 add more blood"): small handprints at a
+    # child's height on the wall by the bed, the duvet soaked, spatter across the dollhouse, and a drag
+    # trail over the carpet from the bed toward the wardrobe
+    B1, B2, B3 = hexc('6a1812'), hexc('4a0e0c'), hexc('84241a')
+    for (hx, hy) in ((104, 80), (112, 74), (206, 76)):                         # small hands, dragged down
+        c.rect(hx, hy, hx + 3, hy + 3, B1)
+        for k in range(4):
+            c.vline(hx + k, hy - 3 + (k % 2), hy - 1, B1)
+        c.put(hx + 4, hy + 1, B1)
+        for k in range(1, 4):
+            c.vline(hx + k, hy + 4, hy + 4 + (k * 3) % 7, B2)
+    c.ellipse(160, 92, 16, 4, B2)                                              # the duvet, soaked
+    c.ellipse(158, 91, 12, 3, B1)
+    c.vline(170, 96, 103, B2); c.vline(148, 96, 101, B2)                       # dripping off the edge
+    for (x, y) in ((16, 60), (21, 64), (27, 58), (33, 66), (24, 71), (37, 61), (14, 70)):
+        c.put(x, y, B1)                                                         # spatter on the dollhouse
+    c.rect(29, 62, 30, 63, B3)
+    for x in range(176, 262):                                                   # the drag trail
+        t = (x - 176) / 86.0
+        y = 122 + int(3 * t)
+        w = 3 - int(2 * t)
+        for k in range(w):
+            if (x * 5 + k) % 7:
+                c.put(x, y + k, B1 if k else B2)
+    for x in range(200, 256, 9):                                                # small bloody footprints
+        c.rect(x, 128 - (x // 9) % 2 * 3, x + 1, 130 - (x // 9) % 2 * 3, B2)
+
+
+E_ANCHORS = [('anchor_bedroom_dollhouse', 31, 74, 'bp'), ('anchor_bedroom_rocking_horse', 76, 98, ''),
              ('anchor_bed_pillow', 134, 88, ''), ('anchor_bedroom_toy_chest', 212, 107, ''),
              ('anchor_bedroom_small_wardrobe', 292, 70, 'bp')]
 

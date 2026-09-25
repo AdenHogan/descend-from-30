@@ -376,12 +376,20 @@ def build(c=None):
     import furn as F
     F.flush_light(c, 160)                 # a ceiling dome over the bed
     floor(c)
-    dressing_table(c)
-    bedside(c)
-    wardrobe(c)
+    # WITH DEPTH (owner round 14): the dressing table (its mirror stands on it), the bedside table,
+    # the wardrobe (5px right of where it stood flat, so its side clears window R)
+    from pixlib import setback
+    setback(c, dressing_table, depth=5, top=66, x_range=(5, 47), rake=1.0)
+    setback(c, bedside, depth=4, top=80, x_range=(51, 75))
+    setback(c, lambda l: _moved(l, wardrobe, 5), depth=4, top=28, x_range=(276, 312), rake=1.0)
     floor_clutter(c)
     bed(c)
     return c
+
+
+def _moved(c, fn, dx):
+    import furn as F
+    F.moved(c, fn, dx, 0)
 
 
 def bare(c):
@@ -391,7 +399,7 @@ def bare(c):
 
 ANCHORS = [('anchor_wall_left', 37, 60, 'bp'), ('anchor_bedside', 63, 87, 'bp'),
            ('anchor_bed_pillow', 99, 88, ''), ('anchor_floor_underbed', 152, 110, ''),
-           ('anchor_wall_right_upper', 297, 40, 'bp'), ('anchor_wall_right_lower', 289, 91, 'bp'),
+           ('anchor_wall_right_upper', 302, 40, 'bp'), ('anchor_wall_right_lower', 294, 91, 'bp'),
            ('anchor_bedroom_clothes', 236, 112, '')]
 
 

@@ -14,7 +14,7 @@ Run:  python3 tools/art/study_variants.py [b c d]
 import os
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
-from pixlib import Canvas, hexc, shade, rrect, finish_module
+from pixlib import Canvas, hexc, shade, rrect, finish_module, setback
 import furn as F
 import chair3d as C3
 
@@ -50,11 +50,13 @@ def b_floor(c):
 
 def b_strip(c):
     # a low bookshelf against the wall + a stack of box files on the floor beside it
-    F.shelves(c, 8, 46, 70, 100, F.TEAK, [83, 96], c.rng)
-    c.rect(10, 66, 22, 69, hexc('d6cfb8')); c.rect(28, 64, 36, 69, hexc('4e8a5a'))          # a desk tidy, a plant
-    c.poly([(26, 64), (30, 58), (34, 62), (38, 57), (40, 64)], hexc('5e8240'))
+    def _low(l):
+        F.shelves(l, 8, 46, 70, 100, F.TEAK, [83, 96], c.rng)
+        l.rect(10, 66, 22, 69, hexc('d6cfb8')); l.rect(28, 64, 36, 69, hexc('4e8a5a'))       # a desk tidy, a plant
+        l.poly([(26, 64), (30, 58), (34, 62), (38, 57), (40, 64)], hexc('5e8240'))
+    setback(c, _low, depth=3, top=70, x_range=(8, 46))
     # the box files kept in a small file shelf beside it (not stacked on the floor)
-    F.file_shelf(c, 50, 78, 70, 101, F.TEAK, c.rng)
+    setback(c, lambda l: F.file_shelf(l, 50, 78, 70, 101, F.TEAK, c.rng), depth=3, top=70)
 
 
 def b_furniture(c):
@@ -81,7 +83,7 @@ def b_furniture(c):
         c.rect(164, 59, 176, 60, BEIGE[2]); c.put(170, 64, hexc('4e8a5a'))
         c.rect(130, 69, 158, 69, hexc('e6e0cc'))                                              # keyboard
         c.rect(112, 64, 118, 69, hexc('e6e0cc')); c.put(119, 66, hexc('e6e0cc'))              # a mug
-    F.moved(c, desk, -8, 0)
+    setback(c, lambda l: F.moved(l, desk, -8, 0), depth=5, top=70, x_range=(100, 176), rake=1.0)
     # an office chair rolled out from the desk and left swivelled at an angle (owner round 13: the
     # square-on chair "looks a bit weird" — built in 3D like the armchairs). It stands at the desk's
     # RIGHT end, clear of the desk's back-plane spot at the drawer end — upright or knocked over.
@@ -175,18 +177,20 @@ def c_floor(c):
 
 
 def c_strip(c):
-    F.shelves(c, 8, 46, 18, 100, F.WOOD, [34, 50, 66, 82, 96], c.rng)
+    setback(c, lambda l: F.shelves(l, 8, 46, 18, 100, F.WOOD, [34, 50, 66, 82, 96], c.rng), depth=3, rake=1.0)
     # books pulled off the shelf, stacked on a low cabinet at its foot
-    F.side_cabinet(c, 48, 78, 86, 101, F.WOOD)
-    F.book_stack(c, 50, 86, [24, 22, 20, 17], [F.BOOKS[1], F.BOOKS[0], F.BOOKS[5], F.BOOKS[3]])
+    def _cab(l):
+        F.side_cabinet(l, 48, 78, 86, 101, F.WOOD)
+        F.book_stack(l, 50, 86, [24, 22, 20, 17], [F.BOOKS[1], F.BOOKS[0], F.BOOKS[5], F.BOOKS[3]])
+    setback(c, _cab, depth=3, top=86, x_range=(48, 78))
 
 
 def c_furniture(c):
-    F.shelves(c, 100, 142, 12, 100, F.WOOD, [28, 44, 60, 76, 96], c.rng)
-    F.shelves(c, 180, 222, 12, 100, F.WOOD, [28, 44, 60, 76, 96], c.rng)
-    c.line(214, 12, 206, 100, hexc('8a6443')); c.line(220, 14, 214, 100, hexc('8a6443'))  # the ladder
-    for y in range(20, 100, 10):
-        c.line(213 - (y - 12) // 11, y, 219 - (y - 14) // 11, y, hexc('8a6443'))
+    setback(c, lambda l: F.shelves(l, 100, 142, 12, 100, F.WOOD, [28, 44, 60, 76, 96], c.rng), depth=4, rake=1.0)
+    setback(c, lambda l: F.shelves(l, 180, 222, 12, 100, F.WOOD, [28, 44, 60, 76, 96], c.rng), depth=4, rake=1.0)
+    c.line(214, 16, 206, 104, hexc('8a6443')); c.line(220, 18, 214, 104, hexc('8a6443'))  # the ladder
+    for y in range(24, 104, 10):
+        c.line(213 - (y - 16) // 11, y, 219 - (y - 18) // 11, y, hexc('8a6443'))
     # the reading corner out in the room: wingback, side table, lamp — in front of the LADDER
     # bookcase (it has no back-plane spot), keeping the centre bookcase's spot clear to step up to
     # (owner round 13b; pixlib.check_back_plane_clear)
@@ -215,10 +219,12 @@ def c_furniture(c):
         F.floor_lamp(c, 188, 67, 121, hexc('c9ab7e'), hexc('3a2a1a'))
     F.moved(c, table_lamp, 60, 0)
     # a writing slope on the right against the wall
-    F.chest(c, 276, 310, 70, 100, F.WOOD, drawers=3, open_row=0)
-    c.poly([(278, 69), (308, 69), (304, 60), (282, 60)], F.WOOD[1])
-    c.rect(286, 62, 300, 67, hexc('e6e0cc'))
-    c.line(302, 58, 306, 50, hexc('2b2622'))
+    def _slope(l):
+        F.chest(l, 276, 310, 70, 100, F.WOOD, drawers=3, open_row=0)
+        l.poly([(278, 69), (308, 69), (304, 60), (282, 60)], F.WOOD[1])
+        l.rect(286, 62, 300, 67, hexc('e6e0cc'))
+        l.line(302, 58, 306, 50, hexc('2b2622'))
+    setback(c, _slope, depth=4, top=70, x_range=(275, 311))
 
 
 C_ANCHORS = [('anchor_study_tall_shelf', 28, 58, 'bp s'), ('anchor_study_floor_books', 60, 96, 'bp s'),
@@ -254,12 +260,14 @@ def d_floor(c):
 
 
 def d_strip(c):
-    F.shelves(c, 8, 46, 34, 100, F.METAL, [52, 70, 86, 97], c.rng, fill=0.0)
-    for (y, h) in ((52, 8), (70, 9), (86, 8)):
-        for x in range(11, 44, 5):
-            col = [hexc('b0453a'), hexc('c9b86a'), hexc('6a8a5a')][(x // 5 + y) % 3]
-            c.rect(x, y - h, x + 3, y - 1, col)
-            c.hline(x, x + 3, y - h, hexc('c9c7bd'))
+    def _rack(c):
+        F.shelves(c, 8, 46, 34, 100, F.METAL, [52, 70, 86, 97], c.rng, fill=0.0)
+        for (y, h) in ((52, 8), (70, 9), (86, 8)):
+            for x in range(11, 44, 5):
+                col = [hexc('b0453a'), hexc('c9b86a'), hexc('6a8a5a')][(x // 5 + y) % 3]
+                c.rect(x, y - h, x + 3, y - 1, col)
+                c.hline(x, x + 3, y - h, hexc('c9c7bd'))
+    setback(c, _rack, depth=3, top=34, x_range=(8, 46), rake=1.0)
     def _crate(c):
         # an ammo crate against the wall by the shelves, a gas mask dumped on it
         c.shadow(76, 121, 12, 2, 110)
@@ -277,6 +285,13 @@ def d_strip(c):
 
 
 def d_furniture(c):
+    # WITH DEPTH (owner round 14): the radio bench, the folded camp bed
+    setback(c, _d_bench, depth=5, top=72, x_range=(106, 190), rake=1.0)
+    c.line(182, 77, 216, 20, hexc('26262a'))                                                 # the antenna lead up the wall
+    _d_rest(c)
+
+
+def _d_bench(c):
     # the radio bench against the wall
     c.shadow(148, 100, 36, 2, 100)
     c.rect(106, 72, 190, 75, hexc('6a6a5a'))
@@ -292,7 +307,9 @@ def d_furniture(c):
     c.rect(153, 62, 158, 66, hexc('d9d0b0'))
     c.line(174, 71, 180, 48, hexc('26262a')); c.ellipse(180, 47, 2, 2, hexc('26262a'))     # a desk mic
     c.rect(114, 84, 138, 91, hexc('9a7a4e'))                                                 # a battery box
-    c.line(182, 72, 216, 20, hexc('26262a'))                                                 # the antenna lead up the wall
+
+
+def _d_rest(c):
     def _supplies(c):
         # supply crates + jerry cans stacked against the wall
         c.shadow(214, 121, 18, 2, 110)
@@ -312,12 +329,14 @@ def d_furniture(c):
     c.rect(236, 93, 244, 97, hexc('3a3a36')); c.line(244, 94, 248, 90, hexc('26262a'))
     c.rect(210, 95, 216, 96, hexc('d9b43a'))
     # a camp bed folded against the wall on the right
-    c.shadow(292, 100, 16, 2, 100)
-    c.box(278, 40, 306, 99, hexc('5a6a4a'), hexc('2e3a24'))
-    c.vline(292, 42, 97, hexc('4a5a3a'))
-    c.rect(280, 44, 304, 46, hexc('7a8a6a'))
-    c.rect(284, 60, 300, 72, hexc('3a3a36'))                                                 # a sleeping roll strapped to it
-    c.hline(284, 300, 64, hexc('26262a'))
+    def _camp(c):
+        c.shadow(292, 100, 16, 2, 100)
+        c.box(278, 40, 306, 99, hexc('5a6a4a'), hexc('2e3a24'))
+        c.vline(292, 42, 97, hexc('4a5a3a'))
+        c.rect(280, 44, 304, 46, hexc('7a8a6a'))
+        c.rect(284, 60, 300, 72, hexc('3a3a36'))                                             # a sleeping roll strapped to it
+        c.hline(284, 300, 64, hexc('26262a'))
+    setback(c, _camp, depth=3, top=40, rake=1.0)
     F.bare_bulb(c, 216, 22)
 
 D_ANCHORS = [('anchor_study_tins', 26, 62, 'bp s'), ('anchor_study_gas_mask', 63, 87, 'bp s'),
@@ -367,10 +386,12 @@ def e_floor(c):
 
 def e_strip(c):
     # a plan chest with rolled drawings + tins of paint on the floor
-    F.chest(c, 8, 46, 70, 100, F.WOOD, drawers=4, open_row=1)
-    for (x, col) in ((12, hexc('e6e0cc')), (20, hexc('d9d0b0')), (30, hexc('e6e0cc'))):
-        c.rect(x, 64, x + 10, 69, col)
-        c.ellipse(x, 66, 1, 2, shade(col, 0.8))
+    def _plan_chest(c):
+        F.chest(c, 8, 46, 70, 100, F.WOOD, drawers=4, open_row=1)
+        for (x, col) in ((12, hexc('e6e0cc')), (20, hexc('d9d0b0')), (30, hexc('e6e0cc'))):
+            c.rect(x, 64, x + 10, 69, col)
+            c.ellipse(x, 66, 1, 2, shade(col, 0.8))
+    setback(c, _plan_chest, depth=4, top=70, x_range=(7, 47), rake=1.0)
     def _tins(c):
         # (paint tins against the wall beside the chest)
         c.shadow(72, 121, 14, 2, 110)
@@ -383,6 +404,11 @@ def e_strip(c):
 
 
 def e_furniture(c):
+    setback(c, _canvases, depth=3, rake=1.0)
+    _e_rest(c)
+
+
+def _canvases(c):
     # canvases stacked against the wall
     c.shadow(128, 100, 26, 2, 100)
     for i, (x0, top, col) in enumerate(((104, 40, hexc('d8cfb4')), (112, 48, hexc('c9bf9e')), (120, 58, hexc('d8cfb4')),
@@ -392,6 +418,9 @@ def e_furniture(c):
     c.rect(134, 54, 156, 97, hexc('3a5a7a'))                                      # the front one painted: a sea
     c.rect(134, 76, 156, 97, hexc('2a4a5a'))
     c.poly([(138, 76), (146, 68), (152, 76)], hexc('e6e0cc'))
+
+
+def _e_rest(c):
     # the easel out in the room, a portrait with its face smeared out
     c.shadow(186, 121, 14, 2, 110)
     c.line(176, 121, 184, 64, F.PINE[2]); c.line(196, 121, 188, 64, F.PINE[2]); c.line(186, 121, 186, 70, F.PINE[3])
@@ -416,12 +445,14 @@ def e_furniture(c):
     for (x, col) in ((244, SPLASH[0]), (248, SPLASH[1]), (252, SPLASH[2]), (256, SPLASH[4])):
         c.put(x, 94, col)
     # shelves of jars and rags on the right
-    F.shelves(c, 276, 310, 40, 100, F.PINE, [58, 78, 96], c.rng, fill=0.0)
-    for (y, n) in ((58, 5), (78, 4), (96, 5)):
-        for k in range(n):
-            x = 280 + k * 6
-            c.rect(x, y - 7, x + 4, y - 1, hexc('b9c4c4'))
-            c.rect(x + 1, y - 5, x + 3, y - 2, SPLASH[(k + y) % len(SPLASH)])
+    def _jars(l):
+        F.shelves(l, 276, 310, 40, 100, F.PINE, [58, 78, 96], c.rng, fill=0.0)
+        for (y, n) in ((58, 5), (78, 4), (96, 5)):
+            for k in range(n):
+                x = 280 + k * 6
+                l.rect(x, y - 7, x + 4, y - 1, hexc('b9c4c4'))
+                l.rect(x + 1, y - 5, x + 3, y - 2, SPLASH[(k + y) % len(SPLASH)])
+    setback(c, _jars, depth=3, rake=1.0)
     F.bare_bulb(c, 160, 24)
 
 E_ANCHORS = [('anchor_study_plan_chest', 26, 88, 'bp s'), ('anchor_study_paint_tins', 64, 94, 'bp s'),

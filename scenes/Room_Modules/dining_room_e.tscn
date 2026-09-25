@@ -39,7 +39,7 @@ texture = ExtResource("3_balcony")
 centered = false
 
 [node name="anchor_dining_presents" type="Marker2D" parent="."]
-position = Vector2(24, 80)
+position = Vector2(24, 83)
 metadata/back_plane = true
 metadata/balcony_strip = true
 
@@ -58,7 +58,7 @@ position = Vector2(180, 86)
 position = Vector2(226, 94)
 
 [node name="anchor_right_upperdrawers" type="Marker2D" parent="."]
-position = Vector2(280, 82)
+position = Vector2(280, 86)
 metadata/back_plane = true
 
 [node name="Lights" type="Node2D" parent="."]

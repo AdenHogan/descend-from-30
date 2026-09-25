@@ -333,7 +333,8 @@ def dresser(c):
 
 
 def strip(c):
-    sideboard(c)
+    from pixlib import setback
+    setback(c, sideboard, depth=4, top=70, x_range=(7, 47), rake=1.0)     # with depth (owner round 14)
     radiator(c)
 
 
@@ -347,7 +348,10 @@ def build(c=None):
     table(c)
     side_chair(c, 102, 114, facing_right=True)
     trolley(c, 224, 118)
-    dresser(c)
+    # the dresser with depth (owner round 14), 3px right of where it stood flat (clear of window R)
+    from pixlib import setback
+    import furn as F
+    setback(c, lambda l: F.moved(l, dresser, 3, 0), depth=4, top=12, x_range=(276, 314), rake=1.0)
     return c
 
 
@@ -357,8 +361,8 @@ def bare(c):
 
 
 ANCHORS = [('anchor_table_left', 128, 90, ''), ('anchor_table_right', 192, 90, ''),
-           ('anchor_dining_trolley', 238, 106, ''), ('anchor_right_upperdrawers', 284, 65, 'bp'),
-           ('anchor_right_lowerdrawers', 300, 85, 'bp'), ('anchor_dining_sideboard', 20, 80, 'bp s')]
+           ('anchor_dining_trolley', 238, 106, ''), ('anchor_right_upperdrawers', 287, 65, 'bp'),
+           ('anchor_right_lowerdrawers', 303, 85, 'bp'), ('anchor_dining_sideboard', 20, 80, 'bp s')]
 
 
 if __name__ == '__main__':

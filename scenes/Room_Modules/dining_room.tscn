@@ -48,15 +48,15 @@ position = Vector2(192, 90)
 position = Vector2(238, 106)
 
 [node name="anchor_right_upperdrawers" type="Marker2D" parent="."]
-position = Vector2(284, 65)
+position = Vector2(287, 69)
 metadata/back_plane = true
 
 [node name="anchor_right_lowerdrawers" type="Marker2D" parent="."]
-position = Vector2(300, 85)
+position = Vector2(303, 89)
 metadata/back_plane = true
 
 [node name="anchor_dining_sideboard" type="Marker2D" parent="."]
-position = Vector2(20, 80)
+position = Vector2(20, 84)
 metadata/back_plane = true
 metadata/balcony_strip = true
 

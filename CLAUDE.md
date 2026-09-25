@@ -1425,8 +1425,12 @@ means no rendering — UI layout and art still need an in-editor look.
   docs/art_reference/modules/README.md "SET-BACK FURNITURE HAS DEPTH"). Run looks redrawn in
   `pixlib.run_looks` (filled damp stains, torn-paper patches, corridor blood decals, real lath holes).
   Living room + kitchen passes done (guitar on a stand, readable posters, rose chintz, tea set, crisp
-  leaning books `furn.leaning_book`, carrier bags, fanned newspapers). Bedroom / bathroom / study /
-  dining depth + cleanup still to do.
+  leaning books `furn.leaning_book`, carrier bags, fanned newspapers). Bedroom (B: a symmetric
+  twin-pedestal desk, readable posters `furn.poster_gig/film/map/game` + a 3x5 font `furn.text3`; E the
+  child's room: a toy shelf, block tower, ball, rag doll, and heavier NIGHT blood — small handprints, a
+  soaked duvet, a drag trail — via `chair3d.RUN`), bathroom (E's door-like frosted cabinet is a linen
+  cupboard with towels + rolls), study (A's room-facing desk shows a panelled front — its drawers face
+  the chair) and dining passes done: every set-back piece in all 30 rooms has depth.
 - CORRIDOR ART (owner round 10, `tools/art/corridor.py`): floors 1-29 get a painted overlay over
   the old tile look — `building_floors._apply_corridor_art` adds a `CorridorArt` Sprite2D (115,243,
   1120x192 = the tilemap's used band) right ABOVE the TileMapLayer, so doors / stairs / elevator /

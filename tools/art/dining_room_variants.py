@@ -14,7 +14,7 @@ Run:  python3 tools/art/dining_room_variants.py [b c d]
 import os
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
-from pixlib import Canvas, hexc, shade, rrect, finish_module
+from pixlib import Canvas, hexc, shade, rrect, finish_module, setback
 import furn as F
 
 BLOOD = hexc('4a1d1b', 150)
@@ -72,7 +72,12 @@ def tulip_chair(c, x0, base, col, facing_right):
 
 
 def b_strip(c):
-    # a drinks cabinet (the flap down, bottles inside) + a leather pouffe
+    setback(c, lambda l: F.moved(l, _drinks, -3, 0), depth=4, top=62, x_range=(5, 45), rake=1.0)   # with depth (round 14; 3px left, clear of window L)
+    _pouffe_at(c)
+
+
+def _drinks(c):
+    # a drinks cabinet (the flap down, bottles inside)
     c.shadow(28, 100, 20, 2, 100)
     c.box(10, 62, 46, 99, F.TEAK[0], F.TEAK[3])
     c.rect(12, 64, 44, 80, hexc('2a1d14'))
@@ -82,6 +87,9 @@ def b_strip(c):
     c.box(12, 82, 44, 97, F.TEAK[0], F.TEAK[2])
     c.rect(26, 88, 30, 88, F.BRASS)
     c.poly([(12, 80), (44, 80), (48, 84), (8, 84)], F.TEAK[1])                                # the drop flap
+
+
+def _pouffe_at(c):
     def _pouffe(c):
         # (a leather pouffe beside the cabinet)
         c.shadow(72, 120, 12, 2, 110)
@@ -108,16 +116,18 @@ def b_furniture(c):
     c.rect(146, 85, 154, 91, hexc('b0453a')); c.hline(144, 156, 85, hexc('8a3028'))
     c.line(150, 84, 156, 78, SILVER)
     c.ellipse(170, 95, 4, 1, BLOOD)
-    # a teak sideboard with a record player on the right
-    F.chest(c, 244, 310, 72, 100, F.TEAK, drawers=2, open_row=1)
-    c.box(272, 64, 294, 71, hexc('3a3a3d'), hexc('1c1c1e'))
-    c.ellipse(281, 66, 7, 1, hexc('1c1c1e'))
-    c.line(291, 65, 285, 67, SILVER)
-    for (x, col) in ((299, hexc('d86a3a')), (302, hexc('2f4a63')), (305, hexc('d9c24a'))):
-        c.rect(x, 58, x + 2, 71, col)                                                           # records leant up
+    # a teak sideboard with a record player on the right (with depth)
+    def _sb(c):
+        F.chest(c, 244, 310, 72, 100, F.TEAK, drawers=2, open_row=1)
+        c.box(272, 64, 294, 71, hexc('3a3a3d'), hexc('1c1c1e'))
+        c.ellipse(281, 66, 7, 1, hexc('1c1c1e'))
+        c.line(291, 65, 285, 67, SILVER)
+        for (x, col) in ((299, hexc('d86a3a')), (302, hexc('2f4a63')), (305, hexc('d9c24a'))):
+            c.rect(x, 58, x + 2, 71, col)                                                       # records leant up
+    setback(c, _sb, depth=4, top=72, x_range=(243, 311))
     F.pendant(c, 140, 22, 'orange', dome=True)                                    # a 70s dome pendant
 
-B_ANCHORS = [('anchor_dining_drinks_cabinet', 26, 72, 'bp s'), ('anchor_dining_pouffe', 62, 94, 's'),
+B_ANCHORS = [('anchor_dining_drinks_cabinet', 23, 72, 'bp s'), ('anchor_dining_pouffe', 62, 94, 's'),
              ('anchor_table_left', 138, 93, ''), ('anchor_table_right', 164, 93, ''),
              ('anchor_dining_tulip_chair', 196, 104, ''), ('anchor_dining_record_player', 281, 67, 'bp'),
              ('anchor_right_lowerdrawers', 276, 88, 'bp')]
@@ -164,6 +174,11 @@ def grandfather_clock(c, x0, base):
 
 
 def c_strip(c):
+    # the china cabinet with depth (owner round 14), 3px left of where it stood flat (clear of window L)
+    setback(c, lambda l: F.moved(l, _china, -3, 0), depth=4, top=27, x_range=(4, 44), rake=1.0)
+
+
+def _china(c):
     c.shadow(28, 100, 20, 2, 100)
     c.box(8, 30, 46, 99, F.WOOD[0], F.WOOD[3])
     c.rect(7, 27, 47, 30, F.WOOD[1])
@@ -181,7 +196,7 @@ def c_strip(c):
 
 
 def c_furniture(c):
-    grandfather_clock(c, 104, 100)
+    setback(c, lambda l: grandfather_clock(l, 104, 100), depth=3, rake=1.0)
     # the long table, high-backed chairs behind it, a candelabra
     for x in (140, 170, 200):
         F.chair_back(c, x, 62, 94, F.WOOD, width=16, slats=3)
@@ -200,15 +215,17 @@ def c_furniture(c):
         c.ellipse(px, 94, 6, 1, PLATE_DK); c.ellipse(px, 94, 5, 1, PLATE)
     c.line(156, 93, 164, 96, SILVER)
     c.ellipse(210, 95, 4, 1, BLOOD)
-    # a sideboard with silver on the right (x > 240)
-    F.chest(c, 250, 310, 72, 100, F.WOOD, drawers=2)
-    c.rect(256, 67, 266, 71, SILVER); c.hline(254, 268, 67, SILVER)                           # a tea set
-    c.rect(276, 66, 282, 71, SILVER); c.put(283, 68, SILVER)
-    c.rect(288, 60, 294, 71, SILVER); c.hline(286, 296, 60, SILVER)
-    c.ellipse(303, 70, 5, 1, SILVER)
+    # a sideboard with silver on the right (x > 240), with depth
+    def _sb(c):
+        F.chest(c, 250, 310, 72, 100, F.WOOD, drawers=2)
+        c.rect(256, 67, 266, 71, SILVER); c.hline(254, 268, 67, SILVER)                       # a tea set
+        c.rect(276, 66, 282, 71, SILVER); c.put(283, 68, SILVER)
+        c.rect(288, 60, 294, 71, SILVER); c.hline(286, 296, 60, SILVER)
+        c.ellipse(303, 70, 5, 1, SILVER)
+    setback(c, _sb, depth=4, top=72, x_range=(249, 311))
     F.flush_light(c, 177)                                                         # above the portraits
 
-C_ANCHORS = [('anchor_dining_china_cabinet', 28, 52, 'bp s'), ('anchor_dining_cabinet_cupboard', 20, 86, 'bp s'),
+C_ANCHORS = [('anchor_dining_china_cabinet', 25, 52, 'bp s'), ('anchor_dining_cabinet_cupboard', 17, 86, 'bp s'),
              ('anchor_dining_grandfather_clock', 113, 70, 'bp'), ('anchor_table_left', 142, 95, ''),
              ('anchor_table_right', 222, 95, ''), ('anchor_dining_candelabra', 180, 84, ''),
              ('anchor_right_upperdrawers', 280, 80, 'bp')]
@@ -344,6 +361,11 @@ def e_floor(c):
 
 
 def e_strip(c):
+    setback(c, _presents, depth=3)                                          # with depth (owner round 14)
+    _torn_box(c)
+
+
+def _presents(c):
     # a pile of wrapped presents, never opened, and one that was
     c.shadow(28, 100, 22, 2, 100)
     for (x0, y0, x1, col, rib) in ((8, 84, 30, PARTY[1], PARTY[2]), (28, 88, 46, PARTY[0], PARTY[3]),
@@ -352,6 +374,9 @@ def e_strip(c):
         c.vline((x0 + x1) // 2, y0, 99 if y0 > 80 else 83, rib)
         c.hline(x0, x1, y0 + 4, rib)
     c.poly([(22, 72), (26, 66), (30, 72)], PARTY[2])
+
+
+def _torn_box(c):
     def _box(c):
         # a torn-open box beside the pile of presents, something dark inside
         c.shadow(72, 121, 12, 2, 110)
@@ -383,13 +408,15 @@ def e_furniture(c):
         c.ellipse(x, 92, 6, 1, hexc('efe8d8'))
         c.poly([(x - 3, 90), (x + 3, 90), (x, 83)], col)                          # party hats left on the plates
     c.ellipse(212, 96, 4, 1, BLOOD)
-    # a sideboard with a cassette player and a stack of paper cups
-    F.chest(c, 250, 310, 72, 100, F.PINE, drawers=2, open_row=0)
-    c.box(274, 62, 296, 71, hexc('3a3a3d'), hexc('1c1c1e'))
-    c.ellipse(280, 66, 2, 2, hexc('9aa3a8')); c.ellipse(290, 66, 2, 2, hexc('9aa3a8'))
-    c.rect(300, 60, 305, 71, hexc('efe8d8'))
-    for y in range(62, 71, 2):
-        c.hline(300, 305, y, hexc('d0c8b4'))
+    # a sideboard with a cassette player and a stack of paper cups (with depth)
+    def _sb(c):
+        F.chest(c, 250, 310, 72, 100, F.PINE, drawers=2, open_row=0)
+        c.box(274, 62, 296, 71, hexc('3a3a3d'), hexc('1c1c1e'))
+        c.ellipse(280, 66, 2, 2, hexc('9aa3a8')); c.ellipse(290, 66, 2, 2, hexc('9aa3a8'))
+        c.rect(300, 60, 305, 71, hexc('efe8d8'))
+        for y in range(62, 71, 2):
+            c.hline(300, 305, y, hexc('d0c8b4'))
+    setback(c, _sb, depth=4, top=72, x_range=(249, 311))
     F.flush_light(c, 160)
 
 E_ANCHORS = [('anchor_dining_presents', 24, 80, 'bp s'), ('anchor_dining_torn_box', 64, 91, 'bp s'),

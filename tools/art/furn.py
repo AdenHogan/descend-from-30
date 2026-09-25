@@ -6,7 +6,7 @@ overlapping pieces stay readable. Coordinates are module-local (320 x 144; wall/
 walking line 129). Pieces against the back wall stand on y 99/100; pieces out in the room stand
 on 108..122 (the nearer, the bigger y).
 """
-from pixlib import hexc, shade, rrect, light
+from pixlib import hexc, shade, mix, rrect, light
 
 WOOD = (hexc('5e3d28'), hexc('76513a'), hexc('472d1d'), hexc('27180f'))
 PINE = (hexc('b58a55'), hexc('c9a06a'), hexc('93703f'), hexc('4a3620'))
@@ -97,6 +97,116 @@ def leaning_book(c, x_foot, shelf_y, h, w, col, lean=-1, slope=0.34):
             c.hline(x0, x0 + w - 1, y, hexc('e6ddc8'))     # the page edge
         elif r == rows - 3:
             c.hline(x0 + 1, x0 + w - 2, y, lt)             # a band on the spine
+
+
+# --- POSTERS you can read (owner round 14: abstract colour-block posters "don't really make any sense")
+FONT3 = {  # 3x5 capitals
+    'A': ['010', '101', '111', '101', '101'], 'C': ['011', '100', '100', '100', '011'],
+    'D': ['110', '101', '101', '101', '110'], 'E': ['111', '100', '110', '100', '111'],
+    'G': ['011', '100', '101', '101', '011'], 'H': ['101', '101', '111', '101', '101'],
+    'I': ['1', '1', '1', '1', '1'], 'K': ['101', '101', '110', '101', '101'],
+    'L': ['100', '100', '100', '100', '111'], 'M': ['10001', '11011', '10101', '10001', '10001'],
+    'N': ['1001', '1101', '1011', '1001', '1001'], 'O': ['010', '101', '101', '101', '010'],
+    'P': ['110', '101', '110', '100', '100'], 'R': ['110', '101', '110', '101', '101'],
+    'S': ['011', '100', '010', '001', '110'], 'T': ['111', '010', '010', '010', '010'],
+    'U': ['101', '101', '101', '101', '111'], 'V': ['101', '101', '101', '101', '010'],
+    'W': ['10001', '10001', '10101', '11011', '10001'], 'Y': ['101', '101', '010', '010', '010'],
+    ' ': ['0', '0', '0', '0', '0'],
+}
+
+
+def text3(c, x, y, word, col):
+    """Draw `word` in the 3x5 pixel capitals; returns its width."""
+    x0 = x
+    for ch in word:
+        g = FONT3.get(ch, FONT3[' '])
+        for gy, row in enumerate(g):
+            for gx, v in enumerate(row):
+                if v == '1':
+                    c.put(x + gx, y + gy, col)
+        x += len(g[0]) + 1
+    return x - x0 - 1
+
+
+def text3_width(word):
+    return sum(len(FONT3.get(ch, FONT3[' '])[0]) + 1 for ch in word) - 1
+
+
+def _paper(c, x0, y0, x1, y1, bg):
+    c.rect(x0, y0, x1, y1, bg)
+    c.rect(x0 + 1, y1 + 1, x1 + 1, y1 + 1, hexc('000000', 60))          # a hair of shadow
+    for tx in (x0, x1):
+        c.rect(tx - 1, y0 - 1, tx + 1, y0, hexc('f0ead2', 190))          # tape / pins
+
+
+def poster_gig(c, x0, y0, x1, y1, title='LIVE', paper=hexc('e4d8bc'), ink=hexc('b8332a'), spot=hexc('e0913a')):
+    """A gig poster: the title, a guitarist silhouette in a spotlight, the small print."""
+    _paper(c, x0, y0, x1, y1, paper)
+    cx = (x0 + x1) // 2
+    text3(c, cx - text3_width(title) // 2, y0 + 3, title, ink)
+    cy = (y0 + y1) // 2 + 3
+    r = max(4, min(x1 - x0, y1 - y0) // 4)
+    c.ellipse(cx, cy, r + 1, r, spot)
+    blk = hexc('1e1a1c')
+    c.rect(cx - 1, cy - r + 1, cx + 1, cy - r + 3, blk)
+    c.rect(cx - 2, cy - r + 4, cx + 2, cy + 1, blk)
+    c.line(cx - 1, cy + 2, cx - 3, cy + r, blk); c.line(cx + 1, cy + 2, cx + 3, cy + r, blk)
+    c.line(cx - 5, cy + 1, cx + 5, cy - 4, blk)
+    c.rect(cx - 5, cy - 1, cx - 3, cy + 2, blk)
+    c.hline(x0 + 3, x1 - 3, y1 - 4, hexc('7a6e5c'))
+    c.hline(x0 + 5, x1 - 5, y1 - 2, hexc('7a6e5c'))
+
+
+def poster_film(c, x0, y0, x1, y1, title='NIGHT', torn=False):
+    """A horror-film poster: a night sky, a big pale moon, a black treeline and a reaching hand, the
+    title in red on a black band at the foot."""
+    _paper(c, x0, y0, x1, y1, hexc('1c2440'))
+    for y in range(y0, y1 - 7):
+        t = (y - y0) / float(max(1, y1 - 7 - y0))
+        c.hline(x0, x1, y, mix(hexc('1c2440'), hexc('3a2a4a'), t))
+    mx, my = (x0 + x1) // 2 + 3, y0 + 9
+    c.ellipse(mx, my, 6, 6, hexc('e8e2c8'))
+    c.put(mx - 2, my - 1, hexc('c8c2a8')); c.put(mx + 2, my + 2, hexc('c8c2a8'))
+    for x in range(x0, x1 + 1):                                          # a treeline
+        h = 3 + (x * 7) % 5
+        c.vline(x, y1 - 8 - h, y1 - 8, hexc('0e0e14'))
+    hx = (x0 + x1) // 2 - 3                                                # the hand, reaching up
+    c.rect(hx, y1 - 14, hx + 3, y1 - 8, hexc('0e0e14'))
+    for k in range(4):
+        c.vline(hx + k, y1 - 18 + (k % 2), y1 - 14, hexc('0e0e14'))
+    c.rect(x0, y1 - 7, x1, y1, hexc('0e0e14'))
+    text3(c, (x0 + x1) // 2 - text3_width(title) // 2, y1 - 6, title, hexc('c8322a'))
+    if torn:                                                               # the bottom corner torn off
+        for j in range(6):
+            for i in range(6 - j):
+                c.put(x1 - i, y1 - j, hexc('ece6d4') if i else hexc('c8c0aa'))
+
+
+def poster_map(c, x0, y0, x1, y1):
+    """A world map: pale sea, green-khaki continents, a pin or two."""
+    _paper(c, x0, y0, x1, y1, hexc('a8c4d0'))
+    c.rect(x0, y0, x1, y0 + 1, hexc('e8e2d0')); c.rect(x0, y1 - 1, x1, y1, hexc('e8e2d0'))
+    w, h = x1 - x0, y1 - y0
+    land = hexc('a8b070')
+    for (fx, fy, rx, ry) in ((0.22, 0.35, 0.12, 0.18), (0.30, 0.68, 0.06, 0.16), (0.52, 0.32, 0.08, 0.12),
+                             (0.55, 0.62, 0.07, 0.16), (0.72, 0.36, 0.16, 0.16), (0.84, 0.72, 0.07, 0.07)):
+        c.ellipse(x0 + int(fx * w), y0 + int(fy * h), max(1, int(rx * w)), max(1, int(ry * h)), land)
+    c.put(x0 + int(0.24 * w), y0 + int(0.33 * h), hexc('c0302a'))
+    c.put(x0 + int(0.74 * w), y0 + int(0.40 * h), hexc('c0302a'))
+
+
+def poster_game(c, x0, y0, x1, y1, title='SPACE'):
+    """A game poster: stars, a ringed planet, a little ship, the title."""
+    _paper(c, x0, y0, x1, y1, hexc('14142a'))
+    for k in range(18):
+        c.put(x0 + 1 + (k * 13) % max(1, x1 - x0 - 1), y0 + 1 + (k * 7) % max(1, y1 - y0 - 8), hexc('d8d8f0'))
+    px, py = x0 + (x1 - x0) // 3, y0 + (y1 - y0) // 2
+    c.ellipse(px, py, 5, 5, hexc('d98a4a'))
+    c.hline(px - 8, px + 8, py, hexc('e8c890')); c.hline(px - 7, px + 7, py + 1, hexc('b86a3a'))
+    sx, sy = x1 - 8, y0 + 7
+    c.poly([(sx, sy), (sx + 5, sy + 2), (sx, sy + 4)], hexc('c8d0e0'))
+    c.put(sx - 1, sy + 2, hexc('e0702c')); c.put(sx - 2, sy + 2, hexc('e0a02c'))
+    text3(c, (x0 + x1) // 2 - text3_width(title) // 2, y1 - 6, title, hexc('4ec8e0'))
 
 
 def table_front(c, x0, x1, top, base, P, depth=5, cloth=None, cloth_dk=None, hem=None):
