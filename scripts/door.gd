@@ -73,18 +73,30 @@ const OPEN_STREAMS = [
 ]
 
 # ── The door's LOOK (tools/art/doors.py) ─────────────────────────────────────
-# One strip per corridor look (hotel oak / residential painted / institutional steel), FRAMES
-# frames: 0 closed .. last open (the leaf swung in, the flat's dark hall showing). The door
-# swings open as you step up to enter, and shut behind you when you come back out; a breached
-# door hangs AJAR. The state tint (door_sprite.modulate) is unchanged — it's the gameplay cue.
-const DOOR_FRAMES := 5
-const DOOR_AJAR := 2
+# Ten doors (four hotel, three residential, three institutional); each apartment's door is picked
+# from its corridor section (now and then one from anywhere — residents replace doors), seeded by
+# its id so it never changes. Each strip: frames 0 closed .. 4 open (the leaf swings in, the flat's
+# dark hall showing), 5 torn off its hinges, 6 kicked through. The door swings open as you step up
+# to enter and shut behind you when you come back out. A BREACHED door shows one of three wrecks —
+# off its hinges, kicked through, or the wall itself broken open round it (doorhole_<section>.png)
+# — and takes no tint (the wreck says it all). The other states keep their tint: the gameplay cue.
+const DOOR_FRAMES := 5                     # the swing: 0 closed .. 4 open
+const DOOR_STRIP := 7
+const BREACH_HANGING := 5
+const BREACH_SMASHED := 6
 const DOOR_OPEN_TIME := 0.38
 const DOOR_CLOSE_TIME := 0.3
+const DOOR_STYLES := {
+	"high": ["oak", "walnut", "sage", "glazed"],
+	"mid": ["cream", "white", "blue"],
+	"low": ["fire", "steel", "grille"],
+}
+const HOLE_SIZE := Vector2(76, 98)
+const DOOR_SIZE := Vector2(46, 84)
 var _swing: Tween = null
 
 
-static func door_style_for(id: String, maintenance: bool) -> String:
+static func door_section_for(id: String, maintenance: bool) -> String:
 	# Match the corridor: the floor is the apartment id minus its 2-digit flat number.
 	if maintenance:
 		return "low"
@@ -96,18 +108,51 @@ static func door_style_for(id: String, maintenance: bool) -> String:
 	return "low"
 
 
+static func door_style_for(id: String, maintenance: bool) -> String:
+	# Which of the ten doors this flat has — its section's, seeded per door; ~1 in 7 is an odd one
+	# out from anywhere. Maintenance rooms always have the steel fire door.
+	if maintenance:
+		return "fire"
+	var h := hash(str(WorldState.master_seed) + "door_style" + id)
+	var pool: Array = DOOR_STYLES[door_section_for(id, false)]
+	if posmod(h >> 8, 7) == 0:
+		pool = DOOR_STYLES["high"] + DOOR_STYLES["mid"] + DOOR_STYLES["low"]
+	return pool[posmod(h, pool.size())]
+
+
+static func breach_look_for(id: String) -> String:
+	# How a breached door was broken — "hanging" (off its hinges), "smashed" (kicked through) or
+	# "hole" (the wall broken open round it). Seeded per door, stable.
+	var r := posmod(hash(str(WorldState.master_seed) + "door_breach" + id), 100)
+	return "hanging" if r < 40 else ("smashed" if r < 75 else "hole")
+
+
+func _breached() -> bool:
+	return current_state == WorldState.DoorState.BREACHED and not is_maintenance
+
+
 func _apply_door_style() -> void:
 	var path := "res://assets/doors/door_%s.png" % door_style_for(apartment_id, is_maintenance)
+	var frames := DOOR_STRIP
+	var offset := Vector2.ZERO
+	var look := breach_look_for(apartment_id) if _breached() else ""
+	if look == "hole":
+		path = "res://assets/doors/doorhole_%s.png" % door_section_for(apartment_id, false)
+		frames = 1
+		offset = Vector2(0, -(HOLE_SIZE.y - DOOR_SIZE.y) / 2.0)     # same floor line as a door
 	if not ResourceLoader.exists(path):
 		return
 	if door_sprite.texture == null or door_sprite.texture.resource_path != path:
 		door_sprite.texture = load(path)
-	door_sprite.hframes = DOOR_FRAMES
+	door_sprite.hframes = frames
 	door_sprite.scale = Vector2.ONE
-	door_sprite.position = Vector2.ZERO
+	door_sprite.position = offset
 	door_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	if _swing == null or not _swing.is_valid() or not _swing.is_running():
-		door_sprite.frame = DOOR_AJAR if current_state == WorldState.DoorState.BREACHED else 0
+	if _breached():
+		door_sprite.modulate = Color.WHITE
+		door_sprite.frame = {"hanging": BREACH_HANGING, "smashed": BREACH_SMASHED}.get(look, 0)
+	elif _swing == null or not _swing.is_valid() or not _swing.is_running():
+		door_sprite.frame = 0
 
 
 func _swing_to(frame_to: int, time: float) -> Tween:
@@ -118,31 +163,37 @@ func _swing_to(frame_to: int, time: float) -> Tween:
 	return _swing
 
 
-## Swing the door open (entering the flat).
+## Swing the door open (entering the flat). A wrecked (breached) door has nothing to swing.
 func open_door() -> void:
+	if _breached():
+		return
 	_play_sfx(OPEN_STREAMS.pick_random(), -4.0)
 	_swing_to(DOOR_FRAMES - 1, DOOR_OPEN_TIME)
 
 
 ## Coming back out: the door starts open and swings shut behind you, latching.
 func close_behind() -> void:
+	if _breached():
+		return
 	door_sprite.frame = DOOR_FRAMES - 1
 	if _swing != null and _swing.is_valid():
 		_swing.kill()
 	_swing = create_tween()
 	_swing.tween_interval(0.3)
-	var rest := DOOR_AJAR if current_state == WorldState.DoorState.BREACHED else 0
-	_swing.tween_property(door_sprite, "frame", rest, DOOR_CLOSE_TIME).from(DOOR_FRAMES - 1)
-	if rest == 0:
-		_swing.tween_callback(func(): _play_sfx(LATCH_STREAM, -6.0))
+	_swing.tween_property(door_sprite, "frame", 0, DOOR_CLOSE_TIME).from(DOOR_FRAMES - 1)
+	_swing.tween_callback(func(): _play_sfx(LATCH_STREAM, -6.0))
+
+
 var sfx_player: AudioStreamPlayer2D = null
 var rip_sfx_timer: float = 0.0
 
-const TINT_OPEN                = Color(1.2, 1.2, 0.8, 1.0)
+# State cues, SOFTENED (owner round 12) so the ten door designs show through: the old full-strength
+# red (1.4, 0.4, 0.4) turned every locked door into the same red slab. Same meaning, same colours.
+const TINT_OPEN                = Color(1.12, 1.1, 0.88, 1.0)
 const TINT_SHUT_FORCEABLE      = Color(1.0, 1.0, 1.0, 1.0)
-const TINT_SHUT_LOCKED         = Color(1.4, 0.4, 0.4, 1.0)
+const TINT_SHUT_LOCKED         = Color(1.25, 0.74, 0.7, 1.0)
 const TINT_BARRICADED_F        = Color(1.0, 1.0, 1.0, 1.0)
-const TINT_BARRICADED_L        = Color(1.4, 0.4, 0.4, 1.0)
+const TINT_BARRICADED_L        = Color(1.25, 0.74, 0.7, 1.0)
 const TINT_BREACHED            = Color(0.9, 0.5, 1.3, 1.0)
 const TINT_INACCESSIBLE        = Color(0.3, 0.3, 0.3, 1.0)
 

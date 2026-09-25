@@ -261,15 +261,9 @@ def rug(c):
 
 
 def paper_pile(c):
-    # newspapers and a toppled stack of books under the R window box (y > 66)
-    c.shadow(246, 101, 16, 2, 90)
-    for i, col in enumerate((NOTE, NOTE_DK, hexc('cfc5a6'), NOTE)):
-        y = 97 - i * 3
-        c.rect(232 + i, y, 256 - i, y + 2, col)
-        c.hline(232 + i, 256 - i, y + 2, NOTE_DK)
-    c.rect(258, 90, 266, 99, BOOKS[1])
-    c.rect(259, 86, 267, 89, BOOKS[0])
-    c.poly([(260, 80), (267, 83), (266, 86), (259, 85)], BOOKS[3])
+    # the newspapers kept in a wire magazine rack under the R window box (y > 66)
+    import furn as F
+    F.magazine_rack(c, 232, 258, 86, 101)
 
 
 def right_shelf(c):
@@ -304,24 +298,20 @@ def right_shelf(c):
 
 
 def book_pile(c):
-    """Books pulled off the shelves and piled on the floor (balcony strip, node) — strip() moves it
-    against the radiator."""
-    c.shadow(72, 118, 14, 2, 110)
-    for i, (w_, col) in enumerate(((24, BOOKS[1]), (22, BOOKS[0]), (20, BOOKS[3]), (18, BOOKS[6]), (15, BOOKS[4]))):
-        y = 115 - i * 3
-        x = 60 + (i % 2) * 2
-        c.rect(x, y, x + w_, y + 2, col)
-        c.hline(x, x + w_, y, shade(col, 1.18))
-        c.vline(x + w_, y, y + 2, shade(col, 0.75))
-    c.poly([(84, 102), (92, 99), (94, 103), (86, 106)], BOOKS[5])            # one fallen open
-    c.line(89, 100, 90, 104, NOTE_DK)
+    """Books pulled off the shelves, stacked on a low cabinet beside the radiator (balcony strip,
+    node) — on furniture, never loose on the floor."""
+    import furn as F
+    F.side_cabinet(c, 46, 76, 84, 101, F.WOOD)
+    F.book_stack(c, 48, 84, [24, 22, 20, 18], [BOOKS[1], BOOKS[0], BOOKS[3], BOOKS[6]])
+    c.poly([(66, 72), (74, 70), (75, 73), (67, 75)], BOOKS[5])              # one left open on top
+    c.line(70, 71, 71, 74, NOTE_DK)
 
 
 def strip(c):
     import furn as F
     file_boxes(c)
     radiator(c)
-    F.moved(c, book_pile, -12, -16)            # piled on the floor against the radiator, not out in the room
+    book_pile(c)                               # on a low cabinet against the radiator
 
 
 def build(c=None):

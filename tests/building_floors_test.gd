@@ -1162,30 +1162,81 @@ func _test_door_swing() -> void:
 	var D = load("res://scripts/door.gd")
 	for c in [["2703", false, "high"], ["1502", false, "mid"], ["302", false, "low"], ["2101", false, "high"],
 			["1101", false, "mid"], ["1005", false, "low"], ["2703", true, "low"]]:
-		check(D.door_style_for(c[0], c[1]) == c[2], "door %s%s -> %s look" % [c[0], " (maintenance)" if c[1] else "", c[2]])
-	for style in ["high", "mid", "low"]:
+		check(D.door_section_for(c[0], c[1]) == c[2], "door %s%s -> %s section" % [c[0], " (maintenance)" if c[1] else "", c[2]])
+	var all_styles: Array = D.DOOR_STYLES["high"] + D.DOOR_STYLES["mid"] + D.DOOR_STYLES["low"]
+	check(all_styles.size() == 10, "ten doors (%d)" % all_styles.size())
+	for style in all_styles:
 		var tex = load("res://assets/doors/door_%s.png" % style)
-		check(tex != null and tex.get_width() == 46 * D.DOOR_FRAMES and tex.get_height() == 84,
-			"door_%s.png is %d frames of 46x84" % [style, D.DOOR_FRAMES])
+		check(tex != null and tex.get_width() == int(D.DOOR_SIZE.x) * D.DOOR_STRIP and tex.get_height() == int(D.DOOR_SIZE.y),
+			"door_%s.png is %d frames of 46x84" % [style, D.DOOR_STRIP])
+	for sec in ["high", "mid", "low"]:
+		var hole = load("res://assets/doors/doorhole_%s.png" % sec)
+		check(hole != null and hole.get_size() == D.HOLE_SIZE, "doorhole_%s.png is the wall-hole wreck" % sec)
+	var seen := {}
+	var own := 0
+	var looks := {}
+	for fl in range(1, 30):
+		for apt in range(1, 6):
+			var id := str(fl) + "0" + str(apt)
+			var st: String = D.door_style_for(id, false)
+			check(st == D.door_style_for(id, false), "door %s: the same door every time" % id)
+			seen[st] = true
+			if st in D.DOOR_STYLES[D.door_section_for(id, false)]:
+				own += 1
+			looks[D.breach_look_for(id)] = true
+	check(seen.size() == 10, "all ten doors turn up in the building (%d)" % seen.size())
+	check(own >= 110, "most doors match their corridor (%d of 145)" % own)
+	check(looks.size() == 3, "all three breached wrecks turn up (%s)" % str(looks.keys()))
+	check(D.door_style_for("2703", true) == "fire", "maintenance rooms have the steel fire door")
 	var f := 25
 	WorldState.current_floor = f
 	WorldState.spawn_source = "stair"
+	WorldState.set_door_state("2505", WorldState.DoorState.BREACHED)      # always one wreck to look at
+	if WorldState.get_door_state("2501") == WorldState.DoorState.BREACHED:
+		WorldState.set_door_state("2501", WorldState.DoorState.SHUT_FORCEABLE)   # ...and one door to swing
 	var bf = load("res://scenes/building_floors.tscn").instantiate()
 	bf.setup_floor = f
 	add_child(bf)
 	for i in range(2): await get_tree().process_frame
 	var door = null
-	var breached = null
+	var wrecks := 0
 	for n in ["apartment01", "apartment02", "apartment03", "apartment04", "apartment05"]:
 		var d = bf.get_node(n)
-		check(d.door_sprite.texture.resource_path.ends_with("door_high.png") and d.door_sprite.hframes == D.DOOR_FRAMES,
-			"%s wears the hotel door" % n)
 		if d.current_state == WorldState.DoorState.BREACHED:
-			breached = d
-			check(d.door_sprite.frame == D.DOOR_AJAR, "a breached door hangs ajar")
-		elif door == null:
-			door = d
-			check(d.door_sprite.frame == 0, "a shut door is closed")
+			var look: String = D.breach_look_for(d.apartment_id)
+			var want := ("doorhole_high.png" if look == "hole" else "door_%s.png" % D.door_style_for(d.apartment_id, false))
+			check(d.door_sprite.texture.resource_path.get_file() == want, "%s (breached): the %s wreck" % [n, look])
+			check(d.door_sprite.modulate == Color.WHITE, "...untinted — the wreck says it")
+			if look != "hole":
+				check(d.door_sprite.frame == (D.BREACH_HANGING if look == "hanging" else D.BREACH_SMASHED), "...on its wreck frame")
+			var fr: int = d.door_sprite.frame
+			d.open_door()
+			await get_tree().create_timer(D.DOOR_OPEN_TIME + 0.1).timeout
+			check(d.door_sprite.frame == fr, "...and a wreck doesn't swing")
+			wrecks += 1
+		else:
+			check(d.door_sprite.texture.resource_path.get_file() == "door_%s.png" % D.door_style_for(d.apartment_id, false)
+				and d.door_sprite.hframes == D.DOOR_STRIP, "%s wears its door (%s)" % [n, D.door_style_for(d.apartment_id, false)])
+			check(d.door_sprite.frame == 0, "...shut")
+			if door == null:
+				door = d
+	check(wrecks >= 1 and door != null, "the floor had a wreck and a working door to check (%d wrecks)" % wrecks)
+	# a breached door built on purpose: every wreck look renders on the floor line
+	for look in ["hanging", "smashed", "hole"]:
+		var id := ""
+		for n in range(1, 400):
+			if D.breach_look_for(str(n + 100)) == look:
+				id = str(n + 100)
+				break
+		var dd = load("res://scenes/door.tscn").instantiate()
+		dd.apartment_id = id
+		bf.add_child(dd)
+		dd.current_state = WorldState.DoorState.BREACHED
+		dd._apply_door_style()
+		var r: Rect2 = dd.door_sprite.get_rect()
+		var bottom: float = dd.door_sprite.position.y + r.end.y
+		check(absf(bottom - D.DOOR_SIZE.y / 2.0) < 0.6, "the %s wreck stands on the same floor line as a door (bottom %.1f)" % [look, bottom])
+		dd.free()
 	door.open_door()
 	await get_tree().create_timer(D.DOOR_OPEN_TIME + 0.15).timeout
 	check(door.door_sprite.frame == D.DOOR_FRAMES - 1, "open_door swings it all the way open (frame %d)" % door.door_sprite.frame)
@@ -1210,7 +1261,7 @@ func _test_door_swing() -> void:
 	var other = bf.get_node("apartment03" if door_name != "apartment03" else "apartment02")
 	check(other.door_sprite.frame != D.DOOR_FRAMES - 1, "...only that one")
 	await get_tree().create_timer(0.3 + D.DOOR_CLOSE_TIME + 0.3).timeout
-	check(d2.door_sprite.frame in [0, D.DOOR_AJAR], "...and it swings shut (frame %d)" % d2.door_sprite.frame)
+	check(d2.door_sprite.frame == 0, "...and it swings shut (frame %d)" % d2.door_sprite.frame)
 	bf.free()
 	await get_tree().process_frame
 	WorldState.spawn_source = "stair"

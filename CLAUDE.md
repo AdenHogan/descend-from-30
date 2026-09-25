@@ -1422,14 +1422,18 @@ means no rendering — UI layout and art still need an in-editor look.
   backdrop) via the shared `building_floors.add_corridor_art`. Locked by
   `building_floors_test._test_corridor_art` + `_test_fire_scars` + `_test_corridor_decals`. The
   hallway (30) and lobby don't take the per-floor decals yet.
-- DOORS open (owner round 12, `tools/art/doors.py` → `assets/doors/door_<high|mid|low>.png`, 5 frames
-  of 46×84, native scale, `door.gd` sets `hframes`): the look follows the corridor section from the
-  apartment id's floor (`door_style_for`; maintenance doors = the steel one). Frame 0 closed .. 4 open
-  (the leaf swings IN, the flat's dark entry hall behind). `door._enter_apartment` calls `open_door()`
-  as the player steps up (doorOpen sfx); coming back out, `building_floors.close_door_behind` /
-  hallway call `close_behind()` on the door at `exit_spawn_x` (starts open, swings shut, latch). A
-  BREACHED door rests at `DOOR_AJAR`. The state tint (`door_sprite.modulate`) is unchanged — it's the
-  gameplay cue. Floor 30's 3001 is a plain Sprite2D on the same strip. The barricade overlay
+- DOORS (owner round 12, `tools/art/doors.py` → `assets/doors/`): TEN doors at native scale, one strip
+  each (`door_<oak|walnut|sage|glazed|cream|white|blue|fire|steel|grille>.png`, 7 frames of 46×84):
+  0 closed .. 4 open (the leaf swings IN, the flat's dark entry hall behind), 5 torn off its hinges,
+  6 kicked through. `door.door_style_for(id)` picks from the door's corridor section
+  (`DOOR_STYLES`: 4 hotel / 3 residential / 3 institutional), ~1 in 7 from anywhere, seeded by
+  master_seed + id (maintenance = `fire`). `open_door()` swings it as the player steps up to enter
+  (doorOpen sfx); coming back out, `building_floors.close_door_behind` / hallway call `close_behind()`
+  on the door at `exit_spawn_x` (starts open, swings shut, latch). A BREACHED door is a WRECK
+  (`breach_look_for`: 40% off its hinges, 35% kicked through, 25% the wall itself broken open —
+  `doorhole_<section>.png`, 76×98, bottom on the same floor line), untinted and never swings. The other
+  state tints stay as the gameplay cue but SOFTENED (locked 1.25/0.74/0.7, was 1.4/0.4/0.4 — a red slab
+  that hid the designs). Floor 30's 3001 is a plain Sprite2D on the oak strip. The barricade overlay
   (`assets/Barricade.png`) is still the old placeholder. Locked by `building_floors_test._test_door_swing`.
 - PUSH + CROWDS (owner round 9): a push takes ONE enemy (`player.push_target` — the nearest in
   front; it used to stagger everyone in reach), so a crowd is worked through and gets hits in. The

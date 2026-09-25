@@ -53,14 +53,8 @@ def b_strip(c):
     F.shelves(c, 8, 46, 70, 100, F.TEAK, [83, 96], c.rng)
     c.rect(10, 66, 22, 69, hexc('d6cfb8')); c.rect(28, 64, 36, 69, hexc('4e8a5a'))          # a desk tidy, a plant
     c.poly([(26, 64), (30, 58), (34, 62), (38, 57), (40, 64)], hexc('5e8240'))
-    def _files(c):
-        # (box files)
-        c.shadow(72, 120, 14, 2, 110)
-        for i, col in enumerate((hexc('2f4a63'), hexc('7a2e28'), hexc('2f4a63'), hexc('5d6b3a'))):
-            y = 116 - i * 5
-            c.box(60 + (i % 2) * 3, y, 84 + (i % 2) * 3, y + 4, col, shade(col, 0.6))
-            c.rect(64 + (i % 2) * 3, y + 1, 70 + (i % 2) * 3, y + 3, hexc('e6e0cc'))
-    F.moved(c, _files, -10, -21)
+    # the box files kept in a small file shelf beside it (not stacked on the floor)
+    F.file_shelf(c, 50, 78, 70, 101, F.TEAK, c.rng)
 
 
 def b_furniture(c):
@@ -147,15 +141,9 @@ def c_floor(c):
 
 def c_strip(c):
     F.shelves(c, 8, 46, 18, 100, F.WOOD, [34, 50, 66, 82, 96], c.rng)
-    def _books(c):
-        # (books pulled off the shelf, piled at its foot)
-        c.shadow(72, 120, 14, 2, 110)
-        for i, col in enumerate((F.BOOKS[1], F.BOOKS[0], F.BOOKS[5], F.BOOKS[3])):
-            y = 117 - i * 3
-            c.rect(60 + i, y, 84 - i, y + 2, col)
-            c.hline(60 + i, 84 - i, y, shade(col, 1.2))
-        c.poly([(86, 106), (94, 103), (96, 107), (88, 110)], F.BOOKS[6])
-    F.moved(c, _books, -12, -16)
+    # books pulled off the shelf, stacked on a low cabinet at its foot
+    F.side_cabinet(c, 48, 78, 86, 101, F.WOOD)
+    F.book_stack(c, 50, 86, [24, 22, 20, 17], [F.BOOKS[1], F.BOOKS[0], F.BOOKS[5], F.BOOKS[3]])
 
 
 def globe(c, cx, base):

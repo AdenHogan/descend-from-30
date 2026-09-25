@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b7sjgok6c4ouu"
-path="res://.godot/imported/door_low.png-ee4c099d2869082ac4042e92266ddad0.ctex"
+uid="uid://b3hri8ln75ps5"
+path="res://.godot/imported/doorhole_mid.png-c002f60595c88a7b9f57c106612c570a.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/doors/door_low.png"
-dest_files=["res://.godot/imported/door_low.png-ee4c099d2869082ac4042e92266ddad0.ctex"]
+source_file="res://assets/doors/doorhole_mid.png"
+dest_files=["res://.godot/imported/doorhole_mid.png-c002f60595c88a7b9f57c106612c570a.ctex"]
 
 [params]
 

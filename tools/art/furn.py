@@ -316,3 +316,77 @@ def moved(c, fn, dx, dy):
     out.paste(lyr.img, (dx, dy), lyr.img)
     c.img.alpha_composite(out)
     c.px = c.img.load()
+
+
+def file_shelf(c, x0, x1, top, base, P, rng):
+    """A small two-tier shelf for box files: files standing upright on the top tier (spine
+    labels, finger holes), a few lying flat on the bottom tier. Stands on the floor at the wall."""
+    b, lt, dk, out = P
+    mid = (top + base) // 2
+    c.shadow((x0 + x1) // 2, base + 1, (x1 - x0) // 2 + 2, 2, 100)
+    c.box(x0, top, x1, base - 1, b, out)
+    c.rect(x0 + 2, top + 2, x1 - 2, base - 3, DARK)
+    cols = [hexc('2f4a63'), hexc('7a2e28'), hexc('5d6b3a'), hexc('2f4a63'), hexc('8a6a3a'), hexc('4b3a5c')]
+    x = x0 + 3
+    i = 0
+    while x + 4 < x1 - 2:                                    # upright files on the top tier
+        col = cols[(i + rng.randrange(0, 2)) % len(cols)]
+        h = min(mid - top - 4, rng.choice((11, 12, 12)))
+        c.rect(x, mid - h, x + 4, mid - 1, col)
+        c.vline(x, mid - h, mid - 1, shade(col, 1.2))
+        c.rect(x + 1, mid - h + 2, x + 3, mid - h + 4, hexc('e6e0cc'))     # the spine label
+        c.put(x + 2, mid - 4, hexc('141010'))                              # finger hole
+        x += 5
+        i += 1
+    c.rect(x0 + 2, mid, x1 - 2, mid + 1, lt)                   # the middle shelf
+    for k in range(3):                                         # files lying flat below
+        col = cols[(k * 2 + 1) % len(cols)]
+        y = base - 6 - k * 4
+        xs = x0 + 3 + (k % 2)
+        c.rect(xs, y, x1 - 4 - (k % 2) * 2, y + 3, col)
+        c.hline(xs, x1 - 4 - (k % 2) * 2, y, shade(col, 1.2))
+        c.rect(xs + 2, y + 1, xs + 6, y + 2, hexc('e6e0cc'))
+    c.rect(x0 + 2, base - 3, x1 - 2, base - 2, dk)
+
+
+def side_cabinet(c, x0, x1, top, base, P):
+    """A low closed cabinet (two doors, knobs) — something to put things ON instead of the floor."""
+    b, lt, dk, out = P
+    c.shadow((x0 + x1) // 2, base + 1, (x1 - x0) // 2 + 2, 2, 100)
+    c.box(x0, top, x1, base - 1, b, out)
+    c.hline(x0 + 1, x1 - 1, top + 1, lt)
+    mid = (x0 + x1) // 2
+    c.vline(mid, top + 3, base - 4, dk)
+    for (a, e) in ((x0 + 2, mid - 1), (mid + 1, x1 - 2)):
+        c.box(a, top + 3, e, base - 4, b, dk)
+    c.put(mid - 2, (top + base) // 2, lt)
+    c.put(mid + 2, (top + base) // 2, lt)
+    c.rect(x0 + 1, base - 3, x1 - 1, base - 2, dk)
+
+
+def book_stack(c, x0, top_y, widths, cols, fallen=None):
+    """Books lying flat in a stack whose TOP surface rests at top_y (sitting on furniture)."""
+    for i, (w_, col) in enumerate(zip(widths, cols)):
+        y = top_y - 3 - i * 3
+        x = x0 + (i % 2) * 2
+        c.rect(x, y, x + w_, y + 2, col)
+        c.hline(x, x + w_, y, shade(col, 1.18))
+        c.vline(x + w_, y, y + 2, shade(col, 0.75))
+
+
+def magazine_rack(c, x0, x1, top, base, metal=None, papers=None):
+    """A wire magazine rack on the floor, newspapers folded into it, sticking up over its rim."""
+    metal = metal or hexc('3a3a40')
+    papers = papers or [hexc('e6e0cc'), hexc('cfc5a6'), hexc('d9d2bc'), hexc('b8ae94')]
+    c.shadow((x0 + x1) // 2, base + 1, (x1 - x0) // 2 + 2, 2, 100)
+    for i, col in enumerate(papers):                             # the papers, standing folded
+        px0 = x0 + 2 + i * ((x1 - x0 - 4) // len(papers))
+        c.rect(px0, top - 7 + (i % 2) * 2, px0 + (x1 - x0 - 4) // len(papers), base - 3, col)
+        c.hline(px0, px0 + (x1 - x0 - 4) // len(papers), top - 7 + (i % 2) * 2, shade(col, 1.08))
+        c.vline(px0, top - 7 + (i % 2) * 2, base - 3, shade(col, 0.8))
+    c.hline(x0, x1, top, metal)                                  # the wire basket over them
+    c.hline(x0, x1, base - 3, metal)
+    for x in range(x0, x1 + 1, 3):
+        c.vline(x, top, base - 3, metal)
+    c.line(x0, base - 3, x0 - 1, base, metal)                    # feet
+    c.line(x1, base - 3, x1 + 1, base, metal)

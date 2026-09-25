@@ -6,7 +6,7 @@
 [ext_resource type="Texture2D" uid="uid://dg4sb1pbne4" path="res://assets/world_tileset.png" id="4_w57m6"]
 [ext_resource type="PackedScene" uid="uid://dp36pioteb12u" path="res://scenes/door.tscn" id="5_drbwl"]
 [ext_resource type="Texture2D" uid="uid://btvcbwg3jsh3t" path="res://assets/Elevator.png" id="6_hwv8p"]
-[ext_resource type="Texture2D" path="res://assets/doors/door_high.png" id="7_yjeik"]
+[ext_resource type="Texture2D" path="res://assets/doors/door_oak.png" id="7_yjeik"]
 [ext_resource type="Script" uid="uid://j5pxhahwwyf5" path="res://scripts/stairwell.gd" id="8_nlnob"]
 [ext_resource type="FontFile" uid="uid://tv2mlsq0xxsg" path="res://assets/fonts/PixelOperator8.ttf" id="9_hwv8p"]
 [ext_resource type="Texture2D" uid="uid://dmf7nbqiuywie" path="res://assets/Hallway_Staircase_Left.png" id="10_52g5x"]
@@ -460,7 +460,7 @@ tile_set = SubResource("TileSet_lbhrr")
 texture_filter = 1
 position = Vector2(829, 364)
 texture = ExtResource("7_yjeik")
-hframes = 5
+hframes = 7
 
 [node name="3002" parent="." unique_id=1966799570 instance=ExtResource("5_drbwl")]
 position = Vector2(696, 363)
