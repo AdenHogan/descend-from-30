@@ -16,7 +16,7 @@ import sys
 sys.path.insert(0, os.path.dirname(__file__))
 from pixlib import Canvas, hexc, shade, rrect, finish_module
 import furn as F
-import living_room as LR
+import chair3d as C3
 
 BLOOD = hexc('4a1d1b', 150)
 BEIGE = (hexc('d6cfb8'), hexc('e6e0cc'), hexc('b9b29a'), hexc('5e584a'))
@@ -98,13 +98,22 @@ def b_furniture(c):
         c.poly([(222, 114), (232, 112), (236, 117), (226, 119)], hexc('f0ece2'))
     F.moved(c, _printer, -14, -18)
     # an old armchair pulled up near the lane for reading printouts
-    LR.wingback(c, 214, 80, (hexc('6a6a5a'), hexc('7e7e6c'), hexc('545446'), hexc('26261e')))
     # a wastepaper basket under the R window box + box files on a shelf on the right
     c.shadow(248, 100, 8, 2, 90)                                                             # a wastepaper basket
     c.poly([(241, 86), (255, 86), (253, 99), (243, 99)], hexc('3a3a44'))
     for x in range(243, 254, 3):
         c.vline(x, 87, 98, hexc('4a4a56'))
     c.ellipse(246, 84, 3, 2, hexc('f0ece2')); c.ellipse(251, 83, 2, 2, hexc('e6e0cc'))
+    # (drawn after the basket against the wall, so it sits in front of it)
+    C3.armchair(c, 233, 117, 35, {'fab': hexc('6a6a5a'), 'fab_lt': hexc('7a7a68'), 'wood': hexc('3a2a1e')},
+                style='club')                                                    # turned toward the desk
+    # a low side table at its elbow: a mug, a slew of printouts, a biro (the chair has company)
+    F.table_front(c, 256, 286, 106, 121, F.TEAK, depth=4)
+    c.rect(260, 103, 264, 107, hexc('e6e0cc')); c.put(265, 104, hexc('e6e0cc'))            # a mug
+    c.hline(260, 264, 103, hexc('4a3a2a'))
+    c.poly([(268, 107), (280, 106), (282, 108), (270, 109)], hexc('f0ece2'))               # printouts
+    c.poly([(270, 105), (281, 104), (283, 106), (272, 107)], hexc('e6e0cc'))
+    c.line(274, 105, 279, 104, hexc('2a3a6a'))
     F.shelves(c, 276, 310, 40, 100, F.TEAK, [58, 78, 96], c.rng, fill=0.6)
     for (x, col) in ((280, hexc('2f4a63')), (286, hexc('7a2e28')), (292, hexc('2f4a63'))):
         c.rect(x, 64, x + 5, 77, col)
@@ -146,16 +155,6 @@ def c_strip(c):
     F.book_stack(c, 50, 86, [24, 22, 20, 17], [F.BOOKS[1], F.BOOKS[0], F.BOOKS[5], F.BOOKS[3]])
 
 
-def globe(c, cx, base):
-    c.shadow(cx, base, 8, 2, 110)
-    c.line(cx - 6, base, cx, base - 10, F.WOOD[0]); c.line(cx + 6, base, cx, base - 10, F.WOOD[0])
-    c.vline(cx, base - 12, base - 8, F.WOOD[0])
-    c.ellipse(cx, base - 21, 9, 9, hexc('b58f4a'))
-    c.ellipse(cx, base - 21, 8, 8, hexc('6a8aa0'))
-    c.poly([(cx - 5, base - 26), (cx + 1, base - 27), (cx + 2, base - 20), (cx - 4, base - 17)], hexc('8a9a5a'))
-    c.poly([(cx + 3, base - 16), (cx + 6, base - 18), (cx + 6, base - 14)], hexc('8a9a5a'))
-
-
 def c_furniture(c):
     F.shelves(c, 100, 142, 12, 100, F.WOOD, [28, 44, 60, 76, 96], c.rng)
     F.shelves(c, 180, 222, 12, 100, F.WOOD, [28, 44, 60, 76, 96], c.rng)
@@ -163,7 +162,19 @@ def c_furniture(c):
     for y in range(20, 100, 10):
         c.line(213 - (y - 12) // 11, y, 219 - (y - 14) // 11, y, hexc('8a6443'))
     # the reading corner out in the room: wingback, side table, lamp
-    LR.wingback(c, 122, 80, (hexc('3e5a4a'), hexc('4e6e5a'), hexc('2e4638'), hexc('14201a')))
+    # a worn rug under the reading corner ties the chair, table and lamp together
+    for y in range(111, 125):
+        t = (y - 111) / 13.0
+        x0, x1 = int(118 - 8 * t), int(200 + 8 * t)                               # wider nearer us
+        for x in range(x0, x1 + 1):
+            edge = y in (111, 124) or x in (x0, x1)
+            inner = y in (113, 122) or x in (x0 + 3, x1 - 3)
+            col = hexc('5a2a26') if edge else hexc('c9a86a') if inner else (hexc('7a3a30') if (x // 4 + y // 3) % 5 else hexc('4a5a6a'))
+            c.put(x, y, col)
+    for x in range(110, 209, 2):                                                   # fringe
+        c.put(x, 125, hexc('d8ccb0'))
+    C3.armchair(c, 141, 117, -30, {'fab': hexc('3e5a4a'), 'fab_lt': hexc('4a6a58'), 'wood': hexc('3a2618')},
+                style='wing')                                                    # turned toward the lamp
     c.shadow(170, 121, 9, 2, 110)
     c.ellipse(170, 104, 9, 2, F.WOOD[1])
     c.vline(170, 106, 119, F.WOOD[0])
@@ -171,7 +182,6 @@ def c_furniture(c):
     c.rect(164, 100, 172, 103, F.BOOKS[0]); c.hline(164, 172, 100, shade(F.BOOKS[0], 1.2))
     c.rect(174, 99, 177, 103, hexc('c9c2b1'))
     F.floor_lamp(c, 188, 66, 121, hexc('c9ab7e'), hexc('3a2a1a'))
-    globe(c, 262, 118)                                                           # beside the writing slope
     # a writing slope on the right against the wall
     F.chest(c, 276, 310, 70, 100, F.WOOD, drawers=3, open_row=0)
     c.poly([(278, 69), (308, 69), (304, 60), (282, 60)], F.WOOD[1])
@@ -182,7 +192,7 @@ def c_furniture(c):
 C_ANCHORS = [('anchor_study_tall_shelf', 28, 58, 'bp s'), ('anchor_study_floor_books', 60, 96, 'bp s'),
              ('anchor_centre_bookcaseupper', 120, 40, 'bp'), ('anchor_centre_bookcaselower', 122, 72, 'bp'),
              ('anchor_study_wingback', 134, 96, ''), ('anchor_study_side_table', 168, 101, ''),
-             ('anchor_study_globe', 262, 97, ''), ('anchor_right_shelf', 292, 64, 'bp')]
+             ('anchor_right_shelf', 292, 64, 'bp')]
 
 
 # ============================================================================================

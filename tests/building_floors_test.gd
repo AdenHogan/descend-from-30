@@ -981,12 +981,26 @@ func _test_fire_scars() -> void:
 	for z in ["l", "m", "r", "lm", "mr", "all"]:
 		check(ResourceLoader.exists("res://assets/corridor/fire_%s.png" % z), "fire_%s.png exists" % z)
 	# an unburnt floor has no overlay
-	var f := 14
-	for cand in range(14, 29):                          # a floor with no fire of its own this game
-		if WorldState.fire_intensity(cand) < 0:
-			f = cand
+	# a floor the natural fire never reaches in ANY run of this game (the fire climbs the building
+	# run by run — a floor clear on run 1 could catch on run 2 and grow its scars mid-test)
+	var f := -1
+	for sd in range(1, 60):                              # a seed + floor pair that stays clear
+		WorldState.master_seed = sd * 7919
+		for cand in range(2, 29):
+			var clear := true
+			for r in [1, 2, 3]:
+				WorldState.current_run = r
+				if WorldState.fire_intensity(cand) >= 0:
+					clear = false
+			WorldState.current_run = 1
+			if clear:
+				f = cand
+				break
+		if f > 0:
 			break
-	check(WorldState.fire_intensity(f) < 0, "found an unburnt floor (%d)" % f)
+	check(f > 0, "found a floor fire never reaches this game (%d)" % f)
+	if f < 0:
+		return
 	WorldState.current_floor = f
 	var bf = load("res://scenes/building_floors.tscn").instantiate()
 	bf.setup_floor = f

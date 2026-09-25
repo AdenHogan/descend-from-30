@@ -142,6 +142,17 @@ a hammer at the foot of the barricade). Only real furniture that people stand ou
 chairs, beds, sofas, easels, clothes rails / airers, a rocking horse — goes out toward the lane, and
 that's what carries the FRONT nodes (two nodes on one table is fine). Move a piece as a unit with
 `furn.moved(c, fn, dx, dy)` (it keeps its shadow).
+Round 12 (owner: box files stacked on the study floor — "they should be stored in a small shelf";
+"people don't have [globes] in homes anymore"): files go in `furn.file_shelf`, loose books on
+`furn.side_cabinet` via `furn.book_stack`, newspapers in `furn.magazine_rack`. No globes.
+
+**ARMCHAIRS AT AN ANGLE (owner round 12 — "you can draw them from the front and the side but not
+from an angle")**: never hand-draw a turned armchair. `tools/art/chair3d.py` BUILDS the chair (seat
+base, cushion, rolled arms, a club or winged back, legs) in 3D, turns it by `yaw` and renders it
+with the rooms' view (depth recedes up the screen), a z-buffer, flat top-left light snapped to a
+5-tone ramp and pixel outlines: `C3.armchair(c, cx, base_y, yaw, {'fab','fab_lt','wood'}, style)`.
+0 = facing us, ±30..40 = three-quarters, 90 = side-on. Preview of every angle:
+`armchair_angles.png`. Studies B and C use it.
 
 **The runs (owner round 10 — "their run 2 and 3 looks as things get a bit more dilapidated and then
 more so")**: every variant also gets `<name>_r2` / `_r3` textures (+ their own `_floor.png` and

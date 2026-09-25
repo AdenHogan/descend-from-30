@@ -192,9 +192,6 @@ position = Vector2(134, 96)
 [node name="anchor_study_side_table" type="Marker2D" parent="."]
 position = Vector2(168, 101)
 
-[node name="anchor_study_globe" type="Marker2D" parent="."]
-position = Vector2(262, 97)
-
 [node name="anchor_right_shelf" type="Marker2D" parent="."]
 position = Vector2(292, 64)
 metadata/back_plane = true
