@@ -868,17 +868,46 @@ func _test_stair_gates() -> void:
 
 
 func _test_corridor_art() -> void:
-	# The corridor's painted overlay (tools/art/corridor.py): one per section (high 21-29 / mid
-	# 11-20 / low 1-10), a ruined version per run, sitting right ABOVE the TileMapLayer so doors,
-	# stairs and the elevator still draw over it — in the live build AND the passive pan backdrop.
+	# The corridor's painted overlay (tools/art/corridor.py): a WEAR level by floor (0 kept up at
+	# the top .. 4 derelict at the bottom), one of three near-identical variants seeded per floor,
+	# a ruined version per run — sitting right ABOVE the TileMapLayer so doors, stairs and the
+	# elevator still draw over it, in the live build AND the passive pan backdrop.
 	print("[corridor art]")
 	WorldState.new_game()
 	WorldState.tutorial_completed = true
 	WorldState.is_first_run = false
 	var BF = load("res://scripts/building_floors.gd")
-	for case in [[25, 1, "corridor_high.png"], [15, 2, "corridor_mid_r2.png"], [3, 3, "corridor_low_r3.png"]]:
+	var wear_of := {29: 0, 24: 0, 23: 1, 18: 1, 17: 2, 12: 2, 11: 3, 6: 3, 5: 4, 1: 4}
+	for f in wear_of:
+		check(BF.corridor_wear(f) == wear_of[f], "floor %d: wear %d (got %d)" % [f, wear_of[f], BF.corridor_wear(f)])
+	var seen := {}
+	var last_wear := -1
+	for f in range(29, 0, -1):
+		check(BF.corridor_wear(f) >= last_wear, "floor %d: never cleaner than the floor above" % f)
+		last_wear = BF.corridor_wear(f)
+		var v: String = BF.corridor_variant(f)
+		check(v == BF.corridor_variant(f), "floor %d: variant stable" % f)
+		seen[v] = true
+		for r in ["", "_r2", "_r3"]:
+			var p := "res://assets/corridor/corridor_w%d%s%s.png" % [BF.corridor_wear(f), v, r]
+			check(ResourceLoader.exists(p), "floor %d: %s exists" % [f, p.get_file()])
+	check(seen.size() == 3, "all three variants turn up across the building (%s)" % str(seen.keys()))
+	var other_seed := false
+	var keep_seed = WorldState.master_seed
+	for sd in [11, 12345, 999]:
+		WorldState.master_seed = sd
+		for f in range(1, 30):
+			WorldState.master_seed = keep_seed
+			var mine: String = BF.corridor_variant(f)
+			WorldState.master_seed = sd
+			if BF.corridor_variant(f) != mine:
+				other_seed = true
+	WorldState.master_seed = keep_seed
+	check(other_seed, "another game's building picks different variants")
+	for case in [[25, 1, ""], [15, 2, "_r2"], [3, 3, "_r3"]]:
 		var f: int = case[0]
 		WorldState.current_run = case[1]
+		case[2] = "corridor_w%d%s%s.png" % [BF.corridor_wear(f), BF.corridor_variant(f), case[2]]
 		for passive in [false, true]:
 			WorldState.current_floor = f
 			var bf = load("res://scenes/building_floors.tscn").instantiate()

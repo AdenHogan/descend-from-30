@@ -69,20 +69,26 @@ var _stair_backdrop_built: bool = false  # true if the passive backdrop already 
 const CORRIDOR_ART_POS := Vector2(115, 243)   # the tilemap's used rect (1120 x 192) — the band
 
 
-static func corridor_section(floor_num: int) -> String:
-	# The building reads differently as you descend (docs/ART_REQUIREMENTS.md sectional identity):
-	# the upper floors a faded hotel-like hallway, the middle tired residential, the lower
-	# institutional. Same bands as the enemy tables (LOW 1-10 / MID 11-20 / HIGH 21-29).
-	if floor_num >= 21:
-		return "high"
-	if floor_num >= 11:
-		return "mid"
-	return "low"
+const CORRIDOR_VARIANTS := ["a", "b", "c"]
+
+
+static func corridor_wear(floor_num: int) -> int:
+	# The building gets more run-down the further down you go (docs/ART_REQUIREMENTS.md sectional
+	# identity): 0 kept up (29-24) .. 1 tired (23-18) .. 2 neglected (17-12) .. 3 run down (11-6)
+	# .. 4 derelict (5-1). A pure function of the floor, like everything else about its layout.
+	return clampi((29 - floor_num) / 6, 0, 4)
+
+
+static func corridor_variant(floor_num: int) -> String:
+	# Three near-identical versions of each wear level (paint tone, floor, rail, fixture order),
+	# seeded per floor so neighbouring floors aren't copies. Stable across runs and re-entry.
+	var h := hash(str(WorldState.master_seed) + "corridor_variant" + str(floor_num))
+	return CORRIDOR_VARIANTS[posmod(h, CORRIDOR_VARIANTS.size())]
 
 
 static func corridor_art_path(floor_num: int, run: int) -> String:
-	# tools/art/corridor.py — per section, with a run-2 / run-3 (more ruined) version.
-	return corridor_art_named("corridor_%s" % corridor_section(floor_num), run)
+	# tools/art/corridor.py — per wear level + variant, with a run-2 / run-3 (more ruined) version.
+	return corridor_art_named("corridor_w%d%s" % [corridor_wear(floor_num), corridor_variant(floor_num)], run)
 
 
 static func corridor_art_named(name: String, run: int) -> String:

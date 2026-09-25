@@ -1379,12 +1379,21 @@ means no rendering — UI layout and art still need an in-editor look.
 - CORRIDOR ART (owner round 10, `tools/art/corridor.py`): floors 1-29 get a painted overlay over
   the old tile look — `building_floors._apply_corridor_art` adds a `CorridorArt` Sprite2D (115,243,
   1120x192 = the tilemap's used band) right ABOVE the TileMapLayer, so doors / stairs / elevator /
-  lamps / fire / actors still draw over it; built in the passive pan backdrop too. SECTIONAL IDENTITY:
-  `corridor_section(floor)` high 21-29 (faded hotel: teal damask, mahogany panels, red runner) / mid
-  11-20 (residential: mustard stripes, cream tongue-and-groove) / low 1-10 (institutional: two-tone
-  gloss, pipes, checker lino); each with `_r2`/`_r3` ruined versions picked by run. The endpoint
-  floors have their own: `corridor_hallway` (30 — the hotel look in PALE cream so the tutorial's red
-  wall hints read; left stair only, no pictures) and `corridor_lobby` (0 — marble, a bank of brass
+  lamps / fire / actors still draw over it; built in the passive pan backdrop too. **Round 12 (owner:
+  "looks like a hotel… needs to look normal and not overly done")**: ONE plain apartment-block
+  hallway — matte paint, a painted dado rail, plain skirting, cord carpet or sheet vinyl, and only
+  real fixtures (radiators, notice board, call points, stairs/exit signs, light switches, a vent,
+  doormats). SECTIONAL IDENTITY = WEAR by floor, `corridor_wear(floor)` = clamp((29-floor)/6, 0, 4):
+  0 kept up (29-24) / 1 tired (23-18: scuffs, worn carpet path) / 2 neglected (17-12: damp, stains,
+  tags, a kicked-in patch) / 3 run down (11-6: peeling to the old paint, carpet torn to the screed,
+  tape, bin bags) / 4 derelict (5-1: holes to the blockwork, mould, skirting ripped off, rubbish,
+  a sign hanging off one screw). Damage CLUSTERS in a few seeded stretches, never on a fixture /
+  door / stair / the elevator (`Spots`). Each level has three near-identical VARIANTS a/b/c (paint
+  tone, rail, floor, fixture order), `corridor_variant(floor)` seeded by master_seed + floor. Files
+  `corridor_w<level><variant>[_r2|_r3].png`; the run looks REDRAW the same corridor and add more of
+  the same damage + blood (`RUN_EXTRA`), not a separate overlay. The endpoint
+  floors have their own: `corridor_hallway` (30 — the wear-0 look, variant a, pale so the tutorial's
+  red wall hints read; radiators only, left stair only) and `corridor_lobby` (0 — marble, a bank of brass
   mailboxes, notice board, floor directory, doormat; right stair only), added from their `_build_world`
   (live + backdrop) via the shared `building_floors.add_corridor_art`. Locked by
   `building_floors_test._test_corridor_art`.

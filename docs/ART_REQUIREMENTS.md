@@ -213,6 +213,13 @@ you go. Please deliver corridor + door (and ideally room-dressing) variants acro
 Descending should *feel* like sinking into something sick. Enemies can also pick up
 per-band grime if budget allows.
 
+**Current in-game corridor (owner round 12, `tools/art/corridor.py`):** the corridor is
+deliberately a *normal* apartment-block hallway (plain paint, dado rail, skirting, cord
+carpet/vinyl, radiators, a notice board, fire-alarm points, signs), **not** hotel-like, since
+players spend most of their time there. It decays over five wear levels as you descend (29-24
+kept up → 5-1 derelict), each with three near-identical variants. Match that tone for any
+commissioned corridor art; previews in `docs/art_reference/corridor/`.
+
 ## Time of day: the ENGINE handles it, not the art
 
 Each run is Morning / Afternoon / Night. **We light and tint that dynamically** (morning
