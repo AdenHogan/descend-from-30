@@ -253,14 +253,15 @@ BALCONY_BOX = (4, 0, 96, H - 1)      # where a balcony-capable module's balcony 
 
 
 # The BACK (scavenge) PLANE (scripts/room.gd BACK_PLANE_RISE / back_plane_spot.gd): the player steps
-# up to stand at a set-back piece with its feet at local y 116 (world 339), centred on the cluster of
+# up to stand at a set-back piece with its feet at local y 115 (world 339), centred on the cluster of
 # its spawned 'bp' nodes (nodes within BACK_SPOT_CLUSTER px share a spot). Set-back furniture stands
 # at ~101, front furniture at ~114-118 — so a column that is NOT bare floor all the way through rows
 # BP_ROWS is a front piece standing exactly where the player would stand (owner round 13b: "wherever
 # you're placing these higher up furnitures, y planes will need to be developed to allow the player
 # to move up and scavenge"). Rugs start lower, set-back shadows stop higher, so neither trips it.
 BP_ROWS = range(102, 115)
-BP_HALF_W = 10                  # the player's half-width up there (a touch smaller than on the lane)
+BP_HALF_W = 13                  # the player's half-width up there: MEASURED — the idle body is 28-30px
+                                # wide (collision capsule r 13) x the plane's 0.89 scale ~ 25-26px
 BP_CLUSTER = 40                 # room.gd BACK_SPOT_CLUSTER
 
 
@@ -360,6 +361,9 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
     if n_front < 2:
         errs.append('needs >= 2 FRONT nodes (reachable from the walking line) — owner round 10')
     bp = check_back_plane_clear(full.img, bare_floor.img, anchors)
+    if bp and os.environ.get('BP_REPORT'):          # audit mode: list every module, don't stop
+        print('BP %s run 1: %s' % (name, bp))
+        bp = []
     if bp:
         errs.append('front furniture stands where the player would step up to a back-plane spot '
                     '(spot x, blocked column): %s' % bp)
@@ -394,6 +398,9 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
                 if ref.img.getpixel((ax, ay)) == bare_floor.img.getpixel((ax, ay)):
                     sys.exit('%s: %s at (%d,%d) is not on anything drawn in the run-%d look' % (name, an, ax, ay, lv))
             bp = check_back_plane_clear(fr.img, bare_floor.img, anchors)
+            if bp and os.environ.get('BP_REPORT'):
+                print('BP %s run %d: %s' % (name, lv, bp))
+                bp = []
             if bp:
                 sys.exit('%s: in the run-%d look, front furniture stands where the player would step up '
                          'to a back-plane spot (spot x, blocked column): %s' % (name, lv, bp))

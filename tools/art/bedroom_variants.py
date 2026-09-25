@@ -96,13 +96,11 @@ def b_furniture(c):
     c.rect(22, 70, 32, 71, hexc('a9a496'))
     c.rect(14, 69, 36, 71, hexc('d8d2c2'))                                                 # keyboard
     c.rect(40, 67, 42, 71, hexc('b0453a')); c.rect(44, 68, 46, 71, hexc('4e8a5a'))          # cans
-    # a gaming chair pulled out, turned away
-    c.shadow(40, 119, 10, 2, 110)
-    c.box(32, 86, 48, 104, hexc('26262a'), hexc('111114'))
-    c.rect(34, 88, 46, 90, hexc('a8322c'))
-    c.rect(30, 104, 50, 108, hexc('26262a'))
-    c.vline(40, 109, 116, hexc('3a3a3d'))
-    c.line(40, 116, 32, 119, hexc('3a3a3d')); c.line(40, 116, 48, 119, hexc('3a3a3d'))
+    # the desk chair rolled back from the desk and swivelled toward the room (3D, like the study's) —
+    # clear of the desk's back-plane spot, upright or knocked over (owner round 13b)
+    import chair3d as C3
+    C3.office_chair_at(c, 66, 118, -40, {'fab': hexc('2e2e34'), 'metal': hexc('3a3a3d')},
+                       plan={3: 'down'}, key='bedroom_b_chair', outline=hexc('111114'))
     def _clothes(c):
         # a clothes pile + trainers dropped at the foot of the bed
         c.poly([(60, 118), (68, 110), (80, 108), (90, 112), (94, 119)], CLOTH[1])
@@ -118,8 +116,9 @@ def b_furniture(c):
         c.line(118, 118, 140, 118, shade(hexc('a8522c'), 0.8))
         c.rect(128, 110, 134, 113, hexc('3a3a3d'))                                             # a controller on it
     F.moved(c, _beanbag, -12, -19)
-    # the single bed on the RIGHT: headboard at the right end
-    x0, x1 = 166, 286
+    # the single bed on the RIGHT: headboard at the right end (kept clear of the crate's back-plane
+    # spot in the corner)
+    x0, x1 = 160, 280
     c.shadow((x0 + x1) // 2, 116, (x1 - x0) // 2 + 3, 3, 110)
     c.box(x1 - 6, 70, x1 + 2, 114, F.PINE[0], F.PINE[3])                                   # headboard
     c.vline(x1 - 5, 71, 113, F.PINE[1])
@@ -130,10 +129,10 @@ def b_furniture(c):
         c.rect(lx, 110, lx + 2, 114, F.PINE[3])
     duvet = hexc('2f3a63')
     mattress_top(c, x0, x1 - 7, 86, 97, duvet, hexc('252e50'), hexc('3f4c7a'), pillow_at_right=True)
-    for (sx, sy) in ((176, 90), (190, 94), (204, 89), (218, 95), (232, 91), (184, 101), (212, 103)):
+    for (sx, sy) in ((170, 90), (184, 94), (198, 89), (212, 95), (226, 91), (178, 101), (206, 103)):
         c.put(sx, sy, hexc('d9c24a'))                                                       # stars
-    c.box(206, 108, 226, 113, hexc('d9d0bc'), hexc('8a8270'))                               # a shoebox under it
-    c.rect(210, 110, 214, 111, hexc('a8322c'))
+    c.box(200, 108, 220, 113, hexc('d9d0bc'), hexc('8a8270'))                               # a shoebox under it
+    c.rect(204, 110, 208, 111, hexc('a8322c'))
     # a crate as a bedside table in the corner: a lava lamp, an alarm clock
     c.shadow(301, 100, 10, 2, 90)
     c.box(292, 82, 310, 99, hexc('9a7a4e'), hexc('5e4a2e'))
@@ -147,7 +146,7 @@ def b_furniture(c):
 
 B_ANCHORS = [('anchor_bedroom_desk', 28, 70, 'bp'), ('anchor_bedroom_desk_drawer', 14, 88, 'bp'),
              ('anchor_bedroom_clothes_pile', 142, 109, ''), ('anchor_bedroom_beanbag', 118, 90, 'bp'),
-             ('anchor_bed_pillow', 266, 88, ''), ('anchor_floor_underbed', 216, 110, ''),
+             ('anchor_bed_pillow', 260, 88, ''), ('anchor_floor_underbed', 210, 110, ''),
              ('anchor_bedroom_crate', 301, 90, 'bp')]
 
 
@@ -448,13 +447,12 @@ def e_furniture(c):
     c.ellipse(134, 93, 4, 3, hexc('9a6a3a'))
     c.line(130, 94, 140, 90, BLOOD)
     def _toys(c):
-        # a toy chest at the foot of the bed, lid up, toys spilling
+        # a toy chest at the foot of the bed, lid up, toys piled inside (none strewn on the floor)
         c.shadow(232, 121, 16, 2, 110)
         c.box(218, 106, 246, 121, hexc('7aa0c8'), hexc('3a5a78'))
         c.hline(219, 245, 107, hexc('9ac0e0'))
         c.poly([(218, 106), (246, 106), (244, 96), (220, 96)], hexc('5a80a8'))                    # the lid, open
         c.rect(222, 102, 228, 106, hexc('d9c24a')); c.ellipse(236, 104, 3, 3, hexc('a8322c'))
-        c.rect(250, 118, 256, 121, hexc('4e8a5a')); c.ellipse(262, 119, 2, 2, hexc('d9c24a'))
     F.moved(c, _toys, -20, -5)
     # a small white wardrobe in the corner
     c.shadow(292, 100, 16, 2, 100)
@@ -496,4 +494,6 @@ if __name__ == '__main__':
     for v in (sys.argv[1:] or sorted(VARIANTS)):
         name, seed, fns, anchors = VARIANTS[v]
         bare, floor, build = make(fns)
-        finish_module(name, 'bedroom', seed, bare, floor, build, anchors)
+        import chair3d
+        finish_module(name, 'bedroom', seed, bare, floor, build, anchors,
+                      per_run=lambda r: setattr(chair3d, 'RUN', r))

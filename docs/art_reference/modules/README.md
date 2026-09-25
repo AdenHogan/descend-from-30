@@ -100,7 +100,8 @@ apart, room.gd BACK_SPOT_CLUSTER), feet at local y 116; a column that isn't bare
 102..114 there is a front piece in the way (rugs start lower, set-back shadows stop higher). So: keep
 front furniture (sofas, chairs, tables — fallen ones too) out of the x-span in front of set-back
 nodes, and put no node on something that stands BEHIND a front piece (the TV-room sets carry none).
-Node overlays land in `nodes/<name>_nodes.png` here (gold = front, blue = back
+Behind-the-scenes blueprints (every Y plane, nodes by kind, step-up spots + stand zones, the
+player to scale): `python3 tools/gen_module_blueprint.py` → `../blueprints/`. Node overlays land in `nodes/<name>_nodes.png` here (gold = front, blue = back
 plane, green = balcony strip).
 
 **Variants**: `scenes/Room_Modules/<type>_<v>.tscn` (+ `assets/rooms/<type>_<v>.png`), registered

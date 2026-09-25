@@ -380,8 +380,6 @@ def vanity_unit(c, x0, x1, top):
     c.rect(mid + 1, top + 3, x1 - 2, 96, hexc('3a3228'))               # the other door's gone:
     c.rect(mid + 3, top + 12, mid + 8, 95, hexc('e8e0d0'))              # bleach, a sponge
     c.rect(mid + 10, top + 18, x1 - 4, 95, hexc('d9c24a'))
-    c.poly([(x1 + 1, 99), (x1 + 16, 104), (x1 + 15, 106), (x1, 101)], wood)   # the door, on the floor
-    c.line(x1 + 1, 101, x1 + 15, 106, wood_dk)
 
 
 def panel_bath(c, x0, x1, rim):
@@ -563,8 +561,6 @@ def champagne(c, x0, base):
     c.hline(x0, x0 + 14, base - 24, GOLD_LT)
     c.rect(x0 + 5, base - 33, x0 + 8, base - 25, hexc('2e4a2e'))        # the bottle
     c.rect(x0 + 6, base - 36, x0 + 7, base - 34, GOLD)
-    c.rect(x0 + 16, base - 3, x0 + 23, base - 2, hexc('2e4a2e'))        # a second one, empty, rolled
-    c.put(x0 + 24, base - 3, GOLD)
 
 
 def c_build(c):

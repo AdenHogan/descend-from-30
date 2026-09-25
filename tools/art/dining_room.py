@@ -330,14 +330,6 @@ def dresser(c):
     c.rect(x0 + 1, base - 2, x1 - 1, base - 1, WOOD_DK)
 
 
-def floor_bits(c):
-    # shards of the smashed plate on the boards by the dresser
-    for (x, y) in ((262, 107), (268, 105), (257, 109)):
-        c.put(x, y, PLATE); c.put(x + 1, y, PLATE_DK)
-    c.put(265, 108, PLATE_BLUE)
-    c.put(271, 108, PLATE)
-
-
 def strip(c):
     sideboard(c)
     radiator(c)
@@ -354,7 +346,6 @@ def build(c=None):
     side_chair(c, 102, 114, facing_right=True)
     trolley(c, 224, 118)
     dresser(c)
-    floor_bits(c)
     return c
 
 

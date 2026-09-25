@@ -808,9 +808,13 @@ means no rendering — UI layout and art still need an in-editor look.
   non-balcony module has exactly one. Placed ON THE WALLPAPER band (world Y 262 since owner round 9 — was 284, which ran through the chair rail of the real module art;
   `room.MODULE_WINDOW_Y`, module-local 38) — ABOVE the scavenge nodes (furniture-level, world
   Y ~300+) so it never obscures a node, but not jammed at the ceiling (an earlier Y 252 read
-  unnatural). A node may sit under a window (fine). Per-module grid blueprints via
-  `tools/gen_module_blueprint.py` → `docs/art_reference/blueprints/` (reads the real .tscn, so
-  it can't drift; reusable for all six modules). Natural light via the shared `FloorLighting.make_window_light`
+  unnatural). A node may sit under a window (fine). BEHIND-THE-SCENES blueprints for all 30 modules
+  (owner round 13b): `python3 tools/gen_module_blueprint.py` → `docs/art_reference/blueprints/`
+  (`<module>_blueprint.png` + a `<type>_sheet.png` each; see its README) — every room Y plane
+  (local + world), nodes by kind (front / back plane / balcony strip), the window boxes + wall
+  sample columns, the player to scale on the lane and at each back-plane spot, and each spot's
+  STAND ZONE (blue clear / red blocked). Reads the real .tscn + art, so it can't drift; regenerate
+  after any module change. Natural light via the shared `FloorLighting.make_window_light`
   (now takes an `energy_scale`; apartment windows run 1.3× since a flat has no ceiling lamps) —
   bright cool DAY, warm AFTERNOON, dim blue MOONLIGHT at NIGHT. On live NIGHT runs a single
   `apartment_storm` per flat drives a RAIN hiss loop + synced LIGHTNING that flashes every
