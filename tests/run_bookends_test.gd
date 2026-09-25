@@ -127,7 +127,7 @@ func _test_hints_clear_of_doors() -> void:
 		var d = h.get_node(n)
 		var spr: Sprite2D = d if d is Sprite2D else d.get_node("Sprite2D")
 		var sx: float = absf(spr.scale.x) * (1.0 if spr == d else absf(d.scale.x))
-		var half: float = spr.texture.get_width() * sx * 0.5
+		var half: float = spr.get_rect().size.x * sx * 0.5      # one FRAME (the doors are a strip)
 		doors.append(Vector2(d.position.x - half, d.position.x + half))
 	var hints := 0
 	for n in h.get_children():

@@ -172,6 +172,13 @@ quiet, it's open to interpretation, and something might still be out there.
   stretch feels distinct (this is *separate* from the top-to-bottom decay bands below).
 - **Apartment doors, by state**, closed, open, **locked**, **weak/damaged**,
   **barricaded**, **breached** (busted open). Same door, readable state changes.
+  *Built as a placeholder (owner round 12, `tools/art/doors.py`):* one horizontal strip per
+  corridor look (`assets/doors/door_<high|mid|low>.png`), **5 frames of 46×84** at native scale,
+  bottom row on the corridor floor, casing included: frame 0 **closed** → 1-3 **opening** (the
+  leaf, hinged LEFT, swings IN — its face narrows, its free edge shortens with depth, the flat's
+  dark hall appears behind) → 4 **open**; a breached door holds frame 2 (ajar). Keep the leaf
+  LIGHT: the engine tints the door by state (warm = unlocked, red = locked, purple = breached).
+  A commissioned door drops straight in if it keeps that strip layout.
 - **Stairwells**, an *up* flight (visible steps) and a *down* shaft (dark opening).
 - **Windows**, a stairwell window and an apartment **balcony** window/door (daylight
   comes through these; keep the glass able to read as lit).

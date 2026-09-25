@@ -67,6 +67,74 @@ const FORCE_STREAMS = [
 	preload("res://assets/audio/impacts/impactWood_heavy_002.ogg"),
 ]
 const LATCH_STREAM = preload("res://assets/audio/doors/metalLatch.ogg")
+const OPEN_STREAMS = [
+	preload("res://assets/audio/doors/doorOpen_1.ogg"),
+	preload("res://assets/audio/doors/doorOpen_2.ogg"),
+]
+
+# ── The door's LOOK (tools/art/doors.py) ─────────────────────────────────────
+# One strip per corridor look (hotel oak / residential painted / institutional steel), FRAMES
+# frames: 0 closed .. last open (the leaf swung in, the flat's dark hall showing). The door
+# swings open as you step up to enter, and shut behind you when you come back out; a breached
+# door hangs AJAR. The state tint (door_sprite.modulate) is unchanged — it's the gameplay cue.
+const DOOR_FRAMES := 5
+const DOOR_AJAR := 2
+const DOOR_OPEN_TIME := 0.38
+const DOOR_CLOSE_TIME := 0.3
+var _swing: Tween = null
+
+
+static func door_style_for(id: String, maintenance: bool) -> String:
+	# Match the corridor: the floor is the apartment id minus its 2-digit flat number.
+	if maintenance:
+		return "low"
+	var f := int(id.substr(0, maxi(1, id.length() - 2))) if id.is_valid_int() else 30
+	if f >= 21:
+		return "high"
+	if f >= 11:
+		return "mid"
+	return "low"
+
+
+func _apply_door_style() -> void:
+	var path := "res://assets/doors/door_%s.png" % door_style_for(apartment_id, is_maintenance)
+	if not ResourceLoader.exists(path):
+		return
+	if door_sprite.texture == null or door_sprite.texture.resource_path != path:
+		door_sprite.texture = load(path)
+	door_sprite.hframes = DOOR_FRAMES
+	door_sprite.scale = Vector2.ONE
+	door_sprite.position = Vector2.ZERO
+	door_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	if _swing == null or not _swing.is_valid() or not _swing.is_running():
+		door_sprite.frame = DOOR_AJAR if current_state == WorldState.DoorState.BREACHED else 0
+
+
+func _swing_to(frame_to: int, time: float) -> Tween:
+	if _swing != null and _swing.is_valid():
+		_swing.kill()
+	_swing = create_tween()
+	_swing.tween_property(door_sprite, "frame", frame_to, time).from(door_sprite.frame)
+	return _swing
+
+
+## Swing the door open (entering the flat).
+func open_door() -> void:
+	_play_sfx(OPEN_STREAMS.pick_random(), -4.0)
+	_swing_to(DOOR_FRAMES - 1, DOOR_OPEN_TIME)
+
+
+## Coming back out: the door starts open and swings shut behind you, latching.
+func close_behind() -> void:
+	door_sprite.frame = DOOR_FRAMES - 1
+	if _swing != null and _swing.is_valid():
+		_swing.kill()
+	_swing = create_tween()
+	_swing.tween_interval(0.3)
+	var rest := DOOR_AJAR if current_state == WorldState.DoorState.BREACHED else 0
+	_swing.tween_property(door_sprite, "frame", rest, DOOR_CLOSE_TIME).from(DOOR_FRAMES - 1)
+	if rest == 0:
+		_swing.tween_callback(func(): _play_sfx(LATCH_STREAM, -6.0))
 var sfx_player: AudioStreamPlayer2D = null
 var rip_sfx_timer: float = 0.0
 
@@ -99,6 +167,8 @@ func _ready() -> void:
 
 
 func _play_sfx(stream: AudioStream, volume_db: float = 0.0) -> void:
+	if sfx_player == null:
+		return
 	sfx_player.stream = stream
 	sfx_player.volume_db = volume_db
 	sfx_player.pitch_scale = randf_range(0.9, 1.1)
@@ -122,6 +192,11 @@ func _setup_progress_overlay() -> void:
 
 
 func _apply_door_state() -> void:
+	_apply_door_state_tint()
+	_apply_door_style()
+
+
+func _apply_door_state_tint() -> void:
 	if is_maintenance:
 		current_state = WorldState.DoorState.OPEN     # always enterable, no lock/barricade
 		door_sprite.modulate = TINT_OPEN
@@ -389,6 +464,7 @@ func _enter_apartment() -> void:
 	WorldState.exit_spawn_x = global_position.x
 	# Step up to the door first (depth), then fade into the apartment.
 	var player = get_tree().get_first_node_in_group("player")
+	open_door()                                      # it swings in as you step up to it
 	if player != null and player.has_method("approach_door"):
 		player.approach_door(global_position, func(): Transition.to_scene(room_scene))
 	else:

@@ -1422,6 +1422,15 @@ means no rendering — UI layout and art still need an in-editor look.
   backdrop) via the shared `building_floors.add_corridor_art`. Locked by
   `building_floors_test._test_corridor_art` + `_test_fire_scars` + `_test_corridor_decals`. The
   hallway (30) and lobby don't take the per-floor decals yet.
+- DOORS open (owner round 12, `tools/art/doors.py` → `assets/doors/door_<high|mid|low>.png`, 5 frames
+  of 46×84, native scale, `door.gd` sets `hframes`): the look follows the corridor section from the
+  apartment id's floor (`door_style_for`; maintenance doors = the steel one). Frame 0 closed .. 4 open
+  (the leaf swings IN, the flat's dark entry hall behind). `door._enter_apartment` calls `open_door()`
+  as the player steps up (doorOpen sfx); coming back out, `building_floors.close_door_behind` /
+  hallway call `close_behind()` on the door at `exit_spawn_x` (starts open, swings shut, latch). A
+  BREACHED door rests at `DOOR_AJAR`. The state tint (`door_sprite.modulate`) is unchanged — it's the
+  gameplay cue. Floor 30's 3001 is a plain Sprite2D on the same strip. The barricade overlay
+  (`assets/Barricade.png`) is still the old placeholder. Locked by `building_floors_test._test_door_swing`.
 - PUSH + CROWDS (owner round 9): a push takes ONE enemy (`player.push_target` — the nearest in
   front; it used to stagger everyone in reach), so a crowd is worked through and gets hits in. The
   BIG zombie can't be stunned or knocked back by a push (it keeps attacking) but a push makes it

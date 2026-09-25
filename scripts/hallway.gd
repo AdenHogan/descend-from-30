@@ -48,6 +48,7 @@ func _ready() -> void:
 	elif WorldState.spawn_source == "door" and WorldState.exit_spawn_x != 0.0:
 		player.global_position.x = WorldState.exit_spawn_x
 		player.global_position.y = 386.0
+		load("res://scripts/building_floors.gd").close_door_behind(self, WorldState.exit_spawn_x)
 
 	if WorldState.saved_player_x != 0.0:
 		player.global_position = Vector2(WorldState.saved_player_x, WorldState.saved_player_y)

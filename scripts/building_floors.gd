@@ -224,6 +224,8 @@ func _ready() -> void:
 
 	# Assign apartment IDs and apply correct door states AFTER IDs are set
 	_apply_doors(floor_num)
+	if WorldState.spawn_source == "door":
+		close_door_behind(self, WorldState.exit_spawn_x)   # you just came out of that flat
 
 	_spawn_zombies(floor_num, false)
 	_note_floor_arrival(floor_num)
@@ -1274,6 +1276,16 @@ func _note_floor_arrival(floor_num: int) -> void:
 
 func _has_own_live_zombies() -> bool:
 	return WorldState.scene_has_live_zombies(self)
+
+
+static func close_door_behind(root: Node, door_x: float) -> void:
+	# Coming back out of a flat: its door starts open and swings shut behind the player.
+	if door_x == 0.0:
+		return
+	for c in root.get_children():
+		if c.has_method("close_behind") and absf(c.global_position.x - door_x) < 6.0:
+			c.close_behind()
+			return
 
 
 func _apply_doors(floor_num: int) -> void:

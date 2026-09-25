@@ -74,6 +74,10 @@ func _settle(n: int = 30) -> void:
 
 func _test_back_plane() -> void:
 	# Find a flat (seed 4242) whose living room spawned BOTH bookshelf nodes (one spot, two nodes).
+	# The seed is set BEFORE the layout scan — the scan used to read whatever seed the last state
+	# left, so the flat (and its living-room variant) changed from run to run.
+	WorldState.new_game()
+	WorldState.master_seed = 4242
 	var room = null
 	var spot = null
 	for f in range(10, 29):
@@ -146,8 +150,9 @@ func _test_back_plane() -> void:
 	await _settle(30)
 	check(p.back_spot == null and absf(p.global_position.y - lane_y) < 0.5, "S steps back down to the walking line")
 	check(absf(p.animated_sprite.scale.x - base_scale.x) < 0.001, "…full size again")
-	# Clicking a set-back node from below: walk, step up, search.
-	p.global_position.x = spot.global_position.x + 90.0
+	# Clicking a set-back node from below: walk, step up, search. Start 90px toward the MIDDLE of the
+	# flat — a spot near an end wall put the player past it, in the front doorway, and they walked out.
+	p.global_position.x = spot.global_position.x + (90.0 if spot.global_position.x < 600.0 else -90.0)
 	WorldState.loot_open = false
 	await _settle(4)
 	var target = spot.anchors[spot.anchors.size() - 1]

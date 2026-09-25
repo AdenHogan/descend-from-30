@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://dp36pioteb12u"]
 
 [ext_resource type="Script" uid="uid://buduya2y3tsvx" path="res://scripts/door.gd" id="1_uvdjg"]
-[ext_resource type="Texture2D" uid="uid://m5odjepdswr8" path="res://assets/Door.png" id="2_83dcw"]
+[ext_resource type="Texture2D" path="res://assets/doors/door_mid.png" id="2_83dcw"]
 [ext_resource type="FontFile" uid="uid://tv2mlsq0xxsg" path="res://assets/fonts/PixelOperator8.ttf" id="3_83dcw"]
 [ext_resource type="Texture2D" uid="uid://7jv4k013in5s" path="res://assets/Barricade.png" id="4_la1wf"]
 
@@ -16,9 +16,9 @@ position = Vector2(0, 1)
 shape = SubResource("RectangleShape2D_la1wf")
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=1757885554]
-position = Vector2(1.5258789e-05, 1.0000038)
-scale = Vector2(0.8723403, 0.9318182)
+texture_filter = 1
 texture = ExtResource("2_83dcw")
+hframes = 5
 
 [node name="ProximityLabel" type="Label" parent="." unique_id=473561933]
 visible = false

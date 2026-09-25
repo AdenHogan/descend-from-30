@@ -42,6 +42,7 @@ func _ready() -> void:
 	await _test_corridor_art()
 	await _test_fire_scars()
 	await _test_corridor_decals()
+	await _test_door_swing()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -1149,4 +1150,69 @@ func _test_corridor_decals() -> void:
 		bf.free()
 		await get_tree().process_frame
 	WorldState.current_run = 1
+
+
+func _test_door_swing() -> void:
+	# The doors (tools/art/doors.py): a strip per corridor look, frame 0 closed .. last open. They
+	# swing open as you go in, shut behind you when you come out; a breached door hangs ajar.
+	print("[door swing]")
+	WorldState.new_game()
+	WorldState.tutorial_completed = true
+	WorldState.is_first_run = false
+	var D = load("res://scripts/door.gd")
+	for c in [["2703", false, "high"], ["1502", false, "mid"], ["302", false, "low"], ["2101", false, "high"],
+			["1101", false, "mid"], ["1005", false, "low"], ["2703", true, "low"]]:
+		check(D.door_style_for(c[0], c[1]) == c[2], "door %s%s -> %s look" % [c[0], " (maintenance)" if c[1] else "", c[2]])
+	for style in ["high", "mid", "low"]:
+		var tex = load("res://assets/doors/door_%s.png" % style)
+		check(tex != null and tex.get_width() == 46 * D.DOOR_FRAMES and tex.get_height() == 84,
+			"door_%s.png is %d frames of 46x84" % [style, D.DOOR_FRAMES])
+	var f := 25
+	WorldState.current_floor = f
+	WorldState.spawn_source = "stair"
+	var bf = load("res://scenes/building_floors.tscn").instantiate()
+	bf.setup_floor = f
+	add_child(bf)
+	for i in range(2): await get_tree().process_frame
+	var door = null
+	var breached = null
+	for n in ["apartment01", "apartment02", "apartment03", "apartment04", "apartment05"]:
+		var d = bf.get_node(n)
+		check(d.door_sprite.texture.resource_path.ends_with("door_high.png") and d.door_sprite.hframes == D.DOOR_FRAMES,
+			"%s wears the hotel door" % n)
+		if d.current_state == WorldState.DoorState.BREACHED:
+			breached = d
+			check(d.door_sprite.frame == D.DOOR_AJAR, "a breached door hangs ajar")
+		elif door == null:
+			door = d
+			check(d.door_sprite.frame == 0, "a shut door is closed")
+	door.open_door()
+	await get_tree().create_timer(D.DOOR_OPEN_TIME + 0.15).timeout
+	check(door.door_sprite.frame == D.DOOR_FRAMES - 1, "open_door swings it all the way open (frame %d)" % door.door_sprite.frame)
+	door.close_behind()
+	await get_tree().process_frame
+	check(door.door_sprite.frame == D.DOOR_FRAMES - 1, "close_behind starts from open")
+	await get_tree().create_timer(0.3 + D.DOOR_CLOSE_TIME + 0.2).timeout
+	check(door.door_sprite.frame == 0, "...and swings shut (frame %d)" % door.door_sprite.frame)
+	var door_x: float = door.global_position.x
+	var door_name: String = door.name
+	bf.free()
+	await get_tree().process_frame
+	# coming back out of that flat: its door is open as you appear, then shuts behind you
+	WorldState.spawn_source = "door"
+	WorldState.exit_spawn_x = door_x
+	bf = load("res://scenes/building_floors.tscn").instantiate()
+	bf.setup_floor = f
+	add_child(bf)
+	await get_tree().process_frame
+	var d2 = bf.get_node(door_name)
+	check(d2.door_sprite.frame == D.DOOR_FRAMES - 1, "out of the flat: its door is open behind you")
+	var other = bf.get_node("apartment03" if door_name != "apartment03" else "apartment02")
+	check(other.door_sprite.frame != D.DOOR_FRAMES - 1, "...only that one")
+	await get_tree().create_timer(0.3 + D.DOOR_CLOSE_TIME + 0.3).timeout
+	check(d2.door_sprite.frame in [0, D.DOOR_AJAR], "...and it swings shut (frame %d)" % d2.door_sprite.frame)
+	bf.free()
+	await get_tree().process_frame
+	WorldState.spawn_source = "stair"
+	WorldState.exit_spawn_x = 0.0
 
