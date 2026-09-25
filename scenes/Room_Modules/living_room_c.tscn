@@ -25,11 +25,11 @@ texture = ExtResource("1_art")
 centered = false
 
 [node name="anchor_living_crates" type="Marker2D" parent="."]
-position = Vector2(22, 68)
+position = Vector2(19, 72)
 metadata/back_plane = true
 
 [node name="anchor_living_crate_books" type="Marker2D" parent="."]
-position = Vector2(36, 92)
+position = Vector2(33, 96)
 metadata/back_plane = true
 
 [node name="anchor_living_pallet_table" type="Marker2D" parent="."]
@@ -42,7 +42,7 @@ position = Vector2(154, 100)
 position = Vector2(198, 98)
 
 [node name="anchor_living_beanbag" type="Marker2D" parent="."]
-position = Vector2(292, 102)
+position = Vector2(248, 102)
 
 [node name="Lights" type="Node2D" parent="."]
 

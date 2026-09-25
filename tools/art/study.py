@@ -163,9 +163,10 @@ def bookcase(c):
                 continue
             bh = c.rng.randint(9, 13)
             col = c.rng.choice(BOOKS)
-            if c.rng.random() < 0.15:                                  # one leaning over
-                c.poly([(x, s1 - 1), (x + bw, s1 - 1), (x + bw + 4, s1 - bh + 1), (x + 4 - bw // 2, s1 - bh + 1)], col)
-                x += bw + 5
+            if c.rng.random() < 0.15 and x + bw + 5 < x1 - 3:           # one leaning over (crisp)
+                import furn as F
+                F.leaning_book(c, x + 3, s1, bh, max(bw, 3), col, lean=-1)
+                x += max(bw, 3) + 4
                 continue
             c.rect(x, s1 - bh, x + bw - 1, s1 - 1, col)
             c.hline(x, x + bw - 1, s1 - bh + 2, shade(col, 1.2))

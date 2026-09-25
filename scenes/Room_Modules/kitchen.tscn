@@ -25,41 +25,41 @@ texture = ExtResource("1_art")
 centered = false
 
 [node name="anchor_centre_fridge" type="Marker2D" parent="."]
-position = Vector2(26, 70)
+position = Vector2(23, 76)
 metadata/back_plane = true
 
 [node name="anchor_right_trashcan" type="Marker2D" parent="."]
-position = Vector2(283, 88)
+position = Vector2(283, 95)
 metadata/back_plane = true
 
 [node name="anchor_left_cupboard" type="Marker2D" parent="."]
-position = Vector2(118, 40)
+position = Vector2(118, 44)
 metadata/back_plane = true
 
 [node name="anchor_centre_cupboard" type="Marker2D" parent="."]
-position = Vector2(119, 88)
+position = Vector2(119, 95)
 metadata/back_plane = true
 
 [node name="anchor_centre_oven" type="Marker2D" parent="."]
-position = Vector2(170, 86)
+position = Vector2(170, 93)
 metadata/back_plane = true
 
 [node name="anchor_right_sink" type="Marker2D" parent="."]
-position = Vector2(204, 70)
+position = Vector2(204, 77)
 metadata/back_plane = true
 
 [node name="anchor_right_sinkcupboard" type="Marker2D" parent="."]
-position = Vector2(214, 90)
+position = Vector2(214, 97)
 metadata/back_plane = true
 
 [node name="anchor_kitchen_table" type="Marker2D" parent="."]
-position = Vector2(84, 95)
+position = Vector2(84, 102)
 
 [node name="anchor_kitchen_teapot" type="Marker2D" parent="."]
-position = Vector2(68, 91)
+position = Vector2(68, 98)
 
 [node name="anchor_kitchen_tins" type="Marker2D" parent="."]
-position = Vector2(249, 92)
+position = Vector2(249, 99)
 metadata/back_plane = true
 
 [node name="Lights" type="Node2D" parent="."]

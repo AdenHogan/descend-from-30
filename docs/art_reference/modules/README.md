@@ -230,6 +230,40 @@ off the side-wall sample columns; the floor grime is 32px-periodic and identical
 so doorway wedges match. `room.apply_run_art(module, run)` swaps the textures (Art + StripArt); nodes
 never move. Previews: `runs/<name>_runs.png` (morning / afternoon / night).
 
+**SET-BACK FURNITURE HAS DEPTH (owner round 14 — "the drawers, chests, wardrobes, bookshelves, they
+look so flat against the back wall. It just looks like a picture… there needs to be reality and weight
+to things even in pixel form")**: every piece standing against the back wall is drawn through
+`pixlib.setback(c, fn, depth, top, x_range, rake, forward)`. The piece is drawn as before (its front
+face) on its own layer, brought FORWARD `depth` px, and its silhouette is EXTRUDED back to the wall
+toward the room's vanishing point (the horizon is the ceiling, y 0; a module's vanishing point is its
+centre, x 160 — the perspective module_walls draws the partitions in). So a chest shows its lit TOP
+and the side facing the middle of the room (a right-facing side darker, a left-facing one lighter);
+plinths, cornices and legs carry through because the EDGE pixels are what get extruded (their colour
+taken from just inside the outline, then the new silhouette re-outlined). Its back lands on the seam.
+Things standing ON a piece (lamps, photos, vases, a kettle) are above `top` and simply come forward
+with it. Nodes on a piece move with it (finish_module shifts every anchor that sits on a set-back
+piece's pixels); lamps drawn on it too (the light offset). `forward` stands a loose thing further out
+first (a box of tins in front of a counter that came forward); `rake` < TOP_RAKE (1.8) keeps a tall
+piece's top face off a window box. Depths used: shelves 3-4, chests / cabinets 5, fridges / dressers
+5-6, counter runs 7 (true rake 1.0, so worktops stay below the window boxes). A piece near a window box
+moved 3 px outward so its new side panel stays clear (its nodes moved with it).
+
+**RUN LOOKS, round 14**: the afternoon / night decals were redrawn — damp is a FILLED water stain with
+a tide line, an inner ring and runs weeping down (it was a dotted outline); torn wallpaper is a ragged
+patch to the plaster with the paper's torn core along its edge and a curled corner (it was a floating
+white strip); blood is the corridor's own decals (`assets/corridor/decals/`: handprints, spatter, claw
+marks — not the smears or slide, which read as a snake / a red pillar in a room), laid only on bare
+wall; holes to the lath are a dark cavity, a thin lath line or two, a broken rim and cracks.
+
+**LIVING ROOM pass (round 14)**: C's guitar is upright on a floor stand at full size (it was squeezed
+under window R) and swapped places with the beanbag; C's posters are a readable LIVE gig poster and a
+torn sunset holiday poster; B's water streak (read as a cord) is a stain from the ceiling; D's sofa
+has a regular rose print (random dots read as spatter) and the tea table a teapot + cup and saucer;
+leaning books are drawn crisp (`furn.leaning_book` — slanted rows of exact width, a shadowed spine
+edge, a page edge) in living A and the study bookcase. KITCHEN pass: worktops, fridges, larder, dresser,
+wall units with depth; E's carrier bags have loop handles (they read as garlic) and its toppled stack
+fans out as newspapers (it read as planks).
+
 **LAMPS (owner round 14 — "lamps… some will be on with real lighting in evening and night scenes.
 Flickering, cutting out, turning back on, especially in the night scenes. Not always… lighting can't
 match room to room… having light sources in apartments including ceiling lights is important")**:

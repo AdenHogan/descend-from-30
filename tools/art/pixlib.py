@@ -274,6 +274,108 @@ def rrect(c, x0, y0, x1, y1, col, r=2):
         c.hline(x0 + inset, x1 - inset, y, col)
 
 
+# --- SET-BACK FURNITURE WITH DEPTH (owner round 14 — "the drawers, chests, wardrobes, bookshelves,
+# they look so flat against the back wall. It just looks like a picture… there needs to be reality and
+# weight to things even in pixel form") -----------------------------------------------------------
+# A piece against the back wall is drawn as before (its FRONT face), on its own layer, then brought
+# FORWARD `depth` px and its silhouette EXTRUDED back to the wall toward the room's vanishing point —
+# the horizon is the ceiling (y 0) and each module's vanishing point is its centre (x 160), the same
+# perspective module_walls draws the partitions in. So a chest shows its TOP (lit), and the side
+# facing the middle of the room (the shadowed side darker); plinths, cornices, legs and mouldings
+# carry through because it is the edge pixels that are extruded. Its back lands exactly on the
+# wall/floor seam (y 100). Anchors on the piece and lamps drawn on it move with it (finish_module).
+TOP_RAKE = 1.8          # tops get a little more depth than the true perspective, so they read
+SETBACKS = []           # [(opaque-pixel set of the piece as drawn, depth)] — collected per build
+VP_X = W // 2
+
+
+def setback(c, fn, depth=5, top=None, x_range=None, vpx=VP_X, rake=None, forward=0):
+    """Draw `fn` (a set-back piece, base on the seam) with real depth — see above.
+    depth   — how far forward its front comes (px of floor): ~3 shelves, 5 chests, 6-7 wardrobes.
+    top     — the y of its top surface: anything drawn above it (a lamp, a vase, a photo) sits ON
+              the piece and is not extruded. Default: the highest opaque pixel.
+    x_range — (x0, x1) limit what counts as the piece's body (e.g. to leave out a cord).
+    rake    — the top's extra depth (default TOP_RAKE); less keeps a tall piece's top off a window box.
+    forward — stand it this much further out from the wall first (a box in front of a counter that
+              itself came forward); depth 0 + forward = a plain move forward, no extrusion."""
+    rake = TOP_RAKE if rake is None else rake
+    lyr = Canvas(bg=(0, 0, 0, 0), seed=11)
+    push_light_offset(0, depth + forward)
+    try:
+        fn(lyr)
+    finally:
+        pop_light_offset()
+    sp = lyr.px
+    opaque = set()
+    for y in range(H):
+        for x in range(W):
+            if sp[x, y][3] == 255:
+                opaque.add((x, y))
+    SETBACKS.append((opaque, depth + forward))
+    back = SEAM_Y + forward                        # where its back stands
+    body = set()
+    ytop = top if top is not None else min((y for (x, y) in opaque), default=0)
+    for (x, y) in opaque:
+        if y >= ytop and (x_range is None or x_range[0] <= x <= x_range[1]):
+            body.add((x, y))
+    k = back / float(back + depth)                 # the back face's scale toward the vanishing point
+    ky = 1 - (1 - k) * rake                    # a touch more rake on the tops so they read
+    outline_col = min((sp[x, y] for (x, y) in body), key=lambda p_: p_[0] + p_[1] + p_[2]) if body else (0, 0, 0, 255)
+
+    def inward(x, y, dx, dy):
+        # the face colour: step in past the outline to the body's own colour
+        for n_ in (2, 1, 0):
+            q_ = (x + dx * n_, y + dy * n_)
+            if q_ in body:
+                return sp[q_[0], q_[1]]
+        return sp[x, y]
+    best = {}                                      # output pixel -> (t, colour): nearest wins
+    for (x, y) in body:
+        up = (x, y - 1) not in body
+        lft = (x - 1, y) not in body
+        rgt = (x + 1, y) not in body
+        if up:
+            col = shade(inward(x, y, 0, 1), 1.12)          # the top, lit from above
+        elif rgt and x < vpx:
+            col = shade(inward(x, y, -1, 0), 0.62)         # a right-facing side: away from the light
+        elif lft and x > vpx:
+            col = shade(inward(x, y, 1, 0), 0.80)          # a left-facing side: toward it
+        else:
+            col = shade(sp[x, y], 0.66)
+        py = y + depth + forward
+        mag = ((x - vpx) ** 2 + py ** 2) ** 0.5 * (1 - k) * rake
+        n = int(mag * 2) + 2
+        for i in range(1, n + 1):
+            t = i / float(n)
+            q = (int(round(vpx + (x - vpx) * (1 - t * (1 - k)))), int(round(py * (1 - t * (1 - ky)))))
+            if 0 <= q[0] < W and 0 <= q[1] < H and (q not in best or best[q][0] > t):
+                best[q] = (t, col)
+    ext = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+    ep = ext.load()
+    for (q, (t, col)) in best.items():
+        ep[q[0], q[1]] = col[:3] + (255,)
+    front = {(x, y + depth + forward) for (x, y) in opaque}
+    for q in best:                                 # re-outline the new silhouette (top + side)
+        for (dx, dy) in ((0, -1), (-1, 0), (1, 0)):
+            nq = (q[0] + dx, q[1] + dy)
+            if nq not in best and nq not in front:
+                ep[q[0], q[1]] = outline_col[:3] + (255,)
+                break
+    c.img.alpha_composite(ext)
+    moved = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+    moved.paste(lyr.img, (0, depth + forward), lyr.img)
+    c.img.alpha_composite(moved)
+    c.px = c.img.load()
+
+
+def _setback_anchor(ax, ay):
+    """How far an anchor at (ax, ay) moves: the depth of the set-back piece it sits on (0 if none)."""
+    for (opaque, depth) in SETBACKS:
+        if (ax, ay) in opaque:
+            return depth
+    return 0
+
+
 # --- one entry point for every module script -------------------------------------------------
 BALCONY_BOX = (4, 0, 96, H - 1)      # where a balcony-capable module's balcony doors go (study/dining)
 
@@ -330,12 +432,15 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
     build_fn(main)
     main_lights = list(LIGHTS)
     LIGHTS.clear()
+    SETBACKS.clear()
     full = Canvas(seed=seed)
     build_fn(full)
     n_main = len(LIGHTS)
     if strip_fn is not None:
         strip_fn(full)
     strip_lights = LIGHTS[n_main:]
+    # nodes on a set-back piece come forward with it (setback())
+    anchors = [(an, ax, ay + _setback_anchor(ax, ay), fl_) for (an, ax, ay, fl_) in anchors]
     lights = [(x, y, k, '') for (x, y, k) in main_lights] + [(x, y, k, 's') for (x, y, k) in strip_lights]
     bare = Canvas(seed=seed)
     wall_fn(bare)
@@ -584,19 +689,36 @@ def run_looks(name, root, main_img, full_img, bare_wall_img, bare_floor_img, flo
                 k = 1.0 + 0.28 * math.sin(3 * ang + ph[0]) + 0.16 * math.sin(5 * ang + ph[1]) + 0.08 * math.sin(9 * ang + ph[2])
                 return (((x - cx0) / rx) ** 2 + ((y - cy0) / ry) ** 2) ** 0.5 / k
             return inside
-        # damp blooms: a soft stipple, a broken tide line, heavier toward the top edge
+        # damp (owner round 14 — the dotted outlines read as scribbles): a FILLED water stain,
+        # brown-yellow, darkest in the tide line where it dried, a fainter older ring inside, weeping
+        # a run or two down from its lowest edge; most start near the ceiling
+        stain_c = mix(base_wall, (118, 96, 58, 255), 0.55)
+        tide_c = mix(base_wall, (84, 64, 38, 255), 0.62)
         for _ in range(d['damp']):
-            sx, sy = rng.randrange(20, W - 20), rng.randrange(8, 56)
-            rx, ry = rng.randrange(10, 24), rng.randrange(7, 14)
+            sx, sy = rng.randrange(20, W - 20), rng.randrange(6, 44)
+            rx, ry = rng.randrange(10, 22), rng.randrange(6, 12)
             f_ = blob(sx, sy, rx, ry)
+            low = {}
             for y in range(sy - 2 * ry, sy + 2 * ry + 1):
                 for x in range(sx - 2 * rx, sx + 2 * rx + 1):
                     dd = f_(x, y)
-                    if dd <= 0.86:
-                        if (x * 3 + y * 5) % 4 == 0 or (dd < 0.5 and (x + y) % 2 == 0):
-                            put_both(x, y, (damp[0], damp[1], damp[2], 90))
-                    elif dd <= 1.0 and (x + 2 * y) % 3 != 0:
-                        put_both(x, y, (tide[0], tide[1], tide[2], 110))
+                    if dd <= 0.84:
+                        a_ = 110 if abs(dd - 0.55) < 0.06 else 62 + int(34 * dd)
+                        put_both(x, y, stain_c[:3] + (a_,))
+                    elif dd <= 1.0:
+                        put_both(x, y, tide_c[:3] + (130 if dd < 0.94 else 80,))
+                    if dd <= 1.0:
+                        low[x] = max(low.get(x, -1), y)
+            for _k in range(rng.randrange(1, 3)):
+                if not low:
+                    break
+                rx_ = rng.choice(sorted(low)[len(low) // 4: 3 * len(low) // 4 + 1] or sorted(low))
+                ln = rng.randrange(6, 16)
+                for jj in range(ln):
+                    t_ = jj / float(ln)
+                    put_both(rx_, low[rx_] + 1 + jj, tide_c[:3] + (int(120 * (1 - t_)) + 20,))
+                    if jj < ln // 2:
+                        put_both(rx_ + 1, low[rx_] + 1 + jj, stain_c[:3] + (int(60 * (1 - t_)),))
         # cracks: jagged random walks, mostly downward, with a light lip on one side
         for _ in range(d['cracks']):
             x, y = rng.randrange(14, W - 14), rng.randrange(8, 50)
@@ -606,29 +728,59 @@ def run_looks(name, root, main_img, full_img, bare_wall_img, bare_floor_img, flo
                     put_both(x + 1, y, mix(base_wall, (230, 222, 205, 255), 0.25))
                 x += rng.choice((-1, 0, 1, 1))
                 y += rng.choice((1, 1, 0))
-        # peeled paper: a strip curling off, the plaster behind a paler wall tone
+        # torn wallpaper (owner round 14 — the old peeled strip read as a floating white "sock"): a
+        # ragged patch torn to the plaster, the paper's pale torn core along its edge, and one corner
+        # of the paper curling off the wall, its back to us, with a shadow under it
+        core = mix(base_wall, (236, 230, 212, 255), 0.55)
+        patch = mix(base_wall, (206, 196, 172, 255), 0.38)
         for _ in range(d['peel']):
-            x0, y0 = rng.randrange(16, W - 30), rng.randrange(14, 66)
-            w, h = rng.randrange(5, 9), rng.randrange(10, 18)
-            for y in range(y0, y0 + h):
-                shrink = (y - y0) // 3
-                for x in range(x0 + shrink // 2, x0 + w - shrink // 2):
-                    put_both(x, y, plaster)
-            for k in range(h - 4):                                  # the curling flap, in shadow
-                put_both(x0 + w + k // 5, y0 + k, _mul(base_wall, 0.62))
-                put_both(x0 + w + 1 + k // 5, y0 + k, _mul(base_wall, 0.8))
-        # holes knocked through to the lath (run 3): ragged, dark, the lath strips showing
+            cx0, cy0 = rng.randrange(20, W - 20), rng.randrange(16, 80)
+            f_ = blob(cx0, cy0, rng.randrange(6, 10), rng.randrange(5, 8))
+            inside = set()
+            for y in range(cy0 - 16, cy0 + 17):
+                for x in range(cx0 - 20, cx0 + 21):
+                    if f_(x, y) <= 1.0 and on_wall(x, y):
+                        inside.add((x, y))
+            if len(inside) < 20:
+                continue
+            for (x, y) in inside:
+                put_both(x, y, mix(patch, (150, 132, 96, 255), 0.3) if (x * 7 + y * 3) % 9 == 0 else patch)
+            for (x, y) in inside:
+                for (nx, ny) in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+                    if (nx, ny) not in inside:
+                        put_both(nx, ny, core if (nx + ny) % 3 else mix(core, base_wall, 0.4))
+            top_ = min(y for (x, y) in inside)
+            fx = max(x for (x, y) in inside if y <= top_ + 2) - 1
+            for jj in range(5):
+                for ii in range(5 - jj):
+                    put_both(fx - ii + 1, top_ + jj + 1, _mul(patch, 0.72))
+            for jj in range(4):
+                for ii in range(4 - jj):
+                    put_both(fx - ii, top_ + jj, (224, 214, 190, 255) if ii else (246, 240, 224, 255))
+        # holes knocked through to the lath (run 3): a dark cavity with the laths running across
+        # it, a ragged broken-plaster rim all round, the top inner edge in shadow, cracks out
         for _ in range(d['holes']):
-            cx0, cy0 = rng.randrange(24, W - 24), rng.randrange(20, 70)
-            rx, ry = rng.randrange(5, 9), rng.randrange(4, 7)
+            cx0, cy0 = rng.randrange(24, W - 24), rng.randrange(22, 72)
+            rx, ry = rng.randrange(5, 8), rng.randrange(5, 7)
             f_ = blob(cx0, cy0, rx, ry)
+            hole = set()
             for y in range(cy0 - 2 * ry, cy0 + 2 * ry + 1):
                 for x in range(cx0 - 2 * rx, cx0 + 2 * rx + 1):
-                    dd = f_(x, y)
-                    if dd <= 1.0:
-                        put_both(x, y, (38, 29, 23, 255) if (y - cy0) % 3 else (104, 76, 50, 255))
-                    elif dd <= 1.3 and (x + y) % 3:
-                        put_both(x, y, plaster)
+                    if f_(x, y) <= 1.0:
+                        hole.add((x, y))
+            for (x, y) in hole:
+                lath = (y - cy0) % 5 == 1                               # a thin lath now and then
+                put_both(x, y, (74, 56, 40, 255) if lath else (22, 17, 14, 255))
+                if (x, y - 1) not in hole:
+                    put_both(x, y, (14, 10, 8, 255))                      # the top inner edge in shadow
+            for (x, y) in hole:
+                for (nx, ny) in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1), (x + 1, y + 1)):
+                    if (nx, ny) not in hole and (nx * 3 + ny) % 4:
+                        put_both(nx, ny, plaster)
+            for _k in range(3):                                          # cracks radiating out
+                a_ = rng.uniform(0, 6.28)
+                for r_ in range(rx + 2, rx + rng.randrange(5, 10)):
+                    put_both(int(cx0 + math.cos(a_) * r_), int(cy0 + math.sin(a_) * r_ * 0.8), _mul(base_wall, 0.5))
         # grime: the lower wall darkens toward the skirting (hands, damp, soot)
         for y in range(70, SEAM_Y - 6):
             a_ = int(90 * d['grime'] * (y - 70) / 24.0)
@@ -643,26 +795,38 @@ def run_looks(name, root, main_img, full_img, bare_wall_img, bare_floor_img, flo
                     for x in range(x0, x0 + rng.randrange(30, 60)):
                         if rng.random() < d['mould'] * (1.0 - (y - 6) / 24.0):
                             put_both(x, y, (38, 46, 34, 150))
-        # blood: a smear with drips, (run 3) a handprint + a splatter
-        blood = (74, 29, 27, 170)
-        for i in range(d['blood']):
-            x0, y0 = rng.randrange(20, W - 30), rng.randrange(30, 80)
-            ln = rng.randrange(8, 20)
-            for k in range(ln):
-                put_both(x0 + k, y0 + k // 4, blood)
-                put_both(x0 + k, y0 + 1 + k // 4, blood)
-            for k in range(rng.randrange(2, 5)):
-                dx = x0 + rng.randrange(0, ln)
-                for y in range(y0 + 2, y0 + 2 + rng.randrange(4, 16)):
-                    put_both(dx, y, blood)
-            if level == 3 and i == 0:
-                hx, hy = rng.randrange(24, W - 24), rng.randrange(36, 70)
-                for (dx, dy) in ((0, 0), (1, 0), (2, 0), (0, 1), (1, 1), (2, 1), (3, 1), (0, 2), (1, 2), (2, 2), (3, 2), (1, 3), (2, 3)):
-                    put_both(hx + dx, hy + dy, blood)
-                for fx in range(4):
-                    for fy in range(1, 4 + (fx % 2)):
-                        put_both(hx + fx, hy - fy, blood)
-                put_both(hx - 1, hy + 1, blood); put_both(hx - 2, hy, blood)
+        # blood (owner round 14 — the old smear read as little red hooks): the corridor's own decals
+        # (tools/art/corridor_decals.py — handprints, smears, spatter, a slide down the wall), laid
+        # only on bare wall so they sit BEHIND the furniture; the night gets the worst of it
+        dec_dir = os.path.join(root, 'assets', 'corridor', 'decals')
+        # (smears and the slide-down read wrong in a room — a snake, a red pillar — so rooms get
+        # handprints, spatter and claw marks)
+        pool = ['hand_1', 'hand_2', 'spatter_1'] if level == 2 else \
+            ['hand_3', 'spatter_2', 'hand_2', 'spatter_1', 'claws_1', 'hand_1']
+        picks = [pool[rng.randrange(len(pool))] for _ in range(d['blood'])]
+        for nm in picks:
+            pth = os.path.join(dec_dir, nm + '.png')
+            if not os.path.exists(pth):
+                continue
+            dimg = Image.open(pth).convert('RGBA')
+            dw, dh = dimg.size
+            dp = dimg.load()
+            best_pos, best_n = None, -1
+            for _try in range(14):                           # the spot showing the most of it
+                if nm.startswith('slide'):
+                    ox, oy = rng.randrange(8, W - dw - 8), SEAM_Y - 6 - dh
+                else:
+                    ox, oy = rng.randrange(8, W - dw - 8), rng.randrange(24, max(25, SEAM_Y - dh - 8))
+                n_ = sum(1 for yy in range(0, dh, 2) for xx in range(0, dw, 2)
+                         if dp[xx, yy][3] and on_wall(ox + xx, oy + yy))
+                if n_ > best_n:
+                    best_pos, best_n = (ox, oy), n_
+            ox, oy = best_pos
+            for yy in range(dh):
+                for xx in range(dw):
+                    pp = dp[xx, yy]
+                    if pp[3]:
+                        put_both(ox + xx, oy + yy, pp)
         # floor: stains + debris (plaster chunks, paper, glass)
         for _ in range(d['stains']):
             sx, sy = rng.randrange(10, W - 10), rng.randrange(106, 140)

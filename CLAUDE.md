@@ -1418,6 +1418,15 @@ means no rendering — UI layout and art still need an in-editor look.
   corridor's downward cone from the ceiling) + an additive shade glow. The blueprints mark each
   fixture. Locked by `apartment_lamp_test`. Also round 14: the back-plane ↑ hint shows only in the
   TUTORIAL (owner: clunky in the active game; W still works) — `back_plane_test`.
+- ROOM DEPTH + CLEANUP PASS (owner round 14 — set-back furniture "looks so flat… like a picture";
+  module-by-module cleanup in the order living room, kitchen, bedroom, bathroom, study, dining):
+  `pixlib.setback` extrudes every set-back piece toward the module's vanishing point (horizon = ceiling,
+  x 160) — a lit top + a side panel, its back on the seam, nodes + lamps moved with it (full rule in
+  docs/art_reference/modules/README.md "SET-BACK FURNITURE HAS DEPTH"). Run looks redrawn in
+  `pixlib.run_looks` (filled damp stains, torn-paper patches, corridor blood decals, real lath holes).
+  Living room + kitchen passes done (guitar on a stand, readable posters, rose chintz, tea set, crisp
+  leaning books `furn.leaning_book`, carrier bags, fanned newspapers). Bedroom / bathroom / study /
+  dining depth + cleanup still to do.
 - CORRIDOR ART (owner round 10, `tools/art/corridor.py`): floors 1-29 get a painted overlay over
   the old tile look — `building_floors._apply_corridor_art` adds a `CorridorArt` Sprite2D (115,243,
   1120x192 = the tilemap's used band) right ABOVE the TileMapLayer, so doors / stairs / elevator /

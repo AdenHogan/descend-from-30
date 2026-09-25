@@ -101,6 +101,11 @@ furniture they belong to (a chest, a desk, a bedside table) — never loose on t
   across the coffee table from it. Sofas are always drawn straight, full width. Turned armchairs and
   office chairs are built in 3D (`tools/art/chair3d.py`) so the angle is right.
 - **Nothing that stands behind a front piece carries a node** — the player couldn't step up to it.
+- **Set-back pieces have depth** (owner round 14): draw the FRONT face; the pipeline
+  (`pixlib.setback`) brings it forward a few px and extrudes a top and a side toward the module's
+  centre, so leave ~5 px between a set-back piece and a window box on the side facing the middle.
+  An artist delivering finished art should draw that top and side in the same perspective (horizon
+  at the ceiling, vanishing point at the module centre, x 160).
 - No throws or blankets draped over sofas; fireplaces and other symmetric pieces are drawn
   mirror-exact.
 

@@ -209,7 +209,10 @@ def cooker(c):
     c.hline(x0 + 17, x0 + 31, 61, POT_DK)
     c.hline(x0 + 19, x0 + 29, 60, hexc('8b8074'))
     c.rect(x0 + 14, 63, x0 + 17, 64, POT_DK)                      # handle
-    for i in range(5):                                           # grease up the tiles
+
+
+def grease(c):
+    for i in range(5):                                           # grease up the tiles over the hob
         c.ellipse(170 + (i % 2) * 3, 58 - i * 4, 7 - i, 3, GREASE)
 
 
@@ -235,7 +238,7 @@ def sink(c):
 
 
 def counter_end(c):
-    # right of the counter (x 264..316): a tall tea towel on a hook and the pedal bin out front
+    # right of the counter (x 264..316), on the wall: a tea towel on a hook, a calendar
     c.rect(282, 30, 284, 32, CHROME_DK)                            # hook (right of the R box)
     c.poly([(279, 33), (288, 33), (289, 58), (278, 58)], hexc('b8594a'))
     for y in range(36, 58, 5):
@@ -246,6 +249,9 @@ def counter_end(c):
     for y in range(36, 47, 3):
         c.hline(298, 312, y, hexc('b9b09a'))
     c.put(304, 39, hexc('b0453a'))
+
+
+def bin_bags(c):
     # rubbish at the end of the counter, against the wall (the trash node): two tied black bin bags,
     # one split with rubbish spilling onto the lino
     bag, bag_dk, bag_lt = hexc('2f2e2c'), hexc('222120'), hexc('4a4946')
@@ -321,22 +327,47 @@ def tin_box(c):
     c.hline(230, 234, 98, hexc('c9c7bd'))
 
 
+def _run(c):
+    counter(c)
+    cooker(c)
+    sink(c)
+
+
 def build(c=None):
+    # WITH DEPTH (owner round 14 — set-back pieces "look so flat against the back wall"): the fridge,
+    # the counter run (its worktop now reads as a worktop), the wall cupboards; the box of tins and
+    # the bin bags come forward with the counter so they still stand in front of it.
+    from pixlib import setback
     c = c or Canvas(seed=33)
     wall(c)
     decay(c)
+    grease(c)
     floor(c)
-    fridge(c)
-    counter(c)
-    wall_cupboards(c)
-    cooker(c)
-    sink(c)
+    setback(c, lambda l: shifted_x(l, fridge, -3), depth=6, top=24, x_range=(5, 41), rake=1.0)
+    setback(c, _run, depth=7, top=69, x_range=(46, 264))
+    setback(c, wall_cupboards, depth=4, top=16)
     counter_end(c)
+    setback(c, bin_bags, depth=3, forward=4)
     table(c)
-    tin_box(c)
+    setback(c, tin_box, depth=4, forward=7, top=88, x_range=(236, 262))
     import furn as F
     F.tube_light(c, 160)                  # a fluorescent batten above the wall cupboards
     return c
+
+
+def shifted_x(c, fn, dx):
+    from PIL import Image
+    lyr = Canvas(bg=(0, 0, 0, 0), seed=11)
+    from pixlib import push_light_offset, pop_light_offset
+    push_light_offset(dx, 0)
+    try:
+        fn(lyr)
+    finally:
+        pop_light_offset()
+    moved = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+    moved.paste(lyr.img, (dx, 0), lyr.img)
+    c.img.alpha_composite(moved)
+    c.px = c.img.load()
 
 
 def bare(c):
@@ -344,7 +375,7 @@ def bare(c):
     decay(c)
 
 
-ANCHORS = [('anchor_centre_fridge', 26, 70, 'bp'), ('anchor_right_trashcan', 283, 88, 'bp'),
+ANCHORS = [('anchor_centre_fridge', 23, 70, 'bp'), ('anchor_right_trashcan', 283, 88, 'bp'),
            ('anchor_left_cupboard', 118, 40, 'bp'), ('anchor_centre_cupboard', 119, 88, 'bp'),
            ('anchor_centre_oven', 170, 86, 'bp'), ('anchor_right_sink', 204, 70, 'bp'),
            ('anchor_right_sinkcupboard', 214, 90, 'bp'),

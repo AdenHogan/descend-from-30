@@ -80,6 +80,25 @@ def shelves(c, x0, x1, top, base, P, rows, rng, fill=0.85, back=DARK):
     c.rect(x0 + 2, base - 3, x1 - 2, base - 2, dk)
 
 
+def leaning_book(c, x_foot, shelf_y, h, w, col, lean=-1, slope=0.34):
+    """A book leaning over against its neighbour (owner round 14: the old slanted ones "look like
+    extended blurred shapes"): drawn as a crisp slanted block — every row exactly `w` px, stepping one
+    pixel sideways every ~3 rows — with a dark spine edge on the side it leans toward, a pale page
+    edge along the top, and its foot flat on the shelf at x_foot..x_foot+w-1. lean -1 leans left."""
+    dk, lt = shade(col, 0.62), shade(col, 1.18)
+    rows = int(h * 0.94)                                   # a tilted book stands a touch lower
+    for r in range(rows):
+        off = int(round(r * slope)) * lean
+        y = shelf_y - 1 - r
+        x0 = x_foot + off
+        c.hline(x0, x0 + w - 1, y, col)
+        c.put(x0 if lean < 0 else x0 + w - 1, y, dk)       # the edge it leans toward, in shadow
+        if r == rows - 1:
+            c.hline(x0, x0 + w - 1, y, hexc('e6ddc8'))     # the page edge
+        elif r == rows - 3:
+            c.hline(x0 + 1, x0 + w - 2, y, lt)             # a band on the spine
+
+
 def table_front(c, x0, x1, top, base, P, depth=5, cloth=None, cloth_dk=None, hem=None):
     """A table standing out in the room, seen from the front and a little above: the top surface
     (`depth` rows), an apron, four legs (the far pair set back + darker). Optional cloth."""

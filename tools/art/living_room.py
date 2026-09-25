@@ -183,7 +183,8 @@ def bookshelf(c):
     for ci, (cy0, cy1) in enumerate(comps):
         x = x0 + 4
         k = ci * 3
-        while x < x1 - 4:
+        stop = x1 - (9 if ci == 1 else 4)            # row 2 leaves room for a leaning book
+        while x < stop:
             bw = 2 + (k * 7 + ci) % 3
             bh = (cy1 - cy0) - 1 - (k * 5 + ci) % 4
             if ci == 2 and 30 <= x <= 40:           # a gap: something was taken (the scavenge node)
@@ -197,10 +198,9 @@ def bookshelf(c):
                 c.hline(x, min(x + bw - 1, x1 - 4), cy1 - bh + 2, shade(col, 1.15))
             x += bw + (1 if k % 4 == 3 else 0)
             k += 1
-        if ci == 1:                                  # a leaning book at the end of the row
-            col = BOOKS[5]
-            c.line(x1 - 8, cy1, x1 - 5, cy0 + 2, col)
-            c.line(x1 - 7, cy1, x1 - 4, cy0 + 2, col)
+        if ci == 1:                                  # a book leaning over against the last one
+            import furn as F
+            F.leaning_book(c, x1 - 7, cy1 + 1, cy1 - cy0 - 1, 3, BOOKS[5], lean=-1)
     # on top: a small framed photo + a trailing pot
     c.box(17, top - 7, 25, top - 1, FRAME, FRAME_DK)
     c.rect(19, top - 5, 23, top - 3, PAINT_SKY)
@@ -490,12 +490,14 @@ def build(c=None):
     clock(c)
     floor(c)
     shifted(c, rug, -8, -6)
-    bookshelf(c)
+    from pixlib import setback
+    # 3px left of where it stood flat: its side panel now reaches toward the room, clear of window L
+    setback(c, lambda l: shifted(l, bookshelf, 0, -3), depth=4, top=50, x_range=(9, 45))
     # EVEN SPACING (owner round 13b — "good even spacing across the modules is essential for our
     # scavenge nodes"): bookshelf | sofa | coffee table | armchair turned back to the sofa | drawers,
     # one piece every ~55px, nodes spread the whole width (no lamp / plant crowding the right end).
     shifted(c, sofa, -10, -18)
-    shifted(c, chest_of_drawers, 0, 6)
+    setback(c, lambda l: shifted(l, chest_of_drawers, 0, 6), depth=5, top=68)
     shifted(c, coffee_table, 0, -26)
     import chair3d as C3                  # an oxblood club chair across the table, turned to the sofa
     C3.armchair(c, 238, 118, 40, {'fab': hexc('7a302b'), 'fab_lt': hexc('8e3a33'), 'wood': hexc('3a2618')},
@@ -510,7 +512,7 @@ def bare(c):
     decay(c)
 
 
-ANCHORS = [('anchor_left_bookshelf_upper', 22, 58, 'bp'), ('anchor_left_bookshelf_lower', 35, 86, 'bp'),
+ANCHORS = [('anchor_left_bookshelf_upper', 19, 58, 'bp'), ('anchor_left_bookshelf_lower', 32, 86, 'bp'),
            ('anchor_centre_sofaleft', 96, 103, ''), ('anchor_centre_sofaright', 131, 101, ''),
            ('anchor_centre_coffeetable', 188, 98, ''), ('anchor_right_chair', 281, 78, 'bp'),
            ('anchor_living_armchair', 238, 104, '')]
