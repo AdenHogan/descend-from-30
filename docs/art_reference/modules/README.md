@@ -92,7 +92,15 @@ they can't drift. It refuses to write anything unless: the window boxes + side-w
 are bare, the floor repeats every 32px, every node sits ON something drawn (not bare wall/floor),
 below the window line (y >= 40), and there are >= 2 FRONT nodes (reachable from the walking line —
 owner: "you're putting a lot of stuff farther back… keep certain things down and closer to the
-main Y plane"). Node overlays land in `nodes/<name>_nodes.png` here (gold = front, blue = back
+main Y plane"), and no FRONT piece stands where the player would step up to a BACK-PLANE spot
+(`check_back_plane_clear`, run on every run's look — owner round 13b: "wherever you're placing these
+higher up furnitures, y planes will need to be developed to allow the player to move up and
+scavenge"). The spot stands the player (±10px) at the centre of each cluster of 'bp' nodes (<= 40px
+apart, room.gd BACK_SPOT_CLUSTER), feet at local y 116; a column that isn't bare floor through rows
+102..114 there is a front piece in the way (rugs start lower, set-back shadows stop higher). So: keep
+front furniture (sofas, chairs, tables — fallen ones too) out of the x-span in front of set-back
+nodes, and put no node on something that stands BEHIND a front piece (the TV-room sets carry none).
+Node overlays land in `nodes/<name>_nodes.png` here (gold = front, blue = back
 plane, green = balcony strip).
 
 **Variants**: `scenes/Room_Modules/<type>_<v>.tscn` (+ `assets/rooms/<type>_<v>.png`), registered

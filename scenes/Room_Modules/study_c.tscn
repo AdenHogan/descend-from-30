@@ -187,10 +187,10 @@ position = Vector2(122, 72)
 metadata/back_plane = true
 
 [node name="anchor_study_wingback" type="Marker2D" parent="."]
-position = Vector2(134, 96)
+position = Vector2(194, 96)
 
 [node name="anchor_study_side_table" type="Marker2D" parent="."]
-position = Vector2(168, 101)
+position = Vector2(228, 101)
 
 [node name="anchor_right_shelf" type="Marker2D" parent="."]
 position = Vector2(292, 64)

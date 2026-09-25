@@ -252,6 +252,34 @@ def rrect(c, x0, y0, x1, y1, col, r=2):
 BALCONY_BOX = (4, 0, 96, H - 1)      # where a balcony-capable module's balcony doors go (study/dining)
 
 
+# The BACK (scavenge) PLANE (scripts/room.gd BACK_PLANE_RISE / back_plane_spot.gd): the player steps
+# up to stand at a set-back piece with its feet at local y 116 (world 339), centred on the cluster of
+# its spawned 'bp' nodes (nodes within BACK_SPOT_CLUSTER px share a spot). Set-back furniture stands
+# at ~101, front furniture at ~114-118 — so a column that is NOT bare floor all the way through rows
+# BP_ROWS is a front piece standing exactly where the player would stand (owner round 13b: "wherever
+# you're placing these higher up furnitures, y planes will need to be developed to allow the player
+# to move up and scavenge"). Rugs start lower, set-back shadows stop higher, so neither trips it.
+BP_ROWS = range(102, 115)
+BP_HALF_W = 10                  # the player's half-width up there (a touch smaller than on the lane)
+BP_CLUSTER = 40                 # room.gd BACK_SPOT_CLUSTER
+
+
+def check_back_plane_clear(img, floor_img, anchors):
+    xs = sorted(ax for (an, ax, ay, fl_) in anchors if 'bp' in fl_)
+    centres = set(xs)
+    for i in range(len(xs)):                        # any spawned sub-cluster: centres in between too
+        for j in range(i + 1, len(xs)):
+            if all(xs[k + 1] - xs[k] <= BP_CLUSTER for k in range(i, j)):
+                centres.add((xs[i] + xs[j]) / 2.0)
+    bad = []
+    for cx in sorted(centres):
+        for x in range(int(cx) - BP_HALF_W, int(cx) + BP_HALF_W + 1):
+            if 0 <= x < W and all(img.getpixel((x, y)) != floor_img.getpixel((x, y)) for y in BP_ROWS):
+                bad.append((int(cx), x))
+                break
+    return bad
+
+
 def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, strip_fn=None, per_run=None):
     """Render, check and export one module variant, and write its scene.
 
@@ -331,6 +359,10 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
         errs.append('needs >= 2 nodes outside the balcony strip (ANCHOR_RANGES min)')
     if n_front < 2:
         errs.append('needs >= 2 FRONT nodes (reachable from the walking line) — owner round 10')
+    bp = check_back_plane_clear(full.img, bare_floor.img, anchors)
+    if bp:
+        errs.append('front furniture stands where the player would step up to a back-plane spot '
+                    '(spot x, blocked column): %s' % bp)
     if errs:
         sys.exit(name + ':\n  ' + '\n  '.join(errs))
     out = os.path.join(ROOT, 'assets', 'rooms', name + '.png')
@@ -361,6 +393,10 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
                 ref = fr if 's' in fl_.replace('bp', '') else mr
                 if ref.img.getpixel((ax, ay)) == bare_floor.img.getpixel((ax, ay)):
                     sys.exit('%s: %s at (%d,%d) is not on anything drawn in the run-%d look' % (name, an, ax, ay, lv))
+            bp = check_back_plane_clear(fr.img, bare_floor.img, anchors)
+            if bp:
+                sys.exit('%s: in the run-%d look, front furniture stands where the player would step up '
+                         'to a back-plane spot (spot x, blocked column): %s' % (name, lv, bp))
         per_run(1)
     runs = run_looks(name, ROOT, main.img, full.img, bare.img, bare_floor.img, floor_fn, seed, strip_fn is not None,
                      per_level=per_level)

@@ -83,8 +83,9 @@ def b_furniture(c):
         c.rect(112, 64, 118, 69, hexc('e6e0cc')); c.put(119, 66, hexc('e6e0cc'))              # a mug
     F.moved(c, desk, -8, 0)
     # an office chair rolled out from the desk and left swivelled at an angle (owner round 13: the
-    # square-on chair "looks a bit weird" — built in 3D like the armchairs)
-    C3.office_chair_at(c, 140, 118, 40, {'fab': hexc('3a3a44'), 'metal': hexc('2a2a30')},
+    # square-on chair "looks a bit weird" — built in 3D like the armchairs). It stands at the desk's
+    # RIGHT end, clear of the desk's back-plane spot at the drawer end — upright or knocked over.
+    C3.office_chair_at(c, 160, 118, 40, {'fab': hexc('3a3a44'), 'metal': hexc('2a2a30')},
                        plan={2: 'down', 3: 'down_blood'}, key='study_b_office', outline=hexc('141418'))
     PAPER, PAPER_DK, INK = hexc('f0ece2'), hexc('d6d0c2'), hexc('b3aea3')
 
@@ -146,8 +147,8 @@ def b_furniture(c):
 
 
 B_ANCHORS = [('anchor_study_low_shelf', 26, 88, 'bp s'), ('anchor_study_box_files', 64, 88, 'bp s'),
-             ('anchor_centre_desk', 160, 66, 'bp'), ('anchor_study_desk_drawer', 111, 88, 'bp'),
-             ('anchor_study_office_chair', 140, 100, ''), ('anchor_study_printer', 196, 72, 'bp'),
+             ('anchor_centre_desk', 128, 62, 'bp'), ('anchor_study_desk_drawer', 111, 88, 'bp'),
+             ('anchor_study_office_chair', 160, 100, ''), ('anchor_study_printer', 196, 72, 'bp'),
              ('anchor_study_armchair', 234, 98, ''),
              ('anchor_study_side_table', 278, 107, '')]
 
@@ -186,27 +187,33 @@ def c_furniture(c):
     c.line(214, 12, 206, 100, hexc('8a6443')); c.line(220, 14, 214, 100, hexc('8a6443'))  # the ladder
     for y in range(20, 100, 10):
         c.line(213 - (y - 12) // 11, y, 219 - (y - 14) // 11, y, hexc('8a6443'))
-    # the reading corner out in the room: wingback, side table, lamp
-    # a worn rug under the reading corner ties the chair, table and lamp together
-    for y in range(111, 125):
-        t = (y - 111) / 13.0
-        x0, x1 = int(118 - 8 * t), int(200 + 8 * t)                               # wider nearer us
-        for x in range(x0, x1 + 1):
-            edge = y in (111, 124) or x in (x0, x1)
-            inner = y in (113, 122) or x in (x0 + 3, x1 - 3)
-            col = hexc('5a2a26') if edge else hexc('c9a86a') if inner else (hexc('7a3a30') if (x // 4 + y // 3) % 5 else hexc('4a5a6a'))
-            c.put(x, y, col)
-    for x in range(110, 209, 2):                                                   # fringe
-        c.put(x, 125, hexc('d8ccb0'))
-    C3.armchair(c, 141, 117, -30, {'fab': hexc('3e5a4a'), 'fab_lt': hexc('4a6a58'), 'wood': hexc('3a2618')},
+    # the reading corner out in the room: wingback, side table, lamp — in front of the LADDER
+    # bookcase (it has no back-plane spot), keeping the centre bookcase's spot clear to step up to
+    # (owner round 13b; pixlib.check_back_plane_clear)
+    def corner(c):
+        # a worn rug under the reading corner ties the chair, table and lamp together
+        for y in range(111, 125):
+            t = (y - 111) / 13.0
+            x0, x1 = int(118 - 8 * t), int(200 + 8 * t)                           # wider nearer us
+            for x in range(x0, x1 + 1):
+                edge = y in (111, 124) or x in (x0, x1)
+                inner = y in (113, 122) or x in (x0 + 3, x1 - 3)
+                col = hexc('5a2a26') if edge else hexc('c9a86a') if inner else (hexc('7a3a30') if (x // 4 + y // 3) % 5 else hexc('4a5a6a'))
+                c.put(x, y, col)
+        for x in range(110, 209, 2):                                               # fringe
+            c.put(x, 125, hexc('d8ccb0'))
+    F.moved(c, corner, 60, 0)
+    C3.armchair(c, 201, 117, -30, {'fab': hexc('3e5a4a'), 'fab_lt': hexc('4a6a58'), 'wood': hexc('3a2618')},
                 style='wing', plan={2: 'blood', 3: 'tipped'}, key='study_c')   # turned toward the lamp
-    c.shadow(170, 121, 9, 2, 110)
-    c.ellipse(170, 104, 9, 2, F.WOOD[1])
-    c.vline(170, 106, 119, F.WOOD[0])
-    c.hline(165, 175, 120, F.WOOD[0])
-    c.rect(164, 100, 172, 103, F.BOOKS[0]); c.hline(164, 172, 100, shade(F.BOOKS[0], 1.2))
-    c.rect(174, 99, 177, 103, hexc('c9c2b1'))
-    F.floor_lamp(c, 188, 66, 121, hexc('c9ab7e'), hexc('3a2a1a'))
+    def table_lamp(c):
+        c.shadow(170, 121, 9, 2, 110)
+        c.ellipse(170, 104, 9, 2, F.WOOD[1])
+        c.vline(170, 106, 119, F.WOOD[0])
+        c.hline(165, 175, 120, F.WOOD[0])
+        c.rect(164, 100, 172, 103, F.BOOKS[0]); c.hline(164, 172, 100, shade(F.BOOKS[0], 1.2))
+        c.rect(174, 99, 177, 103, hexc('c9c2b1'))
+        F.floor_lamp(c, 188, 67, 121, hexc('c9ab7e'), hexc('3a2a1a'))
+    F.moved(c, table_lamp, 60, 0)
     # a writing slope on the right against the wall
     F.chest(c, 276, 310, 70, 100, F.WOOD, drawers=3, open_row=0)
     c.poly([(278, 69), (308, 69), (304, 60), (282, 60)], F.WOOD[1])
@@ -216,7 +223,7 @@ def c_furniture(c):
 
 C_ANCHORS = [('anchor_study_tall_shelf', 28, 58, 'bp s'), ('anchor_study_floor_books', 60, 96, 'bp s'),
              ('anchor_centre_bookcaseupper', 120, 40, 'bp'), ('anchor_centre_bookcaselower', 122, 72, 'bp'),
-             ('anchor_study_wingback', 134, 96, ''), ('anchor_study_side_table', 168, 101, ''),
+             ('anchor_study_wingback', 194, 96, ''), ('anchor_study_side_table', 228, 101, ''),
              ('anchor_right_shelf', 292, 64, 'bp')]
 
 

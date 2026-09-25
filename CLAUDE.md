@@ -1361,7 +1361,9 @@ means no rendering — UI layout and art still need an in-editor look.
   (`tools/art/modscene.py`), so furniture and nodes live together in the art script (don't hand-edit
   module .tscn files — regenerate: `python3 tools/art/build_all.py`). It refuses: window boxes / wall
   sample columns not bare, a non-tiling floor, transparent pixels, a node not on anything drawn or
-  above the window line, < 2 FRONT nodes. Variants: `room.MODULE_VARIANTS` +
+  above the window line, < 2 FRONT nodes, or a FRONT piece standing where the player steps up to a
+  back-plane spot (`pixlib.check_back_plane_clear`, every run's look — owner round 13b: set-back
+  furniture needs its Y plane clear to step up and scavenge; a TV behind a sofa carries no node). Variants: `room.MODULE_VARIANTS` +
   `WorldState.module_variant_index` (seeded per apartment+slot, stable across runs); each carries
   its own nodes, names unique to its room type (`anchor_<type>_<thing>`). Study/dining BALCONY STRIP
   (x 4..96): furniture there is a `StripArt` sprite + nodes flagged `balcony_strip`, removed on a

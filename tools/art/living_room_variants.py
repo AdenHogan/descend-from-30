@@ -153,6 +153,8 @@ def sofa_back(c, cx, base, pal, wear=False):
 
 
 def b_furniture(c):
+    # (No scavenge node on the TV: it stands BEHIND the sofa, so there's nowhere to step up to it —
+    # pixlib.check_back_plane_clear.)
     # WATCHING THE TELLY FROM BEHIND (owner round 13b, picked from mockups): the TV sits centred
     # against the back wall on a teak sideboard, the rust sofa faces it with its BACK to us (straight,
     # full width), the armchair on the right turned toward the set; the kidney table on the left,
@@ -602,12 +604,12 @@ def _variant(wall, decor, floor, furniture, seed):
 
 
 B_ANCHORS = [('anchor_living_records', 30, 86, 'bp'), ('anchor_living_teak_shelf', 38, 72, 'bp'),
-             ('anchor_living_console_tv', 146, 58, 'bp'), ('anchor_living_kidney_table', 76, 100, ''),
+             ('anchor_living_kidney_table', 76, 100, ''),
              ('anchor_centre_sofaleft', 128, 100, ''), ('anchor_centre_sofaright', 172, 98, ''),
              ('anchor_living_armchair', 240, 104, '')]
 C_ANCHORS = [('anchor_living_crates', 22, 68, 'bp'), ('anchor_living_crate_books', 36, 92, 'bp'),
              ('anchor_living_pallet_table', 79, 101, ''), ('anchor_centre_sofaleft', 154, 100, ''),
-             ('anchor_centre_sofaright', 198, 98, ''), ('anchor_living_crt', 170, 64, 'bp')]
+             ('anchor_centre_sofaright', 198, 98, ''), ('anchor_living_beanbag', 292, 102, '')]
 D_ANCHORS = [('anchor_living_piano', 26, 74, 'bp'), ('anchor_living_tea_table', 124, 99, ''),
              ('anchor_centre_sofaleft', 177, 103, ''), ('anchor_centre_sofaright', 212, 101, ''),
              ('anchor_living_china_cabinet', 280, 76, 'bp'), ('anchor_living_cabinet_cupboard', 274, 90, 'bp'),

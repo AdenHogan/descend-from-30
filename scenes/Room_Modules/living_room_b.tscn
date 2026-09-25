@@ -32,10 +32,6 @@ metadata/back_plane = true
 position = Vector2(38, 72)
 metadata/back_plane = true
 
-[node name="anchor_living_console_tv" type="Marker2D" parent="."]
-position = Vector2(146, 58)
-metadata/back_plane = true
-
 [node name="anchor_living_kidney_table" type="Marker2D" parent="."]
 position = Vector2(76, 100)
 
