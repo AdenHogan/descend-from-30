@@ -81,7 +81,7 @@ real module art landed it ran through the chair rail into the panelling and over
 owner round 9) → 262. Still ABOVE every scavenge node. Module art keeps the window boxes bare
 (`tools/art/pixlib.py` WIN_L/WIN_R, checked on every generate). The balcony window light stays
 at world Y 210. Per-module blueprints (every room plane, nodes, step-up spots, the player to scale):
-`tools/gen_module_blueprint.py` → `docs/art_reference/blueprints/` (README there has the plane table).
+`tools/gen_module_blueprint.py` → `docs/blueprints/` (the LOCKED room template; its README has the plane table).
 
 Apartment PERSPECTIVE + SHELL (`module_walls.gd`, `room_shell.gd`, owner round 9): horizon
 `VY` **224 = the ceiling line** (was 190: it tipped every wall top down into a heavy slab wedge —

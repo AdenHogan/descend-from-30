@@ -5,7 +5,7 @@ nearest filtering), with hard edges only — no anti-aliasing. Art is authored F
 (docs/ART_REQUIREMENTS.md rule 2): gentle form shading and soft contact shadows only, never a baked
 directional light — the engine's 2D lights do that.
 
-Module geometry (docs/art_reference/blueprints, docs/Y_PLANES.md):
+Module geometry (docs/blueprints — the locked room template, docs/Y_PLANES.md):
   320 x 144 px. Wall/floor seam (skirting) at y ~100. Room floor line = local 128; the player's
   feet = 129. The balcony plane (study/dining modules) is feet 104.
   Runtime WALL WINDOWS may appear at L (50..94, 10..66) or R (226..270, 10..66) — on the

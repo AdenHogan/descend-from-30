@@ -95,7 +95,7 @@ px), or to a clean multiple of them, and tell us your tile size so we can slot i
 | Hallway (floor 30, tutorial) | **1120 x 192** | 70 x 12 | Same size as a corridor (band Y 243-435) so it stacks flush with floor 29 in the stair pan. |
 | Lobby (ground floor)   | **1120 x 192**  | 70 x 12      | Bottom of the building; same band as a corridor; ONE stairwell (right). Grotesque decay band. |
 | Apartment shell (`room`) | **992 x 160**   | 62 x 10      | The container an apartment's 3 modules sit inside; interior floor at Y 352. |
-| Apartment room MODULE   | **320 x 144**   | 20 x 9       | One furnished room (bedroom / kitchen / bathroom / study / living / dining). **Three sit side by side** to make an apartment. This is the key modular unit, author each room type to exactly 320 x 144, feet/floor at the bottom. |
+| Apartment room MODULE   | **320 x 144**   | 20 x 9       | One furnished room (bedroom / kitchen / bathroom / study / living / dining). **Three sit side by side** to make an apartment. This is the key modular unit, author each room type to exactly 320 x 144, feet/floor at the bottom. **Template + rules: `docs/blueprints/`.** |
 | Maintenance room       | **416 x 176**   | 26 x 11      | Small safe utility room (workbench + fuse box). |
 | Elevator car interior  | **192 x 160**   | 12 x 10      | The drawn car the player rides in (roomy enough for a 2nd occupant/NPC), centred in a full-screen dark shaft, so also supply the surrounding shaft/void treatment for the rest of the 1152 x 648 frame. |
 
@@ -190,7 +190,10 @@ quiet, it's open to interpretation, and something might still be out there.
 - **Apartment room modules**, bedroom, kitchen, bathroom, study, living room, dining
   room. Each a self-contained ~**320 px-wide** module (three sit side by side per
   apartment); furnish for scavenging. **Same anti-repetition rule as corridors:** a **few
-  variations per room type** (not the same bathroom every time).
+  variations per room type** (not the same bathroom every time). **Work from the room
+  template in `docs/blueprints/`** — it's locked: the exact canvas, every plane the player
+  stands on, the zones that must stay bare, where scavenge nodes go, a transparent guide
+  layer to draw over, the 30 existing rooms as worked examples, and what to deliver.
 
 ### Props
 - Crate-stack **barricade** (blocks a stairwell), scavenge-anchor highlight, corpse,

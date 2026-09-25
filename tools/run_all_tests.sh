@@ -1,6 +1,6 @@
 #!/bin/bash
 # THE pre-commit gate (CLAUDE.md "Robustness rules"). Runs every suite in tests/ ONE AT A TIME and
-# fails if ANY suite exits non-zero OR prints a SCRIPT ERROR / Parse Error — a suite can report
+# fails if ANY suite exits non-zero OR prints a SCRIPT ERROR / Parse Error, or docs/blueprints/ is stale — a suite can report
 # "ALL PASSED" while a check silently errored out (merchant_smoke_test called a renamed method and
 # its check "passed" without running). Usage:
 #   tools/run_all_tests.sh              # every suite
@@ -16,6 +16,14 @@ fi
 godot --headless --import >"$LOG_DIR/_import.log" 2>&1 || { echo "IMPORT FAILED (see $LOG_DIR/_import.log)"; exit 1; }
 bad=0
 count=0
+# The LOCKED room-module blueprints (docs/blueprints/, the artists' template) must match the rooms as
+# built — regenerated in memory, compared pixel for pixel, and no back-plane spot may be blocked.
+if python3 tools/gen_module_blueprint.py --check >"$LOG_DIR/_blueprints.log" 2>&1; then
+	echo "ok     blueprints (docs/blueprints current)"
+else
+	echo "FAIL   blueprints — run: python3 tools/gen_module_blueprint.py"; grep "BLUEPRINTS:" "$LOG_DIR/_blueprints.log" | head -5
+	bad=$((bad + 1))
+fi
 for t in tests/*.tscn; do
 	n=$(basename "$t" .tscn)
 	if [ $# -gt 0 ]; then

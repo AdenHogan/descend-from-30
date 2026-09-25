@@ -14,9 +14,18 @@ Everything is READ, never typed in: nodes (+ their back_plane / balcony_strip fl
 mirror scripts/room.gd, scripts/module_walls.gd, tools/art/pixlib.py and docs/Y_PLANES.md (keep them
 in sync — they're the same numbers the game uses), and the player's size MEASURED from its sprite.
 
-Run:  python3 tools/gen_module_blueprint.py            (all 30 modules + one sheet per room type)
-      python3 tools/gen_module_blueprint.py study_b    (one)
-Out:  docs/art_reference/blueprints/<module>_blueprint.png, <type>_sheet.png, y_planes_key.png
+LOCKED (owner round 13c — "lock in those blueprints to a blueprint folder that can act as a defining
+template structure for our scavenging nodes and rooms … if we use other artists"): docs/blueprints/ is
+the room-module TEMPLATE. `--check` (run by tools/run_all_tests.sh) regenerates everything in memory
+and fails if a committed blueprint is stale or missing, or any back-plane spot is blocked.
+
+Run:  python3 tools/gen_module_blueprint.py            (everything: templates, 30 rooms, 6 sheets)
+      python3 tools/gen_module_blueprint.py study_b    (one room)
+      python3 tools/gen_module_blueprint.py --check    (the gate: are the committed files current?)
+Out:  docs/blueprints/template/  module_template.png, module_template_balcony.png (blank, annotated),
+                                 module_guide_1x.png, module_guide_balcony_1x.png (320x144 guide LAYERS
+                                 to draw over — transparent, pixel-exact)
+      docs/blueprints/rooms/<type>/<module>_blueprint.png + <type>_sheet.png
 """
 import os
 import re
@@ -26,7 +35,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageEnhance
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 MODULES_DIR = os.path.join(ROOT, "scenes", "Room_Modules")
 ROOMS_DIR = os.path.join(ROOT, "assets", "rooms")
-OUT_DIR = os.path.join(ROOT, "docs", "art_reference", "blueprints")
+OUT_DIR = os.path.join(ROOT, "docs", "blueprints")
 TYPES = ["living_room", "bedroom", "kitchen", "bathroom", "study", "dining_room"]
 BALCONY_TYPES = ("study", "dining_room")             # tools/art/modscene.py
 
@@ -48,6 +57,14 @@ BP_ROWS = (102, 114)                                 # pixlib.BP_ROWS — the ba
 BP_HALF_W = 13                                       # pixlib.BP_HALF_W
 BP_CLUSTER = 40                                      # room.BACK_SPOT_CLUSTER
 BACK_SCALE = 0.89                                    # s(339)/s(353), docs/Y_PLANES.md
+
+def anchor_ranges():
+    """room.gd ANCHOR_RANGES — how many of a room type's nodes one visit activates (READ, not typed)."""
+    txt = open(os.path.join(ROOT, "scripts", "room.gd")).read()
+    block = re.search(r"const ANCHOR_RANGES = \{(.*?)\}", txt, re.S).group(1)
+    return {m.group(1): (int(m.group(2)), int(m.group(3)))
+            for m in re.finditer(r'"(\w+)":\s*\[(\d+),\s*(\d+)\]', block)}
+
 
 PLANES = [  # (y, label, world, colour, style)
     (0, "ceiling / back-wall top", 224, (150, 158, 172), "solid"),
@@ -163,20 +180,38 @@ def _ghost(d, cx, feet, scale, col, label=None):
         d.text((X(cx) - d.textlength(label, font=F_M) / 2, Y(top) - 16), label, font=F_M, fill=col)
 
 
-def build(name, out_dir=OUT_DIR):
-    t = room_type(name)
-    nodes = parse_nodes(name)
+def build(name, template=None):
+    """A room's blueprint — or, with template='standard'|'balcony', the BLANK annotated template."""
+    t = room_type(name) if template is None else ("study" if template == "balcony" else "")
+    nodes = parse_nodes(name) if template is None else []
     Wc, Hc = ML + MW * S + MR, MT + MH * S + MB
     img = Image.new("RGB", (Wc, Hc), BG)
-    art = Image.open(os.path.join(ROOMS_DIR, name + ".png")).convert("RGBA")
-    strip_p = os.path.join(ROOMS_DIR, name + "_strip.png")
-    if os.path.exists(strip_p):
-        art.alpha_composite(Image.open(strip_p).convert("RGBA"))
-    art = ImageEnhance.Brightness(ImageEnhance.Color(art.convert("RGB")).enhance(0.55)).enhance(0.5)
-    img.paste(art.resize((MW * S, MH * S), Image.NEAREST), (ML, MT))
+    if template is None:
+        art = Image.open(os.path.join(ROOMS_DIR, name + ".png")).convert("RGBA")
+        strip_p = os.path.join(ROOMS_DIR, name + "_strip.png")
+        if os.path.exists(strip_p):
+            art.alpha_composite(Image.open(strip_p).convert("RGBA"))
+        art = ImageEnhance.Brightness(ImageEnhance.Color(art.convert("RGB")).enhance(0.55)).enhance(0.5)
+        img.paste(art.resize((MW * S, MH * S), Image.NEAREST), (ML, MT))
     d = ImageDraw.Draw(img, "RGBA")
+    if template is not None:
+        d.rectangle([X(0), Y(0), X(MW), Y(SEAM)], fill=(44, 50, 62))            # the back wall
+        d.rectangle([X(0), Y(SEAM), X(MW), Y(MH)], fill=(34, 30, 28))           # the floor
+        zones = [(0, NODE_MIN_Y, "WALL: pictures, clocks, shelf tops. No nodes up here."),
+                 (NODE_MIN_Y, SEAM, "SET-BACK furniture: against the wall, base on y 100 (blue nodes)"),
+                 (SEAM + 2, 114, "STAND ZONE: bare floor in front of back-plane nodes (±13 px)"),
+                 (114, 123, "FRONT furniture: bases on 114-122 (gold nodes)"),
+                 (123, MH, "WALKING LANE: keep clear, only flat things (rugs) below 122")]
+        for (y0, y1, txt) in zones:
+            d.text((X(100), Y((y0 + y1) / 2.0) - 8), txt, font=F_M, fill=(206, 212, 224))
+        _ghost(d, 268, LANE_FEET, 1.0, C_FRONT, "on the lane")
+        _ghost(d, 300, BACK_FEET, BACK_SCALE, C_BACK, "stepped up")
+        if template == "balcony":
+            _ghost(d, 50, BALC_FEET, BACK_SCALE, C_STRIP, "on a balcony")
 
-    d.text((ML, 22), "%s  —  behind the scenes" % name, font=F_T, fill=INK)
+    title = name if template is None else ("MODULE TEMPLATE — " + ("balcony-capable room (study, dining room)"
+                                                                     if template == "balcony" else "any room"))
+    d.text((ML, 22), title + ("  —  behind the scenes" if template is None else ""), font=F_T, fill=INK)
     d.text((ML, 62), "module 320 x 144 · local (0,0) top-left · world = (113 + slot x 320 + x, 224 + y) · "
                      "player %d px tall, body %d px (measured)" % (PLAYER_H, PLAYER_W), font=F_S, fill=SUB)
 
@@ -220,8 +255,9 @@ def build(name, out_dir=OUT_DIR):
             d.line([X(bx), Y(BP_ROWS[0]), X(bx), Y(BP_ROWS[1] + 1)], fill=(255, 90, 90), width=2)
         _ghost(d, (min(grp) + max(grp)) / 2.0, BACK_FEET, BACK_SCALE, col, "step-up spot" + (" BLOCKED" if bad else ""))
     # the player on the walking lane, somewhere clear of the nodes' labels
-    lane_x = max(range(24, MW - 24, 4), key=lambda x: min([abs(x - n["x"]) for n in nodes] or [MW]))
-    _ghost(d, lane_x, LANE_FEET, 1.0, C_FRONT, "player on the lane")
+    if template is None:
+        lane_x = max(range(24, MW - 24, 4), key=lambda x: min([abs(x - n["x"]) for n in nodes] or [MW]))
+        _ghost(d, lane_x, LANE_FEET, 1.0, C_FRONT, "player on the lane")
 
     # the nodes
     for n in nodes:
@@ -250,9 +286,21 @@ def build(name, out_dir=OUT_DIR):
     front = [n for n in nodes if not n["bp"]]
     back = [n for n in nodes if n["bp"] and not n["strip"]]
     strip = [n for n in nodes if n["strip"]]
-    d.text((x, y), "NODES  %d  (front %d · back plane %d%s)" % (len(nodes), len(front), len(back),
-           (" · strip %d" % len(strip)) if strip else ""), font=F_B, fill=INK)
-    y += 24
+    if template is not None:
+        for line, col in (("NODES (scavenge spots)", INK), ("gold  = FRONT: on front furniture, >= 2", C_FRONT),
+                          ("blue  = BACK PLANE: on set-back furniture", C_BACK),
+                          ("green = BALCONY STRIP (study / dining)", C_STRIP),
+                          ("all at y >= 40, ON something drawn;", SUB), ("~5-8 per room, one piece every 50-60 px;", SUB),
+                          ("back-plane nodes <= 40 px apart share", SUB), ("one step-up spot.", SUB)):
+            d.text((x, y), line, font=F_B if col == INK else F_M, fill=col)
+            y += 22 if col == INK else 17
+    else:
+        lo, hi = anchor_ranges().get(t, (0, 0))
+        d.text((x, y), "NODES  %d  (front %d · back plane %d%s)" % (len(nodes), len(front), len(back),
+               (" · strip %d" % len(strip)) if strip else ""), font=F_B, fill=INK)
+        y += 20
+        d.text((x, y), "a visit activates %d-%d of them (room.gd ANCHOR_RANGES)" % (lo, hi), font=F_M, fill=SUB)
+        y += 22
     for group, col, tag in ((front, C_FRONT, "front — from the lane"), (back, C_BACK, "back plane — step up"),
                             (strip, C_STRIP, "balcony strip — step up")):
         for n in group:
@@ -271,37 +319,118 @@ def build(name, out_dir=OUT_DIR):
         kx, ky = ML + (i // 3) * 470, Y(MH) + 30 + (i % 3) * 18
         d.rectangle([kx, ky + 3, kx + 12, ky + 15], fill=col)
         d.text((kx + 20, ky), txt, font=F_M, fill=INK)
-    os.makedirs(out_dir, exist_ok=True)
-    path = os.path.join(out_dir, name + "_blueprint.png")
-    img.save(path)
-    return path, img
+    return img
+
+
+def guide_layer(balcony):
+    """A 320 x 144 TRANSPARENT guide layer, pixel-exact at 1x — put it on a layer over (or under) the
+    art in any editor: the planes, the kept-bare boxes and columns, the stand-zone band."""
+    g = Image.new("RGBA", (MW, MH), (0, 0, 0, 0))
+    d = ImageDraw.Draw(g)
+    for (x0, y0, x1, y1) in (WIN_L, WIN_R):
+        d.rectangle([x0, y0, x1, y1], fill=(240, 196, 96, 50), outline=(240, 196, 96, 220))
+    for ex in EDGE_COLS:
+        d.line([ex, 0, ex, SEAM - 1], fill=(214, 110, 214, 220))
+    if balcony:
+        d.rectangle([STRIP_X[0], 0, STRIP_X[1], MH - 1], outline=(112, 214, 120, 220))
+    d.rectangle([0, BP_ROWS[0], MW - 1, BP_ROWS[1]], fill=(96, 168, 255, 40))
+    d.rectangle([0, 114, MW - 1, 122], fill=(200, 200, 200, 26))
+    for (py, label, world, col, style) in PLANES:
+        if py == BALC_FEET and not balcony:
+            continue
+        yy = min(py, MH - 1)
+        for x in range(MW):
+            if style == "solid" or (style == "dash" and x % 6 < 4) or (style == "dot" and x % 3 == 0):
+                g.putpixel((x, yy), col + (220,))
+    return g
 
 
 def all_modules():
     return sorted(f[:-5] for f in os.listdir(MODULES_DIR) if f.endswith(".tscn"))
 
 
-def sheets(built):
+def sheet(items):
+    w, h = items[0][1].size
+    sw, sh = w // 2, h // 2
+    out = Image.new("RGB", (sw, sh * len(items)), BG)
+    for i, (_, im) in enumerate(sorted(items, key=lambda it: it[0])):
+        out.paste(im.resize((sw, sh), Image.LANCZOS), (0, i * sh))
+    return out
+
+
+def everything():
+    """{relative path under docs/blueprints: image} — the whole locked folder, in memory."""
+    out = {
+        "template/module_template.png": build("template", template="standard"),
+        "template/module_template_balcony.png": build("template", template="balcony"),
+        "template/module_guide_1x.png": guide_layer(False),
+        "template/module_guide_balcony_1x.png": guide_layer(True),
+    }
     by_type = {}
-    for name, img in built:
-        by_type.setdefault(room_type(name), []).append((name, img))
+    for n in all_modules():
+        im = build(n)
+        t = room_type(n)
+        out["rooms/%s/%s_blueprint.png" % (t, n)] = im
+        by_type.setdefault(t, []).append((n, im))
     for t, items in by_type.items():
-        items.sort()
-        w, h = items[0][1].size
-        sw, sh = w // 2, h // 2
-        sheet = Image.new("RGB", (sw, sh * len(items)), BG)
-        for i, (_, im) in enumerate(items):
-            sheet.paste(im.resize((sw, sh), Image.LANCZOS), (0, i * sh))
-        sheet.save(os.path.join(OUT_DIR, t + "_sheet.png"))
+        out["rooms/%s/%s_sheet.png" % (t, t)] = sheet(items)
+    return out
+
+
+def blocked_spots():
+    bad = []
+    for n in all_modules():
+        for grp in spot_centres(parse_nodes(n)):
+            cols = blocked_columns(n, min(grp) - BP_HALF_W, max(grp) + BP_HALF_W)
+            if cols:
+                bad.append((n, grp, cols[:4]))
+    return bad
+
+
+def check():
+    """The gate: every committed file matches a fresh render (pixel for pixel), nothing extra, and
+    no back-plane spot is blocked. Returns a list of problems."""
+    probs = ["%s: back-plane spot %s blocked at columns %s" % b for b in blocked_spots()]
+    want = everything()
+    for rel, im in want.items():
+        p = os.path.join(OUT_DIR, rel)
+        if not os.path.exists(p):
+            probs.append("missing " + rel)
+            continue
+        have = Image.open(p)
+        mode = "RGBA" if im.mode == "RGBA" else "RGB"
+        if have.size != im.size or have.convert(mode).tobytes() != im.convert(mode).tobytes():
+            probs.append("stale " + rel)
+    for dp, _, files in os.walk(OUT_DIR):
+        for f in files:
+            if f.endswith(".png"):
+                rel = os.path.relpath(os.path.join(dp, f), OUT_DIR)
+                if rel not in want:
+                    probs.append("not generated (remove it) " + rel)
+    return probs
 
 
 if __name__ == "__main__":
-    names = sys.argv[1:] or all_modules()
-    built = []
-    for n in names:
-        p, im = build(n)
-        built.append((n, im))
-        print("wrote", os.path.relpath(p, ROOT))
-    if not sys.argv[1:]:
-        sheets(built)
-        print("wrote %d type sheets" % len(TYPES))
+    args = sys.argv[1:]
+    if args == ["--check"]:
+        probs = check()
+        for pr in probs:
+            print("BLUEPRINTS:", pr)
+        if probs:
+            print("docs/blueprints/ is out of date — run: python3 tools/gen_module_blueprint.py")
+            sys.exit(1)
+        print("blueprints current (%d files)" % len(everything()))
+        sys.exit(0)
+    if args:
+        for n in args:
+            p = os.path.join(OUT_DIR, "rooms", room_type(n), n + "_blueprint.png")
+            os.makedirs(os.path.dirname(p), exist_ok=True)
+            build(n).save(p)
+            print("wrote", os.path.relpath(p, ROOT))
+        sys.exit(0)
+    files = everything()
+    for rel, im in files.items():
+        p = os.path.join(OUT_DIR, rel)
+        os.makedirs(os.path.dirname(p), exist_ok=True)
+        im.save(p)
+    print("wrote %d files under %s" % (len(files), os.path.relpath(OUT_DIR, ROOT)))
