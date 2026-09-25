@@ -152,7 +152,10 @@ base, cushion, rolled arms, a club or winged back, legs) in 3D, turns it by `yaw
 with the rooms' view (depth recedes up the screen), a z-buffer, flat top-left light snapped to a
 5-tone ramp and pixel outlines: `C3.armchair(c, cx, base_y, yaw, {'fab','fab_lt','wood'}, style)`.
 0 = facing us, ±30..40 = three-quarters, 90 = side-on. Preview of every angle:
-`armchair_angles.png`. Studies B and C use it.
+`armchair_angles.png`. Studies B and C use it, and four living rooms: A (oxblood club chair at the
+rug's end, turned to the sofa), B (mustard, watching the TV), D (sage wingback at the rug's end), E
+(tan leather wingback by the lamp, turned to the fire) — each with an `anchor_living_armchair` front
+node. C (the bare student flat) has none.
 
 **The runs (owner round 10 — "their run 2 and 3 looks as things get a bit more dilapidated and then
 more so")**: every variant also gets `<name>_r2` / `_r3` textures (+ their own `_floor.png` and

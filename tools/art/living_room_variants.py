@@ -471,7 +471,35 @@ def e_furniture(c):
 
 E_ANCHORS = [('anchor_living_gun_cabinet', 26, 56, 'bp'), ('anchor_living_fireplace', 128, 90, 'bp'),
              ('anchor_living_game_bag', 58, 91, 'bp'), ('anchor_centre_sofaleft', 203, 103, ''),
-             ('anchor_centre_sofaright', 238, 101, '')]
+             ('anchor_centre_sofaright', 238, 101, ''), ('anchor_living_armchair', 280, 104, '')]
+
+
+# Turned armchairs (tools/art/chair3d.py — built in 3D so the angle is right), each grouped with
+# what it's for: B watches the TV, D sits at the rug's end facing the sofa, E is the reading chair
+# by the lamp, turned toward the fire. (C, the bare student flat, has none.)
+import chair3d as C3
+
+
+def b_chair(c):
+    C3.armchair(c, 64, 118, -40, {'fab': hexc('a8843a'), 'fab_lt': hexc('b8944a'), 'wood': hexc('3a2618')},
+                style='club')                                                   # mustard, facing the telly
+
+
+def d_chair(c):
+    C3.armchair(c, 236, 118, 35, {'fab': hexc('6a7a5a'), 'fab_lt': hexc('7a8a68'), 'wood': hexc('4a2e1e')},
+                style='wing')                                                   # sage wingback, at the rug's end
+
+
+def e_chair(c):
+    C3.armchair(c, 282, 118, 38, {'fab': hexc('8a5a34'), 'fab_lt': hexc('9a6a40'), 'wood': hexc('2e1e14')},
+                style='wing')                                                   # tan leather, by the lamp
+
+
+def _with(furniture, chair):
+    def f(c):
+        furniture(c)
+        chair(c)
+    return f
 
 
 def _variant(wall, decor, floor, furniture, seed):
@@ -489,19 +517,21 @@ def _variant(wall, decor, floor, furniture, seed):
 
 B_ANCHORS = [('anchor_living_records', 30, 86, 'bp'), ('anchor_living_teak_shelf', 38, 72, 'bp'),
              ('anchor_living_console_tv', 118, 82, 'bp'), ('anchor_living_kidney_table', 156, 100, ''),
-             ('anchor_centre_sofaleft', 213, 103, ''), ('anchor_centre_sofaright', 248, 101, '')]
+             ('anchor_centre_sofaleft', 213, 103, ''), ('anchor_centre_sofaright', 248, 101, ''),
+             ('anchor_living_armchair', 66, 104, '')]
 C_ANCHORS = [('anchor_living_crates', 22, 68, 'bp'), ('anchor_living_crate_books', 36, 92, 'bp'),
              ('anchor_living_pallet_table', 77, 101, ''), ('anchor_centre_sofaleft', 159, 103, ''),
              ('anchor_centre_sofaright', 194, 101, ''), ('anchor_living_crt', 272, 90, 'bp')]
 D_ANCHORS = [('anchor_living_piano', 26, 74, 'bp'), ('anchor_living_tea_table', 82, 99, ''),
              ('anchor_centre_sofaleft', 151, 103, ''), ('anchor_centre_sofaright', 186, 101, ''),
-             ('anchor_living_china_cabinet', 276, 76, 'bp'), ('anchor_living_cabinet_cupboard', 270, 90, 'bp')]
+             ('anchor_living_china_cabinet', 276, 76, 'bp'), ('anchor_living_cabinet_cupboard', 270, 90, 'bp'),
+             ('anchor_living_armchair', 234, 104, '')]
 
 VARIANTS = {
-    'b': ('living_room_b', 21, (b_wall, b_decor, b_floor, b_furniture), B_ANCHORS),
+    'b': ('living_room_b', 21, (b_wall, b_decor, b_floor, _with(b_furniture, b_chair)), B_ANCHORS),
     'c': ('living_room_c', 33, (c_wall, c_decor, c_floor, c_furniture), C_ANCHORS),
-    'd': ('living_room_d', 44, (d_wall, d_decor, d_floor, d_furniture), D_ANCHORS),
-    'e': ('living_room_e', 45, (e_wall, e_decor, e_floor, e_furniture), E_ANCHORS),
+    'd': ('living_room_d', 44, (d_wall, d_decor, d_floor, _with(d_furniture, d_chair)), D_ANCHORS),
+    'e': ('living_room_e', 45, (e_wall, e_decor, e_floor, _with(e_furniture, e_chair)), E_ANCHORS),
 }
 
 

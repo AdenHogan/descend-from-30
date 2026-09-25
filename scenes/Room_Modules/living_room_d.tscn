@@ -44,3 +44,6 @@ metadata/back_plane = true
 [node name="anchor_living_cabinet_cupboard" type="Marker2D" parent="."]
 position = Vector2(270, 90)
 metadata/back_plane = true
+
+[node name="anchor_living_armchair" type="Marker2D" parent="."]
+position = Vector2(234, 104)

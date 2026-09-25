@@ -44,3 +44,6 @@ position = Vector2(214, 98)
 [node name="anchor_right_chair" type="Marker2D" parent="."]
 position = Vector2(275, 95)
 metadata/back_plane = true
+
+[node name="anchor_living_armchair" type="Marker2D" parent="."]
+position = Vector2(66, 104)

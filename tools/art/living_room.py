@@ -510,6 +510,9 @@ def build(c=None):
     shifted(c, sofa, -10, 3)            # its back stays right of the L window box (x>=95)
     chest_of_drawers(c)
     coffee_table(c)
+    import chair3d as C3                  # an oxblood club chair at the rug's end, turned to the sofa
+    C3.armchair(c, 64, 118, -35, {'fab': hexc('7a302b'), 'fab_lt': hexc('8e3a33'), 'wood': hexc('3a2618')},
+                style='club')
     return c
 
 
@@ -520,7 +523,8 @@ def bare(c):
 
 ANCHORS = [('anchor_left_bookshelf_upper', 22, 58, 'bp'), ('anchor_left_bookshelf_lower', 35, 86, 'bp'),
            ('anchor_centre_sofaleft', 114, 103, ''), ('anchor_centre_sofaright', 149, 101, ''),
-           ('anchor_centre_coffeetable', 214, 98, ''), ('anchor_right_chair', 275, 95, 'bp')]
+           ('anchor_centre_coffeetable', 214, 98, ''), ('anchor_right_chair', 275, 95, 'bp'),
+           ('anchor_living_armchair', 66, 104, '')]
 
 
 if __name__ == '__main__':

@@ -44,3 +44,6 @@ position = Vector2(213, 103)
 
 [node name="anchor_centre_sofaright" type="Marker2D" parent="."]
 position = Vector2(248, 101)
+
+[node name="anchor_living_armchair" type="Marker2D" parent="."]
+position = Vector2(66, 104)
