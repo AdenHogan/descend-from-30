@@ -38,8 +38,8 @@ const ENEMY_PLANE := preload("res://scripts/enemy_plane.gd")
 const ENEMY_HURT := preload("res://scripts/enemy_hurt.gd")
 const ENEMY_CROWD := preload("res://scripts/enemy_crowd.gd")
 const PUSH_PASS_TIME := 1.6   # a shove can't stun or move the big one — it opens a gap to slip past (the
-                              # push itself locks you 0.8s, so this leaves ~0.8s to step in; once
-                              # overlapping it stays passable until you're clear — never a jam)
+							  # push itself locks you 0.8s, so this leaves ~0.8s to step in; once
+							  # overlapping it stays passable until you're clear — never a jam)
 var on_balcony_plane: bool = false
 var balcony_center_x: float = 0.0
 var _plane_floor_y: float = 0.0
