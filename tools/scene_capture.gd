@@ -76,9 +76,11 @@ func _do(step: String) -> void:
 	var p := step.split(":")
 	match p[0]:
 		"newgame":
-			Game.new_game()
-			if _seed != 0:
-				WorldState.master_seed = _seed
+			# The seed has to be in place BEFORE the new game rolls one (Game.new_game fades first,
+			# then starts — setting master_seed after it was always overwritten).
+			WorldState.dev_seed = _seed
+			await Game.new_game()
+			WorldState.dev_seed = 0
 			await _frames(2)
 		"scene":
 			get_tree().change_scene_to_file(p[1] + ":" + p[2] if p.size() > 2 else p[1])

@@ -50,7 +50,23 @@ NODE_MIN_Y = 40                                      # pixlib: nodes sit at y >=
 SEAM = 100                                           # 324 — wall meets floor; set-back furniture's base
 LANE_FEET = 353 - WORLD_TOP                          # 129 — room.ROOM_FEET_Y
 BACK_FEET = LANE_FEET - 14                           # 115 — room.BACK_PLANE_RISE
-BALC_FEET = LANE_FEET - 25                           # 104 — enemy_plane.RISE / player BALCONY_PLANE_RISE
+
+
+def _balcony_geo():
+    """scripts/balcony_geo.gd (the balcony's numbers — the art, the player, enemies and the descent
+    all read them), world y → module-local."""
+    txt = open(os.path.join(ROOT, "scripts", "balcony_geo.gd")).read()
+    return {m.group(1): float(m.group(2)) for m in re.finditer(r"const (\w+) := (-?[\d.]+)", txt)}
+
+
+_BG = _balcony_geo()
+BALC_FEET = int(_BG["FEET"]) - WORLD_TOP             # 95 — out on the balcony (player + enemies)
+BALC_SCALE = _BG["SCALE"]
+BALC_CX = int(_BG["CENTER_DX"])
+BALC_DOOR = (BALC_CX - int(_BG["OPEN_HALF"]) - 4, int(_BG["LINTEL_Y"]) - WORLD_TOP - 4,
+             BALC_CX + int(_BG["OPEN_HALF"]) + 4, int(_BG["THRESHOLD_Y"]) - WORLD_TOP + 1)   # 8,16..92,101
+BALC_RAIL = int(_BG["RAIL_TOP_Y"]) - WORLD_TOP       # 64
+BALC_EDGE = int(_BG["EDGE_Y"]) - WORLD_TOP           # 86
 FLOOR_LINE = 352 - WORLD_TOP                         # 128 — room._FLOOR_Y
 FRONT_CUT = 360 - WORLD_TOP                          # 136 — module_walls front cut plane
 LINTEL = 247 - WORLD_TOP                             # 23  — interior doorway lintel (module_walls DOOR_ROWS)
@@ -71,8 +87,8 @@ PLANES = [  # (y, label, world, colour, style)
     (0, "ceiling / back-wall top", 224, (150, 158, 172), "solid"),
     (LINTEL, "doorway lintel (interior doors)", 247, (150, 158, 172), "dash"),
     (NODE_MIN_Y, "node line: no scavenge node above", 264, (236, 120, 170), "dash"),
+    (BALC_FEET, "BALCONY feet (balcony slot, out in the doorway)", BALC_FEET + WORLD_TOP, (112, 214, 120), "dash"),
     (SEAM, "wall / floor seam = SET-BACK furniture base", 324, (226, 150, 84), "solid"),
-    (BALC_FEET, "BALCONY plane feet (balcony slot)", 328, (112, 214, 120), "dash"),
     (BACK_FEET, "BACK PLANE feet (step up to set-back furniture)", 339, (96, 168, 255), "solid"),
     (FLOOR_LINE, "interior floor", 352, (190, 160, 120), "dot"),
     (LANE_FEET, "WALKING LANE feet (actors stand here)", 353, (255, 214, 64), "solid"),
@@ -232,7 +248,7 @@ def build(name, template=None):
         _ghost(d, 268, LANE_FEET, 1.0, C_FRONT, "on the lane")
         _ghost(d, 300, BACK_FEET, BACK_SCALE, C_BACK, "stepped up")
         if template == "balcony":
-            _ghost(d, 50, BALC_FEET, BACK_SCALE, C_STRIP, "on a balcony")
+            _ghost(d, BALC_CX, BALC_FEET, BALC_SCALE, C_STRIP, "on a balcony")
 
     title = name if template is None else ("MODULE TEMPLATE — " + ("balcony-capable room (study, dining room)"
                                                                      if template == "balcony" else "any room"))
@@ -261,10 +277,24 @@ def build(name, template=None):
         d.rectangle([X(x0), Y(0), X(x1 + 1), Y(MH)], outline=C_STRIP, width=2)
         d.text((X(x0) + 4, Y(MH) - 18), "BALCONY STRIP (its furniture + nodes go on a balcony slot)",
                font=F_M, fill=C_STRIP)
+        # on a balcony slot: the doorway onto the loggia (tools/art/balcony.py) — its sill on the seam,
+        # the rail at the far edge; actors out there stand on the balcony feet line
+        bx0, by0, bx1, by1 = BALC_DOOR
+        for k in range(X(bx0), X(bx1 + 1), 12):
+            d.line([k, Y(by0), min(k + 6, X(bx1 + 1)), Y(by0)], fill=C_STRIP, width=2)
+        for k in range(Y(by0), Y(by1 + 1), 12):
+            d.line([X(bx0), k, X(bx0), min(k + 6, Y(by1 + 1))], fill=C_STRIP, width=2)
+            d.line([X(bx1 + 1), k, X(bx1 + 1), min(k + 6, Y(by1 + 1))], fill=C_STRIP, width=2)
+        _hline(d, BALC_RAIL, C_STRIP, "dot", bx0 + 4, bx1 - 3)
+        _hline(d, BALC_EDGE, C_STRIP, "dot", bx0 + 4, bx1 - 3)
+        d.text((X(bx0) + 6, Y(by0) + 4), "BALCONY DOORWAY", font=F_M, fill=C_STRIP)
+        d.text((X(bx0) + 6, Y(BALC_RAIL) - 16), "rail", font=F_M, fill=C_STRIP)
 
     # every Y plane
     for (py, label, world, col, style) in PLANES:
-        if py == BALC_FEET and t not in BALCONY_TYPES:
+        if py == BALC_FEET:
+            if t in BALCONY_TYPES:
+                _hline(d, py, col, style, BALC_DOOR[0] + 4, BALC_DOOR[2] - 3)    # only out in the doorway
             continue
         _hline(d, py, col, style)
     # the front-furniture base band (bracket in the margin)
@@ -380,13 +410,17 @@ def guide_layer(balcony):
         d.line([ex, 0, ex, SEAM - 1], fill=(214, 110, 214, 220))
     if balcony:
         d.rectangle([STRIP_X[0], 0, STRIP_X[1], MH - 1], outline=(112, 214, 120, 220))
+        d.rectangle(list(BALC_DOOR), outline=(112, 214, 120, 160))
+        for yy in (BALC_RAIL, BALC_EDGE):
+            d.line([BALC_DOOR[0] + 4, yy, BALC_DOOR[2] - 4, yy], fill=(112, 214, 120, 120))
     d.rectangle([0, BP_ROWS[0], MW - 1, BP_ROWS[1]], fill=(96, 168, 255, 40))
     d.rectangle([0, 114, MW - 1, 122], fill=(200, 200, 200, 26))
     for (py, label, world, col, style) in PLANES:
         if py == BALC_FEET and not balcony:
             continue
         yy = min(py, MH - 1)
-        for x in range(MW):
+        xs = range(BALC_DOOR[0] + 4, BALC_DOOR[2] - 3) if py == BALC_FEET else range(MW)
+        for x in xs:
             if style == "solid" or (style == "dash" and x % 6 < 4) or (style == "dot" and x % 3 == 0):
                 g.putpixel((x, yy), col + (220,))
     return g

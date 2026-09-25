@@ -40,7 +40,9 @@ then run `python3 tools/gen_module_blueprint.py`.
 | 10–66 | 234–290 | the two WINDOW BOXES (L x 50–94, R x 226–270) — **bare wall** |
 | 40 | 264 | node line — no scavenge node above it |
 | 100 | 324 | wall / floor seam — where SET-BACK furniture stands |
-| 104 | 328 | BALCONY plane feet (study / dining, on a balcony slot) |
+| 20–100 | 244–324 | BALCONY DOORWAY (study / dining, on a balcony slot): x 8–92, sill on the seam |
+| 64 | 288 | balcony handrail (the far edge of the balcony is 86 / 310) |
+| 95 | 319 | BALCONY feet — actors out on the balcony (drawn × 0.74); `scripts/balcony_geo.gd` |
 | 102–114 | 326–338 | STAND ZONE — bare floor in front of every back-plane node |
 | 114–122 | 338–346 | FRONT furniture bases (sofas, beds, tables, chairs) |
 | 115 | 339 | BACK PLANE feet — the player steps up here (drawn × 0.89) |
@@ -57,7 +59,10 @@ then run `python3 tools/gen_module_blueprint.py`.
 - **Wall-face sample columns** x 3 and x 316, rows 0–99: plain wall — the side walls are painted in
   perspective from these columns.
 - **Balcony strip** (study, dining room only) x 4–96: the main art is bare wall and floor there; the
-  strip's furniture is delivered as a separate layer, because a balcony door replaces it.
+  strip's furniture is delivered as a separate layer, because on a balcony slot the BALCONY DOORWAY
+  (`tools/art/balcony.py`, one shared piece with a morning / sunset / night look) is drawn there
+  instead: a doorway in the back wall onto a loggia whose floor starts at the seam and recedes to a
+  railing, the city beyond.
 - **Stand zones**: rows 102–114, ±13 px either side of every back-plane step-up spot, bare floor.
 
 ## Scavenge nodes

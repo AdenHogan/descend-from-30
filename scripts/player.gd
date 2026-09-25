@@ -134,10 +134,14 @@ var _jump_confirm_time: float = 0.0
 # own plane (higher Y line, sprite slightly smaller for depth), where they can
 # move left/right between the rails; S steps back inside. Descent (rope/jump)
 # is only offered ON the plane. It is NOT a safe island: enemies climb up too.
-const BALCONY_PLANE_RISE = 25.0
-const BALCONY_PLANE_SCALE = 0.88
-const BALCONY_HALF_WIDTH = 34.0
-const BALCONY_STEP_TIME = 0.35
+# The numbers are the balcony's own (scripts/balcony_geo.gd — owner round 14: the balcony is a loggia
+# behind an opening in the back wall, its floor at the wall/floor seam, so the step up goes further
+# UP and BACK than it used to: feet 353 → 319, drawn at 0.74).
+const BalconyGeo = preload("res://scripts/balcony_geo.gd")
+const BALCONY_PLANE_RISE = BalconyGeo.RISE
+const BALCONY_PLANE_SCALE = BalconyGeo.SCALE
+const BALCONY_HALF_WIDTH = BalconyGeo.HALF_WIDTH
+const BALCONY_STEP_TIME = 0.4
 var on_balcony_plane: bool = false
 var back_spot: Node = null          # the BACK (scavenge) plane spot we're stepped up to (back_plane_spot.gd)
 var _back_return_y := 0.0           # the walking line to step back down to
@@ -147,6 +151,7 @@ var balcony_plane_y: float = 0.0
 var balcony_center_x: float = 0.0
 var _plane_return_y: float = 0.0
 var _plane_base_scale: Vector2 = Vector2.ONE
+var _plane_base_pos: Vector2 = Vector2.ZERO
 
 # Audio (docs/SOUND_STEALTH.md audio pass). Carpet steps for the quiet
 # gaits, concrete for the loud ones — the sound mirrors the noise model.
@@ -1700,7 +1705,7 @@ func enter_balcony_plane(center_x: float, below_apartment: String = "", slot: in
 	balcony_center_x = center_x
 	_plane_return_y = global_position.y
 	balcony_plane_y = global_position.y - BALCONY_PLANE_RISE
-	_plane_base_scale = animated_sprite.scale
+	_remember_plane_sprite()
 	# Load the floor below the instant we're out here, so it's visible under us
 	# "in motion" while deciding — not popped in on landing. Freed on step-back.
 	if below_apartment != "" and BalconyPan.can_pan():
@@ -1709,11 +1714,15 @@ func enter_balcony_plane(center_x: float, below_apartment: String = "", slot: in
 	t.tween_property(self, "global_position", Vector2(
 		clampf(global_position.x, center_x - BALCONY_HALF_WIDTH, center_x + BALCONY_HALF_WIDTH),
 		balcony_plane_y), BALCONY_STEP_TIME).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	t.tween_property(animated_sprite, "scale", _plane_base_scale * BALCONY_PLANE_SCALE, BALCONY_STEP_TIME)
+	t.tween_method(_set_plane_depth, 1.0, BALCONY_PLANE_SCALE, BALCONY_STEP_TIME)
 	await t.finished
 	is_cutscene = false
 	on_balcony_plane = true
-	HUD.show_feedback("Out on the balcony — [S] steps back inside.")
+	if below_apartment != "":
+		HUD.show_feedback("Out on the balcony — [%s] climb down · [%s] back inside" % [
+			TutorialManager.key("move_up"), TutorialManager.key("move_down")])
+	else:
+		HUD.show_feedback("Out on the balcony — [%s] back inside" % TutorialManager.key("move_down"))
 
 
 func enter_back_plane(spot: Node, then_search: Node = null) -> void:
@@ -1803,9 +1812,22 @@ func exit_balcony_plane() -> void:
 	t.tween_property(self, "global_position",
 		Vector2(global_position.x, _plane_return_y), BALCONY_STEP_TIME) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	t.tween_property(animated_sprite, "scale", _plane_base_scale, BALCONY_STEP_TIME)
+	t.tween_method(_set_plane_depth, BALCONY_PLANE_SCALE, 1.0, BALCONY_STEP_TIME)
 	await t.finished
 	is_cutscene = false
+
+
+func _remember_plane_sprite() -> void:
+	_plane_base_scale = animated_sprite.scale
+	_plane_base_pos = animated_sprite.position
+
+
+# Draw the player at depth `s` (1 = the walking lane): the sprite shrinks about its FEET, so the drawn
+# feet stay on the line the body stands on (scaling about the origin floated them — 9px at 0.74).
+# Public-ish: BalconyPan drives it too (the rail is further back still).
+func _set_plane_depth(s: float) -> void:
+	animated_sprite.scale = _plane_base_scale * s
+	animated_sprite.position.y = _plane_base_pos.y + (BalconyGeo.PLAYER_FEET_OFF - _plane_base_pos.y) * (1.0 - s)
 
 
 func restore_balcony_plane(center_x: float) -> void:
@@ -1815,11 +1837,15 @@ func restore_balcony_plane(center_x: float) -> void:
 	# the corridor return line one RISE below it, and re-apply the depth scale.
 	# Without this the loaded player sits at the balcony Y but off-plane, and normal
 	# depth movement drifts them onto the default line.
+	# The line is the balcony's, not whatever Y the save held — a save from before the balcony moved
+	# (round 14) carries the old, lower line.
 	balcony_center_x = center_x
-	balcony_plane_y = global_position.y
-	_plane_return_y = global_position.y + BALCONY_PLANE_RISE
-	_plane_base_scale = animated_sprite.scale
-	animated_sprite.scale = _plane_base_scale * BALCONY_PLANE_SCALE
+	global_position.x = clampf(global_position.x, center_x - BALCONY_HALF_WIDTH, center_x + BALCONY_HALF_WIDTH)
+	balcony_plane_y = BalconyGeo.FEET - BalconyGeo.PLAYER_FEET_OFF
+	_plane_return_y = balcony_plane_y + BALCONY_PLANE_RISE
+	global_position.y = balcony_plane_y
+	_remember_plane_sprite()
+	_set_plane_depth(BALCONY_PLANE_SCALE)
 	on_balcony_plane = true
 
 
@@ -1834,8 +1860,8 @@ func arrive_on_balcony_plane(center_x: float) -> void:
 	_plane_return_y = global_position.y                 # corridor line for S
 	balcony_plane_y = global_position.y - BALCONY_PLANE_RISE
 	global_position.y = balcony_plane_y
-	_plane_base_scale = animated_sprite.scale
-	animated_sprite.scale = _plane_base_scale * BALCONY_PLANE_SCALE
+	_remember_plane_sprite()
+	_set_plane_depth(BALCONY_PLANE_SCALE)
 	on_balcony_plane = true
 
 

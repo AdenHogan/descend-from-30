@@ -5,6 +5,7 @@ extends Node
 # Covers the column-continuity seed and the layout-conform rule. The descent
 # interaction itself is a later phase.
 
+const BalconyGeo = preload("res://scripts/balcony_geo.gd")
 var failures: int = 0
 
 
@@ -28,6 +29,7 @@ func _ready() -> void:
 	await _test_bottom_balcony_access()
 	_test_pan_gating()
 	await _test_balcony_plane_restore()
+	await _test_balcony_geometry()
 	await _test_backdrop_memory()
 	await _test_backdrop_fire_rules()
 	await _test_upper_fire_spares_backdrop()
@@ -332,18 +334,109 @@ func _test_balcony_plane_restore() -> void:
 	add_child(player)
 	await get_tree().process_frame
 	player.on_balcony_plane = false
-	player.global_position = Vector2(500.0, 300.0)   # the saved balcony line
+	# A save from BEFORE the balcony moved up (owner round 14) holds the old, lower line (origin 295):
+	# the load puts the player on the balcony's line, not that one.
+	player.global_position = Vector2(500.0, 295.0)
 	var base_scale_y: float = player.animated_sprite.scale.y
 	player.restore_balcony_plane(500.0)
+	var line: float = BalconyGeo.FEET - BalconyGeo.PLAYER_FEET_OFF
 	check(player.on_balcony_plane, "player is restored onto the balcony plane")
-	check(is_equal_approx(player.balcony_plane_y, 300.0), "plane line adopts the saved Y")
-	# _plane_return_y is the corridor line one RISE (25.0) below the plane.
-	check(is_equal_approx(player._plane_return_y, 325.0),
+	check(is_equal_approx(player.balcony_plane_y, line) and is_equal_approx(player.global_position.y, line),
+		"…on the balcony's own line (origin %.1f), whatever the save held" % player.global_position.y)
+	check(is_equal_approx(player._plane_return_y, line + BalconyGeo.RISE),
 		"corridor return line sits one RISE below the plane")
 	check(player.animated_sprite.scale.y < base_scale_y,
 		"sprite is depth-scaled while on the plane")
+	check(absf(_drawn_feet(player, base_scale_y) - BalconyGeo.FEET) < 0.5,
+		"the DRAWN feet stay on the balcony line as the sprite shrinks (%.1f)" % _drawn_feet(player, base_scale_y))
 	player.queue_free()
 	await get_tree().process_frame
+
+
+func _drawn_feet(player, base_scale_y: float) -> float:
+	# Where the sprite's feet are DRAWN: the origin, the sprite's own offset, and the feet (33 below the
+	# origin at full size) shrunk with the sprite.
+	var f: float = player.animated_sprite.scale.y / base_scale_y
+	return player.global_position.y + player.animated_sprite.position.y + BalconyGeo.PLAYER_FEET_OFF * f
+
+
+func _luma(c: Color) -> float:
+	return (0.3 * c.r + 0.59 * c.g + 0.11 * c.b) * 255.0
+
+
+func _test_balcony_geometry() -> void:
+	# Owner round 14: the balcony is a loggia behind the back wall, its floor at the wall/floor seam —
+	# the art (tools/art/balcony.py) is drawn FROM scripts/balcony_geo.gd, and the player, enemies and
+	# the descent slice all read the same numbers, so what's drawn and where actors stand can't drift.
+	print("[the balcony: art, planes and the descent slice agree]")
+	var cx := int(BalconyGeo.CENTER_DX)
+	var imgs: Array = []
+	for n in ["balcony", "balcony_r2", "balcony_r3"]:
+		var tex = load("res://assets/rooms/%s.png" % n)
+		check(tex != null, "%s.png exists" % n)
+		imgs.append(tex.get_image() if tex != null else null)
+	if imgs[0] == null:
+		return
+	var im: Image = imgs[0]
+	check(im.get_width() == 320 and im.get_height() == 144, "a full module layer (320 x 144)")
+	check(im.get_pixel(cx, 4).a == 0.0, "above the doorway it's the room's own wall (transparent)")
+	check(im.get_pixel(cx, int(BalconyGeo.THRESHOLD_Y) - 224).a == 1.0, "the sill sits on the wall/floor seam")
+	check(im.get_pixel(cx, int(BalconyGeo.THRESHOLD_Y) - 224 + 6).a == 0.0, "…and the room's floor shows below it")
+	var rail: float = _luma(im.get_pixel(cx, int(BalconyGeo.RAIL_TOP_Y) - 224 + 1))
+	var sky: float = _luma(im.get_pixel(cx, int(BalconyGeo.RAIL_TOP_Y) - 224 - 3))
+	check(rail < 110.0 and sky > rail + 40.0, "the handrail is drawn on RAIL_TOP_Y (rail %.0f, sky above %.0f)" % [rail, sky])
+	var edge := int(BalconyGeo.EDGE_Y) - 224
+	check(_luma(im.get_pixel(cx, edge + 3)) > 60.0 and im.get_pixel(cx, edge + 3).r > im.get_pixel(cx, edge + 3).b,
+		"the tiled floor runs from the far edge down to the sill")
+	var l1: float = _luma(imgs[0].get_pixel(cx - 20, int(BalconyGeo.LINTEL_Y) - 224 + 8))
+	var l3: float = _luma(imgs[2].get_pixel(cx - 20, int(BalconyGeo.LINTEL_Y) - 224 + 8)) if imgs[2] != null else 999.0
+	check(l1 > l3 + 60.0, "the sky beyond follows the run: day %.0f, night %.0f" % [l1, l3])
+	# the planes
+	check(is_equal_approx(BalconyGeo.LANE_FEET - BalconyGeo.RISE, BalconyGeo.FEET), "RISE takes the lane to the balcony line")
+	check(BalconyGeo.FEET < BalconyGeo.THRESHOLD_Y and BalconyGeo.FEET > BalconyGeo.EDGE_Y,
+		"the balcony line is out on the balcony: behind the sill, in front of the rail")
+	check(absf(BalconyGeo.SCALE - (BalconyGeo.FEET - 224.0) / 129.0) < 0.01, "drawn at the room's perspective for that depth")
+	check(load("res://scripts/enemy_plane.gd").RISE == BalconyGeo.RISE and load("res://scripts/enemy_plane.gd").SCALE == BalconyGeo.SCALE,
+		"enemies use the same line and scale")
+	# the slice
+	check(BalconyPan.SHRED_TOP == BalconyGeo.RAIL_TOP_Y, "the slice starts at the upper handrail (they sink behind the railing)")
+	check(BalconyPan.SHRED_BOTTOM == BalconyPan.STACK_OFFSET + BalconyGeo.LINTEL_Y,
+		"…and ends at the lower doorway's lintel (they come back into view there)")
+	check(is_equal_approx(BalconyPan.PLANE_Y + BalconyGeo.PLAYER_FEET_OFF, BalconyGeo.FEET), "the pan lands on the balcony line")
+	# the player steps up onto it with the drawn feet on the line
+	var player = load("res://scenes/player.tscn").instantiate()
+	add_child(player)
+	await get_tree().process_frame
+	player.global_position = Vector2(500.0, BalconyGeo.LANE_FEET - BalconyGeo.PLAYER_FEET_OFF)
+	var base_y: float = player.animated_sprite.scale.y
+	await player.enter_balcony_plane(500.0)
+	check(player.on_balcony_plane and absf(player.global_position.y + BalconyGeo.PLAYER_FEET_OFF - BalconyGeo.FEET) < 0.5,
+		"W steps the player up onto the balcony line (feet %.1f)" % (player.global_position.y + BalconyGeo.PLAYER_FEET_OFF))
+	check(absf(_drawn_feet(player, base_y) - BalconyGeo.FEET) < 0.5, "…drawn feet on it too (%.1f)" % _drawn_feet(player, base_y))
+	player.exit_balcony_plane()
+	for i in range(40):
+		await get_tree().physics_frame
+	check(not player.on_balcony_plane and absf(player.animated_sprite.position.y) < 0.01
+		and is_equal_approx(player.animated_sprite.scale.y, base_y), "S steps back: full size, sprite back in place")
+	player.queue_free()
+	await get_tree().process_frame
+	# a balcony room shows the art in the run's look
+	WorldState.new_game()
+	WorldState.is_first_run = false
+	WorldState.master_seed = 4242
+	WorldState.apartment_layouts.clear()
+	WorldState.current_run = 3
+	var room := _plane_room("2301")
+	await get_tree().physics_frame
+	var shown := ""
+	for m in get_tree().get_nodes_in_group("room_module"):
+		var b = m.get_node_or_null("Balcony")
+		if room.is_ancestor_of(m) and b != null and b.visible:
+			shown = str(b.get_node("BalconyArt").texture.resource_path)
+	check(shown.ends_with("balcony_r3.png"), "at night the balcony shows its night look (%s)" % shown)
+	room.free()
+	await get_tree().process_frame
+	WorldState.current_run = 1
 
 
 # --- repair pass: the backdrop (the apartment BELOW, stacked one floor down) ---------------
@@ -592,7 +685,7 @@ func _test_enemy_balcony_plane() -> void:
 	var z_feet: float = z._drop_feet_y()
 	var p_feet: float = p.global_position.y + 33.0
 	check(absf(z_feet - p_feet) <= 2.0, "its feet match the player's on the balcony (%.1f vs %.1f)" % [z_feet, p_feet])
-	check(absf(z.position.x - cx) <= 34.5, "it stays between the balcony rails")
+	check(absf(z.position.x - cx) <= BalconyGeo.HALF_WIDTH + 0.5, "it stays between the balcony rails")
 	# Player steps back in → it follows down.
 	p.exit_balcony_plane()
 	for i in range(60 * 2):
@@ -646,7 +739,7 @@ func _test_balcony_spawn_and_memory() -> void:
 	if on_plane.size() == 1:
 		var z = on_plane[0]
 		key = z.spawn_key
-		check(absf(z._drop_feet_y() - 328.0) <= 2.0, "it stands on the balcony line (feet %.1f)" % z._drop_feet_y())
+		check(absf(z._drop_feet_y() - BalconyGeo.FEET) <= 2.0, "it stands on the balcony line (feet %.1f)" % z._drop_feet_y())
 	room.free()
 	await get_tree().process_frame
 	check(key != "" and bool(WorldState.zombie_positions.get(key, {}).get("plane", false)), "memory records it on the balcony")
@@ -661,7 +754,7 @@ func _test_balcony_spawn_and_memory() -> void:
 	await get_tree().process_frame
 	var bd_plane := 0
 	for z in get_tree().get_nodes_in_group("zombie"):
-		if holder.is_ancestor_of(z) and z.on_balcony_plane and absf(z.global_position.y - (279.0 + 160.0)) <= 2.0:
+		if holder.is_ancestor_of(z) and z.on_balcony_plane and absf(z.global_position.y - (304.0 - BalconyGeo.RISE + 160.0)) <= 2.0:
 			bd_plane += 1
 	check(bd_plane == 1, "the backdrop shows it on the balcony, a floor down (%d)" % bd_plane)
 	holder.free()
@@ -694,7 +787,7 @@ func _test_descent_lands_on_plane() -> void:
 		await get_tree().physics_frame
 	var p = room.get_node("Player")
 	check(p.on_balcony_plane, "the player lands ON the balcony plane")
-	check(absf(p.global_position.y + 33.0 - 328.0) <= 1.0, "feet on the balcony line (%.1f)" % (p.global_position.y + 33.0))
-	check(absf(p.global_position.x - float(room.balcony_centers[0])) <= 34.5, "inside the balcony rails")
+	check(absf(p.global_position.y + 33.0 - BalconyGeo.FEET) <= 1.0, "feet on the balcony line (%.1f)" % (p.global_position.y + 33.0))
+	check(absf(p.global_position.x - float(room.balcony_centers[0])) <= BalconyGeo.HALF_WIDTH + 0.5, "inside the balcony rails")
 	room.free()
 	await get_tree().process_frame

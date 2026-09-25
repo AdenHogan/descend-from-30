@@ -16,10 +16,12 @@ extends RefCounted
 # Positions are LOCAL (the room root): a BalconyPan backdrop sits a floor down, and in a live room
 # local == world.
 
-const RISE := 25.0              # = player.BALCONY_PLANE_RISE — feet go from 353 to 328 in a room
-const HALF_WIDTH := 34.0        # = player.BALCONY_HALF_WIDTH — how wide the balcony line is
-const SCALE := 0.88             # = player.BALCONY_PLANE_SCALE — a touch smaller, further back
-const CLIMB_SPEED := 60.0       # px/s: one step up/down takes ~0.4s
+# The balcony's geometry is shared with the player, the art and the descent (scripts/balcony_geo.gd).
+const BalconyGeo = preload("res://scripts/balcony_geo.gd")
+const RISE := BalconyGeo.RISE              # feet go from 353 to 319 in a room
+const HALF_WIDTH := BalconyGeo.HALF_WIDTH  # how far either side of the centre an enemy may stand
+const SCALE := BalconyGeo.SCALE            # drawn smaller: the balcony is further back
+const CLIMB_SPEED := 80.0       # px/s: one step up/down takes ~0.4s
 const IDLE_MIN := 5.0
 const IDLE_MAX := 12.0
 const IDLE_CHANCE := 0.3        # per idle check, the odds an idle enemy wanders up/down

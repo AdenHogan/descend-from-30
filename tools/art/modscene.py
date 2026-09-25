@@ -7,7 +7,9 @@ Scene shape (what scripts/room.gd expects):
     Art        Sprite2D  res://assets/rooms/<name>.png
     StripArt   Sprite2D  res://assets/rooms/<name>_strip.png   (balcony-capable rooms, optional:
                the furniture standing where the balcony doors go; room.gd hides it on a balcony slot)
-    Balcony    Node2D    (balcony-capable rooms — the placeholder balcony art, drawn OVER the art)
+    Balcony    Node2D    (balcony-capable rooms) holding BalconyArt, a Sprite2D of
+               res://assets/rooms/balcony.png (tools/art/balcony.py — the loggia behind the back wall,
+               drawn OVER the art; room.gd shows it on a balcony slot and swaps its run looks)
     anchor_*   Marker2D  metadata/back_plane (set back on furniture), metadata/balcony_strip (in the
                balcony strip — room.gd removes it on a balcony slot)
     Lights     Node2D    the light FIXTURES drawn in the art (lamps, ceiling lights): lamp_<n> Node2D
@@ -44,6 +46,8 @@ def write_scene(name, room_type, anchors, strip=False, lights=()):
            '[ext_resource type="Texture2D" path="res://assets/rooms/%s.png" id="1_art"]' % name]
     if strip:
         out.append('[ext_resource type="Texture2D" path="res://assets/rooms/%s_strip.png" id="2_strip"]' % name)
+    if room_type in BALCONY_TYPES:
+        out.append('[ext_resource type="Texture2D" path="res://assets/rooms/balcony.png" id="3_balcony"]')
     out += ['', '[node name="Node2D" type="Node2D"]', '',
             '[node name="ColorRect" type="ColorRect" parent="."]',
             'offset_right = 320.0', 'offset_bottom = 144.0', 'color = Color(0.4, 0.4, 0.4, 1)', '',
@@ -57,8 +61,9 @@ def write_scene(name, room_type, anchors, strip=False, lights=()):
         out += ['[node name="StripArt" type="Sprite2D" parent="."]',
                 'texture_filter = 1', 'texture = ExtResource("2_strip")', 'centered = false', '']
     if room_type in BALCONY_TYPES:
-        out.append(open(os.path.join(HERE, 'balcony_block.tscn.txt')).read().rstrip())
-        out.append('')
+        out += ['[node name="Balcony" type="Node2D" parent="."]', '',
+                '[node name="BalconyArt" type="Sprite2D" parent="Balcony"]',
+                'texture_filter = 1', 'texture = ExtResource("3_balcony")', 'centered = false', '']
     for (n, x, y, flags) in anchors:
         out.append('[node name="%s" type="Marker2D" parent="."]' % n)
         out.append('position = Vector2(%d, %d)' % (x, y))

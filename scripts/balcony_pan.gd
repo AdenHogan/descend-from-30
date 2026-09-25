@@ -24,22 +24,24 @@ const ENABLED := true
 # 207..367, measured), so the lower apartment sits DIRECTLY beneath the upper one
 # with the two contiguous — no grey seam. Nudge if a hairline shows.
 const STACK_OFFSET := 160.0
-const PLANE_Y := 296.0         # the balcony plane (player stands here, out on it)
-const RAIL_Y := 281.0          # the balcony's far rail — climb up onto it, then over
-# THE RED LINES (world Y). The player is drawn IN FRONT above SHRED_TOP and below
-# SHRED_BOTTOM, and BEHIND the scene (clipped) between them — so they slip behind
-# the building wall on the way down. SHRED_TOP is the upper balcony floor (slice
-# out); SHRED_BOTTOM the lower balcony floor (slice back in). The shred is armed
-# AFTER the rail hop, so the player is never hidden while still on the balcony.
-# Placed by eye — nudge against the art.
-const SHRED_TOP := 272.0
-# Re-emerge at the TOP of the lower balcony opening (its sky-top: module y 224 +
-# art offset 18 + one floor down), so the player slides in from the top of the
-# window rather than popping out low at the rail. Nudge against the art.
-const SHRED_BOTTOM := STACK_OFFSET + 224.0 + 18.0   # = 402, the lower sky-top
+# The balcony's own geometry (scripts/balcony_geo.gd — owner round 14: a loggia behind the back wall,
+# its floor at the wall/floor seam; "the transition slice to go down to the floor below needs to be
+# higher too"). All player ORIGINS here = a feet line − the player's feet offset.
+const BalconyGeo = preload("res://scripts/balcony_geo.gd")
+const PLANE_Y := BalconyGeo.FEET - BalconyGeo.PLAYER_FEET_OFF          # out on the balcony
+const RAIL_Y := BalconyGeo.RAIL_TOP_Y - BalconyGeo.PLAYER_FEET_OFF     # up on the handrail
+# THE SLICE (world Y). Over the rail the player is OUTSIDE the building: the sprite is clipped between
+# the two lines — from the upper handrail (so they sink behind the railing as they climb down) to the
+# lower balcony's LINTEL (so they come back into view at the top of the lower doorway, outside its
+# railing) — and hops over the lower rail onto that balcony. Between the two lines is the rail, the
+# balcony slab, the wall between the floors: nothing of the climber shows. Armed only AFTER the rail
+# hop, so the player is never hidden while still on the balcony.
+const SHRED_TOP := BalconyGeo.RAIL_TOP_Y                     # = 288
+const SHRED_BOTTOM := STACK_OFFSET + BalconyGeo.LINTEL_Y     # = 404
 const RAIL_HOP_TIME := 0.45
 const ROPE_TIME := 1.6         # shimmying down one floor on a rope
 const JUMP_TIME := 0.6         # a fall is fast
+const OVER_RAIL_TIME := 0.35   # over the lower balcony's rail, onto its floor
 const LAND_TIME := 0.3
 const LEFT_WALL_X := 113.0
 const MODULE_WIDTH := 320.0
@@ -161,16 +163,19 @@ func pan_down(target_apartment: String, slot: int, roped: bool) -> void:
 	_pref_facade = null
 	_pref_apartment = ""
 
-	var x := LEFT_WALL_X + slot * MODULE_WIDTH + 50.0
+	var x := LEFT_WALL_X + slot * MODULE_WIDTH + BalconyGeo.CENTER_DX
+	var shred := _shred_material()
 
-	# The lashed rope, from the upper rail down to the balcony below.
+	# The lashed rope, tied at the upper rail, hanging outside the building down past the lower
+	# balcony's rail — clipped by the same slice as the climber, so it shows over the upper rail and
+	# again in the lower doorway, never across the wall between.
 	if roped:
 		var rope := Line2D.new()
-		rope.width = 2.0
+		rope.width = 1.0
 		rope.default_color = Color(0.76, 0.64, 0.38)
-		rope.add_point(Vector2(x + 6.0, RAIL_Y))
-		rope.add_point(Vector2(x + 6.0, STACK_OFFSET + PLANE_Y + 10.0))
-		rope.z_index = -1   # the rope hangs on the wall, behind the player
+		rope.add_point(Vector2(x + 5.0, BalconyGeo.RAIL_TOP_Y - 1.0))
+		rope.add_point(Vector2(x + 5.0, STACK_OFFSET + BalconyGeo.EDGE_Y))
+		rope.material = shred
 		scene.add_child(rope)
 
 	player.set("is_cutscene", true)
@@ -188,37 +193,45 @@ func pan_down(target_apartment: String, slot: int, roped: bool) -> void:
 		cam.limit_bottom = int(ROOM_BAND_TOP + STACK_OFFSET + ROOM_BAND_H + view_h)
 		cam.limit_smoothed = false
 
-	# (1) Up and over the rail (still fully visible, in front).
-	var hop = scene.create_tween()
+	# (1) Back to the far edge and up onto the handrail (still fully visible, in front) — drawn a
+	# touch smaller again, the rail is further back than the balcony line.
+	var depth := player.has_method("_set_plane_depth")
+	var hop = scene.create_tween().set_parallel(true)
 	hop.tween_property(player, "global_position", Vector2(x, RAIL_Y), RAIL_HOP_TIME) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	if depth:
+		hop.tween_method(player._set_plane_depth, BalconyGeo.SCALE, BalconyGeo.RAIL_SCALE, RAIL_HOP_TIME)
 	await hop.finished
 	if not is_instance_valid(player):
 		panning = false
 		return
 
-	# THE SHRED (armed now, over the rail): clip the sprite between the two red
-	# lines so the descent goes BEHIND the wall and re-emerges at the balcony
-	# below — never hidden while still standing on the balcony.
+	# THE SLICE (armed now, up on the rail): everything of the sprite between the two lines is
+	# discarded, so going down the outside they sink behind the railing and come back into view in
+	# the lower doorway — never hidden while still standing on the balcony.
 	if sprite != null:
-		var mat := ShaderMaterial.new()
-		var sh := Shader.new()
-		sh.code = SHRED_SHADER
-		mat.shader = sh
-		mat.set_shader_parameter("band_top", SHRED_TOP)
-		mat.set_shader_parameter("band_bottom", SHRED_BOTTOM)
-		sprite.material = mat
+		sprite.material = shred
 
-	# (2) The drop — a rope shimmy, or gravity when jumping — behind the wall.
+	# (2) Down the outside of the building — a rope shimmy, or gravity when jumping — to the lower
+	# balcony's handrail.
 	var slide = scene.create_tween()
+	var low_rail := Vector2(x, STACK_OFFSET + RAIL_Y)
 	if roped:
-		slide.tween_property(player, "global_position",
-			Vector2(x, STACK_OFFSET + PLANE_Y), ROPE_TIME).set_trans(Tween.TRANS_LINEAR)
+		slide.tween_property(player, "global_position", low_rail, ROPE_TIME).set_trans(Tween.TRANS_LINEAR)
 	else:
-		slide.tween_property(player, "global_position",
-			Vector2(x, STACK_OFFSET + PLANE_Y), JUMP_TIME) \
+		slide.tween_property(player, "global_position", low_rail, JUMP_TIME) \
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	await slide.finished
+	if not is_instance_valid(player):
+		panning = false
+		return
+	# (2b) Over that rail and down onto the lower balcony's floor (in front of its railing again).
+	var over = scene.create_tween().set_parallel(true)
+	over.tween_property(player, "global_position", Vector2(x, STACK_OFFSET + PLANE_Y), OVER_RAIL_TIME) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	if depth:
+		over.tween_method(player._set_plane_depth, BalconyGeo.RAIL_SCALE, BalconyGeo.SCALE, OVER_RAIL_TIME)
+	await over.finished
 	if not is_instance_valid(player):
 		panning = false
 		return
@@ -271,6 +284,16 @@ func pan_down(target_apartment: String, slot: int, roped: bool) -> void:
 				ncam.force_update_scroll()
 		await RenderingServer.frame_post_draw
 		cover.queue_free()
+
+
+func _shred_material() -> ShaderMaterial:
+	var mat := ShaderMaterial.new()
+	var sh := Shader.new()
+	sh.code = SHRED_SHADER
+	mat.shader = sh
+	mat.set_shader_parameter("band_top", SHRED_TOP)
+	mat.set_shader_parameter("band_bottom", SHRED_BOTTOM)
+	return mat
 
 
 func _hold_last_frame(scene: Node) -> CanvasLayer:

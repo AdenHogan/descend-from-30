@@ -8,6 +8,7 @@ const ROOM_POOL = ["bedroom", "bathroom", "study", "kitchen", "living_room", "di
 # generation forces a study or dining room. Column-only seeding makes the balcony
 # a continuous vertical stack, so every balcony (except floor 1) has one below.
 const BALCONY_ROOMS = ["study", "dining_room"]
+const BALCONY_GEO = preload("res://scripts/balcony_geo.gd")   # the balcony plane's numbers
 const BALCONY_COLUMN_CHANCE = 0.5
 # Balconies come in vertical PAIRS, never stacks: a descendable "top" balcony has
 # exactly one partner "bottom" balcony directly below it, and descending is
@@ -254,6 +255,9 @@ func note_perk_acquired(perk_id: String) -> void:
 # valour}], "total": n}.
 # Tests only: a non-zero seed makes the end-of-game draw repeatable (0 = truly random, the game).
 var offer_rng_seed: int = 0
+# Tools only (tools/scene_capture --seed): a new game uses this seed instead of a random one, so a
+# capture can be pointed at a known flat. 0 = random (the game never sets it).
+var dev_seed: int = 0
 
 
 func finish_session() -> Dictionary:
@@ -1068,7 +1072,7 @@ func new_game() -> void:
 	# tutorial gets taught it again.
 	is_first_run = not tutorial_completed
 	record_run_started()
-	master_seed = randi()
+	master_seed = dev_seed if dev_seed != 0 else randi()
 	apartment_layouts.clear()
 	anchor_items.clear()
 	anchor_amounts.clear()
@@ -3561,7 +3565,7 @@ func record_zombie(z: Node) -> void:
 	var on_plane: bool = bool(z.get("on_balcony_plane")) if z.get("on_balcony_plane") != null else false
 	if climb != null and int(climb) != 0:
 		on_plane = int(climb) > 0
-		rec["y"] = snappedf(float(z._plane_floor_y) - (25.0 if on_plane else 0.0), 1.0)
+		rec["y"] = snappedf(float(z._plane_floor_y) - (BALCONY_GEO.RISE if on_plane else 0.0), 1.0)
 	if on_plane:
 		rec["plane"] = true
 		rec["plane_cx"] = float(z.balcony_center_x)
@@ -3589,7 +3593,7 @@ func apply_saved_zombie(z: Node) -> bool:
 	if s.has("alert"):
 		z.alert_timer = float(s["alert"])
 	if bool(s.get("plane", false)) and z.has_method("place_on_balcony"):
-		z.place_on_balcony(float(s.get("plane_cx", z.global_position.x)), float(s.get("plane_floor_y", z.global_position.y + 25.0)))
+		z.place_on_balcony(float(s.get("plane_cx", z.global_position.x)), float(s.get("plane_floor_y", z.global_position.y + BALCONY_GEO.RISE)))
 	return true
 
 

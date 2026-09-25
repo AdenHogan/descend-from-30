@@ -47,9 +47,11 @@ hem; the kitchen's pedal bin (an "appliance on the floor") became two tied bin b
   end of the top — front), ladder-back chairs behind, one knocked over in front, a pendant lamp and a
   scratched-out portrait, a dead plant, a Welsh dresser (drawer + cupboard nodes, one spot). Damask
   over a cream wainscot; dark boards.
-Study + dining can hold the BALCONY (it covers x 4..96, y 12..126): that strip only has things the
-balcony may hide (radiator, file boxes / sideboard), and the `Art` sprite comes BEFORE the `Balcony`
-node so the balcony draws over it (checked by `apartment_window_test`).
+Study + dining can hold the BALCONY — since owner round 14 a DOORWAY in the back wall onto a loggia
+(`tools/art/balcony.py`, `assets/rooms/balcony{,_r2,_r3}.png`; x 8..92, lintel 16, sill on the seam at
+100 — `scripts/balcony_geo.gd`, docs/Y_PLANES.md §1). That strip only has things the balcony may hide
+(radiator, file boxes / sideboard), and the `Art` sprite comes BEFORE the `Balcony` node so the balcony
+draws over it (checked by `apartment_window_test`). Preview: `balcony_runs.png`.
 
 **Rules every module script enforces** (it refuses to write the PNG otherwise):
 1. The runtime window boxes are bare wall (`check_window_boxes`).

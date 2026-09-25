@@ -94,6 +94,7 @@ const MODULE_WINDOW_Y := 262.0
 const MODULE_WINDOW_INSET := 72.0
 const CLICK_RADIUS = 10.0
 const UI_FONT = preload("res://assets/fonts/PixelOperator8.ttf")
+const BalconyGeo = preload("res://scripts/balcony_geo.gd")
 
 # The apartment interior in world space (tilemap measured y 207..367 = 160px
 # tall; x comes from the tilemap per scene). The camera is LOCKED to this band
@@ -193,7 +194,7 @@ func _ready() -> void:
 		var bslot = WorldState.balcony_slot_in_apartment(apartment_id)
 		if bslot < 0:
 			bslot = 0
-		var bx = LEFT_WALL_X + bslot * MODULE_WIDTH + 50
+		var bx = LEFT_WALL_X + bslot * MODULE_WIDTH + BalconyGeo.CENTER_DX
 		player.position.x = bx
 		player.get_node("AnimatedSprite2D").flip_h = false
 		if player.has_method("arrive_on_balcony_plane"):
@@ -270,7 +271,7 @@ func _ready() -> void:
 			var rslot = WorldState.balcony_slot_in_apartment(apartment_id)
 			if rslot < 0:
 				rslot = 0
-			player.restore_balcony_plane(LEFT_WALL_X + rslot * MODULE_WIDTH + 50)
+			player.restore_balcony_plane(LEFT_WALL_X + rslot * MODULE_WIDTH + BalconyGeo.CENTER_DX)
 		WorldState.saved_on_balcony_plane = false
 
 	_after_modules_ready()
@@ -806,22 +807,19 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 			var show_balcony = WorldState.is_balcony_slot(apartment_id, i)
 			bal_node.visible = show_balcony
 			if show_balcony:
-				balcony_centers.append(float(LEFT_WALL_X + i * MODULE_WIDTH + 50))
+				balcony_centers.append(float(LEFT_WALL_X + i * MODULE_WIDTH + BalconyGeo.CENTER_DX))
 			# Natural daylight spills IN from the balcony window (moonlit at night) — so a
 			# balcony apartment is never pitch black even with the power out. Shown on the
 			# backdrop too, so a balcony seen during a descent pan is lit.
 			if show_balcony:
-				var win = load("res://scripts/floor_lighting.gd").make_window_light(
-					Vector2(LEFT_WALL_X + i * MODULE_WIDTH + 90, 210))
+				# (from the middle of the doorway, just under its lintel — scripts/balcony_geo.gd)
+				var bdoor := Vector2(LEFT_WALL_X + i * MODULE_WIDTH + BalconyGeo.CENTER_DX, BalconyGeo.LINTEL_Y + 16.0)
+				var win = load("res://scripts/floor_lighting.gd").make_window_light(bdoor)
 				add_child(win)
 				# A slanting daylight beam through the balcony door (see window_beam.gd).
 				var bbeam = load("res://scripts/window_beam.gd").new()
 				add_child(bbeam)
-				bbeam.setup(Vector2(LEFT_WALL_X + i * MODULE_WIDTH + 90, 210), 1.1, 1.0, live)
-			# The "BALCONY" tag → crisp pixel font (default font blurs when zoomed).
-			var bal_tag = bal_node.get_node_or_null("Tag")
-			if bal_tag != null:
-				bal_tag.add_theme_font_override("font", UI_FONT)
+				bbeam.setup(bdoor, 1.1, 1.0, live)
 			# A zone on EVERY revealed balcony (top AND bottom of a pair): the top
 			# offers the descent, the bottom just lets the player step out onto its
 			# plane / listen — the zone gates the actual climb-down on
@@ -830,7 +828,7 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 				var zone = preload("res://scenes/balcony_zone.tscn").instantiate()
 				zone.apartment_id = apartment_id
 				zone.slot = i
-				zone.position = Vector2(LEFT_WALL_X + i * MODULE_WIDTH + 50, 334)
+				zone.position = Vector2(LEFT_WALL_X + i * MODULE_WIDTH + BalconyGeo.CENTER_DX, 334)
 				add_child(zone)
 
 		# WALL WINDOW on every NON-balcony module (a balcony module already has its balcony
@@ -893,7 +891,7 @@ static func apply_run_art(module: Node, run: int) -> void:
 	# A texture without a run version (tutorial modules) keeps its morning look.
 	if run < 2:
 		return
-	for n in ["Art", "StripArt"]:
+	for n in ["Art", "StripArt", "Balcony/BalconyArt"]:
 		var spr = module.get_node_or_null(n)
 		if not (spr is Sprite2D) or spr.texture == null or spr.texture.resource_path == "":
 			continue

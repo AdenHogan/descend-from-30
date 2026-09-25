@@ -1329,7 +1329,7 @@ means no rendering — UI layout and art still need an in-editor look.
   a safe island; and a balcony landing has no grace if a zombie below stands at the balcony.
   **SUPERSEDED (owner round 8) — the ENEMY BALCONY PLANE is built** (`scripts/enemy_plane.gd`, shared by
   the standard family + the big): the room publishes `balcony_centers`; an enemy is on the room floor
-  OR out on the balcony (`on_balcony_plane`, feet 328 vs 353 — same line as the player's plane). It only
+  OR out on the balcony (`on_balcony_plane`, feet 319 vs 353 since round 14 — same line as the player's plane). It only
   fights what shares its plane (`same_plane`, both directions — the player can't hit a floor zombie from
   the balcony either) and different planes never collide. An aggro'd enemy walks to the doorway and STEPS
   UP (~0.4s) after a player out there, and steps DOWN after one who went back in; idle ones sometimes
@@ -1338,6 +1338,22 @@ means no rendering — UI layout and art still need an in-editor look.
   mid-step snaps to the arrival line); a balcony listen from above adds "Something's shuffling right below"
   (`apartment_balcony_occupied`). The old `_update_plane_pursuit` is gone. A descent lands ON the lower
   balcony plane (verified + tested). Locked by `balcony_test`.
+  **THE BALCONY REBUILT (owner round 14 — "ugly as hell… completely out of place… looks like the tardis…
+  move it higher, to the wall floor boundary line, as an actual out door area"):** the placeholder door
+  drawn over the room (polygons + a "BALCONY" label) is gone. A balcony is now a LOGGIA behind a doorway
+  in the back wall (`tools/art/balcony.py` → `assets/rooms/balcony{,_r2,_r3}.png`, the `Balcony/BalconyArt`
+  sprite, swapped per run by `room.apply_run_art`): painted trim, French doors swung out against its side
+  walls, terracotta tiles from the SILL on the wall/floor seam receding to a steel railing, and the city
+  beyond — morning / sunset with a smoke column / night with lit windows and a fire. ONE source for its
+  numbers: `scripts/balcony_geo.gd` (feet **319**, scale **0.74**, rise 34, half-width 26, rail 288,
+  lintel 244 — docs/Y_PLANES.md §1). The player's sprite shrinks about its feet (`_set_plane_depth`). The
+  descent: onto the handrail, clipped from the rail (288) to the lower LINTEL (404) so they sink behind the
+  railing and reappear in the lower doorway, over the lower rail onto its balcony; the rope is clipped the
+  same. The ↑ arrow is tutorial-only (a one-line "[W] Step out onto the balcony" hint once a session; the
+  stepped-out line names W / S). Blueprints draw the doorway + rail + feet line. Locked by `balcony_test`
+  (`_test_balcony_geometry`: art ↔ geometry, planes, slice, drawn feet, night look). Also:
+  `tools/scene_capture --seed` now actually applies (a `WorldState.dev_seed` read by `new_game`; the tool
+  used to set the seed after the game rolled its own).
   **HURT state (owner round 8, `scripts/enemy_hurt.gd`):** a non-lethal hit blinks the enemy WHITE (flash
   shader) for `HURT_TIME` 0.5s (big: its 0.6s stagger) — it can't attack and is passable, but is NEVER
   immune (the knocked-down "ignore every hit for 3s" is gone; a downed enemy takes hits and stays down).

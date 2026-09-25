@@ -9,7 +9,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, '..', '..'))
-SCRIPTS = ['bedroom.py', 'bedroom_variants.py', 'bathroom.py', 'kitchen.py', 'kitchen_variants.py',
+SCRIPTS = ['balcony.py', 'bedroom.py', 'bedroom_variants.py', 'bathroom.py', 'kitchen.py', 'kitchen_variants.py',
            'living_room.py', 'living_room_variants.py', 'study.py', 'study_variants.py',
            'dining_room.py', 'dining_room_variants.py']
 TYPES = ['living_room', 'bedroom', 'kitchen', 'bathroom', 'study', 'dining_room']

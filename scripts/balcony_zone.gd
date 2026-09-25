@@ -52,10 +52,18 @@ func _make_label(pos: Vector2, width: float, size: int) -> Label:
 	return l
 
 
+# One quiet line the first time a session meets a balcony (the ↑ arrow is tutorial-only now — see
+# _refresh), so W is discoverable without a bobbing arrow in the doorway.
+static var _hint_shown := false
+
+
 func _on_body_entered(body: Node2D) -> void:
 	if body.name == "Player":
 		player_nearby = true
 		_refresh()
+		if not _hint_shown and not TutorialManager.is_active() and not bool(body.get("on_balcony_plane")):
+			_hint_shown = true
+			HUD.show_feedback("[%s] Step out onto the balcony" % TutorialManager.key("move_up"))
 
 
 func _on_body_exited(body: Node2D) -> void:
@@ -74,8 +82,10 @@ func _refresh() -> void:
 	var player = get_tree().get_first_node_in_group("player")
 	var on_plane: bool = player != null and player.get("on_balcony_plane")
 	# Arrow invites stepping up; once out on the plane it only means "descend", so
-	# keep it only where a descent still exists.
-	arrow.visible = not on_plane or descendable
+	# keep it only where a descent still exists. TUTORIAL ONLY (owner round 14, as for the back plane:
+	# "the movement up feels a little clunky with that arrow… keep it in the tutorial, remove it from
+	# active game") — the doorway itself now reads as the way out.
+	arrow.visible = (not on_plane or descendable) and TutorialManager.is_active()
 	prompt.visible = false
 	listen_label.visible = false
 

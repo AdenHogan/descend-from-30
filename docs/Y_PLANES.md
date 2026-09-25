@@ -109,6 +109,28 @@ FEET at **339** (`room.ROOM_FEET_Y` 353 − `BACK_PLANE_RISE` 14; origin 306) �
 furniture's base (324): at 328 the player read as standing ON the bookshelf's bottom (owner round 9).
 Sprite scale = the room perspective between the lines, s(339)/s(353) ≈ 0.89. No x movement up there; saves record the walking line.
 
+THE BALCONY (owner round 14 — **`scripts/balcony_geo.gd` is the single source**; the art
+`tools/art/balcony.py`, the player, `enemy_plane.gd`, `balcony_pan.gd`, enemy memory and the blueprints
+all read it). A balcony is a LOGGIA behind a doorway in the back wall of a study / dining room (module
+x 12..88 around the centre x +50), NOT a door drawn over the room:
+
+| world | local | what |
+|---:|---:|---|
+| 244 | 20 | the doorway's LINTEL (`LINTEL_Y`) |
+| 288 | 64 | the HANDRAIL (`RAIL_TOP_Y`) — actors on it are drawn × 0.67 (`RAIL_SCALE`) |
+| 310 | 86 | the far edge of the balcony floor, the rail's base (`EDGE_Y`) |
+| **319** | 95 | **BALCONY FEET** (`FEET`) — player + enemies out there, drawn × **0.74** (`SCALE` = 95/129) |
+| 324 | 100 | the doorway's SILL = the room's wall/floor seam (`THRESHOLD_Y`) |
+
+`RISE` = 353 − 319 = **34** (player origin 320 → 286; standard origin 304 → 270, big 308 → 274).
+Half-width **26** either side of the centre. The player's sprite shrinks about its FEET
+(`player._set_plane_depth`) so the DRAWN feet stay on 319 (scaling about the origin floated them 9px).
+The DESCENT SLICE (`balcony_pan.gd`): hop onto the handrail (origin 255), then the sprite is clipped
+from **288** (the upper handrail — they sink behind the railing) down to **404** (160 + the lower
+doorway's lintel — they reappear at the top of the lower doorway), drop to the lower handrail (origin
+415), hop over it onto the lower balcony (origin 446). The rope is clipped by the same band. (Before
+round 14: a placeholder door drawn over the room, feet 328, scale 0.88, slice 272..402.)
+
 ---
 
 ## 2. Spawn / arrival planes (`building_floors.gd`, `stair_pan.gd` — must match)
