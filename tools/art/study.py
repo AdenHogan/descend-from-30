@@ -13,6 +13,7 @@ corner (node). Dark panelling below a deep green paper; parquet that repeats eve
 import os
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
+from pixlib import persp
 from pixlib import (Canvas, hexc, shade, W, H, check_window_boxes, check_edge_columns,
                     save_floor_strip, floor_is_periodic, rrect, finish_module)
 
@@ -94,6 +95,7 @@ def decay(c):
     c.line(256, 80, 254, 86, PANEL_DK)
 
 
+@persp
 def floor(c):
     # parquet: 16px blocks laid in alternating directions, rows staggered; repeats every 32px
     c.rect(0, 100, W - 1, H - 1, PARQ_A)

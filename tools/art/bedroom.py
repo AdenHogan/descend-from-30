@@ -14,6 +14,7 @@ past the module edge at a doorway (scripts/module_walls.gd FLOOR_STRIP).
 import os
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
+from pixlib import persp
 from pixlib import Canvas, hexc, shade, mix, SEAM_Y, W, H, check_window_boxes, check_edge_columns, save_floor_strip, floor_is_periodic, finish_module, rrect
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -116,6 +117,7 @@ def decay(c):
         c.hline(x, x + 5, 92, shade(WALL, 0.85))
 
 
+@persp
 def floor(c):
     # dusty carpet: flat, a soft darkening under the skirting, a worn path. Every texture element
     # repeats every 32px (x) so the floor tiles on seamlessly past the module edge at a doorway.

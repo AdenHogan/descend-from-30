@@ -12,6 +12,7 @@ import math
 import os
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
+from pixlib import persp
 from pixlib import Canvas, hexc, shade, mix, SEAM_Y, W, H, check_window_boxes, rrect, finish_module, setback
 import living_room as lr
 
@@ -124,6 +125,7 @@ def b_decor(c):
     c.put(112, 41, lr.OUT)
 
 
+@persp
 def b_floor(c):
     parquet_floor(c, hexc('8a6443'), hexc('7c5a3b'), hexc('5b3e28'))
 
@@ -414,6 +416,7 @@ def c_decor(c):
     travel_poster(c, 138, 28, 160, 56)
 
 
+@persp
 def c_floor(c):
     carpet_floor(c, hexc('59605f'), hexc('6b7271'), hexc('474d4c'))
 
@@ -520,6 +523,7 @@ def d_decor(c):
     c.line(141, 31, 148, 45, hexc('2a1c14'))
 
 
+@persp
 def d_floor(c):
     lr.floor(c)
 
@@ -658,6 +662,7 @@ def e_decor(c):
     c.poly([(200, 40), (206, 34), (212, 38), (216, 32), (216, 42), (200, 42)], hexc('4a5a3a'))
 
 
+@persp
 def e_floor(c):
     import furn as F
     F.floor_planks(c, [hexc('5e4230'), hexc('563c2a'), hexc('644734')], hexc('36261a'))

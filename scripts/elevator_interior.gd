@@ -79,7 +79,6 @@ func _build_ui() -> void:
 
 	# UI lives in the black margins AROUND the narrow car: readout above, controls below —
 	# the cramped car itself stays clear (the rider nearly fills it).
-	var vp := get_viewport_rect().size
 	var half_h_px: float = CAR.HALF_H * _z
 	var car_top: float = _car_center_y - half_h_px
 	var car_bot: float = _car_center_y + half_h_px

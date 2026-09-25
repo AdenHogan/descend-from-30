@@ -14,6 +14,7 @@ Run:  python3 tools/art/dining_room_variants.py [b c d]
 import os
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
+from pixlib import persp
 from pixlib import Canvas, hexc, shade, rrect, finish_module, setback
 import furn as F
 
@@ -54,6 +55,7 @@ def b_decor(c):
     c.rect(186, 52, 192, 57, PLATE)                                                           # a plate left on the sill
 
 
+@persp
 def b_floor(c):
     F.floor_carpet(c, hexc('7a5a3a'), hexc('8a6a44'), hexc('6a4a30'), worn=hexc('8a6a4a'))
 
@@ -154,6 +156,7 @@ def c_decor(c):
     c.line(170, 30, 184, 48, hexc('1e1a16'))                                                  # one slashed
 
 
+@persp
 def c_floor(c):
     import living_room_variants as LV
     LV.parquet_floor(c, hexc('5a3a26'), hexc('4e321f'), hexc('33200f'))
@@ -254,6 +257,7 @@ def d_decor(c):
     c.line(121, 63, 122, 80, BLOOD)
 
 
+@persp
 def d_floor(c):
     F.floor_planks(c, [hexc('5a4432'), hexc('523e2e'), hexc('604a36')], hexc('33261a'))
 
@@ -356,6 +360,7 @@ def e_decor(c):
         c.line(x, y + 6, x + 2, y + 18, hexc('9a927e'))
 
 
+@persp
 def e_floor(c):
     F.floor_carpet(c, hexc('8a5a4a'), hexc('9a6a58'), hexc('7a4a3c'), worn=hexc('a07060'))
 

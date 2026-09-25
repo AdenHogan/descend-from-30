@@ -14,6 +14,7 @@ at a doorway (scripts/module_walls.gd FLOOR_STRIP).
 import os
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
+from pixlib import persp
 from pixlib import Canvas, hexc, shade, mix, SEAM_Y, W, H, check_window_boxes, check_edge_columns, save_floor_strip, floor_is_periodic, finish_module, rrect
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -98,6 +99,7 @@ def decay(c):
     c.put(100, 60, TILE_DK); c.line(100, 60, 104, 66, GROUT)   # a cracked tile
 
 
+@persp
 def floor(c):
     # checker lino: 16px tiles, rows growing toward the viewer; the pattern repeats every 32px.
     rows = [100, 104, 109, 115, 122, 130, 139, 144]

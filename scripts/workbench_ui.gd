@@ -547,7 +547,7 @@ func _refresh_upgrade() -> void:
 
 
 # The heirloom forge: instalments + the crossing requirement.
-func _refresh_forge(inst, chk: Dictionary) -> void:
+func _refresh_forge(inst, _chk: Dictionary) -> void:
 	var to: int = inst.level + 1
 	var need: Dictionary = WeaponUpgrades.HEIRLOOM[to]
 	var total: int = int(need["scrap"])
@@ -662,12 +662,12 @@ func _refresh_salvage() -> void:
 		if not Salvage.can_salvage(inst):
 			continue
 		any = true
-		var name: String = inst.get_display_name()
+		var disp_name: String = inst.get_display_name()
 		if inst.count > 1:
-			name += "  x%d" % inst.count
+			disp_name += "  x%d" % inst.count
 		if inst.level > 1:
-			name += "  " + inst.tier_label()
-		var n := _label(name, 12, LEGEND if inst.level >= WeaponUpgrades.LEGENDARY_LEVEL else INK, FONT_BOLD)
+			disp_name += "  " + inst.tier_label()
+		var n := _label(disp_name, 12, LEGEND if inst.level >= WeaponUpgrades.LEGENDARY_LEVEL else INK, FONT_BOLD)
 		n.custom_minimum_size = Vector2(290, 0)
 		_salvage_grid.add_child(n)
 		var st := _label(_condition(inst), 12, DIM)
@@ -718,11 +718,11 @@ func salvage(slot: int) -> int:
 		refresh()
 		return 0
 	_confirm_salvage = null
-	var name: String = inst.get_display_name()
+	var disp_name: String = inst.get_display_name()
 	var got: int = WorldState.salvage_item(slot)
 	if got > 0:
 		_play_clank()
-		_say("%s broken down: +%d scrap." % [name, got])
+		_say("%s broken down: +%d scrap." % [disp_name, got])
 	refresh()
 	return got
 

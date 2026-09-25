@@ -38,7 +38,7 @@ func _ready() -> void:
 	await _test_apartment_fire_lights()
 	await _test_hit_flash_clears()
 	await _test_burnt_breach()
-	await _test_full_pack_key_drop()
+	_test_full_pack_key_drop()
 	await _test_soft_smoke()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
@@ -288,7 +288,6 @@ func _test_spawn_and_apartments() -> void:
 	for s in range(1, 601):
 		WorldState.master_seed = s
 		n[WorldState.fire_spawn_kind(15)] += 1
-	var total := 600.0
 	check(n[0] > 180 and n[0] < 300, "~40%% spawn at the down stair (%d)" % n[0])
 	check(n[1] > 180 and n[1] < 300, "~40%% spawn mid-hallway (%d)" % n[1])
 	check(n[2] > 60 and n[2] < 180, "~20%% spawn at the arrival stair (%d)" % n[2])

@@ -121,6 +121,7 @@ func _test_states() -> void:
 		if p.contains("1"):
 			top_lit = maxi(top_lit, patterns[p])
 	check(patterns.size() >= 30, "flats don't light alike (%d distinct night patterns of 64)" % patterns.size())
+	@warning_ignore("integer_division")
 	check(top_lit <= apts.size() / 10, "no lit pattern repeats flat after flat (most common: %d of %d)" % [top_lit, apts.size()])
 	var burnt_powered := 0
 	for apt in apts:
@@ -236,11 +237,11 @@ func _test_room_lit_at_night() -> void:
 	check(saw_dark, "a cutout lamp goes fully dark")
 	check(back_on, "…and comes back on")
 	check(steady_same, "a steady lamp holds its brightness (checked: %s)" % ("yes" if not steady.is_empty() else "no steady lamp here"))
-	var apt: String = room.apartment_id
+	var room_apt: String = room.apartment_id
 	room.free()
 	await get_tree().process_frame
 	# The same flat in the MORNING: daylight, nothing on.
-	var morning = await _room(apt, 1)
+	var morning = await _room(room_apt, 1)
 	var lit := 0
 	for n in _lamp_nodes(morning):
 		lit += n.lamp_count()

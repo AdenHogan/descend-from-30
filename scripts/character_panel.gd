@@ -69,11 +69,11 @@ func _paper_style() -> StyleBoxFlat:
 	return sb
 
 
-func _ink_label(text: String, size: int, color: Color = INK) -> Label:
+func _ink_label(text: String, font_size: int, color: Color = INK) -> Label:
 	var l := Label.new()
 	l.text = text
 	l.add_theme_font_override("font", FONT)
-	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_font_size_override("font_size", font_size)
 	l.add_theme_color_override("font_color", color)
 	return l
 

@@ -14,6 +14,7 @@ Run:  python3 tools/art/study_variants.py [b c d]
 import os
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
+from pixlib import persp
 from pixlib import Canvas, hexc, shade, rrect, finish_module, setback
 import furn as F
 import chair3d as C3
@@ -44,6 +45,7 @@ def b_decor(c):
         c.hline(156, 166, y, hexc('b0453a'))
 
 
+@persp
 def b_floor(c):
     F.floor_carpet(c, hexc('6a6e74'), hexc('7a7e84'), hexc('5a5e64'), worn=hexc('82868c'))
 
@@ -171,6 +173,7 @@ def c_decor(c):
     c.ellipse(161, 36, 5, 6, hexc('7a6a5a'))
 
 
+@persp
 def c_floor(c):
     import living_room_variants as LV
     LV.parquet_floor(c, hexc('7a5238'), hexc('6a4630'), hexc('4a3020'))
@@ -255,6 +258,7 @@ def d_decor(c):
         c.hline(187, 203, y, hexc('d9c24a'))
 
 
+@persp
 def d_floor(c):
     F.floor_planks(c, [hexc('4e4a40'), hexc('46423a'), hexc('544f44')], hexc('2e2b24'))
 
@@ -375,6 +379,7 @@ def e_decor(c):
             c.put(x + 1, y, col); c.put(x, y + 1, col)
 
 
+@persp
 def e_floor(c):
     F.floor_planks(c, [hexc('9a8a70'), hexc('928266'), hexc('a09076')], hexc('6a5e4a'))
     for y in range(104, 144):                                                     # paint drips, periodic

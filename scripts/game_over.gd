@@ -54,14 +54,14 @@ func _build_ui() -> void:
 	var lines: Array = []
 	var scored: Array = WorldState.last_valour.get("runs", [])
 	for i in range(outcomes.size()):
-		var name: String = WorldState.run_name(i + 1)
+		var run_nm: String = WorldState.run_name(i + 1)
 		var o := String(outcomes[i])
 		var verb := "Escaped" if o == "survived" else ("Fell" if o == "dead" else "—")
-		var line := "%s:  %s" % [name, verb]
+		var line := "%s:  %s" % [run_nm, verb]
 		if i < scored.size():
 			var r: Dictionary = scored[i]
 			var where := "the Lobby" if bool(r.get("escaped", false)) else "Floor %d" % int(r.get("deepest", 30))
-			line = "%s:  %s  (%s)  +%d" % [name, verb, where, int(r.get("valour", 0))]
+			line = "%s:  %s  (%s)  +%d" % [run_nm, verb, where, int(r.get("valour", 0))]
 			var extra: Array = []
 			if int(r.get("quests", 0)) > 0:
 				extra.append("%d quest%s" % [int(r["quests"]), "" if int(r["quests"]) == 1 else "s"])

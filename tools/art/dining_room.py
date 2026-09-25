@@ -14,6 +14,7 @@ every 32px.
 import os
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
+from pixlib import persp
 from pixlib import (Canvas, hexc, shade, W, H, check_window_boxes, check_edge_columns,
                     save_floor_strip, floor_is_periodic, rrect, finish_module)
 
@@ -111,6 +112,7 @@ def decay(c):
     c.dither(0, 6, 26, 16, DAMP, 0.5, pattern='random')
 
 
+@persp
 def floor(c):
     # dark boards running along the room, joints staggered on a 32px cycle
     c.rect(0, 100, W - 1, H - 1, BOARD)

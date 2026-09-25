@@ -32,6 +32,7 @@ func _ready() -> void:
 	frames.add_animation("fly")
 	frames.set_animation_speed("fly", 12.0)
 	frames.set_animation_loop("fly", true)
+	@warning_ignore("integer_division")
 	var n: int = int(SHEET.get_width() / FRAME)
 	for i in range(n):
 		var at := AtlasTexture.new()

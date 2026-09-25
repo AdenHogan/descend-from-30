@@ -2864,10 +2864,10 @@ func enemy_type_for(floor_num: int, spawn_key: String) -> String:
 	# spitter AND crawler) are scaled down, so the opening is mostly plain standards — a gearless
 	# character isn't walled, and two crawlers landing side-by-side on the 2nd floor down is
 	# highly unlikely (owner ask). The deeper floors keep their full swarm.
-	var ease: float = run_opening_ease(floor_num)
+	var open_ease: float = run_opening_ease(floor_num)
 	var acc: float = 0.0
 	for id in _MIX_ORDER:
-		acc += _MIX_TABLES[id][band][r] * ease
+		acc += _MIX_TABLES[id][band][r] * open_ease
 		if roll < acc:
 			return id
 	return "zombie_standard"

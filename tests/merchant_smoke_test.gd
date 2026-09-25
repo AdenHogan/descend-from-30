@@ -225,7 +225,7 @@ func _test_save_load() -> void:
 	_fresh_state(777)
 	WorldState.wallet_unlocked = true
 	WorldState.wallet_balance = 500
-	var stock = WorldState.get_merchant_stock(25)
+	WorldState.get_merchant_stock(25)
 	WorldState.mark_shop_item_sold(25, 0)
 	var expected_stock = WorldState.merchant_stock.duplicate(true)
 	var expected_hold = WorldState.legendary_hold.duplicate(true)

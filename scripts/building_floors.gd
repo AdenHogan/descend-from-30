@@ -89,6 +89,7 @@ static func corridor_wear(floor_num: int) -> int:
 	# ...and it gets more run-down the further down you go, inside each look too: 0 kept up
 	# (29-24) .. 1 (23-18) .. 2 (17-12) .. 3 (11-6) .. 4 derelict (5-1). A pure function of the
 	# floor, like everything else about its layout.
+	@warning_ignore("integer_division")
 	return clampi((29 - floor_num) / 6, 0, 4)
 
 
@@ -108,8 +109,8 @@ static func corridor_art_path(floor_num: int, run: int) -> String:
 	return corridor_art_named(corridor_base_name(floor_num), run)
 
 
-static func corridor_art_named(name: String, run: int) -> String:
-	var base := "res://assets/corridor/" + name
+static func corridor_art_named(art_name: String, run: int) -> String:
+	var base := "res://assets/corridor/" + art_name
 	for r in range(clampi(run, 1, 3), 1, -1):
 		if ResourceLoader.exists(base + "_r%d.png" % r):
 			return base + "_r%d.png" % r

@@ -57,6 +57,7 @@ func _init() -> void:
 			print("  MISSING pose ", pose[0], " (", pose[1], ")")
 			continue
 		var fcount := sf.get_frame_count(anim)
+		@warning_ignore("integer_division")
 		var fi: int = pose[2] if pose[2] >= 0 else int(fcount / 2)
 		fi = clampi(fi, 0, fcount - 1)
 		var tex := sf.get_frame_texture(anim, fi)
@@ -82,6 +83,7 @@ func _dump(label: String, scene_path: String, anim: String, frame: int, prefix: 
 	var sf: SpriteFrames = spr.sprite_frames
 	var a := anim if (anim != "" and sf.has_animation(anim)) else sf.get_animation_names()[0]
 	var fcount := sf.get_frame_count(a)
+	@warning_ignore("integer_division")
 	var fi: int = frame if frame >= 0 else int(fcount / 2)
 	fi = clampi(fi, 0, fcount - 1)
 	var tex := sf.get_frame_texture(a, fi)

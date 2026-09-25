@@ -1399,11 +1399,23 @@ means no rendering — UI layout and art still need an in-editor look.
   `room.apply_run_art(module, WorldState.current_run)`. PLACEMENT RULE (owner round 11): loose things
   (bags, boxes, buckets, piles, tins) never stand alone mid-floor — against a wall or beside/on the
   furniture they belong with; only real furniture (tables, chairs, beds, sofas, easels, rails) stands
-  out toward the lane and carries the front nodes (modules README). Locked by `apartment_window_test._test_module_variants`. **Floors at doorways**: `module_walls._floor_wedge` parts two rooms'
-  floors along the wall's base line in perspective (flipping with the camera like the wall face),
-  tiled from each module's FLOOR-ONLY export `assets/rooms/<name>_floor.png` (32px-periodic), with a
-  wooden threshold in interior doorways. Generators enforce: window boxes bare, the side-wall sample
-  columns (x 3, W-4) bare, floor 32px-periodic. Back-plane nodes skip the facing rule (you can't turn
+  out toward the lane and carries the front nodes (modules README). Locked by `apartment_window_test._test_module_variants`. **Floors at doorways** (owner round 14 — "depending
+  on where you move to the corpse's head is either in one room or the other. The head didn't move, the
+  perspective of the floor moved"): between two rooms the floors meet on a FIXED line — each runs to its
+  own module edge, under a static wooden SADDLE (jamb to the floor's front edge). The interior walls are
+  drawn from a clamped camera (`PARALLAX_MAX` 40) and turn about their doorway JAMB (`_pivot_kx`), so the
+  jamb stands on that line whatever the camera does; only the stub behind it and the lintel swing. The
+  old camera-driven wedge moved the join ~100px across floors that don't move. Only the two END walls
+  keep the real camera (room.gd stops the player at their drawn foot): there `_floor_wedge` runs the
+  room's floor on to the wall's base line from `<name>_floor_ext.png`. **Floors are in PERSPECTIVE**
+  (round 14 — a checker floor "looks like… standing on glass… the tiles go directly down"): every module
+  floor function is wrapped in `pixlib.persp` — drawn FLAT (32px-periodic), then each floor row is
+  remapped toward the module centre (`PERSP_K` 0.55 of full convergence: at full strength a floor at a
+  module's edge sheared ~58° into diagonal stripes, since the player isn't at the art's vanishing
+  point). `<name>_floor.png` = the floor as the art shows it (the blueprint tool's reference);
+  `<name>_floor_ext.png` = the same floor `FLOOR_EXT_M` 96px past each edge. Generators enforce: window
+  boxes bare, the side-wall sample columns (x 3, W-4) bare, the flat floor 32px-periodic, every floor
+  wrapped in `@persp`. Back-plane nodes skip the facing rule (you can't turn
   up there). Locked by `apartment_window_test._test_floor_boundary`.
 - APARTMENT LAMPS (owner round 14, `scripts/apartment_lights.gd`; full detail in
   docs/art_reference/modules/README.md "LAMPS"): all 30 module variants draw UNLIT fixtures (table /

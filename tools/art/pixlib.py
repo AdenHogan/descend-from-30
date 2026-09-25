@@ -194,18 +194,111 @@ def check_edge_columns(full, wall_only):
     return bad
 
 
-def save_floor_strip(floor_fn, name, root, seed=1):
-    """Export the module's FLOOR ALONE (rows SEAM_Y..H-1, no furniture/shadows) as
-    assets/rooms/<name>_floor.png. scripts/module_walls.gd tiles it across the floor wedge where two
-    rooms meet at a doorway, so nothing standing on the floor near the edge is ever smeared into the
-    next room. Floors should repeat every 32px (FLOOR_STRIP) so the continuation is seamless."""
+def save_floor_strip(floor_fn, name, root, seed=1, level=None):
+    """Export the module's FLOOR ALONE (rows SEAM_Y..H-1, no furniture/shadows):
+      assets/rooms/<name>_floor.png      — the floor exactly as the art shows it (perspective), 320x44:
+                                           what the blueprint tool compares the art against;
+      assets/rooms/<name>_floor_ext.png  — the same floor running FLOOR_EXT_M px past each edge, which
+                                           scripts/module_walls.gd lays where the room's floor runs on
+                                           to an end wall's base line (nothing standing near the edge is
+                                           ever carried on).
+    `level` 2/3 adds that run's floor grime (the run looks). Returns the FLAT floor rows, which must
+    repeat every 32px (the pattern the perspective is sampled from)."""
     import os
+    if getattr(floor_fn, '_flat', None) is None:
+        raise SystemExit('%s: wrap the floor function in @persp (pixlib) — floors are drawn in perspective' % name)
+    dirt = (58, 46, 34)
     c = Canvas(seed=seed)
     floor_fn(c)
     strip = c.img.crop((0, SEAM_Y, W, H))
-    path = os.path.join(root, 'assets', 'rooms', name + '_floor.png')
-    strip.save(path)
-    return strip
+    flat = Canvas(seed=seed)
+    _PERSP_DEPTH[0] += 1                  # a floor built from another's (lr.floor) draws flat too
+    try:
+        floor_fn._flat(flat)
+    finally:
+        _PERSP_DEPTH[0] -= 1
+    if level is not None:
+        _floor_grime(strip, 0, level, dirt)
+    suffix = '' if level is None else '_r%d' % level
+    strip.save(os.path.join(root, 'assets', 'rooms', name + suffix + '_floor.png'))
+    ext = floor_ext(flat.img, level, dirt)
+    ext.save(os.path.join(root, 'assets', 'rooms', name + suffix + '_floor_ext.png'))
+    if ext.crop((FLOOR_EXT_M, 0, FLOOR_EXT_M + W, H - SEAM_Y)).tobytes() != strip.tobytes():
+        raise SystemExit('%s%s: the extended floor does not match the art\'s own floor' % (name, suffix))
+    return flat.img.crop((0, SEAM_Y, W, H))
+
+
+# --- FLOORS IN PERSPECTIVE (owner round 14 — a tile floor "looks like an optical illusion where you're
+# standing on glass… the tiles go directly down and not along what would be a flat surface"): every
+# module floor is drawn FLAT (a pattern repeating every 32px, rows already taller toward the viewer),
+# then each floor row is remapped toward the module's vanishing point — the horizon is the ceiling
+# (y 0) and the vanishing point the module centre, the perspective module_walls and setback() use — so
+# tile / board seams CONVERGE up the screen like a real floor: at row y art column x shows flat column
+# VP + (x − VP)·(1 + PERSP_K·(SEAM/y − 1)) (_persp_sx; PERSP_K 1 would be the full SEAM/y). `persp(floor_fn)` wraps a floor function; nested calls draw flat (a variant
+# floor built from another's). finish_module also exports <name>_floor_ext.png: the same perspective
+# floor FLOOR_EXT_M px past each edge, which module_walls lays where a room's floor runs on to an END
+# wall's base line (between two rooms the join is fixed at the module edge).
+PERSP_K = 0.55                      # how much of the full convergence the floor takes: the art's
+                                    # vanishing point is the MODULE's centre but the player stands
+                                    # anywhere, so at full strength a floor at the module's edge leaned
+                                    # ~58° (sheared diagonal stripes); ~0.55 reads flat without that
+FLOOR_EXT_M = 96                    # a multiple of 32, so the periodic floor grime lines up
+                                    # (module_walls.FLOOR_EXT_M: keep in step)
+_PERSP_DEPTH = [0]
+
+
+def _persp_sx(x, y):
+    """The FLAT floor column shown at art column x on floor row y (perspective toward VP_X)."""
+    return VP_X + (x - VP_X) * (1.0 + PERSP_K * (SEAM_Y / float(y) - 1.0))
+
+
+def persp(fn):
+    if getattr(fn, '_flat', None) is not None:
+        return fn
+
+    def wrapped(c):
+        if _PERSP_DEPTH[0] > 0:
+            return fn(c)
+        _PERSP_DEPTH[0] += 1
+        try:
+            flat = Canvas(bg=(0, 0, 0, 0))
+            flat.rng = c.rng
+            fn(flat)
+        finally:
+            _PERSP_DEPTH[0] -= 1
+        fp_ = flat.px
+        for y in range(H):
+            for x in range(W):
+                if y < SEAM_Y:
+                    p_ = fp_[x, y]
+                    if p_[3]:
+                        c.put(x, y, p_)
+                    continue
+                sx = int(round(_persp_sx(x, y)))
+                p_ = fp_[min(max(sx, 0), W - 1), y]
+                if p_[3]:
+                    c.put(x, y, p_)
+    wrapped._flat = fn
+    wrapped.__name__ = getattr(fn, '__name__', 'floor')
+    return wrapped
+
+
+def floor_ext(flat_img, grime_level=None, dirt=(58, 46, 34)):
+    """The perspective floor rows (SEAM_Y..H-1) from x −M to W+M, from a FLAT periodic floor image."""
+    M = FLOOR_EXT_M
+    fp_ = flat_img.load()
+    out = Image.new('RGBA', (W + 2 * M, H - SEAM_Y), (0, 0, 0, 0))
+    op = out.load()
+    for y in range(SEAM_Y, H):
+        for xe in range(W + 2 * M):
+            x = xe - M
+            sx = int(round(_persp_sx(x, y)))
+            if not 0 <= sx < W:
+                sx = sx % 32 + 128                        # the flat floor repeats every 32px
+            op[xe, y - SEAM_Y] = fp_[sx, y]
+    if grime_level is not None:
+        _floor_grime(out, 0, grime_level, dirt)
+    return out
 
 
 def floor_is_periodic(strip, period=32):
@@ -471,7 +564,7 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
         errs.append('transparent pixels in the art (they show the grey placeholder in game): %s' % holes[:6])
     fl = save_floor_strip(floor_fn, name, ROOT, seed=seed)
     if not floor_is_periodic(fl):
-        errs.append('the floor must repeat every 32px')
+        errs.append('the (flat) floor must repeat every 32px')
     # nodes: on furniture, below the window line, the right side of the strip, enough in front
     n_front = 0
     n_main = 0
@@ -853,11 +946,7 @@ def run_looks(name, root, main_img, full_img, bare_wall_img, bare_floor_img, flo
         # write
         suffix = '_r%d' % level
         m.save(os.path.join(root, 'assets', 'rooms', name + suffix + '.png'))
-        fl = Canvas(seed=seed)
-        floor_fn(fl)
-        strip = fl.img.crop((0, SEAM_Y, W, H))
-        _floor_grime(strip, 0, level, dirt)
-        strip.save(os.path.join(root, 'assets', 'rooms', name + suffix + '_floor.png'))
+        save_floor_strip(floor_fn, name, root, seed=seed, level=level)
         if has_strip:
             s = Image.new('RGBA', (W, H), (0, 0, 0, 0))
             spx = s.load()
@@ -866,7 +955,5 @@ def run_looks(name, root, main_img, full_img, bare_wall_img, bare_floor_img, flo
                     if base_full.getpixel((x, y)) != base_main.getpixel((x, y)):
                         spx[x, y] = fp[x, y]
             s.save(os.path.join(root, 'assets', 'rooms', name + suffix + '_strip.png'))
-        if not floor_is_periodic(strip):
-            raise SystemExit('%s%s: the run floor must repeat every 32px' % (name, suffix))
         out[level] = f
     return out

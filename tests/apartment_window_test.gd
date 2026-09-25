@@ -23,7 +23,7 @@ func _ready() -> void:
 	await _test_windows_day()
 	await _test_windows_night()
 	await _test_exit_through_door()
-	await _test_floor_boundary()
+	_test_floor_boundary()
 	_test_module_variants()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
@@ -286,70 +286,74 @@ func _test_exit_through_door() -> void:
 
 
 func _test_floor_boundary() -> void:
-	# Owner round 9: where two rooms meet, their FLOORS part along the wall's base line in perspective
-	# (not the module's vertical edge), flipping side with the camera — like the wall face above.
-	print("[floors part along the wall's base line, flipping with the camera]")
+	# Owner round 14: "depending on where you move to the corpse's head is either in one room or the
+	# other. The head didn't move, the perspective of the floor moved." Between two rooms the floors
+	# meet on a FIXED line (the module edge, under the doorway's saddle) whatever the camera does, and
+	# the doorway's jamb stands on it; only an END wall's base line moves with the camera.
+	print("[the floor join between rooms is fixed; the jamb stands on it]")
 	var MW = load("res://scripts/module_walls.gd")
 	var mw = MW.new()
 	add_child(mw)
 	var xb := 433.0
-	check(absf(mw.floor_boundary_x(xb, 300.0, MW.SEAM) - xb) < 0.01, "at the back (the seam) the boundary is the module edge")
-	var near_l: float = mw.floor_boundary_x(xb, 300.0, 353.0)
-	var near_r: float = mw.floor_boundary_x(xb, 560.0, 353.0)
-	check(near_l > xb + 10.0, "camera LEFT of the wall: at the lane the left room's floor runs on past the edge (%.1f > %.0f)" % [near_l, xb])
-	check(near_r < xb - 10.0, "camera RIGHT: the right room's floor runs back past it (%.1f < %.0f)" % [near_r, xb])
-	check(mw.floor_boundary_x(xb, 300.0, 360.0) > near_l, "…and the wedge widens toward the front")
+	var inner := {"x": xb, "left": mw, "right": mw, "door": true, "outside": false}
+	for cam in [xb - 300.0, xb - 60.0, xb - 10.0, xb, xb + 10.0, xb + 60.0, xb + 300.0]:
+		for fy in [MW.SEAM, 347.0, 353.0, 368.0]:
+			check(absf(mw.floor_boundary_x(inner, cam, fy) - xb) < 0.01,
+				"camera %.0f, floor %.0f: the join between two rooms stays on the module edge" % [cam, fy])
+		check(absf(mw.jamb_x(xb, cam) - xb) < 0.01, "camera %.0f: the doorway's jamb stands on the join (%.2f)" % [cam, mw.jamb_x(xb, cam)])
+	var end_b := {"x": xb, "left": mw, "right": null, "door": false, "outside": false}
+	check(mw.floor_boundary_x(end_b, xb - 144.0, 353.0) > xb + 10.0, "an END wall's base still runs out past the edge toward the front")
 	mw.free()
-	# The floor strips continue each floor seamlessly only if the floor repeats every FLOOR_STRIP px —
-	# checked on each module's FLOOR-ONLY export (no furniture), which is what the wedge tiles.
-	var strip: int = MW.FLOOR_STRIP
+	# Floors are drawn in PERSPECTIVE (tools/art pixlib.persp): the floor-only export is the floor as the
+	# art shows it; the _floor_ext export runs FLOOR_EXT_M px past each edge (the end-wall wedge) and its
+	# middle is exactly that floor.
+	var m_ext: int = int(MW.FLOOR_EXT_M)
 	var RoomScript = load("res://scripts/room.gd")
 	for rt in RoomScript.MODULE_VARIANTS:
 		for path in RoomScript.MODULE_VARIANTS[rt]:
 			var inst = load(path).instantiate()
 			var art = inst.get_node_or_null("Art")
-			var fp: String = art.texture.resource_path.get_basename() + "_floor.png" if art is Sprite2D and art.texture != null else ""
+			var base: String = art.texture.resource_path.get_basename() if art is Sprite2D and art.texture != null else ""
 			inst.free()
-			check(fp != "" and ResourceLoader.exists(fp), "%s: has a floor-only export" % path.get_file())
-			if fp == "" or not ResourceLoader.exists(fp):
+			check(base != "", "%s: has art" % path.get_file())
+			if base == "":
 				continue
-			var base_fp: String = fp.substr(0, fp.length() - "_floor.png".length())
-			for f2 in [fp, base_fp + "_r2_floor.png", base_fp + "_r3_floor.png"]:
-				check(ResourceLoader.exists(f2), "%s exists" % f2.get_file())
-				if not ResourceLoader.exists(f2):
+			for b2 in [base, base + "_r2", base + "_r3"]:
+				var fp: String = b2 + "_floor.png"
+				var xp: String = b2 + "_floor_ext.png"
+				check(ResourceLoader.exists(fp) and ResourceLoader.exists(xp), "%s: floor + extended floor exports exist" % b2.get_file())
+				if not (ResourceLoader.exists(fp) and ResourceLoader.exists(xp)):
 					continue
-				var img: Image = load(f2).get_image()
-				if img.is_compressed():
-					img.decompress()
-				check(img.get_height() == 44 and img.get_width() == 320, "%s: a floor-only export, 320x44" % f2.get_file())
-				check(_floor_periodic_below(img, strip, 0), "%s: the floor repeats every %dpx (tiles on seamlessly)" % [f2.get_file(), strip])
-	# A module's strip comes from that floor-only export — the right edge = its last FLOOR_STRIP columns.
+				var fl: Image = _img(fp)
+				var ex: Image = _img(xp)
+				check(fl.get_width() == 320 and fl.get_height() == 44, "%s: a floor-only export, 320x44" % fp.get_file())
+				check(ex.get_width() == 320 + 2 * m_ext and ex.get_height() == 44, "%s: %dx44" % [xp.get_file(), 320 + 2 * m_ext])
+				check(ex.get_region(Rect2i(m_ext, 0, 320, 44)).get_data() == fl.get_data(), "%s: its middle IS the room's floor" % xp.get_file())
+	# the tiles recede: on the kitchen's checker the tile edges lean toward the middle further forward,
+	# so a row near the front is a squeezed-out copy of the back row, not the same row (that read as
+	# "standing on glass… the tiles go directly down")
+	var kb: Image = _img("res://assets/rooms/kitchen_b_floor.png")
+	var same_cols := 0
+	for x in range(320):
+		if kb.get_pixel(x, 2) == kb.get_pixel(x, 42):
+			same_cols += 1
+	check(same_cols < 250, "kitchen B's checker isn't the same column all the way down (%d/320 alike)" % same_cols)
+	# the end-wall wedge paints from that extended export
 	var m = load("res://scenes/Room_Modules/kitchen.tscn").instantiate()
 	add_child(m)
 	var w2 = MW.new()
 	add_child(w2)
-	var tex: Texture2D = w2._floor_strip(m, true)
-	var fl: Image = load("res://assets/rooms/kitchen_floor.png").get_image()
-	if fl.is_compressed():
-		fl.decompress()
-	var sim: Image = tex.get_image()
-	check(sim.get_width() == strip and sim.get_height() == 44, "the strip is %dx44 (got %dx%d)" % [strip, sim.get_width(), sim.get_height()])
-	var same := true
-	for y in range(44):
-		for x in range(strip):
-			if sim.get_pixel(x, y) != fl.get_pixel(fl.get_width() - strip + x, y):
-				same = false
-	check(same, "…cut from the FLOOR-ONLY export's right edge (no bin smeared into the next room)")
+	var tex: Texture2D = w2._floor_ext(m)
+	check(tex != null and tex.resource_path == "res://assets/rooms/kitchen_floor_ext.png", "the end-wall wedge uses the extended floor (%s)" % (tex.resource_path if tex != null else "null"))
 	w2.free()
 	m.free()
 
 
-func _floor_periodic_below(img: Image, strip: int, y0: int) -> bool:
-	for y in range(y0, img.get_height()):
-		for x in range(img.get_width() - strip):
-			if img.get_pixel(x, y) != img.get_pixel(x + strip, y):
-				return false
-	return true
+func _img(path: String) -> Image:
+	var im: Image = load(path).get_image()
+	if im.is_compressed():
+		im.decompress()
+	return im
 
 
 func _test_module_variants() -> void:

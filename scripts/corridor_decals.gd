@@ -58,6 +58,7 @@ static var _loaded := false
 
 static func horror_level(floor_num: int, run: int) -> float:
 	# 0.06 at the top on the first morning .. 1.5 at the bottom on the third night.
+	@warning_ignore("integer_division")
 	var wear: int = clampi((29 - floor_num) / 6, 0, 4)
 	return clampf(0.06 + 0.2 * wear + 0.32 * (run - 1), 0.0, HORROR_MAX)
 
@@ -84,6 +85,7 @@ static func plan(floor_num: int, run: int, base_name: String) -> Array:
 		taken.append(Rect2(d + 32, 85, 7, 8))                 # light switches
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(str(WorldState.master_seed) + "corridor_decals" + str(floor_num))
+	@warning_ignore("integer_division")
 	var wear: int = clampi((29 - floor_num) / 6, 0, 4)
 	var out: Array = []
 	# --- dressing: fixed per floor; later runs take some away / knock some over ---

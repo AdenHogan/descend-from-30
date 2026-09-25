@@ -18,14 +18,14 @@ func _ready() -> void:
 	chk(s != null, "title_screen.tscn loads")
 
 	var expected := {"PlayButton": "Play", "SettingsButton": "Settings", "ExitButton": "Exit"}
-	for name in expected:
-		var btn = s.get_node_or_null("Menu/Root/Buttons/%s" % name)
-		chk(btn != null, "Menu/Root/Buttons/%s exists" % name)
+	for nm in expected:
+		var btn = s.get_node_or_null("Menu/Root/Buttons/%s" % nm)
+		chk(btn != null, "Menu/Root/Buttons/%s exists" % nm)
 		if btn != null:
-			chk(btn is Button, "%s is a real Button (not a Label + hitbox)" % name)
-			chk(btn.text == expected[name],
-				"%s reads '%s' (got '%s')" % [name, expected[name], btn.text])
-			chk(not btn.disabled, "%s starts enabled" % name)
+			chk(btn is Button, "%s is a real Button (not a Label + hitbox)" % nm)
+			chk(btn.text == expected[nm],
+				"%s reads '%s' (got '%s')" % [nm, expected[nm], btn.text])
+			chk(not btn.disabled, "%s starts enabled" % nm)
 
 	# New Game / Continue moved to the profile screen — nothing may still offer
 	# them here, or the player is asked the same question twice.

@@ -35,7 +35,7 @@ func _ready() -> void:
 	await _test_run_opening_grace()
 	await _test_crawler_behaviour()
 	await _test_enemy_reach()
-	await _test_standard_key_full_pockets()
+	_test_standard_key_full_pockets()
 	await _test_hurt_state()
 	await _test_hurt_targeting()
 	await _test_burning_big_doubles()

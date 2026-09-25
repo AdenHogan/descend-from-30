@@ -96,8 +96,10 @@ func _test_scrap_faucets() -> void:
 			natural_hits += 1
 	check(charred_hits > 120, "most charred anchors hold scrap (%d/200)" % charred_hits)
 	check(natural_hits > 0 and natural_hits < 40, "ordinary anchors only rarely do (%d/200)" % natural_hits)
+	@warning_ignore_start("integer_division")
 	check(charred_hits > 0 and charred_total / charred_hits >= WorldState.SCRAP_BAG_CHARRED.x,
 		"a charred bag is the big one (avg %d)" % (charred_total / maxi(charred_hits, 1)))
+	@warning_ignore_restore("integer_division")
 	check(WorldState.scrap_bag_for_anchor("2203", "anchor_a", true) == WorldState.scrap_bag_for_anchor("2203", "anchor_a", true),
 		"seeded — the same ruin holds the same scrap on re-entry")
 

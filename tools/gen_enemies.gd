@@ -29,6 +29,7 @@ func _init() -> void:
 			sf.set_animation_speed(anim, ANIMS[anim][0])
 			sf.set_animation_loop(anim, ANIMS[anim][1])
 			var tex: Texture2D = load(pattern % anim)
+			@warning_ignore("integer_division")
 			var n: int = int(tex.get_width() / FW)
 			for i in range(n):
 				var at := AtlasTexture.new()

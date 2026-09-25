@@ -12,6 +12,7 @@ Run:  python3 tools/art/bedroom_variants.py [b c d]
 import os
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
+from pixlib import persp
 from pixlib import Canvas, hexc, shade, rrect, finish_module
 import furn as F
 
@@ -77,6 +78,7 @@ def b_decor(c):
     c.line(180, 58, 176, 64, hexc('1e1e24'))
 
 
+@persp
 def b_floor(c):
     F.floor_carpet(c, hexc('5a5f7a'), hexc('6a6f8a'), hexc('4a4f68'), worn=hexc('70748e'))
 
@@ -188,6 +190,7 @@ def c_decor(c):
         c.hline(199, 205, y, hexc('a0505a'))
 
 
+@persp
 def c_floor(c):
     F.floor_planks(c, [hexc('6b4f3a'), hexc('634835'), hexc('705440')], hexc('3f2d20'))
 
@@ -343,6 +346,7 @@ def d_decor(c):
     c.line(190, 50, 212, 46, hexc('5a5244'))
 
 
+@persp
 def d_floor(c):
     F.floor_planks(c, [hexc('5a4a3a'), hexc('524334'), hexc('604f3e')], hexc('33281e'))
 
@@ -449,6 +453,7 @@ def e_decor(c):
         c.vline(x, 36, 42, col); c.ellipse(x, 35, 1, 1, col)
 
 
+@persp
 def e_floor(c):
     F.floor_carpet(c, hexc('7a9ab0'), hexc('8aaac0'), hexc('6a8aa0'), worn=hexc('92b0c4'))
 

@@ -12,6 +12,7 @@ Run:  python3 tools/art/kitchen_variants.py [b c d]
 import os
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
+from pixlib import persp
 from pixlib import Canvas, hexc, shade, rrect, finish_module, setback
 import furn as F
 
@@ -117,6 +118,7 @@ def b_decor(c):
         c.hline(292, 308, y, hexc('b9b09a'))
 
 
+@persp
 def b_floor(c):
     F.floor_lino(c, hexc('2e2e33'), hexc('dcd8cc'), size=16)
 
@@ -199,6 +201,7 @@ def c_decor(c):
         c.ellipse(x - 2, 32 + r, r // 2, r // 2, hexc('d8904a'))
 
 
+@persp
 def c_floor(c):
     # quarry tiles: 16px terracotta squares, alternating a shade (repeats every 32px)
     rows = [100, 105, 111, 118, 126, 135, 144]
@@ -321,6 +324,7 @@ def d_decor(c):
     c.rect(122, 34, 132, 43, hexc('e88aa0'))
 
 
+@persp
 def d_floor(c):
     F.floor_lino(c, hexc('8a8a78'), hexc('9a9a86'), size=16)
     for y in range(104, 144):
@@ -424,6 +428,7 @@ def e_decor(c):
     c.line(115, 20, 216, 40, hexc('a8322c'))                                    # string between them
 
 
+@persp
 def e_floor(c):
     F.floor_lino(c, hexc('8a7a5e'), hexc('a08e6e'), size=16)
 

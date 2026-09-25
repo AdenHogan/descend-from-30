@@ -149,13 +149,13 @@ func _build_trade_picker() -> void:
 		grid.add_child(b)
 
 
-func buy(perk_id: String, trade_out: String = "") -> String:
-	if trade_out == "" and WorldState.permanent_perks.size() >= Progression.PERMANENT_CAP:
+func buy(perk_id: String, trade_out_id: String = "") -> String:
+	if trade_out_id == "" and WorldState.permanent_perks.size() >= Progression.PERMANENT_CAP:
 		_pending_buy = "" if _pending_buy == perk_id else perk_id      # click again to cancel
 		_msg.text = ""
 		refresh()
 		return "full"
-	var err: String = WorldState.buy_permanent(perk_id, trade_out)
+	var err: String = WorldState.buy_permanent(perk_id, trade_out_id)
 	_pending_buy = ""
 	_msg.text = err if err != "" else "%s is yours for good — every new game starts with it." % Progression.perk_info(perk_id).get("name", perk_id)
 	if err == "":

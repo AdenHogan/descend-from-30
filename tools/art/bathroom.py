@@ -19,6 +19,7 @@ against the back wall are back-plane ('bp').
 import os
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
+from pixlib import persp
 from pixlib import Canvas, hexc, shade, mix, W, H, finish_module, rrect, setback
 
 # --- shared palette ---------------------------------------------------------------------------
@@ -227,6 +228,7 @@ def mosaic_floor(c, a, b, g):
     c.hline(0, W - 1, 101, shade(a, 0.75))
 
 
+@persp
 def a_floor(c):
     mosaic_floor(c, A_MOS_A, A_MOS_B, A_MOS_G)
 
@@ -352,6 +354,7 @@ def b_wall(c):
         c.ellipse(200 + i * 5, 14 + (i % 2) * 3, 6, 4, hexc('7a5a3a', 60))
 
 
+@persp
 def b_floor(c):
     # orange lino: a repeating 16px geometric of squares-in-squares (repeats every 32px)
     c.rect(0, 100, W - 1, H - 1, B_LINO_A)
@@ -510,6 +513,7 @@ def c_wall(c):
     c.hline(120, 131, 59, GOLD_DK)
 
 
+@persp
 def c_floor(c):
     c.rect(0, 100, W - 1, H - 1, C_WHITE)
     rows = [100, 106, 114, 124, 136, 144]
@@ -638,6 +642,7 @@ def d_wall(c):
         c.line(x, 30, x + 1, 60, RUST)
 
 
+@persp
 def d_floor(c):
     # grey sheet vinyl, lifting in a seam line, a drain grate every 64px (periodic by 32)
     base = hexc('8a8f8a')
@@ -788,6 +793,7 @@ def e_wall(c):
     c.dither(286, 6, W - 1, 20, MOULD, 0.35, pattern='random')
 
 
+@persp
 def e_floor(c):
     # black and white hexagon-ish mosaic: offset 8px blocks (repeats every 32px)
     c.rect(0, 100, W - 1, H - 1, hexc('e6e2d8'))

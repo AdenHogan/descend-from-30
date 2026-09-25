@@ -42,10 +42,15 @@ const PUSH_PASS_TIME := 1.6   # a shove can't stun or move the big one — it op
 							  # overlapping it stays passable until you're clear — never a jam)
 var on_balcony_plane: bool = false
 var balcony_center_x: float = 0.0
+@warning_ignore("unused_private_class_variable")
 var _plane_floor_y: float = 0.0
+@warning_ignore("unused_private_class_variable")
 var _plane_climb: int = 0
+@warning_ignore("unused_private_class_variable")
 var _plane_idle_t: float = randf_range(3.0, 10.0)
+@warning_ignore("unused_private_class_variable")
 var _plane_scale0: Vector2 = Vector2.ZERO
+@warning_ignore("unused_private_class_variable")
 var _plane_pos0: Vector2 = Vector2.ZERO
 var _plane_passable: bool = false
 var _crowd_bonus: float = 0.0      # extra reach my crowd rank gave the attack in progress (enemy_crowd.gd)

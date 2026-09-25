@@ -327,7 +327,6 @@ func _test_escape_white_card_to_next_run() -> void:
 	Engine.time_scale = 8.0
 	Transition.survive_min_hold = 0.1
 	Transition.survive_max_wait = 0.2               # no key in a headless test: auto-continue
-	var start_y: float = p.global_position.y
 	exit.leave()
 	var saw_white := false
 	var saw_card := false

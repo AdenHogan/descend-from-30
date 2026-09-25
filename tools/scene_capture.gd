@@ -178,7 +178,10 @@ func _do(step: String) -> void:
 			var n = get_tree().get_first_node_in_group(p[1])
 			if n != null and n.has_method(p[2]):
 				if p.size() > 3:
-					n.call(p[2], int(p[3]) if p[3].is_valid_int() else p[3])   # "0" → 0 for int params
+					if p[3].is_valid_int():
+						n.call(p[2], int(p[3]))   # "0" → 0 for int params
+					else:
+						n.call(p[2], p[3])
 				else:
 					n.call(p[2])
 			await _frames(1)
@@ -203,9 +206,9 @@ func _shot() -> void:
 	await get_tree().process_frame
 
 
-func _key(name: String) -> void:
+func _key(key_name: String) -> void:
 	var ev := InputEventKey.new()
-	ev.keycode = OS.find_keycode_from_string(name)
+	ev.keycode = OS.find_keycode_from_string(key_name)
 	ev.physical_keycode = ev.keycode
 	ev.pressed = true
 	Input.parse_input_event(ev)

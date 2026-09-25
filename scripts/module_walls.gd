@@ -39,14 +39,19 @@ const FACE_SHADE := 0.82    # a turned surface reads a little darker (ambient on
 const CUT_COL := Color(0.24, 0.18, 0.13)   # the cut section: warm plaster-brown, not a black bar
 const TRIM_COL := Color(0.30, 0.21, 0.14)
 const TRIM_LT := Color(0.40, 0.29, 0.19)
+const SADDLE_COL := Color(0.47, 0.34, 0.21)     # a doorway's wooden threshold strip (_threshold)
+const SADDLE_LT := Color(0.62, 0.47, 0.30)
+const SADDLE_DK := Color(0.24, 0.16, 0.10)
+const SADDLE_GRAIN := Color(0.40, 0.28, 0.17)
 const OUTSIDE_COL := Color(0.05, 0.045, 0.05)
 const CORRIDOR_FLOOR := Color(0.16, 0.12, 0.09)   # a glimpse of the corridor floor through the door
 const THRESHOLD := Color(0.46, 0.36, 0.24)
 
-const FLOOR_STRIP := 32      # module FLOORS repeat every 32px (tools/art: planks/carpet/tiles) — the
-                             # wedge below continues a floor by tiling its last/first 32 columns
+const MODULE_W := 320.0      # a module's width (room.MODULE_WIDTH)
+const FLOOR_EXT_M := 96.0    # how far past each edge a module's <name>_floor_ext.png runs (tools/art pixlib)
 var boundaries: Array = []     # [{x, left_mod, right_mod, door, outside}]
-var _strips: Dictionary = {}   # module instance id + side → ImageTexture of its floor edge strip
+var _exts: Dictionary = {}     # module instance id + texture path → its perspective floor export
+var _kx := 0.0                 # a horizontal shift every projected point takes (_pivot_kx)
 var _cols: Dictionary = {}     # module instance id + side → Array[Color] (ROWS rows)
 
 
@@ -62,7 +67,6 @@ func setup(module_nodes: Array, left_x: float, width: float, entrance_side: Stri
 		var entrance := is_end and ((i == 0 and entrance_side == "left") or (i == n and entrance_side != "left"))
 		boundaries.append({"x": x, "left": lm, "right": rm, "door": (not is_end) or entrance, "outside": entrance})
 	z_index = 0
-	texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED   # the floor strips tile across the wedges
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	queue_redraw()
 
@@ -95,6 +99,25 @@ func _column(mod: Node, right_edge: bool) -> Array:
 	return out
 
 
+# How far the camera may sit from an INTERIOR wall, for drawing it (owner round 14 — "depending on
+# where you stand, it makes the floor look like it's growing or shrinking as you move towards another
+# room"): the rooms' art is flat, so a wall in full live perspective swept its face ~100px across a
+# floor that doesn't move with it. Clamped, a wall shows a small face while you're anywhere in a room
+# and only turns as you pass through its doorway. End walls (the front door) keep the real camera —
+# the walk-out follows them.
+const PARALLAX_MAX := 40.0
+
+
+static func _eff_cam(cx: float, xb: float) -> float:
+	return xb + clampf(cx - xb, -PARALLAX_MAX, PARALLAX_MAX)
+
+
+static func _pivot_kx(cx: float, xb: float) -> float:
+	# The shift that pins an interior wall's doorway JAMB (x = xb at the doorway's depth) in place: the
+	# wall then turns about the jamb, which stands on the fixed floor join between the two rooms.
+	return (xb - cx) * (1.0 - _s_for_floor(DOOR_FLOOR))
+
+
 func _cam_x() -> float:
 	var cam := get_viewport().get_camera_2d()
 	if cam == null:
@@ -105,7 +128,7 @@ func _cam_x() -> float:
 # A back-plane point (x, y) pushed out to depth scale s (1 = on the back wall), perspective about
 # the vanishing point (camera x, horizon VY).
 func _p(cx: float, x: float, y: float, s: float) -> Vector2:
-	return Vector2(cx + (x - cx) * s, VY + (y - VY) * s)
+	return Vector2(cx + (x - cx) * s + _kx, VY + (y - VY) * s)
 
 
 static func _s_for_floor(floor_y: float) -> float:
@@ -134,30 +157,39 @@ func facing_room(b: Dictionary, cam_x: float):
 
 
 func _draw() -> void:
-	var cx := _cam_x()
+	var cam := _cam_x()
 	var s_front := _s_for_floor(FRONT_FLOOR)
 	var s_door := _s_for_floor(DOOR_FLOOR)
-	# FLOORS first (owner round 9: "when the player moves between modules the boundary line on the
-	# floor, just like the wall above, needs to move from one side to the other"). Where two rooms
-	# meet, their floors part along the wall's BASE LINE in perspective — not the module's vertical
-	# edge — so the floor of the room whose wall face we see runs on past the edge to that line,
-	# and flips sides as the camera crosses the wall. Doorways get a threshold along it.
-	for b in boundaries:
-		var room_f = facing_room(b, cx)
-		if room_f != null:
-			_floor_wedge(cx, float(b["x"]), room_f, cx < float(b["x"]))
-			if b["door"] and not b["outside"]:
-				_threshold(cx, float(b["x"]))
+	# FLOORS first. Between two rooms the join is FIXED (owner round 14 — "depending on where you move
+	# to the corpse's head is either in one room or the other. The head didn't move, the perspective of
+	# the floor moved"): the rooms' floors are painted art that never moves, so their join must not
+	# either — each floor runs to its own module edge and a wooden saddle covers the line. Only at the
+	# two END walls (no room beyond) does the facing room's floor run on to the wall's live base line.
 	for b in boundaries:
 		var xb: float = b["x"]
+		if b["left"] == null or b["right"] == null:
+			var room_f = facing_room(b, cam)
+			if room_f != null:
+				_floor_wedge(cam, xb, room_f, cam < xb)
+		elif b["door"]:
+			_threshold(xb)
+	for b in boundaries:
+		var xb: float = b["x"]
+		# An INTERIOR wall is drawn from a clamped camera (_eff_cam) and turns about its DOORWAY JAMB
+		# (_pivot_kx): the jamb stands on the fixed floor join whatever the camera does; the stub behind
+		# it and the lintel over the opening swing. The END walls keep the real camera (room.gd stops
+		# the player at their drawn foot, and the walk-out goes through the front door's face).
+		var interior: bool = b["left"] != null and b["right"] != null
+		var cx: float = _eff_cam(cam, xb) if interior else cam
+		_kx = _pivot_kx(cx, xb) if interior else 0.0
 		# Which face points at the camera: camera LEFT of the wall → the wall's left face, i.e. the
 		# right wall of the LEFT room (and vice versa). Straight on → nothing but the cut shows.
 		var cam_left: bool = cx < xb
 		var room = facing_room(b, cx)
 		var face_x: float = xb - HALF_T if cam_left else xb + HALF_T
-		var cols: Array = _column(room, cam_left) if room != null else []
 		if room == null:
 			continue      # looking at an end wall from outside the room — never happens in play
+		var cols: Array = _column(room, cam_left)
 		if b["outside"]:
 			_front_door(cx, xb, face_x, cols, s_door, s_front)
 		elif b["door"]:
@@ -173,72 +205,82 @@ func _draw() -> void:
 			_slab(cx, xb, s_front, 0, ROWS, CUT_COL)
 		# the corner where the wall meets the back wall
 		draw_line(_p(cx, face_x, TOP, 1.0), _p(cx, face_x, SEAM, 1.0), Color(0, 0, 0, 0.25), 1.0)
+	_kx = 0.0
 
 
 func _floor_wedge(cx: float, xb: float, room: Node, room_is_left: bool) -> void:
-	# The triangle between the module edge (x = xb) and the wall's base line x_w(y) = cx + (xb−cx)·s(y)
-	# — zero at the seam, widest at the front — belongs to `room` (the room on the camera's side of
-	# the wall). Paint it with that room's own floor, tiled on from its edge strip so the pattern
-	# carries straight on (module floors repeat every FLOOR_STRIP px).
-	var strip: Texture2D = _floor_strip(room, room_is_left)
-	var rows := float(MOD_ROWS - ROWS)
+	# An END wall: the triangle between the module edge (x = xb) and the wall's base line
+	# x_w(y) = cx + (xb−cx)·s(y) — zero at the seam, widest at the front — is still the room's floor.
+	# Painted from the module's perspective floor export, which runs FLOOR_EXT_M px past each edge.
+	var ext: Texture2D = _floor_ext(room)
 	var bot := minf(TOP + float(MOD_ROWS), BAND_BOTTOM)
-	var xw := cx + (xb - cx) * _s_for_floor(bot)
-	var vb := (bot - SEAM) / rows
-	var p := float(strip.get_width())
-	draw_polygon(PackedVector2Array([Vector2(xb, SEAM), Vector2(xb, bot), Vector2(xw, bot)]),
+	var over := clampf((xb - cx) * (_s_for_floor(bot) - 1.0), -FLOOR_EXT_M, FLOOR_EXT_M)
+	var ew := float(ext.get_width())
+	var vb := (bot - SEAM) / float(MOD_ROWS - ROWS)
+	var u0 := (FLOOR_EXT_M + (MODULE_W if room_is_left else 0.0)) / ew
+	draw_polygon(PackedVector2Array([Vector2(xb, SEAM), Vector2(xb, bot), Vector2(xb + over, bot)]),
 		PackedColorArray([Color.WHITE, Color.WHITE, Color.WHITE]),
-		PackedVector2Array([Vector2(0.0, 0.0), Vector2(0.0, vb), Vector2((xw - xb) / p, vb)]), strip)
+		PackedVector2Array([Vector2(u0, 0.0), Vector2(u0, vb), Vector2(u0 + over / ew, vb)]), ext)
 
 
-func _threshold(cx: float, xb: float) -> void:
-	# A doorway's saddle: a strip of wood along the floor boundary where the opening is.
-	var a := Vector2(cx + (xb - cx) * _s_for_floor(DOOR_FLOOR), DOOR_FLOOR)
-	var b := Vector2(cx + (xb - cx) * _s_for_floor(FRONT_FLOOR), FRONT_FLOOR)
-	draw_line(a, b, TRIM_COL, 2.0)
-	draw_line(a + Vector2(1, 0), b + Vector2(1, 0), TRIM_LT, 1.0)
+func _threshold(xb: float) -> void:
+	# A doorway's SADDLE (owner round 14): a wooden strip the wall's width over the FIXED join between
+	# the two rooms' floors, from the jamb at the back of the opening to the floor's front edge. It is
+	# laid in the floor's own perspective and never moves with the camera — so whatever lies on the
+	# floor stays in the room it's in. A lit edge on the left, a shadowed edge on the right, a grain
+	# line down it.
+	var y0 := DOOR_FLOOR
+	var y1 := minf(TOP + float(MOD_ROWS), BAND_BOTTOM)
+	var s0 := _s_for_floor(y0)
+	var s1 := _s_for_floor(y1)
+	var hw := HALF_T + 1.0
+	var q := PackedVector2Array([Vector2(xb - hw * s0, y0), Vector2(xb + hw * s0, y0),
+		Vector2(xb + hw * s1, y1), Vector2(xb - hw * s1, y1)])
+	draw_colored_polygon(q, SADDLE_COL)
+	draw_line(q[0], q[3], SADDLE_LT, 1.0)
+	draw_line(q[1], q[2], SADDLE_DK, 1.0)
+	draw_line((q[0] + q[1]) * 0.5, (q[2] + q[3]) * 0.5, SADDLE_GRAIN, 1.0)
+	draw_line(q[0], q[1], SADDLE_DK, 1.0)                         # its back end, against the jamb
 
 
-func floor_boundary_x(xb: float, cam_x: float, floor_y: float) -> float:
-	# Where two rooms' floors meet at a given floor depth (the wall's base line) — for tests/tools.
+func floor_boundary_x(b: Dictionary, cam_x: float, floor_y: float) -> float:
+	# Where the floor on one side of boundary `b` meets the other at a floor depth — for tests/tools.
+	# Between two rooms: the module edge, whatever the camera. At an end wall: the wall's base line.
+	var xb: float = b["x"]
+	if b["left"] != null and b["right"] != null:
+		return xb
 	return cam_x + (xb - cam_x) * _s_for_floor(floor_y)
 
 
-func _floor_strip(mod: Node, right_edge: bool) -> Texture2D:
-	# The module's floor (rows below the seam), FLOOR_STRIP px wide, from its right or left edge.
-	var key := str(mod.get_instance_id()) + (":fr" if right_edge else ":fl")
-	if _strips.has(key):
-		return _strips[key]
-	var h := MOD_ROWS - ROWS
-	var out: Image = null
+func jamb_x(xb: float, cam_x: float) -> float:
+	# Where an interior doorway's jamb stands on the floor (its centre, at the doorway's depth).
+	var cx := _eff_cam(cam_x, xb)
+	return cx + (xb - cx) * _s_for_floor(DOOR_FLOOR) + _pivot_kx(cx, xb)
+
+
+func _floor_ext(mod: Node) -> Texture2D:
+	# The module's perspective floor, FLOOR_EXT_M px past each edge (tools/art: <name>_floor_ext.png —
+	# floor only, so nothing standing near the edge is carried on). Each run texture has its own.
 	var art = mod.get_node_or_null("Art")
-	if art is Sprite2D and art.texture != null:
-		# Prefer the module's FLOOR-ONLY export (tools/art: <name>_floor.png, rows below the seam, no
-		# furniture) so nothing standing near the edge — a bin, a lamp's shadow — is tiled into the
-		# next room; fall back to the art's own floor rows.
-		var floor_path: String = art.texture.resource_path.get_basename() + "_floor.png"
-		var img: Image = null
-		var y0 := ROWS
-		if art.texture.resource_path != "" and ResourceLoader.exists(floor_path):
-			img = (load(floor_path) as Texture2D).get_image()
-			y0 = 0
-		else:
-			img = art.texture.get_image()
-		if img != null and img.get_width() >= FLOOR_STRIP and img.get_height() >= y0 + h:
-			if img.is_compressed():
-				img.decompress()
-			var x0: int = img.get_width() - FLOOR_STRIP if right_edge else 0
-			out = img.get_region(Rect2i(x0, y0, FLOOR_STRIP, h))
-	if out == null:
+	var path := ""
+	if art is Sprite2D and art.texture != null and art.texture.resource_path != "":
+		path = art.texture.resource_path.get_basename() + "_floor_ext.png"
+	var key := str(mod.get_instance_id()) + ":" + path
+	if _exts.has(key):
+		return _exts[key]
+	var tex: Texture2D = null
+	if path != "" and ResourceLoader.exists(path):
+		tex = load(path) as Texture2D
+	if tex == null:
 		# a placeholder module: its flat colour
-		out = Image.create(1, h, false, Image.FORMAT_RGBA8)
+		var img := Image.create(int(MODULE_W + 2.0 * FLOOR_EXT_M), MOD_ROWS - ROWS, false, Image.FORMAT_RGBA8)
 		var flat := Color(0.4, 0.4, 0.4)
 		var rect = mod.get_node_or_null("ColorRect")
 		if rect is ColorRect:
 			flat = rect.color
-		out.fill(flat)
-	var tex := ImageTexture.create_from_image(out)
-	_strips[key] = tex
+		img.fill(flat)
+		tex = ImageTexture.create_from_image(img)
+	_exts[key] = tex
 	return tex
 
 

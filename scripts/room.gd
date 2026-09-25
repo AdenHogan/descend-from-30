@@ -886,8 +886,8 @@ static func module_scene_for(apt: String, slot: int, room_type: String) -> Strin
 static func apply_run_art(module: Node, run: int) -> void:
 	# The same furniture, more ruined as the arc goes on: run 2 (afternoon) and run 3 (night) swap
 	# the module's art for its <name>_r2 / _r3 textures (tools/art: pixlib.run_looks — damp,
-	# cracks, peeled paper, holes, mould, blood, debris). Nodes don't move. The doorway floor wedges
-	# follow on their own: module_walls reads <art>_floor.png, and each run texture has its own.
+	# cracks, peeled paper, holes, mould, blood, debris). Nodes don't move. The end-wall floor wedges
+	# follow on their own: module_walls reads <art>_floor_ext.png, and each run texture has its own.
 	# A texture without a run version (tutorial modules) keeps its morning look.
 	if run < 2:
 		return

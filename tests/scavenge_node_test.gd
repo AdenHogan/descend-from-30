@@ -48,20 +48,20 @@ func _test_mini_sun_light() -> void:
 	for i in range(10):
 		await get_tree().physics_frame
 		await get_tree().process_frame
-	check(light != null and light.energy > 0.0, "orb lights up while scavenging in range (energy %.2f)" % (light.energy if light else -1))
+	check(light != null and light.energy > 0.0, "orb lights up while scavenging in range (energy %.2f)" % (light.energy if light else -1.0))
 
 	# Out of scavenge mode → dark (never lights a room you're not searching).
 	WorldState.is_scavenge_mode = false
 	for i in range(4):
 		await get_tree().process_frame
-	check(light != null and light.energy == 0.0, "orb goes dark out of scavenge mode (energy %.2f)" % (light.energy if light else -1))
+	check(light != null and light.energy == 0.0, "orb goes dark out of scavenge mode (energy %.2f)" % (light.energy if light else -1.0))
 
 	# Far away, even while scavenging → dark.
 	WorldState.is_scavenge_mode = true
 	node.global_position = Vector2(1100, 386)   # well beyond GLOW_DISTANCE
 	for i in range(4):
 		await get_tree().process_frame
-	check(light != null and light.energy == 0.0, "orb is dark when the player is far (energy %.2f)" % (light.energy if light else -1))
+	check(light != null and light.energy == 0.0, "orb is dark when the player is far (energy %.2f)" % (light.energy if light else -1.0))
 
 	# GOLD → PALE once searched-but-not-emptied: the light colour drains from warm gold to
 	# cool white, so a searched orb reads distinctly different while still glowing.

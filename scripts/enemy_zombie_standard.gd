@@ -144,10 +144,15 @@ const ENEMY_PLANE := preload("res://scripts/enemy_plane.gd")
 const ENEMY_HURT := preload("res://scripts/enemy_hurt.gd")
 var on_balcony_plane: bool = false
 var balcony_center_x: float = 0.0
+@warning_ignore("unused_private_class_variable")
 var _plane_floor_y: float = 0.0
+@warning_ignore("unused_private_class_variable")
 var _plane_climb: int = 0                 # +1 stepping up, -1 stepping down, 0 settled
+@warning_ignore("unused_private_class_variable")
 var _plane_idle_t: float = randf_range(3.0, 10.0)
+@warning_ignore("unused_private_class_variable")
 var _plane_scale0: Vector2 = Vector2.ZERO
+@warning_ignore("unused_private_class_variable")
 var _plane_pos0: Vector2 = Vector2.ZERO
 # HURT (scripts/enemy_hurt.gd): a hit that doesn't kill stuns me for HURT_TIME — I blink white,
 # can't attack, and can be slipped past — but I'm never immune: every hit still lands.

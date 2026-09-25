@@ -41,7 +41,7 @@ func _ready() -> void:
 	await _test_key_attack_in_combat()
 	await _test_buffered_press()
 	await _test_scavenge_draws_weapon()
-	await _test_scavenge_without_weapon()
+	_test_scavenge_without_weapon()
 	_test_side_button_is_not_pointer()
 	_test_unequip_is_announced()
 	p.queue_free()

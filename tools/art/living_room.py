@@ -10,6 +10,7 @@ the floor in front of the wall/floor seam. Flat/neutral lighting — the engine 
 import os
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
+from pixlib import persp
 from pixlib import Canvas, hexc, shade, mix, SEAM_Y, W, H, check_window_boxes, check_edge_columns, save_floor_strip, finish_module, floor_is_periodic, iso_box, iso_pt, outline_layer, rrect
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -121,6 +122,7 @@ def wall(c):
     c.hline(0, W - 1, SEAM_Y, SEAM)
 
 
+@persp
 def floor(c):
     # planks, rows getting taller toward the viewer (a gentle perspective)
     rows = [101, 104, 108, 113, 119, 126, 134, 144]

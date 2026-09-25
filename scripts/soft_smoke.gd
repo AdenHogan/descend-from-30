@@ -167,18 +167,18 @@ static func _retire(e) -> void:
 
 # Burnt floor where fire has been: thin, ragged SOOT STREAKS lying along the floor — no blobs or
 # circles (the old scorch read as a row of black balls). `seed` keeps each patch stable.
-static func draw_soot(canvas: CanvasItem, cx: float, floor_y: float, width: float, seed: float) -> void:
+static func draw_soot(canvas: CanvasItem, cx: float, floor_y: float, soot_w: float, soot_seed: float) -> void:
 	var h := func(v: float) -> float: return fmod(absf(sin(v * 12.9898) * 43758.5453), 1.0)
 	for k in range(6):
-		var r1: float = h.call(seed + float(k) * 1.37)
-		var r2: float = h.call(seed * 1.7 + float(k) * 2.11)
-		var r3: float = h.call(seed * 2.3 + float(k) * 0.71)
-		var ln: float = width * (0.25 + 0.5 * r1)
-		var x0: float = cx - width * 0.5 + (width - ln) * r2
+		var r1: float = h.call(soot_seed + float(k) * 1.37)
+		var r2: float = h.call(soot_seed * 1.7 + float(k) * 2.11)
+		var r3: float = h.call(soot_seed * 2.3 + float(k) * 0.71)
+		var ln: float = soot_w * (0.25 + 0.5 * r1)
+		var x0: float = cx - soot_w * 0.5 + (soot_w - ln) * r2
 		var y: float = floor_y - 1.0 - 7.0 * r3
 		canvas.draw_rect(Rect2(x0, y, ln, 1.0 + float(k % 2)), Color(0.10, 0.08, 0.07, 0.16 + 0.12 * r1))
 	# a few pale ash flecks (single pixels)
 	for k in range(4):
-		var a: float = h.call(seed * 3.1 + float(k) * 1.9)
-		var b: float = h.call(seed * 0.7 + float(k) * 3.3)
-		canvas.draw_rect(Rect2(cx - width * 0.5 + width * a, floor_y - 2.0 - 6.0 * b, 1.0, 1.0), Color(0.55, 0.53, 0.5, 0.35))
+		var a: float = h.call(soot_seed * 3.1 + float(k) * 1.9)
+		var b: float = h.call(soot_seed * 0.7 + float(k) * 3.3)
+		canvas.draw_rect(Rect2(cx - soot_w * 0.5 + soot_w * a, floor_y - 2.0 - 6.0 * b, 1.0, 1.0), Color(0.55, 0.53, 0.5, 0.35))

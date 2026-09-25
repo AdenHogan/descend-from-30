@@ -112,8 +112,9 @@ furniture they belong to (a chest, a desk, a bedside table) — never loose on t
 ## What an artist delivers, per room
 
 1. `<type>_<variant>.png` — 320 × 144, opaque, drawn over the guide layer.
-2. `<type>_<variant>_floor.png` — the FLOOR ALONE, rows 100–143 (320 × 44), repeating every 32 px
-   across (it's tiled where two rooms meet at a doorway).
+2. The FLOOR ALONE, drawn FLAT, rows 100–143 (320 × 44), repeating every 32 px across. The pipeline
+   (`pixlib.persp`) puts it in perspective and exports `_floor.png` / `_floor_ext.png` (the end walls
+   run it on past the module edge) — so a floor is authored flat and never drawn converging by hand.
 3. Study / dining only: `<type>_<variant>_strip.png` — 320 × 144, transparent except the strip's
    furniture (x 4–96).
 4. A node list: `name, x, y, kind` (front / back / strip), in the room's local pixels — and a light

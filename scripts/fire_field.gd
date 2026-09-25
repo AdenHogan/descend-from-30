@@ -134,7 +134,7 @@ func _update_fire_lights() -> void:
 	# old floor-flooding 2.4-3.4. Only light as many points as the span is wide, so a small
 	# fire is a single localised pool and a floor-wide blaze gets a few spaced glows.
 	var base_energy: float = 0.7 if stage >= STAGE_BLAZE else 0.5
-	var scale: float = 1.3 if stage >= STAGE_BLAZE else 1.0
+	var glow_scale: float = 1.3 if stage >= STAGE_BLAZE else 1.0
 	var want: int = clampi(int(round(span / FIRE_LIGHT_SPACING)), 1, _fire_lights.size())
 	for i in range(_fire_lights.size()):
 		var lt: PointLight2D = _fire_lights[i]
@@ -143,7 +143,7 @@ func _update_fire_lights() -> void:
 			continue
 		var f: float = 0.5 if want == 1 else float(i) / float(want - 1)
 		lt.position = Vector2(lerpf(x0, x1, f), FIRE_BASE_Y - 34.0)
-		lt.texture_scale = scale
+		lt.texture_scale = glow_scale
 		# Per-light flicker, out of phase, plus a little jitter.
 		var flick: float = 0.80 + 0.16 * sin(_t * 11.0 + float(i) * 1.7) + randf_range(-0.05, 0.05)
 		lt.energy = base_energy * flick

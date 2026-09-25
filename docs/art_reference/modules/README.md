@@ -58,18 +58,24 @@ draws over it (checked by `apartment_window_test`). Preview: `balcony_runs.png`.
 2. The two columns the side walls are painted from (x 3 and W-4, wall rows) are bare wall
    (`check_edge_columns`) — else a partition face wears the furniture (a wardrobe at the edge striped
    the bedroom's side wall).
-3. The FLOOR is exported ALONE as `assets/rooms/<name>_floor.png` (`save_floor_strip`) and must repeat
-   every 32px (`floor_is_periodic`; the living room's planks predate this and don't).
+3. The FLOOR is drawn in PERSPECTIVE: the floor function is wrapped in `@persp` (pixlib) and drawn
+   FLAT — a pattern repeating every 32px (`floor_is_periodic`), rows taller toward the viewer — then
+   each floor row is remapped toward the module centre, `PERSP_K` (0.55) of full convergence, so tile
+   and board seams recede instead of running straight down (owner round 14: a checker read as
+   "standing on glass"). Full strength sheared the tiles at a module's edge into diagonal stripes.
+   Exported ALONE (`save_floor_strip`) as `<name>_floor.png` (as the art shows it) and
+   `<name>_floor_ext.png` (the same floor `FLOOR_EXT_M` 96px past each edge).
 
-**Floors at a doorway (`module_walls._floor_wedge`)**: two rooms' floors part along the wall's BASE
-LINE in perspective, not the module's vertical edge — the room whose wall face you see has its floor
-run on past the edge to that line (a triangle: zero at the seam, widest at the front), tiled from
-its floor-only export so nothing standing near the edge smears across; it flips with the camera like
-the wall face above. Interior doorways get a wooden threshold along it.
+**Floors at a doorway (owner round 14 — "the head didn't move, the perspective of the floor moved")**:
+between two rooms the floors meet on a FIXED line, the module edge, under a static wooden SADDLE; each
+room's floor runs to its own edge. The partition turns about its doorway JAMB (`module_walls._pivot_kx`,
+from a camera clamped to `PARALLAX_MAX` 40px of the wall), so the jamb stands on that line whatever the
+camera does. Only at the two END walls does the room's floor run on to the wall's live base line
+(`_floor_wedge`, painted from `_floor_ext.png`).
 
 **Module walls (`scripts/module_walls.gd`, built by `room._build_modules`):** the partitions between
 the three modules (with a doorway over the walking lane) and the two end walls (the entrance end
-gets the same doorway, dark beyond) are drawn LIVE in perspective from the camera (horizon y 190),
+gets the same doorway, dark beyond) are drawn LIVE in perspective from the camera (horizon y 224, the ceiling),
 so the face you see is always the one turned toward you and flips as you walk through — never a
 painted, half-the-time-inverted wall. Each face samples its OWN module's art at the edge column, so
 wallpaper, rail and skirting continue round the corner for any module or variant with no wiring.
@@ -226,8 +232,8 @@ with a broken tide line — never clean circles), cracks, a peeled strip, a smea
 grime + a little debris. Night: darker again, more damp, cracks and peeling, holes knocked through to
 the lath, black mould along the top, grime up the lower wall, a handprint, stains + plaster debris
 everywhere. Decals land only on visible bare wall/floor (behind the furniture, never on it) and stay
-off the side-wall sample columns; the floor grime is 32px-periodic and identical in the floor export,
-so doorway wedges match. `room.apply_run_art(module, run)` swaps the textures (Art + StripArt); nodes
+off the side-wall sample columns; the floor grime is identical in the floor exports, so the end-wall
+wedges match. `room.apply_run_art(module, run)` swaps the textures (Art + StripArt); nodes
 never move. Previews: `runs/<name>_runs.png` (morning / afternoon / night).
 
 **SET-BACK FURNITURE HAS DEPTH (owner round 14 — "the drawers, chests, wardrobes, bookshelves, they
