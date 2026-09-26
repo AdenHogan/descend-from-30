@@ -274,7 +274,7 @@
     },
     "035": {
       "ITEM_NAME": "Crowbar",
-      "ITEM_DESCRIPTION": "Heavy iron with a claw on the end. Not for fighting — it's the one thing that'll lever a path through a stairwell packed wall-to-wall with the dead. Bends open once, then it's spent.",
+      "ITEM_DESCRIPTION": "Heavy iron with a claw on the end. Not for fighting — it's the one thing that'll lever a path through a stairwell packed wall-to-wall with the dead, or a locked cabinet open. Bends open once, then it's spent.",
       "VALUE_PROPERTY": "is_tool, is_crowbar",
       "PROPERTY_DURABILITY": "single use, pries one blocked stairwell",
       "PROPERTY_SPAWN_RARITY": 2,

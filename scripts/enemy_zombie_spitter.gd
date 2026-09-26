@@ -9,6 +9,19 @@ const SPIT := preload("res://scripts/spit_projectile.gd")
 const SPIT_COOLDOWN := 1.6
 
 var _spit_cd: float = 0.0
+var spit_damage: int = 1
+
+
+# THE GUN CABINET'S KEY (owner round 20): this spitter carries a cabinet's key in a breach room on
+# the cabinet's floor — twice the HP, spits that hit twice as hard. Called after it's in the tree
+# (its HP is set in _ready); a remembered one's HP is restored after this by apply_saved_zombie.
+func make_cabinet_key_carrier(cabinet_apt: String) -> void:
+	drops_key = true
+	key_target_apartment = WorldState.CABINET_KEY_PREFIX + cabinet_apt
+	max_hp *= WorldState.CABINET_KEY_HP_MULT
+	current_hp = max_hp
+	spit_damage = WorldState.CABINET_KEY_DAMAGE_MULT
+	add_to_group("cabinet_key_carrier")
 
 func _ready() -> void:
 	super()
@@ -45,6 +58,7 @@ func _deliver_attack(_distance: float) -> void:
 		animated_sprite.flip_h = dir < 0
 	var proj = SPIT.new()
 	proj.launch(dir)
+	proj.damage = spit_damage
 	# Launch toward the PLAYER'S plane, not the spitter's high mouth: the player rig is much
 	# shorter than the spitter, so a spit fired from mouth height (~28px up) flew clean OVER
 	# the player and could never connect. Fly it level at the player's body so it actually hits.

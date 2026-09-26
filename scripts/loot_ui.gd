@@ -141,7 +141,10 @@ func _reveal_item() -> void:
 	has_item = true
 	icon.texture = ItemData.get_texture(current_item_id)
 	if current_key_target != "":
-		name_label.text = "Key — Apt " + current_key_target
+		name_label.text = WorldState.key_display(current_key_target)
+	elif _is_cabinet_weapon():
+		var inst = WorldState.gun_cabinet_weapon(current_apartment_id)
+		name_label.text = inst.get_display_name() + "  ·  " + inst.tier_label()
 	else:
 		name_label.text = item_data["name"]
 	hint_label.text = "Double-click or drag to inventory · walk away to leave"
@@ -253,14 +256,21 @@ func _take() -> void:
 		_close(true)
 		return
 	var added: bool
+	var cabinet := _is_cabinet_weapon()
 	if current_key_target != "":
 		added = WorldState.add_key_to_inventory(current_key_target)
+	elif cabinet:
+		# The gun cabinet's Lv3 gun: the built instance, not a plain new one.
+		added = WorldState.add_instance_to_inventory(WorldState.gun_cabinet_weapon(current_apartment_id))
 	else:
 		var amount = WorldState.get_anchor_amount(current_apartment_id, current_anchor_name)
 		if amount <= 0 and ItemData.get_item(current_item_id).get("is_ammo", false):
 			amount = _roll_ammo_bundle()
 		added = WorldState.add_to_inventory(current_item_id, amount)
 	if added:
+		if cabinet:
+			WorldState.note_gun_cabinet_taken(current_apartment_id)
+			get_tree().call_group("gun_cabinet_art", "refresh")
 		WorldState.clear_anchor_item(current_apartment_id, current_anchor_name)
 		WorldState.note_scavenge(current_apartment_id)   # journal stats: items + apartments looted
 		HUD.refresh_inventory()
@@ -268,6 +278,13 @@ func _take() -> void:
 	else:
 		name_label.text = "Inventory full"
 		hint_label.text = "Drop something first."
+
+
+# The anchor is an opened gun cabinet still holding its weapon.
+func _is_cabinet_weapon() -> bool:
+	return current_anchor_name == WorldState.GUN_CABINET_ANCHOR \
+		and current_item_id == WorldState.CABINET_WEAPON \
+		and WorldState.gun_cabinet_state(current_apartment_id) in ["open", "smashed"]
 
 
 func _roll_ammo_bundle() -> int:

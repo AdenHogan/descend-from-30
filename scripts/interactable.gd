@@ -171,7 +171,28 @@ func try_interact() -> void:
 		return
 	if not WorldState.interaction_handled:
 		WorldState.interaction_handled = true
+		if name == WorldState.GUN_CABINET_ANCHOR and not _open_gun_cabinet():
+			return
 		_open_loot()
+
+
+# A LOCKED gun cabinet (owner round 20): its key opens it, else a crowbar pries it (loud, spent).
+# With neither it stays shut and says what it needs. True = open now, go on and search it.
+func _open_gun_cabinet() -> bool:
+	if WorldState.gun_cabinet_state(apartment_id) != "locked":
+		return true
+	if WorldState.has_cabinet_key(apartment_id):
+		WorldState.open_gun_cabinet(apartment_id, "key")
+		HUD.show_feedback("The little key turns. The cabinet swings open.")
+	elif WorldState.has_crowbar():
+		WorldState.open_gun_cabinet(apartment_id, "pry")
+		WorldState.emit_noise(global_position, WorldState.NOISE_RADIUS["door_work"], 2.0)
+		HUD.show_feedback("You lever the door off its hinge. Glass everywhere — and loud.")
+	else:
+		HUD.show_feedback("Locked. There's a gun inside. It needs its key — or a crowbar.")
+		return false
+	get_tree().call_group("gun_cabinet_art", "refresh")
+	return true
 
 
 func _open_loot() -> void:

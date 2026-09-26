@@ -1030,7 +1030,7 @@ func refresh_inventory() -> void:
 			var key_label = slot_key_labels[i]
 			var item_name_l = item_data.get("name", "").to_lower()
 			if item_data.get("is_key", false) and instance.target_apartment != "":
-				key_label.text = instance.target_apartment
+				key_label.text = WorldState.key_tag(instance.target_apartment)
 				key_label.visible = true
 			elif item_data.get("is_money", false) or item_data.get("is_ammo", false) \
 					or (item_data.get("is_throwable", false) and instance.count > 1) \

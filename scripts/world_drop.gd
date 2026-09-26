@@ -84,7 +84,7 @@ func _physics_process(delta: float) -> void:
 
 func _prompt_text() -> String:
 	if target_apartment != "":
-		return "Key — Apt " + target_apartment + "   [Click] Take"
+		return WorldState.key_display(target_apartment) + "   [Click] Take"
 	var item_data = ItemData.get_item(item_id)
 	var display_name = item_data.get("name", "Item") if not item_data.is_empty() else "Item"
 	return display_name + "   [Click] Take"
@@ -154,7 +154,7 @@ func _try_pickup() -> void:
 	if target_apartment != "":
 		added = WorldState.add_key_to_inventory(target_apartment)
 		if added:
-			HUD.show_feedback("Key — Apt " + target_apartment + " picked up.")
+			HUD.show_feedback(WorldState.key_display(target_apartment) + " picked up.")
 			HUD.refresh_inventory()
 		else:
 			HUD.show_feedback("Inventory full.")

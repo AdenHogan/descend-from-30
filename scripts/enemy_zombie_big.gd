@@ -356,7 +356,7 @@ func _attack_reach() -> float:
 func _drop_key() -> void:
 	var added = WorldState.add_key_to_inventory(key_target_apartment)
 	if added:
-		HUD.show_feedback("Key — Apt " + key_target_apartment + " found!")
+		HUD.show_feedback(WorldState.key_display(key_target_apartment) + " found!")
 	else:
 		# Inventory full — the key lands on the floor by the corpse. It used to be only REGISTERED
 		# (at the corpse's origin, mid-air) with no pickup spawned, so it was invisible until you

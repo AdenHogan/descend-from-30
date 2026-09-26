@@ -13,6 +13,7 @@ const MAX_DIST := 360.0
 const HIT_RADIUS := 30.0
 
 var _dir: float = 1.0
+var damage: int = 1                # the gun cabinet's key carrier spits for 2
 var _travelled: float = 0.0
 var _hit: bool = false
 var _sprite: AnimatedSprite2D = null
@@ -65,7 +66,7 @@ func _physics_process(delta: float) -> void:
 			var ducked: bool = ("is_crouching" in _player) and _player.is_crouching
 			if not ducked:
 				if _player.has_method("receive_hit"):
-					_player.receive_hit(1)
+					_player.receive_hit(damage)
 				_hit = true
 				queue_free()
 				return

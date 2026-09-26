@@ -118,7 +118,7 @@ func setup_key(id: String, apartment_id: String) -> void:
 func get_display_name() -> String:
 	var data = get_data()
 	if data.get("is_key", false) and target_apartment != "":
-		return "Key — Apt " + target_apartment
+		return WorldState.key_display(target_apartment)
 	if title != "":
 		return '%s "%s"' % [data.get("name", "Unknown"), title]
 	return data.get("name", "Unknown")

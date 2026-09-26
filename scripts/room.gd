@@ -720,6 +720,7 @@ const EXIT_WALK_BEYOND := 22.0     # how far past the door's face the exit walk 
 const ROOM_STD_ORIGIN_Y := 304.0       # standard zombie settled origin (feet 353)
 const ROOM_BIG_ORIGIN_Y := 308.0       # big zombie settled origin (feet 353)
 const WORLD_DROP := preload("res://scripts/world_drop.gd")   # REST_LIFT (where a drop rests)
+const SPITTER_SCENE := preload("res://scenes/enemy_zombie_spitter.tscn")
 
 # One seeded enemy starts OUT on the balcony (WorldState.balcony_spawn_pick) — placed on the balcony
 # line, a little off-centre. The player on the balcony above can hear it first (balcony listen).
@@ -742,8 +743,12 @@ func _burnt_breach(stage: int) -> void:
 			# settled big zombie would.
 			WorldState.killed_zombies[key] = {"x": snappedf(pos.x, 1.0), "y": ROOM_BIG_ORIGIN_Y,
 				"floor": WorldState.current_floor, "scene": _own_scene_path(),
-				"apartment_id": apartment_id, "type": "big"}
+				"apartment_id": apartment_id,
+				"type": "standard" if WorldState.cabinet_for_key_room(apartment_id) != "" else "big"}
 			var target: String = WorldState.get_breached_boss_key_target(apartment_id)
+			var cab := WorldState.cabinet_for_key_room(apartment_id)
+			if cab != "":
+				target = WorldState.CABINET_KEY_PREFIX + cab   # the carrier burned: its key is in the ashes
 			if target != "":
 				WorldState.add_world_drop("022", Vector2(pos.x, ROOM_FEET_Y - WORLD_DROP.REST_LIFT), WorldState.current_floor,
 					{"target_apartment": target, "scene": _own_scene_path(), "apartment_id": apartment_id})
@@ -1060,6 +1065,10 @@ func _after_modules_ready() -> void:
 	# seeded chance to convert one junk anchor into Bullets, so finding the
 	# weapon usually means the means to feed it isn't far away.
 	_pair_bullets_with_gun(apartment_id)
+	# The GUN CABINET (living room E): always a live node, holding its Lv3 gun until taken (or
+	# until someone else broke in first, runs 2/3). Its lock + the key's carrier: WorldState.
+	if not tutorial_apartment:
+		_setup_gun_cabinet(interactable_script)
 
 	# Tutorial rooms: 3003 = the scripted encounter (3 hidden nodes); 3002/3004/
 	# 3005 = a fixed clean set of nodes (exact items/amounts, no repeats).
@@ -1094,6 +1103,53 @@ func _after_modules_ready() -> void:
 	# A character who died INSIDE this apartment leaves a recoverable body here (step 7).
 	WorldState.spawn_player_corpse_into(self, WorldState.current_floor,
 		_own_scene_path(), WorldState.current_apartment_id)
+
+func _cabinet_module() -> Node:
+	for m in get_children():
+		if m.is_in_group("room_module") and m.get_node_or_null(WorldState.GUN_CABINET_ANCHOR) != null:
+			return m
+	return null
+
+
+# The cabinet's look (locked / open / smashed, full or empty), laid over the module's art. Live
+# rooms and balcony-pan backdrops alike.
+func _add_gun_cabinet_art() -> void:
+	var m := _cabinet_module()
+	if m == null or WorldState.gun_cabinet_state(apartment_id) == "none":
+		return
+	var art = load("res://scripts/gun_cabinet_art.gd").new()
+	art.name = "GunCabinetArt"
+	art.apartment_id = apartment_id
+	m.add_child(art)
+	var base = m.get_node_or_null("Art")
+	if base != null:
+		m.move_child(art, base.get_index() + 1)
+	art.refresh()
+
+
+func _setup_gun_cabinet(interactable_script) -> void:
+	var state := WorldState.gun_cabinet_state(apartment_id)
+	var m := _cabinet_module()
+	if state == "none" or m == null:
+		return
+	var anchor = m.get_node_or_null(WorldState.GUN_CABINET_ANCHOR)
+	if not anchor.has_method("try_interact"):
+		anchor.set_script(interactable_script)
+		anchor.apartment_id = apartment_id
+		anchor._ready()
+	if WorldState.gun_cabinet_holds_weapon(apartment_id):
+		WorldState.set_anchor_item(apartment_id, anchor.name, WorldState.CABINET_WEAPON)
+		anchor.visible = true
+		anchor.set_process(true)
+	elif WorldState.get_anchor_item(apartment_id, anchor.name) == WorldState.CABINET_WEAPON:
+		# Someone got there first: the gun's gone — sometimes they dropped a few rounds.
+		WorldState.clear_anchor_item(apartment_id, anchor.name)
+		var rng := RandomNumberGenerator.new()
+		rng.seed = hash(str(WorldState.master_seed) + "cabinetremnant" + apartment_id)
+		if rng.randf() < 0.4 and not WorldState.gun_cabinets.get(apartment_id, {}).get("taken", false):
+			WorldState.set_anchor_item(apartment_id, anchor.name, "016")
+	_add_gun_cabinet_art()
+
 
 func _build_back_plane_spots() -> void:
 	# One BACK-PLANE spot (back_plane_spot.gd) per cluster of set-back scavenge nodes that spawned
@@ -1493,6 +1549,7 @@ func _populate_passive_backdrop() -> void:
 	_spawn_world_drops(floor_num, apartment_id)
 	# Interior fire in the backdrop too, so it's already there as the pan lands (no pop-in).
 	_spawn_apartment_fire()
+	_add_gun_cabinet_art()
 
 
 func _spawn_passive_enemies(floor_num: int, breached: bool) -> void:
@@ -1521,7 +1578,11 @@ func _spawn_passive_enemies(floor_num: int, breached: bool) -> void:
 		if WorldState.killed_zombies.has(key):
 			continue
 		var is_big: bool = big_first and i == 0
-		var z = (big_scene if is_big else std_scene).instantiate()
+		var z
+		if is_big and WorldState.cabinet_for_key_room(apartment_id) != "":
+			z = SPITTER_SCENE.instantiate()            # the gun cabinet's key carrier (same rig height)
+		else:
+			z = (big_scene if is_big else std_scene).instantiate()
 		# Frozen scenery never physics-settles: put it straight on the line the live one settles
 		# onto (spawned at 321 it hung 17px low, then jumped up on landing). Key keeps the 321.
 		z.position = Vector2(pos.x, ROOM_BIG_ORIGIN_Y if is_big else ROOM_STD_ORIGIN_Y)
@@ -1566,6 +1627,7 @@ func _spawn_breached_enemies() -> void:
 
 	var standard_scene = preload("res://scenes/enemy_zombie_standard.tscn")
 	var big_scene = preload("res://scenes/enemy_zombie_big.tscn")
+	var cabinet := WorldState.cabinet_for_key_room(apartment_id)
 
 	for i in range(enemy_list.size()):
 		var entry = enemy_list[i]
@@ -1578,7 +1640,15 @@ func _spawn_breached_enemies() -> void:
 		# crowned a new one from the remaining zombies. Now a dead boss stays
 		# dead and survivors stay standard. (Promotion-on-revisit is noted as a
 		# possible deliberate mechanic for run 2/3 difficulty, not for run 1.)
-		if i == 0:
+		if i == 0 and cabinet != "":
+			# The gun cabinet's key room: no big boss — a tough SPITTER holds the key.
+			var sp = SPITTER_SCENE.instantiate()
+			sp.global_position = entry["position"]
+			sp.spawn_key = key
+			add_child(sp)
+			sp.make_cabinet_key_carrier(cabinet)
+			WorldState.apply_saved_zombie(sp)
+		elif i == 0:
 			var boss = big_scene.instantiate()
 			boss.global_position = entry["position"]
 			boss.spawn_key = key

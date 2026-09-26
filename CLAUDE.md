@@ -223,7 +223,7 @@ Robustness rules). What it covers:
   `dev_menu_test`, `lighting_test`, `plane_lock_test`, `apartment_window_test`,
   `scavenge_node_test`, `drop_physics_test`, `softlock_test`, `character_panel_test`,
   `corpse_recovery_test`, `run_memory_test`, `attack_input_test`, `character_stats_test`, `transition_seam_test`, `run_bookends_test`, `weapon_upgrade_test`, `progression_test`, `back_plane_test`,
-  `apartment_lamp_test` — run all 46 before commit. Balance tool: `tools/economy_report.tscn` (scrap per run, ~25 min a seed). (`new_game()` rolls a RANDOM seed, so any test meets any of the four
+  `apartment_lamp_test`, `gun_cabinet_test` — run all 47 before commit. Balance tool: `tools/economy_report.tscn` (scrap per run, ~25 min a seed). (`new_game()` rolls a RANDOM seed, so any test meets any of the four
   characters — an assert on a trait-affected value must be trait-aware; see docs/CHARACTERS.md.) (Run ONE godot at a time — a killed/backgrounded headless run can
   linger and block the next, and a GDScript **parse error makes a test scene load but
   never call `quit()`, so it "hangs" until timeout** rather than printing an error line;
@@ -1547,4 +1547,25 @@ means no rendering — UI layout and art still need an in-editor look.
   you, anyone too close for its spot shuffles back. Recomputed every frame (no stuck queue). Standard
   family + big. Locked by `enemy_variety_test` (`_test_push_one_at_a_time`, `_test_big_push_past`,
   `_test_crowd_spacing`).
+- THE GUN CABINET — an unannounced quest (owner round 20, `WorldState` "GUN CABINETS" block,
+  `scripts/gun_cabinet_art.gd`, `interactable._open_gun_cabinet`): living room E's cabinet
+  (`anchor_living_gun_cabinet`) is always a live node holding a GUARANTEED Lv3 Gun
+  (`gun_cabinet_weapon`: seeded tree perks at Lv2 + Lv3, its 4 tuning points left free for the bench,
+  6 rounds loaded). It is LOCKED: its key opens it (the key stays in the lock), else a Crowbar pries it
+  (spent, loud — `door_work` noise); with neither it says so ("It needs its key — or a crowbar").
+  The key (`022` with target `cab:<apt>`, shown via `key_display` / `key_tag`, never matches a front
+  door) is carried by a SPITTER in a breach room on the SAME floor — that room has NO big boss; the
+  spitter has ×2 HP and its spit hits for 2 (`make_cabinet_key_carrier`, `spit_projectile.damage`);
+  crouch under the spits to close in. A floor with a cabinet always seeds ≥1 breach room outside the
+  cabinet flats (`_ensure_cabinet_key_room`, at door seeding); breach rooms are dealt to the floor's
+  still-locked cabinets in a seeded order (`cabinet_key_room` / `cabinet_for_key_room`) — a cabinet
+  with no key room (floor 30 runs 2/3, a floor seeded by an older save, more cabinets than breaches)
+  is crowbar-only. A burnt key room leaves the key in the ashes. Runs 2/3: someone may have broken in
+  first (`CABINET_LOOTED_CHANCE` 30% / 35% per run, sticky; a charred flat's is gone) — smashed and
+  empty, 40% a few dropped rounds. State is cross-run + saved (`gun_cabinets`, cleared by new_game):
+  locked / open / smashed / open_empty / smashed_empty; the non-locked looks are OVERLAYS generated
+  by `tools/art/living_room_variants.py` (`_cabinet_overlays`, every run look) and laid over the
+  module art (live + balcony backdrop). The art: long-gun racks emptied (paler wood where they hung),
+  a handgun on a felt rest behind the glass, a brass keyhole. Locked by `gun_cabinet_test`.
+  **Not changed:** a listen at the key room still reports "many + big" like any breach room.
 - Not started: quests.

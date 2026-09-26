@@ -776,6 +776,9 @@ def e_decor(c):
     c.poly([(200, 40), (206, 34), (212, 38), (216, 32), (216, 42), (200, 42)], hexc('4a5a3a'))
 
 
+CAB_STATE = 'locked'     # the gun cabinet's look: locked | open | smashed | open_empty | smashed_empty
+
+
 @persp
 def e_floor(c):
     import furn as F
@@ -787,22 +790,57 @@ def e_furniture(c):
     FX = 160
 
     def _gun_cabinet(c):
-        # a gun cabinet on the left (x < 50): glass door, rifle racks, one slot empty
+        # THE GUN CABINET (owner round 20 — it's a quest now): the long guns are GONE (someone took
+        # them and ran, locking it behind them — the racks' cradles bare, paler wood where they hung),
+        # but a HANDGUN still lies on the shelf behind the glass, and the brass keyhole says it's
+        # locked. CAB_STATE draws the other looks (open with its key / smashed with a crowbar, full or
+        # empty) — rendered as overlays by _cabinet_overlays(); scripts/gun_cabinet_art.gd shows them.
+        wood, wood_dk, inside = hexc('4a2e1e'), hexc('24160e'), hexc('2a1d14')
+        brass, glass, glint = F.BRASS, hexc('9ab0b0', 90), hexc('c8dcdc')
+        empty = CAB_STATE.endswith('_empty')
+        smashed = CAB_STATE.startswith('smashed')
+        opened = CAB_STATE.startswith('open')
         c.shadow(26, 101, 20, 2, 100)
-        c.box(8, 22, 44, 99, hexc('4a2e1e'), hexc('24160e'))
-        c.rect(11, 25, 41, 80, hexc('2a1d14'))
-        for i, gx in enumerate((15, 22, 29, 36)):
-            if i == 2:
-                c.rect(gx - 1, 72, gx + 1, 78, hexc('5a3a26'))                      # the empty cradle
-                continue
-            c.rect(gx, 30, gx + 1, 76, hexc('3a3a36'))                             # barrel
-            c.rect(gx - 1, 60, gx + 2, 78, hexc('7a4a2a'))                         # stock
-        for y in range(25, 81):
-            for x in range(11, 42):
-                if (x + y) % 9 == 0:
-                    c.put(x, y, hexc('9ab0b0', 90))                                # glass sheen
-        c.box(11, 83, 41, 96, hexc('4a2e1e'), hexc('24160e'))
-        c.rect(24, 88, 28, 89, F.BRASS)
+        c.box(8, 22, 44, 99, wood, wood_dk)
+        c.rect(11, 25, 41, 80, inside)
+        for gx in (15, 22, 29, 36):                                               # the racks, bare
+            c.vline(gx, 34, 70, hexc('33241a'))                                   # paler wood where one hung
+            c.rect(gx - 1, 31, gx + 1, 32, hexc('5a3a26'))                        # its top clip
+            c.rect(gx - 1, 64, gx + 1, 65, hexc('5a3a26'))                        # its cradle
+        c.rect(12, 71, 40, 72, hexc('5a3a26')); c.hline(12, 40, 71, hexc('7a5236'))   # the shelf
+        c.rect(19, 66, 39, 70, hexc('6a1e24')); c.hline(19, 39, 66, hexc('84303a'))   # a felt-lined gun rest
+        if empty:
+            c.rect(22, 67, 36, 69, hexc('7c2a32'))                                # unfaded felt where it lay
+        else:
+            gm, gd, gl = hexc('3a3a40'), hexc('1e1e22'), hexc('9a9aa4')          # the handgun, side-on:
+            c.rect(22, 66, 36, 67, gm); c.hline(22, 36, 66, gl)                   # its slide,
+            c.put(36, 67, gd); c.hline(23, 34, 67, hexc('2a2a30'))               # muzzle, serrations
+            c.rect(22, 68, 25, 69, hexc('4a3020')); c.put(22, 70, hexc('4a3020'))   # the grip (wood),
+            c.rect(26, 68, 29, 68, gd); c.put(29, 69, gd); c.put(27, 69, gd)      # the trigger guard
+            c.put(33, 66, hexc('d8d8e0'))                                         # a glint
+        if smashed:
+            # the glass gone but for jagged teeth round the frame, the lock stile splintered
+            for (x0, y0, x1, y1, x2, y2) in ((11, 25, 17, 25, 11, 33), (41, 25, 34, 25, 41, 31),
+                                            (11, 80, 16, 80, 11, 73), (41, 80, 37, 80, 41, 70),
+                                            (24, 25, 28, 25, 26, 29)):
+                c.poly([(x0, y0), (x1, y1), (x2, y2)], glass)
+                c.put(x0, y0, glint)
+            c.rect(9, 46, 10, 56, hexc('a0784a')); c.put(9, 45, hexc('a0784a'))  # torn raw wood
+            c.put(10, 50, brass)                                                  # the lock, bent out
+        else:
+            for y in range(25, 81):
+                for x in range(11, 42):
+                    if not opened and (x + y) % 9 == 0:
+                        c.put(x, y, glass)                                        # glass sheen
+            c.rect(9, 49, 10, 54, brass); c.put(10, 51, hexc('1a120c'))           # the keyhole plate
+        if opened:
+            # the glazed door swung out on its right-hand hinge, seen nearly edge-on
+            c.poly([(44, 23), (49, 22), (49, 83), (44, 81)], wood)
+            c.poly([(45, 25), (48, 24), (48, 79), (45, 78)], hexc('5a7070'))
+            c.line(46, 30, 46, 40, glint)
+            c.put(49, 50, brass)
+        c.box(11, 83, 41, 96, wood, wood_dk)
+        c.rect(24, 88, 28, 89, brass)
 
     def _fireplace(c):
         # a stone fireplace against the wall, SYMMETRIC about x 128 (owner round 13): hearth, stone
@@ -871,6 +909,9 @@ def e_furniture(c):
 
     # with depth (owner round 14): the cabinet 3px left of where it stood flat (clear of window L)
     setback(c, lambda l: lr.shifted(l, _gun_cabinet, 0, -3), depth=5, top=22, x_range=(5, 41), rake=1.0)
+    if CAB_STATE.startswith('smashed'):                                          # its glass on the floor
+        for (gx, gy) in ((10, 106), (14, 108), (19, 105), (23, 109), (27, 107), (31, 106), (35, 109), (17, 111)):
+            c.put(gx, gy, hexc('c8dcdc')); c.put(gx + 1, gy, hexc('7a9090'))
     setback(c, _fireplace, depth=4, top=52, x_range=(FX - 30, FX + 30))
     setback(c, _basket, depth=3, top=86, x_range=(FX - 48, FX - 33))
     setback(c, _poker, depth=3)
@@ -952,9 +993,68 @@ VARIANTS = {
 }
 
 
+CAB_STATES = ('open', 'smashed', 'open_empty', 'smashed_empty')
+CAB_BOX = (0, 10, 50, 120)        # where the cabinet's looks differ (clear of window box L, x >= 50)
+
+
+def _cabinet_overlays():
+    """The gun cabinet's other looks as OVERLAYS over living_room_e (scripts/gun_cabinet_art.gd):
+    each state rendered through the SAME pipeline (run 1 + the run-2/3 looks), then only the pixels
+    that differ from the locked render inside CAB_BOX are kept —
+    assets/rooms/living_room_e_cabinet_<state>[_r2|_r3].png."""
+    global CAB_STATE
+    import tempfile
+    from PIL import Image
+    import pixlib as PL
+    from modscene import ROOT
+    name, seed, fns, anchors = VARIANTS['e']
+
+    def render(state):
+        global CAB_STATE
+        CAB_STATE = state
+        bare, floor, build = _variant(*fns, seed)
+        imgs = {}
+        for r in (1, 2, 3):
+            C3.RUN = r
+            PL.LIGHTS.clear(); PL.ANIMS.clear(); PL.SETBACKS.clear()
+            cv = Canvas(seed=seed)
+            build(cv)
+            imgs[r] = cv.img
+        C3.RUN = 1
+        bw = Canvas(seed=seed); bare(bw)
+        bf = Canvas(seed=seed); bare(bf); floor(bf)
+        tmp = tempfile.mkdtemp()
+        os.makedirs(os.path.join(tmp, 'assets', 'rooms'))
+        runs = PL.run_looks(name, tmp, imgs[1], imgs[1], bw.img, bf.img, floor, seed, False,
+                            per_level={2: (imgs[2], imgs[2]), 3: (imgs[3], imgs[3])})
+        return {1: imgs[1], 2: runs[2], 3: runs[3]}
+
+    locked = render('locked')
+    x0, y0, x1, y1 = CAB_BOX
+    for st in CAB_STATES:
+        look = render(st)
+        for r in (1, 2, 3):
+            ov = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+            a_, b_ = look[r].load(), locked[r].load()
+            n = 0
+            for y in range(y0, y1):
+                for x in range(x0, x1):
+                    if a_[x, y] != b_[x, y]:
+                        ov.putpixel((x, y), a_[x, y])
+                        n += 1
+            if n == 0:
+                sys.exit('cabinet %s run %d: no change from the locked look' % (st, r))
+            ov.save(os.path.join(ROOT, 'assets', 'rooms', 'living_room_e_cabinet_%s%s.png'
+                                 % (st, '' if r == 1 else '_r%d' % r)))
+    CAB_STATE = 'locked'
+    print('wrote the gun cabinet looks (%s)' % ', '.join(CAB_STATES))
+
+
 if __name__ == '__main__':
     for v in (sys.argv[1:] or sorted(VARIANTS)):
         name, seed, fns, anchors = VARIANTS[v]
         bare, floor, build = _variant(*fns, seed)
         finish_module(name, 'living_room', seed, bare, floor, build, anchors,
                       per_run=lambda r: setattr(C3, 'RUN', r))
+        if v == 'e':
+            _cabinet_overlays()

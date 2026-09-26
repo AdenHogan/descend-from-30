@@ -1634,7 +1634,7 @@ func use_item(slot_index: int) -> void:
 	elif item_data.get("is_key", false):
 		var target = instance.target_apartment
 		if target != "":
-			HUD.show_feedback("Apartment " + target + " Key")
+			HUD.show_feedback(WorldState.key_display(target))
 		else:
 			HUD.show_feedback("Apartment Key")
 	elif item_data.get("is_clothes", false):

@@ -885,7 +885,7 @@ func _drop_feet_y() -> float:
 func _drop_key() -> void:
 	var added = WorldState.add_key_to_inventory(key_target_apartment)
 	if added:
-		HUD.show_feedback("Key — Apt " + key_target_apartment + " found!")
+		HUD.show_feedback(WorldState.key_display(key_target_apartment) + " found!")
 	else:
 		# Full pockets: the key lands LIVE on the floor by the corpse (it was only registered, mid-air,
 		# with no pickup — invisible until re-entry; the tutorial's 3002 key gates the stairs).

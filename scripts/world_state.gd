@@ -1134,6 +1134,7 @@ func new_game() -> void:
 	pending_stair_pulls.clear()
 	barricade_keeper_state.clear()
 	elevator_kit_placed.clear()
+	gun_cabinets.clear()
 	elevator_powered = false
 	elevator_fuses_loaded = 0
 	fire_dealt_with.clear()
@@ -3428,6 +3429,10 @@ var hazard_approach_warned: Dictionary = {}
 # Persisted per run.
 var elevator_kit_placed: Dictionary = {}
 
+# GUN CABINETS (owner round 20 — "a quest without saying it"): apartment id -> {"opened": "key" |
+# "pry", "taken": bool}. Cross-run (a cabinet you opened stays open), saved, cleared by new_game.
+var gun_cabinets: Dictionary = {}
+
 # Elevator power. The building's lift runs on 3 fuses fitted at a maintenance-room
 # fuse box (docs/MAINTENANCE_ELEVATOR.md). It's a single rationed charge: once
 # powered the corridor elevator can be ridden ONCE (5 floors up/down), then it
@@ -3858,6 +3863,7 @@ func seed_floor_door_states(floor_num: int) -> void:
 		var apt_id = apartments[i]
 		if not door_states.has(apt_id):
 			door_states[apt_id] = _pick_door_state(rng, weights)
+	_ensure_cabinet_key_room(floor_num)
 
 
 func get_door_state(apartment_id: String) -> int:
@@ -3938,6 +3944,235 @@ func get_breached_room_enemies(apartment_id: String, min_x: float, max_x: float,
 		})
 
 	return enemies
+
+
+# ============================================================
+# GUN CABINETS — a quest without saying it (owner round 20)
+# ============================================================
+# Living room E has a locked gun cabinet (anchor_living_gun_cabinet). Inside: a GUARANTEED Lv3 gun.
+# It opens with ITS key or a crowbar (spent). The key is carried by a SPITTER in a breach room on
+# the same floor — that room has no big boss; the spitter has double HP and its spit hits twice as
+# hard (crouch under the spits to get close). Nothing tells the player this: the locked cabinet says
+# it needs a key or a crowbar, and the key names the cabinet when it turns up.
+# Runs 2 / 3: someone else may have got there first — the glass is smashed and it's empty.
+const GUN_CABINET_ANCHOR := "anchor_living_gun_cabinet"
+const GUN_CABINET_SCENE := "res://scenes/Room_Modules/living_room_e.tscn"
+const CABINET_KEY_PREFIX := "cab:"
+const CABINET_WEAPON := "004"                              # the Gun
+const CABINET_LEVEL := 3
+const CABINET_ROUNDS := 6                                  # a few left in the magazine
+const CABINET_LOOTED_CHANCE := {2: 0.30, 3: 0.35}         # per run: someone broke in since
+const CABINET_KEY_HP_MULT := 2
+const CABINET_KEY_DAMAGE_MULT := 2
+
+
+# The living-room slot showing the gun cabinet in this apartment, or -1. A pure function of the
+# seed (the layout + module variant), so the live room, a backdrop and the door seeding all agree.
+func gun_cabinet_slot(apartment_id: String) -> int:
+	var floor_num := _apartment_floor(apartment_id)
+	if floor_num < 1 or floor_num > 30:
+		return -1
+	if is_first_run and floor_num == 30:
+		return -1                                    # the tutorial's fixed rooms
+	var variants: Array = load("res://scripts/room.gd").MODULE_VARIANTS.get("living_room", [])
+	var idx := variants.find(GUN_CABINET_SCENE)
+	if idx < 0:
+		return -1
+	var layout: Array = get_apartment_layout(apartment_id)
+	for i in range(layout.size()):
+		if layout[i] == "living_room" and module_variant_index(apartment_id, i, "living_room", variants.size()) == idx:
+			return i
+	return -1
+
+
+func has_gun_cabinet(apartment_id: String) -> bool:
+	return gun_cabinet_slot(apartment_id) >= 0
+
+
+func gun_cabinets_on_floor(floor_num: int) -> Array:
+	var out: Array = []
+	for i in range(1, 6):
+		var apt := str(floor_num) + "0" + str(i)
+		if has_gun_cabinet(apt):
+			out.append(apt)
+	return out
+
+
+# Someone else got to it: from run 2 each run rolls (seeded per cabinet + run); once broken into it
+# stays broken into. A burnt-out (charred) flat's cabinet is gone too.
+func gun_cabinet_looted_by_others(apartment_id: String) -> bool:
+	var floor_num := _apartment_floor(apartment_id)
+	if is_apartment_charred(floor_num, int(apartment_id.substr(apartment_id.length() - 2))):
+		return true
+	for r in range(2, current_run + 1):
+		var rng := RandomNumberGenerator.new()
+		rng.seed = hash(str(master_seed) + "cabinetlooted" + apartment_id + str(r))
+		if rng.randf() < float(CABINET_LOOTED_CHANCE.get(r, 0.0)):
+			return true
+	return false
+
+
+# "none" | "locked" | "open" (key) | "smashed" (crowbar) | "open_empty" | "smashed_empty".
+func gun_cabinet_state(apartment_id: String) -> String:
+	if not has_gun_cabinet(apartment_id):
+		return "none"
+	var rec: Dictionary = gun_cabinets.get(apartment_id, {})
+	var how := String(rec.get("opened", ""))
+	var base := "open" if how == "key" else "smashed"
+	if bool(rec.get("taken", false)):
+		return base + "_empty"
+	if gun_cabinet_looted_by_others(apartment_id):
+		return base + "_empty"
+	if how == "":
+		return "locked"
+	return base
+
+
+func gun_cabinet_holds_weapon(apartment_id: String) -> bool:
+	return gun_cabinet_state(apartment_id) in ["locked", "open", "smashed"]
+
+
+# Open it: "key" (spends its key) or "pry" (spends a crowbar). Returns "" on success, else why not.
+func open_gun_cabinet(apartment_id: String, how: String) -> String:
+	if gun_cabinet_state(apartment_id) != "locked":
+		return "It's already open."
+	if how == "key":
+		var slot := _find_cabinet_key(apartment_id)
+		if slot < 0:
+			return "You don't have its key."
+		inventory.remove_at(slot)                    # the key stays in the lock
+		if HUD.selected_slot == slot:
+			HUD.selected_slot = -1
+		elif HUD.selected_slot > slot:
+			HUD.selected_slot -= 1
+		HUD.refresh_inventory()
+	elif how == "pry":
+		if not consume_crowbar():
+			return "You need a crowbar."
+	else:
+		return "?"
+	gun_cabinets[apartment_id] = {"opened": how, "taken": false}
+	return ""
+
+
+func note_gun_cabinet_taken(apartment_id: String) -> void:
+	var rec: Dictionary = gun_cabinets.get(apartment_id, {})
+	rec["taken"] = true
+	if not rec.has("opened"):
+		rec["opened"] = "pry"
+	gun_cabinets[apartment_id] = rec
+
+
+func _find_cabinet_key(apartment_id: String) -> int:
+	for i in range(inventory.size()):
+		if inventory[i].target_apartment == CABINET_KEY_PREFIX + apartment_id:
+			return i
+	return -1
+
+
+func has_cabinet_key(apartment_id: String) -> bool:
+	return _find_cabinet_key(apartment_id) >= 0
+
+
+# The weapon inside — built the same way every time (seeded per cabinet): the Gun at Lv3, one of
+# each level's two perks already chosen, its 4 tuning points left FREE for the bench (make it yours),
+# full wear, a few rounds in the magazine.
+func gun_cabinet_weapon(apartment_id: String) -> ItemInstance:
+	var inst := ItemInstance.new()
+	inst.setup(CABINET_WEAPON)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "cabinetweapon" + apartment_id)
+	while inst.level < CABINET_LEVEL:
+		var choices: Array = WeaponUpgrades.next_choices(inst)
+		var base_max: int = inst.get_max_durability()
+		inst.level += 1
+		if not choices.is_empty():
+			inst.perks.append(choices[rng.randi() % choices.size()])
+		_apply_durability_headroom(inst, base_max)
+	if inst.get_max_durability() > 0:
+		inst.current_durability = inst.get_max_durability()
+	inst.mag_count = mini(CABINET_ROUNDS, inst.get_mag_cap())
+	return inst
+
+
+# The breach room on this floor whose SPITTER carries this cabinet's key ("" = none: the cabinet
+# is crowbar-only — floor 30, an old save's floor, or more cabinets than breach rooms). Breach rooms
+# on the floor are dealt out to its still-locked cabinets in a seeded order.
+func cabinet_key_room(cabinet_apt: String) -> String:
+	var floor_num := _apartment_floor(cabinet_apt)
+	if floor_num < 1 or floor_num >= 30 or gun_cabinet_state(cabinet_apt) != "locked":
+		return ""
+	var cabinets := gun_cabinets_on_floor(floor_num)
+	var rooms: Array = []
+	for i in range(1, 6):
+		var apt := str(floor_num) + "0" + str(i)
+		if not (apt in cabinets) and get_door_state(apt) == DoorState.BREACHED:
+			rooms.append(apt)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "cabinetkeyroom" + str(floor_num))
+	for i in range(rooms.size() - 1, 0, -1):
+		var j := rng.randi() % (i + 1)
+		var t = rooms[i]
+		rooms[i] = rooms[j]
+		rooms[j] = t
+	var k := 0
+	for cab in cabinets:
+		if gun_cabinet_state(cab) != "locked":
+			continue
+		if k >= rooms.size():
+			return ""
+		if cab == cabinet_apt:
+			return rooms[k]
+		k += 1
+	return ""
+
+
+# The cabinet whose key this breach room's spitter carries ("" = an ordinary breach room + boss).
+func cabinet_for_key_room(room_apt: String) -> String:
+	var floor_num := _apartment_floor(room_apt)
+	if floor_num < 1 or floor_num >= 30:
+		return ""
+	for cab in gun_cabinets_on_floor(floor_num):
+		if cabinet_key_room(cab) == room_apt:
+			return cab
+	return ""
+
+
+# A floor with a gun cabinet always seeds at least one breach room for the key's carrier (called
+# once, when the floor's doors are first seeded). Never the cabinet's own flat.
+func _ensure_cabinet_key_room(floor_num: int) -> void:
+	if floor_num < 1 or floor_num >= 30:
+		return
+	var cabinets := gun_cabinets_on_floor(floor_num)
+	if cabinets.is_empty():
+		return
+	var others: Array = []
+	for i in range(1, 6):
+		var apt := str(floor_num) + "0" + str(i)
+		if apt in cabinets:
+			continue
+		if door_states.get(apt, -1) == DoorState.BREACHED:
+			return
+		others.append(apt)
+	if others.is_empty():
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "cabinetbreach" + str(floor_num))
+	door_states[others[rng.randi() % others.size()]] = DoorState.BREACHED
+
+
+# How a key reads — a door key names its flat; a cabinet key names the cabinet.
+func key_display(target: String) -> String:
+	if target.begins_with(CABINET_KEY_PREFIX):
+		return "Gun cabinet key — Apt " + target.substr(CABINET_KEY_PREFIX.length())
+	return "Key — Apt " + target
+
+
+# The short tag on the key's inventory slot.
+func key_tag(target: String) -> String:
+	if target.begins_with(CABINET_KEY_PREFIX):
+		return "C" + target.substr(CABINET_KEY_PREFIX.length())
+	return target
 
 
 # ============================================================
@@ -4349,6 +4584,7 @@ func save_game(scene_path: String, record_live_zombies: bool = true) -> void:
 		"pending_stair_pulls": pending_stair_pulls,
 		"barricade_keeper_state": barricade_keeper_state,
 		"elevator_kit_placed": elevator_kit_placed,
+		"gun_cabinets": gun_cabinets,
 		"elevator_powered": elevator_powered,
 		"elevator_fuses_loaded": elevator_fuses_loaded,
 		"fire_dealt_with": fire_dealt_with,
@@ -4450,6 +4686,7 @@ func load_game() -> String:
 	pending_stair_pulls = data.get("pending_stair_pulls", {})
 	barricade_keeper_state = data.get("barricade_keeper_state", {})
 	elevator_kit_placed = data.get("elevator_kit_placed", {})
+	gun_cabinets = data.get("gun_cabinets", {})
 	elevator_powered = bool(data.get("elevator_powered", false))
 	elevator_fuses_loaded = int(data.get("elevator_fuses_loaded", 0))
 	fire_dealt_with = data.get("fire_dealt_with", {})

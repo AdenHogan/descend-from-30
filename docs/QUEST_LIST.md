@@ -160,3 +160,14 @@ Mostly unfilled so far; recorded values:
 | 002 | The Shopkeeper | NO | YES | — |
 
 (All other rows blank in the current sheet.)
+
+## Unlisted: The Gun Cabinet (built, owner round 20)
+
+Never announced — the player works it out. A living room with a locked gun cabinet (living room E):
+the long guns are gone, but a handgun lies behind the glass. The cabinet needs its key or a crowbar.
+The key is on a tough Spitter (double health, double damage) in a breach room on the same floor —
+no big boss there. Crouch under its spits to get close.
+
+- **Reward:** a guaranteed Lv3 Gun (two perks chosen, four tuning points free for the workbench).
+- **Runs 2/3:** someone may have broken in first — smashed glass, empty rest.
+- Implementation: CLAUDE.md "THE GUN CABINET"; `tests/gun_cabinet_test`.
