@@ -15,7 +15,7 @@ import pixlib as PX
 import os
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
-from pixlib import persp
+from pixlib import persp, flat_piece
 from pixlib import Canvas, hexc, shade, rrect, finish_module, setback
 import furn as F
 import chair3d as C3
@@ -216,7 +216,8 @@ def c_furniture(c):
                 c.put(x, y, col)
         for x in range(110, 209, 2):                                               # fringe
             c.put(x, 125, hexc('d8ccb0'))
-    F.moved(c, corner, 60, 0)
+    with flat_piece(c):
+        F.moved(c, corner, 60, 0)
     C3.armchair(c, 201, 117, -30, {'fab': hexc('3e5a4a'), 'fab_lt': hexc('4a6a58'), 'wood': hexc('3a2618')},
                 style='wing', plan={2: 'blood', 3: 'tipped'}, key='study_c')   # turned toward the lamp
     def table_lamp(c):

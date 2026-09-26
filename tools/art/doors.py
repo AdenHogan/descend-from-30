@@ -366,122 +366,220 @@ HOLE_VARIANTS = 3
 
 
 def wall_hole(section, seed):
-    """A BREACHED door (owner round 21 — "a kool aid man style breached hole in the wall and then
-    broken pieces of the door on the corridor floor"): something came THROUGH the wall. A big
-    burst-shaped hole where the door was — wider than the doorway, jagged all round — cracks running
-    off across the wall, plaster blown off round it to the blockwork, the dark flat beyond with blood
-    up its walls; below the wall line, on the corridor floor, the door in pieces (panels, splinters,
-    the handle, a hinge), rubble and dust, and a bloody drag smear out of the hole. Transparent
-    outside the damage (the corridor shows)."""
+    """A BREACHED door (owner round 21b — the burst "a little too kool aid man… looks like it's painted on
+    the wall… it's a giant hole, we should be able to see the apartment inside"): the doorway TORN OUT —
+    the door and its frame ripped away and the wall broken back round the opening (the lintel cracked
+    and part-fallen, one side bitten further in), splintered stubs of the casing still nailed on. The
+    hole has DEPTH: the cut face of the wall (plaster skin, block core) shows round its edges, lit on
+    one side, in shadow on the other and under the lintel; through it the flat's hall runs back in one-
+    point perspective — its floorboards, side walls with a picture knocked askew, a chair on its side,
+    a coat stand down, a dragged smear leading in, and a doorway at the back with light beyond. Below
+    the wall line, on the corridor floor: the door in pieces, rubble and dust."""
     rng = random.Random(seed)
     st = STYLES[SECTION_STYLES[section][rng.randrange(len(SECTION_STYLES[section]))]]
     img = Image.new('RGBA', (HOLE_W, HOLE_H), (0, 0, 0, 0))
     c = Canvas(w=HOLE_W, h=HOLE_H, seed=seed)
     c.img, c.px = img, img.load()
-    cx = HOLE_W // 2 + rng.randint(-3, 3)
+    cx = HOLE_W // 2 + rng.randint(-2, 2)
     floor_y = HOLE_WALL_H - 1                                      # the wall meets the corridor floor
-    blood, blood_dk, blood_lt = hexc('6a0e10'), hexc('3e0808'), hexc('8e1a1a')
-    # --- the burst: a radial outline, spiky, wider than the door, sitting on the floor ---
-    cy = floor_y - 34
-    spikes = [(rng.uniform(-3.1, 0.0), rng.uniform(3, 8)) for _ in range(8)]      # teeth, mostly up + sides
+    blood, blood_dk = hexc('6a0e10'), hexc('3e0808')
+    # --- the opening: the doorway's shape, torn wider — ragged sides, the lintel broken up into the wall
+    half = 23
+    top_y = floor_y - 80
 
-    def radius(ang):
-        r = 25.0 + 3.0 * math.cos(2 * ang)
-        for (a0, amp) in spikes:
-            d = math.atan2(math.sin(ang - a0), math.cos(ang - a0))
-            r += amp * max(0.0, 1.0 - abs(d) / 0.2)                  # jagged teeth
-        r += 2.0 * math.sin(ang * 11 + seed)
-        return min(r, 36.0)
+    def walk(n, lo, hi, step=(1, 1, 2)):
+        v, out = 0.0, []
+        for i in range(n):
+            v = max(lo, min(hi, v + rng.choice((-1, 0, 0, 1)) * rng.choice(step)))
+            out.append(v)
+        return out
+    left, right = walk(HOLE_H, -2, 3), walk(HOLE_H, -2, 3)
+    bite_side, bite_y, bite_r = rng.choice((-1, 1)), rng.randrange(top_y + 18, floor_y - 30), rng.randrange(5, 9)
+    lintel = walk(HOLE_W, 0, 4)
+    drop_x0 = rng.randint(cx - half + 4, cx + 4)                        # where the lintel gave way further
+    drop_w, drop_h = rng.randint(10, 16), rng.randint(3, 6)
 
     def inside(x, y):
-        if y > floor_y or x < 6 or x > HOLE_W - 7:
+        if y > floor_y:
             return False
-        if y > floor_y - 12 and abs(x - cx) < 21 + (y - floor_y + 12) * 0.4:
-            return True                                              # it opens flat onto the floor
-        dx, dy = (x - cx) / 1.0, (y - cy) / 1.35                     # upright; it runs into the floor
-        return math.hypot(dx, dy) < radius(math.atan2(dy, dx))
+        l = cx - half - left[y]
+        r = cx + half + right[y]
+        d = max(0, int(bite_r - abs(y - bite_y) * 0.8))
+        if bite_side < 0:
+            l -= d
+        else:
+            r += d
+        if not (l <= x <= r):
+            return False
+        t = top_y - lintel[min(max(x, 0), HOLE_W - 1)]
+        if drop_x0 <= x <= drop_x0 + drop_w:
+            t -= int(drop_h * (1 - abs(x - drop_x0 - drop_w / 2) / (drop_w / 2 + 1)))
+        return y >= t
     hole = [[inside(x, y) for x in range(HOLE_W)] for y in range(HOLE_H)]
+    xs = [x for x in range(HOLE_W) for y in range(HOLE_WALL_H) if hole[y][x]]
+    L, R = min(xs), max(xs)
+    T = min(y for y in range(HOLE_WALL_H) for x in range(HOLE_W) if hole[y][x])
+    B = floor_y
+    # --- the flat's hall, in one-point perspective ---
+    vpx, vpy = cx + rng.randint(-5, 5), floor_y - 40
+    k = 0.42                                                           # the back wall's scale
+    bl, br = vpx + (L - vpx) * k, vpx + (R - vpx) * k
+    bt, bb = vpy + (T - vpy) * k, vpy + (B - vpy) * k
+    paper = [hexc(h) for h in ('6e6656', '5c6660', '72604e', '66586a', '6a6a5a')][rng.randrange(5)]
+    board, board_dk = hexc('4a3526'), hexc('33251a')
+    light = hexc('b0874c')                                             # a lamp on in the room beyond
+    dw = rng.randint(7, 9)                                             # the back doorway
+    dx0 = int(bl + (br - bl) * rng.choice((0.2, 0.55)))
+    dtop = int(bb - (bb - bt) * 0.72)
 
-    def ring(x, y, rad):
+    def surface(x, y):
+        if bl <= x <= br and bt <= y <= bb:
+            if dx0 <= x <= dx0 + dw and y >= dtop:
+                t = (y - dtop) / max(1.0, bb - dtop)
+                return mix(light, hexc('6a4a2a'), 0.35 + 0.4 * t), 'door'
+            f = 0.62 + 0.25 * (1 - abs(x - (dx0 + dw / 2)) / max(1.0, br - bl))
+            if abs(y - (bb - (bb - bt) * 0.4)) < 0.6:
+                return shade(paper, 0.45), 'rail'
+            return shade(paper, f), 'back'
+        if y > bb:
+            t = (y - bb) / max(1.0, B - bb)
+            xl, xr = bl + (L - bl) * t, br + (R - br) * t
+            if xl <= x <= xr:
+                col = board
+                a = (x - vpx) / max(1.0, y - vpy)
+                if abs((a * 5.0) - round(a * 5.0)) < 0.09:
+                    col = board_dk                                     # the boards, running back
+                elif (int(38.0 / max(1.0, y - vpy) * 6) % 3) == 0 and abs(x - vpx) % 5 == 0:
+                    col = shade(board, 0.85)
+                near_light = max(0.0, 1.0 - abs(x - (dx0 + dw / 2)) / 14.0) * (1 - t)
+                return mix(shade(col, 0.55 + 0.25 * (1 - t)), light, 0.35 * near_light), 'floor'
+        if y < bt:
+            return shade(paper, 0.35), 'ceil'
+        # a side wall: lit toward the back, dark at the front
+        if x < bl:
+            t = (bl - x) / max(1.0, bl - L)
+            return shade(paper, 0.72 - 0.35 * t), 'lwall'
+        t = (x - br) / max(1.0, R - br)
+        return shade(paper, 0.6 - 0.32 * t), 'rwall'
+    for y in range(HOLE_WALL_H):
+        for x in range(HOLE_W):
+            if hole[y][x]:
+                c.px[x, y] = surface(x, y)[0]
+
+    def hput(x, y, col):
+        x, y = int(x), int(y)
+        if 0 <= x < HOLE_W and 0 <= y <= floor_y and hole[y][x]:
+            c.px[x, y] = col
+    # a dado rail down each side wall, converging on the back wall's
+    rail_back = bb - (bb - bt) * 0.4
+    for x in range(L, R + 1):
+        if x < bl or x > br:
+            edge = L if x < bl else R
+            bx = bl if x < bl else br
+            t = (x - bx) / (edge - bx) if edge != bx else 0
+            y = rail_back + (vpy + (rail_back - vpy) / k - rail_back) * t
+            if 0 <= int(y) <= floor_y and surface(x, int(y))[1] in ('lwall', 'rwall'):
+                hput(x, y, shade(paper, 0.4))
+    # a picture knocked askew on the left wall, a light switch on the right
+    px0, py0 = int(L + (bl - L) * 0.45), int(vpy - 14)
+    c.poly([(px0, py0), (px0 + 5, py0 + 2), (px0 + 4, py0 + 9), (px0 - 1, py0 + 7)], hexc('3a2a1c'))
+    c.poly([(px0 + 1, py0 + 2), (px0 + 4, py0 + 3), (px0 + 3, py0 + 7), (px0, py0 + 6)], hexc('5a6a58'))
+    hput(int(br + (R - br) * 0.4), int(vpy - 4), hexc('c8c0aa'))
+    # a chair on its side against the right wall, a coat stand down across the floor
+    chx, chy = int(br + (R - br) * 0.35), int(bb + (B - bb) * 0.55)
+    wood, wood_hi = hexc('4a3424'), hexc('7a5a3a')
+    for i in range(7):                                                   # the seat on edge, then the back
+        hput(chx + i, chy, wood); hput(chx + i, chy - 1, wood_hi if i % 3 else wood)
+    for d in range(6):
+        hput(chx - d // 2, chy - 1 - d, wood); hput(chx + 1 - d // 2, chy - 1 - d, wood_hi)
+    for (lx, ly) in ((chx + 2, chy - 1), (chx + 6, chy - 1)):             # legs in the air
+        for d in range(4):
+            hput(lx + d, ly - 1 - d, wood)
+    cs0 = (int(L + (bl - L) * 0.25), int(bb + (B - bb) * 0.85))
+    for t in range(18):                                                  # the coat stand, felled
+        hput(cs0[0] + t, cs0[1] - t // 4, wood); hput(cs0[0] + t, cs0[1] - t // 4 - 1, wood_hi if t % 2 else wood)
+    for (dx, dy) in ((17, -7), (18, -3), (16, -2)):
+        hput(cs0[0] + dx, cs0[1] + dy // 2 - 4, wood_hi)
+    for t in range(5):                                                   # a coat still on it, in a heap
+        for u in range(3):
+            hput(cs0[0] + 3 + t, cs0[1] - 1 - u + (t % 2), hexc('3c4046') if u else hexc('2a2e34'))
+    # the drag smear, from the doorway sill back toward the lit room — narrowing as it goes
+    for y in range(int(bb), B + 1):
+        t = (y - bb) / max(1.0, B - bb)
+        xc = (dx0 + dw / 2) + (cx - (dx0 + dw / 2)) * t
+        w_ = 1 + int(4 * t)
+        for x in range(int(xc - w_ / 2), int(xc + w_ / 2) + 1):
+            if rng.random() < 0.55:
+                hput(x, y, mix(blood_dk, board_dk, 0.35))
+    # --- the wall's cut face round the hole: its thickness, lit on the left, shadow right + under the top
+    plaster, plaster_dk, plaster_lt = hexc('cbb89c'), hexc('a8977c'), hexc('ddcdb2')
+    brick, mortar = hexc('8e4c34'), hexc('5e5046')
+    for y in range(HOLE_WALL_H):
+        row = [x for x in range(HOLE_W) if hole[y][x]]
+        if not row:
+            continue
+        l, r = row[0], row[-1]
+        for d in range(4):                                             # left reveal (faces the light)
+            col = plaster_lt if d == 0 else (brick if (y // 3 + d) % 3 else mortar)
+            if l + d < r:
+                c.px[l + d, y] = shade(col, 0.95)
+        for d in range(3):                                             # right reveal (in shadow)
+            col = plaster if d == 0 else (brick if (y // 3 + d) % 3 else mortar)
+            if r - d > l:
+                c.px[r - d, y] = shade(col, 0.5)
+    for x in range(HOLE_W):
+        col_ys = [y for y in range(HOLE_WALL_H) if hole[y][x]]
+        if col_ys:
+            t = col_ys[0]
+            for d in range(3):                                         # the underside of what's left of the lintel
+                if hole[t + d][x]:
+                    c.px[x, t + d] = shade(plaster_dk if d == 0 else brick, 0.4)
+    # --- round it on the corridor side: the plaster broken back a little, a few cracks, casing stubs ---
+    def near(x, y, rad):
         for dy in range(-rad, rad + 1):
             for dx in range(-rad, rad + 1):
                 xx, yy = x + dx, y + dy
                 if 0 <= xx < HOLE_W and 0 <= yy <= floor_y and hole[yy][xx]:
                     return True
         return False
-    plaster, plaster_dk, plaster_lt = hexc('cbb89c'), hexc('a8977c'), hexc('ddcdb2')
-    brick, mortar = hexc('9a5238'), hexc('5e5046')
-    for y in range(HOLE_WALL_H):
+    ph1, ph2 = rng.uniform(0, 6.3), rng.uniform(0, 6.3)
+    for y in range(HOLE_WALL_H):                                       # a clean broken edge, not a speckle
         for x in range(HOLE_W):
             if hole[y][x]:
-                # the flat beyond: its far wall in the dark, the floor running back at the bottom
-                if y < floor_y - 11:
-                    t = (y - (cy - 45)) / 60.0
-                    c.px[x, y] = mix(hexc('0c0a09'), hexc('2a211c'), max(0.0, min(1.0, 1.0 - abs(t - 0.55) * 1.6)))
-                else:
-                    c.px[x, y] = mix(hexc('2c2019'), hexc('171210'), (floor_y - y) / 11.0)
-            elif ring(x, y, 2):                                     # blockwork, broken through
-                sh = 5 if (y // 4) % 2 else 0
-                col = mortar if y % 4 == 0 or (x + sh) % 10 == 0 else (brick if (x * 3 + y) % 7 else shade(brick, 0.75))
-                c.px[x, y] = col
-            elif ring(x, y, 5) and rng.random() < 0.85:             # plaster blown off, ragged
-                c.px[x, y] = plaster_lt if rng.random() < 0.3 else (plaster if rng.random() < 0.7 else plaster_dk)
-    # the dark inside edge of the hole (depth), and blood up the flat's walls beyond
-    for y in range(1, HOLE_WALL_H):
-        for x in range(1, HOLE_W - 1):
-            if hole[y][x] and not (hole[y - 1][x] and hole[y][x - 1] and hole[y][x + 1]):
-                c.px[x, y] = hexc('0e0a08')
-    def hput(x, y, col):
-        if 0 <= x < HOLE_W and 0 <= y <= floor_y and hole[y][x]:
-            c.px[x, y] = col
-    # swipes of blood across the far wall at odd angles — dragged hands, something thrown against it —
-    # with uneven runs off them; a splash; a pool on the floor in there
-    for k in range(rng.randint(2, 4)):
-        x0, y0 = cx + rng.randint(-18, 10), cy + rng.randint(-22, 4)
-        ang = rng.uniform(-0.9, 0.9) + (0 if rng.random() < 0.5 else 3.14)
-        ln = rng.randint(8, 18)
-        wid = rng.choice((1, 2, 2, 3))
-        for t in range(ln):
-            x, y = int(x0 + math.cos(ang) * t), int(y0 + math.sin(ang) * t * 0.6)
-            for w_ in range(wid - (1 if t > ln * 0.7 else 0)):
-                hput(x, y + w_, blood if rng.random() < 0.75 else blood_dk)
-            if rng.random() < 0.12:
-                for d in range(rng.randint(2, 9)):
-                    hput(x, y + wid + d, blood_dk)
-    sx, sy = cx + rng.randint(-12, 12), cy + rng.randint(-12, 6)
-    for k in range(14):
-        a_, r_ = rng.uniform(0, 6.283), abs(rng.gauss(0, 4))
-        hput(int(sx + math.cos(a_) * r_), int(sy + math.sin(a_) * r_), blood if r_ < 3 else blood_dk)
-    for x in range(cx - 20, cx + 20):
-        for y in range(floor_y - 6, floor_y + 1):
-            if ((x - cx) / 20.0) ** 2 + ((y - floor_y + 3) / 3.5) ** 2 < 1.0:
-                hput(x, y, blood_dk if rng.random() < 0.75 else blood)
-    # cracks running off across the wall
-    for k in range(7):
-        ang = rng.uniform(-2.9, -0.25) if k < 5 else rng.choice((rng.uniform(-0.2, 0.1), rng.uniform(3.0, 3.3)))
-        x, y = cx + math.cos(ang) * 30, cy + math.sin(ang) * 36
-        for step in range(rng.randint(8, 18)):
-            ang += rng.uniform(-0.5, 0.5)
-            x += math.cos(ang) * 1.4
-            y += math.sin(ang) * 1.4
-            xi, yi = int(x), int(y)
-            if 0 <= xi < HOLE_W and 0 <= yi <= floor_y and not hole[yi][xi]:
-                c.px[xi, yi] = hexc('3a302a', 200)
-    # a bloody hand dragged down the edge of the hole
-    hx = cx + (rng.choice((-1, 1)) * 26)
-    for y in range(cy - 6, cy + 18):
-        for dx in range(3):
-            xx = hx + dx + (y - cy) // 9
-            if 0 <= xx < HOLE_W and not hole[y][xx]:
-                c.px[xx, y] = blood if rng.random() < 0.8 else blood_dk
+                continue
+            chunk = math.sin(x * 0.31 + ph1) + math.sin(y * 0.23 + ph2)   # the skin broke off in patches
+            if near(x, y, 1) and chunk > -0.9:
+                c.px[x, y] = shade(plaster_lt if x < cx and y < floor_y - 30 else plaster_dk, 0.92)
+            elif near(x, y, 3) and chunk > 0.8:
+                c.px[x, y] = shade(plaster_dk, 0.85) if rng.random() < 0.8 else shade(brick, 0.8)
+    for k in range(4):                                                  # a few cracks off the corners
+        x = rng.choice((L - 2, R + 2))
+        y = rng.randint(T, T + 30)
+        ang = rng.uniform(-2.6, -0.5) if x < cx else rng.uniform(-2.6, -0.5) + 0.0
+        dirx = -1 if x < cx else 1
+        for step in range(rng.randint(5, 11)):
+            x += dirx * rng.choice((0, 1, 1))
+            y -= rng.choice((0, 1, 1))
+            if 0 <= x < HOLE_W and 0 <= y <= floor_y and not hole[y][x]:
+                c.px[x, y] = hexc('3a302a', 190)
+    cas, cas_hi = hexc(st['casing']), hexc(st['casing_hi'])
+    for (sx, side) in ((L - 3, -1), (R + 1, 1)):                        # casing stubs, snapped off
+        y0 = floor_y - rng.randint(0, 20)
+        y1 = y0 - rng.randint(12, 40)
+        for y in range(y1, y0 + 1):
+            for d in range(2):
+                xx = sx + d
+                if 0 <= xx < HOLE_W and not hole[y][xx]:
+                    c.px[xx, y] = cas_hi if d == 0 else cas
+        c.put(sx, y1 - 1, cas_hi); c.put(sx + 1, y1 - 2, cas)
     # --- the corridor floor: the door in pieces, rubble, a drag smear out of the hole ---
     fy0 = floor_y + 1
     for y in range(fy0 + 2, HOLE_H - 2):                            # the drag smear
         t = (y - fy0) / HOLE_DEBRIS
         x0 = int(cx - 6 + 10 * t)
         for x in range(x0, x0 + 7 - int(3 * t)):
-            if 0 <= x < HOLE_W and rng.random() < 0.85 - 0.4 * t:
-                c.px[x, y] = blood_dk if rng.random() < 0.6 else blood
+            if 0 <= x < HOLE_W and rng.random() < 0.6 - 0.35 * t:
+                c.px[x, y] = blood_dk if rng.random() < 0.8 else shade(blood, 0.8)
     leaf, line_, hi = hexc(st['leaf']), hexc(st['line']), hexc(st['hi'])
     metal = hexc(st['metal'])
     pieces = []

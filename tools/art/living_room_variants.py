@@ -14,7 +14,7 @@ import os
 import random
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
-from pixlib import persp
+from pixlib import persp, flat_piece
 from pixlib import Canvas, hexc, shade, mix, SEAM_Y, W, H, check_window_boxes, rrect, finish_module, setback
 import living_room as lr
 
@@ -177,9 +177,10 @@ def b_furniture(c):
     # full width), the armchair on the right turned toward the set; the kidney table on the left,
     # the shelving + rubber plant at the ends — evenly spaced.
     CX = 150
-    c.ellipse(CX, 121, 88, 12, hexc('8d6a2c'))                           # an oval mustard rug
-    c.ellipse(CX, 121, 85, 10, hexc('b58a3a'))
-    c.dither(CX - 80, 111, CX + 80, 131, hexc('a47c33'), 0.25, 'random')
+    with flat_piece(c):
+        c.ellipse(CX, 121, 88, 12, hexc('8d6a2c'))                       # an oval mustard rug
+        c.ellipse(CX, 121, 85, 10, hexc('b58a3a'))
+        c.dither(CX - 80, 111, CX + 80, 131, hexc('a47c33'), 0.25, 'random')
     # LEFT set-back: a teak shelving unit — records below, ornaments above (with depth: owner round
     # 14; 3px left of where it stood flat, so its side panel stays clear of window L)
     def _shelving(c):
@@ -1015,11 +1016,12 @@ def e_furniture(c):
     # a chesterfield in oxblood leather, and a bear-skin rug before it
     sofa_as(c, (hexc('6e2a24'), hexc('55201c'), hexc('84403a'), hexc('2a100e')), dx=128)
     bear, bear_dk = hexc('9a7450'), hexc('6a4a34')
-    c.poly([(118, 126), (128, 120), (132, 116), (140, 120), (170, 119), (178, 115), (184, 120), (196, 124),
-            (184, 128), (178, 132), (170, 128), (140, 129), (132, 133), (128, 129)], bear)   # the pelt, legs out
-    c.poly([(196, 124), (206, 120), (212, 123), (208, 128)], bear)                              # the head
-    c.put(206, 122, hexc('1e1a16')); c.put(211, 124, hexc('d9cfb8'))
-    c.line(140, 124, 170, 124, bear_dk)
+    with flat_piece(c):
+        c.poly([(118, 126), (128, 120), (132, 116), (140, 120), (170, 119), (178, 115), (184, 120), (196, 124),
+                (184, 128), (178, 132), (170, 128), (140, 129), (132, 133), (128, 129)], bear)   # the pelt
+        c.poly([(196, 124), (206, 120), (212, 123), (208, 128)], bear)                          # the head
+        c.put(206, 122, hexc('1e1a16')); c.put(211, 124, hexc('d9cfb8'))
+        c.line(140, 124, 170, 124, bear_dk)
     import furn as F
     F.pendant(c, 296, 22, 'mustard')                                 # over the chesterfield
 

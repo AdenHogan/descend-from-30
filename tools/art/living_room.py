@@ -10,7 +10,7 @@ the floor in front of the wall/floor seam. Flat/neutral lighting — the engine 
 import os
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
-from pixlib import persp
+from pixlib import persp, flat_piece
 from pixlib import Canvas, hexc, shade, mix, SEAM_Y, W, H, check_window_boxes, check_edge_columns, save_floor_strip, finish_module, floor_is_periodic, iso_box, iso_pt, outline_layer, rrect
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -491,7 +491,8 @@ def build(c=None):
     picture(c)
     clock(c)
     floor(c)
-    shifted(c, rug, -8, -6)
+    with flat_piece(c):                                   # the rug lies flat (tools/art/nest.py)
+        shifted(c, rug, -8, -6)
     from pixlib import setback
     # 3px left of where it stood flat: its side panel now reaches toward the room, clear of window L
     setback(c, lambda l: shifted(l, bookshelf, 0, -3), depth=4, top=50, x_range=(9, 45))

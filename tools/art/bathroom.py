@@ -22,7 +22,7 @@ import os
 import random
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
-from pixlib import persp
+from pixlib import persp, flat_piece
 from pixlib import Canvas, hexc, shade, mix, W, H, finish_module, rrect, setback, pp, pbox, pellipse
 
 # --- shared palette ---------------------------------------------------------------------------
@@ -975,10 +975,11 @@ def c_build(c):
     chandelier(c, 160)
     # a leopard rug flat on the floor under the tub, then the GOLD roll-top out in the room
     rug = S3.rrect_plan(118, 202, 1, 27, 6, 4)
-    c.poly([S3.P(x, 100, d) for (x, d) in rug], hexc('c89a4a'))
-    for (sx, sd) in ((124, 6), (138, 20), (150, 9), (166, 24), (182, 12), (194, 22), (130, 13), (176, 4), (158, 16)):
-        q = S3.P(sx, 100, sd)
-        c.rect(q[0], q[1], q[0] + 2, q[1] + 1, hexc('4a3220'))
+    with flat_piece(c):
+        c.poly([S3.P(x, 100, d) for (x, d) in rug], hexc('c89a4a'))
+        for (sx, sd) in ((124, 6), (138, 20), (150, 9), (166, 24), (182, 12), (194, 22), (130, 13), (176, 4), (158, 16)):
+            q = S3.P(sx, 100, sd)
+            c.rect(q[0], q[1], q[0] + 2, q[1] + 1, hexc('4a3220'))
     wx0, wx1, opening = clawfoot3d(c, 160, 62, 82, GOLD, GOLD_LT, GOLD_DK, GOLD_OUT, GOLD_DK, hexc('6a5418'),
                                    water=hexc('d9e0c8'))
     for (bx, bd) in ((wx0 + 12, 8), (wx0 + 20, 12), (wx0 + 28, 7), (wx0 + 36, 13), (wx0 + 44, 9), (wx1 - 12, 11)):   # bubbles heaped up

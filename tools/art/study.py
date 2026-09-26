@@ -13,7 +13,7 @@ corner (node). Dark panelling below a deep green paper; parquet that repeats eve
 import os
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
-from pixlib import persp
+from pixlib import persp, flat_piece
 from pixlib import (Canvas, hexc, shade, W, H, check_window_boxes, check_edge_columns,
                     save_floor_strip, floor_is_periodic, rrect, finish_module)
 
@@ -260,6 +260,11 @@ def chair(c):
 
 
 def rug(c):
+    with flat_piece(c):
+        _rug(c)
+
+
+def _rug(c):
     # a worn oriental rug in front of the desk (floor furniture — not part of the floor strip)
     c.poly([(146, 104), (238, 104), (246, 124), (138, 124)], RUG)
     c.poly([(150, 106), (234, 106), (240, 122), (144, 122)], RUG_DK)

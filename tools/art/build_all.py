@@ -40,6 +40,8 @@ def main():
     out = os.path.join(prev, 'all_variants.png')
     sheet.save(out)
     print('wrote', out)
+    import nest                                   # the breached-flat preview (tools/art/nest.py)
+    nest.preview(ROOT)
 
 
 if __name__ == '__main__':

@@ -417,11 +417,14 @@ space")**: a surface shows what HAPPENED on it, not a set of objects on display.
   irregularly, thick at the door, fanning out); `_cabinet_overlays()` renders each through
   the same pipeline (run 1 + the run-2/3 looks) and keeps only the pixels that differ inside
   `CAB_BOX` → `assets/rooms/living_room_e_cabinet_<state>[_r2|_r3].png` (`scripts/gun_cabinet_art.gd`).
-- BREACH-ROOM NESTS (round 21, `tools/art/nest.py` → `assets/rooms/<name>_nest.png`, one per variant,
-  written by `pixlib.finish_module`): a transparent overlay drawn with the module's own masks — spray,
-  splats, smears, prints, gouges and words only where they belong on walls/furniture; pools, trails,
-  gore, bones, rags, a mauled body and the corpse heap only on bare floor — over a dim wash. room.gd
-  shows it only in a BREACHED flat (CLAUDE.md "BREACH ROOMS"). Seeded by crc32(name, seed): stable.
+- BREACH-ROOM STORY (round 21b, `tools/art/nest.py` → `assets/rooms/<name>_nest_<role>.png`, six per
+  variant: entry / through / lair × door left `_l` / right `_r`, written by `pixlib.finish_module`, fly
+  spots in `assets/rooms/nest_meta.json`): what happened, read across the flat — the struggle by the
+  front door (a hand slid down the wall, a pool, dropped keys / shoe / bag, splinters, footprints), a
+  drag trail on the walking line through the middle room, and the dead where it ends in the far room.
+  Marks only on bare wall / bare floor; the trail crosses RUGS — wrap anything lying flat on the floor
+  in `with flat_piece(c):` (pixlib) so the nest treats it as floor, not furniture. Seeded by
+  crc32(name, role, seed): stable. Preview: `breach_nests.png` (`python3 tools/art/nest.py`).
 - LIVE DETAILS now have five kinds (`pixlib.anim(x, y, kind, fall, color, w, h)` → `module_anim.gd`):
   `drip`, `drop` (slow — an IV), `blink` (a w×h LED / cursor), `static` (a w×h screen of TV snow with a
   rolling bar), `spin` (a glint round a w×h record). A detail drawn ON a set-back piece's top moves with

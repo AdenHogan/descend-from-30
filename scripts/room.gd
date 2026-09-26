@@ -887,12 +887,31 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 		add_child(load("res://scripts/apartment_storm.gd").new())
 
 
-# A BREACH ROOM is a nest of horror (owner round 21 — "the player needs to look at the art and think
-# nope"): each module gets its own <art>_nest.png laid over it (tools/art/nest.py — blood sprayed up
-# the walls and furniture, hands dragged down the paper, the floor soaked, gore, bones, remains, flesh
-# growing out of the ceiling, sometimes the dead heaped against the wall, the whole room dimmed), plus
-# live details: flies over the floor, blood still dripping from the ceiling. Live + balcony backdrop.
+# A BREACH ROOM shows what happened there, as one event across the flat (owner round 21b — "logical
+# and immersive… considering the storytelling"): tools/art/nest.py draws each module variant in three
+# ROLES — ENTRY (the room with the front door: the struggle by the door, a hand slid down the wall,
+# what they dropped, a drag trail starting), THROUGH (the trail crossing the middle room, a hand that
+# clawed the floor / caught the frame) and LAIR (the far room: the dead together where the trail ends)
+# — each for the door on the LEFT (_l, the story runs left → right) or the RIGHT (_r). The flat's
+# entrance side + the module's slot pick the role; flies gather where the art says (nest_meta.json).
+# Live + balcony backdrop.
 const MODULE_ANIM := preload("res://scripts/module_anim.gd")
+const NEST_META_PATH := "res://assets/rooms/nest_meta.json"
+static var _nest_meta: Dictionary = {}
+
+
+static func breach_nest_role(entrance_side: String, slot: int) -> String:
+	var left := entrance_side == "left"
+	var i := slot if left else 2 - slot                  # 0 = the front door's room, 2 = the far end
+	return ["entry", "through", "lair"][i] + ("_l" if left else "_r")
+
+
+static func nest_meta() -> Dictionary:
+	if _nest_meta.is_empty() and FileAccess.file_exists(NEST_META_PATH):
+		var parsed = JSON.parse_string(FileAccess.get_file_as_string(NEST_META_PATH))
+		if parsed is Dictionary:
+			_nest_meta = parsed
+	return _nest_meta
 
 
 func _add_breach_nest(module: Node, slot: int) -> void:
@@ -903,7 +922,8 @@ func _add_breach_nest(module: Node, slot: int) -> void:
 	for suffix in ["_r2", "_r3"]:
 		if base.ends_with(suffix):
 			base = base.substr(0, base.length() - suffix.length())
-	var path := base + "_nest.png"
+	var role := breach_nest_role(WorldState.get_entrance_side(apartment_id), slot)
+	var path := base + "_nest_" + role + ".png"
 	if not ResourceLoader.exists(path):
 		return
 	var nest := Sprite2D.new()
@@ -913,21 +933,18 @@ func _add_breach_nest(module: Node, slot: int) -> void:
 	nest.position = art.position
 	nest.scale = art.scale
 	nest.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	nest.set_meta("role", role)
 	nest.add_to_group("breach_nest")
 	module.add_child(nest)
 	var after: Node = module.get_node_or_null("StripArt")
 	if after == null:
 		after = art
 	module.move_child(nest, after.get_index() + 1)
-	# the live details, in the module's own space (its art's top-left)
+	# flies over the pool / the dead, where the art put them (module space = the art's top-left)
 	var origin: Vector2 = art.position - (art.texture.get_size() * 0.5 if art.centered else Vector2.ZERO)
-	var rng := RandomNumberGenerator.new()
-	rng.seed = hash(str(WorldState.master_seed) + "breachnest" + apartment_id + str(slot))
-	for k in range(rng.randi_range(2, 3)):
-		_nest_anim(module, origin + Vector2(rng.randf_range(20, 300), rng.randf_range(106, 132)), "flies", 0, "1a1414", 10, 6)
-	for k in range(rng.randi_range(2, 4)):
-		_nest_anim(module, origin + Vector2(rng.randf_range(10, 310), rng.randf_range(4, 9)), "drip",
-			rng.randi_range(95, 125), "6a0a0c", 1, 1)
+	var entry: Dictionary = nest_meta().get(path.get_file().get_basename(), {})
+	for f in entry.get("flies", []):
+		_nest_anim(module, origin + Vector2(float(f[0]), float(f[1])), "flies", 0, "1a1414", 12, 7)
 
 
 func _nest_anim(module: Node, at: Vector2, kind: String, fall: int, col: String, w: int, h: int) -> void:

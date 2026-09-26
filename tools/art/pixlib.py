@@ -80,6 +80,31 @@ def shade(c, f):
     return mix(c, (255, 255, 255, 255), f - 1.0)
 
 
+# FLAT PIECES — things lying flat ON the floor (rugs, a pelt): the breach-room nest (tools/art/nest.py)
+# draws a drag trail over them but not over upright furniture. Wrap the drawing in `with flat_piece(c):`;
+# the pixels it changed are recorded per canvas, and the nest trusts the ones still showing in the
+# finished art (anything drawn on top later — a sofa on the rug — stays upright).
+FLAT_PIECES = {}
+
+
+class flat_piece:
+    def __init__(self, c):
+        self.c = c
+
+    def __enter__(self):
+        self.before = self.c.img.copy()
+        return self.c
+
+    def __exit__(self, *exc):
+        a, b = self.before.load(), self.c.img.load()
+        rec = FLAT_PIECES.setdefault(id(self.c), {})
+        for y in range(self.c.h):
+            for x in range(self.c.w):
+                if a[x, y] != b[x, y]:
+                    rec[(x, y)] = b[x, y]
+        return False
+
+
 class Canvas:
     def __init__(self, w=W, h=H, bg=(0, 0, 0, 0), seed=1):
         self.img = Image.new('RGBA', (w, h), bg)
@@ -817,7 +842,7 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
         s.save(os.path.join(ROOT, 'assets', 'rooms', name + '_strip.png'))
     _node_overlay(full.img, anchors, os.path.join(prev, 'nodes', name + '_nodes.png'))
     import nest                                   # the BREACH-ROOM look of this module (tools/art/nest.py)
-    nest.write(name, full.img, bare_floor.img, seed, ROOT)
+    nest.write(name, full.img, bare_floor.img, seed, ROOT, FLAT_PIECES.get(id(full), {}))
     per_level = {}
     if per_run is not None:
         for lv in (2, 3):

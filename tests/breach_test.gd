@@ -2,8 +2,11 @@ extends Node
 
 # BREACH ROOMS (owner round 21): a LEADER per room (big / crawler nest / long-arm / spitter) that
 # carries the key; nest crawlers clinging to the walls + ceiling that drop on you; the room itself a
-# nest of horror (overlays + flies + dripping blood); the long arm drawn smaller so its swing lands.
+# story told across the flat (entry struggle → drag trail → the dead at the far end, round 21b); the
+# long arm drawn smaller so its swing lands.
 #   godot --headless res://tests/breach_test.tscn
+
+const RoomScript := preload("res://scripts/room.gd")
 
 var failures: int = 0
 
@@ -23,6 +26,7 @@ func _ready() -> void:
 	WorldState.is_first_run = false
 	_test_leaders()
 	_test_listen()
+	_test_nest_art()
 	await _test_rooms()
 	await _test_wall_crawlers()
 	await _test_longarm()
@@ -101,6 +105,35 @@ func _room(apt: String) -> Node:
 	return room
 
 
+func _test_nest_art() -> void:
+	# every module variant has all six story roles, each with its flies in nest_meta.json
+	check(RoomScript.breach_nest_role("left", 0) == "entry_l" and RoomScript.breach_nest_role("left", 2) == "lair_l", "door left: entry at slot 0, lair at 2")
+	check(RoomScript.breach_nest_role("right", 2) == "entry_r" and RoomScript.breach_nest_role("right", 0) == "lair_r", "door right: entry at slot 2, lair at 0")
+	check(RoomScript.breach_nest_role("left", 1) == "through_l" and RoomScript.breach_nest_role("right", 1) == "through_r", "the middle room is dragged through")
+	var meta := RoomScript.nest_meta()
+	var missing := []
+	var n := 0
+	for t in RoomScript.MODULE_VARIANTS:
+		for scene_path in RoomScript.MODULE_VARIANTS[t]:
+			var inst = load(scene_path).instantiate()
+			var art = inst.get_node_or_null("Art")
+			var base: String = art.texture.resource_path.get_basename() if art != null and art.texture != null else ""
+			inst.free()
+			for role in ["entry_l", "through_l", "lair_l", "entry_r", "through_r", "lair_r"]:
+				var p: String = base + "_nest_" + role + ".png"
+				n += 1
+				if not ResourceLoader.exists(p) or not meta.has(p.get_file().get_basename()):
+					missing.append(p.get_file())
+			if base != "" and ResourceLoader.exists(base + "_nest.png"):
+				missing.append("stale " + base + "_nest.png")
+	check(n == 180 and missing.is_empty(), "180 story overlays, each with its fly spots (%d, missing %s)" % [n, str(missing.slice(0, 4))])
+	var lair_flies := 0
+	for k in meta:
+		if str(k).contains("_lair_") and not meta[k].get("flies", []).is_empty():
+			lair_flies += 1
+	check(lair_flies == 60, "flies gather over the dead in every lair (%d/60)" % lair_flies)
+
+
 func _test_rooms() -> void:
 	WorldState.current_run = 2
 	for kind in ["big", "crawlers", "longarm", "spitter"]:
@@ -134,19 +167,26 @@ func _test_rooms() -> void:
 				check(c.modulate != Color.WHITE, "%s leader: its darker look" % kind)
 		if kind != "big":
 			check(bigs == 0, "%s room: no big zombie" % kind)
-		# the NEST: an overlay on every module, flies + dripping blood
+		# the NEST tells one story across the flat: ENTRY by the front door, THROUGH, LAIR at the far end
 		var nests := get_tree().get_nodes_in_group("breach_nest")
 		check(nests.size() == 3, "%s room: a nest overlay on all three modules (%d)" % [kind, nests.size()])
-		var tex_ok := true
-		for n in nests:
-			if n.texture == null or not n.texture.resource_path.ends_with("_nest.png"):
-				tex_ok = false
-		check(tex_ok, "...each its module's own _nest.png")
+		var side := "_l" if WorldState.get_entrance_side(apt) == "left" else "_r"
+		var by_x := nests.duplicate()
+		by_x.sort_custom(func(a, b): return a.global_position.x < b.global_position.x)
+		var want := ["entry", "through", "lair"] if side == "_l" else ["lair", "through", "entry"]
+		var story_ok := by_x.size() == 3
+		for i in range(by_x.size()):
+			var n = by_x[i]
+			var role: String = want[i] + side
+			if str(n.get_meta("role", "")) != role or n.texture == null \
+					or not n.texture.resource_path.ends_with("_nest_" + role + ".png"):
+				story_ok = false
+		check(story_ok, "...the entry room is the front door's, the lair the far end (door %s)" % side)
 		var anims := get_tree().get_nodes_in_group("breach_nest_anim")
 		var kinds := {}
 		for a in anims:
 			kinds[str(a.get_meta("kind"))] = true
-		check(kinds.has("flies") and kinds.has("drip"), "...flies over the floor, blood dripping from the ceiling")
+		check(kinds.has("flies") and not kinds.has("drip"), "...flies where the art puts them, no blood raining from the ceiling")
 		room.queue_free()
 		await get_tree().process_frame
 		await get_tree().process_frame

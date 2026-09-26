@@ -1531,11 +1531,17 @@ means no rendering — UI layout and art still need an in-editor look.
   master_seed + id (maintenance = `fire`). `open_door()` swings it as the player steps up to enter
   (doorOpen sfx); coming back out, `building_floors.close_door_behind` / hallway call `close_behind()`
   on the door at `exit_spawn_x` (starts open, swings shut, latch). A BREACHED door is a WRECK
-  (owner round 21 — "a kool aid man style breached hole in the wall and then broken pieces of the
-  door on the corridor floor"): ALWAYS the wall burst through — `doorhole_<section>_<0..2>.png` (92×128,
-  `door.breach_hole_path`, seeded per door; the hole's wall foot on the door's floor line, blood inside,
-  cracks off across the wall, and 26 rows below of the door in pieces, rubble and a drag smear on the
-  corridor floor), untinted and never swings (strip frames 5/6 no longer used). The other
+  (owner round 21 — "a kool aid man style breached hole"; round 21b — "a little too kool aid man…
+  looks like it's painted on the wall… we should be able to see the apartment inside"): ALWAYS the
+  doorway TORN OUT — `doorhole_<section>_<0..2>.png` (92×128, `door.breach_hole_path`, seeded per door;
+  `tools/art/doors.py wall_hole`): door + frame ripped away, the wall broken back a little round a
+  doorway-sized opening (a lintel section dropped, one side bitten in, casing stubs, broken plaster in
+  patches); the CUT FACE of the wall shows round it (lit left, shadowed right + under the lintel), and
+  through it the flat's hall runs back in one-point perspective — floorboards, side walls with a dado
+  rail and a picture knocked askew, a chair on its side, a felled coat stand, a dark drag smear leading
+  in, a lit doorway at the back. Wall foot on the door's floor line; 26 rows below of the door in
+  pieces, rubble, dust and the smear on the corridor floor), untinted and never swings (strip frames
+  5/6 no longer used). The other
   state tints stay as the gameplay cue but SOFTENED (locked 1.25/0.74/0.7, was 1.4/0.4/0.4 — a red slab
   that hid the designs). Floor 30's 3001 is a plain Sprite2D on the oak strip. The barricade overlay
   (`assets/Barricade.png`) is still the old placeholder. Locked by `building_floors_test._test_door_swing`.
@@ -1598,13 +1604,21 @@ means no rendering — UI layout and art still need an in-editor look.
   turns the right way up, lands on its floor line, a beat's stun, then it's coming (`alert_timer`). A
   hit up there lands it at once (a kill never leaves a body in the air); leaving the room records it on
   its floor line, and a remembered one comes back on the floor. Live + frozen backdrop.
-  **THE NEST** — every module variant has a generated `<art>_nest.png` (`tools/art/nest.py`, called by
-  `pixlib.finish_module`; masked by the module's own layout): the whole room washed dim + filthy, flesh
-  growing out of the ceiling line with strands hanging, arterial spray + splats + runs up walls and
-  furniture, hands dragged down the paper, handprints, claw gouges, sometimes words in blood; on the
-  bare floor pools, drag trails, gore, gnawed bones, rags, a mauled body, and in many rooms the dead
-  heaped against the back wall. room.gd `_add_breach_nest` lays it over each module of a BREACHED flat
-  (live + backdrop) with live details: flies (`module_anim` kind `flies`) and blood dripping from the
-  ceiling. **Long arm** drawn at ×2.2 (was 3) about its feet (`enemy_zombie_longarm.SPRITE_SCALE`) — its
+  **THE STORY** (round 21b — the first "nest of horror" was "too much… you went nuts with the red
+  blood paint without considering the storytelling"; now ONE event read across the flat) — every module
+  variant has SIX generated overlays `<art>_nest_<entry|through|lair>_<l|r>.png` (`tools/art/nest.py`,
+  called by `pixlib.finish_module`; `_l` = front door on the LEFT, the story running left → right):
+  ENTRY (the front door's room: a hand on the wall that slid to the skirting, a pool at its foot, one
+  arc of spatter, the keys dropped by the door, a shoe, a spilt bag, door splinters, bare bloody
+  footprints, and a drag trail leaving the pool), THROUGH (the trail crossing on the walking line — a
+  hand clawed at the floor, one caught the doorframe), LAIR (the trail ends at the dead: two laid
+  against the back wall where there's room, else one on the floor — the purchased homeless-pack
+  Death frame at the actors' 2× scale, greyed + bitten at the neck — a black stain, bones and rags
+  kept close, the only dimmed room). No words, no ceiling flesh, no scattered gore. Masks: marks on
+  bare wall / bare floor only, and the trail crosses RUGS (registered with `pixlib.flat_piece`) but
+  passes behind furniture. room.gd `_add_breach_nest` picks the role from the entrance side + slot
+  (`room.gd breach_nest_role`) for a BREACHED flat (live + backdrop) and puts flies (`module_anim` kind
+  `flies`) where `assets/rooms/nest_meta.json` says — over the pool and the dead. Preview:
+  docs/art_reference/modules/breach_nests.png (`python3 tools/art/nest.py`, also run by build_all). **Long arm** drawn at ×2.2 (was 3) about its feet (`enemy_zombie_longarm.SPRITE_SCALE`) — its
   swing (25 frame px up) now lands at head height instead of over the player; rig/reach unchanged.
 - Not started: quests.
