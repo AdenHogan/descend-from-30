@@ -49,7 +49,7 @@ metadata/back_plane = true
 metadata/balcony_strip = true
 
 [node name="anchor_centre_desk" type="Marker2D" parent="."]
-position = Vector2(128, 70)
+position = Vector2(128, 66)
 metadata/back_plane = true
 
 [node name="anchor_study_desk_drawer" type="Marker2D" parent="."]

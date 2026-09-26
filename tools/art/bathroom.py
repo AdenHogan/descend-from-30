@@ -145,7 +145,24 @@ import solid3d as S3
 from solid3d import P as _P3
 
 
-def toilet3d(c, cx, porc=PORC, out=PORC_OUT, lid_up=False, seat=None, lever=CHROME, cistern=True):
+def cistern3d(L, wcx, top, bottom, hw, d1, porc):
+    """A close-coupled CISTERN (owner round 18: the box one "looks massive, like an air conditioner
+    unit"): a rounded body a little narrower than the seat, stood on the back of the pan, and a LID
+    that overhangs it all round — its lit top, its rounded front edge, the shadow line under it."""
+    lit, dk = shade(porc, 1.12), shade(porc, 0.8)
+    for i in range(int(bottom - (top + 2)) + 1):
+        y = bottom - i
+        plan = S3.rrect_plan(wcx - hw, wcx + hw, 0.0, d1, 2.5, 1.6)
+        _shade_poly(L, [S3.P(x, y, d) for (x, d) in plan], lit, porc, dk)
+    under = S3.rrect_plan(wcx - hw - 0.8, wcx + hw + 0.8, 0.0, d1 + 0.8, 3.0, 2.0)
+    _shade_poly(L, [S3.P(x, top + 2, d) for (x, d) in under], shade(porc, 0.72), shade(porc, 0.66), shade(porc, 0.6))
+    for y in (top + 1, top):
+        _shade_poly(L, [S3.P(x, y, d) for (x, d) in under], shade(lit, 1.05), shade(porc, 1.06), shade(porc, 0.9))
+    a_, b_ = S3.P(wcx - hw + 1, top, d1 + 0.6), S3.P(wcx + hw - 1, top, d1 + 0.6)
+    L.hline(a_[0], b_[0], a_[1], shade(porc, 1.25))                                     # its lit front edge
+
+
+def toilet3d(c, cx, porc=PORC, out=PORC_OUT, lid_up=False, seat=None, lever=CHROME, cistern=True, crest=None):
     """A close-coupled toilet facing the room: the cistern against the wall (0..6 out), the bowl
     coming 20 px out toward us, its seat an oval seen from above, the pan narrowing to its foot."""
     seat = seat or porc
@@ -156,16 +173,24 @@ def toilet3d(c, cx, porc=PORC, out=PORC_OUT, lid_up=False, seat=None, lever=CHRO
     lay = S3.Layer()
     L = lay.c
     if cistern:
-        pbox(L, wcx - 10, 68, wcx + 10, 84, 0, 6, porc, lit, dk)
+        cistern3d(L, wcx, 71, 84, 8.5, 5.0, porc)
     sl = S3.lerp_slices(100, 93, (6.0, 12.0, 4.0), (6.5, 12.0, 4.5))
     sl += S3.lerp_slices(93, 85, (6.5, 12.0, 4.5), (11.0, 12.5, 7.5), ease=lambda t: t ** 0.55)
     S3.lathe(L, wcx, sl, porc, lit, dk)
     lay.commit(c, out)
     if cistern:
-        f = _P3(wcx + 10, 68, 6)
-        c.rect(f[0] - 5, f[1] + 3, f[0] - 2, f[1] + 4, lever)                  # the flush lever
-        a_, b_ = _P3(wcx - 10, 68, 0), _P3(wcx + 10, 68, 6)
-        c.hline(a_[0] + 1, b_[0] - 2, _P3(wcx, 68, 3)[1], shade(porc, 1.2))     # the lid's lit edge
+        f = _P3(wcx + 6.5, 74, 5.2)
+        c.rect(f[0] - 3, f[1], f[0], f[1] + 1, lever)                              # the flush lever
+        c.put(f[0] + 1, f[1], shade(lever, 0.7))
+        if crest is not None:                                                       # a moulded front panel + a crown
+            a_, b_ = _P3(wcx - 6, 75, 5.1), _P3(wcx + 6, 82, 5.1)
+            c.box(a_[0], a_[1], b_[0], b_[1], shade(porc, 1.02), shade(porc, 0.7))
+            c.hline(a_[0] + 1, b_[0] - 1, a_[1] + 1, shade(porc, 1.2))
+            m_ = ((a_[0] + b_[0]) // 2, (a_[1] + b_[1]) // 2)
+            c.hline(m_[0] - 2, m_[0] + 2, m_[1] + 1, crest)
+            for dx in (-2, 0, 2):
+                c.put(m_[0] + dx, m_[1], crest)
+            c.put(m_[0] - 2, m_[1] - 1, crest); c.put(m_[0] + 2, m_[1] - 1, crest); c.put(m_[0], m_[1] - 2, crest)
     # the seat, an oval from above
     ex, ey, erx, ery = S3.ell_geo(wcx, 84.5, 5.0, 20.0, 11.5)
     c.ellipse(ex, ey, erx + 1, ery + 1, out)
@@ -379,19 +404,24 @@ def clawfoot3d(c, cx, length, rim, porc, porc_lt, porc_dk, out, feet, inside, wa
 
 
 def vanity3d(c, x0, x1, top, d1=16, wood=hexc('c9b48a'), wood_dk=hexc('9a8660'), basin=None, basin_out=None):
-    """A vanity unit standing out from the wall: its worktop seen from above with the basin SET INTO
-    it (we look down into the bowl), two cupboard doors on the front — one hanging off."""
+    """A vanity unit standing out from the wall (owner round 18: the first read as a plain box):
+    a tiled upstand along the wall behind it, a worktop slab overhanging the cupboard with the basin
+    SET INTO it (we look down into the bowl), two panelled doors — one swung open on a mess of
+    bleach and sponges — over a recessed plinth."""
     basin = basin or AVO
     basin_out = basin_out or AVO_OUT
+    top_col = hexc('e0d6c0')
     wx0, wx1 = S3.wall_x(x0, d1), S3.wall_x(x1, d1)
     foot = pp((wx0 + wx1) / 2, 100, d1)
     c.shadow(foot[0], foot[1] + 1, (x1 - x0) // 2 + 2, 2, 110)
-    f = pbox(c, wx0, top, wx1, 100, 0, d1, wood, hexc('e0d6c0'), shade(wood, 0.72), wood_dk)
+    pbox(c, wx0 - 1, top - 5, wx1 + 1, top, 0, 1.5, hexc('d8cfb8'), hexc('efe8d8'), hexc('b9b09a'), wood_dk)   # the upstand
+    pbox(c, wx0 + 1, 96, wx1 - 1, 100, 0, d1 - 3, hexc('3a3228'), None, hexc('2a241c'))            # the plinth, set back
+    f = pbox(c, wx0, top + 2, wx1, 96, 0, d1 - 1, wood, top_col, shade(wood, 0.72), wood_dk)        # the cupboard
+    g = pbox(c, wx0 - 1, top, wx1 + 1, top + 2, 0, d1, top_col, shade(top_col, 1.06), shade(top_col, 0.8), wood_dk)   # the worktop
     fl, fr, fbr = f['fl'], f['fr'], f['fbr']
-    c.hline(fl[0], fr[0], fl[1] + 1, hexc('e0d6c0'))                                  # the worktop's front edge
-    c.hline(fl[0], fr[0], fl[1] + 2, wood_dk)
+    c.hline(g['fl'][0] + 1, g['fr'][0] - 1, g['fl'][1] + 1, shade(top_col, 1.12))       # its lit front edge
     wcx = (wx0 + wx1) / 2
-    ex, ey, erx, ery = S3.ell_geo(wcx, top, 2.5, d1 - 2.5, (wx1 - wx0) / 2 - 5)
+    ex, ey, erx, ery = S3.ell_geo(wcx, top, 3.0, d1 - 3.0, (wx1 - wx0) / 2 - 5)
     c.ellipse(ex, ey, erx, ery, basin_out)
     c.ellipse(ex, ey, erx - 1, ery - 0.6, basin)
     c.ellipse(ex, ey + 0.5, erx - 3, ery - 1.5, shade(basin, 0.8))                    # the bowl, from above
@@ -401,13 +431,20 @@ def vanity3d(c, x0, x1, top, d1=16, wood=hexc('c9b48a'), wood_dk=hexc('9a8660'),
     s_ = _P3(wcx, top - 5, 5)
     c.line(t0[0], t0[1], s_[0], s_[1], CHROME_DK)
     mid = (fl[0] + fr[0]) // 2
-    c.box(fl[0] + 2, fl[1] + 4, mid - 1, fbr[1] - 3, wood, wood_dk)                   # the left door
-    c.rect(mid - 4, fl[1] + 12, mid - 3, fl[1] + 16, CHROME_DK)
-    c.rect(mid + 1, fl[1] + 4, fr[0] - 2, fbr[1] - 3, hexc('3a3228'))                 # the other's gone:
-    c.rect(mid + 3, fl[1] + 12, mid + 8, fbr[1] - 4, hexc('e8e0d0'))                  # bleach, a sponge
-    c.rect(mid + 10, fl[1] + 18, fr[0] - 4, fbr[1] - 4, hexc('d9c24a'))
-    c.poly([(fr[0], fl[1] + 5), (fr[0] + 5, fl[1] + 8), (fr[0] + 5, fbr[1] - 1), (fr[0], fbr[1] - 3)], wood)   # hanging off
-    c.line(fr[0], fl[1] + 5, fr[0] + 5, fl[1] + 8, wood_dk)
+    d_top, d_bot = fl[1] + 2, fbr[1] - 2
+    c.box(fl[0] + 2, d_top, mid - 1, d_bot, wood, wood_dk)                            # the left door, panelled
+    c.box(fl[0] + 5, d_top + 3, mid - 4, d_bot - 3, wood, wood_dk)
+    c.hline(fl[0] + 6, mid - 5, d_top + 4, shade(wood, 1.12))
+    c.rect(mid - 4, d_top + 6, mid - 3, d_top + 10, CHROME_DK)                        # its handle
+    c.rect(mid + 1, d_top, fr[0] - 2, d_bot, hexc('3a3228'))                           # the other stands open:
+    c.hline(mid + 1, fr[0] - 2, (d_top + d_bot) // 2 + 2, shade(wood, 0.6))           # a shelf inside,
+    c.rect(mid + 3, d_top + 5, mid + 7, (d_top + d_bot) // 2 + 1, hexc('e8e0d0'))      # bleach, a sponge
+    c.rect(mid + 9, d_top + 9, mid + 14, (d_top + d_bot) // 2 + 1, hexc('d9c24a'))
+    c.rect(mid + 4, (d_top + d_bot) // 2 + 4, mid + 12, d_bot - 1, hexc('7ab0c8'))      # a bottle lying down
+    c.poly([(fr[0], d_top), (fr[0] + 6, d_top + 3), (fr[0] + 6, d_bot + 2), (fr[0], d_bot)], wood)   # the door, swung out
+    c.poly([(fr[0] + 1, d_top + 3), (fr[0] + 4, d_top + 5), (fr[0] + 4, d_bot - 1), (fr[0] + 1, d_bot - 3)], shade(wood, 0.9))
+    c.line(fr[0], d_top, fr[0] + 6, d_top + 3, wood_dk)
+    c.line(fr[0] + 6, d_top + 3, fr[0] + 6, d_bot + 2, wood_dk)
     return f
 
 
@@ -446,31 +483,64 @@ def washstand3d(c, x0, x1, top, d1=14):
     return g
 
 
-def washing_machine3d(c, x0, top=66, d1=16, body=hexc('e0ded6'), out=hexc('6d6c64'), door_open=True):
-    """A front-loader standing out from the wall (0..16): its top, the side toward the middle, the
-    front with the control strip, the porthole, the door swung open on its hinge."""
+def washing_machine3d(c, x0, top=66, d1=11, body=hexc('e6e4dc'), out=hexc('6d6c64'), door_open=True):
+    """A front-loader standing out from the wall (owner round 18: the first one was "a big blocky
+    cube" with a small door on it). Its FACE is the washing machine: a control panel across the top
+    (soap drawer, a little display, the programme dial), a big porthole — chrome bezel, rubber seal,
+    the steel drum with its holes — filling most of the front; rounded corners, a kick plate; the
+    side is shaded as a turned surface, and the door hangs wide open on its hinge."""
     wx0 = S3.wall_x(x0, d1)
     wx1 = wx0 + 26
     foot = pp((wx0 + wx1) / 2, 100, d1)
-    c.shadow(foot[0], foot[1] + 1, 17, 2, 110)
-    f = pbox(c, wx0, top, wx1, 100, 0, d1, body, shade(body, 1.06), shade(body, 0.72), out)
-    fl, fr, fbr = f['fl'], f['fr'], f['fbr']
-    c.rect(fl[0] + 1, fl[1] + 1, fr[0] - 1, fl[1] + 6, shade(body, 0.92))            # the control strip
-    c.rect(fl[0] + 3, fl[1] + 2, fl[0] + 9, fl[1] + 4, hexc('5a6a78'))               # the soap drawer
-    c.ellipse(fr[0] - 6, fl[1] + 3, 1.5, 1.5, hexc('8a8a86'))                        # the dial
-    c.put(fr[0] - 3, fl[1] + 3, hexc('c0453a'))
-    cx_, cy_ = (fl[0] + fr[0]) // 2, (fl[1] + 7 + fbr[1]) // 2
-    c.ellipse(cx_, cy_, 11, 11, shade(body, 0.8))
-    c.ellipse(cx_, cy_, 10, 10, hexc('6d6c64'))
-    c.ellipse(cx_, cy_, 8, 8, hexc('2a2e30'))                                         # the drum's dark
-    c.ellipse(cx_ - 1, cy_ - 1, 6, 6, hexc('3a3e40'))
-    for k in range(-4, 5, 2):                                                        # drum holes
-        c.put(cx_ + k, cy_ - 4, hexc('4a4e50'))
-    if door_open:                                                                     # hinged on the left, swung out
-        c.ellipse(fl[0] - 3, cy_, 4, 10, hexc('8a949a'))
-        c.ellipse(fl[0] - 3, cy_, 2.5, 8, GLASS)
-        c.vline(fl[0] - 1, cy_ - 7, cy_ + 7, hexc('6a7278'))
-    c.rect(fl[0] + 3, fbr[1] - 4, fr[0] - 3, fbr[1] - 2, shade(body, 0.85))          # the kick panel
+    c.shadow(foot[0], foot[1] + 1, 16, 2, 110)
+    f = pbox(c, wx0, top, wx1, 100, 0, d1, body, shade(body, 1.05), shade(body, 0.74), out)
+    fl, fr, fbr, bl = f['fl'], f['fr'], f['fbr'], f['bl']
+    bb = S3.P(wx0, 100, 0)
+    for x in range(bl[0] + 1, fl[0]):                     # the side: darker toward the wall
+        t = (x - bl[0]) / max(1.0, fl[0] - bl[0])
+        yt = int(round(bl[1] + (fl[1] - bl[1]) * t)) + 1
+        yb = int(round(bb[1] + (fbr[1] - bb[1]) * t)) - 1
+        c.vline(x, yt, yb, shade(body, 0.64 + 0.12 * t))
+    sq = S3.P(wx0, top + 7, 0)
+    c.line(sq[0], sq[1], fl[0], fl[1] + 7, shade(body, 0.56))           # the panel seam round the side
+    for (px_, py_) in ((fl[0], fl[1]), (fr[0], fl[1]), (fl[0], fbr[1]), (fr[0], fbr[1])):   # rounded corners
+        c.put(px_, py_, shade(body, 0.8))
+    wdt = fr[0] - fl[0]
+    py0 = fl[1] + 1                                                      # the control panel
+    c.rect(fl[0] + 1, py0, fr[0] - 1, py0 + 6, shade(body, 0.95))
+    c.hline(fl[0] + 1, fr[0] - 1, py0 + 7, shade(body, 0.7))
+    c.rect(fl[0] + 3, py0 + 2, fl[0] + 10, py0 + 5, shade(body, 0.86))                    # the soap drawer
+    c.hline(fl[0] + 5, fl[0] + 8, py0 + 4, shade(body, 0.6))
+    c.rect(fl[0] + 13, py0 + 2, fl[0] + 17, py0 + 4, hexc('2a3a34'))                       # the display
+    c.put(fl[0] + 14, py0 + 3, hexc('7ac08a'))
+    dx_ = fr[0] - 5
+    c.ellipse(dx_, py0 + 3, 2.6, 2.6, shade(body, 0.62))                                   # the programme dial
+    c.ellipse(dx_, py0 + 3, 1.8, 1.8, hexc('c9c7c0'))
+    c.put(dx_, py0 + 2, hexc('3a3a3a'))
+    cx_ = (fl[0] + fr[0]) // 2                                            # the porthole — most of the face
+    cy_ = (py0 + 8 + fbr[1] - 4) // 2
+    r = int(round(wdt * 0.40))
+    c.ellipse(cx_, cy_, r + 1, r + 1, shade(body, 0.72))
+    c.ellipse(cx_, cy_, r, r, hexc('b9bec2'))                                             # chrome bezel
+    c.ellipse(cx_ - 0.5, cy_ - 0.5, r - 1, r - 1, hexc('d9dde0'))
+    c.ellipse(cx_, cy_, r - 2, r - 2, hexc('2a2c2e'))                                     # rubber seal
+    c.ellipse(cx_, cy_, r - 3.5, r - 3.5, hexc('5a6064'))                                 # the drum
+    c.ellipse(cx_ + 0.5, cy_ + 0.5, r - 5, r - 5, hexc('3e4448'))
+    for k in range(-r + 5, r - 4, 3):
+        for j in range(-r + 5, r - 4, 3):
+            if k * k + j * j < (r - 5) ** 2:
+                c.put(cx_ + k, cy_ + j, hexc('2e3236'))
+    c.rect(fl[0] + 3, fbr[1] - 4, fr[0] - 3, fbr[1] - 2, shade(body, 0.86))              # the kick plate
+    c.hline(fl[0] + 3, fr[0] - 3, fbr[1] - 4, shade(body, 0.7))
+    if door_open:                                                         # swung wide on its hinge
+        hx = cx_ - r
+        c.rect(hx - 1, cy_ - 3, hx, cy_ + 3, hexc('8a8e92'))
+        ex, ey = hx - 5, cy_ + 2
+        c.ellipse(ex, ey, 5, r + 1, hexc('8a8e92'))
+        c.ellipse(ex, ey, 3.8, r - 0.5, hexc('d9dde0'))
+        c.ellipse(ex + 0.5, ey, 2.4, r - 2.5, hexc('7a8e96'))
+        c.line(ex - 1, ey - r + 4, ex - 1, ey - 2, hexc('b8cad0'))
+        c.rect(ex - 5, ey - 1, ex - 4, ey + 2, hexc('6a6e72'))
     return cx_, cy_, fl, fr, fbr
 
 
@@ -788,20 +858,8 @@ def b_build(c):
     c.line(s0[0] + 4, s1[1] - 8, s0[0] + 12, s0[1] + 8, hexc('dde6e6'))
     c.poly([(158, 123), (226, 123), (230, 129), (154, 129)], hexc('d9a24a'))  # the mat, flat on the floor
     c.dither(158, 124, 228, 128, hexc('b8863a'), 0.5)
-    def _stool(c):
-        c.rect(270, 78, 290, 99, hexc('9a8660'))                         # a stool with a radio
-        c.hline(270, 290, 78, hexc('c9b48a'))
-        c.rect(272, 80, 274, 99, hexc('7a6648')); c.rect(286, 80, 288, 99, hexc('7a6648'))
-        c.box(272, 68, 288, 77, hexc('3e3a36'), hexc('1e1a16'))
-        c.rect(274, 70, 280, 75, CHROME)
-        c.put(284, 72, hexc('d9a24a'))
-        c.line(286, 68, 294, 50, CHROME_DK)                              # its aerial
-
-    def _hamper(c):
-        c.rect(296, 70, 308, 99, hexc('c9b48a'))                         # a laundry hamper
-        c.box(296, 68, 308, 71, hexc('9a8660'), hexc('6a5638'))
-    setback(c, _stool, depth=3, top=78, x_range=(270, 290))
-    setback(c, _hamper, depth=3, top=68)
+    stool_radio3d(c, 276)                                                # a radio on a stool by the bath
+    wicker_hamper3d(c, 300)                                              # the laundry hamper in the corner
     import furn as F
     F.flush_light(c, 120)
     return c
@@ -814,7 +872,7 @@ def b_bare(c):
 B_ANCHORS = [('anchor_bathroom_vanity', 24, 90, ''), ('anchor_bathroom_mirror_shelf', 40, 50, ''),
              ('anchor_bathroom_avocado_toilet', 82, 92, ''), ('anchor_bathroom_mop_bucket', 118, 92, ''),
              ('anchor_bathroom_bath_taps', 176, 76, ''), ('anchor_bathroom_bath_panel', 226, 106, ''),
-             ('anchor_bathroom_radio_stool', 280, 74, '')]
+             ('anchor_bathroom_radio_stool', 278, 83, '')]
 
 
 # ============================================================================================
@@ -909,7 +967,7 @@ def c_build(c):
     c_floor(c)
     gilt_mirror(c, 24, 20, 48, 50)                                        # over the washstand's tap
     washstand3d(c, 9, 47, 72)
-    toilet3d(c, 84, porc=GOLD, out=GOLD_OUT, seat=hexc('7a1f2a'), lever=GOLD_LT)   # a red velvet seat
+    toilet3d(c, 84, porc=GOLD, out=GOLD_OUT, seat=hexc('7a1f2a'), lever=GOLD_LT, crest=hexc('7a1f2a'))   # a red velvet seat
     chandelier(c, 160)
     # a leopard rug flat on the floor under the tub, then the GOLD roll-top out in the room
     rug = S3.rrect_plan(118, 202, 1, 27, 6, 4)
@@ -1033,6 +1091,60 @@ def machine_laundry3d(c, cx, cy, floor_y):
     c.line(cx - 1, fy - 6, cx + 4, fy - 6, hexc('c4c0b6'))
     c.rect(cx + 12, fy + 2, cx + 16, fy + 3, hexc('e6e0d0'))            # a sock
     c.put(cx + 16, fy + 1, hexc('e6e0d0'))
+
+
+def wicker_hamper3d(c, cx, d_c=7, top=78):
+    """A wicker laundry hamper against the wall: a round woven body (lit left, shaded right, the
+    weave in rows), its lid on top, a towel caught under it."""
+    wk, wk_dk = hexc('c9b48a'), hexc('9a8660')
+    wcx = S3.wall_x(cx, d_c)
+    foot = pp(wcx, 100, d_c)
+    c.shadow(foot[0], foot[1] + 1, 10, 2, 110)
+    lay = S3.Layer()
+    sl = S3.lerp_slices(100, top, (7.0, d_c, 5.0), (8.0, d_c, 5.6))
+    S3.lathe(lay.c, wcx, sl, wk, shade(wk, 1.1), wk_dk)
+    lay.commit(c, hexc('6a5638'))
+    for i, y in enumerate(range(top + 2, 100, 3)):                                   # the weave
+        ex, ey, erx, ery = S3.ell_geo(wcx, y, d_c - 5.4, d_c + 5.4, 7.6)
+        c.hline(int(ex - erx + 1), int(ex + erx - 1), int(round(ey + ery)), shade(wk, 0.8))
+    for k in range(-3, 4):
+        ex, ey, erx, ery = S3.ell_geo(wcx, top, d_c - 5.6, d_c + 5.6, 8.0)
+        x = int(round(ex + k * erx / 3.6))
+        c.vline(x, int(round(ey + ery)) + 1, int(round(pp(wcx, 100, d_c + 5)[1])) - 1, shade(wk, 0.88))
+    ex, ey, erx, ery = S3.ell_geo(wcx, top - 1, d_c - 6.2, d_c + 6.2, 8.8)
+    c.ellipse(ex, ey + 1, erx, ery, hexc('6a5638'))                                   # the lid
+    c.ellipse(ex, ey, erx, ery, shade(wk, 1.08))
+    c.ellipse(ex, ey - 0.5, erx * 0.3, max(0.8, ery * 0.3), wk_dk)                    # its knob
+    c.poly([(int(ex + erx * 0.2), int(ey + ery)), (int(ex + erx * 0.7), int(ey + ery) - 1), (int(ex + erx * 0.8), int(ey + ery) + 6), (int(ex + erx * 0.35), int(ey + ery) + 5)], TOWELS[1])   # a towel caught under it
+
+
+def stool_radio3d(c, cx, d_c=6):
+    """A wooden stool against the wall with a transistor radio on it, its aerial up."""
+    wood, wood_dk, wood_lt = hexc('9a7a52'), hexc('6a5436'), hexc('c09a6a')
+    wcx = S3.wall_x(cx, d_c)
+    foot = pp(wcx, 100, d_c)
+    c.shadow(foot[0], foot[1] + 1, 10, 2, 110)
+    for (lx, ld, col) in ((-6, d_c - 4, wood_dk), (6, d_c - 4, wood_dk), (-6.5, d_c + 4, wood), (6.5, d_c + 4, wood)):
+        a_, b_ = _P3(wcx + lx * 0.85, 83, ld), _P3(wcx + lx, 100, ld)
+        c.line(a_[0], a_[1], b_[0], b_[1], col)
+        c.line(a_[0] + 1, a_[1], b_[0] + 1, b_[1], shade(col, 0.8))
+    a_, b_ = _P3(wcx - 6, 93, d_c + 3), _P3(wcx + 6, 93, d_c + 3)                 # a stretcher
+    c.line(a_[0], a_[1], b_[0], b_[1], wood_dk)
+    pbox(c, wcx - 8, 81, wcx + 8, 83, d_c - 6, d_c + 6, wood, wood_lt, wood_dk, hexc('3a2a1a'))   # the seat
+    f = pbox(c, wcx - 6, 72, wcx + 6, 81, d_c - 3, d_c + 2, hexc('3e3a36'), hexc('5a5650'), hexc('2a2622'), hexc('1a1614'))
+    fl, fr, fbr = f['fl'], f['fr'], f['fbr']
+    for y in range(fl[1] + 2, fbr[1] - 1, 2):                                         # the speaker grille
+        c.hline(fl[0] + 2, fl[0] + 7, y, hexc('6a6660'))
+    c.rect(fl[0] + 9, fl[1] + 2, fr[0] - 2, fl[1] + 4, hexc('d9c9a0'))                 # the tuning dial
+    c.put(fl[0] + 11, fl[1] + 3, hexc('c0453a'))
+    c.ellipse(fr[0] - 3, fbr[1] - 3, 1.5, 1.5, CHROME)                               # the knob
+    h0 = _P3(wcx - 4, 72, d_c - 0.5)
+    h1 = _P3(wcx + 4, 72, d_c - 0.5)
+    c.line(h0[0], h0[1], h0[0] + 1, h0[1] - 3, CHROME_DK)                             # the carry handle
+    c.line(h0[0] + 1, h0[1] - 3, h1[0] - 1, h1[1] - 3, CHROME_DK)
+    c.line(h1[0] - 1, h1[1] - 3, h1[0], h1[1], CHROME_DK)
+    ae = _P3(wcx + 5, 72, d_c - 2)
+    c.line(ae[0], ae[1], ae[0] + 7, ae[1] - 18, CHROME)                               # the aerial
 
 
 def laundry_basket3d(c, cx, d_c=8, body=hexc('6a8aa8'), load=True):

@@ -349,23 +349,87 @@ def d_floor(c):
 def d_furniture(c):
     # WITH DEPTH (owner round 14): the fridge (3px left; its open door just moves), the counter run
     setback(c, lambda l: F.moved(l, _d_fridge, -3, 0), depth=5, top=34, x_range=(5, 37), rake=1.0)
+    # the spilt milk, run out over the fridge's sill into a puddle on the lino (nobody came back to it)
+    for (px_, py_, rx, ry) in ((13, 109, 7, 2), (19, 111, 5, 1.6), (9, 111, 3, 1)):
+        c.ellipse(px_, py_, rx, ry, hexc('d8d4c8')); c.ellipse(px_ - 0.5, py_ - 0.3, rx - 1, max(0.6, ry - 0.6), hexc('f2efe4'))
+    c.put(11, 108, hexc('ffffff')); c.put(18, 110, hexc('ffffff'))
     setback(c, _d_run, depth=7, top=72, x_range=(99, 233), rake=1.0)
     _d_rest(c)
 
 
 def _d_fridge(c):
-    # the fridge, door hanging wide open (left, x < 50), shelves half empty
+    # the fridge, door hanging wide open (left, x < 50). Its CAVITY has depth (round 19): the lit
+    # inner wall on the left, a darker back wall, glass shelves seen from above running back — and it
+    # TELLS SOMETHING (owner round 19 — "active storytelling"): the food is spread about at different
+    # depths, and on the bottom shelf a carton of milk lies knocked over, milk pooled on the glass and
+    # DRIPPING (a live drip — pixlib.anim / scripts/module_anim.gd) onto the fridge floor, over the
+    # sill and into a puddle on the lino; nobody came back to wipe it up. The door's bins hold things
+    # you can name: eggs in the egg tray, ketchup and mustard, orange juice and brown sauce.
+    import pixlib as PX
+    ox0, oy0, ox1, oy1 = 10, 36, 38, 97                                   # the opening
+    k = 100.0 / 112.0
+    bx = lambda x: 160 + (x - 160) * k
     c.shadow(24, 100, 18, 2, 100)
     c.box(8, 34, 40, 99, hexc('e6e2d6'), hexc('6d6c64'))
-    c.rect(10, 36, 38, 97, hexc('b9c4c4'))
-    for sy in (50, 64, 78):
-        c.hline(10, 38, sy, hexc('dfe6e6'))
-    c.rect(12, 44, 18, 49, hexc('e0d9b8')); c.rect(28, 58, 34, 63, hexc('b0453a'))
-    c.rect(14, 72, 22, 77, hexc('7a8a5a')); c.ellipse(30, 76, 4, 2, hexc('6a7a4a'))         # something gone green
-    c.poly([(40, 34), (48, 38), (48, 95), (40, 99)], hexc('d8d4c8'))                         # the door
-    for sy in (50, 66, 82):
-        c.hline(41, 47, sy, hexc('b9b5a8'))
-    c.rect(42, 46, 46, 49, hexc('e8e2d0'))
+    back, wall_l = hexc('a9b6b8'), hexc('dfe8e8')
+    MILK = hexc('f2efe4')
+    c.rect(ox0, oy0, ox1, oy1, back)                                      # the back wall
+    for y in range(oy0, oy1 + 1):                                         # the inner left wall
+        c.hline(ox0, int(round(bx(ox0))), y, wall_l if (y // 3) % 5 else shade(wall_l, 0.95))
+    c.hline(ox0, ox1, oy0, shade(back, 0.8))
+    c.rect(int(bx(ox0)) + 2, oy0 + 1, int(bx(ox0)) + 8, oy0 + 2, hexc('fff4c8'))   # the light
+    for sy in (52, 67, 82):                                               # glass shelves, from above
+        for y in range(sy - 5, sy + 1):
+            c.hline(ox0, ox1, y, hexc('dfeaea') if y < sy else hexc('b9c8c8'))
+        c.hline(ox0, ox1, sy, hexc('8a9a9c'))
+        c.line(ox0, sy, int(bx(ox0)), sy - 5, hexc('c0cccc'))
+    def jar(x, base, w, h, col, lid):                                      # a jar / tub with a body
+        c.rect(x, base - h, x + w, base, col)
+        c.vline(x, base - h, base, shade(col, 1.15)); c.vline(x + w, base - h, base, shade(col, 0.7))
+        c.hline(x, x + w, base - h, lid); c.hline(x + 1, x + w - 1, base - h - 1, shade(lid, 1.1))
+    # TOP SHELF — pickles at the back left, a butter tub at the back, jam at the front right
+    jar(13, 49, 3, 5, hexc('7a8a3a'), hexc('b9b0a0'))
+    jar(20, 48, 6, 3, hexc('ece6d4'), hexc('d9c24a'))
+    jar(31, 52, 3, 4, hexc('b0453a'), hexc('d9c24a'))
+    # MIDDLE SHELF — last night's leftovers under cling film at the front, wine lying at the back
+    c.ellipse(16, 67, 5, 1.2, hexc('e6e0cc'))
+    c.ellipse(16, 65.5, 3.5, 1.8, hexc('a86a3a')); c.put(14, 65, hexc('c9a06a'))
+    c.line(12, 66, 20, 64, hexc('f4f8f8'))                                 # the film's shine
+    c.rect(24, 60, 33, 62, hexc('3a5a3a')); c.rect(34, 61, 36, 61, hexc('3a5a3a'))          # the wine bottle, on its side
+    c.hline(24, 33, 60, hexc('5a7a5a')); c.rect(25, 61, 28, 61, hexc('e6ddc8'))
+    # BOTTOM SHELF — the milk: a carton knocked over, its cap end at the front, milk pooled + dripping
+    c.rect(11, 78, 19, 81, MILK); c.hline(11, 19, 78, hexc('fbf8f0'))
+    c.rect(14, 78, 16, 81, hexc('4e6ea0'))                                 # its blue band
+    c.rect(10, 79, 10, 80, hexc('d9d2c0')); c.put(9, 80, hexc('4e6ea0'))  # the spout, open
+    c.ellipse(15, 82, 5, 1, MILK); c.hline(12, 20, 82, MILK)                # the milk across the glass
+    c.put(16, 83, MILK)                                                    # hanging off the lip
+    PX.anim(16, 84, 'drip', fall=11, color='f2efe4')
+    jar(27, 79, 7, 5, hexc('f4f0e4'), hexc('c0453a'))                      # a takeaway carton at the back
+    c.put(29, 76, hexc('c0453a')); c.put(31, 76, hexc('c0453a'))
+    jar(21, 82, 3, 3, hexc('9aa3a8'), hexc('7a8a5a'))                      # a tub, gone green
+    c.put(22, 78, hexc('8a9a5a'))
+    # the fridge floor: a crisper on the right (lettuce, a tomato); on the left the milk has pooled
+    # and run out over the sill
+    c.rect(23, 89, 37, 96, hexc('b9c8c8')); c.hline(23, 37, 89, hexc('dfeaea'))
+    c.ellipse(28, 93, 3, 2, hexc('7a9a4a')); c.ellipse(33, 93, 2, 1.5, hexc('c0453a'))
+    c.hline(11, 22, 96, MILK); c.hline(12, 20, 95, shade(MILK, 0.92))
+    c.vline(15, 97, 99, MILK); c.vline(16, 97, 98, shade(MILK, 0.9))        # over the sill
+    # the DOOR, swung open on its right hinge: its inner face and three bins
+    c.poly([(40, 34), (48, 38), (48, 95), (40, 99)], hexc('d8d4c8'))
+    c.line(48, 38, 48, 95, hexc('8a8678'))
+    def bin_(sy):
+        c.poly([(41, sy), (47, sy + 2), (47, sy + 4), (41, sy + 3)], hexc('b9b5a8'))
+        c.line(41, sy, 47, sy + 2, hexc('d9d5c8'))
+    for (ex, ey) in ((42, 46), (44, 47), (46, 47)):                        # eggs in the egg tray
+        c.ellipse(ex, ey, 0.9, 1.3, hexc('e8d8b8')); c.put(ex, ey - 1, hexc('f4ead0'))
+    bin_(49)
+    c.rect(42, 58, 43, 64, hexc('b0453a')); c.put(42, 57, hexc('f4f0e4')); c.put(43, 57, hexc('f4f0e4'))   # ketchup
+    c.put(42, 59, hexc('d8625a'))
+    c.rect(45, 61, 46, 65, hexc('d9b43a')); c.hline(45, 46, 60, hexc('7a5a36'))               # mustard
+    bin_(65)
+    c.rect(42, 74, 44, 81, hexc('e88a3a')); c.poly([(42, 74), (43, 72), (44, 74)], hexc('f0a860'))   # orange juice
+    c.rect(46, 76, 47, 82, hexc('5a3422')); c.put(46, 75, hexc('b0453a'))                    # brown sauce
+    bin_(81)
 
 
 def _d_run(c):

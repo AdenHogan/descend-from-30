@@ -63,7 +63,7 @@ position = Vector2(194, 102)
 position = Vector2(228, 101)
 
 [node name="anchor_right_shelf" type="Marker2D" parent="."]
-position = Vector2(292, 70)
+position = Vector2(292, 67)
 metadata/back_plane = true
 
 [node name="Lights" type="Node2D" parent="."]

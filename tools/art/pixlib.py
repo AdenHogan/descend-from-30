@@ -33,6 +33,17 @@ def light(x, y, kind):
     LIGHTS.append((int(round(x + ox)), int(round(y + oy)), kind))
 
 
+ANIMS = []          # small live details drawn by scripts/module_anim.gd: (x, y, kind, fall, colour hex)
+
+
+def anim(x, y, kind, fall=0, color='f2efe4'):
+    """A small ANIMATED detail at (x, y) in the art (owner round 19 — "a sprite animation showing a
+    bottle of milk… dripping… active storytelling"). `drip`: a drop swells at (x, y), falls `fall`
+    px and splashes. Moves with set-back pieces like a light."""
+    ox, oy = _LIGHT_OFF[-1]
+    ANIMS.append((int(round(x + ox)), int(round(y + oy)), kind, int(fall), color))
+
+
 def push_light_offset(dx, dy):
     ox, oy = _LIGHT_OFF[-1]
     _LIGHT_OFF.append((ox + dx, oy + dy))
@@ -404,19 +415,80 @@ def setback(c, fn, depth=5, top=None, x_range=None, vpx=VP_X, rake=None, forward
               itself came forward); depth 0 + forward = a plain move forward, no extrusion."""
     rake = TOP_RAKE if rake is None else rake
     want = setback_depth(depth, forward)
+    oy0 = _LIGHT_OFF[-1][1]
     for d in range(want, depth - 1, -1):          # the gained depth, backed off if its top would rake
         n0 = len(LIGHTS)                          # into a window box / a side-wall sample column
         ext, lyr_img, opaque = _setback_render(fn, d, top, x_range, vpx, rake, forward)
         if d <= depth or _setback_clear(ext, lyr_img, d + forward):
             break
         del LIGHTS[n0:]
-    SETBACKS.append((opaque, d + forward))
+    shift = d + forward
+    # THINGS STANDING ON TOP (owner round 19 — "items on top of dressers… are 2D shapes and very close
+    # to the front edge"): anything drawn above `top` stands ON the top surface, so it only comes
+    # forward to the MIDDLE of that surface (half the shift), not to its front lip — and it gets
+    # volume: a lit left edge, a shaded right edge, and a small shadow cast on the top behind it.
+    on_top = shift // 2 if (top is not None and shift > 1) else shift
+    for i in range(n0, len(LIGHTS)):
+        lx, ly, lk = LIGHTS[i]
+        if top is not None and ly - oy0 - shift < top:
+            LIGHTS[i] = (lx, ly - (shift - on_top), lk)
+    SETBACKS.append((opaque, shift, top if top is not None else -1, on_top))
     c.img.alpha_composite(ext)
     moved = Image.new('RGBA', (W, H), (0, 0, 0, 0))
-    moved.paste(lyr_img, (0, d + forward), lyr_img)
+    if top is None or on_top == shift:
+        moved.paste(lyr_img, (0, shift), lyr_img)
+    else:
+        body = lyr_img.copy()
+        above = lyr_img.copy()
+        bp, ap = body.load(), above.load()
+        for y in range(H):
+            for x in range(W):
+                if y < top:
+                    bp[x, y] = (0, 0, 0, 0)
+                else:
+                    ap[x, y] = (0, 0, 0, 0)
+        moved.paste(body, (0, shift), body)
+        _on_top_volume(above, top)
+        moved.paste(above, (0, on_top), above)
+        _on_top_shadow(c, above, top, on_top)
     c.img.alpha_composite(moved)
     c.px = c.img.load()
-    return d + forward
+    return shift
+
+
+def _on_top_volume(img, top):
+    """Give the things standing on a piece some body: in every horizontal run of an object, the
+    left pixel is lit and the right one shaded (light from the top left), so a vase or a frame reads
+    as a thing, not a cut-out."""
+    px = img.load()
+    for y in range(top):
+        x = 0
+        while x < W:
+            if px[x, y][3] < 200:
+                x += 1
+                continue
+            x1 = x
+            while x1 + 1 < W and px[x1 + 1, y][3] >= 200:
+                x1 += 1
+            if x1 - x >= 3:
+                px[x1, y] = shade(px[x1, y], 0.72)
+                px[x1 - 1, y] = shade(px[x1 - 1, y], 0.88)
+            if x1 - x >= 4:
+                px[x, y] = shade(px[x, y], 1.12)
+            x = x1 + 1
+
+
+def _on_top_shadow(c, above, top, on_top):
+    """The shadow each thing on top casts back and to the right across the top surface."""
+    ap = above.load()
+    cp = c.img.load()
+    for x in range(W):
+        if ap[x, top - 1][3] >= 200:
+            for (dx, dy) in ((1, 0), (2, 0), (1, -1), (2, -1), (3, -1)):
+                qx, qy = x + dx, top - 1 + on_top + dy
+                if 0 <= qx < W and 0 <= qy < H and not (ap[qx - 0, qy - on_top][3] if 0 <= qy - on_top < H else 0):
+                    p = cp[qx, qy]
+                    cp[qx, qy] = tuple(int(v * 0.82) for v in p[:3]) + (p[3],)
 
 
 def _setback_clear(ext, lyr_img, shift):
@@ -454,7 +526,11 @@ def _setback_render(fn, depth, top, x_range, vpx, rake, forward):
             body.add((x, y))
     k = back / float(back + depth)                 # the back face's scale toward the vanishing point
     ky = 1 - (1 - k) * rake                    # a touch more rake on the tops so they read
-    outline_col = min((sp[x, y] for (x, y) in body), key=lambda p_: p_[0] + p_[1] + p_[2]) if body else (0, 0, 0, 255)
+    # the outline: the darkest colour ON THE PIECE'S OWN EDGE (round 19: the darkest pixel anywhere
+    # picked up a jar's shadow inside an open fridge and outlined the fridge in red)
+    edge_px = [(x, y) for (x, y) in body
+               if any((x + dx, y + dy) not in body for (dx, dy) in ((1, 0), (-1, 0), (0, 1), (0, -1)))]
+    outline_col = min((sp[x, y] for (x, y) in (edge_px or body)), key=lambda p_: p_[0] + p_[1] + p_[2]) if body else (0, 0, 0, 255)
 
     def inward(x, y, dx, dy):
         # the face colour: step in past the outline to the body's own colour
@@ -561,9 +637,9 @@ def pellipse(c, cx, y, d0, d1, rx, col, vpx=VP_X):
 
 def _setback_anchor(ax, ay):
     """How far an anchor at (ax, ay) moves: the depth of the set-back piece it sits on (0 if none)."""
-    for (opaque, depth) in SETBACKS:
+    for (opaque, depth, top, on_top) in SETBACKS:
         if (ax, ay) in opaque:
-            return depth
+            return on_top if (top >= 0 and ay < top) else depth
     return 0
 
 
@@ -619,9 +695,11 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
     import sys
     from modscene import write_scene, BALCONY_TYPES, ROOT
     LIGHTS.clear()
+    ANIMS.clear()
     main = Canvas(seed=seed)
     build_fn(main)
     main_lights = list(LIGHTS)
+    main_anims = list(ANIMS)
     LIGHTS.clear()
     SETBACKS.clear()
     full = Canvas(seed=seed)
@@ -757,7 +835,7 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
         sheet.paste(im.resize((W * 2, H * 2), Image.NEAREST), (0, H * 2 * i))
     os.makedirs(os.path.join(prev, 'runs'), exist_ok=True)
     sheet.save(os.path.join(prev, 'runs', name + '_runs.png'))
-    write_scene(name, room_type, anchors, strip=strip_fn is not None, lights=lights)
+    write_scene(name, room_type, anchors, strip=strip_fn is not None, lights=lights, anims=main_anims)
     print('wrote', name, '(%d nodes, %d front, %d lights)' % (len(anchors), n_front, len(lights)))
     return full
 

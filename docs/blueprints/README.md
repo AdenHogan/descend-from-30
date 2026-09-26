@@ -113,6 +113,12 @@ furniture they belong to (a chest, a desk, a bedside table) — never loose on t
 - **Situational foreground**: a thing out in the room must belong there — the bath on its feet, a
   champagne bucket BY the tub, a laundry basket BY the machine, a mat IN FRONT of the bath. Never a
   random piece standing alone mid-floor (the bathroom's clothes airer was removed for that).
+- **Spread things along a top** (owner round 19): ornaments on a sideboard / dresser spread over its
+  whole length — low things under a window slot, tall things clear of it — and stand on the MIDDLE of
+  the top, not its front lip (the pipeline places anything drawn above a piece's `top` there).
+- **Tell something** (owner round 19 — "active storytelling"): a room can show what happened in it — a
+  knocked-over carton still dripping, a meal left mid-way, a child's height chart. Small animated
+  details are marked with `pixlib.anim` (a drip today) and played by `scripts/module_anim.gd`.
 - **Set-back pieces have depth** (owner round 14): draw the FRONT face; the pipeline
   (`pixlib.setback`) brings it forward a few px and extrudes a top and a side toward the module's
   centre, so leave ~5 px between a set-back piece and a window box on the side facing the middle.

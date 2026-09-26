@@ -57,7 +57,7 @@ position = Vector2(164, 93)
 position = Vector2(196, 104)
 
 [node name="anchor_dining_record_player" type="Marker2D" parent="."]
-position = Vector2(281, 73)
+position = Vector2(281, 70)
 metadata/back_plane = true
 
 [node name="anchor_right_lowerdrawers" type="Marker2D" parent="."]

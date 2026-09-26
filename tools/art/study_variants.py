@@ -361,13 +361,28 @@ def _d_rest(c):
     c.rect(210, 95, 216, 96, hexc('d9b43a'))
     # a camp bed folded against the wall on the right
     def _camp(c):
-        c.shadow(292, 100, 16, 2, 100)
-        c.box(278, 40, 306, 99, hexc('5a6a4a'), hexc('2e3a24'))
-        c.vline(292, 42, 97, hexc('4a5a3a'))
-        c.rect(280, 44, 304, 46, hexc('7a8a6a'))
-        c.rect(284, 60, 300, 72, hexc('3a3a36'))                                             # a sleeping roll strapped to it
-        c.hline(284, 300, 64, hexc('26262a'))
-    setback(c, _camp, depth=3, top=40, rake=1.0)
+        # (round 18: it read as a green locker) an army camp bed folded up on its end against the
+        # wall: a tube frame round olive canvas, the fold across the middle, the X legs folded flat
+        # on it, a rolled sleeping bag strapped across the top
+        tube, tube_dk, can, can_dk = hexc('a8aca4'), hexc('6a6e68'), hexc('5a6a4a'), hexc('46543a')
+        c.shadow(292, 100, 14, 2, 100)
+        c.rect(281, 42, 303, 97, can)
+        for x in range(283, 302, 4):                                                          # canvas weave/sag
+            c.vline(x, 44, 95, can_dk)
+        c.hline(281, 303, 69, can_dk); c.hline(281, 303, 70, shade(can, 1.15))                # the fold
+        for (a, b) in ((280, 41), (304, 41)):
+            c.vline(a, 41, 98, tube); c.vline(a + (1 if a < 292 else -1), 41, 98, tube_dk)    # side tubes
+        c.hline(280, 304, 41, tube); c.hline(280, 304, 98, tube)                               # end bars
+        for (y0, y1) in ((47, 66), (73, 93)):                                                  # the X legs, folded flat
+            c.line(283, y0, 301, y1, tube_dk); c.line(301, y0, 283, y1, tube_dk)
+            c.line(283, y0 + 1, 301, y1 + 1, tube); c.line(301, y0 + 1, 283, y1 + 1, tube)
+        rrect(c, 282, 56, 302, 64, hexc('3a3a36'), 3)                                          # the sleeping roll
+        c.hline(284, 300, 57, hexc('4e4e48'))
+        c.ellipse(282, 60, 2, 4, hexc('2a2a26')); c.ellipse(282, 60, 1, 2.5, hexc('5a5a52'))   # its rolled end
+        for sx in (287, 297):
+            c.vline(sx, 55, 65, hexc('7a5a36'))                                                # webbing straps
+            c.put(sx, 60, hexc('c9a24a'))
+    setback(c, _camp, depth=2, top=41, rake=1.0)
     F.bare_bulb(c, 216, 22)
 
 D_ANCHORS = [('anchor_study_tins', 26, 62, 'bp s'), ('anchor_study_gas_mask', 63, 87, 'bp s'),

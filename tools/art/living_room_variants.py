@@ -573,29 +573,86 @@ def d_furniture(c):
         c.ellipse(cx_, 118, 5, 2, hexc('a0505a'))
     for x in range(63, 258, 2):
         c.vline(x, bot + 1, bot + 2, hexc('d9cfb8'))
-    # LEFT set-back: an upright piano, photos and a metronome on top (with depth — owner round 14)
-    setback(c, lambda l: lr.shifted(l, _piano, 0, -4), depth=5, top=67, x_range=(6, 52), rake=1.2)
+    # LEFT: an upright piano against the wall — a real one, not a box (owner round 18): its keyboard
+    # comes out toward the room on the keybed; photos and a metronome on top
+    piano3d(c)
     _d_rest(c)
 
 
-def _piano(c):
-    c.shadow(32, 101, 24, 3, 90)
-    c.box(10, 67, 56, 99, hexc('3a2019'), hexc('1f110d'))
-    c.hline(10, 56, 67, hexc('5a352b'))
-    c.rect(13, 82, 53, 84, hexc('e6ddc8'))                                  # keys
-    for kx in range(14, 53, 3):
-        c.vline(kx, 82, 83, hexc('1f110d'))
-    c.rect(13, 85, 53, 86, hexc('2a1712'))
-    c.rect(20, 70, 32, 79, hexc('d9d0bc'))                                   # sheet music
-    for sy in range(72, 79, 2):
-        c.hline(22, 30, sy, hexc('8a826d'))
-    for lx in (13, 51):
-        c.rect(lx, 87, lx + 2, 99, hexc('2a1712'))
-    c.box(14, 60, 20, 66, hexc('b58f4a'), hexc('7a5a2a'))                    # photo frames (x < 50)
-    c.rect(16, 62, 18, 64, hexc('8c8272'))
-    c.box(24, 58, 31, 66, hexc('b58f4a'), hexc('7a5a2a'))
-    c.rect(26, 60, 29, 64, hexc('7c6a5a'))
-    c.poly([(38, 66), (44, 66), (41, 57)], hexc('5a352b'))                  # metronome
+def piano3d(c, wx0=24.0, wx1=64.0):
+    """An upright piano against the back wall (owner round 18 — the extruded box "looks like a big
+    blocky cuboid"; its keys and music were a small picture on the front). Built in the room's
+    perspective (pixlib.pp / pbox): the case 0..7 out from the wall under an overhanging lid; the
+    KEYBED projecting to 12 with the keyboard ON it, seen from above — white keys running back,
+    the black keys in their twos and threes; a cheek at each end, a leg + toe under each; a
+    panelled upper front with a music desk and a sheet of music; the fallboard folded back; a
+    panelled knee board with three brass pedals."""
+    from pixlib import pp, pbox
+    P = lambda x, y, d: (int(round(pp(x, y, d)[0])), int(round(pp(x, y, d)[1])))
+    MAH, MAH_LT, MAH_DK, OUT = hexc('5a2c20'), hexc('7e4430'), hexc('3a1a12'), hexc('1e0e0a')
+    BRASS = hexc('c9a24a')
+    mid = pp((wx0 + wx1) / 2, 100, 7)
+    c.shadow(mid[0], mid[1] + 1, 26, 3, 100)
+    # the case + the lid
+    f = pbox(c, wx0, 69, wx1, 100, 0, 7, MAH, MAH_LT, MAH_DK, OUT)
+    pbox(c, wx0 - 1, 67, wx1 + 1, 69, 0, 8, MAH_LT, shade(MAH_LT, 1.12), MAH, OUT)
+    fl, fr, fbr = f['fl'], f['fr'], f['fbr']
+    # the upper front: two raised panels either side of a fretwork centre, a music desk, the music
+    kb = P(wx0, 83, 7)[1]
+    for (a, b) in ((wx0 + 3, wx0 + 13), (wx1 - 13, wx1 - 3)):
+        p0, p1 = P(a, 71, 7), P(b, 79, 7)
+        c.box(p0[0], p0[1], p1[0], p1[1], MAH, MAH_DK)
+        c.hline(p0[0] + 1, p1[0] - 1, p0[1] + 1, MAH_LT)
+    q0, q1 = P(wx0 + 15, 71, 7), P(wx1 - 15, 76, 7)
+    c.rect(q0[0], q0[1], q1[0], q1[1], MAH_DK)
+    for x in range(q0[0] + 1, q1[0], 2):                                     # the fretwork
+        c.put(x, q0[1] + 1 + (x % 4 == 1), hexc('8a5a3a'))
+    m0, m1 = P(wx0 + 14, 76, 8), P(wx1 - 14, 77, 8)                          # the music desk
+    c.rect(m0[0], m0[1], m1[0], m1[1], MAH_LT)
+    s0, s1 = P(wx0 + 16, 70, 7.5), P(wx0 + 26, 76, 7.5)                      # a sheet of music
+    c.poly([(s0[0], s0[1]), (s1[0], s0[1] - 1), (s1[0], s1[1]), (s0[0], s1[1])], hexc('e6ddc8'))
+    for y in range(s0[1] + 1, s1[1], 2):
+        c.hline(s0[0] + 1, s1[0] - 1, y, hexc('9a927e'))
+    # the knee board below: a long raised panel, three brass pedals at its foot
+    k0, k1 = P(wx0 + 5, 87, 7), P(wx1 - 5, 96, 7)
+    c.box(k0[0], k0[1], k1[0], k1[1], MAH, MAH_DK)
+    c.hline(k0[0] + 1, k1[0] - 1, k0[1] + 1, MAH_LT)
+    pc = P((wx0 + wx1) / 2, 98, 8)
+    for dx in (-4, 0, 4):
+        c.rect(pc[0] + dx - 1, pc[1], pc[0] + dx + 1, pc[1] + 1, BRASS)
+    # the KEYBED coming out, the fallboard folded back on it, the keys from above
+    pbox(c, wx0 + 3, 83, wx1 - 3, 86, 7, 12, MAH_DK, MAH, shade(MAH_DK, 0.8), OUT)   # key slip + bed
+    fb = [P(wx0 + 4, 81, 7), P(wx1 - 4, 81, 7), P(wx1 - 4, 83, 8), P(wx0 + 4, 83, 8)]
+    c.poly(fb, MAH_LT)                                                        # the fallboard, folded back
+    keys = [P(wx0 + 4, 83, 8), P(wx1 - 4, 83, 8), P(wx1 - 4, 83, 11.5), P(wx0 + 4, 83, 11.5)]
+    c.poly(keys, hexc('ece6d6'))                                              # the white keys
+    n = 22
+    for k in range(1, n):                                                     # the gaps between them
+        wx = wx0 + 4 + (wx1 - wx0 - 8) * k / float(n)
+        a_, b_ = P(wx, 83, 8.6), P(wx, 83, 11.5)
+        c.line(a_[0], a_[1], b_[0], b_[1], hexc('b9b09a'))
+    for k in range(n):                                                        # the black keys, 2s and 3s
+        if k % 7 in (2, 6):
+            continue
+        wx = wx0 + 4 + (wx1 - wx0 - 8) * (k + 1) / float(n)
+        a_, b_ = P(wx - 0.5, 83, 8), P(wx + 0.5, 83, 10)
+        c.rect(a_[0], a_[1], max(a_[0], b_[0]), b_[1], hexc('1a1614'))
+    for (a, b) in ((wx0, wx0 + 3), (wx1 - 3, wx1)):                           # the cheeks
+        pbox(c, a, 80, b, 86, 7, 12, MAH, MAH_LT, MAH_DK, OUT)
+    for lx in (wx0 + 1.5, wx1 - 1.5):                                         # a leg + toe under each
+        a_, b_ = P(lx, 86, 11), P(lx, 100, 11)
+        c.rect(a_[0] - 1, a_[1], a_[0] + 1, b_[1] - 2, MAH)
+        c.vline(a_[0] - 1, a_[1], b_[1] - 2, MAH_LT)
+        t0, t1 = P(lx - 1.5, 98, 11.5), P(lx + 1.5, 100, 11.5)
+        c.rect(t0[0], t0[1], t1[0], t1[1], MAH_DK)
+    # on the lid: photo frames and a metronome
+    for (x0_, x1_, y0_, pic) in ((wx0 + 3, wx0 + 9, 61, hexc('8c8272')), (wx0 + 12, wx0 + 19, 59, hexc('7c6a5a'))):
+        a_, b_ = P(x0_, y0_, 3), P(x1_, 67, 3)
+        c.box(a_[0], a_[1], b_[0], b_[1], hexc('b58f4a'), hexc('7a5a2a'))
+        c.rect(a_[0] + 2, a_[1] + 2, b_[0] - 2, b_[1] - 2, pic)
+    mt = P(wx0 + 24, 67, 4)
+    c.poly([(mt[0] - 3, mt[1]), (mt[0] + 3, mt[1]), (mt[0], mt[1] - 9)], hexc('5a352b'))
+    c.line(mt[0], mt[1] - 1, mt[0] + 1, mt[1] - 7, BRASS)
 
 
 def _d_rest(c):
@@ -642,26 +699,48 @@ def _d_rest(c):
 
 
 def _china_cabinet(c):
-    # RIGHT set-back: a glass-front china cabinet
-    c.shadow(280, 101, 20, 2, 90)
+    # RIGHT set-back: a glass-front china cabinet (round 18: it read as a box with a picture on it) —
+    # a cornice, two glazed doors with glazing bars and the china on shelves behind them, a drawer
+    # with brass knobs, a plinth on bun feet
+    MAH, MAH_LT, MAH_DK, OUT = hexc('4a2a20'), hexc('6e4030'), hexc('2e1812'), hexc('1a0c08')
+    GLASS_, BRASS = hexc('9fb3b0'), hexc('c9a24a')
     x0, x1, top = 262, 298, 67
-    c.box(x0, top, x1, 99, hexc('3a2019'), hexc('1f110d'))
-    c.box(x0 + 3, top + 3, x1 - 3, top + 20, hexc('9fb3b0'), hexc('2a1712'))
-    c.vline((x0 + x1) // 2, top + 3, top + 20, hexc('2a1712'))
-    for py in (top + 8, top + 15):                                          # plates on stands
-        for px_ in range(x0 + 6, x1 - 4, 7):
-            c.ellipse(px_, py, 2, 3, hexc('e6ddc8'))
-            c.put(px_, py, hexc('7ea0b8'))
-    c.rect(x0 + 3, top + 23, x1 - 3, 96, hexc('4a2a22'))                     # cupboard below
-    c.vline((x0 + x1) // 2, top + 23, 96, hexc('1f110d'))
-    c.put((x0 + x1) // 2 - 2, top + 28, hexc('b58f4a'))
-    c.put((x0 + x1) // 2 + 2, top + 28, hexc('b58f4a'))
-    c.line(x0 + 5, top + 5, x0 + 12, top + 17, hexc('d6e2e0'))              # a crack in the glass
+    c.shadow(280, 101, 20, 2, 90)
+    c.box(x0, top + 2, x1, 95, MAH, OUT)                                     # the carcass
+    c.rect(x0 - 2, top - 1, x1 + 2, top + 2, MAH_LT)                          # the cornice
+    c.hline(x0 - 2, x1 + 2, top - 1, shade(MAH_LT, 1.2))
+    c.hline(x0 - 1, x1 + 1, top + 2, MAH_DK)
+    c.rect(x0 - 1, 93, x1 + 1, 96, MAH_LT)                                    # the plinth
+    c.hline(x0 - 1, x1 + 1, 93, shade(MAH_LT, 1.15))
+    for fx in (x0 + 1, x1 - 4):                                               # bun feet
+        c.rect(fx, 97, fx + 3, 99, MAH_DK)
+        c.hline(fx, fx + 3, 97, MAH)
+    mid = (x0 + x1) // 2
+    g0, g1 = top + 4, top + 19                                                # the glazed doors
+    c.rect(x0 + 2, g0, x1 - 2, g1, MAH_DK)
+    c.rect(x0 + 3, g0 + 1, x1 - 3, g1 - 1, hexc('35403e'))                    # the dim inside
+    for sy in (g0 + 7, g1 - 1):                                               # shelves, china on them
+        c.hline(x0 + 3, x1 - 3, sy, MAH_LT)
+        for px_ in range(x0 + 6, x1 - 4, 6):
+            c.ellipse(px_, sy - 3, 2.2, 3, hexc('e6ddc8'))                    # plates on stands
+            c.ellipse(px_, sy - 3, 1, 1.5, hexc('7ea0b8'))
+    for cx_ in (x0 + 7, x0 + 13, x1 - 12):                                    # cups hanging under the top
+        c.rect(cx_, g0 + 1, cx_ + 2, g0 + 3, hexc('e6ddc8'))
+    for y in range(g0 + 1, g1):                                               # the glass over it all
+        for x in range(x0 + 3, x1 - 2):
+            c.put(x, y, GLASS_[:3] + (70,))
+    c.vline(mid, g0, g1, MAH)                                                 # the two doors' stiles
+    c.vline(mid + 1, g0, g1, MAH_DK)
+    for gx in ((x0 + mid) // 2, (mid + x1) // 2):                             # glazing bars
+        c.vline(gx, g0 + 1, g1 - 1, MAH)
+    c.hline(x0 + 3, x1 - 3, (g0 + g1) // 2, MAH)
+    c.line(x0 + 5, g0 + 2, x0 + 11, g1 - 3, hexc('d6e2e0'))                    # a crack in the glass
+    d0 = g1 + 2                                                               # the drawer
+    c.box(x0 + 2, d0, x1 - 2, d0 + 4, MAH, MAH_DK)
+    c.hline(x0 + 3, x1 - 3, d0 + 1, MAH_LT)
+    c.put(x0 + 9, d0 + 2, BRASS); c.put(x1 - 9, d0 + 2, BRASS)
     import furn as F
-    F.table_lamp(c, 290, top - 1, 'rose', base=hexc('b58f4a'))              # a lamp on the cabinet
-
-
-
+    F.table_lamp(c, 290, top - 2, 'rose', base=hexc('b58f4a'))              # a lamp on the cabinet
 
 
 # --- E: HUNTING LODGE --------------------------------------------------------------------------

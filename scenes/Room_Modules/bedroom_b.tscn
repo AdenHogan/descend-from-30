@@ -25,7 +25,7 @@ texture = ExtResource("1_art")
 centered = false
 
 [node name="anchor_bedroom_desk" type="Marker2D" parent="."]
-position = Vector2(28, 78)
+position = Vector2(28, 74)
 metadata/back_plane = true
 
 [node name="anchor_bedroom_desk_drawer" type="Marker2D" parent="."]
@@ -52,7 +52,7 @@ metadata/back_plane = true
 [node name="Lights" type="Node2D" parent="."]
 
 [node name="lamp_0" type="Node2D" parent="Lights"]
-position = Vector2(300, 79)
+position = Vector2(300, 76)
 metadata/kind = "lava"
 
 [node name="lamp_1" type="Node2D" parent="Lights"]

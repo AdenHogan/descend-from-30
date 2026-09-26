@@ -16,6 +16,8 @@ Scene shape (what scripts/room.gd expects):
                children at the bulb, metadata/kind (+ metadata/balcony_strip). NOT Marker2D — room.gd
                treats every direct Marker2D child as a scavenge anchor. scripts/apartment_lights.gd
                lights them.
+    Anims      Node2D    small LIVE details (a milk drip): anim_<n> Node2D children running
+               scripts/module_anim.gd, metadata/kind (+ fall, color).
 
 An existing scene's uid is kept so nothing that references it breaks.
 """
@@ -29,7 +31,7 @@ LABELS = {'bedroom': 'Bedroom', 'bathroom': 'Bathroom', 'kitchen': 'Kitchen', 's
 BALCONY_TYPES = ('study', 'dining_room')
 
 
-def write_scene(name, room_type, anchors, strip=False, lights=()):
+def write_scene(name, room_type, anchors, strip=False, lights=(), anims=()):
     """anchors: [(node_name, x, y, flags)] — flags a string containing 'bp' (back plane) and/or
     's' (balcony strip)."""
     path = os.path.join(ROOT, 'scenes', 'Room_Modules', name + '.tscn')
@@ -48,6 +50,8 @@ def write_scene(name, room_type, anchors, strip=False, lights=()):
         out.append('[ext_resource type="Texture2D" path="res://assets/rooms/%s_strip.png" id="2_strip"]' % name)
     if room_type in BALCONY_TYPES:
         out.append('[ext_resource type="Texture2D" path="res://assets/rooms/balcony.png" id="3_balcony"]')
+    if anims:
+        out.append('[ext_resource type="Script" path="res://scripts/module_anim.gd" id="4_anim"]')
     out += ['', '[node name="Node2D" type="Node2D"]', '',
             '[node name="ColorRect" type="ColorRect" parent="."]',
             'offset_right = 320.0', 'offset_bottom = 144.0', 'color = Color(0.4, 0.4, 0.4, 1)', '',
@@ -80,6 +84,16 @@ def write_scene(name, room_type, anchors, strip=False, lights=()):
             out.append('metadata/kind = "%s"' % kind)
             if 's' in flags:
                 out.append('metadata/balcony_strip = true')
+            out.append('')
+    if anims:
+        out += ['[node name="Anims" type="Node2D" parent="."]', '']
+        for i, (x, y, kind, fall, col) in enumerate(anims):
+            out.append('[node name="anim_%d" type="Node2D" parent="Anims"]' % i)
+            out.append('position = Vector2(%d, %d)' % (x, y))
+            out.append('script = ExtResource("4_anim")')
+            out.append('metadata/kind = "%s"' % kind)
+            out.append('metadata/fall = %d' % fall)
+            out.append('metadata/color = "%s"' % col)
             out.append('')
     open(path, 'w').write('\n'.join(out))
     return path

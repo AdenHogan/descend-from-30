@@ -1467,6 +1467,12 @@ means no rendering — UI layout and art still need an in-editor look.
   one; tall storage stays the step-up (rule in docs/blueprints/README.md). Curtains hang under a visible
   rail and INTO the tub (`shower_rail` / `curtain_in_tub` / `bath_front`); the room-to-room doorway is a
   static door frame (`module_walls._door_frame`).
+  **Round 19** (look over geometry): pieces keep their new sizes but their identity fills the shape —
+  things drawn on top of a set-back piece stand mid-surface with volume + a cast shadow (`pixlib.setback`),
+  chest tops are lit slabs, and the washing machine, cisterns, piano, china cabinet, vanity, stool/radio,
+  hamper, camp bed, turntable, tea set, boombox and the open fridge's cavity were redrawn (modules README).
+  Sideboard ornaments spread along the whole top. LIVE DETAILS: `pixlib.anim` → a module scene's `Anims`
+  (`scripts/module_anim.gd`, kind `drip`) — kitchen D's fridge has spilt milk dripping onto a puddle.
 - CORRIDOR ART (owner round 10, `tools/art/corridor.py`): floors 1-29 get a painted overlay over
   the old tile look — `building_floors._apply_corridor_art` adds a `CorridorArt` Sprite2D (115,243,
   1120x192 = the tilemap's used band) right ABOVE the TileMapLayer, so doors / stairs / elevator /

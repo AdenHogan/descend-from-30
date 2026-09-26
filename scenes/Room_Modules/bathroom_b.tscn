@@ -43,7 +43,7 @@ position = Vector2(176, 76)
 position = Vector2(226, 106)
 
 [node name="anchor_bathroom_radio_stool" type="Marker2D" parent="."]
-position = Vector2(280, 79)
+position = Vector2(278, 83)
 
 [node name="Lights" type="Node2D" parent="."]
 

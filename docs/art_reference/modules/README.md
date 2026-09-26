@@ -360,6 +360,41 @@ right… keep a static boundary")**:
   paper shows the plaster under a curling flap. NO RECTANGLES OF DITHER for stains: damp is
   `furn.water_stain` (filled, irregular, a tide line, a run), spills are `furn.floor_stain`.
 
+**ROUND 19 — LOOK OVER GEOMETRY (owner: "the washing machine and the piano… look like big blocky
+cubes… the image of what they are appears smaller… the cistern on that gold toilet looks massive, like
+an air conditioner… items on top of dressers are 2D shapes and very close to the front edge… the inside
+of the fridge looks flat")**: keep the new sizes, but make the object's identity FILL the shape.
+- THINGS ON TOP of a set-back piece (anything drawn above its `top`) now come forward only to the MIDDLE
+  of the top surface (`pixlib.setback`: half the shift; their lights and nodes move with them), get a lit
+  left / shaded right edge (`_on_top_volume`) and cast a small shadow back across the top
+  (`_on_top_shadow`). The extrusion's outline colour comes from the piece's own EDGE (it once picked a
+  jar's shadow from inside an open fridge and outlined the fridge in red).
+- `furn.chest` tops are a two-row lit slab overhanging the carcass, so every sideboard / dresser top
+  reads as polished wood instead of a dark block.
+- WASHING MACHINE: less deep, a control panel (soap drawer, display, dial), a porthole ~80% of the face
+  (chrome bezel, seal, the drum and its holes), a shaded side, the door open on its hinge.
+- CISTERNS (`bathroom.cistern3d`): rounded, narrower than the seat, an overhanging lid; the gold one
+  has a moulded panel with a crown.
+- PIANO (`living_room_variants.piano3d`): a true upright — the keybed projects with the keys on it (black
+  keys in 2s and 3s), cheeks, legs + toes, pedals, panelled front, music desk, fallboard.
+- The china cabinet (cornice, glazed doors, china on shelves, drawer, bun feet), bathroom B's vanity
+  (upstand, overhanging worktop, plinth recess, panelled / open doors), a stool with a radio and a
+  wicker hamper (both were boxes), study D's folded CAMP BED (tubes, canvas, folded X legs, a strapped
+  sleeping roll — it read as a locker), dining B's turntable, dining C's silver tea set
+  (`furn.silver`: teapot, sugar bowl, coffee pot, cup), dining E's boombox and paper cups.
+- The OPEN FRIDGE (kitchen D) has a cavity (the lit inner wall, a darker back wall, glass shelves seen
+  from above, the light) and TELLS SOMETHING (owner: "all of this can be active storytelling"): food
+  spread at different depths, a milk carton knocked over on the bottom shelf, milk pooled on the glass
+  and DRIPPING live onto the fridge floor, over the sill and into a puddle on the lino; the door bins
+  hold eggs, ketchup and mustard, juice and brown sauce.
+- LIVE DETAILS: `pixlib.anim(x, y, kind, …)` marks a small animated detail in the art (moves with a
+  set-back piece like a light); `modscene` writes it into the module scene as an `Anims` child running
+  `scripts/module_anim.gd` (kind `drip`: a drop swells, falls, splashes, on a period seeded by its
+  position so no two drip in step). The hook for more storytelling details.
+- SPREAD THINGS ALONG A TOP (owner: "items seem to be more predominant on the right side"): a sideboard
+  under a window slot keeps its LOW things (cups, a fruit bowl, a plate) under the window and the tall
+  ones clear of it — never everything bunched at one end.
+
 **RUN LOOKS, round 14**: the afternoon / night decals were redrawn — damp is a FILLED water stain with
 a tide line, an inner ring and runs weeping down (it was a dotted outline); torn wallpaper is a ragged
 patch to the plaster with the paper's torn core along its edge and a curled corner (it was a floating

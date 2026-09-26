@@ -1,6 +1,7 @@
 [gd_scene format=3]
 
 [ext_resource type="Texture2D" path="res://assets/rooms/kitchen_d.png" id="1_art"]
+[ext_resource type="Script" path="res://scripts/module_anim.gd" id="4_anim"]
 
 [node name="Node2D" type="Node2D"]
 
@@ -32,7 +33,7 @@ metadata/back_plane = true
 position = Vector2(88, 95)
 
 [node name="anchor_kitchen_dishes" type="Marker2D" parent="."]
-position = Vector2(146, 81)
+position = Vector2(146, 75)
 metadata/back_plane = true
 
 [node name="anchor_kitchen_student_cupboard" type="Marker2D" parent="."]
@@ -40,7 +41,7 @@ position = Vector2(186, 95)
 metadata/back_plane = true
 
 [node name="anchor_kitchen_microwave" type="Marker2D" parent="."]
-position = Vector2(202, 75)
+position = Vector2(202, 69)
 metadata/back_plane = true
 
 [node name="anchor_kitchen_pizza_boxes" type="Marker2D" parent="."]
@@ -59,3 +60,12 @@ metadata/back_plane = true
 [node name="lamp_0" type="Node2D" parent="Lights"]
 position = Vector2(160, 26)
 metadata/kind = "bulb"
+
+[node name="Anims" type="Node2D" parent="."]
+
+[node name="anim_0" type="Node2D" parent="Anims"]
+position = Vector2(13, 92)
+script = ExtResource("4_anim")
+metadata/kind = "drip"
+metadata/fall = 11
+metadata/color = "f2efe4"

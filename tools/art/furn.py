@@ -27,13 +27,17 @@ def chest(c, x0, x1, top, base, P, drawers=3, open_row=None, knobs=BRASS, legs=T
     that drawer out (its dark inside shows)."""
     b, lt, dk, out = P
     c.shadow((x0 + x1) // 2, base + 1, (x1 - x0) // 2 + 2, 2, 100)
-    c.rect(x0 - 1, top, x1 + 1, top + 1, lt)
+    # the TOP: a polished slab overhanging the carcass, lit — two rows thick so the set-back pass
+    # (which samples two px in) turns it into a lit top surface, not a dark slab (owner round 18)
+    c.rect(x0 - 1, top, x1 + 1, top + 2, shade(lt, 1.08))
     c.hline(x0 - 1, x1 + 1, top, out)
+    c.hline(x0 - 1, x1 + 1, top + 2, lt)
     foot = 3 if legs else 0
-    c.box(x0, top + 2, x1, base - foot, b, out)
-    h = (base - foot - top - 4) // drawers
+    c.box(x0, top + 3, x1, base - foot, b, out)
+    c.hline(x0 + 1, x1 - 1, top + 4, dk)                                  # the shadow under the top
+    h = (base - foot - top - 5) // drawers
     for i in range(drawers):
-        y0 = top + 4 + i * h
+        y0 = top + 5 + i * h
         y1 = y0 + h - 2
         if i == open_row:
             c.rect(x0 + 2, y0, x1 - 2, y0 + 1, DARK)
@@ -1144,3 +1148,41 @@ def floor_stain(c, cx, cy, rx, ry, col, seed=1):
                 c.put(x, y, col[:3] + (70,))
             elif dd <= 1.0:
                 c.put(x, y, rim[:3] + (110,))
+
+
+def silver(c, kind, cx, base, col=hexc('b9bfc1')):
+    """Silver / china pieces with a body (owner round 19: flat grey rectangles on a sideboard read
+    as nothing): a round TEAPOT (belly, spout, handle, lid + knob), a tall COFFEE pot, a SUGAR bowl,
+    a CUP on its saucer — each lit on the left with a hot highlight, shaded on the right, sitting on
+    a flat foot."""
+    lt, dk, hi = shade(col, 1.12), shade(col, 0.66), hexc('f4f6f6')
+    def belly(cx_, cy_, rx, ry):
+        c.ellipse(cx_, cy_, rx, ry, col)
+        c.ellipse(cx_ + rx * 0.45, cy_ + 0.5, rx * 0.5, ry * 0.85, dk)
+        c.ellipse(cx_ + rx * 0.2, cy_, rx * 0.55, ry * 0.8, col)
+        c.put(int(cx_ - rx * 0.45), int(cy_ - ry * 0.35), hi)
+        c.put(int(cx_ - rx * 0.45), int(cy_ - ry * 0.35) + 1, lt)
+    if kind == 'teapot':
+        c.hline(cx - 3, cx + 3, base, dk)                                    # foot
+        belly(cx, base - 3, 5, 3.2)
+        c.line(cx + 5, base - 3, cx + 8, base - 6, col); c.put(cx + 8, base - 7, col)    # spout
+        c.line(cx - 5, base - 5, cx - 7, base - 3, dk); c.line(cx - 7, base - 3, cx - 5, base - 1, dk)  # handle
+        c.hline(cx - 2, cx + 2, base - 6, lt); c.put(cx, base - 7, dk)        # lid + knob
+    elif kind == 'coffee':
+        c.hline(cx - 3, cx + 3, base, dk)
+        c.rect(cx - 3, base - 10, cx + 3, base - 1, col)
+        c.vline(cx - 3, base - 10, base - 1, lt); c.vline(cx + 3, base - 10, base - 1, dk)
+        c.vline(cx + 2, base - 10, base - 1, shade(col, 0.82)); c.vline(cx - 2, base - 8, base - 4, hi)
+        c.hline(cx - 2, cx + 2, base - 11, lt); c.put(cx, base - 12, dk)
+        c.line(cx + 3, base - 9, cx + 6, base - 11, col)                    # spout
+        c.line(cx - 4, base - 9, cx - 5, base - 3, dk)                      # handle
+    elif kind == 'sugar':
+        c.hline(cx - 2, cx + 2, base, dk)
+        belly(cx, base - 2, 3.5, 2)
+        c.hline(cx - 3, cx + 3, base - 4, lt)
+    elif kind == 'cup':
+        c.ellipse(cx, base, 4, 1, dk); c.ellipse(cx, base - 0.4, 3.5, 0.8, lt)   # saucer
+        c.rect(cx - 2, base - 4, cx + 2, base - 1, col)
+        c.vline(cx + 2, base - 4, base - 1, dk); c.vline(cx - 2, base - 4, base - 1, lt)
+        c.hline(cx - 2, cx + 2, base - 4, shade(col, 0.8))
+        c.put(cx + 3, base - 3, dk)

@@ -132,9 +132,25 @@ def b_furniture(c):
     # a teak sideboard with a record player on the right (with depth)
     def _sb(c):
         F.chest(c, 244, 310, 72, 100, F.TEAK, drawers=2, open_row=1)
-        c.box(272, 64, 294, 71, hexc('3a3a3d'), hexc('1c1c1e'))
-        c.ellipse(281, 66, 7, 1, hexc('1c1c1e'))
-        c.line(291, 65, 285, 67, SILVER)
+        c.ellipse(257, 70, 6, 1.8, hexc('d86a3a')); c.ellipse(257, 69, 5, 1, hexc('f0a060'))     # a fruit bowl, low
+        for (fx, col) in ((255, hexc('e8b83a')), (258, hexc('6a9a3a')), (260, hexc('b0453a'))):
+            c.ellipse(fx, 68, 1.5, 1.2, col)
+        for i, col in enumerate((hexc('2f4a63'), hexc('d9c24a'), hexc('c0453a'))):             # LP sleeves lying flat
+            c.rect(264 + i, 70 - i, 271 + i, 70 - i, col)
+        # a record player (round 18: it read as a dark box): a teak plinth, its smoked lid propped
+        # open behind, a record on the platter seen from above, the tonearm across it
+        for y in range(56, 66):                                                               # the lid, open
+            for x in range(273 + (65 - y) // 4, 294 - (65 - y) // 4):
+                c.put(x, y, hexc('5a5a60', 90))
+        c.hline(273, 293, 65, hexc('3a3a40'))
+        c.rect(272, 66, 294, 71, F.TEAK[0]); c.hline(272, 294, 66, F.TEAK[1])                 # the plinth
+        c.hline(272, 294, 71, F.TEAK[3])
+        c.rect(273, 67, 293, 68, hexc('b9bfc1'))                                              # the deck plate
+        c.ellipse(281, 67, 7.5, 2, hexc('1c1c1e'))                                            # the record
+        c.ellipse(281, 67, 5, 1.2, hexc('2a2a2e'))
+        c.ellipse(281, 67, 1.6, 0.8, hexc('c0453a'))                                         # its label
+        c.put(292, 67, SILVER); c.line(292, 67, 285, 68, SILVER)                             # the tonearm
+        c.rect(289, 69, 291, 70, hexc('d9c24a'))                                             # a knob
         for (x, col) in ((299, hexc('d86a3a')), (302, hexc('2f4a63')), (305, hexc('d9c24a'))):
             c.rect(x, 58, x + 2, 71, col)                                                       # records leant up
     setback(c, _sb, depth=4, top=72, x_range=(243, 311))
@@ -238,10 +254,15 @@ def c_furniture(c):
     # a sideboard with silver on the right (x > 240), with depth
     def _sb(c):
         F.chest(c, 250, 310, 72, 100, F.WOOD, drawers=2)
-        c.rect(256, 67, 266, 71, SILVER); c.hline(254, 268, 67, SILVER)                       # a tea set
-        c.rect(276, 66, 282, 71, SILVER); c.put(283, 68, SILVER)
-        c.rect(288, 60, 294, 71, SILVER); c.hline(286, 296, 60, SILVER)
-        c.ellipse(303, 70, 5, 1, SILVER)
+        # the silver tea set, on a tray (round 19: flat grey rectangles read as nothing)
+        # spread along the whole top (round 19: it bunched right) — the LOW pieces under the window
+        # slot on the left (cups on saucers, the sugar bowl), the tall pots on the tray to the right
+        F.silver(c, 'cup', 256, 71, hexc('e6ddc8'))
+        F.silver(c, 'cup', 265, 71, hexc('e6ddc8'))
+        F.silver(c, 'sugar', 274, 71, SILVER)
+        c.ellipse(292, 71, 11, 1.2, shade(SILVER, 0.7)); c.hline(282, 302, 70, SILVER)       # the tray
+        F.silver(c, 'teapot', 288, 70, SILVER)
+        F.silver(c, 'coffee', 299, 71, SILVER)
     setback(c, _sb, depth=4, top=72, x_range=(249, 311))
     F.flush_light(c, 177)                                                         # above the portraits
 
@@ -491,11 +512,26 @@ def e_furniture(c):
     # a sideboard with a cassette player and a stack of paper cups (with depth)
     def _sb(c):
         F.chest(c, 250, 310, 72, 100, F.PINE, drawers=2, open_row=0)
+        # a boombox for the party (round 19: it read as a dark box): two speaker cones, the
+        # cassette deck between them, a carry handle, an aerial; a stack of paper cups beside it
+        c.ellipse(258, 70, 5, 1.6, hexc('c0453a')); c.ellipse(258, 69, 4, 1, hexc('e8b83a'))   # a bowl of crisps
+        c.put(256, 68, hexc('f0cf6a')); c.put(259, 68, hexc('f0cf6a'))
+        c.ellipse(268, 70.5, 5, 1.3, hexc('efe8d8'))                                           # a plate of sandwiches
+        for sx_ in (266, 269):
+            c.poly([(sx_ - 2, 70), (sx_ + 2, 70), (sx_, 67)], hexc('e6d2a0')); c.hline(sx_ - 1, sx_ + 1, 69, hexc('b0453a'))
         c.box(274, 62, 296, 71, hexc('3a3a3d'), hexc('1c1c1e'))
-        c.ellipse(280, 66, 2, 2, hexc('9aa3a8')); c.ellipse(290, 66, 2, 2, hexc('9aa3a8'))
-        c.rect(300, 60, 305, 71, hexc('efe8d8'))
-        for y in range(62, 71, 2):
-            c.hline(300, 305, y, hexc('d0c8b4'))
+        c.hline(275, 295, 63, hexc('5a5a60'))
+        for sx in (279, 291):
+            c.ellipse(sx, 67, 3.5, 3.5, hexc('1c1c1e')); c.ellipse(sx, 67, 2.5, 2.5, hexc('6a6e72'))
+            c.ellipse(sx - 0.5, 66.5, 1, 1, hexc('9aa3a8'))
+        c.rect(282, 65, 288, 69, hexc('9aa3a8')); c.rect(283, 66, 287, 68, hexc('2a2a2e'))     # the cassette deck
+        c.put(284, 67, hexc('d9c24a')); c.put(286, 67, hexc('d9c24a'))
+        c.line(276, 62, 278, 58, hexc('7a8083')); c.hline(278, 292, 58, hexc('7a8083')); c.line(292, 58, 294, 62, hexc('7a8083'))
+        c.line(295, 62, 300, 50, hexc('9aa3a8'))                                               # the aerial
+        for i, y in enumerate(range(70, 59, -2)):                                              # paper cups, stacked
+            c.hline(300, 306, y, hexc('efe8d8')); c.hline(300, 306, y + 1, hexc('d0c8b4'))
+        c.vline(306, 60, 71, hexc('b8b0a0')); c.vline(300, 60, 71, hexc('f8f4ea'))
+        c.ellipse(303, 60, 3, 1, hexc('b8b0a0'))
     setback(c, _sb, depth=4, top=72, x_range=(249, 311))
     F.flush_light(c, 160)
 
