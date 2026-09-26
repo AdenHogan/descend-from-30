@@ -26,31 +26,27 @@ centered = false
 
 [node name="anchor_bathroom_small_sink" type="Marker2D" parent="."]
 position = Vector2(27, 70)
-metadata/back_plane = true
 
 [node name="anchor_bathroom_grim_toilet" type="Marker2D" parent="."]
-position = Vector2(70, 84)
-metadata/back_plane = true
+position = Vector2(70, 92)
 
 [node name="anchor_bathroom_toilet_rolls" type="Marker2D" parent="."]
-position = Vector2(91, 94)
-metadata/back_plane = true
+position = Vector2(101, 96)
 
 [node name="anchor_bathroom_behind_curtain" type="Marker2D" parent="."]
-position = Vector2(150, 84)
+position = Vector2(158, 70)
 
 [node name="anchor_bathroom_curtain_corner" type="Marker2D" parent="."]
-position = Vector2(118, 94)
+position = Vector2(124, 88)
 
-[node name="anchor_bathroom_clothes_horse" type="Marker2D" parent="."]
-position = Vector2(226, 100)
+[node name="anchor_bathroom_laundry_basket" type="Marker2D" parent="."]
+position = Vector2(248, 90)
 
 [node name="anchor_bathroom_washer" type="Marker2D" parent="."]
-position = Vector2(283, 93)
-metadata/back_plane = true
+position = Vector2(290, 86)
 
 [node name="Lights" type="Node2D" parent="."]
 
 [node name="lamp_0" type="Node2D" parent="Lights"]
-position = Vector2(200, 22)
+position = Vector2(220, 22)
 metadata/kind = "bulb"

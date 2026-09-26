@@ -44,7 +44,7 @@ metadata/back_plane = true
 position = Vector2(258, 90)
 
 [node name="anchor_kitchen_cat_tins" type="Marker2D" parent="."]
-position = Vector2(262, 118)
+position = Vector2(254, 116)
 
 [node name="Lights" type="Node2D" parent="."]
 

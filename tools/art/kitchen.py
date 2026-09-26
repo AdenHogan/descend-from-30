@@ -93,7 +93,8 @@ def wall(c):
 
 
 def decay(c):
-    c.dither(0, 14, W - 1, 22, DAMP, 0.3, pattern='random')
+    import furn as F
+    F.water_stain(c, 150, 12, 16, 6, DAMP, seed=32)                          # damp along the ceiling
     for i in range(5):                              # a water stain from the flat above
         c.ellipse(24 + i * 5, 12 + i * 2, 6, 4, DAMP)
     c.put(100, 60, TILE_DK); c.line(100, 60, 104, 66, GROUT)   # a cracked tile

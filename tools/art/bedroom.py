@@ -109,9 +109,11 @@ def decay(c):
     # only where it's part of the WALL layer — this is the wall layer, so it's allowed there)
     for i in range(9):
         c.ellipse(236 + i * 7, 22 + (i % 3) * 3, 9 - i % 3, 5, DAMP)
-    # peeling paper by the door edge
-    c.poly([(2, 40), (9, 38), (7, 52), (2, 55)], shade(WALL, 1.12))
-    c.line(2, 55, 7, 52, WALL_DK)
+    # wallpaper peeling by the door edge: the bare plaster where it came away, the flap curling down
+    c.poly([(1, 38), (9, 36), (8, 52), (1, 56)], hexc('b9ae98'))
+    c.poly([(8, 36), (13, 41), (12, 50), (9, 47)], shade(WALL, 1.12))
+    c.line(8, 36, 12, 50, shade(WALL, 0.72))
+    c.line(1, 56, 8, 52, WALL_DK)
     # scuffs along the skirting
     for x in (60, 131, 198):
         c.hline(x, x + 5, 92, shade(WALL, 0.85))
@@ -147,9 +149,13 @@ def picture(c):
             bg=hexc('b8d0dc'), ground=hexc('c9b48a'), frame=FRAME)            # a family at the seaside
     c.line(139, 30, 128, 36, FRAME_DK)                  # the string
     c.line(139, 30, 150, 36, FRAME_DK)
-    # a pale rectangle where a second picture used to hang
-    c.rect(168, 38, 184, 52, shade(WALL, 1.08))
-    c.put(176, 32, FRAME_DK)                            # its nail
+    # where a second picture used to hang — taken when they left: the unfaded paper, a line of dust
+    # round it, its nail and a broken end of string (round 18: a bare pale box read as nothing)
+    c.rect(168, 38, 184, 52, shade(WALL, 1.1))
+    for (x0_, y0_, x1_, y1_) in ((168, 38, 184, 38), (168, 52, 184, 52), (168, 38, 168, 52), (184, 38, 184, 52)):
+        c.line(x0_, y0_, x1_, y1_, shade(WALL, 0.9))
+    c.put(176, 32, FRAME_DK); c.put(176, 33, shade(FRAME_DK, 1.4))             # its nail
+    c.line(176, 33, 173, 37, FRAME_DK)                                        # the snapped string
 
 
 def dressing_table(c):

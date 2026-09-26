@@ -90,7 +90,8 @@ def decay(c):
     # damp bleeding down the paper from the ceiling, and a gouge in the panelling
     for i in range(6):
         c.ellipse(196 + i * 6, 16 + (i % 2) * 4, 7, 5, DAMP)
-    c.dither(8, 6, 40, 18, DAMP, 0.4, pattern='random')
+    import furn as F
+    F.water_stain(c, 24, 11, 14, 6, DAMP, seed=33)
     c.line(248, 72, 256, 80, PANEL_DK)
     c.line(256, 80, 254, 86, PANEL_DK)
 
@@ -269,7 +270,8 @@ def rug(c):
     c.hline(141, 243, 123, RUG_PAT)
     for x in range(138, 247, 2):                                            # fringe
         c.put(x, 125, RUG_PAT)
-    c.dither(160, 110, 200, 118, hexc('3c1a17', 120), 0.3, pattern='random')   # a dark stain
+    import furn as F
+    F.floor_stain(c, 180, 114, 16, 3.5, hexc('3c1a17'), seed=35)            # a dark stain soaked into the rug
 
 
 def paper_pile(c):

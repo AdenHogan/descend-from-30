@@ -343,7 +343,7 @@ def _d_rest(c):
     F.persp_bed(c, x0, x1, 116, head='left', low=True, sheet=(hexc('c9c0a8'), hexc('a89f88')))
     for x in range(x0 + 6, x1, 12):
         c.put(x, 114, hexc('8a8270'))                                                        # buttons
-    c.dither(150, 105, 180, 109, hexc('8a7a52', 80), 0.5, pattern='random')              # a stain
+    F.floor_stain(c, 165, 107, 12, 2.5, hexc('9a8a5a'), seed=34)                              # a dried stain
     rrect(c, x0 + 3, 101, x0 + 22, 107, PILLOW, 2)
     c.poly([(x0 + 26, 103), (x1 - 12, 102), (x1 + 6, 110), (x1 + 4, 119), (x0 + 30, 114)], hexc('3a5a7a'))
     c.line(x0 + 30, 108, x1 - 4, 108, hexc('2a4460'))

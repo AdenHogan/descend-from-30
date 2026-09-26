@@ -1402,10 +1402,13 @@ means no rendering — UI layout and art still need an in-editor look.
   out toward the lane and carries the front nodes (modules README). Locked by `apartment_window_test._test_module_variants`. **Floors at doorways** (owner round 14 — "depending
   on where you move to the corpse's head is either in one room or the other. The head didn't move, the
   perspective of the floor moved"): between two rooms the floors meet on a FIXED line — each runs to its
-  own module edge, under a static wooden SADDLE (jamb to the floor's front edge). The interior walls are
-  drawn from a clamped camera (`PARALLAX_MAX` 40) and turn about their doorway JAMB (`_pivot_kx`), so the
-  jamb stands on that line whatever the camera does; only the stub behind it and the lintel swing. The
-  old camera-driven wedge moved the join ~100px across floors that don't move. Only the two END walls
+  own module edge, under a static wooden SADDLE (jamb to the floor's front edge). **The doorway between
+  two rooms is STATIC** (owner round 18 — the swinging partition "looks very immersion breaking… keep a
+  static boundary between the rooms that doesn't move"): `module_walls._door_frame` draws it straight on
+  at the join — the wall over the door in section (dark mass, plaster skims), a head casing (`HEAD_Y`
+  245), a timber jamb with a door stop and a plinth block down to the floor at the back of the opening
+  (338), the saddle on from there. No camera term at all. (Rounds 9/14's live / clamped perspective
+  partitions are gone.) Only the two END walls
   keep the real camera (room.gd stops the player at their drawn foot): there `_floor_wedge` runs the
   room's floor on to the wall's base line from `<name>_floor_ext.png`. **Floors are in PERSPECTIVE**
   (round 14 — a checker floor "looks like… standing on glass… the tiles go directly down"): every module
@@ -1458,6 +1461,12 @@ means no rendering — UI layout and art still need an in-editor look.
   `newspaper` / `missing_poster` / `text_spray`; the red-string "conspiracy boards" are gone); a
   logic + clipping pass over all 30 (kitchen D's corner, newspaper bundles, a round waste basket, the
   leaning mattress, balloons tied to chairs…) — list in the modules README "ROUND 17".
+  **Round 18** (bathrooms brought forward, a static doorway): stand-at fixtures (toilet, basin, bath,
+  washing machine, vanity) reach 16–20 px out as real solids (`tools/art/solid3d.py` + bathroom.py's
+  `*3d` helpers) with FRONT nodes — bathrooms B/C/D have no step-up, A (shower) and E (linen cupboard)
+  one; tall storage stays the step-up (rule in docs/blueprints/README.md). Curtains hang under a visible
+  rail and INTO the tub (`shower_rail` / `curtain_in_tub` / `bath_front`); the room-to-room doorway is a
+  static door frame (`module_walls._door_frame`).
 - CORRIDOR ART (owner round 10, `tools/art/corridor.py`): floors 1-29 get a painted overlay over
   the old tile look — `building_floors._apply_corridor_art` adds a `CorridorArt` Sprite2D (115,243,
   1120x192 = the tilemap's used band) right ABOVE the TileMapLayer, so doors / stairs / elevator /

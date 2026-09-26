@@ -103,7 +103,8 @@ def b_wall(c):
         c.hline(0, 150, y, hexc('c8c2b0'))
     for x in range(0, 151, 6):
         c.vline(x, 56, 93, hexc('c8c2b0'))
-    c.dither(60, 58, 96, 72, hexc('a89868', 70), 0.3, pattern='random')
+    c.ellipse(78, 64, 14, 6, hexc('c8b890', 70))                                            # grease behind the hob,
+    c.ellipse(80, 66, 8, 3, hexc('b8a478', 70))                                             # soaked into the grout
     for i in range(5):
         c.ellipse(180 + i * 6, 14 + (i % 2) * 3, 7, 5, hexc('8a9a70', 60))
 
@@ -323,7 +324,8 @@ def d_wall(c):
     c.rect(100, 58, 230, 93, hexc('d8d2c2'))                                                 # a white splashback
     for y in range(58, 94, 7):
         c.hline(100, 230, y, hexc('b9b3a4'))
-    c.dither(150, 60, 190, 76, hexc('8a7a4a', 80), 0.35, pattern='random')                  # grease
+    c.ellipse(170, 66, 12, 5, hexc('b8a878', 60))                                           # a grease stain
+    c.ellipse(168, 67, 7, 3, hexc('a8986a', 60))
     for i in range(6):
         c.ellipse(26 + i * 7, 14 + (i % 2) * 4, 9, 5, hexc('6a6a4a', 60))
 
@@ -371,10 +373,19 @@ def _d_run(c):
     base_units(c, 100, 232, 72, (hexc('e6e2d6'), hexc('f0ece2'), hexc('c9c5b8'), hexc('6d6c64')),
                hexc('6a6a66'), hexc('3a3a38'), doors=6, open_door=4)
     a_frame_sink(c, 130, 164, 72)
-    for (x, y, col) in ((134, 66, hexc('e6ddc8')), (140, 64, hexc('5f7896')), (146, 67, hexc('e6ddc8')),
-                        (152, 63, hexc('b0453a')), (158, 66, hexc('e6ddc8'))):
-        c.ellipse(x, y, 4, 2, col)
+    # (round 18: flat coloured ovals read as fish) the washing-up piled in the sink: plates stood on
+    # edge, a saucepan with its handle out, a mug, the tap behind them
     c.rect(148, 58, 150, 66, hexc('9aa3a8'))
+    c.hline(145, 150, 58, hexc('7a8083'))
+    for (x, col) in ((133, hexc('e6ddc8')), (136, hexc('e6ddc8')), (139, hexc('d8cfb4'))):
+        c.ellipse(x, 66, 1.6, 5.5, shade(col, 0.8))
+        c.ellipse(x - 0.4, 66, 1.0, 4.6, col)
+    c.rect(143, 64, 154, 71, hexc('8a9094'))                                                 # the saucepan
+    c.hline(143, 154, 64, hexc('b9c0c2')); c.vline(154, 64, 71, hexc('6a7072'))
+    c.ellipse(148, 64, 5, 1, hexc('4a5052'))
+    c.line(155, 65, 163, 61, hexc('3a3a38')); c.line(155, 66, 163, 62, hexc('2a2a28'))    # its handle
+    c.rect(157, 66, 160, 71, hexc('5f7896')); c.put(161, 68, hexc('5f7896'))                # a mug
+    c.hline(157, 160, 66, hexc('7f98b6'))
     c.box(190, 56, 222, 71, hexc('3a3a3d'), hexc('1c1c1e'))                                 # microwave
     c.rect(193, 59, 212, 68, hexc('22302c'))
     c.rect(214, 59, 220, 68, hexc('26262a'))
@@ -524,9 +535,14 @@ def _e_rest(c):
         c.hline(x + 2, x + 10, 91, shade(col, 1.12))                             # a printed stripe
         for hx in (x + 2, x + 7):                                               # the handles
             c.vline(hx, 84, 87, dk); c.vline(hx + 3, 84, 87, dk); c.hline(hx, hx + 3, 83, dk)
-    for x in range(240, 294, 6):
-        c.rect(x, 116, x + 4, 120, hexc('b9bfc1'))
-        c.hline(x, x + 4, 116, hexc('d8e0e2'))
+    # (round 18: nine tins in a perfect row read as a pattern) cat food tins under the table: a
+    # stack, two by it, one rolled over on its side
+    tin_c, lab = hexc('b9bfc1'), hexc('c9763a')
+    for (x, base) in ((250, 120), (250, 115), (258, 120)):
+        F.tin(c, x, base, 3, 4, tin_c, label=lab, handle=False)
+    F.tin(c, 266, 121, 3, 4, tin_c, label=hexc('4e7aa0'), handle=False)
+    c.rect(272, 117, 279, 120, tin_c); c.rect(274, 117, 277, 120, lab)                       # on its side
+    c.ellipse(279, 118.5, 1.2, 1.8, shade(tin_c, 1.1))
     # a cat bowl by the cooker, a cat nowhere to be seen
     c.ellipse(190, 102, 6, 2, hexc('a8322c'))
     c.ellipse(190, 101, 4, 1, hexc('6a4a2a'))
@@ -534,7 +550,7 @@ def _e_rest(c):
 
 E_ANCHORS = [('anchor_kitchen_paper_stacks', 32, 70, 'bp'), ('anchor_kitchen_toppled_papers', 76, 102, 'bp'),
              ('anchor_kitchen_buried_counter', 150, 80, 'bp'), ('anchor_centre_oven', 214, 88, 'bp'),
-             ('anchor_kitchen_bag_table', 258, 90, ''), ('anchor_kitchen_cat_tins', 262, 118, '')]
+             ('anchor_kitchen_bag_table', 258, 90, ''), ('anchor_kitchen_cat_tins', 254, 116, '')]
 
 
 VARIANTS = {

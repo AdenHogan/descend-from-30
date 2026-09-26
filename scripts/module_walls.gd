@@ -4,20 +4,16 @@ extends Node2D
 # clear hard location… build a boundary wall… so when you move through the door frame to the next
 # module it still looks geometrically accurate rather than inverted").
 #
-# Every module boundary is a wall running from the BACK wall toward the viewer, drawn LIVE in
-# perspective from the camera: the face you see is always the one turned toward the camera, so it
-# flips naturally as you walk through the doorway into the next room — never a painted,
-# one-sided (and therefore half-the-time inverted) wall. Purely visual: no collision.
-#
-#   * Interior boundaries: a partition with a DOORWAY near the front, over the walking lane (the
-#     player walks through it), a wooden jamb + lintel trim, the lintel above the opening.
-#   * The two end walls: solid; the ENTRANCE end gets the same doorway (dark — the corridor beyond).
-#   * Each face wears ITS OWN room's wall: every back-plane row samples that module's art at its
-#     edge column (wallpaper, chair rail, panelling, skirting line up exactly), a touch darker as a
-#     turned surface (ambient form only — the engine lights it). Placeholder modules use their flat
-#     colour. Works for every module and every future variant with no per-art wiring.
-#   * A dark CUT at the wall's front edge (a dollhouse section) keeps it reading as a solid slab
-#     even when you look straight along it.
+# The two END walls run from the BACK wall toward the viewer, drawn LIVE in perspective from the
+# camera (the face turned toward it), so the room reads as a box you can walk out of:
+#   * the ENTRANCE end has the flat's front door (dark — the corridor beyond); the other is solid;
+#   * each face wears ITS OWN room's wall: every back-plane row samples that module's art at its edge
+#     column (wallpaper, chair rail, panelling, skirting line up exactly), a touch darker as a turned
+#     surface (ambient form only — the engine lights it);
+#   * a dark CUT at the front edge (a dollhouse section).
+# Between two rooms the boundary is a STATIC door frame straight on (owner round 18, _door_frame): the
+# wall over the door seen cut, the head casing, a timber jamb with a plinth, a wooden saddle across the
+# floor — it never moves, like the rest of the flat's art. Purely visual: no collision.
 # Positions are the room's LOCAL space (a BalconyPan backdrop sits a floor down; live, local==world).
 
 const TOP := 224.0          # module top (back-plane row 0) — room.gd places modules at y 224
@@ -51,7 +47,7 @@ const MODULE_W := 320.0      # a module's width (room.MODULE_WIDTH)
 const FLOOR_EXT_M := 96.0    # how far past each edge a module's <name>_floor_ext.png runs (tools/art pixlib)
 var boundaries: Array = []     # [{x, left_mod, right_mod, door, outside}]
 var _exts: Dictionary = {}     # module instance id + texture path → its perspective floor export
-var _kx := 0.0                 # a horizontal shift every projected point takes (_pivot_kx)
+var _kx := 0.0                 # a horizontal shift every projected point takes (0 — kept for _p)
 var _cols: Dictionary = {}     # module instance id + side → Array[Color] (ROWS rows)
 
 
@@ -99,23 +95,20 @@ func _column(mod: Node, right_edge: bool) -> Array:
 	return out
 
 
-# How far the camera may sit from an INTERIOR wall, for drawing it (owner round 14 — "depending on
-# where you stand, it makes the floor look like it's growing or shrinking as you move towards another
-# room"): the rooms' art is flat, so a wall in full live perspective swept its face ~100px across a
-# floor that doesn't move with it. Clamped, a wall shows a small face while you're anywhere in a room
-# and only turns as you pass through its doorway. End walls (the front door) keep the real camera —
-# the walk-out follows them.
-const PARALLAX_MAX := 40.0
-
-
-static func _eff_cam(cx: float, xb: float) -> float:
-	return xb + clampf(cx - xb, -PARALLAX_MAX, PARALLAX_MAX)
-
-
-static func _pivot_kx(cx: float, xb: float) -> float:
-	# The shift that pins an interior wall's doorway JAMB (x = xb at the doorway's depth) in place: the
-	# wall then turns about the jamb, which stands on the fixed floor join between the two rooms.
-	return (xb - cx) * (1.0 - _s_for_floor(DOOR_FLOOR))
+# The doorway BETWEEN two rooms is STATIC (owner round 18 — "this wall boundary moving left and right
+# when passing through it, but the floor stays the same and none of the graphics or furniture changes
+# perspective… keep a static boundary between the rooms that doesn't move… more visually clear with
+# where the door frame is"). The rooms' art is flat, so any wall that turns with the camera (round 9's
+# live perspective, round 14's clamped swing) reads as the only thing in the flat that moves. It is now
+# drawn straight on, where the two rooms meet — see _door_frame. Only the two END walls keep the live
+# camera (room.gd stops the player at their drawn foot, and the walk-out goes through the front door).
+const FRAME_HALF := 3.0      # half the door frame's width (px) — the saddle below it is as wide
+const HEAD_Y := 245.0        # the top of the opening (the lintel ~247 clears the tallest enemy at the lane)
+const HEAD_H := 3.0          # the head casing's height
+const PLINTH_H := 7.0        # the plinth block at the foot of the jamb
+const SECTION_COL := Color(0.16, 0.13, 0.11)   # the wall over the door, seen cut (room_shell.SECTION)
+const PLASTER_COL := Color(0.66, 0.61, 0.53)   # its plaster skims (room_shell.PLASTER)
+const TRIM_DK := Color(0.20, 0.14, 0.09)
 
 
 func _cam_x() -> float:
@@ -175,15 +168,14 @@ func _draw() -> void:
 			_threshold(xb)
 	for b in boundaries:
 		var xb: float = b["x"]
-		# An INTERIOR wall is drawn from a clamped camera (_eff_cam) and turns about its DOORWAY JAMB
-		# (_pivot_kx): the jamb stands on the fixed floor join whatever the camera does; the stub behind
-		# it and the lintel over the opening swing. The END walls keep the real camera (room.gd stops
-		# the player at their drawn foot, and the walk-out goes through the front door's face).
 		var interior: bool = b["left"] != null and b["right"] != null
-		var cx: float = _eff_cam(cam, xb) if interior else cam
-		_kx = _pivot_kx(cx, xb) if interior else 0.0
-		# Which face points at the camera: camera LEFT of the wall → the wall's left face, i.e. the
-		# right wall of the LEFT room (and vice versa). Straight on → nothing but the cut shows.
+		if interior:
+			_door_frame(xb, b["door"])
+			continue
+		# An END wall: the real camera. The face that points at it: camera LEFT of the wall → the
+		# wall's left face, i.e. the right wall of the LEFT room (and vice versa).
+		var cx: float = cam
+		_kx = 0.0
 		var cam_left: bool = cx < xb
 		var room = facing_room(b, cx)
 		var face_x: float = xb - HALF_T if cam_left else xb + HALF_T
@@ -192,20 +184,47 @@ func _draw() -> void:
 		var cols: Array = _column(room, cam_left)
 		if b["outside"]:
 			_front_door(cx, xb, face_x, cols, s_door, s_front)
-		elif b["door"]:
-			_face(cx, face_x, 1.0, s_door, 0, ROWS, cols, FACE_SHADE)          # the stub to the back wall
-			_face(cx, face_x, s_door, s_front, 0, DOOR_ROWS, cols, FACE_SHADE) # the lintel
-			# jamb (the stub's front edge) + lintel trim + the lintel's front cut
-			_slab(cx, xb, s_door, DOOR_ROWS, ROWS, TRIM_COL)
-			draw_line(_p(cx, face_x, TOP + DOOR_ROWS, s_door), _p(cx, face_x, SEAM, s_door), TRIM_LT, 1.0)
-			draw_line(_p(cx, face_x, TOP + DOOR_ROWS, s_door), _p(cx, face_x, TOP + DOOR_ROWS, s_front), TRIM_COL, 2.0)
-			_slab(cx, xb, s_front, 0, DOOR_ROWS, CUT_COL)
 		else:
 			_face(cx, face_x, 1.0, s_front, 0, ROWS, cols, FACE_SHADE)
 			_slab(cx, xb, s_front, 0, ROWS, CUT_COL)
 		# the corner where the wall meets the back wall
 		draw_line(_p(cx, face_x, TOP, 1.0), _p(cx, face_x, SEAM, 1.0), Color(0, 0, 0, 0.25), 1.0)
 	_kx = 0.0
+
+
+func _door_frame(xb: float, door: bool) -> void:
+	# The doorway between two rooms, straight on and STATIC (see HEAD_Y): the wall over the door seen
+	# cut (dark section between two plaster skims) from the ceiling down to the head casing; then the
+	# door frame's timber jamb down to the floor at the back of the opening, lit on its left edge, a
+	# stop line down it and a plinth block at its foot; the saddle (_threshold) carries on across the
+	# floor from there. It stands exactly on the join between the two rooms' walls and floors.
+	var l := xb - FRAME_HALF
+	var w := FRAME_HALF * 2.0 + 1.0
+	var foot := DOOR_FLOOR
+	var head := HEAD_Y if door else foot
+	# the wall over the door (all the way down when there's no doorway)
+	draw_rect(Rect2(l, TOP, w, head - TOP), SECTION_COL)
+	draw_rect(Rect2(l, TOP, 1.0, head - TOP), PLASTER_COL)
+	draw_rect(Rect2(l + w - 1.0, TOP, 1.0, head - TOP), PLASTER_COL)
+	draw_rect(Rect2(l + 1.0, TOP, 1.0, head - TOP), Color(0.47, 0.43, 0.37))
+	draw_rect(Rect2(l + w - 2.0, TOP, 1.0, head - TOP), Color(0.47, 0.43, 0.37))
+	if not door:
+		return
+	# the head casing, a touch wider than the jamb
+	draw_rect(Rect2(l - 1.0, head, w + 2.0, HEAD_H), TRIM_COL)
+	draw_rect(Rect2(l - 1.0, head, w + 2.0, 1.0), TRIM_LT)
+	draw_rect(Rect2(l - 1.0, head + HEAD_H - 1.0, w + 2.0, 1.0), TRIM_DK)
+	# the jamb
+	var j0 := head + HEAD_H
+	draw_rect(Rect2(l, j0, w, foot - j0), TRIM_COL)
+	draw_rect(Rect2(l, j0, 1.0, foot - j0), TRIM_LT)
+	draw_rect(Rect2(l + w - 1.0, j0, 1.0, foot - j0), TRIM_DK)
+	draw_rect(Rect2(xb, j0 + 2.0, 1.0, foot - j0 - PLINTH_H - 2.0), TRIM_DK)       # the door stop
+	# the plinth block at its foot
+	draw_rect(Rect2(l - 1.0, foot - PLINTH_H, w + 2.0, PLINTH_H), TRIM_COL)
+	draw_rect(Rect2(l - 1.0, foot - PLINTH_H, w + 2.0, 1.0), TRIM_LT)
+	draw_rect(Rect2(l - 1.0, foot - PLINTH_H, 1.0, PLINTH_H), TRIM_LT)
+	draw_rect(Rect2(l + w, foot - PLINTH_H, 1.0, PLINTH_H), TRIM_DK)
 
 
 func _floor_wedge(cx: float, xb: float, room: Node, room_is_left: bool) -> void:
@@ -233,7 +252,7 @@ func _threshold(xb: float) -> void:
 	var y1 := minf(TOP + float(MOD_ROWS), BAND_BOTTOM)
 	var s0 := _s_for_floor(y0)
 	var s1 := _s_for_floor(y1)
-	var hw := HALF_T + 1.0
+	var hw := FRAME_HALF + 0.5
 	var q := PackedVector2Array([Vector2(xb - hw * s0, y0), Vector2(xb + hw * s0, y0),
 		Vector2(xb + hw * s1, y1), Vector2(xb - hw * s1, y1)])
 	draw_colored_polygon(q, SADDLE_COL)
@@ -252,10 +271,9 @@ func floor_boundary_x(b: Dictionary, cam_x: float, floor_y: float) -> float:
 	return cam_x + (xb - cam_x) * _s_for_floor(floor_y)
 
 
-func jamb_x(xb: float, cam_x: float) -> float:
-	# Where an interior doorway's jamb stands on the floor (its centre, at the doorway's depth).
-	var cx := _eff_cam(cam_x, xb)
-	return cx + (xb - cx) * _s_for_floor(DOOR_FLOOR) + _pivot_kx(cx, xb)
+func jamb_x(xb: float, _cam_x: float) -> float:
+	# Where an interior doorway's jamb stands on the floor: on the join, wherever the camera is.
+	return xb
 
 
 func _floor_ext(mod: Node) -> Texture2D:

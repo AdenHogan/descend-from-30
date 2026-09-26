@@ -68,14 +68,16 @@ draws over it (checked by `apartment_window_test`). Preview: `balcony_runs.png`.
 
 **Floors at a doorway (owner round 14 — "the head didn't move, the perspective of the floor moved")**:
 between two rooms the floors meet on a FIXED line, the module edge, under a static wooden SADDLE; each
-room's floor runs to its own edge. The partition turns about its doorway JAMB (`module_walls._pivot_kx`,
-from a camera clamped to `PARALLAX_MAX` 40px of the wall), so the jamb stands on that line whatever the
-camera does. Only at the two END walls does the room's floor run on to the wall's live base line
+room's floor runs to its own edge. **Round 18: the doorway itself is STATIC** ("this wall boundary moving
+left and right when passing through it… immersion breaking… keep a static boundary"): a door frame drawn
+straight on at the join (`module_walls._door_frame` — the wall over the door in section, a head casing,
+a timber jamb with a stop and a plinth, the saddle on across the floor). Nothing between two rooms moves
+with the camera. Only at the two END walls does the room's floor run on to the wall's live base line
 (`_floor_wedge`, painted from `_floor_ext.png`).
 
-**Module walls (`scripts/module_walls.gd`, built by `room._build_modules`):** the partitions between
-the three modules (with a doorway over the walking lane) and the two end walls (the entrance end
-gets the same doorway, dark beyond) are drawn LIVE in perspective from the camera (horizon y 224, the ceiling),
+**Module walls (`scripts/module_walls.gd`, built by `room._build_modules`):** (round 18: the partitions
+between modules are now the static door frames above; what follows describes the END walls) the two end
+walls (the entrance end gets a doorway, dark beyond) are drawn LIVE in perspective from the camera (horizon y 224, the ceiling),
 so the face you see is always the one turned toward you and flips as you walk through — never a
 painted, half-the-time-inverted wall. Each face samples its OWN module's art at the edge column, so
 wallpaper, rail and skirting continue round the corner for any module or variant with no wiring.
@@ -330,6 +332,33 @@ the floor… too many… the bins are flat on the wall… clipping… more cover
   mattress LEANS (top on the wall, foot on the floor, striped ticking, buttons, its side and top) in
   front of leaning planks, and the flipped table's legs run back toward the wall; dining E's balloons
   are tied to the chair backs; bathroom D's mould is soft blooms (`mould_bloom`) and a pipe weeps rust.
+
+**ROUND 18 — BATHROOMS BROUGHT FORWARD, A STATIC DOORWAY (owner: "the clothes rack is just randomly in
+the foreground… the bathroom scene looks a bit more compact… we shouldn't always be needing to move up
+to a secondary plane to scavenge… the shower curtain looks higher than the top of the curtain rail…
+the bottom of the curtain itself should be going into the bathtub… this wall boundary moving left and
+right… keep a static boundary")**:
+- STAND-AT FIXTURES COME FORWARD (the rule is in docs/blueprints/README.md): every bathroom fixture is a
+  real solid (`tools/art/solid3d.py` — lathe slices for round things, rounded-rectangle slices for a
+  roll-top bath, drawn into a layer and outlined once) reaching 16–20 px out: `toilet3d` (cistern on the
+  wall, the pan and its oval seat coming 20 out), `basin3d` (on a pedestal or iron brackets, placed by
+  its WALL x so the mirror hangs over its tap), `bath3d` (a built-in bath, its front 20 out, the inside
+  seen over the rim), `clawfoot3d` (a free-standing roll-top on claw feet out in the room), `vanity3d`,
+  `washstand3d`, `washing_machine3d`, `laundry_basket3d`. Their nodes are FRONT nodes: bathrooms B, C, D
+  have no step-up at all; A keeps the shower (you step into it), E the linen cupboard.
+- CURTAINS hang from a RAIL you can see (`shower_rail`: a chrome rod over the tub at depth 11, returning
+  to the wall at both ends, a ceiling stay) — the curtain starts just under it, and `curtain_in_tub`
+  hangs it INSIDE the tub; `bath_front` then re-draws the end rims, the front rim and the front face,
+  so the hem goes down behind the front rim. Bath A has no curtain now. Bathroom D's wall pipe (it read
+  as the rail) is gone; mould everywhere is `mould_bloom`, never a rectangle of dither.
+- SITUATIONAL FOREGROUND: D's clothes airer is gone — a laundry basket stands by the machine instead;
+  mats lie flat in front of their baths; the champagne bucket stands by the gold tub.
+- THE DOORWAY BETWEEN TWO ROOMS IS STATIC (`module_walls._door_frame`, see "Floors at a doorway").
+- Also: kitchen D's sink holds washing-up that reads (plates on edge, a saucepan, a mug) instead of
+  coloured ovals; kitchen E's cat food tins are a stack + a couple + one on its side (nine in a row read
+  as a pattern); bedroom A's missing picture has its dust line, nail and snapped string, and its peeling
+  paper shows the plaster under a curling flap. NO RECTANGLES OF DITHER for stains: damp is
+  `furn.water_stain` (filled, irregular, a tide line, a run), spills are `furn.floor_stain`.
 
 **RUN LOOKS, round 14**: the afternoon / night decals were redrawn — damp is a FILLED water stain with
 a tide line, an inner ring and runs weeping down (it was a dotted outline); torn wallpaper is a ragged

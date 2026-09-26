@@ -109,7 +109,8 @@ def decay(c):
     c.line(209, 40, 214, 36, PAPER_MOTIF2)
     for x in (110, 176, 238):
         c.dither(x, 84, x + 6, 92, WAINS_DK, 0.5)
-    c.dither(0, 6, 26, 16, DAMP, 0.5, pattern='random')
+    import furn as F
+    F.water_stain(c, 16, 10, 12, 5, DAMP, seed=31)                          # damp in the corner
 
 
 @persp

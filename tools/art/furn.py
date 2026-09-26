@@ -1098,3 +1098,49 @@ def waste_basket(c, cx, base, r, h, body=hexc('3a3a44'), paper=True):
         for (dx, dy, rr_) in ((-2, -1, 2), (1, -2, 2.5), (3, 0, 1.5)):
             c.ellipse(cx + dx, top + dy, rr_, rr_ * 0.8, hexc('e6e0cc'))
             c.put(cx + dx, top + dy, hexc('b9b09a'))
+
+
+def water_stain(c, cx, cy, rx, ry, col, seed=1, run=True):
+    """A damp stain from the flat above (round 18: rectangles of dither read as noise): a FILLED
+    irregular patch, darkest in the tide line where it dried, a fainter ring inside, a run weeping
+    down from its lowest edge. `col` is the stain's colour (its alpha is ignored)."""
+    import math as _m
+    import random as _r
+    rng = _r.Random(seed)
+    ph = [rng.random() * 6.28 for _ in range(3)]
+    tide = shade(col, 0.75)
+    low = {}
+    for y in range(int(cy - 2 * ry), int(cy + 2 * ry) + 1):
+        for x in range(int(cx - 2 * rx), int(cx + 2 * rx) + 1):
+            ang = _m.atan2((y - cy) / ry, (x - cx) / rx)
+            k = 1.0 + 0.26 * _m.sin(3 * ang + ph[0]) + 0.14 * _m.sin(5 * ang + ph[1]) + 0.07 * _m.sin(9 * ang + ph[2])
+            dd = (((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2) ** 0.5 / k
+            if dd <= 0.84:
+                c.put(x, y, col[:3] + (90 if abs(dd - 0.55) < 0.06 else 46 + int(30 * dd),))
+            elif dd <= 1.0:
+                c.put(x, y, tide[:3] + (120 if dd < 0.94 else 70,))
+            if dd <= 1.0:
+                low[x] = max(low.get(x, -1), y)
+    if run and low:
+        xs = sorted(low)
+        rx_ = xs[len(xs) // 2 + rng.randrange(-len(xs) // 5, len(xs) // 5 + 1)]
+        ln = rng.randrange(6, 14)
+        for j in range(ln):
+            c.put(rx_, low[rx_] + 1 + j, tide[:3] + (int(110 * (1 - j / float(ln))) + 15,))
+
+
+def floor_stain(c, cx, cy, rx, ry, col, seed=1):
+    """A dried spill on a floor or a mattress: a soft flat patch, darker at its dried rim."""
+    import math as _m
+    import random as _r
+    rng = _r.Random(seed)
+    ph = rng.random() * 6.28
+    rim = shade(col, 0.8)
+    for y in range(int(cy - ry) - 1, int(cy + ry) + 2):
+        for x in range(int(cx - rx) - 1, int(cx + rx) + 2):
+            ang = _m.atan2((y - cy) / ry, (x - cx) / rx)
+            dd = (((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2) ** 0.5 / (1 + 0.2 * _m.sin(3 * ang + ph))
+            if dd <= 0.8:
+                c.put(x, y, col[:3] + (70,))
+            elif dd <= 1.0:
+                c.put(x, y, rim[:3] + (110,))

@@ -88,8 +88,10 @@ Apartment PERSPECTIVE + SHELL (`module_walls.gd`, `room_shell.gd`, owner round 9
 "ceilings too low"); back wall top `TOP` 224, wall/floor seam `SEAM` **324**; depth scale
 `s = (floor_y − 224) / 100`, so wall tops stay level on the ceiling and only the floor recedes. The
 FRONT cut plane is floor y **360** (s 1.36); the walking lane (feet 353) is s 1.29. Interior
-doorways start at floor y 338; their LINTEL is back-plane rows 0..17 (`DOOR_ROWS` 18) → **y ≈247 at
-the lane**, clear of the tallest enemy's drawn top (spitter 257, big 260). The FRONT DOOR spans floor
+doorways (round 18: a STATIC frame straight on, `module_walls._door_frame`) — the jamb stands on the
+floor at y **338** (the back of the opening, the saddle runs on from there), the head casing is
+`HEAD_Y` **245..248**, clear of the tallest enemy's drawn top (spitter 257, big 260); the END walls'
+lintel is still back-plane rows 0..17 (`DOOR_ROWS` 18, ≈247 at the lane). The FRONT DOOR spans floor
 y 338..356. The room CAMERA BAND is **215..375** (`room.ROOM_BAND_TOP` 215 == `balcony_pan`'s copy,
 checked): a 9px ceiling slab (215..224, plaster edge at its foot) and 7px of this flat's own floor in
 section (368..375, boards on top) — stacked 160 apart in a balcony pan they make one slab. The

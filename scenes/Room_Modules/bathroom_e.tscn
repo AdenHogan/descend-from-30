@@ -25,26 +25,22 @@ texture = ExtResource("1_art")
 centered = false
 
 [node name="anchor_bathroom_glass_shelf" type="Marker2D" parent="."]
-position = Vector2(23, 47)
-metadata/back_plane = true
+position = Vector2(37, 49)
 
 [node name="anchor_wall_sink" type="Marker2D" parent="."]
-position = Vector2(28, 74)
-metadata/back_plane = true
+position = Vector2(36, 76)
 
 [node name="anchor_centre_toilet" type="Marker2D" parent="."]
-position = Vector2(70, 82)
-metadata/back_plane = true
+position = Vector2(82, 92)
 
 [node name="anchor_bathroom_pink_tub" type="Marker2D" parent="."]
-position = Vector2(148, 84)
+position = Vector2(160, 92)
 
 [node name="anchor_bathroom_hamper" type="Marker2D" parent="."]
-position = Vector2(214, 95)
-metadata/back_plane = true
+position = Vector2(222, 93)
 
 [node name="anchor_bathroom_pink_taps" type="Marker2D" parent="."]
-position = Vector2(117, 78)
+position = Vector2(130, 76)
 
 [node name="anchor_bathroom_frosted_cabinet" type="Marker2D" parent="."]
 position = Vector2(292, 87)

@@ -101,6 +101,18 @@ furniture they belong to (a chest, a desk, a bedside table) — never loose on t
   across the coffee table from it. Sofas are always drawn straight, full width. Turned armchairs and
   office chairs are built in 3D (`tools/art/chair3d.py`) so the angle is right.
 - **Nothing that stands behind a front piece carries a node** — the player couldn't step up to it.
+- **Stand-at fixtures come forward; tall storage stays a step-up** (owner round 18 — "the bathroom
+  scene looks a bit more compact… these items a little more closer to the player, meaning we
+  shouldn't always be needing to move up to a secondary plane to scavenge… some rooms have moving up
+  to another scavenge plane, and some don't"). Things you use standing IN FRONT of them — a toilet, a
+  basin, a bath, a washing machine, a vanity — reach 16–20 px out from the wall (their bases land in
+  the 114–122 band) and are drawn as real solids (`tools/art/solid3d.py`); their nodes are FRONT
+  nodes. Tall things you reach UP into against the wall — bookcases, wardrobes, dressers, a linen
+  cupboard, a shower cubicle — stay set back, and their nodes are the step-up ones. So a room may have
+  no step-up at all (bathrooms B, C, D) or one (bathroom A's shower, E's linen cupboard).
+- **Situational foreground**: a thing out in the room must belong there — the bath on its feet, a
+  champagne bucket BY the tub, a laundry basket BY the machine, a mat IN FRONT of the bath. Never a
+  random piece standing alone mid-floor (the bathroom's clothes airer was removed for that).
 - **Set-back pieces have depth** (owner round 14): draw the FRONT face; the pipeline
   (`pixlib.setback`) brings it forward a few px and extrudes a top and a side toward the module's
   centre, so leave ~5 px between a set-back piece and a window box on the side facing the middle.
