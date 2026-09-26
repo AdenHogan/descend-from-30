@@ -25,35 +25,6 @@ BLOOD = hexc('4a1d1b', 150)
 CLOTH = [hexc('8a4a42'), hexc('4e5d70'), hexc('c1b69c'), hexc('5f6b4e'), hexc('7d6a8a'), hexc('2e2e33')]
 
 
-def mattress_top(c, x0, x1, top, front, duvet, duvet_dk, duvet_lt, pillow_at_right=False, hem=None):
-    """A mattress seen from a little above: the top (top..front), a duvet over most of it that
-    drapes over the front edge, a pillow at one end."""
-    c.rect(x0, top, x1, front, SHEET)
-    c.hline(x0, x1, top, SHEET_DK)
-    c.rect(x0, front + 1, x1, front + 6, SHEET_DK)
-    px0, px1 = (x1 - 24, x1 - 3) if pillow_at_right else (x0 + 3, x0 + 24)
-    rrect(c, px0, top - 1, px1, top + 8, PILLOW, 3)
-    c.hline(px0 + 2, px1 - 2, top + 8, PILLOW_DK)
-    c.rect(px0 + 7, top + 2, px1 - 7, top + 4, PILLOW_DK)
-    da, db = (x0, x1 - 27) if pillow_at_right else (x0 + 27, x1)
-    c.rect(da, top, db, front, duvet)
-    c.hline(da, db, top, duvet_dk)
-    fold = db - 9 if pillow_at_right else da
-    c.poly([(fold, top), (fold + 9, top), (fold + 9 + (3 if not pillow_at_right else -3), front), (fold, front)], shade(duvet_lt, 1.05))
-    hem = hem or [front + 8, front + 9, front + 9, front + 10, front + 9, front + 8]
-    step = (db - da + 1) / len(hem)
-    for k, hy in enumerate(hem):
-        a = da + int(k * step)
-        b = da + int((k + 1) * step) - 1
-        c.rect(a, front + 1, b, hy, duvet_dk)
-        c.hline(a, b, hy, shade(duvet_dk, 0.8))
-    c.hline(da, db, front, duvet)
-    for (rx, ry, ln) in ((da + 14, top + 4, 12), (da + 36, top + 7, 16), (da + 58, top + 3, 10)):
-        if rx + ln < db:
-            c.hline(rx, rx + ln, ry, duvet_lt)
-            c.hline(rx + 2, rx + ln + 1, ry + 1, shade(duvet, 0.88))
-
-
 # ============================================================================================
 # B — teenager's room
 # ============================================================================================
@@ -131,17 +102,10 @@ def b_furniture(c):
     F.moved(c, _beanbag, -12, -19)
     # the single bed on the RIGHT: headboard at the right end (kept clear of the crate's back-plane
     # spot in the corner)
-    x0, x1 = 160, 280
-    c.shadow((x0 + x1) // 2, 116, (x1 - x0) // 2 + 3, 3, 110)
-    c.box(x1 - 6, 70, x1 + 2, 114, F.PINE[0], F.PINE[3])                                   # headboard
-    c.vline(x1 - 5, 71, 113, F.PINE[1])
-    c.rect(x0, 104, x1 - 6, 109, F.PINE[0])
-    c.hline(x0, x1 - 6, 104, F.PINE[1])
-    c.hline(x0, x1 - 6, 109, F.PINE[3])
-    for lx in (x0 + 2, x1 - 10):
-        c.rect(lx, 110, lx + 2, 114, F.PINE[3])
+    x0, x1 = 160, 282
     duvet = hexc('2f3a63')
-    mattress_top(c, x0, x1 - 7, 86, 97, duvet, hexc('252e50'), hexc('3f4c7a'), pillow_at_right=True)
+    F.persp_bed(c, x0, x1, 114, head='right', head_top=70, foot_top=84,
+                board=(F.PINE[0], F.PINE[1], F.PINE[3]), duvet=(duvet, hexc('252e50'), hexc('3f4c7a')))
     for (sx, sy) in ((170, 90), (184, 94), (198, 89), (212, 95), (226, 91), (178, 101), (206, 103)):
         c.put(sx, sy, hexc('d9c24a'))                                                       # stars
     c.box(200, 108, 220, 113, hexc('d9d0bc'), hexc('8a8270'))                               # a shoebox under it
@@ -197,30 +161,15 @@ def c_floor(c):
 
 def iron_bed(c, x0, x1, base):
     iron, knob = hexc('2e2c2a'), F.BRASS
-    c.shadow((x0 + x1) // 2, base + 1, (x1 - x0) // 2 + 4, 3, 110)
-    # head (left, tall) + foot (right, lower) frames: posts, rails, spindles
-    for (fx, top) in ((x0, 70), (x1 - 3, 80)):
-        c.rect(fx, top, fx + 2, base, iron)
-        c.ellipse(fx + 1, top - 1, 2, 2, knob)
-    c.hline(x0, x0 + 14, 74, iron)
-    c.hline(x0, x0 + 14, 84, iron)
-    for sx in range(x0 + 4, x0 + 14, 3):
-        c.vline(sx, 74, 84, iron)
-    c.vline(x0 + 14, 72, base, iron)
-    c.ellipse(x0 + 14, 71, 1, 1, knob)
-    c.hline(x1 - 14, x1, 84, iron)
-    for sx in range(x1 - 12, x1, 3):
-        c.vline(sx, 84, 92, iron)
-    c.vline(x1 - 14, 82, base, iron)
-    c.ellipse(x1 - 14, 81, 1, 1, knob)
-    # the mattress + a patchwork quilt
-    mattress_top(c, x0 + 3, x1 - 15, 88, 98, hexc('8a6a5a'), hexc('6e5446'), hexc('a0806e'))
+    # an iron bedstead in perspective (owner round 16): posts, rails and spindles running back to the
+    # wall at both ends, a mattress + a patchwork quilt
+    g = F.persp_bed(c, x0, x1, base, head='left', head_top=70, foot_top=80, board=(iron, shade(iron, 1.3), iron),
+                    iron=True, knob=knob, duvet=(hexc('8a6a5a'), hexc('6e5446'), hexc('a0806e')), rail=True)
     for (qx, qy, col) in ((142, 90, hexc('a0505a')), (164, 93, hexc('5e6f58')), (186, 90, hexc('c9a06a')),
                           (152, 95, hexc('5e6f78')), (176, 96, hexc('a0505a')), (198, 94, hexc('5e6f58'))):
         c.rect(qx, qy, qx + 7, qy + 2, col)
-    c.rect(x0 + 3, 104, x1 - 15, 107, iron)                                                # side rail
-    c.ellipse(118, 92, 3, 1, BLOOD)
-    c.line(116, 96, 117, 104, BLOOD)
+    c.ellipse(120, 92, 3, 1, BLOOD)
+    c.line(118, 96, 119, 104, BLOOD)
 
 
 def drip_stand(c, x, base):
@@ -390,13 +339,9 @@ def _d_rest(c):
     F.moved(c, _backpack, 20, -5)
     # the mattress on the floor, a sleeping bag half off it
     x0, x1 = 100, 204
-    c.shadow((x0 + x1) // 2, 117, (x1 - x0) // 2 + 3, 2, 110)
-    c.rect(x0, 104, x1, 110, hexc('c9c0a8'))
-    c.hline(x0, x1, 104, hexc('a89f88'))
-    c.rect(x0, 111, x1, 116, hexc('a89f88'))
-    c.hline(x0, x1, 116, hexc('6a6252'))
+    F.persp_bed(c, x0, x1, 116, head='left', low=True, sheet=(hexc('c9c0a8'), hexc('a89f88')))
     for x in range(x0 + 6, x1, 12):
-        c.put(x, 113, hexc('8a8270'))
+        c.put(x, 114, hexc('8a8270'))                                                        # buttons
     c.dither(150, 105, 180, 109, hexc('8a7a52', 80), 0.5, pattern='random')              # a stain
     rrect(c, x0 + 3, 101, x0 + 22, 107, PILLOW, 2)
     c.poly([(x0 + 26, 103), (x1 - 12, 102), (x1 + 6, 110), (x1 + 4, 119), (x0 + 30, 114)], hexc('3a5a7a'))
@@ -532,14 +477,8 @@ def _e_rest(c):
     F.moved(c, _horse, 0, -4)
     # a small bed with a teddy, pushed against the wall
     x0, x1 = 118, 196
-    c.shadow((x0 + x1) // 2, 116, (x1 - x0) // 2 + 3, 3, 110)
-    c.box(x0, 76, x0 + 6, 114, hexc('e6e0cc'), hexc('8a8270'))                               # white headboard
-    c.box(x1 - 5, 84, x1, 114, hexc('e6e0cc'), hexc('8a8270'))
-    c.rect(x0 + 6, 104, x1 - 5, 108, hexc('e6e0cc'))
-    c.hline(x0 + 6, x1 - 5, 108, hexc('8a8270'))
-    for lx in (x0 + 8, x1 - 9):
-        c.rect(lx, 109, lx + 2, 114, hexc('8a8270'))
-    mattress_top(c, x0 + 6, x1 - 6, 88, 97, hexc('d98aa0'), hexc('b86a80'), hexc('e8a8b8'))
+    F.persp_bed(c, x0, x1, 114, head='left', head_top=76, foot_top=84,
+                board=(hexc('e6e0cc'), hexc('f4f0e4'), hexc('8a8270')), duvet=(hexc('d98aa0'), hexc('b86a80'), hexc('e8a8b8')))
     c.ellipse(134, 86, 5, 5, hexc('9a6a3a')); c.ellipse(130, 81, 2, 2, hexc('9a6a3a'))       # the teddy
     c.ellipse(138, 81, 2, 2, hexc('9a6a3a')); c.put(133, 85, hexc('1e1a16')); c.put(136, 85, hexc('1e1a16'))
     c.ellipse(134, 93, 4, 3, hexc('9a6a3a'))

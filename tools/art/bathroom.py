@@ -327,6 +327,26 @@ def a_floor(c):
     mosaic_floor(c, A_MOS_A, A_MOS_B, A_MOS_G)
 
 
+def hung_towel(c, x0, x1, top, bot, col, back_drop=3):
+    """A towel folded over a bar (owner round 16: flat towels read as stickers): the rounded fold over
+    the bar lit on top, the front half hanging with a soft crease, the back half hanging a little
+    lower behind it on one side, a woven band near the hem and a thin shadow down the far edge."""
+    lt, dk = shade(col, 1.14), shade(col, 0.8)
+    c.rect(x1 - 2, top + 2, x1, bot + back_drop, dk)                       # the back half, lower
+    c.rect(x0, top, x1 - 1, bot, col)
+    c.hline(x0 + 1, x1 - 2, top, lt)                                        # the fold over the bar
+    c.hline(x0, x1 - 1, top + 1, shade(col, 1.06))
+    c.hline(x0, x1 - 1, top + 2, dk)                                        # its shadow under the fold
+    c.vline(x0, top + 1, bot, lt)
+    c.vline(x1 - 1, top + 3, bot, dk)
+    cx_ = (x0 + x1) // 2
+    c.line(cx_, top + 4, cx_ - 1, bot - 3, shade(col, 0.9))                 # a soft crease
+    c.hline(x0, x1 - 1, bot - 3, shade(col, 0.86))                          # the woven band
+    c.hline(x0, x1 - 1, bot - 2, shade(col, 1.08))
+    for x in range(x0, x1, 2):                                             # the fringe
+        c.put(x, bot + 1, dk)
+
+
 def towel_rail(c, x0, x1, top, bar=CHROME, bar_dk=CHROME_DK, towels=(0, 2)):
     """A heated towel rail on the wall (under the R window box) with towels hung over it."""
     c.vline(x0, top, 97, bar_dk)
@@ -335,13 +355,7 @@ def towel_rail(c, x0, x1, top, bar=CHROME, bar_dk=CHROME_DK, towels=(0, 2)):
         c.hline(x0, x1, y, bar)
     for i, ti in enumerate(towels):
         tx0 = x0 + 3 + i * ((x1 - x0) // 2)
-        col = TOWELS[ti]
-        c.rect(tx0, top + 1, tx0 + 11, top + 22 - i * 4, col)
-        c.hline(tx0, tx0 + 11, top + 1, shade(col, 1.15))
-        c.vline(tx0 + 11, top + 1, top + 22 - i * 4, shade(col, 0.8))
-        for y in range(top + 20 - i * 4, top + 23 - i * 4):          # fringe
-            for x in range(tx0, tx0 + 12, 2):
-                c.put(x, y, shade(col, 0.85))
+        hung_towel(c, tx0, tx0 + 11, top + 1, top + 21 - i * 4, TOWELS[ti])
 
 
 def wicker_basket(c, x0, x1, top, base):
@@ -366,17 +380,16 @@ def a_build(c):
     pedestal_sink(c, 27, 70)
     c.ellipse(34, 73, 2, 1, BLOOD)
     toilet(c, 70)
-    c.rect(86, 84, 90, 88, hexc('ece6d6'))                            # the toilet roll on its holder
+    toilet_roll(c, 84, 82)                                              # the toilet roll on its holder
     # the curtain on a wall rail over the bath, bunched and torn at the left end
     x0, x1, rim = 108, 180, 80
     c.hline(x0 - 2, x1 + 2, 22, CHROME_DK)
     for rx in range(x0, x1 + 1, 6):
         c.put(rx, 23, CHROME)
-    cur, cur_dk = hexc('7fa3a0'), hexc('5f817e')
-    c.poly([(x0 - 1, 24), (x0 + 12, 24), (x0 + 10, rim - 4), (x0 - 1, rim - 2)], cur)
-    for fx in (x0 + 2, x0 + 5, x0 + 8):
-        c.line(fx, 25, fx - 1, rim - 4, cur_dk)
-    c.poly([(x0 + 12, 24), (x0 + 18, 24), (x0 + 15, 40), (x0 + 12, 44)], cur_dk)
+    cur = hexc('7fa3a0')
+    pleated_curtain(c, x0 - 1, x0 + 13, 24, rim - 3, cur, period=3)          # bunched at the left end
+    pleated_curtain(c, x0 + 14, x0 + 18, 24, 38, shade(cur, 0.9), period=4, rings=False, wave=0.5)
+    c.line(x0 + 14, 38, x0 + 18, 33, shade(cur, 0.7))                        # its torn edge
     # the taps: a pipe down the wall to a gooseneck over the right end + a hand shower
     c.rect(x1 - 14, 58, x1 - 13, rim - 4, CHROME_DK)
     c.hline(x1 - 20, x1 - 7, 64, CHROME)
@@ -510,16 +523,88 @@ def panel_bath(c, x0, x1, rim):
     c.rect(tx + 2, 30, tx + 7, 32, CHROME)
 
 
-def mop_bucket(c, x0, base):
-    c.shadow(x0 + 9, base, 11, 2, 110)
-    c.poly([(x0, base - 13), (x0 + 18, base - 13), (x0 + 16, base), (x0 + 2, base)], hexc('c0453a'))
-    c.hline(x0, x0 + 18, base - 13, hexc('8a2e26'))
-    c.rect(x0 + 2, base - 12, x0 + 16, base - 11, hexc('5a6a5a'))       # grey water
-    c.line(x0 + 1, base - 13, x0 + 9, base - 19, hexc('8a8a86'))        # the handle
-    c.line(x0 + 9, base - 19, x0 + 17, base - 13, hexc('8a8a86'))
-    c.line(x0 + 12, base - 12, x0 + 22, base - 52, hexc('c9b48a'))      # the mop, leant up
-    c.poly([(x0 + 7, base - 14), (x0 + 16, base - 14), (x0 + 15, base - 9), (x0 + 8, base - 9)], hexc('cfc5a6'))
+def pleated_curtain(c, x0, x1, top, bot, col, period=6, rings=True, wave=1.5):
+    """A curtain hanging from a rail in soft vertical FOLDS (owner round 16: the flat panels "need
+    fixing"): each fold lit on its crest and shadowed in its trough, the top scalloped between the
+    rings, the hem swinging a little, a darker hem band. A tight `period` = a bunched-up curtain."""
+    import math as _m
+    for x in range(x0, x1 + 1):
+        ph = ((x - x0) % period) / float(period)
+        f = 0.80 + 0.30 * (0.5 + 0.5 * _m.cos(2 * _m.pi * ph))
+        t = top + (1 if 0.3 < ph < 0.7 else 0)
+        b = bot + int(round(wave * _m.sin(2 * _m.pi * (x - x0) / (period * 2.3))))
+        c.vline(x, t, b, shade(col, f))
+        c.vline(x, b - 2, b, shade(col, f * 0.86))
+        c.put(x, b, shade(col, f * 0.7))
+    if rings:
+        for x in range(x0, x1 + 1, period):
+            c.put(x, top - 1, CHROME)
+            c.put(x, top, CHROME_DK)
 
+
+def toilet_roll(c, x, y, paper=hexc('ece6d6')):
+    """A roll on a wall holder, seen from the front: the chrome arm, the roll's end (the card tube
+    showing), the paper's curve and a sheet hanging down."""
+    c.hline(x - 1, x + 7, y - 1, CHROME_DK)                                      # the arm
+    c.put(x - 1, y, CHROME_DK)
+    rrect(c, x, y, x + 7, y + 5, shade(paper, 0.78), 2)
+    rrect(c, x, y, x + 6, y + 4, paper, 2)
+    c.hline(x + 1, x + 5, y, shade(paper, 1.05))
+    c.ellipse(x + 6, y + 2, 1.5, 2.4, shade(paper, 0.9))                        # the end, facing the room
+    c.put(x + 6, y + 2, hexc('9a7a52'))                                         # the card tube
+    c.rect(x + 1, y + 5, x + 4, y + 8, paper)                                   # a sheet hanging down
+    c.hline(x + 1, x + 4, y + 8, shade(paper, 0.8))
+
+
+def standing_rolls(c, x, base, n=3, paper=hexc('d8d2c2')):
+    """Spare rolls stacked on the floor against the wall: a pyramid of short cylinders from above."""
+    spots = [(0, 0), (8, 0), (4, -6)][:n]
+    for (dx, dh) in spots:
+        cx_, bt = x + dx + 3, base + dh
+        c.rect(cx_ - 3, bt - 6, cx_ + 3, bt, paper)
+        c.vline(cx_ + 3, bt - 6, bt, shade(paper, 0.8))
+        c.hline(cx_ - 3, cx_ + 3, bt, shade(paper, 0.7))
+        c.ellipse(cx_, bt - 6, 3.4, 1.4, shade(paper, 1.08))
+        c.put(cx_, bt - 6, hexc('9a7a52'))
+
+
+def mop_bucket(c, x0, base):
+    """A round red mop bucket standing a little out from the wall (owner round 16: the flat one
+    "still looks like a sticker"): we look down into it — the rim, grey water inside, the mop's head
+    sunk in it and its handle leant back against the wall, the wire handle, a wringer on one side."""
+    red, red_dk, red_lt, red_out = hexc('c0453a'), hexc('8a2e26'), hexc('d8625a'), hexc('5a1c16')
+    cx = _wall_x(x0 + 9, 6)
+    foot = pp(cx, 100, 6)
+    c.shadow(foot[0], foot[1] + 1, 11, 2, 110)
+    # the handle of the mop, leant back against the wall (drawn first: the bucket's rim is in front)
+    top_ = _ipt(pp(cx + 12, 48, 0))
+    c.line(top_[0], top_[1], _ipt(pp(cx + 2, 88, 6))[0], _ipt(pp(cx + 2, 88, 6))[1], hexc('c9b48a'))
+    c.line(top_[0] + 1, top_[1], _ipt(pp(cx + 3, 88, 6))[0], _ipt(pp(cx + 3, 88, 6))[1], hexc('a8946a'))
+    # the tapered body, darker toward the side away from the light
+    b0, b1 = _ipt(pp(cx - 9, 88, 9)), _ipt(pp(cx + 9, 88, 9))
+    f0, f1 = _ipt(pp(cx - 7, 100, 8)), _ipt(pp(cx + 7, 100, 8))
+    body = [b0, b1, f1, f0]
+    c.poly(body, red)
+    for k in range(3):
+        c.line(b1[0] - 1 - k, b1[1] + 1, f1[0] - 1 - k, f1[1], red_dk if k < 2 else shade(red, 0.9))
+    c.line(b0[0] + 1, b0[1] + 1, f0[0] + 1, f0[1] - 1, red_lt)
+    c.line(*b0, *f0, red_out)
+    c.line(*b1, *f1, red_out)
+    c.hline(f0[0], f1[0], f1[1], red_out)
+    c.hline(b0[0] + 1, b1[0] - 1, b0[1] + 4, red_dk)                  # a moulded ring
+    # the rim + the water from above, the mop head sunk in it
+    pellipse(c, cx, 88, 1, 11, 10, red_out)
+    pellipse(c, cx, 88, 2, 10, 9, red_lt)
+    wx, wy, wrx, wry = pellipse(c, cx, 88, 3, 9, 7, hexc('5a6a5a'))
+    c.hline(int(wx - wrx + 2), int(wx + 1), int(round(wy - wry)) + 1, hexc('7a8a78'))   # a glint on the water
+    mh = _ipt(pp(cx + 2, 88, 6))
+    c.poly([(mh[0] - 4, mh[1] - 1), (mh[0] + 4, mh[1] - 1), (mh[0] + 5, mh[1] + 1), (mh[0] - 5, mh[1] + 1)], hexc('cfc5a6'))
+    for k in (-3, -1, 1, 3):
+        c.put(mh[0] + k, mh[1] + 1, hexc('b0a684'))
+    # the wire handle, lying back against the rim
+    h0, h1 = _ipt(pp(cx - 9, 88, 3)), _ipt(pp(cx + 9, 88, 3))
+    c.line(h0[0], h0[1], (h0[0] + h1[0]) // 2, h0[1] - 5, hexc('8a8a86'))
+    c.line((h0[0] + h1[0]) // 2, h0[1] - 5, h1[0], h1[1], hexc('8a8a86'))
 
 def b_build(c):
     b_wall(c)
@@ -533,7 +618,7 @@ def b_build(c):
     c.rect(18, 51, 21, 55, hexc('e8a0b0')); c.rect(26, 52, 28, 55, hexc('7ab0c8'))
     setback(c, lambda l: vanity_unit(l, 8, 46, 72), depth=4, top=69, x_range=(7, 47), rake=1.0)   # with depth (round 14)
     toilet(c, 70, porc=AVO, out=AVO_OUT, lid_up=True, seat=hexc('d9cfa8'))
-    c.rect(86, 80, 91, 86, hexc('ece6d6'))                               # a roll on the cistern's side
+    toilet_roll(c, 85, 78)                                               # a roll on its holder by the cistern
     mop_bucket(c, 94, 100)                                             # by the toilet, against the wall
     # a shaggy bath mat in front of the bath, rucked up
     c.poly([(176, 115), (224, 115), (228, 122), (172, 122)], hexc('d9a24a'))
@@ -698,8 +783,7 @@ def c_build(c):
     c.rect(238, 67, 239, 99, GOLD_DK)
     c.hline(232, 245, 99, GOLD_DK)
     c.hline(232, 245, 67, GOLD)  # (the rail tops out under the R window box)
-    c.rect(233, 68, 244, 88, hexc('7a1f2a'))
-    c.hline(233, 244, 68, hexc('9a3a44'))
+    hung_towel(c, 233, 245, 68, 88, hexc('7a1f2a'))
     return c
 
 
@@ -769,21 +853,15 @@ def curtained_tub(c, x0, x1, rim):
         c.line(a_[0], a_[1], b_[0], b_[1], CHROME_DK)
     left = _ipt(pp(wx0 + 12, 30, d))[0]
     c.hline(left - 2, fr[0] + 2, rt, CHROME_DK)
-    for x in range(left, fr[0] + 1):                                     # the curtain, hanging in folds
-        bot = fbl[1] - 2 + (1 if (x // 4) % 2 else 0)
-        c.vline(x, rt + 1, bot, cur)
-        if (x - left) % 7 == 0:
-            c.vline(x, rt + 1, bot, shade(cur, 0.82))
-        if (x - left) % 7 == 3:
-            c.vline(x, rt + 1, bot, shade(cur, 1.08))
-    for x in range(left, fr[0] + 1, 6):                                  # rings
-        c.put(x, rt + 1, CHROME)
-    c.dither(left, fbl[1] - 20, fr[0], fbl[1] - 3, hexc('7a7a4a', 90), 0.4, pattern='random')   # grime at the hem
+    hem = fl[1] + 1                                                      # it hangs INTO the tub: the panel shows
+    pleated_curtain(c, left, fr[0], rt + 1, hem, cur, period=7)
+    c.dither(left, hem - 14, fr[0], hem - 3, hexc('7a7a4a', 90), 0.4, pattern='random')   # grime at the hem
     for (fx, fy) in ((left + 18, rt + 14), (left + 38, rt + 10), (left + 28, rt + 28)):     # ducks printed on it
         c.rect(fx, fy, fx + 4, fy + 3, hexc('d9b43a'))
         c.put(fx + 5, fy + 1, hexc('c06a2a'))
-    c.poly([(left, rt + 1), (left + 4, rt + 1), (left + 10, fbl[1] - 2), (left, fbl[1] - 4)], shade(cur, 0.9))
-    c.line(left, rt + 1, left, fbl[1] - 4, shade(cur, 0.7))
+    # one corner pulled aside by a hand: a dark gap into the tub, the curtain gathered back
+    c.poly([(left, rt + 2), (left + 5, rt + 2), (left + 9, hem), (left, hem)], hexc('1c1a16'))
+    pleated_curtain(c, left - 3, left + 1, rt + 1, hem - 2, shade(cur, 0.92), period=2, rings=False, wave=0.5)
     c.line(left + 12, rt + 40, left + 18, rt + 58, BLOOD)                # a smear down the plastic
     c.line(left + 14, rt + 40, left + 19, rt + 54, BLOOD)
 
@@ -797,14 +875,44 @@ def washing_machine(c, x0, top):
     c.put(x1 - 5, top + 3, hexc('c0453a'))
     c.ellipse(x0 + 16, top + 18, 10, 10, hexc('6d6c64'))
     c.ellipse(x0 + 16, top + 18, 8, 8, hexc('2a2e30'))
-    # its door hanging open, a tangle of clothes dragged out onto the floor
+    # its door hanging open on its hinge
     c.ellipse(x0 - 4, top + 18, 5, 9, hexc('9aa6ac'))
     c.ellipse(x0 - 4, top + 18, 3, 7, GLASS)
-    c.poly([(x0 + 12, top + 20), (x0 + 20, top + 19), (x0 + 18, top + 25), (x0 + 12, top + 26)], TOWELS[0])
-    c.poly([(x0 + 13, top + 25), (x0 + 18, top + 25), (x0 + 12, 100), (x0 + 4, 100)], TOWELS[0])
-    c.line(x0 + 15, top + 26, x0 + 8, 99, shade(TOWELS[0], 0.8))
-    c.poly([(x0 - 6, 99), (x0 + 6, 97), (x0 + 10, 102), (x0 - 4, 104)], TOWELS[1])
-    c.line(x0 - 4, 101, x0 + 8, 100, shade(TOWELS[1], 0.8))
+
+
+def machine_laundry(c, x0, top, dy):
+    """The wash dragged half out of the machine (owner round 16: the old blue strip "looks odd"),
+    drawn in FRONT of the machine after its set-back (dy = how far it came forward): a shirt bunched
+    in the bottom of the drum, one sleeve spilling over the lip and down the front, the rest of the
+    load in a damp heap on the floor with a sock."""
+    cx, cy = x0 + 16, top + 18 + dy
+    shirt, shirt_dk, shirt_lt = hexc('5e7a9a'), hexc('445a74'), hexc('7e98b6')
+    # bunched in the drum's lower half
+    c.poly([(cx - 7, cy + 1), (cx - 3, cy - 1), (cx + 2, cy), (cx + 7, cy + 1), (cx + 6, cy + 6), (cx - 6, cy + 6)], shirt)
+    c.line(cx - 5, cy, cx - 1, cy - 1, shirt_lt)
+    c.line(cx - 2, cy + 3, cx + 4, cy + 2, shirt_dk)
+    # one sleeve flopped over the lip of the door opening, hanging a little way down the front
+    for k in range(4):
+        c.line(cx - 3 + k, cy + 6, cx - 4 + k, cy + 12, shirt if k not in (0, 3) else (shirt_lt if k == 0 else shirt_dk))
+    c.rect(cx - 4, cy + 12, cx - 1, cy + 13, shirt_dk)                  # its cuff
+    # the rest of the load dragged out onto the floor in front: a heap — a red towel, a grey
+    # T-shirt, jeans — lumpy, folded over itself, with a sock that got away
+    base = 99 + dy
+    fy = base + 4
+    c.shadow(cx - 4, fy + 3, 18, 3, 100)
+    towel, towel_dk = TOWELS[1], shade(TOWELS[1], 0.78)
+    jeans, jeans_dk = hexc('46607e'), hexc('33475e')
+    c.poly([(cx - 22, fy + 3), (cx - 19, fy - 2), (cx - 11, fy - 4), (cx - 5, fy - 3), (cx - 3, fy + 1), (cx - 8, fy + 4), (cx - 18, fy + 5)], towel)
+    c.line(cx - 19, fy - 1, cx - 11, fy - 3, shade(towel, 1.12))
+    c.line(cx - 16, fy + 2, cx - 7, fy + 1, towel_dk)
+    c.poly([(cx - 8, fy + 1), (cx - 4, fy - 5), (cx + 3, fy - 6), (cx + 8, fy - 3), (cx + 9, fy + 2), (cx + 2, fy + 4), (cx - 6, fy + 4)], jeans)
+    c.line(cx - 4, fy - 4, cx + 3, fy - 5, shade(jeans, 1.2))
+    c.line(cx - 2, fy - 1, cx + 7, fy - 1, jeans_dk)
+    c.put(cx + 1, fy + 1, hexc('b89a4a'))                               # a rivet
+    c.poly([(cx - 3, fy - 5), (cx + 1, fy - 8), (cx + 6, fy - 7), (cx + 4, fy - 4)], hexc('a8a49a'))
+    c.line(cx - 1, fy - 6, cx + 4, fy - 6, hexc('c4c0b6'))
+    c.rect(cx + 12, fy + 2, cx + 16, fy + 3, hexc('e6e0d0'))            # a sock
+    c.put(cx + 16, fy + 1, hexc('e6e0d0'))
 
 
 def clothes_horse(c, x0, x1, base):
@@ -852,11 +960,11 @@ def d_build(c):
     c.dither(16, 70, 38, 74, hexc('8a7a5a', 120), 0.4, pattern='random')  # grime in the basin
     toilet(c, 70, lid_up=True, seat=hexc('b9b4a4'))
     c.dither(60, 67, 80, 70, MOULD, 0.5)
-    c.rect(86, 88, 96, 99, hexc('d8d2c2'))                               # toilet rolls stacked
-    c.hline(86, 96, 93, shade(hexc('d8d2c2'), 0.8))
+    standing_rolls(c, 85, 101)                                            # spare rolls stacked by the pan
     curtained_tub(c, 106, 178, 80)
     clothes_horse(c, 204, 244, 121)
-    setback(c, lambda l: washing_machine(l, 277, 60), depth=5, top=60, x_range=(277, 309), rake=1.0)
+    dy_ = setback(c, lambda l: washing_machine(l, 277, 60), depth=5, top=60, x_range=(277, 309), rake=1.0)
+    machine_laundry(c, 277, 60, dy_)
     import furn as F
     F.bare_bulb(c, 200, 22)
     return c
@@ -922,14 +1030,12 @@ def e_build(c):
         c.rect(x, 45, x + 3, 49, col)
     pedestal_sink(c, 28, 70, porc=PINK, porc_dk=PINK_DK, out=PINK_OUT)
     toilet(c, 70, porc=PINK, out=PINK_OUT, seat=hexc('26262a'))
-    c.rect(86, 80, 91, 86, hexc('efe8d8'))
+    toilet_roll(c, 85, 78, hexc('efe8d8'))
     # a short pink tub on a tiled plinth, pulled to the lane, a shower curtain drawn back
     x0, x1, rim = 110, 186, 82
     c.hline(x0 - 2, x1 + 2, 24, CHROME_DK)
     cur = hexc('efe8d8')
-    c.poly([(x1 - 12, 25), (x1 + 2, 25), (x1 + 2, rim - 2), (x1 - 8, rim - 4)], cur)
-    for fx in (x1 - 9, x1 - 5, x1 - 1):
-        c.line(fx, 26, fx - 1, rim - 4, hexc('d0c8b4'))
+    pleated_curtain(c, x1 - 12, x1 + 2, 25, rim - 2, cur, period=3)
     for (x, y) in ((x1 - 8, 36), (x1 - 3, 50), (x1 - 7, 64)):                   # little pink fish on it
         c.rect(x, y, x + 3, y + 1, PINK_DK)
     f, wx0, wx1 = bath_box(c, x0, x1, rim, 12, E_TILE, PINK_LT, shade(E_TILE, 0.72), PINK_OUT, hexc('b07a86'))

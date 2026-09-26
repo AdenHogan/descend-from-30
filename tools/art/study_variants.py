@@ -399,12 +399,14 @@ def e_strip(c):
     setback(c, _plan_chest, depth=4, top=70, x_range=(7, 47), rake=1.0)
     def _tins(c):
         # (paint tins against the wall beside the chest)
-        c.shadow(72, 121, 14, 2, 110)
-        for (x, col) in ((60, SPLASH[0]), (70, SPLASH[1]), (80, SPLASH[2])):
-            c.box(x, 110, x + 8, 121, hexc('9aa3a8'), hexc('5a6064'))
-            c.rect(x + 1, 112, x + 7, 116, col)
-            c.line(x + 1, 110, x + 4, 106, hexc('5a6064'))
-        c.rect(88, 118, 96, 120, SPLASH[3])
+        # paint tins: cylinders seen from a little above — two shut, one open with its paint showing
+        # and a drip down its side, a lid dropped beside them (owner round 16)
+        F.tin(c, 64, 121, 4, 10, hexc('9aa3a8'), label=SPLASH[0])
+        F.tin(c, 74, 121, 4, 11, hexc('9aa3a8'), label=SPLASH[1], open_col=SPLASH[1], handle=False)
+        c.vline(71, 111, 115, SPLASH[1])
+        F.tin(c, 84, 121, 4, 9, hexc('9aa3a8'), label=SPLASH[2])
+        c.ellipse(92, 120, 3, 1, hexc('8a9094'))                                     # the lid, on the floor
+        c.ellipse(92, 120, 2, 0.6, SPLASH[1])
     F.moved(c, _tins, -10, -21)
 
 

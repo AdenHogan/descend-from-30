@@ -1448,6 +1448,10 @@ means no rendering — UI layout and art still need an in-editor look.
   boxes), and toilets / basins / built-in baths / the shower tray / the toy chest are drawn in TRUE
   perspective (`pixlib.pp` / `pbox` / `pellipse`, `bathroom.bath_box`) — seats, basins and tubs seen
   from above. Audit flat pieces with `FLAT_REPORT=1 python3 tools/art/build_all.py` (modules README).
+  **Round 16** (beds, small items, bathroom leftovers): every bed is `furn.persp_bed` (boards running
+  back to the wall, mattress narrowing, duvet drape; iron + floor-mattress variants); `furn.tin` /
+  `furn.bin_bag`, pizza boxes as `pbox` slabs; a guitar with guitar proportions; the mop bucket, toilet
+  rolls, hung towels, pleated shower curtains and the washing machine's laundry redrawn (modules README).
 - CORRIDOR ART (owner round 10, `tools/art/corridor.py`): floors 1-29 get a painted overlay over
   the old tile look — `building_floors._apply_corridor_art` adds a `CorridorArt` Sprite2D (115,243,
   1120x192 = the tilemap's used band) right ABOVE the TileMapLayer, so doors / stairs / elevator /

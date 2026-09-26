@@ -416,6 +416,7 @@ def setback(c, fn, depth=5, top=None, x_range=None, vpx=VP_X, rake=None, forward
     moved.paste(lyr_img, (0, d + forward), lyr_img)
     c.img.alpha_composite(moved)
     c.px = c.img.load()
+    return d + forward
 
 
 def _setback_clear(ext, lyr_img, shift):

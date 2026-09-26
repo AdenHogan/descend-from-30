@@ -271,6 +271,27 @@ the wall. This toilet looks like it is painted onto the background")**:
   the roll-top baths' openings, the child's TOY CHEST (lid up, toys inside). Fixture functions take the
   on-screen x the old flat art used (`bathroom._wall_x`), so nodes stay on them.
 - Radiators stand off the wall (setback 2 → 3).
+
+**ROUND 16 — BEDS, SMALL THINGS, BATHROOM LEFTOVERS (owner: "do the beds and small items… little
+things that just look off")**:
+- BEDS: every bed is `furn.persp_bed` — built in wall coordinates like `pbox`: the headboard and
+  footboard are boards running back to the wall (the face turned to the room's middle shows; an iron
+  bedstead's posts, rails and spindles recede the same way), the mattress top narrows toward the wall,
+  the pillow lies on it and the duvet covers the rest and drapes over the front edge. `low=True` = a
+  mattress on the floor. Rooms add their own things (stars, quilt patches, a teddy) on top.
+- SMALL THINGS: `furn.tin` (a cylinder — lit left, shaded right, a label, its lid or open top seen from
+  above), `furn.bin_bag` (a lumpy tied sack with plastic shine — never extruded; `setback(depth=0,
+  forward=…)` just brings a soft thing forward), pizza boxes as stacked `pbox` slabs with the top one
+  open, the camping lantern with cage + cap, the camp table's top seen from above.
+- The GUITAR has guitar proportions (wide lower bout, clear waist, round upper bout, hole above the
+  waist, bridge, pickguard, a radial sunburst, a long neck to a slotted headstock) on an A-frame stand.
+- BATHROOMS: the mop bucket stands out from the wall (rim, water, the mop sunk in it, handle leant on
+  the wall); toilet rolls are rolls on holders (`toilet_roll`) or a stack of cylinders
+  (`standing_rolls`); towels hang folded over their bars (`hung_towel`); curtains hang in real folds
+  (`pleated_curtain` — rings, scalloped top, lit crests, swinging hem; a tight period = bunched) and
+  the wet-room curtain hangs INTO its tub so the bath's front shows; the washing machine's load is
+  drawn IN FRONT of it after its set-back (`machine_laundry` — `setback` now returns the depth it
+  used): a shirt in the drum, a sleeve over the lip, a heap on the floor.
 - Audit: `FLAT_REPORT=1 python3 tools/art/build_all.py` prints, per module, column runs where
   something stands on the seam with nothing in front of it (a piece with no depth). Table tops and
   the edges of side panels trip it too — read the flagged spots, don't chase zero.

@@ -206,62 +206,14 @@ def bedside(c):
 
 
 def bed(c):
-    # lengthwise along the wall, coming forward to the walking lane (base ~114 like the sofa). We
-    # look down on it a little: the mattress TOP shows (back edge 84 -> front edge 97), then its
-    # front face, the side rail, the legs. The duvet lies on top and drapes over the front edge.
-    x0, x1 = 78, 214
-    c.shadow(146, 115, 70, 3, 110)
-    # headboard (left) — top kept below the L window box (y >= 67)
-    c.box(x0, 68, x0 + 8, 113, BED_WOOD, WOOD_OUT)
-    c.vline(x0 + 1, 69, 112, BED_WOOD_LT)
-    c.rect(x0 + 2, 72, x0 + 6, 74, BED_WOOD_LT)
-    # mattress: top surface + front face
-    c.rect(x0 + 8, 84, x1 - 6, 97, SHEET)
-    c.hline(x0 + 8, x1 - 6, 84, SHEET_DK)
-    c.rect(x0 + 8, 98, x1 - 6, 103, SHEET_DK)
-    c.hline(x0 + 8, x1 - 6, 98, shade(SHEET_DK, 1.08))
-    # side rail + legs
-    c.rect(x0 + 8, 104, x1, 109, BED_WOOD)
-    c.hline(x0 + 8, x1, 104, BED_WOOD_LT)
-    c.hline(x0 + 8, x1, 109, WOOD_OUT)
-    for lx in (x0 + 10, x1 - 4):
-        c.rect(lx, 110, lx + 2, 114, WOOD_OUT)
-    # the pillow (node) at the back of the top, dented
-    rrect(c, 88, 83, 110, 92, PILLOW, 3)
-    c.hline(90, 108, 92, PILLOW_DK)
-    c.rect(95, 86, 102, 88, PILLOW_DK)
-    # THE DUVET covers the whole mattress top from the back edge to the footboard, turned down in a
-    # fold at the pillow end, and drapes over the front edge in a soft, uneven hem.
-    xa, xb2 = 112, 208                                   # from just past the pillow to the footboard
-    c.rect(xa, 84, xb2, 97, DUVET)                       # the top, back edge to front edge
-    c.hline(xa, xb2, 84, DUVET_DK)                       # the far edge, tucked against the wall
-    c.hline(xa + 10, xb2, 85, DUVET_LT)
-    # the turned-down fold: a lighter band (the duvet's underside) with a shadow under its lip
-    c.poly([(xa, 84), (xa + 9, 84), (xa + 12, 97), (xa, 97)], shade(DUVET_LT, 1.08))
-    c.line(xa + 9, 84, xa + 12, 97, DUVET_DK)
-    c.vline(xa + 13, 86, 96, shade(DUVET, 0.88))
-    # soft rumples: short light ridges with a shade under them, never hard straight lines
-    for (rx, ry, ln) in ((136, 88, 14), (158, 91, 18), (182, 87, 12), (196, 93, 8)):
-        c.hline(rx, rx + ln, ry, DUVET_LT)
-        c.hline(rx + 2, rx + ln + 1, ry + 1, shade(DUVET, 0.88))
-    # the drape over the front edge (97 -> an uneven hem), darker as it turns away from us
-    hem = [105, 106, 106, 107, 106, 105, 105, 106, 107, 107, 106, 105]
-    step = (xb2 - xa + 1) / len(hem)
-    for k, hy in enumerate(hem):
-        x0d = xa + int(k * step)
-        x1d = xa + int((k + 1) * step) - 1
-        c.rect(x0d, 98, x1d, hy, DUVET_DK)
-        c.hline(x0d, x1d, hy, shade(DUVET_DK, 0.8))
-    c.hline(xa, xb2, 97, DUVET)                          # the rounded front edge
-    c.hline(xa, xb2, 98, shade(DUVET, 0.92))
-    for fx in (128, 151, 173, 194):                      # a few soft folds in the drape
-        c.vline(fx, 100, 104, shade(DUVET_DK, 0.82))
-        c.vline(fx + 1, 99, 103, shade(DUVET_DK, 1.1))
+    import furn as F
+    # lengthwise along the wall, coming forward to the walking lane (legs on 114 like the sofa), drawn
+    # in perspective (owner round 16): the headboard and footboard run back to the wall, the mattress
+    # top narrows toward it, the duvet drapes over the front edge
+    F.persp_bed(c, 78, 214, 114, head='left', head_top=68, foot_top=80,
+                board=(BED_WOOD, BED_WOOD_LT, WOOD_OUT), duvet=(DUVET, DUVET_DK, DUVET_LT))
     # a dark stain soaking into the sheet by the pillow
-    c.ellipse(111, 90, 2, 1, BLOOD)
-    # footboard (right)
-    c.box(x1 - 6, 80, x1, 113, BED_WOOD, WOOD_OUT)
-    c.vline(x1 - 5, 81, 112, BED_WOOD_LT)
+    c.ellipse(108, 91, 2, 1, BLOOD)
     # a box shoved under the bed (the underbed node) peeking out at the front
     c.box(140, 108, 164, 113, BOX, BOX_DK)
     c.hline(141, 163, 108, shade(BOX, 1.1))

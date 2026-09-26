@@ -274,12 +274,18 @@ def d_strip(c):
     def _lantern(c):
         # a lantern + tins set down against the wall beside the broken chairs
         c.shadow(72, 120, 10, 2, 110)
-        for (x, col) in ((62, hexc('b0453a')), (68, hexc('c9b86a')), (74, hexc('b0453a'))):
-            c.rect(x, 113, x + 4, 120, col)
-            c.hline(x, x + 4, 113, hexc('c9c7bd'))
-        c.box(80, 104, 90, 120, hexc('3a3a36'), hexc('1c1c1a'))
-        c.rect(82, 107, 88, 116, hexc('d9b44a'))
-        c.hline(81, 89, 104, hexc('5a5a52'))
+        for (x, col, h) in ((64, hexc('b0453a'), 7), (70, hexc('c9b86a'), 8), (76, hexc('b0453a'), 6)):
+            F.tin(c, x, 120, 2, h, col, lid=hexc('c9c7bd'), handle=False)          # food tins
+        # a camping lantern: a glass chimney in a cage, a domed cap, a carry loop, a heavy base
+        c.rect(80, 116, 90, 120, hexc('3a3a36')); c.hline(80, 90, 120, hexc('1c1c1a'))
+        c.hline(80, 90, 116, hexc('5a5a52'))
+        c.rect(81, 107, 89, 115, hexc('d9b44a'))
+        c.vline(81, 107, 115, hexc('f0d27a')); c.vline(89, 107, 115, hexc('a8842e'))
+        for x in (81, 85, 89):
+            c.vline(x, 106, 116, hexc('2a2a26'))                                   # the cage bars
+        c.poly([(79, 106), (91, 106), (88, 102), (82, 102)], hexc('3a3a36'))      # the domed cap
+        c.hline(82, 88, 102, hexc('5a5a52'))
+        c.line(82, 102, 84, 98, hexc('2a2a26')); c.line(84, 98, 86, 98, hexc('2a2a26')); c.line(86, 98, 88, 102, hexc('2a2a26'))
         F.light(85, 111, 'lantern')
     F.moved(c, _lantern, -12, -21)
 

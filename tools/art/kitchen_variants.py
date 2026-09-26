@@ -374,28 +374,33 @@ def _d_run(c):
 def _d_rest(c):
     # the camping table out in the room: a kettle, mugs, an ashtray
     c.shadow(84, 121, 18, 2, 110)
-    c.rect(66, 98, 102, 100, hexc('a9b0b2'))
-    c.hline(66, 102, 98, hexc('c9d0d2'))
+    c.poly([(69, 92), (99, 92), (102, 98), (66, 98)], hexc('b9c0c2'))             # its top, from above
+    c.hline(69, 99, 92, hexc('8a9294'))
+    c.rect(66, 98, 102, 100, hexc('8f9698'))                                     # the aluminium edge
+    c.hline(66, 102, 98, hexc('d9e0e2'))
     c.line(70, 101, 78, 121, hexc('7b8083')); c.line(78, 101, 70, 121, hexc('7b8083'))
     c.line(90, 101, 98, 121, hexc('7b8083')); c.line(98, 101, 90, 121, hexc('7b8083'))
     c.rect(72, 90, 80, 97, hexc('9aa3a8')); c.put(81, 92, hexc('9aa3a8'))
     c.rect(86, 93, 90, 97, hexc('e6ddc8')); c.rect(93, 94, 97, 97, hexc('4e6ea0'))
-    def _pizza(c):
-        # pizza boxes stacked against the wall by the bins, one open
-        c.shadow(254, 121, 16, 2, 110)
-        for i in range(5):
-            y = 117 - i * 3
-            c.box(240 + (i % 2), y, 268 + (i % 2), y + 3, hexc('c9b58a'), hexc('8a7a55'))
-        c.poly([(241, 102), (269, 102), (272, 96), (244, 96)], hexc('d8c79a'))
-        c.ellipse(256, 101, 8, 1, hexc('b0653a'))
-    F.moved(c, _pizza, -2, -18)
+    # pizza boxes stacked against the wall by the bins — flat square boxes seen from above, the top
+    # one open, its lid tipped back against the wall and a crust inside (owner round 16)
+    from pixlib import pbox, pp, pellipse
+    wx0, wx1 = 230.0, 254.0
+    card, card_dk, card_out = hexc('c9b58a'), hexc('a8946a'), hexc('7a6a45')
+    c.shadow(250, 111, 16, 2, 110)
+    for i in range(4):
+        jx = (1, -1, 2, 0)[i]
+        pbox(c, wx0 + jx, 100 - 2.6 * (i + 1), wx1 + jx, 100 - 2.6 * i, 1, 12, card, shade(card, 1.1), card_dk, card_out)
+    y_top = 100 - 2.6 * 4
+    lid = [pp(wx0, y_top, 1), pp(wx1, y_top, 1), pp(wx1, y_top - 12, 0.3), pp(wx0, y_top - 12, 0.3)]
+    c.poly([(round(x), round(y)) for (x, y) in lid], shade(card, 0.92))
+    c.line(round(lid[3][0]), round(lid[3][1]), round(lid[2][0]), round(lid[2][1]), card_out)
+    pellipse(c, (wx0 + wx1) / 2, y_top, 3, 10, 9, hexc('d9a860'))                 # the crust
+    pellipse(c, (wx0 + wx1) / 2, y_top, 4, 9, 7, hexc('b0653a'))
+    pellipse(c, (wx0 + wx1) / 2 + 3, y_top, 5, 7, 2, hexc('e8d8a0'))
     # bin bags against the wall (right)
-    bag, bag_lt = hexc('2f2e2c'), hexc('4a4946')
-    c.shadow(292, 100, 18, 2, 100)
-    c.poly([(276, 100), (276, 86), (282, 78), (292, 78), (298, 86), (298, 100)], bag)
-    c.poly([(286, 78), (288, 72), (291, 73), (290, 79)], hexc('222120'))
-    c.poly([(292, 100), (294, 88), (302, 82), (310, 88), (310, 100)], bag)
-    c.line(280, 84, 286, 97, bag_lt); c.line(300, 86, 306, 98, bag_lt)
+    F.bin_bag(c, 287, 100, 22, 24, seed=11)
+    F.bin_bag(c, 302, 100, 16, 18, seed=5)
     F.bare_bulb(c, 160, 26)
 
 D_ANCHORS = [('anchor_centre_fridge', 21, 60, 'bp'), ('anchor_kitchen_camp_table', 88, 95, ''),
@@ -458,8 +463,12 @@ def _e_run(c):
     for (x, h, col) in ((104, 10, hexc('9aa3a8')), (110, 14, hexc('c9b86a')), (118, 8, hexc('b0453a')),
                         (126, 16, hexc('d8cfb4')), (140, 12, hexc('9aa3a8')), (150, 6, hexc('7a8a5a')),
                         (160, 18, hexc('d8cfb4')), (176, 9, hexc('c9b86a')), (186, 13, hexc('9aa3a8'))):
-        c.rect(x, 71 - h, x + 7, 71, col)                                        # piled tins, jars, papers
-        c.hline(x, x + 7, 71 - h, shade(col, 1.15))
+        if col == hexc('d8cfb4'):                                                # a carton / a roll of papers
+            c.rect(x, 71 - h, x + 7, 71, col)
+            c.hline(x, x + 7, 71 - h, shade(col, 1.15))
+            c.vline(x + 7, 71 - h, 71, shade(col, 0.75))
+        else:                                                                    # tins and jars: cylinders
+            F.tin(c, x + 3, 71, 3, h, col, label=shade(col, 0.8) if h > 8 else None, handle=False)
     c.rect(206, 64, 224, 69, hexc('7a6a58'))                                     # a pile of pans on the hob
     c.rect(209, 59, 221, 63, hexc('5a5249'))
 

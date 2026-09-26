@@ -269,78 +269,95 @@ def c_wall(c):
 # with its corner torn away. The guitar (it was "so squished and slim", squeezed under window R) now
 # stands upright on a floor stand at full size, right of the window box.
 def guitar_on_stand(c, cx, floor):
-    """An acoustic guitar upright on a floor stand against the wall — drawn mirror-true about cx:
-    a sunburst body (lower bout, waist, upper bout), sound hole + rosette, bridge, a dark fretboard
-    with dots, the headstock with three tuning pegs a side; one string snapped and curling."""
+    """An acoustic guitar upright on an A-frame floor stand against the wall (owner round 16: the old
+    one "looks half like a guitar half like a cello" — too narrow in the body, a stripe down the
+    middle, splayed legs like a spike). Guitar proportions: a WIDE lower bout, a clear waist, a round
+    upper bout, the sound hole just above the waist, a bridge low on the belly, a teardrop pickguard, a
+    sunburst from the middle of the lower bout, a long neck to a slotted headstock."""
     OUT = hexc('2a1a10')
-    EDGE = hexc('5a2e14')
-    MID = hexc('a4562a')
-    CEN = hexc('d8963e')
+    EDGE = hexc('4e2410')
+    MID = hexc('9c4e24')
+    CEN = hexc('dc9a44')
     NECK = hexc('6a4424')
     BOARD = hexc('2e2018')
     STAND = hexc('2a2a2e')
-    bot = floor - 7                       # the body sits in the stand's cradle
-    H = 26                                # body height
+    STAND_LT = hexc('4a4a50')
+    bot = floor - 5                       # the body rests in the stand's cradle
+    H = 27                                # body height
     top = bot - H
-    def half(y):                          # half-width of the body at row y (0 = bottom)
-        t = (bot - y) / float(H)
-        lower = 8.4 * math.sqrt(max(0.0, 1 - ((t - 0.30) / 0.36) ** 2)) if t < 0.66 else 0
-        upper = 6.6 * math.sqrt(max(0.0, 1 - ((t - 0.76) / 0.25) ** 2)) if t > 0.50 else 0
+
+    def half(y):                          # half-width of the body at row y
+        t = (bot - y) / float(H)          # 0 at the bottom, 1 at the neck joint
+        lower = 10.5 * math.sqrt(max(0.0, 1 - ((t - 0.30) / 0.34) ** 2)) if t < 0.64 else 0
+        upper = 8.0 * math.sqrt(max(0.0, 1 - ((t - 0.78) / 0.23) ** 2)) if t > 0.52 else 0
         w = max(lower, upper)
-        if 0.52 < t < 0.64:
-            w = max(w, 5.4)               # the waist
+        if 0.54 < t < 0.64:
+            w = max(w, 6.6)               # the waist
         return w
-    # stand: two splayed legs + the cradle arms, and the neck rest behind the neck
-    for s in (-1, 1):
-        c.line(cx + s * 3, bot + 1, cx + s * 8, floor, STAND)
-        c.line(cx + s * 4, bot + 1, cx + s * 9, floor, STAND)
-        c.put(cx + s * 7, bot - 1, STAND)
-    c.vline(cx, bot - H - 16, bot, STAND)
-    c.rect(cx - 3, bot - H - 17, cx + 3, bot - H - 16, STAND)
-    c.shadow(cx, floor + 1, 10, 2, 110)
-    # body
+    # the A-frame stand: two legs splayed forward/back seen side-on as a low 'A', the cradle arms
+    # the body sits in, and the neck yoke on its upright
+    c.shadow(cx, floor + 1, 13, 2, 110)
+    for s_ in (-1, 1):
+        c.line(cx + s_ * 4, bot - 1, cx + s_ * 11, floor, STAND)
+        c.put(cx + s_ * 11, floor, STAND_LT)
+    c.hline(cx - 9, cx + 9, bot - 1, STAND)
+    for s_ in (-1, 1):                    # the padded cradle arms
+        c.rect(cx + s_ * 9 - 1, bot - 3, cx + s_ * 9 + 1, bot - 1, hexc('3a3a40'))
+    up_top = top - 20
+    c.vline(cx + 1, up_top, bot - 1, STAND)
+    c.rect(cx - 2, up_top - 1, cx + 4, up_top, STAND)           # the yoke under the neck
+    # body: sunburst from the middle of the lower bout
+    ccx, ccy = cx, bot - 9
     for y in range(top, bot + 1):
         w = half(y)
         if w <= 0:
             continue
         x0, x1 = int(round(cx - w)), int(round(cx + w))
         for x in range(x0, x1 + 1):
-            d = abs(x - cx) / max(w, 0.1)
-            col = CEN if d < 0.45 else MID if d < 0.8 else EDGE
+            d = (((x - ccx) / 11.0) ** 2 + ((y - ccy) / 14.0) ** 2) ** 0.5
+            col = CEN if d < 0.55 else MID if d < 0.9 else EDGE
             c.put(x, y, col)
         c.put(x0, y, OUT); c.put(x1, y, OUT)
-    c.hline(int(cx - half(bot)), int(cx + half(bot)), bot, OUT)
-    c.hline(int(cx - half(top + 1)), int(cx + half(top + 1)), top, OUT)
-    # sound hole + rosette, bridge + saddle
-    hy = top + 8
-    for y in range(hy - 3, hy + 4):
-        for x in range(cx - 3, cx + 4):
+    c.hline(int(cx - half(bot - 1)) + 1, int(cx + half(bot - 1)) - 1, bot, OUT)
+    c.hline(int(cx - half(top + 1)) + 1, int(cx + half(top + 1)) - 1, top, OUT)
+    for y in range(top + 2, bot - 1):                          # a lit rim on the left edge
+        c.put(int(round(cx - half(y))) + 1, y, mix(MID, CEN, 0.5) if half(y) > 0 else CEN)
+    # pickguard (a dark teardrop below-right of the hole), sound hole + rosette, bridge + pins
+    hy = top + 11
+    c.ellipse(cx + 4, hy + 4, 3, 4, hexc('24140c'))
+    for y in range(hy - 4, hy + 5):
+        for x in range(cx - 4, cx + 5):
             r = ((x - cx) ** 2 + (y - hy) ** 2) ** 0.5
-            if r <= 2.4:
-                c.put(x, y, hexc('140c08'))
-            elif r <= 3.3:
-                c.put(x, y, hexc('e8d2a0'))
-    c.rect(cx - 4, bot - 6, cx + 4, bot - 5, OUT)
-    c.hline(cx - 2, cx + 2, bot - 6, hexc('e8e0cc'))
-    # neck + fretboard (over the body's upper bout down to the sound hole)
-    ntop = top - 17
+            if r <= 2.6:
+                c.put(x, y, hexc('120a06'))
+            elif r <= 3.6:
+                c.put(x, y, hexc('e8d2a0') if (x + y) % 2 else hexc('3a2414'))
+    c.rect(cx - 5, bot - 7, cx + 5, bot - 6, OUT)
+    c.hline(cx - 3, cx + 3, bot - 8, hexc('e8e0cc'))           # saddle
+    for k in range(-2, 3):
+        c.put(cx + k * 2, bot - 6, hexc('e8e0cc'))            # bridge pins
+    # neck + fretboard down to the hole
+    ntop = top - 22
     c.rect(cx - 1, ntop, cx + 1, hy - 4, BOARD)
     c.vline(cx - 2, ntop, top, NECK); c.vline(cx + 2, ntop, top, NECK)
-    for fy in range(ntop + 3, top, 3):
+    for fy in range(ntop + 2, top, 3):
         c.hline(cx - 1, cx + 1, fy, hexc('8a8a86'))            # frets
-    for fy in (ntop + 7, ntop + 12):
+    for fy in (ntop + 9, ntop + 14, ntop + 19):
         c.put(cx, fy + 1, hexc('e8e0cc'))                        # position dots
-    # headstock + pegs
-    c.rect(cx - 2, ntop - 7, cx + 2, ntop - 1, NECK)
-    c.rect(cx - 1, ntop - 6, cx + 1, ntop - 2, hexc('3a2414'))
+    c.hline(cx - 2, cx + 2, top, hexc('d8c8a0'))               # the heel / binding
+    # slotted headstock, three tuners a side
+    c.rect(cx - 3, ntop - 8, cx + 3, ntop - 1, NECK)
+    c.rect(cx - 1, ntop - 7, cx - 1, ntop - 2, hexc('1e140c')); c.rect(cx + 1, ntop - 7, cx + 1, ntop - 2, hexc('1e140c'))
     for k in range(3):
-        c.put(cx - 3, ntop - 6 + 2 * k, hexc('c8c4b8')); c.put(cx + 3, ntop - 6 + 2 * k, hexc('c8c4b8'))
-    c.hline(cx - 2, cx + 2, ntop - 8, OUT)
-    # strings (pale, down the middle), one snapped, curling off the headstock
-    for y in range(ntop, bot - 5):
-        if y < hy - 3 or y > hy + 3:
-            c.put(cx, y, mix(hexc('e8e0cc'), BOARD, 0.35) if y < top else hexc('e8e0cc'))
-    for k, (dx, dy) in enumerate(((-3, -6), (-5, -4), (-6, -1), (-6, 2), (-5, 4))):
+        c.put(cx - 4, ntop - 7 + 2 * k, hexc('c8c4b8')); c.put(cx + 4, ntop - 7 + 2 * k, hexc('c8c4b8'))
+    c.hline(cx - 3, cx + 3, ntop - 9, OUT)
+    c.hline(cx - 2, cx + 2, ntop, hexc('e8e0cc'))              # the nut
+    # strings: two faint lines down the board and over the hole to the saddle
+    for sx in (cx - 1, cx + 1):
+        for y in range(ntop + 1, bot - 8):
+            if not (hy - 3 <= y <= hy + 3):
+                c.put(sx, y, mix(hexc('e8e0cc'), BOARD if y < top else CEN, 0.45))
+    for (dx, dy) in ((-4, -7), (-6, -5), (-7, -2), (-7, 1), (-6, 3)):   # one snapped, curling
         c.put(cx + dx, ntop + dy, hexc('d9d0bc'))
 
 def gig_poster(c, x0, y0, x1, y1):

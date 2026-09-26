@@ -616,3 +616,216 @@ def lantern(c, x, surface):
 
 def shade_col(col, f):
     return shade(col, f)
+
+
+# --- A BED IN PERSPECTIVE (owner round 16: "do the beds") ------------------------------------------
+# Lengthwise along the back wall, its front legs on the floor at `base`. Built in wall coordinates
+# (pixlib.pp): the headboard and footboard are real boards running back to the wall (we see the face
+# turned to the room's middle), the mattress top narrows toward the wall, the pillow lies ON it and the
+# duvet covers the rest and drapes over the front edge. x0 / x1 are where the bed's FRONT shows on
+# screen (the old flat coordinates). Returns the geometry so a room can add its own things on top.
+BED_SHEET, BED_SHEET_DK = hexc('c9c2b1'), hexc('aaa293')
+BED_PILLOW, BED_PILLOW_DK = hexc('d8d1bf'), hexc('b7af9c')
+
+
+def _q(p_):
+    return (int(round(p_[0])), int(round(p_[1])))
+
+
+def persp_bed(c, x0, x1, base, head='left', head_top=70, foot_top=80, board=None, duvet=None,
+              iron=False, knob=None, sheet=(BED_SHEET, BED_SHEET_DK), pillow=(BED_PILLOW, BED_PILLOW_DK),
+              legs=True, rail=True, fold=True, rumples=True, hem_drop=8, low=False):
+    from pixlib import pp, pbox
+    d1 = base - 100
+    s1 = (100.0 + d1) / 100.0
+    wx0 = 160 + (x0 - 160) / s1
+    wx1 = 160 + (x1 - 160) / s1
+    T = 2 if iron else 3
+    # heights (wall coords, 100 = the floor): legs 96-100, rail 91-96, mattress 85-91, duvet 84.5
+    ym, ymb, yr0, yr1 = 85.0, 91.0, 91.0, 96.0
+    if low:                                     # a mattress straight on the floor
+        ym, ymb = 93.0, 100.0
+    col, lt, out = board if board is not None else (hexc('6e4a2e'), hexc('8a5e3a'), hexc('2e1c10'))
+    left_top, right_top = (head_top, foot_top) if head == 'left' else (foot_top, head_top)
+    ends = []
+    if not low:
+        ends = [('l', wx0, wx0 + T, left_top), ('r', wx1 - T, wx1, right_top)]
+    foot = pp((wx0 + wx1) / 2, 100, d1)
+    c.shadow(foot[0], foot[1] + 1, (x1 - x0) / 2 + 3, 3, 110)
+
+    def draw_board(side, bx0, bx1, top, part='back'):
+        if iron:
+            k_ = knob or hexc('c9a24a')
+            for dd in ((0.5,) if part == 'back' else (d1,)):          # the post(s)
+                a_, b_ = _q(pp(bx0 + 1, top, dd)), _q(pp(bx0 + 1, 100 if dd == d1 else ymb, dd))
+                c.rect(a_[0] - 1, a_[1], a_[0], b_[1], col if dd == d1 else shade(col, 0.8))
+                c.ellipse(a_[0], a_[1] - 1, 1.5, 1.5, k_)
+            if part != 'back':
+                return
+            hi = shade(col, 1.9)                                        # iron catches the light
+            y_lo = ym - 1
+            for yy in (top + 3, y_lo):                                  # the rails, back to front
+                a_, b_ = _q(pp(bx0 + 1, yy, 0.5)), _q(pp(bx0 + 1, yy, d1))
+                c.line(a_[0], a_[1], b_[0], b_[1], col)
+                c.line(a_[0], a_[1] - 1, b_[0], b_[1] - 1, hi)
+            for k in range(1, 7):                                       # spindles
+                dd = 0.5 + (d1 - 0.5) * k / 7.0
+                a_, b_ = _q(pp(bx0 + 1, top + 3, dd)), _q(pp(bx0 + 1, y_lo, dd))
+                c.line(a_[0], a_[1], b_[0], b_[1], col)
+                if k % 2:
+                    c.put(a_[0], (a_[1] + b_[1]) // 2, hi)
+            return
+        f = pbox(c, bx0, top, bx1, 100, 0, d1 + 0.5, col, lt, shade(col, 0.82), out)
+        # a panel moulding on the face we see
+        xs = bx1 if side == 'l' else bx0
+        if (side == 'l' and bx1 < 160) or (side == 'r' and bx0 > 160):
+            a_, b_ = _q(pp(xs, top + 4, 3)), _q(pp(xs, top + 4, d1 - 2))
+            c2, d2 = _q(pp(xs, ym - 2, 3)), _q(pp(xs, ym - 2, d1 - 2))
+            c.line(a_[0], a_[1], b_[0], b_[1], lt)
+            c.line(c2[0], c2[1], d2[0], d2[1], shade(col, 0.7))
+            c.line(a_[0], a_[1], c2[0], c2[1], shade(col, 0.7))
+            c.line(b_[0], b_[1], d2[0], d2[1], lt)
+
+    def faces_in(side, bx0, bx1):
+        return (side == 'l' and bx1 < 160) or (side == 'r' and bx0 > 160)
+    for (side, bx0, bx1, top) in ends:
+        if faces_in(side, bx0, bx1) or iron:
+            draw_board(side, bx0, bx1, top)
+    xm0, xm1 = (wx0 + T, wx1 - T) if not low else (wx0, wx1)
+    if rail and not low:
+        a_, b_ = _q(pp(xm0, yr0, d1)), _q(pp(xm1, yr1, d1))
+        c.rect(a_[0], a_[1], b_[0], b_[1], col)
+        c.hline(a_[0], b_[0], a_[1], lt)
+        c.hline(a_[0], b_[0], b_[1], out)
+    if legs and not low:
+        for lx in (xm0 + 1, xm1 - 3):
+            a_, b_ = _q(pp(lx, yr1, d1)), _q(pp(lx + 2, 100, d1))
+            c.rect(a_[0], a_[1] + 1, b_[0], b_[1], out)
+    sh, sh_dk = sheet
+    pbox(c, xm0, ym, xm1, ymb, 0, d1, sh_dk, sh, shade(sh_dk, 0.85))
+    # the pillow at the head end, lying on the mattress
+    pw = 14
+    px0, px1 = (xm0 + 1, xm0 + 1 + pw) if head == 'left' else (xm1 - 1 - pw, xm1 - 1)
+    pc, pdk = pillow
+    q = [_q(pp(px0, ym - 2, 2)), _q(pp(px1, ym - 2, 2)), _q(pp(px1, ym - 2, d1 - 2)), _q(pp(px0, ym - 2, d1 - 2))]
+    c.poly(q, pc)
+    c.line(q[3][0] + 1, q[3][1] + 1, q[2][0] - 1, q[2][1] + 1, pdk)          # its front, in shade
+    c.line(q[0][0] + 1, q[0][1], q[1][0] - 1, q[1][1], shade(pc, 1.06))
+    mid_a, mid_b = _q(pp((px0 + px1) / 2 - 3, ym - 2, d1 / 2)), _q(pp((px0 + px1) / 2 + 3, ym - 2, d1 / 2))
+    c.hline(mid_a[0], mid_b[0], mid_a[1], pdk)                                # the dent
+    geo = {'wx0': wx0, 'wx1': wx1, 'xm0': xm0, 'xm1': xm1, 'd1': d1, 'ym': ym, 'pillow': (px0, px1)}
+    if duvet is not None:
+        dc, ddk, dlt = duvet
+        da, db = (px1 + 1, xm1) if head == 'left' else (xm0, px0 - 1)
+        yd = ym - 0.5
+        top = [_q(pp(da, yd, 0)), _q(pp(db, yd, 0)), _q(pp(db, yd, d1 + 0.6)), _q(pp(da, yd, d1 + 0.6))]
+        c.poly(top, dc)
+        c.line(top[0][0], top[0][1], top[1][0], top[1][1], ddk)                # tucked against the wall
+        if fold:                                                               # turned down at the pillow
+            fa, fb = (da, da + 5) if head == 'left' else (db - 5, db)
+            fq = [_q(pp(fa, yd, 0)), _q(pp(fb, yd, 0)), _q(pp(fb, yd, d1 + 0.6)), _q(pp(fa, yd, d1 + 0.6))]
+            c.poly(fq, shade(dlt, 1.06))
+            e_ = fq[1] if head == 'left' else fq[0]
+            e2 = fq[2] if head == 'left' else fq[3]
+            c.line(e_[0], e_[1], e2[0], e2[1], ddk)
+        if rumples:
+            n = max(2, int((db - da) / 26))
+            for k in range(n):
+                rx = da + 8 + k * (db - da - 16) / max(1, n - 1) if n > 1 else da + 8
+                dd = [4.0, 9.0, 6.0, 11.0, 5.0][k % 5]
+                a_, b_ = _q(pp(rx, yd, dd)), _q(pp(rx + 10, yd, dd))
+                c.hline(a_[0], min(b_[0], top[1][0] - 2), a_[1], dlt)
+                c.hline(a_[0] + 2, min(b_[0] + 1, top[1][0] - 1), a_[1] + 1, shade(dc, 0.88))
+        # the drape over the front edge, an uneven hem, darker as it turns away
+        fa_, fb_ = top[3], top[2]
+        hem = [0, 1, 1, 2, 1, 0, 0, 1, 2, 2, 1, 0]
+        span = fb_[0] - fa_[0] + 1
+        for x in range(fa_[0], fb_[0] + 1):
+            k = int((x - fa_[0]) * len(hem) / max(1, span))
+            hy = fa_[1] + hem_drop + hem[min(k, len(hem) - 1)]
+            c.vline(x, fa_[1] + 1, hy, ddk)
+            c.put(x, hy, shade(ddk, 0.8))
+        c.hline(fa_[0], fb_[0], fa_[1], dc)
+        c.hline(fa_[0], fb_[0], fa_[1] + 1, shade(dc, 0.92))
+        for k in range(1, 5):
+            fx = fa_[0] + span * k // 5
+            c.vline(fx, fa_[1] + 3, fa_[1] + hem_drop - 2, shade(ddk, 0.82))
+            c.vline(fx + 1, fa_[1] + 2, fa_[1] + hem_drop - 3, shade(ddk, 1.1))
+        geo['duvet'] = (da, db)
+    for (side, bx0, bx1, top) in ends:
+        if iron:
+            draw_board(side, bx0, bx1, top, 'front')
+        elif not faces_in(side, bx0, bx1):
+            draw_board(side, bx0, bx1, top)
+    return geo
+
+
+# --- SMALL THINGS WITH VOLUME (owner round 16: "the small items… little things that just look off") --
+def tin(c, cx, base, r, h, body, label=None, lid=hexc('b8bcbc'), open_col=None, handle=True):
+    """A tin / paint can standing on the floor: a cylinder — the lit left edge, the shadowed right,
+    a label band, and its TOP seen from above (a lid with a rim, or open with the paint inside)."""
+    ry = max(1.0, r * 0.4)
+    top = base - h
+    c.shadow(cx + 1, base + 1, r + 2, 1.5, 100)
+    c.rect(cx - r, top, cx + r, base, body)
+    c.vline(cx - r, top, base, shade(body, 1.18))
+    c.vline(cx + r, top, base, shade(body, 0.62))
+    c.vline(cx + r - 1, top, base, shade(body, 0.8))
+    c.ellipse(cx, base, r, ry, shade(body, 0.72))                     # the rounded bottom edge
+    c.hline(cx - r + 1, cx + r - 1, base - 1, shade(body, 0.85))
+    if label is not None:
+        lt_ = top + max(2, h // 3)
+        c.rect(cx - r, lt_, cx + r, lt_ + max(2, h // 3), label)
+        c.vline(cx + r, lt_, lt_ + max(2, h // 3), shade(label, 0.65))
+        c.vline(cx - r, lt_, lt_ + max(2, h // 3), shade(label, 1.15))
+    c.ellipse(cx, top, r, ry, shade(lid, 0.7))
+    if open_col is not None:
+        c.ellipse(cx, top, r - 1, max(0.6, ry - 0.6), open_col)
+        c.put(cx - 1, int(top), shade(open_col, 1.25))
+    else:
+        c.ellipse(cx, top, r - 1, max(0.6, ry - 0.6), lid)
+        c.hline(cx - r + 2, cx, int(round(top - ry + 1)), shade(lid, 1.2))
+    if handle:
+        c.line(cx - r, int(top), cx - r + 2, int(top - ry - 3), hexc('6a6e70'))
+        c.line(cx - r + 2, int(top - ry - 3), cx + r - 2, int(top - ry - 3), hexc('6a6e70'))
+        c.line(cx + r - 2, int(top - ry - 3), cx + r, int(top), hexc('6a6e70'))
+
+
+def bin_bag(c, cx, base, w, h, knot=True, split=False, seed=1):
+    """A tied black bin bag slumped on the floor: a lumpy sack, widest low down, narrowing to a
+    knotted neck; shiny plastic — streaks of light on the left lobes, deep shade on the right."""
+    import math as _m
+    import random as _r
+    rng = _r.Random(seed)
+    bag, dk, lt, hi = hexc('2f2e2c'), hexc('1c1b1a'), hexc('4e4d4a'), hexc('6e6d68')
+    c.shadow(cx, base + 1, w / 2 + 3, 2, 110)
+    ph = [rng.random() * 6.28 for _ in range(3)]
+    rows = {}
+    for y in range(base - h, base + 1):
+        t = (base - y) / float(h)                       # 0 at the floor, 1 at the neck
+        hw = w / 2.0 * (0.9 + 0.1 * t / 0.3 if t < 0.3 else max(0.0, 1 - ((t - 0.3) / 0.72) ** 2) ** 0.5)
+        hw *= 1 + 0.07 * _m.sin(t * 9 + ph[0]) + 0.05 * _m.sin(t * 17 + ph[1])
+        if t > 0.8:
+            hw = max(1.5, hw * 0.55)
+        rows[y] = (int(round(cx - hw + 0.8 * _m.sin(t * 5 + ph[2]))), int(round(cx + hw)))
+    for y, (a, b) in rows.items():
+        for x in range(a, b + 1):
+            u = (x - a) / max(1.0, float(b - a))
+            col = lt if u < 0.22 else (bag if u < 0.72 else dk)
+            c.put(x, y, col)
+        c.put(a, y, dk); c.put(b, y, hexc('121110'))
+    for k in range(3):                                    # the plastic's shine: short curved streaks
+        yy = base - int(h * (0.25 + 0.2 * k))
+        if yy in rows:
+            a, b = rows[yy]
+            c.line(a + 2, yy, a + 3 + k, yy - 3, hi)
+    c.hline(rows[base][0] + 1, rows[base][1] - 1, base, dk)
+    if knot:
+        ky = base - h
+        c.poly([(cx - 2, ky), (cx - 4, ky - 4), (cx - 1, ky - 2), (cx + 1, ky - 5), (cx + 2, ky)], dk)
+        c.put(cx - 3, ky - 3, lt)
+    if split:
+        sy = base - h // 3
+        c.poly([(cx + 1, sy - 3), (cx + w // 3, sy - 1), (cx + w // 4, sy + 3)], hexc('141312'))
+        c.rect(cx + 3, sy + 1, cx + 6, sy + 3, hexc('b0453a'))            # a can
+        c.rect(cx - 1, base, cx + 3, base + 1, hexc('d8d2c2'))            # paper

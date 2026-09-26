@@ -254,18 +254,11 @@ def counter_end(c):
 
 
 def bin_bags(c):
+    import furn as F
     # rubbish at the end of the counter, against the wall (the trash node): two tied black bin bags,
     # one split with rubbish spilling onto the lino
-    bag, bag_dk, bag_lt = hexc('2f2e2c'), hexc('222120'), hexc('4a4946')
-    c.shadow(284, 100, 18, 2, 100)
-    c.poly([(268, 100), (268, 88), (272, 80), (280, 78), (286, 82), (288, 92), (287, 100)], bag)
-    c.poly([(276, 78), (279, 72), (282, 72), (283, 78)], bag_dk)            # the knot
-    c.line(271, 84, 276, 97, bag_lt)
-    c.poly([(284, 100), (285, 90), (290, 84), (298, 84), (302, 90), (302, 100)], bag)
-    c.line(292, 86, 300, 97, bag_lt)
-    c.poly([(294, 84), (296, 79), (298, 80), (297, 85)], bag_dk)
-    c.poly([(286, 94), (292, 92), (291, 99)], bag_dk)                      # the split
-    c.rect(288, 97, 292, 99, hexc('b0453a'))                               # a can
+    F.bin_bag(c, 278, 100, 20, 24, seed=3)
+    F.bin_bag(c, 293, 100, 18, 18, split=True, seed=7)
     c.rect(283, 99, 287, 101, hexc('d8d2c2'))                              # paper
     c.put(279, 101, hexc('c7b16a')); c.put(281, 102, hexc('7a8a5a'))
     # a broken plate dropped at the foot of the counter
@@ -349,7 +342,7 @@ def build(c=None):
     setback(c, _run, depth=7, top=69, x_range=(46, 264))
     setback(c, wall_cupboards, depth=4, top=16)
     counter_end(c)
-    setback(c, bin_bags, depth=3, forward=4)
+    setback(c, bin_bags, depth=0, forward=7)          # soft sacks: brought forward, never extruded
     table(c)
     setback(c, tin_box, depth=4, forward=7, top=88, x_range=(236, 262))
     import furn as F
