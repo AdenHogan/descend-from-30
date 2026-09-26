@@ -1,6 +1,7 @@
 [gd_scene format=3]
 
 [ext_resource type="Texture2D" path="res://assets/rooms/bathroom_d.png" id="1_art"]
+[ext_resource type="Script" path="res://scripts/module_anim.gd" id="4_anim"]
 
 [node name="Node2D" type="Node2D"]
 
@@ -50,3 +51,14 @@ position = Vector2(290, 86)
 [node name="lamp_0" type="Node2D" parent="Lights"]
 position = Vector2(220, 22)
 metadata/kind = "bulb"
+
+[node name="Anims" type="Node2D" parent="."]
+
+[node name="anim_0" type="Node2D" parent="Anims"]
+position = Vector2(30, 67)
+script = ExtResource("4_anim")
+metadata/kind = "drip"
+metadata/fall = 7
+metadata/color = "c8dce4"
+metadata/w = 1
+metadata/h = 1

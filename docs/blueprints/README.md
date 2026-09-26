@@ -118,7 +118,9 @@ furniture they belong to (a chest, a desk, a bedside table) — never loose on t
   the top, not its front lip (the pipeline places anything drawn above a piece's `top` there).
 - **Tell something** (owner round 19 — "active storytelling"): a room can show what happened in it — a
   knocked-over carton still dripping, a meal left mid-way, a child's height chart. Small animated
-  details are marked with `pixlib.anim` (a drip today) and played by `scripts/module_anim.gd`.
+  details are marked with `pixlib.anim` (drip / drop / blink / static / spin) and played by
+  `scripts/module_anim.gd`. Prefer one thing that went wrong (a cup on its side in its own spill) over a
+  tidy row of objects on display (owner round 20).
 - **Set-back pieces have depth** (owner round 14): draw the FRONT face; the pipeline
   (`pixlib.setback`) brings it forward a few px and extrudes a top and a side toward the module's
   centre, so leave ~5 px between a set-back piece and a window box on the side facing the middle.

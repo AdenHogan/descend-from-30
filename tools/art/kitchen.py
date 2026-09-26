@@ -11,6 +11,7 @@ the back wall — the step-up plane. The runtime window boxes stay bare wall (no
 counter top inside them). The lino repeats every 32px so the floor carries on past the module edge
 at a doorway (scripts/module_walls.gd FLOOR_STRIP).
 """
+import pixlib as PX
 import os
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
@@ -235,6 +236,7 @@ def sink(c):
     c.rect(203, 58, 204, 68, STEEL_DK)                             # tap
     c.rect(203, 58, 209, 59, STEEL_DK)
     c.put(209, 60, STEEL)
+    PX.anim(209, 61, 'drip', fall=9, color='b8ccd4')             # still dripping into the dirty water
     # dishes stacked on the drainer
     c.rect(214, 64, 222, 68, hexc('d8d2c2'))
     c.hline(214, 222, 66, hexc('b8b1a0'))

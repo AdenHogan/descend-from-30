@@ -1,6 +1,7 @@
 [gd_scene format=3]
 
 [ext_resource type="Texture2D" path="res://assets/rooms/bedroom_b.png" id="1_art"]
+[ext_resource type="Script" path="res://scripts/module_anim.gd" id="4_anim"]
 
 [node name="Node2D" type="Node2D"]
 
@@ -58,3 +59,14 @@ metadata/kind = "lava"
 [node name="lamp_1" type="Node2D" parent="Lights"]
 position = Vector2(148, 4)
 metadata/kind = "flush"
+
+[node name="Anims" type="Node2D" parent="."]
+
+[node name="anim_0" type="Node2D" parent="Anims"]
+position = Vector2(25, 68)
+script = ExtResource("4_anim")
+metadata/kind = "blink"
+metadata/fall = 0
+metadata/color = "9ae0aa"
+metadata/w = 2
+metadata/h = 1

@@ -9,6 +9,7 @@ Run:  python3 tools/art/bedroom_variants.py [b c d]
   d  squat — a mattress on the floor with a sleeping bag, a freestanding clothes rail, a
      backpack, crates with a camping stove and candles, boxes; bare stained plaster.
 """
+import pixlib as PX
 import os
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
@@ -70,6 +71,10 @@ def _b_desk(c):
     c.box(cx - 11, 52, cx + 11, 70, hexc('c9c2b1'), hexc('6d6a60'))                        # CRT
     c.rect(cx - 8, 55, cx + 8, 66, hexc('22302c'))
     c.rect(cx - 6, 57, cx - 2, 58, hexc('3e524b'))
+    for (ly, lw) in ((60, 9), (62, 5)):                                                     # a few lines of text,
+        c.hline(cx - 6, cx - 6 + lw, ly, hexc('4e8a5a'))
+    c.hline(cx - 6, cx - 4, 64, hexc('7ac08a'))                                             # the prompt,
+    PX.anim(cx - 2, 64, 'blink', color='9ae0aa', w=2, h=1)                                  # the cursor waiting
     c.rect(cx - 5, 70, cx + 5, 71, hexc('a9a496'))                                          # its foot
     c.rect(cx - 10, 69, cx + 10, 71, hexc('d8d2c2'))                                        # keyboard
     c.hline(cx - 9, cx + 9, 70, hexc('b8b2a2'))
@@ -182,7 +187,9 @@ def drip_stand(c, x, base):
     c.hline(x - 4, x + 4, 34, hexc('9aa3a8'))
     c.poly([(x - 4, 35), (x, 35), (x, 46), (x - 2, 48), (x - 4, 46)], hexc('d6e2e0', 200))  # the bag
     c.rect(x - 3, 40, x - 1, 45, hexc('a8322c', 160))
-    c.line(x - 2, 48, x + 8, 92, hexc('c9d0d4'))                                           # the line
+    c.rect(x - 3, 49, x - 1, 53, hexc('c9d0d4', 150))                                      # the drip chamber —
+    PX.anim(x - 2, 49, 'drop', fall=3, color='e8f0f0')                                     # — still dripping
+    c.line(x - 2, 54, x + 8, 92, hexc('c9d0d4'))                                           # the line
 
 
 def wheelchair(c, x0, base):

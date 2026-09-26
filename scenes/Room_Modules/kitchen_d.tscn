@@ -69,3 +69,5 @@ script = ExtResource("4_anim")
 metadata/kind = "drip"
 metadata/fall = 11
 metadata/color = "f2efe4"
+metadata/w = 1
+metadata/h = 1

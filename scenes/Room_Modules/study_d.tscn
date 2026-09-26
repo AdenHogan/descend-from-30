@@ -3,6 +3,7 @@
 [ext_resource type="Texture2D" path="res://assets/rooms/study_d.png" id="1_art"]
 [ext_resource type="Texture2D" path="res://assets/rooms/study_d_strip.png" id="2_strip"]
 [ext_resource type="Texture2D" path="res://assets/rooms/balcony.png" id="3_balcony"]
+[ext_resource type="Script" path="res://scripts/module_anim.gd" id="4_anim"]
 
 [node name="Node2D" type="Node2D"]
 
@@ -75,3 +76,14 @@ metadata/back_plane = true
 [node name="lamp_0" type="Node2D" parent="Lights"]
 position = Vector2(216, 22)
 metadata/kind = "bulb"
+
+[node name="Anims" type="Node2D" parent="."]
+
+[node name="anim_0" type="Node2D" parent="Anims"]
+position = Vector2(140, 65)
+script = ExtResource("4_anim")
+metadata/kind = "blink"
+metadata/fall = 0
+metadata/color = "e8452e"
+metadata/w = 2
+metadata/h = 1

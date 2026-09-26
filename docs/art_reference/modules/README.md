@@ -395,6 +395,26 @@ of the fridge looks flat")**: keep the new sizes, but make the object's identity
   under a window slot keeps its LOW things (cups, a fruit bowl, a plate) under the window and the tall
   ones clear of it — never everything bunched at one end.
 
+**ROUND 20 — STORY OVER STILL LIFE (owner: "a broken cup and a puddle of coffee says way more than four
+generic cups in a row… the clothes inside the drum… look like the blue material is floating over empty
+space")**: a surface shows what HAPPENED on it, not a set of objects on display.
+- DINING C: the tea tray pushed askew, the teapot's lid off and lying on the tray, one cup still on its
+  saucer with a spoon, sugar spilt round its bowl — the other cup lies on its side in its own coffee,
+  which runs to the edge, down the sideboard and DRIPS live onto a puddle where its twin lies smashed
+  (shards + the snapped-off handle). The dinner table: one plate still served, one shoved back empty,
+  cutlery put down, a wine glass on its side with the wine running off the edge and DRIPPING, a candle
+  knocked out of the candelabra onto the runner, another guttered to a stub.
+- The washing machine's wash (bathroom D, `bathroom.machine_laundry3d`) SLUMPS in the bottom of the drum:
+  it fills the drum up to a lumpy line, follows the drum's curve (darker where it presses on the steel),
+  casts a shadow on the drum above it, a red sock in the load, and a sleeve hauled out over the seal.
+- LIVE DETAILS now have five kinds (`pixlib.anim(x, y, kind, fall, color, w, h)` → `module_anim.gd`):
+  `drip`, `drop` (slow — an IV), `blink` (a w×h LED / cursor), `static` (a w×h screen of TV snow with a
+  rolling bar), `spin` (a glint round a w×h record). A detail drawn ON a set-back piece's top moves with
+  it like a light. In the rooms: living C's CRT left on (snow), bedroom B's CRT at a prompt (cursor),
+  bedroom C's IV still dripping, study B's letter left mid-sentence (cursor), study D's radio still
+  listening (LED), dining B's record still turning, kitchen A's tap dripping into the dirty water,
+  bathroom D's basin tap dripping, plus the milk (kitchen D), coffee and wine (dining C).
+
 **RUN LOOKS, round 14**: the afternoon / night decals were redrawn — damp is a FILLED water stain with
 a tide line, an inner ring and runs weeping down (it was a dotted outline); torn wallpaper is a ragged
 patch to the plaster with the paper's torn core along its edge and a curled corner (it was a floating

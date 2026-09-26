@@ -87,13 +87,15 @@ def write_scene(name, room_type, anchors, strip=False, lights=(), anims=()):
             out.append('')
     if anims:
         out += ['[node name="Anims" type="Node2D" parent="."]', '']
-        for i, (x, y, kind, fall, col) in enumerate(anims):
+        for i, (x, y, kind, fall, col, w, h) in enumerate(anims):
             out.append('[node name="anim_%d" type="Node2D" parent="Anims"]' % i)
             out.append('position = Vector2(%d, %d)' % (x, y))
             out.append('script = ExtResource("4_anim")')
             out.append('metadata/kind = "%s"' % kind)
             out.append('metadata/fall = %d' % fall)
             out.append('metadata/color = "%s"' % col)
+            out.append('metadata/w = %d' % w)
+            out.append('metadata/h = %d' % h)
             out.append('')
     open(path, 'w').write('\n'.join(out))
     return path

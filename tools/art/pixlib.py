@@ -36,12 +36,17 @@ def light(x, y, kind):
 ANIMS = []          # small live details drawn by scripts/module_anim.gd: (x, y, kind, fall, colour hex)
 
 
-def anim(x, y, kind, fall=0, color='f2efe4'):
+def anim(x, y, kind, fall=0, color='f2efe4', w=1, h=1):
     """A small ANIMATED detail at (x, y) in the art (owner round 19 — "a sprite animation showing a
-    bottle of milk… dripping… active storytelling"). `drip`: a drop swells at (x, y), falls `fall`
-    px and splashes. Moves with set-back pieces like a light."""
+    bottle of milk… dripping… active storytelling"). Kinds (scripts/module_anim.gd):
+      drip   — a drop swells at (x, y), falls `fall` px and splashes
+      blink  — a w×h light blinking (a standby LED, a cursor)
+      static — a w×h TV screen of snow, now and then a rolling bar
+      spin   — a glint going round an ellipse w×h (a record still turning)
+      drop   — like drip but slow and single (an IV drip chamber)
+    Moves with set-back pieces like a light."""
     ox, oy = _LIGHT_OFF[-1]
-    ANIMS.append((int(round(x + ox)), int(round(y + oy)), kind, int(fall), color))
+    ANIMS.append((int(round(x + ox)), int(round(y + oy)), kind, int(fall), color, int(w), int(h)))
 
 
 def push_light_offset(dx, dy):
@@ -418,10 +423,12 @@ def setback(c, fn, depth=5, top=None, x_range=None, vpx=VP_X, rake=None, forward
     oy0 = _LIGHT_OFF[-1][1]
     for d in range(want, depth - 1, -1):          # the gained depth, backed off if its top would rake
         n0 = len(LIGHTS)                          # into a window box / a side-wall sample column
+        na0 = len(ANIMS)
         ext, lyr_img, opaque = _setback_render(fn, d, top, x_range, vpx, rake, forward)
         if d <= depth or _setback_clear(ext, lyr_img, d + forward):
             break
         del LIGHTS[n0:]
+        del ANIMS[na0:]
     shift = d + forward
     # THINGS STANDING ON TOP (owner round 19 — "items on top of dressers… are 2D shapes and very close
     # to the front edge"): anything drawn above `top` stands ON the top surface, so it only comes
@@ -432,6 +439,10 @@ def setback(c, fn, depth=5, top=None, x_range=None, vpx=VP_X, rake=None, forward
         lx, ly, lk = LIGHTS[i]
         if top is not None and ly - oy0 - shift < top:
             LIGHTS[i] = (lx, ly - (shift - on_top), lk)
+    for i in range(na0, len(ANIMS)):                  # a live detail ON the top moves like the art there
+        a_ = ANIMS[i]
+        if top is not None and a_[1] - oy0 - shift < top:
+            ANIMS[i] = (a_[0], a_[1] - (shift - on_top)) + tuple(a_[2:])
     SETBACKS.append((opaque, shift, top if top is not None else -1, on_top))
     c.img.alpha_composite(ext)
     moved = Image.new('RGBA', (W, H), (0, 0, 0, 0))

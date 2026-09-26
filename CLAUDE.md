@@ -1473,6 +1473,10 @@ means no rendering — UI layout and art still need an in-editor look.
   hamper, camp bed, turntable, tea set, boombox and the open fridge's cavity were redrawn (modules README).
   Sideboard ornaments spread along the whole top. LIVE DETAILS: `pixlib.anim` → a module scene's `Anims`
   (`scripts/module_anim.gd`, kind `drip`) — kitchen D's fridge has spilt milk dripping onto a puddle.
+  **Round 20** (story over still life): dining C's tea set and dinner table show what happened (a cup on
+  its side in its spill, its twin smashed below, wine off the table edge); the washing machine's wash
+  slumps in the drum; live details gained `drop` / `blink` / `static` / `spin` and appear in 10 modules
+  (TV snow, cursors, an IV, a turning record, taps, spills) — `apartment_window_test` checks each one.
 - CORRIDOR ART (owner round 10, `tools/art/corridor.py`): floors 1-29 get a painted overlay over
   the old tile look — `building_floors._apply_corridor_art` adds a `CorridorArt` Sprite2D (115,243,
   1120x192 = the tilemap's used band) right ABOVE the TileMapLayer, so doors / stairs / elevator /

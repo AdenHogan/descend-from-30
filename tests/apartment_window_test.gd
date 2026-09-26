@@ -364,6 +364,7 @@ func _test_module_variants() -> void:
 	var RoomScript = load("res://scripts/room.gd")
 	var owner_of := {}
 	var registered := {}
+	var n_anims := 0
 	for rt in RoomScript.MODULE_VARIANTS:
 		var paths: Array = RoomScript.MODULE_VARIANTS[rt]
 		check(paths[0] == RoomScript.MODULE_SCENES[rt], "%s: the base scene is variant 0" % rt)
@@ -393,7 +394,19 @@ func _test_module_variants() -> void:
 				check(prev == rt, "%s: node %s isn't also a %s node" % [nm, c.name, prev])
 				owner_of[String(c.name)] = rt
 			check(n_main >= 2, "%s: >= 2 nodes outside the balcony strip (%d)" % [nm, n_main])
+			# LIVE DETAILS (owner rounds 19/20): each is a module_anim node of a known kind, inside the
+			# module, with a real size — a typo'd kind would silently draw nothing
+			var anims = inst.get_node_or_null("Anims")
+			if anims != null:
+				for a in anims.get_children():
+					n_anims += 1
+					var sc = a.get_script()
+					check(sc != null and sc.resource_path == "res://scripts/module_anim.gd", "%s: %s runs module_anim" % [nm, a.name])
+					check(str(a.get_meta("kind", "")) in ["drip", "drop", "blink", "static", "spin"], "%s: %s has a known kind" % [nm, a.name])
+					check(a.position.x >= 0 and a.position.x < 320 and a.position.y >= 0 and a.position.y < 144, "%s: %s sits in the module" % [nm, a.name])
+					check(int(a.get_meta("w", 0)) >= 1 and int(a.get_meta("h", 0)) >= 1, "%s: %s has a size" % [nm, a.name])
 			inst.free()
+	check(n_anims >= 10, "the modules carry live details (%d)" % n_anims)
 	var dir := DirAccess.open("res://scenes/Room_Modules")
 	for f in dir.get_files():
 		if f.ends_with(".tscn"):

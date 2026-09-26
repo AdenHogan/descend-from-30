@@ -8,6 +8,7 @@ Run:  python3 tools/art/living_room_variants.py [b c d]
 Out:  assets/rooms/living_room_{b,c,d}.png (+ _floor.png), scenes/Room_Modules/living_room_{b,c,d}.tscn
       (wired: room.MODULE_VARIANTS), previews + node overlays in docs/art_reference/modules/.
 """
+import pixlib as PX
 import math
 import os
 import sys
@@ -484,6 +485,7 @@ def c_furniture(c):
         c.box(262, 56, 290, 72, hexc('4a4a4d'), hexc('1c1c1e'))              # the CRT on top
         c.box(265, 58, 285, 69, hexc('23302c'), hexc('111615'))
         c.rect(267, 60, 271, 61, hexc('3e524b'))
+        PX.anim(266, 59, 'static', color='c8d4d0', w=19, h=10)             # left on, nothing but snow
         c.rect(265, 91, 279, 94, hexc('5a5a5f'))                             # a console in the lower crate
     setback(c, lambda l: lr.shifted(l, _tv, 0, CX - 276), depth=4, top=56)
     sofa_back(c, CX, 118, (hexc('6d6e70'), hexc('555658'), hexc('848587'), hexc('2c2d2f')), wear=True)

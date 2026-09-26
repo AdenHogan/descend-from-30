@@ -18,6 +18,7 @@ from pixlib import persp
 from pixlib import Canvas, hexc, shade, rrect, finish_module, setback
 from pixlib import pp, _ip as _ipt
 import furn as F
+import pixlib as PX
 
 BLOOD = hexc('4a1d1b', 150)
 BLOOD_DK = hexc('3a1512', 190)
@@ -149,6 +150,7 @@ def b_furniture(c):
         c.ellipse(281, 67, 7.5, 2, hexc('1c1c1e'))                                            # the record
         c.ellipse(281, 67, 5, 1.2, hexc('2a2a2e'))
         c.ellipse(281, 67, 1.6, 0.8, hexc('c0453a'))                                         # its label
+        PX.anim(281, 67, 'spin', color='8a8a94', w=6, h=1)                                   # still turning
         c.put(292, 67, SILVER); c.line(292, 67, 285, 68, SILVER)                             # the tonearm
         c.rect(289, 69, 291, 70, hexc('d9c24a'))                                             # a knob
         for (x, col) in ((299, hexc('d86a3a')), (302, hexc('2f4a63')), (305, hexc('d9c24a'))):
@@ -240,30 +242,75 @@ def c_furniture(c):
     c.rect(125, 92, 237, 98, F.WOOD[1])
     c.hline(125, 237, 92, F.WOOD[3])
     c.rect(150, 91, 210, 93, hexc('d6d0bf'))                                                 # a runner
+    c.line(207, 93, 211, 95, hexc('d6d0bf'))                                                 # dragged askew at one end
     cx = 180                                                                                  # the candelabra
     c.rect(cx - 3, 88, cx + 3, 90, SILVER)
     c.vline(cx, 76, 88, SILVER)
     c.hline(cx - 10, cx + 10, 80, SILVER)
     for dx in (-10, 0, 10):
         c.vline(cx + dx, 76, 80, SILVER)
-        F.candle(c, cx + dx, 75, 5)
-    for px in (140, 160, 200, 222):
-        c.ellipse(px, 94, 6, 1, PLATE_DK); c.ellipse(px, 94, 5, 1, PLATE)
-    c.line(156, 93, 164, 96, SILVER)
-    c.ellipse(210, 95, 4, 1, BLOOD)
-    # a sideboard with silver on the right (x > 240), with depth
+    F.candle(c, cx - 10, 75, 5)                                                               # burnt down unevenly,
+    F.candle(c, cx, 75, 2)                                                                    # one guttered to a stub
+    c.put(cx + 10, 75, hexc('d8cfb4')); c.put(cx + 11, 76, hexc('d8cfb4'))                   # the third knocked out —
+    c.rect(186, 89, 191, 90, hexc('e3dcc6')); c.put(192, 89, hexc('3a2a1a'))                 # — lying on the runner
+    c.hline(186, 191, 90, hexc('c8bfa6'))
+    # a DINNER LEFT MID-MEAL (owner round 20: "a broken cup and a puddle… says way more than four
+    # generic cups in a row"): one plate still served, one shoved back, a chair's place bare, a wine
+    # glass knocked over — the wine runs to the edge and still drips to the floor
+    def plate(px, py, food=False):
+        c.ellipse(px, py, 6, 1.4, PLATE_DK); c.ellipse(px, py - 0.3, 5, 1, PLATE)
+        c.ellipse(px, py - 0.3, 3, 0.6, shade(PLATE, 0.9))
+        if food:
+            c.ellipse(px - 1, py - 1, 2.2, 0.9, hexc('7a4a2a')); c.put(px + 2, py - 1, hexc('5e8240'))
+            c.put(px + 1, py - 1, hexc('5e8240')); c.put(px - 2, py - 2, hexc('9a6a3a'))
+    plate(141, 95, food=True)
+    c.line(134, 96, 136, 93, SILVER); c.line(147, 97, 150, 95, SILVER)                       # its knife + fork, put down
+    plate(163, 93)                                                                            # shoved back, empty
+    c.line(157, 97, 161, 97, SILVER)
+    plate(223, 96, food=True)
+    c.ellipse(212, 96, 3, 0.8, BLOOD)                                                         # someone bled here
+    c.put(215, 97, BLOOD)
+    wine, wine_lt = hexc('6a1620'), hexc('9a2e36')
+    c.ellipse(199, 96, 5, 1.2, wine); c.ellipse(196, 97, 3, 1, wine)                          # the spill, to the edge
+    c.rect(193, 97, 196, 98, wine); c.put(197, 95, wine_lt); c.put(201, 96, wine_lt)
+    c.vline(194, 99, 101, wine); c.vline(195, 99, 100, shade(wine, 0.8))                     # down the apron
+    c.line(200, 95, 205, 94, hexc('d8e2e4')); c.put(205, 93, hexc('eef4f4'))                  # the glass on its side
+    c.vline(206, 92, 95, hexc('b8c8cc')); c.put(199, 95, hexc('c8d4d6'))                      # its foot, its rim
+    PX.anim(194, 101, 'drip', fall=15, color='7a1c26')
+    c.ellipse(194, 117, 3, 0.8, wine); c.put(193, 117, wine_lt)                               # the drip's pool below
+    # a sideboard with the TEA SET — someone was pouring when it happened (round 20: it stood in a
+    # tidy row): the tray pushed askew, the teapot's lid off beside it, one cup still on its saucer,
+    # the sugar bowl tipped, the other cup on its side in its own spill (added after the setback, on
+    # the top face) and its twin smashed on the floor
     def _sb(c):
         F.chest(c, 250, 310, 72, 100, F.WOOD, drawers=2)
-        # the silver tea set, on a tray (round 19: flat grey rectangles read as nothing)
-        # spread along the whole top (round 19: it bunched right) — the LOW pieces under the window
-        # slot on the left (cups on saucers, the sugar bowl), the tall pots on the tray to the right
-        F.silver(c, 'cup', 256, 71, hexc('e6ddc8'))
         F.silver(c, 'cup', 265, 71, hexc('e6ddc8'))
-        F.silver(c, 'sugar', 274, 71, SILVER)
-        c.ellipse(292, 71, 11, 1.2, shade(SILVER, 0.7)); c.hline(282, 302, 70, SILVER)       # the tray
+        c.line(268, 71, 271, 70, SILVER)                                                      # a spoon on its saucer
+        F.silver(c, 'sugar', 279, 71, SILVER)
+        for (gx, gy) in ((274, 71), (275, 70), (273, 71), (271, 71), (283, 71)):               # sugar spilt round it
+            c.put(gx, gy, hexc('f2efe6'))
+        c.ellipse(293, 71, 11, 1.4, shade(SILVER, 0.7)); c.line(282, 70, 303, 69, SILVER)    # the tray, pushed askew
         F.silver(c, 'teapot', 288, 70, SILVER)
-        F.silver(c, 'coffee', 299, 71, SILVER)
+        c.hline(286, 290, 64, hexc('3a3a40')); c.put(288, 63, SILVER)                          # its lid off —
+        c.ellipse(297, 69, 2.2, 0.8, shade(SILVER, 1.1)); c.put(297, 68, shade(SILVER, 0.66))   # — lying on the tray
+        F.silver(c, 'coffee', 304, 71, SILVER)
     setback(c, _sb, depth=4, top=72, x_range=(249, 311))
+    cup, cup_dk, cup_lt = hexc('e6ddc8'), hexc('b0a690'), hexc('f6f0e2')
+    coffee, coffee_lt = hexc('3a2010'), hexc('7a5030')
+    c.ellipse(253, 77, 4, 1, coffee); c.rect(249, 77, 254, 77, coffee)                        # the spill, to the edge
+    c.put(252, 77, coffee_lt); c.put(256, 77, coffee)
+    c.hline(256, 259, 72, cup_lt); c.rect(255, 73, 260, 75, cup)                              # the cup, on its side:
+    c.hline(256, 259, 76, cup_dk); c.vline(261, 73, 75, cup_dk)                               # a round body,
+    c.vline(254, 73, 75, cup_dk); c.put(254, 74, coffee); c.put(255, 74, coffee)              # its mouth to the spill,
+    c.put(257, 71, cup_dk); c.put(258, 70, cup_dk); c.put(259, 71, cup_dk)                    # its handle up
+    c.vline(250, 78, 84, coffee); c.vline(251, 78, 81, shade(coffee, 1.3))                    # run down the front
+    PX.anim(250, 85, 'drip', fall=18, color='4a2c16')
+    c.ellipse(251, 104, 6, 1.3, coffee); c.ellipse(254, 105, 3, 0.8, coffee)                  # a puddle on the boards —
+    c.put(248, 104, coffee_lt); c.put(253, 104, coffee_lt)
+    shard, shard_dk = hexc('c8bea8'), hexc('7e7662')                                          # — its twin smashed in it
+    for (sx, sy, sw) in ((256, 104, 2), (259, 106, 1), (246, 106, 1)):
+        c.hline(sx, sx + sw, sy, shard); c.put(sx, sy + 1, shard_dk)
+    c.put(262, 104, shard_dk); c.put(263, 103, shard); c.put(263, 105, shard_dk)              # its snapped-off handle
     F.flush_light(c, 177)                                                         # above the portraits
 
 C_ANCHORS = [('anchor_dining_china_cabinet', 25, 52, 'bp s'), ('anchor_dining_cabinet_cupboard', 17, 86, 'bp s'),

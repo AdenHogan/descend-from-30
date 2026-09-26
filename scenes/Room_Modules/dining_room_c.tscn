@@ -3,6 +3,7 @@
 [ext_resource type="Texture2D" path="res://assets/rooms/dining_room_c.png" id="1_art"]
 [ext_resource type="Texture2D" path="res://assets/rooms/dining_room_c_strip.png" id="2_strip"]
 [ext_resource type="Texture2D" path="res://assets/rooms/balcony.png" id="3_balcony"]
+[ext_resource type="Script" path="res://scripts/module_anim.gd" id="4_anim"]
 
 [node name="Node2D" type="Node2D"]
 
@@ -70,3 +71,23 @@ metadata/back_plane = true
 [node name="lamp_0" type="Node2D" parent="Lights"]
 position = Vector2(177, 4)
 metadata/kind = "flush"
+
+[node name="Anims" type="Node2D" parent="."]
+
+[node name="anim_0" type="Node2D" parent="Anims"]
+position = Vector2(194, 101)
+script = ExtResource("4_anim")
+metadata/kind = "drip"
+metadata/fall = 15
+metadata/color = "7a1c26"
+metadata/w = 1
+metadata/h = 1
+
+[node name="anim_1" type="Node2D" parent="Anims"]
+position = Vector2(250, 85)
+script = ExtResource("4_anim")
+metadata/kind = "drip"
+metadata/fall = 18
+metadata/color = "4a2c16"
+metadata/w = 1
+metadata/h = 1

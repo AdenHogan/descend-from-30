@@ -1,6 +1,7 @@
 [gd_scene format=3]
 
 [ext_resource type="Texture2D" path="res://assets/rooms/bedroom_c.png" id="1_art"]
+[ext_resource type="Script" path="res://scripts/module_anim.gd" id="4_anim"]
 
 [node name="Node2D" type="Node2D"]
 
@@ -49,3 +50,14 @@ metadata/back_plane = true
 [node name="lamp_0" type="Node2D" parent="Lights"]
 position = Vector2(167, 4)
 metadata/kind = "flush"
+
+[node name="Anims" type="Node2D" parent="."]
+
+[node name="anim_0" type="Node2D" parent="Anims"]
+position = Vector2(102, 49)
+script = ExtResource("4_anim")
+metadata/kind = "drop"
+metadata/fall = 3
+metadata/color = "e8f0f0"
+metadata/w = 1
+metadata/h = 1

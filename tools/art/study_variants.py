@@ -11,6 +11,7 @@ Run:  python3 tools/art/study_variants.py [b c d]
   d  prepper's radio room — a ham radio bench, maps on the wall, supply crates + jerry cans
      out in the room, a folding chair with a gas mask; strip: shelves of tins.
 """
+import pixlib as PX
 import os
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
@@ -84,6 +85,9 @@ def b_furniture(c):
         c.box(132, 48, 160, 68, BEIGE[0], BEIGE[3])                                           # the monitor
         c.rect(135, 51, 157, 64, hexc('1e2a3a'))
         c.rect(138, 54, 150, 55, hexc('3a5a8a'))
+        for (ly, lw) in ((57, 15), (59, 12), (61, 6)):                                        # a letter, mid-sentence
+            c.hline(138, 138 + lw, ly, hexc('5a7aa8'))
+        PX.anim(145, 61, 'blink', color='c8d8f0', w=1, h=1)
         c.rect(142, 68, 150, 69, BEIGE[2])
         c.box(162, 56, 178, 69, BEIGE[0], BEIGE[3])                                           # the tower
         c.rect(164, 59, 176, 60, BEIGE[2]); c.put(170, 64, hexc('4e8a5a'))
@@ -334,6 +338,7 @@ def _d_bench(c):
     for kx in range(116, 144, 6):
         c.ellipse(kx, 66, 2, 2, hexc('9aa3a8'))
     c.rect(116, 60, 134, 62, hexc('d9a24a'))
+    PX.anim(140, 61, 'blink', color='e8452e', w=2, h=1)                                      # still listening
     c.box(150, 60, 168, 71, hexc('4a5a4a'), hexc('1c2a1c'))                                  # an amplifier
     c.rect(153, 62, 158, 66, hexc('d9d0b0'))
     c.line(174, 71, 180, 48, hexc('26262a')); c.ellipse(180, 47, 2, 2, hexc('26262a'))     # a desk mic

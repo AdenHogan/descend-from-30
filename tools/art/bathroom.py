@@ -17,6 +17,7 @@ come forward toward the walking lane, see solid3d.py):
   e  pink 50s  — a tiled pink bath with its curtain drawn back, a pink suite, a linen cupboard (step-up).
 Nodes sit on the fixtures; stand-at fixtures are FRONT nodes — only tall storage is back-plane ('bp').
 """
+import math
 import os
 import random
 import sys
@@ -142,6 +143,7 @@ def shower_corner(c, x0, x1, top, tile, grout, tray=PORC, tray_out=PORC_OUT):
 # washing machine are things you STAND AT, so they come out from the wall toward the walking lane —
 # 16-20 px of floor — and are drawn as real solids (tools/art/solid3d.py). Their nodes are FRONT nodes.
 import solid3d as S3
+import pixlib as PX
 from solid3d import P as _P3
 
 
@@ -209,7 +211,7 @@ def toilet3d(c, cx, porc=PORC, out=PORC_OUT, lid_up=False, seat=None, lever=CHRO
     return wcx
 
 
-def basin3d(c, wcx, rim=70, porc=PORC, out=PORC_OUT, tap=CHROME, pedestal=True, inside=None):
+def basin3d(c, wcx, rim=70, porc=PORC, out=PORC_OUT, tap=CHROME, pedestal=True, inside=None, drip=False):
     """A basin coming ~18 px out from the wall, centred on WALL x `wcx` (its tap — hang the mirror
     over the same x): a pedestal (or two wall brackets), the bowl swelling up to its rim, and we look
     DOWN into it — the far inner wall lit, the bottom, the plughole."""
@@ -248,6 +250,8 @@ def basin3d(c, wcx, rim=70, porc=PORC, out=PORC_OUT, tap=CHROME, pedestal=True, 
     c.line(t0[0], t0[1], s_[0], s_[1], shade(tap, 0.75))                          # the spout over the bowl
     c.put(s_[0], s_[1] + 1, shade(tap, 0.5))
     c.hline(t0[0] - 2, t0[0] + 2, t0[1] - 1, shade(tap, 1.2))                     # the handle
+    if drip:                                                                       # a tap nobody will fix now
+        PX.anim(s_[0], s_[1] + 2, 'drip', fall=max(2, int(round(iy + iry * 0.35)) - s_[1] - 2), color='c8dce4')
     return wcx
 
 
@@ -1066,16 +1070,40 @@ def d_floor(c):
     c.hline(0, W - 1, 101, shade(base, 0.7))
 
 
-def machine_laundry3d(c, cx, cy, floor_y):
-    """The wash dragged half out of the machine: a shirt bunched in the drum, a sleeve over the lip
-    and down the front, the rest in a damp heap on the floor in front of it with a sock."""
+def machine_laundry3d(c, cx, cy, floor_y, r):
+    """The wash dragged half out of the machine (owner round 20: the first shirt "floated over empty
+    space" in the drum): the wet load SLUMPED in the bottom of the drum — filling it up to a lumpy
+    line, following the drum's curve, shaded darker where it presses against the steel — a sleeve
+    hauled out over the rubber seal and down the front, the rest in a damp heap on the floor with a
+    sock."""
     shirt, shirt_dk, shirt_lt = hexc('5e7a9a'), hexc('445a74'), hexc('7e98b6')
-    c.poly([(cx - 7, cy + 1), (cx - 3, cy - 1), (cx + 2, cy), (cx + 7, cy + 1), (cx + 6, cy + 6), (cx - 6, cy + 6)], shirt)
-    c.line(cx - 5, cy, cx - 1, cy - 1, shirt_lt)
-    c.line(cx - 2, cy + 3, cx + 4, cy + 2, shirt_dk)
+    red, red_dk = hexc('a0463c'), hexc('783228')
+    rd = r - 3.5                                                          # the drum's inside
+    def surf(x):                                                          # the load's lumpy top line
+        return cy - 1 + round(1.4 * math.sin((x - cx) * 0.85 + 0.6) + 0.6 * math.sin((x - cx) * 2.1))
+    for y in range(int(cy - rd), int(cy + rd) + 1):
+        for x in range(int(cx - rd), int(cx + rd) + 1):
+            d2 = (x - cx) ** 2 + (y - cy) ** 2
+            if d2 > rd * rd or y < surf(x):
+                continue
+            edge = math.sqrt(d2) / rd                                     # 1 at the drum wall
+            col = shirt_dk if edge > 0.82 else shirt
+            if y == surf(x):
+                col = shirt_lt                                            # the lit top of the load
+            if (x - cx - 3) ** 2 + 2 * (y - cy - 2) ** 2 <= 4 and y > surf(x):
+                col = red if y < cy + 3 else red_dk                       # a red sock in the load
+            c.put(x, y, col)
+    for x in range(int(cx - rd) + 1, int(cx + rd)):                      # its shadow on the drum above
+        y = surf(x) - 1
+        if (x - cx) ** 2 + (y - cy) ** 2 <= rd * rd:
+            c.put(x, y, hexc('2a2e32'))
+    c.line(cx - 4, cy + 2, cx - 1, cy + 3, shirt_dk)                      # creases
+    c.line(cx + 2, cy + 4, cx + 5, cy + 3, shirt_dk)
+    by = int(cy + rd)                                                     # a sleeve hauled out over the seal
     for k in range(4):
-        c.line(cx - 3 + k, cy + 7, cx - 4 + k, cy + 16, shirt if k not in (0, 3) else (shirt_lt if k == 0 else shirt_dk))
-    c.rect(cx - 4, cy + 16, cx - 1, cy + 17, shirt_dk)                  # its cuff
+        c.line(cx - 3 + k, by - 2, cx - 4 + k, by + 9, shirt if k not in (0, 3) else (shirt_lt if k == 0 else shirt_dk))
+    c.hline(cx - 3, cx, by + 1, shirt_dk)                                 # where it folds over the lip
+    c.rect(cx - 4, by + 9, cx - 1, by + 10, shirt_dk)                     # its cuff
     fy = floor_y + 3
     c.shadow(cx - 4, fy + 3, 18, 2, 100)
     towel, towel_dk = TOWELS[1], shade(TOWELS[1], 0.78)
@@ -1181,7 +1209,7 @@ def d_build(c):
     c.line(34, 34, 40, 48, shade(MIRROR, 0.75)); c.line(40, 48, 45, 42, shade(MIRROR, 0.75))
     c.vline(37, 80, 99, IRON)                                            # the waste pipe, down the wall
     c.rect(34, 92, 40, 97, RUST)
-    basin3d(c, 37, rim=66, pedestal=False, inside=hexc('b9b09a'))
+    basin3d(c, 37, rim=66, pedestal=False, inside=hexc('b9b09a'), drip=True)
     c.dither(18, 69, 36, 72, hexc('8a7a5a', 120), 0.4, pattern='random')  # grime in the basin
     mould_bloom(c, 62, 92, 12, 22, seed=14, up=True)                    # mould creeping up behind the pan
     standing_rolls(c, 97, 102)                                           # spare rolls by the pan
@@ -1211,7 +1239,7 @@ def d_build(c):
     # basket against the wall beside it (loose things go with what they belong to)
     laundry_basket3d(c, 248, d_c=7)
     cx_, cy_, fl, fr, fbr = washing_machine3d(c, 272, top=68)
-    machine_laundry3d(c, cx_, cy_, fbr[1])
+    machine_laundry3d(c, cx_, cy_, fbr[1], int(round((fr[0] - fl[0]) * 0.40)))
     import furn as F
     F.bare_bulb(c, 220, 22)
     return c
