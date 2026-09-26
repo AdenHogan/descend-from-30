@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://e5siq3f8oh5j"
-path="res://.godot/imported/doorhole_high.png-c245fed477c39a6f85963d9ae06f5b10.ctex"
+uid="uid://crkf1yw66ki8v"
+path="res://.godot/imported/dining_room_e_nest.png-e818c96e0f27e2060f307f4be1406085.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/doors/doorhole_high.png"
-dest_files=["res://.godot/imported/doorhole_high.png-c245fed477c39a6f85963d9ae06f5b10.ctex"]
+source_file="res://assets/rooms/dining_room_e_nest.png"
+dest_files=["res://.godot/imported/dining_room_e_nest.png-e818c96e0f27e2060f307f4be1406085.ctex"]
 
 [params]
 

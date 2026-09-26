@@ -721,6 +721,13 @@ const ROOM_STD_ORIGIN_Y := 304.0       # standard zombie settled origin (feet 35
 const ROOM_BIG_ORIGIN_Y := 308.0       # big zombie settled origin (feet 353)
 const WORLD_DROP := preload("res://scripts/world_drop.gd")   # REST_LIFT (where a drop rests)
 const SPITTER_SCENE := preload("res://scenes/enemy_zombie_spitter.tscn")
+const BREACH_SCENES := {
+	"standard": preload("res://scenes/enemy_zombie_standard.tscn"),
+	"big": preload("res://scenes/enemy_zombie_big.tscn"),
+	"crawler": preload("res://scenes/enemy_zombie_crawler.tscn"),
+	"longarm": preload("res://scenes/enemy_zombie_longarm.tscn"),
+	"spitter": SPITTER_SCENE,
+}
 
 # One seeded enemy starts OUT on the balcony (WorldState.balcony_spawn_pick) — placed on the balcony
 # line, a little off-centre. The player on the balcony above can hear it first (balcony listen).
@@ -744,11 +751,8 @@ func _burnt_breach(stage: int) -> void:
 			WorldState.killed_zombies[key] = {"x": snappedf(pos.x, 1.0), "y": ROOM_BIG_ORIGIN_Y,
 				"floor": WorldState.current_floor, "scene": _own_scene_path(),
 				"apartment_id": apartment_id,
-				"type": "standard" if WorldState.cabinet_for_key_room(apartment_id) != "" else "big"}
-			var target: String = WorldState.get_breached_boss_key_target(apartment_id)
-			var cab := WorldState.cabinet_for_key_room(apartment_id)
-			if cab != "":
-				target = WorldState.CABINET_KEY_PREFIX + cab   # the carrier burned: its key is in the ashes
+				"type": "big" if WorldState.breach_slot_type(apartment_id, 0) == "big" else "standard"}
+			var target: String = WorldState.breach_key_target(apartment_id)   # the leader's key, in the ashes
 			if target != "":
 				WorldState.add_world_drop(WorldState.key_item_for(target), Vector2(pos.x, ROOM_FEET_Y - WORLD_DROP.REST_LIFT), WorldState.current_floor,
 					{"target_apartment": target, "scene": _own_scene_path(), "apartment_id": apartment_id})
@@ -777,6 +781,7 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 	# descent zone (interactive) — passive backdrops get art only.
 	var layout = WorldState.get_apartment_layout(apartment_id)
 	var built_modules: Array = []
+	var breached: bool = WorldState.get_door_state(apartment_id) == WorldState.DoorState.BREACHED
 	for i in range(3):
 		var scene_path: String
 		if WorldState.is_first_run and TUTORIAL_LAYOUTS.has(apartment_id):
@@ -792,6 +797,8 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 		add_child(instance)
 		built_modules.append(instance)
 		apply_run_art(instance, WorldState.current_run)
+		if breached:
+			_add_breach_nest(instance, i)
 		# The module's background ColorRect (+ its Label) is a Control that
 		# defaults to MOUSE_FILTER_STOP, so it swallows every world click over
 		# the apartment — click-to-move dies inside rooms (works in hallways,
@@ -878,6 +885,62 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 	# all the windows just built. Skipped on passive backdrops and on day/afternoon runs.
 	if live and WorldState.current_run == 3:
 		add_child(load("res://scripts/apartment_storm.gd").new())
+
+
+# A BREACH ROOM is a nest of horror (owner round 21 — "the player needs to look at the art and think
+# nope"): each module gets its own <art>_nest.png laid over it (tools/art/nest.py — blood sprayed up
+# the walls and furniture, hands dragged down the paper, the floor soaked, gore, bones, remains, flesh
+# growing out of the ceiling, sometimes the dead heaped against the wall, the whole room dimmed), plus
+# live details: flies over the floor, blood still dripping from the ceiling. Live + balcony backdrop.
+const MODULE_ANIM := preload("res://scripts/module_anim.gd")
+
+
+func _add_breach_nest(module: Node, slot: int) -> void:
+	var art = module.get_node_or_null("Art")
+	if not (art is Sprite2D) or art.texture == null:
+		return
+	var base: String = art.texture.resource_path.get_basename()
+	for suffix in ["_r2", "_r3"]:
+		if base.ends_with(suffix):
+			base = base.substr(0, base.length() - suffix.length())
+	var path := base + "_nest.png"
+	if not ResourceLoader.exists(path):
+		return
+	var nest := Sprite2D.new()
+	nest.name = "BreachNest"
+	nest.texture = load(path)
+	nest.centered = art.centered
+	nest.position = art.position
+	nest.scale = art.scale
+	nest.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	nest.add_to_group("breach_nest")
+	module.add_child(nest)
+	var after: Node = module.get_node_or_null("StripArt")
+	if after == null:
+		after = art
+	module.move_child(nest, after.get_index() + 1)
+	# the live details, in the module's own space (its art's top-left)
+	var origin: Vector2 = art.position - (art.texture.get_size() * 0.5 if art.centered else Vector2.ZERO)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(WorldState.master_seed) + "breachnest" + apartment_id + str(slot))
+	for k in range(rng.randi_range(2, 3)):
+		_nest_anim(module, origin + Vector2(rng.randf_range(20, 300), rng.randf_range(106, 132)), "flies", 0, "1a1414", 10, 6)
+	for k in range(rng.randi_range(2, 4)):
+		_nest_anim(module, origin + Vector2(rng.randf_range(10, 310), rng.randf_range(4, 9)), "drip",
+			rng.randi_range(95, 125), "6a0a0c", 1, 1)
+
+
+func _nest_anim(module: Node, at: Vector2, kind: String, fall: int, col: String, w: int, h: int) -> void:
+	var a := Node2D.new()
+	a.position = at
+	a.set_meta("kind", kind)
+	a.set_meta("fall", fall)
+	a.set_meta("color", col)
+	a.set_meta("w", w)
+	a.set_meta("h", h)
+	a.set_script(MODULE_ANIM)
+	a.add_to_group("breach_nest_anim")
+	module.add_child(a)
 
 
 static func module_scene_for(apt: String, slot: int, room_type: String) -> String:
@@ -1557,12 +1620,10 @@ func _spawn_passive_enemies(floor_num: int, breached: bool) -> void:
 	# a backdrop, so live AI would chase the real player up in the scene above and
 	# drift out of place before the swap. Static poses match the arrival exactly.
 	var positions := []
-	var big_first := false
 	if breached:
 		var enemy_list = WorldState.get_breached_room_enemies(apartment_id, 150.0, 1030.0, 321.0)
 		for entry in enemy_list:
 			positions.append(entry["position"])
-		big_first = true
 	else:
 		var zombie_count = WorldState.get_apartment_zombie_count(apartment_id)
 		if zombie_count <= 0:
@@ -1571,18 +1632,14 @@ func _spawn_passive_enemies(floor_num: int, breached: bool) -> void:
 		apt_rng.seed = hash(str(WorldState.master_seed) + "aptpos" + apartment_id)
 		positions = WorldState.get_zombie_positions(zombie_count, apt_rng, 150.0, 1030.0, 321.0)
 	var std_scene = preload("res://scenes/enemy_zombie_standard.tscn")
-	var big_scene = preload("res://scenes/enemy_zombie_big.tscn")
 	for i in range(positions.size()):
 		var pos = positions[i]
 		var key = str(floor_num) + ":" + str(snappedf(pos.x, 1.0)) + ":" + str(snappedf(pos.y, 1.0))
 		if WorldState.killed_zombies.has(key):
 			continue
-		var is_big: bool = big_first and i == 0
-		var z
-		if is_big and WorldState.cabinet_for_key_room(apartment_id) != "":
-			z = SPITTER_SCENE.instantiate()            # the gun cabinet's key carrier (same rig height)
-		else:
-			z = (big_scene if is_big else std_scene).instantiate()
+		var kind := WorldState.breach_slot_type(apartment_id, i) if breached else "standard"
+		var is_big: bool = kind != "standard"        # every non-standard rig settles on the 308 line
+		var z = BREACH_SCENES[kind].instantiate() if breached else std_scene.instantiate()
 		# Frozen scenery never physics-settles: put it straight on the line the live one settles
 		# onto (spawned at 321 it hung 17px low, then jumped up on landing). Key keeps the 321.
 		z.position = Vector2(pos.x, ROOM_BIG_ORIGIN_Y if is_big else ROOM_STD_ORIGIN_Y)
@@ -1600,6 +1657,10 @@ func _spawn_passive_enemies(floor_num: int, breached: bool) -> void:
 			z.position = Vector2(float(mem.get("x", pos.x)), float(mem.get("y", pos.y)))
 		elif not breached and i == WorldState.balcony_spawn_pick(apartment_id, positions.size()):
 			_seed_on_balcony(z)          # the same seeded one the live room puts out there
+		elif breached and WorldState.breach_on_wall(apartment_id, i) and z.has_method("start_on_wall"):
+			# the same nest crawler up the same wall the live room will have
+			z.start_on_wall("ceiling" if posmod(hash(key + "ceiling"), 3) == 0 else "wall",
+				z.global_position.y, str(WorldState.master_seed) + key)     # placed on its 308 line above
 		z.process_mode = Node.PROCESS_MODE_DISABLED   # frozen scenery
 
 
@@ -1622,46 +1683,34 @@ func _spawn_world_drops(floor_num: int, apt_override: String = "") -> void:
 		add_child(drop)
 
 func _spawn_breached_enemies() -> void:
+	# A breach room: its LEADER in slot 0 (WorldState.breach_leader — a big zombie, a crawler nest, a
+	# long-arm or a spitter) carries the room's key; the pack follows the leader. Slot 0 is bound to
+	# the leader for good: a dead leader stays dead and the survivors stay what they are.
 	var floor_num = WorldState.current_floor
 	var enemy_list = WorldState.get_breached_room_enemies(apartment_id, 150.0, 1030.0, 321.0)
-
-	var standard_scene = preload("res://scenes/enemy_zombie_standard.tscn")
-	var big_scene = preload("res://scenes/enemy_zombie_big.tscn")
-	var cabinet := WorldState.cabinet_for_key_room(apartment_id)
-
+	var key_target := WorldState.breach_key_target(apartment_id)
 	for i in range(enemy_list.size()):
 		var entry = enemy_list[i]
 		var key = str(floor_num) + ":" + str(snappedf(entry["position"].x, 1.0)) + ":" + str(snappedf(entry["position"].y, 1.0))
 		if WorldState.killed_zombies.has(key):
 			continue
-
-		# The boss is permanently bound to list slot 0. Previously the FIRST
-		# SURVIVOR was promoted to boss, so killing the boss and revisiting
-		# crowned a new one from the remaining zombies. Now a dead boss stays
-		# dead and survivors stay standard. (Promotion-on-revisit is noted as a
-		# possible deliberate mechanic for run 2/3 difficulty, not for run 1.)
-		if i == 0 and cabinet != "":
-			# The gun cabinet's key room: no big boss — a tough SPITTER holds the key.
-			var sp = SPITTER_SCENE.instantiate()
-			sp.global_position = entry["position"]
-			sp.spawn_key = key
-			add_child(sp)
-			sp.make_cabinet_key_carrier(cabinet)
-			WorldState.apply_saved_zombie(sp)
-		elif i == 0:
-			var boss = big_scene.instantiate()
-			boss.global_position = entry["position"]
-			boss.spawn_key = key
-			boss.drops_key = true
-			boss.key_target_apartment = WorldState.get_breached_boss_key_target(apartment_id)
-			add_child(boss)
-			WorldState.apply_saved_zombie(boss)
-		else:
-			var zombie = standard_scene.instantiate()
-			zombie.global_position = entry["position"]
-			zombie.spawn_key = key
-			add_child(zombie)
-			WorldState.apply_saved_zombie(zombie)
+		var kind := WorldState.breach_slot_type(apartment_id, i)
+		var z = BREACH_SCENES[kind].instantiate()
+		z.global_position = entry["position"]
+		z.spawn_key = key
+		if i == 0 and kind == "big":
+			z.drops_key = true
+			z.key_target_apartment = key_target
+		add_child(z)
+		if i == 0 and kind != "big":
+			z.make_breach_leader(key_target)
+		var remembered: bool = WorldState.apply_saved_zombie(z)
+		if not remembered and WorldState.breach_on_wall(apartment_id, i) and z.has_method("start_on_wall"):
+			var on_ceiling := posmod(hash(key + "ceiling"), 3) == 0
+			# its floor line: the settled 308 in this room's own space (the room may sit offset in a pan)
+			var room_y: float = (get("global_position") as Vector2).y
+			z.start_on_wall("ceiling" if on_ceiling else "wall", room_y + ROOM_BIG_ORIGIN_Y,
+				str(WorldState.master_seed) + key)
 
 
 func _spawn_corpses(floor_num: int, apt_id: String = "") -> void:

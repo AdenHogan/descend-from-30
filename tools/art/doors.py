@@ -360,94 +360,163 @@ def interior_sized(w, h, seed):
     return c.img
 
 
-HOLE_W, HOLE_H = 76, 98
+HOLE_W, HOLE_WALL_H, HOLE_DEBRIS = 92, 102, 26
+HOLE_H = HOLE_WALL_H + HOLE_DEBRIS          # the wall part, then the corridor floor in front of it
+HOLE_VARIANTS = 3
 
 
 def wall_hole(section, seed):
-    """The wall itself broken open round where the door was: a ragged hole through plaster and
-    blockwork into the flat, the casing hanging in pieces, the door lying flat inside, rubble
-    spilled out onto the corridor floor. Transparent outside the damage (the corridor shows)."""
+    """A BREACHED door (owner round 21 — "a kool aid man style breached hole in the wall and then
+    broken pieces of the door on the corridor floor"): something came THROUGH the wall. A big
+    burst-shaped hole where the door was — wider than the doorway, jagged all round — cracks running
+    off across the wall, plaster blown off round it to the blockwork, the dark flat beyond with blood
+    up its walls; below the wall line, on the corridor floor, the door in pieces (panels, splinters,
+    the handle, a hinge), rubble and dust, and a bloody drag smear out of the hole. Transparent
+    outside the damage (the corridor shows)."""
     rng = random.Random(seed)
-    st = STYLES[SECTION_STYLES[section][0]]
+    st = STYLES[SECTION_STYLES[section][rng.randrange(len(SECTION_STYLES[section]))]]
     img = Image.new('RGBA', (HOLE_W, HOLE_H), (0, 0, 0, 0))
     c = Canvas(w=HOLE_W, h=HOLE_H, seed=seed)
     c.img, c.px = img, img.load()
-    ins = interior_sized(HOLE_W, HOLE_H, seed).load()
-    cx = HOLE_W // 2
-    floor_y = HOLE_H - 1
-    # the opening: the doorway torn wider — a rough upright rectangle with ragged sides and top,
-    # and a bite taken out of one side where the wall gave way
-    def walk(n, lo, hi):
-        v, out = 0.0, []
-        for i in range(n):
-            v = max(lo, min(hi, v + rng.choice((-1, -1, 0, 1, 1)) * rng.choice((1, 1, 2))))
-            out.append(v)
-        return out
-    left, right = walk(HOLE_H, -4, 4), walk(HOLE_H, -4, 4)
-    top = walk(HOLE_W, -3, 5)
-    bite_side = rng.choice((-1, 1))
-    bite_y, bite_r = rng.randrange(28, 52), rng.randrange(7, 11)
+    cx = HOLE_W // 2 + rng.randint(-3, 3)
+    floor_y = HOLE_WALL_H - 1                                      # the wall meets the corridor floor
+    blood, blood_dk, blood_lt = hexc('6a0e10'), hexc('3e0808'), hexc('8e1a1a')
+    # --- the burst: a radial outline, spiky, wider than the door, sitting on the floor ---
+    cy = floor_y - 34
+    spikes = [(rng.uniform(-3.1, 0.0), rng.uniform(3, 8)) for _ in range(8)]      # teeth, mostly up + sides
+
+    def radius(ang):
+        r = 25.0 + 3.0 * math.cos(2 * ang)
+        for (a0, amp) in spikes:
+            d = math.atan2(math.sin(ang - a0), math.cos(ang - a0))
+            r += amp * max(0.0, 1.0 - abs(d) / 0.2)                  # jagged teeth
+        r += 2.0 * math.sin(ang * 11 + seed)
+        return min(r, 36.0)
 
     def inside(x, y):
-        if y >= floor_y + 1:
+        if y > floor_y or x < 6 or x > HOLE_W - 7:
             return False
-        if y < 10 + top[min(max(x, 0), HOLE_W - 1)]:
-            return False
-        l, r = cx - 22 + left[y], cx + 22 + right[y]
-        if bite_side < 0:
-            l -= max(0, int(bite_r - abs(y - bite_y) * 0.7))
-        else:
-            r += max(0, int(bite_r - abs(y - bite_y) * 0.7))
-        return l <= x <= r
+        if y > floor_y - 12 and abs(x - cx) < 21 + (y - floor_y + 12) * 0.4:
+            return True                                              # it opens flat onto the floor
+        dx, dy = (x - cx) / 1.0, (y - cy) / 1.35                     # upright; it runs into the floor
+        return math.hypot(dx, dy) < radius(math.atan2(dy, dx))
     hole = [[inside(x, y) for x in range(HOLE_W)] for y in range(HOLE_H)]
 
-    def near(x, y, rad):
+    def ring(x, y, rad):
         for dy in range(-rad, rad + 1):
             for dx in range(-rad, rad + 1):
                 xx, yy = x + dx, y + dy
-                if 0 <= xx < HOLE_W and 0 <= yy < HOLE_H and hole[yy][xx]:
+                if 0 <= xx < HOLE_W and 0 <= yy <= floor_y and hole[yy][xx]:
                     return True
         return False
-    plaster, plaster_dk = hexc('cbb89c'), hexc('a8977c')
-    brick, mortar = hexc('9a5238'), hexc('6a5a4a')
-    for y in range(HOLE_H):
+    plaster, plaster_dk, plaster_lt = hexc('cbb89c'), hexc('a8977c'), hexc('ddcdb2')
+    brick, mortar = hexc('9a5238'), hexc('5e5046')
+    for y in range(HOLE_WALL_H):
         for x in range(HOLE_W):
             if hole[y][x]:
-                c.px[x, y] = ins[x, y]
-            elif near(x, y, 2):                                        # the blockwork, broken through
+                # the flat beyond: its far wall in the dark, the floor running back at the bottom
+                if y < floor_y - 11:
+                    t = (y - (cy - 45)) / 60.0
+                    c.px[x, y] = mix(hexc('0c0a09'), hexc('2a211c'), max(0.0, min(1.0, 1.0 - abs(t - 0.55) * 1.6)))
+                else:
+                    c.px[x, y] = mix(hexc('2c2019'), hexc('171210'), (floor_y - y) / 11.0)
+            elif ring(x, y, 2):                                     # blockwork, broken through
                 sh = 5 if (y // 4) % 2 else 0
-                c.px[x, y] = mortar if y % 4 == 0 or (x + sh) % 10 == 0 else (brick if (x + y) % 7 else shade(brick, 0.8))
-            elif near(x, y, 4) and rng.random() < 0.8:                 # the plaster, snapped off ragged
-                c.px[x, y] = plaster if rng.random() < 0.75 else plaster_dk
-    for x in range(HOLE_W):                                           # a shadow under the torn top
-        for y in range(HOLE_H - 1):
-            if hole[y][x] and not hole[max(0, y - 1)][x]:
-                for k in range(2):
-                    if y + k < HOLE_H and hole[y + k][x]:
-                        c.px[x, y + k] = shade(c.px[x, y + k], 0.6)
-    # the door, fallen flat inside the hall (a slab seen from the doorway)
-    leaf = hexc(st['leaf'])
-    c.poly([(cx - 22, floor_y - 6), (cx + 20, floor_y - 9), (cx + 26, floor_y - 3), (cx - 18, floor_y)], shade(leaf, 0.7))
-    c.line(cx - 22, floor_y - 6, cx + 20, floor_y - 9, shade(leaf, 0.9))
-    # a piece of the casing still hanging at the side
-    cas = hexc(st['casing'])
-    x0 = cx - 24
-    for y in range(12, 60):
-        xx = x0 + (y - 12) // 9
-        c.put(xx, y, cas)
-        c.put(xx + 1, y, shade(cas, 1.2))
-        c.put(xx + 2, y, shade(cas, 0.7))
-    # rubble spilled out onto the corridor floor
-    for k in range(40):
-        x = rng.randrange(cx - 34, cx + 34)
-        y = floor_y - rng.randrange(0, 4)
-        col = rng.choice([plaster, plaster_dk, brick, shade(brick, 0.7), mortar])
-        w_ = rng.randrange(1, 4)
+                col = mortar if y % 4 == 0 or (x + sh) % 10 == 0 else (brick if (x * 3 + y) % 7 else shade(brick, 0.75))
+                c.px[x, y] = col
+            elif ring(x, y, 5) and rng.random() < 0.85:             # plaster blown off, ragged
+                c.px[x, y] = plaster_lt if rng.random() < 0.3 else (plaster if rng.random() < 0.7 else plaster_dk)
+    # the dark inside edge of the hole (depth), and blood up the flat's walls beyond
+    for y in range(1, HOLE_WALL_H):
+        for x in range(1, HOLE_W - 1):
+            if hole[y][x] and not (hole[y - 1][x] and hole[y][x - 1] and hole[y][x + 1]):
+                c.px[x, y] = hexc('0e0a08')
+    def hput(x, y, col):
+        if 0 <= x < HOLE_W and 0 <= y <= floor_y and hole[y][x]:
+            c.px[x, y] = col
+    # swipes of blood across the far wall at odd angles — dragged hands, something thrown against it —
+    # with uneven runs off them; a splash; a pool on the floor in there
+    for k in range(rng.randint(2, 4)):
+        x0, y0 = cx + rng.randint(-18, 10), cy + rng.randint(-22, 4)
+        ang = rng.uniform(-0.9, 0.9) + (0 if rng.random() < 0.5 else 3.14)
+        ln = rng.randint(8, 18)
+        wid = rng.choice((1, 2, 2, 3))
+        for t in range(ln):
+            x, y = int(x0 + math.cos(ang) * t), int(y0 + math.sin(ang) * t * 0.6)
+            for w_ in range(wid - (1 if t > ln * 0.7 else 0)):
+                hput(x, y + w_, blood if rng.random() < 0.75 else blood_dk)
+            if rng.random() < 0.12:
+                for d in range(rng.randint(2, 9)):
+                    hput(x, y + wid + d, blood_dk)
+    sx, sy = cx + rng.randint(-12, 12), cy + rng.randint(-12, 6)
+    for k in range(14):
+        a_, r_ = rng.uniform(0, 6.283), abs(rng.gauss(0, 4))
+        hput(int(sx + math.cos(a_) * r_), int(sy + math.sin(a_) * r_), blood if r_ < 3 else blood_dk)
+    for x in range(cx - 20, cx + 20):
+        for y in range(floor_y - 6, floor_y + 1):
+            if ((x - cx) / 20.0) ** 2 + ((y - floor_y + 3) / 3.5) ** 2 < 1.0:
+                hput(x, y, blood_dk if rng.random() < 0.75 else blood)
+    # cracks running off across the wall
+    for k in range(7):
+        ang = rng.uniform(-2.9, -0.25) if k < 5 else rng.choice((rng.uniform(-0.2, 0.1), rng.uniform(3.0, 3.3)))
+        x, y = cx + math.cos(ang) * 30, cy + math.sin(ang) * 36
+        for step in range(rng.randint(8, 18)):
+            ang += rng.uniform(-0.5, 0.5)
+            x += math.cos(ang) * 1.4
+            y += math.sin(ang) * 1.4
+            xi, yi = int(x), int(y)
+            if 0 <= xi < HOLE_W and 0 <= yi <= floor_y and not hole[yi][xi]:
+                c.px[xi, yi] = hexc('3a302a', 200)
+    # a bloody hand dragged down the edge of the hole
+    hx = cx + (rng.choice((-1, 1)) * 26)
+    for y in range(cy - 6, cy + 18):
+        for dx in range(3):
+            xx = hx + dx + (y - cy) // 9
+            if 0 <= xx < HOLE_W and not hole[y][xx]:
+                c.px[xx, y] = blood if rng.random() < 0.8 else blood_dk
+    # --- the corridor floor: the door in pieces, rubble, a drag smear out of the hole ---
+    fy0 = floor_y + 1
+    for y in range(fy0 + 2, HOLE_H - 2):                            # the drag smear
+        t = (y - fy0) / HOLE_DEBRIS
+        x0 = int(cx - 6 + 10 * t)
+        for x in range(x0, x0 + 7 - int(3 * t)):
+            if 0 <= x < HOLE_W and rng.random() < 0.85 - 0.4 * t:
+                c.px[x, y] = blood_dk if rng.random() < 0.6 else blood
+    leaf, line_, hi = hexc(st['leaf']), hexc(st['line']), hexc(st['hi'])
+    metal = hexc(st['metal'])
+    pieces = []
+    for k in range(5):                                              # door panels / planks, lying flat
+        w_ = rng.randint(10, 22)
+        x = rng.randint(4, HOLE_W - w_ - 4)
+        y = fy0 + rng.randint(3, HOLE_DEBRIS - 5)
+        pieces.append((x, y, w_))
+    for (x, y, w_) in sorted(pieces, key=lambda p: p[1]):
+        tilt = rng.choice((-2, -1, 1, 2))
+        c.poly([(x, y), (x + w_, y + tilt), (x + w_ - 1, y + tilt + 3), (x + 1, y + 3)], leaf)
+        c.line(x, y, x + w_, y + tilt, hi)
+        c.line(x + 3, y + 1, x + w_ - 3, y + 1 + tilt, line_)     # its panel moulding
+        for s_ in range(2):                                         # splintered ends
+            c.put(x + w_ + 1, y + 1 + s_, hi); c.put(x - 1, y + 2 - s_, line_)
+    kx, ky = rng.randint(10, HOLE_W - 12), fy0 + rng.randint(8, HOLE_DEBRIS - 4)
+    c.rect(kx, ky, kx + 1, ky + 1, metal); c.put(kx + 2, ky + 1, shade(metal, 0.6))   # the handle
+    hx2, hy2 = rng.randint(8, HOLE_W - 10), fy0 + rng.randint(4, HOLE_DEBRIS - 4)
+    c.rect(hx2, hy2, hx2 + 3, hy2, shade(metal, 0.8)); c.put(hx2 + 1, hy2 - 1, shade(metal, 0.8))  # a hinge
+    for k in range(70):                                             # rubble + splinters, thick at the wall
+        y = fy0 + int(abs(rng.gauss(0, 7)))
+        if y >= HOLE_H - 1:
+            continue
+        x = int(rng.gauss(cx, 16 + (y - fy0)))
+        if not (0 <= x < HOLE_W - 2):
+            continue
+        col = rng.choice([plaster, plaster_dk, plaster_lt, brick, shade(brick, 0.7), mortar, leaf, line_])
+        w_ = rng.choice((1, 1, 2, 3))
         for dx in range(w_):
-            if 0 <= x + dx < HOLE_W:
-                c.put(x + dx, y, col)
-                if rng.random() < 0.4 and y - 1 >= 0:
-                    c.put(x + dx, y - 1, shade(col, 1.1))
+            c.put(x + dx, y, col)
+        if w_ > 1 and rng.random() < 0.5:
+            c.put(x, y - 1, shade(col, 1.12))
+    for x in range(HOLE_W):                                         # dust settled along the wall's foot
+        if rng.random() < 0.55 and abs(x - cx) < 40:
+            c.put(x, fy0, plaster_dk if rng.random() < 0.5 else plaster)
     return img
 
 
@@ -470,17 +539,18 @@ def main():
         rows.append(sheet)
     holes = []
     for i, sec in enumerate(('high', 'mid', 'low')):
-        im = wall_hole(sec, 80 + i)
-        im.save(os.path.join(out_dir, 'doorhole_%s.png' % sec))
-        holes.append(im)
-    print('wrote %d doors (%d frames each) + 3 wall holes' % (len(rows), STRIP))
+        for k in range(HOLE_VARIANTS):
+            im = wall_hole(sec, 80 + i * 10 + k)
+            im.save(os.path.join(out_dir, 'doorhole_%s_%d.png' % (sec, k)))
+            holes.append(im)
+    print('wrote %d doors (%d frames each) + %d wall holes' % (len(rows), STRIP, len(holes)))
     bg = (120, 110, 96, 255)
-    prev = Image.new('RGBA', ((W + 8) * STRIP + 8, (H + 8) * len(rows) + HOLE_H + 16), bg)
+    prev = Image.new('RGBA', (max((W + 8) * STRIP + 8, (HOLE_W + 8) * 9 + 8), (H + 8) * len(rows) + HOLE_H + 16), bg)
     for r, sheet in enumerate(rows):
         for f in range(STRIP):
             prev.alpha_composite(sheet.crop((W * f, 0, W * f + W, H)), (f * (W + 8) + 4, r * (H + 8) + 4))
     for i, im in enumerate(holes):
-        prev.alpha_composite(im, (4 + i * (HOLE_W + 16), (H + 8) * len(rows) + 8))
+        prev.alpha_composite(im, (4 + i * (HOLE_W + 8), (H + 8) * len(rows) + 8))
     prev.resize((prev.size[0] * 2, prev.size[1] * 2), Image.NEAREST).save(os.path.join(prev_dir, 'doors.png'))
 
 

@@ -77,9 +77,12 @@ const OPEN_STREAMS = [
 # from its corridor section (now and then one from anywhere — residents replace doors), seeded by
 # its id so it never changes. Each strip: frames 0 closed .. 4 open (the leaf swings in, the flat's
 # dark hall showing), 5 torn off its hinges, 6 kicked through. The door swings open as you step up
-# to enter and shut behind you when you come back out. A BREACHED door shows one of three wrecks —
-# off its hinges, kicked through, or the wall itself broken open round it (doorhole_<section>.png)
-# — and takes no tint (the wreck says it all). The other states keep their tint: the gameplay cue.
+# to enter and shut behind you when you come back out. A BREACHED door (owner round 21 — "a kool aid
+# man style breached hole in the wall and then broken pieces of the door on the corridor floor") is
+# always the WALL BURST THROUGH: a jagged hole wider than the doorway, blood inside, the door in
+# pieces on the corridor floor in front (doorhole_<section>_<0..2>.png, seeded per door). It takes no
+# tint (the wreck says it all). The other states keep their tint: the gameplay cue. (Strip frames 5
+# and 6 — off its hinges / kicked through — are no longer used for a breach.)
 const DOOR_FRAMES := 5                     # the swing: 0 closed .. 4 open
 const DOOR_STRIP := 7
 const BREACH_HANGING := 5
@@ -91,7 +94,9 @@ const DOOR_STYLES := {
 	"mid": ["cream", "white", "blue"],
 	"low": ["fire", "steel", "grille"],
 }
-const HOLE_SIZE := Vector2(76, 98)
+const HOLE_SIZE := Vector2(92, 128)        # tools/art/doors.py HOLE_W x (HOLE_WALL_H + HOLE_DEBRIS)
+const HOLE_WALL_H := 102.0                   # its rows down to the wall's foot; the debris lies below
+const HOLE_VARIANTS := 3
 const DOOR_SIZE := Vector2(46, 84)
 var _swing: Tween = null
 
@@ -120,11 +125,15 @@ static func door_style_for(id: String, maintenance: bool) -> String:
 	return pool[posmod(h, pool.size())]
 
 
-static func breach_look_for(id: String) -> String:
-	# How a breached door was broken — "hanging" (off its hinges), "smashed" (kicked through) or
-	# "hole" (the wall broken open round it). Seeded per door, stable.
-	var r := posmod(hash(str(WorldState.master_seed) + "door_breach" + id), 100)
-	return "hanging" if r < 40 else ("smashed" if r < 75 else "hole")
+static func breach_look_for(_id: String) -> String:
+	# How a breached door was broken: always "hole" now — the wall burst through (owner round 21).
+	return "hole"
+
+
+# Which of its section's burst holes this door is (seeded per door, stable).
+static func breach_hole_path(id: String) -> String:
+	var k := posmod(hash(str(WorldState.master_seed) + "door_breach" + id), HOLE_VARIANTS)
+	return "res://assets/doors/doorhole_%s_%d.png" % [door_section_for(id, false), k]
 
 
 func _breached() -> bool:
@@ -137,9 +146,10 @@ func _apply_door_style() -> void:
 	var offset := Vector2.ZERO
 	var look := breach_look_for(apartment_id) if _breached() else ""
 	if look == "hole":
-		path = "res://assets/doors/doorhole_%s.png" % door_section_for(apartment_id, false)
+		path = breach_hole_path(apartment_id)
 		frames = 1
-		offset = Vector2(0, -(HOLE_SIZE.y - DOOR_SIZE.y) / 2.0)     # same floor line as a door
+		# the wall's foot on the door's floor line; the debris rows hang below it, on the corridor floor
+		offset = Vector2(0, DOOR_SIZE.y / 2.0 - HOLE_WALL_H + HOLE_SIZE.y / 2.0)
 	if not ResourceLoader.exists(path):
 		return
 	if door_sprite.texture == null or door_sprite.texture.resource_path != path:

@@ -2287,6 +2287,13 @@ const LISTEN_LINES_APARTMENT = {
 	"many": "It's crawling in there. Too many.",
 	"big": "Something big is moving in there... and it's not alone.",
 }
+# What a breach room's leader sounds like through the door.
+const BREACH_LISTEN_LINES = {
+	"big": "Something big is moving in there... and it's not alone.",
+	"crawlers": "Scratching. On the walls... on the ceiling. Lots of them.",
+	"longarm": "Something scraping along the walls in there. Something long.",
+	"spitter": "Wet coughing... spitting. And more of them behind it.",
+}
 const LISTEN_LINES_BELOW = {
 	"none": "Nothing moving down there.",
 	"one": "Something's moving below. Just one, I think.",
@@ -2316,10 +2323,11 @@ func _exact_listen_line(count: int, where: String) -> String:
 
 
 func get_listen_report_for_apartment(apt_id: String) -> Dictionary:
-	var has_big = get_door_state(apt_id) == DoorState.BREACHED
+	var breached := get_door_state(apt_id) == DoorState.BREACHED
+	var has_big = breached
 	var count: int
 	if has_big:
-		# Breach rooms are horde+boss by construction — read as many + big.
+		# Breach rooms are horde + leader by construction — read as many + big.
 		count = 4
 	else:
 		count = get_apartment_zombie_count(apt_id)
@@ -2329,9 +2337,13 @@ func get_listen_report_for_apartment(apt_id: String) -> Dictionary:
 			count -= 1
 			if entry.get("type", "") == "big":
 				has_big = false
+	if breached and killed_zombies.has(breach_leader_key(apt_id)):
+		has_big = false                          # whatever led it is dead
 	count = max(count, 0)
 	var category = _listen_category(count, has_big)
 	var line: String = LISTEN_LINES_APARTMENT[category]
+	if breached and has_big:
+		line = BREACH_LISTEN_LINES.get(breach_leader(apt_id), line)
 	# A breach room's count is a stand-in (horde + boss by construction), so even exact hearing
 	# keeps the "something big" read there rather than state a number it can't know.
 	if has_trait_flag("exact_hearing") and not has_big:
@@ -3963,7 +3975,6 @@ const CABINET_WEAPON := "004"                              # the Gun
 const CABINET_LEVEL := 3
 const CABINET_ROUNDS := 6                                  # a few left in the magazine
 const CABINET_LOOTED_CHANCE := {2: 0.30, 3: 0.35}         # per run: someone broke in since
-const CABINET_KEY_HP_MULT := 2
 const CABINET_KEY_DAMAGE_MULT := 2
 
 
@@ -4180,6 +4191,85 @@ func key_tag(target: String) -> String:
 	if target.begins_with(CABINET_KEY_PREFIX):
 		return "C" + target.substr(CABINET_KEY_PREFIX.length())
 	return target
+
+
+# ============================================================
+# BREACH ROOM LEADERS (owner round 21 — "spices up breach rooms by not just making them big enemy
+# and pack of enemies")
+# ============================================================
+# Every breach room has a LEADER in slot 0 that carries the room's key — no longer always a big
+# zombie. Seeded per room + run (the building changes between runs):
+#   big      — the classic: a big zombie + a pack of standards
+#   crawlers — a CRAWLER NEST: a tough crawler leads a pack of crawlers, about half of them CLINGING
+#              to the walls and ceiling when you walk in — they drop down on you (crawler.start_on_wall)
+#   longarm  — a tough long-arm leads standards + a couple more long-arms
+#   spitter  — a tough spitter (spits hit for 2) hangs back behind a pack of standards
+# The gun cabinet's key room is always the spitter (its key is the cabinet's).
+const BREACH_LEADERS := ["big", "crawlers", "longarm", "spitter"]
+const BREACH_LEADER_WEIGHTS := {1: [55, 25, 20, 0], 2: [35, 30, 20, 15], 3: [25, 30, 25, 20]}
+const BREACH_LEADER_HP_MULT := 2          # a non-big leader: twice its type's HP
+const BREACH_WALL_CRAWLER_CHANCE := 0.55  # a nest crawler that starts up on the wall / ceiling
+const BREACH_SPAWN_Y := 321.0             # get_breached_room_enemies' spawn line
+
+
+func breach_leader(apartment_id: String) -> String:
+	if cabinet_for_key_room(apartment_id) != "":
+		return "spitter"
+	var run := clampi(current_run, 1, 3)
+	var w: Array = BREACH_LEADER_WEIGHTS[run]
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "breachleader" + apartment_id + str(current_run))
+	var total := 0
+	for v in w:
+		total += int(v)
+	var roll := rng.randi() % maxi(1, total)
+	for i in range(w.size()):
+		roll -= int(w[i])
+		if roll < 0:
+			return BREACH_LEADERS[i]
+	return "big"
+
+
+# The enemy type in slot `i` of a breach room ("big" / "standard" / "crawler" / "longarm" /
+# "spitter"). Slot 0 is the leader.
+func breach_slot_type(apartment_id: String, i: int) -> String:
+	var leader := breach_leader(apartment_id)
+	if i == 0:
+		return {"crawlers": "crawler"}.get(leader, leader)
+	match leader:
+		"crawlers":
+			return "crawler"
+		"longarm":
+			var rng := RandomNumberGenerator.new()
+			rng.seed = hash(str(master_seed) + "breachpack" + apartment_id + str(i) + str(current_run))
+			return "longarm" if rng.randf() < 0.3 else "standard"
+	return "standard"
+
+
+# A crawler-nest crawler that starts up on the wall / ceiling (never the leader).
+func breach_on_wall(apartment_id: String, i: int) -> bool:
+	if i == 0 or breach_slot_type(apartment_id, i) != "crawler":
+		return false
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "breachwall" + apartment_id + str(i) + str(current_run))
+	return rng.randf() < BREACH_WALL_CRAWLER_CHANCE
+
+
+# The leader's memory key (slot 0's spawn key) — its kill record says the leader's dead.
+func breach_leader_key(apartment_id: String) -> String:
+	var list: Array = get_breached_room_enemies(apartment_id, 150.0, 1030.0, BREACH_SPAWN_Y)
+	if list.is_empty():
+		return ""
+	var pos: Vector2 = list[0]["position"]
+	return str(_apartment_floor(apartment_id)) + ":" + str(snappedf(pos.x, 1.0)) + ":" + str(snappedf(pos.y, 1.0))
+
+
+# What the leader carries: the cabinet's key in the gun cabinet's key room, else a door key.
+func breach_key_target(apartment_id: String) -> String:
+	var cab := cabinet_for_key_room(apartment_id)
+	if cab != "":
+		return CABINET_KEY_PREFIX + cab
+	return get_breached_boss_key_target(apartment_id)
 
 
 # ============================================================

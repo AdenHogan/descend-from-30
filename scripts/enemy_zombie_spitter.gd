@@ -12,16 +12,14 @@ var _spit_cd: float = 0.0
 var spit_damage: int = 1
 
 
-# THE GUN CABINET'S KEY (owner round 20): this spitter carries a cabinet's key in a breach room on
-# the cabinet's floor — twice the HP, spits that hit twice as hard. Called after it's in the tree
-# (its HP is set in _ready); a remembered one's HP is restored after this by apply_saved_zombie.
-func make_cabinet_key_carrier(cabinet_apt: String) -> void:
-	drops_key = true
-	key_target_apartment = WorldState.CABINET_KEY_PREFIX + cabinet_apt
-	max_hp *= WorldState.CABINET_KEY_HP_MULT
-	current_hp = max_hp
+# A BREACH-ROOM LEADER (owner rounds 20/21) — the gun cabinet's key carrier is always one: the
+# leader's double HP + key, and its spit hits twice as hard. Called after it's in the tree (its HP is
+# set in _ready); a remembered one's HP is restored after this by apply_saved_zombie.
+func make_breach_leader(key_target: String) -> void:
+	super(key_target)
 	spit_damage = WorldState.CABINET_KEY_DAMAGE_MULT
-	add_to_group("cabinet_key_carrier")
+	if key_target.begins_with(WorldState.CABINET_KEY_PREFIX):
+		add_to_group("cabinet_key_carrier")
 
 func _ready() -> void:
 	super()

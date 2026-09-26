@@ -176,7 +176,8 @@ quiet, it's open to interpretation, and something might still be out there.
   (`assets/doors/door_<name>.png`), **7 frames of 46×84** at native scale, bottom row on the
   corridor floor, casing included: 0 **closed** → 1-3 **opening** (the leaf, hinged LEFT, swings
   IN — its face narrows, its free edge shortens with depth, the flat's dark hall appears) → 4
-  **open**, 5 **off its hinges**, 6 **kicked through**; plus `doorhole_<section>.png` (76×98), the
+  **open**, 5 **off its hinges**, 6 **kicked through**; plus `doorhole_<section>_<0..2>.png` (92×128 — a BURST hole, owner round 21:
+  102 rows of wall down to its foot on the door's floor line, then 26 rows of the door in pieces on the corridor floor), the
   wall broken open round a doorway. Keep leaves fairly LIGHT: the engine tints doors by state
   (warm = unlocked, reddish = locked).
   A commissioned door drops straight in if it keeps that strip layout.

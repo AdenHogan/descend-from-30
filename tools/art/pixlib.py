@@ -816,6 +816,8 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
                     s.putpixel((x, y), p)
         s.save(os.path.join(ROOT, 'assets', 'rooms', name + '_strip.png'))
     _node_overlay(full.img, anchors, os.path.join(prev, 'nodes', name + '_nodes.png'))
+    import nest                                   # the BREACH-ROOM look of this module (tools/art/nest.py)
+    nest.write(name, full.img, bare_floor.img, seed, ROOT)
     per_level = {}
     if per_run is not None:
         for lv in (2, 3):

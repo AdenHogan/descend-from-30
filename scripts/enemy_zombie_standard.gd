@@ -509,6 +509,17 @@ var moan_timer: float = 0.0
 var voice_pitch: float = 1.0
 
 
+# A breach room's LEADER (owner round 21) that isn't a big zombie — a crawler, a long-arm, a spitter:
+# twice its type's HP, carries the room's key, a darker, bloodier look. Call after it's in the tree.
+func make_breach_leader(key_target: String) -> void:
+	drops_key = key_target != ""
+	key_target_apartment = key_target
+	max_hp *= WorldState.BREACH_LEADER_HP_MULT
+	current_hp = max_hp
+	add_to_group("breach_leader")
+	modulate = Color(0.95, 0.72, 0.68)
+
+
 func alert_to_noise(duration: float = 6.0) -> void:
 	alert_timer = max(alert_timer, duration)
 

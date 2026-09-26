@@ -223,7 +223,7 @@ Robustness rules). What it covers:
   `dev_menu_test`, `lighting_test`, `plane_lock_test`, `apartment_window_test`,
   `scavenge_node_test`, `drop_physics_test`, `softlock_test`, `character_panel_test`,
   `corpse_recovery_test`, `run_memory_test`, `attack_input_test`, `character_stats_test`, `transition_seam_test`, `run_bookends_test`, `weapon_upgrade_test`, `progression_test`, `back_plane_test`,
-  `apartment_lamp_test`, `gun_cabinet_test` — run all 47 before commit. Balance tool: `tools/economy_report.tscn` (scrap per run, ~25 min a seed). (`new_game()` rolls a RANDOM seed, so any test meets any of the four
+  `apartment_lamp_test`, `gun_cabinet_test`, `breach_test` — run all 48 before commit. Balance tool: `tools/economy_report.tscn` (scrap per run, ~25 min a seed). (`new_game()` rolls a RANDOM seed, so any test meets any of the four
   characters — an assert on a trait-affected value must be trait-aware; see docs/CHARACTERS.md.) (Run ONE godot at a time — a killed/backgrounded headless run can
   linger and block the next, and a GDScript **parse error makes a test scene load but
   never call `quit()`, so it "hangs" until timeout** rather than printing an error line;
@@ -1531,8 +1531,11 @@ means no rendering — UI layout and art still need an in-editor look.
   master_seed + id (maintenance = `fire`). `open_door()` swings it as the player steps up to enter
   (doorOpen sfx); coming back out, `building_floors.close_door_behind` / hallway call `close_behind()`
   on the door at `exit_spawn_x` (starts open, swings shut, latch). A BREACHED door is a WRECK
-  (`breach_look_for`: 40% off its hinges, 35% kicked through, 25% the wall itself broken open —
-  `doorhole_<section>.png`, 76×98, bottom on the same floor line), untinted and never swings. The other
+  (owner round 21 — "a kool aid man style breached hole in the wall and then broken pieces of the
+  door on the corridor floor"): ALWAYS the wall burst through — `doorhole_<section>_<0..2>.png` (92×128,
+  `door.breach_hole_path`, seeded per door; the hole's wall foot on the door's floor line, blood inside,
+  cracks off across the wall, and 26 rows below of the door in pieces, rubble and a drag smear on the
+  corridor floor), untinted and never swings (strip frames 5/6 no longer used). The other
   state tints stay as the gameplay cue but SOFTENED (locked 1.25/0.74/0.7, was 1.4/0.4/0.4 — a red slab
   that hid the designs). Floor 30's 3001 is a plain Sprite2D on the oak strip. The barricade overlay
   (`assets/Barricade.png`) is still the old placeholder. Locked by `building_floors_test._test_door_swing`.
@@ -1575,5 +1578,33 @@ means no rendering — UI layout and art still need an in-editor look.
   lock stile splintered, glass scattered on the boards (thick at the door, fanning out). Looted = all
   of that plus the long guns GONE (pale felt where each stood), the cable cut, the top drawer dumped
   on the floor with cartridges rolled out. Locked by `gun_cabinet_test`.
-  **Not changed:** a listen at the key room still reports "many + big" like any breach room.
+  (Round 21: the key room's listen now reports its spitter leader — see BREACH ROOMS.)
+- BREACH ROOMS (owner round 21 — "spices up breach rooms… breach rooms should be looking real fucked
+  up like a nest of horror… the player needs to look at the art and think nope"; `WorldState` "BREACH
+  ROOM LEADERS" block, `tests/breach_test`):
+  **LEADERS** — slot 0 of every breach room is a LEADER that carries the room's key
+  (`breach_key_target`), seeded per room + run (`breach_leader`, `BREACH_LEADER_WEIGHTS` run 1 55/25/20/0,
+  run 2 35/30/20/15, run 3 25/30/25/20): **big** (the classic big + standards), **crawlers** (a CRAWLER
+  NEST: a crawler leads a pack of crawlers), **longarm** (a long-arm leads standards + ~30% long-arms),
+  **spitter** (a spitter hangs back behind standards; spits for 2). The gun cabinet's key room is always
+  the spitter. A non-big leader gets ×2 HP and a darker look (`enemy.make_breach_leader`). Pack types:
+  `breach_slot_type`; room.gd `BREACH_SCENES`; the passive balcony backdrop + a burnt breach agree. The
+  listen report names the leader (`BREACH_LISTEN_LINES`: "Scratching. On the walls... on the ceiling.")
+  and knows when it's dead (`breach_leader_key`).
+  **WALL CRAWLERS** — about half a nest's crawlers (`breach_on_wall`, never the leader) start CLINGING
+  to the back wall (body upright, head up or down) or the ceiling (upside down) — `crawler.start_on_wall`:
+  no body collision, off the plane (can't block, reach or be swung at), creeping; within ~70-130px of
+  the player (or hit / shoved / distracted / a loud noise) it twitches and DROPS — falls under gravity,
+  turns the right way up, lands on its floor line, a beat's stun, then it's coming (`alert_timer`). A
+  hit up there lands it at once (a kill never leaves a body in the air); leaving the room records it on
+  its floor line, and a remembered one comes back on the floor. Live + frozen backdrop.
+  **THE NEST** — every module variant has a generated `<art>_nest.png` (`tools/art/nest.py`, called by
+  `pixlib.finish_module`; masked by the module's own layout): the whole room washed dim + filthy, flesh
+  growing out of the ceiling line with strands hanging, arterial spray + splats + runs up walls and
+  furniture, hands dragged down the paper, handprints, claw gouges, sometimes words in blood; on the
+  bare floor pools, drag trails, gore, gnawed bones, rags, a mauled body, and in many rooms the dead
+  heaped against the back wall. room.gd `_add_breach_nest` lays it over each module of a BREACHED flat
+  (live + backdrop) with live details: flies (`module_anim` kind `flies`) and blood dripping from the
+  ceiling. **Long arm** drawn at ×2.2 (was 3) about its feet (`enemy_zombie_longarm.SPRITE_SCALE`) — its
+  swing (25 frame px up) now lands at head height instead of over the player; rig/reach unchanged.
 - Not started: quests.

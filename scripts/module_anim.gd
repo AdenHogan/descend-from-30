@@ -9,6 +9,7 @@ extends Node2D
 #   blink  — a w×h light on / off (a standby LED, a cursor left blinking)
 #   static — a w×h screen of TV snow, now and then a bar rolling down it (a set left on)
 #   spin   — a glint going round a w×h ellipse (a record still turning on the platter)
+#   flies  — a few flies buzzing about a w×h patch (over what's left in a breach room)
 
 var kind := "drip"
 var fall := 20.0
@@ -59,6 +60,12 @@ func _draw() -> void:
 				draw_rect(Rect2(0, 0, w, h), col)
 		"static":
 			_draw_static()
+		"flies":
+			for i in range(5):
+				var fi := float(i)
+				var p := Vector2(sin(_snow * (2.3 + fi * 0.7) + fi * 1.7) * float(w) * 0.5,
+					cos(_snow * (3.1 + fi * 0.5) + fi * 2.3) * float(h) * 0.5)
+				draw_rect(Rect2(roundf(p.x), roundf(p.y), 1, 1), col)
 		"spin":
 			var a := TAU * _t / _period
 			var p := Vector2(roundf(cos(a) * float(w)), roundf(sin(a) * float(h)))

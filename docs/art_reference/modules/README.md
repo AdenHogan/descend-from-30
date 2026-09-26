@@ -417,6 +417,11 @@ space")**: a surface shows what HAPPENED on it, not a set of objects on display.
   irregularly, thick at the door, fanning out); `_cabinet_overlays()` renders each through
   the same pipeline (run 1 + the run-2/3 looks) and keeps only the pixels that differ inside
   `CAB_BOX` → `assets/rooms/living_room_e_cabinet_<state>[_r2|_r3].png` (`scripts/gun_cabinet_art.gd`).
+- BREACH-ROOM NESTS (round 21, `tools/art/nest.py` → `assets/rooms/<name>_nest.png`, one per variant,
+  written by `pixlib.finish_module`): a transparent overlay drawn with the module's own masks — spray,
+  splats, smears, prints, gouges and words only where they belong on walls/furniture; pools, trails,
+  gore, bones, rags, a mauled body and the corpse heap only on bare floor — over a dim wash. room.gd
+  shows it only in a BREACHED flat (CLAUDE.md "BREACH ROOMS"). Seeded by crc32(name, seed): stable.
 - LIVE DETAILS now have five kinds (`pixlib.anim(x, y, kind, fall, color, w, h)` → `module_anim.gd`):
   `drip`, `drop` (slow — an IV), `blink` (a w×h LED / cursor), `static` (a w×h screen of TV snow with a
   rolling bar), `spin` (a glint round a w×h record). A detail drawn ON a set-back piece's top moves with

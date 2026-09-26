@@ -1193,8 +1193,9 @@ func _test_door_swing() -> void:
 		check(tex != null and tex.get_width() == int(D.DOOR_SIZE.x) * D.DOOR_STRIP and tex.get_height() == int(D.DOOR_SIZE.y),
 			"door_%s.png is %d frames of 46x84" % [style, D.DOOR_STRIP])
 	for sec in ["high", "mid", "low"]:
-		var hole = load("res://assets/doors/doorhole_%s.png" % sec)
-		check(hole != null and hole.get_size() == D.HOLE_SIZE, "doorhole_%s.png is the wall-hole wreck" % sec)
+		for k in range(D.HOLE_VARIANTS):
+			var hole = load("res://assets/doors/doorhole_%s_%d.png" % [sec, k])
+			check(hole != null and hole.get_size() == D.HOLE_SIZE, "doorhole_%s_%d.png is a burst-hole wreck" % [sec, k])
 	var seen := {}
 	var own := 0
 	var looks := {}
@@ -1206,10 +1207,10 @@ func _test_door_swing() -> void:
 			seen[st] = true
 			if st in D.DOOR_STYLES[D.door_section_for(id, false)]:
 				own += 1
-			looks[D.breach_look_for(id)] = true
+			looks[D.breach_hole_path(id)] = true
 	check(seen.size() == 10, "all ten doors turn up in the building (%d)" % seen.size())
 	check(own >= 110, "most doors match their corridor (%d of 145)" % own)
-	check(looks.size() == 3, "all three breached wrecks turn up (%s)" % str(looks.keys()))
+	check(looks.size() == 9, "every breach hole (3 per section) turns up (%d)" % looks.size())
 	check(D.door_style_for("2703", true) == "fire", "maintenance rooms have the steel fire door")
 	var f := 25
 	WorldState.current_floor = f
@@ -1226,12 +1227,10 @@ func _test_door_swing() -> void:
 	for n in ["apartment01", "apartment02", "apartment03", "apartment04", "apartment05"]:
 		var d = bf.get_node(n)
 		if d.current_state == WorldState.DoorState.BREACHED:
-			var look: String = D.breach_look_for(d.apartment_id)
-			var want := ("doorhole_high.png" if look == "hole" else "door_%s.png" % D.door_style_for(d.apartment_id, false))
-			check(d.door_sprite.texture.resource_path.get_file() == want, "%s (breached): the %s wreck" % [n, look])
+			var want: String = D.breach_hole_path(d.apartment_id)
+			check(d.door_sprite.texture.resource_path == want and want.contains("doorhole_high_"),
+				"%s (breached): the wall burst through (%s)" % [n, want.get_file()])
 			check(d.door_sprite.modulate == Color.WHITE, "...untinted — the wreck says it")
-			if look != "hole":
-				check(d.door_sprite.frame == (D.BREACH_HANGING if look == "hanging" else D.BREACH_SMASHED), "...on its wreck frame")
 			var fr: int = d.door_sprite.frame
 			d.open_door()
 			await get_tree().create_timer(D.DOOR_OPEN_TIME + 0.1).timeout
@@ -1244,21 +1243,22 @@ func _test_door_swing() -> void:
 			if door == null:
 				door = d
 	check(wrecks >= 1 and door != null, "the floor had a wreck and a working door to check (%d wrecks)" % wrecks)
-	# a breached door built on purpose: every wreck look renders on the floor line
-	for look in ["hanging", "smashed", "hole"]:
-		var id := ""
-		for n in range(1, 400):
-			if D.breach_look_for(str(n + 100)) == look:
-				id = str(n + 100)
-				break
+	# a breached door built on purpose: the hole's WALL FOOT is on the door's floor line, and its
+	# debris rows lie below it on the corridor floor (owner round 21: the door in pieces out there)
+	for id in ["1203", "1504", "2202"]:
 		var dd = load("res://scenes/door.tscn").instantiate()
 		dd.apartment_id = id
 		bf.add_child(dd)
 		dd.current_state = WorldState.DoorState.BREACHED
 		dd._apply_door_style()
 		var r: Rect2 = dd.door_sprite.get_rect()
-		var bottom: float = dd.door_sprite.position.y + r.end.y
-		check(absf(bottom - D.DOOR_SIZE.y / 2.0) < 0.6, "the %s wreck stands on the same floor line as a door (bottom %.1f)" % [look, bottom])
+		var wall_foot: float = dd.door_sprite.position.y + r.position.y + D.HOLE_WALL_H
+		check(absf(wall_foot - D.DOOR_SIZE.y / 2.0) < 0.6, "%s: the hole's wall foot is on the door's floor line (%.1f)" % [id, wall_foot])
+		check(dd.door_sprite.position.y + r.end.y > D.DOOR_SIZE.y / 2.0 + 20.0, "%s: its debris lies out on the corridor floor" % id)
+		var img: Image = dd.door_sprite.texture.get_image()
+		var hole_at_floor: bool = img.get_pixel(int(D.HOLE_SIZE.x / 2), int(D.HOLE_WALL_H) - 3).a > 0.9 \
+			and img.get_pixel(int(D.HOLE_SIZE.x / 2), int(D.HOLE_WALL_H) - 3).v < 0.5
+		check(hole_at_floor, "%s: the hole opens down to the floor (walk-through)" % id)
 		dd.free()
 	door.open_door()
 	await get_tree().create_timer(D.DOOR_OPEN_TIME + 0.15).timeout
