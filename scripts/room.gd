@@ -750,7 +750,7 @@ func _burnt_breach(stage: int) -> void:
 			if cab != "":
 				target = WorldState.CABINET_KEY_PREFIX + cab   # the carrier burned: its key is in the ashes
 			if target != "":
-				WorldState.add_world_drop("022", Vector2(pos.x, ROOM_FEET_Y - WORLD_DROP.REST_LIFT), WorldState.current_floor,
+				WorldState.add_world_drop(WorldState.key_item_for(target), Vector2(pos.x, ROOM_FEET_Y - WORLD_DROP.REST_LIFT), WorldState.current_floor,
 					{"target_apartment": target, "scene": _own_scene_path(), "apartment_id": apartment_id})
 	if stage == WorldState.FIRE_BLAZE:
 		_spawn_burnt_corpses(1 + (hash(apartment_id) % 2))

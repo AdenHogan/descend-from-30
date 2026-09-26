@@ -111,7 +111,7 @@ func open(item_id: String, anchor_name: String, apartment_id: String) -> void:
 
 	if WorldState.is_anchor_a_key(apartment_id, anchor_name):
 		current_key_target = WorldState.get_anchor_key_target(apartment_id, anchor_name)
-		current_item_id = "022"
+		current_item_id = WorldState.key_item_for(current_key_target)
 
 	if WorldState.is_anchor_searched(apartment_id, anchor_name):
 		_reveal_item()

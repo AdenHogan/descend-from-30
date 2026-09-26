@@ -11,6 +11,7 @@ Out:  assets/rooms/living_room_{b,c,d}.png (+ _floor.png), scenes/Room_Modules/l
 import pixlib as PX
 import math
 import os
+import random
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
 from pixlib import persp
@@ -785,62 +786,160 @@ def e_floor(c):
     F.floor_planks(c, [hexc('5e4230'), hexc('563c2a'), hexc('644734')], hexc('36261a'))
 
 
+def _cabinet_floor(c):
+    # In front of a broken-into gun cabinet (owner round 20b: the old glass "too uniform… doesn't
+    # immediately register that it's been broken into"): glass scattered on the boards — thick right
+    # under the door, fanning out, every piece a different size, a few catching the light. Looted
+    # (someone else): its top drawer yanked out and dropped, its contents spilled.
+    if not (CAB_STATE.startswith('smashed') or CAB_STATE == 'looted'):
+        return
+    rng = random.Random(9031)
+    lt, mid, dk = hexc('e4f2f2'), hexc('9cbcc0'), hexc('5a7a80')
+    for i in range(34):
+        near = i < 20
+        x = int(rng.gauss(23, 7 if near else 11))
+        y = int(107 + (abs(rng.gauss(0, 1.6)) if near else rng.uniform(2, 10)))
+        x = max(5, min(47, x))
+        size = rng.choice((1, 1, 1, 2, 2, 3))
+        if size == 1:
+            c.put(x, y, rng.choice((mid, mid, dk, dk)))
+        elif size == 2:
+            c.put(x, y, mid); c.put(x + 1, y, lt if rng.random() < 0.25 else dk)
+        else:
+            c.poly([(x, y), (x + 3, y), (x + 1, y - 1)], mid); c.put(x + 1, y - 1, lt); c.put(x + 3, y, dk)
+    for (x, y) in ((14, 108), (27, 110), (35, 107)):                              # a couple of big pieces
+        c.poly([(x, y + 1), (x + 4, y + 1), (x + 2, y - 1)], mid); c.put(x + 2, y - 1, lt); c.hline(x, x + 4, y + 1, dk)
+    if CAB_STATE != 'looted':
+        return
+    import furn as F
+    wood, wood_dk, wood_lt = hexc('4e301e'), hexc('24160e'), hexc('6e4630')
+    x0, y0 = 13, 111                                                               # the drawer, dropped face-up
+    c.shadow(x0 + 11, y0 + 5, 13, 1, 110)
+    c.rect(x0, y0, x0 + 22, y0 + 4, wood); c.hline(x0, x0 + 22, y0, wood_lt)      # its front
+    c.rect(x0 + 9, y0 + 2, x0 + 13, y0 + 3, F.BRASS)
+    c.poly([(x0 + 1, y0), (x0 + 21, y0), (x0 + 19, y0 - 3), (x0 + 3, y0 - 3)], hexc('1e140c'))   # inside, seen from above
+    c.hline(x0 + 3, x0 + 19, y0 - 3, wood_lt)
+    c.rect(x0 + 5, y0 - 2, x0 + 7, y0 - 1, hexc('e0dccc'))                        # papers left in it
+    for (px, py) in ((x0 + 25, y0 + 2), (x0 + 27, y0 + 3), (x0 - 3, y0 + 3), (x0 + 24, y0 + 4)):
+        c.put(px, py, hexc('c8a24a')); c.put(px + 1, py, hexc('8a6a2a'))          # cartridges rolled out
+    c.rect(x0 + 26, y0 - 1, x0 + 29, y0 + 1, hexc('3a4a2a')); c.hline(x0 + 26, x0 + 29, y0 - 1, hexc('5a6a3a'))  # an empty ammo box
+
+
 def e_furniture(c):
     import furn as F
     FX = 160
 
     def _gun_cabinet(c):
-        # THE GUN CABINET (owner round 20 — it's a quest now): the long guns are GONE (someone took
-        # them and ran, locking it behind them — the racks' cradles bare, paler wood where they hung),
-        # but a HANDGUN still lies on the shelf behind the glass, and the brass keyhole says it's
-        # locked. CAB_STATE draws the other looks (open with its key / smashed with a crowbar, full or
-        # empty) — rendered as overlays by _cabinet_overlays(); scripts/gun_cabinet_art.gd shows them.
-        wood, wood_dk, inside = hexc('4a2e1e'), hexc('24160e'), hexc('2a1d14')
-        brass, glass, glint = F.BRASS, hexc('9ab0b0', 90), hexc('c8dcdc')
-        empty = CAB_STATE.endswith('_empty')
-        smashed = CAB_STATE.startswith('smashed')
-        opened = CAB_STATE.startswith('open')
-        c.shadow(26, 101, 20, 2, 100)
-        c.box(8, 22, 44, 99, wood, wood_dk)
-        c.rect(11, 25, 41, 80, inside)
-        for gx in (15, 22, 29, 36):                                               # the racks, bare
-            c.vline(gx, 34, 70, hexc('33241a'))                                   # paler wood where one hung
-            c.rect(gx - 1, 31, gx + 1, 32, hexc('5a3a26'))                        # its top clip
-            c.rect(gx - 1, 64, gx + 1, 65, hexc('5a3a26'))                        # its cradle
-        c.rect(12, 71, 40, 72, hexc('5a3a26')); c.hline(12, 40, 71, hexc('7a5236'))   # the shelf
-        c.rect(19, 66, 39, 70, hexc('6a1e24')); c.hline(19, 39, 66, hexc('84303a'))   # a felt-lined gun rest
-        if empty:
-            c.rect(22, 67, 36, 69, hexc('7c2a32'))                                # unfaded felt where it lay
+        # THE GUN CABINET (owner round 20b: the racks read as "a trophy case for billiards sticks").
+        # A walnut cabinet, glazed upper door: three LONG GUNS stand in the rack — a scoped rifle, a
+        # double-barrel shotgun, a lever-action — each a real silhouette (steel barrel, action, the
+        # wooden stock swelling to the butt), a steel cable padlocked through their trigger guards
+        # (why you can't take them); under them a HANDGUN on a felt shelf — the prize; the brass
+        # keyhole on the door. The glass has REFLECTIONS (two slanting streaks), not a dot pattern.
+        # CAB_STATE draws the other looks (rendered as overlays by _cabinet_overlays()).
+        wood, wood_dk, wood_lt = hexc('4e301e'), hexc('24160e'), hexc('6e4630')
+        felt, felt_dk = hexc('2c3a2c'), hexc('1e281e')
+        steel, steel_lt, steel_dk = hexc('3c3e44'), hexc('7a7e86'), hexc('1c1d20')
+        stock, stock_lt, stock_dk = hexc('8a5530'), hexc('b57a48'), hexc('5a341c')
+        brass = F.BRASS
+        st = CAB_STATE
+        looted = st == 'looted'
+        smashed = st.startswith('smashed') or looted
+        opened = st.startswith('open')
+        gun_gone = st.endswith('_empty') or looted
+        c.shadow(26, 101, 21, 2, 110)
+        c.box(8, 25, 44, 99, wood, wood_dk)                                        # the carcass
+        c.rect(7, 22, 45, 25, wood_lt); c.hline(7, 45, 22, hexc('8a5a3a'))         # its cornice
+        c.hline(7, 45, 25, wood_dk)
+        c.rect(12, 28, 40, 76, felt)                                               # the felt-lined back
+        for x in range(13, 40, 4):
+            c.vline(x, 29, 75, felt_dk)
+        c.rect(12, 33, 40, 34, wood_lt); c.hline(12, 40, 34, wood_dk)              # the barrel rest
+        c.rect(12, 63, 40, 65, wood_lt); c.hline(12, 40, 65, wood_dk)              # the butt cradle
+
+        def rifle(cx, kind):
+            if kind == 'shotgun':                                                   # two barrels
+                c.vline(cx, 31, 50, steel); c.vline(cx + 1, 31, 50, steel_lt)
+                c.rect(cx - 1, 50, cx + 1, 53, steel)                              # the break action
+            else:
+                c.vline(cx, 30, 51, steel); c.put(cx, 30, steel_lt)                # the barrel
+                c.rect(cx - 1, 50, cx + 1, 54, steel)                              # the action
+                c.put(cx + 2, 52, steel_lt)                                        # bolt handle
+            if kind == 'scope':
+                c.rect(cx - 3, 42, cx - 2, 51, steel_dk); c.vline(cx - 3, 43, 50, steel_lt)
+                c.rect(cx - 3, 41, cx - 2, 41, steel); c.rect(cx - 3, 52, cx - 2, 52, steel)
+            if kind == 'lever':
+                c.vline(cx + 2, 54, 57, steel_lt); c.put(cx + 1, 58, steel_lt)     # the lever loop
+            else:
+                c.put(cx + 2, 55, steel_dk); c.put(cx + 2, 56, steel_dk)            # the trigger guard
+            c.vline(cx - 1, 34, 49, stock_dk)                                      # the fore-end under the barrel
+            for y in range(54, 63):                                                # the stock: wrist, then the butt
+                w = 1 if y < 57 else (2 if y < 60 else 3)
+                c.hline(cx - 1, cx - 1 + w, y, stock)
+                c.put(cx - 1, y, stock_lt); c.put(cx - 1 + w, y, stock_dk)
+            c.hline(cx - 1, cx + 2, 62, stock_dk)                                  # the butt plate
+        if not looted:
+            rifle(17, 'scope')
+            rifle(26, 'shotgun')
+            rifle(34, 'lever')
+            c.hline(13, 39, 56, hexc('9aa0a8'))                                    # the lock cable through the guards
+            c.rect(38, 56, 40, 58, brass); c.put(39, 55, hexc('9aa0a8'))           # its padlock
         else:
-            gm, gd, gl = hexc('3a3a40'), hexc('1e1e22'), hexc('9a9aa4')          # the handgun, side-on:
-            c.rect(22, 66, 36, 67, gm); c.hline(22, 36, 66, gl)                   # its slide,
-            c.put(36, 67, gd); c.hline(23, 34, 67, hexc('2a2a30'))               # muzzle, serrations
-            c.rect(22, 68, 25, 69, hexc('4a3020')); c.put(22, 70, hexc('4a3020'))   # the grip (wood),
-            c.rect(26, 68, 29, 68, gd); c.put(29, 69, gd); c.put(27, 69, gd)      # the trigger guard
-            c.put(33, 66, hexc('d8d8e0'))                                         # a glint
+            for cx in (17, 26, 34):                                                # pale felt where each stood
+                c.vline(cx, 31, 51, hexc('4c604c')); c.rect(cx - 1, 54, cx + 1, 62, hexc('4c604c'))
+                c.put(cx + 1, 30, hexc('4c604c'))
+            c.line(13, 56, 16, 60, hexc('9aa0a8')); c.line(39, 56, 37, 61, hexc('9aa0a8'))   # the cable, cut
+        c.rect(12, 67, 40, 68, hexc('6a4a32')); c.hline(12, 40, 67, hexc('8a6242'))   # the handgun shelf
+        c.rect(17, 69, 35, 75, hexc('6a1e24')); c.hline(17, 35, 69, hexc('84303a'))   # its felt rest
+        if gun_gone:
+            c.rect(20, 71, 32, 73, hexc('7c2a32'))                                 # unfaded where it lay
+        else:
+            gm, gd, gl = hexc('3a3a40'), hexc('1a1a1e'), hexc('a6a8b2')           # the handgun
+            c.rect(20, 70, 32, 71, gm); c.hline(20, 32, 70, gl); c.put(32, 71, gd)
+            c.rect(20, 72, 22, 74, hexc('4a3020')); c.put(20, 72, hexc('6a4a30'))  # its grip
+            c.rect(23, 72, 26, 72, gd); c.put(26, 73, gd)                          # the trigger guard
+        # the door frame: stiles + rails round the glass
+        for (x0, x1) in ((10, 11), (41, 42)):
+            c.rect(x0, 26, x1, 78, wood_lt)
+        c.rect(10, 26, 42, 27, wood_lt); c.rect(10, 77, 42, 78, wood_lt)
+        c.hline(10, 42, 26, hexc('8a5a3a'))
         if smashed:
-            # the glass gone but for jagged teeth round the frame, the lock stile splintered
-            for (x0, y0, x1, y1, x2, y2) in ((11, 25, 17, 25, 11, 33), (41, 25, 34, 25, 41, 31),
-                                            (11, 80, 16, 80, 11, 73), (41, 80, 37, 80, 41, 70),
-                                            (24, 25, 28, 25, 26, 29)):
-                c.poly([(x0, y0), (x1, y1), (x2, y2)], glass)
-                c.put(x0, y0, glint)
-            c.rect(9, 46, 10, 56, hexc('a0784a')); c.put(9, 45, hexc('a0784a'))  # torn raw wood
-            c.put(10, 50, brass)                                                  # the lock, bent out
+            # what's left of the glass: jagged pieces still in the frame, cracked, of all sizes
+            sh, sh_lt = hexc('a8c4c8', 110), hexc('e0f0f0')
+            for pts in (((12, 28), (21, 28), (12, 39)),                            # a big corner piece
+                        ((12, 76), (12, 66), (15, 72), (18, 76)),
+                        ((40, 28), (36, 28), (38, 31), (40, 36)),                  # a small tooth
+                        ((40, 76), (40, 58), (38, 66), (35, 76)),                  # a long sliver
+                        ((26, 28), (31, 28), (28, 34))):
+                c.poly(list(pts), sh)
+                c.put(pts[0][0], pts[0][1], sh_lt)
+            c.line(13, 30, 18, 33, sh_lt); c.line(14, 69, 16, 73, sh_lt)           # cracks catching the light
+            c.rect(10, 46, 11, 58, hexc('b08a5a'))                                 # the stile splintered at the lock
+            c.put(9, 47, hexc('b08a5a')); c.put(9, 55, hexc('b08a5a')); c.put(12, 51, hexc('d0aa7a'))
+            c.put(10, 52, brass)
         else:
-            for y in range(25, 81):
-                for x in range(11, 42):
-                    if not opened and (x + y) % 9 == 0:
-                        c.put(x, y, glass)                                        # glass sheen
-            c.rect(9, 49, 10, 54, brass); c.put(10, 51, hexc('1a120c'))           # the keyhole plate
+            if not opened:                                                        # intact glass: reflections
+                for k in range(0, 24):                                             # two clean slanting streaks
+                    x, y = 13 + k, 75 - 2 * k
+                    c.put(x, y, hexc('dcecec', 75)); c.put(x, y - 1, hexc('dcecec', 75))
+                    c.put(x + 1, y, hexc('dcecec', 35))
+                    if 6 <= k <= 20:
+                        c.put(x + 5, y - 1, hexc('dcecec', 45)); c.put(x + 5, y - 2, hexc('dcecec', 45))
+                c.hline(12, 16, 28, hexc('dcecec', 90)); c.vline(12, 28, 33, hexc('dcecec', 90))
+            c.rect(10, 50, 11, 54, brass); c.put(11, 52, hexc('1a120c'))           # the keyhole
         if opened:
             # the glazed door swung out on its right-hand hinge, seen nearly edge-on
-            c.poly([(44, 23), (49, 22), (49, 83), (44, 81)], wood)
-            c.poly([(45, 25), (48, 24), (48, 79), (45, 78)], hexc('5a7070'))
-            c.line(46, 30, 46, 40, glint)
-            c.put(49, 50, brass)
-        c.box(11, 83, 41, 96, wood, wood_dk)
-        c.rect(24, 88, 28, 89, brass)
+            c.poly([(44, 25), (49, 23), (49, 81), (44, 79)], wood_lt)
+            c.poly([(45, 28), (48, 27), (48, 77), (45, 76)], hexc('5a7272'))
+            c.line(46, 33, 46, 44, hexc('dcecec')); c.put(49, 51, brass)
+        # the lower cupboard: two drawers
+        if looted:
+            c.rect(11, 81, 41, 88, hexc('140c08'))                                 # the top drawer's gone: a hole
+            c.box(11, 90, 41, 96, wood, wood_dk); c.rect(24, 92, 28, 93, brass)
+        else:
+            for (y0, y1) in ((81, 88), (90, 96)):
+                c.box(11, y0, 41, y1, wood, wood_dk)
+                c.rect(24, (y0 + y1) // 2, 28, (y0 + y1) // 2 + 1, brass)
 
     def _fireplace(c):
         # a stone fireplace against the wall, SYMMETRIC about x 128 (owner round 13): hearth, stone
@@ -909,9 +1008,7 @@ def e_furniture(c):
 
     # with depth (owner round 14): the cabinet 3px left of where it stood flat (clear of window L)
     setback(c, lambda l: lr.shifted(l, _gun_cabinet, 0, -3), depth=5, top=22, x_range=(5, 41), rake=1.0)
-    if CAB_STATE.startswith('smashed'):                                          # its glass on the floor
-        for (gx, gy) in ((10, 106), (14, 108), (19, 105), (23, 109), (27, 107), (31, 106), (35, 109), (17, 111)):
-            c.put(gx, gy, hexc('c8dcdc')); c.put(gx + 1, gy, hexc('7a9090'))
+    _cabinet_floor(c)
     setback(c, _fireplace, depth=4, top=52, x_range=(FX - 30, FX + 30))
     setback(c, _basket, depth=3, top=86, x_range=(FX - 48, FX - 33))
     setback(c, _poker, depth=3)
@@ -993,7 +1090,7 @@ VARIANTS = {
 }
 
 
-CAB_STATES = ('open', 'smashed', 'open_empty', 'smashed_empty')
+CAB_STATES = ('open', 'smashed', 'open_empty', 'smashed_empty', 'looted')
 CAB_BOX = (0, 10, 50, 120)        # where the cabinet's looks differ (clear of window box L, x >= 50)
 
 

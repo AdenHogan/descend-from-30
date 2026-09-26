@@ -890,10 +890,10 @@ func _drop_key() -> void:
 		# Full pockets: the key lands LIVE on the floor by the corpse (it was only registered, mid-air,
 		# with no pickup — invisible until re-entry; the tutorial's 3002 key gates the stairs).
 		var feet := _drop_feet_y()
-		var dk: String = WorldState.add_world_drop("022", Vector2(global_position.x, feet - WORLD_DROP.REST_LIFT),
+		var dk: String = WorldState.add_world_drop(WorldState.key_item_for(key_target_apartment), Vector2(global_position.x, feet - WORLD_DROP.REST_LIFT),
 			WorldState.current_floor, {"target_apartment": key_target_apartment, "scene": WorldState.world_scene_of(self)})
 		var kd = preload("res://scenes/world_drop.tscn").instantiate()
-		kd.item_id = "022"
+		kd.item_id = WorldState.key_item_for(key_target_apartment)
 		kd.target_apartment = key_target_apartment
 		kd.drop_key = dk
 		get_parent().add_child(kd)

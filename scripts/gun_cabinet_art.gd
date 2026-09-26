@@ -3,7 +3,8 @@ extends Sprite2D
 # The GUN CABINET's state, drawn over living room E's art (owner round 20). The module art shows it
 # LOCKED (its glass door shut, a handgun on the shelf inside, the brass lock); this sprite lays the
 # other looks over it, cut to just the pixels that change (tools/art/living_room_variants.py writes
-# them): open (its key), smashed (a crowbar, or someone else in runs 2/3), each full or empty — and
+# them): open (its key) / smashed (a crowbar), each full or empty, and LOOTED (someone else got there
+# first in runs 2/3: glass smashed, the long guns gone, a drawer dumped on the floor) — and
 # the afternoon / night versions, so it wears the same damage as the rest of the room.
 
 const DIR := "res://assets/rooms/"

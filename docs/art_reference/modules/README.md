@@ -407,10 +407,14 @@ space")**: a surface shows what HAPPENED on it, not a set of objects on display.
 - The washing machine's wash (bathroom D, `bathroom.machine_laundry3d`) SLUMPS in the bottom of the drum:
   it fills the drum up to a lumpy line, follows the drum's curve (darker where it presses on the steel),
   casts a shadow on the drum above it, a red sock in the load, and a sleeve hauled out over the seal.
-- LIVING ROOM E's GUN CABINET is a quest now (CLAUDE.md "THE GUN CABINET"): the long-gun racks are
-  empty (someone took them and ran, locking it behind them), a HANDGUN lies on a felt rest behind the
-  glass and a brass keyhole says it's locked. `CAB_STATE` draws its other looks (open with its key,
-  smashed with a crowbar or by someone else, full or empty); `_cabinet_overlays()` renders each through
+- LIVING ROOM E's GUN CABINET is a quest now (CLAUDE.md "THE GUN CABINET"). Round 20b redraw (empty
+  racks read as "a trophy case for billiards sticks"): three long guns with real silhouettes (steel
+  barrel + action, a wooden stock swelling to the butt; scoped rifle / double-barrel / lever-action)
+  padlocked on a cable, a HANDGUN on a felt shelf under them, glass with two slanting reflections (a
+  dot pattern read as a chain-link), a brass keyhole. `CAB_STATE` draws its other looks (open with
+  its key, smashed with a crowbar — full or empty — and LOOTED: long guns gone, pale felt where they
+  stood, cable cut, a drawer dumped with cartridges; `_cabinet_floor` scatters the glass on the boards
+  irregularly, thick at the door, fanning out); `_cabinet_overlays()` renders each through
   the same pipeline (run 1 + the run-2/3 looks) and keeps only the pixels that differ inside
   `CAB_BOX` → `assets/rooms/living_room_e_cabinet_<state>[_r2|_r3].png` (`scripts/gun_cabinet_art.gd`).
 - LIVE DETAILS now have five kinds (`pixlib.anim(x, y, kind, fall, color, w, h)` → `module_anim.gd`):

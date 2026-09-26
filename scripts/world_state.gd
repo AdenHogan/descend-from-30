@@ -3958,6 +3958,7 @@ func get_breached_room_enemies(apartment_id: String, min_x: float, max_x: float,
 const GUN_CABINET_ANCHOR := "anchor_living_gun_cabinet"
 const GUN_CABINET_SCENE := "res://scenes/Room_Modules/living_room_e.tscn"
 const CABINET_KEY_PREFIX := "cab:"
+const CABINET_KEY_ITEM := "038"                          # the Gun Cabinet Key (its own item + icon)
 const CABINET_WEAPON := "004"                              # the Gun
 const CABINET_LEVEL := 3
 const CABINET_ROUNDS := 6                                  # a few left in the magazine
@@ -4012,7 +4013,8 @@ func gun_cabinet_looted_by_others(apartment_id: String) -> bool:
 	return false
 
 
-# "none" | "locked" | "open" (key) | "smashed" (crowbar) | "open_empty" | "smashed_empty".
+# "none" | "locked" | "open" (key) | "smashed" (crowbar) | "open_empty" | "smashed_empty" (you took
+# the gun) | "looted" (someone else got there first: smashed, the long guns gone too, a drawer dumped).
 func gun_cabinet_state(apartment_id: String) -> String:
 	if not has_gun_cabinet(apartment_id):
 		return "none"
@@ -4022,7 +4024,7 @@ func gun_cabinet_state(apartment_id: String) -> String:
 	if bool(rec.get("taken", false)):
 		return base + "_empty"
 	if gun_cabinet_looted_by_others(apartment_id):
-		return base + "_empty"
+		return "looted"
 	if how == "":
 		return "locked"
 	return base
@@ -4168,6 +4170,11 @@ func key_display(target: String) -> String:
 	return "Key — Apt " + target
 
 
+# Which item a key is: a cabinet key (target "cab:<apt>") is the Gun Cabinet Key, else the Apartment Key.
+func key_item_for(target: String) -> String:
+	return CABINET_KEY_ITEM if target.begins_with(CABINET_KEY_PREFIX) else "022"
+
+
 # The short tag on the key's inventory slot.
 func key_tag(target: String) -> String:
 	if target.begins_with(CABINET_KEY_PREFIX):
@@ -4224,7 +4231,7 @@ func add_key_to_inventory(target_apartment: String) -> bool:
 	if inventory.size() >= get_inventory_slots():
 		return false
 	var instance = ItemInstance.new()
-	instance.setup_key("022", target_apartment)
+	instance.setup_key(key_item_for(target_apartment), target_apartment)
 	inventory.append(instance)
 	return true
 

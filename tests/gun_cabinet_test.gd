@@ -154,6 +154,19 @@ func _test_looted_by_others() -> void:
 			monotonic = false
 	WorldState.current_run = saved_run
 	check(not run1, "run 1: nobody has been at a cabinet yet")
+	# a cabinet someone else got to reads LOOTED (its own look), not as if you'd opened it
+	var found := ""
+	for s2 in range(0, 60):
+		var apt2 := str(5 + s2 % 20) + "0" + str(1 + s2 % 5)
+		WorldState.current_run = 3
+		if WorldState.has_gun_cabinet(apt2) and WorldState.gun_cabinet_looted_by_others(apt2):
+			found = apt2
+			break
+	if found != "":
+		WorldState.gun_cabinets.erase(found)
+		check(WorldState.gun_cabinet_state(found) == "looted", "someone else's break-in reads 'looted'")
+		check(not WorldState.gun_cabinet_holds_weapon(found), "and it's empty")
+	WorldState.current_run = saved_run
 	check(any2 and any3, "runs 2/3: some cabinets were broken into first")
 	check(monotonic, "once broken into, it stays broken into")
 
@@ -163,8 +176,19 @@ func _test_key_labels() -> void:
 	check(WorldState.key_display(t) == "Gun cabinet key — Apt " + cab, "the key names the cabinet")
 	check(WorldState.key_display(cab) == "Key — Apt " + cab, "a door key reads as before")
 	check(WorldState.key_tag(t) == "C" + cab, "its slot tag")
+	# its OWN item + icon (owner round 20b), never the apartment key
+	check(ItemData.get_item("038").get("name", "") == "Gun Cabinet Key", "item 038 is the Gun Cabinet Key")
+	check(ItemData.get_item("038").get("is_key", false), "it's a key")
+	check(ItemData.get_texture("038") != null, "it has its icon in assets/Items")
+	check(WorldState.key_item_for(t) == "038" and WorldState.key_item_for(cab) == "022", "cabinet key = 038, door key = 022")
+	WorldState.inventory.clear()
+	WorldState.add_key_to_inventory(t)
+	WorldState.add_key_to_inventory(cab)
+	check(WorldState.inventory.size() == 2 and WorldState.inventory[0].item_id == "038" and WorldState.inventory[1].item_id == "022",
+		"picked up as 038 / 022")
+	WorldState.inventory.clear()
 	var inst := ItemInstance.new()
-	inst.setup_key("022", t)
+	inst.setup_key("038", t)
 	check(inst.get_display_name() == "Gun cabinet key — Apt " + cab, "the item's name")
 	check(inst.target_apartment != cab, "it never opens the flat's front door")
 
@@ -205,7 +229,7 @@ func _test_live_rooms() -> void:
 	# every look has its overlay, every run
 	var GA = load("res://scripts/gun_cabinet_art.gd")
 	var all_ok := true
-	for st in ["open", "smashed", "open_empty", "smashed_empty"]:
+	for st in ["open", "smashed", "open_empty", "smashed_empty", "looted"]:
 		for r in [1, 2, 3]:
 			var p: String = GA.texture_for(st, r)
 			if p == "" or (r > 1 and not p.ends_with("_r%d.png" % r)):
@@ -243,5 +267,6 @@ func _test_live_rooms() -> void:
 		check(sp.max_hp % 2 == 0 and sp.max_hp >= 2 and sp.current_hp == sp.max_hp, "double HP (%d)" % sp.max_hp)
 		sp._drop_key()
 		check(WorldState.has_cabinet_key(cab), "killing it gives the cabinet's key")
+		check(WorldState.inventory.size() > 0 and WorldState.inventory[0].item_id == "038", "as the Gun Cabinet Key item")
 	kroom.queue_free()
 	await get_tree().process_frame

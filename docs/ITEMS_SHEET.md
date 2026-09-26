@@ -93,3 +93,8 @@ Spawn weights per room module (0 = never spawns there):
 >   barricaded stairwell; **not** a weapon. See `docs/STAIR_BARRICADES.md`.
 > - **036 Fire Extinguisher** (`is_tool, is_extinguisher`, 3 uses) — groundwork
 >   for the future fire hazard (put out a stairwell blaze). Not yet functional.
+> - **037 Scrap Bag** (`is_scrap`) — see `docs/SCRAP_UPGRADES.md`.
+> - **038 Gun Cabinet Key** (`is_key`, single use, never spawns in a pool) — carried by the tough
+>   spitter in a boss-less breach room; opens its floor's gun cabinet (target `cab:<apt>`, so it
+>   never opens a front door). Icon: a placeholder card (`tools/art/item_card.py`). Also opens with
+>   a Crowbar (035). See CLAUDE.md "THE GUN CABINET".

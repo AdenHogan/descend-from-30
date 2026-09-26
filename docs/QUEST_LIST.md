@@ -169,5 +169,7 @@ The key is on a tough Spitter (double health, double damage) in a breach room on
 no big boss there. Crouch under its spits to get close.
 
 - **Reward:** a guaranteed Lv3 Gun (two perks chosen, four tuning points free for the workbench).
-- **Runs 2/3:** someone may have broken in first — smashed glass, empty rest.
+- **Runs 2/3:** someone may have broken in first — smashed glass, the long guns gone, a drawer
+  dumped on the floor, the handgun's felt rest empty.
+- **The key:** its own item, 038 Gun Cabinet Key.
 - Implementation: CLAUDE.md "THE GUN CABINET"; `tests/gun_cabinet_test`.

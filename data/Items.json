@@ -295,6 +295,14 @@
       "PROPERTY_DURABILITY": "single use",
       "PROPERTY_SPAWN_RARITY": 3,
       "PROPERTY_WEIGHT_SIZE": null
+    },
+    "038": {
+      "ITEM_NAME": "Gun Cabinet Key",
+      "ITEM_DESCRIPTION": "A small brass key on a tag. Too small for a front door. Somebody kept something locked away.",
+      "VALUE_PROPERTY": "is_key",
+      "PROPERTY_DURABILITY": "single use",
+      "PROPERTY_SPAWN_RARITY": null,
+      "PROPERTY_WEIGHT_SIZE": null
     }
   },
   "ROOM_SPAWN_POOLS": {

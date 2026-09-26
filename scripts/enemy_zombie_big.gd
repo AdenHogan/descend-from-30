@@ -364,10 +364,10 @@ func _drop_key() -> void:
 		var feet := _drop_feet_y()
 		var rest := Vector2(global_position.x, feet - WORLD_DROP.REST_LIFT)
 		var scene_path: String = WorldState.world_scene_of(self)
-		var dk: String = WorldState.add_world_drop("022", rest, WorldState.current_floor,
+		var dk: String = WorldState.add_world_drop(WorldState.key_item_for(key_target_apartment), rest, WorldState.current_floor,
 			{"target_apartment": key_target_apartment, "scene": scene_path})
 		var kd = preload("res://scenes/world_drop.tscn").instantiate()
-		kd.item_id = "022"
+		kd.item_id = WorldState.key_item_for(key_target_apartment)
 		kd.target_apartment = key_target_apartment
 		kd.drop_key = dk
 		get_parent().add_child(kd)
