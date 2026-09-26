@@ -17,6 +17,7 @@ Nodes sit on the furniture; most are reachable from the walking line (front) —
 against the back wall are back-plane ('bp').
 """
 import os
+import random
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
 from pixlib import persp
@@ -267,7 +268,7 @@ def shower_corner(c, x0, x1, top, tile, grout, tray=PORC, tray_out=PORC_OUT):
     c.rect(x0, top, x1, 99, tile)
     for y in range(top + 4, 99, 8):
         c.hline(x0, x1, y, grout)
-    pbox(c, x0 - 2, 95, x1 - 5, 100, 0, 8, tray, shade(tray, 1.08), shade(tray, 0.75), tray_out)
+    pbox(c, x0 - 2, 97, x1 - 5, 100, 0, 8, tray, shade(tray, 1.08), shade(tray, 0.75), tray_out)
     c.rect(x1 - 6, top + 6, x1 - 5, top + 20, CHROME_DK)
     c.rect(x1 - 12, top + 6, x1 - 6, top + 7, CHROME_DK)
     c.rect(x1 - 15, top + 8, x1 - 10, top + 9, CHROME)
@@ -387,7 +388,8 @@ def a_build(c):
     for rx in range(x0, x1 + 1, 6):
         c.put(rx, 23, CHROME)
     cur = hexc('7fa3a0')
-    pleated_curtain(c, x0 - 1, x0 + 13, 24, rim - 3, cur, period=3)          # bunched at the left end
+    pleated_curtain(c, x0 - 1, x0 + 13, 24, rim + 8, cur, period=3)          # bunched at the left end, its
+                                                                                # hem down inside the tub
     pleated_curtain(c, x0 + 14, x0 + 18, 24, 38, shade(cur, 0.9), period=4, rings=False, wave=0.5)
     c.line(x0 + 14, 38, x0 + 18, 33, shade(cur, 0.7))                        # its torn edge
     # the taps: a pipe down the wall to a gooseneck over the right end + a hand shower
@@ -807,17 +809,45 @@ D_TRIM = hexc('7a8480')
 D_PAINT = hexc('8e948a')
 
 
+def mould_bloom(c, sx, sy, rx, ry, seed=1, up=False):
+    """Black mould spreading from a source point: dense and dark where it starts, thinning out in
+    ragged speckled fingers — never a rectangle."""
+    import math as _m
+    rng = random.Random(seed)
+    for _ in range(int(rx * ry * 0.9)):
+        a = rng.uniform(0, _m.pi)
+        r = rng.random() ** 1.6
+        dx = _m.cos(a) * rx * r * (1 if rng.random() < 0.5 else -1)
+        dy = abs(_m.sin(a)) * ry * r * (-1 if up else 1)
+        x, y = int(sx + dx), int(sy + dy)
+        dens = 1 - r
+        col = MOULD if dens > 0.45 else MOULD[:3] + (int(90 + 120 * dens),)
+        c.put(x, y, col)
+        if dens > 0.6 and rng.random() < 0.5:
+            c.put(x + 1, y, col)
+
+
 def d_wall(c):
     c.rect(0, 0, W - 1, 93, D_PAINT)
     crown(c, hexc('5e645c'), hexc('747a70'))
     tiled_wall(c, 30, D_TILE, D_TILE_DK, D_GROUT, D_TRIM, size=12)
     # heavy black mould: blooms up from the skirting and down from the ceiling
-    c.dither(0, 6, 60, 26, MOULD, 0.5, pattern='random')
-    c.dither(0, 70, 40, 93, MOULD, 0.35, pattern='random')
-    c.dither(150, 6, 226, 16, MOULD, 0.4, pattern='random')
-    c.dither(272, 60, W - 1, 93, MOULD, 0.45, pattern='random')
-    for x in (104, 186, 214):                                            # rust runs from pipes
-        c.line(x, 30, x + 1, 60, RUST)
+    # (owner round 17: the square blocks of dither read as noise) mould that GROWS: soft blooms
+    # spreading out of the corners and down from the ceiling, densest at their source
+    mould_bloom(c, 4, 8, 58, 22, seed=1)
+    mould_bloom(c, 2, 92, 40, 24, seed=2, up=True)
+    mould_bloom(c, 188, 7, 40, 10, seed=3)
+    mould_bloom(c, W - 3, 92, 46, 34, seed=4, up=True)
+    # the cold-water pipe along the top of the tiles; rust weeps down from its joints
+    c.hline(96, 232, 27, hexc('6a706c'))
+    c.hline(96, 232, 28, hexc('4a504c'))
+    for x in (104, 186, 214):
+        c.rect(x - 1, 26, x + 1, 29, hexc('5a605c'))                   # a joint / bracket
+        for k, y in enumerate(range(30, 58)):
+            a_ = int(170 * (1 - k / 28.0))
+            c.put(x, y, RUST[:3] + (a_,))
+            if k < 14:
+                c.put(x + 1, y, RUST[:3] + (a_ // 2,))
 
 
 @persp
@@ -847,11 +877,12 @@ def curtained_tub(c, x0, x1, rim):
     fl, fr, fbl = f['fl'], f['fr'], f['fbl']
     c.hline(fl[0] + 1, fr[0] - 1, fl[1] + 1, PORC_LT)
     cur = hexc('c9c48a', 235)
-    rt = int(round(30 * (100 + d) / 100.0))                              # the rail at the front
+    RAIL = 14                                                            # near the ceiling (owner round 17:
+    rt = int(round(RAIL * (100 + d) / 100.0))                            # keep the curtain long)
     for wx in (wx0 + 12, wx1):                                           # its ends run back to the wall
-        a_, b_ = _ipt(pp(wx, 30, 0)), _ipt(pp(wx, 30, d))
+        a_, b_ = _ipt(pp(wx, RAIL, 0)), _ipt(pp(wx, RAIL, d))
         c.line(a_[0], a_[1], b_[0], b_[1], CHROME_DK)
-    left = _ipt(pp(wx0 + 12, 30, d))[0]
+    left = _ipt(pp(wx0 + 12, RAIL, d))[0]
     c.hline(left - 2, fr[0] + 2, rt, CHROME_DK)
     hem = fl[1] + 1                                                      # it hangs INTO the tub: the panel shows
     pleated_curtain(c, left, fr[0], rt + 1, hem, cur, period=7)
@@ -860,7 +891,11 @@ def curtained_tub(c, x0, x1, rim):
         c.rect(fx, fy, fx + 4, fy + 3, hexc('d9b43a'))
         c.put(fx + 5, fy + 1, hexc('c06a2a'))
     # one corner pulled aside by a hand: a dark gap into the tub, the curtain gathered back
-    c.poly([(left, rt + 2), (left + 5, rt + 2), (left + 9, hem), (left, hem)], hexc('1c1a16'))
+    # (the tiled wall in the curtain's shadow — not a black hole)
+    c.poly([(left, rt + 2), (left + 5, rt + 2), (left + 9, hem), (left, hem)], hexc('4a524e'))
+    for gy in range(rt + 8, hem - 2, 9):                                 # grout, in shadow
+        c.hline(left, left + 4 + (gy - rt) * 4 // max(1, hem - rt), gy, hexc('3a403d'))
+    c.line(left + 5, rt + 2, left + 9, hem, hexc('2e3330'))              # the curtain's own shadow edge
     pleated_curtain(c, left - 3, left + 1, rt + 1, hem - 2, shade(cur, 0.92), period=2, rings=False, wave=0.5)
     c.line(left + 12, rt + 40, left + 18, rt + 58, BLOOD)                # a smear down the plastic
     c.line(left + 14, rt + 40, left + 19, rt + 54, BLOOD)
@@ -1035,7 +1070,7 @@ def e_build(c):
     x0, x1, rim = 110, 186, 82
     c.hline(x0 - 2, x1 + 2, 24, CHROME_DK)
     cur = hexc('efe8d8')
-    pleated_curtain(c, x1 - 12, x1 + 2, 25, rim - 2, cur, period=3)
+    pleated_curtain(c, x1 - 12, x1 + 2, 25, rim + 8, cur, period=3)          # hem inside the tub
     for (x, y) in ((x1 - 8, 36), (x1 - 3, 50), (x1 - 7, 64)):                   # little pink fish on it
         c.rect(x, y, x + 3, y + 1, PINK_DK)
     f, wx0, wx1 = bath_box(c, x0, x1, rim, 12, E_TILE, PINK_LT, shade(E_TILE, 0.72), PINK_OUT, hexc('b07a86'))

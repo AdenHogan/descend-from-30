@@ -140,10 +140,11 @@ def floor(c):
 
 def picture(c):
     # a small framed photo hanging a little askew above the bed (between the window boxes)
-    c.box(128, 36, 150, 54, FRAME, FRAME_DK)
-    c.rect(131, 39, 147, 51, PHOTO)
-    c.rect(134, 44, 137, 51, shade(PHOTO, 0.7))       # two figures, faded
-    c.rect(141, 43, 144, 51, shade(PHOTO, 0.75))
+    import furn as F
+    F.photo(c, 130, 38, 148, 52, [(hexc('d8b89a'), hexc('4a3424'), hexc('5a7aa0'), 10),
+                                   (hexc('e0c0a0'), hexc('a8783a'), hexc('b0453a'), 9),
+                                   (hexc('e0c0a0'), hexc('6a4a2a'), hexc('d9c24a'), 5)],
+            bg=hexc('b8d0dc'), ground=hexc('c9b48a'), frame=FRAME)            # a family at the seaside
     c.line(139, 30, 128, 36, FRAME_DK)                  # the string
     c.line(139, 30, 150, 36, FRAME_DK)
     # a pale rectangle where a second picture used to hang

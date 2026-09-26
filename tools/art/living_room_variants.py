@@ -532,12 +532,28 @@ def d_wall(c):
 
 
 def d_decor(c):
-    # oval portraits (one slashed)
-    for (cx_, col) in ((122, hexc('7c6a5a')), (144, hexc('6a5a4c'))):
-        c.ellipse(cx_, 38, 8, 11, hexc('b58f4a'))
-        c.ellipse(cx_, 38, 6, 9, col)
-        c.ellipse(cx_, 36, 3, 4, hexc('c8b39a'))
-    c.line(141, 31, 148, 45, hexc('2a1c14'))
+    # a pair of SILHOUETTE cameos in oval frames, the couple turned to face each other — hers with her
+    # hair up, his glass cracked (round 17: two blank ovals read as nothing)
+    gilt, card, ink = hexc('b58f4a'), hexc('e8dcc4'), hexc('1e1a18')
+    for (cx_, d, bun) in ((122, 1, True), (144, -1, False)):
+        cy = 38
+        c.ellipse(cx_, cy, 8, 11, gilt)
+        c.ellipse(cx_, cy, 6, 9, card)
+        hx = cx_ - d
+        c.ellipse(hx, cy - 3, 3, 3.5, ink)                                            # the head
+        c.poly([(hx + 2 * d, cy - 5), (hx + 4 * d, cy - 2), (hx + 3 * d, cy - 1), (hx + 3 * d, cy + 1), (hx, cy + 1)], ink)   # brow, nose, lips, chin
+        c.rect(hx - 1, cy, hx + 1, cy + 4, ink)                                       # the neck
+        c.poly([(cx_ - 5, cy + 8), (cx_ - 3, cy + 4), (cx_ + 3, cy + 4), (cx_ + 5, cy + 8)], ink)             # shoulders
+        if bun:
+            c.ellipse(hx - 3 * d, cy - 5, 2, 2, ink)
+        for yy in range(cy - 11, cy + 12):                                             # re-cut the gilt ring
+            for xx in range(cx_ - 8, cx_ + 9):
+                u, v = (xx - cx_) / 8.0, (yy - cy) / 11.0
+                ui, vi = (xx - cx_) / 6.3, (yy - cy) / 9.3
+                if u * u + v * v <= 1.0 and ui * ui + vi * vi > 1.0:
+                    c.put(xx, yy, gilt if (xx + yy) % 5 else shade(gilt, 1.25))
+    for (ax, ay, bx, by) in ((147, 32, 149, 29), (147, 32, 150, 34), (147, 32, 144, 30)):   # a star crack in his glass
+        c.line(ax, ay, bx, by, hexc('f4f0e4', 150))
 
 
 @persp

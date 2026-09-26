@@ -171,12 +171,12 @@ def pictures(c):
     c.rect(107, 33, 129, 39, hexc('5f6e4a'))
     c.poly([(107, 33), (114, 28), (121, 33)], hexc('6c7a78'))
     c.line(118, 16, 104, 22, FRAME_DK); c.line(118, 16, 132, 22, FRAME_DK)
-    c.box(184, 24, 200, 44, FRAME, FRAME_DK)                  # portrait, face scratched out
-    c.rect(187, 27, 197, 41, hexc('6b5a4a'))
-    c.ellipse(192, 32, 3, 3, hexc('a58c74'))
-    c.rect(189, 36, 195, 41, hexc('3d3430'))
-    c.line(189, 29, 195, 35, hexc('d8d0c0')); c.line(195, 29, 189, 35, hexc('d8d0c0'))
-    c.put(192, 18, FRAME_DK)
+    # the family on their wedding day (round 17: a scratched-out blank read as nothing)
+    import furn as F
+    F.photo(c, 186, 26, 198, 42, [(hexc('e0c0a0'), hexc('6a4a2a'), hexc('f4f0e4'), 10),
+                                  (hexc('d8b89a'), hexc('3a2a1e'), hexc('2a2a30'), 11)],
+            bg=hexc('c9c2b1'), ground=hexc('a8a090'), frame=FRAME)
+    c.line(187, 24, 192, 19, FRAME_DK); c.line(197, 24, 192, 19, FRAME_DK)
     # the pendant lamp: a cord from the ceiling, a fabric shade
     c.vline(158, 5, 38, hexc('2a2622'))
     c.rect(156, 37, 160, 39, BRASS)
@@ -300,19 +300,21 @@ def dresser(c):
     c.box(x0 + 2, 14, x1 - 2, 56, WOOD, WOOD_OUT)
     c.rect(x0, 12, x1, 14, WOOD_LT)
     c.hline(x0, x1, 12, shade(WOOD_LT, 1.1))
-    c.rect(x0 + 4, 16, x1 - 4, 55, hexc('2a1c13'))
+    # (2px stiles: the set-back samples 2px in for its side face — round 17: at 1px it picked up the
+    # plates and the dark back, white dashes down the side)
+    c.rect(x0 + 5, 16, x1 - 5, 55, hexc('2a1c13'))
     for sy in (29, 42, 55):
-        c.rect(x0 + 4, sy, x1 - 4, sy + 1, WOOD_LT)
+        c.rect(x0 + 5, sy, x1 - 5, sy + 1, WOOD_LT)
     # plates standing on the rack, a gap where two are gone, one smashed
-    for i, px in enumerate(range(x0 + 8, x1 - 4, 9)):
+    for i, px in enumerate(range(x0 + 10, x1 - 5, 9)):
         if i == 2:
             continue
         c.ellipse(px, 23, 4, 5, PLATE)
         c.ellipse(px, 23, 2, 3, PLATE_BLUE)
-    for i, px in enumerate(range(x0 + 8, x1 - 4, 9)):
+    for i, px in enumerate(range(x0 + 10, x1 - 5, 9)):
         c.ellipse(px, 36, 4, 5, PLATE)
         c.ellipse(px, 36, 2, 3, PLATE_BLUE if i % 2 else hexc('8a5a4a'))
-    for px in range(x0 + 6, x1 - 5, 6):                                  # hooked cups
+    for px in range(x0 + 7, x1 - 6, 6):                                  # hooked cups
         c.rect(px, 47, px + 3, 51, PLATE)
         c.put(px + 4, 48, PLATE_DK)
     # the counter, two drawers, the cupboard

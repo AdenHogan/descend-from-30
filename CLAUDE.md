@@ -1452,6 +1452,12 @@ means no rendering — UI layout and art still need an in-editor look.
   back to the wall, mattress narrowing, duvet drape; iron + floor-mattress variants); `furn.tin` /
   `furn.bin_bag`, pizza boxes as `pbox` slabs; a guitar with guitar proportions; the mop bucket, toilet
   rolls, hung towels, pleated shower curtains and the washing machine's laundry redrawn (modules README).
+  **Round 17** (curtains, walls that say something, every room checked): shower curtains keep their
+  length and hang INTO the tub; every paper on a wall is readable and every picture has someone in it
+  (`furn.note` / `sticky` / `calendar` — all stop on 12 MAY — / `photo` / `portrait` / `landscape` /
+  `newspaper` / `missing_poster` / `text_spray`; the red-string "conspiracy boards" are gone); a
+  logic + clipping pass over all 30 (kitchen D's corner, newspaper bundles, a round waste basket, the
+  leaning mattress, balloons tied to chairs…) — list in the modules README "ROUND 17".
 - CORRIDOR ART (owner round 10, `tools/art/corridor.py`): floors 1-29 get a painted overlay over
   the old tile look — `building_floors._apply_corridor_art` adds a `CorridorArt` Sprite2D (115,243,
   1120x192 = the tilemap's used band) right ABOVE the TileMapLayer, so doors / stairs / elevator /

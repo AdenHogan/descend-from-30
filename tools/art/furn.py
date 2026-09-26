@@ -112,6 +112,17 @@ FONT3 = {  # 3x5 capitals
     'U': ['101', '101', '101', '101', '111'], 'V': ['101', '101', '101', '101', '010'],
     'W': ['10001', '10001', '10101', '11011', '10001'], 'Y': ['101', '101', '010', '010', '010'],
     ' ': ['0', '0', '0', '0', '0'],
+    'B': ['110', '101', '110', '101', '110'], 'F': ['111', '100', '110', '100', '100'],
+    'J': ['001', '001', '001', '101', '010'], 'Q': ['010', '101', '101', '110', '011'],
+    'X': ['101', '101', '010', '101', '101'], 'Z': ['111', '001', '010', '100', '111'],
+    '0': ['111', '101', '101', '101', '111'], '1': ['01', '11', '01', '01', '01'],
+    '2': ['110', '001', '010', '100', '111'], '3': ['110', '001', '010', '001', '110'],
+    '4': ['101', '101', '111', '001', '001'], '5': ['111', '100', '110', '001', '110'],
+    '6': ['011', '100', '110', '101', '010'], '7': ['111', '001', '010', '010', '010'],
+    '8': ['010', '101', '010', '101', '010'], '9': ['010', '101', '011', '001', '110'],
+    '!': ['1', '1', '1', '0', '1'], '?': ['110', '001', '010', '000', '010'],
+    '-': ['00', '00', '11', '00', '00'], '.': ['0', '0', '0', '0', '1'],
+    "'": ['1', '1', '0', '0', '0'], ':': ['0', '1', '0', '1', '0'], '/': ['001', '001', '010', '100', '100'],
 }
 
 
@@ -804,6 +815,8 @@ def bin_bag(c, cx, base, w, h, knot=True, split=False, seed=1):
     for y in range(base - h, base + 1):
         t = (base - y) / float(h)                       # 0 at the floor, 1 at the neck
         hw = w / 2.0 * (0.9 + 0.1 * t / 0.3 if t < 0.3 else max(0.0, 1 - ((t - 0.3) / 0.72) ** 2) ** 0.5)
+        if t < 0.06:
+            hw *= 0.82 + 3.0 * t                          # the slumped, rounded bottom on the floor
         hw *= 1 + 0.07 * _m.sin(t * 9 + ph[0]) + 0.05 * _m.sin(t * 17 + ph[1])
         if t > 0.8:
             hw = max(1.5, hw * 0.55)
@@ -829,3 +842,259 @@ def bin_bag(c, cx, base, w, h, knot=True, split=False, seed=1):
         c.poly([(cx + 1, sy - 3), (cx + w // 3, sy - 1), (cx + w // 4, sy + 3)], hexc('141312'))
         c.rect(cx + 3, sy + 1, cx + 6, sy + 3, hexc('b0453a'))            # a can
         c.rect(cx - 1, base, cx + 3, base + 1, hexc('d8d2c2'))            # paper
+
+
+
+# --- WALL PIECES WITH A STORY (owner round 17: "the wall decorations and photos… look meaningless and
+# lacking context… the papers with red lines… look weird like conspiracy boards"). Every paper on a wall
+# now SAYS something you can read at the room's scale (the 3x5 capitals), and every photo has people in
+# it. Keep the words short and plain: a month, a crossed-off day, "MILK", "MISSING", "STAY INDOORS".
+PAPER, PAPER_DK, INK, RED_INK = hexc('ece4cc'), hexc('b9b09a'), hexc('2a2622'), hexc('b0332a')
+
+
+def pin(c, x, y, col=hexc('c0453a')):
+    c.put(x, y, col)
+    c.put(x + 1, y + 1, shade(col, 0.6))
+
+
+def tape(c, x, y):
+    c.rect(x - 2, y - 1, x + 2, y, hexc('e8e0c0', 200))
+
+
+def note(c, x0, y0, lines, w=None, paper=PAPER, ink=INK, fix='pin', tilt=0):
+    """A paper with words: each line in the 3x5 capitals, centred; `fix` = 'pin' / 'tape' / None."""
+    w = w or max(text3_width(t) for t in lines) + 5
+    h = 6 * len(lines) + 4
+    x1, y1 = x0 + w, y0 + h
+    _paper(c, x0, y0, x1, y1, paper)
+    c.hline(x0, x1, y1, shade(paper, 0.85))
+    for i, t in enumerate(lines):
+        col = RED_INK if t.endswith('!') else ink
+        text3(c, x0 + (w - text3_width(t)) // 2 + 1, y0 + 3 + 6 * i, t, col)
+    if fix == 'pin':
+        pin(c, (x0 + x1) // 2, y0 + 1)
+    elif fix == 'tape':
+        tape(c, x0 + 2, y0); tape(c, x1 - 2, y0)
+    return (x0, y0, x1, y1)
+
+
+def sticky(c, x0, y0, word, col=hexc('e8d45a')):
+    """A square sticky note with one word on it, its bottom edge curling."""
+    w = max(9, text3_width(word) + 4)
+    c.rect(x0, y0, x0 + w, y0 + 9, col)
+    c.hline(x0 + 1, x0 + w, y0 + 9, shade(col, 0.78))
+    c.put(x0 + w, y0 + 8, shade(col, 0.7))
+    text3(c, x0 + 2, y0 + 2, word, INK)
+    return x0 + w
+
+
+def calendar(c, x0, y0, month='MAY', crossed=12, ringed=19, header=hexc('4a6e8a'), picture=None):
+    """A wall calendar hung on a nail: a picture on the top page, the month in the band under it, a
+    7-day grid with the days CROSSED OFF in red up to `crossed` — then nothing: the day it stopped —
+    and one day ringed (something that never happened)."""
+    w, top_h = 23, 10
+    grid_y = y0 + top_h + 7
+    x1, y1 = x0 + w, grid_y + 5 * 3 + 1
+    c.line(x0 + w // 2, y0 - 3, x0 + 2, y0, hexc('6a6258')); c.line(x0 + w // 2, y0 - 3, x1 - 2, y0, hexc('6a6258'))
+    _paper(c, x0, y0, x1, y1, PAPER)
+    if picture is None:                                  # a landscape on the top page
+        c.rect(x0 + 1, y0 + 1, x1 - 1, y0 + top_h, hexc('9ac0d8'))
+        c.poly([(x0 + 1, y0 + top_h), (x0 + 8, y0 + 4), (x0 + 13, y0 + 8), (x0 + 17, y0 + 5), (x1 - 1, y0 + top_h)], hexc('6a8a5a'))
+        c.ellipse(x1 - 5, y0 + 3, 1.5, 1.5, hexc('f0d27a'))
+    else:
+        picture(c, x0 + 1, y0 + 1, x1 - 1, y0 + top_h)
+    c.rect(x0 + 1, y0 + top_h + 1, x1 - 1, y0 + top_h + 6, header)
+    text3(c, x0 + (w - text3_width(month)) // 2 + 1, y0 + top_h + 1, month, hexc('f4efe0'))
+    day = 1
+    for r in range(5):
+        for k in range(7):
+            if day > 31:
+                break
+            cx, cy = x0 + 2 + k * 3, grid_y + r * 3
+            if day <= crossed:
+                c.put(cx, cy, RED_INK); c.put(cx + 1, cy + 1, RED_INK)
+                c.put(cx + 1, cy, shade(RED_INK, 1.2)); c.put(cx, cy + 1, shade(RED_INK, 1.2))
+            else:
+                c.put(cx, cy, PAPER_DK)
+            if day == ringed:
+                for (dx, dy) in ((-1, 0), (2, 0), (0, -1), (1, -1), (0, 2), (1, 2)):
+                    c.put(cx + dx, cy + dy, hexc('2a58a0'))
+            day += 1
+    return (x0, y0, x1, y1)
+
+
+def photo(c, x0, y0, x1, y1, people, bg=hexc('9ac0d8'), ground=hexc('7a9a5a'), border=hexc('f4f0e4'), frame=None):
+    """A photograph of PEOPLE (owner round 17 — pictures of nothing read as meaningless): a white
+    border (or a frame), sky + ground, and a row of little figures — each (skin, hair, clothes, height)."""
+    if frame is not None:
+        c.box(x0 - 2, y0 - 2, x1 + 2, y1 + 2, frame, shade(frame, 0.55))
+    c.rect(x0, y0, x1, y1, border)
+    ix0, iy0, ix1, iy1 = x0 + 1, y0 + 1, x1 - 1, y1 - (3 if frame is None else 1)
+    c.rect(ix0, iy0, ix1, iy1, bg)
+    c.rect(ix0, iy1 - (iy1 - iy0) // 3, ix1, iy1, ground)
+    n = len(people)
+    span = ix1 - ix0
+    for i, (skin, hair, cloth, hgt) in enumerate(people):
+        px = ix0 + int(span * (i + 1) / (n + 1))
+        base = iy1 - 1
+        top = base - hgt
+        c.rect(px - 1, top + 3, px + 1, base, cloth)                        # body
+        c.rect(px - 1, top, px + 1, top + 2, skin)                          # head
+        c.hline(px - 1, px + 1, top, hair)
+        c.put(px - 1, top + 1, hair)
+    return (x0, y0, x1, y1)
+
+
+def newspaper(c, x0, y0, headline, sub=None, w=None):
+    """A front page taped to the wall: the masthead rule, a big headline you can read, a photo block
+    and the columns."""
+    w = w or max(22, text3_width(headline) + 5)
+    x1, y1 = x0 + w, y0 + 26
+    _paper(c, x0, y0, x1, y1, hexc('ddd6c2'))
+    c.hline(x0 + 2, x1 - 2, y0 + 2, INK)
+    c.hline(x0 + 2, x1 - 2, y0 + 3, hexc('8a8270'))
+    text3(c, x0 + (w - text3_width(headline)) // 2 + 1, y0 + 5, headline, INK)
+    yy = y0 + 11
+    if sub:
+        text3(c, x0 + (w - text3_width(sub)) // 2 + 1, yy, sub, hexc('5a544a'))
+        yy += 6
+    c.rect(x0 + 2, yy, x0 + w // 2 - 1, y1 - 2, hexc('8a8478'))            # the photo
+    c.rect(x0 + 3, yy + 1, x0 + w // 2 - 2, y1 - 3, hexc('6a665c'))
+    for ly in range(yy, y1 - 1, 2):
+        c.hline(x0 + w // 2 + 1, x1 - 2, ly, hexc('9a9282'))
+    tape(c, x0 + 3, y0); tape(c, x1 - 3, y0)
+    return (x0, y0, x1, y1)
+
+
+def missing_poster(c, x0, y0, name='ANNA', col=hexc('f0ece0')):
+    """MISSING — a photo of the face, the name, a phone number tab row torn off at the bottom."""
+    w, h = 29, 30
+    x1, y1 = x0 + w, y0 + h
+    _paper(c, x0, y0, x1, y1, col)
+    text3(c, x0 + (w - text3_width('MISSING')) // 2 + 1, y0 + 2, 'MISSING', RED_INK)
+    c.rect(x0 + 5, y0 + 9, x1 - 5, y0 + 19, hexc('8a847a'))                 # the photo
+    c.ellipse((x0 + x1) // 2, y0 + 13, 2.5, 3, hexc('d8b89a'))
+    c.hline((x0 + x1) // 2 - 3, (x0 + x1) // 2 + 3, y0 + 10, hexc('4a3424'))
+    c.rect((x0 + x1) // 2 - 3, y0 + 17, (x0 + x1) // 2 + 3, y0 + 19, hexc('5a7aa0'))
+    text3(c, x0 + (w - text3_width(name)) // 2 + 1, y0 + 21, name, INK)
+    for k in range(7):                                                    # the tear-off tabs
+        tx = x0 + 1 + k * 4
+        if k in (1, 4):
+            continue                                                      # two already taken
+        c.rect(tx, y1 - 3, tx + 2, y1, col)
+        c.vline(tx + 3, y1 - 3, y1, shade(col, 0.8))
+    tape(c, x0 + 3, y0)
+    return (x0, y0, x1, y1)
+
+
+def text_spray(c, x, y, word, col, scale=2, drips=True, seed=3):
+    """Big spray-painted capitals (the 3x5 font at 2x), soft-edged, with a few runs dripping down."""
+    import random as _r
+    rng = _r.Random(seed)
+    x0 = x
+    for ch in word:
+        g = FONT3.get(ch, FONT3[' '])
+        for gy, row in enumerate(g):
+            for gx, v in enumerate(row):
+                if v == '1':
+                    c.rect(x + gx * scale, y + gy * scale, x + gx * scale + scale - 1, y + gy * scale + scale - 1, col)
+                    if drips and gy == 4 and rng.random() < 0.35:
+                        ln = rng.randrange(2, 7)
+                        c.vline(x + gx * scale, y + 5 * scale, y + 5 * scale + ln, col[:3] + (180,))
+        x += (len(g[0]) + 1) * scale
+    return x - x0
+
+
+def portrait(c, x0, y0, x1, y1, sitter='man', bg=hexc('4a4234'), coat=hexc('2a2a30'), skin=hexc('d8b89a'),
+             hair=hexc('4a3424'), frame=None):
+    """A head-and-shoulders portrait someone actually sat for (owner round 17: blank ovals read as
+    nothing): shoulders in a dark coat with a white collar, a face with eyes and a mouth, and the
+    sitter's hair — 'man' (short, a moustache), 'woman' (hair up in a bun), 'girl' (long, a bow),
+    'old' (grey, balding, spectacles)."""
+    if frame is not None:
+        c.box(x0 - 2, y0 - 2, x1 + 2, y1 + 2, frame, shade(frame, 0.55))
+        c.hline(x0 - 1, x1 + 1, y0 - 1, shade(frame, 1.25))
+    c.rect(x0, y0, x1, y1, bg)
+    for yy in range(y0, y1 + 1):                                        # a painter's dark vignette
+        c.put(x0, yy, shade(bg, 0.8)); c.put(x1, yy, shade(bg, 0.8))
+    w, h = x1 - x0, y1 - y0
+    cx = (x0 + x1) // 2
+    hr = max(2.5, w * 0.19)                                             # head half-width
+    hy = y0 + int(h * 0.40)                                             # head centre
+    sh = y0 + int(h * 0.68)                                             # shoulder line
+    c.poly([(cx - int(w * 0.40), y1), (cx - int(w * 0.30), sh), (cx + int(w * 0.30), sh), (cx + int(w * 0.40), y1)], coat)
+    c.line(cx - int(w * 0.30), sh, cx - int(w * 0.40), y1, shade(coat, 1.3))
+    c.rect(cx - 1, sh - 2, cx + 1, sh, skin)                            # neck
+    c.poly([(cx - 3, sh), (cx, sh + 4), (cx + 3, sh)], hexc('ece8dc'))  # collar
+    c.ellipse(cx, hy, hr, hr * 1.25, skin)
+    c.vline(int(cx + hr), hy - 1, hy + 2, shade(skin, 0.8))             # the shadowed cheek
+    ey = hy - 1
+    c.put(cx - 2, ey, hexc('2a2220')); c.put(cx + 2, ey, hexc('2a2220'))
+    c.put(cx, hy + 1, shade(skin, 0.82))                                # nose
+    c.hline(cx - 1, cx + 1, hy + 3, shade(skin, 0.6))                   # mouth
+    top = int(round(hy - hr * 1.25))
+    if sitter == 'man':
+        c.ellipse(cx, top + 1, hr, 2, hair)
+        c.put(int(cx - hr), top + 2, hair); c.put(int(cx - hr), top + 3, hair)
+        c.hline(cx - 2, cx + 2, hy + 2, hair)                           # moustache
+    elif sitter == 'woman':
+        c.ellipse(cx, top + 1, hr + 0.5, 2.5, hair)
+        c.ellipse(cx, top - 2, 2, 2, hair)                              # the bun
+        c.vline(int(cx - hr), top + 1, hy, hair); c.vline(int(cx + hr), top + 1, hy, hair)
+        c.put(cx - 1, sh + 2, hexc('d9c9a0')); c.put(cx + 1, sh + 2, hexc('d9c9a0'))   # a brooch
+    elif sitter == 'girl':
+        c.ellipse(cx, top + 1, hr + 0.5, 2.5, hair)
+        c.rect(int(cx - hr - 1), top + 1, int(cx - hr), sh, hair)
+        c.rect(int(cx + hr), top + 1, int(cx + hr + 1), sh, hair)
+        c.rect(int(cx + hr - 1), top - 1, int(cx + hr + 1), top, hexc('c0453a'))   # a bow
+    elif sitter == 'old':
+        c.put(int(cx - hr), hy - 2, hexc('c9c4bc')); c.put(int(cx + hr), hy - 2, hexc('c9c4bc'))
+        c.put(int(cx - hr), hy - 1, hexc('c9c4bc')); c.put(int(cx + hr), hy - 1, hexc('c9c4bc'))
+        c.hline(cx - 3, cx - 1, ey, hexc('8a8478')); c.hline(cx + 1, cx + 3, ey, hexc('8a8478'))   # spectacles
+        c.put(cx - 2, ey, hexc('2a2220')); c.put(cx + 2, ey, hexc('2a2220'))
+    return (x0, y0, x1, y1)
+
+
+def landscape(c, x0, y0, x1, y1, sky=hexc('9ab8c8'), hills=hexc('5a7a4a'), water=None, boat=False):
+    """A painted view: sky, a far hill line, and a near field — or the sea, with a sailing boat."""
+    import math as _m
+    c.rect(x0, y0, x1, y1, sky)
+    hz = y0 + (y1 - y0) * 3 // 5
+    if water is not None:
+        c.rect(x0, hz, x1, y1, water)
+        for yy in range(hz + 2, y1, 3):
+            c.hline(x0 + 1 + (yy % 4), x1 - 2, yy, shade(water, 1.15))
+        if boat:
+            bx = x0 + (x1 - x0) * 2 // 5
+            c.poly([(bx, hz - 1), (bx, hz - 9), (bx + 5, hz - 1)], hexc('f0ece0'))       # the sail
+            c.vline(bx, hz - 10, hz, hexc('3a3028'))
+            c.poly([(bx - 4, hz), (bx + 7, hz), (bx + 5, hz + 2), (bx - 2, hz + 2)], hexc('6a3a2a'))
+    else:
+        for x in range(x0, x1 + 1):
+            yy = hz - 3 + int(2.5 * _m.sin((x - x0) / 4.0)) + int(1.5 * _m.sin((x - x0) / 1.7))
+            c.vline(x, yy, y1, shade(hills, 0.8))
+        c.rect(x0, hz + 2, x1, y1, hills)
+        c.ellipse(x1 - 4, y0 + 3, 1.5, 1.5, hexc('f4e6b0'))
+    return (x0, y0, x1, y1)
+
+
+def waste_basket(c, cx, base, r, h, body=hexc('3a3a44'), paper=True):
+    """A round wastepaper basket on the floor, seen from a little above: a mesh cylinder (lit left,
+    dark right), its OPEN rim an ellipse with the dark inside and crumpled paper heaped in it."""
+    ry = max(1.5, r * 0.38)
+    top = base - h
+    c.shadow(cx + 1, base + 1, r + 2, 1.5, 110)
+    for yy in range(top, base + 1):                                     # it narrows toward the foot
+        t = (yy - top) / float(max(1, h))
+        rr = int(round(r - t * 1.5))
+        c.hline(cx - rr, cx + rr, yy, body)
+        c.put(cx - rr, yy, shade(body, 1.3)); c.put(cx + rr, yy, shade(body, 0.6))
+        if (yy - top) % 3 == 1:
+            c.hline(cx - rr + 1, cx + rr - 1, yy, shade(body, 1.12))    # the mesh bands
+    c.ellipse(cx, base, r - 1.5, ry * 0.8, shade(body, 0.7))
+    c.ellipse(cx, top, r, ry, shade(body, 1.35))                        # the rim
+    c.ellipse(cx, top, r - 1, ry - 0.6, hexc('141418'))                 # inside
+    if paper:
+        for (dx, dy, rr_) in ((-2, -1, 2), (1, -2, 2.5), (3, 0, 1.5)):
+            c.ellipse(cx + dx, top + dy, rr_, rr_ * 0.8, hexc('e6e0cc'))
+            c.put(cx + dx, top + dy, hexc('b9b09a'))

@@ -45,8 +45,7 @@ def b_decor(c):
     F.poster_film(c, 102, 22, 128, 58, 'NIGHT', torn=True)
     F.poster_map(c, 180, 26, 216, 50)
     F.poster_game(c, 278, 20, 308, 44, 'SPACE')
-    c.line(172, 60, 180, 58, hexc('1e1e24'))                                             # a scrawl
-    c.line(180, 58, 176, 64, hexc('1e1e24'))
+    F.sticky(c, 188, 54, 'EXAM', col=hexc('9ad0e0'))                                   # (was a stray scrawl)
 
 
 @persp
@@ -146,12 +145,16 @@ def c_wall(c):
 
 
 def c_decor(c):
-    F.frame_pic(c, 146, 30, 174, 52, hexc('6b4a2c'), hexc('9c9282'))                       # wedding photo
-    c.rect(154, 38, 158, 50, hexc('d8d0c0')); c.rect(162, 37, 166, 50, hexc('3a3430'))
-    c.box(196, 26, 208, 40, hexc('6b4a2c'), hexc('3b2718'))                                # a little sampler
-    c.rect(198, 28, 206, 38, hexc('d9d0bc'))
-    for y in range(30, 38, 2):
-        c.hline(199, 205, y, hexc('a0505a'))
+    # (owner round 17: pictures of people, words you can read) the wedding photo, sepia
+    F.photo(c, 148, 32, 172, 50, [(hexc('e0c8a8'), hexc('5a4028'), hexc('f4f0e4'), 12),
+                                  (hexc('d8b89a'), hexc('2a2420'), hexc('2e2e33'), 13)],
+            bg=hexc('c8b89a'), ground=hexc('a8987a'), frame=hexc('6b4a2c'))
+    c.line(160, 24, 146, 30, hexc('3b2718')); c.line(160, 24, 174, 30, hexc('3b2718'))
+    c.box(192, 26, 212, 40, hexc('6b4a2c'), hexc('3b2718'))                                # a cross-stitch sampler
+    c.rect(194, 28, 210, 38, hexc('e6ddc4'))
+    F.text3(c, 194 + (17 - F.text3_width('HOME')) // 2, 29, 'HOME', hexc('a0505a'))
+    for (hx, hy) in ((200, 35), (202, 35), (199, 36), (203, 36), (200, 36), (201, 36), (202, 36), (201, 37)):
+        c.put(hx, hy, hexc('b0453a'))
 
 
 @persp
@@ -283,16 +286,14 @@ def d_wall(c):
 
 
 def d_decor(c):
-    # newspaper taped over the wall, a spray-painted tag, a tally scratched in the plaster
-    for (x0, y0) in ((104, 30), (122, 34)):
-        c.rect(x0, y0, x0 + 16, y0 + 22, hexc('cfc7b2'))
-        for y in range(y0 + 3, y0 + 21, 2):
-            c.hline(x0 + 2, x0 + 14 - (y % 5), y, hexc('8a8270'))
-    c.line(150, 60, 160, 44, hexc('a8322c')); c.line(160, 44, 168, 60, hexc('a8322c'))
-    c.line(164, 52, 176, 48, hexc('a8322c')); c.line(176, 48, 182, 58, hexc('a8322c'))
+    # (owner round 17: context) a front page taped to the wall, a missing poster, the days scratched
+    # into the plaster, and a warning sprayed for anyone who comes in after
+    F.newspaper(c, 102, 26, 'EVACUATE', sub='GO NORTH', w=36)
+    F.missing_poster(c, 140, 28, name='LUCY')
+    F.text_spray(c, 172, 30, 'NO FOOD', hexc('a8322c'))
     for i in range(7):
-        c.vline(192 + i * 3, 44, 52, hexc('5a5244'))
-    c.line(190, 50, 212, 46, hexc('5a5244'))
+        c.vline(176 + i * 3, 50, 58, hexc('5a5244'))
+    c.line(174, 56, 196, 52, hexc('5a5244'))
 
 
 @persp
@@ -389,9 +390,11 @@ def e_wall(c):
 
 def e_decor(c):
     # height marks pencilled up the door frame side of the wall, the last one much later
-    for (y, w) in ((82, 6), (76, 6), (70, 6), (64, 6), (52, 8)):
-        c.hline(100, 100 + w, y, hexc('4a4a4a'))
-    c.line(104, 50, 110, 44, BLOOD)
+    # (owner round 17: context) — each pencil tick has the age beside it, and her name at the top
+    for (y, age) in ((84, '3'), (78, '4'), (72, '5'), (66, '6')):
+        c.hline(100, 105, y, hexc('4a4a4a'))
+        F.text3(c, 107, y - 2, age, hexc('5a5a5a'))
+    F.text3(c, 100, 57, 'MIA', hexc('5a5a5a'))
     c.box(170, 24, 196, 46, hexc('e6e0cc'), hexc('8a8270'))                      # a crayon drawing
     c.line(174, 42, 180, 32, hexc('3a7a3a')); c.ellipse(186, 30, 3, 3, hexc('d9c24a'))
     for (x, col) in ((176, hexc('3a3a3a')), (182, hexc('3a3a3a')), (188, hexc('a8322c'))):

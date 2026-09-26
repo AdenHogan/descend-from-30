@@ -296,6 +296,41 @@ things that just look off")**:
   something stands on the seam with nothing in front of it (a piece with no depth). Table tops and
   the edges of side panels trip it too — read the flagged spots, don't chase zero.
 
+**ROUND 17 — CURTAINS, WALLS THAT SAY SOMETHING, EVERY ROOM CHECKED (owner: "the shower curtains
+bottoms would usually be inside the bathtub… the wall decorations and photos look meaningless and
+lacking context… the papers with red lines… look weird like conspiracy boards"; "the pizza boxes on
+the floor… too many… the bins are flat on the wall… clipping… more coverage across all images")**:
+- CURTAINS keep their full length and hang INTO the tub: the hem is drawn before the tub's front (A, E)
+  or ends at its rim (D, whose rail is back up near the ceiling — `RAIL` 14). The corner a hand pulled
+  aside shows the tiled wall in the curtain's shadow, not a black hole.
+- WALL PIECES WITH A STORY (`furn.py`): every paper says something readable in the 3x5 capitals and
+  every picture has someone in it. `note` (lines, a last line ending "!" is red), `sticky`, `calendar`
+  (EVERY flat's calendar is crossed off up to 12 MAY and stops — the day it happened — with a day
+  ringed that never came), `photo` (people: skin, hair, clothes, height), `portrait` (an oil sitter —
+  man / woman / girl / old — with a face, collar and hair), `landscape` (hills, or a sea with a boat),
+  `newspaper` (headline you can read), `missing_poster` (tear-off tabs, two taken), `text_spray`
+  (sprayed capitals that drip). FONT3 gained B F J Q X Z, digits and punctuation. The red-string
+  boards are gone: study A is a family corkboard, study B a desk board (TAX DUE!, PAY, CALL, BACK MON),
+  study D an evacuation street map (US ringed, the way to SAFE in red, the bridge crossed out) and a
+  STAY INSIDE notice, kitchen E a front page + the stores list + DONT OPEN DOOR!. Blank frames got
+  sitters: living D's two ovals are silhouette cameos of a couple, dining A a wedding photo, dining C
+  three generations in oils (hers slashed), study C the old man whose books they were, study E a
+  half-painted portrait on the easel (the other half still pencil), a boat study and a watercolour
+  pinned up, the colours tried out on the wall (the confetti of paint flicks is gone); the fridge has
+  a school photo and a child's drawing; bedroom B's scrawl is an EXAM sticky, bedroom E's height chart
+  has ages and MIA, bedroom D an EVACUATE front page, a MISSING poster and NO FOOD sprayed.
+- LOGIC + CLIPPING pass over all 30: kitchen D's corner is two closed pizza boxes (a grease ring) and
+  two slumped bin bags (`bin_bag` has a rounded bottom now); kitchen C's butler sink is a `pbox` on
+  piers with its curtain; kitchen A's tea towel hangs checked over its hook; kitchen E's paper bundles
+  are newsprint tied with brown twine (white slabs with a red string read as pizza boxes); study A's
+  papers lie on the rug (they hung off the desk like a sticker); study B's bin is a round
+  `waste_basket` with paper in it; study D's aerial lead runs up beside the map, not across the notice;
+  dining A's dresser has 2px stiles (setback samples 2px in for its side face — at 1px it picked up
+  the plates as white dashes); dining B's serving hatch opens on the dim kitchen beyond; dining D's
+  mattress LEANS (top on the wall, foot on the floor, striped ticking, buttons, its side and top) in
+  front of leaning planks, and the flipped table's legs run back toward the wall; dining E's balloons
+  are tied to the chair backs; bathroom D's mould is soft blooms (`mould_bloom`) and a pipe weeps rust.
+
 **RUN LOOKS, round 14**: the afternoon / night decals were redrawn — damp is a FILLED water stain with
 a tide line, an inner ring and runs weeping down (it was a dotted outline); torn wallpaper is a ragged
 patch to the plaster with the paper's torn core along its edge and a curled corner (it was a floating

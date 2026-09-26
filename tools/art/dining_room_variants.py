@@ -16,6 +16,7 @@ import sys
 sys.path.insert(0, os.path.dirname(__file__))
 from pixlib import persp
 from pixlib import Canvas, hexc, shade, rrect, finish_module, setback
+from pixlib import pp, _ip as _ipt
 import furn as F
 
 BLOOD = hexc('4a1d1b', 150)
@@ -43,10 +44,20 @@ def b_wall(c):
 
 
 def b_decor(c):
-    # the serving hatch to the kitchen: a dark opening with folding louvred doors
-    c.rect(170, 30, 214, 60, hexc('1e1a16'))
+    # the serving hatch to the kitchen: folding louvred doors open onto the dim kitchen beyond — its
+    # tiled wall, a shelf of jars, a pan on a hook (round 17: a black hole read as nothing)
     c.box(168, 28, 216, 62, hexc('8a6443'), hexc('3a2718'))
-    c.rect(170, 30, 214, 60, hexc('1e1a16'))
+    c.rect(170, 30, 214, 60, hexc('2e2c26'))
+    for y in range(33, 60, 5):
+        c.hline(170, 214, y, hexc('26241f'))
+    for x in range(172, 214, 6):
+        c.vline(x, 30, 60, hexc('26241f'))
+    c.rect(170, 30, 214, 32, hexc('1e1c18'))                                                  # the lintel's shadow
+    c.hline(183, 201, 42, hexc('4a4034'))                                                     # a shelf of jars
+    for (jx, col) in ((185, hexc('5a5a44')), (189, hexc('6a4a34')), (193, hexc('4a5448')), (198, hexc('5a4a3a'))):
+        c.rect(jx, 37, jx + 2, 41, col)
+    c.vline(196, 44, 47, hexc('4a4a48')); c.ellipse(196, 50, 3, 3, hexc('3e3e3c'))           # a pan on a hook
+    c.rect(170, 55, 214, 57, hexc('3a362e'))                                                  # the counter beyond
     c.rect(168, 58, 216, 62, hexc('9e7550'))                                                 # its sill
     for (d0, d1) in ((171, 181), (203, 213)):
         c.rect(d0, 31, d1, 57, hexc('9e7550'))
@@ -149,11 +160,17 @@ def c_wall(c):
 
 
 def c_decor(c):
-    for (x0, x1, fill) in ((134, 156, hexc('6a5a4a')), (166, 188, hexc('5a4a3e')), (198, 220, hexc('6a5a4a'))):
-        F.frame_pic(c, x0, 24, x1, 52, hexc('b58f4a'), fill)
-        c.ellipse((x0 + x1) // 2, 34, 5, 6, hexc('c8b39a'))
-        c.rect((x0 + x1) // 2 - 6, 42, (x0 + x1) // 2 + 6, 50, hexc('2a2622'))
+    # three generations in oils (round 17: blank ovals read as nothing): grandfather, grandmother —
+    # her canvas slashed — and their son
+    gilt = hexc('b58f4a')
+    for (x0, x1, sitter, bg, hair) in ((134, 156, 'old', hexc('4a4a3a'), hexc('c9c4bc')),
+                                       (166, 188, 'woman', hexc('3e4a4a'), hexc('5a3a26')),
+                                       (198, 220, 'man', hexc('4a3e34'), hexc('2a1e16'))):
+        F.portrait(c, x0 + 2, 26, x1 - 2, 50, sitter=sitter, bg=bg, hair=hair, frame=gilt)
+        mx = (x0 + x1) // 2
+        c.line(x0 + 3, 24, mx, 18, shade(gilt, 0.55)); c.line(x1 - 3, 24, mx, 18, shade(gilt, 0.55))
     c.line(170, 30, 184, 48, hexc('1e1a16'))                                                  # one slashed
+    c.line(171, 30, 185, 48, hexc('8a7a5a'))                                                  # the torn canvas edge
 
 
 @persp
@@ -291,11 +308,22 @@ def d_strip(c):
 
 
 def d_furniture(c):
-    # the table flipped onto its side across the room: its top faces us, legs sticking back
+    # the table flipped onto its side across the room: its top faces us, its legs sticking straight
+    # BACK toward the wall (round 17: they poked straight up like sticks) — seen from above, they
+    # run in toward the vanishing point, and the tabletop's edge shows along the top
     x0, x1, top, base = 118, 216, 80, 121
+    wood_top = shade(F.WOOD[0], 1.15)
+    F.chair_back(c, 152, 60, 80, F.WOOD, width=16)                                            # a chair wedged behind it
     c.shadow((x0 + x1) // 2, base + 1, (x1 - x0) // 2 + 4, 3, 120)
-    for lx in (x0 + 8, x1 - 12):                                                              # the legs, poking up behind
-        c.rect(lx, top - 14, lx + 3, top, F.WOOD[2])
+    for lx in (x0 + 6, x1 - 10):                                                              # the legs, running back
+        ax, ay = lx, top
+        bx, by = _ipt(pp(160 + (lx - 160) / 1.21, 66, 5))
+        c.poly([(ax, ay), (ax + 4, ay), (bx + 3, by), (bx, by)], F.WOOD[2])
+        c.line(ax, ay, bx, by, shade(F.WOOD[2], 1.2))
+        c.line(ax + 4, ay, bx + 3, by, F.WOOD[3])
+        c.hline(bx, bx + 3, by, shade(F.WOOD[2], 1.25))                                        # the foot, end-on
+    c.poly([(x0, top), (x1, top), (x1 - 2, top - 2), (x0 + 2, top - 2)], wood_top)             # the tabletop's edge
+    c.hline(x0 + 2, x1 - 2, top - 2, F.WOOD[3])
     c.box(x0, top, x1, base, F.WOOD[0], F.WOOD[3])                                            # the underside of the top
     c.rect(x0 + 4, top + 4, x1 - 4, top + 7, F.WOOD[2])                                       # its apron rails
     c.rect(x0 + 4, base - 7, x1 - 4, base - 4, F.WOOD[2])
@@ -306,22 +334,57 @@ def d_furniture(c):
         c.line(x + 3, y, x + 9, y + 8, hexc('2a1a10'))
     c.ellipse(160, 104, 5, 3, BLOOD_DK)
     c.line(158, 106, 157, 118, BLOOD)
-    # chairs stacked behind it, their legs up
-    F.chair_back(c, 126, 64, 80, F.WOOD, width=14)
-    c.line(196, 64, 204, 80, F.WOOD[0]); c.line(202, 62, 210, 80, F.WOOD[0])
-    # a mattress propped against the wall on the right
-    c.shadow(283, 100, 13, 2, 100)
-    c.box(272, 30, 294, 99, hexc('c9c0a8'), hexc('8a8270'))
-    for y in range(36, 98, 8):
-        c.hline(274, 292, y, hexc('b9b09a'))
-    c.dither(276, 60, 290, 80, hexc('8a7a52', 90), 0.4, pattern='random')
-    # planks leaning up by the corner; the hammer dropped beside the barricade
-    for (x, col) in ((297, hexc('8a6a44')), (301, hexc('9a7a4e')), (305, hexc('7a5a38'))):
-        c.line(x, 100, x + 4, 40, col)
-        c.line(x + 1, 100, x + 5, 40, col)
+    # planks leaning up in the corner, then a MATTRESS dragged off a bed and propped in front of them —
+    # both leaning: their tops against the wall, their feet out on the floor (round 17: the mattress
+    # was a flat pale box painted on the wall)
+    for (wx, col) in ((297, hexc('8a6a44')), (302, hexc('9a7a4e')), (307, hexc('7a5a38'))):
+        a_, b_ = _ipt(pp(wx, 40, 0)), _ipt(pp(wx, 100, 3))
+        c.shadow(b_[0] + 2, b_[1] + 1, 3, 1, 100)
+        c.poly([(a_[0], a_[1]), (a_[0] + 3, a_[1]), (b_[0] + 3, b_[1]), (b_[0], b_[1])], col)
+        c.line(a_[0], a_[1], b_[0], b_[1], shade(col, 1.2))
+        c.line(a_[0] + 3, a_[1], b_[0] + 3, b_[1], shade(col, 0.6))
+        c.hline(a_[0], a_[0] + 3, a_[1], shade(col, 1.3))
+    _leaning_mattress(c, 272, 291, 30, 100)
     c.shadow(228, 120, 8, 1, 110)                                             # the hammer, dropped at the table's foot
     c.rect(218, 116, 236, 118, F.WOOD[1])
     c.rect(232, 112, 238, 118, hexc('5a5a52'))
+
+
+def _leaning_mattress(c, wx0, wx1, wtop, wbot, lean=6, thick=4):
+    """A mattress stood on end and leaned on the wall: its back top against the wall, its foot `lean`
+    px out on the floor, `thick` px thick. We see its striped TICKING front, its left side (the room's
+    middle is to the left) and a sliver of its top — buttons in rows, a stain, a sag."""
+    tick, tick_st, side = hexc('d8d0bc'), hexc('9aa8b8'), hexc('a8a090')
+    btl, btr = _ipt(pp(wx0, wtop, 0)), _ipt(pp(wx1, wtop, 0))
+    ftl, ftr = _ipt(pp(wx0, wtop + 1, thick)), _ipt(pp(wx1, wtop + 1, thick))
+    fbl, fbr = _ipt(pp(wx0, wbot, lean + thick)), _ipt(pp(wx1, wbot, lean + thick))
+    bbl = _ipt(pp(wx0, wbot, lean))
+    c.shadow((fbl[0] + fbr[0]) // 2, fbl[1] + 1, (fbr[0] - fbl[0]) // 2 + 3, 2, 110)
+    c.poly([btl, ftl, fbl, bbl], side)                                          # its left side
+    for t in (0.25, 0.5, 0.75):                                                 # the side's quilting seam
+        c.put(int(round(ftl[0] + (fbl[0] - ftl[0]) * t)) - 1, int(round(ftl[1] + (fbl[1] - ftl[1]) * t)), shade(side, 0.8))
+    c.poly([btl, btr, ftr, ftl], shade(tick, 1.08))                            # a sliver of its top
+    c.poly([ftl, ftr, fbr, fbl], tick)                                          # the front
+    rows = fbl[1] - ftl[1]
+    for k in range(1, 7):                                                       # ticking stripes, in perspective
+        u = k / 7.0
+        a_ = (ftl[0] + (ftr[0] - ftl[0]) * u, ftl[1])
+        b_ = (fbl[0] + (fbr[0] - fbl[0]) * u, fbl[1])
+        c.line(int(round(a_[0])), int(round(a_[1])), int(round(b_[0])), int(round(b_[1])), tick_st)
+    for r in range(1, 5):                                                       # tufted buttons in rows
+        v = r / 5.0
+        for k in (1, 3, 5):
+            u = k / 6.0
+            x = ftl[0] + (ftr[0] - ftl[0]) * u + ((fbl[0] - ftl[0]) + ((fbr[0] - fbl[0]) - (ftr[0] - ftl[0])) * u) * v
+            y = ftl[1] + rows * v
+            c.put(int(round(x)), int(round(y)), shade(tick, 0.6))
+    sx, sy = (ftl[0] + ftr[0]) // 2 + 2, ftl[1] + 36                            # a dried stain, tide-marked
+    c.ellipse(sx, sy, 6, 9, hexc('b8a67a', 150))
+    c.ellipse(sx + 1, sy + 1, 4, 6, hexc('c8b88e', 120))
+    c.line(ftl[0], ftl[1], fbl[0], fbl[1], shade(side, 0.7))                   # outline
+    c.line(ftr[0], ftr[1], fbr[0], fbr[1], shade(tick, 0.62))
+    c.line(fbl[0], fbl[1], fbr[0], fbr[1], shade(tick, 0.55))
+    c.line(btl[0], btl[1], btr[0], btr[1], shade(tick, 0.7))
 
 
 D_ANCHORS = [('anchor_dining_broken_chairs', 28, 86, 'bp s'), ('anchor_dining_lantern', 73, 91, 'bp s'),
@@ -356,14 +419,20 @@ def e_decor(c):
             if (x - x0) % 10 == 0 and x0 < x < x1:
                 col = PARTY[((x - x0) // 10) % len(PARTY)]
                 c.poly([(x - 3, y + 1), (x + 3, y + 1), (x, y + 7)], col)
-    c.rect(122, 34, 200, 44, hexc('efe8d8'))                                     # the banner
-    for (x, col) in ((128, PARTY[0]), (138, PARTY[1]), (148, PARTY[2]), (158, PARTY[3]),
-                     (170, PARTY[4]), (180, PARTY[0]), (190, PARTY[1])):
-        c.rect(x, 36, x + 5, 42, col)
-    for (x, y, col) in ((108, 50, PARTY[1]), (214, 52, PARTY[0])):
+    c.rect(122, 34, 200, 44, hexc('efe8d8'))                                     # the banner, hand-painted
+    c.hline(122, 200, 44, shade(hexc('efe8d8'), 0.85))
+    word = 'HAPPY BIRTHDAY'
+    x = 122 + (79 - F.text3_width(word)) // 2
+    for i, ch in enumerate(word):
+        g = F.FONT3.get(ch, F.FONT3[' '])
+        F.text3(c, x, 37, ch, PARTY[i % len(PARTY)] if ch != ' ' else PARTY[0])
+        x += len(g[0]) + 1
+    # balloons TIED to the chair backs (round 17: their strings ended in mid-air)
+    for (x, y, col) in ((139, 53, PARTY[1]), (219, 54, PARTY[0])):
         c.ellipse(x, y, 5, 6, col)
         c.ellipse(x - 2, y - 2, 1, 2, shade(col, 1.3))
-        c.line(x, y + 6, x + 2, y + 18, hexc('9a927e'))
+        c.put(x, y + 6, shade(col, 0.7))                                          # the knot
+        c.line(x, y + 7, x + 1, y + 11, hexc('9a927e')); c.line(x + 1, y + 11, x, 70, hexc('9a927e'))
 
 
 @persp

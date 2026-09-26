@@ -131,14 +131,20 @@ def fridge(c):
     c.rect(x1 - 7, top + 34, x1 - 5, top + 48, CHROME)  # handle
     c.vline(x1 - 5, top + 34, top + 48, CHROME_DK)
     c.rect(x0 + 6, base - 6, x1 - 6, base - 3, CHROME_DK)   # vent grille
-    # magnets + a note + a child's drawing
-    c.rect(14, top + 38, 22, top + 48, hexc('e8e2d0'))
-    c.hline(15, 21, top + 41, hexc('8a8577'))
-    c.hline(15, 20, top + 44, hexc('8a8577'))
+    # under magnets: a school photo and a child's drawing — a house, the sun (round 17: ruled lines on a
+    # scrap of paper said nothing)
+    import furn as F
+    F.photo(c, 14, top + 38, 22, top + 48, [(hexc('e0c0a0'), hexc('a8783a'), hexc('3a5a8a'), 6)],
+            bg=hexc('7a9ab8'), ground=hexc('5a7aa0'))
     c.put(18, top + 37, hexc('b0453a'))
-    c.rect(24, top + 52, 31, top + 60, hexc('e7dcc0'))
-    c.put(26, top + 55, hexc('4e6ea0')); c.put(28, top + 56, hexc('d0a040'))
-    c.put(27, top + 51, hexc('3e7a4c'))
+    c.rect(24, top + 52, 32, top + 61, hexc('f4f0e4'))
+    c.hline(24, 32, top + 61, hexc('c9c2ae'))
+    c.poly([(25, top + 57), (27, top + 55), (29, top + 57)], hexc('c0453a'))            # the roof
+    c.rect(25, top + 57, 29, top + 60, hexc('c9a06a'))
+    c.put(27, top + 59, hexc('4a3424'))
+    c.put(31, top + 54, hexc('e8b83a')); c.put(30, top + 53, hexc('e8b83a'))             # the sun
+    c.hline(24, 32, top + 60, hexc('6a9a4a'))
+    c.put(28, top + 51, hexc('3e7a4c'))                                                  # its magnet
     c.ellipse(20, base - 12, 5, 2, BLOOD)                   # a smear low on the door
 
 
@@ -241,16 +247,23 @@ def sink(c):
 
 def counter_end(c):
     # right of the counter (x 264..316), on the wall: a tea towel on a hook, a calendar
-    c.rect(282, 30, 284, 32, CHROME_DK)                            # hook (right of the R box)
-    c.poly([(279, 33), (288, 33), (289, 58), (278, 58)], hexc('b8594a'))
-    for y in range(36, 58, 5):
-        c.hline(279, 288, y, hexc('e0cfb8'))
+    # a checked tea towel folded over a hook (owner round 17: the striped slab read as a red stack)
+    c.rect(282, 31, 284, 33, CHROME_DK)                            # hook (right of the R box)
+    red, cream = hexc('b8594a'), hexc('e8dcc4')
+    c.rect(286, 36, 288, 55, shade(red, 0.7))                       # the back half, hanging lower
+    for y in range(35, 54):
+        for x in range(279, 287):
+            chk = ((x - 279) // 2 + (y - 35) // 2) % 2
+            c.put(x, y, red if chk else cream)
+    c.hline(279, 286, 34, shade(red, 1.15))                        # the fold over the hook
+    c.hline(279, 286, 35, shade(red, 0.75))
+    c.vline(278, 35, 53, shade(red, 0.8))
+    c.hline(279, 286, 54, shade(red, 0.7))                         # the hem
+    for x in range(279, 287, 2):
+        c.put(x, 55, shade(cream, 0.8))
     # a calendar, pages curling
-    c.box(296, 24, 314, 48, hexc('e6dfcc'), hexc('9a927e'))
-    c.rect(298, 26, 312, 33, hexc('7d8f9a'))
-    for y in range(36, 47, 3):
-        c.hline(298, 312, y, hexc('b9b09a'))
-    c.put(304, 39, hexc('b0453a'))
+    import furn as F
+    F.calendar(c, 291, 26)             # (owner round 17) every flat's calendar stops on the same day
 
 
 def bin_bags(c):

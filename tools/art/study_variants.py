@@ -35,14 +35,18 @@ def b_wall(c):
 
 def b_decor(c):
     F.frame_pic(c, 104, 26, 130, 44, hexc('26262a'), hexc('e6e0cc'), wire=False)            # a certificate
-    for y in range(30, 42, 3):
+    F.text3(c, 104 + (27 - F.text3_width('AWARD')) // 2, 29, 'AWARD', hexc('2a2622'))
+    for y in (36, 38):
         c.hline(108, 126, y, hexc('9a927e'))
-    c.put(117, 39, hexc('b0453a'))
+    c.ellipse(117, 41, 1.5, 1.5, hexc('b0453a'))                                              # the seal
     c.box(148, 20, 200, 52, hexc('9a7650'), hexc('3b2718'))                                  # a corkboard
-    c.rect(152, 24, 166, 34, hexc('e6dfcc')); c.rect(170, 26, 184, 38, hexc('d9c24a'))
-    c.rect(186, 30, 196, 48, hexc('e6dfcc')); c.rect(154, 38, 168, 48, hexc('e88aa0'))
-    for y in range(40, 48, 2):
-        c.hline(156, 166, y, hexc('b0453a'))
+    c.dither(149, 21, 199, 51, hexc('86653f'), 0.3, pattern='random')
+    F.note(c, 152, 23, ['TAX', 'DUE!'])
+    F.sticky(c, 172, 25, 'PAY')
+    F.photo(c, 186, 24, 196, 35, [(hexc('e0c0a0'), hexc('6a4a2a'), hexc('d9c24a'), 5)])     # the kid
+    F.pin(c, 191, 24)
+    F.sticky(c, 154, 38, 'CALL', col=hexc('e88aa0'))
+    F.note(c, 172, 38, ['BACK', 'MON'], paper=hexc('dfe8ec'))
 
 
 @persp
@@ -143,11 +147,9 @@ def b_furniture(c):
     c.poly([(274, 107), (285, 106), (287, 108), (276, 109)], PAPER)                        # printouts
     c.poly([(276, 105), (286, 104), (288, 106), (278, 107)], hexc('e6e0cc'))
     c.line(280, 105, 285, 104, hexc('2a3a6a'))
-    # a wastepaper basket against the wall in the corner
-    c.shadow(303, 100, 8, 2, 90)
-    c.poly([(296, 86), (310, 86), (308, 99), (298, 99)], hexc('3a3a44'))
-    for x in range(298, 309, 3):
-        c.vline(x, 87, 98, hexc('4a4a56'))
+    # a wastepaper basket against the wall in the corner — round, open, paper in it (round 17: it was
+    # a flat trapezoid on the wall)
+    F.waste_basket(c, 303, 102, 6, 14)
     F.tube_light(c, 220)                                                 # the office fluorescent
 
 B_ANCHORS = [('anchor_study_low_shelf', 26, 88, 'bp s'), ('anchor_study_box_files', 64, 88, 'bp s'),
@@ -169,8 +171,9 @@ def c_wall(c):
 
 
 def c_decor(c):
-    F.frame_pic(c, 146, 26, 176, 50, hexc('b58f4a'), hexc('4a5a4a'))                          # a dark oil painting
-    c.ellipse(161, 36, 5, 6, hexc('7a6a5a'))
+    # the old man whose books these were, in oils in a gilt frame (round 17: a blank oval read as nothing)
+    F.portrait(c, 151, 24, 171, 50, sitter='old', bg=hexc('3e4a3a'), coat=hexc('2a2422'), frame=hexc('b58f4a'))
+    c.line(154, 22, 161, 16, shade(hexc('b58f4a'), 0.55)); c.line(168, 22, 161, 16, shade(hexc('b58f4a'), 0.55))
 
 
 @persp
@@ -246,16 +249,33 @@ def d_wall(c):
 
 
 def d_decor(c):
-    c.rect(102, 22, 176, 58, hexc('d9d0b0'))                                                  # a map, marked up
-    for (x0, x1, y) in ((106, 170, 30), (104, 150, 40), (130, 176, 50)):
-        c.line(x0, y, x1, y + 4, hexc('7a9a6a'))
-    c.line(120, 26, 140, 54, hexc('6a8ab0'))
-    for (x, y) in ((128, 34), (152, 44), (166, 32)):
-        c.ellipse(x, y, 3, 3, hexc('a8322c'))
-    c.line(128, 34, 152, 44, hexc('a8322c')); c.line(152, 44, 166, 32, hexc('a8322c'))
-    c.box(184, 26, 206, 44, hexc('26262a'), hexc('111114'))                                  # a clock set to a frequency chart
-    for y in range(29, 42, 3):
-        c.hline(187, 203, y, hexc('d9c24a'))
+    # (owner round 17: the marked-up map read as a conspiracy board) a street map of the city: the
+    # river, the blocks, this building ringed ("US"), the way out drawn in red to the SAFE zone and the
+    # bridge crossed out
+    c.rect(102, 22, 176, 58, hexc('e4dcc0'))
+    c.rect(101, 21, 177, 21, hexc('b9b09a')); c.hline(101, 177, 59, hexc('9a927e'))
+    for x in range(110, 176, 12):
+        c.vline(x, 23, 57, hexc('c9c0a6'))                                                    # streets
+    for y in range(28, 58, 8):
+        c.hline(103, 175, y, hexc('c9c0a6'))
+    for y in range(23, 58):                                                                     # the river
+        rx = 130 + int(6 * __import__('math').sin(y / 5.0)) + (y - 23) // 3
+        c.hline(rx, rx + 4, y, hexc('8ab0c8'))
+    c.rect(160, 23, 175, 34, hexc('a8c898'))                                                    # the safe zone
+    F.text3(c, 161, 26, 'SAFE', hexc('3a6a3a'))
+    c.ellipse(114, 49, 5, 4, hexc('b0332a')); c.ellipse(114, 49, 4, 3, hexc('e4dcc0'))
+    F.text3(c, 111, 47, 'US', hexc('b0332a'))
+    route = [(119, 48), (126, 44), (134, 44), (146, 38), (158, 31)]
+    for (a_, b_) in zip(route, route[1:]):
+        c.line(a_[0], a_[1], b_[0], b_[1], hexc('b0332a'))
+    c.line(135, 50, 141, 56, hexc('1e1e24')); c.line(141, 50, 135, 56, hexc('1e1e24'))          # the bridge, out
+    F.pin(c, 103, 23); F.pin(c, 174, 23)
+    # the emergency notice pushed under every door
+    c.box(184, 24, 210, 46, hexc('e8c83a'), hexc('3a3420'))
+    c.hline(186, 208, 26, hexc('1e1e24'))
+    F.text3(c, 184 + (27 - F.text3_width('STAY')) // 2, 29, 'STAY', hexc('1e1e24'))
+    F.text3(c, 184 + (27 - F.text3_width('INSIDE')) // 2, 35, 'INSIDE', hexc('1e1e24'))
+    c.hline(186, 208, 42, hexc('1e1e24'))
 
 
 @persp
@@ -291,7 +311,14 @@ def d_strip(c):
 def d_furniture(c):
     # WITH DEPTH (owner round 14): the radio bench, the folded camp bed
     setback(c, _d_bench, depth=5, top=72, x_range=(106, 190), rake=1.0)
-    c.line(182, 77, 216, 20, hexc('26262a'))                                                 # the antenna lead up the wall
+    # the aerial lead: off the back of the transceiver, clipped up the wall BESIDE the map (round 17: it
+    # was drawn straight across the notice) to a hook in the ceiling where it goes through to the roof
+    lead = hexc('26262a')
+    c.line(113, 63, 98, 57, lead)
+    c.vline(98, 13, 57, lead)
+    for y in range(20, 56, 9):
+        c.put(97, y, hexc('d9d0b0')); c.put(99, y, hexc('d9d0b0'))                            # its clips
+    c.rect(97, 11, 99, 12, hexc('4a4a44'))
     _d_rest(c)
 
 
@@ -368,15 +395,29 @@ def e_wall(c):
 
 
 def e_decor(c):
-    rng = Canvas(seed=91).rng
-    for _ in range(40):                                                           # paint flicked on the wall
-        x, y = rng.randrange(104, 270), rng.randrange(40, 92)
-        if 226 <= x <= 270 and y <= 66:
-            continue
-        col = rng.choice(SPLASH)
-        c.put(x, y, col)
-        if rng.random() < 0.4:
-            c.put(x + 1, y, col); c.put(x, y + 1, col)
+    # (round 17: paint flicked all over the wall read as confetti) what a painter pins up: a charcoal
+    # study for the boat on the canvas below, a watercolour of flowers in a jug, and the colours tried
+    # out on the wall, a stroke of each
+    paper, ch = hexc('ece6d4'), hexc('4a4640')
+    x0, y0 = 174, 26                                                              # the boat, in charcoal
+    c.rect(x0, y0, x0 + 18, y0 + 15, paper); c.hline(x0, x0 + 18, y0 + 15, hexc('c9c2ae'))
+    c.hline(x0 + 1, x0 + 17, y0 + 10, hexc('8a8478'))                             # the sea line
+    c.vline(x0 + 8, y0 + 2, y0 + 10, ch)
+    c.line(x0 + 8, y0 + 2, x0 + 13, y0 + 9, ch); c.hline(x0 + 8, x0 + 13, y0 + 9, ch)
+    c.line(x0 + 4, y0 + 10, x0 + 6, y0 + 12, ch); c.hline(x0 + 6, x0 + 13, y0 + 12, ch); c.line(x0 + 13, y0 + 12, x0 + 15, y0 + 10, ch)
+    F.pin(c, x0 + 9, y0 + 1)
+    x0, y0 = 198, 30                                                              # flowers in a jug
+    c.rect(x0, y0, x0 + 16, y0 + 20, paper); c.hline(x0, x0 + 16, y0 + 20, hexc('c9c2ae'))
+    c.rect(x0 + 5, y0 + 12, x0 + 11, y0 + 18, hexc('6a8ab0')); c.vline(x0 + 5, y0 + 12, y0 + 18, hexc('8aa8c8'))
+    c.put(x0 + 12, y0 + 13, hexc('6a8ab0')); c.put(x0 + 12, y0 + 14, hexc('6a8ab0'))
+    for (dx, dy, col) in ((4, 5, SPLASH[0]), (8, 3, SPLASH[2]), (12, 6, SPLASH[4]), (7, 7, SPLASH[0])):
+        c.line(x0 + 8, y0 + 12, x0 + dx, y0 + dy + 1, SPLASH[3])
+        c.ellipse(x0 + dx, y0 + dy, 1.5, 1.5, col)
+    F.tape(c, x0 + 3, y0); F.tape(c, x0 + 13, y0)
+    for i, col in enumerate(SPLASH):
+        x = 200 + i * 5
+        c.rect(x, 60, x + 2, 67, col)
+        c.put(x + 1, 68, col); c.put(x + 3, 61, shade(col, 0.8))
 
 
 @persp
@@ -385,7 +426,7 @@ def e_floor(c):
     for y in range(104, 144):                                                     # paint drips, periodic
         for x in range(320):
             k = (x * 13 + y * 7) % 32
-            if k == 9 and y % 5 == 0:
+            if k == 9 and y % 10 == 0:                                            # (fewer: round 17)
                 c.put(x, y, SPLASH[((x % 32) // 7) % len(SPLASH)])
 
 
@@ -422,22 +463,24 @@ def _canvases(c):
                                          (132, 52, hexc('b9ae8e')))):
         c.box(x0, top, x0 + 26, 99, col, hexc('7a6a50'))
         c.rect(x0 + 2, top + 2, x0 + 24, 97, shade(col, 0.95))
-    c.rect(134, 54, 156, 97, hexc('3a5a7a'))                                      # the front one painted: a sea
-    c.rect(134, 76, 156, 97, hexc('2a4a5a'))
-    c.poly([(138, 76), (146, 68), (152, 76)], hexc('e6e0cc'))
+    F.landscape(c, 134, 54, 156, 97, sky=hexc('7a9ab8'), water=hexc('2a4a5a'), boat=True)   # the front one: a boat at sea
 
 
 def _e_rest(c):
-    # the easel out in the room, a portrait with its face smeared out
+    # the easel out in the room, a portrait left HALF-PAINTED — the right side still bare canvas and
+    # pencil (round 17: the slashed face read as red scribble)
     c.shadow(186, 121, 14, 2, 110)
     c.line(176, 121, 184, 64, F.PINE[2]); c.line(196, 121, 188, 64, F.PINE[2]); c.line(186, 121, 186, 70, F.PINE[3])
     c.rect(170, 104, 202, 106, F.PINE[1])                                          # the tray
     c.box(172, 66, 200, 103, hexc('e6e0cc'), hexc('7a6a50'))
-    c.rect(174, 68, 198, 101, hexc('8a7a6a'))
-    c.ellipse(186, 80, 7, 9, hexc('c8b39a'))
-    c.rect(178, 90, 194, 101, hexc('3a3a4a'))
-    for (x, y) in ((180, 74), (184, 78), (188, 76), (182, 84), (190, 82)):          # the smear
-        c.line(x, y, x + 6, y + 3, hexc('5a1a16'))
+    F.portrait(c, 174, 68, 198, 101, sitter='woman', bg=hexc('6a7a8a'), coat=hexc('7a3a3a'), hair=hexc('3a2a1e'))
+    c.rect(189, 68, 198, 101, hexc('e6e0cc'))                                       # not painted yet
+    pen = hexc('9a948a')
+    import math as _m
+    for a in range(-90, 91, 12):                                                    # the pencil outline
+        c.put(186 + int(round(4.6 * _m.cos(_m.radians(a)))), 81 + int(round(5.7 * _m.sin(_m.radians(a)))), pen)
+    c.line(193, 90, 195, 101, pen); c.line(187, 88, 193, 90, pen)
+    c.line(188, 100, 190, 94, hexc('7a3a3a'))                                       # the brush stopped here
     for (x, col) in ((174, SPLASH[0]), (180, SPLASH[1]), (188, SPLASH[2])):
         c.rect(x, 102, x + 3, 103, col)
     # a paint-spattered trestle table out by the lane: jars of brushes, a palette

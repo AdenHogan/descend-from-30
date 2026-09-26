@@ -112,10 +112,6 @@ def b_decor(c):
     c.ellipse(170, 34, 9, 9, hexc('d9b84a'))                                                # a sunburst clock
     c.ellipse(170, 34, 6, 6, hexc('f0ecd8'))
     c.vline(170, 30, 34, hexc('26262a')); c.hline(170, 173, 34, hexc('26262a'))
-    c.box(290, 24, 310, 50, hexc('e6dfcc'), hexc('9a927e'))                                 # a calendar
-    c.rect(292, 26, 308, 34, hexc('d9b84a'))
-    for y in range(37, 49, 3):
-        c.hline(292, 308, y, hexc('b9b09a'))
 
 
 @persp
@@ -235,7 +231,7 @@ def range_cooker(c, x0, x1, top):
 def c_furniture(c):
     # WITH DEPTH (owner round 14): the dresser (3px left, clear of window L), the butler sink, the range
     setback(c, lambda l: F.moved(l, _dresser, -3, 0), depth=5, top=20, x_range=(5, 43), rake=1.0)
-    setback(c, _butler_sink, depth=4, top=72, x_range=(54, 90), rake=1.0)
+    butler_sink(c)
     setback(c, lambda l: range_cooker(l, 132, 188, 70), depth=6, top=67, rake=1.0)
     _c_rest(c)
 
@@ -255,17 +251,34 @@ def _dresser(c):
     F.chest(c, 8, 46, 60, 100, F.PINE, drawers=2, open_row=1)
 
 
-def _butler_sink(c):
-    # a butler sink on brick piers under the L window box (top >= 67)
-    c.shadow(72, 100, 18, 2, 100)
-    c.rect(56, 88, 60, 99, BRICK); c.rect(84, 88, 88, 99, BRICK)
-    c.box(54, 72, 90, 87, hexc('ece8dc'), hexc('7a766a'))
-    c.hline(56, 88, 74, hexc('c9c5b8'))
-    c.rect(70, 67, 72, 71, CHROME_DK); c.hline(66, 72, 67, CHROME_DK)
-    c.rect(61, 93, 83, 99, hexc('4a3620'))                                                  # a curtain under it
-    for x in range(61, 84, 3):
-        c.vline(x, 88, 99, hexc('8a6a5a'))
-    c.rect(62, 88, 83, 99, hexc('8a6a5a', 200))
+def butler_sink(c):
+    """A deep white butler sink on brick piers, in true perspective (owner round 17: the flat white
+    box read as a block): we look down into the basin, a curtain hangs between the piers, the tap
+    comes off the wall over it."""
+    from pixlib import pp, pbox
+    ip = lambda p_: (int(round(p_[0])), int(round(p_[1])))
+    porc, porc_dk, out = hexc('ece8dc'), hexc('c9c5b8'), hexc('7a766a')
+    foot = pp(72, 100, 6)
+    c.shadow(foot[0], foot[1] + 1, 18, 2, 100)
+    for (px0, px1) in ((58.0, 62.0), (82.0, 86.0)):                       # the brick piers
+        pbox(c, px0, 86, px1, 100, 2, 10, BRICK, shade(BRICK, 1.1), shade(BRICK, 0.72), shade(BRICK, 0.55))
+    a_, b_ = ip(pp(62.5, 87, 9)), ip(pp(81.5, 100, 9))                    # a curtain between them
+    for x in range(a_[0], b_[0] + 1):
+        c.vline(x, a_[1], b_[1], hexc('8a6a5a') if (x - a_[0]) % 3 else hexc('6e5446'))
+    c.hline(a_[0], b_[0], a_[1], hexc('4a3620'))
+    f = pbox(c, 56, 72, 88, 86, 1, 11, porc, shade(porc, 1.05), porc_dk, out)
+    q = [ip(pp(59, 72, 3)), ip(pp(85, 72, 3)), ip(pp(85, 72, 9)), ip(pp(59, 72, 9))]
+    c.poly(q, hexc('b9b5a8'))                                             # the basin
+    q2 = [ip(pp(61, 72, 5)), ip(pp(83, 72, 5)), ip(pp(84, 72, 9)), ip(pp(60, 72, 9))]
+    c.poly(q2, hexc('a8a498'))
+    c.line(*q[0], *q[1], hexc('8a867a'))
+    d_ = ip(pp(72, 72, 7))
+    c.put(d_[0], d_[1], hexc('5a5850'))                                   # the plughole
+    c.hline(f['fl'][0] + 1, f['fr'][0] - 1, f['fl'][1] + 1, hexc('f8f6ee'))
+    c.hline(f['fl'][0] + 2, f['fr'][0] - 2, f['fbl'][1] - 1, porc_dk)
+    c.rect(70, 68, 72, 72, CHROME_DK)                                     # the tap, off the wall (kept
+    c.hline(70, 76, 67, CHROME)                                           # under the L window box)
+    c.vline(76, 68, 70, CHROME_DK)
 
 
 def _c_rest(c):
@@ -316,12 +329,10 @@ def d_wall(c):
 
 
 def d_decor(c):
-    c.rect(200, 26, 214, 44, hexc('e6dfcc'))                                                # a rota nobody kept
-    for y in range(29, 43, 3):
-        c.hline(202, 212, y, hexc('8a8270'))
-    c.line(201, 30, 213, 42, hexc('a8322c'))
-    c.rect(106, 30, 118, 40, hexc('d9c24a'))                                                # post-its
-    c.rect(122, 34, 132, 43, hexc('e88aa0'))
+    # (owner round 17: things on the wall say something) — the flatmates' notes
+    F.note(c, 196, 24, ['RENT', 'DUE', 'FRI!'], fix='tape')
+    F.sticky(c, 104, 30, 'MILK')
+    F.sticky(c, 122, 34, 'EGGS', col=hexc('e88aa0'))
 
 
 @persp
@@ -382,30 +393,26 @@ def _d_rest(c):
     c.line(90, 101, 98, 121, hexc('7b8083')); c.line(98, 101, 90, 121, hexc('7b8083'))
     c.rect(72, 90, 80, 97, hexc('9aa3a8')); c.put(81, 92, hexc('9aa3a8'))
     c.rect(86, 93, 90, 97, hexc('e6ddc8')); c.rect(93, 94, 97, 97, hexc('4e6ea0'))
-    # pizza boxes stacked against the wall by the bins — flat square boxes seen from above, the top
-    # one open, its lid tipped back against the wall and a crust inside (owner round 16)
-    from pixlib import pbox, pp, pellipse
-    wx0, wx1 = 230.0, 254.0
+    # two pizza boxes on the floor against the wall, between the counter and the bins (owner round 17:
+    # the old stack of four with its lid up against the wall clipped the counter and looked messy) —
+    # flat square boxes seen from above, a grease ring through the top lid
+    from pixlib import pbox, pellipse
+    wx0, wx1 = 240.0, 258.0
     card, card_dk, card_out = hexc('c9b58a'), hexc('a8946a'), hexc('7a6a45')
-    c.shadow(250, 111, 16, 2, 110)
-    for i in range(4):
-        jx = (1, -1, 2, 0)[i]
-        pbox(c, wx0 + jx, 100 - 2.6 * (i + 1), wx1 + jx, 100 - 2.6 * i, 1, 12, card, shade(card, 1.1), card_dk, card_out)
-    y_top = 100 - 2.6 * 4
-    lid = [pp(wx0, y_top, 1), pp(wx1, y_top, 1), pp(wx1, y_top - 12, 0.3), pp(wx0, y_top - 12, 0.3)]
-    c.poly([(round(x), round(y)) for (x, y) in lid], shade(card, 0.92))
-    c.line(round(lid[3][0]), round(lid[3][1]), round(lid[2][0]), round(lid[2][1]), card_out)
-    pellipse(c, (wx0 + wx1) / 2, y_top, 3, 10, 9, hexc('d9a860'))                 # the crust
-    pellipse(c, (wx0 + wx1) / 2, y_top, 4, 9, 7, hexc('b0653a'))
-    pellipse(c, (wx0 + wx1) / 2 + 3, y_top, 5, 7, 2, hexc('e8d8a0'))
-    # bin bags against the wall (right)
-    F.bin_bag(c, 287, 100, 22, 24, seed=11)
-    F.bin_bag(c, 302, 100, 16, 18, seed=5)
+    c.shadow(254, 111, 13, 2, 110)
+    for i in range(2):
+        jx = (0, 1.5)[i]
+        pbox(c, wx0 + jx, 100 - 2.6 * (i + 1), wx1 + jx, 100 - 2.6 * i, 1, 10, card, shade(card, 1.1), card_dk, card_out)
+    y_top = 100 - 2.6 * 2
+    pellipse(c, (wx0 + wx1) / 2 + 2, y_top, 3, 8, 5, hexc('b39a6a'))                   # the grease ring
+    pellipse(c, (wx0 + wx1) / 2 + 2, y_top, 4, 7, 3.5, shade(card, 1.1))
+    F.bin_bag(c, 288, 105, 22, 24, seed=11)                                    # standing out on the floor
+    F.bin_bag(c, 303, 106, 16, 18, seed=5)
     F.bare_bulb(c, 160, 26)
 
 D_ANCHORS = [('anchor_centre_fridge', 21, 60, 'bp'), ('anchor_kitchen_camp_table', 88, 95, ''),
              ('anchor_kitchen_dishes', 146, 70, 'bp'), ('anchor_kitchen_student_cupboard', 186, 84, 'bp'),
-             ('anchor_kitchen_microwave', 202, 64, 'bp'), ('anchor_kitchen_pizza_boxes', 254, 92, 'bp'), ('anchor_kitchen_kettle', 76, 94, ''),
+             ('anchor_kitchen_microwave', 202, 64, 'bp'), ('anchor_kitchen_pizza_boxes', 254, 99, 'bp'), ('anchor_kitchen_kettle', 76, 94, ''),
              ('anchor_right_trashcan', 292, 90, 'bp')]
 
 
@@ -426,11 +433,12 @@ def e_wall(c):
 
 
 def e_decor(c):
-    for (x, y) in ((110, 24), (126, 30), (140, 22), (196, 28), (212, 34)):     # clippings pinned everywhere
-        c.rect(x, y, x + 10, y + 12, hexc('d9d0b0'))
-        for yy in range(y + 2, y + 11, 2):
-            c.hline(x + 1, x + 8, yy, hexc('8a8270'))
-    c.line(115, 20, 216, 40, hexc('a8322c'))                                    # string between them
+    # (owner round 17: the pinned clippings + red string read as a conspiracy board) — a front page
+    # taped up, the stores list, the calendar crossed off to the day it stopped
+    F.newspaper(c, 104, 22, 'OUTBREAK', sub='STAY IN', w=36)
+    F.note(c, 146, 24, ['WATER', 'TINS', 'MEDS', 'BATTS'], fix='tape')
+    F.calendar(c, 176, 24)
+    F.note(c, 201, 30, ['DONT', 'OPEN', 'DOOR!'], paper=hexc('e4dcc4'))
 
 
 @persp
@@ -439,13 +447,28 @@ def e_floor(c):
 
 
 def paper_stack(c, x0, base, h, w=16, lean=0):
+    """A bundle of old newspapers (round 17: neat white slabs with a red string read as a tower of
+    pizza boxes): thin sheets of mixed newsprint, a little out of line, the folded edges showing
+    grey print, tied with brown twine down the front and over the top."""
+    import random as _r
+    rng = _r.Random(x0 * 7 + h)
+    tones = [hexc('d8d2c0'), hexc('cfc8b2'), hexc('e0dac8'), hexc('c4bda6'), hexc('d4ccb4')]
     c.shadow(x0 + w // 2, base, w // 2 + 2, 1, 110)
-    for i in range(0, h, 3):
-        dx = (lean * i) // max(h, 1)
-        col = hexc('d8cfb4') if (i // 3) % 3 else hexc('c9bf9e')
-        c.rect(x0 + dx, base - i - 2, x0 + dx + w, base - i, col)
-        c.hline(x0 + dx, x0 + dx + w, base - i, hexc('9a927e'))
-    c.rect(x0 + 3 + lean, base - h - 1, x0 + w - 4 + lean, base - h, hexc('a8322c'))   # string
+    for i in range(0, h, 2):
+        dx = (lean * i) // max(h, 1) + rng.choice((-1, 0, 0, 0, 1))
+        col = rng.choice(tones)
+        c.rect(x0 + dx, base - i - 1, x0 + dx + w, base - i, col)
+        c.hline(x0 + dx, x0 + dx + w, base - i, shade(col, 0.86))
+        for _ in range(2):                                                     # print on the folds
+            px = x0 + dx + rng.randrange(1, w - 1)
+            c.hline(px, min(x0 + dx + w - 1, px + rng.randrange(1, 4)), base - i - 1, hexc('9a9484'))
+        if rng.random() < 0.15:                                                # a yellowed one
+            c.hline(x0 + dx, x0 + dx + w, base - i - 1, hexc('d8c89a'))
+    tw = hexc('7a5a36')
+    mid = x0 + w // 2 + lean // 2
+    c.vline(mid, base - h, base - 1, tw)                                       # the twine
+    for y in (base - h // 3, base - 2 * h // 3):
+        c.put(mid - 1, y, tw); c.put(mid + 1, y + 1, tw)                      # where it bites the edges
 
 
 def e_furniture(c):

@@ -181,25 +181,28 @@ def bookcase(c):
 
 
 def board(c):
-    # pinned-up notes over the desk, strung together — someone was working something out
+    # a family corkboard over the desk (owner round 17: the red string read as a conspiracy board):
+    # holiday photos, a child's drawing, the vet on Tuesday — and one note smeared
+    import furn as F
     x0, x1, y0, y1 = 158, 212, 22, 52
     c.box(x0, y0, x1, y1, CORK, WOOD_OUT)
     c.dither(x0 + 1, y0 + 1, x1 - 1, y1 - 1, CORK_DK, 0.3, pattern='random')
-    notes = [(162, 26, 172, 36), (178, 25, 190, 33), (196, 28, 208, 38), (166, 40, 178, 49),
-             (186, 38, 196, 48), (200, 42, 209, 50)]
-    for (a, b, cx, d) in notes:
-        c.rect(a, b, cx, d, NOTE)
-        c.hline(a, cx, d, NOTE_DK)
-        for yy in range(b + 3, d - 1, 2):
-            c.hline(a + 2, cx - 2 - (yy % 3), yy, NOTE_DK)
-    c.rect(180, 27, 186, 31, hexc('7c8c90'))                              # a photo
-    pins = [(167, 27), (184, 26), (202, 29), (172, 41), (191, 39), (204, 43)]
-    for i in range(len(pins) - 1):                                         # the red string
-        c.line(pins[i][0], pins[i][1], pins[i + 1][0], pins[i + 1][1], RED_STRING)
-    for (px, py) in pins:
-        c.put(px, py, hexc('d9c24a'))
-    c.rect(200, 42, 209, 50, shade(NOTE, 0.9))
-    c.line(201, 44, 207, 48, BLOOD)                                        # a note smeared
+    F.photo(c, 161, 25, 173, 37, [(hexc('d8b89a'), hexc('4a3424'), hexc('5a7aa0'), 7),
+                                  (hexc('e0c0a0'), hexc('a8783a'), hexc('b0453a'), 6)])
+    F.photo(c, 175, 26, 187, 38, [(hexc('e0c0a0'), hexc('6a4a2a'), hexc('d9c24a'), 4),
+                                  (hexc('d8b89a'), hexc('4a3424'), hexc('5a7aa0'), 7)],
+            bg=hexc('9ac0d8'), ground=hexc('e0cc90'))                                    # the beach
+    F.pin(c, 167, 25); F.pin(c, 181, 26)
+    # a child's drawing: a house, a sun, three stick people
+    c.rect(161, 40, 177, 50, hexc('f4f0e4'))
+    c.ellipse(174, 42, 1.5, 1.5, hexc('e8b83a'))
+    c.poly([(163, 46), (166, 43), (169, 46)], hexc('b0453a')); c.rect(164, 46, 168, 49, hexc('c9a06a'))
+    for sx in (171, 173, 175):
+        c.put(sx, 45, hexc('2a2622')); c.vline(sx, 46, 48, hexc('2a2622'))
+    F.pin(c, 169, 40, hexc('3a7ab0'))
+    F.note(c, 190, 25, ['CALL', 'MUM'])
+    c.line(193, 30, 203, 36, BLOOD)                                        # a note smeared
+    F.sticky(c, 181, 41, 'VET')
 
 
 def desk(c):
@@ -230,9 +233,12 @@ def desk(c):
     c.box(x0 + 21, top + 5, x1 - 21, base - 6, WOOD_DK, WOOD_OUT)
     c.box(x0 + 24, top + 8, x1 - 24, base - 9, WOOD_DK, shade(WOOD_DK, 0.8))
     c.rect(x0 + 21, base - 5, x1 - 21, base - 1, hexc('2a1d14'))           # the dark gap under it
-    # papers slid off the top, down the side of the desk
-    c.poly([(x1 + 1, top + 4), (x1 + 8, top + 10), (x1 + 6, base), (x1 + 2, base - 2)], NOTE_DK)
-    c.poly([(x1 + 2, top + 12), (x1 + 9, top + 16), (x1 + 8, top + 22), (x1 + 2, top + 18)], NOTE)
+    # papers slid off the top, lying on the rug beside the desk (round 17: they hung down its side
+    # like a sticker)
+    c.poly([(x1 + 4, base - 3), (x1 + 16, base - 4), (x1 + 19, base + 1), (x1 + 6, base + 2)], NOTE_DK)
+    c.poly([(x1 + 9, base - 1), (x1 + 21, base - 1), (x1 + 23, base + 4), (x1 + 10, base + 4)], NOTE)
+    for ly in (base, base + 2):
+        c.hline(x1 + 12, x1 + 20, ly, NOTE_DK)
     # on the top: the lamp (left), papers, a mug, a pen
     c.rect(152, top - 2, 160, top - 1, BRASS)
     c.vline(156, top - 13, top - 3, BRASS)
