@@ -62,7 +62,7 @@ EXIT_SIGN = (860, 40, 872, 50)
 PIC_DY = 26                                  # wall fixtures (call points, hose reels) sit just above the rail
 # where the game draws its live signs (scripts/floor_signs.gd taken_local — keep the two in step): the
 # STAIRS signs, the floor numbers, the lift indicator, every door's number plate. No damage lands there.
-SIGNS = ([(12, 12, 100, 38), (1020, 12, 1108, 38), (112, 32, 150, 72), (966, 32, 1004, 72), (898, 48, 932, 64)]
+SIGNS = ([(12, 12, 100, 38), (1020, 12, 1108, 38), (112, 32, 168, 82), (950, 32, 1004, 82), (898, 48, 932, 64)]
          + [(d - 50, 90, d - 24, 108) for d in DOORS] + [(814 - 56, 90, 814 - 24, 108)]    # STAFF is wider
          + [(x - 10, SCONCE_Y - 12, x + 10, SCONCE_Y + 12) for x in SCONCES])             # the sconces
 # wear geometry, set per section (set_geom): the dado rail's top, the lower wall's top, skirting

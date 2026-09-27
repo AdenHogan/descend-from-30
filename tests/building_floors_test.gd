@@ -1455,6 +1455,36 @@ func _test_floor_signs() -> void:
 			var plate: Rect2 = FS.sign_rect(num, float(FS.FLOOR_PLATE_X[side[0]]))
 			check(world_res.encloses(plate.grow(1.0)), "floor %s's %s sign %s sits in its spot %s" % [num, side[0], plate, world_res])
 	check(not FS.STROKE.has("F"), "the sign carries the number alone — no FLOOR label")
+	# wear (round 24d): blood that stays once it's there and spreads through the day; hit signs hanging
+	# off one screw from run 3, swung inside the spot kept for them
+	var blood1 := 0
+	var blood3 := 0
+	var lost_blood := 0
+	var hung_early := 0
+	var hung3 := 0
+	var hang_out := ""
+	for f in range(1, 30):
+		for side in [["left", 2], ["right", 3]]:
+			var w1: Dictionary = FS.sign_wear(f, 1, side[0])
+			var w2: Dictionary = FS.sign_wear(f, 2, side[0])
+			var w3: Dictionary = FS.sign_wear(f, 3, side[0])
+			blood1 += int(w1["blood"])
+			blood3 += int(w3["blood"])
+			if (w1["blood"] and not w2["blood"]) or (w2["blood"] and not w3["blood"]):
+				lost_blood += 1
+			if w1["hang"] != 0.0 or w2["hang"] != 0.0:
+				hung_early += 1
+			if w3["hang"] != 0.0:
+				hung3 += 1
+				var res2: Rect2 = FS.taken_local()[side[1]]
+				var world2 := Rect2(res2.position + Vector2(115, 243), res2.size)
+				for c in FS.sign_corners(FS.sign_rect(str(f), float(FS.FLOOR_PLATE_X[side[0]])), w3):
+					if not world2.grow(0.01).has_point(c):
+						hang_out = "floor %d %s corner %s outside %s" % [f, side[0], c, world2]
+	check(blood3 > blood1 and blood1 > 0 and lost_blood == 0,
+		"blood on the signs stays and spreads through the day (run 1 %d, run 3 %d of 58)" % [blood1, blood3])
+	check(hung_early == 0 and hung3 > 0, "only run 3 has signs knocked off their screws (%d hanging)" % hung3)
+	check(hang_out == "", "a hanging sign swings inside its kept-clear spot %s" % hang_out)
 	# ...its number's ink dead centre on the sheet (a fixed glyph cell left "21" / "15" lopsided — round 24c)
 	for f in range(1, 30):
 		var num := str(f)

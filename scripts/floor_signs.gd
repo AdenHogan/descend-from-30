@@ -53,7 +53,7 @@ var lift_lit := false
 ## per-floor decals (corridor_decals.plan) never paint over them.
 static func taken_local() -> Array:
 	var out: Array = [Rect2(12, 12, 88, 26), Rect2(1020, 12, 88, 26),     # the STAIRS signs
-		Rect2(112, 32, 38, 40), Rect2(966, 32, 38, 40),                      # the floor numbers
+		Rect2(112, 32, 56, 50), Rect2(950, 32, 54, 50),                      # the floor numbers (room to hang askew)
 		Rect2(898, 48, 34, 16)]                                               # the lift indicator
 	for d in [201, 329, 455, 581, 714]:                                       # every door's plate
 		out.append(Rect2(d - 50, 90, 26, 18))
@@ -91,7 +91,7 @@ func setup(f: int, sec: String) -> void:
 	floor_num = f
 	section = sec
 	lift_lit = WorldState.elevator_powered or f in WorldState.MERCHANT_FLOORS
-	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS   # only the number is a texture (its smooth edges)
 	queue_redraw()
 
 
@@ -111,7 +111,7 @@ func _draw() -> void:
 	for side in t:
 		_stair_sign(float(STAIR_X[side]), str(t[side][0]), int(t[side][1]))
 	for side in ["left", "right"]:
-		_floor_number(float(FLOOR_PLATE_X[side]))
+		_floor_number(float(FLOOR_PLATE_X[side]), side)
 	_lift_panel()
 
 
@@ -221,6 +221,61 @@ static func draw_stroke_text(ci: CanvasItem, pos: Vector2, s: String, h: float, 
 		x += (sp.y - sp.x + INK_GAP) * u
 
 
+const NUM_SS := 8.0                   # texels per world px in a number's texture (camera zoom ~2.8, + mipmaps)
+const NUM_PAD := 2.0                  # world px of margin round the ink in that texture
+static var _num_tex := {}
+
+
+## The number `num` as a white, alpha-antialiased texture: every texel's coverage from its distance to the
+## nearest stroke (so the ends and joins are round and the edges soft — no aliased caps, no notched
+## corners). Built once per number and shared; drawn tinted, NUM_SS texels to a world pixel.
+static func number_texture(num: String) -> Texture2D:
+	if _num_tex.has(num):
+		return _num_tex[num]
+	var u := SIGN_NUM_H / 10.0
+	var w := int(ceil((stroke_width(num, SIGN_NUM_H) + 2.0 * NUM_PAD) * NUM_SS))
+	var h := int(ceil((SIGN_NUM_H + 2.0 * NUM_PAD) * NUM_SS))
+	var dist := PackedFloat32Array()
+	dist.resize(w * h)
+	dist.fill(1e9)
+	var half := SIGN_STROKE * 0.5 * NUM_SS
+	var reach := half + 2.0
+	var x0 := NUM_PAD
+	for ch in num:
+		var sp := _glyph_span(ch)
+		for pts in _stroke_polys(ch):
+			var q := PackedVector2Array()
+			for p in pts:
+				q.append(Vector2((x0 + (p.x - sp.x) * u) * NUM_SS, (NUM_PAD + p.y * u) * NUM_SS))
+			for i in range(q.size() - 1):
+				var a: Vector2 = q[i]
+				var b: Vector2 = q[i + 1]
+				var lo_x := maxi(0, int(floor(minf(a.x, b.x) - reach)))
+				var hi_x := mini(w - 1, int(ceil(maxf(a.x, b.x) + reach)))
+				var lo_y := maxi(0, int(floor(minf(a.y, b.y) - reach)))
+				var hi_y := mini(h - 1, int(ceil(maxf(a.y, b.y) + reach)))
+				var ab := b - a
+				var len2 := maxf(ab.length_squared(), 1e-6)
+				for ty in range(lo_y, hi_y + 1):
+					for tx in range(lo_x, hi_x + 1):
+						var c := Vector2(tx + 0.5, ty + 0.5)
+						var t := clampf((c - a).dot(ab) / len2, 0.0, 1.0)
+						var d := c.distance_to(a + ab * t)
+						var k := ty * w + tx
+						if d < dist[k]:
+							dist[k] = d
+		x0 += (sp.y - sp.x + INK_GAP) * u
+	var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
+	for ty in range(h):
+		for tx in range(w):
+			var cov := clampf(half + 0.5 - dist[ty * w + tx], 0.0, 1.0)     # a one-texel soft edge
+			img.set_pixel(tx, ty, Color(1, 1, 1, cov))
+	img.generate_mipmaps()
+	var tex := ImageTexture.create_from_image(img)
+	_num_tex[num] = tex
+	return tex
+
+
 ## Where the number's ink starts on plate `r` (its ink centred on the sheet both ways).
 static func number_origin(num: String, r: Rect2) -> Vector2:
 	var c := r.get_center()
@@ -252,10 +307,71 @@ static func sign_rect(num: String, cx: float) -> Rect2:
 	return Rect2(roundf(cx) - w / 2.0, FLOOR_PLATE_Y - 9.0, w, 27.0)
 
 
-func _floor_number(cx: float) -> void:
+# --- WEAR on the floor signs (owner round 24d — "a little blood smearing to some of them on random floors…
+# by run three, some of them can even be hanging down as if they have been attacked or hit"). Per sign,
+# seeded: a BLOOD threshold the floor's decay climbs past (deeper + later = more), so a sign bloodied in
+# the morning is still bloodied at night and more join it; and from run 3 a HIT one hangs off its one
+# remaining screw (the others gone, their holes in the wall and a clean patch where it hung). It swings
+# away from the stairwell (left sign on its right screw, right sign on its left) by 20-34°, inside the
+# spot corridor.py / taken_local keep clear for it.
+const HANG_MIN := 20.0
+const HANG_MAX := 34.0
+const SCREW_M := 2.7                  # a screw's centre from the plate's corner (world px)
+const BLOOD := Color(0.36, 0.05, 0.04, 0.88)
+const BLOOD_DK := Color(0.22, 0.02, 0.02, 0.92)
+
+
+## {blood: bool, hang: angle in radians (0 = hanging straight), pivot: "left"/"right", seed: int}
+static func sign_wear(f: int, run: int, side: String) -> Dictionary:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(WorldState.master_seed) + "signwear" + str(f) + side)
+	var blood_thr := rng.randf()
+	var hang_thr := rng.randf()
+	var deg := rng.randf_range(HANG_MIN, HANG_MAX)
+	var sd := rng.randi()
+	var wear := float(load("res://scripts/building_floors.gd").corridor_wear(f))
+	var p_blood := clampf(0.08 + 0.1 * wear + 0.16 * float(run - 1), 0.0, 0.7)
+	var pivot := "right" if side == "left" else "left"
+	var hang := 0.0
+	if run >= 3 and hang_thr < 0.1 + 0.05 * wear:
+		hang = deg_to_rad(deg) * (-1.0 if pivot == "right" else 1.0)
+	return {"blood": blood_thr < p_blood, "hang": hang, "pivot": pivot, "seed": sd}
+
+
+## The pivot screw's world position for plate `r` hanging from `pivot`.
+static func pivot_point(r: Rect2, pivot: String) -> Vector2:
+	return Vector2(r.end.x - SCREW_M, r.position.y + SCREW_M) if pivot == "right" \
+		else r.position + Vector2(SCREW_M, SCREW_M)
+
+
+## The four corners of plate `r` as drawn with `wear` (rotated about its pivot when it hangs).
+static func sign_corners(r: Rect2, wear: Dictionary) -> PackedVector2Array:
+	var out := PackedVector2Array([r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)])
+	var ang: float = wear["hang"]
+	if ang == 0.0:
+		return out
+	var pv := pivot_point(r, wear["pivot"])
+	for i in out.size():
+		out[i] = pv + (out[i] - pv).rotated(ang)
+	return out
+
+
+func _floor_number(cx: float, side: String = "left") -> void:
 	var num := floor_label(floor_num)
 	var r := sign_rect(num, cx)
-	draw_rect(Rect2(r.position + Vector2(0.5, 0.8), r.size), Color(0, 0, 0, 0.3))           # sits flat on the wall
+	var wear := sign_wear(floor_num, WorldState.current_run, side)
+	var ang: float = wear["hang"]
+	var pv := pivot_point(r, wear["pivot"])
+	if ang != 0.0:
+		# where it hung: a cleaner patch of wall, the empty screw holes
+		draw_rect(r, Color(1, 1, 1, 0.07))
+		for sp in [r.position + Vector2(SCREW_M, SCREW_M), Vector2(r.end.x - SCREW_M, r.position.y + SCREW_M),
+				Vector2(r.position.x + SCREW_M, r.end.y - SCREW_M), r.end - Vector2(SCREW_M, SCREW_M)]:
+			if sp.distance_to(pv) > 1.0:
+				draw_circle(sp, 0.7, Color(0.08, 0.07, 0.06, 0.85))
+		draw_set_transform(pv, ang, Vector2.ONE)
+		r.position -= pv
+	draw_rect(Rect2(r.position + Vector2(0.5, 0.8), r.size), Color(0, 0, 0, 0.3 if ang == 0.0 else 0.4))   # its shadow
 	draw_rect(r, STEEL.darkened(0.45))                                                      # its hairline edge
 	var face := r.grow(-0.5)
 	# polished steel: lighter at the top, a touch darker at the foot...
@@ -283,15 +399,59 @@ func _floor_number(cx: float) -> void:
 	draw_rect(Rect2(face.position.x, face.position.y, 0.5, face.size.y), Color(1, 1, 1, 0.45))
 	draw_rect(Rect2(face.position.x, face.end.y - 0.5, face.size.x, 0.5), STEEL.darkened(0.35))
 	draw_rect(Rect2(face.end.x - 0.5, face.position.y, 0.5, face.size.y), STEEL.darkened(0.3))
-	var m := 2.2                                                                                  # flush screws, symmetric
+	var m := SCREW_M - 0.5                                                                        # flush screws, symmetric
+	var keep := face.position + Vector2(m, m) if wear["pivot"] == "left" else Vector2(face.end.x - m, face.position.y + m)
 	for sp in [face.position + Vector2(m, m), Vector2(face.end.x - m, face.position.y + m),
 			Vector2(face.position.x + m, face.end.y - m), face.end - Vector2(m, m)]:
+		if ang != 0.0 and sp != keep:
+			draw_circle(sp, 0.75, Color(0.1, 0.1, 0.1, 0.9))                                   # torn out: just the hole
+			continue
 		draw_circle(sp, 0.85, STEEL.darkened(0.4))
 		draw_circle(sp + Vector2(-0.25, -0.25), 0.4, Color(1, 1, 1, 0.85))
 	# the number, its INK centred on the sheet both ways
 	var at := number_origin(num, r)
-	draw_stroke_text(self, at + Vector2(0.0, 0.55), num, SIGN_NUM_H, Color(1, 1, 1, 0.6), SIGN_STROKE, false)   # the lip
-	draw_stroke_text(self, at, num, SIGN_NUM_H, ENGRAVE, SIGN_STROKE)                                  # the cut
+	# the number is a smooth distance-field texture (number_texture): round ends, round joins, soft edges
+	var tex := number_texture(num)
+	var box := Rect2(at - Vector2(NUM_PAD, NUM_PAD), Vector2(tex.get_size()) / NUM_SS)
+	draw_texture_rect(tex, Rect2(box.position + Vector2(0.0, 0.55), box.size), false, Color(1, 1, 1, 0.6))   # the lip
+	draw_texture_rect(tex, box, false, ENGRAVE)                                                               # the cut
+	if wear["blood"]:
+		_blood_smear(r, int(wear["seed"]), ang == 0.0)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+## A bloody hand that slid DOWN the sheet: a palm print where it first struck (smudged, uneven), the
+## fingers' streaks dragged down from it (thinning, fading out), a few flecks; on a sign still hanging
+## straight, drips run off its bottom edge down the wall.
+func _blood_smear(r: Rect2, sd: int, drips: bool) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = sd
+	var palm := Vector2(r.position.x + rng.randf_range(7.0, r.size.x - 7.0), r.position.y + rng.randf_range(4.0, 8.0))
+	var dir := Vector2(rng.randf_range(-0.35, 0.35), 1.0).normalized()        # it slid down, a little aslant
+	var across := Vector2(dir.y, -dir.x)
+	var tilt := rng.randf_range(-0.3, 0.3)
+	for k in range(7):                                                         # the palm: an uneven smudge
+		var o := across * rng.randf_range(-2.4, 2.4) + dir * rng.randf_range(-1.4, 1.6)
+		draw_circle(palm + o, rng.randf_range(1.0, 1.7), Color(BLOOD.r, BLOOD.g, BLOOD.b, rng.randf_range(0.55, 0.85)))
+	for f in range(4):                                                         # the fingers, dragged down
+		var base := palm + across.rotated(tilt) * (float(f) - 1.5) * 1.35 + dir * 1.2
+		var ln := rng.randf_range(8.0, 15.0) * (0.8 if f == 0 or f == 3 else 1.0)
+		var pts := PackedVector2Array()
+		var cols := PackedColorArray()
+		for k in range(10):
+			var t := float(k) / 9.0
+			pts.append(base + dir * ln * t + across * sin(t * 2.5 + float(f) * 1.7) * 0.25)
+			cols.append(Color(BLOOD.r, BLOOD.g, BLOOD.b, BLOOD.a * (1.0 - t * 0.85)))
+		draw_polyline_colors(pts, cols, 0.85 - 0.1 * float(f % 2), true)
+	for k in range(rng.randi_range(3, 6)):                                     # flecks
+		var p := r.position + Vector2(rng.randf_range(2.0, r.size.x - 2.0), rng.randf_range(2.0, r.size.y - 2.0))
+		draw_circle(p, rng.randf_range(0.3, 0.65), BLOOD_DK)
+	if drips:
+		for k in range(rng.randi_range(1, 2)):                                 # running off the bottom edge
+			var x := clampf(palm.x + rng.randf_range(-4.0, 4.0), r.position.x + 3.0, r.end.x - 3.0)
+			var dl := rng.randf_range(3.0, 8.0)
+			draw_line(Vector2(x, r.end.y - 1.0), Vector2(x, r.end.y + dl), BLOOD, 0.75, true)
+			draw_circle(Vector2(x, r.end.y + dl), 0.6, BLOOD_DK)
 
 
 func _lift_panel() -> void:

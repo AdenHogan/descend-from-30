@@ -1600,7 +1600,14 @@ means no rendering — UI layout and art still need an in-editor look.
   screws, `floor_signs.sign_rect`) with just the NUMBER engraved: dark cut strokes with round ends and a
   light lip below, drawn as smooth antialiased STROKES (`floor_signs.STROKE`, a clean geometric sans) spaced
   and CENTRED by their ink (round 24c: a fixed glyph cell left "21" lopsided — `ink_extent` test), on a
-  polished sheet with diagonal streaks of reflected light, and the lift's floor indicator
+  polished sheet with diagonal streaks of reflected light; the number is a cached DISTANCE-FIELD texture
+  (`number_texture`, 8 texels a px + mipmaps — round ends/joins, soft edges; round 24d: "the edges of the
+  number lettering could do with some finesse"). WEAR (round 24d — "blood smearing… by run three, some of
+  them can even be hanging down as if they have been attacked"): `sign_wear(floor, run, side)` — a seeded
+  BLOOD threshold the floor's decay climbs past (a hand slid down the plate + drips; bloodied stays
+  bloodied, more by night), and from run 3 a HIT sign hangs off its one remaining screw 20-34°, swung
+  away from the stairwell, the other holes + a clean patch left on the wall; its kept-clear spot
+  (`taken_local` / corridor.py SIGNS) covers the swing, and the lift's floor indicator
   (amber only while it has power or on a merchant floor). Every apartment door has a NUMBER PLATE on its
   left at eye level (`scripts/door_plate.gd`, a child of the door, section-styled; STAFF on the
   maintenance door; none on a breached one; floor 30's plain-sprite 3001 gets one from hallway.gd).
