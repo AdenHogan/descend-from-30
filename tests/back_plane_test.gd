@@ -146,12 +146,17 @@ func _test_back_plane() -> void:
 		if is_instance_valid(i) and i.get("back_spot") == null and i.is_in_range:
 			front_reach = true
 	check(not front_reach, "…and no walking-line node is")
-	# Not a walking plane.
+	# Not a walking plane: A / D don't walk along it — they step you back DOWN (then walk on).
 	var x0: float = p.global_position.x
-	Input.action_press("move_left")
+	await _tap("move_left")
 	await _settle(30)
-	Input.action_release("move_left")
-	check(absf(p.global_position.x - x0) < 0.5, "no walking left/right up here (moved %.1f)" % absf(p.global_position.x - x0))
+	check(p.back_spot == null and absf(p.global_position.y - lane_y) < 0.5 and absf(p.global_position.x - x0) < 12.0,
+		"A up here steps DOWN to the walking line, not along the furniture (moved %.1f)" % absf(p.global_position.x - x0))
+	p.global_position.x = spot.global_position.x
+	await _settle(4)
+	await _tap("move_up")
+	await _settle(30)
+	check(p.back_spot == spot, "…and W steps back up")
 	# Search one, close it — still up there (never sent down on its own).
 	var loot = room.get_node("LootUI")
 	WorldState.interaction_handled = false
@@ -190,5 +195,60 @@ func _test_back_plane() -> void:
 		frames += 1
 	check(p.back_spot == null and absf(p.global_position.y - lane_y) < 0.5 and absf(p.global_position.x - far) <= 9.0,
 		"a click on the floor while up steps down, then walks there (x %.1f → %.1f)" % [p.global_position.x, far])
+	await _test_full_inventory_escape(room, spot, lane_y)
 	WorldState.god_mode = false
 	room.free()
+
+
+# THE SOFTLOCK (owner playtest): stepped up at the furniture with a FULL inventory, a node shows an
+# item — "Inventory full / Drop something first" — and nothing got you out: S was ignored while the
+# panel was open, clicks too, and there's no walking up there. Every one of these must now work.
+func _test_full_inventory_escape(room: Node, spot: Node, lane_y: float) -> void:
+	var p = room.get_node("Player")
+	var loot = room.get_node("LootUI")
+	WorldState.inventory.clear()
+	var guard := 0
+	while guard < 20 and WorldState.add_to_inventory("002", 1):
+		guard += 1
+	check(not WorldState.add_to_inventory("002", 1), "the pockets are full (%d items)" % WorldState.inventory.size())
+	var ways := [["S", "move_down"], ["D", "move_right"], ["A", "move_left"], ["a click in the room", ""]]
+	for w in ways:
+		p.global_position.x = spot.global_position.x
+		if p.back_spot == null:
+			await _settle(4)
+			await _tap("move_up")
+			await _settle(30)
+		var a = spot.anchors[0]
+		loot.open("002", a.name, WorldState.current_apartment_id)
+		loot._reveal_item()
+		loot._take()
+		await _settle(3)
+		var stuck: bool = p.back_spot == spot and WorldState.loot_open and loot.name_label.text == "Inventory full"
+		check(stuck, "up at the furniture, a full inventory: \"Inventory full\" shows (%s)" % w[0])
+		if w[1] != "":
+			await _tap(w[1])
+		else:
+			# (40, 60) in the game's 1152×648 view — top-left, off the centred panel. push_input takes WINDOW
+			# coordinates, and the headless window isn't 1152×648, so map it through the stretch transform.
+			var at: Vector2 = get_viewport().get_final_transform() * Vector2(40, 60)
+			var mv := InputEventMouseMotion.new()
+			mv.position = at
+			get_viewport().push_input(mv)
+			var ev := InputEventMouseButton.new()
+			ev.button_index = MOUSE_BUTTON_LEFT
+			ev.pressed = true
+			ev.position = at
+			get_viewport().push_input(ev)
+			var up := InputEventMouseButton.new()
+			up.button_index = MOUSE_BUTTON_LEFT
+			up.position = at
+			get_viewport().push_input(up)
+		var frames := 0
+		while frames < 120 and (p.back_spot != null or p.get("_back_stepping")):
+			await get_tree().physics_frame
+			frames += 1
+		check(not WorldState.loot_open and not loot.visible, "…%s closes the panel" % w[0])
+		check(p.back_spot == null and absf(p.global_position.y - lane_y) < 0.5, "…and steps the player back down (%s)" % w[0])
+		p._clear_move_target()
+		await _settle(4)
+	WorldState.inventory.clear()

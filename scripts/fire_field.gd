@@ -188,12 +188,17 @@ func char_all() -> void:
 
 
 func extinguish_at(x: float, radius: float) -> void:
-	# A blast of extinguisher: put out only the cells that were actually BURNING, turning
-	# them SPENT (ash + smoke — the AFTERMATH marks where fire WAS, not where the spray
+	extinguish_span(x - radius, x + radius)
+
+
+func extinguish_span(x0: float, x1: float) -> void:
+	# A blast of extinguisher over [x0, x1]: put out only the cells that were actually BURNING,
+	# turning them SPENT (ash + smoke — the AFTERMATH marks where fire WAS, not where the spray
 	# landed). A COOL cell in the blast is left untouched, so spraying bare floor leaves NO
 	# fake ash/smoke. The burnt-out (SPENT) cells act as firebreaks, so the doused patch
-	# can't re-ignite from a neighbour.
-	var r := _cells_in(x - radius, x + radius)
+	# can't re-ignite from a neighbour. The stairwell's fire is its zone's cells, so a spray
+	# at the stairs puts that out too (see stair_fire_lit).
+	var r := _cells_in(x0, x1)
 	for i in range(r.x, r.y + 1):
 		if state_of(i) == BURNING:
 			heat[i] = 0.0
@@ -225,6 +230,11 @@ func cell_of_unclamped(x: float) -> int:
 
 
 func is_burning_at(x: float) -> bool:
+	# Inside the down-stairwell zone the corridor fire isn't drawn — the only flames there are the
+	# stairwell's own, in the shaft — so that's the only place there that burns (what you see is
+	# what hurts: no invisible fire beside the stairs).
+	if _in_stair_keepout(x):
+		return stair_fire_lit() and absf(x - _stair_fire_x) <= _stair_half + STAIR_HEAT_MARGIN
 	var i := cell_of_unclamped(x)
 	return i >= 0 and i < cell_count and state_of(i) == BURNING
 
@@ -744,6 +754,10 @@ var _stair_keep_hi: float = -1.0
 const STAIR_BASE_Y := 415.0
 
 
+# How far past the shaft's edges its flames still burn you (they lick a little wider than the box).
+const STAIR_HEAT_MARGIN := 8.0
+
+
 func set_stair_fire(cx: float, half: float = 26.0, keep_lo: float = 0.0, keep_hi: float = -1.0) -> void:
 	_stair_fire_x = cx
 	_stair_half = half
@@ -751,11 +765,24 @@ func set_stair_fire(cx: float, half: float = 26.0, keep_lo: float = 0.0, keep_hi
 	_stair_keep_hi = keep_hi
 
 
+func stair_fire_lit() -> bool:
+	# The stairwell burns when the fire has actually REACHED it: one of the cells in its zone is
+	# burning. (It used to draw whenever ANYTHING on the floor burned — so it lit up with the fire
+	# 400px away, and spraying it did nothing: owner playtest, "didn't put the flames out… near a
+	# stairwell". Now it catches when the fire spreads to it and goes out when you douse it.)
+	if _stair_fire_x < 0.0:
+		return false
+	for i in range(cell_count):
+		if _in_stair_keepout(cell_x(i)) and state_of(i) == BURNING:
+			return true
+	return false
+
+
 func _draw_stair_fire(canvas: CanvasItem) -> void:
 	# Fire INSIDE the stairwell box: base on STAIR_BASE_Y (the red horizontal line), flames
 	# rising UP into the shaft, strictly within [cx-half, cx+half] on x (the red verticals) —
 	# never crossing beyond them. The corridor fire is kept out of the whole stair zone.
-	if _stair_fire_x < 0.0 or _tile_tex.is_empty() or not any_burning():
+	if _stair_fire_x < 0.0 or _tile_tex.is_empty() or not stair_fire_lit():
 		return
 	var l: float = maxf(_stair_fire_x - _stair_half, BORDER_L)   # never past the blue borders
 	var r: float = minf(_stair_fire_x + _stair_half, BORDER_R)

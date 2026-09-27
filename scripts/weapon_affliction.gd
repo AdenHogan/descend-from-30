@@ -49,6 +49,20 @@ static func ignite(target: Node) -> bool:
 	return true
 
 
+## Put out a weapon-set fire (the extinguisher's jet). Leaves a wound bleeding. True if it was alight.
+static func douse(target: Node) -> bool:
+	if target == null or not is_instance_valid(target):
+		return false
+	var a = target.get_node_or_null(NODE_NAME)
+	if a == null or a.burn_left <= 0.0:
+		return false
+	a.burn_left = 0.0
+	target.set("weapon_lit", false)
+	if "on_fire" in target:
+		target.on_fire = false
+	return true
+
+
 static func bleed(target: Node) -> bool:
 	if not can_afflict(target):
 		return false

@@ -183,6 +183,10 @@ func has_smoulder() -> bool:
 	return not _scars.is_empty()
 
 
+func extinguish_span(x0: float, x1: float) -> void:
+	extinguish_at((x0 + x1) * 0.5, absf(x1 - x0) * 0.5)
+
+
 func extinguish_at(x: float, radius: float) -> void:
 	# Douse every spot within reach — each becomes a scorched, smouldering patch.
 	var kept: Array = []

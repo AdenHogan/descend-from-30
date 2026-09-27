@@ -4,8 +4,12 @@ extends CanvasLayer
 #   • double-clicking it, or
 #   • dragging it down onto the inventory bar, or
 #   • pressing E / interact,
-# and LEFT by simply walking away (the panel vanishes; searching again re-opens
-# it). No Take/Leave buttons. Built in code so the layout is controlled here.
+# and LEFT by walking away, by clicking anywhere in the world off the panel, or — stepped up at
+# set-back furniture, where there's no walking — by any movement key (player.gd steps you down and
+# calls leave()). Searching again re-opens it. No Take/Leave buttons. The panel must ALWAYS be
+# leavable: a full inventory once trapped the player up at a bookshelf (owner playtest — S and clicks
+# were both ignored while it was open, and the only other exit, walking, doesn't exist up there).
+# Built in code so the layout is controlled here.
 
 const REVEAL_TIME = 3.0
 const NOTHING_CLOSE_TIME = 1.6
@@ -42,8 +46,15 @@ var last_press_time = 0.0
 
 func _ready() -> void:
 	layer = 3
+	add_to_group("loot_ui")
 	_build_ui()
 	visible = false
+
+
+## Leave the panel without taking anything (no-op when it isn't open). Safe from any state.
+func leave() -> void:
+	if visible:
+		_close(false)
 
 
 func _build_ui() -> void:
@@ -221,7 +232,16 @@ func _end_drag(take: bool) -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if not visible or is_revealing or not has_item:
+	if not visible:
+		return
+	# A click in the world, off the panel (and not on the inventory bar, where you make room): leave,
+	# and let the click go on through to click-to-move / click-to-scavenge. Any state — searching,
+	# "nothing found", an item shown, "inventory full".
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT \
+			and not drag_active and event.position.y < BAR_TOP and not panel.get_global_rect().has_point(event.position):
+		_close(false)
+		return
+	if is_revealing or not has_item:
 		return
 	# E / interact takes.
 	if event.is_action_pressed("interact"):

@@ -32,6 +32,7 @@ func _ready() -> void:
 	_test_extinguish_aftermath()
 	_test_fire_hot_at()
 	_test_stair_fire()
+	await _test_stair_douse_on_floor()
 	_test_snapshot_stage()
 	_test_off_span_douse()
 	_test_my_fire_field()
@@ -133,18 +134,113 @@ func _test_fire_hot_at() -> void:
 
 
 func _test_stair_fire() -> void:
-	# The third plane: set_stair_fire arms a fire on the down-stairwell; it only draws while
-	# the floor still has live fire (gated by any_burning), and clears with -1.
-	print("[stair fire — third plane]")
-	var ff = _make_field()
-	ff.set_stair_fire(165.0)
-	check(ff._stair_fire_x == 165.0, "set_stair_fire records the down-stair x")
-	check(not ff.any_burning(), "no fire yet - stair fire would not draw")
-	ff.ignite_span(600.0, 600.0)
-	check(ff.any_burning(), "a lit floor - stair fire draws on the step")
-	ff.set_stair_fire(-1.0)
-	check(ff._stair_fire_x < 0.0, "a floor with no down-stair fire clears to -1")
-	ff.free()
+	# The third plane: set_stair_fire arms a fire on the down-stairwell. It burns only when the
+	# fire has REACHED the stairwell — a cell in its zone is burning — and goes out when those
+	# cells are doused. (It used to draw whenever ANYTHING on the floor burned, so spraying it
+	# did nothing while a patch down the corridor was still alight — owner playtest.)
+	print("[stair fire — the stairwell's own cells]")
+	for side in ["right", "left"]:
+		var ff = _make_field()
+		if side == "right":
+			ff.set_stair_fire(1203.0, 26.0, 1114.0, 1249.0)
+		else:
+			ff.set_stair_fire(146.0, 26.0, 100.0, 235.0)
+		var sx: float = ff._stair_fire_x
+		var zone: Array = []
+		for i in range(ff.cell_count):
+			if ff._in_stair_keepout(ff.cell_x(i)):
+				zone.append(i)
+		check(zone.size() >= 2, "%s: the stairwell zone holds fire cells (%s)" % [side, str(zone)])
+		ff.ignite_span(600.0, 600.0)
+		check(ff.any_burning() and not ff.stair_fire_lit(), "%s: fire down the corridor does NOT light the stairwell" % side)
+		check(not ff.is_burning_at(sx) and not ff.fire_hot_at(sx), "%s: …and nothing burns you at the stairs" % side)
+		ff.ignite_span(ff.cell_x(zone[0]), ff.cell_x(zone[0]))
+		check(ff.stair_fire_lit(), "%s: the fire reaching the stairwell's zone lights it" % side)
+		check(ff.is_burning_at(sx) and ff.fire_hot_at(sx), "%s: …and standing in the shaft's flames burns (player + enemy)" % side)
+		# In the zone but clear of the shaft there are no flames drawn — so none that burn.
+		var beside: float = sx + (-(ff._stair_half + ff.STAIR_HEAT_MARGIN + 20.0) if side == "right" else (ff._stair_half + ff.STAIR_HEAT_MARGIN + 20.0))
+		check(ff._in_stair_keepout(beside) and not ff.is_burning_at(beside), "%s: beside the shaft (no flames drawn there) nothing burns" % side)
+		ff.extinguish_span(sx - 60.0, sx + 60.0)
+		check(not ff.stair_fire_lit(), "%s: spraying the stairs puts the stairwell fire OUT…" % side)
+		check(ff.any_burning(), "%s: …while the corridor fire further off still burns" % side)
+		ff.free()
+	var nf = _make_field()
+	nf.set_stair_fire(-1.0)
+	nf.ignite_span(nf.FIRE_MIN_X, nf.FIRE_MAX_X)
+	check(nf._stair_fire_x < 0.0 and not nf.stair_fire_lit(), "a floor with no down-stair fire clears to -1 and never lights it")
+	nf.free()
+
+
+# The owner's report, end to end on a REAL floor: a fire at the down stairwell, sprayed from the
+# stairs with the extinguisher. The stairwell must go out, the jet must beat the flames back from
+# the nozzle outward (near first, far last), and it must put out an enemy set alight by a weapon.
+func _test_stair_douse_on_floor() -> void:
+	print("[extinguisher at the stairwell — real floor]")
+	WorldState.new_game()
+	WorldState.tutorial_completed = true
+	WorldState.is_first_run = false
+	WorldState.god_mode = true
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_FIRE2
+	WorldState.dev_fire_origin = 15
+	WorldState.current_floor = 15
+	WorldState.spawn_source = ""
+	WorldState.fire_cells.clear()
+	WorldState.fire_origin_x.clear()
+	var fl = load("res://scenes/building_floors.tscn").instantiate()
+	add_child(fl)
+	for i in range(6):
+		await get_tree().physics_frame
+	var ff = fl._fire_field
+	check(ff != null and ff._stair_fire_x > 0.0, "the floor's fire has its down-stairwell armed")
+	if ff == null:
+		fl.free()
+		return
+	ff.set_process(false)
+	var sx: float = ff._stair_fire_x
+	var right: bool = sx > 600.0
+	var dir := -1.0 if right else 1.0               # face along the corridor, away from the end wall
+	# the stairwell alight + the whole corridor from it on
+	ff.ignite_span(ff.FIRE_MIN_X, ff.FIRE_MAX_X)
+	check(ff.stair_fire_lit(), "the stairwell is alight")
+	var p = fl.get_node("Player")
+	for z in get_tree().get_nodes_in_group("zombie"):
+		if fl.is_ancestor_of(z):
+			z.free()
+	var zombie = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
+	fl.add_child(zombie)
+	zombie.set_physics_process(false)
+	p.global_position.x = sx - dir * 10.0
+	zombie.global_position = Vector2(p.global_position.x + dir * 100.0, 370.0)
+	WeaponAffliction.ignite(zombie)
+	check(zombie.weapon_lit, "an enemy set alight by a fire weapon, in the jet's path")
+	p.animated_sprite.flip_h = dir < 0.0
+	WorldState.inventory.clear()
+	WorldState.add_to_inventory("036", 1)
+	var nozzle: float = p.global_position.x
+	p.use_item(0)
+	var sprays := 0
+	for n in fl.get_children():
+		if n.get_script() == load("res://scripts/extinguisher_spray.gd"):
+			sprays += 1
+	check(sprays == 1, "the spray jet lives in the player's own floor scene")
+	await get_tree().create_timer(0.5).timeout
+	check(not ff.is_burning_at(nozzle + dir * 30.0), "after ~0.5s the flames nearest the nozzle are out")
+	check(ff.is_burning_at(nozzle + dir * 160.0), "…but the far end of the jet's reach still burns (beaten back, not switched off)")
+	await get_tree().create_timer(0.8).timeout
+	var reach_out := true
+	for x in range(int(nozzle - dir * 60.0), int(nozzle + dir * 165.0), int(dir * 7.0)):
+		if ff.state_of(ff.cell_of_unclamped(float(x))) == ff.BURNING and not ff._in_stair_keepout(float(x)):
+			reach_out = false
+	check(reach_out, "after ~1s everything in the jet's reach is out")
+	check(not ff.stair_fire_lit(), "the STAIRWELL's fire is out (the owner's bug)")
+	check(ff.any_burning(), "…while the corridor beyond the jet still burns")
+	check(not zombie.weapon_lit and not zombie.on_fire, "the jet put out the weapon-lit enemy")
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
+	WorldState.dev_fire_origin = -1
+	WorldState.god_mode = false
+	WorldState.inventory.clear()
+	fl.free()
+	await get_tree().process_frame
 
 
 func _ticks(ff, n: int) -> void:

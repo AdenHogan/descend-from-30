@@ -682,9 +682,18 @@ means no rendering — UI layout and art still need an in-editor look.
   in either mode, never swings (Q / double-click / right-click still work). **Spray VFX**:
   using it puts a placeholder red/white canister in the player's HANDS (`held_extinguisher.gd`,
   child of the player, ~1.1s) and jets the purchased **Horisontal_smoke** cloud from the
-  nozzle over the fire (`extinguisher_spray.gd`, z3, flips with facing); the actual douse is
-  **delayed ~1s** (a `create_timer` in `use_item`) so the fire reads as beaten back rather
-  than switched off, then those cells go SPENT and rise black smoulder. **Merchant**
+  nozzle over the fire (`extinguisher_spray.gd`, z3, flips with facing — added to the player's OWN
+  scene, never `current_scene`); the douse comes in **three waves over ~1s** (`player.EXTINGUISH_WAVES`:
+  0.35s → 60px ahead, 0.7s → 120, 1.0s → 175, each from 85px behind) so the fire is BEATEN BACK from
+  the nozzle outward, not switched off; the doused cells go SPENT and smoulder. `player.douse_span`
+  puts out everything in a stretch: the fire's cells (`extinguish_span`, apartment fire too), door-frame
+  flames, and enemies set alight by a fire WEAPON (`WeaponAffliction.douse`). **The STAIRWELL's fire is
+  its zone's cells** (owner round 24e: "used the fire extinguisher on a fire… didn't put the flames out…
+  near a stairwell"): `fire_field.stair_fire_lit()` = a cell in the down-stairwell zone is burning — it
+  used to draw whenever ANYTHING on the floor burned, so it lit with a fire 400px away and no spray could
+  put it out. In that zone the corridor fire isn't drawn, so only the shaft's flames burn you there
+  (`is_burning_at`: in the zone → lit and within the shaft ± `STAIR_HEAT_MARGIN`) — what you see is what
+  hurts. Locked by `fire_test` (`_test_stair_fire`, `_test_stair_douse_on_floor`). **Merchant**
   shelters while its floor burns (`_merchant_pending_fire`) and emerges once it's dealt
   with; left burning, it's absent on that floor across runs. While sheltering it shows a
   **one-time non-interrupting line by the elevator** (`_process`, `_merchant_shelter_line_shown`)
@@ -1386,8 +1395,12 @@ means no rendering — UI layout and art still need an in-editor look.
   **BACK (scavenge) PLANE** (`back_plane_spot.gd`, owner round 9): nodes flagged `metadata/back_plane`
   (bookshelf ×2, drawers) are reached by stepping UP to the furniture — W near it or clicking a node
   (walks there first) → feet 339 (in FRONT of the furniture's base 324, not on it), perspective scale ≈0.89; only that spot's nodes are in
-  reach up there, no left/right, never auto-returns; S steps down (a click on open floor steps down
-  then walks). From the walking line those nodes are out of reach. Saves record the walking line
+  reach up there, no left/right, never auto-returns; S — or A / D — steps down (a click on open floor
+  steps down then walks). **Always leavable** (owner round 24e softlock: a full inventory up there
+  showed "Inventory full" and nothing got you out — S and clicks were ignored while the loot panel was
+  open, and there's no walking up there): any movement key steps down and closes the panel
+  (`loot_ui.leave`), and a click anywhere off the panel (above the inventory bar) closes it and
+  carries on as a normal click — on the lane too. From the walking line those nodes are out of reach. Saves record the walking line
   (`player.lane_position`). Enemies still reach you up there. Locked by `back_plane_test`.
   **ALL SIX modules have art, 5 VARIANTS each (30)** — docs/art_reference/modules/README.md.
   ONE pipeline: `pixlib.finish_module` renders + CHECKS + exports a variant AND writes its scene

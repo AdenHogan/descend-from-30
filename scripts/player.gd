@@ -91,7 +91,11 @@ const HIT_FLASH_DURATION = 0.5
 var is_dying = false
 var dying_timer = 0.0
 const DYING_TIME = 8.0
-const EXTINGUISH_RADIUS := 130.0   # how wide a fire-extinguisher blast reaches
+# The jet's reach, wave by wave: [seconds after the spray starts, px AHEAD of the nozzle]. Each wave
+# douses from EXTINGUISH_BEHIND behind the player to that far ahead — the fire is beaten back from
+# the nozzle outward. Total = the old single blast (radius 130 centred 45 ahead: 85 behind, 175 ahead).
+const EXTINGUISH_WAVES := [[0.35, 60.0], [0.7, 120.0], [1.0, 175.0]]
+const EXTINGUISH_BEHIND := 85.0
 var is_dead = false
 
 var is_switching_mode = false
@@ -339,11 +343,16 @@ func _physics_process(delta: float) -> void:
 		else:
 			direction = signf(dx)
 	# Stepped up at set-back furniture (the BACK plane): not a walking plane — no left/right up here.
-	# S steps back down to the walking line; a click elsewhere steps down first, then walks there.
+	# S / A / D step back down to the walking line (a held A / D then walks on); a click elsewhere
+	# steps down first, then walks there.
 	if back_spot != null:
 		if not is_instance_valid(back_spot):
 			_drop_back_plane()
-		elif Input.is_action_just_pressed("move_down") and not WorldState.loot_open:
+		elif Input.is_action_just_pressed("move_down") or Input.is_action_just_pressed("move_left") \
+				or Input.is_action_just_pressed("move_right"):
+			# ANY movement key steps down — and leaves an open loot panel first (a full inventory
+			# once trapped the player up here: S was ignored while the panel was open).
+			get_tree().call_group("loot_ui", "leave")
 			exit_back_plane()
 		elif has_move_target and not _target_on_back_spot():
 			exit_back_plane(true)
@@ -1403,8 +1412,30 @@ func _spawn_extinguisher_spray(dir: float) -> void:
 	add_child(can)
 	var spray = EXTINGUISHER_SPRAY.new()
 	spray.direction = dir
+	# Into the player's OWN scene (never current_scene: the wrong scene mid-pan, null mid-change).
+	get_parent().add_child(spray)
 	spray.global_position = global_position + Vector2(dir * 18.0, 0.0)     # from the nozzle, over the fire
-	get_tree().current_scene.add_child(spray)
+
+
+## Put out everything burning over world-x [x0, x1] in `field`'s scene: the fire's cells (the
+## stairwell's fire is its cells), the door-frame flames (separate decals — left alone they read
+## as fire you "can't put out"), and any enemy set alight by a fire weapon. Floor-fire burning on
+## an enemy goes out by itself once its ground is doused.
+func douse_span(field: Node, x0: float, x1: float) -> void:
+	if field == null or not is_instance_valid(field):
+		return
+	if field.has_method("extinguish_span"):
+		field.extinguish_span(x0, x1)
+	else:
+		field.extinguish_at((x0 + x1) * 0.5, (x1 - x0) * 0.5)
+	var root: Node = field.get_parent()
+	for d in get_tree().get_nodes_in_group("door_fire"):
+		if is_instance_valid(d) and d.get_parent() == root and d.global_position.x >= x0 and d.global_position.x <= x1:
+			d.queue_free()
+	for z in get_tree().get_nodes_in_group("zombie"):
+		if is_instance_valid(z) and WorldState.owning_scene_root(z) == root \
+				and z.global_position.x >= x0 and z.global_position.x <= x1:
+			WeaponAffliction.douse(z)
 
 
 func _throw_can(slot_index: int) -> void:
@@ -1597,19 +1628,20 @@ func use_item(slot_index: int) -> void:
 		HUD.refresh_inventory()
 		WorldState.emit_noise(global_position, WorldState.NOISE_RADIUS["scavenge"], 1.0)
 		HUD.show_feedback("Spraying the extinguisher...")
-		# Delay the actual dousing so the spray visibly plays OVER the fire first — it
-		# reads as beaten back, not switched off. Douse a touch AHEAD, where the jet lands.
-		var douse_x := global_position.x + dir * 45.0
-		await get_tree().create_timer(1.0).timeout
-		if is_instance_valid(field):
-			field.extinguish_at(douse_x, EXTINGUISH_RADIUS)
-			# Also snuff any burning DOOR-FRAME flames in reach — they're separate decals,
-			# not part of the fire field, so without this they'd linger after a blast and
-			# read as fire the player "can't put out" (wasting another charge on them).
-			for d in get_tree().get_nodes_in_group("door_fire"):
-				if is_instance_valid(d) and absf(d.global_position.x - douse_x) <= EXTINGUISH_RADIUS:
-					d.queue_free()
-			HUD.show_feedback("You beat back the flames." if field.any_burning() else "The fire's out.")
+		# The jet BEATS THE FIRE BACK from the nozzle outward over ~1s — the flames nearest go out
+		# first, then the next stretch, then the far end — instead of the whole blast snapping
+		# out at once. Anchored where it was fired (the jet stays where it was sprayed).
+		var nozzle_x := global_position.x
+		var t_prev := 0.0
+		for wave in EXTINGUISH_WAVES:
+			await get_tree().create_timer(float(wave[0]) - t_prev).timeout
+			t_prev = float(wave[0])
+			if not is_instance_valid(field) or not is_inside_tree():
+				return
+			var a := nozzle_x - dir * EXTINGUISH_BEHIND
+			var b := nozzle_x + dir * float(wave[1])
+			douse_span(field, minf(a, b), maxf(a, b))
+		HUD.show_feedback("You beat back the flames." if field.any_burning() else "The fire's out.")
 	elif item_data.get("is_tool", false) and item_data.get("can_repair", false):
 		# Toolbox: repairs the first repairable item — a damaged gun OR a
 		# broken durability weapon/tool (one toolbox use). Damaged guns take
