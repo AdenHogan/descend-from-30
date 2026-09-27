@@ -266,6 +266,28 @@ func _apply_door_state() -> void:
 	_apply_door_state_tint()
 	_apply_door_style()
 	_sync_boards()
+	_sync_plate()
+
+
+const DOOR_PLATE := preload("res://scripts/door_plate.gd")
+
+
+## The number plate beside the door (scripts/door_plate.gd): the apartment's number, STAFF on the
+## maintenance door, none on a breached one (it went with the frame).
+func _sync_plate() -> void:
+	var plate = get_node_or_null("Plate")
+	var text := "STAFF" if is_maintenance else apartment_id
+	if text == "" or _breached():
+		if plate != null:
+			plate.queue_free()
+		return
+	var f: int = WorldState._apartment_floor(apartment_id) if not is_maintenance else WorldState.current_floor
+	var sec: String = load("res://scripts/building_floors.gd").corridor_section(f)
+	if plate == null:
+		plate = DOOR_PLATE.new()
+		add_child(plate)
+		move_child(plate, 0)                    # under the door's own sprite / boards / prompt
+	plate.setup(text, sec)
 
 
 func _apply_door_state_tint() -> void:

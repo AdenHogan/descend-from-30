@@ -222,8 +222,10 @@ def cooker(c):
 
 
 def grease(c):
-    for i in range(5):                                           # grease up the tiles over the hob
-        c.ellipse(170 + (i % 2) * 3, 58 - i * 4, 7 - i, 3, GREASE)
+    from pixlib import wall_mark
+    with wall_mark(c):                                           # a mark, not decor: it runs up behind the cupboards
+        for i in range(5):                                       # grease up the tiles over the hob
+            c.ellipse(170 + (i % 2) * 3, 58 - i * 4, 7 - i, 3, GREASE)
 
 
 def sink(c):

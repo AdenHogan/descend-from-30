@@ -26,7 +26,7 @@ fixture), picked per floor (building_floors.corridor_variant).
 DILAPIDATION, three layers of it:
   DEPTH  a wear level by floor (building_floors.corridor_wear: 29-24 -> 0 .. 5-1 -> 4), baked in:
          damp + tide marks, cracks, paper torn to the plaster, holes to the blockwork, kicked-in
-         panels, tags, a worn / torn runner, bin bags; pictures go askew, then missing, then fall.
+         panels, tags, a worn / torn runner, bin bags; pictures go missing, then fall (never crooked).
   TIME   run 2 / run 3 redraw the SAME corridor and add more of the same damage + blood (the day
          wears on — the time skip), and the pictures keep failing where they were already loose.
   FIRE   fire_<zone>.png (l / m / r / lm / mr / all): soot plumes up the walls and over the door
@@ -56,6 +56,10 @@ DOOR_TOP = 74                                # door sprites cover y >= ~79 at DO
 ELEV_TOP = 64                                # the elevator sprite covers y >= ~69
 EXIT_SIGN = (860, 40, 872, 50)
 PIC_DY = 26                                  # pictures hang just above the rail, not at the ceiling
+# where the game draws its live signs (scripts/floor_signs.gd taken_local — keep the two in step): the
+# STAIRS signs, the floor numbers, the lift indicator, every door's number plate. No damage lands there.
+SIGNS = ([(12, 12, 100, 38), (1020, 12, 1108, 38), (112, 32, 150, 72), (966, 32, 1004, 72), (898, 48, 932, 64)]
+         + [(d - 50, 90, d - 24, 108) for d in DOORS + [814]])
 # wear geometry, set per section (set_geom): the dado rail's top, the lower wall's top, skirting
 DADO_Y, LOWER_Y, SKIRT_TOP = RAIL_Y, 100, SKIRT_Y
 G = {}
@@ -503,7 +507,9 @@ class Spots:
         return None
 
 
-# --- pictures failing: askew, then gone (a clean patch + the nail), then down on the floor ----
+# --- pictures failing: gone (a clean patch + the nail), then down on the floor --------------------
+# (owner round 23: they no longer hang crooked first — "photo frames that are sort of diagonal in the
+# corridor… weird")
 def _lum(p):
     return 0.3 * p[0] + 0.59 * p[1] + 0.11 * p[2]
 
@@ -530,10 +536,9 @@ def picture_damage(c, bare, score_of, rng_seed):
             rows[y] = rows.get(y, 0) + 1
         body = [y for y in rows if rows[y] > 4]                      # the frame, not its wire
         top, bot = min(body), max(body)
-        if s < 0.75:                                                 # hanging crooked
-            k = tilt * (2 if s < 0.6 else 4)
+        if s < 0.75:        # still hanging, and STRAIGHT (owner round 23: crooked frames read as weird)
             for (x, y), p in pic.items():
-                c.px[x, y + int(round(k * (x - cx) / 18.0))] = p
+                c.px[x, y] = p
             continue
         for (x, y) in mask:                                          # gone: the unfaded patch
             if top <= y <= bot:
@@ -958,7 +963,7 @@ def corridor(section, variant, level, run, seed):
     # how far each picture has gone: depth + the time skip + how loosely it was hung
     occ += picture_damage(c, bare.img, lambda i: level * 0.2 + (run - 1) * 0.22 + frag[i] * 0.45, seed + 3)
     doormats(c, P.get('mats', ()), min(4, level + run - 1))
-    sp = Spots(occ + [EXIT_SIGN] + [(d + 32, 85, d + 38, 92) for d in DOORS])
+    sp = Spots(occ + [EXIT_SIGN] + [(d + 32, 85, d + 38, 92) for d in DOORS] + SIGNS)
     w = WEAR[level]
     rng = random.Random(seed)
     # the rot gathers in a few stretches (a leak, a flat that went bad) rather than evenly

@@ -433,7 +433,7 @@ def travel_poster(c, x0, y0, x1, y1):
 
 def c_decor(c):
     gig_poster(c, 104, 26, 128, 58)
-    travel_poster(c, 131, 30, 147, 54)
+    travel_poster(c, 282, 30, 298, 54)          # clear of the TV and the window box
 
 
 @persp

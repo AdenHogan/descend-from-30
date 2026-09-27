@@ -111,6 +111,8 @@ class Canvas:
         self.px = self.img.load()
         self.w, self.h = w, h
         self.rng = random.Random(seed)
+        self.pre_floor = None          # the canvas as it was just before its floor went down (persp)
+        self.marks = set()             # wall MARKS (wall_mark): stains / grease / smears, not hung decor
 
     # --- primitives (all inclusive of x0..x1, y0..y1) ---
     def put(self, x, y, c):
@@ -207,6 +209,81 @@ class Canvas:
             self.img.resize((self.w * scale, self.h * scale), Image.NEAREST).save(preview_path)
 
 
+class wall_mark:
+    """`with wall_mark(c):` — what's drawn inside is a MARK on the wall (a stain, grease over the hob,
+    a smear of blood), not something hung on it: check_wall_decor lets furniture stand in front of it
+    (grease runs up behind the cupboards; a smear goes down behind the sideboard)."""
+
+    def __init__(self, c):
+        self.c = c
+
+    def __enter__(self):
+        self.before = self.c.img.copy()
+        return self.c
+
+    def __exit__(self, *a):
+        from PIL import ImageChops
+        diff = ImageChops.difference(self.before.convert('RGB'), self.c.img.convert('RGB'))
+        bb = diff.getbbox()
+        if bb:
+            dp = diff.load()
+            for y in range(bb[1], bb[3]):
+                for x in range(bb[0], bb[2]):
+                    if dp[x, y] != (0, 0, 0):
+                        self.c.marks.add((x, y))
+        return False
+
+
+def check_wall_decor(pre_floor, bare, final, min_px=4, gap=2, marks=()):
+    """Round 23 (owner: "the poster is behind the tv, which is very strange, people wouldn't do that in
+    real life"): everything hung on the wall before the floor went down — posters, frames, clocks,
+    notes, shelves of ornaments — must stay FULLY in view: nothing drawn afterwards (furniture, a TV,
+    a wardrobe's top) may cover any of it. Returns [(bbox, covered_px, total_px)] for each piece
+    (8-connected decor region above the seam) that something covers."""
+    if pre_floor is None:
+        return []
+    pp, bp, fp = pre_floor.load(), bare.load(), final.load()
+    mask = [[pp[x, y] != bp[x, y] and (x, y) not in marks for y in range(SEAM_Y)] for x in range(W)]
+    seen = [[False] * SEAM_Y for _ in range(W)]
+    out = []
+    for x0 in range(W):
+        for y0 in range(SEAM_Y):
+            if not mask[x0][y0] or seen[x0][y0]:
+                continue
+            stack, comp = [(x0, y0)], []
+            seen[x0][y0] = True
+            while stack:
+                x, y = stack.pop()
+                comp.append((x, y))
+                for dx in (-1, 0, 1):
+                    for dy in (-1, 0, 1):
+                        nx, ny = x + dx, y + dy
+                        if 0 <= nx < W and 0 <= ny < SEAM_Y and mask[nx][ny] and not seen[nx][ny]:
+                            seen[nx][ny] = True
+                            stack.append((nx, ny))
+            # ...and not crammed: nothing drawn later within `gap` px of it on the wall (a poster
+            # butted up against a TV's edge reads as tucked behind it)
+            cs = set(comp)
+            ring = set()
+            for (x, y) in comp:
+                for dx in range(-gap, gap + 1):
+                    for dy in range(-gap, gap + 1):
+                        q = (x + dx, y + dy)
+                        if q not in cs and 0 <= q[0] < W and 0 <= q[1] < SEAM_Y - 8:
+                            ring.add(q)
+            hits = [q for q in comp if fp[q[0], q[1]] != pp[q[0], q[1]]]
+            hits += [q for q in ring if fp[q[0], q[1]] != pp[q[0], q[1]] and not mask[q[0]][q[1]]]
+            covered = len(hits)
+            if covered >= min_px:
+                xs = [p_[0] for p_ in comp]
+                ys = [p_[1] for p_ in comp]
+                hx = [q[0] for q in hits]
+                hy = [q[1] for q in hits]
+                out.append(((min(xs), min(ys), max(xs), max(ys)), covered, len(comp),
+                            (min(hx), min(hy), max(hx), max(hy))))
+    return out
+
+
 def check_window_boxes(full, wall_only):
     """The runtime wall windows (L/R) must land on bare wall: every pixel inside both boxes must
     equal the wall-only render. Returns [] when clean, else a list of offending (box, x, y)."""
@@ -300,6 +377,8 @@ def persp(fn):
     def wrapped(c):
         if _PERSP_DEPTH[0] > 0:
             return fn(c)
+        if getattr(c, 'pre_floor', None) is None:           # wall + decor, before anything stands on the floor
+            c.pre_floor = c.img.copy()
         _PERSP_DEPTH[0] += 1
         try:
             flat = Canvas(bg=(0, 0, 0, 0))
@@ -797,6 +876,13 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
     wall_fn(bare_floor)
     floor_fn(bare_floor)
     errs = []
+    hidden = check_wall_decor(full.pre_floor, bare.img, full.img, marks=full.marks)
+    for (bb, cov, tot, hb) in hidden:
+        msg = 'wall decor %s is covered / crowded by something drawn later (%d px, at %s) — hang it clear' % (bb, cov, hb)
+        if os.environ.get('DECOR_REPORT'):
+            print('  DECOR %s: %s' % (name, msg))
+        else:
+            errs.append(msg)
     bad = check_window_boxes(full.img, bare.img)
     if bad:
         errs.append('furniture inside a runtime window box: %s' % bad[:6])

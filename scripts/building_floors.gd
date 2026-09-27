@@ -72,6 +72,7 @@ const CORRIDOR_DECALS := preload("res://scripts/corridor_decals.gd")   # the til
 
 
 const CORRIDOR_VARIANTS := ["a", "b", "c"]
+const FLOOR_SIGNS := preload("res://scripts/floor_signs.gd")
 
 
 static func corridor_section(floor_num: int) -> String:
@@ -141,6 +142,17 @@ func _apply_corridor_art(floor_num: int) -> void:
 	# ...and this floor's own dressing + horror on top of it (scripts/corridor_decals.gd), so
 	# floors that share a baked image still never look alike; more horror deeper / later.
 	CORRIDOR_DECALS.add_to(self, floor_num, WorldState.current_run, corridor_base_name(floor_num), CORRIDOR_ART_POS)
+	# ...and what says WHICH floor this is (owner round 23): stair signs, the floor number, the lift's
+	# indicator (scripts/floor_signs.gd). The doors carry their own number plates (door.gd).
+	if get_node_or_null("FloorSigns") == null:
+		var signs = FLOOR_SIGNS.new()
+		signs.setup(floor_num, corridor_section(floor_num))
+		add_child(signs)
+		var over = get_node_or_null("CorridorDoorDecals")         # over the decals, under every actor
+		if over == null:
+			over = get_node_or_null("CorridorDecals")
+		if over != null:
+			move_child(signs, over.get_index() + 1)
 
 
 func _ready() -> void:
@@ -841,6 +853,9 @@ static func add_fire_scar_art(root: Node, zone: String) -> void:
 	var anchor = root.get_node_or_null("Elevator")
 	if anchor != null:
 		root.move_child(art, anchor.get_index() + 1)
+	var signs = root.get_node_or_null("FloorSigns")          # the floor's signs stay readable over the soot
+	if signs != null and signs.get_index() < art.get_index():
+		root.move_child(signs, art.get_index())
 
 
 func _ignite_light_patch(floor_num: int, origin_x: float) -> void:

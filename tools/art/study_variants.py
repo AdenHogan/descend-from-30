@@ -40,14 +40,16 @@ def b_decor(c):
     for y in (36, 38):
         c.hline(108, 126, y, hexc('9a927e'))
     c.ellipse(117, 41, 1.5, 1.5, hexc('b0453a'))                                              # the seal
-    c.box(148, 20, 200, 52, hexc('9a7650'), hexc('3b2718'))                                  # a corkboard
-    c.dither(149, 21, 199, 51, hexc('86653f'), 0.3, pattern='random')
-    F.note(c, 152, 23, ['TAX', 'DUE!'])
-    F.sticky(c, 172, 25, 'PAY')
-    F.photo(c, 186, 24, 196, 35, [(hexc('e0c0a0'), hexc('6a4a2a'), hexc('d9c24a'), 5)])     # the kid
-    F.pin(c, 191, 24)
-    F.sticky(c, 154, 38, 'CALL', col=hexc('e88aa0'))
-    F.note(c, 172, 38, ['BACK', 'MON'], paper=hexc('dfe8ec'))
+    def board(c):
+        c.box(148, 20, 200, 52, hexc('9a7650'), hexc('3b2718'))                              # a corkboard
+        c.dither(149, 21, 199, 51, hexc('86653f'), 0.3, pattern='random')
+        F.note(c, 152, 23, ['TAX', 'DUE!'])
+        F.sticky(c, 172, 25, 'PAY')
+        F.photo(c, 186, 24, 196, 35, [(hexc('e0c0a0'), hexc('6a4a2a'), hexc('d9c24a'), 5)]) # the kid
+        F.pin(c, 191, 24)
+        F.sticky(c, 154, 38, 'CALL', col=hexc('e88aa0'))
+        F.note(c, 172, 38, ['BACK', 'MON'], paper=hexc('dfe8ec'))
+    F.moved(c, board, 0, -4)                  # hung clear of the monitor's top (round 23)
 
 
 @persp
@@ -257,13 +259,14 @@ def d_decor(c):
     # (owner round 17: the marked-up map read as a conspiracy board) a street map of the city: the
     # river, the blocks, this building ringed ("US"), the way out drawn in red to the SAFE zone and the
     # bridge crossed out
-    c.rect(102, 22, 176, 58, hexc('e4dcc0'))
-    c.rect(101, 21, 177, 21, hexc('b9b09a')); c.hline(101, 177, 59, hexc('9a927e'))
+    # (round 23: pinned a hand's width clear of the aerial lead and of the transceiver below)
+    c.rect(104, 22, 176, 55, hexc('e4dcc0'))
+    c.rect(103, 21, 177, 21, hexc('b9b09a')); c.hline(103, 177, 56, hexc('9a927e'))
     for x in range(110, 176, 12):
-        c.vline(x, 23, 57, hexc('c9c0a6'))                                                    # streets
-    for y in range(28, 58, 8):
-        c.hline(103, 175, y, hexc('c9c0a6'))
-    for y in range(23, 58):                                                                     # the river
+        c.vline(x, 23, 54, hexc('c9c0a6'))                                                    # streets
+    for y in range(28, 55, 8):
+        c.hline(105, 175, y, hexc('c9c0a6'))
+    for y in range(23, 55):                                                                     # the river
         rx = 130 + int(6 * __import__('math').sin(y / 5.0)) + (y - 23) // 3
         c.hline(rx, rx + 4, y, hexc('8ab0c8'))
     c.rect(160, 23, 175, 34, hexc('a8c898'))                                                    # the safe zone
@@ -319,8 +322,8 @@ def d_furniture(c):
     # the aerial lead: off the back of the transceiver, clipped up the wall BESIDE the map (round 17: it
     # was drawn straight across the notice) to a hook in the ceiling where it goes through to the roof
     lead = hexc('26262a')
-    c.line(113, 63, 98, 57, lead)
-    c.vline(98, 13, 57, lead)
+    c.line(113, 63, 99, 62, lead)                                # along under the map, then up the wall
+    c.vline(98, 13, 62, lead)
     for y in range(20, 56, 9):
         c.put(97, y, hexc('d9d0b0')); c.put(99, y, hexc('d9d0b0'))                            # its clips
     c.rect(97, 11, 99, 12, hexc('4a4a44'))
@@ -342,7 +345,7 @@ def _d_bench(c):
     PX.anim(140, 61, 'blink', color='e8452e', w=2, h=1)                                      # still listening
     c.box(150, 60, 168, 71, hexc('4a5a4a'), hexc('1c2a1c'))                                  # an amplifier
     c.rect(153, 62, 158, 66, hexc('d9d0b0'))
-    c.line(174, 71, 180, 48, hexc('26262a')); c.ellipse(180, 47, 2, 2, hexc('26262a'))     # a desk mic
+    c.line(174, 71, 184, 52, hexc('26262a')); c.ellipse(184, 51, 2, 2, hexc('26262a'))     # a desk mic
     c.rect(114, 84, 138, 91, hexc('9a7a4e'))                                                 # a battery box
 
 
@@ -437,8 +440,8 @@ def e_decor(c):
     F.tape(c, x0 + 3, y0); F.tape(c, x0 + 13, y0)
     for i, col in enumerate(SPLASH):
         x = 200 + i * 5
-        c.rect(x, 60, x + 2, 67, col)
-        c.put(x + 1, 68, col); c.put(x + 3, 61, shade(col, 0.8))
+        c.rect(x, 55, x + 2, 61, col)               # clear of the canvas on its easel below
+        c.put(x + 1, 62, col); c.put(x + 3, 56, shade(col, 0.8))
 
 
 @persp

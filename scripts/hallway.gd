@@ -124,6 +124,12 @@ func _build_world() -> void:
 		lights.name = "FloorLighting"
 		add_child(lights)
 		lights.setup(30, ["left"])   # only the down stairwell — floor 30 is the top
+	# 3001 is a plain sprite, not a door — give it the same number plate the others carry (round 23)
+	var d3001 = get_node_or_null("3001")
+	if d3001 != null and d3001.get_node_or_null("Plate") == null:
+		var plate = load("res://scripts/door_plate.gd").new()
+		d3001.add_child(plate)
+		plate.setup("3001", "high")
 	# Diegetic tutorial: blood-scrawled control hints are baked into the scene
 	# (group "tutorial_blood") so they can be positioned/resized in the editor.
 	# They only belong on the FIRST run — hide them otherwise.

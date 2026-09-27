@@ -42,6 +42,7 @@ func _ready() -> void:
 	await _test_corridor_art()
 	await _test_fire_scars()
 	await _test_corridor_decals()
+	await _test_floor_signs()
 	await _test_door_swing()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
@@ -1117,6 +1118,9 @@ func _test_corridor_decals() -> void:
 				if r.position.y < CD.FLOOR_Y:                  # on the wall
 					if CD._blocked(r, false):
 						bad = "a door / the elevator / the extinguisher"
+					for t in load("res://scripts/floor_signs.gd").taken_local():
+						if (t as Rect2).intersects(r):
+							bad = "a floor sign / door plate %s" % str(t)
 					for t in taken:
 						if (t as Rect2).intersects(r):
 							bad = "the baked art's %s" % str(t)
@@ -1323,3 +1327,60 @@ func _test_door_swing() -> void:
 	WorldState.spawn_source = "stair"
 	WorldState.exit_spawn_x = 0.0
 
+
+
+# FLOOR SIGNS (owner round 23 — "signs for things like elevators and stairwells, signs next to apartments
+# with the apartment number… to show that the floors are actually distinct"): every floor says which
+# floor it is (stair signs pointing the right way, the floor number, the lift indicator), every
+# apartment door has its number plate, live and in the pan backdrop alike.
+func _test_floor_signs() -> void:
+	print("[floor signs]")
+	WorldState.new_game()
+	WorldState.tutorial_completed = true
+	WorldState.is_first_run = false
+	var FS = load("res://scripts/floor_signs.gd")
+	for f in [24, 1, 29, 15]:
+		var fs = FS.new()
+		fs.floor_num = f
+		var t: Dictionary = fs.stair_targets()
+		var down: String = WorldState.stair_down_side(f)
+		var up := "left" if down == "right" else "right"
+		check(t.has(down) and t[down] == ["v", f - 1], "floor %d: the %s stairs say DOWN to %d (%s)" % [f, down, f - 1, str(t)])
+		check(t.has(up) and t[up] == ["^", f + 1], "floor %d: the %s stairs say UP to %d" % [f, up, f + 1])
+		fs.free()
+	check(FS.floor_label(0) == "LOBBY" and FS.floor_label(7) == "7", "floor 1's down sign says LOBBY")
+	for passive in [false, true]:
+		var f := 24
+		WorldState.current_floor = f if not passive else 12
+		WorldState.seed_floor_door_states(f)
+		WorldState.set_door_state("2403", WorldState.DoorState.BREACHED)
+		WorldState.set_door_state("2402", WorldState.DoorState.SHUT_LOCKED)
+		var bf = load("res://scenes/building_floors.tscn").instantiate()
+		bf.setup_floor = f
+		bf.passive = passive
+		add_child(bf)
+		for i in range(4):
+			await get_tree().process_frame
+		var tag := "backdrop" if passive else "live"
+		var signs = bf.get_node_or_null("FloorSigns")
+		check(signs != null and signs.floor_num == f and signs.section == "high", "%s floor %d: its signs, in the hotel style" % [tag, f])
+		if signs != null:
+			var zi: int = signs.z_index
+			check(zi == 0 and signs.get_index() > bf.get_node("CorridorArt").get_index(), "%s: drawn over the corridor art, on the backdrop layer" % tag)
+		for i in range(1, 6):
+			var door = bf.get_node_or_null("apartment0" + str(i))
+			if door == null:
+				continue
+			var plate = door.get_node_or_null("Plate")
+			if door._breached():
+				check(plate == null, "%s: the breached %s has no plate (it went with the frame)" % [tag, door.apartment_id])
+			else:
+				check(plate != null and plate.text == door.apartment_id, "%s: %s has its number plate (%s)" % [tag, door.apartment_id, plate.text if plate else "none"])
+				if plate != null:
+					check(plate.section == "high", "%s: %s's plate is a hotel brass one" % [tag, door.apartment_id])
+		bf.queue_free()
+		await get_tree().process_frame
+		await get_tree().process_frame
+	# the decal planner keeps off every sign (checked per decal in _test_corridor_decals too)
+	var r: Rect2 = FS.taken_local()[0]
+	check(r.size.x > 0 and FS.taken_local().size() == 11, "the signs' footprints are reserved (%d)" % FS.taken_local().size())

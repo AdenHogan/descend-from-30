@@ -564,3 +564,13 @@ in-editor check.
   go on CLEAR floor: bare, a registered rug (`flat_piece` — living D's carpet is now one), or a shadow;
   not on a thing lying on the floor (a body was laid over living C's guitar). Previews: human_dead.png,
   risers.png.
+- ROUND 23: **WALL DECOR HANGS CLEAR** (owner: "the poster is behind the tv, which is very strange,
+  people wouldn't do that in real life… a lot of wall decorations are placed without much thought").
+  `pixlib.check_wall_decor` runs in every `finish_module`: everything on the wall before the floor goes
+  down (posters, frames, notes, clocks, shelves of ornaments) must stay fully in view and not be crammed
+  within 2px of anything drawn afterwards (furniture, a wall TV, a wardrobe's top). A build that breaks
+  it fails; `DECOR_REPORT=1` lists offenders instead. Marks that may run behind furniture (grease over a
+  hob, damp, a smear of blood) go inside `with wall_mark(c):`. Fixed: living C's travel poster (off the
+  TV, to the right of the window), kitchen A's grease + dining D's handprint (marks), dining E's balloons
+  (knotted round the chair rails, in front), study B's corkboard (up off the monitor), study D's map
+  (clear of the aerial lead + desk mic), study E's paint swatches (clear of the canvas).

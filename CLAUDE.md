@@ -1475,6 +1475,12 @@ means no rendering — UI layout and art still need an in-editor look.
   (`scripts/module_anim.gd`, kind `drip`) — kitchen D's fridge has spilt milk dripping onto a puddle.
   **Round 22**: nothing may stand half off the furniture it's on — `pixlib._check_overhang` in every
   `setback`, `finish_module` refuses a room that breaks it (modules README "ROUND 22").
+  **Round 23** ("the poster is behind the tv… people wouldn't do that in real life"): nothing hung on a
+  wall may be covered or crowded by what's drawn after it — `pixlib.check_wall_decor` compares the
+  canvas just before its floor goes down (`Canvas.pre_floor`, set by `persp`) with the bare wall and the
+  final art; `finish_module` refuses a room with a covered piece or one within 2px of later drawing
+  (`DECOR_REPORT=1` lists them instead). MARKS (grease, stains, smeared blood) may run behind furniture:
+  draw them inside `with pixlib.wall_mark(c):`.
   **Round 20** (story over still life): dining C's tea set and dinner table show what happened (a cup on
   its side in its spill, its twin smashed below, wine off the table edge); the washing machine's wash
   slumps in the drum; live details gained `drop` / `blink` / `static` / `spin` and appear in 10 modules
@@ -1563,6 +1569,24 @@ means no rendering — UI layout and art still need an in-editor look.
   boards off". Saved progress shows as boards already gone. The old `Barricade.png` sprite + black
   ColorRect stay only as the state flag (never drawn). The loud cue (`listen_overlay.noise_ping`) is
   sound-wave arcs rolling out either side. Locked by `force_lock_test._test_barricade_boards`.
+- FLOOR SIGNS + NOTICES (owner round 23 — "signs for things like elevators and stairwells, signs next to
+  apartments with the apartment number… to show that the floors are actually distinct despite being a
+  cut and paste of building_floors"; "photo frames that are sort of diagonal in the corridor… weird"):
+  the corridor art is shared, so everything that says WHICH floor it is draws live
+  (`scripts/floor_signs.gd`, the building's 3x5 capitals — the same FONT3 the room art uses): a green
+  STAIRS sign over each opening with the arrow + the floor it leads to (from `stair_down_side`; floor
+  1's down says LOBBY), the floor number beside each stairwell in the section's style (hotel brass
+  plaque / residential enamel / low stencilled with a hazard stripe), and the lift's floor indicator
+  (amber only while it has power or on a merchant floor). Every apartment door has a NUMBER PLATE on its
+  left at eye level (`scripts/door_plate.gd`, a child of the door, section-styled; STAFF on the
+  maintenance door; none on a breached one; floor 30's plain-sprite 3001 gets one from hallway.gd).
+  Live + pan backdrop (`_apply_corridor_art`), drawn over the decals and fire scars, under actors.
+  Their footprints are reserved in the art (`corridor.py SIGNS`) and the decal planner
+  (`floor_signs.taken_local`). Nine readable BUILDING NOTICES join the per-floor dressing
+  (`corridor_decals.py notice()`: lift out of order, water off, residents' meeting, bins, no smoking,
+  keep it down; later evacuate / curfew / do not open doors). Corridor pictures NO LONGER HANG CROOKED
+  (`corridor.py picture_damage`: fine → gone → fallen). Locked by `building_floors_test._test_floor_signs`
+  (+ the decal checks). The hallway (30) and lobby don't draw stair/lift signs yet.
 - PUSH + CROWDS (owner round 9): a push takes ONE enemy (`player.push_target` — the nearest in
   front; it used to stagger everyone in reach), so a crowd is worked through and gets hits in. The
   BIG zombie can't be stunned or knocked back by a push (it keeps attacking) but a push makes it

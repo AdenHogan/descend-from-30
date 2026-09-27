@@ -389,10 +389,11 @@ def d_decor(c):
         c.line(a, y + 1, b, y + 5, hexc('8a6a44'))
         c.line(a, y + 2, b, y + 6, hexc('6a4e30'))
         c.put(a + 3, y + 1, hexc('3a3a36')); c.put(b - 3, y + 5, hexc('3a3a36'))
-    for i in range(4):                                                                        # a bloody handprint
-        c.line(118 + i * 2, 58, 117 + i * 2, 50 - i, BLOOD)
-    c.ellipse(121, 60, 4, 3, BLOOD)
-    c.line(121, 63, 122, 80, BLOOD)
+    with PX.wall_mark(c):                  # a mark on the wall: it can run down behind the sideboard
+        for i in range(4):                                                                    # a bloody handprint
+            c.line(118 + i * 2, 58, 117 + i * 2, 50 - i, BLOOD)
+        c.ellipse(121, 60, 4, 3, BLOOD)
+        c.line(121, 63, 122, 80, BLOOD)
 
 
 @persp
@@ -548,12 +549,6 @@ def e_decor(c):
         g = F.FONT3.get(ch, F.FONT3[' '])
         F.text3(c, x, 37, ch, PARTY[i % len(PARTY)] if ch != ' ' else PARTY[0])
         x += len(g[0]) + 1
-    # balloons TIED to the chair backs (round 17: their strings ended in mid-air)
-    for (x, y, col) in ((139, 53, PARTY[1]), (219, 54, PARTY[0])):
-        c.ellipse(x, y, 5, 6, col)
-        c.ellipse(x - 2, y - 2, 1, 2, shade(col, 1.3))
-        c.put(x, y + 6, shade(col, 0.7))                                          # the knot
-        c.line(x, y + 7, x + 1, y + 11, hexc('9a927e')); c.line(x + 1, y + 11, x, 70, hexc('9a927e'))
 
 
 @persp
@@ -589,12 +584,24 @@ def _torn_box(c):
     F.moved(c, _box, -8, -21)
 
 
+def _e_balloons(c):
+    # balloons TIED to the chair backs (round 17: their strings ended in mid-air; round 23: drawn in
+    # FRONT of the chairs, the string knotted round the top rail instead of vanishing behind it)
+    for (x, y, col, top) in ((139, 53, PARTY[1], 70), (219, 54, PARTY[0], 70)):
+        c.ellipse(x, y, 5, 6, col)
+        c.ellipse(x - 2, y - 2, 1, 2, shade(col, 1.3))
+        c.put(x, y + 6, shade(col, 0.7))                                          # the knot
+        c.line(x, y + 7, x + 1, y + 11, hexc('9a927e')); c.line(x + 1, y + 11, x, top, hexc('9a927e'))
+        c.put(x - 1, top, hexc('9a927e')); c.put(x + 1, top, hexc('9a927e'))       # tied round the rail
+
+
 def e_furniture(c):
     # the party table out in the room: a cake with the candles burnt down, paper plates, hats
     PINEP = {'wood': hexc('b58a55'), 'seat': hexc('c9a06a')}
     for (x, yaw) in ((139, 180), (183, 172), (221, 190)):                                    # spindle-backs round the table
         C3.draw_model(c, x, 100, C3.dining_chair('spindle'), yaw, PINEP, srad=10)
     C3.draw_model(c, 134, 130, C3.fall(C3.dining_chair('spindle'), 'side', 8.0), 40, PINEP, shadow='footprint')   # one knocked over
+    _e_balloons(c)
     F.table_front(c, 116, 244, 92, 120, F.PINE, depth=6, cloth=hexc('efe8d8'), cloth_dk=hexc('d0c8b4'), hem=104)
     for x in range(118, 244, 8):                                                  # a paper cloth, printed
         c.put(x, 95, PARTY[(x // 8) % len(PARTY)])

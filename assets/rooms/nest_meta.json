@@ -274,7 +274,7 @@
  "study_d_nest_door_l": {"flies": [], "bodies": []},
  "study_d_nest_door_r": {"flies": [], "bodies": []},
  "study_d_nest_doorkill_l": {"flies": [[140, 125], [56, 122]], "bodies": [[136, 127]]},
- "study_d_nest_doorkill_r": {"flies": [[42, 123], [102, 105]], "bodies": [[46, 124]]},
+ "study_d_nest_doorkill_r": {"flies": [[42, 123], [103, 105]], "bodies": [[46, 124]]},
  "study_d_nest_kill_l": {"flies": [[125, 123], [30, 119]], "bodies": [[123, 125]]},
  "study_d_nest_kill_r": {"flies": [[75, 125], [157, 124]], "bodies": [[78, 127]]},
  "study_d_nest_rise_l": {"flies": [[145, 120], [268, 134]], "bodies": [], "riser": [101, 129, 1], "zombies": [[268, 134]]},

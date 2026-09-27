@@ -45,12 +45,16 @@ const HORROR := {
 const MAX_PER_KIND := {"scrawl": 2, "slide": 2, "drag": 2, "door_x": 2}
 # resident things, by how far gone the floor is (corridor wear 0..4)
 const DRESSING_KEPT := ["plant_tall", "plant_small", "umbrella", "shoes", "boots", "shoe_rack", "parcels",
-	"chair", "scooter", "shopping_bag", "kid_drawing"]
+	"chair", "scooter", "shopping_bag", "kid_drawing",
+	"notice_meeting", "notice_bins", "notice_smoking", "notice_quiet", "notice_water", "notice_lift"]
 const DRESSING_TIRED := ["plant_tall", "plant_dead", "parcels", "chair", "shoes", "suitcase",
-	"shopping_bag", "notice_quarantine", "poster_missing"]
+	"shopping_bag", "notice_quarantine", "poster_missing", "notice_lift", "notice_water", "notice_evac"]
 const DRESSING_GONE := ["plant_dead", "chair_down", "suitcase", "parcels", "poster_missing",
-	"notice_quarantine", "shopping_bag"]
-const WALL_DRESSING := ["kid_drawing", "notice_quarantine", "poster_missing"]
+	"notice_quarantine", "shopping_bag", "notice_evac", "notice_curfew", "notice_dont_open"]
+# building notices (owner round 23 — "a variety of notices for the building"), readable, per floor
+const WALL_DRESSING := ["kid_drawing", "notice_quarantine", "poster_missing", "notice_lift", "notice_water",
+	"notice_meeting", "notice_bins", "notice_smoking", "notice_quiet", "notice_evac", "notice_curfew",
+	"notice_dont_open"]
 # THE DEAD (owner round 21c): someone lying where they fell — in a pool, or at the end of the trail
 # they crawled. A separate seeded pass (its own RNG, so the dressing/horror draws above never move),
 # up to two per floor, each appearing once the floor's horror level passes its seeded threshold and
@@ -90,6 +94,7 @@ static func _taken_for(base_name: String) -> Array:
 static func plan(floor_num: int, run: int, base_name: String) -> Array:
 	var taken: Array = _taken_for(base_name)
 	taken.append(Rect2(858, 38, 16, 14))                      # the exit sign
+	taken.append_array(load("res://scripts/floor_signs.gd").taken_local())   # stair / floor / lift signs, door plates
 	for d in DOORS:
 		taken.append(Rect2(d + 32, 85, 7, 8))                 # light switches
 	var rng := RandomNumberGenerator.new()
@@ -99,7 +104,7 @@ static func plan(floor_num: int, run: int, base_name: String) -> Array:
 	var out: Array = []
 	# --- dressing: fixed per floor; later runs take some away / knock some over ---
 	var pool: Array = DRESSING_KEPT if wear <= 1 else (DRESSING_TIRED if wear == 2 else DRESSING_GONE)
-	var n_dress: int = 2 + rng.randi() % 3
+	var n_dress: int = 3 + rng.randi() % 3
 	for i in range(n_dress):
 		var name: String = pool[rng.randi() % pool.size()]
 		var keep: float = rng.randf()

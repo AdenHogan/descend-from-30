@@ -295,6 +295,18 @@ collision planes) but live here so any move is measured, not eyeballed.
 
 ---
 
+## 8b. SIGNS (owner round 23, `floor_signs.gd` / `door_plate.gd`)
+
+| What | Y (world) | Notes |
+|---|---|---|
+| Door number plate | door origin − 20 (≈ 342 on a corridor floor) | about ¾ up the door; x = door − 28 − plate width (left of the door) |
+| STAIRS sign | 262 .. 277 | hung from the stair opening's top (259, corridor.py RECESS y 16) |
+| FLOOR number | 281 .. 310 | beside each stairwell, x 246 (left) / 1100 (right) |
+| Lift indicator | 296 .. 305 | over the lift doors (they start ~307), x 1030 |
+
+The corridor generator keeps these spots free of baked damage (`tools/art/corridor.py SIGNS`) and the
+per-floor decals keep off them too (`floor_signs.taken_local`) — keep the three in step.
+
 ## 9. FUTURE — placement grid overlay (AGREED, not built)
 
 To end eyeballing for good: on request, generate a **dev grid overlay** so the

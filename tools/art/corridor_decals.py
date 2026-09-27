@@ -597,6 +597,50 @@ def notice_quarantine(name, seed):
     save(name, c)
 
 
+def notice(name, seed, lines, paper='f2eee4', head=None, ink='2a2a2e', head_ink='f2eee4', pin='tape', lean=0):
+    """A readable building notice (owner round 23 — "a variety of notices for the building"): the first
+    line on a coloured band when `head` is given, the rest in ink, 3x5 capitals (furn.text3), taped or
+    pinned. A seeded curl on one corner so no two look pasted."""
+    import furn as F
+    rng = random.Random(seed)
+    w = max(F.text3_width(t) for t in lines) + 6
+    h = len(lines) * 7 + 4
+    c = canvas(w + 2, h + 2, seed)
+    P = hexc(paper)
+    c.rect(0, 1, w - 1, h, P)
+    c.hline(1, w, h + 1, hexc('000000', 60))                          # a hair of shadow
+    c.vline(w, 2, h + 1, hexc('000000', 45))
+    y = 3
+    for i, t in enumerate(lines):
+        if i == 0 and head:
+            c.rect(1, 2, w - 2, 8, hexc(head))
+            F.text3(c, (w - F.text3_width(t)) // 2, y, t, hexc(head_ink))
+        else:
+            F.text3(c, (w - F.text3_width(t)) // 2, y, t, hexc(ink))
+        y += 7
+    if pin == 'tape':
+        c.rect(1, 0, 4, 1, hexc('d8d8a0', 190)); c.rect(w - 5, 0, w - 2, 1, hexc('d8d8a0', 190))
+    else:
+        c.put(w // 2, 1, hexc('c0453a')); c.put(w // 2, 2, hexc('8a2a24'))
+    if rng.random() < 0.6:                                               # a corner curling off the wall
+        cx = w - 1 if rng.random() < 0.5 else 0
+        c.put(cx, h, shade(P, 0.8)); c.put(cx, h - 1, shade(P, 0.9))
+    save(name, c)
+
+
+def building_notices():
+    # what a building puts up — then what it put up once things went wrong
+    notice('notice_lift', 70, ['LIFT', 'OUT OF', 'ORDER'], head='c8322a')
+    notice('notice_water', 71, ['WATER', 'OFF TUES', '9 - 5'], head='3a6a9a')
+    notice('notice_meeting', 72, ['RESIDENTS', 'MEETING', 'THURS 7'], head='4a7a4a', pin='pin')
+    notice('notice_bins', 73, ['BINS OUT', 'MONDAY'], paper='e8e2c8')
+    notice('notice_smoking', 74, ['NO', 'SMOKING'], paper='f4f2ea', ink='b8332a')
+    notice('notice_quiet', 75, ['PLEASE', 'KEEP IT', 'DOWN'], paper='dce4ec', pin='pin')
+    notice('notice_evac', 76, ['EVACUATE', 'USE THE', 'STAIRS'], head='2e7a4a')
+    notice('notice_curfew', 77, ['CURFEW', 'DOORS', 'LOCKED 8'], head='1e1e22', paper='e8e4d8')
+    notice('notice_dont_open', 78, ['DO NOT', 'OPEN', 'DOORS'], head='c8322a', paper='f0e6a8')
+
+
 def dead(name, seed, how, fought=False):
     """One of the dead on the corridor floor (owner round 21c — "sporadically there should be bodies
     across the building"), drawn by the rooms' own code (tools/art/nest.py: the purchased homeless
@@ -657,6 +701,7 @@ def main():
     suitcase('suitcase', 62)
     shopping_bag('shopping_bag', 63)
     kid_drawing('kid_drawing', 64)
+    building_notices()
     poster_missing('poster_missing', 65)
     notice_quarantine('notice_quarantine', 66)
     dead('dead_1', 70, 'pool'); dead('dead_2', 71, 'crawl'); dead('dead_3', 72, 'pool'); dead('dead_4', 73, 'crawl')
