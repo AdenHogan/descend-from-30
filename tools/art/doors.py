@@ -428,15 +428,19 @@ def wall_hole(section, seed):
     paper = [hexc(h) for h in ('6e6656', '5c6660', '72604e', '66586a', '6a6a5a')][rng.randrange(5)]
     board, board_dk = hexc('4a3526'), hexc('33251a')
     light = hexc('b0874c')                                             # a lamp on in the room beyond
-    dw = rng.randint(7, 9)                                             # the back doorway
-    dx0 = int(bl + (br - bl) * rng.choice((0.2, 0.55)))
-    dtop = int(bb - (bb - bt) * 0.72)
+    dtop = int(bb - (bb - bt) * 0.74)                                  # the back doorway: a real
+    dw = max(10, min(int(br - bl) - 5, int((bb - dtop) * 0.5)))        # door's proportions (~1:2)
+    dx0 = int(rng.choice((bl + 2, br - dw - 2)))
 
     def surface(x, y):
         if bl <= x <= br and bt <= y <= bb:
             if dx0 <= x <= dx0 + dw and y >= dtop:
                 t = (y - dtop) / max(1.0, bb - dtop)
+                if x <= dx0 + 2:                                        # its door, swung open against the jamb
+                    return shade(hexc(st['leaf']), 0.55 + 0.1 * (x - dx0)), 'door'
                 return mix(light, hexc('6a4a2a'), 0.35 + 0.4 * t), 'door'
+            if dx0 - 1 <= x <= dx0 + dw + 1 and y >= dtop - 1:          # the casing round it
+                return shade(hexc(st['casing']), 0.6), 'door'
             f = 0.62 + 0.25 * (1 - abs(x - (dx0 + dw / 2)) / max(1.0, br - bl))
             if abs(y - (bb - (bb - bt) * 0.4)) < 0.6:
                 return shade(paper, 0.45), 'rail'

@@ -150,6 +150,84 @@ def crt_on_crates():
     return m
 
 
+def prism(m, cx, cy, r, z0, z1, part, mat, sides=14, ry=None):
+    """An upright n-gon prism (a disc, a stem, a round top): centre (cx, cy), radius r (ry in depth)."""
+    ry = r if ry is None else ry
+    ring = [(cx + r * math.cos(2 * math.pi * k / sides), cy + ry * math.sin(2 * math.pi * k / sides)) for k in range(sides)]
+    for k in range(sides):
+        (xa, ya), (xb, yb) = ring[k], ring[(k + 1) % sides]
+        m.add([(xa, ya, z0), (xb, yb, z0), (xb, yb, z1), (xa, ya, z1)], part, mat)
+    m.add([(x, y, z1) for (x, y) in ring], part, mat)
+    m.add([(x, y, z0) for (x, y) in reversed(ring)], part, mat)
+
+
+def shell(m, r_out, thick, a0, a1, z0, z1, part, mat, steps=12, low=0.3):
+    """A curved shell wall (a tulip chair's back): the arc of radius r_out from angle a0 to a1
+    (radians, 0 = +x, pi/2 = +y = the back), thick, from z0 up to z1 at the back, sweeping down to
+    `low` of that height at the arc's ends (the arms)."""
+    r_in = r_out - thick
+    pts = [a0 + (a1 - a0) * k / steps for k in range(steps + 1)]
+    top = lambda a: z0 + (z1 - z0) * (low + (1 - low) * max(0.0, math.sin(a)) ** 1.5)
+    for k in range(steps):
+        a, b = pts[k], pts[k + 1]
+        ta, tb = top(a), top(b)
+        oa, ob = (r_out * math.cos(a), r_out * math.sin(a)), (r_out * math.cos(b), r_out * math.sin(b))
+        ia, ib = (r_in * math.cos(a), r_in * math.sin(a)), (r_in * math.cos(b), r_in * math.sin(b))
+        m.add([(oa[0], oa[1], z0), (ob[0], ob[1], z0), (ob[0], ob[1], tb), (oa[0], oa[1], ta)], part, mat)
+        m.add([(ia[0], ia[1], z0), (ia[0], ia[1], ta), (ib[0], ib[1], tb), (ib[0], ib[1], z0)], part + '_in', mat)
+        m.add([(oa[0], oa[1], ta), (ob[0], ob[1], tb), (ib[0], ib[1], tb), (ia[0], ia[1], ta)], part, mat)
+
+
+def tulip_chair():
+    """A moulded tulip chair: a round foot, a slim stem, a cup seat with a cushion, the shell curving
+    up round the back and sides. Front = -y like the armchairs."""
+    m = Model()
+    prism(m, 0, 0, 8.0, 0, 1.3, 'foot', 'shell', 16)
+    prism(m, 0, 0, 1.5, 1.3, 11.5, 'stem', 'shell', 8)
+    prism(m, 0, 0.5, 9.2, 11.5, 14.5, 'seat', 'shell', 16)
+    prism(m, 0, 0.5, 8.0, 14.5, 16.2, 'cushion', 'fab', 16)
+    shell(m, 9.4, 1.6, math.radians(-20), math.radians(200), 14.5, 29.0, 'back', 'shell')
+    return m
+
+
+def dining_chair(style='ladder'):
+    """A wooden dining chair: four legs with stretchers, a seat, two back posts and — 'ladder' three
+    rails, 'high' a tall upholstered back panel, 'spindle' a top rail over four spindles. Front = -y."""
+    m = Model()
+    hw, hd, seat = 7.5, 7.0, 15.0
+    for (lx, ly) in ((-hw, -hd), (hw - 1.6, -hd), (-hw, hd - 1.6), (hw - 1.6, hd - 1.6)):
+        m.box(lx, lx + 1.6, ly, ly + 1.6, 0, seat, 'leg%d%d' % (lx > 0, ly > 0), 'wood')
+    m.box(-hw + 1, hw - 1, -hd + 0.4, -hd + 1.2, 4.5, 5.5, 'stretch_f', 'wood')
+    m.box(-hw + 0.4, -hw + 1.2, -hd + 1, hd - 1, 4.0, 5.0, 'stretch_l', 'wood')
+    m.box(hw - 1.2, hw - 0.4, -hd + 1, hd - 1, 4.0, 5.0, 'stretch_r', 'wood')
+    m.box(-hw - 0.4, hw + 0.4, -hd - 0.4, hd, seat, seat + 2.0, 'seat', 'seat', bevel=0.5)
+    top = {'ladder': 36.0, 'high': 42.0, 'spindle': 32.0}[style]
+    for sx in (-hw, hw - 1.8):
+        m.box(sx, sx + 1.8, hd - 1.8, hd, seat + 2, top, 'post%d' % (sx > 0), 'wood')
+    if style == 'ladder':
+        for k, z in enumerate((top - 13, top - 8.5, top - 3.5)):
+            m.box(-hw + 1.8, hw - 1.8, hd - 1.4, hd - 0.4, z, z + 2.0, 'rail%d' % k, 'wood')
+    elif style == 'high':
+        m.box(-hw + 1.6, hw - 1.6, hd - 1.8, hd - 0.2, seat + 6, top - 2, 'panel', 'fab', bevel=0.4)
+        m.box(-hw, hw, hd - 1.9, hd, top - 2, top + 0.6, 'crest', 'wood')
+    else:
+        m.box(-hw, hw, hd - 1.8, hd, top - 3, top, 'crest', 'wood')
+        for k in range(4):
+            x = -hw + 2.6 + k * (2 * hw - 5.2) / 3.0
+            m.box(x - 0.5, x + 0.5, hd - 1.2, hd - 0.4, seat + 2, top - 3, 'spindle%d' % k, 'wood')
+    return m
+
+
+def tulip_table(r=25.0):
+    """A round pedestal table: a round foot, a flared stem, a round top with a thick rim."""
+    m = Model()
+    prism(m, 0, 0, 11.0, 0, 1.5, 'foot', 'shell', 20)
+    prism(m, 0, 0, 2.8, 1.5, 21.5, 'stem', 'shell', 10)
+    prism(m, 0, 0, 5.5, 20.5, 22.0, 'collar', 'shell', 12)
+    prism(m, 0, 0, r, 22.0, 24.4, 'top', 'top', 28)
+    return m
+
+
 def office_chair():
     """A swivel office chair: a five-star base on casters, a gas post, a padded seat and a back on a
     steel spine. Front = -y like the armchairs, so `yaw` turns it the same way."""
@@ -294,7 +372,8 @@ def render(model, yaw, pal, size=64):
         n = _normal(rp)
         fc = tuple(sum(p[i] for p in rp) / len(rp) for i in range(3))
         pc = centre[part]
-        if sum(n[i] * (fc[i] - pc[i]) for i in range(3)) < 0:
+        outward = sum(n[i] * (fc[i] - pc[i]) for i in range(3)) >= 0
+        if outward == part.endswith('_in'):        # an '_in' part faces INTO its own curve (a shell's inside)
             n = (-n[0], -n[1], -n[2])
         if n[0] * view[0] + n[1] * view[1] + n[2] * view[2] >= 0:   # facing away from us
             continue

@@ -706,6 +706,8 @@ var dev_hazard_mode: int = DEV_HAZARD_NONE
 # Debug aid (not a hazard): force a stairwell enemy on every stairwell, for testing the
 # stair-enemy behaviour. Session-only, reset by new_game.
 var dev_force_stair_enemies: bool = false
+# FOREGROUND DEAD test look (scripts/foreground_dead.gd): 0 off, 1 sporadic (default), 2 everywhere — F1 menu
+var foreground_dead_mode: int = 1
 # When DEV fire is toggled on (F2), the floor it was pressed on becomes the single
 # fire ORIGIN; dev fire_intensity spreads out from here by the age-distance model, so
 # the dev cycle mirrors the real run-1/2/3 escalation. -1 = no dev origin.
@@ -3959,6 +3961,70 @@ func get_breached_room_enemies(apartment_id: String, min_x: float, max_x: float,
 
 
 # ============================================================
+# THE DEAD (owner round 21c — "sporadically there should be bodies across the building found on floors
+# and in apartments"): the residents who didn't make it, as art, never enemies. Seeded per place + run,
+# so a flat or a corridor looks the same every visit in a run; more of them later in the day.
+#   * a BREACHED flat tells what happened in it (room.gd breach_nest_roles): the front door's room
+#     shows the flight, and the resident was caught either further into that room or in the next.
+#   * an ORDINARY flat now and then has one of the dead in one room (apartment_corpse).
+#   * a corridor may have one or two lying by the wall (corridor_decals.dead_plan).
+const APARTMENT_CORPSE_CHANCE := {1: 0.10, 2: 0.16, 3: 0.22}
+# What the dead had on them (room.gd _setup_dead_bodies): often nothing — they ran with what they had.
+const DEAD_EMPTY_CHANCE := 0.5
+const DEAD_POCKETS := {"033": 5, "031": 3, "006": 3, "010": 2, "009": 2, "015": 1, "001": 1, "016": 1, "030": 1, "021": 1}
+const DEAD_SEARCH_LINES := [
+	"You go through a stranger's pockets. You try not to look at their face.",
+	"Sorry. I'm sorry.",
+	"Their eyes are open. You close them first.",
+	"You feel sick. You search anyway.",
+	"Somebody's mum. Somebody's kid. You check the pockets.",
+	"Nobody's coming back for this. You tell yourself that twice.",
+]
+
+
+func dead_body_loot(apartment_id: String, anchor_name: String) -> Dictionary:
+	# {} = empty pockets, else {"item": id} — seeded per body, stable
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "deadloot" + apartment_id + anchor_name)
+	if rng.randf() < DEAD_EMPTY_CHANCE:
+		return {}
+	var total := 0
+	for k in DEAD_POCKETS:
+		total += int(DEAD_POCKETS[k])
+	var r := rng.randi_range(1, total)
+	for k in DEAD_POCKETS:
+		r -= int(DEAD_POCKETS[k])
+		if r <= 0:
+			return {"item": k}
+	return {}
+
+
+func dead_search_line(anchor_name: String) -> String:
+	return DEAD_SEARCH_LINES[posmod(hash(str(master_seed) + anchor_name + str(current_floor)), DEAD_SEARCH_LINES.size())]
+
+
+func breach_story_split(apartment_id: String) -> bool:
+	# true = fled the door's room and was caught in the NEXT one; false = caught in the door's room
+	return posmod(hash(str(master_seed) + "breach_story" + apartment_id), 100) < 55
+
+
+func apartment_corpse(apartment_id: String) -> Dictionary:
+	# {} or {"slot": 0..2, "side": "l"/"r"}: one of the dead in an ordinary flat this run. Never in a
+	# breached flat (it has its own story), a blazing or charred one (burnt corpses there), or on
+	# Floor 30's first morning (the tutorial flats).
+	var f := _apartment_floor(apartment_id)
+	if f <= 0 or f >= 30 or get_door_state(apartment_id) == DoorState.BREACHED:
+		return {}
+	var col := int(apartment_id.substr(apartment_id.length() - 2))
+	if apartment_fire_stage(f, col) in [FIRE_BLAZE, FIRE_CHARRED]:
+		return {}
+	var h := posmod(hash(str(master_seed) + "apt_dead" + apartment_id + str(current_run)), 10000)
+	if float(h) / 10000.0 >= float(APARTMENT_CORPSE_CHANCE.get(current_run, 0.1)):
+		return {}
+	@warning_ignore("integer_division")
+	return {"slot": (h / 7) % 3, "side": "l" if (h / 3) % 2 == 0 else "r"}
+
+
 # GUN CABINETS — a quest without saying it (owner round 20)
 # ============================================================
 # Living room E has a locked gun cabinet (anchor_living_gun_cabinet). Inside: a GUARANTEED Lv3 gun.

@@ -417,14 +417,23 @@ space")**: a surface shows what HAPPENED on it, not a set of objects on display.
   irregularly, thick at the door, fanning out); `_cabinet_overlays()` renders each through
   the same pipeline (run 1 + the run-2/3 looks) and keeps only the pixels that differ inside
   `CAB_BOX` → `assets/rooms/living_room_e_cabinet_<state>[_r2|_r3].png` (`scripts/gun_cabinet_art.gd`).
-- BREACH-ROOM STORY (round 21b, `tools/art/nest.py` → `assets/rooms/<name>_nest_<role>.png`, six per
-  variant: entry / through / lair × door left `_l` / right `_r`, written by `pixlib.finish_module`, fly
-  spots in `assets/rooms/nest_meta.json`): what happened, read across the flat — the struggle by the
-  front door (a hand slid down the wall, a pool, dropped keys / shoe / bag, splinters, footprints), a
-  drag trail on the walking line through the middle room, and the dead where it ends in the far room.
-  Marks only on bare wall / bare floor; the trail crosses RUGS — wrap anything lying flat on the floor
-  in `with flat_piece(c):` (pixlib) so the nest treats it as floor, not furniture. Seeded by
-  crc32(name, role, seed): stable. Preview: `breach_nests.png` (`python3 tools/art/nest.py`).
+- BREACH-ROOM STORY + THE DEAD (rounds 21b/21c, `tools/art/nest.py` → `assets/rooms/<name>_nest_<role>.png`,
+  eight per variant: door / kill / doorkill / corpse × door left `_l` / right `_r`, written by
+  `pixlib.finish_module`; fly spots + body spots in `assets/rooms/nest_meta.json`): what happened, SHORT —
+  the flight by the front door, then where they were caught (that room or the next), a few steps of
+  drag, the dead; an ordinary flat's one body always comes with its blood (crawled / a pool / pinned at the
+  wall). A body is only placed where its whole footprint is clear floor. The trail crosses RUGS — wrap
+  anything lying flat on the floor in `with flat_piece(c):` (pixlib) so the nest treats it as floor.
+  Seeded by crc32(name, role, seed): stable. Previews: `breach_nests.png`, `human_dead.png`.
+- ROUND 21c: **3D CHAIRS + DINING B** — `chair3d.prism` / `shell` / `tulip_chair` / `tulip_table` /
+  `dining_chair('ladder'|'high'|'spindle')`: real 3D models rendered like the armchairs, so a chair reads
+  from any side and can be knocked over (`fall`). Dining B rebuilt round them (owner: "bland and basic…
+  flat and small… how brown it all is"): sage trellis paper over a cream panelled dado, honey parquet, a
+  white tulip table and tulip chairs (one on its side by a smashed plate, a glass knocked over, the wine
+  still dripping off the edge, tulips going over in the vase), a white sideboard with the record still
+  turning, a sunburst clock, a family snapshot, a mustard drinks cabinet + teal velvet pouffe in the strip.
+  Dining A / C / E: their flat chair cut-outs replaced by the 3D chairs round the table (C and E each have
+  one knocked flying).
 - LIVE DETAILS now have five kinds (`pixlib.anim(x, y, kind, fall, color, w, h)` → `module_anim.gd`):
   `drip`, `drop` (slow — an IV), `blink` (a w×h LED / cursor), `static` (a w×h screen of TV snow with a
   rolling bar), `spin` (a glint round a w×h record). A detail drawn ON a set-back piece's top moves with

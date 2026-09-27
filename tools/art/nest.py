@@ -1,28 +1,25 @@
-"""BREACH-ROOM NESTS — what happened here, told across the flat (owner round 21b: the first nest was
-"a bit too much horror and gore… it needs to be logical and immersive… you went nuts with the red
-blood paint without considering the storytelling that might have gone into what happened when that
-breach occurred").
+"""BREACH-ROOM STORIES + THE DEAD IN ORDINARY FLATS (owner rounds 21b / 21c).
 
-So a breached flat now reads as ONE event, left to right (or right to left) through its three rooms:
-  ENTRY   (the room with the front door): they came through the door. The resident was caught by
-          it — a bloody hand on the wall that slid down to the skirting, a pool on the floor at its
-          foot, one arc of spatter above; what they dropped (their keys by the door, a shoe, a bag
-          spilled out); splinters of the door blown in; bare, smudged footprints; and a drag trail
-          starting from the pool, heading INTO the flat.
-  THROUGH (the middle room): the trail crossing it, unbroken, along the walking line — where they
-          clawed at the floor (a handprint with four nail streaks behind it), a hand that caught the
-          doorframe on the way through, a few drops.
-  LAIR    (the far room): where the trail ends — the dead pulled into a heap against the back wall,
-          the floor under them stained black, bones and torn clothing kept close round it, a low smear
-          on the wall where they were thrown down. Only here is the room dimmed.
-No words in blood, nothing growing out of the ceiling, no gore scattered for its own sake.
+A breached flat reads as ONE event (21b: "logical and immersive… considering the storytelling"),
+kept SHORT (21c: "we don't need a corpse to have dragged itself across all three modules"):
+  DOOR     (the front door's room): the door came in (splinters), the resident ran — their keys dropped
+           by the door, a shoe, a spilt bag — and the dead came in after them (bare bloody prints).
+  KILL     (the next room, where they got to): a hand on the wall that slid to the skirting, a pool at
+           its foot, one arc of spatter, a drag of a few steps, and the dead where it stopped — two
+           laid against the back wall where there's room, else one on the floor; a bone or two, rags.
+  DOORKILL (both in the door's own room): the flight by the door, caught further in.
+The third room is left alone. No words in blood, nothing growing out of the ceiling, no scattered gore.
+  CORPSE   (an ORDINARY flat, now and then — 21c "sporadically there should be bodies across the
+           building"): one of the dead where they fell, a dried stain, flies. No story needed.
 
 For every room-module variant pixlib.finish_module calls write(), which renders
-assets/rooms/<name>_nest_<role>.png for the six roles (entry/through/lair × l/r, where _l = the front
-door is on the LEFT so the story runs left → right) and records where flies gather (over the pool, the
-heap) in assets/rooms/nest_meta.json. room.gd picks the role from the flat's entrance side + the
-module's slot. Every mark knows the module's own layout (bare wall / bare floor / furniture masks from
-the art), so a trail passes BEHIND a table and a handprint never lands on a picture.
+assets/rooms/<name>_nest_<role>.png for the eight roles (door / kill / doorkill / corpse × l/r; _l =
+the front door on the LEFT, so the story runs left → right — for a corpse it's just which way the head
+lies) and records where flies gather (over the pool, the dead) in assets/rooms/nest_meta.json.
+room.gd picks the roles (breach_nest_roles / WorldState.apartment_corpse_slot). Every mark knows the
+module's own layout (bare wall / bare floor / furniture masks from the art), so a trail passes BEHIND
+a table and a handprint never lands on a picture; the dead are the purchased homeless-character pack's
+Death frame at the actors' 2x scale.
 """
 import json
 import math
@@ -34,7 +31,7 @@ from PIL import Image
 
 W, H, SEAM = 320, 144, 100
 LANE_Y = 129                     # the walking line (world 353 − the module's top 224): the trail's line
-ROLES = ('entry_l', 'through_l', 'lair_l', 'entry_r', 'through_r', 'lair_r')
+ROLES = ('door_l', 'kill_l', 'doorkill_l', 'corpse_l', 'door_r', 'kill_r', 'doorkill_r', 'corpse_r')
 
 BLOOD = (112, 12, 14, 255)
 BLOOD_DK = (70, 8, 8, 255)
@@ -47,7 +44,7 @@ SKIN_DK = (86, 92, 70, 255)
 HAIR = (40, 30, 24, 255)
 RAGS = [(70, 78, 96, 255), (96, 84, 66, 255), (80, 64, 70, 255), (110, 106, 96, 255), (58, 70, 60, 255)]
 SPLINTER = [(112, 84, 56, 255), (86, 62, 40, 255), (150, 118, 80, 255)]
-WASH = {'entry': (14, 6, 5, 22), 'through': (14, 6, 5, 16), 'lair': (12, 5, 4, 58)}
+WASH = {'door': (14, 6, 5, 16), 'kill': (12, 5, 4, 40), 'doorkill': (12, 5, 4, 32), 'corpse': (0, 0, 0, 0)}
 
 
 class Layer:
@@ -339,7 +336,7 @@ def _body(L, rng, x, y, s, bitten=True):
     for xx in range(w):                                                        # its shadow on the floor
         if sp[xx, h - 1][3] >= 128 and rng.random() < 0.9:
             L.put(x0 + xx, y + 1, (26, 18, 14, 255))
-    return x0 + (w if s > 0 else 0)
+    return (x0 + w // 2, y - h // 2)                                         # its middle: the search spot
 
 
 def _stain(L, rng, x0, x1, y, depth=3):
@@ -353,9 +350,8 @@ def _stain(L, rng, x0, x1, y, depth=3):
 def _heap(L, rng, cx, y, s):
     # the dead pulled together where they fed: one laid out along the wall, the next dragged in and
     # dropped in front of it, head to feet
-    _stain(L, rng, cx - 34, cx + 34, y, 3)
-    _body(L, rng, cx - s * 24, y - 3, s)
-    _body(L, rng, cx + s * 22, y + 4, -s)
+    _stain(L, rng, cx - 40, cx + 40, y, 3)
+    return [_body(L, rng, cx - s * 52, y - 3, s), _body(L, rng, cx + s * 52, y + 4, -s)]
 
 
 # ------------------------------------------------------------------------------------------ helpers
@@ -378,6 +374,131 @@ def _pick_floor(bare, rng, xs, ys, half=8):
 
 # ------------------------------------------------------------------------------------------- render
 
+def _flight(wall, floor, obj, rng, bare, flat, e, s):
+    # the front door's room: the door came in (splinters), the resident ran (keys dropped by the door,
+    # a shoe, a spilt bag) and the dead came in after them — bare bloody prints heading into the flat
+    _x2(floor, lambda T, x_, y_, s_: _keys(T, x_, y_), e + s * rng.randint(8, 16), rng.randint(124, 136), s)
+    spot = _pick_floor(flat, rng, list(range(min(e + s * 40, e + s * 90), max(e + s * 40, e + s * 90), 4)),
+                       range(116, 138, 3), 5)
+    if spot:
+        _shoe(obj, rng, spot[0], spot[1], -s)
+    spot = _pick_floor(flat, rng, list(range(min(e + s * 16, e + s * 70), max(e + s * 16, e + s * 70), 4)),
+                       range(132, 142, 2), 22)
+    if spot:
+        _bag(obj, rng, spot[0], spot[1], s)
+    _splinters(floor, rng, e, s, flat)
+    y0 = LANE_Y + rng.choice((-4, 3))
+    for k in range(rng.randint(5, 7)):
+        _footprint(floor, rng, e + s * (14 + k * 15), y0 + (4 if k % 2 else -4), s, k / 7)
+
+
+BODY_W, BODY_H = 74, 21          # the widest dead sprite (72x20) + a pixel: its whole footprint must be clear
+
+
+def _fits(flat, x0, x1, y0, y1):
+    # every pixel of the rect is floor (or a rug): nothing standing there for a body to clip into
+    return all(0 <= x < W and 0 <= y < H and flat[x][y]
+               for x in range(int(min(x0, x1)), int(max(x0, x1)) + 1, 2) for y in range(int(y0), int(y1) + 1, 2))
+
+
+def _one_spot(flat, rng, lo, hi, s, ys=range(112, 135, 2)):   # behind the walking line (129) first
+    # (feet x, floor y) for ONE body lying toward s, fully clear of furniture, or None
+    cands = []
+    for y in ys:
+        for fx in range(max(4, lo), min(W - 4, hi) + 1, 3):
+            hx = fx + s * BODY_W
+            if 2 <= hx <= W - 3 and _fits(flat, fx, hx, y - BODY_H, y + 2):
+                cands.append((fx, y))
+    return rng.choice(cands) if cands else None
+
+
+def _heap_spot(flat, rng, lo, hi):
+    # the centre of TWO laid side by side (head to feet), as far back as there's room
+    cands = [(cx, y) for y in range(SEAM + 20, 126, 2) for cx in range(max(56, lo), min(W - 56, hi) + 1, 3)
+             if _fits(flat, cx - 54, cx + 54, y - BODY_H - 3, y + 7)]
+    if not cands:
+        return None
+    back = min(y for (_, y) in cands)
+    near = [c for c in cands if c[1] <= back + 6]
+    return rng.choice(near)
+
+
+def _bleed(wall, floor, rng, bare, flat, fx, fy, s, how):
+    # what the blood says about how they died, ending at their feet (fx, fy) — returns fly spots.
+    #   crawl    — bitten further back and crawled here: a pool where it happened, a trail on to
+    #              where they gave out, bloody hands clawing along it
+    #   pool     — they didn't get up: lying in it
+    #   struggle — pinned at the wall: a hand slid down it, spatter, then a few steps before they fell
+    flies = []
+    if how == 'crawl':
+        sx = max(8, min(W - 8, fx - s * rng.randint(60, 120)))
+        sy = max(SEAM + 8, min(H - 5, fy + rng.randint(-8, 6)))
+        _pool(floor, rng, sx, sy, 0.9)
+        pts = _path(rng, sx + s * 4, sy + 1, fx, fy - 2)
+        _trail(floor, rng, pts)
+        for k in range(rng.randint(2, 3)):
+            i = rng.randint(len(pts) // 5, max(len(pts) // 5 + 1, len(pts) - 8))
+            _claw_hand(floor, rng, pts[i][0], pts[i][1] + rng.choice((-4, 4)), s)
+        flies.append((sx, sy - 4))
+    elif how == 'struggle':
+        wx = _pick_wall_x(bare, rng, *sorted((fx - s * 70, fx - s * 10)), 60, 98)
+        if wx is not None:
+            hy_ = rng.randint(58, 68)
+            _handprint(wall, wx, hy_, s, rng)
+            _slide_down(wall, rng, wx, hy_ + 6, SEAM - 1)
+            _spatter(wall, rng, wx + 2, rng.randint(72, 86), -s)
+            px, py = wx + 2, SEAM + rng.randint(5, 8)
+            _pool(floor, rng, px, py, 0.8)
+            _trail(floor, rng, _path(rng, px, py + 2, fx, fy - 2))
+        else:
+            how = 'pool'
+    if how == 'pool':
+        _pool(floor, rng, fx + s * rng.randint(34, 52), fy + 1, 1.8)          # spread out from under them
+    return flies
+
+
+def _kill(wall, floor, obj, rng, bare, flat, s, lo, hi):
+    # where they were caught: a hand on the wall that slid to the skirting, a pool at its foot, one
+    # arc of spatter — then a SHORT drag (a few steps) to where they lie. Returns (flies, bodies).
+    spot = _heap_spot(flat, rng, lo, hi)
+    bodies = []
+    if spot is not None:
+        hx, hy = spot
+        bodies = _heap(obj, rng, hx, hy, s)
+        body_back = hx - s * 52
+    else:
+        spot = _one_spot(flat, rng, lo, hi, s) or _one_spot(flat, rng, 4, W - 4, s, range(104, 142, 2))
+        if spot is None:
+            return [], []
+        fx, hy = spot
+        hx = fx + s * BODY_W // 2
+        _stain(obj, rng, hx - 26, hx + 26, hy, 2)
+        bodies = [_body(obj, rng, fx, hy, s)]
+        body_back = fx
+    # the attack: a few steps back from the body, toward the way they came
+    ax = int(body_back - s * rng.randint(30, 60))
+    ax = max(12, min(W - 12, ax))
+    wx = _pick_wall_x(bare, rng, ax - 14, ax + 10, 60, 98)
+    if wx is not None:
+        hy_ = rng.randint(58, 68)
+        _handprint(wall, wx, hy_, s, rng)
+        _slide_down(wall, rng, wx, hy_ + 6, SEAM - 1)
+        _spatter(wall, rng, wx + 2, rng.randint(74, 86), -s)
+        px, py = wx + 2, SEAM + rng.randint(6, 9)
+    else:
+        px, py = ax, LANE_Y - rng.randint(0, 6)
+    _pool(floor, rng, px, py, 1.1)
+    _trail(floor, rng, _path(rng, px + s * 5, py + 2, int(body_back), hy + 1))
+    if rng.random() < 0.6:                                         # clawed at the floor as they went
+        mx = (px + body_back) // 2
+        _claw_hand(floor, rng, int(mx), (py + hy) // 2 + rng.choice((-4, 4)), s)
+    for k in range(rng.randint(1, 3)):
+        _bone(floor, rng, hx + rng.randint(-40, 36), hy + rng.randint(3, 10))
+    for k in range(rng.randint(1, 2)):
+        _rag(floor, rng, hx + rng.randint(-44, 40), hy + rng.randint(3, 12))
+    return [(hx, hy - 9), (px, py - 4)], bodies
+
+
 def render(name, full, bare_floor, seed, role, flat_pieces=None):
     part, side = role.split('_')
     s = 1 if side == 'l' else -1                 # the way the story runs across the flat
@@ -386,84 +507,30 @@ def render(name, full, bare_floor, seed, role, flat_pieces=None):
     rng = random.Random(zlib.crc32(('nest:%s:%s:%d' % (name, role, seed)).encode()))
     bare, flat = _masks(full, bare_floor, flat_pieces)
     wall, floor, obj = Layer(), Layer(), Layer()
-    flies = []
-    if part == 'entry':
-        # where they caught the resident: by the door, on the wall
-        wx = _pick_wall_x(bare, rng, *sorted((e + s * 14, e + s * 46)), 60, 98)
-        if wx is None:
-            wx = _pick_wall_x(bare, rng, *sorted((e + s * 10, e + s * 110)), 64, 96) or (e + s * 30)
-        hy = rng.randint(58, 68)
-        _handprint(wall, wx, hy, s, rng)
-        _slide_down(wall, rng, wx, hy + 6, SEAM - 1)
-        _spatter(wall, rng, wx + 2, rng.randint(74, 86), -s)
-        px, py = wx + 2 + s * 4, SEAM + rng.randint(6, 9)
-        _pool(floor, rng, px, py, 1.1)
-        flies.append((px, py - 4))
-        # what they dropped
-        _x2(floor, lambda T, x_, y_, s_: _keys(T, x_, y_), e + s * rng.randint(8, 16), rng.randint(124, 136), s)
-        spot = _pick_floor(flat, rng, range(e + s * 40, e + s * 90, s * 4) if s > 0 else range(e + s * 40, e + s * 90, s * 4),
-                           range(116, 138, 3), 5)
-        if spot:
-            _shoe(obj, rng, spot[0], spot[1], -s)
-        spot = _pick_floor(flat, rng, list(range(min(e + s * 16, e + s * 70), max(e + s * 16, e + s * 70), 4)),
-                           range(132, 142, 2), 22)
-        if spot:
-            _bag(obj, rng, spot[0], spot[1], s)
-        _splinters(floor, rng, e, s, flat)
-        # the trail leaves the pool for the rest of the flat; bare feet walked in beside it
-        pts = _path(rng, px + s * 6, py + 2, far, LANE_Y)
-        _trail(floor, rng, pts)
-        for k, i in enumerate(range(10, min(len(pts), 110), rng.randint(13, 17))):
-            fx, fy = pts[i]
-            _footprint(floor, rng, fx, fy + (6 if k % 2 else -6), s, k / 8)
-    elif part == 'through':
-        pts = _path(rng, e, LANE_Y, far, LANE_Y)
-        _trail(floor, rng, pts)
-        for k in range(rng.randint(1, 2)):                               # clawing at the floor
-            i = rng.randint(60, len(pts) - 60)
-            _claw_hand(floor, rng, pts[i][0], pts[i][1] + rng.choice((-3, 4)), s)
-        gx = _pick_wall_x(bare, rng, *sorted((e + s * 2, e + s * 14)), 76, 92, 5)
-        if gx is not None:                                               # a hand caught the doorframe
-            gy = rng.randint(78, 88)
-            _handprint(wall, gx, gy, s, rng, BLOOD_DK)
-            for f in range(4):
-                for d in range(rng.randint(4, 9)):
-                    wall.put(gx + f + s * (d // 3), gy + 1 + d // 2 + f // 3, BLOOD_DRY)
-        for k in range(rng.randint(3, 6)):
-            x, y = rng.choice(pts)
-            floor.put(x + rng.randint(-6, 6), y + rng.choice((-5, 5, 6)), BLOOD_DK)
-    else:
-        # the lair: at the far end, where they were taken — the dead together on the floor, as far
-        # back as there's room (against the skirting where it's clear), and the trail runs into them
-        spots = [(cx, y) for y in range(SEAM + 14, 126, 2) for cx in range(50, W - 50, 3)
-                 if _bare_run(flat, cx - 46, cx + 46, (y - 13, y - 8, y - 3, y, y + 5))]
-        spots.sort(key=lambda p: (p[1] // 6, -p[0] * s))                      # back first, then far
-        if spots:
-            hx, hy = spots[min(len(spots) - 1, rng.randint(0, 2))]
-            _heap(obj, rng, hx, hy, s)
-            end = (hx - s * 40, hy + 2)
-        else:                                                                  # no room for two: one, laid out
-            xs = [x for x in range(38, W - 38, 4)]
-            spot = _pick_floor(flat, rng, xs, range(114, 140, 2), 34)
-            if spot is None:
-                spot = _pick_floor(flat, rng, xs, range(108, 142, 2), 30) or (W // 2, LANE_Y + 6)
-            hx, hy = spot
-            _stain(obj, rng, hx - 26, hx + 26, hy, 2)
-            _body(obj, rng, hx - s * 31, hy, s)
-            end = (hx - s * 32, hy + 1)
-        flies.append((hx, hy - 9))
-        sx = _pick_wall_x(bare, rng, hx - 30, hx + 26, 84, 98, 4)             # thrown down against the wall
-        if sx is not None and hy < SEAM + 16:
-            for d in range(rng.randint(8, 14)):
-                for w in range(4):
-                    if rng.random() < 0.75:
-                        wall.put(sx + w, SEAM - 1 - d, BLOOD_OLD if d > 5 else BLOOD_DRY)
-        pts = _path(rng, e, LANE_Y, end[0], end[1])
-        _trail(floor, rng, pts)
-        for k in range(rng.randint(3, 5)):                               # kept close to where they fed
-            _bone(floor, rng, hx + rng.randint(-40, 36), hy + rng.randint(3, 10))
-        for k in range(rng.randint(2, 3)):
-            _rag(floor, rng, hx + rng.randint(-44, 40), hy + rng.randint(3, 12))
+    flies, bodies = [], []
+    if part in ('door', 'doorkill'):
+        _flight(wall, floor, obj, rng, bare, flat, e, s)
+    if part in ('kill', 'doorkill'):
+        if part == 'kill':                                  # they got this far, fleeing from the door
+            lo, hi = (70, W - 40) if s > 0 else (40, W - 70)
+        else:                                               # caught further in, in the door's own room
+            lo, hi = (170, W - 40) if s > 0 else (40, W - 170)
+        f_, b_ = _kill(wall, floor, obj, rng, bare, flat, s, lo, hi)
+        flies += f_
+        bodies += b_
+    if part == 'corpse':                                    # one of the dead, and how they came to be there
+        how = rng.choices(('crawl', 'pool', 'struggle'), (0.4, 0.35, 0.25))[0]
+        lo, hi = ((70, W - 4) if s > 0 else (4, W - 70)) if how == 'crawl' else (4, W - 4)
+        spot = (_one_spot(flat, rng, lo, hi, s) or _one_spot(flat, rng, 4, W - 4, s)
+                or _one_spot(flat, rng, 4, W - 4, s, range(104, 142, 2)))
+        if spot is not None:
+            fx, fy = spot
+            flies += _bleed(wall, floor, rng, bare, flat, fx, fy, s, how)
+            _stain(obj, rng, fx + s * 10, fx + s * (BODY_W - 6), fy, 2)
+            bodies.append(_body(obj, rng, fx, fy, s))
+            if rng.random() < 0.4:
+                _rag(floor, rng, fx + s * rng.randint(-30, 70), fy + rng.randint(2, 6))
+            flies.append((fx + s * BODY_W // 2, fy - 9))
     # composite through the masks: wall marks on bare wall only, floor marks on bare floor only
     out = Image.new('RGBA', (W, H), WASH[part])
     op = out.load()
@@ -475,7 +542,7 @@ def render(name, full, bare_floor, seed, role, flat_pieces=None):
             for x in range(W):
                 if lp[x, y][3] and ok(x, y):
                     op[x, y] = lp[x, y]
-    return out, [[int(x), int(y)] for (x, y) in flies]
+    return out, [[int(x), int(y)] for (x, y) in flies], [[int(x), int(y)] for (x, y) in bodies]
 
 
 META = os.path.join('assets', 'rooms', 'nest_meta.json')
@@ -498,9 +565,9 @@ def write(name, full, bare_floor, seed, root, flat_pieces=None):
     meta = json.load(open(meta_path)) if os.path.exists(meta_path) else {}
     imgs = {}
     for role in ROLES:
-        img, flies = render(name, full, bare_floor, seed, role, flat_pieces)
+        img, flies, bodies = render(name, full, bare_floor, seed, role, flat_pieces)
         img.save(os.path.join(d, '%s_nest_%s.png' % (name, role)))
-        meta['%s_nest_%s' % (name, role)] = {'flies': flies}
+        meta['%s_nest_%s' % (name, role)] = {'flies': flies, 'bodies': bodies}
         imgs[role] = img
     with open(meta_path, 'w') as f:                                     # one line a texture, sorted
         f.write('{\n' + ',\n'.join(' %s: %s' % (json.dumps(k), json.dumps(meta[k], separators=(', ', ': ')))
@@ -509,9 +576,9 @@ def write(name, full, bare_floor, seed, root, flat_pieces=None):
 
 
 def preview(root):
-    # docs/art_reference/modules/breach_nests.png: per room type, a breached flat read left to right —
-    # variant a as the ENTRY (front door on the left), b the room it's dragged THROUGH, c the LAIR —
-    # then the same three with the door on the right
+    # docs/art_reference/modules/breach_nests.png: per room type, two breached flats — the door on the
+    # LEFT with the story over two rooms (a = DOOR, b = KILL, c untouched), then the door on the RIGHT
+    # with it all in the door's own room (c = DOORKILL). docs/.../human_dead.png: every variant's CORPSE.
     from PIL import ImageDraw
     types = ['living_room', 'bedroom', 'kitchen', 'bathroom', 'study', 'dining_room']
     rooms = os.path.join(root, 'assets', 'rooms')
@@ -519,18 +586,26 @@ def preview(root):
     sheet = Image.new('RGB', (2 * (3 * W + pad) + pad, len(types) * (H + 14) + pad), (18, 18, 20))
     d = ImageDraw.Draw(sheet)
     for r, t in enumerate(types):
-        for k, side in enumerate(('l', 'r')):
-            roles = ['entry', 'through', 'lair'] if side == 'l' else ['lair', 'through', 'entry']
-            for i, (v, role) in enumerate(zip(['', '_b', '_c'] if side == 'l' else ['_c', '_b', ''], roles)):
+        for k, roles in enumerate((['door_l', 'kill_l', None], [None, None, 'doorkill_r'])):
+            for i, (v, role) in enumerate(zip(['', '_b', '_c'], roles)):
                 a = Image.open(os.path.join(rooms, t + v + '.png')).convert('RGBA')
-                a.alpha_composite(Image.open(os.path.join(rooms, '%s%s_nest_%s_%s.png' % (t, v, role, side))))
+                if role:
+                    a.alpha_composite(Image.open(os.path.join(rooms, '%s%s_nest_%s.png' % (t, v, role))))
                 x, y = pad + k * (3 * W + pad) + i * W, pad + r * (H + 14)
                 sheet.paste(a.convert('RGB'), (x, y + 12))
-            d.text((pad + k * (3 * W + pad), pad + r * (H + 14)), '%s — front door %s' % (t, 'left' if side == 'l' else 'right'),
+            d.text((pad + k * (3 * W + pad), pad + r * (H + 14)),
+                   '%s - %s' % (t, 'door left: fled a room, caught in the next' if k == 0 else 'door right: caught in the door room'),
                    fill=(220, 210, 190))
-    out = os.path.join(root, 'docs', 'art_reference', 'modules', 'breach_nests.png')
-    sheet.resize((sheet.width * 2, sheet.height * 2), Image.NEAREST).save(out)
-    print('wrote', out)
+    prev = os.path.join(root, 'docs', 'art_reference', 'modules')
+    sheet.resize((sheet.width * 2, sheet.height * 2), Image.NEAREST).save(os.path.join(prev, 'breach_nests.png'))
+    dead = Image.new('RGB', (5 * (W + pad) + pad, len(types) * (H + pad) + pad), (18, 18, 20))
+    for r, t in enumerate(types):
+        for i, v in enumerate(['', '_b', '_c', '_d', '_e']):
+            a = Image.open(os.path.join(rooms, t + v + '.png')).convert('RGBA')
+            a.alpha_composite(Image.open(os.path.join(rooms, '%s%s_nest_corpse_%s.png' % (t, v, 'l' if i % 2 else 'r'))))
+            dead.paste(a.convert('RGB'), (pad + i * (W + pad), pad + r * (H + pad)))
+    dead.save(os.path.join(prev, 'human_dead.png'))
+    print('wrote breach_nests.png + human_dead.png')
 
 
 if __name__ == '__main__':

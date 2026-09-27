@@ -1143,6 +1143,31 @@ func _test_corridor_decals() -> void:
 			differ = true
 		by_base[base] = f
 	check(differ, "floors that share a baked corridor are dressed differently")
+	# THE DEAD (round 21c): peppered, not everywhere; none up top on the first morning; once lying
+	# there they stay for the later runs; always on the floor, between the stair openings
+	var dead_by_run := [0, 0, 0]
+	var top_dead := 0
+	for f in range(1, 30):
+		var prev: Array = []
+		for run in [1, 2, 3]:
+			var dp: Array = CD.dead_plan(f, run)
+			dead_by_run[run - 1] += dp.size()
+			if run == 1 and f >= 26:
+				top_dead += dp.size()
+			var keys: Array = []
+			for d in dp:
+				keys.append(str(d["name"]) + "@" + str(d["pos"]))
+				var tex = load(CD.DIR + d["name"] + ".png")
+				var line: float = d["pos"].y + tex.get_size().y - CD.DEAD_FOOT
+				if line < CD.DEAD_LINE.x or line > CD.DEAD_LINE.y or d["pos"].x < CD.WALL_X.x or d["pos"].x + tex.get_size().x > CD.WALL_X.y:
+					check(false, "floor %d run %d: %s lies off the floor (%s)" % [f, run, d["name"], str(d["pos"])])
+			for k in prev:
+				if not k in keys:
+					check(false, "floor %d: the dead from run %d are still there in run %d (%s)" % [f, run - 1, run, k])
+			prev = keys
+	check(top_dead == 0, "no dead in the top corridors on the first morning (%d)" % top_dead)
+	check(dead_by_run[0] < dead_by_run[2] and dead_by_run[2] >= 8 and dead_by_run[2] <= 45,
+		"the dead in corridors: peppered, more each run (%s over 29 floors)" % str(dead_by_run))
 	# in the scene: wall decals right above the art (under the doors), door marks over the doors.
 	# A pinned seed: how much fits on a floor varies by seed (~1 in 400 plans only 7), so "a mess"
 	# is judged on a known building, and the scene must show EXACTLY the plan on any.
@@ -1168,8 +1193,16 @@ func _test_corridor_decals() -> void:
 		check(wall != null and art != null and wall.get_index() == art.get_index() + 1, "decals right above the corridor art%s" % label)
 		check(wall != null and wall.get_index() < bf.get_node("apartment01").get_index(), "...under the doors%s" % label)
 		check(door != null and elev != null and door.get_index() > elev.get_index(), "door marks draw over the doors%s" % label)
-		check(wall != null and wall.get_child_count() == expect_wall,
-			"the scene shows exactly the plan's wall decals%s (%d vs %d)" % [label, wall.get_child_count() if wall else -1, expect_wall])
+		var plain := 0
+		var dead_n := 0
+		for ch in (wall.get_children() if wall else []):
+			if ch.is_in_group("corridor_dead"):
+				dead_n += 1
+			elif ch.has_meta("decal"):
+				plain += 1
+		check(wall != null and plain == expect_wall,
+			"the scene shows exactly the plan's wall decals%s (%d vs %d)" % [label, plain, expect_wall])
+		check(dead_n <= 2, "...and at most two of the dead%s (%d)" % [label, dead_n])
 		bf.free()
 		await get_tree().process_frame
 	WorldState.current_run = 1

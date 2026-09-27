@@ -173,6 +173,8 @@ func try_interact() -> void:
 		WorldState.interaction_handled = true
 		if name == WorldState.GUN_CABINET_ANCHOR and not _open_gun_cabinet():
 			return
+		if has_meta("dead_body") and not WorldState.is_anchor_searched(apartment_id, name):
+			HUD.show_feedback(WorldState.dead_search_line(name))       # searching one of the dead
 		_open_loot()
 
 

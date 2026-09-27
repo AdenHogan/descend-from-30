@@ -45,17 +45,17 @@ metadata/back_plane = true
 metadata/balcony_strip = true
 
 [node name="anchor_dining_pouffe" type="Marker2D" parent="."]
-position = Vector2(62, 94)
+position = Vector2(62, 97)
 metadata/balcony_strip = true
 
 [node name="anchor_table_left" type="Marker2D" parent="."]
-position = Vector2(138, 93)
+position = Vector2(142, 93)
 
 [node name="anchor_table_right" type="Marker2D" parent="."]
-position = Vector2(164, 93)
+position = Vector2(172, 95)
 
 [node name="anchor_dining_tulip_chair" type="Marker2D" parent="."]
-position = Vector2(196, 104)
+position = Vector2(110, 105)
 
 [node name="anchor_dining_record_player" type="Marker2D" parent="."]
 position = Vector2(281, 70)
@@ -68,12 +68,21 @@ metadata/back_plane = true
 [node name="Lights" type="Node2D" parent="."]
 
 [node name="lamp_0" type="Node2D" parent="Lights"]
-position = Vector2(140, 23)
+position = Vector2(158, 23)
 metadata/kind = "pendant"
 
 [node name="Anims" type="Node2D" parent="."]
 
 [node name="anim_0" type="Node2D" parent="Anims"]
+position = Vector2(181, 99)
+script = ExtResource("4_anim")
+metadata/kind = "drip"
+metadata/fall = 22
+metadata/color = "6a1a22"
+metadata/w = 1
+metadata/h = 1
+
+[node name="anim_1" type="Node2D" parent="Anims"]
 position = Vector2(281, 70)
 script = ExtResource("4_anim")
 metadata/kind = "spin"

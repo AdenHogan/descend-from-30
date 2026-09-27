@@ -1539,7 +1539,8 @@ means no rendering — UI layout and art still need an in-editor look.
   patches); the CUT FACE of the wall shows round it (lit left, shadowed right + under the lintel), and
   through it the flat's hall runs back in one-point perspective — floorboards, side walls with a dado
   rail and a picture knocked askew, a chair on its side, a felled coat stand, a dark drag smear leading
-  in, a lit doorway at the back. Wall foot on the door's floor line; 26 rows below of the door in
+  in, a lit doorway at the back (round 21c: a real door's proportions, cased, its door swung open against
+  the jamb). Wall foot on the door's floor line; 26 rows below of the door in
   pieces, rubble, dust and the smear on the corridor floor), untinted and never swings (strip frames
   5/6 no longer used). The other
   state tints stay as the gameplay cue but SOFTENED (locked 1.25/0.74/0.7, was 1.4/0.4/0.4 — a red slab
@@ -1604,21 +1605,41 @@ means no rendering — UI layout and art still need an in-editor look.
   turns the right way up, lands on its floor line, a beat's stun, then it's coming (`alert_timer`). A
   hit up there lands it at once (a kill never leaves a body in the air); leaving the room records it on
   its floor line, and a remembered one comes back on the floor. Live + frozen backdrop.
-  **THE STORY** (round 21b — the first "nest of horror" was "too much… you went nuts with the red
-  blood paint without considering the storytelling"; now ONE event read across the flat) — every module
-  variant has SIX generated overlays `<art>_nest_<entry|through|lair>_<l|r>.png` (`tools/art/nest.py`,
-  called by `pixlib.finish_module`; `_l` = front door on the LEFT, the story running left → right):
-  ENTRY (the front door's room: a hand on the wall that slid to the skirting, a pool at its foot, one
-  arc of spatter, the keys dropped by the door, a shoe, a spilt bag, door splinters, bare bloody
-  footprints, and a drag trail leaving the pool), THROUGH (the trail crossing on the walking line — a
-  hand clawed at the floor, one caught the doorframe), LAIR (the trail ends at the dead: two laid
-  against the back wall where there's room, else one on the floor — the purchased homeless-pack
-  Death frame at the actors' 2× scale, greyed + bitten at the neck — a black stain, bones and rags
-  kept close, the only dimmed room). No words, no ceiling flesh, no scattered gore. Masks: marks on
-  bare wall / bare floor only, and the trail crosses RUGS (registered with `pixlib.flat_piece`) but
-  passes behind furniture. room.gd `_add_breach_nest` picks the role from the entrance side + slot
-  (`room.gd breach_nest_role`) for a BREACHED flat (live + backdrop) and puts flies (`module_anim` kind
-  `flies`) where `assets/rooms/nest_meta.json` says — over the pool and the dead. Preview:
-  docs/art_reference/modules/breach_nests.png (`python3 tools/art/nest.py`, also run by build_all). **Long arm** drawn at ×2.2 (was 3) about its feet (`enemy_zombie_longarm.SPRITE_SCALE`) — its
+  **THE STORY** (rounds 21b/21c — the first "nest of horror" was "too much… you went nuts with the red
+  blood paint without considering the storytelling"; then "we don't need a corpse to have dragged itself
+  across all three modules") — every module variant has EIGHT generated overlays
+  `<art>_nest_<door|kill|doorkill|corpse>_<l|r>.png` (`tools/art/nest.py`, called by `pixlib.finish_module`;
+  `_l` = front door on the LEFT): DOOR (the front door's room: splinters, the keys dropped by the door, a
+  shoe, a spilt bag, bare bloody prints coming in), KILL (where they were caught: a hand slid down the
+  wall, a pool, a few steps of drag, the dead — two laid by the wall where there's room, else one; a bone,
+  rags), DOORKILL (both in the door's room). Per flat `WorldState.breach_story_split` picks DOOR + KILL
+  (fled a room) or DOORKILL (caught in the door's room); the third room is untouched (`room.gd
+  breach_nest_role`). The dead are the purchased homeless-pack Death frame at the actors' 2× scale, greyed,
+  bitten at the neck, placed only where their WHOLE footprint is clear floor (`nest._fits` — no clipping
+  into furniture) and behind the walking line first. Marks: bare wall / bare floor only; the trail crosses
+  RUGS (registered with `pixlib.flat_piece`) but passes behind furniture. No words, no ceiling flesh.
+  **THE DEAD ELSEWHERE** (round 21c — "sporadically there should be bodies across the building"): an
+  ORDINARY flat may hold one (`WorldState.apartment_corpse`: 10/16/22% by run, never breached / blazing /
+  charred / the tutorial flats) — the CORPSE role, always with the blood that says how: crawled (a pool
+  where it happened, a trail, bloody hands clawing), lying in a pool, or pinned at the wall first
+  (`nest._bleed`). Corridors: `corridor_decals.dead_plan` (own RNG, up to two a floor, by
+  `horror_level` with seeded thresholds — none up top on the first morning, run 1's stay for runs 2/3;
+  sprites `dead_1..4` from `tools/art/corridor_decals.py`, a pool or a crawl trail; flies over them).
+  **SEARCHABLE** — every body the flat's art drew is a scavenge node (`room._setup_dead_bodies`, names
+  `dead_<slot>_<k>[_r<run>]`, positions from `assets/rooms/nest_meta.json` "bodies"): pockets from
+  `WorldState.dead_body_loot` (50% empty, else notes / an empty wallet / bandages / painkillers / rags / a
+  torch / a knife / rounds / shoes / a battery), and a line on the first search (`DEAD_SEARCH_LINES`:
+  "You go through a stranger's pockets. You try not to look at their face."). Corridor bodies aren't
+  searchable yet. Flies (`module_anim` `flies`) over the pool and the dead (nest_meta "flies").
+  **FOREGROUND DEAD — a TEST look** (round 21c, "like hollow knight and silk song… bodies… right up to the
+  camera… we can test it first"): `scripts/foreground_dead.gd` lays 2-3 black silhouettes
+  (`tools/art/foreground_dead.py` → `assets/foreground/fg_<heap|slumped|hand>_N.png`, drawn at world px)
+  along the bottom edge of the view, in front of the actors (z 40, never lit), sliding faster than the room
+  (parallax 0.35), fading to 35% while the player is behind one. Sporadic by default (a breached flat 50%,
+  a flat with its dead 35%, a corridor with dead 35%); F1 → "Foreground Dead (test)" cycles OFF / SPORADIC /
+  EVERYWHERE (`WorldState.foreground_dead_mode`, not saved). Previews: docs/art_reference/modules/
+  breach_nests.png + human_dead.png (`python3 tools/art/nest.py`, also run by build_all),
+  docs/art_reference/foreground_dead.png. Locked by `breach_test` + `building_floors_test`.
+  **Long arm** drawn at ×2.2 (was 3) about its feet (`enemy_zombie_longarm.SPRITE_SCALE`) — its
   swing (25 frame px up) now lands at head height instead of over the player; rig/reach unchanged.
 - Not started: quests.

@@ -188,15 +188,15 @@ def pictures(c):
     light(158, 46, 'pendant')
 
 
+CHAIR_PAL = {'wood': hexc('6a4630'), 'seat': hexc('7e5638')}
+
+
 def back_chairs(c):
-    # two chairs tucked in behind the table: only their ladder backs show above the top
-    for x0 in (134, 184):
-        c.rect(x0, 66, x0 + 2, 88, WOOD_DK)
-        c.rect(x0 + 16, 66, x0 + 18, 88, WOOD_DK)
-        c.rect(x0, 65, x0 + 18, 67, WOOD)
-        c.hline(x0, x0 + 18, 65, WOOD_LT)
-        for ry in (72, 78):
-            c.rect(x0 + 3, ry, x0 + 15, ry + 1, WOOD)
+    # two ladder-backs tucked in behind the table, their backs to us (round 21c: real 3D chairs,
+    # not flat cut-outs); the one on the right pushed back and turned, as if someone got up fast
+    import chair3d as C3
+    C3.draw_model(c, 143, 104, C3.dining_chair('ladder'), 180, CHAIR_PAL, srad=10)
+    C3.draw_model(c, 190, 102, C3.dining_chair('ladder'), 150, CHAIR_PAL, srad=10)
 
 
 def table(c):
@@ -351,7 +351,8 @@ def build(c=None):
     pictures(c)
     back_chairs(c)
     table(c)
-    side_chair(c, 102, 114, facing_right=True)
+    import chair3d as C3
+    C3.draw_model(c, 110, 117, C3.dining_chair('ladder'), -68, CHAIR_PAL, srad=10)   # pulled out, facing the table
     trolley(c, 224, 118)
     # the dresser with depth (owner round 14), 3px right of where it stood flat (clear of window R)
     from pixlib import setback

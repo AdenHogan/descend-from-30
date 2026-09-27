@@ -28,6 +28,7 @@ func _ready() -> void:
 	_test_listen()
 	_test_nest_art()
 	await _test_rooms()
+	await _test_foreground()
 	await _test_wall_crawlers()
 	await _test_longarm()
 	WorldState.dev_seed = 0
@@ -106,32 +107,66 @@ func _room(apt: String) -> Node:
 
 
 func _test_nest_art() -> void:
-	# every module variant has all six story roles, each with its flies in nest_meta.json
-	check(RoomScript.breach_nest_role("left", 0) == "entry_l" and RoomScript.breach_nest_role("left", 2) == "lair_l", "door left: entry at slot 0, lair at 2")
-	check(RoomScript.breach_nest_role("right", 2) == "entry_r" and RoomScript.breach_nest_role("right", 0) == "lair_r", "door right: entry at slot 2, lair at 0")
-	check(RoomScript.breach_nest_role("left", 1) == "through_l" and RoomScript.breach_nest_role("right", 1) == "through_r", "the middle room is dragged through")
+	# the story is SHORT (round 21c): the door's room + the next (split) or the door's room alone
+	var split := ""
+	var whole := ""
+	for f in range(2, 29):
+		for i in range(1, 6):
+			var a := str(f) + "0" + str(i)
+			if WorldState.breach_story_split(a) and split == "":
+				split = a
+			elif not WorldState.breach_story_split(a) and whole == "":
+				whole = a
+	check(split != "" and whole != "", "both kinds of story turn up (%s / %s)" % [split, whole])
+	var r := func(apt, side): return [RoomScript.breach_nest_role(apt, side, 0), RoomScript.breach_nest_role(apt, side, 1), RoomScript.breach_nest_role(apt, side, 2)]
+	check(r.call(split, "left") == ["door_l", "kill_l", ""], "door left, fled a room: door, kill, untouched (%s)" % str(r.call(split, "left")))
+	check(r.call(split, "right") == ["", "kill_r", "door_r"], "door right, fled a room: untouched, kill, door (%s)" % str(r.call(split, "right")))
+	check(r.call(whole, "left") == ["doorkill_l", "", ""], "door left, caught in the door's room (%s)" % str(r.call(whole, "left")))
+	check(r.call(whole, "right") == ["", "", "doorkill_r"], "door right, caught in the door's room (%s)" % str(r.call(whole, "right")))
+	# every module variant has all eight roles, each with its flies + the dead it drew
 	var meta := RoomScript.nest_meta()
 	var missing := []
 	var n := 0
+	var no_body := []
 	for t in RoomScript.MODULE_VARIANTS:
 		for scene_path in RoomScript.MODULE_VARIANTS[t]:
 			var inst = load(scene_path).instantiate()
 			var art = inst.get_node_or_null("Art")
 			var base: String = art.texture.resource_path.get_basename() if art != null and art.texture != null else ""
 			inst.free()
-			for role in ["entry_l", "through_l", "lair_l", "entry_r", "through_r", "lair_r"]:
+			for role in ["door_l", "kill_l", "doorkill_l", "corpse_l", "door_r", "kill_r", "doorkill_r", "corpse_r"]:
 				var p: String = base + "_nest_" + role + ".png"
 				n += 1
-				if not ResourceLoader.exists(p) or not meta.has(p.get_file().get_basename()):
+				var key := p.get_file().get_basename()
+				if not ResourceLoader.exists(p) or not meta.has(key):
 					missing.append(p.get_file())
-			if base != "" and ResourceLoader.exists(base + "_nest.png"):
-				missing.append("stale " + base + "_nest.png")
-	check(n == 180 and missing.is_empty(), "180 story overlays, each with its fly spots (%d, missing %s)" % [n, str(missing.slice(0, 4))])
-	var lair_flies := 0
-	for k in meta:
-		if str(k).contains("_lair_") and not meta[k].get("flies", []).is_empty():
-			lair_flies += 1
-	check(lair_flies == 60, "flies gather over the dead in every lair (%d/60)" % lair_flies)
+				elif not role.begins_with("door_") and meta[key].get("bodies", []).is_empty():
+					no_body.append(key)
+			for old in ["_nest.png", "_nest_entry_l.png", "_nest_through_l.png", "_nest_lair_l.png"]:
+				if base != "" and ResourceLoader.exists(base + old):
+					missing.append("stale " + base + old)
+	check(n == 240 and missing.is_empty(), "240 story overlays with their meta (%d, missing %s)" % [n, str(missing.slice(0, 4))])
+	check(no_body.is_empty(), "every kill / doorkill / corpse draws someone (%s)" % str(no_body.slice(0, 4)))
+	# the dead's pockets: often empty, never anything outside the list
+	var empty := 0
+	var bad := []
+	for i in range(200):
+		var loot: Dictionary = WorldState.dead_body_loot("1203", "dead_0_%d" % i)
+		if loot.is_empty():
+			empty += 1
+		elif not WorldState.DEAD_POCKETS.has(str(loot["item"])):
+			bad.append(loot)
+	check(empty > 60 and empty < 140 and bad.is_empty(), "the dead's pockets: often empty (%d/200), only pocket things (%s)" % [empty, str(bad)])
+	check(WorldState.dead_body_loot("1203", "dead_0_3") == WorldState.dead_body_loot("1203", "dead_0_3"), "...and the same every visit")
+
+
+func _dead_nodes() -> Array:
+	var out := []
+	for m in get_tree().get_nodes_in_group("room_module"):
+		for c in m.get_children():
+			if c.has_meta("dead_body"):
+				out.append(c)
+	return out
 
 
 func _test_rooms() -> void:
@@ -167,21 +202,24 @@ func _test_rooms() -> void:
 				check(c.modulate != Color.WHITE, "%s leader: its darker look" % kind)
 		if kind != "big":
 			check(bigs == 0, "%s room: no big zombie" % kind)
-		# the NEST tells one story across the flat: ENTRY by the front door, THROUGH, LAIR at the far end
+		# the story: the door's room (+ the next when they fled it), never all three rooms
 		var nests := get_tree().get_nodes_in_group("breach_nest")
-		check(nests.size() == 3, "%s room: a nest overlay on all three modules (%d)" % [kind, nests.size()])
-		var side := "_l" if WorldState.get_entrance_side(apt) == "left" else "_r"
-		var by_x := nests.duplicate()
-		by_x.sort_custom(func(a, b): return a.global_position.x < b.global_position.x)
-		var want := ["entry", "through", "lair"] if side == "_l" else ["lair", "through", "entry"]
-		var story_ok := by_x.size() == 3
-		for i in range(by_x.size()):
-			var n = by_x[i]
-			var role: String = want[i] + side
-			if str(n.get_meta("role", "")) != role or n.texture == null \
-					or not n.texture.resource_path.ends_with("_nest_" + role + ".png"):
+		var eside := WorldState.get_entrance_side(apt)
+		var want_n := 2 if WorldState.breach_story_split(apt) else 1
+		check(nests.size() == want_n, "%s room: the story covers %d room(s) (%d)" % [kind, want_n, nests.size()])
+		var story_ok := not nests.is_empty()
+		for nn in nests:
+			var slot := int(round((nn.get_parent().position.x - RoomScript.LEFT_WALL_X) / RoomScript.MODULE_WIDTH))
+			var role: String = RoomScript.breach_nest_role(apt, eside, slot)
+			if role == "" or str(nn.get_meta("role", "")) != role or not nn.texture.resource_path.ends_with("_nest_" + role + ".png"):
 				story_ok = false
-		check(story_ok, "...the entry room is the front door's, the lair the far end (door %s)" % side)
+		check(story_ok, "...each overlay the role its room plays (door %s)" % eside)
+		var dead := _dead_nodes()
+		var dead_ok := not dead.is_empty()
+		for d in dead:
+			if not d.has_method("try_interact") or not str(d.name).begins_with("dead_"):
+				dead_ok = false
+		check(dead_ok, "...and the dead in it can be searched (%d)" % dead.size())
 		var anims := get_tree().get_nodes_in_group("breach_nest_anim")
 		var kinds := {}
 		for a in anims:
@@ -206,10 +244,78 @@ func _test_rooms() -> void:
 	add_child(r2)
 	for i in range(3):
 		await get_tree().process_frame
-	check(get_tree().get_nodes_in_group("breach_nest").is_empty(), "an ordinary flat: no nest")
+	check(get_tree().get_nodes_in_group("breach_nest").is_empty() == WorldState.apartment_corpse(quiet).is_empty(), "an ordinary flat: no story unless one of the dead is there")
 	r2.queue_free()
 	await get_tree().process_frame
 	await get_tree().process_frame
+	# an ordinary flat with one of the dead: that room alone, a body to search
+	var with_dead := ""
+	for f in range(4, 27):
+		for i in range(1, 6):
+			var apt := str(f) + "0" + str(i)
+			if not WorldState.apartment_corpse(apt).is_empty():
+				with_dead = apt
+				break
+		if with_dead != "":
+			break
+	check(with_dead != "", "some ordinary flats have one of the dead (run %d)" % WorldState.current_run)
+	if with_dead != "":
+		var info: Dictionary = WorldState.apartment_corpse(with_dead)
+		WorldState.current_apartment_id = with_dead
+		WorldState.current_floor = WorldState._apartment_floor(with_dead)
+		var r3 = load("res://scenes/room.tscn").instantiate()
+		add_child(r3)
+		for i in range(3):
+			await get_tree().process_frame
+		var ns := get_tree().get_nodes_in_group("breach_nest")
+		check(ns.size() == 1 and str(ns[0].get_meta("role", "")) == "corpse_" + str(info["side"]), "%s: one room with its dead (%s)" % [with_dead, str(info)])
+		check(_dead_nodes().size() == 1, "...one body to search (%d)" % _dead_nodes().size())
+		r3.queue_free()
+		await get_tree().process_frame
+		await get_tree().process_frame
+	# how often: a handful of flats a run, more later in the day
+	var counts := []
+	var keep_run := WorldState.current_run
+	for run in [1, 2, 3]:
+		WorldState.current_run = run
+		var c := 0
+		for f in range(2, 29):
+			for i in range(1, 6):
+				if not WorldState.apartment_corpse(str(f) + "0" + str(i)).is_empty():
+					c += 1
+		counts.append(c)
+	WorldState.current_run = keep_run
+	check(counts[0] >= 3 and counts[2] > counts[0] and counts[2] < 60, "the dead in ordinary flats: peppered, more each run (%s of 135)" % str(counts))
+
+
+func _test_foreground() -> void:
+	# the foreground-silhouette TEST look (round 21c): off / sporadic / everywhere from the F1 menu
+	var FG = load("res://scripts/foreground_dead.gd")
+	var keep: int = WorldState.foreground_dead_mode
+	WorldState.foreground_dead_mode = 1
+	check(FG.wants("breach", "1203") == FG.wants("breach", "1203"), "sporadic: the same place decides the same way")
+	var hits := 0
+	for i in range(200):
+		if FG.wants("breach", "x%d" % i):
+			hits += 1
+	check(hits > 50 and hits < 150, "sporadic: about half the breached flats (%d/200)" % hits)
+	for tex in ["fg_heap_1", "fg_heap_3", "fg_slumped_2", "fg_hand_2"]:
+		check(ResourceLoader.exists("res://assets/foreground/%s.png" % tex), "silhouette %s exists" % tex)
+	for mode in [0, 2]:
+		WorldState.foreground_dead_mode = mode
+		var apt := _find("big")
+		var room := _room(apt)
+		for i in range(4):
+			await get_tree().process_frame
+		var fg = room.get_node_or_null("ForegroundDead")
+		if mode == 0:
+			check(fg == null, "foreground dead OFF: none")
+		else:
+			check(fg != null and fg.piece_count() >= 2 and fg.z_index > 1, "foreground dead EVERYWHERE: pieces in front of the actors (%s)" % str(fg.piece_count() if fg else -1))
+		room.queue_free()
+		await get_tree().process_frame
+		await get_tree().process_frame
+	WorldState.foreground_dead_mode = keep
 
 
 func _test_wall_crawlers() -> void:

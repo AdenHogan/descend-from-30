@@ -94,6 +94,7 @@ func _show_main() -> void:
 	_btn("God Mode: %s" % ("ON" if god_on else "OFF"), _toggle_god)
 	var stair_on: bool = WorldState.dev_force_stair_enemies
 	_btn("Force Stair Enemies: %s" % ("ON" if stair_on else "OFF"), _toggle_stair_enemies)
+	_btn("Foreground Dead (test): %s" % ["OFF", "SPORADIC", "EVERYWHERE"][clampi(WorldState.foreground_dead_mode, 0, 2)], _cycle_foreground)
 	_btn("Set Health ▸", _sub_health)
 	_btn("Set Run (time of day) ▸", _sub_run)
 	_btn("Floor Hazard ▸", _sub_hazard)
@@ -128,6 +129,13 @@ func _toggle_god() -> void:
 
 func _toggle_stair_enemies() -> void:
 	WorldState.dev_force_stair_enemies = not WorldState.dev_force_stair_enemies
+	_show_main()
+
+
+func _cycle_foreground() -> void:
+	# the owner's foreground-silhouette test: off → sporadic → everywhere (takes effect on the next
+	# room / floor you enter)
+	WorldState.foreground_dead_mode = (WorldState.foreground_dead_mode + 1) % 3
 	_show_main()
 
 

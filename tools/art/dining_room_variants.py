@@ -4,8 +4,9 @@ in strip() — hidden, with its nodes, on a balcony slot.
 
 Run:  python3 tools/art/dining_room_variants.py [b c d]
 
-  b  70s — a round pedestal table with tulip chairs out in the room, a serving hatch in the wall,
-     a teak sideboard with a record player; strip: a drinks cabinet, a pouffe.
+  b  70s — a round tulip table + tulip chairs in 3D (one knocked over, dinner interrupted), sage trellis
+     paper over a cream dado, parquet, a serving hatch, a white sideboard with a record player still
+     turning; strip: a mustard drinks cabinet, a velvet pouffe (round 21c redraw).
   c  formal — a long table with a candelabra, high-backed chairs, a grandfather clock, a silver
      sideboard, portraits; strip: a glass-front china cabinet.
   d  barricaded — the table flipped on its side across the room as a barricade (something behind
@@ -18,6 +19,7 @@ from pixlib import persp
 from pixlib import Canvas, hexc, shade, rrect, finish_module, setback
 from pixlib import pp, _ip as _ipt
 import furn as F
+import chair3d as C3
 import pixlib as PX
 
 BLOOD = hexc('4a1d1b', 150)
@@ -30,137 +32,186 @@ SILVER = hexc('b9bfc1')
 # ============================================================================================
 # B — 70s round table
 # ============================================================================================
+SAGE, SAGE_LT, SAGE_DK = hexc('7d9e94'), hexc('93b3a8'), hexc('5f8276')
+CREAM, CREAM_DK = hexc('e8e0cc'), hexc('c9bfa6')
+LACQUER = (hexc('e4ddcc'), hexc('f2ede2'), hexc('bdb4a0'), hexc('6a6252'))     # a white-lacquered sideboard
+TULIP = {'shell': hexc('eee8da'), 'fab': hexc('d9662e'), 'top': hexc('f2eee4')}
+MUSTARD = hexc('d6a540')
+
+
 def b_wall(c):
-    F.wall_plain(c, hexc('c9a86a'), hexc('9a7a4a'), hexc('5a4028'), texture=hexc('bb9a5e'))
-    # bold 70s wallpaper: big orange/brown circles on a 32px grid above the dado line
-    for y in range(20, 64, 22):
-        off = 0 if (y // 22) % 2 == 0 else 16
-        for x in range(off, 320, 32):
-            c.ellipse(x + 8, y, 6, 6, hexc('b0653a'))
-            c.ellipse(x + 8, y, 3, 3, hexc('7a4020'))
-    c.rect(0, 66, 319, 93, hexc('6a4a2a'))                                                    # a brown dado
-    c.rect(0, 66, 319, 67, hexc('4a321c'))
-    for i in range(6):
-        c.ellipse(290 + i * 4, 18 + (i % 2) * 3, 8, 5, hexc('6a5a3a', 60))
+    # (owner round 21c: the old brown dots "incredibly bland… how brown it all is") a sage trellis
+    # paper above a picture rail, cream panelled dado below — a bright 70s room someone liked
+    F.wall_plain(c, SAGE, CREAM, hexc('e2dac6'), rail=hexc('efe8d6'), rail_y=18, dado=CREAM, dado_y=62)
+    for y in range(21, 61):
+        for x in range(320):
+            if (x + y) % 12 == 0 or (x - y) % 12 == 0:
+                c.put(x, y, SAGE_LT)
+    for y in range(21 + 5, 61, 12):                                    # a leaf where the lattice crosses
+        for x in range((y - 21 + 1) % 12, 320, 12):
+            if (x + y) % 12 == 0 and (x - y) % 12 == 0:
+                for (dx, dy) in ((-1, 0), (1, 0), (0, -1)):
+                    c.put(x + dx, y + dy, SAGE_DK)
+                c.put(x, y, hexc('efe6c8'))
+    for x0 in range(2, 320, 40):                                       # the dado's panels
+        c.rect(x0 + 2, 68, x0 + 34, 69, shade(CREAM, 1.06))
+        c.rect(x0 + 2, 68, x0 + 3, 90, shade(CREAM, 1.06))
+        c.hline(x0 + 2, x0 + 34, 90, CREAM_DK)
+        c.vline(x0 + 34, 68, 90, CREAM_DK)
 
 
 def b_decor(c):
-    # the serving hatch to the kitchen: folding louvred doors open onto the dim kitchen beyond — its
-    # tiled wall, a shelf of jars, a pan on a hook (round 17: a black hole read as nothing)
-    c.box(168, 28, 216, 62, hexc('8a6443'), hexc('3a2718'))
+    # a framed geometric print + a snapshot of the family who ate here
+    c.box(104, 24, 138, 54, hexc('e8e2d2'), hexc('3a3a3a'))
+    c.rect(107, 27, 135, 51, hexc('f4f0e4'))
+    c.rect(109, 29, 121, 49, hexc('d9662e'))
+    c.rect(123, 29, 133, 38, hexc('2f6a6a'))
+    c.rect(123, 40, 133, 49, MUSTARD)
+    c.ellipse(115, 39, 4, 4, hexc('f4f0e4'))
+    F.photo(c, 145, 30, 161, 44, [(hexc('e0c0a0'), hexc('3a2a1e'), hexc('d9662e'), 9), (hexc('d8b89a'), hexc('6a4a2a'), hexc('2f6a6a'), 10),
+                                  (hexc('e8c8a8'), hexc('b08a50'), hexc('e8b83a'), 6)], frame=hexc('3a2718'))
+    # the serving hatch to the kitchen: folding louvred doors open onto the dim kitchen beyond
+    c.box(168, 28, 216, 62, hexc('efe8d6'), hexc('7a7262'))
     c.rect(170, 30, 214, 60, hexc('2e2c26'))
-    for y in range(33, 60, 5):
-        c.hline(170, 214, y, hexc('26241f'))
-    for x in range(172, 214, 6):
-        c.vline(x, 30, 60, hexc('26241f'))
-    c.rect(170, 30, 214, 32, hexc('1e1c18'))                                                  # the lintel's shadow
+    c.rect(170, 30, 214, 32, hexc('1e1c18'))
     c.hline(183, 201, 42, hexc('4a4034'))                                                     # a shelf of jars
     for (jx, col) in ((185, hexc('5a5a44')), (189, hexc('6a4a34')), (193, hexc('4a5448')), (198, hexc('5a4a3a'))):
         c.rect(jx, 37, jx + 2, 41, col)
     c.vline(196, 44, 47, hexc('4a4a48')); c.ellipse(196, 50, 3, 3, hexc('3e3e3c'))           # a pan on a hook
-    c.rect(170, 55, 214, 57, hexc('3a362e'))                                                  # the counter beyond
-    c.rect(168, 58, 216, 62, hexc('9e7550'))                                                 # its sill
+    c.rect(170, 55, 214, 57, hexc('3a362e'))
+    c.rect(168, 58, 216, 62, hexc('f2ede2'))                                                 # its sill
+    c.hline(168, 216, 62, hexc('bdb4a0'))
     for (d0, d1) in ((171, 181), (203, 213)):
-        c.rect(d0, 31, d1, 57, hexc('9e7550'))
+        c.rect(d0, 31, d1, 57, hexc('efe8d6'))
         for y in range(33, 56, 3):
-            c.hline(d0 + 1, d1 - 1, y, hexc('6b4a31'))
+            c.hline(d0 + 1, d1 - 1, y, hexc('c9bfa6'))
     c.rect(186, 52, 192, 57, PLATE)                                                           # a plate left on the sill
+    c.put(191, 51, hexc('d9662e'))
+    # a sunburst clock over the sideboard, stopped
+    for k in range(16):
+        import math
+        a = 2 * math.pi * k / 16
+        c.line(292, 36, 292 + int(round(math.cos(a) * (9 if k % 2 else 12))), 36 + int(round(math.sin(a) * (9 if k % 2 else 12))), hexc('c9a24a'))
+    c.ellipse(292, 36, 4, 4, hexc('f4f0e4'))
+    c.line(292, 36, 292, 33, hexc('2a2622')); c.line(292, 36, 295, 37, hexc('2a2622'))
 
 
 @persp
 def b_floor(c):
-    F.floor_carpet(c, hexc('7a5a3a'), hexc('8a6a44'), hexc('6a4a30'), worn=hexc('8a6a4a'))
-
-
-def tulip_chair(c, x0, base, col, facing_right):
-    """A moulded tulip chair side-on: a cup seat on a single flared stem."""
-    d = 1 if facing_right else -1
-    c.shadow(x0 + 7, base, 8, 1, 110)
-    c.hline(x0, x0 + 14, base, shade(col, 0.6))
-    c.vline(x0 + 7, base - 14, base - 1, hexc('dcd8cc'))
-    c.hline(x0 + 5, x0 + 9, base - 1, hexc('dcd8cc'))
-    back = x0 if facing_right else x0 + 14
-    c.poly([(x0, base - 16), (x0 + 14, base - 16), (x0 + 12, base - 13), (x0 + 2, base - 13)], col)
-    c.poly([(back, base - 16), (back, base - 30), (back + 3 * d, base - 30), (back + 5 * d, base - 16)], col)
-    c.vline(back, base - 30, base - 16, shade(col, 0.75))
+    # honey-oak parquet, basket-woven in 16px blocks (repeats every 32)
+    rows = [101, 104, 108, 113, 119, 126, 134, 144]
+    oak, oak2, seam = hexc('c89a62'), hexc('b88852'), hexc('8a6238')
+    for r in range(len(rows) - 1):
+        y0, y1 = rows[r], rows[r + 1] - 1
+        for bx in range(0, 320, 16):
+            flip = ((bx // 16) + r) % 2
+            col = oak if flip else oak2
+            c.rect(bx, y0, bx + 15, y1, col)
+            if flip:
+                for x in range(bx + 4, bx + 16, 4):
+                    c.vline(x, y0 + 1, y1, shade(col, 0.9))
+            else:
+                for y in range(y0 + 1, y1, max(2, (y1 - y0) // 3)):
+                    c.hline(bx + 1, bx + 15, y, shade(col, 0.9))
+            c.vline(bx, y0, y1, seam)
+        c.hline(0, 319, y0, shade(oak, 1.08))
+        c.hline(0, 319, y1, seam)
+    c.hline(0, 319, 100, shade(oak2, 0.5))
+    c.dither(0, 101, 319, 102, hexc('1f1812', 90), 0.5)
 
 
 def b_strip(c):
-    setback(c, lambda l: F.moved(l, _drinks, -3, 0), depth=4, top=62, x_range=(5, 45), rake=1.0)   # with depth (round 14; 3px left, clear of window L)
+    setback(c, lambda l: F.moved(l, _drinks, -3, 0), depth=4, top=62, x_range=(5, 45), rake=1.0)
     _pouffe_at(c)
 
 
 def _drinks(c):
-    # a drinks cabinet (the flap down, bottles inside)
+    # a mustard-lacquered drinks cabinet, its flap down, bottles inside
+    out = hexc('6a4a18')
     c.shadow(28, 100, 20, 2, 100)
-    c.box(10, 62, 46, 99, F.TEAK[0], F.TEAK[3])
+    c.box(10, 62, 46, 99, MUSTARD, out)
+    c.hline(11, 45, 63, shade(MUSTARD, 1.15))
     c.rect(12, 64, 44, 80, hexc('2a1d14'))
     for (x, h, col) in ((14, 12, hexc('3a5a3a')), (20, 10, hexc('7a4a2a')), (26, 13, hexc('c9c2b1')), (34, 11, hexc('5a1a22'))):
         c.rect(x, 80 - h, x + 3, 79, col)
         c.rect(x + 1, 80 - h - 3, x + 2, 80 - h - 1, col)
-    c.box(12, 82, 44, 97, F.TEAK[0], F.TEAK[2])
+    c.rect(38, 76, 39, 79, hexc('d8e0e0'))                                                   # a tumbler
+    c.box(12, 82, 44, 97, MUSTARD, shade(MUSTARD, 0.7))
     c.rect(26, 88, 30, 88, F.BRASS)
-    c.poly([(12, 80), (44, 80), (48, 84), (8, 84)], F.TEAK[1])                                # the drop flap
+    c.poly([(12, 80), (44, 80), (48, 84), (8, 84)], shade(MUSTARD, 1.1))                     # the drop flap
 
 
 def _pouffe_at(c):
-    def _pouffe(c):
-        # (a leather pouffe beside the cabinet)
-        c.shadow(72, 120, 12, 2, 110)
-        rrect(c, 60, 106, 84, 120, hexc('8a4a2a'), 4)
-        c.hline(62, 82, 107, hexc('a8623a'))
-        for x in range(64, 82, 4):
-            c.vline(x, 109, 118, hexc('6a3a20'))
-    F.moved(c, _pouffe, -10, -16)
+    # a round velvet pouffe beside the cabinet (real 3D, like the chairs)
+    m = C3.Model()
+    C3.prism(m, 0, 0, 9.0, 0, 9.5, 'pouffe', 'fab', 18)
+    C3.draw_model(c, 62, 106, m, 0, {'fab': hexc('2f6a6a')}, srad=10)
+    for x in (58, 62, 66):
+        c.put(x, 96, hexc('1f4a4a'))                                                          # its buttons
 
 
 def b_furniture(c):
-    # the round pedestal table + chairs out in the room
-    cx = 150
-    c.shadow(cx, 121, 34, 3, 110)
-    c.ellipse(cx, 94, 32, 6, hexc('e6e0cc'))
-    c.ellipse(cx, 93, 31, 5, hexc('f0ece2'))
-    c.hline(cx - 31, cx + 31, 99, hexc('9a9486'))
-    c.rect(cx - 2, 100, cx + 2, 118, hexc('dcd8cc'))
-    c.ellipse(cx, 120, 12, 2, hexc('dcd8cc'))
-    tulip_chair(c, 100, 120, hexc('d86a3a'), True)
-    tulip_chair(c, 186, 120, hexc('d86a3a'), False)
-    c.ellipse(138, 92, 6, 1, PLATE_DK); c.ellipse(138, 92, 5, 1, PLATE)                       # fondue, plates
-    c.ellipse(162, 92, 6, 1, PLATE_DK); c.ellipse(162, 92, 5, 1, PLATE)
-    c.rect(146, 85, 154, 91, hexc('b0453a')); c.hline(144, 156, 85, hexc('8a3028'))
-    c.line(150, 84, 156, 78, SILVER)
-    c.ellipse(170, 95, 4, 1, BLOOD)
-    # a teak sideboard with a record player on the right (with depth)
+    # the round tulip table + chairs, rendered in 3D (owner round 21c — "flat and small"): one chair
+    # pulled round behind, one on the left, one knocked over on its side — dinner didn't finish
+    cx, base = 158, 118
+    C3.draw_model(c, cx, 105, C3.tulip_chair(), 0, TULIP, srad=9)                              # behind the table
+    C3.draw_model(c, cx, base, C3.tulip_table(), 0, TULIP, srad=26)
+    C3.draw_model(c, 110, 121, C3.tulip_chair(), -62, TULIP, srad=9)                          # at its left
+    fallen = C3.fall(C3.tulip_chair(), 'side', 8.0)
+    C3.draw_model(c, 212, 128, fallen, 35, TULIP, shadow='footprint')                         # knocked over
+    # what was on the table: two places laid, a vase of tulips going over, a glass knocked down,
+    # the wine running off the edge
+    top = base - 24
+    for (px, py) in ((142, top - 1), (172, top + 1)):
+        c.ellipse(px, py, 6, 1.6, PLATE_DK); c.ellipse(px, py, 5, 1.1, PLATE)
+    c.ellipse(172, top + 1, 2, 0.8, hexc('b0653a'))                                          # food left on it
+    c.line(135, top + 1, 137, top - 1, SILVER); c.line(149, top + 1, 150, top - 2, SILVER)      # cutlery
+    c.rect(156, top - 7, 160, top - 1, hexc('b8d0d0')); c.hline(156, 160, top - 7, hexc('dfeeee'))   # the vase
+    for (dx, dy, col) in ((-4, -12, hexc('d9662e')), (0, -14, hexc('e8b83a')), (4, -11, hexc('c0453a')), (6, -8, hexc('d9662e'))):
+        c.line(158, top - 7, 158 + dx, top - 7 + dy + 3, hexc('4d6a3c'))
+        c.ellipse(158 + dx + (1 if dx > 0 else -1 if dx < 0 else 0), top - 7 + dy + 2, 1.5, 1.5, col)   # tulips, drooping
+    c.put(165, top - 1, hexc('d9662e')); c.put(163, top, hexc('c0453a'))                     # dropped petals
+    c.line(178, top - 3, 184, top - 2, hexc('d8e0e0')); c.put(185, top - 2, hexc('d8e0e0'))    # a wine glass on its side
+    c.ellipse(186, top + 1, 5, 1, hexc('6a1a22'))                                             # its wine, spreading
+    c.vline(181, top + 3, top + 5, hexc('6a1a22'))
+    PX.anim(181, top + 5, 'drip', 22, color='6a1a22')                                         # still dripping
+    c.ellipse(181, base + 5, 4, 1, hexc('5a1a22'))                                            # a puddle below
+    # a plate smashed on the floor by the fallen chair, a napkin dropped
+    for (sx, sy) in ((196, 131), (199, 133), (193, 134), (202, 130), (190, 132)):
+        c.rect(sx, sy, sx + 1, sy, PLATE); c.put(sx + 2, sy, PLATE_DK)
+    c.poly([(226, 134), (234, 133), (236, 136), (227, 137)], hexc('f4efe2'))
+    c.hline(227, 235, 136, hexc('d8d0bc'))
+    # a white-lacquered sideboard with a record player on the right (with depth)
     def _sb(c):
-        F.chest(c, 244, 310, 72, 100, F.TEAK, drawers=2, open_row=1)
-        c.ellipse(257, 70, 6, 1.8, hexc('d86a3a')); c.ellipse(257, 69, 5, 1, hexc('f0a060'))     # a fruit bowl, low
+        F.chest(c, 244, 310, 72, 100, LACQUER, drawers=2, open_row=1)
+        c.rect(243, 72, 311, 73, hexc('b07a4a'))                                               # its teak top
+        c.ellipse(257, 70, 6, 1.8, hexc('d86a3a')); c.ellipse(257, 69, 5, 1, hexc('f0a060'))
         for (fx, col) in ((255, hexc('e8b83a')), (258, hexc('6a9a3a')), (260, hexc('b0453a'))):
             c.ellipse(fx, 68, 1.5, 1.2, col)
-        for i, col in enumerate((hexc('2f4a63'), hexc('d9c24a'), hexc('c0453a'))):             # LP sleeves lying flat
+        for i, col in enumerate((hexc('2f4a63'), hexc('d9c24a'), hexc('c0453a'))):
             c.rect(264 + i, 70 - i, 271 + i, 70 - i, col)
-        # a record player (round 18: it read as a dark box): a teak plinth, its smoked lid propped
-        # open behind, a record on the platter seen from above, the tonearm across it
         for y in range(56, 66):                                                               # the lid, open
             for x in range(273 + (65 - y) // 4, 294 - (65 - y) // 4):
                 c.put(x, y, hexc('5a5a60', 90))
         c.hline(273, 293, 65, hexc('3a3a40'))
-        c.rect(272, 66, 294, 71, F.TEAK[0]); c.hline(272, 294, 66, F.TEAK[1])                 # the plinth
+        c.rect(272, 66, 294, 71, F.TEAK[0]); c.hline(272, 294, 66, F.TEAK[1])
         c.hline(272, 294, 71, F.TEAK[3])
-        c.rect(273, 67, 293, 68, hexc('b9bfc1'))                                              # the deck plate
-        c.ellipse(281, 67, 7.5, 2, hexc('1c1c1e'))                                            # the record
+        c.rect(273, 67, 293, 68, hexc('b9bfc1'))
+        c.ellipse(281, 67, 7.5, 2, hexc('1c1c1e'))
         c.ellipse(281, 67, 5, 1.2, hexc('2a2a2e'))
-        c.ellipse(281, 67, 1.6, 0.8, hexc('c0453a'))                                         # its label
-        PX.anim(281, 67, 'spin', color='8a8a94', w=6, h=1)                                   # still turning
-        c.put(292, 67, SILVER); c.line(292, 67, 285, 68, SILVER)                             # the tonearm
-        c.rect(289, 69, 291, 70, hexc('d9c24a'))                                             # a knob
+        c.ellipse(281, 67, 1.6, 0.8, hexc('c0453a'))
+        PX.anim(281, 67, 'spin', color='8a8a94', w=6, h=1)
+        c.put(292, 67, SILVER); c.line(292, 67, 285, 68, SILVER)
+        c.rect(289, 69, 291, 70, hexc('d9c24a'))
         for (x, col) in ((299, hexc('d86a3a')), (302, hexc('2f4a63')), (305, hexc('d9c24a'))):
-            c.rect(x, 58, x + 2, 71, col)                                                       # records leant up
+            c.rect(x, 58, x + 2, 71, col)
     setback(c, _sb, depth=4, top=72, x_range=(243, 311))
-    F.pendant(c, 140, 22, 'orange', dome=True)                                    # a 70s dome pendant
+    F.potted_plant(c, 232, 99)                                                               # a plant by the sideboard
+    F.pendant(c, cx, 22, 'orange', dome=True)                                                # a 70s dome pendant
 
-B_ANCHORS = [('anchor_dining_drinks_cabinet', 23, 72, 'bp s'), ('anchor_dining_pouffe', 62, 94, 's'),
-             ('anchor_table_left', 138, 93, ''), ('anchor_table_right', 164, 93, ''),
-             ('anchor_dining_tulip_chair', 196, 104, ''), ('anchor_dining_record_player', 281, 67, 'bp'),
+B_ANCHORS = [('anchor_dining_drinks_cabinet', 23, 72, 'bp s'), ('anchor_dining_pouffe', 62, 97, 's'),
+             ('anchor_table_left', 142, 93, ''), ('anchor_table_right', 172, 95, ''),
+             ('anchor_dining_tulip_chair', 110, 105, ''), ('anchor_dining_record_player', 281, 67, 'bp'),
              ('anchor_right_lowerdrawers', 276, 88, 'bp')]
 
 
@@ -236,8 +287,10 @@ def _china(c):
 def c_furniture(c):
     setback(c, lambda l: grandfather_clock(l, 104, 100), depth=3, rake=1.0)
     # the long table, high-backed chairs behind it, a candelabra
-    for x in (140, 170, 200):
-        F.chair_back(c, x, 62, 94, F.WOOD, width=16, slats=3)
+    HIGH = {'wood': hexc('4a2c1c'), 'seat': hexc('5a3622'), 'fab': hexc('6a2a2e')}
+    for (x, yaw) in ((148, 180), (178, 180)):                                                # high-backs, backs to us
+        C3.draw_model(c, x, 100, C3.dining_chair('high'), yaw, HIGH, srad=10)
+    C3.draw_model(c, 250, 128, C3.fall(C3.dining_chair('high'), 'side', -8.0), -30, HIGH, shadow='footprint')   # the third, knocked flying
     F.table_front(c, 126, 236, 92, 120, F.WOOD, depth=6)
     c.rect(125, 92, 237, 98, F.WOOD[1])
     c.hline(125, 237, 92, F.WOOD[3])
@@ -538,9 +591,10 @@ def _torn_box(c):
 
 def e_furniture(c):
     # the party table out in the room: a cake with the candles burnt down, paper plates, hats
-    F.chair_back(c, 132, 70, 94, F.PINE, width=14)
-    F.chair_back(c, 176, 70, 94, F.PINE, width=14)
-    F.chair_back(c, 214, 70, 94, F.PINE, width=14)
+    PINEP = {'wood': hexc('b58a55'), 'seat': hexc('c9a06a')}
+    for (x, yaw) in ((139, 180), (183, 172), (221, 190)):                                    # spindle-backs round the table
+        C3.draw_model(c, x, 100, C3.dining_chair('spindle'), yaw, PINEP, srad=10)
+    C3.draw_model(c, 134, 130, C3.fall(C3.dining_chair('spindle'), 'side', 8.0), 40, PINEP, shadow='footprint')   # one knocked over
     F.table_front(c, 116, 244, 92, 120, F.PINE, depth=6, cloth=hexc('efe8d8'), cloth_dk=hexc('d0c8b4'), hem=104)
     for x in range(118, 244, 8):                                                  # a paper cloth, printed
         c.put(x, 95, PARTY[(x // 8) % len(PARTY)])

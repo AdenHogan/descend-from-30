@@ -244,6 +244,7 @@ func _ready() -> void:
 	_spawn_door_fire(floor_num)
 	WorldState.apply_time_tint(self, floor_num)   # ambient darkness the real lights punch through
 	_spawn_floor_lighting(floor_num)              # real ceiling lamps
+	_add_foreground_dead(floor_num)               # the foreground-silhouette test (sporadic)
 	_frame_camera(player)
 	# Keep the HUD floor counter honest for EVERY way of landing on a floor — not
 	# just stair transitions. A dev jump / F2 rebuild used to leave it stale (e.g.
@@ -1236,6 +1237,23 @@ func _wake_scenery_zombies() -> void:
 # (merchant, camera stays with the caller), and re-derives the direction-
 # dependent bits now that the arrival is final. The live player is reparented in
 # by the caller before this runs.
+const FOREGROUND_DEAD := preload("res://scripts/foreground_dead.gd")
+
+
+func _add_foreground_dead(floor_num: int) -> void:
+	# the foreground-silhouette test (scripts/foreground_dead.gd): only where the dead already lie
+	# in this corridor (or everywhere, forced from the F1 menu)
+	if get_node_or_null("ForegroundDead") != null:
+		return
+	var CD = load("res://scripts/corridor_decals.gd")
+	var has_dead: bool = not CD.dead_plan(floor_num, WorldState.current_run).is_empty()
+	if not (WorldState.foreground_dead_mode == 2 or (has_dead and FOREGROUND_DEAD.wants("corridor", "f%d" % floor_num))):
+		return
+	var fg = FOREGROUND_DEAD.new()
+	add_child(fg)
+	fg.setup("f%d" % floor_num, 435.0, 150.0, 1200.0)
+
+
 func go_live() -> void:
 	if not passive:
 		return
@@ -1265,6 +1283,7 @@ func go_live() -> void:
 	_spawn_merchant(floor_num)
 	WorldState.apply_time_tint(self, floor_num)   # a woken pan backdrop gets its ambient here
 	_spawn_floor_lighting(floor_num)              # guarded — passive backdrop already built these
+	_add_foreground_dead(floor_num)
 	# Journal/cross-run memory: arriving by STAIRS is the main way down, and it lands here, not
 	# in the live _ready — so depth, the map's fog and enemy sightings must be recorded here too.
 	_note_floor_arrival(floor_num)

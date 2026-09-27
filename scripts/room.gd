@@ -797,8 +797,13 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 		add_child(instance)
 		built_modules.append(instance)
 		apply_run_art(instance, WorldState.current_run)
-		if breached:
-			_add_breach_nest(instance, i)
+		var story_role := breach_nest_role(apartment_id, entrance_side, i) if breached else ""
+		if story_role == "" and not breached:
+			var dead := WorldState.apartment_corpse(apartment_id)
+			if not dead.is_empty() and int(dead["slot"]) == i and not (WorldState.is_first_run and TUTORIAL_LAYOUTS.has(apartment_id)):
+				story_role = "corpse_" + str(dead["side"])
+		if story_role != "":
+			_add_breach_nest(instance, i, story_role)
 		# The module's background ColorRect (+ its Label) is a Control that
 		# defaults to MOUSE_FILTER_STOP, so it swallows every world click over
 		# the apartment — click-to-move dies inside rooms (works in hallways,
@@ -887,23 +892,29 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 		add_child(load("res://scripts/apartment_storm.gd").new())
 
 
-# A BREACH ROOM shows what happened there, as one event across the flat (owner round 21b — "logical
-# and immersive… considering the storytelling"): tools/art/nest.py draws each module variant in three
-# ROLES — ENTRY (the room with the front door: the struggle by the door, a hand slid down the wall,
-# what they dropped, a drag trail starting), THROUGH (the trail crossing the middle room, a hand that
-# clawed the floor / caught the frame) and LAIR (the far room: the dead together where the trail ends)
-# — each for the door on the LEFT (_l, the story runs left → right) or the RIGHT (_r). The flat's
-# entrance side + the module's slot pick the role; flies gather where the art says (nest_meta.json).
-# Live + balcony backdrop.
+# A BREACH ROOM shows what happened there (owner rounds 21b/21c — "logical and immersive", and SHORT:
+# "we don't need a corpse to have dragged itself across all three modules"): tools/art/nest.py draws
+# each module variant in roles — DOOR (the front door's room: splinters, the keys dropped, a shoe, a
+# spilt bag, bare bloody prints coming in), KILL (where they were caught: a hand slid down the wall, a
+# pool, a few steps of drag, the dead), DOORKILL (both in the door's room) — each for the door on the
+# LEFT (_l, the story runs left → right) or RIGHT (_r). Per flat (WorldState.breach_story_split) the
+# resident either got a room further (DOOR + KILL) or not (DOORKILL); the third room is untouched. An
+# ORDINARY flat may have one of the dead (CORPSE, WorldState.apartment_corpse). Flies gather where the
+# art says (nest_meta.json). Live + balcony backdrop.
 const MODULE_ANIM := preload("res://scripts/module_anim.gd")
 const NEST_META_PATH := "res://assets/rooms/nest_meta.json"
 static var _nest_meta: Dictionary = {}
+var _dead_spots: Array = []            # [{module, pos, name}] — the drawn dead, searchable (round 21c)
 
 
-static func breach_nest_role(entrance_side: String, slot: int) -> String:
+static func breach_nest_role(apt: String, entrance_side: String, slot: int) -> String:
+	# "" = this room is untouched
 	var left := entrance_side == "left"
-	var i := slot if left else 2 - slot                  # 0 = the front door's room, 2 = the far end
-	return ["entry", "through", "lair"][i] + ("_l" if left else "_r")
+	var i := slot if left else 2 - slot                  # 0 = the front door's room, 1 the next, 2 the far end
+	var side := "_l" if left else "_r"
+	if WorldState.breach_story_split(apt):
+		return ["door", "kill", ""][i] + (side if i < 2 else "")
+	return "doorkill" + side if i == 0 else ""
 
 
 static func nest_meta() -> Dictionary:
@@ -914,7 +925,7 @@ static func nest_meta() -> Dictionary:
 	return _nest_meta
 
 
-func _add_breach_nest(module: Node, slot: int) -> void:
+func _add_breach_nest(module: Node, _slot: int, role: String) -> void:
 	var art = module.get_node_or_null("Art")
 	if not (art is Sprite2D) or art.texture == null:
 		return
@@ -922,7 +933,6 @@ func _add_breach_nest(module: Node, slot: int) -> void:
 	for suffix in ["_r2", "_r3"]:
 		if base.ends_with(suffix):
 			base = base.substr(0, base.length() - suffix.length())
-	var role := breach_nest_role(WorldState.get_entrance_side(apartment_id), slot)
 	var path := base + "_nest_" + role + ".png"
 	if not ResourceLoader.exists(path):
 		return
@@ -945,6 +955,12 @@ func _add_breach_nest(module: Node, slot: int) -> void:
 	var entry: Dictionary = nest_meta().get(path.get_file().get_basename(), {})
 	for f in entry.get("flies", []):
 		_nest_anim(module, origin + Vector2(float(f[0]), float(f[1])), "flies", 0, "1a1414", 12, 7)
+	# each body drawn there can be searched (_setup_dead_bodies, once the room's anchors are dealt)
+	var k := 0
+	for b in entry.get("bodies", []):
+		var nm := "dead_%d_%d" % [_slot, k] + ("_r%d" % WorldState.current_run if role.begins_with("corpse") else "")
+		_dead_spots.append({"module": module, "pos": origin + Vector2(float(b[0]), float(b[1])), "name": nm})
+		k += 1
 
 
 func _nest_anim(module: Node, at: Vector2, kind: String, fall: int, col: String, w: int, h: int) -> void:
@@ -1149,6 +1165,8 @@ func _after_modules_ready() -> void:
 	# until someone else broke in first, runs 2/3). Its lock + the key's carrier: WorldState.
 	if not tutorial_apartment:
 		_setup_gun_cabinet(interactable_script)
+		_setup_dead_bodies(interactable_script)
+		_add_foreground_dead()
 
 	# Tutorial rooms: 3003 = the scripted encounter (3 hidden nodes); 3002/3004/
 	# 3005 = a fixed clean set of nodes (exact items/amounts, no repeats).
@@ -1229,6 +1247,43 @@ func _setup_gun_cabinet(interactable_script) -> void:
 		if rng.randf() < 0.4 and not WorldState.gun_cabinets.get(apartment_id, {}).get("taken", false):
 			WorldState.set_anchor_item(apartment_id, anchor.name, "016")
 	_add_gun_cabinet_art()
+
+
+func _add_foreground_dead() -> void:
+	# the foreground-silhouette test (scripts/foreground_dead.gd) — a breached flat or one with its
+	# dead, sporadically (or everywhere, forced from the F1 menu)
+	var fg_script = load("res://scripts/foreground_dead.gd")
+	var breached: bool = WorldState.get_door_state(apartment_id) == WorldState.DoorState.BREACHED
+	var kind := "breach" if breached else ("corpse" if not WorldState.apartment_corpse(apartment_id).is_empty() else "")
+	if not (WorldState.foreground_dead_mode == 2 or (kind != "" and fg_script.wants(kind, apartment_id))):
+		return
+	var fg = fg_script.new()
+	add_child(fg)
+	fg.setup(apartment_id, ROOM_BAND_TOP + ROOM_BAND_H, float(LEFT_WALL_X) + 30.0, float(LEFT_WALL_X + 3 * MODULE_WIDTH) - 30.0)
+
+
+func _setup_dead_bodies(interactable_script) -> void:
+	# The dead can be searched (owner round 21c — "they might not have anything on them, and the player
+	# can be disgusted with themselves… but it can be an option"): one node on each body the art drew,
+	# its pockets seeded by WorldState.dead_body_loot (often nothing).
+	for d in _dead_spots:
+		var module = d["module"]
+		if not is_instance_valid(module) or module.get_node_or_null(str(d["name"])) != null:
+			continue
+		var anchor := Marker2D.new()
+		anchor.name = str(d["name"])
+		anchor.position = d["pos"]
+		anchor.set_meta("dead_body", true)
+		module.add_child(anchor)
+		anchor.set_script(interactable_script)
+		anchor.apartment_id = apartment_id
+		if not WorldState.is_anchor_searched(apartment_id, anchor.name):
+			var loot: Dictionary = WorldState.dead_body_loot(apartment_id, anchor.name)
+			if str(loot.get("item", "")) != "":
+				WorldState.set_anchor_item(apartment_id, anchor.name, str(loot["item"]))
+		anchor._ready()
+		if not WorldState.is_anchor_searched(apartment_id, anchor.name):
+			anchor.set_process(true)
 
 
 func _build_back_plane_spots() -> void:

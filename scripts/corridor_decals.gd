@@ -51,6 +51,15 @@ const DRESSING_TIRED := ["plant_tall", "plant_dead", "parcels", "chair", "shoes"
 const DRESSING_GONE := ["plant_dead", "chair_down", "suitcase", "parcels", "poster_missing",
 	"notice_quarantine", "shopping_bag"]
 const WALL_DRESSING := ["kid_drawing", "notice_quarantine", "poster_missing"]
+# THE DEAD (owner round 21c): someone lying where they fell — in a pool, or at the end of the trail
+# they crawled. A separate seeded pass (its own RNG, so the dressing/horror draws above never move),
+# up to two per floor, each appearing once the floor's horror level passes its seeded threshold and
+# staying for the later runs. Sprite bottom row - DEAD_FOOT = the body's floor line.
+const DEAD := ["dead_1", "dead_2", "dead_3", "dead_4"]
+const DEAD_FOOT := 6
+const DEAD_LINE := Vector2(168, 184)             # the floor lines a body may lie on (feet line 176)
+const DEAD_THRESHOLDS := [0.3, 0.85]             # + up to 0.5 each, per floor
+const DEAD_CHANCE := 0.55                        # not every floor, even when it's bad enough
 
 static var _layout: Dictionary = {}
 static var _loaded := false
@@ -152,6 +161,42 @@ static func plan(floor_num: int, run: int, base_name: String) -> Array:
 	return out
 
 
+## The dead lying on this floor at this run: [{name, pos (local), flip}], stable per floor.
+static func dead_plan(floor_num: int, run: int, avoid: Array = []) -> Array:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(WorldState.master_seed) + "corridor_dead" + str(floor_num))
+	var h := horror_level(floor_num, run)
+	var out: Array = []
+	var taken: Array = avoid.duplicate()
+	for i in range(DEAD_THRESHOLDS.size()):
+		var thr: float = float(DEAD_THRESHOLDS[i]) + rng.randf() * 0.5
+		var gate: bool = rng.randf() < DEAD_CHANCE
+		var name: String = DEAD[rng.randi() % DEAD.size()]
+		var flip: bool = rng.randf() < 0.5
+		var tex := _tex(name)
+		var pos = null
+		for attempt in range(30):
+			if tex == null:
+				break
+			var sz := tex.get_size()
+			var x := float(rng.randi_range(int(WALL_X.x), int(WALL_X.y - sz.x)))
+			var line := float(rng.randi_range(int(DEAD_LINE.x), int(DEAD_LINE.y)))
+			var r := Rect2(Vector2(x, line + DEAD_FOOT - sz.y), sz)
+			var hit := false
+			for t in taken:
+				if (t as Rect2).intersects(r.grow(4)):
+					hit = true
+					break
+			if not hit and pos == null:
+				pos = r.position
+		if pos == null:
+			continue
+		taken.append(Rect2(pos, tex.get_size()))
+		if gate and thr < h:
+			out.append({"name": name, "pos": pos, "flip": flip})
+	return out
+
+
 static func _pick_kind(rng: RandomNumberGenerator, thr: float, per_kind: Dictionary) -> String:
 	var total := 0.0
 	var ok: Array = []
@@ -243,6 +288,7 @@ static func add_to(root: Node, floor_num: int, run: int, base_name: String, art_
 	var door := Node2D.new()
 	door.name = "CorridorDoorDecals"
 	door.position = art_pos
+	var floor_rects: Array = []
 	for d in plan(floor_num, run, base_name):
 		var s := Sprite2D.new()
 		s.texture = _tex(d["name"])
@@ -251,6 +297,27 @@ static func add_to(root: Node, floor_num: int, run: int, base_name: String, art_
 		s.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		s.set_meta("decal", d["name"])
 		(door if d["layer"] == "door" else wall).add_child(s)
+		if float(d["pos"].y) >= FLOOR_Y and s.texture != null:
+			floor_rects.append(Rect2(d["pos"], s.texture.get_size()))
+	for d in dead_plan(floor_num, run, floor_rects):
+		var s := Sprite2D.new()
+		s.texture = _tex(d["name"])
+		s.centered = false
+		s.position = d["pos"]
+		s.flip_h = bool(d["flip"])
+		s.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		s.set_meta("decal", d["name"])
+		s.add_to_group("corridor_dead")
+		wall.add_child(s)
+		var f := Node2D.new()                                     # flies over them
+		var sz: Vector2 = s.texture.get_size()
+		f.position = d["pos"] + Vector2(sz.x - 24.0 if not s.flip_h else 24.0, sz.y - 14.0)
+		f.set_meta("kind", "flies")
+		f.set_meta("color", "1a1414")
+		f.set_meta("w", 12)
+		f.set_meta("h", 7)
+		f.set_script(load("res://scripts/module_anim.gd"))
+		wall.add_child(f)
 	root.add_child(wall)
 	var art = root.get_node_or_null("CorridorArt")
 	if art != null:
