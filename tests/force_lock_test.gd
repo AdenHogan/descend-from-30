@@ -84,7 +84,8 @@ func _test_barricade_boards() -> void:
 	WorldState.god_mode = true
 	WorldState.inventory.clear()
 	HUD.selected_slot = -1
-	WorldState.set_door_state("2003", WorldState.DoorState.BARRICADED_FORCEABLE)
+	WorldState.get_door_state("2003")      # seed floor 20 FIRST — its seeding (a gun cabinet's key room can
+	WorldState.set_door_state("2003", WorldState.DoorState.BARRICADED_FORCEABLE)   # make 2003 a breach) mustn't overwrite this
 	WorldState.barricade_progress.erase("2003")
 	var door = _make_door("2003")
 	await get_tree().process_frame

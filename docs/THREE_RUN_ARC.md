@@ -117,8 +117,8 @@ identity that compound:
   was replaced with actual 2D lighting. The world CanvasModulate is the AMBIENT DARKNESS
   real lights punch through — morning fairly bright, afternoon golden, **NIGHT near-black**
   — and the DESCENT dims it further (more dead lamps + less ambient the lower/later you go).
-  Ceiling lamps cast **DOWNWARD CONES** (spotlight cookie, not a blanket): some **sway**
-  gently, some **flicker**, some **BLINK** (a failing tube), some **DEAD** — run 2 loses
+  WALL SCONCES between the doors light the corridor (a wash up the wall, a cone down it, a
+  pool on the floor; superseded the ceiling cones in owner round 24): some **flicker**, some **BLINK** (a failing tube), some **DEAD** — run 2 loses
   lamps, run 3 loses more. **Window daylight** (warm by day, blue MOONLIGHT at night) at the
   **stairwell windows** and each **apartment balcony window**. Fire is a real orange light;
   the player carries a faint **aura** that reveals lurkers. At night the scene is lit ONLY by

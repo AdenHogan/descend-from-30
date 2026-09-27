@@ -1,30 +1,41 @@
 extends Node2D
 
-# REAL corridor lighting (GL Compatibility PointLight2D). Ceiling lamps cast DOWNWARD
-# CONES (like sunlight/a spotlight from the fixture), not a flat blanket. Some sway gently
-# side-to-side, some flicker, some BLINK (a failing tube), and some are DEAD — with MORE
-# dead the deeper you go and the LATER the run (run 2 loses lamps, run 3 loses more), so
-# the low/late building is genuinely dark and tense. At night the ambient is near-black
-# (WorldState.ambient_color), so ONLY these cones — plus fire, the player aura, and the
-# stairwell window daylight — light the scene, and enemies lurk unseen in the gaps until
-# you walk into them. Deterministic per (floor, run, master_seed) so a floor looks the
-# same on re-entry and a pan backdrop matches its live commit.
+# REAL corridor lighting (GL Compatibility PointLight2D). The light comes FROM THE WALL SCONCES
+# (owner round 24 — "the lights are random globs of light at the top that don't seem to have a
+# light source… the wall lamps… we need this to be the light source for the floors"): a fixture on
+# the wall between each pair of doors, drawn in the section's style (tools/art/sconces.py — the
+# hotel's brass arm + pleated shade, a residential coach lantern, a caged institutional
+# bulkhead, the lobby's opal globe), and from each one a real light that washes the wall above and
+# pools on the floor below. Some flicker, some BLINK (a failing tube), some are DEAD — more dead the
+# deeper you go and the LATER the run (run 2 loses lamps, run 3 loses more), and deep down a dead
+# one may be SMASHED — so the low/late building is genuinely dark and tense. At night the ambient is
+# near-black (WorldState.ambient_color), so ONLY these — plus fire, the player aura, and the
+# stairwell window daylight — light the scene, and enemies lurk unseen in the gaps until you walk
+# into them. Deterministic per (floor, run, master_seed) so a floor looks the same on re-entry and
+# a pan backdrop matches its live commit.
 #
-# building_floors installs one of these (live _ready, the passive backdrop, and go_live).
-# Fire adds its own light (fire_field); the player carries a faint aura (player.gd);
-# apartments add a balcony-window light (room.gd) via make_window_light().
+# building_floors installs one of these (live _ready, the passive backdrop, and go_live); the
+# hallway (30) and lobby (0) pass their own sconce spots. Fire adds its own light (fire_field); the
+# player carries a faint aura (player.gd); apartments add a balcony-window light (room.gd) via
+# make_window_light().
 
-const LIGHT_Y := 250.0                       # ceiling: the cone apex (bulb) sits here
-const X_START := 200.0
-const X_END := 1150.0
-const COUNT := 6
+# The sconces, world x (between the doors: the old picture spots, corridor.py SPOTS + 115, and one
+# between apartment 01 and the extinguisher / maintenance door) — corridor.py + floor_signs keep
+# their wall clear. The bulb sits a little above the door heads.
+const SCONCE_X := [380.0, 507.0, 633.0, 762.0, 885.0]
+const SCONCE_Y := 298.0
+# the lobby hangs its own: either side of the mailboxes / notice board, a pair flanking the way out,
+# one by the floor directory (its art: corridor.py lobby())
+const LOBBY_SCONCE_X := [435.0, 553.0, 755.0, 851.0]
+const COUNT := 5                              # SCONCE_X.size() — lighting_test counts them
 const WARM := Color(1.0, 0.78, 0.45)          # a RICH cozy amber — warm pools vs a cool dark
-const LAMP_SCALE := 1.15                       # cone reach (texture_scale)
+const LAMP_SCALE := 0.62                      # the sconce cookie's reach (texture_scale): floor + up the wall
 # ADDITIVE light energy per run. 2D lights ADD on top of the ambient. By DAY the ambient
 # still carries the scene, but the pools are PUNCHY enough to read as cozy warm islands
 # against a cooler dusk; at NIGHT the ambient is near-black so the lamps are bright, defined
-# shafts in the dark. (The budget: ambient + peak add ≈ 1.0 in the pool, no white blowout.)
+# pools in the dark. (The budget: ambient + peak add ≈ 1.0 in the pool, no white blowout.)
 const LAMP_ENERGY_BY_RUN := [0.15, 0.95, 1.9]  # morning barely lit (daytime) / afternoon / night
+const SCONCE_DIR := "res://assets/corridor/sconces/sconce_"
 
 # Stairwell windows — daylight spills in beside the stairs (moonlit at night).
 const STAIR_WINDOW_LEFT_X := 171.0
@@ -53,6 +64,7 @@ const BEAM_LIGHT_ENERGY := [0.12, 0.30, 0.34]                                   
 static var _cone: Texture2D = null
 static var _radial: Texture2D = null
 static var _beam: Texture2D = null
+static var _sconce: Texture2D = null
 
 
 static func beam_texture() -> Texture2D:
@@ -110,7 +122,7 @@ static func cone_texture() -> Texture2D:
 	# A DOWNWARD cone/spotlight cookie, apex at the texture CENTRE — so a PointLight2D at
 	# the fixture rotates the cone about the bulb when it sways. The top half is transparent
 	# (no light above the bulb); the bottom half fans out and fades with depth + toward the
-	# edges. Built once, shared by every ceiling lamp.
+	# edges. Built once, shared by the apartments' pendant / flush lamps (apartment_lights.gd).
 	if _cone == null:
 		var w := 192
 		var h := 384
@@ -146,6 +158,52 @@ static func cone_texture() -> Texture2D:
 	return _cone
 
 
+static func sconce_texture() -> Texture2D:
+	# A WALL SCONCE's light: the bulb at the CENTRE of a 256x512 cookie (so it sits on the fixture).
+	# Below it the light falls down the wall and fans out; above it a softer wash up to the ceiling
+	# (the top of the shade is open); a soft glow at the fixture so the source reads (kept low so a
+	# pale wall never blows out white at night); and a POOL where it lands on the corridor floor
+	# (feet line 419 = 121 world px under the bulb at LAMP_SCALE — FLOOR_POOL_ROW).
+	if _sconce == null:
+		var w := 256
+		var h := 512
+		var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
+		var cx := 128.0
+		var cy := 256.0
+		var pool_row := cy + (419.0 + 8.0 - SCONCE_Y) / LAMP_SCALE
+		for y in range(h):
+			var d := float(y) - cy
+			for x in range(w):
+				var dx := absf(float(x) - cx)
+				var a := 0.0
+				if d > 0.0:                                     # down the wall
+					var vf := d / (float(h) - cy)
+					var half := lerpf(16.0, 118.0, pow(vf, 0.7))
+					if dx <= half:
+						var hf := dx / half
+						a = 0.62 * (1.0 - pow(vf, 1.8)) * pow(1.0 - hf * hf, 1.4)
+				else:                                           # up: the wash on the wall
+					var uf := minf(1.0, -d / 110.0)
+					var uhalf := lerpf(12.0, 60.0, uf)
+					if dx <= uhalf:
+						var hu := dx / uhalf
+						a = 0.32 * (1.0 - uf) * (1.0 - uf) * pow(1.0 - hu * hu, 1.4)
+				var rd := sqrt(dx * dx + d * d)
+				if rd < 22.0:
+					a = maxf(a, (1.0 - rd / 22.0) * 0.55)
+				var pe := (dx / 112.0) * (dx / 112.0) + ((float(y) - pool_row) / 20.0) * ((float(y) - pool_row) / 20.0)
+				if pe < 1.0:                                    # the pool on the floor
+					a += 0.45 * (1.0 - pe)
+				img.set_pixel(x, y, Color(1, 1, 1, clampf(a, 0.0, 1.0)))
+		_sconce = ImageTexture.create_from_image(img)
+	return _sconce
+
+
+## Which fixture a floor's corridor uses (building_floors.corridor_section; the lobby has its own).
+static func sconce_style(section: String) -> String:
+	return section if section in ["high", "mid", "low", "lobby"] else "high"
+
+
 static func make_window_light(pos: Vector2, energy_scale: float = 1.0) -> PointLight2D:
 	# A broad, soft daylight pool from a window (stairwell / balcony / apartment wall). Bright
 	# COOL daylight by day, warm afternoon, a dim blue MOONLIGHT at night. Uses the round cookie
@@ -163,11 +221,14 @@ static func make_window_light(pos: Vector2, energy_scale: float = 1.0) -> PointL
 	return lt
 
 
-func setup(floor_num: int, window_sides: Array = ["left", "right"]) -> void:
+func setup(floor_num: int, window_sides: Array = ["left", "right"], style: String = "",
+		xs: Array = SCONCE_X) -> void:
 	# window_sides: which stairwells this floor actually HAS (the hallway at 30 has no up
 	# stair on the right, the lobby no left stair) — a window light over a plain wall read
-	# as a glow shining into nothing.
+	# as a glow shining into nothing. style: the sconce look (sconce_style); xs: where they hang.
 	z_index = 0
+	if style == "":
+		style = sconce_style(load("res://scripts/building_floors.gd").corridor_section(floor_num))
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(str(WorldState.master_seed) + "lights" + str(floor_num) + str(WorldState.current_run))
 	# How many lamps are dead: a few up top in the morning, MANY deep at night. Run 2 loses
@@ -175,26 +236,39 @@ func setup(floor_num: int, window_sides: Array = ["left", "right"]) -> void:
 	var dead_frac: float = clampf(0.06 + WorldState.infection_depth(floor_num) * 0.30 \
 		+ float(WorldState.current_run - 1) * 0.20, 0.0, 0.72)
 	var lamp_energy: float = LAMP_ENERGY_BY_RUN[clampi(WorldState.current_run - 1, 0, 2)]
-	for i in range(COUNT):
-		var x: float = lerpf(X_START, X_END, float(i) / float(COUNT - 1))
+	var off_tex: Texture2D = load(SCONCE_DIR + style + ".png")
+	var lit_tex: Texture2D = load(SCONCE_DIR + style + "_lit.png")
+	var broken_tex: Texture2D = load(SCONCE_DIR + style + "_broken.png")
+	for i in range(xs.size()):
+		var x: float = float(xs[i])
+		var pos := Vector2(x, SCONCE_Y)
 		var lamp := PointLight2D.new()
-		lamp.texture = cone_texture()
-		lamp.position = Vector2(x, LIGHT_Y)
+		lamp.texture = sconce_texture()
+		lamp.position = pos
 		lamp.color = WARM
 		lamp.texture_scale = LAMP_SCALE
 		lamp.energy = lamp_energy
 		add_child(lamp)
-		# A small visible fixture/bulb so the source reads, not just the pool.
-		var bulb := Sprite2D.new()
-		bulb.texture = light_texture()
-		bulb.position = Vector2(x, LIGHT_Y)
-		bulb.scale = Vector2(0.11, 0.11)
-		bulb.modulate = WARM
-		add_child(bulb)
-		if rng.randf() < dead_frac:
+		# the fixture on the wall (lit by the world, like the wall) + what glows when it's on
+		var fixture := Sprite2D.new()
+		fixture.name = "Sconce%d" % i
+		fixture.texture = off_tex
+		fixture.position = pos
+		fixture.add_to_group("corridor_sconce")
+		add_child(fixture)
+		var glow := Sprite2D.new()
+		glow.texture = lit_tex
+		var unshaded := CanvasItemMaterial.new()
+		unshaded.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED
+		glow.material = unshaded
+		fixture.add_child(glow)
+		var dead: bool = rng.randf() < dead_frac
+		var smashed: bool = rng.randf() < 0.45
+		if dead:
 			lamp.visible = false
-			bulb.scale = Vector2(0.07, 0.07)          # a small, dark, dead fixture (not a smudge)
-			bulb.modulate = Color(0.12, 0.11, 0.10)
+			glow.visible = false
+			if smashed and WorldState.infection_depth(floor_num) + 0.25 * float(WorldState.current_run - 1) > 0.45:
+				fixture.texture = broken_tex             # deep / late: somebody smashed it
 			continue
 		# Behaviour: mostly steady, some gently flicker, some BLINK (a failing tube).
 		var roll: float = rng.randf()
@@ -204,13 +278,8 @@ func setup(floor_num: int, window_sides: Array = ["left", "right"]) -> void:
 		elif roll < 0.55:
 			mode = "flicker"
 		_lamps.append({
-			"light": lamp, "bulb": bulb, "base": lamp_energy, "mode": mode,
+			"light": lamp, "glow": glow, "base": lamp_energy, "mode": mode,
 			"phase": rng.randf() * TAU, "speed": rng.randf_range(6.0, 12.0),
-			# HALF the lamps sway — a very gentle, tight rotation about the bulb.
-			"sway": rng.randf() < 0.5,
-			"sway_amp": rng.randf_range(0.035, 0.075),
-			"sway_speed": rng.randf_range(0.5, 1.1),
-			"sway_phase": rng.randf() * TAU,
 			"blink_t": rng.randf_range(1.5, 4.0), "on": true,
 		})
 	# Stairwell windows: natural light in from both stair shafts, plus a slanting sunbeam shaft.
@@ -235,10 +304,6 @@ func _process(delta: float) -> void:
 		var lt: PointLight2D = e["light"]
 		if not is_instance_valid(lt):
 			continue
-		# SWAY: rotate the cone very gently about the bulb, so its pool drifts side to side.
-		if e["sway"]:
-			e["sway_phase"] += delta * e["sway_speed"]
-			lt.rotation = e["sway_amp"] * sin(e["sway_phase"])
 		var energy: float = e["base"]
 		match e["mode"]:
 			"flicker":
@@ -252,5 +317,6 @@ func _process(delta: float) -> void:
 					e["blink_t"] = randf_range(1.5, 4.5) if e["on"] else randf_range(0.05, 0.28)
 				energy = e["base"] * (1.0 if e["on"] else 0.04)
 		lt.energy = energy
-		if is_instance_valid(e["bulb"]):
-			e["bulb"].modulate = WARM * clampf(energy / e["base"], 0.15, 1.2)
+		if is_instance_valid(e["glow"]):
+			# the shade glows with its lamp; by day (low energy) it still reads as ON
+			e["glow"].modulate.a = clampf(energy / e["base"], 0.0, 1.0)

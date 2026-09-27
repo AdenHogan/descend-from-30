@@ -90,22 +90,33 @@ func _test_night_vision_upgrade() -> void:
 
 
 func _test_lamp_rig_builds() -> void:
-	print("[ceiling lamp rig]")
+	print("[wall sconce rig]")
 	WorldState.new_game()
 	WorldState.current_run = 1
 	var rig := FLOOR_LIGHTING.new()
 	add_child(rig)
 	rig.setup(30)
-	var cone := FLOOR_LIGHTING.cone_texture()
+	var sconce := FLOOR_LIGHTING.sconce_texture()
 	var lamps := 0
 	var windows := 0
+	var fixtures := 0
 	for c in rig.get_children():
 		if c is PointLight2D:
-			if c.texture == cone:
+			if c.texture == sconce:
 				lamps += 1
+				# every light hangs on a drawn fixture (owner round 24: no light without a source)
+				var on_fixture := false
+				for f in rig.get_children():
+					if f is Sprite2D and f.is_in_group("corridor_sconce") and f.position == c.position:
+						on_fixture = true
+				check(on_fixture, "the lamp at %s hangs on a wall sconce" % c.position)
 			else:
 				windows += 1
-	check(lamps == FLOOR_LIGHTING.COUNT, "one cone lamp per slot (%d)" % lamps)
+		elif c is Sprite2D and c.is_in_group("corridor_sconce"):
+			fixtures += 1
+	check(lamps == FLOOR_LIGHTING.COUNT and FLOOR_LIGHTING.SCONCE_X.size() == FLOOR_LIGHTING.COUNT,
+		"one sconce lamp per slot (%d)" % lamps)
+	check(fixtures == lamps, "one fixture per lamp (%d)" % fixtures)
 	check(windows == 2, "two stairwell window lights (%d)" % windows)
 	# Determinism: the same floor/run/seed produces the same dead layout.
 	var rig2 := FLOOR_LIGHTING.new()
@@ -114,6 +125,24 @@ func _test_lamp_rig_builds() -> void:
 	check(_dead_count(rig) == _dead_count(rig2), "dead-lamp layout is deterministic per (floor,run,seed)")
 	rig.queue_free()
 	rig2.queue_free()
+	# the lobby hangs its own fittings in its own spots; a dead lamp's shade never glows
+	var lob := FLOOR_LIGHTING.new()
+	add_child(lob)
+	lob.setup(0, ["right"], "lobby", FLOOR_LIGHTING.LOBBY_SCONCE_X)
+	var lob_x: Array = []
+	for c in lob.get_children():
+		if c is Sprite2D and c.is_in_group("corridor_sconce"):
+			lob_x.append(c.position.x)
+			check(c.texture != null and "lobby" in c.texture.resource_path, "the lobby's fittings are its own (%s)" % c.texture.resource_path)
+	check(lob_x == FLOOR_LIGHTING.LOBBY_SCONCE_X, "the lobby's sconces hang where its wall is clear (%s)" % str(lob_x))
+	var dead_glow := 0
+	for c in lob.get_children():
+		if c is PointLight2D and not c.visible:
+			for f in lob.get_children():
+				if f is Sprite2D and f.position == c.position and f.get_child(0).visible:
+					dead_glow += 1
+	check(dead_glow == 0, "a dead lamp's shade stays dark")
+	lob.queue_free()
 
 
 func _test_more_dead_deeper_and_later() -> void:

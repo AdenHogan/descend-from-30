@@ -519,6 +519,176 @@ def scooter(name, seed):
     save(name, c)
 
 
+def bicycle(name, seed, kid=False, down=False):
+    """A bike left against the wall in the corridor (owner round 24: "the occasional bicycle")."""
+    rng = random.Random(seed)
+    r = 6 if kid else 9                                             # wheel radius
+    base = 28 if kid else 40                                        # hub to hub (fits between two doors)
+    w, h = base + 2 * r + 4, (22 if kid else 32)
+    if down:
+        h = 2 * r + 6
+    c = canvas(w, h, seed)
+    frame = rng.choice([hexc('b83a32'), hexc('2e5a8a'), hexc('3a6a3a'), hexc('2a2a2e'), hexc('c8a032')])
+    if kid:
+        frame = rng.choice([hexc('d84a8a'), hexc('3a9ac8'), hexc('e0a020')])
+    tyre, spoke, steel = hexc('1e1c1a'), hexc('9a9a9e'), hexc('b8b8bc')
+    shadow_row(c, 0, w - 1, h - 1)
+    y = h - r - 2                                                   # the hubs' height
+    rx, fx = r + 2, r + 2 + base                                    # rear / front hub x
+    if down:                                                        # lying on its side: wheels squashed flat
+        for hx in (rx, fx):
+            c.ellipse(hx, h - 4, r, 3, tyre)
+            c.ellipse(hx, h - 4, r - 2, 1, hexc('3a3634'))
+            c.hline(hx - r + 3, hx + r - 3, h - 4, spoke)
+        c.line(rx, h - 5, fx, h - 6, frame)
+        c.line(rx + base // 3, h - 5, rx + base // 2, h - 9, frame)
+        c.line(fx - 4, h - 7, fx + 3, h - 11, steel)                # the bars, twisted up
+        save(name, c)
+        return
+    for hx in (rx, fx):                                             # the wheels
+        for a in range(0, 360, 4):
+            t = math.radians(a)
+            for rr in (r, r - 1):
+                c.put(int(round(hx + rr * math.cos(t))), int(round(y + rr * math.sin(t))), tyre)
+        for a in range(0, 360, 45):
+            t = math.radians(a + (seed % 20))
+            c.line(hx, y, int(round(hx + (r - 2) * math.cos(t))), int(round(y + (r - 2) * math.sin(t))), spoke)
+        c.put(hx, y, steel)
+    bb = (rx + int(base * 0.42), y + 1)                             # the bottom bracket
+    seat = (rx + int(base * 0.33), y - int(r * 1.9))
+    head = (fx - int(base * 0.14), y - int(r * 1.75))
+    c.line(rx, y, bb[0], bb[1], frame)                              # chain stay
+    c.line(rx, y, seat[0], seat[1] + 2, frame)                      # seat stay
+    for dx in (0, 1):                                               # the main tubes, 2px so it reads
+        c.line(bb[0] + dx, bb[1], seat[0] + dx, seat[1] + 2, frame)               # seat tube
+        c.line(bb[0] + dx, bb[1], head[0] + dx, head[1] + 3, frame)               # down tube
+    c.line(seat[0], seat[1] + 3, head[0], head[1] + 1, frame)       # top tube
+    c.line(seat[0], seat[1] + 2, head[0], head[1], shade(frame, 1.25))
+    c.line(head[0], head[1], fx, y, shade(frame, 0.8))              # the fork
+    c.line(head[0] + 1, head[1], fx + 1, y - 1, shade(frame, 0.8))
+    c.ellipse(bb[0], bb[1], 2, 2, hexc('6a6a6e'))                   # chainring + a pedal
+    c.rect(bb[0] + 1, bb[1] + 3, bb[0] + 4, bb[1] + 3, hexc('2a2a2a'))
+    c.line(seat[0], seat[1] + 2, seat[0] - 1, seat[1] - 1, steel)   # seat post + saddle
+    c.rect(seat[0] - 4, seat[1] - 2, seat[0] + 2, seat[1] - 1, hexc('2a2622'))
+    c.line(head[0], head[1], head[0] - 1, head[1] - 4, steel)       # stem + bars
+    c.hline(head[0] - 3, head[0] + 1, head[1] - 4, hexc('2a2a2a'))
+    if kid:                                                         # streamers + a bell
+        c.put(head[0] - 3, head[1] - 3, hexc('e84a8a')); c.put(head[0] - 3, head[1] - 2, hexc('4ac8e8'))
+    elif rng.random() < 0.5:                                        # a basket or a lock round the frame
+        c.rect(head[0] + 1, head[1] - 3, head[0] + 7, head[1] + 2, hexc('8a6a3a'))   # hung on the bars
+        c.hline(head[0] + 1, head[0] + 7, head[1] - 3, hexc('aa8a5a'))
+        c.vline(head[0] + 4, head[1] - 2, head[1] + 2, hexc('6a4a2a'))
+    else:
+        c.ellipse(seat[0] + 4, seat[1] + 5, 3, 2, hexc('e0c040'))
+    save(name, c)
+
+
+def bin_bags(name, seed):
+    """Rubbish put out and never collected — black sacks, one split, a tin rolled out."""
+    rng = random.Random(seed)
+    w, h = 30, 18
+    c = canvas(w, h, seed)
+    shadow_row(c, 0, w - 1, h - 1)
+    bag, bag_lt, bag_dk = hexc('1c1c20'), hexc('3a3a42'), hexc('0e0e10')
+    for (cx, rx, ry) in ((8, 7, 7), (20, 8, 8), (14, 6, 5)):
+        cy = h - 1 - ry
+        c.ellipse(cx, cy, rx, ry, bag)
+        c.line(cx - rx + 2, cy - 2, cx - 1, cy - ry + 1, bag_lt)       # the plastic's sheen
+        c.put(cx + 2, cy - ry + 2, bag_lt)
+        c.rect(cx - 1, cy - ry - 2, cx + 1, cy - ry, bag_dk)            # the knot
+        c.put(cx, cy - ry - 3, bag_lt)
+    for k in range(6):                                                  # what came out of the split one
+        x = rng.randrange(20, 29)
+        c.put(x, h - 2 - rng.randrange(0, 2), rng.choice([hexc('d8d0c0'), hexc('8a6a3a'), hexc('6a8a4a')]))
+    c.rect(w - 4, h - 4, w - 1, h - 2, hexc('b8b8bc'))                   # a tin
+    c.hline(w - 4, w - 1, h - 4, hexc('d8d8dc'))
+    save(name, c)
+
+
+def recycling_box(name, seed):
+    rng = random.Random(seed)
+    w, h = 24, 18
+    c = canvas(w, h, seed)
+    shadow_row(c, 0, w - 1, h - 1)
+    box = hexc('2a7a3a')
+    for k in range(6):                                                  # bottles + cans sticking up
+        x = 3 + k * 3 + rng.randrange(0, 2)
+        tall = rng.randrange(5, 10)
+        col = rng.choice([hexc('3a6a3a'), hexc('6a4a2a'), hexc('b8c8c8'), hexc('c83a2a'), hexc('d8d0b8')])
+        c.rect(x, h - 8 - tall, x + 1, h - 8, col)
+        if tall > 7:
+            c.put(x, h - 9 - tall, shade(col, 0.7))
+    c.rect(1, h - 9, w - 2, h - 2, box)
+    c.hline(1, w - 2, h - 9, shade(box, 1.3))
+    c.hline(1, w - 2, h - 2, shade(box, 0.6))
+    for x in range(4, w - 3, 4):
+        c.rect(x, h - 7, x + 1, h - 4, shade(box, 0.72))              # the crate's slots
+    c.rect(w // 2 - 3, h - 6, w // 2 + 2, h - 5, hexc('e8e8e0'))       # the recycling arrows' label
+    save(name, c)
+
+
+def pedal_bin(name, seed):
+    w, h = 12, 18
+    c = canvas(w, h, seed)
+    shadow_row(c, 0, w - 1, h - 1)
+    steel, dk, lt = hexc('a8aaae'), hexc('6a6c70'), hexc('dcdee2')
+    c.rect(1, 4, 10, h - 2, steel)
+    c.vline(2, 5, h - 3, lt)
+    c.vline(10, 4, h - 2, dk)
+    c.rect(0, 2, 11, 3, dk)                                              # the lid
+    c.hline(1, 10, 2, lt)
+    c.rect(4, h - 2, 7, h - 1, hexc('2a2a2a'))                           # the pedal
+    save(name, c)
+
+
+def pram(name, seed):
+    rng = random.Random(seed)
+    w, h = 28, 30
+    c = canvas(w, h, seed)
+    shadow_row(c, 0, w - 1, h - 1)
+    body = rng.choice([hexc('2a3a5a'), hexc('5a2a3a'), hexc('3a4a3a')])
+    for (x, r) in ((6, 4), (21, 4)):                                     # wheels
+        c.ellipse(x, h - 5, r, r, hexc('1e1c1a'))
+        c.ellipse(x, h - 5, r - 2, r - 2, hexc('6a6a6e'))
+    c.line(6, h - 8, 21, h - 8, hexc('8a8a8e'))                          # chassis
+    c.poly([(3, h - 20), (23, h - 20), (21, h - 9), (5, h - 9)], body)   # the carrycot
+    c.hline(3, 23, h - 20, shade(body, 1.3))
+    c.poly([(3, h - 20), (3, h - 27), (8, h - 29), (13, h - 27), (13, h - 20)], shade(body, 0.8))   # the hood
+    for x in (5, 8, 11):
+        c.vline(x, h - 27, h - 21, shade(body, 0.6))
+    c.line(23, h - 20, 27, h - 28, hexc('8a8a8e'))                       # the handle
+    c.hline(25, 27, h - 28, hexc('2a2a2a'))
+    save(name, c)
+
+
+def newspapers(name, seed):
+    rng = random.Random(seed)
+    w, h = 20, 9
+    c = canvas(w, h, seed)
+    shadow_row(c, 0, w - 1, h - 1)
+    for k in range(4):
+        y = h - 2 - k * 2
+        x0 = 1 + rng.randrange(0, 2)
+        c.rect(x0, y - 1, x0 + 16, y, hexc('d8d2c2') if k % 2 else hexc('c8c2b0'))
+        c.put(x0 + 3 + rng.randrange(0, 8), y - 1, hexc('4a4a4a'))
+    c.vline(7, 1, h - 2, hexc('b88a4a'))                                # the string
+    c.vline(13, 1, h - 2, hexc('b88a4a'))
+    save(name, c)
+
+
+def watering_can(name, seed):
+    w, h = 16, 11
+    c = canvas(w, h, seed)
+    shadow_row(c, 0, w - 1, h - 1)
+    col = hexc('3a7a8a')
+    c.rect(3, 3, 10, h - 2, col)
+    c.hline(3, 10, 3, shade(col, 1.3))
+    c.line(10, h - 4, 15, 1, shade(col, 0.85))                           # the spout
+    c.rect(14, 0, 15, 1, shade(col, 0.7))
+    c.line(4, 3, 6, 0, shade(col, 0.8)); c.line(6, 0, 9, 3, shade(col, 0.8))   # handle
+    save(name, c)
+
+
 def suitcase(name, seed):
     w, h = 18, 26
     c = canvas(w, h, seed)
@@ -699,6 +869,9 @@ def main():
     chair('chair', 59); chair('chair_down', 60, broken=True)
     scooter('scooter', 61)
     suitcase('suitcase', 62)
+    bicycle('bicycle', 80); bicycle('bicycle_down', 80, down=True); bicycle('kids_bike', 81, kid=True)
+    bin_bags('bin_bags', 82); recycling_box('recycling_box', 83); pedal_bin('pedal_bin', 84)
+    pram('pram', 85); newspapers('newspapers', 86); watering_can('watering_can', 87)
     shopping_bag('shopping_bag', 63)
     kid_drawing('kid_drawing', 64)
     building_notices()

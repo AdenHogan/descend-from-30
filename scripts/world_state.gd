@@ -1287,7 +1287,7 @@ func time_subtitle() -> String:
 
 
 # --- Ambient darkness + REAL 2D lighting -------------------------------------
-# The world is lit for real now: ceiling PointLight2D lamps (scripts/floor_lighting.gd),
+# The world is lit for real now: wall-sconce PointLight2D lamps (scripts/floor_lighting.gd),
 # the fire, and a faint player aura cast actual light POOLS. The old flat colour "filter"
 # is gone — the CanvasModulate here is the AMBIENT DARKNESS those lights punch through,
 # NOT a tint laid over already-lit art. Morning is bright enough to walk by; afternoon

@@ -50,16 +50,21 @@ DOORS = [201, 329, 455, 581, 714]            # apartment doors (local x centres)
 ELEVATOR = (880, 950)
 KIT_X = 814                                  # wall extinguisher / maintenance door
 WALL_TOP, RAIL_Y, SKIRT_Y, FLOOR_Y = 16, 96, 154, 160
-SPOTS = [265, 392, 518, 647]                 # between doors: pictures / notices
+SPOTS = [265, 392, 518, 647]                 # between doors: the sconces (+ a console / radiator / call point)
+# the WALL SCONCES (scripts/floor_lighting.gd SCONCE_X − 115, bulb at local y 55): the light source of
+# every floor (owner round 24). Drawn live (they light up), so the art keeps their wall bare.
+SCONCES = SPOTS + [770]
+SCONCE_Y = 55
 LAYOUT = {'recess': (0, 1), 'spots': SPOTS}  # set per scene (hallway: left stair only; lobby: right)
 DOOR_TOP = 74                                # door sprites cover y >= ~79 at DOORS ±28
 ELEV_TOP = 64                                # the elevator sprite covers y >= ~69
 EXIT_SIGN = (860, 40, 872, 50)
-PIC_DY = 26                                  # pictures hang just above the rail, not at the ceiling
+PIC_DY = 26                                  # wall fixtures (call points, hose reels) sit just above the rail
 # where the game draws its live signs (scripts/floor_signs.gd taken_local — keep the two in step): the
 # STAIRS signs, the floor numbers, the lift indicator, every door's number plate. No damage lands there.
 SIGNS = ([(12, 12, 100, 38), (1020, 12, 1108, 38), (112, 32, 150, 72), (966, 32, 1004, 72), (898, 48, 932, 64)]
-         + [(d - 50, 90, d - 24, 108) for d in DOORS] + [(814 - 56, 90, 814 - 24, 108)])   # STAFF is wider
+         + [(d - 50, 90, d - 24, 108) for d in DOORS] + [(814 - 56, 90, 814 - 24, 108)]    # STAFF is wider
+         + [(x - 10, SCONCE_Y - 12, x + 10, SCONCE_Y + 12) for x in SCONCES])             # the sconces
 # wear geometry, set per section (set_geom): the dado rail's top, the lower wall's top, skirting
 DADO_Y, LOWER_Y, SKIRT_TOP = RAIL_Y, 100, SKIRT_Y
 G = {}
@@ -138,14 +143,6 @@ def runner(c, base, border, pattern, y0=166, y1=186):
             c.put(x, y0 + 4 + (x % 11), shade(base, 1.12))
 
 
-def frame(c, cx, y0, w, h, fr, fill):
-    x0 = cx - w // 2
-    c.box(x0, y0, x0 + w, y0 + h, fr, shade(fr, 0.55))
-    c.rect(x0 + 2, y0 + 2, x0 + w - 2, y0 + h - 2, fill)
-    c.line(x0 + 3, y0, cx, y0 - 7, shade(fr, 0.55))
-    c.line(x0 + w - 3, y0, cx, y0 - 7, shade(fr, 0.55))
-
-
 def exit_sign(c):
     c.box(860, 40, 872, 50, hexc('2e5a3a'), hexc('1a3020'))                    # a green EXIT sign
     c.rect(862, 43, 870, 46, hexc('d8e8c8'))
@@ -187,7 +184,7 @@ def radiator(c, cx, body=hexc('e2ded2')):
 
 
 def console_table(c, cx, wood, top):
-    """A hotel console under a picture: a narrow table against the panelling, a vase on it."""
+    """A hotel console under a sconce: a narrow table against the panelling, a vase on it."""
     x0, x1 = cx - 15, cx + 15
     c.rect(x0, 126, x1, 129, top)
     c.hline(x0, x1, 126, shade(top, 1.2))
@@ -202,17 +199,9 @@ def console_table(c, cx, wood, top):
         c.line(cx, 113, cx + dx, dy, hexc('8a7a5a'))
 
 
-def mirror(c, cx, fr):
-    x0, d = cx - 9, PIC_DY
-    c.box(x0, 30 + d, x0 + 18, 58 + d, fr, shade(fr, 0.55))
-    c.rect(x0 + 2, 32 + d, x0 + 16, 56 + d, hexc('9aa8a8'))
-    c.line(x0 + 4, 50 + d, x0 + 12, 34 + d, hexc('c8d4d2'))
-    c.line(x0 + 6, 52 + d, x0 + 14, 38 + d, hexc('b0bebc'))
-
-
 def hose_reel(c, cx):
     """A fire-hose reel cabinet: red box, glass door, the reel inside."""
-    x0, d = cx - 11, PIC_DY
+    x0, d = cx - 11, PIC_DY + 6                                              # under the sconce
     c.box(x0, 30 + d, x0 + 22, 58 + d, hexc('b8322a'), hexc('5a1a16'))
     c.rect(x0 + 3, 33 + d, x0 + 19, 55 + d, hexc('7a8a8a'))
     c.ellipse(cx, 44 + d, 7, 7, hexc('a82a22'))
@@ -222,29 +211,26 @@ def hose_reel(c, cx):
 
 # --- the three sections, and their near-identical variants -----------------------------------
 HIGH = {
-    'a': dict(wall='3f5a5a', motif='7a8a6a', runner=('7a2424', 'b58f4a', 'a8483a'),
-              pics=('land', 'port', 'land', 'port'), fills=('6a7a5a', '5a4a3e'), mats=(1, 3)),
-    'b': dict(wall='3a5462', motif='6f8492', runner=('6a2632', 'b58f4a', '9a4452'),
-              pics=('port', 'land', 'port', 'land'), fills=('5a6a7a', '6a4a3e'), console=1, mats=(0, 2)),
-    'c': dict(wall='465f58', motif='83926e', runner=('7e3222', 'c09a52', 'aa5638'),
-              pics=('land', 'land', 'port', 'mirror'), fills=('7a6a4a', '5a6a5a'), mats=(2, 4)),
+    'a': dict(wall='3f5a5a', motif='7a8a6a', runner=('7a2424', 'b58f4a', 'a8483a'), mats=(1, 3)),
+    'b': dict(wall='3a5462', motif='6f8492', runner=('6a2632', 'b58f4a', '9a4452'), console=1, mats=(0, 2)),
+    'c': dict(wall='465f58', motif='83926e', runner=('7e3222', 'c09a52', 'aa5638'), mats=(2, 4)),
 }
 MID = {
     'a': dict(wall='b39a5a', dark='a38a4e', light='bca562', pitch=8,
-              pics=('frame', 'board', 'frame', 'board'), runner=('6a5040', '4a3428', '8a6a54'), mats=(0, 3)),
+              runner=('6a5040', '4a3428', '8a6a54'), mats=(0, 3)),
     'b': dict(wall='a99e62', dark='988e54', light='b4aa6e', pitch=8,
-              pics=('board', 'frame', 'board', 'frame'), runner=('5a4a44', '3e3230', '7a6660'),
+              runner=('5a4a44', '3e3230', '7a6660'),
               radiators=True, mats=(1, 2, 4)),
     'c': dict(wall='b8955a', dark='a6844c', light='c4a266', pitch=10,
-              pics=('frame', 'frame', 'board', 'board'), runner=('6e4a3a', '4e3024', '946a54'), mats=(3,)),
+              runner=('6e4a3a', '4e3024', '946a54'), mats=(3,)),
 }
 LOW = {
     'a': dict(upper='a9b8a0', lower='3e5a48', lino=('8a8a78', '5a5e52'),
-              pics=('notice', 'call', 'notice', 'call'), mats=(2,)),
+              fixtures=(None, 'call', None, 'call'), mats=(2,)),
     'b': dict(upper='a8b6b6', lower='3e4e5c', lino=('8a8a82', '4e5662'),
-              pics=('call', 'notice', 'call', 'notice'), mats=(0,)),
+              fixtures=('call', None, 'call', None), mats=(0,)),
     'c': dict(upper='b6b69c', lower='5a4a3c', lino=('8c7c62', '5a4e40'),
-              pics=('notice', 'call', 'hose', 'notice'), mats=(1, 4)),
+              fixtures=(None, 'call', 'hose', None), mats=(1, 4)),
 }
 
 
@@ -277,18 +263,8 @@ def high(c, P, occ):
     recesses(c, wall)
     pilasters(c, hexc('5e3828'), hexc('7a4a34'), hexc('2a1810'))
     light_switches(c, hexc('b58f4a'))
+    # (owner round 24: no picture frames out in a corridor — a sconce hangs between the doors)
     for i, x in enumerate(LAYOUT['spots']):
-        kind = P['pics'][i]
-        if kind == 'land':
-            frame(c, x, 34 + PIC_DY, 28, 22, hexc('b58f4a'), hexc(P['fills'][(i // 2) % 2]))
-            c.poly([(x - 12, 51 + PIC_DY), (x - 4, 44 + PIC_DY), (x + 4, 48 + PIC_DY), (x + 12, 42 + PIC_DY),
-                    (x + 12, 53 + PIC_DY), (x - 12, 53 + PIC_DY)], hexc('4a5a3a'))
-        elif kind == 'port':
-            frame(c, x, 36 + PIC_DY, 18, 22, hexc('b58f4a'), hexc('5a4a3e'))
-            c.ellipse(x, 44 + PIC_DY, 3, 4, hexc('c8b39a'))
-        else:
-            mirror(c, x, hexc('b58f4a'))
-        occ.append((x - 17, 24 + PIC_DY, x + 17, 62 + PIC_DY))
         if P.get('console') == i:
             console_table(c, x, hexc('4a2a1e'), hexc('6e4230'))
             occ.append((x - 16, 104, x + 16, FLOOR_Y + 2))
@@ -324,14 +300,6 @@ def mid(c, P, occ):
     pilasters(c, hexc('d6cbb0'), hexc('ece4cc'), hexc('7a6a50'))
     light_switches(c, hexc('e6e0cc'))
     for i, x in enumerate(LAYOUT['spots']):
-        if P['pics'][i] == 'frame':
-            frame(c, x, 36 + PIC_DY, 24, 18, hexc('6b4a2c'), hexc('9c9282'))
-        else:
-            d = PIC_DY
-            c.box(x - 12, 30 + d, x + 12, 56 + d, hexc('9a7650'), hexc('3b2718'))         # a residents' board
-            c.rect(x - 9, 33 + d, x - 1, 42 + d, hexc('e6dfcc')); c.rect(x + 1, 35 + d, x + 9, 46 + d, hexc('d9c24a'))
-            c.rect(x - 8, 45 + d, x, 53 + d, hexc('e6dfcc'))
-        occ.append((x - 17, 24 + PIC_DY, x + 17, 62 + PIC_DY))
         if P.get('radiators'):
             radiator(c, x)
             occ.append((x - 20, 124, x + 17, FLOOR_Y - 1))
@@ -364,20 +332,16 @@ def low(c, P, occ):
     recesses(c, upper)
     pilasters(c, hexc('7a8480'), hexc('9aa3a0'), hexc('3a403e'))
     light_switches(c, hexc('c8ccc4'))
-    for i, x in enumerate(LAYOUT['spots']):                                     # notices, a fire-drill card
-        kind = P['pics'][i]
-        d = PIC_DY
-        if kind == 'notice':
-            c.box(x - 9, 36 + d, x + 9, 58 + d, hexc('e6e2d6'), hexc('6a6a66'))
-            c.rect(x - 7, 38 + d, x + 7, 42 + d, hexc('a8322c'))
-            for y in range(45 + d, 57 + d, 3):
-                c.hline(x - 6, x + 6, y, hexc('8a8a86'))
-        elif kind == 'call':
+    for i, x in enumerate(LAYOUT['spots']):                                     # the building's own fixtures
+        kind = P['fixtures'][i]
+        d = PIC_DY + 4                                                          # under the sconce
+        if kind == 'call':
             c.box(x - 6, 40 + d, x + 6, 52 + d, hexc('a8322c'), hexc('5a1a16'))          # an alarm call point
             c.rect(x - 3, 43 + d, x + 3, 49 + d, hexc('e6e2d6'))
-        else:
+            occ.append((x - 7, 39 + d, x + 7, 53 + d))
+        elif kind == 'hose':
             hose_reel(c, x)
-        occ.append((x - 17, 24 + PIC_DY, x + 17, 62 + PIC_DY))
+            occ.append((x - 12, 34 + PIC_DY + 6, x + 12, 62 + PIC_DY + 6))
     exit_sign(c)
 
 
@@ -512,55 +476,6 @@ class Spots:
 # corridor… weird")
 def _lum(p):
     return 0.3 * p[0] + 0.59 * p[1] + 0.11 * p[2]
-
-
-def picture_damage(c, bare, score_of, rng_seed):
-    """`bare` is the same corridor drawn without its pictures, so a moved / missing picture
-    leaves the real wall behind it. `score_of(i)` is how far spot i has gone (0 fine .. 1+).
-    Returns the rects of pictures now lying on the floor (so nothing else is put there)."""
-    rng = random.Random(rng_seed)
-    fallen = []
-    for i, cx in enumerate(LAYOUT['spots']):
-        tilt = rng.choice((-1, 1))
-        s = score_of(i)
-        x0, y0, x1, y1 = cx - 18, 22 + PIC_DY, cx + 18, min(64 + PIC_DY, RAIL_Y - 1)
-        mask = [(x, y) for y in range(y0, y1 + 1) for x in range(x0, x1 + 1)
-                if c.px[x, y] != bare.getpixel((x, y))]
-        if s < 0.45 or not mask:
-            continue
-        pic = {(x, y): c.px[x, y] for (x, y) in mask}
-        for (x, y) in mask:                                         # take it off the wall
-            c.px[x, y] = bare.getpixel((x, y))
-        rows = {}
-        for (x, y) in mask:
-            rows[y] = rows.get(y, 0) + 1
-        body = [y for y in rows if rows[y] > 4]                      # the frame, not its wire
-        top, bot = min(body), max(body)
-        if s < 0.75:        # still hanging, and STRAIGHT (owner round 23: crooked frames read as weird)
-            for (x, y), p in pic.items():
-                c.px[x, y] = p
-            continue
-        for (x, y) in mask:                                          # gone: the unfaded patch
-            if top <= y <= bot:
-                q = c.px[x, y]
-                c.px[x, y] = (min(255, int(q[0] * 1.14) + 6), min(255, int(q[1] * 1.14) + 6),
-                              min(255, int(q[2] * 1.12) + 5), 255)
-        c.px[cx, top - 3] = hexc('2a2622')
-        if s < 0.95:
-            continue
-        dx = rng.randrange(-6, 7)                                    # fallen, leaning at the skirting
-        drop = FLOOR_Y + 3 - bot
-        for (x, y), p in pic.items():
-            if top <= y <= bot:
-                lean = int((y - top) * 0.25) * tilt
-                nx, ny = x + dx + lean, y + drop
-                if 0 <= nx < CW and ny < CH:
-                    c.px[nx, ny] = p
-        for k in range(8):                                           # broken glass
-            gx, gy = cx + dx + rng.randrange(-20, 21), FLOOR_Y + 3 + rng.randrange(0, 5)
-            c.px[gx, gy] = (196, 214, 214, 255)
-        fallen.append((cx + dx - 24, FLOOR_Y + 3 - (bot - top) - 2, cx + dx + 24, FLOOR_Y + 8))
-    return fallen
 
 
 # --- wear -------------------------------------------------------------------------------------
@@ -950,18 +865,9 @@ def corridor(section, variant, level, run, seed):
     set_geom(section)
     P = SECTION[section]['variants'][variant]
     fn = SECTION[section]['fn']
-    spots = LAYOUT['spots']
-    LAYOUT['spots'] = []
-    bare = Canvas(w=CW, h=CH, seed=seed)
-    fn(bare, P, [])
-    LAYOUT['spots'] = spots
     c = Canvas(w=CW, h=CH, seed=seed)
     occ = []
     fn(c, P, occ)
-    fragile = random.Random(seed * 13 + 5)
-    frag = [fragile.random() for _ in spots]
-    # how far each picture has gone: depth + the time skip + how loosely it was hung
-    occ += picture_damage(c, bare.img, lambda i: level * 0.2 + (run - 1) * 0.22 + frag[i] * 0.45, seed + 3)
     doormats(c, P.get('mats', ()), min(4, level + run - 1))
     sp = Spots(occ + [EXIT_SIGN] + [(d + 32, 85, d + 38, 92) for d in DOORS] + SIGNS)
     w = WEAR[level]

@@ -199,7 +199,7 @@ func _ready() -> void:
 		_spawn_fire(floor_num)
 		_apply_fire_scars(floor_num)
 		_spawn_door_fire(floor_num)
-		# Ceiling lamps in the backdrop too, so they scroll into view with the floor during
+		# The wall sconces in the backdrop too, so they scroll into view with the floor during
 		# a stair pan instead of popping in at the commit (go_live guards against a re-spawn).
 		_spawn_floor_lighting(floor_num)
 		_make_inert()
@@ -255,7 +255,7 @@ func _ready() -> void:
 	_apply_fire_scars(floor_num)
 	_spawn_door_fire(floor_num)
 	WorldState.apply_time_tint(self, floor_num)   # ambient darkness the real lights punch through
-	_spawn_floor_lighting(floor_num)              # real ceiling lamps
+	_spawn_floor_lighting(floor_num)              # the wall sconces (the floor's light)
 	_add_foreground_dead(floor_num)               # the foreground-silhouette test (sporadic)
 	_frame_camera(player)
 	# Keep the HUD floor counter honest for EVERY way of landing on a floor — not
@@ -694,7 +694,7 @@ func _warn_hazard(text: String) -> void:
 
 
 const FLOOR_LIGHTING := preload("res://scripts/floor_lighting.gd")
-var _floor_lights = null               # the floor's ceiling PointLight2D rig, or null
+var _floor_lights = null               # the floor's wall-sconce PointLight2D rig, or null
 
 const FIRE_FIELD := preload("res://scripts/fire_field.gd")
 var _fire_field = null                 # the floor's fire, or null
@@ -754,7 +754,7 @@ func _fire_origin_for(floor_num: int) -> float:
 
 
 func _spawn_floor_lighting(floor_num: int) -> void:
-	# Real ceiling lighting: a row of warm PointLight2D lamps (some flickering, some dead —
+	# Real lighting from the WALL SCONCES: warm PointLight2D lamps on drawn fixtures (some flickering, some dead —
 	# more dead the deeper/later you go) that cast actual pools through the ambient darkness
 	# WorldState set. Idempotent — spawned in the passive backdrop too so lamps scroll in
 	# with a stair pan; go_live guards against a double-spawn.

@@ -67,7 +67,7 @@ func _build_world(as_scenery: bool) -> void:
 		var lights = FLOOR_LIGHTING.new()
 		lights.name = "FloorLighting"
 		add_child(lights)
-		lights.setup(0, ["right"])    # one stairwell (the redundant left one was removed)
+		lights.setup(0, ["right"], "lobby", FLOOR_LIGHTING.LOBBY_SCONCE_X)   # one stairwell (the redundant left one was removed)
 
 
 func _spawn_zombies(as_scenery: bool) -> void:

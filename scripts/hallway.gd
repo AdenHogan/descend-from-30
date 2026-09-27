@@ -117,7 +117,7 @@ func _build_world() -> void:
 	_spawn_world_drops(30)
 	# A character who fell here (floor 30) leaves a recoverable body for the next one.
 	WorldState.spawn_player_corpse_into(self, 30, scene_file_path, "")
-	# Real ceiling lamps, like every other floor — otherwise the top floor sits dark at
+	# The wall sconces, like every other floor — otherwise the top floor sits dark at
 	# night beside a lit floor 29 and the pan between them shows the seam.
 	if get_node_or_null("FloorLighting") == null:
 		var lights = FLOOR_LIGHTING.new()

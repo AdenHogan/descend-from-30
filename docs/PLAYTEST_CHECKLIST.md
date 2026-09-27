@@ -29,17 +29,17 @@
 - [ ] It fades cleanly into the new Floor 30 (no flash of the old scene, no
       lingering text).
 
-## 2. REAL lighting — ceiling lamps, fire, player aura (NEW — replaces the flat filter)
+## 2. REAL lighting — wall sconces, fire, player aura (NEW — replaces the flat filter)
 
 The old flat colour "filter" is GONE. The world now has **actual 2D lighting**: a dark
-ambient with warm ceiling lamps casting **downward CONES** (like the sun/a spotlight from
-the fixture, not a round blanket), window daylight, fire, and a faint player aura. Lighting
+ambient with warm WALL SCONCES between the doors (a wash up the wall, a cone down it, a pool on
+the floor — every light has a fixture you can see), window daylight, fire, and a faint player aura. Lighting
 is **intrinsic** — always on, varying by scene and run (no toggle). **Use the F1 dev menu →
 "Set Run (time of day)"** to compare runs quickly.
 
-- [ ] **Ceiling lamps** cast **CONE** pools that fan DOWNWARD from each fixture (brightest
-      at the bulb, fading toward the floor + edges) — NOT a flat blanket over the scene.
-- [ ] **Some cones SWAY** very gently side to side; some lamps **flicker**; some **BLINK**
+- [ ] **Wall sconces** light the corridor from a fixture you can SEE (the shade glows when on),
+      pooling on the floor below — no glow without a source.
+- [ ] Some lamps **flicker**; some **BLINK**
       (a failing tube — on a while, brief dark stutters); some are **DEAD** (dark fixture).
 - [ ] **Morning (run 1):** fairly lit. **Afternoon (run 2):** golden, dimmer, more lamps
       dead. **Night (run 3):** GENUINELY DARK — lit only by the cones, windows, fire and

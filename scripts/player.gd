@@ -513,7 +513,7 @@ func _update_unjam(wants_move: bool, moved: float) -> void:
 func _setup_player_light() -> void:
 	# A FAINT personal aura so the player is never a black silhouette in an unlit
 	# stretch — just enough to read their own footing, not enough to light the room
-	# (the ceiling lamps + fire do that). Real PointLight2D, so it plays with the
+	# (the wall sconces + fire do that). Real PointLight2D, so it plays with the
 	# ambient darkness like every other light.
 	var aura := PointLight2D.new()
 	aura.name = "PlayerAura"

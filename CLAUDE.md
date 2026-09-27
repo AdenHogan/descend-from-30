@@ -782,10 +782,16 @@ means no rendering — UI layout and art still need an in-editor look.
   bright only at night when the ambient is near-black. **NIGHT is deliberately near-black** — only the lights
   reveal the scene, so **enemies lurk unseen in the dark and jump-scare** the player when they
   walk into them (free from the darkness — enemy sprites are just unlit until a light reaches
-  them; no reveal code). Lights: **ceiling lamps** cast **DOWNWARD CONES** (a baked
-  `FloorLighting.cone_texture()` spotlight cookie, apex at the fixture — NOT a round blanket),
-  some **swaying** gently (rotation about the bulb), some **flickering**, some **BLINKING** (a
-  failing tube), some **DEAD** — more dead the deeper/later you go (`dead_frac` scales with
+  them; no reveal code). Lights: **WALL SCONCES** (owner round 24 — the old ceiling cones read as
+  "random globs of light at the top that don't seem to have a light source"): a drawn fixture on the
+  wall between each pair of doors (`FloorLighting.SCONCE_X` 380/507/633/762/885, bulb y `SCONCE_Y` 298;
+  the lobby's own `LOBBY_SCONCE_X`), styled per section (`tools/art/sconces.py` →
+  `assets/corridor/sconces/`: hotel brass arm + pleated drum shade, residential coach lantern,
+  institutional caged bulkhead, lobby opal globe; each an unlit base lit like the wall + an UNSHADED
+  `_lit` overlay that glows with its lamp, + a `_broken` one), each carrying a real PointLight2D
+  (`sconce_texture()`: a wash up the wall, a cone down it, a pool where it lands on the floor), some
+  **flickering**, some **BLINKING** (a failing tube), some **DEAD** (shade dark; deep / late some
+  are SMASHED) — more dead the deeper/later you go (`dead_frac` scales with
   depth + `0.20×(run-1)`, so run 2 loses lamps, run 3 loses more), seeded per floor/run;
   installed by `building_floors._spawn_floor_lighting` in live `_ready` AND the passive backdrop
   + guarded in `go_live` so lamps scroll in with a stair pan. **Window daylight**
@@ -1501,15 +1507,20 @@ means no rendering — UI layout and art still need an in-editor look.
   mid radiators, a hose reel), `corridor_variant(floor)` seeded by master_seed + floor. DILAPIDATION
   in three layers: DEPTH — `corridor_wear(floor)` = clamp((29-floor)/6, 0, 4) bakes in damp/tide
   marks, cracks, paper torn to the plaster, holes to the blockwork, kicked-in panels, tags, a worn /
-  torn runner (to the boards) or lino (to the screed), bin bags, and the pictures fail (askew →
-  missing, leaving an unfaded patch + the nail → fallen at the skirting); damage CLUSTERS in a few
-  seeded stretches and never lands on a door/picture/fixture/stair/the elevator (`Spots`). TIME — the
-  `_r2`/`_r3` files redraw the SAME corridor and add more of the same damage (`RUN_EXTRA`), and the
-  loosest pictures keep failing. Pictures/boards/notices hang at eye level just above the rail
-  (`PIC_DY`, owner: "no one looks up near the ceiling"). PER-FLOOR DECALS (`scripts/corridor_decals.gd`
+  torn runner (to the boards) or lino (to the screed), bin bags; damage CLUSTERS in a few
+  seeded stretches and never lands on a door/fixture/sign/sconce/stair/the elevator (`Spots`). TIME — the
+  `_r2`/`_r3` files redraw the SAME corridor and add more of the same damage (`RUN_EXTRA`). NO PICTURE
+  FRAMES out in a corridor (owner round 24: "weird to have picture frames outside the apartments" —
+  `picture_damage` and the frames / mirrors / residents' boards are gone): the wall between the doors
+  carries a wall SCONCE (the floor's light, `SCONCES`), plus the building's own fixtures (a hotel console,
+  mid radiators, low call points + a hose reel). PER-FLOOR DECALS (`scripts/corridor_decals.gd`
   + sprites from `tools/art/corridor_decals.py`, owner: "shouldn't feel like the same corridors"):
-  seeded per floor — DRESSING (plants, shoes, a shoe rack, parcels, a chair, a scooter, posters...;
-  fewer and more abandoned by wear; later runs remove some, knock a plant / chair over) and HORROR
+  seeded per floor — DRESSING, what residents leave outside (owner round 24: "shoe racks, or trash, or
+  plants, or other outside things. the occasional bicycle"): plants, shoes, shoe racks, parcels, a chair,
+  a scooter, a bike / a kid's bike, a pram, bin bags, a recycling box, a pedal bin, newspapers, a watering
+  can, notices...; 4-6 a floor, fewer and more abandoned by wear; later runs remove some, knock a plant /
+  chair / bike over. Standing things may come up to a door's frame (±27, a bike leant between two doors);
+  wall notices keep ±31 and hang in the band just over the rail (local y 58..94 — never by the ceiling) and HORROR
   (blood smears, handprints, spatter, bullet bursts, claw gouges, slide-down smears, blood scrawls
   "HELP"/"DONT GO DOWN"…, pools / drag trails / footprints / casings, and on plain door faces
   bullet holes, a bloody hand, the rescue teams' orange search X). `horror_level(floor, run)` =
@@ -1575,8 +1586,10 @@ means no rendering — UI layout and art still need an in-editor look.
   the corridor art is shared, so everything that says WHICH floor it is draws live
   (`scripts/floor_signs.gd`, the building's 3x5 capitals — the same FONT3 the room art uses): a green
   STAIRS sign over each opening with the arrow + the floor it leads to (from `stair_down_side`; floor
-  1's down says LOBBY), the floor number beside each stairwell in the section's style (hotel brass
-  plaque / residential enamel / low stencilled with a hazard stripe), and the lift's floor indicator
+  1's down says LOBBY), the FLOOR SIGN beside each stairwell (owner round 24 — "too pixel art… should have
+  some metallic edges… like a building sign"): a bevelled brushed-metal plate with four screws and the
+  type drawn as smooth antialiased STROKES (`floor_signs.STROKE`, not pixel capitals) — engraved brass
+  (hotel), white on blue enamel in aluminium (residential), black on bolted steel with a hazard strip (low), and the lift's floor indicator
   (amber only while it has power or on a merchant floor). Every apartment door has a NUMBER PLATE on its
   left at eye level (`scripts/door_plate.gd`, a child of the door, section-styled; STAFF on the
   maintenance door; none on a breached one; floor 30's plain-sprite 3001 gets one from hallway.gd).

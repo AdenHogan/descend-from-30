@@ -1090,6 +1090,31 @@ func _test_corridor_decals() -> void:
 	var dressing := {}
 	for n in CD.DRESSING_KEPT + CD.DRESSING_TIRED + CD.DRESSING_GONE + ["plant_fallen", "chair_down"]:
 		dressing[n] = true
+	# notices hang in the band just over the rail — never up by the ceiling, never across the rail —
+	# and the corridor carries what residents leave outside (owner round 24)
+	var notices := 0
+	var outdoor := {}
+	var high_notice := ""
+	for f in range(1, 30):
+		for r in [1, 2, 3]:
+			for d in CD.plan(f, r, BF.corridor_base_name(f)):
+				var nm: String = d["name"]
+				if nm in CD.WALL_DRESSING:
+					notices += 1
+					var sz: Vector2 = CD._tex(nm).get_size()
+					if d["pos"].y < 58.0 or d["pos"].y + sz.y > 94.0:
+						high_notice = "%s@%s floor %d" % [nm, d["pos"], f]
+				elif nm in ["bicycle", "bicycle_down", "kids_bike", "bin_bags", "recycling_box", "pedal_bin", "pram",
+						"newspapers", "watering_can", "shoe_rack"]:
+					outdoor[nm] = true
+	check(notices > 0 and high_notice == "", "notices sit in the rail band (%d placed) %s" % [notices, high_notice])
+	check(outdoor.size() >= 5, "the corridors carry outdoor things — rubbish, racks, prams... (%s)" % str(outdoor.keys()))
+	# a bike fits between two doors (it's the widest thing that stands there) — seeded, not luck
+	var bike_rng := RandomNumberGenerator.new()
+	bike_rng.seed = 7
+	var bike_at = CD._find(bike_rng, [], CD._tex("bicycle").get_size(), "stand")
+	check(bike_at != null and not CD._blocked(Rect2(bike_at, CD._tex("bicycle").get_size()), false, true),
+		"a bicycle has room to lean between the doors (%s)" % str(bike_at))
 	var horror_of := func(plan: Array) -> Array:
 		var out: Array = []
 		for d in plan:
@@ -1116,7 +1141,9 @@ func _test_corridor_decals() -> void:
 				var r := Rect2(d["pos"], tex.get_size())
 				var bad := ""
 				if r.position.y < CD.FLOOR_Y:                  # on the wall
-					if CD._blocked(r, false):
+					# standing dressing may come up to a door's frame (±27); anything on the wall keeps ±31
+					var standing: bool = dressing.has(d["name"]) and not d["name"] in CD.WALL_DRESSING
+					if CD._blocked(r, false, standing):
 						bad = "a door / the elevator / the extinguisher"
 					for t in load("res://scripts/floor_signs.gd").taken_local():
 						if (t as Rect2).intersects(r):
@@ -1382,8 +1409,9 @@ func _test_floor_signs() -> void:
 		await get_tree().process_frame
 		await get_tree().process_frame
 	# the decal planner keeps off every sign (checked per decal in _test_corridor_decals too)
+	var FL_SCONCES: int = load("res://scripts/floor_lighting.gd").SCONCE_X.size()
 	var r: Rect2 = FS.taken_local()[0]
-	check(r.size.x > 0 and FS.taken_local().size() == 11, "the signs' footprints are reserved (%d)" % FS.taken_local().size())
+	check(r.size.x > 0 and FS.taken_local().size() == 11 + FL_SCONCES, "the signs' footprints are reserved (%d)" % FS.taken_local().size())
 	# every plate (face + its 1px edge + shadow) fits the footprint reserved for it — STAFF is the widest
 	var DP = load("res://scripts/door_plate.gd")
 	var res: Array = FS.taken_local()

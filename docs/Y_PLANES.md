@@ -303,6 +303,7 @@ collision planes) but live here so any move is measured, not eyeballed.
 | STAIRS sign | 262 .. 277 | hung from the stair opening's top (259, corridor.py RECESS y 16) |
 | FLOOR number | 281 .. 310 | beside each stairwell, x 246 (left) / 1100 (right) |
 | Lift indicator | 296 .. 305 | over the lift doors (they start ~307), x 1030 |
+| Wall sconce | 286 .. 310 (bulb 298) | the floor's light, between the doors: x 380 / 507 / 633 / 762 / 885 (`floor_lighting.SCONCE_X`; lobby `LOBBY_SCONCE_X`) — above floor 30's tutorial wall text (314+) |
 
 The corridor generator keeps these spots free of baked damage (`tools/art/corridor.py SIGNS`) and the
 per-floor decals keep off them too (`floor_signs.taken_local`) — keep the three in step.

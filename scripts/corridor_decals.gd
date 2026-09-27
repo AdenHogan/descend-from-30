@@ -25,7 +25,7 @@ const HORROR_SLOTS := 22
 const DOOR_FACE_STATES := [0, 1, 2]           # WorldState.DoorState OPEN / SHUT_* show a plain face
 
 # kind -> [min horror, weight, zone, sprites]. Zones: "hand" (hand height on the wall), "wall",
-# "top" (the high wall, above the pictures), "slide" (down to the skirting), "floor", "door".
+# "top" (the high wall, up under the ceiling), "slide" (down to the skirting), "floor", "door".
 const HORROR := {
 	"bullets": [0.0, 3.0, "wall", ["bullets_1", "bullets_2", "bullets_3"]],
 	"hand": [0.0, 3.0, "hand", ["hand_1", "hand_2", "hand_3"]],
@@ -44,12 +44,17 @@ const HORROR := {
 }
 const MAX_PER_KIND := {"scrawl": 2, "slide": 2, "drag": 2, "door_x": 2}
 # resident things, by how far gone the floor is (corridor wear 0..4)
-const DRESSING_KEPT := ["plant_tall", "plant_small", "umbrella", "shoes", "boots", "shoe_rack", "parcels",
-	"chair", "scooter", "shopping_bag", "kid_drawing",
+# (owner round 24: "things like shoe racks, or trash, or plants, or other outside things. the occasional
+# bicycle" — the corridor carries what residents leave outside their doors, not picture frames)
+const DRESSING_KEPT := ["plant_tall", "plant_small", "umbrella", "shoes", "boots", "shoe_rack", "shoe_rack",
+	"parcels", "chair", "scooter", "shopping_bag", "kid_drawing", "bicycle", "kids_bike", "pram", "bin_bags",
+	"recycling_box", "pedal_bin", "newspapers", "watering_can",
 	"notice_meeting", "notice_bins", "notice_smoking", "notice_quiet", "notice_water", "notice_lift"]
-const DRESSING_TIRED := ["plant_tall", "plant_dead", "parcels", "chair", "shoes", "suitcase",
+const DRESSING_TIRED := ["plant_tall", "plant_dead", "parcels", "chair", "shoes", "suitcase", "bin_bags",
+	"bin_bags", "recycling_box", "bicycle", "shoe_rack", "newspapers", "pedal_bin",
 	"shopping_bag", "notice_quarantine", "poster_missing", "notice_lift", "notice_water", "notice_evac"]
-const DRESSING_GONE := ["plant_dead", "chair_down", "suitcase", "parcels", "poster_missing",
+const DRESSING_GONE := ["plant_dead", "chair_down", "suitcase", "parcels", "poster_missing", "bin_bags",
+	"bin_bags", "bicycle_down", "pram", "newspapers",
 	"notice_quarantine", "shopping_bag", "notice_evac", "notice_curfew", "notice_dont_open"]
 # building notices (owner round 23 — "a variety of notices for the building"), readable, per floor
 const WALL_DRESSING := ["kid_drawing", "notice_quarantine", "poster_missing", "notice_lift", "notice_water",
@@ -104,7 +109,7 @@ static func plan(floor_num: int, run: int, base_name: String) -> Array:
 	var out: Array = []
 	# --- dressing: fixed per floor; later runs take some away / knock some over ---
 	var pool: Array = DRESSING_KEPT if wear <= 1 else (DRESSING_TIRED if wear == 2 else DRESSING_GONE)
-	var n_dress: int = 3 + rng.randi() % 3
+	var n_dress: int = 4 + rng.randi() % 3
 	for i in range(n_dress):
 		var name: String = pool[rng.randi() % pool.size()]
 		var keep: float = rng.randf()
@@ -123,6 +128,8 @@ static func plan(floor_num: int, run: int, base_name: String) -> Array:
 			shown = "plant_fallen"
 		elif name == "chair" and run >= 3 and keep < 0.8:
 			shown = "chair_down"
+		elif name == "bicycle" and run >= 3 and keep < 0.8:
+			shown = "bicycle_down"
 		var t2 := _tex(shown)
 		var p2: Vector2 = pos
 		if t2 != null and shown != name:                      # knocked over: same floor spot
@@ -243,14 +250,14 @@ static func _find(rng: RandomNumberGenerator, taken: Array, size: Vector2, zone:
 			y_lo = FLOOR_Y + 3.0; y_hi = 190.0 - size.y
 		"stand":                                               # standing on the floor at the wall
 			y_lo = FLOOR_Y + 4.0 - size.y; y_hi = y_lo
-		"poster":
-			y_lo = 40.0; y_hi = 124.0 - size.y
+		"poster":                                              # pinned up in the band just over the rail —
+			y_lo = 58.0; y_hi = 94.0 - size.y                  # never up by the ceiling (owner round 24)
 	var floor_zone := zone == "floor"
 	for attempt in range(40):
 		var x: float = float(rng.randi_range(8 if floor_zone else int(WALL_X.x), int((1112.0 if floor_zone else WALL_X.y) - size.x)))
 		var y: float = float(rng.randi_range(int(y_lo), int(maxf(y_lo, y_hi))))
 		var r := Rect2(Vector2(x, y), size)
-		if _blocked(r, floor_zone):
+		if _blocked(r, floor_zone, zone == "stand"):
 			continue
 		var hit := false
 		for t in taken:
@@ -262,13 +269,16 @@ static func _find(rng: RandomNumberGenerator, taken: Array, size: Vector2, zone:
 	return null
 
 
-static func _blocked(r: Rect2, floor_zone: bool) -> bool:
+static func _blocked(r: Rect2, floor_zone: bool, standing: bool = false) -> bool:
 	if floor_zone:
 		return false                                          # the floor runs under everything
 	var y1 := r.end.y
 	if y1 >= DOOR_TOP:
+		# a door face is ±23; things standing on the floor may come up to its frame (a bike leant
+		# between two doors), anything on the wall keeps clear of the plate / switch beside it too
+		var m := 27.0 if standing else 31.0
 		for d in DOORS:
-			if r.end.x >= d - 31 and r.position.x <= d + 31:
+			if r.end.x >= d - m and r.position.x <= d + m:
 				return true
 	if y1 >= 64 and r.end.x >= 874 and r.position.x <= 956:  # the elevator
 		return true

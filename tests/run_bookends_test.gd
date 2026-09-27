@@ -146,6 +146,16 @@ func _test_hints_clear_of_doors() -> void:
 		check(n.position.y >= 290.0 and n.position.y + sz.y <= 404.0,
 			"%s sits at door height (%d..%d), not jammed at the ceiling" % [n.name, n.position.y, n.position.y + sz.y])
 	check(hints >= 5, "the control hints are all there (%d)" % hints)
+	# ...and under the wall sconces, never over one (owner round 24: the sconces light the floor)
+	var FL = load("res://scripts/floor_lighting.gd")
+	for n in h.get_children():
+		if not n.is_in_group("tutorial_blood"):
+			continue
+		var sz2: Vector2 = n.block_size()
+		var block := Rect2(n.position.x - sz2.x * 0.5, n.position.y, sz2.x, sz2.y)
+		for x in FL.SCONCE_X:
+			var lamp := Rect2(float(x) - 10.0, FL.SCONCE_Y - 12.0, 20.0, 24.0)
+			check(not block.intersects(lamp), "%s clears the sconce at x %d" % [n.name, x])
 	h.free()
 
 
