@@ -1598,7 +1598,9 @@ means no rendering — UI layout and art still need an in-editor look.
   engraved floor numbers on it, not too protruding… the number could be fine all by itself… clean font"):
   ONE design on every floor — a thin brushed-steel sheet (hairline edge, the barest shadow, four flush
   screws, `floor_signs.sign_rect`) with just the NUMBER engraved: dark cut strokes with round ends and a
-  light lip below, drawn as smooth antialiased STROKES (`floor_signs.STROKE`, a clean geometric sans), and the lift's floor indicator
+  light lip below, drawn as smooth antialiased STROKES (`floor_signs.STROKE`, a clean geometric sans) spaced
+  and CENTRED by their ink (round 24c: a fixed glyph cell left "21" lopsided — `ink_extent` test), on a
+  polished sheet with diagonal streaks of reflected light, and the lift's floor indicator
   (amber only while it has power or on a merchant floor). Every apartment door has a NUMBER PLATE on its
   left at eye level (`scripts/door_plate.gd`, a child of the door, section-styled; STAFF on the
   maintenance door; none on a breached one; floor 30's plain-sprite 3001 gets one from hallway.gd).

@@ -1455,6 +1455,13 @@ func _test_floor_signs() -> void:
 			var plate: Rect2 = FS.sign_rect(num, float(FS.FLOOR_PLATE_X[side[0]]))
 			check(world_res.encloses(plate.grow(1.0)), "floor %s's %s sign %s sits in its spot %s" % [num, side[0], plate, world_res])
 	check(not FS.STROKE.has("F"), "the sign carries the number alone — no FLOOR label")
+	# ...its number's ink dead centre on the sheet (a fixed glyph cell left "21" / "15" lopsided — round 24c)
+	for f in range(1, 30):
+		var num := str(f)
+		var plate2: Rect2 = FS.sign_rect(num, 246.0)
+		var ext: Vector2 = FS.ink_extent(FS.number_origin(num, plate2), num, FS.SIGN_NUM_H)
+		check(absf((ext.x + ext.y) / 2.0 - plate2.get_center().x) < 0.05,
+			"floor %s: the number sits centred on its sign (ink %.1f..%.1f, sheet centre %.1f)" % [num, ext.x, ext.y, plate2.get_center().x])
 	var r: Rect2 = FS.taken_local()[0]
 	check(r.size.x > 0 and FS.taken_local().size() == 11 + FL_SCONCES, "the signs' footprints are reserved (%d)" % FS.taken_local().size())
 	# every plate (face + its 1px edge + shadow) fits the footprint reserved for it — STAFF is the widest

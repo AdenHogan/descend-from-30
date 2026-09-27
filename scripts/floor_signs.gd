@@ -148,7 +148,6 @@ const STROKE := {
 	"8": [["A", 3.0, 2.6, 2.4, 0.0, 360.0], ["A", 3.0, 7.4, 2.6, 0.0, 360.0]],
 	"9": [["A", 3.0, 3.0, 3.0, 0.0, 360.0], ["A", -1.0, 3.0, 7.0, 0.0, 65.0]],
 }
-const ADVANCE := 9.0                  # one glyph + its gap, in grid units
 const SIGN_NUM_H := 15.0              # the number's height, world px
 const SIGN_STROKE := 2.1
 const STEEL := Color(0.72, 0.74, 0.76)
@@ -177,58 +176,122 @@ static func _stroke_polys(ch: String) -> Array:
 	return out
 
 
-## Width of `s` in the stroke type at `h` px tall (glyphs are 6 units wide + a 3-unit gap).
+const INK_GAP := 2.6                  # the space between two glyphs' INK, in grid units (tight, even)
+
+
+## A glyph's ink extent along x (grid units) — the "1" is a narrow stroke, so spacing and centring go
+## by the ink, never by a fixed cell (a fixed cell pushed "21" / "15" off-centre on the plate).
+static func _glyph_span(ch: String) -> Vector2:
+	var lo := INF
+	var hi := -INF
+	for pts in _stroke_polys(ch):
+		for p in pts:
+			lo = minf(lo, p.x)
+			hi = maxf(hi, p.x)
+	return Vector2(lo, hi) if lo <= hi else Vector2(0.0, 6.0)
+
+
+## The INK width of `s` in the stroke type at `h` px tall.
 static func stroke_width(s: String, h: float) -> float:
 	var u := h / 10.0
-	return (s.length() * ADVANCE - 3.0) * u
+	var w := 0.0
+	for i in range(s.length()):
+		var sp := _glyph_span(s[i])
+		w += sp.y - sp.x
+		if i > 0:
+			w += INK_GAP
+	return w * u
 
 
-## Draws `s` as strokes with ROUND ends (a clean sign face, not a pixel font).
-static func draw_stroke_text(ci: CanvasItem, pos: Vector2, s: String, h: float, col: Color, w: float) -> void:
+## Draws `s` as strokes with ROUND ends (a clean sign face, not a pixel font); `pos.x` is the ink's left.
+static func draw_stroke_text(ci: CanvasItem, pos: Vector2, s: String, h: float, col: Color, w: float,
+		caps: bool = true) -> void:
 	var u := h / 10.0
 	var x := pos.x
 	for ch in s:
+		var sp := _glyph_span(ch)
 		for pts in _stroke_polys(ch):
 			var tp := PackedVector2Array()
 			for p in pts:
-				tp.append(Vector2(x, pos.y) + p * u)
+				tp.append(Vector2(x + (p.x - sp.x) * u, pos.y + p.y * u))
 			ci.draw_polyline(tp, col, w, true)
-			ci.draw_circle(tp[0], w * 0.5, col)
-			ci.draw_circle(tp[tp.size() - 1], w * 0.5, col)
-		x += ADVANCE * u
+			if caps:
+				ci.draw_circle(tp[0], w * 0.5, col)
+				ci.draw_circle(tp[tp.size() - 1], w * 0.5, col)
+		x += (sp.y - sp.x + INK_GAP) * u
+
+
+## Where the number's ink starts on plate `r` (its ink centred on the sheet both ways).
+static func number_origin(num: String, r: Rect2) -> Vector2:
+	var c := r.get_center()
+	return Vector2(c.x - stroke_width(num, SIGN_NUM_H) / 2.0, c.y - SIGN_NUM_H / 2.0 - 0.3)
+
+
+## The drawn ink's x extent (min, max) of `s` set at `pos` — the stroke centres, as draw_stroke_text lays them.
+static func ink_extent(pos: Vector2, s: String, h: float) -> Vector2:
+	var u := h / 10.0
+	var x := pos.x
+	var lo := INF
+	var hi := -INF
+	for ch in s:
+		var sp := _glyph_span(ch)
+		for pts in _stroke_polys(ch):
+			for p in pts:
+				var px: float = x + (p.x - sp.x) * u
+				lo = minf(lo, px)
+				hi = maxf(hi, px)
+		x += (sp.y - sp.x + INK_GAP) * u
+	return Vector2(lo, hi)
 
 
 ## The sign's plate rect for this floor's number (world), centred on `cx`.
 static func sign_rect(num: String, cx: float) -> Rect2:
-	var w := roundf(stroke_width(num, SIGN_NUM_H) + 13.0)
-	return Rect2(roundf(cx - w / 2.0), FLOOR_PLATE_Y - 9.0, w, 27.0)
+	var w := roundf(maxf(stroke_width(num, SIGN_NUM_H) + 14.0, 28.0))
+	if int(w) % 2 == 1:
+		w += 1.0                                         # an even width, so it centres on a whole pixel
+	return Rect2(roundf(cx) - w / 2.0, FLOOR_PLATE_Y - 9.0, w, 27.0)
 
 
 func _floor_number(cx: float) -> void:
 	var num := floor_label(floor_num)
 	var r := sign_rect(num, cx)
-	draw_rect(Rect2(r.position + Vector2(0.5, 0.7), r.size), Color(0, 0, 0, 0.28))          # sits flat on the wall
-	draw_rect(r, STEEL.darkened(0.42))                                                      # its hairline edge
+	draw_rect(Rect2(r.position + Vector2(0.5, 0.8), r.size), Color(0, 0, 0, 0.3))           # sits flat on the wall
+	draw_rect(r, STEEL.darkened(0.45))                                                      # its hairline edge
 	var face := r.grow(-0.5)
-	draw_rect(face, STEEL)
-	var y := face.position.y                                                                # brushed grain
+	# polished steel: lighter at the top, a touch darker at the foot...
+	draw_polygon(PackedVector2Array([face.position, Vector2(face.end.x, face.position.y), face.end,
+		Vector2(face.position.x, face.end.y)]),
+		PackedColorArray([STEEL.lightened(0.3), STEEL.lightened(0.22), STEEL.darkened(0.14), STEEL.darkened(0.08)]))
+	var y := face.position.y                                                                # ...a fine brushed grain...
 	var k := 0
 	while y < face.end.y:
 		var t := 0.5 + 0.5 * sin(float(k) * 2.9) * cos(float(k) * 0.53)
 		draw_rect(Rect2(face.position.x, y, face.size.x, 0.5),
-			Color(1, 1, 1, 0.04 + 0.06 * t) if k % 2 == 0 else Color(0, 0, 0, 0.03 + 0.03 * t))
+			Color(1, 1, 1, 0.03 + 0.04 * t) if k % 2 == 0 else Color(0, 0, 0, 0.02 + 0.03 * t))
 		y += 0.5
 		k += 1
-	draw_rect(Rect2(face.position.x, face.position.y, face.size.x, 0.5), STEEL.lightened(0.5))   # the lit top edge
-	draw_rect(Rect2(face.position.x, face.end.y - 0.5, face.size.x, 0.5), STEEL.darkened(0.25))
-	for sp in [face.position + Vector2(2.0, 2.0), Vector2(face.end.x - 2.0, face.position.y + 2.0),
-			Vector2(face.position.x + 2.0, face.end.y - 2.0), face.end - Vector2(2.0, 2.0)]:
-		draw_circle(sp, 0.8, STEEL.darkened(0.35))                                          # flush screws
-		draw_circle(sp + Vector2(-0.2, -0.2), 0.35, STEEL.lightened(0.4))
-	var nw := stroke_width(num, SIGN_NUM_H)
-	var at := Vector2(roundf(cx - nw / 2.0), roundf(r.position.y + (r.size.y - SIGN_NUM_H) / 2.0))
-	draw_stroke_text(self, at + Vector2(0.0, 0.6), num, SIGN_NUM_H, STEEL.lightened(0.55), SIGN_STROKE)   # the lip
-	draw_stroke_text(self, at, num, SIGN_NUM_H, ENGRAVE, SIGN_STROKE)                                     # the cut
+	# ...and the SHINE: two soft diagonal streaks of reflected light across the sheet
+	var span := face.size.x + face.size.y * 0.8
+	for cy in range(int(face.size.y)):
+		for cx2 in range(int(face.size.x)):
+			var d := (float(cx2) + float(cy) * 0.8) / span
+			var a := 0.55 * exp(-pow((d - 0.3) / 0.09, 2.0)) + 0.25 * exp(-pow((d - 0.5) / 0.035, 2.0)) \
+				+ 0.12 * exp(-pow((d - 0.8) / 0.06, 2.0))
+			if a > 0.01:
+				draw_rect(Rect2(face.position + Vector2(cx2, cy), Vector2.ONE), Color(1, 1, 1, a))
+	draw_rect(Rect2(face.position.x, face.position.y, face.size.x, 0.5), Color(1, 1, 1, 0.75))   # the lit edges
+	draw_rect(Rect2(face.position.x, face.position.y, 0.5, face.size.y), Color(1, 1, 1, 0.45))
+	draw_rect(Rect2(face.position.x, face.end.y - 0.5, face.size.x, 0.5), STEEL.darkened(0.35))
+	draw_rect(Rect2(face.end.x - 0.5, face.position.y, 0.5, face.size.y), STEEL.darkened(0.3))
+	var m := 2.2                                                                                  # flush screws, symmetric
+	for sp in [face.position + Vector2(m, m), Vector2(face.end.x - m, face.position.y + m),
+			Vector2(face.position.x + m, face.end.y - m), face.end - Vector2(m, m)]:
+		draw_circle(sp, 0.85, STEEL.darkened(0.4))
+		draw_circle(sp + Vector2(-0.25, -0.25), 0.4, Color(1, 1, 1, 0.85))
+	# the number, its INK centred on the sheet both ways
+	var at := number_origin(num, r)
+	draw_stroke_text(self, at + Vector2(0.0, 0.55), num, SIGN_NUM_H, Color(1, 1, 1, 0.6), SIGN_STROKE, false)   # the lip
+	draw_stroke_text(self, at, num, SIGN_NUM_H, ENGRAVE, SIGN_STROKE)                                  # the cut
 
 
 func _lift_panel() -> void:
