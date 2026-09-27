@@ -1,0 +1,110 @@
+{
+ "note": "tools/art/corridor_props.py: per standing prop \u2014 rule (door/open), depth on the floor, contact (sprite row of its front floor contact)",
+ "props": {
+  "bicycle": {
+   "contact": 36,
+   "depth": 3,
+   "rule": "door"
+  },
+  "bicycle_down": {
+   "contact": 17,
+   "depth": 10,
+   "rule": "door"
+  },
+  "bin_bags": {
+   "contact": 28,
+   "depth": 11,
+   "rule": "door"
+  },
+  "boots": {
+   "contact": 20,
+   "depth": 6,
+   "rule": "door"
+  },
+  "chair": {
+   "contact": 38,
+   "depth": 9,
+   "rule": "open"
+  },
+  "chair_down": {
+   "contact": 25,
+   "depth": 10,
+   "rule": "open"
+  },
+  "kids_bike": {
+   "contact": 26,
+   "depth": 3,
+   "rule": "door"
+  },
+  "newspapers": {
+   "contact": 16,
+   "depth": 9,
+   "rule": "door"
+  },
+  "parcels": {
+   "contact": 28,
+   "depth": 9,
+   "rule": "door"
+  },
+  "plant_dead": {
+   "contact": 51,
+   "depth": 8,
+   "rule": "open"
+  },
+  "plant_fallen": {
+   "contact": 23,
+   "depth": 12,
+   "rule": "open"
+  },
+  "plant_stand": {
+   "contact": 46,
+   "depth": 7,
+   "rule": "open"
+  },
+  "plant_tall": {
+   "contact": 51,
+   "depth": 8,
+   "rule": "open"
+  },
+  "pram": {
+   "contact": 40,
+   "depth": 9,
+   "rule": "door"
+  },
+  "recycling_box": {
+   "contact": 23,
+   "depth": 8,
+   "rule": "door"
+  },
+  "scooter": {
+   "contact": 27,
+   "depth": 4,
+   "rule": "door"
+  },
+  "shoe_rack": {
+   "contact": 30,
+   "depth": 7,
+   "rule": "door"
+  },
+  "shoes": {
+   "contact": 12,
+   "depth": 6,
+   "rule": "door"
+  },
+  "shopping_bag": {
+   "contact": 27,
+   "depth": 6,
+   "rule": "door"
+  },
+  "suitcase": {
+   "contact": 32,
+   "depth": 7,
+   "rule": "door"
+  },
+  "umbrella_stand": {
+   "contact": 35,
+   "depth": 6,
+   "rule": "door"
+  }
+ }
+}

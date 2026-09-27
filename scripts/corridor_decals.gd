@@ -46,12 +46,18 @@ const MAX_PER_KIND := {"scrawl": 2, "slide": 2, "drag": 2, "door_x": 2}
 # resident things, by how far gone the floor is (corridor wear 0..4)
 # (owner round 24: "things like shoe racks, or trash, or plants, or other outside things. the occasional
 # bicycle" — the corridor carries what residents leave outside their doors, not picture frames)
-const DRESSING_KEPT := ["plant_tall", "plant_small", "umbrella", "shoes", "boots", "shoe_rack", "shoe_rack",
+# Round 24b ("they are very flat and on the wall… it needs to have geometry and weight to it. AND logic"):
+# the standing things are drawn with volume (tools/art/corridor_props.py) and each has a RULE for where it
+# goes — "door": beside a flat's door (shoes, a rack, an umbrella stand, parcels, a pram, the bins put out,
+# a bike leant on the wall); "open": a stretch of wall between the doors or by the lift (a planter, a small
+# plant up on its stand, a hall chair to wait on) — and its depth on the floor (assets/corridor/decals/
+# dressing.json, written by the art tool).
+const DRESSING_KEPT := ["plant_tall", "plant_stand", "umbrella_stand", "shoes", "boots", "shoe_rack", "shoe_rack",
 	"parcels", "chair", "scooter", "shopping_bag", "kid_drawing", "bicycle", "kids_bike", "pram", "bin_bags",
-	"recycling_box", "pedal_bin", "newspapers", "watering_can",
+	"recycling_box", "newspapers",
 	"notice_meeting", "notice_bins", "notice_smoking", "notice_quiet", "notice_water", "notice_lift"]
 const DRESSING_TIRED := ["plant_tall", "plant_dead", "parcels", "chair", "shoes", "suitcase", "bin_bags",
-	"bin_bags", "recycling_box", "bicycle", "shoe_rack", "newspapers", "pedal_bin",
+	"bin_bags", "recycling_box", "bicycle", "shoe_rack", "newspapers", "plant_stand",
 	"shopping_bag", "notice_quarantine", "poster_missing", "notice_lift", "notice_water", "notice_evac"]
 const DRESSING_GONE := ["plant_dead", "chair_down", "suitcase", "parcels", "poster_missing", "bin_bags",
 	"bin_bags", "bicycle_down", "pram", "newspapers",
@@ -70,8 +76,15 @@ const DEAD_LINE := Vector2(168, 184)             # the floor lines a body may li
 const DEAD_THRESHOLDS := [0.3, 0.85]             # + up to 0.5 each, per floor
 const DEAD_CHANCE := 0.55                        # not every floor, even when it's bad enough
 
+const META_PATH := "res://assets/corridor/decals/dressing.json"
+const KNOCKED := {"plant_tall": "plant_fallen", "chair": "chair_down", "bicycle": "bicycle_down"}
+const DOOR_FRAME := 27.0                          # a door's face + frame, either side of its centre
+# the "open" spots: the wall between each pair of doors (under its sconce) and beside the lift
+const OPEN_SPOTS := [265.0, 392.0, 518.0, 647.0, 852.0]
+
 static var _layout: Dictionary = {}
 static var _loaded := false
+static var _meta: Dictionary = {}
 
 
 static func horror_level(floor_num: int, run: int) -> float:
@@ -79,6 +92,50 @@ static func horror_level(floor_num: int, run: int) -> float:
 	@warning_ignore("integer_division")
 	var wear: int = clampi((29 - floor_num) / 6, 0, 4)
 	return clampf(0.06 + 0.2 * wear + 0.32 * (run - 1), 0.0, HORROR_MAX)
+
+
+## What corridor_props.py recorded for a standing prop: {rule, depth, contact} (empty if none).
+static func dressing_meta(name: String) -> Dictionary:
+	if _meta.is_empty() and FileAccess.file_exists(META_PATH):
+		var data = JSON.parse_string(FileAccess.get_file_as_string(META_PATH))
+		if data is Dictionary and data.get("props") is Dictionary:
+			_meta = data["props"]
+	return _meta.get(name, {})
+
+
+## The sprite's top so its front floor contact lands `depth` in front of the skirting (its back on it).
+static func standing_y(name: String) -> float:
+	var m := dressing_meta(name)
+	var tex := _tex(name)
+	var contact := float(m.get("contact", (tex.get_size().y - 1.0) if tex != null else 0.0))
+	return float(FLOOR_Y) + float(m.get("depth", 4)) - contact
+
+
+## Somewhere with a REASON to be: beside a door (just outside its frame), or on an open stretch of wall
+## between the doors / by the lift. Null if nothing fits.
+static func _place_standing(rng: RandomNumberGenerator, taken: Array, name: String, size: Vector2):
+	var rule := str(dressing_meta(name).get("rule", "door"))
+	var y := standing_y(name)
+	for attempt in range(24):
+		var x: float
+		if rule == "open":
+			x = float(OPEN_SPOTS[rng.randi() % OPEN_SPOTS.size()]) - size.x / 2.0 + float(rng.randi_range(-3, 3))
+		else:
+			var d: float = float(DOORS[rng.randi() % DOORS.size()])
+			var gap := float(rng.randi_range(1, 6))
+			x = d + DOOR_FRAME + gap if rng.randf() < 0.5 else d - DOOR_FRAME - gap - size.x
+		x = roundf(x)
+		var r := Rect2(Vector2(x, y), size)
+		if x < WALL_X.x or r.end.x > WALL_X.y or _blocked(r, false, true):
+			continue
+		var hit := false
+		for t in taken:
+			if (t as Rect2).intersects(r):
+				hit = true
+				break
+		if not hit:
+			return Vector2(x, y)
+	return null
 
 
 static func _taken_for(base_name: String) -> Array:
@@ -117,10 +174,18 @@ static func plan(floor_num: int, run: int, base_name: String) -> Array:
 		var tex := _tex(name)
 		if tex == null:
 			continue
-		var pos = _find(rng, taken, tex.get_size(), "poster" if wall else "stand")
+		var pos = null
+		var span := tex.get_size()
+		if wall:
+			pos = _find(rng, taken, span, "poster")
+		else:
+			var k2 := _tex(str(KNOCKED.get(name, name)))
+			if k2 != null:                                    # room for it if it's knocked over later
+				span.x = maxf(span.x, k2.get_size().x)
+			pos = _place_standing(rng, taken, name, span)
 		if pos == null:
 			continue
-		taken.append(Rect2(pos, tex.get_size()).grow(2))
+		taken.append(Rect2(pos, span).grow(2))
 		if (run >= 3 and keep < 0.55) or (run == 2 and keep < 0.3):
 			continue                                          # gone: somebody took it, or it was cleared
 		var shown := name
@@ -130,10 +195,9 @@ static func plan(floor_num: int, run: int, base_name: String) -> Array:
 			shown = "chair_down"
 		elif name == "bicycle" and run >= 3 and keep < 0.8:
 			shown = "bicycle_down"
-		var t2 := _tex(shown)
 		var p2: Vector2 = pos
-		if t2 != null and shown != name:                      # knocked over: same floor spot
-			p2 = Vector2(pos.x, pos.y + tex.get_size().y - t2.get_size().y)
+		if not wall:                                          # stood on the floor at its own depth
+			p2.y = standing_y(shown)
 		out.append({"name": shown, "pos": p2, "layer": "wall"})
 	# --- horror: HORROR_SLOTS candidates with rising thresholds; the floor + run shows a prefix ---
 	var h := horror_level(floor_num, run)
@@ -248,8 +312,6 @@ static func _find(rng: RandomNumberGenerator, taken: Array, size: Vector2, zone:
 			y_lo = SKIRT_TOP - size.y; y_hi = y_lo
 		"floor":
 			y_lo = FLOOR_Y + 3.0; y_hi = 190.0 - size.y
-		"stand":                                               # standing on the floor at the wall
-			y_lo = FLOOR_Y + 4.0 - size.y; y_hi = y_lo
 		"poster":                                              # pinned up in the band just over the rail —
 			y_lo = 58.0; y_hi = 94.0 - size.y                  # never up by the ceiling (owner round 24)
 	var floor_zone := zone == "floor"
@@ -257,7 +319,7 @@ static func _find(rng: RandomNumberGenerator, taken: Array, size: Vector2, zone:
 		var x: float = float(rng.randi_range(8 if floor_zone else int(WALL_X.x), int((1112.0 if floor_zone else WALL_X.y) - size.x)))
 		var y: float = float(rng.randi_range(int(y_lo), int(maxf(y_lo, y_hi))))
 		var r := Rect2(Vector2(x, y), size)
-		if _blocked(r, floor_zone, zone == "stand"):
+		if _blocked(r, floor_zone):
 			continue
 		var hit := false
 		for t in taken:

@@ -743,38 +743,6 @@ def wear_floor(c, w, sp, rng):
                     px[x, y] = hexc('a8aaa6') if t else hexc('c8cac6')
 
 
-def bin_bag(c, x0, sp, rng):
-    """A black bin bag slumped against the wall, sitting on the floor at the skirting."""
-    w = rng.randrange(20, 28)
-    h = rng.randrange(17, 23)
-    base_y = FLOOR_Y + 5
-    top = base_y - h
-    cx = x0 + w // 2
-    c.shadow(cx + 1, base_y, w // 2 + 4, 3, alpha=120)
-    lean = rng.choice((-1, 1))
-    for y in range(top + 4, base_y + 1):
-        t = (y - top - 4) / max(1, base_y - top - 4)
-        hw = w / 2 * (min(1.0, 0.45 + 1.2 * t) if t < 0.8 else 1.0 - (t - 0.8) * 0.4)
-        m = cx + lean * int(2 * (1 - t))
-        for x in range(int(m - hw), int(m + hw) + 1):
-            u = (x - (m - hw)) / max(1, 2 * hw)
-            col = hexc('25272b')
-            if u < 0.22 and 0.2 < t < 0.85:
-                col = hexc('3b3f45')                                       # the sheen on the plastic
-            elif u > 0.8:
-                col = hexc('17181b')
-            if (x - int(m) + int(t * 9)) % 7 == 0 and 0.15 < t < 0.9:
-                col = hexc('1c1d20')                                       # creases
-            c.put(x, y, col)
-        if y == base_y:
-            c.hline(int(m - hw), int(m + hw), y, hexc('121314'))
-    c.rect(cx - 2, top + 1, cx + 2, top + 4, hexc('2e3136'))              # the gathered neck
-    c.poly([(cx - 1, top + 1), (cx - 6, top - 3), (cx - 3, top + 2)], hexc('2e3136'))   # the tied ears
-    c.poly([(cx + 1, top + 1), (cx + 6, top - 2), (cx + 3, top + 2)], hexc('25272b'))
-    c.put(cx - 1, top + 2, hexc('4a4e56'))
-    sp.take(x0 - 4, top - 4, x0 + w + 4, base_y)
-
-
 def flat_box(c, x0, sp, rng):
     """A flattened cardboard box leaning against the wall."""
     w = rng.randrange(20, 28)
@@ -791,11 +759,8 @@ def flat_box(c, x0, sp, rng):
 
 
 def props(c, w, sp, rng, zones):
-    for _ in range(w['bags']):
-        at = sp.find(rng, 44, 30, SKIRT_Y - 20, SKIRT_Y - 18, pad=3, zones=zones)
-        if at:
-            for k in range(1 + (rng.random() < 0.6)):                     # bags come in heaps
-                bin_bag(c, at[0] + k * 16, sp, rng)
+    # (round 24b: no bin bags baked in at random along the wall — rubbish is put out BESIDE A DOOR, by the
+    # per-floor decals, scripts/corridor_decals.gd; `bags` in WEAR / RUN_EXTRA is no longer drawn)
     for _ in range(w['boxes']):
         at = sp.find(rng, 34, 36, 122, 124, pad=3, zones=zones)
         if at:

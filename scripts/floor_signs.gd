@@ -8,8 +8,7 @@ extends Node2D
 ## FONT3), crisp at the game's zoom:
 ##   - by each stairwell: a green STAIRS sign over the opening, with an arrow and the floor it leads to
 ##     (the down side from WorldState.stair_down_side — a pure function of the floor);
-##   - beside each stairwell: the floor's number, big, in the section's style (a brass plaque in the
-##     hotel floors, an enamel plate in the residential ones, stencilled on the wall in the low ones);
+##   - beside each stairwell: the floor's number engraved in a clean brushed-steel sheet (every floor);
 ##   - over the lift: its floor indicator (lit amber only while the lift has power).
 ## Each apartment door carries its own number plate (door.gd, `DoorPlate` below) so floor 30's doors
 ## get one too. Drawn at z 0 (the backdrop), after the corridor art, under every actor.
@@ -131,30 +130,29 @@ func _stair_sign(cx: float, arrow: String, to_floor: int) -> void:
 	draw_text(self, Vector2(roundf(cx - text_width(bottom) / 2.0), r.position.y + 8), bottom, ink)
 
 
-# --- THE FLOOR SIGN (owner round 24 — "a bit too pixel art and doesn't look well designed. The square
-# should have some metallic edges to it so it looks like a building sign"): a bevelled, brushed-metal
-# plate with four screws, the type drawn as smooth antialiased STROKES (below, on a 6x10 grid) rather
-# than blocky pixel capitals — engraved on the hotel's brass, white on a blue enamel panel on the
-# residential aluminium, black on a bolted steel plate with a hazard strip down in the low floors.
+# --- THE FLOOR SIGN (owner round 24b — "a clean metal sheet with engraved floor numbers on it, not too
+# protruding from the scene, but a clearly built sign… the number could be fine all by itself… clean font
+# too"): ONE design on every floor — a thin brushed-steel sheet on the wall (a hairline edge, the barest
+# shadow, four flush screws) with the number ENGRAVED in it: dark cut strokes with round ends, a light
+# lip along their lower edge where the cut catches the light. The type is drawn as smooth antialiased
+# STROKES on a 6x10 grid (a clean geometric sans), not pixel capitals.
 const STROKE := {
 	"0": [["E", 3.0, 5.0, 3.0, 5.0]],
-	"1": [[[2.0, 1.6], [3.8, 0.0], [3.8, 10.0]]],
-	"2": [["A", 3.0, 3.0, 3.0, 180.0, 395.0], [[5.3, 5.0], [0.0, 10.0], [6.0, 10.0]]],
-	"3": [["A", 3.0, 2.5, 2.5, 200.0, 450.0], ["A", 3.0, 7.5, 2.5, 270.0, 520.0]],
-	"4": [[[4.6, 10.0], [4.6, 0.0], [0.0, 7.0], [6.2, 7.0]]],
+	"1": [[[1.8, 1.8], [3.6, 0.0], [3.6, 10.0]]],
+	"2": [["A", 3.0, 3.0, 3.0, 180.0, 395.0], [[5.46, 4.72], [0.0, 10.0], [6.0, 10.0]]],
+	"3": [["A", 3.0, 2.6, 2.6, 195.0, 450.0], ["A", 3.0, 7.4, 2.6, 270.0, 525.0]],
+	"4": [[[4.4, 10.0], [4.4, 0.0], [0.0, 7.0], [6.2, 7.0]]],
 	"5": [[[5.6, 0.0], [0.9, 0.0], [0.6, 4.4]], ["A", 3.0, 6.8, 3.2, 232.0, 520.0]],
-	"6": [["A", 3.0, 7.0, 3.0, 0.0, 360.0], [[4.9, 0.0], [0.4, 6.2]]],
+	"6": [["A", 3.0, 7.0, 3.0, 0.0, 360.0], ["A", 7.0, 7.0, 7.0, 245.0, 180.0]],
 	"7": [[[0.0, 0.0], [6.0, 0.0], [2.2, 10.0]]],
 	"8": [["A", 3.0, 2.6, 2.4, 0.0, 360.0], ["A", 3.0, 7.4, 2.6, 0.0, 360.0]],
-	"9": [["A", 3.0, 3.0, 3.0, 0.0, 360.0], [[5.9, 3.8], [2.0, 10.0]]],
-	"F": [[[5.6, 0.0], [0.0, 0.0], [0.0, 10.0]], [[0.0, 5.0], [4.4, 5.0]]],
-	"L": [[[0.0, 0.0], [0.0, 10.0], [5.4, 10.0]]],
-	"O": [["E", 3.0, 5.0, 3.0, 5.0]],
-	"R": [[[0.0, 10.0], [0.0, 0.0], [3.2, 0.0]], ["A", 3.2, 2.6, 2.6, 270.0, 450.0], [[3.2, 5.2], [0.0, 5.2]], [[2.6, 5.2], [5.8, 10.0]]],
+	"9": [["A", 3.0, 3.0, 3.0, 0.0, 360.0], ["A", -1.0, 3.0, 7.0, 0.0, 65.0]],
 }
-
-
 const ADVANCE := 9.0                  # one glyph + its gap, in grid units
+const SIGN_NUM_H := 15.0              # the number's height, world px
+const SIGN_STROKE := 2.1
+const STEEL := Color(0.72, 0.74, 0.76)
+const ENGRAVE := Color(0.16, 0.17, 0.19)
 
 
 static func _stroke_polys(ch: String) -> Array:
@@ -168,7 +166,7 @@ static func _stroke_polys(ch: String) -> Array:
 			var ry: float = part[4] if part[0] == "E" else part[3]
 			var t0: float = 0.0 if part[0] == "E" else part[4]
 			var t1: float = 360.0 if part[0] == "E" else part[5]
-			var steps := 28
+			var steps := 32
 			for i in range(steps + 1):
 				var t := deg_to_rad(lerpf(t0, t1, float(i) / steps))
 				pts.append(Vector2(cx + rx * cos(t), cy + ry * sin(t)))
@@ -185,6 +183,7 @@ static func stroke_width(s: String, h: float) -> float:
 	return (s.length() * ADVANCE - 3.0) * u
 
 
+## Draws `s` as strokes with ROUND ends (a clean sign face, not a pixel font).
 static func draw_stroke_text(ci: CanvasItem, pos: Vector2, s: String, h: float, col: Color, w: float) -> void:
 	var u := h / 10.0
 	var x := pos.x
@@ -194,93 +193,42 @@ static func draw_stroke_text(ci: CanvasItem, pos: Vector2, s: String, h: float, 
 			for p in pts:
 				tp.append(Vector2(x, pos.y) + p * u)
 			ci.draw_polyline(tp, col, w, true)
+			ci.draw_circle(tp[0], w * 0.5, col)
+			ci.draw_circle(tp[tp.size() - 1], w * 0.5, col)
 		x += ADVANCE * u
 
 
-func _screw(p: Vector2, metal: Color) -> void:
-	draw_circle(p + Vector2(0.3, 0.4), 1.25, Color(0, 0, 0, 0.35))
-	draw_circle(p, 1.15, metal.darkened(0.35))
-	draw_circle(p + Vector2(-0.3, -0.3), 0.7, metal.lightened(0.35))
-	draw_line(p + Vector2(-0.8, 0.5), p + Vector2(0.8, -0.5), metal.darkened(0.6), 0.45, true)
-
-
-## The plate: a drop shadow on the wall, a bevelled metal frame (lit top-left, shadowed bottom-right),
-## a brushed face, screws in the corners. Returns the inner face rect.
-func _metal_plate(r: Rect2, metal: Color, face: Color) -> Rect2:
-	draw_rect(Rect2(r.position + Vector2(1.2, 1.6), r.size), Color(0, 0, 0, 0.4))          # on the wall
-	draw_rect(r, metal.darkened(0.55))                                                     # its edge
-	var bev := r.grow(-0.6)
-	draw_rect(bev, metal)
-	var hi := metal.lightened(0.45)
-	var lo := metal.darkened(0.4)
-	draw_rect(Rect2(bev.position, Vector2(bev.size.x, 1.0)), hi)                           # the bevel
-	draw_rect(Rect2(bev.position, Vector2(1.0, bev.size.y)), hi.darkened(0.08))
-	draw_rect(Rect2(bev.position.x, bev.end.y - 1.0, bev.size.x, 1.0), lo)
-	draw_rect(Rect2(bev.end.x - 1.0, bev.position.y, 1.0, bev.size.y), lo)
-	var inner := bev.grow(-2.0)
-	draw_rect(inner.grow(0.5), metal.darkened(0.3))                                        # the step down
-	draw_rect(inner, face)
-	var y := inner.position.y + 0.25                                                       # brushed
-	var k := 0
-	while y < inner.end.y:
-		var t := 0.5 + 0.5 * sin(float(k) * 2.3) * cos(float(k) * 0.7)
-		draw_rect(Rect2(inner.position.x, y, inner.size.x, 0.5), Color(1, 1, 1, 0.05 + 0.07 * t) if k % 2 == 0 else Color(0, 0, 0, 0.05 * t))
-		y += 0.5
-		k += 1
-	draw_rect(Rect2(inner.position, Vector2(inner.size.x, inner.size.y * 0.4)), Color(1, 1, 1, 0.06))   # sheen
-	for c in [bev.position + Vector2(2.4, 2.4), Vector2(bev.end.x - 2.4, bev.position.y + 2.4),
-			Vector2(bev.position.x + 2.4, bev.end.y - 2.4), bev.end - Vector2(2.4, 2.4)]:
-		_screw(c, metal)
-	return inner
+## The sign's plate rect for this floor's number (world), centred on `cx`.
+static func sign_rect(num: String, cx: float) -> Rect2:
+	var w := roundf(stroke_width(num, SIGN_NUM_H) + 13.0)
+	return Rect2(roundf(cx - w / 2.0), FLOOR_PLATE_Y - 9.0, w, 27.0)
 
 
 func _floor_number(cx: float) -> void:
 	var num := floor_label(floor_num)
-	var nh := 12.0                                        # the number's height
-	var lh := 4.4                                         # "FLOOR"
-	var nw := stroke_width(num, nh)
-	var lw := stroke_width("FLOOR", lh)
-	var w := roundf(maxf(nw, lw) + 14.0)
-	var h := 32.0
-	var r := Rect2(roundf(cx - w / 2.0), FLOOR_PLATE_Y - 8.0, w, h)
-	var metal: Color
-	var face: Color
-	var ink: Color
-	match section:
-		"high":                                   # brushed brass, the type engraved
-			metal = Color(0.66, 0.5, 0.24)
-			face = Color(0.74, 0.58, 0.3)
-			ink = Color(0.2, 0.13, 0.06)
-		"mid":                                    # aluminium round a blue enamel panel, white type
-			metal = Color(0.66, 0.68, 0.7)
-			face = Color(0.16, 0.27, 0.5)
-			ink = Color(0.95, 0.95, 0.92)
-		_:                                        # bolted steel, black type, a hazard strip
-			metal = Color(0.46, 0.48, 0.5)
-			face = Color(0.8, 0.8, 0.76)
-			ink = Color(0.1, 0.1, 0.11)
-	var inner := _metal_plate(r, metal, face)
-	var lx := roundf(cx - lw / 2.0)
-	var ly := inner.position.y + 1.8
-	var ny := ly + lh + 4.4
-	if section == "low":                          # the hazard strip across the bottom of the face
-		var sy := inner.end.y - 3.0
-		draw_rect(Rect2(inner.position.x, sy, inner.size.x, 3.0), Color(0.88, 0.72, 0.14))
-		var x := inner.position.x - 3.0
-		while x < inner.end.x:
-			var poly := PackedVector2Array([Vector2(x, sy + 3.0), Vector2(x + 1.6, sy + 3.0),
-				Vector2(x + 3.1, sy), Vector2(x + 1.5, sy)])
-			var clipped := PackedVector2Array()
-			for p in poly:
-				clipped.append(Vector2(clampf(p.x, inner.position.x, inner.end.x), p.y))
-			draw_colored_polygon(clipped, Color(0.12, 0.12, 0.12))
-			x += 3.2
-		ny -= 1.2
-	if section == "high":                         # engraved: a light lip under each cut
-		draw_stroke_text(self, Vector2(lx, ly + 0.45), "FLOOR", lh, face.lightened(0.3), 0.75)
-		draw_stroke_text(self, Vector2(roundf(cx - nw / 2.0), ny + 0.6), num, nh, face.lightened(0.3), 1.9)
-	draw_stroke_text(self, Vector2(lx, ly), "FLOOR", lh, ink, 0.75)
-	draw_stroke_text(self, Vector2(roundf(cx - nw / 2.0), ny), num, nh, ink, 1.9)
+	var r := sign_rect(num, cx)
+	draw_rect(Rect2(r.position + Vector2(0.5, 0.7), r.size), Color(0, 0, 0, 0.28))          # sits flat on the wall
+	draw_rect(r, STEEL.darkened(0.42))                                                      # its hairline edge
+	var face := r.grow(-0.5)
+	draw_rect(face, STEEL)
+	var y := face.position.y                                                                # brushed grain
+	var k := 0
+	while y < face.end.y:
+		var t := 0.5 + 0.5 * sin(float(k) * 2.9) * cos(float(k) * 0.53)
+		draw_rect(Rect2(face.position.x, y, face.size.x, 0.5),
+			Color(1, 1, 1, 0.04 + 0.06 * t) if k % 2 == 0 else Color(0, 0, 0, 0.03 + 0.03 * t))
+		y += 0.5
+		k += 1
+	draw_rect(Rect2(face.position.x, face.position.y, face.size.x, 0.5), STEEL.lightened(0.5))   # the lit top edge
+	draw_rect(Rect2(face.position.x, face.end.y - 0.5, face.size.x, 0.5), STEEL.darkened(0.25))
+	for sp in [face.position + Vector2(2.0, 2.0), Vector2(face.end.x - 2.0, face.position.y + 2.0),
+			Vector2(face.position.x + 2.0, face.end.y - 2.0), face.end - Vector2(2.0, 2.0)]:
+		draw_circle(sp, 0.8, STEEL.darkened(0.35))                                          # flush screws
+		draw_circle(sp + Vector2(-0.2, -0.2), 0.35, STEEL.lightened(0.4))
+	var nw := stroke_width(num, SIGN_NUM_H)
+	var at := Vector2(roundf(cx - nw / 2.0), roundf(r.position.y + (r.size.y - SIGN_NUM_H) / 2.0))
+	draw_stroke_text(self, at + Vector2(0.0, 0.6), num, SIGN_NUM_H, STEEL.lightened(0.55), SIGN_STROKE)   # the lip
+	draw_stroke_text(self, at, num, SIGN_NUM_H, ENGRAVE, SIGN_STROKE)                                     # the cut
 
 
 func _lift_panel() -> void:

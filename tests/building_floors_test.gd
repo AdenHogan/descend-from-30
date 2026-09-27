@@ -1088,7 +1088,7 @@ func _test_corridor_decals() -> void:
 	check(CD.horror_level(20, 1) < CD.horror_level(20, 2) and CD.horror_level(20, 2) < CD.horror_level(20, 3),
 		"horror rises through the day")
 	var dressing := {}
-	for n in CD.DRESSING_KEPT + CD.DRESSING_TIRED + CD.DRESSING_GONE + ["plant_fallen", "chair_down"]:
+	for n in CD.DRESSING_KEPT + CD.DRESSING_TIRED + CD.DRESSING_GONE + ["plant_fallen", "chair_down", "bicycle_down"]:
 		dressing[n] = true
 	# notices hang in the band just over the rail — never up by the ceiling, never across the rail —
 	# and the corridor carries what residents leave outside (owner round 24)
@@ -1104,17 +1104,54 @@ func _test_corridor_decals() -> void:
 					var sz: Vector2 = CD._tex(nm).get_size()
 					if d["pos"].y < 58.0 or d["pos"].y + sz.y > 94.0:
 						high_notice = "%s@%s floor %d" % [nm, d["pos"], f]
-				elif nm in ["bicycle", "bicycle_down", "kids_bike", "bin_bags", "recycling_box", "pedal_bin", "pram",
-						"newspapers", "watering_can", "shoe_rack"]:
+				elif nm in ["bicycle", "bicycle_down", "kids_bike", "bin_bags", "recycling_box", "pram",
+						"newspapers", "shoe_rack", "umbrella_stand", "plant_stand"]:
 					outdoor[nm] = true
 	check(notices > 0 and high_notice == "", "notices sit in the rail band (%d placed) %s" % [notices, high_notice])
 	check(outdoor.size() >= 5, "the corridors carry outdoor things — rubbish, racks, prams... (%s)" % str(outdoor.keys()))
 	# a bike fits between two doors (it's the widest thing that stands there) — seeded, not luck
 	var bike_rng := RandomNumberGenerator.new()
 	bike_rng.seed = 7
-	var bike_at = CD._find(bike_rng, [], CD._tex("bicycle").get_size(), "stand")
+	var bike_at = CD._place_standing(bike_rng, [], "bicycle", CD._tex("bicycle").get_size())
 	check(bike_at != null and not CD._blocked(Rect2(bike_at, CD._tex("bicycle").get_size()), false, true),
-		"a bicycle has room to lean between the doors (%s)" % str(bike_at))
+		"a bicycle has room to lean beside a door (%s)" % str(bike_at))
+	# round 24b — "geometry and weight… AND logic": every standing prop has its depth + rule, stands ON the
+	# floor at that depth (its back on the skirting, its front behind the walking line), and sits where it
+	# has a reason to be: just outside a door's frame, or on an open stretch of wall / by the lift
+	var standing_bad := ""
+	var reason_bad := ""
+	var standing_n := 0
+	for f in range(1, 30):
+		for r in [1, 2, 3]:
+			for d in CD.plan(f, r, BF.corridor_base_name(f)):
+				var nm: String = d["name"]
+				if not dressing.has(nm) or nm in CD.WALL_DRESSING:
+					continue
+				standing_n += 1
+				var m: Dictionary = CD.dressing_meta(nm)
+				var sz: Vector2 = CD._tex(nm).get_size()
+				if m.is_empty() or int(m["depth"]) < 2 or CD.FLOOR_Y + int(m["depth"]) > 174 \
+						or absf(d["pos"].y + float(m["contact"]) - (CD.FLOOR_Y + float(m["depth"]))) > 0.01:
+					standing_bad = "%s@%s floor %d" % [nm, d["pos"], f]
+					continue
+				var cx: float = d["pos"].x + sz.x / 2.0
+				var ok := false
+				if m["rule"] == "open":
+					for sx in CD.OPEN_SPOTS:
+						if absf(cx - float(sx)) <= 9.0:
+							ok = true
+				else:
+					for dx in CD.DOORS:
+						var gap_r: float = d["pos"].x - (float(dx) + CD.DOOR_FRAME)
+						var gap_l: float = (float(dx) - CD.DOOR_FRAME) - (d["pos"].x + sz.x)
+						if (gap_r >= 0.0 and gap_r <= 9.0) or (gap_l >= 0.0 and gap_l <= 9.0):
+							ok = true
+				if not ok:
+					reason_bad = "%s (%s) @%s floor %d" % [nm, m["rule"], d["pos"], f]
+	check(standing_n > 0 and standing_bad == "", "standing props stand on the floor at their depth (%d) %s" % [standing_n, standing_bad])
+	check(reason_bad == "", "each sits by a door or on an open stretch of wall — never just anywhere %s" % reason_bad)
+	for nm in ["plant_small", "umbrella", "pedal_bin", "watering_can"]:
+		check(not nm in CD.DRESSING_KEPT + CD.DRESSING_TIRED + CD.DRESSING_GONE, "%s is gone from the corridors" % nm)
 	var horror_of := func(plan: Array) -> Array:
 		var out: Array = []
 		for d in plan:
@@ -1410,6 +1447,14 @@ func _test_floor_signs() -> void:
 		await get_tree().process_frame
 	# the decal planner keeps off every sign (checked per decal in _test_corridor_decals too)
 	var FL_SCONCES: int = load("res://scripts/floor_lighting.gd").SCONCE_X.size()
+	# the floor sign (round 24b): a clean steel plate with just the number, inside the spot kept for it
+	for num in ["1", "14", "29"]:
+		for side in [["left", 2], ["right", 3]]:
+			var res_r: Rect2 = FS.taken_local()[side[1]]
+			var world_res := Rect2(res_r.position + Vector2(115, 243), res_r.size)
+			var plate: Rect2 = FS.sign_rect(num, float(FS.FLOOR_PLATE_X[side[0]]))
+			check(world_res.encloses(plate.grow(1.0)), "floor %s's %s sign %s sits in its spot %s" % [num, side[0], plate, world_res])
+	check(not FS.STROKE.has("F"), "the sign carries the number alone — no FLOOR label")
 	var r: Rect2 = FS.taken_local()[0]
 	check(r.size.x > 0 and FS.taken_local().size() == 11 + FL_SCONCES, "the signs' footprints are reserved (%d)" % FS.taken_local().size())
 	# every plate (face + its 1px edge + shadow) fits the footprint reserved for it — STAFF is the widest

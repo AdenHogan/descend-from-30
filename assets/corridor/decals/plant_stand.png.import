@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://7gt2wcllfarv"
-path="res://.godot/imported/pedal_bin.png-f074ed399f6ad575af5575a324e727cd.ctex"
+uid="uid://b1hh2qb4nsm58"
+path="res://.godot/imported/plant_stand.png-c00027b3bd87138454b11a161325f407.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/corridor/decals/pedal_bin.png"
-dest_files=["res://.godot/imported/pedal_bin.png-f074ed399f6ad575af5575a324e727cd.ctex"]
+source_file="res://assets/corridor/decals/plant_stand.png"
+dest_files=["res://.godot/imported/plant_stand.png-c00027b3bd87138454b11a161325f407.ctex"]
 
 [params]
 

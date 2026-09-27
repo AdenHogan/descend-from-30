@@ -1516,11 +1516,19 @@ means no rendering — UI layout and art still need an in-editor look.
   mid radiators, low call points + a hose reel). PER-FLOOR DECALS (`scripts/corridor_decals.gd`
   + sprites from `tools/art/corridor_decals.py`, owner: "shouldn't feel like the same corridors"):
   seeded per floor — DRESSING, what residents leave outside (owner round 24: "shoe racks, or trash, or
-  plants, or other outside things. the occasional bicycle"): plants, shoes, shoe racks, parcels, a chair,
-  a scooter, a bike / a kid's bike, a pram, bin bags, a recycling box, a pedal bin, newspapers, a watering
-  can, notices...; 4-6 a floor, fewer and more abandoned by wear; later runs remove some, knock a plant /
-  chair / bike over. Standing things may come up to a door's frame (±27, a bike leant between two doors);
-  wall notices keep ±31 and hang in the band just over the rail (local y 58..94 — never by the ceiling) and HORROR
+  plants, or other outside things. the occasional bicycle"; round 24b: "it needs to have geometry and
+  weight to it. AND logic… place them logically with reason"). The STANDING things are drawn with VOLUME
+  (`tools/art/corridor_props.py`: top faces, lids, open tops, near + far wheels, a floor shadow — seen like
+  the corridor, straight on and a little from above) and each has a RULE + a floor DEPTH in
+  `assets/corridor/decals/dressing.json` (written by the art tool): "door" = just outside a flat's door
+  frame (`DOOR_FRAME` 27 + 1..6px: shoes, boots, a shoe rack, an umbrella stand, parcels, a pram, bin bags
+  put out, the recycling, bundled newspapers, a suitcase, a shopping bag, a bike / kid's bike / scooter
+  leant on the wall), "open" = a stretch of wall between the doors or by the lift (`OPEN_SPOTS`: a floor
+  planter, a small plant UP ON ITS STAND, a hall chair to wait on). Each stands with its back on the
+  skirting (y 160) and its front at 160 + depth (`corridor_decals.standing_y`). 4-6 a floor, fewer and more
+  abandoned by wear; later runs remove some, knock a planter / chair / bike over (placed with room for the
+  knocked-over sprite). No bin bags are baked into the corridor art any more (rubbish goes out by a door).
+  Wall notices keep ±31 of a door and hang in the band just over the rail (local y 58..94) and HORROR
   (blood smears, handprints, spatter, bullet bursts, claw gouges, slide-down smears, blood scrawls
   "HELP"/"DONT GO DOWN"…, pools / drag trails / footprints / casings, and on plain door faces
   bullet holes, a bloody hand, the rescue teams' orange search X). `horror_level(floor, run)` =
@@ -1586,10 +1594,11 @@ means no rendering — UI layout and art still need an in-editor look.
   the corridor art is shared, so everything that says WHICH floor it is draws live
   (`scripts/floor_signs.gd`, the building's 3x5 capitals — the same FONT3 the room art uses): a green
   STAIRS sign over each opening with the arrow + the floor it leads to (from `stair_down_side`; floor
-  1's down says LOBBY), the FLOOR SIGN beside each stairwell (owner round 24 — "too pixel art… should have
-  some metallic edges… like a building sign"): a bevelled brushed-metal plate with four screws and the
-  type drawn as smooth antialiased STROKES (`floor_signs.STROKE`, not pixel capitals) — engraved brass
-  (hotel), white on blue enamel in aluminium (residential), black on bolted steel with a hazard strip (low), and the lift's floor indicator
+  1's down says LOBBY), the FLOOR SIGN beside each stairwell (owner rounds 24/24b — "a clean metal sheet with
+  engraved floor numbers on it, not too protruding… the number could be fine all by itself… clean font"):
+  ONE design on every floor — a thin brushed-steel sheet (hairline edge, the barest shadow, four flush
+  screws, `floor_signs.sign_rect`) with just the NUMBER engraved: dark cut strokes with round ends and a
+  light lip below, drawn as smooth antialiased STROKES (`floor_signs.STROKE`, a clean geometric sans), and the lift's floor indicator
   (amber only while it has power or on a merchant floor). Every apartment door has a NUMBER PLATE on its
   left at eye level (`scripts/door_plate.gd`, a child of the door, section-styled; STAFF on the
   maintenance door; none on a breached one; floor 30's plain-sprite 3001 gets one from hallway.gd).
