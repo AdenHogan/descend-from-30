@@ -1,10 +1,10 @@
-[gd_resource type="SpriteFrames" format=3]
+[gd_resource type="SpriteFrames" format=3 uid="uid://bt5udssmy7vq6"]
 
-[ext_resource type="Texture2D" path="res://assets/Enemies/SpittingZombie/SpittingZombie/SpittingZombie - Attack.png" id="1_bfx82"]
-[ext_resource type="Texture2D" path="res://assets/Enemies/SpittingZombie/SpittingZombie/SpittingZombie - Death.png" id="2_rirxw"]
-[ext_resource type="Texture2D" path="res://assets/Enemies/SpittingZombie/SpittingZombie/SpittingZombie - Hit.png" id="3_baflh"]
-[ext_resource type="Texture2D" path="res://assets/Enemies/SpittingZombie/SpittingZombie/SpittingZombie - Idle.png" id="4_68ofd"]
-[ext_resource type="Texture2D" path="res://assets/Enemies/SpittingZombie/SpittingZombie/SpittingZombie - Walk.png" id="5_7yw4g"]
+[ext_resource type="Texture2D" uid="uid://clyycjv1mhrya" path="res://assets/Enemies/SpittingZombie/SpittingZombie/SpittingZombie - Attack.png" id="1_bfx82"]
+[ext_resource type="Texture2D" uid="uid://6huw5dffeue0" path="res://assets/Enemies/SpittingZombie/SpittingZombie/SpittingZombie - Death.png" id="2_rirxw"]
+[ext_resource type="Texture2D" uid="uid://clp041o8taokf" path="res://assets/Enemies/SpittingZombie/SpittingZombie/SpittingZombie - Hit.png" id="3_baflh"]
+[ext_resource type="Texture2D" uid="uid://c4anif0vkq0a7" path="res://assets/Enemies/SpittingZombie/SpittingZombie/SpittingZombie - Idle.png" id="4_68ofd"]
+[ext_resource type="Texture2D" uid="uid://cjo7u7ms8a0ih" path="res://assets/Enemies/SpittingZombie/SpittingZombie/SpittingZombie - Walk.png" id="5_7yw4g"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_f04rg"]
 atlas = ExtResource("1_bfx82")

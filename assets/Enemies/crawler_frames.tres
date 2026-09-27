@@ -1,10 +1,10 @@
-[gd_resource type="SpriteFrames" format=3]
+[gd_resource type="SpriteFrames" format=3 uid="uid://cql5hgk6hg8yg"]
 
-[ext_resource type="Texture2D" path="res://assets/Enemies/CrawlerZombie/CrawlerZombie/CrawlerZombie - Attack.png" id="1_euc71"]
-[ext_resource type="Texture2D" path="res://assets/Enemies/CrawlerZombie/CrawlerZombie/CrawlerZombie - Death.png" id="2_qmx5w"]
-[ext_resource type="Texture2D" path="res://assets/Enemies/CrawlerZombie/CrawlerZombie/CrawlerZombie - Hit.png" id="3_gjj4h"]
-[ext_resource type="Texture2D" path="res://assets/Enemies/CrawlerZombie/CrawlerZombie/CrawlerZombie - Idle.png" id="4_xewhm"]
-[ext_resource type="Texture2D" path="res://assets/Enemies/CrawlerZombie/CrawlerZombie/CrawlerZombie - Walk.png" id="5_p2qqw"]
+[ext_resource type="Texture2D" uid="uid://vortuawtpp77" path="res://assets/Enemies/CrawlerZombie/CrawlerZombie/CrawlerZombie - Attack.png" id="1_euc71"]
+[ext_resource type="Texture2D" uid="uid://dkmj7sv3r6sp7" path="res://assets/Enemies/CrawlerZombie/CrawlerZombie/CrawlerZombie - Death.png" id="2_qmx5w"]
+[ext_resource type="Texture2D" uid="uid://cuyrhhgwjfalp" path="res://assets/Enemies/CrawlerZombie/CrawlerZombie/CrawlerZombie - Hit.png" id="3_gjj4h"]
+[ext_resource type="Texture2D" uid="uid://c1upwo10nju4g" path="res://assets/Enemies/CrawlerZombie/CrawlerZombie/CrawlerZombie - Idle.png" id="4_xewhm"]
+[ext_resource type="Texture2D" uid="uid://fkq7vyge8yoi" path="res://assets/Enemies/CrawlerZombie/CrawlerZombie/CrawlerZombie - Walk.png" id="5_p2qqw"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_watmy"]
 atlas = ExtResource("1_euc71")
