@@ -1473,6 +1473,8 @@ means no rendering — UI layout and art still need an in-editor look.
   hamper, camp bed, turntable, tea set, boombox and the open fridge's cavity were redrawn (modules README).
   Sideboard ornaments spread along the whole top. LIVE DETAILS: `pixlib.anim` → a module scene's `Anims`
   (`scripts/module_anim.gd`, kind `drip`) — kitchen D's fridge has spilt milk dripping onto a puddle.
+  **Round 22**: nothing may stand half off the furniture it's on — `pixlib._check_overhang` in every
+  `setback`, `finish_module` refuses a room that breaks it (modules README "ROUND 22").
   **Round 20** (story over still life): dining C's tea set and dinner table show what happened (a cup on
   its side in its spill, its twin smashed below, wine off the table edge); the washing machine's wash
   slumps in the drum; live details gained `drop` / `blink` / `static` / `spin` and appear in 10 modules

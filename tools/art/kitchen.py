@@ -327,9 +327,9 @@ def tin_box(c):
     c.box(x0, top, x1, base, box, box_dk)
     c.hline(x0 + 1, x1 - 1, top + 1, shade(box, 1.1))
     c.poly([(x0, top), (x0 - 5, top - 4), (x0 - 4, top - 5), (x0 + 1, top - 1)], box_dk)     # flaps
-    c.poly([(x1, top), (x1 + 4, top - 5), (x1 + 5, top - 4), (x1 + 1, top + 1)], box)
+    c.poly([(x1, top), (x1 + 3, top + 1), (x1 + 3, top + 6), (x1 + 1, top + 5)], box)      # its flap folded down the side
     for i, col in enumerate((hexc('b0453a'), hexc('c9b86a'), hexc('6a8a5a'), hexc('b0453a'))):
-        tx = x0 + 3 + i * 6
+        tx = x0 + 3 + i * 5
         c.rect(tx, top - 4, tx + 4, top, col)
         c.hline(tx, tx + 4, top - 4, hexc('c9c7bd'))
     c.rect(x0 + 6, top + 5, x1 - 6, top + 8, hexc('d8d2c2'))              # a label, scrawled

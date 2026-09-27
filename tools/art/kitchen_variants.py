@@ -548,7 +548,7 @@ def paper_stack(c, x0, base, h, w=16, lean=0):
 
 def e_furniture(c):
     # WITH DEPTH (owner round 14): the counter run + cooker, the newspaper stacks
-    setback(c, _e_run, depth=7, top=72, x_range=(99, 229), rake=1.0)
+    setback(c, _e_run, depth=7, top=71, x_range=(99, 229), rake=1.0)
     setback(c, _e_stacks, depth=4, rake=1.0, x_range=(6, 62))
     _e_rest(c)
 
@@ -567,8 +567,8 @@ def _e_run(c):
             c.vline(x + 7, 71 - h, 71, shade(col, 0.75))
         else:                                                                    # tins and jars: cylinders
             F.tin(c, x + 3, 71, 3, h, col, label=shade(col, 0.8) if h > 8 else None, handle=False)
-    c.rect(206, 64, 224, 69, hexc('7a6a58'))                                     # a pile of pans on the hob
-    c.rect(209, 59, 221, 63, hexc('5a5249'))
+    c.rect(206, 64, 220, 69, hexc('7a6a58'))                                     # a pile of pans on the hob
+    c.rect(208, 59, 218, 63, hexc('5a5249'))
 
 
 def _e_stacks(c):

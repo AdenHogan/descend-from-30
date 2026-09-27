@@ -636,8 +636,8 @@ def wicker_basket(c, x0, x1, top, base):
     c.rect(x0 - 1, top - 1, x1 + 1, top + 1, wk_dk)
     # clothes spilling over the rim
     c.poly([(x0 + 2, top - 1), (x0 + 9, top - 5), (x0 + 14, top - 2), (x0 + 12, top + 3)], TOWELS[1])
-    c.poly([(x0 + 12, top - 2), (x1 - 3, top - 6), (x1 + 2, top + 6), (x1 - 2, top + 9)], TOWELS[0])
-    c.put(x1 + 1, top + 7, shade(TOWELS[0], 0.8))
+    c.poly([(x0 + 12, top - 2), (x1 - 4, top - 6), (x1 - 1, top + 6), (x1 - 3, top + 9)], TOWELS[0])
+    c.put(x1 - 2, top + 7, shade(TOWELS[0], 0.8))
 
 
 def a_build(c):
@@ -666,7 +666,7 @@ def a_build(c):
     c.vline(e0[0] + 8, e0[1] - 2, e0[1] + 13, shade(TOWELS[3], 0.8))
     c.hline(e0[0] - 1, e0[0] + 8, e0[1] - 2, shade(TOWELS[3], 1.15))
     c.line(152, 102, 154, 112, BLOOD)
-    setback(c, lambda l: wicker_basket(l, 198, 222, 84, 100), depth=3, top=84)   # against the wall, under the rail
+    setback(c, lambda l: wicker_basket(l, 198, 222, 84, 100), depth=3, top=83)   # against the wall, under the rail (its rim is part of it)
     towel_rail(c, 232, 262, 70)
     shower_corner(c, 274, 308, 16, shade(A_TILE, 0.95), A_GROUT)
     mould_bloom(c, 291, 97, 16, 7, seed=13, up=True)                     # black mould along the shower's tray

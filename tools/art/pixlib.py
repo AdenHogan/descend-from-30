@@ -484,12 +484,55 @@ def setback(c, fn, depth=5, top=None, x_range=None, vpx=VP_X, rake=None, forward
                 else:
                     ap[x, y] = (0, 0, 0, 0)
         moved.paste(body, (0, shift), body)
+        _check_overhang(above, ext, body, top, shift, on_top)
         _on_top_volume(above, top)
         moved.paste(above, (0, on_top), above)
         _on_top_shadow(c, above, top, on_top)
     c.img.alpha_composite(moved)
     c.px = c.img.load()
     return shift
+
+
+OVERHANGS = []          # (x0, x1, y, surface x0, x1) per thing on top that pokes past the surface — finish_module refuses
+
+
+def _check_overhang(above, ext, body, top, shift, on_top):
+    """Owner round 22 ("items half on half off furniture… it's problematic"): every thing standing on
+    a set-back piece's top must rest wholly ON the top surface AS DRAWN — the extruded top recedes
+    toward the vanishing point, so near its edges less of it is there than the flat piece suggests.
+    Every column of an object's lowest row must have the piece (its extrusion or its shifted body)
+    right under it."""
+    ap, ep, bp = above.load(), ext.load(), body.load()
+
+    def piece_at(x, y):
+        if not (0 <= x < W and 0 <= y < H):
+            return False
+        if ep[x, y][3] >= 200:
+            return True
+        by = y - shift
+        return 0 <= by < H and bp[x, by][3] >= 200
+    seen = set()
+    for y0 in range(top - 1, max(-1, top - 4), -1):
+        for x0 in range(W):
+            if ap[x0, y0][3] < 200 or (x0, y0) in seen:
+                continue
+            comp, stack = [], [(x0, y0)]
+            seen.add((x0, y0))
+            while stack:
+                x, y = stack.pop()
+                comp.append((x, y))
+                for (dx, dy) in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                    q = (x + dx, y + dy)
+                    if 0 <= q[0] < W and 0 <= q[1] < top and q not in seen and ap[q][3] >= 200:
+                        seen.add(q)
+                        stack.append(q)
+            low = max(y for (_, y) in comp)
+            if low < top - 3:
+                continue                                    # hangs on the wall above, not standing on it
+            base = sorted({x for (x, y) in comp if y == low})
+            off = [x for x in base if not (piece_at(x, low + on_top + 1) or piece_at(x, low + on_top + 2))]
+            if off:
+                OVERHANGS.append((base[0], base[-1], low, off[0], off[-1]))
 
 
 def _on_top_volume(img, top):
@@ -738,6 +781,7 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
     main_anims = list(ANIMS)
     LIGHTS.clear()
     SETBACKS.clear()
+    OVERHANGS.clear()
     full = Canvas(seed=seed)
     build_fn(full)
     n_main = len(LIGHTS)
@@ -819,6 +863,12 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
         runs_ = [(r[0], r[-1]) for r in runs_ if len(r) >= 3]
         if runs_:
             print('FLAT %s: %s' % (name, runs_))
+    if OVERHANGS:
+        if os.environ.get('OVERHANG_REPORT'):
+            print('OVERHANG %s: %s' % (name, sorted(set(OVERHANGS))))
+        else:
+            errs.append('something stands half off the piece it is on (base x0..x1 at y, unsupported x0..x1): %s' % sorted(set(OVERHANGS))[:6])
+        OVERHANGS.clear()
     bp = check_back_plane_clear(full.img, bare_floor.img, anchors)
     if bp and os.environ.get('BP_REPORT'):          # audit mode: list every module, don't stop
         print('BP %s run 1: %s' % (name, bp))

@@ -697,7 +697,7 @@ def _d_rest(c):
         c.put(223, 96, POT_DK)
         c.hline(219, 222, 95, POT_LT)
     lr.shifted(c, _tea, 0, -90)
-    setback(c, lambda l: lr.shifted(l, _china_cabinet, 0, 3), depth=5, top=67, x_range=(265, 301), rake=1.2)
+    setback(c, lambda l: lr.shifted(l, _china_cabinet, 0, 3), depth=5, top=66, x_range=(263, 303), rake=1.2)
     import furn as F
     F.pendant(c, 196, 22, 'cream', dome=True)
 

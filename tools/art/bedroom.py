@@ -181,7 +181,7 @@ def dressing_table(c):
     c.rect(x0 + 2, base - 5, x0 + 4, base - 1, WOOD_DK)          # legs
     c.rect(x1 - 4, base - 5, x1 - 2, base - 1, WOOD_DK)
     # on top: perfume bottles, a hairbrush, a jewellery box lid up (the node sits on the box)
-    c.rect(9, top - 6, 11, top - 1, hexc('b98c97'))
+    c.rect(13, top - 6, 15, top - 1, hexc('b98c97'))
     c.put(10, top - 7, hexc('d4c9a9'))
     c.rect(13, top - 4, 15, top - 1, hexc('8fa3a8'))
     c.rect(32, top - 3, 42, top - 1, hexc('4a3040'))              # jewellery box

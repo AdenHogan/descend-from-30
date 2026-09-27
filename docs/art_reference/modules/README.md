@@ -530,3 +530,12 @@ in-editor check.
    loads on the walking line (`player.lane_position`). Enemies still reach you up there (a step
    back, not a hiding place). Not built yet: enemies standing on the back plane. Locked by
    `back_plane_test`.
+- ROUND 22: **NOTHING HALF OFF THE FURNITURE** (owner: "items half on half off furniture… it's
+  problematic"). `pixlib._check_overhang` runs in every `setback`: each thing standing on a piece's
+  top must have the piece (its extruded top or shifted body) under EVERY column of its lowest row —
+  the top recedes toward the vanishing point, so near its edges there's less surface than the flat
+  piece suggests. `finish_module` refuses a room that breaks it (`OVERHANG_REPORT=1` lists them all
+  instead). Fixed: bedroom B's lava lamp + clock on the crate, bedroom A's perfume, bedroom D's top box
+  (closed), kitchen A's tins (the flap folds down the side), kitchen E's pans, and three pieces whose own
+  rim / cornice / hob sat above the `top` line (bathroom A's basket, living D's china cabinet, kitchen E's
+  cooker) now count as the piece.

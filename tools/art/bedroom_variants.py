@@ -120,11 +120,11 @@ def b_furniture(c):
         c.box(292, 82, 310, 99, hexc('9a7a4e'), hexc('5e4a2e'))
         for gy in (86, 91, 96):
             c.hline(293, 309, gy, hexc('7c6140'))
-        c.poly([(296, 81), (300, 66), (304, 81)], hexc('7a3a6a'))
-        c.ellipse(300, 74, 2, 3, hexc('d98a4a')); c.ellipse(299, 78, 1, 1, hexc('d98a4a'))
-        F.light(300, 74, 'lava')
-        c.box(304, 76, 309, 81, hexc('26262a'), hexc('111114'))
-        c.put(306, 78, hexc('c0453a'))
+        c.poly([(294, 81), (298, 66), (302, 81)], hexc('7a3a6a'))          # (round 22: both stand ON the crate)
+        c.ellipse(298, 74, 2, 3, hexc('d98a4a')); c.ellipse(297, 78, 1, 1, hexc('d98a4a'))
+        F.light(298, 74, 'lava')
+        c.box(302, 77, 306, 81, hexc('26262a'), hexc('111114'))
+        c.put(304, 79, hexc('c0453a'))
     setback(c, _crate, depth=3, top=82, x_range=(292, 310))
     F.flush_light(c, 148)                                                                  # the ceiling dome
 
@@ -319,7 +319,7 @@ def d_furniture(c):
 def _d_boxes(c):
     # boxes stacked against the wall, right corner
     F.cardboard_box(c, 276, 308, 78, 99, open_flaps=False)
-    F.cardboard_box(c, 282, 304, 62, 77, open_flaps=True, label=False)
+    F.cardboard_box(c, 282, 304, 62, 77, open_flaps=False, label=False)
 
 
 def _d_crates(c):
