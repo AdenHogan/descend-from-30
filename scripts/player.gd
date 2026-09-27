@@ -616,6 +616,14 @@ var _hurt_streak: int = 0
 func _is_hurt(zombie: Node) -> bool:
 	return zombie != null and zombie.has_method("is_hurt") and zombie.is_hurt()
 
+
+# A RISER still lying there (enemy_zombie_standard.start_riser) looks like one of the dead: a swing,
+# shot or shove goes to anything standing first, so a fight beside a body doesn't wake it by accident.
+const LYING_PRIORITY_PENALTY := 2000.0
+
+func _lying_penalty(zombie: Node) -> float:
+	return LYING_PRIORITY_PENALTY if zombie != null and zombie.has_method("is_riser_down") and zombie.is_riser_down() else 0.0
+
 func _hurt_miss_chance() -> float:
 	return minf(HURT_MISS_MAX, HURT_MISS_STEP * float(_hurt_streak))
 
@@ -711,7 +719,7 @@ func _do_melee_attack(instance: ItemInstance, slot_index: int) -> void:
 			if (facing_right and dx > -16.0) or (not facing_right and dx < 16.0):
 				# Priority = an UNHURT enemy first (a hurt one is blinking, can't attack and can be
 				# slipped past — work through the pack), then nearest by horizontal edge distance.
-				var key: float = edge_dist + (HURT_PRIORITY_PENALTY if _is_hurt(zombie) else 0.0)
+				var key: float = edge_dist + (HURT_PRIORITY_PENALTY if _is_hurt(zombie) else 0.0) + _lying_penalty(zombie)
 				if zombie.has_method("receive_damage") and key < target_dist:
 					second = target
 					second_dist = target_dist
@@ -829,7 +837,7 @@ func _do_gun_attack(instance: ItemInstance, _slot_index: int) -> void:
 		var facing_right = not animated_sprite.flip_h
 		if (facing_right and diff > -16.0) or (not facing_right and diff < 16.0):
 			# Unhurt first (a small lean — never past a much nearer target), then nearest.
-			var key: float = dist + (HURT_PRIORITY_PENALTY if _is_hurt(zombie) else 0.0)
+			var key: float = dist + (HURT_PRIORITY_PENALTY if _is_hurt(zombie) else 0.0) + _lying_penalty(zombie)
 			if key < nearest_key:
 				nearest_key = key
 				nearest_dist = dist
@@ -979,7 +987,7 @@ func push_target():
 		var edge_dist = absf(dx) - _zombie_body_radius(zombie)
 		if edge_dist > PUSH_RANGE:
 			continue
-		var score: float = edge_dist + (0.0 if signf(dx) == facing or dx == 0.0 else PUSH_BEHIND_PENALTY)
+		var score: float = edge_dist + (0.0 if signf(dx) == facing or dx == 0.0 else PUSH_BEHIND_PENALTY) + _lying_penalty(zombie)
 		if score < best_score:
 			best_score = score
 			best = zombie

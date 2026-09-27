@@ -250,6 +250,7 @@ func _ready() -> void:
 					# position only). See WorldState.apply_saved_zombie.
 					if not WorldState.apply_saved_zombie(zombie) and pi == on_balcony:
 						_seed_on_balcony(zombie)
+			_spawn_riser(false)
 
 	# Interior fire (after enemies, so burning enemies can already be in the room).
 	_spawn_apartment_fire()
@@ -801,7 +802,8 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 		if story_role == "" and not breached:
 			var dead := WorldState.apartment_corpse(apartment_id)
 			if not dead.is_empty() and int(dead["slot"]) == i and not (WorldState.is_first_run and TUTORIAL_LAYOUTS.has(apartment_id)):
-				story_role = "corpse_" + str(dead["side"])
+				# a riser flat draws the story WITHOUT the body: a real zombie lies there (_spawn_riser)
+				story_role = ("rise_" if WorldState.apartment_riser(apartment_id) else "corpse_") + str(dead["side"])
 		if story_role != "":
 			_add_breach_nest(instance, i, story_role)
 		# The module's background ColorRect (+ its Label) is a Control that
@@ -905,6 +907,7 @@ const MODULE_ANIM := preload("res://scripts/module_anim.gd")
 const NEST_META_PATH := "res://assets/rooms/nest_meta.json"
 static var _nest_meta: Dictionary = {}
 var _dead_spots: Array = []            # [{module, pos, name}] — the drawn dead, searchable (round 21c)
+var _riser_spot: Dictionary = {}       # {pos (room space, its feet on the floor), dir} — round 22
 
 
 static func breach_nest_role(apt: String, entrance_side: String, slot: int) -> String:
@@ -961,6 +964,9 @@ func _add_breach_nest(module: Node, _slot: int, role: String) -> void:
 		var nm := "dead_%d_%d" % [_slot, k] + ("_r%d" % WorldState.current_run if role.begins_with("corpse") else "")
 		_dead_spots.append({"module": module, "pos": origin + Vector2(float(b[0]), float(b[1])), "name": nm})
 		k += 1
+	var r = entry.get("riser", null)
+	if r is Array and r.size() >= 3:
+		_riser_spot = {"pos": (module as Node2D).position + origin + Vector2(float(r[0]), float(r[1])), "dir": float(r[2])}
 
 
 func _nest_anim(module: Node, at: Vector2, kind: String, fall: int, col: String, w: int, h: int) -> void:
@@ -1680,6 +1686,7 @@ func _populate_passive_backdrop() -> void:
 		_spawn_passive_enemies(floor_num, true)
 	else:
 		_spawn_passive_enemies(floor_num, false)
+		_spawn_riser(true)
 	_spawn_corpses(floor_num, apartment_id)
 	_spawn_world_drops(floor_num, apartment_id)
 	# Interior fire in the backdrop too, so it's already there as the pan lands (no pop-in).
@@ -1734,6 +1741,36 @@ func _spawn_passive_enemies(floor_num: int, breached: bool) -> void:
 			z.start_on_wall("ceiling" if posmod(hash(key + "ceiling"), 3) == 0 else "wall",
 				z.global_position.y, str(WorldState.master_seed) + key)     # placed on its 308 line above
 		z.process_mode = Node.PROCESS_MODE_DISABLED   # frozen scenery
+
+
+# A RISER (round 22): the zombie lying where the flat's story left its body — dormant until the player
+# comes close, then it gets up (enemy_zombie_standard.start_riser). Killed = stays dead (a corpse like any
+# other); woken = remembered standing like any other (apply_saved_zombie); a dormant one is never recorded,
+# so it's lying there again on return. The backdrop (a balcony descent) shows it lying there, frozen.
+func _spawn_riser(frozen: bool) -> Node:
+	if _riser_spot.is_empty():
+		return null
+	var key := WorldState.riser_key(apartment_id)
+	if WorldState.killed_zombies.has(key):
+		return null
+	var z = preload("res://scenes/enemy_zombie_standard.tscn").instantiate()
+	var feet: Vector2 = _riser_spot["pos"]
+	var dir: float = _riser_spot["dir"]
+	# its standing origin on the walking line (304 → feet 353); lying, its heels are at `feet`
+	z.position = Vector2(feet.x + dir * z.RISER_HALF, ROOM_STD_ORIGIN_Y)
+	z.spawn_key = key
+	if frozen:
+		z.add_to_group("pan_scenery")
+	add_child(z)
+	# the art may have laid it a little behind / in front of the walking line: it lies there, and gets up
+	# onto the line as it rises
+	var lie_dy: float = feet.y - (ROOM_STD_ORIGIN_Y + z.RISER_FEET)
+	if frozen:
+		z.start_riser(dir, str(WorldState.master_seed) + key, lie_dy)
+		z.process_mode = Node.PROCESS_MODE_DISABLED
+	elif not WorldState.apply_saved_zombie(z):
+		z.start_riser(dir, str(WorldState.master_seed) + key, lie_dy)
+	return z
 
 
 func _spawn_world_drops(floor_num: int, apt_override: String = "") -> void:

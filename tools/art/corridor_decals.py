@@ -597,12 +597,14 @@ def notice_quarantine(name, seed):
     save(name, c)
 
 
-def dead(name, seed, how):
+def dead(name, seed, how, fought=False):
     """One of the dead on the corridor floor (owner round 21c — "sporadically there should be bodies
     across the building"), drawn by the rooms' own code (tools/art/nest.py: the purchased homeless
     pack's Death frame at 2x, greyed, bitten at the neck) with the blood that says how: 'pool' —
     lying in it; 'crawl' — a trail behind, bloody hands clawing along it, where they gave out. Head
-    to the right (flip for the left); the body's floor line is the sprite's bottom row - 3."""
+    to the right (flip for the left); the body's floor line is the sprite's bottom row - 3.
+    fought (round 22 — "our enemies dead nearby… that neighbour fought and killed one but died of their
+    wounds"): one of THEM lies past their head, its head knocked off, and the weapon by their hand."""
     import nest
     rng = random.Random(seed)
     flat = [[True] * nest.H for _ in range(nest.W)]
@@ -611,6 +613,9 @@ def dead(name, seed, how):
     nest._bleed(floor, floor, rng, flat, flat, fx, fy, 1, how)
     nest._stain(body, rng, fx + 10, fx + nest.BODY_W - 6, fy, 2)
     nest._body(body, rng, fx, fy, 1)
+    if fought:
+        nest._weapon(body, rng, fx + rng.randint(40, 52), fy + 5, rng.choice((1, -1)), rng.choice(nest.WEAPONS))
+        nest._zombie_dead(body, rng, fx + nest.BODY_W + rng.randint(8, 18), fy + rng.randint(-2, 2), 1)
     img = floor.img.copy()
     img.alpha_composite(body.img)
     c = canvas(1, 1, seed)
@@ -655,6 +660,7 @@ def main():
     poster_missing('poster_missing', 65)
     notice_quarantine('notice_quarantine', 66)
     dead('dead_1', 70, 'pool'); dead('dead_2', 71, 'crawl'); dead('dead_3', 72, 'pool'); dead('dead_4', 73, 'crawl')
+    dead('dead_5', 74, 'pool', fought=True); dead('dead_6', 75, 'pool', fought=True)
     # the contact sheet, each decal at 3x on a mid-tone wall swatch
     names = sorted(MADE)
     cols, cell = 6, 3 * 84

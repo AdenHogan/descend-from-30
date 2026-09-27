@@ -245,8 +245,18 @@ func _migrate_legacy_progress() -> void:
 		WorldState.barricade_progress[apartment_id] = clamp(saved / BARRICADE_TIME_BARE, 0.0, 1.0)
 
 
+const BARRICADE_BOARDS := preload("res://scripts/barricade_boards.gd")
+var _boards: Node2D = null      # the boards nailed across it (round 22 — replaces the crate sprite + black box)
+
+
 func _setup_progress_overlay() -> void:
-	barricade_progress_overlay.color = Color(0.0, 0.0, 0.0, 0.55)
+	# The old look (a placeholder crate sprite + a black box shrinking as you worked) is kept only as
+	# the "barricade present" flag the state code toggles; what's DRAWN is the boards (barricade_boards.gd).
+	barricade_sprite.self_modulate = Color(1, 1, 1, 0)
+	_boards = BARRICADE_BOARDS.new()
+	add_child(_boards)
+	_boards.setup(str(WorldState.master_seed) + "boards" + apartment_id)
+	barricade_progress_overlay.color = Color(0.0, 0.0, 0.0, 0.0)
 	barricade_progress_overlay.visible = false
 	barricade_progress_overlay.position = Vector2(-25, -35)
 	barricade_progress_overlay.size = Vector2(50, BARRICADE_SPRITE_HEIGHT)
@@ -255,6 +265,7 @@ func _setup_progress_overlay() -> void:
 func _apply_door_state() -> void:
 	_apply_door_state_tint()
 	_apply_door_style()
+	_sync_boards()
 
 
 func _apply_door_state_tint() -> void:
@@ -304,9 +315,19 @@ func _apply_door_state_tint() -> void:
 			barricade_progress_overlay.visible = false
 
 
+func _sync_boards() -> void:
+	if _boards == null:
+		return
+	if barricade_sprite.visible:
+		_boards.set_progress(clamp(WorldState.barricade_progress.get(apartment_id, 0.0), 0.0, 1.0), is_removing_barricade, false)
+	else:
+		_boards.clear_boards()
+
+
 func _sync_overlay_to_progress() -> void:
 	# Stored value is already a 0–1 fraction.
 	var frac = clamp(WorldState.barricade_progress.get(apartment_id, 0.0), 0.0, 1.0)
+	_sync_boards()
 	if frac <= 0.0:
 		barricade_progress_overlay.visible = false
 		barricade_progress_overlay.size.y = BARRICADE_SPRITE_HEIGHT
@@ -367,16 +388,14 @@ func _base_prompt_text() -> String:
 				return apartment_id + " - Locked  Needs key"
 		WorldState.DoorState.BARRICADED_FORCEABLE:
 			if is_removing_barricade:
-				var remaining = removal_duration * (1.0 - removal_fraction)
-				return apartment_id + " - Removing barricade... %.1fs" % remaining
+				return apartment_id + " - Tearing the boards off"
 			var saved = WorldState.barricade_progress.get(apartment_id, 0.0)
 			if saved > 0.0:
 				return apartment_id + " - Barricade damaged  [X] Continue removal"
 			return apartment_id + " - Barricaded  [X] Remove barricade"
 		WorldState.DoorState.BARRICADED_LOCKED:
 			if is_removing_barricade:
-				var remaining = removal_duration * (1.0 - removal_fraction)
-				return apartment_id + " - Removing barricade... %.1fs" % remaining
+				return apartment_id + " - Tearing the boards off"
 			var saved = WorldState.barricade_progress.get(apartment_id, 0.0)
 			if saved > 0.0:
 				return apartment_id + " - Barricade damaged  [X] Continue removal"
@@ -727,8 +746,10 @@ func _tick_barricade_removal(delta: float) -> void:
 	if rip_sfx_timer <= 0.0:
 		rip_sfx_timer = randf_range(0.55, 0.85)
 		_play_sfx(PLANK_STREAMS.pick_random(), -4.0)
-		# Every rip throws a sharp orange echo — the visual "you're being
-		# LOUD" cue (the aggressive counterpart to the listen ripples).
+		# Every rip: the board you're on jolts and sheds splinters, and a sound wave goes out — the
+		# "you're being LOUD" cue (listen_overlay.noise_ping).
+		if _boards != null:
+			_boards.heave()
 		if HUD.listen_overlay != null:
 			HUD.listen_overlay.noise_ping(global_position)
 
@@ -756,7 +777,9 @@ func _tick_barricade_removal(delta: float) -> void:
 			HUD.show_feedback("Exhausted — catch your breath.")
 			return
 
-	# Overlay
+	# The boards come off one by one as the work goes on (barricade_boards.gd)
+	if _boards != null:
+		_boards.set_progress(removal_fraction, true)
 	var remaining_height = BARRICADE_SPRITE_HEIGHT * (1.0 - removal_fraction)
 	barricade_progress_overlay.size.y = remaining_height
 	barricade_progress_overlay.visible = remaining_height > 1.0
@@ -771,6 +794,8 @@ func _pause_barricade_removal() -> void:
 	is_removing_barricade = false
 	WorldState.barricade_progress[apartment_id] = removal_fraction
 	removal_tool_instance = null
+	if _boards != null:
+		_boards.set_progress(removal_fraction, false)
 
 
 # The tool snapped partway through. Removal halts; the barricade stays up with its
@@ -802,7 +827,9 @@ func _finish_barricade_removal() -> void:
 	WorldState.barricade_progress.erase(apartment_id)
 	barricade_progress_overlay.visible = false
 	barricade_sprite.visible = false
-	# The final crash is the loudest moment — a burst of echoes.
+	# The final crash is the loudest moment: the last boards fly, and a burst of sound waves.
+	if _boards != null:
+		_boards.tear_all()
 	if HUD.listen_overlay != null:
 		for i in range(3):
 			HUD.listen_overlay.noise_ping(global_position + Vector2(randf_range(-8, 8), randf_range(-8, 8)))

@@ -27,6 +27,7 @@ func _ready() -> void:
 	_test_leaders()
 	_test_listen()
 	_test_nest_art()
+	await _test_risers()
 	await _test_rooms()
 	await _test_foreground()
 	await _test_wall_crawlers()
@@ -123,30 +124,43 @@ func _test_nest_art() -> void:
 	check(r.call(split, "right") == ["", "kill_r", "door_r"], "door right, fled a room: untouched, kill, door (%s)" % str(r.call(split, "right")))
 	check(r.call(whole, "left") == ["doorkill_l", "", ""], "door left, caught in the door's room (%s)" % str(r.call(whole, "left")))
 	check(r.call(whole, "right") == ["", "", "doorkill_r"], "door right, caught in the door's room (%s)" % str(r.call(whole, "right")))
-	# every module variant has all eight roles, each with its flies + the dead it drew
+	# every module variant has all ten roles, each with its flies + the dead it drew (a RISE role draws
+	# no body — a real zombie lies there — but records where)
 	var meta := RoomScript.nest_meta()
 	var missing := []
 	var n := 0
 	var no_body := []
+	var corpses := 0
+	var fought := 0
 	for t in RoomScript.MODULE_VARIANTS:
 		for scene_path in RoomScript.MODULE_VARIANTS[t]:
 			var inst = load(scene_path).instantiate()
 			var art = inst.get_node_or_null("Art")
 			var base: String = art.texture.resource_path.get_basename() if art != null and art.texture != null else ""
 			inst.free()
-			for role in ["door_l", "kill_l", "doorkill_l", "corpse_l", "door_r", "kill_r", "doorkill_r", "corpse_r"]:
+			for role in ["door_l", "kill_l", "doorkill_l", "corpse_l", "rise_l", "door_r", "kill_r", "doorkill_r", "corpse_r", "rise_r"]:
 				var p: String = base + "_nest_" + role + ".png"
 				n += 1
 				var key := p.get_file().get_basename()
 				if not ResourceLoader.exists(p) or not meta.has(key):
 					missing.append(p.get_file())
+				elif role.begins_with("rise"):
+					var rs = meta[key].get("riser", [])
+					if not (rs is Array and rs.size() == 3) or not meta[key].get("bodies", []).is_empty():
+						no_body.append(key + " (riser spot)")
 				elif not role.begins_with("door_") and meta[key].get("bodies", []).is_empty():
 					no_body.append(key)
+				if role.begins_with("corpse") and meta.has(key):
+					corpses += 1
+					if not meta[key].get("zombies", []).is_empty():
+						fought += 1
 			for old in ["_nest.png", "_nest_entry_l.png", "_nest_through_l.png", "_nest_lair_l.png"]:
 				if base != "" and ResourceLoader.exists(base + old):
 					missing.append("stale " + base + old)
-	check(n == 240 and missing.is_empty(), "240 story overlays with their meta (%d, missing %s)" % [n, str(missing.slice(0, 4))])
-	check(no_body.is_empty(), "every kill / doorkill / corpse draws someone (%s)" % str(no_body.slice(0, 4)))
+	check(n == 300 and missing.is_empty(), "300 story overlays with their meta (%d, missing %s)" % [n, str(missing.slice(0, 4))])
+	check(no_body.is_empty(), "every kill / doorkill / corpse draws someone, every rise marks its spot (%s)" % str(no_body.slice(0, 4)))
+	# round 22: often, the resident took one of THEM with them
+	check(fought >= corpses / 4 and fought < corpses, "the dead zombie beside them: now and then (%d of %d)" % [fought, corpses])
 	# the dead's pockets: often empty, never anything outside the list
 	var empty := 0
 	var bad := []
@@ -253,7 +267,7 @@ func _test_rooms() -> void:
 	for f in range(4, 27):
 		for i in range(1, 6):
 			var apt := str(f) + "0" + str(i)
-			if not WorldState.apartment_corpse(apt).is_empty():
+			if not WorldState.apartment_corpse(apt).is_empty() and not WorldState.apartment_riser(apt):
 				with_dead = apt
 				break
 		if with_dead != "":
@@ -432,3 +446,161 @@ func _test_longarm() -> void:
 	var player_h: float = (40 - top) * 2.0
 	check(swing <= player_h, "its swing lands at head height (%.0f) — not over a %.0f-tall player" % [swing, player_h])
 	la.queue_free()
+
+
+# RISERS (owner round 22 — "watch some of them get up… like our neighbour in the tutorial"): a flat's
+# dead may be a zombie lying there. It lies still (no collision, no AI), twitches and gets up when the
+# player comes near, and memory keeps it honest: a dormant one isn't remembered, a risen one is
+# remembered standing, a killed one stays dead.
+func _riser_flat() -> String:
+	for f in range(4, 27):
+		for i in range(1, 6):
+			var apt := str(f) + "0" + str(i)
+			if WorldState.apartment_riser(apt):
+				return apt
+	return ""
+
+
+func _open_flat(apt: String) -> Node:
+	WorldState.current_apartment_id = apt
+	WorldState.current_floor = WorldState._apartment_floor(apt)
+	WorldState.spawn_source = ""
+	var room = load("res://scenes/room.tscn").instantiate()
+	add_child(room)
+	return room
+
+
+func _test_risers() -> void:
+	WorldState.current_run = 2
+	var counts := []
+	for run in [1, 2, 3]:
+		WorldState.current_run = run
+		var c := 0
+		var d := 0
+		for f in range(2, 29):
+			for i in range(1, 6):
+				var a := str(f) + "0" + str(i)
+				if WorldState.apartment_riser(a):
+					c += 1
+				if not WorldState.apartment_corpse(a).is_empty():
+					d += 1
+		counts.append([c, d])
+	WorldState.current_run = 2
+	var some: int = int(counts[0][0]) + int(counts[1][0]) + int(counts[2][0])
+	var fewer: bool = counts[0][0] <= counts[0][1] and counts[1][0] <= counts[1][1] and counts[2][0] <= counts[2][1]
+	check(some >= 3 and fewer and WorldState.RISER_CHANCE[3] > WorldState.RISER_CHANCE[1],
+		"risers: some of the dead, likelier as the arc goes on ([risers, dead] %s)" % str(counts))
+	var apt := _riser_flat()
+	check(apt != "", "a flat with a riser turns up")
+	if apt == "":
+		return
+	var key := WorldState.riser_key(apt)
+	WorldState.killed_zombies.erase(key)
+	WorldState.zombie_positions.erase(key)
+	var room := _open_flat(apt)
+	var player: Node2D = get_tree().get_first_node_in_group("player")
+	player.global_position.x = 2000.0          # far off to start
+	for i in range(3):
+		await get_tree().process_frame
+	var ns := get_tree().get_nodes_in_group("breach_nest")
+	var side: String = str(WorldState.apartment_corpse(apt)["side"])
+	check(ns.size() == 1 and str(ns[0].get_meta("role", "")) == "rise_" + side, "%s: the story drawn without its body (rise_%s)" % [apt, side])
+	check(_dead_nodes().is_empty(), "...no drawn body to search")
+	var rs := get_tree().get_nodes_in_group("riser")
+	check(rs.size() == 1, "...and one of them lying there (%d)" % rs.size())
+	if rs.size() != 1:
+		room.queue_free()
+		return
+	var z = rs[0]
+	check(z.spawn_key == key and z.riser_phase == "lying" and z.state == "dormant", "it lies dormant (%s / %s)" % [z.riser_phase, z.state])
+	check(not z.get_collision_layer_value(1) and not z.get_collision_mask_value(1), "...no body collision while it lies there")
+	check(absf(absf(z.animated_sprite.rotation) - PI * 0.5) < 0.01, "...on its back (rotation %.2f)" % z.animated_sprite.rotation)
+	var feet_y: float = z.global_position.y + z.RISER_FEET
+	check(z.z_index == 0, "...on the floor layer, under the living")
+	# the lying body rests on the floor: its drawn extent (a rotated frame) sits above its feet line
+	check(absf(z.animated_sprite.global_position.y - (feet_y - z.RISER_HALF * z.RISER_FLAT)) < 30.0, "...its body rests on the floor (sprite %.0f, feet %.0f)" % [z.animated_sprite.global_position.y, feet_y])
+	for i in range(30):
+		await get_tree().physics_frame
+	check(z.riser_phase == "lying", "the player far away: it stays down")
+	# a swing prefers anything standing over it
+	check(player.has_method("_lying_penalty") and player._lying_penalty(z) > 0.0, "a lying riser is the last thing a swing picks")
+	# leave while it lies: not remembered
+	room.queue_free()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	check(not WorldState.zombie_positions.has(key), "left lying: not remembered (so it lies there again)")
+	room = _open_flat(apt)
+	player = get_tree().get_first_node_in_group("player")
+	for i in range(3):
+		await get_tree().process_frame
+	rs = get_tree().get_nodes_in_group("riser")
+	check(rs.size() == 1 and rs[0].riser_phase == "lying", "...and it's lying there again on return")
+	if rs.size() != 1:
+		room.queue_free()
+		return
+	z = rs[0]
+	# the player comes close: it twitches, rises stiff, and comes on
+	player.global_position = Vector2(z.global_position.x + 60.0, player.global_position.y)
+	var saw_twitch := false
+	var saw_rise := false
+	var t := 0.0
+	while t < 4.0 and z.riser_phase != "":
+		await get_tree().physics_frame
+		player.global_position.x = z.global_position.x + 60.0
+		t += get_physics_process_delta_time()
+		saw_twitch = saw_twitch or z.riser_phase == "twitch"
+		saw_rise = saw_rise or z.riser_phase == "rise"
+	check(saw_twitch and saw_rise and z.riser_phase == "", "it twitches, rises and is up (%.1fs)" % t)
+	check(z.get_collision_layer_value(1) and z.z_index == 1 and z.state in ["chase", "attack", "idle"] and not z.is_in_group("riser"), "...an ordinary zombie now (%s)" % z.state)
+	check(absf(z.animated_sprite.rotation) < 0.001 and z.animated_sprite.scale == z._riser_scale0, "...standing upright, full size")
+	check(z.alert_timer > 0.0, "...coming for you")
+	# leave: remembered STANDING; back: not lying down again
+	room.queue_free()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	check(WorldState.zombie_positions.has(key), "left after it rose: remembered")
+	room = _open_flat(apt)
+	for i in range(3):
+		await get_tree().process_frame
+	rs = get_tree().get_nodes_in_group("riser")
+	var standing = null
+	for zz in get_tree().get_nodes_in_group("zombie"):
+		if zz.spawn_key == key:
+			standing = zz
+	check(rs.is_empty() and standing != null and standing.riser_phase == "", "...and it's back on its feet on return, not lying down")
+	# kill it: it stays dead
+	if standing != null:
+		standing.receive_damage(99, "bludgeon")
+	room.queue_free()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	check(WorldState.killed_zombies.has(key), "killed: remembered dead")
+	room = _open_flat(apt)
+	for i in range(3):
+		await get_tree().process_frame
+	var again := false
+	for zz in get_tree().get_nodes_in_group("zombie"):
+		if zz.spawn_key == key and not zz.is_dead:
+			again = true
+	check(not again, "...and it doesn't get up again")
+	room.queue_free()
+	await get_tree().process_frame
+	# hit where it lies: it's up at once and takes the blow
+	WorldState.killed_zombies.erase(key)
+	WorldState.zombie_positions.erase(key)
+	room = _open_flat(apt)
+	player = get_tree().get_first_node_in_group("player")
+	player.global_position.x = 2000.0
+	for i in range(3):
+		await get_tree().process_frame
+	rs = get_tree().get_nodes_in_group("riser")
+	if rs.size() == 1:
+		z = rs[0]
+		var hp0: int = z.current_hp
+		z.receive_damage(1, "blade")
+		check(z.riser_phase == "" and absf(z.animated_sprite.rotation) < 0.001 and (z.current_hp < hp0 or z.is_dead), "hit where it lies: it's up at once, and the blow lands")
+	room.queue_free()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	WorldState.killed_zombies.erase(key)
+	WorldState.zombie_positions.erase(key)

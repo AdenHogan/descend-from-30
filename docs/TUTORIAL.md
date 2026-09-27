@@ -135,10 +135,13 @@ pauses at each teaching beat (`get_tree().paused` + a dialogue prompt).
 
 ## Hallway / stairwell scripted zombie (IMPLEMENTED)
 - **Removing the 3004 barricade is the noise lesson**: every plank rip throws
-  a **sharp orange jagged echo ping** at the door (the aggressive counterpart
-  to the listen system's soft red ripples — noise is BAD), plus a burst on
-  the final crash. `listen_overlay.noise_ping()` — reusable for any future
-  "you are being loud" moment.
+  a warm **sound-wave ping** at the door (arcs rolling out either side — the
+  loud counterpart to the listen system's soft red ripples; round 22 replaced
+  the old jagged orange starburst), plus a burst on the final crash.
+  `listen_overlay.noise_ping()` — reusable for any future "you are being loud"
+  moment. The boards themselves come off one at a time as you work
+  (`barricade_boards.gd`: strain, splinters, a board flying off, a segmented
+  bar over the door — no countdown).
 - Once barricade work starts, a zombie **walks in from the left stairs**
   (drawn by the noise), but **holds at a distance** (`tutorial_hold_x`),
   facing the player — visible menace, no pressure yet.

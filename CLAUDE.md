@@ -313,9 +313,9 @@ means no rendering — UI layout and art still need an in-editor look.
   **low durability (4)**. Stairwell descent is **gated + herds** the player
   back until the 3003 zombie is cleared (`stairwell.gd` + `killed_zombies`
   milestone). **DEV F7** toggles the tutorial on/off and drops into a fresh
-  Floor 30 for playtesting. **v2 built**: 3004 barricade rips throw sharp
-  ORANGE jagged noise pings (`listen_overlay.noise_ping` — reusable "you're
-  loud" cue) + corridor zombie walks in from the left stairs, HOLDS at a
+  Floor 30 for playtesting. **v2 built**: 3004 barricade rips throw warm
+  SOUND-WAVE noise pings (`listen_overlay.noise_ping` — reusable "you're
+  loud" cue; round 22 replaced the jagged orange starburst) + corridor zombie walks in from the left stairs, HOLDS at a
   distance (`tutorial_hold_x`) until the barricade falls, then pause-prompt
   choice (force 3004's lock for the room vs kill it and break the club) and
   slow release; stairs gate is STAGED (key → apts → choice → open) with
@@ -1551,8 +1551,18 @@ means no rendering — UI layout and art still need an in-editor look.
   pieces, rubble, dust and the smear on the corridor floor), untinted and never swings (strip frames
   5/6 no longer used). The other
   state tints stay as the gameplay cue but SOFTENED (locked 1.25/0.74/0.7, was 1.4/0.4/0.4 — a red slab
-  that hid the designs). Floor 30's 3001 is a plain Sprite2D on the oak strip. The barricade overlay
-  (`assets/Barricade.png`) is still the old placeholder. Locked by `building_floors_test._test_door_swing`.
+  that hid the designs). Floor 30's 3001 is a plain Sprite2D on the oak strip. Locked by
+  `building_floors_test._test_door_swing`. **BARRICADES** (owner round 22 — "make removing barricades look
+  more exciting… not just the box showing the time counting down, and the spikey shape"):
+  `scripts/barricade_boards.gd` draws 4-6 BOARDS nailed across the door (seeded per door: angles, a
+  brace, pine / stained / painted-panel / table-top wood). Removing it takes them off ONE AT A TIME
+  (board k at (k+1)/n of the work, seeded order): the one you're on jolts with each heave and its nails
+  creep out, splinters + plaster dust burst off it, and at its share it RIPS free — flies toward the
+  corridor spinning, bounces, and lies on the floor line (stays). A segmented bar across the door head
+  (one segment a board, the current one filling) replaces the countdown; the prompt reads "Tearing the
+  boards off". Saved progress shows as boards already gone. The old `Barricade.png` sprite + black
+  ColorRect stay only as the state flag (never drawn). The loud cue (`listen_overlay.noise_ping`) is
+  sound-wave arcs rolling out either side. Locked by `force_lock_test._test_barricade_boards`.
 - PUSH + CROWDS (owner round 9): a push takes ONE enemy (`player.push_target` — the nearest in
   front; it used to stagger everyone in reach), so a crowd is worked through and gets hits in. The
   BIG zombie can't be stunned or knocked back by a push (it keeps attacking) but a push makes it
@@ -1614,8 +1624,8 @@ means no rendering — UI layout and art still need an in-editor look.
   its floor line, and a remembered one comes back on the floor. Live + frozen backdrop.
   **THE STORY** (rounds 21b/21c — the first "nest of horror" was "too much… you went nuts with the red
   blood paint without considering the storytelling"; then "we don't need a corpse to have dragged itself
-  across all three modules") — every module variant has EIGHT generated overlays
-  `<art>_nest_<door|kill|doorkill|corpse>_<l|r>.png` (`tools/art/nest.py`, called by `pixlib.finish_module`;
+  across all three modules") — every module variant has TEN generated overlays
+  `<art>_nest_<door|kill|doorkill|corpse|rise>_<l|r>.png` (`tools/art/nest.py`, called by `pixlib.finish_module`;
   `_l` = front door on the LEFT): DOOR (the front door's room: splinters, the keys dropped by the door, a
   shoe, a spilt bag, bare bloody prints coming in), KILL (where they were caught: a hand slid down the
   wall, a pool, a few steps of drag, the dead — two laid by the wall where there's room, else one; a bone,
@@ -1638,6 +1648,25 @@ means no rendering — UI layout and art still need an in-editor look.
   torch / a knife / rounds / shoes / a battery), and a line on the first search (`DEAD_SEARCH_LINES`:
   "You go through a stranger's pockets. You try not to look at their face."). Corridor bodies aren't
   searchable yet. Flies (`module_anim` `flies`) over the pool and the dead (nest_meta "flies").
+  **THEY FOUGHT BACK** (round 22 — "sometimes… our enemies dead nearby… that neighbour fought and killed
+  one but died of their wounds"): about half the CORPSE / RISE stories also lay one of THEM near the
+  body — the standard zombie's own last Death frame at its in-game 3×, its head knocked off a step
+  beyond the bled-out stump (`nest._zombie_dead`) — with what the resident fought with dropped in front
+  of them (knife / hammer / rolling pin / golf club / pan / chair leg, bloodied; `nest._weapon`);
+  nest_meta "zombies". Corridors too: `dead_5` / `dead_6` decals. Bodies + dropped things only go on
+  CLEAR floor (bare, a registered rug, or a shadow — a guitar on the floor is not; `nest._masks`).
+  **RISERS** (round 22 — "watch some of them get up and be enemies too? Like our neighbour in the
+  tutorial"): in some flats with one of the dead (`WorldState.apartment_riser`, `RISER_CHANCE` 35/45/55%
+  by run) the body is a REAL zombie: the art draws the story without it (nest role `rise_l/_r`, its spot
+  in nest_meta "riser" — on the walking line), and `room._spawn_riser` lays a standard zombie there
+  (`enemy_zombie_standard.start_riser`): on its back (the Idle frame turned 90° about the heels,
+  squashed flat), no collision, no AI, no moans, floor layer. The player within ~70-130px (seeded), a
+  noise, a can, a hit or a shove wakes it: a few twitches, then it sits up STIFF from the heels (1.3s)
+  with a moan and a line ("It's getting up.") and chases. A hit / shove / death brings it up at once.
+  Memory: a dormant riser is never recorded (it lies there again on return); a risen one is remembered
+  standing; killed stays dead (key `WorldState.riser_key`). A swing / shot / shove prefers anything
+  standing (`player._lying_penalty`). Also in the balcony-descent backdrop (frozen, lying). Preview:
+  docs/art_reference/modules/risers.png. Locked by `breach_test._test_risers`.
   **FOREGROUND DEAD — a TEST look** (round 21c, "like hollow knight and silk song… bodies… right up to the
   camera… we can test it first"): `scripts/foreground_dead.gd` lays 2-3 black silhouettes
   (`tools/art/foreground_dead.py` → `assets/foreground/fg_<heap|slumped|hand>_N.png`, drawn at world px)

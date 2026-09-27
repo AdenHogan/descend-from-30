@@ -577,13 +577,14 @@ def d_furniture(c):
     # cabinet — one piece every ~50px, the group sitting on the carpet in the middle.
     # an ornate green carpet with a gold border
     top, bot = 106, 130
-    c.poly([(74, top), (246, top), (258, bot), (62, bot)], hexc('b58f4a'))
-    c.poly([(78, top + 2), (242, top + 2), (253, bot - 2), (67, bot - 2)], hexc('3f5a45'))
-    for cx_ in (104, 160, 216):
-        c.ellipse(cx_, 118, 12, 4, hexc('5a7a5e'))
-        c.ellipse(cx_, 118, 5, 2, hexc('a0505a'))
-    for x in range(63, 258, 2):
-        c.vline(x, bot + 1, bot + 2, hexc('d9cfb8'))
+    with flat_piece(c):                                   # it lies flat: the dead may lie on it (nest.py)
+        c.poly([(74, top), (246, top), (258, bot), (62, bot)], hexc('b58f4a'))
+        c.poly([(78, top + 2), (242, top + 2), (253, bot - 2), (67, bot - 2)], hexc('3f5a45'))
+        for cx_ in (104, 160, 216):
+            c.ellipse(cx_, 118, 12, 4, hexc('5a7a5e'))
+            c.ellipse(cx_, 118, 5, 2, hexc('a0505a'))
+        for x in range(63, 258, 2):
+            c.vline(x, bot + 1, bot + 2, hexc('d9cfb8'))
     # LEFT: an upright piano against the wall — a real one, not a box (owner round 18): its keyboard
     # comes out toward the room on the keybed; photos and a metronome on top
     piano3d(c)

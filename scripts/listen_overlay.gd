@@ -16,11 +16,11 @@ var intensity: float = 0.0
 var source_world_pos: Vector2 = Vector2.ZERO
 var profile: Dictionary = {}
 var pings: Array = []          # each: {"age": float, "phase": float}
-# YOU-are-loud pings (barricade tearing etc.): orange, jagged, fast — the
-# aggressive counterpart to the listen system's soft red ripples. These render
-# any time, no grey overlay needed.
-const NOISE_PING_LIFE = 0.6
-const NOISE_PING_GROWTH = 150.0
+# YOU-are-loud pings (barricade tearing etc.): warm SOUND WAVES rolling out either
+# side of the source (round 22 — they were a jagged orange starburst) — the loud
+# counterpart to the listen system's soft red ripples. These render any time, no
+# grey overlay needed.
+const NOISE_PING_LIFE = 0.75
 var noise_pings: Array = []    # each: {"age": float, "pos": Vector2, "phase": float}
 var ping_spawn_timer: float = 0.0
 var pending_report: String = ""
@@ -101,7 +101,7 @@ void fragment() {
 
 
 func noise_ping(world_pos: Vector2) -> void:
-	# One aggressive orange echo at a world position — "you just made noise".
+	# One sound wave at a world position — "you just made noise" (drawn in _draw_noise_pings).
 	noise_pings.append({"age": 0.0, "pos": world_pos, "phase": randf() * TAU})
 
 
@@ -211,23 +211,23 @@ func _draw_pings() -> void:
 
 
 func _draw_noise_pings() -> void:
-	# The listen ripples are soft and organic; these are the opposite — a hard,
-	# jagged sawtooth ring that expands FAST and dies fast. Making noise reads
-	# as a warning, not an ambience.
+	# "You're LOUD" (owner round 22 — the old jagged starburst read as "a very basic explosion"): a
+	# SOUND WAVE — arcs either side of the source, rolling outward like the ")))" of a speaker glyph.
+	# Each ping sends three arcs a side, the nearest bright and thick, fading as they go.
 	if noise_pings.is_empty():
 		return
 	var xform = ping_canvas.get_viewport().canvas_transform
-	var col = Color(1.0, 0.55, 0.08)  # aggressive orange
+	var zoom: float = xform.get_scale().x
 	for np in noise_pings:
-		var age = np["age"]
-		var t = age / NOISE_PING_LIFE
-		var screen_pos = xform * np["pos"]
-		var radius = 10.0 + age * NOISE_PING_GROWTH
-		var alpha = (1.0 - t) * 0.9
-		var points = PackedVector2Array()
-		# Sharp zigzag: alternate spike-out / notch-in every segment.
-		for i in range(33):
-			var angle = TAU * i / 32.0 + np["phase"]
-			var spike = 7.0 if i % 2 == 0 else -7.0
-			points.append(screen_pos + Vector2.from_angle(angle) * (radius + spike))
-		ping_canvas.draw_polyline(points, Color(col.r, col.g, col.b, alpha), 3.0)
+		var age: float = np["age"]
+		var screen_pos: Vector2 = xform * np["pos"] + Vector2(0.0, -30.0 * zoom)
+		for k in range(3):
+			var t := (age - float(k) * 0.07) / NOISE_PING_LIFE
+			if t <= 0.0 or t >= 1.0:
+				continue
+			var radius := (8.0 + t * 34.0 + float(k) * 3.0) * zoom
+			var alpha := (1.0 - t) * (1.0 - t) * (0.95 - 0.2 * float(k))
+			var width := maxf(1.5, (3.0 - float(k) * 0.7) * zoom * 0.5)
+			var col := Color(1.0, 0.86 - 0.22 * t, 0.55 - 0.35 * t, alpha)
+			for side in [0.0, PI]:
+				ping_canvas.draw_arc(screen_pos, radius, side - 0.62, side + 0.62, 14, col, width, true)

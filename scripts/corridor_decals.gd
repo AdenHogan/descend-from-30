@@ -55,7 +55,7 @@ const WALL_DRESSING := ["kid_drawing", "notice_quarantine", "poster_missing"]
 # they crawled. A separate seeded pass (its own RNG, so the dressing/horror draws above never move),
 # up to two per floor, each appearing once the floor's horror level passes its seeded threshold and
 # staying for the later runs. Sprite bottom row - DEAD_FOOT = the body's floor line.
-const DEAD := ["dead_1", "dead_2", "dead_3", "dead_4"]
+const DEAD := ["dead_1", "dead_2", "dead_3", "dead_4", "dead_5", "dead_6"]   # 5-6: took one of them with them (round 22)
 const DEAD_FOOT := 6
 const DEAD_LINE := Vector2(168, 184)             # the floor lines a body may lie on (feet line 176)
 const DEAD_THRESHOLDS := [0.3, 0.85]             # + up to 0.5 each, per floor

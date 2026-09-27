@@ -475,6 +475,11 @@ func _stair_idle_behaviour(delta: float) -> void:
 
 
 func be_distracted(pos: Vector2, duration: float = 6.0) -> void:
+	if riser_phase != "":
+		if riser_phase == "lying":          # the can wakes it; it gets up rather than wandering off lying down
+			riser_phase = "twitch"
+			_riser_t = 0.0
+		return
 	if is_dead or state in ["hit", "recovering", "knockdown"]:
 		return
 	is_distracted = true
@@ -522,6 +527,130 @@ func make_breach_leader(key_target: String) -> void:
 
 func alert_to_noise(duration: float = 6.0) -> void:
 	alert_timer = max(alert_timer, duration)
+
+
+# ---------------------------------------------------------------------------------------------
+# A RISER (owner round 22 — "if we have dead neighbours, maybe we can watch some of them get up and
+# be enemies too? Like our neighbour in the tutorial… get up and reanimate as player gets closer").
+# room.gd lays one where a flat's story left its body (WorldState.apartment_riser): on its back,
+# stiff, no body collision, no AI, no moans. When the player comes near — or it's hit, shoved,
+# distracted, or a loud noise goes off — it twitches, then rises STIFF from the heels (the old
+# horror-film sit-up) and comes for you. Never stuck: each of those wakes it, a hit or a shove brings
+# it up at once, and it's never remembered lying down (a dormant riser isn't recorded, so it lies
+# there again on return; a risen one is remembered standing, like any other).
+# ---------------------------------------------------------------------------------------------
+const RISER_HALF := 21.0          # half its side-on thickness (7 frame px × 3): the pivot above the heels
+const RISER_FEET := 49.0          # origin → feet (collision-bottom), measured (docs/Y_PLANES.md)
+const RISER_FLAT := 0.5           # lying, it's squashed this much across its body (it lies flat)
+const RISER_RANGE := 105.0        # |dx| that stirs it (+ a seeded jitter)
+const RISER_RISE_TIME := 1.3
+const RISER_WAKE_LINES := ["It's moving.", "...That one's not dead.", "It's getting up."]
+var riser_phase: String = ""      # "" | "lying" | "twitch" | "rise"
+var _riser_dir := 1.0             # the way its head lies (+1 = +x)
+var _riser_t := 0.0
+var _riser_range := RISER_RANGE
+var _riser_twitch := 0.7
+var _riser_dy := 0.0              # lying this far off its standing line (the art's spot); 0 once up
+var _riser_pos0 := Vector2.ZERO
+var _riser_scale0 := Vector2.ONE
+
+
+func start_riser(head_dir: float, seed_text: String, lie_dy: float = 0.0) -> void:
+	if animated_sprite == null or is_dead:
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(seed_text)
+	riser_phase = "lying"
+	_riser_dir = 1.0 if head_dir >= 0.0 else -1.0
+	_riser_range = RISER_RANGE + rng.randf_range(-35.0, 25.0)
+	_riser_twitch = rng.randf_range(0.45, 1.2)
+	_riser_dy = clampf(lie_dy, -24.0, 12.0)
+	_riser_pos0 = animated_sprite.position
+	_riser_scale0 = animated_sprite.scale
+	state = "dormant"
+	velocity = Vector2.ZERO
+	set_collision_layer_value(1, false)
+	set_collision_mask_value(1, false)
+	z_index = 0                                   # on the floor, under the living
+	animated_sprite.play("Idle")
+	animated_sprite.pause()
+	animated_sprite.frame = 0
+	animated_sprite.flip_h = _riser_dir > 0.0     # lying on its back: its face up, not into the floor
+	_riser_pose(1.0, 0.0)
+	add_to_group("riser")
+
+
+func is_riser_down() -> bool:
+	return riser_phase == "lying" or riser_phase == "twitch"
+
+
+## k = 1 lying .. 0 upright; jerk = a little extra lift (a twitch).
+func _riser_pose(k: float, jerk: float) -> void:
+	var th := _riser_dir * PI * 0.5 * clampf(k - jerk, 0.0, 1.0)
+	var flat := lerpf(1.0, RISER_FLAT, clampf(k * 1.25, 0.0, 1.0))
+	animated_sprite.scale = Vector2(_riser_scale0.x * flat, _riser_scale0.y)
+	var pivot := Vector2(0.0, RISER_FEET - RISER_HALF * flat)       # about the heels, its back on the floor
+	animated_sprite.rotation = th
+	animated_sprite.position = pivot + (_riser_pos0 - pivot).rotated(th) + Vector2(0.0, _riser_dy * k)
+
+
+func _riser_tick(delta: float) -> void:
+	_riser_t += delta
+	match riser_phase:
+		"lying":
+			if player == null or not is_instance_valid(player):
+				player = get_tree().get_first_node_in_group("player")
+			var near: bool = is_instance_valid(player) and ENEMY_PLANE.same_plane(self, player) \
+				and absf(player.global_position.x - global_position.x) < _riser_range
+			if near or alert_timer > 0.0:
+				riser_phase = "twitch"
+				_riser_t = 0.0
+		"twitch":
+			# a few small jerks — a hand, the head — stiller between
+			var jerk := 0.0
+			if fmod(_riser_t, 0.34) < 0.1:
+				jerk = absf(sin(_riser_t * 55.0)) * 0.05
+			_riser_pose(1.0, jerk)
+			if _riser_t >= _riser_twitch:
+				_riser_begin_rise()
+		"rise":
+			var k := clampf(_riser_t / RISER_RISE_TIME, 0.0, 1.0)
+			var e := k * k * (3.0 - 2.0 * k)                 # stiff: slow off the floor, slow into place
+			_riser_pose(1.0 - e, 0.0)
+			if k >= 1.0:
+				_riser_up()
+
+
+func _riser_begin_rise() -> void:
+	riser_phase = "rise"
+	_riser_t = 0.0
+	if moan_player != null:
+		moan_player.stream = MOAN_STREAMS.pick_random()
+		moan_player.pitch_scale = voice_pitch * 0.8
+		moan_player.play()
+	if is_instance_valid(player) and absf(player.global_position.x - global_position.x) < 260.0:
+		HUD.show_feedback(RISER_WAKE_LINES[posmod(hash(spawn_key), RISER_WAKE_LINES.size())])
+
+
+## Up: an ordinary zombie from here on, coming for you (passable until you're clear — never lodges you).
+func _riser_up() -> void:
+	if riser_phase == "":
+		return
+	riser_phase = ""
+	_riser_dy = 0.0
+	_riser_pose(0.0, 0.0)
+	animated_sprite.rotation = 0.0
+	animated_sprite.position = _riser_pos0
+	animated_sprite.scale = _riser_scale0
+	remove_from_group("riser")
+	z_index = 1
+	set_collision_layer_value(1, true)
+	set_collision_mask_value(1, true)
+	passable_to_player = false
+	_make_passable_to_player()
+	state = "chase"
+	alert_timer = maxf(alert_timer, 8.0)
+	animated_sprite.play("Walk")
 
 func _ready() -> void:
 	# ACTOR LAYER: player + enemies render one z-layer above the corridor
@@ -614,6 +743,8 @@ func _set_hp_from_floor() -> void:
 	current_hp = max_hp
 
 func receive_push(force: float) -> void:
+	if riser_phase != "":
+		_riser_up()
 	if stair_mode:
 		_exit_stairwell_mode()   # a shove pulls it off the stairs into normal handling
 	# Already reeling from a PUSH → no re-push. A hurt stun (a blow just landed) CAN be shoved —
@@ -717,6 +848,8 @@ func _deliver_attack(distance: float) -> void:
 
 
 func receive_damage(amount: int, damage_type: String) -> void:
+	if riser_phase != "":
+		_riser_up()              # hit where it lies: it's up NOW (a kill never leaves it half-risen)
 	if stair_mode:
 		_exit_stairwell_mode()   # a hit pulls it off the stairs; it's never unkillable
 	# NOT immune while knocked down (it used to shrug off every hit for 3s) — a hit always lands.
@@ -778,6 +911,12 @@ func _knockdown() -> void:
 	_make_passable_to_player()
 
 func _exit_tree() -> void:
+	# A riser still lying there is never remembered: it's lying there again on return. One getting up
+	# is remembered standing.
+	if is_riser_down():
+		return
+	if riser_phase == "rise":
+		_riser_up()
 	# Leaving this floor (stairs, apartment door, save/quit): remember where I am,
 	# facing which way, how hurt — so returning doesn't reset me to my seeded
 	# spawn. record_zombie skips the dead (killed_zombies has those), keyless, and
@@ -797,6 +936,8 @@ func _exit_tree() -> void:
 
 
 func _die() -> void:
+	if riser_phase != "":
+		_riser_up()
 	is_dead = true
 	WorldState.note_kill()          # journal stat: enemies felled this run
 	# A follower that dies breaks the chase chain; make sure it's never left dangling as
@@ -927,6 +1068,12 @@ func receive_hit_from_gun(outcome: String) -> void:
 
 func _physics_process(delta: float) -> void:
 	if is_dead:
+		return
+
+	if riser_phase != "":
+		_riser_tick(delta)       # lying there / getting up: no AI, no moaning (it's one of the dead)
+		if alert_timer > 0:
+			alert_timer -= delta
 		return
 
 	if alert_timer > 0:

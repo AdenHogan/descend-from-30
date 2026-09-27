@@ -11,6 +11,12 @@ kept SHORT (21c: "we don't need a corpse to have dragged itself across all three
 The third room is left alone. No words in blood, nothing growing out of the ceiling, no scattered gore.
   CORPSE   (an ORDINARY flat, now and then — 21c "sporadically there should be bodies across the
            building"): one of the dead where they fell, a dried stain, flies. No story needed.
+           Round 22 ("sometimes… our enemies dead nearby… that neighbour fought and killed one but died
+           of their wounds"): about half the time one of THEM lies near — the standard zombie's own
+           death pose, its head knocked off — and whatever the resident fought with lies by their hand.
+  RISE     (round 22 — "watch some of them get up… like our neighbour in the tutorial"): the same
+           story WITHOUT the body: a real zombie lies there instead (room.gd, the riser) and gets up
+           as the player comes close. Its spot is recorded in the meta ("riser": [feet x, floor y, s]).
 
 For every room-module variant pixlib.finish_module calls write(), which renders
 assets/rooms/<name>_nest_<role>.png for the eight roles (door / kill / doorkill / corpse × l/r; _l =
@@ -31,7 +37,7 @@ from PIL import Image
 
 W, H, SEAM = 320, 144, 100
 LANE_Y = 129                     # the walking line (world 353 − the module's top 224): the trail's line
-ROLES = ('door_l', 'kill_l', 'doorkill_l', 'corpse_l', 'door_r', 'kill_r', 'doorkill_r', 'corpse_r')
+ROLES = ('door_l', 'kill_l', 'doorkill_l', 'corpse_l', 'rise_l', 'door_r', 'kill_r', 'doorkill_r', 'corpse_r', 'rise_r')
 
 BLOOD = (112, 12, 14, 255)
 BLOOD_DK = (70, 8, 8, 255)
@@ -44,7 +50,7 @@ SKIN_DK = (86, 92, 70, 255)
 HAIR = (40, 30, 24, 255)
 RAGS = [(70, 78, 96, 255), (96, 84, 66, 255), (80, 64, 70, 255), (110, 106, 96, 255), (58, 70, 60, 255)]
 SPLINTER = [(112, 84, 56, 255), (86, 62, 40, 255), (150, 118, 80, 255)]
-WASH = {'door': (14, 6, 5, 16), 'kill': (12, 5, 4, 40), 'doorkill': (12, 5, 4, 32), 'corpse': (0, 0, 0, 0)}
+WASH = {'door': (14, 6, 5, 16), 'kill': (12, 5, 4, 40), 'doorkill': (12, 5, 4, 32), 'corpse': (0, 0, 0, 0), 'rise': (0, 0, 0, 0)}
 
 
 class Layer:
@@ -71,6 +77,7 @@ def _masks(full, bare_floor, flat_pieces=None):
     # that starts well below the seam, stays short and doesn't join anything standing up — so a drag
     # trail crosses a rug but passes behind a sofa, a table leg or a bath
     flat = [col[:] for col in bare]
+    clear = [col[:] for col in bare]
     for x in range(W):
         y = SEAM
         while y < H:
@@ -83,12 +90,17 @@ def _masks(full, bare_floor, flat_pieces=None):
             if y0 >= SEAM + 6 and y - y0 <= 24 and bare[x][y0 - 1]:
                 for yy in range(y0, y):
                     flat[x][yy] = True
+                    if y - y0 <= 5:                 # a shadow / a rug's edge — not a thing lying there
+                        clear[x][yy] = True
     # rugs etc. registered by the art (pixlib.flat_piece): flat wherever they still show in the finished
     # art — a sofa drawn on the rug covers those pixels, so it stays upright
+    # CLEAR = bare floor, a registered rug, or a short run (a shadow) — where the dead and dropped things
+    # may go (round 22: a guitar lying on the floor is a longer run too, and a body was laid over it)
     for (x, y), col in (flat_pieces or {}).items():
         if y >= SEAM and fp[x, y] == col:
             flat[x][y] = True
-    return bare, flat
+            clear[x][y] = True
+    return bare, flat, clear
 
 
 # ---------------------------------------------------------------------------------------- the marks
@@ -354,6 +366,127 @@ def _heap(L, rng, cx, y, s):
     return [_body(L, rng, cx - s * 52, y - 3, s), _body(L, rng, cx + s * 52, y + 4, -s)]
 
 
+ZOMBIE_DEATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'assets', 'Enemies',
+                            'Zombie', 'Zombie', 'Zombie - Death.png')
+_ZPARTS = []
+ZB_W, ZB_H = 112, 16             # a dead zombie's footprint: its body, the gap, its head (world px)
+
+
+def _zombie_parts():
+    # the standard zombie's last Death frame (the in-game corpse, 3x like the enemies), split into its
+    # body and its head — which the death pose knocks off (so it can lie a little nearer the stump)
+    if not _ZPARTS:
+        im = Image.open(ZOMBIE_DEATH).convert('RGBA')
+        n = im.width // im.height
+        f = im.crop(((n - 1) * im.height, 0, n * im.height, im.height))
+        box = f.getbbox()
+        f = f.crop(box)
+        a = f.load()
+        cols = [x for x in range(f.width) if any(a[x, y][3] > 100 for y in range(f.height))]
+        gaps = [cols[i] for i in range(1, len(cols)) if cols[i] - cols[i - 1] > 3]
+        cut = gaps[0] if gaps else f.width // 3
+        head = f.crop((0, 0, cut, f.height))
+        body = f.crop((cut, 0, f.width, f.height))
+        head, body = head.crop(head.getbbox()), body.crop(body.getbbox())
+        _ZPARTS.extend([body.resize((body.width * 3, body.height * 3), Image.NEAREST),
+                        head.resize((head.width * 3, head.height * 3), Image.NEAREST)])
+    return _ZPARTS
+
+
+def _paste(L, spr, x0, y1, dim=1.0):
+    # an RGBA sprite, its bottom-left on (x0, y1)
+    sp = spr.load()
+    for yy in range(spr.height):
+        for xx in range(spr.width):
+            c = sp[xx, yy]
+            if c[3] >= 128:
+                L.put(x0 + xx, y1 - spr.height + 1 + yy, _shade(c, dim))
+
+
+def _zombie_dead(L, rng, x, y, s):
+    # one of THEM, dead: its body with the neck toward s from x, the head knocked a step further on,
+    # the stump bled out dark between them. (x, y) = its far end (feet) on the floor row y.
+    body, head = _zombie_parts()
+    if s < 0:
+        body, head = body.transpose(Image.FLIP_LEFT_RIGHT), head.transpose(Image.FLIP_LEFT_RIGHT)
+    bx0 = x if s > 0 else x - body.width + 1
+    neck = bx0 + body.width - 1 if s > 0 else bx0
+    gap = rng.randint(6, 12)
+    hx0 = neck + s * gap if s > 0 else neck - gap - head.width + 1
+    hy = y + rng.randint(-2, 2)
+    L.ellipse(neck + s * (gap // 2), y - 1, gap * 0.7 + 3, 2.2, BLOOD_OLD)            # bled out at the stump
+    L.ellipse(neck + s * (gap // 2), y - 1, gap * 0.45 + 1, 1.3, (38, 6, 6, 255))
+    _paste(L, body, bx0, y, 0.92)
+    _paste(L, head, hx0, hy, 0.92)
+    for xx in range(body.width):                                                   # its shadow
+        if rng.random() < 0.85:
+            L.put(bx0 + xx, y + 1, (26, 18, 14, 255))
+    return (bx0 + body.width // 2, y - 6)
+
+
+WEAPONS = ('knife', 'hammer', 'pin', 'club', 'pan', 'leg')
+
+
+def _weapon(L, rng, x, y, s, kind):
+    # what the resident fought with, dropped by their hand: 2x, bloodied at the business end
+    _x2(L, _weapon1, x, y, s, rng, kind)
+
+
+def _weapon1(L, x, y, s, rng, kind):
+    steel, dark, wood = (176, 180, 186, 255), (70, 70, 76, 255), (120, 82, 50, 255)
+    def run(n, col, dy=0, x0=0):
+        for i in range(n):
+            L.put(x + s * (x0 + i), y + dy, col)
+    if kind == 'knife':
+        run(4, (40, 32, 28, 255)); run(7, steel, 0, 4); run(5, dark, 1, 4)
+        L.put(x + s * 10, y, BLOOD); L.put(x + s * 9, y, BLOOD_DK); L.put(x + s * 8, y + 1, BLOOD_DK)
+    elif kind == 'hammer':
+        run(9, wood); run(9, (90, 60, 36, 255), 1)
+        for j in range(-2, 3):
+            L.put(x + s * 9, y + j, dark); L.put(x + s * 10, y + j, steel if j < 2 else dark)
+        L.put(x + s * 10, y - 2, BLOOD); L.put(x + s * 9, y + 2, BLOOD_DK)
+    elif kind == 'pin':
+        run(2, (150, 110, 70, 255)); run(8, (196, 160, 110, 255), 0, 2); run(8, (160, 124, 80, 255), 1, 2)
+        run(2, (150, 110, 70, 255), 0, 10)
+        L.put(x + s * 7, y, BLOOD); L.put(x + s * 8, y + 1, BLOOD_DK)
+    elif kind == 'club':
+        run(3, (30, 30, 34, 255)); run(12, (200, 200, 206, 255), 0, 3)
+        run(3, (200, 200, 206, 255), -1, 15); run(3, (120, 120, 128, 255), 0, 15)
+        L.put(x + s * 16, y - 1, BLOOD); L.put(x + s * 17, y, BLOOD_DK)
+    elif kind == 'pan':
+        run(6, (40, 40, 44, 255))
+        for j in range(-2, 3):
+            w = 4 - abs(j)
+            for i in range(-w, w + 1):
+                L.put(x + s * (10 + i), y + j, (54, 54, 60, 255) if abs(j) < 2 else dark)
+        L.put(x + s * 11, y - 1, BLOOD); L.put(x + s * 12, y, BLOOD_DK)
+    else:                                                              # a chair leg, broken off
+        run(11, wood); run(11, (86, 58, 34, 255), 1)
+        L.put(x + s * 11, y - 1, (190, 150, 100, 255)); L.put(x + s * 12, y, (190, 150, 100, 255))
+        L.put(x + s * 9, y, BLOOD); L.put(x + s * 10, y + 1, BLOOD_DK)
+
+
+def _fought_back(floor, obj, rng, flat, fx, fy, s, taken):
+    # the one they killed, lying near them (None if there's no room). taken = rects already used.
+    cands = []
+    for y in range(max(SEAM + 20, fy - 12), min(H - 3, fy + 12) + 1, 2):
+        for zx in range(6, W - 6, 3):
+            zs = rng.choice((1, -1))
+            x0, x1 = (zx, zx + ZB_W) if zs > 0 else (zx - ZB_W, zx)
+            if x0 < 2 or x1 > W - 3 or not _fits(flat, x0, x1, y - ZB_H, y + 3):
+                continue
+            if any(not (x1 < a0 - 4 or x0 > a1 + 4 or y - ZB_H > b1 or y + 3 < b0) for (a0, b0, a1, b1) in taken):
+                continue
+            d = abs((x0 + x1) / 2 - (fx + s * BODY_W / 2))
+            if d < 170:
+                cands.append((d, zx, y, zs))
+    if not cands:
+        return None
+    cands.sort()
+    _, zx, y, zs = rng.choice(cands[:max(1, len(cands) // 3)])      # near them, not always the nearest
+    return _zombie_dead(obj, rng, zx, y, zs)
+
+
 # ------------------------------------------------------------------------------------------ helpers
 
 def _bare_run(bare, x0, x1, ys):
@@ -393,6 +526,8 @@ def _flight(wall, floor, obj, rng, bare, flat, e, s):
 
 
 BODY_W, BODY_H = 74, 21          # the widest dead sprite (72x20) + a pixel: its whole footprint must be clear
+RISER_W, RISER_H = 88, 12        # a real zombie lying there (enemy_zombie_standard.gd riser): feet to head; its floor footprint
+FOUGHT_BACK = 0.5                # how often the resident took one of them with them
 
 
 def _fits(flat, x0, x1, y0, y1):
@@ -401,15 +536,25 @@ def _fits(flat, x0, x1, y0, y1):
                for x in range(int(min(x0, x1)), int(max(x0, x1)) + 1, 2) for y in range(int(y0), int(y1) + 1, 2))
 
 
-def _one_spot(flat, rng, lo, hi, s, ys=range(112, 135, 2)):   # behind the walking line (129) first
+def _one_spot(flat, rng, lo, hi, s, ys=range(112, 135, 2), width=BODY_W, height=BODY_H):   # behind the lane (129) first
     # (feet x, floor y) for ONE body lying toward s, fully clear of furniture, or None
     cands = []
     for y in ys:
         for fx in range(max(4, lo), min(W - 4, hi) + 1, 3):
-            hx = fx + s * BODY_W
-            if 2 <= hx <= W - 3 and _fits(flat, fx, hx, y - BODY_H, y + 2):
+            hx = fx + s * width
+            if 2 <= hx <= W - 3 and _fits(flat, fx, hx, y - height, y + 2):
                 cands.append((fx, y))
     return rng.choice(cands) if cands else None
+
+
+def _first(fn, masks):
+    # the first spot found on CLEAR floor, else on FLAT (a rug nobody registered) — so the dead lie back
+    # from the walking line as before, but on bare floor wherever there's room for them
+    for m in masks:
+        r = fn(m)
+        if r is not None:
+            return r
+    return None
 
 
 def _heap_spot(flat, rng, lo, hi):
@@ -457,17 +602,18 @@ def _bleed(wall, floor, rng, bare, flat, fx, fy, s, how):
     return flies
 
 
-def _kill(wall, floor, obj, rng, bare, flat, s, lo, hi):
+def _kill(wall, floor, obj, rng, bare, masks, s, lo, hi):
     # where they were caught: a hand on the wall that slid to the skirting, a pool at its foot, one
     # arc of spatter — then a SHORT drag (a few steps) to where they lie. Returns (flies, bodies).
-    spot = _heap_spot(flat, rng, lo, hi)
+    spot = _first(lambda m: _heap_spot(m, rng, lo, hi), masks)
     bodies = []
     if spot is not None:
         hx, hy = spot
         bodies = _heap(obj, rng, hx, hy, s)
         body_back = hx - s * 52
     else:
-        spot = _one_spot(flat, rng, lo, hi, s) or _one_spot(flat, rng, 4, W - 4, s, range(104, 142, 2))
+        spot = (_first(lambda m: _one_spot(m, rng, lo, hi, s), masks)
+                or _first(lambda m: _one_spot(m, rng, 4, W - 4, s, range(104, 142, 2)), masks))
         if spot is None:
             return [], []
         fx, hy = spot
@@ -505,32 +651,52 @@ def render(name, full, bare_floor, seed, role, flat_pieces=None):
     e = 0 if s > 0 else W - 1                     # the edge it comes in from (the front door, in ENTRY)
     far = W - 1 if s > 0 else 0
     rng = random.Random(zlib.crc32(('nest:%s:%s:%d' % (name, role, seed)).encode()))
-    bare, flat = _masks(full, bare_floor, flat_pieces)
+    bare, flat, clear = _masks(full, bare_floor, flat_pieces)
+    masks = (clear, flat)
     wall, floor, obj = Layer(), Layer(), Layer()
-    flies, bodies = [], []
+    flies, bodies, riser, zombies = [], [], None, []
     if part in ('door', 'doorkill'):
-        _flight(wall, floor, obj, rng, bare, flat, e, s)
+        _flight(wall, floor, obj, rng, bare, clear, e, s)
     if part in ('kill', 'doorkill'):
         if part == 'kill':                                  # they got this far, fleeing from the door
             lo, hi = (70, W - 40) if s > 0 else (40, W - 70)
         else:                                               # caught further in, in the door's own room
             lo, hi = (170, W - 40) if s > 0 else (40, W - 170)
-        f_, b_ = _kill(wall, floor, obj, rng, bare, flat, s, lo, hi)
+        f_, b_ = _kill(wall, floor, obj, rng, bare, masks, s, lo, hi)
         flies += f_
         bodies += b_
-    if part == 'corpse':                                    # one of the dead, and how they came to be there
+    if part in ('corpse', 'rise'):                          # one of the dead, and how they came to be there
         how = rng.choices(('crawl', 'pool', 'struggle'), (0.4, 0.35, 0.25))[0]
         lo, hi = ((70, W - 4) if s > 0 else (4, W - 70)) if how == 'crawl' else (4, W - 4)
-        spot = (_one_spot(flat, rng, lo, hi, s) or _one_spot(flat, rng, 4, W - 4, s)
-                or _one_spot(flat, rng, 4, W - 4, s, range(104, 142, 2)))
+        if part == 'rise':                                  # a real zombie lies here: on the walking line,
+            lo, hi = max(lo, 26), min(hi, W - 26)           # clear of the walls at the module's ends
+            spot = (_first(lambda m: _one_spot(m, rng, lo, hi, s, range(127, 132), RISER_W, RISER_H), masks)
+                    or _first(lambda m: _one_spot(m, rng, 26, W - 26, s, range(125, 134), RISER_W, RISER_H), masks)
+                    or _first(lambda m: _one_spot(m, rng, 26, W - 26, s, range(112, 140, 2), RISER_W, RISER_H), masks))
+        else:
+            spot = (_first(lambda m: _one_spot(m, rng, lo, hi, s), masks)
+                    or _first(lambda m: _one_spot(m, rng, 4, W - 4, s), masks)
+                    or _first(lambda m: _one_spot(m, rng, 4, W - 4, s, range(104, 142, 2)), masks))
         if spot is not None:
             fx, fy = spot
-            flies += _bleed(wall, floor, rng, bare, flat, fx, fy, s, how)
-            _stain(obj, rng, fx + s * 10, fx + s * (BODY_W - 6), fy, 2)
-            bodies.append(_body(obj, rng, fx, fy, s))
+            ln = RISER_W if part == 'rise' else BODY_W
+            flies += _bleed(wall, floor, rng, bare, clear, fx, fy, s, how)
+            _stain(obj, rng, fx + s * 10, fx + s * (ln - 6), fy, 2)
+            if part == 'rise':
+                riser = [int(fx), int(fy), s]
+            else:
+                bodies.append(_body(obj, rng, fx, fy, s))
             if rng.random() < 0.4:
                 _rag(floor, rng, fx + s * rng.randint(-30, 70), fy + rng.randint(2, 6))
-            flies.append((fx + s * BODY_W // 2, fy - 9))
+            flies.append((fx + s * ln // 2, fy - 9))
+            if rng.random() < FOUGHT_BACK:                  # they took one of them with them
+                x0, x1 = sorted((fx, fx + s * ln))
+                wx = fx + s * rng.randint(40, 56)                # their hand, about the chest: what they fought with
+                _weapon(obj, rng, wx, fy + rng.randint(4, 6), s if rng.random() < 0.5 else -s, rng.choice(WEAPONS))
+                z = _first(lambda m: _fought_back(floor, obj, rng, m, fx, fy, s, [(x0, fy - BODY_H, x1, fy + 3)]), masks)
+                if z is not None:
+                    flies.append(z)
+                    zombies.append(z)
     # composite through the masks: wall marks on bare wall only, floor marks on bare floor only
     out = Image.new('RGBA', (W, H), WASH[part])
     op = out.load()
@@ -542,7 +708,8 @@ def render(name, full, bare_floor, seed, role, flat_pieces=None):
             for x in range(W):
                 if lp[x, y][3] and ok(x, y):
                     op[x, y] = lp[x, y]
-    return out, [[int(x), int(y)] for (x, y) in flies], [[int(x), int(y)] for (x, y) in bodies]
+    return (out, [[int(x), int(y)] for (x, y) in flies], [[int(x), int(y)] for (x, y) in bodies], riser,
+            [[int(x), int(y)] for (x, y) in zombies])
 
 
 META = os.path.join('assets', 'rooms', 'nest_meta.json')
@@ -555,7 +722,7 @@ def write(name, full, bare_floor, seed, root, flat_pieces=None):
         if os.path.exists(p):
             os.remove(p)
     if os.environ.get('NEST_DEBUG'):
-        bare, flat = _masks(full, bare_floor, flat_pieces)
+        bare, flat, _clear = _masks(full, bare_floor, flat_pieces)
         m = Image.new('RGB', (W, H))
         for x in range(W):
             for y in range(H):
@@ -565,9 +732,13 @@ def write(name, full, bare_floor, seed, root, flat_pieces=None):
     meta = json.load(open(meta_path)) if os.path.exists(meta_path) else {}
     imgs = {}
     for role in ROLES:
-        img, flies, bodies = render(name, full, bare_floor, seed, role, flat_pieces)
+        img, flies, bodies, riser, zombies = render(name, full, bare_floor, seed, role, flat_pieces)
         img.save(os.path.join(d, '%s_nest_%s.png' % (name, role)))
         meta['%s_nest_%s' % (name, role)] = {'flies': flies, 'bodies': bodies}
+        if riser is not None:
+            meta['%s_nest_%s' % (name, role)]['riser'] = riser
+        if zombies:                                                     # the one they killed (round 22)
+            meta['%s_nest_%s' % (name, role)]['zombies'] = zombies
         imgs[role] = img
     with open(meta_path, 'w') as f:                                     # one line a texture, sorted
         f.write('{\n' + ',\n'.join(' %s: %s' % (json.dumps(k), json.dumps(meta[k], separators=(', ', ': ')))
@@ -605,7 +776,29 @@ def preview(root):
             a.alpha_composite(Image.open(os.path.join(rooms, '%s%s_nest_corpse_%s.png' % (t, v, 'l' if i % 2 else 'r'))))
             dead.paste(a.convert('RGB'), (pad + i * (W + pad), pad + r * (H + pad)))
     dead.save(os.path.join(prev, 'human_dead.png'))
-    print('wrote breach_nests.png + human_dead.png')
+    # risers.png (round 22): every variant's RISE story with the zombie lying where the game lays it
+    # (the Idle frame on its back, squashed flat like enemy_zombie_standard._riser_pose)
+    meta = json.load(open(os.path.join(root, META)))
+    idle = Image.open(os.path.join(os.path.dirname(ZOMBIE_DEATH), 'Zombie - Idle.png')).convert('RGBA')
+    idle = idle.crop((0, 0, idle.height, idle.height))
+    idle = idle.crop(idle.getbbox())
+    idle = idle.resize((idle.width * 3 // 2, idle.height * 3), Image.NEAREST)
+    rise = Image.new('RGB', (5 * (W + pad) + pad, len(types) * (H + pad) + pad), (18, 18, 20))
+    for r, t in enumerate(types):
+        for i, v in enumerate(['', '_b', '_c', '_d', '_e']):
+            role = 'rise_' + ('l' if i % 2 else 'r')
+            a = Image.open(os.path.join(rooms, t + v + '.png')).convert('RGBA')
+            a.alpha_composite(Image.open(os.path.join(rooms, '%s%s_nest_%s.png' % (t, v, role))))
+            e = meta.get('%s%s_nest_%s' % (t, v, role), {}).get('riser')
+            if e:
+                fx, fy, s_ = e
+                g = idle.transpose(Image.FLIP_LEFT_RIGHT) if s_ > 0 else idle
+                g = g.rotate(-90 if s_ > 0 else 90, expand=True)
+                x0 = fx if s_ > 0 else fx - g.width + 1
+                a.alpha_composite(g, (max(0, min(W - g.width, x0)), fy - g.height + 1))
+            rise.paste(a.convert('RGB'), (pad + i * (W + pad), pad + r * (H + pad)))
+    rise.save(os.path.join(prev, 'risers.png'))
+    print('wrote breach_nests.png + human_dead.png + risers.png')
 
 
 if __name__ == '__main__':

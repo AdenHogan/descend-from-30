@@ -4025,6 +4025,29 @@ func apartment_corpse(apartment_id: String) -> Dictionary:
 	return {"slot": (h / 7) % 3, "side": "l" if (h / 3) % 2 == 0 else "r"}
 
 
+# RISERS (owner round 22 — "if we have dead neighbours, maybe we can watch some of them get up and be
+# enemies too? Like our neighbour in the tutorial… get up and reanimate as player gets closer"). In some
+# flats with one of the dead, the body is a real zombie lying there: the art draws the story WITHOUT the
+# body (nest role "rise", its spot in nest_meta.json "riser") and room.gd lays a standard zombie in it
+# (enemy_zombie_standard.start_riser), which gets up as the player comes close. More as the arc goes on.
+const RISER_CHANCE := {1: 0.35, 2: 0.45, 3: 0.55}
+
+
+func apartment_riser(apartment_id: String) -> bool:
+	if apartment_corpse(apartment_id).is_empty():
+		return false
+	# through an RNG: a bare hash of this key is correlated with apartment_corpse's (near-identical
+	# strings), which made risers all but vanish on some seeds
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "apt_riser" + apartment_id + str(current_run))
+	return rng.randf() < float(RISER_CHANCE.get(current_run, 0.35))
+
+
+## The riser's spawn key (memory / kills) — per flat + run, like its story.
+func riser_key(apartment_id: String) -> String:
+	return "%d:riser:%s:%d" % [_apartment_floor(apartment_id), apartment_id, current_run]
+
+
 # GUN CABINETS — a quest without saying it (owner round 20)
 # ============================================================
 # Living room E has a locked gun cabinet (anchor_living_gun_cabinet). Inside: a GUARANTEED Lv3 gun.
