@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://yokxmileksha"
-path="res://.godot/imported/bicycle_down.png-f94f834aa18ef3b2eaf61b5d3bf64185.ctex"
+uid="uid://bxsj2ihmjf3of"
+path="res://.godot/imported/bicycle_wrecked__2.png-41922db6aaff375385e503eb6d78b7ff.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/corridor/decals/bicycle_down.png"
-dest_files=["res://.godot/imported/bicycle_down.png-f94f834aa18ef3b2eaf61b5d3bf64185.ctex"]
+source_file="res://assets/corridor/decals/bicycle_wrecked__2.png"
+dest_files=["res://.godot/imported/bicycle_wrecked__2.png-41922db6aaff375385e503eb6d78b7ff.ctex"]
 
 [params]
 

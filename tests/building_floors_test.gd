@@ -1088,8 +1088,10 @@ func _test_corridor_decals() -> void:
 	check(CD.horror_level(20, 1) < CD.horror_level(20, 2) and CD.horror_level(20, 2) < CD.horror_level(20, 3),
 		"horror rises through the day")
 	var dressing := {}
-	for n in CD.DRESSING_KEPT + CD.DRESSING_TIRED + CD.DRESSING_GONE + ["plant_fallen", "chair_down", "bicycle_down"]:
-		dressing[n] = true
+	# round 24e — a prop comes in variants (`<base>__2`…): every variant of every pooled / knocked base
+	for b in CD.DRESSING_KEPT + CD.DRESSING_TIRED + CD.DRESSING_GONE + CD.KNOCKED.values():
+		for n in CD.dressing_variants(b):
+			dressing[n] = true
 	# notices hang in the band just over the rail — never up by the ceiling, never across the rail —
 	# and the corridor carries what residents leave outside (owner round 24)
 	var notices := 0
@@ -1104,11 +1106,23 @@ func _test_corridor_decals() -> void:
 					var sz: Vector2 = CD._tex(nm).get_size()
 					if d["pos"].y < 58.0 or d["pos"].y + sz.y > 94.0:
 						high_notice = "%s@%s floor %d" % [nm, d["pos"], f]
-				elif nm in ["bicycle", "bicycle_down", "kids_bike", "bin_bags", "recycling_box", "pram",
-						"newspapers", "shoe_rack", "umbrella_stand", "plant_stand"]:
-					outdoor[nm] = true
+				elif CD.base_of(nm) in ["bicycle", "bicycle_wrecked", "kids_bike", "bin_bags", "recycling_box", "pram",
+						"newspapers", "shoe_rack", "shoe_tray", "umbrella_stand", "plant_stand", "hall_table"]:
+					outdoor[CD.base_of(nm)] = true
 	check(notices > 0 and high_notice == "", "notices sit in the rail band (%d placed) %s" % [notices, high_notice])
 	check(outdoor.size() >= 5, "the corridors carry outdoor things — rubbish, racks, prams... (%s)" % str(outdoor.keys()))
+	# round 24e — variants are actually dealt out, and a knocked plant stand spills onto the floor
+	var variants_seen := {}
+	var spilled := false
+	for f in range(1, 30):
+		for r in [1, 2, 3]:
+			for d in CD.plan(f, r, BF.corridor_base_name(f)):
+				if "__" in str(d["name"]):
+					variants_seen[d["name"]] = true
+				if CD.base_of(d["name"]) == "plant_stand_fallen":
+					spilled = true
+	check(variants_seen.size() >= 6, "prop variants turn up across the building (%d)" % variants_seen.size())
+	check(spilled or not "plant_stand" in CD.DRESSING_KEPT, "a plant stand gets knocked over on some later run")
 	# a bike fits between two doors (it's the widest thing that stands there) — seeded, not luck
 	var bike_rng := RandomNumberGenerator.new()
 	bike_rng.seed = 7
@@ -1150,7 +1164,34 @@ func _test_corridor_decals() -> void:
 					reason_bad = "%s (%s) @%s floor %d" % [nm, m["rule"], d["pos"], f]
 	check(standing_n > 0 and standing_bad == "", "standing props stand on the floor at their depth (%d) %s" % [standing_n, standing_bad])
 	check(reason_bad == "", "each sits by a door or on an open stretch of wall — never just anywhere %s" % reason_bad)
-	for nm in ["plant_small", "umbrella", "pedal_bin", "watering_can"]:
+	# ...on any building, not just this game's seed (a span kept for a knocked-over sprite once pushed a
+	# narrower variant off its spot on one seed in ten)
+	var keep_seed: int = WorldState.master_seed
+	var sweep_bad := ""
+	for sd in range(1, 13):
+		WorldState.master_seed = sd * 7919
+		for f in range(1, 30):
+			for r in [1, 2, 3]:
+				for d in CD.plan(f, r, BF.corridor_base_name(f)):
+					var nm: String = d["name"]
+					if not dressing.has(nm) or nm in CD.WALL_DRESSING:
+						continue
+					var m: Dictionary = CD.dressing_meta(nm)
+					var w: float = CD._tex(nm).get_size().x
+					var ok := false
+					if m["rule"] == "open":
+						for sx in CD.OPEN_SPOTS:
+							ok = ok or absf(d["pos"].x + w / 2.0 - float(sx)) <= 9.0
+					else:
+						for dx in CD.DOORS:
+							var g_r: float = d["pos"].x - (float(dx) + CD.DOOR_FRAME)
+							var g_l: float = (float(dx) - CD.DOOR_FRAME) - (d["pos"].x + w)
+							ok = ok or (g_r >= 0.0 and g_r <= 9.0) or (g_l >= 0.0 and g_l <= 9.0)
+					if not ok:
+						sweep_bad = "%s seed %d floor %d run %d @%s" % [nm, sd * 7919, f, r, d["pos"]]
+	WorldState.master_seed = keep_seed
+	check(sweep_bad == "", "props keep to their spots on a dozen buildings %s" % sweep_bad)
+	for nm in ["plant_small", "umbrella", "pedal_bin", "watering_can", "shoes", "boots", "bicycle_down"]:
 		check(not nm in CD.DRESSING_KEPT + CD.DRESSING_TIRED + CD.DRESSING_GONE, "%s is gone from the corridors" % nm)
 	var horror_of := func(plan: Array) -> Array:
 		var out: Array = []

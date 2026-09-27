@@ -2,106 +2,283 @@
  "note": "tools/art/corridor_props.py: per standing prop \u2014 rule (door/open), depth on the floor, contact (sprite row of its front floor contact)",
  "props": {
   "bicycle": {
+   "base": "bicycle",
    "contact": 36,
    "depth": 3,
    "rule": "door"
   },
-  "bicycle_down": {
-   "contact": 17,
-   "depth": 10,
+  "bicycle__2": {
+   "base": "bicycle",
+   "contact": 36,
+   "depth": 3,
+   "rule": "door"
+  },
+  "bicycle_wrecked": {
+   "base": "bicycle_wrecked",
+   "contact": 36,
+   "depth": 3,
+   "rule": "door"
+  },
+  "bicycle_wrecked__2": {
+   "base": "bicycle_wrecked",
+   "contact": 36,
+   "depth": 3,
    "rule": "door"
   },
   "bin_bags": {
+   "base": "bin_bags",
    "contact": 28,
    "depth": 11,
    "rule": "door"
   },
-  "boots": {
-   "contact": 20,
-   "depth": 6,
+  "bin_bags__2": {
+   "base": "bin_bags",
+   "contact": 28,
+   "depth": 11,
+   "rule": "door"
+  },
+  "bin_bags__3": {
+   "base": "bin_bags",
+   "contact": 28,
+   "depth": 11,
    "rule": "door"
   },
   "chair": {
+   "base": "chair",
+   "contact": 38,
+   "depth": 9,
+   "rule": "open"
+  },
+  "chair__2": {
+   "base": "chair",
    "contact": 38,
    "depth": 9,
    "rule": "open"
   },
   "chair_down": {
+   "base": "chair_down",
    "contact": 25,
    "depth": 10,
    "rule": "open"
   },
+  "hall_table": {
+   "base": "hall_table",
+   "contact": 46,
+   "depth": 7,
+   "rule": "door"
+  },
+  "hall_table__2": {
+   "base": "hall_table",
+   "contact": 46,
+   "depth": 7,
+   "rule": "door"
+  },
+  "hall_table__3": {
+   "base": "hall_table",
+   "contact": 46,
+   "depth": 7,
+   "rule": "door"
+  },
   "kids_bike": {
+   "base": "kids_bike",
+   "contact": 26,
+   "depth": 3,
+   "rule": "door"
+  },
+  "kids_bike__2": {
+   "base": "kids_bike",
    "contact": 26,
    "depth": 3,
    "rule": "door"
   },
   "newspapers": {
+   "base": "newspapers",
    "contact": 16,
    "depth": 9,
    "rule": "door"
   },
   "parcels": {
+   "base": "parcels",
+   "contact": 28,
+   "depth": 9,
+   "rule": "door"
+  },
+  "parcels__2": {
+   "base": "parcels",
    "contact": 28,
    "depth": 9,
    "rule": "door"
   },
   "plant_dead": {
+   "base": "plant_dead",
    "contact": 51,
    "depth": 8,
    "rule": "open"
   },
+  "plant_dead__2": {
+   "base": "plant_dead",
+   "contact": 47,
+   "depth": 8,
+   "rule": "open"
+  },
   "plant_fallen": {
+   "base": "plant_fallen",
    "contact": 23,
    "depth": 12,
    "rule": "open"
   },
   "plant_stand": {
+   "base": "plant_stand",
    "contact": 46,
    "depth": 7,
    "rule": "open"
   },
+  "plant_stand__2": {
+   "base": "plant_stand",
+   "contact": 46,
+   "depth": 7,
+   "rule": "open"
+  },
+  "plant_stand_fallen": {
+   "base": "plant_stand_fallen",
+   "contact": 50,
+   "depth": 11,
+   "rule": "open"
+  },
+  "plant_stand_fallen__2": {
+   "base": "plant_stand_fallen",
+   "contact": 50,
+   "depth": 11,
+   "rule": "open"
+  },
   "plant_tall": {
+   "base": "plant_tall",
    "contact": 51,
    "depth": 8,
    "rule": "open"
   },
+  "plant_tall__2": {
+   "base": "plant_tall",
+   "contact": 47,
+   "depth": 8,
+   "rule": "open"
+  },
+  "plant_tall__3": {
+   "base": "plant_tall",
+   "contact": 49,
+   "depth": 8,
+   "rule": "open"
+  },
   "pram": {
+   "base": "pram",
+   "contact": 40,
+   "depth": 9,
+   "rule": "door"
+  },
+  "pram__2": {
+   "base": "pram",
    "contact": 40,
    "depth": 9,
    "rule": "door"
   },
   "recycling_box": {
+   "base": "recycling_box",
+   "contact": 23,
+   "depth": 8,
+   "rule": "door"
+  },
+  "recycling_box__2": {
+   "base": "recycling_box",
    "contact": 23,
    "depth": 8,
    "rule": "door"
   },
   "scooter": {
+   "base": "scooter",
+   "contact": 27,
+   "depth": 4,
+   "rule": "door"
+  },
+  "scooter__2": {
+   "base": "scooter",
    "contact": 27,
    "depth": 4,
    "rule": "door"
   },
   "shoe_rack": {
+   "base": "shoe_rack",
    "contact": 30,
    "depth": 7,
    "rule": "door"
   },
-  "shoes": {
-   "contact": 12,
-   "depth": 6,
+  "shoe_rack__2": {
+   "base": "shoe_rack",
+   "contact": 30,
+   "depth": 7,
+   "rule": "door"
+  },
+  "shoe_rack__3": {
+   "base": "shoe_rack",
+   "contact": 40,
+   "depth": 7,
+   "rule": "door"
+  },
+  "shoe_tray": {
+   "base": "shoe_tray",
+   "contact": 14,
+   "depth": 7,
+   "rule": "door"
+  },
+  "shoe_tray__2": {
+   "base": "shoe_tray",
+   "contact": 20,
+   "depth": 7,
+   "rule": "door"
+  },
+  "shoe_tray__3": {
+   "base": "shoe_tray",
+   "contact": 14,
+   "depth": 7,
    "rule": "door"
   },
   "shopping_bag": {
+   "base": "shopping_bag",
    "contact": 27,
    "depth": 6,
    "rule": "door"
   },
+  "shopping_bag__2": {
+   "base": "shopping_bag",
+   "contact": 22,
+   "depth": 7,
+   "rule": "door"
+  },
   "suitcase": {
+   "base": "suitcase",
    "contact": 32,
    "depth": 7,
    "rule": "door"
   },
+  "suitcase__2": {
+   "base": "suitcase",
+   "contact": 32,
+   "depth": 7,
+   "rule": "door"
+  },
+  "suitcase__3": {
+   "base": "suitcase",
+   "contact": 17,
+   "depth": 8,
+   "rule": "door"
+  },
   "umbrella_stand": {
+   "base": "umbrella_stand",
+   "contact": 35,
+   "depth": 6,
+   "rule": "door"
+  },
+  "umbrella_stand__2": {
+   "base": "umbrella_stand",
    "contact": 35,
    "depth": 6,
    "rule": "door"

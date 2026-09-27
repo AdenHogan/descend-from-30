@@ -1521,13 +1521,19 @@ means no rendering — UI layout and art still need an in-editor look.
   (`tools/art/corridor_props.py`: top faces, lids, open tops, near + far wheels, a floor shadow — seen like
   the corridor, straight on and a little from above) and each has a RULE + a floor DEPTH in
   `assets/corridor/decals/dressing.json` (written by the art tool): "door" = just outside a flat's door
-  frame (`DOOR_FRAME` 27 + 1..6px: shoes, boots, a shoe rack, an umbrella stand, parcels, a pram, bin bags
-  put out, the recycling, bundled newspapers, a suitcase, a shopping bag, a bike / kid's bike / scooter
-  leant on the wall), "open" = a stretch of wall between the doors or by the lift (`OPEN_SPOTS`: a floor
-  planter, a small plant UP ON ITS STAND, a hall chair to wait on). Each stands with its back on the
-  skirting (y 160) and its front at 160 + depth (`corridor_decals.standing_y`). 4-6 a floor, fewer and more
-  abandoned by wear; later runs remove some, knock a planter / chair / bike over (placed with room for the
-  knocked-over sprite). No bin bags are baked into the corridor art any more (rubbish goes out by a door).
+  frame (`DOOR_FRAME` 27 + 1..6px: shoes ON A TRAY — owner round 24e: small things never lie loose on the
+  floor — a shoe rack / cabinet, an umbrella stand, a HALL TABLE carrying flowers / a lamp / the post,
+  parcels, a pram, bin bags put out, the recycling, bundled newspapers, a suitcase / holdall, shopping
+  bags, a bike / kid's bike / scooter leant on the wall), "open" = a stretch of wall between the doors or
+  by the lift (`OPEN_SPOTS`: a floor planter, a small plant UP ON ITS STAND, a hall chair to wait on). Each
+  stands with its back on the skirting (y 160) and its front at 160 + depth (`corridor_decals.standing_y`).
+  VARIANTS (24e): a prop's sprites are `<base>`, `<base>__2`, `<base>__3` (a metal rack, boots on the tray,
+  a ceramic umbrella stand, a snake plant / palm…); the planner picks a BASE from the pools then a seeded
+  variant (`base_of`, `dressing_variants`). 4-6 a floor, fewer and more abandoned by wear; later runs
+  remove some, knock things over (`KNOCKED`, placed with room for the knocked sprite): a planter, a chair,
+  a plant stand (`plant_stand_fallen` — the stand over, the pot broken, a short trail of soil and a dead
+  plant) and a bike (`bicycle_wrecked` — upright against the wall, front wheel buckled, saddle gone, chain
+  hanging; the flat "bike on its side" is gone). No bin bags are baked into the corridor art any more (rubbish goes out by a door).
   Wall notices keep ±31 of a door and hang in the band just over the rail (local y 58..94) and HORROR
   (blood smears, handprints, spatter, bullet bursts, claw gouges, slide-down smears, blood scrawls
   "HELP"/"DONT GO DOWN"…, pools / drag trails / footprints / casings, and on plain door faces

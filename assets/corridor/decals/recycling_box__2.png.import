@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://r5hs5sxnc84x"
-path="res://.godot/imported/boots.png-a34690771e22a46290cc448fe3b220bf.ctex"
+uid="uid://cd23r7415n0wb"
+path="res://.godot/imported/recycling_box__2.png-40888575202fd355eb40a53ef58809c9.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/corridor/decals/boots.png"
-dest_files=["res://.godot/imported/boots.png-a34690771e22a46290cc448fe3b220bf.ctex"]
+source_file="res://assets/corridor/decals/recycling_box__2.png"
+dest_files=["res://.godot/imported/recycling_box__2.png-40888575202fd355eb40a53ef58809c9.ctex"]
 
 [params]
 

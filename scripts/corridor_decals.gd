@@ -52,15 +52,17 @@ const MAX_PER_KIND := {"scrawl": 2, "slide": 2, "drag": 2, "door_x": 2}
 # a bike leant on the wall); "open": a stretch of wall between the doors or by the lift (a planter, a small
 # plant up on its stand, a hall chair to wait on) — and its depth on the floor (assets/corridor/decals/
 # dressing.json, written by the art tool).
-const DRESSING_KEPT := ["plant_tall", "plant_stand", "umbrella_stand", "shoes", "boots", "shoe_rack", "shoe_rack",
-	"parcels", "chair", "scooter", "shopping_bag", "kid_drawing", "bicycle", "kids_bike", "pram", "bin_bags",
-	"recycling_box", "newspapers",
+# Round 24e: shoes stand on a boot TRAY, the small things sit on a HALL TABLE / shoe cabinet by the door,
+# and every prop has VARIANTS (sprites <base>__2, __3 — dressing_variants picks one per placement).
+const DRESSING_KEPT := ["plant_tall", "plant_stand", "umbrella_stand", "shoe_tray", "shoe_tray", "shoe_rack",
+	"hall_table", "hall_table", "parcels", "chair", "scooter", "shopping_bag", "kid_drawing", "bicycle", "kids_bike",
+	"pram", "bin_bags", "recycling_box", "newspapers",
 	"notice_meeting", "notice_bins", "notice_smoking", "notice_quiet", "notice_water", "notice_lift"]
-const DRESSING_TIRED := ["plant_tall", "plant_dead", "parcels", "chair", "shoes", "suitcase", "bin_bags",
+const DRESSING_TIRED := ["plant_tall", "plant_dead", "parcels", "chair", "shoe_tray", "suitcase", "bin_bags", "hall_table",
 	"bin_bags", "recycling_box", "bicycle", "shoe_rack", "newspapers", "plant_stand",
 	"shopping_bag", "notice_quarantine", "poster_missing", "notice_lift", "notice_water", "notice_evac"]
 const DRESSING_GONE := ["plant_dead", "chair_down", "suitcase", "parcels", "poster_missing", "bin_bags",
-	"bin_bags", "bicycle_down", "pram", "newspapers",
+	"bin_bags", "bicycle_wrecked", "pram", "newspapers", "plant_stand_fallen",
 	"notice_quarantine", "shopping_bag", "notice_evac", "notice_curfew", "notice_dont_open"]
 # building notices (owner round 23 — "a variety of notices for the building"), readable, per floor
 const WALL_DRESSING := ["kid_drawing", "notice_quarantine", "poster_missing", "notice_lift", "notice_water",
@@ -77,7 +79,9 @@ const DEAD_THRESHOLDS := [0.3, 0.85]             # + up to 0.5 each, per floor
 const DEAD_CHANCE := 0.55                        # not every floor, even when it's bad enough
 
 const META_PATH := "res://assets/corridor/decals/dressing.json"
-const KNOCKED := {"plant_tall": "plant_fallen", "chair": "chair_down", "bicycle": "bicycle_down"}
+# what a prop becomes when it's been knocked over / gone through, later in the day
+const KNOCKED := {"plant_tall": "plant_fallen", "chair": "chair_down", "bicycle": "bicycle_wrecked",
+	"plant_stand": "plant_stand_fallen"}
 const DOOR_FRAME := 27.0                          # a door's face + frame, either side of its centre
 # the "open" spots: the wall between each pair of doors (under its sconce) and beside the lift
 const OPEN_SPOTS := [265.0, 392.0, 518.0, 647.0, 852.0]
@@ -101,6 +105,22 @@ static func dressing_meta(name: String) -> Dictionary:
 		if data is Dictionary and data.get("props") is Dictionary:
 			_meta = data["props"]
 	return _meta.get(name, {})
+
+
+## A prop's base name (its variants are <base>__2, <base>__3 ...).
+static func base_of(sprite: String) -> String:
+	return sprite.split("__")[0]
+
+
+## Every sprite drawn for base prop `base` (the base itself first), from dressing.json.
+static func dressing_variants(base: String) -> Array:
+	dressing_meta(base)                                        # loads the table
+	var out: Array = []
+	for k in _meta:
+		if base_of(str(k)) == base:
+			out.append(str(k))
+	out.sort()
+	return out if not out.is_empty() else [base]
 
 
 ## The sprite's top so its front floor contact lands `depth` in front of the skirting (its back on it).
@@ -138,6 +158,21 @@ static func _place_standing(rng: RandomNumberGenerator, taken: Array, name: Stri
 	return null
 
 
+## Where a sprite of width `w` stands inside the span reserved for it (the span may be wider — room kept
+## for its knocked-over version): centred on an open spot, or hugging the door it stands by.
+static func _fit_in_span(span_x: float, span_w: float, w: float, name: String) -> float:
+	if span_w <= w:
+		return span_x
+	if str(dressing_meta(name).get("rule", "door")) == "open":
+		return roundf(span_x + (span_w - w) / 2.0)
+	var cx := span_x + span_w / 2.0
+	var nearest: float = float(DOORS[0])
+	for d in DOORS:
+		if absf(float(d) - cx) < absf(nearest - cx):
+			nearest = float(d)
+	return span_x + span_w - w if cx < nearest else span_x
+
+
 static func _taken_for(base_name: String) -> Array:
 	if not _loaded:
 		_loaded = true
@@ -168,9 +203,12 @@ static func plan(floor_num: int, run: int, base_name: String) -> Array:
 	var pool: Array = DRESSING_KEPT if wear <= 1 else (DRESSING_TIRED if wear == 2 else DRESSING_GONE)
 	var n_dress: int = 4 + rng.randi() % 3
 	for i in range(n_dress):
-		var name: String = pool[rng.randi() % pool.size()]
+		var base: String = pool[rng.randi() % pool.size()]
 		var keep: float = rng.randf()
-		var wall: bool = name in WALL_DRESSING
+		var wall: bool = base in WALL_DRESSING
+		var vroll: int = rng.randi()
+		var variants := [base] if wall else dressing_variants(base)
+		var name: String = variants[vroll % variants.size()]
 		var tex := _tex(name)
 		if tex == null:
 			continue
@@ -179,9 +217,11 @@ static func plan(floor_num: int, run: int, base_name: String) -> Array:
 		if wall:
 			pos = _find(rng, taken, span, "poster")
 		else:
-			var k2 := _tex(str(KNOCKED.get(name, name)))
-			if k2 != null:                                    # room for it if it's knocked over later
-				span.x = maxf(span.x, k2.get_size().x)
+			if KNOCKED.has(base):                             # room for it if it's knocked over later
+				var kv := dressing_variants(str(KNOCKED[base]))
+				var k2 := _tex(str(kv[vroll % kv.size()]))
+				if k2 != null:
+					span.x = maxf(span.x, k2.get_size().x)
 			pos = _place_standing(rng, taken, name, span)
 		if pos == null:
 			continue
@@ -189,15 +229,16 @@ static func plan(floor_num: int, run: int, base_name: String) -> Array:
 		if (run >= 3 and keep < 0.55) or (run == 2 and keep < 0.3):
 			continue                                          # gone: somebody took it, or it was cleared
 		var shown := name
-		if name == "plant_tall" and run >= 2 and keep < 0.75:
-			shown = "plant_fallen"
-		elif name == "chair" and run >= 3 and keep < 0.8:
-			shown = "chair_down"
-		elif name == "bicycle" and run >= 3 and keep < 0.8:
-			shown = "bicycle_down"
+		var knocked := (base == "plant_tall" and run >= 2 and keep < 0.75) \
+			or (base == "plant_stand" and run >= 2 and keep < 0.7) \
+			or (base in ["chair", "bicycle"] and run >= 3 and keep < 0.8)
+		if knocked:
+			var kv2 := dressing_variants(str(KNOCKED[base]))
+			shown = str(kv2[vroll % kv2.size()])
 		var p2: Vector2 = pos
 		if not wall:                                          # stood on the floor at its own depth
 			p2.y = standing_y(shown)
+			p2.x = _fit_in_span(pos.x, span.x, _tex(shown).get_size().x, name)
 		out.append({"name": shown, "pos": p2, "layer": "wall"})
 	# --- horror: HORROR_SLOTS candidates with rising thresholds; the floor + run shows a prefix ---
 	var h := horror_level(floor_num, run)

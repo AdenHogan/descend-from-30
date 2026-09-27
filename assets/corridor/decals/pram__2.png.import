@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://byavagt0kyf8v"
-path="res://.godot/imported/shoes.png-bb6b602de5a4dced57da2ac5c4f455a4.ctex"
+uid="uid://b0rs6xtdx4l8a"
+path="res://.godot/imported/pram__2.png-b48da03849e1beb3ffb8cc2ca64e007a.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/corridor/decals/shoes.png"
-dest_files=["res://.godot/imported/shoes.png-bb6b602de5a4dced57da2ac5c4f455a4.ctex"]
+source_file="res://assets/corridor/decals/pram__2.png"
+dest_files=["res://.godot/imported/pram__2.png-b48da03849e1beb3ffb8cc2ca64e007a.ctex"]
 
 [params]
 
