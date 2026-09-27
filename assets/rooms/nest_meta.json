@@ -174,7 +174,7 @@
  "living_room_c_nest_doorkill_l": {"flies": [[275, 129], [191, 120]], "bodies": [[272, 130]]},
  "living_room_c_nest_doorkill_r": {"flies": [[96, 131], [168, 120]], "bodies": [[101, 130]]},
  "living_room_c_nest_kill_l": {"flies": [[71, 131], [6, 102]], "bodies": [[68, 132]]},
- "living_room_c_nest_kill_r": {"flies": [[264, 127], [308, 104]], "bodies": [[268, 128]]},
+ "living_room_c_nest_kill_r": {"flies": [[264, 127], [301, 104]], "bodies": [[268, 128]]},
  "living_room_d_nest_corpse_l": {"flies": [[278, 125]], "bodies": [[274, 127]]},
  "living_room_d_nest_corpse_r": {"flies": [[279, 121]], "bodies": [[281, 122]]},
  "living_room_d_nest_door_l": {"flies": [], "bodies": []},

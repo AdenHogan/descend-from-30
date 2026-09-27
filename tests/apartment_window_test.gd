@@ -25,6 +25,7 @@ func _ready() -> void:
 	await _test_exit_through_door()
 	_test_floor_boundary()
 	_test_module_variants()
+	await _test_module_sounds()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -402,7 +403,7 @@ func _test_module_variants() -> void:
 					n_anims += 1
 					var sc = a.get_script()
 					check(sc != null and sc.resource_path == "res://scripts/module_anim.gd", "%s: %s runs module_anim" % [nm, a.name])
-					check(str(a.get_meta("kind", "")) in ["drip", "drop", "blink", "static", "spin"], "%s: %s has a known kind" % [nm, a.name])
+					check(str(a.get_meta("kind", "")) in ["drip", "drop", "blink", "static", "spin", "tv"], "%s: %s has a known kind" % [nm, a.name])
 					check(a.position.x >= 0 and a.position.x < 320 and a.position.y >= 0 and a.position.y < 144, "%s: %s sits in the module" % [nm, a.name])
 					check(int(a.get_meta("w", 0)) >= 1 and int(a.get_meta("h", 0)) >= 1, "%s: %s has a size" % [nm, a.name])
 			inst.free()
@@ -468,3 +469,60 @@ func _test_module_variants() -> void:
 			check(sa != null and sa.visible, "no balcony: the strip furniture shows")
 		m.free()
 	room.free()
+
+
+# SOUND (owner round 22): the struck TV hisses only up close, the stuck record carries across its
+# module, both loop, and a passive backdrop (the flat below during a balcony pan) stays silent.
+func _test_module_sounds() -> void:
+	var player := Node2D.new()
+	player.add_to_group("player")
+	add_child(player)
+	for spec in [["res://scenes/Room_Modules/living_room_c.tscn", "tv"], ["res://scenes/Room_Modules/dining_room_b.tscn", "spin"]]:
+		var inst: Node2D = load(spec[0]).instantiate()
+		add_child(inst)
+		await get_tree().process_frame
+		var a: Node2D = null
+		for c in inst.get_node("Anims").get_children():
+			if str(c.get_meta("kind", "")) == spec[1]:
+				a = c
+		check(a != null, "%s has its %s detail" % [spec[0].get_file(), spec[1]])
+		if a == null:
+			inst.queue_free()
+			continue
+		var snd: AudioStreamPlayer = a.get_node_or_null("Sound")
+		check(snd != null and snd.playing, "%s: the %s plays a sound" % [spec[0].get_file(), spec[1]])
+		if snd != null:
+			check(snd.stream is AudioStreamWAV and (snd.stream as AudioStreamWAV).loop_mode == AudioStreamWAV.LOOP_FORWARD \
+				and (snd.stream as AudioStreamWAV).loop_end > 0, "%s: its sound loops" % spec[1])
+			var centre: Vector2 = a.global_position + Vector2(int(a.get_meta("w")), int(a.get_meta("h"))) * 0.5
+			player.global_position = centre + Vector2(0, 30)
+			await get_tree().process_frame
+			var near_db := snd.volume_db
+			player.global_position = centre + Vector2(420, 0)
+			await get_tree().process_frame
+			var far_db := snd.volume_db
+			check(near_db > -30.0 and far_db < -60.0, "%s: loud near (%.0f dB), silent far (%.0f dB)" % [spec[1], near_db, far_db])
+			var mid: float = a.sound_level(centre + Vector2(150, 0))
+			if spec[1] == "tv":
+				check(mid < 0.1, "tv: the static is only heard up close (%.2f at 150px)" % mid)
+			else:
+				check(mid > 0.4, "spin: the record carries across the module (%.2f at 150px)" % mid)
+		inst.queue_free()
+	# a passive backdrop stays silent
+	var gs := GDScript.new()
+	gs.source_code = "extends Node2D\nvar passive := true\n"
+	gs.reload()
+	var holder := Node2D.new()
+	holder.set_script(gs)
+	add_child(holder)
+	var bg: Node2D = load("res://scenes/Room_Modules/living_room_c.tscn").instantiate()
+	holder.add_child(bg)
+	await get_tree().process_frame
+	var silent := true
+	for c in bg.get_node("Anims").get_children():
+		if c.get_node_or_null("Sound") != null:
+			silent = false
+	check(silent, "a passive backdrop's details make no sound")
+	holder.queue_free()
+	player.queue_free()
+	await get_tree().process_frame

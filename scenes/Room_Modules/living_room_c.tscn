@@ -48,16 +48,16 @@ position = Vector2(248, 102)
 [node name="Lights" type="Node2D" parent="."]
 
 [node name="lamp_0" type="Node2D" parent="Lights"]
-position = Vector2(202, 30)
+position = Vector2(216, 30)
 metadata/kind = "bulb"
 
 [node name="Anims" type="Node2D" parent="."]
 
 [node name="anim_0" type="Node2D" parent="Anims"]
-position = Vector2(166, 65)
+position = Vector2(150, 36)
 script = ExtResource("4_anim")
-metadata/kind = "static"
+metadata/kind = "tv"
 metadata/fall = 0
 metadata/color = "c8d4d0"
-metadata/w = 19
-metadata/h = 10
+metadata/w = 52
+metadata/h = 28

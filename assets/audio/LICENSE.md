@@ -13,3 +13,7 @@
   generated night-storm ambience for apartment windows (rolling thunder +
   a seamless rain loop) made for this project (`tools/gen_storm_audio.py`).
   **CC0.** Replace with recorded storm SFX later.
+- `ambience/tv_static.wav`, `ambience/record_stuck.wav` — procedurally generated
+  room ambience (a soft TV hiss; ten seconds of a lo-fi jazz record whose needle
+  catches, scratches and jumps back) made for this project
+  (`tools/gen_room_audio.py`). **CC0.**

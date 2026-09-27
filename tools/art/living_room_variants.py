@@ -433,7 +433,7 @@ def travel_poster(c, x0, y0, x1, y1):
 
 def c_decor(c):
     gig_poster(c, 104, 26, 128, 58)
-    travel_poster(c, 138, 28, 160, 56)
+    travel_poster(c, 131, 30, 147, 54)
 
 
 @persp
@@ -476,20 +476,27 @@ def c_furniture(c):
             c.rect(cx_, 98, cx_ + 2, 103, hexc('9aa3a8'))
             c.hline(cx_, cx_ + 2, 98, hexc('c9d0d4'))
     lr.shifted(c, _pallet, 0, -126)
-    # the CRT on two crates, a console + its cable
-    def _tv(c):
-        c.shadow(276, 101, 20, 2, 90)
-        for (y0, y1, col) in ((87, 100, hexc('2f4f7a')), (73, 86, hexc('a8453a'))):   # two crates, stacked
-            c.box(260, y0, 290, y1, col, shade(col, 0.6))
-            c.rect(262, y0 + 2, 288, y1 - 2, shade(col, 0.45))
-            for gx in range(264, 288, 5):
-                c.vline(gx, y0 + 2, y0 + 4, col)
-        c.box(262, 56, 290, 72, hexc('4a4a4d'), hexc('1c1c1e'))              # the CRT on top
-        c.box(265, 58, 285, 69, hexc('23302c'), hexc('111615'))
-        c.rect(267, 60, 271, 61, hexc('3e524b'))
-        PX.anim(266, 59, 'static', color='c8d4d0', w=19, h=10)             # left on, nothing but snow
-        c.rect(265, 91, 279, 94, hexc('5a5a5f'))                             # a console in the lower crate
-    setback(c, lambda l: lr.shifted(l, _tv, 0, CX - 276), depth=4, top=56)
+    # THE TV ON THE WALL (owner round 22): a wide flat screen on a bracket over a low crate that holds
+    # the console; its cable hangs down behind. The screen's live detail ('tv', scripts/module_anim.gd):
+    # snow, now and then a flash, a big crack with a dead patch and colour bleeding from it, and every so
+    # often it goes badly wrong — bars of colour smeared across it — as if something heavy struck it.
+    from living_c_props import wall_tv, guitar_on_floor
+    TW, TH = 52, 28
+    sx0, sy0 = wall_tv(c, CX - TW // 2 - 2, 34, TW, TH)
+    PX.anim(sx0, sy0, 'tv', color='c8d4d0', w=TW, h=TH)
+    for y in range(sy0 + TH + 3, 87):                                       # its cable, down to the crate
+        c.put(CX + 12 + (1 if (y // 6) % 2 else 0), y, hexc('141416'))
+
+    def _crate(c):
+        col = hexc('2f4f7a')
+        c.shadow(CX, 101, 18, 2, 90)
+        c.box(CX - 15, 87, CX + 15, 100, col, shade(col, 0.6))
+        c.rect(CX - 13, 89, CX + 13, 98, shade(col, 0.45))
+        for gx in range(CX - 11, CX + 13, 5):
+            c.vline(gx, 89, 91, col)
+        c.rect(CX - 11, 92, CX + 3, 95, hexc('5a5a5f'))                          # the console inside
+        c.put(CX + 1, 93, hexc('7ac04a'))
+    setback(c, _crate, depth=4, top=87, x_range=(CX - 16, CX + 16))
     sofa_back(c, CX, 118, (hexc('6d6e70'), hexc('555658'), hexc('848587'), hexc('2c2d2f')), wear=True)
     # a slumped beanbag by the sofa, under window R
     BB, BB_DK, BB_LT = hexc('7a2e28'), hexc('551f1b'), hexc('94403a')
@@ -500,10 +507,10 @@ def c_furniture(c):
     c.ellipse(bx, 108, 13, 4, BB_DK)
     c.ellipse(bx - 4, 100, 6, 3, BB_LT)
     c.line(bx - 8, 105, bx + 6, 103, BB_DK)
-    # the guitar, upright on its floor stand in the corner (right of the window box)
-    guitar_on_stand(c, 293, 101)
+    # the guitar, dropped on the floor in the corner after it was swung at something (round 22)
+    guitar_on_floor(c, 280, 119, 3.26)
     import furn as F
-    F.bare_bulb(c, 202, 30)                                          # a bare bulb on a flex
+    F.bare_bulb(c, 216, 30)                                          # a bare bulb on a flex
 
 
 # --- D: GRANDMOTHER'S PARLOUR ------------------------------------------------------------------
