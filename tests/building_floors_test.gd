@@ -1384,3 +1384,39 @@ func _test_floor_signs() -> void:
 	# the decal planner keeps off every sign (checked per decal in _test_corridor_decals too)
 	var r: Rect2 = FS.taken_local()[0]
 	check(r.size.x > 0 and FS.taken_local().size() == 11, "the signs' footprints are reserved (%d)" % FS.taken_local().size())
+	# every plate (face + its 1px edge + shadow) fits the footprint reserved for it — STAFF is the widest
+	var DP = load("res://scripts/door_plate.gd")
+	var res: Array = FS.taken_local()
+	for pair in [[201, "405", res[5]], [714, "2104", res[9]], [814, "STAFF", res[10]]]:
+		var pr: Rect2 = DP.plate_rect(pair[1])
+		var lo := float(pair[0]) + pr.position.x - 1.0
+		var hi := float(pair[0]) + pr.end.x + 1.0
+		var rr: Rect2 = pair[2]
+		check(lo >= rr.position.x and hi <= rr.end.x,
+			"%s's plate (x %d..%d) sits inside its reserved footprint (%d..%d)" % [pair[1], lo, hi, rr.position.x, rr.end.x])
+	# a barricade's boards stop short of the door's plate (they clipped into it — owner round 23b)
+	var BB = load("res://scripts/barricade_boards.gd")
+	var plate_edge: float = -DP.plate_rect("2104").end.x - 1.0     # its shadow's right edge, as a distance left of centre
+	var worst := 0.0
+	for k in range(200):
+		var bb = BB.new()
+		bb.setup("reach:%d" % k)
+		for b in bb.boards:
+			var a: float = b["ang"]
+			worst = maxf(worst, absf(b["c"].x) + absf(cos(a)) * (b["len"] * 0.5 + 2.0) + absf(sin(a)) * b["w"] * 0.5)
+		bb.free()
+	check(worst < plate_edge, "barricade boards reach at most %.1f px from the door's centre, short of its plate (%.1f)" % [worst, plate_edge])
+	# ...and so do the fire scars: no paper burnt through to the plaster under a sign (a hole round a
+	# plaque's edge read as the plaque clipping into the wall — owner round 23b)
+	var hole_cols := [Color8(176, 162, 138), Color8(150, 138, 118), Color8(92, 58, 34)]
+	for zone in ["l", "m", "r", "lm", "mr", "all"]:
+		var img := Image.load_from_file(ProjectSettings.globalize_path("res://assets/corridor/fire_%s.png" % zone))
+		var hits := 0
+		for t in FS.taken_local():
+			var tr: Rect2 = t
+			for y in range(int(tr.position.y), int(tr.end.y)):
+				for x in range(int(tr.position.x), int(tr.end.x)):
+					var p := img.get_pixel(x, y)
+					if p.a > 0.99 and hole_cols.any(func(c): return p.is_equal_approx(c)):
+						hits += 1
+		check(hits == 0, "fire_%s: no burnt-through hole under a sign (%d px)" % [zone, hits])

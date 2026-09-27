@@ -21,11 +21,16 @@ func setup(t: String, sec: String) -> void:
 	queue_redraw()
 
 
+## The plate's face in door-local px (its 1px edge + shadow sit round it).
+static func plate_rect(t: String) -> Rect2:
+	var w := SIGNS.text_width(t) + 6
+	return Rect2(-DOOR_HALF_W - 5.0 - w, EYE_Y - 4.0, w, 9)
+
+
 func _draw() -> void:
 	if text == "":
 		return
-	var w := SIGNS.text_width(text) + 6
-	var r := Rect2(-DOOR_HALF_W - 5.0 - w, EYE_Y - 4.0, w, 9)
+	var r := plate_rect(text)
 	var face: Color
 	var ink: Color
 	var edge: Color

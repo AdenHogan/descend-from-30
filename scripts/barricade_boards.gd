@@ -14,6 +14,7 @@ extends Node2D
 ## tear_all() when the last board goes.
 
 const DOOR_HALF_W := 22.0        # the door face (door art 46×84, centred on the door node)
+const MAX_REACH := 23.0          # a board end's reach from the door's centre (its ragged end adds up to 2)
 const DOOR_TOP := -41.0
 const DOOR_BOTTOM := 43.0        # its foot: the corridor floor line (419) in the door's own space
 const BAR_Y := -35.0             # the progress bar, across the door head (just under the prompt pill)
@@ -54,8 +55,14 @@ func setup(seed_text: String) -> void:
 		var ln := DOOR_HALF_W * 2.0 + _rng.randf_range(6.0, 14.0)
 		if absf(ang) > 0.5:
 			ln = 70.0
-		boards.append({"c": Vector2(_rng.randf_range(-3.0, 3.0), y), "ang": ang, "len": ln,
-			"w": _rng.randf_range(6.0, 9.0), "col": wood[0], "dark": wood[1], "gone": false,
+		var cx := _rng.randf_range(-3.0, 3.0)
+		var bw := _rng.randf_range(6.0, 9.0)
+		# the ends overhang the frame a little but never reach the door's number plate (door_plate.gd,
+		# PLATE_GAP left of the face) — they clipped into it (owner round 23b)
+		var reach := MAX_REACH - absf(cx) - absf(sin(ang)) * bw * 0.5
+		ln = minf(ln, 2.0 * reach / maxf(0.2, absf(cos(ang))))
+		boards.append({"c": Vector2(cx, y), "ang": ang, "len": ln,
+			"w": bw, "col": wood[0], "dark": wood[1], "gone": false,
 			"seed": _rng.randi()})
 	order = range(n)
 	for i in range(n - 1, 0, -1):                     # seeded shuffle: not always top to bottom

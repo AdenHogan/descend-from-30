@@ -56,8 +56,9 @@ static func taken_local() -> Array:
 	var out: Array = [Rect2(12, 12, 88, 26), Rect2(1020, 12, 88, 26),     # the STAIRS signs
 		Rect2(112, 32, 38, 40), Rect2(966, 32, 38, 40),                      # the floor numbers
 		Rect2(898, 48, 34, 16)]                                               # the lift indicator
-	for d in [201, 329, 455, 581, 714, 814]:                                  # every door's plate (+ the maintenance door)
+	for d in [201, 329, 455, 581, 714]:                                       # every door's plate
 		out.append(Rect2(d - 50, 90, 26, 18))
+	out.append(Rect2(814 - 56, 90, 32, 18))                                   # the maintenance door's (STAFF is wider)
 	return out
 
 

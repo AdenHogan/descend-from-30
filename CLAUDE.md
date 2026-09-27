@@ -1585,7 +1585,10 @@ means no rendering — UI layout and art still need an in-editor look.
   (`floor_signs.taken_local`). Nine readable BUILDING NOTICES join the per-floor dressing
   (`corridor_decals.py notice()`: lift out of order, water off, residents' meeting, bins, no smoking,
   keep it down; later evacuate / curfew / do not open doors). Corridor pictures NO LONGER HANG CROOKED
-  (`corridor.py picture_damage`: fine → gone → fallen). Locked by `building_floors_test._test_floor_signs`
+  (`corridor.py picture_damage`: fine → gone → fallen). Round 23b (owner: "clipping with the door and the
+  wall/signs"): the FIRE SCARS' burnt-through holes keep off every sign footprint (`corridor.py fire_overlay`),
+  barricade boards stop short of the door's plate (`barricade_boards.MAX_REACH`), and the STAFF plate's
+  wider footprint is reserved. Locked by `building_floors_test._test_floor_signs`
   (+ the decal checks). The hallway (30) and lobby don't draw stair/lift signs yet.
 - PUSH + CROWDS (owner round 9): a push takes ONE enemy (`player.push_target` — the nearest in
   front; it used to stagger everyone in reach), so a crowd is worked through and gets hits in. The

@@ -59,7 +59,7 @@ PIC_DY = 26                                  # pictures hang just above the rail
 # where the game draws its live signs (scripts/floor_signs.gd taken_local — keep the two in step): the
 # STAIRS signs, the floor numbers, the lift indicator, every door's number plate. No damage lands there.
 SIGNS = ([(12, 12, 100, 38), (1020, 12, 1108, 38), (112, 32, 150, 72), (966, 32, 1004, 72), (898, 48, 932, 64)]
-         + [(d - 50, 90, d - 24, 108) for d in DOORS + [814]])
+         + [(d - 50, 90, d - 24, 108) for d in DOORS] + [(814 - 56, 90, 814 - 24, 108)])   # STAFF is wider
 # wear geometry, set per section (set_geom): the dado rail's top, the lower wall's top, skirting
 DADO_Y, LOWER_Y, SKIRT_TOP = RAIL_Y, 100, SKIRT_Y
 G = {}
@@ -1091,6 +1091,11 @@ def fire_overlay(zone, seed):
         if any(abs(cx0 - d) < 34 for d in DOORS) or any(abs(cx0 - s_) < 22 for s_ in SPOTS):
             continue
         cy0 = rng.randrange(30, 80)
+        # never under a sign / number plate (floor_signs.gd draws them over this overlay; a hole round
+        # a plaque's edge reads as the plaque clipping into the wall)
+        if any(cx0 + 26 >= x0 - 3 and cx0 - 26 <= x1 + 3 and cy0 + 26 >= y0 - 3 and cy0 - 26 <= y1 + 3
+               for (x0, y0, x1, y1) in SIGNS):
+            continue
         fb = _blob(rng, cx0, cy0, rng.randrange(7, 14), rng.randrange(8, 16))
         for y in range(cy0 - 26, cy0 + 26):
             for x in range(cx0 - 30, cx0 + 30):
