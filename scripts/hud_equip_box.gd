@@ -1,14 +1,14 @@
 extends Control
 
-# THE IN-HAND BOX (owner round 27). The equipped item's icon sits in a glossy, domed button — a marble —
-# whose body COLOUR is the item's condition: one calm colour that shifts gradually with every use, from
-# green (fresh) through yellow and orange to a dark red, and a dull cracked grey once it is broken. No
+# THE IN-HAND BOX (owner round 27). The equipped item's icon sits in a little VIAL of dark glass holding a
+# thin, smoky, semi-transparent liquid — never a solid fill, so it doesn't fight the scene — whose COLOUR is
+# the item's condition: one calm colour that shifts gradually with every use, from
+# green (fresh) through yellow and orange to a dark red, and a faint grey smoke once it is broken. No
 # outline ring, no numbers: the only number this box ever shows is a gun's rounds ("10/10" badge). Items
 # that don't wear (a bandage, a key) sit in a neutral slate; empty-handed = dark glass. The exact wear per
 # item is written down in the journal's Codex tab (`item_codex.gd`).
 # Three shapes (`style`): "square", "rounded" (default) and "circle". A pure VIEW: the HUD feeds it through
-# `set_item`. The dome lighting is one canvas_item shader on the `Body` child (SDF shape + a fake normal +
-# a specular spot), so all three shapes share it; the icon + badge are drawn by the `Overlay` child on top.
+# `set_item`. The vial look is one canvas_item shader on the `Body` child (SDF shape + glass + tinted liquid that settles toward the walls + a bright lip + a gloss), so all three shapes share it; the icon + badge are drawn by the `Overlay` child on top.
 
 const STYLES := ["square", "rounded", "circle"]
 const SIZE := 76.0
@@ -34,6 +34,7 @@ uniform int shape = 1;
 uniform vec4 tint : source_color = vec4(0.3, 0.56, 0.36, 1.0);
 uniform vec2 box_size = vec2(76.0, 76.0);
 uniform float glow = 0.0;
+uniform float density = 0.42;    // how much of the colour shows: a vial of tinted liquid, never a solid
 
 float sdf(vec2 p, vec2 h, float r) {
 	vec2 q = abs(p) - h + vec2(r);
@@ -45,32 +46,35 @@ void fragment() {
 	vec2 h = box_size * 0.5 - vec2(4.0);
 	float r = (shape == 2) ? h.x : ((shape == 1) ? 16.0 : 3.0);
 	float d = sdf(p, h, r);
-	float ds = sdf(p - vec2(0.0, 2.5), h, r);
 	float a = 1.0 - smoothstep(-0.7, 0.7, d);
-	float sh = (1.0 - smoothstep(-2.0, 4.0, ds)) * 0.42 * (1.0 - a);
-	float e = 1.0;
-	vec2 grad = vec2(sdf(p + vec2(e, 0.0), h, r) - sdf(p - vec2(e, 0.0), h, r),
-					 sdf(p + vec2(0.0, e), h, r) - sdf(p - vec2(0.0, e), h, r));
+	float ds = sdf(p - vec2(0.0, 2.0), h, r);
+	float sh = (1.0 - smoothstep(-2.0, 4.0, ds)) * 0.18 * (1.0 - a);
+	vec2 grad = vec2(sdf(p + vec2(1.0, 0.0), h, r) - sdf(p - vec2(1.0, 0.0), h, r),
+					 sdf(p + vec2(0.0, 1.0), h, r) - sdf(p - vec2(0.0, 1.0), h, r));
 	grad = grad / max(length(grad), 0.0001);
 	float depth = min(h.x, h.y);
-	float bevel = (shape == 2) ? depth * 0.85 : 11.0;   // a circle is a full dome; a box is a flat-topped button with a bevel
-	float k = 1.0 - clamp(-d / bevel, 0.0, 1.0);
-	float z = sqrt(max(1.0 - k * k, 0.0));
-	vec3 n = normalize(vec3(grad * k, z + 0.15));
-	vec3 L = normalize(vec3(-0.45, -0.65, 0.6));
-	float diff = clamp(dot(n, L), 0.0, 1.0);
-	vec3 base = tint.rgb;
-	vec3 col = base * (0.50 + 0.75 * diff);
-	float spec = pow(max(dot(reflect(-L, n), vec3(0.0, 0.0, 1.0)), 0.0), 22.0);
-	col += vec3(spec * 0.5);
-	float gloss = clamp(1.0 - length((p - vec2(0.0, -h.y * 0.45)) / vec2(h.x * 0.74, h.y * 0.40)), 0.0, 1.0);
-	col = mix(col, vec3(1.0), gloss * 0.20);
-	col += base * 0.22 * smoothstep(0.25, 1.0, p.y / h.y) * k;
-	float rim = smoothstep(-2.6, -0.4, d);
-	col = mix(col, base * 0.22, rim * 0.85);
-	col *= 1.0 + glow * 0.18;
-	float A = a + sh * (1.0 - a);
-	COLOR = vec4((col * a) / max(A, 0.001), A);
+	float edge = 1.0 - clamp(-d / (depth * 0.9), 0.0, 1.0);      // 1 at the wall of the vial, 0 in the middle
+	// the dark glass
+	vec3 gcol = vec3(0.05, 0.06, 0.08);
+	float ga = 0.30;
+	// the liquid: thin in the middle, denser toward the walls and the bottom, like colour settling in a vial
+	float settle = smoothstep(-0.7, 1.0, p.y / h.y);
+	float ta = clamp(density * (0.70 + 0.55 * edge + 0.35 * settle) * (1.0 + glow * 0.25), 0.0, 0.85);
+	float ca = ta + ga * (1.0 - ta);
+	vec3 col = (tint.rgb * ta + gcol * ga * (1.0 - ta)) / max(ca, 0.001);
+	// the glass wall: a thin bright lip catching light from the top-left, a soft dark outside edge
+	float lip = smoothstep(-2.2, -0.6, d) * (1.0 - smoothstep(-0.6, 0.4, d));
+	float facing = clamp(0.5 - 0.5 * dot(grad, normalize(vec2(-0.55, -0.85))), 0.0, 1.0);
+	col = mix(col, vec3(1.0), lip * (0.10 + 0.40 * facing));
+	ca = max(ca, lip * 0.55);
+	float outer = smoothstep(-0.2, 0.9, d) * a;
+	col = mix(col, vec3(0.0), outer * 0.5);
+	// a soft gloss high on the left, and a faint glint low on the right
+	float gloss = clamp(1.0 - length((p - vec2(-h.x * 0.25, -h.y * 0.48)) / vec2(h.x * 0.55, h.y * 0.28)), 0.0, 1.0);
+	col = mix(col, vec3(1.0), gloss * 0.16);
+	ca = max(ca, gloss * 0.22);
+	float A = a * ca + sh * (1.0 - a * ca);
+	COLOR = vec4((col * a * ca) / max(A, 0.001), A);
 }
 """
 
@@ -172,6 +176,7 @@ func current_tint() -> Color:
 func _apply() -> void:
 	if _mat != null:
 		_mat.set_shader_parameter("tint", current_tint())
+		_mat.set_shader_parameter("density", 0.22 if not has_item else (0.30 if broken else 0.44))
 	if overlay != null:
 		overlay.queue_redraw()
 

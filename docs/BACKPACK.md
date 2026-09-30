@@ -87,15 +87,17 @@ removed. The HUD button and the floor pack share the pixel `PackArt` drawing (`p
 - A sound for the flap / the slam.
 
 ## The in-hand box (owner round 27)
-The bottom-left "HAMMER 10 / 10 uses" text is gone, and so is the first attempt (an outline ring — "I definitely don't
-like the look of this"). `hud_equip_box.gd` is a 76px glossy domed BUTTON / marble to the right of the name / mode /
-stamina block: the equipped item's ICON on a body whose COLOUR is the item's condition — ONE calm colour that drifts
-gradually with every use: green (fresh) → yellow → orange → dark red → a dull cracked grey when BROKEN
+The bottom-left "HAMMER 10 / 10 uses" text is gone, and so are two earlier looks (an outline ring, then a solid glossy
+marble — "way too intrusive"). `hud_equip_box.gd` is a 76px little VIAL to the right of the name / mode / stamina
+block: the equipped item's ICON inside dark glass holding a THIN, SMOKY, SEMI-TRANSPARENT liquid (never a solid fill —
+it must not overwhelm the scene) whose COLOUR is the item's condition — ONE calm colour that drifts gradually with every
+use: green (fresh) → yellow → orange → dark red → a faint grey smoke when BROKEN, with a crack over the icon
 (`hud_equip_box.tint_for`, the single mapping; continuous, eased in real time). Things that don't wear (a bandage, a key)
-sit in neutral slate; empty-handed = dark glass. The depth is one canvas_item shader on the `Body` child (SDF shape + a
-fake dome normal + a specular spot + rim + drop shadow); a circle is a full dome, the boxes are flat-topped with a bevel.
-**The only number it ever shows is a gun's rounds** ("10/10" badge). Three shapes (`HUD.set_equip_box_style`: `square` /
-`rounded` default / `circle`); `scene_capture` steps `eqstyle:` and `wear:` render them. Locked by `hud_wheel_test`.
+sit in neutral slate; empty-handed = empty glass. The look is one canvas_item shader on the `Body` child (SDF shape, dark
+glass, liquid that settles denser toward the walls and bottom, a bright lip catching light from the top-left, a soft gloss;
+`density` is how much colour shows). **The only number it ever shows is a gun's rounds** ("10/10" badge). Three shapes
+(`HUD.set_equip_box_style`: `square` / `rounded` default / `circle`); `scene_capture` steps `eqstyle:` and `wear:` render
+them. Locked by `hud_wheel_test`.
 
 ## The Codex (journal tab, owner round 27)
 "An item codex that gives the details of durability per item so players can actually know by reading." The journal
