@@ -14,6 +14,7 @@ import math
 import os
 import sys
 
+import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 sys.path.insert(0, os.path.dirname(__file__))
@@ -57,6 +58,44 @@ def curved_band(ax, t0, t1, w0, w1, bow, n=24):
         left.append(ax.at(t, o - w))
         right.append(ax.at(t, o + w))
     return left + right[::-1]
+
+
+# ---- per-pixel painting helpers: shade by a value field, posterised onto a hand-picked tone ramp ----------
+def pix():
+    yy, xx = np.mgrid[0:S, 0:S].astype(np.float32)
+    return xx + 0.5, yy + 0.5
+
+
+def ramp_paint(ic, mask, value, ramp):
+    """Colour every masked pixel from `ramp` (dark -> light) by `value` (0..1), posterised to the ramp's tones —
+    hand-pixelled looking bands instead of a smooth gradient."""
+    n = len(ramp)
+    idx = np.clip(np.floor(np.clip(value, 0, 0.9999) * n), 0, n - 1).astype(int)
+    cols = np.array(ramp, np.float32)[idx]
+    m = mask & (np.asarray(value) == np.asarray(value))
+    ic._blend(m, cols[m], 1.0)
+
+
+def lit_from_height(h, L=(-0.5, -0.62, 0.6)):
+    """Diffuse light (0..1) from a height field, light from the top left."""
+    gy, gx = np.gradient(h)
+    nx, ny, nz = -gx * 2.2, -gy * 2.2, np.ones_like(h)
+    ln = np.sqrt(nx * nx + ny * ny + nz * nz)
+    l = np.array(L, np.float32)
+    l = l / np.linalg.norm(l)
+    return np.clip((nx * l[0] + ny * l[1] + nz * l[2]) / ln, 0, 1)
+
+
+def inner_dist(mask, maxd=9):
+    """How many pixels in from the edge each masked pixel is (0 at the edge), for pillow-soft form shading."""
+    from iconlib import _erode
+    d = np.zeros(mask.shape, np.float32)
+    cur = mask.copy()
+    for i in range(maxd):
+        nxt = _erode(cur)
+        d[nxt] = i + 1
+        cur = nxt
+    return d
 
 
 # ---- the icons --------------------------------------------------------------------------------------
@@ -219,47 +258,115 @@ def extinguisher():
 
 
 def sword():
-    """A katana: slim, gently curved single-edged blade with a hamon, round tsuba, wrapped handle."""
+    """A katana, pixelled in hard tone bands: dark mune, a bright shinogi ridge, the blade plane, a wavy white
+    hamon and a gleaming edge; a diamond-wrapped tsuka, a round tsuba, a gold habaki."""
     ic = Icon()
-    ax = Axis((4, 52), 45)
-    ic.part(ic.poly(ax.band(0, 2.2, 2.4, 2.4)), rgb('c9a24a'), 'cyl', ax.dir, hl=0.3)    # kashira (pommel cap)
-    ic.part(ic.poly(ax.band(2.2, 17, 2.3, 2.3)), rgb('241d21'), 'cyl', ax.dir, hl=0.12)   # tsuka (handle)
-    for t in [3.4 + 2.6 * i for i in range(5)]:                                           # diamond wrap
-        ic.paint(ic.line([ax.at(t, -2.1), ax.at(t + 1.3, 0), ax.at(t, 2.1)], 1), rgb('7e2730'))
-        ic.paint(ic.line([ax.at(t + 1.3, -2.1), ax.at(t, 0), ax.at(t + 1.3, 2.1)], 1), rgb('7e2730'))
-    ic.part(ic.poly(ax.band(17, 18.8, 5.8, 5.8)), rgb('3a3136'), 'cyl', ax.dir, hl=0.2)    # tsuba (round guard)
-    ic.paint(ic.poly(ax.band(17.2, 18.6, 5.4, 5.4)), rgb('c9a24a'), a=0.45)
-    ic.part(ic.poly(ax.band(18.8, 21.3, 2.6, 2.6)), rgb('d8b456'), 'cyl', ax.dir, hl=0.3)  # habaki (collar)
-    blade = curved_band(ax, 21.3, 66, 2.3, 1.0, 1.7)
-    ic.part(ic.poly(blade), rgb('b4bdc6'), 'cyl', ax.dir, hl=0.3)                          # the blade
-    edge = curved_band(ax, 22, 64, 0.55, 0.15, 1.7)
-    ic.paint(ic.poly([(px + ax.v[0] * 1.5, py + ax.v[1] * 1.5) for (px, py) in edge]), rgb('f2f6f9'), a=0.9)   # hamon / edge
-    back = curved_band(ax, 22, 62, 0.4, 0.15, 1.7)
-    ic.paint(ic.poly([(px - ax.v[0] * 1.7, py - ax.v[1] * 1.7) for (px, py) in back]), rgb('7c858f'), a=0.9)   # the back
-    return ic.finish(shadow=None)
+    X, Y = pix()
+    ax = Axis((3.5, 52.5), 45)
+    ux, uy = ax.u
+    vx, vy = ax.v
+    t = (X - ax.p0[0]) * ux + (Y - ax.p0[1]) * uy
+    o = (X - ax.p0[0]) * vx + (Y - ax.p0[1]) * vy
+    T0, T1 = 22.0, 69.0
+    f = np.clip((t - T0) / (T1 - T0), 0, 1)
+    c = -1.3 * np.sin(np.pi * f)                                   # the curve (sori): the back bellies out
+    w = np.interp(t, [T0, 62, 66.5, 69], [2.35, 2.0, 1.4, 0.0])
+    r = (o - c) / np.maximum(w, 0.01)
+    blade = (t >= T0) & (t <= T1) & (np.abs(o - c) <= w)
+    wave = 0.10 * np.sin(t * 0.85)
+    val = np.where(r < -0.78, 0.05, np.where(r < -0.55, 0.78, np.where(r < 0.22 + wave, 0.32, np.where(r < 0.62, 0.64, 1.0))))
+    val = np.where(r < 0.22 + wave, val, val)
+    blade_ramp = [rgb('3a424d'), rgb('7f8b99'), rgb('aab5c2'), rgb('dde6ee'), rgb('ffffff')]
+    # map the five bands onto the ramp: mune, ji, shinogi, hamon, edge
+    idx = np.where(r < -0.78, 0, np.where(r < -0.55, 3, np.where(r < 0.22 + wave, 1, np.where(r < 0.62, 3, 4))))
+    cols = np.array(blade_ramp, np.float32)[idx]
+    ic._blend(blade, cols[blade], 1.0)
+    # the handle (tsuka): dark core with a crossed cord wrap
+    hw = 3.0
+    han = (t >= 2.4) & (t <= 17.4) & (np.abs(o) <= hw)
+    fu = ((t - 2.4) / 3.3) % 1.0
+    fo = ((o + hw) / (hw * 2)) % 1.0
+    cord = (np.abs(fo - fu) < 0.2) | (np.abs(fo - (1 - fu)) < 0.2)
+    base = np.where(o < -0.6, rgb('3a2c31')[0], rgb('231a1e')[0])
+    hcol = np.zeros((S, S, 3), np.float32)
+    hcol[:] = np.array(rgb('20171b'), np.float32)
+    hcol[cord] = np.array(rgb('9b2d38'), np.float32)
+    lit = han & (o < -0.4)
+    hcol[lit & cord] = np.array(rgb('c2424e'), np.float32)
+    hcol[lit & ~cord] = np.array(rgb('3a2a30'), np.float32)
+    shade = han & (o > 1.2)
+    hcol[shade & cord] = np.array(rgb('6d1f29'), np.float32)
+    ic._blend(han, hcol[han], 1.0)
+    # kashira (pommel), fuchi (collar), tsuba (guard), habaki
+    kas = (t >= 0.2) & (t <= 2.6) & (np.abs(o) <= 2.9)
+    ic._blend(kas, np.tile(np.array(rgb('c9a24a'), np.float32), (int(kas.sum()), 1)), 1.0)
+    fuchi = (t >= 16.2) & (t <= 17.6) & (np.abs(o) <= 3.2)
+    ic._blend(fuchi, np.tile(np.array(rgb('b48a3a'), np.float32), (int(fuchi.sum()), 1)), 1.0)
+    tsu = (((t - 18.9) / 1.6) ** 2 + (o / 6.4) ** 2) <= 1.0
+    tc = np.zeros((S, S, 3), np.float32)
+    tc[:] = np.array(rgb('4a3b2b'), np.float32)
+    tc[tsu & (o < 0)] = np.array(rgb('9a7a42'), np.float32)
+    tc[tsu & (np.abs(o) < 1.2) & (t > 18.9)] = np.array(rgb('7a5e33'), np.float32)
+    tc[tsu & (t < 18.8)] = tc[tsu & (t < 18.8)] * 0.9
+    ic._blend(tsu, tc[tsu], 1.0)
+    hab = (t >= 20.4) & (t <= 24.0) & (np.abs(o) <= 2.7)
+    hc = np.zeros((S, S, 3), np.float32)
+    hc[:] = np.array(rgb('d8b456'), np.float32)
+    hc[hab & (o > 0.5)] = np.array(rgb('a8842f'), np.float32)
+    hc[hab & (o < -1.4)] = np.array(rgb('f1d27a'), np.float32)
+    ic._blend(hab, hc[hab], 1.0)
+    return ic.finish(shadow=None, outline=0.22)
 
 
 def bandages():
-    """A roll of gauze standing on end, seen from above and in front: a spiral top, wrapped sides, a paper label and a loose tail."""
+    """A roll of gauze standing on end: a wound cylinder (woven, grooved by each wrap), a spiral top with a hollow
+    core, a curved paper label with a red cross, and a loose tail lying out in front with a metal clip."""
     ic = Icon()
-    gauze, wrap = rgb('efe5d0'), rgb('d6c9ad')
-    tail = [(31, 40), (44, 41), (52, 44), (54, 48), (45, 49), (31, 46)]
-    ic.part(ic.poly(tail), rgb('f4ecda'), 'v', strength=0.2)                               # the loose tail on the floor
-    for x in (38, 44, 49):
-        ic.paint(ic.line([(x, 42), (x + 1, 47)], 1), wrap)
-    body = ic.poly([(9, 38), (9, 20), (39, 20), (39, 38)]) | ic.ellipse((9, 32, 39, 44))
-    ic.part(body, gauze, 'cyl', (0, 1), hl=0.2)                                            # the wound sides
-    for y in (25, 30, 35, 40):
-        ic.paint(ic.arc((9, y - 3, 39, y + 4), 10, 170, 1), wrap)                          # wraps
-    ic.part(ic.rect((18, 26, 30, 38)), rgb('fbf8f1'), 'flat', light=1.02)                  # the paper label
-    ic.part(ic.rect((22, 28, 26, 37)), RED, 'flat', light=1.12, contact=False)
-    ic.part(ic.rect((19, 31, 29, 34)), RED, 'flat', light=1.12, contact=False)
-    ic.part(ic.ellipse((9, 14, 39, 26)), rgb('f7efdd'), 'flat', contact=False)             # the top face
-    for r in (1.0, 0.72, 0.46):
-        ic.paint(ic.ellipse((24 - 14.5 * r, 20 - 5.6 * r, 24 + 14.5 * r, 20 + 5.6 * r)) & ~ic.ellipse(
-            (24 - 14.5 * r + 1, 20 - 5.6 * r + 1, 24 + 14.5 * r - 1, 20 + 5.6 * r - 1)), wrap)
-    ic.paint(ic.ellipse((20, 18, 28, 22)), rgb('7d6c52'))                                   # the hollow core
-    return ic.finish(shadow=(30, 46, 24, 3))
+    X, Y = pix()
+    ramp = [rgb('8d8598'), rgb('b6aeb6'), rgb('d8cfc2'), rgb('efe6d3'), rgb('fffaf0')]
+    cx, rx, ry, ty, by = 22.0, 15.0, 6.0, 17.0, 38.0
+    # the loose tail (drawn first; the roll overlaps its root)
+    tail = ic.poly([(32, 40), (44, 41), (53, 43), (55, 49), (46, 50), (33, 46)])
+    tv = 0.66 + 0.10 * np.sin(X * 0.85) - 0.22 * np.clip((Y - 45) / 5, 0, 1) + 0.18 * np.clip((43 - Y) / 4, 0, 1)
+    ramp_paint(ic, tail, tv, ramp)
+    ic.paint(ic.line([(34, 42), (52, 45)], 1), rgb('b6aeb6'), a=0.7)
+    ic.paint(ic.line([(34, 44.5), (52, 48)], 1), rgb('b6aeb6'), a=0.5)
+    for (x, y) in ((55, 44), (56, 46), (55, 48), (54, 50)):
+        ic.px(x, y, rgb('efe6d3'))                                                         # the raw frayed end
+    clip = ic.rect((47, 41, 50, 50))
+    ic.part(clip, rgb('aab3bd'), 'h', strength=0.5, light=1.3)
+    ic.paint(ic.line([(48, 42), (48, 49)], 1), rgb('f4f8fb'))
+    # the wound side
+    nx = np.clip((X - cx) / rx, -1, 1)
+    curve = np.sqrt(1 - nx ** 2)
+    side = (np.abs(X - cx) <= rx) & (Y >= ty) & (Y <= by + ry * curve)
+    yrel = Y - ry * curve
+    lit = np.clip(0.30 - 0.42 * nx + 0.55 * curve, 0, 1)
+    val = 0.05 + 0.80 * lit
+    groove = ((yrel - ty) % 3.0) < 1.0
+    val = np.where(groove, val - 0.16, val)
+    val = val + np.where(((X.astype(int) + Y.astype(int)) % 2) == 0, 0.04, -0.03)        # the weave
+    ramp_paint(ic, side, val, ramp)
+    # the paper label, bent round the roll
+    lab = side & (np.abs(nx) < 0.66) & (yrel >= 23) & (yrel <= 34)
+    lv = 0.55 + 0.4 * np.clip(0.35 - 0.6 * nx + 0.4 * curve, 0, 1)
+    ramp_paint(ic, lab, lv, [rgb('a9a3b4'), rgb('d3cfd8'), rgb('f3f0f0'), rgb('ffffff')])
+    red = [rgb('7c1d22'), rgb('b3262d'), rgb('d63a3f'), rgb('ee6a64')]
+    cross = lab & (((np.abs(X - cx) <= 4.2) & (np.abs(yrel - 28.5) <= 1.6)) | ((np.abs(X - cx) <= 1.6) & (np.abs(yrel - 28.5) <= 4.2)))
+    ramp_paint(ic, cross, 0.45 + 0.5 * np.clip(0.4 - 0.5 * nx, 0, 1), red)
+    ic.paint(lab & ((np.abs(yrel - 23.0) < 0.6) | (np.abs(yrel - 34.0) < 0.6)) & (np.abs(nx) < 0.66), rgb('9d97a6'), a=0.8)
+    # the spiral top
+    dx, dy = (X - cx) / rx, (Y - ty) / ry
+    r = np.sqrt(dx ** 2 + dy ** 2)
+    top = r <= 1.0
+    ang = np.arctan2(dy, dx)
+    sp = (r * 4.2 - ang / (2 * np.pi)) % 1.0
+    tval = 0.82 - 0.10 * r + np.where(sp < 0.30, -0.30, 0.0) + np.where((sp > 0.26) & (sp < 0.4), 0.06, 0.0)
+    tval = tval - 0.12 * np.clip((dx * 0.6 + dy * 0.7), 0, 1)
+    ramp_paint(ic, top, tval, ramp)
+    core = r <= 0.34
+    ramp_paint(ic, core, np.where(dx < 0, 0.0, 0.10) + 0 * r, [rgb('2c2530'), rgb('6f6474')])
+    return ic.finish(shadow=(30, 49, 25, 3), outline=0.30)
 
 
 def clothes():
@@ -283,29 +390,52 @@ def clothes():
 
 
 def torn_clothes():
-    """A faded grey-blue tee, ripped and frayed, with deep folds and a torn hem."""
+    """A faded grey-blue tee lit from a height field (bulging body, sleeves, hanging folds), ripped at the chest,
+    sleeve and hem, with a ribbed neckband and a frayed edge."""
     ic = Icon()
-    base = rgb('6d8196')
-    tee = [(17, 9), (23, 12), (33, 12), (39, 9), (51, 17), (46, 26), (41, 22), (41, 46), (38, 49), (35, 45), (31, 50),
-           (27, 46), (23, 50), (20, 45), (16, 49), (15, 46), (15, 22), (10, 26), (5, 17)]
-    ic.part(ic.poly(tee), base, 'v', strength=0.3, light=1.25)
-    ic.part(ic.poly([(6, 17), (17, 9), (23, 12), (15, 22), (10, 26)]), rgb('5d7085'), 'h', strength=0.3)   # the sleeves, a shade apart
-    ic.part(ic.poly([(50, 17), (39, 9), (33, 12), (41, 22), (46, 26)]), rgb('5d7085'), 'h', strength=0.3)
-    ic.part(ic.poly([(23, 12), (28, 19), (33, 12), (31, 10), (28, 14), (25, 10)]), rgb('3c4d5f'), 'flat')  # neckband
-    for pts in ([(17, 16), (22, 30), (19, 46), (25, 46), (27, 30), (23, 16)],                             # deep folds
-                [(34, 15), (31, 32), (34, 46), (39, 46), (38, 31), (40, 17)]):
-        ic.paint(ic.poly(pts), rgb('3f5165'), a=0.5)
-    for pts in ([(26, 16), (27, 31), (29, 31), (29, 16)], [(41, 24), (41, 44), (40, 44), (40, 24)]):
-        ic.paint(ic.poly(pts), rgb('a3b6c8'), a=0.55)                                                     # lit ridges
-    ic.paint(ic.line([(16, 41), (40, 41)], 1), rgb('a3b6c8'), a=0.7)                                        # hem stitching
-    ic.cut(ic.poly([(19, 21), (26, 24), (24, 28), (27, 32), (20, 31), (22, 27)]))                          # a big rip at the chest
-    for (x, y) in ((18, 22), (27, 25), (25, 33), (19, 32), (22, 20), (28, 31)):
-        ic.px(x, y, rgb('c6d4e2'))                                                                          # frayed threads
-    ic.cut(ic.poly([(33, 36), (39, 34), (38, 41)]))
-    ic.cut(ic.poly([(44, 21), (47, 19), (47, 25)]))                                                       # a torn sleeve
-    for x in (17, 24, 28, 32, 36):
-        ic.px(x, 48, rgb('c6d4e2'))                                                                        # fringe on the hem
-    return ic.finish(shadow=(28, 50, 21, 2.5))
+    X, Y = pix()
+    base5 = [rgb('2d3a4c'), rgb('435770'), rgb('5f7893'), rgb('86a0b8'), rgb('b3c6d8')]
+    ramp = [mix(base5[min(i // 2, 3)], base5[min(i // 2 + 1, 4)], (i % 2) / 2.0) for i in range(8)] + [base5[4]]
+    tee = [(17, 8), (23, 11), (33, 11), (39, 8), (52, 16), (47, 26), (42, 22), (42, 46), (39, 49), (36, 45), (32, 50),
+           (28, 46), (24, 51), (21, 45), (17, 49), (14, 46), (14, 22), (9, 26), (4, 16)]
+    mask = ic.poly(tee)
+    # height: a bulging torso, arms, and folds hanging from the shoulders / chest
+    body = 0.55 * np.clip(1 - ((X - 28) / 17) ** 2, 0, 1)
+    sl = 0.35 * np.clip(1 - (((X - 28) ** 2) / 26 ** 2), 0, 1) * (Y < 26)
+    h = body + sl
+    def ridge(p0, p1, wid, amp):
+        (x0, y0), (x1, y1) = p0, p1
+        dx, dy = x1 - x0, y1 - y0
+        ln = math.hypot(dx, dy)
+        tt = np.clip(((X - x0) * dx + (Y - y0) * dy) / (ln * ln), 0, 1)
+        d = np.hypot(X - (x0 + dx * tt), Y - (y0 + dy * tt))
+        return amp * np.exp(-(d / wid) ** 2)
+    h = h + ridge((21, 14), (18, 46), 2.6, 0.16) - ridge((26, 16), (25, 40), 2.4, 0.12) \
+          + ridge((35, 14), (37, 46), 2.8, 0.15) - ridge((38, 17), (40, 44), 2.2, 0.10) \
+          + ridge((12, 18), (8, 24), 1.8, 0.2) + ridge((45, 18), (48, 24), 1.8, 0.2) \
+          - ridge((28, 30), (33, 40), 2.2, 0.10) + ridge((14, 24), (26, 31), 2.0, 0.12) \
+          - ridge((42, 27), (31, 33), 2.0, 0.12) - ridge((15, 25), (14, 40), 1.6, 0.14) - ridge((41, 25), (42, 40), 1.6, 0.14)
+    val = 0.12 + 0.85 * lit_from_height(h)
+    ramp_paint(ic, mask, val, ramp)
+    # neckband: darker, ribbed
+    neck = ic.poly([(23, 11), (28, 18), (33, 11), (31, 9.5), (28, 14), (25, 9.5)]) & mask
+    ramp_paint(ic, neck, np.full((S, S), 0.05, np.float32), ramp)
+    ic.paint(ic.line([(25, 11), (28, 15.5)], 1), rgb('5f7893'))
+    # stitched hem
+    ic.paint(ic.line([(15, 42), (41, 42)], 1), rgb('9bb2c8'), a=0.55)
+    # rips: a jagged tear at the chest, frayed, and one in the sleeve
+    rip = ic.poly([(19, 21), (24, 23), (26, 27), (23, 31), (26, 35), (20, 33), (22, 28), (18, 25)])
+    ic.cut(rip)
+    frayed = (np.roll(rip, 1, 0) | np.roll(rip, -1, 0) | np.roll(rip, 1, 1) | np.roll(rip, -1, 1)) & ~rip & mask
+    for (yy, xx) in zip(*np.nonzero(frayed)):
+        if (xx * 3 + yy * 5) % 3 != 0:
+            ic.px(xx, yy, rgb('c6d6e4'))
+    sl_rip = ic.poly([(45, 20), (49, 17), (48, 24)])
+    ic.cut(sl_rip)
+    ic.cut(ic.poly([(33, 37), (38, 35), (37, 41)]))
+    for x in (16, 23, 29, 34, 40):
+        ic.px(x, 49 - (x * 7) % 3, rgb('c6d6e4'))                                           # fringe on the hem
+    return ic.finish(shadow=(28, 50, 21, 2.5), outline=0.30)
 
 
 def painkillers():
@@ -418,27 +548,43 @@ def alu_bat():
 
 
 def rope():
-    """A coil of rope in perspective: three stacked loops with a twist, the free end lying out in front."""
+    """A coil of rope: each loop is a real twisted tube (lit by its own surface normal, with slanted strands), stacked
+    in perspective, the free end lying out in front with a whipping."""
     ic = Icon()
-    col, dk, lt = rgb('c9a46a'), rgb('8f6d3a'), rgb('e6cb92')
-    loops = [((6, 29, 50, 49), (15, 34, 41, 44)), ((8, 22, 48, 43), (16, 27, 40, 38)), ((10, 15, 46, 37), (17, 20, 39, 32))]
-    ic.part(ic.line([(40, 45), (47, 48), (53, 47)], 5), col, 'v', strength=0.25)           # the free end
-    for (o, i) in loops:
-        ring = ic.ellipse(o) & ~ic.ellipse(i)
-        ic.part(ring, col, 'v', strength=0.4, light=1.3)
-        cx, cy = (o[0] + o[2]) / 2, (o[1] + o[3]) / 2
-        rx, ry = ((o[2] - o[0]) + (i[2] - i[0])) / 4, ((o[3] - o[1]) + (i[3] - i[1])) / 4
-        for a in range(0, 360, 14):                                                        # the twist: slanted strands
-            ang = math.radians(a)
-            px, py = cx + rx * math.cos(ang), cy + ry * math.sin(ang)
-            tx, ty = -math.sin(ang) * rx, math.cos(ang) * ry
-            n = math.hypot(tx, ty) or 1
-            tx, ty = tx / n, ty / n
-            nx, ny = -ty, tx
-            ic.paint(ic.line([(px - tx * 1.5 - nx * 2.2, py - ty * 1.5 - ny * 2.2), (px + tx * 1.5 + nx * 2.2, py + ty * 1.5 + ny * 2.2)], 1), dk)
-    for (x, y) in ((53, 46), (54, 48), (52, 49)):
-        ic.px(x, y, lt)                                                                    # frayed end
-    return ic.finish(shadow=(28, 50, 22, 2.5))
+    X, Y = pix()
+    ramp = [rgb('4a331c'), rgb('76542c'), rgb('a97d43'), rgb('d1a45f'), rgb('f0d08f')]
+    loops = [(28, 40, 22.0, 10.5, 7.5, 4.6), (28, 33.5, 20.6, 9.8, 7.2, 4.4), (28, 27, 19.2, 9.2, 6.8, 4.2)]
+    L = np.array([-0.5, -0.62, 0.6], np.float32)
+    L = L / np.linalg.norm(L)
+
+    # the free end first (it lies in front, under the first loop's edge)
+    end = ic.line([(41, 46), (47, 49), (53, 48)], 5)
+    ic.part(end, rgb('b98c4c'), 'v', strength=0.4, light=1.3)
+    for x in (44, 46.5, 49):
+        ic.paint(ic.line([(x, 46), (x + 1, 50)], 1), rgb('76542c'))                        # its twist
+    ic.paint(ic.line([(50.5, 46), (51.5, 50.5)], 1), rgb('3b2a19'))                          # the whipping
+    for (x, y) in ((54, 47), (55, 49), (54, 50), (55, 46)):
+        ic.px(x, y, rgb('f0d08f'))                                                          # frayed strands
+
+    for (cx, cy, rx, ry, tx, ty) in loops:
+        ux, uy = (X - cx), (Y - cy)
+        f_o = np.sqrt((ux / rx) ** 2 + (uy / ry) ** 2)
+        f_i = np.sqrt((ux / (rx - tx)) ** 2 + (uy / (ry - ty)) ** 2)
+        ring = (f_o <= 1.0) & (f_i >= 1.0)
+        # a soft shadow under the loop, onto whatever is below it
+        shadow = np.roll(ring, 2, axis=0) & ~ring & (ic.a > 0.5)
+        ic.darken(shadow, 0.55)
+        p = (f_i - 1.0) / np.maximum((f_i - 1.0) + (1.0 - f_o), 1e-3)          # 0 inner edge .. 1 outer edge
+        s_ = 2 * p - 1
+        ang = np.arctan2(uy / ry, ux / rx)
+        rad = np.stack([np.cos(ang), np.sin(ang)], -1)
+        nxy = rad * (s_[..., None] * 0.9)
+        nz = np.sqrt(np.clip(1 - (s_ * 0.9) ** 2, 0, 1))
+        lit = np.clip(nxy[..., 0] * L[0] + nxy[..., 1] * L[1] + nz * L[2], 0, 1)
+        twist = np.sin(ang * 15 + s_ * 2.6)
+        val = 0.12 + 0.68 * lit + np.where(twist > 0.2, 0.14, np.where(twist < -0.35, -0.12, 0.0))
+        ramp_paint(ic, ring, val, ramp)
+    return ic.finish(shadow=(28, 51, 22, 2.5), outline=0.30)
 
 
 def toolbox():
@@ -614,27 +760,54 @@ def paperwork():
 
 
 def old_shoes():
-    """A worn leather shoe, side-on, built from panels (heel counter, vamp, toe cap, tongue, collar) so it has form."""
+    """A faded-red canvas high-top, side-on and pillow-lit: white rubber sole + toe cap, an ankle patch, a laced
+    tongue, a padded dark collar, a scuffed toe worn through, and one lace dragging on the floor."""
     ic = Icon()
-    leather, dark = rgb('86593a'), rgb('5f3b27')
-    ic.part(ic.poly([(6, 49), (5, 45), (52, 45), (55, 47), (53, 49)]), rgb('2b2522'), 'v', strength=0.25)   # outsole
-    ic.part(ic.poly([(6, 45), (6, 41), (42, 41), (52, 43), (55, 46), (55, 47), (6, 47)]), rgb('d9ceb4'), 'v', strength=0.2)  # midsole
-    ic.paint(ic.line([(7, 46), (53, 46)], 1), rgb('9a8f78'))
-    upper = [(8, 42), (7, 27), (11, 22), (17, 21), (20, 26), (26, 24), (33, 27), (43, 31), (51, 36), (55, 42), (55, 43), (8, 43)]
-    ic.part(ic.poly(upper), leather, 'v', strength=0.34, light=1.3)
-    ic.part(ic.poly([(8, 42), (7, 27), (11, 22), (16, 22), (17, 43), (8, 43)]), dark, 'h', strength=0.3, light=1.2)   # heel counter
-    ic.part(ic.poly([(42, 31), (51, 36), (55, 42), (55, 43), (40, 43), (39, 34)]), dark, 'v', strength=0.3)           # toe cap
-    ic.part(ic.poly([(11, 22), (17, 20), (22, 23), (19, 27), (12, 26)]), rgb('241812'), 'flat', rim=False)             # the dark opening
-    ic.part(ic.poly([(19, 26), (24, 19), (31, 20), (30, 27), (25, 29)]), rgb('a4724b'), 'v', strength=0.25, light=1.3)  # the tongue
-    for k in range(3):                                                                                                 # laces + eyelets
-        cx, cy = 26.5 + k * 4.4, 27 + k * 2.0
-        ic.paint(ic.line([(cx - 1.5, cy + 1.5), (cx + 1.5, cy - 1.5)], 1), rgb('efe6d2'))
-        ic.px(cx - 2.5, cy + 2.5, rgb('241812'))
-    ic.paint(ic.line([(43, 35), (49, 38)], 1), rgb('c99a72'))                                                           # scuffs
-    ic.paint(ic.line([(25, 34), (31, 36)], 1), rgb('c99a72'))
-    ic.paint(ic.line([(11, 32), (14, 38)], 1), rgb('3f2618'))                                                           # a crease
-    ic.cut(ic.ellipse((47, 39, 50, 41)))                                                                                # worn through
-    return ic.finish(shadow=(30, 51, 25, 2))
+    X, Y = pix()
+    red = [rgb('3a1519'), rgb('641f26'), rgb('8f3035'), rgb('b54945'), rgb('d6705f')]
+    white = [rgb('9a96a2'), rgb('c8c4cc'), rgb('e9e6e8'), rgb('fbfaf8')]
+    upper = ic.poly([(8, 44), (6, 23), (9, 14), (20, 11), (27, 14), (32, 22), (40, 27), (49, 30), (54, 36), (55, 44)])
+    d = inner_dist(upper, 7)
+    h = np.sqrt(np.clip(d / 7.0, 0, 1)) * 0.9
+    val = 0.06 + 0.88 * lit_from_height(h)
+    ramp_paint(ic, upper, val, red)
+    # the padded collar band along the opening
+    collar = upper & (d <= 2.6) & (Y < 22) & (X < 28)
+    ramp_paint(ic, collar, np.full((S, S), 0.0, np.float32) + 0.1 + 0.3 * lit_from_height(h), [rgb('2a1316'), rgb('4a2024'), rgb('6d3034')])
+        # the laced throat: the tongue poking up, then the eyelet / lace line down to the toe
+    tongue = ic.poly([(21, 8), (28, 9), (31, 15), (25, 17), (21, 13)])
+    ramp_paint(ic, tongue, 0.35 + 0.5 * lit_from_height(inner_dist(tongue, 4) / 4.0), red)
+    ic.paint(ic.poly([(23, 10), (27, 10.5), (28, 13), (24, 14)]), rgb('efe6d6'))
+    lace_pts = [(23, 17), (27, 20), (31, 23), (35, 25.5), (39, 28)]
+    for (lx, ly) in lace_pts:
+        ic.paint(ic.line([(lx - 2.2, ly + 1.6), (lx + 1.4, ly - 1.8)], 1), rgb('f7f1e4'))
+        ic.paint(ic.line([(lx - 1.4, ly - 1.8), (lx + 2.2, ly + 1.6)], 1), rgb('d6cdb9'))
+    # the white rubber toe cap, a foxing stripe and the sole
+    toe = ic.poly([(46, 29), (50, 31), (54, 36), (55, 44), (43, 44), (44, 35)]) & upper
+    td = inner_dist(toe, 5)
+    ramp_paint(ic, toe, 0.25 + 0.75 * lit_from_height(np.sqrt(td / 5.0) * 0.9), white)
+    ic.paint(ic.line([(45, 37), (54, 38)], 1), rgb('8d3c3e'), a=0.9)                        # the cap's stitch line
+    ic.paint(ic.line([(9, 41), (55, 41)], 1), rgb('bdb9bf'))                                # foxing stripe
+    sole = ic.poly([(6, 49), (5, 44), (55, 44), (57, 47), (55, 50), (8, 50)])
+    sd = inner_dist(sole, 3)
+    ramp_paint(ic, sole, 0.35 + 0.6 * lit_from_height(np.sqrt(sd / 3.0) * 0.8), white)
+    ic.paint(ic.line([(7, 47), (54, 47)], 1), rgb('3b3940'))                                # the sole's dark stripe
+    ic.paint(ic.line([(8, 49), (54, 49)], 1), rgb('a9a5ae'))
+    # the ankle patch: a white disc with a dark star dot
+    patch = ic.ellipse((8, 21, 17, 30))
+    pv = 0.3 + 0.7 * lit_from_height(np.sqrt(inner_dist(patch, 5) / 5.0) * 0.8)
+    ramp_paint(ic, patch, pv, white)
+    ic.paint(ic.ellipse((11, 24, 14, 27)), rgb('b03c40'))
+    # heel tab + wear: scuffs, a dirty smudge, a hole worn through, one lace trailing
+    ic.paint(ic.line([(7, 38), (7, 43)], 1), rgb('2a1a1c'))
+    for (x, y) in ((20, 36), (25, 38), (13, 35)):
+        ic.px(x, y, rgb('5a2024'))
+    ic.paint(ic.poly([(32, 30), (39, 33), (41, 38), (34, 37)]), rgb('3a1519'), a=0.3)
+    ic.cut(ic.ellipse((35, 31, 37.4, 33.4)))
+    ic.px(36, 32, rgb('2a1a1c'))
+    drag = ic.line([(31, 24), (34, 34), (33, 44), (37, 49), (42, 50)], 1)
+    ic.paint(drag & ~upper, rgb('efe6d6'))
+    return ic.finish(shadow=(31, 52, 25, 2), outline=0.28)
 
 
 def empty_wallet():

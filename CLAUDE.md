@@ -1806,6 +1806,14 @@ means no rendering — UI layout and art still need an in-editor look.
   built from panels so it has form; bandages 006 a gauze roll standing on end (spiral top, red-cross label, loose tail); rope 018 a coil of
   stacked twisted loops; ice pack 011 a gel cold pack (blue quilted lobes, sealed edge, snowflake label); torn clothes 009 a faded
   grey-blue tee with deep folds and a fringed hem. Only those eight PNGs + the sheets changed.
+  **Round 27c** ("sword, bandages, shoes, rope, torn clothes still need revisions and improved visual quality"): those five redrawn
+  with PER-PIXEL shading instead of flat part fills — `item_icons.pix/ramp_paint/lit_from_height/inner_dist` paint a value field
+  (surface normal, height field, distance-from-edge "pillow" form) posterised onto a hand-picked tone ramp. Katana: long slim
+  blade in hard bands (mune / ji / shinogi / wavy hamon / bright edge), oval tsuba, gold habaki, diamond-wrapped tsuka. Bandages:
+  a woven, grooved cylinder with a spiral top + hollow core, a curved label with a red cross, a tail with a metal clip. Shoes: a
+  faded-red canvas high-top (white toe cap, sole + stripe, ankle patch, laced throat, padded collar, worn hole). Rope: three twisted
+  tube loops lit by their own normals + a whipped free end. Tee: blue-grey, height-field folds, frayed rips, ribbed neckband. Only
+  those five PNGs + the sheets changed.
 - EVERY-FLOOR FIXTURES (owner round 25c, "cleaning art for immersion and visual clarity"; `tools/art/fixtures.py`,
   preview `docs/art_reference/fixtures.png`): at true size the lift was a flat grey slab in a black frame, the
   wall extinguisher a red block and the EXIT sign an unlabelled green box. Now: `assets/Elevator.png` is
