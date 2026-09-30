@@ -19,6 +19,8 @@ Sprite convention (assets/corridor/decals/dressing.json, read by scripts/corrido
 """
 import math
 import random
+
+from PIL import Image
 from pixlib import Canvas, hexc, shade, mix
 
 META = {}
@@ -72,58 +74,166 @@ def record(name, rule, depth, contact):
 
 
 # --- by the door --------------------------------------------------------------------------------
-def shoe_rack(save, name, seed, metal=False):
-    rng = random.Random(seed)
-    w, d = 30, 7
-    h = 24 + d + SHADOW
-    C = h - 1 - SHADOW
-    c = new(w, h, seed)
-    wood = hexc('8a6444') if not metal else hexc('8a8e94')
-    ground(c, 1, w - 2, C - d, C)
-    for x in (2, w - 3):                                            # the back posts (behind, darker)
-        c.vline(x, C - d - (20 if not metal else 11), C - d, shade(wood, 0.62))
-    shelves = ((C - 1, 0), (C - 10, 1), (C - 19, 2)) if not metal else ((C - 1, 0), (C - 10, 1), (C - 11, 2))
-    for (y, lvl) in shelves:                                         # shelves (metal: a low two-tier rack)
-        if metal and lvl == 2:
-            continue
-        block(c, 1, w - 2, y, y + 1, d, wood, shade(wood, 1.15))
-        for x in range(4, w - 3, 3):                                # slats on the shelf top
-            c.vline(x, y - d + 1, y - 1, shade(wood, 0.95))
-        if lvl < 2:                                                 # shoes on it: small shoes with open heels
-            x = 4
-            while x < w - 9:
-                col = rng.choice([hexc('3a2a22'), hexc('d8d0c0'), hexc('2a3a5a'), hexc('8a2a2a'), hexc('5a4a3a')])
-                sy = y - 2
-                block(c, x, x + 5, sy - 1, sy, 3, col)
-                c.rect(x + 1, sy - 3, x + 2, sy - 2, shade(col, 0.4))  # the heel opening
-                x += 8 + rng.randrange(0, 2)
-    top_y = C - 19 if not metal else C - 10
-    for x in (1, w - 2):                                            # the front posts
-        c.vline(x, top_y - d, C, shade(wood, 0.82))
-    if metal:                                                       # wellies stood on top of the low rack
-        welly(c, 4, top_y - 3, hexc('2a4a2a')); welly(c, 14, top_y - 2, hexc('2a4a2a'))
+# --- SHOES, side-on (owner round 25: the first rack "looked like a bulletin board with pagers and
+# phones" — its shoes were tiny front-on blocks). Side-on, a shoe is a shoe: toe, heel, sole, laces. ---
+SHOE_STYLES = ('trainer', 'brogue', 'heel', 'boot', 'kid')
+
+
+def shoe_side(c, x, base, style, col, face=1, k=1.0):
+    """One shoe seen from the side, heel at x, toe toward `face` (+1 right / -1 left), sole on row `base`.
+    k < 1 darkens it (a shoe further back)."""
+    col = shade(col, k)
+    L = {'trainer': 11, 'brogue': 11, 'heel': 10, 'boot': 10, 'kid': 8}[style]
+    top = {'trainer': (5, 5, 5, 4, 4, 3, 3, 3, 2, 2, 2), 'brogue': (4, 4, 4, 3, 3, 3, 2, 2, 2, 2, 1),
+           'heel': (4, 4, 4, 3, 2, 2, 2, 1, 1, 1), 'boot': (8, 8, 8, 7, 4, 3, 3, 2, 2, 2),
+           'kid': (4, 4, 4, 3, 3, 2, 2, 2)}[style]
+    X = (lambda i: x + i) if face > 0 else (lambda i: x - i)
+    lift = (lambda i: max(0, 3 - i)) if style == 'heel' else (lambda i: 0)     # a stiletto's raised heel
+    sole = shade(hexc('ece6da'), k) if style in ('trainer', 'kid') else shade(hexc('241c18'), k)
+    for i in range(L):
+        b = base - lift(i)
+        c.put(X(i), b, sole)                                          # the sole
+        for r in range(1, top[i] + 1):
+            cc = col
+            if r == top[i]:
+                cc = shade(col, 1.25)                                 # lit top edge
+            elif r == 1:
+                cc = shade(col, 0.72)                                 # the shaded welt above the sole
+            c.put(X(i), b - r, cc)
+    c.put(X(0), base - lift(0) - 1, shade(col, 0.6))                  # the heel's back edge
+    c.put(X(L - 1), base - lift(L - 1) - 1, shade(col, 0.85))         # the toe's end
+    if style in ('trainer', 'kid', 'brogue'):                         # the open collar at the heel
+        c.put(X(1), base - top[1], shade(col, 0.35))
+        c.put(X(2), base - top[2], shade(col, 0.35))
+    if style == 'trainer':
+        for i in (4, 5, 6):                                           # laces
+            c.put(X(i), base - top[i], hexc('f4f0e6'))
+        for i, r in ((3, 2), (4, 2), (5, 3), (6, 3)):                 # the side stripe
+            c.put(X(i), base - r, shade(hexc('e8e4dc'), k))
+        c.put(X(0), base - 1, sole)
+    elif style == 'kid':
+        c.put(X(4), base - 3, hexc('f8f0a0'))                         # a velcro strap
+        c.put(X(5), base - 3, hexc('f8f0a0'))
+    elif style == 'brogue':
+        for i in (4, 5):
+            c.put(X(i), base - top[i], shade(col, 0.55))              # laces
+        c.put(X(8), base - 2, shade(col, 1.7))                        # the polish on the toe
+        c.put(X(0), base - 1, sole); c.put(X(1), base - 1, sole)      # a stacked heel
+    elif style == 'heel':
+        for r in range(0, 4):
+            c.put(X(1), base - r, shade(hexc('1a1614'), k))           # the stiletto
+        c.put(X(6), base - 2, shade(col, 1.6))
+    elif style == 'boot':
+        c.put(X(0), base - 8, shade(col, 0.5))                        # the pull tab
+        c.put(X(1), base - 8, shade(col, 0.5))
+        for i in range(L):
+            c.put(X(i), base, shade(hexc('241c18'), k))
+            if i < 3:
+                c.put(X(i), base - 1, shade(hexc('3a2e26'), k))       # a chunky heel
+    return L
+
+
+def shoe_pair(c, x, base, style, col, face=1, depth_up=3):
+    """A pair on a shelf: the far shoe set back (higher, darker, a little along), the near one in front."""
+    shoe_side(c, x + 2 * face, base - depth_up, style, col, face, 0.78)
+    shoe_side(c, x, base, style, col, face, 1.0)
+
+
+def lying_shoe(c, x, y, style, col, how='side'):
+    """A shoe knocked onto the floor, pasted at (x, y) = top-left: 'sole' = flipped over, sole up;
+    'toe_up' = stood on its heel; 'side' = fallen over, toe away."""
+    t = new(14, 14, 1)
+    shoe_side(t, 1, 11, style, col, 1, 1.0)
+    im = t.img.crop(t.img.getbbox())
+    if how == 'sole':
+        im = im.transpose(Image.FLIP_TOP_BOTTOM)
+    elif how == 'toe_up':
+        im = im.rotate(90, expand=True)
+    elif how == 'side':
+        im = im.transpose(Image.FLIP_LEFT_RIGHT)
+    c.img.alpha_composite(im, (x, y))
+
+
+RACK_SHOES = [('trainer', 'ffffff'), ('trainer', '2a4a8a'), ('brogue', '5a3322'), ('brogue', '1e1a18'),
+              ('heel', 'a82a2a'), ('trainer', '3a3a3e'), ('kid', 'e05a8a'), ('brogue', '7a4a2a')]
+
+
+def _rack_frame(c, x0, x1, C, d, tiers, metal):
+    """Two side boards / chrome posts and slatted shelves, seen straight on and a little from above."""
+    wood = hexc('8a5f3c') if not metal else hexc('a9b0b8')
+    dark, lite = shade(wood, 0.6), shade(wood, 1.3)
+    top_y = tiers[-1] - d
+    # the back posts, behind everything
+    for x in (x0 + 1, x1 - 1):
+        c.vline(x, top_y, C - d, dark)
+    for y in tiers:
+        if metal:
+            c.hline(x0, x1, y - d, shade(wood, 0.7))                  # back rail
+            c.hline(x0, x1, y, lite)                                  # front rail
+            c.hline(x0, x1, y + 1, shade(wood, 0.55))
+            for x in range(x0 + 3, x1 - 1, 4):                        # the wires between them
+                c.line(x, y - d + 1, x, y - 1, shade(wood, 0.85))
+        else:
+            for r in range(d):                                        # the shelf's top, seen from above
+                yy = y - d + r
+                if r % 3 == 2:
+                    c.hline(x0 + 1, x1 - 1, yy, shade(wood, 0.45))    # the gaps between slats
+                else:
+                    c.hline(x0 + 1, x1 - 1, yy, shade(wood, 1.08 - 0.06 * (d - r) / d))
+            c.hline(x0, x1, y, lite)                                  # the front edge, catching the light
+            c.hline(x0, x1, y + 1, shade(wood, 0.78))
+    return wood
+
+
+def _rack_posts(c, x0, x1, C, d, tiers, wood, metal):
+    top_y = tiers[-1] - d
+    if metal:
+        for x in (x0, x1):
+            c.vline(x, top_y - 1, C, shade(wood, 1.25))
+            c.put(x, top_y - 2, shade(wood, 1.5))                     # the round cap
     else:
-        c.put(10, top_y - d + 2, hexc('c8c0b0')); c.put(11, top_y - d + 2, hexc('c8c0b0'))   # keys left on top
-    save(name, c)
-    record(name, "door", d, C)
+        for x in (x0, x1 - 1):                                        # the side boards: 2px, lit face + edge
+            c.vline(x, top_y - 1, C, shade(wood, 1.12))
+            c.vline(x + 1, top_y - 1, C, shade(wood, 0.82))
+        c.hline(x0, x0 + 1, top_y - 1, shade(wood, 1.4))
+        c.hline(x1 - 1, x1, top_y - 1, shade(wood, 1.4))
 
 
-def shoe_cabinet(save, name, seed):
-    """A low shoe cabinet by the door, its top used for keys, post and a plant."""
+def shoe_rack(save, name, seed, metal=False, sprawled=False):
+    """A three-tier shoe rack by the door, shoes side-on in pairs. sprawled: some kicked off onto the floor."""
     rng = random.Random(seed)
-    w, d = 28, 7
-    h = 34 + d + SHADOW
+    rack_w, d = 34, 6
+    w = rack_w + (26 if sprawled else 0)
+    tiers_rel = (2, 12, 22)                                           # shelf front rows above the floor contact
+    h = tiers_rel[-1] + d + 10 + SHADOW
     C = h - 1 - SHADOW
     c = new(w, h, seed)
-    wood = rng.choice([hexc('e8e0cc'), hexc('7a5236'), hexc('5a6a6a')])
-    ground(c, 1, w - 2, C - d, C, 90)
-    ty = C - 14
-    block(c, 1, w - 2, ty, C - 1, d, wood)
-    c.vline(w // 2, ty + 1, C - 2, shade(wood, 0.6))                # two doors, louvred
-    for y in range(ty + 3, C - 2, 2):
-        c.hline(3, w // 2 - 2, y, shade(wood, 0.82)); c.hline(w // 2 + 2, w - 4, y, shade(wood, 0.82))
-    c.put(w // 2 - 2, ty + 7, hexc('c8a050')); c.put(w // 2 + 2, ty + 7, hexc('c8a050'))
-    table_top_items(c, rng, rng.choice(['lamp', 'post']), 1, w - 2, ty, d)
+    x0, x1 = 1, rack_w - 2
+    tiers = [C - t for t in tiers_rel]
+    ground(c, x0, x1, C - d, C)
+    wood = _rack_frame(c, x0, x1, C, d, tiers, metal)
+    pool = RACK_SHOES[:]
+    rng.shuffle(pool)
+    for ti, y in enumerate(tiers[:2]):                                # shoes on the two lower shelves
+        for slot in range(2):
+            if sprawled and (ti, slot) in ((0, 1), (1, 0)):
+                continue                                              # gaps — those are on the floor
+            style, col = pool.pop()
+            shoe_pair(c, x0 + 3 + slot * 15, y - 1, style, hexc(col), 1, depth_up=3)
+    if metal:                                                         # a pair of boots on top
+        shoe_pair(c, x0 + 4, tiers[2] - 1, 'boot', hexc('4a3526'), 1, depth_up=3)
+    else:                                                             # slippers + a key dish on top
+        shoe_pair(c, x0 + 3, tiers[2] - 1, 'kid', hexc('6a8ac8'), 1, depth_up=3)
+        c.ellipse(x1 - 7, tiers[2] - 3, 4, 1, hexc('c8b89a'))
+        c.put(x1 - 8, tiers[2] - 4, hexc('d8d8d0')); c.put(x1 - 6, tiers[2] - 4, hexc('c8a84a'))
+    _rack_posts(c, x0, x1, C, d, tiers, wood, metal)
+    if sprawled:                                                      # the ones that came off, on the floor
+        ground(c, rack_w - 1, w - 2, C - 5, C, 55)
+        lying_shoe(c, rack_w + 9, C - 9, 'brogue', hexc('5a3322'), 'side')      # further back, fallen over
+        shoe_side(c, rack_w + 1, C - 3, 'heel', hexc('a82a2a'), 1)            # a stiletto still on its sole
+        lying_shoe(c, rack_w + 12, C - 4, 'trainer', hexc('2a4a8a'), 'sole')  # one flipped, sole up
+        # and one hanging half off the middle shelf's edge, about to drop
+        lying_shoe(c, x0 + 3, tiers[1] - 5, 'trainer', hexc('3a3a3e'), 'sole')
     save(name, c)
     record(name, "door", d, C)
 
@@ -949,7 +1059,7 @@ def build(save):
     that prop's variants — the game picks one per placement)."""
     shoe_rack(save, 'shoe_rack', 57)
     shoe_rack(save, 'shoe_rack__2', 157, metal=True)
-    shoe_cabinet(save, 'shoe_rack__3', 257)
+    shoe_rack(save, 'shoe_rack__3', 257, sprawled=True)
     shoe_tray(save, 'shoe_tray', 55, 'shoes')
     shoe_tray(save, 'shoe_tray__2', 56, 'boots')
     shoe_tray(save, 'shoe_tray__3', 155, 'family')

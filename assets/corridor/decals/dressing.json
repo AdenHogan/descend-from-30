@@ -207,20 +207,20 @@
   },
   "shoe_rack": {
    "base": "shoe_rack",
-   "contact": 30,
-   "depth": 7,
+   "contact": 37,
+   "depth": 6,
    "rule": "door"
   },
   "shoe_rack__2": {
    "base": "shoe_rack",
-   "contact": 30,
-   "depth": 7,
+   "contact": 37,
+   "depth": 6,
    "rule": "door"
   },
   "shoe_rack__3": {
    "base": "shoe_rack",
-   "contact": 40,
-   "depth": 7,
+   "contact": 37,
+   "depth": 6,
    "rule": "door"
   },
   "shoe_tray": {

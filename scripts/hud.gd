@@ -155,9 +155,13 @@ func _create_slot_icons() -> void:
 	for i in range(slots.size()):
 		var slot = slots[i]
 		var icon = TextureRect.new()
-		icon.custom_minimum_size = Vector2(SLOT_SIZE - 8, SLOT_SIZE - 8)
+		icon.custom_minimum_size = Vector2(ICON_PX, ICON_PX)
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		icon.anchors_preset = Control.PRESET_CENTER
+		# centred in the slot (owner round 25: the icon sat in the top-left corner — setting
+		# anchors_preset on a code-built Control did nothing, so it stayed at the slot's origin)
+		icon.position = Vector2(SLOT_SIZE - ICON_PX, SLOT_SIZE - ICON_PX) * 0.5
+		icon.size = Vector2(ICON_PX, ICON_PX)
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		icon.visible = false
 		slot.add_child(icon)
 		slot_icons.append(icon)
@@ -706,12 +710,18 @@ func _update_drag() -> void:
 
 func _start_drag() -> void:
 	drag_active = true
+	# The item lifts out of its slot: the slot keeps a faint ghost of it, and just the item — no box
+	# behind it — follows the pointer, centred on it.
+	if drag_from >= 0 and drag_from < slot_icons.size():
+		slot_icons[drag_from].modulate.a = 0.3
 	drag_icon = TextureRect.new()
 	drag_icon.texture = ItemData.get_texture(WorldState.get_item_id_at(drag_from))
 	drag_icon.custom_minimum_size = Vector2(ICON_PX, ICON_PX)
 	drag_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	drag_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	drag_icon.modulate = Color(1, 1, 1, 0.8)
+	drag_icon.modulate = Color(1, 1, 1, 0.9)
+	drag_icon.size = Vector2(ICON_PX, ICON_PX)
+	drag_icon.position = get_viewport().get_mouse_position() - drag_icon.size * 0.5
 	$Control.add_child(drag_icon)
 
 
@@ -722,6 +732,7 @@ func _finish_drag() -> void:
 		drag_icon = null
 	var from = drag_from
 	drag_from = -1
+	refresh_inventory()                         # the lifted slot's icon back to full (every outcome)
 	if from < 0 or from >= WorldState.inventory.size():
 		return
 	var mouse = get_viewport().get_mouse_position()

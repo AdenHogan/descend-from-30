@@ -1535,7 +1535,11 @@ means no rendering — UI layout and art still need an in-editor look.
   the corridor, straight on and a little from above) and each has a RULE + a floor DEPTH in
   `assets/corridor/decals/dressing.json` (written by the art tool): "door" = just outside a flat's door
   frame (`DOOR_FRAME` 27 + 1..6px: shoes ON A TRAY — owner round 24e: small things never lie loose on the
-  floor — a shoe rack / cabinet, an umbrella stand, a HALL TABLE carrying flowers / a lamp / the post,
+  floor — a SHOE RACK (round 25b — the first one "looked like a bulletin board with pagers and phones": its shoes
+  were front-on blocks; now `corridor_props.shoe_side` draws shoes SIDE-ON — trainer / brogue / stiletto /
+  ankle boot / kid's — in pairs, the far shoe set back and darker, on a rack with side boards and slatted
+  shelves seen from a little above: wooden, chrome wire with boots on top, and `__3` with shoes kicked onto
+  the floor, one flipped sole-up, one hanging off a shelf), an umbrella stand, a HALL TABLE carrying flowers / a lamp / the post,
   parcels, a pram, bin bags put out, the recycling, bundled newspapers, a suitcase / holdall, shopping
   bags, a bike / kid's bike / scooter leant on the wall), "open" = a stretch of wall between the doors or
   by the lift (`OPEN_SPOTS`: a floor planter, a small plant UP ON ITS STAND, a hall chair to wait on). Each
@@ -1769,8 +1773,13 @@ means no rendering — UI layout and art still need an in-editor look.
   name (legendary gold), tier, condition (durability / uses left / magazine / BROKEN in red / damaged),
   count, heal amount, the item's description and a one-line how-to-use hint; hidden while dragging or
   with the context menu open. `tip_mouse_override` is the test hook (headless has no pointer);
-  `scene_capture` step `tip:<slot>` renders it. Locked by `item_icon_test` (every icon 56×56, cut out,
-  many colours — a card or flat box fails; tooltip content + real hover + placement).
+  `scene_capture` step `tip:<slot>` renders it. DRAG (round 25b — "keep the item centred in the inventory box
+  slot and make the background for the item transparent"): the slot icon is placed at the slot's centre
+  explicitly (`anchors_preset` on a code-built Control did nothing — it sat 8px off in the corner); dragging
+  lifts just the item (a textureless-background ghost, centred on the pointer) and fades the slot it came
+  from until the drop (`_finish_drag` refreshes in every outcome). Locked by `item_icon_test` (every icon
+  56×56, cut out, many colours — a card or flat box fails; tooltip content + real hover + placement; icon
+  centred; drag ghost / lifted slot / restore).
 - DECAL SHEETS (owner round 25): `tools/art/corridor_decals.py` also writes grouped, labelled contact
   sheets of every corridor decal into `assets/decal_sheets/` (`standing_props`, `notices`, `wall_horror`,
   `door_marks`, `floor_marks`, `the_dead`, `all_decals`) beside the docs preview

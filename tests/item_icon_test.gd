@@ -22,6 +22,7 @@ func _ready() -> void:
 	print("=== item icon + tooltip test ===")
 	_test_icons()
 	await _test_tooltip()
+	await _test_slot_and_drag()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -99,5 +100,38 @@ func _test_tooltip() -> void:
 		await get_tree().process_frame
 	check(not HUD.item_tip.visible, "moving off the slot hides it")
 	HUD.tip_mouse_override = null
+	WorldState.inventory.clear()
+	HUD.refresh_inventory()
+
+
+func _test_slot_and_drag() -> void:
+	# owner round 25: "keep the item centred in the inventory box slot and make the background for the item
+	# transparent so players aren't dragging a square with an item on it"
+	print("[icon centred in its slot; dragging lifts just the item]")
+	WorldState.new_game()
+	WorldState.inventory.clear()
+	WorldState.add_to_inventory("004", 1)
+	WorldState.add_to_inventory("014", 1)
+	HUD.refresh_inventory()
+	for i in range(3):
+		await get_tree().process_frame
+	var slot: Control = HUD.slots[0]
+	var icon: Control = HUD.slot_icons[0]
+	var off: Vector2 = icon.get_global_rect().get_center() - slot.get_global_rect().get_center()
+	check(off.length() < 0.6 and icon.size == Vector2(56, 56), "the icon sits dead centre in its slot (off by %s)" % str(off))
+	HUD.drag_from = 0
+	HUD._start_drag()
+	var ghost: TextureRect = HUD.drag_icon
+	var mouse: Vector2 = HUD.get_viewport().get_mouse_position()
+	check(ghost != null and ghost.get_child_count() == 0 and not ghost.has_theme_stylebox_override("panel")
+		and ghost.get_global_rect().get_center().distance_to(mouse) < 0.6,
+		"the drag ghost is just the item (no box), centred on the pointer")
+	var tex_img := ghost.texture.get_image()
+	if tex_img.is_compressed():
+		tex_img.decompress()
+	check(tex_img.get_pixel(0, 0).a < 0.05 and tex_img.get_pixel(55, 55).a < 0.05, "…and the item's own art is cut out (transparent corners)")
+	check(HUD.slot_icons[0].modulate.a < 0.5, "the slot it came from shows it lifted out (faded)")
+	HUD._finish_drag()
+	check(HUD.slot_icons[0].modulate.a > 0.99 and HUD.drag_icon == null, "dropping it back puts it back at full strength")
 	WorldState.inventory.clear()
 	HUD.refresh_inventory()
