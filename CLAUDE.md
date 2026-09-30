@@ -1799,6 +1799,13 @@ means no rendering — UI layout and art still need an in-editor look.
   ball; crowbar 035 no grip; broken glass 023 jagged faceted shards; old shoes 030 a worn pair that reads as shoes; empty wallet 031 a
   billfold with its slot gaping (the moth is gone). Only those eight PNGs + the sheets changed (`tools/art/item_icons.py`). Spot checks
   of the rest found nothing as wrong — if more look off in play, list them and they get the same pass.
+- ITEM ICONS, round 27b ("the proportions on the gun still look bad… a space gun… the broken glass looks like an iceberg… the shoes
+  have no depth… rope… gel pack… the tee looks rotten… make the sword a katana"): gun 004 now dark steel + black polymer (no more
+  silver-and-black "space gun"); sword 003 a KATANA (slim curved blade with a hamon, round tsuba, diamond-wrapped handle — drawn with
+  `curved_band`); broken glass 023 the smashed lower half of a green bottle (one slanting jagged break); old shoes 030 a worn leather shoe
+  built from panels so it has form; bandages 006 a gauze roll standing on end (spiral top, red-cross label, loose tail); rope 018 a coil of
+  stacked twisted loops; ice pack 011 a gel cold pack (blue quilted lobes, sealed edge, snowflake label); torn clothes 009 a faded
+  grey-blue tee with deep folds and a fringed hem. Only those eight PNGs + the sheets changed.
 - EVERY-FLOOR FIXTURES (owner round 25c, "cleaning art for immersion and visual clarity"; `tools/art/fixtures.py`,
   preview `docs/art_reference/fixtures.png`): at true size the lift was a flat grey slab in a black frame, the
   wall extinguisher a red block and the EXIT sign an unlabelled green box. Now: `assets/Elevator.png` is

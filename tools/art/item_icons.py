@@ -46,6 +46,19 @@ ORANGE = rgb('e0852f')
 YELLOW = rgb('efc84a')
 
 
+def curved_band(ax, t0, t1, w0, w1, bow, n=24):
+    """A band along an axis that bellies sideways by `bow` at its middle (a sabre's sori)."""
+    left, right = [], []
+    for i in range(n + 1):
+        f = i / n
+        t = t0 + (t1 - t0) * f
+        w = w0 + (w1 - w0) * f
+        o = -bow * math.sin(math.pi * f)
+        left.append(ax.at(t, o - w))
+        right.append(ax.at(t, o + w))
+    return left + right[::-1]
+
+
 # ---- the icons --------------------------------------------------------------------------------------
 def knife():
     ic = Icon()
@@ -88,27 +101,30 @@ def hammer():
 
 
 def gun():
-    """A side-on service pistol, long and low: a slim slide, a short dust cover, a raked grip."""
+    """A side-on service pistol in dark steel and black polymer: long slide, slim frame, raked grip."""
     ic = Icon()
-    grip = [(11, 23), (24, 23), (25, 26), (19, 42), (7, 42), (9, 34)]
-    ic.part(ic.poly(grip), rgb('3a3d44'), 'h', strength=0.30)
-    for y in range(28, 41, 3):                                                              # stippled grip
-        for x in range(10 + (y % 2), 21, 3):
+    slide_c, frame_c, grip_c = rgb('3b4048'), rgb('2b2e34'), rgb('25272c')
+    grip = [(11, 21), (20, 21), (21, 25), (16, 42), (6, 42), (8, 33)]
+    ic.part(ic.poly(grip), grip_c, 'h', strength=0.22, light=1.3)
+    for y in range(26, 41, 3):                                                              # stippled grip
+        for x in range(8 + (y % 2), 18, 3):
             if ic.a[y, x] > 0.5:
-                ic.px(x, y, rgb('25272c'))
-    ic.part(ic.rect((6, 41, 20, 44)), rgb('2a2c31'), 'flat')                                # magazine base
-    ic.part(ic.poly([(10, 22), (41, 22), (41, 26), (36, 27), (26, 27), (10, 26)]), rgb('4a4f58'), 'v', strength=0.25)  # frame
-    ic.part(ic.arc((27, 22, 39, 33), 0, 180, w=2), rgb('4a4f58'), 'flat')                  # trigger guard
-    ic.part(ic.poly([(29, 26), (31, 26), (32, 30), (30, 30)]), BLACK, 'flat')              # trigger
-    ic.part(ic.poly([(6, 13), (47, 13), (51, 15), (51, 22), (6, 22)]), rgb('737b85'), 'v', strength=0.5, light=1.3)  # slide
-    for x in range(9, 16, 2):
-        ic.paint(ic.line([(x, 14), (x, 21)], 1), rgb('5a616a'))                            # serrations
-    ic.paint(ic.rect((26, 15, 34, 18)), rgb('30343a'))                                      # ejection port
-    ic.paint(ic.line([(17, 15), (45, 15)], 1), rgb('a9b1b9'))                               # slide highlight
-    ic.paint(ic.rect((50, 16, 51, 19)), rgb('14161a'))                                      # muzzle
-    ic.part(ic.rect((46, 10, 48, 13)), rgb('4a4f58'), 'flat')                               # front sight
-    ic.part(ic.rect((7, 10, 11, 13)), rgb('4a4f58'), 'flat')                                # rear sight
-    return ic.finish(shadow=(28, 47, 20, 2))
+                ic.px(x, y, rgb('15161a'))
+    ic.part(ic.rect((5, 41, 17, 44)), rgb('1c1d21'), 'flat')                                # magazine base
+    ic.part(ic.poly([(9, 21), (42, 21), (42, 25), (37, 26), (24, 26), (9, 25)]), frame_c, 'v', strength=0.2)   # frame
+    ic.part(ic.arc((23, 21, 36, 31), 0, 180, w=2), frame_c, 'flat')                        # trigger guard
+    ic.part(ic.poly([(26, 25), (28, 25), (29, 28), (27, 28)]), rgb('111215'), 'flat')      # trigger
+    ic.part(ic.poly([(6, 13), (48, 13), (52, 15), (52, 21), (6, 21)]), slide_c, 'v', strength=0.38, light=1.35)   # slide
+    for x in range(8, 14, 2):
+        ic.paint(ic.line([(x, 14), (x, 20)], 1), rgb('22252a'))                            # serrations
+    for x in range(40, 46, 2):
+        ic.paint(ic.line([(x, 14), (x, 20)], 1), rgb('22252a'))
+    ic.paint(ic.rect((24, 15, 33, 18)), rgb('17191d'))                                      # ejection port
+    ic.paint(ic.line([(14, 14), (46, 14)], 1), rgb('6e7580'))                               # top edge highlight
+    ic.paint(ic.rect((51, 16, 52, 18)), rgb('0d0e10'))                                      # muzzle
+    ic.part(ic.rect((45, 11, 47, 13)), slide_c, 'flat')                                     # front sight
+    ic.part(ic.rect((7, 11, 10, 13)), slide_c, 'flat')                                      # rear sight
+    return ic.finish(shadow=(28, 46, 20, 2))
 
 
 def canned_food():
@@ -203,40 +219,47 @@ def extinguisher():
 
 
 def sword():
+    """A katana: slim, gently curved single-edged blade with a hamon, round tsuba, wrapped handle."""
     ic = Icon()
-    ax = Axis((5, 51), 45)
-    x, y = ax.at(0, 0)
-    ic.part(ic.ellipse((x - 3.2, y - 3.2, x + 3.2, y + 3.2)), BRASS, 'dome', hl=0.3)      # pommel
-    ic.part(ic.poly(ax.band(1.5, 11, 2.4, 2.4)), LEATHER, 'cyl', ax.dir, hl=0.15)         # grip
-    for t in (3, 5.5, 8, 10.5):
-        ic.darken(ic.line([ax.at(t, -2.4), ax.at(t + 1.4, 2.4)], 1), 0.62)
-    ic.part(ic.poly(ax.band(11, 14, 9, 9)), BRASS, 'cyl', ax.dir, hl=0.3)                 # crossguard
-    blade = ax.pts([(14, -3.1), (54, -2.4), (61, 0), (54, 2.4), (14, 3.1)])
-    ic.part(ic.poly(blade), STEEL, 'cyl', ax.dir, hl=0.3)
-    ic.paint(ic.line([ax.at(15, 0), ax.at(47, 0)], 1), rgb('6f7882'))                     # fuller
-    return ic.finish()
+    ax = Axis((4, 52), 45)
+    ic.part(ic.poly(ax.band(0, 2.2, 2.4, 2.4)), rgb('c9a24a'), 'cyl', ax.dir, hl=0.3)    # kashira (pommel cap)
+    ic.part(ic.poly(ax.band(2.2, 17, 2.3, 2.3)), rgb('241d21'), 'cyl', ax.dir, hl=0.12)   # tsuka (handle)
+    for t in [3.4 + 2.6 * i for i in range(5)]:                                           # diamond wrap
+        ic.paint(ic.line([ax.at(t, -2.1), ax.at(t + 1.3, 0), ax.at(t, 2.1)], 1), rgb('7e2730'))
+        ic.paint(ic.line([ax.at(t + 1.3, -2.1), ax.at(t, 0), ax.at(t + 1.3, 2.1)], 1), rgb('7e2730'))
+    ic.part(ic.poly(ax.band(17, 18.8, 5.8, 5.8)), rgb('3a3136'), 'cyl', ax.dir, hl=0.2)    # tsuba (round guard)
+    ic.paint(ic.poly(ax.band(17.2, 18.6, 5.4, 5.4)), rgb('c9a24a'), a=0.45)
+    ic.part(ic.poly(ax.band(18.8, 21.3, 2.6, 2.6)), rgb('d8b456'), 'cyl', ax.dir, hl=0.3)  # habaki (collar)
+    blade = curved_band(ax, 21.3, 66, 2.3, 1.0, 1.7)
+    ic.part(ic.poly(blade), rgb('b4bdc6'), 'cyl', ax.dir, hl=0.3)                          # the blade
+    edge = curved_band(ax, 22, 64, 0.55, 0.15, 1.7)
+    ic.paint(ic.poly([(px + ax.v[0] * 1.5, py + ax.v[1] * 1.5) for (px, py) in edge]), rgb('f2f6f9'), a=0.9)   # hamon / edge
+    back = curved_band(ax, 22, 62, 0.4, 0.15, 1.7)
+    ic.paint(ic.poly([(px - ax.v[0] * 1.7, py - ax.v[1] * 1.7) for (px, py) in back]), rgb('7c858f'), a=0.9)   # the back
+    return ic.finish(shadow=None)
 
 
 def bandages():
-    """A roll of gauze lying on its side, a flat tail unrolled in front, a red cross on its paper band."""
+    """A roll of gauze standing on end, seen from above and in front: a spiral top, wrapped sides, a paper label and a loose tail."""
     ic = Icon()
-    gauze = rgb('efe5d0')
-    tail = [(30, 35), (44, 36), (50, 39), (50, 43), (43, 43), (30, 41)]
-    ic.part(ic.poly(tail), gauze, 'v', strength=0.18)                                      # the unrolled tail
-    for x in range(33, 49, 3):
-        ic.paint(ic.line([(x, 37), (x, 42)], 1), rgb('d9ccb2'))                            # weave
-    ic.part(ic.rect((16, 14, 42, 38)), gauze, 'cyl', (1, 0), hl=0.18)                      # the roll
-    for y in range(17, 38, 3):
-        ic.paint(ic.line([(17, y), (41, y)], 1), rgb('dfd2b8'))                            # wound layers
-    ic.part(ic.rect((26, 14, 33, 38)), rgb('fbf8f1'), 'cyl', (1, 0), hl=0.1)               # the paper band
-    ic.part(ic.rect((28, 20, 31, 32)), RED, 'flat', light=1.1)                              # red cross
-    ic.part(ic.rect((25, 24, 34, 28)), RED, 'flat', light=1.1, contact=False)
-    ic.part(ic.ellipse((10, 14, 22, 38)), rgb('f8f0de'), 'flat', contact=False)            # the roll's end
-    for r in (5.2, 3.6, 2.2):
-        ic.paint(ic.ellipse((16 - r, 26 - r * 1.85, 16 + r, 26 + r * 1.85)) & ~ic.ellipse(
-            (16 - r + 1, 26 - r * 1.85 + 1, 16 + r - 1, 26 + r * 1.85 - 1)), rgb('cbb995'))
-    ic.paint(ic.ellipse((14.5, 23, 17.5, 29)), rgb('7d6c52'))                               # the core
-    return ic.finish(shadow=(28, 46, 22, 3))
+    gauze, wrap = rgb('efe5d0'), rgb('d6c9ad')
+    tail = [(31, 40), (44, 41), (52, 44), (54, 48), (45, 49), (31, 46)]
+    ic.part(ic.poly(tail), rgb('f4ecda'), 'v', strength=0.2)                               # the loose tail on the floor
+    for x in (38, 44, 49):
+        ic.paint(ic.line([(x, 42), (x + 1, 47)], 1), wrap)
+    body = ic.poly([(9, 38), (9, 20), (39, 20), (39, 38)]) | ic.ellipse((9, 32, 39, 44))
+    ic.part(body, gauze, 'cyl', (0, 1), hl=0.2)                                            # the wound sides
+    for y in (25, 30, 35, 40):
+        ic.paint(ic.arc((9, y - 3, 39, y + 4), 10, 170, 1), wrap)                          # wraps
+    ic.part(ic.rect((18, 26, 30, 38)), rgb('fbf8f1'), 'flat', light=1.02)                  # the paper label
+    ic.part(ic.rect((22, 28, 26, 37)), RED, 'flat', light=1.12, contact=False)
+    ic.part(ic.rect((19, 31, 29, 34)), RED, 'flat', light=1.12, contact=False)
+    ic.part(ic.ellipse((9, 14, 39, 26)), rgb('f7efdd'), 'flat', contact=False)             # the top face
+    for r in (1.0, 0.72, 0.46):
+        ic.paint(ic.ellipse((24 - 14.5 * r, 20 - 5.6 * r, 24 + 14.5 * r, 20 + 5.6 * r)) & ~ic.ellipse(
+            (24 - 14.5 * r + 1, 20 - 5.6 * r + 1, 24 + 14.5 * r - 1, 20 + 5.6 * r - 1)), wrap)
+    ic.paint(ic.ellipse((20, 18, 28, 22)), rgb('7d6c52'))                                   # the hollow core
+    return ic.finish(shadow=(30, 46, 24, 3))
 
 
 def clothes():
@@ -260,17 +283,29 @@ def clothes():
 
 
 def torn_clothes():
+    """A faded grey-blue tee, ripped and frayed, with deep folds and a torn hem."""
     ic = Icon()
-    tee = [(16, 8), (22, 10), (34, 10), (40, 8), (50, 15), (45, 23), (41, 20), (42, 48),
-           (38, 45), (34, 49), (29, 45), (24, 49), (19, 45), (15, 48), (15, 20), (11, 23), (6, 15)]
-    ic.part(ic.poly(tee), rgb('b5ab94'), 'v', strength=0.3)
-    ic.part(ic.poly([(22, 10), (28, 15), (34, 10), (31, 9), (28, 12), (25, 9)]), rgb('8f8672'), 'flat')
-    ic.paint(ic.ellipse((30, 26, 38, 34)), rgb('7f6f53'), a=0.55)                         # stain
-    ic.paint(ic.ellipse((18, 34, 23, 38)), rgb('6b3a2c'), a=0.45)
-    ic.cut(ic.poly([(21, 22), (25, 25), (22, 28), (24, 31), (20, 29)]))                  # rips
-    ic.cut(ic.poly([(33, 38), (37, 36), (36, 41)]))
-    ic.cut(ic.poly([(41, 30), (43, 29), (43, 35)]))
-    return ic.finish()
+    base = rgb('6d8196')
+    tee = [(17, 9), (23, 12), (33, 12), (39, 9), (51, 17), (46, 26), (41, 22), (41, 46), (38, 49), (35, 45), (31, 50),
+           (27, 46), (23, 50), (20, 45), (16, 49), (15, 46), (15, 22), (10, 26), (5, 17)]
+    ic.part(ic.poly(tee), base, 'v', strength=0.3, light=1.25)
+    ic.part(ic.poly([(6, 17), (17, 9), (23, 12), (15, 22), (10, 26)]), rgb('5d7085'), 'h', strength=0.3)   # the sleeves, a shade apart
+    ic.part(ic.poly([(50, 17), (39, 9), (33, 12), (41, 22), (46, 26)]), rgb('5d7085'), 'h', strength=0.3)
+    ic.part(ic.poly([(23, 12), (28, 19), (33, 12), (31, 10), (28, 14), (25, 10)]), rgb('3c4d5f'), 'flat')  # neckband
+    for pts in ([(17, 16), (22, 30), (19, 46), (25, 46), (27, 30), (23, 16)],                             # deep folds
+                [(34, 15), (31, 32), (34, 46), (39, 46), (38, 31), (40, 17)]):
+        ic.paint(ic.poly(pts), rgb('3f5165'), a=0.5)
+    for pts in ([(26, 16), (27, 31), (29, 31), (29, 16)], [(41, 24), (41, 44), (40, 44), (40, 24)]):
+        ic.paint(ic.poly(pts), rgb('a3b6c8'), a=0.55)                                                     # lit ridges
+    ic.paint(ic.line([(16, 41), (40, 41)], 1), rgb('a3b6c8'), a=0.7)                                        # hem stitching
+    ic.cut(ic.poly([(19, 21), (26, 24), (24, 28), (27, 32), (20, 31), (22, 27)]))                          # a big rip at the chest
+    for (x, y) in ((18, 22), (27, 25), (25, 33), (19, 32), (22, 20), (28, 31)):
+        ic.px(x, y, rgb('c6d4e2'))                                                                          # frayed threads
+    ic.cut(ic.poly([(33, 36), (39, 34), (38, 41)]))
+    ic.cut(ic.poly([(44, 21), (47, 19), (47, 25)]))                                                       # a torn sleeve
+    for x in (17, 24, 28, 32, 36):
+        ic.px(x, 48, rgb('c6d4e2'))                                                                        # fringe on the hem
+    return ic.finish(shadow=(28, 50, 21, 2.5))
 
 
 def painkillers():
@@ -290,23 +325,30 @@ def painkillers():
 
 
 def ice_pack():
+    """A reusable gel cold pack: a soft blue pouch sealed round its edge, pinched into two lobes, with a snowflake label."""
     ic = Icon()
-    body = ic.rect((9, 14, 47, 44), r=6)
-    ic.part(body, rgb('7fc3e8'), 'dome', hl=0.5, alpha=0.95)
-    for x in range(10, 47, 3):                                                            # crimped seams
-        ic.px(x, 15, rgb('bfe4f5'))
-        ic.px(x, 43, rgb('4f97c2'))
-    cx, cy = 28, 29
-    for a in range(0, 180, 60):                                                           # snowflake
-        dx, dy = 10 * math.cos(math.radians(a)), 10 * math.sin(math.radians(a))
-        ic.paint(ic.line([(cx - dx, cy - dy), (cx + dx, cy + dy)], 2), WHITE)
-        for sgn in (1, -1):
-            ex, ey = cx + sgn * dx * 0.65, cy + sgn * dy * 0.65
-            ic.px(ex + dy * 0.2, ey - dx * 0.2, WHITE)
-            ic.px(ex - dy * 0.2, ey + dx * 0.2, WHITE)
-    for (x, y) in ((14, 20), (41, 37), (40, 20)):
-        ic.px(x, y, WHITE)
-    return ic.finish(shadow=(28, 47, 20, 2.5))
+    ic.part(ic.rect((5, 13, 51, 45), r=7), rgb('3b82c4'), 'v', strength=0.25)               # the sealed outer edge
+    for (x0, x1) in ((8, 27), (29, 48)):
+        ic.part(ic.rect((x0, 16, x1, 42), r=6), rgb('67bdea'), 'dome', hl=0.55, light=1.3)   # each gel lobe
+    ic.paint(ic.line([(28, 15), (28, 43)], 2), rgb('2d6cae'))                               # the pinch between them
+    for y in range(17, 42, 4):
+        ic.px(28, y, rgb('a9dcf5'))
+    for x in range(7, 50, 3):                                                               # the crimped rim
+        ic.px(x, 14, rgb('9fd2f2'))
+        ic.px(x, 44, rgb('25609f'))
+    ic.part(ic.rect((14, 25, 42, 34), r=2), rgb('f4fbff'), 'flat', light=1.0, contact=False)  # the label
+    cx, cy = 28, 29.5
+    for a in range(0, 180, 60):
+        dx, dy = 3.6 * math.cos(math.radians(a)), 3.6 * math.sin(math.radians(a))
+        ic.paint(ic.line([(cx - dx, cy - dy), (cx + dx, cy + dy)], 1), rgb('3b82c4'))
+    ic.paint(ic.line([(17, 28), (22, 28)], 1), rgb('9bc3e0'))
+    ic.paint(ic.line([(17, 31), (23, 31)], 1), rgb('9bc3e0'))
+    ic.paint(ic.line([(34, 28), (39, 28)], 1), rgb('9bc3e0'))
+    ic.paint(ic.line([(34, 31), (38, 31)], 1), rgb('9bc3e0'))
+    for (x, y) in ((12, 19), (43, 20), (40, 39)):
+        ic.px(x, y, rgb('eaf7ff'))                                                           # the glossy glints
+        ic.px(x + 1, y, rgb('cfeeff'))
+    return ic.finish(shadow=(28, 48, 22, 2.5))
 
 
 def golf_club():
@@ -376,19 +418,27 @@ def alu_bat():
 
 
 def rope():
+    """A coil of rope in perspective: three stacked loops with a twist, the free end lying out in front."""
     ic = Icon()
-    col = rgb('c9a46a')
-    ic.part(ic.line([(38, 40), (44, 46), (49, 47)], 4), col, 'flat')                      # the loose end
-    for (x0, y0, x1, y1) in ((8, 18, 44, 44), (10, 15, 46, 41), (12, 12, 48, 38)):
-        ring = ic.ellipse((x0, y0, x1, y1)) & ~ic.ellipse((x0 + 5, y0 + 5, x1 - 5, y1 - 5))
-        ic.part(ring, col, 'dome', hl=0.15)
-        ys, xs = (ring).nonzero()
-        for y, x in zip(ys, xs):
-            if (x + y) % 4 == 0:
-                ic.px(x, y, rgb('9c7a46'))                                                # the twist
-    for (x, y) in ((49, 46), (50, 48), (48, 49)):
-        ic.px(x, y, rgb('e5c894'))                                                        # frayed end
-    return ic.finish(shadow=(28, 47, 20, 2.5))
+    col, dk, lt = rgb('c9a46a'), rgb('8f6d3a'), rgb('e6cb92')
+    loops = [((6, 29, 50, 49), (15, 34, 41, 44)), ((8, 22, 48, 43), (16, 27, 40, 38)), ((10, 15, 46, 37), (17, 20, 39, 32))]
+    ic.part(ic.line([(40, 45), (47, 48), (53, 47)], 5), col, 'v', strength=0.25)           # the free end
+    for (o, i) in loops:
+        ring = ic.ellipse(o) & ~ic.ellipse(i)
+        ic.part(ring, col, 'v', strength=0.4, light=1.3)
+        cx, cy = (o[0] + o[2]) / 2, (o[1] + o[3]) / 2
+        rx, ry = ((o[2] - o[0]) + (i[2] - i[0])) / 4, ((o[3] - o[1]) + (i[3] - i[1])) / 4
+        for a in range(0, 360, 14):                                                        # the twist: slanted strands
+            ang = math.radians(a)
+            px, py = cx + rx * math.cos(ang), cy + ry * math.sin(ang)
+            tx, ty = -math.sin(ang) * rx, math.cos(ang) * ry
+            n = math.hypot(tx, ty) or 1
+            tx, ty = tx / n, ty / n
+            nx, ny = -ty, tx
+            ic.paint(ic.line([(px - tx * 1.5 - nx * 2.2, py - ty * 1.5 - ny * 2.2), (px + tx * 1.5 + nx * 2.2, py + ty * 1.5 + ny * 2.2)], 1), dk)
+    for (x, y) in ((53, 46), (54, 48), (52, 49)):
+        ic.px(x, y, lt)                                                                    # frayed end
+    return ic.finish(shadow=(28, 50, 22, 2.5))
 
 
 def toolbox():
@@ -455,25 +505,24 @@ def apartment_key():
 
 
 def broken_glass():
-    """A heap of jagged shards: chunky slivers with cut tops, a scatter of flat pieces."""
+    """The smashed lower half of a green bottle: one slanting, irregular break, the base, a few flat shards."""
     ic = Icon()
-    glass = rgb('bfe3ec')
-    shards = [
-        [(6, 47), (8, 34), (17, 28), (19, 39), (22, 47)],
-        [(17, 47), (20, 31), (31, 19), (36, 29), (34, 47)],
-        [(31, 47), (35, 37), (46, 26), (50, 35), (49, 47)],
-        [(2, 51), (12, 47), (21, 49), (13, 53)],
-        [(24, 51), (38, 47), (53, 49), (45, 53), (31, 53)],
-    ]
-    for i, pts in enumerate(shards):
-        ic.part(ic.poly(pts), scale(glass, 0.9 + 0.07 * (i % 3)), 'h', strength=0.5, light=1.4, alpha=0.84)
-    for pts in ([(17, 28), (8, 34), (13, 46)], [(31, 19), (20, 31), (26, 46)], [(46, 26), (35, 37), (41, 46)]):
-        ic.part(ic.poly(pts), rgb('e9f7fb'), 'flat', alpha=0.55, contact=False, rim=False)   # a lit facet
-    for (a, b) in (((19, 30), (15, 44)), ((32, 22), (25, 44)), ((47, 29), (40, 44))):
-        ic.paint(ic.line([a, b], 1), rgb('ffffff'))                                        # edge glints
-    for (x, y) in ((38, 50), (16, 51), (47, 51)):
-        ic.px(x, y, rgb('ffffff'))
-    return ic.finish(shadow=(29, 51, 22, 2))
+    g = rgb('4fa870')
+    wall = [(14, 47), (13, 19), (17, 17), (19, 26), (23, 22), (25, 31), (30, 27), (31, 34), (38, 31), (38, 47)]
+    ic.part(ic.poly(wall) | ic.ellipse((14, 41, 38, 52)), g, 'cyl', (0, 1), hl=0.5, alpha=0.95)
+    ic.paint(ic.poly([(14, 24), (17, 17), (19, 26), (23, 22), (25, 31), (30, 27), (31, 34), (38, 31), (38, 36), (14, 36)]) & ic.ellipse((13, 22, 39, 39)),
+             rgb('2b6c47'), a=0.7)                                                           # the dark inside of the bottle
+    for pts in ([(13, 19), (17, 17), (19, 26), (14, 24)], [(19, 26), (23, 22), (25, 31), (21, 29)],
+                [(25, 31), (30, 27), (31, 34), (27, 33)], [(31, 34), (38, 31), (38, 35), (33, 36)]):
+        ic.paint(ic.poly(pts), rgb('c2f2d3'), a=0.9)                                        # the cut glass faces
+    ic.paint(ic.line([(16, 38), (16, 46)], 1), rgb('e9fff2'))                               # the glare down the side
+    ic.paint(ic.line([(18, 39), (18, 42)], 1), rgb('e9fff2'), a=0.6)
+    ic.paint(ic.ellipse((21, 45, 33, 50)), rgb('2f7a4f'), a=0.7)                            # the punt in the base
+    for pts in ([(41, 48), (50, 47), (54, 50), (45, 51)], [(2, 50), (8, 48), (11, 51), (5, 53)], [(43, 53), (52, 53), (49, 55)]):
+        ic.part(ic.poly(pts), rgb('72c68d'), 'flat', light=1.3, alpha=0.92)                # flat shards
+    ic.px(47, 49, rgb('ffffff'))
+    ic.px(7, 50, rgb('ffffff'))
+    return ic.finish(shadow=(28, 52, 24, 2))
 
 
 def empty_bottle():
@@ -565,23 +614,27 @@ def paperwork():
 
 
 def old_shoes():
-    """A worn pair: a leather shoe side-on, its mate behind it."""
+    """A worn leather shoe, side-on, built from panels (heel counter, vamp, toe cap, tongue, collar) so it has form."""
     ic = Icon()
-    for (ox, oy, k) in ((7, -9, 0.70), (0, 0, 1.0)):
-        c = scale(rgb('7a4f33'), k)
-        upper = [(9 + ox, 41 + oy), (8 + ox, 27 + oy), (16 + ox, 24 + oy), (20 + ox, 29 + oy), (26 + ox, 25 + oy),
-                 (32 + ox, 28 + oy), (42 + ox, 33 + oy), (49 + ox, 37 + oy), (49 + ox, 41 + oy)]
-        ic.part(ic.poly(upper), c, 'v', strength=0.3)
-        ic.part(ic.poly([(40 + ox, 33 + oy), (49 + ox, 37 + oy), (49 + ox, 41 + oy), (38 + ox, 41 + oy)]),
-                scale(rgb('5e3a25'), k), 'flat', contact=False)                              # toe cap
-        ic.part(ic.rect((7 + ox, 41 + oy, 50 + ox, 46 + oy), r=1), scale(rgb('d8cdb4'), k), 'flat')  # rubber sole
-        ic.paint(ic.line([(8 + ox, 44 + oy), (49 + ox, 44 + oy)], 1), scale(rgb('8a806a'), k))
-        for x in (25, 29, 33):
-            ic.paint(ic.line([(x + ox, 27 + oy), (x + 3 + ox, 31 + oy)], 1), scale(rgb('e3d7c0'), k))   # laces
-        ic.paint(ic.line([(11 + ox, 28 + oy), (11 + ox, 38 + oy)], 1), scale(rgb('5e3a25'), k))         # heel seam
-    ic.cut(ic.ellipse((41, 36, 45, 39)))                                                   # worn through
-    ic.paint(ic.line([(14, 34), (20, 33)], 1), rgb('a7795a'))                             # scuff
-    return ic.finish(shadow=(28, 49, 22, 2))
+    leather, dark = rgb('86593a'), rgb('5f3b27')
+    ic.part(ic.poly([(6, 49), (5, 45), (52, 45), (55, 47), (53, 49)]), rgb('2b2522'), 'v', strength=0.25)   # outsole
+    ic.part(ic.poly([(6, 45), (6, 41), (42, 41), (52, 43), (55, 46), (55, 47), (6, 47)]), rgb('d9ceb4'), 'v', strength=0.2)  # midsole
+    ic.paint(ic.line([(7, 46), (53, 46)], 1), rgb('9a8f78'))
+    upper = [(8, 42), (7, 27), (11, 22), (17, 21), (20, 26), (26, 24), (33, 27), (43, 31), (51, 36), (55, 42), (55, 43), (8, 43)]
+    ic.part(ic.poly(upper), leather, 'v', strength=0.34, light=1.3)
+    ic.part(ic.poly([(8, 42), (7, 27), (11, 22), (16, 22), (17, 43), (8, 43)]), dark, 'h', strength=0.3, light=1.2)   # heel counter
+    ic.part(ic.poly([(42, 31), (51, 36), (55, 42), (55, 43), (40, 43), (39, 34)]), dark, 'v', strength=0.3)           # toe cap
+    ic.part(ic.poly([(11, 22), (17, 20), (22, 23), (19, 27), (12, 26)]), rgb('241812'), 'flat', rim=False)             # the dark opening
+    ic.part(ic.poly([(19, 26), (24, 19), (31, 20), (30, 27), (25, 29)]), rgb('a4724b'), 'v', strength=0.25, light=1.3)  # the tongue
+    for k in range(3):                                                                                                 # laces + eyelets
+        cx, cy = 26.5 + k * 4.4, 27 + k * 2.0
+        ic.paint(ic.line([(cx - 1.5, cy + 1.5), (cx + 1.5, cy - 1.5)], 1), rgb('efe6d2'))
+        ic.px(cx - 2.5, cy + 2.5, rgb('241812'))
+    ic.paint(ic.line([(43, 35), (49, 38)], 1), rgb('c99a72'))                                                           # scuffs
+    ic.paint(ic.line([(25, 34), (31, 36)], 1), rgb('c99a72'))
+    ic.paint(ic.line([(11, 32), (14, 38)], 1), rgb('3f2618'))                                                           # a crease
+    ic.cut(ic.ellipse((47, 39, 50, 41)))                                                                                # worn through
+    return ic.finish(shadow=(30, 51, 25, 2))
 
 
 def empty_wallet():
