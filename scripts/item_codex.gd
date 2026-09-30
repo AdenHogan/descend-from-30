@@ -12,6 +12,8 @@ class_name ItemCodex
 #     extinguisher one per spray;
 #   * an item that runs out: weapons and tools stay in the pack as BROKEN (a Toolbox rebuilds them),
 #     consumables are simply used up.
+# DISCOVERY: an item's entry reads "???" (icon as a silhouette, nothing spelled out) until the player has
+# held, looted or been shown it (`WorldState.note_item_seen`, stored in the profile — it outlives characters).
 # Pure static functions (no nodes) so the tab and its test share one source.
 
 const BARRICADE_COST := 2            # = door.gd BARRICADE_DURABILITY_COST (locked by a codex test)
@@ -140,12 +142,22 @@ static func sections() -> Array:
 			"durability": durability_line(d),
 			"wear": wear_text(d),
 			"ending": ending_text(d),
+			"found": WorldState.item_discovered(str(id)),
 		})
 	var out: Array = []
 	for k in SECTIONS:
 		if not by[k[0]].is_empty():
 			out.append({"section": k[0], "title": k[1], "items": by[k[0]]})
 	return out
+
+
+## [found, total] across every catalogued item — the tab's "Found 12 / 38" line.
+static func found_counts() -> Array:
+	var found := 0
+	for id in ItemData.items.keys():
+		if WorldState.item_discovered(str(id)):
+			found += 1
+	return [found, ItemData.items.size()]
 
 
 ## The colour legend shown at the top of the tab — the SAME gradient the in-hand box uses.

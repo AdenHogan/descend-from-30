@@ -59,6 +59,7 @@ func _build_world(as_scenery: bool) -> void:
 	# so the commit shows exactly what already scrolled into view.
 	load("res://scripts/building_floors.gd").add_corridor_art(self,
 		load("res://scripts/building_floors.gd").corridor_art_named("corridor_lobby", WorldState.current_run))
+	load("res://scripts/building_floors.gd").add_endpoint_signs(self, 0, ["right"], false)
 	_spawn_zombies(as_scenery)
 	_spawn_corpses(1)
 	_spawn_world_drops(1)

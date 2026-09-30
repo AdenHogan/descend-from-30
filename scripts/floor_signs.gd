@@ -47,6 +47,8 @@ const LIFT_PANEL_Y := 296.0                           # just over its doors (the
 var floor_num := 1
 var section := "mid"
 var lift_lit := false
+var sides: Array = ["left", "right"]   # which stairwells this floor has (the endpoint floors have ONE)
+var number_plate := true              # the engraved floor number (the lobby has no number to engrave)
 
 
 ## Where the signs + door plates + wall sconces sit, in the corridor art's LOCAL space (world − (115, 243)), so the
@@ -86,10 +88,12 @@ static func floor_label(f: int) -> String:
 	return "LOBBY" if f <= 0 else str(f)
 
 
-func setup(f: int, sec: String) -> void:
+func setup(f: int, sec: String, only_sides: Array = ["left", "right"], with_number := true) -> void:
 	name = "FloorSigns"
 	floor_num = f
 	section = sec
+	sides = only_sides
+	number_plate = with_number
 	lift_lit = WorldState.elevator_powered or f in WorldState.MERCHANT_FLOORS
 	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS   # only the number is a texture (its smooth edges)
 	queue_redraw()
@@ -109,9 +113,11 @@ func stair_targets() -> Dictionary:
 func _draw() -> void:
 	var t := stair_targets()
 	for side in t:
-		_stair_sign(float(STAIR_X[side]), str(t[side][0]), int(t[side][1]))
-	for side in ["left", "right"]:
-		_floor_number(float(FLOOR_PLATE_X[side]), side)
+		if side in sides and int(t[side][1]) >= 0:
+			_stair_sign(float(STAIR_X[side]), str(t[side][0]), int(t[side][1]))
+	if number_plate:
+		for side in sides:
+			_floor_number(float(FLOOR_PLATE_X[side]), side)
 	_lift_panel()
 
 

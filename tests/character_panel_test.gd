@@ -139,3 +139,28 @@ func _test_codex() -> void:
 	for sec in sections:
 		total += sec["items"].size()
 	check(total == ItemData.items.size() and sections.size() >= 5, "sections cover every item (%d sections)" % sections.size())
+	# DISCOVERY: unfound items read "???" until they are held / looted (profile state).
+	WorldState.codex_seen = {}
+	cp._refresh()
+	var row_txt := func(id: String) -> String:
+		var row = cp.codex_box.get_node_or_null("Item_" + id)
+		return "" if row == null else str(row.get_child(1).text)
+	check(row_txt.call("002").contains("???") and not row_txt.call("002").contains("uses"), "an unfound item is a ??? entry with no details")
+	check(ItemCodex.found_counts()[0] == 0 and ItemCodex.found_counts()[1] == ItemData.items.size(), "nothing found yet: 0 of %d" % ItemData.items.size())
+	WorldState.note_item_seen("not_an_item")
+	check(ItemCodex.found_counts()[0] == 0, "an unknown id never counts")
+	WorldState.inventory.clear()
+	check(WorldState.add_to_inventory("002"), "the hammer goes in the pack")
+	check(WorldState.item_discovered("002"), "picking an item up discovers it")
+	cp._refresh()
+	check(row_txt.call("002").contains("Hammer") and not row_txt.call("002").contains("???"), "a found item spells itself out")
+	check(row_txt.call("001").contains("???"), "the knife, never found, is still ???")
+	check(ItemCodex.found_counts()[0] == 1, "tally reads 1 found")
+	var cfg := ConfigFile.new()
+	check(cfg.load(WorldState.profile_path()) == OK and "002" in Array(cfg.get_value("codex", "seen", [])), "discovery is written to the profile")
+	WorldState.codex_seen = {}
+	WorldState.load_profile()
+	check(WorldState.item_discovered("002"), "discovery survives a profile reload")
+	WorldState.codex_seen = {}
+	WorldState.inventory.clear()
+	WorldState.save_profile()

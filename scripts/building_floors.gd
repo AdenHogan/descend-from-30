@@ -138,6 +138,20 @@ static func add_corridor_art(root: Node, path: String) -> void:
 		root.move_child(art, tm.get_index() + 1)
 
 
+## The endpoint floors' version of the signs (hallway 30: left stairwell only; lobby: right only): the
+## STAIRS sign over the opening, the floor number by it (the lobby has none to engrave) and the lift's
+## indicator — so the top and bottom of the building say where they are like every floor between.
+static func add_endpoint_signs(root: Node, floor_num: int, sides: Array, with_number: bool) -> void:
+	if root.get_node_or_null("FloorSigns") != null:
+		return
+	var signs = FLOOR_SIGNS.new()
+	signs.setup(floor_num, "high" if floor_num >= 21 else "low", sides, with_number)
+	root.add_child(signs)
+	var art = root.get_node_or_null("CorridorArt")
+	if art != null:
+		root.move_child(signs, art.get_index() + 1)
+
+
 func _apply_corridor_art(floor_num: int) -> void:
 	add_corridor_art(self, corridor_art_path(floor_num, WorldState.current_run))
 	# ...and this floor's own dressing + horror on top of it (scripts/corridor_decals.gd), so

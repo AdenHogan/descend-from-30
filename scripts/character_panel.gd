@@ -270,15 +270,22 @@ func _refresh() -> void:
 
 
 ## The Codex tab: a legend for the in-hand box's colour, then every item with its durability and how it wears
-## (all derived from real item data by ItemCodex). Built once — item data doesn't change in a session.
+## (all derived from real item data by ItemCodex). Rebuilt on each refresh — entries unlock as items are found.
 func _build_codex() -> void:
-	if codex_box == null or codex_box.get_child_count() > 0:
+	if codex_box == null:
 		return
+	for c in codex_box.get_children():   # rebuilt on every refresh: what's been found changes
+		codex_box.remove_child(c)
+		c.queue_free()
 	var intro := _ink_rich()
 	intro.fit_content = true
 	intro.scroll_active = false
 	intro.text = "[i]The box by your name shows what you're holding. Its colour is the item's condition — it drifts a little with every use, and once it runs out the item is broken.[/i]"
 	codex_box.add_child(intro)
+	var counts: Array = ItemCodex.found_counts()
+	var tally := _ink_label("Found %d of %d items" % [counts[0], counts[1]], 13, INK_SOFT)
+	tally.name = "CodexTally"
+	codex_box.add_child(tally)
 	var legend := HBoxContainer.new()
 	legend.add_theme_constant_override("separation", 14)
 	for entry in ItemCodex.legend():
@@ -303,6 +310,8 @@ func _build_codex() -> void:
 			icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 			icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 			icon.texture = ItemData.get_texture(str(it["id"]))
+			if not it["found"]:
+				icon.modulate = Color(0.08, 0.06, 0.05, 0.85)   # an unfound item is a silhouette
 			row.add_child(icon)
 			var text := _ink_rich()
 			text.fit_content = true
@@ -311,6 +320,8 @@ func _build_codex() -> void:
 			var body := "[b]%s[/b]  —  [color=#8a5a10]%s[/color]\n%s" % [it["name"], it["durability"], it["wear"]]
 			if str(it["ending"]) != "":
 				body += "\n[i]%s[/i]" % it["ending"]
+			if not it["found"]:
+				body = "[b]???[/b]\n[i]You haven't found this yet.[/i]"
 			text.text = body
 			row.add_child(text)
 			codex_box.add_child(row)

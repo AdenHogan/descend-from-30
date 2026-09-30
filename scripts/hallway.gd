@@ -113,6 +113,7 @@ func _build_world() -> void:
 	# loads fresh or is built as a pan backdrop, so nothing pops in when a pan commits.
 	load("res://scripts/building_floors.gd").add_corridor_art(self,
 		load("res://scripts/building_floors.gd").corridor_art_named("corridor_hallway", WorldState.current_run))
+	load("res://scripts/building_floors.gd").add_endpoint_signs(self, 30, ["left"], true)
 	_spawn_corpses(30)
 	_spawn_world_drops(30)
 	# A character who fell here (floor 30) leaves a recoverable body for the next one.

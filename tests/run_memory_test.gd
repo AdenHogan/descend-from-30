@@ -97,7 +97,7 @@ func _test_recover_memory() -> void:
 
 func _test_names() -> void:
 	print("[canonical character names]")
-	check(WorldState.character_display_name("blond_man") == "The Tenant", "known id maps to its name")
+	check(WorldState.character_display_name("blond_man") == "Joe", "known id maps to its name")
 	check(WorldState.character_display_name("someone_else").length() > 0, "unknown id falls back to a readable name")
 
 

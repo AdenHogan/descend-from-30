@@ -17,6 +17,7 @@ const Sway := preload("res://scripts/sway.gd")
 const DIR := "res://assets/corridor/decals/"
 const LAYOUT_PATH := "res://assets/corridor/corridor_layout.json"
 const DOORS := [201, 329, 455, 581, 714]      # local door centres (APARTMENT_X - 115); apt 5 .. 1
+const LANE_Y := 419.0                          # the walking line (every actor's feet, world Y) — bodies are searched from it
 const FLOOR_Y := 160                           # the wall meets the floor
 const SKIRT_TOP := 154
 const DOOR_TOP := 74                           # door sprites cover y >= ~79 at DOORS ±28
@@ -311,7 +312,7 @@ static func dead_plan(floor_num: int, run: int, avoid: Array = []) -> Array:
 			continue
 		taken.append(Rect2(pos, tex.get_size()))
 		if gate and thr < h:
-			out.append({"name": name, "pos": pos, "flip": flip})
+			out.append({"name": name, "pos": pos, "flip": flip, "idx": i})
 	return out
 
 
@@ -430,6 +431,14 @@ static func add_to(root: Node, floor_num: int, run: int, base_name: String, art_
 		s.set_meta("decal", d["name"])
 		s.add_to_group("corridor_dead")
 		wall.add_child(s)
+		# ...and they can be searched: an invisible interact zone on the walking lane over the body
+		var bz = load("res://scripts/corridor_body.gd").new()
+		bz.floor_num = floor_num
+		bz.body_name = "cdead_%d" % int(d["idx"])
+		bz.half_width = maxf(28.0, s.texture.get_size().x * 0.5)
+		bz.name = "Body_" + bz.body_name
+		bz.position = Vector2(d["pos"].x + s.texture.get_size().x * 0.5, LANE_Y - art_pos.y)
+		wall.add_child(bz)
 		var f := Node2D.new()                                     # flies over them
 		var sz: Vector2 = s.texture.get_size()
 		f.position = d["pos"] + Vector2(sz.x - 24.0 if not s.flip_h else 24.0, sz.y - 14.0)

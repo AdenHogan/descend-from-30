@@ -598,10 +598,10 @@ func add_run_trace(text: String) -> void:
 # Canonical character display names — the ONE source (the profile panel + the chronicle both
 # read these, so a rename lands everywhere). Authored placeholders; owner rewrites freely.
 const CHARACTER_NAMES := {
-	"blond_man": "The Tenant",
-	"dark_woman": "The Nurse",
-	"bald_man": "The Super",
-	"blond_woman": "The Neighbour",
+	"blond_man": "Joe",
+	"dark_woman": "Amina",
+	"bald_man": "Aaron",
+	"blond_woman": "Vivianne",
 }
 
 
@@ -911,6 +911,7 @@ func load_profile() -> void:
 	last_valour = {}
 	_valour_scored_seed = 0
 	carry_items = []
+	codex_seen = {}
 	if cfg.load(profile_path()) == OK:
 		tutorial_completed = bool(cfg.get_value("progress", "tutorial_completed", false))
 		runs_made = int(cfg.get_value("stats", "runs_made", 0))
@@ -930,6 +931,8 @@ func load_profile() -> void:
 		last_valour = Dictionary(cfg.get_value("valour", "last", {}))
 		_valour_scored_seed = int(cfg.get_value("valour", "scored_seed", 0))
 		carry_items = Array(cfg.get_value("valour", "carry_items", []))
+		for id in Array(cfg.get_value("codex", "seen", [])):
+			codex_seen[String(id)] = true   # not filtered here: ItemData may not be ready this early
 		var old_carry: Dictionary = Dictionary(cfg.get_value("valour", "carry_item", {}))   # v1 key
 		if not old_carry.is_empty():
 			carry_items.append(old_carry)
@@ -954,6 +957,7 @@ func save_profile() -> void:
 	if cfg.has_section_key("valour", "carry_item"):
 		cfg.erase_section_key("valour", "carry_item")   # v1 single slot → carry_items
 	cfg.set_value("valour", "carry_items", carry_items)
+	cfg.set_value("codex", "seen", codex_seen.keys())
 	# Mirror the headline save facts so the select screen can read one small
 	# file per slot instead of loading three save games.
 	cfg.set_value("resume", "has_save", FileAccess.file_exists(slot_save_path()))
@@ -1426,7 +1430,32 @@ func on_floor_arrived(floor_num: int) -> void:
 	seed_floor_door_states(floor_num)
 
 
+# ITEM CODEX discovery (owner: a "???" entry until you've found the thing). PROFILE state — it
+# outlives characters and playthroughs, like best_depth. Keyed by item id (strings already).
+var codex_seen: Dictionary = {}
+
+
+func item_discovered(item_id: String) -> bool:
+	return codex_seen.has(item_id)
+
+
+## Record that the player has held / looted / been shown this item. Saves the profile only the
+## first time an id is seen (at most ~40 times ever), so it's cheap to call from any pickup path.
+func note_item_seen(item_id: String) -> void:
+	if item_id == "" or codex_seen.has(item_id) or not ItemData.items.has(item_id):
+		return
+	codex_seen[item_id] = true
+	save_profile()
+
+
 func add_to_inventory(item_id: String, amount: int = 0) -> bool:
+	var ok: bool = _add_to_inventory(item_id, amount)
+	if ok:
+		note_item_seen(item_id)
+	return ok
+
+
+func _add_to_inventory(item_id: String, amount: int = 0) -> bool:
 	# Bank Notes stack: all money shares ONE slot ("Bank Notes xN"). An existing
 	# stack absorbs pickups without consuming a slot. `amount` <= 0 rolls a small
 	# scavenge bundle (5-15); sources with bigger bundles (Big Zombie, dense-tier

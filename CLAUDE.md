@@ -20,11 +20,11 @@ originals — the markdown here is canonical for development):
 - `docs/SCRAP_UPGRADES.md` — **BUILT v1**: Scrap (a 2nd currency, a counter like the
   wallet) to upgrade weapons at a maintenance-room workbench; charred apartments are the
   main scrap faucet → fire becomes risk/reward. See its "What's built" section.
-- `docs/MAINTENANCE_ELEVATOR.md` — **AGREED, pre-implementation**: the
+- `docs/MAINTENANCE_ELEVATOR.md` — **BUILT v1** (steps 1–3, see the status entry): the
   maintenance room (`maintenance.tscn`, safe room, every 3 floors, hosts the
   upgrade station + fuse box), fuses (stack 3) powering a single-use **elevator**
   that jumps 5 floors — recommended via an `elevator_interior.tscn` cut, not a
-  5-floor pan. Not built yet.
+  5-floor pan.
 - `docs/BACKPACK.md` — **BUILT v1**: the pack button + kneel/open/stand + the live (real-time) inventory
   ring; any hit slams it shut. Built on the quick wheel. Placeholder art (no kneel animation yet). **Round 27:
   the backpack is an in-world ITEM** — runs start with pockets only until it's picked up (see the status entry).
@@ -1219,7 +1219,7 @@ means no rendering — UI layout and art still need an in-editor look.
   cached per master_seed (the getters read the character every physics frame). The journal Story
   tab shows each character's tagline + strengths/weakness (`character_panel.traits_bbcode`).
   Covered by `character_stats_test` (+ `listen_noise_test` made trait-aware — seed 424242 casts
-  the Super). Names are still placeholders; balance numbers need a playtest.
+  the Super). Names are the owner's (round 28: Joe = blond man / the Tenant, Vivianne = blond woman / the Neighbour, Amina = dark woman / the Nurse, Aaron = bald man / the Super — `WorldState.CHARACTER_NAMES`; role words survive only in code comments + docs); balance numbers need a playtest.
 - RUN BOOKENDS + Floor-30 tutorial clean-up (owner: "a synergy for all three runs in how they
   begin/end"; "the tutorial, the wall text… kind of janky"). **Every run ENDS on an end card**
   (`Transition.end_card`: slow fade → YOU DIED «<name> fell on Floor N / in apartment … / in the
@@ -2009,4 +2009,17 @@ means no rendering — UI layout and art still need an in-editor look.
   pack + any future icon share the pixel rucksack in `scripts/pack_art.gd` (the old code-drawn button read as a
   Polaroid camera). Pack-less run = the planned "ultra difficult" achievement (not built; balance to follow).
   Tests that need the rule must set `WorldState.packless_rule` themselves and reset it.
+- LEFTOVER CLEAN-UP round 28b (owner: "focus on the smaller leftover list"): **(1) Names** — the four characters are
+  Joe / Vivianne / Amina / Aaron (`WorldState.CHARACTER_NAMES`, see the CHARACTER STATS entry). **(2) Item Codex DISCOVERY** —
+  an item's codex entry reads "???" (silhouette icon, nothing spelled out) until it's been held, looted or shown in the loot
+  panel: `WorldState.codex_seen` (PROFILE state, `[codex] seen` — outlives characters and playthroughs), `note_item_seen`
+  (called by `add_to_inventory`, now a thin wrapper over `_add_to_inventory`, and by `loot_ui._reveal_item`),
+  `item_discovered`; `ItemCodex.sections()` rows carry `found`, `found_counts()` feeds the "Found N of M" line; the tab rebuilds on
+  every refresh. **(3) Corridor bodies are SEARCHABLE** — `scripts/corridor_body.gd` (an Area2D over each dead decal on the
+  walking lane, `corridor_decals.add_to`; `dead_plan` entries now carry `idx`, names `cdead_<idx>`), the same seeded pockets + line as
+  the flats' dead (`dead_body_loot`, searched state = anchor memory under `corridor_f<floor>`), once only, and an item that doesn't
+  fit STAYS on the body. **(4) Stair/lift signs on the endpoints** — `building_floors.add_endpoint_signs` adds `FloorSigns` to the
+  hallway (30: left stairwell + its number) and the lobby (right stairwell, no number, LOBBY lift panel); `floor_signs.setup` now takes
+  `only_sides` / `with_number`. Locked by `character_panel_test`, `building_floors_test` (`_test_corridor_body`, `_test_floor_signs`).
+  Not done (per-floor decals on hallway/lobby — the tutorial's blood hints live there; the selected-hotbar lift — the hotbar is opt-in).
 - Not started: quests.

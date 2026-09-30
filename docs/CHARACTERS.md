@@ -12,12 +12,12 @@ upgrades stack on top and nothing is ever written directly into a stat.
 
 ## Roster
 
-| id | Name (placeholder) | Identity | Strengths | Weakness |
+| id | Name (owner-set: Joe, Vivianne, Aaron, Amina) | Identity | Strengths | Weakness |
 |---|---|---|---|---|
-| `blond_man` | The Tenant | Steady all-rounder | Push −30% stamina (**3 → 5 pushes** per bar); melee −15% stamina | none — the baseline |
-| `blond_woman` | The Neighbour | Endurance + quiet | Sprint drain −20%; stamina regen +15%; 15% quieter | Sprints 12% slower |
-| `bald_man` | The Super | Knows the building by sound | Hears the **EXACT** enemy count at doors + down the stairwell; listens 25% faster; melee −10% stamina | Unlucky: ~20% more enemies per floor |
-| `dark_woman` | The Nurse | Lucky hands, shaky aim | Scavenge spots hold something +8% more often; rare finds likelier, junk rarer | −15% gun hit chance |
+| `blond_man` | Joe (the Tenant) | Steady all-rounder | Push −30% stamina (**3 → 5 pushes** per bar); melee −15% stamina | none — the baseline |
+| `blond_woman` | Vivianne (the Neighbour) | Endurance + quiet | Sprint drain −20%; stamina regen +15%; 15% quieter | Sprints 12% slower |
+| `bald_man` | Aaron (the Super) | Knows the building by sound | Hears the **EXACT** enemy count at doors + down the stairwell; listens 25% faster; melee −10% stamina | Unlucky: ~20% more enemies per floor |
+| `dark_woman` | Amina (the Nurse) | Lucky hands, shaky aim | Scavenge spots hold something +8% more often; rare finds likelier, junk rarer | −15% gun hit chance |
 
 ## The owner's brief → what was built
 

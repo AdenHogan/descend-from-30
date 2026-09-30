@@ -42,6 +42,7 @@ func _ready() -> void:
 	await _test_corridor_art()
 	await _test_fire_scars()
 	await _test_corridor_decals()
+	await _test_corridor_body()
 	await _test_floor_signs()
 	await _test_door_swing()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
@@ -1317,6 +1318,80 @@ func _test_corridor_decals() -> void:
 	WorldState.current_run = 1
 
 
+func _test_corridor_body() -> void:
+	# A corridor body is SEARCHABLE (scripts/corridor_body.gd): one interact zone per dead decal, once only,
+	# and an item that doesn't fit stays on the body.
+	print("[corridor bodies can be searched]")
+	var CD = load("res://scripts/corridor_decals.gd")
+	WorldState.master_seed = 424242
+	WorldState.current_run = 3
+	var built := false
+	for f in range(1, 30):
+		if CD.dead_plan(f, 3).is_empty():
+			continue
+		WorldState.current_floor = f
+		var bf = load("res://scenes/building_floors.tscn").instantiate()
+		bf.setup_floor = f
+		add_child(bf)
+		for i in range(2): await get_tree().process_frame
+		var sprites := 0
+		for d in get_tree().get_nodes_in_group("corridor_dead"):
+			if bf.is_ancestor_of(d):
+				sprites += 1
+		var zones: Array = []
+		for z in get_tree().get_nodes_in_group("corridor_body"):
+			if bf.is_ancestor_of(z):
+				zones.append(z)
+		if sprites > 0:
+			built = true
+			check(zones.size() == sprites, "floor %d: one search zone per body (%d zones, %d bodies)" % [f, zones.size(), sprites])
+			if not zones.is_empty():
+				var z0 = zones[0]
+				check(absf(z0.global_position.y - 419.0) < 0.5, "the zone sits on the walking line (%.1f)" % z0.global_position.y)
+				check(z0.floor_num == f and z0.body_name.begins_with("cdead_"), "named per floor + plan index (%s)" % z0.body_name)
+		bf.free()
+		await get_tree().process_frame
+		if built:
+			break
+	check(built, "some corridor shows a body on the third night")
+	# searching, on bare zones: find one body with pockets and one without
+	var Body = load("res://scripts/corridor_body.gd")
+	var with_item = null
+	var empty = null
+	for i in range(60):
+		var z = Body.new()
+		z.floor_num = 7
+		z.body_name = "cdead_%d" % i
+		var loot: Dictionary = WorldState.dead_body_loot(z.apartment_key(), z.body_name)
+		if str(loot.get("item", "")) != "" and with_item == null:
+			with_item = z
+		elif str(loot.get("item", "")) == "" and empty == null:
+			empty = z
+		else:
+			z.free()
+	check(with_item != null and empty != null, "seeded pockets: some hold something, some nothing")
+	if with_item != null and empty != null:
+		WorldState.inventory.clear()
+		check(empty.search() == "done" and empty.is_searched(), "an empty body is searched")
+		check(empty.search() == "already", "a body is only searched once")
+		var item_id: String = str(WorldState.dead_body_loot(with_item.apartment_key(), with_item.body_name)["item"])
+		# a pack with no room: the item stays on the body
+		var cap: int = WorldState.get_inventory_slots()
+		WorldState.inventory.clear()
+		for i in range(cap):
+			var inst = ItemInstance.new()
+			inst.setup("001" if item_id != "001" else "002")
+			WorldState.inventory.append(inst)
+		check(with_item.search() == "full" and not with_item.is_searched(), "full pockets: nothing is taken and the body isn't spent")
+		WorldState.inventory.clear()
+		check(with_item.search() == "done" and with_item.is_searched() and WorldState.inventory.size() >= 1, "with room, the item is taken and the body is spent")
+		check(WorldState.item_discovered(item_id), "what you find on a body is found for the codex")
+		with_item.free()
+		empty.free()
+	WorldState.inventory.clear()
+	WorldState.current_run = 1
+
+
 func _test_door_swing() -> void:
 	# The doors (tools/art/doors.py): a strip per corridor look, frame 0 closed .. last open. They
 	# swing open as you go in, shut behind you when you come out; a breached door hangs ajar.
@@ -1445,6 +1520,20 @@ func _test_floor_signs() -> void:
 	WorldState.tutorial_completed = true
 	WorldState.is_first_run = false
 	var FS = load("res://scripts/floor_signs.gd")
+	# the endpoint floors carry signs too (hallway 30: left stairwell + its number; lobby: right stairwell, no number)
+	for ep in [["res://scenes/hallway.tscn", 30, "left", true], ["res://scenes/lobby.tscn", 0, "right", false]]:
+		WorldState.current_floor = int(ep[1])
+		var scene = load(ep[0]).instantiate()
+		add_child(scene)
+		for i in range(2): await get_tree().process_frame
+		var sg = scene.get_node_or_null("FloorSigns")
+		check(sg != null and sg.sides == [ep[2]] and sg.number_plate == ep[3], "floor %d has its FloorSigns (%s, number %s)" % [ep[1], ep[2], str(ep[3])])
+		var art = scene.get_node_or_null("CorridorArt")
+		check(sg != null and art != null and sg.get_index() == art.get_index() + 1, "floor %d: the signs sit right over the art" % ep[1])
+		var tt: Dictionary = sg.stair_targets() if sg != null else {}
+		check(tt.has(ep[2]) and (int(tt[ep[2]][1]) == 29 or int(tt[ep[2]][1]) == 1), "floor %d's %s stairs name where they lead (%s)" % [ep[1], ep[2], str(tt.get(ep[2]))])
+		scene.free()
+		await get_tree().process_frame
 	for f in [24, 1, 29, 15]:
 		var fs = FS.new()
 		fs.floor_num = f

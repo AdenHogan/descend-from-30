@@ -150,6 +150,7 @@ func _reveal_item() -> void:
 		return
 	has_item = true
 	icon.texture = ItemData.get_texture(current_item_id)
+	WorldState.note_item_seen(current_item_id)   # seeing it in the panel counts as found (codex)
 	if current_key_target != "":
 		name_label.text = WorldState.key_display(current_key_target)
 	elif _is_cabinet_weapon():
