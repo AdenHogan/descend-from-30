@@ -87,9 +87,25 @@ removed. The HUD button and the floor pack share the pixel `PackArt` drawing (`p
 - A sound for the flap / the slam.
 
 ## The in-hand box (owner round 27)
-The bottom-left "HAMMER 10 / 10 uses" text is gone. `hud_equip_box.gd` is a 76px BOX to the right of the name / mode /
-stamina block: the equipped item's ICON inside an OUTLINE that is its durability — drained clockwise from the top as it
-wears (green > 50% → amber → red, pulsing at the end), empty + red pulse when BROKEN; things that don't wear (a bandage,
-a key) keep a calm full outline; empty-handed = the bare box. **The only number it ever shows is a gun's rounds**
-("10/10" badge). Three shapes (`HUD.set_equip_box_style`: `square` / `rounded` default / `circle`); `scene_capture`
-steps `eqstyle:` and `wear:` render them. Locked by `hud_wheel_test`.
+The bottom-left "HAMMER 10 / 10 uses" text is gone, and so is the first attempt (an outline ring — "I definitely don't
+like the look of this"). `hud_equip_box.gd` is a 76px glossy domed BUTTON / marble to the right of the name / mode /
+stamina block: the equipped item's ICON on a body whose COLOUR is the item's condition — ONE calm colour that drifts
+gradually with every use: green (fresh) → yellow → orange → dark red → a dull cracked grey when BROKEN
+(`hud_equip_box.tint_for`, the single mapping; continuous, eased in real time). Things that don't wear (a bandage, a key)
+sit in neutral slate; empty-handed = dark glass. The depth is one canvas_item shader on the `Body` child (SDF shape + a
+fake dome normal + a specular spot + rim + drop shadow); a circle is a full dome, the boxes are flat-topped with a bevel.
+**The only number it ever shows is a gun's rounds** ("10/10" badge). Three shapes (`HUD.set_equip_box_style`: `square` /
+`rounded` default / `circle`); `scene_capture` steps `eqstyle:` and `wear:` render them. Locked by `hud_wheel_test`.
+
+## The Codex (journal tab, owner round 27)
+"An item codex that gives the details of durability per item so players can actually know by reading." The journal
+(click the portrait) has a fourth tab, **Codex**: a legend of the box's colours, then EVERY item in sections (weapons /
+tools / medical & supplies / keys / ammunition & cash / junk) with its icon, its durability ("10 uses", "Single use",
+"8 wear marks (about 48 rounds)"), HOW it wears and what becomes of it when it runs out. `item_codex.gd` derives every
+line from the real item data + the real rules (a landed swing spends 1 use; forcing spends 1; a barricade spends
+`BARRICADE_COST` = door.gd's; a gun loses a mark per `GUN_SHOTS_PER_MARK` rounds; medical items spend a use only when
+the heal happens; weapons/tools that run out stay BROKEN and a Toolbox rebuilds them, consumables are used up), so it
+can't drift; `character_panel_test` checks every item is listed once with numbers from `Items.json`. The journal's
+notebook tabs + pages were restyled as paper at the same time. Not built: discovery (every item is listed from the
+start — a "???" until first found is easy to add), per-item lore, upgrades/perk effects on durability (the text is the
+BASE value).

@@ -32,6 +32,7 @@ extends Node
 #   perm:<id>        keep a perk permanently (the profile's collection)
 #   finish           score the session (WorldState.finish_session) → Valour + offer
 #   hud:<method>     call a no-arg HUD method (e.g. open_boon_offer)
+#   journal:<0-3|x>  open the journal on a tab (3 = Codex) / close it
 #   eqstyle:<square|rounded|circle>  shape of the in-hand box;  wear:<0..1>  wear the selected item to that fraction
 #   kill             kill the player now (player._die → the real Game.game_over flow)
 #   hp:<n>           set health
@@ -163,6 +164,14 @@ func _do(step: String) -> void:
 			if HUD.has_method(p[1]):
 				HUD.call(p[1])
 			await _frames(1)
+		"journal":
+			# journal:<tab> opens the diary on a tab (0 Story, 1 Quests, 2 Map, 3 Codex); journal:x closes it
+			if p[1] == "x":
+				HUD.character_panel.close()
+			else:
+				HUD.character_panel.open()
+				HUD.character_panel.tabs.current_tab = int(p[1])
+			await _frames(3)
 		"eqstyle":
 			HUD.set_equip_box_style(p[1])       # square | rounded | circle
 			await _frames(1)

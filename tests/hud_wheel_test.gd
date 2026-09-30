@@ -231,27 +231,37 @@ func _test_cluster() -> void:
 	check(not eq.has_item and eq.ammo_text == "" and eq.fraction < 0.0, "nothing selected = the bare box")
 	HUD.select_slot(0)
 	check(eq.has_item and eq.icon != null, "the selected item's ICON is in the box")
-	check(eq.fraction > 0.99 and not eq.broken and eq.ammo_text == "", "a fresh hammer: a full outline and NO numbers")
+	check(eq.fraction > 0.99 and not eq.broken and eq.ammo_text == "", "a fresh hammer: full condition and NO numbers")
+	var fresh: Color = eq.current_tint()
 	WorldState.inventory[0].current_durability = int(WorldState.inventory[0].get_max_durability() / 2)
 	HUD._update_equipped_chip()
-	check(absf(eq.fraction - 0.5) < 0.15, "half worn: the outline is about half (%.2f)" % eq.fraction)
+	eq._drawn_frac = eq.fraction            # (the colour eases in real time — jump to the end for the check)
+	var half: Color = eq.current_tint()
+	check(absf(eq.fraction - 0.5) < 0.15, "half worn: fraction about half (%.2f)" % eq.fraction)
 	check(eq.ammo_text == "", "…and still no numbers")
+	check(fresh.g > fresh.r and half.r > half.b and half != fresh, "the body colour moved from green toward yellow/orange as it wore (%s → %s)" % [str(fresh), str(half)])
+	WorldState.inventory[0].current_durability = 1
+	HUD._update_equipped_chip()
+	eq._drawn_frac = eq.fraction
+	var low: Color = eq.current_tint()
+	check(low.r > low.g * 2.0 and low.r < half.r, "nearly gone: a dark red (%s)" % str(low))
 	WorldState.inventory[0].current_durability = 0
 	WorldState.inventory[0].is_depleted = true
 	HUD._update_equipped_chip()
-	check(eq.broken and eq.fraction == 0.0, "worn out = broken: the outline is empty")
-	# the outline is a real closed loop, and partial() takes a true fraction of it
+	check(eq.broken and eq.fraction == 0.0 and eq.current_tint() == eq.BROKEN, "worn out = broken: the dull cracked look")
+	# the colour is one continuous mapping: monotone toward red as condition falls, never jumping
+	var prev: Color = eq.tint_for(1.0)
+	var worst_jump := 0.0
+	for i in range(99, -1, -1):
+		var c: Color = eq.tint_for(float(i) / 100.0)
+		worst_jump = maxf(worst_jump, absf(c.r - prev.r) + absf(c.g - prev.g) + absf(c.b - prev.b))
+		prev = c
+	check(worst_jump < 0.09, "the gradient is smooth (largest 1%% step %.3f)" % worst_jump)
+	check(eq.tint_for(-1.0) == eq.NEUTRAL and eq.tint_for(0.5, false, false) == eq.GLASS, "no-wear = slate, nothing = dark glass")
+	# the three shapes drive the shader's shape uniform
 	for st in eq.STYLES:
 		eq.set_style(st)
-		var loop: PackedVector2Array = eq.outline_points()
-		var full := 0.0
-		for i in range(loop.size() - 1):
-			full += loop[i].distance_to(loop[i + 1])
-		var part: PackedVector2Array = eq.partial(loop, 0.5)
-		var half := 0.0
-		for i in range(part.size() - 1):
-			half += part[i].distance_to(part[i + 1])
-		check(loop.size() > 4 and loop[0].distance_to(loop[loop.size() - 1]) < 0.01 and absf(half / full - 0.5) < 0.02, "%s outline: closed, half is half (%.2f)" % [st, half / full])
+		check(int(eq._mat.get_shader_parameter("shape")) == eq.STYLES.find(st), "%s shape set on the shader" % st)
 	eq.set_style("rounded")
 	HUD.equip_box.clear_item()
 	# a GUN carries its rounds — the only number the box ever shows

@@ -1860,8 +1860,9 @@ means no rendering — UI layout and art still need an in-editor look.
   ring "doesn't look as interesting… restrictive" — so `hud_ring.gd` / `hud_disc.gd` are DELETED; the bust art itself changes with
   health, and the condition word beside it is stage-coloured), with a NAME ROW to its right — the name, then the MODE in plain words (`SCAVENGE` green / `COMBAT` red; click it or press the mode key to
   switch; HOVER it for a tooltip that explains both modes and marks the one you're in — `HUD.mode_tip_content()`, every claim a real rule)
-  — the thin stamina bar spans the row as its UNDERLINE as well as the gauge (`_layout_identity_row` sizes it to name+mode), and, to the RIGHT of that block, the IN-HAND BOX (`hud_equip_box.gd`, owner round 27: the equipped item's icon in an outline that IS its
-  durability, draining until broken; a gun's rounds are the only number; `square`/`rounded`/`circle` shapes) (NO condition word — owner round 26e: the bust shows health; and NO floor / "/ 30" /
+  — the thin stamina bar spans the row as its UNDERLINE as well as the gauge (`_layout_identity_row` sizes it to name+mode), and, to the RIGHT of that block, the IN-HAND BOX (`hud_equip_box.gd`, owner round 27: the equipped item's icon on a glossy shaded marble/button whose COLOUR is its
+  condition — green → yellow → orange → dark red → cracked grey when broken, one continuous `tint_for`; a gun's rounds are the only
+  number; `square`/`rounded`/`circle` shapes; the journal's **Codex** tab (`item_codex.gd`) spells out every item's durability + wear rules) (NO condition word — owner round 26e: the bust shows health; and NO floor / "/ 30" /
   time-of-day / run-pips text either, "extra bloat": the FloorLabel node stays hidden because many callers still `update_floor_label()`,
   `hud_run_pips.gd` is deleted; the floor is announced on the stairs and by the wall sign) (it FADES to 30% while the player stands under it — `_fade_identity_over_player` — because
   the left staircase is right there), the **backpack button bottom-right** with the wheel hint beside it, and **notes + scrap TOP-RIGHT** (a small icon + the number,

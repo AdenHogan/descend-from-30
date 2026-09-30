@@ -47,6 +47,7 @@ var traits_text: RichTextLabel = null
 var portrait_rect: TextureRect = null
 var npc_text: RichTextLabel = null
 var map_view: Control = null
+var codex_box: VBoxContainer = null       # the Codex tab's rows (built once, on first open)
 var tabs: TabContainer = null
 
 
@@ -144,6 +145,26 @@ func _build() -> void:
 	tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	tabs.add_theme_font_override("font", FONT)
 	tabs.add_theme_font_size_override("font_size", 15)
+	# the notebook's pages are paper too (the default tab panel was a grey slab the ink couldn't be read on)
+	var page := StyleBoxFlat.new()
+	page.bg_color = PAPER.lightened(0.06)
+	page.border_color = Color(0.30, 0.22, 0.13, 0.55)
+	page.set_border_width_all(1)
+	page.set_content_margin_all(8)
+	tabs.add_theme_stylebox_override("panel", page)
+	for pair in [["tab_selected", PAPER.lightened(0.06)], ["tab_unselected", PAPER.darkened(0.14)], ["tab_hovered", PAPER.darkened(0.04)]]:
+		var tb := StyleBoxFlat.new()
+		tb.bg_color = pair[1]
+		tb.border_color = Color(0.30, 0.22, 0.13, 0.55)
+		tb.set_border_width_all(1)
+		tb.content_margin_left = 10
+		tb.content_margin_right = 10
+		tb.content_margin_top = 4
+		tb.content_margin_bottom = 4
+		tabs.add_theme_stylebox_override(pair[0], tb)
+	tabs.add_theme_color_override("font_selected_color", INK)
+	tabs.add_theme_color_override("font_unselected_color", INK_SOFT)
+	tabs.add_theme_color_override("font_hovered_color", INK)
 	vbox.add_child(tabs)
 
 	# --- Tab 1: Story (portrait + lore + the cross-run chronicle) ---
@@ -184,6 +205,16 @@ func _build() -> void:
 	map_view = _MapView.new()
 	map_view.name = "Map"
 	tabs.add_child(map_view)
+
+	# --- Tab 4: Codex (every item's durability, in words) ---
+	var codex_scroll := ScrollContainer.new()
+	codex_scroll.name = "Codex"
+	codex_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	codex_box = VBoxContainer.new()
+	codex_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	codex_box.add_theme_constant_override("separation", 6)
+	codex_scroll.add_child(codex_box)
+	tabs.add_child(codex_scroll)
 
 
 func open() -> void:
@@ -235,6 +266,54 @@ func _refresh() -> void:
 	npc_text.text = q
 	if map_view != null:
 		map_view.queue_redraw()
+	_build_codex()
+
+
+## The Codex tab: a legend for the in-hand box's colour, then every item with its durability and how it wears
+## (all derived from real item data by ItemCodex). Built once — item data doesn't change in a session.
+func _build_codex() -> void:
+	if codex_box == null or codex_box.get_child_count() > 0:
+		return
+	var intro := _ink_rich()
+	intro.fit_content = true
+	intro.scroll_active = false
+	intro.text = "[i]The box by your name shows what you're holding. Its colour is the item's condition — it drifts a little with every use, and once it runs out the item is broken.[/i]"
+	codex_box.add_child(intro)
+	var legend := HBoxContainer.new()
+	legend.add_theme_constant_override("separation", 14)
+	for entry in ItemCodex.legend():
+		var chip := HBoxContainer.new()
+		chip.add_theme_constant_override("separation", 5)
+		var sw := ColorRect.new()
+		sw.custom_minimum_size = Vector2(16, 16)
+		sw.color = entry[1]
+		chip.add_child(sw)
+		chip.add_child(_ink_label(str(entry[0]), 13, INK_SOFT))
+		legend.add_child(chip)
+	codex_box.add_child(legend)
+	for sec in ItemCodex.sections():
+		codex_box.add_child(_ink_label("— %s —" % sec["title"], 15, INK_SOFT))
+		for it in sec["items"]:
+			var row := HBoxContainer.new()
+			row.name = "Item_" + str(it["id"])
+			row.add_theme_constant_override("separation", 10)
+			var icon := TextureRect.new()
+			icon.custom_minimum_size = Vector2(44, 44)
+			icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			icon.texture = ItemData.get_texture(str(it["id"]))
+			row.add_child(icon)
+			var text := _ink_rich()
+			text.fit_content = true
+			text.scroll_active = false
+			text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			var body := "[b]%s[/b]  —  [color=#8a5a10]%s[/color]\n%s" % [it["name"], it["durability"], it["wear"]]
+			if str(it["ending"]) != "":
+				body += "\n[i]%s[/i]" % it["ending"]
+			text.text = body
+			row.add_child(text)
+			codex_box.add_child(row)
 
 
 static func traits_bbcode(cid: String) -> String:
