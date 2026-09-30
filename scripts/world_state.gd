@@ -258,6 +258,7 @@ var offer_rng_seed: int = 0
 # Tools only (tools/scene_capture --seed): a new game uses this seed instead of a random one, so a
 # capture can be pointed at a known flat. 0 = random (the game never sets it).
 var dev_seed: int = 0
+var dev_overgrowth: float = -1.0            # DEV: >= 0 forces every floor's overgrowth level (F1 menu); -1 = the real curve (never saved)
 
 
 func finish_session() -> Dictionary:

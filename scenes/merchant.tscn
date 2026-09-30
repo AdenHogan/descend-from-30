@@ -16,7 +16,7 @@ shape = SubResource("CircleShape2D_mrcht")
 
 [node name="Interior" type="Polygon2D" parent="." unique_id=317159336]
 color = Color(0.09, 0.09, 0.11, 1)
-polygon = PackedVector2Array(-29, -43, 29, -43, 29, 44, -29, 44)
+polygon = PackedVector2Array(-29, -40, 29, -40, 29, 42, -29, 42)
 
 [node name="MerchantSprite" type="Sprite2D" parent="." unique_id=1479510035]
 position = Vector2(0, 1)
@@ -47,14 +47,14 @@ polygon = PackedVector2Array(3, 9, 12, 9, 12, 14, 3, 14)
 
 [node name="DoorLeft" type="Sprite2D" parent="." unique_id=725544573]
 position = Vector2(-15.75, 0)
-scale = Vector2(0.95454395, 1.011364)
+scale = Vector2(0.95454395, 0.95454395)
 texture = ExtResource("2_elev")
 region_enabled = true
 region_rect = Rect2(0, 0, 33, 88)
 
 [node name="DoorRight" type="Sprite2D" parent="." unique_id=755181295]
 position = Vector2(15.75, 0)
-scale = Vector2(0.95454395, 1.011364)
+scale = Vector2(0.95454395, 0.95454395)
 texture = ExtResource("2_elev")
 region_enabled = true
 region_rect = Rect2(33, 0, 33, 88)

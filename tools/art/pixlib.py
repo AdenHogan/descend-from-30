@@ -1002,6 +1002,8 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
                 sys.exit('%s: in the run-%d look, front furniture stands where the player would step up '
                          'to a back-plane spot (spot x, blocked column): %s' % (name, lv, bp))
         per_run(1)
+    import growth_map                             # where vegetation may grow here (tools/art/growth_map.py)
+    growth_map.write(name, [full.img] + [v[1] for v in per_level.values()], bare_floor.img, ROOT)
     runs = run_looks(name, ROOT, main.img, full.img, bare.img, bare_floor.img, floor_fn, seed, strip_fn is not None,
                      per_level=per_level)
     sheet = Image.new('RGBA', (W * 2, H * 2 * 3), (0, 0, 0, 255))

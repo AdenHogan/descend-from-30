@@ -1,0 +1,371 @@
+{
+ "note": "written by tools/art/growth.py \u2014 sprite -> kind / pin / size",
+ "sprites": {
+  "creeper_1": {
+   "h": 20,
+   "kind": "creeper",
+   "pin": "bottom",
+   "w": 30
+  },
+  "creeper_2": {
+   "h": 56,
+   "kind": "creeper",
+   "pin": "bottom",
+   "w": 36
+  },
+  "creeper_3": {
+   "h": 66,
+   "kind": "creeper",
+   "pin": "bottom",
+   "w": 44
+  },
+  "creeper_4": {
+   "h": 28,
+   "kind": "creeper",
+   "pin": "bottom",
+   "w": 25
+  },
+  "creeper_5": {
+   "h": 64,
+   "kind": "creeper",
+   "pin": "bottom",
+   "w": 52
+  },
+  "creeper_6": {
+   "h": 60,
+   "kind": "creeper",
+   "pin": "bottom",
+   "w": 40
+  },
+  "creeper_dry_1": {
+   "h": 47,
+   "kind": "creeper",
+   "pin": "bottom",
+   "w": 36
+  },
+  "fern_1": {
+   "h": 14,
+   "kind": "fern",
+   "pin": "bottom",
+   "w": 31
+  },
+  "fern_2": {
+   "h": 20,
+   "kind": "fern",
+   "pin": "bottom",
+   "w": 42
+  },
+  "fern_3": {
+   "h": 24,
+   "kind": "fern",
+   "pin": "bottom",
+   "w": 52
+  },
+  "fern_4": {
+   "h": 27,
+   "kind": "fern",
+   "pin": "bottom",
+   "w": 69
+  },
+  "flower_1": {
+   "h": 34,
+   "kind": "flower",
+   "pin": "bottom",
+   "w": 23
+  },
+  "flower_2": {
+   "h": 34,
+   "kind": "flower",
+   "pin": "bottom",
+   "w": 25
+  },
+  "flower_3": {
+   "h": 35,
+   "kind": "flower",
+   "pin": "bottom",
+   "w": 18
+  },
+  "flower_4": {
+   "h": 35,
+   "kind": "flower",
+   "pin": "bottom",
+   "w": 24
+  },
+  "fungus_1": {
+   "h": 16,
+   "kind": "fungus",
+   "pin": "none",
+   "w": 21
+  },
+  "fungus_2": {
+   "h": 21,
+   "kind": "fungus",
+   "pin": "none",
+   "w": 23
+  },
+  "fungus_3": {
+   "h": 11,
+   "kind": "fungus",
+   "pin": "none",
+   "w": 29
+  },
+  "fungus_4": {
+   "h": 11,
+   "kind": "fungus",
+   "pin": "none",
+   "w": 28
+  },
+  "hang_1": {
+   "h": 38,
+   "kind": "hang",
+   "pin": "top",
+   "w": 15
+  },
+  "hang_2": {
+   "h": 48,
+   "kind": "hang",
+   "pin": "top",
+   "w": 19
+  },
+  "hang_3": {
+   "h": 29,
+   "kind": "hang",
+   "pin": "top",
+   "w": 21
+  },
+  "hang_4": {
+   "h": 38,
+   "kind": "hang",
+   "pin": "top",
+   "w": 24
+  },
+  "hang_5": {
+   "h": 44,
+   "kind": "hang",
+   "pin": "top",
+   "w": 45
+  },
+  "hang_6": {
+   "h": 50,
+   "kind": "hang",
+   "pin": "top",
+   "w": 44
+  },
+  "hang_7": {
+   "h": 51,
+   "kind": "hang",
+   "pin": "top",
+   "w": 46
+  },
+  "hang_8": {
+   "h": 37,
+   "kind": "hang",
+   "pin": "top",
+   "w": 21
+  },
+  "moss_1": {
+   "h": 9,
+   "kind": "moss",
+   "pin": "none",
+   "w": 29
+  },
+  "moss_2": {
+   "h": 14,
+   "kind": "moss",
+   "pin": "none",
+   "w": 43
+  },
+  "moss_3": {
+   "h": 10,
+   "kind": "moss",
+   "pin": "none",
+   "w": 26
+  },
+  "moss_4": {
+   "h": 12,
+   "kind": "moss",
+   "pin": "none",
+   "w": 30
+  },
+  "pot_dead_8": {
+   "h": 26,
+   "kind": "potted",
+   "pin": "bottom",
+   "w": 16
+  },
+  "pot_dead_9": {
+   "h": 25,
+   "kind": "potted",
+   "pin": "bottom",
+   "w": 24
+  },
+  "pot_fern_1": {
+   "h": 24,
+   "kind": "potted",
+   "pin": "bottom",
+   "w": 33
+  },
+  "pot_fern_2": {
+   "h": 26,
+   "kind": "potted",
+   "pin": "bottom",
+   "w": 35
+  },
+  "pot_flowers_3": {
+   "h": 33,
+   "kind": "potted",
+   "pin": "bottom",
+   "w": 29
+  },
+  "pot_flowers_4": {
+   "h": 33,
+   "kind": "potted",
+   "pin": "bottom",
+   "w": 25
+  },
+  "pot_flowers_5": {
+   "h": 33,
+   "kind": "potted",
+   "pin": "bottom",
+   "w": 27
+  },
+  "pot_tall_6": {
+   "h": 53,
+   "kind": "potted",
+   "pin": "bottom",
+   "w": 20
+  },
+  "pot_tall_7": {
+   "h": 52,
+   "kind": "potted",
+   "pin": "bottom",
+   "w": 20
+  },
+  "roots_1": {
+   "h": 15,
+   "kind": "roots",
+   "pin": "none",
+   "w": 46
+  },
+  "roots_2": {
+   "h": 14,
+   "kind": "roots",
+   "pin": "none",
+   "w": 62
+  },
+  "roots_3": {
+   "h": 16,
+   "kind": "roots",
+   "pin": "none",
+   "w": 78
+  },
+  "shrub_1": {
+   "h": 29,
+   "kind": "shrub",
+   "pin": "bottom",
+   "w": 34
+  },
+  "shrub_2": {
+   "h": 35,
+   "kind": "shrub",
+   "pin": "bottom",
+   "w": 43
+  },
+  "shrub_3": {
+   "h": 47,
+   "kind": "shrub",
+   "pin": "bottom",
+   "w": 56
+  },
+  "shrub_4": {
+   "h": 37,
+   "kind": "shrub",
+   "pin": "bottom",
+   "w": 41
+  },
+  "shrub_5": {
+   "h": 54,
+   "kind": "shrub",
+   "pin": "bottom",
+   "w": 62
+  },
+  "shrub_6": {
+   "h": 44,
+   "kind": "shrub",
+   "pin": "bottom",
+   "w": 49
+  },
+  "shrub_dry_1": {
+   "h": 38,
+   "kind": "shrub",
+   "pin": "bottom",
+   "w": 40
+  },
+  "shrub_small_1": {
+   "h": 19,
+   "kind": "shrub",
+   "pin": "bottom",
+   "w": 20
+  },
+  "shrub_small_2": {
+   "h": 24,
+   "kind": "shrub",
+   "pin": "bottom",
+   "w": 28
+  },
+  "shrub_small_3": {
+   "h": 24,
+   "kind": "shrub",
+   "pin": "bottom",
+   "w": 29
+  },
+  "shrub_small_4": {
+   "h": 21,
+   "kind": "shrub",
+   "pin": "bottom",
+   "w": 22
+  },
+  "tuft_1": {
+   "h": 10,
+   "kind": "tuft",
+   "pin": "bottom",
+   "w": 18
+  },
+  "tuft_2": {
+   "h": 12,
+   "kind": "tuft",
+   "pin": "bottom",
+   "w": 21
+  },
+  "tuft_3": {
+   "h": 16,
+   "kind": "tuft",
+   "pin": "bottom",
+   "w": 25
+  },
+  "tuft_4": {
+   "h": 10,
+   "kind": "tuft",
+   "pin": "bottom",
+   "w": 20
+  },
+  "tuft_5": {
+   "h": 17,
+   "kind": "tuft",
+   "pin": "bottom",
+   "w": 32
+  },
+  "tuft_6": {
+   "h": 18,
+   "kind": "tuft",
+   "pin": "bottom",
+   "w": 24
+  },
+  "tuft_dry_1": {
+   "h": 11,
+   "kind": "tuft",
+   "pin": "bottom",
+   "w": 19
+  }
+ }
+}

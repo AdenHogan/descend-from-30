@@ -223,7 +223,7 @@ Robustness rules). What it covers:
   `dev_menu_test`, `lighting_test`, `plane_lock_test`, `apartment_window_test`,
   `scavenge_node_test`, `drop_physics_test`, `softlock_test`, `character_panel_test`,
   `corpse_recovery_test`, `run_memory_test`, `attack_input_test`, `character_stats_test`, `transition_seam_test`, `run_bookends_test`, `weapon_upgrade_test`, `progression_test`, `back_plane_test`,
-  `apartment_lamp_test`, `gun_cabinet_test`, `breach_test`, `item_icon_test`, `hud_wheel_test`, `motion_test` — run all 51 before commit. Balance tool: `tools/economy_report.tscn` (scrap per run, ~25 min a seed). (`new_game()` rolls a RANDOM seed, so any test meets any of the four
+  `apartment_lamp_test`, `gun_cabinet_test`, `breach_test`, `item_icon_test`, `hud_wheel_test`, `motion_test`, `growth_test` — run all 52 before commit. Balance tool: `tools/economy_report.tscn` (scrap per run, ~25 min a seed). (`new_game()` rolls a RANDOM seed, so any test meets any of the four
   characters — an assert on a trait-affected value must be trait-aware; see docs/CHARACTERS.md.) (Run ONE godot at a time — a killed/backgrounded headless run can
   linger and block the next, and a GDScript **parse error makes a test scene load but
   never call `quit()`, so it "hangs" until timeout** rather than printing an error line;
@@ -1852,4 +1852,24 @@ means no rendering — UI layout and art still need an in-editor look.
   depth and run (a sign that died in the morning stays dead). Locked by `motion_test`. The LOOK needs an in-editor /
   scene_capture look. Next (docs/MOTION.md): flowers/plants inside rooms (needs art split from the baked module
   PNGs), swinging lamps, curtains, balcony washing, corridor drips/sparks.
+- OVERGROWTH — the building changing (owner round 26; full write-up docs/OVERGROWTH.md): vegetation follows DEPTH and
+  TIME. `scripts/overgrowth.gd` (`level(floor, run)`, `room_level(floor, apt, run, fire_stage)`; pure functions of
+  master_seed — nothing saved; fire wins → 0; F1 → Overgrowth forces a level via `WorldState.dev_overgrowth`). Sprites
+  from `tools/art/growth.py` → `assets/growth/` (+ `growth.json`, sheet `docs/art_reference/growth.png`): hanging vines,
+  ivy, weeds/wildflowers, ferns, roots, moss, fungus, houseplants, and `shrub_small_*` — **NO shrubs in corridors or
+  flats (owner); only the small ones on balconies**. **Corridors** (`corridor_growth.gd`): 130 candidates per floor with
+  rising thresholds (prefix trick: run 1's growth stays and is added to), clustered round 4 patch centres, never over a
+  sign / lamp / exit sign / door face; laid over the decals (`CorridorGrowth`). **Flats** (`room_growth.gd`): each
+  module variant records three SKYLINES (clear rows above the floor / up the wall / down from the ceiling) into
+  `assets/rooms/growth_meta.json` via `pixlib.finish_module` → `tools/art/growth_map.py` (so `python3 tools/art/build_all.py`
+  rewrites it; the art itself is unchanged) — ivy/vines only on bare wall, floor plants need only their footing; none in
+  breached / dead-story / tutorial / burnt flats or the outer 14 columns; houseplants independent, dying lower and
+  later. **Balconies** (`balcony_plan`): 4 seeded slots, small shrubs / pots / vines, drawn after the Balcony node.
+  All of it sways (`sway.gd` gained `apply_spec`, a top pin for hanging vines and a travelling `lag`). Locked by
+  `growth_test`; `tools/growth_report.tscn` prints the curve. The LOOK needs an in-editor / scene_capture look.
+  **ELEVATOR ALIGNMENT (owner: "the doors and the elevator door are a little bit off — elevator is a bit higher")**:
+  the lift sprite was drawn 312–401 against the apartment doors' 321–405 (a placement that predates the round-25c
+  redraw, which made it visible); `Elevator` is now uniformly scaled 0.9545 (63×84, the doors' height) at y 363 in
+  building_floors / hallway / lobby, and the merchant's doors / interior / spawn follow (`merchant.tscn`,
+  `building_floors._make_door_half` / `_board_elevator` / `_do_spawn_merchant`).
 - Not started: quests.

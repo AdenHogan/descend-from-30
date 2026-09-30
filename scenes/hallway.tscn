@@ -479,8 +479,8 @@ position = Vector2(316, 363)
 apartment_id = "3005"
 
 [node name="Elevator" type="Sprite2D" parent="." unique_id=1933524262]
-position = Vector2(1029.4999, 356.50003)
-scale = Vector2(0.95454395, 1.011364)
+position = Vector2(1029.4999, 363.0)
+scale = Vector2(0.95454395, 0.95454395)
 texture = ExtResource("6_hwv8p")
 
 [node name="stair_left_trigger" type="Area2D" parent="." unique_id=567236308]

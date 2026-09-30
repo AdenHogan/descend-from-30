@@ -68,6 +68,7 @@ var _stair_backdrop_built: bool = false  # true if the passive backdrop already 
 
 
 const CORRIDOR_ART_POS := Vector2(115, 243)
+const CORRIDOR_GROWTH := preload("res://scripts/corridor_growth.gd")
 const CORRIDOR_DECALS := preload("res://scripts/corridor_decals.gd")   # the tilemap's used rect (1120 x 192) — the band
 
 
@@ -142,6 +143,9 @@ func _apply_corridor_art(floor_num: int) -> void:
 	# ...and this floor's own dressing + horror on top of it (scripts/corridor_decals.gd), so
 	# floors that share a baked image still never look alike; more horror deeper / later.
 	CORRIDOR_DECALS.add_to(self, floor_num, WorldState.current_run, corridor_base_name(floor_num), CORRIDOR_ART_POS)
+	# ...and what is taking the building back: ivy, vines, weeds, shrubs (scripts/corridor_growth.gd —
+	# depth × run via scripts/overgrowth.gd), laid over the decals and under the doors and every actor.
+	CORRIDOR_GROWTH.add_to(self, floor_num, WorldState.current_run, corridor_base_name(floor_num), CORRIDOR_ART_POS)
 	# ...and the EXIT sign follows the building's decay (steady / stuttering / dead — scripts/exit_sign_fx.gd).
 	if get_node_or_null("ExitSignFx") == null:
 		var fx = preload("res://scripts/exit_sign_fx.gd").new()
@@ -655,7 +659,7 @@ func _board_elevator(elevator) -> void:
 	# A dark interior behind the doors so the opening reveals the car's DEPTH (matching
 	# the merchant's elevator, which draws the same recess behind its sliding doors).
 	var interior := Polygon2D.new()
-	interior.polygon = PackedVector2Array([Vector2(-29, -43), Vector2(29, -43), Vector2(29, 44), Vector2(-29, 44)])
+	interior.polygon = PackedVector2Array([Vector2(-29, -40), Vector2(29, -40), Vector2(29, 42), Vector2(-29, 42)])
 	interior.color = Color(0.09, 0.09, 0.11)
 	interior.global_position = Vector2(ex, ey)
 	interior.z_index = 0
@@ -679,7 +683,7 @@ func _make_door_half(region: Rect2, pos: Vector2) -> Sprite2D:
 	d.texture = ELEVATOR_TEX
 	d.region_enabled = true
 	d.region_rect = region
-	d.scale = Vector2(0.95454395, 1.011364)
+	d.scale = Vector2(0.95454395, 0.95454395)
 	d.global_position = pos
 	d.z_index = 0
 	return d
@@ -1425,7 +1429,7 @@ func _do_spawn_merchant() -> void:
 	if static_elevator:
 		static_elevator.visible = false
 	var merchant = preload("res://scenes/merchant.tscn").instantiate()
-	merchant.global_position = Vector2(1029.4999, 356.50003)
+	merchant.global_position = Vector2(1029.4999, 363.0)
 	add_child(merchant)
 	# Rode the lift onto the merchant's own floor — they reclaim their elevator and
 	# grumble about it (docs/MAINTENANCE_ELEVATOR.md), then trade as normal.

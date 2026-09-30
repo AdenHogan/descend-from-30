@@ -26,6 +26,19 @@ const KINDS := {
 }
 const WIND_BY_RUN := [0.6, 1.0, 1.7]            # morning / afternoon / night
 
+# OVERGROWTH sprites (tools/art/growth.py) by kind: hanging vines swing from the ceiling with a wave that
+# travels down them (`lag`), the rest lean from the foot. `pin` top|bottom. Static kinds (roots, moss,
+# fungus) aren't listed — they don't move.
+const GROWTH := {
+	"hang": {"amp": 2.6, "base": 0.0, "speed": 0.8, "pin": "top", "lag": 2.4},
+	"creeper": {"amp": 1.1, "base": 0.5, "speed": 0.9, "pin": "bottom", "lag": 1.4},
+	"tuft": {"amp": 1.3, "base": 0.1, "speed": 1.5, "pin": "bottom", "lag": 0.6},
+	"flower": {"amp": 2.0, "base": 0.15, "speed": 1.2, "pin": "bottom", "lag": 0.8},
+	"fern": {"amp": 1.2, "base": 0.1, "speed": 1.0, "pin": "bottom", "lag": 1.0},
+	"shrub": {"amp": 1.0, "base": 0.45, "speed": 0.8, "pin": "bottom", "lag": 1.2},
+	"potted": {"amp": 1.4, "base": 0.35, "speed": 1.0, "pin": "bottom", "lag": 1.0},
+}
+
 const SHADER_CODE := """
 shader_type canvas_item;
 uniform float amp = 1.5;
@@ -33,9 +46,13 @@ uniform float base = 0.3;
 uniform float speed = 1.1;
 uniform float phase = 0.0;
 uniform float wind = 1.0;
+uniform float pin_top = 0.0;
+uniform float lag = 0.0;
 void fragment() {
-	float h = clamp(((1.0 - UV.y) - base) / max(1.0 - base, 0.001), 0.0, 1.0);
-	float t = TIME * speed + phase;
+	float from_foot = clamp(((1.0 - UV.y) - base) / max(1.0 - base, 0.001), 0.0, 1.0);
+	float from_top = clamp((UV.y - base) / max(1.0 - base, 0.001), 0.0, 1.0);
+	float h = pin_top > 0.5 ? from_top : from_foot;
+	float t = TIME * speed + phase + h * lag;
 	float w = sin(t) * 0.6 + sin(t * 2.3 + 1.7) * 0.25 + sin(TIME * 0.31 + phase) * 0.5;
 	float off = floor(w * wind * amp * h * h + 0.5);
 	COLOR = texture(TEXTURE, UV + vec2(off * TEXTURE_PIXEL_SIZE.x, 0.0));
@@ -82,7 +99,14 @@ static func padded_texture(tex: Texture2D) -> Texture2D:
 ## the node moves left by PAD).
 static func apply(s: Sprite2D, base_name: String, seed_: int, run: int) -> bool:
 	var spec: Dictionary = spec_for(base_name)
-	if spec.is_empty() or s.texture == null or s.get_meta("sway", false):
+	if spec.is_empty():
+		return false
+	return apply_spec(s, spec, seed_, run)
+
+
+## As apply(), for any spec {amp, base, speed, pin?, lag?} — the overgrowth sprites use this.
+static func apply_spec(s: Sprite2D, spec: Dictionary, seed_: int, run: int) -> bool:
+	if s.texture == null or s.get_meta("sway", false):
 		return false
 	s.texture = padded_texture(s.texture)
 	s.position.x -= float(PAD)
@@ -95,6 +119,8 @@ static func apply(s: Sprite2D, base_name: String, seed_: int, run: int) -> bool:
 	m.set_shader_parameter("speed", float(spec["speed"]) * rng.randf_range(0.85, 1.15))
 	m.set_shader_parameter("phase", rng.randf() * TAU)
 	m.set_shader_parameter("wind", wind_for_run(run))
+	m.set_shader_parameter("pin_top", 1.0 if str(spec.get("pin", "bottom")) == "top" else 0.0)
+	m.set_shader_parameter("lag", float(spec.get("lag", 0.0)))
 	s.material = m
 	s.set_meta("sway", true)
 	return true

@@ -95,6 +95,7 @@ func _show_main() -> void:
 	var stair_on: bool = WorldState.dev_force_stair_enemies
 	_btn("Force Stair Enemies: %s" % ("ON" if stair_on else "OFF"), _toggle_stair_enemies)
 	_btn("Foreground Dead (test): %s" % ["OFF", "SPORADIC", "EVERYWHERE"][clampi(WorldState.foreground_dead_mode, 0, 2)], _cycle_foreground)
+	_btn("Overgrowth: %s" % overgrowth_label(), _cycle_overgrowth)
 	_btn("Set Health ▸", _sub_health)
 	_btn("Set Run (time of day) ▸", _sub_run)
 	_btn("Floor Hazard ▸", _sub_hazard)
@@ -129,6 +130,24 @@ func _toggle_god() -> void:
 
 func _toggle_stair_enemies() -> void:
 	WorldState.dev_force_stair_enemies = not WorldState.dev_force_stair_enemies
+	_show_main()
+
+
+const OVERGROWTH_STEPS := [-1.0, 0.0, 0.25, 0.5, 0.75, 1.0]
+
+
+static func overgrowth_label() -> String:
+	return "the real curve (depth × run)" if WorldState.dev_overgrowth < 0.0 else "forced %d%%" % int(round(WorldState.dev_overgrowth * 100.0))
+
+
+func _cycle_overgrowth() -> void:
+	# force every floor's overgrowth level (corridors + flats) to look at any stage anywhere; takes effect
+	# on the next floor / room you enter
+	var i: int = 0
+	for k in range(OVERGROWTH_STEPS.size()):
+		if is_equal_approx(float(OVERGROWTH_STEPS[k]), WorldState.dev_overgrowth):
+			i = k
+	WorldState.dev_overgrowth = float(OVERGROWTH_STEPS[(i + 1) % OVERGROWTH_STEPS.size()])
 	_show_main()
 
 

@@ -39,6 +39,8 @@ var tut_nodes: Array = []       # the three hidden anchors (junk / health / club
 # picks one per (apartment, slot) — WorldState.module_variant_index — so the same room type never
 # looks the same flat to flat; each variant carries its OWN nodes on its OWN furniture. The first
 # entry is the base scene (MODULE_SCENES). Locked by apartment_window_test._test_module_variants.
+const ROOM_GROWTH := preload("res://scripts/room_growth.gd")
+
 const MODULE_VARIANTS = {
 	"bedroom": ["res://scenes/Room_Modules/bedroom.tscn", "res://scenes/Room_Modules/bedroom_b.tscn",
 		"res://scenes/Room_Modules/bedroom_c.tscn", "res://scenes/Room_Modules/bedroom_d.tscn",
@@ -858,6 +860,16 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 		# so a balcony descent pan shows the neighbouring flat's windows lit.
 		var has_balcony := bal_node != null and WorldState.is_balcony_slot(apartment_id, i)
 		_apply_balcony_strip(instance, has_balcony)
+		# OVERGROWTH (owner round 26): ivy, vines, weeds, a houseplant — how much is depth × run
+		# (scripts/overgrowth.gd), where is this module's growth map. None in a breached flat or one holding
+		# one of the dead (their story is the point) or the fixed tutorial flats.
+		if has_balcony and not breached and not (WorldState.is_first_run and TUTORIAL_LAYOUTS.has(apartment_id)) \
+				and WorldState.apartment_fire_stage(_apt_floor(), _apt_index()) < WorldState.FIRE_BLAZE:
+			ROOM_GROWTH.add_balcony_to(instance, _apt_floor(), apartment_id, i, WorldState.current_run)
+		if story_role == "" and not breached and not (WorldState.is_first_run and TUTORIAL_LAYOUTS.has(apartment_id)):
+			ROOM_GROWTH.add_to(instance, String(instance.scene_file_path).get_file().get_basename(), _apt_floor(),
+				apartment_id, i, WorldState.current_run, has_balcony,
+				WorldState.apartment_fire_stage(_apt_floor(), _apt_index()))
 		# The module's LAMPS (scripts/apartment_lights.gd): its drawn fixtures lit or not, steady /
 		# flickering / cutting out — seeded per flat + run, so no two flats light alike. Live and
 		# backdrop alike (a balcony descent sees the flat below lit the same way).

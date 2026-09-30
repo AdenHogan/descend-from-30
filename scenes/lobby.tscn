@@ -458,8 +458,8 @@ tile_map_data = PackedByteArray("AAAEABQAAgAAAAEAAAAFABQAAgABAAEAAAAGABQAAgACAAE
 tile_set = SubResource("TileSet_lbhrr")
 
 [node name="Elevator" type="Sprite2D" parent="." unique_id=1933524262]
-position = Vector2(1029.4999, 356.50003)
-scale = Vector2(0.95454395, 1.011364)
+position = Vector2(1029.4999, 363.0)
+scale = Vector2(0.95454395, 0.95454395)
 texture = ExtResource("6_rgcd7")
 
 [node name="LobbyRight" type="Sprite2D" parent="." unique_id=1554161642]
