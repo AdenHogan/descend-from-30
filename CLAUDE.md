@@ -1536,10 +1536,12 @@ means no rendering — UI layout and art still need an in-editor look.
   `assets/corridor/decals/dressing.json` (written by the art tool): "door" = just outside a flat's door
   frame (`DOOR_FRAME` 27 + 1..6px: shoes ON A TRAY — owner round 24e: small things never lie loose on the
   floor — a SHOE RACK (round 25b — the first one "looked like a bulletin board with pagers and phones": its shoes
-  were front-on blocks; now `corridor_props.shoe_side` draws shoes SIDE-ON — trainer / brogue / stiletto /
-  ankle boot / kid's — in pairs, the far shoe set back and darker, on a rack with side boards and slatted
-  shelves seen from a little above: wooden, chrome wire with boots on top, and `__3` with shoes kicked onto
-  the floor, one flipped sole-up, one hanging off a shelf), an umbrella stand, a HALL TABLE carrying flowers / a lamp / the post,
+  were front-on blocks; now shoes are drawn in pairs either SIDE-ON (`corridor_props.shoe_side`) or HEELS-OUT
+  (`shoe_back`: heel counter, open collar, sole) — trainer / brogue / stiletto / ankle boot / kid's, the far
+  shoe set back and darker; round 25c: "some side facing, some back facing… it's just about visual clarity",
+  so each rack mixes both, seeded, at least one of each — on a rack with side boards and slatted shelves seen
+  from a little above: wooden, chrome wire with boots on top, and `__3` with shoes kicked off ALL ROUND it
+  (both sides and in front — not "just to the right side… they look clumsy"), one hanging off a shelf), an umbrella stand, a HALL TABLE carrying flowers / a lamp / the post,
   parcels, a pram, bin bags put out, the recycling, bundled newspapers, a suitcase / holdall, shopping
   bags, a bike / kid's bike / scooter leant on the wall), "open" = a stretch of wall between the doors or
   by the lift (`OPEN_SPOTS`: a floor planter, a small plant UP ON ITS STAND, a hall chair to wait on). Each

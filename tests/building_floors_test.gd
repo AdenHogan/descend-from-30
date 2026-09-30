@@ -1357,6 +1357,7 @@ func _test_door_swing() -> void:
 	var f := 25
 	WorldState.current_floor = f
 	WorldState.spawn_source = "stair"
+	WorldState.seed_floor_door_states(f)                                   # seed FIRST, or seeding overwrites these
 	WorldState.set_door_state("2505", WorldState.DoorState.BREACHED)      # always one wreck to look at
 	if WorldState.get_door_state("2501") == WorldState.DoorState.BREACHED:
 		WorldState.set_door_state("2501", WorldState.DoorState.SHUT_FORCEABLE)   # ...and one door to swing

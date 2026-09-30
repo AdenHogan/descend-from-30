@@ -202,6 +202,9 @@ func _test_descent_core() -> void:
 
 	# Descending moves world state into the apartment below and opens its door
 	# from the inside.
+	# Seed floor 25's doors FIRST: seeding a floor overwrites every door on it, so a state set before
+	# its first read was lost whenever the random seed rolled 2503 as BREACHED (a seed-dependent fail).
+	WorldState.get_door_state("2503")
 	WorldState.door_states["2503"] = WorldState.DoorState.SHUT_LOCKED
 	var target = WorldState.descend_from_balcony("2603")
 	check(target == "2503", "descend targets the apartment below")

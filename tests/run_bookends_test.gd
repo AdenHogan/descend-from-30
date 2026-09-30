@@ -319,7 +319,10 @@ func _test_lobby_door_needs_e() -> void:
 	p.global_position = exit.global_position + Vector2(0, 23)
 	for i in 30:
 		await get_tree().physics_frame
-	check(exit._player_near and not exit._leaving, "at the door: prompt, but still in the building")
+		for z in get_tree().get_nodes_in_group("zombie"):      # a late-waking lobby zombie once shoved the
+			z.queue_free()                                    # player off the door's trigger (rare, seed-dependent)
+	check(exit._player_near and not exit._leaving, "at the door: prompt, but still in the building (seed %d, player %s, door %s, zombies %d)" % [
+		WorldState.master_seed, str(p.global_position), str(exit.global_position), get_tree().get_nodes_in_group("zombie").size()])
 	check(WorldState.chronicle_entry(1)["outcome"] == "" and WorldState.current_run == 1,
 		"…the run hasn't ended (%s)" % WorldState.chronicle_entry(1)["outcome"])
 

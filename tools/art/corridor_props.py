@@ -139,6 +139,41 @@ def shoe_pair(c, x, base, style, col, face=1, depth_up=3):
     shoe_side(c, x, base, style, col, face, 1.0)
 
 
+def shoe_back(c, x, base, style, col, k=1.0):
+    """One shoe seen from BEHIND (heel toward us): the heel counter, the collar's opening, the sole — 5px wide."""
+    col = shade(col, k)
+    dark = shade(col, 0.35)
+    sole = shade(hexc('ece6da'), k) if style in ('trainer', 'kid') else shade(hexc('241c18'), k)
+    hgt = {'trainer': 4, 'kid': 3, 'brogue': 3, 'heel': 3, 'boot': 7}[style]
+    lift = 2 if style == 'heel' else 0
+    b = base - lift
+    c.hline(x, x + 4, b, sole)                                        # the sole / heel block
+    for r in range(1, hgt + 1):
+        for i in range(5):
+            cc = col
+            if i == 0:
+                cc = shade(col, 1.2)                                  # lit left side
+            elif i == 4:
+                cc = shade(col, 0.7)
+            c.put(x + i, b - r, cc)
+    c.hline(x + 1, x + 3, b - hgt, dark)                              # the collar, open
+    c.put(x, b - hgt, shade(col, 1.3)); c.put(x + 4, b - hgt, shade(col, 0.8))
+    if style == 'trainer':
+        c.put(x + 2, b - hgt + 1, hexc('d8483a'))                     # the heel tab
+        c.hline(x + 1, x + 3, b - 1, shade(col, 0.85))
+    elif style == 'heel':
+        c.vline(x + 2, b + 1, base, shade(hexc('1a1614'), k))         # the stiletto under it
+    elif style == 'boot':
+        c.put(x + 2, b - hgt + 1, shade(col, 0.55))                   # the pull loop
+        c.hline(x, x + 4, b - 1, shade(hexc('3a2e26'), k))
+
+
+def shoe_back_pair(c, x, base, style, col, depth_up=2):
+    """A pair seen from behind, heels out: side by side, one a touch further back."""
+    shoe_back(c, x + 6, base - depth_up, style, col, 0.82)
+    shoe_back(c, x, base, style, col, 1.0)
+
+
 def lying_shoe(c, x, y, style, col, how='side'):
     """A shoe knocked onto the floor, pasted at (x, y) = top-left: 'sole' = flipped over, sole up;
     'toe_up' = stood on its heel; 'side' = fallen over, toe away."""
@@ -200,43 +235,54 @@ def _rack_posts(c, x0, x1, C, d, tiers, wood, metal):
 
 
 def shoe_rack(save, name, seed, metal=False, sprawled=False):
-    """A three-tier shoe rack by the door, shoes side-on in pairs. sprawled: some kicked off onto the floor."""
+    """A three-tier shoe rack by the door, shoes in pairs — some side-on, some heels-out (owner round 25c:
+    "some side facing, some back facing is perfectly fine; it's just about visual clarity").
+    sprawled: some kicked off onto the floor all round it — beside it on both sides and in front."""
     rng = random.Random(seed)
     rack_w, d = 34, 6
-    w = rack_w + (26 if sprawled else 0)
+    ml, mr = (12, 12) if sprawled else (0, 0)                         # floor room either side for the kicked-off
+    w = ml + rack_w + mr
     tiers_rel = (2, 12, 22)                                           # shelf front rows above the floor contact
     h = tiers_rel[-1] + d + 10 + SHADOW
     C = h - 1 - SHADOW
     c = new(w, h, seed)
-    x0, x1 = 1, rack_w - 2
+    x0, x1 = ml + 1, ml + rack_w - 2
     tiers = [C - t for t in tiers_rel]
+    if sprawled:
+        ground(c, 1, w - 2, C - 5, C, 50)
     ground(c, x0, x1, C - d, C)
     wood = _rack_frame(c, x0, x1, C, d, tiers, metal)
     pool = RACK_SHOES[:]
     rng.shuffle(pool)
+    # which slots show their pair heels-out: seeded, but always at least one of each on a rack
+    backs = [rng.random() < 0.45 for _ in range(4)]
+    if all(backs) or not any(backs):
+        backs[rng.randrange(4)] = not backs[0]
     for ti, y in enumerate(tiers[:2]):                                # shoes on the two lower shelves
         for slot in range(2):
             if sprawled and (ti, slot) in ((0, 1), (1, 0)):
                 continue                                              # gaps — those are on the floor
             style, col = pool.pop()
-            shoe_pair(c, x0 + 3 + slot * 15, y - 1, style, hexc(col), 1, depth_up=3)
-    if metal:                                                         # a pair of boots on top
-        shoe_pair(c, x0 + 4, tiers[2] - 1, 'boot', hexc('4a3526'), 1, depth_up=3)
+            if backs[ti * 2 + slot]:
+                shoe_back_pair(c, x0 + 3 + slot * 15, y - 1, style, hexc(col))
+            else:
+                shoe_pair(c, x0 + 3 + slot * 15, y - 1, style, hexc(col), 1, depth_up=3)
+    if metal:                                                         # a pair of boots on top, heels out
+        shoe_back_pair(c, x0 + 5, tiers[2] - 1, 'boot', hexc('4a3526'))
     else:                                                             # slippers + a key dish on top
         shoe_pair(c, x0 + 3, tiers[2] - 1, 'kid', hexc('6a8ac8'), 1, depth_up=3)
         c.ellipse(x1 - 7, tiers[2] - 3, 4, 1, hexc('c8b89a'))
         c.put(x1 - 8, tiers[2] - 4, hexc('d8d8d0')); c.put(x1 - 6, tiers[2] - 4, hexc('c8a84a'))
     _rack_posts(c, x0, x1, C, d, tiers, wood, metal)
-    if sprawled:                                                      # the ones that came off, on the floor
-        ground(c, rack_w - 1, w - 2, C - 5, C, 55)
-        lying_shoe(c, rack_w + 9, C - 9, 'brogue', hexc('5a3322'), 'side')      # further back, fallen over
-        shoe_side(c, rack_w + 1, C - 3, 'heel', hexc('a82a2a'), 1)            # a stiletto still on its sole
-        lying_shoe(c, rack_w + 12, C - 4, 'trainer', hexc('2a4a8a'), 'sole')  # one flipped, sole up
-        # and one hanging half off the middle shelf's edge, about to drop
-        lying_shoe(c, x0 + 3, tiers[1] - 5, 'trainer', hexc('3a3a3e'), 'sole')
+    if sprawled:                                                      # the ones that came off, all round it
+        lying_shoe(c, 0, C - 7, 'trainer', hexc('d0603c'), 'side')                  # left, fallen over
+        shoe_back(c, 6, C - 1, 'heel', hexc('d23a3a'))                              # left front, still standing
+        lying_shoe(c, x0 + 10, C - 3, 'trainer', hexc('2a4a8a'), 'side')            # in front, on its side
+        shoe_side(c, w - 3, C - 5, 'trainer', hexc('ffffff'), -1, 0.9)              # right, further back
+        lying_shoe(c, w - 12, C - 3, 'brogue', hexc('1e1a18'), 'side')              # right front, fallen over
+        lying_shoe(c, x0 + 3, tiers[1] - 5, 'trainer', hexc('3a3a3e'), 'sole')      # one hanging off a shelf
     save(name, c)
     record(name, "door", d, C)
-
 
 def shoes(save, name, seed, boots=False):
     rng = random.Random(seed)
