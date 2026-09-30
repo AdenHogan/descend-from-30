@@ -42,6 +42,9 @@ func _ready() -> void:
 	await _test_push_one_at_a_time()
 	await _test_big_push_past()
 	await _test_crowd_spacing()
+	await _test_shuffle_steps()
+	await _test_spitter_kites()
+	await _test_crawler_pounce()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -913,6 +916,200 @@ func _test_crowd_spacing() -> void:
 	for z in zs:
 		ranks[load("res://scripts/enemy_crowd.gd").rank(z, p)] = true
 	check(ranks.size() == 5, "every body has its own rank (%s)" % str(ranks.keys()))
+	WorldState.god_mode = false
+	bf.free()
+	await get_tree().process_frame
+
+
+func _test_shuffle_steps() -> void:
+	# Zombies SHUFFLE as they walk (enemy_steps.gd): a positional footfall at a rate that follows their
+	# speed — none while standing, on the stairs or clinging to a wall.
+	print("[shuffle: the dead are heard walking]")
+	var bf = await _corridor()
+	var z = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
+	z.global_position = Vector2(700, 370)
+	bf.add_child(z)
+	await get_tree().physics_frame
+	var ES = load("res://scripts/enemy_steps.gd")
+	z.velocity.x = 0.0
+	for i in range(30):
+		ES.tick(z, 0.1)
+	check(z.get_node_or_null("StepPlayer") == null, "a standing zombie makes no footsteps")
+	z.velocity.x = 40.0
+	ES.tick(z, 0.016)
+	var sp = z.get_node_or_null("StepPlayer")
+	check(sp != null and sp.playing and sp.stream != null, "a walking zombie scuffs at once")
+	check(sp != null and sp.bus == Game.ENEMY_BUS, "on the Enemies bus (the stair ascent can fade it with the moans)")
+	sp.stop()
+	ES.tick(z, 0.1)
+	check(not sp.playing, "...and not again within its stride")
+	for i in range(20):
+		ES.tick(z, 0.1)
+	check(sp.playing, "...but again once the stride is up")
+	# the gap follows the speed: faster feet, shorter gap
+	z.velocity.x = 200.0
+	z.set_meta("step_t", 0.0)
+	ES.tick(z, 0.0)
+	var fast: float = float(z.get_meta("step_t"))
+	z.velocity.x = 20.0
+	z.set_meta("step_t", 0.0)
+	ES.tick(z, 0.0)
+	var slow: float = float(z.get_meta("step_t"))
+	check(fast < slow and fast >= ES.MIN_GAP and slow <= ES.MAX_GAP, "the gap follows the speed (fast %.2fs, slow %.2fs)" % [fast, slow])
+	# lurking on the stairs: silent
+	sp.stop()
+	z.set_meta("step_t", 0.0)
+	z.stair_mode = true
+	ES.tick(z, 0.5)
+	check(not sp.playing, "a stair-lurker is silent")
+	z.stair_mode = false
+	# a wall-clinging crawler: silent
+	var c = load("res://scenes/enemy_zombie_crawler.tscn").instantiate()
+	c.global_position = Vector2(800, 374)
+	bf.add_child(c)
+	await get_tree().physics_frame
+	c.wall_mode = "wall"
+	c.velocity.x = 40.0
+	ES.tick(c, 0.5)
+	check(c.get_node_or_null("StepPlayer") == null, "a clinging crawler makes no footsteps")
+	c.wall_mode = ""
+	ES.tick(c, 0.5)
+	check(c.get_node_or_null("StepPlayer") != null, "a crawler on the floor does")
+	# and the real AI calls it: a chasing zombie ends up with a player
+	var chaser = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
+	chaser.global_position = Vector2(900, 370)
+	bf.add_child(chaser)
+	chaser.alert_timer = 30.0
+	var p = bf.get_node("Player")
+	p.global_position = Vector2(600, 386)
+	WorldState.god_mode = true
+	for i in range(90):
+		await get_tree().physics_frame
+		p.velocity = Vector2.ZERO
+	check(chaser.get_node_or_null("StepPlayer") != null, "a zombie on the hunt is heard walking (real AI path)")
+	WorldState.god_mode = false
+	bf.free()
+	await get_tree().process_frame
+
+
+func _spawn_at(bf: Node, scene: String, x: float, y: float):
+	var z = load(scene).instantiate()
+	z.global_position = Vector2(x, y)
+	bf.add_child(z)
+	await get_tree().physics_frame
+	z.alert_timer = 60.0
+	return z
+
+
+func _test_spitter_kites() -> void:
+	# The spitter HOLDS ITS RANGE: too close and it backs away, facing you, until it has room; cornered it
+	# stands and spits instead.
+	print("[spitter kiting: keeps its range, stands when cornered]")
+	var bf = await _corridor()
+	var p = bf.get_node("Player")
+	WorldState.god_mode = true
+	p.global_position = Vector2(600, 386)
+	var sp = await _spawn_at(bf, "res://scenes/enemy_zombie_spitter.tscn", 660.0, 374.0)   # 60px off: far inside KITE_MIN
+	var start_x: float = sp.global_position.x
+	var saw_kite := false
+	var faced_player := true
+	for i in range(240):
+		await get_tree().physics_frame
+		p.velocity = Vector2.ZERO
+		p.global_position.x = 600.0
+		if sp.kiting:
+			saw_kite = true
+			if not sp.animated_sprite.flip_h:     # backing away to the RIGHT must still face LEFT (flip_h = facing left, as in the base AI)
+				faced_player = false
+	var gap: float = sp.global_position.x - 600.0
+	check(saw_kite, "a spitter the player walks up on starts backing away")
+	check(sp.global_position.x > start_x + 40.0, "...and actually gives ground (%.0f -> %.0f)" % [start_x, sp.global_position.x])
+	check(faced_player, "...while still FACING the player")
+	check(gap >= sp.KITE_CLEAR - 8.0, "...until it has its room (gap %.0f >= %.0f)" % [gap, sp.KITE_CLEAR])
+	check(not sp.kiting, "...then it stops kiting and is a turret again")
+	# at a comfortable range it does NOT creep closer than it likes
+	var x_before: float = sp.global_position.x
+	for i in range(60):
+		await get_tree().physics_frame
+		p.velocity = Vector2.ZERO
+		p.global_position.x = 600.0
+	check(absf(sp.global_position.x - x_before) < 30.0, "at range it holds still to spit (moved %.0f)" % absf(sp.global_position.x - x_before))
+	sp.queue_free()
+	# cornered at the corridor's end: no retreat, stands and spits
+	p.global_position = Vector2(1140, 386)
+	var cs = await _spawn_at(bf, "res://scenes/enemy_zombie_spitter.tscn", 1185.0, 374.0)
+	var spit0 := _count_spit(bf)
+	for i in range(200):
+		await get_tree().physics_frame
+		p.velocity = Vector2.ZERO
+		p.global_position.x = 1140.0
+	check(cs.global_position.x <= 1224.0 and not cs.kiting, "a cornered spitter doesn't try to back through the wall (x %.0f)" % cs.global_position.x)
+	check(_count_spit(bf) > spit0 or cs.state == "attack", "...it stands and spits")
+	cs.queue_free()
+	WorldState.god_mode = false
+	bf.free()
+	await get_tree().process_frame
+
+
+func _test_crawler_pounce() -> void:
+	# A crawler at striking distance COILS (tinted, still), LEAPS a short fast burst, then bites at once.
+	# A hit during the coil breaks it.
+	print("[crawler pounce: coil, leap, quick bite — a hit breaks it]")
+	var bf = await _corridor()
+	var p = bf.get_node("Player")
+	WorldState.god_mode = true
+	p.global_position = Vector2(600, 386)
+	var cr = await _spawn_at(bf, "res://scenes/enemy_zombie_crawler.tscn", 710.0, 374.0)   # ~110 px out
+	var phases := {}
+	var leap_v := 0.0
+	var tinted := false
+	var start_x: float = cr.global_position.x
+	var min_x: float = start_x
+	for i in range(300):
+		await get_tree().physics_frame
+		p.velocity = Vector2.ZERO
+		p.global_position.x = 600.0
+		if cr.pounce != "":
+			phases[cr.pounce] = true
+		if cr.pounce == "wind" and cr.animated_sprite.modulate.g < 0.9:
+			tinted = true
+		if cr.pounce == "leap":
+			leap_v = maxf(leap_v, absf(cr.velocity.x))
+		min_x = minf(min_x, cr.global_position.x)
+	check(phases.has("wind") and phases.has("leap"), "it coils, then leaps (%s)" % str(phases.keys()))
+	check(tinted, "the coil is tinted (the tell)")
+	check(leap_v >= cr.POUNCE_SPEED - 1.0 and leap_v > cr.SPEED * 5.0, "the leap is FAST (%.0f vs its %.0f crawl)" % [leap_v, cr.SPEED])
+	check(min_x < start_x - 30.0, "and it covers ground (%.0f -> %.0f)" % [start_x, min_x])
+	check(cr.animated_sprite.modulate == Color.WHITE or cr.pounce != "", "the tint clears after")
+	cr.queue_free()
+	# a hit during the coil breaks it
+	var c2 = await _spawn_at(bf, "res://scenes/enemy_zombie_crawler.tscn", 710.0, 374.0)
+	var coiled := false
+	for i in range(200):
+		await get_tree().physics_frame
+		p.velocity = Vector2.ZERO
+		p.global_position.x = 600.0
+		if c2.pounce == "wind":
+			coiled = true
+			break
+	check(coiled, "(setup) a second crawler coils")
+	if coiled:
+		c2.receive_damage(1, "melee")
+		check(c2.pounce == "" and c2.animated_sprite.modulate == Color.WHITE, "a hit breaks the coil and clears the tint")
+		check(c2._pounce_cd > 0.0, "...and it has to wait before trying again")
+	c2.queue_free()
+	# too close: it just bites (no pounce)
+	var c3 = await _spawn_at(bf, "res://scenes/enemy_zombie_crawler.tscn", 640.0, 374.0)
+	c3._pounce_cd = 0.0
+	var pounced := false
+	for i in range(60):
+		await get_tree().physics_frame
+		p.velocity = Vector2.ZERO
+		p.global_position.x = 600.0
+		if c3.pounce != "":
+			pounced = true
+	check(not pounced, "inside its own reach it just bites, no pounce")
+	c3.queue_free()
 	WorldState.god_mode = false
 	bf.free()
 	await get_tree().process_frame

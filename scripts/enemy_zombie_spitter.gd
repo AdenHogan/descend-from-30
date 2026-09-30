@@ -8,8 +8,19 @@ extends "res://scripts/enemy_zombie_standard.gd"
 const SPIT := preload("res://scripts/spit_projectile.gd")
 const SPIT_COOLDOWN := 1.6
 
+# KITING (docs/THREE_RUN_ARC.md "spitter kiting"): it holds its range. Close in under KITE_MIN and it
+# backs away (facing you, a little quicker than its advance) until it has KITE_CLEAR of room again —
+# unless it's cornered (a wall, the corridor's end), when it just stands and spits. Sprint at it and
+# it gives ground; chase it into a corner and you've got it.
+const KITE_MIN := 110.0          # closer than this (horizontal) and it backs off
+const KITE_CLEAR := 160.0        # ...until it has this much room (hysteresis: no jitter at the edge)
+const KITE_SPEED_MULT := 1.25
+const KITE_LEFT_END := 165.0     # x: the left end's last walkable stretch (the walls stand at 128 / 1224)
+const KITE_RIGHT_END := 1190.0
+
 var _spit_cd: float = 0.0
 var spit_damage: int = 1
+var kiting: bool = false
 
 
 # A BREACH-ROOM LEADER (owner rounds 20/21) — the gun cabinet's key carrier is always one: the
@@ -42,6 +53,31 @@ func _physics_process(delta: float) -> void:
 	super(delta)
 	if state != "hit" and state != "knockdown":
 		_make_passable_to_player()   # keep it non-blocking every frame
+
+func _ai_override(reach: float, _distance: float, _detection: float) -> bool:
+	if stair_mode or tutorial_scripted or is_dead:
+		return false
+	if kiting and reach >= KITE_CLEAR:
+		kiting = false
+	elif not kiting and reach < KITE_MIN:
+		kiting = true
+	if not kiting:
+		return false
+	var away: float = -signf(player.global_position.x - global_position.x)
+	if away == 0.0:
+		away = 1.0
+	# no room behind it: a wall it just hit (rooms), or the corridor's end (x bounds, floors 1-29)
+	var cornered: bool = is_on_wall() or (away < 0.0 and global_position.x < KITE_LEFT_END) \
+		or (away > 0.0 and global_position.x > KITE_RIGHT_END)
+	if cornered:
+		kiting = false             # no room: stand and spit (the base attack choice follows)
+		return false
+	state = "chase"
+	velocity.x = away * SPEED * KITE_SPEED_MULT
+	animated_sprite.flip_h = away > 0.0   # backing away: it keeps FACING you
+	animated_sprite.play("Walk")
+	return true
+
 
 func _deliver_attack(_distance: float) -> void:
 	# The attack beat launches a spit at the player instead of a melee hit. Honour a

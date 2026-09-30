@@ -1315,6 +1315,8 @@ func start_listen(source_pos: Vector2, report: Dictionary) -> void:
 	is_listening = true
 	listen_timer = LISTEN_DURATION * WorldState.get_listen_speed_mult()
 	listen_report_line = report.get("line", "")
+	if str(report.get("fire_line", "")) != "":
+		listen_report_line += "\n" + str(report["fire_line"])   # a fire below is heard through the floor too
 	velocity.x = 0
 	# Placeholder stance until the ear-cupping/lean-over animation exists
 	# (art task — see docs/SOUND_STEALTH.md).

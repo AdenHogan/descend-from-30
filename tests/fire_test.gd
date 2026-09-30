@@ -28,6 +28,8 @@ func _ready() -> void:
 	_test_dealt_with()
 	_test_exclusivity()
 	_test_dev_mode()
+	_test_fire_warning()
+	_test_wall_fire()
 	_test_apartment_fire_state()
 	_test_extinguish_aftermath()
 	_test_fire_hot_at()
@@ -569,6 +571,78 @@ func _test_dev_mode() -> void:
 	check(WorldState.fire_intensity(15) == WorldState.FIRE_CHARRED, "lv3 holds regardless of run (run-independent)")
 	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
 	WorldState.dev_fire_origin = -1
+
+
+func _test_wall_fire() -> void:
+	# A BLAZE climbs the walls: tongues over burning cells, never at a doorway or in the stair zone,
+	# spaced apart, nothing on a LIGHT outbreak.
+	print("[wall fire — a blaze climbs the walls]")
+	WorldState.master_seed = 1337
+	var ff = _make_field()
+	ff.floor_num = 15
+	ff.stage = ff.STAGE_BLAZE
+	ff.ignite_span(ff.FIRE_MIN_X, ff.FIRE_MAX_X)
+	var spots: Array = ff.wall_fire_spots()
+	check(spots.size() >= 3, "a floor-wide blaze climbs the wall in several places (%d)" % spots.size())
+	var bad_door := 0
+	var bad_gap := 0
+	var prev := -1.0e9
+	for sp in spots:
+		if ff._near_door(float(sp["x"])):
+			bad_door += 1
+		if float(sp["x"]) - prev < ff.WALL_FIRE_GAP:
+			bad_gap += 1
+		prev = float(sp["x"])
+	check(bad_door == 0, "none across a doorway")
+	check(bad_gap == 0, "spaced at least %d px apart" % int(ff.WALL_FIRE_GAP))
+	ff.set_stair_fire(146.0, 26.0, 100.0, 235.0)
+	for sp in ff.wall_fire_spots():
+		check(not ff._in_stair_keepout(float(sp["x"])), "none inside the stair zone (x %.0f)" % float(sp["x"]))
+	ff.extinguish_span(ff.FIRE_MIN_X, ff.FIRE_MAX_X)
+	check(ff.wall_fire_spots().is_empty(), "doused: the walls stop burning")
+	var lt = _make_field()
+	lt.floor_num = 15
+	lt.stage = lt.STAGE_LIGHT
+	lt.ignite_span(lt.FIRE_MIN_X, lt.FIRE_MAX_X)
+	check(lt.wall_fire_spots().is_empty(), "a LIGHT outbreak doesn't reach the walls")
+	ff.free()
+	lt.free()
+
+
+func _test_fire_warning() -> void:
+	# The building warns you a fire is coming: heard at the down stairwell (the report's own `fire_line`,
+	# leaving the count line untouched), smelt once per floor per run as you step up to the steps.
+	print("[fire approach warning]")
+	WorldState.master_seed = 1337
+	WorldState.current_run = 1
+	WorldState.fire_warned.clear()
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_FIRE
+	WorldState.dev_fire_origin = 14               # floor 14 burns (LIGHT); floor 15 stands above it
+	WorldState.current_floor = 15
+	var rep: Dictionary = WorldState.get_listen_report_for_floor_below()
+	check(str(rep.get("fire_line", "")) == str(WorldState.FIRE_WARN_LINES[WorldState.FIRE_LIGHT]), "the stairwell report carries the smoke line (%s)" % str(rep.get("fire_line")))
+	check(WorldState.LISTEN_LINES_BELOW.values().has(rep["line"]) or WorldState.has_trait_flag("exact_hearing"), "...while the count line is untouched")
+	var w1: String = WorldState.take_fire_warning(15)
+	check(w1 == str(WorldState.FIRE_WARN_LINES[WorldState.FIRE_LIGHT]), "stepping up to the steps: a whiff of smoke")
+	check(WorldState.take_fire_warning(15) == "", "...once per floor, not every time")
+	check(WorldState.take_fire_warning(16) == "", "a floor above a clear one says nothing")
+	WorldState.current_floor = 16
+	check(str(WorldState.get_listen_report_for_floor_below().get("fire_line", "x")) == "", "no fire below, no fire line")
+	# it escalates with the fire below
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_FIRE2
+	WorldState.dev_fire_origin = 14
+	check(WorldState.fire_warning_line(14) == str(WorldState.FIRE_WARN_LINES[WorldState.FIRE_BLAZE]), "a blaze below: heat")
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_FIRE3
+	check(WorldState.fire_warning_line(14) == str(WorldState.FIRE_WARN_LINES[WorldState.FIRE_CHARRED]), "a burnt-out floor below: cold ash")
+	# a new run is a new warning
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_FIRE
+	WorldState.current_run = 2
+	check(WorldState.take_fire_warning(15) != "", "the next run warns again")
+	WorldState.fire_warned.clear()
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
+	WorldState.dev_fire_origin = -1
+	WorldState.current_run = 1
+	WorldState.current_floor = 30
 
 
 func _test_apartment_fire_state() -> void:

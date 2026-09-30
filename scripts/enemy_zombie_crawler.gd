@@ -19,6 +19,87 @@ func _ready() -> void:
 
 
 # ---------------------------------------------------------------------------------------------
+# THE POUNCE (enemy AI pass): slow as it is, a crawler that has closed to striking distance GATHERS —
+# a half-second coil, flat to the floor, tinted — then LUNGES a short, fast burst at you and bites the
+# instant it lands. The tell is the coil: sprint away, shove it, or hit it and the pounce is off; stand
+# and let it come and a fast bite follows. One pounce per POUNCE_COOLDOWN, never while hurt, never from
+# the wall (that's the drop).
+# ---------------------------------------------------------------------------------------------
+const POUNCE_MAX := 130.0        # starts when the gap (horizontal) is inside this...
+const POUNCE_MIN := 62.0         # ...and outside this (closer than that it simply bites)
+const POUNCE_WIND := 0.55        # the coil (the tell)
+const POUNCE_TIME := 0.26        # the leap
+const POUNCE_SPEED := 330.0
+const POUNCE_COOLDOWN := 3.6
+const POUNCE_BITE_WIND := 0.25   # the bite after a landed pounce comes quick (a normal bite winds up 0.8s)
+const POUNCE_TINT := Color(1.0, 0.72, 0.68)
+
+var pounce: String = ""          # "" | "wind" | "leap"
+var _pounce_t := 0.0
+var _pounce_cd := 1.0            # the first one isn't instant on sight
+var _pounce_dir := 1.0
+
+
+func _ai_override(reach: float, distance: float, detection: float) -> bool:
+	var dt := get_physics_process_delta_time()
+	if _pounce_cd > 0.0:
+		_pounce_cd -= dt
+	if wall_mode != "" or tutorial_scripted or stair_mode or is_dead:
+		_end_pounce(false)
+		return false
+	match pounce:
+		"wind":
+			_pounce_t -= dt
+			velocity.x = 0.0
+			animated_sprite.play("Idle")
+			if _pounce_t <= 0.0:
+				pounce = "leap"
+				_pounce_t = POUNCE_TIME
+				animated_sprite.modulate = Color.WHITE
+				animated_sprite.play("Walk")
+			return true
+		"leap":
+			_pounce_t -= dt
+			velocity.x = _pounce_dir * POUNCE_SPEED
+			animated_sprite.flip_h = _pounce_dir < 0.0
+			var landed: bool = reach <= _attack_reach()
+			if _pounce_t <= 0.0 or landed:
+				_end_pounce(true)
+				if landed:
+					state = "attack"                 # it bites the moment it lands
+					state_timer = POUNCE_BITE_WIND
+					_crowd_bonus = 0.0
+					animated_sprite.play("Attack")
+					velocity.x = 0.0
+			return true
+	# not pouncing: start one?
+	if _pounce_cd <= 0.0 and hurt_timer <= 0.0 and distance <= detection \
+			and reach < INF and reach <= POUNCE_MAX and reach > POUNCE_MIN:
+		pounce = "wind"
+		_pounce_t = POUNCE_WIND
+		_pounce_dir = signf(player.global_position.x - global_position.x)
+		if _pounce_dir == 0.0:
+			_pounce_dir = 1.0
+		animated_sprite.flip_h = _pounce_dir < 0.0
+		animated_sprite.modulate = POUNCE_TINT
+		velocity.x = 0.0
+		state = "chase"
+		return true
+	return false
+
+
+## Stop pouncing (a hit, a shove, the leap done, the wall). `cool` = start the cooldown.
+func _end_pounce(cool: bool) -> void:
+	if pounce == "" and not cool:
+		return
+	if pounce != "" and cool:
+		_pounce_cd = POUNCE_COOLDOWN
+	pounce = ""
+	if animated_sprite != null and not is_dead:
+		animated_sprite.modulate = Color.WHITE
+
+
+# ---------------------------------------------------------------------------------------------
 # ON THE WALL (owner round 21 — "some crawlers climbing the walls when you enter and dropping down to
 # attack"). A crawler in a breach-room NEST can start clinging to the back wall (body upright, head
 # up or down) or the ceiling (upside down). Up there it is OFF the plane: no body collision, can't
@@ -157,19 +238,31 @@ func _physics_process(delta: float) -> void:
 func receive_damage(amount: int, damage_type: String) -> void:
 	if wall_mode != "":
 		_land()              # hit up there / mid-fall: it's on the floor NOW (a kill never leaves it in the air)
+	if pounce != "":
+		_pounce_cd = POUNCE_COOLDOWN * 0.6
+		_end_pounce(false)   # a hit breaks the pounce
 	super(amount, damage_type)
 
 
 func receive_push(force: float) -> void:
 	if is_on_wall_mode():
 		_begin_drop()
+	if pounce != "":
+		_pounce_cd = POUNCE_COOLDOWN
+		_end_pounce(false)   # a shove breaks it too
 	super(force)
 
 
 func be_distracted(pos: Vector2, duration: float = 6.0) -> void:
 	if is_on_wall_mode():
 		_begin_drop()
+	_end_pounce(false)
 	super(pos, duration)
+
+
+func _die() -> void:
+	_end_pounce(false)       # never leave a corpse tinted mid-coil
+	super()
 
 
 func _exit_tree() -> void:

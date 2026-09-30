@@ -1164,6 +1164,7 @@ func new_game() -> void:
 	elevator_powered = false
 	elevator_fuses_loaded = 0
 	fire_dealt_with.clear()
+	fire_warned.clear()
 	fire_origin_x.clear()
 	fire_cells.clear()
 	fire_scars.clear()
@@ -2472,6 +2473,7 @@ func get_listen_report_for_floor_below() -> Dictionary:
 		"has_big": false,
 		"category": category,
 		"line": line,
+		"fire_line": fire_warning_line(below),   # its own key: the count line above is a fixed table other code matches
 		"nearness": get_listen_nearness("floor_below", str(below)),
 	}
 
@@ -3330,6 +3332,33 @@ func fire_stage(floor_num: int) -> int:
 	# The stage of the fire on this floor (call only when is_stair_fire is true;
 	# clamps a no-fire floor up to LIGHT so callers never index out of range).
 	return max(fire_intensity(floor_num), 0)
+
+
+# FIRE APPROACH WARNING (owner follow-up): the building tells you a fire is coming BEFORE you walk into
+# it — heard through the floor at the down stairwell (the listen report) and, once per floor per run,
+# smelt as you step up to the steps. Worded by the stage of the fire on the floor below.
+const FIRE_WARN_LINES := {
+	FIRE_LIGHT: "Smoke. A thin, bitter thread of it, drifting up the stairwell.",
+	FIRE_BLAZE: "Heat on the stairs. Something below is burning — hard.",
+	FIRE_CHARRED: "Cold ash on the air. Whatever burned down there burned out.",
+}
+var fire_warned: Dictionary = {}          # "floor:run" -> true; transient (a load simply warns once more)
+
+
+func fire_warning_line(floor_below: int) -> String:
+	var st: int = fire_intensity(floor_below)
+	return "" if st < 0 else str(FIRE_WARN_LINES.get(st, ""))
+
+
+## One-shot per (floor, run): the warning for the floor under `floor_num`, or "" (none, or already given).
+func take_fire_warning(floor_num: int) -> String:
+	var key := "%d:%d" % [floor_num, current_run]
+	if fire_warned.has(key):
+		return ""
+	var line := fire_warning_line(floor_num - 1)
+	if line != "":
+		fire_warned[key] = true
+	return line
 
 
 # FIRE SCARS — fire leaves its mark on the building. Which thirds of a floor's corridor have ever

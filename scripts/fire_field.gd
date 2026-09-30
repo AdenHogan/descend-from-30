@@ -699,6 +699,40 @@ func _draw_tall_flames(canvas: CanvasItem) -> void:
 		col += 1
 
 
+# --- fire on the WALLS (owner follow-up: "flames on walls/ceiling/doors — corridor flames only today"; the
+# door frames already burn, `fire_decal.gd`). Only a BLAZE climbs: tall tongues run UP the wall from the seam
+# over the burning cells, behind the actors (z0), never across a doorway or the stair zone, spaced by a
+# minimum gap so they read as distinct tongues, and seeded per floor so none move in step. (A ceiling
+# version — the same sprites hung upside-down — was tried and dropped: lost in the smoke band it read as
+# stray brown chunks. The ceiling gets its fire from the smoke + the soot scars instead.)
+const WALL_FIRE_GAP := 104.0
+
+
+func wall_fire_spots() -> Array:
+	# [{x, scale, sd}] — pure (no drawing), so the test can read what would draw.
+	var out: Array = []
+	if stage < STAGE_BLAZE or _flame_tex.is_empty():
+		return out
+	var last_w := -1.0e9
+	var x := FIRE_MIN_X + 30.0
+	while x <= FIRE_MAX_X - 30.0:
+		if is_burning_at(x) and not _near_door(x) and not _in_stair_keepout(x):
+			var sd := float(floori(x / 21.0)) + float(floor_num) * 1.3
+			if (x - last_w) >= WALL_FIRE_GAP and _hash01(sd * 2.7) > 0.30 and _cell_kind(x) != 2:
+				out.append({"x": x, "scale": 2.4 + _hash01(sd * 3.3) * 1.2, "sd": sd})
+				last_w = x
+		x += 21.0
+	return out
+
+
+func _draw_wall_fire(canvas: CanvasItem) -> void:
+	var col := 0
+	for spot in wall_fire_spots():
+		col += 1
+		var tex: Texture2D = _flame_tex[int(_hash01(float(spot["sd"]) * 1.3) * float(_flame_tex.size())) % _flame_tex.size()]
+		_blit_anim(canvas, tex, TILE_PX, float(spot["x"]), BACK_SEAM_Y - 14.0, float(spot["scale"]), col, float(spot["sd"]), 0.95)
+
+
 func _char_scar(canvas: CanvasItem, i: int, cx: float) -> void:
 	# Where the fire burnt out: thin ragged SOOT STREAKS along the floor + a few ash flecks. Never
 	# blobs — opaque circles, then flat ellipses, both read as rows of black balls (owner round 8).
@@ -737,6 +771,7 @@ func _draw_back(canvas: CanvasItem) -> void:
 	_draw_ground_fire(canvas, BACK_SEAM_Y, 0.9, 0.0, 0.6, _tile_scale() * 0.58, -1.0, true, 0.0, 1)   # DEPTH bed (side 1), avoids doors
 	_draw_stair_fire(canvas)        # the THIRD plane — fire on the down-stairwell top step
 	_draw_tall_flames(canvas)
+	_draw_wall_fire(canvas)         # a blaze climbs the walls
 	# Smoke is the soft particle emitters under this layer (_sync_smoke) — no sprite plumes.
 
 

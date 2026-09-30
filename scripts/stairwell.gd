@@ -46,6 +46,10 @@ func _on_body_entered(body: Node2D) -> void:
 		if arrow:
 			arrow.visible = true
 		_show_listen_prompt()
+		if direction == "down":
+			var warn: String = WorldState.take_fire_warning(WorldState.current_floor)   # smoke on the stairs, once
+			if warn != "":
+				HUD.show_feedback(warn)
 		# Tutorial (first-run Floor 30): the descent is gated until the 3003
 		# neighbour is dealt with — nudge the player back toward the apartments.
 		if direction == "down" and TutorialManager.stairs_locked():

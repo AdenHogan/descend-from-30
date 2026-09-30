@@ -20,3 +20,6 @@
 - `impacts/glass_smash_*.wav` — procedurally generated glass smashes for thrown bottles (a crack, a
   bright noise burst and a cloud of decaying tinkles; `tools/gen_glass_audio.py`). **CC0.** Replace with
   a recorded smash later.
+- `zombie/shuffle_*.wav` — procedurally generated zombie footfalls (a low thump, a band-passed noise drag,
+  a wet creak on some; `tools/gen_zombie_steps.py`), played by `scripts/enemy_steps.gd`. **CC0.** Replace with
+  recorded shuffles later.

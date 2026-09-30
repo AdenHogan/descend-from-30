@@ -700,10 +700,14 @@ means no rendering — UI layout and art still need an in-editor look.
   shelters while its floor burns (`_merchant_pending_fire`) and emerges once it's dealt
   with; left burning, it's absent on that floor across runs. While sheltering it shows a
   **one-time non-interrupting line by the elevator** (`_process`, `_merchant_shelter_line_shown`)
-  so the shut doors read as its choice, not a bug. Still to build:
-  flames **on walls/ceiling/doors** (corridor flames only today), a fire
-  approach-warning beat, and the automatic run-advance that drives escalation
-  live. **F2** (all three hazards built)
+  so the shut doors read as its choice, not a bug. **Round 28b:** a BLAZE now
+  climbs the WALLS (`fire_field.wall_fire_spots` / `_draw_wall_fire` — tall flame tongues over burning
+  cells, behind the actors, off doorways + the stair zone; a ceiling version was tried and dropped, lost in
+  the smoke band), and the building WARNS you a fire is coming (`WorldState.fire_warning_line` /
+  `take_fire_warning`: the stairwell listen report gains a `fire_line` — its own key, the count line is a fixed table —
+  and stepping up to the down stairs says it once per floor per run). The escalation itself is driven live by the
+  run arc (`advance_run` on death / exit). Still to build: door flames spreading to the corridor walls beyond their
+  frame edges. **F2** (all three hazards built)
   rebuilds the current floor and dev-cycles off → barricade →
   horde → fire → off.
   **Terminology:** barricade = debris block (crowbar); horde = live-enemy block
@@ -1065,9 +1069,18 @@ means no rendering — UI layout and art still need an in-editor look.
   `enemy_variety_test._test_run_opening_grace`.
   `building_floors._spawn_corridor_boss` places it mid-corridor with the same
   memory/settle-374/pan-scenery rules as any big, key `boss:<floor>:<run>` (dropped by
-  `shift_building` like the stairwell/follower keys). Still to build: distinct AI beyond
-  the reskins (spitter kiting, crawler crawl-under), a distinct boss silhouette (art),
-  storied-room spawn reserve, descent boon on exit, night-darkness/lighting, character stats.
+  `shift_building` like the stairwell/follower keys). **ENEMY AI PASS (round 28b):** `enemy_zombie_standard._ai_override`
+  is a hook for types with their own tactics (returns true when it owned the frame). **Spitter KITING**
+  (`enemy_zombie_spitter`): under `KITE_MIN` 110px it backs away (faster than its advance, FACING you) until it has
+  `KITE_CLEAR` 160px, then is a turret again; cornered (a wall it hit, the corridor's ends 165 / 1190) it stands and spits.
+  **Crawler POUNCE** (`enemy_zombie_crawler`; my reading of "crawl-under" — say if you meant something else): inside
+  62-130px it COILS 0.55s (still, tinted — the tell), LEAPS 0.26s at 330 px/s, and bites at once (0.25s wind instead of
+  0.8s); a hit or shove breaks the coil, one pounce per 3.6s, never from the wall or while hurt. **Zombie SHUFFLE**
+  (`enemy_steps.gd`, three generated scuffs `assets/audio/zombie/shuffle_*.wav` via `tools/gen_zombie_steps.py`): a
+  positional footfall while an enemy actually moves, at a rate that follows its speed; silent on the stairs / clinging to
+  a wall. Locked by `enemy_variety_test` (`_test_shuffle_steps`, `_test_spitter_kites`, `_test_crawler_pounce`; the
+  kiting + pounce checks are mutation-proven). Still to build: a distinct boss silhouette (art), a "storied-room spawn
+  reserve" (never specified — needs the owner's intent).
 - DEV TOOLS — consolidated F1 menu (`scripts/dev_menu.gd`, on the HUD; gated by
   `DEV_MODE`): one paused button panel replacing the old scattered F1-F8 keys (which
   were unwieldy, and F8 is the editor's Stop shortcut so it closed the game). Buttons:

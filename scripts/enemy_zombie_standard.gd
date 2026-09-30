@@ -1066,6 +1066,13 @@ func receive_hit_from_gun(outcome: String) -> void:
 		"miss":
 			pass
 
+## Hook for enemy TYPES with their own tactics (spitter kiting, crawler pounce): called each frame the
+## enemy is in chase/idle with a live player, BEFORE the standard approach/attack choice. Return true if it
+## handled the frame (it must then set velocity + animation itself); the base returns false = no change.
+func _ai_override(_reach: float, _distance: float, _detection: float) -> bool:
+	return false
+
+
 func _physics_process(delta: float) -> void:
 	if is_dead:
 		return
@@ -1085,6 +1092,7 @@ func _physics_process(delta: float) -> void:
 		moan_player.stream = MOAN_STREAMS.pick_random()
 		moan_player.pitch_scale = voice_pitch * randf_range(0.95, 1.05)
 		moan_player.play()
+	EnemySteps.tick(self, delta, voice_pitch * 0.9)
 
 	# Stairwell horde: while idle up in the shaft, run the shuffle/slice; it returns
 	# false the frame it commits to coming down, so normal AI takes over seamlessly.
@@ -1195,7 +1203,9 @@ func _physics_process(delta: float) -> void:
 				var reach := _reach_to_player()
 				var crank: int = -1 if tutorial_scripted else ENEMY_CROWD.rank(self, player)
 				var stand: float = ENEMY_CROWD.stand_distance(crank, _attack_reach())
-				if crank > 0 and reach < stand - CROWD_BACKOFF_SLACK:
+				if _ai_override(reach, distance, effective_detection):
+					pass   # a subclass with its own tactics (spitter kiting, crawler pounce) owns this frame
+				elif crank > 0 and reach < stand - CROWD_BACKOFF_SLACK:
 					# too close for my place (a stack): shuffle back, still facing the player
 					state = "chase"
 					var face = sign(player.global_position.x - global_position.x)

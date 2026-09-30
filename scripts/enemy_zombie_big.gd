@@ -411,6 +411,7 @@ func _physics_process(delta: float) -> void:
 		moan_player.stream = MOAN_STREAMS.pick_random()
 		moan_player.pitch_scale = randf_range(0.60, 0.72)
 		moan_player.play()
+	EnemySteps.tick(self, delta, 0.62, -5.0)        # heavy: lower + louder than the standards
 
 	match state:
 		"hit":

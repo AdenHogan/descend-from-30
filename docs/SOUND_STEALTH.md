@@ -116,8 +116,9 @@ Focusing is dangerous. On listen start, one random roll:
 ## Open tasks
 
 - **Audio upgrade:** replace synth moans/gunshot/heartbeat with recorded
-  SFX (Freesound CC0 / OpenGameArt); add shuffle/drag loops while zombies
-  walk; ambient building tone per time-of-day.
+  SFX (Freesound CC0 / OpenGameArt); ambient building tone per time-of-day.
+  (The shuffle/drag footfalls while zombies walk are BUILT — `enemy_steps.gd`,
+  generated scuffs in `assets/audio/zombie/shuffle_*.wav`.)
 - **Art:** listen animations — cupping ear at a door / leaning over the
   stairwell rail (placeholder: crouch idle).
 - **Later:** thrown-can distraction routes through `emit_noise`; directional
