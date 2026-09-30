@@ -80,8 +80,14 @@ func _test_identity_and_stamina() -> void:
 	check(HUD.portrait.stretch_mode == TextureRect.STRETCH_KEEP_ASPECT_CENTERED and HUD.portrait.get_parent() == HUD.get_node("Control"),
 		"…the whole bust (no circular clip window, no ring round it)")
 	check(not ("health_ring" in HUD) and not ("_portrait_clip" in HUD), "…and the health ring / clip window are gone")
-	check(HUD.name_label.global_position.x > pr.end.x - 20.0 and HUD.name_label.global_position.y >= pr.position.y and HUD.condition_label.global_position.y >= pr.position.y,
-		"…with the name and condition beside it")
+	check(HUD.name_label.global_position.x > pr.end.x - 20.0 and HUD.name_label.global_position.y >= pr.position.y,
+		"…with the name beside it")
+	# no bloat text (owner round 26e): the portrait shows health, the wall sign shows the floor
+	check(not ("condition_label" in HUD) and not ("floor_caption" in HUD) and not ("floor_total_label" in HUD) and not ("time_label" in HUD) and not ("run_pips" in HUD),
+		"no condition word, no FLOOR / 30 / time-of-day text, no run pips")
+	check(not HUD.floor_label.visible, "the floor numeral never shows")
+	var wi: Rect2 = Rect2(HUD.wallet_icon.global_position, HUD.wallet_icon.size)
+	check(wi.position.x > HUD.SCREEN_W * 0.8 and wi.position.y < 60.0, "the wallet + notes count sit top-right, where the floor text was (%s)" % str(wi))
 	check(HUD.stamina_bar.global_position.y >= pr.position.y and HUD.stamina_bar.global_position.x > pr.end.x - 20.0,
 		"…and the stamina bar under them")
 	var mode_r: Rect2 = HUD.mode_label.get_global_rect()
@@ -150,23 +156,16 @@ func _test_cluster() -> void:
 	HUD.update_floor_label()
 	check(HUD.name_label != null and HUD.name_label.text == WorldState.character_display_name(WorldState.current_character()).to_upper(),
 		"the character's name is shown (%s)" % HUD.name_label.text)
-	check(HUD.condition_label.text == "Healthy", "…with their condition in words")
-	var conds: Array = []
 	var tex: Array = []
 	for st in range(6):
 		HUD.update_portrait(st)
-		conds.append(HUD.condition_label.text)
 		tex.append(HUD.portrait.texture)
-	check(conds[0] != conds[5] and tex[0] != tex[5], "health reads from the portrait art + the condition word at every stage (%s)" % str(conds))
+	check(tex[0] != tex[5] and tex[0] != tex[3] and tex[3] != tex[5], "health reads from the portrait art alone — a different bust at every worse stage")
 	HUD.update_portrait(0)
 	check(HUD.portrait.mouse_filter == Control.MOUSE_FILTER_STOP, "the portrait is still the button")
-	check(HUD.floor_label.text == str(WorldState.current_floor), "the floor numeral is top-right")
-	check(HUD.time_label.text == WorldState.time_of_day().to_upper() and HUD.run_pips.run == WorldState.current_run,
-		"…with the time of day and the run pips")
 	# nothing new may swallow a world click (click-to-move)
 	var stoppers: Array = []
-	for n in [HUD.name_label, HUD.condition_label, HUD.floor_label, HUD.floor_caption, HUD.floor_total_label, HUD.time_label,
-			HUD.run_pips, HUD.wallet_label, HUD.scrap_label, HUD.equipped_label, HUD.equipped_detail,
+	for n in [HUD.name_label, HUD.floor_label, HUD.wallet_label, HUD.scrap_label, HUD.equipped_label, HUD.equipped_detail,
 			HUD.wheel_hint, HUD.stamina_bar, HUD.quick_wheel, HUD.wallet_icon, HUD.scrap_icon]:
 		if n.mouse_filter == Control.MOUSE_FILTER_STOP:
 			stoppers.append(n.name)
@@ -186,6 +185,13 @@ func _test_cluster() -> void:
 	check(HUD.wallet_icon.visible and HUD.wallet_label.text == "140" and HUD.scrap_icon.visible and HUD.scrap_label.text == "35",
 		"unlocked: icon + number")
 	check(HUD.wallet_icon.texture != null and HUD.scrap_icon.texture != null, "…and both icons have art")
+	check(HUD.scrap_icon.position.y > HUD.wallet_icon.position.y and is_equal_approx(HUD.scrap_icon.position.x, HUD.wallet_icon.position.x),
+		"scrap sits on the row under the notes")
+	WorldState.wallet_unlocked = false
+	HUD.update_wallet()
+	check(is_equal_approx(HUD.scrap_icon.position.y, HUD.wallet_icon.position.y), "…and takes the first row while the wallet is still locked")
+	WorldState.wallet_unlocked = true
+	HUD.update_wallet()
 	# the in-hand line
 	WorldState.inventory.clear()
 	_give("002")

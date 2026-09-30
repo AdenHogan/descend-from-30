@@ -87,7 +87,9 @@ const HOTBAR_Y = 12.0
 const HOTBAR_W = SLOT_SIZE * 6 + 8 * 5
 const IDENT_Y = SCREEN_H - PORTRAIT_H - 4.0          # the bottom-left block's top edge
 const IDENT_TEXT_X = PORTRAIT_W + 16.0               # the name / condition / stamina column
-const BOTTOM_TEXT_Y = SCREEN_H - 56.0                # notes / scrap sit low, under the floor line
+const CURRENCY_X = SCREEN_W - CLUSTER_MARGIN - 124.0   # top-right: notes + scrap (icon, then the number)
+const CURRENCY_Y = 12.0
+const CURRENCY_ROW = 34.0
 const PACK_BTN_W = 64.0
 const PACK_BTN_H = 78.0
 const INK := Color(0.075, 0.07, 0.085, 1.0)
@@ -97,11 +99,6 @@ const TEXT_DIM := Color(0.64, 0.61, 0.53, 1.0)
 const HEALTH_HINTS := ["Steady", "Walking it off", "Hurting", "Bleeding", "Barely standing", "Dying"]
 
 var name_label: Label = null
-var condition_label: Label = null
-var floor_caption: Label = null
-var floor_total_label: Label = null
-var time_label: Label = null
-var run_pips: Control = null
 var wallet_icon: TextureRect = null
 var scrap_icon: TextureRect = null
 var equipped_label: Label = null
@@ -155,15 +152,10 @@ func _layout() -> void:
 	color_rect.visible = false
 	color_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-	# FLOOR — top-right: caption, the big numeral (this is floor_label), "/ 30".
-	floor_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	floor_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	floor_label.add_theme_font_size_override("font_size", 56)
-	floor_label.add_theme_color_override("font_color", Color(0.93, 0.89, 0.82))
-	floor_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
-	floor_label.add_theme_constant_override("outline_size", 6)
-	floor_label.size = Vector2(150, 64)
-	floor_label.position = Vector2(SCREEN_W - CLUSTER_MARGIN - 62 - 150, 22)
+	# No floor / time / run text any more (owner round 26e: "extra bloat that isn't clean" — the floor is
+	# announced on the stairs, and the sign on the wall says it). The scene's FloorLabel node stays (many
+	# callers still `update_floor_label()`) but never shows; the top-right is the wallet + scrap now.
+	floor_label.visible = false
 
 	# The hotbar floats top-centre (there is no bar to sit in).
 	hbox.set_anchors_preset(Control.PRESET_TOP_LEFT)        # the scene anchors it right-centre; pin it where we say
@@ -210,23 +202,11 @@ func _create_cluster() -> void:
 	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	portrait.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	var tx: float = IDENT_TEXT_X
-	name_label = _hud_label("", 16, Color(0.93, 0.89, 0.82), Vector2(tx, IDENT_Y + 46.0), Vector2(240, 22))
-	condition_label = _hud_label("", 13, Color(0.91, 0.71, 0.42), Vector2(tx, IDENT_Y + 69.0), Vector2(240, 18))
-
-	# --- top-right: FLOOR, the numeral (floor_label), "/ 30", time of day + run pips ---
-	var right: float = SCREEN_W - CLUSTER_MARGIN
-	floor_caption = _hud_label("FLOOR", 12, TEXT_DIM, Vector2(right - 230, 10), Vector2(230, 16), HORIZONTAL_ALIGNMENT_RIGHT)
-	floor_total_label = _hud_label("/ 30", 20, TEXT_DIM, Vector2(right - 58, 46), Vector2(58, 28))
-	time_label = _hud_label("", 14, AMBER, Vector2(right - 230, 90), Vector2(230, 20), HORIZONTAL_ALIGNMENT_RIGHT)
-	run_pips = preload("res://scripts/hud_run_pips.gd").new()
-	run_pips.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	run_pips.position = Vector2(right - run_pips.width(), 114)
-	run_pips.size = Vector2(run_pips.width(), 14)
-	$Control.add_child(run_pips)
+	name_label = _hud_label("", 16, Color(0.93, 0.89, 0.82), Vector2(tx, IDENT_Y + 58.0), Vector2(240, 22))
 
 	# --- under the stamina bar: the mode toggle + what's in hand; bottom-right: the wheel's key hint ---
-	equipped_label = _hud_label("", 14, Color(0.93, 0.89, 0.82), Vector2(IDENT_TEXT_X + 122.0, IDENT_Y + 118.0), Vector2(176, 20))
-	equipped_detail = _hud_label("", 12, TEXT_DIM, Vector2(IDENT_TEXT_X + 4.0, IDENT_Y + 142.0), Vector2(230, 18))
+	equipped_label = _hud_label("", 14, Color(0.93, 0.89, 0.82), Vector2(IDENT_TEXT_X + 122.0, IDENT_Y + 112.0), Vector2(176, 20))
+	equipped_detail = _hud_label("", 12, TEXT_DIM, Vector2(IDENT_TEXT_X + 4.0, IDENT_Y + 136.0), Vector2(230, 18))
 	var pack_left: float = SCREEN_W - CLUSTER_MARGIN - PACK_BTN_W
 	wheel_hint = _hud_label("", 12, TEXT_DIM, Vector2(pack_left - 264.0, SCREEN_H - 24.0), Vector2(250, 18), HORIZONTAL_ALIGNMENT_RIGHT)
 
@@ -260,7 +240,7 @@ func _create_mode_label() -> void:
 	mode_label.focus_mode = Control.FOCUS_NONE
 	mode_label.add_theme_font_size_override("font_size", 14)
 	mode_label.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	mode_label.position = Vector2(IDENT_TEXT_X - 4.0, IDENT_Y + 112.0)
+	mode_label.position = Vector2(IDENT_TEXT_X - 4.0, IDENT_Y + 106.0)
 	mode_label.size = Vector2(124, 24)
 	mode_label.custom_minimum_size = Vector2(124, 24)
 	mode_label.pressed.connect(_on_mode_button)
@@ -534,7 +514,7 @@ func _create_stamina_bar() -> void:
 	# ONE continuous bar (hud_stamina.gd) under the portrait's name — it drains and refills smoothly off
 	# the same stamina numbers as always; nothing about the drain or regen changed.
 	stamina_bar = preload("res://scripts/hud_stamina.gd").new()
-	stamina_bar.position = Vector2(IDENT_TEXT_X, IDENT_Y + 94.0)
+	stamina_bar.position = Vector2(IDENT_TEXT_X, IDENT_Y + 88.0)
 	stamina_bar.size = Vector2(STAMINA_BAR_W, STAMINA_BAR_H)
 	$Control.add_child(stamina_bar)
 
@@ -546,7 +526,7 @@ func _currency_icon(item_id: String, x: float) -> TextureRect:
 	t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	t.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	t.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	t.position = Vector2(x, BOTTOM_TEXT_Y - 2.0)
+	t.position = Vector2(x, CURRENCY_Y)
 	t.size = Vector2(28, 28)
 	t.visible = false
 	$Control.add_child(t)
@@ -554,10 +534,9 @@ func _currency_icon(item_id: String, x: float) -> TextureRect:
 
 
 func _create_wallet_label() -> void:
-	# Notes: the wallet's balance, an icon + a number, bottom-right of the strip (the top-right wall carries the lift's own floor indicator).
-	var right: float = SCREEN_W - CLUSTER_MARGIN - PACK_BTN_W - 16.0      # left of the backpack button
-	wallet_icon = _currency_icon("033", right - 186)
-	wallet_label = _hud_label("", 16, Color(0.56, 0.84, 0.54), Vector2(right - 154, BOTTOM_TEXT_Y + 1.0), Vector2(84, 22))
+	# Notes: the wallet's balance, a small icon + the number, TOP-RIGHT (where the floor / time text used to be).
+	wallet_icon = _currency_icon("033", CURRENCY_X)
+	wallet_label = _hud_label("", 18, Color(0.56, 0.84, 0.54), Vector2(CURRENCY_X + 34.0, CURRENCY_Y + 2.0), Vector2(90, 24))
 	wallet_label.visible = false
 	update_wallet()
 
@@ -585,10 +564,9 @@ func _create_dev_menu() -> void:
 
 
 func _create_scrap_label() -> void:
-	# Scrap: same treatment, one block to the right of the notes (docs/SCRAP_UPGRADES.md).
-	var right: float = SCREEN_W - CLUSTER_MARGIN - PACK_BTN_W - 16.0
-	scrap_icon = _currency_icon("037", right - 62)
-	scrap_label = _hud_label("", 16, Color(0.85, 0.75, 0.5), Vector2(right - 30, BOTTOM_TEXT_Y + 1.0), Vector2(30, 22))
+	# Scrap: the same treatment, on the row under the notes (docs/SCRAP_UPGRADES.md).
+	scrap_icon = _currency_icon("037", CURRENCY_X)
+	scrap_label = _hud_label("", 18, Color(0.85, 0.75, 0.5), Vector2(CURRENCY_X + 34.0, CURRENCY_Y + 2.0), Vector2(90, 24))
 	scrap_label.visible = false
 	update_scrap()
 
@@ -629,6 +607,16 @@ func update_scrap() -> void:
 	if scrap_icon != null:
 		scrap_icon.visible = WorldState.scrap_unlocked
 	scrap_label.text = str(WorldState.scrap)
+	_layout_currency()
+
+
+## Notes on the first row, scrap under it — or scrap alone on the first row while the wallet is still locked.
+func _layout_currency() -> void:
+	if scrap_label == null or scrap_icon == null:
+		return
+	var row: float = 1.0 if WorldState.wallet_unlocked else 0.0
+	scrap_icon.position = Vector2(CURRENCY_X, CURRENCY_Y + CURRENCY_ROW * row)
+	scrap_label.position = Vector2(CURRENCY_X + 34.0, CURRENCY_Y + CURRENCY_ROW * row + 2.0)
 
 
 func update_wallet() -> void:
@@ -638,6 +626,7 @@ func update_wallet() -> void:
 	if wallet_icon != null:
 		wallet_icon.visible = WorldState.wallet_unlocked
 	wallet_label.text = str(WorldState.wallet_balance)
+	_layout_currency()
 
 
 func update_stamina(current: float, maximum: float) -> void:
@@ -1145,7 +1134,7 @@ func _fade_identity_over_player(delta: float) -> void:
 		var sp: Vector2 = get_viewport().get_canvas_transform() * (pl as Node2D).global_position
 		under = block.grow(20.0).has_point(sp)
 	var a: float = IDENT_FADE_ALPHA if under else 1.0
-	for n in [portrait, name_label, condition_label, stamina_bar, mode_label, equipped_label, equipped_detail]:
+	for n in [portrait, name_label, stamina_bar, mode_label, equipped_label, equipped_detail]:
 		if n != null and is_instance_valid(n):
 			n.modulate.a = lerpf(n.modulate.a, a, clampf(delta * 8.0, 0.0, 1.0))
 
@@ -1262,17 +1251,7 @@ func _make_slot_style(locked: bool) -> StyleBoxFlat:
 	return style
 
 func update_floor_label() -> void:
-	floor_label.text = str(WorldState.current_floor)
-	_update_time_cluster()
-
-
-func _update_time_cluster() -> void:
-	# The time-of-day word + the run pips (which of the three characters this is) under the floor.
-	if time_label != null:
-		time_label.text = WorldState.time_of_day().to_upper()
-	if run_pips != null:
-		run_pips.set_run(WorldState.current_run)
-	update_wheel_hint()
+	floor_label.text = str(WorldState.current_floor)          # hidden (see _layout) — kept for the many callers
 
 func _ensure_portraits() -> void:
 	# Load the current run's character's 6 portrait stages, reloading when the run's
@@ -1294,10 +1273,6 @@ func update_portrait(health_index: int) -> void:
 	_health_stage = clampi(health_index, 0, HEALTH_HINTS.size() - 1)
 	if name_label != null:
 		name_label.text = WorldState.character_display_name(_loaded_char).to_upper()
-	if condition_label != null:
-		condition_label.text = WorldState.HEALTH_WORDS[_health_stage]
-		condition_label.add_theme_color_override("font_color", _stage_colour(_health_stage))
-	_update_time_cluster()
 
 
 # --- Portrait-as-button (hover glow + bounce, click opens the character profile) ----------
