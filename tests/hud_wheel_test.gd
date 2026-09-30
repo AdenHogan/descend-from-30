@@ -26,6 +26,7 @@ func _ready() -> void:
 	await get_tree().process_frame
 	_test_geometry()
 	await _test_cluster()
+	await _test_identity_and_stamina()
 	await _test_wheel()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
@@ -66,6 +67,60 @@ func _test_geometry() -> void:
 				ok = false
 				print("    round-trip broke at n=%d k=%d" % [n, k])
 	check(ok, "every slot's position maps back to its own wedge, for 1..6 items")
+
+
+func _test_identity_and_stamina() -> void:
+	print("[identity bottom-left + the single stamina bar]")
+	WorldState.new_game()
+	await get_tree().process_frame
+	var ring: Rect2 = Rect2(HUD.health_ring.global_position, HUD.health_ring.size)
+	check(ring.position.x < 40.0 and ring.position.y >= HUD.STRIP_TOP and ring.end.y <= HUD.SCREEN_H,
+		"the portrait ring sits bottom-left, inside the strip (%s)" % str(ring))
+	check(HUD.name_label.global_position.y >= HUD.STRIP_TOP and HUD.condition_label.global_position.y >= HUD.STRIP_TOP,
+		"…with the name and condition beside it, in the strip")
+	check(HUD.stamina_bar.global_position.y >= HUD.STRIP_TOP and HUD.stamina_bar.global_position.x < HUD.slots[0].global_position.x,
+		"…and the stamina bar under them, left of the hotbar")
+	var mode_r: Rect2 = HUD.mode_label.get_global_rect()
+	check(mode_r.end.y <= HUD.slots[0].global_position.y and mode_r.position.x >= HUD.slots[0].global_position.x - 8.0,
+		"the mode toggle is a slim line just above the hotbar")
+	check(HUD.equipped_label.global_position.y < HUD.slots[0].global_position.y, "…with the in-hand line beside it")
+	# the health ring is ONE arc, quiet when healthy and loud when hurt
+	var HealthRing = preload("res://scripts/hud_ring.gd")
+	check(HealthRing.COLOURS[0].a < 0.7 and HealthRing.COLOURS[3].a > 0.95, "the ring is muted when healthy and solid when hurt")
+	check(HealthRing.STROKE <= 6.0, "…and thin (stroke %.0f)" % HealthRing.STROKE)
+	# the stamina bar: one continuous bar off the same numbers
+	var bar = HUD.stamina_bar
+	check(bar.get_script().resource_path.ends_with("hud_stamina.gd"), "the stamina gauge is one continuous bar")
+	check(bar.get_child_count() == 0, "…not a row of segments")
+	HUD.update_stamina(100.0, 100.0)
+	bar.shown = 1.0
+	bar.tail = 1.0
+	HUD.update_stamina(40.0, 100.0)
+	check(is_equal_approx(bar.target, 0.4), "it reads the same stamina numbers (target %.2f)" % bar.target)
+	bar._process(1.0 / 60.0)
+	check(bar.shown > 0.4 and bar.tail > bar.shown, "spending: the fill hasn't snapped down — it eases (%.2f), and a tail trails behind (%.2f)" % [bar.shown, bar.tail])
+	for i in range(60):
+		bar._process(1.0 / 60.0)
+	check(absf(bar.shown - 0.4) < 0.01, "…it drains smoothly to the true value (%.3f)" % bar.shown)
+	check(absf(bar.tail - bar.shown) < 0.05, "…and the tail catches up after a beat (%.3f)" % bar.tail)
+	HUD.update_stamina(90.0, 100.0)
+	check(bar.is_recharging(), "recharging: the bar knows it is refilling")
+	for i in range(90):
+		bar._process(1.0 / 60.0)
+	check(absf(bar.shown - 0.9) < 0.01 and not bar.is_recharging(), "…and it fills smoothly back up (%.3f)" % bar.shown)
+	var Bar = preload("res://scripts/hud_stamina.gd")
+	check(Bar.colour_for(0.8) == Bar.CALM and Bar.colour_for(0.5) == Bar.CALM, "plenty of stamina reads calm, not alarming")
+	check(Bar.colour_for(0.2) != Bar.CALM and Bar.colour_for(0.02).r > Bar.colour_for(0.02).g, "…warming to red only as it runs low")
+	HUD.update_stamina(3.0, 100.0)
+	check(bar.is_spent(), "a spent player is flagged (the bar pulses)")
+	# real time: a slowed game must not freeze it
+	Engine.time_scale = 0.2
+	var before: float = bar.shown
+	for i in range(30):
+		bar._process(1.0 / 60.0 * 0.2)
+	Engine.time_scale = 1.0
+	check(bar.shown < before, "it keeps flowing in the quick wheel's slow motion")
+	HUD.update_stamina(WorldState.stamina, WorldState.get_max_stamina())
 
 
 func _test_cluster() -> void:

@@ -59,16 +59,14 @@ var drag_active: bool = false
 var drag_icon: TextureRect = null
 
 var stamina_bar: Control = null
-var stamina_segments: Array = []
 var wallet_label: Label = null
 var scrap_label: Label = null
 var boon_badge: Button = null          # "a boon is waiting" — click to choose (docs/PROGRESSION.md)
 var boon_ui = null
 var slot_level_labels: Array = []
 var listen_overlay: CanvasLayer = null
-const STAMINA_SEGMENTS = 8
-const STAMINA_BAR_W = 150.0            # the stamina gauge lies flat under the portrait now (corner cluster)
-const STAMINA_BAR_H = 8.0
+const STAMINA_BAR_W = 196.0            # the stamina bar lies under the portrait's name (bottom-left)
+const STAMINA_BAR_H = 10.0
 
 const SCREEN_W = 1152.0
 const SCREEN_H = 648.0
@@ -80,8 +78,8 @@ const STRIP_TOP = SCREEN_H - BAR_H - 40.0   # 528: the world ends here (cameras 
 # top-right, the hotbar floating centre of the (still opaque) bottom strip. Nothing about WHERE the
 # world is drawn changes — only what sits on the HUD.
 const CLUSTER_MARGIN = 16.0
-const RING_SIZE = 128.0
-const PORTRAIT_D = 92.0
+const RING_SIZE = 104.0
+const PORTRAIT_D = 78.0
 const INK := Color(0.075, 0.07, 0.085, 1.0)
 const PANEL_EDGE := Color(0.29, 0.275, 0.32, 1.0)
 const AMBER := Color(0.89, 0.647, 0.247, 1.0)
@@ -206,7 +204,8 @@ func _create_cluster() -> void:
 	# --- top-left: the segmented health ring with the portrait inside it ---
 	health_ring = preload("res://scripts/hud_ring.gd").new()
 	health_ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	health_ring.position = Vector2(CLUSTER_MARGIN - 2, CLUSTER_MARGIN - 6)
+	# BOTTOM-LEFT (owner: "I still want the player on the bottom left"): the portrait sits in the strip's corner.
+	health_ring.position = Vector2(CLUSTER_MARGIN - 4, SCREEN_H - RING_SIZE - 8.0)
 	health_ring.size = Vector2(RING_SIZE, RING_SIZE)
 	$Control.add_child(health_ring)
 	# The portrait is masked to a circle by a clipping parent (its own alpha is the mask), then
@@ -223,9 +222,9 @@ func _create_cluster() -> void:
 	portrait.size = Vector2(PORTRAIT_D, PORTRAIT_D)
 	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	var tx: float = health_ring.position.x + RING_SIZE + 8.0
-	name_label = _hud_label("", 18, Color(0.93, 0.89, 0.82), Vector2(tx, 30), Vector2(260, 24))
-	condition_label = _hud_label("", 14, Color(0.91, 0.71, 0.42), Vector2(tx, 54), Vector2(260, 20))
+	var tx: float = health_ring.position.x + RING_SIZE + 6.0
+	name_label = _hud_label("", 16, Color(0.93, 0.89, 0.82), Vector2(tx, STRIP_TOP + 14), Vector2(220, 22))
+	condition_label = _hud_label("", 13, Color(0.91, 0.71, 0.42), Vector2(tx, STRIP_TOP + 37), Vector2(220, 18))
 
 	# --- top-right: FLOOR, the numeral (floor_label), "/ 30", time of day + run pips ---
 	var right: float = SCREEN_W - CLUSTER_MARGIN
@@ -238,9 +237,10 @@ func _create_cluster() -> void:
 	run_pips.size = Vector2(run_pips.width(), 14)
 	$Control.add_child(run_pips)
 
-	# --- bottom-left of the strip: mode + what's in hand; bottom-right: the wheel's key hint ---
-	equipped_label = _hud_label("", 16, Color(0.93, 0.89, 0.82), Vector2(CLUSTER_MARGIN + 8, STRIP_TOP + 62), Vector2(330, 22))
-	equipped_detail = _hud_label("", 12, TEXT_DIM, Vector2(CLUSTER_MARGIN + 8, STRIP_TOP + 84), Vector2(330, 18))
+	# --- a slim line just above the hotbar: mode toggle + what's in hand; bottom-right: the wheel's key hint ---
+	var hb_x: float = hbox.position.x
+	equipped_label = _hud_label("", 14, Color(0.93, 0.89, 0.82), Vector2(hb_x + 124.0, STRIP_TOP + 6.0), Vector2(176, 20))
+	equipped_detail = _hud_label("", 12, TEXT_DIM, Vector2(hb_x + 300.0, STRIP_TOP + 8.0), Vector2(124, 18), HORIZONTAL_ALIGNMENT_RIGHT)
 	wheel_hint = _hud_label("", 12, TEXT_DIM, Vector2(SCREEN_W - CLUSTER_MARGIN - 250, STRIP_TOP + 84), Vector2(250, 18), HORIZONTAL_ALIGNMENT_RIGHT)
 
 
@@ -272,11 +272,11 @@ func _create_mode_label() -> void:
 	mode_label = Button.new()
 	mode_label.flat = true
 	mode_label.focus_mode = Control.FOCUS_NONE
-	mode_label.add_theme_font_size_override("font_size", 18)
+	mode_label.add_theme_font_size_override("font_size", 14)
 	mode_label.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	mode_label.position = Vector2(CLUSTER_MARGIN, STRIP_TOP + 14)
-	mode_label.size = Vector2(200, 40)
-	mode_label.custom_minimum_size = Vector2(200, 40)
+	mode_label.position = Vector2(hbox.position.x - 4.0, STRIP_TOP)
+	mode_label.size = Vector2(124, 24)
+	mode_label.custom_minimum_size = Vector2(124, 24)
 	mode_label.pressed.connect(_on_mode_button)
 	$Control.add_child(mode_label)
 
@@ -545,21 +545,13 @@ func _create_context_menu() -> void:
 	$Control.add_child(context_menu)
 
 func _create_stamina_bar() -> void:
-	stamina_bar = Control.new()
-	stamina_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	stamina_bar.position = Vector2(CLUSTER_MARGIN + RING_SIZE + 6, 84)
+	# ONE continuous bar (hud_stamina.gd) under the portrait's name — it drains and refills smoothly off
+	# the same stamina numbers as always; nothing about the drain or regen changed.
+	stamina_bar = preload("res://scripts/hud_stamina.gd").new()
+	stamina_bar.position = Vector2(health_ring.position.x + RING_SIZE + 6.0, STRIP_TOP + 68.0)
 	stamina_bar.size = Vector2(STAMINA_BAR_W, STAMINA_BAR_H)
 	$Control.add_child(stamina_bar)
 
-	var segment_w = (STAMINA_BAR_W - (STAMINA_SEGMENTS - 1) * 2) / STAMINA_SEGMENTS
-	for i in range(STAMINA_SEGMENTS):
-		var seg = ColorRect.new()
-		seg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		seg.size = Vector2(segment_w, STAMINA_BAR_H)
-		seg.position = Vector2(i * (segment_w + 2), 0)
-		seg.color = Color(0.2, 0.8, 0.4, 1.0)
-		stamina_bar.add_child(seg)
-		stamina_segments.append(seg)
 
 func _currency_icon(item_id: String, x: float) -> TextureRect:
 	var t := TextureRect.new()
@@ -620,7 +612,7 @@ func _create_boon_badge() -> void:
 	# until the player clicks it (arriving mid-fight or mid-stair-pan must not pause the game).
 	boon_badge = Button.new()
 	boon_badge.text = "★ BOON"
-	boon_badge.position = Vector2(CLUSTER_MARGIN + RING_SIZE + 6, 100)
+	boon_badge.position = Vector2(CLUSTER_MARGIN, STRIP_TOP - 38.0)      # over the strip's corner, above the portrait
 	boon_badge.size = Vector2(150, 30)
 	boon_badge.mouse_filter = Control.MOUSE_FILTER_STOP
 	boon_badge.add_theme_color_override("font_color", Color(1.0, 0.85, 0.35))
@@ -663,24 +655,8 @@ func update_wallet() -> void:
 
 
 func update_stamina(current: float, maximum: float) -> void:
-	if stamina_segments.is_empty():
-		return
-	var ratio = current / maximum
-	var filled = int(round(ratio * STAMINA_SEGMENTS))
-	# All filled bars share one colour, chosen by how many bars are filled:
-	# 1-2 = red, 3-4 = yellow, 5+ = green. Avoids per-segment gradient flicker.
-	var band: Color
-	if filled <= 2:
-		band = Color(0.9, 0.2, 0.2, 1.0)
-	elif filled <= 4:
-		band = Color(0.9, 0.7, 0.1, 1.0)
-	else:
-		band = Color(0.2, 0.8, 0.4, 1.0)
-	for i in range(STAMINA_SEGMENTS):
-		if i < filled:
-			stamina_segments[i].color = band
-		else:
-			stamina_segments[i].color = Color(0.15, 0.15, 0.15, 1.0)
+	if stamina_bar != null and stamina_bar.has_method("set_values"):
+		stamina_bar.set_values(current, maximum)
 
 # --- smoke fog (reduced visibility while standing in a blaze's smoke) --------
 var smoke_fog_rect: TextureRect = null

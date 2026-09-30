@@ -1841,6 +1841,16 @@ means no rendering — UI layout and art still need an in-editor look.
   so a pause can close it — death, a cutscene, escaping, an emptied bag, the HUD hiding, the node leaving the tree)
   restores the time scale it found; it refuses to open when paused / dead / in a cutscene / a modal, loot panel,
   dialogue or the journal is up. Locked by `hud_wheel_test`. `tools/scene_capture.tscn` has `wheel:<k|-1|x>`.
+  **REVISED (owner round 26b — "too many green nodes around the player icon. I still want the player on the bottom
+  left… a single dynamic stamina bar that depletes and fills"):** the identity block MOVED to the strip's bottom-left
+  (ring 104 / portrait 78; name + condition + the stamina bar beside it, all in the strip; the "★ BOON" badge sits above
+  it). The health ring is now ONE thin continuous arc (`hud_ring.gd`: stroke 5, swept for 10/8/6/4/2/1 tenths — `lit_segments()`
+  kept), muted + half-transparent when healthy and only loud (amber → red, pulsing at the last two stages) as you're hurt.
+  Stamina is ONE continuous bar (`hud_stamina.gd`, fed the same `WorldState.stamina` numbers — the drain/regen maths is
+  untouched): the fill eases to the true value in real time, a lighter TAIL trails what you just spent and catches up
+  after 0.28 s, a soft highlight sweeps while it recharges, calm gold → amber → red only below 28 %, pulsing when spent.
+  The mode toggle + in-hand line are a slim row just above the hotbar (`mode_label` at STRIP_TOP, `equipped_label/detail`
+  beside it). The 8 `stamina_segments` are gone. Locked by `hud_wheel_test._test_identity_and_stamina`.
   Not built (concept-1/4 leftovers): the selected hotbar slot doesn't lift; no stick/number-key selection on the
   wheel; the strip is still a strip (a taller camera frame would let the world fill the screen — a bigger change).
 - MOTION (owner round 26 — "animations for certain items like the dripping milk or flowers moving in the wind";
