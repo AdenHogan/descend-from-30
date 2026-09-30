@@ -73,21 +73,40 @@ func _test_identity_and_stamina() -> void:
 	print("[identity bottom-left + the single stamina bar]")
 	WorldState.new_game()
 	await get_tree().process_frame
-	var ring: Rect2 = Rect2(HUD.health_ring.global_position, HUD.health_ring.size)
-	check(ring.position.x < 40.0 and ring.position.y >= HUD.STRIP_TOP and ring.end.y <= HUD.SCREEN_H,
-		"the portrait ring sits bottom-left, inside the strip (%s)" % str(ring))
-	check(HUD.name_label.global_position.y >= HUD.STRIP_TOP and HUD.condition_label.global_position.y >= HUD.STRIP_TOP,
-		"…with the name and condition beside it, in the strip")
-	check(HUD.stamina_bar.global_position.y >= HUD.STRIP_TOP and HUD.stamina_bar.global_position.x < HUD.slots[0].global_position.x,
-		"…and the stamina bar under them, left of the hotbar")
+	var pr: Rect2 = HUD.portrait.get_global_rect()
+	check(pr.position.x < 40.0 and pr.end.y <= HUD.SCREEN_H and pr.position.y > HUD.SCREEN_H * 0.6,
+		"the portrait sits in the bottom-left corner (%s)" % str(pr))
+	check(pr.size.x >= 120.0 and pr.size.y >= 150.0, "…LARGE and uncropped, not a small circle (%.0f x %.0f)" % [pr.size.x, pr.size.y])
+	check(HUD.portrait.stretch_mode == TextureRect.STRETCH_KEEP_ASPECT_CENTERED and HUD.portrait.get_parent() == HUD.get_node("Control"),
+		"…the whole bust (no circular clip window, no ring round it)")
+	check(not ("health_ring" in HUD) and not ("_portrait_clip" in HUD), "…and the health ring / clip window are gone")
+	check(HUD.name_label.global_position.x > pr.end.x - 20.0 and HUD.name_label.global_position.y >= pr.position.y and HUD.condition_label.global_position.y >= pr.position.y,
+		"…with the name and condition beside it")
+	check(HUD.stamina_bar.global_position.y >= pr.position.y and HUD.stamina_bar.global_position.x > pr.end.x - 20.0,
+		"…and the stamina bar under them")
 	var mode_r: Rect2 = HUD.mode_label.get_global_rect()
-	check(mode_r.end.y <= HUD.slots[0].global_position.y and mode_r.position.x >= HUD.slots[0].global_position.x - 8.0,
-		"the mode toggle is a slim line just above the hotbar")
-	check(HUD.equipped_label.global_position.y < HUD.slots[0].global_position.y, "…with the in-hand line beside it")
-	# the health ring is ONE arc, quiet when healthy and loud when hurt
-	var HealthRing = preload("res://scripts/hud_ring.gd")
-	check(HealthRing.COLOURS[0].a < 0.7 and HealthRing.COLOURS[3].a > 0.95, "the ring is muted when healthy and solid when hurt")
-	check(HealthRing.STROKE <= 6.0, "…and thin (stroke %.0f)" % HealthRing.STROKE)
+	check(mode_r.position.y > HUD.stamina_bar.global_position.y and mode_r.position.x > pr.end.x - 20.0 and HUD.equipped_detail.global_position.y > HUD.stamina_bar.global_position.y,
+		"the mode toggle and the in-hand line sit under the stamina bar")
+	check(not HUD.color_rect.visible, "the opaque bottom bar is GONE")
+	check(not HUD.hotbar_visible and not HUD.hbox.visible and HUD.hotbar_rect().size == Vector2.ZERO,
+		"and so is the hotbar (redundant with the wheels) — hidden by default")
+	var pb: Rect2 = HUD.pack_button.get_global_rect()
+	check(pb.position.x > HUD.SCREEN_W * 0.85 and pb.end.y <= HUD.SCREEN_H and pb.position.y > HUD.SCREEN_H * 0.7,
+		"the backpack button is the bottom-right corner (%s)" % str(pb))
+	check(HUD.inventory_drop_rect().has_point(pb.get_center()), "…and dropping a loot item on it takes it into the pack")
+	# with no bar there is no "HUD band": only real widgets are HUD, the rest of the screen is the world
+	check(not HUD.pointer_over_widget(Vector2(576, 620)) and not HUD.pointer_over_widget(Vector2(576, 330)) and not HUD.pointer_over_widget(Vector2(576, 40)),
+		"the bottom (and top) of the screen is the WORLD, not HUD (a click there is a world click)")
+	check(HUD.pointer_over_widget(pb.get_center()) and HUD.pointer_over_widget(mode_r.get_center()) and HUD.pointer_over_widget(pr.get_center()),
+		"…while the pack, the mode toggle and the portrait still are")
+	# the optional hotbar still works when turned on
+	HUD.set_hotbar_visible(true)
+	await get_tree().process_frame
+	var r0: Rect2 = HUD.slots[0].get_global_rect()
+	var r5: Rect2 = HUD.slots[5].get_global_rect()
+	check(HUD.hbox.visible and HUD.pointer_over_widget(r0.get_center()) and absf(r0.position.x - (HUD.SCREEN_W - r5.end.x)) < 3.0 and r5.end.y <= 100.0,
+		"(opt-in) the hotbar returns centred at the top, and is then a HUD widget")
+	HUD.set_hotbar_visible(false)
 	# the stamina bar: one continuous bar off the same numbers
 	var bar = HUD.stamina_bar
 	check(bar.get_script().resource_path.ends_with("hud_stamina.gd"), "the stamina gauge is one continuous bar")
@@ -130,29 +149,24 @@ func _test_cluster() -> void:
 	HUD.update_portrait(0)
 	HUD.update_floor_label()
 	check(HUD.name_label != null and HUD.name_label.text == WorldState.character_display_name(WorldState.current_character()).to_upper(),
-		"the character's name is top-left (%s)" % HUD.name_label.text)
+		"the character's name is shown (%s)" % HUD.name_label.text)
 	check(HUD.condition_label.text == "Healthy", "…with their condition in words")
-	var lit: Array = []
+	var conds: Array = []
+	var tex: Array = []
 	for st in range(6):
 		HUD.update_portrait(st)
-		lit.append(HUD.health_ring.lit_segments())
-	check(lit == [10, 8, 6, 4, 2, 1], "the health ring lights fewer pips at every worse stage (%s)" % str(lit))
+		conds.append(HUD.condition_label.text)
+		tex.append(HUD.portrait.texture)
+	check(conds[0] != conds[5] and tex[0] != tex[5], "health reads from the portrait art + the condition word at every stage (%s)" % str(conds))
 	HUD.update_portrait(0)
 	check(HUD.portrait.mouse_filter == Control.MOUSE_FILTER_STOP, "the portrait is still the button")
-	check(HUD.portrait.get_parent() == HUD._portrait_clip and HUD._portrait_clip.clip_children == CanvasItem.CLIP_CHILDREN_ONLY,
-		"…and it sits in a circular clip window")
 	check(HUD.floor_label.text == str(WorldState.current_floor), "the floor numeral is top-right")
 	check(HUD.time_label.text == WorldState.time_of_day().to_upper() and HUD.run_pips.run == WorldState.current_run,
 		"…with the time of day and the run pips")
-	# the hotbar floats centred in the strip
-	var r0: Rect2 = HUD.slots[0].get_global_rect()
-	var r5: Rect2 = HUD.slots[5].get_global_rect()
-	check(absf((r0.position.x - 0.0) - (HUD.SCREEN_W - r5.end.x)) < 3.0, "the hotbar is centred (left gap %.0f, right gap %.0f)" % [r0.position.x, HUD.SCREEN_W - r5.end.x])
-	check(r0.position.y >= HUD.STRIP_TOP and r0.end.y <= HUD.SCREEN_H, "…and sits inside the bottom strip")
 	# nothing new may swallow a world click (click-to-move)
 	var stoppers: Array = []
 	for n in [HUD.name_label, HUD.condition_label, HUD.floor_label, HUD.floor_caption, HUD.floor_total_label, HUD.time_label,
-			HUD.run_pips, HUD.health_ring, HUD.wallet_label, HUD.scrap_label, HUD.equipped_label, HUD.equipped_detail,
+			HUD.run_pips, HUD.wallet_label, HUD.scrap_label, HUD.equipped_label, HUD.equipped_detail,
 			HUD.wheel_hint, HUD.stamina_bar, HUD.quick_wheel, HUD.wallet_icon, HUD.scrap_icon]:
 		if n.mouse_filter == Control.MOUSE_FILTER_STOP:
 			stoppers.append(n.name)
@@ -227,7 +241,7 @@ func _test_wheel() -> void:
 	# --- open, point, release
 	check(w.open() and w.is_open, "opens with items")
 	check(w.entries == [0, 1, 2, 3] and Engine.time_scale == Wheel.SLOW_SCALE, "shows the four items and slows the game (x%.2f)" % Engine.time_scale)
-	check(w.centre.y <= Wheel.STRIP_TOP and w.centre.x >= 100.0, "the ring stays clear of the hotbar strip")
+	check(w.centre.y <= HUD.SCREEN_H and w.centre.x >= 100.0, "the ring stays on screen")
 	w.mouse_override = Wheel.slot_position(w.centre, 2, 4)
 	await get_tree().process_frame
 	check(w.hover == 2, "pointing at the third item hovers it")

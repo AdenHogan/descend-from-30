@@ -215,7 +215,10 @@ These are calibrated for the **48px player sprite**. Do NOT reuse the pixel
 offsets (20/14/52/40) verbatim on a differently-sized rig — reuse the SHADER and
 the *idea*, but anchor the numbers to that rig's own feet line (see §6).
 
-Camera / framing: `FLOOR_BAND_TOP` 243, `FLOOR_BAND_H` 192, `HUD_BAR_H` 120.
+Camera / framing: `FLOOR_BAND_TOP` 243, `FLOOR_BAND_H` 192, `HUD_BAR_H` **0** (owner round 26c: there is no bottom bar any more — the
+floor band fills the whole 648px screen, zoom 648/192 = 3.375 in a corridor; it was 120 / zoom 2.75 while an opaque strip sat at y 528+).
+So the collision feet line 419 lands at screen y ≈ 594, and the drawn feet a little higher (sprite framing); below it lies ~50px of
+foreground floor (drops and corpses rest ON the 594 line, so keep big HUD panels off it; the small bottom-right notes/scrap text sits there).
 
 ---
 

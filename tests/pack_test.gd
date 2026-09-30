@@ -206,10 +206,13 @@ func _test_ring_actions() -> void:
 	await _click(Vector2(60, 300))
 	check(p.pack_phase == "stand" or p.pack_phase == "", "a click out in the world closes it")
 	await _reset()
-	# a click in the strip is NOT the world's: it neither closes nor equips
+	# a click on a HUD widget is NOT the world's: it neither closes nor equips
 	await _open_pack()
-	await _click(Vector2(600, 600))
-	check(p.pack_phase == "open", "a click in the hotbar strip doesn't close it")
+	HUD.set_hotbar_visible(true)
+	await get_tree().process_frame
+	await _click(HUD.slots[3].get_global_rect().get_center())
+	check(p.pack_phase == "open", "a click on a (shown) hotbar slot doesn't close it")
+	HUD.set_hotbar_visible(false)
 	# Esc closes the pack, not the game
 	var esc := InputEventAction.new()
 	esc.action = "ui_cancel"
@@ -334,7 +337,7 @@ func _test_button_and_key() -> void:
 	check(btn.mouse_filter == Control.MOUSE_FILTER_STOP, "the pack button takes clicks")
 	check(HUD.get_node("Control").mouse_filter == Control.MOUSE_FILTER_IGNORE, "…while the HUD root still ignores the mouse (click-to-move)")
 	var r: Rect2 = btn.get_global_rect()
-	check(r.position.y >= HUD.STRIP_TOP and r.end.x <= HUD.SCREEN_W and r.position.x > HUD.hbox.position.x + 64.0 * 6, "it sits in the strip, right of the hotbar")
+	check(r.end.x <= HUD.SCREEN_W and r.end.y <= HUD.SCREEN_H and r.position.x > HUD.SCREEN_W * 0.85 and r.position.y > HUD.SCREEN_H * 0.7, "it is the bottom-right corner")
 	btn.pressed.emit()
 	check(p.pack_phase == "kneel", "clicking the pack starts the kneel")
 	await _frames(4)

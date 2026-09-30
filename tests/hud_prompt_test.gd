@@ -37,7 +37,7 @@ func _ready() -> void:
 	var pos: Vector2 = pa.position
 	var w: float = pa.size.x
 	chk(pos.x >= 0.0 and pos.x + w <= HUD.SCREEN_W + 0.5, "clamped inside the right edge (x=%.0f w=%.0f)" % [pos.x, w])
-	chk(pos.y >= 0.0 and pos.y + pa.size.y <= HUD.SCREEN_H - HUD.BAR_H + 0.5, "kept above the HUD bar (y=%.0f)" % pos.y)
+	chk(pos.y >= 0.0 and pos.y + pa.size.y <= HUD.SCREEN_H + 0.5, "kept on screen (y=%.0f)" % pos.y)
 
 	# An item far to the LEFT clamps to the left edge, never negative.
 	HUD.show_world_prompt(owner_a, "Bandages   [Click] Take", Vector2(-5000, 300))

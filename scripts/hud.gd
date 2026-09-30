@@ -65,28 +65,37 @@ var boon_badge: Button = null          # "a boon is waiting" — click to choose
 var boon_ui = null
 var slot_level_labels: Array = []
 var listen_overlay: CanvasLayer = null
-const STAMINA_BAR_W = 196.0            # the stamina bar lies under the portrait's name (bottom-left)
-const STAMINA_BAR_H = 10.0
+const STAMINA_BAR_W = 170.0            # the stamina bar lies under the portrait's name (bottom-left)
+const STAMINA_BAR_H = 8.0
 
 const SCREEN_W = 1152.0
 const SCREEN_H = 648.0
-const BAR_H = 80.0
 const SLOT_SIZE = 64.0
-const STRIP_TOP = SCREEN_H - BAR_H - 40.0   # 528: the world ends here (cameras frame to it — StairPan.HUD_BAR_H)
 
-# CORNER-CLUSTER HUD (owner round 26, concept 1 + the quick wheel): identity top-left, place + time
-# top-right, the hotbar floating centre of the (still opaque) bottom strip. Nothing about WHERE the
-# world is drawn changes — only what sits on the HUD.
+# NO BOTTOM BAR (owner round 26c: "remove the bottom bar entirely"): the world fills the whole screen
+# (StairPan.HUD_BAR_H = 0) and the HUD floats over it. Identity sits bottom-left — the character's bust
+# LARGE and uncropped (owner: the small circle "doesn't look as interesting"), with the name, condition,
+# stamina bar, and the mode toggle + in-hand line beside it. The backpack button is bottom-right with the
+# notes + scrap beside it; place + time top-right. There is NO hotbar (owner: "redundant if we have the
+# wheel"): the six slots still exist as an OPT-IN (`set_hotbar_visible`), hidden by default — the pack
+# ring and the quick wheel are the inventory, number keys 1-5 still equip. Because there is no band to test a click against any more,
+# "is the pointer on the HUD" is a hit-test of the real widgets (`pointer_over_widget`), never a y-range.
 const CLUSTER_MARGIN = 16.0
-const RING_SIZE = 104.0
-const PORTRAIT_D = 78.0
+const PORTRAIT_W = 132.0                             # the bust, UNCROPPED and large (owner: not a small circle)
+const PORTRAIT_H = 165.0                             # (281x351 art → 0.47 scale)
+const HOTBAR_Y = 12.0
+const HOTBAR_W = SLOT_SIZE * 6 + 8 * 5
+const IDENT_Y = SCREEN_H - PORTRAIT_H - 4.0          # the bottom-left block's top edge
+const IDENT_TEXT_X = PORTRAIT_W + 16.0               # the name / condition / stamina column
+const BOTTOM_TEXT_Y = SCREEN_H - 56.0                # notes / scrap sit low, under the floor line
+const PACK_BTN_W = 64.0
+const PACK_BTN_H = 78.0
 const INK := Color(0.075, 0.07, 0.085, 1.0)
 const PANEL_EDGE := Color(0.29, 0.275, 0.32, 1.0)
 const AMBER := Color(0.89, 0.647, 0.247, 1.0)
 const TEXT_DIM := Color(0.64, 0.61, 0.53, 1.0)
 const HEALTH_HINTS := ["Steady", "Walking it off", "Hurting", "Bleeding", "Barely standing", "Dying"]
 
-var health_ring: Control = null
 var name_label: Label = null
 var condition_label: Label = null
 var floor_caption: Label = null
@@ -101,7 +110,6 @@ var wheel_hint: Label = null
 var quick_wheel: Control = null
 var pack_wheel: Control = null           # the backpack ring (pack_wheel.gd) — real time, whole bag
 var pack_button: Control = null          # the clickable backpack in the strip (hud_pack_button.gd)
-var _portrait_clip: Control = null
 var _health_stage: int = 0
 
 func _ready() -> void:
@@ -143,21 +151,9 @@ func _layout() -> void:
 	# Floating text labels must never swallow a world click (click-to-move):
 	# an IGNORE parent does NOT shield STOP children, so set each explicitly.
 	floor_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	color_rect.set_anchor_and_offset(SIDE_TOP, 0, STRIP_TOP)
-	color_rect.set_anchor_and_offset(SIDE_BOTTOM, 0, SCREEN_H)
-	color_rect.set_anchor_and_offset(SIDE_LEFT, 0, 0)
-	color_rect.set_anchor_and_offset(SIDE_RIGHT, 0, SCREEN_W)
-	# FULLY opaque: at alpha 0.9 the world showed through the bar. It went
-	# unnoticed while the view was static, but during a stair pan the floor
-	# scrolls behind the inventory and the see-through is obvious.
-	color_rect.color = INK
+	# The old opaque bottom strip is gone (owner round 26c) — the node stays in hud.tscn but never shows.
+	color_rect.visible = false
 	color_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var edge := ColorRect.new()                         # the strip's top hairline
-	edge.color = PANEL_EDGE
-	edge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	edge.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	edge.offset_bottom = 2.0
-	color_rect.add_child(edge)
 
 	# FLOOR — top-right: caption, the big numeral (this is floor_label), "/ 30".
 	floor_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -169,12 +165,13 @@ func _layout() -> void:
 	floor_label.size = Vector2(150, 64)
 	floor_label.position = Vector2(SCREEN_W - CLUSTER_MARGIN - 62 - 150, 22)
 
-	# The hotbar floats centred in the strip (the old right-hand bar).
+	# The hotbar floats top-centre (there is no bar to sit in).
 	hbox.set_anchors_preset(Control.PRESET_TOP_LEFT)        # the scene anchors it right-centre; pin it where we say
 	hbox.grow_horizontal = Control.GROW_DIRECTION_END
 	hbox.grow_vertical = Control.GROW_DIRECTION_END
-	hbox.position = Vector2((SCREEN_W - (SLOT_SIZE * 6 + 8 * 5)) / 2.0, STRIP_TOP + (SCREEN_H - STRIP_TOP - SLOT_SIZE) / 2.0)
+	hbox.position = Vector2((SCREEN_W - HOTBAR_W) / 2.0, HOTBAR_Y)
 	hbox.add_theme_constant_override("separation", 8)
+	hbox.visible = hotbar_visible                       # hidden by default (see set_hotbar_visible)
 	# The former "locked 6th slot" is now the inventory-upgrade unlock target,
 	# so it joins the real slot list; _update_slot_locks() greys it until an
 	# upgrade grants it.
@@ -201,30 +198,20 @@ func _hud_label(text: String, size: int, col: Color, pos: Vector2, dim: Vector2,
 
 
 func _create_cluster() -> void:
-	# --- top-left: the segmented health ring with the portrait inside it ---
-	health_ring = preload("res://scripts/hud_ring.gd").new()
-	health_ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	# BOTTOM-LEFT (owner: "I still want the player on the bottom left"): the portrait sits in the strip's corner.
-	health_ring.position = Vector2(CLUSTER_MARGIN - 4, SCREEN_H - RING_SIZE - 8.0)
-	health_ring.size = Vector2(RING_SIZE, RING_SIZE)
-	$Control.add_child(health_ring)
-	# The portrait is masked to a circle by a clipping parent (its own alpha is the mask), then
-	# cover-cropped inside it. It stays THE clickable button (hover rim/bounce/profile panel).
-	_portrait_clip = preload("res://scripts/hud_disc.gd").new()
-	_portrait_clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_portrait_clip.position = health_ring.position + (Vector2(RING_SIZE, RING_SIZE) - Vector2(PORTRAIT_D, PORTRAIT_D)) * 0.5
-	_portrait_clip.size = Vector2(PORTRAIT_D, PORTRAIT_D)
-	$Control.add_child(_portrait_clip)
+	# --- bottom-left: the character's bust, LARGE and uncropped, is THE clickable button (hover rim /
+	# bounce / profile panel). The portrait art already changes with health, so it IS the health display
+	# (no ring round it any more — owner: the circular patch was restrictive). ---
 	portrait.get_parent().remove_child(portrait)
-	_portrait_clip.add_child(portrait)
+	$Control.add_child(portrait)
 	portrait.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	portrait.position = Vector2.ZERO
-	portrait.size = Vector2(PORTRAIT_D, PORTRAIT_D)
+	portrait.position = Vector2(CLUSTER_MARGIN - 8.0, IDENT_Y)
+	portrait.size = Vector2(PORTRAIT_W, PORTRAIT_H)
 	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	var tx: float = health_ring.position.x + RING_SIZE + 6.0
-	name_label = _hud_label("", 16, Color(0.93, 0.89, 0.82), Vector2(tx, STRIP_TOP + 14), Vector2(220, 22))
-	condition_label = _hud_label("", 13, Color(0.91, 0.71, 0.42), Vector2(tx, STRIP_TOP + 37), Vector2(220, 18))
+	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	portrait.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	var tx: float = IDENT_TEXT_X
+	name_label = _hud_label("", 16, Color(0.93, 0.89, 0.82), Vector2(tx, IDENT_Y + 46.0), Vector2(240, 22))
+	condition_label = _hud_label("", 13, Color(0.91, 0.71, 0.42), Vector2(tx, IDENT_Y + 69.0), Vector2(240, 18))
 
 	# --- top-right: FLOOR, the numeral (floor_label), "/ 30", time of day + run pips ---
 	var right: float = SCREEN_W - CLUSTER_MARGIN
@@ -237,11 +224,11 @@ func _create_cluster() -> void:
 	run_pips.size = Vector2(run_pips.width(), 14)
 	$Control.add_child(run_pips)
 
-	# --- a slim line just above the hotbar: mode toggle + what's in hand; bottom-right: the wheel's key hint ---
-	var hb_x: float = hbox.position.x
-	equipped_label = _hud_label("", 14, Color(0.93, 0.89, 0.82), Vector2(hb_x + 124.0, STRIP_TOP + 6.0), Vector2(176, 20))
-	equipped_detail = _hud_label("", 12, TEXT_DIM, Vector2(hb_x + 300.0, STRIP_TOP + 8.0), Vector2(124, 18), HORIZONTAL_ALIGNMENT_RIGHT)
-	wheel_hint = _hud_label("", 12, TEXT_DIM, Vector2(SCREEN_W - CLUSTER_MARGIN - 250, STRIP_TOP + 84), Vector2(250, 18), HORIZONTAL_ALIGNMENT_RIGHT)
+	# --- under the stamina bar: the mode toggle + what's in hand; bottom-right: the wheel's key hint ---
+	equipped_label = _hud_label("", 14, Color(0.93, 0.89, 0.82), Vector2(IDENT_TEXT_X + 122.0, IDENT_Y + 118.0), Vector2(176, 20))
+	equipped_detail = _hud_label("", 12, TEXT_DIM, Vector2(IDENT_TEXT_X + 4.0, IDENT_Y + 142.0), Vector2(230, 18))
+	var pack_left: float = SCREEN_W - CLUSTER_MARGIN - PACK_BTN_W
+	wheel_hint = _hud_label("", 12, TEXT_DIM, Vector2(pack_left - 264.0, SCREEN_H - 24.0), Vector2(250, 18), HORIZONTAL_ALIGNMENT_RIGHT)
 
 
 
@@ -253,11 +240,10 @@ func _create_quick_wheel() -> void:
 
 
 func _create_pack() -> void:
-	# The backpack: a button just right of the hotbar + its ring. The ring is added AFTER the quick
-	# wheel so it draws over it; the button is the only thing in the strip that takes a click.
+	# The backpack: THE inventory. A button in the bottom-right corner + its ring. The ring is added AFTER
+	# the quick wheel so it draws over it. (Dropping a loot item onto this button takes it into the pack.)
 	pack_button = preload("res://scripts/hud_pack_button.gd").new()
-	var hb_right: float = hbox.position.x + SLOT_SIZE * 6 + 8 * 5
-	pack_button.position = Vector2(hb_right + 22.0, STRIP_TOP + 22.0)
+	pack_button.position = Vector2(SCREEN_W - CLUSTER_MARGIN - PACK_BTN_W, SCREEN_H - PACK_BTN_H - 8.0)
 	$Control.add_child(pack_button)
 	pack_button.pressed.connect(func() -> void:
 		if pack_wheel != null:
@@ -274,7 +260,7 @@ func _create_mode_label() -> void:
 	mode_label.focus_mode = Control.FOCUS_NONE
 	mode_label.add_theme_font_size_override("font_size", 14)
 	mode_label.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	mode_label.position = Vector2(hbox.position.x - 4.0, STRIP_TOP)
+	mode_label.position = Vector2(IDENT_TEXT_X - 4.0, IDENT_Y + 112.0)
 	mode_label.size = Vector2(124, 24)
 	mode_label.custom_minimum_size = Vector2(124, 24)
 	mode_label.pressed.connect(_on_mode_button)
@@ -348,8 +334,8 @@ func _create_feedback_label() -> void:
 	feedback_label = Label.new()
 	feedback_label.mouse_filter = Control.MOUSE_FILTER_IGNORE  # never eat world clicks
 	feedback_label.add_theme_font_size_override("font_size", 14)
-	feedback_label.position = Vector2(SCREEN_W / 2 - 100, STRIP_TOP - 34.0)   # just above the strip (the hotbar floats in it now)
-	feedback_label.size = Vector2(200, 30)
+	feedback_label.position = Vector2(SCREEN_W / 2 - 250, 34.0)   # top-centre
+	feedback_label.size = Vector2(500, 30)
 	feedback_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	feedback_label.modulate = Color(1, 1, 0.5, 0)
 	$Control.add_child(feedback_label)
@@ -443,7 +429,7 @@ func _update_world_prompt() -> void:
 		var screen: Vector2 = (e["pos"] - cam.get_screen_center_position()) * cam.zoom \
 			+ Vector2(SCREEN_W, SCREEN_H) / 2.0
 		var x: float = clampf(screen.x - pw / 2.0, 6.0, SCREEN_W - pw - 6.0)
-		var y: float = clampf(screen.y - ph - WORLD_PROMPT_GAP, 6.0, SCREEN_H - BAR_H - ph)
+		var y: float = clampf(screen.y - ph - WORLD_PROMPT_GAP, 6.0, SCREEN_H - 6.0 - ph)
 		panel.position = Vector2(x, y)
 
 
@@ -548,7 +534,7 @@ func _create_stamina_bar() -> void:
 	# ONE continuous bar (hud_stamina.gd) under the portrait's name — it drains and refills smoothly off
 	# the same stamina numbers as always; nothing about the drain or regen changed.
 	stamina_bar = preload("res://scripts/hud_stamina.gd").new()
-	stamina_bar.position = Vector2(health_ring.position.x + RING_SIZE + 6.0, STRIP_TOP + 68.0)
+	stamina_bar.position = Vector2(IDENT_TEXT_X, IDENT_Y + 94.0)
 	stamina_bar.size = Vector2(STAMINA_BAR_W, STAMINA_BAR_H)
 	$Control.add_child(stamina_bar)
 
@@ -560,7 +546,7 @@ func _currency_icon(item_id: String, x: float) -> TextureRect:
 	t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	t.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	t.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	t.position = Vector2(x, STRIP_TOP + 22.0)
+	t.position = Vector2(x, BOTTOM_TEXT_Y - 2.0)
 	t.size = Vector2(28, 28)
 	t.visible = false
 	$Control.add_child(t)
@@ -569,9 +555,9 @@ func _currency_icon(item_id: String, x: float) -> TextureRect:
 
 func _create_wallet_label() -> void:
 	# Notes: the wallet's balance, an icon + a number, bottom-right of the strip (the top-right wall carries the lift's own floor indicator).
-	var right: float = SCREEN_W - CLUSTER_MARGIN
+	var right: float = SCREEN_W - CLUSTER_MARGIN - PACK_BTN_W - 16.0      # left of the backpack button
 	wallet_icon = _currency_icon("033", right - 186)
-	wallet_label = _hud_label("", 16, Color(0.56, 0.84, 0.54), Vector2(right - 154, STRIP_TOP + 25.0), Vector2(84, 22))
+	wallet_label = _hud_label("", 16, Color(0.56, 0.84, 0.54), Vector2(right - 154, BOTTOM_TEXT_Y + 1.0), Vector2(84, 22))
 	wallet_label.visible = false
 	update_wallet()
 
@@ -600,9 +586,9 @@ func _create_dev_menu() -> void:
 
 func _create_scrap_label() -> void:
 	# Scrap: same treatment, one block to the right of the notes (docs/SCRAP_UPGRADES.md).
-	var right: float = SCREEN_W - CLUSTER_MARGIN
+	var right: float = SCREEN_W - CLUSTER_MARGIN - PACK_BTN_W - 16.0
 	scrap_icon = _currency_icon("037", right - 62)
-	scrap_label = _hud_label("", 16, Color(0.85, 0.75, 0.5), Vector2(right - 30, STRIP_TOP + 25.0), Vector2(30, 22))
+	scrap_label = _hud_label("", 16, Color(0.85, 0.75, 0.5), Vector2(right - 30, BOTTOM_TEXT_Y + 1.0), Vector2(30, 22))
 	scrap_label.visible = false
 	update_scrap()
 
@@ -612,7 +598,7 @@ func _create_boon_badge() -> void:
 	# until the player clicks it (arriving mid-fight or mid-stair-pan must not pause the game).
 	boon_badge = Button.new()
 	boon_badge.text = "★ BOON"
-	boon_badge.position = Vector2(CLUSTER_MARGIN, STRIP_TOP - 38.0)      # over the strip's corner, above the portrait
+	boon_badge.position = Vector2(CLUSTER_MARGIN, IDENT_Y - 38.0)      # above the portrait
 	boon_badge.size = Vector2(150, 30)
 	boon_badge.mouse_filter = Control.MOUSE_FILTER_STOP
 	boon_badge.add_theme_color_override("font_color", Color(1.0, 0.85, 0.35))
@@ -740,7 +726,7 @@ func _position_speech() -> void:
 	var sz := speech_panel.size
 	var head: Vector2 = get_viewport().get_canvas_transform() * (player.global_position + Vector2(0, -52))
 	var px := clampf(head.x - sz.x * 0.5, 6.0, SCREEN_W - sz.x - 6.0)
-	var py := clampf(head.y - sz.y, 6.0, SCREEN_H - BAR_H - sz.y - 6.0)
+	var py := clampf(head.y - sz.y, 6.0, SCREEN_H - sz.y - 6.0)
 	speech_panel.position = Vector2(px, py)
 
 
@@ -759,6 +745,7 @@ func _update_smoke_fog(delta: float) -> void:
 
 
 func _process(delta: float) -> void:
+	_fade_identity_over_player(delta)
 	if pack_button != null:
 		var pl = get_tree().get_first_node_in_group("player")
 		pack_button.is_pack_open = pl != null and is_instance_valid(pl) and str(pl.get("pack_phase")) in ["kneel", "open"]
@@ -866,8 +853,8 @@ func _finish_drag() -> void:
 		if slots[i].get_global_rect().has_point(mouse) and i != from:
 			_drop_on_slot(from, i)
 			return
-	# Dropped on the game world (above the HUD bar) = discard.
-	if mouse.y < SCREEN_H - BAR_H - 40:
+	# Dropped on the game world (anywhere that isn't a HUD widget) = discard.
+	if not pointer_over_widget(mouse):
 		_discard_slot(from)
 
 
@@ -1032,6 +1019,8 @@ func _is_gun_data(d: Dictionary) -> bool:
 
 
 func _hovered_slot() -> int:
+	if not hotbar_visible:
+		return -1
 	var mouse: Vector2 = tip_mouse_override if tip_mouse_override is Vector2 else get_viewport().get_mouse_position()
 	for i in range(slots.size()):
 		if i < WorldState.inventory.size() and slots[i].get_global_rect().has_point(mouse):
@@ -1075,7 +1064,7 @@ func show_item_tip(i: int) -> void:
 	var sz: Vector2 = item_tip.get_combined_minimum_size()
 	var r: Rect2 = slots[i].get_global_rect()
 	item_tip.position = Vector2(clampf(r.position.x + r.size.x * 0.5 - sz.x * 0.5, 8.0, SCREEN_W - sz.x - 8.0),
-		r.position.y - sz.y - 8.0)
+		r.end.y + 8.0)                                  # the hotbar is at the top now: the tip hangs below it
 	item_tip.visible = true
 
 
@@ -1142,6 +1131,66 @@ func wheel_key_name() -> String:
 	return action_key_name("item_wheel", "Tab")
 
 
+## The identity block (portrait, name, condition, stamina) sits over the bottom-left of the WORLD now, and the
+## left staircase is right there: while the player (or anyone) stands under it, it fades back so nobody is
+## hidden behind a HUD panel. Cosmetic; never touches input.
+const IDENT_FADE_ALPHA := 0.3
+func _fade_identity_over_player(delta: float) -> void:
+	if portrait == null:
+		return
+	var block := Rect2(Vector2(0.0, IDENT_Y - 8.0), Vector2(IDENT_TEXT_X + 250.0, SCREEN_H - IDENT_Y + 8.0))
+	var under := false
+	var pl = get_tree().get_first_node_in_group("player")
+	if pl != null and is_instance_valid(pl) and pl is Node2D:
+		var sp: Vector2 = get_viewport().get_canvas_transform() * (pl as Node2D).global_position
+		under = block.grow(20.0).has_point(sp)
+	var a: float = IDENT_FADE_ALPHA if under else 1.0
+	for n in [portrait, name_label, condition_label, stamina_bar, mode_label, equipped_label, equipped_detail]:
+		if n != null and is_instance_valid(n):
+			n.modulate.a = lerpf(n.modulate.a, a, clampf(delta * 8.0, 0.0, 1.0))
+
+
+## The six-slot hotbar is OPT-IN and hidden by default (owner: "redundant if we have the wheel").
+## Everything that exists to serve it (drag / drop, tooltips, click to equip) only runs while it's shown.
+var hotbar_visible: bool = false
+
+
+func set_hotbar_visible(on: bool) -> void:
+	hotbar_visible = on
+	hbox.visible = on
+	if not on:
+		item_tip.visible = false
+		context_menu.visible = false
+
+
+## The hotbar's screen rectangle (the six slots), padded a little — empty while it is hidden.
+func hotbar_rect() -> Rect2:
+	if not hotbar_visible:
+		return Rect2()
+	return Rect2(hbox.position - Vector2(6, 6), Vector2(HOTBAR_W + 12.0, SLOT_SIZE + 12.0))
+
+
+## Where a dragged loot item is dropped to take it: the backpack button (or the hotbar, when shown).
+func inventory_drop_rect() -> Rect2:
+	if hotbar_visible:
+		return hotbar_rect()
+	if pack_button != null and is_instance_valid(pack_button):
+		return pack_button.get_global_rect().grow(14.0)
+	return Rect2()
+
+
+## Is a screen point over something the player would click ON (a slot, the pack, the mode toggle, the
+## portrait, the boon badge, an open context menu)? Clicks anywhere else belong to the world. This replaces
+## the old "below y 528 is the bar" band test now that there is no bar.
+func pointer_over_widget(pos: Vector2) -> bool:
+	if hotbar_rect().has_point(pos):
+		return true
+	for w in [pack_button, mode_label, portrait, boon_badge, context_menu]:
+		if w != null and is_instance_valid(w) and w.visible and w.get_global_rect().has_point(pos):
+			return true
+	return false
+
+
 ## The CURRENT binding of an action as short text, straight from the InputMap (a hint must never
 ## name a key the player has rebound away). `fallback` is shown if the action has no event.
 func action_key_name(action: String, fallback: String) -> String:
@@ -1167,7 +1216,7 @@ func _make_slot_style_selected() -> StyleBoxFlat:
 func show_context_menu(slot_index: int) -> void:
 	context_slot = slot_index
 	var slot_pos = slots[slot_index].global_position
-	context_menu.position = Vector2(slot_pos.x, slot_pos.y - 100)
+	context_menu.position = Vector2(slot_pos.x, slot_pos.y + SLOT_SIZE + 6.0)
 	context_menu.visible = true
 
 func _context_use() -> void:
@@ -1243,8 +1292,6 @@ func update_portrait(health_index: int) -> void:
 	_ensure_portraits()
 	portrait.texture = _portraits[clampi(health_index, 0, _portraits.size() - 1)]
 	_health_stage = clampi(health_index, 0, HEALTH_HINTS.size() - 1)
-	if health_ring != null:
-		health_ring.set_stage(_health_stage)
 	if name_label != null:
 		name_label.text = WorldState.character_display_name(_loaded_char).to_upper()
 	if condition_label != null:
@@ -1313,8 +1360,6 @@ func _stage_colour(stage: int) -> Color:
 func _set_portrait_hover(hovered: bool) -> void:
 	if portrait == null:
 		return
-	if health_ring != null:
-		health_ring.set_hot(hovered)
 	if _portrait_outline_mat != null:
 		_portrait_outline_mat.set_shader_parameter("on", 1.0 if hovered else 0.0)
 	# Scale from the centre so the bounce doesn't drift the anchored bust.

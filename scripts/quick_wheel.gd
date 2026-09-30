@@ -16,7 +16,7 @@ const RING_R := 124.0
 const DISC := 76.0
 const DISC_SEL := 92.0
 const DEAD_ZONE := 40.0                # inside this radius of the centre = cancel
-const STRIP_TOP := 528.0
+const SCREEN_LIMIT := 640.0             # rings are kept on screen (there is no bottom strip to stay clear of)
 const AMBER := Color(0.89, 0.647, 0.247, 1.0)
 const ROOT_TEXT := Color(0.93, 0.89, 0.82, 1.0)
 
@@ -137,7 +137,7 @@ func open() -> bool:
 	var s: Vector2 = get_viewport().get_canvas_transform() * (p.global_position + Vector2(0, -40))
 	var half: float = RING_R + DISC_SEL * 0.5 + 10.0
 	centre = Vector2(clampf(s.x, half, HUD.SCREEN_W - half),
-		clampf(s.y, half, maxf(half, STRIP_TOP - half - 8.0)))
+		clampf(s.y, half, maxf(half, SCREEN_LIMIT - half)))
 	hover = entries.find(HUD.selected_slot)          # start on what's in hand
 	_prev_scale = Engine.time_scale
 	Engine.time_scale = SLOW_SCALE
@@ -254,5 +254,5 @@ func _draw() -> void:
 	else:
 		_text(font, centre + Vector2(-cw * 0.5, -6), "CHOOSE", 15, ROOT_TEXT, cw, HORIZONTAL_ALIGNMENT_CENTER)
 		_text(font, centre + Vector2(-cw * 0.5, 14), "release here to cancel", 12, Color(0.64, 0.61, 0.53), cw, HORIZONTAL_ALIGNMENT_CENTER)
-	var hint_y: float = minf(centre.y + RING_R + DISC_SEL * 0.5 + 30.0, STRIP_TOP - 8.0)
+	var hint_y: float = minf(centre.y + RING_R + DISC_SEL * 0.5 + 30.0, SCREEN_LIMIT)
 	_text(font, Vector2(centre.x - 240.0, hint_y), "point to choose  ·  release to equip  ·  time slows", 12, Color(0.64, 0.61, 0.53), 480.0, HORIZONTAL_ALIGNMENT_CENTER)

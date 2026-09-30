@@ -142,6 +142,7 @@ func _do(step: String) -> void:
 				var k := int(p[1])
 				w.mouse_override = w.centre if k < 0 else QuickWheelGeo.slot_position(w.centre, k, w.entries.size())
 		"tip":
+			HUD.set_hotbar_visible(true)
 			HUD.tip_mouse_override = HUD.slots[int(p[1])].get_global_rect().get_center()
 		"boon":
 			WorldState.note_boon_milestone(int(p[1]))

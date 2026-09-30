@@ -4,7 +4,7 @@ extends Node
 # instantly, then click or hover over if they want more information").
 #  * every item has a real icon: 56x56, cut out (transparent around it), many colours — not one of
 #    the old white word-cards or red placeholder boxes;
-#  * hovering an inventory slot shows the item's name, condition and description above the slot.
+#  * hovering an inventory slot shows the item's name, condition and description beside the slot.
 # Run:  godot --headless res://tests/item_icon_test.tscn
 
 var failures: int = 0
@@ -19,6 +19,7 @@ func check(cond: bool, label: String) -> void:
 
 
 func _ready() -> void:
+	HUD.set_hotbar_visible(true)              # these checks drive the (opt-in) hotbar's tooltips / drag
 	print("=== item icon + tooltip test ===")
 	_test_icons()
 	_test_fixtures()
@@ -94,8 +95,8 @@ func _test_tooltip() -> void:
 		await get_tree().process_frame
 	check(HUD.item_tip.visible and HUD._tip_title.text == "Gun", "hovering slot 1 shows the gun's tooltip (\"%s\")" % HUD._tip_title.text)
 	var r: Rect2 = HUD.item_tip.get_global_rect()
-	check(HUD.item_tip.visible and r.end.y <= slot.get_global_rect().position.y and r.position.x >= 0.0 and r.end.x <= 1152.0,
-		"…above the slot and on screen (%s)" % str(r))
+	check(HUD.item_tip.visible and r.position.y >= slot.get_global_rect().end.y and r.position.x >= 0.0 and r.end.x <= 1152.0 and r.end.y <= 648.0,
+		"…below the slot (the hotbar is at the top now) and on screen (%s)" % str(r))
 	HUD.tip_mouse_override = Vector2(400, 200)
 	for i in range(3):
 		await get_tree().process_frame

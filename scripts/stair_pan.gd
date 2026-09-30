@@ -695,10 +695,10 @@ const JUNK_ROW_FILL := 0.5   # a top row less than half-full is junk, not ceilin
 # clips the filler.
 const FLOOR_BAND_TOP := 243.0
 const FLOOR_BAND_H := 192.0
-# The HUD's opaque background starts at SCREEN_H - BAR_H - 40 (hud.gd), i.e. the
-# bar is really 120px tall, not BAR_H's 80. Framing to 80 hid 40px of floor
-# behind the inventory; this is the number that keeps the floor tight above it.
-const HUD_BAR_H := 120.0
+# There is NO HUD bar any more (owner round 26c: "remove the bottom bar entirely"): the floor fills
+# the whole 648px-tall screen and the HUD floats over it. (It was 120 while an opaque strip sat at
+# y 528+; the parameter stays so a scene that ever needs a reserved band can still ask for one.)
+const HUD_BAR_H := 0.0
 
 
 func strip_junk_rows(tm: TileMapLayer) -> int:

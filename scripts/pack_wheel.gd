@@ -18,11 +18,12 @@ extends Control
 const QuickWheel := preload("res://scripts/quick_wheel.gd")
 
 const OPEN_TIME := 0.16
-const RING_R := 118.0
-const DISC := 70.0
-const DISC_SEL := 86.0
+const RING_R := 100.0
+const DISC := 66.0
+const DISC_SEL := 80.0
 const DEAD_ZONE := 36.0
-const STRIP_TOP := 528.0
+const HEADROOM_PX := 60.0               # screen px between the kneeling player's origin and the ring's bottom edge
+const SCREEN_LIMIT := 640.0             # rings are kept on screen (there is no bottom strip to stay clear of)
 const AMBER := Color(0.89, 0.647, 0.247, 1.0)
 const ROOT_TEXT := Color(0.93, 0.89, 0.82, 1.0)
 const DIM_TEXT := Color(0.64, 0.61, 0.53)
@@ -95,10 +96,10 @@ func _input(event: InputEvent) -> void:
 		var pos: Vector2 = event.position
 		if event.button_index == MOUSE_BUTTON_LEFT or event.button_index == MOUSE_BUTTON_RIGHT:
 			if not on_ring(pos):
-				if pos.y < STRIP_TOP:             # a click out in the world: put the pack away
+				if not HUD.pointer_over_widget(pos):   # a click out in the world: put the pack away
 					p.end_pack(false)
 					get_viewport().set_input_as_handled()
-				return                            # the hotbar strip keeps its own clicks
+				return                            # a HUD widget keeps its own clicks
 			var i: int = QuickWheel.index_for(pos - centre, slots.size(), DEAD_ZONE)
 			if i < 0:
 				p.end_pack(false)                 # the middle = done
@@ -193,8 +194,9 @@ func _show(p: Node) -> void:
 	# FLOATING ABOVE the kneeling player (so the bend-down and the open pack stay visible below it),
 	# clamped to the screen and clear of the hotbar strip.
 	var half: float = RING_R + DISC_SEL * 0.5 + 10.0
-	var s: Vector2 = get_viewport().get_canvas_transform() * (p.global_position + Vector2(0, -60.0 - half))
-	centre = Vector2(clampf(s.x, half, HUD.SCREEN_W - half), clampf(s.y, half, maxf(half, STRIP_TOP - half - 8.0)))
+	# (the offset is in SCREEN px — the camera zooms the world, so a world-unit offset would be miles off)
+	var s: Vector2 = get_viewport().get_canvas_transform() * p.global_position + Vector2(0, -(HEADROOM_PX + half))
+	centre = Vector2(clampf(s.x, half, HUD.SCREEN_W - half), clampf(s.y, half, maxf(half, SCREEN_LIMIT - half)))
 	hover = -1
 	_opened_ms = Time.get_ticks_msec()
 	is_open = true

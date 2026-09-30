@@ -2,7 +2,7 @@ extends CanvasLayer
 
 # Scavenge result panel — CENTRED, shows the item icon + name, and is taken by:
 #   • double-clicking it, or
-#   • dragging it down onto the inventory bar, or
+#   • dragging it onto your pack (the backpack button, bottom-right — there is no bar or hotbar), or
 #   • pressing E / interact,
 # and LEFT by walking away, by clicking anywhere in the world off the panel, or — stepped up at
 # set-back furniture, where there's no walking — by any movement key (player.gd steps you down and
@@ -18,7 +18,6 @@ const DOUBLE_CLICK_TIME = 0.35
 const PANEL_W = 300.0
 const SCREEN_W = 1152.0
 const SCREEN_H = 648.0
-const BAR_TOP = SCREEN_H - 96.0   # dropping below here = onto the inventory bar
 
 var reveal_timer = 0.0
 var is_revealing = false
@@ -158,7 +157,7 @@ func _reveal_item() -> void:
 		name_label.text = inst.get_display_name() + "  ·  " + inst.tier_label()
 	else:
 		name_label.text = item_data["name"]
-	hint_label.text = "Double-click or drag to inventory · walk away to leave"
+	hint_label.text = "Double-click, or drag onto your pack · walk away to leave"
 
 
 func _process(delta: float) -> void:
@@ -234,11 +233,11 @@ func _end_drag(take: bool) -> void:
 func _input(event: InputEvent) -> void:
 	if not visible:
 		return
-	# A click in the world, off the panel (and not on the inventory bar, where you make room): leave,
+	# A click in the world, off the panel (and not on the hotbar, where you make room): leave,
 	# and let the click go on through to click-to-move / click-to-scavenge. Any state — searching,
 	# "nothing found", an item shown, "inventory full".
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT \
-			and not drag_active and event.position.y < BAR_TOP and not panel.get_global_rect().has_point(event.position):
+			and not drag_active and not HUD.pointer_over_widget(event.position) and not panel.get_global_rect().has_point(event.position):
 		_close(false)
 		return
 	if is_revealing or not has_item:
@@ -262,9 +261,9 @@ func _input(event: InputEvent) -> void:
 				drag_from = event.position
 				get_viewport().set_input_as_handled()
 		else:
-			# Release: a drag that ended over the inventory bar takes it.
+			# Release: a drag that ended over the pack takes it.
 			if drag_active:
-				_end_drag(event.position.y >= BAR_TOP)
+				_end_drag(HUD.inventory_drop_rect().has_point(event.position))
 				get_viewport().set_input_as_handled()
 			else:
 				drag_armed = false

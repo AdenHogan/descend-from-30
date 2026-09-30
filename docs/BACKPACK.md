@@ -4,7 +4,7 @@
 > backpack animation followed by an opening of a sub menu scroll wheel for inventory with live gameplay
 > underneath so you can still be attacked."
 
-**BUILT v1** on top of the quick wheel. The HUD strip has a small pixel backpack right of the hotbar
+**BUILT v1** on top of the quick wheel. The HUD has a small pixel backpack in the bottom-right corner
 (`scripts/hud_pack_button.gd`, key **B**, rebindable in Settings → "Backpack"). Click it (or press B):
 
 1. **Kneel** (`Player.PACK_KNEEL_TIME` 0.45 s): rooted, `crouch_idle` pose, the body leans toward the pack
@@ -43,7 +43,8 @@ removed. The HUD button is also code-drawn (`hud_pack_button.gd`).
 ## Not built
 - Drag-to-swap / reorder on the ring, and splitting stacks.
 - A "quick-use" subset (the vision-board concept where favourites sit on the ring): the ring is the whole bag.
-- Removing the bottom strip (the camera still frames to it — `StairPan.HUD_BAR_H`); the hotbar is still
-  there, the pack is an addition. Dropping the strip is a separate, larger camera change.
+- ~~Removing the bottom strip~~ — DONE (owner round 26c): no bottom bar; the world fills the screen
+  (`StairPan.HUD_BAR_H` 0). The hotbar itself is now hidden by default too (owner: "redundant if we have the wheel") — the pack IS the inventory,
+  and the pack button is bottom-right; a loot item can be dragged onto it to take it.
 - Stealth: opening the pack is silent. (A rummage noise is a possible cost.)
 - A sound for the flap / the slam.

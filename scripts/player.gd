@@ -1662,17 +1662,14 @@ func _zombie_under_cursor() -> Node:
 
 
 func _is_mouse_over_hud() -> bool:
-	var mouse_y = get_viewport().get_mouse_position().y
+	# There is no HUD bar any more (owner round 26c): the pointer is "over the HUD" only when it is on a real
+	# widget — a slot, the pack, the mode toggle, the portrait, the boon badge, an open context menu.
 	var screen_h = get_viewport().get_visible_rect().size.y
 	# Headless (tests) has a degenerate viewport rect; without this every click
 	# reads as "over the HUD" and click-to-move can't be regression-tested.
 	if screen_h < 200.0:
 		return false
-	if mouse_y > screen_h - (80.0 + 40.0):
-		return true
-	if HUD.context_menu and HUD.context_menu.visible:
-		return true
-	return false
+	return HUD.pointer_over_widget(get_viewport().get_mouse_position())
 
 
 # The fire in the scene the PLAYER is standing in. A stair-pan / balcony backdrop builds another

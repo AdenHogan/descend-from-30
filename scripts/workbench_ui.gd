@@ -72,7 +72,7 @@ func _ready() -> void:
 	sb.set_corner_radius_all(4)
 	_card.add_theme_stylebox_override("panel", sb)
 	_card.size = Vector2(W, H)
-	_card.position = Vector2((1152.0 - W) * 0.5, maxf(8.0, (648.0 - 120.0 - H) * 0.5 + 10.0))
+	_card.position = Vector2((1152.0 - W) * 0.5, maxf(8.0, (648.0 - H) * 0.5))
 	add_child(_card)
 
 	var title := _label("WORKBENCH", 22, GOLD, FONT_BOLD)

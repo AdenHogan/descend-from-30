@@ -205,11 +205,11 @@ func _test_floor_camera() -> void:
 	var cam := Camera2D.new()
 	add_child(cam)
 	sp.apply_floor_camera(cam, b)
-	# The floor's bottom edge must land exactly on the top of the HUD bar, or the
-	# inventory eats into the floor (the bar is 120px, not BAR_H's 80).
+	# The floor's bottom edge must land exactly where the view ends: there is NO HUD bar any more
+	# (HUD_BAR_H 0, owner round 26c), so the floor fills the whole screen — no void below it, no slice hidden.
 	var floor_bottom_screen: float = (b.position.y + b.size.y - float(cam.limit_top)) * cam.zoom.y
 	check(absf(floor_bottom_screen - (648.0 - sp.HUD_BAR_H)) <= 1.0,
-		"floor sits tight above the HUD bar (%.0f vs %.0f)" % [floor_bottom_screen, 648.0 - sp.HUD_BAR_H])
+		"the floor fills the view down to the screen edge (%.0f vs %.0f)" % [floor_bottom_screen, 648.0 - sp.HUD_BAR_H])
 	check(cam.limit_left == int(b.position.x), "camera stops at the left wall (%d)" % cam.limit_left)
 	check(cam.limit_right == int(b.position.x + b.size.x), "camera stops at the right wall (%d)" % cam.limit_right)
 	check(cam.limit_top == int(b.position.y), "camera never rises above the ceiling (%d)" % cam.limit_top)

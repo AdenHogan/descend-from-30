@@ -34,7 +34,7 @@ func build_card(title: String, w: float, h: float, border: Color = Color(0.55, 0
 	sb.set_corner_radius_all(4)
 	card.add_theme_stylebox_override("panel", sb)
 	card.size = Vector2(w, h)
-	card.position = Vector2((1152.0 - w) * 0.5, (648.0 - 120.0 - h) * 0.5 + 10.0)
+	card.position = Vector2((1152.0 - w) * 0.5, (648.0 - h) * 0.5)
 	add_child(card)
 	var t := label(title, 22, GOLD, FONT_BOLD)
 	t.position = Vector2(24, 16)

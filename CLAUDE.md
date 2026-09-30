@@ -1841,7 +1841,7 @@ means no rendering — UI layout and art still need an in-editor look.
   so a pause can close it — death, a cutscene, escaping, an emptied bag, the HUD hiding, the node leaving the tree)
   restores the time scale it found; it refuses to open when paused / dead / in a cutscene / a modal, loot panel,
   dialogue or the journal is up. Locked by `hud_wheel_test`. `tools/scene_capture.tscn` has `wheel:<k|-1|x>`.
-  **REVISED (owner round 26b — "too many green nodes around the player icon. I still want the player on the bottom
+  **REVISED (owner round 26b — the ring/clip parts below were then REMOVED in round 26d, see the NO BOTTOM BAR note; the stamina bar stands — "too many green nodes around the player icon. I still want the player on the bottom
   left… a single dynamic stamina bar that depletes and fills"):** the identity block MOVED to the strip's bottom-left
   (ring 104 / portrait 78; name + condition + the stamina bar beside it, all in the strip; the "★ BOON" badge sits above
   it). The health ring is now ONE thin continuous arc (`hud_ring.gd`: stroke 5, swept for 10/8/6/4/2/1 tenths — `lit_segments()`
@@ -1851,8 +1851,26 @@ means no rendering — UI layout and art still need an in-editor look.
   after 0.28 s, a soft highlight sweeps while it recharges, calm gold → amber → red only below 28 %, pulsing when spent.
   The mode toggle + in-hand line are a slim row just above the hotbar (`mode_label` at STRIP_TOP, `equipped_label/detail`
   beside it). The 8 `stamina_segments` are gone. Locked by `hud_wheel_test._test_identity_and_stamina`.
+  **NO BOTTOM BAR (owner round 26c — "remove the bottom bar entirely"):** the opaque strip is GONE. `StairPan.HUD_BAR_H`
+  is **0**, so every scene's camera (`apply_floor_camera`: corridors, hallway, lobby, apartments, the pans) now frames the
+  floor into the WHOLE 1152×648 screen — a corridor's zoom went 2.75 → **3.375**, an apartment's ~3.3 → ~4.05 (the world is
+  ~23% bigger on screen; nothing in world units changed, so every Y plane / constant in docs/Y_PLANES.md still holds). The HUD
+  floats over the world: **the portrait bottom-left, LARGE and uncropped** (owner round 26d: the small circle with a health
+  ring "doesn't look as interesting… restrictive" — so `hud_ring.gd` / `hud_disc.gd` are DELETED; the bust art itself changes with
+  health, and the condition word beside it is stage-coloured), with the name, condition, the stamina bar and the mode toggle +
+  in-hand line in a column to its right (it FADES to 30% while the player stands under it — `_fade_identity_over_player` — because
+  the left staircase is right there), the **backpack button bottom-right** with notes/scrap and the wheel hint beside it, place/time
+  top-right. **There is NO hotbar** (owner: "redundant if we have the wheel"): the six slots still exist as an OPT-IN
+  (`HUD.set_hotbar_visible(true)`, default hidden — its drag/drop/tooltip code only runs while shown, and the suites that exercise it
+  turn it on); the pack ring + quick wheel are the inventory, number keys 1-5 still equip, and a loot item is taken by double-click,
+  E, or dragging it onto the BACKPACK BUTTON (`HUD.inventory_drop_rect()`). Item tooltips and the context menu (hotbar only) hang BELOW a slot. **There is no "HUD band" to test a
+  click against any more**: "is the pointer on the HUD" is `HUD.pointer_over_widget(pos)` (the hotbar rect, the pack button, the
+  mode toggle, the portrait, the boon badge, an open context menu) — used by click-to-move / attack (`player._is_mouse_over_hud`),
+  the loot panel's "click the world to leave" and "drag onto the pack to take" (`HUD.inventory_drop_rect()`), the drag-to-discard drop and both
+  rings' "click in the world closes". Never re-introduce a y-range test. Locked by `hud_wheel_test` (layout + the widget test) and
+  `building_floors_test` (the floor fills the view). The LOOK at the new zoom needs an in-editor check.
   Not built (concept-1/4 leftovers): the selected hotbar slot doesn't lift; no stick/number-key selection on the
-  wheel; the strip is still a strip (a taller camera frame would let the world fill the screen — a bigger change).
+  wheel.
 - MOTION (owner round 26 — "animations for certain items like the dripping milk or flowers moving in the wind";
   full audit + roadmap in docs/MOTION.md): **plants sway** — `scripts/sway.gd`, one canvas_item shader that leans
   a sprite's upper part pinned at its foot in whole-texel steps (pixel art stays crisp), on every standing corridor
@@ -1886,7 +1904,7 @@ means no rendering — UI layout and art still need an in-editor look.
   `building_floors._make_door_half` / `_board_elevator` / `_do_spawn_merchant`).
 - THE BACKPACK (owner round 26 — "click the pack, the player bends down and opens it, then a wheel for inventory
   with live gameplay underneath so you can still be attacked"; docs/BACKPACK.md): a code-drawn pixel backpack button
-  right of the hotbar (`hud_pack_button.gd`, key **B** = action `open_pack`, rebindable) → the player KNEELS
+  in the bottom-right corner (`hud_pack_button.gd`, key **B** = action `open_pack`, rebindable) → the player KNEELS
   (`Player.pack_phase` `kneel → open → stand`; rooted, `crouch_idle` + a lean via `Node2D.skew` with the feet held,
   a placeholder pack prop `held_pack.gd` at the feet) → `pack_wheel.gd`'s ring floats above them with the WHOLE bag
   in REAL TIME (no slow-mo): click equips, right-click uses (a can / the extinguisher says "Stand up first"),
