@@ -50,6 +50,9 @@ func _strike() -> void:
 	# Flash every window together (a real bolt lights all the glass at once), then the
 	# thunder after a short, distance-flavoured delay.
 	var lit := false
+	for cf in get_tree().get_nodes_in_group("city_fx"):      # the sky behind the glass flashes pale
+		if cf.has_method("lightning_flash"):
+			cf.lightning_flash()
 	for w in get_tree().get_nodes_in_group("apt_window_light"):
 		if w is PointLight2D:
 			_flash_window(w)

@@ -844,6 +844,12 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 				var bbeam = load("res://scripts/window_beam.gd").new()
 				add_child(bbeam)
 				bbeam.setup(bdoor, 1.1, 1.0, live)
+				# THE CITY BEYOND THE RAIL, alive (scripts/city_fx.gd): small fires + distant blasts on the towers, and at
+				# night the looping pixel rain past the railing with ripples on the wet tiles. Module-local coordinates.
+				var cfx = load("res://scripts/city_fx.gd").new()
+				cfx.name = "CityFx"
+				bal_node.add_child(cfx)
+				cfx.setup_balcony(WorldState.current_run, live, absi(hash(apartment_id + "_bal_" + str(i))))
 			# A zone on EVERY revealed balcony (top AND bottom of a pair): the top
 			# offers the descent, the bottom just lets the player step out onto its
 			# plane / listen — the zone gates the actual climb-down on
@@ -886,7 +892,7 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 			var wx: float = LEFT_WALL_X + i * MODULE_WIDTH + (MODULE_WINDOW_INSET if side == "left" else MODULE_WIDTH - MODULE_WINDOW_INSET)
 			var window = load("res://scripts/apartment_window.gd").new()
 			add_child(window)
-			window.setup(Vector2(wx, MODULE_WINDOW_Y), live)
+			window.setup(Vector2(wx, MODULE_WINDOW_Y), live, absi(hash(apartment_id + "_win_" + str(i))))
 
 	# The walls BETWEEN the modules (and at both ends), drawn in live perspective so the flat reads
 	# as the inside of a box and each doorway shows the right face from either side

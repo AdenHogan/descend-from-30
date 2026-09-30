@@ -70,79 +70,12 @@ LOOK = {
 
 
 def _view(c, run, rng):
-    """The city beyond the rail, clipped to the opening between the loggia's side walls."""
-    L = LOOK[run]
-    top, bot = LINTEL, EDGE + 1
-    # sky
-    for y in range(top, bot + 1):
-        t = (y - top) / float(bot - top)
-        c.hline(X0, X1, y, mix(L['sky'][0], L['sky'][1], t))
-    if run == 1:                                          # the sun, high left, a soft disc
-        for y in range(top, top + 14):
-            for x in range(X0 + 6, X0 + 22):
-                d = ((x - (X0 + 13)) ** 2 + (y - (top + 6)) ** 2) ** 0.5
-                if d <= 3.2:
-                    c.put(x, y, L['sun'])
-                elif d <= 6.5:
-                    c.put(x, y, L['sun'][:3] + (int(90 * (6.5 - d) / 3.3),))
-    if run == 3:                                          # stars
-        for _ in range(14):
-            c.put(rng.randrange(X0 + 2, X1 - 2), rng.randrange(top + 1, top + 22), hexc('c8d0e8', 170))
-    # far towers: tall slabs with flat roofs, a water tower / antenna now and then
-    x = X0 - 2
-    while x < X1:
-        w = rng.randrange(6, 13)
-        h = rng.randrange(18, 40)
-        yt = bot - h
-        c.rect(x, yt, x + w - 1, bot, L['far'])
-        if rng.random() < 0.3:
-            c.vline(x + w // 2, yt - rng.randrange(3, 7), yt - 1, L['far'])      # antenna
-        if L['lit'] is not None:
-            for wy in range(yt + 2, bot - 2, 3):
-                for wx in range(x + 1, x + w - 1, 2):
-                    if rng.random() < L['lit'][1]:
-                        c.put(wx, wy, mix(L['lit'][0], L['far'], 0.35))
-        x += w + rng.randrange(0, 3)
-    # the outbreak, out there: a smoke column over the city in the afternoon, a fire at night
-    if run == 2:
-        sx = X1 - 16
-        for y in range(top, bot - 14):
-            t = (y - top) / float(bot - 14 - top)
-            wdt = 2 + int(7 * (1 - t))
-            off = int(3 * (1 - t) * (1 if (y // 5) % 2 else -1))
-            for xx in range(sx - wdt + off, sx + wdt + off + 1):
-                c.put(xx, y, hexc('5a4a4c', int(150 * (0.5 + 0.5 * t))))
-    if run == 3:
-        fx = X0 + 20
-        for y in range(bot - 26, bot - 12):
-            for xx in range(fx - 6, fx + 7):
-                d = abs(xx - fx) / 6.0 + (bot - 12 - y) / 16.0
-                if d < 1.0:
-                    c.put(xx, y, hexc('e0702c', int(200 * (1 - d))))
-        for y in range(top + 2, bot - 22):
-            t = (y - top) / float(bot - 22 - top)
-            wdt = 1 + int(5 * (1 - t))
-            for xx in range(fx - wdt, fx + wdt + 1):
-                c.put(xx, y, hexc('2a2430', int(140 * (0.4 + 0.6 * t))))
-    # near rooftops, just under the rail line: parapets, a stair hut, a water tank
-    x = X0 - 2
-    while x < X1:
-        w = rng.randrange(10, 20)
-        h = rng.randrange(6, 13)
-        yt = bot - h
-        c.rect(x, yt, x + w - 1, bot, L['near'])
-        c.hline(x, x + w - 1, yt, shade(L['near'], 1.15) if run < 3 else shade(L['near'], 1.4))
-        if rng.random() < 0.35:
-            tx = x + rng.randrange(2, max(3, w - 5))
-            c.rect(tx, yt - 5, tx + 3, yt - 1, L['roof'])
-            c.vline(tx, yt - 1, yt, L['roof'])
-            c.vline(tx + 3, yt - 1, yt, L['roof'])
-        if L['lit'] is not None:
-            for wy in range(yt + 2, bot, 3):
-                for wx in range(x + 1, x + w - 1, 3):
-                    if rng.random() < L['lit'][1] * 1.4:
-                        c.put(wx, wy, L['lit'][0])
-        x += w
+    """The city beyond the rail, clipped to the opening between the loggia's side walls — the SAME skyline the
+    apartment windows look onto (tools/art/cityscape.py), so the building reads as one place. The fires, blasts
+    and smoke are NOT painted here: the game plays them as small animations over the points this returns."""
+    import cityscape
+    import random as _r
+    return cityscape.draw_city(c, (X0, LINTEL, X1, EDGE + 1), run, _r.Random(700 + run), layout_seed=4242, tall=1.55)
 
 
 def _side_walls(c, run):
@@ -269,28 +202,81 @@ def _frame(c, run):
             c.put(x, y - 1, hexc('3a3024', 60 if run == 2 else 110))
 
 
-def build(run):
+def build(run, view_only=False):
     import random
     rng = random.Random(7)                  # the SAME city every run — only its light changes
     c = Canvas(seed=7)
-    _view(c, run, rng)
+    meta = _view(c, run, rng)
+    if view_only:
+        return c, meta
     _floor(c, run, rng)
     _plant(c, run)
     _rail(c, run)
     _side_walls(c, run)
     _doors(c, run)
     _frame(c, run)
-    return c
+    return c, meta
+
+
+RAIN_ORIGIN = (10, 16)                      # module-local top-left of assets/city/rain_balcony.png (80 x 78)
+
+
+def _visible_view_mask(run):
+    """Which pixels of the finished balcony art are still the bare city view (nothing — rail, doors, walls,
+    frame, floor — drawn over them): the only places the night's rain, and the fires, may show."""
+    full, _m = build(run)
+    view, _m2 = build(run, view_only=True)
+    w, h = full.img.size
+    mask = [[False] * w for _ in range(h)]
+    for y in range(h):
+        for x in range(w):
+            v = view.px[x, y]
+            if v[3] > 0 and full.px[x, y] == v:
+                mask[y][x] = True
+    return mask
+
+
+def _export_fx(metas):
+    """assets/city/balcony_rain.png (the night's rain, cut to the visible view) + balcony_meta.json (where the fires /
+    blasts / smoke / aircraft lights may sit, and where rain splashes on the tiles)."""
+    import json
+    out = os.path.join(ROOT, 'assets', 'city')
+    os.makedirs(out, exist_ok=True)
+    mask = _visible_view_mask(3)
+    strip = Image.open(os.path.join(out, 'rain_balcony.png')).convert('RGBA')
+    fw, fh = 80, 78
+    px = strip.load()
+    for f in range(strip.width // fw):
+        for y in range(fh):
+            for x in range(fw):
+                mx, my = RAIN_ORIGIN[0] + x, RAIN_ORIGIN[1] + y
+                ok = 0 <= my < len(mask) and 0 <= mx < len(mask[0]) and mask[my][mx]
+                if not ok:
+                    px[f * fw + x, y] = (0, 0, 0, 0)
+    strip.save(os.path.join(out, 'rain_balcony_masked.png'))
+    back_l = int(round(depth_x(X0, EDGE))) + 4
+    back_r = int(round(depth_x(X1, EDGE))) - 4
+    meta = {'rain_origin': list(RAIN_ORIGIN), 'rain_size': [fw, fh],
+            'splash': {'y0': EDGE + 2, 'y1': EDGE + 11, 'x0': back_l, 'x1': back_r}}
+    for run in (1, 2, 3):
+        m = metas[run]
+        keep = lambda pts, ylo, yhi: [list(p) for p in pts if back_l <= p[0] <= back_r and ylo <= p[1] <= yhi]
+        meta['run_%d' % run] = {'fire': keep(m['fire'], LINTEL + 4, RAIL - 4), 'blast': keep(m['blast'], LINTEL + 4, RAIL - 2),
+                                'smoke': keep(m['smoke'], LINTEL + 4, RAIL - 2), 'beacon': keep(m['beacon'], LINTEL + 4, RAIL - 4)}
+    with open(os.path.join(out, 'balcony_meta.json'), 'w') as fh:
+        json.dump(meta, fh, indent=1, sort_keys=True)
 
 
 def main():
     out_dir = os.path.join(ROOT, 'assets', 'rooms')
     prev = []
+    metas = {}
     for run in (1, 2, 3):
-        c = build(run)
+        c, metas[run] = build(run)
         name = 'balcony' + ('' if run == 1 else '_r%d' % run)
         c.img.save(os.path.join(out_dir, name + '.png'))
         prev.append(c.img)
+    _export_fx(metas)
     # preview: each run over the study wall, with the player to scale on the plane and on the rail
     study = [Image.open(os.path.join(out_dir, n)).convert('RGBA')
              for n in ('study.png', 'study_r2.png', 'study_r3.png')]

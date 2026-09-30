@@ -1,7 +1,8 @@
 extends Node2D
 
-# A NON-balcony apartment module's WALL WINDOW: natural light plus, at night, a small
-# patch of rain seen "through" the glass. Placed by room._build_modules at a seeded
+# A NON-balcony apartment module's WALL WINDOW: a framed pane onto the CITY (tools/art/cityscape.py — a skyline
+# that burns a little more each run, with small pixel fires, distant blasts and, at night, looping pixel rain
+# behind the glass — scripts/city_fx.gd), plus natural light. Placed by room._build_modules at a seeded
 # LEFT or RIGHT wall position (WorldState.apartment_window_side) — the two slots are the
 # hook a future module-art pass uses to vary which walls carry a window (one / both /
 # none), so apartments never read samey.
@@ -18,88 +19,54 @@ extends Node2D
 const FL = preload("res://scripts/floor_lighting.gd")
 const APARTMENT_WINDOW_ENERGY_SCALE := 1.3   # a flat has no ceiling lamps — windows carry it
 
-# The sky seen THROUGH the glass, by run/time of day: bright cool blue morning, a PINKISH-BLUE
-# (sunset) afternoon, DARK at night. So the window exterior sells the time skip, not just the light.
-const GLASS_BY_RUN := [
-	Color(0.62, 0.78, 0.98, 0.65),   # run 1 morning — cool blue sky
-	Color(0.86, 0.62, 0.78, 0.66),   # run 2 afternoon — pinkish-blue sunset
-	Color(0.15, 0.18, 0.32, 0.80),   # run 3 night — dark outside
-]
-
-# Placeholder pane box (drawn until real module art frames the window). Half-extents.
+# The glass (the art's pane, tools/art/cityscape.py GLASS_W/H): half-extents. The node's origin is the glass centre.
 const PANE_HALF_W := 22.0
 const PANE_HALF_H := 26.0
 
+const CITY_FX = preload("res://scripts/city_fx.gd")
+const VARIANTS := 4
+
 var light: PointLight2D = null
+var view: Sprite2D = null
+var frame: Sprite2D = null
+var fx: Node2D = null
 var _night := false
 
 
-func setup(pos: Vector2, live: bool) -> void:
+func setup(pos: Vector2, live: bool, variant_seed: int = -1) -> void:
 	position = pos
 	z_index = 0
-	_night = WorldState.current_run == 3
+	var run: int = clampi(WorldState.current_run, 1, 3)
+	_night = run == 3
 	light = FL.make_window_light(Vector2.ZERO, APARTMENT_WINDOW_ENERGY_SCALE)
 	# The storm driver finds every window this way to flash them as one lightning event.
 	light.add_to_group("apt_window_light")
 	# Remember the run's base energy so a flash can return to it exactly.
 	light.set_meta("base_energy", light.energy)
 	add_child(light)
-	# A slanting sunbeam / moonbeam shaft in through the glass (see window_beam.gd).
+	# THE CITY OUTSIDE: a skyline behind the glass (a stable per-window variant — the same city all three
+	# runs, only its light, fires and weather change), the animations over it, then the frame on top.
+	var seed_v: int = variant_seed if variant_seed >= 0 else hash(str(int(round(pos.x))) + "_" + str(int(round(pos.y))) + "win")
+	var variant: int = absi(seed_v) % VARIANTS
+	var key := "view_%d_%d" % [run, variant]
+	view = Sprite2D.new()
+	view.texture = load("res://assets/city/%s.png" % key)
+	view.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	view.material = CITY_FX.unshaded()
+	view.modulate = CITY_FX.exposure(1.0)        # the exterior isn't lit by the room's darkness (unshaded)
+	add_child(view)
+	fx = CITY_FX.new()
+	add_child(fx)
+	fx.setup_window(key, run, live, seed_v, light, view)
+	# A slanting sunbeam / moonbeam shaft in through the glass (see window_beam.gd) — over the city, under the frame.
 	var beam = load("res://scripts/window_beam.gd").new()
 	add_child(beam)
 	beam.setup(Vector2.ZERO, 0.9, 1.0, live)
-	queue_redraw()   # draw the placeholder pane
-	# Rain is OUTSIDE the glass — only on live night runs (no rain on a passive backdrop).
-	if live and _night:
-		_add_rain()
-
-
-func _draw() -> void:
-	# A simple placeholder window: a framed pane of "sky" you can see through, so the window
-	# reads AS a window in-editor before real module art exists (the art pass replaces this).
-	# Glass tint tracks the time of day: cool blue morning, pinkish-blue sunset, dark at night.
-	var glass: Color = GLASS_BY_RUN[clampi(WorldState.current_run - 1, 0, 2)]
-	var frame := Color(0.10, 0.10, 0.12, 0.95)
-	var rect := Rect2(-PANE_HALF_W, -PANE_HALF_H, PANE_HALF_W * 2.0, PANE_HALF_H * 2.0)
-	draw_rect(rect, glass, true)                       # glass
-	draw_rect(rect, frame, false, 3.0)                 # outer frame
-	draw_line(Vector2(0, -PANE_HALF_H), Vector2(0, PANE_HALF_H), frame, 2.0)   # mullion |
-	draw_line(Vector2(-PANE_HALF_W, 0), Vector2(PANE_HALF_W, 0), frame, 2.0)   # mullion -
-
-
-func _add_rain() -> void:
-	# A small patch of falling streaks confined to the pane, drawn behind actors (z0) so it
-	# reads as rain seen THROUGH the window, not rain in the room. Placeholder until window art.
-	# Rain is seen THROUGH the glass, so it must stay WITHIN the pane — a fast/long fall spilled
-	# streaks out the bottom into the room and read as a leak (owner). Confine it: emit across the
-	# top of the pane and tune velocity/gravity/lifetime so a streak dies before it reaches the
-	# pane bottom. (Temp placeholder — a proper rain sprite-sheet animation is a future asset.)
-	var rain := CPUParticles2D.new()
-	rain.texture = _streak_texture()
-	rain.z_index = 0
-	rain.amount = 14
-	rain.lifetime = 0.34
-	rain.preprocess = 0.34                       # start mid-fall, no empty first beat
-	rain.local_coords = false
-	rain.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
-	rain.emission_rect_extents = Vector2(PANE_HALF_W - 4.0, 2.0)
-	rain.position = Vector2(0, -PANE_HALF_H + 3.0)   # emit at the top of the pane
-	rain.direction = Vector2(0.12, 1.0)          # a slight wind-driven slant
-	rain.spread = 0.0
-	rain.gravity = Vector2(0, 260)
-	rain.initial_velocity_min = 50.0
-	rain.initial_velocity_max = 70.0
-	rain.scale_amount_min = 0.7
-	rain.scale_amount_max = 1.0
-	rain.color = Color(0.62, 0.72, 0.95, 0.5)    # cool, translucent
-	add_child(rain)
-
-
-func _streak_texture() -> Texture2D:
-	# A thin vertical raindrop streak (2x12), fading top-to-bottom.
-	var img := Image.create(2, 12, false, Image.FORMAT_RGBA8)
-	for y in range(12):
-		var a := 0.25 + 0.6 * (float(y) / 11.0)
-		for x in range(2):
-			img.set_pixel(x, y, Color(1, 1, 1, a))
-	return ImageTexture.create_from_image(img)
+	frame = Sprite2D.new()
+	var ftex: Texture2D = load("res://assets/city/window_frame_%d.png" % run)
+	frame.texture = ftex
+	frame.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	frame.centered = false
+	var fsize: Array = CITY_FX.meta().get("_sizes", {}).get("frame_glass_centre", [27, 31])
+	frame.position = -Vector2(float(fsize[0]), float(fsize[1]))   # the glass centre sits on the node origin
+	add_child(frame)

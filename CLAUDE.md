@@ -844,7 +844,7 @@ means no rendering — UI layout and art still need an in-editor look.
   bright cool DAY, warm AFTERNOON, dim blue MOONLIGHT at NIGHT. On live NIGHT runs a single
   `apartment_storm` per flat drives a RAIN hiss loop + synced LIGHTNING that flashes every
   window light together (localised, through-the-glass) followed by THUNDER a beat later; each
-  night window also carries a small rain-particle patch. Balcony modules keep their balcony
+  night window also carries a pixel-rain loop (round 28 — see THE CITY OUTSIDE). Balcony modules keep their balcony
   window (no wall window). Storm audio is generated (`tools/gen_storm_audio.py` →
   `assets/audio/ambience/`, CC0). Added on the passive balcony-pan backdrop too (light only,
   no rain/storm). Covered by `apartment_window_test`. Purely visual/audio otherwise — the LOOK
@@ -1837,6 +1837,33 @@ means no rendering — UI layout and art still need an in-editor look.
   spatula) as a dark-steel driver head. **Left for the owner (see the chat report):** the placeholder player + zombie rigs, the flat
   blue lobby exit door, the garish red-orange LOCKED door tint, an unreadable scrawl decal over 3001, the empty in-hand vial showing
   as a dark smudge, the Story tab's "Lore coming soon" text.
+- THE CITY OUTSIDE (owner round 28 — "the windows in apartments look pretty simple… stick some city scape in the background…
+  the rain in night run doesn't look very good… pixel rain that loops as an animation behind the window, and also on the balcony
+  in the night run… small pixel fires and explosions on those buildings in the distance"): `tools/art/cityscape.py` paints ONE
+  city for the whole building (`draw_city`: a sky per run — day blue / dusk violet-to-peach / night stars + moon — a pale far
+  layer, a mid layer of lit towers with antennas, tanks and stepped roofs, dark near roofs; the LAYOUT has its own seed so the same
+  towers stand in all three runs and only the light, windows, smoke and fires change) → `assets/city/view_<run>_<variant>.png`
+  (4 window variants × 3 runs, 44×52), `window_frame_<run>.png` (a two-over-two sash frame with casing, a stone sill, a glass sheen;
+  glass hole transparent; run 3 has a cracked pane), and the animation strips: `fire.png`/`fire_s.png` (6 frames), `explosion(_s)
+  .png` (10 frames, played once), `smoke_<run>.png` (a looping plume), `rain_window.png` (44×52 × 13 frames) and `rain_balcony.png`
+  (80×78 × 13 frames) — both rain sheets are SEAMLESS (near layer falls h/13 a frame = one wrap over the loop, far layer half that
+  with a half-height period), `splash.png` (a ripple). `city_meta.json` / `balcony_meta.json` list where a fire / blast / plume /
+  aircraft light may sit (tower roofs). The balcony art (`tools/art/balcony.py`) now draws the SAME skyline (taller, `tall` 1.55) and
+  exports `rain_balcony_masked.png` — the rain cut to the pixels of the view still visible (not behind the rail / doors / walls).
+  **Runtime** `scripts/city_fx.gd` (one node per window / balcony; module-local coords on a balcony): fires (none in the morning, 1-2
+  at dusk, 2-4 at night + smoke), BLASTS (a one-shot explosion on a tower: none by day, every 24-46 s at dusk, every 5.5-12.5 s at
+  night — the window's own light jumps +0.55 and a low muffled boom follows 0.5-1.6 s later, at most one per 2.5 s building-wide),
+  an aircraft light blinking on a mast, the looping pixel rain (night only: behind each window's glass and past each balcony's
+  rail, plus 9 ripples on the wet tiles) and `lightning_flash()` (apartment_storm calls it: the sky jumps ~2.6× for a beat).
+  `apartment_window.gd` is no longer a code-drawn rectangle: a per-window view variant (seeded off flat + slot, stable), the fx, the
+  beam, then the frame on top (`PANE_HALF_*` = the glass, 22×26, what the wallpaper-band test reads). **Gotcha (lighting): the
+  exterior sprites are `CanvasItemMaterial.LIGHT_MODE_UNSHADED`** — lit, they were multiplied by the window's own PointLight and
+  blown to white; unshaded they are NOT darkened by the night CanvasModulate either (an inverse-ambient "exposure" was tried first and
+  overexposed everything), so they show exactly as authored (`CityFx.exposure` is just the multiplier). The old CPUParticles rain
+  is gone. Locked by `apartment_window_test` (`_test_windows_night` — rain on every window + balcony, `_test_city_outside` — meta,
+  art present, same city across runs, fires/rain by run, a blast plays once + frees + kicks the light, lightning flash, unshaded).
+  Preview: `docs/art_reference/city/city_views.png` + `docs/art_reference/modules/balcony_runs.png`. Not done: the stairwell's
+  baked windows and the lobby door still show no city; pan backdrops animate (visual only) but fire no blasts/booms.
 - EVERY-FLOOR FIXTURES (owner round 25c, "cleaning art for immersion and visual clarity"; `tools/art/fixtures.py`,
   preview `docs/art_reference/fixtures.png`): at true size the lift was a flat grey slab in a black frame, the
   wall extinguisher a red block and the EXIT sign an unlabelled green box. Now: `assets/Elevator.png` is

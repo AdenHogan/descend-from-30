@@ -22,6 +22,7 @@ func _ready() -> void:
 	_test_seeded_side()
 	await _test_windows_day()
 	await _test_windows_night()
+	await _test_city_outside()
 	await _test_exit_through_door()
 	_test_floor_boundary()
 	_test_module_variants()
@@ -50,6 +51,14 @@ func _test_seeded_side() -> void:
 				else:
 					rights += 1
 	check(lefts > 0 and rights > 0, "both left and right windows occur (L %d / R %d)" % [lefts, rights])
+
+
+func _balcony_count(apt: String) -> int:
+	var n := 0
+	for slot in range(3):
+		if WorldState.is_balcony_slot(apt, slot):
+			n += 1
+	return n
 
 
 func _expected_windows(apt: String) -> int:
@@ -208,14 +217,28 @@ func _test_windows_night() -> void:
 	check(get_tree().get_nodes_in_group("apt_window_light").size() == _expected_windows(APT),
 		"windows still spawn at night")
 	check(not get_tree().get_nodes_in_group("apt_storm").is_empty(), "a night run adds the storm driver")
-	# Rain particles hang off the windows at night.
-	var rain_found := false
+	# Looping PIXEL rain plays behind every window's glass at night (assets/city/rain_window.png).
+	var rain_nodes := get_tree().get_nodes_in_group("window_rain")
+	check(rain_nodes.size() == _expected_windows(APT), "every night window has its pixel-rain loop (%d of %d)" % [rain_nodes.size(), _expected_windows(APT)])
+	var rain_ok := not rain_nodes.is_empty()
+	for r in rain_nodes:
+		rain_ok = rain_ok and r is AnimatedSprite2D and r.is_playing() and r.sprite_frames.get_frame_count("default") == 13 \
+			and r.sprite_frames.get_animation_loop("default")
+	check(rain_ok, "...a 13-frame looping AnimatedSprite2D that is playing")
+	var old_particles := false
 	for w in get_tree().get_nodes_in_group("apt_window_light"):
-		var parent = w.get_parent()
-		for c in parent.get_children():
+		for c in w.get_parent().get_children():
 			if c is CPUParticles2D:
-				rain_found = true
-	check(rain_found, "night windows carry rain particles")
+				old_particles = true
+	check(not old_particles, "the old particle streaks are gone")
+	# the balcony, if this flat has one, has its rain + ripples at night too
+	var bal_rain := get_tree().get_nodes_in_group("balcony_rain")
+	var has_bal := false
+	for sl in range(3):
+		if WorldState.is_balcony_slot(APT, sl):
+			has_bal = true
+	check(bal_rain.size() == (1 if has_bal else 0) * _balcony_count(APT), "night balconies carry the rain sheet (%d)" % bal_rain.size())
+	check(get_tree().get_nodes_in_group("balcony_splash").size() == 9 * bal_rain.size(), "...and ripples on the wet tiles")
 	room.queue_free()
 	await get_tree().process_frame
 
@@ -525,4 +548,87 @@ func _test_module_sounds() -> void:
 	check(silent, "a passive backdrop's details make no sound")
 	holder.queue_free()
 	player.queue_free()
+	await get_tree().process_frame
+
+
+func _test_city_outside() -> void:
+	print("[the city outside: skyline, fires, blasts, rain]")
+	var CF = load("res://scripts/city_fx.gd")
+	var meta: Dictionary = CF.meta()
+	check(not meta.has("_empty"), "the city meta loads (views + balcony points)")
+	for run in [1, 2, 3]:
+		check(ResourceLoader.exists("res://assets/city/window_frame_%d.png" % run), "run %d: a window frame" % run)
+		check(ResourceLoader.exists("res://assets/city/smoke_%d.png" % run), "run %d: a smoke plume strip" % run)
+		for v in range(4):
+			check(meta.has("view_%d_%d" % [run, v]) and ResourceLoader.exists("res://assets/city/view_%d_%d.png" % [run, v]), "run %d variant %d: a skyline + its fire / blast points" % [run, v])
+	# the SAME city stands in all three runs: the tower points (fires / blasts) match across the looks
+	for v in range(4):
+		var a: Array = meta["view_1_%d" % v]["fire"]
+		var c: Array = meta["view_3_%d" % v]["fire"]
+		check(a == c, "variant %d: the same towers burn-able in the morning and at night (%d points)" % [v, a.size()])
+	# weather by run: nothing on fire in the morning; fires at dusk + night; rain + beacon only at night
+	var counts := {}
+	for run in [1, 2, 3]:
+		WorldState.new_game()
+		WorldState.is_first_run = false
+		WorldState.current_run = run
+		var sizes := 0
+		var fires := 0
+		var rain := 0
+		for v in range(4):
+			var win = load("res://scripts/apartment_window.gd").new()
+			add_child(win)
+			win.setup(Vector2(100, 262), true, v)
+			await get_tree().process_frame
+			for c in win.fx.get_children():
+				if c is AnimatedSprite2D and c.sprite_frames.get_frame_count("default") == 6 and c.sprite_frames.get_frame_count("default") == 6 and c.sprite_frames.get_frame_texture("default", 0).get_width() == 6:
+					fires += 1
+			rain += win.fx.get_tree().get_nodes_in_group("window_rain").size() if v == 3 else 0
+			check(win.view != null and win.frame != null, "run %d v%d: the window is a framed view, not a coloured rectangle" % [run, v])
+			var gw: int = win.view.texture.get_width()
+			var gh: int = win.view.texture.get_height()
+			check(gw == 44 and gh == 52 and absf(win.PANE_HALF_W * 2.0 - gw) < 0.1 and absf(win.PANE_HALF_H * 2.0 - gh) < 0.1, "run %d v%d: the skyline fills the %dx%d glass exactly" % [run, v, gw, gh])
+			win.queue_free()
+			await get_tree().process_frame
+		counts[run] = [fires, rain]
+	check(counts[1][0] == 0, "morning: no fires out there")
+	check(counts[2][0] >= 1, "afternoon: some fires (%d across four windows)" % counts[2][0])
+	check(counts[3][0] > counts[2][0] - 1 and counts[3][0] >= 4, "night: more (%d)" % counts[3][0])
+	check(counts[1][1] == 0 and counts[2][1] == 0 and counts[3][1] >= 1, "rain only at night")
+	# a blast: a one-shot sprite that plays once and frees itself; it kicks the window's own light
+	WorldState.new_game()
+	WorldState.current_run = 3
+	var w2 = load("res://scripts/apartment_window.gd").new()
+	add_child(w2)
+	w2.setup(Vector2(100, 262), true, 1)
+	await get_tree().process_frame
+	var base: float = w2.light.energy
+	var b = w2.fx.blast(0)
+	check(b != null and b.is_playing() and not b.sprite_frames.get_animation_loop("default"), "a blast plays once")
+	check(b.get_tree().get_nodes_in_group("city_blast").size() >= 1, "...tagged as a blast")
+	for i in range(8):
+		await get_tree().process_frame
+	check(w2.light.energy > base, "...and the window's light jumps (%.2f > %.2f)" % [w2.light.energy, base])
+	var waited := 0.0
+	while is_instance_valid(b) and waited < 2.5:
+		await get_tree().create_timer(0.1).timeout
+		waited += 0.1
+	check(not is_instance_valid(b), "...and the sprite frees itself when the animation ends")
+	# lightning brightens the sky behind the glass for a beat, then it settles back
+	var before: Color = w2.view.modulate
+	w2.fx.lightning_flash()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	check(w2.view.modulate.r > before.r, "a lightning flash brightens the view")
+	await get_tree().create_timer(0.6).timeout
+	check(absf(w2.view.modulate.r - before.r) < 0.05, "...and it settles back")
+	# the exterior is UNSHADED: it shows as drawn, not darkened by the night's ambient or blown out by the room's lights
+	check(w2.view.material is CanvasItemMaterial and w2.view.material.light_mode == CanvasItemMaterial.LIGHT_MODE_UNSHADED, "the skyline is unshaded (light from outside, not a lit prop)")
+	var unshaded_all := true
+	for ch in w2.fx.get_children():
+		if ch is CanvasItem and not (ch.material is CanvasItemMaterial and ch.material.light_mode == CanvasItemMaterial.LIGHT_MODE_UNSHADED):
+			unshaded_all = false
+	check(unshaded_all, "...and so is every fire / smoke / rain sprite over it")
+	check(w2.view.modulate.is_equal_approx(Color(1, 1, 1, 1)), "at rest the view is drawn exactly as authored")
+	w2.queue_free()
 	await get_tree().process_frame
