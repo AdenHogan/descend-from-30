@@ -88,11 +88,16 @@ func _test_identity_and_stamina() -> void:
 	check(not HUD.floor_label.visible, "the floor numeral never shows")
 	var wi: Rect2 = Rect2(HUD.wallet_icon.global_position, HUD.wallet_icon.size)
 	check(wi.position.x > HUD.SCREEN_W * 0.8 and wi.position.y < 60.0, "the wallet + notes count sit top-right, where the floor text was (%s)" % str(wi))
-	check(HUD.stamina_bar.global_position.y >= pr.position.y and HUD.stamina_bar.global_position.x > pr.end.x - 20.0,
-		"…and the stamina bar under them")
+	# the name row: NAME, then the MODE; the stamina bar is the row's UNDERLINE (and the gauge)
+	var nr: Rect2 = Rect2(HUD.name_label.global_position, HUD.name_label.size)
 	var mode_r: Rect2 = HUD.mode_label.get_global_rect()
-	check(mode_r.position.y > HUD.stamina_bar.global_position.y and mode_r.position.x > pr.end.x - 20.0 and HUD.equipped_detail.global_position.y > HUD.stamina_bar.global_position.y,
-		"the mode toggle and the in-hand line sit under the stamina bar")
+	var sb: Rect2 = Rect2(HUD.stamina_bar.global_position, HUD.stamina_bar.size)
+	check(mode_r.position.x >= nr.end.x - 6.0 and absf((mode_r.position.y + mode_r.size.y * 0.5) - (nr.position.y + nr.size.y * 0.5)) < 8.0,
+		"the mode sits on the name's row, right after the name (%s → %s)" % [str(nr), str(mode_r)])
+	check(HUD.mode_label.text in ["SCAVENGE", "COMBAT"], "…as plain words (%s), no brackets" % HUD.mode_label.text)
+	check(sb.position.y >= nr.end.y - 2.0 and sb.position.y - nr.end.y < 12.0 and sb.size.y <= 6.0, "the stamina bar is a thin horizontal line right UNDER the name row")
+	check(sb.position.x <= nr.position.x + 1.0 and sb.end.x >= mode_r.end.x - 4.0, "…spanning the name AND the mode, so it is their underline (%s)" % str(sb))
+	check(HUD.equipped_label.global_position.y >= sb.end.y and HUD.equipped_detail.global_position.y >= sb.end.y, "the in-hand line sits under the underline")
 	check(not HUD.color_rect.visible, "the opaque bottom bar is GONE")
 	check(not HUD.hotbar_visible and not HUD.hbox.visible and HUD.hotbar_rect().size == Vector2.ZERO,
 		"and so is the hotbar (redundant with the wheels) — hidden by default")
@@ -113,6 +118,28 @@ func _test_identity_and_stamina() -> void:
 	check(HUD.hbox.visible and HUD.pointer_over_widget(r0.get_center()) and absf(r0.position.x - (HUD.SCREEN_W - r5.end.x)) < 3.0 and r5.end.y <= 100.0,
 		"(opt-in) the hotbar returns centred at the top, and is then a HUD widget")
 	HUD.set_hotbar_visible(false)
+	# hovering the mode explains the two modes
+	check(not HUD.mode_tip.visible, "the mode tooltip is hidden until you hover")
+	WorldState.is_scavenge_mode = true
+	HUD.update_mode_indicator()
+	var mc: Dictionary = HUD.mode_tip_content()
+	check(mc["current"] == "scavenge" and "you are here" in mc["scavenge"]["head"] and not ("you are here" in mc["combat"]["head"]),
+		"the tip marks the mode you are in (scavenge)")
+	WorldState.is_scavenge_mode = false
+	HUD.update_mode_indicator()
+	mc = HUD.mode_tip_content()
+	check(mc["current"] == "combat" and "you are here" in mc["combat"]["head"], "…and follows a switch to combat")
+	check("sprint" in mc["scavenge"]["body"].to_lower() and "search" in mc["scavenge"]["body"].to_lower() and "swing" in mc["combat"]["body"].to_lower(),
+		"it says what each mode is for (search / slow + quiet / no sprint; fight / sprint)")
+	check(mc["hint"].contains(HUD.action_key_name("mode_toggle", "F")), "…and names the CURRENT switch key (%s)" % mc["hint"])
+	HUD.mode_label.mouse_entered.emit()
+	HUD._process(0.3)
+	check(HUD.mode_tip.visible, "hovering the mode text shows the tooltip after a beat")
+	var tr: Rect2 = HUD.mode_tip.get_global_rect()
+	check(tr.end.y <= HUD.mode_label.get_global_rect().position.y + 1.0 and tr.position.x >= 0.0 and tr.end.x <= HUD.SCREEN_W and tr.position.y >= 0.0,
+		"…above the text, on screen (%s)" % str(tr))
+	HUD.mode_label.mouse_exited.emit()
+	check(not HUD.mode_tip.visible, "…and it goes when the pointer leaves")
 	# the stamina bar: one continuous bar off the same numbers
 	var bar = HUD.stamina_bar
 	check(bar.get_script().resource_path.ends_with("hud_stamina.gd"), "the stamina gauge is one continuous bar")

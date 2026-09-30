@@ -1857,8 +1857,10 @@ means no rendering — UI layout and art still need an in-editor look.
   ~23% bigger on screen; nothing in world units changed, so every Y plane / constant in docs/Y_PLANES.md still holds). The HUD
   floats over the world: **the portrait bottom-left, LARGE and uncropped** (owner round 26d: the small circle with a health
   ring "doesn't look as interesting… restrictive" — so `hud_ring.gd` / `hud_disc.gd` are DELETED; the bust art itself changes with
-  health, and the condition word beside it is stage-coloured), with the name, the stamina bar and the mode toggle +
-  in-hand line in a column to its right (NO condition word — owner round 26e: the bust shows health; and NO floor / "/ 30" /
+  health, and the condition word beside it is stage-coloured), with a NAME ROW to its right — the name, then the MODE in plain words (`SCAVENGE` green / `COMBAT` red; click it or press the mode key to
+  switch; HOVER it for a tooltip that explains both modes and marks the one you're in — `HUD.mode_tip_content()`, every claim a real rule)
+  — the thin stamina bar spans the row as its UNDERLINE as well as the gauge (`_layout_identity_row` sizes it to name+mode), and a small
+  in-hand line (item + uses/rounds) under that (NO condition word — owner round 26e: the bust shows health; and NO floor / "/ 30" /
   time-of-day / run-pips text either, "extra bloat": the FloorLabel node stays hidden because many callers still `update_floor_label()`,
   `hud_run_pips.gd` is deleted; the floor is announced on the stairs and by the wall sign) (it FADES to 30% while the player stands under it — `_fade_identity_over_player` — because
   the left staircase is right there), the **backpack button bottom-right** with the wheel hint beside it, and **notes + scrap TOP-RIGHT** (a small icon + the number,

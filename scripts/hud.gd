@@ -29,7 +29,12 @@ var _portrait_bounce: Tween = null
 ]
 @onready var slot_locked = $Control/HBoxContainer/SlotLocked
 
-var mode_label: Button = null   # clickable scavenge/combat toggle
+var mode_label: Button = null   # clickable scavenge/combat toggle — on the name row, after the name
+var mode_tip: PanelContainer = null      # the hover explanation of the two modes
+var _mode_tip_blocks: Array = []         # [{head, body}] for scavenge, combat
+var _mode_tip_hint: Label = null
+var _mode_hover: bool = false
+var _mode_hover_t: float = 0.0
 var slot_icons: Array = []
 var slot_durability_bars: Array = []
 var selected_slot: int = -1
@@ -66,7 +71,7 @@ var boon_ui = null
 var slot_level_labels: Array = []
 var listen_overlay: CanvasLayer = null
 const STAMINA_BAR_W = 170.0            # the stamina bar lies under the portrait's name (bottom-left)
-const STAMINA_BAR_H = 8.0
+const STAMINA_BAR_H = 5.0                            # thin: it is the NAME ROW'S UNDERLINE as well as the stamina gauge
 
 const SCREEN_W = 1152.0
 const SCREEN_H = 648.0
@@ -86,7 +91,8 @@ const PORTRAIT_H = 165.0                             # (281x351 art → 0.47 sca
 const HOTBAR_Y = 12.0
 const HOTBAR_W = SLOT_SIZE * 6 + 8 * 5
 const IDENT_Y = SCREEN_H - PORTRAIT_H - 4.0          # the bottom-left block's top edge
-const IDENT_TEXT_X = PORTRAIT_W + 16.0               # the name / condition / stamina column
+const IDENT_TEXT_X = PORTRAIT_W + 16.0               # the name row / stamina underline / in-hand column
+const IDENT_ROW_Y = SCREEN_H - 68.0                  # the NAME + MODE row; the stamina underline sits right under it
 const CURRENCY_X = SCREEN_W - CLUSTER_MARGIN - 124.0   # top-right: notes + scrap (icon, then the number)
 const CURRENCY_Y = 12.0
 const CURRENCY_ROW = 34.0
@@ -115,6 +121,7 @@ func _ready() -> void:
 	_create_mode_label()
 	_create_slot_icons()
 	_create_item_tip()
+	_create_mode_tip()
 	_create_feedback_label()
 	_create_dialogue_panel()
 	_create_context_menu()
@@ -202,11 +209,11 @@ func _create_cluster() -> void:
 	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	portrait.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	var tx: float = IDENT_TEXT_X
-	name_label = _hud_label("", 16, Color(0.93, 0.89, 0.82), Vector2(tx, IDENT_Y + 58.0), Vector2(240, 22))
+	name_label = _hud_label("", 16, Color(0.93, 0.89, 0.82), Vector2(tx, IDENT_ROW_Y), Vector2(240, 22))
 
 	# --- under the stamina bar: the mode toggle + what's in hand; bottom-right: the wheel's key hint ---
-	equipped_label = _hud_label("", 14, Color(0.93, 0.89, 0.82), Vector2(IDENT_TEXT_X + 122.0, IDENT_Y + 112.0), Vector2(176, 20))
-	equipped_detail = _hud_label("", 12, TEXT_DIM, Vector2(IDENT_TEXT_X + 4.0, IDENT_Y + 136.0), Vector2(230, 18))
+	equipped_label = _hud_label("", 13, Color(0.93, 0.89, 0.82), Vector2(IDENT_TEXT_X, IDENT_ROW_Y + 34.0), Vector2(150, 20))
+	equipped_detail = _hud_label("", 12, TEXT_DIM, Vector2(IDENT_TEXT_X, IDENT_ROW_Y + 35.0), Vector2(200, 18), HORIZONTAL_ALIGNMENT_RIGHT)
 	var pack_left: float = SCREEN_W - CLUSTER_MARGIN - PACK_BTN_W
 	wheel_hint = _hud_label("", 12, TEXT_DIM, Vector2(pack_left - 264.0, SCREEN_H - 24.0), Vector2(250, 18), HORIZONTAL_ALIGNMENT_RIGHT)
 
@@ -234,16 +241,28 @@ func _create_pack() -> void:
 
 
 func _create_mode_label() -> void:
-	# Clickable so mouse players can flip scavenge↔combat without pressing F.
+	# The MODE sits on the name row, right after the name ("THE NEIGHBOUR  SCAVENGE"): click it (or press the
+	# mode key) to switch, hover it for a short explanation of the two modes. A flat, padding-free Button so
+	# it reads as text.
 	mode_label = Button.new()
 	mode_label.flat = true
 	mode_label.focus_mode = Control.FOCUS_NONE
-	mode_label.add_theme_font_size_override("font_size", 14)
+	mode_label.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	mode_label.add_theme_font_size_override("font_size", 16)
 	mode_label.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	mode_label.position = Vector2(IDENT_TEXT_X - 4.0, IDENT_Y + 106.0)
-	mode_label.size = Vector2(124, 24)
-	mode_label.custom_minimum_size = Vector2(124, 24)
+	for st in ["normal", "hover", "pressed", "focus", "disabled"]:
+		mode_label.add_theme_stylebox_override(st, StyleBoxEmpty.new())
+	mode_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	mode_label.add_theme_constant_override("outline_size", 4)
+	mode_label.position = Vector2(IDENT_TEXT_X + 140.0, IDENT_ROW_Y - 1.0)
 	mode_label.pressed.connect(_on_mode_button)
+	mode_label.mouse_entered.connect(func() -> void:
+		_mode_hover = true
+		_mode_hover_t = 0.0)
+	mode_label.mouse_exited.connect(func() -> void:
+		_mode_hover = false
+		if mode_tip != null:
+			mode_tip.visible = false)
 	$Control.add_child(mode_label)
 
 
@@ -514,7 +533,7 @@ func _create_stamina_bar() -> void:
 	# ONE continuous bar (hud_stamina.gd) under the portrait's name — it drains and refills smoothly off
 	# the same stamina numbers as always; nothing about the drain or regen changed.
 	stamina_bar = preload("res://scripts/hud_stamina.gd").new()
-	stamina_bar.position = Vector2(IDENT_TEXT_X, IDENT_Y + 88.0)
+	stamina_bar.position = Vector2(IDENT_TEXT_X, IDENT_ROW_Y + 26.0)
 	stamina_bar.size = Vector2(STAMINA_BAR_W, STAMINA_BAR_H)
 	$Control.add_child(stamina_bar)
 
@@ -735,6 +754,10 @@ func _update_smoke_fog(delta: float) -> void:
 
 func _process(delta: float) -> void:
 	_fade_identity_over_player(delta)
+	if _mode_hover and mode_tip != null and not mode_tip.visible:
+		_mode_hover_t += delta
+		if _mode_hover_t >= MODE_TIP_DELAY:
+			show_mode_tip()
 	if pack_button != null:
 		var pl = get_tree().get_first_node_in_group("player")
 		pack_button.is_pack_open = pl != null and is_instance_valid(pl) and str(pl.get("pack_phase")) in ["kneel", "open"]
@@ -930,6 +953,105 @@ var _tip_t: float = 0.0
 var tip_mouse_override = null          # tests only: a Vector2 stands in for the pointer (headless has none)
 
 
+# --- the MODE row (name + mode) and its tooltip ---------------------------------------------------
+
+const MODE_TIP_DELAY := 0.15
+const MODE_TIP_W := 290.0
+const MODE_COL_SCAV := Color(0.55, 0.9, 0.5)
+const MODE_COL_COMBAT := Color(0.95, 0.4, 0.34)
+
+
+## Lay out the identity row: the mode sits right after the name, and the stamina bar underlines BOTH
+## (it is the row's underline as well as the gauge). Re-run whenever the name or the mode text changes.
+func _layout_identity_row() -> void:
+	if name_label == null or mode_label == null or stamina_bar == null:
+		return
+	var f: Font = name_label.get_theme_default_font()
+	var nw: float = f.get_string_size(name_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x
+	name_label.size.x = nw + 4.0
+	mode_label.reset_size()
+	var mw: float = f.get_string_size(mode_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x
+	mode_label.position = Vector2(IDENT_TEXT_X + nw + 12.0, IDENT_ROW_Y - 1.0)
+	mode_label.size = Vector2(mw + 4.0, 24.0)
+	var w: float = maxf(nw + 12.0 + mw, 150.0)
+	stamina_bar.size = Vector2(w, STAMINA_BAR_H)
+	if equipped_detail != null:
+		equipped_detail.size.x = w
+		equipped_detail.position.x = IDENT_TEXT_X
+
+
+func _create_mode_tip() -> void:
+	mode_tip = PanelContainer.new()
+	mode_tip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mode_tip.visible = false
+	mode_tip.z_index = 50
+	var st := StyleBoxFlat.new()
+	st.bg_color = Color(0.07, 0.07, 0.09, 0.95)
+	st.border_color = Color(0.62, 0.58, 0.46, 0.95)
+	st.set_border_width_all(1)
+	st.set_corner_radius_all(3)
+	st.set_content_margin_all(9)
+	mode_tip.add_theme_stylebox_override("panel", st)
+	var box := VBoxContainer.new()
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_theme_constant_override("separation", 4)
+	mode_tip.add_child(box)
+	for col in [MODE_COL_SCAV, MODE_COL_COMBAT]:
+		var head := _mode_tip_label(box, 14, col)
+		var body := _mode_tip_label(box, 12, Color(0.78, 0.82, 0.86))
+		_mode_tip_blocks.append({"head": head, "body": body})
+	_mode_tip_hint = _mode_tip_label(box, 11, Color(0.95, 0.82, 0.42))
+	$Control.add_child(mode_tip)
+
+
+func _mode_tip_label(box: Node, size: int, col: Color) -> Label:
+	var l := Label.new()
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_color_override("font_color", col)
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.custom_minimum_size = Vector2(MODE_TIP_W, 0)
+	box.add_child(l)
+	return l
+
+
+## What the two modes are, for the tooltip. Public + a plain function of the current mode so a test can read it.
+## Every claim here is a rule in player.gd / interactable.gd (slow + quiet scavenging, no sprint / shove / swing,
+## searching only in scavenge; full pace + sprint + shove + swing in combat).
+func mode_tip_content() -> Dictionary:
+	var key: String = action_key_name("mode_toggle", "F")
+	var scav: bool = WorldState.is_scavenge_mode
+	return {
+		"scavenge": {"head": "SCAVENGE" + ("   ◂ you are here" if scav else ""),
+			"body": "Searching mode. Loot nodes can only be searched here. You move slowly and quietly (about half speed, a small noise ring) and can't sprint, shove or swing a weapon — pressing attack with one drawn switches you to combat."},
+		"combat": {"head": "COMBAT" + ("" if scav else "   ◂ you are here"),
+			"body": "Fighting mode. Swing, shoot and shove, walk at full pace and sprint (sprinting is loud). Nothing can be searched from here — switch to scavenge first."},
+		"hint": "Click here or press [%s] to switch. It takes a moment — you can't move while you do." % key,
+		"current": "scavenge" if scav else "combat",
+	}
+
+
+## Fill and place the mode tooltip above the mode text (public so a test / the capture tool can drive it).
+func show_mode_tip() -> void:
+	if mode_tip == null or mode_label == null:
+		return
+	var c: Dictionary = mode_tip_content()
+	for i in range(2):
+		var k: String = "scavenge" if i == 0 else "combat"
+		var blk: Dictionary = c[k]
+		_mode_tip_blocks[i]["head"].text = blk["head"]
+		_mode_tip_blocks[i]["body"].text = blk["body"]
+		# the mode you're in reads brighter; the other is dimmed
+		var on: bool = c["current"] == k
+		_mode_tip_blocks[i]["body"].add_theme_color_override("font_color", Color(0.86, 0.9, 0.94) if on else Color(0.6, 0.62, 0.66))
+	_mode_tip_hint.text = c["hint"]
+	mode_tip.reset_size()
+	var sz: Vector2 = mode_tip.get_combined_minimum_size()
+	var r: Rect2 = mode_label.get_global_rect()
+	mode_tip.position = Vector2(clampf(IDENT_TEXT_X - 8.0, 8.0, SCREEN_W - sz.x - 8.0), maxf(8.0, r.position.y - sz.y - 10.0))
+	mode_tip.visible = true
+
+
 func _create_item_tip() -> void:
 	item_tip = PanelContainer.new()
 	item_tip.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1097,7 +1219,7 @@ func _update_equipped_chip() -> void:
 	var inst = WorldState.get_instance_at(selected_slot) if selected_slot >= 0 and selected_slot < WorldState.inventory.size() else null
 	if inst == null:
 		equipped_label.text = "EMPTY-HANDED"
-		equipped_detail.text = "Select a slot  [1-5]  or hold  [%s]" % wheel_key_name()
+		equipped_detail.text = ""
 		return
 	var d: Dictionary = inst.get_data()
 	equipped_label.text = inst.get_display_name().to_upper()
@@ -1273,6 +1395,7 @@ func update_portrait(health_index: int) -> void:
 	_health_stage = clampi(health_index, 0, HEALTH_HINTS.size() - 1)
 	if name_label != null:
 		name_label.text = WorldState.character_display_name(_loaded_char).to_upper()
+		_layout_identity_row()
 
 
 # --- Portrait-as-button (hover glow + bounce, click opens the character profile) ----------
@@ -1372,11 +1495,14 @@ func update_mode_indicator() -> void:
 	if mode_label == null:
 		return
 	if WorldState.is_scavenge_mode:
-		mode_label.text = "[ SCAVENGE ]"
-		mode_label.modulate = Color(0.4, 1.0, 0.4, 1.0)
+		mode_label.text = "SCAVENGE"
+		mode_label.modulate = Color(0.55, 0.9, 0.5, 1.0)
 	else:
-		mode_label.text = "[ COMBAT ]"
-		mode_label.modulate = Color(1.0, 0.3, 0.3, 1.0)
+		mode_label.text = "COMBAT"
+		mode_label.modulate = Color(0.95, 0.4, 0.34, 1.0)
+	_layout_identity_row()
+	if mode_tip != null and mode_tip.visible:
+		show_mode_tip()
 
 func refresh_inventory() -> void:
 	# The two counters ride along: a New Game / load / time skip changes them without a wallet
