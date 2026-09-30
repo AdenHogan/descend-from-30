@@ -223,7 +223,7 @@ Robustness rules). What it covers:
   `dev_menu_test`, `lighting_test`, `plane_lock_test`, `apartment_window_test`,
   `scavenge_node_test`, `drop_physics_test`, `softlock_test`, `character_panel_test`,
   `corpse_recovery_test`, `run_memory_test`, `attack_input_test`, `character_stats_test`, `transition_seam_test`, `run_bookends_test`, `weapon_upgrade_test`, `progression_test`, `back_plane_test`,
-  `apartment_lamp_test`, `gun_cabinet_test`, `breach_test`, `item_icon_test` — run all 49 before commit. Balance tool: `tools/economy_report.tscn` (scrap per run, ~25 min a seed). (`new_game()` rolls a RANDOM seed, so any test meets any of the four
+  `apartment_lamp_test`, `gun_cabinet_test`, `breach_test`, `item_icon_test`, `hud_wheel_test`, `motion_test` — run all 51 before commit. Balance tool: `tools/economy_report.tscn` (scrap per run, ~25 min a seed). (`new_game()` rolls a RANDOM seed, so any test meets any of the four
   characters — an assert on a trait-affected value must be trait-aware; see docs/CHARACTERS.md.) (Run ONE godot at a time — a killed/backgrounded headless run can
   linger and block the next, and a GDScript **parse error makes a test scene load but
   never call `quit()`, so it "hangs" until timeout** rather than printing an error line;
@@ -1815,4 +1815,41 @@ means no rendering — UI layout and art still need an in-editor look.
   `reviews`, doc id `prop:<sprite name>` / `icon:<id>` with `{verdict, seed, gameSeed, note, updatedAt}`.
   Read them with ArtifactData `list` on that url, apply a picked `seed` in `corridor_props.build()`, then
   rebuild + republish the lab (same url).
+- CORNER-CLUSTER HUD + QUICK WHEEL (owner round 26 — "combine 1 and 4, then build it in the game"; the
+  seven concepts live in the "Descent UI Concepts" design canvas, https://claude.ai/artifact/Gjn7gGxiZfhGxT1LfA9Gh5):
+  the bottom bar is gone as a *dashboard*. **Top-left**: the portrait in a circular clip window
+  (`hud_disc.gd`, `CLIP_CHILDREN_ONLY`) inside a 10-pip segmented HEALTH RING (`hud_ring.gd`: 10/8/6/4/2/1 pips by
+  stage, stage-coloured, the last two pulse), the character's name, their condition in words, and the stamina
+  gauge lying flat under them (same 8 segments, same colours). **Top-right**: FLOOR caption, the big numeral
+  (`floor_label`, now just the number), "/ 30", the time-of-day word and three run pips (`hud_run_pips.gd`).
+  **Bottom strip** (still opaque, still y 528+ — the cameras frame to it via `StairPan.HUD_BAR_H`, so NOTHING about
+  where the world draws moved): the mode toggle + an IN-HAND line (name and uses/rounds/BROKEN, "EMPTY-HANDED")
+  bottom-left, the six-slot hotbar FLOATING in the centre, notes + scrap as icon + number bottom-right (the
+  top-right wall carries the lift's own floor indicator, so they'd overlap up there) and "Hold [Tab] quick wheel"
+  (read from the InputMap — never names a rebound key). Every new element is `MOUSE_FILTER_IGNORE` (click-to-move);
+  the portrait is still THE button (hover → the ring lights white). All the old node names survive
+  (`portrait`, `floor_label`, `wallet_label`, `scrap_label`, `mode_label`, `slots`, `hbox`, `boon_badge`).
+  **Moved a click target**: top-left of the screen is now the portrait button — `back_plane_test` clicks the
+  room at (1000, 260) instead of (40, 60). **Quick wheel** (`quick_wheel.gd`, action `item_wheel`, default **Tab**,
+  rebindable in Settings): HOLD → the game slows to 0.2× and a ring of the bag's items opens round the player
+  (clamped clear of the strip); the pointer's angle picks a wedge (`index_for`, item 0 at the top, clockwise,
+  a 40px dead zone in the middle), RELEASE equips it (the same `HUD.select_slot` a hotbar click makes, so it
+  announces too), release in the middle / on nothing cancels. It only ever equips — using is still Q / double-click.
+  **Never strands the game in slow motion**: every exit (release, cancel, a pause — it runs in `PROCESS_MODE_ALWAYS`
+  so a pause can close it — death, a cutscene, escaping, an emptied bag, the HUD hiding, the node leaving the tree)
+  restores the time scale it found; it refuses to open when paused / dead / in a cutscene / a modal, loot panel,
+  dialogue or the journal is up. Locked by `hud_wheel_test`. `tools/scene_capture.tscn` has `wheel:<k|-1|x>`.
+  Not built (concept-1/4 leftovers): the selected hotbar slot doesn't lift; no stick/number-key selection on the
+  wheel; the strip is still a strip (a taller camera frame would let the world fill the screen — a bigger change).
+- MOTION (owner round 26 — "animations for certain items like the dripping milk or flowers moving in the wind";
+  full audit + roadmap in docs/MOTION.md): **plants sway** — `scripts/sway.gd`, one canvas_item shader that leans
+  a sprite's upper part pinned at its foot in whole-texel steps (pixel art stays crisp), on every standing corridor
+  plant (floor planter / plant on a stand / dead planter; live + pan backdrop via `corridor_decals.add_to`); the
+  texture is padded 4 columns each side and the node moved left 4 so a plant stands exactly where the planner put
+  it; the wind rises morning/afternoon/night (0.6/1.0/1.7); seeded phase so none move in step; knocked-over plants
+  don't. **The EXIT sign follows the decay** — `scripts/exit_sign_fx.gd`: steady / stutters / dead (a dark face over
+  the baked sign + its green `PointLight2D` gone), one seeded roll per FLOOR against a threshold that only rises with
+  depth and run (a sign that died in the morning stays dead). Locked by `motion_test`. The LOOK needs an in-editor /
+  scene_capture look. Next (docs/MOTION.md): flowers/plants inside rooms (needs art split from the baked module
+  PNGs), swinging lamps, curtains, balcony washing, corridor drips/sparks.
 - Not started: quests.

@@ -13,6 +13,7 @@ extends RefCounted
 ## written by tools/art/corridor.py). Sprites come from tools/art/corridor_decals.py.
 ## Coordinates are in the art's LOCAL space (0..1120 x 0..192, placed at CORRIDOR_ART_POS).
 
+const Sway := preload("res://scripts/sway.gd")
 const DIR := "res://assets/corridor/decals/"
 const LAYOUT_PATH := "res://assets/corridor/corridor_layout.json"
 const DOORS := [201, 329, 455, 581, 714]      # local door centres (APARTMENT_X - 115); apt 5 .. 1
@@ -414,6 +415,8 @@ static func add_to(root: Node, floor_num: int, run: int, base_name: String, art_
 		s.position = d["pos"]
 		s.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		s.set_meta("decal", d["name"])
+		# Standing plants lean in the draught (scripts/sway.gd) — seeded per floor + place so no two move in step.
+		Sway.apply(s, base_of(d["name"]), hash(str(WorldState.master_seed) + "sway" + str(floor_num) + str(d["pos"])), run)
 		(door if d["layer"] == "door" else wall).add_child(s)
 		if float(d["pos"].y) >= FLOOR_Y and s.texture != null:
 			floor_rects.append(Rect2(d["pos"], s.texture.get_size()))

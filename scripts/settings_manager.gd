@@ -26,6 +26,7 @@ const REMAPPABLE = [
 	["rest", "Rest"],
 	["listen", "Listen"],
 	["item_use", "Use Item"],
+	["item_wheel", "Quick Wheel (hold)"],
 	["item_slot_1", "Item Slot 1"],
 	["item_slot_2", "Item Slot 2"],
 	["item_slot_3", "Item Slot 3"],

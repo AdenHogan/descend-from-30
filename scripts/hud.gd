@@ -67,16 +67,46 @@ var boon_ui = null
 var slot_level_labels: Array = []
 var listen_overlay: CanvasLayer = null
 const STAMINA_SEGMENTS = 8
-const STAMINA_BAR_W = 14.0
-const STAMINA_BAR_H = 60.0
+const STAMINA_BAR_W = 150.0            # the stamina gauge lies flat under the portrait now (corner cluster)
+const STAMINA_BAR_H = 8.0
 
 const SCREEN_W = 1152.0
 const SCREEN_H = 648.0
 const BAR_H = 80.0
 const SLOT_SIZE = 64.0
+const STRIP_TOP = SCREEN_H - BAR_H - 40.0   # 528: the world ends here (cameras frame to it — StairPan.HUD_BAR_H)
+
+# CORNER-CLUSTER HUD (owner round 26, concept 1 + the quick wheel): identity top-left, place + time
+# top-right, the hotbar floating centre of the (still opaque) bottom strip. Nothing about WHERE the
+# world is drawn changes — only what sits on the HUD.
+const CLUSTER_MARGIN = 16.0
+const RING_SIZE = 128.0
+const PORTRAIT_D = 92.0
+const INK := Color(0.075, 0.07, 0.085, 1.0)
+const PANEL_EDGE := Color(0.29, 0.275, 0.32, 1.0)
+const AMBER := Color(0.89, 0.647, 0.247, 1.0)
+const TEXT_DIM := Color(0.64, 0.61, 0.53, 1.0)
+const HEALTH_HINTS := ["Steady", "Walking it off", "Hurting", "Bleeding", "Barely standing", "Dying"]
+
+var health_ring: Control = null
+var name_label: Label = null
+var condition_label: Label = null
+var floor_caption: Label = null
+var floor_total_label: Label = null
+var time_label: Label = null
+var run_pips: Control = null
+var wallet_icon: TextureRect = null
+var scrap_icon: TextureRect = null
+var equipped_label: Label = null
+var equipped_detail: Label = null
+var wheel_hint: Label = null
+var quick_wheel: Control = null
+var _portrait_clip: Control = null
+var _health_stage: int = 0
 
 func _ready() -> void:
 	_layout()
+	_create_cluster()
 	_create_mode_label()
 	_create_slot_icons()
 	_create_item_tip()
@@ -87,6 +117,7 @@ func _ready() -> void:
 	_create_wallet_label()
 	_create_scrap_label()
 	_create_boon_badge()
+	_create_quick_wheel()
 	_create_dev_warp_prompt()
 	_create_dev_item_prompt()
 	_create_dev_menu()
@@ -111,19 +142,37 @@ func _layout() -> void:
 	# Floating text labels must never swallow a world click (click-to-move):
 	# an IGNORE parent does NOT shield STOP children, so set each explicitly.
 	floor_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	color_rect.set_anchor_and_offset(SIDE_TOP, 0, SCREEN_H - BAR_H - 40)
+	color_rect.set_anchor_and_offset(SIDE_TOP, 0, STRIP_TOP)
 	color_rect.set_anchor_and_offset(SIDE_BOTTOM, 0, SCREEN_H)
 	color_rect.set_anchor_and_offset(SIDE_LEFT, 0, 0)
 	color_rect.set_anchor_and_offset(SIDE_RIGHT, 0, SCREEN_W)
 	# FULLY opaque: at alpha 0.9 the world showed through the bar. It went
 	# unnoticed while the view was static, but during a stair pan the floor
 	# scrolls behind the inventory and the see-through is obvious.
-	color_rect.color = Color(0.1, 0.1, 0.1, 1.0)
+	color_rect.color = INK
+	color_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var edge := ColorRect.new()                         # the strip's top hairline
+	edge.color = PANEL_EDGE
+	edge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	edge.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	edge.offset_bottom = 2.0
+	color_rect.add_child(edge)
 
-	floor_label.position = Vector2(SCREEN_W - 200, SCREEN_H - BAR_H + 18)
-	floor_label.size = Vector2(100, 50)
+	# FLOOR — top-right: caption, the big numeral (this is floor_label), "/ 30".
+	floor_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	floor_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	floor_label.add_theme_font_size_override("font_size", 56)
+	floor_label.add_theme_color_override("font_color", Color(0.93, 0.89, 0.82))
+	floor_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	floor_label.add_theme_constant_override("outline_size", 6)
+	floor_label.size = Vector2(150, 64)
+	floor_label.position = Vector2(SCREEN_W - CLUSTER_MARGIN - 62 - 150, 22)
 
-	hbox.position = Vector2(SCREEN_W - (SLOT_SIZE + 8) * 6, SCREEN_H - BAR_H + 8)
+	# The hotbar floats centred in the strip (the old right-hand bar).
+	hbox.set_anchors_preset(Control.PRESET_TOP_LEFT)        # the scene anchors it right-centre; pin it where we say
+	hbox.grow_horizontal = Control.GROW_DIRECTION_END
+	hbox.grow_vertical = Control.GROW_DIRECTION_END
+	hbox.position = Vector2((SCREEN_W - (SLOT_SIZE * 6 + 8 * 5)) / 2.0, STRIP_TOP + (SCREEN_H - STRIP_TOP - SLOT_SIZE) / 2.0)
 	hbox.add_theme_constant_override("separation", 8)
 	# The former "locked 6th slot" is now the inventory-upgrade unlock target,
 	# so it joins the real slot list; _update_slot_locks() greys it until an
@@ -133,15 +182,83 @@ func _layout() -> void:
 		slot.custom_minimum_size = Vector2(SLOT_SIZE, SLOT_SIZE)
 		slot.add_theme_stylebox_override("panel", _make_slot_style(false))
 
+
+func _hud_label(text: String, size: int, col: Color, pos: Vector2, dim: Vector2, align: int = HORIZONTAL_ALIGNMENT_LEFT) -> Label:
+	# One floating HUD line: never swallows a world click (click-to-move), outlined so it reads on any wall.
+	var l := Label.new()
+	l.text = text
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_color_override("font_color", col)
+	l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	l.add_theme_constant_override("outline_size", 4)
+	l.position = pos
+	l.size = dim
+	l.horizontal_alignment = align
+	$Control.add_child(l)
+	return l
+
+
+func _create_cluster() -> void:
+	# --- top-left: the segmented health ring with the portrait inside it ---
+	health_ring = preload("res://scripts/hud_ring.gd").new()
+	health_ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	health_ring.position = Vector2(CLUSTER_MARGIN - 2, CLUSTER_MARGIN - 6)
+	health_ring.size = Vector2(RING_SIZE, RING_SIZE)
+	$Control.add_child(health_ring)
+	# The portrait is masked to a circle by a clipping parent (its own alpha is the mask), then
+	# cover-cropped inside it. It stays THE clickable button (hover rim/bounce/profile panel).
+	_portrait_clip = preload("res://scripts/hud_disc.gd").new()
+	_portrait_clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_portrait_clip.position = health_ring.position + (Vector2(RING_SIZE, RING_SIZE) - Vector2(PORTRAIT_D, PORTRAIT_D)) * 0.5
+	_portrait_clip.size = Vector2(PORTRAIT_D, PORTRAIT_D)
+	$Control.add_child(_portrait_clip)
+	portrait.get_parent().remove_child(portrait)
+	_portrait_clip.add_child(portrait)
+	portrait.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	portrait.position = Vector2.ZERO
+	portrait.size = Vector2(PORTRAIT_D, PORTRAIT_D)
+	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	var tx: float = health_ring.position.x + RING_SIZE + 8.0
+	name_label = _hud_label("", 18, Color(0.93, 0.89, 0.82), Vector2(tx, 30), Vector2(260, 24))
+	condition_label = _hud_label("", 14, Color(0.91, 0.71, 0.42), Vector2(tx, 54), Vector2(260, 20))
+
+	# --- top-right: FLOOR, the numeral (floor_label), "/ 30", time of day + run pips ---
+	var right: float = SCREEN_W - CLUSTER_MARGIN
+	floor_caption = _hud_label("FLOOR", 12, TEXT_DIM, Vector2(right - 230, 10), Vector2(230, 16), HORIZONTAL_ALIGNMENT_RIGHT)
+	floor_total_label = _hud_label("/ 30", 20, TEXT_DIM, Vector2(right - 58, 46), Vector2(58, 28))
+	time_label = _hud_label("", 14, AMBER, Vector2(right - 230, 90), Vector2(230, 20), HORIZONTAL_ALIGNMENT_RIGHT)
+	run_pips = preload("res://scripts/hud_run_pips.gd").new()
+	run_pips.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	run_pips.position = Vector2(right - run_pips.width(), 114)
+	run_pips.size = Vector2(run_pips.width(), 14)
+	$Control.add_child(run_pips)
+
+	# --- bottom-left of the strip: mode + what's in hand; bottom-right: the wheel's key hint ---
+	equipped_label = _hud_label("", 16, Color(0.93, 0.89, 0.82), Vector2(CLUSTER_MARGIN + 8, STRIP_TOP + 62), Vector2(330, 22))
+	equipped_detail = _hud_label("", 12, TEXT_DIM, Vector2(CLUSTER_MARGIN + 8, STRIP_TOP + 84), Vector2(330, 18))
+	wheel_hint = _hud_label("", 12, TEXT_DIM, Vector2(SCREEN_W - CLUSTER_MARGIN - 250, STRIP_TOP + 84), Vector2(250, 18), HORIZONTAL_ALIGNMENT_RIGHT)
+
+
+
+func _create_quick_wheel() -> void:
+	# Added late so it draws over the cluster and the hotbar (and under the dev panels).
+	quick_wheel = preload("res://scripts/quick_wheel.gd").new()
+	$Control.add_child(quick_wheel)
+	update_wheel_hint()
+
+
 func _create_mode_label() -> void:
 	# Clickable so mouse players can flip scavenge↔combat without pressing F.
 	mode_label = Button.new()
 	mode_label.flat = true
 	mode_label.focus_mode = Control.FOCUS_NONE
 	mode_label.add_theme_font_size_override("font_size", 18)
-	mode_label.position = Vector2(SCREEN_W - 258, SCREEN_H - BAR_H - 12)
-	mode_label.size = Vector2(180, 44)
-	mode_label.custom_minimum_size = Vector2(180, 44)
+	mode_label.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	mode_label.position = Vector2(CLUSTER_MARGIN, STRIP_TOP + 14)
+	mode_label.size = Vector2(200, 40)
+	mode_label.custom_minimum_size = Vector2(200, 40)
 	mode_label.pressed.connect(_on_mode_button)
 	$Control.add_child(mode_label)
 
@@ -213,7 +330,7 @@ func _create_feedback_label() -> void:
 	feedback_label = Label.new()
 	feedback_label.mouse_filter = Control.MOUSE_FILTER_IGNORE  # never eat world clicks
 	feedback_label.add_theme_font_size_override("font_size", 14)
-	feedback_label.position = Vector2(SCREEN_W / 2 - 100, SCREEN_H - BAR_H - 35)
+	feedback_label.position = Vector2(SCREEN_W / 2 - 100, STRIP_TOP - 34.0)   # just above the strip (the hotbar floats in it now)
 	feedback_label.size = Vector2(200, 30)
 	feedback_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	feedback_label.modulate = Color(1, 1, 0.5, 0)
@@ -411,29 +528,41 @@ func _create_context_menu() -> void:
 
 func _create_stamina_bar() -> void:
 	stamina_bar = Control.new()
-	stamina_bar.position = Vector2(8, SCREEN_H - BAR_H + 10)
+	stamina_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stamina_bar.position = Vector2(CLUSTER_MARGIN + RING_SIZE + 6, 84)
 	stamina_bar.size = Vector2(STAMINA_BAR_W, STAMINA_BAR_H)
 	$Control.add_child(stamina_bar)
 
-	var segment_h = (STAMINA_BAR_H - (STAMINA_SEGMENTS - 1) * 2) / STAMINA_SEGMENTS
+	var segment_w = (STAMINA_BAR_W - (STAMINA_SEGMENTS - 1) * 2) / STAMINA_SEGMENTS
 	for i in range(STAMINA_SEGMENTS):
 		var seg = ColorRect.new()
-		seg.size = Vector2(STAMINA_BAR_W, segment_h)
-		seg.position = Vector2(0, STAMINA_BAR_H - (i + 1) * (segment_h + 2))
+		seg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		seg.size = Vector2(segment_w, STAMINA_BAR_H)
+		seg.position = Vector2(i * (segment_w + 2), 0)
 		seg.color = Color(0.2, 0.8, 0.4, 1.0)
 		stamina_bar.add_child(seg)
 		stamina_segments.append(seg)
 
+func _currency_icon(item_id: String, x: float) -> TextureRect:
+	var t := TextureRect.new()
+	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	t.texture = ItemData.get_texture(item_id)
+	t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	t.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	t.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	t.position = Vector2(x, STRIP_TOP + 22.0)
+	t.size = Vector2(28, 28)
+	t.visible = false
+	$Control.add_child(t)
+	return t
+
+
 func _create_wallet_label() -> void:
-	wallet_label = Label.new()
-	wallet_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	wallet_label.add_theme_font_size_override("font_size", 12)
-	wallet_label.add_theme_color_override("font_color", Color(0.55, 0.9, 0.55, 1.0))
-	wallet_label.position = Vector2(SCREEN_W - (SLOT_SIZE + 8) * 6 - 8, SCREEN_H - BAR_H - 16)
-	wallet_label.size = Vector2((SLOT_SIZE + 8) * 6, 16)
-	wallet_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	# Notes: the wallet's balance, an icon + a number, bottom-right of the strip (the top-right wall carries the lift's own floor indicator).
+	var right: float = SCREEN_W - CLUSTER_MARGIN
+	wallet_icon = _currency_icon("033", right - 186)
+	wallet_label = _hud_label("", 16, Color(0.56, 0.84, 0.54), Vector2(right - 154, STRIP_TOP + 25.0), Vector2(84, 22))
 	wallet_label.visible = false
-	$Control.add_child(wallet_label)
 	update_wallet()
 
 
@@ -460,16 +589,11 @@ func _create_dev_menu() -> void:
 
 
 func _create_scrap_label() -> void:
-	# The scrap counter — same treatment as the wallet, one line above it (docs/SCRAP_UPGRADES.md).
-	scrap_label = Label.new()
-	scrap_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	scrap_label.add_theme_font_size_override("font_size", 12)
-	scrap_label.add_theme_color_override("font_color", Color(0.85, 0.72, 0.45, 1.0))
-	scrap_label.position = Vector2(SCREEN_W - (SLOT_SIZE + 8) * 6 - 8, SCREEN_H - BAR_H - 32)
-	scrap_label.size = Vector2((SLOT_SIZE + 8) * 6, 16)
-	scrap_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	# Scrap: same treatment, one block to the right of the notes (docs/SCRAP_UPGRADES.md).
+	var right: float = SCREEN_W - CLUSTER_MARGIN
+	scrap_icon = _currency_icon("037", right - 62)
+	scrap_label = _hud_label("", 16, Color(0.85, 0.75, 0.5), Vector2(right - 30, STRIP_TOP + 25.0), Vector2(30, 22))
 	scrap_label.visible = false
-	$Control.add_child(scrap_label)
 	update_scrap()
 
 
@@ -478,7 +602,7 @@ func _create_boon_badge() -> void:
 	# until the player clicks it (arriving mid-fight or mid-stair-pan must not pause the game).
 	boon_badge = Button.new()
 	boon_badge.text = "★ BOON"
-	boon_badge.position = Vector2(150, SCREEN_H - 96)
+	boon_badge.position = Vector2(CLUSTER_MARGIN + RING_SIZE + 6, 100)
 	boon_badge.size = Vector2(150, 30)
 	boon_badge.mouse_filter = Control.MOUSE_FILTER_STOP
 	boon_badge.add_theme_color_override("font_color", Color(1.0, 0.85, 0.35))
@@ -506,14 +630,18 @@ func update_scrap() -> void:
 	if scrap_label == null:
 		return
 	scrap_label.visible = WorldState.scrap_unlocked
-	scrap_label.text = "SCRAP  " + str(WorldState.scrap)
+	if scrap_icon != null:
+		scrap_icon.visible = WorldState.scrap_unlocked
+	scrap_label.text = str(WorldState.scrap)
 
 
 func update_wallet() -> void:
 	if wallet_label == null:
 		return
 	wallet_label.visible = WorldState.wallet_unlocked
-	wallet_label.text = "WALLET  " + str(WorldState.wallet_balance)
+	if wallet_icon != null:
+		wallet_icon.visible = WorldState.wallet_unlocked
+	wallet_label.text = str(WorldState.wallet_balance)
 
 
 func update_stamina(current: float, maximum: float) -> void:
@@ -984,15 +1112,53 @@ func _update_slot_highlights() -> void:
 			slots[i].add_theme_stylebox_override("panel", _make_slot_style_selected())
 		else:
 			slots[i].add_theme_stylebox_override("panel", _make_slot_style(false))
+	_update_equipped_chip()
+
+
+## The strip's "in hand" line: the selected item's name + its condition (or a nudge when empty-handed).
+func _update_equipped_chip() -> void:
+	if equipped_label == null:
+		return
+	var inst = WorldState.get_instance_at(selected_slot) if selected_slot >= 0 and selected_slot < WorldState.inventory.size() else null
+	if inst == null:
+		equipped_label.text = "EMPTY-HANDED"
+		equipped_detail.text = "Select a slot  [1-5]  or hold  [%s]" % wheel_key_name()
+		return
+	var d: Dictionary = inst.get_data()
+	equipped_label.text = inst.get_display_name().to_upper()
+	var max_d: int = inst.get_max_durability()
+	if inst.is_depleted and max_d > 0:
+		equipped_detail.text = "BROKEN"
+	elif d.get("is_weapon", false) and _is_gun_data(d):
+		equipped_detail.text = "%d / %d rounds" % [inst.mag_count, inst.get_mag_cap()]
+	elif max_d > 1:
+		equipped_detail.text = "%d / %d uses" % [inst.current_durability, max_d]
+	elif inst.count > 1:
+		equipped_detail.text = "x%d" % inst.count
+	else:
+		equipped_detail.text = ""
+
+
+func wheel_key_name() -> String:
+	# The quick wheel's CURRENT binding, read straight from the InputMap (the hint must never name a
+	# key the player has rebound away — same rule as the tutorial lines).
+	if not InputMap.has_action("item_wheel"):
+		return "Tab"
+	var evs: Array = InputMap.action_get_events("item_wheel")
+	if evs.is_empty():
+		return "?"
+	return String(evs[0].as_text()).replace(" (Physical)", "")
+
+
+func update_wheel_hint() -> void:
+	if wheel_hint != null:
+		wheel_hint.text = "Hold [%s]  quick wheel" % wheel_key_name()
 
 func _make_slot_style_selected() -> StyleBoxFlat:
 	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.4, 0.4, 0.1, 1.0)
-	style.border_width_top = 2
-	style.border_width_bottom = 2
-	style.border_width_left = 2
-	style.border_width_right = 2
-	style.border_color = Color(1.0, 1.0, 0.2, 1.0)
+	style.bg_color = Color(0.2, 0.16, 0.1, 1.0)
+	style.set_border_width_all(2)
+	style.border_color = AMBER
 	return style
 
 func show_context_menu(slot_index: int) -> void:
@@ -1031,16 +1197,23 @@ func show_feedback(text: String) -> void:
 
 func _make_slot_style(locked: bool) -> StyleBoxFlat:
 	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.25, 0.25, 0.25, 1.0) if not locked else Color(0.15, 0.15, 0.15, 1.0)
-	style.border_width_top = 2
-	style.border_width_bottom = 2
-	style.border_width_left = 2
-	style.border_width_right = 2
-	style.border_color = Color(0.6, 0.6, 0.6, 1.0) if not locked else Color(0.35, 0.35, 0.35, 1.0)
+	style.bg_color = Color(0.153, 0.141, 0.165, 1.0) if not locked else Color(0.1, 0.095, 0.11, 1.0)
+	style.set_border_width_all(2)
+	style.border_color = Color(0.294, 0.275, 0.318, 1.0) if not locked else Color(0.2, 0.19, 0.22, 1.0)
 	return style
 
 func update_floor_label() -> void:
-	floor_label.text = "FLOOR:\n" + str(WorldState.current_floor) + " / 30"
+	floor_label.text = str(WorldState.current_floor)
+	_update_time_cluster()
+
+
+func _update_time_cluster() -> void:
+	# The time-of-day word + the run pips (which of the three characters this is) under the floor.
+	if time_label != null:
+		time_label.text = WorldState.time_of_day().to_upper()
+	if run_pips != null:
+		run_pips.set_run(WorldState.current_run)
+	update_wheel_hint()
 
 func _ensure_portraits() -> void:
 	# Load the current run's character's 6 portrait stages, reloading when the run's
@@ -1059,6 +1232,15 @@ func update_portrait(health_index: int) -> void:
 		return
 	_ensure_portraits()
 	portrait.texture = _portraits[clampi(health_index, 0, _portraits.size() - 1)]
+	_health_stage = clampi(health_index, 0, HEALTH_HINTS.size() - 1)
+	if health_ring != null:
+		health_ring.set_stage(_health_stage)
+	if name_label != null:
+		name_label.text = WorldState.character_display_name(_loaded_char).to_upper()
+	if condition_label != null:
+		condition_label.text = WorldState.HEALTH_WORDS[_health_stage]
+		condition_label.add_theme_color_override("font_color", _stage_colour(_health_stage))
+	_update_time_cluster()
 
 
 # --- Portrait-as-button (hover glow + bounce, click opens the character profile) ----------
@@ -1113,9 +1295,16 @@ func _setup_portrait_button() -> void:
 	portrait.gui_input.connect(_on_portrait_gui_input)
 
 
+func _stage_colour(stage: int) -> Color:
+	return [Color(0.62, 0.86, 0.55), Color(0.85, 0.85, 0.5), Color(0.93, 0.72, 0.4),
+		Color(0.94, 0.55, 0.32), Color(0.92, 0.36, 0.3), Color(0.9, 0.25, 0.25)][clampi(stage, 0, 5)]
+
+
 func _set_portrait_hover(hovered: bool) -> void:
 	if portrait == null:
 		return
+	if health_ring != null:
+		health_ring.set_hot(hovered)
 	if _portrait_outline_mat != null:
 		_portrait_outline_mat.set_shader_parameter("on", 1.0 if hovered else 0.0)
 	# Scale from the centre so the bounce doesn't drift the anchored bust.

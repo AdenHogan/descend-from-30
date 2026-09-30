@@ -22,6 +22,7 @@ extends Node
 #   floor:<n> run:<n> set WorldState.current_floor / current_run
 #   give:<id>[:<lvl>] put an item in the inventory (optionally at a workbench level)
 #   sel:<n>          select an inventory slot (what the attack key uses)
+#   wheel:<k|-1|x>   open the quick wheel with the pointer on item k (-1 = middle, x = release)
 #   tip:<n>          hover the pointer over inventory slot n (shows its tooltip after a beat)
 #   scrap:<n>        set the scrap counter
 #   boon:<floor>     reach a run-boon milestone (queues the HUD badge)
@@ -38,6 +39,7 @@ extends Node
 #   call:<group>:<method>[:<arg>]  call a method on the first node in a group (e.g. modal_panel)
 # Other args: --tutorial=1|0 (first-run tutorial on/off), --seed=<n>.
 
+const QuickWheelGeo := preload("res://scripts/quick_wheel.gd")
 var _out := "/tmp/cap"
 var _steps: PackedStringArray = []
 var _tutorial := true
@@ -129,6 +131,16 @@ func _do(step: String) -> void:
 			HUD.refresh_inventory()
 		"sel":
 			HUD.select_slot(int(p[1]))
+		"wheel":
+			# wheel:<k> opens the quick wheel with the pointer on item k (wheel:-1 = the middle);
+			# wheel:x closes it (release, committing).
+			var w = HUD.quick_wheel
+			if p[1] == "x":
+				w.close(true)
+			else:
+				w.open()
+				var k := int(p[1])
+				w.mouse_override = w.centre if k < 0 else QuickWheelGeo.slot_position(w.centre, k, w.entries.size())
 		"tip":
 			HUD.tip_mouse_override = HUD.slots[int(p[1])].get_global_rect().get_center()
 		"boon":

@@ -142,6 +142,16 @@ func _apply_corridor_art(floor_num: int) -> void:
 	# ...and this floor's own dressing + horror on top of it (scripts/corridor_decals.gd), so
 	# floors that share a baked image still never look alike; more horror deeper / later.
 	CORRIDOR_DECALS.add_to(self, floor_num, WorldState.current_run, corridor_base_name(floor_num), CORRIDOR_ART_POS)
+	# ...and the EXIT sign follows the building's decay (steady / stuttering / dead — scripts/exit_sign_fx.gd).
+	if get_node_or_null("ExitSignFx") == null:
+		var fx = preload("res://scripts/exit_sign_fx.gd").new()
+		fx.name = "ExitSignFx"
+		fx.position = CORRIDOR_ART_POS
+		add_child(fx)
+		fx.setup(floor_num, WorldState.current_run)
+		var decals = get_node_or_null("CorridorDecals")            # just above the decals (which sit right on the art)
+		if decals != null:
+			move_child(fx, decals.get_index() + 1)
 	# ...and what says WHICH floor this is (owner round 23): stair signs, the floor number, the lift's
 	# indicator (scripts/floor_signs.gd). The doors carry their own number plates (door.gd).
 	if get_node_or_null("FloorSigns") == null:

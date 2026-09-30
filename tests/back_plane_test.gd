@@ -228,9 +228,9 @@ func _test_full_inventory_escape(room: Node, spot: Node, lane_y: float) -> void:
 		if w[1] != "":
 			await _tap(w[1])
 		else:
-			# (40, 60) in the game's 1152×648 view — top-left, off the centred panel. push_input takes WINDOW
+			# (1000, 260) in the game's 1152×648 view — off the centred panel and clear of the HUD corners (top-left is the portrait button now). push_input takes WINDOW
 			# coordinates, and the headless window isn't 1152×648, so map it through the stretch transform.
-			var at: Vector2 = get_viewport().get_final_transform() * Vector2(40, 60)
+			var at: Vector2 = get_viewport().get_final_transform() * Vector2(1000, 260)
 			var mv := InputEventMouseMotion.new()
 			mv.position = at
 			get_viewport().push_input(mv)
