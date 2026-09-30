@@ -78,6 +78,37 @@ void fragment() {
 }
 """
 
+## Icon art isn't drawn centred in its 56x56 cell (a hammer sits low and left, a bat high): the box centres the
+## icon's VISIBLE bounds instead, by a per-texture offset measured once from its alpha.
+static var _icon_offsets: Dictionary = {}
+
+
+static func icon_offset(tex: Texture2D) -> Vector2:
+	if tex == null:
+		return Vector2.ZERO
+	var key: int = tex.get_rid().get_id()
+	if _icon_offsets.has(key):
+		return _icon_offsets[key]
+	var off := Vector2.ZERO
+	var img: Image = tex.get_image()
+	if img != null and not img.is_empty():
+		var used := Rect2i()
+		var first := true
+		for y in range(img.get_height()):
+			for x in range(img.get_width()):
+				if img.get_pixel(x, y).a > 0.08:
+					if first:
+						used = Rect2i(x, y, 1, 1)
+						first = false
+					else:
+						used = used.expand(Vector2i(x, y))
+		if not first:
+			var c := Vector2(used.position) + Vector2(used.size + Vector2i.ONE) * 0.5
+			off = (Vector2(img.get_size()) * 0.5 - c).round()      # whole pixels: the art stays crisp
+	_icon_offsets[key] = off
+	return off
+
+
 var style: String = "rounded"
 var icon: Texture2D = null
 ## Fraction of durability left, 0..1 — or -1 when the item doesn't wear (neutral).
@@ -201,7 +232,7 @@ class _Overlay extends Control:
 		var sz: float = box.SIZE
 		if box.icon != null:
 			var tint: Color = Color(0.62, 0.50, 0.50, 0.85) if box.broken else Color(1, 1, 1)
-			var o: Vector2 = (Vector2(sz, sz) - Vector2(box.ICON_PX, box.ICON_PX)) * 0.5
+			var o: Vector2 = (Vector2(sz, sz) - Vector2(box.ICON_PX, box.ICON_PX)) * 0.5 + box.icon_offset(box.icon)
 			draw_texture_rect(box.icon, Rect2(o, Vector2(box.ICON_PX, box.ICON_PX)), false, tint)
 		if box.broken and box.has_item:
 			var c := Vector2(sz, sz) * 0.5

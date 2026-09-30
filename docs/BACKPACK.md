@@ -95,7 +95,7 @@ use: green (fresh) → yellow → orange → dark red → a faint grey smoke whe
 (`hud_equip_box.tint_for`, the single mapping; continuous, eased in real time). Things that don't wear (a bandage, a key)
 sit in neutral slate; empty-handed = empty glass. The look is one canvas_item shader on the `Body` child (SDF shape, dark
 glass, liquid that settles denser toward the walls and bottom, a bright lip catching light from the top-left, a soft gloss;
-`density` is how much colour shows). **The only number it ever shows is a gun's rounds** ("10/10" badge). Three shapes
+`density` is how much colour shows). **The icon is centred by its VISIBLE art** (`icon_offset`: the item icons aren't drawn centred in their 56x56 cells — a hammer sat low and left — so the box shifts each by its alpha bounds, whole pixels; locked for every item by `hud_wheel_test`). **The only number it ever shows is a gun's rounds** ("10/10" badge). Three shapes
 (`HUD.set_equip_box_style`: `square` / `rounded` default / `circle`); `scene_capture` steps `eqstyle:` and `wear:` render
 them. Locked by `hud_wheel_test`.
 

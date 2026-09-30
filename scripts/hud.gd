@@ -253,7 +253,7 @@ func _create_mode_label() -> void:
 		mode_label.add_theme_stylebox_override(st, StyleBoxEmpty.new())
 	mode_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
 	mode_label.add_theme_constant_override("outline_size", 4)
-	mode_label.position = Vector2(IDENT_TEXT_X + 140.0, IDENT_ROW_Y - 1.0)
+	mode_label.position = Vector2(IDENT_TEXT_X + 140.0, IDENT_ROW_Y)        # same baseline as the name (measured: -1 sat one pixel high)
 	mode_label.pressed.connect(_on_mode_button)
 	mode_label.mouse_entered.connect(func() -> void:
 		_mode_hover = true
@@ -970,7 +970,7 @@ func _layout_identity_row() -> void:
 	name_label.size.x = nw + 4.0
 	mode_label.reset_size()
 	var mw: float = f.get_string_size(mode_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x
-	mode_label.position = Vector2(IDENT_TEXT_X + nw + 12.0, IDENT_ROW_Y - 1.0)
+	mode_label.position = Vector2(IDENT_TEXT_X + nw + 12.0, IDENT_ROW_Y)
 	mode_label.size = Vector2(mw + 4.0, 24.0)
 	var w: float = maxf(nw + 12.0 + mw, 150.0)
 	stamina_bar.size = Vector2(w, STAMINA_BAR_H)

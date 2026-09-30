@@ -258,6 +258,28 @@ func _test_cluster() -> void:
 		prev = c
 	check(worst_jump < 0.09, "the gradient is smooth (largest 1%% step %.3f)" % worst_jump)
 	check(eq.tint_for(-1.0) == eq.NEUTRAL and eq.tint_for(0.5, false, false) == eq.GLASS, "no-wear = slate, nothing = dark glass")
+	# every item icon is centred in the box by its VISIBLE bounds (a hammer's art sits low and left in its cell)
+	var off_centre: Array = []
+	for id in ItemData.items:
+		var itex: Texture2D = ItemData.get_texture(str(id))
+		if itex == null:
+			continue
+		var img: Image = itex.get_image()
+		var used := Rect2i()
+		var first := true
+		for y in range(img.get_height()):
+			for x in range(img.get_width()):
+				if img.get_pixel(x, y).a > 0.08:
+					used = Rect2i(x, y, 1, 1) if first else used.expand(Vector2i(x, y))
+					first = false
+		if first:
+			continue
+		var c: Vector2 = Vector2(used.position) + Vector2(used.size + Vector2i.ONE) * 0.5
+		var placed: Vector2 = c + eq.icon_offset(itex)
+		if placed.distance_to(Vector2(img.get_size()) * 0.5) > 0.75:
+			off_centre.append(str(id))
+	check(off_centre.is_empty(), "every icon's visible art is centred in the box %s" % str(off_centre))
+	check(absf(HUD.mode_label.position.y - HUD.name_label.position.y) < 0.5, "the mode text sits on the name's baseline (same row y, %.0f vs %.0f)" % [HUD.mode_label.position.y, HUD.name_label.position.y])
 	# the three shapes drive the shader's shape uniform
 	for st in eq.STYLES:
 		eq.set_style(st)
