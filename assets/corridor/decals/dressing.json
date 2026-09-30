@@ -15,14 +15,14 @@
   },
   "bicycle_wrecked": {
    "base": "bicycle_wrecked",
-   "contact": 36,
-   "depth": 3,
+   "contact": 34,
+   "depth": 9,
    "rule": "door"
   },
   "bicycle_wrecked__2": {
    "base": "bicycle_wrecked",
-   "contact": 36,
-   "depth": 3,
+   "contact": 34,
+   "depth": 9,
    "rule": "door"
   },
   "bin_bags": {
@@ -57,8 +57,8 @@
   },
   "chair_down": {
    "base": "chair_down",
-   "contact": 25,
-   "depth": 10,
+   "contact": 33,
+   "depth": 12,
    "rule": "open"
   },
   "hall_table": {
@@ -93,8 +93,8 @@
   },
   "newspapers": {
    "base": "newspapers",
-   "contact": 16,
-   "depth": 9,
+   "contact": 22,
+   "depth": 8,
    "rule": "door"
   },
   "parcels": {
@@ -195,14 +195,14 @@
   },
   "scooter": {
    "base": "scooter",
-   "contact": 27,
-   "depth": 4,
+   "contact": 42,
+   "depth": 5,
    "rule": "door"
   },
   "scooter__2": {
    "base": "scooter",
-   "contact": 27,
-   "depth": 4,
+   "contact": 42,
+   "depth": 5,
    "rule": "door"
   },
   "shoe_rack": {
@@ -226,31 +226,31 @@
   "shoe_tray": {
    "base": "shoe_tray",
    "contact": 14,
-   "depth": 7,
+   "depth": 6,
    "rule": "door"
   },
   "shoe_tray__2": {
    "base": "shoe_tray",
-   "contact": 20,
-   "depth": 7,
+   "contact": 19,
+   "depth": 6,
    "rule": "door"
   },
   "shoe_tray__3": {
    "base": "shoe_tray",
    "contact": 14,
-   "depth": 7,
+   "depth": 6,
    "rule": "door"
   },
   "shopping_bag": {
    "base": "shopping_bag",
-   "contact": 27,
-   "depth": 6,
+   "contact": 40,
+   "depth": 7,
    "rule": "door"
   },
   "shopping_bag__2": {
    "base": "shopping_bag",
-   "contact": 22,
-   "depth": 7,
+   "contact": 31,
+   "depth": 6,
    "rule": "door"
   },
   "suitcase": {

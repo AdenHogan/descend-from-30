@@ -489,26 +489,6 @@ def recycling_box(save, name, seed, cardboard=False):
     record(name, "door", d, C)
 
 
-def newspapers(save, name, seed):
-    rng = random.Random(seed)
-    w, d = 22, 9
-    h = 8 + d + SHADOW
-    C = h - 1 - SHADOW
-    c = new(w, h, seed)
-    ground(c, 1, w - 2, C - d, C)
-    paper = hexc('d8d2c2')
-    block(c, 2, 19, C - 6, C, d, shade(paper, 0.9), paper)
-    for y in range(C - 5, C):                                       # the edges of the stacked papers
-        c.hline(2, 19, y, shade(paper, 0.8 if y % 2 else 0.95))
-    for y in range(C - 6 - d + 2, C - 7, 2):                        # the top one's columns of print
-        c.hline(4, 9, y, hexc('8a8a86')); c.hline(11, 17, y, hexc('8a8a86'))
-    c.rect(4, C - 6 - d + 1, 17, C - 6 - d + 1, hexc('3a3a3a'))      # its masthead
-    c.vline(8, C - 6 - d, C, hexc('b88a4a'))                         # the string, over the top and down
-    c.vline(14, C - 6 - d, C, hexc('b88a4a'))
-    save(name, c)
-    record(name, "door", d, C)
-
-
 def suitcase(save, name, seed):
     rng = random.Random(seed)
     w, d = 18, 7
@@ -526,29 +506,6 @@ def suitcase(save, name, seed):
     for x in (3, 13):                                               # castors
         c.rect(x, C, x + 1, C, hexc('1a1a1a'))
     c.rect(3, C - 12, 6, C - 10, hexc('d8c890'))                     # a luggage tag
-    save(name, c)
-    record(name, "door", d, C)
-
-
-def shopping_bag(save, name, seed):
-    rng = random.Random(seed)
-    w, d = 16, 6
-    h = 22 + d + SHADOW
-    C = h - 1 - SHADOW
-    c = new(w, h, seed)
-    paper = hexc('b89a6a')
-    ground(c, 2, 13, C - d, C, 80)
-    top = C - 11
-    c.rect(3, top - d, 12, top - 1, shade(paper, 0.45))              # the open top: dark inside
-    c.line(4, top - 2, 8, top - 11, hexc('d8c078'))                  # a baguette sticking out
-    c.line(5, top - 2, 9, top - 11, shade(hexc('d8c078'), 0.8))
-    c.rect(9, top - 6, 11, top - 2, hexc('4a8a3a'))                  # greens
-    c.put(10, top - 7, hexc('6aaa4a'))
-    c.rect(6, top - 4, 8, top - 1, hexc('e8e8e0'))                   # a milk carton
-    block(c, 3, 12, top, C, 0, paper)
-    c.hline(3, 12, top, shade(paper, 1.25))
-    c.line(5, top, 7, top - 4, hexc('8a6a3a')); c.line(7, top - 4, 9, top, hexc('8a6a3a'))   # its handle
-    c.rect(5, top + 3, 10, top + 6, hexc('c83a2a'))                  # the shop's logo
     save(name, c)
     record(name, "door", d, C)
 
@@ -628,24 +585,6 @@ def bike(save, name, seed, kid=False, down=False):
         c.vline(head[0] + 4, head[1] - 2, head[1] + 2, hexc('6a4a2a'))
     else:
         c.ellipse(seat[0] + 4, seat[1] + 5, 3, 2, hexc('e0c040'))
-    save(name, c)
-    record(name, "door", d, C)
-
-
-def scooter(save, name, seed):
-    w, d = 24, 4
-    h = 24 + d + SHADOW
-    C = h - 1 - SHADOW
-    c = new(w, h, seed)
-    deck = random.Random(seed).choice([hexc('c83a4a'), hexc('3a8ac8'), hexc('8ac83a')])
-    ground(c, 2, 21, C - d, C, 80)
-    for x in (5, 18):                                               # far edge of the deck, then the wheels
-        c.ellipse(x, C - 2, 2, 2, hexc('1e1c1a'))
-        c.put(x, C - 2, hexc('8a8a8a'))
-    block(c, 4, 19, C - 5, C - 4, 2, deck)
-    c.line(18, C - 5, 16, C - 23, hexc('8a8a90')); c.line(19, C - 5, 17, C - 23, hexc('6a6a70'))   # the stem
-    c.hline(12, 20, C - 23, hexc('2a2a2a'))
-    c.put(11, C - 23, hexc('d84a8a'))
     save(name, c)
     record(name, "door", d, C)
 
@@ -742,28 +681,8 @@ def hall_chair(save, name, seed, down=False, spindle=False):
     seat_c = hexc('8a3a3a') if seed % 2 else hexc('3a5a4a')
     if spindle:
         seat_c = shade(wood, 1.15)
-    if down:                                                        # knocked over onto its side
-        w, d = 30, 10
-        h = 16 + d + SHADOW
-        C = h - 1 - SHADOW
-        c = new(w, h, seed)
-        ground(c, 1, w - 2, C - d, C, 90)
-        for (yl, col) in ((C - d + 2, shade(dk, 0.6)), (C - d + 10, shade(dk, 0.6))):   # the far legs, behind
-            c.hline(17, 28, yl - 2, col)
-        c.rect(2, C - d + 1, 15, C - 1, shade(wood, 0.8))            # the chair back, lying on the floor
-        c.rect(4, C - d + 2, 13, C - 2, seat_c)                      # its padded panel, face up
-        c.hline(2, 15, C - d + 1, shade(wood, 1.2))
-        c.hline(2, 15, C, shade(wood, 0.55))
-        c.rect(15, C - 14, 17, C, wood)                               # the seat, now standing on its edge
-        c.rect(15, C - 14 - 3, 17, C - 15, seat_c)                    # its padded top, seen edge-on from above
-        c.vline(17, C - 14, C, shade(wood, 0.7))
-        for yl in (C - 2, C - 12):                                    # the near legs, sticking out along the floor
-            c.hline(18, 28, yl, dk)
-            c.hline(18, 28, yl + 1, shade(dk, 0.7))
-        c.vline(24, C - 12, C - 2, shade(dk, 0.9))                    # a stretcher between them
-        save(name, c)
-        record(name, "open", d, C)
-        return
+    if down:
+        return chair_fallen(save, name, seed, wood, dk, seat_c)
     w, d = 20, 9
     h = 30 + d + SHADOW
     C = h - 1 - SHADOW
@@ -818,38 +737,6 @@ def welly(c, x, base, col):
     c.hline(x, x + 7, base, hexc('1a1614'))
     for k in range(3):                                               # mud
         c.put(x + 1 + k * 2, base - 1 - (k % 2), hexc('5a4a32'))
-
-
-def shoe_tray(save, name, seed, kind='shoes'):
-    """A rubber boot tray by the door — the shoes stand ON it, not on the corridor carpet."""
-    rng = random.Random(seed)
-    w, d = 26, 7
-    h = (14 if kind == 'boots' else 8) + d + SHADOW
-    C = h - 1 - SHADOW
-    c = new(w, h, seed)
-    rubber = hexc('2a2a2e')
-    ground(c, 1, w - 2, C - d, C, 90)
-    block(c, 1, w - 2, C - 1, C, d, shade(rubber, 0.9), rubber)
-    c.hline(1, w - 2, C - 1 - d, shade(rubber, 1.45))                # its raised lip, all round
-    c.vline(1, C - 1 - d, C - 2, shade(rubber, 1.3)); c.vline(w - 2, C - 1 - d, C - 2, shade(rubber, 1.1))
-    for x in range(4, w - 3, 3):                                     # the ribs on the tray
-        c.vline(x, C - d, C - 3, shade(rubber, 1.15))
-    cols = [hexc('3a2a22'), hexc('2a3a5a'), hexc('d8d0c0'), hexc('7a2a2a'), hexc('3a4a3a')]
-    if kind == 'boots':
-        col = rng.choice([hexc('2a4a2a'), hexc('1a1a1e'), hexc('8a2a2a'), hexc('d8b82a')])
-        welly(c, 3, C - 5, shade(col, 0.85))                         # the back one
-        welly(c, 12, C - 2, col)
-    elif kind == 'family':
-        trainer(c, 2, C - 5, rng.choice(cols))
-        trainer(c, 11, C - 5, rng.choice(cols))
-        trainer(c, 6, C - 2, hexc('e84a8a'), kid=True)               # a child's pair in front
-        trainer(c, 14, C - 2, hexc('e84a8a'), kid=True)
-    else:
-        col = rng.choice(cols)
-        trainer(c, 4, C - 5, shade(col, 0.85))
-        trainer(c, 12, C - 2, col)
-    save(name, c)
-    record(name, "door", d, C)
 
 
 def table_top_items(c, rng, kind, x0, x1, ty, d):
@@ -948,60 +835,6 @@ def plant_stand_fallen(save, name, seed):
     record(name, "open", d, C)
 
 
-def bike_wrecked(save, name, seed):
-    """A bike someone went through: still leant on the wall, but the front wheel buckled, the saddle
-    gone, the chain off and hanging, the bars knocked round. (Replaces the bike 'on its side', which
-    read as deflated.)"""
-    rng = random.Random(seed)
-    r, base, d = 9, 40, 3
-    w = base + 2 * r + 6
-    h = 34 + d + SHADOW
-    C = h - 1 - SHADOW
-    c = new(w, h, seed)
-    frame = rng.choice([hexc('b83a32'), hexc('2e5a8a'), hexc('3a6a3a'), hexc('2a2a2e')])
-    tyre, spoke, steel = hexc('1e1c1a'), hexc('9a9a9e'), hexc('b8b8bc')
-    rx, fx = r + 2, r + 2 + base
-    y = C - r
-    ground(c, rx - r, fx + r, C - d, C, 85)
-    for a in range(0, 360, 4):                                       # the rear wheel, true
-        t = math.radians(a)
-        for rr in (r, r - 1):
-            c.put(int(round(rx + rr * math.cos(t))), int(round(y + rr * math.sin(t))), tyre)
-    for a in range(0, 360, 45):
-        t = math.radians(a + 7)
-        c.line(rx, y, int(round(rx + (r - 2) * math.cos(t))), int(round(y + (r - 2) * math.sin(t))), spoke)
-    for a in range(0, 360, 3):                                       # the front wheel, BUCKLED: squashed + kinked
-        t = math.radians(a)
-        kink = 2.2 if 20 < a < 80 else 0.0
-        px = fx + (r - 2.5 - kink * 0.5) * math.cos(t)
-        py = y + (r - kink) * math.sin(t)
-        c.put(int(round(px)), int(round(py)), tyre)
-        c.put(int(round(px * 0.98 + fx * 0.02)), int(round(py)), tyre)
-    for a in (100, 190, 280):                                        # what's left of its spokes
-        t = math.radians(a)
-        c.line(fx, y, int(round(fx + (r - 4) * math.cos(t))), int(round(y + (r - 4) * math.sin(t))), spoke)
-    bb = (rx + int(base * 0.42), y + 1)
-    seat = (rx + int(base * 0.33), y - int(r * 1.9))
-    head = (fx - int(base * 0.14), y - int(r * 1.75))
-    c.line(rx, y, bb[0], bb[1], frame)
-    c.line(rx, y, seat[0], seat[1] + 2, frame)
-    for dx in (0, 1):
-        c.line(bb[0] + dx, bb[1], seat[0] + dx, seat[1] + 2, frame)
-        c.line(bb[0] + dx, bb[1], head[0] + dx, head[1] + 3, frame)
-    c.line(seat[0], seat[1] + 3, head[0], head[1] + 1, frame)
-    c.line(seat[0], seat[1] + 2, head[0], head[1], shade(frame, 1.25))
-    c.line(head[0], head[1], fx, y, shade(frame, 0.8))
-    c.vline(seat[0], seat[1] - 1, seat[1] + 2, steel)                # the seat post — no saddle
-    c.line(head[0] - 3, head[1] - 6, head[0] + 3, head[1] - 2, hexc('2a2a2a'))   # the bars, knocked round
-    c.line(head[0], head[1], head[0], head[1] - 4, steel)
-    c.ellipse(bb[0], bb[1], 2, 2, hexc('6a6a6e'))
-    for k in range(9):                                               # the chain, off and hanging
-        c.put(bb[0] - 3 - k * 2, bb[1] + 2 + int(3 * math.sin(k * 0.6)), hexc('4a4a4e'))
-    c.line(bb[0] - 4, bb[1] + 1, bb[0] - 9, C, shade(steel, 0.85))
-    save(name, c)
-    record(name, "door", d, C)
-
-
 def snake_plant(save, name, seed, dead=False):
     rng = random.Random(seed)
     w, d = 22, 8
@@ -1080,24 +913,241 @@ def holdall(save, name, seed):
     record(name, "door", d, C)
 
 
-def carrier_bags(save, name, seed):
+# --- ROUND 25c: the props that failed "recognise it instantly" at true size, redrawn bigger + clearer ---
+def shoe_tray(save, name, seed, kind='shoes'):
+    """A rubber boot tray by the door — a LOW dark plate so the shoes carry it (side-on / heels-out pairs)."""
     rng = random.Random(seed)
-    w, d = 22, 7
-    h = 16 + d + SHADOW
+    w, d = 38, 6
+    tall = 12 if kind == 'boots' else 7
+    h = tall + d + SHADOW + 2
     C = h - 1 - SHADOW
     c = new(w, h, seed)
-    ground(c, 1, w - 2, C - d, C, 70)
-    for (x, col, base) in ((2, hexc('e8e8e4'), C - 2), (11, hexc('4a6ab8'), C)):
-        c.poly([(x + 1, base - 12), (x + 8, base - 12), (x + 9, base), (x, base)], col)   # slumped bags
-        c.line(x + 1, base - 12, x, base, shade(col, 1.1))
-        c.line(x + 8, base - 12, x + 9, base, shade(col, 0.75))
-        c.rect(x + 3, base - 15, x + 6, base - 12, shade(col, 0.9))  # the handles, tied
-        c.put(x + 4, base - 16, col); c.put(x + 5, base - 16, col)
-        for k in range(3):                                           # what's in them, pressing through
-            c.put(x + 2 + k * 2, base - 5 - (k % 2) * 3, shade(col, 0.8))
-    c.rect(4, C - 16, 6, C - 13, hexc('4a8a3a'))                     # a leek sticking out
+    rubber = hexc('222226')
+    ground(c, 1, w - 2, C - d, C, 90)
+    for r in range(d):                                               # the tray's floor, seen from above
+        c.hline(1, w - 2, C - d + r, shade(rubber, 0.9 + 0.12 * r / d))
+    c.hline(1, w - 2, C - d, shade(rubber, 1.9))                     # the raised back lip, catching light
+    c.hline(1, w - 2, C, shade(rubber, 1.5))                         # the front lip
+    c.vline(1, C - d, C, shade(rubber, 1.7)); c.vline(w - 2, C - d, C, shade(rubber, 1.5))
+    for x in range(6, w - 5, 5):                                     # a few drainage slots
+        c.hline(x, x + 2, C - 2, shade(rubber, 0.5))
+    cols = ['ffffff', '2a4a8a', '8a5a3a', 'c8c0b0', 'd83a3a', '3a7a4a']
+    base = C - 1                                                     # shoes stand on the tray's floor
+    if kind == 'boots':
+        col = hexc(rng.choice(['2a5a2a', '2a2a30', 'a83030', 'e0c030']))
+        welly(c, 4, base - 3, shade(col, 0.85))                      # the far one
+        welly(c, 13, base, col)
+        shoe_side(c, 24, base - 1, 'kid', hexc('e05a8a'), 1)
+        shoe_side(c, 24, base - 4, 'kid', hexc('e05a8a'), 1, 0.8)
+    elif kind == 'family':
+        shoe_pair(c, 3, base, 'trainer', hexc(rng.choice(cols)), 1, depth_up=2)
+        shoe_back_pair(c, 20, base, 'brogue', hexc('5a3322'), depth_up=2)
+        shoe_side(c, 28, base - 1, 'kid', hexc('e05a8a'), 1)
+    else:
+        shoe_pair(c, 3, base, 'trainer', hexc(rng.choice(cols)), 1, depth_up=2)
+        shoe_back_pair(c, 22, base, 'heel', hexc(rng.choice(cols[3:])), depth_up=2)
     save(name, c)
     record(name, "door", d, C)
+
+
+def chair_fallen(save, name, seed, wood, dk, seat_c):
+    """A hall chair knocked onto its side: the back lying on the floor to the left, the seat standing on
+    its edge, four legs sticking out along the floor to the right."""
+    wood = shade(wood, 1.25)
+    w, d = 38, 12
+    h = 22 + d + SHADOW
+    C = h - 1 - SHADOW
+    c = new(w, h, seed)
+    ground(c, 1, w - 2, C - d, C, 95)
+    # the backrest: a frame lying flat, its padded panel facing up at us (a slab seen from above)
+    for r in range(d):
+        y = C - d + r
+        c.hline(2, 15, y, shade(wood, 0.8 + 0.25 * r / d))
+    c.rect(4, C - d + 2, 13, C - 3, seat_c)                          # the padded panel
+    c.hline(4, 13, C - d + 2, shade(seat_c, 1.4))
+    c.hline(2, 15, C - d, shade(wood, 1.5))                          # the top rail's lit edge
+    c.hline(2, 15, C - 1, shade(wood, 0.5)); c.hline(2, 15, C, shade(wood, 0.4))
+    c.vline(2, C - d, C, shade(wood, 1.3)); c.vline(15, C - d, C, shade(wood, 0.6))
+    # the seat: standing on its edge, with its cushion facing left toward the back
+    c.rect(15, C - 19, 19, C - 1, wood)
+    c.rect(15, C - 19, 16, C - 1, shade(seat_c, 1.0))               # the cushion side
+    c.vline(19, C - 19, C - 1, shade(wood, 0.6))
+    c.hline(15, 19, C - 19, shade(wood, 1.5))
+    # the near legs (front of the chair) and the far legs (behind, darker, higher on the floor plane)
+    for yl, k in ((C - 3, 1.0), (C - 16, 1.0)):
+        c.rect(20, yl - 1, 34, yl, shade(wood, 1.0 * k))              # a leg: a lit top face over a dark side
+        c.hline(20, 34, yl - 1, shade(wood, 1.45))
+        c.hline(20, 34, yl + 1, shade(dk, 0.7))
+        c.rect(34, yl - 1, 35, yl + 1, shade(dk, 0.6))                # the foot
+    for yl in (C - 8, C - 12):
+        c.hline(21, 32, yl, shade(dk, 0.95))                          # the far pair, behind
+    c.vline(27, C - 15, C - 3, shade(wood, 0.75))                    # a stretcher between the legs
+    save(name, c)
+    record(name, "open", d, C)
+
+
+def newspapers(save, name, seed):
+    """A bundle of old newspapers tied with string, put out by the door: a real STACK with height."""
+    rng = random.Random(seed)
+    w, d = 26, 8
+    stack = 15
+    h = stack + d + SHADOW
+    C = h - 1 - SHADOW
+    c = new(w, h, seed)
+    ground(c, 1, w - 2, C - d, C)
+    paper = hexc('e2dcc8')
+    block(c, 2, 22, C - stack, C, d, shade(paper, 0.85), shade(paper, 1.1))
+    for y in range(C - stack + 1, C, 2):                             # the edges of each folded paper
+        c.hline(2, 22, y, shade(paper, 0.7))
+    c.vline(2, C - stack, C, shade(paper, 1.15))
+    for x in (8, 15):                                                # the string, over the top and down the front
+        c.vline(x, C - stack - d, C, hexc('a8763a'))
+        c.put(x, C - stack - d + 2, hexc('c8965a'))
+    c.hline(2, 22, C - stack - d + 1, shade(paper, 0.8))
+    # the front paper's page-one: a masthead, a photo, columns
+    c.rect(4, C - stack + 2, 21, C - stack + 3, hexc('2a2a2a'))       # a black masthead
+    c.rect(4, C - stack + 5, 11, C - stack + 10, hexc('8a8a86'))      # the photo
+    c.rect(5, C - stack + 6, 10, C - stack + 9, hexc('6a6a68'))
+    for y in range(C - stack + 5, C - stack + 11, 2):
+        c.hline(12, 20, y, hexc('7a7a76'))                            # the columns of print
+    c.hline(4, 20, C - stack + 12, hexc('3a3a3a'))                    # a headline
+    save(name, c)
+    record(name, "door", d, C)
+
+
+def shopping_bag(save, name, seed):
+    """A brown paper shopping bag, folded top, a baguette and greens sticking out."""
+    rng = random.Random(seed)
+    w, d = 22, 7
+    h = 34 + d + SHADOW
+    C = h - 1 - SHADOW
+    c = new(w, h, seed)
+    paper = hexc('c09a66')
+    ground(c, 2, w - 3, C - d, C, 85)
+    top = C - 20
+    c.line(6, top - 1, 4, top - 8, hexc('e6c98a')); c.line(7, top - 1, 5, top - 8, hexc('e6c98a'))    # a baguette
+    c.line(8, top - 1, 6, top - 8, shade(hexc('e6c98a'), 0.8))
+    c.put(5, top - 6, hexc('b8863a')); c.put(6, top - 4, hexc('b8863a'))                          # its scoring
+    for (x, y, k) in ((12, top - 6, 1.0), (14, top - 8, 0.9), (16, top - 5, 1.1)):               # leek / greens
+        c.rect(x, y, x + 2, top - 1, shade(hexc('4a9a3a'), k))
+        c.hline(x, x + 2, y, hexc('7acc5a'))
+    c.rect(9, top - 7, 12, top - 1, hexc('f2f2ea'))                                               # a milk carton
+    c.rect(9, top - 7, 12, top - 6, hexc('4a7ac8'))
+    block(c, 3, 18, top, C, d, paper, shade(paper, 1.2))                                         # the bag body + its open top
+    c.rect(4, top - d + 1, 17, top - 1, shade(paper, 0.4))                                       # dark inside the mouth
+    c.hline(3, 18, top, shade(paper, 1.45))
+    c.vline(10, top + 1, C - 1, shade(paper, 0.82))                                              # the gusset fold down the front
+    c.rect(6, top + 5, 15, top + 12, hexc('c83a2a'))                                             # the shop's logo panel
+    c.rect(8, top + 7, 13, top + 8, hexc('f2e8d0')); c.rect(8, top + 10, 11, top + 10, hexc('f2e8d0'))
+    c.line(6, top + 1, 8, top - 6, hexc('8a6a3a')); c.line(8, top - 6, 10, top + 1, hexc('8a6a3a'))  # a rope handle
+    save(name, c)
+    record(name, "door", d, C)
+
+
+def carrier_bags(save, name, seed):
+    """Two plastic carrier bags slumped against each other, knotted handles, groceries bulging."""
+    w, d = 26, 6
+    h = 26 + d + SHADOW
+    C = h - 1 - SHADOW
+    c = new(w, h, seed)
+    ground(c, 2, w - 3, C - d, C, 80)
+    for (x0, x1, col, top) in ((2, 13, 'f2f2ee', C - 20), (12, 23, '3a6ac8', C - 17)):
+        base = hexc(col)
+        body = [(x0 + 1, top + 4), (x0 + 5, top), (x1 - 5, top), (x1 - 1, top + 4), (x1, C - 3), (x1 - 3, C),
+                (x0 + 3, C), (x0, C - 3)]
+        c.poly(body, base)
+        for y in range(top + 5, C - 1):
+            c.put(x0 + 1 + (y % 3), y, shade(base, 1.08 if col != 'f2f2ee' else 0.9))              # crinkles
+        c.vline(x1 - 1, top + 6, C - 2, shade(base, 0.7))
+        c.hline(x0 + 5, x1 - 5, top, shade(base, 0.6))
+        c.line(x0 + 4, top, x0 + 6, top - 5, shade(base, 0.6)); c.line(x1 - 4, top, x1 - 6, top - 5, shade(base, 0.6))
+        c.put(x0 + (x1 - x0) // 2, top - 5, shade(base, 0.5))                                        # the knot
+    c.rect(5, C - 14, 9, C - 9, hexc('d8483a')); c.rect(15, C - 11, 19, C - 6, hexc('e8b83a'))       # things inside
+    save(name, c)
+    record(name, "door", d, C)
+
+
+def scooter(save, name, seed):
+    """A kick scooter leant by the door: chunky deck, two wheels, a tall stem and bars — sized to read."""
+    w, d = 34, 5
+    h = 38 + d + SHADOW
+    C = h - 1 - SHADOW
+    c = new(w, h, seed)
+    deck = random.Random(seed).choice([hexc('d83a4a'), hexc('3a8ad8'), hexc('8ad83a')])
+    ground(c, 2, w - 3, C - d, C, 85)
+    for x, r in ((6, 4), (27, 4)):                                   # the wheels: tyre, hub, highlight
+        c.ellipse(x, C - r, r, r, hexc('1e1c1a'))
+        c.ellipse(x, C - r, r - 2, r - 2, hexc('8a8a90'))
+        c.put(x, C - r, hexc('d8d8dc')); c.put(x - 1, C - r - 2, hexc('4a4a4e'))
+    block(c, 7, 27, C - 7, C - 5, d - 1, deck, shade(deck, 1.3))     # the deck, seen with its top face
+    c.hline(7, 27, C - 5, shade(deck, 0.55))
+    for x in range(9, 26, 3):
+        c.put(x, C - 8, shade(deck, 1.5))                             # the grip tape's dots
+    c.rect(27, C - 11, 29, C - 5, hexc('b0b0b6'))                     # the fork over the front wheel
+    c.line(28, C - 11, 26, C - 36, hexc('9a9aa2')); c.line(29, C - 11, 27, C - 36, hexc('6a6a72'))   # the stem
+    c.line(29, C - 11, 27, C - 36, hexc('6a6a72'))
+    c.hline(20, 32, C - 37, hexc('2a2a2e')); c.hline(20, 32, C - 36, hexc('4a4a50'))                 # the handlebars
+    c.rect(18, C - 38, 21, C - 36, hexc('d84a8a')); c.rect(31, C - 38, 33, C - 36, hexc('d84a8a'))    # the grips
+    c.rect(6, C - 9, 8, C - 6, hexc('b0b0b6'))                        # the rear brake over the wheel
+    save(name, c)
+    record(name, "door", d, C)
+
+
+def bike_wrecked(save, name, seed):
+    """A bike that's been wrecked: the FRONT WHEEL wrenched off and lying flat on the floor, the frame
+    snapped and slumped forward onto it, the rear wheel taco'd (a wedge bent out), bars hanging, saddle askew."""
+    rng = random.Random(seed)
+    r, base, d = 9, 40, 9
+    w = base + 2 * r + 8
+    h = 26 + d + SHADOW
+    C = h - 1 - SHADOW
+    c = new(w, h, seed)
+    frame = rng.choice([hexc('b83a32'), hexc('2e5a8a'), hexc('3a6a3a'), hexc('c8a032')])
+    tyre, spoke, steel = hexc('1e1c1a'), hexc('9a9a9e'), hexc('b8b8bc')
+    rx = r + 2
+    ground(c, 1, w - 2, C - d, C, 95)
+    y = C - r
+    # the REAR wheel, upright but buckled: a wedge of the tyre bent outward + missing spokes
+    for a in range(0, 360, 4):
+        t = math.radians(a)
+        rr = r if not (200 < a < 260) else r - 3                     # the dent
+        for k in (rr, rr - 1):
+            c.put(int(round(rx + k * math.cos(t))), int(round(y + k * math.sin(t))), tyre)
+    for a in range(0, 360, 40):
+        if 190 < a < 270:
+            continue                                                  # spokes gone where it's crushed
+        t = math.radians(a)
+        c.line(rx, y, int(round(rx + (r - 2) * math.cos(t))), int(round(y + (r - 2) * math.sin(t))), spoke)
+    c.put(rx, y, steel)
+    # the frame: seat tube up from the rear, the top tube SNAPPED and drooping to the floor
+    bb = (rx + 16, y + 1)
+    seat = (rx + 13, y - 15)
+    c.line(rx, y, bb[0], bb[1], frame); c.line(rx, y, seat[0], seat[1] + 2, frame)
+    c.line(bb[0], bb[1], seat[0] + 1, seat[1] + 2, frame); c.line(bb[0] + 1, bb[1], seat[0] + 2, seat[1] + 2, frame)
+    c.line(seat[0], seat[1] + 2, seat[0] + 12, C - 6, frame)          # the top tube, buckled downward
+    c.line(seat[0], seat[1] + 3, seat[0] + 12, C - 5, shade(frame, 0.7))
+    c.line(bb[0], bb[1], bb[0] + 14, C - 4, shade(frame, 0.85))       # the down tube, dragging on the floor
+    c.line(bb[0] - 4, bb[1] + 1, bb[0] - 9, C, shade(steel, 0.85))    # the kickstand, still down
+    # the saddle, torn askew off its post
+    c.line(seat[0], seat[1] + 2, seat[0] - 2, seat[1] - 1, steel)
+    c.rect(seat[0] - 6, seat[1] - 3, seat[0] + 1, seat[1] - 1, hexc('2a2622'))
+    c.put(seat[0] - 5, seat[1] - 3, hexc('4a423a'))
+    # the FRONT wheel: torn off, lying flat on the floor in front, rim kinked, tyre half off
+    fx = w - r - 4
+    c.ellipse(fx, C - 4, r, 3, tyre)
+    c.ellipse(fx, C - 4, r - 2, 2, shade(hexc('5a5654'), 0.85))
+    c.hline(fx - r + 3, fx + r - 3, C - 4, spoke); c.vline(fx, C - 6, C - 2, spoke)
+    c.hline(fx + 2, fx + r + 1, C - 2, hexc('0e0c0a'))                # the tyre peeled off the rim
+    c.put(fx + r + 1, C - 1, tyre)
+    # the fork and bars, twisted, lying across the wheel; the chain hanging from the crank
+    c.line(seat[0] + 12, C - 6, fx - 2, C - 9, steel)
+    c.line(fx - 2, C - 9, fx + 6, C - 12, steel)
+    c.hline(fx + 3, fx + 9, C - 12, hexc('2a2a2a')); c.put(fx + 9, C - 13, hexc('4a4a4e'))
+    for k in range(5):
+        c.put(bb[0] + 2 + k, bb[1] + 4 + (k % 2), hexc('4a4a4e'))    # the chain
+    save(name, c)
+    record(name, "door", d, C)
+
 
 
 def build(save):

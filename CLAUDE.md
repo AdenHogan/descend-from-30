@@ -1541,7 +1541,14 @@ means no rendering — UI layout and art still need an in-editor look.
   shoe set back and darker; round 25c: "some side facing, some back facing… it's just about visual clarity",
   so each rack mixes both, seeded, at least one of each — on a rack with side boards and slatted shelves seen
   from a little above: wooden, chrome wire with boots on top, and `__3` with shoes kicked off ALL ROUND it
-  (both sides and in front — not "just to the right side… they look clumsy"), one hanging off a shelf), an umbrella stand, a HALL TABLE carrying flowers / a lamp / the post,
+  (both sides and in front — not "just to the right side… they look clumsy"), one hanging off a shelf).
+  ROUND 25c CLARITY PASS (owner: shoe rack "wasn't recognisable" → judge every prop at true size, in situ):
+  redrawn bigger + higher-contrast — the shoe TRAY (a low dark plate carrying side-on / heels-out pairs, or
+  wellies), the fallen CHAIR (`chair_fallen`: back on the floor, cushion edge-on, four legs out), the
+  wrecked BIKE (front wheel wrenched off and flat on the floor, rear wheel buckled with a wedge gone, snapped
+  top tube, saddle askew, chain hanging), NEWSPAPERS (a tied stack with height + a front page), the paper
+  SHOPPING BAG and the plastic CARRIER BAGS, the SCOOTER (`tools/art/prop_review.py <out.png> <zoom> <sprite…>`
+  renders any prop in situ for such a review), an umbrella stand, a HALL TABLE carrying flowers / a lamp / the post,
   parcels, a pram, bin bags put out, the recycling, bundled newspapers, a suitcase / holdall, shopping
   bags, a bike / kid's bike / scooter leant on the wall), "open" = a stretch of wall between the doors or
   by the lift (`OPEN_SPOTS`: a floor planter, a small plant UP ON ITS STAND, a hall chair to wait on). Each
