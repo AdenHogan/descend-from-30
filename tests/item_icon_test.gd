@@ -21,6 +21,7 @@ func check(cond: bool, label: String) -> void:
 func _ready() -> void:
 	print("=== item icon + tooltip test ===")
 	_test_icons()
+	_test_fixtures()
 	await _test_tooltip()
 	await _test_slot_and_drag()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
@@ -135,3 +136,24 @@ func _test_slot_and_drag() -> void:
 	check(HUD.slot_icons[0].modulate.a > 0.99 and HUD.drag_icon == null, "dropping it back puts it back at full strength")
 	WorldState.inventory.clear()
 	HUD.refresh_inventory()
+
+
+func _test_fixtures() -> void:
+	# The every-floor fixtures (tools/art/fixtures.py). The lift sprite's size is load-bearing: the doors slide
+	# open as two 33px halves (building_floors._board_elevator, merchant.gd).
+	print("[every-floor fixtures]")
+	var lift: Texture2D = load("res://assets/Elevator.png")
+	check(lift != null and lift.get_size() == Vector2(66, 88), "the lift is still 66x88 (its doors slide as two 33px halves)")
+	var ext: Texture2D = load("res://assets/corridor/fixtures/extinguisher_wall.png")
+	check(ext != null and ext.get_size() == Vector2(16, 44), "the wall extinguisher art is there")
+	for pair in [["lift", lift], ["extinguisher", ext]]:
+		var img: Image = (pair[1] as Texture2D).get_image()
+		if img.is_compressed():
+			img.decompress()
+		var colours := {}
+		for y in range(img.get_height()):
+			for x in range(img.get_width()):
+				var c := img.get_pixel(x, y)
+				if c.a > 0.5:
+					colours[c.to_html(false)] = true
+		check(colours.size() >= 12, "the %s is drawn art, not a flat block (%d colours)" % [pair[0], colours.size()])

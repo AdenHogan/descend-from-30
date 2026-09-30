@@ -144,8 +144,8 @@ def runner(c, base, border, pattern, y0=166, y1=186):
 
 
 def exit_sign(c):
-    c.box(860, 40, 872, 50, hexc('2e5a3a'), hexc('1a3020'))                    # a green EXIT sign
-    c.rect(862, 43, 870, 46, hexc('d8e8c8'))
+    import fixtures                                                            # the running-man EXIT sign
+    fixtures.exit_sign(c)
 
 
 def light_switches(c, plate):

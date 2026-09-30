@@ -41,6 +41,8 @@ func _ready() -> void:
 	proximity_label.visible = false
 	add_to_group("world_drop")
 	player = get_tree().get_first_node_in_group("player")
+	if item_id == "036" and ResourceLoader.exists(EXTINGUISHER_ART):
+		_ext_tex = load(EXTINGUISHER_ART)
 	# The glowing-orb pickup (matches the scavenge marker). The extinguisher (036) is a wall
 	# fixture, not an orb, so it gets no orb light.
 	if item_id != "036":
@@ -204,16 +206,30 @@ func _draw() -> void:
 	ORB.draw_orb(self, _tex, Vector2.ZERO, base_r, ORB.GOLD, _t, lvl)
 
 
+const EXTINGUISHER_ART := "res://assets/corridor/fixtures/extinguisher_wall.png"   # tools/art/fixtures.py
+var _ext_tex: Texture2D = null     # loaded in _ready — a texture first load()ed INSIDE _draw came out a white
+                                   # block, and this node only redraws now and then, so it stuck
+
+
 func _draw_extinguisher() -> void:
-	# A slim red canister with a white label band — taller and narrower than the
-	# thrown can — sitting on a small wall bracket. Brightens when you're in range.
+	# A wall-mounted extinguisher (drawn art: bracket straps, hose, gauge, lever), its body spanning
+	# local y -18..16 up on the wall. Brightens when you're in range. Falls back to plain rects if the art
+	# is missing.
 	var w := 11.0
 	var h := 34.0
-	var top := -18.0                       # body spans local y -18..16 (up on the wall)
+	var top := -18.0
 	var glow := 0.0
 	if player != null:
 		var dist := global_position.distance_to(player.global_position)
 		glow = 1.0 - clamp((dist - PICKUP_RANGE) / (GLOW_RANGE - PICKUP_RANGE), 0.0, 1.0)
+	if _ext_tex != null:
+		var tex: Texture2D = _ext_tex
+		# the art is 16x44 with its cylinder at x 3..12, y 13..40: put its foot where the old canister's was
+		# (local y +16) and centre it on x 0
+		draw_texture(tex, Vector2(-8.0, top + h - 40.0))
+		if glow > 0.0:
+			draw_rect(Rect2(-5.0, top + h - 27.0, 10.0, 28.0), Color(1.0, 1.0, 1.0, 0.30 * glow), false, 2.0)
+		return
 	# wall bracket behind the canister
 	draw_rect(Rect2(-w * 0.5 - 3.0, top + h - 7.0, w + 6.0, 4.0), Color(0.20, 0.20, 0.22))
 	# red body

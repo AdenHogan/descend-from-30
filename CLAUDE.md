@@ -1789,6 +1789,17 @@ means no rendering — UI layout and art still need an in-editor look.
   from until the drop (`_finish_drag` refreshes in every outcome). Locked by `item_icon_test` (every icon
   56×56, cut out, many colours — a card or flat box fails; tooltip content + real hover + placement; icon
   centred; drag ghost / lifted slot / restore).
+- EVERY-FLOOR FIXTURES (owner round 25c, "cleaning art for immersion and visual clarity"; `tools/art/fixtures.py`,
+  preview `docs/art_reference/fixtures.png`): at true size the lift was a flat grey slab in a black frame, the
+  wall extinguisher a red block and the EXIT sign an unlabelled green box. Now: `assets/Elevator.png` is
+  brushed-steel doors (streaked, a diagonal reflection, recessed panels, a dark meeting seam, a worn brass sill)
+  in a bronze frame — SAME 66×88 size, because the doors slide open as two 33px halves
+  (`building_floors._board_elevator`, `merchant.gd`); the wall extinguisher is
+  `assets/corridor/fixtures/extinguisher_wall.png` (bracket straps, hose, gauge, lever, a labelled body) drawn by
+  `world_drop._draw_extinguisher` (falls back to rects if missing); the EXIT sign has the running figure and an
+  arrow (`fixtures.exit_sign`, called by `corridor.py`'s `exit_sign`, so every corridor image carries it).
+  **Gotcha (bug class):** a texture first `load()`ed INSIDE `_draw` rendered as a flat white block — and a node
+  that only redraws now and then keeps it — so load textures in `_ready`. Locked by `item_icon_test._test_fixtures`.
 - DECAL SHEETS (owner round 25): `tools/art/corridor_decals.py` also writes grouped, labelled contact
   sheets of every corridor decal into `assets/decal_sheets/` (`standing_props`, `notices`, `wall_horror`,
   `door_marks`, `floor_marks`, `the_dead`, `all_decals`) beside the docs preview
