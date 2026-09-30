@@ -572,7 +572,7 @@ means no rendering — UI layout and art still need an in-editor look.
   collision — purely cosmetic, never blocks the player); it's cleared the instant the
   zombie dies (`_die` sets `on_fire=false`) and `_process` **skips dead corpses** so a
   lingering body never re-lights or leaves flames floating. **Render**: the flames are the
-  purchased **craftpix pixel-fire sprites** in `assets/fire-pixel-art-animation-sprites/`
+  purchased **craftpix pixel-fire sprites** in `assets/fire-pixel-art-animation-sprites/` (**SUPERSEDED in round 29 by our own fire, `assets/fire/` — see ROUND 29; the sheet/tile/scale/crop details in this render paragraph are HISTORY**)
   (procedural flames dropped — they never read as real fire). Three sheets for
   variety: **`2 Fire_tiles`** (32² floor bed) tiled seamlessly across the burning
   span (`_draw_ground_fire`), **`3 Flame`** (32² mid flame) and **`1 Fire/Idle`**
@@ -1602,7 +1602,7 @@ means no rendering — UI layout and art still need an in-editor look.
   right stair only; keeps its older run overlay `ruin`), added from their `_build_world` (live +
   backdrop) via the shared `building_floors.add_corridor_art`. Locked by
   `building_floors_test._test_corridor_art` + `_test_fire_scars` + `_test_corridor_decals`. The
-  hallway (30) and lobby don't take the per-floor decals yet.
+  lobby doesn't take the per-floor decals yet (floor 30 does — round 29).
 - DOORS (owner round 12, `tools/art/doors.py` → `assets/doors/`): TEN doors at native scale, one strip
   each (`door_<oak|walnut|sage|glazed|cream|white|blue|fire|steel|grille>.png`, 7 frames of 46×84):
   0 closed .. 4 open (the leaf swings IN, the flat's dark entry hall behind), 5 torn off its hinges,
@@ -2035,4 +2035,29 @@ means no rendering — UI layout and art still need an in-editor look.
   hallway (30: left stairwell + its number) and the lobby (right stairwell, no number, LOBBY lift panel); `floor_signs.setup` now takes
   `only_sides` / `with_number`. Locked by `character_panel_test`, `building_floors_test` (`_test_corridor_body`, `_test_floor_signs`).
   Not done (per-floor decals on hallway/lobby — the tutorial's blood hints live there; the selected-hotbar lift — the hotbar is opt-in).
+- ROUND 29 (owner: floor-30 decals + tutorial wall text, the lobby exit, OUR OWN fire):
+  **(1) Floor 30 is dressed like every floor** — `hallway._add_floor_decals` runs `CorridorDecals.add_to` (new `extra_taken` /
+  `horror_boost` params on `plan` / `add_to`): the same seeded dressing + wall marks; the lift is kept clear, and on the FIRST
+  (tutorial) run the blood-text hints' blocks are reserved and a little extra horror shows. **(2) Tutorial wall text is handwriting**
+  (`blood_text.gd`): each word drawn on its own, off the baseline and tilted a touch (`scrawl`), flecks, optional scratched ARROW
+  (`arrow` = down/right/left) and a dragged SMEAR; the hints in `hallway.tscn` now sit at different heights (262..330), tilts and
+  sizes, mostly ABOVE the doors (the wall over a door's top edge is open) — `run_bookends_test._test_hints_clear_of_doors` now checks
+  door FACES + number plates + sconces, and that they're staggered (≥4 height bands, ≥4 tilts). **(3) The lobby exit is a real
+  entrance** (`tools/art/lobby_exit.py` → `assets/lobby/exit_frame_<run>.png` (lit: stone surround, arch, vestibule, three marble
+  steps, doors flung open, boards / chair / suitcase, run-3 blood) + `exit_view_<run>.png` (the street in glare, UNSHADED) +
+  `exit_meta.json`; preview `docs/art_reference/lobby_exit.png`; runtime `scripts/lobby_exit_fx.gd`: frame + view + an additive
+  glare + a real spill PointLight2D + a `window_beam` shaft; built by `lobby._build_world`, origin world (590,275), seam 403, centre
+  x 654). `player.walk_up_and_out(doorway_x, rise, depth)`: slide to the doorway, then UP the steps (feet −27, sprite ×0.76 about
+  the feet, brightening) while `LobbyExitFx.surge` swells the light — then the existing WHITE card takes over (`lobby_exit.leave`;
+  `approach_door` kept as a fallback). Locked by `run_bookends_test._test_lobby_exit_art`. **(4) OUR FIRE** — the purchased craftpix
+  fire is no longer used anywhere: it was drawn 1.6-2.7× the game's pixel size and its floor tiles were cropped mid-flame.
+  `tools/art/fire.py` → `assets/fire/*.png` + `fire_meta.json` (+ `docs/art_reference/fire.png`): a MODEL (heat column, ridged-noise
+  tongues scrolling up exactly one period per 8-frame loop, palette by height fraction, dark-red rim, embers), native 1:1 size:
+  `bed_front|back_<light|blaze>_<1-3>` (tapered CLUMPS laid overlapping — never cropped), `tongue_<s|m|l|xl>`, `wall`, `edge` (door
+  frame), `small` (burning enemy), `stair`. `scripts/fire_art.gd` (`FireArt.draw/variants/sheet/material`) is the ONE drawing helper,
+  UNSHADED (flames glow at night); consumers rewritten: `fire_field` (`bed_spots(layer)` / `tongue_spots()` / `wall_fire_spots()` are
+  pure layout, each tongue stands on a back-carpet clump; stair fire), `apartment_fire`, `enemy_fire`, `fire_decal` + door fire in
+  `building_floors`. The sim, cells, lights, smoke, scorch and extinguisher logic are unchanged. Locked by `fire_test`
+  (`_test_fire_art`, `_test_fire_layout`, `_test_wall_fire`). The old `assets/fire-pixel-art-animation-sprites/` folder is unused.
+  Not done: fire on the ceiling (dropped earlier), a fire-elemental enemy, per-floor decals on the LOBBY.
 - Not started: quests.

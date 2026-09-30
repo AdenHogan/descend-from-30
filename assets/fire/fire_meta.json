@@ -1,0 +1,346 @@
+{
+ "fps": 10,
+ "frames": 8,
+ "sheets": {
+  "bed_back_blaze_1": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    64,
+    24
+   ],
+   "frames": 8,
+   "note": "back seam carpet, BLAZE"
+  },
+  "bed_back_blaze_2": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    64,
+    24
+   ],
+   "frames": 8,
+   "note": "back seam carpet, BLAZE"
+  },
+  "bed_back_blaze_3": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    64,
+    24
+   ],
+   "frames": 8,
+   "note": "back seam carpet, BLAZE"
+  },
+  "bed_back_light_1": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    64,
+    16
+   ],
+   "frames": 8,
+   "note": "back seam carpet, LIGHT"
+  },
+  "bed_back_light_2": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    64,
+    16
+   ],
+   "frames": 8,
+   "note": "back seam carpet, LIGHT"
+  },
+  "bed_back_light_3": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    64,
+    16
+   ],
+   "frames": 8,
+   "note": "back seam carpet, LIGHT"
+  },
+  "bed_front_blaze_1": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    64,
+    38
+   ],
+   "frames": 8,
+   "note": "front carpet, BLAZE"
+  },
+  "bed_front_blaze_2": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    64,
+    38
+   ],
+   "frames": 8,
+   "note": "front carpet, BLAZE"
+  },
+  "bed_front_blaze_3": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    64,
+    38
+   ],
+   "frames": 8,
+   "note": "front carpet, BLAZE"
+  },
+  "bed_front_light_1": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    64,
+    24
+   ],
+   "frames": 8,
+   "note": "front carpet, LIGHT"
+  },
+  "bed_front_light_2": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    64,
+    24
+   ],
+   "frames": 8,
+   "note": "front carpet, LIGHT"
+  },
+  "bed_front_light_3": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    64,
+    24
+   ],
+   "frames": 8,
+   "note": "front carpet, LIGHT"
+  },
+  "edge_1": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    24,
+    46
+   ],
+   "frames": 8,
+   "note": ""
+  },
+  "edge_2": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    24,
+    46
+   ],
+   "frames": 8,
+   "note": ""
+  },
+  "edge_3": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    24,
+    46
+   ],
+   "frames": 8,
+   "note": ""
+  },
+  "small_1": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    14,
+    20
+   ],
+   "frames": 8,
+   "note": ""
+  },
+  "small_2": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    14,
+    20
+   ],
+   "frames": 8,
+   "note": ""
+  },
+  "small_3": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    14,
+    20
+   ],
+   "frames": 8,
+   "note": ""
+  },
+  "stair": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    48,
+    28
+   ],
+   "frames": 8,
+   "note": "fire spilling over a step"
+  },
+  "tongue_l_1": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    54,
+    62
+   ],
+   "frames": 8,
+   "note": ""
+  },
+  "tongue_l_2": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    54,
+    62
+   ],
+   "frames": 8,
+   "note": ""
+  },
+  "tongue_l_3": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    54,
+    62
+   ],
+   "frames": 8,
+   "note": ""
+  },
+  "tongue_m_1": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    38,
+    44
+   ],
+   "frames": 8,
+   "note": ""
+  },
+  "tongue_m_2": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    38,
+    44
+   ],
+   "frames": 8,
+   "note": ""
+  },
+  "tongue_m_3": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    38,
+    44
+   ],
+   "frames": 8,
+   "note": ""
+  },
+  "tongue_s_1": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    26,
+    30
+   ],
+   "frames": 8,
+   "note": ""
+  },
+  "tongue_s_2": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    26,
+    30
+   ],
+   "frames": 8,
+   "note": ""
+  },
+  "tongue_s_3": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    26,
+    30
+   ],
+   "frames": 8,
+   "note": ""
+  },
+  "tongue_xl_1": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    72,
+    84
+   ],
+   "frames": 8,
+   "note": ""
+  },
+  "tongue_xl_2": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    72,
+    84
+   ],
+   "frames": 8,
+   "note": ""
+  },
+  "tongue_xl_3": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    72,
+    84
+   ],
+   "frames": 8,
+   "note": ""
+  },
+  "wall_1": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    36,
+    66
+   ],
+   "frames": 8,
+   "note": ""
+  },
+  "wall_2": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    36,
+    66
+   ],
+   "frames": 8,
+   "note": ""
+  },
+  "wall_3": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    36,
+    66
+   ],
+   "frames": 8,
+   "note": ""
+  }
+ }
+}

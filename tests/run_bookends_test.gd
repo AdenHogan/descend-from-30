@@ -37,6 +37,8 @@ func _ready() -> void:
 	await _test_opener_never_strands_pause()
 	_test_escape_guard_and_summary()
 	await _test_lobby_door_needs_e()
+	await _test_lobby_exit_art()
+	await _test_hallway_decals()
 	await _test_escape_white_card_to_next_run()
 	await _test_escape_art_slot()
 	Engine.time_scale = 1.0
@@ -120,32 +122,44 @@ func _test_blood_text_keys() -> void:
 
 
 func _test_hints_clear_of_doors() -> void:
-	print("[every Floor-30 hint sits in clear wall — never across a door, never at the ceiling]")
+	print("[every Floor-30 hint sits in clear wall — never across a door face or plate, and they're staggered, not one line]")
 	var h = load("res://scenes/hallway.tscn").instantiate()
-	var doors: Array = []
+	# door FACES (the wall above a door's top edge, y < 321, is open: the scrawl may run over the doors)
+	var faces: Array = []
+	var plates: Array = []
 	for n in ["3001", "3002", "3003", "3004", "3005", "Elevator"]:
 		var d = h.get_node(n)
 		var spr: Sprite2D = d if d is Sprite2D else d.get_node("Sprite2D")
 		var sx: float = absf(spr.scale.x) * (1.0 if spr == d else absf(d.scale.x))
 		var half: float = spr.get_rect().size.x * sx * 0.5      # one FRAME (the doors are a strip)
-		doors.append(Vector2(d.position.x - half, d.position.x + half))
+		faces.append(Rect2(d.position.x - half, 321.0, half * 2.0, 84.0))
+		if n != "Elevator":
+			plates.append(Rect2(d.position.x - 50.0, 333.0, 26.0, 18.0))   # its number plate (floor_signs.taken_local)
 	var hints := 0
+	var ys := {}
+	var rots := {}
 	for n in h.get_children():
 		if not n.is_in_group("tutorial_blood"):
 			continue
 		hints += 1
 		var sz: Vector2 = n.block_size()
-		var x0: float = n.position.x - sz.x * 0.5
-		var x1: float = n.position.x + sz.x * 0.5
+		var block := Rect2(n.position.x - sz.x * 0.5, n.position.y, sz.x, sz.y)
 		var hit := ""
-		for i in doors.size():
-			if x1 > doors[i].x and x0 < doors[i].y:
-				hit = str(i)
-		check(hit == "" and x0 >= 227.0 and x1 <= 1123.0,
-			"%s (%d..%d) clears every door and the stairwell" % [n.name, x0, x1])
-		check(n.position.y >= 290.0 and n.position.y + sz.y <= 404.0,
-			"%s sits at door height (%d..%d), not jammed at the ceiling" % [n.name, n.position.y, n.position.y + sz.y])
+		for i in faces.size():
+			if block.intersects(faces[i]):
+				hit = "a door face"
+		for pl in plates:
+			if block.intersects(pl):
+				hit = "a number plate"
+		check(hit == "" and block.position.x >= 215.0 and block.end.x <= 1123.0,
+			"%s (%d..%d, y %d..%d) clears every door face, plate and the stairwell%s" % [n.name, block.position.x, block.end.x, block.position.y, block.end.y, (" — hits " + hit) if hit != "" else ""])
+		check(n.position.y >= 256.0 and n.position.y + sz.y <= 404.0,
+			"%s sits on the wall (%d..%d), under the ceiling line" % [n.name, n.position.y, n.position.y + sz.y])
+		ys[int(n.position.y / 12.0)] = true
+		rots[snappedf(n.rotation, 0.01)] = true
 	check(hints >= 5, "the control hints are all there (%d)" % hints)
+	check(ys.size() >= 4, "the hints sit at varied heights, not one line (%d height bands)" % ys.size())
+	check(rots.size() >= 4, "...and at varied tilts (%d)" % rots.size())
 	# ...and under the wall sconces, never over one (owner round 24: the sconces light the floor)
 	var FL = load("res://scripts/floor_lighting.gd")
 	for n in h.get_children():
@@ -410,3 +424,81 @@ func _test_escape_art_slot() -> void:
 	Transition.survive_art_hold = 3.5
 	Engine.time_scale = 1.0
 
+
+func _test_lobby_exit_art() -> void:
+	print("[the lobby exit is a real entrance: frame + unshaded street + light, and the walk UP into it]")
+	for run in [1, 2, 3]:
+		WorldState.new_game()
+		WorldState.current_floor = 0
+		WorldState.current_run = run
+		var lobby = load("res://scenes/lobby.tscn").instantiate()
+		add_child(lobby)
+		for i in 3:
+			await get_tree().process_frame
+		var fx = lobby.get_node_or_null("LobbyExitFx")
+		check(fx != null and fx.frame_sprite != null and fx.view_sprite != null, "run %d: the entrance is built (frame + street view)" % run)
+		if fx != null and fx.view_sprite != null:
+			check(fx.view_sprite.material is CanvasItemMaterial and fx.view_sprite.material.light_mode == CanvasItemMaterial.LIGHT_MODE_UNSHADED,
+				"run %d: the street is unshaded (bright in the night-dark world)" % run)
+			var meta: Dictionary = fx.meta()
+			var fr: Array = meta["frame"]
+			check(fx.frame_sprite.texture.get_width() == int(fr[0]) and fx.frame_sprite.texture.get_height() == int(fr[1]), "run %d: frame art matches its meta" % run)
+			check(fx.spill != null and fx.beam != null and fx.glare != null, "run %d: light spill, beam and glare" % run)
+			# the door's centre column sits on the trigger's x; the frame's seam lands on the wall foot (world 403)
+			var seam: float = fx.frame_sprite.position.y + float(meta["seam"])
+			check(absf(seam - 403.0) < 0.5 and absf(fx.ORIGIN.x + 64.0 - fx.CENTER_X) < 0.5, "run %d: seam on the wall foot (%.0f), centred on x %.0f" % [run, seam, fx.CENTER_X])
+		check(lobby.get_node_or_null("LobbyExit") == null, "the old flat door slab is gone")
+		lobby.free()
+		await get_tree().process_frame
+	# the walk: lane -> centre -> UP the steps, shrinking (player.walk_up_and_out)
+	WorldState.new_game()
+	WorldState.current_floor = 0
+	var r: Array = await _lobby_with_player()
+	var p = r[2]
+	for z in get_tree().get_nodes_in_group("zombie"):
+		z.queue_free()
+	p.global_position = Vector2(600.0, 386.0)
+	var y0: float = p.global_position.y
+	var done := [false]
+	p.walk_up_and_out(654.0, 27.0, 0.76, func(): done[0] = true)
+	var waited := 0.0
+	while not done[0] and waited < 6.0:
+		await get_tree().process_frame
+		waited += get_process_delta_time()
+	check(done[0], "the walk up into the doorway finishes (%.1fs)" % waited)
+	check(absf(p.global_position.x - 654.0) < 1.0 and absf(p.global_position.y - (y0 - 27.0)) < 1.0, "…standing in the doorway (%s)" % str(p.global_position))
+	check(p.animated_sprite.scale.x < p._plane_base_scale.x * 0.8 and p.escaping, "…smaller with distance, and untouchable")
+
+
+func _test_hallway_decals() -> void:
+	print("[floor 30 is dressed like every floor — and the tutorial's wall text keeps its own space]")
+	for first in [false, true]:
+		WorldState.new_game()
+		WorldState.current_floor = 30
+		WorldState.tutorial_completed = not first
+		WorldState.is_first_run = first
+		WorldState.master_seed = 424242
+		var h = load("res://scenes/hallway.tscn").instantiate()
+		add_child(h)
+		for i in 3:
+			await get_tree().process_frame
+		var wall = h.get_node_or_null("CorridorDecals")
+		var n := 0
+		var hits := 0
+		if wall != null:
+			var origin: Vector2 = load("res://scripts/building_floors.gd").CORRIDOR_ART_POS
+			for ch in wall.get_children():
+				if not (ch is Sprite2D):
+					continue
+				n += 1
+				var rect := Rect2(ch.position + origin, ch.texture.get_size())
+				for hint in h.get_children():
+					if hint.is_in_group("tutorial_blood") and hint.visible:
+						var sz: Vector2 = hint.block_size()
+						if rect.intersects(Rect2(hint.position.x - sz.x * 0.5, hint.position.y, sz.x, sz.y)):
+							hits += 1
+		check(wall != null and n >= 3, "%s: floor 30 carries its dressing + marks (%d decals)" % ["first run" if first else "later runs", n])
+		check(hits == 0, "%s: no decal lands on a blood-text hint (%d)" % ["first run" if first else "later runs", hits])
+		h.free()
+		await get_tree().process_frame
+	WorldState.is_first_run = false

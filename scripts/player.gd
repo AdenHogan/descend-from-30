@@ -1087,6 +1087,37 @@ func walk_out_through(threshold: Vector2, beyond: Vector2, on_done: Callable = C
 		on_done.call()
 
 
+## THE WAY OUT (lobby exit, owner round 29 — "walk up into it, like the balcony"): slide along the lane to the
+## doorway's centre, then UP the steps and into the vestibule — the feet climb `rise` px while the body shrinks with
+## distance (`depth`, the same about-the-feet scale the balcony uses) and brightens as it walks into the light.
+## `on_done` runs when the body is in the doorway (the white card takes over). Untouchable meanwhile.
+func walk_up_and_out(doorway_x: float, rise: float, depth: float, on_done: Callable = Callable()) -> void:
+	if not can_walk_out():
+		if on_done.is_valid():
+			on_done.call()
+		return
+	is_cutscene = true
+	escaping = true
+	_clear_move_target()
+	velocity = Vector2.ZERO
+	_remember_plane_sprite()
+	animated_sprite.flip_h = doorway_x < global_position.x
+	animated_sprite.play("walk")
+	var slide: float = absf(doorway_x - global_position.x) / maxf(1.0, SPEED)
+	var tw = create_tween()
+	if slide > 0.02:
+		tw.tween_property(self, "global_position:x", doorway_x, minf(slide, 0.9))
+	tw.tween_callback(func(): animated_sprite.flip_h = false)
+	var up_time := 1.25
+	tw.tween_property(self, "global_position:y", global_position.y - rise, up_time).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tw.parallel().tween_method(_set_plane_depth, 1.0, depth, up_time)
+	tw.parallel().tween_property(self, "modulate", Color(1.7, 1.7, 1.8, 1.0), up_time).set_delay(up_time * 0.35)
+	await tw.finished
+	animated_sprite.play("idle")
+	if on_done.is_valid():
+		on_done.call()
+
+
 func knock_door(door_global: Vector2, on_done: Callable = Callable()) -> void:
 	# Step up to a door, knock (placeholder pause + SFX later), and — when there's
 	# no answer — step back down to the main plane. Framework for sealed/locked

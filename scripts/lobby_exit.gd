@@ -11,9 +11,14 @@ var _leaving := false          # the exit runs ONCE
 var _player_near := false
 
 const PROMPT := "[E] Leave the building"
+const DOORWAY_X := 654.0        # the entrance's centre column (LobbyExitFx.CENTER_X)
+const WALK_RISE := 27.0         # the feet climb from the lane to the vestibule floor (steps + 16 px of floor)
+const WALK_DEPTH := 0.76        # drawn depth scale in the vestibule (the balcony's uses 0.74)
+const WALK_TIME := 1.6          # the glare's swell (a little longer than the walk itself)
 
 
 func _ready() -> void:
+	add_to_group("lobby_exit")
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
 
@@ -57,9 +62,18 @@ func leave() -> void:
 	# left by the door for a FUTURE game (the stash) — forfeiting its worth. Nothing to leave = braved.
 	var left: String = await _offer_handoff()
 	WorldState.note_door_scrap(left == "")   # the rest of the kit is scrapped at the door for Valour
-	# Step up into the doorway, like any door.
-	if player != null and is_instance_valid(player) and player.has_method("approach_door"):
-		await player.approach_door(global_position)
+	# Walk UP into the doorway — across the lane to its centre, up the marble steps, into the vestibule,
+	# shrinking with distance while the light outside swells to meet them (the white card takes over).
+	var fx = get_parent().get_node_or_null("LobbyExitFx") if get_parent() != null else null
+	var surge = null
+	if fx != null and fx.has_method("surge"):
+		surge = fx.surge(WALK_TIME)
+	if player != null and is_instance_valid(player) and player.has_method("walk_up_and_out"):
+		await player.walk_up_and_out(DOORWAY_X, WALK_RISE, WALK_DEPTH)
+	elif player != null and is_instance_valid(player) and player.has_method("approach_door"):
+		await player.approach_door(global_position)   # (an old player without the new walk)
+	if surge != null and surge.is_running():
+		await surge.finished
 	# Reaching the lobby and stepping out ENDS this character's story — a success. They take their
 	# notes and inventory OUT of the building (no corpse; escaping is the selfish outcome — see
 	# docs/THREE_RUN_ARC.md). Same time skip a death triggers.

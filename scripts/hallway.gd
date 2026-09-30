@@ -114,6 +114,7 @@ func _build_world() -> void:
 	load("res://scripts/building_floors.gd").add_corridor_art(self,
 		load("res://scripts/building_floors.gd").corridor_art_named("corridor_hallway", WorldState.current_run))
 	load("res://scripts/building_floors.gd").add_endpoint_signs(self, 30, ["left"], true)
+	_add_floor_decals()
 	_spawn_corpses(30)
 	_spawn_world_drops(30)
 	# A character who fell here (floor 30) leaves a recoverable body for the next one.
@@ -139,6 +140,22 @@ func _build_world() -> void:
 		for hint in get_tree().get_nodes_in_group("tutorial_blood"):
 			if is_ancestor_of(hint):
 				hint.visible = false
+
+
+## Floor 30 dresses like every other floor (owner round 29: the decals are needed outside the tutorial, and
+## the tutorial should look varied too despite being scripted): the same seeded dressing + wall marks. The
+## FIRST run keeps clear of its blood-text hints (their blocks are reserved) and shows a little more horror.
+func _add_floor_decals() -> void:
+	var CD = load("res://scripts/corridor_decals.gd")
+	var BF = load("res://scripts/building_floors.gd")
+	var origin: Vector2 = BF.CORRIDOR_ART_POS
+	var keep: Array = [Rect2(884, 60, 72, 100)]                      # the lift (local): nothing stands in front of it
+	if WorldState.is_first_run:
+		for hint in get_tree().get_nodes_in_group("tutorial_blood"):
+			if is_ancestor_of(hint) and hint.has_method("block_size"):
+				var sz: Vector2 = hint.block_size()
+				keep.append(Rect2(hint.position.x - sz.x * 0.5 - origin.x - 4.0, hint.position.y - origin.y - 4.0, sz.x + 8.0, sz.y + 22.0))
+	CD.add_to(self, 30, WorldState.current_run, "corridor_hallway", origin, keep, 0.16 if WorldState.is_first_run else 0.0)
 
 
 # Where the backpack lies: on the floor just to the right of 3001's door (x 829 ± 23), where every run

@@ -8,7 +8,6 @@
 [ext_resource type="FontFile" uid="uid://tv2mlsq0xxsg" path="res://assets/fonts/PixelOperator8.ttf" id="9_o2i1r"]
 [ext_resource type="Texture2D" uid="uid://d3neqlrb8e6j" path="res://assets/Lobby_Right.png" id="9_yad6j"]
 [ext_resource type="Script" uid="uid://chpvp4q3y30nf" path="res://scripts/lobby.gd" id="10_m1sns"]
-[ext_resource type="Texture2D" uid="uid://gcweymtdvo6" path="res://assets/Lobby_Exit.png" id="11_m1sns"]
 [ext_resource type="Script" uid="uid://c1g4j83firkrc" path="res://scripts/lobby_exit.gd" id="12_dyhay"]
 [ext_resource type="Texture2D" uid="uid://dv5f2rgbfnewx" path="res://assets/Building_Floor Hallway.png" id="14_ceil"]
 
@@ -488,10 +487,6 @@ theme_override_font_sizes/font_size = 38
 text = "↑"
 horizontal_alignment = 1
 vertical_alignment = 1
-
-[node name="LobbyExit" type="Sprite2D" parent="." unique_id=17503893]
-position = Vector2(654, 359)
-texture = ExtResource("11_m1sns")
 
 [node name="Area2D" type="Area2D" parent="." unique_id=658815295]
 position = Vector2(657, 363)

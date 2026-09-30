@@ -190,8 +190,9 @@ static func _taken_for(base_name: String) -> Array:
 
 
 ## Everything this floor shows at this run: [{name, pos (local), layer "wall"/"door"}], stable.
-static func plan(floor_num: int, run: int, base_name: String) -> Array:
+static func plan(floor_num: int, run: int, base_name: String, extra_taken: Array = [], horror_boost: float = 0.0) -> Array:
 	var taken: Array = _taken_for(base_name)
+	taken.append_array(extra_taken)                           # the caller's own keep-clear rects (the tutorial's wall text, the lift...)
 	taken.append(Rect2(858, 38, 16, 14))                      # the exit sign
 	taken.append_array(load("res://scripts/floor_signs.gd").taken_local())   # stair / floor / lift signs, door plates
 	for d in DOORS:
@@ -243,7 +244,7 @@ static func plan(floor_num: int, run: int, base_name: String) -> Array:
 			p2.x = _fit_in_span(pos.x, span.x, _tex(shown).get_size().x, name)
 		out.append({"name": shown, "pos": p2, "layer": "wall"})
 	# --- horror: HORROR_SLOTS candidates with rising thresholds; the floor + run shows a prefix ---
-	var h := horror_level(floor_num, run)
+	var h := horror_level(floor_num, run) + horror_boost
 	var per_kind := {}
 	var doors_ok := _plain_doors(floor_num)
 	for i in range(HORROR_SLOTS):
@@ -399,7 +400,7 @@ static func _tex(name: String) -> Texture2D:
 
 ## Adds "CorridorDecals" (wall + floor, right above the corridor art — under the doors) and
 ## "CorridorDoorDecals" (on the door faces — right after the Elevator, over the doors).
-static func add_to(root: Node, floor_num: int, run: int, base_name: String, art_pos: Vector2) -> void:
+static func add_to(root: Node, floor_num: int, run: int, base_name: String, art_pos: Vector2, extra_taken: Array = [], horror_boost: float = 0.0) -> void:
 	if root.get_node_or_null("CorridorDecals") != null:
 		return
 	var wall := Node2D.new()
@@ -409,7 +410,7 @@ static func add_to(root: Node, floor_num: int, run: int, base_name: String, art_
 	door.name = "CorridorDoorDecals"
 	door.position = art_pos
 	var floor_rects: Array = []
-	for d in plan(floor_num, run, base_name):
+	for d in plan(floor_num, run, base_name, extra_taken, horror_boost):
 		var s := Sprite2D.new()
 		s.texture = _tex(d["name"])
 		s.centered = false

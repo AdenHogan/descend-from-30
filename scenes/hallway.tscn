@@ -510,36 +510,46 @@ texture = ExtResource("10_52g5x")
 
 [node name="Hint_Move" parent="." groups=["tutorial_blood"] instance=ExtResource("20_blood")]
 z_index = 1
-position = Vector2(924, 318)
+position = Vector2(823, 268)
+rotation = -0.04
 text = "GET OUT OF HERE\n{move} or CLICK"
 font_size = 7
 
 [node name="Hint_Run" parent="." groups=["tutorial_blood"] instance=ExtResource("20_blood")]
 z_index = 1
-position = Vector2(762, 318)
+position = Vector2(702, 284)
+rotation = 0.05
 text = "They'll hear\nyou if you\nRUN [{sprint}]"
 font_size = 6
+arrow = "down"
 
 [node name="Hint_Enter" parent="." groups=["tutorial_blood"] instance=ExtResource("20_blood")]
 z_index = 1
-position = Vector2(633, 318)
+position = Vector2(574, 266)
+rotation = -0.035
 text = "Go inside with\n[{interact}] or CLICK"
 font_size = 6
+arrow = "down"
 
 [node name="Hint_Listen" parent="." groups=["tutorial_blood"] instance=ExtResource("20_blood")]
 z_index = 1
-position = Vector2(507, 314)
+position = Vector2(450, 262)
+rotation = 0.03
 text = "Hold [{listen}] at a\ndoor or the\nstairwell to\nLISTEN"
 font_size = 6
+arrow = "down"
 
 [node name="Hint_Strike" parent="." groups=["tutorial_blood"] instance=ExtResource("20_blood")]
 z_index = 1
-position = Vector2(380, 318)
+position = Vector2(318, 279)
+rotation = -0.03
 text = "STRIKE [{attack}]\nSTANCE [{mode_toggle}]"
 font_size = 6
 
 [node name="Hint_Rest" parent="." groups=["tutorial_blood"] instance=ExtResource("20_blood")]
 z_index = 1
-position = Vector2(261, 318)
+position = Vector2(240, 322)
+rotation = -0.06
 text = "REST [{rest}]\nwhile you\ncan"
 font_size = 6
+smear = true

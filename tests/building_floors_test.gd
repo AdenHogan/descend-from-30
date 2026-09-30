@@ -1529,7 +1529,7 @@ func _test_floor_signs() -> void:
 		var sg = scene.get_node_or_null("FloorSigns")
 		check(sg != null and sg.sides == [ep[2]] and sg.number_plate == ep[3], "floor %d has its FloorSigns (%s, number %s)" % [ep[1], ep[2], str(ep[3])])
 		var art = scene.get_node_or_null("CorridorArt")
-		check(sg != null and art != null and sg.get_index() == art.get_index() + 1, "floor %d: the signs sit right over the art" % ep[1])
+		check(sg != null and art != null and sg.get_index() > art.get_index() and sg.get_index() < scene.get_node("Player").get_index() + 50, "floor %d: the signs sit over the art (decals / the exit fx may lie between)" % ep[1])
 		var tt: Dictionary = sg.stair_targets() if sg != null else {}
 		check(tt.has(ep[2]) and (int(tt[ep[2]][1]) == 29 or int(tt[ep[2]][1]) == 1), "floor %d's %s stairs name where they lead (%s)" % [ep[1], ep[2], str(tt.get(ep[2]))])
 		scene.free()

@@ -60,6 +60,7 @@ func _build_world(as_scenery: bool) -> void:
 	load("res://scripts/building_floors.gd").add_corridor_art(self,
 		load("res://scripts/building_floors.gd").corridor_art_named("corridor_lobby", WorldState.current_run))
 	load("res://scripts/building_floors.gd").add_endpoint_signs(self, 0, ["right"], false)
+	load("res://scripts/lobby_exit_fx.gd").add_to(self)        # the way out: stone entrance, vestibule, steps, the street in glare
 	_spawn_zombies(as_scenery)
 	_spawn_corpses(1)
 	_spawn_world_drops(1)

@@ -43,6 +43,8 @@ func _ready() -> void:
 	await _test_burnt_breach()
 	_test_full_pack_key_drop()
 	await _test_soft_smoke()
+	_test_fire_art()
+	_test_fire_layout()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -983,3 +985,122 @@ func _test_soft_smoke() -> void:
 	check(_kinds_under(bs).get("body", 0) == 1, "a burnt corpse smoulders softly")
 	bs.free()
 	await get_tree().process_frame
+
+
+func _test_fire_art() -> void:
+	# OUR fire (tools/art/fire.py → assets/fire/): every sheet the meta lists exists, is a strip of exactly its frames, is
+	# lit (a hot heart), loops (first != last), sits on its base row, and beds taper to nothing at both ends.
+	print("[fire art: our own strips, never cropped]")
+	var meta: Dictionary = FireArt.meta()
+	var sheets: Dictionary = meta.get("sheets", {})
+	check(sheets.size() >= 30, "the fire meta lists the whole library (%d sheets)" % sheets.size())
+	for prefix in ["bed_front_light", "bed_front_blaze", "bed_back_light", "bed_back_blaze", "tongue_s", "tongue_m", "tongue_l", "tongue_xl", "wall", "edge", "small"]:
+		check(FireArt.variants(prefix).size() == 3, "%s has its 3 variants" % prefix)
+	check(not FireArt.sheet("stair").is_empty(), "the stair fire strip exists")
+	var bad: Array = []
+	for name in sheets:
+		var sh: Dictionary = FireArt.sheet(str(name))
+		if sh.is_empty():
+			bad.append(str(name) + ": missing")
+			continue
+		var img: Image = (sh["tex"] as Texture2D).get_image()
+		var fw: int = sh["fw"]
+		var fh: int = sh["fh"]
+		var frames: int = sh["frames"]
+		if img.get_width() != fw * frames or img.get_height() != fh:
+			bad.append("%s: %dx%d is not %d frames of %dx%d" % [name, img.get_width(), img.get_height(), frames, fw, fh])
+			continue
+		var hot := 0
+		var lit0 := 0
+		var diff := 0
+		var base_lit := 0
+		for y in range(fh):
+			for x in range(fw):
+				var c0: Color = img.get_pixel(x, y)
+				var c7: Color = img.get_pixel((frames - 1) * fw + x, y)
+				if c0.a > 0.5:
+					lit0 += 1
+					if c0.r > 0.95 and c0.g > 0.85:
+						hot += 1
+				if absf(c0.r - c7.r) + absf(c0.g - c7.g) + absf(c0.a - c7.a) > 0.1:
+					diff += 1
+		for x in range(fw):
+			if img.get_pixel(x, fh - 1).a > 0.5 or img.get_pixel(x, fh - 2).a > 0.5:
+				base_lit += 1
+		if lit0 < 20 or (hot < 2 and not str(name).begins_with("bed_back")):   # (the back carpet is deliberately dimmer)
+			bad.append("%s: not a fire (lit %d, hot %d)" % [name, lit0, hot])
+		if diff < 6:
+			bad.append("%s: doesn't animate (first vs last frame differ in %d px)" % [name, diff])
+		if not str(name).begins_with("small") and base_lit < 2:
+			bad.append("%s: nothing on its base row (it would float)" % name)
+	check(bad.is_empty(), "every strip is well-formed, lit, animated and grounded %s" % str(bad.slice(0, 4)))
+	# a bed clump fades out at both ends (so overlapped clumps never leave a cut)
+	for v in FireArt.variants("bed_front_blaze"):
+		var sh2: Dictionary = FireArt.sheet(str(v))
+		var img2: Image = (sh2["tex"] as Texture2D).get_image()
+		var edge_h := 0
+		var mid_h := 0
+		for fr in range(sh2["frames"]):
+			for y in range(sh2["fh"]):
+				if img2.get_pixel(fr * int(sh2["fw"]) + 0, y).a > 0.5:
+					edge_h += 1
+				if img2.get_pixel(fr * int(sh2["fw"]) + int(sh2["fw"]) / 2, y).a > 0.5:
+					mid_h += 1
+		check(edge_h * 4 < mid_h, "%s tapers at its ends (edge column %d lit vs middle %d)" % [v, edge_h, mid_h])
+	# the old purchased fire is gone from the code (nothing still reads it)
+	for path in ["res://scripts/fire_field.gd", "res://scripts/apartment_fire.gd", "res://scripts/enemy_fire.gd", "res://scripts/building_floors.gd", "res://scripts/fire_decal.gd"]:
+		check(not FileAccess.get_file_as_string(path).contains("fire-pixel-art-animation-sprites"), "%s no longer loads the purchased fire" % path.get_file())
+	check(FireArt.material().light_mode == CanvasItemMaterial.LIGHT_MODE_UNSHADED, "flames are unshaded (their own light)")
+
+
+func _test_fire_layout() -> void:
+	# The pure layout of the floor fire: clumps / tongues only over burning cells, never across a doorway or the stair
+	# zone, tongues spaced, nothing once charred.
+	print("[fire layout: clumps, tongues, walls]")
+	WorldState.master_seed = 1337
+	for st in [0, 1]:
+		var ff = _make_field()
+		ff.floor_num = 15
+		ff.stage = st
+		ff.ignite_span(ff.FIRE_MIN_X, ff.FIRE_MAX_X)
+		ff.set_stair_fire(146.0, 26.0, 100.0, 235.0)
+		var label := "blaze" if st == 1 else "light"
+		for layer in ["front", "back"]:
+			var beds: Array = ff.bed_spots(layer)
+			check(beds.size() >= 6, "%s %s carpet: clumps along the burning span (%d)" % [label, layer, beds.size()])
+			var off := 0
+			for b in beds:
+				var x: float = float(b["x"])
+				if ff._near_door(x) or ff._in_stair_keepout(x) or not ff.is_burning_at(x) or FireArt.sheet(str(b["name"])).is_empty():
+					off += 1
+			check(off == 0, "%s %s carpet stays off doorways / the stair zone / unburnt floor, and every name is real" % [label, layer])
+		var tongues: Array = ff.tongue_spots()
+		check(tongues.size() >= 4, "%s: tongues rise from the carpet (%d)" % [label, tongues.size()])
+		var prev := -1.0e9
+		var tight := 0
+		for t in tongues:
+			if float(t["x"]) - prev < 60.0:
+				tight += 1
+			prev = float(t["x"])
+		check(tight == 0, "%s: tongues are spaced (none closer than 60 px)" % label)
+		if st == 1:
+			var big := 0
+			for t in tongues:
+				if str(t["name"]).begins_with("tongue_l") or str(t["name"]).begins_with("tongue_xl"):
+					big += 1
+			check(big >= 1, "a blaze raises big tongues (%d)" % big)
+		else:
+			var any_big := false
+			for t in tongues:
+				if str(t["name"]).begins_with("tongue_l") or str(t["name"]).begins_with("tongue_xl"):
+					any_big = true
+			check(not any_big, "a light outbreak never raises the big ones")
+		ff.extinguish_span(ff.FIRE_MIN_X, ff.FIRE_MAX_X)
+		check(ff.bed_spots("front").is_empty() and ff.tongue_spots().is_empty(), "%s: doused, nothing draws" % label)
+		ff.free()
+	var ch = _make_field()
+	ch.floor_num = 15
+	ch.stage = ch.STAGE_CHARRED
+	ch.char_all()
+	check(ch.bed_spots("front").is_empty() and ch.tongue_spots().is_empty() and ch.wall_fire_spots().is_empty(), "a charred ruin has no live fire")
+	ch.free()

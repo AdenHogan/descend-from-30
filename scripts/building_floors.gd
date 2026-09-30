@@ -965,8 +965,6 @@ func _spawn_door_fire(floor_num: int) -> void:
 	# dead — no flame.
 	if WorldState.fire_intensity(floor_num) == WorldState.FIRE_CHARRED:
 		return
-	var base := "res://assets/fire-pixel-art-animation-sprites/"
-	var flame3 = load(base + "3 Flame/2.png")
 	for apt in [1, 2, 3, 4, 5]:
 		# Use the ACTIVE stage (doused-aware): a burning apartment licks flame around its
 		# door frame, but one the player has put out this run shows none.
@@ -976,23 +974,22 @@ func _spawn_door_fire(floor_num: int) -> void:
 		if door == null:
 			continue
 		var dx: float = door.global_position.x
-		# SMALL flames hugging the base of each door edge, licking a little way UP the
-		# frame — like the frame is catching. NOT tall torch pillars flanking the door
-		# (that looked like a nightclub entrance). Kept low + tight to the frame so the
-		# door stays clearly visible and enterable.
-		_add_door_flame(flame3, 32, dx - 26.0, 30.0, 46.0, 1.3)     # left frame lick (low)
-		_add_door_flame(flame3, 32, dx + 26.0, 30.0, 46.0, 2.6)     # right frame lick (low)
+		# A slim flame climbing each door-frame edge (our `edge_<v>` strips, 60 px tall, native size — the frame is
+		# catching). NOT tall torch pillars flanking the door (that looked like a nightclub entrance); the doorway
+		# itself stays clear so the door is visible and enterable. Variant + phase seeded per door so they differ.
+		var blaze: bool = WorldState.apartment_active_fire_stage(floor_num, apt) == WorldState.FIRE_BLAZE
+		var names: Array = FireArt.variants("edge")
+		if names.is_empty():
+			continue
+		_add_door_flame(str(names[(apt + floor_num) % names.size()]), dx - 25.0, 0.13 * float(apt), false, 1.0 if blaze else 0.85)
+		_add_door_flame(str(names[(apt + floor_num + 1) % names.size()]), dx + 25.0, 0.57 + 0.11 * float(apt), true, 1.0 if blaze else 0.85)
 
 
-func _add_door_flame(tex, frame_px: int, x: float, w: float, h: float, phase: float) -> void:
-	if tex == null:
-		return
+func _add_door_flame(sheet_name: String, x: float, phase: float, flip: bool, _strength: float) -> void:
 	var d = FIRE_DECAL.new()
-	d.tex = tex
-	d.frame_px = frame_px
-	d.draw_w = w
-	d.draw_h = h
+	d.sheet_name = sheet_name
 	d.phase = phase
+	d.flip = flip
 	d.z_as_relative = false
 	d.z_index = 0                                                   # behind the player
 	d.global_position = Vector2(x, DOOR_FIRE_BASE_Y)

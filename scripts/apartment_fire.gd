@@ -17,12 +17,6 @@ const STAGE_LIGHT := 0
 const STAGE_BLAZE := 1
 const STAGE_CHARRED := 2
 
-const TILE_PX := 32
-const BONFIRE_PX := 64
-const FLAME_PX := 32
-const TILE_FRAMES := 6
-const TILE_FPS := 12.0
-
 const LYR_BACK := 0
 const LYR_FRONT := 2
 
@@ -41,9 +35,6 @@ var _spots: Array = []             # [{x, sz}] actively burning patches
 var _scars: Array = []             # [x] doused/charred patches → scorch + smoulder smoke
 var _t: float = 0.0
 
-var _tile_tex: Array = []
-var _flame_tex: Array = []
-var _bonfire_tex: Texture2D = null
 
 
 func _ready() -> void:
@@ -115,15 +106,7 @@ func _update_lights() -> void:
 
 
 func _load_textures() -> void:
-	var base := "res://assets/fire-pixel-art-animation-sprites/"
-	for n in ["1", "2", "3", "4"]:
-		var t = load(base + "2 Fire_tiles/" + n + ".png")
-		if t != null:
-			_tile_tex.append(t)
-		var fl = load(base + "3 Flame/" + n + ".png")
-		if fl != null:
-			_flame_tex.append(fl)
-	_bonfire_tex = load(base + "1 Fire/Idle.png")
+	pass       # our fire art loads lazily through FireArt (scripts/fire_art.gd)
 
 
 func _rng() -> RandomNumberGenerator:
@@ -216,6 +199,7 @@ func _spawn_layers() -> void:
 		lyr.z_as_relative = false
 		lyr.z_index = int(spec[1])
 		lyr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		lyr.material = FireArt.material()
 		add_child(lyr)
 		if int(spec[0]) == LYR_BACK:
 			_back_layer = lyr
@@ -234,51 +218,38 @@ func _hash01(v: float) -> float:
 	return fmod(absf(sin(v * 12.9898) * 43758.5453), 1.0)
 
 
-func _tile_scale() -> float:
-	return 1.8 if stage >= STAGE_BLAZE else 1.3
-
 
 func _draw_beds(canvas: CanvasItem) -> void:
-	# A short fire tile bed (folder 2) at each spot, on the floor, up to ~waist — the
-	# player walks THROUGH it. Sized by the spot + stage.
-	if _tile_tex.is_empty():
+	# A carpet of flame at each spot, on the floor, up to ~waist — the player walks THROUGH it. Two overlapping whole clumps
+	# per spot on a blaze, one on a light fire (our strips, never cropped).
+	var kind := "blaze" if stage >= STAGE_BLAZE else "light"
+	var names: Array = FireArt.variants("bed_front_" + kind)
+	if names.is_empty():
 		return
-	var fr := int(_t * TILE_FPS) % TILE_FRAMES
 	for s in _spots:
 		var cx: float = float(s["x"])
-		var sc: float = _tile_scale() * float(s["sz"])
-		var tex: Texture2D = _tile_tex[int(_hash01(cx * 0.13) * float(_tile_tex.size())) % _tile_tex.size()]
-		var w: float = float(TILE_PX) * sc
-		var target_h: float = (30.0 if stage >= STAGE_BLAZE else 22.0) * float(s["sz"])
-		var src := Rect2(float(fr * TILE_PX), float(TILE_PX) - float(TILE_PX) * 0.6, float(TILE_PX), float(TILE_PX) * 0.6)
-		# ONE bed per spot — spots are already spaced so beds stay distinct (no widening
-		# that would bridge into a neighbour).
-		canvas.draw_texture_rect_region(tex, Rect2(cx - w * 0.5, base_y - target_h - 4.0, w, target_h), src)
+		var offs: Array = [-16.0, 16.0] if stage >= STAGE_BLAZE else [0.0]
+		for k in range(offs.size()):
+			var sd: float = cx * 0.13 + float(k) * 2.7
+			FireArt.draw(canvas, str(names[int(_hash01(sd) * float(names.size())) % names.size()]), _t, _hash01(sd * 3.1), Vector2(cx + float(offs[k]), base_y - 1.0))
 
 
 func _draw_tall_flames(canvas: CanvasItem) -> void:
-	# The rising flame globs behind the player — mid flames (folder 3), and a big bonfire
-	# (folder 1) on the largest BLAZE spots. Small on LIGHT, larger on BLAZE.
+	# The flame rising off each spot behind the player: small / medium on a light fire, medium / large on a blaze
+	# (bigger spots get the bigger sprite).
 	for s in _spots:
 		var cx: float = float(s["x"])
-		var sz: float = float(s["sz"])
 		var sd: float = cx * 0.7
-		if stage >= STAGE_BLAZE and _bonfire_tex != null and _hash01(sd * 3.3) > 0.45:
-			_blit_anim(canvas, _bonfire_tex, BONFIRE_PX, cx, base_y, (0.5 + 0.35 * _hash01(sd)) * sz, int(sd) % 6, sd)
-		elif not _flame_tex.is_empty():
-			var tex: Texture2D = _flame_tex[int(_hash01(sd * 1.7) * float(_flame_tex.size())) % _flame_tex.size()]
-			_blit_anim(canvas, tex, FLAME_PX, cx, base_y, (0.7 + 0.5 * _hash01(sd)) * sz, int(sd) % 6, sd)
+		var size := "s"
+		if stage >= STAGE_BLAZE:
+			size = "l" if float(s["sz"]) > 0.82 or _hash01(sd * 3.3) > 0.6 else "m"
+		else:
+			size = "m" if float(s["sz"]) > 0.78 else "s"
+		var names: Array = FireArt.variants("tongue_" + size)
+		if not names.is_empty():
+			FireArt.draw(canvas, str(names[int(_hash01(sd * 1.7) * float(names.size())) % names.size()]), _t, _hash01(sd * 2.1), Vector2(cx, base_y - 3.0))
 
 
-func _blit_anim(canvas: CanvasItem, tex: Texture2D, px: int, cx: float, by: float, sc: float, col: int, sd: float) -> void:
-	if tex == null:
-		return
-	var fr := (int(_t * TILE_FPS) + col * 2) % TILE_FRAMES
-	var src := Rect2(float(fr * px), 0.0, float(px), float(px))
-	var w := float(px) * sc
-	var h := float(px) * sc
-	var jx := (_hash01(sd * 2.1) - 0.5) * 18.0
-	canvas.draw_texture_rect_region(tex, Rect2(cx + jx - w * 0.5, by - h, w, h), src, Color(1.0, 1.0, 1.0, 1.0))
 
 
 func _draw_char_scars(canvas: CanvasItem) -> void:

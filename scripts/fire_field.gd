@@ -82,7 +82,6 @@ func _ready() -> void:
 	for i in range(cell_count):
 		heat[i] = 0.0
 		fuel[i] = 1.0
-	_load_fire_textures()
 	_spawn_layers()
 	_spawn_fire_lights()
 	add_to_group("fire_field")
@@ -452,34 +451,15 @@ func _sync_smoke() -> void:
 # Flames scale with the stage (small on a LIGHT fire, big on a BLAZE); smoke
 # sinks to head height on a BLAZE. The flicker is cosmetic; the sim is elsewhere.
 
-# Real pixel-fire SPRITES (craftpix "Fire_tiles" — an artist-drawn animated fire
-# tile, seamlessly tileable across the corridor). The tile is 32x32 per frame, 6
-# frames across the sheet; four variants for horizontal variety. "Flame" (also 6x
-# 32x32) gives taller single flames for the big licks on a BLAZE.
-const TILE_PX := 32
-const BONFIRE_PX := 64              # "1 Fire" frame size (big bonfire flame)
-const TILE_FRAMES := 6
-const TILE_FPS := 12.0
+# --- the fire's art (tools/art/fire.py → assets/fire/, scripts/fire_art.gd) --------------------------------------
+# Drawn 1:1 from our own strips. Beds are tapered CLUMPS (each fades to nothing at both ends) laid overlapping along the
+# burning span, so the carpet is continuous yet no sprite is ever cropped or cut by a cell edge; single tongues rise from
+# it; a blaze climbs the walls. Everything is drawn through FireArt (unshaded — a fire is its own light).
 const SMOKE_FRAMES := 6
 const SMOKE_FPS := 8.0
 const CHAR_COL := Color(0.09, 0.08, 0.08)
 const FIRE_LAYER := preload("res://scripts/fire_layer.gd")
-var _tile_tex: Array = []           # Fire_tiles variants (folder 2) — the floor bed
-var _flame_tex: Array = []          # Flame variants (folder 3) — mid single flames
-var _bonfire_tex: Texture2D = null  # 1 Fire/Idle (folder 1) — big tall bonfire
-
-
-func _load_fire_textures() -> void:
-	var base := "res://assets/fire-pixel-art-animation-sprites/"
-	for n in ["1", "2", "3", "4"]:
-		var t = load(base + "2 Fire_tiles/" + n + ".png")
-		if t != null:
-			_tile_tex.append(t)
-		var fl = load(base + "3 Flame/" + n + ".png")
-		if fl != null:
-			_flame_tex.append(fl)
-	_bonfire_tex = load(base + "1 Fire/Idle.png")
-	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST   # crisp pixels, no blur
+const CLUMP_STEP := 34.0            # bed clumps are 64 wide; laid this far apart they overlap into one carpet
 
 
 func _spawn_layers() -> void:
@@ -494,6 +474,7 @@ func _spawn_layers() -> void:
 		lyr.z_as_relative = false
 		lyr.z_index = int(spec[1])
 		lyr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		lyr.material = FireArt.material()
 		add_child(lyr)
 		if int(spec[0]) == LYR_BACK:
 			_back_layer = lyr            # the smoke emitters rise from here, behind the actors
@@ -511,18 +492,6 @@ func _hash01(a: float) -> float:
 	return fmod(absf(sin(a * 12.9898) * 43758.5453), 1.0)
 
 
-func _tile_scale() -> float:
-	# The fire tile is small (32px); scale it up — modest on a LIGHT fire, big on a
-	# run-2+ BLAZE.
-	return 2.7 if stage >= STAGE_BLAZE else 1.6
-
-
-func _variant_for(pool_size: int, salt: float) -> int:
-	# A stable tile/flame variant per floor (so a floor's fire looks consistent, and
-	# different floors differ).
-	if pool_size <= 0:
-		return 0
-	return int(_hash01(float(floor_num) + salt) * float(pool_size)) % pool_size
 
 
 # Patchy fire: real fire clumps — some here, some there — never a solid unbroken
@@ -619,84 +588,74 @@ func _is_glob_cell(cx: float) -> bool:
 	return _cell_kind(cx) == 2 and not _near_door(cx)
 
 
-func _draw_ground_fire(canvas: CanvasItem, base_y: float, alpha: float, y_off: float, bottom_frac: float = 1.0, sc_override: float = -1.0, patch_salt: float = -1.0, avoid_doors: bool = false, patch_carve: float = 0.0, bed_side: int = -1) -> void:
-	# Blit the animated fire TILE across the whole burning span, its bottom on the
-	# floor line. The tile tiles seamlessly (uniform frame across columns; the art
-	# tiles cleanly with itself, and the big flames on top break any repetition).
-	# `bottom_frac` < 1 draws only the LOW part of the tile — used for the FRONT layer
-	# so only the hottest flames lap the player's feet instead of burying their legs.
-	# `sc_override` > 0 forces a scale (the smaller BACK bed at the wall seam uses it).
-	if _tile_tex.is_empty():
-		return
-	var tex: Texture2D = _tile_tex[_variant_for(_tile_tex.size(), 3.1)]
-	var sc := _tile_scale() if sc_override <= 0.0 else sc_override
-	var tw := float(TILE_PX) * sc
-	var bf := clampf(bottom_frac, 0.05, 1.0)
-	var src_h := float(TILE_PX) * bf
-	var src_y := float(TILE_PX) - src_h                          # crop to the bottom band
-	var th := src_h * sc
-	var fr := int(_t * TILE_FPS) % TILE_FRAMES
-	var src := Rect2(float(fr * TILE_PX), src_y, float(TILE_PX), src_h)
-	var x := FIRE_MIN_X
-	while x <= FIRE_MAX_X:
-		var cx := x + tw * 0.5
-		var pass_gate := (patch_salt < 0.0 or _patch_on(x, patch_salt, patch_carve))
-		if bed_side >= 0:
-			pass_gate = (_cell_kind(cx) == bed_side)   # complementary back(1)/front(0)/gap(2) split
-		if is_burning_at(cx) and pass_gate and not (avoid_doors and _near_door(cx)) and not _in_stair_keepout(cx):
-			var dst := Rect2(x, base_y - th + y_off, tw + 1.0, th)
-			_draw_clipped(canvas, tex, dst, src, Color(1.0, 1.0, 1.0, alpha))
-		x += tw
 
 
-func _blit_anim(canvas: CanvasItem, tex: Texture2D, px: int, cx: float, base_y: float, sc: float, col: int, sd: float, alpha: float) -> void:
-	# Blit one frame of an animated flame sheet (px-square frames, 6 across), centred
-	# on cx with its base on base_y. Per-flame frame offset so they dance out of sync.
-	var fr := (int(_t * TILE_FPS) + col * 2) % TILE_FRAMES
-	var src := Rect2(float(fr * px), 0.0, float(px), float(px))
-	var w := float(px) * sc
-	var h := float(px) * sc
-	var jx := (_hash01(sd * 2.1) - 0.5) * 4.0    # tiny wobble only — keep flames clean/still, no drift into neighbours
-	var dst := Rect2(cx + jx - w * 0.5, base_y - h, w, h)
-	_draw_clipped(canvas, tex, dst, src, Color(1.0, 1.0, 1.0, alpha))
+# --- the floor fire, drawn from our own strips (FireArt) ------------------------------------------------------------
+# Pure layout first (so the tests can read what would draw), then the draw calls. Each entry: {x, name, phase}.
+func bed_spots(layer: String) -> Array:
+	# BED CLUMPS along the burning span ("front": in front of the player's feet, "back": along the wall seam behind
+	# them). Clumps are 64 wide and taper to nothing at both ends, laid CLUMP_STEP apart so they overlap into one carpet —
+	# a clump is only ever drawn whole (never cropped by a cell edge). Not across a doorway or in the stair zone.
+	var out: Array = []
+	if stage >= STAGE_CHARRED:
+		return out
+	var kind: String = "blaze" if stage >= STAGE_BLAZE else "light"
+	var names: Array = FireArt.variants("bed_%s_%s" % [layer, kind])
+	if names.is_empty():
+		return out
+	var salt: float = 1.7 if layer == "front" else 5.3
+	var x := FIRE_MIN_X + 10.0
+	var idx := 0
+	while x <= FIRE_MAX_X - 10.0:
+		var sd := float(idx) * 3.17 + float(floor_num) * 0.83 + salt
+		var cx := x + (_hash01(sd) - 0.5) * CLUMP_STEP * 0.4
+		idx += 1
+		x += CLUMP_STEP
+		if not is_burning_at(cx) or _near_door(cx) or _in_stair_keepout(cx):
+			continue
+		# the back seam carpet is patchier (depth: not a solid line along the wall)
+		if layer == "back" and _hash01(sd * 2.3) < 0.28:
+			continue
+		out.append({"x": cx, "name": names[int(_hash01(sd * 1.9) * float(names.size())) % names.size()], "phase": _hash01(sd * 4.3)})
+	return out
+
+
+func tongue_spots() -> Array:
+	# Single flames rising from the bed, spaced so each reads as its own tongue (a minimum gap a little over the widest
+	# sprite drawn); bigger ones on a blaze. [{x, name, phase}]
+	var out: Array = []
+	if stage >= STAGE_CHARRED:
+		return out
+	var big := stage >= STAGE_BLAZE
+	var min_gap := 70.0 if big else 62.0
+	var last_x := -1.0e9
+	var x := FIRE_MIN_X + 16.0
+	while x <= FIRE_MAX_X - 16.0:
+		if is_burning_at(x) and not _near_door(x) and not _in_stair_keepout(x) and (x - last_x) >= min_gap:
+			var sd := float(floori(x / 21.0)) + float(floor_num) * 0.7
+			var roll := _hash01(sd * 1.9)
+			var size := "s"
+			if big:
+				size = "xl" if roll > 0.86 else ("l" if roll > 0.5 else "m")
+			else:
+				size = "m" if roll > 0.72 else "s"
+			var names: Array = FireArt.variants("tongue_" + size)
+			if not names.is_empty():
+				out.append({"x": x, "name": names[int(_hash01(sd * 1.3) * float(names.size())) % names.size()], "phase": _hash01(sd * 2.9)})
+				last_x = x
+		x += 21.0
+	return out
 
 
 func _draw_tall_flames(canvas: CanvasItem) -> void:
-	# TALLER flames rising at intervals, drawn BEHIND the player (depth). VARIED SIZES
-	# repeated along the whole fire — small + medium "3 Flame" (folder 3) globs with an
-	# occasional big "1 Fire" bonfire (folder 1) — so the hazard reads as clumps of
-	# fire of different sizes, not one lone glob by the door. Bigger/denser on a BLAZE;
-	# on a run-1 LIGHT the big bonfire is rare and everything is smaller.
-	if _flame_tex.is_empty():
-		return
-	var big := stage >= STAGE_BLAZE
-	# Scan finely, but only PLACE a flame when it clears MIN_GAP from the last one — so
-	# globs read as DISTINCT tongues rising off the bed, never piling into one blob. The
-	# gap is >= the widest glob below, so no overlap on any seed. The continuous ground
-	# bed carries the fire's fullness; these are spaced accents.
-	var scan := 21.0
-	# Tall flames rise ONLY in GAP cells (their own plane — never over a tile bed), one per
-	# gap clump, spaced by MIN_GAP so no two globs touch either. Big on a BLAZE, smaller on a
-	# LIGHT outbreak. The continuous tile beds carry the fire's abundance; these are the tall,
-	# clean accents. MIN_GAP is >= the widest glob so nothing overlaps, on any seed.
-	var min_gap := 96.0 if big else 116.0
-	var col := 0
-	var last_x := -1.0e9
-	var x := FIRE_MIN_X + 18.0
-	while x <= FIRE_MAX_X:
-		if is_burning_at(x) and _is_glob_cell(x) and not _in_stair_keepout(x) and (x - last_x) >= min_gap:
-			var sd := float(floori(x / min_gap)) + float(floor_num) * 0.7
-			var roll := _hash01(sd * 1.9)              # size class for this glob
-			var tex3: Texture2D = _flame_tex[int(_hash01(sd * 1.3) * float(_flame_tex.size())) % _flame_tex.size()]
-			if roll > (0.7 if big else 0.9) and _bonfire_tex != null:
-				_blit_anim(canvas, _bonfire_tex, BONFIRE_PX, x, FIRE_BASE_Y, 1.35 if big else 0.95, col, sd, 1.0)  # BIG bonfire (<= ~86px)
-			elif roll > 0.45:
-				_blit_anim(canvas, tex3, TILE_PX, x, FIRE_BASE_Y, 2.3 if big else 1.5, col, sd, 1.0)              # MEDIUM tall flame (<= ~74px)
-			else:
-				_blit_anim(canvas, tex3, TILE_PX, x, FIRE_BASE_Y, 1.7 if big else 1.1, col, sd, 1.0)              # SMALL
-			last_x = x
-		x += scan
-		col += 1
+	# every tongue stands on a low bed of coals (a back carpet clump under it), so no flame ever ends in a flat, cut-off base
+	var kind: String = "blaze" if stage >= STAGE_BLAZE else "light"
+	var beds: Array = FireArt.variants("bed_back_" + kind)
+	for sp in tongue_spots():
+		var x: float = float(sp["x"])
+		if not beds.is_empty():
+			FireArt.draw(canvas, str(beds[int(_hash01(x * 0.11) * float(beds.size())) % beds.size()]), _t, float(sp["phase"]) + 0.5, Vector2(x, FIRE_BASE_Y - 1.0), 0.95)
+		FireArt.draw(canvas, str(sp["name"]), _t, float(sp["phase"]), Vector2(x, FIRE_BASE_Y - 3.0))
 
 
 # --- fire on the WALLS (owner follow-up: "flames on walls/ceiling/doors — corridor flames only today"; the
@@ -709,9 +668,12 @@ const WALL_FIRE_GAP := 104.0
 
 
 func wall_fire_spots() -> Array:
-	# [{x, scale, sd}] — pure (no drawing), so the test can read what would draw.
+	# [{x, name, phase}] — pure (no drawing), so the test can read what would draw.
 	var out: Array = []
-	if stage < STAGE_BLAZE or _flame_tex.is_empty():
+	if stage < STAGE_BLAZE:
+		return out
+	var names: Array = FireArt.variants("wall")
+	if names.is_empty():
 		return out
 	var last_w := -1.0e9
 	var x := FIRE_MIN_X + 30.0
@@ -719,18 +681,15 @@ func wall_fire_spots() -> Array:
 		if is_burning_at(x) and not _near_door(x) and not _in_stair_keepout(x):
 			var sd := float(floori(x / 21.0)) + float(floor_num) * 1.3
 			if (x - last_w) >= WALL_FIRE_GAP and _hash01(sd * 2.7) > 0.30 and _cell_kind(x) != 2:
-				out.append({"x": x, "scale": 2.4 + _hash01(sd * 3.3) * 1.2, "sd": sd})
+				out.append({"x": x, "name": names[int(_hash01(sd * 3.3) * float(names.size())) % names.size()], "phase": _hash01(sd * 1.7)})
 				last_w = x
 		x += 21.0
 	return out
 
 
 func _draw_wall_fire(canvas: CanvasItem) -> void:
-	var col := 0
-	for spot in wall_fire_spots():
-		col += 1
-		var tex: Texture2D = _flame_tex[int(_hash01(float(spot["sd"]) * 1.3) * float(_flame_tex.size())) % _flame_tex.size()]
-		_blit_anim(canvas, tex, TILE_PX, float(spot["x"]), BACK_SEAM_Y - 14.0, float(spot["scale"]), col, float(spot["sd"]), 0.95)
+	for sp in wall_fire_spots():
+		FireArt.draw(canvas, str(sp["name"]), _t, float(sp["phase"]), Vector2(float(sp["x"]), BACK_SEAM_Y - 6.0), 0.95)
 
 
 func _char_scar(canvas: CanvasItem, i: int, cx: float) -> void:
@@ -768,7 +727,8 @@ func _draw_back(canvas: CanvasItem) -> void:
 	# avoid_doors=true keeps the depth bed OUT of doorways (beside a door is fine, not
 	# straight across it); the extra patch_carve breaks up its line into clumps.
 	_draw_scorch(canvas)            # burnt-out floor first, under everything
-	_draw_ground_fire(canvas, BACK_SEAM_Y, 0.9, 0.0, 0.6, _tile_scale() * 0.58, -1.0, true, 0.0, 1)   # DEPTH bed (side 1), avoids doors
+	for sp in bed_spots("back"):                     # the carpet along the wall seam, behind the player (depth)
+		FireArt.draw(canvas, str(sp["name"]), _t, float(sp["phase"]), Vector2(float(sp["x"]), BACK_SEAM_Y), 0.92)
 	_draw_stair_fire(canvas)        # the THIRD plane — fire on the down-stairwell top step
 	_draw_tall_flames(canvas)
 	_draw_wall_fire(canvas)         # a blaze climbs the walls
@@ -814,34 +774,25 @@ func stair_fire_lit() -> bool:
 
 
 func _draw_stair_fire(canvas: CanvasItem) -> void:
-	# Fire INSIDE the stairwell box: base on STAIR_BASE_Y (the red horizontal line), flames
-	# rising UP into the shaft, strictly within [cx-half, cx+half] on x (the red verticals) —
-	# never crossing beyond them. The corridor fire is kept out of the whole stair zone.
-	if _stair_fire_x < 0.0 or _tile_tex.is_empty() or not stair_fire_lit():
+	# Fire INSIDE the stairwell box: base on STAIR_BASE_Y (the red horizontal line), flames rising UP into the shaft,
+	# strictly within [cx-half, cx+half] on x (the red verticals). The corridor fire is kept out of the whole stair zone.
+	# Drawn whole from our strips (a bed clump + a tongue or two), never cropped: the clump is narrower than the shaft.
+	if _stair_fire_x < 0.0 or not stair_fire_lit():
 		return
 	var l: float = maxf(_stair_fire_x - _stair_half, BORDER_L)   # never past the blue borders
 	var r: float = minf(_stair_fire_x + _stair_half, BORDER_R)
-	var w: float = r - l
-	if w <= 0.0:
+	if r - l <= 0.0:
 		return
-	var big := stage >= STAGE_BLAZE
-	var fr := int(_t * TILE_FPS) % TILE_FRAMES
-	# a bed along the base line, stretched to the shaft width
-	var tex: Texture2D = _tile_tex[_variant_for(_tile_tex.size(), 4.7)]
-	var bed_h := 15.0
-	var src := Rect2(float(fr * TILE_PX), float(TILE_PX) * 0.5, float(TILE_PX), float(TILE_PX) * 0.5)
-	canvas.draw_texture_rect_region(tex, Rect2(l, STAIR_BASE_Y - bed_h, w, bed_h), src, Color(1.0, 1.0, 1.0, 0.97))
-	# flame tongues rising off the base into the shaft, spread across and clipped to [l, r]
-	if not _flame_tex.is_empty():
-		var fh := 42.0 if big else 32.0
-		var fw := fh * 0.62
-		var f_src := Rect2(float(fr * TILE_PX), 0.0, float(TILE_PX), float(TILE_PX))
-		var n := 3
-		for k in range(n):
-			var t: float = float(k) / float(n - 1)
-			var cx: float = clampf(lerpf(l + fw * 0.5, r - fw * 0.5, t), l + fw * 0.5, r - fw * 0.5)
-			var hk: float = fh * (0.75 + 0.25 * _hash01(cx * 0.7 + float(floor_num)))
-			canvas.draw_texture_rect_region(_flame_tex[k % _flame_tex.size()], Rect2(cx - fw * 0.5, STAIR_BASE_Y - hk, fw, hk), f_src, Color(1.0, 1.0, 1.0, 1.0))
+	var cx := (l + r) * 0.5
+	FireArt.draw(canvas, "stair", _t, _hash01(float(floor_num) * 1.3), Vector2(cx, STAIR_BASE_Y))
+	var size := "m" if stage >= STAGE_BLAZE else "s"
+	var names: Array = FireArt.variants("tongue_" + size)
+	if not names.is_empty():
+		var fw: float = FireArt.frame_size(str(names[0])).x
+		var span: float = maxf(0.0, (r - l) - fw)
+		for k in range(2):
+			var tx: float = l + fw * 0.5 + span * (0.25 + 0.5 * float(k))
+			FireArt.draw(canvas, str(names[(k + floor_num) % names.size()]), _t, _hash01(float(k) * 3.1 + float(floor_num)), Vector2(tx, STAIR_BASE_Y - 2.0))
 
 
 func has_smoulder() -> bool:
@@ -853,61 +804,12 @@ func has_smoulder() -> bool:
 	return false
 
 
-func _draw_scatter_bits(canvas: CanvasItem) -> void:
-	# Pepper small RESIZED fragments of fire around the outbreak — bonfire bits
-	# (folder 1) and tile chunks (folder 2) — to break up the strip and make the
-	# breakout look scattered/organic. They sit ON THE FLOOR (a touch lower than the
-	# main bed) and IN FRONT of the player (z2), so the player walks BEHIND them — NOT
-	# floating up on the wall. Seeded, so they're stable per floor.
-	if _tile_tex.is_empty() and _bonfire_tex == null:
-		return
-	var span0 := FIRE_MAX_X
-	var span1 := FIRE_MIN_X
-	for i in range(cell_count):
-		if state_of(i) == BURNING:
-			span0 = minf(span0, cell_x(i))
-			span1 = maxf(span1, cell_x(i))
-	if span1 < span0:
-		return
-	# Walk the burning span in fixed SLOTS and drop at most one small bit per slot (with a
-	# little in-slot jitter), so the fragments are SPACED — density scales with the fire's
-	# width and they never clump on top of each other, on any seed or fire size.
-	var slot := 128.0 if stage >= STAGE_BLAZE else 145.0   # spaced front bits — accents, not a second fire
-	var col := 0
-	var x := span0
-	while x <= span1 + 12.0:
-		var sd := float(col) * 7.31 + float(floor_num) * 1.9
-		var bx := x + (_hash01(sd * 1.1) - 0.5) * slot * 0.5   # jitter within the slot (< slot/2)
-		col += 1
-		x += slot
-		# ONLY over an actually-burning cell (a bit vanishes the moment its cell is out) and
-		# not across a door / the stair keep-out. Globs may sit over a tile bed — that's fine.
-		if not is_burning_at(bx) or _near_door(bx) or _in_stair_keepout(bx):
-			continue
-		# On the floor, a little LOWER than the main bed (nearer the camera), never up
-		# the wall — a small spread of extra flames the player walks behind.
-		var y := FIRE_BASE_Y - 6.0 + 6.0 * _hash01(sd * 2.7)   # lifted a fraction off the UI (still below the player)
-		if _bonfire_tex != null and _hash01(sd * 3.3) > 0.5:
-			_blit_anim(canvas, _bonfire_tex, BONFIRE_PX, bx, y, 0.38 + 0.30 * _hash01(sd * 4.1), col, sd, 0.9)
-		else:
-			var tex: Texture2D = _tile_tex[int(_hash01(sd * 5.3) * float(_tile_tex.size())) % _tile_tex.size()]
-			_blit_anim(canvas, tex, TILE_PX, bx, y, 0.7 + 0.5 * _hash01(sd * 6.1), col, sd, 0.9)
-
 
 func _draw_front(canvas: CanvasItem) -> void:
-	# IN FRONT of the actors (z2): the floor fire bed, drawn ONCE, up to about waist
-	# height, so the player is engulfed to the legs and walks THROUGH it (fire lower
-	# than the player reads in front). Torso/head stay above it. A fixed pixel height
-	# (not a tile fraction) keeps the engulf consistent across stage scales. The
-	# scattered floor globs also go here (in front, on the floor — player walks behind).
-	var sc := _tile_scale()
-	var target_h := 34.0 if stage >= STAGE_BLAZE else 26.0    # feet-to-waist, not to the neck
-	var bf := clampf(target_h / (float(TILE_PX) * sc), 0.06, 1.0)
-	_draw_ground_fire(canvas, FIRE_BASE_Y, 1.0, -5.0, bf, -1.0, -1.0, true, 0.0, 0)   # FRONT bed (side 0), complementary to the depth bed, also avoids doors
-	# NO scatter floor-globs: they sat ON the front bed (plane overlap). The tall flames in
-	# the gap cells are the only globs, so nothing overlaps the tile beds.
-	# NO foreground smoke here either: it drew IN FRONT of the fire; all smoke is on the BACK
-	# layer, behind the front bed.
+	# IN FRONT of the actors (z2): the floor carpet of flame, so the player stands IN it (engulfed to the legs, walks
+	# THROUGH it) — the clump height (18 px light / 33 blaze) is feet-to-waist, never the neck. Whole clumps, never cropped.
+	for sp in bed_spots("front"):
+		FireArt.draw(canvas, str(sp["name"]), _t, float(sp["phase"]), Vector2(float(sp["x"]), FIRE_BASE_Y - 1.0))
 
 
 func _draw_smoke(_canvas: CanvasItem) -> void:
