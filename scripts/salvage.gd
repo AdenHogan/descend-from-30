@@ -15,7 +15,7 @@ extends RefCounted
 
 const BASE := {
 	# Junk (common) — cheap, but finally worth picking up.
-	"023": 3,   # Broken Glass
+	"023": 3,   # Broken Bottle
 	"024": 3,   # Empty Bottle
 	"025": 2,   # Old Magazine
 	"026": 2,   # Takeaway Boxes

@@ -265,7 +265,7 @@ separate day/night versions unless we ask.
 007 First Aid Kit · 008 Clothes · 009 Torn Clothes · 010 Painkillers · 011 Ice Pack ·
 012 Golf Club · 013 Cricket Bat · 014 Baseball Bat · 015 Flashlight · 016 Bullets ·
 017 Aluminium Baseball Bat · 018 Rope · 019 Toolbox · 020 Fuse · 021 Battery ·
-022 Apartment Key · 023 Broken Glass · 024 Empty Bottle · 025 Old Magazine ·
+022 Apartment Key · 023 Broken Bottle · 024 Empty Bottle · 025 Old Magazine ·
 026 Takeaway Boxes · 027 Dead Plant · 028 Broken Remote · 029 Pile of Paperwork ·
 030 Old Shoes · 031 Empty Wallet · 032 Broken Umbrella · 033 Bank Notes ·
 034 Screwdriver · 035 Crowbar · 036 Fire Extinguisher

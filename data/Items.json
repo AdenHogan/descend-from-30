@@ -177,8 +177,8 @@
       "PROPERTY_WEIGHT_SIZE": null
     },
     "023": {
-      "ITEM_NAME": "Broken Glass",
-      "ITEM_DESCRIPTION": "Useless junk. Sharp enough to cut yourself on, not much else.",
+      "ITEM_NAME": "Broken Bottle",
+      "ITEM_DESCRIPTION": "Useless junk. The jagged base of a smashed bottle — sharp enough to cut yourself on, not much else.",
       "VALUE_PROPERTY": "is_junk",
       "PROPERTY_DURABILITY": "single use",
       "PROPERTY_SPAWN_RARITY": 4,
@@ -186,9 +186,9 @@
     },
     "024": {
       "ITEM_NAME": "Empty Bottle",
-      "ITEM_DESCRIPTION": "Useless junk. Could make noise if thrown, but then there would be glass everywhere!",
-      "VALUE_PROPERTY": "is_junk",
-      "PROPERTY_DURABILITY": "single use",
+      "ITEM_DESCRIPTION": "Not much use as it is, but thrown it smashes on the first thing it hits — loud enough to draw the dead to the noise. There will be glass everywhere.",
+      "VALUE_PROPERTY": "is_junk, is_throwable, is_bottle",
+      "PROPERTY_DURABILITY": "single use, throwable object",
       "PROPERTY_SPAWN_RARITY": 4,
       "PROPERTY_WEIGHT_SIZE": null
     },
@@ -474,7 +474,7 @@
       "living_room": 1,
       "dining_room": 1
     },
-    "Broken Glass": {
+    "Broken Bottle": {
       "bedroom": 2,
       "kitchen": 3,
       "bathroom": 2,

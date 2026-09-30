@@ -92,6 +92,7 @@ func _load_data() -> void:
 			"can_force_lock": properties.has("can_force_lock"),
 			"is_health_item": properties.has("is_health_item"),
 			"is_throwable": properties.has("is_throwable"),
+			"is_bottle": properties.has("is_bottle"),
 			"is_ammo": properties.has("is_ammo"),
 			"can_repair": properties.has("can_repair"),
 			"is_speed_boost": properties.has("is_speed_boost"),

@@ -1,6 +1,9 @@
 extends RigidBody2D
 
-# A thrown can of food (item 005) — a scavenge-mode distraction. Real physics:
+# A thrown can of food (item 005) — a scavenge-mode distraction. The same body is the thrown EMPTY BOTTLE
+# (item 024, scenes/thrown_bottle.tscn, `fragile = true`): a bottle doesn't bounce and roll — it SMASHES on the
+# first thing it touches (a wall, the floor, an enemy in flight): a smash sound, a spray of glass shards, and a
+# louder noise than a can's landing. Real physics:
 # it arcs, spins, and BOUNCES off the world (walls + floor, collision layer 1),
 # rolling to a stop and thudding on each impact so the player clearly hears it
 # land somewhere. First landing emits a loud noise + a distraction that
@@ -34,6 +37,10 @@ const DESPAWN_AFTER_LAND = 6.0
 # Classic "about to disappear" tell: the can blinks for the last FLASH_WINDOW
 # seconds, faster as it runs out, then winks out.
 const FLASH_WINDOW = 1.5
+# A smashing bottle is louder than a can's thud; its body is gone at once, the node lingers only long enough
+# for the smash to finish playing.
+const SHATTER_NOISE_RADIUS = 540.0
+const SHATTER_LINGER = 2.0
 
 const THUD_STREAMS = [
 	preload("res://assets/audio/impacts/impactWood_heavy_000.ogg"),
@@ -41,6 +48,16 @@ const THUD_STREAMS = [
 	preload("res://assets/audio/impacts/impactWood_heavy_002.ogg"),
 ]
 
+const SMASH_STREAMS = [
+	preload("res://assets/audio/impacts/glass_smash_0.wav"),
+	preload("res://assets/audio/impacts/glass_smash_1.wav"),
+	preload("res://assets/audio/impacts/glass_smash_2.wav"),
+]
+const SHARDS = preload("res://scripts/glass_shards.gd")
+
+@export var fragile: bool = false     # true = a bottle: smashes on its first impact
+var shattered: bool = false
+var smash_player: AudioStreamPlayer2D = null
 var has_landed: bool = false
 var thud_timer: float = 0.0
 var despawn_timer: float = -1.0
@@ -56,6 +73,11 @@ func _ready() -> void:
 	thud_player = AudioStreamPlayer2D.new()
 	thud_player.max_distance = 700.0
 	add_child(thud_player)
+	if fragile:
+		smash_player = AudioStreamPlayer2D.new()
+		smash_player.max_distance = 900.0
+		smash_player.volume_db = 2.0
+		add_child(smash_player)
 
 
 func launch(dir: float, from: Vector2) -> void:
@@ -81,7 +103,7 @@ func _physics_process(delta: float) -> void:
 		despawn_timer -= delta
 		if despawn_timer <= 0.0:
 			queue_free()
-		elif despawn_timer <= FLASH_WINDOW:
+		elif despawn_timer <= FLASH_WINDOW and not fragile:
 			# Blink on/off, the interval shrinking (0.22s -> 0.07s) as it runs
 			# out — flash…flash…flash-flash-flash, then gone.
 			var interval = lerpf(0.07, 0.22, clampf(despawn_timer / FLASH_WINDOW, 0.0, 1.0))
@@ -101,6 +123,12 @@ func _on_body_entered(body: Node) -> void:
 			var dmg = mini(HIT_DAMAGE, maxi(0, body.current_hp - 1))
 			if dmg > 0:
 				body.receive_damage(dmg, "thrown")
+		if fragile:
+			_shatter()          # a bottle breaks on whatever it hits, enemies included
+		return
+	# A bottle breaks on ANY world impact — no bounce, no roll.
+	if fragile:
+		_shatter()
 		return
 	# Every real world impact above a speed threshold thuds; the first is the
 	# landing that pulls the horde.
@@ -117,8 +145,35 @@ func _on_body_entered(body: Node) -> void:
 		_land()
 
 
+func _shatter() -> void:
+	# Smash: the body is gone (hidden, frozen, no collision — it can never block or be shoved), a spray of
+	# shards lies where it broke, the smash plays, and the loud noise + distraction go out like a landing.
+	if shattered:
+		return
+	shattered = true
+	visible = false
+	set_deferred("freeze", true)
+	for c in get_children():
+		if c is CollisionShape2D:
+			c.set_deferred("disabled", true)
+	smash_player.stream = SMASH_STREAMS.pick_random()
+	smash_player.pitch_scale = randf_range(0.92, 1.08)
+	smash_player.play()
+	var holder: Node = get_parent()
+	if holder != null:
+		var shards = SHARDS.new()
+		holder.add_child(shards)
+		shards.global_position = global_position
+		shards.z_index = z_index
+		shards.burst(signf(linear_velocity.x) if absf(linear_velocity.x) > 1.0 else 1.0)
+	if not has_landed:
+		has_landed = true
+		_land()
+	despawn_timer = SHATTER_LINGER
+
+
 func _land() -> void:
 	# The distraction holds for the can's whole life (until it despawns), so
 	# zombies stay fixated on it instead of reaggroing the moment they arrive.
-	WorldState.emit_noise(global_position, LAND_NOISE_RADIUS, 3.0)
+	WorldState.emit_noise(global_position, SHATTER_NOISE_RADIUS if fragile else LAND_NOISE_RADIUS, 3.0)
 	WorldState.emit_distraction(global_position, DISTRACTION_RADIUS, DESPAWN_AFTER_LAND)

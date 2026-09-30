@@ -35,8 +35,8 @@
 | 020 | Fuse | is_tool | single use | 1.0 | Sometimes, a blown fuse is the difference between life and death. Fortunately all building circuit breakers use the same fuses! |
 | 021 | Battery | is_tool | single use, holds charge state for power | 2.0 | Who would have thought that the humble battery could be so useful for powering up lights, and elevators. For a time… |
 | 022 | Apartment Key | is_key | single use | — | There's a lot of trusting neighbours in this building. |
-| 023 | Broken Glass | is_junk | — | — | Useless junk. Sharp enough to cut yourself on, not much else. |
-| 024 | Empty Bottle | is_junk | — | — | Useless junk. Could make noise if thrown, but then there would be glass everywhere! |
+| 023 | Broken Bottle | is_junk | — | — | Useless junk. The jagged base of a smashed bottle — sharp enough to cut yourself on, not much else. |
+| 024 | Empty Bottle | is_junk, is_throwable, is_bottle | — | — | Not much use as it is, but thrown it smashes on the first thing it hits — loud enough to draw the dead to the noise. There will be glass everywhere. |
 | 025 | Old Magazine | is_junk | — | — | Useless junk. The crossword is half done. 6 down is Giraffe.. Why did they write Albania?!?!?! |
 | 026 | Takeaway Boxes | is_junk | — | — | Useless junk. Whatever was in here, it's long gone. |
 | 027 | Dead Plant | is_junk | — | — | Useless junk. Nobody was watering this before the apocalypse either. |
@@ -74,7 +74,7 @@ Spawn weights per room module (0 = never spawns there):
 | 020 | Fuse | 0 | 0 | 0 | 2 | 1 | 0 |
 | 021 | Battery | 2 | 1 | 1 | 3 | 1 | 1 |
 | 022 | Apartment Key | 0 | 0 | 0 | 0 | 0 | 0 |
-| 023 | Broken Glass | 2 | 3 | 2 | 1 | 2 | 2 |
+| 023 | Broken Bottle | 2 | 3 | 2 | 1 | 2 | 2 |
 | 024 | Empty Bottle | 1 | 3 | 1 | 1 | 2 | 3 |
 | 025 | Old Magazine | 3 | 0 | 2 | 3 | 3 | 1 |
 | 026 | Takeaway Boxes | 1 | 3 | 0 | 1 | 2 | 3 |

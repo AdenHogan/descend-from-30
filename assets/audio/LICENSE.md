@@ -17,3 +17,6 @@
   room ambience (a soft TV hiss; ten seconds of a lo-fi jazz record whose needle
   catches, scratches and jumps back) made for this project
   (`tools/gen_room_audio.py`). **CC0.**
+- `impacts/glass_smash_*.wav` — procedurally generated glass smashes for thrown bottles (a crack, a
+  bright noise burst and a cloud of decaying tinkles; `tools/gen_glass_audio.py`). **CC0.** Replace with
+  a recorded smash later.

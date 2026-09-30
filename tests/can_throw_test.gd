@@ -27,6 +27,10 @@ func _ready() -> void:
 	_test_hit_damages_not_kills()
 	_test_cans_stack()
 	await _test_physics_collision()
+	_test_bottle_item()
+	await _test_bottle_shatters_on_floor()
+	await _test_bottle_shatters_on_enemy()
+	await _test_player_throws_bottle()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -264,3 +268,135 @@ func _test_physics_collision() -> void:
 	check(can.global_position.y <= 400.0, "can rests ABOVE the floor, not through it (y=%.0f)" % can.global_position.y)
 	can.queue_free()
 	floor_body.queue_free()
+
+
+func _test_bottle_item() -> void:
+	print("[bottle item]")
+	WorldState.new_game()
+	var bottle: Dictionary = ItemData.get_item("024")
+	check(bottle.get("is_throwable", false) and bottle.get("is_bottle", false), "the Empty Bottle (024) is a throwable, fragile item")
+	check(ItemData.get_item("023").get("name", "") == "Broken Bottle" and not ItemData.get_item("023").get("is_throwable", false), "023 is the Broken Bottle — junk, NOT throwable")
+	check(ItemData.get_item_id_by_name("Broken Bottle") == "023", "spawn pools find the renamed item by name")
+	check(not ItemData.get_item("005").get("is_bottle", false), "a can is not a bottle")
+	WorldState.inventory.clear()
+	check(WorldState.add_to_inventory("024") and WorldState.add_to_inventory("024"), "two bottles taken")
+	check(WorldState.inventory.size() == 1 and WorldState.inventory[0].count == 2, "bottles stack like cans (one slot, x2)")
+	var bot = load("res://scenes/thrown_bottle.tscn").instantiate()
+	add_child(bot)
+	check(bot.fragile and bot.collision_layer == 128 and (bot.collision_mask & 1) != 0, "the thrown bottle is fragile, on the can's layer, and hits the world")
+	bot.queue_free()
+
+
+func _test_bottle_shatters_on_floor() -> void:
+	print("[bottle smashes on the floor]")
+	WorldState.new_game()
+	var floor_body = StaticBody2D.new()
+	floor_body.position = Vector2(0, 420)
+	var cs = CollisionShape2D.new()
+	var rect = RectangleShape2D.new()
+	rect.size = Vector2(4000, 60)
+	cs.shape = rect
+	floor_body.add_child(cs)
+	add_child(floor_body)
+	var z = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
+	z.global_position = Vector2(900, 388)
+	add_child(z)
+	var bot = load("res://scenes/thrown_bottle.tscn").instantiate()
+	add_child(bot)
+	bot.launch(1.0, Vector2(0, 300))
+	check(not bot.shattered, "in the air it is whole")
+	for i in range(72):
+		await get_tree().physics_frame
+		if bot.shattered:
+			break
+	check(bot.shattered, "it smashed when it hit the floor (no bounce, no roll)")
+	check(not bot.visible, "the bottle itself is gone")
+	check(bot.smash_player != null and bot.smash_player.playing and bot.smash_player.stream in bot.SMASH_STREAMS, "the smash sound is playing")
+	check(bot.has_landed and z.is_distracted, "the smash counts as the landing: it distracts a nearby zombie")
+	await get_tree().physics_frame
+	var disabled := false
+	for c in bot.get_children():
+		if c is CollisionShape2D:
+			disabled = c.disabled
+	check(disabled and bot.freeze, "its body can never block or be shoved afterwards (collision off, frozen)")
+	var shards: Node = null
+	for c in get_children():
+		if c.get_script() == bot.SHARDS:
+			shards = c
+	check(shards != null and shards.shards.size() == bot.SHARDS.COUNT, "a spray of %d glass shards was thrown" % bot.SHARDS.COUNT)
+	for i in range(120):
+		await get_tree().physics_frame
+		await get_tree().process_frame
+	check(shards != null and shards.all_rested, "the shards fall and come to rest")
+	var on_floor := true
+	for s in shards.shards:
+		if s["p"].y > shards.floor_y + 0.01:
+			on_floor = false
+	check(on_floor and shards.floor_y > 0.0 and shards.floor_y < 240.0, "every shard lies on the floor (found %.0f px below the impact), none sank through" % shards.floor_y)
+	check(shards.get_child_count() == 0, "the shards are pure visuals — no collision nodes")
+	shards.queue_free()
+	if is_instance_valid(bot):
+		bot.queue_free()
+	z.queue_free()
+	floor_body.queue_free()
+
+
+func _test_bottle_shatters_on_enemy() -> void:
+	print("[bottle smashes on an enemy]")
+	WorldState.new_game()
+	var z = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
+	z.global_position = Vector2(0, 300)
+	add_child(z)
+	var hp_before: int = z.current_hp
+	var bot = load("res://scenes/thrown_bottle.tscn").instantiate()
+	add_child(bot)
+	bot.global_position = Vector2(0, 300)
+	bot._on_body_entered(z)
+	check(bot.shattered, "hitting an enemy in flight smashes it")
+	check(z.current_hp >= hp_before - 1 and z.current_hp >= 1, "it only knocks an enemy, never kills (hp %d → %d)" % [hp_before, z.current_hp])
+	var can = load("res://scenes/thrown_can.tscn").instantiate()
+	add_child(can)
+	can.global_position = Vector2(0, 300)
+	can._on_body_entered(z)
+	check(not can.shattered and can.smash_player == null, "a can never shatters")
+	for c in get_children():
+		if c.get_script() == bot.SHARDS:
+			c.queue_free()
+	bot.queue_free()
+	can.queue_free()
+	z.queue_free()
+
+
+func _test_player_throws_bottle() -> void:
+	print("[the player throws a bottle]")
+	WorldState.new_game()
+	WorldState.inventory.clear()
+	WorldState.is_scavenge_mode = true
+	WorldState.add_to_inventory("024")
+	WorldState.add_to_inventory("024")
+	var player = load("res://scenes/player.tscn").instantiate()
+	add_child(player)
+	await get_tree().process_frame
+	player.global_position = Vector2(0, 386)
+	player.use_item(0)
+	var thrown: Node = null
+	for c in get_tree().current_scene.get_children():
+		if c is RigidBody2D and c.get("fragile") == true:
+			thrown = c
+	check(thrown != null, "using a bottle throws a BOTTLE (fragile), not a can")
+	check(WorldState.inventory.size() == 1 and WorldState.inventory[0].count == 1, "one bottle spent from the stack, one kept")
+	if thrown != null:
+		thrown.queue_free()
+	WorldState.inventory.clear()
+	WorldState.add_to_inventory("005")
+	player.attack_cooldown_timer = 0.0
+	player.is_attacking = false
+	player.use_item(0)
+	var can: Node = null
+	for c in get_tree().current_scene.get_children():
+		if c is RigidBody2D and c.get("fragile") == false:
+			can = c
+	check(can != null, "using a can still throws a can")
+	if can != null:
+		can.queue_free()
+	player.queue_free()

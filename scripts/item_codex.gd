@@ -87,6 +87,8 @@ static func wear_text(d: Dictionary) -> String:
 		return "One use per spray, and only when something is burning."
 	if d.get("is_crowbar", false):
 		return "Spent prying one blocked stairwell (or a locked cabinet) open."
+	if d.get("is_bottle", false):
+		return "Thrown away when used: it shatters on the first thing it hits — a loud smash that pulls the dead to the noise."
 	if d.get("is_throwable", false):
 		return "Thrown away when used: the can lands loudly and pulls the dead to the noise."
 	if d.get("is_fuse", false):

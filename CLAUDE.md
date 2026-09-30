@@ -1802,7 +1802,7 @@ means no rendering — UI layout and art still need an in-editor look.
 - ITEM ICONS, round 27b ("the proportions on the gun still look bad… a space gun… the broken glass looks like an iceberg… the shoes
   have no depth… rope… gel pack… the tee looks rotten… make the sword a katana"): gun 004 now dark steel + black polymer (no more
   silver-and-black "space gun"); sword 003 a KATANA (slim curved blade with a hamon, round tsuba, diamond-wrapped handle — drawn with
-  `curved_band`); broken glass 023 the smashed lower half of a green bottle (one slanting jagged break); old shoes 030 a worn leather shoe
+  `curved_band`); broken glass 023 (now the BROKEN BOTTLE) the smashed lower half of a green bottle (one slanting jagged break); old shoes 030 a worn leather shoe
   built from panels so it has form; bandages 006 a gauze roll standing on end (spiral top, red-cross label, loose tail); rope 018 a coil of
   stacked twisted loops; ice pack 011 a gel cold pack (blue quilted lobes, sealed edge, snowflake label); torn clothes 009 a faded
   grey-blue tee with deep folds and a fringed hem. Only those eight PNGs + the sheets changed.
@@ -1814,6 +1814,18 @@ means no rendering — UI layout and art still need an in-editor look.
   faded-red canvas high-top (white toe cap, sole + stripe, ankle patch, laced throat, padded collar, worn hole). Rope: three twisted
   tube loops lit by their own normals + a whipped free end. Tee: blue-grey, height-field folds, frayed rips, ribbed neckband. Only
   those five PNGs + the sheets changed.
+- THROWN BOTTLES (owner round 27: "keep it for one of the junk items… if we have standard bottles too, loop them into the
+  throw mechanic like cans… a smash sound when they hit something and shatter"): **023 is now the BROKEN BOTTLE** (junk; the
+  smashed-bottle-base icon — renamed from Broken Glass, pool keys in `Items.json` renamed too) and **024 Empty Bottle is
+  `is_junk, is_throwable, is_bottle`**: it stacks (x3) and throws like a can (`player._throw_can` picks
+  `scenes/thrown_bottle.tscn` by `is_bottle`) but it is FRAGILE — `thrown_can.gd` `fragile = true`: it doesn't bounce or roll, it
+  SMASHES on the first thing it touches (a wall, the floor, an enemy in flight — which still takes the can's non-lethal 1 damage).
+  `_shatter()`: body hidden + frozen + collision off (can never block or be shoved), one of three `glass_smash_*.wav`
+  (`tools/gen_glass_audio.py`, CC0, generated) on a positional player, a burst of `glass_shards.gd` (16 pure-visual slivers that
+  fall to a floor found by a down-ray, skitter once, lie until they blink out after 6 s), and the loud noise + distraction of a
+  landing — a bit LOUDER than a can's (`SHATTER_NOISE_RADIUS` 540 vs 460). Bottles are still junk for salvage (3 scrap) and selling.
+  Locked by `can_throw_test` (`_test_bottle_item`, `_test_bottle_shatters_on_floor`, `_test_bottle_shatters_on_enemy`,
+  `_test_player_throws_bottle`).
 - EVERY-FLOOR FIXTURES (owner round 25c, "cleaning art for immersion and visual clarity"; `tools/art/fixtures.py`,
   preview `docs/art_reference/fixtures.png`): at true size the lift was a flat grey slab in a black frame, the
   wall extinguisher a red block and the EXIT sign an unlabelled green box. Now: `assets/Elevator.png` is

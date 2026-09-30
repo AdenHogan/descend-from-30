@@ -1584,7 +1584,9 @@ func _throw_can(slot_index: int) -> void:
 	melee_player.pitch_scale = 1.2
 	melee_player.play()
 	var dir = -1.0 if animated_sprite.flip_h else 1.0
-	var can = preload("res://scenes/thrown_can.tscn").instantiate()
+	var inst_thrown = WorldState.inventory[slot_index]
+	var is_bottle: bool = inst_thrown.get_data().get("is_bottle", false)
+	var can = (preload("res://scenes/thrown_bottle.tscn") if is_bottle else preload("res://scenes/thrown_can.tscn")).instantiate()
 	get_tree().current_scene.add_child(can)
 	can.launch(dir, global_position + Vector2(dir * 20.0, -10.0))
 	# Spend one from the stack; keep the slot (and selection) if more remain.
@@ -1595,7 +1597,7 @@ func _throw_can(slot_index: int) -> void:
 		WorldState.remove_from_inventory(slot_index)
 		HUD.selected_slot = -1
 	HUD.refresh_inventory()
-	HUD.show_feedback("Can thrown — that'll draw them.")
+	HUD.show_feedback("Bottle thrown — listen for the smash." if is_bottle else "Can thrown — that'll draw them.")
 
 
 func _do_attack_action(from_mouse: bool) -> void:
