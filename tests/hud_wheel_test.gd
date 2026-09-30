@@ -97,7 +97,9 @@ func _test_identity_and_stamina() -> void:
 	check(HUD.mode_label.text in ["SCAVENGE", "COMBAT"], "…as plain words (%s), no brackets" % HUD.mode_label.text)
 	check(sb.position.y >= nr.end.y - 2.0 and sb.position.y - nr.end.y < 12.0 and sb.size.y <= 6.0, "the stamina bar is a thin horizontal line right UNDER the name row")
 	check(sb.position.x <= nr.position.x + 1.0 and sb.end.x >= mode_r.end.x - 4.0, "…spanning the name AND the mode, so it is their underline (%s)" % str(sb))
-	check(HUD.equipped_label.global_position.y >= sb.end.y and HUD.equipped_detail.global_position.y >= sb.end.y, "the in-hand line sits under the underline")
+	var eb: Rect2 = Rect2(HUD.equip_box.global_position, HUD.equip_box.size)
+	check(eb.position.x >= sb.end.x and eb.end.y <= HUD.SCREEN_H and eb.size.x > 56.0,
+		"the in-hand BOX sits to the right of the name / mode / stamina block, bigger than a hotbar slot (%s)" % str(eb))
 	check(not HUD.color_rect.visible, "the opaque bottom bar is GONE")
 	check(not HUD.hotbar_visible and not HUD.hbox.visible and HUD.hotbar_rect().size == Vector2.ZERO,
 		"and so is the hotbar (redundant with the wheels) — hidden by default")
@@ -192,7 +194,7 @@ func _test_cluster() -> void:
 	check(HUD.portrait.mouse_filter == Control.MOUSE_FILTER_STOP, "the portrait is still the button")
 	# nothing new may swallow a world click (click-to-move)
 	var stoppers: Array = []
-	for n in [HUD.name_label, HUD.floor_label, HUD.wallet_label, HUD.scrap_label, HUD.equipped_label, HUD.equipped_detail,
+	for n in [HUD.name_label, HUD.floor_label, HUD.wallet_label, HUD.scrap_label, HUD.equip_box,
 			HUD.wheel_hint, HUD.stamina_bar, HUD.quick_wheel, HUD.wallet_icon, HUD.scrap_icon]:
 		if n.mouse_filter == Control.MOUSE_FILTER_STOP:
 			stoppers.append(n.name)
@@ -225,9 +227,43 @@ func _test_cluster() -> void:
 	HUD.refresh_inventory()
 	HUD.selected_slot = -1
 	HUD._update_equipped_chip()
-	check(HUD.equipped_label.text == "EMPTY-HANDED", "nothing selected reads empty-handed")
+	var eq = HUD.equip_box
+	check(not eq.has_item and eq.ammo_text == "" and eq.fraction < 0.0, "nothing selected = the bare box")
 	HUD.select_slot(0)
-	check(HUD.equipped_label.text == "HAMMER" and HUD.equipped_detail.text.contains("uses"), "the selected item's name + condition (%s / %s)" % [HUD.equipped_label.text, HUD.equipped_detail.text])
+	check(eq.has_item and eq.icon != null, "the selected item's ICON is in the box")
+	check(eq.fraction > 0.99 and not eq.broken and eq.ammo_text == "", "a fresh hammer: a full outline and NO numbers")
+	WorldState.inventory[0].current_durability = int(WorldState.inventory[0].get_max_durability() / 2)
+	HUD._update_equipped_chip()
+	check(absf(eq.fraction - 0.5) < 0.15, "half worn: the outline is about half (%.2f)" % eq.fraction)
+	check(eq.ammo_text == "", "…and still no numbers")
+	WorldState.inventory[0].current_durability = 0
+	WorldState.inventory[0].is_depleted = true
+	HUD._update_equipped_chip()
+	check(eq.broken and eq.fraction == 0.0, "worn out = broken: the outline is empty")
+	# the outline is a real closed loop, and partial() takes a true fraction of it
+	for st in eq.STYLES:
+		eq.set_style(st)
+		var loop: PackedVector2Array = eq.outline_points()
+		var full := 0.0
+		for i in range(loop.size() - 1):
+			full += loop[i].distance_to(loop[i + 1])
+		var part: PackedVector2Array = eq.partial(loop, 0.5)
+		var half := 0.0
+		for i in range(part.size() - 1):
+			half += part[i].distance_to(part[i + 1])
+		check(loop.size() > 4 and loop[0].distance_to(loop[loop.size() - 1]) < 0.01 and absf(half / full - 0.5) < 0.02, "%s outline: closed, half is half (%.2f)" % [st, half / full])
+	eq.set_style("rounded")
+	HUD.equip_box.clear_item()
+	# a GUN carries its rounds — the only number the box ever shows
+	WorldState.inventory.clear()
+	_give("004")
+	HUD.refresh_inventory()
+	HUD.selected_slot = -1
+	HUD.select_slot(0)
+	check(eq.ammo_text.contains("/"), "a gun shows its rounds (%s)" % eq.ammo_text)
+	WorldState.inventory.clear()
+	_give("002")
+	HUD.refresh_inventory()
 	HUD.select_slot(0)
 	check(HUD.wheel_hint.text.contains("Tab"), "the wheel hint names the bound key (%s)" % HUD.wheel_hint.text)
 	check(InputMap.has_action("item_wheel"), "item_wheel is a real input action")

@@ -76,6 +76,7 @@ func new_game() -> void:
 	# (intro_overlay), so the reveal below is invisible — it just hands black to black instead
 	# of the menu hard-cutting away. (The cold open waits while Transition is busy.)
 	await Transition.cover(0.45)
+	WorldState.packless_rule = true          # every real game starts with pockets only (docs/BACKPACK.md)
 	WorldState.new_game()
 	HUD.show_hud()
 	go_to_scene("hallway")

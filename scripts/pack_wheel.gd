@@ -69,6 +69,9 @@ func toggle() -> bool:
 		return true
 	if phase != "":
 		return false                    # already standing up
+	if not WorldState.has_backpack:
+		HUD.show_feedback("You don't have a pack.")
+		return false
 	if blocked_reason() != "":
 		return false
 	return bool(p.begin_pack())

@@ -98,6 +98,8 @@ static func ui_block_reason(tree: SceneTree) -> String:
 		return "hud hidden"
 	if tree.paused:
 		return "paused"
+	if not WorldState.has_backpack:
+		return "no backpack"            # pockets only: no ring, no wheel (docs/BACKPACK.md)
 	var p = tree.get_first_node_in_group("player")
 	if p == null or not is_instance_valid(p):
 		return "no player"

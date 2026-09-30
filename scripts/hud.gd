@@ -97,7 +97,7 @@ const CURRENCY_X = SCREEN_W - CLUSTER_MARGIN - 124.0   # top-right: notes + scra
 const CURRENCY_Y = 12.0
 const CURRENCY_ROW = 34.0
 const PACK_BTN_W = 64.0
-const PACK_BTN_H = 78.0
+const PACK_BTN_H = 96.0
 const INK := Color(0.075, 0.07, 0.085, 1.0)
 const PANEL_EDGE := Color(0.29, 0.275, 0.32, 1.0)
 const AMBER := Color(0.89, 0.647, 0.247, 1.0)
@@ -107,8 +107,7 @@ const HEALTH_HINTS := ["Steady", "Walking it off", "Hurting", "Bleeding", "Barel
 var name_label: Label = null
 var wallet_icon: TextureRect = null
 var scrap_icon: TextureRect = null
-var equipped_label: Label = null
-var equipped_detail: Label = null
+var equip_box: Control = null            # the in-hand item box right of the name row (hud_equip_box.gd)
 var wheel_hint: Label = null
 var quick_wheel: Control = null
 var pack_wheel: Control = null           # the backpack ring (pack_wheel.gd) — real time, whole bag
@@ -211,9 +210,9 @@ func _create_cluster() -> void:
 	var tx: float = IDENT_TEXT_X
 	name_label = _hud_label("", 16, Color(0.93, 0.89, 0.82), Vector2(tx, IDENT_ROW_Y), Vector2(240, 22))
 
-	# --- under the stamina bar: the mode toggle + what's in hand; bottom-right: the wheel's key hint ---
-	equipped_label = _hud_label("", 13, Color(0.93, 0.89, 0.82), Vector2(IDENT_TEXT_X, IDENT_ROW_Y + 34.0), Vector2(150, 20))
-	equipped_detail = _hud_label("", 12, TEXT_DIM, Vector2(IDENT_TEXT_X, IDENT_ROW_Y + 35.0), Vector2(200, 18), HORIZONTAL_ALIGNMENT_RIGHT)
+	# --- right of the name row: the item in hand, as a BOX (icon + a durability outline; owner round 27) ---
+	equip_box = preload("res://scripts/hud_equip_box.gd").new()
+	$Control.add_child(equip_box)
 	var pack_left: float = SCREEN_W - CLUSTER_MARGIN - PACK_BTN_W
 	wheel_hint = _hud_label("", 12, TEXT_DIM, Vector2(pack_left - 264.0, SCREEN_H - 24.0), Vector2(250, 18), HORIZONTAL_ALIGNMENT_RIGHT)
 
@@ -975,9 +974,9 @@ func _layout_identity_row() -> void:
 	mode_label.size = Vector2(mw + 4.0, 24.0)
 	var w: float = maxf(nw + 12.0 + mw, 150.0)
 	stamina_bar.size = Vector2(w, STAMINA_BAR_H)
-	if equipped_detail != null:
-		equipped_detail.size.x = w
-		equipped_detail.position.x = IDENT_TEXT_X
+	if equip_box != null:
+		# the in-hand box sits to the RIGHT of the whole name / mode / stamina block, level with it
+		equip_box.position = Vector2(IDENT_TEXT_X + w + 18.0, SCREEN_H - equip_box.size.y - 12.0)
 
 
 func _create_mode_tip() -> void:
@@ -1212,28 +1211,34 @@ func _update_slot_highlights() -> void:
 	_update_equipped_chip()
 
 
-## The strip's "in hand" line: the selected item's name + its condition (or a nudge when empty-handed).
+## The in-hand BOX: the selected item's icon inside an outline that is its durability (draining as it wears,
+## empty = broken). Numbers appear ONLY as a gun's rounds (owner round 27) — no "10/10 uses" text any more.
 func _update_equipped_chip() -> void:
-	if equipped_label == null:
+	if equip_box == null:
 		return
 	var inst = WorldState.get_instance_at(selected_slot) if selected_slot >= 0 and selected_slot < WorldState.inventory.size() else null
 	if inst == null:
-		equipped_label.text = "EMPTY-HANDED"
-		equipped_detail.text = ""
+		equip_box.clear_item()
 		return
 	var d: Dictionary = inst.get_data()
-	equipped_label.text = inst.get_display_name().to_upper()
 	var max_d: int = inst.get_max_durability()
-	if inst.is_depleted and max_d > 0:
-		equipped_detail.text = "BROKEN"
-	elif d.get("is_weapon", false) and _is_gun_data(d):
-		equipped_detail.text = "%d / %d rounds" % [inst.mag_count, inst.get_mag_cap()]
-	elif max_d > 1:
-		equipped_detail.text = "%d / %d uses" % [inst.current_durability, max_d]
-	elif inst.count > 1:
-		equipped_detail.text = "x%d" % inst.count
-	else:
-		equipped_detail.text = ""
+	var wears: bool = max_d > 1 and not d.get("single_use", false)
+	var broken: bool = inst.is_depleted and max_d > 0
+	var frac: float = -1.0
+	if broken:
+		frac = 0.0
+	elif wears:
+		frac = clampf(float(inst.current_durability) / float(max_d), 0.0, 1.0)
+	var ammo := ""
+	if d.get("is_weapon", false) and _is_gun_data(d) and not broken:
+		ammo = "%d/%d" % [inst.mag_count, inst.get_mag_cap()]
+	equip_box.set_item(ItemData.get_texture(inst.item_id), frac, broken, ammo)
+
+
+## The in-hand box's shape: "square", "rounded" (default) or "circle".
+func set_equip_box_style(style: String) -> void:
+	if equip_box != null:
+		equip_box.set_style(style)
 
 
 func wheel_key_name() -> String:
@@ -1249,36 +1254,61 @@ const IDENT_FADE_ALPHA := 0.3
 func _fade_identity_over_player(delta: float) -> void:
 	if portrait == null:
 		return
-	var block := Rect2(Vector2(0.0, IDENT_Y - 8.0), Vector2(IDENT_TEXT_X + 250.0, SCREEN_H - IDENT_Y + 8.0))
+	var block_w: float = IDENT_TEXT_X + 250.0
+	if equip_box != null:
+		block_w = maxf(block_w, equip_box.position.x + equip_box.size.x + 8.0)
+	var block := Rect2(Vector2(0.0, IDENT_Y - 8.0), Vector2(block_w, SCREEN_H - IDENT_Y + 8.0))
 	var under := false
 	var pl = get_tree().get_first_node_in_group("player")
 	if pl != null and is_instance_valid(pl) and pl is Node2D:
 		var sp: Vector2 = get_viewport().get_canvas_transform() * (pl as Node2D).global_position
 		under = block.grow(20.0).has_point(sp)
 	var a: float = IDENT_FADE_ALPHA if under else 1.0
-	for n in [portrait, name_label, stamina_bar, mode_label, equipped_label, equipped_detail]:
+	for n in [portrait, name_label, stamina_bar, mode_label, equip_box]:
 		if n != null and is_instance_valid(n):
 			n.modulate.a = lerpf(n.modulate.a, a, clampf(delta * 8.0, 0.0, 1.0))
 
 
-## The six-slot hotbar is OPT-IN and hidden by default (owner: "redundant if we have the wheel").
-## Everything that exists to serve it (drag / drop, tooltips, click to equip) only runs while it's shown.
+## The six-slot hotbar is OPT-IN and hidden by default (owner: "redundant if we have the wheel"). Everything
+## that exists to serve it (drag / drop, tooltips, click to equip) only runs while it's shown. (A pack-less
+## character does NOT get a pocket bar either — owner round 27: the two empty boxes at the top were noise; the
+## in-hand box shows what they hold, number keys 1-2 switch.)
 var hotbar_visible: bool = false
+var _hotbar_w: float = HOTBAR_W
 
 
 func set_hotbar_visible(on: bool) -> void:
 	hotbar_visible = on
-	hbox.visible = on
-	if not on:
+	_apply_hotbar()
+
+
+func _apply_hotbar() -> void:
+	hbox.visible = hotbar_visible
+	for s in slots:
+		s.visible = true
+	_hotbar_w = HOTBAR_W
+	hbox.position = Vector2((SCREEN_W - _hotbar_w) / 2.0, HOTBAR_Y)
+	if not hotbar_visible:
 		item_tip.visible = false
 		context_menu.visible = false
 
 
-## The hotbar's screen rectangle (the six slots), padded a little — empty while it is hidden.
+## Follow WorldState.has_backpack: the pack button + wheel hint exist only once the character has a
+## backpack.
+func update_backpack_state() -> void:
+	var has: bool = WorldState.has_backpack
+	if pack_button != null and is_instance_valid(pack_button):
+		pack_button.visible = has
+	if wheel_hint != null:
+		wheel_hint.visible = has
+	_apply_hotbar()
+
+
+## The hotbar's screen rectangle (the slots showing), padded a little — empty while it is hidden.
 func hotbar_rect() -> Rect2:
 	if not hotbar_visible:
 		return Rect2()
-	return Rect2(hbox.position - Vector2(6, 6), Vector2(HOTBAR_W + 12.0, SLOT_SIZE + 12.0))
+	return Rect2(hbox.position - Vector2(6, 6), Vector2(_hotbar_w + 12.0, SLOT_SIZE + 12.0))
 
 
 ## Where a dragged loot item is dropped to take it: the backpack button (or the hotbar, when shown).
@@ -1510,6 +1540,8 @@ func refresh_inventory() -> void:
 	update_wallet()
 	update_scrap()
 	refresh_boon_badge()
+	update_backpack_state()
+	WorldState.sync_overload()
 	for i in range(slots.size()):
 		var dur = slot_durability_bars[i]
 		if i < WorldState.inventory.size():

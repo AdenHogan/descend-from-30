@@ -117,6 +117,7 @@ func _build_world() -> void:
 	_spawn_world_drops(30)
 	# A character who fell here (floor 30) leaves a recoverable body for the next one.
 	WorldState.spawn_player_corpse_into(self, 30, scene_file_path, "")
+	_spawn_backpack()
 	# The wall sconces, like every other floor — otherwise the top floor sits dark at
 	# night beside a lit floor 29 and the pan between them shows the seam.
 	if get_node_or_null("FloorLighting") == null:
@@ -137,6 +138,25 @@ func _build_world() -> void:
 		for hint in get_tree().get_nodes_in_group("tutorial_blood"):
 			if is_ancestor_of(hint):
 				hint.visible = false
+
+
+# Where the backpack lies: on the floor just to the right of 3001's door (x 829 ± 23), where every run
+# starts. The FIRST run's lies in 3003 instead (the tutorial teaches the inventory there).
+const BACKPACK_X := 884.0
+const BACKPACK_FEET_Y := 419.0
+
+
+func _spawn_backpack() -> void:
+	# Packless rule: a new character has only pockets until they take this. Not laid out once they have
+	# one, nor on the tutorial run (3003's), and never twice (the pan backdrop + the live floor share it).
+	if not WorldState.packless_rule or WorldState.has_backpack or WorldState.is_first_run:
+		return
+	if get_node_or_null("BackpackPickup") != null:
+		return
+	var pack = load("res://scripts/backpack_pickup.gd").new()
+	pack.name = "BackpackPickup"
+	add_child(pack)
+	pack.global_position = Vector2(BACKPACK_X, BACKPACK_FEET_Y)
 
 
 func _frame_camera(player: Node) -> void:

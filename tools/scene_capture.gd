@@ -32,6 +32,7 @@ extends Node
 #   perm:<id>        keep a perk permanently (the profile's collection)
 #   finish           score the session (WorldState.finish_session) → Valour + offer
 #   hud:<method>     call a no-arg HUD method (e.g. open_boon_offer)
+#   eqstyle:<square|rounded|circle>  shape of the in-hand box;  wear:<0..1>  wear the selected item to that fraction
 #   kill             kill the player now (player._die → the real Game.game_over flow)
 #   hp:<n>           set health
 #   ws:<prop>:<val>  set any WorldState field (e.g. ws:current_apartment_id:2003, ws:dev_hazard_mode:3)
@@ -162,6 +163,15 @@ func _do(step: String) -> void:
 			if HUD.has_method(p[1]):
 				HUD.call(p[1])
 			await _frames(1)
+		"eqstyle":
+			HUD.set_equip_box_style(p[1])       # square | rounded | circle
+			await _frames(1)
+		"wear":
+			# wear the selected item to <frac> of its durability (for the in-hand box's outline)
+			var wi = WorldState.get_instance_at(HUD.selected_slot)
+			if wi != null:
+				wi.current_durability = int(round(wi.get_max_durability() * float(p[1])))
+				HUD.refresh_inventory()
 		"scrap":
 			WorldState.scrap_unlocked = true
 			WorldState.scrap = int(p[1])

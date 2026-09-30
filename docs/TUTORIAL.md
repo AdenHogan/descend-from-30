@@ -106,6 +106,10 @@ pauses at each teaching beat (`get_tree().paused` + a dialogue prompt).
 9. **On death the zombie yields the key to 3002.** Now holding a low-durability
    club, dialogue prompts the player to **heal**: «I'm hurt — patch myself up
    with those bandages.» (introduces the heal/consumable flow).
+   **Under the packless rule (real New Game; docs/BACKPACK.md) a step comes first:** the player has only 2
+   pockets (club + bandages — the panicked-search node is an empty search), so the key can't be taken:
+   pause «my hands are full… there's a backpack by the door» → the backpack by 3003's entrance pulses → taking
+   it opens the inventory (pause «That's better…», hinting the pack key / quick wheel) → THEN the heal beat.
 
 ## Golf-club durability risk/reward (tutorial-tailored)
 - Tutorial golf club durability = **6 uses**. Budgeted across the whole path:

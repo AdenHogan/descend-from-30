@@ -26,7 +26,8 @@ originals — the markdown here is canonical for development):
   that jumps 5 floors — recommended via an `elevator_interior.tscn` cut, not a
   5-floor pan. Not built yet.
 - `docs/BACKPACK.md` — **BUILT v1**: the pack button + kneel/open/stand + the live (real-time) inventory
-  ring; any hit slams it shut. Built on the quick wheel. Placeholder art (no kneel animation yet).
+  ring; any hit slams it shut. Built on the quick wheel. Placeholder art (no kneel animation yet). **Round 27:
+  the backpack is an in-world ITEM** — runs start with pockets only until it's picked up (see the status entry).
 - `docs/QUEST_LIST.md` — quests 001–011 with outcomes/rewards.
 - `docs/ITEMS_SHEET.md` — item catalog + room spawn pools (design reference;
   **`data/Items.json` is the runtime source of truth**).
@@ -225,7 +226,7 @@ Robustness rules). What it covers:
   `dev_menu_test`, `lighting_test`, `plane_lock_test`, `apartment_window_test`,
   `scavenge_node_test`, `drop_physics_test`, `softlock_test`, `character_panel_test`,
   `corpse_recovery_test`, `run_memory_test`, `attack_input_test`, `character_stats_test`, `transition_seam_test`, `run_bookends_test`, `weapon_upgrade_test`, `progression_test`, `back_plane_test`,
-  `apartment_lamp_test`, `gun_cabinet_test`, `breach_test`, `item_icon_test`, `hud_wheel_test`, `motion_test`, `growth_test`, `pack_test` — run all 53 before commit. Balance tool: `tools/economy_report.tscn` (scrap per run, ~25 min a seed). (`new_game()` rolls a RANDOM seed, so any test meets any of the four
+  `apartment_lamp_test`, `gun_cabinet_test`, `breach_test`, `item_icon_test`, `hud_wheel_test`, `motion_test`, `growth_test`, `pack_test`, `backpack_test` — run all 54 before commit. Balance tool: `tools/economy_report.tscn` (scrap per run, ~25 min a seed). (`new_game()` rolls a RANDOM seed, so any test meets any of the four
   characters — an assert on a trait-affected value must be trait-aware; see docs/CHARACTERS.md.) (Run ONE godot at a time — a killed/backgrounded headless run can
   linger and block the next, and a GDScript **parse error makes a test scene load but
   never call `quit()`, so it "hangs" until timeout** rather than printing an error line;
@@ -1859,8 +1860,8 @@ means no rendering — UI layout and art still need an in-editor look.
   ring "doesn't look as interesting… restrictive" — so `hud_ring.gd` / `hud_disc.gd` are DELETED; the bust art itself changes with
   health, and the condition word beside it is stage-coloured), with a NAME ROW to its right — the name, then the MODE in plain words (`SCAVENGE` green / `COMBAT` red; click it or press the mode key to
   switch; HOVER it for a tooltip that explains both modes and marks the one you're in — `HUD.mode_tip_content()`, every claim a real rule)
-  — the thin stamina bar spans the row as its UNDERLINE as well as the gauge (`_layout_identity_row` sizes it to name+mode), and a small
-  in-hand line (item + uses/rounds) under that (NO condition word — owner round 26e: the bust shows health; and NO floor / "/ 30" /
+  — the thin stamina bar spans the row as its UNDERLINE as well as the gauge (`_layout_identity_row` sizes it to name+mode), and, to the RIGHT of that block, the IN-HAND BOX (`hud_equip_box.gd`, owner round 27: the equipped item's icon in an outline that IS its
+  durability, draining until broken; a gun's rounds are the only number; `square`/`rounded`/`circle` shapes) (NO condition word — owner round 26e: the bust shows health; and NO floor / "/ 30" /
   time-of-day / run-pips text either, "extra bloat": the FloorLabel node stays hidden because many callers still `update_floor_label()`,
   `hud_run_pips.gd` is deleted; the floor is announced on the stairs and by the wall sign) (it FADES to 30% while the player stands under it — `_fade_identity_over_player` — because
   the left staircase is right there), the **backpack button bottom-right** with the wheel hint beside it, and **notes + scrap TOP-RIGHT** (a small icon + the number,
@@ -1920,4 +1921,19 @@ means no rendering — UI layout and art still need an in-editor look.
   `pack_test` (mutation-checked: removing the slam fails 5 checks). The kneel ANIMATION is an art task — v1 fakes it.
   Headless-test gotchas: mouse events pushed at a viewport are scaled by its final transform (push in WINDOW space),
   and `Input.parse_input_event` on an action is buffered until the frame flush — use `get_viewport().push_input`.
+- THE BACKPACK AS AN ITEM (owner round 27; docs/BACKPACK.md "The backpack as an ITEM", `backpack_test`): "when a player
+  begins a run they have no inventory… a backpack on the floor next to 3001 becomes the inventory; in the tutorial
+  it's in the first apartment; when the first enemy dies the player is overloaded and must pick it up". The RULE is
+  `WorldState.packless_rule` (saved; only the real `Game.new_game()` turns it on — a plain `WorldState.new_game()`,
+  i.e. EVERY test, keeps the classic 5 slots) and `has_backpack` (per-run: reset by `new_game`/`advance_run`, saved).
+  Without a pack `get_inventory_slots()` = `POCKET_SLOTS` (2) but ONE item is carried freely — a second OVERLOADS
+  (max stamina × 0.5 via `get_max_stamina`; drop it / take the pack and stamina snaps to full, `sync_overload`); the HUD
+  hides the pack button / wheel hint (no pocket bar), and the pack key + quick wheel refuse. `backpack_pickup.gd` (code-built
+  Area2D like `player_corpse.gd`) lies beside 3001 on Floor 30 every run after the first
+  (`hallway._spawn_backpack`) and in 3003 on the tutorial run (`room._spawn_tutorial_backpack`); 3003's junk node is an
+  EMPTY search under the rule so the pockets are bandages + club and the neighbour's key overflows them →
+  `TutStep.PACK` (overloaded beat → the pack pulses → inventory-intro beat → heal beat). The HUD button + the floor
+  pack + any future icon share the pixel rucksack in `scripts/pack_art.gd` (the old code-drawn button read as a
+  Polaroid camera). Pack-less run = the planned "ultra difficult" achievement (not built; balance to follow).
+  Tests that need the rule must set `WorldState.packless_rule` themselves and reset it.
 - Not started: quests.

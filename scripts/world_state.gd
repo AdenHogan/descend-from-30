@@ -39,6 +39,22 @@ var balcony_arrival_hurt: bool = false
 # the HP/portrait drop is synced with the hurt flare, not the fall's start).
 var balcony_pending_injury: int = 0
 const MAX_INVENTORY_SLOTS = 5
+## Without a backpack a character can only hold what fits in their hands and pockets (docs/BACKPACK.md).
+const POCKET_SLOTS = 2
+## …but only ONE of those is carried comfortably: a second item without a backpack OVERLOADS the character —
+## max stamina is cut to OVERLOAD_STAMINA_MULT while it lasts, and it snaps back the moment they're down to one
+## (or take the pack). See `is_overloaded` / `sync_overload`.
+const FREE_CARRY = 1
+const OVERLOAD_STAMINA_MULT = 0.5
+
+## THE BACKPACK RULE (owner round 27): when on (the real New Game turns it on), every character starts a
+## run with NO inventory beyond `POCKET_SLOTS` items in their pockets, and the backpack lies on the floor
+## of Floor 30 (beside 3001; the first run's is in 3003) — picking it up is what gives the full bag, the
+## pack ring and the quick wheel. Off by default so a plain `new_game()` (every test) keeps the classic
+## five slots; saved, so a Continue keeps its rule (an old save has none = off).
+var packless_rule: bool = false
+## Does this character carry a backpack? Per-run (a new character starts without one under the rule).
+var has_backpack: bool = true
 const MAX_AMMO_PER_SLOT = 8
 const MAX_THROWABLE_PER_SLOT = 3   # cans held per slot (was one-and-done)
 const MAX_FUSE_PER_SLOT = 3        # the elevator needs exactly 3 — one slot holds a full set
@@ -1081,6 +1097,8 @@ func new_game() -> void:
 	anchor_amounts.clear()
 	searched_anchors.clear()
 	inventory.clear()
+	has_backpack = not packless_rule
+	_overloaded_last = false
 	current_floor = 30
 	current_run = 1
 	player_health = 0
@@ -1196,6 +1214,8 @@ func advance_run() -> bool:
 	# --- FRESH CHARACTER (per-run state, wiped) — mirrors new_game's character block.
 	#     Cross-run rewards (active_upgrades, wallet UNLOCK) are deliberately KEPT. ---
 	inventory.clear()
+	has_backpack = not packless_rule        # the new character comes in with only their pockets
+	_overloaded_last = false
 	player_health = 0                       # player._ready re-derives max + fills to full
 	is_dying = false
 	dying_timer = 0.0
@@ -2154,10 +2174,52 @@ func _apply_stat(stat: String, base: float) -> float:
 
 
 func get_max_stamina() -> float:
-	return max(_apply_stat("max_stamina", 100.0), 20.0)
+	var m: float = max(_apply_stat("max_stamina", 100.0), 20.0)
+	return m * OVERLOAD_STAMINA_MULT if is_overloaded() else m
+
+
+## Carrying more than one item with no backpack.
+func is_overloaded() -> bool:
+	return not has_backpack and inventory.size() > FREE_CARRY
+
+
+var _overloaded_last: bool = false
+
+
+## Keep stamina in step with the load: called after every inventory change (HUD.refresh_inventory) and each
+## physics frame by the player, so it can never be missed. Becoming overloaded cuts stamina down to the halved
+## maximum at once; putting the load down (or taking a pack) sends stamina straight back up to FULL.
+func sync_overload() -> void:
+	var now: bool = is_overloaded()
+	if now == _overloaded_last:
+		return
+	_overloaded_last = now
+	if now:
+		stamina = minf(stamina, get_max_stamina())
+		HUD.show_feedback("Overloaded - your stamina is halved. Put something down, or find a bag.")
+	else:
+		stamina = get_max_stamina()
+		HUD.show_feedback("Lighter - your stamina is back.")
+	HUD.update_stamina(stamina, get_max_stamina())
 
 func get_inventory_slots() -> int:
+	if not has_backpack:
+		return POCKET_SLOTS
 	return int(clamp(MAX_INVENTORY_SLOTS + _upgrade_stat_add("inventory_slots"), 1, 6))
+
+## Pockets full and a backpack somewhere to be found? (The tutorial's "overloaded" beat.)
+func pockets_full() -> bool:
+	return not has_backpack and inventory.size() >= POCKET_SLOTS
+
+
+## The character takes up the backpack: the slots open out to the full bag and the pack UI wakes.
+func take_backpack() -> void:
+	if has_backpack:
+		return
+	has_backpack = true
+	HUD.refresh_inventory()
+	HUD.update_backpack_state()
+
 
 func get_stamina_regen_mult() -> float: return _upgrade_stat_mult("stamina_regen")
 func get_sprint_drain_mult() -> float: return _upgrade_stat_mult("sprint_drain")
@@ -4723,6 +4785,8 @@ func save_game(scene_path: String, record_live_zombies: bool = true) -> void:
 		"exit_spawn_x": exit_spawn_x,
 		"is_first_run": is_first_run,
 		"opener_seen": opener_seen,
+		"packless_rule": packless_rule,
+		"has_backpack": has_backpack,
 		"run_boons": run_boons,
 		"session_perks": session_perks,
 		"handoff_items": handoff_items,
@@ -4821,6 +4885,8 @@ func load_game() -> String:
 	# Old saves predate this flag: treat their opener as already seen (never replay a cold open
 	# on Continue — a save made mid-tutorial used to replay the whole title card).
 	opener_seen = bool(data.get("opener_seen", true))
+	packless_rule = bool(data.get("packless_rule", false))
+	has_backpack = bool(data.get("has_backpack", true))
 	run_boons = Array(data.get("run_boons", []))
 	# Older saves predate the session record: rebuild it from what's still visible.
 	handoff_items = Array(data.get("handoff_items", []))
@@ -4916,6 +4982,7 @@ func load_game() -> String:
 	merchant_sales = data.get("merchant_sales", {})
 	upgrade_offers = data.get("upgrade_offers", {})
 	_deserialize_inventory(data["inventory"])
+	_overloaded_last = is_overloaded()      # a saved load is not "becoming" overloaded (no notice)
 	return data["scene_path"]
 
 

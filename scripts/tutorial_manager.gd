@@ -50,6 +50,11 @@ const LINES := {
 	"3003_combat_go": "What have I done? Two solid hits. I'm so sorry.",
 	"3003_heal": "She scratched me up - I should patch up with those bandages.",
 	"3003_key": "Wait... this isn't my spare key! This is for 3002.",
+	# --- THE BACKPACK (packless rule): pockets only until it's picked up ---
+	"3003_overloaded": "Her key... but I can't carry any more, and this load is wearing me out. There's a backpack by the door - I could take that.",
+	"3003_backpack": "Her key's on the floor. I should take the backpack by the door too, I can't carry much like this.",
+	"3003_pack_go": "The backpack, by the door.",
+	"pack_intro": "That's better. Now I can carry a proper load.",
 	# --- 3002 reward room ---
 	"3002_entry": "No one is home. I feel bad stealing, but... what else can I do?",
 	# --- Misc tutorial one-shots ---

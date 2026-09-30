@@ -394,6 +394,7 @@ func _physics_process(delta: float) -> void:
 		if push_timer <= 0:
 			is_pushing = false
 
+	WorldState.sync_overload()      # a load with no backpack halves the stamina bar the same frame
 	# Actively running (sprint gait, moving): lets the player DASH through fire unburned.
 	is_running = is_sprinting and direction != 0 and (WorldState.stamina > 0 or WorldState.god_mode)
 	if is_sprinting and direction != 0 and WorldState.stamina > 0 and not WorldState.god_mode:
@@ -1205,6 +1206,8 @@ func _unhandled_input(event: InputEvent) -> void:
 # --- Backpack (kneel → open → stand) ------------------------------------------------------------
 ## Why the player can't get down to the pack right now, or "" when they can.
 func pack_blocked_reason() -> String:
+	if not WorldState.has_backpack:
+		return "no backpack"
 	if pack_phase != "":
 		return "already at the pack"
 	if is_dead or is_dying or is_cutscene or escaping or is_lashing or is_listening:

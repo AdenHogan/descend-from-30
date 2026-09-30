@@ -18,7 +18,7 @@ var balcony_centers: Array = []
 # three nodes reveal → scavenge under a slow approach → pause → attack (2-hit
 # kill) → key drops → pause → heal prompt. Beats that pause the game are run
 # through TutorialManager (dialogue + press-a-key resume). docs/TUTORIAL.md.
-enum TutStep { INTRO, APPROACH, PUSH, WEAPON, SCAVENGE, COMBAT, HEAL, DONE }
+enum TutStep { INTRO, APPROACH, PUSH, WEAPON, SCAVENGE, COMBAT, PACK, HEAL, DONE }
 # Low on purpose. Budget across the tutorial: 6 → −2 (3003 zombie) → −2 (3004
 # barricade, teaching that barricades drain durability too) → 2 left for the
 # hallway choice, where forcing the 3004 lock (−1) OR fighting the corridor
@@ -34,6 +34,8 @@ const TUT_LUNGE_RANGE = 30.0    # zombie this close → the scripted first lunge
 var tut_step: int = -1          # -1 = not the tutorial apartment
 var tut_zombie: Node = null
 var tut_nodes: Array = []       # the three hidden anchors (junk / health / club)
+var tut_pack: Node = null       # the backpack lying in 3003 (packless rule only)
+var tut_pack_intro_done: bool = false
 
 # Every ART VARIANT of each room type (tools/art/<name>.py writes each scene + its art). A module
 # picks one per (apartment, slot) — WorldState.module_variant_index — so the same room type never
@@ -221,6 +223,7 @@ func _ready() -> void:
 		# GDD's weaponless first fight). Other tutorial apartments stay empty so
 		# the player can learn to search in peace.
 		tut_zombie = _spawn_tutorial_zombie(entrance_side)
+		_spawn_tutorial_backpack(entrance_side)
 	elif not (WorldState.is_first_run and WorldState.current_floor == 30):
 		# Fire changes who's here (derived stage — a doused room's occupants still died in
 		# the blaze that killed them): CHARRED = a dead ruin, no enemies; BLAZE = everyone
@@ -1414,7 +1417,13 @@ func _setup_tutorial() -> void:
 		var target_x: float = want["x"] if entrance_side == "left" else 1186.0 - want["x"]
 		var chosen: Node = _pick_anchor(anchors, target_x)
 		if chosen != null:
-			_place_tutorial_item(chosen, want["tag"], interactable_script, not already_cleared)
+			# With only pockets (2 slots) the panicked search must not eat one: the magazine becomes an
+			# EMPTY search (the wasted time is the lesson), so the pockets are bandages + the club — and the
+			# neighbour's key is what overflows them.
+			var tag: String = want["tag"]
+			if tag == "025" and WorldState.packless_rule:
+				tag = ""
+			_place_tutorial_item(chosen, tag, interactable_script, not already_cleared)
 
 	if already_cleared:
 		tut_step = TutStep.DONE
@@ -1591,10 +1600,60 @@ func _tutorial_process(_delta: float) -> void:
 					_on_tut_combat, "[continue] — then swing with [%s]" % TutorialManager.key("attack"))
 		TutStep.COMBAT:
 			if tut_zombie.is_dead:
-				tut_step = TutStep.HEAL
-				TutorialManager.prompt(
-					TutorialManager.LINES["3003_heal"], "interact", _on_tut_heal,
-					"[continue] — then select the bandages and use them [%s]" % TutorialManager.key("item_use"))
+				_tut_after_kill()
+
+
+func _tut_after_kill() -> void:
+	# The neighbour is down and her key is on the floor. With only pockets the player is now OVERLOADED:
+	# the key won't fit, and the backpack by the entrance is the way out of that (docs/BACKPACK.md).
+	if WorldState.packless_rule and not WorldState.has_backpack:
+		tut_step = TutStep.PACK
+		var line: String = "3003_overloaded" if WorldState.pockets_full() else "3003_backpack"
+		TutorialManager.prompt(TutorialManager.LINES[line], "interact", _on_tut_overloaded, "[continue]")
+	elif WorldState.packless_rule and not tut_pack_intro_done:
+		_tut_pack_intro()          # they grabbed the pack mid-fight: introduce it now, then patch up
+	else:
+		_tut_heal_prompt()
+
+
+func _on_tut_overloaded() -> void:
+	if tut_pack != null and is_instance_valid(tut_pack):
+		tut_pack.highlight = true
+	TutorialManager.say(TutorialManager.LINES["3003_pack_go"])
+
+
+func _on_tut_pack_taken() -> void:
+	# The pack is on the player's back. If the fight is over the inventory is introduced right away; if
+	# they grabbed it mid-fight it waits until the neighbour is down (_tut_after_kill).
+	if tut_step == TutStep.PACK:
+		_tut_pack_intro()
+
+
+func _tut_pack_intro() -> void:
+	tut_pack_intro_done = true
+	TutorialManager.prompt(TutorialManager.LINES["pack_intro"], "interact", _tut_heal_prompt,
+		"[continue] — [%s] opens your pack, hold [%s] for the quick wheel" % [
+			TutorialManager.key("open_pack"), TutorialManager.key("item_wheel")])
+
+
+func _tut_heal_prompt() -> void:
+	tut_step = TutStep.HEAL
+	TutorialManager.prompt(
+		TutorialManager.LINES["3003_heal"], "interact", _on_tut_heal,
+		"[continue] — then select the bandages and use them [%s]" % TutorialManager.key("item_use"))
+
+
+func _spawn_tutorial_backpack(entrance_side: String) -> void:
+	# The first run's backpack lies just inside 3003's entrance (the neighbour is at the far wall).
+	if not WorldState.packless_rule or WorldState.has_backpack:
+		return
+	var pack = load("res://scripts/backpack_pickup.gd").new()
+	var x: float = 235.0 if entrance_side == "left" else 1186.0 - 235.0
+	pack.on_taken = _on_tut_pack_taken
+	pack.name = "BackpackPickup"
+	add_child(pack)
+	pack.global_position = Vector2(x, ROOM_FEET_Y)
+	tut_pack = pack
 
 
 func _on_tut_push() -> void:
