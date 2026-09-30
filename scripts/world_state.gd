@@ -56,6 +56,7 @@ var packless_rule: bool = false
 ## Does this character carry a backpack? Per-run (a new character starts without one under the rule).
 var has_backpack: bool = true
 const MAX_AMMO_PER_SLOT = 8
+const WORLD_DROP_SCRIPT := preload("res://scripts/world_drop.gd")   # REST_LIFT for live drops
 const MAX_THROWABLE_PER_SLOT = 3   # cans held per slot (was one-and-done)
 const MAX_FUSE_PER_SLOT = 3        # the elevator needs exactly 3 — one slot holds a full set
 const CAN_SCAVENGE_BOOST = 1.18    # cans spawn 18% more, so they're a real option
@@ -4583,6 +4584,37 @@ func add_world_drop(item_id: String, pos: Vector2, floor_num: int, extra: Dictio
 		# returns that same weapon, not a fresh one. Empty for ordinary loot.
 		"instance": extra.get("instance", {}),
 	}
+	return key
+
+
+## Put an item on the floor from `who` (the player): REGISTERED in world_drops (so it's remembered) AND spawned
+## live in the scene `who` stands in, tossed out so it visibly drops — a discard used to only register, so the
+## item vanished until the scene was re-entered. `extra` is add_world_drop's (amount / instance / target_apartment).
+## Returns the drop's key.
+func drop_item_from(who: Node2D, item_id: String, extra: Dictionary = {}) -> String:
+	var feet: float = who.global_position.y + 33.0
+	var cs = who.get_node_or_null("CollisionShape2D")
+	if cs != null and cs.shape is CapsuleShape2D:
+		feet = who.global_position.y + cs.position.y + (cs.shape as CapsuleShape2D).height * 0.5
+	elif cs != null and cs.shape is RectangleShape2D:
+		feet = who.global_position.y + cs.position.y + (cs.shape as RectangleShape2D).size.y * 0.5
+	var rest_lift: float = WORLD_DROP_SCRIPT.REST_LIFT
+	var at := Vector2(who.global_position.x + randf_range(-20.0, 20.0), feet - rest_lift)
+	var ex: Dictionary = extra.duplicate()
+	ex["scene"] = world_scene_of(who)
+	var key: String = add_world_drop(item_id, at, current_floor, ex)
+	var parent: Node = who.get_parent()
+	if parent == null or not is_instance_valid(parent):
+		return key
+	var drop = preload("res://scenes/world_drop.tscn").instantiate()
+	drop.item_id = item_id
+	drop.amount = int(ex.get("amount", 0))
+	drop.instance_data = ex.get("instance", {})
+	drop.drop_key = key
+	drop.target_apartment = ex.get("target_apartment", "")
+	parent.add_child(drop)
+	drop.toss(who.global_position + Vector2(0.0, -10.0), feet, -1.0 if randf() < 0.5 else 1.0)
+	# toss() settles at the floor line; the registered position is the rested one.
 	return key
 
 

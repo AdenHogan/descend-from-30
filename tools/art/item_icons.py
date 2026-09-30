@@ -482,20 +482,28 @@ def ice_pack():
 
 
 def golf_club():
-    """An iron: grip, shaft and a grooved blade — the whole club sits in the cell (no ball)."""
+    """A driver: dark grip, slim steel shaft, and a rounded, pillow-lit wooden head (crown, face and sole) —
+    the whole club sits in the cell (no ball)."""
     ic = Icon()
-    ax = Axis((47, 6), -128)                                                              # grip at the top right
-    ic.part(ic.poly(ax.band(0, 10, 2.5, 2.0)), rgb('2b2b30'), 'cyl', ax.dir, hl=0.15)     # grip
+    X, Y = pix()
+    ax = Axis((48, 5), -122)                                                              # grip at the top right
+    ic.part(ic.poly(ax.band(0, 10, 2.4, 1.9)), rgb('2b2b30'), 'cyl', ax.dir, hl=0.15)      # grip
     for t in (2, 4.2, 6.4, 8.6):
-        ic.darken(ic.line([ax.at(t, -2.4), ax.at(t + 1.0, 2.4)], 1), 0.7)
-    ic.part(ic.poly(ax.band(10, 31, 1.2, 1.0)), STEEL_LT, 'cyl', ax.dir, hl=0.3)          # shaft
-    hx, hy = ax.at(31, 0)
-    k = 1.15
-    head = [(hx + 2 * k, hy - 3 * k), (hx + 3 * k, hy + 6 * k), (hx - 2 * k, hy + 9 * k), (hx - 17 * k, hy + 9 * k),
-            (hx - 19 * k, hy + 5 * k), (hx - 15 * k, hy + 1 * k), (hx - 4 * k, hy)]
-    ic.part(ic.poly(head), STEEL, 'v', strength=0.35, light=1.35)                         # the iron blade
+        ic.darken(ic.line([ax.at(t, -2.3), ax.at(t + 1.0, 2.3)], 1), 0.7)
+    ic.part(ic.poly(ax.band(10, 30, 1.1, 0.9)), STEEL_LT, 'cyl', ax.dir, hl=0.3)          # shaft
+    hx, hy = ax.at(30, 0)
+    # the head: a chunky wedge — rounded crown, flat face toward the right, a flat sole — in dark steel
+    head = ic.poly([(hx - 17, hy + 1), (hx - 12, hy - 3), (hx - 3, hy - 4.5), (hx + 4, hy - 2), (hx + 6, hy + 9),
+                    (hx - 2, hy + 10.5), (hx - 14, hy + 10), (hx - 19, hy + 6)])
+    d = inner_dist(head, 6)
+    val = 0.10 + 0.9 * lit_from_height(np.sqrt(np.clip(d / 6.0, 0, 1)) * 0.95)
+    ramp_paint(ic, head, val, [rgb('1b1f26'), rgb('303845'), rgb('4b5766'), rgb('7a8796'), rgb('b9c5d1')])
+    face = head & (X > hx + 1.0)                                                          # the striking face
+    ramp_paint(ic, face, np.full((S, S), 0.55, np.float32) + 0.0 * X, [rgb('505b69'), rgb('8b97a5'), rgb('c4cdd6')])
     for j in range(4):
-        ic.paint(ic.line([(hx - 15 * k, hy + (3 + j * 1.6) * k), (hx - 3 * k, hy + (3 + j * 1.6) * k)], 1), rgb('6b737c'))   # grooves
+        ic.paint(ic.line([(hx + 1.6, hy - 1 + j * 2.4), (hx + 5.4, hy - 1 + j * 2.4)], 1), rgb('5d6977'))        # grooves
+    ic.paint(head & (Y > hy + 8.8), rgb('12151a'))                                        # the sole's shadow edge
+    ic.paint(ic.line([(hx - 14, hy - 0.5), (hx - 5, hy - 2.4)], 1), rgb('dfe8f0'), a=0.75)   # crown glint
     return ic.finish(shadow=(24, 50, 16, 2))
 
 

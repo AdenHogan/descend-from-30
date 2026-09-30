@@ -1826,6 +1826,17 @@ means no rendering — UI layout and art still need an in-editor look.
   landing — a bit LOUDER than a can's (`SHATTER_NOISE_RADIUS` 540 vs 460). Bottles are still junk for salvage (3 scrap) and selling.
   Locked by `can_throw_test` (`_test_bottle_item`, `_test_bottle_shatters_on_floor`, `_test_bottle_shatters_on_enemy`,
   `_test_player_throws_bottle`).
+- ART + SYSTEMS AUDIT (owner: "take a pass through for more art issues… check if any systems are broken"): rendered every main
+  scene with `scene_capture` (corridor, hallway run 1/2, three apartments on three runs, lobby, elevator, codex, pack ring, quick
+  wheel, tutorial opener) and read the logs — no script errors. **Fixed:** (1) **a DISCARDED item never appeared in the world** —
+  `HUD._drop_to_world` only REGISTERED the drop (`add_world_drop`), so it vanished until the scene was re-entered (live pickups are
+  only built on scene load). With the pack rule ("drop the second item to get your stamina back") that read as items being deleted.
+  New `WorldState.drop_item_from(who, id, extra)` registers at the RESTED floor position AND spawns + tosses a live `world_drop`;
+  the discard path and (2) the damaged-gun spill (`door._force_damages_gun` used to lose the excess rounds if the pack was full —
+  robustness rule 5) both use it. Locked by `drop_physics_test._test_discard_spawns_live`. (3) Golf club 012 redrawn (it read as a
+  spatula) as a dark-steel driver head. **Left for the owner (see the chat report):** the placeholder player + zombie rigs, the flat
+  blue lobby exit door, the garish red-orange LOCKED door tint, an unreadable scrawl decal over 3001, the empty in-hand vial showing
+  as a dark smudge, the Story tab's "Lore coming soon" text.
 - EVERY-FLOOR FIXTURES (owner round 25c, "cleaning art for immersion and visual clarity"; `tools/art/fixtures.py`,
   preview `docs/art_reference/fixtures.png`): at true size the lift was a flat grey slab in a black frame, the
   wall extinguisher a red block and the EXIT sign an unlabelled green box. Now: `assets/Elevator.png` is

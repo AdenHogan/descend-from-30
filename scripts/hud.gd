@@ -925,7 +925,6 @@ func _drop_to_world(instance) -> void:
 	if player == null:
 		return
 	var d: Dictionary = instance.get_data()
-	var drop_pos = player.global_position + Vector2(randf_range(-20, 20), 0)
 	var extra = {}
 	if instance.target_apartment != "":
 		extra["target_apartment"] = instance.target_apartment
@@ -934,7 +933,7 @@ func _drop_to_world(instance) -> void:
 		extra["amount"] = instance.count          # a stack comes back as the same count
 	else:
 		extra["instance"] = WorldState.instance_to_dict(instance)
-	WorldState.add_world_drop(instance.item_id, drop_pos, WorldState.current_floor, extra)
+	WorldState.drop_item_from(player, instance.item_id, extra)
 
 
 # --- ITEM TOOLTIP: hover a slot for the details (owner: "recognise the item instantly, then hover

@@ -705,7 +705,7 @@ func _resolve_force() -> void:
 
 # Forcing with a gun doesn't spend durability — it DAMAGES the gun: worse
 # accuracy and a 10-round magazine until repaired with a toolbox. Excess
-# loaded rounds spill back into inventory (or are lost if it's full).
+# loaded rounds spill back into inventory (or onto the floor at your feet if it's full).
 func _force_damages_gun(instance: ItemInstance, item_data: Dictionary) -> bool:
 	var name_l = item_data.get("name", "").to_lower()
 	if not (name_l.contains("gun") or name_l.contains("pistol") or name_l.contains("rifle")):
@@ -717,7 +717,11 @@ func _force_damages_gun(instance: ItemInstance, item_data: Dictionary) -> bool:
 		var spill = instance.mag_count - instance.get_mag_cap()
 		if spill > 0:
 			instance.mag_count = instance.get_mag_cap()
-			WorldState.add_to_inventory("016", spill)
+			if not WorldState.add_to_inventory("016", spill):
+				# No room: the rounds go on the floor at your feet, never silently lost.
+				var holder = get_tree().get_first_node_in_group("player")
+				if holder != null:
+					WorldState.drop_item_from(holder, "016", {"amount": spill})
 		HUD.refresh_inventory()
 		HUD.show_feedback("The gun is damaged — accuracy will suffer.")
 	else:

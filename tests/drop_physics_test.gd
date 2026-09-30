@@ -15,6 +15,7 @@ func _ready() -> void:
 	print("=== drop physics test ===")
 	await _test_toss_settles()
 	await _test_extinguisher_has_no_orb_light()
+	await _test_discard_spawns_live()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -58,3 +59,46 @@ func _test_extinguisher_has_no_orb_light() -> void:
 	check(not has_light, "the wall extinguisher is a fixture, not a glowing orb (no orb light)")
 	ext.queue_free()
 	await get_tree().process_frame
+
+
+func _test_discard_spawns_live() -> void:
+	print("[a discarded item appears at once]")
+	WorldState.new_game()
+	WorldState.current_floor = 12
+	var world = Node2D.new()
+	world.scene_file_path = "res://scenes/building_floors.tscn"
+	add_child(world)
+	var player = load("res://scenes/player.tscn").instantiate()
+	world.add_child(player)
+	await get_tree().process_frame
+	player.global_position = Vector2(500.0, 386.0)
+	WorldState.inventory.clear()
+	WorldState.add_to_inventory("002")
+	WorldState.add_to_inventory("005")
+	WorldState.add_to_inventory("005")
+	var before := WorldState.world_drops.size()
+	HUD._discard_slot(0)
+	var live: Array = []
+	for c in world.get_children():
+		if c.get_script() == load("res://scripts/world_drop.gd"):
+			live.append(c)
+	check(WorldState.world_drops.size() == before + 1, "the discard is remembered (registered)")
+	check(live.size() == 1, "...and a LIVE pickup appears in the scene straight away (was: invisible until re-entry)")
+	if live.size() == 1:
+		var d = live[0]
+		check(d.item_id == "002" and WorldState.world_drops.has(d.drop_key), "it is the hammer, tied to its registered key")
+		for i in range(120):
+			await get_tree().physics_frame
+		check(not d._tossing and absf(d.global_position.x - 500.0) < 160.0, "it tosses out and comes to rest near the player")
+		var rest: Vector2 = Vector2(WorldState.world_drops[d.drop_key]["x"], WorldState.world_drops[d.drop_key]["y"])
+		check(absf(d.global_position.y - rest.y) < 1.5, "its registered position is the RESTED one (re-entry matches what you saw)")
+		check(WorldState.world_drops[d.drop_key]["scene"] == "res://scenes/building_floors.tscn", "tagged with the scene it was dropped in")
+	# a stack comes back whole
+	var cans_before := WorldState.world_drops.size()
+	HUD._discard_slot(0)
+	var stack_key := ""
+	for k in WorldState.world_drops:
+		if WorldState.world_drops[k]["item_id"] == "005":
+			stack_key = k
+	check(WorldState.world_drops.size() == cans_before + 1 and stack_key != "" and int(WorldState.world_drops[stack_key]["amount"]) == 2, "a stack of two cans drops as one x2 pickup")
+	world.queue_free()
