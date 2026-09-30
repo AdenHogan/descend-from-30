@@ -223,7 +223,7 @@ Robustness rules). What it covers:
   `dev_menu_test`, `lighting_test`, `plane_lock_test`, `apartment_window_test`,
   `scavenge_node_test`, `drop_physics_test`, `softlock_test`, `character_panel_test`,
   `corpse_recovery_test`, `run_memory_test`, `attack_input_test`, `character_stats_test`, `transition_seam_test`, `run_bookends_test`, `weapon_upgrade_test`, `progression_test`, `back_plane_test`,
-  `apartment_lamp_test`, `gun_cabinet_test`, `breach_test` — run all 48 before commit. Balance tool: `tools/economy_report.tscn` (scrap per run, ~25 min a seed). (`new_game()` rolls a RANDOM seed, so any test meets any of the four
+  `apartment_lamp_test`, `gun_cabinet_test`, `breach_test`, `item_icon_test` — run all 49 before commit. Balance tool: `tools/economy_report.tscn` (scrap per run, ~25 min a seed). (`new_game()` rolls a RANDOM seed, so any test meets any of the four
   characters — an assert on a trait-affected value must be trait-aware; see docs/CHARACTERS.md.) (Run ONE godot at a time — a killed/backgrounded headless run can
   linger and block the next, and a GDScript **parse error makes a test scene load but
   never call `quit()`, so it "hangs" until timeout** rather than printing an error line;
@@ -1657,8 +1657,8 @@ means no rendering — UI layout and art still need an in-editor look.
   (`gun_cabinet_weapon`: seeded tree perks at Lv2 + Lv3, its 4 tuning points left free for the bench,
   6 rounds loaded). It is LOCKED: its key opens it (the key stays in the lock), else a Crowbar pries it
   (spent, loud — `door_work` noise); with neither it says so ("It needs its key — or a crowbar").
-  The key is its OWN item, **038 Gun Cabinet Key** (icon: a placeholder card from
-  `tools/art/item_card.py`, like the other icons), with target `cab:<apt>` (`key_item_for` picks
+  The key is its OWN item, **038 Gun Cabinet Key** (icon: a small brass key on a manila
+  tag — `tools/art/item_icons.py`), with target `cab:<apt>` (`key_item_for` picks
   038 vs 022 wherever a key is made or dropped; `key_display` / `key_tag`; never matches a front
   door). It is carried by a SPITTER in a breach room on the SAME floor — that room has NO big boss; the
   spitter has ×2 HP and its spit hits for 2 (`make_cabinet_key_carrier`, `spit_projectile.damage`);
@@ -1755,4 +1755,24 @@ means no rendering — UI layout and art still need an in-editor look.
   docs/art_reference/foreground_dead.png. Locked by `breach_test` + `building_floors_test`.
   **Long arm** drawn at ×2.2 (was 3) about its feet (`enemy_zombie_longarm.SPRITE_SCALE`) — its
   swing (25 frame px up) now lands at head height instead of over the player; rig/reach unchanged.
+- ITEM ICONS + TOOLTIP (owner round 25 — "high quality images so players can recognise the item
+  instantly then click or hover over if they want more information"; the downloaded craftpix icon pack
+  in `assets/Post-apocalypse Game-Free-icons-pack1/` was judged off-style and is NOT used): all 38 items
+  have real icons, replacing the white word-cards and red boxes (and 036 Fire Extinguisher, which had
+  none). `tools/art/item_icons.py` draws every one at 56×56 with `tools/art/iconlib.py` (masks →
+  shaded parts with a top-left light, posterised; dark contact lines where parts overlap; a selective
+  outline in the darkened neighbour colour; `Axis` puts long things on a clean 45° diagonal) and writes
+  them under their EXISTING file names (bare `<id>.png`, or `<id> - Name.png`) so the loader and
+  `.import` files keep working; `PREVIEW=1` writes only the sheets (`docs/art_reference/items/`). Shown
+  at integer scale everywhere: HUD slot / drag / shop 56 (1:1), loot panel 112 (2×) — `hud.ICON_PX`.
+  HOVER a filled slot (~0.18 s) → a tooltip above it (`hud.item_tip_content` / `show_item_tip`): the
+  name (legendary gold), tier, condition (durability / uses left / magazine / BROKEN in red / damaged),
+  count, heal amount, the item's description and a one-line how-to-use hint; hidden while dragging or
+  with the context menu open. `tip_mouse_override` is the test hook (headless has no pointer);
+  `scene_capture` step `tip:<slot>` renders it. Locked by `item_icon_test` (every icon 56×56, cut out,
+  many colours — a card or flat box fails; tooltip content + real hover + placement).
+- DECAL SHEETS (owner round 25): `tools/art/corridor_decals.py` also writes grouped, labelled contact
+  sheets of every corridor decal into `assets/decal_sheets/` (`standing_props`, `notices`, `wall_horror`,
+  `door_marks`, `floor_marks`, `the_dead`, `all_decals`) beside the docs preview
+  (`docs/art_reference/corridor/corridor_decals.png`). Reference only — nothing in the game loads them.
 - Not started: quests.

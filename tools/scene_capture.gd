@@ -22,6 +22,7 @@ extends Node
 #   floor:<n> run:<n> set WorldState.current_floor / current_run
 #   give:<id>[:<lvl>] put an item in the inventory (optionally at a workbench level)
 #   sel:<n>          select an inventory slot (what the attack key uses)
+#   tip:<n>          hover the pointer over inventory slot n (shows its tooltip after a beat)
 #   scrap:<n>        set the scrap counter
 #   boon:<floor>     reach a run-boon milestone (queues the HUD badge)
 #   valour:<n>       set the profile's Descent Valour
@@ -128,6 +129,8 @@ func _do(step: String) -> void:
 			HUD.refresh_inventory()
 		"sel":
 			HUD.select_slot(int(p[1]))
+		"tip":
+			HUD.tip_mouse_override = HUD.slots[int(p[1])].get_global_rect().get_center()
 		"boon":
 			WorldState.note_boon_milestone(int(p[1]))
 		"valour":

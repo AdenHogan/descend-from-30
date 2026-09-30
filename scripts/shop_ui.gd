@@ -329,7 +329,7 @@ func _refresh() -> void:
 		rows_box.add_child(row)
 
 		var icon = TextureRect.new()
-		icon.custom_minimum_size = Vector2(40, 40)
+		icon.custom_minimum_size = Vector2(56, 56)     # the icon 1:1 (it's drawn 56x56)
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		icon.texture = ItemData.get_texture(entry["item_id"])
 		row.add_child(icon)

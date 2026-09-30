@@ -96,5 +96,5 @@ Spawn weights per room module (0 = never spawns there):
 > - **037 Scrap Bag** (`is_scrap`) — see `docs/SCRAP_UPGRADES.md`.
 > - **038 Gun Cabinet Key** (`is_key`, single use, never spawns in a pool) — carried by the tough
 >   spitter in a boss-less breach room; opens its floor's gun cabinet (target `cab:<apt>`, so it
->   never opens a front door). Icon: a placeholder card (`tools/art/item_card.py`). Also opens with
+>   never opens a front door). Icon: a small brass key on a manila tag (`tools/art/item_icons.py`). Also opens with
 >   a Crowbar (035). See CLAUDE.md "THE GUN CABINET".

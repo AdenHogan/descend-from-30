@@ -82,11 +82,11 @@ func _build_ui() -> void:
 
 	var icon_row = CenterContainer.new()
 	icon_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	icon_row.custom_minimum_size = Vector2(PANEL_W - 32, 96)
+	icon_row.custom_minimum_size = Vector2(PANEL_W - 32, 112)
 	vbox.add_child(icon_row)
 	icon = TextureRect.new()
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	icon.custom_minimum_size = Vector2(96, 96)
+	icon.custom_minimum_size = Vector2(112, 112)   # the 56px icon at exactly 2x
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon_row.add_child(icon)
 

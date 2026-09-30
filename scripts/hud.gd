@@ -79,6 +79,7 @@ func _ready() -> void:
 	_layout()
 	_create_mode_label()
 	_create_slot_icons()
+	_create_item_tip()
 	_create_feedback_label()
 	_create_dialogue_panel()
 	_create_context_menu()
@@ -633,6 +634,7 @@ func _update_smoke_fog(delta: float) -> void:
 
 func _process(delta: float) -> void:
 	_update_drag()
+	_update_item_tip(delta)
 	_update_world_prompt()
 	_update_smoke_fog(delta)
 	if speech_timer > 0.0:
@@ -697,7 +699,7 @@ func _update_drag() -> void:
 		if get_viewport().get_mouse_position().distance_to(drag_armed_pos) > DRAG_THRESHOLD:
 			_start_drag()
 	else:
-		drag_icon.position = get_viewport().get_mouse_position() - Vector2(24, 24)
+		drag_icon.position = get_viewport().get_mouse_position() - Vector2(ICON_PX, ICON_PX) * 0.5
 		if not held:
 			_finish_drag()
 
@@ -706,7 +708,7 @@ func _start_drag() -> void:
 	drag_active = true
 	drag_icon = TextureRect.new()
 	drag_icon.texture = ItemData.get_texture(WorldState.get_item_id_at(drag_from))
-	drag_icon.custom_minimum_size = Vector2(48, 48)
+	drag_icon.custom_minimum_size = Vector2(ICON_PX, ICON_PX)
 	drag_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	drag_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	drag_icon.modulate = Color(1, 1, 1, 0.8)
@@ -799,6 +801,146 @@ func _drop_to_world(instance) -> void:
 	else:
 		extra["instance"] = WorldState.instance_to_dict(instance)
 	WorldState.add_world_drop(instance.item_id, drop_pos, WorldState.current_floor, extra)
+
+
+# --- ITEM TOOLTIP: hover a slot for the details (owner: "recognise the item instantly, then hover
+# over it if they want more information"). The icon says WHAT it is; this says how it's doing. ---------
+const ICON_PX := 56.0                  # icons are drawn 56x56 (tools/art/item_icons.py) — shown 1:1
+const TIP_DELAY := 0.18
+const TIP_W := 250.0
+var item_tip: PanelContainer = null
+var _tip_title: Label = null
+var _tip_stats: Label = null
+var _tip_desc: Label = null
+var _tip_hint: Label = null
+var _tip_slot: int = -1
+var _tip_t: float = 0.0
+var tip_mouse_override = null          # tests only: a Vector2 stands in for the pointer (headless has none)
+
+
+func _create_item_tip() -> void:
+	item_tip = PanelContainer.new()
+	item_tip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	item_tip.visible = false
+	item_tip.z_index = 50
+	var st := StyleBoxFlat.new()
+	st.bg_color = Color(0.07, 0.07, 0.09, 0.94)
+	st.border_color = Color(0.62, 0.58, 0.46, 0.95)
+	st.set_border_width_all(1)
+	st.set_corner_radius_all(3)
+	st.set_content_margin_all(8)
+	item_tip.add_theme_stylebox_override("panel", st)
+	var box := VBoxContainer.new()
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_theme_constant_override("separation", 3)
+	item_tip.add_child(box)
+	_tip_title = _tip_label(box, 15, Color(0.97, 0.94, 0.84))
+	_tip_stats = _tip_label(box, 12, Color(0.78, 0.82, 0.86))
+	_tip_desc = _tip_label(box, 12, Color(0.66, 0.64, 0.6))
+	_tip_hint = _tip_label(box, 11, Color(0.95, 0.82, 0.42))
+	$Control.add_child(item_tip)
+
+
+func _tip_label(box: Node, size: int, col: Color) -> Label:
+	var l := Label.new()
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_color_override("font_color", col)
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.custom_minimum_size = Vector2(TIP_W, 0)
+	box.add_child(l)
+	return l
+
+
+## What the tooltip says about an item: {title, stats (lines), desc, hint, broken}.
+func item_tip_content(inst) -> Dictionary:
+	var d: Dictionary = inst.get_data()
+	var stats: Array = []
+	var broken := false
+	var tier: String = inst.tier_label()
+	if tier != "":
+		stats.append(tier)
+	var max_d: int = inst.get_max_durability()
+	if inst.is_depleted and max_d > 0:
+		broken = true
+		stats.append("BROKEN — repair it with a toolbox")
+	elif d.get("is_weapon", false) and _is_gun_data(d):
+		stats.append("Magazine %d / %d" % [inst.mag_count, inst.get_mag_cap()])
+		if inst.is_damaged:
+			broken = true
+			stats.append("Damaged — shoots wide until repaired")
+	elif max_d > 1:
+		stats.append(("Durability %d / %d" if d.get("is_weapon", false) else "Uses left %d / %d") % [inst.current_durability, max_d])
+	if d.get("is_money", false):
+		stats.append("%d in notes" % inst.count)
+	elif d.get("is_ammo", false):
+		stats.append("%d rounds" % inst.count)
+	elif inst.count > 1:
+		stats.append("x%d" % inst.count)
+	if d.get("is_health_item", false):
+		stats.append("Heals %d" % (int(d.get("heals_states", 0)) + WorldState.get_heal_bonus()))
+	var hint := ""
+	if d.get("is_junk", false):
+		hint = "Junk — break it down at a workbench, or drag it out to drop it"
+	elif d.get("is_weapon", false):
+		hint = "Click to equip · double-click to use"
+	elif d.get("is_health_item", false) or d.get("is_speed_boost", false) or d.get("is_extinguisher", false) \
+			or d.get("is_throwable", false) or d.get("can_repair", false):
+		hint = "Double-click to use"
+	return {"title": inst.get_display_name(), "stats": stats, "desc": str(d.get("description", "")),
+		"hint": hint, "broken": broken, "legendary": inst.level >= WeaponUpgrades.LEGENDARY_LEVEL}
+
+
+func _is_gun_data(d: Dictionary) -> bool:
+	return str(d.get("name", "")).to_lower() == "gun"
+
+
+func _hovered_slot() -> int:
+	var mouse: Vector2 = tip_mouse_override if tip_mouse_override is Vector2 else get_viewport().get_mouse_position()
+	for i in range(slots.size()):
+		if i < WorldState.inventory.size() and slots[i].get_global_rect().has_point(mouse):
+			return i
+	return -1
+
+
+func _update_item_tip(delta: float) -> void:
+	if item_tip == null:
+		return
+	var i := -1 if (drag_active or (context_menu != null and context_menu.visible)) else _hovered_slot()
+	if i != _tip_slot:
+		_tip_slot = i
+		_tip_t = 0.0
+		item_tip.visible = false
+	if i < 0:
+		return
+	_tip_t += delta
+	if _tip_t < TIP_DELAY:
+		return
+	show_item_tip(i)
+
+
+## Fill + place the tooltip for slot i (public so tests and the drag code can drive it).
+func show_item_tip(i: int) -> void:
+	var inst = WorldState.get_instance_at(i) if i >= 0 and i < WorldState.inventory.size() else null
+	if inst == null:
+		item_tip.visible = false
+		return
+	var c: Dictionary = item_tip_content(inst)
+	_tip_title.text = c["title"]
+	_tip_title.add_theme_color_override("font_color", Color(1.0, 0.82, 0.3) if c["legendary"] else Color(0.97, 0.94, 0.84))
+	_tip_stats.text = "\n".join(c["stats"])
+	_tip_stats.visible = not c["stats"].is_empty()
+	_tip_stats.add_theme_color_override("font_color", Color(1.0, 0.45, 0.4) if c["broken"] else Color(0.78, 0.82, 0.86))
+	_tip_desc.text = c["desc"]
+	_tip_desc.visible = c["desc"] != ""
+	_tip_hint.text = c["hint"]
+	_tip_hint.visible = c["hint"] != ""
+	item_tip.reset_size()
+	var sz: Vector2 = item_tip.get_combined_minimum_size()
+	var r: Rect2 = slots[i].get_global_rect()
+	item_tip.position = Vector2(clampf(r.position.x + r.size.x * 0.5 - sz.x * 0.5, 8.0, SCREEN_W - sz.x - 8.0),
+		r.position.y - sz.y - 8.0)
+	item_tip.visible = true
 
 
 func select_slot(index: int) -> void:

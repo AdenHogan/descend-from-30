@@ -201,7 +201,11 @@ quiet, it's open to interpretation, and something might still be out there.
   world-drop pickups, keys, wall-mounted fire extinguisher canister.
 
 ### UI / icons
-- **36 inventory item icons** (small, readable at ~32-48 px in a HUD slot). List below.
+- **38 inventory item icons** — BUILT in-house (round 25, `tools/art/item_icons.py` + `iconlib.py`):
+  56×56 pixel art, shown 1:1 in the HUD slot and 2× in the loot panel; one top-left light, a darkened
+  (not black) selective outline, cut out on transparency. An artist replacing them should keep that
+  size, the transparent background and the "shape first, colour second, detail last" read.
+  Contact sheets: `docs/art_reference/items/item_icons.png` (3×) and `item_icons_1x.png` (true size).
 - HUD frame / slot art, a pixel display font is already in use (match its feel).
 
 ### FX

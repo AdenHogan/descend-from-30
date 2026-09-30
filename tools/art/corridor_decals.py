@@ -465,6 +465,48 @@ def dead(name, seed, how, fought=False):
     save(name, c)
 
 
+SHEETS = os.path.join(ROOT, 'assets', 'decal_sheets')
+
+
+def sheet_groups(names, standing):
+    """Which sheet each decal goes on (assets/decal_sheets/<group>.png)."""
+    g = {'standing_props': [], 'notices': [], 'wall_horror': [], 'door_marks': [], 'floor_marks': [],
+         'the_dead': []}
+    for n in names:
+        if n in standing:
+            g['standing_props'].append(n)
+        elif n.startswith('door_'):
+            g['door_marks'].append(n)
+        elif n.startswith('dead_'):
+            g['the_dead'].append(n)
+        elif n.startswith(('pool', 'drag', 'prints', 'casings')):
+            g['floor_marks'].append(n)
+        elif n.startswith(('notice', 'poster', 'kid_drawing')):
+            g['notices'].append(n)
+        else:
+            g['wall_horror'].append(n)
+    return {k: v for k, v in g.items() if v}
+
+
+def contact_sheet(names, labels=True, cols=6, cell=3 * 84):
+    """Each decal at up to 3x in a `cell`-square slot, its name just under it."""
+    from PIL import Image, ImageDraw, ImageFont
+    lab = 16 if labels else 0
+    rows = (len(names) + cols - 1) // cols
+    sheet = Image.new('RGBA', (cols * cell, rows * (cell + lab)), (150, 138, 110, 255))
+    d = ImageDraw.Draw(sheet)
+    font = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 12) if labels else None
+    for i, n in enumerate(names):
+        im = MADE[n]
+        s = min(3, (cell - 8) // max(im.size))
+        big = im.resize((im.size[0] * s, im.size[1] * s), Image.NEAREST)
+        x, y = (i % cols) * cell + 4, (i // cols) * (cell + lab) + 4
+        sheet.alpha_composite(big, (x, y))
+        if labels:
+            d.text((x, y + big.size[1] + 3), n, fill=(40, 34, 26, 255), font=font)
+    return sheet
+
+
 def main():
     from PIL import Image
     os.makedirs(OUT, exist_ok=True)
@@ -499,18 +541,20 @@ def main():
     notice_quarantine('notice_quarantine', 66)
     dead('dead_1', 70, 'pool'); dead('dead_2', 71, 'crawl'); dead('dead_3', 72, 'pool'); dead('dead_4', 73, 'crawl')
     dead('dead_5', 74, 'pool', fought=True); dead('dead_6', 75, 'pool', fought=True)
-    # the contact sheet, each decal at 3x on a mid-tone wall swatch
+    # the contact sheets, each decal at 3x on a mid-tone wall swatch: one of everything for the docs,
+    # and grouped + labelled copies in assets/decal_sheets/ (owner: "save the decal sheets into their own
+    # folder in the assets folder too")
     names = sorted(MADE)
-    cols, cell = 6, 3 * 84
-    rows = (len(names) + cols - 1) // cols
-    sheet = Image.new('RGBA', (cols * cell, rows * cell), (150, 138, 110, 255))
-    for i, n in enumerate(names):
-        im = MADE[n]
-        s = min(3, (cell - 8) // max(im.size))
-        big = im.resize((im.size[0] * s, im.size[1] * s), Image.NEAREST)
-        x, y = (i % cols) * cell + 4, (i // cols) * cell + 4
-        sheet.alpha_composite(big, (x, y))
-    sheet.save(os.path.join(ROOT, 'docs', 'art_reference', 'corridor', 'corridor_decals.png'))
+    all_sheet = contact_sheet(names, labels=False)
+    all_sheet.save(os.path.join(ROOT, 'docs', 'art_reference', 'corridor', 'corridor_decals.png'))
+    os.makedirs(SHEETS, exist_ok=True)
+    for f in os.listdir(SHEETS):
+        if f.endswith('.png'):
+            os.remove(os.path.join(SHEETS, f))
+    contact_sheet(names).save(os.path.join(SHEETS, 'all_decals.png'))
+    groups = sheet_groups(names, set(meta))
+    for g, members in groups.items():
+        contact_sheet(members).save(os.path.join(SHEETS, g + '.png'))
     print('wrote %d decals' % len(names))
 
 
