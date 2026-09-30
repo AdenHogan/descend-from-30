@@ -1775,4 +1775,15 @@ means no rendering — UI layout and art still need an in-editor look.
   sheets of every corridor decal into `assets/decal_sheets/` (`standing_props`, `notices`, `wall_horror`,
   `door_marks`, `floor_marks`, `the_dead`, `all_decals`) beside the docs preview
   (`docs/art_reference/corridor/corridor_decals.png`). Reference only — nothing in the game loads them.
+- ART LAB (owner round 25, a claude.ai artifact: https://claude.ai/artifact/T5zmXFVADcpye8AzvN4L5a): a
+  review bench built by `python3 tools/art/prop_lab.py <out.html>` from `tools/art/prop_lab_page.html`.
+  It replays `corridor_props.build()` (only functions whose first parameter is `save`), re-renders each
+  standing prop across 16 seeds keeping only DISTINCT looks (many generators barely use the seed — the
+  page says when a prop is a fixed design), and stands each on a crop of the real corridor art (hotel /
+  residential / institutional, morning / night, with the section's door sprites composited in, since doors
+  are live nodes) at its true depth; plus every item icon at 1×/2×/4× on the slot tile. The owner marks
+  Keep / Rework, picks a look (a seed) and writes notes; they land in the artifact's db, collection
+  `reviews`, doc id `prop:<sprite name>` / `icon:<id>` with `{verdict, seed, gameSeed, note, updatedAt}`.
+  Read them with ArtifactData `list` on that url, apply a picked `seed` in `corridor_props.build()`, then
+  rebuild + republish the lab (same url).
 - Not started: quests.

@@ -1,0 +1,440 @@
+<title>Descent Art Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a review bench — header with the tally, tabs, then a list on the left and the bench on the right
+   (stacked on a phone). Colours from the game's own hotel corridor: teal damask, brass sconces. */
+:root {
+  --bg: #e9e6dd;
+  --panel: #f6f3ec;
+  --panel-2: #efebe1;
+  --ink: #1f2527;
+  --muted: #5d6564;
+  --line: #cfc8b8;
+  --accent: #8a5c14;
+  --accent-ink: #fffaf0;
+  --keep: #2f7446;
+  --keep-bg: #dcefe0;
+  --rework: #a53a26;
+  --rework-bg: #f6ddd6;
+  --stage: #1b2426;
+  --slot: #404040;
+  --slot-edge: #999999;
+  --focus: #1f6f8b;
+  --f-display: "Pixelify Sans", "Courier New", monospace;
+  --f-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141a1b; --panel: #1c2426; --panel-2: #222c2e; --ink: #e7e2d6; --muted: #9aa4a1; --line: #33413f;
+    --accent: #d9a548; --accent-ink: #1a1408; --keep: #7cc58d; --keep-bg: #1f3526; --rework: #ec8a72;
+    --rework-bg: #3b2320; --stage: #0f1516; --focus: #6cc2dd; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141a1b; --panel: #1c2426; --panel-2: #222c2e; --ink: #e7e2d6; --muted: #9aa4a1; --line: #33413f;
+  --accent: #d9a548; --accent-ink: #1a1408; --keep: #7cc58d; --keep-bg: #1f3526; --rework: #ec8a72;
+  --rework-bg: #3b2320; --stage: #0f1516; --focus: #6cc2dd; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--f-body); }
+.wrap { max-width: 1240px; margin: 0 auto; padding-inline: 20px; padding-block: 20px 48px; display: grid; gap: 16px; }
+h1, h2 { font-family: var(--f-display); font-weight: 700; letter-spacing: 0.02em; text-wrap: balance; margin: 0; }
+h1 { font-size: 30px; line-height: 1.1; }
+h2 { font-size: 20px; }
+p { margin: 0; }
+button, input, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.pix { image-rendering: pixelated; image-rendering: crisp-edges; }
+
+.top { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: end; justify-content: space-between; }
+.top .lede { color: var(--muted); max-width: 62ch; margin-top: 6px; }
+.tally { display: flex; gap: 8px; flex-wrap: wrap; font-variant-numeric: tabular-nums; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 13px;
+  border: 1px solid var(--line); background: var(--panel); white-space: nowrap; }
+.pill.keep { color: var(--keep); background: var(--keep-bg); border-color: transparent; }
+.pill.rework { color: var(--rework); background: var(--rework-bg); border-color: transparent; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+
+.notice { padding: 10px 14px; border-radius: 6px; background: var(--rework-bg); color: var(--rework); font-size: 14px; }
+
+.bar { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--line); padding-bottom: 10px; }
+.tabs, .filters, .seg { display: flex; gap: 4px; flex-wrap: wrap; }
+.tab { border: 0; background: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 700; color: var(--muted); }
+.tab[aria-selected="true"] { color: var(--ink); background: var(--panel); box-shadow: inset 0 -2px 0 var(--accent); }
+.chip { border: 1px solid var(--line); background: var(--panel); padding: 3px 10px; border-radius: 999px; cursor: pointer; font-size: 13px; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+.layout { display: grid; grid-template-columns: minmax(230px, 300px) minmax(0, 1fr); gap: 18px; align-items: start; }
+.list { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: auto; max-height: 78vh; }
+.group-h { position: sticky; top: 0; background: var(--panel-2); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--muted); padding: 6px 12px; border-bottom: 1px solid var(--line); z-index: 1; }
+.row { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 10px; align-items: center; width: 100%;
+  text-align: left; border: 0; border-bottom: 1px solid var(--line); background: none; padding: 8px 12px; cursor: pointer; }
+.row:hover { background: var(--panel-2); }
+.row[aria-current="true"] { background: var(--panel-2); box-shadow: inset 3px 0 0 var(--accent); }
+.row .thumb { width: 52px; height: 40px; display: grid; place-items: center; background: var(--stage); border-radius: 4px; overflow: hidden; }
+.row .thumb img { max-width: 48px; max-height: 36px; }
+.row .name { min-width: 0; }
+.row .name b { display: block; font-size: 14px; }
+.row .name span { font-size: 12px; color: var(--muted); }
+.st { font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 999px; color: var(--muted); border: 1px solid var(--line); white-space: nowrap; }
+.st.keep { color: var(--keep); background: var(--keep-bg); border-color: transparent; }
+.st.rework { color: var(--rework); background: var(--rework-bg); border-color: transparent; }
+
+.bench { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; display: grid; gap: 14px; min-width: 0; }
+.bench-h { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: baseline; justify-content: space-between; }
+.meta { font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+.stage { background: var(--stage); border-radius: 6px; padding: 12px; overflow-x: auto; display: grid; place-items: center; }
+.stage canvas { display: block; max-width: none; }
+.controls { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; }
+.ctl-label { font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.seg button { border: 1px solid var(--line); background: var(--panel-2); padding: 4px 10px; cursor: pointer; font-size: 13px; }
+.seg button:first-child { border-radius: 6px 0 0 6px; }
+.seg button:last-child { border-radius: 0 6px 6px 0; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+.looks { display: grid; gap: 8px; }
+.looks-h { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; }
+.looks-h strong { font-variant-numeric: tabular-nums; }
+.strip { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+.look { flex: 0 0 auto; border: 2px solid transparent; border-radius: 6px; background: var(--stage); padding: 6px; cursor: pointer; display: grid; place-items: center; min-width: 64px; height: 76px; position: relative; }
+.look img { max-height: 60px; }
+.look[aria-pressed="true"] { border-color: var(--accent); }
+.look .tag { position: absolute; top: 3px; left: 4px; font-size: 10px; font-family: var(--f-mono); color: #d8d2c2; }
+.look .chosen { position: absolute; bottom: 3px; right: 4px; font-size: 10px; font-weight: 700; color: #f0c56a; }
+input[type="range"] { width: min(360px, 100%); accent-color: var(--accent); }
+
+.verdict { display: grid; gap: 10px; border-top: 1px solid var(--line); padding-top: 14px; }
+.btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn { border: 1px solid var(--line); background: var(--panel-2); padding: 7px 14px; border-radius: 6px; cursor: pointer; font-weight: 700; }
+.btn.keep[aria-pressed="true"] { background: var(--keep); color: var(--bg); border-color: var(--keep); }
+.btn.rework[aria-pressed="true"] { background: var(--rework); color: var(--bg); border-color: var(--rework); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+textarea { width: 100%; min-height: 84px; resize: vertical; padding: 10px; border-radius: 6px; border: 1px solid var(--line); background: var(--bg); }
+.saved { font-size: 13px; color: var(--muted); min-height: 1.5em; }
+
+.icon-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 360px); gap: 18px; align-items: start; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 10px; }
+.card { border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 10px 8px 8px; cursor: pointer; display: grid; gap: 6px; justify-items: center; text-align: center; }
+.card:hover { background: var(--panel-2); }
+.card[aria-current="true"] { box-shadow: 0 0 0 2px var(--accent); }
+.slot { width: 64px; height: 64px; background: var(--slot); border: 2px solid var(--slot-edge); display: grid; place-items: center; }
+.slot.x2 { width: 128px; height: 128px; border-width: 4px; }
+.slot.x4 { width: 240px; height: 240px; border-width: 4px; }
+.slot.x2 img { width: 112px; } .slot.x4 img { width: 224px; }
+.card .nm { font-size: 13px; line-height: 1.25; }
+.detail { position: sticky; top: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; display: grid; gap: 12px; }
+.sizes { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+.sizes figure { margin: 0; display: grid; gap: 4px; justify-items: center; }
+.sizes figcaption { font-size: 12px; color: var(--muted); }
+.desc { color: var(--muted); font-size: 14px; }
+
+@media (max-width: 860px) {
+  .layout, .icon-layout { grid-template-columns: minmax(0, 1fr); }
+  .list { max-height: 40vh; }
+  .detail { position: static; }
+  .slot.x4 { width: 128px; height: 128px; } .slot.x4 img { width: 112px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Descent Art Lab</h1>
+      <p class="lede">Every corridor prop and inventory icon from the game, drawn by the real generators. Mark each one Keep or Rework, pick the look you like, and leave a note. Claude reads your picks and applies them.</p>
+    </div>
+    <div class="tally" id="tally" aria-live="polite"></div>
+  </header>
+  <div class="notice" id="notice" hidden></div>
+  <div class="bar">
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" id="tab-props" aria-selected="true">Corridor props</button>
+      <button class="tab" role="tab" id="tab-icons" aria-selected="false">Item icons</button>
+    </div>
+    <div class="filters" id="filters" aria-label="Show">
+      <button class="chip" data-f="all" aria-pressed="true">All</button>
+      <button class="chip" data-f="todo" aria-pressed="false">To review</button>
+      <button class="chip" data-f="keep" aria-pressed="false">Keep</button>
+      <button class="chip" data-f="rework" aria-pressed="false">Rework</button>
+      <button class="chip" data-f="noted" aria-pressed="false">With notes</button>
+    </div>
+  </div>
+
+  <section id="view-props" class="layout">
+    <nav class="list" id="prop-list" aria-label="Props"></nav>
+    <div class="bench" id="bench"></div>
+  </section>
+
+  <section id="view-icons" class="icon-layout" hidden>
+    <div class="grid" id="icon-grid"></div>
+    <div class="detail" id="icon-detail"></div>
+  </section>
+</div>
+
+<script>
+const LAB = /*LAB_DATA*/null;
+const S = { view: "props", filter: "all", prop: 0, look: 0, backdrop: "hotel", run: 1, zoom: 3, icon: 0 };
+const reviews = new Map();          // doc id -> review body
+let db = null, canWrite = true;
+const imgCache = new Map();
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const docId = (kind, key) => kind + ":" + key;
+const rev = (kind, key) => reviews.get(docId(kind, key)) || {};
+
+function img(src) {
+  if (!imgCache.has(src)) {
+    imgCache.set(src, new Promise((res) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = src; }));
+  }
+  return imgCache.get(src);
+}
+
+function statusOf(r) { return r.verdict === "keep" ? "keep" : r.verdict === "rework" ? "rework" : "todo"; }
+function chip(r) {
+  const s = statusOf(r);
+  const label = s === "keep" ? "Keep" : s === "rework" ? "Rework" : "To review";
+  return `<span class="st ${s === "todo" ? "" : s}">${label}${r.note ? " ·✎" : ""}</span>`;
+}
+function passes(r) {
+  const s = statusOf(r);
+  return S.filter === "all" || (S.filter === "noted" ? !!r.note : s === S.filter);
+}
+
+// ---- tally ------------------------------------------------------------------------------------
+function renderTally() {
+  const all = [...LAB.props.map((p) => rev("prop", p.key)), ...LAB.icons.map((i) => rev("icon", i.key))];
+  const keep = all.filter((r) => r.verdict === "keep").length;
+  const rework = all.filter((r) => r.verdict === "rework").length;
+  $("tally").innerHTML = `<span class="pill">${all.length - keep - rework} to review</span>` +
+    `<span class="pill keep"><span class="dot"></span>${keep} keep</span>` +
+    `<span class="pill rework"><span class="dot"></span>${rework} rework</span>`;
+}
+
+// ---- props ------------------------------------------------------------------------------------
+function renderPropList() {
+  const groups = new Map();
+  LAB.props.forEach((p, i) => { if (!groups.has(p.label)) groups.set(p.label, []); groups.get(p.label).push(i); });
+  let html = "";
+  for (const [label, idxs] of groups) {
+    const shown = idxs.filter((i) => passes(rev("prop", LAB.props[i].key)));
+    if (!shown.length) continue;
+    html += `<div class="group-h">${esc(label)}</div>`;
+    for (const i of shown) {
+      const p = LAB.props[i], r = rev("prop", p.key);
+      html += `<button class="row" data-i="${i}" aria-current="${i === S.prop}">` +
+        `<span class="thumb"><img class="pix" src="${p.images[0]}" alt=""></span>` +
+        `<span class="name"><b>${esc(p.label)}</b><span>Variant ${p.variant} · ${p.images.length} look${p.images.length > 1 ? "s" : ""}</span></span>` +
+        `${chip(r)}</button>`;
+    }
+  }
+  $("prop-list").innerHTML = html || `<p style="padding:14px" class="desc">Nothing matches this filter.</p>`;
+}
+
+function renderBench() {
+  const p = LAB.props[S.prop], r = rev("prop", p.key);
+  const chosenIdx = r.seed != null ? p.seeds.indexOf(r.seed) : -1;
+  const lookLabel = S.look === 0 ? "in the game now" : (S.look === chosenIdx ? "your pick" : "an alternative");
+  const where = p.rule === "door" ? "just outside a flat's door" : "on an open stretch of wall";
+  const bd = LAB.backdrops.filter((b) => b.run === 1);
+  $("bench").innerHTML = `
+    <div class="bench-h">
+      <h2>${esc(p.label)} <span class="meta">variant ${p.variant}</span></h2>
+      <span class="meta">${esc(p.key)} · ${esc(p.generator)}(${esc(p.options)}) · stands ${p.depth}px out, ${where}</span>
+    </div>
+    <div class="stage"><canvas id="stage" class="pix" role="img" aria-label="${esc(p.label)} in the corridor"></canvas></div>
+    <div class="controls">
+      <span class="ctl-label">Corridor</span>
+      <div class="seg" id="seg-bd">${bd.map((b) => `<button data-bd="${b.key}" aria-pressed="${b.key === S.backdrop}">${esc(b.label.split(" (")[0])}</button>`).join("")}</div>
+      <span class="ctl-label">Time</span>
+      <div class="seg" id="seg-run"><button data-run="1" aria-pressed="${S.run === 1}">Morning</button><button data-run="3" aria-pressed="${S.run === 3}">Night</button></div>
+      <span class="ctl-label">Zoom</span>
+      <div class="seg" id="seg-zoom">${[1, 2, 3, 4].map((z) => `<button data-z="${z}" aria-pressed="${z === S.zoom}">${z}×</button>`).join("")}</div>
+    </div>
+    <div class="looks">
+      <div class="looks-h"><span class="ctl-label">Looks from this generator</span>
+        <strong>Look ${S.look + 1} of ${p.images.length}</strong><span class="meta">seed ${p.seeds[S.look]} · ${lookLabel}</span></div>
+      ${p.images.length > 1 ? `<input type="range" id="look-range" min="0" max="${p.images.length - 1}" step="1" value="${S.look}" aria-label="Look">` :
+        `<p class="desc">This prop is a fixed design: its generator draws the same thing whatever the seed. Rework it with a note.</p>`}
+      <div class="strip" id="strip">${p.images.map((u, i) => `<button class="look" data-l="${i}" aria-pressed="${i === S.look}" aria-label="Look ${i + 1}">` +
+        `<span class="tag">${i === 0 ? "now" : i + 1}</span><img class="pix" src="${u}" alt="">${i === chosenIdx && i !== 0 ? `<span class="chosen">picked</span>` : ""}</button>`).join("")}</div>
+    </div>
+    <div class="verdict">
+      <div class="btns">
+        <button class="btn keep" id="b-keep" aria-pressed="${r.verdict === "keep"}">Keep</button>
+        <button class="btn rework" id="b-rework" aria-pressed="${r.verdict === "rework"}">Rework</button>
+        <button class="btn primary" id="b-pick" ${S.look === 0 || S.look === chosenIdx ? "disabled" : ""}>Use look ${S.look + 1} in the game</button>
+        ${chosenIdx > 0 ? `<button class="btn" id="b-unpick">Keep the current look</button>` : ""}
+      </div>
+      <label class="ctl-label" for="note">Note for Claude</label>
+      <textarea id="note" placeholder="What should change? e.g. the wheels read flat, the colour's too bright for a hotel corridor…">${esc(r.note || "")}</textarea>
+      <div class="btns"><button class="btn" id="b-note">Save note</button></div>
+      <div class="saved" id="saved">${r.updatedAt ? "Saved " + new Date(r.updatedAt).toLocaleString() : ""}</div>
+    </div>`;
+  drawStage();
+  wireBench(p);
+}
+
+async function drawStage() {
+  const c = $("stage"); if (!c) return;
+  const p = LAB.props[S.prop];
+  const b = LAB.backdrops.find((x) => x.key === S.backdrop && x.run === S.run) || LAB.backdrops[0];
+  const [bi, pi] = await Promise.all([img(b.image), img(p.images[S.look])]);
+  if (!bi || !pi || LAB.props[S.prop] !== p) return;
+  const z = S.zoom, cr = LAB.crop;
+  c.width = cr.w * z; c.height = cr.h * z;
+  const g = c.getContext("2d");
+  g.imageSmoothingEnabled = false;
+  g.drawImage(bi, 0, 0, cr.w * z, cr.h * z);
+  const x = (p.rule === "door" ? LAB.doorX : Math.round(LAB.openX - pi.width / 2)) - cr.x;
+  const y = LAB.floorY + p.depth - p.contact - cr.y;
+  g.drawImage(pi, x * z, y * z, pi.width * z, pi.height * z);
+}
+
+function wireBench(p) {
+  document.querySelectorAll("#seg-bd button").forEach((b) => b.onclick = () => { S.backdrop = b.dataset.bd; renderBench(); });
+  document.querySelectorAll("#seg-run button").forEach((b) => b.onclick = () => { S.run = +b.dataset.run; renderBench(); });
+  document.querySelectorAll("#seg-zoom button").forEach((b) => b.onclick = () => { S.zoom = +b.dataset.z; renderBench(); });
+  document.querySelectorAll("#strip .look").forEach((b) => b.onclick = () => { S.look = +b.dataset.l; renderBench(); });
+  const rg = $("look-range"); if (rg) rg.oninput = () => { S.look = +rg.value; renderBench(); $("look-range").focus(); };
+  $("b-keep").onclick = () => save("prop", p, { verdict: rev("prop", p.key).verdict === "keep" ? null : "keep" });
+  $("b-rework").onclick = () => save("prop", p, { verdict: rev("prop", p.key).verdict === "rework" ? null : "rework" });
+  $("b-pick").onclick = () => save("prop", p, { seed: p.seeds[S.look] });
+  if ($("b-unpick")) $("b-unpick").onclick = () => save("prop", p, { seed: null });
+  wireNote("prop", p);
+}
+
+// ---- icons ------------------------------------------------------------------------------------
+function renderIconGrid() {
+  const html = LAB.icons.map((it, i) => ({ it, i })).filter(({ it }) => passes(rev("icon", it.key))).map(({ it, i }) =>
+    `<button class="card" data-i="${i}" aria-current="${i === S.icon}"><span class="slot"><img class="pix" src="${it.image}" alt=""></span>` +
+    `<span class="nm">${esc(it.label)}</span>${chip(rev("icon", it.key))}</button>`).join("");
+  $("icon-grid").innerHTML = html || `<p class="desc">Nothing matches this filter.</p>`;
+}
+
+function renderIconDetail() {
+  const it = LAB.icons[S.icon], r = rev("icon", it.key);
+  $("icon-detail").innerHTML = `
+    <div><h2>${esc(it.label)}</h2><span class="meta">${esc(it.key)} · ${esc(it.file)} · ${esc(it.kind)}</span></div>
+    <div class="sizes">
+      <figure><span class="slot"><img class="pix" src="${it.image}" alt="${esc(it.label)} at game size"></span><figcaption>In the slot (1×)</figcaption></figure>
+      <figure><span class="slot x2"><img class="pix" src="${it.image}" alt=""></span><figcaption>Loot panel (2×)</figcaption></figure>
+      <figure><span class="slot x4"><img class="pix" src="${it.image}" alt=""></span><figcaption>Close up (4×)</figcaption></figure>
+    </div>
+    <p class="desc">${esc(it.desc)}</p>
+    <div class="verdict">
+      <div class="btns">
+        <button class="btn keep" id="b-keep" aria-pressed="${r.verdict === "keep"}">Keep</button>
+        <button class="btn rework" id="b-rework" aria-pressed="${r.verdict === "rework"}">Rework</button>
+      </div>
+      <label class="ctl-label" for="note">Note for Claude</label>
+      <textarea id="note" placeholder="Does it read at a glance? What would make it clearer?">${esc(r.note || "")}</textarea>
+      <div class="btns"><button class="btn" id="b-note">Save note</button></div>
+      <div class="saved" id="saved">${r.updatedAt ? "Saved " + new Date(r.updatedAt).toLocaleString() : ""}</div>
+    </div>`;
+  $("b-keep").onclick = () => save("icon", it, { verdict: rev("icon", it.key).verdict === "keep" ? null : "keep" });
+  $("b-rework").onclick = () => save("icon", it, { verdict: rev("icon", it.key).verdict === "rework" ? null : "rework" });
+  wireNote("icon", it);
+}
+
+let noteTimer = 0;
+function wireNote(kind, obj) {
+  const ta = $("note");
+  // quiet: a note saves without rebuilding the page, so a click that ends the typing isn't lost
+  const commit = (quiet) => {
+    clearTimeout(noteTimer);
+    if (ta.value.trim() !== (rev(kind, obj.key).note || "")) save(kind, obj, { note: ta.value.trim() }, quiet);
+  };
+  $("b-note").onclick = () => commit(false);
+  ta.onblur = () => commit(true);
+  ta.oninput = () => { clearTimeout(noteTimer); noteTimer = setTimeout(() => commit(true), 1200); };
+  if (!canWrite) { ta.readOnly = true; document.querySelectorAll(".verdict .btn").forEach((b) => b.disabled = true); }
+}
+
+// ---- saving -----------------------------------------------------------------------------------
+const chains = new Map();
+function save(kind, obj, patch, quiet) {
+  const id = docId(kind, obj.key);
+  const body = Object.assign({ kind, key: obj.key, label: obj.label, verdict: null, seed: null, note: "" },
+    reviews.get(id) || {}, patch, { updatedAt: new Date().toISOString() });
+  if (kind === "prop") body.gameSeed = obj.gameSeed;
+  reviews.set(id, body);                                   // show it at once
+  if (quiet) renderTally(); else renderAll(true);
+  if (!db) { flash("Kept for this visit only — saving isn't available here."); return; }
+  const prev = chains.get(id) || Promise.resolve();
+  const next = prev.then(() => db.collection("reviews").doc(id).set(body)).then(
+    () => flash("Saved"),
+    (e) => {
+      if (e && e.code === "invalid_argument") { canWrite = false; flash("You can view this lab but not save picks."); }
+      else flash("Couldn't save (" + (e && e.code || "error") + "). Try again in a moment.");
+    });
+  chains.set(id, next);
+}
+function flash(msg) { const el = $("saved"); if (el) el.textContent = msg; }
+
+// ---- wiring -----------------------------------------------------------------------------------
+function renderAll(keepNote) {
+  const ta = $("note");
+  const note = keepNote && ta ? { v: ta.value, f: document.activeElement === ta, a: ta.selectionStart, b: ta.selectionEnd } : null;
+  renderTally();
+  if (S.view === "props") { renderPropList(); renderBench(); } else { renderIconGrid(); renderIconDetail(); }
+  if (note && $("note")) { const t = $("note"); t.value = note.v; if (note.f) { t.focus(); t.setSelectionRange(note.a, note.b); } }
+}
+
+$("prop-list").addEventListener("click", (e) => {
+  const b = e.target.closest(".row"); if (!b) return;
+  S.prop = +b.dataset.i; S.look = 0; renderAll();
+});
+$("icon-grid").addEventListener("click", (e) => {
+  const b = e.target.closest(".card"); if (!b) return;
+  S.icon = +b.dataset.i; renderAll();
+});
+document.querySelectorAll("#filters .chip").forEach((b) => b.onclick = () => {
+  S.filter = b.dataset.f;
+  document.querySelectorAll("#filters .chip").forEach((x) => x.setAttribute("aria-pressed", x === b));
+  renderAll();
+});
+function setView(v) {
+  S.view = v;
+  $("tab-props").setAttribute("aria-selected", v === "props");
+  $("tab-icons").setAttribute("aria-selected", v === "icons");
+  $("view-props").hidden = v !== "props";
+  $("view-icons").hidden = v !== "icons";
+  try { localStorage.setItem("artlab-view", v); } catch (e) {}
+  renderAll();
+}
+$("tab-props").onclick = () => setView("props");
+$("tab-icons").onclick = () => setView("icons");
+
+let startView = location.hash === "#icons" ? "icons" : "props";
+try { if (!location.hash) startView = localStorage.getItem("artlab-view") || startView; } catch (e) {}
+setView(startView);
+
+(async () => {
+  if (!window.claude || !window.claude.use) { showNotice(); return; }
+  db = await window.claude.use("db");
+  if (!db) { showNotice(); return; }
+  const user = await window.claude.use("user");
+  if (user && typeof user.can === "function") {
+    const w = await user.can("data.write");
+    if (w === false) { canWrite = false; renderAll(); }
+  }
+  db.collection("reviews").onSnapshot((snap) => {
+    for (const ch of snap.docChanges()) {
+      if (ch.type === "removed") reviews.delete(ch.doc.id); else reviews.set(ch.doc.id, ch.doc.data());
+    }
+    if (document.activeElement === $("note")) renderTally(); else renderAll(true);
+  }, () => showNotice());
+})();
+function showNotice() {
+  const n = $("notice");
+  n.textContent = "Your picks can't be saved in this view, so they'll only last for this visit. Open the lab from claude.ai while signed in to keep them.";
+  n.hidden = false;
+}
+</script>
