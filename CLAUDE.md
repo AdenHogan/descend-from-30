@@ -1792,6 +1792,13 @@ means no rendering — UI layout and art still need an in-editor look.
   from until the drop (`_finish_drag` refreshes in every outcome). Locked by `item_icon_test` (every icon
   56×56, cut out, many colours — a card or flat box fails; tooltip content + real hover + placement; icon
   centred; drag ghost / lifted slot / restore).
+- ITEM ICONS, round 27 pass (owner: "the gun looks very chubby and squished… the first aid bandage looks wrong… the golf club can be
+  smaller… the crowbar doesn't need that strange black bit"): gun 004 redrawn as a long low service pistol (slim slide, short frame,
+  raked stippled grip); bandages 006 a gauze roll on its side with a paper band + red cross and a flat tail (no clips, no floating
+  cross); first aid 007 a WHITE case with a big red cross (the red one is the toolbox); golf club 012 smaller, whole in the cell, no
+  ball; crowbar 035 no grip; broken glass 023 jagged faceted shards; old shoes 030 a worn pair that reads as shoes; empty wallet 031 a
+  billfold with its slot gaping (the moth is gone). Only those eight PNGs + the sheets changed (`tools/art/item_icons.py`). Spot checks
+  of the rest found nothing as wrong — if more look off in play, list them and they get the same pass.
 - EVERY-FLOOR FIXTURES (owner round 25c, "cleaning art for immersion and visual clarity"; `tools/art/fixtures.py`,
   preview `docs/art_reference/fixtures.png`): at true size the lift was a flat grey slab in a black frame, the
   wall extinguisher a red block and the EXIT sign an unlabelled green box. Now: `assets/Elevator.png` is
