@@ -101,6 +101,8 @@ var equipped_label: Label = null
 var equipped_detail: Label = null
 var wheel_hint: Label = null
 var quick_wheel: Control = null
+var pack_wheel: Control = null           # the backpack ring (pack_wheel.gd) — real time, whole bag
+var pack_button: Control = null          # the clickable backpack in the strip (hud_pack_button.gd)
 var _portrait_clip: Control = null
 var _health_stage: int = 0
 
@@ -118,6 +120,7 @@ func _ready() -> void:
 	_create_scrap_label()
 	_create_boon_badge()
 	_create_quick_wheel()
+	_create_pack()
 	_create_dev_warp_prompt()
 	_create_dev_item_prompt()
 	_create_dev_menu()
@@ -247,6 +250,21 @@ func _create_quick_wheel() -> void:
 	quick_wheel = preload("res://scripts/quick_wheel.gd").new()
 	$Control.add_child(quick_wheel)
 	update_wheel_hint()
+
+
+func _create_pack() -> void:
+	# The backpack: a button just right of the hotbar + its ring. The ring is added AFTER the quick
+	# wheel so it draws over it; the button is the only thing in the strip that takes a click.
+	pack_button = preload("res://scripts/hud_pack_button.gd").new()
+	var hb_right: float = hbox.position.x + SLOT_SIZE * 6 + 8 * 5
+	pack_button.position = Vector2(hb_right + 22.0, STRIP_TOP + 22.0)
+	$Control.add_child(pack_button)
+	pack_button.pressed.connect(func() -> void:
+		if pack_wheel != null:
+			pack_wheel.toggle())
+	pack_wheel = preload("res://scripts/pack_wheel.gd").new()
+	$Control.add_child(pack_wheel)
+	pack_button.key_text = action_key_name("open_pack", "B")
 
 
 func _create_mode_label() -> void:
@@ -765,6 +783,9 @@ func _update_smoke_fog(delta: float) -> void:
 
 
 func _process(delta: float) -> void:
+	if pack_button != null:
+		var pl = get_tree().get_first_node_in_group("player")
+		pack_button.is_pack_open = pl != null and is_instance_valid(pl) and str(pl.get("pack_phase")) in ["kneel", "open"]
 	_update_drag()
 	_update_item_tip(delta)
 	_update_world_prompt()
@@ -1142,12 +1163,18 @@ func _update_equipped_chip() -> void:
 func wheel_key_name() -> String:
 	# The quick wheel's CURRENT binding, read straight from the InputMap (the hint must never name a
 	# key the player has rebound away — same rule as the tutorial lines).
-	if not InputMap.has_action("item_wheel"):
-		return "Tab"
-	var evs: Array = InputMap.action_get_events("item_wheel")
+	return action_key_name("item_wheel", "Tab")
+
+
+## The CURRENT binding of an action as short text, straight from the InputMap (a hint must never
+## name a key the player has rebound away). `fallback` is shown if the action has no event.
+func action_key_name(action: String, fallback: String) -> String:
+	if not InputMap.has_action(action):
+		return fallback
+	var evs: Array = InputMap.action_get_events(action)
 	if evs.is_empty():
 		return "?"
-	return String(evs[0].as_text()).replace(" (Physical)", "")
+	return String(evs[0].as_text()).replace(" (Physical)", "").replace(" - Physical", "")
 
 
 func update_wheel_hint() -> void:
@@ -1186,6 +1213,13 @@ func _context_discard() -> void:
 		_update_slot_highlights()
 		refresh_inventory()
 		show_feedback("Item dropped.")
+
+## Drop the item in inventory slot `slot` at the player's feet (the pack ring's Delete; the hotbar's
+## context-menu Discard — one path, so nothing is ever deleted, only put on the floor).
+func discard_slot(slot: int) -> void:
+	context_slot = slot
+	_context_discard()
+
 
 func _context_cancel() -> void:
 	context_menu.visible = false

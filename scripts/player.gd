@@ -209,6 +209,24 @@ var is_listening: bool = false
 var listen_timer: float = 0.0
 var listen_report_line: String = ""
 
+# The BACKPACK (docs/BACKPACK.md): click the pack (or its key) → kneel → the pack opens and its ring
+# is the inventory → stand. The world does NOT slow: rooted and low, real time, so anything that
+# reaches you gets a free hit and slams the pack shut. pack_wheel.gd is the view + input; the
+# state lives here so every "is the player free?" rule sees it.
+const PACK_KNEEL_TIME := 0.45
+const PACK_STAND_TIME := 0.3
+const PACK_LEAN := 0.24                  # radians the body leans toward the pack (Node2D skew)
+const HELD_PACK := preload("res://scripts/held_pack.gd")
+var pack_phase: String = ""              # "" | "kneel" | "open" | "stand"
+var pack_timer: float = 0.0
+var _pack_was_crouching: bool = false
+var _pack_base_x: float = 0.0
+var _pack_feet_dy: float = 33.0          # feet below the sprite's origin (skew pivots there)
+var _pack_prop: Node2D = null
+var _pack_k_at_stand: float = 0.0        # the lean when the stand-up began
+var _pack_stand_total: float = PACK_STAND_TIME
+var _pack_k: float = 0.0                 # how far down the lean is (0 upright .. 1 fully at the pack)
+
 
 func _ready() -> void:
 	add_to_group("player")
@@ -297,6 +315,10 @@ func _physics_process(delta: float) -> void:
 			WorldState.is_scavenge_mode = !WorldState.is_scavenge_mode
 			animated_sprite.play("idle")
 			HUD.update_mode_indicator()
+		return
+
+	if pack_phase != "":
+		_pack_tick(delta)
 		return
 
 	if is_listening:
@@ -1180,6 +1202,107 @@ func _unhandled_input(event: InputEvent) -> void:
 		set_move_target(_mouse_world_pos().x)
 
 
+# --- Backpack (kneel → open → stand) ------------------------------------------------------------
+## Why the player can't get down to the pack right now, or "" when they can.
+func pack_blocked_reason() -> String:
+	if pack_phase != "":
+		return "already at the pack"
+	if is_dead or is_dying or is_cutscene or escaping or is_lashing or is_listening:
+		return "not in play"
+	if is_switching_mode or is_attacking or is_pushing:
+		return "busy"
+	if on_balcony_plane or back_spot != null:
+		return "not on the walking line"
+	if WorldState.loot_open:
+		return "loot is open"
+	return ""
+
+
+func begin_pack() -> bool:
+	if pack_blocked_reason() != "":
+		return false
+	_clear_move_target()
+	velocity.x = 0.0
+	_pack_was_crouching = is_crouching
+	_pack_base_x = animated_sprite.position.x
+	_pack_feet_dy = maxf(feet_position().y - animated_sprite.global_position.y, 0.0)
+	pack_phase = "kneel"
+	pack_timer = PACK_KNEEL_TIME
+	animated_sprite.play("crouch_idle")
+	_pack_prop = HELD_PACK.new()
+	_pack_prop.direction = -1.0 if animated_sprite.flip_h else 1.0
+	_pack_prop.position = Vector2(_pack_prop.direction * 24.0, WorldState.PLAYER_FEET_OFFSET)
+	add_child(_pack_prop)
+	return true
+
+
+## Leave the pack. A slam (a hit) drops the stand-up entirely — you are upright and hurt at once;
+## otherwise it is a short, still-vulnerable stand.
+func end_pack(slam: bool = false) -> void:
+	if pack_phase == "":
+		return
+	if slam:
+		_pack_finish()
+		HUD.show_feedback("The pack slams shut.")
+	elif pack_phase != "stand":
+		pack_phase = "stand"
+		_pack_k_at_stand = _pack_k
+		_pack_stand_total = PACK_STAND_TIME * maxf(_pack_k, 0.05)      # stand up from wherever the lean had got to
+		pack_timer = _pack_stand_total
+		if is_instance_valid(_pack_prop):
+			_pack_prop.close()
+
+
+func _pack_finish() -> void:
+	pack_phase = ""
+	pack_timer = 0.0
+	is_crouching = _pack_was_crouching
+	_pack_lean(0.0)
+	if is_instance_valid(_pack_prop):
+		_pack_prop.queue_free()
+	_pack_prop = null
+
+
+## Lean the body toward the pack by k (0..1), the feet held where they were: Node2D.skew shears
+## about the sprite's origin, so the feet slide by feet_dy·sin(skew) — put that back.
+func _pack_lean(k: float) -> void:
+	_pack_k = clampf(k, 0.0, 1.0)
+	var dir: float = -1.0 if animated_sprite.flip_h else 1.0
+	var sk: float = dir * PACK_LEAN * _pack_k
+	animated_sprite.skew = sk
+	animated_sprite.position.x = _pack_base_x + _pack_feet_dy * sin(sk)
+
+
+func _pack_tick(delta: float) -> void:
+	_clear_move_target()
+	velocity.x = 0.0
+	_move_locked()
+	animated_sprite.play("crouch_idle")
+	if pack_phase != "stand" and (Input.is_action_just_pressed("move_left") or Input.is_action_just_pressed("move_right") \
+			or Input.is_action_just_pressed("jump") or Input.is_action_just_pressed("interact") \
+			or Input.is_action_just_pressed("mode_toggle") or Input.is_action_just_pressed("crouch_toggle") \
+			or Input.is_action_just_pressed("listen") or Input.is_action_just_pressed("rest")):
+		end_pack(false)              # any other intent = get up (a key that moves you also walks on next frame)
+	match pack_phase:
+		"kneel":
+			pack_timer -= delta
+			var k: float = 1.0 - clampf(pack_timer / PACK_KNEEL_TIME, 0.0, 1.0)
+			_pack_lean(k)
+			if is_instance_valid(_pack_prop):
+				_pack_prop.set_open(clampf((k - 0.35) / 0.65, 0.0, 1.0))
+			if pack_timer <= 0.0:
+				pack_phase = "open"
+		"open":
+			_pack_lean(1.0)
+			if is_instance_valid(_pack_prop):
+				_pack_prop.set_open(1.0)
+		"stand":
+			pack_timer -= delta
+			_pack_lean(clampf(pack_timer / _pack_stand_total, 0.0, 1.0) * _pack_k_at_stand)
+			if pack_timer <= 0.0:
+				_pack_finish()
+
+
 func start_listen(source_pos: Vector2, report: Dictionary) -> void:
 	# Anchored listen at a door or down-stairwell. Rooted for the duration,
 	# real time — listening while something shuffles toward you is on you.
@@ -1276,6 +1399,11 @@ func _input(event: InputEvent) -> void:
 		if event is InputEventMouseButton and event.pressed:
 			_cancel_listen()
 		return
+	if pack_phase != "":
+		# Kneeling at the pack: no swings or shoves (the clicks are the ring's), but the number keys
+		# and Q still work — you can equip / use straight from the bag.
+		if event.is_action_pressed("attack") or event.is_action_pressed("push"):
+			return
 
 	# The fire extinguisher SPRAYS on the attack key (default Space) in EITHER mode —
 	# "use what's in your hand". It's not a weapon, so it never swings; handling it here
@@ -1712,6 +1840,8 @@ func receive_hit(amount: int = 1) -> void:
 		return
 	if is_listening:
 		_cancel_listen()
+	if pack_phase != "":
+		end_pack(true)        # a hit slams the pack shut and knocks you upright
 	if is_lashing:
 		_lash_cancel = true   # a hit knocks you off the rope job
 	is_hit = true

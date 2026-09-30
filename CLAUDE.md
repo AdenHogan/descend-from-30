@@ -25,6 +25,8 @@ originals — the markdown here is canonical for development):
   upgrade station + fuse box), fuses (stack 3) powering a single-use **elevator**
   that jumps 5 floors — recommended via an `elevator_interior.tscn` cut, not a
   5-floor pan. Not built yet.
+- `docs/BACKPACK.md` — **BUILT v1**: the pack button + kneel/open/stand + the live (real-time) inventory
+  ring; any hit slams it shut. Built on the quick wheel. Placeholder art (no kneel animation yet).
 - `docs/QUEST_LIST.md` — quests 001–011 with outcomes/rewards.
 - `docs/ITEMS_SHEET.md` — item catalog + room spawn pools (design reference;
   **`data/Items.json` is the runtime source of truth**).
@@ -223,7 +225,7 @@ Robustness rules). What it covers:
   `dev_menu_test`, `lighting_test`, `plane_lock_test`, `apartment_window_test`,
   `scavenge_node_test`, `drop_physics_test`, `softlock_test`, `character_panel_test`,
   `corpse_recovery_test`, `run_memory_test`, `attack_input_test`, `character_stats_test`, `transition_seam_test`, `run_bookends_test`, `weapon_upgrade_test`, `progression_test`, `back_plane_test`,
-  `apartment_lamp_test`, `gun_cabinet_test`, `breach_test`, `item_icon_test`, `hud_wheel_test`, `motion_test`, `growth_test` — run all 52 before commit. Balance tool: `tools/economy_report.tscn` (scrap per run, ~25 min a seed). (`new_game()` rolls a RANDOM seed, so any test meets any of the four
+  `apartment_lamp_test`, `gun_cabinet_test`, `breach_test`, `item_icon_test`, `hud_wheel_test`, `motion_test`, `growth_test`, `pack_test` — run all 53 before commit. Balance tool: `tools/economy_report.tscn` (scrap per run, ~25 min a seed). (`new_game()` rolls a RANDOM seed, so any test meets any of the four
   characters — an assert on a trait-affected value must be trait-aware; see docs/CHARACTERS.md.) (Run ONE godot at a time — a killed/backgrounded headless run can
   linger and block the next, and a GDScript **parse error makes a test scene load but
   never call `quit()`, so it "hangs" until timeout** rather than printing an error line;
@@ -1872,4 +1874,18 @@ means no rendering — UI layout and art still need an in-editor look.
   redraw, which made it visible); `Elevator` is now uniformly scaled 0.9545 (63×84, the doors' height) at y 363 in
   building_floors / hallway / lobby, and the merchant's doors / interior / spawn follow (`merchant.tscn`,
   `building_floors._make_door_half` / `_board_elevator` / `_do_spawn_merchant`).
+- THE BACKPACK (owner round 26 — "click the pack, the player bends down and opens it, then a wheel for inventory
+  with live gameplay underneath so you can still be attacked"; docs/BACKPACK.md): a code-drawn pixel backpack button
+  right of the hotbar (`hud_pack_button.gd`, key **B** = action `open_pack`, rebindable) → the player KNEELS
+  (`Player.pack_phase` `kneel → open → stand`; rooted, `crouch_idle` + a lean via `Node2D.skew` with the feet held,
+  a placeholder pack prop `held_pack.gd` at the feet) → `pack_wheel.gd`'s ring floats above them with the WHOLE bag
+  in REAL TIME (no slow-mo): click equips, right-click uses (a can / the extinguisher says "Stand up first"),
+  Delete drops it (the hotbar's Discard path), the middle / Esc / B / a click in the world closes. **Any hit slams
+  it shut at once** (`receive_hit → end_pack(true)`); moving, interacting, listening, a stance switch etc. get you
+  up; it refuses in the states listed in the doc and never coexists with the quick wheel. The player owns the
+  state and the ring is a pure view of it, so death / a cutscene / a scene change can never strand it.
+  Shared plumbing: `QuickWheel.ui_block_reason(tree)` (the ring block rules) and `HUD.action_key_name`. Locked by
+  `pack_test` (mutation-checked: removing the slam fails 5 checks). The kneel ANIMATION is an art task — v1 fakes it.
+  Headless-test gotchas: mouse events pushed at a viewport are scaled by its final transform (push in WINDOW space),
+  and `Input.parse_input_event` on an action is buffered until the frame flush — use `get_viewport().push_input`.
 - Not started: quests.

@@ -81,20 +81,33 @@ func build_entries() -> Array:
 func blocked_reason() -> String:
 	if is_open:
 		return "already open"
+	var r: String = ui_block_reason(get_tree())
+	if r != "":
+		return r
+	var p = get_tree().get_first_node_in_group("player")
+	var phase = p.get("pack_phase")
+	if phase != null and str(phase) != "":
+		return "at the pack"                 # kneeling at the backpack: its own ring is the inventory
+	return ""
+
+
+## The rules every ring (this one and the backpack's, pack_wheel.gd) shares: a ring must never open
+## over another modal state, a paused game, or a player who isn't in play. "" = free to open.
+static func ui_block_reason(tree: SceneTree) -> String:
 	if not HUD.visible:
 		return "hud hidden"
-	if get_tree().paused:
+	if tree.paused:
 		return "paused"
-	var p = get_tree().get_first_node_in_group("player")
+	var p = tree.get_first_node_in_group("player")
 	if p == null or not is_instance_valid(p):
 		return "no player"
 	for flag in ["is_dead", "is_dying", "is_cutscene", "escaping", "is_lashing", "is_listening"]:
 		if bool(p.get(flag)):
 			return flag
-	for m in get_tree().get_nodes_in_group("modal_panel"):
+	for m in tree.get_nodes_in_group("modal_panel"):
 		if is_instance_valid(m) and m.visible:
 			return "a panel is open"
-	for m in get_tree().get_nodes_in_group("loot_ui"):
+	for m in tree.get_nodes_in_group("loot_ui"):
 		if is_instance_valid(m) and "visible" in m and m.visible:
 			return "loot is open"
 	if HUD.dialogue_panel != null and HUD.dialogue_panel.visible:
