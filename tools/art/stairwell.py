@@ -147,22 +147,59 @@ def up_view():
     return img
 
 
+# Which soffit the DOWN stair draws (A flat slab / B sloped / C stepped). PENDING the owner's pick: assets/Hallway_Staircase_* still hold
+# the earlier flat far-wall DOWN art until this is chosen and the script is re-run, so re-running it now changes the DOWN sprites.
+SOFFIT_V = 'A'
+CONCRETE = [(40, 44, 44), (62, 68, 66), (86, 93, 89), (112, 119, 112)]
+
+
+def soffit_edge(v):
+    """Sprite-y of the soffit's lower edge at shaft column x (1..38) for variant v: returns a function x -> y."""
+    if v == 'A':      # a flat slab, short: the black shaft is tall
+        return lambda x: 20
+    if v == 'B':      # a rising soffit: low at the post side, climbing away to the left (the flight above rises away from the door)
+        return lambda x: int(40 - (38 - x) * 0.55)
+    if v == 'C':      # stepped underside: the treads' undersides as a sawtooth, rising to the left
+        return lambda x: int(38 - ((38 - x) // 6) * 5)
+    return lambda x: 35
+
+
+def soffit_down(p, v):
+    edge = soffit_edge(v)
+    for x in range(1, 39):
+        e = edge(x)
+        for y in range(0, e + 1):
+            t = y / max(1.0, e)
+            # lit toward the top (near the slab's face), darker as it comes down to its lower edge
+            val = 2.2 - 1.2 * t + (0.2 if (x // 6) % 2 == 0 and v == 'C' else 0.0)
+            p[x, y] = dither(CONCRETE, max(0.0, min(3.0, val)), x, y, 0.12) + (255,)
+        # the slab's thickness: a bright lip then a dark shadow line under it
+        if 0 <= e < H:
+            p[x, e] = CONCRETE[3] + (255,)
+            if e + 1 < H:
+                p[x, e + 1] = (16, 17, 17, 255)
+    for x in range(1, 39, 6 if v == 'C' else 100):
+        for y in range(0, edge(x) + 1):
+            p[x, y] = CONCRETE[0] + (255,)
+
+
+def dark_back_below(p, v):
+    edge = soffit_edge(v)
+    for x in range(1, 39):
+        for y in range(edge(x) + 2, 106):
+            val = 1.0 + (0.6 if y < edge(x) + 8 else 0.0)
+            p[x, y] = dither(DARK, min(3.0, val), x, y, 0.2) + (255,)
+
+
 def down_view():
     img = Image.new('RGBA', (W, H), (0, 0, 0, 255))
     p = px(img)
     wall(p, 41, W - 1, lit_from=41)
     floor_strip(p, 0, W - 1)
-    # the shaft is the LEFT half: x 1..38. Upper part: the lit far wall (a landing's wall far below, seen over the lip)
-    for y in range(0, 35):
-        for x in range(1, 39):
-            v = 1.4 + 0.9 * (1 - abs(x - 20) / 20.0) * (1 - y / 40.0) + (0.3 if y % 8 == 0 else 0.0)
-            p[x, y] = dither(FAR, min(3.0, v), x, y, 0.15) + (255,)
-    # the dark opening below it: just the black of the shaft (the flight is NOT drawn — you only ever see the first step, and the
-    # player goes down out of sight past it, so the angle stays flat-on exactly as it always was)
-    dark_back(p, 1, 38, 35, 106)
-    for y in range(35, 40):                                          # the far wall's foot, a soft dark edge
-        for x in range(1, 39):
-            p[x, y] = dither(DARK, 2.2 - (y - 35) * 0.4, x, y, 0.2) + (255,)
+    # the shaft is the LEFT half: x 1..38. Above the black is the UNDERSIDE of the flight that climbs to the next floor (on that
+    # floor it is the stair going down): a concrete soffit, thick at its edge, stepped where the treads' undersides show.
+    soffit_down(p, SOFFIT_V)
+    dark_back_below(p, SOFFIT_V)
     # the lip: a yellow tactile strip at the top of the stairs
     rect(p, 0, 105, 40, 105, YEL[0])
     rect(p, 0, 106, 40, 107, YEL[2])
