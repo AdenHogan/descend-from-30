@@ -241,6 +241,58 @@ func _ready() -> void:
 	chk(lip_row >= 0 and is_equal_approx(enemy_cut, lip_world),
 		"the stair enemy's DOWN cut (%.0f) is the top of the yellow step (%.0f)" % [enemy_cut, lip_world])
 	chk(is_equal_approx(enemy_cut, player_cut), "...the same line the player's descent is cut on (%.0f)" % player_cut)
+	# THE STAIR WINDOWS (owner round 31j): the glass is a hole in the art with the run's city behind it, and the DOWN stair's
+	# window is the wide one with the stronger light.
+	var SW = load("res://scripts/stair_window.gd")
+	var sm: Dictionary = SW.meta()
+	var gd: Array = sm.get("glass", {}).get("down", [])
+	var gu: Array = sm.get("glass", {}).get("up", [])
+	chk(gd.size() == 4 and gu.size() == 4, "the stair-window meta lists both glass holes")
+	if gd.size() == 4 and gu.size() == 4:
+		chk(gd[2] - gd[0] > 2 * (gu[2] - gu[0]), "the DOWN window is the wide one (%d vs %d px of glass)" % [gd[2] - gd[0] + 1, gu[2] - gu[0] + 1])
+		for pair in [["Hallway_Staircase_Left", gd], ["Lobby_Left", gu]]:
+			var im: Image = load("res://assets/%s.png" % pair[0]).get_image()
+			var g: Array = pair[1]
+			var holes := 0
+			var total := 0
+			for yy in range(int(g[1]), int(g[3]) + 1, 4):
+				for xx in range(int(g[0]), int(g[2]) + 1, 3):
+					total += 1
+					if im.get_pixel(xx, yy).a < 0.2:
+						holes += 1
+			chk(total > 0 and holes > total * 0.7, "%s: the glass is see-through (%d/%d samples)" % [pair[0], holes, total])
+	for run in [1, 3]:
+		WorldState.current_run = run
+		var bfw = load("res://scenes/building_floors.tscn").instantiate()
+		bfw.setup_floor = 15; bfw.passive = true
+		add_child(bfw)
+		for i in range(3): await get_tree().process_frame
+		for pair in [["HallwayStaircaseRight", "down", true], ["LobbyLeft", "up", false]]:
+			var spr2: Sprite2D = bfw.get_node(pair[0])
+			var win = spr2.get_node_or_null("StairWindow")
+			chk(win != null and win.show_behind_parent and win.kind == pair[1], "run %d %s: a city behind its glass, drawn behind the sprite" % [run, pair[0]])
+			if win != null:
+				chk(win.position.is_equal_approx(SW.glass_centre(pair[1], pair[2])), "run %d %s: centred on the hole %s" % [run, pair[0], win.position])
+				chk(win.clip_children == CanvasItem.CLIP_CHILDREN_ONLY and win.glass_size == SW.glass_rect_size(pair[1]) and win.glass_size.x > 0.0,
+					"run %d %s: the city is clipped to the glass (%s) — it never shows over the lintel or past the sprite" % [run, pair[0], win.glass_size])
+				chk(win.view != null and str(win.view.texture.resource_path).contains("stair_view_%d_" % run), "run %d %s: the run's city (%s)" % [run, pair[0], win.view.texture.resource_path if win.view else "none"])
+				var rain := 0
+				for n in win.find_children("*", "AnimatedSprite2D", true, false):
+					if n.is_in_group("window_rain"):
+						rain += 1
+				chk((rain > 0) == (run == 3), "run %d %s: rain behind the glass only at night (%d)" % [run, pair[0], rain])
+		var fl = bfw.get_node_or_null("FloorLighting")
+		var wide = fl.get_node_or_null("StairWindowLightWide") if fl != null else null
+		var narrow_e := 0.0
+		if fl != null:
+			for c in fl.get_children():
+				if c is PointLight2D and c != wide and absf(c.position.y - 300.0) < 0.1 and absf(c.position.x - 171.0) < 0.1:
+					narrow_e = c.energy
+		chk(wide != null and absf(wide.position.x - 1179.0) < 0.1 and wide.energy > narrow_e and narrow_e > 0.0,
+			"run %d: the DOWN stair's window throws more light (%.2f vs %.2f)" % [run, wide.energy if wide else 0.0, narrow_e])
+		bfw.queue_free()
+		await get_tree().process_frame
+	WorldState.current_run = 1
 	for path in ["res://scenes/hallway.tscn", "res://scenes/lobby.tscn"]:
 		var sc = load(path).instantiate()
 		for n in ["HallwayStaircaseLeft", "LobbyRight"]:

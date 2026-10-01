@@ -41,6 +41,10 @@ const SCONCE_DIR := "res://assets/corridor/sconces/sconce_"
 const STAIR_WINDOW_LEFT_X := 171.0
 const STAIR_WINDOW_RIGHT_X := 1179.0
 const STAIR_WINDOW_Y := 300.0
+# The DOWN stair's wide window (tools/art/stairwell.py, 66 px of glass vs the UP sash's 18): brighter, broader, two shafts.
+const DOWN_WINDOW_ENERGY_SCALE := 1.6
+const DOWN_WINDOW_SPREAD := 1.5
+const DOWN_WINDOW_BEAM_GAP := 18.0
 
 # Natural light through a window: cool DAYLIGHT (keeps the pane's blue), warm lower
 # afternoon, dim blue MOONLIGHT at night. Energy is the ADDITIVE amount over the ambient —
@@ -282,13 +286,24 @@ func setup(floor_num: int, window_sides: Array = ["left", "right"], style: Strin
 			"phase": rng.randf() * TAU, "speed": rng.randf_range(6.0, 12.0),
 			"blink_t": rng.randf_range(1.5, 4.0), "on": true,
 		})
-	# Stairwell windows: natural light in from both stair shafts, plus a slanting sunbeam shaft.
-	if "left" in window_sides:
-		add_child(make_window_light(Vector2(STAIR_WINDOW_LEFT_X, STAIR_WINDOW_Y)))
-		_add_window_beam(Vector2(STAIR_WINDOW_LEFT_X, STAIR_WINDOW_Y), 1.25)
-	if "right" in window_sides:
-		add_child(make_window_light(Vector2(STAIR_WINDOW_RIGHT_X, STAIR_WINDOW_Y)))
-		_add_window_beam(Vector2(STAIR_WINDOW_RIGHT_X, STAIR_WINDOW_Y), 1.25)
+	# Stairwell windows: natural light in from both stair shafts, plus a slanting sunbeam shaft. The DOWN stair's window is the
+	# wide three-light one (owner round 31j — "bring more light to that area"): a stronger, broader pool and a shaft per side.
+	var down_side: String = WorldState.stair_down_side(floor_num) if floor_num >= 1 else ""
+	for side in ["left", "right"]:
+		if not side in window_sides:
+			continue
+		var wx: float = STAIR_WINDOW_LEFT_X if side == "left" else STAIR_WINDOW_RIGHT_X
+		var wide: bool = side == down_side
+		var lt := make_window_light(Vector2(wx, STAIR_WINDOW_Y), DOWN_WINDOW_ENERGY_SCALE if wide else 1.0)
+		if wide:
+			lt.texture_scale *= DOWN_WINDOW_SPREAD
+			lt.name = "StairWindowLightWide"
+		add_child(lt)
+		if wide:
+			_add_window_beam(Vector2(wx - DOWN_WINDOW_BEAM_GAP, STAIR_WINDOW_Y), 1.25)
+			_add_window_beam(Vector2(wx + DOWN_WINDOW_BEAM_GAP, STAIR_WINDOW_Y), 1.25)
+		else:
+			_add_window_beam(Vector2(wx, STAIR_WINDOW_Y), 1.25)
 
 
 func _add_window_beam(pos: Vector2, length_scale: float = 1.0) -> void:

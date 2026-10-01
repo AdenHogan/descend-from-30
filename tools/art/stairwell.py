@@ -103,21 +103,38 @@ def newel(p, x):
         p[x - 1, y] = WOOD[2] + (255,) if y % 9 else WOOD[1] + (255,)
 
 
-def window(p, x0, y0, x1, y1):
+GLASS_RECTS = {}                    # 'up' / 'down' -> (x0, y0, x1, y1) of the glass HOLE in design coords (filled by window())
+SHEEN = (255, 255, 255, 34)
+
+
+def window(p, x0, y0, x1, y1, lights=1, key=None):
+    """A framed stairwell window whose GLASS IS A HOLE (alpha 0): the city behind it is the game's (scripts/stair_window.gd —
+    the same skyline as the apartments', by time of day, with its fires and night rain). `lights` panes side by side (mullions),
+    a meeting rail across the middle, a lit sill, two faint diagonal sheen streaks on the glass."""
     rect(p, x0 - 1, y0 - 1, x1 + 1, y1 + 1, FRAME[0])
     rect(p, x0, y0, x1, y1, FRAME[1])
     gx0, gy0, gx1, gy1 = x0 + 2, y0 + 2, x1 - 2, y1 - 2
     my = (gy0 + gy1) // 2
+    bars = [int(round(gx0 + (gx1 - gx0) * k / lights)) for k in range(1, lights)]
     for y in range(gy0, gy1 + 1):
         for x in range(gx0, gx1 + 1):
-            if abs(y - my) <= 0:
+            if y == my or x in bars:
                 p[x, y] = FRAME[1] + (255,)
-                continue
-            t = (y - gy0) / max(1, gy1 - gy0)
-            p[x, y] = dither(GLASS, 2.0 - 1.4 * t + (0.3 if x < gx0 + 4 else 0.0), x, y, 0.4) + (255,)
+            elif y == my + 1 or (x - 1) in bars:
+                p[x, y] = FRAME[0] + (255,)                       # the bars' shadowed edge
+            else:
+                p[x, y] = (0, 0, 0, 0)                            # the hole
+    for k in range(2):                                            # sheen: two short diagonal streaks per pane
+        for i in range(0, 9):
+            for bx0 in [gx0] + [bb + 1 for bb in bars]:
+                xx, yy = bx0 + 3 + k * 4 + i, gy0 + 3 + i * 2
+                if xx <= gx1 and yy <= gy1 and yy != my and xx not in bars:
+                    p[xx, yy] = SHEEN
     for x in range(x0 - 1, x1 + 2):
-        p[x, y1 + 1] = FRAME[2] + (255,)                      # the sill, catching light
+        p[x, y1 + 1] = FRAME[2] + (255,)                          # the sill, catching light
         p[x, y1 + 2] = FRAME[0] + (255,)
+    if key:
+        GLASS_RECTS[key] = (gx0, gy0, gx1, gy1)
 
 
 def dark_back(p, x0, x1, y0, y1, glow=None):
@@ -138,7 +155,7 @@ def up_view():
     under_stairs_open(p, 0, 39, up_steps_top())
     # the shaft: dark back wall, the window high up, light spilling down toward the steps
     dark_back(p, SHAFT_X0, W - 1, -EXT, 108, glow=(59, 7, 36))
-    window(p, 48, WINDOW_TOP, 69, WINDOW_BOT)
+    window(p, 48, WINDOW_TOP, 69, WINDOW_BOT, key='up')
     # nine flat frontal steps, a touch narrower toward the top (the stringer leans in); nosing / tread / shadowed riser
     N, y_bot = STEP_N, STEP_BOT
     heights = _step_heights()
@@ -468,7 +485,7 @@ FAR_EDGE = RAIL_Y - 10              # the far landing's edge across the well, se
 def well(p, x0, x1, y0, y1):
     """The open stairwell behind the banister: the same dark shaft wall as the UP stair's, lit round the window above, falling away
     to black below this floor's landing (the far side's floor line, FAR_EDGE) — the drop you'd jump."""
-    dark_back(p, x0, x1, y0, y1, glow=(59, 7, 36))
+    dark_back(p, x0, x1, y0, y1, glow=(40, 8, 54))               # the wide window's light across the whole well
     for y in range(FAR_EDGE + 1, y1 + 1):
         for x in range(x0, x1 + 1):
             t = (y - FAR_EDGE - 1) / max(1.0, y1 - FAR_EDGE - 1)
@@ -539,15 +556,28 @@ def down_view(kind=None):
     floor_strip(p, 0, W - 1)
     well(p, 1, W - 1, -EXT, 104)
     way_down(p, 1, 38, FAR_EDGE + 2, 104)
-    window(p, 48, WINDOW_TOP, 69, WINDOW_BOT)
+    window(p, 5, WINDOW_TOP, 74, WINDOW_BOT, lights=3, key='down')     # owner round 31j: wide, more light down the well
     banister(p, 41, W - 1)
     # the lip: the first step down, in yellow
     rect(p, 0, 105, 40, 105, YEL[0])
     rect(p, 0, 106, 40, 107, YEL[2])
     rect(p, 0, 106, 40, 106, YEL[3])
     rect(p, 0, 108, 40, 108, YEL[0])
-    newel(p, 40)
+    newel_post(p, 40, RAIL_Y - 6)
     return img
+
+
+def newel_post(p, x, top):
+    """The DOWN stair's newel: a real post that stops a little above the half-wall's cap (its own cap block on top), so the
+    wide window behind runs clear over it."""
+    for y in range(top, 109):
+        p[x, y] = WOOD[1] + (255,)
+        p[x + 1, y] = WOOD[0] + (255,)
+        p[x - 1, y] = WOOD[2] + (255,) if y % 9 else WOOD[1] + (255,)
+    for xx in range(x - 2, x + 3):
+        p[xx, top - 1] = WOOD[2] + (255,)
+        p[xx, top - 2] = WOOD[2] + (255,)
+        p[xx, top] = WOOD[0] + (255,)
 
 
 def build():
@@ -558,11 +588,27 @@ def build():
     for name, im in outs.items():
         im.save(os.path.join(ROOT, 'assets', name))
         print('wrote assets/' + name)
+    # the glass holes, in TEXTURE pixels of the LEFT sprites (the Right ones are mirrored) — scripts/stair_window.gd reads this
+    import json
+    glass = {k: [v[0], v[1] + EXT, v[2], v[3] + EXT] for k, v in GLASS_RECTS.items()}
+    with open(os.path.join(ROOT, 'assets', 'stair_window.json'), 'w') as fh:
+        json.dump({'w': W, 'h': H + EXT, 'glass': glass}, fh, indent=1, sort_keys=True)
+    print('wrote assets/stair_window.json', glass)
     if '--mock' in sys.argv:
         out = os.path.join(ROOT, 'docs', 'art_reference')
         os.makedirs(out, exist_ok=True)
         S = 5
-        views = [up, down]
+
+        def with_city(im, key, run):
+            # the game's look: the run's stairwell city behind the glass hole, centred on it (scripts/stair_window.gd)
+            g = {k: [v[0], v[1] + EXT, v[2], v[3] + EXT] for k, v in GLASS_RECTS.items()}[key]
+            city = Image.open(os.path.join(ROOT, 'assets', 'city', 'stair_view_%d_0.png' % run)).convert('RGBA')
+            cx, cy = (g[0] + g[2] + 1) // 2, (g[1] + g[3] + 1) // 2
+            base = Image.new('RGBA', im.size, (0, 0, 0, 255))
+            base.paste(city, (cx - city.width // 2, cy - city.height // 2), city)
+            base.alpha_composite(im)
+            return base
+        views = [with_city(up, 'up', 1), with_city(down, 'down', 1), with_city(down, 'down', 2), with_city(down, 'down', 3)]
         sheet = Image.new('RGBA', (W * S * len(views) + 10 * (len(views) + 1), (H + EXT) * S + 20), (30, 30, 34, 255))
         for i, im in enumerate(views):
             sheet.paste(im.resize((W * S, (H + EXT) * S), Image.NEAREST), (10 + i * (W * S + 10), 10))

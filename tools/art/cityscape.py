@@ -191,6 +191,23 @@ def window_view(run, variant):
     return c.img, {k: [cen(p) for p in v] for k, v in meta.items()}
 
 
+# ---- the stairwell windows (owner round 31j) -------------------------------------------------------------------
+# The stair art's glass is a HOLE (tools/art/stairwell.py); this city sits behind it (scripts/stair_window.gd). One size fits
+# both stairs — the DOWN stair's wide three-light window and the UP stair's narrow sash (the sprite covers the rest). 78 tall
+# so the rain sheet wraps seamlessly over its 13 frames (78/13 = 6, 39/13 = 3), like the balcony's.
+STAIR_W, STAIR_H = 72, 78
+STAIR_VARIANTS = 2                    # left / right stairwell look out on different stretches of the same city
+
+
+def stair_view(run, variant):
+    rng = random.Random(4000 + variant * 53 + run)
+    c = Canvas(STAIR_W, STAIR_H, seed=variant + 11)
+    meta = draw_city(c, (0, 0, STAIR_W - 1, STAIR_H - 1), run, rng, layout_seed=3000 + variant * 53, tall=1.15)
+    def cen(p):
+        return [p[0] - STAIR_W // 2, p[1] - STAIR_H // 2]
+    return c.img, {k: [cen(p) for p in v] for k, v in meta.items()}
+
+
 # ---- the window's frame --------------------------------------------------------------------------------------
 FRAME_BORDER = 3
 FR_W, FR_H = GLASS_W + 2 * FRAME_BORDER + 4, GLASS_H + 2 * FRAME_BORDER + 4 + 3      # +4: casing, +3: sill lip
@@ -453,6 +470,10 @@ def main():
             img.save(os.path.join(OUT, 'view_%d_%d.png' % (run, v)))
             meta['view_%d_%d' % (run, v)] = m
             row.append(img)
+        for v in range(STAIR_VARIANTS):
+            img, m = stair_view(run, v)
+            img.save(os.path.join(OUT, 'stair_view_%d_%d.png' % (run, v)))
+            meta['stair_view_%d_%d' % (run, v)] = m
         window_frame(run).save(os.path.join(OUT, 'window_frame_%d.png' % run))
         smoke_frames(run).save(os.path.join(OUT, 'smoke_%d.png' % run))
         sheet_rows.append((run, row))
@@ -464,10 +485,13 @@ def main():
     rain_frames(GLASS_W, GLASS_H, 13, 15, 10, 6, 3, seed=5, slant=3).save(os.path.join(OUT, 'rain_window.png'))
     # balcony rain: the opening, 78 tall, 13 frames (near 6px, far 3px)
     rain_frames(80, 78, 13, 28, 18, 7, 4, seed=9, slant=4).save(os.path.join(OUT, 'rain_balcony.png'))
+    # stairwell rain: 72x78, 13 frames (near 6px, far 3px) — behind the stair windows' glass
+    rain_frames(STAIR_W, STAIR_H, 13, 22, 14, 7, 4, seed=13, slant=3).save(os.path.join(OUT, 'rain_stair.png'))
     splash_frames().save(os.path.join(OUT, 'splash.png'))
     meta['_sizes'] = {'glass': [GLASS_W, GLASS_H], 'frame': [FR_W, FR_H], 'frame_glass_centre': [FR_CX, FR_CY],
                       'fire': [FIRE_W, FIRE_H, FIRE_N], 'fire_s': [6, 8, FIRE_N], 'explosion': [16, 16, EXP_N], 'explosion_s': [12, 12, EXP_N], 'smoke': [SM_W, SM_H, SM_N],
-                      'rain_window': [GLASS_W, GLASS_H, 13], 'rain_balcony': [80, 78, 13], 'splash': [9, 5, 4]}
+                      'rain_window': [GLASS_W, GLASS_H, 13], 'rain_balcony': [80, 78, 13],
+                      'rain_stair': [STAIR_W, STAIR_H, 13], 'stair_view': [STAIR_W, STAIR_H], 'splash': [9, 5, 4]}
     with open(os.path.join(OUT, 'city_meta.json'), 'w') as fh:
         json.dump(meta, fh, indent=1, sort_keys=True)
     preview(sheet_rows)

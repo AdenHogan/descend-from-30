@@ -119,9 +119,10 @@ func _to_v(p) -> Vector2:
 
 
 # ---- the window's view ---------------------------------------------------------------------------------------
-## `key` = "view_<run>_<variant>"; the node's origin is the glass centre. `view` = the sprite drawn under this
+## `key` = "view_<run>_<variant>" (or a stairwell's "stair_view_<run>_<v>" with `rain_sheet` "rain_stair"); the node's origin is the glass centre. `view` = the sprite drawn under this
 ## (so lightning can flash it).
-func setup_window(key: String, run_: int, live_: bool, seed_: int, window_light: PointLight2D, view_item: CanvasItem) -> void:
+func setup_window(key: String, run_: int, live_: bool, seed_: int, window_light: PointLight2D, view_item: CanvasItem,
+		rain_sheet: String = "rain_window") -> void:
 	run = run_
 	live = live_
 	small = true
@@ -174,7 +175,7 @@ func setup_window(key: String, run_: int, live_: bool, seed_: int, window_light:
 			tw.tween_interval(0.9)
 	# rain: night only, a looping sheet over the whole glass
 	if run == 3:
-		var r := _sprite(DIR + "rain_window.png", int(sizes.get("rain_window", [44])[0]), RAIN_FPS, true, Vector2.ZERO, "rain")
+		var r := _sprite(DIR + rain_sheet + ".png", int(sizes.get(rain_sheet, [44])[0]), RAIN_FPS, true, Vector2.ZERO, "rain")
 		r.frame = _rng.randi() % 13
 		r.play()
 		r.add_to_group("window_rain")

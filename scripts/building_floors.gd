@@ -742,6 +742,7 @@ func _warn_hazard(text: String) -> void:
 
 
 const FLOOR_LIGHTING := preload("res://scripts/floor_lighting.gd")
+const STAIR_WINDOW := preload("res://scripts/stair_window.gd")
 var _floor_lights = null               # the floor's wall-sconce PointLight2D rig, or null
 
 const FIRE_FIELD := preload("res://scripts/fire_field.gd")
@@ -1088,6 +1089,12 @@ func _apply_stair_visuals(floor_num: int) -> void:
 	ll.visible = not down_on_left       # Lobby_Left = UP
 	hr.visible = not down_on_left       # right is DOWN when down is NOT on the left
 	lr.visible = down_on_left           # right is UP when down IS on the left
+	# The city behind each stair window's glass (round 31j): the DOWN stair's wide window, the UP stair's sash. All four get one —
+	# a sprite's visibility hides its window with it. Left / right look out on different stretches of the city.
+	STAIR_WINDOW.attach(hl, "down", false, 0)
+	STAIR_WINDOW.attach(hr, "down", true, 1)
+	STAIR_WINDOW.attach(ll, "up", false, 0)
+	STAIR_WINDOW.attach(lr, "up", true, 1)
 
 	# NOTE: there is no front-layer occluder here, and adding one back is a
 	# mistake. See _apply_stair_visuals's history / docs/STAIRWELL_LAYERS.md:

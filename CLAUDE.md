@@ -1878,7 +1878,7 @@ means no rendering — UI layout and art still need an in-editor look.
   is gone. Locked by `apartment_window_test` (`_test_windows_night` — rain on every window + balcony, `_test_city_outside` — meta,
   art present, same city across runs, fires/rain by run, a blast plays once + frees + kicks the light, lightning flash, unshaded).
   Preview: `docs/art_reference/city/city_views.png` + `docs/art_reference/modules/balcony_runs.png`. Not done: the stairwell's
-  baked windows and the lobby door still show no city; pan backdrops animate (visual only) but fire no blasts/booms.
+  windows show it too since round 31j (`scripts/stair_window.gd`); the lobby door still shows no city; pan backdrops animate (visual only) but fire no blasts/booms.
 - EVERY-FLOOR FIXTURES (owner round 25c, "cleaning art for immersion and visual clarity"; `tools/art/fixtures.py`,
   preview `docs/art_reference/fixtures.png`): at true size the lift was a flat grey slab in a black frame, the
   wall extinguisher a red block and the EXIT sign an unlabelled green box. Now: `assets/Elevator.png` is
@@ -2139,6 +2139,18 @@ means no rendering — UI layout and art still need an in-editor look.
   **Round 31i:** the DOWN-shaft STAIR ENEMY is cut on the top of the yellow step (396, was 400) — see the stairwell-enemies entry.
   Also fixed on the way: `building_floors_test`'s "a plant stand gets knocked over" check was a seed flake (one random building
   could go without one); it now looks across a fixed set of 40 buildings.
+  **Round 31j (owner: "if it's a downward stairwell we can extend the width of the window and bring more light to that area. It'll
+  also make the afternoon and night colours pop"):** the DOWN stair has a WIDE three-light window (glass 66 px vs the UP sash's 18;
+  its newel now stops just above the half-wall's cap so the window runs clear over it), and BOTH stair windows' glass is a HOLE in
+  the art (`assets/stair_window.json`, written by stairwell.py) with the run's CITY behind it — `scripts/stair_window.gd`, a child
+  of each stair sprite drawn behind it (`show_behind_parent`) and clipped to the glass (`clip_children`, the node draws the hole as
+  its mask; the 72x78 view used to poke over the lintel): `assets/city/stair_view_<run>_<0|1>.png` (tools/art/cityscape.py
+  `stair_view`, left / right variants) + the shared `city_fx` (fires + smoke at dusk / night, blasts, night rain on the new
+  seamless `rain_stair.png`; `setup_window` takes a `rain_sheet`). Before this the stair glass was baked day-blue at every hour.
+  The DOWN side's window light is 1.6x brighter, 1.5x broader, with two shafts (`floor_lighting.DOWN_WINDOW_*`, light named
+  `StairWindowLightWide`). Attached in `building_floors._apply_stair_visuals` (live + pan backdrop), the hallway and the lobby.
+  Locked by `stair_visuals_test` (holes see-through, the wide one wide, the run's city behind each sprite, clipped, rain only at
+  night, the brighter light; mutation-checked).
   Y planes in docs/Y_PLANES.md §4. Locked by `banister_test` (56th suite; mutation-checked) + `stair_visuals_test` (one DOWN look,
   every stair sprite 262..406 at scale 1, signs over the stair art). Seen while capturing, NOT changed: an UP-stairwell stair enemy on
   the arrival floor can start above the top of the screen and walk down into view (its legs show under the ceiling first).

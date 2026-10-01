@@ -114,6 +114,7 @@ func _build_world() -> void:
 	load("res://scripts/building_floors.gd").add_corridor_art(self,
 		load("res://scripts/building_floors.gd").corridor_art_named("corridor_hallway", WorldState.current_run))
 	load("res://scripts/building_floors.gd").add_endpoint_signs(self, 30, ["left"], true)
+	load("res://scripts/stair_window.gd").attach(get_node_or_null("HallwayStaircaseLeft"), "down", false, 0)   # the city behind its glass
 	_add_floor_decals()
 	_spawn_corpses(30)
 	_spawn_world_drops(30)
