@@ -247,6 +247,7 @@ var _stair_over_y: float = 375.0       # just ABOVE the plane — it climbs to h
 var _stair_rest_y: float = 401.0       # where it waits on the steps
 var _stair_bob_amp: float = 0.0        # how far it drifts up/down while waiting
 var _stair_cut_y: float = 1.0e9        # DOWN shaft: the player's mouth cut (feet-first slice); UP: inert
+var _stair_top_clip: float = -1.0e9    # UP stairs: nothing drawn above the opening's top (the flight runs on behind the wall)
 var _stair_phase: String = "idle"      # idle → rise → stepdown → (normal AI)
 var _stair_face_flip: bool = false
 var _stair_mat: ShaderMaterial = null
@@ -268,8 +269,9 @@ const STAIR_DEPTH_SPAN := 44.0         # how far off the plane counts as "fully 
 
 
 func enter_stairwell_mode(rest_y: float, plane_y: float, bob_amp: float, cut_y: float,
-		on_left: bool, is_up: bool) -> void:
+		on_left: bool, is_up: bool, top_clip: float = -1.0e9) -> void:
 	stair_mode = true
+	_stair_top_clip = top_clip
 	_stair_up = is_up
 	_stair_plane_y = plane_y
 	_stair_over_y = plane_y - STAIR_STEP_CLEARANCE
@@ -303,16 +305,20 @@ func _apply_stair_slice() -> void:
 	# VISIBLE steps, so the enemy is drawn whole (no slice), just depth-scaled.
 	if animated_sprite == null:
 		return
-	if _stair_up:
-		animated_sprite.material = null
-		return
 	if _stair_mat == null:
 		var sh := Shader.new()
 		sh.code = StairPan.SHRED_SHADER
 		_stair_mat = ShaderMaterial.new()
 		_stair_mat.shader = sh
 		_stair_mat.set_shader_parameter("clip_dir", 1.0)
-	_stair_mat.set_shader_parameter("cut_y", _stair_cut_y)
+	if _stair_up:
+		# The UP flight is visible, so no feet cut — only the opening's top: a head that reaches past the lintel goes BEHIND
+		# the wall (owner round 31k), never over the ceiling. shaft_top discards everything above it.
+		_stair_mat.set_shader_parameter("cut_y", 1.0e9)
+		_stair_mat.set_shader_parameter("shaft_top", _stair_top_clip)
+	else:
+		_stair_mat.set_shader_parameter("cut_y", _stair_cut_y)
+		_stair_mat.set_shader_parameter("shaft_top", -1.0e9)
 	animated_sprite.material = _stair_mat
 
 
@@ -355,12 +361,17 @@ func _process(_delta: float) -> void:
 	# offset every frame so a backdrop stair enemy stays correctly sliced as it scrolls in.
 	# Skipped during the step-off sweep (which animates cut_y itself) and for UP stairwells
 	# (no slice). When the floor sits at origin (live) this just holds the cut at its value.
-	if not stair_mode or _stair_mat == null or _stair_up or _stair_phase == "stepdown":
+	if not stair_mode or _stair_mat == null:
 		return
 	var off: float = 0.0
 	var p = get_parent()
 	if p is Node2D:
 		off = p.global_position.y
+	if _stair_up:
+		_stair_mat.set_shader_parameter("shaft_top", off + _stair_top_clip)   # the lintel line rides the floor through a pan
+		return
+	if _stair_phase == "stepdown":
+		return
 	_stair_mat.set_shader_parameter("cut_y", off + _stair_cut_y)
 
 

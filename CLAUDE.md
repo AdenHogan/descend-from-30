@@ -226,7 +226,7 @@ Robustness rules). What it covers:
   `dev_menu_test`, `lighting_test`, `plane_lock_test`, `apartment_window_test`,
   `scavenge_node_test`, `drop_physics_test`, `softlock_test`, `character_panel_test`,
   `corpse_recovery_test`, `run_memory_test`, `attack_input_test`, `character_stats_test`, `transition_seam_test`, `run_bookends_test`, `weapon_upgrade_test`, `progression_test`, `back_plane_test`,
-  `apartment_lamp_test`, `gun_cabinet_test`, `breach_test`, `item_icon_test`, `hud_wheel_test`, `motion_test`, `growth_test`, `pack_test`, `backpack_test`, `molotov_test`, `banister_test` — run all 56 before commit. Balance tool: `tools/economy_report.tscn` (scrap per run, ~25 min a seed). (`new_game()` rolls a RANDOM seed, so any test meets any of the four
+  `apartment_lamp_test`, `gun_cabinet_test`, `breach_test`, `item_icon_test`, `hud_wheel_test`, `motion_test`, `growth_test`, `pack_test`, `backpack_test`, `molotov_test`, `banister_test`, `stair_heights_test` — run all 57 before commit. Balance tool: `tools/economy_report.tscn` (scrap per run, ~25 min a seed). (`new_game()` rolls a RANDOM seed, so any test meets any of the four
   characters — an assert on a trait-affected value must be trait-aware; see docs/CHARACTERS.md.) (Run ONE godot at a time — a killed/backgrounded headless run can
   linger and block the next, and a GDScript **parse error makes a test scene load but
   never call `quit()`, so it "hangs" until timeout** rather than printing an error line;
@@ -2151,6 +2151,20 @@ means no rendering — UI layout and art still need an in-editor look.
   `StairWindowLightWide`). Attached in `building_floors._apply_stair_visuals` (live + pan backdrop), the hallway and the lobby.
   Locked by `stair_visuals_test` (holes see-through, the wide one wide, the run's city behind each sprite, clipped, rain only at
   night, the brighter light; mutation-checked).
+  **Round 31k (owner: "test enemy and player heights at the top of the yellow staircases. Do they A, reach and clip beyond the
+  ceiling, and B, do they clip the stairs sign. Perhaps make the stairs sign the most forward…"):** measured from the sprites' drawn
+  pixels (`stair_heights_test`, 57th suite): the player at the turn draws from y 270 — under the opening's top (262) but INTO the
+  STAIRS sign (262..277), so it drew over the sign; three stacked UP-flight enemies reached ~257 — past the ceiling. Fixes: the
+  STAIRS signs draw on their own layer IN FRONT of every actor (`floor_signs` child `StairSignsFront`, z `STAIR_SIGN_Z` 2;
+  `stair_sign_rects()`), so heads go up behind them; UP-flight enemies stand ON the flight (`building_floors.stair_up_rest`:
+  stacked 18 px apart, clamped so at the top of their bob their feet are on the top step) and are clipped at the opening's top
+  (`enter_stairwell_mode(..., top_clip)` → the slice shader's `shaft_top`, re-anchored through a pan; dropped when it steps off).
+  Mutation-checked (sign layer, clamp, clip each fail the suite).
+  Also fixed on the way: the lobby exit's "player at the door" flag came from enter / exit signals matched by node NAME, so any
+  other body called "Player" leaving the area (a freed / swapped player node) switched the prompt off with the real player in the
+  doorway — the intermittent `run_bookends_test` "at the door" failure (its message now prints near / leaving / paused / overlaps).
+  `lobby_exit.gd` now asks `overlaps_body(player)` every frame. Other triggers (stairwells, doors) still use the name-matched
+  signals — not changed.
   Y planes in docs/Y_PLANES.md §4. Locked by `banister_test` (56th suite; mutation-checked) + `stair_visuals_test` (one DOWN look,
   every stair sprite 262..406 at scale 1, signs over the stair art). Seen while capturing, NOT changed: an UP-stairwell stair enemy on
   the arrival floor can start above the top of the screen and walk down into view (its legs show under the ceiling first).

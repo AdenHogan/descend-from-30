@@ -19,26 +19,23 @@ const WALK_TIME := 1.6          # the glare's swell (a little longer than the wa
 
 func _ready() -> void:
 	add_to_group("lobby_exit")
-	body_entered.connect(_on_body_entered)
-	body_exited.connect(_on_body_exited)
-
-
-func _on_body_entered(body: Node2D) -> void:
-	if body.name == "Player":
-		_player_near = true
-
-
-func _on_body_exited(body: Node2D) -> void:
-	if body.name == "Player":
-		_player_near = false
-		HUD.hide_world_prompt(self)
 
 
 func _process(_delta: float) -> void:
-	if _leaving or not _player_near:
+	if _leaving:
 		return
+	# "Is the player at the door" is asked of the physics every frame, not kept from enter / exit signals matched by the node's
+	# NAME: any other body called "Player" leaving the area (a freed or swapped player node) flipped that flag off while the real
+	# player stood in the doorway — no prompt, no way out (an intermittent run_bookends_test failure).
 	var p = get_tree().get_first_node_in_group("player")
-	if p == null or p.is_dead or p.is_cutscene:
+	var near: bool = p is PhysicsBody2D and is_instance_valid(p) and overlaps_body(p)
+	if near != _player_near:
+		_player_near = near
+		if not near:
+			HUD.hide_world_prompt(self)
+	if not near:
+		return
+	if p.is_dead or p.is_cutscene:
 		HUD.hide_world_prompt(self)
 		return
 	HUD.show_world_prompt(self, PROMPT, global_position + Vector2(0, -78))

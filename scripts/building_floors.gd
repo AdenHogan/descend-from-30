@@ -374,6 +374,23 @@ const STAIR_STAND_Y := 370.0
 # step"; on the step's top edge it rises from behind it, up the stairs. stair_visuals_test reads the lip from the texture.
 const STAIR_DOWN_CUT_Y := 396.0
 const STAIR_DOWN_CUT_DROP := STAIR_DOWN_CUT_Y - STAIR_STAND_Y   # 26 — cut_y = STAIR_STAND_Y + this
+# UP stairwells (owner round 31k — "test enemy and player heights at the top of the yellow staircases… do they reach and clip
+# beyond the ceiling"): an enemy waiting up the visible flight stands ON it — its feet never above the top step (world 419 −
+# StairPan.UP_TURN_HEIGHT = 331), bob included — and anything of it above the stair opening's top (the lintel line, the stair
+# sprite's top 262) is clipped: up there the flight runs on behind the wall. Stacked ones bunch STAIR_UP_STACK apart.
+const STAIR_FEET_BELOW_ORIGIN := 49.0      # the standard zombie: collision bottom = origin + 49 (docs/Y_PLANES.md)
+const STAIR_UP_STACK := 18.0
+const STAIR_OPENING_TOP := 262.0           # the stair art's top edge (= stair_pan.VAULT_OPENING_TOP), just under the lintel
+
+
+static func stair_up_rest_min() -> float:
+	return 419.0 - StairPan.UP_TURN_HEIGHT - STAIR_FEET_BELOW_ORIGIN + STAIR_BOB_AMP
+
+
+## Where the i-th enemy up an UP flight waits (`roll` = how far up the flight, 30..45 px): stacked STAIR_UP_STACK apart, clamped
+## so even at the top of its bob its feet are on the top step.
+static func stair_up_rest(i: int, roll: float) -> float:
+	return maxf(STAIR_STAND_Y - (roll + float(i) * STAIR_UP_STACK), stair_up_rest_min())
 
 
 func _stair_art_box(on_left: bool) -> Dictionary:
@@ -439,7 +456,7 @@ func _spawn_stair_enemies(floor_num: int, as_scenery: bool = false) -> void:
 			var step_off: float = float(i) * 30.0
 			var rest_y: float
 			if is_up:
-				rest_y = STAIR_STAND_Y - (rng.randf_range(30.0, 45.0) + step_off)   # up the visible steps
+				rest_y = stair_up_rest(i, rng.randf_range(30.0, 45.0))      # up the visible steps, never past the top one
 			else:
 				rest_y = cut_y + rng.randf_range(28.0, 44.0) + step_off            # down in the dark shaft
 			var z = zombie_scene.instantiate()
@@ -464,7 +481,7 @@ func _spawn_stair_enemies(floor_num: int, as_scenery: bool = false) -> void:
 				if z.has_method("_make_passable_to_player"):
 					z._make_passable_to_player()
 			else:
-				z.enter_stairwell_mode(rest_y, STAIR_STAND_Y, STAIR_BOB_AMP, cut_y, on_left, is_up)
+				z.enter_stairwell_mode(rest_y, STAIR_STAND_Y, STAIR_BOB_AMP, cut_y, on_left, is_up, STAIR_OPENING_TOP)
 			if as_scenery:
 				# Frozen scenery in the pan backdrop: visible + sliced, but no AI (it must not
 				# rouse while the player is still a floor away). go_live wakes it. Collision
@@ -517,7 +534,7 @@ func _spawn_follower(floor_num: int) -> void:
 		z.end_follow_transit()                 # un-freeze, re-group, refresh player ref
 		z.spawn_key = res_key                  # resident here now (persists via memory)
 		z.global_position = Vector2(shaft_x, rest_y)
-		z.enter_stairwell_mode(rest_y, STAIR_STAND_Y, STAIR_BOB_AMP, cut_y, arrived_left, is_up)
+		z.enter_stairwell_mode(rest_y, STAIR_STAND_Y, STAIR_BOB_AMP, cut_y, arrived_left, is_up, STAIR_OPENING_TOP)
 		z.alert_timer = 99999.0                # locked on — it chose to follow you
 		z._stair_react_timer = 0.0             # emerge NOW (right after you)
 		z._stair_phase = "rise"

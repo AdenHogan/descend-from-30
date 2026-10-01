@@ -242,7 +242,8 @@ from §1, NOT the player's spawn plane.
 | `STAIR_DOWN_CUT_DROP`     | 26 (→ cut_y **396**)     | DOWN-shaft slice line = `STAIR_DOWN_CUT_Y` 396 = the top of the yellow first step (stair art lip) = the player's descent cut; was a by-eye 30 (400), which drew the enemy over the step's face |
 | `STAIR_STEP_CLEARANCE`    | 16                       | over_y = STAND_Y − this = **354** (clear the step)  |
 | DOWN rest_y               | cut_y + [28,58] = 424–454| lurk below the plane in the dark shaft              |
-| UP rest_y                 | STAND_Y − [30,55] = 315–340 | stand up the visible steps                       |
+| UP rest_y                 | `stair_up_rest(i, roll)` = STAND_Y − (roll 30..45 + i×18), never above **292** | stand up the visible steps; clamped so at the top of its bob its FEET stay on the top step (331) — `stair_up_rest_min` = 419 − 88 − 49 + 10 |
+| UP top clip               | **262** (`STAIR_OPENING_TOP`) | nothing of an UP-flight enemy draws above the opening's top (the flight runs on behind the wall) — `shaft_top` in the shared slice shader, re-anchored through a pan |
 | `STAIR_BOB_AMP`           | 10                       | idle drift band around rest_y                       |
 | `STAIR_ACTIVATE_RANGE`    | 150                      | player X-distance that rouses it                    |
 | `STAIR_REACT_MAX`         | 0.7                      | random rouse delay (0..this)                        |
@@ -253,7 +254,7 @@ from §1, NOT the player's spawn plane.
 
 Emerge path: rest → **rise to over_y 354** (above the plane, clears the step) →
 **stepdown to STAND_Y 370** (feet land on 419) → normal AI. DOWN shaft slices via
-the mouth cut (396 — the top of the yellow step); UP stairwell is drawn whole (no slice), just depth-scaled.
+the mouth cut (396 — the top of the yellow step); UP stairwell is drawn whole (no feet cut), just depth-scaled, but clipped at the opening's top (262). Measured (round 31k, `stair_heights_test`): the player at the turn draws from **270** (under 262); three stacked UP enemies would reach 257 without the clip. The STAIRS signs (262..277) draw on their own layer z 2, in FRONT of every actor.
 z 0 while in the shaft (behind the player), z 1 once stepped off.
 
 ---

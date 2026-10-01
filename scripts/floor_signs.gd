@@ -38,6 +38,7 @@ const FONT3 := {
 
 # world geometry (scenes/building_floors.tscn; the corridor art sits at (115, 243))
 const STAIR_X := {"left": 171.0, "right": 1179.0}     # the staircase openings' centres
+const STAIR_SIGN_Z := 2                                 # the STAIRS signs' layer — in front of the actors (z 1)
 const OPENING_TOP := 259.0                            # the top of the openings (corridor.py RECESS, y 16)
 const FLOOR_PLATE_X := {"left": 246.0, "right": 1100.0}   # the floor number, on the wall beside each stairwell
 const FLOOR_PLATE_Y := 290.0
@@ -88,6 +89,9 @@ static func floor_label(f: int) -> String:
 	return "LOBBY" if f <= 0 else str(f)
 
 
+var front: Node2D = null                # the STAIRS signs' own layer (StairSignsFront)
+
+
 func setup(f: int, sec: String, only_sides: Array = ["left", "right"], with_number := true) -> void:
 	name = "FloorSigns"
 	floor_num = f
@@ -96,6 +100,16 @@ func setup(f: int, sec: String, only_sides: Array = ["left", "right"], with_numb
 	number_plate = with_number
 	lift_lit = WorldState.elevator_powered or f in WorldState.MERCHANT_FLOORS
 	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS   # only the number is a texture (its smooth edges)
+	# The STAIRS signs hang in the stairwell openings, IN FRONT of anything climbing the stairs behind them (owner round 31k:
+	# "make the stairs sign the most forward… heads always go up behind it"): they draw on their own layer above the actors
+	# (z STAIR_SIGN_Z; actors are z 1). Nothing in the corridor reaches that high, so only stair climbers pass behind them.
+	if front == null:
+		front = Node2D.new()
+		front.name = "StairSignsFront"
+		front.z_index = STAIR_SIGN_Z
+		front.draw.connect(_draw_stair_signs)
+		add_child(front)
+	front.queue_redraw()
 	queue_redraw()
 
 
@@ -110,30 +124,47 @@ func stair_targets() -> Dictionary:
 	return out
 
 
-func _draw() -> void:
+## The STAIRS signs' rectangles (local = world: this node sits at the origin), for the front layer and the tests.
+func stair_sign_rects() -> Array:
+	var out: Array = []
 	var t := stair_targets()
 	for side in t:
 		if side in sides and int(t[side][1]) >= 0:
-			_stair_sign(float(STAIR_X[side]), str(t[side][0]), int(t[side][1]))
+			out.append(_stair_sign_rect(float(STAIR_X[side]), str(t[side][0]), int(t[side][1])))
+	return out
+
+
+func _draw_stair_signs() -> void:
+	var t := stair_targets()
+	for side in t:
+		if side in sides and int(t[side][1]) >= 0:
+			_stair_sign(front, float(STAIR_X[side]), str(t[side][0]), int(t[side][1]))
+
+
+func _draw() -> void:
 	if number_plate:
 		for side in sides:
 			_floor_number(float(FLOOR_PLATE_X[side]), side)
 	_lift_panel()
 
 
-func _stair_sign(cx: float, arrow: String, to_floor: int) -> void:
+func _stair_sign_rect(cx: float, arrow: String, to_floor: int) -> Rect2:
+	var w := maxi(text_width("STAIRS"), text_width(arrow + " " + floor_label(to_floor))) + 6
+	return Rect2(roundf(cx - w / 2.0), OPENING_TOP + 3.0, w, 15)
+
+
+func _stair_sign(ci: CanvasItem, cx: float, arrow: String, to_floor: int) -> void:
 	# a green safety sign hung over the stairwell opening: STAIRS, then the arrow + where it goes
 	var top_line := "STAIRS"
 	var bottom := arrow + " " + floor_label(to_floor)
-	var w := maxi(text_width(top_line), text_width(bottom)) + 6
-	var r := Rect2(roundf(cx - w / 2.0), OPENING_TOP + 3.0, w, 15)
-	draw_rect(Rect2(r.position.x + 3, OPENING_TOP, 1, 3), Color(0.16, 0.16, 0.16))              # its hangers
-	draw_rect(Rect2(r.end.x - 4, OPENING_TOP, 1, 3), Color(0.16, 0.16, 0.16))
-	draw_rect(r, Color(0.12, 0.3, 0.19))
-	draw_rect(r.grow(-1), Color(0.18, 0.46, 0.28))
+	var r := _stair_sign_rect(cx, arrow, to_floor)
+	ci.draw_rect(Rect2(r.position.x + 3, OPENING_TOP, 1, 3), Color(0.16, 0.16, 0.16))              # its hangers
+	ci.draw_rect(Rect2(r.end.x - 4, OPENING_TOP, 1, 3), Color(0.16, 0.16, 0.16))
+	ci.draw_rect(r, Color(0.12, 0.3, 0.19))
+	ci.draw_rect(r.grow(-1), Color(0.18, 0.46, 0.28))
 	var ink := Color(0.93, 0.96, 0.92)
-	draw_text(self, Vector2(roundf(cx - text_width(top_line) / 2.0), r.position.y + 2), top_line, ink)
-	draw_text(self, Vector2(roundf(cx - text_width(bottom) / 2.0), r.position.y + 8), bottom, ink)
+	draw_text(ci, Vector2(roundf(cx - text_width(top_line) / 2.0), r.position.y + 2), top_line, ink)
+	draw_text(ci, Vector2(roundf(cx - text_width(bottom) / 2.0), r.position.y + 8), bottom, ink)
 
 
 # --- THE FLOOR SIGN (owner round 24b — "a clean metal sheet with engraved floor numbers on it, not too
