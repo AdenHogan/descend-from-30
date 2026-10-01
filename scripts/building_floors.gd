@@ -974,21 +974,21 @@ func _spawn_door_fire(floor_num: int) -> void:
 		if door == null:
 			continue
 		var dx: float = door.global_position.x
-		# A slim flame climbing each door-frame edge (our narrow column kit — the frame is
+		# A slim flame climbing each door-frame edge (our cleaned purchased flames, `edge_<v>` — the frame is
 		# catching). NOT tall torch pillars flanking the door (that looked like a nightclub entrance); the doorway
 		# itself stays clear so the door is visible and enterable. Variant + phase seeded per door so they differ.
-		if FireArt.variants("colnb").is_empty():
+		var names: Array = FireArt.variants("edge")
+		if names.is_empty():
 			continue
-		# each edge is a NARROW COLUMN kit (base + cap, snapped to whole sections — ~48 px, well under the door's 84)
-		_add_door_flame(1 + (apt + floor_num) % 3, dx - 25.0, 0.13 * float(apt), 48.0)
-		_add_door_flame(1 + (apt + floor_num + 1) % 3, dx + 25.0, 0.57 + 0.11 * float(apt), 48.0)
+		_add_door_flame(str(names[(apt + floor_num) % names.size()]), dx - 25.0, 0.13 * float(apt), false)
+		_add_door_flame(str(names[(apt + floor_num + 1) % names.size()]), dx + 25.0, 0.57 + 0.11 * float(apt), true)
 
 
-func _add_door_flame(variant: int, x: float, phase: float, height: float) -> void:
+func _add_door_flame(sheet_name: String, x: float, phase: float, flip: bool) -> void:
 	var d = FIRE_DECAL.new()
-	d.column_v = variant
-	d.column_h = height
+	d.sheet_name = sheet_name
 	d.phase = phase
+	d.flip = flip
 	d.z_as_relative = false
 	d.z_index = 0                                                   # behind the player
 	d.global_position = Vector2(x, DOOR_FIRE_BASE_Y)

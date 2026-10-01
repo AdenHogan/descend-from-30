@@ -8,8 +8,6 @@ extends Node2D
 var sheet_name: String = "edge_1"     # which strip (FireArt.sheet)
 var phase: float = 0.0                # per-flame time offset (0..1 of the loop) so neighbours dance apart
 var flip: bool = false
-var column_v: int = 0                 # > 0: draw a NARROW COLUMN (base + mids + cap, FireArt.assemble_column) of ~`column_h` instead of a strip
-var column_h: float = 48.0
 var _t: float = 0.0
 
 
@@ -24,7 +22,4 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
-	if column_v > 0:
-		FireArt.assemble_column(self, "n", column_v, _t, phase, 0.0, 0.0, column_h)
-		return
 	FireArt.draw(self, sheet_name, _t, phase, Vector2.ZERO, 1.0, flip)

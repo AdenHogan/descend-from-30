@@ -459,7 +459,6 @@ const SMOKE_FRAMES := 6
 const SMOKE_FPS := 8.0
 const CHAR_COL := Color(0.09, 0.08, 0.08)
 const FIRE_LAYER := preload("res://scripts/fire_layer.gd")
-const CLUMP_STEP := 34.0            # bed clumps are 64 wide; laid this far apart they overlap into one carpet
 
 
 func _spawn_layers() -> void:
@@ -592,32 +591,48 @@ func _is_glob_cell(cx: float) -> bool:
 
 # --- the floor fire, drawn from our own strips (FireArt) ------------------------------------------------------------
 # Pure layout first (so the tests can read what would draw), then the draw calls. Each entry: {x, name, phase}.
-func bed_spots(layer: String) -> Array:
-	# BED CLUMPS along the burning span ("front": in front of the player's feet, "back": along the wall seam behind
-	# them). Clumps are 64 wide and taper to nothing at both ends, laid CLUMP_STEP apart so they overlap into one carpet —
-	# a clump is only ever drawn whole (never cropped by a cell edge). Not across a doorway or in the stair zone.
+func run_spans(layer: String) -> Array:
+	# The floor carpet as CONTINUOUS RUNS (owner round 29c: overlapping clumps made their black outlines cut through each other
+	# — "fractured"). One run per unbroken burning stretch, built by FireArt.assemble_run: a left cap, identical tiles, a right cap —
+	# so every end is a clean rounded cap and every join is exact. "front" = the carpet at the player's feet; "back" = the dimmer,
+	# patchier carpet along the wall seam (a blaze only). A stretch stops at a doorway / the stair zone. Each entry:
+	# {x0, x1 (the burning stretch), cx, w (drawn width, >= both caps), kit, v, phase}.
 	var out: Array = []
 	if stage >= STAGE_CHARRED:
 		return out
-	var kind: String = "blaze" if stage >= STAGE_BLAZE else "light"
-	var names: Array = FireArt.variants("bed_%s_%s" % [layer, kind])
-	if names.is_empty():
+	if layer == "back" and stage < STAGE_BLAZE:
+		return out
+	var kit: String = "back" if layer == "back" else ("blaze" if stage >= STAGE_BLAZE else "light")
+	if FireArt.variants("run_" + kit).is_empty():
 		return out
 	var salt: float = 1.7 if layer == "front" else 5.3
-	var x := FIRE_MIN_X + 10.0
-	var idx := 0
-	while x <= FIRE_MAX_X - 10.0:
-		var sd := float(idx) * 3.17 + float(floor_num) * 0.83 + salt
-		var cx := x + (_hash01(sd) - 0.5) * CLUMP_STEP * 0.4
-		idx += 1
-		x += CLUMP_STEP
-		if not is_burning_at(cx) or _near_door(cx) or _in_stair_keepout(cx):
-			continue
-		# the back seam carpet is patchier (depth: not a solid line along the wall)
-		if layer == "back" and _hash01(sd * 2.3) < 0.28:
-			continue
-		out.append({"x": cx, "name": names[int(_hash01(sd * 1.9) * float(names.size())) % names.size()], "phase": _hash01(sd * 4.3)})
+	var x := FIRE_MIN_X
+	var x0 := -1.0
+	while x <= FIRE_MAX_X + RUN_STEP:
+		var on := x <= FIRE_MAX_X and is_burning_at(x) and not _near_door(x) and not _in_stair_keepout(x)
+		# the wall-seam carpet is patchy (depth: never a solid line along the wall)
+		if on and layer == "back" and _hash01(float(floori(x / 84.0)) * 2.3 + float(floor_num) * 0.9 + salt) < 0.3:
+			on = false
+		if on and x0 < 0.0:
+			x0 = x
+		elif not on and x0 >= 0.0:
+			_add_run_span(out, x0, x - RUN_STEP, kit, salt)
+			x0 = -1.0
+		x += RUN_STEP
 	return out
+
+
+const RUN_STEP := 6.0
+
+
+func _add_run_span(out: Array, x0: float, x1: float, kit: String, salt: float) -> void:
+	if x1 - x0 < 24.0:
+		return                                      # a stub is not a carpet
+	var sd := floorf(x0) * 0.37 + float(floor_num) * 0.83 + salt
+	var pw: float = FireArt.run_layout(kit, 1, 0.0)["pw"]
+	var w: float = maxf(x1 - x0, 2.0 * pw)          # never narrower than its two caps
+	var cx: float = clampf((x0 + x1) * 0.5, FIRE_MIN_X + w * 0.5, FIRE_MAX_X - w * 0.5)
+	out.append({"x0": x0, "x1": x1, "cx": cx, "w": w, "kit": kit, "v": 1 + int(_hash01(sd) * 3.0) % 3, "phase": _hash01(sd * 4.3)})
 
 
 func tongue_spots() -> Array:
@@ -636,9 +651,9 @@ func tongue_spots() -> Array:
 			var roll := _hash01(sd * 1.9)
 			var size := "s"
 			if big:
-				size = "xl" if roll > 0.86 else ("l" if roll > 0.5 else "m")
+				size = "xl" if roll > 0.94 else ("l" if roll > 0.5 else "m")
 			else:
-				size = "m" if roll > 0.72 else "s"
+				size = "m" if roll > 0.6 else "s"
 			var names: Array = FireArt.variants("tongue_" + size)
 			if not names.is_empty():
 				out.append({"x": x, "name": names[int(_hash01(sd * 1.3) * float(names.size())) % names.size()], "phase": _hash01(sd * 2.9)})
@@ -648,14 +663,9 @@ func tongue_spots() -> Array:
 
 
 func _draw_tall_flames(canvas: CanvasItem) -> void:
-	# every tongue stands on a low bed of coals (a back carpet clump under it), so no flame ever ends in a flat, cut-off base
-	var kind: String = "blaze" if stage >= STAGE_BLAZE else "light"
-	var beds: Array = FireArt.variants("bed_back_" + kind)
+	# every tongue stands in the carpet (the front run covers its foot), so no flame ever ends in a flat, cut-off base
 	for sp in tongue_spots():
-		var x: float = float(sp["x"])
-		if not beds.is_empty():
-			FireArt.draw(canvas, str(beds[int(_hash01(x * 0.11) * float(beds.size())) % beds.size()]), _t, float(sp["phase"]) + 0.5, Vector2(x, FIRE_BASE_Y - 1.0), 0.95)
-		FireArt.draw(canvas, str(sp["name"]), _t, float(sp["phase"]), Vector2(x, FIRE_BASE_Y - 3.0))
+		FireArt.draw(canvas, str(sp["name"]), _t, float(sp["phase"]), Vector2(float(sp["x"]), FIRE_BASE_Y - 3.0))
 
 
 # --- fire on the WALLS (owner follow-up: "flames on walls/ceiling/doors — corridor flames only today"; the
@@ -672,7 +682,8 @@ func wall_fire_spots() -> Array:
 	var out: Array = []
 	if stage < STAGE_BLAZE:
 		return out
-	if FireArt.variants("colwb").is_empty():
+	var names: Array = FireArt.variants("wall")
+	if names.is_empty():
 		return out
 	var last_w := -1.0e9
 	var x := FIRE_MIN_X + 30.0
@@ -680,10 +691,8 @@ func wall_fire_spots() -> Array:
 		if is_burning_at(x) and not _near_door(x) and not _in_stair_keepout(x):
 			var sd := float(floori(x / 21.0)) + float(floor_num) * 1.3
 			if (x - last_w) >= WALL_FIRE_GAP and _hash01(sd * 2.7) > 0.30 and _cell_kind(x) != 2:
-				# a wall flame is a COLUMN kit (base + mids + cap): mostly the short one, sometimes one section taller
 				var vv := 1 + int(_hash01(sd * 3.3) * 3.0) % 3
-				var want := 96.0 if _hash01(sd * 5.1) > 0.88 else 60.0
-				out.append({"x": x, "v": vv, "h": FireArt.column_height("w", vv, want), "phase": _hash01(sd * 1.7)})
+				out.append({"x": x, "name": "wall_%d" % vv, "v": vv, "phase": _hash01(sd * 1.7)})
 				last_w = x
 		x += 21.0
 	return out
@@ -691,10 +700,10 @@ func wall_fire_spots() -> Array:
 
 func _draw_wall_fire(canvas: CanvasItem) -> void:
 	for sp in wall_fire_spots():
-		# the column rises out of a low run of embers (a clean-ended run, so it never stands on a bare cut edge)
+		# the flame stands on a low run of fire (a clean-ended run — cap, tile(s), cap — so it never stands on a cut edge)
 		var x: float = float(sp["x"])
 		FireArt.assemble_run(canvas, "light", int(sp["v"]), _t, float(sp["phase"]) + 0.5, x, 96.0, BACK_SEAM_Y - 3.0, 0.9)
-		FireArt.assemble_column(canvas, "w", int(sp["v"]), _t, float(sp["phase"]), x, BACK_SEAM_Y - 6.0, float(sp["h"]), 0.95)
+		FireArt.draw(canvas, str(sp["name"]), _t, float(sp["phase"]), Vector2(x, BACK_SEAM_Y - 6.0), 0.95)
 
 
 func _char_scar(canvas: CanvasItem, i: int, cx: float) -> void:
@@ -732,8 +741,8 @@ func _draw_back(canvas: CanvasItem) -> void:
 	# avoid_doors=true keeps the depth bed OUT of doorways (beside a door is fine, not
 	# straight across it); the extra patch_carve breaks up its line into clumps.
 	_draw_scorch(canvas)            # burnt-out floor first, under everything
-	for sp in bed_spots("back"):                     # the carpet along the wall seam, behind the player (depth)
-		FireArt.draw(canvas, str(sp["name"]), _t, float(sp["phase"]), Vector2(float(sp["x"]), BACK_SEAM_Y), 0.92)
+	for sp in run_spans("back"):                     # the carpet along the wall seam, behind the player (depth)
+		FireArt.assemble_run(canvas, str(sp["kit"]), int(sp["v"]), _t, float(sp["phase"]), float(sp["cx"]), float(sp["w"]), BACK_SEAM_Y)
 	_draw_stair_fire(canvas)        # the THIRD plane — fire on the down-stairwell top step
 	_draw_tall_flames(canvas)
 	_draw_wall_fire(canvas)         # a blaze climbs the walls
@@ -812,9 +821,9 @@ func has_smoulder() -> bool:
 
 func _draw_front(canvas: CanvasItem) -> void:
 	# IN FRONT of the actors (z2): the floor carpet of flame, so the player stands IN it (engulfed to the legs, walks
-	# THROUGH it) — the clump height (18 px light / 33 blaze) is feet-to-waist, never the neck. Whole clumps, never cropped.
-	for sp in bed_spots("front"):
-		FireArt.draw(canvas, str(sp["name"]), _t, float(sp["phase"]), Vector2(float(sp["x"]), FIRE_BASE_Y - 1.0))
+	# THROUGH it) — the clump height (18 px light / 33 blaze) is feet-to-waist, never the neck. One continuous run per burning stretch, clean-capped.
+	for sp in run_spans("front"):
+		FireArt.assemble_run(canvas, str(sp["kit"]), int(sp["v"]), _t, float(sp["phase"]), float(sp["cx"]), float(sp["w"]), FIRE_BASE_Y - 1.0)
 
 
 func _draw_smoke(_canvas: CanvasItem) -> void:

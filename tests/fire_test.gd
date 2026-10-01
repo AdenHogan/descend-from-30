@@ -995,7 +995,7 @@ func _test_fire_art() -> void:
 	var meta: Dictionary = FireArt.meta()
 	var sheets: Dictionary = meta.get("sheets", {})
 	check(sheets.size() >= 30, "the fire meta lists the whole library (%d sheets)" % sheets.size())
-	for prefix in ["bed_front_light", "bed_front_blaze", "bed_back_light", "bed_back_blaze", "tongue_s", "tongue_m", "tongue_l", "tongue_xl", "small", "runl_light", "run_light", "runr_light", "runl_blaze", "run_blaze", "runr_blaze", "colwb", "colwm", "colwc", "colnb", "colnm", "colnc"]:
+	for prefix in ["bed_front_light", "bed_front_blaze", "bed_back_light", "bed_back_blaze", "tongue_s", "tongue_m", "tongue_l", "tongue_xl", "wall", "edge", "small", "runl_light", "run_light", "runr_light", "runl_blaze", "run_blaze", "runr_blaze"]:
 		check(FireArt.variants(prefix).size() == 3, "%s has its 3 variants" % prefix)
 	check(not FireArt.sheet("stair").is_empty(), "the stair fire strip exists")
 	var bad: Array = []
@@ -1028,7 +1028,7 @@ func _test_fire_art() -> void:
 		for x in range(fw):
 			if img.get_pixel(x, fh - 1).a > 0.5 or img.get_pixel(x, fh - 2).a > 0.5:
 				base_lit += 1
-		if lit0 < 20 or (hot < 2 and not str(name).begins_with("bed_") and not str(name).begins_with("small") and not str(name).begins_with("run") and not str(name).begins_with("col")):   # (carpets are deliberately low + dim, and the burning-enemy flame is a few px — neither has a bright heart)
+		if lit0 < 20 or (hot < 2 and not str(name).begins_with("bed_") and not str(name).begins_with("small") and not str(name).begins_with("run")):   # (carpets are deliberately low + dim, and the burning-enemy flame is a few px — neither has a bright heart)
 			bad.append("%s: not a fire (lit %d, hot %d)" % [name, lit0, hot])
 		if diff < 6:
 			bad.append("%s: doesn't animate (first vs last frame differ in %d px)" % [name, diff])
@@ -1067,14 +1067,27 @@ func _test_fire_layout() -> void:
 		ff.set_stair_fire(146.0, 26.0, 100.0, 235.0)
 		var label := "blaze" if st == 1 else "light"
 		for layer in ["front", "back"]:
-			var beds: Array = ff.bed_spots(layer)
-			check(beds.size() >= 6, "%s %s carpet: clumps along the burning span (%d)" % [label, layer, beds.size()])
+			var spans: Array = ff.run_spans(layer)
+			if layer == "back" and st == 0:
+				check(spans.is_empty(), "light: no wall-seam carpet (a blaze only)")
+				continue
+			check(spans.size() >= 2, "%s %s carpet: runs along the burning floor (%d)" % [label, layer, spans.size()])
 			var off := 0
-			for b in beds:
-				var x: float = float(b["x"])
-				if ff._near_door(x) or ff._in_stair_keepout(x) or not ff.is_burning_at(x) or FireArt.sheet(str(b["name"])).is_empty():
+			var overlap := 0
+			var prev_x1 := -1.0e9
+			for sp in spans:
+				var x0: float = float(sp["x0"])
+				var x1: float = float(sp["x1"])
+				if ff._near_door(x0) or ff._near_door(x1) or ff._in_stair_keepout(x0) or ff._in_stair_keepout(x1) or not ff.is_burning_at(x0) or FireArt.sheet("run_%s_%d" % [sp["kit"], sp["v"]]).is_empty():
 					off += 1
-			check(off == 0, "%s %s carpet stays off doorways / the stair zone / unburnt floor, and every name is real" % [label, layer])
+				if x0 < prev_x1:
+					overlap += 1
+				prev_x1 = x1
+				var lay: Dictionary = FireArt.run_layout(str(sp["kit"]), int(sp["v"]), float(sp["w"]))
+				if float(lay["total"]) < float(sp["w"]) - 0.01:
+					off += 1
+			check(off == 0, "%s %s carpet: each run starts and ends on burning floor off doorways / the stair zone, kit art real, drawn wide enough" % [label, layer])
+			check(overlap == 0, "%s %s carpet: runs never overlap (no outline cutting through a neighbour)" % [label, layer])
 		var tongues: Array = ff.tongue_spots()
 		check(tongues.size() >= 4, "%s: tongues rise from the carpet (%d)" % [label, tongues.size()])
 		var prev := -1.0e9
@@ -1097,13 +1110,13 @@ func _test_fire_layout() -> void:
 					any_big = true
 			check(not any_big, "a light outbreak never raises the big ones")
 		ff.extinguish_span(ff.FIRE_MIN_X, ff.FIRE_MAX_X)
-		check(ff.bed_spots("front").is_empty() and ff.tongue_spots().is_empty(), "%s: doused, nothing draws" % label)
+		check(ff.run_spans("front").is_empty() and ff.tongue_spots().is_empty(), "%s: doused, nothing draws" % label)
 		ff.free()
 	var ch = _make_field()
 	ch.floor_num = 15
 	ch.stage = ch.STAGE_CHARRED
 	ch.char_all()
-	check(ch.bed_spots("front").is_empty() and ch.tongue_spots().is_empty() and ch.wall_fire_spots().is_empty(), "a charred ruin has no live fire")
+	check(ch.run_spans("front").is_empty() and ch.tongue_spots().is_empty() and ch.wall_fire_spots().is_empty(), "a charred ruin has no live fire")
 	ch.free()
 
 
@@ -1129,8 +1142,8 @@ func _row_span(img: Image, fr: int, fw: int, y: int) -> Vector2i:
 
 
 func _test_fire_extensions() -> void:
-	print("[fire extensions: runs + columns join cleanly]")
-	for stage in ["light", "blaze"]:
+	print("[fire extensions: the run kit joins cleanly]")
+	for stage in ["light", "blaze", "back"]:
 		for v in [1, 2, 3]:
 			var l: Dictionary = FireArt.sheet("runl_%s_%d" % [stage, v])
 			var m: Dictionary = FireArt.sheet("run_%s_%d" % [stage, v])
@@ -1145,10 +1158,13 @@ func _test_fire_extensions() -> void:
 			var im: Image = (m["tex"] as Texture2D).get_image()
 			var ir: Image = (r["tex"] as Texture2D).get_image()
 			var worst := 0
+			var natural := 0                       # the steepest step between neighbouring columns INSIDE the tile (its own licks)
 			var top_clear := true
 			var l_end := 0
 			var r_end := 0
 			for fr in range(int(m["frames"])):
+				for x in range(w - 1):
+					natural = maxi(natural, absi(_col_top(im, fr, w, x) - _col_top(im, fr, w, x + 1)))
 				# the middle tiles to itself: its right edge meets its own left edge
 				worst = maxi(worst, absi(_col_top(im, fr, w, w - 1) - _col_top(im, fr, w, 0)))
 				# a cap's join edge IS the middle's edge: l's right meets m's left, m's right meets r's left
@@ -1165,58 +1181,12 @@ func _test_fire_extensions() -> void:
 						l_end += 1
 					if ir.get_pixel(fr * w + w - 1, y).a > 0.5:
 						r_end += 1
-			check(worst <= 2, "run kit %s_%d: every join meets within 2 px (worst %d)" % [stage, v, worst])
+			check(worst <= natural, "run kit %s_%d: no join is steeper than the flame's own licks (join %d <= natural %d px)" % [stage, v, worst, natural])
 			check(top_clear, "run kit %s_%d: nothing touches the top row (never cropped)" % [stage, v])
 			check(l_end <= 8 * 3 and r_end <= 8 * 3, "run kit %s_%d: caps taper to nothing at their open ends (%d, %d)" % [stage, v, l_end, r_end])
-	for tag in ["w", "n"]:
-		for v in [1, 2, 3]:
-			var b: Dictionary = FireArt.sheet("col%sb_%d" % [tag, v])
-			var m2: Dictionary = FireArt.sheet("col%sm_%d" % [tag, v])
-			var c: Dictionary = FireArt.sheet("col%sc_%d" % [tag, v])
-			check(not b.is_empty() and not m2.is_empty() and not c.is_empty(), "column kit %s_%d: base, mid, cap all exist" % [tag, v])
-			if b.is_empty() or m2.is_empty() or c.is_empty():
-				continue
-			var cw: int = m2["fw"]
-			check(int(b["fw"]) == cw and int(c["fw"]) == cw, "column kit %s_%d: one piece width" % [tag, v])
-			var ib: Image = (b["tex"] as Texture2D).get_image()
-			var imid: Image = (m2["tex"] as Texture2D).get_image()
-			var ic: Image = (c["tex"] as Texture2D).get_image()
-			var worst2 := 0
-			var sides_clear := true
-			var top_narrow := true
-			for fr in range(int(m2["frames"])):
-				var base_top: Vector2i = _row_span(ib, fr, cw, 0)
-				var mid_bot: Vector2i = _row_span(imid, fr, cw, int(m2["fh"]) - 1)
-				var mid_top: Vector2i = _row_span(imid, fr, cw, 0)
-				var cap_bot: Vector2i = _row_span(ic, fr, cw, int(c["fh"]) - 1)
-				for pair in [[base_top, mid_bot], [mid_top, mid_bot], [mid_top, cap_bot]]:
-					var a: Vector2i = pair[0]
-					var bb: Vector2i = pair[1]
-					worst2 = maxi(worst2, maxi(absi(a.x - bb.x), absi(a.y - bb.y)))
-				for img2 in [ib, imid, ic]:
-					for y in range(img2.get_height()):
-						if img2.get_pixel(fr * cw, y).a > 0.5 or img2.get_pixel(fr * cw + cw - 1, y).a > 0.5:
-							sides_clear = false
-				var tip: Vector2i = _row_span(ic, fr, cw, int(c["fh"]) - 1 - 0)
-				var top_span := Vector2i(-1, -1)
-				for y in range(int(c["fh"])):
-					top_span = _row_span(ic, fr, cw, y)
-					if top_span.x >= 0:
-						break
-				if top_span.y - top_span.x + 1 > cw / 2:
-					top_narrow = false
-				tip = tip
-			check(worst2 <= 2, "column kit %s_%d: base→mid, mid→mid and mid→cap meet within 2 px (worst %d)" % [tag, v, worst2])
-			check(sides_clear, "column kit %s_%d: nothing touches a side edge (never cropped)" % [tag, v])
-			check(top_narrow, "column kit %s_%d: the cap's top is a blunt dome, not a plank" % [tag, v])
-	# layout maths: runs always cover the width (>= both caps), columns snap to whole sections
+	# layout maths: runs always cover the width (>= both caps)
 	var lay: Dictionary = FireArt.run_layout("light", 1, 10.0)
 	check(int(lay["n"]) == 0 and float(lay["total"]) >= 2.0 * float(lay["pw"]), "a run narrower than its caps is just the two caps")
 	for want in [100.0, 150.0, 333.0]:
 		var lay2: Dictionary = FireArt.run_layout("blaze", 2, want)
 		check(float(lay2["total"]) >= want and float(lay2["total"]) < want + float(lay2["pw"]) + 0.01, "a run for %d px covers it with < one piece spare" % int(want))
-	var h0: float = FireArt.column_height("w", 1, 10.0)
-	var h1: float = FireArt.column_height("w", 1, 92.0)
-	check(h0 > 0.0 and h1 > h0, "a column snaps to whole sections (%d → %d)" % [int(h0), int(h1)])
-	for pr in [["colwb", "colwm"], ["colnb", "colnm"]]:
-		check(FireArt.variants(pr[0]).size() == 3 and FireArt.variants(pr[1]).size() == 3, "%s / %s have 3 variants" % pr)

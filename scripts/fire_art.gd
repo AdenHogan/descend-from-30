@@ -88,9 +88,9 @@ static func draw(canvas: CanvasItem, name: String, t: float, phase: float, at: V
 	canvas.draw_texture_rect_region(s["tex"], dst, src, Color(1.0, 1.0, 1.0, alpha))
 
 
-# --- EXTENSION KITS (owner round 29b: "extensions… clean at the top and sides"; tools/art/fire.py "EXTENSION PIECES") ---
-# Each kit was painted as ONE strip and cut, so every join is seamless by construction. Always draw a kit through these two
-# helpers (same frame for every piece) — never mix pieces from different variants or frames.
+# --- the RUN KIT (owner round 29c: "clean extension sections are essential"; tools/art/fire.py) ---
+# The purchased fire tile, cleaned: a left cap, identical middle tiles (its edges meet) and a right cap, cut from ONE strip so every
+# join is exact. Always draw it through assemble_run (one frame for every piece, one variant).
 
 ## A horizontal run at least `width` wide, centred on `cx`: left cap + n identical middles + right cap, grounded on `base_y`.
 ## `stage` is "light" or "blaze". Returns the width actually drawn (0.0 if the art is missing).
@@ -124,45 +124,6 @@ static func run_layout(stage: String, v: int, width: float) -> Dictionary:
 	var pw: float = float(m["fw"]) * float(m["scale"])
 	var n := maxi(0, ceili((width - 2.0 * pw) / pw))
 	return {"pw": pw, "n": n, "total": pw * float(n + 2)}
-
-
-## A vertical column about `height` tall (snapped to whole mid sections), centred on `cx`, grounded on `base_y`: base + n mids + cap.
-## `tag` is "w" (wide, wall flames) or "n" (narrow, door frames). Returns the height actually drawn (0.0 if the art is missing).
-static func assemble_column(canvas: CanvasItem, tag: String, v: int, t: float, phase: float, cx: float, base_y: float, height: float, alpha: float = 1.0) -> float:
-	var b := sheet("col%sb_%d" % [tag, v])
-	var m := sheet("col%sm_%d" % [tag, v])
-	var c := sheet("col%sc_%d" % [tag, v])
-	if b.is_empty() or m.is_empty() or c.is_empty():
-		return 0.0
-	var k: float = float(m["scale"])
-	var hb: float = float(b["fh"]) * k
-	var hm: float = float(m["fh"]) * k
-	var hc: float = float(c["fh"]) * k
-	var n := maxi(0, roundi((height - hb - hc) / hm))
-	var fr := frame_at(t, phase, int(m["frames"]))
-	var x: float = cx - float(m["fw"]) * k * 0.5
-	var y: float = base_y
-	_blit_left(canvas, b, fr, x, y, alpha)
-	y -= hb
-	for _i in range(n):
-		_blit_left(canvas, m, fr, x, y, alpha)
-		y -= hm
-	_blit_left(canvas, c, fr, x, y, alpha)
-	return hb + hc + float(n) * hm
-
-
-## The height `assemble_column` would actually draw for a request (layout maths / tests).
-static func column_height(tag: String, v: int, height: float) -> float:
-	var b := sheet("col%sb_%d" % [tag, v])
-	var m := sheet("col%sm_%d" % [tag, v])
-	var c := sheet("col%sc_%d" % [tag, v])
-	if b.is_empty() or m.is_empty() or c.is_empty():
-		return 0.0
-	var k: float = float(m["scale"])
-	var hb: float = float(b["fh"]) * k
-	var hm: float = float(m["fh"]) * k
-	var hc: float = float(c["fh"]) * k
-	return hb + hc + float(maxi(0, roundi((height - hb - hc) / hm))) * hm
 
 
 static func _blit_left(canvas: CanvasItem, s: Dictionary, fr: int, x: float, bottom: float, alpha: float) -> void:
