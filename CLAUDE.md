@@ -2178,7 +2178,7 @@ means no rendering — UI layout and art still need an in-editor look.
   lines in `data/npc_dialogue.json` (the owner writes them; every moment the code uses must have a pool —
   `resident_npc_test` checks). Scared (runs, cowers, begs, may snap once), hostile (squares up + paces, threatens,
   one warning on searching then attacks), trader (offers a swap on searching — `[Trade]`/`[No]` in its screen-space
-  bubble, group `hud_widget_extra` read by `HUD.pointer_over_widget`). loot_ui calls `on_scavenge("start"/"take")`
+  bubble, group `hud_widget_extra` read by `HUD.pointer_over_widget`; a resident's first trade = one "NPC aided", +4 Valour). loot_ui calls `on_scavenge("start"/"take")`
   on group `resident_npc`. A resident's flat has no zombies / riser; listening at its door gives a voice. They die
   (drop weapon + goods, lie there all run). F1 → Residents forces them. Art = the homeless pack at 1.6x (placeholder).
   Also round 32: the bald man is now **Alex** (was Aaron).

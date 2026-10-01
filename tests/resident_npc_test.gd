@@ -336,6 +336,7 @@ func _test_trader() -> void:
 	await get_tree().process_frame
 	var r: Rect2 = npc._bubble.get_global_rect()
 	check(HUD.pointer_over_widget(r.get_center()), "a click on the bubble isn't a swing or a walk (HUD widget)")
+	var aided0: int = int(WorldState.run_chronicle[WorldState.current_run - 1].get("npcs_aided", 0)) if WorldState.run_chronicle.size() >= WorldState.current_run else 0
 	var ok: bool = npc.accept_trade()
 	var have_give := false
 	var have_bat := false
@@ -346,6 +347,12 @@ func _test_trader() -> void:
 			have_bat = true
 	check(ok and have_give and not have_bat, "the swap: their %s for your bat" % give_id)
 	check(bool(WorldState.resident_for(apt).get("traded", false)) and npc.last_moment == "trade_done", "...done, and remembered")
+	var aided1: int = int(WorldState.run_chronicle[WorldState.current_run - 1].get("npcs_aided", 0))
+	check(aided1 == aided0 + 1, "a trade counts as an NPC aided (%d → %d)" % [aided0, aided1])
+	WorldState.add_to_inventory("014")              # something else they'd take
+	var again: bool = npc.make_offer() and npc.accept_trade()
+	check(again and int(WorldState.run_chronicle[WorldState.current_run - 1].get("npcs_aided", 0)) == aided1,
+		"...once per resident (a second swap: %s, aided %d)" % [str(again), int(WorldState.run_chronicle[WorldState.current_run - 1].get("npcs_aided", 0))])
 	await _close(room)
 	# Robbed after an offer: this one turns.
 	WorldState.new_game()

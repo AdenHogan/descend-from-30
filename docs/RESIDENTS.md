@@ -35,7 +35,8 @@ pack, interrupts listening, etc.), 1.4 s between swings, only on the same plane 
 
 **Trading** never destroys the player's things: the wanted item is removed, the goods added; if they don't fit the
 item goes back where it was. The resident keeps what you gave it (it's in its pockets when it dies). The offer is
-dropped if the item leaves your pack. What it wants: `WANT_SCORE` (first aid, bandages, bullets, painkillers, food,
+dropped if the item leaves your pack. A resident's FIRST trade counts as an **NPC aided** (`WorldState.note_npc_aided`
+→ +4 Valour at the end of the session, owner's call) — once per resident, however many swaps follow. What it wants: `WANT_SCORE` (first aid, bandages, bullets, painkillers, food,
 … any weapon 5; junk / keys / money never), avoiding the item in your hand.
 
 **Death**: a last word, the Death animation, lies there for the rest of the run (re-entry too), drops its weapon +
@@ -78,6 +79,6 @@ not saved; applies to flats not yet decided this run).
 
 - No voices or sounds (shouts are text only); shouting doesn't make noise for the dead outside.
 - Not drawn in the balcony-descent backdrop (a resident below appears on landing).
-- No quests / NPC-aided Valour (`note_npc_aided`) hookup yet; trading doesn't count as aid.
+- No quests yet.
 - Not searchable as a body (their things drop instead).
 - Real resident art + a held-weapon pose.

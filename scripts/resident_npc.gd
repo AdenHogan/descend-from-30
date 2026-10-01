@@ -629,6 +629,9 @@ func accept_trade() -> bool:
 		HUD.selected_slot = -1
 	elif HUD.selected_slot > idx:
 		HUD.selected_slot -= 1
+	# A fair swap with a survivor counts as helping them (the session's "NPCs aided" Valour, +4) — once each.
+	if not bool(rec.get("traded", false)):
+		WorldState.note_npc_aided()
 	var goods: Array = rec.get("goods", [])
 	for gi in goods.size():
 		if goods[gi] is Dictionary and str(goods[gi].get("id", "")) == str(give["id"]):
