@@ -226,7 +226,7 @@ Robustness rules). What it covers:
   `dev_menu_test`, `lighting_test`, `plane_lock_test`, `apartment_window_test`,
   `scavenge_node_test`, `drop_physics_test`, `softlock_test`, `character_panel_test`,
   `corpse_recovery_test`, `run_memory_test`, `attack_input_test`, `character_stats_test`, `transition_seam_test`, `run_bookends_test`, `weapon_upgrade_test`, `progression_test`, `back_plane_test`,
-  `apartment_lamp_test`, `gun_cabinet_test`, `breach_test`, `item_icon_test`, `hud_wheel_test`, `motion_test`, `growth_test`, `pack_test`, `backpack_test`, `molotov_test` — run all 55 before commit. Balance tool: `tools/economy_report.tscn` (scrap per run, ~25 min a seed). (`new_game()` rolls a RANDOM seed, so any test meets any of the four
+  `apartment_lamp_test`, `gun_cabinet_test`, `breach_test`, `item_icon_test`, `hud_wheel_test`, `motion_test`, `growth_test`, `pack_test`, `backpack_test`, `molotov_test`, `banister_test` — run all 56 before commit. Balance tool: `tools/economy_report.tscn` (scrap per run, ~25 min a seed). (`new_game()` rolls a RANDOM seed, so any test meets any of the four
   characters — an assert on a trait-affected value must be trait-aware; see docs/CHARACTERS.md.) (Run ONE godot at a time — a killed/backgrounded headless run can
   linger and block the next, and a GDScript **parse error makes a test scene load but
   never call `quit()`, so it "hangs" until timeout** rather than printing an error line;
@@ -2091,26 +2091,41 @@ means no rendering — UI layout and art still need an in-editor look.
   shadowed riser, yellow), a grey leaning stringer + handrail; DOWN = the dark shaft (left: a lit far wall above, then black, with ONLY the first step — a yellow lip — drawn;
   the owner: the flight is never shown going down, the player just steps down out of sight, and showing it breaks the angle) beside the same wall + post. (A first attempt drew a deep one-point-perspective hall across the
   whole 80 px — the owner said the proportions were off; the old sprites only ever used the half.) **Nothing but art + 6 sprite nodes changed**: the
-  sprites are now 80x115 at scale 1 (was 353x443 at ~0.226/0.259) on the SAME world box (x 131..211 / 1139..1219, y 291..406), so `_stair_art_box`,
-  the triggers, the slice and the pan are untouched. Real-pan previews: `docs/art_reference/stairwell_pan_{down,up}.png`. The LOOK needs the
+  sprites were 80x115 at scale 1 (was 353x443 at ~0.226/0.259) on the SAME world box (x 131..211 / 1139..1219, y 291..406), so `_stair_art_box`,
+  the triggers, the slice and the pan were untouched (round 31e grew them to 80x144, y 262..406 — see below; `_stair_art_box` only feeds `is_up`). Real-pan previews: `docs/art_reference/stairwell_pan_{down,up}.png`. The LOOK needs the
   owner's eye (v1 — tone, wall, stringer).
-  **Round 31c (owner sketch — "the grey section is essentially the back view of the rear-facing staircase… needs to be at the same line as the
-  top of the yellow staircase… the black is basically empty space… turn that space into… a table, or junk. Literally anything"):** the DOWN
-  stair's top is now the BACK of the flight that climbs to the next floor (concrete, stepped bands shrinking as it climbs away, 2px stringers,
-  a lit lowest edge) whose lower edge sits on `stairwell.up_steps_top()` — the SAME sprite row (55) as the top of the yellow up-stairs; under
-  it, the RECESS at landing level (a shadowed back wall, skirting, the landing floor to the lip) with something stood in it. Three looks
-  (`RECESS_KINDS`: `cleaner` = mop bucket + wet-floor sign, `junk` = taped boxes + tied newspapers + a paint tin, `table` = a side table with a
-  dead plant + a bin bag) → `assets/stairs/down_<kind>_{left,right}.png`, rotated per floor by `building_floors.stair_recess_kind(floor)`
-  (seeded by master_seed + floor, stable across runs) in `_apply_stair_visuals` (live + pan backdrop). No extinguisher is DRAWN there on purpose
-  (a painted one would read as a pickup you can't take). Locked by `stair_visuals_test` (varies across floors, stable, the right texture, 80x115
-  at scale 1; mutation-checked).
-  **Round 31d (owner: "the line is still off… above my red line more brown, below more grey… think of the bottom section as a cupboard under
-  the stairs… any items there need geometry… all of this needs geometry and depth, like the doorways and balconies"):** EVERY non-step part of
-  both sprites now splits on that one line (`up_steps_top()`, sprite row 55): ABOVE = the BROWN back of the flight the stair turns into (tread
-  bands shrinking as it climbs away, stringer boards, a lit lowest edge ON the line); BELOW = GREY under-stair space in ONE-POINT PERSPECTIVE to
-  `VP` (40, 82 — the corridor camera's eye at the newel): `Space(x0,y0,x1,y1,k)` maps (u across, v up, t depth) to the sprite and `draw_space`
-  shades back wall / ceiling (the stair's underside) / side walls / floor by depth. UP sprite: its old plaster half is now the OPEN cupboard
-  under the stairs (door swung flat against the wall, boxes + a broom). DOWN sprite: the shaft half is the recess (RECESS_KINDS props), the
-  other half a CLOSED cupboard door set back in its frame (reveals toward the eye, two panels, brass knob). Props are solids: `cuboid` (front +
-  top + the side facing VP), `cylinder` (body + elliptical top), contact shadows. Placeholder colours per the owner ("for now").
+  **Round 31c/31d (history):** the DOWN stair's shaft half became a furnished recess (rotated per floor) and its other half a cupboard
+  door — WRONG (owner round 31e: "you've placed the cupboard furniture items where the stairwell should be to go down"); both are gone.
+  What stays from them: on the UP sprite only, ABOVE the line `stairwell.up_steps_top()` the BROWN back of the flight the stair turns
+  into (bands shrinking as it climbs away), and the UP sprite's open GREY under-stair
+  cupboard in one-point perspective (`Space` / `draw_space` / `cuboid` / `cylinder`, toward `VP` (40, 82)).
+  **Round 31e — THE BANISTER + the whole opening (owner: "if it's a down stairwell rather than having a wall we should have a bannister
+  that players can jump down just like with a balcony. If they jump down they can get hurt but their landing would be in the correct
+  position for arrival on the next floor down"; and "this section… a tilemap error… should be part of the stairwell area image"):**
+  DOWN art = the shaft half is the WAY DOWN (dark, a faint light coming up, only the yellow first step), the other half a BANISTER
+  (timber handrail, design row `RAIL_Y` 76 = world 367, painted balusters, a bottom string, an end post) across the OPEN WELL
+  (the same dark shaft wall + window as the UP stair's, falling to black below). Both sprites are now **80x144** (stairwell.py
+  `EXT` = 29 rows on top, design rows unchanged) at (171|1179, **334**) — world 262..406, filling the opening up to the lintel, so the
+  corridor art's brown filler band no longer shows; `FloorSigns` is kept drawing AFTER the stair sprites
+  (`building_floors.raise_signs_over_stairs`) so the STAIRS sign still hangs in front. **The vault** (`stairwell.gd` "BANISTER"):
+  each DOWN trigger builds a `Banister` Area2D 40 px toward the corridor (x 188 / 1162 — exactly `StairPan.dest_spawn(floor-1, true)`,
+  the floor below's arrival spot, straight under the well); W there — the nearer zone wins, so one press never both jumps and takes
+  the stairs — warns once, then a second press within 4 s jumps (`vault_banister`). Same gates as the stairs (dead / dying / cutscene /
+  escaping / lashing / listening / paused, the tutorial's stairs lock + floor-30 one-way line), a BARRICADE refuses (the crowbar keeps
+  its job); something on the steps does NOT stop you (you go over it) and NOTHING follows a jump. `StairPan.pan_to_floor(target,
+  "down", injury)` → `_vault`: step up, climb onto the rail (feet 367), hop, fall under gravity while the camera pans a floor; the
+  slice shader's new inert-by-default `gap_top/gap_bottom` band hides the player between the handrail and the floor below's opening top
+  (`vault_gap`), so they drop behind the rail and out of the lintel below feet first; touchdown = 1-2 hurt (none in god mode, same as
+  the balcony jump), a run-loud noise, a plank thud, a squash + crouch beat, then the usual adopt. No pan possible → hurt + fade.
+  **Round 31f (owner: "proportions are off now. We might need to raise the staircase to half way up… adjusting how far up the
+  player goes before stopping and moving into the slice transition"; "the downstairwell doesn't need the behind/reverse side of the
+  staircase above it"):** the UP flight is 12 steps to design row 40 (`STEP_TOP`, world 331 — halfway up the 262..406 opening; the
+  window's sill moved up to row 28 to clear it), and `stair_pan.DOWN_TURN_HEIGHT` / `UP_TURN_HEIGHT` went 72 → **88** (419 − 331) so
+  the player still turns into the slice on the top step, both ways (the descent emerges onto the lower floor's top step). The DOWN
+  sprite has NO stair back any more: one dark hall — far wall + window, the far landing's edge at row 65, the drop below it (way
+  down + lip on the left, banister on the right). `stair_visuals_test` measures the top yellow tread from the texture against
+  the turn height.
+  Y planes in docs/Y_PLANES.md §4. Locked by `banister_test` (56th suite; mutation-checked) + `stair_visuals_test` (one DOWN look,
+  every stair sprite 262..406 at scale 1, signs over the stair art). Seen while capturing, NOT changed: an UP-stairwell stair enemy on
+  the arrival floor can start above the top of the screen and walk down into view (its legs show under the ceiling first).
 - Not started: quests.

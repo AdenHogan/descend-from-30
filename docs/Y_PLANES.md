@@ -179,13 +179,22 @@ trigger counts as "on the steps" for the crossing lock.
 
 ## 4. Staircase ART boxes (measured from the visible sprite)
 
-Sprites: `HallwayStaircase{Left,Right}` (DOWN, dark shaft) and `Lobby{Left,Right}`
-(UP, visible yellow steps). Texture 353×443; left scale ≈ (0.2259, 0.2590),
-centred at ≈ (171, 348.6). World box (both arts ≈ identical):
+Sprites: `HallwayStaircase{Left,Right}` (DOWN: the dark way down + a banister over the open well) and `Lobby{Left,Right}`
+(UP, visible yellow steps). Pixel art from `tools/art/stairwell.py`: texture **80×144 at scale 1**, centred at
+(171, **334**) / (1179, 334). It fills the WHOLE stair opening, from just under the corridor's lintel down to the
+floor (owner round 31e — the corridor art's filler band used to show above a shorter 80×115 sprite):
 
-- **Left**:  x [131, 211], y [291, 406], centre x ≈ 171.
-- **Right**: mirror about corridor centre (675) → centre x ≈ 1179.
-- Art **top edge** y ≈ **291**; art **bottom** y ≈ **406**.
+- **Left**:  x [131, 211], y [**262**, 406], centre x 171.
+- **Right**: mirror about corridor centre (675) → centre x 1179.
+- Art **top edge** y = **262** (the lintel is 257..261); art **bottom** y = **406**.
+- The art is DESIGNED on rows 0..114 = world 291..405 (stairwell.py `EXT` = 29 rows above that); the yellow
+  up-steps' top / the stair-back line is design row 40 = world 331 (round 31f: the flight climbs halfway up the opening; the turn heights follow it); the DOWN banister's handrail top is design
+  row 76 = world **367** (`stair_pan.VAULT_RAIL_TOP`).
+- **Banister vault** (`stairwell.vault_banister`, `stair_pan._vault`): the banister zone is centred 40px from the
+  DOWN trigger toward the corridor (x 188 left / 1162 right) — exactly the floor below's stair-arrival x. The
+  player steps up 10, climbs to feet 367 (origin 334), hops 6, falls with the cut at 367 (clip below), and once
+  wholly between floors the cut moves to the floor below's opening top (262 + one floor, clip ABOVE) so they drop
+  in feet first and land on origin 386 (+ one floor).
 - Owner-confirmed DOWN dark-shaft inner box (fire): centre 146, half-width 26 →
   x [120, 172] (left); right mirror centre 1203. Broader stair zone kept clear
   of corridor fire: x [100, 235] (left) / [1114, 1249] (right).
@@ -200,8 +209,8 @@ All relative to a floor's standing line. DOWN and UP are separate on purpose.
 |-----------------------|-------|--------------------------------------------------|
 | `DOWN_STAIR_APPROACH` | 10    | red line: how far above the stand line stairs start |
 | `UP_STAIR_APPROACH`   | 10    | same, ascent                                     |
-| `DOWN_TURN_HEIGHT`    | 72    | dog-leg bend height above the lower floor line   |
-| `UP_TURN_HEIGHT`      | 72    | same, ascent                                     |
+| `DOWN_TURN_HEIGHT`    | 88    | dog-leg bend height above the lower floor line = the top yellow step (world 331; was 72 before round 31f raised the flight) |
+| `UP_TURN_HEIGHT`      | 88    | same, ascent                                     |
 | `SHRED_TOP`           | 52    | player sprite extent above origin                |
 | `SHRED_BOTTOM`        | 40    | player sprite extent below origin                |
 | `DOWN_SHRED_FOOT`     | 20    | cut below the red line (descent feet-first slice)|

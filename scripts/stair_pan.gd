@@ -67,10 +67,12 @@ const DOWN_STAIR_APPROACH := 10.0
 const UP_STAIR_APPROACH := 10.0
 # The dog-leg bend, measured above a floor's standing line. Descending you emerge
 # and turn here on the floor below; ascending you turn here on your own floor
-# before vanishing. Halfway (96) was far too high; 48 put the emergence too low —
-# this sits near the top of the visible yellow steps.
-const DOWN_TURN_HEIGHT := 72.0
-const UP_TURN_HEIGHT := 72.0
+# before vanishing. It is the TOP OF THE YELLOW UP-STEPS: the art's step top (tools/art/stairwell.py STEP_TOP, design row 40 =
+# world 331) above the feet line 419. Was 72 against the old, lower flight; the owner raised the flight to halfway up the opening
+# (round 31f — "we might need to raise the staircase to half way up… adjusting how far up the player goes before stopping and
+# moving into the slice transition"), so both follow it. stair_visuals_test measures the yellow top from the texture.
+const DOWN_TURN_HEIGHT := 88.0
+const UP_TURN_HEIGHT := 88.0
 # Sprite extent above/below its origin, for sweeping the cut through the whole
 # body when dissolving or rematerialising.
 const SHRED_TOP := 52.0
@@ -94,7 +96,7 @@ const UP_SHAFT_MARGIN := 0.0
 # eye — it cannot be checked headless.
 const UP_ARRIVE_REVEAL := 0.12
 # How far ABOVE a floor's standing line the stairwell opening ends. The bend is
-# UP_TURN_HEIGHT (72) up, well past this, so the player turns behind solid wall —
+# UP_TURN_HEIGHT (88) up, well past this, so the player turns behind solid wall —
 # they must not be drawn there. THIS IS THE ONE NUMBER PLACED BY EYE: headless
 # cannot see the art. Raise it to let more of the climb stay visible, lower it to
 # swallow them sooner.
@@ -118,6 +120,10 @@ uniform float shaft_max = 999999.0;
 // The top of the stairwell opening. Above it is solid wall, so the player must
 // not be drawn there — that is what "disappearing behind the bend" is.
 uniform float shaft_top = -999999.0;
+// A hidden BAND (the banister vault): nothing drawn between gap_top and gap_bottom — the stretch between one floor's handrail and
+// the next floor's stair opening. The defaults (top below bottom) never discard, so every other slice is unchanged.
+uniform float gap_top = 999999.0;
+uniform float gap_bottom = -999999.0;
 varying float world_y;
 varying float world_x;
 void vertex() {
@@ -133,6 +139,9 @@ void fragment() {
 		discard;
 	}
 	if (world_y < shaft_top) {
+		discard;
+	}
+	if (world_y > gap_top && world_y < gap_bottom) {
 		discard;
 	}
 }
@@ -251,7 +260,9 @@ func pan_targets(spawn: Vector2, cam_offset: Vector2, floor_offset: float) -> Di
 	}
 
 
-func pan_to_floor(target_floor: int, direction: String) -> void:
+## `vault_injury` >= 0 = not the stairs but a JUMP over the DOWN stair's banister (stairwell.vault_banister): the player drops down
+## the well and lands on the same arrival spot, taking that much damage at touchdown.
+func pan_to_floor(target_floor: int, direction: String, vault_injury: int = -1) -> void:
 	var scene = get_tree().current_scene
 	var player = get_tree().get_first_node_in_group("player")
 	var cam = player.get_node_or_null("Camera2D") if player != null else null
@@ -331,7 +342,9 @@ func pan_to_floor(target_floor: int, direction: String) -> void:
 		base_mod = sprite.modulate
 	var base_z: int = player.z_index
 
-	if down:
+	if vault_injury >= 0:
+		await _vault(player, sprite, pan_cam, base_scale, floor_offset, dest_y, vault_injury)
+	elif down:
 		await _descend(player, sprite, pan_cam, base_scale, floor_offset,
 			turn_x, turn_y, dest_y)
 	else:
@@ -475,6 +488,109 @@ func _descend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vecto
 	var flight2 := _stagger_y(player, player.global_position.y, dest_y)
 	await flight2.finished
 	_play_idle(sprite)
+
+
+# THE BANISTER VAULT (owner round 31e). World Y planes (docs/Y_PLANES.md §stairs): the stair sprite's top is 291, its handrail's lit
+# top edge 291 + RAIL_Y 76 = 367 (tools/art/stairwell.py). The player steps up to the banister, climbs onto the rail, drops behind it
+# (cut at the rail: everything below it is hidden — they fall behind the handrail into the well), and — once wholly between the two
+# floors — the cut flips to the floor below's stair opening top (291 + one floor; clip ABOVE it), so they drop into view feet first
+# in front of that floor's up-stairs and land on its arrival spot. Own constants, not the stairs' (CLAUDE.md: split, don't share).
+const VAULT_APPROACH := 10.0          # step toward the banister, like the stairs' first step
+const VAULT_RAIL_TOP := 367.0         # world y of the handrail's top (feet stand on it)
+const VAULT_OPENING_TOP := 262.0      # world y of a stair opening's top edge (the stair sprite's top, under the lintel)
+const VAULT_FEET := 33.0              # player origin -> feet (collision bottom), docs/Y_PLANES.md
+const VAULT_HOP := 6.0
+const VAULT_DEPTH_SCALE := 0.92       # a step back toward the banister reads as a little further away
+const VAULT_CLIMB_TIME := 0.32
+const VAULT_HOP_TIME := 0.12
+const VAULT_GRAVITY := 1500.0         # px/s² — the fall, so its pace follows its length
+const VAULT_LAND_TIME := 0.42         # crouched on landing before standing
+
+
+func vault_gap(floor_offset: float) -> Vector2:
+	# The band the falling player is hidden in: from this floor's handrail (they drop BEHIND it) to the floor below's stair opening
+	# top (they drop out of its lintel, feet first). Nothing of them is drawn in between — the floor slab and ceiling.
+	return Vector2(VAULT_RAIL_TOP, VAULT_OPENING_TOP + floor_offset)
+
+
+func _vault(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vector2,
+		floor_offset: float, dest_y: float, injury: int) -> void:
+	# (1) Step up to the banister.
+	_play_walk(sprite, 0.0)
+	var start_y: float = player.global_position.y
+	var step := create_tween().set_parallel(true)
+	step.tween_property(player, "global_position:y", start_y - VAULT_APPROACH, 0.22) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	if sprite != null:
+		step.tween_property(sprite, "scale", base_scale * VAULT_DEPTH_SCALE, 0.22)
+	await step.finished
+	if not is_instance_valid(player) or not is_instance_valid(pan_cam):
+		return
+	# (2) Up onto the rail: crouched, feet on the handrail.
+	if sprite != null and sprite.sprite_frames != null and sprite.sprite_frames.has_animation("crouch_idle"):
+		sprite.play("crouch_idle")
+	var on_rail: float = VAULT_RAIL_TOP - VAULT_FEET
+	var climb := create_tween()
+	climb.tween_property(player, "global_position:y", on_rail, VAULT_CLIMB_TIME) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	await climb.finished
+	if not is_instance_valid(player) or not is_instance_valid(pan_cam):
+		return
+	# (3) Over: a little hop, then the drop behind the handrail. The camera follows the fall down one floor.
+	_play_idle(sprite)
+	var hop := create_tween()
+	hop.tween_property(player, "global_position:y", on_rail - VAULT_HOP, VAULT_HOP_TIME) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	await hop.finished
+	if not is_instance_valid(player) or not is_instance_valid(pan_cam):
+		return
+	_set_shred(sprite, 999999.0, 1.0)
+	var gap := vault_gap(floor_offset)
+	if _shred_mat != null:
+		_shred_mat.set_shader_parameter("gap_top", gap.x)
+		_shred_mat.set_shader_parameter("gap_bottom", gap.y)
+	var top_y: float = player.global_position.y
+	var t_land: float = sqrt(2.0 * maxf(dest_y - top_y, 1.0) / VAULT_GRAVITY)
+	var cam_tw := create_tween()
+	cam_tw.tween_property(pan_cam, "global_position:y", pan_cam.global_position.y + floor_offset, t_land + 0.12) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	# (4) The drop: gravity, back to full size on the way (they arrive in front of the stairs below, not back by the banister).
+	var fall := create_tween().set_parallel(true)
+	fall.tween_property(player, "global_position:y", dest_y, t_land).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	if sprite != null:
+		fall.tween_property(sprite, "scale", base_scale, t_land)
+	await fall.finished
+	if not is_instance_valid(player):
+		return
+	if sprite != null and is_instance_valid(sprite):
+		_clear_shred(sprite)
+	# (5) Touchdown: the hurt lands WITH the body (as the balcony jump's), loud, crouched for a beat.
+	_vault_land(player, sprite, base_scale, injury)
+	await get_tree().create_timer(VAULT_LAND_TIME).timeout
+	if is_instance_valid(sprite) and is_instance_valid(player):
+		sprite.scale = base_scale
+		_play_idle(sprite)
+
+
+func _vault_land(player: Node2D, sprite: Node, base_scale: Vector2, injury: int) -> void:
+	if injury > 0 and not WorldState.god_mode and player.has_method("take_damage"):
+		player.take_damage(injury)
+		if player.has_method("flash_hurt"):
+			player.flash_hurt()
+	WorldState.emit_noise(player.global_position, WorldState.NOISE_RADIUS["run"], 1.0)
+	var sfx := AudioStreamPlayer2D.new()
+	sfx.stream = load("res://assets/audio/impacts/impactPlank_medium_00%d.ogg" % randi_range(0, 4))
+	sfx.bus = "SFX" if AudioServer.get_bus_index("SFX") != -1 else "Master"
+	player.get_parent().add_child(sfx)
+	sfx.global_position = player.global_position
+	sfx.finished.connect(sfx.queue_free)
+	sfx.play()
+	if sprite != null and is_instance_valid(sprite):
+		if sprite.sprite_frames != null and sprite.sprite_frames.has_animation("crouch_idle"):
+			sprite.play("crouch_idle")
+		sprite.scale = Vector2(base_scale.x * 1.12, base_scale.y * 0.84)
+		var squash := create_tween()
+		squash.tween_property(sprite, "scale", base_scale, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
 func _ascend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vector2,
@@ -642,6 +758,8 @@ func _set_shred(sprite: Node, cut_y: float, clip_dir: float = 1.0,
 	_shred_mat.set_shader_parameter("shaft_min", band.x)
 	_shred_mat.set_shader_parameter("shaft_max", band.y)
 	_shred_mat.set_shader_parameter("shaft_top", top)
+	_shred_mat.set_shader_parameter("gap_top", 999999.0)
+	_shred_mat.set_shader_parameter("gap_bottom", -999999.0)
 	sprite.material = _shred_mat
 
 

@@ -150,6 +150,23 @@ static func add_endpoint_signs(root: Node, floor_num: int, sides: Array, with_nu
 	var art = root.get_node_or_null("CorridorArt")
 	if art != null:
 		root.move_child(signs, art.get_index() + 1)
+	raise_signs_over_stairs(root)
+
+
+## The stair art fills its whole opening up to the lintel (round 31e), so the STAIRS sign hanging from that lintel must draw AFTER
+## the stair sprites or it's hidden behind them. Moves FloorSigns just past the last stair sprite (nothing else lies in between
+## that a sign overlaps).
+static func raise_signs_over_stairs(root: Node) -> void:
+	var signs = root.get_node_or_null("FloorSigns")
+	if signs == null:
+		return
+	var last := -1
+	for n in ["HallwayStaircaseLeft", "LobbyLeft", "HallwayStaircaseRight", "LobbyRight"]:
+		var s = root.get_node_or_null(n)
+		if s != null:
+			last = maxi(last, s.get_index())
+	if last > signs.get_index():
+		root.move_child(signs, last)
 
 
 func _apply_corridor_art(floor_num: int) -> void:
@@ -181,6 +198,7 @@ func _apply_corridor_art(floor_num: int) -> void:
 			over = get_node_or_null("CorridorDecals")
 		if over != null:
 			move_child(signs, over.get_index() + 1)
+		raise_signs_over_stairs(self)
 
 
 func _ready() -> void:
@@ -884,6 +902,7 @@ static func add_fire_scar_art(root: Node, zone: String) -> void:
 	var signs = root.get_node_or_null("FloorSigns")          # the floor's signs stay readable over the soot
 	if signs != null and signs.get_index() < art.get_index():
 		root.move_child(signs, art.get_index())
+	raise_signs_over_stairs(root)
 
 
 func _ignite_light_patch(floor_num: int, origin_x: float) -> void:
@@ -1043,14 +1062,6 @@ func _set_stair_fire(ff) -> void:
 		ff.set_stair_fire(-1.0)
 
 
-const STAIR_RECESS := ["cleaner", "junk", "table"]
-
-
-## Which recess look a floor's DOWN stair shows (seeded per floor; stable across runs — it's part of the building).
-static func stair_recess_kind(floor_num: int) -> String:
-	return STAIR_RECESS[posmod(hash(str(WorldState.master_seed) + "stair_recess" + str(floor_num)), STAIR_RECESS.size())]
-
-
 func _apply_stair_visuals(floor_num: int) -> void:
 	# WHICH staircase art each side shows.
 	#
@@ -1075,16 +1086,6 @@ func _apply_stair_visuals(floor_num: int) -> void:
 	ll.visible = not down_on_left       # Lobby_Left = UP
 	hr.visible = not down_on_left       # right is DOWN when down is NOT on the left
 	lr.visible = down_on_left           # right is UP when down IS on the left
-	# What stands in the recess under the flight above the DOWN stair (owner round 31c: "literally anything other than just black
-	# empty space") — one of the generated looks (tools/art/stairwell.py RECESS_KINDS), seeded per floor so floors differ and a
-	# floor always shows the same one. Same 80x115 texture size, so the art box / slice / triggers don't move.
-	var kind: String = stair_recess_kind(floor_num)
-	var lt = load("res://assets/stairs/down_%s_left.png" % kind)
-	var rt = load("res://assets/stairs/down_%s_right.png" % kind)
-	if lt is Texture2D:
-		hl.texture = lt
-	if rt is Texture2D:
-		hr.texture = rt
 
 	# NOTE: there is no front-layer occluder here, and adding one back is a
 	# mistake. See _apply_stair_visuals's history / docs/STAIRWELL_LAYERS.md:

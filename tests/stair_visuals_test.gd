@@ -85,9 +85,10 @@ func _ready() -> void:
 			% [down_cut, up_cut])
 
 	# The descent is signed off. These are its numbers; if a future ascent tweak
-	# ever moves one, it is a bug in the split, not a tuning choice.
+	# ever moves one, it is a bug in the split, not a tuning choice. (The bend height went 72 -> 88 on the owner's
+	# word, round 31f, when the flight was raised to halfway up the opening — it follows the art, checked below.)
 	chk(StairPan.DOWN_STAIR_APPROACH == 10.0
-		and StairPan.DOWN_TURN_HEIGHT == 72.0
+		and StairPan.DOWN_TURN_HEIGHT == 88.0
 		and StairPan.DOWN_SHRED_FOOT == 20.0
 		and StairPan.DOWN_DEPTH_SCALE == 0.82,
 		"the DESCENT still has its signed-off geometry (%.0f/%.0f/%.0f/%.2f)"
@@ -182,14 +183,8 @@ func _ready() -> void:
 		bf2.free()
 		await get_tree().process_frame
 
-	# The DOWN stair's recess (owner round 31c): a seeded look per floor, the same texture size (so the art box / slice don't move),
-	# stable for a floor, and the floors don't all show the same thing.
-	var BF = load("res://scripts/building_floors.gd")
-	var kinds := {}
-	for f in range(1, 30):
-		kinds[BF.stair_recess_kind(f)] = true
-	chk(kinds.size() >= 2, "the DOWN-stair recess varies across floors (%s)" % str(kinds.keys()))
-	chk(BF.stair_recess_kind(17) == BF.stair_recess_kind(17), "a floor's recess look is stable")
+	# The stair art (owner round 31e): one DOWN look (the way down + a banister over the open well — no recess rotation), and every
+	# stair sprite fills the WHOLE opening, lintel (262) to floor (406), so no corridor filler band shows above it.
 	for f2 in [7, 12, 25]:
 		var bf2 = load("res://scenes/building_floors.tscn").instantiate()
 		bf2.setup_floor = f2; bf2.passive = true
@@ -197,10 +192,44 @@ func _ready() -> void:
 		for i in range(3): await get_tree().process_frame
 		var down_on_left: bool = WorldState.stair_down_side(f2) == "left"
 		var spr = bf2.get_node("HallwayStaircaseLeft" if down_on_left else "HallwayStaircaseRight")
-		var want := "res://assets/stairs/down_%s_%s.png" % [BF.stair_recess_kind(f2), "left" if down_on_left else "right"]
-		chk(spr.texture != null and spr.texture.resource_path == want, "floor %d DOWN stair shows its recess (%s)" % [f2, spr.texture.resource_path if spr.texture else "none"])
-		chk(spr.texture != null and spr.texture.get_size() == Vector2(80, 115) and spr.scale == Vector2.ONE, "floor %d DOWN sprite keeps the 80x115 box at scale 1" % f2)
+		var want := "res://assets/Hallway_Staircase_%s.png" % ("Left" if down_on_left else "Right")
+		chk(spr.texture != null and spr.texture.resource_path == want, "floor %d DOWN stair shows %s (%s)" % [f2, want.get_file(), spr.texture.resource_path if spr.texture else "none"])
+		for n in ["HallwayStaircaseLeft", "HallwayStaircaseRight", "LobbyLeft", "LobbyRight"]:
+			var s2: Sprite2D = bf2.get_node(n)
+			var top: float = s2.position.y - s2.texture.get_height() * 0.5
+			var bot: float = s2.position.y + s2.texture.get_height() * 0.5
+			chk(s2.scale == Vector2.ONE and s2.texture.get_width() == 80 and is_equal_approx(top, 262.0) and is_equal_approx(bot, 406.0),
+				"floor %d %s fills the opening 262..406 at scale 1 (%.1f..%.1f)" % [f2, n, top, bot])
+		var signs = bf2.get_node_or_null("FloorSigns")
+		var after := signs != null
+		for n in ["HallwayStaircaseLeft", "HallwayStaircaseRight", "LobbyLeft", "LobbyRight"]:
+			if signs != null and signs.get_index() < bf2.get_node(n).get_index():
+				after = false
+		chk(after, "floor %d: the signs draw over the stair art (the STAIRS sign hangs in front of it)" % f2)
 		bf2.queue_free()
 		await get_tree().process_frame
+	# The bend sits ON the top of the yellow flight the art draws (both directions): measured from the texture — the topmost
+	# yellow tread in the shaft column — not taken on trust.
+	var img: Image = load("res://assets/Lobby_Left.png").get_image()
+	var top_row := -1
+	for yy in range(img.get_height()):
+		var c: Color = img.get_pixel(44, yy)   # left of the window, inside the shaft
+		if c.r > 0.6 and c.g > 0.42 and c.b < 0.35:
+			top_row = yy
+			break
+	var step_top_world: float = 262.0 + float(top_row)
+	chk(top_row >= 0 and absf((419.0 - step_top_world) - StairPan.UP_TURN_HEIGHT) <= 1.0
+		and StairPan.DOWN_TURN_HEIGHT == StairPan.UP_TURN_HEIGHT,
+		"the bend (%.0f) is the drawn top step (world %.0f -> %.0f above the feet line)" % [StairPan.UP_TURN_HEIGHT, step_top_world, 419.0 - step_top_world])
+	var mid: float = (262.0 + 406.0) * 0.5
+	chk(absf(step_top_world - mid) <= 8.0, "the flight climbs about halfway up the opening (top %.0f, middle %.0f)" % [step_top_world, mid])
+	for path in ["res://scenes/hallway.tscn", "res://scenes/lobby.tscn"]:
+		var sc = load(path).instantiate()
+		for n in ["HallwayStaircaseLeft", "LobbyRight"]:
+			var s3 = sc.get_node_or_null(n)
+			if s3 != null:
+				var top3: float = s3.position.y - s3.texture.get_height() * 0.5
+				chk(is_equal_approx(top3, 262.0), "%s %s top at the lintel (%.1f)" % [path.get_file(), n, top3])
+		sc.free()
 	print("=== %s (%d failures) ===" % ["ALL PASSED" if fails == 0 else "FAILED", fails])
 	get_tree().quit(1 if fails > 0 else 0)

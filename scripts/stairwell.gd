@@ -25,6 +25,8 @@ func _ready() -> void:
 	arrow = find_child("Label")
 	if arrow:
 		arrow.visible = false
+	if direction == "down":
+		_make_banister()
 	# Down-stairwells offer a listen read of the floor below (SOUND_STEALTH.md).
 	# The prompt (and the pry countdown) render through the crisp screen-space HUD
 	# system (HUD.show_world_prompt), same as door/loot prompts — no world-space
@@ -69,6 +71,13 @@ func _process(_delta: float) -> void:
 	if is_prying:
 		_tick_pry(_delta)
 		return
+	# W at the BANISTER vaults it (round 31e). Standing between the two zones, the nearer one wins, so one press never
+	# takes the stairs AND jumps.
+	if player_on_banister and Input.is_action_just_pressed("move_up") and not TutorialManager.interact_guarded():
+		var pb = get_tree().get_first_node_in_group("player")
+		if pb != null and prefers_banister(pb.global_position.x):
+			vault_banister()
+			return
 	if player_nearby and arrow:
 		bounce_time += _delta
 		arrow.position.y = -80 + sin(bounce_time * 4.0) * 8.0
@@ -81,6 +90,9 @@ func _process(_delta: float) -> void:
 	# W (move_up) takes the stairs — same key as stepping up into a balcony, so
 	# "up" is the one verb for every vertical transition. (E still opens doors.)
 	if player_nearby and Input.is_action_just_pressed("move_up") and not TutorialManager.interact_guarded():
+		var ps = get_tree().get_first_node_in_group("player")
+		if ps != null and player_on_banister and prefers_banister(ps.global_position.x):
+			return   # nearer the banister — that W was the vault's
 		_use_stairs()
 
 
@@ -365,3 +377,129 @@ func _commit_pry() -> void:
 	# The heavy time-skip transition carries the "building shifted" beat (fade to
 	# black + held caption), then lands the player on the floor they fought toward.
 	_perform_transition(true)
+
+
+# --- The BANISTER (owner round 31e) ------------------------------------------
+# "If it's a down stairwell rather than having a wall we should have a bannister that players can jump down just like with a
+# balcony. If they jump down they can get hurt but their landing would be in the correct position for arrival on the next floor
+# down." The DOWN stair art's other half is a banister over the open well (tools/art/stairwell.py). W there — pressed twice, like
+# the balcony jump — vaults it: StairPan drops the player down the well, and they land on the floor below exactly where the stairs
+# would have put them (that floor's up-stair arrival spot is straight under the well: 148+40 = 188, 1202-40 = 1162), hurt 1-2.
+# Same gates as the stairs, except: a follower can't come with you (you jumped), and something on the steps doesn't stop you
+# (you go over it). A barricaded stairwell still refuses — the well's choked with the same junk, so the crowbar keeps its job.
+const BANISTER_OFFSET := 40.0          # the banister half's centre, from the DOWN trigger toward the corridor
+const BANISTER_HALF_W := 16.0
+const BANISTER_TRIGGER_H := 43.0
+const VAULT_CONFIRM_WINDOW := 4.0
+const VAULT_INJURY_MIN := 1            # same as the balcony jump (player._do_balcony_descent)
+const VAULT_INJURY_MAX := 2
+var banister: Area2D = null
+var player_on_banister := false
+var _vault_confirm_time := -100.0
+
+
+func banister_x() -> float:
+	return global_position.x + (BANISTER_OFFSET if stair_side == "left" else -BANISTER_OFFSET)
+
+
+func prefers_banister(px: float) -> bool:
+	return absf(px - banister_x()) < absf(px - global_position.x)
+
+
+func _make_banister() -> void:
+	banister = Area2D.new()
+	banister.name = "Banister"
+	banister.collision_layer = collision_layer
+	banister.collision_mask = collision_mask
+	var shape := CollisionShape2D.new()
+	var rect := RectangleShape2D.new()
+	rect.size = Vector2(BANISTER_HALF_W * 2.0, BANISTER_TRIGGER_H)
+	shape.shape = rect
+	var own := get_node_or_null("CollisionShape2D") as CollisionShape2D
+	shape.position = Vector2(BANISTER_OFFSET if stair_side == "left" else -BANISTER_OFFSET, own.position.y if own != null else -11.5)
+	banister.add_child(shape)
+	add_child(banister)
+	banister.body_entered.connect(_on_banister_entered)
+	banister.body_exited.connect(_on_banister_exited)
+
+
+func _on_banister_entered(body: Node2D) -> void:
+	if body.name != "Player":
+		return
+	player_on_banister = true
+	HUD.show_world_prompt(banister, "[%s] Jump the banister" % TutorialManager.key("move_up"),
+		Vector2(banister_x(), global_position.y - 34))
+
+
+func _on_banister_exited(body: Node2D) -> void:
+	if body.name != "Player":
+		return
+	player_on_banister = false
+	_vault_confirm_time = -100.0
+	if banister != null:
+		HUD.hide_world_prompt(banister)
+
+
+## Why a vault is refused right now ("" = it may go). Pure checks, no side effects — the stairs' own gates, minus the ones a jump
+## gets round (something on the steps; a follower).
+func vault_refusal(who) -> String:
+	if who == null or who.is_dead or who.is_dying or who.is_cutscene or who.escaping or who.is_lashing or who.is_listening:
+		return "busy"
+	if get_tree().paused:
+		return "busy"
+	if WorldState.current_floor <= 0:
+		return "ground"
+	if TutorialManager.stairs_locked():
+		return "tutorial"
+	if WorldState.is_stair_blocked(_choke_floor()):
+		return "barricade"
+	if StairPan.panning:
+		return "busy"
+	return ""
+
+
+func vault_banister() -> bool:
+	var who = get_tree().get_first_node_in_group("player")
+	match vault_refusal(who):
+		"busy", "ground":
+			return false
+		"tutorial":
+			_herd_back(who)
+			return false
+		"barricade":
+			TutorialManager.say("The well's choked with the barricade's junk — nowhere to land. I'd need a crowbar to clear the stairs.")
+			return false
+	# A real drop: a DELIBERATE second press within the window, as at a balcony with no rope.
+	var now := Time.get_ticks_msec() / 1000.0
+	if now - _vault_confirm_time > VAULT_CONFIRM_WINDOW:
+		_vault_confirm_time = now
+		if WorldState.is_first_run and WorldState.current_floor == 30:
+			TutorialManager.say(TutorialManager.LINES["stairs_choice"])
+		HUD.show_feedback("A long drop down the well — press [%s] again to jump." % TutorialManager.key("move_up"))
+		return false
+	_vault_confirm_time = -100.0
+	_perform_vault(who)
+	return true
+
+
+func _perform_vault(who) -> void:
+	who.global_position.x = banister_x()
+	if banister != null:
+		HUD.hide_world_prompt(banister)
+	HUD.hide_world_prompt(self)
+	WorldState.stair_spawn_side = stair_side
+	WorldState.stair_direction = "down"
+	WorldState.spawn_source = "stair"
+	WorldState.follower_streak = 0          # nothing follows you over a banister
+	var target_floor: int = WorldState.current_floor - 1
+	var injury := 0 if WorldState.god_mode else randi_range(VAULT_INJURY_MIN, VAULT_INJURY_MAX)
+	if StairPan.can_pan(target_floor, stair_side, "down"):
+		StairPan.pan_to_floor(target_floor, "down", injury)
+		return
+	# No pan (it can't run here): hurt now, then the plain fade — never a dead end.
+	if injury > 0:
+		who.take_damage(injury)
+	WorldState.current_floor = target_floor
+	WorldState.on_floor_arrived(WorldState.current_floor)
+	HUD.update_floor_label()
+	Transition.to_scene(StairPan.scene_for_floor(WorldState.current_floor))

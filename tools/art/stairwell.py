@@ -33,8 +33,34 @@ BAYER = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]
 SHAFT_X0 = 41                       # UP: where the shaft starts (the wall + post fill 0..40)
 
 
+# The art is DESIGNED on the 80x115 frame (all y below are design rows, 0 = the old sprite top, world 291) but the sprite is EXT rows
+# taller: the stairwell art now fills the whole opening up to the lintel (owner round 31e: the corridor's brown filler band showed
+# above it — "it should be part of the stairwell area image"). Rows -EXT..-1 are that top extension; the sprite spans world
+# 262..406 (80x144, centre y 334).
+EXT = 29
+WINDOW_TOP = -22                    # the stair hall's window runs up into the extension (a tall sash)
+WINDOW_BOT = 28                     # its sill clears the top of the raised flight (STEP_TOP 40)
+
+
+class _Shifted:
+    """Pixel access in design coordinates: p[x, y] writes row y + EXT of the real (taller) image."""
+    def __init__(self, img):
+        self.a = img.load()
+
+    def __getitem__(self, xy):
+        return self.a[xy[0], xy[1] + EXT]
+
+    def __setitem__(self, xy, c):
+        if 0 <= xy[0] < W and -EXT <= xy[1] < H:
+            self.a[xy[0], xy[1] + EXT] = c
+
+
+def new_canvas():
+    return Image.new('RGBA', (W, H + EXT), (0, 0, 0, 255))
+
+
 def px(img):
-    return img.load()
+    return _Shifted(img)
 
 
 def dither(ramp, v, x, y, spread=0.5):
@@ -46,7 +72,7 @@ def dither(ramp, v, x, y, spread=0.5):
 
 
 def rect(p, x0, y0, x1, y1, col):
-    for y in range(max(0, y0), min(H, y1 + 1)):
+    for y in range(max(-EXT, y0), min(H, y1 + 1)):
         for x in range(max(0, x0), min(W, x1 + 1)):
             p[x, y] = col + (255,)
 
@@ -71,7 +97,7 @@ def floor_strip(p, x0, x1):
 
 
 def newel(p, x):
-    for y in range(0, 109):
+    for y in range(-EXT, 109):
         p[x, y] = WOOD[1] + (255,)
         p[x + 1, y] = WOOD[0] + (255,)
         p[x - 1, y] = WOOD[2] + (255,) if y % 9 else WOOD[1] + (255,)
@@ -97,7 +123,7 @@ def window(p, x0, y0, x1, y1):
 def dark_back(p, x0, x1, y0, y1, glow=None):
     for y in range(y0, y1 + 1):
         for x in range(x0, x1 + 1):
-            v = 1.0 + (0.5 if y < 8 else 0.0)
+            v = 1.0 + (0.5 if y < -EXT + 6 else 0.0)
             if glow:
                 gx, gy, gr = glow
                 d = ((x - gx) ** 2 + ((y - gy) * 0.7) ** 2) ** 0.5
@@ -106,13 +132,13 @@ def dark_back(p, x0, x1, y0, y1, glow=None):
 
 
 def up_view():
-    img = Image.new('RGBA', (W, H), (0, 0, 0, 255))
+    img = new_canvas()
     p = px(img)
     floor_strip(p, 0, W - 1)
     under_stairs_open(p, 0, 39, up_steps_top())
     # the shaft: dark back wall, the window high up, light spilling down toward the steps
-    dark_back(p, SHAFT_X0, W - 1, 0, 108, glow=(59, 24, 30))
-    window(p, 48, 3, 69, 36)
+    dark_back(p, SHAFT_X0, W - 1, -EXT, 108, glow=(59, 7, 36))
+    window(p, 48, WINDOW_TOP, 69, WINDOW_BOT)
     # nine flat frontal steps, a touch narrower toward the top (the stringer leans in); nosing / tread / shadowed riser
     N, y_bot = STEP_N, STEP_BOT
     heights = _step_heights()
@@ -157,7 +183,8 @@ def up_view():
 # down (RECESS kinds, rotated by floor), its other half a closed under-stair cupboard door. Grey below, brown above, as the owner asked.
 RECESS = 'cleaner'
 RECESS_KINDS = ['cleaner', 'junk', 'table']   # rotated by floor (building_floors._apply_stair_visuals)
-STEP_N, STEP_BOT = 9, 108
+STEP_N, STEP_BOT = 12, 108
+STEP_TOP = 40      # owner round 31f: the flight climbs HALFWAY up the opening (design 108 floor .. -29 top) — stair_pan.*_TURN_HEIGHT follow it
 VP = (40.0, 82.0)                             # the vanishing point: the corridor camera's eye, centred on the sprite (the newel)
 BROWN = [(44, 28, 16), (66, 43, 26), (90, 60, 36), (116, 80, 49), (142, 102, 64)]
 GREY = [(26, 28, 30), (42, 45, 48), (60, 64, 66), (82, 86, 86), (108, 112, 110)]
@@ -172,7 +199,10 @@ CLAY = [(84, 44, 30), (122, 68, 46), (156, 94, 64), (184, 122, 88)]
 
 
 def _step_heights():
-    return [6.4 - 0.14 * i for i in range(STEP_N)]
+    """STEP_N risers from the floor (STEP_BOT) to STEP_TOP, each a touch shallower than the one below (the flight recedes)."""
+    raw = [6.4 - 0.14 * i for i in range(STEP_N)]
+    k = (STEP_BOT - STEP_TOP) / sum(raw)
+    return [r * k for r in raw]
 
 
 def up_steps_top() -> int:
@@ -211,23 +241,25 @@ def line(p, a, b, col):
 def back_of_flight(p, x0, x1, line_y):
     """The back of the flight above, seen from the landing: brown timber, a band per tread (the nearest, lowest, biggest), stringer
     boards at both sides, the lowest edge catching the light and a hard shadow under it — that edge ON the line."""
-    hs = [8.2 - 0.62 * i for i in range(STEP_N)]
+    hs = [max(1.8, 8.2 - 0.62 * i) for i in range(STEP_N + 12)]   # on up into the extension, the treads ever thinner
     y = float(line_y)
     bands = []
     for hgt in hs:
+        if y - hgt < -EXT:
+            break
         top = y - hgt
         bands.append((int(round(top)), int(round(y))))
         y = top
     for x in range(x0, x1 + 1):
-        for yy in range(0, line_y + 1):
-            p[x, yy] = dither(BROWN, 0.9 + 1.4 * (yy / max(1, line_y)), x, yy, 0.06) + (255,)
+        for yy in range(-EXT, line_y + 1):
+            p[x, yy] = dither(BROWN, max(0.0, 0.9 + 1.4 * (yy / max(1, line_y))), x, yy, 0.06) + (255,)
     for (t, bt) in bands:
         for x in range(x0, x1 + 1):
-            if 0 <= t < H:
-                p[x, t] = dither(BROWN, 3.0 + 0.8 * (bt / max(1, line_y)), x, t, 0.0) + (255,)
-            if 0 <= t + 1 < H:
+            if -EXT <= t < H:
+                p[x, t] = dither(BROWN, max(1.5, 3.0 + 0.8 * (bt / max(1, line_y))), x, t, 0.0) + (255,)
+            if -EXT <= t + 1 < H:
                 p[x, t + 1] = BROWN[0] + (255,)
-    for yy in range(0, line_y + 1):
+    for yy in range(-EXT, line_y + 1):
         for x in (x0, x0 + 1):
             p[x, yy] = BROWN[0] + (255,)
         for x in (x1 - 1, x1):
@@ -428,23 +460,75 @@ def under_stairs_open(p, x0, x1, line_y, kind='cupboard'):
     fill_poly(p, [(x0 + 1, line_y + 5), (x0 + 4, line_y + 6), (x0 + 4, STEP_BOT - 1), (x0 + 1, STEP_BOT)], lambda x, y: dither(GREY, 2.4 if x < x0 + 3 else 1.2, x, y, 0.2))
 
 
+PAINT = [(78, 80, 78), (122, 124, 120), (164, 166, 160), (192, 194, 186)]   # painted balusters: shadow .. lit edge
+RAIL_Y = 76                         # DOWN: the banister's handrail (sprite y of its lit top edge) — stairwell.gd BANISTER_* reads it
+BALUSTER_XS = list(range(44, 77, 4))
+
+
+def well(p, x0, x1, y0, y1):
+    """The open stairwell behind the banister: the same dark shaft wall as the UP stair's, lit round the window above, falling away
+    to black below this floor's landing (the far side's floor line at y 66) — the drop you'd jump."""
+    dark_back(p, x0, x1, y0, y1, glow=(59, 7, 36))
+    for y in range(66, y1 + 1):
+        for x in range(x0, x1 + 1):
+            t = (y - 66) / max(1.0, y1 - 66)
+            p[x, y] = dither(DARK, max(0.0, 1.1 - 1.3 * t), x, y, 0.3) + (255,)
+    for x in range(x0, x1 + 1):                                    # the far side's landing edge, catching the window light
+        p[x, 65] = dither(PLASTER, 1.2, x, 65, 0.2) + (255,)
+        p[x, 66] = PLASTER[0] + (255,)
+
+
+def banister(p, x0, x1):
+    """A painted banister across the open well: a timber handrail (lit top, underside in shadow — the eye is just below it),
+    turned white balusters, a bottom string on the landing slab, an end post against the hall's side wall."""
+    for bx in BALUSTER_XS:
+        for y in range(RAIL_Y + 4, 103):
+            bulge = (y in (86, 87, 96, 97))
+            p[bx, y] = PAINT[3 if y < 90 else 2] + (255,)
+            p[bx + 1, y] = PAINT[1] + (255,)
+            if bulge:
+                p[bx - 1, y] = PAINT[2] + (255,)
+                p[bx + 2, y] = PAINT[0] + (255,)
+        p[bx + 2, 101] = PAINT[0] + (255,)
+    for x in range(x0, x1 + 1):
+        p[x, RAIL_Y] = TIMBER[3] + (255,)
+        p[x, RAIL_Y + 1] = TIMBER[2] + (255,)
+        p[x, RAIL_Y + 2] = TIMBER[1] + (255,)
+        p[x, RAIL_Y + 3] = TIMBER[0] + (255,)
+        p[x, 103] = TIMBER[2] + (255,)                            # the bottom string
+        p[x, 104] = TIMBER[0] + (255,)
+        for y in range(105, 108):                                  # the landing slab's cut edge, facing us
+            p[x, y] = dither(GREY, 2.6 - (y - 105) * 0.8, x, y, 0.2) + (255,)
+    for y in range(RAIL_Y - 4, 108):                               # the end post against the side wall
+        for x, c in ((x1 - 2, TIMBER[3]), (x1 - 1, TIMBER[2]), (x1, TIMBER[0])):
+            p[x, y] = c + (255,)
+    for x in range(x1 - 3, x1 + 1):
+        p[x, RAIL_Y - 5] = TIMBER[3] + (255,)
+
+
+def way_down(p, x0, x1, y0, y1):
+    """The DOWN shaft below the stair back: the dark where the flight drops away, a faint light coming up from the landing below
+    (brightest just behind the lip). Only the first step (the lip) is drawn; the flight itself never is."""
+    for y in range(y0, y1 + 1):
+        for x in range(x0, x1 + 1):
+            t = (y - y0) / max(1.0, y1 - y0)
+            v = 0.1 + 2.9 * t ** 3.0 + 0.5 * max(0.0, 1 - abs(x - (x0 + x1) / 2) / 20.0) * t ** 2
+            p[x, y] = (dither(DARK, min(3.0, v), x, y, 0.35) if v < 2.8 else dither(FAR, min(1.6, v - 2.8), x, y, 0.35)) + (255,)
+    for y in range(y0, y1 + 1):                                   # the shaft's side wall edge, catching the up-light
+        p[x0, y] = dither(DARK, 1.0 + 1.8 * ((y - y0) / max(1.0, y1 - y0)), x0, y, 0.2) + (255,)
+
+
 def down_view(kind=None):
-    kind = kind or RECESS
-    img = Image.new('RGBA', (W, H), (0, 0, 0, 255))
+    """One dark stair hall (owner round 31f: no stair back above the DOWN stair): the far wall under the window, the far landing's
+    edge at row 65, below it the drop — on the left the way down with only its first step drawn, on the right the banister across
+    the open well."""
+    img = new_canvas()
     p = px(img)
     floor_strip(p, 0, W - 1)
-    line_y = up_steps_top()
-    # the shaft half (x 1..38): the stair back above the line, the recess at landing level under it, the first step down at the front
-    back_of_flight(p, 1, 38, line_y)
-    sp = Space(1, line_y + 3, 38, 104, k=0.58)
-    draw_space(p, sp, lit=0.95)
-    props(p, sp, kind)
-    # the other half: the same stair back above the line, a closed cupboard door under it in its plastered wall
-    back_of_flight(p, 41, W - 1, line_y)
-    for y in range(line_y + 3, STEP_BOT):
-        for x in range(41, W):
-            p[x, y] = dither(GREY, 1.8 + 0.6 * (y - line_y) / 50.0, x, y, 0.2) + (255,)
-    cupboard_door(p, 48, line_y + 8, 73, STEP_BOT - 1)
+    well(p, 1, W - 1, -EXT, 104)
+    way_down(p, 1, 38, 67, 104)
+    window(p, 48, WINDOW_TOP, 69, WINDOW_BOT)
+    banister(p, 41, W - 1)
     # the lip: the first step down, in yellow
     rect(p, 0, 105, 40, 105, YEL[0])
     rect(p, 0, 106, 40, 107, YEL[2])
@@ -456,11 +540,6 @@ def down_view(kind=None):
 
 def build():
     up, down = up_view(), down_view()
-    for kind in RECESS_KINDS:
-        dv = down_view(kind)
-        dv.save(os.path.join(ROOT, 'assets', 'stairs', 'down_%s_left.png' % kind))
-        dv.transpose(Image.FLIP_LEFT_RIGHT).save(os.path.join(ROOT, 'assets', 'stairs', 'down_%s_right.png' % kind))
-        print('wrote assets/stairs/down_%s_{left,right}.png' % kind)
     outs = {'Lobby_Left.png': up, 'Hallway_Staircase_Left.png': down,
             'Lobby_Right.png': up.transpose(Image.FLIP_LEFT_RIGHT),
             'Hallway_Staircase_Right.png': down.transpose(Image.FLIP_LEFT_RIGHT)}
@@ -471,10 +550,10 @@ def build():
         out = os.path.join(ROOT, 'docs', 'art_reference')
         os.makedirs(out, exist_ok=True)
         S = 5
-        views = [up] + [down_view(k) for k in RECESS_KINDS]
-        sheet = Image.new('RGBA', (W * S * len(views) + 10 * (len(views) + 1), H * S + 20), (30, 30, 34, 255))
+        views = [up, down]
+        sheet = Image.new('RGBA', (W * S * len(views) + 10 * (len(views) + 1), (H + EXT) * S + 20), (30, 30, 34, 255))
         for i, im in enumerate(views):
-            sheet.paste(im.resize((W * S, H * S), Image.NEAREST), (10 + i * (W * S + 10), 10))
+            sheet.paste(im.resize((W * S, (H + EXT) * S), Image.NEAREST), (10 + i * (W * S + 10), 10))
         sheet.save(os.path.join(out, 'stairwell.png'))
         print('wrote docs/art_reference/stairwell.png')
 
