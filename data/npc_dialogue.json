@@ -58,6 +58,33 @@
     "death":         ["…should've… haggled…", "…no refunds…"]
   },
 
+  "scripts": {
+    "_note": [
+      "SCRIPTED residents (owner round 32c). A resident given a script says ONLY its three lines (plus hurt / death):",
+      "line 1 when you walk in (first meeting), line 2 the first time you search their things, line 3 the second time.",
+      "scripts.<temper>.<run> — one script per resident, picked at random, no script used twice in a run while unused ones remain.",
+      "A run / temper with no scripts falls back to the pools above. {player} = the current character's name.",
+      "Letters are only identifiers."
+    ],
+    "scared": {
+      "1": {
+        "A": ["What are you doing in here?", "No, don't take that. I need it!", "No, Stop it! Please..."],
+        "B": ["Phew, I thought you were one of them!", "Hey, that's mine...", "Please don't."],
+        "C": ["GET OUT OF HERE!", "What are you doing!?", "How can you live with yourself?"],
+        "D": ["That door was locked for a reason.", "Now you're stealing too?", "Those things aren't the only monsters..."],
+        "E": ["Thank god, you came to rescue me!", "Huh? Oh...", "I hope you die out there."],
+        "F": ["I was safe in here.", "Please, please don't!", "(whisper) please..."],
+        "G": ["Who goes there? Oh {player}, it's you.", "Seriously, I never took you for a thief!", "I thought we were friends..."],
+        "H": ["Help me, please.", "Take what you want, just save me!", "Please..."],
+        "I": ["(cries)", "(cries)", "(cries)"],
+        "J": ["What are you doing here?", "Seriously? You're a dick.", "If I see you again, you're dead..."],
+        "K": ["Get out! You're trespassing.", "Wha-what are you doing?", "You're no better than those creatures..."]
+      },
+      "2": {},
+      "3": {}
+    }
+  },
+
   "revenant": {
     "_note": "The PLAYER's line (bottom of the screen) on first seeing, in a later run, the resident they killed — back as one of the dead.",
     "recognise": ["…That's them. From before. I did that.", "Oh no. Oh no, that's — I know that coat.", "They didn't stay down."]

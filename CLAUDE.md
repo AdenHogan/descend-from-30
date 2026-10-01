@@ -2184,5 +2184,8 @@ means no rendering — UI layout and art still need an in-editor look.
   **Revenants** (round 32b): a resident killed in run 1/2 is back from the next run in that flat as a seeded crawler or
   spitter, ×1.2 speed + ×1.2 HP rounded up (`WorldState.revenants`, `room._spawn_revenant`, `enemy.make_revenant`), until
   killed (`_settle_revenants` at the time skip); the player recognises them (`npc_dialogue.json` → `revenant.recognise`).
+  **Scripted residents** (round 32c): the owner's three-line scripts (walk in / 1st search / 2nd search) in
+  `npc_dialogue.json` → `scripts.<temper>.<run>` (v1: 11 for scared, run 1); one per resident, no repeats in a run while
+  unused remain (`_pick_resident_script`); a scripted resident speaks only its script + hurt/death; `{player}` = the name.
   Also round 32: the bald man is now **Alex** (was Aaron).
 - Not started: quests.

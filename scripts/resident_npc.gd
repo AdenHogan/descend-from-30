@@ -94,6 +94,8 @@ var _enter_t: float = ENTER_DELAY
 var offer: Dictionary = {}          # {"give": {id, amount}, "get": ItemInstance} while a swap is on the table
 var _pace_phase: float = 0.0
 var _met_before: int = 0
+var script_lines: Array = []        # the owner's scripted beats [enter, 1st search, 2nd search] — see say_script
+const SCRIPT_KEEPS := ["hurt", "death"]   # the only pool moments a scripted resident still speaks
 
 
 ## Lays a resident into `room` from its record. `x` < 0 = its seeded spot, at the far end from the door.
@@ -120,6 +122,7 @@ func _ready() -> void:
 	monitorable = false
 	z_index = 1
 	temper = str(rec.get("temper", "scared"))
+	script_lines = WorldState.resident_script_lines(rec)
 	weapon = str(rec.get("weapon", ""))
 	look = int(rec.get("look", 1))
 	current_hp = int(rec.get("hp", WorldState.RESIDENT_HP.get(temper, 3)))
@@ -239,7 +242,10 @@ func _build_bubble() -> void:
 # --- speech ------------------------------------------------------------------------------------
 
 ## Says a line for `moment` from the dialogue file (never the same line twice running). "" = silent.
+## A SCRIPTED resident (the owner's three-line scripts) says nothing from the pools but SCRIPT_KEEPS.
 func say(moment: String, hold: float = 0.0) -> String:
+	if not script_lines.is_empty() and not (moment in SCRIPT_KEEPS):
+		return ""
 	var pool = WorldState.resident_lines().get(temper, {}).get(moment, [])
 	if not (pool is Array) or pool.is_empty():
 		return ""
@@ -247,7 +253,17 @@ func say(moment: String, hold: float = 0.0) -> String:
 	if pool.size() > 1 and i == int(_last_by_moment.get(moment, -1)):
 		i = (i + 1) % pool.size()
 	_last_by_moment[moment] = i
-	var line := _fill(str(pool[i]))
+	return _show(moment, _fill(str(pool[i])), hold)
+
+
+## Scripted beat `n`: 0 = walking in, 1 = the first search, 2 = the second.
+func say_script(n: int) -> String:
+	if n < 0 or n >= script_lines.size():
+		return ""
+	return _show("script_%d" % (n + 1), _fill(str(script_lines[n])), 0.0)
+
+
+func _show(moment: String, line: String, hold: float) -> String:
 	last_moment = moment
 	last_line = line
 	_bubble_label.text = line
@@ -258,6 +274,7 @@ func say(moment: String, hold: float = 0.0) -> String:
 
 
 func _fill(line: String) -> String:
+	line = line.replace("{player}", WorldState.character_display_name(WorldState.current_character()))
 	if offer.is_empty():
 		return line
 	return line.replace("{give}", _item_name(offer["give"]["id"])).replace("{get}", _item_name(offer["get"].item_id))
@@ -357,6 +374,11 @@ func _player_reachable(p: Node) -> bool:
 
 
 func _greet() -> void:
+	if not script_lines.is_empty():
+		if _met_before == 0:
+			say_script(0)
+		_shout_t = randf_range(SHOUT_MIN, SHOUT_MAX)
+		return
 	if _met_before > 0:
 		say("enter_again")
 	elif WorldState.was_key_opened(apartment_id):
@@ -534,6 +556,17 @@ func go_violent(moment: String = "attack") -> void:
 func on_scavenge(phase: String, apt_id: String) -> void:
 	if is_dead or apt_id != apartment_id:
 		return
+	_react_to_search(phase)
+	# A scripted resident's beats 2 and 3: the first and second time you start searching (kept across re-entry).
+	if phase == "start" and not script_lines.is_empty():
+		var n: int = int(rec.get("searches", 0)) + 1
+		rec["searches"] = n
+		WorldState.update_resident(apartment_id, {"searches": n})
+		if n <= 2:
+			say_script(n)
+
+
+func _react_to_search(phase: String) -> void:
 	_provoked()
 	match temper:
 		"scared":

@@ -4270,13 +4270,44 @@ func _roll_resident(apartment_id: String) -> Dictionary:
 		var lo: int = RESIDENT_GOODS[gid][1]
 		var hi: int = RESIDENT_GOODS[gid][2]
 		goods.append({"id": gid, "amount": rng.randi_range(lo, hi) if hi > 0 else 0})
-	return {
+	var rec := {
 		"temper": temper, "look": look, "weapon": weapon, "goods": goods,
 		"hp": int(RESIDENT_HP[temper]), "dead": false, "x": -1.0, "spot": rng.randf(),
 		"violent": false, "warned": 0, "traded": false, "met": 0,
 		"lash": rng.randf() < 0.4,        # a scared one who snaps when cornered
 		"turn": rng.randf() < 0.5,        # a trader who turns on you if robbed after an offer
+		"searches": 0,
 	}
+	rec["script"] = _pick_resident_script(temper, rng)
+	return rec
+
+
+## The owner's SCRIPTED residents (npc_dialogue.json "scripts.<temper>.<run>": id -> [enter, 1st search, 2nd
+## search]): one per resident, never one already given to another resident this run while unused ones remain.
+## "" = no scripts for this temper / run (the line pools apply).
+func _pick_resident_script(temper: String, rng: RandomNumberGenerator) -> String:
+	var pool = resident_lines().get("scripts", {}).get(temper, {}).get(str(clampi(current_run, 1, 3)), {})
+	if not (pool is Dictionary) or pool.is_empty():
+		return ""
+	var ids: Array = pool.keys()
+	ids.sort()
+	var used := {}
+	var suffix := ":%d" % current_run
+	for k in residents:
+		if str(k).ends_with(suffix) and residents[k] is Dictionary:
+			used[str(residents[k].get("script", ""))] = true
+	var free: Array = ids.filter(func(i): return not used.has(str(i)))
+	var from: Array = free if not free.is_empty() else ids
+	return str(from[rng.randi() % from.size()])
+
+
+## A resident's three scripted lines ([] = none).
+func resident_script_lines(rec: Dictionary) -> Array:
+	var id := str(rec.get("script", ""))
+	if id == "":
+		return []
+	var l = resident_lines().get("scripts", {}).get(str(rec.get("temper", "")), {}).get(str(clampi(current_run, 1, 3)), {}).get(id, [])
+	return l if l is Array and l.size() >= 3 else []
 
 
 func _weighted_key(weights: Dictionary, rng: RandomNumberGenerator) -> String:

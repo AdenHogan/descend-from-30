@@ -23,6 +23,7 @@ func _ready() -> void:
 	await _test_hostile()
 	await _test_scared()
 	await _test_trader()
+	await _test_scripts()
 	await _test_revenant()
 	WorldState.dev_residents = 0
 	WorldState.god_mode = false
@@ -140,6 +141,13 @@ func _test_dialogue_file() -> void:
 				missing.append(t + "." + m)
 	check(missing.is_empty(), "every moment has lines (missing: %s)" % str(missing))
 	check(lines.get("listen", {}).size() == 3, "a listen line per temper")
+	var bad := []
+	var scripts = lines.get("scripts", {}).get("scared", {}).get("1", {})
+	for id in scripts:
+		var l = scripts[id]
+		if not (l is Array) or l.size() != 3 or l.any(func(x): return str(x).strip_edges() == ""):
+			bad.append(id)
+	check(scripts.size() == 11 and bad.is_empty(), "run 1 scared scripts: 11, three lines each (bad: %s)" % str(bad))
 
 
 # --- live flats ---------------------------------------------------------------------------------
@@ -251,9 +259,9 @@ func _test_hostile() -> void:
 
 
 func _test_scared() -> void:
-	print("[a SCARED resident: runs from you, cowers, begs]")
+	print("[a SCARED resident: runs from you, cowers, begs (run 2 — the line pools; run 1 is scripted)]")
 	WorldState.new_game()
-	WorldState.current_run = 1
+	WorldState.current_run = 2
 	WorldState.dev_residents = 2
 	var apt := _resident_flat()
 	if apt == "":
@@ -456,3 +464,73 @@ func _test_revenant() -> void:
 	WorldState.current_run = 3
 	WorldState.note_resident_killed("1501", 500.0)
 	check(not WorldState.revenants.has("1501"), "killed on the last run: nothing to come back to")
+
+
+func _test_scripts() -> void:
+	print("[run 1 SCARED residents speak the owner's scripts: walk in / first search / second search]")
+	WorldState.new_game()
+	WorldState.current_run = 1
+	WorldState.dev_residents = 2
+	WorldState.residents.clear()
+	WorldState.floor_states_seeded.clear()
+	WorldState.door_states.clear()
+	# One per resident, no repeats while unused ones remain.
+	var ids := []
+	for a in _apts():
+		if ids.size() >= 11:
+			break
+		if WorldState.resident_eligible(a):
+			var r: Dictionary = WorldState.resident_for(a)
+			if not r.is_empty():
+				ids.append(str(r.get("script", "")))
+	var uniq := {}
+	for i in ids:
+		uniq[i] = true
+	check(ids.size() == 11 and uniq.size() == 11 and not uniq.has(""), "11 scared residents, 11 different scripts (%s)" % str(ids))
+	check(WorldState.resident_for(_resident_flat_any()).get("script", "") != "" , "(every run-1 scared resident has one)")
+	var apt := _resident_flat()
+	if apt == "":
+		check(false, "a scripted resident's flat")
+		return
+	var rec: Dictionary = WorldState.resident_for(apt)
+	var want: Array = WorldState.resident_script_lines(rec)
+	check(want.size() == 3, "script %s has its three lines" % rec.get("script", "?"))
+	var room := _open_flat(apt)
+	await _frames(3)
+	var npc = room.get("resident")
+	var p = get_tree().get_first_node_in_group("player")
+	p.global_position.x = npc.global_position.x + (-220.0 if npc.global_position.x > 600.0 else 220.0)
+	await _frames(40)
+	var name_now: String = WorldState.character_display_name(WorldState.current_character())
+	check(npc.last_line == str(want[0]).replace("{player}", name_now), "walk in: line 1 ('%s')" % npc.last_line)
+	check(npc.last_line.find("{") < 0, "...no raw placeholders")
+	get_tree().call_group("resident_npc", "on_scavenge", "start", apt)
+	check(npc.last_line == str(want[1]), "first search: line 2 ('%s')" % npc.last_line)
+	get_tree().call_group("resident_npc", "on_scavenge", "take", apt)
+	check(npc.last_line == str(want[1]), "taking says nothing new ('%s')" % npc.last_line)
+	get_tree().call_group("resident_npc", "on_scavenge", "start", apt)
+	check(npc.last_line == str(want[2]), "second search: line 3 ('%s')" % npc.last_line)
+	get_tree().call_group("resident_npc", "on_scavenge", "start", apt)
+	check(npc.last_line == str(want[2]), "a third search: nothing more to say")
+	check(npc.say("leave_demand") == "" and npc.say("cornered") == "" and npc.say("scavenge_beg") == "",
+		"no lines from the pools beyond the script")
+	check(npc.say("hurt") != "", "...but it still cries out when hurt")
+	# {player} fills with the current character's name.
+	check(npc._fill("Oh {player}, it's you.") == "Oh %s, it's you." % name_now, "{player} = %s" % name_now)
+	await _close(room)
+	# Coming back: no fresh greeting, and the script carries on where it left off.
+	room = _open_flat(apt)
+	await _frames(40)
+	npc = room.get("resident")
+	check(npc.last_line == "", "back again: no second greeting ('%s')" % npc.last_line)
+	check(int(WorldState.resident_for(apt).get("searches", 0)) == 3, "...and it remembers how far you went (searches %d)" % int(WorldState.resident_for(apt).get("searches", 0)))
+	await _close(room)
+	WorldState.dev_residents = 0
+
+
+func _resident_flat_any() -> String:
+	for k in WorldState.residents:
+		var r = WorldState.residents[k]
+		if r is Dictionary and not r.get("none", false):
+			return str(k).split(":")[0]
+	return ""

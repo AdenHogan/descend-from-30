@@ -42,6 +42,21 @@ dropped if the item leaves your pack. A resident's FIRST trade counts as an **NP
 **Death**: a last word, the Death animation, lies there for the rest of the run (re-entry too), drops its weapon +
 goods as world drops, and leaves a chronicle trace ("Killed someone still alive behind a locked door.").
 
+## Scripted residents (owner round 32c)
+
+The owner writes fixed three-line SCRIPTS: line 1 when you walk in, line 2 the first time you search their things,
+line 3 the second time (`npc_dialogue.json` → `scripts.<temper>.<run>.<id>`; letters are only identifiers). v1 has
+11 scripts (A–K) for **scared residents on run 1**; runs 2/3 and the other tempers have none yet and use the pools.
+
+- Picked when the resident is rolled (`WorldState._pick_resident_script`, the resident's seeded RNG): never a script
+  another resident already has this run while unused ones remain, so 11 scared residents in a run get 11 different
+  scripts. Stored in the record (`script`), with how many searches you've made (`searches`, kept across re-entry).
+- A scripted resident says ONLY its three lines plus `hurt` / `death` from the pools — no "get out" shouts, no
+  cornered / calm / item-taken lines (they would break the script's character, e.g. I only cries). It still BEHAVES
+  like its temper (runs, cowers, may snap once — silently). Coming back: no second greeting; a third search: silence.
+- `{player}` in a line = the current character's name (script G). Stage directions like `(cries)` / `(whisper)` show
+  as written.
+
 ## Revenants — kill one and they come back (owner round 32b)
 
 > "If you fight and kill a resident, they will respawn in a subsequent run as a crawler or spitter, but let's punish
