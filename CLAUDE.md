@@ -2075,4 +2075,9 @@ means no rendering — UI layout and art still need an in-editor look.
   sound on ignite, smoke/scorch after the splash burns out, merchant stock / salvage worth for 039, tooltip hint says "Double-click
   to throw", per-weight balance of the premade rate (weights are a first guess). The LOOK of the splash needs the owner's in-editor
   eye (checked under xvfb only).
+- BURNING-ENEMY FLAMES, round 30b (owner: "the globs of fire on the body are a bit big — smaller, more flashier, that then consume"):
+  `enemy_fire.gd` is no longer 3 big `small_<v>` globs (22x34 px) but a flurry of small licks at NATIVE size (11x17) that pop up at random
+  spots on the body, flicker at 1.9x animation speed, flare up / gutter out (first / last 0.07 s show only the base) and re-light
+  elsewhere, plus rising embers; the longer it's alight the more there are (3 → 6 over 4 s) and the shorter they live — the consuming
+  build-up. Gameplay (burn DoT, double damage, extinguisher) untouched. Cosmetic only; the LOOK needs the owner's eye.
 - Not started: quests.
