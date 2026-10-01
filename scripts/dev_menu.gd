@@ -96,6 +96,7 @@ func _show_main() -> void:
 	_btn("Force Stair Enemies: %s" % ("ON" if stair_on else "OFF"), _toggle_stair_enemies)
 	_btn("Foreground Dead (test): %s" % ["OFF", "SPORADIC", "EVERYWHERE"][clampi(WorldState.foreground_dead_mode, 0, 2)], _cycle_foreground)
 	_btn("Overgrowth: %s" % overgrowth_label(), _cycle_overgrowth)
+	_btn("Residents: %s" % ["NORMAL", "EVERY LOCKED FLAT", "ALL SCARED", "ALL HOSTILE", "ALL TRADERS"][clampi(WorldState.dev_residents, 0, 4)], _cycle_residents)
 	_btn("Set Health ▸", _sub_health)
 	_btn("Set Run (time of day) ▸", _sub_run)
 	_btn("Floor Hazard ▸", _sub_hazard)
@@ -119,6 +120,12 @@ func _show_sub(title: String, options: Array) -> void:
 
 
 # --- toggles (stay in the menu, refresh the label) ---------------------------
+func _cycle_residents() -> void:
+	# Who lives behind the locked doors (resident_npc.gd) — applies to flats not yet decided this run.
+	WorldState.dev_residents = (WorldState.dev_residents + 1) % 5
+	_show_main()
+
+
 func _toggle_god() -> void:
 	var p = _player()
 	if p != null and p.has_method("dev_toggle_god"):

@@ -600,7 +600,7 @@ func add_run_trace(text: String) -> void:
 const CHARACTER_NAMES := {
 	"blond_man": "Joe",
 	"dark_woman": "Amina",
-	"bald_man": "Aaron",
+	"bald_man": "Alex",
 	"blond_woman": "Vivianne",
 }
 
@@ -1161,6 +1161,7 @@ func new_game() -> void:
 	barricade_keeper_state.clear()
 	elevator_kit_placed.clear()
 	gun_cabinets.clear()
+	residents.clear()
 	elevator_powered = false
 	elevator_fuses_loaded = 0
 	fire_dealt_with.clear()
@@ -2419,6 +2420,15 @@ func _exact_listen_line(count: int, where: String) -> String:
 
 
 func get_listen_report_for_apartment(apt_id: String) -> Dictionary:
+	# Someone holed up in there (a resident — they keep the dead out, so no zombies): a voice, not a count.
+	if not resident_for(apt_id).is_empty():
+		var alive := has_live_resident(apt_id)
+		return {
+			"count": 0, "has_big": false, "category": _listen_category(0, false),
+			"line": resident_listen_line(apt_id) if alive else LISTEN_LINES_APARTMENT[_listen_category(0, false)],
+			"nearness": get_listen_nearness("apartment", apt_id),
+			"resident": resident_for(apt_id).get("temper", "") if alive else "",
+		}
 	var breached := get_door_state(apt_id) == DoorState.BREACHED
 	var has_big = breached
 	var count: int
@@ -4009,6 +4019,11 @@ func get_door_state(apartment_id: String) -> int:
 
 
 func set_door_state(apartment_id: String, state: int) -> void:
+	# A locked door about to open: settle whether someone lives behind it FIRST — the pick needs the
+	# door still locked (resident_for), and the player walks in right after.
+	if door_states.get(apartment_id, -1) in [DoorState.SHUT_LOCKED, DoorState.BARRICADED_LOCKED] \
+			and not (state in [DoorState.SHUT_LOCKED, DoorState.BARRICADED_LOCKED]):
+		resident_for(apartment_id)
 	door_states[apartment_id] = state
 
 
@@ -4147,6 +4162,161 @@ func apartment_corpse(apartment_id: String) -> Dictionary:
 	return {"slot": (h / 7) % 3, "side": "l" if (h / 3) % 2 == 0 else "r"}
 
 
+# ============================================================
+# RESIDENTS (owner round 32 — "populate some of the locked door rooms with NPCs. We want them to shout
+# at the player when inside demanding the player leaves, moving towards, running around, even
+# threatening with weapons. If player scavenges items, NPCs can beg not to, might get violent, or offer
+# to trade"). A survivor holed up behind a LOCKED door (scripts/resident_npc.gd). Picked per (flat, run)
+# while the door is still locked — `set_door_state` settles it the moment the lock gives — and kept in
+# `residents` (saved; a new run is a new key, so a new roll). Their lines: data/npc_dialogue.json.
+# ============================================================
+const RESIDENT_CHANCE := {1: 0.45, 2: 0.35, 3: 0.25}     # of the still-LOCKED flats, per run (survivors dwindle)
+const RESIDENT_TEMPERS := {
+	1: {"scared": 45, "trader": 30, "hostile": 25},
+	2: {"scared": 35, "trader": 30, "hostile": 35},
+	3: {"scared": 25, "trader": 25, "hostile": 50},
+}
+const RESIDENT_HP := {"scared": 3, "trader": 4, "hostile": 5}
+const RESIDENT_LOOKS := [1, 2, 3, 4, 5, 6]               # assets/homeless-character-pixel-art-pack/<n>
+const RESIDENT_STICK_LOOK := 2                           # look 2 carries a stick in its own art
+const RESIDENT_STICK_WEAPONS := ["012", "013", "014", "017"]   # club / bats: drawn by look 2's stick
+const RESIDENT_HOSTILE_WEAPONS := ["014", "013", "017", "012", "002", "001"]
+const RESIDENT_SIDE_WEAPONS := ["001", "002", "014"]     # what a scared / trader resident might keep to hand
+# What a resident has to trade (and what's in their pockets): id -> [weight, min amount, max amount].
+const RESIDENT_GOODS := {
+	"006": [5, 0, 0], "007": [2, 0, 0], "010": [4, 0, 0], "005": [4, 0, 0], "016": [4, 3, 6],
+	"011": [2, 0, 0], "021": [2, 0, 0], "034": [2, 0, 0], "018": [1, 0, 0], "020": [1, 0, 0],
+	"019": [1, 0, 0], "035": [1, 0, 0], "036": [1, 0, 0],
+}
+var residents: Dictionary = {}     # "apt:run" -> record (see _roll_resident), or {"none": true}
+var dev_residents: int = 0         # F1: 0 = normal, 1 = every locked flat, 2 scared, 3 hostile, 4 trader (not saved)
+const DEV_RESIDENT_TEMPERS := ["", "", "scared", "hostile", "trader"]
+
+
+func _resident_key(apartment_id: String) -> String:
+	return "%s:%d" % [apartment_id, current_run]
+
+
+## A flat where a resident could be: a LOCKED door (still locked — see set_door_state), never Floor 30
+## (the tutorial's fixed rooms + the opener's 3001), never a flat on fire.
+func resident_eligible(apartment_id: String) -> bool:
+	var f := _apartment_floor(apartment_id)
+	if f <= 0 or f >= 30:
+		return false
+	if not is_locked_apartment(apartment_id):
+		return false
+	return apartment_fire_stage(f, int(apartment_id.substr(apartment_id.length() - 2))) < 0
+
+
+## The resident of this flat this run ({} = nobody). Stable once settled, whatever the door does after.
+func resident_for(apartment_id: String) -> Dictionary:
+	var k := _resident_key(apartment_id)
+	if residents.has(k):
+		var r: Dictionary = residents[k]
+		if not r.get("none", false):
+			return r
+		if dev_residents == 0 or not resident_eligible(apartment_id):
+			return {}
+	if not resident_eligible(apartment_id):
+		return {}
+	var rec := _roll_resident(apartment_id)
+	residents[k] = rec if not rec.is_empty() else {"none": true}
+	return rec
+
+
+## A living resident (not killed this run).
+func has_live_resident(apartment_id: String) -> bool:
+	var r := resident_for(apartment_id)
+	return not r.is_empty() and not bool(r.get("dead", false))
+
+
+func _roll_resident(apartment_id: String) -> Dictionary:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "resident" + apartment_id + str(current_run))
+	rng.randi()        # near-identical keys seed near-identical first draws (see apartment_riser): skip one
+	var run := clampi(current_run, 1, 3)
+	if rng.randf() >= float(RESIDENT_CHANCE[run]) and dev_residents == 0:
+		return {}
+	var temper: String = DEV_RESIDENT_TEMPERS[clampi(dev_residents, 0, 4)]
+	if temper == "":
+		temper = _weighted_key(RESIDENT_TEMPERS[run], rng)
+	var weapon := ""
+	match temper:
+		"hostile":
+			weapon = RESIDENT_HOSTILE_WEAPONS[rng.randi() % RESIDENT_HOSTILE_WEAPONS.size()]
+		"scared":
+			if rng.randf() < 0.35:
+				weapon = "001"
+		_:
+			if rng.randf() < 0.5:
+				weapon = RESIDENT_SIDE_WEAPONS[rng.randi() % RESIDENT_SIDE_WEAPONS.size()]
+	var look: int
+	if weapon in RESIDENT_STICK_WEAPONS:
+		look = RESIDENT_STICK_LOOK
+	else:
+		var others: Array = RESIDENT_LOOKS.filter(func(l): return l != RESIDENT_STICK_LOOK)
+		look = int(others[rng.randi() % others.size()])
+	var goods: Array = []
+	var n_goods: int = (1 + rng.randi() % 2) if temper == "trader" else (1 if rng.randf() < 0.5 else 0)
+	for i in n_goods:
+		var w := {}
+		for id in RESIDENT_GOODS:
+			w[id] = int(RESIDENT_GOODS[id][0])
+		var gid := _weighted_key(w, rng)
+		var lo: int = RESIDENT_GOODS[gid][1]
+		var hi: int = RESIDENT_GOODS[gid][2]
+		goods.append({"id": gid, "amount": rng.randi_range(lo, hi) if hi > 0 else 0})
+	return {
+		"temper": temper, "look": look, "weapon": weapon, "goods": goods,
+		"hp": int(RESIDENT_HP[temper]), "dead": false, "x": -1.0, "spot": rng.randf(),
+		"violent": false, "warned": 0, "traded": false, "met": 0,
+		"lash": rng.randf() < 0.4,        # a scared one who snaps when cornered
+		"turn": rng.randf() < 0.5,        # a trader who turns on you if robbed after an offer
+	}
+
+
+func _weighted_key(weights: Dictionary, rng: RandomNumberGenerator) -> String:
+	var total := 0
+	for k in weights:
+		total += int(weights[k])
+	var r := rng.randi_range(1, maxi(total, 1))
+	for k in weights:
+		r -= int(weights[k])
+		if r <= 0:
+			return str(k)
+	return str(weights.keys()[0])
+
+
+## Write back the live state of a resident (resident_npc.gd calls this as it changes).
+func update_resident(apartment_id: String, fields: Dictionary) -> void:
+	var k := _resident_key(apartment_id)
+	if not residents.has(k) or residents[k].get("none", false):
+		return
+	for f in fields:
+		residents[k][f] = fields[f]
+
+
+static var _resident_lines: Dictionary = {}
+
+## The resident dialogue (data/npc_dialogue.json), loaded once. Owner-authored.
+static func resident_lines() -> Dictionary:
+	if _resident_lines.is_empty():
+		var path := "res://data/npc_dialogue.json"
+		if FileAccess.file_exists(path):
+			var parsed = JSON.parse_string(FileAccess.get_file_as_string(path))
+			if parsed is Dictionary:
+				_resident_lines = parsed
+	return _resident_lines
+
+
+## What you hear at the door of a flat with someone alive in it ("" = nothing special).
+func resident_listen_line(apartment_id: String) -> String:
+	if not has_live_resident(apartment_id):
+		return ""
+	var t: String = resident_for(apartment_id).get("temper", "scared")
+	return str(resident_lines().get("listen", {}).get(t, "Someone's in there. Alive."))
+
+
 # RISERS (owner round 22 — "if we have dead neighbours, maybe we can watch some of them get up and be
 # enemies too? Like our neighbour in the tutorial… get up and reanimate as player gets closer"). In some
 # flats with one of the dead, the body is a real zombie lying there: the art draws the story WITHOUT the
@@ -4158,6 +4328,8 @@ const RISER_CHANCE := {1: 0.35, 2: 0.45, 3: 0.55}
 func apartment_riser(apartment_id: String) -> bool:
 	if apartment_corpse(apartment_id).is_empty():
 		return false
+	if not resident_for(apartment_id).is_empty():
+		return false                 # someone living here: the body stays a body (no zombies in with them)
 	# through an RNG: a bare hash of this key is correlated with apartment_corpse's (near-identical
 	# strings), which made risers all but vanish on some seeds
 	var rng := RandomNumberGenerator.new()
@@ -4926,6 +5098,7 @@ func save_game(scene_path: String, record_live_zombies: bool = true) -> void:
 		"barricade_keeper_state": barricade_keeper_state,
 		"elevator_kit_placed": elevator_kit_placed,
 		"gun_cabinets": gun_cabinets,
+		"residents": residents,
 		"elevator_powered": elevator_powered,
 		"elevator_fuses_loaded": elevator_fuses_loaded,
 		"fire_dealt_with": fire_dealt_with,
@@ -5030,6 +5203,7 @@ func load_game() -> String:
 	barricade_keeper_state = data.get("barricade_keeper_state", {})
 	elevator_kit_placed = data.get("elevator_kit_placed", {})
 	gun_cabinets = data.get("gun_cabinets", {})
+	residents = data.get("residents", {}) if data.get("residents", {}) is Dictionary else {}
 	elevator_powered = bool(data.get("elevator_powered", false))
 	elevator_fuses_loaded = int(data.get("elevator_fuses_loaded", 0))
 	fire_dealt_with = data.get("fire_dealt_with", {})

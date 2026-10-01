@@ -42,6 +42,8 @@ var tut_pack_intro_done: bool = false
 # looks the same flat to flat; each variant carries its OWN nodes on its OWN furniture. The first
 # entry is the base scene (MODULE_SCENES). Locked by apartment_window_test._test_module_variants.
 const ROOM_GROWTH := preload("res://scripts/room_growth.gd")
+const RESIDENT_NPC := preload("res://scripts/resident_npc.gd")
+var resident: Node = null      # the survivor living here, if any (WorldState "RESIDENTS")
 
 const MODULE_VARIANTS = {
 	"bedroom": ["res://scenes/Room_Modules/bedroom.tscn", "res://scenes/Room_Modules/bedroom_b.tscn",
@@ -234,6 +236,9 @@ func _ready() -> void:
 			pass   # burnt-out ruin — no enemies
 		elif afs == WorldState.FIRE_BLAZE:
 			_spawn_burnt_corpses(1 + (hash(apartment_id) % 2))   # 1-2 burned corpses
+		elif not WorldState.resident_for(apartment_id).is_empty():
+			# Someone has held this flat behind its lock (resident_npc.gd) — no dead in here with them.
+			resident = RESIDENT_NPC.spawn(self, apartment_id, WorldState.resident_for(apartment_id), entrance_side)
 		else:
 			var zombie_count = WorldState.get_apartment_zombie_count(apartment_id)
 			if zombie_count > 0:

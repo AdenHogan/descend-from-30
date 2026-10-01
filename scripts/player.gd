@@ -667,6 +667,12 @@ func _hurt_miss(target: Node, roll: float = -1.0) -> bool:
 	return (randf() if roll < 0.0 else roll) < _hurt_miss_chance()
 
 
+## Everything a swing / shot / shove can land on: the dead, plus any living RESIDENT (resident_npc.gd —
+## kept out of the "zombie" group so no zombie system touches it).
+func _combat_targets() -> Array:
+	return get_tree().get_nodes_in_group("zombie") + get_tree().get_nodes_in_group("resident_target")
+
+
 func _zombie_body_radius(zombie: Node) -> float:
 	# Melee range is measured to the target's collision EDGE, not its centre.
 	# The boss capsule (radius 35) is wider than a knife's whole range (32), so
@@ -721,7 +727,7 @@ func _do_melee_attack(instance: ItemInstance, slot_index: int) -> void:
 	damage = max(damage, 1)
 	var damage_type = _get_weapon_damage_type(weapon_type)
 	var hit_something = false
-	var zombies = get_tree().get_nodes_in_group("zombie")
+	var zombies = _combat_targets()
 	# Gather every zombie in range and within the facing arc, then strike ONE at
 	# random. A single swing must never clear a bunched group — each hit lands on
 	# one enemy, so hordes stay a real threat.
@@ -857,7 +863,7 @@ func _do_gun_attack(instance: ItemInstance, _slot_index: int) -> void:
 		return
 	if is_attacking:
 		return
-	var zombies = get_tree().get_nodes_in_group("zombie")
+	var zombies = _combat_targets()
 	var nearest: Node = null
 	var nearest_dist: float = 9999.0
 	var nearest_key: float = 9999.0
@@ -1009,7 +1015,7 @@ func push_target():
 	var best = null
 	var best_score := INF
 	var facing := -1.0 if animated_sprite.flip_h else 1.0
-	for zombie in get_tree().get_nodes_in_group("zombie"):
+	for zombie in _combat_targets():
 		if not is_instance_valid(zombie) or (("is_dead" in zombie) and zombie.is_dead):
 			continue
 		var dx = zombie.global_position.x - global_position.x

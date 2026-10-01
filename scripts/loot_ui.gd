@@ -123,6 +123,8 @@ func open(item_id: String, anchor_name: String, apartment_id: String) -> void:
 		current_key_target = WorldState.get_anchor_key_target(apartment_id, anchor_name)
 		current_item_id = WorldState.key_item_for(current_key_target)
 
+	# Someone living here watches you go through their things (resident_npc.gd).
+	get_tree().call_group("resident_npc", "on_scavenge", "start", apartment_id)
 	if WorldState.is_anchor_searched(apartment_id, anchor_name):
 		_reveal_item()
 		visible = true
@@ -293,6 +295,7 @@ func _take() -> void:
 			get_tree().call_group("gun_cabinet_art", "refresh")
 		WorldState.clear_anchor_item(current_apartment_id, current_anchor_name)
 		WorldState.note_scavenge(current_apartment_id)   # journal stats: items + apartments looted
+		get_tree().call_group("resident_npc", "on_scavenge", "take", current_apartment_id)
 		HUD.refresh_inventory()
 		_close(true)
 	else:

@@ -1,0 +1,66 @@
+{
+  "_readme": [
+    "RESIDENT DIALOGUE — the survivors still holed up behind locked doors (scripts/resident_npc.gd).",
+    "Edit freely: every list is a pool, one line is picked at random each time (never the same line twice in a row).",
+    "Add as many lines as you like; an empty list just means that moment stays silent.",
+    "Three tempers: SCARED (wants you gone, runs from you, begs), HOSTILE (armed, squares up, warns once then attacks),",
+    "TRADER (wary, but offers a swap when you start going through their things).",
+    "Placeholders, filled in by the game: {give} = what the resident offers you, {get} = what they want from your pack.",
+    "Keep lines short — they show in a speech bubble over the resident's head (about 60 characters reads best).",
+    "'listen' = what you hear through the door when you listen at it (one line per temper)."
+  ],
+
+  "scared": {
+    "enter":         ["Who's there?! Get out — get OUT!", "No, no, no — the door was locked!", "Please — I'm not one of them, I'm not!"],
+    "enter_key":     ["Where did you get that key?!", "That's my key — how have you got my key?"],
+    "enter_again":   ["You came back. Why did you come back?", "Not you again. Please."],
+    "leave_demand":  ["Just go. Please just go.", "There's nothing here for you!", "Leave me alone!"],
+    "too_close":     ["Stay back!", "Don't — don't come any closer!"],
+    "cornered":      ["Please don't hurt me…", "I've got nothing, I swear!"],
+    "scavenge_beg":  ["Not that — please, that's all I've got!", "Don't take my things… please.", "I need that. I NEED that."],
+    "item_taken":    ["You can't… that was mine.", "How am I supposed to last now?"],
+    "lash_out":      ["GET AWAY FROM ME!", "I said BACK OFF!"],
+    "calm":          ["…Just take what you need and go.", "You're not going to hurt me, are you."],
+    "hurt":          ["Ah — stop! STOP!", "Why are you doing this?!"],
+    "death":         ["…why…", "Mum…"]
+  },
+
+  "hostile": {
+    "enter":         ["You picked the wrong door.", "Out. Now. Before I make you.", "This flat's taken, pal."],
+    "enter_key":     ["Funny. I don't remember giving you a key.", "Whose key is that? Hm?"],
+    "enter_again":   ["Told you once already.", "You've got some nerve coming back."],
+    "leave_demand":  ["Door's behind you.", "I won't say it again — OUT.", "Go on. Walk."],
+    "too_close":     ["One more step.", "Back. Up.", "Try it."],
+    "threaten":      ["See this? Want it?", "I've done worse to better than you.", "Keep walking toward me. Go on."],
+    "scavenge_warn": ["Put that down.", "Hands off. Last warning.", "That's mine. Touch it again and see."],
+    "attack":        ["Right. You asked for it.", "That's it!", "Should've listened!"],
+    "item_taken":    ["Thief!", "You're dead, you hear me?"],
+    "calm":          ["…Don't make me regret this.", "Just — keep your distance."],
+    "hurt":          ["Argh — you'll pay for that!", "Is that all you've got?"],
+    "death":         ["…should've… left…", "Not… like this…"]
+  },
+
+  "trader": {
+    "enter":         ["Whoa — easy. Easy. What do you want?", "Hands where I can see them.", "Door was locked for a reason, friend."],
+    "enter_key":     ["Huh. Resourceful. I can respect that.", "A key. Course you've got a key."],
+    "enter_again":   ["You again. Come to deal?", "Back already?"],
+    "leave_demand":  ["Nothing here's free.", "You browse, you buy. Or you leave.", "I'm watching you."],
+    "too_close":     ["That's close enough.", "Personal space. Remember it?"],
+    "trade_offer":   ["Leave that. I'll give you my {give} for your {get}.", "Tell you what — your {get}, my {give}. Fair?", "Don't rummage. Swap me your {get} and the {give}'s yours."],
+    "trade_reminder":["Offer stands. {give} for your {get}.", "Still want that {give}?"],
+    "trade_done":    ["Pleasure. Now don't make it weird.", "Good doing business.", "Deal. Don't spend it all at once."],
+    "trade_declined":["Suit yourself.", "Your loss."],
+    "trade_refused": ["Oh, so that's how it is.", "Hey! We were talking!"],
+    "turned_hostile":["Right. No more Mr Nice Guy.", "You want it that badly? Come and get it."],
+    "no_trade":      ["You've got nothing I want. Hands off.", "Empty pockets, empty hands. Leave it."],
+    "calm":          ["Business is slow these days.", "If you need something, ask."],
+    "hurt":          ["Bad for business, that!", "Are you MAD?"],
+    "death":         ["…should've… haggled…", "…no refunds…"]
+  },
+
+  "listen": {
+    "scared":  "Someone's in there. Alive. Trying very hard to be quiet.",
+    "hostile": "Footsteps, pacing. Someone alive in there — muttering, angry.",
+    "trader":  "A voice, low and steady. Someone alive in there, counting something."
+  }
+}

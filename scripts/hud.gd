@@ -1332,6 +1332,10 @@ func pointer_over_widget(pos: Vector2) -> bool:
 	for w in [pack_button, mode_label, portrait, boon_badge, context_menu]:
 		if w != null and is_instance_valid(w) and w.visible and w.get_global_rect().has_point(pos):
 			return true
+	# Clickable things that live elsewhere (a resident's speech bubble with its trade buttons).
+	for w in get_tree().get_nodes_in_group("hud_widget_extra"):
+		if w is Control and w.is_visible_in_tree() and w.get_global_rect().has_point(pos):
+			return true
 	return false
 
 
