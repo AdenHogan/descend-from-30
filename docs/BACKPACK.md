@@ -61,6 +61,19 @@ backpack to pick up which will become the inventory."
 - Not built: a pack-less-run achievement, a corpse carrying its backpack (the next character just gets a fresh one),
   a rummage-sound / pickup-sound.
 
+## Crafting from the ring (owner round 30 — BUILT)
+"Crafting now / merging items will happen from the item wheel in the backpack. Players can drag items to items in the wheel."
+- **Drag one wedge onto another** (`pack_wheel.gd`): a left-press that moves ≥ 8 px becomes a drag (`drag_k`); a press that
+  never moves is still the plain click and EQUIPS on release (equip moved from press to release — `pack_test` clicks both).
+  While dragging, the item is lifted (its wedge keeps only an outline), a ghost follows the pointer, and every wedge it can
+  combine with glows **green** (a recipe that's only part-met glows **red** and the middle says why: "Needs 3 clothes.").
+  Drop it on one to craft; drop it on nothing / off the ring cancels (nothing spent, the pack stays open).
+- **Rules are DATA** in `scripts/crafting.gd` (`Crafting.RECIPES`; `plan(slot_a, slot_b)` previews, `craft(...)` does it).
+  Each input is an item id or an `Items.json` flag and spends ONE unit. v1: **Molotov Cocktail** = Empty Bottle (`is_bottle`,
+  not the broken one) + Torn Clothes; **Rope** = three Clothes (008) (drag two, the third is found elsewhere in the pack).
+  If the result won't fit, the whole craft is undone (CLAUDE.md robustness rule 5). Held-slot index follows the craft.
+- Locked by `molotov_test` (mutation-checked: broken bottles, drag-vs-click).
+
 ## Design notes
 - **The player owns the state** (`pack_phase`: `""` / `kneel` / `open` / `stand`); the ring is a pure VIEW
   of it (`_process` shows it only in `open`), so it cannot desync, strand the game, or scale time. Any way

@@ -1112,7 +1112,9 @@ func item_tip_content(inst) -> Dictionary:
 	if d.get("is_health_item", false):
 		stats.append("Heals %d" % (int(d.get("heals_states", 0)) + WorldState.get_heal_bonus()))
 	var hint := ""
-	if d.get("is_bottle", false):
+	if d.get("is_molotov", false):
+		hint = "Double-click to throw — it bursts into flame where it lands"
+	elif d.get("is_bottle", false):
 		hint = "Double-click to throw — it smashes where it lands"
 	elif d.get("is_junk", false):
 		hint = "Junk — break it down at a workbench, or drag it out to drop it"

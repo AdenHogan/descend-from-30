@@ -928,6 +928,27 @@ def cabinet_key():
     return ic.finish()
 
 
+def molotov():
+    """039 Molotov Cocktail: a green bottle, a knotted rag stuffed in its neck, the rag alight."""
+    ic = Icon()
+    g = rgb('3f8f5a')
+    ic.part(ic.rect((17, 29, 37, 52), r=4), g, 'cyl', (0, 1), hl=0.6, alpha=0.9)            # body
+    ic.part(ic.poly([(18, 31), (23, 22), (31, 22), (36, 31)]), g, 'cyl', (0, 1), hl=0.6, alpha=0.9, contact=False)
+    ic.part(ic.rect((23, 15, 31, 23)), g, 'cyl', (0, 1), hl=0.6, alpha=0.9, contact=False)   # neck
+    ic.part(ic.rect((22, 13, 32, 17), r=1), rgb('5aa872'), 'cyl', (0, 1), hl=0.4)            # lip
+    ic.part(ic.rect((17, 36, 37, 46)), rgb('e9dfc4'), 'cyl', (0, 1), hl=0.1)                 # label, scorched
+    ic.paint(ic.line([(20, 39), (31, 39)], 1), rgb('a33a2f'))
+    ic.paint(ic.line([(20, 42), (28, 42)], 1), rgb('6b4a2a'))
+    # the rag: stuffed down the neck, a tail hanging over the lip, a knot
+    ic.part(ic.poly([(24, 13), (25, 8), (29, 7), (30, 13)]), rgb('d8cdb6'), 'flat', rim=True)
+    ic.part(ic.poly([(30, 12), (34, 14), (34, 19), (31, 17)]), rgb('c9bda3'), 'flat', rim=True, contact=False)
+    ic.paint(ic.line([(25, 10), (29, 9)], 1), rgb('8e8268'))
+    # the flame: outer orange tongue, inner yellow heart (the game's own fire palette)
+    ic.part(ic.poly([(23, 8), (22, 4), (25, 2), (25, 0), (28, 3), (30, 1), (32, 5), (31, 8)]), rgb('ff8142'), 'flat', rim=True)
+    ic.part(ic.poly([(25, 8), (25, 5), (27, 4), (29, 6), (29, 8)]), rgb('ffda45'), 'flat', rim=False)
+    return ic.finish(shadow=(27, 52, 13, 2.5))
+
+
 # id -> (drawing, file name). Keep the names as they are on disk (the loader + .import files).
 ICONS = {
     '001': (knife, '001.png'),
@@ -968,6 +989,7 @@ ICONS = {
     '036': (extinguisher, '036 - Fire Extinguisher.png'),
     '037': (scrap_bag, '037 - Scrap Bag.png'),
     '038': (cabinet_key, '038 - Gun Cabinet Key.png'),
+    '039': (molotov, '039 - Molotov Cocktail.png'),
 }
 
 

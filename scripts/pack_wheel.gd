@@ -10,6 +10,9 @@ extends Control
 #   • every slot is on the ring (empty ones faint) so its shape is stable;
 #   • click = equip / put away, right-click = use (a bandage from the bag), Delete = drop it at your feet,
 #     Esc / the pack key / the centre / anywhere off the ring = close and stand;
+#   • DRAG one item onto another to CRAFT / MERGE them (owner round 30 — Crafting.RECIPES: a bottle + torn clothes = a Molotov,
+#     three clothes = rope): while you drag, every item it can combine with glows green (one that's only part of a recipe glows
+#     red and the middle says what's missing); drop it on one to do it. A press that never moves is still a plain click;
 #   • the world is NOT slowed, and a hit slams it shut (player.receive_hit → end_pack).
 # Robustness: nothing here owns state that could strand the game — no time scale, no pause. If the
 # player leaves the "open" phase for ANY reason (a hit, a cutscene, death, a scene change) the ring is
@@ -22,6 +25,9 @@ const RING_R := 100.0
 const DISC := 66.0
 const DISC_SEL := 80.0
 const DEAD_ZONE := 36.0
+const DRAG_START_PX := 8.0              # a press that moves this far becomes a drag (below it, a click)
+const GOOD := Color(0.45, 0.9, 0.4, 1.0)
+const BAD := Color(0.9, 0.32, 0.28, 1.0)
 const HEADROOM_PX := 60.0               # screen px between the kneeling player's origin and the ring's bottom edge
 const SCREEN_LIMIT := 640.0             # rings are kept on screen (there is no bottom strip to stay clear of)
 const AMBER := Color(0.89, 0.647, 0.247, 1.0)
@@ -34,6 +40,10 @@ var hover: int = -1                     # index INTO slots, or -1 for the middle
 var centre: Vector2 = Vector2.ZERO
 var mouse_override = null               # tests only: a Vector2 stands in for the pointer
 var _opened_ms: int = 0
+var _press_k: int = -1                  # wedge (index into slots) the left button went down on, or -1
+var _press_pos: Vector2 = Vector2.ZERO
+var drag_k: int = -1                    # wedge being dragged (a press that moved), or -1
+var _mouse: Vector2 = Vector2.ZERO      # the pointer as of the last frame (the drag ghost follows it)
 
 
 func _ready() -> void:
@@ -95,6 +105,17 @@ func _input(event: InputEvent) -> void:
 				drop_hovered()
 			get_viewport().set_input_as_handled()
 		return
+	if event is InputEventMouseMotion:
+		if _press_k >= 0 and drag_k < 0 and (event.position - _press_pos).length() >= DRAG_START_PX:
+			drag_k = _press_k
+		if drag_k >= 0:
+			get_viewport().set_input_as_handled()
+		return
+	if event is InputEventMouseButton and not event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		if _press_k >= 0:
+			_finish_press(event.position)
+			get_viewport().set_input_as_handled()
+		return
 	if event is InputEventMouseButton and event.pressed:
 		var pos: Vector2 = event.position
 		if event.button_index == MOUSE_BUTTON_LEFT or event.button_index == MOUSE_BUTTON_RIGHT:
@@ -107,10 +128,40 @@ func _input(event: InputEvent) -> void:
 			if i < 0:
 				p.end_pack(false)                 # the middle = done
 			elif event.button_index == MOUSE_BUTTON_LEFT:
-				equip_at(i)
+				if _slot_inst(i) != null:
+					_press_k = i                  # equip on release — unless it turns into a drag
+					_press_pos = pos
+					drag_k = -1
 			else:
 				use_at(i)
 			get_viewport().set_input_as_handled()
+
+
+## The left button came up: a drag drops onto the wedge under it (craft); a press that never moved is the plain click (equip).
+func _finish_press(pos: Vector2) -> void:
+	var from: int = _press_k
+	var dragging: bool = drag_k >= 0
+	_press_k = -1
+	drag_k = -1
+	var to: int = QuickWheel.index_for(pos - centre, slots.size(), DEAD_ZONE) if on_ring(pos) else -1
+	if not dragging:
+		if to == from:
+			equip_at(from)
+		return
+	if to >= 0 and to != from:
+		craft_onto(from, to)
+
+
+## Drop wedge `from` onto wedge `to`: merge them if a recipe says so, else say why not. Returns Crafting's result.
+func craft_onto(from: int, to: int) -> Dictionary:
+	if _slot_inst(from) == null or _slot_inst(to) == null:
+		return {"ok": false, "name": "", "why": ""}
+	var r: Dictionary = Crafting.craft(int(slots[from]), int(slots[to]))
+	if bool(r.get("ok", false)):
+		HUD.show_feedback("Crafted: %s." % String(r["name"]))
+	elif String(r.get("why", "")) != "":
+		HUD.show_feedback(String(r["why"]))
+	return r
 
 
 ## Is a screen point on the ring (the band + the middle) — a click there is the ring's, not the world's.
@@ -180,7 +231,12 @@ func _process(_delta: float) -> void:
 		return
 	slots = build_slots()
 	var mouse: Vector2 = mouse_override if mouse_override is Vector2 else get_viewport().get_mouse_position()
+	_mouse = mouse
 	hover = QuickWheel.index_for(mouse - centre, slots.size(), DEAD_ZONE)
+	# the item under a drag is gone (used up, dropped…): the drag is over
+	if (drag_k >= 0 or _press_k >= 0) and _slot_inst(maxi(drag_k, _press_k)) == null:
+		_press_k = -1
+		drag_k = -1
 	queue_redraw()
 
 
@@ -212,6 +268,8 @@ func _hide() -> void:
 	visible = false
 	hover = -1
 	slots = []
+	_press_k = -1
+	drag_k = -1
 
 
 # ---------------------------------------------------------------- drawing
@@ -243,11 +301,26 @@ func _draw() -> void:
 	if hover >= 0:
 		var a: float = -PI * 0.5 + float(hover) * wedge
 		draw_arc(centre, r, a - wedge * 0.5 + 0.03, a + wedge * 0.5 - 0.03, 32, Color(0.89, 0.647, 0.247, 0.2 * t), band, true)
+	var plans := {}                     # while dragging: wedge -> Crafting.plan with the dragged item
+	if drag_k >= 0:
+		for k2 in range(n):
+			if k2 != drag_k and _slot_inst(k2) != null:
+				var pl: Dictionary = Crafting.plan(int(slots[drag_k]), int(slots[k2]))
+				if not pl.is_empty():
+					plans[k2] = pl
 	for k in range(n):
 		var slot: int = int(slots[k])
 		var inst = WorldState.get_instance_at(slot) if slot < WorldState.inventory.size() else null
 		var pos: Vector2 = QuickWheel.slot_position(centre, k, n, r)
 		var on: bool = k == hover
+		if plans.has(k):
+			var good: bool = bool(plans[k]["ok"])
+			var pulse: float = 0.5 + 0.5 * sin(float(Time.get_ticks_msec()) / 1000.0 * 7.0)
+			draw_circle(pos, DISC * 0.5 + 9.0, Color(GOOD if good else BAD, 0.16 + 0.12 * pulse))
+			draw_arc(pos, DISC * 0.5 + 7.0, 0.0, TAU, 40, Color(GOOD if good else BAD, 0.85), 3.0, true)
+		if k == drag_k:
+			draw_arc(pos, DISC * 0.5, 0.0, TAU, 40, Color(0.89, 0.647, 0.247, 0.45), 2.0, true)
+			continue                    # lifted: only its outline stays where it was
 		var held: bool = slot == HUD.selected_slot and inst != null
 		var rad: float = (DISC_SEL if on and inst != null else DISC) * 0.5 * (0.7 + 0.3 * t)
 		if inst == null:
@@ -275,7 +348,21 @@ func _draw() -> void:
 	# The middle: what the pointer is on, or the pack's own header.
 	var inst_h = _slot_inst(hover)
 	var cw: float = 176.0
-	if inst_h != null:
+	if drag_k >= 0:
+		var inst_d = _slot_inst(drag_k)
+		var dn: String = String(inst_d.get_data().get("name", "")).to_upper() if inst_d != null else ""
+		if plans.has(hover):
+			var hp: Dictionary = plans[hover]
+			if bool(hp["ok"]):
+				_text(font, centre + Vector2(-cw * 0.5, -22), "DROP TO CRAFT", 12, GOOD, cw, HORIZONTAL_ALIGNMENT_CENTER)
+				_text(font, centre + Vector2(-cw * 0.5, 0), String(hp["name"]).to_upper(), 16, ROOT_TEXT, cw, HORIZONTAL_ALIGNMENT_CENTER)
+			else:
+				_text(font, centre + Vector2(-cw * 0.5, -22), "NOT YET", 12, BAD, cw, HORIZONTAL_ALIGNMENT_CENTER)
+				_text(font, centre + Vector2(-cw * 0.5, 0), String(hp["why"]), 13, ROOT_TEXT, cw, HORIZONTAL_ALIGNMENT_CENTER)
+		else:
+			_text(font, centre + Vector2(-cw * 0.5, -22), dn, 14, ROOT_TEXT, cw, HORIZONTAL_ALIGNMENT_CENTER)
+			_text(font, centre + Vector2(-cw * 0.5, 0), "drop it on something to combine", 12, DIM_TEXT, cw, HORIZONTAL_ALIGNMENT_CENTER)
+	elif inst_h != null:
 		var c: Dictionary = HUD.item_tip_content(inst_h)
 		_text(font, centre + Vector2(-cw * 0.5, -22), String(c["title"]).to_upper(), 16, Color(1.0, 0.85, 0.4) if c.get("legendary", false) else ROOT_TEXT, cw, HORIZONTAL_ALIGNMENT_CENTER)
 		var stats: Array = c["stats"]
@@ -285,4 +372,10 @@ func _draw() -> void:
 		_text(font, centre + Vector2(-cw * 0.5, -6), "YOUR PACK", 15, ROOT_TEXT, cw, HORIZONTAL_ALIGNMENT_CENTER)
 		_text(font, centre + Vector2(-cw * 0.5, 14), "click here to close", 12, DIM_TEXT, cw, HORIZONTAL_ALIGNMENT_CENTER)
 	var hint_y: float = maxf(centre.y - RING_R - DISC_SEL * 0.5 - 8.0, 16.0)      # a line over the ring
-	_text(font, Vector2(centre.x - 250.0, hint_y), "click equip  ·  right-click use  ·  Del drop  ·  Esc close  ·  the world keeps moving", 12, DIM_TEXT, 500.0, HORIZONTAL_ALIGNMENT_CENTER)
+	_text(font, Vector2(centre.x - 250.0, hint_y), "click equip  ·  drag onto an item to craft  ·  right-click use  ·  Del drop  ·  Esc close", 12, DIM_TEXT, 500.0, HORIZONTAL_ALIGNMENT_CENTER)
+	if drag_k >= 0:
+		var di = _slot_inst(drag_k)
+		if di != null:
+			var dtex: Texture2D = ItemData.get_texture(di.item_id)
+			if dtex != null:
+				draw_texture_rect(dtex, Rect2(_mouse - Vector2(28, 28), Vector2(56, 56)), false, Color(1, 1, 1, 0.85))

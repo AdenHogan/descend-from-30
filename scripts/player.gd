@@ -1450,7 +1450,7 @@ func _input(event: InputEvent) -> void:
 		var sel := HUD.selected_slot
 		if sel >= 0 and sel < WorldState.inventory.size():
 			var sel_inst = WorldState.get_instance_at(sel)
-			if sel_inst != null and sel_inst.get_data().get("is_extinguisher", false):
+			if sel_inst != null and (sel_inst.get_data().get("is_extinguisher", false) or sel_inst.get_data().get("is_molotov", false)):
 				use_item(sel)
 				get_viewport().set_input_as_handled()
 				return
@@ -1586,13 +1586,20 @@ func _spawn_extinguisher_spray(dir: float) -> void:
 ## as fire you "can't put out"), and any enemy set alight by a fire weapon. Floor-fire burning on
 ## an enemy goes out by itself once its ground is doused.
 func douse_span(field: Node, x0: float, x1: float) -> void:
-	if field == null or not is_instance_valid(field):
+	# Molotov splash fires (MolotovFire) are beaten out by the same jet — they live in the player's own scene, with or without a
+	# corridor fire field.
+	for mf in get_tree().get_nodes_in_group("molotov_fire"):
+		if is_instance_valid(mf) and mf.get_parent() == get_parent() and mf.global_position.x + mf.extent() >= x0 and mf.global_position.x - mf.extent() <= x1:
+			mf.douse()
+	var has_field: bool = field != null and is_instance_valid(field)
+	if not has_field and not is_inside_tree():
 		return
-	if field.has_method("extinguish_span"):
-		field.extinguish_span(x0, x1)
-	else:
-		field.extinguish_at((x0 + x1) * 0.5, (x1 - x0) * 0.5)
-	var root: Node = field.get_parent()
+	if has_field:
+		if field.has_method("extinguish_span"):
+			field.extinguish_span(x0, x1)
+		else:
+			field.extinguish_at((x0 + x1) * 0.5, (x1 - x0) * 0.5)
+	var root: Node = field.get_parent() if has_field else get_parent()
 	for d in get_tree().get_nodes_in_group("door_fire"):
 		if is_instance_valid(d) and d.get_parent() == root and d.global_position.x >= x0 and d.global_position.x <= x1:
 			d.queue_free()
@@ -1605,7 +1612,9 @@ func douse_span(field: Node, x0: float, x1: float) -> void:
 func _throw_can(slot_index: int) -> void:
 	# Scavenge-only distraction. Reuses the sword-swing anim for the throw
 	# motion; the can flies the length of a room and its landing pulls aggro.
-	if not WorldState.is_scavenge_mode:
+	var thrown_data: Dictionary = WorldState.inventory[slot_index].get_data()
+	var is_molotov: bool = thrown_data.get("is_molotov", false)
+	if not WorldState.is_scavenge_mode and not is_molotov:     # a Molotov is a weapon: it flies in either stance
 		HUD.show_feedback("Switch to scavenge to throw.")
 		return
 	if is_attacking:
@@ -1619,8 +1628,13 @@ func _throw_can(slot_index: int) -> void:
 	var dir = -1.0 if animated_sprite.flip_h else 1.0
 	var inst_thrown = WorldState.inventory[slot_index]
 	var is_bottle: bool = inst_thrown.get_data().get("is_bottle", false)
-	var can = (preload("res://scenes/thrown_bottle.tscn") if is_bottle else preload("res://scenes/thrown_can.tscn")).instantiate()
-	get_tree().current_scene.add_child(can)
+	var can
+	if is_molotov:
+		can = preload("res://scenes/thrown_molotov.tscn").instantiate()
+		add_sibling(can)                      # into the scene the player stands in (never current_scene — it is the wrong one mid-pan)
+	else:
+		can = (preload("res://scenes/thrown_bottle.tscn") if is_bottle else preload("res://scenes/thrown_can.tscn")).instantiate()
+		get_tree().current_scene.add_child(can)
 	can.launch(dir, global_position + Vector2(dir * 20.0, -10.0))
 	# Spend one from the stack; keep the slot (and selection) if more remain.
 	var inst = WorldState.inventory[slot_index]
@@ -1630,7 +1644,10 @@ func _throw_can(slot_index: int) -> void:
 		WorldState.remove_from_inventory(slot_index)
 		HUD.selected_slot = -1
 	HUD.refresh_inventory()
-	HUD.show_feedback("Bottle thrown — listen for the smash." if is_bottle else "Can thrown — that'll draw them.")
+	if is_molotov:
+		HUD.show_feedback("Molotov away — mind the flames.")
+	else:
+		HUD.show_feedback("Bottle thrown — listen for the smash." if is_bottle else "Can thrown — that'll draw them.")
 
 
 func _do_attack_action(from_mouse: bool) -> void:
@@ -1726,6 +1743,15 @@ func _my_fire_field() -> Node:
 	return any
 
 
+## Is a Molotov splash fire (in this scene) within `reach` px of the player — something the extinguisher can put out.
+func _molotov_fire_near(reach: float) -> bool:
+	for mf in get_tree().get_nodes_in_group("molotov_fire"):
+		if is_instance_valid(mf) and mf.get_parent() == get_parent() and mf.is_burning() \
+				and absf(mf.global_position.x - global_position.x) <= reach + mf.extent():
+			return true
+	return false
+
+
 func use_item(slot_index: int) -> void:
 	if slot_index < 0 or slot_index >= WorldState.inventory.size():
 		return
@@ -1778,7 +1804,7 @@ func use_item(slot_index: int) -> void:
 		# Fire Extinguisher (036): a jet of retardant that blows OVER the fire, then the
 		# flames drop out ~1s later (doused, not instant) leaving rising black smoulder.
 		var field = _my_fire_field()
-		if field == null or not field.any_burning():
+		if (field == null or not field.any_burning()) and not _molotov_fire_near(200.0):
 			HUD.show_feedback("Nothing to put out here.")
 			return
 		var dir := -1.0 if animated_sprite.flip_h else 1.0
@@ -1799,12 +1825,13 @@ func use_item(slot_index: int) -> void:
 		for wave in EXTINGUISH_WAVES:
 			await get_tree().create_timer(float(wave[0]) - t_prev).timeout
 			t_prev = float(wave[0])
-			if not is_instance_valid(field) or not is_inside_tree():
+			if not is_inside_tree():
 				return
 			var a := nozzle_x - dir * EXTINGUISH_BEHIND
 			var b := nozzle_x + dir * float(wave[1])
 			douse_span(field, minf(a, b), maxf(a, b))
-		HUD.show_feedback("You beat back the flames." if field.any_burning() else "The fire's out.")
+		var still: bool = field != null and is_instance_valid(field) and field.any_burning()
+		HUD.show_feedback("You beat back the flames." if still else "The fire's out.")
 	elif item_data.get("is_tool", false) and item_data.get("can_repair", false):
 		# Toolbox: repairs the first repairable item — a damaged gun OR a
 		# broken durability weapon/tool (one toolbox use). Damaged guns take

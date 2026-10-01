@@ -56,6 +56,9 @@ const SMASH_STREAMS = [
 const SHARDS = preload("res://scripts/glass_shards.gd")
 
 @export var fragile: bool = false     # true = a bottle: smashes on its first impact
+@export var molotov: bool = false     # true = a Molotov (039): fragile, and where it bursts it leaves a MolotovFire splash
+var _flame: Node2D = null
+var _flame_t: float = 0.0
 var shattered: bool = false
 var smash_player: AudioStreamPlayer2D = null
 var has_landed: bool = false
@@ -78,6 +81,16 @@ func _ready() -> void:
 		smash_player.max_distance = 900.0
 		smash_player.volume_db = 2.0
 		add_child(smash_player)
+	if molotov:
+		fragile = true                    # a Molotov is a bottle: it breaks on the first thing it touches
+		_flame = get_node_or_null("Body/Flame")
+		var lt := PointLight2D.new()      # the lit rag throws a little light as it flies
+		lt.texture = preload("res://scripts/floor_lighting.gd").light_texture()
+		lt.color = Color(1.0, 0.55, 0.2)
+		lt.energy = 0.5
+		lt.texture_scale = 0.8
+		lt.position = Vector2(0, -14)
+		add_child(lt)
 
 
 func launch(dir: float, from: Vector2) -> void:
@@ -91,6 +104,9 @@ func launch(dir: float, from: Vector2) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if _flame != null and not shattered:
+		_flame_t += delta                  # the flame on the rag flickers while it flies
+		_flame.scale = Vector2(1.0 + 0.18 * sin(_flame_t * 31.0), 1.0 + 0.3 * sin(_flame_t * 23.0 + 1.3))
 	if thud_timer > 0.0:
 		thud_timer -= delta
 	# Rolled to a stop: pin it. Enemies never collide with the can's layer, but a
@@ -166,10 +182,33 @@ func _shatter() -> void:
 		shards.global_position = global_position
 		shards.z_index = z_index
 		shards.burst(signf(linear_velocity.x) if absf(linear_velocity.x) > 1.0 else 1.0)
+	if molotov and holder != null:
+		_burst_into_flame(holder)
 	if not has_landed:
 		has_landed = true
 		_land()
 	despawn_timer = SHATTER_LINGER
+
+
+## A Molotov bursts: the splash fire starts on the FLOOR under the break (a ray down that ignores bodies, so a bottle that
+## smashed on a zombie still lights the floor it stands on), in the scene the bottle flew in.
+func _burst_into_flame(holder: Node) -> void:
+	var from := global_position + Vector2(0, -6)
+	var exclude: Array = []
+	for g in ["zombie", "player"]:
+		for n in get_tree().get_nodes_in_group(g):
+			if n is CollisionObject2D:
+				exclude.append(n.get_rid())
+	var q := PhysicsRayQueryParameters2D.create(from, from + Vector2(0, 420), 1, exclude)
+	var hit: Dictionary = get_world_2d().direct_space_state.intersect_ray(q)
+	var at := global_position
+	if hit.has("position"):
+		at = hit["position"]
+	else:
+		var p = get_tree().get_first_node_in_group("player")
+		if p != null and is_instance_valid(p):
+			at = Vector2(global_position.x, p.global_position.y + 33.0)
+	MolotovFire.spawn(holder, at)
 
 
 func _land() -> void:

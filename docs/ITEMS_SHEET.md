@@ -94,6 +94,11 @@ Spawn weights per room module (0 = never spawns there):
 > - **036 Fire Extinguisher** (`is_tool, is_extinguisher`, 3 uses) — groundwork
 >   for the future fire hazard (put out a stairwell blaze). Not yet functional.
 > - **037 Scrap Bag** (`is_scrap`) — see `docs/SCRAP_UPGRADES.md`.
+> - **039 Molotov Cocktail** (`is_throwable, is_molotov`, single use, rarity 1, stacks x3 like a can) — a lit-rag bottle.
+>   Thrown with the can's throw (either stance); it SMASHES on the first thing it touches (fragile, like the Empty
+>   Bottle) and bursts into a splash fire (`MolotovFire`, ±105 px, ~12 s). CRAFTED from an Empty Bottle (024, never the
+>   Broken Bottle 023) + one Torn Clothes (009) by dragging one onto the other in the backpack ring (`Crafting`), or found
+>   premade (weights: kitchen/study/living/dining 1, bedroom/bathroom 0). See CLAUDE.md "MOLOTOV".
 > - **038 Gun Cabinet Key** (`is_key`, single use, never spawns in a pool) — carried by the tough
 >   spitter in a boss-less breach room; opens its floor's gun cabinet (target `cab:<apt>`, so it
 >   never opens a front door). Icon: a small brass key on a manila tag (`tools/art/item_icons.py`). Also opens with

@@ -303,6 +303,14 @@
       "PROPERTY_DURABILITY": "single use",
       "PROPERTY_SPAWN_RARITY": null,
       "PROPERTY_WEIGHT_SIZE": null
+    },
+    "039": {
+      "ITEM_NAME": "Molotov Cocktail",
+      "ITEM_DESCRIPTION": "A bottle, a rag and a flame. Throw it and it bursts where it lands, splashing burning fuel across the floor. Everything standing in it catches fire. Fire does not care whose side you are on.",
+      "VALUE_PROPERTY": "is_throwable, is_molotov",
+      "PROPERTY_DURABILITY": "single use, throwable object",
+      "PROPERTY_SPAWN_RARITY": 1,
+      "PROPERTY_WEIGHT_SIZE": null
     }
   },
   "ROOM_SPAWN_POOLS": {
@@ -581,6 +589,14 @@
     "Fire Extinguisher": {
       "bedroom": 0,
       "kitchen": 2,
+      "bathroom": 0,
+      "study": 1,
+      "living_room": 1,
+      "dining_room": 1
+    },
+    "Molotov Cocktail": {
+      "bedroom": 0,
+      "kitchen": 1,
       "bathroom": 0,
       "study": 1,
       "living_room": 1,
