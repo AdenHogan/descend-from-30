@@ -2054,7 +2054,7 @@ fire is no longer used anywhere. `tools/art/fire.py` → `assets/fire/*.png` + `
 strip at integer 2x (`scale` in the meta; `FireArt.draw` / `frame_size` honour it — `frame_size` is the WORLD size), so a fire pixel is 2 world px. A MODEL of clumps of
 round-topped teardrops (`clump`: rounded foot + belly + round tip, lean/curl, lumpy periodic edge, height pulsation) coloured by erosion DEPTH shells — a 1-px dark-red outline, red,
 deep orange, orange, yellow, a rare white-hot core — with checker dither where shells meet; 8 frames, 10 fps, exact loop; single-pixel embers. `bed_front|back_<light|blaze>_<1-3>`
-(tapered clumps laid overlapping, ragged base — APPROVED by the owner, don't change), `tongue_<s|m|l|xl>` (wide round-topped lobes, height <= ~1.3x width), `wall`, `edge` (door frame), `small` (burning
+(tapered clumps laid overlapping, ragged base — APPROVED by the owner, don't change), `tongue_<s|m|l|xl>` (soft rounded licks: unequal overlapping lobes, blunt tops (`tip` 2.6), no spikes and no flat dome — three passes to get here), `wall`, `edge` (door frame), `small` (burning
 enemy), `stair`. `scripts/fire_art.gd` is the ONE drawing helper, UNSHADED (flames glow at night); consumers: `fire_field` (`bed_spots(layer)` / `tongue_spots()` / `wall_fire_spots()` are
 pure layout), `apartment_fire`, `enemy_fire`, `fire_decal` + door fire in `building_floors`. The sim, cells, lights, smoke, scorch and extinguisher logic are unchanged. Locked by `fire_test`
 (`_test_fire_art`, `_test_fire_layout`, `_test_wall_fire`). The old `assets/fire-pixel-art-animation-sprites/` folder is unused. The LOOK needs the owner's in-editor eye (captured in the engine under xvfb only).

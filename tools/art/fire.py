@@ -159,7 +159,7 @@ def embers(frames, w, h, seed, count, y0, y1):
 
 
 # ------------------------------------------------------------------------------ a clump of round teardrops
-def clump(w, h, seed, flames, dim=1.0, ember_n=2, edge_amp=1.0):
+def clump(w, h, seed, flames, dim=1.0, ember_n=2, edge_amp=1.0, tip=1.7):
     """flames = [(cx_frac, width_px, height_px, lean, curl)] — each a round-topped teardrop, base on the bottom row.
     Returns frames. cx_frac in 0..1 across the frame."""
     n_edge = Lattice(6, 6, seed * 3 + 1)
@@ -179,7 +179,7 @@ def clump(w, h, seed, flames, dim=1.0, ember_n=2, edge_amp=1.0):
             yn = yab / max(1.0, hh)
             cx = cxf * (w - 1) + lean * (yn ** 1.5) * hh * 0.28 \
                 + curl * np.sin(2 * math.pi * (tt + ph) + yn * 2.6) * np.clip(yn, 0, 1)
-            prof = np.sqrt(np.clip(1.0 - np.clip(yn, 0, 1) ** 1.7, 0.0, 1.0))      # ROUND tip: sqrt falls vertically at the end
+            prof = np.sqrt(np.clip(1.0 - np.clip(yn, 0, 1) ** tip, 0.0, 1.0))      # ROUND tip (a bigger `tip` = a blunter dome): sqrt falls vertically at the end
             half = wd * 0.5 * prof * (0.78 + 0.22 * np.clip(yn * 5.0, 0, 1)) * (1.0 - 0.15 * np.clip(yn, 0, 1))   # a rounded FOOT, a belly, a round tip
             lump = (n_edge.at(yab * 0.34 + i * 2.1, np.full_like(yab, tt * 6.0) + i * 1.3) - 0.5) * 2.0 * edge_amp \
                 * (0.35 + np.clip(yn, 0, 1))
@@ -194,35 +194,35 @@ def clump(w, h, seed, flames, dim=1.0, ember_n=2, edge_amp=1.0):
 
 
 def tongue(w, h, seed, kind, ember_n=2):
-    """Single clumps — the bed's own character grown taller: WIDE round-topped lobes (height at most ~1.3x width), the
-    middle one tallest, gentle lean + curl, never a thin spike (owner 29b: "too straight and pointy and tall")."""
+    """Single clumps — soft rounded LICKS: neither spikes (passes 1-2) nor a cloud (a flat dome, pass 3). Lobes of unequal
+    height whose centres overlap so the dips between them are shallow, blunt tops (`tip` 2.6), a gentle lean, a calm edge."""
     r = random.Random(seed)
     if kind == 's':
-        flames = [(0.36, 10, 8, r.uniform(-0.8, 0.8), 1.0), (0.66, 8, 6, r.uniform(-0.8, 0.8), 0.9)]
+        flames = [(0.40, 11, 10, r.uniform(-0.6, 0.6), 1.0), (0.68, 9, 7, r.uniform(-0.6, 0.6), 0.9)]
     elif kind == 'm':
-        flames = [(0.25, 10, 10, r.uniform(-1.0, -0.2), 1.1), (0.52, 14, 15, r.uniform(-0.6, 0.6), 1.2), (0.78, 10, 10, r.uniform(0.2, 1.0), 1.1)]
+        flames = [(0.30, 13, 11, r.uniform(-0.7, -0.1), 1.0), (0.56, 15, 15, r.uniform(-0.3, 0.3), 1.1), (0.80, 11, 10, r.uniform(0.2, 0.7), 1.0)]
     elif kind == 'l':
-        flames = [(0.20, 11, 10, -1.0, 1.1), (0.42, 14, 16, -0.4, 1.2), (0.64, 14, 19, r.uniform(0.0, 0.7), 1.3), (0.84, 10, 11, 1.0, 1.1)]
+        flames = [(0.22, 13, 10, -0.7, 1.0), (0.44, 15, 15, -0.3, 1.1), (0.66, 16, 18, r.uniform(0.0, 0.5), 1.2), (0.86, 11, 10, 0.7, 1.0)]
     else:   # xl
-        flames = [(0.15, 12, 11, -1.2, 1.1), (0.35, 15, 18, -0.6, 1.2), (0.56, 17, 22, 0.1, 1.3), (0.76, 15, 17, 0.7, 1.2), (0.91, 10, 10, 1.2, 1.0)]
-    return clump(w, h, seed, flames, 1.0, ember_n, 0.8)
+        flames = [(0.18, 14, 11, -0.8, 1.0), (0.38, 16, 17, -0.4, 1.1), (0.58, 18, 21, 0.1, 1.2), (0.78, 16, 16, 0.5, 1.1), (0.92, 11, 9, 0.8, 1.0)]
+    return clump(w, h, seed, flames, 1.0, ember_n, 0.4, 2.6)
 
 
 def wall_flame(w, h, seed):
     r = random.Random(seed)
-    flames = [(0.28, 11, h * 0.5, r.uniform(-1.0, -0.2), 1.3), (0.54, 17, h - 5, r.uniform(-0.5, 0.6), 1.5), (0.80, 12, h * 0.45, 1.0, 1.2)]
-    return clump(w, h, seed, flames, 1.0, 2, 0.8)
+    flames = [(0.34, 13, h * 0.55, r.uniform(-0.6, -0.1), 1.1), (0.60, 17, h - 5, r.uniform(-0.3, 0.4), 1.2), (0.84, 12, h * 0.45, 0.6, 1.0)]
+    return clump(w, h, seed, flames, 1.0, 2, 0.4, 2.6)
 
 
 def edge_flame(w, h, seed):
     r = random.Random(seed)
-    flames = [(0.42, 9, h - 3, 0.8, 1.2), (0.68, 7, h * 0.5, r.uniform(0.2, 0.9), 0.9)]
-    return clump(w, h, seed, flames, 1.0, 1, 0.8)
+    flames = [(0.44, 12, h - 5, 0.4, 1.0), (0.70, 9, h * 0.5, r.uniform(0.2, 0.5), 0.8)]
+    return clump(w, h, seed, flames, 1.0, 1, 0.4, 2.6)
 
 
 def small_flame(w, h, seed):
     r = random.Random(seed)
-    return clump(w, h, seed, [(0.5, 7, h - 2, r.uniform(-0.5, 0.5), 0.6)], 1.0, 0, 0.7)
+    return clump(w, h, seed, [(0.5, 8, h - 2, r.uniform(-0.4, 0.4), 0.6)], 1.0, 0, 0.5, 2.6)
 
 
 # ------------------------------------------------------------------------------ the carpet
@@ -270,12 +270,12 @@ def build():
         add('bed_front_blaze_%d' % v, bed(32, 22, 20 + v, 17, 5, 5, 1.0, 3), 'front carpet, BLAZE')
         add('bed_back_light_%d' % v, bed(32, 10, 30 + v, 6, 2, 4, 0.8, 0), 'back seam carpet, LIGHT')
         add('bed_back_blaze_%d' % v, bed(32, 15, 40 + v, 11, 3, 5, 0.82, 1), 'back seam carpet, BLAZE')
-        add('tongue_s_%d' % v, tongue(16, 10, 100 + v, 's', 1))
+        add('tongue_s_%d' % v, tongue(16, 12, 100 + v, 's', 1))
         add('tongue_m_%d' % v, tongue(24, 18, 110 + v, 'm', 2))
         add('tongue_l_%d' % v, tongue(32, 22, 120 + v, 'l', 3))
         add('tongue_xl_%d' % v, tongue(40, 26, 130 + v, 'xl', 4))
         add('wall_%d' % v, wall_flame(30, 26, 140 + v))
-        add('edge_%d' % v, edge_flame(14, 20, 150 + v))
+        add('edge_%d' % v, edge_flame(14, 18, 150 + v))
         add('small_%d' % v, small_flame(9, 11, 160 + v))
     add('stair', bed(26, 16, 170, 12, 4, 4, 1.0, 2), 'fire spilling over a step')
     with open(os.path.join(OUT, 'fire_meta.json'), 'w') as f:
