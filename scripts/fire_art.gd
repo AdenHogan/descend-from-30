@@ -2,9 +2,9 @@ extends RefCounted
 class_name FireArt
 
 # OUR fire (owner round 29 — "good animated fire that fits our vision"; generator tools/art/fire.py, sheet preview
-# docs/art_reference/fire.png). Every fire in the game draws from these horizontal strips at the game's own 1:1 pixel
-# size (the purchased craftpix fire was scaled 1.6-2.7x, twice as chunky as the doors and corridor, and its floor tiles
-# were CROPPED mid-flame). One helper so the floor fire, the apartment fire, the door-frame flames and the burning-enemy
+# docs/art_reference/fire.png). Every fire in the game draws from these horizontal strips at integer 2x (v2, round 29b: CHUNKY
+# pixel fire — fat pixels, round-topped licks, colour shells — the owner rejected the smooth v1; the purchased craftpix
+# fire's floor tiles were CROPPED mid-flame). One helper so the floor fire, the apartment fire, the door-frame flames and the burning-enemy
 # overlay all read as one fire:
 #   draw(canvas, name, t, phase, bottom_centre)  — one frame of strip `name`, bottom-centre anchored, never cropped;
 #   material()                                   — the shared UNSHADED material: flames are their own light, so the
@@ -35,7 +35,8 @@ static func material() -> CanvasItemMaterial:
 	return _material
 
 
-## {tex, fw, fh, frames} for a strip, or {} if the art isn't there (callers draw nothing rather than crash).
+## {tex, fw, fh, frames, scale} for a strip (fw/fh = the NATIVE frame size; `scale` = the integer the strip is drawn at, so
+## the chunky half-res pixels sit on the game's own grid), or {} if the art isn't there (callers draw nothing rather than crash).
 static func sheet(name: String) -> Dictionary:
 	if _cache.has(name):
 		return _cache[name]
@@ -44,15 +45,16 @@ static func sheet(name: String) -> Dictionary:
 	var path := DIR + name + ".png"
 	if not info.is_empty() and ResourceLoader.exists(path):
 		var fr: Array = info.get("frame", [0, 0])
-		out = {"tex": load(path), "fw": int(fr[0]), "fh": int(fr[1]), "frames": int(info.get("frames", 8))}
+		out = {"tex": load(path), "fw": int(fr[0]), "fh": int(fr[1]), "frames": int(info.get("frames", 8)),
+			"scale": maxi(1, int(info.get("scale", 1)))}
 	_cache[name] = out
 	return out
 
 
-## The sheet's frame size (Vector2.ZERO if missing) — for layout maths.
+## The sheet's frame size IN THE WORLD (scale applied; Vector2.ZERO if missing) — for layout maths.
 static func frame_size(name: String) -> Vector2:
 	var s := sheet(name)
-	return Vector2(float(s["fw"]), float(s["fh"])) if not s.is_empty() else Vector2.ZERO
+	return Vector2(float(s["fw"]), float(s["fh"])) * float(s["scale"]) if not s.is_empty() else Vector2.ZERO
 
 
 ## Variant names "<prefix>_1" … "<prefix>_<n>" that exist.
@@ -76,8 +78,11 @@ static func draw(canvas: CanvasItem, name: String, t: float, phase: float, at: V
 		return
 	var fw: float = float(s["fw"])
 	var fh: float = float(s["fh"])
+	var k: float = float(s["scale"])
 	var fr := frame_at(t, phase, int(s["frames"]))
 	var src := Rect2(float(fr) * fw, 0.0, fw, fh)
-	var x := at.x - fw * 0.5
-	var dst := Rect2(x + fw, at.y - fh, -fw, fh) if flip else Rect2(x, at.y - fh, fw, fh)
+	var dw := fw * k
+	var dh := fh * k
+	var x := at.x - dw * 0.5
+	var dst := Rect2(x + dw, at.y - dh, -dw, dh) if flip else Rect2(x, at.y - dh, dw, dh)
 	canvas.draw_texture_rect_region(s["tex"], dst, src, Color(1.0, 1.0, 1.0, alpha))

@@ -1,346 +1,381 @@
 {
  "fps": 10,
  "frames": 8,
+ "scale": 2,
  "sheets": {
   "bed_back_blaze_1": {
    "anchor": "bottom",
    "fps": 10,
    "frame": [
-    64,
-    24
+    32,
+    15
    ],
    "frames": 8,
-   "note": "back seam carpet, BLAZE"
+   "note": "back seam carpet, BLAZE",
+   "scale": 2
   },
   "bed_back_blaze_2": {
    "anchor": "bottom",
    "fps": 10,
    "frame": [
-    64,
-    24
+    32,
+    15
    ],
    "frames": 8,
-   "note": "back seam carpet, BLAZE"
+   "note": "back seam carpet, BLAZE",
+   "scale": 2
   },
   "bed_back_blaze_3": {
    "anchor": "bottom",
    "fps": 10,
    "frame": [
-    64,
-    24
+    32,
+    15
    ],
    "frames": 8,
-   "note": "back seam carpet, BLAZE"
+   "note": "back seam carpet, BLAZE",
+   "scale": 2
   },
   "bed_back_light_1": {
    "anchor": "bottom",
    "fps": 10,
    "frame": [
-    64,
-    16
+    32,
+    10
    ],
    "frames": 8,
-   "note": "back seam carpet, LIGHT"
+   "note": "back seam carpet, LIGHT",
+   "scale": 2
   },
   "bed_back_light_2": {
    "anchor": "bottom",
    "fps": 10,
    "frame": [
-    64,
-    16
+    32,
+    10
    ],
    "frames": 8,
-   "note": "back seam carpet, LIGHT"
+   "note": "back seam carpet, LIGHT",
+   "scale": 2
   },
   "bed_back_light_3": {
    "anchor": "bottom",
    "fps": 10,
    "frame": [
-    64,
-    16
+    32,
+    10
    ],
    "frames": 8,
-   "note": "back seam carpet, LIGHT"
+   "note": "back seam carpet, LIGHT",
+   "scale": 2
   },
   "bed_front_blaze_1": {
    "anchor": "bottom",
    "fps": 10,
    "frame": [
-    64,
-    38
+    32,
+    22
    ],
    "frames": 8,
-   "note": "front carpet, BLAZE"
+   "note": "front carpet, BLAZE",
+   "scale": 2
   },
   "bed_front_blaze_2": {
    "anchor": "bottom",
    "fps": 10,
    "frame": [
-    64,
-    38
+    32,
+    22
    ],
    "frames": 8,
-   "note": "front carpet, BLAZE"
+   "note": "front carpet, BLAZE",
+   "scale": 2
   },
   "bed_front_blaze_3": {
    "anchor": "bottom",
    "fps": 10,
    "frame": [
-    64,
-    38
+    32,
+    22
    ],
    "frames": 8,
-   "note": "front carpet, BLAZE"
+   "note": "front carpet, BLAZE",
+   "scale": 2
   },
   "bed_front_light_1": {
    "anchor": "bottom",
    "fps": 10,
    "frame": [
-    64,
-    24
+    32,
+    14
    ],
    "frames": 8,
-   "note": "front carpet, LIGHT"
+   "note": "front carpet, LIGHT",
+   "scale": 2
   },
   "bed_front_light_2": {
    "anchor": "bottom",
    "fps": 10,
    "frame": [
-    64,
-    24
+    32,
+    14
    ],
    "frames": 8,
-   "note": "front carpet, LIGHT"
+   "note": "front carpet, LIGHT",
+   "scale": 2
   },
   "bed_front_light_3": {
    "anchor": "bottom",
    "fps": 10,
    "frame": [
-    64,
-    24
+    32,
+    14
    ],
    "frames": 8,
-   "note": "front carpet, LIGHT"
+   "note": "front carpet, LIGHT",
+   "scale": 2
   },
   "edge_1": {
    "anchor": "bottom",
    "fps": 10,
    "frame": [
-    24,
-    46
+    14,
+    20
    ],
    "frames": 8,
-   "note": ""
+   "note": "",
+   "scale": 2
   },
   "edge_2": {
    "anchor": "bottom",
    "fps": 10,
    "frame": [
-    24,
-    46
+    14,
+    20
    ],
    "frames": 8,
-   "note": ""
+   "note": "",
+   "scale": 2
   },
   "edge_3": {
    "anchor": "bottom",
    "fps": 10,
    "frame": [
-    24,
-    46
+    14,
+    20
    ],
    "frames": 8,
-   "note": ""
+   "note": "",
+   "scale": 2
   },
   "small_1": {
    "anchor": "bottom",
    "fps": 10,
    "frame": [
-    14,
-    20
+    9,
+    11
    ],
    "frames": 8,
-   "note": ""
+   "note": "",
+   "scale": 2
   },
   "small_2": {
    "anchor": "bottom",
    "fps": 10,
    "frame": [
-    14,
-    20
+    9,
+    11
    ],
    "frames": 8,
-   "note": ""
+   "note": "",
+   "scale": 2
   },
   "small_3": {
    "anchor": "bottom",
    "fps": 10,
    "frame": [
-    14,
-    20
+    9,
+    11
    ],
    "frames": 8,
-   "note": ""
+   "note": "",
+   "scale": 2
   },
   "stair": {
    "anchor": "bottom",
    "fps": 10,
    "frame": [
-    48,
-    28
+    26,
+    16
    ],
    "frames": 8,
-   "note": "fire spilling over a step"
+   "note": "fire spilling over a step",
+   "scale": 2
   },
   "tongue_l_1": {
    "anchor": "bottom",
    "fps": 10,
    "frame": [
-    54,
-    62
+    32,
+    22
    ],
    "frames": 8,
-   "note": ""
+   "note": "",
+   "scale": 2
   },
   "tongue_l_2": {
    "anchor": "bottom",
    "fps": 10,
    "frame": [
-    54,
-    62
+    32,
+    22
    ],
    "frames": 8,
-   "note": ""
+   "note": "",
+   "scale": 2
   },
   "tongue_l_3": {
    "anchor": "bottom",
    "fps": 10,
    "frame": [
-    54,
-    62
+    32,
+    22
    ],
    "frames": 8,
-   "note": ""
+   "note": "",
+   "scale": 2
   },
   "tongue_m_1": {
    "anchor": "bottom",
    "fps": 10,
    "frame": [
-    38,
-    44
+    24,
+    18
    ],
    "frames": 8,
-   "note": ""
+   "note": "",
+   "scale": 2
   },
   "tongue_m_2": {
    "anchor": "bottom",
    "fps": 10,
    "frame": [
-    38,
-    44
+    24,
+    18
    ],
    "frames": 8,
-   "note": ""
+   "note": "",
+   "scale": 2
   },
   "tongue_m_3": {
    "anchor": "bottom",
    "fps": 10,
    "frame": [
-    38,
-    44
+    24,
+    18
    ],
    "frames": 8,
-   "note": ""
+   "note": "",
+   "scale": 2
   },
   "tongue_s_1": {
    "anchor": "bottom",
    "fps": 10,
    "frame": [
-    26,
-    30
+    16,
+    10
    ],
    "frames": 8,
-   "note": ""
+   "note": "",
+   "scale": 2
   },
   "tongue_s_2": {
    "anchor": "bottom",
    "fps": 10,
    "frame": [
-    26,
-    30
+    16,
+    10
    ],
    "frames": 8,
-   "note": ""
+   "note": "",
+   "scale": 2
   },
   "tongue_s_3": {
    "anchor": "bottom",
    "fps": 10,
    "frame": [
-    26,
-    30
+    16,
+    10
    ],
    "frames": 8,
-   "note": ""
+   "note": "",
+   "scale": 2
   },
   "tongue_xl_1": {
    "anchor": "bottom",
    "fps": 10,
    "frame": [
-    72,
-    84
+    40,
+    26
    ],
    "frames": 8,
-   "note": ""
+   "note": "",
+   "scale": 2
   },
   "tongue_xl_2": {
    "anchor": "bottom",
    "fps": 10,
    "frame": [
-    72,
-    84
+    40,
+    26
    ],
    "frames": 8,
-   "note": ""
+   "note": "",
+   "scale": 2
   },
   "tongue_xl_3": {
    "anchor": "bottom",
    "fps": 10,
    "frame": [
-    72,
-    84
+    40,
+    26
    ],
    "frames": 8,
-   "note": ""
+   "note": "",
+   "scale": 2
   },
   "wall_1": {
    "anchor": "bottom",
    "fps": 10,
    "frame": [
-    36,
-    66
+    30,
+    26
    ],
    "frames": 8,
-   "note": ""
+   "note": "",
+   "scale": 2
   },
   "wall_2": {
    "anchor": "bottom",
    "fps": 10,
    "frame": [
-    36,
-    66
+    30,
+    26
    ],
    "frames": 8,
-   "note": ""
+   "note": "",
+   "scale": 2
   },
   "wall_3": {
    "anchor": "bottom",
    "fps": 10,
    "frame": [
-    36,
-    66
+    30,
+    26
    ],
    "frames": 8,
-   "note": ""
+   "note": "",
+   "scale": 2
   }
  }
 }

@@ -2049,15 +2049,14 @@ means no rendering — UI layout and art still need an in-editor look.
   glare + a real spill PointLight2D + a `window_beam` shaft; built by `lobby._build_world`, origin world (590,275), seam 403, centre
   x 654). `player.walk_up_and_out(doorway_x, rise, depth)`: slide to the doorway, then UP the steps (feet −27, sprite ×0.76 about
   the feet, brightening) while `LobbyExitFx.surge` swells the light — then the existing WHITE card takes over (`lobby_exit.leave`;
-  `approach_door` kept as a fallback). Locked by `run_bookends_test._test_lobby_exit_art`. **(4) OUR FIRE** — the purchased craftpix
-  fire is no longer used anywhere: it was drawn 1.6-2.7× the game's pixel size and its floor tiles were cropped mid-flame.
-  `tools/art/fire.py` → `assets/fire/*.png` + `fire_meta.json` (+ `docs/art_reference/fire.png`): a MODEL (heat column, ridged-noise
-  tongues scrolling up exactly one period per 8-frame loop, palette by height fraction, dark-red rim, embers), native 1:1 size:
-  `bed_front|back_<light|blaze>_<1-3>` (tapered CLUMPS laid overlapping — never cropped), `tongue_<s|m|l|xl>`, `wall`, `edge` (door
-  frame), `small` (burning enemy), `stair`. `scripts/fire_art.gd` (`FireArt.draw/variants/sheet/material`) is the ONE drawing helper,
-  UNSHADED (flames glow at night); consumers rewritten: `fire_field` (`bed_spots(layer)` / `tongue_spots()` / `wall_fire_spots()` are
-  pure layout, each tongue stands on a back-carpet clump; stair fire), `apartment_fire`, `enemy_fire`, `fire_decal` + door fire in
-  `building_floors`. The sim, cells, lights, smoke, scorch and extinguisher logic are unchanged. Locked by `fire_test`
-  (`_test_fire_art`, `_test_fire_layout`, `_test_wall_fire`). The old `assets/fire-pixel-art-animation-sprites/` folder is unused.
+  `approach_door` kept as a fallback). Locked by `run_bookends_test._test_lobby_exit_art`. **(4) OUR FIRE (v2, round 29b — CHUNKY PIXEL; the owner rejected the smooth v1 as "too straight and pointy and tall", kept the carpets)** — the purchased craftpix
+fire is no longer used anywhere. `tools/art/fire.py` → `assets/fire/*.png` + `fire_meta.json` (+ `docs/art_reference/fire.png`): frames are HALF-res and the game draws every
+strip at integer 2x (`scale` in the meta; `FireArt.draw` / `frame_size` honour it — `frame_size` is the WORLD size), so a fire pixel is 2 world px. A MODEL of clumps of
+round-topped teardrops (`clump`: rounded foot + belly + round tip, lean/curl, lumpy periodic edge, height pulsation) coloured by erosion DEPTH shells — a 1-px dark-red outline, red,
+deep orange, orange, yellow, a rare white-hot core — with checker dither where shells meet; 8 frames, 10 fps, exact loop; single-pixel embers. `bed_front|back_<light|blaze>_<1-3>`
+(tapered clumps laid overlapping, ragged base — APPROVED by the owner, don't change), `tongue_<s|m|l|xl>` (wide round-topped lobes, height <= ~1.3x width), `wall`, `edge` (door frame), `small` (burning
+enemy), `stair`. `scripts/fire_art.gd` is the ONE drawing helper, UNSHADED (flames glow at night); consumers: `fire_field` (`bed_spots(layer)` / `tongue_spots()` / `wall_fire_spots()` are
+pure layout), `apartment_fire`, `enemy_fire`, `fire_decal` + door fire in `building_floors`. The sim, cells, lights, smoke, scorch and extinguisher logic are unchanged. Locked by `fire_test`
+(`_test_fire_art`, `_test_fire_layout`, `_test_wall_fire`). The old `assets/fire-pixel-art-animation-sprites/` folder is unused. The LOOK needs the owner's in-editor eye (captured in the engine under xvfb only).
   Not done: fire on the ceiling (dropped earlier), a fire-elemental enemy, per-floor decals on the LOBBY.
 - Not started: quests.
