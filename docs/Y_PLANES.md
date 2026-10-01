@@ -239,9 +239,9 @@ from §1, NOT the player's spawn plane.
 | Const / value             | value                    | meaning                                             |
 |---------------------------|--------------------------|-----------------------------------------------------|
 | `STAIR_STAND_Y`           | **370**                  | emerge/stand origin → feet on FLOOR_FEET_Y 419      |
-| `STAIR_DOWN_CUT_DROP`     | 30 (→ cut_y **400**)     | DOWN-shaft slice line = STAND_Y + this; by-eye knob |
+| `STAIR_DOWN_CUT_DROP`     | 26 (→ cut_y **396**)     | DOWN-shaft slice line = `STAIR_DOWN_CUT_Y` 396 = the top of the yellow first step (stair art lip) = the player's descent cut; was a by-eye 30 (400), which drew the enemy over the step's face |
 | `STAIR_STEP_CLEARANCE`    | 16                       | over_y = STAND_Y − this = **354** (clear the step)  |
-| DOWN rest_y               | cut_y + [28,58] = 428–458| lurk below the plane in the dark shaft              |
+| DOWN rest_y               | cut_y + [28,58] = 424–454| lurk below the plane in the dark shaft              |
 | UP rest_y                 | STAND_Y − [30,55] = 315–340 | stand up the visible steps                       |
 | `STAIR_BOB_AMP`           | 10                       | idle drift band around rest_y                       |
 | `STAIR_ACTIVATE_RANGE`    | 150                      | player X-distance that rouses it                    |
@@ -253,7 +253,7 @@ from §1, NOT the player's spawn plane.
 
 Emerge path: rest → **rise to over_y 354** (above the plane, clears the step) →
 **stepdown to STAND_Y 370** (feet land on 419) → normal AI. DOWN shaft slices via
-the mouth cut (400); UP stairwell is drawn whole (no slice), just depth-scaled.
+the mouth cut (396 — the top of the yellow step); UP stairwell is drawn whole (no slice), just depth-scaled.
 z 0 while in the shaft (behind the player), z 1 once stepped off.
 
 ---

@@ -368,10 +368,12 @@ const STAIR_BOB_AMP := 10.0          # how far the waiting enemy drifts up/down 
 # this means no floor-collision snap when its body collision turns back on — that snap
 # was the rubber-band, and origin 388 (feet 437) sat it 18px below everyone.
 const STAIR_STAND_Y := 370.0
-# How far BELOW the stand line the DOWN-shaft slice reveal sits. TUNABLE by eye against
-# the art (headless can't see it): LOWER the reveal (toward the feet) by INCREASING this,
-# raise it by decreasing. cut_y = STAIR_STAND_Y + this.
-const STAIR_DOWN_CUT_DROP := 30.0
+# The DOWN-shaft slice: EXACTLY the top of the yellow first step (the stair art's lip, design row 105 = world 396 — sprite
+# top 262 + EXT 29 + 105), the same line the player's own descent is cut on (386 − DOWN_STAIR_APPROACH 10 + DOWN_SHRED_FOOT 20).
+# Owner round 31i: at 400 (a by-eye 30) the enemy's body drew over the front of the step — "appearing from in front of the
+# step"; on the step's top edge it rises from behind it, up the stairs. stair_visuals_test reads the lip from the texture.
+const STAIR_DOWN_CUT_Y := 396.0
+const STAIR_DOWN_CUT_DROP := STAIR_DOWN_CUT_Y - STAIR_STAND_Y   # 26 — cut_y = STAIR_STAND_Y + this
 
 
 func _stair_art_box(on_left: bool) -> Dictionary:

@@ -434,7 +434,9 @@ means no rendering — UI layout and art still need an in-editor look.
   for the player + normal zombies), so it lands flush with every actor with NO floor-
   collision snap when its body collision turns back on (that snap, from emerging to 388/
   feet 437, was the rubber-band). The DOWN-shaft slice cut = `STAIR_STAND_Y +
-  STAIR_DOWN_CUT_DROP` (30), the one by-eye knob left. **Robustness — this
+  STAIR_DOWN_CUT_DROP` = `STAIR_DOWN_CUT_Y` **396** — exactly the top of the yellow first step, the same line the player's descent
+  is cut on (owner round 31i: the by-eye 400 drew the enemy over the step's face, "appearing from in front of the step"; now it rises
+  from behind it, up the stairs; `stair_visuals_test` reads the lip from the texture). **Robustness — this
   is where earlier builds softlocked, so it's built to be impossible:** while on the
   stairs its **body collision is OFF** (`set_collision_layer_value(1,false)`), so it can
   NEVER shove or wall off the player — but it is **ALWAYS killable/pushable** (attacks are
@@ -2134,6 +2136,9 @@ means no rendering — UI layout and art still need an in-editor look.
   **Round 31h (owner: "a bit higher I think. It's strange for a bannister to be that low"):** the half-wall's cap went from design
   row 76 to **66** (world 367 → **357**, a 42 px wall instead of 32); `stair_pan.VAULT_RAIL_TOP` follows (the jump climbs 10 px higher),
   and the far landing's edge across the well (`FAR_EDGE`) moved up with it.
+  **Round 31i:** the DOWN-shaft STAIR ENEMY is cut on the top of the yellow step (396, was 400) — see the stairwell-enemies entry.
+  Also fixed on the way: `building_floors_test`'s "a plant stand gets knocked over" check was a seed flake (one random building
+  could go without one); it now looks across a fixed set of 40 buildings.
   Y planes in docs/Y_PLANES.md §4. Locked by `banister_test` (56th suite; mutation-checked) + `stair_visuals_test` (one DOWN look,
   every stair sprite 262..406 at scale 1, signs over the stair art). Seen while capturing, NOT changed: an UP-stairwell stair enemy on
   the arrival floor can start above the top of the screen and walk down into view (its legs show under the ceiling first).

@@ -223,6 +223,24 @@ func _ready() -> void:
 		"the bend (%.0f) is the drawn top step (world %.0f -> %.0f above the feet line)" % [StairPan.UP_TURN_HEIGHT, step_top_world, 419.0 - step_top_world])
 	var mid: float = (262.0 + 406.0) * 0.5
 	chk(absf(step_top_world - mid) <= 8.0, "the flight climbs about halfway up the opening (top %.0f, middle %.0f)" % [step_top_world, mid])
+	# The stair ENEMY on a DOWN shaft is cut on the top of the yellow first step (owner round 31i: it used to be 4px lower, so
+	# its body drew over the step's face). Read the lip from the texture: the topmost yellow row in the shaft column.
+	var dimg: Image = load("res://assets/Hallway_Staircase_Left.png").get_image()
+	var lip_row := -1
+	for yy in range(dimg.get_height() - 1, 0, -1):
+		var c: Color = dimg.get_pixel(20, yy)
+		var yellow: bool = c.r > 0.4 and c.g > 0.28 and c.r > c.b + 0.25   # tread, nosing highlight and shadow rows alike
+		if yellow:
+			lip_row = yy
+		elif lip_row >= 0:
+			break
+	var lip_world: float = 262.0 + float(lip_row)
+	var BFS = load("res://scripts/building_floors.gd")
+	var enemy_cut: float = BFS.STAIR_STAND_Y + BFS.STAIR_DOWN_CUT_DROP
+	var player_cut: float = 386.0 - StairPan.DOWN_STAIR_APPROACH + StairPan.DOWN_SHRED_FOOT
+	chk(lip_row >= 0 and is_equal_approx(enemy_cut, lip_world),
+		"the stair enemy's DOWN cut (%.0f) is the top of the yellow step (%.0f)" % [enemy_cut, lip_world])
+	chk(is_equal_approx(enemy_cut, player_cut), "...the same line the player's descent is cut on (%.0f)" % player_cut)
 	for path in ["res://scenes/hallway.tscn", "res://scenes/lobby.tscn"]:
 		var sc = load(path).instantiate()
 		for n in ["HallwayStaircaseLeft", "LobbyRight"]:

@@ -1114,15 +1114,28 @@ func _test_corridor_decals() -> void:
 	check(outdoor.size() >= 5, "the corridors carry outdoor things — rubbish, racks, prams... (%s)" % str(outdoor.keys()))
 	# round 24e — variants are actually dealt out, and a knocked plant stand spills onto the floor
 	var variants_seen := {}
-	var spilled := false
 	for f in range(1, 30):
 		for r in [1, 2, 3]:
 			for d in CD.plan(f, r, BF.corridor_base_name(f)):
 				if "__" in str(d["name"]):
 					variants_seen[d["name"]] = true
-				if CD.base_of(d["name"]) == "plant_stand_fallen":
-					spilled = true
 	check(variants_seen.size() >= 6, "prop variants turn up across the building (%d)" % variants_seen.size())
+	# A knocked-over plant stand is a rare roll: looked for across a FIXED set of buildings, not just this test's random one
+	# (one random seed could go without — a flake). Still fails if knocking stands over never happens.
+	var spilled := false
+	var seed_before_spill: int = WorldState.master_seed
+	for sd in range(1, 41):
+		WorldState.master_seed = sd * 7919
+		for f in range(1, 30):
+			for r in [2, 3]:
+				for d in CD.plan(f, r, BF.corridor_base_name(f)):
+					if CD.base_of(d["name"]) == "plant_stand_fallen":
+						spilled = true
+			if spilled:
+				break
+		if spilled:
+			break
+	WorldState.master_seed = seed_before_spill
 	check(spilled or not "plant_stand" in CD.DRESSING_KEPT, "a plant stand gets knocked over on some later run")
 	# a bike fits between two doors (it's the widest thing that stands there) — seeded, not luck
 	var bike_rng := RandomNumberGenerator.new()
