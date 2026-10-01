@@ -733,6 +733,7 @@ func _die() -> void:
 	_show_weapon(false, 0.0)
 	WorldState.update_resident(apartment_id, {"dead": true, "hp": 0, "x": global_position.x})
 	WorldState.add_run_trace("Killed someone still alive behind a locked door.")
+	WorldState.note_resident_killed(apartment_id, global_position.x)   # they'll be back (a revenant, next run)
 	# What they had: the weapon, then their pockets (what they traded you is in there too).
 	if weapon != "":
 		WorldState.drop_item_from(self, weapon)

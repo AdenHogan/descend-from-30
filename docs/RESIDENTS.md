@@ -42,6 +42,23 @@ dropped if the item leaves your pack. A resident's FIRST trade counts as an **NP
 **Death**: a last word, the Death animation, lies there for the rest of the run (re-entry too), drops its weapon +
 goods as world drops, and leaves a chronicle trace ("Killed someone still alive behind a locked door.").
 
+## Revenants — kill one and they come back (owner round 32b)
+
+> "If you fight and kill a resident, they will respawn in a subsequent run as a crawler or spitter, but let's punish
+> the player by making them 20% faster and 20% more health."
+
+- A resident killed in run 1 or 2 is remembered by its flat (`WorldState.revenants`, cross-run, saved, cleared by
+  `new_game`; `note_resident_killed` from `resident_npc._die`). Killed on run 3 → nothing (no run left).
+- From the NEXT run on, `room._spawn_revenant` lays a **crawler or spitter** (seeded per flat) where they fell —
+  `enemy.make_revenant()`: SPEED ×1.2 and max HP ×1.2 **rounded up** (`REVENANT_SPEED_MULT` / `REVENANT_HP_MULT`; a
+  1-hp crawler comes back with 2, a 7-hp spitter with 9). Group `revenant`. It's in addition to the flat's ordinary
+  dead (a resident's flat had none while they lived), not in a BLAZE / CHARRED flat.
+- It stays every run until killed: a kill is ordinary kill memory in-run, and `_settle_revenants` (at the time skip,
+  before the kill memory is cleared) makes it permanent. The flat never gets a new resident again.
+- Listening at the door counts it. The first sight of it each run, the PLAYER says a line from
+  `npc_dialogue.json` → `revenant.recognise` (owner-authored).
+- Not in the balcony-descent backdrop (pops in on landing, like residents).
+
 ## Robustness
 
 - An **Area2D with no collision layers** — it can never block, shove or trap the player (softlock rule).

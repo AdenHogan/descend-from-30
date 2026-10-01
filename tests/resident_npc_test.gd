@@ -23,6 +23,7 @@ func _ready() -> void:
 	await _test_hostile()
 	await _test_scared()
 	await _test_trader()
+	await _test_revenant()
 	WorldState.dev_residents = 0
 	WorldState.god_mode = false
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
@@ -383,3 +384,75 @@ func _test_trader() -> void:
 	get_tree().call_group("resident_npc", "on_scavenge", "take", apt)
 	check(not npc.violent and npc.last_moment == "trade_refused", "...take it anyway: they protest ('%s')" % npc.last_line)
 	await _close(room)
+
+
+func _test_revenant() -> void:
+	print("[kill a resident: next run they're back as a crawler or spitter, 20% faster and tougher]")
+	WorldState.new_game()
+	WorldState.current_run = 1
+	WorldState.dev_residents = 3
+	var apt := _resident_flat()
+	if apt == "":
+		check(false, "a resident's flat")
+		return
+	var room := _open_flat(apt)
+	await _frames(3)
+	var npc = room.get("resident")
+	npc.global_position.x = 640.0
+	npc.receive_damage(99, "test")
+	check(WorldState.revenants.has(apt), "the flat remembers who died in it")
+	check(WorldState.revenant_for(apt).is_empty(), "...not back the same run")
+	await _close(room)
+	room = _open_flat(apt)
+	await _frames(3)
+	check(get_tree().get_nodes_in_group("revenant").is_empty(), "(re-entering that run: just their body)")
+	await _close(room)
+	# The time skip (the real one).
+	WorldState.dev_residents = 0
+	WorldState.advance_run()
+	check(WorldState.current_run == 2 and not WorldState.revenant_for(apt).is_empty(), "next run: they're back")
+	check(WorldState.resident_for(apt).is_empty(), "...and nobody new moves in")
+	# Even if their door stayed LOCKED (you came in by the balcony) and every locked flat is forced full.
+	var door_was: int = WorldState.get_door_state(apt)
+	WorldState.door_states[apt] = WorldState.DoorState.SHUT_LOCKED
+	WorldState.dev_residents = 1
+	check(WorldState.resident_for(apt).is_empty(), "...not even behind a door that stayed locked")
+	WorldState.dev_residents = 0
+	WorldState.residents.erase(WorldState._resident_key(apt))
+	WorldState.door_states[apt] = door_was
+	var kind: String = str(WorldState.revenant_for(apt).get("type", ""))
+	check(kind in ["crawler", "spitter"], "as a crawler or a spitter (%s)" % kind)
+	var rep: Dictionary = WorldState.get_listen_report_for_apartment(apt)
+	var base_count: int = WorldState.get_apartment_zombie_count(apt)
+	check(int(rep.get("count", -1)) == base_count + 1, "listening counts them (%d vs %d + 1)" % [int(rep.get("count", -1)), base_count])
+	room = _open_flat(apt)
+	await _frames(3)
+	var revs := get_tree().get_nodes_in_group("revenant")
+	check(revs.size() == 1, "one waiting in the flat (%d)" % revs.size())
+	if revs.size() != 1:
+		await _close(room)
+		return
+	var z = revs[0]
+	check(z.is_in_group(kind), "the right kind (%s)" % kind)
+	check(absf(z.global_position.x - 640.0) < 40.0, "where they fell (%.0f)" % z.global_position.x)
+	# Against a plain one of its kind, same spot + floor (same seeded health).
+	var plain = room.BREACH_SCENES[kind].instantiate()
+	plain.global_position = Vector2(640.0, 321.0)
+	plain.hp_floor = WorldState._apartment_floor(apt)
+	room.add_child(plain)
+	check(is_equal_approx(z.SPEED, plain.SPEED * 1.2), "20%% faster (%.1f vs %.1f)" % [z.SPEED, plain.SPEED])
+	check(z.max_hp == int(ceil(plain.max_hp * 1.2)) and z.max_hp > plain.max_hp, "20%% more health, rounded up (%d vs %d)" % [z.max_hp, plain.max_hp])
+	plain.free()
+	z._die()
+	await _close(room)
+	room = _open_flat(apt)
+	await _frames(3)
+	check(get_tree().get_nodes_in_group("revenant").is_empty(), "killed: gone for the rest of the run")
+	await _close(room)
+	WorldState.advance_run()
+	check(WorldState.current_run == 3 and WorldState.revenant_for(apt).is_empty(), "...and for good (run 3)")
+	# A resident killed on the last run has no run to come back in.
+	WorldState.new_game()
+	WorldState.current_run = 3
+	WorldState.note_resident_killed("1501", 500.0)
+	check(not WorldState.revenants.has("1501"), "killed on the last run: nothing to come back to")

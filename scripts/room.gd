@@ -261,6 +261,8 @@ func _ready() -> void:
 					if not WorldState.apply_saved_zombie(zombie) and pi == on_balcony:
 						_seed_on_balcony(zombie)
 			_spawn_riser(false)
+		if afs != WorldState.FIRE_CHARRED and afs != WorldState.FIRE_BLAZE:
+			_spawn_revenant()
 
 	# Interior fire (after enemies, so burning enemies can already be in the room).
 	_spawn_apartment_fire()
@@ -1829,6 +1831,35 @@ func _spawn_passive_enemies(floor_num: int, breached: bool) -> void:
 # comes close, then it gets up (enemy_zombie_standard.start_riser). Killed = stays dead (a corpse like any
 # other); woken = remembered standing like any other (apply_saved_zombie); a dormant one is never recorded,
 # so it's lying there again on return. The backdrop (a balcony descent) shows it lying there, frozen.
+# A REVENANT (WorldState "REVENANTS"): the resident the player killed here in an earlier run, back as a
+# crawler or spitter — faster and tougher. Where they fell; remembered / killed like any enemy (its kill
+# sticks across runs). The first sight of it each run, the player knows who it was.
+var revenant: Node = null
+
+func _spawn_revenant() -> Node:
+	var r := WorldState.revenant_for(apartment_id)
+	if r.is_empty():
+		return null
+	var key := WorldState.revenant_key(apartment_id)
+	if WorldState.killed_zombies.has(key):
+		return null
+	var scene: PackedScene = BREACH_SCENES.get(str(r.get("type", "crawler")), BREACH_SCENES["crawler"])
+	var z = scene.instantiate()
+	z.global_position = Vector2(clampf(float(r.get("x", 600.0)), 150.0, 1030.0), 321.0)
+	z.spawn_key = key
+	z.hp_floor = _apt_floor()
+	add_child(z)
+	z.make_revenant()
+	WorldState.apply_saved_zombie(z)
+	revenant = z
+	if int(r.get("seen_run", 0)) != WorldState.current_run:
+		r["seen_run"] = WorldState.current_run
+		var pool = WorldState.resident_lines().get("revenant", {}).get("recognise", [])
+		if pool is Array and not pool.is_empty():
+			HUD.show_dialogue(str(pool[randi() % pool.size()]), "", false, 4.0)
+	return z
+
+
 func _spawn_riser(frozen: bool) -> Node:
 	if _riser_spot.is_empty():
 		return null

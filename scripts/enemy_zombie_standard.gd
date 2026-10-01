@@ -536,6 +536,16 @@ func make_breach_leader(key_target: String) -> void:
 	modulate = Color(0.95, 0.72, 0.68)
 
 
+## A REVENANT (WorldState "REVENANTS"): a resident the player killed, back a run later — faster and
+## tougher than its kind. Called after _ready (its kind has set SPEED / max_hp). Health rounds UP, so a
+## 1-hp crawler comes back with 2.
+func make_revenant() -> void:
+	SPEED *= WorldState.REVENANT_SPEED_MULT
+	max_hp = int(ceil(max_hp * WorldState.REVENANT_HP_MULT))
+	current_hp = max_hp
+	add_to_group("revenant")
+
+
 func alert_to_noise(duration: float = 6.0) -> void:
 	alert_timer = max(alert_timer, duration)
 

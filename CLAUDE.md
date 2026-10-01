@@ -2181,5 +2181,8 @@ means no rendering — UI layout and art still need an in-editor look.
   bubble, group `hud_widget_extra` read by `HUD.pointer_over_widget`; a resident's first trade = one "NPC aided", +4 Valour). loot_ui calls `on_scavenge("start"/"take")`
   on group `resident_npc`. A resident's flat has no zombies / riser; listening at its door gives a voice. They die
   (drop weapon + goods, lie there all run). F1 → Residents forces them. Art = the homeless pack at 1.6x (placeholder).
+  **Revenants** (round 32b): a resident killed in run 1/2 is back from the next run in that flat as a seeded crawler or
+  spitter, ×1.2 speed + ×1.2 HP rounded up (`WorldState.revenants`, `room._spawn_revenant`, `enemy.make_revenant`), until
+  killed (`_settle_revenants` at the time skip); the player recognises them (`npc_dialogue.json` → `revenant.recognise`).
   Also round 32: the bald man is now **Alex** (was Aaron).
 - Not started: quests.

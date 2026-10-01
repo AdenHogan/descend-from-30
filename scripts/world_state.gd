@@ -1162,6 +1162,7 @@ func new_game() -> void:
 	elevator_kit_placed.clear()
 	gun_cabinets.clear()
 	residents.clear()
+	revenants.clear()
 	elevator_powered = false
 	elevator_fuses_loaded = 0
 	fire_dealt_with.clear()
@@ -1266,6 +1267,7 @@ func advance_run() -> bool:
 	# every floor re-populates, and the run-salted spawn seed lands them in NEW spots.
 	# Loot depletion PERSISTS: searched_anchors, world_drops and consumed keys are left
 	# untouched, so an emptied building stays emptied (runs 2/3 inherit a looted map).
+	_settle_revenants()            # a revenant killed this run stays dead (read before the kill memory goes)
 	killed_zombies.clear()
 	zombie_positions.clear()
 	# Per-run world systems reset so they re-derive fresh for the new run.
@@ -2436,7 +2438,7 @@ func get_listen_report_for_apartment(apt_id: String) -> Dictionary:
 		# Breach rooms are horde + leader by construction — read as many + big.
 		count = 4
 	else:
-		count = get_apartment_zombie_count(apt_id)
+		count = get_apartment_zombie_count(apt_id) + (0 if revenant_for(apt_id).is_empty() else 1)
 	for key in killed_zombies:
 		var entry = killed_zombies[key]
 		if entry.get("apartment_id", "") == apt_id and str(entry.get("scene", "")).contains("room"):
@@ -4205,6 +4207,8 @@ func resident_eligible(apartment_id: String) -> bool:
 		return false
 	if not is_locked_apartment(apartment_id):
 		return false
+	if revenants.has(apartment_id):
+		return false                 # the one who lived here is back, and not as themselves
 	return apartment_fire_stage(f, int(apartment_id.substr(apartment_id.length() - 2))) < 0
 
 
@@ -4315,6 +4319,48 @@ func resident_listen_line(apartment_id: String) -> String:
 		return ""
 	var t: String = resident_for(apartment_id).get("temper", "scared")
 	return str(resident_lines().get("listen", {}).get(t, "Someone's in there. Alive."))
+
+
+# REVENANTS (owner round 32b — "if you fight and kill a resident, they will respawn in a subsequent run as a
+# crawler or spitter, but let's punish the player by making them 20% faster and 20% more health"). A
+# resident killed in run 1 or 2 is remembered by its flat (cross-run, saved); from the next run on, room.gd
+# lays a crawler or a spitter (seeded per flat) where they fell, ×1.2 speed and ×1.2 health
+# (enemy.make_revenant), until it's killed — a kill sticks across runs (_settle_revenants at the time skip).
+const REVENANT_SPEED_MULT := 1.2
+const REVENANT_HP_MULT := 1.2
+var revenants: Dictionary = {}     # apt -> {"type": crawler|spitter, "x", "since": run, "slain": bool, "seen_run"}
+
+
+## Called by resident_npc._die: the flat remembers who died in it (only if there's a run still to come).
+func note_resident_killed(apartment_id: String, x: float) -> void:
+	if current_run >= 3 or revenants.has(apartment_id):
+		return
+	var kinds := ["crawler", "spitter"]
+	revenants[apartment_id] = {
+		"type": kinds[posmod(hash(str(master_seed) + "revenant" + apartment_id), kinds.size())],
+		"x": x, "since": current_run + 1, "slain": false, "seen_run": 0,
+	}
+
+
+## The revenant waiting in this flat this run ({} = none): from the run after the killing, until slain.
+func revenant_for(apartment_id: String) -> Dictionary:
+	var r = revenants.get(apartment_id, {})
+	if not (r is Dictionary) or r.is_empty() or bool(r.get("slain", false)):
+		return {}
+	if current_run < int(r.get("since", 99)):
+		return {}
+	return r
+
+
+func revenant_key(apartment_id: String) -> String:
+	return "revenant:" + apartment_id
+
+
+## At the time skip: a revenant killed this run stays dead for good.
+func _settle_revenants() -> void:
+	for apt in revenants:
+		if killed_zombies.has(revenant_key(apt)):
+			revenants[apt]["slain"] = true
 
 
 # RISERS (owner round 22 — "if we have dead neighbours, maybe we can watch some of them get up and be
@@ -5099,6 +5145,7 @@ func save_game(scene_path: String, record_live_zombies: bool = true) -> void:
 		"elevator_kit_placed": elevator_kit_placed,
 		"gun_cabinets": gun_cabinets,
 		"residents": residents,
+		"revenants": revenants,
 		"elevator_powered": elevator_powered,
 		"elevator_fuses_loaded": elevator_fuses_loaded,
 		"fire_dealt_with": fire_dealt_with,
@@ -5204,6 +5251,7 @@ func load_game() -> String:
 	elevator_kit_placed = data.get("elevator_kit_placed", {})
 	gun_cabinets = data.get("gun_cabinets", {})
 	residents = data.get("residents", {}) if data.get("residents", {}) is Dictionary else {}
+	revenants = data.get("revenants", {}) if data.get("revenants", {}) is Dictionary else {}
 	elevator_powered = bool(data.get("elevator_powered", false))
 	elevator_fuses_loaded = int(data.get("elevator_fuses_loaded", 0))
 	fire_dealt_with = data.get("fire_dealt_with", {})

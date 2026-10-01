@@ -58,6 +58,11 @@
     "death":         ["…should've… haggled…", "…no refunds…"]
   },
 
+  "revenant": {
+    "_note": "The PLAYER's line (bottom of the screen) on first seeing, in a later run, the resident they killed — back as one of the dead.",
+    "recognise": ["…That's them. From before. I did that.", "Oh no. Oh no, that's — I know that coat.", "They didn't stay down."]
+  },
+
   "listen": {
     "scared":  "Someone's in there. Alive. Trying very hard to be quiet.",
     "hostile": "Footsteps, pacing. Someone alive in there — muttering, angry.",
