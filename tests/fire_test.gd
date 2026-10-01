@@ -1088,6 +1088,22 @@ func _test_fire_layout() -> void:
 					off += 1
 			check(off == 0, "%s %s carpet: each run starts and ends on burning floor off doorways / the stair zone, kit art real, drawn wide enough" % [label, layer])
 			check(overlap == 0, "%s %s carpet: runs never overlap (no outline cutting through a neighbour)" % [label, layer])
+			var bad_patch := 0
+			var long_runs := 0
+			var long_with := 0
+			for sp in spans:
+				if float(sp["x1"]) - float(sp["x0"]) >= ff.PATCH_MIN_SPAN and layer == "front":
+					long_runs += 1
+					if not (sp["patches"] as Array).is_empty():
+						long_with += 1
+				for pt in sp["patches"]:
+					var px: float = float(pt["x"])
+					if px < float(sp["x0"]) + ff.PATCH_END_MARGIN - 0.01 or px > float(sp["x1"]) - ff.PATCH_END_MARGIN + 0.01 or FireArt.sheet(str(pt["name"])).is_empty():
+						bad_patch += 1
+			check(bad_patch == 0, "%s %s carpet: front patches stay inside their run, off its ends, art real" % [label, layer])
+			check(long_with == long_runs, "%s %s carpet: every long run has patches breaking its straight base (%d/%d)" % [label, layer, long_with, long_runs])
+			if layer == "back":
+				check(spans.all(func(sp): return (sp["patches"] as Array).is_empty()), "the wall-seam carpet takes no patches")
 		var tongues: Array = ff.tongue_spots()
 		check(tongues.size() >= 4, "%s: tongues rise from the carpet (%d)" % [label, tongues.size()])
 		var prev := -1.0e9

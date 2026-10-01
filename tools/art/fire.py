@@ -167,7 +167,7 @@ def to_image(lab, dim=1.0):
 
 
 # ------------------------------------------------------------------------------------------------ squash (taper without chopping)
-def squash(fill, scale_cols):
+def squash(fill, scale_cols, min_h=3, plateau=1.0):
     """Per-column vertical squash of a FILL image (bottom-anchored). scale_cols[x] in [0,1]: 1 = unchanged, 0 = gone. The flame's
     tip is kept (the column is compressed, never cut), so a tapered end is a smaller flame, not a chopped one."""
     h, w = fill.shape
@@ -180,8 +180,11 @@ def squash(fill, scale_cols):
         top = ys.min()
         bot = ys.max()
         hs = bot - top + 1
-        hd = int(round(hs * float(scale_cols[x])))
-        if hd <= 0:
+        sc = float(scale_cols[x])
+        hd = int(round(hs * sc))
+        # where the flame is being tapered, a column shorter than min_h is dropped outright: the end is a small whole flame, not a
+        # trailing 1-2 px sliver of base line ("they just stop" — owner round 29c)
+        if hd <= 0 or (sc < plateau * 0.999 and hd < min_h):
             continue
         for r in range(hd):
             src = bot - min(hs - 1, int(r * hs / float(hd)))
@@ -203,6 +206,49 @@ def downsample(fill, d):
             body = int((blk >= ORNG).sum())
             if body * 2 >= d * d:
                 out[y, x] = YELL if int((blk == YELL).sum()) * 2 >= body else ORNG
+    return out
+
+
+def drop_specks(fill, taper, min_area=12):
+    """After a taper, drop the little separate fragments the squash can strand at an end (a stray lick, a few pixels of base): the
+    end of a run is its last WHOLE flame."""
+    out = fill.copy()
+    for c in components(fill >= ORNG):
+        if len(c) < min_area and taper[c[:, 1]].all():      # only inside the taper — never gaps in the body of a run
+            out[c[:, 0], c[:, 1]] = EMPTY
+    return out
+
+
+def ragged_pattern(seed, period=32):
+    """Per-column depth (0-2 px) the BASE is nibbled up by — periodic over `period`, so tiles and caps agree. Clusters of 2-4
+    columns, mostly 1 px, the odd 2 px: a base that wanders instead of a ruled line."""
+    rng = np.random.default_rng(seed)
+    bo = np.zeros(period, dtype=int)
+    x = int(rng.integers(0, 4))
+    while x < period:
+        wdt = int(rng.integers(2, 5))
+        dep = 2 if rng.random() < 0.25 else 1
+        for k in range(wdt):
+            bo[(x + k) % period] = dep
+        x += wdt + int(rng.integers(3, 8))
+    return bo
+
+
+def nibble_base(fill, bo):
+    out = fill.copy()
+    h, w = fill.shape
+    for x in range(w):
+        d = int(bo[x % len(bo)])
+        if d <= 0:
+            continue
+        ys = np.where(out[:, x] >= ORNG)[0]
+        if len(ys) == 0:
+            continue
+        bot = ys.max()
+        d = min(d, len(ys) - 2)            # a column is never nibbled away: at least 2 px of body stay, so no gap opens in a run
+        if d <= 0:
+            continue
+        out[bot - d + 1:bot + 1, x] = EMPTY
     return out
 
 
@@ -275,26 +321,28 @@ def periodic_tile():
     return out
 
 
-def run_pieces(stage, roll, shift):
+def run_pieces(stage, roll, shift, seed=1):
+    """-> (cap_l, run, cap_r) lists of PIL frames. The flame is squashed (never chopped) to nothing over a LONG, gentle cap — a
+    column shorter than 3 px is dropped, so the end is a small whole flame — with JOIN px of exactly the tile's own profile where cap
+    meets tile. The base is nibbled up in places (periodic over the tile) so it is never a ruled line."""
     dim = 0.82 if stage == 'back' else 1.0
-    """-> (cap_l, run, cap_r) lists of PIL frames. The flame is squashed (never chopped) to nothing over the cap, with JOIN px of
-    exactly the tile's own profile where cap meets tile."""
     JOIN = 8
     tiles = periodic_tile()
     n = len(tiles)
     base = [np.roll(tiles[(i + shift) % n], roll, axis=1) for i in range(n)]
-    s = 0.5 if stage == 'light' else 1.0
+    s = 0.6 if stage == 'light' else 1.0
     W = 32 * 5
     xs = np.arange(W)
     ramp = 32.0 - JOIN
     xl = np.clip(xs / ramp, 0, 1)
     xr = np.clip((W - 1 - xs) / ramp, 0, 1)
-    env = np.sqrt(np.clip(1.0 - (1.0 - np.minimum(xl, xr)) ** 2, 0, 1)) * s
+    env = (np.minimum(xl, xr) ** 1.15) * s
+    bo = ragged_pattern(seed)
     caps_l, runs, caps_r = [], [], []
     for fl in base:
         strip = np.concatenate([fl] * 5, axis=1)
-        sq = squash(strip, env)
-        lab = outline(pad(sq, top=1, bottom=0, left=0, right=0), bottom=False)
+        sq = nibble_base(drop_specks(squash(strip, env, plateau=s), env < s * 0.999), bo)
+        lab = outline(pad(sq, top=1, bottom=1, left=0, right=0), bottom=False)[:-1]
         img = to_image(lab, dim)
         caps_l.append(img.crop((0, 0, 32, lab.shape[0])))
         runs.append(img.crop((64, 0, 96, lab.shape[0])))
@@ -310,14 +358,14 @@ def clump(tile_n, x0, width, stage, dim=1.0, shift=0):
     s = 1.0 if stage == 'blaze' else 0.5
     xs = np.arange(width)
     u = (xs + 0.5) / width
-    bell = np.sqrt(np.clip(1.0 - np.abs(2.0 * u - 1.0) ** 2.2, 0, 1)) * s
+    bell = (np.clip(np.sin(np.pi * u), 0, 1) ** 0.9) * s
     out = []
     for i in range(n):
         lab = frames[(i + shift) % n]
         strip = np.concatenate([lab, lab], axis=1)
         win = strip[:, x0:x0 + width]
         cl, _ = clean_body(win, keep_sparks=False, opening=False, closing=True)
-        sq = squash(cl, bell)
+        sq = drop_specks(squash(cl, bell, plateau=s), bell < s * 0.999)
         lab2 = outline(pad(sq, top=1, bottom=1, left=1, right=1), bottom=True)
         out.append(to_image(lab2, dim))
     top = min(np.where(np.array(f)[..., 3].any(axis=1))[0][0] for f in out)
@@ -370,7 +418,7 @@ def build():
         add('edge_%d' % v, tongue(3, v), 'door-frame flame')
         add('small_%d' % v, tongue(3, v, bottom_outline=True), 'burning-enemy flame')
         for stage in ('light', 'blaze', 'back'):
-            cl, rn, cr = run_pieces(stage, (0, 11, 21)[v - 1], (0, 2, 4)[v - 1])
+            cl, rn, cr = run_pieces(stage, (0, 11, 21)[v - 1], (0, 2, 4)[v - 1], seed=40 + v)
             add('runl_%s_%d' % (stage, v), cl, 'run, left cap (the flame rises out of nothing)')
             add('run_%s_%d' % (stage, v), rn, 'run, middle tile (edges meet — tiles to any width)')
             add('runr_%s_%d' % (stage, v), cr, 'run, right cap (the flame sinks to nothing)')

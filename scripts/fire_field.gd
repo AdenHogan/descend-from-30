@@ -623,6 +623,10 @@ func run_spans(layer: String) -> Array:
 
 
 const RUN_STEP := 6.0
+const PATCH_MIN_SPAN := 200.0      # a run shorter than this keeps its plain base
+const PATCH_EVERY := 230.0         # one small front patch per this much run
+const PATCH_END_MARGIN := 70.0     # kept clear of the run's ends (a patch there would blunt the cap)
+const PATCH_DROP := 3.0            # px lower than the run's base
 
 
 func _add_run_span(out: Array, x0: float, x1: float, kit: String, salt: float) -> void:
@@ -632,7 +636,26 @@ func _add_run_span(out: Array, x0: float, x1: float, kit: String, salt: float) -
 	var pw: float = FireArt.run_layout(kit, 1, 0.0)["pw"]
 	var w: float = maxf(x1 - x0, 2.0 * pw)          # never narrower than its two caps
 	var cx: float = clampf((x0 + x1) * 0.5, FIRE_MIN_X + w * 0.5, FIRE_MAX_X - w * 0.5)
-	out.append({"x0": x0, "x1": x1, "cx": cx, "w": w, "kit": kit, "v": 1 + int(_hash01(sd) * 3.0) % 3, "phase": _hash01(sd * 4.3)})
+	out.append({"x0": x0, "x1": x1, "cx": cx, "w": w, "kit": kit, "v": 1 + int(_hash01(sd) * 3.0) % 3, "phase": _hash01(sd * 4.3),
+		"patches": _run_patches(x0, x1, kit, sd)})
+
+
+## Small clumps drawn IN FRONT of a long run, a few px lower than its base: they break the long straight bottom line and mask it.
+## Only on a long stretch (one per ~230 px, never near an end), seeded so they differ floor to floor. [{x, name, phase}]
+func _run_patches(x0: float, x1: float, kit: String, sd: float) -> Array:
+	var out: Array = []
+	if kit == "back" or x1 - x0 < PATCH_MIN_SPAN:
+		return out
+	var names: Array = FireArt.variants("bed_front_" + ("blaze" if kit == "blaze" else "light"))
+	if names.is_empty():
+		return out
+	var n := int((x1 - x0) / PATCH_EVERY)
+	var inner0 := x0 + PATCH_END_MARGIN
+	var inner1 := x1 - PATCH_END_MARGIN
+	for k in range(n):
+		var cx := inner0 + (float(k) + 0.5) * (inner1 - inner0) / float(n) + (_hash01(sd * 7.1 + float(k) * 1.9) - 0.5) * 60.0
+		out.append({"x": clampf(cx, inner0, inner1), "name": names[int(_hash01(sd * 3.7 + float(k)) * float(names.size())) % names.size()], "phase": _hash01(sd * 5.9 + float(k) * 2.3)})
+	return out
 
 
 func tongue_spots() -> Array:
@@ -824,6 +847,8 @@ func _draw_front(canvas: CanvasItem) -> void:
 	# THROUGH it) — the clump height (18 px light / 33 blaze) is feet-to-waist, never the neck. One continuous run per burning stretch, clean-capped.
 	for sp in run_spans("front"):
 		FireArt.assemble_run(canvas, str(sp["kit"]), int(sp["v"]), _t, float(sp["phase"]), float(sp["cx"]), float(sp["w"]), FIRE_BASE_Y - 1.0)
+		for pt in sp["patches"]:                       # the small patches that break the straight base
+			FireArt.draw(canvas, str(pt["name"]), _t, float(pt["phase"]), Vector2(float(pt["x"]), FIRE_BASE_Y - 1.0 + PATCH_DROP))
 
 
 func _draw_smoke(_canvas: CanvasItem) -> void:

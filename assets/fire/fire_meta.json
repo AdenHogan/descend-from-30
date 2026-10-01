@@ -8,7 +8,7 @@
    "fps": 10,
    "frame": [
     34,
-    21
+    18
    ],
    "frames": 6,
    "note": "back seam carpet, BLAZE",
@@ -19,7 +19,7 @@
    "fps": 10,
    "frame": [
     34,
-    15
+    14
    ],
    "frames": 6,
    "note": "back seam carpet, BLAZE",
@@ -52,7 +52,7 @@
    "fps": 10,
    "frame": [
     34,
-    11
+    10
    ],
    "frames": 6,
    "note": "back seam carpet, LIGHT",
@@ -63,7 +63,7 @@
    "fps": 10,
    "frame": [
     34,
-    12
+    11
    ],
    "frames": 6,
    "note": "back seam carpet, LIGHT",
@@ -74,7 +74,7 @@
    "fps": 10,
    "frame": [
     34,
-    18
+    14
    ],
    "frames": 6,
    "note": "front carpet, BLAZE",
@@ -85,7 +85,7 @@
    "fps": 10,
    "frame": [
     34,
-    18
+    15
    ],
    "frames": 6,
    "note": "front carpet, BLAZE",
@@ -96,7 +96,7 @@
    "fps": 10,
    "frame": [
     34,
-    22
+    19
    ],
    "frames": 6,
    "note": "front carpet, BLAZE",
@@ -107,7 +107,7 @@
    "fps": 10,
    "frame": [
     34,
-    12
+    11
    ],
    "frames": 6,
    "note": "front carpet, LIGHT",
@@ -118,7 +118,7 @@
    "fps": 10,
    "frame": [
     34,
-    11
+    9
    ],
    "frames": 6,
    "note": "front carpet, LIGHT",
@@ -129,7 +129,7 @@
    "fps": 10,
    "frame": [
     34,
-    10
+    9
    ],
    "frames": 6,
    "note": "front carpet, LIGHT",
@@ -503,7 +503,7 @@
    "fps": 10,
    "frame": [
     28,
-    15
+    14
    ],
    "frames": 6,
    "note": "fire spilling over a step",
