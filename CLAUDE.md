@@ -2094,4 +2094,14 @@ means no rendering — UI layout and art still need an in-editor look.
   sprites are now 80x115 at scale 1 (was 353x443 at ~0.226/0.259) on the SAME world box (x 131..211 / 1139..1219, y 291..406), so `_stair_art_box`,
   the triggers, the slice and the pan are untouched. Real-pan previews: `docs/art_reference/stairwell_pan_{down,up}.png`. The LOOK needs the
   owner's eye (v1 — tone, wall, stringer).
+  **Round 31c (owner sketch — "the grey section is essentially the back view of the rear-facing staircase… needs to be at the same line as the
+  top of the yellow staircase… the black is basically empty space… turn that space into… a table, or junk. Literally anything"):** the DOWN
+  stair's top is now the BACK of the flight that climbs to the next floor (concrete, stepped bands shrinking as it climbs away, 2px stringers,
+  a lit lowest edge) whose lower edge sits on `stairwell.up_steps_top()` — the SAME sprite row (55) as the top of the yellow up-stairs; under
+  it, the RECESS at landing level (a shadowed back wall, skirting, the landing floor to the lip) with something stood in it. Three looks
+  (`RECESS_KINDS`: `cleaner` = mop bucket + wet-floor sign, `junk` = taped boxes + tied newspapers + a paint tin, `table` = a side table with a
+  dead plant + a bin bag) → `assets/stairs/down_<kind>_{left,right}.png`, rotated per floor by `building_floors.stair_recess_kind(floor)`
+  (seeded by master_seed + floor, stable across runs) in `_apply_stair_visuals` (live + pan backdrop). No extinguisher is DRAWN there on purpose
+  (a painted one would read as a pickup you can't take). Locked by `stair_visuals_test` (varies across floors, stable, the right texture, 80x115
+  at scale 1; mutation-checked).
 - Not started: quests.

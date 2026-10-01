@@ -182,5 +182,25 @@ func _ready() -> void:
 		bf2.free()
 		await get_tree().process_frame
 
+	# The DOWN stair's recess (owner round 31c): a seeded look per floor, the same texture size (so the art box / slice don't move),
+	# stable for a floor, and the floors don't all show the same thing.
+	var BF = load("res://scripts/building_floors.gd")
+	var kinds := {}
+	for f in range(1, 30):
+		kinds[BF.stair_recess_kind(f)] = true
+	chk(kinds.size() >= 2, "the DOWN-stair recess varies across floors (%s)" % str(kinds.keys()))
+	chk(BF.stair_recess_kind(17) == BF.stair_recess_kind(17), "a floor's recess look is stable")
+	for f2 in [7, 12, 25]:
+		var bf2 = load("res://scenes/building_floors.tscn").instantiate()
+		bf2.setup_floor = f2; bf2.passive = true
+		add_child(bf2)
+		for i in range(3): await get_tree().process_frame
+		var down_on_left: bool = WorldState.stair_down_side(f2) == "left"
+		var spr = bf2.get_node("HallwayStaircaseLeft" if down_on_left else "HallwayStaircaseRight")
+		var want := "res://assets/stairs/down_%s_%s.png" % [BF.stair_recess_kind(f2), "left" if down_on_left else "right"]
+		chk(spr.texture != null and spr.texture.resource_path == want, "floor %d DOWN stair shows its recess (%s)" % [f2, spr.texture.resource_path if spr.texture else "none"])
+		chk(spr.texture != null and spr.texture.get_size() == Vector2(80, 115) and spr.scale == Vector2.ONE, "floor %d DOWN sprite keeps the 80x115 box at scale 1" % f2)
+		bf2.queue_free()
+		await get_tree().process_frame
 	print("=== %s (%d failures) ===" % ["ALL PASSED" if fails == 0 else "FAILED", fails])
 	get_tree().quit(1 if fails > 0 else 0)

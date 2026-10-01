@@ -9,7 +9,8 @@ paint-box art, redrawn here as real pixel art on the SAME layout and proportions
                                angle stays flat-on; right half = the same plaster wall + newel post.
 
 Nothing about the pan / triggers / slice depends on the art — only its 80x115 box (x 131..211 left, 1139..1219 right; y 291..406).
-Outputs assets/Lobby_{Left,Right}.png + assets/Hallway_Staircase_{Left,Right}.png (Right = mirrored) and, with --mock,
+Outputs assets/Lobby_{Left,Right}.png + assets/Hallway_Staircase_{Left,Right}.png (Right = mirrored; the DOWN default = the 'cleaner'
+recess), assets/stairs/down_<recess>_{left,right}.png for each RECESS_KINDS (building_floors rotates them by floor) and, with --mock,
 docs/art_reference/stairwell.png (sheet, 5x). `python3 tools/art/stairwell.py`."""
 import os
 import sys
@@ -113,8 +114,8 @@ def up_view():
     dark_back(p, SHAFT_X0, W - 1, 0, 108, glow=(59, 24, 30))
     window(p, 48, 3, 69, 36)
     # nine flat frontal steps, a touch narrower toward the top (the stringer leans in); nosing / tread / shadowed riser
-    N, y_bot = 9, 108
-    heights = [6.4 - 0.14 * i for i in range(N)]
+    N, y_bot = STEP_N, STEP_BOT
+    heights = _step_heights()
     y = float(y_bot)
     for i in range(N):
         hgt = heights[i]
@@ -147,72 +148,173 @@ def up_view():
     return img
 
 
-# Which soffit the DOWN stair draws (A flat slab / B sloped / C stepped). PENDING the owner's pick: assets/Hallway_Staircase_* still hold
-# the earlier flat far-wall DOWN art until this is chosen and the script is re-run, so re-running it now changes the DOWN sprites.
-SOFFIT_V = 'A'
-CONCRETE = [(40, 44, 44), (62, 68, 66), (86, 93, 89), (112, 119, 112)]
+# ---------------------------------------------------------------- DOWN
+# Owner round 31c (with a sketch): the grey part is the BACK of the rear-facing flight that climbs to the next floor (on that floor
+# it is the stair going down). Its lower edge sits on the SAME LINE as the top of the yellow up-stairs (`up_steps_top()`), and the
+# space under it is NOT empty black — it's the recess under that flight at landing level: a back wall, the landing floor, and
+# something stood there (RECESS: extinguisher / junk / table).
+RECESS = 'cleaner'
+RECESS_KINDS = ['cleaner', 'junk', 'table']   # rotated by floor (building_floors._apply_stair_visuals)
+CONCRETE = [(38, 42, 42), (58, 64, 62), (80, 87, 83), (104, 111, 104), (126, 132, 122)]
+STEP_N, STEP_BOT = 9, 108
 
 
-def soffit_edge(v):
-    """Sprite-y of the soffit's lower edge at shaft column x (1..38) for variant v: returns a function x -> y."""
-    if v == 'A':      # a flat slab, short: the black shaft is tall
-        return lambda x: 20
-    if v == 'B':      # a rising soffit: low at the post side, climbing away to the left (the flight above rises away from the door)
-        return lambda x: int(40 - (38 - x) * 0.55)
-    if v == 'C':      # stepped underside: the treads' undersides as a sawtooth, rising to the left
-        return lambda x: int(38 - ((38 - x) // 6) * 5)
-    return lambda x: 35
+def _step_heights():
+    return [6.4 - 0.14 * i for i in range(STEP_N)]
 
 
-def soffit_down(p, v):
-    edge = soffit_edge(v)
-    for x in range(1, 39):
-        e = edge(x)
-        for y in range(0, e + 1):
-            t = y / max(1.0, e)
-            # lit toward the top (near the slab's face), darker as it comes down to its lower edge
-            val = 2.2 - 1.2 * t + (0.2 if (x // 6) % 2 == 0 and v == 'C' else 0.0)
-            p[x, y] = dither(CONCRETE, max(0.0, min(3.0, val)), x, y, 0.12) + (255,)
-        # the slab's thickness: a bright lip then a dark shadow line under it
-        if 0 <= e < H:
-            p[x, e] = CONCRETE[3] + (255,)
-            if e + 1 < H:
-                p[x, e + 1] = (16, 17, 17, 255)
-    for x in range(1, 39, 6 if v == 'C' else 100):
-        for y in range(0, edge(x) + 1):
-            p[x, y] = CONCRETE[0] + (255,)
+def up_steps_top() -> int:
+    """Sprite-y of the top edge of the yellow up-stairs (the line the DOWN stair's grey must sit on)."""
+    return int(round(STEP_BOT - sum(_step_heights())))
 
 
-def dark_back_below(p, v):
-    edge = soffit_edge(v)
-    for x in range(1, 39):
-        for y in range(edge(x) + 2, 106):
-            val = 1.0 + (0.6 if y < edge(x) + 8 else 0.0)
-            p[x, y] = dither(DARK, min(3.0, val), x, y, 0.2) + (255,)
+def shade(c, k):
+    return (max(0, min(255, int(c[0] * k))), max(0, min(255, int(c[1] * k))), max(0, min(255, int(c[2] * k))))
 
 
-def down_view():
+def back_of_flight(p, x0, x1, line):
+    """The underside/back of the flight rising away to the next floor, seen from the landing: concrete, stepped where each tread's
+    back shows (bands shrinking as the flight climbs away), darker toward the top, a lit lip on its lowest edge."""
+    hs = [8.2 - 0.62 * i for i in range(STEP_N)]   # nearest (lowest) band is the biggest; they shrink as the flight climbs away
+    y = float(line)
+    bands = []
+    for i, hgt in enumerate(hs):
+        top = y - hgt
+        bands.append((int(round(top)), int(round(y)), i))
+        y = top
+    for x in range(x0, x1 + 1):
+        for yy in range(0, line + 1):
+            p[x, yy] = dither(CONCRETE, 0.6 + 0.9 * (yy / max(1, line)), x, yy, 0.15) + (255,)
+    for (t, b, i) in bands:
+        for x in range(x0, x1 + 1):
+            if 0 <= t < H:
+                p[x, t] = dither(CONCRETE, 2.0 + 0.4 * (b / max(1, line)), x, t, 0.0) + (255,)    # the tread's back edge
+            if 0 <= t + 1 < H:
+                p[x, t + 1] = dither(CONCRETE, 0.4, x, t + 1, 0.0) + (255,)                       # shadow under it
+    for yy in range(0, line + 1):                                                                   # the stringers at both sides
+        for x in (x0, x0 + 1):
+            p[x, yy] = CONCRETE[0] + (255,)
+        for x in (x1 - 1, x1):
+            p[x, yy] = CONCRETE[1] + (255,)
+    for x in range(x0, x1 + 1):
+        p[x, line] = CONCRETE[4] + (255,)                                                           # lowest edge, catching light
+        p[x, line + 1] = (14, 15, 15, 255)
+        p[x, line + 2] = (20, 22, 22, 255)
+
+
+def recess(p, x0, x1, top, floor_y, lip_y):
+    """The space under that flight at landing level: a back wall in shadow (darker up under the stairs), a skirting, and the landing
+    floor running to the lip."""
+    for y in range(top, floor_y):
+        k = (y - top) / max(1, floor_y - top)
+        for x in range(x0, x1 + 1):
+            p[x, y] = dither(PLASTER, 0.15 + 1.25 * k, x, y, 0.2) + (255,)
+    for x in range(x0, x1 + 1):
+        p[x, floor_y] = PLASTER[0] + (255,)
+        for y in range(floor_y + 1, lip_y):
+            k = (y - floor_y) / max(1, lip_y - floor_y)
+            p[x, y] = dither(CONCRETE, 1.0 + 1.6 * k, x, y, 0.2) + (255,)
+
+
+def _box(p, x0, y0, x1, y1, ramp, light=1.0, outline=(18, 18, 18)):
+    for y in range(y0, y1 + 1):
+        for x in range(x0, x1 + 1):
+            edge = x in (x0, x1) or y in (y0, y1)
+            if edge:
+                p[x, y] = outline + (255,)
+            else:
+                v = (len(ramp) - 1) * (0.75 - 0.5 * (x - x0) / max(1, x1 - x0)) * light
+                p[x, y] = dither(ramp, max(0.0, min(len(ramp) - 1.0, v)), x, y, 0.2) + (255,)
+
+
+def _shadow(p, x0, x1, y):
+    for x in range(x0, x1 + 1):
+        c = p[x, y]
+        p[x, y] = shade(c, 0.55) + (255,)
+
+
+RED = [(80, 14, 12), (140, 26, 20), (190, 44, 32), (226, 92, 70)]
+CARD = [(92, 66, 36), (132, 98, 56), (168, 128, 76), (196, 160, 104)]
+TIMBER = [(58, 38, 20), (92, 62, 32), (124, 86, 46)]
+BAG = [(10, 10, 12), (24, 24, 28), (44, 44, 50)]
+BUCKET = [(120, 104, 28), (170, 150, 40), (210, 190, 70)]
+
+
+def props(p, kind, floor_y, lip_y):
+    if kind == 'cleaner':
+        # a cleaner's corner: a mop bucket stood forward with the mop leaning back on the wall, a folded yellow wet-floor sign
+        # (NO extinguisher drawn here: real extinguishers are pickups, and a painted one would read as one you can't take)
+        _box(p, 18, floor_y - 6, 29, lip_y - 3, BUCKET, 0.85)                  # the bucket
+        _box(p, 20, floor_y - 9, 27, floor_y - 6, STEEL, 0.7)                  # its wringer
+        for i in range(0, 28):                                                 # the mop handle leaning back on the wall
+            x = 28 + i // 5
+            y = lip_y - 6 - i
+            if 0 <= y < H:
+                p[x, y] = TIMBER[2] + (255,)
+        for k in range(0, 18):                                                 # the wet-floor sign: an A-frame, folded
+            y = floor_y - 16 + k
+            w = 2 + k // 4
+            for x in range(8 - w, 8 + w + 1):
+                p[x, y] = BUCKET[2] + (255,) if abs(x - 8) < w else (40, 36, 10, 255)
+        for x in range(6, 11):
+            p[x, floor_y - 8] = (30, 30, 30, 255)                              # its black band
+        _shadow(p, 3, 34, lip_y - 2)
+    elif kind == 'junk':
+        _box(p, 3, floor_y - 12, 19, lip_y - 3, CARD, 0.9)                     # a big box, forward
+        _box(p, 6, floor_y - 24, 17, floor_y - 12, CARD, 0.8)                  # a smaller one on it
+        for y in range(floor_y - 12, lip_y - 3):
+            p[11, y] = (170, 150, 110, 255)                                    # parcel tape
+        for x in range(7, 17):
+            p[x, floor_y - 18] = (170, 150, 110, 255)
+        _box(p, 23, floor_y - 3, 35, lip_y - 3, [(150, 146, 132), (190, 186, 170), (220, 216, 200)], 0.75)   # newspapers, tied
+        for x in range(23, 36):
+            p[x, floor_y + 2] = (60, 56, 50, 255)
+        _box(p, 26, floor_y - 9, 32, floor_y - 3, [(60, 70, 90), (90, 104, 130), (120, 136, 160)], 0.8)      # a paint tin on them
+        _shadow(p, 2, 36, lip_y - 2)
+    elif kind == 'table':
+        _box(p, 4, floor_y - 14, 22, floor_y - 12, TIMBER, 1.0)                # table top
+        for x in (5, 21):
+            for y in range(floor_y - 11, lip_y - 2):
+                p[x, y] = TIMBER[0] + (255,)
+                p[x + 1, y] = TIMBER[1] + (255,)
+        _box(p, 10, floor_y - 21, 15, floor_y - 15, [(90, 50, 34), (130, 74, 48), (160, 96, 64)], 1.0)    # a pot
+        for i, (dx, dy) in enumerate([(-2, -3), (0, -6), (2, -4), (1, -8), (-1, -7), (3, -6)]):          # a dead plant
+            p[12 + dx, floor_y - 21 + dy] = (96, 84, 46, 255)
+        _box(p, 25, floor_y - 6, 36, lip_y - 3, BAG, 1.0)                      # a bin bag
+        p[30, floor_y - 7] = BAG[2] + (255,)
+        p[31, floor_y - 8] = BAG[2] + (255,)
+        _shadow(p, 3, 37, lip_y - 2)
+
+
+def down_view(kind=None):
+    kind = kind or RECESS
     img = Image.new('RGBA', (W, H), (0, 0, 0, 255))
     p = px(img)
     wall(p, 41, W - 1, lit_from=41)
     floor_strip(p, 0, W - 1)
-    # the shaft is the LEFT half: x 1..38. Above the black is the UNDERSIDE of the flight that climbs to the next floor (on that
-    # floor it is the stair going down): a concrete soffit, thick at its edge, stepped where the treads' undersides show.
-    soffit_down(p, SOFFIT_V)
-    dark_back_below(p, SOFFIT_V)
-    # the lip: a yellow tactile strip at the top of the stairs
+    line = up_steps_top()
+    back_of_flight(p, 1, 38, line)
+    floor_y, lip_y = 94, 105
+    recess(p, 1, 38, line + 3, floor_y, lip_y)
+    props(p, kind, floor_y, lip_y)
+    # the lip: the first step down, in yellow
     rect(p, 0, 105, 40, 105, YEL[0])
     rect(p, 0, 106, 40, 107, YEL[2])
     rect(p, 0, 106, 40, 106, YEL[3])
     rect(p, 0, 108, 40, 108, YEL[0])
     newel(p, 40)
-    for y in range(0, 108):                                       # the left edge's lit wall sliver
+    for y in range(0, 108):
         p[0, y] = dither(PLASTER, 2.5, 0, y) + (255,)
     return img
 
 
 def build():
     up, down = up_view(), down_view()
+    for kind in RECESS_KINDS:
+        dv = down_view(kind)
+        dv.save(os.path.join(ROOT, 'assets', 'stairs', 'down_%s_left.png' % kind))
+        dv.transpose(Image.FLIP_LEFT_RIGHT).save(os.path.join(ROOT, 'assets', 'stairs', 'down_%s_right.png' % kind))
+        print('wrote assets/stairs/down_%s_{left,right}.png' % kind)
     outs = {'Lobby_Left.png': up, 'Hallway_Staircase_Left.png': down,
             'Lobby_Right.png': up.transpose(Image.FLIP_LEFT_RIGHT),
             'Hallway_Staircase_Right.png': down.transpose(Image.FLIP_LEFT_RIGHT)}
@@ -222,9 +324,11 @@ def build():
     if '--mock' in sys.argv:
         out = os.path.join(ROOT, 'docs', 'art_reference')
         os.makedirs(out, exist_ok=True)
-        sheet = Image.new('RGBA', (W * 5 * 2 + 30, H * 5 + 20), (30, 30, 34, 255))
-        sheet.paste(up.resize((W * 5, H * 5), Image.NEAREST), (10, 10))
-        sheet.paste(down.resize((W * 5, H * 5), Image.NEAREST), (W * 5 + 20, 10))
+        S = 5
+        views = [up] + [down_view(k) for k in RECESS_KINDS]
+        sheet = Image.new('RGBA', (W * S * len(views) + 10 * (len(views) + 1), H * S + 20), (30, 30, 34, 255))
+        for i, im in enumerate(views):
+            sheet.paste(im.resize((W * S, H * S), Image.NEAREST), (10 + i * (W * S + 10), 10))
         sheet.save(os.path.join(out, 'stairwell.png'))
         print('wrote docs/art_reference/stairwell.png')
 
