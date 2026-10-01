@@ -2071,8 +2071,11 @@ means no rendering — UI layout and art still need an in-editor look.
   drag one item onto another in the backpack ring; v1 recipes Molotov (Empty Bottle `is_bottle` + Torn Clothes 009; the Broken
   Bottle never counts) and **Rope = three Clothes (008)** (added because the owner named it; a Rope is carried ready for the balcony
   lash). One unit per input; a craft that can't fit its result is undone whole. Equip-on-click moved from press to RELEASE in the
-  ring so a press can become a drag. Locked by `molotov_test` (55th suite; mutation-checked). **Not done / owner's call:** a whoosh
-  sound on ignite, smoke/scorch after the splash burns out, merchant stock / salvage worth for 039, tooltip hint says "Double-click
+  ring so a press can become a drag. Locked by `molotov_test` (55th suite; mutation-checked). **Sound (round 30b):** `tools/gen_fire_audio.py` → `assets/audio/fire/` (CC0, generated): a whoosh while the bottle flies
+  (`thrown_can.whoosh_player`, stops on the smash), the existing glass smash, a low ignition FWOOMP at the burst, a seamless crackling
+  loop that swells/dies with the splash's extent, a whoomph when an enemy catches (once per enemy, 0.3 s gap) and a hiss when the
+  extinguisher beats it out (one-shots live on self-freeing players so they outlast the fire). Locked by `molotov_test`.
+  **Not done / owner's call:** smoke/scorch after the splash burns out, merchant stock / salvage worth for 039, tooltip hint says "Double-click
   to throw", per-weight balance of the premade rate (weights are a first guess). The LOOK of the splash needs the owner's in-editor
   eye (checked under xvfb only).
 - BURNING-ENEMY FLAMES, round 30b (owner: "the globs of fire on the body are a bit big — smaller, more flashier, that then consume"):

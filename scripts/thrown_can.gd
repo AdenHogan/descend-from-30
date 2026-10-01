@@ -53,11 +53,17 @@ const SMASH_STREAMS = [
 	preload("res://assets/audio/impacts/glass_smash_1.wav"),
 	preload("res://assets/audio/impacts/glass_smash_2.wav"),
 ]
+const WHOOSH_STREAMS = [
+	preload("res://assets/audio/fire/molotov_whoosh_0.wav"),
+	preload("res://assets/audio/fire/molotov_whoosh_1.wav"),
+	preload("res://assets/audio/fire/molotov_whoosh_2.wav"),
+]
 const SHARDS = preload("res://scripts/glass_shards.gd")
 
 @export var fragile: bool = false     # true = a bottle: smashes on its first impact
 @export var molotov: bool = false     # true = a Molotov (039): fragile, and where it bursts it leaves a MolotovFire splash
 var _flame: Node2D = null
+var whoosh_player: AudioStreamPlayer2D = null     # a molotov's rag cutting the air on the way
 var _flame_t: float = 0.0
 var shattered: bool = false
 var smash_player: AudioStreamPlayer2D = null
@@ -84,6 +90,10 @@ func _ready() -> void:
 	if molotov:
 		fragile = true                    # a Molotov is a bottle: it breaks on the first thing it touches
 		_flame = get_node_or_null("Body/Flame")
+		whoosh_player = AudioStreamPlayer2D.new()
+		whoosh_player.max_distance = 800.0
+		whoosh_player.volume_db = -2.0
+		add_child(whoosh_player)
 		var lt := PointLight2D.new()      # the lit rag throws a little light as it flies
 		lt.texture = preload("res://scripts/floor_lighting.gd").light_texture()
 		lt.color = Color(1.0, 0.55, 0.2)
@@ -95,6 +105,10 @@ func _ready() -> void:
 
 func launch(dir: float, from: Vector2) -> void:
 	global_position = from
+	if whoosh_player != null:
+		whoosh_player.stream = WHOOSH_STREAMS.pick_random()
+		whoosh_player.pitch_scale = randf_range(0.94, 1.08)
+		whoosh_player.play()
 	linear_velocity = Vector2(dir * THROW_SPEED, -THROW_UP)
 	angular_velocity = dir * SPIN
 	# Don't collide with the thrower on spawn.
@@ -172,6 +186,8 @@ func _shatter() -> void:
 	for c in get_children():
 		if c is CollisionShape2D:
 			c.set_deferred("disabled", true)
+	if whoosh_player != null:
+		whoosh_player.stop()              # the flight is over
 	smash_player.stream = SMASH_STREAMS.pick_random()
 	smash_player.pitch_scale = randf_range(0.92, 1.08)
 	smash_player.play()

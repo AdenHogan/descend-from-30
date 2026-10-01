@@ -187,6 +187,18 @@ func _floor_at(y: float) -> StaticBody2D:
 	return floor_body
 
 
+func _players_with(stream: AudioStream) -> Array:
+	var out: Array = []
+	var stack: Array = [self]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		for c in n.get_children():
+			stack.append(c)
+			if c is AudioStreamPlayer2D and c.stream == stream and not c.is_queued_for_deletion():
+				out.append(c)
+	return out
+
+
 func _fires() -> Array:
 	var out: Array = []
 	for f in get_tree().get_nodes_in_group("molotov_fire"):
@@ -205,12 +217,22 @@ func _test_thrown_burst() -> void:
 	check(_fires().is_empty(), "no fire yet while it is in the air")
 	m.launch(1.0, Vector2(0, 300))
 	m.global_position = Vector2(500, 300)
+	check(m.whoosh_player != null and m.whoosh_player.playing and m.whoosh_player.stream in m.WHOOSH_STREAMS, "a whoosh plays as it leaves the hand")
 	for i in range(90):
 		await get_tree().physics_frame
 		if m.shattered:
 			break
 	check(m.shattered, "it smashed where it landed")
+	check(m.smash_player != null and m.smash_player.playing and m.smash_player.stream in m.SMASH_STREAMS, "…with the glass smash")
+	check(not m.whoosh_player.playing, "…and the flight whoosh stops")
 	await get_tree().physics_frame
+	check(_players_with(MolotovFire.IGNITE_SOUND).size() == 1 and _players_with(MolotovFire.IGNITE_SOUND)[0].playing, "…and the ignition FWOOMP kicks off")
+	var has_loop := false
+	for fnode in _fires():
+		for c in fnode.get_children():
+			if c is AudioStreamPlayer2D and c.playing and c.stream is AudioStreamWAV and c.stream.loop_mode == AudioStreamWAV.LOOP_FORWARD:
+				has_loop = true
+	check(has_loop, "…and a looping crackle plays for as long as it burns")
 	var fs: Array = _fires()
 	check(fs.size() == 1, "…and left exactly ONE splash fire (%d)" % fs.size())
 	if fs.size() == 1:
@@ -274,6 +296,9 @@ func _test_fire_rules() -> void:
 	add_child(far)
 	await _frames(3)
 	check(f.ignite_enemies() >= 1 and z.on_fire, "a zombie standing in it CATCHES")
+	check(_players_with(MolotovFire.CATCH_SOUND).size() == 1, "…with a whoomph as it catches")
+	f.ignite_enemies()
+	check(_players_with(MolotovFire.CATCH_SOUND).size() == 1, "…once, not every tick while it keeps burning")
 	check(not far.on_fire, "…one well outside it does not")
 	await _frames(40)
 	check(z.on_fire or not is_instance_valid(z) or z.state == "dead", "it keeps burning (or has burned down) while it stands there")
@@ -296,7 +321,9 @@ func _test_fire_rules() -> void:
 	pl.queue_free()
 	# the extinguisher douses it
 	f.douse()
+	check(_players_with(MolotovFire.DOUSE_SOUND).size() == 1, "dousing hisses")
 	await _frames(int(MolotovFire.DOUSE_TIME * 60.0) + 8)
+	check(_players_with(MolotovFire.DOUSE_SOUND).size() == 1, "…and the hiss carries on after the fire is gone")
 	check(not is_instance_valid(f) or f.is_queued_for_deletion(), "dousing puts it out (gone within %.1fs)" % MolotovFire.DOUSE_TIME)
 	# it dies on its own
 	var g: MolotovFire = MolotovFire.spawn(self, Vector2(900, 419))
