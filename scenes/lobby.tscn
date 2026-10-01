@@ -462,8 +462,8 @@ scale = Vector2(0.95454395, 0.95454395)
 texture = ExtResource("6_rgcd7")
 
 [node name="LobbyRight" type="Sprite2D" parent="." unique_id=1554161642]
-position = Vector2(1179.125, 348.12503)
-scale = Vector2(0.22733682, 0.2612865)
+position = Vector2(1179, 348.5)
+scale = Vector2(1, 1)
 texture = ExtResource("9_yad6j")
 
 [node name="stair_right_up_trigger" type="Area2D" parent="." unique_id=2133012871]

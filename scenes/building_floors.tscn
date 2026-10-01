@@ -4580,13 +4580,13 @@ scale = Vector2(0.95454395, 0.95454395)
 texture = ExtResource("6_hwv8p")
 
 [node name="HallwayStaircaseLeft" type="Sprite2D" parent="." unique_id=990622800]
-position = Vector2(171.125, 348.625)
-scale = Vector2(0.22592068, 0.2590292)
+position = Vector2(171, 348.5)
+scale = Vector2(1, 1)
 texture = ExtResource("7_8dssy")
 
 [node name="LobbyLeft" type="Sprite2D" parent="." unique_id=1239917432]
-position = Vector2(171.09375, 348.28125)
-scale = Vector2(0.22609775, 0.25606668)
+position = Vector2(171, 348.5)
+scale = Vector2(1, 1)
 texture = ExtResource("8_d55jr")
 
 [node name="stair_left_down_trigger" type="Area2D" parent="." unique_id=567236308]
@@ -4631,13 +4631,13 @@ horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="HallwayStaircaseRight" type="Sprite2D" parent="." unique_id=137372595]
-position = Vector2(1178.8126, 348.06256)
-scale = Vector2(0.22769113, 0.25705406)
+position = Vector2(1179, 348.5)
+scale = Vector2(1, 1)
 texture = ExtResource("11_0lhb2")
 
 [node name="LobbyRight" type="Sprite2D" parent="." unique_id=1686639659]
-position = Vector2(1179.25, 348.125)
-scale = Vector2(0.22521219, 0.25677195)
+position = Vector2(1179, 348.5)
+scale = Vector2(1, 1)
 texture = ExtResource("12_q6nx7")
 
 [node name="stair_right_down_trigger" type="Area2D" parent="." unique_id=646083911]

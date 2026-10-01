@@ -2083,4 +2083,15 @@ means no rendering — UI layout and art still need an in-editor look.
   spots on the body, flicker at 1.9x animation speed, flare up / gutter out (first / last 0.07 s show only the base) and re-light
   elsewhere, plus rising embers; the longer it's alight the more there are (3 → 6 over 4 s) and the shorter they live — the consuming
   build-up. Gameplay (burn DoT, double damage, extinguisher) untouched. Cosmetic only; the LOOK needs the owner's eye.
+- STAIRWELL ART v1 (owner round 31 — "continue with the same angle and view as present… watch the player go up or down and the pan… keep the
+  stairs and the turn similar to what we already have, we don't need too different a visual design"): the four paint-box sprites
+  (`Hallway_Staircase_{Left,Right}` = DOWN, `Lobby_{Left,Right}` = UP) are REDRAWN as pixel art on the SAME layout and proportions
+  (`tools/art/stairwell.py`; `--mock` writes `docs/art_reference/stairwell.png`). The sprite is half wall, half shaft: UP = the hall's plaster
+  wall (left), a wooden newel post, then a 40 px shaft — a dark back wall, a framed window, nine flat frontal steps (bright nosing / tread /
+  shadowed riser, yellow), a grey leaning stringer + handrail; DOWN = the dark shaft (left: a lit far wall above, then black, with ONLY the first step — a yellow lip — drawn;
+  the owner: the flight is never shown going down, the player just steps down out of sight, and showing it breaks the angle) beside the same wall + post. (A first attempt drew a deep one-point-perspective hall across the
+  whole 80 px — the owner said the proportions were off; the old sprites only ever used the half.) **Nothing but art + 6 sprite nodes changed**: the
+  sprites are now 80x115 at scale 1 (was 353x443 at ~0.226/0.259) on the SAME world box (x 131..211 / 1139..1219, y 291..406), so `_stair_art_box`,
+  the triggers, the slice and the pan are untouched. Real-pan previews: `docs/art_reference/stairwell_pan_{down,up}.png`. The LOOK needs the
+  owner's eye (v1 — tone, wall, stringer).
 - Not started: quests.

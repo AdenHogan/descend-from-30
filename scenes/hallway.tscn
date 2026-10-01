@@ -504,8 +504,8 @@ horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="HallwayStaircaseLeft" type="Sprite2D" parent="." unique_id=1960106455]
-position = Vector2(170.99998, 348)
-scale = Vector2(0.2259206, 0.25902933)
+position = Vector2(171, 348.5)
+scale = Vector2(1, 1)
 texture = ExtResource("10_52g5x")
 
 [node name="Hint_Move" parent="." groups=["tutorial_blood"] instance=ExtResource("20_blood")]
