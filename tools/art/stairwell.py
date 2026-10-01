@@ -108,8 +108,8 @@ def dark_back(p, x0, x1, y0, y1, glow=None):
 def up_view():
     img = Image.new('RGBA', (W, H), (0, 0, 0, 255))
     p = px(img)
-    wall(p, 0, 39, lit_from=39)
     floor_strip(p, 0, W - 1)
+    under_stairs_open(p, 0, 39, up_steps_top())
     # the shaft: dark back wall, the window high up, light spilling down toward the steps
     dark_back(p, SHAFT_X0, W - 1, 0, 108, glow=(59, 24, 30))
     window(p, 48, 3, 69, 36)
@@ -148,15 +148,27 @@ def up_view():
     return img
 
 
-# ---------------------------------------------------------------- DOWN
-# Owner round 31c (with a sketch): the grey part is the BACK of the rear-facing flight that climbs to the next floor (on that floor
-# it is the stair going down). Its lower edge sits on the SAME LINE as the top of the yellow up-stairs (`up_steps_top()`), and the
-# space under it is NOT empty black — it's the recess under that flight at landing level: a back wall, the landing floor, and
-# something stood there (RECESS: extinguisher / junk / table).
+# ---------------------------------------------------------------- the stair hall behind the steps (owner rounds 31c / 31d)
+# Through the doorway the hall shows two things besides the yellow flight: ABOVE THE LINE (the top of the yellow steps,
+# `up_steps_top()`) the BACK of the flight the stair turns into — brown, its treads' backs as bands that shrink as it climbs away;
+# BELOW THE LINE the space UNDER that flight, a cupboard / recess at landing level drawn in real one-point perspective (back wall,
+# side walls, a ceiling, a floor, all receding to VP — the corridor camera's eye) with things in it that have tops and sides.
+# Up-stair sprite: its left half is the open under-stair cupboard. Down-stair sprite: its shaft half is the recess where you step
+# down (RECESS kinds, rotated by floor), its other half a closed under-stair cupboard door. Grey below, brown above, as the owner asked.
 RECESS = 'cleaner'
 RECESS_KINDS = ['cleaner', 'junk', 'table']   # rotated by floor (building_floors._apply_stair_visuals)
-CONCRETE = [(38, 42, 42), (58, 64, 62), (80, 87, 83), (104, 111, 104), (126, 132, 122)]
 STEP_N, STEP_BOT = 9, 108
+VP = (40.0, 82.0)                             # the vanishing point: the corridor camera's eye, centred on the sprite (the newel)
+BROWN = [(44, 28, 16), (66, 43, 26), (90, 60, 36), (116, 80, 49), (142, 102, 64)]
+GREY = [(26, 28, 30), (42, 45, 48), (60, 64, 66), (82, 86, 86), (108, 112, 110)]
+RED = [(80, 14, 12), (140, 26, 20), (190, 44, 32), (226, 92, 70)]
+CARD = [(92, 66, 36), (132, 98, 56), (168, 128, 76), (196, 160, 104)]
+TIMBER = [(58, 38, 20), (92, 62, 32), (124, 86, 46), (150, 110, 64)]
+BAG = [(10, 10, 12), (22, 22, 26), (38, 38, 44), (58, 58, 66)]
+BUCKET = [(96, 84, 22), (140, 124, 34), (184, 164, 52), (218, 200, 92)]
+TIN = [(52, 62, 84), (80, 94, 122), (112, 128, 156), (150, 164, 188)]
+PAPER = [(118, 114, 100), (150, 146, 130), (184, 180, 164), (214, 210, 194)]
+CLAY = [(84, 44, 30), (122, 68, 46), (156, 94, 64), (184, 122, 88)]
 
 
 def _step_heights():
@@ -164,7 +176,7 @@ def _step_heights():
 
 
 def up_steps_top() -> int:
-    """Sprite-y of the top edge of the yellow up-stairs (the line the DOWN stair's grey must sit on)."""
+    """Sprite-y of the top edge of the yellow up-stairs — THE line: the stair back sits above it, the cupboards below it."""
     return int(round(STEP_BOT - sum(_step_heights())))
 
 
@@ -172,139 +184,273 @@ def shade(c, k):
     return (max(0, min(255, int(c[0] * k))), max(0, min(255, int(c[1] * k))), max(0, min(255, int(c[2] * k))))
 
 
-def back_of_flight(p, x0, x1, line):
-    """The underside/back of the flight rising away to the next floor, seen from the landing: concrete, stepped where each tread's
-    back shows (bands shrinking as the flight climbs away), darker toward the top, a lit lip on its lowest edge."""
-    hs = [8.2 - 0.62 * i for i in range(STEP_N)]   # nearest (lowest) band is the biggest; they shrink as the flight climbs away
-    y = float(line)
+def fill_poly(p, pts, fn):
+    m = Image.new('L', (W, H), 0)
+    ImageDraw.Draw(m).polygon([(float(a), float(b)) for a, b in pts], fill=255)
+    mp = m.load()
+    xs = [q[0] for q in pts]
+    ys = [q[1] for q in pts]
+    for y in range(max(0, int(min(ys)) - 1), min(H, int(max(ys)) + 2)):
+        for x in range(max(0, int(min(xs)) - 1), min(W, int(max(xs)) + 2)):
+            if mp[x, y]:
+                c = fn(x, y) if callable(fn) else fn
+                if c is not None:
+                    p[x, y] = tuple(c[:3]) + (255,)
+
+
+def line(p, a, b, col):
+    m = Image.new('L', (W, H), 0)
+    ImageDraw.Draw(m).line([a, b], fill=255, width=1)
+    mp = m.load()
+    for y in range(H):
+        for x in range(W):
+            if mp[x, y]:
+                p[x, y] = tuple(col[:3]) + (255,)
+
+
+def back_of_flight(p, x0, x1, line_y):
+    """The back of the flight above, seen from the landing: brown timber, a band per tread (the nearest, lowest, biggest), stringer
+    boards at both sides, the lowest edge catching the light and a hard shadow under it — that edge ON the line."""
+    hs = [8.2 - 0.62 * i for i in range(STEP_N)]
+    y = float(line_y)
     bands = []
-    for i, hgt in enumerate(hs):
+    for hgt in hs:
         top = y - hgt
-        bands.append((int(round(top)), int(round(y)), i))
+        bands.append((int(round(top)), int(round(y))))
         y = top
     for x in range(x0, x1 + 1):
-        for yy in range(0, line + 1):
-            p[x, yy] = dither(CONCRETE, 0.6 + 0.9 * (yy / max(1, line)), x, yy, 0.15) + (255,)
-    for (t, b, i) in bands:
+        for yy in range(0, line_y + 1):
+            p[x, yy] = dither(BROWN, 0.9 + 1.4 * (yy / max(1, line_y)), x, yy, 0.06) + (255,)
+    for (t, bt) in bands:
         for x in range(x0, x1 + 1):
             if 0 <= t < H:
-                p[x, t] = dither(CONCRETE, 2.0 + 0.4 * (b / max(1, line)), x, t, 0.0) + (255,)    # the tread's back edge
+                p[x, t] = dither(BROWN, 3.0 + 0.8 * (bt / max(1, line_y)), x, t, 0.0) + (255,)
             if 0 <= t + 1 < H:
-                p[x, t + 1] = dither(CONCRETE, 0.4, x, t + 1, 0.0) + (255,)                       # shadow under it
-    for yy in range(0, line + 1):                                                                   # the stringers at both sides
+                p[x, t + 1] = BROWN[0] + (255,)
+    for yy in range(0, line_y + 1):
         for x in (x0, x0 + 1):
-            p[x, yy] = CONCRETE[0] + (255,)
+            p[x, yy] = BROWN[0] + (255,)
         for x in (x1 - 1, x1):
-            p[x, yy] = CONCRETE[1] + (255,)
+            p[x, yy] = BROWN[1] + (255,)
     for x in range(x0, x1 + 1):
-        p[x, line] = CONCRETE[4] + (255,)                                                           # lowest edge, catching light
-        p[x, line + 1] = (14, 15, 15, 255)
-        p[x, line + 2] = (20, 22, 22, 255)
+        p[x, line_y] = BROWN[4] + (255,)
+        p[x, line_y + 1] = (16, 12, 8, 255)
+        p[x, line_y + 2] = (24, 20, 16, 255)
 
 
-def recess(p, x0, x1, top, floor_y, lip_y):
-    """The space under that flight at landing level: a back wall in shadow (darker up under the stairs), a skirting, and the landing
-    floor running to the lip."""
-    for y in range(top, floor_y):
-        k = (y - top) / max(1, floor_y - top)
-        for x in range(x0, x1 + 1):
-            p[x, y] = dither(PLASTER, 0.15 + 1.25 * k, x, y, 0.2) + (255,)
-    for x in range(x0, x1 + 1):
-        p[x, floor_y] = PLASTER[0] + (255,)
-        for y in range(floor_y + 1, lip_y):
-            k = (y - floor_y) / max(1, lip_y - floor_y)
-            p[x, y] = dither(CONCRETE, 1.0 + 1.6 * k, x, y, 0.2) + (255,)
+class Space:
+    """A box-shaped space behind an opening (x0..x1, y0..y1) in one-point perspective toward VP; k = how far the back face shrinks.
+    m(u, v, t) maps u across (0 left .. 1 right), v up (0 floor .. 1 the opening's top), t into the depth (0 the opening .. 1 the back)."""
+    def __init__(self, x0, y0, x1, y1, k=0.6):
+        self.x0, self.y0, self.x1, self.y1, self.k = x0, y0, x1, y1, k
+
+    def m(self, u, v, t):
+        fx = self.x0 + u * (self.x1 - self.x0)
+        fy = self.y1 - v * (self.y1 - self.y0)
+        s = 1.0 - (1.0 - self.k) * t
+        return (VP[0] + (fx - VP[0]) * s, VP[1] + (fy - VP[1]) * s)
 
 
-def _box(p, x0, y0, x1, y1, ramp, light=1.0, outline=(18, 18, 18)):
-    for y in range(y0, y1 + 1):
-        for x in range(x0, x1 + 1):
-            edge = x in (x0, x1) or y in (y0, y1)
-            if edge:
-                p[x, y] = outline + (255,)
-            else:
-                v = (len(ramp) - 1) * (0.75 - 0.5 * (x - x0) / max(1, x1 - x0)) * light
-                p[x, y] = dither(ramp, max(0.0, min(len(ramp) - 1.0, v)), x, y, 0.2) + (255,)
+def draw_space(p, sp, lit=1.0):
+    """Back wall, ceiling (the stair's underside — darkest), side walls and floor, each shaded by depth: brighter toward the
+    opening (the corridor's light comes in through it), darker toward the back."""
+    m = sp.m
+    fill_poly(p, [m(0, 1, 1), m(1, 1, 1), m(1, 0, 1), m(0, 0, 1)], lambda x, y: dither(GREY, 1.0 * lit, x, y, 0.2))
+    fill_poly(p, [m(0, 1, 0), m(1, 1, 0), m(1, 1, 1), m(0, 1, 1)], lambda x, y: dither(GREY, 0.35 * lit, x, y, 0.2))
+    for side in (0, 1):
+        a, b = m(side, 0, 0), m(side, 0, 1)
+        def wall_fn(x, y, a=a, b=b):
+            t = (x - a[0]) / (b[0] - a[0]) if abs(b[0] - a[0]) > 0.01 else 0.5
+            return dither(GREY, (2.1 - 1.2 * max(0.0, min(1.0, t))) * lit, x, y, 0.2)
+        fill_poly(p, [m(side, 1, 0), m(side, 1, 1), m(side, 0, 1), m(side, 0, 0)], wall_fn)
+    fy0, fy1 = m(0, 0, 0)[1], m(0, 0, 1)[1]
+    def floor_fn(x, y):
+        t = (fy0 - y) / max(0.01, fy0 - fy1)
+        return dither(GREY, (2.9 - 1.6 * max(0.0, min(1.0, t))) * lit, x, y, 0.2)
+    fill_poly(p, [m(0, 0, 0), m(1, 0, 0), m(1, 0, 1), m(0, 0, 1)], floor_fn)
+    # skirting along the back
+    line(p, m(0, 0.06, 1), m(1, 0.06, 1), GREY[0])
 
 
-def _shadow(p, x0, x1, y):
-    for x in range(x0, x1 + 1):
-        c = p[x, y]
-        p[x, y] = shade(c, 0.55) + (255,)
+def cuboid(p, sp, u0, u1, v0, v1, t0, t1, ramp, outline=True):
+    """A box standing in the space: its front face, its top (seen from above while below the eye) and the side facing the eye."""
+    m = sp.m
+    n = len(ramp) - 1
+    side_u = u0 if (m(u0, v0, t0)[0] + m(u1, v0, t0)[0]) / 2 > VP[0] else u1
+    fill_poly(p, [m(side_u, v0, t0), m(side_u, v1, t0), m(side_u, v1, t1), m(side_u, v0, t1)], ramp[max(0, n - 3)])
+    if m(u0, v1, t0)[1] > VP[1]:
+        fill_poly(p, [m(u0, v1, t0), m(u1, v1, t0), m(u1, v1, t1), m(u0, v1, t1)], ramp[n])
+    fill_poly(p, [m(u0, v0, t0), m(u1, v0, t0), m(u1, v1, t0), m(u0, v1, t0)], lambda x, y: dither(ramp, n - 1.4, x, y, 0.06))
+    if outline:
+        for a, b in [((u0, v0), (u1, v0)), ((u0, v1), (u1, v1)), ((u0, v0), (u0, v1)), ((u1, v0), (u1, v1))]:
+            line(p, m(a[0], a[1], t0), m(b[0], b[1], t0), shade(ramp[0], 0.7))
 
 
-RED = [(80, 14, 12), (140, 26, 20), (190, 44, 32), (226, 92, 70)]
-CARD = [(92, 66, 36), (132, 98, 56), (168, 128, 76), (196, 160, 104)]
-TIMBER = [(58, 38, 20), (92, 62, 32), (124, 86, 46)]
-BAG = [(10, 10, 12), (24, 24, 28), (44, 44, 50)]
-BUCKET = [(120, 104, 28), (170, 150, 40), (210, 190, 70)]
+def cylinder(p, sp, u0, u1, v0, v1, t, ramp, rim=None):
+    """A round thing standing in the space (bucket, tin, pot): a shaded body and an elliptical top seen from above."""
+    m = sp.m
+    a, b = m(u0, v0, t), m(u1, v1, t)
+    xl, xr, yb, yt = a[0], b[0], a[1], b[1]
+    depth = abs(m(u0, v1, t)[1] - m(u0, v1, t + 0.18)[1]) + 1.2
+    n = len(ramp) - 1
+    def body(x, y):
+        k = (x - xl) / max(1.0, xr - xl)
+        return dither(ramp, max(0.0, min(n, n - 0.6 - 2.2 * abs(k - 0.35))), x, y, 0.1)
+    fill_poly(p, [(xl, yt), (xr, yt), (xr, yb), (xl, yb)], body)
+    m2 = Image.new('L', (W, H), 0)
+    ImageDraw.Draw(m2).ellipse([xl, yb - depth / 2, xr, yb + depth / 2], fill=255)
+    m3 = Image.new('L', (W, H), 0)
+    ImageDraw.Draw(m3).ellipse([xl, yt - depth / 2, xr, yt + depth / 2], fill=255)
+    q2, q3 = m2.load(), m3.load()
+    for y in range(H):
+        for x in range(W):
+            if q2[x, y] and y > yb:
+                p[x, y] = body(x, y) + (255,)
+            if q3[x, y]:
+                p[x, y] = (rim or ramp[n]) + (255,)
+    m4 = Image.new('L', (W, H), 0)
+    ImageDraw.Draw(m4).ellipse([xl + 1.2, yt - depth / 2 + 0.8, xr - 1.2, yt + depth / 2 - 0.4], fill=255)
+    q4 = m4.load()
+    for y in range(H):
+        for x in range(W):
+            if q4[x, y]:
+                p[x, y] = ramp[max(0, n - 3)] + (255,)
 
 
-def props(p, kind, floor_y, lip_y):
+def contact_shadow(p, sp, u0, u1, t):
+    a, b = sp.m(u0, 0, t), sp.m(u1, 0, t)
+    for x in range(int(a[0]) - 1, int(b[0]) + 2):
+        y = int(round(a[1]))
+        if 0 <= x < W and 0 <= y < H:
+            c = p[x, y]
+            p[x, y] = shade(c, 0.5) + (255,)
+
+
+def props(p, sp, kind):
+    m = sp.m
     if kind == 'cleaner':
-        # a cleaner's corner: a mop bucket stood forward with the mop leaning back on the wall, a folded yellow wet-floor sign
-        # (NO extinguisher drawn here: real extinguishers are pickups, and a painted one would read as one you can't take)
-        _box(p, 18, floor_y - 6, 29, lip_y - 3, BUCKET, 0.85)                  # the bucket
-        _box(p, 20, floor_y - 9, 27, floor_y - 6, STEEL, 0.7)                  # its wringer
-        for i in range(0, 28):                                                 # the mop handle leaning back on the wall
-            x = 28 + i // 5
-            y = lip_y - 6 - i
-            if 0 <= y < H:
-                p[x, y] = TIMBER[2] + (255,)
-        for k in range(0, 18):                                                 # the wet-floor sign: an A-frame, folded
-            y = floor_y - 16 + k
-            w = 2 + k // 4
-            for x in range(8 - w, 8 + w + 1):
-                p[x, y] = BUCKET[2] + (255,) if abs(x - 8) < w else (40, 36, 10, 255)
-        for x in range(6, 11):
-            p[x, floor_y - 8] = (30, 30, 30, 255)                              # its black band
-        _shadow(p, 3, 34, lip_y - 2)
+        # a folded yellow wet-floor sign (an A-frame: its front panel and the edge of the back one), a mop bucket with its wringer,
+        # the mop leaning back against the back wall
+        t0, t1 = 0.25, 0.55
+        fill_poly(p, [m(0.08, 0, t0), m(0.34, 0, t0), m(0.26, 0.52, t0 + 0.12), m(0.16, 0.52, t0 + 0.12)], lambda x, y: dither(BUCKET, 2.4, x, y, 0.2))
+        fill_poly(p, [m(0.34, 0, t0), m(0.34, 0, t1), m(0.26, 0.52, t0 + 0.12)], BUCKET[0])
+        line(p, m(0.12, 0.22, t0 + 0.05), m(0.3, 0.22, t0 + 0.05), (30, 26, 8))
+        contact_shadow(p, sp, 0.08, 0.34, t0)
+        cylinder(p, sp, 0.5, 0.82, 0, 0.3, 0.3, BUCKET)
+        cuboid(p, sp, 0.55, 0.77, 0.3, 0.4, 0.3, 0.45, [(40, 44, 48), (70, 76, 82), (100, 108, 114), (140, 148, 154)])
+        line(p, m(0.74, 0.35, 0.33), m(0.92, 0.95, 0.95), TIMBER[3])
+        contact_shadow(p, sp, 0.5, 0.82, 0.3)
     elif kind == 'junk':
-        _box(p, 3, floor_y - 12, 19, lip_y - 3, CARD, 0.9)                     # a big box, forward
-        _box(p, 6, floor_y - 24, 17, floor_y - 12, CARD, 0.8)                  # a smaller one on it
-        for y in range(floor_y - 12, lip_y - 3):
-            p[11, y] = (170, 150, 110, 255)                                    # parcel tape
-        for x in range(7, 17):
-            p[x, floor_y - 18] = (170, 150, 110, 255)
-        _box(p, 23, floor_y - 3, 35, lip_y - 3, [(150, 146, 132), (190, 186, 170), (220, 216, 200)], 0.75)   # newspapers, tied
-        for x in range(23, 36):
-            p[x, floor_y + 2] = (60, 56, 50, 255)
-        _box(p, 26, floor_y - 9, 32, floor_y - 3, [(60, 70, 90), (90, 104, 130), (120, 136, 160)], 0.8)      # a paint tin on them
-        _shadow(p, 2, 36, lip_y - 2)
+        cuboid(p, sp, 0.05, 0.47, 0, 0.42, 0.18, 0.62, CARD)
+        cuboid(p, sp, 0.12, 0.40, 0.42, 0.7, 0.28, 0.55, CARD)
+        line(p, m(0.26, 0.0, 0.18), m(0.26, 0.42, 0.18), (196, 176, 130))
+        line(p, m(0.12, 0.56, 0.28), m(0.40, 0.56, 0.28), (196, 176, 130))
+        contact_shadow(p, sp, 0.05, 0.47, 0.18)
+        cuboid(p, sp, 0.55, 0.94, 0, 0.12, 0.08, 0.4, PAPER)
+        line(p, m(0.74, 0.0, 0.08), m(0.74, 0.12, 0.08), (60, 56, 50))
+        cylinder(p, sp, 0.62, 0.84, 0.12, 0.3, 0.2, TIN, rim=(170, 176, 186))
+        contact_shadow(p, sp, 0.55, 0.94, 0.08)
     elif kind == 'table':
-        _box(p, 4, floor_y - 14, 22, floor_y - 12, TIMBER, 1.0)                # table top
-        for x in (5, 21):
-            for y in range(floor_y - 11, lip_y - 2):
-                p[x, y] = TIMBER[0] + (255,)
-                p[x + 1, y] = TIMBER[1] + (255,)
-        _box(p, 10, floor_y - 21, 15, floor_y - 15, [(90, 50, 34), (130, 74, 48), (160, 96, 64)], 1.0)    # a pot
-        for i, (dx, dy) in enumerate([(-2, -3), (0, -6), (2, -4), (1, -8), (-1, -7), (3, -6)]):          # a dead plant
-            p[12 + dx, floor_y - 21 + dy] = (96, 84, 46, 255)
-        _box(p, 25, floor_y - 6, 36, lip_y - 3, BAG, 1.0)                      # a bin bag
-        p[30, floor_y - 7] = BAG[2] + (255,)
-        p[31, floor_y - 8] = BAG[2] + (255,)
-        _shadow(p, 3, 37, lip_y - 2)
+        # a small side table (a slab top with its front edge + four legs in perspective), a dead plant in a pot on it; a bin bag
+        for (u, t) in [(0.12, 0.6), (0.54, 0.6), (0.12, 0.2), (0.54, 0.2)]:
+            line(p, m(u, 0, t), m(u, 0.4, t), TIMBER[0] if t > 0.4 else TIMBER[1])
+            line(p, m(u + 0.03, 0, t), m(u + 0.03, 0.4, t), TIMBER[0])
+        cuboid(p, sp, 0.08, 0.6, 0.4, 0.46, 0.18, 0.62, TIMBER)
+        cylinder(p, sp, 0.26, 0.42, 0.46, 0.62, 0.36, CLAY)
+        for (du, dv) in [(-0.04, 0.2), (0.0, 0.3), (0.05, 0.24), (0.02, 0.36), (-0.02, 0.33)]:
+            q = m(0.34 + du, 0.62 + dv, 0.38)
+            if 0 <= int(q[0]) < W and 0 <= int(q[1]) < H:
+                p[int(q[0]), int(q[1])] = (96, 84, 46, 255)
+        a, b = m(0.64, 0, 0.22), m(0.94, 0.36, 0.22)
+        fill_poly(p, [(a[0] + 1, a[1]), (b[0], a[1]), (b[0] + 1, (a[1] + b[1]) / 2), (b[0] - 3, b[1] + 1), (a[0] + 3, b[1] + 1), (a[0], (a[1] + b[1]) / 2)],
+                  lambda x, y: dither(BAG, 2.6 - 2.0 * ((x - a[0]) / max(1.0, b[0] - a[0])), x, y, 0.3))
+        q = m(0.79, 0.42, 0.24)
+        fill_poly(p, [(q[0] - 1, q[1] + 2), (q[0] + 1, q[1] + 2), (q[0], q[1] - 1)], BAG[3])
+        contact_shadow(p, sp, 0.64, 0.94, 0.22)
+    elif kind == 'cupboard':
+        # what's kept under the stairs: a stepladder folded against the side wall, a stack of boxes, a broom leaning on the back
+        cuboid(p, sp, 0.42, 0.86, 0, 0.36, 0.3, 0.75, CARD)
+        cuboid(p, sp, 0.48, 0.80, 0.36, 0.6, 0.38, 0.68, CARD)
+        line(p, m(0.64, 0.0, 0.3), m(0.64, 0.36, 0.3), (196, 176, 130))
+        contact_shadow(p, sp, 0.42, 0.86, 0.3)
+        line(p, m(0.12, 0.0, 0.25), m(0.2, 0.92, 0.85), TIMBER[3])
+        fill_poly(p, [m(0.06, 0.0, 0.22), m(0.2, 0.0, 0.22), m(0.18, 0.14, 0.26), m(0.09, 0.14, 0.26)], lambda x, y: dither(TIMBER, 1.6, x, y, 0.4))
+
+
+def frame(p, sp, col_light, col_dark):
+    """The opening's own edge: a thin casing so the cupboard reads as a hole in the wall with depth behind it."""
+    x0, y0, x1, y1 = sp.x0, sp.y0, sp.x1, sp.y1
+    for x in range(int(x0) - 1, int(x1) + 2):
+        if 0 <= int(y0) - 1 < H and 0 <= x < W:
+            p[x, int(y0) - 1] = col_light + (255,)
+    for y in range(int(y0) - 1, int(y1) + 1):
+        for x in (int(x0) - 1, int(x1) + 1):
+            if 0 <= x < W and 0 <= y < H:
+                p[x, y] = col_light + (255,)
+
+
+def cupboard_door(p, x0, y0, x1, y1):
+    """A closed cupboard door under the stairs, set back in its frame: the reveal (the frame's depth) on the side toward the eye
+    and under the lintel, a two-panel painted door with a brass knob, a dark gap at the floor."""
+    sp = Space(x0, y0, x1, y1, k=0.9)
+    m = sp.m
+    # reveals: the frame's inner faces (top: we're below the lintel; side: the one facing VP)
+    fill_poly(p, [m(0, 1, 0), m(1, 1, 0), m(1, 1, 1), m(0, 1, 1)], GREY[0])
+    side = 0 if (x0 + x1) / 2 > VP[0] else 1
+    fill_poly(p, [m(side, 1, 0), m(side, 1, 1), m(side, 0, 1), m(side, 0, 0)], GREY[1])
+    a, b = m(0, 1, 1), m(1, 0, 1)
+    dx0, dy0, dx1, dy1 = a[0], a[1], b[0], b[1]
+    fill_poly(p, [(dx0, dy0), (dx1, dy0), (dx1, dy1), (dx0, dy1)], lambda x, y: dither(GREY, 2.6 - 0.6 * (x - dx0) / max(1.0, dx1 - dx0), x, y, 0.2))
+    for (py0, py1) in [(dy0 + 3, dy0 + (dy1 - dy0) * 0.45), (dy0 + (dy1 - dy0) * 0.52, dy1 - 4)]:
+        fill_poly(p, [(dx0 + 3, py0), (dx1 - 3, py0), (dx1 - 3, py1), (dx0 + 3, py1)], lambda x, y: dither(GREY, 2.1, x, y, 0.2))
+        line(p, (dx0 + 3, py0), (dx1 - 3, py0), GREY[1])
+        line(p, (dx0 + 3, py0), (dx0 + 3, py1), GREY[1])
+        line(p, (dx0 + 3, py1), (dx1 - 3, py1), GREY[4])
+        line(p, (dx1 - 3, py0), (dx1 - 3, py1), GREY[4])
+    knob = (int(dx1 - 4), int(dy0 + (dy1 - dy0) * 0.5))
+    p[knob[0], knob[1]] = (214, 176, 90, 255)
+    p[knob[0], knob[1] + 1] = (130, 100, 40, 255)
+    line(p, (dx0, dy1), (dx1, dy1), (14, 14, 16))
+    frame(p, sp, GREY[3], GREY[0])
+
+
+def under_stairs_open(p, x0, x1, line_y, kind='cupboard'):
+    """The up-stair's other half: the stair back above the line, an OPEN cupboard under it (its door swung out flat against the
+    wall beside the opening, seen edge-on), with what's kept there."""
+    back_of_flight(p, x0, x1, line_y)
+    for y in range(line_y + 3, STEP_BOT):
+        for x in range(x0, x1 + 1):
+            p[x, y] = dither(GREY, 1.4, x, y, 0.2) + (255,)
+    sp = Space(x0 + 6, line_y + 5, x1 - 3, STEP_BOT - 1, k=0.6)
+    draw_space(p, sp)
+    props(p, sp, kind)
+    frame(p, sp, GREY[3], GREY[0])
+    fill_poly(p, [(x0 + 1, line_y + 5), (x0 + 4, line_y + 6), (x0 + 4, STEP_BOT - 1), (x0 + 1, STEP_BOT)], lambda x, y: dither(GREY, 2.4 if x < x0 + 3 else 1.2, x, y, 0.2))
 
 
 def down_view(kind=None):
     kind = kind or RECESS
     img = Image.new('RGBA', (W, H), (0, 0, 0, 255))
     p = px(img)
-    wall(p, 41, W - 1, lit_from=41)
     floor_strip(p, 0, W - 1)
-    line = up_steps_top()
-    back_of_flight(p, 1, 38, line)
-    floor_y, lip_y = 94, 105
-    recess(p, 1, 38, line + 3, floor_y, lip_y)
-    props(p, kind, floor_y, lip_y)
+    line_y = up_steps_top()
+    # the shaft half (x 1..38): the stair back above the line, the recess at landing level under it, the first step down at the front
+    back_of_flight(p, 1, 38, line_y)
+    sp = Space(1, line_y + 3, 38, 104, k=0.58)
+    draw_space(p, sp, lit=0.95)
+    props(p, sp, kind)
+    # the other half: the same stair back above the line, a closed cupboard door under it in its plastered wall
+    back_of_flight(p, 41, W - 1, line_y)
+    for y in range(line_y + 3, STEP_BOT):
+        for x in range(41, W):
+            p[x, y] = dither(GREY, 1.8 + 0.6 * (y - line_y) / 50.0, x, y, 0.2) + (255,)
+    cupboard_door(p, 48, line_y + 8, 73, STEP_BOT - 1)
     # the lip: the first step down, in yellow
     rect(p, 0, 105, 40, 105, YEL[0])
     rect(p, 0, 106, 40, 107, YEL[2])
     rect(p, 0, 106, 40, 106, YEL[3])
     rect(p, 0, 108, 40, 108, YEL[0])
     newel(p, 40)
-    for y in range(0, 108):
-        p[0, y] = dither(PLASTER, 2.5, 0, y) + (255,)
     return img
 
 

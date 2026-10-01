@@ -2104,4 +2104,13 @@ means no rendering — UI layout and art still need an in-editor look.
   (seeded by master_seed + floor, stable across runs) in `_apply_stair_visuals` (live + pan backdrop). No extinguisher is DRAWN there on purpose
   (a painted one would read as a pickup you can't take). Locked by `stair_visuals_test` (varies across floors, stable, the right texture, 80x115
   at scale 1; mutation-checked).
+  **Round 31d (owner: "the line is still off… above my red line more brown, below more grey… think of the bottom section as a cupboard under
+  the stairs… any items there need geometry… all of this needs geometry and depth, like the doorways and balconies"):** EVERY non-step part of
+  both sprites now splits on that one line (`up_steps_top()`, sprite row 55): ABOVE = the BROWN back of the flight the stair turns into (tread
+  bands shrinking as it climbs away, stringer boards, a lit lowest edge ON the line); BELOW = GREY under-stair space in ONE-POINT PERSPECTIVE to
+  `VP` (40, 82 — the corridor camera's eye at the newel): `Space(x0,y0,x1,y1,k)` maps (u across, v up, t depth) to the sprite and `draw_space`
+  shades back wall / ceiling (the stair's underside) / side walls / floor by depth. UP sprite: its old plaster half is now the OPEN cupboard
+  under the stairs (door swung flat against the wall, boxes + a broom). DOWN sprite: the shaft half is the recess (RECESS_KINDS props), the
+  other half a CLOSED cupboard door set back in its frame (reveals toward the eye, two panels, brass knob). Props are solids: `cuboid` (front +
+  top + the side facing VP), `cylinder` (body + elliptical top), contact shadows. Placeholder colours per the owner ("for now").
 - Not started: quests.
