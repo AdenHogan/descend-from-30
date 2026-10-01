@@ -2125,6 +2125,15 @@ means no rendering — UI layout and art still need an in-editor look.
   sprite has NO stair back any more: one dark hall — far wall + window, the far landing's edge at row 65, the drop below it (way
   down + lip on the left, banister on the right). `stair_visuals_test` measures the top yellow tread from the texture against
   the turn height.
+  **Round 31g (owner: "this is great but not the bannister. That looks like a baby gate. Try making it a wall or something"):**
+  the spindles are gone — the "banister" half is now a SOLID HALF-WALL (`stairwell.py banister()`): a plastered knee wall lit from the
+  window, a sunk panel with a moulding, a skirting board, the landing slab's edge below, and a timber CAPPING RAIL whose top is still
+  design row 76 = world 367 (the jump climbs onto it). The prompt reads "[W] Jump over the wall"; code names (`Banister`,
+  `vault_banister`, `banister_test`) are unchanged. `banister_test` reads the cap's top row from the texture and checks the face
+  below it is solid.
+  **Round 31h (owner: "a bit higher I think. It's strange for a bannister to be that low"):** the half-wall's cap went from design
+  row 76 to **66** (world 367 → **357**, a 42 px wall instead of 32); `stair_pan.VAULT_RAIL_TOP` follows (the jump climbs 10 px higher),
+  and the far landing's edge across the well (`FAR_EDGE`) moved up with it.
   Y planes in docs/Y_PLANES.md §4. Locked by `banister_test` (56th suite; mutation-checked) + `stair_visuals_test` (one DOWN look,
   every stair sprite 262..406 at scale 1, signs over the stair art). Seen while capturing, NOT changed: an UP-stairwell stair enemy on
   the arrival floor can start above the top of the screen and walk down into view (its legs show under the ceiling first).

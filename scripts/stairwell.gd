@@ -427,7 +427,7 @@ func _on_banister_entered(body: Node2D) -> void:
 	if body.name != "Player":
 		return
 	player_on_banister = true
-	HUD.show_world_prompt(banister, "[%s] Jump the banister" % TutorialManager.key("move_up"),
+	HUD.show_world_prompt(banister, "[%s] Jump over the wall" % TutorialManager.key("move_up"),
 		Vector2(banister_x(), global_position.y - 34))
 
 

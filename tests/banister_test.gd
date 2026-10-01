@@ -91,12 +91,29 @@ func _test_fall_geometry() -> void:
 	# The shader's band is inert by default (the stairs' own slice is untouched by it).
 	check(StairPan.SHRED_SHADER.contains("gap_top = 999999.0") and StairPan.SHRED_SHADER.contains("gap_bottom = -999999.0"),
 		"the gap band defaults to off")
-	# The rail the player climbs is the rail the art draws: the sprite's top + EXT rows + the art's RAIL_Y (76).
+	# The rail the player climbs is the rail the art draws: the sprite's top + EXT rows + the art's RAIL_Y (66).
 	var bf = load("res://scenes/building_floors.tscn").instantiate()
 	var spr: Sprite2D = bf.get_node("HallwayStaircaseLeft")
 	var top: float = spr.position.y - spr.texture.get_height() * 0.5
 	check(is_equal_approx(top, StairPan.VAULT_OPENING_TOP), "the stair art's top is VAULT_OPENING_TOP (%.1f)" % top)
-	check(is_equal_approx(top + 29.0 + 76.0, StairPan.VAULT_RAIL_TOP), "VAULT_RAIL_TOP is the drawn handrail (%.1f)" % (top + 105.0))
+	check(is_equal_approx(top + 29.0 + 66.0, StairPan.VAULT_RAIL_TOP), "VAULT_RAIL_TOP is the drawn cap (%.1f)" % (top + 95.0))
+	# ...and measured from the texture: down the column through the half-wall, the first row that isn't the dark well is the cap's
+	# top (owner round 31g: a solid half-wall with a timber capping rail, not spindles).
+	var img: Image = spr.texture.get_image()
+	var cap_row := -1
+	for yy in range(62, img.get_height()):   # below the window (its sill ends ~row 60)
+		var c: Color = img.get_pixel(60, yy)
+		if c.r > 0.45 and c.r > c.b + 0.12:
+			cap_row = yy
+			break
+	check(cap_row >= 0 and is_equal_approx(top + float(cap_row), StairPan.VAULT_RAIL_TOP),
+		"the drawn cap's top (world %.0f) is where the jump climbs to (%.0f)" % [top + float(cap_row), StairPan.VAULT_RAIL_TOP])
+	var solid := true
+	for yy in range(cap_row + 5, cap_row + 24, 3):
+		for xx in range(43, 77):                           # the whole width — spindles would leave gaps onto the dark well
+			if img.get_pixel(xx, yy).get_luminance() < 0.12:
+				solid = false
+	check(solid, "below the cap is a solid wall face, not gaps onto the dark well")
 	bf.free()
 
 

@@ -460,50 +460,62 @@ def under_stairs_open(p, x0, x1, line_y, kind='cupboard'):
     fill_poly(p, [(x0 + 1, line_y + 5), (x0 + 4, line_y + 6), (x0 + 4, STEP_BOT - 1), (x0 + 1, STEP_BOT)], lambda x, y: dither(GREY, 2.4 if x < x0 + 3 else 1.2, x, y, 0.2))
 
 
-PAINT = [(78, 80, 78), (122, 124, 120), (164, 166, 160), (192, 194, 186)]   # painted balusters: shadow .. lit edge
-RAIL_Y = 76                         # DOWN: the banister's handrail (sprite y of its lit top edge) — stairwell.gd BANISTER_* reads it
-BALUSTER_XS = list(range(44, 77, 4))
+RAIL_Y = 66                         # DOWN: the half-wall's capping rail (sprite y of its top) — stair_pan.VAULT_RAIL_TOP = 291 + RAIL_Y
+                                    # (owner round 31h: "a bit higher… strange for a bannister to be that low" — was 76)
+FAR_EDGE = RAIL_Y - 10              # the far landing's edge across the well, seen over the wall
 
 
 def well(p, x0, x1, y0, y1):
     """The open stairwell behind the banister: the same dark shaft wall as the UP stair's, lit round the window above, falling away
-    to black below this floor's landing (the far side's floor line at y 66) — the drop you'd jump."""
+    to black below this floor's landing (the far side's floor line, FAR_EDGE) — the drop you'd jump."""
     dark_back(p, x0, x1, y0, y1, glow=(59, 7, 36))
-    for y in range(66, y1 + 1):
+    for y in range(FAR_EDGE + 1, y1 + 1):
         for x in range(x0, x1 + 1):
-            t = (y - 66) / max(1.0, y1 - 66)
+            t = (y - FAR_EDGE - 1) / max(1.0, y1 - FAR_EDGE - 1)
             p[x, y] = dither(DARK, max(0.0, 1.1 - 1.3 * t), x, y, 0.3) + (255,)
     for x in range(x0, x1 + 1):                                    # the far side's landing edge, catching the window light
-        p[x, 65] = dither(PLASTER, 1.2, x, 65, 0.2) + (255,)
-        p[x, 66] = PLASTER[0] + (255,)
+        p[x, FAR_EDGE] = dither(PLASTER, 1.2, x, FAR_EDGE, 0.2) + (255,)
+        p[x, FAR_EDGE + 1] = PLASTER[0] + (255,)
 
 
 def banister(p, x0, x1):
-    """A painted banister across the open well: a timber handrail (lit top, underside in shadow — the eye is just below it),
-    turned white balusters, a bottom string on the landing slab, an end post against the hall's side wall."""
-    for bx in BALUSTER_XS:
-        for y in range(RAIL_Y + 4, 103):
-            bulge = (y in (86, 87, 96, 97))
-            p[bx, y] = PAINT[3 if y < 90 else 2] + (255,)
-            p[bx + 1, y] = PAINT[1] + (255,)
-            if bulge:
-                p[bx - 1, y] = PAINT[2] + (255,)
-                p[bx + 2, y] = PAINT[0] + (255,)
-        p[bx + 2, 101] = PAINT[0] + (255,)
+    """A solid half-wall across the open well (owner round 31g: the spindle banister "looks like a baby gate… try making it a wall"):
+    a plastered knee wall the height of a banister, a timber capping rail along its top (its front face lit, a shadow line under the
+    overhang — the eye is just below it), a sunk panel picked out by a moulding, a skirting board, and the landing slab's cut edge
+    beneath. The cap's top is RAIL_Y — what the vault climbs onto (stair_pan.VAULT_RAIL_TOP)."""
+    top = RAIL_Y + 4
+    for y in range(top, 101):                                      # the wall face: lit from the window above-left
+        for x in range(x0, x1 + 1):
+            v = 2.3 - 0.9 * (x - x0) / max(1, x1 - x0) - 0.9 * (y - top) / 26.0
+            p[x, y] = dither(PLASTER, max(0.3, min(3.0, v)), x, y, 0.15) + (255,)
+    for x in range(x0, x1 + 1):                                    # the cap's shadow on the wall just under the overhang
+        p[x, top] = dither(PLASTER, 0.2, x, top, 0.2) + (255,)
+    # a sunk panel: shadowed top + left edges, lit bottom + right (light from the upper left)
+    px0, py0, px1, py1 = x0 + 4, top + 4, x1 - 6, 96
+    for x in range(px0, px1 + 1):
+        p[x, py0] = PLASTER[0] + (255,)
+        p[x, py1] = PLASTER[3] + (255,)
+    for y in range(py0, py1 + 1):
+        p[px0, y] = PLASTER[0] + (255,)
+        p[px1, y] = PLASTER[3] + (255,)
+    for x in range(px0 + 1, px1):                                  # the panel's field sits a shade back
+        for y in range(py0 + 1, py1):
+            c = p[x, y]
+            p[x, y] = shade(c[:3], 0.9) + (255,)
+    for (cx, cy) in ((px0 + 9, py0 + 6), (px0 + 10, py0 + 7), (px1 - 7, py1 - 3)):   # wear: scuffs + a hairline crack
+        p[cx, cy] = PLASTER[0] + (255,)
     for x in range(x0, x1 + 1):
-        p[x, RAIL_Y] = TIMBER[3] + (255,)
+        p[x, RAIL_Y] = TIMBER[3] + (255,)                         # the capping rail: lit top edge, front face, underside
         p[x, RAIL_Y + 1] = TIMBER[2] + (255,)
         p[x, RAIL_Y + 2] = TIMBER[1] + (255,)
         p[x, RAIL_Y + 3] = TIMBER[0] + (255,)
-        p[x, 103] = TIMBER[2] + (255,)                            # the bottom string
-        p[x, 104] = TIMBER[0] + (255,)
+        for y in range(101, 105):                                  # skirting
+            p[x, y] = (TIMBER[1] if y == 101 else TIMBER[0]) + (255,)
         for y in range(105, 108):                                  # the landing slab's cut edge, facing us
             p[x, y] = dither(GREY, 2.6 - (y - 105) * 0.8, x, y, 0.2) + (255,)
-    for y in range(RAIL_Y - 4, 108):                               # the end post against the side wall
-        for x, c in ((x1 - 2, TIMBER[3]), (x1 - 1, TIMBER[2]), (x1, TIMBER[0])):
-            p[x, y] = c + (255,)
-    for x in range(x1 - 3, x1 + 1):
-        p[x, RAIL_Y - 5] = TIMBER[3] + (255,)
+    for y in range(RAIL_Y, 105):                                   # the wall's return against the hall's side wall
+        p[x1, y] = PLASTER[0] + (255,)
+        p[x1 - 1, y] = shade(p[x1 - 1, y][:3], 0.8) + (255,)
 
 
 def way_down(p, x0, x1, y0, y1):
@@ -520,13 +532,13 @@ def way_down(p, x0, x1, y0, y1):
 
 def down_view(kind=None):
     """One dark stair hall (owner round 31f: no stair back above the DOWN stair): the far wall under the window, the far landing's
-    edge at row 65, below it the drop — on the left the way down with only its first step drawn, on the right the banister across
+    edge at FAR_EDGE, below it the drop — on the left the way down with only its first step drawn, on the right the banister across
     the open well."""
     img = new_canvas()
     p = px(img)
     floor_strip(p, 0, W - 1)
     well(p, 1, W - 1, -EXT, 104)
-    way_down(p, 1, 38, 67, 104)
+    way_down(p, 1, 38, FAR_EDGE + 2, 104)
     window(p, 48, WINDOW_TOP, 69, WINDOW_BOT)
     banister(p, 41, W - 1)
     # the lip: the first step down, in yellow

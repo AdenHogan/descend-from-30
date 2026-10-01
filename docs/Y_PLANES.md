@@ -188,13 +188,13 @@ floor (owner round 31e — the corridor art's filler band used to show above a s
 - **Right**: mirror about corridor centre (675) → centre x 1179.
 - Art **top edge** y = **262** (the lintel is 257..261); art **bottom** y = **406**.
 - The art is DESIGNED on rows 0..114 = world 291..405 (stairwell.py `EXT` = 29 rows above that); the yellow
-  up-steps' top / the stair-back line is design row 40 = world 331 (round 31f: the flight climbs halfway up the opening; the turn heights follow it); the DOWN banister's handrail top is design
-  row 76 = world **367** (`stair_pan.VAULT_RAIL_TOP`).
+  up-steps' top / the stair-back line is design row 40 = world 331 (round 31f: the flight climbs halfway up the opening; the turn heights follow it); the DOWN half-wall's capping-rail top is design
+  row 66 = world **357** (`stair_pan.VAULT_RAIL_TOP`; was 76 / 367 until owner round 31h raised the wall).
 - **Banister vault** (`stairwell.vault_banister`, `stair_pan._vault`): the banister zone is centred 40px from the
   DOWN trigger toward the corridor (x 188 left / 1162 right) — exactly the floor below's stair-arrival x. The
-  player steps up 10, climbs to feet 367 (origin 334), hops 6, falls with the cut at 367 (clip below), and once
-  wholly between floors the cut moves to the floor below's opening top (262 + one floor, clip ABOVE) so they drop
-  in feet first and land on origin 386 (+ one floor).
+  player steps up 10, climbs to feet 357 (origin 324) on the half-wall's cap, hops 6 and falls; the slice shader
+  hides every pixel in the band `stair_pan.vault_gap` = [357, 262 + one floor] (the cap down to the floor below's
+  opening top), so they drop behind the wall and out of the lintel below feet first, landing on origin 386 (+ one floor).
 - Owner-confirmed DOWN dark-shaft inner box (fire): centre 146, half-width 26 →
   x [120, 172] (left); right mirror centre 1203. Broader stair zone kept clear
   of corridor fire: x [100, 235] (left) / [1114, 1249] (right).

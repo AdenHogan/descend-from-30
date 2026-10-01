@@ -491,12 +491,12 @@ func _descend(player: Node2D, sprite: Node, pan_cam: Camera2D, base_scale: Vecto
 
 
 # THE BANISTER VAULT (owner round 31e). World Y planes (docs/Y_PLANES.md §stairs): the stair sprite's top is 291, its handrail's lit
-# top edge 291 + RAIL_Y 76 = 367 (tools/art/stairwell.py). The player steps up to the banister, climbs onto the rail, drops behind it
+# top edge 291 + RAIL_Y 66 = 357 (tools/art/stairwell.py; raised from 76 in owner round 31h). The player steps up to the banister, climbs onto the rail, drops behind it
 # (cut at the rail: everything below it is hidden — they fall behind the handrail into the well), and — once wholly between the two
 # floors — the cut flips to the floor below's stair opening top (291 + one floor; clip ABOVE it), so they drop into view feet first
 # in front of that floor's up-stairs and land on its arrival spot. Own constants, not the stairs' (CLAUDE.md: split, don't share).
 const VAULT_APPROACH := 10.0          # step toward the banister, like the stairs' first step
-const VAULT_RAIL_TOP := 367.0         # world y of the handrail's top (feet stand on it)
+const VAULT_RAIL_TOP := 357.0         # world y of the handrail's top (feet stand on it)
 const VAULT_OPENING_TOP := 262.0      # world y of a stair opening's top edge (the stair sprite's top, under the lintel)
 const VAULT_FEET := 33.0              # player origin -> feet (collision bottom), docs/Y_PLANES.md
 const VAULT_HOP := 6.0
