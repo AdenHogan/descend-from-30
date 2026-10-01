@@ -64,10 +64,8 @@ func _test_pockets_only() -> void:
 	HUD.refresh_inventory()
 	check(not HUD.hotbar_visible and not HUD.hbox.visible, "no pocket bar either (the in-hand box shows what they hold)")
 	check(not HUD.pack_button.visible, "the pack button is hidden without a pack")
-	check(HUD.wheel_hint != null and not HUD.wheel_hint.visible, "the wheel hint is hidden without a pack")
 	check(not HUD.pack_wheel.toggle(), "the pack key does nothing without a pack")
-	check(HUD.quick_wheel.blocked_reason() != "", "the quick wheel refuses without a pack")
-	check(load("res://scripts/quick_wheel.gd").ui_block_reason(get_tree()) != "", "the shared block reason says why")
+	check(load("res://scripts/ring_geo.gd").ui_block_reason(get_tree()) != "", "the shared block reason says why")
 
 
 func _test_overload() -> void:

@@ -853,10 +853,16 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 				bbeam.setup(bdoor, 1.1, 1.0, live)
 				# THE CITY BEYOND THE RAIL, alive (scripts/city_fx.gd): small fires + distant blasts on the towers, and at
 				# night the looping pixel rain past the railing with ripples on the wet tiles. Module-local coordinates.
+				# Round 33: the city itself is a layer over the art, CLIPPED to the bare-view pixels (so the rail, doors and walls stay
+				# in front) and drawn wider than the opening, sliding a few px as you walk past (scripts/city_view.gd); the fires etc.
+				# ride it, the rain stays put.
+				var cv = _make_balcony_city(WorldState.current_run)
+				if cv != null:
+					bal_node.add_child(cv)
 				var cfx = load("res://scripts/city_fx.gd").new()
 				cfx.name = "CityFx"
 				bal_node.add_child(cfx)
-				cfx.setup_balcony(WorldState.current_run, live, absi(hash(apartment_id + "_bal_" + str(i))))
+				cfx.setup_balcony(WorldState.current_run, live, absi(hash(apartment_id + "_bal_" + str(i))), cv.far if cv != null else null)
 			# A zone on EVERY revealed balcony (top AND bottom of a pair): the top
 			# offers the descent, the bottom just lets the player step out onto its
 			# plane / listen — the zone gates the actual climb-down on
@@ -1016,6 +1022,30 @@ static func module_scene_for(apt: String, slot: int, room_type: String) -> Strin
 	if vs.is_empty():
 		return MODULE_SCENES[room_type]
 	return vs[WorldState.module_variant_index(apt, slot, room_type, vs.size())]
+
+
+## The panning city over a balcony doorway (round 33): module-local, like the art. null if the art isn't there (never a crash).
+func _make_balcony_city(run: int) -> Node2D:
+	var CF = load("res://scripts/city_fx.gd")
+	var m: Dictionary = CF.meta()
+	var tex_path := "res://assets/city/balcony_city_%d.png" % clampi(run, 1, 3)
+	var mask_path := "res://assets/city/balcony_view_mask_%d.png" % clampi(run, 1, 3)
+	if not ResourceLoader.exists(tex_path) or not ResourceLoader.exists(mask_path):
+		return null
+	var cv = load("res://scripts/city_view.gd").new()
+	cv.name = "City"
+	cv.setup_view(float(m.get("pan", 0)), Vector2(BalconyGeo.CENTER_DX, BalconyGeo.LINTEL_Y - 224.0 + 30.0))
+	cv.set_mask_texture(load(mask_path), Vector2.ZERO)
+	var view := Sprite2D.new()
+	view.name = "View"
+	view.texture = load(tex_path)
+	view.centered = false
+	view.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	view.material = CF.unshaded()
+	var origin: Array = m.get("city_origin", [0, 0])
+	view.position = Vector2(float(origin[0]), float(origin[1]))
+	cv.far.add_child(view)
+	return cv
 
 
 static func apply_run_art(module: Node, run: int) -> void:
@@ -1200,7 +1230,6 @@ func _after_modules_ready() -> void:
 	if not tutorial_apartment:
 		_setup_gun_cabinet(interactable_script)
 		_setup_dead_bodies(interactable_script)
-		_add_foreground_dead()
 
 	# Tutorial rooms: 3003 = the scripted encounter (3 hidden nodes); 3002/3004/
 	# 3005 = a fixed clean set of nodes (exact items/amounts, no repeats).
@@ -1281,19 +1310,6 @@ func _setup_gun_cabinet(interactable_script) -> void:
 		if rng.randf() < 0.4 and not WorldState.gun_cabinets.get(apartment_id, {}).get("taken", false):
 			WorldState.set_anchor_item(apartment_id, anchor.name, "016")
 	_add_gun_cabinet_art()
-
-
-func _add_foreground_dead() -> void:
-	# the foreground-silhouette test (scripts/foreground_dead.gd) — a breached flat or one with its
-	# dead, sporadically (or everywhere, forced from the F1 menu)
-	var fg_script = load("res://scripts/foreground_dead.gd")
-	var breached: bool = WorldState.get_door_state(apartment_id) == WorldState.DoorState.BREACHED
-	var kind := "breach" if breached else ("corpse" if not WorldState.apartment_corpse(apartment_id).is_empty() else "")
-	if not (WorldState.foreground_dead_mode == 2 or (kind != "" and fg_script.wants(kind, apartment_id))):
-		return
-	var fg = fg_script.new()
-	add_child(fg)
-	fg.setup(apartment_id, ROOM_BAND_TOP + ROOM_BAND_H, float(LEFT_WALL_X) + 30.0, float(LEFT_WALL_X + 3 * MODULE_WIDTH) - 30.0)
 
 
 func _setup_dead_bodies(interactable_script) -> void:
@@ -1645,8 +1661,7 @@ func _on_tut_pack_taken() -> void:
 func _tut_pack_intro() -> void:
 	tut_pack_intro_done = true
 	TutorialManager.prompt(TutorialManager.LINES["pack_intro"], "interact", _tut_heal_prompt,
-		"[continue] — [%s] opens your pack, hold [%s] for the quick wheel" % [
-			TutorialManager.key("open_pack"), TutorialManager.key("item_wheel")])
+		"[continue] — [%s] opens your pack" % TutorialManager.key("open_pack"))
 
 
 func _tut_heal_prompt() -> void:

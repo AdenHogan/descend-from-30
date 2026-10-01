@@ -112,6 +112,13 @@ func _test_level() -> void:
 	check(OG.level(top_f, 1) < 0.2, "the top of the building starts almost clear (floor %d: %.2f)" % [top_f, OG.level(top_f, 1)])
 	check(OG.level(low_f, 3) > 0.8, "the bottom is choked by night (floor %d: %.2f)" % [low_f, OG.level(low_f, 3)])
 	check(OG.level(30, 1) == 0.0 and OG.level(0, 1) == 0.0, "floor 30 and the lobby aren't overgrown")
+	# owner round 33: "The overgrowth in the building should not set in till at least floor 12"
+	var above := 0.0
+	for f in range(13, 30):
+		for r in [1, 2, 3]:
+			above = maxf(above, OG.level(f, r))
+	check(above == 0.0, "nothing wild grows above floor 12, any run (max %.2f)" % above)
+	check(OG.level(12, 3) > 0.0 and OG.level(12, 1) < OG.level(1, 1), "it sets in at floor 12 and is worst at the bottom")
 	check(OG.level(low_f, 2) == OG.level(low_f, 2), "a floor's level is deterministic")
 	# flats: a spread of clear ↔ choked, stable
 	var lo := 1.0

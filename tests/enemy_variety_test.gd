@@ -43,6 +43,7 @@ func _ready() -> void:
 	await _test_big_push_past()
 	await _test_crowd_spacing()
 	await _test_shuffle_steps()
+	await _test_drawn_feet_level()
 	await _test_spitter_kites()
 	await _test_crawler_pounce()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
@@ -940,6 +941,31 @@ func _test_shuffle_steps() -> void:
 	var sp = z.get_node_or_null("StepPlayer")
 	check(sp != null and sp.playing and sp.stream != null, "a walking zombie scuffs at once")
 	check(sp != null and sp.bus == Game.ENEMY_BUS, "on the Enemies bus (the stair ascent can fade it with the moans)")
+	# owner round 33: "very loud and scratchy… it even overwhelms the moaning"
+	var moan_db: float = z.moan_player.volume_db if z.get("moan_player") != null else -2.0
+	check(sp != null and sp.volume_db <= moan_db - ES.MOAN_HEADROOM, "the shuffle sits well under the moans (%.0f dB vs %.0f dB)" % [sp.volume_db if sp else 0.0, moan_db])
+	check(ES.DEFAULT_DB + 4.0 <= moan_db - 10.0, "...even a big one's heavier step")
+	for st in ES.STREAMS:
+		# the SOURCE file's samples (the imported stream may be compressed): 16-bit mono PCM after the "data" chunk header
+		var path: String = st.resource_path
+		var raw: PackedByteArray = FileAccess.get_file_as_bytes(path)
+		var at: int = -1
+		for i in range(12, mini(raw.size() - 8, 4096)):
+			if raw[i] == 0x64 and raw[i + 1] == 0x61 and raw[i + 2] == 0x74 and raw[i + 3] == 0x61:   # "data"
+				at = i + 8
+				break
+		var peak := 0
+		var crossings := 0
+		var prev := 0
+		var n: int = (raw.size() - at) / 2 if at > 0 else 0
+		for i in n:
+			var v: int = raw.decode_s16(at + i * 2)
+			peak = maxi(peak, absi(v))
+			if (v >= 0) != (prev >= 0):
+				crossings += 1
+			prev = v
+		var zc_hz: float = float(crossings) / 2.0 / (float(maxi(n, 1)) / 44100.0)
+		check(n > 1000 and peak <= int(0.5 * 32767) and zc_hz < 900.0, "%s: soft + dark, not a rasp (peak %.2f, brightness %.0f Hz)" % [path.get_file(), peak / 32767.0, zc_hz])
 	sp.stop()
 	ES.tick(z, 0.1)
 	check(not sp.playing, "...and not again within its stride")
@@ -1111,5 +1137,55 @@ func _test_crawler_pounce() -> void:
 	check(not pounced, "inside its own reach it just bites, no pounce")
 	c3.queue_free()
 	WorldState.god_mode = false
+	bf.free()
+	await get_tree().process_frame
+
+
+func _sprite_bottom_global(spr: AnimatedSprite2D) -> float:
+	var tex: Texture2D = spr.sprite_frames.get_frame_texture(spr.animation, spr.frame)
+	var img: Image = tex.get_image()
+	if img.is_compressed():
+		img.decompress()
+	var lo := -1
+	for y in range(img.get_height() - 1, -1, -1):
+		for x in img.get_width():
+			if img.get_pixel(x, y).a > 0.5:
+				lo = y
+				break
+		if lo >= 0:
+			break
+	var top: float = -img.get_height() * 0.5 if spr.centered else 0.0
+	return spr.to_global(Vector2(0, spr.offset.y + top + float(lo + 1))).y
+
+
+## Owner round 33: "corpse bodies are below the player y plane". Every enemy type — standing AND dead — draws its feet on the
+## same row as the player's (the art used to draw 2-3 px under its collision feet, so bodies lay "in front of" the floor).
+func _test_drawn_feet_level() -> void:
+	print("[drawn feet: enemies alive and dead on the player's row]")
+	var bf = await _corridor()
+	var p = bf.get_node("Player")
+	var ps: AnimatedSprite2D = p.get_node("AnimatedSprite2D")
+	for i in range(3):
+		await get_tree().physics_frame
+	var player_row: float = _sprite_bottom_global(ps)
+	check(absf(player_row - 418.0) < 0.6, "the player's drawn feet are on the corridor row 418 (%.1f)" % player_row)
+	var x := 500.0
+	for n in ["standard", "big", "crawler", "longarm", "spitter"]:
+		var z = load("res://scenes/enemy_zombie_%s.tscn" % n).instantiate()
+		z.global_position = Vector2(x, 370 if n == "standard" else 374)
+		x += 120.0
+		bf.add_child(z)
+		for i in range(4):
+			await get_tree().physics_frame
+		var spr: AnimatedSprite2D = z.get_node("AnimatedSprite2D")
+		var alive: float = _sprite_bottom_global(spr)
+		check(absf(alive - player_row) < 0.6, "%s standing: drawn feet %.1f = the player's %.1f" % [n, alive, player_row])
+		z.receive_damage(999, "melee")
+		var guard := 0
+		while guard < 240 and not (spr.animation == "Death" and spr.frame == spr.sprite_frames.get_frame_count("Death") - 1):
+			await get_tree().physics_frame
+			guard += 1
+		var dead: float = _sprite_bottom_global(spr)
+		check(z.is_dead and absf(dead - player_row) < 0.6, "%s dead: the body lies on the same row (%.1f)" % [n, dead])
 	bf.free()
 	await get_tree().process_frame

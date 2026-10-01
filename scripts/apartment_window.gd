@@ -24,12 +24,14 @@ const PANE_HALF_W := 22.0
 const PANE_HALF_H := 26.0
 
 const CITY_FX = preload("res://scripts/city_fx.gd")
+const CITY_VIEW = preload("res://scripts/city_view.gd")
 const VARIANTS := 4
 
 var light: PointLight2D = null
 var view: Sprite2D = null
 var frame: Sprite2D = null
 var fx: Node2D = null
+var city: Node2D = null        # the clipped, panning city (scripts/city_view.gd): its FAR holds the skyline + the fires on it
 var _night := false
 
 
@@ -49,15 +51,21 @@ func setup(pos: Vector2, live: bool, variant_seed: int = -1) -> void:
 	var seed_v: int = variant_seed if variant_seed >= 0 else hash(str(int(round(pos.x))) + "_" + str(int(round(pos.y))) + "win")
 	var variant: int = absi(seed_v) % VARIANTS
 	var key := "view_%d_%d" % [run, variant]
+	# The view is drawn wider than the glass and slides a few px as you walk past (round 33 — city_view.gd); clipped to the glass.
+	city = CITY_VIEW.new()
+	city.name = "City"
+	add_child(city)
+	city.setup_view(float(CITY_FX.meta().get("_sizes", {}).get("pan", 0)))
+	city.set_mask_rect(Rect2(-PANE_HALF_W, -PANE_HALF_H, PANE_HALF_W * 2.0, PANE_HALF_H * 2.0))
 	view = Sprite2D.new()
 	view.texture = load("res://assets/city/%s.png" % key)
 	view.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	view.material = CITY_FX.unshaded()
 	view.modulate = CITY_FX.exposure(1.0)        # the exterior isn't lit by the room's darkness (unshaded)
-	add_child(view)
+	city.far.add_child(view)
 	fx = CITY_FX.new()
-	add_child(fx)
-	fx.setup_window(key, run, live, seed_v, light, view)
+	city.add_child(fx)                           # its rain stays put on the glass; its fires ride the FAR node
+	fx.setup_window(key, run, live, seed_v, light, view, "rain_window", city.far)
 	# A slanting sunbeam / moonbeam shaft in through the glass (see window_beam.gd) — over the city, under the frame.
 	var beam = load("res://scripts/window_beam.gd").new()
 	add_child(beam)

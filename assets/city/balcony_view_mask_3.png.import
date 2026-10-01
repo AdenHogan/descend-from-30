@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://clnqv0wf1xv8x"
-path="res://.godot/imported/fg_slumped_1.png-e19a88af3708956514147feceb0966c7.ctex"
+uid="uid://dbbuvtq0xxbnn"
+path="res://.godot/imported/balcony_view_mask_3.png-0266ae37bec157be02a24752d64383e4.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/foreground/fg_slumped_1.png"
-dest_files=["res://.godot/imported/fg_slumped_1.png-e19a88af3708956514147feceb0966c7.ctex"]
+source_file="res://assets/city/balcony_view_mask_3.png"
+dest_files=["res://.godot/imported/balcony_view_mask_3.png-0266ae37bec157be02a24752d64383e4.ctex"]
 
 [params]
 

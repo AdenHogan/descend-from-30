@@ -1,5 +1,7 @@
 extends CharacterBody2D
 
+const EnemyFeet = preload("res://scripts/enemy_feet.gd")
+
 const SPEED = 25.0
 const DETECTION_RANGE = 130.0
 const DETECTION_VARIANCE = 45.0   # +/- band for per-zombie aggro variance
@@ -120,6 +122,7 @@ func _ready() -> void:
 	z_index = 1
 	animated_sprite = $AnimatedSprite2D
 	animated_sprite.play("Idle")
+	EnemyFeet.lift_sprite(self, animated_sprite)   # drawn feet on the player's line, alive or dead (round 33)
 	player = get_tree().get_first_node_in_group("player")
 	add_to_group("zombie")
 	add_to_group("big_zombie")
@@ -411,7 +414,7 @@ func _physics_process(delta: float) -> void:
 		moan_player.stream = MOAN_STREAMS.pick_random()
 		moan_player.pitch_scale = randf_range(0.60, 0.72)
 		moan_player.play()
-	EnemySteps.tick(self, delta, 0.62, -5.0)        # heavy: lower + louder than the standards
+	EnemySteps.tick(self, delta, 0.62, EnemySteps.DEFAULT_DB + 4.0)        # heavy: lower + a touch louder than the standards
 
 	match state:
 		"hit":

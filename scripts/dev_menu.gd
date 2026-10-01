@@ -94,7 +94,6 @@ func _show_main() -> void:
 	_btn("God Mode: %s" % ("ON" if god_on else "OFF"), _toggle_god)
 	var stair_on: bool = WorldState.dev_force_stair_enemies
 	_btn("Force Stair Enemies: %s" % ("ON" if stair_on else "OFF"), _toggle_stair_enemies)
-	_btn("Foreground Dead (test): %s" % ["OFF", "SPORADIC", "EVERYWHERE"][clampi(WorldState.foreground_dead_mode, 0, 2)], _cycle_foreground)
 	_btn("Overgrowth: %s" % overgrowth_label(), _cycle_overgrowth)
 	_btn("Residents: %s" % ["NORMAL", "EVERY LOCKED FLAT", "ALL SCARED", "ALL HOSTILE", "ALL TRADERS"][clampi(WorldState.dev_residents, 0, 4)], _cycle_residents)
 	_btn("Set Health ▸", _sub_health)
@@ -155,13 +154,6 @@ func _cycle_overgrowth() -> void:
 		if is_equal_approx(float(OVERGROWTH_STEPS[k]), WorldState.dev_overgrowth):
 			i = k
 	WorldState.dev_overgrowth = float(OVERGROWTH_STEPS[(i + 1) % OVERGROWTH_STEPS.size()])
-	_show_main()
-
-
-func _cycle_foreground() -> void:
-	# the owner's foreground-silhouette test: off → sporadic → everywhere (takes effect on the next
-	# room / floor you enter)
-	WorldState.foreground_dead_mode = (WorldState.foreground_dead_mode + 1) % 3
 	_show_main()
 
 

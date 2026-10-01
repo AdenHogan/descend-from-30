@@ -31,6 +31,7 @@ func _ready() -> void:
 	await _test_stair_enemy_spawns()
 	await _test_stair_enemy_backdrop()
 	await _test_stair_enemy_return_grounded()
+	await _test_stair_enemy_one_staircase()
 	await _test_follower_same_node()
 	await _test_follower_resident()
 	await _test_follower_unique_keys()
@@ -682,6 +683,103 @@ func _test_stair_enemy_return_grounded() -> void:
 		check(not found.stair_mode, "it returns as an ordinary floor zombie, not re-caged in the shaft")
 		check(found.get_collision_layer_value(1), "its body collision is back on")
 	bf2.queue_free()
+	await get_tree().process_frame
+	WorldState.dev_force_stair_enemies = false
+
+
+func _build_floor(fnum: int, passive: bool) -> Node:
+	WorldState.current_floor = fnum if not passive else WorldState.current_floor
+	WorldState.seed_floor_door_states(fnum)
+	var bf = load("res://scenes/building_floors.tscn").instantiate()
+	if passive:
+		bf.setup_floor = fnum
+		bf.passive = true
+	add_child(bf)
+	for i in range(3):
+		await get_tree().process_frame
+	return bf
+
+
+func _stair_keys_in(root: Node) -> Dictionary:
+	var out := {}
+	for z in get_tree().get_nodes_in_group("stair_enemy"):
+		if root.is_ancestor_of(z) and not z.is_dead:
+			out[z.spawn_key] = z
+	return out
+
+
+## Owner round 33: "This enemy was on the stairs as I came down, it despawned, then floated slowly through the scene from above
+## down to the y plane… I should not have been able to come downstairs… blocked… draw it upstairs with sound or jump down… one
+## clean bubble". A staircase's enemies are ONE population, seen from both floors; the crossing is shut while one's on the steps.
+func _test_stair_enemy_one_staircase() -> void:
+	print("[stair enemies: one population per staircase]")
+	WorldState.new_game(); WorldState.tutorial_completed = true; WorldState.is_first_run = false
+	WorldState.dev_force_stair_enemies = true
+	WorldState.spawn_source = "stair"; WorldState.stair_direction = "down"; WorldState.pending_pry_arrival_floor = -1
+	WorldState.stair_spawn_side = WorldState.canonical_stair_arrival_side(15)
+	var up := await _build_floor(15, false)
+	var down_choke := 15                                   # 15's DOWN stair = the staircase 15 ↔ 14
+	var key: String = up.stair_enemy_key(down_choke, 0)
+	var top_keys := _stair_keys_in(up)
+	check(top_keys.has(key), "floor 15's down shaft holds the staircase's enemy (%s)" % key)
+	var lurker = top_keys.get(key, null)
+	# the floor below, built as the pan backdrop: the SAME enemy, standing on its up flight
+	var below := await _build_floor(14, true)
+	var low_keys := _stair_keys_in(below)
+	check(low_keys.has(key) and low_keys[key].stair_mode, "the floor below shows the SAME staircase enemy, on its up flight")
+	below.free()
+	await get_tree().process_frame
+	# the crossing is shut while it's on the steps — one line, naming both ways past
+	var t = null
+	for n in up.get_children():
+		if n.get_script() == load("res://scripts/stairwell.gd") and n.direction == "down" and n.process_mode != Node.PROCESS_MODE_DISABLED:
+			t = n
+	check(t != null and t._stair_enemy_blocking(), "the down stairs are blocked while it's on them")
+	if t != null:
+		var line: String = t.blocked_line()
+		check(line.contains("noise") and line.contains("wall") and line.length() <= 90, "...one short line: draw it up with a noise, or jump the wall (%s)" % line)
+	# a noise draws it up onto THIS floor
+	if lurker != null:
+		WorldState.emit_noise(lurker.global_position + Vector2(60, 0), 400.0, 3.0)
+		var guard := 0
+		while lurker.stair_mode and guard < 600:
+			await get_tree().physics_frame
+			guard += 1
+		check(not lurker.stair_mode and absf(lurker.global_position.y - 370.0) < 0.6, "a noise draws it up off the stairs onto this floor (y %.1f)" % lurker.global_position.y)
+		check(t == null or not t._stair_enemy_blocking(), "...and then the way down is open")
+		# it's on floor 15 now: the floor below no longer has it on the stairs
+		var below2 := await _build_floor(14, true)
+		check(not _stair_keys_in(below2).has(key), "the floor below no longer shows it on the stairs (it came up)")
+		below2.free()
+		await get_tree().process_frame
+	# leaving remembers it on 15; the floor below, built live later, still doesn't have it
+	up.free()
+	await get_tree().process_frame
+	check(int(WorldState.zombie_positions.get(key, {}).get("floor", -1)) == 15, "it's remembered on floor 15")
+	var low_live := await _build_floor(14, false)
+	check(not _stair_keys_in(low_live).has(key), "arriving on 14 later: it isn't back on the stairs")
+	low_live.free()
+	await get_tree().process_frame
+	# a kill from either floor kills it on both
+	WorldState.zombie_positions.erase(key)
+	WorldState.killed_zombies[key] = {"x": 0, "y": 0}
+	var again := await _build_floor(14, false)
+	check(not _stair_keys_in(again).has(key), "killed: gone from the staircase for both floors")
+	again.free()
+	await get_tree().process_frame
+	WorldState.killed_zombies.erase(key)
+	# knocked off the up flight mid-way: back on the floor line briskly, never left floating
+	var fl := await _build_floor(14, false)
+	var ue = _stair_keys_in(fl).get(fl.stair_enemy_key(15, 0), null)
+	check(ue != null and ue.stair_mode and ue.global_position.y < 360.0, "an enemy waits up the flight on 14")
+	if ue != null:
+		ue.receive_damage(1, "melee")
+		var g := 0
+		while absf(ue.global_position.y - 370.0) > 0.6 and g < 40:
+			await get_tree().physics_frame
+			g += 1
+		check(not ue.stair_mode and absf(ue.global_position.y - 370.0) < 0.6 and g <= 30, "a hit knocks it off the stairs: on the floor line in %d frames, not floating" % g)
+	fl.free()
 	await get_tree().process_frame
 	WorldState.dev_force_stair_enemies = false
 

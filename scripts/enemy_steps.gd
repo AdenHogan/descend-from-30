@@ -17,12 +17,17 @@ const MIN_SPEED := 6.0            # slower than this it's standing, not walking
 const STRIDE := 24.0              # px between footfalls (interval = STRIDE / speed)
 const MIN_GAP := 0.38             # never faster than this, however quick it runs
 const MAX_GAP := 1.25
-const MAX_DISTANCE := 420.0       # quieter + nearer than the moans: you hear a shuffle only when they're close
+const MAX_DISTANCE := 320.0       # quieter + nearer than the moans: you hear a shuffle only when they're close
+# Owner round 33: the shuffle was "very loud and scratchy… it even overwhelms the moaning". It's a soft brush now
+# (tools/gen_zombie_steps.py) and sits at least MOAN_HEADROOM dB under the moans (moan_player -2 dB), so it's a presence, never
+# the loudest thing in the corridor.
+const DEFAULT_DB := -20.0
+const MOAN_HEADROOM := 14.0
 
 
 ## Advance one enemy's step timer; plays a footfall when due. `pitch` = its voice/size pitch
 ## (big ones are lower), `db` = its loudness trim.
-static func tick(e: CharacterBody2D, delta: float, pitch: float = 1.0, db: float = -9.0) -> void:
+static func tick(e: CharacterBody2D, delta: float, pitch: float = 1.0, db: float = DEFAULT_DB) -> void:
 	if not is_instance_valid(e) or e.is_dead:
 		return
 	var wall = e.get("wall_mode")                   # crawlers only: "" on the floor, else clinging / dropping

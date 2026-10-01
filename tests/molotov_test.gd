@@ -420,7 +420,7 @@ func _click_drag(from: Vector2, to: Vector2, release_at: Vector2 = Vector2(-1, -
 
 func _slot_pos(k: int) -> Vector2:
 	var pw = HUD.pack_wheel
-	return pw.QuickWheel.slot_position(pw.centre, k, pw.slots.size(), pw.RING_R)
+	return pw.RingGeo.slot_position(pw.centre, k, pw.slots.size(), pw.RING_R)
 
 
 func _open_pack() -> void:

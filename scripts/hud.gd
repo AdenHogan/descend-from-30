@@ -83,7 +83,7 @@ const SLOT_SIZE = 64.0
 # stamina bar, and the mode toggle + in-hand line beside it. The backpack button is bottom-right with the
 # notes + scrap beside it; place + time top-right. There is NO hotbar (owner: "redundant if we have the
 # wheel"): the six slots still exist as an OPT-IN (`set_hotbar_visible`), hidden by default — the pack
-# ring and the quick wheel are the inventory, number keys 1-5 still equip. Because there is no band to test a click against any more,
+# ring is the inventory, number keys 1-5 still equip. Because there is no band to test a click against any more,
 # "is the pointer on the HUD" is a hit-test of the real widgets (`pointer_over_widget`), never a y-range.
 const CLUSTER_MARGIN = 16.0
 const PORTRAIT_W = 132.0                             # the bust, UNCROPPED and large (owner: not a small circle)
@@ -108,8 +108,6 @@ var name_label: Label = null
 var wallet_icon: TextureRect = null
 var scrap_icon: TextureRect = null
 var equip_box: Control = null            # the in-hand item box right of the name row (hud_equip_box.gd)
-var wheel_hint: Label = null
-var quick_wheel: Control = null
 var pack_wheel: Control = null           # the backpack ring (pack_wheel.gd) — real time, whole bag
 var pack_button: Control = null          # the clickable backpack in the strip (hud_pack_button.gd)
 var _health_stage: int = 0
@@ -128,7 +126,6 @@ func _ready() -> void:
 	_create_wallet_label()
 	_create_scrap_label()
 	_create_boon_badge()
-	_create_quick_wheel()
 	_create_pack()
 	_create_dev_warp_prompt()
 	_create_dev_item_prompt()
@@ -213,21 +210,12 @@ func _create_cluster() -> void:
 	# --- right of the name row: the item in hand, as a BOX (icon + a durability outline; owner round 27) ---
 	equip_box = preload("res://scripts/hud_equip_box.gd").new()
 	$Control.add_child(equip_box)
-	var pack_left: float = SCREEN_W - CLUSTER_MARGIN - PACK_BTN_W
-	wheel_hint = _hud_label("", 12, TEXT_DIM, Vector2(pack_left - 264.0, SCREEN_H - 24.0), Vector2(250, 18), HORIZONTAL_ALIGNMENT_RIGHT)
 
-
-
-func _create_quick_wheel() -> void:
-	# Added late so it draws over the cluster and the hotbar (and under the dev panels).
-	quick_wheel = preload("res://scripts/quick_wheel.gd").new()
-	$Control.add_child(quick_wheel)
-	update_wheel_hint()
 
 
 func _create_pack() -> void:
-	# The backpack: THE inventory. A button in the bottom-right corner + its ring. The ring is added AFTER
-	# the quick wheel so it draws over it. (Dropping a loot item onto this button takes it into the pack.)
+	# The backpack: THE inventory. A button in the bottom-right corner + its ring. (Dropping a loot item onto
+	# this button takes it into the pack.)
 	pack_button = preload("res://scripts/hud_pack_button.gd").new()
 	pack_button.position = Vector2(SCREEN_W - CLUSTER_MARGIN - PACK_BTN_W, SCREEN_H - PACK_BTN_H - 8.0)
 	$Control.add_child(pack_button)
@@ -406,6 +394,10 @@ func _update_world_prompt() -> void:
 	var cam := get_viewport().get_camera_2d()
 	if cam == null:
 		return
+	# The pack ring is open: every world pill steps aside (owner round 33 — "When opening the bag, in game text like that door
+	# behind being locked, it should disappear. it overlaps the wheel"). Faded, not hidden — `visible` is the pill's own state,
+	# so each comes straight back when the ring closes.
+	var hush: bool = pack_wheel != null and pack_wheel.is_visible_in_tree()
 	for id in _world_prompts.keys():
 		# Owner gone (scene change, freed drop): drop its pill so nothing leaks.
 		if instance_from_id(id) == null:
@@ -416,6 +408,7 @@ func _update_world_prompt() -> void:
 		var panel: Panel = e["panel"]
 		if not panel.visible:
 			continue
+		panel.modulate.a = 0.0 if hush else 1.0
 		var label: Label = e["label"]
 		var font := label.get_theme_font("font")
 		var tw: float = font.get_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, WORLD_PROMPT_FONT_SIZE).x
@@ -606,9 +599,9 @@ func _create_boon_badge() -> void:
 func refresh_boon_badge() -> void:
 	if boon_badge == null:
 		return
-	var n: int = WorldState.pending_boon_floors.size()
-	boon_badge.visible = n > 0
-	boon_badge.text = "★ BOON — choose" + (" (%d)" % n if n > 1 else "")
+	# Round 33: boons are the merchant's (shop_ui's BOON step) — the arrival badge never shows. Kept as a node (and
+	# open_boon_offer) so nothing that names it breaks.
+	boon_badge.visible = false
 
 
 func open_boon_offer() -> void:
@@ -1112,7 +1105,11 @@ func item_tip_content(inst) -> Dictionary:
 	if d.get("is_health_item", false):
 		stats.append("Heals %d" % (int(d.get("heals_states", 0)) + WorldState.get_heal_bonus()))
 	var hint := ""
-	if d.get("is_molotov", false):
+	if d.get("is_key", false) and str(inst.target_apartment) != "":
+		var tgt: String = str(inst.target_apartment)
+		hint = ("Opens the gun cabinet in flat " + tgt.substr(WorldState.CABINET_KEY_PREFIX.length())) \
+			if tgt.begins_with(WorldState.CABINET_KEY_PREFIX) else ("Opens the front door of flat " + tgt)
+	elif d.get("is_molotov", false):
 		hint = "Double-click to throw — it bursts into flame where it lands"
 	elif d.get("is_bottle", false):
 		hint = "Double-click to throw — it smashes where it lands"
@@ -1132,13 +1129,24 @@ func _is_gun_data(d: Dictionary) -> bool:
 
 
 func _hovered_slot() -> int:
+	var mouse: Vector2 = tip_mouse_override if tip_mouse_override is Vector2 else get_viewport().get_mouse_position()
+	# the IN-HAND box (owner round 33: "If I hover the mouse over the item, we should get a little text box saying what the
+	# item is/level/durability… unless I check the wheel I don't know what this key is for")
+	if equip_box != null and equip_box.is_visible_in_tree() and selected_slot >= 0 and selected_slot < WorldState.inventory.size() \
+			and equip_box.get_global_rect().has_point(mouse):
+		return selected_slot
 	if not hotbar_visible:
 		return -1
-	var mouse: Vector2 = tip_mouse_override if tip_mouse_override is Vector2 else get_viewport().get_mouse_position()
 	for i in range(slots.size()):
 		if i < WorldState.inventory.size() and slots[i].get_global_rect().has_point(mouse):
 			return i
 	return -1
+
+
+## Is the pointer on the in-hand box (rather than a hotbar slot)? The tip then rises ABOVE it (it sits at the screen's foot).
+func _tip_on_equip_box() -> bool:
+	var mouse: Vector2 = tip_mouse_override if tip_mouse_override is Vector2 else get_viewport().get_mouse_position()
+	return equip_box != null and equip_box.is_visible_in_tree() and equip_box.get_global_rect().has_point(mouse)
 
 
 func _update_item_tip(delta: float) -> void:
@@ -1175,9 +1183,14 @@ func show_item_tip(i: int) -> void:
 	_tip_hint.visible = c["hint"] != ""
 	item_tip.reset_size()
 	var sz: Vector2 = item_tip.get_combined_minimum_size()
-	var r: Rect2 = slots[i].get_global_rect()
-	item_tip.position = Vector2(clampf(r.position.x + r.size.x * 0.5 - sz.x * 0.5, 8.0, SCREEN_W - sz.x - 8.0),
-		r.end.y + 8.0)                                  # the hotbar is at the top now: the tip hangs below it
+	if _tip_on_equip_box():
+		var er: Rect2 = equip_box.get_global_rect()
+		item_tip.position = Vector2(clampf(er.position.x + er.size.x * 0.5 - sz.x * 0.5, 8.0, SCREEN_W - sz.x - 8.0),
+			maxf(8.0, er.position.y - sz.y - 8.0))       # the in-hand box is at the screen's foot: the tip rises above it
+	else:
+		var r: Rect2 = slots[i].get_global_rect()
+		item_tip.position = Vector2(clampf(r.position.x + r.size.x * 0.5 - sz.x * 0.5, 8.0, SCREEN_W - sz.x - 8.0),
+			r.end.y + 8.0)                              # the hotbar is at the top now: the tip hangs below it
 	item_tip.visible = true
 
 
@@ -1244,12 +1257,6 @@ func set_equip_box_style(style: String) -> void:
 		equip_box.set_style(style)
 
 
-func wheel_key_name() -> String:
-	# The quick wheel's CURRENT binding, read straight from the InputMap (the hint must never name a
-	# key the player has rebound away — same rule as the tutorial lines).
-	return action_key_name("item_wheel", "Tab")
-
-
 ## The identity block (portrait, name, condition, stamina) sits over the bottom-left of the WORLD now, and the
 ## left staircase is right there: while the player (or anyone) stands under it, it fades back so nobody is
 ## hidden behind a HUD panel. Cosmetic; never touches input.
@@ -1296,14 +1303,12 @@ func _apply_hotbar() -> void:
 		context_menu.visible = false
 
 
-## Follow WorldState.has_backpack: the pack button + wheel hint exist only once the character has a
+## Follow WorldState.has_backpack: the pack button exists only once the character has a
 ## backpack.
 func update_backpack_state() -> void:
 	var has: bool = WorldState.has_backpack
 	if pack_button != null and is_instance_valid(pack_button):
 		pack_button.visible = has
-	if wheel_hint != null:
-		wheel_hint.visible = has
 	_apply_hotbar()
 
 
@@ -1350,9 +1355,6 @@ func action_key_name(action: String, fallback: String) -> String:
 	return String(evs[0].as_text()).replace(" (Physical)", "").replace(" - Physical", "")
 
 
-func update_wheel_hint() -> void:
-	if wheel_hint != null:
-		wheel_hint.text = "Hold [%s]  quick wheel" % wheel_key_name()
 
 func _make_slot_style_selected() -> StyleBoxFlat:
 	var style = StyleBoxFlat.new()

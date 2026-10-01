@@ -18,6 +18,11 @@ extends RefCounted
 ## Fire wins: a floor that is burning or has burnt (WorldState.fire_intensity) grows nothing — the
 ## plants went up with everything else (a LIGHT fire only holds it back).
 
+# Owner round 33: "The overgrowth in the building should not set in till at least floor 12. We need the top to still have an
+# element of normalcy that changes and distorts and gets steadily worse… as we descend." Above GROWTH_TOP_FLOOR nothing wild
+# grows (a resident's houseplant or a potted balcony shrub is normal life, not overgrowth); from it down the curve runs over
+# just those floors, so floor 12 is barely touched and floor 1 is a jungle.
+const GROWTH_TOP_FLOOR := 12
 const DEPTH_POWER := 1.2
 const FLOOR_BASE := 0.02
 const DEPTH_SPAN := 0.58
@@ -32,14 +37,16 @@ static func _rng(purpose: String, a: int, b: int = 0) -> RandomNumberGenerator:
 	return r
 
 
-## How overgrown floor `floor_num` is at `run` (1..3), 0..1. Top floors start nearly clear; the bottom
-## ones are green from run 1 and a jungle by run 3.
+## How overgrown floor `floor_num` is at `run` (1..3), 0..1. Nothing above floor 12; from there the lower floors are green
+## from run 1 and a jungle by run 3.
 static func level(floor_num: int, run: int) -> float:
 	if floor_num >= 30 or floor_num < 1:
 		return 0.0
 	if WorldState.dev_overgrowth >= 0.0:
 		return WorldState.dev_overgrowth                # the F1 menu's override, for looking at a level anywhere
-	var depth: float = WorldState.infection_depth(floor_num)
+	if floor_num > GROWTH_TOP_FLOOR:
+		return 0.0
+	var depth: float = float(GROWTH_TOP_FLOOR - floor_num + 1) / float(GROWTH_TOP_FLOOR)   # 1/12 at floor 12 → 1 at floor 1
 	var jitter: float = _rng("floor", floor_num).randf_range(-JITTER, JITTER)
 	var l: float = FLOOR_BASE + DEPTH_SPAN * pow(depth, DEPTH_POWER) + jitter * (0.4 + depth)
 	l += RUN_STEP * float(maxi(run, 1) - 1) * (1.0 + depth * 1.2)

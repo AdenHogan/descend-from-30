@@ -1,4 +1,4 @@
-extends Node2D
+extends "res://scripts/city_view.gd"
 
 # THE CITY BEHIND THE STAIRWELL WINDOWS (owner round 31j — "if it's a downward stairwell we can extend the width of the window
 # and bring more light to that area. It'll also make the afternoon and night colours pop more").
@@ -8,7 +8,8 @@ extends Node2D
 # (tools/art/cityscape.py `stair_view_<run>_<variant>` — day blue / sunset / the night city), animated by the shared
 # scripts/city_fx.gd (fires and smoke at dusk and night, distant blasts, rain at night on the stairwell-sized `rain_stair`
 # sheet). It is a child of the stair sprite drawn BEHIND it (`show_behind_parent`), so the sprite's opaque frame and walls mask
-# everything but the glass — and it rides the sprite through a stair pan and hides with it.
+# everything but the glass — and it rides the sprite through a stair pan and hides with it. It is a CityView (round 33): the
+# city slides a few px as you walk past, clipped to the glass.
 
 const META_PATH := "res://assets/stair_window.json"
 const CITY_FX = preload("res://scripts/city_fx.gd")
@@ -73,8 +74,9 @@ static func attach(sprite: Sprite2D, kind_: String, mirrored: bool, variant: int
 	# The city (72x78) is bigger than either hole and the sprite only masks what it covers — it poked out over the lintel and
 	# past the UP sprite's edge. So the node draws the glass rectangle as a MASK and clips its children to it.
 	node.glass_size = glass_rect_size(kind_)
-	node.clip_children = CanvasItem.CLIP_CHILDREN_ONLY
 	sprite.add_child(node)
+	node.setup_view(float(CITY_FX.meta().get("_sizes", {}).get("pan", 0)))
+	node.set_mask_rect(Rect2(-node.glass_size * 0.5, node.glass_size))
 	node._build(clampi(variant, 0, VARIANTS - 1), live)
 	return node
 
@@ -91,15 +93,9 @@ func _build(variant: int, live: bool) -> void:
 	view.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	view.material = CITY_FX.unshaded()
 	view.modulate = CITY_FX.exposure(1.0)
-	add_child(view)
+	far.add_child(view)
 	fx = CITY_FX.new()
 	fx.name = "CityFx"
 	add_child(fx)
 	var seed_v: int = hash(str(WorldState.master_seed) + "stairwin" + kind + str(variant))
-	fx.setup_window(key, run, live, seed_v, null, view, "rain_stair")
-
-
-func _draw() -> void:
-	# The clip mask (never shown itself — CLIP_CHILDREN_ONLY): exactly the glass hole.
-	if glass_size != Vector2.ZERO:
-		draw_rect(Rect2(-glass_size * 0.5, glass_size), Color.WHITE)
+	fx.setup_window(key, run, live, seed_v, null, view, "rain_stair", far)

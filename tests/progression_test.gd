@@ -1,8 +1,8 @@
 extends Node
 
 # PROGRESSION tiers 2 + 3 (docs/PROGRESSION.md):
-#  - RUN BOONS: the first arrival at a milestone floor (27/22/17/12/7) owes this character a
-#    pick-1-of-2 boon — offered by a HUD badge, never forced; it lasts until the time skip.
+#  - RUN BOONS: this character's first visit to each merchant (25/20/15/10/5) offers a pick-1-of-2
+#    boon in the merchant's window, after the upgrade (round 33); it lasts until the time skip.
 #  - DESCENT VALOUR: the end of a 3-run session scores each run's depth into Valour (profile) and
 #    offers up to 3 perks ACQUIRED that session (random, unweighted); buy one to keep forever (max
 #    10, tradeable). A permanent perk applies to every new game and leaves the temporary pools.
@@ -28,7 +28,7 @@ func _ready() -> void:
 		"offer": WorldState.valour_offer.duplicate(), "last": WorldState.last_valour.duplicate(true),
 		"seed": WorldState._valour_scored_seed, "carry": WorldState.carry_items.duplicate(true)}
 	_clear_valour()
-	_test_milestones()
+	await _test_milestones()
 	_test_boon_offer_and_fold()
 	_test_boons_are_per_character()
 	_test_valour_maths()
@@ -62,35 +62,47 @@ func _ready() -> void:
 
 
 func _test_milestones() -> void:
-	print("[the first arrival at a milestone floor owes a boon — offered, not forced]")
+	# Owner round 33: "we should not be getting boons on 27. boons are only on every 5th floor and collectable from the merchant".
+	print("[run boons are the merchant's: no arrival badge, offered in the merchant's window]")
 	WorldState.new_game()
 	var root := Node.new()
 	add_child(root)
-	WorldState.note_floor_arrival(root, 28)
-	check(WorldState.pending_boon_floors.is_empty(), "an ordinary floor owes nothing")
-	WorldState.note_floor_arrival(root, 27)
-	check(WorldState.pending_boon_floors == [27], "floor 27 (a milestone) owes a boon")
-	check(HUD.boon_badge.visible, "the HUD badge shows it's waiting")
-	check(not get_tree().paused, "…and nothing paused the game on arrival")
-	WorldState.note_floor_arrival(root, 27)
-	check(WorldState.pending_boon_floors == [27], "coming back to 27 doesn't owe a second one")
-	for f in Progression.BOON_MILESTONES:
-		check(not (f in WorldState.MERCHANT_FLOORS), "milestone %d isn't a merchant floor" % f)
+	for f in [28, 27, 25, 22]:
+		WorldState.note_floor_arrival(root, f)
+	check(WorldState.pending_boon_floors.is_empty(), "arriving anywhere (27 and the merchant's 25 too) owes nothing by itself")
+	check(not HUD.boon_badge.visible, "…and there's no HUD badge")
+	check(Progression.BOON_MILESTONES == WorldState.MERCHANT_FLOORS, "boons come on the merchant floors (%s)" % str(Progression.BOON_MILESTONES))
 	root.queue_free()
+	# the merchant's window: upgrade first, then the BOON step, then the shop
+	var shop = load("res://scripts/shop_ui.gd").new()
+	add_child(shop)
+	shop.open(25, "Well, well.")
+	check(25 in WorldState.pending_boon_floors and shop.active_tab == "upgrades", "the first visit to 25 owes a boon; the upgrade comes first")
+	shop._on_refuse()
+	shop._on_refuse()
+	check(shop.active_tab == "boon" and shop.boon_box.visible and shop.tab_boon_btn.visible, "after the upgrade: the BOON step")
+	var offer: Array = WorldState.boon_offer(25)
+	check(offer.size() == 2, "two boons on offer (%s)" % str(offer))
+	check(shop.take_boon(offer[0]) == "" and offer[0] in WorldState.run_boons and shop.active_tab == "shop", "taking one gives it to this character, on to the shop")
+	shop.close()
+	shop.open(25, "Back again.")
+	check(shop.active_tab == "shop" and not shop.tab_boon_btn.visible and not (25 in WorldState.pending_boon_floors), "coming back to 25 owes no second boon")
+	shop.queue_free()
+	await get_tree().process_frame
 
 
 func _test_boon_offer_and_fold() -> void:
 	print("[pick one of two; it lifts the stats through the fold]")
 	WorldState.new_game()
-	WorldState.note_boon_milestone(22)
-	var offer: Array = WorldState.boon_offer(22)
+	WorldState.note_boon_milestone(20)
+	var offer: Array = WorldState.boon_offer(20)
 	check(offer.size() == 2 and offer[0] != offer[1], "two different boons offered (%s)" % str(offer))
-	check(WorldState.boon_offer(22) == offer, "seeded — a reload offers the same pair")
-	check(WorldState.take_boon(22, "B_not_offered") != "", "only the offered two can be taken")
+	check(WorldState.boon_offer(20) == offer, "seeded — a reload offers the same pair")
+	check(WorldState.take_boon(20, "B_not_offered") != "", "only the offered two can be taken")
 	var before := {"speed": WorldState.get_move_speed_mult(), "stam": WorldState.get_max_stamina(),
 		"regen": WorldState.get_stamina_regen_mult(), "dmg": WorldState.get_melee_damage_bonus()}
 	var pick: String = offer[0]
-	check(WorldState.take_boon(22, pick) == "", "taking %s works" % pick)
+	check(WorldState.take_boon(20, pick) == "", "taking %s works" % pick)
 	check(pick in WorldState.run_boons and WorldState.pending_boon_floors.is_empty(), "it's this character's now; nothing waiting")
 	var mods: Dictionary = Progression.boon(pick)["mods"]
 	var moved := false
@@ -103,14 +115,14 @@ func _test_boon_offer_and_fold() -> void:
 	WorldState.run_boons = []
 	WorldState.run_boons.append("B_adrenaline")
 	check(is_equal_approx(WorldState.get_move_speed_mult(), before["speed"] * 1.20), "Adrenaline = ×1.20 move speed")
-	WorldState.note_boon_milestone(17)
-	check(not ("B_adrenaline" in WorldState.boon_offer(17)), "a boon you have is never offered again this run")
-	WorldState.skip_boon(17)
+	WorldState.note_boon_milestone(15)
+	check(not ("B_adrenaline" in WorldState.boon_offer(15)), "a boon you have is never offered again this run")
+	WorldState.skip_boon(15)
 	check(WorldState.pending_boon_floors.is_empty(), "passing clears the offer")
 	# Every boon already kept permanently → a milestone owes nothing (no empty badge to dismiss).
 	var kept := WorldState.permanent_perks.duplicate()
 	WorldState.permanent_perks = Progression.RUN_BOONS.keys()
-	WorldState.note_boon_milestone(12)
+	WorldState.note_boon_milestone(10)
 	check(WorldState.pending_boon_floors.is_empty(), "nothing left to offer → no badge")
 	WorldState.permanent_perks = kept
 
@@ -119,12 +131,12 @@ func _test_boons_are_per_character() -> void:
 	print("[boons belong to THIS character — the time skip wipes them; a save keeps them]")
 	WorldState.new_game()
 	WorldState.run_boons = ["B_rage"]
-	WorldState.note_boon_milestone(12)
+	WorldState.note_boon_milestone(10)
 	WorldState.save_game("res://scenes/hallway.tscn", false)
 	WorldState.run_boons = []
 	WorldState.pending_boon_floors = []
 	WorldState.load_game()
-	check(WorldState.run_boons == ["B_rage"] and WorldState.pending_boon_floors == [12], "a save keeps boons + a waiting offer")
+	check(WorldState.run_boons == ["B_rage"] and WorldState.pending_boon_floors == [10], "a save keeps boons + a waiting offer")
 	WorldState.delete_save()
 	WorldState.advance_run()
 	check(WorldState.run_boons.is_empty() and WorldState.pending_boon_floors.is_empty() and WorldState.run_milestones_seen.is_empty(),
@@ -223,9 +235,9 @@ func _test_session_perks() -> void:
 	WorldState.new_game()
 	check(WorldState.session_perks.is_empty(), "a new game starts with none")
 	WorldState.resolve_upgrade_offer(25, "U_slot")
-	WorldState.note_boon_milestone(27)
-	var b: String = WorldState.boon_offer(27)[0]
-	WorldState.take_boon(27, b)
+	WorldState.note_boon_milestone(25)
+	var b: String = WorldState.boon_offer(25)[0]
+	WorldState.take_boon(25, b)
 	check("U_slot" in WorldState.session_perks and b in WorldState.session_perks, "merchant pick + boon both recorded")
 	WorldState.advance_run()
 	check(b in WorldState.session_perks, "the time skip wipes the boon from the character, NOT from the session record")
@@ -349,12 +361,12 @@ func _test_cap_and_trade() -> void:
 func _test_boon_ui() -> void:
 	print("[the badge opens the choice; choosing resumes play]")
 	WorldState.new_game()
-	WorldState.note_boon_milestone(27)
+	WorldState.note_boon_milestone(25)
 	get_tree().paused = false
 	HUD.open_boon_offer()
 	var ui = HUD.boon_ui
 	check(ui != null and ui.visible and get_tree().paused, "the offer opens and pauses")
-	var pick: String = WorldState.boon_offer(27)[1]
+	var pick: String = WorldState.boon_offer(25)[1]
 	check(ui.choose(pick) == "" and pick in WorldState.run_boons, "choosing takes the boon")
 	check(not ui.visible and not get_tree().paused and not HUD.boon_badge.visible, "…closes, resumes play, clears the badge")
 	await get_tree().process_frame
@@ -700,7 +712,7 @@ func _test_perk_luck() -> void:
 			WorldState.new_game()
 			WorldState.master_seed = 7000 + n
 			WorldState.active_upgrades = ["U_fortune"] if with_luck else []
-			(bl if with_luck else bp).append_array(WorldState.boon_offer(22))
+			(bl if with_luck else bp).append_array(WorldState.boon_offer(20))
 	var boon_ds := {}
 	for id in Progression.RUN_BOONS:
 		boon_ds[Progression.desirability(id)] = true
@@ -778,7 +790,7 @@ func _test_perk_luck() -> void:
 	var in_boons := func(id: String) -> bool:
 		for seed_n in 200:
 			WorldState.master_seed = 800 + seed_n
-			if id in WorldState.boon_offer(22):
+			if id in WorldState.boon_offer(20):
 				return true
 		return false
 	check(not in_merchant.call("U_slot") and not in_boons.call("B_rage"), "while kept: never offered in a run")

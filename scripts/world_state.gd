@@ -184,7 +184,7 @@ func note_floor_arrival(root: Node, floor_num: int) -> void:
 	note_floor_visited(floor_num)          # clears this floor's fog on the journal map
 	if scene_has_live_zombies(root):
 		note_enemies_on_floor(floor_num)
-	note_boon_milestone(floor_num)         # a run-boon milestone reached? (docs/PROGRESSION.md)
+	# (run boons are the MERCHANT's since round 33 — shop_ui.open queues one, not the arrival)
 
 
 # ============================================================
@@ -724,8 +724,6 @@ var dev_hazard_mode: int = DEV_HAZARD_NONE
 # Debug aid (not a hazard): force a stairwell enemy on every stairwell, for testing the
 # stair-enemy behaviour. Session-only, reset by new_game.
 var dev_force_stair_enemies: bool = false
-# FOREGROUND DEAD test look (scripts/foreground_dead.gd): 0 off, 1 sporadic (default), 2 everywhere — F1 menu
-var foreground_dead_mode: int = 1
 # When DEV fire is toggled on (F2), the floor it was pressed on becomes the single
 # fire ORIGIN; dev fire_intensity spreads out from here by the age-distance model, so
 # the dev cycle mirrors the real run-1/2/3 escalation. -1 = no dev origin.
@@ -912,6 +910,7 @@ func load_profile() -> void:
 	_valour_scored_seed = 0
 	carry_items = []
 	codex_seen = {}
+	hints_taught = {}
 	if cfg.load(profile_path()) == OK:
 		tutorial_completed = bool(cfg.get_value("progress", "tutorial_completed", false))
 		runs_made = int(cfg.get_value("stats", "runs_made", 0))
@@ -933,6 +932,8 @@ func load_profile() -> void:
 		carry_items = Array(cfg.get_value("valour", "carry_items", []))
 		for id in Array(cfg.get_value("codex", "seen", [])):
 			codex_seen[String(id)] = true   # not filtered here: ItemData may not be ready this early
+		for id in Array(cfg.get_value("hints", "taught", [])):
+			hints_taught[String(id)] = true
 		var old_carry: Dictionary = Dictionary(cfg.get_value("valour", "carry_item", {}))   # v1 key
 		if not old_carry.is_empty():
 			carry_items.append(old_carry)
@@ -958,6 +959,7 @@ func save_profile() -> void:
 		cfg.erase_section_key("valour", "carry_item")   # v1 single slot → carry_items
 	cfg.set_value("valour", "carry_items", carry_items)
 	cfg.set_value("codex", "seen", codex_seen.keys())
+	cfg.set_value("hints", "taught", hints_taught.keys())
 	# Mirror the headline save facts so the select screen can read one small
 	# file per slot instead of loading three save games.
 	cfg.set_value("resume", "has_save", FileAccess.file_exists(slot_save_path()))
@@ -1441,6 +1443,23 @@ var codex_seen: Dictionary = {}
 
 func item_discovered(item_id: String) -> bool:
 	return codex_seen.has(item_id)
+
+
+## ONE-TIME HINTS (owner round 33: "players can have it once in tutorial, one followed by the other. Doesn't always need both
+## when descending"). A hint id here has been taught — shown long enough or used — so it never shows again. PROFILE state,
+## like the codex: a returning player isn't re-taught.
+var hints_taught: Dictionary = {}
+
+
+func hint_taught(id: String) -> bool:
+	return hints_taught.has(id)
+
+
+func note_hint_taught(id: String) -> void:
+	if id == "" or hints_taught.has(id):
+		return
+	hints_taught[id] = true
+	save_profile()
 
 
 ## Record that the player has held / looted / been shown this item. Saves the profile only the
@@ -3701,6 +3720,8 @@ func record_zombie(z: Node) -> void:
 		return
 	if z.is_dead or z.spawn_key == "" or z.is_in_group("pan_scenery"):
 		return
+	if z.is_in_group("stair_enemy") and bool(z.get("stair_mode")):
+		return          # still on the stairs: seeded there again, from either floor (round 33 — building_floors.stair_enemy_here)
 	var facing := false
 	var spr = z.get_node_or_null("AnimatedSprite2D")
 	if spr != null:
@@ -3719,6 +3740,8 @@ func record_zombie(z: Node) -> void:
 	if climb != null and int(climb) != 0:
 		on_plane = int(climb) > 0
 		rec["y"] = snappedf(float(z._plane_floor_y) - (BALCONY_GEO.RISE if on_plane else 0.0), 1.0)
+	if z.has_meta("stair_floor"):
+		rec["floor"] = int(z.get_meta("stair_floor"))     # a staircase enemy: which floor it stepped off onto (building_floors)
 	if on_plane:
 		rec["plane"] = true
 		rec["plane_cx"] = float(z.balcony_center_x)
@@ -3821,7 +3844,7 @@ func get_anchors_for_room(room_type: String) -> Array:
 		"bedroom":
 			return ["anchor_wall_left", "anchor_floor_underbed", "anchor_wall_right_lower", "anchor_bed_pillow", "anchor_wall_right_upper", "anchor_bedside"]
 		"bathroom":
-			return ["anchor_wall_sink", "anchor_wall_cabinet", "anchor_centre_toilet", "anchor_bath_left", "anchor_bath_right", "anchor_wall_shower", "anchor_floor_laundrybag"]
+			return ["anchor_wall_sink", "anchor_basin_rim", "anchor_centre_toilet", "anchor_bath_left", "anchor_bath_right", "anchor_wall_shower", "anchor_floor_laundrybag"]
 		"kitchen":
 			return ["anchor_centre_fridge", "anchor_right_trashcan", "anchor_left_cupboard", "anchor_centre_cupboard", "anchor_centre_oven", "anchor_right_sink", "anchor_right_sinkcupboard"]
 		"dining_room":

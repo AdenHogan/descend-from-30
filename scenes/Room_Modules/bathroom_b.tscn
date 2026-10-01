@@ -27,8 +27,8 @@ centered = false
 [node name="anchor_bathroom_vanity" type="Marker2D" parent="."]
 position = Vector2(24, 90)
 
-[node name="anchor_bathroom_mirror_shelf" type="Marker2D" parent="."]
-position = Vector2(40, 50)
+[node name="anchor_bathroom_worktop" type="Marker2D" parent="."]
+position = Vector2(53, 74)
 
 [node name="anchor_bathroom_avocado_toilet" type="Marker2D" parent="."]
 position = Vector2(82, 92)

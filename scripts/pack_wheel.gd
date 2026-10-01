@@ -2,14 +2,13 @@ extends Control
 
 # The BACKPACK RING (owner round 26 — "click the pack, the player bends down and opens their backpack,
 # then a wheel for inventory opens with live gameplay underneath so you can still be attacked";
-# docs/BACKPACK.md). Built on the quick wheel: the same ring geometry (QuickWheel.index_for /
-# slot_position) — but where the quick wheel slows time and only equips on release, this one is the
-# whole bag, in REAL TIME:
+# docs/BACKPACK.md). The whole bag on a ring (geometry: ring_geo.gd), in REAL TIME:
 #   • the player kneels first (player.begin_pack: kneel → open → stand); the ring only exists while the
 #     player is in the "open" phase, so it is purely a VIEW of that state and can never desync from it;
 #   • every slot is on the ring (empty ones faint) so its shape is stable;
-#   • click = equip / put away, right-click = use (a bandage from the bag), Delete = drop it at your feet,
-#     Esc / the pack key / the centre / anywhere off the ring = close and stand;
+#   • click = equip / put away; RIGHT-CLICK = a small menu of what you can do with it (equip / use / drop —
+#     owner round 33); DRAG it OFF the ring and let go = drop it at your feet (also Delete);
+#     Esc / the pack key / the centre / a click anywhere off the ring = close and stand;
 #   • DRAG one item onto another to CRAFT / MERGE them (owner round 30 — Crafting.RECIPES: a bottle + torn clothes = a Molotov,
 #     three clothes = rope): while you drag, every item it can combine with glows green (one that's only part of a recipe glows
 #     red and the middle says what's missing); drop it on one to do it. A press that never moves is still a plain click;
@@ -18,7 +17,7 @@ extends Control
 # player leaves the "open" phase for ANY reason (a hit, a cutscene, death, a scene change) the ring is
 # simply gone next frame.
 
-const QuickWheel := preload("res://scripts/quick_wheel.gd")
+const RingGeo := preload("res://scripts/ring_geo.gd")
 
 const OPEN_TIME := 0.16
 const RING_R := 100.0
@@ -44,6 +43,11 @@ var _press_k: int = -1                  # wedge (index into slots) the left butt
 var _press_pos: Vector2 = Vector2.ZERO
 var drag_k: int = -1                    # wedge being dragged (a press that moved), or -1
 var _mouse: Vector2 = Vector2.ZERO      # the pointer as of the last frame (the drag ghost follows it)
+var menu_k: int = -1                    # right-click menu: the wedge it's for, or -1 when closed
+var menu_pos: Vector2 = Vector2.ZERO    # its top-left (screen px)
+var menu_rows: Array = []               # [label, action] — action one of "equip" / "use" / "drop"
+const MENU_W := 118.0
+const MENU_ROW_H := 22.0
 
 
 func _ready() -> void:
@@ -58,12 +62,9 @@ func _ready() -> void:
 
 ## Why the pack can't be opened right now, or "" when it can.
 func blocked_reason() -> String:
-	var r: String = QuickWheel.ui_block_reason(get_tree())
+	var r: String = RingGeo.ui_block_reason(get_tree())
 	if r != "":
 		return r
-	var qw = HUD.quick_wheel
-	if qw != null and is_instance_valid(qw) and qw.is_open:
-		return "the quick wheel is open"
 	var p = get_tree().get_first_node_in_group("player")
 	return String(p.pack_blocked_reason()) if p.has_method("pack_blocked_reason") else "no pack"
 
@@ -95,6 +96,9 @@ func _input(event: InputEvent) -> void:
 	if not is_open:
 		return
 	var p = get_tree().get_first_node_in_group("player")
+	if menu_k >= 0 and _menu_input(event):
+		get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed("ui_cancel"):
 		p.end_pack(false)                   # Esc closes the pack, not the game
 		get_viewport().set_input_as_handled()
@@ -124,7 +128,7 @@ func _input(event: InputEvent) -> void:
 					p.end_pack(false)
 					get_viewport().set_input_as_handled()
 				return                            # a HUD widget keeps its own clicks
-			var i: int = QuickWheel.index_for(pos - centre, slots.size(), DEAD_ZONE)
+			var i: int = RingGeo.index_for(pos - centre, slots.size(), DEAD_ZONE)
 			if i < 0:
 				p.end_pack(false)                 # the middle = done
 			elif event.button_index == MOUSE_BUTTON_LEFT:
@@ -133,23 +137,110 @@ func _input(event: InputEvent) -> void:
 					_press_pos = pos
 					drag_k = -1
 			else:
-				use_at(i)
+				open_menu(i)
 			get_viewport().set_input_as_handled()
 
 
-## The left button came up: a drag drops onto the wedge under it (craft); a press that never moved is the plain click (equip).
+## The left button came up: a drag drops onto the wedge under it (craft) — or, let go OFF the ring, drops the
+## item at your feet; a press that never moved is the plain click (equip).
 func _finish_press(pos: Vector2) -> void:
 	var from: int = _press_k
 	var dragging: bool = drag_k >= 0
 	_press_k = -1
 	drag_k = -1
-	var to: int = QuickWheel.index_for(pos - centre, slots.size(), DEAD_ZONE) if on_ring(pos) else -1
+	var to: int = RingGeo.index_for(pos - centre, slots.size(), DEAD_ZONE) if on_ring(pos) else -1
 	if not dragging:
 		if to == from:
 			equip_at(from)
 		return
+	if dropping_out(pos):
+		drop_at(from)
+		return
 	if to >= 0 and to != from:
 		craft_onto(from, to)
+
+
+## A drag let go here throws the item out of the pack: anywhere off the ring that isn't on a HUD widget.
+func dropping_out(pos: Vector2) -> bool:
+	return not on_ring(pos) and not HUD.pointer_over_widget(pos)
+
+
+# ---------------------------------------------------------------- the right-click menu
+
+## Right-click on an item: what you can do with it, beside its slot.
+func open_menu(k: int) -> void:
+	var inst = _slot_inst(k)
+	if inst == null:
+		close_menu()
+		return
+	var d: Dictionary = inst.get_data()
+	menu_rows = []
+	var held: bool = int(slots[k]) == HUD.selected_slot
+	menu_rows.append(["Put away" if held else "Equip", "equip"])
+	if _usable(d):
+		menu_rows.append(["Use", "use"])
+	menu_rows.append(["Drop", "drop"])
+	menu_k = k
+	var at: Vector2 = RingGeo.slot_position(centre, k, slots.size(), RING_R)
+	var right: bool = at.x >= centre.x
+	var h: float = MENU_ROW_H * menu_rows.size() + 8.0
+	var x: float = at.x + DISC * 0.5 + 6.0 if right else at.x - DISC * 0.5 - 6.0 - MENU_W
+	menu_pos = Vector2(clampf(x, 4.0, HUD.SCREEN_W - MENU_W - 4.0), clampf(at.y - h * 0.5, 4.0, SCREEN_LIMIT - h))
+
+
+func close_menu() -> void:
+	menu_k = -1
+	menu_rows = []
+
+
+## Things you'd USE from the bag (bandages, painkillers, loading rounds, a cold pack…) — not a weapon, key or junk.
+func _usable(d: Dictionary) -> bool:
+	for f in ["is_weapon", "is_key", "is_junk", "is_money", "is_scrap"]:
+		if d.get(f, false) and not d.get("is_throwable", false):
+			return false
+	return true
+
+
+func menu_row_at(pos: Vector2) -> int:
+	if menu_k < 0:
+		return -1
+	var r := Rect2(menu_pos + Vector2(0, 4), Vector2(MENU_W, MENU_ROW_H * menu_rows.size()))
+	if not r.has_point(pos):
+		return -1
+	return int((pos.y - r.position.y) / MENU_ROW_H)
+
+
+## Run a menu row (tests call this too).
+func choose(row: int) -> void:
+	if row < 0 or row >= menu_rows.size() or menu_k < 0:
+		return
+	var k: int = menu_k
+	var what: String = String(menu_rows[row][1])
+	close_menu()
+	match what:
+		"equip": equip_at(k)
+		"use": use_at(k)
+		"drop": drop_at(k)
+
+
+## While the menu is up it owns the mouse: a row runs, anything else just closes it (the click isn't passed on).
+func _menu_input(event: InputEvent) -> bool:
+	if event.is_action_pressed("ui_cancel"):
+		close_menu()
+		return true
+	if event is InputEventMouseButton and event.pressed:
+		var row: int = menu_row_at(event.position)
+		if row >= 0 and event.button_index == MOUSE_BUTTON_LEFT:
+			choose(row)
+			return true
+		close_menu()
+		# a right-click on another item re-opens the menu for that one
+		if event.button_index == MOUSE_BUTTON_RIGHT and on_ring(event.position):
+			var i: int = RingGeo.index_for(event.position - centre, slots.size(), DEAD_ZONE)
+			if i >= 0:
+				open_menu(i)
+		return true
+	return false
 
 
 ## Drop wedge `from` onto wedge `to`: merge them if a recipe says so, else say why not. Returns Crafting's result.
@@ -173,7 +264,15 @@ func _slot_inst(k: int):
 	if k < 0 or k >= slots.size():
 		return null
 	var slot: int = int(slots[k])
-	return WorldState.get_instance_at(slot) if slot < WorldState.inventory.size() else null
+	return WorldState.get_instance_at(slot) if slot >= 0 and slot < WorldState.inventory.size() else null
+
+
+const LOCKED_SLOT := -1                 # the ring's marker for the slot a pack upgrade opens
+const MAX_RING_SLOTS := 6               # the most a pack holds (WorldState.get_inventory_slots caps at 6)
+
+
+func is_locked(k: int) -> bool:
+	return k >= 0 and k < slots.size() and int(slots[k]) == LOCKED_SLOT
 
 
 ## Left-click: equip it, or put it away when it's already in hand (the hotbar's own toggle).
@@ -232,19 +331,27 @@ func _process(_delta: float) -> void:
 	slots = build_slots()
 	var mouse: Vector2 = mouse_override if mouse_override is Vector2 else get_viewport().get_mouse_position()
 	_mouse = mouse
-	hover = QuickWheel.index_for(mouse - centre, slots.size(), DEAD_ZONE)
+	hover = RingGeo.index_for(mouse - centre, slots.size(), DEAD_ZONE)
 	# the item under a drag is gone (used up, dropped…): the drag is over
 	if (drag_k >= 0 or _press_k >= 0) and _slot_inst(maxi(drag_k, _press_k)) == null:
 		_press_k = -1
 		drag_k = -1
+	if menu_k >= 0 and _slot_inst(menu_k) == null:
+		close_menu()
 	queue_redraw()
 
 
+## EVERY slot the pack has — filled or empty — plus the LOCKED one (LOCKED_SLOT) until the upgrade opens it (owner round 33:
+## "when you don't have any items in your bag, opening the bag doesn't show a wheel. We still need a wheel even if empty. When
+## you drop items, the wheel should not lessen in number of slots… so players can identify that there is always a locked slot
+## unless the upgrade is collected"). Items fill from slot 0, so slot i is empty when i >= inventory.size().
 func build_slots() -> Array:
 	var out: Array = []
-	var cap: int = mini(WorldState.inventory.size(), WorldState.get_inventory_slots())
+	var cap: int = WorldState.get_inventory_slots()
 	for i in range(cap):
 		out.append(i)
+	if cap < MAX_RING_SLOTS:
+		out.append(LOCKED_SLOT)
 	return out
 
 
@@ -270,6 +377,7 @@ func _hide() -> void:
 	slots = []
 	_press_k = -1
 	drag_k = -1
+	close_menu()
 
 
 # ---------------------------------------------------------------- drawing
@@ -310,9 +418,12 @@ func _draw() -> void:
 					plans[k2] = pl
 	for k in range(n):
 		var slot: int = int(slots[k])
-		var inst = WorldState.get_instance_at(slot) if slot < WorldState.inventory.size() else null
-		var pos: Vector2 = QuickWheel.slot_position(centre, k, n, r)
+		var inst = WorldState.get_instance_at(slot) if slot >= 0 and slot < WorldState.inventory.size() else null
+		var pos: Vector2 = RingGeo.slot_position(centre, k, n, r)
 		var on: bool = k == hover
+		if slot == LOCKED_SLOT:
+			_draw_locked(pos, DISC * 0.5 * (0.7 + 0.3 * t), t, font)
+			continue
 		if plans.has(k):
 			var good: bool = bool(plans[k]["ok"])
 			var pulse: float = 0.5 + 0.5 * sin(float(Time.get_ticks_msec()) / 1000.0 * 7.0)
@@ -359,9 +470,18 @@ func _draw() -> void:
 			else:
 				_text(font, centre + Vector2(-cw * 0.5, -22), "NOT YET", 12, BAD, cw, HORIZONTAL_ALIGNMENT_CENTER)
 				_text(font, centre + Vector2(-cw * 0.5, 0), String(hp["why"]), 13, ROOT_TEXT, cw, HORIZONTAL_ALIGNMENT_CENTER)
+		elif dropping_out(_mouse):
+			_text(font, centre + Vector2(-cw * 0.5, -22), "LET GO TO DROP", 12, BAD, cw, HORIZONTAL_ALIGNMENT_CENTER)
+			_text(font, centre + Vector2(-cw * 0.5, 0), dn, 14, ROOT_TEXT, cw, HORIZONTAL_ALIGNMENT_CENTER)
 		else:
 			_text(font, centre + Vector2(-cw * 0.5, -22), dn, 14, ROOT_TEXT, cw, HORIZONTAL_ALIGNMENT_CENTER)
 			_text(font, centre + Vector2(-cw * 0.5, 0), "drop it on something to combine", 12, DIM_TEXT, cw, HORIZONTAL_ALIGNMENT_CENTER)
+	elif is_locked(hover):
+		_text(font, centre + Vector2(-cw * 0.5, -22), "LOCKED", 16, DIM_TEXT, cw, HORIZONTAL_ALIGNMENT_CENTER)
+		_text(font, centre + Vector2(-cw * 0.5, 0), "a pack upgrade opens", 12, Color(0.75, 0.79, 0.84), cw, HORIZONTAL_ALIGNMENT_CENTER)
+		_text(font, centre + Vector2(-cw * 0.5, 16), "this slot", 12, Color(0.75, 0.79, 0.84), cw, HORIZONTAL_ALIGNMENT_CENTER)
+	elif hover >= 0 and inst_h == null:
+		_text(font, centre + Vector2(-cw * 0.5, -6), "EMPTY", 15, DIM_TEXT, cw, HORIZONTAL_ALIGNMENT_CENTER)
 	elif inst_h != null:
 		var c: Dictionary = HUD.item_tip_content(inst_h)
 		_text(font, centre + Vector2(-cw * 0.5, -22), String(c["title"]).to_upper(), 16, Color(1.0, 0.85, 0.4) if c.get("legendary", false) else ROOT_TEXT, cw, HORIZONTAL_ALIGNMENT_CENTER)
@@ -371,11 +491,53 @@ func _draw() -> void:
 	else:
 		_text(font, centre + Vector2(-cw * 0.5, -6), "YOUR PACK", 15, ROOT_TEXT, cw, HORIZONTAL_ALIGNMENT_CENTER)
 		_text(font, centre + Vector2(-cw * 0.5, 14), "click here to close", 12, DIM_TEXT, cw, HORIZONTAL_ALIGNMENT_CENTER)
-	var hint_y: float = maxf(centre.y - RING_R - DISC_SEL * 0.5 - 8.0, 16.0)      # a line over the ring
-	_text(font, Vector2(centre.x - 250.0, hint_y), "click equip  ·  drag onto an item to craft  ·  right-click use  ·  Del drop  ·  Esc close", 12, DIM_TEXT, 500.0, HORIZONTAL_ALIGNMENT_CENTER)
 	if drag_k >= 0:
 		var di = _slot_inst(drag_k)
 		if di != null:
 			var dtex: Texture2D = ItemData.get_texture(di.item_id)
 			if dtex != null:
-				draw_texture_rect(dtex, Rect2(_mouse - Vector2(28, 28), Vector2(56, 56)), false, Color(1, 1, 1, 0.85))
+				var out: bool = dropping_out(_mouse)
+				draw_texture_rect(dtex, Rect2(_mouse - Vector2(28, 28), Vector2(56, 56)), false,
+					Color(1.0, 0.6, 0.55, 0.75) if out else Color(1, 1, 1, 0.85))
+	_draw_menu(font)
+	# The help line LAST, on its own plate clear above the ring (owner round 33: it ran behind the top item).
+	var hw: float = font.get_string_size(HINT, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x + 20.0
+	var hy: float = hint_top()
+	draw_rect(Rect2(centre.x - hw * 0.5, hy, hw, 20.0), Color(0.03, 0.03, 0.04, 0.82 * t))
+	_text(font, Vector2(centre.x - hw * 0.5, hy + 14.0), HINT, 12, DIM_TEXT, hw, HORIZONTAL_ALIGNMENT_CENTER)
+
+
+## The locked slot: a dark disc with a padlock — always there until the upgrade, so the pack's true size is never a secret.
+func _draw_locked(pos: Vector2, rad: float, t: float, font: Font) -> void:
+	draw_circle(pos, rad * 0.86, Color(0.05, 0.05, 0.06, 0.85 * t))
+	draw_arc(pos, rad * 0.86, 0.0, TAU, 32, Color(0.29, 0.275, 0.32, 0.8 * t), 2.0, true)
+	var lc := Color(0.55, 0.52, 0.47, t)
+	draw_arc(pos + Vector2(0, -3), 6.0, PI, TAU, 16, lc, 2.5, true)                 # the shackle
+	draw_rect(Rect2(pos + Vector2(-8, -3), Vector2(16, 12)), lc)                     # the body
+	draw_circle(pos + Vector2(0, 2), 1.8, Color(0.05, 0.05, 0.06, t))                 # the keyhole
+	_text(font, pos + Vector2(-rad, rad * 0.86 + 12.0), "LOCKED", 10, Color(0.5, 0.48, 0.44, t), rad * 2.0, HORIZONTAL_ALIGNMENT_CENTER)
+
+
+const HINT := "click equip  ·  right-click options  ·  drag onto an item to craft  ·  drag out to drop  ·  Esc close"
+
+## The help line's top edge: above the ring's shade, or under it when the ring sits against the top of the screen.
+func hint_top() -> float:
+	var shade_top: float = centre.y - (RING_R + DISC) * 1.05
+	if shade_top - 26.0 >= 4.0:
+		return shade_top - 26.0
+	return centre.y + (RING_R + DISC) * 1.05 + 6.0
+
+
+func _draw_menu(font: Font) -> void:
+	if menu_k < 0:
+		return
+	var h: float = MENU_ROW_H * menu_rows.size() + 8.0
+	draw_rect(Rect2(menu_pos, Vector2(MENU_W, h)), Color(0.07, 0.065, 0.08, 0.96))
+	draw_rect(Rect2(menu_pos, Vector2(MENU_W, h)), AMBER, false, 2.0)
+	var hov: int = menu_row_at(_mouse)
+	for i in range(menu_rows.size()):
+		var y: float = menu_pos.y + 4.0 + MENU_ROW_H * i
+		if i == hov:
+			draw_rect(Rect2(menu_pos.x + 3.0, y, MENU_W - 6.0, MENU_ROW_H), Color(0.89, 0.647, 0.247, 0.25))
+		var col: Color = BAD if String(menu_rows[i][1]) == "drop" else ROOT_TEXT
+		_text(font, Vector2(menu_pos.x + 12.0, y + 16.0), String(menu_rows[i][0]), 13, col)

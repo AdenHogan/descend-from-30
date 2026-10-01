@@ -24,8 +24,8 @@ texture_filter = 1
 texture = ExtResource("1_art")
 centered = false
 
-[node name="anchor_bathroom_glass_shelf" type="Marker2D" parent="."]
-position = Vector2(37, 49)
+[node name="anchor_bathroom_basin_rim" type="Marker2D" parent="."]
+position = Vector2(14, 73)
 
 [node name="anchor_wall_sink" type="Marker2D" parent="."]
 position = Vector2(36, 76)

@@ -31,6 +31,8 @@ var shop_content: VBoxContainer = null
 var upgrades_box: VBoxContainer = null
 var tab_shop_btn: Button = null
 var tab_upg_btn: Button = null
+var tab_boon_btn: Button = null
+var boon_box: VBoxContainer = null       # the BOON step (round 33): this character's boon, after the upgrade
 var active_tab: String = "shop"
 var refuse_armed: bool = false
 
@@ -99,6 +101,11 @@ func _build_ui() -> void:
 	tab_upg_btn.custom_minimum_size = Vector2(150, 28)
 	tab_upg_btn.pressed.connect(func(): _show_tab("upgrades"))
 	tabs.add_child(tab_upg_btn)
+	tab_boon_btn = Button.new()
+	tab_boon_btn.text = "★ BOON"
+	tab_boon_btn.custom_minimum_size = Vector2(150, 28)
+	tab_boon_btn.pressed.connect(func(): _show_tab("boon"))
+	tabs.add_child(tab_boon_btn)
 	tab_shop_btn = Button.new()
 	tab_shop_btn.text = "SHOP"
 	tab_shop_btn.custom_minimum_size = Vector2(150, 28)
@@ -112,6 +119,11 @@ func _build_ui() -> void:
 	upgrades_box.add_theme_constant_override("separation", 8)
 	upgrades_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	vbox.add_child(upgrades_box)
+
+	boon_box = VBoxContainer.new()
+	boon_box.add_theme_constant_override("separation", 8)
+	boon_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	vbox.add_child(boon_box)
 
 	# Shop tab content (wares + sell)
 	shop_content = VBoxContainer.new()
@@ -147,24 +159,40 @@ func open(floor_num: int, greeting: String) -> void:
 		dialogue_label.text += "\n\"Somebody left something by the lobby door, a while back. I kept it for you. Business first.\""
 	pending_confirm = -1
 	refuse_armed = false
+	# This character's first visit here owes them a run boon (Progression.BOON_MILESTONES = the merchant floors).
+	WorldState.note_boon_milestone(floor_num)
 	_refresh()
-	# The boon is the event: the upgrade offer leads the visit until resolved,
-	# then re-opening goes straight to the shop.
-	_show_tab("upgrades" if not WorldState.is_upgrade_offer_resolved(floor_num) else "shop")
+	# The upgrade offer leads the visit until resolved, then this character's boon, then the shop.
+	_show_tab("upgrades" if not WorldState.is_upgrade_offer_resolved(floor_num) else _after_upgrade())
 	visible = true
+
+
+func _boon_waiting() -> bool:
+	return current_floor in WorldState.pending_boon_floors
+
+
+## Where the visit goes once the upgrade is settled: the boon if one waits here, else the shop.
+func _after_upgrade() -> String:
+	return "boon" if _boon_waiting() else "shop"
 
 
 func _show_tab(tab: String) -> void:
 	active_tab = tab
 	refuse_armed = false
 	upgrades_box.visible = tab == "upgrades"
+	boon_box.visible = tab == "boon"
 	shop_content.visible = tab == "shop"
 	tab_upg_btn.disabled = tab == "upgrades"
+	tab_boon_btn.disabled = tab == "boon"
+	tab_boon_btn.visible = _boon_waiting()
 	tab_shop_btn.disabled = tab == "shop"
 	if tab == "upgrades":
 		_refresh_upgrades()
-	elif WorldState.is_upgrade_offer_resolved(current_floor):
-		_give_handoff_gift()
+		return
+	if tab == "boon":
+		_refresh_boon()
+	if WorldState.is_upgrade_offer_resolved(current_floor):
+		_give_handoff_gift()                  # the gift follows the upgrade pick, whichever step comes next
 
 
 # THE GIFT (owner): after the visit's upgrade, the shopkeeper hands over what an escaped character
@@ -274,7 +302,7 @@ func _on_take_upgrade(id: String) -> void:
 		HUD.update_stamina(WorldState.stamina, WorldState.get_max_stamina())
 	HUD.refresh_inventory()
 	HUD.show_feedback("Upgrade: " + WorldState.UPGRADE_POOL[id]["name"])
-	_show_tab("shop")
+	_show_tab(_after_upgrade())
 
 
 func _on_refuse() -> void:
@@ -283,7 +311,78 @@ func _on_refuse() -> void:
 		HUD.show_feedback("You sure, friend? Click again to pass.")
 		return
 	WorldState.resolve_upgrade_offer(current_floor, "")
+	_show_tab(_after_upgrade())
+
+
+## The BOON step: two of this character's run boons (Progression.RUN_BOONS) — they last for this life, not the next.
+func _refresh_boon() -> void:
+	for child in boon_box.get_children():
+		child.queue_free()
+	var intro = Label.new()
+	intro.add_theme_font_size_override("font_size", 13)
+	intro.add_theme_color_override("font_color", Color(1.0, 0.85, 0.35, 1.0))
+	intro.text = "\"Something for you, not the road. Won't outlast you.\"  Choose one — it lasts for the rest of this life, not the next."
+	intro.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	intro.custom_minimum_size = Vector2(PANEL_W - 60, 0)
+	boon_box.add_child(intro)
+	var cards = HBoxContainer.new()
+	cards.add_theme_constant_override("separation", 12)
+	boon_box.add_child(cards)
+	for id in WorldState.boon_offer(current_floor):
+		var d: Dictionary = Progression.boon(id)
+		cards.add_child(_make_card(String(d.get("name", id)), String(d.get("desc", "")), Color(0.85, 0.66, 0.22), func(): take_boon(id)))
+	var pass_b = Button.new()
+	pass_b.custom_minimum_size = Vector2(180, 30)
+	pass_b.text = "Pass"
+	pass_b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	pass_b.pressed.connect(pass_boon)
+	boon_box.add_child(pass_b)
+
+
+func take_boon(id: String) -> String:
+	var err: String = WorldState.take_boon(current_floor, id)
+	if err == "":
+		HUD.show_feedback("%s — for the rest of this run." % Progression.boon(id).get("name", id))
+		_show_tab("shop")
+	return err
+
+
+func pass_boon() -> void:
+	WorldState.skip_boon(current_floor)
 	_show_tab("shop")
+
+
+func _make_card(title: String, desc_text: String, col: Color, cb: Callable) -> Control:
+	var card = PanelContainer.new()
+	card.custom_minimum_size = Vector2(320, 120)
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.12, 0.12, 0.14, 1.0)
+	style.set_border_width_all(2)
+	style.border_color = col
+	card.add_theme_stylebox_override("panel", style)
+	var m = MarginContainer.new()
+	for side in ["left", "right", "top", "bottom"]:
+		m.add_theme_constant_override("margin_" + side, 10 if side in ["left", "right"] else 8)
+	card.add_child(m)
+	var box = VBoxContainer.new()
+	box.add_theme_constant_override("separation", 6)
+	m.add_child(box)
+	var name_l = Label.new()
+	name_l.text = title
+	name_l.add_theme_font_size_override("font_size", 16)
+	name_l.add_theme_color_override("font_color", col.lightened(0.3))
+	box.add_child(name_l)
+	var desc = Label.new()
+	desc.text = desc_text
+	desc.add_theme_font_size_override("font_size", 12)
+	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	desc.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	box.add_child(desc)
+	var take = Button.new()
+	take.text = "Take"
+	take.pressed.connect(cb)
+	box.add_child(take)
+	return card
 
 
 func _render_owned_upgrades() -> void:

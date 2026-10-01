@@ -834,6 +834,11 @@ def check_back_plane_clear(img, floor_img, anchors):
     return bad
 
 
+# A FRONT node is reached from the walking line, so it sits no higher than about the player's head (owner round 33: the gilt
+# bathroom's mirror node, at y 48, "is too high for the standard Y plane"). Step-up ("bp") nodes may go up to the node line, 40.
+FRONT_NODE_MIN_Y = 66
+
+
 def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, strip_fn=None, per_run=None):
     """Render, check and export one module variant, and write its scene.
 
@@ -914,6 +919,9 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
         in_strip = 's' in fl_.replace('bp', '')
         if ay < 40:
             errs.append('%s: y %d is above the window line (>= 40)' % (an, ay))
+        if 'bp' not in fl_ and ay < FRONT_NODE_MIN_Y:
+            errs.append('%s: a FRONT node at y %d is out of reach from the walking line (>= %d) — lower it onto what stands '
+                        'there, or make it a step-up ("bp") node' % (an, ay, FRONT_NODE_MIN_Y))
         if not (6 <= ax <= 314):
             errs.append('%s: x %d off the module' % (an, ax))
         ref = full if in_strip else main

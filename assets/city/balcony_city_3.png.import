@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://uta2856j2x70"
-path="res://.godot/imported/fg_hand_2.png-c3b7f98e8e9352be4733bc4abcc52f84.ctex"
+uid="uid://bb4aj174p2q08"
+path="res://.godot/imported/balcony_city_3.png-b33cae95454b284e183b27c8d0763f4d.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/foreground/fg_hand_2.png"
-dest_files=["res://.godot/imported/fg_hand_2.png-c3b7f98e8e9352be4733bc4abcc52f84.ctex"]
+source_file="res://assets/city/balcony_city_3.png"
+dest_files=["res://.godot/imported/balcony_city_3.png-b33cae95454b284e183b27c8d0763f4d.ctex"]
 
 [params]
 

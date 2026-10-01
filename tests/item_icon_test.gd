@@ -25,6 +25,7 @@ func _ready() -> void:
 	_test_fixtures()
 	await _test_tooltip()
 	await _test_slot_and_drag()
+	await _test_equip_box_tip()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -158,3 +159,38 @@ func _test_fixtures() -> void:
 				if c.a > 0.5:
 					colours[c.to_html(false)] = true
 		check(colours.size() >= 12, "the %s is drawn art, not a flat block (%d colours)" % [pair[0], colours.size()])
+
+
+## Owner round 33: "If I hover the mouse over the item, we should get a little text box saying what the item is/level/durability
+## information. Right now it says nothing so unless I check the wheel I don't know what this key is for." The in-hand box (the
+## only item shown on screen — the hotbar is opt-in) gets the same tooltip, rising above it, and a key says what it opens.
+func _test_equip_box_tip() -> void:
+	print("[hover the in-hand box for the details]")
+	HUD.set_hotbar_visible(false)
+	WorldState.new_game()
+	WorldState.inventory.clear()
+	WorldState.add_to_inventory("022", 1)
+	WorldState.get_instance_at(0).target_apartment = "2805"
+	HUD.refresh_inventory()
+	HUD.selected_slot = -1
+	HUD.select_slot(0)
+	for i in range(3):
+		await get_tree().process_frame
+	var box: Control = HUD.equip_box
+	check(box != null and box.is_visible_in_tree(), "the in-hand box shows the key")
+	if box == null:
+		return
+	HUD.tip_mouse_override = box.get_global_rect().get_center()
+	for i in range(30):
+		await get_tree().process_frame
+	check(HUD.item_tip.visible and HUD._tip_title.text.contains("2805"), "hovering it names the item (\"%s\")" % HUD._tip_title.text)
+	check(HUD._tip_hint.text.contains("front door of flat 2805"), "…and says what the key opens (\"%s\")" % HUD._tip_hint.text)
+	var r: Rect2 = HUD.item_tip.get_global_rect()
+	check(r.end.y <= box.get_global_rect().position.y and r.position.y >= 0.0 and r.end.x <= 1152.0,
+		"…rising ABOVE the box, on screen (%s)" % str(r))
+	HUD.tip_mouse_override = Vector2(600, 200)
+	for i in range(3):
+		await get_tree().process_frame
+	check(not HUD.item_tip.visible, "moving off it hides it")
+	HUD.tip_mouse_override = null
+	HUD.set_hotbar_visible(true)

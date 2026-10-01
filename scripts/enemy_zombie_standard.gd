@@ -1,5 +1,7 @@
 extends CharacterBody2D
 
+const EnemyFeet = preload("res://scripts/enemy_feet.gd")
+
 # Base zombie stats. These are instance VARS (not consts) so a subclass enemy type
 # (crawler / long-arm / spitter — each `extends` this script) can override them in
 # _ready() to differentiate itself. Defaults are the standard zombie's values, so a
@@ -264,6 +266,10 @@ const STAIR_REACT_MAX := 0.7           # small random rouse delay — prompt, wi
 const STAIR_IDLE_SPEED := 9.0          # a slow shuffle while waiting
 const STAIR_RISE_SPEED := 24.0         # climbing the steps toward the plane (deliberately unhurried)
 const STAIR_STEPDOWN_SPEED := 18.0     # the final step DOWN off the stairwell onto the plane
+# Knocked off the stairs mid-flight (a hit, a shove, a can): it gets back onto the floor line BRISKLY (owner round 33 — one
+# "floated slowly through the scene from above down to the y plane"; it used to stay wherever it was).
+const STAIR_SETTLE_SPEED := 160.0
+var _stair_settling := false
 const STAIR_STEP_CLEARANCE := 16.0     # how far above the plane it climbs before stepping down (the "over the top")
 const STAIR_DEPTH_SPAN := 44.0         # how far off the plane counts as "fully in the shaft"
 
@@ -348,10 +354,27 @@ func _exit_stairwell_mode() -> void:
 	set_collision_mask_value(1, true)
 	passable_to_player = false
 	_make_passable_to_player()
+	# Off the line (knocked off the steps before it finished stepping down)? Settle onto it now — keeping the shaft's cut until
+	# it's there, so a body coming up from below never shows its legs through the floor.
+	_stair_settling = absf(global_position.y - _stair_plane_y) > 0.5
 	if animated_sprite != null and is_instance_valid(animated_sprite):
-		if animated_sprite.material == _stair_mat:
+		if animated_sprite.material == _stair_mat and (not _stair_settling or _stair_up):
 			animated_sprite.material = null
 		animated_sprite.scale = _stair_base_scale
+
+
+## Back onto the floor line after leaving the stairs early (see STAIR_SETTLE_SPEED). Returns true while still settling.
+func _stair_settle_tick(delta: float) -> bool:
+	if not _stair_settling:
+		return false
+	global_position.y = move_toward(global_position.y, _stair_plane_y, STAIR_SETTLE_SPEED * delta)
+	if absf(global_position.y - _stair_plane_y) <= 0.5:
+		global_position.y = _stair_plane_y
+		_stair_settling = false
+		if animated_sprite != null and animated_sprite.material == _stair_mat:
+			animated_sprite.material = null
+		return false
+	return true
 
 
 func _process(_delta: float) -> void:
@@ -681,6 +704,7 @@ func _ready() -> void:
 	z_index = 1
 	animated_sprite = $AnimatedSprite2D
 	animated_sprite.play("Idle")
+	EnemyFeet.lift_sprite(self, animated_sprite)   # drawn feet on the player's line, alive or dead (round 33)
 	player = get_tree().get_first_node_in_group("player")
 	base_walk_y = global_position.y
 	add_to_group("zombie")
@@ -951,6 +975,11 @@ func _exit_tree() -> void:
 	# it to the stand line so it's remembered standing on the corridor. (An already-
 	# emerged one is on the floor; the restore path also re-grounds stair enemies.)
 	if stair_mode:
+		# A staircase enemy still on the steps isn't remembered at all (round 33): it's still on the stairs — seen from the floor
+		# above in the shaft or from below on the flight — and is seeded there again. Recording it "standing on the corridor"
+		# made it appear on one floor while the other still showed it on the stairs.
+		if is_in_group("stair_enemy"):
+			return
 		global_position.y = _stair_plane_y
 	if is_instance_valid(WorldState):
 		WorldState.record_zombie(self)
@@ -1120,6 +1149,7 @@ func _physics_process(delta: float) -> void:
 	if stair_mode and _stair_tick(delta):
 		move_and_slide()
 		return
+	_stair_settle_tick(delta)
 
 	if hurt_timer > 0.0:
 		hurt_timer -= delta

@@ -1299,8 +1299,9 @@ means no rendering — UI layout and art still need an in-editor look.
   `WeaponAffliction` node + the enemies' `weapon_lit` flag (floor fire can't snuff it). Titles name the
   newest special first ("Firestarter").
 - PROGRESSION tiers 2 + 3 (docs/PROGRESSION.md): **Run boons** (temporary, this character — a v1
-  proposal): the first arrival at milestone floors 27/22/17/12/7 queues a pick-1-of-2 offered by a
-  HUD **"★ BOON — choose"** badge (never a forced pause), wiped by the time skip, kept by a save.
+  proposal): **since round 33 the MERCHANT's** — this character's first visit to each merchant (25/20/15/10/5) offers a
+  pick-1-of-2 in the merchant's window after the upgrade (`shop_ui` ★ BOON step; the old 27/22/17/12/7 arrival badge is
+  gone), wiped by the time skip, kept by a save.
   **Descent Valour** (permanent — the OWNER'S design, replaced an earlier ranked "Legacy" shop): at
   the END OF A SESSION (3rd character escapes or dies) `WorldState.finish_session` scores each run's
   depth into Valour (`d + d²/60`, +10 escaped; banked to the PROFILE, savable) and offers up to 3
@@ -1503,7 +1504,7 @@ means no rendering — UI layout and art still need an in-editor look.
   leaning mattress, balloons tied to chairs…) — list in the modules README "ROUND 17".
   **Round 18** (bathrooms brought forward, a static doorway): stand-at fixtures (toilet, basin, bath,
   washing machine, vanity) reach 16–20 px out as real solids (`tools/art/solid3d.py` + bathroom.py's
-  `*3d` helpers) with FRONT nodes — bathrooms B/C/D have no step-up, A (shower) and E (linen cupboard)
+  `*3d` helpers) with FRONT nodes — bathrooms A/B/C/D have no step-up (round 33: A's shower became a walk-in that stands out), E (linen cupboard)
   one; tall storage stays the step-up (rule in docs/blueprints/README.md). Curtains hang under a visible
   rail and INTO the tub (`shower_rail` / `curtain_in_tub` / `bath_front`); the room-to-room doorway is a
   static door frame (`module_walls._door_frame`).
@@ -1778,7 +1779,9 @@ means no rendering — UI layout and art still need an in-editor look.
   standing; killed stays dead (key `WorldState.riser_key`). A swing / shot / shove prefers anything
   standing (`player._lying_penalty`). Also in the balcony-descent backdrop (frozen, lying). Preview:
   docs/art_reference/modules/risers.png. Locked by `breach_test._test_risers`.
-  **FOREGROUND DEAD — a TEST look** (round 21c, "like hollow knight and silk song… bodies… right up to the
+  **FOREGROUND DEAD — REMOVED (owner round 33: "a little overwhelming and not clear about what we're looking at… drop that
+  visual element from the foreground completely")**: the script, art, tool, preview and F1 switch are deleted; `breach_test`
+  checks they stay gone. HISTORY of the test look (round 21c, "like hollow knight and silk song… bodies… right up to the
   camera… we can test it first"): `scripts/foreground_dead.gd` lays 2-3 black silhouettes
   (`tools/art/foreground_dead.py` → `assets/foreground/fg_<heap|slumped|hand>_N.png`, drawn at world px)
   along the bottom edge of the view, in front of the actors (z 40, never lit), sliding faster than the room
@@ -1923,7 +1926,9 @@ means no rendering — UI layout and art still need an in-editor look.
   the portrait is still THE button (hover → the ring lights white). All the old node names survive
   (`portrait`, `floor_label`, `wallet_label`, `scrap_label`, `mode_label`, `slots`, `hbox`, `boon_badge`).
   **Moved a click target**: top-left of the screen is now the portrait button — `back_plane_test` clicks the
-  room at (1000, 260) instead of (40, 60). **Quick wheel** (`quick_wheel.gd`, action `item_wheel`, default **Tab**,
+  room at (1000, 260) instead of (40, 60). **Quick wheel — REMOVED in round 33** (owner: "B and tab… do the same job…
+  remove tab entirely"; the `item_wheel` action, the hint and `quick_wheel.gd` are gone, its geometry is `ring_geo.gd`; the
+  text below is HISTORY) (`quick_wheel.gd`, action `item_wheel`, default **Tab**,
   rebindable in Settings): HOLD → the game slows to 0.2× and a ring of the bag's items opens round the player
   (clamped clear of the strip); the pointer's angle picks a wedge (`index_for`, item 0 at the top, clockwise,
   a 40px dead zone in the middle), RELEASE equips it (the same `HUD.select_slot` a hotbar click makes, so it
@@ -1979,7 +1984,8 @@ means no rendering — UI layout and art still need an in-editor look.
   scene_capture look. Next (docs/MOTION.md): flowers/plants inside rooms (needs art split from the baked module
   PNGs), swinging lamps, curtains, balcony washing, corridor drips/sparks.
 - OVERGROWTH — the building changing (owner round 26; full write-up docs/OVERGROWTH.md): vegetation follows DEPTH and
-  TIME. `scripts/overgrowth.gd` (`level(floor, run)`, `room_level(floor, apt, run, fire_stage)`; pure functions of
+  TIME. **Round 33: nothing wild grows above floor 12** (`Overgrowth.GROWTH_TOP_FLOOR`; the top keeps its normalcy — the
+  owner's depth-BIOME idea is written up, not built, in docs/OVERGROWTH.md). `scripts/overgrowth.gd` (`level(floor, run)`, `room_level(floor, apt, run, fire_stage)`; pure functions of
   master_seed — nothing saved; fire wins → 0; F1 → Overgrowth forces a level via `WorldState.dev_overgrowth`). Sprites
   from `tools/art/growth.py` → `assets/growth/` (+ `growth.json`, sheet `docs/art_reference/growth.png`): hanging vines,
   ivy, weeds/wildflowers, ferns, roots, moss, fungus, houseplants, and `shrub_small_*` — **NO shrubs in corridors or
@@ -2188,4 +2194,28 @@ means no rendering — UI layout and art still need an in-editor look.
   `npc_dialogue.json` → `scripts.<temper>.<run>` (v1: 11 for scared, run 1); one per resident, no repeats in a run while
   unused remain (`_pick_resident_script`); a scripted resident speaks only its script + hurt/death; `{player}` = the name.
   Also round 32: the bald man is now **Alex** (was Aaron).
+- ROUND 33 (owner playtest): **Pack ring** — right-click opens an options menu (Equip / Put away, Use, Drop); dragging an
+  item off the ring and letting go drops it; the help line sits on its own plate above the ring; the ring always shows EVERY
+  slot (empty ones + a padlocked LOCKED slot until Deep Pockets), even with an empty bag; world pills fade out while it's open;
+  the kneel is just a crouch with the bag on the floor beside (no lean); the hold-Tab quick wheel and its hint are gone
+  (docs/BACKPACK.md). **In-hand box tooltip**: hovering it shows the item's name / tier / durability, and a key says what it
+  opens (`HUD._hovered_slot`). **Stair hints** (`stairwell.gd`): never Listen + Jump at once — LISTEN at the steps first, the
+  JUMP at the half-wall only once listening is taught; each taught for good once used or up 3 s (`WorldState.hints_taught`,
+  PROFILE `[hints] taught`); `banister_test`. **Staircase enemies are ONE population per staircase** (key
+  `choke<n>:stairwell:<i>`, `building_floors.stair_enemy_key` / `stair_enemy_here`): the floor above sees it in the shaft, the
+  floor below on its up flight; a kill counts on both; one that stepped off is remembered on THAT floor (`rec.floor`) and
+  isn't on the stairs for the other; one still on the steps is never recorded. The way down stays shut while it's on the
+  steps, with ONE line: "Something's on the stairs below. A noise would draw it up — or I jump the wall." (any noise rouses
+  it onto your floor). Knocked off mid-flight it settles onto the floor line in a few frames (`STAIR_SETTLE_SPEED`) — it used
+  to be left floating. `building_floors_test._test_stair_enemy_one_staircase`. **Drawn feet**: every enemy's sprite is lifted
+  so it draws on the player's row, alive and dead (`enemy_feet.gd`; docs/Y_PLANES.md §1). **Zombie shuffle** regenerated
+  soft and dark (peak 0.45, no clipping) and played at −20 dB (14 dB under the moans), range 320. **City parallax**
+  (`scripts/city_view.gd`): every window / stairwell / balcony view is drawn `PAN` 8 px wider each side and slides up to 8 px
+  as you walk past (0.06 px per px, whole pixels), clipped to the glass (balconies: to the bare-view pixels,
+  `balcony_view_mask_<run>.png`, over a separate `balcony_city_<run>.png`); fires / smoke / blasts ride it, rain stays put;
+  also fixed a 2 px sliver of skyline standing on the wall beside every balcony doorway. **Scavenge nodes**: a FRONT node may
+  sit no higher than local y 66 (`pixlib.FRONT_NODE_MIN_Y` — the pipeline refuses); four bathroom nodes on mirrors / wall
+  shelves (A, B, C gilt, E) moved down onto the basin / washstand, with things drawn there. **Bathroom A's shower** is a
+  walk-in with a tray 14 px out and a glass side screen in perspective (front node; A has no step-up now). **Boons** — the
+  merchant's (above). **Foreground silhouettes** removed.
 - Not started: quests.

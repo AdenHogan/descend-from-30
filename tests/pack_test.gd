@@ -3,11 +3,12 @@ extends Node
 # The BACKPACK sequence (owner round 26: "click the pack, the player bends down and opens their
 # backpack, then a wheel for inventory opens with live gameplay underneath so you can still be
 # attacked"; docs/BACKPACK.md), on the REAL player in a REAL corridor:
-#  * kneel → open → stand, with the feet held where they were while the body leans;
+#  * kneel → open → stand: a crouch with the bag opening beside them on the floor, NO lean (owner round 33);
 #  * the world is never slowed and the player is rooted; the ring is a pure view of the player's phase;
-#  * click equips / right-click uses / Delete drops / the middle, Esc, the key and a click in the world close;
+#  * click equips / right-click opens a menu (equip / use / drop) / drag OFF the ring drops / Delete drops /
+#    the middle, Esc, the key and a click in the world close; the help line sits clear of the ring;
 #  * a hit slams it shut at once; every other exit (death, a cutscene, a panel) leaves nothing stuck;
-#  * it refuses to start when it shouldn't, and never fights the quick wheel.
+#  * it refuses to start when it shouldn't.
 # Run:  godot --headless res://tests/pack_test.tscn
 
 var failures: int = 0
@@ -32,6 +33,7 @@ func _ready() -> void:
 	await _test_exits()
 	await _test_refusals()
 	await _test_button_and_key()
+	await _test_full_ring_and_prompts()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -109,8 +111,15 @@ func _test_sequence() -> void:
 	await get_tree().process_frame
 	check(p.pack_phase == "open", "after the kneel the pack is open")
 	check(pw.is_open and pw.visible, "…and the ring appears")
-	check(pw.slots.size() == mini(WorldState.inventory.size(), WorldState.get_inventory_slots()), "the ring holds the whole bag (%d slots)" % pw.slots.size())
-	check(absf(p.animated_sprite.skew) > 0.1, "the body leans toward the pack (skew %.2f)" % p.animated_sprite.skew)
+	check(pw.slots.size() == WorldState.get_inventory_slots() + (1 if WorldState.get_inventory_slots() < 6 else 0),
+		"the ring holds every slot of the bag, empty ones and the locked one too (%d slots)" % pw.slots.size())
+	check(absf(p.animated_sprite.skew) < 0.001 and absf(p.animated_sprite.position.x - p._pack_base_x) < 0.01,
+		"no lean — just the crouch (skew %.2f)" % p.animated_sprite.skew)
+	var prop = p._pack_prop
+	var dx: float = prop.global_position.x - p.global_position.x if is_instance_valid(prop) else 0.0
+	check(is_instance_valid(prop) and absf(dx) > 12.0 and signf(dx) == (-1.0 if p.animated_sprite.flip_h else 1.0)
+		and absf(prop.global_position.y - p.feet_position().y) < 2.0, "the bag lies BESIDE them on the floor (dx %.0f)" % dx)
+	check(is_instance_valid(prop) and prop.open_amount > 0.99, "…and it's open")
 	check(absf(_feet_x() - feet0) < 0.6, "…with the FEET held where they were (moved %.2f px)" % absf(_feet_x() - feet0))
 	check(absf(p.global_position.x - x0) < 0.01 and absf(p.global_position.y - y0) < 0.01, "the player is rooted (no drift)")
 	check(Engine.time_scale == 1.0, "the world is NOT slowed — it stays live")
@@ -154,7 +163,42 @@ func _click(pos: Vector2, button: int = MOUSE_BUTTON_LEFT) -> void:
 
 func _slot_pos(k: int) -> Vector2:
 	var pw = HUD.pack_wheel
-	return pw.QuickWheel.slot_position(pw.centre, k, pw.slots.size(), pw.RING_R)
+	return pw.RingGeo.slot_position(pw.centre, k, pw.slots.size(), pw.RING_R)
+
+
+func _row_pos(row: int) -> Vector2:
+	var pw = HUD.pack_wheel
+	return pw.menu_pos + Vector2(pw.MENU_W * 0.5, 4.0 + pw.MENU_ROW_H * (row + 0.5))
+
+
+func _row_of(action: String) -> int:
+	var pw = HUD.pack_wheel
+	for i in range(pw.menu_rows.size()):
+		if String(pw.menu_rows[i][1]) == action:
+			return i
+	return -1
+
+
+## Press on `from`, move past the drag threshold to `to`, let go there.
+func _drag(from: Vector2, to: Vector2) -> void:
+	var ft: Transform2D = get_viewport().get_final_transform()
+	for step in [[from, true], [from.lerp(to, 0.3), false], [to, false]]:
+		var mv := InputEventMouseMotion.new()
+		mv.position = ft * step[0]
+		get_viewport().push_input(mv)
+		if step[1]:
+			var dn := InputEventMouseButton.new()
+			dn.button_index = MOUSE_BUTTON_LEFT
+			dn.pressed = true
+			dn.position = ft * from
+			get_viewport().push_input(dn)
+		await get_tree().process_frame
+	var up := InputEventMouseButton.new()
+	up.button_index = MOUSE_BUTTON_LEFT
+	up.pressed = false
+	up.position = ft * to
+	get_viewport().push_input(up)
+	await get_tree().process_frame
 
 
 func _world_has_drop(item_id: String) -> bool:
@@ -180,18 +224,68 @@ func _test_ring_actions() -> void:
 	check(pw.is_open, "…and the pack stays open")
 	await _click(_slot_pos(0))
 	check(HUD.selected_slot == -1, "left-click again puts it away")
+	# right-click: a MENU, not an action (owner round 33 — it used to do the same as a left click)
+	var sel_before: int = HUD.selected_slot
+	await _click(_slot_pos(0), MOUSE_BUTTON_RIGHT)
+	check(pw.menu_k == 0 and _row_of("equip") >= 0 and _row_of("drop") >= 0, "right-click opens the item's options (%s)" % str(pw.menu_rows))
+	check(HUD.selected_slot == sel_before, "…and doesn't equip it by itself")
+	await _click(_row_pos(_row_of("equip")))
+	check(HUD.selected_slot == 0 and pw.menu_k == -1, "'Equip' equips it and the menu closes")
+	await _click(_slot_pos(0), MOUSE_BUTTON_RIGHT)
+	check(String(pw.menu_rows[0][0]) == "Put away", "in hand, the first option is 'Put away'")
+	await _click(Vector2(pw.centre.x + 5.0, pw.centre.y + 5.0))
+	check(pw.menu_k == -1 and p.pack_phase == "open", "a click elsewhere just closes the menu (the pack stays open)")
+	HUD.select_slot(0)
 	# a throwable can't be thrown from your knees
 	var can = WorldState.get_instance_at(1)
 	var cans_before: int = can.count
 	await _click(_slot_pos(1), MOUSE_BUTTON_RIGHT)
+	await _click(_row_pos(_row_of("use")))
 	check(WorldState.get_instance_at(1) == can and can.count == cans_before, "a can is NOT thrown from down there (kept)")
 	check(pw.is_open, "…and the pack stays open")
 	# use: bandages heal
 	p.health_state = 2
 	WorldState.player_health = 2
 	await _click(_slot_pos(2), MOUSE_BUTTON_RIGHT)
-	check(int(p.health_state) < 2, "right-click USES it — a bandage from the bag (health %d)" % int(p.health_state))
+	check(_row_of("use") >= 0, "bandages offer 'Use'")
+	await _click(_row_pos(_row_of("use")))
+	check(int(p.health_state) < 2, "'Use' — a bandage from the bag (health %d)" % int(p.health_state))
 	check(pw.is_open, "…still open")
+	# the menu's Drop
+	var drop_id: String = WorldState.get_instance_at(1).item_id if WorldState.get_instance_at(1) != null else ""
+	await _click(_slot_pos(1), MOUSE_BUTTON_RIGHT)
+	await _click(_row_pos(_row_of("drop")))
+	check(drop_id != "" and _world_has_drop(drop_id), "'Drop' puts it on the floor (%s)" % drop_id)
+	# DRAG an item off the ring and let go: dropped at your feet
+	_give("010")
+	HUD.refresh_inventory()
+	await get_tree().process_frame
+	var last: int = WorldState.inventory.size() - 1
+	var drag_id: String = WorldState.get_instance_at(last).item_id
+	var drops_before: int = WorldState.world_drops.size()
+	var off: Vector2 = pw.centre + (_slot_pos(last) - pw.centre).normalized() * (pw.RING_R + pw.DISC_SEL + 40.0)
+	await _drag(_slot_pos(last), off)
+	check(WorldState.inventory.size() == last and WorldState.world_drops.size() == drops_before + 1,
+		"dragged off the ring and let go: %s is dropped on the floor" % drag_id)
+	check(p.pack_phase == "open", "…and the pack stays open")
+	# dragged onto a HUD widget (the pack button) it is NOT dropped
+	_give("010")
+	HUD.refresh_inventory()
+	await get_tree().process_frame
+	last = WorldState.inventory.size() - 1
+	await _drag(_slot_pos(last), HUD.pack_button.get_global_rect().get_center())
+	check(WorldState.inventory.size() == last + 1, "let go over the pack button: kept")
+	# the help line sits clear of the ring (it used to run behind the top item)
+	var font: Font = pw.get_theme_default_font()
+	var hw: float = font.get_string_size(pw.HINT, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x + 20.0
+	var hr := Rect2(pw.centre.x - hw * 0.5, pw.hint_top(), hw, 20.0)
+	var clear := true
+	for k in range(pw.slots.size()):
+		var sp: Vector2 = _slot_pos(k)
+		var rad: float = pw.DISC_SEL * 0.5
+		if hr.intersects(Rect2(sp - Vector2(rad, rad), Vector2(rad, rad) * 2.0)):
+			clear = false
+	check(clear and hr.position.y >= 0.0, "the help line is clear of every item on the ring (top %.0f)" % hr.position.y)
 	# delete drops it out of the bag — never destroyed silently
 	var held_id: String = WorldState.get_instance_at(1).item_id
 	pw.drop_at(1)
@@ -307,14 +401,6 @@ func _test_refusals() -> void:
 	HUD.dialogue_panel.visible = true
 	check(not pw.toggle(), "a dialogue up: refused")
 	HUD.dialogue_panel.visible = false
-	HUD.quick_wheel.open()
-	check(HUD.quick_wheel.is_open and not pw.toggle(), "the quick wheel open: refused (never two rings)")
-	HUD.quick_wheel.close(false)
-	check(Engine.time_scale == 1.0, "…the quick wheel gave the time back")
-	await _reset()
-	# and the quick wheel refuses while kneeling
-	await _open_pack()
-	check(HUD.quick_wheel.blocked_reason() == "at the pack", "the quick wheel won't open while kneeling (%s)" % HUD.quick_wheel.blocked_reason())
 	await _reset()
 	check(p.pack_blocked_reason() == "", "everything is free again after a reset")
 	# an empty bag still opens (an empty ring, closable)
@@ -356,3 +442,51 @@ func _test_button_and_key() -> void:
 	check(listed, "…and rebindable in Settings")
 	check(HUD.action_key_name("open_pack", "?") == "B", "the hint names the CURRENT key (%s)" % HUD.action_key_name("open_pack", "?"))
 	await _reset()
+
+
+## Owner round 33: "when you don't have any items in your bag, opening the bag doesn't show a wheel. We still need a wheel even if
+## empty. When you drop items, the wheel should not lessen in number of slots… there is always a locked slot unless the upgrade is
+## collected" — and "When opening the bag, in game text like that door behind being locked, it should disappear".
+func _test_full_ring_and_prompts() -> void:
+	print("[the ring: every slot, empty or locked; world pills step aside]")
+	await _reset()
+	var pw = HUD.pack_wheel
+	WorldState.inventory.clear()
+	HUD.refresh_inventory()
+	var owner_ := Node2D.new()
+	add_child(owner_)
+	HUD.show_world_prompt(owner_, "2805 - Locked  Needs key  [R] Listen", p.global_position + Vector2(0, -60))
+	await get_tree().process_frame
+	var pill: Panel = HUD.world_prompt_panel(owner_)
+	check(pill != null and pill.visible and pill.modulate.a > 0.9, "a door pill is up before the pack opens")
+	await _open_pack()
+	var cap: int = WorldState.get_inventory_slots()
+	check(pw.is_open and pw.slots.size() == cap + 1, "an EMPTY bag still opens a full ring: %d slots + the locked one (%d)" % [cap, pw.slots.size()])
+	check(pw.is_locked(pw.slots.size() - 1) and not pw.is_locked(0), "...the last wedge is the LOCKED slot")
+	check(pw._slot_inst(pw.slots.size() - 1) == null, "...and it holds nothing, so no action can touch it")
+	check(pill.visible and pill.modulate.a < 0.01, "the world pill steps aside while the ring is open")
+	p.end_pack(false)
+	await _frames(int(ceil(p.PACK_KNEEL_TIME * 60.0)) + 6)
+	await get_tree().process_frame
+	check(pill.modulate.a > 0.9, "...and comes back when the pack closes")
+	# items in, one dropped: the ring keeps its size
+	_give("002"); _give("005"); _give("006")
+	HUD.refresh_inventory()
+	await _open_pack()
+	var n0: int = pw.slots.size()
+	pw.drop_at(0)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	check(WorldState.inventory.size() == 2 and pw.slots.size() == n0 and n0 == cap + 1, "dropping an item doesn't shrink the ring (%d → %d)" % [n0, pw.slots.size()])
+	p.end_pack(false)
+	await _frames(int(ceil(p.PACK_KNEEL_TIME * 60.0)) + 6)
+	# with the slot upgrade, no locked wedge
+	WorldState.active_upgrades.append("U_slot")
+	await _open_pack()
+	check(pw.slots.size() == WorldState.get_inventory_slots() and WorldState.get_inventory_slots() == 6 and not pw.is_locked(pw.slots.size() - 1),
+		"with the upgrade the sixth slot is a real one (%d slots)" % pw.slots.size())
+	p.end_pack(false)
+	await _frames(int(ceil(p.PACK_KNEEL_TIME * 60.0)) + 6)
+	WorldState.active_upgrades.erase("U_slot")
+	HUD.hide_world_prompt(owner_)
+	owner_.queue_free()

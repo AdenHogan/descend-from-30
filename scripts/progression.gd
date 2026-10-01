@@ -16,9 +16,10 @@ extends RefCounted
 # Every number lives here. mods use the UPGRADE_POOL shape: stat → {"add": x} / {"mult": x}.
 
 # --- Tier 2: run boons -------------------------------------------------------------------
-# Offered on the FIRST arrival (this run) at each milestone floor — two floors above each merchant
-# floor (25/20/15/10/5), so the descent alternates: a boon, then the merchant, then a boon…
-const BOON_MILESTONES := [27, 22, 17, 12, 7]
+# THE MERCHANT'S (owner round 33 — "we should not be getting boons on 27. boons are only on every 5th floor and collectable
+# from the merchant"): this character's first visit to each merchant (25/20/15/10/5) offers a boon after the upgrade pick, in
+# the merchant's own window (shop_ui.gd, the BOON step). No arrival badge any more.
+const BOON_MILESTONES := [25, 20, 15, 10, 5]
 
 const RUN_BOONS := {
 	"B_adrenaline": {"name": "Adrenaline", "d": 4, "desc": "+20% move speed", "mods": {"move_speed": {"mult": 1.20}}},

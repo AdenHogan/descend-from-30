@@ -38,16 +38,64 @@ func _prompt_anchor() -> Vector2:
 	return global_position + Vector2(0, -34)
 
 
-func _show_listen_prompt() -> void:
-	if direction == "down":
-		HUD.show_world_prompt(self, "[R] Listen below", _prompt_anchor())
+# --- One-time stair hints (owner round 33) ------------------------------------
+# "The text for listen and jump over overlap. This should be cleaner, we also don't need both texts to be there. Players can
+# have it once in tutorial, one followed by the other. Doesn't always need both when descending." So: never both at once (each
+# shows only in its own zone, and the two zones don't touch); LISTEN is taught first, at the steps; the JUMP only once listening
+# has been taught, at the half-wall; each is taught for good (profile — WorldState.hint_taught) once used, or once it has been
+# up HINT_TEACH_TIME. A hint that's up stays up until you step out of its zone. The keys always work, hint or not.
+const HINT_LISTEN := "stair_listen"
+const HINT_JUMP := "stair_jump"
+const HINT_TEACH_TIME := 3.0
+var _hint_up := ""          # the hint showing now ("" = none)
+var _hint_time := 0.0       # how long it has been up this visit
+var _hint_kept := ""        # the hint that came up this visit — stays showable, taught or not, until you leave its zone
+
+
+## The hint this stairwell should show right now ("" = none). Pure.
+func wanted_hint() -> String:
+	if direction != "down":
+		return ""
+	if player_nearby:
+		if _hint_kept == HINT_LISTEN or not WorldState.hint_taught(HINT_LISTEN):
+			return HINT_LISTEN
+	elif player_on_banister:
+		if _hint_kept == HINT_JUMP or (WorldState.hint_taught(HINT_LISTEN) and not WorldState.hint_taught(HINT_JUMP)):
+			return HINT_JUMP
+	return ""
+
+
+func _update_hint(delta: float) -> void:
+	var want := wanted_hint()
+	if want != _hint_up:
+		_hide_hint()
+		_hint_up = want
+		_hint_time = 0.0
+		if want == HINT_LISTEN:
+			HUD.show_world_prompt(self, "[%s] Listen below" % TutorialManager.key("listen"), _prompt_anchor())
+		elif want == HINT_JUMP and banister != null:
+			HUD.show_world_prompt(banister, "[%s] Jump over the wall" % TutorialManager.key("move_up"),
+				Vector2(banister_x(), global_position.y - 34))
+		if want != "":
+			_hint_kept = want
+	if _hint_up != "":
+		_hint_time += delta
+		if _hint_time >= HINT_TEACH_TIME:
+			WorldState.note_hint_taught(_hint_up)
+
+
+func _hide_hint() -> void:
+	if _hint_up == HINT_LISTEN:
+		HUD.hide_world_prompt(self)
+	elif _hint_up == HINT_JUMP and banister != null:
+		HUD.hide_world_prompt(banister)
+	_hint_up = ""
 
 func _on_body_entered(body: Node2D) -> void:
 	if body.name == "Player":
 		player_nearby = true
 		if arrow:
 			arrow.visible = true
-		_show_listen_prompt()
 		if direction == "down":
 			var warn: String = WorldState.take_fire_warning(WorldState.current_floor)   # smoke on the stairs, once
 			if warn != "":
@@ -65,12 +113,18 @@ func _on_body_exited(body: Node2D) -> void:
 			_cancel_pry("You back off the stairwell.")   # walked away mid-pry
 		if arrow:
 			arrow.visible = false
-		HUD.hide_world_prompt(self)
+		if _hint_kept == HINT_LISTEN:
+			_hint_kept = ""
+		if _hint_up == HINT_LISTEN:
+			_hide_hint()
+		else:
+			HUD.hide_world_prompt(self)
 
 func _process(_delta: float) -> void:
 	if is_prying:
 		_tick_pry(_delta)
 		return
+	_update_hint(_delta)
 	# W at the BANISTER vaults it (round 31e). Standing between the two zones, the nearer one wins, so one press never
 	# takes the stairs AND jumps.
 	if player_on_banister and Input.is_action_just_pressed("move_up") and not TutorialManager.interact_guarded():
@@ -85,6 +139,7 @@ func _process(_delta: float) -> void:
 		var player = get_tree().get_first_node_in_group("player")
 		if player and player.has_method("start_listen"):
 			var report = WorldState.get_listen_report_for_floor_below()
+			WorldState.note_hint_taught(HINT_LISTEN)
 			player.start_listen(global_position, report)
 			return
 	# W (move_up) takes the stairs — same key as stepping up into a balcony, so
@@ -198,10 +253,19 @@ func _use_stairs() -> void:
 	# clear them or draw them off before the way is yours. Only ones still ON the stairs
 	# count; once they step off onto the corridor the crossing is free (fight them there).
 	if _stair_enemy_blocking():
-		TutorialManager.say("Something's coming up the stairs — I can't get past until it's off them.")
+		TutorialManager.say(blocked_line())
 		return
 
 	_perform_transition()
+
+
+## The ONE line when something on the steps holds the crossing (owner round 33 — "I should have been blocked… that an enemy
+## was below, and I should draw it upstairs with sound or jump down… condense the language to fit one clean bubble"). Going
+## down there are two ways past: a noise draws it up onto this floor (any noise rouses a stair lurker), or the half-wall.
+func blocked_line() -> String:
+	if direction == "down":
+		return "Something's on the stairs below. A noise would draw it up — or I jump the wall."
+	return "Something's on the stairs above. I can't get past it."
 
 
 # How far either side of the stair CENTRE a zombie still counts as "on the steps".
@@ -357,10 +421,8 @@ func _cancel_pry(reason: String) -> void:
 		return
 	is_prying = false
 	pry_timer = 0.0
-	if player_nearby:
-		_show_listen_prompt()
-	else:
-		HUD.hide_world_prompt(self)
+	HUD.hide_world_prompt(self)
+	_hint_up = ""            # the countdown sat in the listen pill's place — let _update_hint put a hint back if one is due
 	HUD.show_feedback(reason)
 
 
@@ -427,8 +489,6 @@ func _on_banister_entered(body: Node2D) -> void:
 	if body.name != "Player":
 		return
 	player_on_banister = true
-	HUD.show_world_prompt(banister, "[%s] Jump over the wall" % TutorialManager.key("move_up"),
-		Vector2(banister_x(), global_position.y - 34))
 
 
 func _on_banister_exited(body: Node2D) -> void:
@@ -436,8 +496,10 @@ func _on_banister_exited(body: Node2D) -> void:
 		return
 	player_on_banister = false
 	_vault_confirm_time = -100.0
-	if banister != null:
-		HUD.hide_world_prompt(banister)
+	if _hint_kept == HINT_JUMP:
+		_hint_kept = ""
+	if _hint_up == HINT_JUMP:
+		_hide_hint()
 
 
 ## Why a vault is refused right now ("" = it may go). Pure checks, no side effects — the stairs' own gates, minus the ones a jump
@@ -484,6 +546,8 @@ func vault_banister() -> bool:
 
 func _perform_vault(who) -> void:
 	who.global_position.x = banister_x()
+	WorldState.note_hint_taught(HINT_JUMP)
+	_hide_hint()
 	if banister != null:
 		HUD.hide_world_prompt(banister)
 	HUD.hide_world_prompt(self)

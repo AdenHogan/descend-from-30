@@ -44,6 +44,9 @@ var _own_light: PointLight2D = null
 var _exposed: Array = []                 # [CanvasItem, kind] — re-exposed when the light changes
 var _flash_t: float = 0.0
 var _view: CanvasItem = null
+## Where the things standing ON the city go (fires, smoke, blasts, an aircraft light): a CityView's FAR node, so they slide with
+## the skyline as you walk past (round 33). The rain + ripples always stay on this node (weather on the near side). null = self.
+var far_holder: Node2D = null
 
 
 static func meta() -> Dictionary:
@@ -102,8 +105,14 @@ func _sprite(path: String, fw: int, fps: float, loop: bool, pos: Vector2, kind: 
 	a.material = unshaded()
 	a.modulate = exposure(1.0 if kind != "rain" else 0.7)
 	_exposed.append([a, kind])
-	add_child(a)
+	_holder(kind).add_child(a)
 	return a
+
+
+func _holder(kind: String) -> Node2D:
+	if kind == "rain" or far_holder == null or not is_instance_valid(far_holder):
+		return self
+	return far_holder
 
 
 func _pick(pts: Array, count: int) -> Array:
@@ -122,7 +131,8 @@ func _to_v(p) -> Vector2:
 ## `key` = "view_<run>_<variant>" (or a stairwell's "stair_view_<run>_<v>" with `rain_sheet` "rain_stair"); the node's origin is the glass centre. `view` = the sprite drawn under this
 ## (so lightning can flash it).
 func setup_window(key: String, run_: int, live_: bool, seed_: int, window_light: PointLight2D, view_item: CanvasItem,
-		rain_sheet: String = "rain_window") -> void:
+		rain_sheet: String = "rain_window", far_: Node2D = null) -> void:
+	far_holder = far_
 	run = run_
 	live = live_
 	small = true
@@ -167,7 +177,7 @@ func setup_window(key: String, run_: int, live_: bool, seed_: int, window_light:
 			dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			dot.material = unshaded()
 			dot.modulate = exposure(1.0)
-			add_child(dot)
+			_holder("fx").add_child(dot)
 			_exposed.append([dot, "fx"])
 			var tw := create_tween().set_loops()
 			tw.tween_property(dot, "modulate:a", 0.15, 0.7)
@@ -184,7 +194,8 @@ func setup_window(key: String, run_: int, live_: bool, seed_: int, window_light:
 
 # ---- the balcony -----------------------------------------------------------------------------------------------
 ## The node sits at the balcony module's origin (module-local coordinates, like the art).
-func setup_balcony(run_: int, live_: bool, seed_: int) -> void:
+func setup_balcony(run_: int, live_: bool, seed_: int, far_: Node2D = null) -> void:
+	far_holder = far_
 	run = run_
 	live = live_
 	small = true
@@ -218,7 +229,7 @@ func setup_balcony(run_: int, live_: bool, seed_: int) -> void:
 			dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			dot.material = unshaded()
 			dot.modulate = exposure(1.0)
-			add_child(dot)
+			_holder("fx").add_child(dot)
 			_exposed.append([dot, "fx"])
 			var tw := create_tween().set_loops()
 			tw.tween_property(dot, "modulate:a", 0.15, 0.7)

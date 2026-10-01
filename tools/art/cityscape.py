@@ -34,6 +34,11 @@ OUT = os.path.join(ROOT, 'assets', 'city')
 # ---- the window's glass (the node's pane; scripts/apartment_window.gd PANE_HALF_*) ---------------------------
 GLASS_W, GLASS_H = 44, 52
 VARIANTS = 4
+# PARALLAX (owner round 33 — "walking past the window, the image in the background is static… extend the city image a little and
+# then allow for the view to pan slightly as you go left to right and back"): every view is drawn PAN px wider than its glass on
+# each side; the game clips it to the glass and slides it up to PAN px with the player (scripts/city_view.gd).
+PAN = 8
+VIEW_W = GLASS_W + 2 * PAN
 
 LOOK = {
     1: dict(sky=[(0.0, hexc('79aede')), (0.55, hexc('b5d6ee')), (1.0, hexc('e6f1f3'))],
@@ -183,11 +188,11 @@ def draw_city(c, box, run, rng, layout_seed=None, tall=1.0):
 
 def window_view(run, variant):
     rng = random.Random(2000 + variant * 37 + run)
-    c = Canvas(GLASS_W, GLASS_H, seed=variant)
-    meta = draw_city(c, (0, 0, GLASS_W - 1, GLASS_H - 1), run, rng, layout_seed=1000 + variant * 37)
-    # the centred coordinates the game uses (the glass centre is the node origin)
+    c = Canvas(VIEW_W, GLASS_H, seed=variant)
+    meta = draw_city(c, (0, 0, VIEW_W - 1, GLASS_H - 1), run, rng, layout_seed=1000 + variant * 37)
+    # the centred coordinates the game uses (the glass centre is the node origin, the view centred on it at rest)
     def cen(p):
-        return [p[0] - GLASS_W // 2, p[1] - GLASS_H // 2]
+        return [p[0] - VIEW_W // 2, p[1] - GLASS_H // 2]
     return c.img, {k: [cen(p) for p in v] for k, v in meta.items()}
 
 
@@ -195,7 +200,8 @@ def window_view(run, variant):
 # The stair art's glass is a HOLE (tools/art/stairwell.py); this city sits behind it (scripts/stair_window.gd). One size fits
 # both stairs — the DOWN stair's wide three-light window and the UP stair's narrow sash (the sprite covers the rest). 78 tall
 # so the rain sheet wraps seamlessly over its 13 frames (78/13 = 6, 39/13 = 3), like the balcony's.
-STAIR_W, STAIR_H = 72, 78
+STAIR_RAIN_W, STAIR_H = 72, 78       # the rain sheet: fixed on the glass (wider than the widest hole, 66)
+STAIR_W = STAIR_RAIN_W + 2 * PAN      # the view: wider still, so it can pan (round 33)
 STAIR_VARIANTS = 2                    # left / right stairwell look out on different stretches of the same city
 
 
@@ -486,12 +492,13 @@ def main():
     # balcony rain: the opening, 78 tall, 13 frames (near 6px, far 3px)
     rain_frames(80, 78, 13, 28, 18, 7, 4, seed=9, slant=4).save(os.path.join(OUT, 'rain_balcony.png'))
     # stairwell rain: 72x78, 13 frames (near 6px, far 3px) — behind the stair windows' glass
-    rain_frames(STAIR_W, STAIR_H, 13, 22, 14, 7, 4, seed=13, slant=3).save(os.path.join(OUT, 'rain_stair.png'))
+    rain_frames(STAIR_RAIN_W, STAIR_H, 13, 22, 14, 7, 4, seed=13, slant=3).save(os.path.join(OUT, 'rain_stair.png'))
     splash_frames().save(os.path.join(OUT, 'splash.png'))
     meta['_sizes'] = {'glass': [GLASS_W, GLASS_H], 'frame': [FR_W, FR_H], 'frame_glass_centre': [FR_CX, FR_CY],
                       'fire': [FIRE_W, FIRE_H, FIRE_N], 'fire_s': [6, 8, FIRE_N], 'explosion': [16, 16, EXP_N], 'explosion_s': [12, 12, EXP_N], 'smoke': [SM_W, SM_H, SM_N],
                       'rain_window': [GLASS_W, GLASS_H, 13], 'rain_balcony': [80, 78, 13],
-                      'rain_stair': [STAIR_W, STAIR_H, 13], 'stair_view': [STAIR_W, STAIR_H], 'splash': [9, 5, 4]}
+                      'rain_stair': [STAIR_RAIN_W, STAIR_H, 13], 'stair_view': [STAIR_W, STAIR_H], 'splash': [9, 5, 4],
+                      'view': [VIEW_W, GLASS_H], 'pan': PAN}
     with open(os.path.join(OUT, 'city_meta.json'), 'w') as fh:
         json.dump(meta, fh, indent=1, sort_keys=True)
     preview(sheet_rows)
@@ -508,7 +515,7 @@ def preview(rows):
         fr = Image.open(os.path.join(OUT, 'window_frame_%d.png' % run)).convert('RGBA')
         for vi, v in enumerate(views):
             cell = Image.new('RGBA', (FR_W, FR_H), (0, 0, 0, 0))
-            cell.paste(v, (FR_CX - GLASS_W // 2, FR_CY - GLASS_H // 2))
+            cell.paste(v.crop((PAN, 0, PAN + GLASS_W, GLASS_H)), (FR_CX - GLASS_W // 2, FR_CY - GLASS_H // 2))
             # a slice of rain + fire on the night ones, so the preview shows the animation's look
             if run == 3:
                 rn = Image.open(os.path.join(OUT, 'rain_window.png')).convert('RGBA').crop((3 * GLASS_W, 0, 4 * GLASS_W, GLASS_H))

@@ -215,7 +215,6 @@ var listen_report_line: String = ""
 # state lives here so every "is the player free?" rule sees it.
 const PACK_KNEEL_TIME := 0.45
 const PACK_STAND_TIME := 0.3
-const PACK_LEAN := 0.24                  # radians the body leans toward the pack (Node2D skew)
 const HELD_PACK := preload("res://scripts/held_pack.gd")
 var pack_phase: String = ""              # "" | "kneel" | "open" | "stand"
 var pack_timer: float = 0.0
@@ -1303,14 +1302,12 @@ func _pack_finish() -> void:
 	_pack_prop = null
 
 
-## Lean the body toward the pack by k (0..1), the feet held where they were: Node2D.skew shears
-## about the sprite's origin, so the feet slide by feet_dy·sin(skew) — put that back.
+## How far into the kneel (0..1) — it times the bag opening and the stand-up. No lean: owner round 33 ("just have
+## the player crouch and the bag open and close beside them on the floor"). The sprite stays as it was.
 func _pack_lean(k: float) -> void:
 	_pack_k = clampf(k, 0.0, 1.0)
-	var dir: float = -1.0 if animated_sprite.flip_h else 1.0
-	var sk: float = dir * PACK_LEAN * _pack_k
-	animated_sprite.skew = sk
-	animated_sprite.position.x = _pack_base_x + _pack_feet_dy * sin(sk)
+	animated_sprite.skew = 0.0
+	animated_sprite.position.x = _pack_base_x
 
 
 func _pack_tick(delta: float) -> void:

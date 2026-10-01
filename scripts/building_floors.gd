@@ -302,7 +302,6 @@ func _ready() -> void:
 	_spawn_door_fire(floor_num)
 	WorldState.apply_time_tint(self, floor_num)   # ambient darkness the real lights punch through
 	_spawn_floor_lighting(floor_num)              # the wall sconces (the floor's light)
-	_add_foreground_dead(floor_num)               # the foreground-silhouette test (sporadic)
 	_frame_camera(player)
 	# Keep the HUD floor counter honest for EVERY way of landing on a floor — not
 	# just stair transitions. A dev jump / F2 rebuild used to leave it stale (e.g.
@@ -383,6 +382,24 @@ const STAIR_UP_STACK := 18.0
 const STAIR_OPENING_TOP := 262.0           # the stair art's top edge (= stair_pan.VAULT_OPENING_TOP), just under the lintel
 
 
+## The memory key of a staircase's i-th enemy: per CHOKE (the staircase), not per floor (round 33).
+static func stair_enemy_key(choke: int, i: int) -> String:
+	return "choke%d:stairwell:%d" % [choke, i]
+
+
+## Is this staircase enemy still on the stairs / on `floor_num` (true), or did it step off onto the OTHER floor (false)? Its
+## memory (written when it steps off and the player leaves) names the floor; a live node elsewhere in the tree that has already
+## stepped off (the floor you're panning FROM) counts too.
+func stair_enemy_here(key: String, floor_num: int) -> bool:
+	var rec = WorldState.zombie_positions.get(key, null)
+	if rec is Dictionary and int(rec.get("floor", floor_num)) != floor_num:
+		return false
+	for z in get_tree().get_nodes_in_group("stair_enemy"):
+		if z.spawn_key == key and not z.is_dead and not is_ancestor_of(z) and not z.stair_mode:
+			return false
+	return true
+
+
 static func stair_up_rest_min() -> float:
 	return 419.0 - StairPan.UP_TURN_HEIGHT - STAIR_FEET_BELOW_ORIGIN + STAIR_BOB_AMP
 
@@ -446,11 +463,18 @@ func _spawn_stair_enemies(floor_num: int, as_scenery: bool = false) -> void:
 		rng.seed = hash(str(WorldState.master_seed) + "stairenemy" + str(choke) + str(WorldState.current_run))
 		# Spawn topmost-first so the lowest (nearest) is added last and draws on top.
 		for i in range(count - 1, -1, -1):
-			var key := "%d:stairwell:%d:%d" % [floor_num, choke, i]
-			if WorldState.killed_zombies.has(key):
+			# ONE population per STAIRCASE (owner round 33 — "This enemy was on the stairs as I came down… I should not have
+			# been able to come downstairs"): the floor above sees it lurking down the shaft, the floor below standing up the
+			# flight — the same enemy, one key per (choke, slot), so killing it from either floor kills it on both, and one
+			# that STEPPED OFF onto a floor (its memory says which) isn't still on the stairs for the other one.
+			var key := stair_enemy_key(choke, i)
+			var legacy := "%d:stairwell:%d:%d" % [floor_num, choke, i]      # pre-round-33 saves
+			if WorldState.killed_zombies.has(key) or WorldState.killed_zombies.has(legacy):
 				continue
-			if WorldState.followed_away.has(key):
+			if WorldState.followed_away.has(key) or WorldState.followed_away.has(legacy):
 				continue   # this one left the floor following the player — no duplicate
+			if not stair_enemy_here(key, floor_num):
+				continue   # it stepped off the stairs onto the OTHER floor
 			# Stack them up the shaft: each one a bit further up/deeper than the last, so a
 			# couple on one staircase read as bunched on the steps rather than overlapping.
 			var step_off: float = float(i) * 30.0
@@ -462,6 +486,7 @@ func _spawn_stair_enemies(floor_num: int, as_scenery: bool = false) -> void:
 			var z = zombie_scene.instantiate()
 			z.global_position = Vector2(shaft_x + rng.randf_range(-4.0, 4.0), rest_y)
 			z.spawn_key = key
+			z.set_meta("stair_floor", floor_num)     # remembered on THIS floor once it steps off (WorldState.record_zombie)
 			z.add_to_group("stair_enemy")
 			# Seeded disposition: EAGER rouses at the normal range; PASSIVE only when the
 			# player is right on it — so not every stairwell enemy always comes at you.
@@ -1321,23 +1346,6 @@ func _wake_scenery_zombies() -> void:
 # (merchant, camera stays with the caller), and re-derives the direction-
 # dependent bits now that the arrival is final. The live player is reparented in
 # by the caller before this runs.
-const FOREGROUND_DEAD := preload("res://scripts/foreground_dead.gd")
-
-
-func _add_foreground_dead(floor_num: int) -> void:
-	# the foreground-silhouette test (scripts/foreground_dead.gd): only where the dead already lie
-	# in this corridor (or everywhere, forced from the F1 menu)
-	if get_node_or_null("ForegroundDead") != null:
-		return
-	var CD = load("res://scripts/corridor_decals.gd")
-	var has_dead: bool = not CD.dead_plan(floor_num, WorldState.current_run).is_empty()
-	if not (WorldState.foreground_dead_mode == 2 or (has_dead and FOREGROUND_DEAD.wants("corridor", "f%d" % floor_num))):
-		return
-	var fg = FOREGROUND_DEAD.new()
-	add_child(fg)
-	fg.setup("f%d" % floor_num, 435.0, 150.0, 1200.0)
-
-
 func go_live() -> void:
 	if not passive:
 		return
@@ -1367,7 +1375,6 @@ func go_live() -> void:
 	_spawn_merchant(floor_num)
 	WorldState.apply_time_tint(self, floor_num)   # a woken pan backdrop gets its ambient here
 	_spawn_floor_lighting(floor_num)              # guarded — passive backdrop already built these
-	_add_foreground_dead(floor_num)
 	# Journal/cross-run memory: arriving by STAIRS is the main way down, and it lands here, not
 	# in the live _ready — so depth, the map's fog and enemy sightings must be recorded here too.
 	_note_floor_arrival(floor_num)

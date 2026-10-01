@@ -24,8 +24,8 @@ texture_filter = 1
 texture = ExtResource("1_art")
 centered = false
 
-[node name="anchor_wall_cabinet" type="Marker2D" parent="."]
-position = Vector2(27, 48)
+[node name="anchor_basin_rim" type="Marker2D" parent="."]
+position = Vector2(13, 73)
 
 [node name="anchor_wall_sink" type="Marker2D" parent="."]
 position = Vector2(27, 74)
@@ -43,8 +43,7 @@ position = Vector2(168, 88)
 position = Vector2(210, 93)
 
 [node name="anchor_wall_shower" type="Marker2D" parent="."]
-position = Vector2(291, 68)
-metadata/back_plane = true
+position = Vector2(298, 96)
 
 [node name="Lights" type="Node2D" parent="."]
 

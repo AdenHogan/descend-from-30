@@ -26,6 +26,7 @@ func _ready() -> void:
 	WorldState.opener_seen = true
 	_test_banister_over_arrival()
 	_test_fall_geometry()
+	_test_one_hint_at_a_time()
 	await _test_live_vault()
 	Engine.time_scale = 1.0
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
@@ -42,6 +43,87 @@ func _live_down(root: Node, fnum: int = -1) -> Node:
 				continue
 			return n
 	return null
+
+
+func _shown(owner: Node) -> String:
+	var p: Panel = HUD.world_prompt_panel(owner)
+	if p == null or not p.visible:
+		return ""
+	return (p.find_children("*", "Label", true, false)[0] as Label).text
+
+
+## Owner round 33: "the text for listen and jump over overlap… we also don't need both texts to be there. Players can have it
+## once in tutorial, one followed by the other. Doesn't always need both when descending."
+func _test_one_hint_at_a_time() -> void:
+	print("[stair hints: never both, listen then jump, each taught once]")
+	var saved: Dictionary = WorldState.hints_taught.duplicate()
+	WorldState.hints_taught = {}
+	var bf = load("res://scenes/building_floors.tscn").instantiate()
+	bf.setup_floor = 15
+	bf.passive = true
+	WorldState.current_floor = 15
+	add_child(bf)
+	var t = _live_down(bf, 15)
+	check(t != null and t.banister != null, "floor 15 has a down stairwell with a banister")
+	if t == null or t.banister == null:
+		bf.free()
+		WorldState.hints_taught = saved
+		return
+	# First pass at the half-wall (you cross it before the steps): listen not yet taught → no jump hint.
+	t.player_on_banister = true
+	t._update_hint(0.1)
+	check(_shown(t.banister) == "" and _shown(t) == "", "first visit to the half-wall: no hint before listening is taught")
+	t.player_on_banister = false
+	t._on_banister_exited(_fake_player())
+	# The steps: the listen hint, alone.
+	t.player_nearby = true
+	t._update_hint(0.1)
+	check(_shown(t).contains("Listen below") and _shown(t.banister) == "", "at the steps: the listen hint, alone")
+	t._update_hint(1.0)
+	check(not WorldState.hint_taught(t.HINT_LISTEN), "not taught after 1.1 s")
+	t._update_hint(2.0)
+	check(WorldState.hint_taught(t.HINT_LISTEN), "taught after 3 s up")
+	check(_shown(t).contains("Listen below"), "…but it stays up until you leave the steps")
+	t._on_body_exited(_fake_player())
+	check(_shown(t) == "", "leaving the steps hides it")
+	# Now the half-wall: the jump hint, alone.
+	t.player_on_banister = true
+	t._update_hint(0.1)
+	check(_shown(t.banister).contains("Jump over the wall") and _shown(t) == "", "then at the half-wall: the jump hint, alone")
+	t._update_hint(3.0)
+	check(WorldState.hint_taught(t.HINT_JUMP), "the jump is taught after 3 s up")
+	t._on_banister_exited(_fake_player())
+	check(_shown(t.banister) == "", "leaving the half-wall hides it")
+	# Both taught: a later descent shows neither, in either zone.
+	t.player_nearby = true
+	t._update_hint(0.1)
+	check(_shown(t) == "" and _shown(t.banister) == "", "later visit to the steps: no hint")
+	t._on_body_exited(_fake_player())
+	t.player_on_banister = true
+	t._update_hint(0.1)
+	check(_shown(t) == "" and _shown(t.banister) == "", "later visit to the half-wall: no hint")
+	t._on_banister_exited(_fake_player())
+	# Using the key teaches it too, and the profile keeps it.
+	WorldState.hints_taught = {}
+	WorldState.note_hint_taught(t.HINT_LISTEN)
+	WorldState.load_profile()
+	check(WorldState.hint_taught(t.HINT_LISTEN) and not WorldState.hint_taught(t.HINT_JUMP), "taught hints survive a profile reload")
+	bf.free()
+	_fake.free()
+	WorldState.hints_taught = saved
+	WorldState.save_profile()
+
+
+var _fake: Node2D = null
+
+
+func _fake_player() -> Node2D:
+	# The stairwell matches its body by name (one stand-in, kept for the whole check — freed ones linger a frame and rename the next).
+	if _fake == null:
+		_fake = Node2D.new()
+		add_child(_fake)
+		_fake.name = "Player"
+	return _fake
 
 
 func _test_banister_over_arrival() -> void:

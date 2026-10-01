@@ -52,6 +52,13 @@ corridor floor. Measured (collision-bottom of the CollisionShape2D):
     never lets the floor settle it — left the player resting 2–5px BELOW 419, standing under
     the enemies with its legs poking beneath corpses. Measured + fixed; locked by
     `plane_lock_test` (`_test_player_feet_on_enemy_plane`).
+- **DRAWN feet (owner round 33 — "corpse bodies are below the player y plane").** Collision feet are 419 for every rig,
+  but the DRAWN feet were not: the player's art ends 1 px ABOVE its collision bottom (drawn 418), the enemy art 2-3 px
+  BELOW (drawn 421-422) — so every standing zombie sat 3-4 px under the player and a corpse, all its mass on that bottom
+  row, read as lying in FRONT of the floor. `scripts/enemy_feet.gd` (`EnemyFeet.lift_sprite`, called in the standard
+  family's and the big's `_ready`) raises each enemy's SPRITE so its lowest Idle pixel sits at collision-bottom − 1 = the
+  player's row: **drawn feet 418 in a corridor, 352 in a flat, alive or dead** (the Death frames end on the same row as
+  Idle). Collision, origins and every number above are unchanged. Locked by `enemy_variety_test._test_drawn_feet_level`.
 - **Never align two different rigs by their ORIGIN.** Matching origins puts a
   bigger rig's feet lower. Align by FEET (collision-bottom = 419). This is the
   bug that made the stair enemy sit 18px low.

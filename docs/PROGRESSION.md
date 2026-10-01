@@ -15,17 +15,17 @@ Every tier feeds the SAME modifier fold (base × ∏mult + Σadd, never direct w
 |---|---|---|---|---|
 | **Weapon** (workbench) | the weapon | scrap | maintenance-room bench, pick 1 of 2 per level | SCRAP_UPGRADES.md |
 | **Merchant upgrades** | the whole 3-run arc | merchant visits (25/20/15/10/5) | pick 1 of 2 before the shop | STORE_DESIGN.md |
-| **Run boons** (temporary) | THIS character only | reaching milestone floors | pick 1 of 2 from a HUD badge | below |
+| **Run boons** (temporary) | THIS character only | each merchant visit (25/20/15/10/5) | pick 1 of 2 in the merchant's window, after the upgrade | below |
 | **Descent Valour** (permanent) | the PROFILE, forever | how deep each run got (scored at the session's end) | keep ONE perk found that session; max 10 kept | below |
 
 ## Tier 2 — Run boons (temporary)
 
-- **When:** the FIRST time this character reaches a milestone floor — **27, 22, 17, 12, 7**
-  (two floors above each merchant floor, so the descent alternates boon → merchant → boon …).
-  Any arrival counts (stairs, elevator, warp).
-- **How it's offered:** NOT a forced pause (you may arrive mid-fight or mid-stair-pan). A
-  **"★ BOON — choose"** badge appears beside the portrait; click it for a pick-1-of-2 (or Pass).
-  Unclaimed boons queue up. `boon_offer_ui.gd`.
+- **When (owner round 33 — "boons are only on every 5th floor and collectable from the merchant"):** this
+  character's FIRST visit to each merchant — floors **25, 20, 15, 10, 5** (`Progression.BOON_MILESTONES` =
+  `WorldState.MERCHANT_FLOORS`). Arriving on a floor offers nothing by itself (the old 27/22/17/12/7 arrival badge is gone).
+- **How it's offered:** in the merchant's window (`shop_ui.gd`): the upgrade pick first, then the **★ BOON** step —
+  pick one of two, or Pass — then the shop. Leaving before choosing keeps it waiting at that merchant.
+  (`boon_offer_ui.gd` + `HUD.open_boon_offer` still exist; nothing opens them in play.)
 - **What:** a punchier pool than the merchant's (they don't last): Adrenaline, Second Wind,
   Rage, Steady Nerves, Holding Breath, Sharp Eye, Big Lungs, Light Feet, Brawler, Heightened
   Senses. Seeded per (playthrough, run, floor) — a reload offers the same pair; never a boon you

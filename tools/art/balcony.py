@@ -75,7 +75,16 @@ def _view(c, run, rng):
     and smoke are NOT painted here: the game plays them as small animations over the points this returns."""
     import cityscape
     import random as _r
-    return cityscape.draw_city(c, (X0, LINTEL, X1, EDGE + 1), run, _r.Random(700 + run), layout_seed=4242, tall=1.55)
+    box = (X0, LINTEL, X1, EDGE + 1)
+    meta = cityscape.draw_city(c, box, run, _r.Random(700 + run), layout_seed=4242, tall=1.55)
+    # draw_city lets a tower run on past its box (fine inside a window, which clips) — here that left a 2px sliver of skyline
+    # standing on the wall outside the doorway (round 33). Nothing of the view exists outside the opening.
+    px = c.img.load()
+    for y in range(H):
+        for x in range(W):
+            if not (box[0] <= x <= box[2] and box[1] <= y <= box[3]):
+                px[x, y] = (0, 0, 0, 0)
+    return meta
 
 
 def _side_walls(c, run):
@@ -236,12 +245,38 @@ def _visible_view_mask(run):
     return mask
 
 
+def _wide_city(run):
+    """THE PANNING CITY (owner round 33 — "walking past the window… it looks like it is moving in the distance as you walk by…
+    implemented for balcony openings too"): the same skyline drawn cityscape.PAN px wider on each side than the opening, as its
+    own layer. The game lays it over the balcony art CLIPPED to the bare-view pixels (balcony_view_mask_<run>.png) and slides it
+    with the player (scripts/city_view.gd), so the rail, doors and walls stay in front. Returns (image, meta in module coords)."""
+    import cityscape
+    import random as _r
+    c = Canvas(seed=7)
+    box = (X0 - cityscape.PAN, LINTEL, X1 + cityscape.PAN, EDGE + 1)
+    m = cityscape.draw_city(c, box, run, _r.Random(700 + run), layout_seed=4242, tall=1.55)
+    return c.img.crop((box[0], box[1], box[2] + 1, box[3] + 1)), m
+
+
 def _export_fx(metas):
     """assets/city/balcony_rain.png (the night's rain, cut to the visible view) + balcony_meta.json (where the fires /
-    blasts / smoke / aircraft lights may sit, and where rain splashes on the tiles)."""
+    blasts / smoke / aircraft lights may sit, and where rain splashes on the tiles) + the panning city layer and its clip mask
+    per run (balcony_city_<run>.png, balcony_view_mask_<run>.png)."""
     import json
+    import cityscape
     out = os.path.join(ROOT, 'assets', 'city')
     os.makedirs(out, exist_ok=True)
+    for run in (1, 2, 3):
+        img, metas[run] = _wide_city(run)          # the fires etc. sit on THIS city (the baked one is never seen)
+        img.save(os.path.join(out, 'balcony_city_%d.png' % run))
+        vm = _visible_view_mask(run)
+        mk = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+        mp = mk.load()
+        for y in range(H):
+            for x in range(W):
+                if vm[y][x]:
+                    mp[x, y] = (255, 255, 255, 255)
+        mk.save(os.path.join(out, 'balcony_view_mask_%d.png' % run))
     mask = _visible_view_mask(3)
     strip = Image.open(os.path.join(out, 'rain_balcony.png')).convert('RGBA')
     fw, fh = 80, 78
@@ -257,6 +292,7 @@ def _export_fx(metas):
     back_l = int(round(depth_x(X0, EDGE))) + 4
     back_r = int(round(depth_x(X1, EDGE))) - 4
     meta = {'rain_origin': list(RAIN_ORIGIN), 'rain_size': [fw, fh],
+            'city_origin': [X0 - cityscape.PAN, LINTEL], 'pan': cityscape.PAN,
             'splash': {'y0': EDGE + 2, 'y1': EDGE + 11, 'x0': back_l, 'x1': back_r}}
     for run in (1, 2, 3):
         m = metas[run]

@@ -38,7 +38,8 @@ then run `python3 tools/gen_module_blueprint.py`.
 | 0 | 224 | ceiling / back-wall top |
 | 23 | 247 | interior doorway lintel |
 | 10–66 | 234–290 | the two WINDOW BOXES (L x 50–94, R x 226–270) — **bare wall** |
-| 40 | 264 | node line — no scavenge node above it |
+| 40 | 264 | node line — no STEP-UP (back-plane) node above it |
+| 66 | 290 | FRONT node line — a node reached from the walking line sits no higher (about the player's head; `pixlib.FRONT_NODE_MIN_Y`, owner round 33) |
 | 100 | 324 | wall / floor seam — where SET-BACK furniture stands |
 | 20–100 | 244–324 | BALCONY DOORWAY (study / dining, on a balcony slot): x 8–92, sill on the seam |
 | 64 | 288 | balcony handrail (the far edge of the balcony is 86 / 310) |
@@ -67,7 +68,7 @@ then run `python3 tools/gen_module_blueprint.py`.
 
 ## Scavenge nodes
 
-Each node is a point ON a drawn piece of furniture, at y ≥ 40. Three kinds:
+Each node is a point ON a drawn piece of furniture, at y ≥ 40 (a FRONT node at y ≥ 66 — what hangs higher over a basin or a fixture that stands out from the wall is out of reach, so its things sit on the fixture). Three kinds:
 
 - **FRONT** (gold) — on furniture standing out toward the lane; searched from the walking lane.
   **At least 2 per room.**
@@ -109,7 +110,7 @@ furniture they belong to (a chest, a desk, a bedside table) — never loose on t
   the 114–122 band) and are drawn as real solids (`tools/art/solid3d.py`); their nodes are FRONT
   nodes. Tall things you reach UP into against the wall — bookcases, wardrobes, dressers, a linen
   cupboard, a shower cubicle — stay set back, and their nodes are the step-up ones. So a room may have
-  no step-up at all (bathrooms B, C, D) or one (bathroom A's shower, E's linen cupboard).
+  no step-up at all (bathrooms A–D — A's walk-in shower stands out into the room since round 33) or one (bathroom E's linen cupboard).
 - **Situational foreground**: a thing out in the room must belong there — the bath on its feet, a
   champagne bucket BY the tub, a laundry basket BY the machine, a mat IN FRONT of the bath. Never a
   random piece standing alone mid-floor (the bathroom's clothes airer was removed for that).

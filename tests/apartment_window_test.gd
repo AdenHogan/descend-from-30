@@ -23,6 +23,7 @@ func _ready() -> void:
 	await _test_windows_day()
 	await _test_windows_night()
 	await _test_city_outside()
+	await _test_city_parallax()
 	await _test_exit_through_door()
 	_test_floor_boundary()
 	_test_module_variants()
@@ -580,14 +581,18 @@ func _test_city_outside() -> void:
 			add_child(win)
 			win.setup(Vector2(100, 262), true, v)
 			await get_tree().process_frame
-			for c in win.fx.get_children():
+			for c in win.fx.get_children() + win.city.far.get_children():
 				if c is AnimatedSprite2D and c.sprite_frames.get_frame_count("default") == 6 and c.sprite_frames.get_frame_count("default") == 6 and c.sprite_frames.get_frame_texture("default", 0).get_width() == 6:
 					fires += 1
 			rain += win.fx.get_tree().get_nodes_in_group("window_rain").size() if v == 3 else 0
 			check(win.view != null and win.frame != null, "run %d v%d: the window is a framed view, not a coloured rectangle" % [run, v])
 			var gw: int = win.view.texture.get_width()
 			var gh: int = win.view.texture.get_height()
-			check(gw == 44 and gh == 52 and absf(win.PANE_HALF_W * 2.0 - gw) < 0.1 and absf(win.PANE_HALF_H * 2.0 - gh) < 0.1, "run %d v%d: the skyline fills the %dx%d glass exactly" % [run, v, gw, gh])
+			var pan: float = win.city.pan
+			check(pan >= 4.0 and absf(win.PANE_HALF_W * 2.0 + pan * 2.0 - gw) < 0.1 and absf(win.PANE_HALF_H * 2.0 - gh) < 0.1,
+				"run %d v%d: the skyline (%dx%d) is the glass plus %.0f px each side to pan into" % [run, v, gw, gh, pan])
+			check(win.city.clip_children == CanvasItem.CLIP_CHILDREN_ONLY and win.city.mask_rect.size == Vector2(win.PANE_HALF_W, win.PANE_HALF_H) * 2.0,
+				"run %d v%d: ...clipped to the glass" % [run, v])
 			win.queue_free()
 			await get_tree().process_frame
 		counts[run] = [fires, rain]
@@ -625,10 +630,97 @@ func _test_city_outside() -> void:
 	# the exterior is UNSHADED: it shows as drawn, not darkened by the night's ambient or blown out by the room's lights
 	check(w2.view.material is CanvasItemMaterial and w2.view.material.light_mode == CanvasItemMaterial.LIGHT_MODE_UNSHADED, "the skyline is unshaded (light from outside, not a lit prop)")
 	var unshaded_all := true
-	for ch in w2.fx.get_children():
+	for ch in w2.fx.get_children() + w2.city.far.get_children():
 		if ch is CanvasItem and not (ch.material is CanvasItemMaterial and ch.material.light_mode == CanvasItemMaterial.LIGHT_MODE_UNSHADED):
 			unshaded_all = false
 	check(unshaded_all, "...and so is every fire / smoke / rain sprite over it")
 	check(w2.view.modulate.is_equal_approx(Color(1, 1, 1, 1)), "at rest the view is drawn exactly as authored")
 	w2.queue_free()
 	await get_tree().process_frame
+
+
+## Owner round 33: "as if the scene of the city remains in place, but because you're passing by the window it looks like it is moving
+## in the distance as you walk by… extend the city image a little and then allow for the view to pan slightly… for balcony openings
+## too." The city slides with the viewer, a few whole px, never past the extra it was drawn with; the rain stays on the glass.
+func _test_city_parallax() -> void:
+	print("[the city pans as you walk past: windows, stairwells, balconies]")
+	var CV = load("res://scripts/city_view.gd")
+	check(CV.offset_for(500.0, 500.0, 8.0) == 0.0, "standing square to the opening: the city is centred")
+	var r: float = CV.offset_for(600.0, 500.0, 8.0)
+	var l: float = CV.offset_for(400.0, 500.0, 8.0)
+	check(r > 0.0 and l < 0.0 and r == -l and r == roundf(r), "walk right → it drifts right, left → left, in whole px (%.0f / %.0f)" % [r, l])
+	check(CV.offset_for(5000.0, 500.0, 8.0) == 8.0 and CV.offset_for(-5000.0, 500.0, 8.0) == -8.0, "never past the extra it was drawn with")
+	# a live window: the view + the fires on it slide, the rain doesn't
+	WorldState.new_game()
+	WorldState.is_first_run = false
+	WorldState.current_run = 3
+	var win = load("res://scripts/apartment_window.gd").new()
+	add_child(win)
+	win.setup(Vector2(400, 262), true, 2)
+	var viewer := Node2D.new()
+	add_child(viewer)
+	win.city._viewer = viewer
+	viewer.global_position = Vector2(win.global_position.x + 300.0, 350)
+	await get_tree().process_frame
+	var right: float = win.city.far.position.x
+	viewer.global_position = Vector2(win.global_position.x - 300.0, 350)
+	await get_tree().process_frame
+	var left: float = win.city.far.position.x
+	check(right == win.city.pan and left == -win.city.pan, "a window's city slides with the viewer (%+.0f → %+.0f)" % [right, left])
+	check(win.view.get_parent() == win.city.far, "...the skyline rides it")
+	var fires_far := 0
+	for c in win.city.far.get_children():
+		if c is AnimatedSprite2D:
+			fires_far += 1
+	check(fires_far >= 1, "...and so do the fires / smoke on it (%d)" % fires_far)
+	var rain_still := true
+	for n in get_tree().get_nodes_in_group("window_rain"):
+		if win.is_ancestor_of(n) and (win.city.far.is_ancestor_of(n) or n.global_position.x != win.global_position.x):
+			rain_still = false
+	check(rain_still, "...while the rain stays on the glass")
+	win.queue_free()
+	viewer.queue_free()
+	await get_tree().process_frame
+	# a balcony: its city is a clipped layer over the art, covering every bare-view pixel at any slide
+	var apt := ""
+	for f in range(5, 29):
+		for col in range(1, 6):
+			var a := str(f) + "0" + str(col)
+			for sl in range(3):
+				if apt == "" and WorldState.is_balcony_slot(a, sl):
+					apt = a
+	check(apt != "", "found a flat with a balcony (%s)" % apt)
+	if apt == "":
+		return
+	for run in [1, 3]:
+		WorldState.current_run = run
+		WorldState.current_apartment_id = apt
+		WorldState.current_floor = int(apt.substr(0, apt.length() - 2))
+		WorldState.spawn_source = ""
+		var room = load("res://scenes/room.tscn").instantiate()
+		add_child(room)
+		for i in range(3):
+			await get_tree().process_frame
+		var cities: Array = []
+		for b in room.find_children("Balcony", "Node2D", true, false):
+			if b.visible and b.get_node_or_null("City") != null:
+				cities.append(b.get_node("City"))
+		check(cities.size() == _balcony_count(apt), "run %d: every balcony has its panning city (%d)" % [run, cities.size()])
+		for cv in cities:
+			var mask: Image = cv.mask_tex.get_image() if cv.mask_tex != null else null
+			var view: Sprite2D = cv.far.get_node_or_null("View")
+			check(mask != null and view != null and cv.clip_children == CanvasItem.CLIP_CHILDREN_ONLY, "run %d: clipped to the bare view, the skyline in FAR" % run)
+			if mask == null or view == null:
+				continue
+			check(str(view.texture.resource_path).ends_with("balcony_city_%d.png" % run), "run %d: the run's own city" % run)
+			var used := mask.get_used_rect()
+			var vx0: float = view.position.x
+			var vx1: float = view.position.x + view.texture.get_width()
+			check(used.size.x > 0 and used.position.x >= vx0 + cv.pan and used.end.x <= vx1 - cv.pan
+				and used.position.y >= view.position.y and used.end.y <= view.position.y + view.texture.get_height(),
+				"run %d: the city covers every bare-view pixel at any slide (mask x %d..%d inside %.0f..%.0f ± %.0f)" % [run, used.position.x, used.end.x, vx0, vx1, cv.pan])
+			var bal_art: Node = cv.get_parent().get_node_or_null("BalconyArt")
+			check(bal_art != null and cv.get_index() > bal_art.get_index(), "run %d: over the balcony art (the mask keeps the rail in front)" % run)
+		room.queue_free()
+		await get_tree().process_frame
+		await get_tree().process_frame

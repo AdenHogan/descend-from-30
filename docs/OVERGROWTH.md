@@ -9,10 +9,13 @@ morning) and **time** (every run the same building reads greener) — the same t
 
 ## How much — `scripts/overgrowth.gd`
 
-`Overgrowth.level(floor, run)` is a pure function of `(master_seed, floor, run)`, 0..1:
-`0.02 + 0.58·depth^1.2 + a per-floor jitter`, plus a per-run step that itself grows with depth. Floor 29 at
-run 1 ≈ 0.06 (a weed or two), floor 15 run 1 ≈ 0.3, floor 3 run 1 ≈ 0.6, floor 1 run 3 = 1.0. Floor 30 and the
-lobby grow nothing. **Fire wins**: a floor that is blazing / burnt out (`WorldState.fire_intensity`) → 0 (a LIGHT
+`Overgrowth.level(floor, run)` is a pure function of `(master_seed, floor, run)`, 0..1. **Nothing grows above floor
+12** (owner round 33 — "The overgrowth in the building should not set in till at least floor 12. We need the top to still
+have an element of normalcy that changes and distorts and gets steadily worse/creepier/gooier/grosser as we descend";
+`GROWTH_TOP_FLOOR`). From 12 down, `depth` = (13 − floor) / 12 and the level is `0.02 + 0.58·depth^1.2 + a per-floor
+jitter`, plus a per-run step that itself grows with depth: floor 12 barely touched, floor 1 a jungle by night. Floor 30 and
+the lobby grow nothing. A resident's houseplant and a balcony's potted plant are normal life, not overgrowth — they still
+appear up top. **Fire wins**: a floor that is blazing / burnt out (`WorldState.fire_intensity`) → 0 (a LIGHT
 fire holds it to 40%). `room_level(floor, apartment, run, fire_stage)` moves that per flat — a few are still
 kept up (−0.22), a few choked (+0.22) — and a burnt flat grows nothing. Words: clear / creeping / overgrown /
 choked (`Overgrowth.word`). Dev: F1 → **Overgrowth** cycles the real curve → 0 / 25 / 50 / 75 / 100 % on every
@@ -69,3 +72,11 @@ Growth **in the stairwells**; **in-run growth** (a vine that visibly lengthens o
 **reacts** (fire spreads faster through dry overgrowth — the fuel model could read `Overgrowth`; a shove /
 gunshot shaking the vines); light-loving vs shade plants (glowing fungus at night on the darkest floors);
 the journal / a character's line noticing it ("something's growing in here"); loot under growth.
+
+## Open — depth BIOMES (owner round 33, not built)
+The owner's direction: "different visual biomes that will also have visually distinct enemies around those levels" — the top
+keeps its normalcy and the building gets "worse / creepier / gooier / grosser" going down. The floor-12 growth line is the first
+piece. A proposal to steer (nothing built): **30-21 the Hotel** (normal life, damage + blood only), **20-13 the Rot** (damp, mould,
+peeling, the first goo in the corners; an enemy variant to match), **12-6 the Green** (this overgrowth), **5-1 the Nest** (growth
+turning to flesh / goo; its own enemy variant). The corridor sections (hotel 21-29 / residential 11-20 / institutional 1-10) and the
+per-band enemy tables (`*_CHANCE` LOW/MID/HIGH) are the hooks.

@@ -303,33 +303,20 @@ func _test_rooms() -> void:
 
 
 func _test_foreground() -> void:
-	# the foreground-silhouette TEST look (round 21c): off / sporadic / everywhere from the F1 menu
-	var FG = load("res://scripts/foreground_dead.gd")
-	var keep: int = WorldState.foreground_dead_mode
-	WorldState.foreground_dead_mode = 1
-	check(FG.wants("breach", "1203") == FG.wants("breach", "1203"), "sporadic: the same place decides the same way")
-	var hits := 0
-	for i in range(200):
-		if FG.wants("breach", "x%d" % i):
-			hits += 1
-	check(hits > 50 and hits < 150, "sporadic: about half the breached flats (%d/200)" % hits)
-	for tex in ["fg_heap_1", "fg_heap_3", "fg_slumped_2", "fg_hand_2"]:
-		check(ResourceLoader.exists("res://assets/foreground/%s.png" % tex), "silhouette %s exists" % tex)
-	for mode in [0, 2]:
-		WorldState.foreground_dead_mode = mode
-		var apt := _find("big")
-		var room := _room(apt)
-		for i in range(4):
-			await get_tree().process_frame
-		var fg = room.get_node_or_null("ForegroundDead")
-		if mode == 0:
-			check(fg == null, "foreground dead OFF: none")
-		else:
-			check(fg != null and fg.piece_count() >= 2 and fg.z_index > 1, "foreground dead EVERYWHERE: pieces in front of the actors (%s)" % str(fg.piece_count() if fg else -1))
-		room.queue_free()
+	# the foreground-silhouette TEST look (round 21c) was DROPPED in round 33 (owner: "a little overwhelming and not clear about
+	# what we're looking at, so we can drop that visual element from the foreground completely") — nothing may bring it back.
+	check(not ResourceLoader.exists("res://scripts/foreground_dead.gd"), "the foreground-silhouette script is gone")
+	check(not DirAccess.dir_exists_absolute("res://assets/foreground"), "...and its art")
+	check(not ("foreground_dead_mode" in WorldState), "...and its dev switch")
+	var apt := _find("big")
+	var room := _room(apt)
+	for i in range(4):
 		await get_tree().process_frame
-		await get_tree().process_frame
-	WorldState.foreground_dead_mode = keep
+	check(room.get_node_or_null("ForegroundDead") == null and room.find_children("ForegroundDead", "", true, false).is_empty(),
+		"a breached flat has no foreground silhouettes")
+	room.queue_free()
+	await get_tree().process_frame
+	await get_tree().process_frame
 
 
 func _test_wall_crawlers() -> void:
@@ -433,7 +420,9 @@ func _test_longarm() -> void:
 	var spr: AnimatedSprite2D = la.get_node("AnimatedSprite2D")
 	check(absf(spr.scale.x - la.SPRITE_SCALE) < 0.001 and la.SPRITE_SCALE < 3.0, "the long arm is drawn smaller (%.1f, was 3)" % spr.scale.x)
 	var feet: float = spr.position.y + spr.scale.y * la.FEET_BELOW_CENTRE
-	check(absf(feet - 3.0 * la.FEET_BELOW_CENTRE) < 0.01, "...scaled about its feet: they're where they were (%.1f)" % feet)
+	# scaled about its feet, which (round 33, enemy_feet.gd) sit on the player's row: 1 px over the collision feet
+	var want: float = load("res://scripts/enemy_feet.gd").collision_bottom(la) - 1.0
+	check(absf(feet - want) < 0.6, "...scaled about its feet: they're on the player's row (%.1f, want %.1f)" % [feet, want])
 	# its swing (25 frame px above its feet at full reach) now lands at the player's head, not over it
 	var swing: float = 25.0 * spr.scale.y
 	var ptex: Texture2D = load("res://assets/2D-Pixel-Art-Character-Template/Idle/Player Idle 48x48.png")
