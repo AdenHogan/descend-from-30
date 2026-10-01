@@ -135,37 +135,400 @@
    "note": "front carpet, LIGHT",
    "scale": 2
   },
-  "edge_1": {
+  "colnb_1": {
    "anchor": "bottom",
    "fps": 10,
    "frame": [
-    14,
-    18
+    22,
+    10
    ],
    "frames": 8,
-   "note": "",
+   "note": "column base (rounded foot)",
    "scale": 2
   },
-  "edge_2": {
+  "colnb_2": {
    "anchor": "bottom",
    "fps": 10,
    "frame": [
-    14,
-    18
+    22,
+    10
    ],
    "frames": 8,
-   "note": "",
+   "note": "column base (rounded foot)",
    "scale": 2
   },
-  "edge_3": {
+  "colnb_3": {
    "anchor": "bottom",
    "fps": 10,
    "frame": [
-    14,
+    22,
+    10
+   ],
+   "frames": 8,
+   "note": "column base (rounded foot)",
+   "scale": 2
+  },
+  "colnc_1": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    22,
+    14
+   ],
+   "frames": 8,
+   "note": "column cap (blunt round top)",
+   "scale": 2
+  },
+  "colnc_2": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    22,
+    14
+   ],
+   "frames": 8,
+   "note": "column cap (blunt round top)",
+   "scale": 2
+  },
+  "colnc_3": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    22,
+    14
+   ],
+   "frames": 8,
+   "note": "column cap (blunt round top)",
+   "scale": 2
+  },
+  "colnm_1": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    22,
     18
    ],
    "frames": 8,
-   "note": "",
+   "note": "column mid (stacks to any height)",
+   "scale": 2
+  },
+  "colnm_2": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    22,
+    18
+   ],
+   "frames": 8,
+   "note": "column mid (stacks to any height)",
+   "scale": 2
+  },
+  "colnm_3": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    22,
+    18
+   ],
+   "frames": 8,
+   "note": "column mid (stacks to any height)",
+   "scale": 2
+  },
+  "colwb_1": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    30,
+    12
+   ],
+   "frames": 8,
+   "note": "column base (rounded foot)",
+   "scale": 2
+  },
+  "colwb_2": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    30,
+    12
+   ],
+   "frames": 8,
+   "note": "column base (rounded foot)",
+   "scale": 2
+  },
+  "colwb_3": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    30,
+    12
+   ],
+   "frames": 8,
+   "note": "column base (rounded foot)",
+   "scale": 2
+  },
+  "colwc_1": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    30,
+    18
+   ],
+   "frames": 8,
+   "note": "column cap (blunt round top)",
+   "scale": 2
+  },
+  "colwc_2": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    30,
+    18
+   ],
+   "frames": 8,
+   "note": "column cap (blunt round top)",
+   "scale": 2
+  },
+  "colwc_3": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    30,
+    18
+   ],
+   "frames": 8,
+   "note": "column cap (blunt round top)",
+   "scale": 2
+  },
+  "colwm_1": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    30,
+    18
+   ],
+   "frames": 8,
+   "note": "column mid (stacks to any height)",
+   "scale": 2
+  },
+  "colwm_2": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    30,
+    18
+   ],
+   "frames": 8,
+   "note": "column mid (stacks to any height)",
+   "scale": 2
+  },
+  "colwm_3": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    30,
+    18
+   ],
+   "frames": 8,
+   "note": "column mid (stacks to any height)",
+   "scale": 2
+  },
+  "run_blaze_1": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    24,
+    22
+   ],
+   "frames": 8,
+   "note": "run, middle tile (identical edges, tiles to any width)",
+   "scale": 2
+  },
+  "run_blaze_2": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    24,
+    22
+   ],
+   "frames": 8,
+   "note": "run, middle tile (identical edges, tiles to any width)",
+   "scale": 2
+  },
+  "run_blaze_3": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    24,
+    22
+   ],
+   "frames": 8,
+   "note": "run, middle tile (identical edges, tiles to any width)",
+   "scale": 2
+  },
+  "run_light_1": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    24,
+    13
+   ],
+   "frames": 8,
+   "note": "run, middle tile (identical edges, tiles to any width)",
+   "scale": 2
+  },
+  "run_light_2": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    24,
+    13
+   ],
+   "frames": 8,
+   "note": "run, middle tile (identical edges, tiles to any width)",
+   "scale": 2
+  },
+  "run_light_3": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    24,
+    13
+   ],
+   "frames": 8,
+   "note": "run, middle tile (identical edges, tiles to any width)",
+   "scale": 2
+  },
+  "runl_blaze_1": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    24,
+    22
+   ],
+   "frames": 8,
+   "note": "run, left cap (rises out of nothing)",
+   "scale": 2
+  },
+  "runl_blaze_2": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    24,
+    22
+   ],
+   "frames": 8,
+   "note": "run, left cap (rises out of nothing)",
+   "scale": 2
+  },
+  "runl_blaze_3": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    24,
+    22
+   ],
+   "frames": 8,
+   "note": "run, left cap (rises out of nothing)",
+   "scale": 2
+  },
+  "runl_light_1": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    24,
+    13
+   ],
+   "frames": 8,
+   "note": "run, left cap (rises out of nothing)",
+   "scale": 2
+  },
+  "runl_light_2": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    24,
+    13
+   ],
+   "frames": 8,
+   "note": "run, left cap (rises out of nothing)",
+   "scale": 2
+  },
+  "runl_light_3": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    24,
+    13
+   ],
+   "frames": 8,
+   "note": "run, left cap (rises out of nothing)",
+   "scale": 2
+  },
+  "runr_blaze_1": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    24,
+    22
+   ],
+   "frames": 8,
+   "note": "run, right cap (sinks to nothing)",
+   "scale": 2
+  },
+  "runr_blaze_2": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    24,
+    22
+   ],
+   "frames": 8,
+   "note": "run, right cap (sinks to nothing)",
+   "scale": 2
+  },
+  "runr_blaze_3": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    24,
+    22
+   ],
+   "frames": 8,
+   "note": "run, right cap (sinks to nothing)",
+   "scale": 2
+  },
+  "runr_light_1": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    24,
+    13
+   ],
+   "frames": 8,
+   "note": "run, right cap (sinks to nothing)",
+   "scale": 2
+  },
+  "runr_light_2": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    24,
+    13
+   ],
+   "frames": 8,
+   "note": "run, right cap (sinks to nothing)",
+   "scale": 2
+  },
+  "runr_light_3": {
+   "anchor": "bottom",
+   "fps": 10,
+   "frame": [
+    24,
+    13
+   ],
+   "frames": 8,
+   "note": "run, right cap (sinks to nothing)",
    "scale": 2
   },
   "small_1": {
@@ -338,39 +701,6 @@
    "fps": 10,
    "frame": [
     40,
-    26
-   ],
-   "frames": 8,
-   "note": "",
-   "scale": 2
-  },
-  "wall_1": {
-   "anchor": "bottom",
-   "fps": 10,
-   "frame": [
-    30,
-    26
-   ],
-   "frames": 8,
-   "note": "",
-   "scale": 2
-  },
-  "wall_2": {
-   "anchor": "bottom",
-   "fps": 10,
-   "frame": [
-    30,
-    26
-   ],
-   "frames": 8,
-   "note": "",
-   "scale": 2
-  },
-  "wall_3": {
-   "anchor": "bottom",
-   "fps": 10,
-   "frame": [
-    30,
     26
    ],
    "frames": 8,

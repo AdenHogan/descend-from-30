@@ -208,18 +208,6 @@ def tongue(w, h, seed, kind, ember_n=2):
     return clump(w, h, seed, flames, 1.0, ember_n, 0.4, 2.6)
 
 
-def wall_flame(w, h, seed):
-    r = random.Random(seed)
-    flames = [(0.34, 13, h * 0.55, r.uniform(-0.6, -0.1), 1.1), (0.60, 17, h - 5, r.uniform(-0.3, 0.4), 1.2), (0.84, 12, h * 0.45, 0.6, 1.0)]
-    return clump(w, h, seed, flames, 1.0, 2, 0.4, 2.6)
-
-
-def edge_flame(w, h, seed):
-    r = random.Random(seed)
-    flames = [(0.44, 12, h - 5, 0.4, 1.0), (0.70, 9, h * 0.5, r.uniform(0.2, 0.5), 0.8)]
-    return clump(w, h, seed, flames, 1.0, 1, 0.4, 2.6)
-
-
 def small_flame(w, h, seed):
     r = random.Random(seed)
     return clump(w, h, seed, [(0.5, 8, h - 2, r.uniform(-0.4, 0.4), 0.6)], 1.0, 0, 0.5, 2.6)
@@ -253,6 +241,130 @@ def bed(w, h, seed, max_h, min_h, humps, dim=1.0, ember_n=2):
     return embers(out, w, h, seed * 11, ember_n, h * 0.25, h * 0.8)
 
 
+# ------------------------------------------------------------------------------ EXTENSION PIECES
+# (owner 29b: "extensions… larger pieces independent but they naturally connect to other pieces… the paid assets didn't look
+# clean at the top or sides. Clean extension sections are essential".) Two kits, each painted as ONE long strip and cut into
+# pieces, so every join is seamless by construction (a piece's edge is exactly the next piece's edge, outline and shells included):
+#   RUN (horizontal)  runl_<stage>_N | run_<stage>_N x n | runr_<stage>_N   — a left cap that rises out of nothing, any number of
+#                     identical-edge middles (the height field is PERIODIC across one tile), a right cap that sinks to nothing.
+#   COLUMN (vertical) col?b_N | col?m_N x n | col?c_N                        — a grounded base with a rounded foot, any number of
+#                     mid sections (the sway is periodic over one section), a cap with a blunt rounded top. ?=w (wide) / n (narrow).
+# The caps keep a flat PLATEAU where they meet the middle, so the join zone is the same field a middle would have there.
+JOIN = 8                       # px of a cap that is exactly the middle's field (>= the erosion depth that colours a pixel)
+
+
+def _strip_paint(mask, w, h, yn_fn, core):
+    depth = depth_map(mask)
+    return paint(mask, depth, yn_fn, core, w, h)
+
+
+def run_kit(w, h, seed, min_h, max_h):
+    """Returns (cap_l, run, cap_r): three lists of 8 frames. Tile width w."""
+    rng = random.Random(seed)
+    # the field is a UNION OF ROUND DOMES (like the approved carpets), their centres wrapping round the tile so the
+    # field is periodic in x — a hump that leaves the right edge re-enters on the left
+    humps = []
+    for i in range(3):
+        c = (i + 0.5) * w / 3.0 + rng.uniform(-2.0, 2.0)
+        r = rng.uniform(6.5, 9.0)
+        hi = min_h + (max_h - min_h) * rng.uniform(0.45, 1.0)
+        lo = min_h + (hi - min_h) * rng.uniform(0.25, 0.6)
+        humps.append((c, r, lo, hi, rng.choice([1, 1, 2]), rng.uniform(0, 2 * math.pi)))
+    n = 5
+    W = w * n
+    xs = np.arange(W, dtype=float)
+    ys, _ = np.mgrid[0:h, 0:W].astype(float)
+    yab = (h - 1.0 - ys)
+    # envelope: 0 for the cap ends (round, vertical tangent), 1 elsewhere, with JOIN px of exact 1 next to the middle run
+    u = np.ones(W)
+    ramp = float(w - JOIN)
+    xl = np.clip(xs / ramp, 0, 1)
+    xr = np.clip((W - 1 - xs) / ramp, 0, 1)
+    env = np.sqrt(np.clip(1.0 - (1.0 - np.minimum(xl, xr)) ** 2, 0, 1)) * u
+    frames = {0: [], 1: [], 2: []}
+    for f in range(FRAMES):
+        tt = f / float(FRAMES)
+        field = np.full(W, min_h * 0.45)
+        for c, r, lo, hi, m, ph in humps:
+            hh = lo + (hi - lo) * (0.5 + 0.5 * math.sin(2 * math.pi * m * tt + ph))
+            d = np.mod(xs - c + w / 2.0, w) - w / 2.0
+            dome = np.clip(1.0 - (d / r) ** 2, 0, 1) ** 0.7
+            field = np.maximum(field, hh * dome)
+        top = field * env
+        mask = (yab < top[None, :]) & (yab >= 0)
+        # the grounded edge is a clean row: any column with a body has its base row
+        yn = np.clip(yab / max(1.0, float(h)), 0, 1)
+        core = (depth_map(mask) >= 6)
+        img = _strip_paint(mask, W, h, yn, core)
+        for i, name in ((0, 0), (1, 2), (2, 4)):
+            frames[i].append(img.crop((name * w, 0, name * w + w, h)))
+    return frames[0], frames[1], frames[2]
+
+
+def paint_column(mask, depth, m, w, h):
+    """A column is shaded by LATERAL position (a bright core down the middle that breathes, shells outward, the outline at the
+    edge) — erosion depth alone made a wide column one flat yellow. Dithered at each shell boundary, like `paint`."""
+    out = np.zeros((h, w, 4), dtype=np.uint8)
+    edges = [0.16, 0.38, 0.62]
+    for y in range(h):
+        for x in range(w):
+            if not mask[y, x]:
+                continue
+            if depth[y, x] == 0:
+                col = OUTLINE
+            else:
+                v = m[y, x] - (0.05 if (x + y) % 2 == 0 else 0.0)
+                k = 0
+                for i, e in enumerate(edges):
+                    if v >= e:
+                        k = i + 1
+                col = HOT if (v >= 0.93) else SHELLS[min(k, 3)]
+            out[y, x] = (*col, 255)
+    return Image.fromarray(out, 'RGBA')
+
+
+def column_kit(wc, hw, seed, hb=12, hm=18, hc=22, curl=1.3, amp=1.8, lump=0.0):
+    """Returns (base, mid, cap): three lists of 8 frames. Width wc, centred; base hb rows, mid hm rows, cap hc rows.
+    The two sides BREATHE independently (so the trunk bulges and pinches like a flame, not a sausage), the centreline
+    sways, and every term has period hm (and loops in time) so mids stack seamlessly."""
+    rng = random.Random(seed)
+    nm = 3
+    H = hb + nm * hm + hc
+    ph = [rng.uniform(0, 2 * math.pi) for _ in range(4)]
+    ys, xs = np.mgrid[0:H, 0:wc].astype(float)
+    yab = (H - 1.0 - ys)
+    yc0 = hb + nm * hm                                    # where the cap starts
+    out = {0: [], 1: [], 2: []}
+    for f in range(FRAMES):
+        tt = f / float(FRAMES)
+        yj = (yab - hb) / float(hm)                          # one unit = one mid section (the pattern's period)
+        cx = (wc - 1) / 2.0 + curl * np.sin(2 * math.pi * yj + ph[0] - 2 * math.pi * tt)
+        half_l = hw + amp * np.sin(2 * math.pi * yj + ph[1] - 2 * math.pi * tt)
+        half_r = hw + amp * np.sin(2 * math.pi * yj + ph[2] - 2 * math.pi * tt + 2.3)
+        fy = np.clip(yab / 6.0, 0, 1)
+        foot = 0.6 + 0.4 * np.sqrt(np.clip(1.0 - (1.0 - fy) ** 2, 0, 1))
+        sc = np.where(yab < hb, foot, 1.0)
+        # a rounded taper up the cap: full width for the first 4 rows (the join), then closing to a blunt tip
+        uc = np.clip((yab - yc0 - 4.0) / float(hc - 4), 0, 1)
+        sc = sc * np.where(yab >= yc0, np.power(np.clip(1.0 - np.power(uc, 1.7), 0, 1), 0.5), 1.0)
+        hl = half_l * sc
+        hr = half_r * sc
+        dx = xs - cx
+        side = np.where(dx < 0, hl, hr)
+        mask = (np.abs(dx) <= side) & (yab >= 0) & (side > 0.6)
+        mask[:, 0] = False
+        mask[:, -1] = False
+        lat = 1.0 - np.abs(dx) / np.maximum(side, 0.01)      # 1 at the centreline, 0 at the edge
+        core = lat + 0.14 * np.sin(2 * math.pi * 2 * yj + ph[3] - 2 * math.pi * 2 * tt) - 0.10 * np.clip((yab - yc0) / float(hc), 0, 1)
+        depth = depth_map(mask)
+        img = paint_column(mask, depth, core, wc, H)
+        out[0].append(img.crop((0, H - hb, wc, H)))
+        mid_top = H - (hb + 2 * hm)
+        out[1].append(img.crop((0, mid_top, wc, mid_top + hm)))
+        out[2].append(img.crop((0, 0, wc, hc)))
+    return out[0], out[1], out[2]
+
+
 SHEETS = {}
 
 
@@ -274,9 +386,18 @@ def build():
         add('tongue_m_%d' % v, tongue(24, 18, 110 + v, 'm', 2))
         add('tongue_l_%d' % v, tongue(32, 22, 120 + v, 'l', 3))
         add('tongue_xl_%d' % v, tongue(40, 26, 130 + v, 'xl', 4))
-        add('wall_%d' % v, wall_flame(30, 26, 140 + v))
-        add('edge_%d' % v, edge_flame(14, 18, 150 + v))
         add('small_%d' % v, small_flame(9, 11, 160 + v))
+        # EXTENSION KITS (clean joins at the sides and the top — see the block above)
+        for stage, hh, lo, hi in (('light', 13, 3, 11), ('blaze', 22, 7, 20)):
+            cl, rn, cr = run_kit(24, hh, 200 + v * 7 + (0 if stage == 'light' else 50), lo, hi)
+            add('runl_%s_%d' % (stage, v), cl, 'run, left cap (rises out of nothing)')
+            add('run_%s_%d' % (stage, v), rn, 'run, middle tile (identical edges, tiles to any width)')
+            add('runr_%s_%d' % (stage, v), cr, 'run, right cap (sinks to nothing)')
+        for tag, wc, hw, sd in (('w', 30, 9, 300), ('n', 22, 6, 400)):
+            bs, md, cp = column_kit(wc, hw, sd + v, hb=12 if tag == 'w' else 10, hc=18 if tag == 'w' else 14, curl=1.3 if tag == 'w' else 0.9, amp=1.8 if tag == 'w' else 1.2)
+            add('col%sb_%d' % (tag, v), bs, 'column base (rounded foot)')
+            add('col%sm_%d' % (tag, v), md, 'column mid (stacks to any height)')
+            add('col%sc_%d' % (tag, v), cp, 'column cap (blunt round top)')
     add('stair', bed(26, 16, 170, 12, 4, 4, 1.0, 2), 'fire spilling over a step')
     with open(os.path.join(OUT, 'fire_meta.json'), 'w') as f:
         json.dump({'fps': FPS, 'frames': FRAMES, 'scale': SCALE, 'sheets': SHEETS}, f, indent=1, sort_keys=True)
@@ -286,7 +407,7 @@ def preview():
     """Frames 0 and 3 of every sheet, at GAME size (x2) on the corridor wall tone, then x2 again for the eye."""
     bg = (201, 170, 118, 255)
     names = sorted(SHEETS.keys())
-    groups = [[n for n in names if n.startswith(p)] for p in ('bed_front', 'bed_back', 'tongue', 'wall', 'edge', 'small', 'stair')]
+    groups = [[n for n in names if n.startswith(p)] for p in ('bed_front', 'bed_back', 'tongue', 'small', 'stair')]
     rows = []
     for g in groups:
         ims = []
@@ -313,7 +434,68 @@ def preview():
     return sheet
 
 
+def _sheet_frame(name, fi):
+    sh = Image.open(os.path.join(OUT, name + '.png'))
+    fw, fh = SHEETS[name]['frame']
+    return sh.crop((fi * fw, 0, fi * fw + fw, fh))
+
+
+def assemble_run(stage, v, n, fi):
+    """cap_l + n middles + cap_r at native size (what FireArt.assemble_run draws, 2x)."""
+    pieces = [_sheet_frame('runl_%s_%d' % (stage, v), fi)] + [_sheet_frame('run_%s_%d' % (stage, v), fi)] * n + [_sheet_frame('runr_%s_%d' % (stage, v), fi)]
+    w = sum(p.width for p in pieces)
+    out = Image.new('RGBA', (w, pieces[0].height), (0, 0, 0, 0))
+    x = 0
+    for p_ in pieces:
+        out.alpha_composite(p_, (x, 0))
+        x += p_.width
+    return out
+
+
+def assemble_column(tag, v, n, fi):
+    pieces = [_sheet_frame('col%sc_%d' % (tag, v), fi)] + [_sheet_frame('col%sm_%d' % (tag, v), fi)] * n + [_sheet_frame('col%sb_%d' % (tag, v), fi)]
+    h = sum(p.height for p in pieces)
+    out = Image.new('RGBA', (pieces[0].width, h), (0, 0, 0, 0))
+    y = 0
+    for p_ in pieces:
+        out.alpha_composite(p_, (0, y))
+        y += p_.height
+    return out
+
+
+def assembly_preview():
+    """The extension kits put together at game size: runs of 0/1/2/3 middles, columns of 0/1/2/3 mids, two frames each."""
+    bg = (201, 170, 118, 255)
+    rows = []
+    for stage in ('light', 'blaze'):
+        for v in (1, 2):
+            ims = [assemble_run(stage, v, n, fi).resize((assemble_run(stage, v, n, fi).width * SCALE, assemble_run(stage, v, n, fi).height * SCALE), Image.NEAREST) for n in (0, 1, 2, 3) for fi in (0,)]
+            rows.append(ims)
+    cols = []
+    for tag in ('w', 'n'):
+        for v in (1, 2, 3):
+            for n in (0, 1, 2, 3):
+                for fi in (0, 4):
+                    im = assemble_column(tag, v, n, fi)
+                    cols.append(im.resize((im.width * SCALE, im.height * SCALE), Image.NEAREST))
+    rows.append(cols)
+    rw = [sum(i.width for i in ims) + 10 * len(ims) for ims in rows]
+    rh = [max(i.height for i in ims) + 10 for ims in rows]
+    sheet = Image.new('RGBA', (max(rw), sum(rh)), bg)
+    y = 0
+    for ims, h in zip(rows, rh):
+        x = 0
+        for im in ims:
+            sheet.alpha_composite(im, (x, y + h - im.height - 5))
+            x += im.width + 10
+        y += h
+    sheet = sheet.resize((sheet.width * 2, sheet.height * 2), Image.NEAREST)
+    sheet.save(os.path.join(PREV, 'fire_extensions.png'))
+    return sheet
+
+
 if __name__ == '__main__':
     build()
     s = preview()
+    assembly_preview()
     print('wrote', len(SHEETS), 'sheets; preview', s.size)

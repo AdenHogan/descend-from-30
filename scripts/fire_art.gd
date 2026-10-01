@@ -86,3 +86,87 @@ static func draw(canvas: CanvasItem, name: String, t: float, phase: float, at: V
 	var x := at.x - dw * 0.5
 	var dst := Rect2(x + dw, at.y - dh, -dw, dh) if flip else Rect2(x, at.y - dh, dw, dh)
 	canvas.draw_texture_rect_region(s["tex"], dst, src, Color(1.0, 1.0, 1.0, alpha))
+
+
+# --- EXTENSION KITS (owner round 29b: "extensions… clean at the top and sides"; tools/art/fire.py "EXTENSION PIECES") ---
+# Each kit was painted as ONE strip and cut, so every join is seamless by construction. Always draw a kit through these two
+# helpers (same frame for every piece) — never mix pieces from different variants or frames.
+
+## A horizontal run at least `width` wide, centred on `cx`: left cap + n identical middles + right cap, grounded on `base_y`.
+## `stage` is "light" or "blaze". Returns the width actually drawn (0.0 if the art is missing).
+static func assemble_run(canvas: CanvasItem, stage: String, v: int, t: float, phase: float, cx: float, width: float, base_y: float, alpha: float = 1.0) -> float:
+	var l := sheet("runl_%s_%d" % [stage, v])
+	var m := sheet("run_%s_%d" % [stage, v])
+	var r := sheet("runr_%s_%d" % [stage, v])
+	if l.is_empty() or m.is_empty() or r.is_empty():
+		return 0.0
+	var lay := run_layout(stage, v, width)
+	var pw: float = float(lay["pw"])
+	var n: int = int(lay["n"])
+	var total: float = float(lay["total"])
+	var fr := frame_at(t, phase, int(m["frames"]))
+	var x: float = cx - total * 0.5
+	var order: Array = [l]
+	for _i in range(n):
+		order.append(m)
+	order.append(r)
+	for pc in order:
+		_blit_left(canvas, pc, fr, x, base_y, alpha)
+		x += pw
+	return total
+
+
+## How `assemble_run` lays a run out: {pw (a piece's world width), n (middles), total (world width drawn, >= width and >= both caps)}.
+static func run_layout(stage: String, v: int, width: float) -> Dictionary:
+	var m := sheet("run_%s_%d" % [stage, v])
+	if m.is_empty():
+		return {"pw": 0.0, "n": 0, "total": 0.0}
+	var pw: float = float(m["fw"]) * float(m["scale"])
+	var n := maxi(0, ceili((width - 2.0 * pw) / pw))
+	return {"pw": pw, "n": n, "total": pw * float(n + 2)}
+
+
+## A vertical column about `height` tall (snapped to whole mid sections), centred on `cx`, grounded on `base_y`: base + n mids + cap.
+## `tag` is "w" (wide, wall flames) or "n" (narrow, door frames). Returns the height actually drawn (0.0 if the art is missing).
+static func assemble_column(canvas: CanvasItem, tag: String, v: int, t: float, phase: float, cx: float, base_y: float, height: float, alpha: float = 1.0) -> float:
+	var b := sheet("col%sb_%d" % [tag, v])
+	var m := sheet("col%sm_%d" % [tag, v])
+	var c := sheet("col%sc_%d" % [tag, v])
+	if b.is_empty() or m.is_empty() or c.is_empty():
+		return 0.0
+	var k: float = float(m["scale"])
+	var hb: float = float(b["fh"]) * k
+	var hm: float = float(m["fh"]) * k
+	var hc: float = float(c["fh"]) * k
+	var n := maxi(0, roundi((height - hb - hc) / hm))
+	var fr := frame_at(t, phase, int(m["frames"]))
+	var x: float = cx - float(m["fw"]) * k * 0.5
+	var y: float = base_y
+	_blit_left(canvas, b, fr, x, y, alpha)
+	y -= hb
+	for _i in range(n):
+		_blit_left(canvas, m, fr, x, y, alpha)
+		y -= hm
+	_blit_left(canvas, c, fr, x, y, alpha)
+	return hb + hc + float(n) * hm
+
+
+## The height `assemble_column` would actually draw for a request (layout maths / tests).
+static func column_height(tag: String, v: int, height: float) -> float:
+	var b := sheet("col%sb_%d" % [tag, v])
+	var m := sheet("col%sm_%d" % [tag, v])
+	var c := sheet("col%sc_%d" % [tag, v])
+	if b.is_empty() or m.is_empty() or c.is_empty():
+		return 0.0
+	var k: float = float(m["scale"])
+	var hb: float = float(b["fh"]) * k
+	var hm: float = float(m["fh"]) * k
+	var hc: float = float(c["fh"]) * k
+	return hb + hc + float(maxi(0, roundi((height - hb - hc) / hm))) * hm
+
+
+static func _blit_left(canvas: CanvasItem, s: Dictionary, fr: int, x: float, bottom: float, alpha: float) -> void:
+	var fw: float = float(s["fw"])
+	var fh: float = float(s["fh"])
+	var k: float = float(s["scale"])
+	canvas.draw_texture_rect_region(s["tex"], Rect2(x, bottom - fh * k, fw * k, fh * k), Rect2(float(fr) * fw, 0.0, fw, fh), Color(1.0, 1.0, 1.0, alpha))

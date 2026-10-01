@@ -672,8 +672,7 @@ func wall_fire_spots() -> Array:
 	var out: Array = []
 	if stage < STAGE_BLAZE:
 		return out
-	var names: Array = FireArt.variants("wall")
-	if names.is_empty():
+	if FireArt.variants("colwb").is_empty():
 		return out
 	var last_w := -1.0e9
 	var x := FIRE_MIN_X + 30.0
@@ -681,7 +680,10 @@ func wall_fire_spots() -> Array:
 		if is_burning_at(x) and not _near_door(x) and not _in_stair_keepout(x):
 			var sd := float(floori(x / 21.0)) + float(floor_num) * 1.3
 			if (x - last_w) >= WALL_FIRE_GAP and _hash01(sd * 2.7) > 0.30 and _cell_kind(x) != 2:
-				out.append({"x": x, "name": names[int(_hash01(sd * 3.3) * float(names.size())) % names.size()], "phase": _hash01(sd * 1.7)})
+				# a wall flame is a COLUMN kit (base + mids + cap): mostly the short one, sometimes one section taller
+				var vv := 1 + int(_hash01(sd * 3.3) * 3.0) % 3
+				var want := 96.0 if _hash01(sd * 5.1) > 0.88 else 60.0
+				out.append({"x": x, "v": vv, "h": FireArt.column_height("w", vv, want), "phase": _hash01(sd * 1.7)})
 				last_w = x
 		x += 21.0
 	return out
@@ -689,7 +691,10 @@ func wall_fire_spots() -> Array:
 
 func _draw_wall_fire(canvas: CanvasItem) -> void:
 	for sp in wall_fire_spots():
-		FireArt.draw(canvas, str(sp["name"]), _t, float(sp["phase"]), Vector2(float(sp["x"]), BACK_SEAM_Y - 6.0), 0.95)
+		# the column rises out of a low run of embers (a clean-ended run, so it never stands on a bare cut edge)
+		var x: float = float(sp["x"])
+		FireArt.assemble_run(canvas, "light", int(sp["v"]), _t, float(sp["phase"]) + 0.5, x, 96.0, BACK_SEAM_Y - 3.0, 0.9)
+		FireArt.assemble_column(canvas, "w", int(sp["v"]), _t, float(sp["phase"]), x, BACK_SEAM_Y - 6.0, float(sp["h"]), 0.95)
 
 
 func _char_scar(canvas: CanvasItem, i: int, cx: float) -> void:
