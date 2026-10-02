@@ -29,9 +29,27 @@ var roped_balconies: Dictionary = {}
 # The no-rope jump warning is a one-time teach: it fires ONCE per run the first
 # time the player tries a bare drop, then never again that run (per-run flag).
 var balcony_jump_warned: bool = false
-# One-time-per-game context line the first time the player enters a CHARRED (burnt-out)
-# apartment, so the empty ruin reads as "the fire got here first", not a broken room.
-var charred_intro_shown: bool = false
+# The context line the first time the player enters each CHARRED (burnt-out) apartment (per apartment, per
+# run — owner round 34: it used to be once per GAME, so by run 3 a gutted flat said nothing). Keys "apt:run".
+var charred_intro_seen: Dictionary = {}
+const CHARRED_INTRO_LINES := [
+	"Gutted. The fire took everything in here — whatever's left is scrap, not worth a proper search.",
+	"Burned right down to the studs. Anything that survived is just scrap now.",
+	"Nothing in here came through that fire. Scrap and cinders, that's all it's good for.",
+]
+
+
+func charred_intro_line(apartment_id: String) -> String:
+	return CHARRED_INTRO_LINES[posmod(hash(str(master_seed) + "charredline" + apartment_id), CHARRED_INTRO_LINES.size())]
+
+
+## True (once) the first time a charred flat is entered this run — the caller says the line.
+func take_charred_intro(apartment_id: String) -> bool:
+	var k := apartment_id + ":" + str(current_run)
+	if charred_intro_seen.has(k):
+		return false
+	charred_intro_seen[k] = true
+	return true
 # Transient hand-off across the descent scene swap: a hard landing sets this so
 # the arriving player can flash the hurt pose. Consumed on arrival (room.gd).
 var balcony_arrival_hurt: bool = false
@@ -1151,7 +1169,7 @@ func new_game() -> void:
 	floors_enemy_seen.clear()
 	roped_balconies.clear()
 	balcony_jump_warned = false
-	charred_intro_shown = false
+	charred_intro_seen.clear()
 	balcony_arrival_hurt = false
 	balcony_pending_injury = 0
 	door_states.clear()

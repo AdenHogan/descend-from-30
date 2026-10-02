@@ -229,7 +229,7 @@ Robustness rules). What it covers:
   `dev_menu_test`, `lighting_test`, `plane_lock_test`, `apartment_window_test`,
   `scavenge_node_test`, `drop_physics_test`, `softlock_test`, `character_panel_test`,
   `corpse_recovery_test`, `run_memory_test`, `attack_input_test`, `character_stats_test`, `transition_seam_test`, `run_bookends_test`, `weapon_upgrade_test`, `progression_test`, `back_plane_test`,
-  `apartment_lamp_test`, `gun_cabinet_test`, `breach_test`, `item_icon_test`, `hud_wheel_test`, `motion_test`, `growth_test`, `pack_test`, `backpack_test`, `molotov_test`, `banister_test`, `stair_heights_test`, `resident_npc_test`, `open_furniture_test` — run all 59 before commit. Balance tool: `tools/economy_report.tscn` (scrap per run, ~25 min a seed). (`new_game()` rolls a RANDOM seed, so any test meets any of the four
+  `apartment_lamp_test`, `gun_cabinet_test`, `breach_test`, `item_icon_test`, `hud_wheel_test`, `motion_test`, `growth_test`, `pack_test`, `backpack_test`, `molotov_test`, `banister_test`, `stair_heights_test`, `resident_npc_test`, `open_furniture_test`, `burnt_apartment_test` — run all 60 before commit. Balance tool: `tools/economy_report.tscn` (scrap per run, ~25 min a seed). (`new_game()` rolls a RANDOM seed, so any test meets any of the four
   characters — an assert on a trait-affected value must be trait-aware; see docs/CHARACTERS.md.) (Run ONE godot at a time — a killed/backgrounded headless run can
   linger and block the next, and a GDScript **parse error makes a test scene load but
   never call `quit()`, so it "hangs" until timeout** rather than printing an error line;
@@ -2249,4 +2249,18 @@ means no rendering — UI layout and art still need an in-editor look.
   the TV is a low hum (`tools/gen_room_audio.py`; −31 dB, radius 24 / reach 160) and the record's scratch is a real needle
   skip (the music slows and sticks on its last beat three times, then a drag-scratch of its own tail, then the needle's thump).
   `scene_capture` steps `search:` and `drop:<slot>`.
+- **BURNT-OUT APARTMENTS (owner round 34c — "I'm in run 3… the apartment is essentially all scrap… a text box saying it's burned out… the
+  hallway looks burned but the apartment looked normal… we shouldn't need to search those nodes, they can say what they are"):** a CHARRED flat
+  (`WorldState.is_apartment_charred`, the fire's worst stage) now (1) **says so** — `HUD.show_dialogue(WorldState.charred_intro_line(apt))`, once per
+  burnt flat per RUN (`take_charred_intro`, `charred_intro_seen` "apt:run"; it used to be once per GAME, so by run 3 it said nothing); (2) shows
+  **BURNT module art** — `tools/art/burnt.py` bakes `assets/rooms/<name>_burnt.png` (+ `_burnt_strip`, `_burnt_floor_ext`, `_burnt_floor`,
+  `balcony_burnt.png`) from the run-3 art by reading what each pixel IS: wood alligator-charred, cloth ash-grey with holes, pale things sooted, walls
+  sooted from the ceiling + flame-lick plumes + wallpaper burnt to plaster + a hole to the lath, the ceiling collapsed in places, floors black with
+  ash / wet patches / charred planks / ash heaps (every field a pure function of module coordinates so strips agree; preview
+  `docs/art_reference/burnt_rooms.png`); `room.apply_burnt_art` swaps it in (live + balcony backdrop) and drops the room's live details (a dripping fridge,
+  a humming TV), the nest overlay and the openable-furniture patches; (3) its **scrap nodes are identified and need no search** — `room.gd` flags a charred
+  anchor holding a scrap bag `ruin_scrap`: in scavenge mode, in reach, it says **"Scrap   [E] Take"** (`Interactable._ruin_prompt`) and one press takes it
+  (`_take_ruin_scrap`: `add_to_inventory("037")`, searched, cleared, spent; no panel); a node with NOTHING in a charred flat is hidden (no search to waste).
+  Set-back (back-plane) scrap still needs you to step up first. The gate runs `burnt.py --check` (build_all.py THEN burnt.py); `burnt_apartment_test`. The
+  LOOK needs the owner's eye (night is very dark in run 3 — the burnt art is ~0.6× the run-3 brightness).
 - Not started: quests.

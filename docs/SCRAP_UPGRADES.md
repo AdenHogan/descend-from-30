@@ -343,3 +343,9 @@ station (never traded with the merchant); build **gun + hammer first**.
   crafting-combine sink that makes duplicate/merchant weapons valuable.
 - **Player-chosen static trees** = build variety and a unique per-run arsenal,
   without the frustration of random rolls.
+
+
+## Burnt-out apartments (owner round 34c)
+A charred flat now looks it (burnt module art, `tools/art/burnt.py`), says so when you walk in ("Gutted… whatever's left is scrap"), and its
+salvage is **visible and instant**: a scrap node reads "Scrap [E] Take" on approach and one press adds its bag to the counter — no search timer, no
+loot panel. Nodes with nothing in a charred flat are gone. Rates unchanged (`SCRAP_CHANCE_CHARRED` 0.75, bags 14-30).

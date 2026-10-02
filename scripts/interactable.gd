@@ -103,6 +103,8 @@ func _process(delta: float) -> void:
 	is_in_range = dist <= INTERACT_DISTANCE and _plane_ok()
 	if was_in_range and not is_in_range:
 		WorldState.interaction_handled = false
+	if has_meta("ruin_scrap"):
+		_ruin_prompt(is_in_range)
 	# Drive the real light to match the orb, with the same gentle pulse; colour follows the
 	# orb's state (warm gold, or cool white once searched-but-not-emptied).
 	var lvl = _activity()
@@ -183,11 +185,44 @@ func try_interact() -> void:
 		return
 	if not WorldState.interaction_handled:
 		WorldState.interaction_handled = true
+		if has_meta("ruin_scrap"):
+			_take_ruin_scrap()
+			return
 		if name == WorldState.GUN_CABINET_ANCHOR and not _open_gun_cabinet():
 			return
 		if has_meta("dead_body") and not WorldState.is_anchor_searched(apartment_id, name):
 			HUD.show_feedback(WorldState.dead_search_line(name))       # searching one of the dead
 		_open_loot()
+
+
+# A burnt-out flat's salvage (room.gd sets `ruin_scrap`): nothing to search — it is scrap, it says so, and one press takes it.
+func is_ruin_scrap() -> bool:
+	return has_meta("ruin_scrap") and visible
+
+
+func _take_ruin_scrap() -> void:
+	var amount: int = WorldState.get_anchor_amount(apartment_id, name)
+	if WorldState.get_anchor_item(apartment_id, name) != "037" or amount <= 0:
+		set_meta("ruin_scrap", false)
+		remove_meta("ruin_scrap")
+		_hide_permanently()
+		return
+	WorldState.add_to_inventory("037", amount)        # a scrap bag never takes a slot: it just adds to the counter
+	WorldState.mark_anchor_searched(apartment_id, name)
+	WorldState.clear_anchor_item(apartment_id, name)
+	WorldState.note_scavenge(apartment_id)
+	HUD.hide_world_prompt(self)
+	remove_meta("ruin_scrap")
+	_hide_permanently()
+
+
+func _ruin_prompt(in_reach: bool) -> void:
+	if not is_ruin_scrap():
+		return
+	if in_reach and WorldState.is_scavenge_mode and not WorldState.loot_open:
+		HUD.show_world_prompt(self, "Scrap   [E] Take", global_position + Vector2(0, -6))
+	else:
+		HUD.hide_world_prompt(self)
 
 
 # A LOCKED gun cabinet (owner round 20): its key opens it, else a crowbar pries it (loud, spent).

@@ -31,6 +31,13 @@ else
 	echo "FAIL   openables — run: python3 tools/art/build_all.py && python3 tools/art/openables.py"; grep "OPENABLES:" "$LOG_DIR/_openables.log" | head -3
 	bad=$((bad + 1))
 fi
+# The burnt-out module art (assets/rooms/*_burnt*.png) is baked from the finished run-3 art — stale = the wrong room.
+if python3 tools/art/burnt.py --check >"$LOG_DIR/_burnt.log" 2>&1; then
+	echo "ok     burnt art (assets/rooms/*_burnt* current)"
+else
+	echo "FAIL   burnt art — run: python3 tools/art/build_all.py && python3 tools/art/burnt.py"; grep "BURNT:" "$LOG_DIR/_burnt.log" | head -3
+	bad=$((bad + 1))
+fi
 for t in tests/*.tscn; do
 	n=$(basename "$t" .tscn)
 	if [ $# -gt 0 ]; then

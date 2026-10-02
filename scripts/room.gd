@@ -268,11 +268,10 @@ func _ready() -> void:
 	# Interior fire (after enemies, so burning enemies can already be in the room).
 	_spawn_apartment_fire()
 
-	# Charred ruin: a one-time (per game) non-interrupting line so the empty, burnt-out
-	# room reads as "the fire got here first" — context for why there's nothing to scavenge.
-	if WorldState.is_apartment_charred(_apt_floor(), _apt_index()) and not WorldState.charred_intro_shown:
-		WorldState.charred_intro_shown = true
-		HUD.show_dialogue("The fire gutted this place — everything's burned down to scrap and cinders.", "", false, 4.5)
+	# Charred ruin: the player says so, once per burnt flat per run — the fire got here first, so what's left is
+	# scrap (not a broken room). Owner round 34.
+	if WorldState.is_apartment_charred(_apt_floor(), _apt_index()) and WorldState.take_charred_intro(apartment_id):
+		HUD.show_dialogue(WorldState.charred_intro_line(apartment_id), "", false, 5.0)
 
 	if WorldState.saved_player_x != 0.0:
 		player.global_position = Vector2(WorldState.saved_player_x, WorldState.saved_player_y)
@@ -811,9 +810,13 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 		add_child(instance)
 		built_modules.append(instance)
 		apply_run_art(instance, WorldState.current_run)
-		OPEN_FURNITURE.attach(instance, apartment_id, WorldState.current_run)      # drawers / doors that open once searched
-		var story_role := breach_nest_role(apartment_id, entrance_side, i) if breached else ""
-		if story_role == "" and not breached:
+		var charred_flat: bool = WorldState.is_apartment_charred(_apt_floor(), _apt_index())
+		if charred_flat:
+			apply_burnt_art(instance)          # the fire's worst stage: the room is a blackened husk (tools/art/burnt.py)
+		else:
+			OPEN_FURNITURE.attach(instance, apartment_id, WorldState.current_run)      # drawers / doors that open once searched
+		var story_role := breach_nest_role(apartment_id, entrance_side, i) if (breached and not charred_flat) else ""
+		if story_role == "" and not breached and not charred_flat:
 			var dead := WorldState.apartment_corpse(apartment_id)
 			if not dead.is_empty() and int(dead["slot"]) == i and not (WorldState.is_first_run and TUTORIAL_LAYOUTS.has(apartment_id)):
 				# a riser flat draws the story WITHOUT the body: a real zombie lies there (_spawn_riser)
@@ -1050,6 +1053,31 @@ func _make_balcony_city(run: int) -> Node2D:
 	return cv
 
 
+## A CHARRED flat (WorldState.is_apartment_charred) shows each module's BURNT art — the same room, every piece where it
+## was, but a blackened husk (tools/art/burnt.py → <name>_burnt.png, _burnt_strip.png, _burnt_floor_ext.png, and
+## balcony_burnt.png). Its live details (a dripping fridge, a humming TV) are gone with the rest. Never an error: a
+## texture with no burnt version keeps what it has.
+static func apply_burnt_art(module: Node) -> void:
+	for n in ["Art", "StripArt", "Balcony/BalconyArt"]:
+		var spr = module.get_node_or_null(n)
+		if not (spr is Sprite2D) or spr.texture == null or spr.texture.resource_path == "":
+			continue
+		var base: String = spr.texture.resource_path.get_basename()
+		var is_strip: bool = base.ends_with("_strip")
+		if is_strip:
+			base = base.substr(0, base.length() - 6)
+		for suffix in ["_r3", "_r2"]:
+			if base.ends_with(suffix):
+				base = base.substr(0, base.length() - suffix.length())
+				break
+		var p: String = base + "_burnt" + ("_strip" if is_strip else "") + ".png"
+		if ResourceLoader.exists(p):
+			spr.texture = load(p)
+	var anims = module.get_node_or_null("Anims")
+	if anims != null:
+		anims.queue_free()
+
+
 static func apply_run_art(module: Node, run: int) -> void:
 	# The same furniture, more ruined as the arc goes on: run 2 (afternoon) and run 3 (night) swap
 	# the module's art for its <name>_r2 / _r3 textures (tools/art: pixlib.run_looks — damp,
@@ -1208,6 +1236,15 @@ func _after_modules_ready() -> void:
 				if bag > 0:
 					WorldState.set_anchor_item(apartment_id, anchor.name, "037")
 					WorldState.set_anchor_amount(apartment_id, anchor.name, bag)
+
+			# A BURNT-OUT flat (owner round 34): only its salvage is left, and you can SEE it — a scrap node says what
+			# it is on approach and is taken at once (no search); a node with nothing is simply gone, not a search to waste.
+			if WorldState.is_apartment_charred(_fnum, _anum) and not already_searched and not tutorial_apartment:
+				if WorldState.get_anchor_item(apartment_id, anchor.name) == "037":
+					anchor.set_meta("ruin_scrap", true)
+				else:
+					anchor.visible = false
+					anchor.set_process(false)
 
 			# Check if this anchor should spawn a key instead of a regular item
 			var floor_num = int(apartment_id.left(apartment_id.length() - 2))
