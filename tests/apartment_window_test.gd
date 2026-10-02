@@ -704,12 +704,18 @@ func _test_city_parallax() -> void:
 	await get_tree().process_frame
 	# a balcony: its city is a clipped layer over the art, covering every bare-view pixel at any slide
 	var apt := ""
-	for f in range(5, 29):
-		for col in range(1, 6):
-			var a := str(f) + "0" + str(col)
-			for sl in range(3):
-				if apt == "" and WorldState.is_balcony_slot(a, sl):
-					apt = a
+	# A balcony column is a seeded CHANCE per column, so a random building can have none in its five columns — step the seed
+	# until one does (never skip the check on an unlucky seed).
+	for _try in range(60):
+		for f in range(1, 30):
+			for col in range(1, 6):
+				var a := str(f) + "0" + str(col)
+				for sl in range(3):
+					if apt == "" and WorldState.is_balcony_slot(a, sl):
+						apt = a
+		if apt != "":
+			break
+		WorldState.master_seed += 1
 	check(apt != "", "found a flat with a balcony (%s)" % apt)
 	if apt == "":
 		return

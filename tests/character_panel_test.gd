@@ -91,6 +91,8 @@ func _ready() -> void:
 	check(not PauseMenu.visible, "ESC over the journal does NOT open the pause menu")
 	check(not get_tree().paused, "the game is left unpaused, not stuck behind a menu")
 
+	await _test_book()
+
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -164,3 +166,79 @@ func _test_codex() -> void:
 	WorldState.codex_seen = {}
 	WorldState.inventory.clear()
 	WorldState.save_profile()
+
+
+# The journal is a BOOK of loose papers, each character writing in their own hand (owner round 34).
+func _test_book() -> void:
+	print("[journal book]")
+	var cp = HUD.character_panel
+	get_tree().paused = false
+	cp.open()
+	# every character has a real handwriting font + its own ink, and no two share a typeface
+	var paths: Dictionary = {}
+	var inks: Dictionary = {}
+	for cid in WorldState.CHARACTERS:
+		var h: Dictionary = cp.hand_info(cid)
+		var path := str(h.get("path", ""))
+		check(path != "" and ResourceLoader.exists(path), "%s has a handwriting font (%s)" % [cid, path])
+		var f: Dictionary = cp.fonts_for(cid)
+		check(f["normal"] is FontFile and f["bold"] is FontVariation and f["italic"] is FontVariation, "%s: normal / bold / italic hands" % cid)
+		check((f["normal"] as FontFile).fallbacks.size() > 0, "%s: the pixel font stands behind the hand (no empty boxes for symbols)" % cid)
+		paths[path] = true
+		inks[str(h.get("ink"))] = true
+	check(paths.size() == WorldState.CHARACTERS.size(), "each character writes in a DIFFERENT typeface")
+	check(inks.size() == WorldState.CHARACTERS.size(), "each character writes in a different ink")
+	# the text is actually set in the current character's hand
+	var cid: String = WorldState.current_character()
+	var want: Font = cp.fonts_for(cid)["normal"]
+	check(cp.title_label.get_theme_font("font") == want, "the title is written in the run's character's hand")
+	check(cp.lore_text.get_theme_font("normal_font") == want, "the lore text is too")
+	check(cp.title_label.get_theme_color("font_color") == cp.ink_color(), "in that character's ink")
+	# switching character re-hands the same journal
+	var other := ""
+	for c in WorldState.CHARACTERS:
+		if c != cid:
+			other = c
+			break
+	cp._restyle(other)
+	check(cp.title_label.get_theme_font("font") == cp.fonts_for(other)["normal"], "re-styling swaps the hand")
+	cp._restyle(cid)
+	# bookmarks are the tabs
+	check(cp.bookmarks.size() == cp.tabs.get_tab_count(), "one bookmark per section")
+	for i in cp.bookmarks.size():
+		cp.bookmarks[i].picked.emit(i)
+		check(cp.tabs.current_tab == i and cp.bookmarks[i].active, "bookmark %d turns to its section" % i)
+		for j in cp.bookmarks.size():
+			if j != i:
+				check(not cp.bookmarks[j].active, "only the picked bookmark is out")
+	cp._pick_tab(0)
+	# the pieces are loose: skewed angles, not an axis-aligned stack
+	var tilted := 0
+	for e in cp.loose:
+		if absf(float(e["rot"])) > 0.5:
+			tilted += 1
+	check(cp.loose.size() >= 3 and tilted >= 3, "the loose papers each sit at their own angle (%d tilted of %d)" % [tilted, cp.loose.size()])
+	# everything sits inside the book (and the loose pieces are in the cluster of the book, not off screen)
+	var book := Rect2(Vector2.ZERO, cp.panel.size).grow(80.0)
+	var outside: Array = []
+	for n in [cp.title_label, cp.subtitle_label, cp.portrait_rect.get_parent(), cp.status_text.get_parent(), cp.traits_text.get_parent(), cp.tabs]:
+		var r := Rect2(n.position, n.size)
+		if not book.encloses(r):
+			outside.append(n.name)
+	check(outside.is_empty(), "every page element sits inside the book %s" % str(outside))
+	# a long block is shrunk to fit its page space rather than spilling off the sheet
+	cp._restyle("bald_man")
+	cp.traits_text.text = "[i]x[/i]\n" + "+ a long perk line that goes on and on to the edge of the sheet\n".repeat(8)
+	cp._fit_all()
+	check(cp.traits_text.get_content_height() <= 160.0 or cp.traits_text.get_theme_font_size("normal_font_size") <= 10, "an over-long block shrinks to fit its sheet (h=%d)" % cp.traits_text.get_content_height())
+	cp._restyle(cid)
+	cp._refresh()
+	# the settle animation leaves every piece exactly where it belongs
+	cp._settle_in()
+	await get_tree().create_timer(1.6).timeout
+	var drift := 0.0
+	for e in cp.loose:
+		drift = maxf(drift, (e["node"].position - e["pos"]).length())
+		drift = maxf(drift, absf(e["node"].rotation_degrees - float(e["rot"])))
+	check(drift < 0.5, "the papers settle onto their marks (drift %.2f)" % drift)
+	cp.close()

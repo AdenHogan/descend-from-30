@@ -176,7 +176,7 @@ func _do(step: String) -> void:
 				HUD.character_panel.close()
 			else:
 				HUD.character_panel.open()
-				HUD.character_panel.tabs.current_tab = int(p[1])
+				HUD.character_panel._pick_tab(int(p[1]))
 			await _frames(3)
 		"eqstyle":
 			HUD.set_equip_box_style(p[1])       # square | rounded | circle

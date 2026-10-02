@@ -2263,4 +2263,22 @@ means no rendering — UI layout and art still need an in-editor look.
   (`_take_ruin_scrap`: `add_to_inventory("037")`, searched, cleared, spent; no panel); a node with NOTHING in a charred flat is hidden (no search to waste).
   Set-back (back-plane) scrap still needs you to step up first. The gate runs `burnt.py --check` (build_all.py THEN burnt.py); `burnt_apartment_test`. The
   LOOK needs the owner's eye (night is very dark in run 3 — the burnt art is ~0.6× the run-3 brightness).
+- **THE JOURNAL AS A BOOK OF LOOSE PAPERS (owner round 34d — "too neat and rectangular… stilted. Give it more energy, perhaps like loose
+  papers in a journal book. The text can be a different handwritten font for each character"):** `character_panel.gd` is rebuilt as a worn
+  journal OPEN ON A DESK — a leather cover, two ragged pages with a stack of page edges + a gutter fold, and LOOSE things at their own
+  angles on them: a taped polaroid of the character, a sticky note of the run's facts, a torn lined sheet (spiral holes) of their traits, a
+  hand-drawn underline under the name, a coffee ring + foxing, coloured BOOKMARK tabs down the edge (Story / Quests / Map / Codex — they
+  drive the `tabs` TabContainer, whose own tab bar is hidden) and a torn "CLOSE" scrap; the pieces drop onto the page when it opens
+  (`_settle_in`). All paper is code-drawn (`_Paper` kinds cover / page_l / page_r / photo / sticky / torn: ragged inset-only edges, a shadow
+  — pure functions of kind + size + the character's seed, so a character's journal always looks the same and no two look alike). **Each
+  character WRITES IN THEIR OWN HAND** (`HAND` table: font + size scale + ink + page tint; OFL fonts in `assets/fonts/hand/` with their
+  licences — Joe = Patrick Hand / blue ballpoint, Vivianne = Caveat / plum, Amina = Indie Flower / black gel, Alex = Reenie Beanie / pencil;
+  the pixel font is the glyph fallback so no symbol is ever an empty box); every written node registers in `_hand_nodes` and
+  `_restyle(cid)` re-fonts / re-inks / re-tints the whole book when the cast changes; blocks with a `fit_h` (the sticky, the traits sheet)
+  shrink their font until they fit (`_fit_all`) because the hands differ a lot in size. The Map is sketched in pen (wobbly cells, pencil-shaded
+  fog). The node API tests + hud read is unchanged (`title_label`, `status_text`, `subtitle_label`, `lore_text`, `before_text`,
+  `traits_text`, `portrait_rect`, `npc_text`, `map_view`, `codex_box`, `tabs`, `panel`); `scene_capture`'s `journal:<tab>` now goes through
+  `_pick_tab` (it needs the opener skipped first: `k:SPACE` twice). Locked by `character_panel_test._test_book` (distinct typeface + ink per
+  character, the text really is set in the run's hand, re-style swaps it, bookmarks turn the tabs, papers at their own angles, everything
+  inside the book, over-long blocks shrink, the settle lands exactly). The LOOK needs the owner's eye (captured under xvfb for all four).
 - Not started: quests.
