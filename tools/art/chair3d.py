@@ -277,11 +277,26 @@ def office_chair_at(c, cx, base_y, yaw, pal, plan=None, key='office', outline=No
     return r
 
 
+def _register(cbuf, cx, base_y, model):
+    """Tell the pipeline's floor-clip check where this piece touches the floor (pixlib.FLOOR_PIECES)."""
+    try:
+        import pixlib as PX
+    except ImportError:
+        return
+    pts = {(cx + x, base_y + y) for (x, y) in cbuf}
+    if getattr(model, 'lying', False):
+        PX.register_floor_piece('toppled piece at x%d' % cx, 'lying', pts)
+    else:
+        ymax = max(y for (_, y) in pts)
+        PX.register_floor_piece('piece at x%d' % cx, 'feet', {p for p in pts if p[1] >= ymax - 3})
+
+
 def draw_model(c, cx, base_y, model, yaw, pal, outline=None, shadow='round', srad=19):
     """Render any model onto the canvas like the chairs (creases, silhouette, contact shadow)."""
     cbuf, pbuf, zbuf, sbuf = render(model, yaw, pal)
     if not cbuf:
         return None
+    _register(cbuf, cx, base_y, model)
     main = pal.get('fab', next(iter(pal.values())))
     out = outline or tuple(int(v * 0.3) for v in main[:3]) + (255,)
     crease = {}
@@ -425,6 +440,7 @@ def fall(model, how='back', lean=6.0):
     sd = 1.0 if lean >= 0 else -1.0
     r = math.radians(abs(lean)) * sd
     out = Model()
+    out.lying = True
     for (pts, part, mat, src) in model.faces:
         np_ = []
         for (x, y, z) in pts:

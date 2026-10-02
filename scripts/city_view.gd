@@ -9,8 +9,11 @@ extends Node2D
 # children to it. FAR holds the skyline sprite and everything standing on it (fires, smoke, blasts, an aircraft light —
 # scripts/city_fx.gd puts them there); the rain is NOT in FAR — it's weather on the near side of the glass, it stays put.
 # Every view is drawn `pan` px wider than its opening on each side (tools/art/cityscape.py PAN), and FAR slides with the
-# viewer (the player): offset = (viewer x - the opening's x) x PARALLAX, in whole pixels (pixel art stays crisp), clamped to
-# ±pan — a far scene seen through a hole drifts the way you walk. Pure visuals.
+# viewer: offset = (viewer x - the opening's x) x PARALLAX, in whole pixels (pixel art stays crisp), clamped to ±pan — a far
+# scene seen through a hole drifts as your view of it changes. The viewer is the CAMERA, not the player (owner round 34 — "the
+# city moves when the player moves, not when the camera moves. It's jarring when entering an apartment where the camera is
+# still fixed to the left"): parallax is what the eye sees, so with the camera pinned at an end wall and the player walking, the
+# city stays put; it only drifts when the picture itself scrolls. Pure visuals.
 
 const PARALLAX := 0.06
 
@@ -20,7 +23,6 @@ var centre_local := Vector2.ZERO       # the opening's centre in this node's spa
 var mask_rect := Rect2()               # a rectangular mask (a window's glass) …
 var mask_tex: Texture2D = null         # … or a texture's opaque pixels (the balcony's bare view)
 var mask_at := Vector2.ZERO            # where the mask texture's top-left sits
-var _viewer: Node2D = null
 
 
 func setup_view(pan_px: float, centre: Vector2 = Vector2.ZERO) -> void:
@@ -56,12 +58,15 @@ static func offset_for(viewer_x: float, opening_x: float, pan_px: float) -> floa
 func _process(_delta: float) -> void:
 	if far == null:
 		return
-	if _viewer == null or not is_instance_valid(_viewer):
-		_viewer = get_tree().get_first_node_in_group("player") as Node2D
-	var x := 0.0
-	if _viewer != null:
-		x = offset_for(_viewer.global_position.x, to_global(centre_local).x, pan)
-	far.position.x = x
+	far.position.x = offset_now()
+
+
+## The slide right now: the active camera's centre against this opening's (0 with no camera — a headless / mid-change moment).
+func offset_now() -> float:
+	var cam := get_viewport().get_camera_2d() if is_inside_tree() else null
+	if cam == null:
+		return 0.0
+	return offset_for(cam.get_screen_center_position().x, to_global(centre_local).x, pan)
 
 
 func _draw() -> void:

@@ -24,6 +24,13 @@ else
 	echo "FAIL   blueprints — run: python3 tools/gen_module_blueprint.py"; grep "BLUEPRINTS:" "$LOG_DIR/_blueprints.log" | head -5
 	bad=$((bad + 1))
 fi
+# The opened-furniture patches (assets/rooms/open/) are baked from the finished module art — stale = wrong picture.
+if python3 tools/art/openables.py --check >"$LOG_DIR/_openables.log" 2>&1; then
+	echo "ok     openables (assets/rooms/open current)"
+else
+	echo "FAIL   openables — run: python3 tools/art/build_all.py && python3 tools/art/openables.py"; grep "OPENABLES:" "$LOG_DIR/_openables.log" | head -3
+	bad=$((bad + 1))
+fi
 for t in tests/*.tscn; do
 	n=$(basename "$t" .tscn)
 	if [ $# -gt 0 ]; then

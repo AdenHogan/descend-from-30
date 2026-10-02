@@ -142,14 +142,16 @@ static func _place(rng: RandomNumberGenerator, m: Dictionary, placed: Array, kin
 
 
 ## A tended houseplant: more likely in a kept-up flat and high in the building; dead ones grow likelier
-## later in the day and lower down. Null if this flat has none.
+## later in the day and lower down. Null if this flat has none. It only ever stands where its WHOLE height is clear of
+## furniture (owner round 34 — "an out of place plant on a stool just randomly in front of other art items"): the old rule
+## asked only for a clear footing, so a pot could stand in front of a dresser or a bed's end with its fronds over them.
 static func _houseplant(rng: RandomNumberGenerator, m: Dictionary, placed: Array, floor_num: int, run: int, lo_x: int):
 	var depth: float = WorldState.infection_depth(floor_num)
 	var has: float = rng.randf()
 	var style_roll: float = rng.randf()
 	var pick: int = rng.randi()
 	var x_roll: int = rng.randi()
-	if has > 0.62 - 0.25 * depth:
+	if has > 0.5 - 0.2 * depth:
 		return null
 	var dead: bool = style_roll < clampf(0.05 + 0.45 * depth + 0.22 * float(run - 1), 0.0, 0.9)
 	var list: Array = DEAD_POTS if dead else POTS
@@ -163,7 +165,7 @@ static func _houseplant(rng: RandomNumberGenerator, m: Dictionary, placed: Array
 		return null
 	for k in range(24):
 		var x: int = lo_x + int((x_roll + k * 37) % maxi(1, int(W - MARGIN - size.x) - lo_x))
-		if clear_over(sky, x, int(size.x)) < FOOTING:
+		if clear_over(sky, x, int(size.x)) < int(size.y):      # the whole plant, not just its footing, in the open
 			continue
 		var r := Rect2(Vector2(x, float(base_row("floor")) - size.y), size)
 		if CG._overlap_frac(placed, r, ["fern", "shrub"]) > 0.15:
@@ -191,8 +193,7 @@ static func add_to(module: Node, art: String, floor_num: int, apartment_id: Stri
 		s.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		s.set_meta("growth", d["name"])
 		s.set_meta("growth_kind", d["kind"])
-		var kind: String = String(meta.get(d["name"], {}).get("kind", d["kind"]))
-		var spec: Dictionary = Sway.GROWTH.get(kind, {})
+		var spec: Dictionary = Sway.growth_spec(meta.get(d["name"], {}))
 		if not spec.is_empty():
 			Sway.apply_spec(s, spec, hash(str(WorldState.master_seed) + "rsway" + apartment_id + str(slot) + str(d["pos"])), run)
 		holder.add_child(s)
@@ -270,10 +271,9 @@ static func add_balcony_to(module: Node, floor_num: int, apartment_id: String, s
 		s.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		s.set_meta("growth", d["name"])
 		s.set_meta("growth_kind", d["kind"])
-		var kind: String = String(meta.get(d["name"], {}).get("kind", d["kind"]))
-		var spec: Dictionary = Sway.GROWTH.get(kind, {}).duplicate()
+		var spec: Dictionary = Sway.growth_spec(meta.get(d["name"], {})).duplicate()
 		if not spec.is_empty():
-			spec["amp"] = float(spec["amp"]) * 1.6                 # out in the open air: it moves more
+			spec["amp"] = float(spec["amp"]) * 1.3                 # out in the open air: it catches more wind (still capped at 1 texel)
 			Sway.apply_spec(s, spec, hash(str(WorldState.master_seed) + "bsway" + apartment_id + str(slot) + str(d["pos"])), run)
 		holder.add_child(s)
 	module.add_child(holder)

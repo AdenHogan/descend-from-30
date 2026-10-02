@@ -1,0 +1,82 @@
+{
+ "bedroom": {
+  "anchor_bedside": {
+   "frames": 3,
+   "h": 19,
+   "w": 32,
+   "x": 44,
+   "y": 89
+  },
+  "anchor_floor_underbed": {
+   "frames": 3,
+   "h": 18,
+   "w": 29,
+   "x": 138,
+   "y": 108
+  },
+  "anchor_wall_right_lower": {
+   "frames": 3,
+   "h": 25,
+   "w": 41,
+   "x": 279,
+   "y": 90
+  }
+ },
+ "dining_room": {
+  "anchor_right_lowerdrawers": {
+   "frames": 3,
+   "h": 42,
+   "w": 24,
+   "x": 280,
+   "y": 76
+  },
+  "anchor_right_upperdrawers": {
+   "frames": 3,
+   "h": 16,
+   "w": 28,
+   "x": 279,
+   "y": 67
+  }
+ },
+ "kitchen": {
+  "anchor_centre_fridge": {
+   "frames": 3,
+   "h": 88,
+   "w": 31,
+   "x": 7,
+   "y": 34
+  },
+  "anchor_centre_oven": {
+   "frames": 3,
+   "h": 31,
+   "w": 33,
+   "x": 156,
+   "y": 87
+  }
+ },
+ "living_room": {
+  "anchor_right_chair": {
+   "frames": 3,
+   "h": 21,
+   "w": 50,
+   "x": 264,
+   "y": 78
+  }
+ },
+ "study": {
+  "anchor_study_desk_drawer": {
+   "frames": 3,
+   "h": 20,
+   "w": 25,
+   "x": 199,
+   "y": 96
+  },
+  "anchor_study_filing": {
+   "frames": 3,
+   "h": 21,
+   "w": 41,
+   "x": 279,
+   "y": 67
+  }
+ }
+}

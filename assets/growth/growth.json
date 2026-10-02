@@ -4,43 +4,43 @@
   "creeper_1": {
    "h": 20,
    "kind": "creeper",
-   "pin": "bottom",
+   "pin": "none",
    "w": 30
   },
   "creeper_2": {
    "h": 56,
    "kind": "creeper",
-   "pin": "bottom",
+   "pin": "none",
    "w": 36
   },
   "creeper_3": {
    "h": 66,
    "kind": "creeper",
-   "pin": "bottom",
+   "pin": "none",
    "w": 44
   },
   "creeper_4": {
    "h": 28,
    "kind": "creeper",
-   "pin": "bottom",
+   "pin": "none",
    "w": 25
   },
   "creeper_5": {
    "h": 64,
    "kind": "creeper",
-   "pin": "bottom",
+   "pin": "none",
    "w": 52
   },
   "creeper_6": {
    "h": 60,
    "kind": "creeper",
-   "pin": "bottom",
+   "pin": "none",
    "w": 40
   },
   "creeper_dry_1": {
    "h": 47,
    "kind": "creeper",
-   "pin": "bottom",
+   "pin": "none",
    "w": 36
   },
   "fern_1": {
@@ -190,13 +190,13 @@
   "pot_dead_8": {
    "h": 26,
    "kind": "potted",
-   "pin": "bottom",
+   "pin": "none",
    "w": 16
   },
   "pot_dead_9": {
    "h": 25,
    "kind": "potted",
-   "pin": "bottom",
+   "pin": "none",
    "w": 24
   },
   "pot_fern_1": {
@@ -262,67 +262,67 @@
   "shrub_1": {
    "h": 29,
    "kind": "shrub",
-   "pin": "bottom",
+   "pin": "none",
    "w": 34
   },
   "shrub_2": {
    "h": 35,
    "kind": "shrub",
-   "pin": "bottom",
+   "pin": "none",
    "w": 43
   },
   "shrub_3": {
    "h": 47,
    "kind": "shrub",
-   "pin": "bottom",
+   "pin": "none",
    "w": 56
   },
   "shrub_4": {
    "h": 37,
    "kind": "shrub",
-   "pin": "bottom",
+   "pin": "none",
    "w": 41
   },
   "shrub_5": {
    "h": 54,
    "kind": "shrub",
-   "pin": "bottom",
+   "pin": "none",
    "w": 62
   },
   "shrub_6": {
    "h": 44,
    "kind": "shrub",
-   "pin": "bottom",
+   "pin": "none",
    "w": 49
   },
   "shrub_dry_1": {
    "h": 38,
    "kind": "shrub",
-   "pin": "bottom",
+   "pin": "none",
    "w": 40
   },
   "shrub_small_1": {
    "h": 19,
    "kind": "shrub",
-   "pin": "bottom",
+   "pin": "none",
    "w": 20
   },
   "shrub_small_2": {
    "h": 24,
    "kind": "shrub",
-   "pin": "bottom",
+   "pin": "none",
    "w": 28
   },
   "shrub_small_3": {
    "h": 24,
    "kind": "shrub",
-   "pin": "bottom",
+   "pin": "none",
    "w": 29
   },
   "shrub_small_4": {
    "h": 21,
    "kind": "shrub",
-   "pin": "bottom",
+   "pin": "none",
    "w": 22
   },
   "tuft_1": {
@@ -364,7 +364,7 @@
   "tuft_dry_1": {
    "h": 11,
    "kind": "tuft",
-   "pin": "bottom",
+   "pin": "none",
    "w": 19
   }
  }

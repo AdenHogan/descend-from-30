@@ -49,10 +49,15 @@ func _test_library() -> void:
 	var bad_pin: Array = []
 	for n in meta:
 		var k: String = meta[n]["kind"]
-		var moves: bool = Sway.GROWTH.has(k)
-		if moves != (meta[n]["pin"] != "none"):
+		# owner round 34: only leaves / drapes move — never a dead or dry plant, wall-bound ivy, a dense bush, roots, moss, fungus
+		var moves: bool = Sway.GROWTH.has(k) and not ("dead" in n or "dry" in n)
+		if moves != (meta[n]["pin"] != "none") or moves != not Sway.growth_spec(meta[n]).is_empty():
 			bad_pin.append(n)
-	check(bad_pin.is_empty(), "a sprite sways exactly when the library says it isn't static %s" % str(bad_pin))
+	check(bad_pin.is_empty(), "a sprite sways exactly when it has leaves or a drape and isn't dead / dry %s" % str(bad_pin))
+	check(not Sway.GROWTH.has("creeper") and not Sway.GROWTH.has("shrub"), "wall-bound ivy and dense bushes are not in the moving kinds")
+	for dead in ["pot_dead_8", "pot_dead_9", "tuft_dry_1", "creeper_dry_1", "shrub_dry_1"]:
+		check(Sway.growth_spec(meta[dead]).is_empty(), "%s never sways (owner: a leafless plant swaying had 'no reason whatsoever')" % dead)
+	check(not Sway.growth_spec(meta["pot_fern_1"]).is_empty() and not Sway.growth_spec(meta["hang_1"]).is_empty(), "a leafy pot and a hanging vine do")
 	check(Sway.GROWTH["hang"]["pin"] == "top" and Sway.GROWTH["fern"]["pin"] == "bottom", "hanging vines pin at the top, the rest at the foot")
 
 
@@ -226,7 +231,7 @@ func _test_corridor_nodes() -> void:
 	var pinned_top := 0
 	for s in holder.get_children():
 		var kind: String = String(meta.get(String(s.get_meta("growth", "")), {}).get("kind", ""))
-		var should: bool = Sway.GROWTH.has(kind)
+		var should: bool = not Sway.growth_spec(meta.get(String(s.get_meta("growth", "")), {})).is_empty()
 		if bool(s.get_meta("sway", false)) != should:
 			wrong.append(String(s.get_meta("growth", "")))
 		if should and s.material is ShaderMaterial and float(s.material.get_shader_parameter("pin_top")) > 0.5:
@@ -339,25 +344,33 @@ func _test_rooms() -> void:
 		if d["kind"] != "potted":
 			wild_burnt += 1
 	check(wild_burnt == 0, "a flat that has burnt grows nothing wild")
-	# houseplants: alive at the top / early, dead lower down and later
+	# houseplants: alive at the top / early, dead lower down and later — and only ever in the OPEN (owner round 34: "an out of
+	# place plant on a stool just randomly in front of other art items"), so only rooms with open wall can hold one
 	var dead_top := 0
 	var dead_low := 0
 	var n_top := 0
 	var n_low := 0
-	for seed_ in range(1, 60):
-		WorldState.master_seed = seed_ * 977
-		for slot in range(3):
-			for d in RG.plan("bedroom", 28, "28%02d" % seed_, slot, 1, false):
-				if d["kind"] == "potted":
-					n_top += 1
-					if String(d["name"]).contains("dead"):
-						dead_top += 1
-			for d in RG.plan("bedroom", 3, "3%02d" % seed_, slot, 3, false):
-				if d["kind"] == "potted":
-					n_low += 1
-					if String(d["name"]).contains("dead"):
-						dead_low += 1
+	var blocked: Array = []
+	for art in ["bedroom_e", "dining_room_c", "kitchen_c", "bathroom_c", "living_room_b", "study_c"]:
+		for seed_ in range(1, 40):
+			WorldState.master_seed = seed_ * 977
+			for slot in range(3):
+				for f_run in [[28, 1], [3, 3]]:
+					for d in RG.plan(art, f_run[0], "%d%02d" % [f_run[0], seed_], slot, f_run[1], false):
+						if d["kind"] != "potted":
+							continue
+						var sz: Vector2 = RG._tex(d["name"]).get_size()
+						var sky: Array = RG.map_for(art)["up_floor"]
+						if RG.clear_over(sky, int(d["pos"].x), int(sz.x)) < int(sz.y):
+							blocked.append("%s %s at x %d" % [art, d["name"], int(d["pos"].x)])
+						if f_run[0] == 28:
+							n_top += 1
+							dead_top += 1 if String(d["name"]).contains("dead") else 0
+						else:
+							n_low += 1
+							dead_low += 1 if String(d["name"]).contains("dead") else 0
 	WorldState.master_seed = 4242
+	check(blocked.is_empty(), "a houseplant's WHOLE height stands in clear space — never in front of furniture %s" % str(blocked.slice(0, 3)))
 	check(n_top > 0 and n_low > 0, "flats keep houseplants (%d up top, %d low)" % [n_top, n_low])
 	check(float(dead_low) / maxf(1.0, n_low) > float(dead_top) / maxf(1.0, n_top), "…and they die lower down and later (%d/%d vs %d/%d)" % [dead_low, n_low, dead_top, n_top])
 

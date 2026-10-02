@@ -82,8 +82,51 @@ func _test_sway() -> void:
 		and is_equal_approx(float(s3.material.get_shader_parameter("phase")), float(s.material.get_shader_parameter("phase"))),
 		"the phase is seeded: two plants differ, the same seed repeats")
 	check(Sway.SHADER_CODE.contains("floor(") and Sway.SHADER_CODE.contains("TEXTURE_PIXEL_SIZE"), "the shader steps in whole texels (pixel art)")
+	_test_gusts()
 	for n in [s, s3, s4]:
 		n.free()
+
+
+## Owner round 34: "a small potted plant with no leaves… no reason whatsoever that it should be swaying… we also don't need the
+## pixel jump on the animation to be so extreme. The plant looked like it was cut up when it swayed."
+func _test_gusts() -> void:
+	print("[gusts: still most of the time, never more than one texel]")
+	check(Sway.spec_for("plant_dead").is_empty(), "a dead corridor planter doesn't sway")
+	check(Sway.SHADER_CODE.contains("gust(") and Sway.SHADER_CODE.contains("max_amp"), "the shader gusts and caps the lean")
+	var winds := [Sway.wind_for_run(1), Sway.wind_for_run(2), Sway.wind_for_run(3)]
+	var calm: Array = []
+	for w in winds:
+		var still := 0
+		var total := 0
+		var worst := 0
+		for ph in [0.0, 1.3, 2.9, 4.4, 5.6]:
+			var t := 0.0
+			while t < 900.0:
+				var g: float = Sway.gust_at(t, ph, w)
+				if g < 0.02:
+					still += 1
+				total += 1
+				for kind in ["plant_tall", "plant_stand"]:
+					worst = maxi(worst, absi(Sway.offset_at(t, Sway.spec_for(kind), ph, w, 1.0)))
+				for kind in ["tuft", "flower", "fern", "potted"]:
+					worst = maxi(worst, absi(Sway.offset_at(t, Sway.GROWTH[kind], ph, w, 1.0)))
+				t += 0.25
+		calm.append(float(still) / float(total))
+		check(worst <= 1, "wind %.1f: anything that stands leans at most ONE texel (worst %d)" % [w, worst])
+	check(calm[0] >= 0.6 and calm[1] >= 0.5 and calm[2] >= 0.35, "it's still most of the time: calm %s of the day (morning / afternoon / night)" % str(calm))
+	check(calm[0] > calm[1] and calm[1] > calm[2], "later runs gust more often (calm shrinks)")
+	var vine_worst := 0
+	var vine_mid := 0
+	for ph in [0.0, 2.0, 4.0]:
+		var t2 := 0.0
+		while t2 < 900.0:
+			vine_worst = maxi(vine_worst, absi(Sway.offset_at(t2, Sway.GROWTH["hang"], ph, 1.7, 1.0)))
+			vine_mid = maxi(vine_mid, absi(Sway.offset_at(t2, Sway.GROWTH["hang"], ph, 1.7, 0.5)))
+			t2 += 0.25
+	check(vine_worst <= 2 and vine_worst >= 1 and vine_mid <= 1, "a long vine swings at most two texels at its tip (%d), one half way down (%d)" % [vine_worst, vine_mid])
+	# the CPU copy IS the shader's maths: the shader text carries the same constants
+	check(Sway.SHADER_CODE.contains(str(Sway.GUST_OPEN)) and Sway.SHADER_CODE.contains(str(Sway.GUST_FULL)) and Sway.SHADER_CODE.contains(str(Sway.MAX_STAND)),
+		"the shader and gust_at share their constants")
 
 
 func _test_corridor_plants() -> void:

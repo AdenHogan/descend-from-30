@@ -42,6 +42,7 @@ var tut_pack_intro_done: bool = false
 # looks the same flat to flat; each variant carries its OWN nodes on its OWN furniture. The first
 # entry is the base scene (MODULE_SCENES). Locked by apartment_window_test._test_module_variants.
 const ROOM_GROWTH := preload("res://scripts/room_growth.gd")
+const OPEN_FURNITURE := preload("res://scripts/open_furniture.gd")
 const RESIDENT_NPC := preload("res://scripts/resident_npc.gd")
 var resident: Node = null      # the survivor living here, if any (WorldState "RESIDENTS")
 
@@ -810,6 +811,7 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 		add_child(instance)
 		built_modules.append(instance)
 		apply_run_art(instance, WorldState.current_run)
+		OPEN_FURNITURE.attach(instance, apartment_id, WorldState.current_run)      # drawers / doors that open once searched
 		var story_role := breach_nest_role(apartment_id, entrance_side, i) if breached else ""
 		if story_role == "" and not breached:
 			var dead := WorldState.apartment_corpse(apartment_id)

@@ -349,6 +349,7 @@ def d_floor(c):
 def d_furniture(c):
     # WITH DEPTH (owner round 14): the fridge (3px left; its open door just moves), the counter run
     setback(c, lambda l: F.moved(l, _d_fridge, -3, 0), depth=5, top=34, x_range=(5, 37), rake=1.0)
+    _d_fridge_door(c)                                                  # after the setback, so it isn't extruded
     # the spilt milk, run out over the fridge's sill into a puddle on the lino (nobody came back to it)
     for (px_, py_, rx, ry) in ((13, 109, 7, 2), (19, 111, 5, 1.6), (9, 111, 3, 1)):
         c.ellipse(px_, py_, rx, ry, hexc('d8d4c8')); c.ellipse(px_ - 0.5, py_ - 0.3, rx - 1, max(0.6, ry - 0.6), hexc('f2efe4'))
@@ -414,22 +415,45 @@ def _d_fridge(c):
     c.ellipse(28, 93, 3, 2, hexc('7a9a4a')); c.ellipse(33, 93, 2, 1.5, hexc('c0453a'))
     c.hline(11, 22, 96, MILK); c.hline(12, 20, 95, shade(MILK, 0.92))
     c.vline(15, 97, 99, MILK); c.vline(16, 97, 98, shade(MILK, 0.9))        # over the sill
-    # the DOOR, swung open on its right hinge: its inner face and three bins
-    c.poly([(40, 34), (48, 38), (48, 95), (40, 99)], hexc('d8d4c8'))
-    c.line(48, 38, 48, 95, hexc('8a8678'))
-    def bin_(sy):
-        c.poly([(41, sy), (47, sy + 2), (47, sy + 4), (41, sy + 3)], hexc('b9b5a8'))
-        c.line(41, sy, 47, sy + 2, hexc('d9d5c8'))
-    for (ex, ey) in ((42, 46), (44, 47), (46, 47)):                        # eggs in the egg tray
-        c.ellipse(ex, ey, 0.9, 1.3, hexc('e8d8b8')); c.put(ex, ey - 1, hexc('f4ead0'))
-    bin_(49)
-    c.rect(42, 58, 43, 64, hexc('b0453a')); c.put(42, 57, hexc('f4f0e4')); c.put(43, 57, hexc('f4f0e4'))   # ketchup
-    c.put(42, 59, hexc('d8625a'))
-    c.rect(45, 61, 46, 65, hexc('d9b43a')); c.hline(45, 46, 60, hexc('7a5a36'))               # mustard
-    bin_(65)
-    c.rect(42, 74, 44, 81, hexc('e88a3a')); c.poly([(42, 74), (43, 72), (44, 74)], hexc('f0a860'))   # orange juice
-    c.rect(46, 76, 47, 82, hexc('5a3422')); c.put(46, 75, hexc('b0453a'))                    # brown sauce
-    bin_(81)
+
+
+# The fridge's front plane AFTER setback + the -3 move (measured off the render: x 5..37, y 42..107).
+# The open door is drawn in TRUE perspective about that plane (owner round 34: "the fridge door is
+# lacking proportion") — see door_quad / pixlib.quad_cols. It is hinged on the front-right edge,
+# full fridge width, swung 145 degrees (any wider and its free edge runs into the window box): its free edge is NEARER the camera, so it is taller and lower.
+FRIDGE_FRONT = (5, 37, 42, 107)
+FRIDGE_DOOR_ANGLE = 145.0
+
+
+def _d_fridge_door(c):
+    import pixlib as PX
+    x0, x1, yt, yb = FRIDGE_FRONT
+    quad = PX.door_quad(x1, yt, yb, x1 - x0, FRIDGE_DOOR_ANGLE, front_d=8)
+    n = quad['n']
+    Hs = 66
+    src = PX.Canvas(w=n, h=Hs, bg=(0, 0, 0, 0))
+    face, edge = hexc('d8d4c8'), hexc('8a8678')
+    src.rect(0, 0, n - 1, Hs - 1, face)
+    src.vline(n - 1, 0, Hs - 1, edge)                                     # the free edge's lip
+    src.hline(0, n - 1, 0, hexc('eceadf')); src.hline(0, n - 1, Hs - 1, shade(face, 0.8))
+    src.vline(0, 0, Hs - 1, shade(face, 0.85))                            # the hinge side
+    w = n - 2
+    def bin_(sy):                                                          # a shelf ledge, lit on top
+        src.rect(1, sy, w, sy + 2, hexc('b9b5a8')); src.hline(1, w, sy, hexc('d9d5c8'))
+        src.hline(1, w, sy + 3, shade(face, 0.72))
+    # the egg tray at the top: a row of eggs in their cups
+    for i in range(3):
+        ex = 3 + i * max(2, (w - 4) // 3 + 1)
+        src.ellipse(ex, 9, 1.4, 2.0, hexc('e8d8b8')); src.put(ex, 8, hexc('f4ead0'))
+    bin_(13)
+    kx = 2                                                                  # ketchup + mustard on the shelf
+    src.rect(kx, 21, kx + 2, 29, hexc('b0453a')); src.put(kx + 1, 20, hexc('f4f0e4')); src.put(kx, 22, hexc('d8625a'))
+    src.rect(kx + 4, 24, kx + 5, 29, hexc('d9b43a')); src.hline(kx + 4, kx + 5, 23, hexc('7a5a36'))
+    bin_(30)
+    src.rect(2, 38, 4, 49, hexc('e88a3a')); src.poly([(2, 38), (3, 36), (4, 38)], hexc('f0a860'))   # orange juice
+    src.rect(6, 41, 7, 49, hexc('5a3422')); src.put(6, 40, hexc('b0453a'))                         # brown sauce
+    bin_(50)
+    PX.quad_cols(c, src, quad)
 
 
 def _d_run(c):

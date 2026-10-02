@@ -37,6 +37,7 @@ extends Node
 #   kill             kill the player now (player._die → the real Game.game_over flow)
 #   hp:<n>           set health
 #   ws:<prop>:<val>  set any WorldState field (e.g. ws:current_apartment_id:2003, ws:dev_hazard_mode:3)
+#   search:<apt>:<anchor>  mark a node searched → its drawer / door opens (open_furniture.gd)
 #   eval:<method>    call a no-arg method on the current scene
 #   call:<group>:<method>[:<arg>]  call a method on the first node in a group (e.g. modal_panel)
 # Other args: --tutorial=1|0 (first-run tutorial on/off), --seed=<n>.
@@ -223,6 +224,11 @@ func _do(step: String) -> void:
 						n.call(p[2], p[3])
 				else:
 					n.call(p[2])
+			await _frames(1)
+		"search":
+			# search:<apartment>:<anchor> — mark a node searched and open its furniture (the loot panel's own call)
+			WorldState.mark_anchor_searched(p[1], p[2])
+			get_tree().call_group("open_furniture", "on_searched", p[1], p[2])
 			await _frames(1)
 		"eval":
 			var sc = get_tree().current_scene

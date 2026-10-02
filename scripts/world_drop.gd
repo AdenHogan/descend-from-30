@@ -121,7 +121,7 @@ func _process(delta: float) -> void:
 		var lvl := _orb_level()
 		var pulse := 1.0 + 0.08 * sin(_t * 3.2)
 		# TIGHT cast pool that hugs the orb body (matches interactable.gd — no oversized halo).
-		_light.energy = lvl * 0.5 * pulse
+		_light.energy = lvl * 0.5 * ORB.ORB_LIGHT_GAIN * pulse
 		_light.texture_scale = 0.035 + 0.025 * lvl
 	if not player_nearby:
 		return

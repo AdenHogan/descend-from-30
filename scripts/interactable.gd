@@ -14,9 +14,16 @@ const FL = preload("res://scripts/floor_lighting.gd")
 # holds an untaken item you HAVEN'T searched; once SEARCHED-but-not-emptied it turns pale
 # WHITE/colourless — drained but still glowing + distinct so a looked-in node reads apart.
 # Palette = a BODY tint + SPEC/GLOW/LIGHT accents.
+# Round 34 (owner: "nodes seem a bit darker, let's make them a little more silvery gold. Not too bright, just dial up the
+# brightness of them 20%"): the gold was a saturated yellow-orange (luminance 0.80) that the afternoon / night ambient sank
+# into the furniture. It's a pale CHAMPAGNE gold now (silver-leaning: less saturation, a touch of cool in the highlight —
+# body luminance 0.90, +12%), and the drawn layers gain ORB_BRIGHTNESS on top: summed over the layers (alpha x area x
+# luminance, any proximity level) the orb is ~+20% brighter than the old gold; the cast light is ORB_LIGHT_GAIN = 1.2x.
+const ORB_BRIGHTNESS := 1.09
+const ORB_LIGHT_GAIN := 1.2
 const GOLD := {
-	"body": Color(1.00, 0.80, 0.22), "spec": Color(1.00, 0.98, 0.86),
-	"glow": Color(1.00, 0.80, 0.30), "light": Color(1.00, 0.78, 0.34),
+	"body": Color(0.99, 0.90, 0.64), "spec": Color(1.00, 0.99, 0.93),
+	"glow": Color(1.00, 0.89, 0.62), "light": Color(1.00, 0.87, 0.62),
 }
 const PALE := {
 	"body": Color(0.86, 0.89, 0.95), "spec": Color(1.00, 1.00, 1.00),
@@ -105,7 +112,7 @@ func _process(delta: float) -> void:
 		var pulse = 1.0 + 0.08 * sin(_t * 3.2)
 		# TIGHT cast pool — the 256px cookie at these scales gives a ~7-8px glow radius that hugs
 		# the ~8px orb body (an earlier 0.06-0.10 scale threw a ~13px halo bigger than the orb).
-		_light.energy = lvl * 0.5 * pulse
+		_light.energy = lvl * 0.5 * ORB_LIGHT_GAIN * pulse
 		_light.texture_scale = 0.035 + 0.025 * lvl
 	queue_redraw()
 
@@ -151,14 +158,19 @@ static func draw_orb(ci: CanvasItem, tex: Texture2D, base_center: Vector2, base_
 	var c := base_center + Vector2(0.0, sin(t * 2.0) * 0.7)   # gentle bob (weight)
 	var body: Color = pal["body"]
 	var spec: Color = pal["spec"]
-	_orb_layer(ci, tex, c, r * 1.30, pal["glow"], 0.14 * lvl)                       # small halo (hugs it)
-	_orb_layer(ci, tex, c, r * 1.00, body, 0.55 * lvl)                              # glowing colour body — outer
-	_orb_layer(ci, tex, c, r * 0.72, body, 0.85 * lvl)                              # glowing colour body — dense
-	ci.draw_circle(c + Vector2(0.0, -r * 0.05), r * 0.40, Color(body.r, body.g, body.b, 0.70 * lvl))  # semi-opaque nucleus (weight)
-	_orb_layer(ci, tex, c, r * 0.42, spec, 0.90 * lvl)                              # bright glowing heart (feathers the nucleus)
-	_orb_layer(ci, tex, c, r * 0.20, spec, 1.00 * lvl)                              # white-hot core
+	var k := lvl * ORB_BRIGHTNESS                    # every layer's alpha scales with it (each clamped to 1 in _a)
+	_orb_layer(ci, tex, c, r * 1.30, pal["glow"], _a(0.14, k))                      # small halo (hugs it)
+	_orb_layer(ci, tex, c, r * 1.00, body, _a(0.55, k))                             # glowing colour body — outer
+	_orb_layer(ci, tex, c, r * 0.72, body, _a(0.85, k))                             # glowing colour body — dense
+	ci.draw_circle(c + Vector2(0.0, -r * 0.05), r * 0.40, Color(body.r, body.g, body.b, _a(0.70, k)))  # semi-opaque nucleus (weight)
+	_orb_layer(ci, tex, c, r * 0.42, spec, _a(0.90, k))                             # bright glowing heart (feathers the nucleus)
+	_orb_layer(ci, tex, c, r * 0.20, spec, _a(1.00, k))                             # white-hot core
 	var gpos := c + Vector2(-0.42, -0.50) * (r * 0.52) + Vector2(cos(t * 1.1), sin(t * 1.1)) * (r * 0.03)
-	ci.draw_circle(gpos, r * 0.12, Color(1.0, 1.0, 1.0, 0.88 * lvl))                # crisp specular gleam (shine)
+	ci.draw_circle(gpos, r * 0.12, Color(1.0, 1.0, 1.0, _a(0.88, k)))               # crisp specular gleam (shine)
+
+
+static func _a(base: float, k: float) -> float:
+	return minf(base * k, 1.0)
 
 
 static func _orb_layer(ci: CanvasItem, tex: Texture2D, center: Vector2, radius: float, col: Color, a: float) -> void:

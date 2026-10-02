@@ -236,7 +236,7 @@ static func add_to(root: Node, floor_num: int, run: int, base_name: String, art_
 		s.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		s.set_meta("growth", d["name"])
 		s.set_meta("growth_kind", d["kind"])
-		var spec: Dictionary = Sway.GROWTH.get(String(m.get(d["name"], {}).get("kind", "")), {})
+		var spec: Dictionary = Sway.growth_spec(m.get(d["name"], {}))
 		if not spec.is_empty():
 			Sway.apply_spec(s, spec, hash(str(WorldState.master_seed) + "gsway" + str(floor_num) + str(d["pos"])), run)
 		holder.add_child(s)

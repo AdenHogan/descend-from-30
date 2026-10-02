@@ -572,6 +572,10 @@ def setback(c, fn, depth=5, top=None, x_range=None, vpx=VP_X, rake=None, forward
     return shift
 
 
+FLOOR_PIECES = []       # (name, kind, set of art px) per thing standing / lying on the FLOOR (owner round 34: "the
+                        # knocked over chair is clipped by the table legs"): kind 'feet' = a standing piece's
+                        # contact with the floor (a table leg's foot, a chair's four feet), 'lying' = a toppled
+                        # piece's WHOLE silhouette. Two of them may never share a pixel — finish_module refuses.
 OVERHANGS = []          # (x0, x1, y, surface x0, x1) per thing on top that pokes past the surface — finish_module refuses
 
 
@@ -744,6 +748,49 @@ def pp(x, y, d, vpx=VP_X):
     return (vpx + (x - vpx) * s, y * s)
 
 
+def door_quad(hinge_x, y_top, y_bot, width, angle_deg, front_d, vpx=VP_X, closed_dir=-1):
+    """A HINGED DOOR in true perspective (owner round 34: "the fridge door is lacking proportion").
+    The piece's FRONT plane is at art coords (x, y_top..y_bot) — already set back `front_d` px — and
+    the door hangs on its edge at `hinge_x`. `angle_deg` = how far it is swung from CLOSED (closed lies
+    along the front plane toward `closed_dir`, -1 = the door closes leftward off a right hinge).
+    The free edge is `width*sin(a)` NEARER the camera and `width*cos` out sideways; a point `e` nearer
+    scales about the vanishing point by (SEAM+front_d+e)/(SEAM+front_d) — so the free edge is TALLER and
+    LOWER than the hinge edge, and the whole door foreshortens.  Returns {x0, x1, n, top0, bot0, top1,
+    bot1} (columns x0..x1; the hinge column's / free column's top + bottom y)."""
+    import math
+    a = math.radians(angle_deg)
+    dx = closed_dir * width * math.cos(a)               # closed (a=0) lies along closed_dir; 180 lies flat the other way
+    e = width * math.sin(a)
+    base = float(SEAM_Y + front_d)
+    s = (base + e) / base
+    fx = vpx + ((hinge_x + dx) - vpx) * s
+    return {'x0': hinge_x, 'x1': int(round(fx)), 'n': abs(int(round(fx)) - hinge_x) + 1,
+            'top0': y_top, 'bot0': y_bot, 'top1': y_top * s, 'bot1': y_bot * s, 's': s, 'dir': 1 if fx >= hinge_x else -1}
+
+
+def quad_cols(c, src, q):
+    """Paste the flat image `src` (authored at the door's final pixel width n) onto canvas `c` as the
+    quad from door_quad: column by column from the hinge edge (src col 0) to the free edge (src col
+    n-1), each squeezed vertically to its own top..bottom (linear in x). Nearest-neighbour, so it
+    stays pixel art."""
+    n, d = q['n'], q['dir']
+    sp = src.img.load()
+    sw, sh = src.w, src.h
+    for j in range(n):
+        t = j / float(max(1, n - 1))
+        top = q['top0'] + (q['top1'] - q['top0']) * t
+        bot = q['bot0'] + (q['bot1'] - q['bot0']) * t
+        x = q['x0'] + d * j
+        sx = min(sw - 1, int(round(t * (sw - 1))))
+        y0, y1 = int(round(top)), int(round(bot))
+        for y in range(y0, y1 + 1):
+            v = (y - top) / max(1e-6, (bot - top))
+            sy = min(sh - 1, max(0, int(v * sh)))
+            px_ = sp[sx, sy]
+            if px_[3]:
+                c.put(x, y, px_)
+
+
 def _ip(p_):
     return (int(round(p_[0])), int(round(p_[1])))
 
@@ -839,6 +886,24 @@ def check_back_plane_clear(img, floor_img, anchors):
 FRONT_NODE_MIN_Y = 66
 
 
+def register_floor_piece(name, kind, pixels):
+    FLOOR_PIECES.append((name, kind, set(pixels)))
+
+
+def check_floor_pieces():
+    """Pieces that touch the floor must not occupy the same floor: a toppled chair lying across a table
+    leg's foot, two chairs on one spot. Returns the offending pairs [(a, b, n_px, first_px)]."""
+    bad = []
+    for i, (na, ka, pa) in enumerate(FLOOR_PIECES):
+        for (nb, kb, pb) in FLOOR_PIECES[i + 1:]:
+            if ka == 'feet' and kb == 'feet':
+                continue                      # two standing pieces' feet never need to be compared
+            both = pa & pb
+            if both:
+                bad.append((na, nb, len(both), min(both)))
+    return bad
+
+
 def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, strip_fn=None, per_run=None):
     """Render, check and export one module variant, and write its scene.
 
@@ -866,6 +931,7 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
     LIGHTS.clear()
     SETBACKS.clear()
     OVERHANGS.clear()
+    FLOOR_PIECES.clear()
     full = Canvas(seed=seed)
     build_fn(full)
     n_main = len(LIGHTS)
@@ -886,6 +952,12 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
         msg = 'wall decor %s is covered / crowded by something drawn later (%d px, at %s) — hang it clear' % (bb, cov, hb)
         if os.environ.get('DECOR_REPORT'):
             print('  DECOR %s: %s' % (name, msg))
+        else:
+            errs.append(msg)
+    for (na, nb, n_, at) in check_floor_pieces():
+        msg = 'floor pieces clip: %s and %s share %d px (first at %s) — stand them apart' % (na, nb, n_, at)
+        if os.environ.get('CLIP_REPORT'):
+            print('  CLIP %s: %s' % (name, msg))
         else:
             errs.append(msg)
     bad = check_window_boxes(full.img, bare.img)

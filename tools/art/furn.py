@@ -224,11 +224,20 @@ def poster_game(c, x0, y0, x1, y1, title='SPACE'):
     text3(c, (x0 + x1) // 2 - text3_width(title) // 2, y1 - 6, title, hexc('4ec8e0'))
 
 
+def _register_feet(name, spans, base):
+    """Each (xa, xb) leg's foot (the last 3 rows) goes in the floor-clip registry (pixlib.FLOOR_PIECES)."""
+    import pixlib as PX
+    for (xa, xb) in spans:
+        PX.register_floor_piece('%s leg at x%d' % (name, xa), 'feet',
+                                {(x, y) for x in range(xa, xb + 1) for y in range(base - 2, base + 1)})
+
+
 def table_front(c, x0, x1, top, base, P, depth=5, cloth=None, cloth_dk=None, hem=None):
     """A table standing out in the room, seen from the front and a little above: the top surface
     (`depth` rows), an apron, four legs (the far pair set back + darker). Optional cloth."""
     b, lt, dk, out = P
     c.shadow((x0 + x1) // 2, base + 1, (x1 - x0) // 2 + 3, 3, 110)
+    _register_feet('table', [(x0 + 2, x0 + 4), (x1 - 4, x1 - 2), (x0 + 6, x0 + 7), (x1 - 7, x1 - 6)], base)
     c.rect(x0 + 6, top + depth + 3, x0 + 7, base - 3, shade(dk, 0.8))      # far legs
     c.rect(x1 - 7, top + depth + 3, x1 - 6, base - 3, shade(dk, 0.8))
     c.rect(x0 + 2, top + depth + 2, x0 + 4, base, dk)                         # near legs

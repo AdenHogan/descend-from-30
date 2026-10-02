@@ -641,14 +641,14 @@ func _test_city_outside() -> void:
 
 ## Owner round 33: "as if the scene of the city remains in place, but because you're passing by the window it looks like it is moving
 ## in the distance as you walk by… extend the city image a little and then allow for the view to pan slightly… for balcony openings
-## too." The city slides with the viewer, a few whole px, never past the extra it was drawn with; the rain stays on the glass.
+## too." The city slides with the CAMERA (round 34: not the player), a few whole px, never past the extra it was drawn with; the rain stays on the glass.
 func _test_city_parallax() -> void:
 	print("[the city pans as you walk past: windows, stairwells, balconies]")
 	var CV = load("res://scripts/city_view.gd")
 	check(CV.offset_for(500.0, 500.0, 8.0) == 0.0, "standing square to the opening: the city is centred")
 	var r: float = CV.offset_for(600.0, 500.0, 8.0)
 	var l: float = CV.offset_for(400.0, 500.0, 8.0)
-	check(r > 0.0 and l < 0.0 and r == -l and r == roundf(r), "walk right → it drifts right, left → left, in whole px (%.0f / %.0f)" % [r, l])
+	check(r > 0.0 and l < 0.0 and r == -l and r == roundf(r), "the camera moves right → it drifts right, left → left, in whole px (%.0f / %.0f)" % [r, l])
 	check(CV.offset_for(5000.0, 500.0, 8.0) == 8.0 and CV.offset_for(-5000.0, 500.0, 8.0) == -8.0, "never past the extra it was drawn with")
 	# a live window: the view + the fires on it slide, the rain doesn't
 	WorldState.new_game()
@@ -657,16 +657,32 @@ func _test_city_parallax() -> void:
 	var win = load("res://scripts/apartment_window.gd").new()
 	add_child(win)
 	win.setup(Vector2(400, 262), true, 2)
-	var viewer := Node2D.new()
-	add_child(viewer)
-	win.city._viewer = viewer
-	viewer.global_position = Vector2(win.global_position.x + 300.0, 350)
+	# The viewer is the CAMERA (owner round 34 — "the city moves when the player moves, not when the camera moves"): the
+	# player walks off while the camera stays pinned, and the city must not stir; the camera moving is what slides it.
+	var cam := Camera2D.new()
+	add_child(cam)
+	cam.make_current()
+	var player := Node2D.new()
+	player.add_to_group("player")
+	add_child(player)
+	cam.global_position = Vector2(win.global_position.x, 350)
+	player.global_position = Vector2(win.global_position.x, 350)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var centred: float = win.city.far.position.x
+	player.global_position = Vector2(win.global_position.x + 300.0, 350)      # the PLAYER walks away; the camera stays fixed
+	await get_tree().process_frame
+	await get_tree().process_frame
+	check(win.city.far.position.x == centred and centred == 0.0, "a player walking past a FIXED camera doesn't move the city (%+.0f)" % win.city.far.position.x)
+	cam.global_position = Vector2(win.global_position.x + 300.0, 350)         # the CAMERA moves
+	await get_tree().process_frame
 	await get_tree().process_frame
 	var right: float = win.city.far.position.x
-	viewer.global_position = Vector2(win.global_position.x - 300.0, 350)
+	cam.global_position = Vector2(win.global_position.x - 300.0, 350)
+	await get_tree().process_frame
 	await get_tree().process_frame
 	var left: float = win.city.far.position.x
-	check(right == win.city.pan and left == -win.city.pan, "a window's city slides with the viewer (%+.0f → %+.0f)" % [right, left])
+	check(right == win.city.pan and left == -win.city.pan, "a window's city slides with the camera (%+.0f → %+.0f)" % [right, left])
 	check(win.view.get_parent() == win.city.far, "...the skyline rides it")
 	var fires_far := 0
 	for c in win.city.far.get_children():
@@ -679,7 +695,8 @@ func _test_city_parallax() -> void:
 			rain_still = false
 	check(rain_still, "...while the rain stays on the glass")
 	win.queue_free()
-	viewer.queue_free()
+	player.queue_free()
+	cam.queue_free()
 	await get_tree().process_frame
 	# a balcony: its city is a clipped layer over the art, covering every bare-view pixel at any slide
 	var apt := ""

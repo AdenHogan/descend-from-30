@@ -7,11 +7,11 @@ sway it (scripts/sway.gd). Sprites are native pixel art (1 px = 1 game px), auth
 the engine's lighting does that) in a green family with dry/brown and flower accents.
 
   hang_*     ivy / vines hanging from the ceiling — pinned at the TOP, they swing from there
-  creeper_*  ivy climbing a wall from the skirting — pinned at the foot
+  creeper_*  ivy climbing a wall from the skirting — still (it clings; round 34)
   tuft_*     grass + weeds through the floor, some with flowers — pinned at the foot
   flower_*   taller wildflower stalks — pinned at the foot
   fern_*     arching ferns — pinned at the foot
-  shrub_*    big bushes / saplings that have taken a corner — pinned at the foot
+  shrub_*    big bushes / saplings that have taken a corner — still (dense; round 34)
   roots_*    roots + cracked floor — static
   moss_*     moss on the wall foot / floor — static
   fungus_*   bracket fungus and toadstools — static
@@ -545,13 +545,25 @@ def build():
     return out
 
 
+# What may MOVE in a draught (owner round 34 — "no, we just want some leaves, or cloths, or things that might drape"):
+# kinds that cling, are rigid or are static never do, and anything dry or dead has nothing left to catch the wind. The pin
+# is what scripts/sway.gd (`growth_spec`) reads: "none" = still.
+STILL_KINDS = ('creeper', 'shrub', 'roots', 'moss', 'fungus')
+
+
+def pin_for(name, d):
+    if d['kind'] in STILL_KINDS or 'dry' in name or 'dead' in name:
+        return 'none'
+    return d['pin']
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     sprites = build()
     meta = {}
     for name, d in sprites.items():
         d['img'].save(os.path.join(OUT, name + '.png'))
-        meta[name] = dict(kind=d['kind'], pin=d['pin'], w=d['img'].width, h=d['img'].height)
+        meta[name] = dict(kind=d['kind'], pin=pin_for(name, d), w=d['img'].width, h=d['img'].height)
     with open(os.path.join(OUT, 'growth.json'), 'w') as fh:
         json.dump({'note': 'written by tools/art/growth.py — sprite -> kind / pin / size', 'sprites': meta}, fh, indent=1, sort_keys=True)
     # a contact sheet: every sprite at 3x on a wall-ish ground, grouped by kind

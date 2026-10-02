@@ -574,3 +574,10 @@ in-editor check.
   TV, to the right of the window), kitchen A's grease + dining D's handprint (marks), dining E's balloons
   (knotted round the chair rails, in front), study B's corkboard (up off the monitor), study D's map
   (clear of the aerial lead + desk mic), study E's paint swatches (clear of the canvas).
+
+- ROUND 34: **CLIPPING + PROPORTION CHECKS, openings.** `pixlib.FLOOR_PIECES`: every `chair3d.draw_model` piece (a standing
+  one by its feet, a toppled one — `fall()` sets `model.lying` — by its whole silhouette) and every `furn.table_front` leg
+  registers where it touches the floor; `finish_module` refuses two that share a pixel (`CLIP_REPORT=1 python3
+  tools/art/build_all.py` lists them instead). Dining C's knocked chair stood on a table leg — now clear. For a HINGED door use
+  `pixlib.door_quad` + `quad_cols` (the free edge is nearer the camera: taller and lower than the hinge edge) — kitchen D's
+  fridge door was a flat slab with the perspective backwards. Opened-furniture patches: docs/OPENABLE_FURNITURE.md.

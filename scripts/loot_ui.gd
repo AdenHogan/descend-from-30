@@ -140,6 +140,7 @@ func open(item_id: String, anchor_name: String, apartment_id: String) -> void:
 
 func _reveal_item() -> void:
 	WorldState.mark_anchor_searched(current_apartment_id, current_anchor_name)
+	get_tree().call_group("open_furniture", "on_searched", current_apartment_id, current_anchor_name)   # the drawer opens
 	is_revealing = false
 	var item_data = ItemData.get_item(current_item_id)
 	if current_item_id == "" or item_data.is_empty():

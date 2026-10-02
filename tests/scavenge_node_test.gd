@@ -70,6 +70,14 @@ func _test_mini_sun_light() -> void:
 		await get_tree().process_frame
 	var gold := light.color
 	check(gold.r > gold.b, "unsearched orb light is warm gold (r %.2f > b %.2f)" % [gold.r, gold.b])
+	# owner round 34: "a little more silvery gold… dial up the brightness of them 20%"
+	var G: Dictionary = node.GOLD
+	var body: Color = G["body"]
+	check(body.get_luminance() >= 0.88 and body.b > 0.5 and body.r > body.b, "the gold is a pale champagne, not a saturated yellow (lum %.2f, b %.2f)" % [body.get_luminance(), body.b])
+	check(is_equal_approx(node.ORB_LIGHT_GAIN, 1.2) and node.ORB_BRIGHTNESS > 1.05 and node.ORB_BRIGHTNESS < 1.15, "the glow gains ~20%% over the old gold (layers x%.2f, light x%.2f)" % [node.ORB_BRIGHTNESS, node.ORB_LIGHT_GAIN])
+	# the cast light follows: energy = level x 0.5 x 1.2 x pulse (pulse within +-8%)
+	var lvl: float = node._activity()
+	check(light.energy >= lvl * 0.5 * 1.2 * 0.91 and light.energy <= lvl * 0.5 * 1.2 * 1.09, "the cast light is 1.2x the old energy (%.3f at level %.2f)" % [light.energy, lvl])
 	WorldState.mark_anchor_searched("1501", "anchor_test")
 	for i in range(3):
 		await get_tree().process_frame

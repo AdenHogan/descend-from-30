@@ -229,7 +229,7 @@ Robustness rules). What it covers:
   `dev_menu_test`, `lighting_test`, `plane_lock_test`, `apartment_window_test`,
   `scavenge_node_test`, `drop_physics_test`, `softlock_test`, `character_panel_test`,
   `corpse_recovery_test`, `run_memory_test`, `attack_input_test`, `character_stats_test`, `transition_seam_test`, `run_bookends_test`, `weapon_upgrade_test`, `progression_test`, `back_plane_test`,
-  `apartment_lamp_test`, `gun_cabinet_test`, `breach_test`, `item_icon_test`, `hud_wheel_test`, `motion_test`, `growth_test`, `pack_test`, `backpack_test`, `molotov_test`, `banister_test`, `stair_heights_test`, `resident_npc_test` — run all 58 before commit. Balance tool: `tools/economy_report.tscn` (scrap per run, ~25 min a seed). (`new_game()` rolls a RANDOM seed, so any test meets any of the four
+  `apartment_lamp_test`, `gun_cabinet_test`, `breach_test`, `item_icon_test`, `hud_wheel_test`, `motion_test`, `growth_test`, `pack_test`, `backpack_test`, `molotov_test`, `banister_test`, `stair_heights_test`, `resident_npc_test`, `open_furniture_test` — run all 59 before commit. Balance tool: `tools/economy_report.tscn` (scrap per run, ~25 min a seed). (`new_game()` rolls a RANDOM seed, so any test meets any of the four
   characters — an assert on a trait-affected value must be trait-aware; see docs/CHARACTERS.md.) (Run ONE godot at a time — a killed/backgrounded headless run can
   linger and block the next, and a GDScript **parse error makes a test scene load but
   never call `quit()`, so it "hangs" until timeout** rather than printing an error line;
@@ -2218,4 +2218,23 @@ means no rendering — UI layout and art still need an in-editor look.
   shelves (A, B, C gilt, E) moved down onto the basin / washstand, with things drawn there. **Bathroom A's shower** is a
   walk-in with a tray 14 px out and a glass side screen in perspective (front node; A has no step-up now). **Boons** — the
   merchant's (above). **Foreground silhouettes** removed.
+- ROUND 34 (owner playtest; docs/OPENABLE_FURNITURE.md): **(1) Nodes** are ~20% brighter and silvery-gold
+  (`Interactable.ORB_BRIGHTNESS` 1.09 × a lighter `GOLD` palette; cast light ×`ORB_LIGHT_GAIN` 1.2; `scavenge_node_test`).
+  **(2) SEARCHED FURNITURE CHANGES** ("This War of Mine: the drawer opens, a door swings open"): `tools/art/openables.py`
+  reads the FINISHED module art (all three run looks) and bakes, per opening, a 3-frame sheet of the furniture opening in
+  TRUE perspective (a homography warp of the real front through the room's vanishing-point map — drawers pull out showing
+  their open top + side, hinged doors swing, the oven drops) → `assets/rooms/open/` + `open_meta.json`;
+  `scripts/open_furniture.gd` lays it over the art (above `Art`, below the orbs), plays it when `loot_ui._reveal_item`
+  calls group `open_furniture` `on_searched`, and shows the open look on re-entry. 10 openings on the BASE (variant A)
+  modules, which the floor-30 tutorial flats use (`TUTORIAL_LAYOUTS` → `MODULE_SCENES`): dresser, nightstand, wardrobe +
+  under-bed drawers, desk + filing drawers, fridge, oven, sideboard drawer + door. Other variants have none yet (`attach`
+  is a no-op). Order: `build_all.py` THEN `openables.py` (the gate runs `openables.py --check`; `open_furniture_test`).
+  `scene_capture` step `search:<apt>:<anchor>`. **(3) Art checks** (the whack-a-mole): `pixlib.FLOOR_PIECES` — every
+  `chair3d.draw_model` piece and every `furn.table_front` leg registers its floor contact (a toppled piece its whole
+  silhouette) and `finish_module` REFUSES two that share a pixel (`CLIP_REPORT=1` lists); `pixlib.door_quad` /
+  `quad_cols` draw a hinged door in perspective (free edge nearer = taller + lower) — kitchen D's fridge door was redrawn
+  with it and dining C's knocked chair stood clear of the table. **(4) City parallax follows the CAMERA**
+  (`city_view.offset_now` reads the active Camera2D's screen centre, not the player). **(5) Sway** only leafy / draping
+  things (`sway.gd` KINDS/GROWTH, gusts, ≤1 texel stand / 2 vine; dead / dry / rigid / roots never move; houseplants need
+  full-height clear wall — none stand in front of furniture). The LOOK of the openings needs the owner's in-editor eye.
 - Not started: quests.

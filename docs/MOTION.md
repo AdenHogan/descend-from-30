@@ -64,3 +64,12 @@ Sound pairs with most of these (a creak with the swinging lamp, a flutter with t
 plants stand exactly where the planner put them, knocked-over plants don't sway, the wind rises with the
 run, and the exit sign never gets better through the day. The *look* (sway amplitude, the sign's stutter)
 needs an in-editor / `tools/scene_capture.tscn` look — it can't be judged headless.
+
+
+## Round 34 — sway rules (owner: "no reason whatsoever that it should be swaying… we just want some leaves, or cloths, or
+things that might drape… and the pixel jump shouldn't be so extreme")
+Only leafy / draping things move (`Sway.GROWTH` kinds hang / tuft / flower / fern / potted, `KINDS` plant_tall / plant_stand);
+dead / dry / creeper / shrub / roots / moss / fungus are `pin: none` (still). The shear is whole-texel but capped (`MAX_STAND`
+1.45 → at most ONE texel on a standing plant, `MAX_HANG` 2.45 on a hanging vine) and driven by slow GUSTS (`gust_at`: calm
+most of the time, a breath now and then) instead of a constant wobble. Rooms: a houseplant needs a full-height clear wall run,
+so none stands in front of furniture. Locked by `motion_test._test_gusts` + `growth_test`.
