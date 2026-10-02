@@ -37,6 +37,7 @@ extends Node
 #   kill             kill the player now (player._die → the real Game.game_over flow)
 #   hp:<n>           set health
 #   ws:<prop>:<val>  set any WorldState field (e.g. ws:current_apartment_id:2003, ws:dev_hazard_mode:3)
+#   drop:<slot>      discard an inventory slot to the floor (what the pack ring's Drop does)
 #   search:<apt>:<anchor>  mark a node searched → its drawer / door opens (open_furniture.gd)
 #   eval:<method>    call a no-arg method on the current scene
 #   call:<group>:<method>[:<arg>]  call a method on the first node in a group (e.g. modal_panel)
@@ -224,6 +225,10 @@ func _do(step: String) -> void:
 						n.call(p[2], p[3])
 				else:
 					n.call(p[2])
+			await _frames(1)
+		"drop":
+			# drop:<slot> — discard an inventory slot to the world (the pack ring's Delete / right-click Drop)
+			HUD.discard_slot(int(p[1]))
 			await _frames(1)
 		"search":
 			# search:<apartment>:<anchor> — mark a node searched and open its furniture (the loot panel's own call)

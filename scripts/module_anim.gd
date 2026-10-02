@@ -22,8 +22,8 @@ extends Node2D
 # the PLAYER's distance (not the camera's), fading out by `reach`. Silent on a passive backdrop.
 
 const SOUNDS := {
-	"static": ["res://assets/audio/ambience/tv_static.wav", -19.0, 36.0, 170.0],
-	"tv": ["res://assets/audio/ambience/tv_static.wav", -19.0, 36.0, 170.0],
+	"static": ["res://assets/audio/ambience/tv_static.wav", -31.0, 24.0, 160.0],     # a LOW HUM, even up close (owner round 34)
+	"tv": ["res://assets/audio/ambience/tv_static.wav", -31.0, 24.0, 160.0],
 	"spin": ["res://assets/audio/ambience/record_stuck.wav", -9.0, 90.0, 330.0],
 }   # kind -> [stream, loudest dB, full-volume radius px, silent past px]
 

@@ -4913,6 +4913,7 @@ func add_world_drop(item_id: String, pos: Vector2, floor_num: int, extra: Dictio
 		# A DISCARDED item remembers exactly what it was (instance_to_dict) — picking it back up
 		# returns that same weapon, not a fresh one. Empty for ordinary loot.
 		"instance": extra.get("instance", {}),
+		"rested": true,       # written by code that registers the RESTED floor position (see heal_legacy_drop)
 	}
 	return key
 
@@ -4952,10 +4953,43 @@ func remove_world_drop(drop_key: String) -> void:
 	world_drops.erase(drop_key)
 
 
+## A drop saved by an OLD build was registered where its owner stood (the player's / the zombie's ORIGIN), not
+## on the floor — so it came back hanging in the air with its name on it and nothing dead beside it (owner round 34:
+## a Flashlight ~33 px above the floor in a flat). Records written since carry "rested": true. An unmarked record whose
+## y is exactly one of those origin lines is lifted down onto the scene's floor line, once. (Anything else — a
+## balcony drop, a wall-mounted extinguisher — is left alone.)
+const LEGACY_FLOAT := {
+	"room": {"rest": 346.0, "origins": [304.0, 308.0, 321.0]},                 # standard / big settled origin, player origin
+	"floor": {"rest": 412.0, "origins": [370.0, 374.0, 386.0]},               # corridor: standard / big, player origin
+}
+
+
+func heal_legacy_drop(data: Dictionary) -> bool:
+	if data.get("rested", false):
+		return false
+	var scene: String = String(data.get("scene", ""))
+	var kind := "room" if scene.ends_with("room.tscn") else ("floor" if (scene.ends_with("building_floors.tscn") \
+			or scene.ends_with("hallway.tscn") or scene.ends_with("lobby.tscn")) else "")
+	if kind == "":
+		data["rested"] = true
+		return false
+	var fix: Dictionary = LEGACY_FLOAT[kind]
+	var y: float = float(data.get("y", 0.0))
+	var healed := false
+	for o in fix["origins"]:
+		if absf(y - float(o)) <= 1.5:
+			data["y"] = float(fix["rest"])
+			healed = true
+			break
+	data["rested"] = true
+	return healed
+
+
 func get_world_drops_for_floor(floor_num: int, scene_path: String = "", apartment_id: String = "") -> Dictionary:
 	var result: Dictionary = {}
 	for key in world_drops:
 		var data = world_drops[key]
+		heal_legacy_drop(data)
 		if data["floor"] != floor_num:
 			continue
 		# Scene filtering — a drop belongs to the scene it was made in. Older saves
@@ -5106,14 +5140,25 @@ const ZOMBIE_LOOT_POOL = [
 const ZOMBIE_LOOT_CHANCE = 0.18
 
 
-func roll_zombie_loot_id(pos: Vector2, floor_num: int) -> String:
+func roll_zombie_loot_id(pos: Vector2, floor_num: int, scene_path: String = "") -> String:
+	return str(roll_zombie_loot(pos, floor_num, scene_path).get("id", ""))
+
+
+## The loot a standard zombie drops ({} = none). `pos` must be the RESTED floor position (feet - REST_LIFT) — it is
+## what gets REGISTERED, so a re-entry puts the item back on the floor. (It used to be the zombie's origin, ~49 px up:
+## the item hung in the air, named and collectable, with no body near it — owner round 34.) `key` is the registry key
+## the live drop must carry so picking it up forgets the record.
+func roll_zombie_loot(pos: Vector2, floor_num: int, scene_path: String = "") -> Dictionary:
 	var rng = RandomNumberGenerator.new()
 	rng.seed = hash(str(master_seed) + "zloot" + str(snappedf(pos.x, 1.0)) + str(floor_num))
 	if rng.randf() > ZOMBIE_LOOT_CHANCE:
-		return ""
+		return {}
 	var item_id = ZOMBIE_LOOT_POOL[rng.randi() % ZOMBIE_LOOT_POOL.size()]
-	add_world_drop(item_id, pos, floor_num)
-	return item_id
+	var extra: Dictionary = {}
+	if scene_path != "":
+		extra["scene"] = scene_path
+	var key: String = add_world_drop(item_id, pos, floor_num, extra)
+	return {"id": item_id, "key": key}
 
 
 # ============================================================

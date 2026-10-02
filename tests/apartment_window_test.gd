@@ -525,7 +525,11 @@ func _test_module_sounds() -> void:
 			player.global_position = centre + Vector2(420, 0)
 			await get_tree().process_frame
 			var far_db := snd.volume_db
-			check(near_db > -30.0 and far_db < -60.0, "%s: loud near (%.0f dB), silent far (%.0f dB)" % [spec[1], near_db, far_db])
+			if spec[1] == "tv":
+				# owner round 34: "TV static gets way too loud when you approach. Keep it a low hum."
+				check(near_db > -45.0 and near_db <= -28.0 and far_db < -60.0, "tv: only a low hum even right up close (%.0f dB), silent far (%.0f dB)" % [near_db, far_db])
+			else:
+				check(near_db > -30.0 and far_db < -60.0, "%s: loud near (%.0f dB), silent far (%.0f dB)" % [spec[1], near_db, far_db])
 			var mid: float = a.sound_level(centre + Vector2(150, 0))
 			if spec[1] == "tv":
 				check(mid < 0.1, "tv: the static is only heard up close (%.2f at 150px)" % mid)

@@ -1039,16 +1039,19 @@ func _die() -> void:
 		queue_free()
 		return
 
-# Roll for loot drop — 18% chance, consumables only
-	var loot_id = WorldState.roll_zombie_loot_id(global_position, WorldState.current_floor)
-	if loot_id != "":
+# Roll for loot drop — 18% chance, consumables only. REGISTERED at the rested floor position (not the
+# zombie's origin, which hung the item in the air on re-entry) and tossed out of the corpse to land on it.
+	var feet_y := _drop_feet_y()
+	var rest := Vector2(global_position.x, feet_y - WORLD_DROP.REST_LIFT)
+	var loot: Dictionary = WorldState.roll_zombie_loot(rest, WorldState.current_floor, WorldState.world_scene_of(self))
+	if not loot.is_empty():
 		var drop_scene = preload("res://scenes/world_drop.tscn")
 		var drop = drop_scene.instantiate()
-		drop.item_id = loot_id
-		drop.drop_key = str(WorldState.current_floor) + ":" + str(snappedf(global_position.x, 1.0)) + ":" + str(snappedf(global_position.y, 1.0))
+		drop.item_id = String(loot["id"])
+		drop.drop_key = String(loot["key"])
 		get_parent().add_child(drop)
 		# Fly out of the corpse, bounce, and settle on the floor near it (not floating).
-		drop.toss(global_position, _drop_feet_y(), 1.0 if randf() < 0.5 else -1.0)
+		drop.toss(global_position, feet_y, 1.0 if randf() < 0.5 else -1.0)
  
 	await animated_sprite.animation_finished
 	animated_sprite.pause()

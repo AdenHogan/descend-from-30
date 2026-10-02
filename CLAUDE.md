@@ -1529,7 +1529,7 @@ means no rendering — UI layout and art still need an in-editor look.
   **Round 22**: nothing stands half off a piece (`pixlib._check_overhang`, refused by finish_module);
   living C's TV is a wide set on the wall, struck (live `tv` detail: crack, dead patch, colour bleed,
   flashes, a broken second) and its guitar lies bloodied on the floor (`tools/art/living_c_props.py`);
-  live details can carry a looping SOUND by the player's distance (`module_anim.SOUNDS`: the TV hisses up
+  live details can carry a looping SOUND by the player's distance (`module_anim.SOUNDS` (round 34: the TV is a LOW HUM, −31 dB, and the record's needle-skip is a real stick + scratch made from its own music): the TV hisses up
   close, dining B's record plays ten stuck seconds with a scratch; `tools/gen_room_audio.py`, CC0).
 - CORRIDOR ART (owner round 10, `tools/art/corridor.py`): floors 1-29 get a painted overlay over
   the old tile look — `building_floors._apply_corridor_art` adds a `CorridorArt` Sprite2D (115,243,
@@ -2237,4 +2237,16 @@ means no rendering — UI layout and art still need an in-editor look.
   (`city_view.offset_now` reads the active Camera2D's screen centre, not the player). **(5) Sway** only leafy / draping
   things (`sway.gd` KINDS/GROWTH, gusts, ≤1 texel stand / 2 vine; dead / dry / rigid / roots never move; houseplants need
   full-height clear wall — none stand in front of furniture). The LOOK of the openings needs the owner's in-editor eye.
+  **(6) Round 34b — the floating Flashlight** ("a node that was just collectable, hanging in the air, said what it was, no dead
+  enemy"): it was a SAVED world-drop record from before the discard fix — `HUD._drop_to_world` used to register a discard at
+  the player's ORIGIN (321 in a flat, 33 px above the feet) and spawn nothing live, so the item came back on the next
+  entry floating at that height. The same class still existed live: `roll_zombie_loot_id` registered a standard zombie's
+  loot at the zombie's ORIGIN (304 / ~49 px up). Fixed: `roll_zombie_loot(rest_pos, floor, scene)` registers the RESTED
+  position (feet − `REST_LIFT`) and returns the key the live drop carries; every `add_world_drop` record is marked
+  `"rested": true`, and `WorldState.heal_legacy_drop` (run by `get_world_drops_for_floor`) lifts an UNMARKED record whose y is
+  exactly an origin line (room 304/308/321, corridor 370/374/386) down onto the scene's floor line, once — balcony / wall
+  fixtures are left alone. Locked by `drop_physics_test._test_registered_drops_rest_on_the_floor`. **(7) Room audio**:
+  the TV is a low hum (`tools/gen_room_audio.py`; −31 dB, radius 24 / reach 160) and the record's scratch is a real needle
+  skip (the music slows and sticks on its last beat three times, then a drag-scratch of its own tail, then the needle's thump).
+  `scene_capture` steps `search:` and `drop:<slot>`.
 - Not started: quests.

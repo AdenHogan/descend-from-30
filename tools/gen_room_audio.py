@@ -5,11 +5,16 @@ caught, then loop back, constantly getting stuck and repeating maybe ten seconds
 clear scratch to repeat"). Procedurally made here — CC0, like the storm ambience. Mono 22050 Hz,
 16-bit PCM WAV, each authored to LOOP (scripts/module_anim.gd plays them positionally).
 
-  tv_static.wav     — 3 s of soft television hiss: band-limited noise, a faint mains hum, a slow
-                      flutter; the end cross-faded into the start so it loops without a seam.
+  tv_static.wav     — 3 s of a television's LOW HUM (owner round 34: "keep it a low hum"): a mains hum and its
+                      harmonics with a slow swell, only a trace of soft hiss; the end cross-faded into the
+                      start so it loops without a seam.
   record_stuck.wav  — ~10 s of an old record: a lo-fi jazz vamp (electric piano on Cmaj7 - Am7 - Dm7 -
                       G7, a walking bass, brushes, a little melody), crackle and a warm roll-off,
-                      then the needle catches — a click and a scratch — and it's back at the start.
+                      then the needle catches (owner round 34: "the scratch sounds like a blast from a classic
+                      video game… it doesn't affect the music"): the last beat of the music slows and sticks,
+                      repeating three times with a tick each time, then a hand drags the record — the music's OWN
+                      tail played forwards and backwards at a wobbling speed over groove noise, the classic
+                      scratch — a thump as the needle drops, and it is back at the start.
 
 Run:  python3 tools/gen_room_audio.py   (needs numpy)   ->  assets/audio/ambience/
 """
@@ -58,12 +63,12 @@ def _loop_seam(x, fade):
 def tv_static():
     n = int(3.2 * SR)
     t = np.arange(n) / SR
+    hum = (0.55 * np.sin(2 * np.pi * 50 * t) + 0.30 * np.sin(2 * np.pi * 100 * t + 0.6)
+           + 0.16 * np.sin(2 * np.pi * 150 * t + 1.1) + 0.07 * np.sin(2 * np.pi * 250 * t + 2.0))
+    swell = 0.85 + 0.15 * np.sin(2 * np.pi * 0.31 * t)             # a slow breathing, not a flutter
     white = RNG.uniform(-1, 1, n)
-    hiss = white - _lowpass(white, 900)                  # drop the rumble
-    hiss = _lowpass(hiss, 6500)                          # and the harshest top
-    flutter = 0.8 + 0.2 * np.sin(2 * np.pi * 0.7 * t) * np.sin(2 * np.pi * 0.23 * t)
-    hum = 0.04 * np.sin(2 * np.pi * 50 * t) + 0.015 * np.sin(2 * np.pi * 100 * t)
-    x = hiss * flutter * 0.55 + hum
+    soft = _lowpass(white, 2200) - _lowpass(white, 300)           # a trace of hiss, no harsh top
+    x = hum * swell + soft * 0.10
     x = _loop_seam(x, 0.2)
     return x / np.max(np.abs(x)) * 0.5
 
@@ -131,19 +136,41 @@ def record_stuck():
     crackle = crackle - _lowpass(crackle, 1500)
     hiss = RNG.uniform(-1, 1, len(buf)) * 0.012
     buf += crackle * 0.35 + hiss
-    # the needle catches: cut the music just before the end, a sharp click, a short scratch, back
+    # THE NEEDLE CATCHES. The music slows (the record drags), the last beat STICKS and repeats three times with a
+    # tick at each jump, then a hand drags the record back and forth — a scratch made OUT OF THE MUSIC ITSELF.
     cut = int(music_len * SR)
-    buf[cut:] = 0.0
-    fade = int(0.03 * SR)
-    buf[cut - fade:cut] *= np.linspace(1, 0.2, fade)
-    n = int(0.32 * SR)
+    music = buf[:cut].copy()
+    out = [music[: cut - int(0.9 * SR)]]
+    slow_src = music[cut - int(0.9 * SR): cut]                    # the last 0.9 s sags in pitch and speed
+    p = np.cumsum(np.linspace(1.0, 0.55, len(slow_src))) / SR * SR   # playback position, slowing
+    p = p / p[-1] * (len(slow_src) - 1)
+    out.append(np.interp(p, np.arange(len(slow_src)), slow_src) * np.linspace(1.0, 0.8, len(slow_src)))
+    frag = music[cut - int(0.36 * SR): cut - int(0.02 * SR)]      # the groove it sticks in
+    for k in range(3):
+        rep = frag * (0.95 - 0.12 * k)
+        rep = np.interp(np.arange(len(rep)) * (1.0 - 0.06 * k), np.arange(len(rep)), rep, right=0.0)
+        tick = np.zeros(len(rep))
+        tick[:60] = np.linspace(0.8, 0, 60) * np.sign(RNG.uniform(-1, 1, 60))     # the needle jumping back
+        out.append(rep + tick)
+    # the scratch: read the tail forwards / backwards at a wobbling speed, over friction noise
+    seg = music[cut - int(0.5 * SR): cut]
+    n = int(0.72 * SR)
     ts = np.arange(n) / SR
-    zip_ = RNG.uniform(-1, 1, n)
-    zip_ = zip_ - _lowpass(zip_, 1800 + 0 * ts[0])
-    sweep = np.sin(2 * np.pi * (900 * ts - 1100 * ts * ts)) * 0.6
-    scratch = (zip_ * 0.7 + sweep) * np.exp(-ts * 9) * np.minimum(1, ts * 400)
-    _add(buf, music_len, scratch, 0.55)
-    buf[cut:cut + 40] += np.linspace(0.9, 0, 40) * np.sign(RNG.uniform(-1, 1, 40))   # the click
+    rate = 2.6 * np.sin(2 * np.pi * 3.4 * ts) * np.exp(-ts * 2.2) + 0.15
+    pos = np.cumsum(rate) / SR * SR
+    pos = (pos - pos.min()) % (len(seg) - 1)
+    scr = np.interp(pos, np.arange(len(seg)), seg) * 1.6
+    fric = RNG.uniform(-1, 1, n)
+    fric = _lowpass(fric, 5200) - _lowpass(fric, 900)
+    scr = (scr + fric * np.abs(np.tanh(rate)) * 0.55) * np.exp(-ts * 2.4) * np.minimum(1, ts * 300)
+    out.append(scr)
+    # the needle drops back on the record: a low thump and a click, then silence into the loop point
+    nd = int(0.35 * SR)
+    tn = np.arange(nd) / SR
+    thump = np.sin(2 * np.pi * 62 * tn) * np.exp(-tn * 22) * 0.6
+    thump[:50] += np.linspace(0.9, 0, 50) * np.sign(RNG.uniform(-1, 1, 50))
+    out.append(thump)
+    buf = np.concatenate(out)
     return buf / np.max(np.abs(buf)) * 0.8
 
 

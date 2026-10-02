@@ -16,6 +16,7 @@ func _ready() -> void:
 	await _test_toss_settles()
 	await _test_extinguisher_has_no_orb_light()
 	await _test_discard_spawns_live()
+	_test_registered_drops_rest_on_the_floor()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -102,3 +103,40 @@ func _test_discard_spawns_live() -> void:
 			stack_key = k
 	check(WorldState.world_drops.size() == cans_before + 1 and stack_key != "" and int(WorldState.world_drops[stack_key]["amount"]) == 2, "a stack of two cans drops as one x2 pickup")
 	world.queue_free()
+
+
+# Owner round 34: a Flashlight "hanging in the air, named and collectable, with no dead enemy there". Old builds
+# REGISTERED a discard at the player's ORIGIN (~33 px above the feet) and zombie loot at the zombie's origin
+# (~49 px up); the live drop was tossed onto the floor but the saved record came back floating on re-entry.
+func _test_registered_drops_rest_on_the_floor() -> void:
+	WorldState.new_game()
+	WorldState.current_floor = 12
+	WorldState.world_drops.clear()
+	var room_scene := "res://scenes/room.tscn"
+	var rest := Vector2(500.0, 346.0)
+	# a zombie's loot is registered where the drop RESTS, and the live drop's key forgets that very record
+	var found := {}
+	for x in range(0, 400):
+		var f: Dictionary = WorldState.roll_zombie_loot(Vector2(float(x), rest.y), 12, room_scene)
+		if not f.is_empty():
+			found = f
+			break
+	check(not found.is_empty(), "a standard zombie rolls loot for some position")
+	if not found.is_empty():
+		var rec: Dictionary = WorldState.world_drops.get(String(found["key"]), {})
+		check(not rec.is_empty() and float(rec["y"]) == rest.y, "its record sits on the floor line (y %s)" % str(rec.get("y")))
+		check(bool(rec.get("rested", false)), "and is marked rested")
+		check(String(rec.get("scene", "")) == room_scene, "in the scene it was made in, not current_scene")
+		WorldState.remove_world_drop(String(found["key"]))
+		check(not WorldState.world_drops.has(String(found["key"])), "picking it up forgets the record (no duplicate on re-entry)")
+	# an OLD record at the origin line (no "rested" marker) is lifted down onto the floor once; a balcony drop isn't touched
+	WorldState.world_drops.clear()
+	WorldState.world_drops["12:100:321"] = {"item_id": "015", "x": 100.0, "y": 321.0, "floor": 12, "scene": room_scene, "apartment_id": "1204", "target_apartment": "", "amount": 0, "instance": {}}
+	WorldState.world_drops["12:200:312"] = {"item_id": "015", "x": 200.0, "y": 312.0, "floor": 12, "scene": room_scene, "apartment_id": "1204", "target_apartment": "", "amount": 0, "instance": {}}
+	WorldState.world_drops["12:300:304"] = {"item_id": "006", "x": 300.0, "y": 304.0, "floor": 12, "scene": room_scene, "apartment_id": "1204", "target_apartment": "", "amount": 0, "instance": {}}
+	var got: Dictionary = WorldState.get_world_drops_for_floor(12, room_scene, "1204")
+	check(float(got["12:100:321"]["y"]) == 346.0, "a legacy discard saved at the player's origin (321) comes back ON the floor (%s)" % str(got["12:100:321"]["y"]))
+	check(float(got["12:300:304"]["y"]) == 346.0, "a legacy zombie drop saved at its origin (304) too (%s)" % str(got["12:300:304"]["y"]))
+	check(float(got["12:200:312"]["y"]) == 312.0, "a legacy drop on the balcony line (312) is left alone (%s)" % str(got["12:200:312"]["y"]))
+	check(not WorldState.heal_legacy_drop(got["12:100:321"]), "healing happens once")
+	WorldState.world_drops.clear()
