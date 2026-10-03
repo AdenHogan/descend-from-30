@@ -89,8 +89,26 @@ func continue_game() -> void:
 	if scene_path == "":
 		return
 	get_tree().paused = false
+	# Loading a save opens on the exterior shot in the SAVE's run (its light, its damage, the floors that are really burning) — then
+	# the saved scene comes up out of black. A missing piece of art just loads, as before.
+	var Seq := preload("res://scripts/opening_sequence.gd")
+	var seq: Node = null
+	if Seq.available():
+		await Transition.cover(0.45)
+		seq = Seq.new()
+		get_tree().root.add_child(seq)
+		if seq.ext != null and is_instance_valid(seq.ext):
+			await Transition.reveal(0.05)
+			await seq.finished
+			await Transition.cover(0.05)
 	HUD.show_hud()
 	get_tree().change_scene_to_file(scene_path)
+	if seq != null:
+		await get_tree().process_frame
+		await get_tree().process_frame
+		if is_instance_valid(seq):
+			seq.queue_free()
+		await Transition.reveal(0.5)
 
 func save_and_quit(go_to_desktop: bool) -> void:
 	var player = get_tree().get_first_node_in_group("player")

@@ -8,8 +8,9 @@ extends CanvasLayer
 #
 # EVERY RUN opens this way (owner: all three runs begin/end with the same shape), as separate
 # screens on black, over one bloody handprint that stays put throughout:
-#   0. EXTERIOR   — (run 1 only, when the art is there) the opening shot: the tower in the morning, the camera climbing it
-#                   to the roof and the sky, the title over the clouds, a fade to black (scripts/opening_exterior.gd).
+#   0. EXTERIOR   — (EVERY run, when the art is there) the opening shot in that run's light (morning / dusk / night, more of the
+#                   building ruined each time): the camera climbing the tower to the roof and the sky, on run 1 the title over the
+#                   clouds, a fade to black (scripts/opening_exterior.gd). A later run's has no title and is shorter.
 #   1. TITLE      — "DESCEND FROM 30" on its own, on black (run 1 only; the FALLBACK when the exterior can't be built;
 #                   empty title_text skips it).
 #   2. TIME CARD  — the big time-of-day word in its own colour (MORNING / AFTERNOON / NIGHT, the
@@ -138,7 +139,7 @@ func _ready() -> void:
 	add_child(sfx)
 
 	stage = "title" if title_text != "" else "card"
-	if title_text != "" and exterior_enabled and preload("res://scripts/opening_exterior.gd").art_present():
+	if exterior_enabled and preload("res://scripts/opening_exterior.gd").art_present(clampi(WorldState.current_run, 1, 3)):
 		var e: Control = preload("res://scripts/opening_exterior.gd").new()
 		e.title_text = title_text
 		add_child(e)

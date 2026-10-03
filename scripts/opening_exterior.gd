@@ -1,27 +1,36 @@
 extends Control
 
 # THE OPENING SHOT (owner round 35 — "a nice pixel art exterior image of our building, clouds in the sky, city scape in the
-# background. Camera pans up the building, then the title of the game, fade to black, then the run information").
+# background. Camera pans up the building, then the title of the game, fade to black, then the run information"; round 35b —
+# "three versions for different run times… a player loading a file might be on a run 2 or 3 save… that exterior can also be used to
+# show more damage and disaster outside").
 #
-# A NEW GAME begins here: from black, the street in the morning, then the camera climbs the tower floor by floor to the roof and
-# the sky, the title comes up over the clouds, and the whole picture fades to black — which is where intro_overlay carries on with
-# the time card ("MORNING / Joe / …") and the cold open. intro_overlay owns this node (stage "exterior"), drives `tick(delta)`
-# from its own _process and reads `done`.
+# A run begins here: from black, the street, then the camera climbs the tower floor by floor to the roof and the sky, (the title
+# comes up over it on a NEW GAME or a LOAD — a later run's cold open has no title), and the whole picture fades to black — which is
+# where intro_overlay carries on with the time card ("MORNING / Joe / …") and the cold open. intro_overlay owns this node on a run's
+# start (stage "exterior"); `opening_sequence.gd` owns it for a LOAD. Either drives `tick(delta)` and reads `done`.
 #
-# THE ART is six parallax layers drawn by tools/art/opening.py (assets/opening/, native 288x162 shown at 4x = the screen):
-# sky 0.30 / far city 0.50 / mid city 0.75 / the building + street 1.0 / foreground wires 1.30, plus an atlas of clouds the game
-# places + drifts (opening_meta.json lists everything in each layer's own pixel coordinates). Everything on it that MOVES is made here:
-# window smoke from the burnt floors and a plume or two over the city, one failing lamp, the roof's red beacon, crows circling the roof.
+# THREE LOOKS, one building: run 1 MORNING (the sun low, a clear sky, a few smoke columns), run 2 AFTERNOON (a violet-orange dusk, lamps
+# on, more broken glass, a wrecked street with fires, fires up in the city), run 3 NIGHT (stars and a moon, rain and lightning, the
+# city burning, a breach in the wall, boards and bodies at the door). The art is drawn by tools/art/opening.py (assets/opening/,
+# `<layer>_<run>.png`, native 288x162 shown at 4x = the screen) as parallax layers: sky 0.30 / far city 0.50 / mid city 0.75 / the
+# building + street 1.0 / foreground wires 1.30, plus a cloud atlas the game drifts; `opening_meta_<run>.json` lists everything in each
+# layer's own pixel coordinates.
+#
+# THE BURNT FLOORS ARE THIS PLAYTHROUGH'S OWN: `burn_plan()` reads `WorldState.fire_intensity(floor)` for this run (the same sim that
+# lights the corridors: LIGHT / BLAZE / CHARRED, climbing the building run by run) and lays `burn.png`'s charred windows + soot on those
+# floors, with animated flames and smoke on the ones still alight — a load on run 3 shows exactly the floors you will meet burning.
 #
 # THE TIMELINE is a pure function of `t` (a clock `tick` advances), so a test can walk it: fade in from black, a still beat on the
-# street, the climb (an ease in and out), the title, a hold, the fade to black. A key hurries it (`hurry`): during the climb it
-# speeds up (it never cuts — the picture still earns its read), once the title is up it goes straight to the fade-out.
-# If any art is missing `load_ok` is false and intro_overlay falls back to the old black title screen — an opening must never
-# strand a new game.
+# street, the climb (an ease in and out), the title (if there is one), a hold, the fade to black. A key hurries it (`hurry`): during
+# the climb it speeds up (it never cuts — the picture still earns its read), once the title is up (or the climb is over, with no title)
+# it goes straight to the fade-out. If any art is missing `load_ok` is false and the caller falls back — an opening must never strand a
+# new game or a load.
 
 const DIR := "res://assets/opening/"
 const CITY_DIR := "res://assets/city/"
 const AUDIO_DIR := "res://assets/audio/opening/"
+const THUNDER := ["res://assets/audio/ambience/thunder_1.wav", "res://assets/audio/ambience/thunder_2.wav"]
 
 const VIEW_W := 288.0
 const VIEW_H := 162.0
@@ -30,10 +39,12 @@ const PIXEL := 4.0                      # native px -> screen px (288x162 -> 115
 # the timeline (seconds)
 const T_FADE_IN := 1.4                  # black -> the street
 const T_STILL := 0.9                    # the street, held, before the climb
-const T_PAN := 12.5                     # the climb
+const T_PAN := 12.5                     # the climb (with a title to land)
+const T_PAN_SHORT := 8.5                # the climb of a later run's cold open (no title)
 const T_TITLE_AT := 0.74                # the title starts to come up this far (0..1) through the climb
 const T_TITLE_FADE := 1.8
 const T_HOLD := 2.9                     # after the climb ends, before the fade out
+const T_HOLD_SHORT := 0.9
 const T_FADE_OUT := 1.4                 # picture + title -> black
 const HURRY_SPEED := 5.0
 
@@ -41,6 +52,9 @@ const TITLE_COLOR := Color(0.72, 0.05, 0.05)
 const GLASS_DARK := Color(0.24, 0.26, 0.32)
 
 var title_text: String = "DESCEND FROM 30"
+var run: int = 0                        # 0 = the run the game is on (WorldState.current_run)
+var own_input: bool = false             # a key hurries it (the cold open's overlay does this itself)
+var with_title: bool = true
 var load_ok: bool = false
 var done: bool = false
 var t: float = 0.0
@@ -53,62 +67,107 @@ var layers: Dictionary = {}             # name -> {"node": Node2D, "p": float, "
 var clouds: Array = []                  # [{"node": Sprite2D, "x": float, "y": float, "p": float, "v": float, "w": float}]
 var title: Label = null
 var shade: ColorRect = null
-var flickers: Array = []                # [{"rect": ColorRect, "next": float, "off": bool, "seed": float}]
+var flash: ColorRect = null
+var rain: Control = null
+var flickers: Array = []                # [{"rect": ColorRect, "next": float, "off": bool}]
 var beacons: Array = []                 # [{"node": CanvasItem, "phase": float}]
+var flames: Array = []                  # [{"glow": Sprite2D, "phase": float}] — the glows over every fire, pulsing
+var burning: Array = []                 # burn_plan() as laid on the building
 var birds: Node2D = null
 var _rng := RandomNumberGenerator.new()
 var _wind: AudioStreamPlayer = null
 var _siren: AudioStreamPlayer = null
 var _swell: AudioStreamPlayer = null
+var _thunder: AudioStreamPlayer = null
 var _siren_played := false
 var _swell_played := false
+var _bolt_in: float = 5.0               # seconds to the next lightning (night)
+var _boom_in: float = -1.0              # seconds to its thunder
+var _glow_tex: Texture2D = null
 
 
 # ---- the timeline: pure functions of t -------------------------------------------------------------------------------
+static func pan_len(wt: bool = true) -> float:
+	return T_PAN if wt else T_PAN_SHORT
+
+
 static func t_pan0() -> float:
 	return T_FADE_IN + T_STILL
 
 
-static func t_pan_end() -> float:
-	return t_pan0() + T_PAN
+static func t_pan_end(wt: bool = true) -> float:
+	return t_pan0() + pan_len(wt)
 
 
-static func t_title_in() -> float:
-	return t_pan0() + T_PAN * T_TITLE_AT
+static func t_title_in(wt: bool = true) -> float:
+	return t_pan0() + T_PAN * T_TITLE_AT if wt else t_pan_end(false)
 
 
-static func t_out() -> float:
-	return t_pan_end() + T_HOLD
+static func t_out(wt: bool = true) -> float:
+	return t_pan_end(wt) + (T_HOLD if wt else T_HOLD_SHORT)
 
 
-static func t_end() -> float:
-	return t_out() + T_FADE_OUT
+static func t_end(wt: bool = true) -> float:
+	return t_out(wt) + T_FADE_OUT
 
 
 ## 0..1 through the climb, eased in and out (the camera sets off gently and settles on the roof).
-static func pan_u(tt: float) -> float:
-	var u := clampf((tt - t_pan0()) / T_PAN, 0.0, 1.0)
+static func pan_u(tt: float, wt: bool = true) -> float:
+	var u := clampf((tt - t_pan0()) / pan_len(wt), 0.0, 1.0)
 	return 0.5 - 0.5 * cos(PI * u)
 
 
-static func black_alpha(tt: float) -> float:
+static func black_alpha(tt: float, wt: bool = true) -> float:
 	if tt < T_FADE_IN:
 		return 1.0 - clampf(tt / T_FADE_IN, 0.0, 1.0)
-	return clampf((tt - t_out()) / T_FADE_OUT, 0.0, 1.0)
+	return clampf((tt - t_out(wt)) / T_FADE_OUT, 0.0, 1.0)
 
 
-static func title_alpha(tt: float) -> float:
-	var a := clampf((tt - t_title_in()) / T_TITLE_FADE, 0.0, 1.0)
+static func title_alpha(tt: float, wt: bool = true) -> float:
+	if not wt:
+		return 0.0
+	var a := clampf((tt - t_title_in(true)) / T_TITLE_FADE, 0.0, 1.0)
 	return a * a * (3.0 - 2.0 * a)
 
 
 ## The whole-picture fade to black also takes the title (it leaves with it).
-static func title_visible(tt: float) -> float:
-	return title_alpha(tt) * (1.0 - clampf((tt - t_out()) / (T_FADE_OUT * 0.7), 0.0, 1.0))
+static func title_visible(tt: float, wt: bool = true) -> float:
+	return title_alpha(tt, wt) * (1.0 - clampf((tt - t_out(wt)) / (T_FADE_OUT * 0.7), 0.0, 1.0))
 
 
 func camera() -> float:
-	return scroll * pan_u(t)
+	return scroll * pan_u(t, with_title)
+
+
+# ---- which floors burn: THIS playthrough's fire ------------------------------------------------------------------------
+## [{floor, stage, bays}] for every floor the fire sim has alight THIS run (WorldState.fire_intensity — LIGHT / BLAZE / CHARRED), with
+## which of the floor's 8 window bays show it: a light fire is a window or two, a blaze most of the face, a burnt-out floor nearly all.
+static func burn_plan() -> Array:
+	var out: Array = []
+	for fl in range(2, 30):
+		var st: int = WorldState.fire_intensity(fl)
+		if st < 0:
+			continue
+		var r := RandomNumberGenerator.new()
+		r.seed = hash(str(WorldState.master_seed) + "openburn" + str(fl))
+		var n: int
+		match st:
+			WorldState.FIRE_LIGHT:
+				n = r.randi_range(1, 2)
+			WorldState.FIRE_BLAZE:
+				n = r.randi_range(3, 5)
+			_:
+				n = r.randi_range(6, 8)
+		var bays: Array = [0, 1, 2, 3, 4, 5, 6, 7]
+		for i in range(bays.size() - 1, 0, -1):
+			var j: int = r.randi_range(0, i)
+			var tmp = bays[i]
+			bays[i] = bays[j]
+			bays[j] = tmp
+		var pick: Array = bays.slice(0, n)
+		pick.sort()
+		out.append({"floor": fl, "stage": st, "bays": pick})
+	return out
 
 
 # ---- build -----------------------------------------------------------------------------------------------------------
@@ -118,16 +177,20 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	clip_contents = true
 	_rng.seed = 3510
+	if run <= 0:
+		run = WorldState.current_run
+	run = clampi(run, 1, 3)
+	with_title = title_text != ""
 	load_ok = _build()
 	if load_ok:
 		_apply(0.0)
 
 
-static func art_present() -> bool:
-	for f in ["sky.png", "far.png", "mid.png", "scene.png", "fore.png", "clouds.png"]:
-		if not ResourceLoader.exists(DIR + f):
+static func art_present(for_run: int = 1) -> bool:
+	for f in ["sky", "far", "mid", "scene", "fore", "clouds"]:
+		if not ResourceLoader.exists("%s%s_%d.png" % [DIR, f, for_run]):
 			return false
-	return FileAccess.file_exists(DIR + "opening_meta.json")
+	return ResourceLoader.exists(DIR + "burn.png") and FileAccess.file_exists("%sopening_meta_%d.json" % [DIR, for_run])
 
 
 func _tex(name: String) -> Texture2D:
@@ -136,9 +199,9 @@ func _tex(name: String) -> Texture2D:
 
 
 func _build() -> bool:
-	if not art_present():
+	if not art_present(run):
 		return false
-	var f := FileAccess.open(DIR + "opening_meta.json", FileAccess.READ)
+	var f := FileAccess.open("%sopening_meta_%d.json" % [DIR, run], FileAccess.READ)
 	if f == null:
 		return false
 	var parsed = JSON.parse_string(f.get_as_text())
@@ -154,14 +217,21 @@ func _build() -> bool:
 	add_child(world)
 
 	var spec: Dictionary = meta.get("layers", {})
-	for pair in [["sky", "sky.png"], ["far", "far.png"], ["mid", "mid.png"]]:
-		_add_layer(pair[0], pair[1], spec)
+	for key in ["sky", "far", "mid"]:
+		_add_layer(key, spec)
 	_add_clouds()                                   # in the sky, behind the towers
 	_decorate_city("far")
 	_decorate_city("mid")
-	_add_layer("scene", "scene.png", spec)
+	_add_layer("scene", spec)
 	_decorate_scene()
-	_add_layer("fore", "fore.png", spec)
+	_add_layer("fore", spec)
+
+	if bool(meta.get("look", {}).get("rain", false)):
+		rain = _Rain.new()
+		rain.name = "Rain"
+		rain.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		rain.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(rain)
 
 	# a soft vignette so the corners fall away (cozy horror, not a postcard)
 	var vig := ColorRect.new()
@@ -174,6 +244,14 @@ func _build() -> bool:
 	mat.shader = sh
 	vig.material = mat
 	add_child(vig)
+
+	flash = ColorRect.new()
+	flash.name = "Flash"
+	flash.color = Color(0.82, 0.88, 1.0, 1.0)
+	flash.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	flash.modulate.a = 0.0
+	add_child(flash)
 
 	title = Label.new()
 	title.name = "Title"
@@ -191,6 +269,7 @@ func _build() -> bool:
 	title.size = Vector2(VIEW_W * PIXEL, 100)
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	title.modulate = Color(1, 1, 1, 0)
+	title.visible = with_title
 	add_child(title)
 
 	shade = ColorRect.new()
@@ -204,8 +283,8 @@ func _build() -> bool:
 	return true
 
 
-func _add_layer(key: String, file: String, spec: Dictionary) -> void:
-	var tex := _tex(file)
+func _add_layer(key: String, spec: Dictionary) -> void:
+	var tex := _tex("%s_%d.png" % [key, run])
 	var n := Node2D.new()
 	n.name = key.capitalize()
 	var s := Sprite2D.new()
@@ -219,14 +298,13 @@ func _add_layer(key: String, file: String, spec: Dictionary) -> void:
 
 
 func _add_clouds() -> void:
-	var atlas := _tex("clouds.png")
+	var atlas := _tex("clouds_%d.png" % run)
 	if atlas == null:
 		return
 	var cells: Array = meta.get("clouds_atlas", [])
 	var holder := Node2D.new()
 	holder.name = "Clouds"
 	world.add_child(holder)
-	# the clouds sit in the stack just in front of the mid city: they pass behind the far towers' tops but in front of the sun
 	for c in meta.get("clouds", []):
 		var i := int(c.get("i", 0))
 		if i < 0 or i >= cells.size():
@@ -240,18 +318,17 @@ func _add_clouds() -> void:
 		s.texture = at
 		holder.add_child(s)
 		clouds.append({"node": s, "x": float(c["x"]), "y": float(c["y"]), "p": float(c["p"]), "v": float(c["v"]), "w": float(a["w"])})
-	# clouds draw right after the sky (behind the cities): move the holder to just above the sky
-	world.move_child(holder, 1)
+	world.move_child(holder, 1)                     # clouds draw right after the sky (behind the cities)
 
 
-func _smoke_sprite(parent: Node, file: String, at: Vector2, scl: float = 1.0, tint: Color = Color(1, 1, 1, 1)) -> AnimatedSprite2D:
+## A horizontal strip PNG from assets/city (frames side by side, `fw` wide) as an animated sprite whose FOOT sits at `at`.
+func _strip_sprite(parent: Node, file: String, fw: int, fps: float, at: Vector2, scl: float = 1.0, tint: Color = Color(1, 1, 1, 1)) -> AnimatedSprite2D:
 	var tex = load(CITY_DIR + file)
 	if not (tex is Texture2D):
 		return null
 	var frames := SpriteFrames.new()
-	frames.set_animation_speed("default", 6.0)
+	frames.set_animation_speed("default", fps)
 	frames.set_animation_loop("default", true)
-	var fw := 14
 	var count := int(tex.get_width() / fw)
 	for k in count:
 		var at_ := AtlasTexture.new()
@@ -261,7 +338,7 @@ func _smoke_sprite(parent: Node, file: String, at: Vector2, scl: float = 1.0, ti
 	var a := AnimatedSprite2D.new()
 	a.sprite_frames = frames
 	a.centered = true
-	a.offset = Vector2(0, -tex.get_height() * 0.5)          # the plume's FOOT is at its position
+	a.offset = Vector2(0, -tex.get_height() * 0.5)          # the foot is at the position
 	a.position = at
 	a.scale = Vector2(scl, scl)
 	a.modulate = tint
@@ -271,19 +348,72 @@ func _smoke_sprite(parent: Node, file: String, at: Vector2, scl: float = 1.0, ti
 	return a
 
 
+func _smoke_sprite(parent: Node, at: Vector2, scl: float = 1.0, tint: Color = Color(1, 1, 1, 1)) -> AnimatedSprite2D:
+	return _strip_sprite(parent, "smoke_%d.png" % run, 14, 6.0, at, scl, tint)
+
+
+## A flame at `at` (its foot) with a warm additive glow round it that pulses — over the city, the street and the burning floors.
+func _flame(parent: Node, at: Vector2, scl: float = 1.0, glow: float = 1.0) -> void:
+	_strip_sprite(parent, "fire.png", 9, 10.0, at, scl)
+	var g := Sprite2D.new()
+	g.texture = _glow()
+	g.position = at + Vector2(0, -5.0 * scl)
+	g.scale = Vector2(glow, glow)
+	var m := CanvasItemMaterial.new()
+	m.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	g.material = m
+	var base := 0.5 if run == 3 else 0.38
+	g.modulate = Color(1.0, 0.5, 0.18, base)
+	parent.add_child(g)
+	flames.append({"glow": g, "phase": _rng.randf() * 6.0, "base": base})
+
+
+func _glow() -> Texture2D:
+	if _glow_tex == null:
+		var gt := GradientTexture2D.new()
+		var grad := Gradient.new()
+		grad.set_color(0, Color(1, 1, 1, 1))
+		grad.set_color(1, Color(1, 1, 1, 0))
+		gt.gradient = grad
+		gt.fill = GradientTexture2D.FILL_RADIAL
+		gt.fill_from = Vector2(0.5, 0.5)
+		gt.fill_to = Vector2(1.0, 0.5)
+		gt.width = 48
+		gt.height = 48
+		_glow_tex = gt
+	return _glow_tex
+
+
 func _decorate_city(key: String) -> void:
 	var m: Dictionary = meta.get(key, {})
+	var look: Dictionary = meta.get("look", {})
 	var node: Node2D = layers[key]["node"]
+
 	var smokes: Array = []
 	for sp in m.get("smoke", []):
 		if float(sp[0]) >= 110.0:                      # never across the low sun (the sky layer paints it at x ~66)
 			smokes.append(sp)
-	var picks := 2 if key == "far" else 1
+	var counts: Array = look.get("city_smokes", [2, 1])
+	var picks := int(counts[0] if key == "far" else counts[1])
+	var tint := Color(0.34, 0.32, 0.38, 0.92) if run == 1 else Color(1, 1, 1, 0.92)
 	for k in picks:
 		if smokes.is_empty():
 			break
 		var p = smokes[_rng.randi() % smokes.size()]
-		_smoke_sprite(node, "smoke_1.png", Vector2(float(p[0]), float(p[1])), 1.0, Color(0.34, 0.32, 0.38, 0.92))
+		_smoke_sprite(node, Vector2(float(p[0]), float(p[1])), 1.0 if key == "mid" else 0.9, tint)
+
+	# whole towers burning, from the second run on: a fire at the crown with its smoke going up behind it
+	var want := int(look.get("city_fires", 0))
+	var per_layer := int(ceil(want * (0.4 if key == "far" else 0.6)))
+	var tops: Array = m.get("fire", [])
+	for k in per_layer:
+		if tops.is_empty():
+			break
+		var p = tops[_rng.randi() % tops.size()]
+		var at := Vector2(float(p[0]), float(p[1]))
+		_smoke_sprite(node, at + Vector2(0, -6), 1.0, tint)
+		_flame(node, at, 1.1 if key == "mid" else 0.85, 1.3)
+
 	for b in m.get("beacon", []):
 		_add_beacon(node, Vector2(float(b[0]), float(b[1])))
 
@@ -301,10 +431,6 @@ func _add_beacon(parent: Node, at: Vector2) -> void:
 func _decorate_scene() -> void:
 	var node: Node2D = layers["scene"]["node"]
 	var m: Dictionary = meta.get("scene", {})
-	# soot-black smoke pouring out of the burnt floors
-	for p in m.get("smoke", []):
-		if p is Dictionary:
-			_smoke_sprite(node, "smoke_3.png", Vector2(float(p["x"]), float(p["y"])), 1.0, Color(1, 1, 1, 0.9))
 	for b in m.get("beacon", []):
 		if b is Dictionary:
 			var r := ColorRect.new()
@@ -314,6 +440,13 @@ func _decorate_scene() -> void:
 			r.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			node.add_child(r)
 			beacons.append({"node": r, "phase": 0.0})
+	# the floors this playthrough has on fire
+	_lay_burning(node)
+	# fires in the street
+	for f in m.get("fires", []):
+		var at := Vector2(float(f["x"]), float(f["y"]))
+		_smoke_sprite(node, at + Vector2(0, -8), 1.0, Color(1, 1, 1, 0.95))
+		_flame(node, at, float(f.get("scale", 1.0)) * 1.2, 1.5)
 	# a failing lamp or two: a dark pane that comes and goes over a lit window (the floor-30 window you wake in stays steady)
 	var lit: Array = m.get("lit", [])
 	var pool: Array = []
@@ -329,63 +462,138 @@ func _decorate_scene() -> void:
 		r.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		r.modulate.a = 0.0
 		node.add_child(r)
-		flickers.append({"rect": r, "next": 0.6 + _rng.randf() * 3.0, "off": false, "burst": 0})
-	# crows circling above the roof
-	birds = _Birds.new()
-	birds.name = "Birds"
-	var bld: Dictionary = meta.get("building", {})
-	birds.position = Vector2((float(bld.get("x0", 78)) + float(bld.get("x1", 209))) * 0.5, -26.0)
-	node.add_child(birds)
+		flickers.append({"rect": r, "next": 0.6 + _rng.randf() * 3.0, "off": false})
+	# crows circling above the roof (not at night — they have gone)
+	if run < 3:
+		birds = _Birds.new()
+		birds.name = "Birds"
+		var bld: Dictionary = meta.get("building", {})
+		birds.position = Vector2((float(bld.get("x0", 78)) + float(bld.get("x1", 209))) * 0.5, -26.0)
+		node.add_child(birds)
 
 
-func _stream(file: String, loop: bool) -> AudioStream:
-	var s = load(AUDIO_DIR + file)
+## Lay the charred windows / soot / flames for burn_plan() on the building (a child of the scene layer, so it scrolls with it).
+func _lay_burning(node: Node2D) -> void:
+	burning = burn_plan()
+	if burning.is_empty():
+		return
+	var sheet := _tex("burn.png")
+	var grid: Dictionary = meta.get("scene", {}).get("grid", {})
+	var cells: Dictionary = meta.get("burn", {})
+	if sheet == null or grid.is_empty() or cells.is_empty():
+		return
+	var holder := Node2D.new()
+	holder.name = "Burning"
+	node.add_child(holder)
+	var x0 := float(grid["x0"])
+	var bw := float(grid["bay_w"])
+	var y0 := float(grid["floor0_y"])
+	var fh := float(grid["floor_h"])
+	var frame: Array = grid["frame"]
+	var chars: Array = cells.get("char", [])
+	var soots: Array = cells.get("soot", [])
+	for e in burning:
+		var fl: int = int(e["floor"])
+		var st: int = int(e["stage"])
+		var top := y0 + float(30 - fl) * fh + float(frame[1])
+		var smoked := 0
+		for b in e["bays"]:
+			var wx: float = x0 + float(b) * bw + float(frame[0])
+			var h := hash("%d:%d:%d" % [fl, int(b), run])
+			# soot first (up the wall), then the black window over it
+			if not soots.is_empty():
+				var sc: Dictionary = soots[absi(h) % soots.size()]
+				var ss := Sprite2D.new()
+				var sat := AtlasTexture.new()
+				sat.atlas = sheet
+				sat.region = Rect2(float(sc["x"]), float(sc["y"]), float(sc["w"]), float(sc["h"]))
+				ss.texture = sat
+				ss.centered = false
+				ss.position = Vector2(wx, top - float(sc["h"]) + 2.0)
+				ss.modulate.a = 0.5 if st == WorldState.FIRE_LIGHT else (0.85 if st == WorldState.FIRE_BLAZE else 1.0)
+				holder.add_child(ss)
+			if not chars.is_empty():
+				var cc: Dictionary = chars[absi(h >> 3) % chars.size()]
+				var cs := Sprite2D.new()
+				var cat := AtlasTexture.new()
+				cat.atlas = sheet
+				cat.region = Rect2(float(cc["x"]), float(cc["y"]), float(cc["w"]), float(cc["h"]))
+				cs.texture = cat
+				cs.centered = false
+				cs.position = Vector2(wx, top)
+				holder.add_child(cs)
+			var foot := Vector2(wx + 5.5, top + 9.0)
+			if st == WorldState.FIRE_BLAZE:
+				_flame(holder, foot, 0.8, 0.8)
+				if smoked % 2 == 0:
+					_smoke_sprite(holder, foot + Vector2(0, -8), 0.9, Color(1, 1, 1, 0.9))
+				smoked += 1
+			elif st == WorldState.FIRE_LIGHT:
+				if smoked == 0:
+					_smoke_sprite(holder, foot + Vector2(0, -8), 0.7, Color(1, 1, 1, 0.8))
+				smoked += 1
+			elif smoked == 0:                                # burnt out: a last thread of smoke from the floor
+				_smoke_sprite(holder, foot + Vector2(0, -8), 0.6, Color(0.8, 0.8, 0.8, 0.6))
+				smoked += 1
+
+
+func _stream(path: String, loop: bool) -> AudioStream:
+	var s = load(path)
 	if s is AudioStreamWAV and loop:
 		(s as AudioStreamWAV).loop_mode = AudioStreamWAV.LOOP_FORWARD
 		(s as AudioStreamWAV).loop_end = int((s as AudioStreamWAV).data.size() / 2)
 	return s if s is AudioStream else null
 
 
-func _player(file: String, loop: bool, vol: float) -> AudioStreamPlayer:
+func _player(path: String, loop: bool, vol: float) -> AudioStreamPlayer:
 	var p := AudioStreamPlayer.new()
-	p.stream = _stream(file, loop)
+	p.stream = _stream(path, loop)
 	p.volume_db = vol
 	add_child(p)
 	return p
 
 
 func _build_audio() -> void:
-	_wind = _player("wind.wav", true, -80.0)
-	_siren = _player("siren.wav", false, -17.0)
-	_swell = _player("swell.wav", false, -8.0)
+	_wind = _player(AUDIO_DIR + "wind.wav", true, -80.0)
+	_siren = _player(AUDIO_DIR + "siren.wav", false, -17.0 if run == 1 else -13.0)
+	_swell = _player(AUDIO_DIR + "swell.wav", false, -8.0)
+	_thunder = _player(THUNDER[0], false, -6.0)
 	if _wind.stream != null:
 		_wind.play()
 
 
 # ---- per frame -------------------------------------------------------------------------------------------------------
-## Called by intro_overlay every frame; advances the clock and applies it.
+## Called every frame by whoever owns the opening; advances the clock and applies it.
 func tick(delta: float) -> void:
 	if not load_ok or done:
 		return
 	delta = minf(delta, 0.1)                 # a long frame (the scene loading under us) must not eat the fade-in
 	t += delta * speed
-	if speed > 1.0 and t >= t_title_in():    # a hurried climb still lets the title land at its own pace
+	if speed > 1.0 and t >= t_title_in(with_title):    # a hurried climb still lets the title land at its own pace
 		speed = 1.0
 	_apply(delta * speed)
-	if t >= t_end():
+	if t >= t_end(with_title):
 		done = true
 		_stop_audio()
 
 
-## A key during the opening: while the camera is still climbing it speeds the climb up (it never cuts); once the title is up it
-## goes straight to the fade out.
+## A key during the opening: while the camera is still climbing it speeds the climb up (it never cuts); once the title is up (or the
+## climb is over, with no title) it goes straight to the fade out.
 func hurry() -> void:
 	if done:
 		return
-	if t < t_title_in():
+	if t < t_title_in(with_title):
 		speed = HURRY_SPEED
-	elif t < t_out():
-		t = t_out()
+	elif t < t_out(with_title):
+		t = t_out(with_title)
+
+
+func _input(event: InputEvent) -> void:
+	if not own_input or done or not load_ok:
+		return
+	if (event is InputEventKey and event.pressed and not event.echo) or (event is InputEventMouseButton and event.pressed):
+		hurry()
+		get_viewport().set_input_as_handled()
 
 
 func _apply(dt: float) -> void:
@@ -401,10 +609,10 @@ func _apply(dt: float) -> void:
 		var x: float = fposmod(float(cl["x"]) + float(cl["v"]) * t + cw + 20.0, span) - cw - 20.0
 		var y: float = float(cl["y"]) + float(cl["p"]) * c
 		(cl["node"] as Sprite2D).position = Vector2(_snap(x), _snap(y))
-	shade.color.a = black_alpha(t)
-	var ta := title_visible(t)
+	shade.color.a = black_alpha(t, with_title)
+	var ta := title_visible(t, with_title)
 	title.modulate.a = ta
-	title.position.y = 120.0 + 14.0 * (1.0 - title_alpha(t))
+	title.position.y = 120.0 + 14.0 * (1.0 - title_alpha(t, with_title))
 	# the failing lamps
 	for f in flickers:
 		f["next"] = float(f["next"]) - dt
@@ -413,23 +621,44 @@ func _apply(dt: float) -> void:
 			f["off"] = on_dark
 			(f["rect"] as ColorRect).modulate.a = 1.0 if on_dark else 0.0
 			f["next"] = (0.05 + _rng.randf() * 0.12) if on_dark else (0.15 + _rng.randf() * 3.2)
-	# the beacons blink
+	# the beacons blink; the fires breathe
 	for b in beacons:
 		var on: bool = fposmod(t + float(b["phase"]), 2.4) < 0.35
 		(b["node"] as CanvasItem).modulate.a = 1.0 if on else 0.12
-	# the sounds: wind under the whole thing, a siren far off, a swell under the title
+	for fl in flames:
+		var k: float = 0.78 + 0.22 * sin(t * 7.0 + float(fl["phase"])) * sin(t * 3.1 + float(fl["phase"]) * 1.7)
+		(fl["glow"] as Sprite2D).modulate.a = float(fl["base"]) * k
+	_lightning(dt)
+	# the sounds: wind under the whole thing (harder at night), a siren far off, a swell under the title
 	if _wind != null and _wind.stream != null:
-		var wv := -80.0
 		var fin := clampf(t / 3.0, 0.0, 1.0)
-		var fout := 1.0 - clampf((t - t_out()) / T_FADE_OUT, 0.0, 1.0)
-		wv = linear_to_db(maxf(0.0001, 0.5 * fin * fout))
-		_wind.volume_db = wv
+		var fout := 1.0 - clampf((t - t_out(with_title)) / T_FADE_OUT, 0.0, 1.0)
+		_wind.volume_db = linear_to_db(maxf(0.0001, (0.7 if run == 3 else 0.5) * fin * fout))
 	if not _siren_played and t >= t_pan0() + 2.5 and _siren != null and _siren.stream != null:
 		_siren_played = true
 		_siren.play()
-	if not _swell_played and t >= t_title_in() and _swell != null and _swell.stream != null:
+	if with_title and not _swell_played and t >= t_title_in(true) and _swell != null and _swell.stream != null:
 		_swell_played = true
 		_swell.play()
+
+
+## Night: a flash that lights the whole picture, then the thunder a beat behind it.
+func _lightning(dt: float) -> void:
+	if run != 3 or flash == null:
+		return
+	flash.modulate.a = maxf(0.0, flash.modulate.a - dt * 2.6)
+	_bolt_in -= dt
+	if _bolt_in <= 0.0:
+		flash.modulate.a = 0.5
+		_bolt_in = 4.5 + _rng.randf() * 6.0
+		_boom_in = 0.5 + _rng.randf() * 1.0
+	if _boom_in >= 0.0:
+		_boom_in -= dt
+		if _boom_in < 0.0 and _thunder != null:
+			var s = load(THUNDER[_rng.randi() % THUNDER.size()])
+			if s is AudioStream:
+				_thunder.stream = s
+				_thunder.play()
 
 
 func _snap(v: float) -> float:
@@ -437,7 +666,7 @@ func _snap(v: float) -> float:
 
 
 func _stop_audio() -> void:
-	for p in [_wind, _siren, _swell]:
+	for p in [_wind, _siren, _swell, _thunder]:
 		if p != null:
 			p.stop()
 
@@ -474,3 +703,37 @@ class _Birds:
 			draw_line(p, p + Vector2(2.6, -wing * 0.5 + wy), col, 1.0)
 			draw_line(p + Vector2(2.6, -wing * 0.5 + wy), p + Vector2(4.4, wing * 0.2), col, 1.0)
 			draw_rect(Rect2(p + Vector2(-0.5, -0.5), Vector2(1.5, 1.0)), col)
+
+
+# ---- rain over the whole picture (night) --------------------------------------------------------------------------------
+class _Rain:
+	extends Control
+
+	const N := 150
+	var drops: Array = []
+	var clock := 0.0
+
+	func _ready() -> void:
+		var r := RandomNumberGenerator.new()
+		r.seed = 77
+		for i in N:
+			drops.append({"x": r.randf(), "y": r.randf(), "v": 0.9 + r.randf() * 0.9, "len": 7.0 + r.randf() * 9.0, "a": 0.18 + r.randf() * 0.22})
+
+	func _process(delta: float) -> void:
+		clock += delta
+		for d in drops:
+			d["y"] = float(d["y"]) + delta * float(d["v"]) * 1.15
+			d["x"] = float(d["x"]) - delta * float(d["v"]) * 0.12
+			if float(d["y"]) > 1.05:
+				d["y"] = -0.05
+				d["x"] = fposmod(float(d["x"]) + 0.37, 1.0)
+			if float(d["x"]) < -0.02:
+				d["x"] = 1.02
+		queue_redraw()
+
+	func _draw() -> void:
+		var w := size.x
+		var h := size.y
+		for d in drops:
+			var p := Vector2(float(d["x"]) * w, float(d["y"]) * h)
+			draw_line(p, p + Vector2(-2.0, float(d["len"])), Color(0.72, 0.8, 0.95, float(d["a"])), 2.0)

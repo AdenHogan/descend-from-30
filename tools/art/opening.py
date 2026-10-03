@@ -3,7 +3,13 @@
 clouds in the sky, city scape in the background. Camera pans up the building, then the title of the game, fade to black, then the
 run information").
 
-ONE morning, drawn at the game's native look (288x162 shown at 4x = the 1152x648 screen) as PARALLAX LAYERS the game slides at
+THREE LOOKS (owner round 35b: "three versions for different run times… a player loading a file might be on a run 2 or 3 save…
+that exterior can also be used to show more damage and disaster outside"): run 1 MORNING, run 2 AFTERNOON (the sun low and orange, lamps on, more
+broken windows, a wrecked street, fires in the city), run 3 NIGHT (stars, a moon, a blood-orange horizon, a breach in the wall, the street
+burning). Files are `<layer>_<run>.png` + `opening_meta_<run>.json`. The BURNT FLOORS are NOT baked: the game reads this playthrough's real
+fire (`WorldState.fire_intensity`) and lays `burn.png`'s charred windows, soot and animated flames on those floors.
+
+ONE look at a time, drawn at the game's native look (288x162 shown at 4x = the 1152x648 screen) as PARALLAX LAYERS the game slides at
 different rates while the camera climbs the tower from the street to the roof:
 
     sky.png    p 0.30   dithered dawn gradient + a low sun            (288 x 330)
@@ -36,6 +42,7 @@ sys.path.insert(0, HERE)
 from PIL import Image  # noqa: E402
 from pixlib import Canvas, hexc, mix, shade  # noqa: E402
 
+RUNS = (1, 2, 3)
 ROOT = os.path.abspath(os.path.join(HERE, '..', '..'))
 OUT = os.path.join(ROOT, 'assets', 'opening')
 
@@ -92,11 +99,41 @@ def lerp_stops(stops, t):
     return stops[-1][1]
 
 
+# ================================================================================================================ LOOKS
+LOOK = {
+    1: dict(
+        sky=[(0.0, hexc('4c7fc4')), (0.30, hexc('6fa3dc')), (0.62, hexc('a9cdea')), (0.84, hexc('e7dcc8')), (1.0, hexc('f8d6ae'))],
+        sun=dict(x=66, y=SKY_H - 104, r=6.5, rings=[(54, hexc('ffe9c4', 40)), (40, hexc('ffe2b4', 62)), (27, hexc('ffdca8', 90)),
+                                                   (16, hexc('fff0cc', 140))], disc=hexc('fff6dc'), core=hexc('ffffff')),
+        cloud=('fffaf0', 'f4f6fa', 'dde7f3', 'bccde4', 'a4b0d0'),
+        far=('b4c2d8', 'd0d9e8', '9fb0cb'), far_haze=('f2e2cc', 0.22), far_tall=(40, 120),
+        mid=('6f7fa4', '93a3c6', '566690'), mid_win=('5e6e94', 'f1d58c', 0.04), mid_tall=(36, 150),
+        grade=None, wear=0.0, lit_p=0.07, helps=1, city_fires=0, city_smokes=(2, 1)),
+    2: dict(
+        sky=[(0.0, hexc('45397a')), (0.34, hexc('8a5a92')), (0.62, hexc('d77d8d')), (0.84, hexc('f6aa78')), (1.0, hexc('ffd49c'))],
+        sun=dict(x=66, y=SKY_H - 88, r=9.0, rings=[(64, hexc('ffb070', 34)), (48, hexc('ff9c58', 58)), (32, hexc('ffa860', 90)),
+                                                  (19, hexc('ffc27c', 150))], disc=hexc('ffd694'), core=hexc('fff0c8')),
+        cloud=('ffd6a8', 'f9bca4', 'd29aa8', '9a6c96', '6a4a82'),
+        far=('b4829c', 'd69cac', '94688a'), far_haze=('f0b48c', 0.28), far_tall=(40, 126),
+        mid=('6a4a76', 'b4707e', '4c3458'), mid_win=('4a3360', 'ffcf72', 0.10), mid_tall=(36, 158),
+        grade=dict(sat=0.92, mul=(1.12, 0.86, 0.80), add=(16, 0, -8)), wear=0.07, lit_p=0.16, helps=2, city_fires=2, city_smokes=(3, 2)),
+    3: dict(
+        sky=[(0.0, hexc('03050c')), (0.40, hexc('0a1124')), (0.72, hexc('161c3a')), (0.90, hexc('35283f')), (1.0, hexc('6a2c30'))],
+        sun=None, moon=dict(x=232, y=100, r=8),
+        cloud=('7684b8', '4a5688', '2c3562', '1e2548', '141a34'),
+        far=('1d2540', '2e3860', '151b30'), far_haze=('4a2c3c', 0.30), far_tall=(40, 126),
+        mid=('11162b', '2c3558', '0a0e1c'), mid_win=('0c1024', 'e9c273', 0.15), mid_tall=(36, 160),
+        grade=dict(sat=0.72, mul=(0.27, 0.34, 0.56), add=(0, 2, 10)), wear=0.13, lit_p=0.05, helps=3, city_fires=5, city_smokes=(4, 3)),
+}
+
+
 # =============================================================================================================== SKY
-SKY_STOPS = [(0.0, hexc('4c7fc4')), (0.30, hexc('6fa3dc')), (0.62, hexc('a9cdea')), (0.84, hexc('e7dcc8')), (1.0, hexc('f8d6ae'))]
 
 
-def draw_sky():
+def draw_sky(run):
+    L = LOOK[run]
+    stops = L['sky']
+    rng = random.Random(100 + run)
     c = Canvas(W, SKY_H, seed=1)
     levels = 24
     for y in range(SKY_H):
@@ -106,23 +143,49 @@ def draw_sky():
             lo = int(lv)
             frac = lv - lo
             q = lo + (1 if frac > bayer(x, y) else 0)
-            c.put(x, y, lerp_stops(SKY_STOPS, min(1.0, q / float(levels - 1))))
-    # the low sun, behind the far city: a warm bloom of dithered rings and a pale disc
-    sx, sy = 66, SKY_H - 104
-    rings = [(54, hexc('ffe9c4', 40)), (40, hexc('ffe2b4', 62)), (27, hexc('ffdca8', 90)), (16, hexc('fff0cc', 140))]
-    for r, col in rings:
-        for y in range(sy - r, sy + r + 1):
-            for x in range(sx - r, sx + r + 1):
-                d = math.hypot(x - sx, y - sy)
+            c.put(x, y, lerp_stops(stops, min(1.0, q / float(levels - 1))))
+    if run == 3:                                                     # stars, thickest overhead, then the moon
+        for _ in range(170):
+            x = rng.randrange(0, W)
+            y = int(rng.random() ** 1.6 * (SKY_H * 0.78))
+            a = rng.choice((90, 140, 190, 235))
+            c.put(x, y, hexc('dfe6ff', a))
+            if rng.random() < 0.06:
+                c.put(x + 1, y, hexc('dfe6ff', 90))
+                c.put(x, y + 1, hexc('dfe6ff', 90))
+        m = L['moon']
+        for r_, a_ in ((m['r'] + 9, 22), (m['r'] + 5, 40), (m['r'] + 2, 70)):
+            c.ellipse(m['x'], m['y'], r_, r_, hexc('b8c6ee', a_))
+        c.ellipse(m['x'], m['y'], m['r'], m['r'], hexc('e8edf8'))
+        c.ellipse(m['x'] + 2, m['y'] + 1, m['r'] - 1.5, m['r'] - 1.5, hexc('f6f8ff'))
+        for (dx, dy, rr) in ((-3, -2, 1.6), (2, 3, 2.0), (3, -3, 1.2), (-2, 3, 1.2)):                # craters
+            c.ellipse(m['x'] + dx, m['y'] + dy, rr, rr, hexc('c3cce4'))
+        # the glow of everything burning, low over the horizon
+        for y in range(SKY_H - 70, SKY_H):
+            t = (y - (SKY_H - 70)) / 70.0
+            for x in range(W):
+                if rng.random() < 0.55 * t * t:
+                    c.put(x, y, hexc('d2562c', int(46 * t)))
+        return c.img
+    sun = L['sun']
+    for r, col in sun['rings']:
+        for y in range(sun['y'] - r, sun['y'] + r + 1):
+            for x in range(sun['x'] - r, sun['x'] + r + 1):
+                d = math.hypot(x - sun['x'], y - sun['y'])
                 if d <= r and (d / r) > 0.55 * bayer(x, y):
                     c.put(x, y, col)
-    c.ellipse(sx, sy, 6.5, 6.5, hexc('fff6dc'))
-    c.ellipse(sx, sy, 4.5, 4.5, hexc('ffffff'))
+    c.ellipse(sun['x'], sun['y'], sun['r'], sun['r'], sun['disc'])
+    c.ellipse(sun['x'], sun['y'], sun['r'] - 2, sun['r'] - 2, sun['core'])
     return c.img
 
 
 # ============================================================================================================ CLOUDS
 CL_HI, CL_WHITE, CL_BODY, CL_MID, CL_SHADE = hexc('fffaf0'), hexc('f4f6fa'), hexc('dde7f3'), hexc('bccde4'), hexc('a4b0d0')
+
+
+def set_cloud_palette(run):
+    global CL_HI, CL_WHITE, CL_BODY, CL_MID, CL_SHADE
+    CL_HI, CL_WHITE, CL_BODY, CL_MID, CL_SHADE = [hexc(h) for h in LOOK[run]['cloud']]
 
 
 def cloud_sprite(w, h, rng, kind):
@@ -190,7 +253,8 @@ def cloud_sprite(w, h, rng, kind):
     return c.img
 
 
-def draw_clouds():
+def draw_clouds(run):
+    set_cloud_palette(run)
     rng = random.Random(77)
     specs = [('big', 84, 34), ('big', 72, 30), ('big', 96, 38), ('mid', 52, 20), ('mid', 44, 18), ('mid', 60, 22),
              ('wisp', 80, 9), ('wisp', 64, 8), ('mid', 36, 14), ('big', 64, 26)]
@@ -208,7 +272,7 @@ def draw_clouds():
 
 
 # ============================================================================================================= CITY
-def city_layer(h, ground_row, tmin, tmax, wmin, wmax, body, hi, lo, windows, seed, haze_c=None, extras=False, sun_gap=None):
+def city_layer(h, ground_row, tmin, tmax, wmin, wmax, body, hi, lo, windows, seed, haze_c=None, extras=False, sun_gap=None, lit_p=0.04):
     """A skyline across the layer's full width, towers standing on `ground_row`. Returns (image, meta)."""
     rng = random.Random(seed)
     c = Canvas(W, h, seed=seed)
@@ -238,7 +302,7 @@ def city_layer(h, ground_row, tmin, tmax, wmin, wmax, body, hi, lo, windows, see
                     if r < 0.62:
                         c.put(wx, wy, wcol)
                         c.put(wx + 1, wy, wcol)
-                    elif r < 0.66 and wlit is not None:
+                    elif r < 0.62 + lit_p and wlit is not None:
                         c.put(wx, wy, wlit)
                         c.put(wx + 1, wy, wlit)
         # roof kit
@@ -261,6 +325,7 @@ def city_layer(h, ground_row, tmin, tmax, wmin, wmax, body, hi, lo, windows, see
             c.hline(tx - 1, tx + 5, yt - 7, shade(col, 0.8))
             c.vline(tx, yt - 2, yt - 1, lo)
             c.vline(tx + 4, yt - 2, yt - 1, lo)
+        meta['fire'].append((x + w // 2, yt + 1))
         if rng.random() < 0.34:
             meta['smoke'].append((x + w // 2, yt))
     if extras:                                                       # a construction crane, long abandoned
@@ -299,16 +364,19 @@ def haze_blend(img, color, k):
     return img
 
 
-def draw_far():
-    img, meta = city_layer(FAR_H, FAR_H - STREET_FROM_BOTTOM, 40, 120, 9, 18, hexc('b4c2d8'), hexc('d0d9e8'), hexc('9fb0cb'),
-                           None, 5, extras=True, sun_gap=(34, 100, 30))
-    haze_blend(img, hexc('f2e2cc'), 0.22)
+def draw_far(run):
+    L = LOOK[run]
+    img, meta = city_layer(FAR_H, FAR_H - STREET_FROM_BOTTOM, L['far_tall'][0], L['far_tall'][1], 9, 18, hexc(L['far'][0]),
+                           hexc(L['far'][1]), hexc(L['far'][2]), None, 5, extras=True, sun_gap=(34, 100, 30))
+    haze_blend(img, hexc(L['far_haze'][0]), L['far_haze'][1])
     return img, meta
 
 
-def draw_mid():
-    img, meta = city_layer(MID_H, MID_H - STREET_FROM_BOTTOM, 36, 150, 12, 26, hexc('6f7fa4'), hexc('93a3c6'), hexc('566690'),
-                           (hexc('5e6e94'), hexc('f1d58c')), 11, sun_gap=(30, 104, 44))
+def draw_mid(run):
+    L = LOOK[run]
+    img, meta = city_layer(MID_H, MID_H - STREET_FROM_BOTTOM, L['mid_tall'][0], L['mid_tall'][1], 12, 26, hexc(L['mid'][0]),
+                           hexc(L['mid'][1]), hexc(L['mid'][2]), (hexc(L['mid_win'][0]), hexc(L['mid_win'][1])), 11,
+                           sun_gap=(30, 104, 44), lit_p=L['mid_win'][2])
     return img, meta
 
 
@@ -318,6 +386,8 @@ FONT3 = {
     'E': ['XXX', 'X..', 'XX.', 'X..', 'XXX'],
     'L': ['X..', 'X..', 'X..', 'X..', 'XXX'],
     'P': ['XX.', 'X.X', 'XX.', 'X..', 'X..'],
+    'S': ['XXX', 'X..', 'XXX', '..X', 'XXX'],
+    'O': ['XXX', 'X.X', 'X.X', 'X.X', 'XXX'],
 }
 
 
@@ -481,11 +551,14 @@ def draw_balcony_bay(c, bx, y, sec, rng, meta, floor, bay):
         c.put(fx + 8, y + 6, hexc('8a8a86'))
 
 
-def draw_facade(c, rng, meta):
+def draw_facade(c, rng, meta, run=1):
     """The tower's 30 floors, the sectional palette, sills, balconies, windows in all their states."""
-    # fire stretch + other fixed story beats
-    fire_floors = {17: (3, 4), 16: (3,)}
-    help_floor, help_bay = 24, 5
+    # The SAME building in all three runs: every window's choices come from its own seeded draw, so a window that was broken in the
+    # morning is still broken at dusk and the damage only ever GROWS (the thresholds below shift with the run). The burnt floors are
+    # not here — the game lays those from the playthrough's real fire.
+    L = LOOK[run]
+    wear_shift = L['wear']
+    lit_p = L['lit_p']
     balcony_bays = {1, 4, 6}
     for n in range(30, 0, -1):
         sec = section(n)
@@ -516,30 +589,31 @@ def draw_facade(c, rng, meta):
             c.rect(px0, y, px1, y + FH - 1, P['lit'] if px0 == BX0 else P['dark'])
             c.vline(px0 if px0 == BX0 else px1, y, y + FH - 1, shade(P['lit'] if px0 == BX0 else P['dark'], 0.86))
         # windows
-        fire_bays = fire_floors.get(n, ())
         for b in range(BAYS):
             bx = bay_x(b)
-            if b in balcony_bays and (n + b) % 2 == 0 and n != 30 and n not in fire_floors:
-                draw_balcony_bay(c, bx, y, sec, rng, meta, n, b)
+            wr = random.Random(n * 1013 + b * 17 + 404)               # this window's own details
+            sr = random.Random(n * 131 + b * 7 + 9)
+            r = sr.random()
+            r2 = sr.random()
+            if b in balcony_bays and (n + b) % 2 == 0 and n != 30:
+                draw_balcony_bay(c, bx, y, sec, wr, meta, n, b)
                 continue
-            if b in fire_bays:
-                state = 'burnt'
-            elif n == 30 and b == 2:
+            if n == 30 and b == 2:
                 state = 'lit'                                         # where you wake
             else:
                 wear = (30 - n) / 29.0                                # more ruin the further down
-                r = rng.random()
-                if r < 0.07 + 0.05 * wear:
-                    state = 'broken' if rng.random() < 0.6 else 'boarded'
-                elif r < 0.14 + 0.05 * wear:
+                b1 = 0.07 + 0.05 * wear + wear_shift
+                if r < b1:
+                    state = 'broken' if r2 < 0.6 else 'boarded'
+                elif r < b1 + 0.07:
                     state = 'open'
-                elif r < 0.21:
+                elif r < b1 + 0.07 + lit_p:
                     state = 'lit'
-                elif r < 0.56:
+                elif r < 0.56 + wear_shift:
                     state = 'curtain'
                 else:
                     state = 'dark'
-            draw_window(c, bx, y, state, sec, rng, meta, n, b)
+            draw_window(c, bx, y, state, sec, wr, meta, n, b)
         # section ledges: a cornice at the top floor and where a section begins
         if n in (30, 21, 11):
             c.hline(BX0 - 1, BX1 + 1, y, shade(P['band'], 1.1))
@@ -547,17 +621,21 @@ def draw_facade(c, rng, meta):
             c.hline(BX0 - 2, BX1 + 2, y + 2, shade(P['band'], 0.8))
         if n == 1:
             c.hline(BX0 - 1, BX1 + 1, y + FH - 1, shade(PAL['concrete']['band'], 0.8))
-    # the sheet: HELP, hung from a window and weighted at the corners
-    hy = floor_y(help_floor)
-    hx = bay_x(help_bay)
-    sheet = hexc('ece6d6')
-    c.rect(hx - 2, hy + 11, hx + 17, hy + 11 + 12, sheet)
-    c.hline(hx - 2, hx + 17, hy + 11 + 12, hexc('c9c2b0'))
-    for k in range(0, 16, 3):
-        c.vline(hx - 2 + k + 1, hy + 11, hy + 11 + 12, hexc('d9d2c0'))
-    text3(c, hx + 1, hy + 15, 'HELP', hexc('b3231c'))
-    c.put(hx - 2, hy + 10, hexc('4a4038'))
-    c.put(hx + 17, hy + 10, hexc('4a4038'))
+    # sheets hung out of windows with a word on them (more of them as it gets worse)
+    for (hf, hbay, word) in [(24, 5, 'HELP'), (13, 1, 'SOS'), (6, 3, 'HELP')][:L['helps']]:
+        hy = floor_y(hf)
+        hx = bay_x(hbay)
+        tw = len(word) * 4 - 1
+        x0 = hx + 7 - tw // 2 - 3
+        x1 = x0 + tw + 5
+        sheet = hexc('ece6d6')
+        c.rect(x0, hy + 11, x1, hy + 11 + 12, sheet)
+        c.hline(x0, x1, hy + 11 + 12, hexc('c9c2b0'))
+        for k in range(0, x1 - x0, 3):
+            c.vline(x0 + k + 1, hy + 11, hy + 11 + 12, hexc('d9d2c0'))
+        text3(c, x0 + 3, hy + 15, word, hexc('b3231c'))
+        c.put(x0, hy + 10, hexc('4a4038'))
+        c.put(x1, hy + 10, hexc('4a4038'))
     # grime: rain streaks below sills, darker toward the street; and a lit left / shaded right
     for n in range(30, 0, -1):
         y = floor_y(n)
@@ -583,6 +661,54 @@ def draw_facade(c, rng, meta):
     # the right-hand edge in shadow, the left in light
     c.vline(BX0 - 1, TOP_Y, GROUND_Y - 1, hexc('f3ead0'))
     c.vline(BX1 + 1, TOP_Y, GROUND_Y - 1, hexc('5a4c44'))
+    if run == 2:
+        wreck_balcony(c, bay_x(4), floor_y(14))
+    if run == 3:
+        wreck_balcony(c, bay_x(4), floor_y(14))
+        breach(c, bay_x(3) + 3, floor_y(8) + 1)
+
+
+def wreck_balcony(c, bx, y):
+    """A balcony whose far half has gone: the slab and rail hang from one side, the door behind it stands open on black."""
+    for yy in range(y + 8, y + 14):
+        for xx in range(bx + 8, bx + 15):
+            c.put(xx, yy, mix(DARK_IN, hexc('1c1e2a'), 0.5))
+    for k in range(7):                                             # the rail, slanting down from the post that is left
+        c.put(bx + 7 + k, y + 9 + k // 2, hexc('2c3440'))
+        c.put(bx + 7 + k, y + 10 + k // 2, hexc('4a5262'))
+    c.hline(bx, bx + 7, y + 12, hexc('e0d9c4'))
+    c.hline(bx, bx + 7, y + 13, hexc('3e362e'))
+    for k in range(5):                                             # the slab's broken end
+        c.put(bx + 8 + k, y + 14 + k // 2, hexc('b8b19c'))
+
+
+def breach(c, x, y):
+    """A hole blown through the wall: a ragged opening two windows wide, the dark of the flat behind it, the floor slabs cut through,
+    a cable hanging, rubble and a long fall of soot below."""
+    rng = random.Random(77)
+    w, h = 31, 21
+    top = []
+    for dx in range(w):
+        top.append(int(2 + 3 * math.sin(dx * 0.5) + rng.randrange(0, 3)))
+    for dx in range(w):
+        edge = min(dx, w - 1 - dx)
+        depth = h - rng.randrange(0, 3) - max(0, 4 - edge) * 2
+        for dy in range(top[dx], depth):
+            col = hexc('15121a') if dy < depth - 3 else hexc('241f26')
+            c.put(x + dx, y + dy, col)
+        c.put(x + dx, y + top[dx] - 1, hexc('d9d0b8') if dx % 3 else hexc('8a8274'))      # the broken edge, lit
+        c.put(x + dx, y + depth, hexc('4a423a'))
+    for dx in range(3, w - 3, 7):                                  # the joists / slab edge showing through
+        c.hline(x + dx, x + dx + 4, y + 9, hexc('3a343c'))
+    c.vline(x + 12, y + 3, y + 12, hexc('6a6a72'))                 # a cable
+    c.put(x + 13, y + 12, hexc('c4552a'))
+    for k in range(1, 26):                                         # soot rolling up the wall from it
+        half = 6 + k // 2
+        for xx in range(-half, half + 1):
+            if rng.random() < 0.78 - k * 0.02:
+                c.put(x + w // 2 + xx + int(math.sin(k * 0.6) * 2), y - k, (28, 24, 24, int(150 * (1 - k / 26.0)) - abs(xx) * 5))
+    for _ in range(26):                                            # rubble spilling down the face
+        c.put(x + rng.randrange(0, w), y + h + rng.randrange(0, 12), hexc('8a8274') if rng.random() < 0.7 else hexc('5a5248'))
 
 
 def draw_roof(c, rng, meta):
@@ -798,20 +924,129 @@ def car(c, x, y, body, rng, flip=False):
         c.put(X(rng.randrange(0, 44)), y + rng.randrange(0, 2), hexc('cfe2ee'))
 
 
-def draw_scene():
+def planks(c, x0, y0, x1, y1, rng, n):
+    """Boards nailed across an opening."""
+    for k in range(n):
+        yy = y0 + int((y1 - y0) * (k + 0.5) / n) + rng.randrange(-1, 2)
+        slope = rng.randrange(-3, 4)
+        for xx in range(x0, x1 + 1):
+            y = yy + (xx - x0) * slope // max(1, (x1 - x0))
+            c.put(xx, y, hexc('a07c55'))
+            c.put(xx, y + 1, hexc('a07c55'))
+            c.put(xx, y + 2, hexc('6e5236'))
+        c.put(x0 + 1, yy + 1, hexc('2c2c2c'))
+        c.put(x1 - 1, yy + 1 + slope // 2, hexc('2c2c2c'))
+
+
+def body_lying(c, x, y, rng, flip=False):
+    """Someone lying in the street: clothes, a head, and what happened round them."""
+    d = -1 if flip else 1
+    c.ellipse(x + 6 * d, y + 2, 8, 2.4, hexc('5a1c20'))
+    clothes = rng.choice((hexc('3a4a6a'), hexc('6a4a3a'), hexc('4a5a44'), hexc('7a6a52')))
+    c.rect(min(x, x + 8 * d), y, max(x, x + 8 * d), y + 2, clothes)
+    c.rect(min(x + 8 * d, x + 11 * d), y, max(x + 8 * d, x + 11 * d), y + 1, hexc('c9a98a'))
+    c.hline(min(x - 3 * d, x), max(x - 3 * d, x), y + 2, shade(clothes, 0.7))
+    c.put(x + 12 * d, y, hexc('2a1e18'))
+
+
+def car_overturned(c, x, y, body, rng):
+    tmp = Canvas(44, 20, seed=5)
+    car(tmp, 0, 19, body, rng)
+    im = tmp.img.transpose(Image.FLIP_TOP_BOTTOM)
+    c.img.alpha_composite(im, (x, y - 19))
+    c.px = c.img.load()
+    for _ in range(10):
+        c.put(x + rng.randrange(0, 44), y + rng.randrange(-1, 3), hexc('cfe2ee'))
+
+
+def barricade_door(c, rng, run):
+    """The front doors stopped up with whatever the residents had: a chair, a table, boards (all of it, and stained, by night)."""
+    cx = (BX0 + BX1) // 2
+    dx0, dx1 = cx - 12, cx + 12
+    y0 = LOBBY_Y
+    if run == 2:
+        planks(c, dx0 + 1, y0 + 9, dx1 - 1, y0 + 29, rng, 3)
+        c.rect(dx0 + 4, y0 + 20, dx0 + 11, y0 + 30, hexc('5a4030'))          # a chair on its back
+        c.hline(dx0 + 4, dx0 + 11, y0 + 20, hexc('7a5a40'))
+        c.vline(dx0 + 4, y0 + 24, y0 + 31, hexc('3a2a20'))
+        c.vline(dx0 + 11, y0 + 24, y0 + 31, hexc('3a2a20'))
+    else:
+        planks(c, dx0 + 1, y0 + 8, dx1 - 1, y0 + 30, rng, 5)
+        c.rect(dx0 + 12, y0 + 18, dx1 - 2, y0 + 31, hexc('4a5668'))          # a fridge laid against the doors
+        c.rect(dx0 + 13, y0 + 19, dx0 + 14, y0 + 30, hexc('8a96a8'))
+        c.hline(dx0 + 12, dx1 - 2, y0 + 18, hexc('9aa6b6'))
+        for k in range(6):                                                  # blood down the boards
+            c.vline(dx0 + 3 + k * 4, y0 + 10, y0 + 14 + rng.randrange(0, 10), hexc('6a1a1c'))
+
+
+def draw_scene(run=1):
     rng = random.Random(404)
+    L = LOOK[run]
     c = Canvas(W, SCENE_H, seed=404)
-    meta = {'lit': [], 'smoke': [], 'beacon': []}
-    draw_facade(c, rng, meta)
+    meta = {'lit': [], 'smoke': [], 'beacon': [], 'fires': [],
+            'grid': {'x0': INNER_X0, 'bay_w': BAY_W, 'bays': BAYS, 'floor0_y': TOP_Y, 'floor_h': FH, 'frame': [2, 2, 11, 10]}}
+    draw_facade(c, rng, meta, run)
     draw_roof(c, rng, meta)
     draw_entrance(c, rng, meta)
     draw_street(c, rng, meta)
-    # window-on-window shadow cast by the floor above, a soft band under each ledge
+    xr = random.Random(900 + run)
+    road_y = GROUND_Y + 16
+    if run >= 2:
+        barricade_door(c, xr, run)
+        car_overturned(c, 108, road_y + 12, hexc('3e4a3a'), xr)
+        body_lying(c, 150, GROUND_Y + 9, xr)
+        body_lying(c, 70, road_y + 6, xr, flip=True)
+        meta['fires'].append({'x': 250, 'y': road_y + 1, 'scale': 1.0})
+    if run == 3:
+        body_lying(c, 188, GROUND_Y + 8, xr)
+        body_lying(c, 20, GROUND_Y + 10, xr, flip=True)
+        body_lying(c, 200, road_y + 14, xr)
+        meta['fires'].append({'x': 130, 'y': road_y - 3, 'scale': 1.0})
+        meta['fires'].append({'x': 32, 'y': GROUND_Y + 7, 'scale': 0.9})
+        for k in range(18):                                       # parapet knocked off at the corner, the pieces down the face
+            x0 = BX0 - 1 + k
+            for yy in range(PARAPET_Y, PARAPET_Y + 2 + (k * 7) % 5):
+                if xr.random() < 0.9 - k * 0.02:
+                    c.px[x0, yy] = (0, 0, 0, 0)
+    if L['grade'] is not None:
+        grade_scene(c.img, L['grade'], meta['lit'], run)
+        c.px = c.img.load()
     return c.img, meta
 
 
+def grade_scene(img, g, lit, run):
+    """The time of day over the whole picture: desaturate, multiply by the light, add its cast — then put the LAMPS back on top, still
+    warm (a lit window must read as light at dusk and glow at night), with a faint halo round each."""
+    px = img.load()
+    before = img.copy()
+    bp = before.load()
+    for y in range(img.height):
+        for x in range(img.width):
+            r, gg, b, a = px[x, y]
+            if not a:
+                continue
+            lum = 0.30 * r + 0.59 * gg + 0.11 * b
+            r = lum + (r - lum) * g['sat']
+            gg = lum + (gg - lum) * g['sat']
+            b = lum + (b - lum) * g['sat']
+            px[x, y] = (max(0, min(255, int(r * g['mul'][0] + g['add'][0]))), max(0, min(255, int(gg * g['mul'][1] + g['add'][1]))),
+                        max(0, min(255, int(b * g['mul'][2] + g['add'][2]))), a)
+    for w in lit:
+        x0, y0 = w['x'], w['y']
+        for yy in range(y0 - 2, y0 + w['h'] + 2):
+            for xx in range(x0 - 2, x0 + w['w'] + 2):
+                inside = x0 <= xx < x0 + w['w'] and y0 <= yy < y0 + w['h']
+                if inside:
+                    r, gg, b, a = bp[xx, yy]
+                    px[xx, yy] = (min(255, int(r * 1.04)), min(255, int(gg * 1.0)), min(255, int(b * 0.96)), a)
+                elif run == 3:
+                    r, gg, b, a = px[xx, yy]
+                    if a:
+                        px[xx, yy] = (min(255, r + 26), min(255, gg + 16), min(255, b + 4), a)
+
+
 # =============================================================================================================== FORE
-def draw_fore():
+def draw_fore(run=1):
     rng = random.Random(9)
     c = Canvas(W, FORE_H, seed=9)
     dark = hexc('26262c')
@@ -826,19 +1061,38 @@ def draw_fore():
     for ix in (px - 7, px - 2, px + 6, px + 11):
         c.rect(ix, 20, ix + 1, 23, hexc('9ab4a8'))                  # insulators
     wires = []
+    last_x = W if run == 1 else (W if run == 2 else 168)         # by night the wires have come down
     for k, (y0, sag) in enumerate(((22, 10), (23, 8), (21, 12))):
         pts = []
-        for x in range(px + 10, W):
+        for x in range(px + 10, last_x):
             t = (x - px - 10) / float(W - px - 10)
             y = y0 + sag * math.sin(t * math.pi / 2.0) * 0.9 + t * 8
             pts.append((x, int(round(y))))
             c.put(x, int(round(y)), dark)
         wires.append(pts)
-    # crows on the wires
-    for (wi, x) in ((0, 104), (0, 117), (1, 190)):
-        for (xx, yy) in wires[wi]:
-            if xx == x:
-                crow(c, xx, yy - 1)
+        if run == 3 and k != 1:                                      # a snapped end swinging down
+            ex, ey = pts[-1]
+            for d in range(1, 40 + 10 * k):
+                c.put(ex + int(math.sin(d * 0.11) * 2.0), ey + d, dark)
+    if run == 2:                                                     # one wire sagging low, nearly on the cars
+        for x in range(px + 10, W):
+            t = (x - px - 10) / float(W - px - 10)
+            c.put(x, int(round(30 + 40 * math.sin(t * math.pi / 2.0) * 0.8)), dark)
+    if run <= 2:
+        for (wi, x) in ((0, 104), (0, 117), (1, 190)):
+            for (xx, yy) in wires[wi]:
+                if xx == x:
+                    crow(c, xx, yy - 1)
+    if run >= 2:
+        g = LOOK[run]['grade']
+        img = c.img
+        pxl = img.load()
+        for y in range(img.height):
+            for x in range(img.width):
+                r, gg, b, a = pxl[x, y]
+                if a:
+                    pxl[x, y] = (max(0, min(255, int(r * g['mul'][0]))), max(0, min(255, int(gg * g['mul'][1]))),
+                                 max(0, min(255, int(b * g['mul'][2]))), a)
     return c.img
 
 
@@ -852,20 +1106,55 @@ def crow(c, x, y):
     c.put(x + 1, y, k)
 
 
+# ============================================================================================================== BURN
+def draw_burn():
+    """What the game lays over a floor that is ACTUALLY on fire in this playthrough (WorldState.fire_intensity): three charred windows
+    (11x10, the frame sooted, the glass black and cracked) and four soot streaks (11x20, dense at the foot — the window — and
+    feathering up the wall). Shared by all three runs."""
+    img = Image.new('RGBA', (48, 32), (0, 0, 0, 0))
+    c = Canvas(48, 32, seed=3)
+    rng = random.Random(31)
+    cells = {'char': [], 'soot': []}
+    for i in range(3):
+        x0 = i * 12
+        c.rect(x0, 0, x0 + 10, 9, hexc('231c1a'))
+        c.rect(x0 + 1, 1, x0 + 9, 8, hexc('0e0c10'))
+        for k in range(4 + i):
+            c.put(x0 + rng.randrange(1, 10), rng.randrange(1, 9), hexc('3a3236'))
+        for k in range(3):                                          # a pane left hanging, cracked
+            c.put(x0 + 2 + k, 1 + k, hexc('4a4044'))
+        c.hline(x0 + 5, x0 + 9, 8, hexc('3a2a22'))
+        cells['char'].append({'x': x0, 'y': 0, 'w': 11, 'h': 10})
+    for i in range(4):
+        x0, y0 = i * 12, 12
+        for yy in range(20):
+            t = 1.0 - yy / 19.0                                     # 1 at the foot, 0 at the top
+            half = 2 + int(3.0 * t) + rng.randrange(0, 2)
+            for dx in range(-half, half + 1):
+                if rng.random() < 0.35 + 0.65 * t:
+                    a = int(210 * (t ** 1.3)) - abs(dx) * 14
+                    if a > 6:
+                        c.put(x0 + 5 + dx, y0 + yy, (24, 20, 20, a))
+        cells['soot'].append({'x': x0, 'y': y0, 'w': 11, 'h': 20})
+    return c.img, cells
+
+
 # ============================================================================================================== BUILD
-def build():
+def build(run):
     out = {}
-    out['sky.png'] = draw_sky()
-    atlas, cloud_meta = draw_clouds()
-    out['clouds.png'] = atlas
-    far, far_meta = draw_far()
-    out['far.png'] = far
-    mid, mid_meta = draw_mid()
-    out['mid.png'] = mid
-    scene, scene_meta = draw_scene()
-    out['scene.png'] = scene
-    out['fore.png'] = draw_fore()
+    out['sky_%d.png' % run] = draw_sky(run)
+    atlas, cloud_meta = draw_clouds(run)
+    out['clouds_%d.png' % run] = atlas
+    far, far_meta = draw_far(run)
+    out['far_%d.png' % run] = far
+    mid, mid_meta = draw_mid(run)
+    out['mid_%d.png' % run] = mid
+    scene, scene_meta = draw_scene(run)
+    out['scene_%d.png' % run] = scene
+    out['fore_%d.png' % run] = draw_fore(run)
+    L = LOOK[run]
     meta = {
+        'run': run,
         'view': [W, VIEW_H],
         'layers': {'sky': {'p': 0.30, 'h': SKY_H}, 'far': {'p': 0.50, 'h': FAR_H}, 'mid': {'p': 0.75, 'h': MID_H},
                    'scene': {'p': 1.00, 'h': SCENE_H}, 'fore': {'p': 1.30, 'h': FORE_H, 'lift': 30}},
@@ -873,6 +1162,8 @@ def build():
         'clouds_atlas': cloud_meta,
         'far': far_meta, 'mid': mid_meta, 'scene': scene_meta,
         'building': {'x0': BX0, 'x1': BX1, 'ground': GROUND_Y, 'parapet': PARAPET_Y, 'top_floor_y': TOP_Y, 'floor_h': FH},
+        'look': {'city_fires': L['city_fires'], 'city_smokes': list(L['city_smokes']), 'rain': run == 3,
+                 'moon': run == 3, 'night': run == 3},
     }
     return out, meta
 
@@ -900,63 +1191,78 @@ def clouds_placement():
     return out
 
 
+def build_all():
+    files = {}
+    metas = {}
+    for run in RUNS:
+        f, m = build(run)
+        m['clouds'] = clouds_placement()
+        files.update(f)
+        metas['opening_meta_%d.json' % run] = m
+    burn, cells = draw_burn()
+    files['burn.png'] = burn
+    for m in metas.values():
+        m['burn'] = cells
+    return files, metas
+
+
 def write_all(dst=OUT):
     os.makedirs(dst, exist_ok=True)
-    files, meta = build()
-    meta['clouds'] = clouds_placement()
+    files, metas = build_all()
     for name, im in files.items():
         im.save(os.path.join(dst, name))
-    with open(os.path.join(dst, 'opening_meta.json'), 'w') as f:
-        json.dump(meta, f, indent=1, sort_keys=True)
-        f.write('\n')
-    return files, meta
+    for name, m in metas.items():
+        with open(os.path.join(dst, name), 'w') as f:
+            json.dump(m, f, indent=1, sort_keys=True)
+            f.write('\n')
+    return files, metas
 
 
-def preview(files, meta):
-    """Composites of the screen at several camera heights — what the game will show."""
-    S = meta['scroll']
-    shots = []
-    for c_ in (0, 120, 240, 340, S):
-        shots.append(compose(files, meta, c_))
-    sheet = Image.new('RGB', (W * len(shots) + 4 * (len(shots) - 1), VIEW_H), (0, 0, 0))
-    for i, s in enumerate(shots):
-        sheet.paste(s, (i * (W + 4), 0))
-    big = sheet.resize((sheet.width * 2, sheet.height * 2), Image.NEAREST)
-    os.makedirs(os.path.join(ROOT, 'docs', 'art_reference'), exist_ok=True)
-    big.save(os.path.join(ROOT, 'docs', 'art_reference', 'opening.png'))
-    for i, c_ in enumerate((0, 240, S)):
-        compose(files, meta, c_).resize((W * 4, VIEW_H * 4), Image.NEAREST).save('/tmp/opening_%d.png' % i)
-
-
-def compose(files, meta, cam):
+def compose(files, meta, cam, run):
     img = Image.new('RGBA', (W, VIEW_H), (0, 0, 0, 255))
     L = meta['layers']
-
-    def put(name, p, h, lift=0):
-        top = VIEW_H - h + lift + int(round(p * cam))
-        img.alpha_composite(files[name], (0, top)) if top > -h and top < VIEW_H else None
-        return top
-
-    for name, key in (('sky.png', 'sky'), ('far.png', 'far'), ('mid.png', 'mid')):
+    for key in ('sky', 'far', 'mid'):
         top = VIEW_H - L[key]['h'] + int(round(L[key]['p'] * cam))
-        img.alpha_composite(files[name], (0, top))
-    # clouds
-    atlas = files['clouds.png']
+        img.alpha_composite(files['%s_%d.png' % (key, run)], (0, top))
+    atlas = files['clouds_%d.png' % run]
     for cl in meta['clouds']:
         a = meta['clouds_atlas'][cl['i']]
         spr = atlas.crop((a['x'], a['y'], a['x'] + a['w'], a['y'] + a['h']))
         y = cl['y'] + int(round(cl['p'] * cam))
-        img.alpha_composite(spr, (cl['x'], y)) if -a['h'] < y < VIEW_H else None
+        if -a['h'] < y < VIEW_H:
+            img.alpha_composite(spr, (cl['x'], y))
     top = VIEW_H - L['scene']['h'] + int(round(L['scene']['p'] * cam))
-    img.alpha_composite(files['scene.png'], (0, top))
+    img.alpha_composite(files['scene_%d.png' % run], (0, top))
     top = VIEW_H - L['fore']['h'] + L['fore']['lift'] + int(round(L['fore']['p'] * cam))
-    img.alpha_composite(files['fore.png'], (0, top))
+    img.alpha_composite(files['fore_%d.png' % run], (0, top))
     return img.convert('RGB')
 
 
+def preview(files, metas):
+    """Composites of the screen at several camera heights, one row per run — what the game will show (without the animation)."""
+    rows = []
+    for run in RUNS:
+        meta = metas['opening_meta_%d.json' % run]
+        S = meta['scroll']
+        shots = [compose(files, meta, c_, run) for c_ in (0, 120, 240, 340, S)]
+        row = Image.new('RGB', (W * len(shots) + 4 * (len(shots) - 1), VIEW_H), (0, 0, 0))
+        for i, sh in enumerate(shots):
+            row.paste(sh, (i * (W + 4), 0))
+        rows.append(row)
+        for i, c_ in enumerate((0, 240, S)):
+            compose(files, meta, c_, run).resize((W * 4, VIEW_H * 4), Image.NEAREST).save('/tmp/opening_r%d_%d.png' % (run, i))
+    sheet = Image.new('RGB', (rows[0].width, sum(r.height for r in rows) + 4 * (len(rows) - 1)), (0, 0, 0))
+    y = 0
+    for r in rows:
+        sheet.paste(r, (0, y))
+        y += r.height + 4
+    big = sheet.resize((sheet.width * 2, sheet.height * 2), Image.NEAREST)
+    os.makedirs(os.path.join(ROOT, 'docs', 'art_reference'), exist_ok=True)
+    big.save(os.path.join(ROOT, 'docs', 'art_reference', 'opening.png'))
+
+
 def check():
-    files, meta = build()
-    meta['clouds'] = clouds_placement()
+    files, metas = build_all()
     bad = []
     for name, im in files.items():
         p = os.path.join(OUT, name)
@@ -965,13 +1271,14 @@ def check():
             continue
         if Image.open(p).convert('RGBA').tobytes() != im.convert('RGBA').tobytes():
             bad.append('stale ' + name)
-    mp = os.path.join(OUT, 'opening_meta.json')
-    if not os.path.exists(mp):
-        bad.append('missing opening_meta.json')
-    else:
+    for name, m in metas.items():
+        mp = os.path.join(OUT, name)
+        if not os.path.exists(mp):
+            bad.append('missing ' + name)
+            continue
         with open(mp) as f:
-            if json.load(f) != json.loads(json.dumps(meta, sort_keys=True)):
-                bad.append('stale opening_meta.json')
+            if json.load(f) != json.loads(json.dumps(m, sort_keys=True)):
+                bad.append('stale ' + name)
     return bad
 
 
@@ -983,7 +1290,7 @@ if __name__ == '__main__':
             sys.exit(1)
         print('opening art current')
         sys.exit(0)
-    files, meta = write_all()
+    files, metas = write_all()
     if '--preview' in sys.argv:
-        preview(files, meta)
-    print('wrote', ', '.join(sorted(files)), '+ opening_meta.json')
+        preview(files, metas)
+    print('wrote', ', '.join(sorted(files)), '+', ', '.join(sorted(metas)))

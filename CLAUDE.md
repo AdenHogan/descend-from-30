@@ -2283,16 +2283,27 @@ means no rendering — UI layout and art still need an in-editor look.
   `_pick_tab` (it needs the opener skipped first: `k:SPACE` twice). Locked by `character_panel_test._test_book` (distinct typeface + ink per
   character, the text really is set in the run's hand, re-style swaps it, bookmarks turn the tabs, papers at their own angles, everything
   inside the book, over-long blocks shrink, the settle lands exactly). The LOOK needs the owner's eye (captured under xvfb for all four).
-- **THE NEW-GAME OPENING (owner round 35 — "a nice pixel art exterior image of our building, clouds in the sky, city scape in the
-  background. Camera pans up the building, then the title of the game, fade to black, then the run information"; docs/OPENING.md):** a
-  new game's cold open now starts on `scripts/opening_exterior.gd` (intro_overlay stage `"exterior"`, run 1 only): fade in on the street
-  at morning → the camera climbs the 30-floor tower (concrete → brick → hotel stone, a burnt stretch, a HELP sheet, a failing lamp, the
-  warm window on floor 30) to the roof under drifting clouds with crows circling → the title comes up over the sky → picture + title fade to
-  black → the time card / line / lockout carry on unchanged. Six PARALLAX layers drawn by `tools/art/opening.py` → `assets/opening/`
-  (native 288x162 at 4x; sky 0.30 / far 0.50 / mid 0.75 / building 1.0 / foreground wires 1.30 + a cloud atlas; `opening_meta.json`
-  lists smoke points, lit windows, beacons, cloud placement) — **the gate runs `opening.py --check`**, so regenerate after any change. The
-  timeline is a pure function of `t` (`pan_u`, `black_alpha`, `title_alpha`); a key hurries the climb (5×) and then skips the hold; a long
-  load frame is clamped to 0.1 s; missing art / `exterior_enabled=false` falls back to the old black title screen. Sounds from
-  `tools/gen_opening_audio.py` (`assets/audio/opening/`: wind, far siren, title swell). Locked by `opening_test` (61st suite; mutation-
-  checked) + `tutorial_test._test_opener`. The LOOK needs the owner's eye (captured under xvfb: `scene_capture` `newgame,rec:1300:65`).
+- **THE OPENING — three looks, on every run start and every load (owner round 35 — "a nice pixel art exterior image of our building, clouds in
+  the sky, city scape in the background. Camera pans up the building, then the title of the game, fade to black, then the run information";
+  round 35b — "three versions for different run times… a player loading a file might be on a run 2 or 3 save file… that exterior can also be
+  used to show more damage and disaster outside"; docs/OPENING.md):** `scripts/opening_exterior.gd` — fade in on the street, the camera climbs
+  the 30-floor tower (concrete → brick → hotel stone) to the roof, the title comes up over the sky, the picture fades to black. **Where it
+  plays:** (1) a NEW GAME and (2) every LATER run's cold open (`intro_overlay` stage `"exterior"`; run 2/3 have no title and a shorter cut,
+  8.5 s climb) — then the time card / line / lockout carry on unchanged; (3) a LOAD — `Game.continue_game` covers to black, plays
+  `scripts/opening_sequence.gd` (the exterior in the SAVE's run, with the title, any key hurries it), then loads the saved scene out of black.
+  **Three looks, one building** (`tools/art/opening.py`, `LOOK` table → `assets/opening/<layer>_<run>.png` + `opening_meta_<run>.json` + a shared
+  `burn.png`; native 288x162 at 4x; parallax sky 0.30 / far 0.50 / mid 0.75 / building 1.0 / foreground wires 1.30 + a cloud atlas): run 1 MORNING (clear
+  sky, low sun, crows), run 2 AFTERNOON (violet-orange dusk, big low sun, lamps on, more broken/boarded windows, two HELP/SOS sheets, a wrecked
+  balcony, the doors barricaded, an overturned car + bodies + a burning car in the street, fires up in the city, a wire sagging), run 3 NIGHT (stars,
+  a moon, a blood-orange horizon, **rain + lightning + thunder** over the whole shot, wires down, the doors boarded behind a fridge, a breach blown through
+  the wall at floor 8, the parapet knocked off, three fires in the street, five towers burning). Every window's choices come from its OWN seeded draw
+  with thresholds that only shift up with the run, so it is the SAME tower and the damage only grows (`opening_test` checks 99.5% of the face agrees).
+  **The burnt floors are not baked — they are this playthrough's own:** `OpeningExterior.burn_plan()` reads `WorldState.fire_intensity(floor)` for the
+  run (the corridor fire sim: origins, climbing a floor and a stage per run) and lays `burn.png`'s charred windows + soot, animated flames + a glow on
+  BLAZE windows, smoke on LIGHT / charred ones — a window count by stage (1-2 / 3-5 / 6-8), seeded per floor; fires put out for good leave the
+  building clean. The timeline is a pure function of `t` (statics take `with_title`); a key hurries the climb (5×) then skips the hold; a long
+  load frame is clamped to 0.1 s; missing art / `exterior_enabled=false` falls back to the old black title screen (a load just loads). **The gate runs
+  `opening.py --check`**, so regenerate after any change. Sounds: `tools/gen_opening_audio.py` (wind, far siren, title swell) + the existing thunder.
+  Locked by `opening_test` (61st suite; mutation-checked: burn plan vs the fire sim, run-start exterior, the short cut, night rain) + `tutorial_test._test_opener`
+  + `run_bookends_test`. `tools/opening_capture.tscn` (`--run=N --seed=S --times=…`, xvfb) renders it at chosen times. The LOOK needs the owner's eye.
 - Not started: quests.

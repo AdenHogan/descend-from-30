@@ -244,7 +244,8 @@ func _test_death_to_next_cold_open() -> void:
 		var want: String = WorldState.character_display_name(WorldState.current_character())
 		check(intro.name_text == want and intro.time_word == "AFTERNOON" and WorldState.current_character() != first,
 			"its time card names the NEW character (%s, %s)" % [intro.name_text, intro.time_word])
-		check(intro.stage == "card", "…and opens straight on the time card (the title is run 1's)")
+		check(intro.stage == "exterior" and intro.ext != null and not intro.ext.with_title and intro.ext.run == 2,
+		"…and opens on the exterior shot in the afternoon's light, with no title (that is run 1's) before the time card")
 		intro.queue_free()
 	get_tree().paused = false
 	WorldState.delete_save()
