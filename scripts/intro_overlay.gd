@@ -8,7 +8,10 @@ extends CanvasLayer
 #
 # EVERY RUN opens this way (owner: all three runs begin/end with the same shape), as separate
 # screens on black, over one bloody handprint that stays put throughout:
-#   1. TITLE      — "DESCEND FROM 30" on its own (run 1 only; empty title_text skips it).
+#   0. EXTERIOR   — (run 1 only, when the art is there) the opening shot: the tower in the morning, the camera climbing it
+#                   to the roof and the sky, the title over the clouds, a fade to black (scripts/opening_exterior.gd).
+#   1. TITLE      — "DESCEND FROM 30" on its own, on black (run 1 only; the FALLBACK when the exterior can't be built;
+#                   empty title_text skips it).
 #   2. TIME CARD  — the big time-of-day word in its own colour (MORNING / AFTERNOON / NIGHT, the
 #                   Transition time-card look the owner preferred) + who this is + a subtitle.
 #   3. THE LINE   — on CLEAN black (the handprint leaves with the time card): banging, then the character's line ("Who the hell is banging…") + [any key].
@@ -20,6 +23,7 @@ var time_color: Color = Color(1.00, 0.86, 0.45)
 var name_text: String = ""
 var sub_text: String = ""
 var line_text: String = ""
+var exterior_enabled: bool = true     # false = the old black title screen (a test, or the art missing)
 
 const BANG_STREAMS = [
 	preload("res://assets/audio/impacts/impactWood_heavy_000.ogg"),
@@ -52,8 +56,9 @@ var sub: Label = null
 var line: Label = null
 var hint: Label = null
 var sfx: AudioStreamPlayer = null
+var ext: Control = null          # the exterior opening shot (stage "exterior")
 
-var stage := "title"             # title → card → line → (fading)
+var stage := "title"             # exterior | title → card → line → (fading)
 var t: float = 0.0               # time in the current stage
 var burst_left: int = BURST_BANGS
 var burst_timer: float = 0.0
@@ -133,11 +138,22 @@ func _ready() -> void:
 	add_child(sfx)
 
 	stage = "title" if title_text != "" else "card"
+	if title_text != "" and exterior_enabled and preload("res://scripts/opening_exterior.gd").art_present():
+		var e: Control = preload("res://scripts/opening_exterior.gd").new()
+		e.title_text = title_text
+		add_child(e)
+		move_child(e, 1)                                  # over the black, under the handprint / cards
+		if e.load_ok:
+			ext = e
+			stage = "exterior"
+		else:
+			e.queue_free()
 	get_tree().paused = true
 	_holding_pause = true
 
 
 var _holding_pause := false
+var had_title_screen := false    # the black title screen (not the exterior) came before the card — the handprint is already up
 
 
 # Freed before finishing (a scene change mid-opener) → never leave the game paused behind us.
@@ -154,6 +170,12 @@ func _play(stream: AudioStream, vol: float) -> void:
 	sfx.play()
 
 
+func _drop_exterior() -> void:
+	if ext != null and is_instance_valid(ext):
+		ext.queue_free()
+	ext = null
+
+
 func _next_stage(to: String) -> void:
 	stage = to
 	t = 0.0
@@ -161,6 +183,7 @@ func _next_stage(to: String) -> void:
 
 # Jump straight to the line screen (tests / a skip).
 func skip_to_line() -> void:
+	_drop_exterior()
 	title.modulate.a = 0.0
 	card.modulate.a = 0.0
 	gore.modulate.a = 0.0
@@ -186,7 +209,17 @@ func _process(delta: float) -> void:
 		return
 	t += delta
 	match stage:
+		"exterior":
+			# The opening shot plays itself out (it fades to black on its own); then the time card.
+			if ext == null or not is_instance_valid(ext):
+				_next_stage("card")
+			else:
+				ext.tick(delta)
+				if ext.done:
+					_drop_exterior()
+					_next_stage("card")
 		"title":
+			had_title_screen = true
 			title.modulate.a = _in_hold_out(t, TITLE_FADE, TITLE_HOLD, OUT_FADE)
 			gore.modulate.a = minf(t / TITLE_FADE, 1.0)            # stays up as the title leaves
 			if t >= TITLE_FADE + TITLE_HOLD + OUT_FADE:
@@ -194,7 +227,7 @@ func _process(delta: float) -> void:
 		"card":
 			card.modulate.a = _in_hold_out(t, CARD_FADE, CARD_HOLD, OUT_FADE)
 			# The handprint leaves WITH the time card (owner: the line screen is clean — no red).
-			var g_in: float = 1.0 if title_text != "" else minf(t / CARD_FADE, 1.0)
+			var g_in: float = 1.0 if (title_text != "" and had_title_screen) else minf(t / CARD_FADE, 1.0)
 			gore.modulate.a = minf(g_in, card.modulate.a) if t >= CARD_FADE + CARD_HOLD else g_in
 			card.position.y = 24.0 * (1.0 - minf(t / (CARD_FADE * 1.5), 1.0))    # drifts up, like before
 			if t >= CARD_FADE + CARD_HOLD + OUT_FADE:
@@ -232,7 +265,9 @@ func _input(event: InputEvent) -> void:
 	if not line_shown:
 		# A key during the title / time card hurries it to its fade-out (never skips a screen
 		# outright — each still reads).
-		if stage == "title" and t < TITLE_FADE + TITLE_HOLD:
+		if stage == "exterior" and ext != null and is_instance_valid(ext):
+			ext.hurry()
+		elif stage == "title" and t < TITLE_FADE + TITLE_HOLD:
 			t = TITLE_FADE + TITLE_HOLD
 		elif stage == "card" and t < CARD_FADE + CARD_HOLD:
 			t = CARD_FADE + CARD_HOLD

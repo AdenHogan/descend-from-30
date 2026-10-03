@@ -249,15 +249,20 @@ func _test_opener() -> void:
 	add_child(intro)
 	await get_tree().process_frame
 	check(get_tree().paused, "opener pauses the game")
-	check(intro.title.text == "DESCEND FROM 30" and intro.stage == "title", "the gory title shows first, on its own")
+	check(intro.stage == "exterior" and intro.ext != null and intro.ext.title.text == "DESCEND FROM 30",
+		"a new game opens on the exterior shot, the game's title coming up over its sky")
 	check(intro.black.color.a == 1.0, "starts on a black screen")
-	# Title → time card → line, each its own screen.
-	for i in 400:
+	# Exterior (the title in its sky) → time card → line, each its own screen.
+	for i in 2000:
 		intro._process(0.02)
-		if intro.stage != "title":
+		if intro.stage != "exterior":
 			break
 	check(intro.stage == "card" and intro.title.modulate.a == 0.0 and not intro.line_shown, "then the time card, alone (title gone, no line yet)")
-	check(intro.gore.modulate.a == 1.0, "…with the handprint still behind it")
+	check(intro.ext == null, "…the exterior shot is gone")
+	check(intro.gore.modulate.a <= 1.0, "…the handprint arrives with the card")
+	for i in 60:
+		intro._process(0.02)
+	check(intro.gore.modulate.a > 0.9, "…and is up behind it")
 	for i in 400:
 		intro._process(0.02)
 		if intro.line_shown:

@@ -61,6 +61,8 @@ originals — the markdown here is canonical for development):
 - `docs/RESIDENTS.md` — **BUILT v1**: survivors behind LOCKED doors (scared / hostile / trader) who shout,
   square up, run, threaten, beg, attack or trade; their every line is owner-authored in `data/npc_dialogue.json`.
 
+- `docs/OPENING.md` — **BUILT v1**: the new-game opening shot (pixel exterior, the camera climbing the tower, the title over the clouds,
+  fade to black, then the run's time card); art by `tools/art/opening.py`.
 - `docs/Y_PLANES.md` — **LOCKED reference**: every world-Y plane on a corridor
   floor (the feet line 419, spawn/stand origins, stair triggers, staircase art
   boxes, the player stair-transition slice constants, the stairwell-enemy geometry,
@@ -229,7 +231,7 @@ Robustness rules). What it covers:
   `dev_menu_test`, `lighting_test`, `plane_lock_test`, `apartment_window_test`,
   `scavenge_node_test`, `drop_physics_test`, `softlock_test`, `character_panel_test`,
   `corpse_recovery_test`, `run_memory_test`, `attack_input_test`, `character_stats_test`, `transition_seam_test`, `run_bookends_test`, `weapon_upgrade_test`, `progression_test`, `back_plane_test`,
-  `apartment_lamp_test`, `gun_cabinet_test`, `breach_test`, `item_icon_test`, `hud_wheel_test`, `motion_test`, `growth_test`, `pack_test`, `backpack_test`, `molotov_test`, `banister_test`, `stair_heights_test`, `resident_npc_test`, `open_furniture_test`, `burnt_apartment_test` — run all 60 before commit. Balance tool: `tools/economy_report.tscn` (scrap per run, ~25 min a seed). (`new_game()` rolls a RANDOM seed, so any test meets any of the four
+  `apartment_lamp_test`, `gun_cabinet_test`, `breach_test`, `item_icon_test`, `hud_wheel_test`, `motion_test`, `growth_test`, `pack_test`, `backpack_test`, `molotov_test`, `banister_test`, `stair_heights_test`, `resident_npc_test`, `open_furniture_test`, `burnt_apartment_test`, `opening_test` — run all 61 before commit. Balance tool: `tools/economy_report.tscn` (scrap per run, ~25 min a seed). (`new_game()` rolls a RANDOM seed, so any test meets any of the four
   characters — an assert on a trait-affected value must be trait-aware; see docs/CHARACTERS.md.) (Run ONE godot at a time — a killed/backgrounded headless run can
   linger and block the next, and a GDScript **parse error makes a test scene load but
   never call `quit()`, so it "hangs" until timeout** rather than printing an error line;
@@ -2281,4 +2283,16 @@ means no rendering — UI layout and art still need an in-editor look.
   `_pick_tab` (it needs the opener skipped first: `k:SPACE` twice). Locked by `character_panel_test._test_book` (distinct typeface + ink per
   character, the text really is set in the run's hand, re-style swaps it, bookmarks turn the tabs, papers at their own angles, everything
   inside the book, over-long blocks shrink, the settle lands exactly). The LOOK needs the owner's eye (captured under xvfb for all four).
+- **THE NEW-GAME OPENING (owner round 35 — "a nice pixel art exterior image of our building, clouds in the sky, city scape in the
+  background. Camera pans up the building, then the title of the game, fade to black, then the run information"; docs/OPENING.md):** a
+  new game's cold open now starts on `scripts/opening_exterior.gd` (intro_overlay stage `"exterior"`, run 1 only): fade in on the street
+  at morning → the camera climbs the 30-floor tower (concrete → brick → hotel stone, a burnt stretch, a HELP sheet, a failing lamp, the
+  warm window on floor 30) to the roof under drifting clouds with crows circling → the title comes up over the sky → picture + title fade to
+  black → the time card / line / lockout carry on unchanged. Six PARALLAX layers drawn by `tools/art/opening.py` → `assets/opening/`
+  (native 288x162 at 4x; sky 0.30 / far 0.50 / mid 0.75 / building 1.0 / foreground wires 1.30 + a cloud atlas; `opening_meta.json`
+  lists smoke points, lit windows, beacons, cloud placement) — **the gate runs `opening.py --check`**, so regenerate after any change. The
+  timeline is a pure function of `t` (`pan_u`, `black_alpha`, `title_alpha`); a key hurries the climb (5×) and then skips the hold; a long
+  load frame is clamped to 0.1 s; missing art / `exterior_enabled=false` falls back to the old black title screen. Sounds from
+  `tools/gen_opening_audio.py` (`assets/audio/opening/`: wind, far siren, title swell). Locked by `opening_test` (61st suite; mutation-
+  checked) + `tutorial_test._test_opener`. The LOOK needs the owner's eye (captured under xvfb: `scene_capture` `newgame,rec:1300:65`).
 - Not started: quests.
