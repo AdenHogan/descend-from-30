@@ -10,7 +10,7 @@ var label: String = ""
 var centre: Vector2 = Vector2.ZERO
 var radius: float = 30.0
 var hold: bool = false
-var context: String = "always"          # when it shows: "always" | "item" | "prompt" (touch_overlay decides)
+var context: String = "always"          # when it shows: "always" | "primary" | "prompt" (touch_overlay decides)
 var pulse: bool = false                 # a teaching beat is waiting for THIS button: breathe so it can't be missed
 var pressed_now: bool = false
 
@@ -43,7 +43,13 @@ func _draw() -> void:
 		draw_arc(c, radius - 1.0, 0.0, TAU, 48, Color(0.89, 0.647, 0.247, 0.55), 2.0, true)
 		var ov = get_parent()
 		var v: Vector2 = ov.stick_vec if ov != null and "stick_vec" in ov else Vector2.ZERO
-		draw_circle(c + v * radius * 0.55, radius * 0.38, Color(0.89, 0.647, 0.247, 0.55 if down else 0.38))
+		var run: bool = ov != null and "sprinting" in ov and ov.sprinting
+		# the RUN ring: the path the knob rides at full push — pushing the thumb out onto it sprints (it lights while you do)
+		var segs := 28
+		for i in range(0, segs, 2):
+			var a0: float = TAU * float(i) / segs
+			draw_arc(c, radius * 0.62, a0, a0 + TAU / segs * 0.7, 4, Color(1.0, 0.82, 0.4, 0.8 if run else 0.28), 2.0, true)
+		draw_circle(c + v * radius * 0.62, radius * 0.34, Color(1.0, 0.78, 0.3, 0.8) if run else Color(0.89, 0.647, 0.247, 0.55 if down else 0.38))
 		return
 	if pulse:
 		var k: float = 0.5 + 0.5 * sin(Time.get_ticks_msec() / 1000.0 * 6.0)

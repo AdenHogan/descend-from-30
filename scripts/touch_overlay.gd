@@ -11,22 +11,21 @@ extends Control
 
 const Stick := preload("res://scripts/touch_stick.gd")
 
-# [action, label, centre, radius, hold, context]. Viewport is 1152x648. `hold` = held while the finger is down (sprint);
+# [action, label, centre, radius, hold, context]. Viewport is 1152x648. `hold` = held while the finger is down;
 # the rest are a press the moment the finger lands. `context` says when it is on screen:
-#   "always"  — a main verb;   "item" — only with something in hand;   "prompt" — only while a world prompt offers it
-#   (Force a door, Listen at a stairwell). Owner round 36b: ten buttons at once on the right was "too much going on", so
-#   the main hand has FOUR (HIT / USE / PUSH / RUN), a quiet edge column holds the rest, and the situational ones only
-#   appear when they would do something. The bag is the HUD's own backpack button (bottom-right), not a copy here.
+#   "always"  — a main verb;   "primary" — THE big button: it follows what is in hand (`HUD.hand_context()` — a weapon is
+#   HIT / SHOOT / DRAW, a first aid kit HEAL, an extinguisher SPRAY, a can THROW …) and presses the matching action;
+#   "prompt"  — only while a world prompt offers it (Force a door, Listen at a stairwell).
+# Owner round 36d, on the first phone's layout: no RUN button (the stick's rim is run — see STICK_SPRINT_ON), no second stance
+# switch (the HUD's SCAVENGE / COMBAT pill is the one) and no tiny ITEM button (the big button IS the item button).
+# The bag is the HUD's own backpack button (bottom-right), not a copy here; tapping the in-hand box uses what is in hand.
 const BUTTONS := [
-	["attack", "HIT", Vector2(1040, 500), 58.0, false, "always"],
+	["attack", "HIT", Vector2(1040, 500), 58.0, false, "primary"],
 	["interact", "USE", Vector2(1040, 366), 42.0, false, "always"],
 	["push", "PUSH", Vector2(916, 520), 40.0, false, "always"],
-	["sprint", "RUN", Vector2(922, 404), 34.0, true, "always"],
-	["mode_toggle", "SCAV", Vector2(1110, 330), 26.0, false, "always"],
-	["crouch_toggle", "DUCK", Vector2(1110, 270), 24.0, false, "always"],
-	["item_use", "ITEM", Vector2(1110, 210), 24.0, false, "item"],
-	["listen", "LISTEN", Vector2(1110, 150), 24.0, false, "prompt"],
-	["item_context", "FORCE", Vector2(1110, 90), 24.0, false, "prompt"],
+	["crouch_toggle", "DUCK", Vector2(1112, 290), 24.0, false, "always"],
+	["listen", "LISTEN", Vector2(1112, 220), 24.0, false, "prompt"],
+	["item_context", "FORCE", Vector2(1112, 150), 24.0, false, "prompt"],
 	["pause", "PAUSE", Vector2(52, 48), 22.0, false, "always"],
 	["open_journal", "JOURNAL", Vector2(108, 48), 22.0, false, "always"],
 ]
@@ -34,12 +33,19 @@ const STICK_CENTRE := Vector2(140, 500)
 const STICK_R := 82.0
 const STICK_DEAD := 0.22                # across the stick: below this, no walk
 const STICK_FLICK := 0.6                # up / down past this = move_up / move_down
+# HOW HARD you push is how fast you go (owner round 36d): from the dead zone to STICK_SPRINT_ON the walk eases from a creep to a
+# full walk (no stamina cost); pushing out to the rim holds sprint (the game's own rules still apply — combat stance, not
+# ducking, stamina). Two thresholds so a thumb resting on the rim doesn't flicker it on and off.
+const STICK_SPRINT_ON := 0.92
+const STICK_SPRINT_OFF := 0.80
 
 var widgets: Array = []                 # the TouchWidget controls (buttons + the stick area)
 var _touch_widget: Dictionary = {}      # finger index -> widget
 var _held: Dictionary = {}              # action -> strength currently sent (so only changes are sent)
 var stick_vec: Vector2 = Vector2.ZERO   # -1..1, for the thumb drawing + tests
 var stick_down: bool = false
+var sprinting: bool = false             # the stick is out at the rim → the sprint action is held (the thumb draws brighter)
+var _down_action: Dictionary = {}       # widget -> the action its press sent (the big button's action changes with the hand)
 
 
 func _ready() -> void:
@@ -81,24 +87,34 @@ func refresh() -> void:
 	if not want:
 		release_all()
 		return
+	var ctx: Dictionary = HUD.hand_context()
 	for w in widgets:
-		var show: bool = _widget_wanted(w, beat)
+		var show: bool = _widget_wanted(w, beat, ctx)
 		if w.visible and not show and _touch_widget.values().has(w):
 			_release_widget(w)
 		w.visible = show
-		w.pulse = beat != "" and w.action == beat
-	var mode_btn = get_node_or_null("Btn_mode_toggle")
-	if mode_btn != null:
-		mode_btn.label = "SCAV" if WorldState.is_scavenge_mode else "FIGHT"
+		if w.context == "primary" and not ctx.is_empty():
+			w.label = String(ctx["label"])        # the big button names what it will do with what is in hand
+		w.pulse = beat != "" and _action_for(w, ctx) == beat
 
 
-func _widget_wanted(w: Control, beat: String) -> bool:
+## The action a widget presses. The big button's follows the hand (attack for a weapon, item_use for a usable item).
+func _action_for(w: Control, ctx: Dictionary = {}) -> String:
+	if w.kind != "button":
+		return ""
+	if w.context == "primary":
+		if ctx.is_empty():
+			ctx = HUD.hand_context()
+		return String(ctx.get("action", w.action))
+	return w.action
+
+
+func _widget_wanted(w: Control, beat: String, ctx: Dictionary) -> bool:
 	if beat != "":
-		return w.kind == "button" and w.action == beat
+		return w.kind == "button" and _action_for(w, ctx) == beat and (w.context != "primary" or not ctx.is_empty())
 	match w.context:
-		"item":
-			var sel: int = HUD.selected_slot
-			return sel >= 0 and sel < WorldState.inventory.size()
+		"primary":
+			return not ctx.is_empty()
 		"prompt":
 			return HUD.world_prompt_mentions("[%s]" % SettingsManager.action_text(w.action))
 	return true
@@ -150,7 +166,9 @@ func _down(w: Control, pos: Vector2) -> void:
 		stick_down = true
 		_stick_to(pos)
 	else:
-		_send(w.action, true)
+		var act: String = _action_for(w)
+		_down_action[w] = act
+		_send(act, true)
 
 
 func _up(w: Control) -> void:
@@ -160,7 +178,8 @@ func _up(w: Control) -> void:
 		stick_vec = Vector2.ZERO
 		_apply_stick()
 	else:
-		_send(w.action, false)
+		_send(String(_down_action.get(w, w.action)), false)
+		_down_action.erase(w)
 
 
 func _stick_to(pos: Vector2) -> void:
@@ -175,12 +194,18 @@ func _apply_stick() -> void:
 	var left: float = 0.0
 	var right: float = 0.0
 	if ax >= STICK_DEAD:
-		var s: float = clampf((ax - STICK_DEAD) / (1.0 - STICK_DEAD), 0.0, 1.0)
+		var s: float = clampf((ax - STICK_DEAD) / (STICK_SPRINT_ON - STICK_DEAD), 0.0, 1.0)
 		s = maxf(s, 0.35)
 		if x < 0.0:
 			left = s
 		else:
 			right = s
+	# the rim = run: held while the thumb stays out there (hysteresis), never from a vertical flick
+	if sprinting:
+		sprinting = ax >= STICK_SPRINT_OFF
+	else:
+		sprinting = ax >= STICK_SPRINT_ON
+	_send("sprint", sprinting)
 	_send("move_left", left > 0.0, left)
 	_send("move_right", right > 0.0, right)
 	_send("move_up", stick_vec.y <= -STICK_FLICK)
@@ -218,6 +243,8 @@ func release_all() -> void:
 	_touch_widget.clear()
 	stick_vec = Vector2.ZERO
 	stick_down = false
+	sprinting = false
+	_down_action.clear()
 	for w in widgets:
 		w.pressed_now = false
 

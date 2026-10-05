@@ -211,6 +211,7 @@ func _create_cluster() -> void:
 	# --- right of the name row: the item in hand, as a BOX (icon + a durability outline; owner round 27) ---
 	equip_box = preload("res://scripts/hud_equip_box.gd").new()
 	$Control.add_child(equip_box)
+	equip_box.tapped.connect(use_equipped)
 
 
 
@@ -240,9 +241,9 @@ func _create_mode_label() -> void:
 	mode_label.focus_mode = Control.FOCUS_NONE
 	mode_label.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	mode_label.add_theme_font_size_override("font_size", 16)
-	mode_label.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	for st in ["normal", "hover", "pressed", "focus", "disabled"]:
-		mode_label.add_theme_stylebox_override(st, StyleBoxEmpty.new())
+	mode_label.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	mode_label.flat = false
+	_style_mode_button(MODE_COL_SCAV)
 	mode_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
 	mode_label.add_theme_constant_override("outline_size", 4)
 	mode_label.position = Vector2(IDENT_TEXT_X + 140.0, IDENT_ROW_Y)        # same baseline as the name (measured: -1 sat one pixel high)
@@ -255,6 +256,29 @@ func _create_mode_label() -> void:
 		if mode_tip != null:
 			mode_tip.visible = false)
 	$Control.add_child(mode_label)
+
+
+## The mode is THE stance switch on every device, so it is drawn as a button — a bordered pill in the mode's colour — not as
+## text a player has to guess is clickable (owner round 36d: on a phone "Fight combat is already a button, which players might
+## not recognise is a button because it is text"). The touch overlay has no second mode button any more; this is the one.
+func _style_mode_button(col: Color) -> void:
+	if mode_label == null:
+		return
+	for st in ["normal", "hover", "pressed", "focus", "disabled"]:
+		var box := StyleBoxFlat.new()
+		var lift: float = 0.22 if st == "hover" else (0.38 if st == "pressed" else 0.0)
+		box.bg_color = Color(col.r * 0.30 + lift * 0.4, col.g * 0.30 + lift * 0.4, col.b * 0.30 + lift * 0.4, 0.62)
+		box.border_color = Color(col.r, col.g, col.b, 0.95 if st != "normal" else 0.75)
+		box.set_border_width_all(2)
+		box.set_corner_radius_all(6)
+		box.content_margin_left = 8.0
+		box.content_margin_right = 8.0
+		box.content_margin_top = 1.0
+		box.content_margin_bottom = 1.0
+		mode_label.add_theme_stylebox_override(st, box)
+	mode_label.add_theme_color_override("font_color", col)
+	mode_label.add_theme_color_override("font_hover_color", col.lightened(0.3))
+	mode_label.add_theme_color_override("font_pressed_color", Color.WHITE)
 
 
 func _on_mode_button() -> void:
@@ -963,6 +987,7 @@ const MODE_TIP_DELAY := 0.15
 const MODE_TIP_W := 290.0
 const MODE_COL_SCAV := Color(0.55, 0.9, 0.5)
 const MODE_COL_COMBAT := Color(0.95, 0.4, 0.34)
+const MODE_PAD := 20.0                  # the pill's side padding + border, so the label has room to sit inside its box
 
 
 ## Lay out the identity row: the mode sits right after the name, and the stamina bar underlines BOTH
@@ -976,8 +1001,8 @@ func _layout_identity_row() -> void:
 	mode_label.reset_size()
 	var mw: float = f.get_string_size(mode_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x
 	mode_label.position = Vector2(IDENT_TEXT_X + nw + 12.0, IDENT_ROW_Y)
-	mode_label.size = Vector2(mw + 4.0, 24.0)
-	var w: float = maxf(nw + 12.0 + mw, 150.0)
+	mode_label.size = Vector2(mw + MODE_PAD, 24.0)
+	var w: float = maxf(nw + 12.0 + mw + MODE_PAD, 150.0)
 	stamina_bar.size = Vector2(w, STAMINA_BAR_H)
 	if equip_box != null:
 		# the in-hand box sits to the RIGHT of the whole name / mode / stamina block, level with it
@@ -1284,6 +1309,55 @@ func _update_equipped_chip() -> void:
 	equip_box.set_item(ItemData.get_texture(inst.item_id), frac, broken, ammo)
 
 
+## What the player's hand can DO right now, for the touch overlay's big contextual button and the in-hand box's tap
+## (owner round 36d: "if you have a weapon then it's fight; if it's an item then it's an item button").
+## Returns {"label", "action"} — `action` is the input action to press ("attack" / "item_use") — or {} when there is nothing
+## useful to offer. Weapons ride the attack action (HIT / SHOOT; DRAW while scavenging — the attack key draws a weapon);
+## every other usable thing rides item_use, labelled for what it does. Empty hands (or a key / junk / a worn-out thing in hand):
+## HIT in combat (the bare-handed swing), nothing while scavenging.
+func hand_context() -> Dictionary:
+	var inst = WorldState.get_instance_at(selected_slot) if selected_slot >= 0 and selected_slot < WorldState.inventory.size() else null
+	if inst != null:
+		var d: Dictionary = inst.get_data()
+		var broken: bool = inst.is_depleted and inst.get_max_durability() > 0
+		if d.get("is_weapon", false):
+			if WorldState.is_scavenge_mode:
+				return {"label": "DRAW", "action": "attack"}
+			return {"label": "SHOOT" if _is_gun_data(d) else "HIT", "action": "attack"}
+		if not broken:
+			if d.get("is_health_item", false):
+				return {"label": "HEAL", "action": "item_use"}
+			if d.get("is_extinguisher", false):
+				return {"label": "SPRAY", "action": "item_use"}
+			if d.get("is_molotov", false) or d.get("is_throwable", false):
+				return {"label": "THROW", "action": "item_use"}
+			if d.get("is_speed_boost", false):
+				return {"label": "DRINK", "action": "item_use"}
+			if d.get("can_repair", false):
+				return {"label": "FIX", "action": "item_use"}
+	if not WorldState.is_scavenge_mode:
+		return {"label": "HIT", "action": "attack"}
+	return {}
+
+
+## A tap / click on the in-hand box: use what is in hand. A usable item is used (a first aid kit heals, a can is thrown, a gun
+## reloads); a melee weapon is DRAWN when scavenging; empty hands open the backpack. Same guards as the item key (Q).
+func use_equipped() -> void:
+	var pl = get_tree().get_first_node_in_group("player")
+	if pl == null or not is_instance_valid(pl) or pl.is_dead or pl.is_dying or pl.is_cutscene or WorldState.loot_open:
+		return
+	var inst = WorldState.get_instance_at(selected_slot) if selected_slot >= 0 and selected_slot < WorldState.inventory.size() else null
+	if inst == null:
+		if pack_wheel != null and WorldState.has_backpack:
+			pack_wheel.toggle()
+		return
+	var ctx: Dictionary = hand_context()
+	if ctx.get("action", "") == "item_use" or (inst.get_data().get("is_weapon", false) and _is_gun_data(inst.get_data())):
+		pl.use_item(selected_slot)
+	elif ctx.get("action", "") == "attack" and WorldState.is_scavenge_mode:
+		pl.request_mode_toggle()
+
+
 ## The in-hand box's shape: "square", "rounded" (default) or "circle".
 func set_equip_box_style(style: String) -> void:
 	if equip_box != null:
@@ -1367,7 +1441,7 @@ func inventory_drop_rect() -> Rect2:
 func pointer_over_widget(pos: Vector2) -> bool:
 	if hotbar_rect().has_point(pos):
 		return true
-	for w in [pack_button, mode_label, portrait, boon_badge, context_menu]:
+	for w in [pack_button, mode_label, portrait, boon_badge, context_menu, equip_box]:
 		if w != null and is_instance_valid(w) and w.visible and w.get_global_rect().has_point(pos):
 			return true
 	# Clickable things that live elsewhere (a resident's speech bubble with its trade buttons).
@@ -1565,10 +1639,10 @@ func update_mode_indicator() -> void:
 		return
 	if WorldState.is_scavenge_mode:
 		mode_label.text = "SCAVENGE"
-		mode_label.modulate = Color(0.55, 0.9, 0.5, 1.0)
+		_style_mode_button(MODE_COL_SCAV)
 	else:
 		mode_label.text = "COMBAT"
-		mode_label.modulate = Color(0.95, 0.4, 0.34, 1.0)
+		_style_mode_button(MODE_COL_COMBAT)
 	_layout_identity_row()
 	if mode_tip != null and mode_tip.visible:
 		show_mode_tip()

@@ -2322,6 +2322,13 @@ means no rendering — UI layout and art still need an in-editor look.
   `is_any_press` for press-any-key beats. Pack ring: right stick picks, A equips, X menu (`pack_wheel._pad_tick`; `player._pad_is_choosing_in_pack`). Touch:
   `touch_overlay.gd` / `touch_stick.gd` (HUD child; Controls in `hud_widget_extra`; presses InputEventActions; releases everything when hidden / paused). room.gd's hard-coded KEY_E
   is now the `interact` action. `controls_test` scans every script for polled action names that don't exist. **Never tested on a real pad / phone / APK.**
+- **TOUCH + BACKPACK, round 36d (owner phone playtest; docs/CONTROLS.md "Touch"):** the touch overlay lost RUN, its own MODE button and the tiny ITEM button. The
+  big right-hand button is CONTEXTUAL (`HUD.hand_context()`: weapon → HIT / SHOOT / DRAW, usable item → HEAL / SPRAY / THROW / DRINK / FIX on `item_use`, empty hands → HIT in
+  combat, hidden while scavenging); **tapping the in-hand box uses what is in hand** (`HUD.use_equipped`; empty hands open the pack); **the stick's rim is run** (`STICK_SPRINT_ON/OFF`
+  0.92 / 0.80, walk eases below it, a dashed ring shows the threshold); the HUD's SCAVENGE / COMBAT label is now a bordered **pill button** (the one stance switch on every device).
+  **The backpack opens from the back plane and the balcony too** (`player.pack_blocked_reason` no longer refuses them; the prop follows the plane's scale; S stands up first).
+  Touch only with synthetic events; the button positions are still a first guess. `scene_capture` gained `touch:on`. Locked by `controls_test` (`_test_primary_button`, the stick sprint
+  checks), `back_plane_test`, `pack_test`, `hud_wheel_test`.
 - **THE TUTORIAL NEIGHBOUR IS A BODY THAT GETS UP (owner round 36c; docs/TUTORIAL.md "3003"):** she lies on the floor (a `riser_scripted` riser, never wakes by itself); getting within
   135 px starts `room._tut_wake_scene` — the player is HELD (`player.hold_for_scene` / `release_hold`, camera eased to the midpoint), the curiosity line on the way in + «Mrs Delacroix?» (`3003_name`) as she rises, a long twitch + a slow rise
   (`TUTORIAL_*_TIME`), then APPROACH → the unchanged lunge / shove / find-a-weapon beats. Every exit releases the player. Also from the first phone playtest: the touch overlay was reworked (quiet

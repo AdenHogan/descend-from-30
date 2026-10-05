@@ -171,6 +171,22 @@ func _test_back_plane() -> void:
 	await _settle(30)
 	check(p.back_spot == null and absf(p.global_position.y - lane_y) < 0.5, "S steps back down to the walking line")
 	check(absf(p.animated_sprite.scale.x - base_scale.x) < 0.001, "…full size again")
+	# The backpack opens from up here too (owner round 36d: "players might try to access their inventory from anywhere").
+	await _tap("move_up")
+	await _settle(30)
+	check(p.back_spot == spot, "(stepped up again)")
+	check(p.pack_blocked_reason() == "", "up at the furniture, nothing blocks the backpack")
+	check(p.begin_pack() and p.pack_phase == "kneel", "the backpack kneels from the back plane")
+	check(is_instance_valid(p._pack_prop) and p._pack_prop.scale.x < 1.0 and p._pack_prop.scale.x > 0.5,
+		"…with the bag drawn to the plane's smaller scale (%.2f)" % p._pack_prop.scale.x)
+	await _settle(40)
+	check(p.pack_phase == "open" and p.back_spot == spot and absf(p.global_position.y - (lane_y - spot.rise)) < 0.5, "…open, and the player has not moved off the plane")
+	await _tap("move_down")
+	await _settle(70)
+	check(p.pack_phase == "" and p.back_spot == spot, "S while kneeling up here stands them up first (still on the plane)")
+	await _tap("move_down")
+	await _settle(30)
+	check(p.back_spot == null and absf(p.global_position.y - lane_y) < 0.5, "…and the next S steps down as ever")
 	# Clicking a set-back node from below: walk, step up, search. Start 90px toward the MIDDLE of the
 	# flat — a spot near an end wall put the player past it, in the front doorway, and they walked out.
 	p.global_position.x = spot.global_position.x + (90.0 if spot.global_position.x < 600.0 else -90.0)

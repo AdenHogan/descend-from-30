@@ -393,8 +393,9 @@ func _test_refusals() -> void:
 	check(not pw.toggle(), "lashing a rope: refused")
 	p.is_lashing = false
 	p.on_balcony_plane = true
-	check(not pw.toggle(), "out on a balcony: refused")
+	check(pw.toggle() and p.pack_phase == "kneel", "out on a balcony: the bag opens (owner round 36d — from anywhere)")
 	p.on_balcony_plane = false
+	await _reset()
 	WorldState.loot_open = true
 	check(not pw.toggle(), "a loot panel open: refused")
 	WorldState.loot_open = false

@@ -24,7 +24,7 @@ keyboard/mouse, a keyboard/mouse alternate, a gamepad button, a gamepad alternat
 | Rest | **T** | | R3 | |
 | Interact / Enter | **E** | | **A** | |
 | Force / Barricade | **X** | | D-pad right | |
-| Backpack | **B** | I | D-pad up | |
+| Backpack | **B** | I | D-pad up | opens from anywhere you can stand — up at set-back furniture and out on a balcony too (the bag is drawn at the plane's scale; S stands you up first, the next S steps down) |
 | Use item | **Q** | | D-pad down | |
 | Previous / next item | **mouse wheel** | | **LB / RB** | empty hands → item 1 … last → empty hands. With 2+ scavenge nodes in reach the wheel / LB / RB pick between nodes instead (Tab still does too) |
 | Item slots 1–5 | **1–5** | | | |
@@ -55,21 +55,35 @@ must stay a walk). Players who preferred the old way: Settings → Controls → 
 ## Touch (Android first)
 
 `scripts/touch_overlay.gd` (a child of the HUD) draws a fixed thumb-stick bottom-left and a deliberately QUIET right hand
-(owner round 36b, first phone playtest: "the button set up is really unintuitive on the right hand side… too much going on").
-Main hand: **HIT** (big), **USE**, **PUSH**, **RUN** (held). Edge column: **FIGHT/SCAV** (the stance toggle, names the current stance) and **DUCK**.
-**Context buttons appear only when they would do something**: **ITEM** with something in hand, **LISTEN** / **FORCE** only while a world
-prompt next to you offers them (`HUD.world_prompt_mentions("[FORCE]")`). The bag is the HUD's own backpack button (no copy here). PAUSE /
-JOURNAL top-left. Each is a real Control in `hud_widget_extra`, so `HUD.pointer_over_widget` is true over it (a hidden one is not) and a tap on a
+(owner round 36b, first phone playtest: "the button set up is really unintuitive on the right hand side… too much going on"; round 36d: no
+duplicated controls). Main hand: ONE big **contextual** button, **USE**, **PUSH**. Edge column: **DUCK**. PAUSE / JOURNAL top-left. That is all
+that is ever on screen in plain play.
+- **The big button follows what is in hand** (`HUD.hand_context()` → label + the action it presses): a weapon is **HIT** (a gun **SHOOT**), and
+  **DRAW** while scavenging (the attack key already draws a weapon and swings); a first aid kit **HEAL**, an extinguisher **SPRAY**, a can / bottle /
+  molotov **THROW**, a stamina boost **DRINK**, a toolbox **FIX** — those press `item_use`. Empty hands (or a key / junk / a worn-out thing in hand)
+  = **HIT** in combat (the bare-handed swing), no button at all while scavenging (nothing to do). The press lets go of the action it sent even if the
+  hand changes mid-press. There is no separate ITEM button any more.
+- **Tapping the in-hand box uses what is in hand** (`HUD.use_equipped`, also a click on PC): a usable item is used, a gun reloads, a melee weapon is
+  drawn when scavenging, and **empty hands open the backpack**. The box is a registered HUD widget, so the tap never also walks.
+- **No RUN button: how hard you push the stick is how fast you go.** From the dead zone to `STICK_SPRINT_ON` (0.92 of the stick's travel) the walk
+  eases from a creep to a full walk — no stamina cost; pushing out to the rim holds the sprint action (the game's own rules still apply: combat stance,
+  not ducking, stamina). `STICK_SPRINT_OFF` (0.80) is the way back, so a thumb resting at the rim doesn't flicker. A dashed ring on the stick marks the
+  path the knob rides at full push and lights while you run. A vertical flick never sprints.
+- **No second stance switch.** The HUD's **SCAVENGE / COMBAT** pill (bottom-left, by the name) IS the stance toggle on every device — it is drawn as a
+  bordered button in the mode's colour (hover / press states), not as text a player has to guess is clickable, and the touch overlay has no copy of it.
+- **Context buttons appear only when they would do something**: **LISTEN** / **FORCE** only while a world prompt next to you offers them
+  (`HUD.world_prompt_mentions("[FORCE]")`). The bag is the HUD's own backpack button (no copy here).
+Each is a real Control in `hud_widget_extra`, so `HUD.pointer_over_widget` is true over it (a hidden one is not) and a tap on a
 button never also walks / swings in the world. They press `InputEventAction`s, so `_input` handlers and polling both see them; multi-touch
 works (walk + hit). The stick sends analog `move_left/right` (a flick up / down is `move_up/down`).
-**Teaching beats**: a paused STRICT beat (the shove intro, `TutorialManager.strict_action()`) keeps the overlay up showing ONLY that button,
-pulsing — it used to vanish on every pause, which locked a phone player on "[PUSH] to shove" with nothing to press. A loose beat takes any tap.
+**Teaching beats**: a paused STRICT beat (the shove intro, `TutorialManager.strict_action()`) keeps the overlay up showing ONLY the button that
+answers it (the big one when the beat waits for the item action), pulsing — it used to vanish on every pause, which locked a phone player on "[PUSH] to shove" with nothing to press. A loose beat takes any tap.
 **Push is a combat move** (it does nothing in scavenge mode, as before) — pressing it while scavenging now says so ("Can't shove while searching —
 switch to combat [MODE]"), and the tutorial's shove beat first draws a still-scavenging player back to combat.
 Taps anywhere else are ordinary clicks (`emulate_mouse_from_touch`): tap the floor to walk, a node to scavenge, a zombie to hit.
 Shown when a touchscreen is in use (`SettingsManager.touch_ui_wanted`: last device = touch, or Settings → "Always on"), hidden on keyboard / pad;
 hiding or pausing (outside a strict beat) **lets go of everything held**. `project.godot`: landscape (`window/handheld/orientation=0`), `quit_on_go_back=false`.
-**Phone-tested once by the owner** (Godot 4.7.1 Android editor, Run in the editor) — that is how the cluttered layout and the beat lock were found.
+**Phone-tested once by the owner** (Godot 4.7.1 Android editor, Run in the editor) — that is how the cluttered layout and the beat lock were found; round 36d's changes (above) came from the same session and are tested with synthetic touches only.
 
 ## Prompts name the right button
 
@@ -109,4 +123,4 @@ phone — render them with `tools/scene_capture`), the Android export itself (Go
 `gl_compatibility` renderer on a device, performance on a low-end phone), haptics (none yet), and whether `emulate_mouse_from_touch`
 events really carry device −1 on every Android build (the device tracker relies on it to tell a tap from a mouse).
 Not built: gyro / aim assist (the game has no aiming), pad rumble, a pinch-to-zoom, a left-handed touch layout, per-button touch scaling, on-screen
-pad glyph art (labels are text), a "hold to sprint with the stick rim" shortcut.
+pad glyph art (labels are text).

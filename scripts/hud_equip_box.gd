@@ -124,8 +124,12 @@ var _t: float = 0.0
 var _drawn_frac: float = -1.0
 
 
+signal tapped
+
 func _ready() -> void:
-	mouse_filter = Control.MOUSE_FILTER_IGNORE      # a HUD readout: clicks fall through to the world
+	# A readout that is ALSO the "use what's in my hand" button (owner round 36d: a phone player tapped it expecting a first aid kit
+	# to be used). The HUD decides what a tap does (`HUD.use_equipped`); the box only reports it. Its tooltip stays hover-driven.
+	mouse_filter = Control.MOUSE_FILTER_STOP
 	process_mode = Node.PROCESS_MODE_ALWAYS          # keeps easing / pulsing under a teaching pause too
 	custom_minimum_size = Vector2(SIZE, SIZE)
 	size = Vector2(SIZE, SIZE)
@@ -149,6 +153,12 @@ func _ready() -> void:
 	add_child(overlay)
 	set_style(style)
 	_apply()
+
+
+func _gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		accept_event()
+		tapped.emit()
 
 
 func set_style(s: String) -> void:

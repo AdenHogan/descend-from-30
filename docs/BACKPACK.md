@@ -25,8 +25,11 @@ entirely"; its geometry lives on in `scripts/ring_geo.gd`.) The HUD has a small 
 **The cost / the risk**: it takes ~0.75 s down and up, rooted, on your knees. **Any hit slams the pack shut
 at once** (`Player.receive_hit → end_pack(true)`: upright, hurt, "The pack slams shut.", no stand-up wait).
 Moving, jumping, interacting, listening, resting, crouching or switching stance also gets you up. It refuses
-to start mid-swing / mid-shove, listening, lashing, cutscene/dead/dying, out on a balcony or stepped up at
-a back-plane spot, or with a panel / loot / dialogue / journal open (`RingGeo.ui_block_reason`).
+to start mid-swing / mid-shove, listening, lashing, cutscene/dead/dying, or with a panel / loot / dialogue / journal open (`RingGeo.ui_block_reason`).
+
+**From anywhere you can stand (owner round 36d: "players might try to access their inventory from anywhere")**: the bag also opens
+stepped up at a back-plane spot and out on a balcony. The prop follows the plane's scale (`held_pack.depth`); the player stays on the plane
+(`_move_locked` pins Y), and S while kneeling up there stands them up FIRST — the next S steps down as usual. Locked by `back_plane_test` + `pack_test`.
 
 ## The backpack as an ITEM (owner round 27 — BUILT)
 "When a player begins a run they have no inventory. But on the floor next to apartment 3001 there will be a

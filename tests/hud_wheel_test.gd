@@ -193,11 +193,15 @@ func _test_cluster() -> void:
 	check(HUD.portrait.mouse_filter == Control.MOUSE_FILTER_STOP, "the portrait is still the button")
 	# nothing new may swallow a world click (click-to-move)
 	var stoppers: Array = []
-	for n in [HUD.name_label, HUD.floor_label, HUD.wallet_label, HUD.scrap_label, HUD.equip_box,
+	for n in [HUD.name_label, HUD.floor_label, HUD.wallet_label, HUD.scrap_label,
 			HUD.stamina_bar, HUD.wallet_icon, HUD.scrap_icon]:
 		if n.mouse_filter == Control.MOUSE_FILTER_STOP:
 			stoppers.append(n.name)
 	check(stoppers.is_empty(), "no cluster element swallows world clicks %s" % str(stoppers))
+	# (the in-hand box is the exception on purpose — owner round 36d: a tap uses what is in hand — and it is a registered HUD widget,
+	# so a tap on it never also walks)
+	check(HUD.equip_box.mouse_filter == Control.MOUSE_FILTER_STOP and HUD.pointer_over_widget(HUD.equip_box.get_global_rect().get_center()),
+		"the in-hand box is a tap target AND a HUD widget")
 	# the currency icons follow their counters
 	WorldState.wallet_unlocked = false
 	WorldState.scrap_unlocked = false

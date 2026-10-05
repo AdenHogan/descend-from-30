@@ -7,6 +7,7 @@ extends Node2D
 # specially, frees itself with the player.
 
 var direction: float = 1.0          # +1 the player faces right (the pack lies on that side)
+var depth: float = 1.0              # the plane's scale (the back plane / balcony draw the player a touch smaller): the bag follows
 var open_amount: float = 0.0        # 0 shut .. 1 flap thrown back, mouth open
 var _closing: bool = false
 
@@ -20,7 +21,7 @@ const MOUTH := Color(0.05, 0.045, 0.05)
 
 func _ready() -> void:
 	z_index = 1                     # in front of the body (the player is z 1 itself)
-	scale.x = -1.0 if direction < 0.0 else 1.0
+	scale = Vector2((-1.0 if direction < 0.0 else 1.0) * depth, depth)
 
 
 func set_open(v: float) -> void:

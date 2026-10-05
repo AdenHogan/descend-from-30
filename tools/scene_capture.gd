@@ -35,6 +35,7 @@ extends Node
 #   journal:<0-3|x>  open the journal on a tab (3 = Codex) / close it
 #   eqstyle:<square|rounded|circle>  shape of the in-hand box;  wear:<0..1>  wear the selected item to that fraction
 #   kill             kill the player now (player._die → the real Game.game_over flow)
+#   touch:<on|off>   force the phone's on-screen controls on / off (docs/CONTROLS.md)
 #   hp:<n>           set health
 #   ws:<prop>:<val>  set any WorldState field (e.g. ws:current_apartment_id:2003, ws:dev_hazard_mode:3)
 #   drop:<slot>      discard an inventory slot to the floor (what the pack ring's Drop does)
@@ -207,6 +208,9 @@ func _do(step: String) -> void:
 				WorldState.set(p[1], v == "1" or v == "true")
 			else:
 				WorldState.set(p[1], v)
+		"touch":
+			SettingsManager.set_touch_mode("on" if p.size() < 2 or p[1] != "off" else "off")   # touch:on / touch:off — the phone overlay
+			await _frames(2)
 		"hp":
 			WorldState.player_health = int(p[1])
 		"kill":

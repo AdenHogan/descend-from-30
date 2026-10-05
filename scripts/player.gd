@@ -1297,8 +1297,6 @@ func pack_blocked_reason() -> String:
 		return "not in play"
 	if is_switching_mode or is_attacking or is_pushing:
 		return "busy"
-	if on_balcony_plane or back_spot != null:
-		return "not on the walking line"
 	if WorldState.loot_open:
 		return "loot is open"
 	return ""
@@ -1317,7 +1315,16 @@ func begin_pack() -> bool:
 	animated_sprite.play("crouch_idle")
 	_pack_prop = HELD_PACK.new()
 	_pack_prop.direction = -1.0 if animated_sprite.flip_h else 1.0
-	_pack_prop.position = Vector2(_pack_prop.direction * 24.0, WorldState.PLAYER_FEET_OFFSET)
+	# The bag opens from ANYWHERE the player can stand — up at set-back furniture or out on the balcony too (owner round 36d:
+	# "players might try to access their inventory from anywhere"). Those planes draw the player a touch smaller; the bag follows.
+	var depth: float = 1.0
+	if back_spot != null and _back_base_scale.y > 0.0:
+		depth = animated_sprite.scale.y / _back_base_scale.y
+	elif on_balcony_plane and _plane_base_scale.y > 0.0:
+		depth = animated_sprite.scale.y / _plane_base_scale.y
+	depth = clampf(depth, 0.5, 1.0)
+	_pack_prop.depth = depth
+	_pack_prop.position = Vector2(_pack_prop.direction * 24.0 * depth, WorldState.PLAYER_FEET_OFFSET)
 	add_child(_pack_prop)
 	return true
 
@@ -1370,7 +1377,8 @@ func _pack_tick(delta: float) -> void:
 	if pack_phase != "stand" and (Input.is_action_just_pressed("move_left") or Input.is_action_just_pressed("move_right") \
 			or (Input.is_action_just_pressed("interact") and not _pad_is_choosing_in_pack()) \
 			or Input.is_action_just_pressed("mode_toggle") or Input.is_action_just_pressed("crouch_toggle") \
-			or Input.is_action_just_pressed("listen") or Input.is_action_just_pressed("rest")):
+			or Input.is_action_just_pressed("listen") or Input.is_action_just_pressed("rest") \
+			or ((back_spot != null or on_balcony_plane) and Input.is_action_just_pressed("move_down"))):
 		end_pack(false)              # any other intent = get up (a key that moves you also walks on next frame)
 	match pack_phase:
 		"kneel":

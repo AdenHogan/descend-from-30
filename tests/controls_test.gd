@@ -556,6 +556,95 @@ func _drag_to(index: int, pos: Vector2) -> void:
 	get_viewport().push_input(ev)
 
 
+## The big right-hand button follows the hand (owner round 36d): weapon → HIT / SHOOT / DRAW (attack), a usable item → its verb (item_use),
+## empty hands → HIT in combat, nothing while scavenging; and tapping the in-hand box uses what is in hand.
+func _test_primary_button(ov) -> void:
+	var big = ov.get_node("Btn_attack")
+	WorldState.inventory.clear()
+	HUD.selected_slot = -1
+	WorldState.is_scavenge_mode = false
+	ov.refresh()
+	check(big.visible and big.label == "HIT", "bare-handed in combat: the big button is HIT (%s)" % big.label)
+	WorldState.is_scavenge_mode = true
+	ov.refresh()
+	check(not big.visible, "bare-handed while scavenging: nothing to offer, so no button")
+	# a first aid kit → HEAL, pressing item_use (not attack)
+	var kit := ItemInstance.new()
+	kit.setup("007")
+	WorldState.inventory.append(kit)
+	HUD.selected_slot = 0
+	ov.refresh()
+	check(big.visible and big.label == "HEAL" and ov._action_for(big) == "item_use", "a first aid kit in hand: the big button is HEAL on item_use (%s / %s)" % [big.label, ov._action_for(big)])
+	var catcher := Node.new()
+	catcher.set_script(load("res://tests/controls_catcher.gd"))
+	add_child(catcher)
+	catcher.action = "item_use"
+	_touch(6, _btn_pos("attack"), true)
+	await _flush()
+	check(catcher.got, "…and a tap on it arrives as item_use, not attack")
+	check(not Input.is_action_pressed("attack"), "…the attack action stays up")
+	# the press is let go as the SAME action even if the hand changes mid-press
+	WorldState.inventory.clear()
+	HUD.selected_slot = -1
+	WorldState.is_scavenge_mode = false
+	ov.refresh()
+	_touch(6, _btn_pos("attack"), false)
+	await _flush()
+	check(not Input.is_action_pressed("item_use") and not Input.is_action_pressed("attack"), "…and lifting the finger lets go of what was pressed")
+	catcher.queue_free()
+	# a weapon → HIT in combat, DRAW while scavenging
+	var club := ItemInstance.new()
+	club.setup("012")
+	WorldState.inventory.append(club)
+	HUD.selected_slot = 0
+	ov.refresh()
+	check(big.label == "HIT" and ov._action_for(big) == "attack", "a club in hand in combat: HIT on attack")
+	WorldState.is_scavenge_mode = true
+	ov.refresh()
+	check(big.visible and big.label == "DRAW" and ov._action_for(big) == "attack", "…and DRAW while scavenging (the attack key draws it)")
+	WorldState.is_scavenge_mode = false
+	# an extinguisher / a can name what they do
+	var ext := ItemInstance.new()
+	ext.setup("036")
+	WorldState.inventory.clear()
+	WorldState.inventory.append(ext)
+	ov.refresh()
+	check(big.label == "SPRAY" and ov._action_for(big) == "item_use", "an extinguisher: SPRAY")
+	# a key is nothing you can use: combat falls back to HIT
+	var key := ItemInstance.new()
+	key.setup("022")
+	WorldState.inventory.clear()
+	WorldState.inventory.append(key)
+	ov.refresh()
+	check(big.label == "HIT" and ov._action_for(big) == "attack", "a key in hand isn't usable: back to HIT in combat")
+	# strict beats: a beat waiting for item_use shows the BIG button (pulsing) when the hand has a usable item
+	WorldState.inventory.clear()
+	WorldState.inventory.append(kit)
+	HUD.selected_slot = 0
+	TutorialManager._awaiting = true
+	TutorialManager._await_strict = true
+	TutorialManager._await_action = "item_use"
+	ov.refresh()
+	check(big.visible and big.pulse, "a strict item_use beat pulses the big button")
+	TutorialManager._awaiting = false
+	TutorialManager._await_strict = false
+	TutorialManager._await_action = ""
+	# the IN-HAND BOX is the other way in: a tap uses what is in hand
+	check(HUD.equip_box.mouse_filter == Control.MOUSE_FILTER_STOP and HUD.pointer_over_widget(HUD.equip_box.get_global_rect().get_center()),
+		"the in-hand box takes taps, and a tap on it never also walks in the world")
+	p.is_dead = false
+	p.health_state = 3
+	p.is_dying = false
+	HUD.equip_box.tapped.emit()
+	await get_tree().process_frame
+	check(int(p.health_state) < 3, "tapping the in-hand box with a first aid kit heals (state %d)" % int(p.health_state))
+	p.health_state = 0
+	WorldState.inventory.clear()
+	HUD.selected_slot = -1
+	WorldState.is_scavenge_mode = false
+	ov.refresh()
+
+
 func _test_touch_overlay() -> void:
 	print("[touch controls]")
 	_clear_the_dead()
@@ -618,15 +707,37 @@ func _test_touch_overlay() -> void:
 	_touch(1, _btn_pos("attack"), false)
 	await _flush()
 	check(not Input.is_action_pressed("attack") and Input.is_action_pressed("move_right"), "…letting go of HIT leaves the walk")
-	# sprint is held
-	_touch(2, _btn_pos("sprint"), true)
+	# HOW HARD you push is how fast you go (owner round 36d): no RUN button — the rim is run
+	check(ov.get_node_or_null("Btn_sprint") == null and ov.get_node_or_null("Btn_mode_toggle") == null and ov.get_node_or_null("Btn_item_use") == null,
+		"no RUN, no second MODE switch, no tiny ITEM button on the overlay")
+	check(Input.is_action_pressed("sprint") and ov.sprinting, "pushed out to the rim, the stick holds sprint")
+	_drag_to(0, ov.STICK_CENTRE + Vector2(58, 0))
 	await _flush()
-	check(Input.is_action_pressed("sprint"), "RUN is held while the finger is down")
+	check(not Input.is_action_pressed("sprint") and not ov.sprinting and Input.get_axis("move_left", "move_right") > 0.6,
+		"a firm but not full push is a fast WALK (%.2f), no sprint" % Input.get_axis("move_left", "move_right"))
+	_drag_to(0, ov.STICK_CENTRE + Vector2(72, 0))
+	await _flush()
+	check(not Input.is_action_pressed("sprint"), "…it takes the rim to start the sprint (no accidental run at 88%)")
+	_drag_to(0, ov.STICK_CENTRE + Vector2(80, 0))
+	await _flush()
+	check(Input.is_action_pressed("sprint"), "…and the rim does")
+	_drag_to(0, ov.STICK_CENTRE + Vector2(68, 0))
+	await _flush()
+	check(Input.is_action_pressed("sprint"), "a thumb easing a little off the rim keeps running (hysteresis, no flicker)")
+	_drag_to(0, ov.STICK_CENTRE + Vector2(30, 0))
+	await _flush()
+	check(not Input.is_action_pressed("sprint"), "easing right off ends it — walking costs no stamina")
+	_drag_to(0, ov.STICK_CENTRE + Vector2(0, -80))
+	await _flush()
+	check(not Input.is_action_pressed("sprint"), "a vertical flick never sprints")
+	_drag_to(0, ov.STICK_CENTRE + Vector2(80, 0))
+	await _flush()
+	check(Input.is_action_pressed("sprint"), "(running again, so the hide below has something to let go of)")
 	# hiding lets go of everything
 	SettingsManager.set_touch_mode("off")
 	ov.refresh()
 	await _flush()
-	check(not Input.is_action_pressed("sprint") and not Input.is_action_pressed("move_right"), "hiding the overlay releases every held action")
+	check(not Input.is_action_pressed("sprint") and not Input.is_action_pressed("move_right") and not ov.sprinting, "hiding the overlay releases every held action")
 	# pausing too
 	SettingsManager.set_touch_mode("on")
 	ov.refresh()
@@ -660,9 +771,10 @@ func _test_touch_overlay() -> void:
 		if w.visible and w.kind == "button":
 			always.append(w.action)
 	check(always.size() <= 8, "at most 8 buttons on screen in plain play, stick aside (%d: %s)" % [always.size(), str(always)])
-	check(not always.has("open_pack") and not always.has("item_context") and not always.has("listen") and not always.has("item_use"),
-		"the pack / force / listen / item buttons are NOT up until they'd do something")
-	for want in ["attack", "interact", "push", "sprint"]:
+	check(not always.has("open_pack") and not always.has("item_context") and not always.has("listen") and not always.has("item_use")
+			and not always.has("sprint") and not always.has("mode_toggle"),
+		"the pack / force / listen buttons are NOT up until they'd do something; run + mode + item are not buttons at all %s" % str(always))
+	for want in ["attack", "interact", "push"]:
 		check(always.has(want), "the main hand has %s" % want)
 	var hidden_force = ov.get_node("Btn_item_context")
 	check(not hidden_force.visible and ov.widget_at(hidden_force.centre) == null and not HUD.pointer_over_widget(hidden_force.centre),
@@ -673,23 +785,7 @@ func _test_touch_overlay() -> void:
 	HUD.hide_world_prompt(self)
 	ov.refresh()
 	check(not ov.get_node("Btn_item_context").visible, "…and go again with the prompt")
-	var one := ItemInstance.new()
-	one.setup("005")
-	WorldState.inventory.append(one)
-	HUD.selected_slot = 0
-	ov.refresh()
-	check(ov.get_node("Btn_item_use").visible, "ITEM shows with something in hand")
-	HUD.selected_slot = -1
-	WorldState.inventory.clear()
-	ov.refresh()
-	check(not ov.get_node("Btn_item_use").visible, "…and not with empty hands")
-	WorldState.is_scavenge_mode = false
-	ov.refresh()
-	check(ov.get_node("Btn_mode_toggle").label == "FIGHT", "the mode button names the current stance")
-	WorldState.is_scavenge_mode = true
-	ov.refresh()
-	check(ov.get_node("Btn_mode_toggle").label == "SCAV", "…and follows it")
-	WorldState.is_scavenge_mode = false
+	await _test_primary_button(ov)
 	# a paused strict teaching beat: ONLY the push button, pulsing, and pressing it carries on
 	var beat_done := [false]
 	TutorialManager.prompt("test beat", "push", func(): beat_done[0] = true, "[PUSH] to shove", true)
