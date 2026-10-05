@@ -909,10 +909,15 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 			WorldState.apartment_fire_stage(_apt_floor(), _apt_index()), has_balcony)
 		if not has_balcony:
 			var side := WorldState.apartment_window_side(apartment_id, i)
-			var wx: float = LEFT_WALL_X + i * MODULE_WIDTH + (MODULE_WINDOW_INSET if side == "left" else MODULE_WIDTH - MODULE_WINDOW_INSET)
+			var wlx: float = MODULE_WINDOW_INSET if side == "left" else MODULE_WIDTH - MODULE_WINDOW_INSET
 			var window = load("res://scripts/apartment_window.gd").new()
-			add_child(window)
-			window.setup(Vector2(wx, MODULE_WINDOW_Y), live, absi(hash(apartment_id + "_win_" + str(i))))
+			# The window is part of the MODULE (just above its art, below its scavenge nodes) so a piece of furniture drawn in
+			# the module's FRONT layer can stand across it (owner round 36e: "there is never anything blocking part or all of
+			# the view of the windows") — see _add_front_art. Same world position as before (module origin + local).
+			instance.add_child(window)
+			_place_before_anchors(instance, window)
+			window.setup(Vector2(wlx, MODULE_WINDOW_Y - instance.position.y), live, absi(hash(apartment_id + "_win_" + str(i))))
+		_add_front_art(instance, has_balcony, charred_flat)
 
 	# The walls BETWEEN the modules (and at both ends), drawn in live perspective so the flat reads
 	# as the inside of a box and each doorway shows the right face from either side
@@ -1100,6 +1105,45 @@ static func apply_run_art(module: Node, run: int) -> void:
 			if ResourceLoader.exists(p):
 				spr.texture = load(p)
 				break
+
+
+## Put `node` in the module's draw order just below its scavenge nodes (the first Marker2D) and above its art + overlays.
+static func _place_before_anchors(module: Node, node: Node) -> void:
+	var idx := module.get_child_count() - 1
+	for k in range(module.get_child_count()):
+		if module.get_child(k) is Marker2D:
+			idx = k
+			break
+	module.move_child(node, mini(idx, module.get_child_count() - 1))
+
+
+## The module's FRONT layer (tools/art: pixlib.finish_module front_fn / front_strip_fn): furniture drawn ABOVE the runtime
+## window, so a table, a stack of presents or a bunch of balloons can stand across it. `<art>_front.png` always shows,
+## `<art>_front_strip.png` follows the balcony strip (hidden on a balcony slot — and a window only exists when it shows). A
+## charred flat shows each as its burnt husk (`_burnt_front*.png`); a texture with no front layer adds nothing.
+func _add_front_art(module: Node, has_balcony: bool, charred: bool) -> void:
+	var art = module.get_node_or_null("Art")
+	if not (art is Sprite2D) or art.texture == null or art.texture.resource_path == "":
+		return
+	var base: String = art.texture.resource_path.get_basename()
+	for suffix in ["_burnt", "_r3", "_r2"]:
+		if base.ends_with(suffix):
+			base = base.substr(0, base.length() - suffix.length())
+			break
+	for part in ["", "_strip"]:
+		var path: String = base + ("_burnt" if charred else "") + "_front" + part + ".png"
+		if not ResourceLoader.exists(path):
+			continue
+		var spr := Sprite2D.new()
+		spr.name = "FrontArt" if part == "" else "FrontStrip"
+		spr.texture = load(path)
+		spr.centered = art.centered
+		spr.position = art.position
+		spr.scale = art.scale
+		spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		spr.visible = not (part == "_strip" and has_balcony)
+		module.add_child(spr)
+		_place_before_anchors(module, spr)
 
 
 func _apply_balcony_strip(module: Node, has_balcony: bool) -> void:

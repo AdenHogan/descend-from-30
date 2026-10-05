@@ -181,11 +181,11 @@ def blocked_columns(name, lo, hi):
     """Columns in [lo, hi] where something stands through the whole stand zone (pixlib's test)."""
     art = Image.open(os.path.join(ROOMS_DIR, name + ".png")).convert("RGBA")
     fl = Image.open(os.path.join(ROOMS_DIR, name + "_floor.png")).convert("RGBA")
-    strip_p = os.path.join(ROOMS_DIR, name + "_strip.png")
-    if os.path.exists(strip_p):
-        st = Image.open(strip_p).convert("RGBA")
-        art = art.copy()
-        art.alpha_composite(st)
+    art = art.copy()
+    for suffix in ("_strip", "_front", "_front_strip"):          # the strip + the furniture drawn over the window are part of the room
+        lp = os.path.join(ROOMS_DIR, name + suffix + ".png")
+        if os.path.exists(lp):
+            art.alpha_composite(Image.open(lp).convert("RGBA"))
     bad = []
     for x in range(max(0, int(lo)), min(MW - 1, int(hi)) + 1):
         if all(art.getpixel((x, y)) != fl.getpixel((x, y - SEAM)) for y in range(BP_ROWS[0], BP_ROWS[1] + 1)):
@@ -229,9 +229,10 @@ def build(name, template=None):
     img = Image.new("RGB", (Wc, Hc + 400), BG)          # cropped at the end to fit the right-hand list
     if template is None:
         art = Image.open(os.path.join(ROOMS_DIR, name + ".png")).convert("RGBA")
-        strip_p = os.path.join(ROOMS_DIR, name + "_strip.png")
-        if os.path.exists(strip_p):
-            art.alpha_composite(Image.open(strip_p).convert("RGBA"))
+        for suffix in ("_strip", "_front", "_front_strip"):
+            lp = os.path.join(ROOMS_DIR, name + suffix + ".png")
+            if os.path.exists(lp):
+                art.alpha_composite(Image.open(lp).convert("RGBA"))
         art = ImageEnhance.Brightness(ImageEnhance.Color(art.convert("RGB")).enhance(0.55)).enhance(0.5)
         img.paste(art.resize((MW * S, MH * S), Image.NEAREST), (ML, MT))
     d = ImageDraw.Draw(img, "RGBA")

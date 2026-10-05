@@ -21,6 +21,7 @@ from pixlib import pp, _ip as _ipt
 import furn as F
 import chair3d as C3
 import pixlib as PX
+import party3d as P3
 
 BLOOD = hexc('4a1d1b', 150)
 BLOOD_DK = hexc('3a1512', 190)
@@ -557,66 +558,108 @@ def e_floor(c):
 
 
 def e_strip(c):
-    setback(c, _presents, depth=3)                                          # with depth (owner round 14)
-    _torn_box(c)
+    # (the gift table + the torn box are FRONT-LAYER pieces — drawn above the runtime window, e_front_strip below)
+    pass
 
 
-def _presents(c):
-    # a pile of wrapped presents, never opened, and one that was
-    c.shadow(28, 100, 22, 2, 100)
-    for (x0, y0, x1, col, rib) in ((8, 84, 30, PARTY[1], PARTY[2]), (28, 88, 46, PARTY[0], PARTY[3]),
-                                   (14, 72, 34, PARTY[4], PARTY[2])):
-        c.box(x0, y0, x1, 99 if y0 > 80 else 83, col, shade(col, 0.6))
-        c.vline((x0 + x1) // 2, y0, 99 if y0 > 80 else 83, rib)
-        c.hline(x0, x1, y0 + 4, rib)
-    c.poly([(22, 72), (26, 66), (30, 72)], PARTY[2])
+# --- the gift table: a small pine table in true perspective, the presents stacked on it ---------------------
+G_TOP = 72.0            # wall y of the gift table's top surface (a tall little table: the stack reaches the window's sill)
 
 
-def _torn_box(c):
-    def _box(c):
-        # a torn-open box beside the pile of presents, something dark inside
-        c.shadow(72, 121, 12, 2, 110)
-        c.box(62, 108, 84, 121, PARTY[3], shade(PARTY[3], 0.6))
-        c.rect(64, 110, 82, 113, hexc('1e1a16'))
-        c.poly([(62, 108), (56, 102), (58, 100), (64, 106)], PARTY[3])
-        c.poly([(84, 108), (92, 104), (92, 106), (85, 110)], PARTY[3])
-        c.line(58, 118, 50, 121, hexc('efe8d8'))
-    F.moved(c, _box, -8, -21)
+def e_front_strip(c):
+    """The presents, owner round 36e: SMALLER (they were huge), on a TABLE, standing in front of the left wall's window — a
+    stack reaching up across the window's lower pane — and the torn-open box on the floor under the table. Drawn in the FRONT
+    layer so the window sits behind them (it is only there when this slot has no balcony, exactly when the strip shows)."""
+    P3.table3d(c, 54, 104, 6, 17, G_TOP, F.PINE[0], F.PINE[1], F.PINE[2], F.PINE[3])
+    # (wall x0, x1, height, d0, d1, paper, ribbon, y_base) — bottom row, then a second layer, then the top one
+    top = G_TOP
+    P3.gift(c, 59, 72, top, 7, 8, 15, PARTY[1], PARTY[2])
+    P3.gift(c, 75, 86, top, 5, 9, 16, PARTY[0], PARTY[3])
+    P3.gift(c, 89, 99, top, 6, 8, 14, PARTY[4], PARTY[2])
+    P3.gift(c, 61, 70, top - 7, 6, 9, 14, PARTY[2], PARTY[0])
+    P3.gift(c, 77, 85, top - 5, 4, 10, 15, PARTY[3], PARTY[4])
+    P3.gift(c, 63, 69, top - 13, 5, 10, 13, PARTY[0], PARTY[2])
+    # balloons tied to the stack, drifting up across the window's glass behind them
+    _balloon(c, 60, 36, PARTY[4], 59, tie=56)
+    _balloon(c, 71, 29, PARTY[1], 59, tie=58)
+    P3.torn_box(c, 74, 88, 13, 21, 100.0, 9.0, PARTY[3], shade(PARTY[3], 0.62), hexc('9cc89c'), hexc('efe8d8'))
+
+
+# --- the party table ---------------------------------------------------------------------------------------
+T_X0, T_X1, T_D0, T_D1, T_TOP = 123.0, 218.0, 8.0, 20.0, 75.0
+CLOTH, CLOTH_DK = hexc('efe8d8'), hexc('cfc6b0')
 
 
 def _e_balloons(c):
-    # balloons TIED to the chair backs (round 17: their strings ended in mid-air; round 23: drawn in
-    # FRONT of the chairs, the string knotted round the top rail instead of vanishing behind it)
-    for (x, y, col, top) in ((139, 53, PARTY[1], 70), (219, 54, PARTY[0], 70)):
-        c.ellipse(x, y, 5, 6, col)
-        c.ellipse(x - 2, y - 2, 1, 2, shade(col, 1.3))
-        c.put(x, y + 6, shade(col, 0.7))                                          # the knot
-        c.line(x, y + 7, x + 1, y + 11, hexc('9a927e')); c.line(x + 1, y + 11, x, top, hexc('9a927e'))
-        c.put(x - 1, top, hexc('9a927e')); c.put(x + 1, top, hexc('9a927e'))       # tied round the rail
+    # balloons TIED to the chair backs (round 17: their strings ended in mid-air; round 23: drawn in FRONT of the chairs,
+    # the string knotted round the top rail instead of vanishing behind it). The LEFT one is part of the room; the cluster
+    # over the right-hand chair is a front-layer piece (e_front) so it can drift across the window beside it.
+    for (x, y, col, top) in ((139, 53, PARTY[1], 70),):
+        _balloon(c, x, y, col, top)
+
+
+def _balloon(c, x, y, col, top, tie=None):
+    c.ellipse(x, y, 5, 6, col)
+    c.ellipse(x - 2, y - 2, 1, 2, shade(col, 1.3))
+    c.put(x, y + 6, shade(col, 0.7))                                          # the knot
+    tx = tie if tie is not None else x
+    c.line(x, y + 7, (x + tx) // 2 + 1, y + 11, hexc('9a927e')); c.line((x + tx) // 2 + 1, y + 11, tx, top, hexc('9a927e'))
+    c.put(tx - 1, top, hexc('9a927e')); c.put(tx + 1, top, hexc('9a927e'))     # tied round the rail
+
+
+def e_front(c):
+    # a bunch of balloons rising off the right-hand chair — the last one drifts out over the window on that side
+    for (x, y, col) in ((221, 54, PARTY[0]), (231, 47, PARTY[2]), (238, 38, PARTY[3])):
+        _balloon(c, x, y, col, 70, tie=221)
 
 
 def e_furniture(c):
     # the party table out in the room: a cake with the candles burnt down, paper plates, hats
     PINEP = {'wood': hexc('b58a55'), 'seat': hexc('c9a06a')}
-    for (x, yaw) in ((139, 180), (183, 172), (221, 190)):                                    # spindle-backs round the table
-        C3.draw_model(c, x, 100, C3.dining_chair('spindle'), yaw, PINEP, srad=10)
-    C3.draw_model(c, 134, 130, C3.fall(C3.dining_chair('spindle'), 'side', 8.0), 40, PINEP, shadow='footprint')   # one knocked over
+    mdl = C3.dining_chair('spindle')
+    for (x, yaw) in ((139, 168), (183, 198), (221, 184)):                                    # spindle-backs round the table, none square-on
+        C3.draw_model(c, x, 100, mdl, yaw, PINEP, srad=10)
+    C3.draw_model(c, 107, 114, mdl, 78, PINEP, srad=9)                                       # the head chair, turned toward the table (a whole side shows)
+    C3.draw_model(c, 241, 113, mdl, 282, PINEP, srad=9)                                      # and one at the other end, turned the other way
     _e_balloons(c)
-    F.table_front(c, 116, 244, 92, 120, F.PINE, depth=6, cloth=hexc('efe8d8'), cloth_dk=hexc('d0c8b4'), hem=104)
-    for x in range(118, 244, 8):                                                  # a paper cloth, printed
-        c.put(x, 95, PARTY[(x // 8) % len(PARTY)])
-    c.ellipse(180, 90, 12, 2, hexc('e6ddc8'))                                     # the cake
-    c.rect(170, 82, 190, 89, hexc('d98aa0'))
-    c.hline(170, 190, 82, hexc('f0d0dc'))
-    c.dither(170, 84, 190, 86, hexc('efe8d8'), 0.5)
-    c.poly([(184, 82), (190, 82), (190, 89), (186, 89)], hexc('8a5a3a'))           # a slice cut, the sponge showing
-    for x in (174, 178, 182):
-        c.rect(x, 78, x, 81, PARTY[x % 5])
-    c.put(178, 77, hexc('3a2a1a'))
-    for (x, col) in ((136, PARTY[0]), (152, PARTY[1]), (206, PARTY[3]), (226, PARTY[4])):
-        c.ellipse(x, 92, 6, 1, hexc('efe8d8'))
-        c.poly([(x - 3, 90), (x + 3, 90), (x, 83)], col)                          # party hats left on the plates
-    c.ellipse(212, 96, 4, 1, BLOOD)
+    t = P3.table3d(c, T_X0, T_X1, T_D0, T_D1, T_TOP, F.PINE[0], F.PINE[1], F.PINE[2], F.PINE[3],
+                   cloth=CLOTH, cloth_dk=CLOTH_DK, hem=13)
+    top = T_TOP
+    for xw in range(129, 226, 8):                                                  # a paper cloth, printed (dots in perspective)
+        for dd in (10.5, 14.5, 18.5):
+            px, py = P3.scr(xw + (4 if dd == 14.5 else 0), top, dd)
+            c.put(px, py, PARTY[(xw // 8 + int(dd)) % len(PARTY)])
+        px, py = P3.scr(xw, top + 4.5, T_D1 + 1.2)
+        c.put(px, py, PARTY[(xw // 8) % len(PARTY)])
+    # plates + the hats left on them
+    for (xw, dd, col, dk) in ((141, 13.5, PARTY[0], shade(PARTY[0], 0.7)), (157, 17.0, PARTY[1], shade(PARTY[1], 0.7)),
+                              (203, 12.5, PARTY[3], shade(PARTY[3], 0.7)), (219, 16.5, PARTY[4], shade(PARTY[4], 0.7))):
+        P3.disc(c, xw, top, dd, 6.0, hexc('efe8d8'), edge=hexc('c3beb0'))
+        P3.cone(c, xw, top, 10.0, dd, 3.6, col, dk, stripe=hexc('efe8d8'), pom=PARTY[2])
+    # paper cups
+    for (xw, dd) in ((167, 18.0), (193, 11.5)):
+        P3.cyl(c, xw, top, 4.5, dd, 2.3, hexc('efe8d8'), hexc('f8f4ea'), hexc('d0c8b4'), rim=hexc('b8b0a0'))
+        c.hline(*(lambda b: (b[0] - 2, b[0] + 2, b[1] - 2))(P3.scr(xw, top, dd)), PARTY[1])
+    # the cake: a plate, a pink-iced sponge with a slice cut from it, candles burnt down
+    cx_, cd = 177.0, 14.0
+    P3.disc(c, cx_, top, cd, 11.5, hexc('efe8d8'), edge=hexc('c3beb0'))
+    bx, by, ty, rx, ry = P3.cyl(c, cx_, top - 0.4, 7.0, cd, 8.4, hexc('d98aa0'), hexc('f4d6de'), hexc('b86880'), rim=hexc('f0d0dc'))
+    for xx in range(int(bx - rx) + 1, int(bx + rx), 2):                            # the icing's drips down the side
+        c.put(xx, int(ty + ry * 0.6) + 2, hexc('f0d0dc'))
+    # the slice cut out of the front-right: sponge showing on the cut faces
+    c.poly([(bx, ty + 1), (bx + rx, ty + 1), (bx + rx - 1, by + 1), (bx + 1, by + ry * 0.7)], hexc('8a5a3a'))
+    c.poly([(bx, ty + 1), (bx + rx, ty + 1), (bx + rx * 0.6, ty + ry * 0.8)], hexc('c89a68'))
+    c.hline(int(bx + 1), int(bx + rx - 1), int((ty + by) / 2), hexc('e8d8c0'))        # the cream layer
+    for k, (ox, oy) in enumerate(((-4, -0.4), (-1.5, 0.5), (1, -0.5), (-6.5, 0.4))):  # four candles, burnt to stubs
+        px, py = int(round(bx + ox)), int(round(ty + oy))
+        c.vline(px, py - 3, py, PARTY[(k * 2 + 1) % 5])
+        c.put(px, py - 4, hexc('3a2a1a'))
+    # the blood on the cloth + a dropped knife
+    s_ = P3.disc(c, 211.0, top, 15.5, 4.2, BLOOD)
+    P3.disc(c, 214.0, top, 16.5, 2.2, BLOOD_DK)
+    P3.knife(c, 206.0, top, 17.0, ang=0.5)
+    # the toppled chair, clear of the table's legs (owner round 36e: a leg was clipping into it)
+    C3.draw_model(c, 187, 131, C3.fall(mdl, 'side', 8.0), 40, PINEP, shadow='footprint')
     # a sideboard with a cassette player and a stack of paper cups (with depth)
     def _sb(c):
         F.chest(c, 250, 310, 72, 100, F.PINE, drawers=2, open_row=0)
@@ -643,9 +686,11 @@ def e_furniture(c):
     setback(c, _sb, depth=4, top=72, x_range=(249, 311))
     F.flush_light(c, 160)
 
-E_ANCHORS = [('anchor_dining_presents', 24, 80, 'bp s'), ('anchor_dining_torn_box', 64, 91, 'bp s'),
-             ('anchor_table_left', 140, 94, ''), ('anchor_dining_cake', 180, 86, ''),
-             ('anchor_table_right', 226, 94, ''), ('anchor_right_upperdrawers', 280, 82, 'bp')]
+E_ANCHORS = [('anchor_dining_presents', 66, 77, 's'), ('anchor_dining_torn_box', 82, 114, 's'),
+             ('anchor_table_left', 143, 90, ''), ('anchor_dining_cake', 177, 86, ''),
+             ('anchor_table_right', 219, 90, ''), ('anchor_right_upperdrawers', 280, 82, 'bp')]
+
+FRONTS = {'e': (e_front, e_front_strip)}
 
 
 VARIANTS = {
@@ -675,4 +720,5 @@ if __name__ == '__main__':
     for v in (sys.argv[1:] or sorted(VARIANTS)):
         name, seed, fns, anchors = VARIANTS[v]
         bare, floor, build, strip = make(fns)
-        finish_module(name, 'dining_room', seed, bare, floor, build, anchors, strip_fn=strip)
+        ff, fs = FRONTS.get(v, (None, None))
+        finish_module(name, 'dining_room', seed, bare, floor, build, anchors, strip_fn=strip, front_fn=ff, front_strip_fn=fs)

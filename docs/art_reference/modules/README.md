@@ -581,3 +581,13 @@ in-editor check.
   tools/art/build_all.py` lists them instead). Dining C's knocked chair stood on a table leg — now clear. For a HINGED door use
   `pixlib.door_quad` + `quad_cols` (the free edge is nearer the camera: taller and lower than the hinge edge) — kitchen D's
   fridge door was a flat slab with the perspective backwards. Opened-furniture patches: docs/OPENABLE_FURNITURE.md.
+
+
+## FRONT LAYER — furniture in front of a window (owner round 36e)
+The runtime window (apartment_window.gd) is drawn OVER a module's Art, so nothing in the Art may stand in the two window boxes (the rule above). To let a table, a stack
+of presents or a bunch of balloons stand ACROSS a window, a variant draws those pieces in `front_fn(c)` (always shown) or `front_strip_fn(c)` (shown with the balcony strip) and passes
+them to `finish_module(..., front_fn=…, front_strip_fn=…)`. The pieces are exported as their own layers — `<name>_front.png`, `<name>_front_strip.png` — which room.gd draws above the
+window and below the scavenge nodes (`_add_front_art`). They count as part of the room for every other check (nodes may sit on them, floor-clip / overhang / back-plane rules apply), the
+nest overlays, the blueprints (`gen_module_blueprint.py` composites them) and the burnt look (`burnt.py` bakes `_burnt_front*.png`); only the window-box rule skips them. The window's side is
+seeded per flat, so a front piece over the LEFT window box is over a window in some flats and over bare wall in others — design it to read either way. Dining E is the first user
+(`tools/art/dining_room_variants.py`: the gift table + torn box + balloons; the party table, chairs, cake, hats and cups use `tools/art/party3d.py`'s true-perspective helpers).

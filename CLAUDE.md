@@ -2338,6 +2338,16 @@ means no rendering — UI layout and art still need an in-editor look.
   `_make_passable_to_player`, solid again once the player is clear; big: the pass-through timer); only the TARGET is shoved / stunned (one body per push still stands).
   Locked by `crowd_push_test` (a push-only player gets through 4 standards / 3 long-arms / 2 bigs; reach, spent-skip, make-way; mutation-checked). Aggro mix (a low-aggro body idling in front of
   a keen one) was probed and did NOT hold the keen one back — enemies never collide with each other and an idle body isn't ranked; I couldn't reproduce that half of the report.
+- **FURNITURE CAN STAND IN FRONT OF A WINDOW + DINING E REDRAWN (owner round 36e: "the table lacks the geometry… the green open box is poorly designed… make the presents smaller,
+  on a table, a bit in front of the window… there is never anything blocking part or all of the view of the windows"):** a module variant may now carry a **FRONT LAYER** —
+  `pixlib.finish_module(..., front_fn=, front_strip_fn=)` exports the pieces those draw as `<name>_front.png` / `<name>_front_strip.png` (the strip one hides with the balcony strip —
+  and a window only exists when it shows), and `room.gd` draws them ABOVE the runtime window, below the scavenge nodes: **the window is now a child of its MODULE**
+  (`_place_before_anchors`, same world place) and `_add_front_art` adds `FrontArt` / `FrontStrip` after it (charred flat = `_burnt_front*.png`, baked by `burnt.py`). Everything else
+  (checks, nodes, nest overlays, blueprints) treats the front pieces as part of the room; ONLY the window-box rule is waived for them (the Art keeps its boxes bare — the window is drawn over it).
+  Run looks (`_r2/_r3`) do NOT age front pieces. Only dining E uses it so far: a small pine gift table with SMALL presents stacked across the left window's lower pane, balloons tied to the
+  stack drifting up over the glass, and a balloon bunch off the right-hand chair that can drift over the right window. The redrawn party table / chairs / cake / hats / cups / torn box are
+  TRUE PERSPECTIVE (`tools/art/party3d.py`: `table3d`, `cyl`, `cone`, `disc`, `gift`, `torn_box` on `pixlib.pp` / `pbox`); the toppled chair stands clear of the table's legs. Locked by
+  `apartment_window_test._test_front_layer`. Not done: other variants don't use front pieces yet (a wardrobe / curtain / plant across a window is now just an art task); the LOOK needs the owner's eye.
 - **THE TUTORIAL NEIGHBOUR IS A BODY THAT GETS UP (owner round 36c; docs/TUTORIAL.md "3003"):** she lies on the floor (a `riser_scripted` riser, never wakes by itself); getting within
   135 px starts `room._tut_wake_scene` — the player is HELD (`player.hold_for_scene` / `release_hold`, camera eased to the midpoint), the curiosity line on the way in + «Mrs Delacroix?» (`3003_name`) as she rises, a long twitch + a slow rise
   (`TUTORIAL_*_TIME`), then APPROACH → the unchanged lunge / shove / find-a-weapon beats. Every exit releases the player. Also from the first phone playtest: the touch overlay was reworked (quiet

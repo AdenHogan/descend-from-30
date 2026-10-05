@@ -39,23 +39,21 @@ texture = ExtResource("3_balcony")
 centered = false
 
 [node name="anchor_dining_presents" type="Marker2D" parent="."]
-position = Vector2(24, 85)
-metadata/back_plane = true
+position = Vector2(66, 77)
 metadata/balcony_strip = true
 
 [node name="anchor_dining_torn_box" type="Marker2D" parent="."]
-position = Vector2(64, 91)
-metadata/back_plane = true
+position = Vector2(82, 114)
 metadata/balcony_strip = true
 
 [node name="anchor_table_left" type="Marker2D" parent="."]
-position = Vector2(140, 94)
+position = Vector2(143, 90)
 
 [node name="anchor_dining_cake" type="Marker2D" parent="."]
-position = Vector2(180, 86)
+position = Vector2(177, 86)
 
 [node name="anchor_table_right" type="Marker2D" parent="."]
-position = Vector2(226, 94)
+position = Vector2(219, 90)
 
 [node name="anchor_right_upperdrawers" type="Marker2D" parent="."]
 position = Vector2(280, 88)

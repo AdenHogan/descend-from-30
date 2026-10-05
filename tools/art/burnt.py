@@ -265,6 +265,8 @@ def build(preview=False, out_dir=ROOMS):
             if not os.path.exists(strip):
                 strip = os.path.join(ROOMS, name + '_strip.png')
             burn_file(strip, os.path.join(out_dir, name + '_burnt_strip.png'), seed, 'strip', 0, 0, False)
+            for part in ('_front', '_front_strip'):          # furniture drawn over the window (pixlib front_fn): burnt like the rest
+                burn_file(os.path.join(ROOMS, name + part + '.png'), os.path.join(out_dir, name + '_burnt' + part + '.png'), seed, 'strip', 0, 0, False)
             for suffix in ('_floor_ext', '_floor'):
                 fsrc = os.path.join(ROOMS, name + '_r3' + suffix + '.png')
                 if not os.path.exists(fsrc):

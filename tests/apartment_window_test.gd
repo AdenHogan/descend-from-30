@@ -28,6 +28,7 @@ func _ready() -> void:
 	_test_floor_boundary()
 	_test_module_variants()
 	await _test_module_sounds()
+	await _test_front_layer()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -751,3 +752,76 @@ func _test_city_parallax() -> void:
 		room.queue_free()
 		await get_tree().process_frame
 		await get_tree().process_frame
+
+
+## FURNITURE IN FRONT OF A WINDOW (owner round 36e: "there is never anything blocking part or all of the view of the windows"):
+## a module variant may carry a FRONT layer (tools/art pixlib front_fn) — <art>_front.png / _front_strip.png — drawn ABOVE
+## its window and below its scavenge nodes. The window therefore lives INSIDE the module, in that order.
+func _test_front_layer() -> void:
+	print("[front layer: a table / balloons stand across the window]")
+	# the art: dining E has both layers, a front piece may overlap the runtime window box, the Art itself may not
+	for f in ["dining_room_e_front.png", "dining_room_e_front_strip.png", "dining_room_e_burnt_front.png", "dining_room_e_burnt_front_strip.png"]:
+		check(ResourceLoader.exists("res://assets/rooms/" + f), "%s is there" % f)
+	var strip_img: Image = load("res://assets/rooms/dining_room_e_front_strip.png").get_image()
+	var in_box := 0
+	for y in range(10, 67):
+		for x in range(50, 95):
+			if strip_img.get_pixel(x, y).a > 0.0:
+				in_box += 1
+	check(in_box >= 40, "the gift table's front piece really overlaps the left window box (%d px)" % in_box)
+	# the room: dev seed 77 → flat 802 slot 2 is a dining E with its window on the LEFT and no balcony
+	WorldState.dev_seed = 77
+	WorldState.new_game()
+	WorldState.is_first_run = false
+	WorldState.current_run = 1
+	WorldState.current_apartment_id = "802"
+	WorldState.current_floor = 8
+	WorldState.spawn_source = ""
+	var room = load("res://scenes/room.tscn").instantiate()
+	add_child(room)
+	for i in range(5):
+		await get_tree().process_frame
+	var mod: Node = null
+	for m in get_tree().get_nodes_in_group("room_module"):
+		var art = m.get_node_or_null("Art")
+		if art is Sprite2D and art.texture != null and String(art.texture.resource_path).contains("dining_room_e"):
+			mod = m
+	check(mod != null, "found the dining E module in flat 802")
+	if mod != null:
+		var win: Node = null
+		for w in get_tree().get_nodes_in_group("apt_window_light"):
+			if w.get_parent().get_parent() == mod:
+				win = w.get_parent()
+		check(win != null, "its window is a child of the MODULE")
+		var front = mod.get_node_or_null("FrontArt")
+		var fstrip = mod.get_node_or_null("FrontStrip")
+		check(front is Sprite2D and fstrip is Sprite2D and fstrip.visible, "it carries FrontArt + a visible FrontStrip (no balcony here)")
+		if win != null and front != null:
+			var first_marker := 9999
+			for k in range(mod.get_child_count()):
+				if mod.get_child(k) is Marker2D:
+					first_marker = k
+					break
+			var ia: int = mod.get_node("Art").get_index()
+			check(ia < win.get_index() and win.get_index() < front.get_index() and front.get_index() < fstrip.get_index() \
+				and fstrip.get_index() < first_marker, "draw order: Art < window < front layers < scavenge nodes (%d %d %d %d %d)" % [
+					ia, win.get_index(), front.get_index(), fstrip.get_index(), first_marker])
+			var in_room: Vector2 = room.to_local(win.global_position)
+			check(absf(in_room.y - room.MODULE_WINDOW_Y) < 0.5 and absf(in_room.x - (mod.position.x + room.MODULE_WINDOW_INSET)) < 0.5,
+				"the window kept its place in the room (%.1f, %.1f)" % [in_room.x, in_room.y])
+			check(absf(front.global_position.x - mod.global_position.x) < 0.5 and front.texture.get_size() == Vector2(320, 144),
+				"the front layer is the module's own 320x144 frame")
+		# the strip's front piece follows the balcony strip; a charred flat shows the burnt husk
+		room._add_front_art(mod, true, true)
+		var hidden_ok := false
+		var burnt_ok := false
+		for c in mod.get_children():
+			if c is Sprite2D and String(c.texture.resource_path).ends_with("_front_strip.png") and not c.visible:
+				hidden_ok = true
+			if c is Sprite2D and String(c.texture.resource_path).contains("_burnt_front"):
+				burnt_ok = true
+		check(hidden_ok, "on a balcony slot the front STRIP piece is hidden")
+		check(burnt_ok, "a charred flat uses the burnt front layer")
+	room.queue_free()
+	WorldState.dev_seed = 0
+	await get_tree().process_frame

@@ -558,6 +558,14 @@ func _drag_to(index: int, pos: Vector2) -> void:
 
 ## The big right-hand button follows the hand (owner round 36d): weapon → HIT / SHOOT / DRAW (attack), a usable item → its verb (item_use),
 ## empty hands → HIT in combat, nothing while scavenging; and tapping the in-hand box uses what is in hand.
+func _visible_prompts() -> Array:
+	var out: Array = []
+	for e in HUD._world_prompts.values():
+		if e["panel"].is_visible_in_tree():
+			out.append(String(e["label"].text))
+	return out
+
+
 func _test_primary_button(ov) -> void:
 	var big = ov.get_node("Btn_attack")
 	WorldState.inventory.clear()
@@ -777,7 +785,7 @@ func _test_touch_overlay() -> void:
 	check(always.size() <= 8, "at most 8 buttons on screen in plain play, stick aside (%d: %s)" % [always.size(), str(always)])
 	check(not always.has("open_pack") and not always.has("item_context") and not always.has("listen") and not always.has("item_use")
 			and not always.has("sprint") and not always.has("mode_toggle"),
-		"the pack / force / listen buttons are NOT up until they'd do something; run + mode + item are not buttons at all %s" % str(always))
+		"the pack / force / listen buttons are NOT up until they'd do something; run + mode + item are not buttons at all %s (prompts: %s)" % [str(always), _visible_prompts()])
 	for want in ["attack", "interact", "push"]:
 		check(always.has(want), "the main hand has %s" % want)
 	var hidden_force = ov.get_node("Btn_item_context")

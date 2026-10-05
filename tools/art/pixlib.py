@@ -904,7 +904,21 @@ def check_floor_pieces():
     return bad
 
 
-def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, strip_fn=None, per_run=None):
+def _diff_layer(before, after):
+    """The pixels `after` changed from `before` (a drawing step's own contribution), as a transparent RGBA layer."""
+    lay = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+    n = 0
+    for y in range(H):
+        for x in range(W):
+            p_ = after.getpixel((x, y))
+            if p_ != before.getpixel((x, y)):
+                lay.putpixel((x, y), p_)
+                n += 1
+    return lay, n
+
+
+def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, strip_fn=None, per_run=None,
+                  front_fn=None, front_strip_fn=None):
     """Render, check and export one module variant, and write its scene.
 
     wall_fn(c)  — the bare wall (wall + decay): the reference the window/edge checks compare to.
@@ -914,6 +928,12 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
                   (x 4..96); exported separately as <name>_strip.png so room.gd can hide it (and
                   its nodes) on a balcony slot.
     anchors     — [(node_name, x, y, flags)], flags 'bp' back plane / 's' balcony strip.
+    front_fn / front_strip_fn — pieces drawn IN FRONT OF THE WINDOW (owner round 36e: "there is never anything blocking part
+                  or all of the view of the windows"). They are exported as their own layers, <name>_front.png and
+                  <name>_front_strip.png (the strip one hides with the strip on a balcony slot), which room.gd draws ABOVE the
+                  runtime window, so a table / wardrobe may stand across a window. Everything else (the checks, the nodes, the
+                  nest overlays, the blueprints) sees them as part of the room; ONLY the runtime-window-box rule is waived for
+                  them (the Art itself still keeps its window boxes bare — the window is drawn over it).
     per_run     — optional per_run(run): called before REBUILDING the module for runs 2 and 3 (and
                   with 1 after), so furniture can change between runs (a chair knocked back and
                   bloodied — chair3d.RUN). The run looks then age THOSE images, and every node is
@@ -938,9 +958,26 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
     if strip_fn is not None:
         strip_fn(full)
     strip_lights = LIGHTS[n_main:]
+    n_after_strip = len(LIGHTS)
+    nofront = full.img.copy()                      # everything except the front layers: what the window-box rule judges
+    front_img, front_strip_img = None, None
+    if front_fn is not None:
+        snap = full.img.copy()
+        front_fn(full)
+        front_img, n_fp = _diff_layer(snap, full.img)
+        if not n_fp:
+            front_img = None
+    if front_strip_fn is not None:
+        snap = full.img.copy()
+        front_strip_fn(full)
+        front_strip_img, n_fs = _diff_layer(snap, full.img)
+        if not n_fs:
+            front_strip_img = None
+    front_lights = LIGHTS[n_after_strip:]
     # nodes on a set-back piece come forward with it (setback())
     anchors = [(an, ax, ay + _setback_anchor(ax, ay), fl_) for (an, ax, ay, fl_) in anchors]
-    lights = [(x, y, k, '') for (x, y, k) in main_lights] + [(x, y, k, 's') for (x, y, k) in strip_lights]
+    lights = [(x, y, k, '') for (x, y, k) in main_lights] + [(x, y, k, 's') for (x, y, k) in strip_lights] \
+        + [(x, y, k, '') for (x, y, k) in front_lights]
     bare = Canvas(seed=seed)
     wall_fn(bare)
     bare_floor = Canvas(seed=seed)
@@ -960,7 +997,7 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
             print('  CLIP %s: %s' % (name, msg))
         else:
             errs.append(msg)
-    bad = check_window_boxes(full.img, bare.img)
+    bad = check_window_boxes(nofront, bare.img)
     if bad:
         errs.append('furniture inside a runtime window box: %s' % bad[:6])
     edge = check_edge_columns(full.img, bare.img)
@@ -996,7 +1033,7 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
                         'there, or make it a step-up ("bp") node' % (an, ay, FRONT_NODE_MIN_Y))
         if not (6 <= ax <= 314):
             errs.append('%s: x %d off the module' % (an, ax))
-        ref = full if in_strip else main
+        ref = full if (in_strip or front_fn is not None or front_strip_fn is not None) else main
         if ref.img.getpixel((ax, ay)) == bare_floor.img.getpixel((ax, ay)):
             errs.append('%s at (%d,%d) is not on anything drawn' % (an, ax, ay))
         if room_type in BALCONY_TYPES:
@@ -1052,10 +1089,16 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
         s = Image.new('RGBA', (W, H), (0, 0, 0, 0))
         for y in range(H):
             for x in range(W):
-                p = full.img.getpixel((x, y))
+                p = nofront.getpixel((x, y))
                 if p != main.img.getpixel((x, y)):
                     s.putpixel((x, y), p)
         s.save(os.path.join(ROOT, 'assets', 'rooms', name + '_strip.png'))
+    for (suffix, lay) in (('_front', front_img), ('_front_strip', front_strip_img)):
+        fp = os.path.join(ROOT, 'assets', 'rooms', name + suffix + '.png')
+        if lay is not None:
+            lay.save(fp)
+        elif os.path.exists(fp):
+            os.remove(fp)
     _node_overlay(full.img, anchors, os.path.join(prev, 'nodes', name + '_nodes.png'))
     import nest                                   # the BREACH-ROOM look of this module (tools/art/nest.py)
     nest.write(name, full.img, bare_floor.img, seed, ROOT, FLAT_PIECES.get(id(full), {}))
@@ -1084,7 +1127,7 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
         per_run(1)
     import growth_map                             # where vegetation may grow here (tools/art/growth_map.py)
     growth_map.write(name, [full.img] + [v[1] for v in per_level.values()], bare_floor.img, ROOT)
-    runs = run_looks(name, ROOT, main.img, full.img, bare.img, bare_floor.img, floor_fn, seed, strip_fn is not None,
+    runs = run_looks(name, ROOT, main.img, nofront, bare.img, bare_floor.img, floor_fn, seed, strip_fn is not None,
                      per_level=per_level)
     sheet = Image.new('RGBA', (W * 2, H * 2 * 3), (0, 0, 0, 255))
     for i, im in enumerate((full.img, runs[2], runs[3])):
