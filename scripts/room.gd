@@ -1647,6 +1647,11 @@ func _tutorial_process(_delta: float) -> void:
 			# First lunge: a scripted bite, then pause and teach the push.
 			if dist <= TUT_LUNGE_RANGE:
 				tut_step = TutStep.PUSH
+				if WorldState.is_scavenge_mode:
+					# A shove is a combat move: a player who tapped a node on the way in is still SCAVENGING, and the
+					# beat below would teach a move the game then refuses. Draw them back to combat first.
+					WorldState.is_scavenge_mode = false
+					HUD.update_mode_indicator()
 				if player.has_method("receive_hit"):
 					player.receive_hit(1)
 				TutorialManager.prompt(

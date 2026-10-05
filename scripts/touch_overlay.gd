@@ -11,24 +11,27 @@ extends Control
 
 const Stick := preload("res://scripts/touch_stick.gd")
 
-# [action, label, centre, radius, hold]. Viewport is 1152x648. `hold` = held while the finger is down
-# (sprint); the rest are a press the moment the finger lands.
+# [action, label, centre, radius, hold, context]. Viewport is 1152x648. `hold` = held while the finger is down (sprint);
+# the rest are a press the moment the finger lands. `context` says when it is on screen:
+#   "always"  — a main verb;   "item" — only with something in hand;   "prompt" — only while a world prompt offers it
+#   (Force a door, Listen at a stairwell). Owner round 36b: ten buttons at once on the right was "too much going on", so
+#   the main hand has FOUR (HIT / USE / PUSH / RUN), a quiet edge column holds the rest, and the situational ones only
+#   appear when they would do something. The bag is the HUD's own backpack button (bottom-right), not a copy here.
 const BUTTONS := [
-	["attack", "HIT", Vector2(1030, 520), 52.0, false],
-	["interact", "USE", Vector2(1030, 404), 38.0, false],
-	["push", "PUSH", Vector2(924, 548), 34.0, false],
-	["sprint", "RUN", Vector2(924, 452), 32.0, true],
-	["crouch_toggle", "DUCK", Vector2(826, 584), 26.0, false],
-	["item_context", "FORCE", Vector2(1108, 176), 24.0, false],
-	["listen", "LISTEN", Vector2(1108, 232), 24.0, false],
-	["mode_toggle", "MODE", Vector2(1108, 288), 24.0, false],
-	["open_pack", "PACK", Vector2(1108, 344), 24.0, false],
-	["item_use", "ITEM", Vector2(1108, 400), 24.0, false],
-	["pause", "PAUSE", Vector2(52, 48), 22.0, false],
-	["open_journal", "JOURNAL", Vector2(108, 48), 22.0, false],
+	["attack", "HIT", Vector2(1040, 500), 58.0, false, "always"],
+	["interact", "USE", Vector2(1040, 366), 42.0, false, "always"],
+	["push", "PUSH", Vector2(916, 520), 40.0, false, "always"],
+	["sprint", "RUN", Vector2(922, 404), 34.0, true, "always"],
+	["mode_toggle", "SCAV", Vector2(1110, 330), 26.0, false, "always"],
+	["crouch_toggle", "DUCK", Vector2(1110, 270), 24.0, false, "always"],
+	["item_use", "ITEM", Vector2(1110, 210), 24.0, false, "item"],
+	["listen", "LISTEN", Vector2(1110, 150), 24.0, false, "prompt"],
+	["item_context", "FORCE", Vector2(1110, 90), 24.0, false, "prompt"],
+	["pause", "PAUSE", Vector2(52, 48), 22.0, false, "always"],
+	["open_journal", "JOURNAL", Vector2(108, 48), 22.0, false, "always"],
 ]
-const STICK_CENTRE := Vector2(140, 505)
-const STICK_R := 85.0
+const STICK_CENTRE := Vector2(140, 500)
+const STICK_R := 82.0
 const STICK_DEAD := 0.22                # across the stick: below this, no walk
 const STICK_FLICK := 0.6                # up / down past this = move_up / move_down
 
@@ -62,28 +65,62 @@ func _build() -> void:
 		w.name = "Btn_" + String(b[0])
 		w.setup(String(b[0]), String(b[1]), b[2], float(b[3]))
 		w.hold = bool(b[4])
+		w.context = String(b[5])
 		add_child(w)
 		widgets.append(w)
 
 
 ## Show / hide for the device in use and the state of the game; always lets go of everything when it hides.
+## A paused TEACHING beat that waits for an action (the shove intro) keeps ONLY that button up and pulsing — the overlay used to
+## vanish on every pause, leaving a phone player staring at "[PUSH] to shove" with nothing to press.
 func refresh() -> void:
-	var want: bool = SettingsManager.touch_ui_wanted() and HUD.visible and not get_tree().paused
+	var beat: String = TutorialManager.strict_action()
+	var want: bool = SettingsManager.touch_ui_wanted() and HUD.visible and (not get_tree().paused or beat != "")
 	if want != visible:
 		visible = want
 	if not want:
 		release_all()
+		return
+	for w in widgets:
+		var show: bool = _widget_wanted(w, beat)
+		if w.visible and not show and _touch_widget.values().has(w):
+			_release_widget(w)
+		w.visible = show
+		w.pulse = beat != "" and w.action == beat
+	var mode_btn = get_node_or_null("Btn_mode_toggle")
+	if mode_btn != null:
+		mode_btn.label = "SCAV" if WorldState.is_scavenge_mode else "FIGHT"
+
+
+func _widget_wanted(w: Control, beat: String) -> bool:
+	if beat != "":
+		return w.kind == "button" and w.action == beat
+	match w.context:
+		"item":
+			var sel: int = HUD.selected_slot
+			return sel >= 0 and sel < WorldState.inventory.size()
+		"prompt":
+			return HUD.world_prompt_mentions("[%s]" % SettingsManager.action_text(w.action))
+	return true
+
+
+func _release_widget(w: Control) -> void:
+	for idx in _touch_widget.keys():
+		if _touch_widget[idx] == w:
+			_touch_widget.erase(idx)
+	_up(w)
 
 
 func _process(_delta: float) -> void:
 	refresh()
 	for w in widgets:
-		w.queue_redraw()
+		if w.visible:
+			w.queue_redraw()
 
 
 func widget_at(pos: Vector2) -> Control:
 	for w in widgets:
-		if w.contains(pos):
+		if w.visible and w.contains(pos):
 			return w
 	return null
 

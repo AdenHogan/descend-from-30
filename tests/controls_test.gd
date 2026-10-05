@@ -43,6 +43,7 @@ func _ready() -> void:
 	await _test_item_cycle()
 	await _test_pad_pack_ring()
 	await _test_click_still_moves()
+	await _test_push_in_scavenge_says_why()
 	_cleanup()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
@@ -533,6 +534,13 @@ func _flush() -> void:
 	await get_tree().process_frame
 
 
+func _btn_pos(action: String) -> Vector2:
+	for b in HUD.touch_overlay.BUTTONS:
+		if b[0] == action:
+			return b[2]
+	return Vector2.ZERO
+
+
 func _touch(index: int, pos: Vector2, pressed: bool) -> void:
 	var ev := InputEventScreenTouch.new()
 	ev.index = index
@@ -574,7 +582,7 @@ func _test_touch_overlay() -> void:
 	check(not ov.visible, "'Off' keeps it away even on touch")
 	SettingsManager.set_touch_mode("on")
 	ov.refresh()
-	check(HUD.pointer_over_widget(ov.STICK_CENTRE) and HUD.pointer_over_widget(Vector2(1030, 520)), "the stick and the HIT button are HUD widgets")
+	check(HUD.pointer_over_widget(ov.STICK_CENTRE) and HUD.pointer_over_widget(_btn_pos("attack")), "the stick and the HIT button are HUD widgets")
 	check(not HUD.pointer_over_widget(Vector2(576, 300)), "the middle of the screen is still the world's")
 	# every button names a real action
 	var bad: Array = []
@@ -604,14 +612,14 @@ func _test_touch_overlay() -> void:
 	# buttons + multi-touch: hold the stick AND press HIT with the other thumb
 	_touch(0, ov.STICK_CENTRE, true)
 	_drag_to(0, ov.STICK_CENTRE + Vector2(80, 0))
-	_touch(1, Vector2(1030, 520), true)
+	_touch(1, _btn_pos("attack"), true)
 	await _flush()
 	check(Input.is_action_pressed("attack") and Input.is_action_pressed("move_right"), "two thumbs: walking and hitting at once")
-	_touch(1, Vector2(1030, 520), false)
+	_touch(1, _btn_pos("attack"), false)
 	await _flush()
 	check(not Input.is_action_pressed("attack") and Input.is_action_pressed("move_right"), "…letting go of HIT leaves the walk")
 	# sprint is held
-	_touch(2, Vector2(924, 452), true)
+	_touch(2, _btn_pos("sprint"), true)
 	await _flush()
 	check(Input.is_action_pressed("sprint"), "RUN is held while the finger is down")
 	# hiding lets go of everything
@@ -638,12 +646,82 @@ func _test_touch_overlay() -> void:
 	add_child(catcher)
 	catcher.action = "interact"
 	TutorialManager.guard_interact()      # (the player stands in a real corridor: don't let this press also open a door)
-	_touch(4, Vector2(1030, 404), true)
+	_touch(4, _btn_pos("interact"), true)
 	await _flush()
 	check(catcher.got, "a tap on USE arrives as an input EVENT for interact")
-	_touch(4, Vector2(1030, 404), false)
+	_touch(4, _btn_pos("interact"), false)
 	catcher.queue_free()
 	await _flush()
+	# --- owner round 36b: a quiet right hand, context buttons, and a teaching beat a phone can answer ---
+	SettingsManager.set_touch_mode("on")
+	ov.refresh()
+	var always: Array = []
+	for w in ov.widgets:
+		if w.visible and w.kind == "button":
+			always.append(w.action)
+	check(always.size() <= 8, "at most 8 buttons on screen in plain play, stick aside (%d: %s)" % [always.size(), str(always)])
+	check(not always.has("open_pack") and not always.has("item_context") and not always.has("listen") and not always.has("item_use"),
+		"the pack / force / listen / item buttons are NOT up until they'd do something")
+	for want in ["attack", "interact", "push", "sprint"]:
+		check(always.has(want), "the main hand has %s" % want)
+	var hidden_force = ov.get_node("Btn_item_context")
+	check(not hidden_force.visible and ov.widget_at(hidden_force.centre) == null and not HUD.pointer_over_widget(hidden_force.centre),
+		"a hidden button can't be tapped and doesn't block world clicks")
+	HUD.show_world_prompt(self, "2805 - Locked  [%s] Force lock  [%s] Listen" % [SettingsManager.action_text("item_context"), SettingsManager.action_text("listen")], Vector2(600, 300))
+	ov.refresh()
+	check(ov.get_node("Btn_item_context").visible and ov.get_node("Btn_listen").visible, "FORCE + LISTEN appear when a door prompt offers them")
+	HUD.hide_world_prompt(self)
+	ov.refresh()
+	check(not ov.get_node("Btn_item_context").visible, "…and go again with the prompt")
+	var one := ItemInstance.new()
+	one.setup("005")
+	WorldState.inventory.append(one)
+	HUD.selected_slot = 0
+	ov.refresh()
+	check(ov.get_node("Btn_item_use").visible, "ITEM shows with something in hand")
+	HUD.selected_slot = -1
+	WorldState.inventory.clear()
+	ov.refresh()
+	check(not ov.get_node("Btn_item_use").visible, "…and not with empty hands")
+	WorldState.is_scavenge_mode = false
+	ov.refresh()
+	check(ov.get_node("Btn_mode_toggle").label == "FIGHT", "the mode button names the current stance")
+	WorldState.is_scavenge_mode = true
+	ov.refresh()
+	check(ov.get_node("Btn_mode_toggle").label == "SCAV", "…and follows it")
+	WorldState.is_scavenge_mode = false
+	# a paused strict teaching beat: ONLY the push button, pulsing, and pressing it carries on
+	var beat_done := [false]
+	TutorialManager.prompt("test beat", "push", func(): beat_done[0] = true, "[PUSH] to shove", true)
+	await get_tree().process_frame
+	check(get_tree().paused and TutorialManager.strict_action() == "push", "the shove beat pauses the game and waits for push")
+	ov.refresh()
+	check(ov.visible, "the touch overlay STAYS UP through the pause (it vanished, which locked a phone player on the beat)")
+	var vis: Array = []
+	for w in ov.widgets:
+		if w.visible:
+			vis.append(w.name)
+	check(vis.size() == 1 and str(vis[0]) == "Btn_push" and ov.get_node("Btn_push").pulse, "…showing only a pulsing PUSH button %s" % str(vis))
+	_touch(5, _btn_pos("push"), true)
+	await _flush()
+	_touch(5, _btn_pos("push"), false)
+	await _flush()
+	check(beat_done[0] and not get_tree().paused, "tapping it answers the beat and the game resumes")
+	ov.refresh()
+	check(ov.get_node("Btn_attack").visible and not ov.get_node("Btn_push").pulse, "…and the full overlay is back")
+	# a loose beat ("press any key") needs no button: a tap anywhere continues (the emulated click)
+	var loose_done := [false]
+	TutorialManager.prompt("loose", "interact", func(): loose_done[0] = true, "[continue]", false)
+	var click := InputEventMouseButton.new()
+	click.button_index = MOUSE_BUTTON_LEFT
+	click.pressed = true
+	get_viewport().push_input(click)
+	await get_tree().process_frame
+	check(loose_done[0] and not get_tree().paused, "a loose beat continues on any tap")
+	ov.release_all()
+	for i in range(60):                    # (let the shove the beat button threw finish — a pack won't open mid-shove)
+		await get_tree().physics_frame
+
 	# a tap in the world is not on any button
 	check(ov.widget_at(Vector2(576, 300)) == null, "a tap in the world hits no button")
 	ov.release_all()
@@ -791,3 +869,24 @@ func _test_click_still_moves() -> void:
 	# (headless has no real pointer, so WHERE it walks isn't checked here — click_move_test covers that it reaches the player)
 	check(p.has_move_target and not p.is_attacking and not p.is_pushing,
 		"a left-click on empty floor in combat (attack IS on the left button) still sets a walk target and doesn't swing")
+
+
+func _test_push_in_scavenge_says_why() -> void:
+	print("[push while scavenging says why instead of doing nothing]")
+	_clear_the_dead()
+	WorldState.is_scavenge_mode = true
+	HUD.feedback_label.text = ""
+	var ev := InputEventAction.new()
+	ev.action = "push"
+	ev.pressed = true
+	Input.parse_input_event(ev)
+	for i in range(4):
+		await get_tree().physics_frame
+	check(HUD.feedback_label.text.to_lower().contains("shove") and HUD.feedback_label.text.contains("["),
+		"scavenge mode + push → \"%s\"" % HUD.feedback_label.text)
+	var up := InputEventAction.new()
+	up.action = "push"
+	up.pressed = false
+	Input.parse_input_event(up)
+	await _flush()
+	WorldState.is_scavenge_mode = false

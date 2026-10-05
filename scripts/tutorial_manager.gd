@@ -87,6 +87,16 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 
 
+## The action a paused STRICT teaching beat is waiting for ("push" in the shove intro), or "" when none is. The touch
+## overlay shows ONLY that button during a beat — a phone has no key to press, and a beat nobody can answer is a lock.
+func strict_action() -> String:
+	return _await_action if _awaiting and _await_strict else ""
+
+
+func is_awaiting() -> bool:
+	return _awaiting
+
+
 func is_active() -> bool:
 	# The scripted tutorial only runs on the very first character's Floor 30.
 	return WorldState.is_first_run and WorldState.current_floor == 30

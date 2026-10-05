@@ -384,6 +384,15 @@ func show_world_prompt(prompt_owner: Node, text: String, world_pos: Vector2) -> 
 	e["panel"].visible = true
 
 
+## Is a world prompt that mentions `token` (e.g. "[FORCE]") on screen? The touch overlay uses it to offer a context button
+## (Force / Listen) only when the prompt next to the player actually says it will do something.
+func world_prompt_mentions(token: String) -> bool:
+	for e in _world_prompts.values():
+		if e["panel"].is_visible_in_tree() and String(e["label"].text).contains(token):
+			return true
+	return false
+
+
 func hide_world_prompt(prompt_owner: Node) -> void:
 	# Only this owner's own pill is hidden, so one drop/door leaving range can't
 	# wipe another's prompt.

@@ -83,6 +83,7 @@ const UNJAM_CLEAR_RANGE := 58.0   # re-solidify a phased body once it's this far
 var _stuck_time: float = 0.0
 var _phased_bodies: Array = []    # bodies the player is currently phasing through
 var is_pushing = false
+var _push_hint_at: float = -10.0       # when "can't shove while searching" was last said (rate limit)
 var push_timer = 0.0
 var is_hit = false
 var hit_flash_timer = 0.0
@@ -386,6 +387,12 @@ func _physics_process(delta: float) -> void:
 		if Input.is_action_just_pressed("push") and not is_pushing:
 			if not _is_mouse_over_hud():
 				_do_push()
+	elif Input.is_action_just_pressed("push"):
+		# Shoving is a combat move. Say so instead of doing nothing (a touch player has no other clue why PUSH is dead).
+		var now_s: float = Time.get_ticks_msec() / 1000.0
+		if now_s - _push_hint_at > 2.0:
+			_push_hint_at = now_s
+			HUD.show_feedback("Can't shove while searching — switch to combat [{mode_toggle}].")
 
 	if is_pushing:
 		push_timer -= delta

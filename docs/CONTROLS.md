@@ -54,15 +54,22 @@ must stay a walk). Players who preferred the old way: Settings → Controls → 
 
 ## Touch (Android first)
 
-`scripts/touch_overlay.gd` (a child of the HUD) draws a fixed thumb-stick bottom-left, **HIT / USE / PUSH / RUN / DUCK** bottom-right,
-**FORCE / LISTEN / MODE / PACK / ITEM** up the right edge, **PAUSE / JOURNAL** top-left. Each is a real Control in
-`hud_widget_extra`, so `HUD.pointer_over_widget` is true over it (a tap on a button is never a click on the world). They press
-`InputEventAction`s, so `_input` handlers and polling both see them; multi-touch works (walk + hit). The stick sends analog
-`move_left/right` (a flick up / down is `move_up/down`).
+`scripts/touch_overlay.gd` (a child of the HUD) draws a fixed thumb-stick bottom-left and a deliberately QUIET right hand
+(owner round 36b, first phone playtest: "the button set up is really unintuitive on the right hand side… too much going on").
+Main hand: **HIT** (big), **USE**, **PUSH**, **RUN** (held). Edge column: **FIGHT/SCAV** (the stance toggle, names the current stance) and **DUCK**.
+**Context buttons appear only when they would do something**: **ITEM** with something in hand, **LISTEN** / **FORCE** only while a world
+prompt next to you offers them (`HUD.world_prompt_mentions("[FORCE]")`). The bag is the HUD's own backpack button (no copy here). PAUSE /
+JOURNAL top-left. Each is a real Control in `hud_widget_extra`, so `HUD.pointer_over_widget` is true over it (a hidden one is not) and a tap on a
+button never also walks / swings in the world. They press `InputEventAction`s, so `_input` handlers and polling both see them; multi-touch
+works (walk + hit). The stick sends analog `move_left/right` (a flick up / down is `move_up/down`).
+**Teaching beats**: a paused STRICT beat (the shove intro, `TutorialManager.strict_action()`) keeps the overlay up showing ONLY that button,
+pulsing — it used to vanish on every pause, which locked a phone player on "[PUSH] to shove" with nothing to press. A loose beat takes any tap.
+**Push is a combat move** (it does nothing in scavenge mode, as before) — pressing it while scavenging now says so ("Can't shove while searching —
+switch to combat [MODE]"), and the tutorial's shove beat first draws a still-scavenging player back to combat.
 Taps anywhere else are ordinary clicks (`emulate_mouse_from_touch`): tap the floor to walk, a node to scavenge, a zombie to hit.
 Shown when a touchscreen is in use (`SettingsManager.touch_ui_wanted`: last device = touch, or Settings → "Always on"), hidden on keyboard / pad;
-hiding or pausing **lets go of everything held**. `project.godot`: landscape (`window/handheld/orientation=0`), `quit_on_go_back=false`.
-**Not tested on a device** — see "What isn't verified".
+hiding or pausing (outside a strict beat) **lets go of everything held**. `project.godot`: landscape (`window/handheld/orientation=0`), `quit_on_go_back=false`.
+**Phone-tested once by the owner** (Godot 4.7.1 Android editor, Run in the editor) — that is how the cluttered layout and the beat lock were found.
 
 ## Prompts name the right button
 
@@ -96,7 +103,7 @@ default is dropped).
 ## What isn't verified (be straight about it)
 
 Everything above was tested with **synthetic events** in headless Godot: pad buttons / axes / touches pushed into the viewport, the real
-`InputMap`, the real player in a real corridor. **No physical controller, no phone, no APK** was involved. Still open for an in-hand
+`InputMap`, the real player in a real corridor. **No physical controller** was involved; the touch controls got ONE real phone session (the owner, Android editor Run), which found the layout clutter and the shove-beat lock fixed above — the exported APK is still untried. Still open for an in-hand
 check: stick feel and dead-zones, the layout of the touch buttons on a real screen (positions are a first guess for a 16:9 landscape
 phone — render them with `tools/scene_capture`), the Android export itself (Godot's Android export template, a keystore, the
 `gl_compatibility` renderer on a device, performance on a low-end phone), haptics (none yet), and whether `emulate_mouse_from_touch`

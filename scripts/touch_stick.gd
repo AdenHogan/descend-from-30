@@ -10,6 +10,8 @@ var label: String = ""
 var centre: Vector2 = Vector2.ZERO
 var radius: float = 30.0
 var hold: bool = false
+var context: String = "always"          # when it shows: "always" | "item" | "prompt" (touch_overlay decides)
+var pulse: bool = false                 # a teaching beat is waiting for THIS button: breathe so it can't be missed
 var pressed_now: bool = false
 
 var _font: Font = null
@@ -43,10 +45,15 @@ func _draw() -> void:
 		var v: Vector2 = ov.stick_vec if ov != null and "stick_vec" in ov else Vector2.ZERO
 		draw_circle(c + v * radius * 0.55, radius * 0.38, Color(0.89, 0.647, 0.247, 0.55 if down else 0.38))
 		return
+	if pulse:
+		var k: float = 0.5 + 0.5 * sin(Time.get_ticks_msec() / 1000.0 * 6.0)
+		draw_circle(c, radius * (1.0 + 0.12 * k), Color(0.95, 0.7, 0.25, 0.25 + 0.25 * k))
 	draw_circle(c, radius, Color(0.9, 0.55, 0.2, 0.55) if down else Color(0.05, 0.05, 0.06, 0.42))
 	draw_arc(c, radius - 1.0, 0.0, TAU, 40, Color(0.89, 0.647, 0.247, 0.9 if down else 0.6), 2.0, true)
 	if _font != null and label != "":
-		var fs: int = 11 if radius >= 30.0 else 8
+		var fs: int = 12 if radius >= 38.0 else (10 if radius >= 30.0 else 8)
+		if label.length() > 4:
+			fs = mini(fs, 8)
 		if label.length() > 5:
 			fs = 7
 		var w: float = _font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
