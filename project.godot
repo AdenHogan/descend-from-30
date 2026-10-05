@@ -32,6 +32,7 @@ BalconyPan="*res://scripts/balcony_pan.gd"
 [display]
 
 window/stretch/mode="canvas_items"
+window/handheld/orientation=0
 
 [input]
 
