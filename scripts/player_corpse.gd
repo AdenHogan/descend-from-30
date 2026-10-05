@@ -64,7 +64,9 @@ func _input(event: InputEvent) -> void:
 		return
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		if _is_mouse_over_body():
+			var vp := get_viewport()
 			_recover()
+			vp.set_input_as_handled()      # the click was the body's — no door / stairwell behind it acts too
 
 
 func _process(delta: float) -> void:

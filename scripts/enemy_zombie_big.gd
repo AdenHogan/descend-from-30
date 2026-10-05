@@ -189,6 +189,28 @@ func receive_push(_force: float) -> void:
 		tw.tween_property(animated_sprite, "position:x", 0.0, 0.14)
 
 
+func strike_reach() -> float:
+	if not is_instance_valid(player):
+		return _attack_reach()
+	return _attack_reach() + ENEMY_CROWD.reach_bonus(ENEMY_CROWD.rank(self, player))
+
+
+## A shove can't move or stun me, so one that already opened the way again is wasted.
+func push_spent() -> bool:
+	return is_dead or _push_pass_timer > PUSH_PASS_TIME * 0.6
+
+
+## The player shouldered a shove into the line I'm standing in: let them slip past, same as a push on me (no rock back).
+func make_way() -> void:
+	if is_dead:
+		return
+	_push_pass_timer = maxf(_push_pass_timer, PUSH_PASS_TIME)
+	if is_instance_valid(player) and player is PhysicsBody2D and not _plane_passable:
+		add_collision_exception_with(player)
+		player.add_collision_exception_with(self)
+		_plane_passable = true
+
+
 func is_push_passable() -> bool:
 	return _push_pass_timer > 0.0 or _plane_passable
 

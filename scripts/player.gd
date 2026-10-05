@@ -8,6 +8,9 @@ const PUSH_DURATION = 0.8
 const PUSH_RANGE = 40.0
 const PUSH_BEHIND_PENALTY := 40.0   # a push prefers the enemy in front of you over one behind
 const PUSH_FORCE = 100.0
+const PUSH_STRIKE_SLACK := 6.0       # anything within its OWN strike reach (+ this) can be shoved, however far back in a crowd it stands
+const PUSH_SPENT_PENALTY := 500.0    # an enemy already reeling from a shove is picked last — another shove on it is wasted
+const PUSH_MAKE_WAY_RANGE := 90.0    # a shove also lets the player slip past the rest of the line this close on that side
 const MODE_SWITCH_TIME = 0.2
 
 const DEV_MODE = true
@@ -1012,6 +1015,7 @@ func _do_push() -> void:
 		push_dir = -1.0 if animated_sprite.flip_h else 1.0
 	if target.has_method("receive_push"):
 		target.receive_push(push_dir * PUSH_FORCE * WorldState.get_push_mult())
+	_make_way_through(target, push_dir)
 
 
 func push_target():
@@ -1029,13 +1033,40 @@ func push_target():
 		if dy > MELEE_PLANE_TOLERANCE or not _same_plane(zombie):
 			continue
 		var edge_dist = absf(dx) - _zombie_body_radius(zombie)
-		if edge_dist > PUSH_RANGE:
+		if edge_dist > PUSH_RANGE and not _can_strike_me(zombie, dx):
 			continue
-		var score: float = edge_dist + (0.0 if signf(dx) == facing or dx == 0.0 else PUSH_BEHIND_PENALTY) + _lying_penalty(zombie)
+		var score: float = edge_dist + (0.0 if signf(dx) == facing or dx == 0.0 else PUSH_BEHIND_PENALTY) + _lying_penalty(zombie) \
+			+ (PUSH_SPENT_PENALTY if _push_spent(zombie) else 0.0)
 		if score < best_score:
 			best_score = score
 			best = zombie
 	return best
+
+
+func _can_strike_me(zombie: Node, dx: float) -> bool:
+	# It can hurt me from where it stands (a body back in a crowd, a long arm) → the shove reaches it too.
+	return zombie.has_method("strike_reach") and absf(dx) <= zombie.strike_reach() + PUSH_STRIKE_SLACK
+
+
+func _push_spent(zombie: Node) -> bool:
+	return zombie.has_method("push_spent") and zombie.push_spent()
+
+
+## A shove opens the way through the whole line it was aimed into (owner round 36e: a crowd walled a push-only player in —
+## the front body staggered, the next ones stayed solid). Only the TARGET is shoved / stunned (one body per push stands);
+## the others on that side, within PUSH_MAKE_WAY_RANGE, simply stop blocking until the player is past them.
+func _make_way_through(target: Node, side: float) -> void:
+	for zombie in _combat_targets():
+		if zombie == target or not is_instance_valid(zombie) or (("is_dead" in zombie) and zombie.is_dead):
+			continue
+		if not zombie.has_method("make_way") or not _same_plane(zombie):
+			continue
+		var dx: float = zombie.global_position.x - global_position.x
+		if signf(dx) != side or absf(dx) > PUSH_MAKE_WAY_RANGE:
+			continue
+		if absf(zombie.global_position.y - global_position.y) > MELEE_PLANE_TOLERANCE:
+			continue
+		zombie.make_way()
 
 
 func request_mode_toggle() -> bool:

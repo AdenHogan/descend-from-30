@@ -823,6 +823,28 @@ func receive_push(force: float) -> void:
 	_make_passable_to_player()
 
 
+## How far from the player's centre I can actually HURT them right now (my reach plus the extra my crowd rank gives).
+## The player's push uses it: anything that can strike you can be shoved (owner round 36e — a body standing back in a
+## crowd hit from beyond the shove's own reach, so push alone could never touch it).
+func strike_reach() -> float:
+	if not is_instance_valid(player):
+		return _attack_reach()
+	return _attack_reach() + ENEMY_CROWD.reach_bonus(ENEMY_CROWD.rank(self, player))
+
+
+## Already reeling from a push (receive_push would ignore another): a shove aimed here is wasted.
+func push_spent() -> bool:
+	return (state == "hit" and not _hurt_stun) or state == "recovering" or state == "knockdown" or is_dead
+
+
+## The player shouldered a shove into the line I'm standing in: I'm not shoved or stunned, but for now I don't wall them in
+## (the usual "passable until the player is clear" rule re-solidifies me once they are past).
+func make_way() -> void:
+	if is_dead or riser_phase != "" or stair_mode:
+		return
+	_make_passable_to_player()
+
+
 func receive_kick(duration: float) -> void:
 	# A contextual PUSH alternative for enemies a shove-back doesn't suit (the Crawler:
 	# too low to the ground to stumble). Instead of knockback it ROOTS the enemy in place,

@@ -109,8 +109,11 @@ func _input(event: InputEvent) -> void:
 	if not player_nearby:
 		return
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		if _is_mouse_over_orb():
+		if _is_mouse_over_orb(event.position):
+			var vp := get_viewport()
 			_try_pickup()
+			# The click was THIS pickup's: nothing behind it (a stairwell, a door) may also act on it.
+			vp.set_input_as_handled()
 
 
 func _process(delta: float) -> void:
@@ -139,7 +142,8 @@ func _orb_level() -> float:
 	return 1.0 - clampf((dist - PICKUP_RANGE) / (GLOW_RANGE - PICKUP_RANGE), 0.0, 1.0)
 
 
-func _is_mouse_over_orb() -> bool:
+func _is_mouse_over_orb(at: Vector2 = Vector2.INF) -> bool:
+	# `at` = where the click landed (the event's own position — a touch tap has no resting mouse); default = the pointer.
 	var p = get_tree().get_first_node_in_group("player")
 	if p == null:
 		return false
@@ -147,7 +151,7 @@ func _is_mouse_over_orb() -> bool:
 	if cam == null:
 		return false
 	var mouse_world = cam.get_screen_center_position() + \
-		(get_viewport().get_mouse_position() - get_viewport().get_visible_rect().size / 2) / cam.zoom
+		((get_viewport().get_mouse_position() if at == Vector2.INF else at) - get_viewport().get_visible_rect().size / 2) / cam.zoom
 	return global_position.distance_to(mouse_world) <= PICKUP_RANGE
 
 

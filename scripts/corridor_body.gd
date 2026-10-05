@@ -55,7 +55,9 @@ func _process(_delta: float) -> void:
 func _input(event: InputEvent) -> void:
 	if player_nearby and event is InputEventMouseButton and event.pressed \
 			and event.button_index == MOUSE_BUTTON_LEFT and _is_mouse_over_body():
+		var vp := get_viewport()
 		search()
+		vp.set_input_as_handled()          # the click was the body's — no door / stairwell behind it acts too
 
 
 func _is_mouse_over_body() -> bool:

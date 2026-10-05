@@ -765,6 +765,10 @@ func _test_touch_overlay() -> void:
 	await _flush()
 	# --- owner round 36b: a quiet right hand, context buttons, and a teaching beat a phone can answer ---
 	SettingsManager.set_touch_mode("on")
+	# (the random building can put a door's "[R] Listen" prompt in reach of the player's spot — a rare flake; this check is about
+	# plain play, so no world prompt is on screen)
+	for e in HUD._world_prompts.values():
+		e["panel"].visible = false
 	ov.refresh()
 	var always: Array = []
 	for w in ov.widgets:

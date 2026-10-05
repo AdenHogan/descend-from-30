@@ -236,7 +236,7 @@ Robustness rules; with suite-name words it runs only those). What it covers:
   `dev_menu_test`, `lighting_test`, `plane_lock_test`, `apartment_window_test`,
   `scavenge_node_test`, `drop_physics_test`, `softlock_test`, `character_panel_test`,
   `corpse_recovery_test`, `run_memory_test`, `attack_input_test`, `character_stats_test`, `transition_seam_test`, `run_bookends_test`, `weapon_upgrade_test`, `progression_test`, `back_plane_test`,
-  `apartment_lamp_test`, `gun_cabinet_test`, `breach_test`, `item_icon_test`, `hud_wheel_test`, `motion_test`, `growth_test`, `pack_test`, `backpack_test`, `molotov_test`, `banister_test`, `stair_heights_test`, `resident_npc_test`, `open_furniture_test`, `burnt_apartment_test`, `opening_test`, `controls_test` — run all 62 before commit. Balance tool: `tools/economy_report.tscn` (scrap per run, ~25 min a seed). (`new_game()` rolls a RANDOM seed, so any test meets any of the four
+  `apartment_lamp_test`, `gun_cabinet_test`, `breach_test`, `item_icon_test`, `hud_wheel_test`, `motion_test`, `growth_test`, `pack_test`, `backpack_test`, `molotov_test`, `banister_test`, `stair_heights_test`, `resident_npc_test`, `open_furniture_test`, `burnt_apartment_test`, `opening_test`, `controls_test`, `crowd_push_test`, `click_claim_test` — run all 64 before commit. Balance tool: `tools/economy_report.tscn` (scrap per run, ~25 min a seed). (`new_game()` rolls a RANDOM seed, so any test meets any of the four
   characters — an assert on a trait-affected value must be trait-aware; see docs/CHARACTERS.md.) (Run ONE godot at a time — a killed/backgrounded headless run can
   linger and block the next, and a GDScript **parse error makes a test scene load but
   never call `quit()`, so it "hangs" until timeout** rather than printing an error line;
@@ -2329,6 +2329,15 @@ means no rendering — UI layout and art still need an in-editor look.
   **The backpack opens from the back plane and the balcony too** (`player.pack_blocked_reason` no longer refuses them; the prop follows the plane's scale; S stands up first).
   Touch only with synthetic events; the button positions are still a first guess. `scene_capture` gained `touch:on`. Locked by `controls_test` (`_test_primary_button`, the stick sprint
   checks), `back_plane_test`, `pack_test`, `hud_wheel_test`.
+- **ONE CLICK, ONE THING + PUSHING THROUGH A CROWD (owner round 36e):** (1) a click that takes a world drop / the floor backpack / a corridor body / your own corpse now
+  claims the click (`get_viewport().set_input_as_handled()` in their `_input`), so a stairwell or door behind it — which act on the UNHANDLED click — never also fire (a drop beside
+  a stair used to pick up AND change floor); `world_drop._is_mouse_over_orb` reads the click's own position. Any new click-to-take thing must do the same. Locked by `click_claim_test`.
+  (2) The crowd's rear ranks strike from beyond a shove's 40 px and a shove kept re-hitting the already-staggered front body, so a push-only player was walled in. Now **anything that can
+  strike you can be shoved** (`enemy.strike_reach()` = reach + its crowd-rank bonus; `player._can_strike_me`), a shove skips bodies already reeling (`enemy.push_spent()`,
+  `PUSH_SPENT_PENALTY`) and **opens the way through the line it was aimed into**: the other bodies on that side within `PUSH_MAKE_WAY_RANGE` (90) stop blocking (`enemy.make_way()` — standard:
+  `_make_passable_to_player`, solid again once the player is clear; big: the pass-through timer); only the TARGET is shoved / stunned (one body per push still stands).
+  Locked by `crowd_push_test` (a push-only player gets through 4 standards / 3 long-arms / 2 bigs; reach, spent-skip, make-way; mutation-checked). Aggro mix (a low-aggro body idling in front of
+  a keen one) was probed and did NOT hold the keen one back — enemies never collide with each other and an idle body isn't ranked; I couldn't reproduce that half of the report.
 - **THE TUTORIAL NEIGHBOUR IS A BODY THAT GETS UP (owner round 36c; docs/TUTORIAL.md "3003"):** she lies on the floor (a `riser_scripted` riser, never wakes by itself); getting within
   135 px starts `room._tut_wake_scene` — the player is HELD (`player.hold_for_scene` / `release_hold`, camera eased to the midpoint), the curiosity line on the way in + «Mrs Delacroix?» (`3003_name`) as she rises, a long twitch + a slow rise
   (`TUTORIAL_*_TIME`), then APPROACH → the unchanged lunge / shove / find-a-weapon beats. Every exit releases the player. Also from the first phone playtest: the touch overlay was reworked (quiet
