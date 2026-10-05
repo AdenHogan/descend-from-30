@@ -121,10 +121,14 @@ constants beats keeping them in sync by hand (see `DOWN_*` / `UP_*` in
 The bar: players should never meet a break, bug or crash. Every rule below was learned from a
 real failure in this codebase.
 
-1. **Commit only on a clean gate.** `tools/run_all_tests.sh` must exit 0 before any commit — it
-   runs every suite one at a time AND fails a suite that printed a `SCRIPT ERROR`/`Parse Error`
-   even if it said "ALL PASSED". Never chain `git commit` after a test loop in one command (a
-   failure was once pushed that way).
+1. **Verify before committing — proportionally (owner round 36d: "run gate checks less frequently… unless you're creating bugs and
+   errors with each response I don't think we need a gate each time").** Before a normal commit run the suites of the systems you
+   touched: `tools/run_all_tests.sh <word> <word>` (words match suite names — `controls`, `tutorial`, `pack`, `fire`…; it still does the
+   import and the script-error scan for those). Run the FULL `tools/run_all_tests.sh` (must exit 0) before a milestone, when the change
+   touches the shared core (`world_state.gd`, `player.gd`, `hud.gd`, `settings_manager.gd`, `building_floors.gd`, `room.gd`), when the
+   owner asks, or when a targeted run failed in a way that suggests wider damage. ALWAYS say in the report which suites were run and which
+   were NOT (reporting rule 1 applies — an unrun suite is "not checked", never "fine"). A suite that prints a `SCRIPT ERROR`/`Parse Error` is
+   a failure even if it says "ALL PASSED". Never chain `git commit` after a test loop in one command (a failure was once pushed that way).
 2. **No silent passes.** A check must be able to FAIL. When renaming/removing a method, grep
    `tests/` and `tools/` too (a renamed `_open()` left a check "passing" on a script error). When
    adding an item to a spawn/loot pool, grep tests for that pool's allowed list (a new scrap bag
@@ -211,7 +215,7 @@ real failure in this codebase.
 Headless Godot is available in cloud sessions (installed by the environment
 setup script; binary from downloads.godotengine.org). Before every commit run
 **`tools/run_all_tests.sh`** (import + every suite + script-error scan; exit 0 = clean — see
-Robustness rules). What it covers:
+Robustness rules; with suite-name words it runs only those). What it covers:
 
 - `godot --headless --import` — catches broken scenes, bad UIDs, missing
   resources. Run it after adding new scenes/scripts so their UIDs register.
