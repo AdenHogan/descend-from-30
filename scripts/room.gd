@@ -18,7 +18,7 @@ var balcony_centers: Array = []
 # three nodes reveal → scavenge under a slow approach → pause → attack (2-hit
 # kill) → key drops → pause → heal prompt. Beats that pause the game are run
 # through TutorialManager (dialogue + press-a-key resume). docs/TUTORIAL.md.
-enum TutStep { INTRO, APPROACH, PUSH, WEAPON, SCAVENGE, COMBAT, PACK, HEAL, DONE }
+enum TutStep { INTRO, APPROACH, PUSH, WEAPON, SCAVENGE, COMBAT, PACK, HEAL, DONE, WAKE }
 # Low on purpose. Budget across the tutorial: 6 → −2 (3003 zombie) → −2 (3004
 # barricade, teaching that barricades drain durability too) → 2 left for the
 # hallway choice, where forcing the 3004 lock (−1) OR fighting the corridor
@@ -26,6 +26,8 @@ enum TutStep { INTRO, APPROACH, PUSH, WEAPON, SCAVENGE, COMBAT, PACK, HEAL, DONE
 const TUT_CLUB_DURABILITY = 6
 # The neighbour stands almost at the back wall; with the trigger at 200px the
 # curiosity beat fires when the player is about a quarter into the final room.
+const TUT_BODY_INSET = 130.0    # the neighbour's body lies this far in from the back wall (clear of the camera's edge + the HUD portrait)
+const TUT_WAKE_RANGE = 135.0    # player gets this close to the body on the floor → the scripted wake-up scene
 const TUT_SEE_RANGE = 200.0     # player gets this close → curiosity + turn + release
 # Matches the zombie's ATTACK_RANGE (30): the beat fires the instant she
 # lunges (she stops to attack at 30, so waiting for closer would never
@@ -1445,13 +1447,23 @@ func _spawn_tutorial_zombie(entrance_side: String) -> Node:
 	zombie.tutorial_frozen = true
 	zombie.drops_key = true
 	zombie.key_target_apartment = "3002"
-	if WorldState.zombie_positions.has(key):
+	var saved_pos: bool = WorldState.zombie_positions.has(key)
+	if saved_pos:
 		var saved = WorldState.zombie_positions[key]
 		zombie.global_position = Vector2(saved["x"], saved["y"])
+	else:
+		# First time in: she is a BODY on the floor — one of the flat's dead — head toward the room. A little way in from the
+		# back wall (not against it): up against the wall she sat at the very edge of the screen, behind the HUD portrait.
+		var lie_x: float = back_x + (-TUT_BODY_INSET if back_x > 600.0 else TUT_BODY_INSET)
+		zombie.global_position = Vector2(lie_x, ROOM_STD_ORIGIN_Y)
 	add_child(zombie)
-	# She starts FACING THE WALL — she only turns when the player calls out
-	# (the chase logic flips her toward the player on release).
-	zombie.animated_sprite.flip_h = entrance_side != "left"
+	if saved_pos:
+		# She was already up when the player last left: stand her at the back facing the wall, frozen, as before.
+		zombie.animated_sprite.flip_h = entrance_side != "left"
+	else:
+		zombie.riser_scripted = true
+		var head_dir: float = -1.0 if back_x > 600.0 else 1.0
+		zombie.start_riser(head_dir, str(WorldState.master_seed) + key, 0.0)
 	return zombie
 
 
@@ -1634,8 +1646,19 @@ func _tutorial_process(_delta: float) -> void:
 		return
 	var dist = player.global_position.distance_to(tut_zombie.global_position)
 	match tut_step:
+		TutStep.WAKE:
+			pass            # the scripted scene (_tut_wake_scene) owns the player and the neighbour until it hands back
 		TutStep.INTRO:
-			# Curiosity on approach, then the neighbour stirs and starts closing.
+			if tut_zombie.riser_scripted and tut_zombie.riser_phase == "lying":
+				# The curiosity line, as before, on the way further into the room (she is a body on the floor now, so no turn / release).
+				if dist <= TUT_SEE_RANGE and not _tut_curiosity_said:
+					_tut_curiosity_said = true
+					TutorialManager.say(TutorialManager.LINES["3003_curiosity"])
+				# THE WAKE-UP: she lies on the floor. Get close and the scene takes over (the player is held for it).
+				if dist <= TUT_WAKE_RANGE and _tut_can_start_wake(player):
+					_tut_wake_scene(player)
+				return
+			# (A neighbour who was already up when you left: curiosity on approach, then she stirs and closes in.)
 			if dist <= TUT_SEE_RANGE:
 				TutorialManager.say(TutorialManager.LINES["3003_curiosity"])
 				tut_zombie.tutorial_release()
@@ -1674,6 +1697,52 @@ func _tutorial_process(_delta: float) -> void:
 		TutStep.COMBAT:
 			if tut_zombie.is_dead:
 				_tut_after_kill()
+
+
+var _tut_curiosity_said: bool = false
+
+func _tut_can_start_wake(player: Node) -> bool:
+	# Never start the scene over something else that owns the player (a search panel, the pack, a listen, a stance swap).
+	return not (player.is_cutscene or player.is_dead or player.is_dying or player.is_listening or player.is_switching_mode \
+		or WorldState.loot_open or str(player.pack_phase) != "" or get_tree().paused)
+
+
+## The scripted wake-up (owner round 36c: "the player gets close and triggers an unstoppable moment where the player is locked
+## in place for their dialogue and the animation of the enemy getting up, then it plays as normal"): the player is HELD, faces
+## her, says what they see; she twitches, then rises slowly; then the player is handed back and she comes for them (the lunge → shove
+## → find-a-weapon beats are unchanged). EVERY exit hands the player back — the neighbour dying / vanishing, the scene leaving the
+## tree, a stuck animation (the timeout) — a held player must never be stranded.
+func _tut_wake_scene(player: Node) -> void:
+	tut_step = TutStep.WAKE
+	var z: Node = tut_zombie
+	player.hold_for_scene(z.global_position.x, z.global_position.x)
+	var ok: bool = await _tut_wait(1.0, z)          # a still beat: the player takes in the body on the floor (no new lines — the
+	if ok and is_instance_valid(z) and z.riser_phase == "lying":    # curiosity line already played on the way in)
+		z.tutorial_wake()
+		var t0: float = Time.get_ticks_msec() / 1000.0
+		var said := false
+		while ok and is_instance_valid(z) and z.riser_phase != "" and Time.get_ticks_msec() / 1000.0 - t0 < 9.0:
+			if not said and z.riser_phase == "rise":
+				said = true                          # the one line of the scene: the name again, as she gets up
+				HUD.show_dialogue(TutorialManager.LINES["3003_name"], "", false, 2.5)
+			ok = await _tut_wait(0.1, z)
+		if ok and is_instance_valid(z):
+			ok = await _tut_wait(0.5, z)
+	# hand back — whatever happened
+	if is_instance_valid(player):
+		player.release_hold()
+	if is_instance_valid(z) and z.riser_phase != "":
+		z._riser_up()               # a stuck / interrupted rise: she is up now (a body can't be left half-risen)
+	if is_inside_tree() and tut_step == TutStep.WAKE:
+		tut_step = TutStep.DONE if (not is_instance_valid(z) or z.is_dead) else TutStep.APPROACH
+
+
+## Wait `secs`; false when the scene should stop (the room left the tree, or the neighbour is gone / dead).
+func _tut_wait(secs: float, z: Node) -> bool:
+	if not is_inside_tree():
+		return false
+	await get_tree().create_timer(secs).timeout
+	return is_inside_tree() and is_instance_valid(z) and not z.is_dead
 
 
 func _tut_after_kill() -> void:

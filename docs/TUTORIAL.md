@@ -76,11 +76,18 @@ apartment teaches, in order: **push (defence) → search → weapon → combat �
 healing**. The whole sequence is a scripted state machine with gameplay
 pauses at each teaching beat (`get_tree().paused` + a dialogue prompt).
 
-1. **Enter.** The zombie stands **almost at the back wall** (the far wall
-   from the door), idle, **facing the wall**. **Scavenge nodes are hidden.**
-2. **Curiosity.** When the player is about a **quarter of the way into the
-   final room** (~200px from her): dialogue «Mrs Delacroix…? Are you okay in
-   here?» — and she **turns around** and starts closing at normal pace.
+1. **Enter.** The neighbour is a **BODY ON THE FLOOR** — one of the flat's dead (the same lying-body rig as the other flats' risers,
+   `enemy_zombie_standard.start_riser`, flagged `riser_scripted` so it never wakes on its own) — a little way in from the back wall
+   (`room.TUT_BODY_INSET`, clear of the camera edge + the HUD portrait), head toward the room. **Scavenge nodes are hidden.**
+2. **The wake-up scene (owner round 36c — "an unstoppable moment where the player is locked in place for their dialogue and the
+   animation of the enemy getting up").** Within `TUT_WAKE_RANGE` (135 px) of the body the scene (`room._tut_wake_scene`, step `WAKE`)
+   takes over: the player is HELD (`player.hold_for_scene` — rooted, facing her, camera eased to the midpoint so both are in frame),
+   a still beat; she twitches (1.6 s) and rises stiffly (2.8 s — `TUTORIAL_TWITCH_TIME` / `TUTORIAL_RISE_TIME`, slower than the
+   ordinary riser so it can be WATCHED), and as she rises the player says her name again, «Mrs Delacroix?» (`3003_name`) — the
+   scene's ONLY new line (the existing curiosity line «Mrs Delacroix…? you okay back there?» still plays on the way in, at ~200 px);
+   then the player is handed back and she closes in at normal pace. Every exit hands the player back (the neighbour
+   dying / vanishing, the room leaving the tree, a 9 s timeout forces her up). A neighbour who was already up when you left earlier is
+   stood at the back, frozen, and uses the old curiosity beat. Locked by `tutorial_test._test_3003_wake_scene`.
 3. **The lunge.** The beat fires the instant she reaches attack range
    (30px — tight, so the taught push always connects) → scripted bite →
    **gameplay PAUSES** → prompt to **PUSH** («It's on me — shove it back!»).

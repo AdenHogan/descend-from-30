@@ -43,6 +43,7 @@ const LINES := {
 	"end_survived": "YOU SURVIVED",      # the white escape card (lobby door)
 	# --- 3003 scripted encounter ---
 	"3003_curiosity": "Mrs Delacroix…? you okay back there?",
+	"3003_name": "Mrs Delacroix?",         # said again as the body gets up (the wake-up scene)
 	"3003_push": "Mrs Delacroix, gah, no, not like this!!! - shove her back!",
 	"3003_weapon": "That won't stop her...it. I need a weapon - Search the room!",
 	"3003_weapon_go": "She's getting closer! I need to hurry!",

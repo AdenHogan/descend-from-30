@@ -32,6 +32,7 @@ func _ready() -> void:
 	await _test_3005_bullets()
 	await _test_tutorial_rooms()
 	await _test_3003_scripted_content()
+	await _test_3003_wake_scene()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -185,10 +186,12 @@ func _test_3003_scripted_content() -> void:
 	if tz != null and is_instance_valid(tz):
 		check(tz.tutorial_scripted, "neighbour is in scripted (no-RNG) mode")
 		check(tz.tutorial_frozen, "neighbour starts frozen until the player nears")
+		check(tz.riser_scripted and tz.riser_phase == "lying", "she starts as a BODY on the floor (a scripted riser, phase %s)" % tz.riser_phase)
+		check(not tz.get_collision_layer_value(1) and tz.z_index == 0, "…lying on the floor layer, no collision (she can't block anyone)")
 		check(tz.drops_key and tz.key_target_apartment == "3002", "neighbour yields the 3002 key on death")
 		var zx = tz.global_position.x
-		check(absf(zx - 1035.0) < 10.0 or absf(zx - 155.0) < 10.0,
-			"neighbour stands almost at the back wall (x=%.0f)" % zx)
+		check(absf(zx - (1035.0 - room.TUT_BODY_INSET)) < 10.0 or absf(zx - (155.0 + room.TUT_BODY_INSET)) < 10.0,
+			"neighbour lies in the back of the flat (x=%.0f)" % zx)
 		# Node order along the retreat path: junk is met first (nearest her),
 		# the golf club last (nearest the entrance).
 		var junk_x := -1.0
@@ -322,3 +325,85 @@ func _test_pause_menu_autoload() -> void:
 		var src = f.get_as_text()
 		f.close()
 		check(not src.contains("pause_menu.tscn"), "pause menu removed from %s.tscn" % scene)
+
+
+## Owner round 36c: the neighbour is a body on the floor; getting close HOLDS the player for the dialogue and her slow rise,
+## then hands back and she comes for them. Every exit releases the player.
+func _test_3003_wake_scene() -> void:
+	print("[3003 wake-up scene]")
+	Engine.time_scale = 4.0
+	WorldState.new_game()
+	WorldState.current_floor = 30
+	WorldState.current_apartment_id = "3003"
+	WorldState.spawn_source = "door"
+	WorldState.exit_spawn_x = 570.0
+	WorldState.seed_floor_door_states(30)
+	var room = load("res://scenes/room.tscn").instantiate()
+	add_child(room)
+	for i in range(8):
+		await get_tree().process_frame
+	var tz = room.tut_zombie
+	var player = get_tree().get_first_node_in_group("player")
+	check(tz != null and player != null and tz.riser_phase == "lying", "a body on the floor and the player in the room")
+	# far from her: nothing happens
+	player.global_position.x = tz.global_position.x + (-600.0 if tz.global_position.x > 600.0 else 600.0)
+	for i in range(30):
+		await get_tree().physics_frame
+	check(room.tut_step == room.TutStep.INTRO and tz.riser_phase == "lying" and not player.is_cutscene, "far away she lies there and the player is free")
+	# walk up: the scene starts and HOLDS the player
+	player.global_position.x = tz.global_position.x + (-120.0 if tz.global_position.x > 600.0 else 120.0)
+	for i in range(10):
+		await get_tree().physics_frame
+	check(room.tut_step == room.TutStep.WAKE, "close enough → the wake-up scene starts")
+	check(player.is_cutscene, "…and the player is HELD (locked in place for it)")
+	var px: float = player.global_position.x
+	var saw := {"lying": true, "twitch": false, "rise": false, "name": false, "early_name": false}
+	var t0 := Time.get_ticks_msec()
+	while room.tut_step == room.TutStep.WAKE and Time.get_ticks_msec() - t0 < 30000:
+		saw["twitch"] = saw["twitch"] or tz.riser_phase == "twitch"
+		saw["rise"] = saw["rise"] or tz.riser_phase == "rise"
+		if HUD.dialogue_label.text == TutorialManager.LINES["3003_name"]:
+			saw["name"] = true
+			saw["early_name"] = saw["early_name"] or tz.riser_phase in ["lying", "twitch"]
+		check_held_still(player, px)
+		await get_tree().physics_frame
+	check(saw["twitch"] and saw["rise"], "she twitched, then rose (twitch %s, rise %s)" % [saw["twitch"], saw["rise"]])
+	check(saw["name"] and not saw["early_name"], "the player says her name again AS she gets up — and only then")
+	check(not player.is_cutscene, "the player is handed back")
+	check(room.tut_step == room.TutStep.APPROACH, "the tutorial carries on at APPROACH (step %d)" % room.tut_step)
+	check(tz.riser_phase == "" and tz.state == "chase" and not tz.tutorial_frozen and tz.get_collision_layer_value(1) and tz.z_index == 1,
+		"she is up, solid, on the actor layer and coming for them (state %s)" % tz.state)
+	check(is_equal_approx(tz.animated_sprite.rotation, 0.0), "…standing upright")
+	room.queue_free()
+	await get_tree().process_frame
+	# a neighbour killed mid-scene never strands the player
+	WorldState.new_game()
+	WorldState.current_floor = 30
+	WorldState.current_apartment_id = "3003"
+	WorldState.spawn_source = "door"
+	WorldState.exit_spawn_x = 570.0
+	WorldState.seed_floor_door_states(30)
+	room = load("res://scenes/room.tscn").instantiate()
+	add_child(room)
+	for i in range(8):
+		await get_tree().process_frame
+	tz = room.tut_zombie
+	player = get_tree().get_first_node_in_group("player")
+	player.global_position.x = tz.global_position.x + (-120.0 if tz.global_position.x > 600.0 else 120.0)
+	for i in range(10):
+		await get_tree().physics_frame
+	check(player.is_cutscene and room.tut_step == room.TutStep.WAKE, "(second run: held again)")
+	tz._die()
+	t0 = Time.get_ticks_msec()
+	while player.is_cutscene and Time.get_ticks_msec() - t0 < 20000:
+		await get_tree().physics_frame
+	check(not player.is_cutscene, "the neighbour dying mid-scene releases the player (no stranding)")
+	room.queue_free()
+	await get_tree().process_frame
+	# leaving the scene (the room freed mid-way) can't leave the flag on a surviving player
+	Engine.time_scale = 1.0
+
+
+func check_held_still(player: Node, x0: float) -> void:
+	if absf(player.global_position.x - x0) > 1.0:
+		check(false, "the held player did not move (%.1f px)" % absf(player.global_position.x - x0))

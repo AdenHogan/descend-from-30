@@ -2318,4 +2318,8 @@ means no rendering — UI layout and art still need an in-editor look.
   `is_any_press` for press-any-key beats. Pack ring: right stick picks, A equips, X menu (`pack_wheel._pad_tick`; `player._pad_is_choosing_in_pack`). Touch:
   `touch_overlay.gd` / `touch_stick.gd` (HUD child; Controls in `hud_widget_extra`; presses InputEventActions; releases everything when hidden / paused). room.gd's hard-coded KEY_E
   is now the `interact` action. `controls_test` scans every script for polled action names that don't exist. **Never tested on a real pad / phone / APK.**
+- **THE TUTORIAL NEIGHBOUR IS A BODY THAT GETS UP (owner round 36c; docs/TUTORIAL.md "3003"):** she lies on the floor (a `riser_scripted` riser, never wakes by itself); getting within
+  135 px starts `room._tut_wake_scene` — the player is HELD (`player.hold_for_scene` / `release_hold`, camera eased to the midpoint), the curiosity line on the way in + «Mrs Delacroix?» (`3003_name`) as she rises, a long twitch + a slow rise
+  (`TUTORIAL_*_TIME`), then APPROACH → the unchanged lunge / shove / find-a-weapon beats. Every exit releases the player. Also from the first phone playtest: the touch overlay was reworked (quiet
+  right hand, context buttons, a strict teaching beat keeps its button up) and push-while-scavenging says why (docs/CONTROLS.md).
 - Not started: quests.

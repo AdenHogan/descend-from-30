@@ -83,6 +83,7 @@ const UNJAM_CLEAR_RANGE := 58.0   # re-solidify a phased body once it's this far
 var _stuck_time: float = 0.0
 var _phased_bodies: Array = []    # bodies the player is currently phasing through
 var is_pushing = false
+var _hold_cam_tween: Tween = null
 var _push_hint_at: float = -10.0       # when "can't shove while searching" was last said (rate limit)
 var push_timer = 0.0
 var is_hit = false
@@ -1069,6 +1070,35 @@ func approach_door(door_global: Vector2, on_arrive: Callable = Callable()) -> vo
 	is_cutscene = false
 	if on_arrive.is_valid():
 		on_arrive.call()
+
+
+## Hold the player still for a scripted scene (the tutorial neighbour getting up): rooted, facing `face_x`, no walk target, idle.
+## Always paired with release_hold() — room.gd's scene lets go on every exit path, and a freed player takes it with them.
+func hold_for_scene(face_x: float, look_x: float = INF) -> void:
+	is_cutscene = true
+	_clear_move_target()
+	velocity = Vector2.ZERO
+	animated_sprite.flip_h = face_x < global_position.x
+	animated_sprite.play("idle")
+	# `look_x`: ease the camera toward the point halfway between the player and what the scene is about, so both are in frame
+	# (the camera is limit-clamped, so it can never show past a wall).
+	if look_x != INF:
+		_pan_camera_offset((look_x - global_position.x) * 0.5)
+
+
+func release_hold() -> void:
+	is_cutscene = false
+	_pan_camera_offset(0.0)
+
+
+func _pan_camera_offset(to_x: float) -> void:
+	var cam = get_node_or_null("Camera2D")
+	if cam == null:
+		return
+	if _hold_cam_tween != null and _hold_cam_tween.is_valid():
+		_hold_cam_tween.kill()
+	_hold_cam_tween = create_tween()
+	_hold_cam_tween.tween_property(cam, "offset:x", to_x, 0.7).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 
 func can_walk_out() -> bool:

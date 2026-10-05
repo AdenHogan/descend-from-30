@@ -510,7 +510,7 @@ func _stair_idle_behaviour(delta: float) -> void:
 
 func be_distracted(pos: Vector2, duration: float = 6.0) -> void:
 	if riser_phase != "":
-		if riser_phase == "lying":          # the can wakes it; it gets up rather than wandering off lying down
+		if riser_phase == "lying" and not riser_scripted:   # the can wakes it; it gets up rather than wandering off lying down
 			riser_phase = "twitch"
 			_riser_t = 0.0
 		return
@@ -588,8 +588,13 @@ const RISER_FEET := 49.0          # origin → feet (collision-bottom), measured
 const RISER_FLAT := 0.5           # lying, it's squashed this much across its body (it lies flat)
 const RISER_RANGE := 105.0        # |dx| that stirs it (+ a seeded jitter)
 const RISER_RISE_TIME := 1.3
+const TUTORIAL_RISE_TIME := 2.8      # the tutorial neighbour: slow enough to WATCH her get up
+const TUTORIAL_TWITCH_TIME := 1.6
 const RISER_WAKE_LINES := ["It's moving.", "...That one's not dead.", "It's getting up."]
 var riser_phase: String = ""      # "" | "lying" | "twitch" | "rise"
+var riser_scripted: bool = false  # the tutorial neighbour: it never wakes on its own — room.gd calls tutorial_wake()
+var _riser_rise_time := RISER_RISE_TIME
+signal rose                       # it is on its feet (a riser finished getting up)
 var _riser_dir := 1.0             # the way its head lies (+1 = +x)
 var _riser_t := 0.0
 var _riser_range := RISER_RANGE
@@ -646,7 +651,7 @@ func _riser_tick(delta: float) -> void:
 				player = get_tree().get_first_node_in_group("player")
 			var near: bool = is_instance_valid(player) and ENEMY_PLANE.same_plane(self, player) \
 				and absf(player.global_position.x - global_position.x) < _riser_range
-			if near or alert_timer > 0.0:
+			if not riser_scripted and (near or alert_timer > 0.0):
 				riser_phase = "twitch"
 				_riser_t = 0.0
 		"twitch":
@@ -658,7 +663,7 @@ func _riser_tick(delta: float) -> void:
 			if _riser_t >= _riser_twitch:
 				_riser_begin_rise()
 		"rise":
-			var k := clampf(_riser_t / RISER_RISE_TIME, 0.0, 1.0)
+			var k := clampf(_riser_t / _riser_rise_time, 0.0, 1.0)
 			var e := k * k * (3.0 - 2.0 * k)                 # stiff: slow off the floor, slow into place
 			_riser_pose(1.0 - e, 0.0)
 			if k >= 1.0:
@@ -672,7 +677,7 @@ func _riser_begin_rise() -> void:
 		moan_player.stream = MOAN_STREAMS.pick_random()
 		moan_player.pitch_scale = voice_pitch * 0.8
 		moan_player.play()
-	if is_instance_valid(player) and absf(player.global_position.x - global_position.x) < 260.0:
+	if not riser_scripted and is_instance_valid(player) and absf(player.global_position.x - global_position.x) < 260.0:
 		HUD.show_feedback(RISER_WAKE_LINES[posmod(hash(spawn_key), RISER_WAKE_LINES.size())])
 
 
@@ -695,6 +700,20 @@ func _riser_up() -> void:
 	state = "chase"
 	alert_timer = maxf(alert_timer, 8.0)
 	animated_sprite.play("Walk")
+	rose.emit()
+
+
+## THE TUTORIAL WAKE (owner round 36c): the neighbour lies on the floor like one of the flats' dead until room.gd's scripted
+## scene says so — then a long, clearly visible twitch and a slow, stiff rise (the ordinary riser's 0.7 s / 1.3 s was too quick
+## to see). She comes up as the scripted neighbour (slow approach, 2-hit death).
+func tutorial_wake() -> void:
+	if riser_phase != "lying":
+		return
+	tutorial_frozen = false
+	_riser_rise_time = TUTORIAL_RISE_TIME
+	_riser_twitch = TUTORIAL_TWITCH_TIME
+	riser_phase = "twitch"
+	_riser_t = 0.0
 
 func _ready() -> void:
 	# ACTOR LAYER: player + enemies render one z-layer above the corridor
