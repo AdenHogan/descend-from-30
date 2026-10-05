@@ -259,8 +259,7 @@ static func _in_hold_out(tt: float, fade_in: float, hold: float, fade_out: float
 func _input(event: InputEvent) -> void:
 	if fading:
 		return
-	var pressed: bool = (event is InputEventKey and event.pressed and not event.echo) \
-			or (event is InputEventMouseButton and event.pressed)
+	var pressed: bool = SettingsManager.is_any_press(event)
 	if not pressed:
 		return
 	if not line_shown:

@@ -87,31 +87,17 @@ func resolved_text() -> String:
 	return out
 
 
-# The shortest readable label among an action's bindings (A beats Left, RMB beats
-# "Mouse Right") — wall space is tight. Falls back to the action name in the editor.
+# The action's first keyboard / mouse binding in its short form ("A", "RMB") — wall space is tight; on a pad or a
+# phone it is that device's button instead.
+# Falls back to the action name in the editor.
 static func key_for(action: String) -> String:
-	if not InputMap.has_action(action):
-		return action.to_upper()
-	var best := ""
-	for ev in InputMap.action_get_events(action):
-		var s := _short_label(ev)
-		if s != "" and (best == "" or s.length() < best.length()):
-			best = s
-	return best if best != "" else action.to_upper()
-
-
-static func _short_label(ev: InputEvent) -> String:
-	if ev is InputEventKey:
-		var code = ev.physical_keycode if ev.physical_keycode != 0 else ev.keycode
-		return OS.get_keycode_string(code)
-	if ev is InputEventMouseButton:
-		match ev.button_index:
-			MOUSE_BUTTON_LEFT: return "LMB"
-			MOUSE_BUTTON_RIGHT: return "RMB"
-			MOUSE_BUTTON_MIDDLE: return "MMB"
-			MOUSE_BUTTON_XBUTTON1: return "M4"
-			MOUSE_BUTTON_XBUTTON2: return "M5"
-	return ""
+	if SettingsManager.last_device != "kbm":
+		return SettingsManager.action_short(action)
+	for slot in [0, 1]:
+		var spec: String = SettingsManager.slot_spec(action, slot)
+		if spec != "":
+			return SettingsManager.Scheme.spec_short(spec)
+	return action.to_upper()
 
 
 # World-space size of the drawn block (for layout checks / tests).

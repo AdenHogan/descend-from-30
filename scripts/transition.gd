@@ -174,8 +174,7 @@ func survived_card(heading: String, line: String, stats: Array, art: Texture2D =
 func _input(event: InputEvent) -> void:
 	if not _awaiting_continue:
 		return
-	if (event is InputEventKey and event.pressed and not event.echo) \
-			or (event is InputEventMouseButton and event.pressed):
+	if SettingsManager.is_any_press(event):
 		_continue_pressed = true
 		get_viewport().set_input_as_handled()
 

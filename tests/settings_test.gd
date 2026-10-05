@@ -1,7 +1,9 @@
 extends Node
 
-# Headless test for the rebind/settings system.
+# Headless test for the rebind/settings system (four slots per action; docs/CONTROLS.md).
 # Run:  godot --headless res://tests/settings_test.tscn
+
+const Scheme := preload("res://scripts/input_scheme.gd")
 
 var failures: int = 0
 
@@ -16,31 +18,44 @@ func check(cond: bool, label: String) -> void:
 
 func _ready() -> void:
 	print("=== settings / rebind test ===")
+	SettingsManager.reset_defaults()
 	_test_attack_action()
 	_test_rebind_key()
 	_test_rebind_mouse()
 	_test_reset()
 	_test_labels()
 	_test_pause_settings_lifecycle()
+	SettingsManager.reset_defaults()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
 
 func _test_attack_action() -> void:
 	print("[attack action]")
-	check(InputMap.has_action("attack"), "attack action was created")
+	check(InputMap.has_action("attack"), "attack action exists")
 	var evs = InputMap.action_get_events("attack")
-	check(evs.size() > 0 and evs[0] is InputEventKey, "attack defaults to a key (Space)")
+	var has_mouse := false
+	var has_key := false
+	var has_pad := false
+	for e in evs:
+		has_mouse = has_mouse or e is InputEventMouseButton
+		has_key = has_key or e is InputEventKey
+		has_pad = has_pad or e is InputEventJoypadButton or e is InputEventJoypadMotion
+	check(has_mouse and has_key and has_pad, "attack defaults to the mouse button, Space AND the pad (X / RT)")
 
 
 func _test_rebind_key() -> void:
 	print("[rebind key]")
 	var ev = InputEventKey.new()
-	ev.physical_keycode = KEY_Q
+	ev.physical_keycode = KEY_Z
 	SettingsManager.rebind("push", ev)
-	var got = InputMap.action_get_events("push")
-	check(got.size() == 1 and got[0] is InputEventKey, "push now bound to one key")
-	check(SettingsManager.binding_label("push") == "Q", "label reads Q")
+	var keys := 0
+	for e in InputMap.action_get_events("push"):
+		if e is InputEventKey:
+			keys += 1
+	check(keys == 1, "push now has exactly one keyboard binding")
+	check(SettingsManager.binding_label("push") == "Z", "label reads Z (%s)" % SettingsManager.binding_label("push"))
+	check(SettingsManager.slot_spec("push", 2) == "j:1", "…and its pad button (B) is untouched")
 
 
 func _test_rebind_mouse() -> void:
@@ -48,27 +63,28 @@ func _test_rebind_mouse() -> void:
 	var ev = InputEventMouseButton.new()
 	ev.button_index = MOUSE_BUTTON_XBUTTON2
 	SettingsManager.rebind("attack", ev)
-	check(SettingsManager.binding_label("attack") == "Mouse 5 (side)", "attack bound to mouse side button")
+	check(SettingsManager.binding_label("attack") == "Mouse 5", "attack bound to mouse side button (%s)" % SettingsManager.binding_label("attack"))
 	# Persistence round-trip.
 	SettingsManager._save()
-	var ev2 = InputEventMouseButton.new()
-	ev2.button_index = MOUSE_BUTTON_LEFT
-	InputMap.action_erase_events("attack")
-	InputMap.action_add_event("attack", ev2)
+	SettingsManager.reset_defaults_in_memory_for_test()
+	check(SettingsManager.binding_label("attack") == "Left-click", "…memory reset to the default")
 	SettingsManager._load()
-	check(SettingsManager.binding_label("attack") == "Mouse 5 (side)", "saved mouse bind restored on load")
+	SettingsManager.apply()
+	check(SettingsManager.binding_label("attack") == "Mouse 5", "saved mouse bind restored on load")
+	check(SettingsManager.slot_spec("push", 0) == "k:Z", "…and the earlier key rebind too")
 
 
 func _test_reset() -> void:
 	print("[reset]")
 	SettingsManager.reset_defaults()
-	check(SettingsManager.binding_label("push") != "Q", "reset restores default push bind")
+	check(SettingsManager.binding_label("push") != "Z", "reset restores default push bind")
 	check(InputMap.has_action("attack"), "attack survives reset")
+	check(not FileAccess.file_exists(SettingsManager._save_path()), "reset removes the saved file")
 
 
 func _test_labels() -> void:
 	print("[labels]")
-	check(SettingsManager.REMAPPABLE.size() >= 15, "a full set of actions is remappable")
+	check(SettingsManager.REMAPPABLE.size() >= 20, "a full set of actions is remappable (%d)" % SettingsManager.REMAPPABLE.size())
 	var keyev = InputEventKey.new()
 	keyev.physical_keycode = KEY_R
 	check(SettingsManager.event_label(keyev) == "R", "key label works")

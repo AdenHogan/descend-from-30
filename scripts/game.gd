@@ -49,23 +49,64 @@ func _ensure_enemy_bus() -> void:
 func _input(event: InputEvent) -> void:
 	# PauseMenu is an autoload now (not embedded in every scene), so it no
 	# longer blankets the editor viewport and each world scene stays editable.
-	if event.is_action_pressed("ui_cancel") and HUD.visible:
-		# The character journal is a pausing overlay of its own: ESC closes IT first. This handler
-		# runs before the journal's own input, so without this ESC opened the pause menu ON TOP of
-		# the journal — and Resume then unpaused the live game behind a still-open journal.
-		# Any open modal panel (the workbench, …) closes first, same as the journal below.
-		for m in get_tree().get_nodes_in_group("modal_panel"):
-			if m.visible and m.has_method("close"):
-				m.close()
-				get_viewport().set_input_as_handled()
-				return
-		var journal = HUD.get("character_panel")
-		if journal != null and is_instance_valid(journal) and journal.visible:
-			journal.close()
+	if not HUD.visible or event.is_echo():
+		return
+	# Typing into a text box (a profile name, a dev prompt) is never a command.
+	var focus := get_viewport().gui_get_focus_owner()
+	if focus is LineEdit or focus is TextEdit:
+		return
+	# THE PAUSE KEY (Esc / Start by default) opens the pause menu or steps back out of whatever is open.
+	# Esc ALSO always works, whatever `pause` is bound to — the way back to a menu can never be unbound.
+	# BACK (ui_cancel — Esc, or B on a pad) only ever CLOSES something: B is also "push" in play, so it
+	# must never open the pause menu on its own.
+	var is_pause: bool = event.is_action_pressed("pause") \
+		or (event is InputEventKey and event.pressed and event.physical_keycode == KEY_ESCAPE)
+	var is_back: bool = event.is_action_pressed("ui_cancel")
+	if event.is_action_pressed("open_journal") and not is_pause:
+		_toggle_journal()
+		return
+	if not (is_pause or is_back):
+		return
+	# The character journal is a pausing overlay of its own: ESC closes IT first. This handler
+	# runs before the journal's own input, so without this ESC opened the pause menu ON TOP of
+	# the journal — and Resume then unpaused the live game behind a still-open journal.
+	# Any open modal panel (the workbench, …) closes first, same as the journal below.
+	for m in get_tree().get_nodes_in_group("modal_panel"):
+		if m.visible and m.has_method("close"):
+			m.close()
 			get_viewport().set_input_as_handled()
 			return
+	var journal = HUD.get("character_panel")
+	if journal != null and is_instance_valid(journal) and journal.visible:
+		journal.close()
+		get_viewport().set_input_as_handled()
+		return
+	# Back (B) also closes a search panel — it is how a pad leaves one without taking anything.
+	if is_back and not is_pause and not PauseMenu.visible and WorldState.loot_open:
+		get_tree().call_group("loot_ui", "leave")
+		get_viewport().set_input_as_handled()
+		return
+	if is_pause or PauseMenu.visible:
 		PauseMenu.handle_cancel()
 		get_viewport().set_input_as_handled()
+
+
+## The journal key: opens the book, or closes it if it is already open. Refuses while anything else owns the screen.
+func _toggle_journal() -> void:
+	var journal = HUD.get("character_panel")
+	if journal == null or not is_instance_valid(journal):
+		return
+	if journal.visible:
+		journal.close()
+		get_viewport().set_input_as_handled()
+		return
+	if PauseMenu.visible or get_tree().paused or WorldState.loot_open:
+		return
+	for m in get_tree().get_nodes_in_group("modal_panel"):
+		if m.visible:
+			return
+	HUD.open_character_panel()
+	get_viewport().set_input_as_handled()
 
 func go_to_scene(scene_name: String) -> void:
 	get_tree().paused = false

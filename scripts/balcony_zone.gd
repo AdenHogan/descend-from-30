@@ -36,7 +36,7 @@ func _ready() -> void:
 	add_child(arrow)
 	prompt = _make_label(Vector2(-48, -48), 96, 12)
 	listen_label = _make_label(Vector2(-56, -32), 112, 11)
-	listen_label.text = "[R] Listen below"
+	listen_label.text = SettingsManager.localize("[{listen}] Listen below")
 
 
 func _make_label(pos: Vector2, width: float, size: int) -> Label:

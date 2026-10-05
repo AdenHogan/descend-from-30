@@ -61,6 +61,7 @@ originals — the markdown here is canonical for development):
 - `docs/RESIDENTS.md` — **BUILT v1**: survivors behind LOCKED doors (scared / hostile / trader) who shout,
   square up, run, threaten, beg, attack or trade; their every line is owner-authored in `data/npc_dialogue.json`.
 
+- `docs/CONTROLS.md` — **BUILT v1**: the control scheme (keyboard+mouse, gamepad, touch): ONE table in `scripts/input_scheme.gd`, four binding slots per action, device-aware prompts (`[{interact}]` tokens, never a literal `[E]`), touch overlay, rebind rules. Synthetic-event tested only — no real pad / phone.
 - `docs/OPENING.md` — **BUILT v1**: the new-game opening shot (pixel exterior, the camera climbing the tower, the title over the clouds,
   fade to black, then the run's time card); art by `tools/art/opening.py`.
 - `docs/Y_PLANES.md` — **LOCKED reference**: every world-Y plane on a corridor
@@ -231,7 +232,7 @@ Robustness rules). What it covers:
   `dev_menu_test`, `lighting_test`, `plane_lock_test`, `apartment_window_test`,
   `scavenge_node_test`, `drop_physics_test`, `softlock_test`, `character_panel_test`,
   `corpse_recovery_test`, `run_memory_test`, `attack_input_test`, `character_stats_test`, `transition_seam_test`, `run_bookends_test`, `weapon_upgrade_test`, `progression_test`, `back_plane_test`,
-  `apartment_lamp_test`, `gun_cabinet_test`, `breach_test`, `item_icon_test`, `hud_wheel_test`, `motion_test`, `growth_test`, `pack_test`, `backpack_test`, `molotov_test`, `banister_test`, `stair_heights_test`, `resident_npc_test`, `open_furniture_test`, `burnt_apartment_test`, `opening_test` — run all 61 before commit. Balance tool: `tools/economy_report.tscn` (scrap per run, ~25 min a seed). (`new_game()` rolls a RANDOM seed, so any test meets any of the four
+  `apartment_lamp_test`, `gun_cabinet_test`, `breach_test`, `item_icon_test`, `hud_wheel_test`, `motion_test`, `growth_test`, `pack_test`, `backpack_test`, `molotov_test`, `banister_test`, `stair_heights_test`, `resident_npc_test`, `open_furniture_test`, `burnt_apartment_test`, `opening_test`, `controls_test` — run all 62 before commit. Balance tool: `tools/economy_report.tscn` (scrap per run, ~25 min a seed). (`new_game()` rolls a RANDOM seed, so any test meets any of the four
   characters — an assert on a trait-affected value must be trait-aware; see docs/CHARACTERS.md.) (Run ONE godot at a time — a killed/backgrounded headless run can
   linger and block the next, and a GDScript **parse error makes a test scene load but
   never call `quit()`, so it "hangs" until timeout** rather than printing an error line;
@@ -2306,4 +2307,15 @@ means no rendering — UI layout and art still need an in-editor look.
   `opening.py --check`**, so regenerate after any change. Sounds: `tools/gen_opening_audio.py` (wind, far siren, title swell) + the existing thunder.
   Locked by `opening_test` (61st suite; mutation-checked: burn plan vs the fire sim, run-start exterior, the short cut, night rain) + `tutorial_test._test_opener`
   + `run_bookends_test`. `tools/opening_capture.tscn` (`--run=N --seed=S --times=…`, xvfb) renders it at chosen times. The LOOK needs the owner's eye.
+- **CONTROLS (owner round 36 — "intuitive to anyone used to mouse and keyboard games… controller… touch if we ship on android"; docs/CONTROLS.md):**
+  the InputMap is BUILT in code from `scripts/input_scheme.gd` (the project.godot gameplay actions are gone — only `ui_cancel` + `dev_*` stay; SettingsManager is now
+  autoloaded BEFORE Game / HUD, which name keys while they build). Four slots per action (kb1 kb2 pad1 pad2); defaults WASD + **Left-click / Space attack** (a reversal of
+  the old Space-only default — click-to-move survives because the left button is smart-click), RMB / V push, E, Shift, C / Ctrl, wheel + LB/RB cycle items (`HUD.cycle_item`),
+  I, J / M journal, Esc pause; pad = left stick, A interact, X / RT attack, B push, Y mode, LT sprint, D-pad quick cross, View journal, Menu pause. **Pause / back split:**
+  `pause` (Esc always works too) opens the menu, `ui_cancel` (Esc / B / Android Back) only CLOSES things (`game._input`); the journal key is global. Rebind = swap, essentials
+  can't be emptied, only changes are saved (`[binds2]`), v1 file migrated. `SettingsManager.last_device` (kbm / pad / touch) drives every prompt: write `[{interact}]` in
+  prompt strings (`localize` runs in HUD.show_world_prompt / show_dialogue / show_feedback — a literal `[E]` is a bug), `TutorialManager.key`, `BloodText.key_for`,
+  `is_any_press` for press-any-key beats. Pack ring: right stick picks, A equips, X menu (`pack_wheel._pad_tick`; `player._pad_is_choosing_in_pack`). Touch:
+  `touch_overlay.gd` / `touch_stick.gd` (HUD child; Controls in `hud_widget_extra`; presses InputEventActions; releases everything when hidden / paused). room.gd's hard-coded KEY_E
+  is now the `interact` action. `controls_test` scans every script for polled action names that don't exist. **Never tested on a real pad / phone / APK.**
 - Not started: quests.

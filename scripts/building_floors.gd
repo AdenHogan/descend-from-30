@@ -712,7 +712,7 @@ func _elevator_ride_process(player) -> void:
 		HUD.hide_world_prompt(self)
 		return
 	if absf(player.global_position.x - ELEVATOR_X) < ELEVATOR_RIDE_RANGE:
-		HUD.show_world_prompt(self, "Elevator (powered)  [E] Ride", Vector2(ELEVATOR_X, 300.0))
+		HUD.show_world_prompt(self, "Elevator (powered)  [{interact}] Ride", Vector2(ELEVATOR_X, 300.0))
 		if Input.is_action_just_pressed("interact") and not TutorialManager.interact_guarded():
 			HUD.hide_world_prompt(self)
 			_board_elevator(elevator)

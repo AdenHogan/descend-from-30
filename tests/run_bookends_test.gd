@@ -109,15 +109,9 @@ func _test_blood_text_keys() -> void:
 	check(not shown.contains("{"), "every {action} placeholder resolves (%s)" % shown.replace("\n", " / "))
 	check(shown.contains("[%s]" % BloodText.key_for("sprint")), "sprint shows its bound key")
 	check(shown.contains("A D"), "movement shows the short keys (A D), not the arrow names")
-	var saved: Array = InputMap.action_get_events("sprint").duplicate()
-	var ev := InputEventKey.new()
-	ev.physical_keycode = KEY_V
-	InputMap.action_erase_events("sprint")
-	InputMap.action_add_event("sprint", ev)
+	SettingsManager.rebind_slot("sprint", 0, "k:V")          # (through the settings — the InputMap is built from them)
 	check(bt.resolved_text().contains("[V]"), "rebinding sprint to V rewrites the wall")
-	InputMap.action_erase_events("sprint")
-	for e in saved:
-		InputMap.action_add_event("sprint", e)
+	SettingsManager.reset_defaults()
 	bt.free()
 
 

@@ -38,7 +38,7 @@ func _on_body_entered(body: Node2D) -> void:
 	if body.is_in_group("player") and not is_searched():
 		player = body
 		player_nearby = true
-		HUD.show_world_prompt(self, "Body   [E] Search", global_position)
+		HUD.show_world_prompt(self, "Body   [{interact}] Search", global_position)
 
 
 func _on_body_exited(body: Node2D) -> void:

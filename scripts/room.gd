@@ -620,7 +620,7 @@ func _fuse_box_prompt() -> String:
 	var need := WorldState.ELEVATOR_FUSES_NEEDED - loaded
 	var carried := WorldState.fuse_count()
 	if carried > 0:
-		return "Fuse box (" + str(loaded) + "/3)  [E] Fit fuse"
+		return "Fuse box (" + str(loaded) + "/3)  [{interact}] Fit fuse"
 	return "Fuse box (" + str(loaded) + "/3)  —  need " + str(need) + " more fuse" + ("s" if need != 1 else "")
 
 
@@ -682,7 +682,7 @@ func _maintenance_process(_delta: float) -> void:
 		if e_pressed:
 			_fit_fuses()
 	elif absf(px - _workbench_pos.x) < _STATION_REACH:
-		HUD.show_world_prompt(self, "Workbench  [E] Upgrade / salvage", _workbench_pos + Vector2(0, -54))
+		HUD.show_world_prompt(self, "Workbench  [{interact}] Upgrade / salvage", _workbench_pos + Vector2(0, -54))
 		if e_pressed:
 			open_workbench()
 	else:
@@ -2108,6 +2108,8 @@ func _input(event: InputEvent) -> void:
 	# before the nearby-empty guard; unhandled clicks fall through to the
 	# player's own click-to-move in _unhandled_input.
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		if HUD.pointer_over_widget(event.position):
+			return                      # a tap on an on-screen button / HUD widget is not a click on the room
 		var mouse_world = _get_mouse_world_pos()
 		var player = get_tree().get_first_node_in_group("player")
 		var clicked_index = _get_clicked_interactable(nearby, mouse_world) if not nearby.is_empty() else -1
@@ -2134,19 +2136,23 @@ func _input(event: InputEvent) -> void:
 	if nearby.is_empty():
 		return
 
-	if event is InputEventMouseButton and event.pressed:
-		if event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+	# item_next / item_prev (the wheel, LB / RB) pick between scavenge nodes only while there is a choice;
+	# with one in reach they stay the player's item cycle, so the event is left alone.
+	if nearby.size() > 1 and not event.is_echo():
+		if event.is_action_pressed("item_next"):
 			selected_index = (selected_index + 1) % nearby.size()
+			get_viewport().set_input_as_handled()
 			return
-		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+		if event.is_action_pressed("item_prev"):
 			selected_index = (selected_index - 1 + nearby.size()) % nearby.size()
+			get_viewport().set_input_as_handled()
 			return
 
-	if event is InputEventKey and event.pressed and not event.echo:
-		if event.physical_keycode == KEY_E:
-			WorldState.interaction_handled = false
-			nearby[clamp(selected_index, 0, nearby.size() - 1)].try_interact()
-			return
+	# The interact key (whatever it is bound to — it used to be a hard-coded E).
+	if event.is_action_pressed("interact") and not event.is_echo():
+		WorldState.interaction_handled = false
+		nearby[clamp(selected_index, 0, nearby.size() - 1)].try_interact()
+		return
 
 
 func _get_mouse_world_pos() -> Vector2:

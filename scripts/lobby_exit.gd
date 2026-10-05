@@ -10,7 +10,7 @@ extends Area2D
 var _leaving := false          # the exit runs ONCE
 var _player_near := false
 
-const PROMPT := "[E] Leave the building"
+const PROMPT := "[{interact}] Leave the building"
 const DOORWAY_X := 654.0        # the entrance's centre column (LobbyExitFx.CENTER_X)
 const WALK_RISE := 27.0         # the feet climb from the lane to the vestibule floor (steps + 16 px of floor)
 const WALK_DEPTH := 0.76        # drawn depth scale in the vestibule (the balcony's uses 0.74)

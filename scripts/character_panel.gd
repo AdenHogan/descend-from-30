@@ -629,6 +629,12 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
 		close()
 		get_viewport().set_input_as_handled()
+	elif tabs != null and (event.is_action_pressed("ui_page_down") or event.is_action_pressed("ui_page_up")):
+		# LB / RB (or PageUp / PageDown) turn the bookmarks.
+		var step: int = 1 if event.is_action_pressed("ui_page_down") else -1
+		var n: int = tabs.get_tab_count()
+		_pick_tab((tabs.current_tab + step + n) % n)
+		get_viewport().set_input_as_handled()
 
 
 # ---- A piece of paper: ragged edge, shadow, and what its KIND carries ---------------------------------------------------

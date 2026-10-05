@@ -220,7 +220,7 @@ func _ruin_prompt(in_reach: bool) -> void:
 	if not is_ruin_scrap():
 		return
 	if in_reach and WorldState.is_scavenge_mode and not WorldState.loot_open:
-		HUD.show_world_prompt(self, "Scrap   [E] Take", global_position + Vector2(0, -6))
+		HUD.show_world_prompt(self, "Scrap   [{interact}] Take", global_position + Vector2(0, -6))
 	else:
 		HUD.hide_world_prompt(self)
 

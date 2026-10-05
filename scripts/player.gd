@@ -328,8 +328,7 @@ func _physics_process(delta: float) -> void:
 				or Input.is_action_just_pressed("interact") \
 				or Input.is_action_just_pressed("mode_toggle") \
 				or Input.is_action_just_pressed("attack") \
-				or Input.is_action_just_pressed("push") \
-				or Input.is_action_just_pressed("jump"):
+				or Input.is_action_just_pressed("push"):
 			_cancel_listen()
 			return
 		velocity.x = 0
@@ -1227,6 +1226,17 @@ func _mouse_world_pos() -> Vector2:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	# Items: the mouse wheel / shoulder buttons step through what you carry (room.gd takes the wheel first
+	# when several scavenge nodes are in reach — it marks that event handled, so it never reaches here).
+	if not (is_dead or is_dying or is_cutscene or is_switching_mode or is_listening or WorldState.loot_open or pack_phase != ""):
+		if event.is_action_pressed("item_next") and not event.is_echo():
+			HUD.cycle_item(1)
+			get_viewport().set_input_as_handled()
+			return
+		if event.is_action_pressed("item_prev") and not event.is_echo():
+			HUD.cycle_item(-1)
+			get_viewport().set_input_as_handled()
+			return
 	# Ground click-to-move. In scavenge, room.gd consumes anchor clicks first;
 	# in combat, a default-LMB attack consumes the click in _input before it
 	# reaches here — so LMB only walks you when it ISN'T bound to attack
@@ -1310,13 +1320,18 @@ func _pack_lean(k: float) -> void:
 	animated_sprite.position.x = _pack_base_x
 
 
+## On a gamepad, A picks the wedge the right stick is on — it must not also stand the player up.
+func _pad_is_choosing_in_pack() -> bool:
+	return HUD.pack_wheel != null and HUD.pack_wheel.has_method("pad_selecting") and HUD.pack_wheel.pad_selecting()
+
+
 func _pack_tick(delta: float) -> void:
 	_clear_move_target()
 	velocity.x = 0.0
 	_move_locked()
 	animated_sprite.play("crouch_idle")
 	if pack_phase != "stand" and (Input.is_action_just_pressed("move_left") or Input.is_action_just_pressed("move_right") \
-			or Input.is_action_just_pressed("jump") or Input.is_action_just_pressed("interact") \
+			or (Input.is_action_just_pressed("interact") and not _pad_is_choosing_in_pack()) \
 			or Input.is_action_just_pressed("mode_toggle") or Input.is_action_just_pressed("crouch_toggle") \
 			or Input.is_action_just_pressed("listen") or Input.is_action_just_pressed("rest")):
 		end_pack(false)              # any other intent = get up (a key that moves you also walks on next frame)
@@ -1449,7 +1464,9 @@ func _input(event: InputEvent) -> void:
 	# and consuming the event keeps the attack key from also swinging, and works in
 	# scavenge mode too (where the combat swing below is disabled). Q (item_use), the
 	# double-click and the right-click "use" still work as before.
-	if event.is_action_pressed("attack"):
+	# (A POINTER click doesn't: with attack on the left mouse button, a click on the ground has to stay
+	# click-to-move — the key / pad button sprays, and so do Q and the right-click menu.)
+	if event.is_action_pressed("attack") and not _is_pointer_click(event):
 		var sel := HUD.selected_slot
 		if sel >= 0 and sel < WorldState.inventory.size():
 			var sel_inst = WorldState.get_instance_at(sel)

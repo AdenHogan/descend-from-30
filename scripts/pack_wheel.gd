@@ -46,6 +46,11 @@ var _mouse: Vector2 = Vector2.ZERO      # the pointer as of the last frame (the 
 var menu_k: int = -1                    # right-click menu: the wedge it's for, or -1 when closed
 var menu_pos: Vector2 = Vector2.ZERO    # its top-left (screen px)
 var menu_rows: Array = []               # [label, action] — action one of "equip" / "use" / "drop"
+var pad_row: int = 0                    # gamepad: the highlighted row of the open menu
+var _pad_k: int = -1                    # gamepad: the wedge the right stick last pointed at (it stays chosen)
+var _pad_latch: bool = false            # the stick must return to the middle before it steps a menu row again
+var pad_override = null                 # tests only: a Vector2 stands in for the right stick
+const PAD_DEAD := 0.55
 const MENU_W := 118.0
 const MENU_ROW_H := 22.0
 
@@ -96,6 +101,21 @@ func _input(event: InputEvent) -> void:
 	if not is_open:
 		return
 	var p = get_tree().get_first_node_in_group("player")
+	# GAMEPAD: the right stick points at a wedge; A equips it (or runs the menu row), X opens its menu.
+	if menu_k >= 0 and event.is_action_pressed("ui_accept") and SettingsManager.last_device == "pad":
+		choose(pad_row)
+		get_viewport().set_input_as_handled()
+		return
+	if _pad_k >= 0 and hover == _pad_k and SettingsManager.last_device == "pad" and menu_k < 0 and not event.is_echo():
+		if event.is_action_pressed("ui_accept"):
+			equip_at(_pad_k)
+			get_viewport().set_input_as_handled()
+			return
+		if event.is_action_pressed("attack") and _slot_inst(_pad_k) != null:
+			open_menu(_pad_k)
+			pad_row = 0
+			get_viewport().set_input_as_handled()
+			return
 	if menu_k >= 0 and _menu_input(event):
 		get_viewport().set_input_as_handled()
 		return
@@ -332,6 +352,7 @@ func _process(_delta: float) -> void:
 	var mouse: Vector2 = mouse_override if mouse_override is Vector2 else get_viewport().get_mouse_position()
 	_mouse = mouse
 	hover = RingGeo.index_for(mouse - centre, slots.size(), DEAD_ZONE)
+	_pad_tick()
 	# the item under a drag is gone (used up, dropped…): the drag is over
 	if (drag_k >= 0 or _press_k >= 0) and _slot_inst(maxi(drag_k, _press_k)) == null:
 		_press_k = -1
@@ -339,6 +360,43 @@ func _process(_delta: float) -> void:
 	if menu_k >= 0 and _slot_inst(menu_k) == null:
 		close_menu()
 	queue_redraw()
+
+
+## The right stick (or the test stand-in).
+func pad_stick() -> Vector2:
+	if pad_override is Vector2:
+		return pad_override
+	return Vector2(Input.get_joy_axis(SettingsManager.last_pad_id if SettingsManager.last_pad_id >= 0 else 0, JOY_AXIS_RIGHT_X),
+		Input.get_joy_axis(SettingsManager.last_pad_id if SettingsManager.last_pad_id >= 0 else 0, JOY_AXIS_RIGHT_Y))
+
+
+## Gamepad selection: the right stick picks a wedge (it STAYS picked when the stick returns to the middle, so A can
+## then equip it); with the menu open it steps the rows instead. Only while a pad is the device in use.
+func _pad_tick() -> void:
+	if SettingsManager.last_device != "pad":
+		_pad_k = -1
+		return
+	var st: Vector2 = pad_stick()
+	if menu_k >= 0:
+		if absf(st.y) < PAD_DEAD:
+			_pad_latch = false
+		elif not _pad_latch and menu_rows.size() > 0:
+			_pad_latch = true
+			pad_row = clampi(pad_row + (1 if st.y > 0.0 else -1), 0, menu_rows.size() - 1)
+		return
+	if st.length() >= PAD_DEAD:
+		var i: int = RingGeo.index_for(st.normalized() * (DEAD_ZONE + 40.0), slots.size(), DEAD_ZONE)
+		if i >= 0:
+			_pad_k = i
+	if _pad_k >= slots.size():
+		_pad_k = -1
+	if _pad_k >= 0:
+		hover = _pad_k
+
+
+## True while a pad is choosing something on the ring — A then equips it rather than standing the player up.
+func pad_selecting() -> bool:
+	return is_open and SettingsManager.last_device == "pad" and (menu_k >= 0 or (_pad_k >= 0 and hover == _pad_k))
 
 
 ## EVERY slot the pack has — filled or empty — plus the LOCKED one (LOCKED_SLOT) until the upgrade opens it (owner round 33:
@@ -364,6 +422,7 @@ func _show(p: Node) -> void:
 	var s: Vector2 = get_viewport().get_canvas_transform() * p.global_position + Vector2(0, -(HEADROOM_PX + half))
 	centre = Vector2(clampf(s.x, half, HUD.SCREEN_W - half), clampf(s.y, half, maxf(half, SCREEN_LIMIT - half)))
 	hover = -1
+	_pad_k = -1
 	_opened_ms = Time.get_ticks_msec()
 	is_open = true
 	visible = true
@@ -501,10 +560,11 @@ func _draw() -> void:
 					Color(1.0, 0.6, 0.55, 0.75) if out else Color(1, 1, 1, 0.85))
 	_draw_menu(font)
 	# The help line LAST, on its own plate clear above the ring (owner round 33: it ran behind the top item).
-	var hw: float = font.get_string_size(HINT, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x + 20.0
+	var hint: String = hint_text()
+	var hw: float = font.get_string_size(hint, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x + 20.0
 	var hy: float = hint_top()
 	draw_rect(Rect2(centre.x - hw * 0.5, hy, hw, 20.0), Color(0.03, 0.03, 0.04, 0.82 * t))
-	_text(font, Vector2(centre.x - hw * 0.5, hy + 14.0), HINT, 12, DIM_TEXT, hw, HORIZONTAL_ALIGNMENT_CENTER)
+	_text(font, Vector2(centre.x - hw * 0.5, hy + 14.0), hint, 12, DIM_TEXT, hw, HORIZONTAL_ALIGNMENT_CENTER)
 
 
 ## The locked slot: a dark disc with a padlock — always there until the upgrade, so the pack's true size is never a secret.
@@ -516,6 +576,17 @@ func _draw_locked(pos: Vector2, rad: float, t: float, font: Font) -> void:
 	draw_rect(Rect2(pos + Vector2(-8, -3), Vector2(16, 12)), lc)                     # the body
 	draw_circle(pos + Vector2(0, 2), 1.8, Color(0.05, 0.05, 0.06, t))                 # the keyhole
 	_text(font, pos + Vector2(-rad, rad * 0.86 + 12.0), "LOCKED", 10, Color(0.5, 0.48, 0.44, t), rad * 2.0, HORIZONTAL_ALIGNMENT_CENTER)
+
+
+const HINT_PAD := "{right stick} choose  ·  {interact} equip  ·  {attack} options  ·  {push} close"
+
+
+## The help line for the device in use (the keyboard one is HINT; a pad gets its own buttons).
+func hint_text() -> String:
+	if SettingsManager.last_device == "pad":
+		return HINT_PAD.replace("{right stick}", "R-stick").replace("{interact}", SettingsManager.action_text("interact")) \
+			.replace("{attack}", SettingsManager.action_text("attack")).replace("{push}", SettingsManager.action_text("push"))
+	return HINT
 
 
 const HINT := "click equip  ·  right-click options  ·  drag onto an item to craft  ·  drag out to drop  ·  Esc close"
@@ -534,7 +605,7 @@ func _draw_menu(font: Font) -> void:
 	var h: float = MENU_ROW_H * menu_rows.size() + 8.0
 	draw_rect(Rect2(menu_pos, Vector2(MENU_W, h)), Color(0.07, 0.065, 0.08, 0.96))
 	draw_rect(Rect2(menu_pos, Vector2(MENU_W, h)), AMBER, false, 2.0)
-	var hov: int = menu_row_at(_mouse)
+	var hov: int = pad_row if SettingsManager.last_device == "pad" else menu_row_at(_mouse)
 	for i in range(menu_rows.size()):
 		var y: float = menu_pos.y + 4.0 + MENU_ROW_H * i
 		if i == hov:

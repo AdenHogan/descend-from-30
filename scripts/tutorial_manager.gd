@@ -159,12 +159,7 @@ func _default_hint(action: String) -> String:
 # The player's CURRENT key for an action, readable in a sentence ("Right-click", "Space",
 # "E") — tutorial lines must never name a key the player has rebound away.
 func key(action: String) -> String:
-	var label: String = SettingsManager.binding_label(action)
-	match label:
-		"Mouse Left": return "Left-click"
-		"Mouse Right": return "Right-click"
-		"Mouse Middle": return "Middle-click"
-	return label
+	return SettingsManager.action_text(action)
 
 
 func _input(event: InputEvent) -> void:
@@ -177,8 +172,7 @@ func _input(event: InputEvent) -> void:
 			advance = true
 	else:
 		# "Press-any-key" convenience: any key OR mouse click continues.
-		if (event is InputEventKey and event.pressed and not event.echo) \
-				or (event is InputEventMouseButton and event.pressed):
+		if SettingsManager.is_any_press(event):
 			advance = true
 	if advance:
 		get_viewport().set_input_as_handled()

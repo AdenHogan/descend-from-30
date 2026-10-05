@@ -71,7 +71,7 @@ func get_greeting() -> String:
 func _on_body_entered(body: Node2D) -> void:
 	if body.is_in_group("player"):
 		player_nearby = true
-		proximity_label.text = "[E] Talk to Merchant"
+		proximity_label.text = SettingsManager.localize("[{interact}] Talk to Merchant")
 		proximity_label.visible = true
 
 

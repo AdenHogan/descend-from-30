@@ -108,6 +108,7 @@ var name_label: Label = null
 var wallet_icon: TextureRect = null
 var scrap_icon: TextureRect = null
 var equip_box: Control = null            # the in-hand item box right of the name row (hud_equip_box.gd)
+var touch_overlay: Control = null        # on-screen stick + buttons (touch_overlay.gd)
 var pack_wheel: Control = null           # the backpack ring (pack_wheel.gd) — real time, whole bag
 var pack_button: Control = null          # the clickable backpack in the strip (hud_pack_button.gd)
 var _health_stage: int = 0
@@ -224,6 +225,9 @@ func _create_pack() -> void:
 			pack_wheel.toggle())
 	pack_wheel = preload("res://scripts/pack_wheel.gd").new()
 	$Control.add_child(pack_wheel)
+	# On-screen controls for a touchscreen (hidden unless one is in use — docs/CONTROLS.md).
+	touch_overlay = preload("res://scripts/touch_overlay.gd").new()
+	add_child(touch_overlay)
 	pack_button.key_text = action_key_name("open_pack", "B")
 
 
@@ -375,7 +379,7 @@ func show_world_prompt(prompt_owner: Node, text: String, world_pos: Vector2) -> 
 	if not _world_prompts.has(id):
 		_world_prompts[id] = _make_world_prompt()
 	var e = _world_prompts[id]
-	e["label"].text = text
+	e["label"].text = SettingsManager.localize(text)
 	e["pos"] = world_pos
 	e["panel"].visible = true
 
@@ -481,9 +485,9 @@ func show_dialogue(text: String, hint: String = "", persist: bool = false, secon
 	# hide_dialogue(); otherwise it auto-hides after `seconds`.
 	if dialogue_panel == null:
 		return
-	dialogue_label.text = text
+	dialogue_label.text = SettingsManager.localize(text)
 	if hint != "":
-		dialogue_hint.text = hint
+		dialogue_hint.text = SettingsManager.localize(hint)
 		dialogue_hint.visible = true
 	else:
 		dialogue_hint.visible = false
@@ -1205,6 +1209,26 @@ func select_slot(index: int) -> void:
 	_announce_weapon_selection(was)
 
 
+## Step the in-hand item through the bag: empty hands → slot 1 → … → last → empty hands (wheel / LB RB).
+func cycle_item(step: int) -> void:
+	var n: int = WorldState.inventory.size()
+	if n == 0:
+		return
+	var at: int = selected_slot if selected_slot >= 0 and selected_slot < n else -1
+	var nxt: int = at + step
+	if nxt >= n:
+		nxt = -1
+	elif nxt < -1:
+		nxt = n - 1
+	if nxt == -1:
+		if at != -1:
+			select_slot(at)        # re-selecting the equipped slot puts it away
+		return
+	if nxt == selected_slot:
+		return
+	select_slot(nxt)
+
+
 func _announce_weapon_selection(was: int) -> void:
 	# Re-selecting the equipped slot TOGGLES it off. That used to be silent, so a stray click or
 	# key-press left the player swinging nothing without knowing why. Say it every time.
@@ -1349,10 +1373,7 @@ func pointer_over_widget(pos: Vector2) -> bool:
 func action_key_name(action: String, fallback: String) -> String:
 	if not InputMap.has_action(action):
 		return fallback
-	var evs: Array = InputMap.action_get_events(action)
-	if evs.is_empty():
-		return "?"
-	return String(evs[0].as_text()).replace(" (Physical)", "").replace(" - Physical", "")
+	return SettingsManager.action_text(action)
 
 
 
@@ -1400,7 +1421,7 @@ func _context_cancel() -> void:
 	context_menu.visible = false
 
 func show_feedback(text: String) -> void:
-	feedback_label.text = text
+	feedback_label.text = SettingsManager.localize(text)
 	feedback_timer = 2.0
 	feedback_label.modulate = Color(1, 1, 0.5, 1)
 

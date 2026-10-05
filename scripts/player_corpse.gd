@@ -50,7 +50,7 @@ func _on_body_entered(body: Node2D) -> void:
 	if body.is_in_group("player"):
 		player = body
 		player_nearby = true
-		HUD.show_world_prompt(self, "Fallen survivor   [E] Recover", global_position)
+		HUD.show_world_prompt(self, "Fallen survivor   [{interact}] Recover", global_position)
 
 
 func _on_body_exited(body: Node2D) -> void:

@@ -379,20 +379,20 @@ func _get_removal_duration() -> float:
 
 func _get_prompt_text() -> String:
 	if is_maintenance:
-		return "Maintenance  [E] Enter"
+		return "Maintenance  [{interact}] Enter"
 	if _is_sealed():
 		return apartment_id + " - Sealed"
-	return _base_prompt_text() + "  [R] Listen"
+	return _base_prompt_text() + "  [{listen}] Listen"
 
 
 func _base_prompt_text() -> String:
 	match current_state:
 		WorldState.DoorState.OPEN:
-			return apartment_id + " - [E] Enter"
+			return apartment_id + " - [{interact}] Enter"
 		WorldState.DoorState.SHUT_FORCEABLE:
 			if is_forcing:
 				return apartment_id + " - Forcing door... %.1fs" % max(force_timer, 0.0)
-			return apartment_id + " - [X] Force door"
+			return apartment_id + " - [{item_context}] Force door"
 		WorldState.DoorState.SHUT_LOCKED:
 			if is_forcing:
 				return apartment_id + " - Forcing lock... %.1fs" % max(force_timer, 0.0)
@@ -403,9 +403,9 @@ func _base_prompt_text() -> String:
 				var item_data = ItemData.get_item(WorldState.get_item_id_at(slot))
 				has_force = item_data.get("can_force_lock", false)
 			if has_key:
-				return apartment_id + " - [X] Use key"
+				return apartment_id + " - [{item_context}] Use key"
 			elif has_force:
-				return apartment_id + " - Locked  [X] Force lock"
+				return apartment_id + " - Locked  [{item_context}] Force lock"
 			else:
 				return apartment_id + " - Locked  Needs key"
 		WorldState.DoorState.BARRICADED_FORCEABLE:
@@ -413,17 +413,17 @@ func _base_prompt_text() -> String:
 				return apartment_id + " - Tearing the boards off"
 			var saved = WorldState.barricade_progress.get(apartment_id, 0.0)
 			if saved > 0.0:
-				return apartment_id + " - Barricade damaged  [X] Continue removal"
-			return apartment_id + " - Barricaded  [X] Remove barricade"
+				return apartment_id + " - Barricade damaged  [{item_context}] Continue removal"
+			return apartment_id + " - Barricaded  [{item_context}] Remove barricade"
 		WorldState.DoorState.BARRICADED_LOCKED:
 			if is_removing_barricade:
 				return apartment_id + " - Tearing the boards off"
 			var saved = WorldState.barricade_progress.get(apartment_id, 0.0)
 			if saved > 0.0:
-				return apartment_id + " - Barricade damaged  [X] Continue removal"
-			return apartment_id + " - Barricaded + Locked  [X] Remove barricade"
+				return apartment_id + " - Barricade damaged  [{item_context}] Continue removal"
+			return apartment_id + " - Barricaded + Locked  [{item_context}] Remove barricade"
 		WorldState.DoorState.BREACHED:
-			return apartment_id + " - BREACHED  [E] Enter"
+			return apartment_id + " - BREACHED  [{interact}] Enter"
 	return apartment_id
 
 

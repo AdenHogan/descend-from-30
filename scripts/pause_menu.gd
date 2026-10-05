@@ -40,6 +40,10 @@ func toggle(should_show: bool) -> void:
 	# disabling the player and zombie group, which left timers, the loot UI, world
 	# drops and HUD feedback all running during the pause.
 	get_tree().paused = should_show
+	if should_show and SettingsManager.last_device == "pad":
+		var resume := get_node_or_null("Control/PanelContainer/VBoxContainer/Resume")
+		if resume != null:
+			resume.grab_focus()
 
 func handle_cancel() -> void:
 	# Esc hierarchy: from Settings, go BACK to the pause menu (stay paused);
