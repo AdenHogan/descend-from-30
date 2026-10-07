@@ -591,3 +591,11 @@ window and below the scavenge nodes (`_add_front_art`). They count as part of th
 nest overlays, the blueprints (`gen_module_blueprint.py` composites them) and the burnt look (`burnt.py` bakes `_burnt_front*.png`); only the window-box rule skips them. The window's side is
 seeded per flat, so a front piece over the LEFT window box is over a window in some flats and over bare wall in others — design it to read either way. Dining E is the first user
 (`tools/art/dining_room_variants.py`: the gift table + torn box + balloons; the party table, chairs, cake, hats and cups use `tools/art/party3d.py`'s true-perspective helpers).
+
+## NO WALKING OVER THINGS — back-plane floor pieces (owner round 36i)
+The player sprite draws above all baked room art, so any floor piece standing or lying under a step-up spot is visibly "walked over" (dining C's
+toppled chair lay in front of the sideboard's chest). `pixlib.check_back_plane_floor_pieces` (run by `finish_module`) reads the `FLOOR_PIECES`
+registry: a LYING piece may not touch the spot's stand columns (centre +- `BP_HALF_W`) at any row from `BP_ROWS.start`; a STANDING piece may not
+reach below the feet row 115 there. `CLIP_REPORT=1` lists offenders; `FRONT_REPORT=1` prints drawn-but-unregistered front marks (informational —
+rugs and floor shadows are fine). Pieces not registered with `chair3d.draw_model` / `furn.table_front` / `flat_piece` are only caught by the older
+bare-column test, so register new floor pieces.

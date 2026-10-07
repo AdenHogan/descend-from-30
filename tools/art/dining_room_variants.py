@@ -291,7 +291,7 @@ def c_furniture(c):
     HIGH = {'wood': hexc('4a2c1c'), 'seat': hexc('5a3622'), 'fab': hexc('6a2a2e')}
     for (x, yaw) in ((148, 180), (178, 180)):                                                # high-backs, backs to us
         C3.draw_model(c, x, 100, C3.dining_chair('high'), yaw, HIGH, srad=10)
-    C3.draw_model(c, 276, 128, C3.fall(C3.dining_chair('high'), 'side', -8.0), -30, HIGH, shadow='footprint')   # the third, knocked flying — CLEAR of the table's legs (owner round 34)
+    C3.draw_model(c, 182, 128, C3.fall(C3.dining_chair('high'), 'side', -8.0), -30, HIGH, shadow='footprint')   # the third, knocked flying — CLEAR of the table's legs (owner round 34) AND of the sideboard's step-up spot (owner round 36i: the player walked over it)
     F.table_front(c, 126, 236, 92, 120, F.WOOD, depth=6)
     c.rect(125, 92, 237, 98, F.WOOD[1])
     c.hline(125, 237, 92, F.WOOD[3])

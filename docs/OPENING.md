@@ -23,9 +23,9 @@ simply loads.
 
 | run | light | what has happened to the building and the city |
 |---|---|---|
-| 1 MORNING | clear sky, a low sun, crows | the calm before it: some broken / boarded windows, lamps on, a few people at their windows, three parked cars — **no HELP sheet, no smoke, no fire anywhere** (owner round 36f) |
-| 2 AFTERNOON | violet → orange dusk, a big low sun | lamps on in the dusk, more glass broken, a SOS sheet too, a wrecked balcony, the doors barricaded with a chair and boards, an overturned car, bodies in the street, a burning car, two towers burning, a wire sagging low |
-| 3 NIGHT | stars, a moon, a blood-orange horizon, **rain + lightning + thunder** | wires down, the doors boarded behind a fridge, a breach blown through the wall at floor 8, the parapet knocked off, three fires in the street, five towers burning, bodies, no crows |
+| 1 MORNING | clear sky, a low sun, crows | the calm before it: some broken / boarded windows, lamps on, a few people at their windows, a garden with trees, a small black cat running across it — **no HELP sheet, no smoke, no fire anywhere** (owner round 36f) |
+| 2 AFTERNOON | violet → orange dusk, a big low sun | lamps on in the dusk, more glass broken, a SOS sheet too, a wrecked balcony, the doors barricaded with a chair and boards, one body on the lawn, a person running in fear across the garden, two towers burning, a wire sagging low |
+| 3 NIGHT | stars, a moon, a blood-orange horizon, **rain + lightning + thunder** | wires down, the doors boarded behind a fridge, a breach blown through the wall at floor 8, the parapet knocked off, bodies and blood across the garden and its path, burnt bushes and fires in the grounds, five towers burning, no crows |
 
 It is the SAME tower in all three: each window's state comes from its own seeded draw and the thresholds only shift up with the run, so a
 window broken in the morning is still broken at dusk. (`opening_test` checks 99.5% of the face agrees across runs.)
@@ -56,3 +56,11 @@ title; CC0, generated); night also uses the storm's thunder. `tools/opening_capt
 
 A music cue; a "press any key" hint; far shamblers in the street; the roof's detail doesn't change between runs; the windows' lit lamps
 don't react to the lightning; each run's wording on the time card is still the placeholder. The LOOK has been checked in-engine under xvfb only.
+
+**Round 36h (owner: "get rid of the road… an apartment community sort of garden with trees… too cold"):** the cars and the road are GONE
+(`meta.cars` no longer exists). The foot of the tower is a communal GARDEN (`tools/art/opening.py draw_ground` / `draw_garden_objects`): mown
+lawn with bands, a planting bed, a paved path opening toward the viewer, a hedge, flowers, oak / poplar / blossom trees (light from the upper
+left, `tree()`), bushes, benches, planters, two lamp posts (x 112 / 176, clear of the doorway). A RUNNER crosses it (`meta.scene.runner`,
+`opening_exterior._Runner`, a pure function of `t`): run 1 a small black CAT, run 2 a PERSON running in fear (the other way), run 3 none. Run 3
+is the aftermath: 12 body spots with blood pools and dragged trails along the path, burnt bushes, fires. `opening_test` locks no road (no
+asphalt grey on row 515), >=5 trees, bodies 0 / >=1 / >=8 by run, the runner kinds.

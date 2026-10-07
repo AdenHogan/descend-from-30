@@ -865,13 +865,40 @@ BP_HALF_W = 13                  # the player's half-width up there: MEASURED —
 BP_CLUSTER = 40                 # room.gd BACK_SPOT_CLUSTER
 
 
-def check_back_plane_clear(img, floor_img, anchors):
+def _bp_centres(anchors):
     xs = sorted(ax for (an, ax, ay, fl_) in anchors if 'bp' in fl_)
     centres = set(xs)
     for i in range(len(xs)):                        # any spawned sub-cluster: centres in between too
         for j in range(i + 1, len(xs)):
             if all(xs[k + 1] - xs[k] <= BP_CLUSTER for k in range(i, j)):
                 centres.add((xs[i] + xs[j]) / 2.0)
+    return centres
+
+
+BP_FEET_ROW = 115                # the player's feet up there (local y)
+
+
+def check_back_plane_floor_pieces(anchors):
+    """A piece lying or standing ON THE FLOOR in front of a back-plane spot is a drawing the player walks OVER: the player sprite is above
+    all the room art, so a toppled chair across the stand zone is overdrawn by the character (owner round 36i: "the character walked over
+    the chair, clearly demonstrating that it was still a drawn on asset. We cannot have any clipping through or over items"). A LYING
+    piece (its whole silhouette is registered) may not touch the columns of the stand zone at any row from the zone's top down; a standing
+    piece's FEET may not be in front of the player's feet row within those columns. Returns [(piece, spot x, n_px)]."""
+    bad = []
+    for cx in sorted(_bp_centres(anchors)):
+        lo, hi = int(cx) - BP_HALF_W, int(cx) + BP_HALF_W
+        for (name, kind, pts) in FLOOR_PIECES:
+            if kind == 'lying':
+                hit = [p for p in pts if lo <= p[0] <= hi and p[1] >= BP_ROWS.start]
+            else:
+                hit = [p for p in pts if lo <= p[0] <= hi and p[1] > BP_FEET_ROW]
+            if hit:
+                bad.append((name, int(cx), len(hit)))
+    return bad
+
+
+def check_back_plane_clear(img, floor_img, anchors):
+    centres = _bp_centres(anchors)
     bad = []
     for cx in sorted(centres):
         for x in range(int(cx) - BP_HALF_W, int(cx) + BP_HALF_W + 1):
@@ -997,6 +1024,21 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
             print('  CLIP %s: %s' % (name, msg))
         else:
             errs.append(msg)
+    for (pn, spot, n_) in check_back_plane_floor_pieces(anchors):
+        msg = '%s lies / stands where the player steps up at x%d (%d px) — the character would walk over it; move it clear of the spot' % (pn, spot, n_)
+        if os.environ.get('CLIP_REPORT'):
+            print('  CLIP %s: %s' % (name, msg))
+        else:
+            errs.append(msg)
+    if os.environ.get('FRONT_REPORT'):
+        # everything drawn (not floor) in front of a step-up spot's player, below the feet row: rugs / shadows / marks show up too — a list to LOOK at
+        for cx in sorted(_bp_centres(anchors)):
+            n_ = 0
+            for x in range(int(cx) - BP_HALF_W, int(cx) + BP_HALF_W + 1):
+                for y in range(BP_FEET_ROW + 1, 134):
+                    if 0 <= x < W and full.img.getpixel((x, y)) != bare_floor.img.getpixel((x, y)):
+                        n_ += 1
+            print('  FRONT %s spot x%d: %d drawn px below the feet row' % (name, int(cx), n_))
     bad = check_window_boxes(nofront, bare.img)
     if bad:
         errs.append('furniture inside a runtime window box: %s' % bad[:6])

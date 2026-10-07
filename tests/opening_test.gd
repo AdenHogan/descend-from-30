@@ -35,6 +35,7 @@ func _ready() -> void:
 	_test_timeline()
 	await _test_layers()
 	await _test_survivors()
+	await _test_runner()
 	await _test_runs()
 	await _test_burning()
 	await _test_overlay_flow()
@@ -115,21 +116,23 @@ func _test_looks() -> void:
 		"HELP / SOS sheets hang out of windows only from the afternoon: none, some, more (%d / %d / %d)" % [m1["scene"]["helps"].size(), m2["scene"]["helps"].size(), m3["scene"]["helps"].size()])
 	check(int(m1["look"]["city_smokes"][0]) == 0 and int(m1["look"]["city_smokes"][1]) == 0 and int(m2["look"]["city_smokes"][0]) > 0,
 		"…and so do the smoke columns over the city %s / %s" % [str(m1["look"]["city_smokes"]), str(m2["look"]["city_smokes"])])
-	# cars are real rectangles in the meta: none overlaps another or the street lamp (owner round 36f: a traffic light clipped into a car)
+	# the ground is a GARDEN (owner round 36h: "get rid of the road… trees… a cat… a human running in fear… bodies everywhere at night")
 	for run in [1, 2, 3]:
-		var cm: Dictionary = _meta(run)["scene"]
-		var rects: Array = []
-		for cr in cm["cars"]:
-			rects.append(Rect2(float(cr["x"]), float(cr["y"]), float(cr["w"]), float(cr["h"])))
-		var lamp := Rect2(float(cm["lamp"]["x"]) - 4.0, float(cm["lamp"]["y"]) - 6.0, 22.0, 70.0)
-		var clash := false
-		for i in range(rects.size()):
-			if rects[i].intersects(lamp):
-				clash = true
-			for j in range(i + 1, rects.size()):
-				if rects[i].intersects(rects[j]):
-					clash = true
-		check(rects.size() == 3 and not clash, "run %d: three cars, none touching each other or the street lamp" % run)
+		var gm: Dictionary = _meta(run)["scene"]
+		check(not gm.has("cars") and gm["trees"].size() >= 5, "run %d: no cars, no road — %d trees in the garden" % [run, gm["trees"].size()])
+	var b1: int = _meta(1)["scene"]["bodies"].size()
+	var b2: int = _meta(2)["scene"]["bodies"].size()
+	var b3: int = _meta(3)["scene"]["bodies"].size()
+	check(b1 == 0 and b2 >= 1 and b3 >= 8 and b3 > b2, "bodies on the ground: none by morning, one by the afternoon, everywhere at night (%d / %d / %d)" % [b1, b2, b3])
+	check(String(_meta(1)["scene"]["runner"]["kind"]) == "cat" and String(_meta(2)["scene"]["runner"]["kind"]) == "human" and String(_meta(3)["scene"]["runner"]["kind"]) == "",
+		"a black cat crosses the lawn in the morning, a person flees in the afternoon, no one runs at night")
+	var road_row: Image = (load(Ext.DIR + "scene_1.png") as Texture2D).get_image()
+	var grey := 0
+	for x in range(0, 288, 2):
+		var px := road_row.get_pixel(x, 515)
+		if absf(px.r - px.g) < 0.04 and absf(px.g - px.b) < 0.06 and px.r < 0.4:
+			grey += 1
+	check(grey < 10, "the ground below the building is not asphalt (%d grey road pixels on a row)" % grey)
 	var cf := [int(m1["look"]["city_fires"]), int(m2["look"]["city_fires"]), int(m3["look"]["city_fires"])]
 	check(cf[0] == 0 and cf[1] > 0 and cf[2] > cf[1], "towers burning in the city: none, some, more %s" % str(cf))
 	check(not bool(m1["look"]["rain"]) and not bool(m2["look"]["rain"]) and bool(m3["look"]["rain"]), "rain and storm only at night")
@@ -281,6 +284,40 @@ func _test_survivors() -> void:
 	e._apply(0.0)
 	check(is_equal_approx(sv.clock, 6.0), "they animate off the opening's own clock")
 	e.queue_free()
+
+
+func _test_runner() -> void:
+	print("[the garden's runner]")
+	for run in [1, 2]:
+		var e := _built("", run)
+		await get_tree().process_frame
+		var rn = e.runner
+		check(rn != null and rn.spec["kind"] == ("cat" if run == 1 else "human"), "run %d: %s is in the garden" % [run, "a cat" if run == 1 else "a person"])
+		if rn == null:
+			e.queue_free()
+			continue
+		var st: float = float(rn.spec["start"])
+		var du: float = float(rn.spec["dur"])
+		e.t = st - 0.5
+		e._apply(0.0)
+		check(not rn.active(), "run %d: not there before it sets off" % run)
+		e.t = st + du * 0.5
+		e._apply(0.0)
+		var mid: float = rn.position_x()
+		e.t = st + du * 0.8
+		e._apply(0.0)
+		var later: float = rn.position_x()
+		var want_dir: float = float(rn.spec["dir"])
+		check(rn.active() and signf(later - mid) == want_dir, "run %d: it crosses the ground %s" % [run, "left to right" if want_dir > 0.0 else "right to left"])
+		e.t = st + du + 1.0
+		e._apply(0.0)
+		check(not rn.active(), "run %d: and is gone off the far side" % run)
+		e.queue_free()
+		await get_tree().process_frame
+	var night := _built("", 3)
+	await get_tree().process_frame
+	check(night.runner == null, "night: nothing runs across the garden")
+	night.queue_free()
 
 
 func _test_runs() -> void:

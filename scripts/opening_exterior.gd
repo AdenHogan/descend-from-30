@@ -74,6 +74,7 @@ var beacons: Array = []                 # [{"node": CanvasItem, "phase": float}]
 var flames: Array = []                  # [{"glow": Sprite2D, "phase": float}] — the glows over every fire, pulsing
 var burning: Array = []                 # burn_plan() as laid on the building
 var birds: Node2D = null
+var runner: Node2D = null               # the one thing crossing the garden (a black cat in the morning, a person fleeing in the afternoon)
 var survivors: Node2D = null            # the little people at lit windows (meta "survivors"), animated off `t`
 var _rng := RandomNumberGenerator.new()
 var _hum: AudioStreamPlayer = null
@@ -472,6 +473,13 @@ func _decorate_scene() -> void:
 		r.modulate.a = 0.0
 		node.add_child(r)
 		flickers.append({"rect": r, "next": 0.6 + _rng.randf() * 3.0, "off": false})
+	# the garden's one moving figure: a cat / someone running in fear (none at night — only the dead are there)
+	var rn: Dictionary = m.get("runner", {})
+	if String(rn.get("kind", "")) != "":
+		runner = _Runner.new()
+		runner.name = "Runner"
+		runner.spec = rn
+		node.add_child(runner)
 	# crows circling above the roof (not at night — they have gone)
 	if run < 3:
 		birds = _Birds.new()
@@ -642,6 +650,9 @@ func _apply(dt: float) -> void:
 	if survivors != null:
 		survivors.clock = t
 		survivors.queue_redraw()
+	if runner != null:
+		runner.clock = t
+		runner.queue_redraw()
 	_lightning(dt)
 	# the sounds: a low tonal hum under the whole thing (no noise — it read as static; a touch fuller at night), a siren far off, a swell under the title
 	if _hum != null and _hum.stream != null:
@@ -717,6 +728,90 @@ class _Birds:
 			draw_line(p, p + Vector2(2.6, -wing * 0.5 + wy), col, 1.0)
 			draw_line(p + Vector2(2.6, -wing * 0.5 + wy), p + Vector2(4.4, wing * 0.2), col, 1.0)
 			draw_rect(Rect2(p + Vector2(-0.5, -0.5), Vector2(1.5, 1.0)), col)
+
+
+# ---- the runner in the garden --------------------------------------------------------------------------------------------------
+# One small figure crosses the lawn while the camera is still on the ground floor: a black cat (morning), a person running in fear
+# (afternoon). A pure function of the opening's clock, in scene pixel coordinates (4x on screen), drawn from rects so it needs no art.
+class _Runner:
+	extends Node2D
+
+	var spec: Dictionary = {}
+	var clock := 0.0
+
+	func progress() -> float:
+		return (clock - float(spec.get("start", 0.0))) / maxf(0.1, float(spec.get("dur", 5.0)))
+
+	func position_x() -> float:
+		var u := progress()
+		return lerpf(float(spec.get("x0", 0.0)), float(spec.get("x1", 0.0)), clampf(u, 0.0, 1.0))
+
+	func active() -> bool:
+		var u := progress()
+		return u >= 0.0 and u <= 1.0
+
+	func _draw() -> void:
+		if not active():
+			return
+		var kind := String(spec.get("kind", ""))
+		var x := roundf(position_x())
+		var y := float(spec.get("y", 500.0))
+		var dir := float(spec.get("dir", 1))
+		draw_set_transform(Vector2(x, y), 0.0, Vector2(dir, 1.0))        # draw facing +x, mirrored for a leftward runner
+		for i in range(-5, 6):                                            # a soft shadow on the grass
+			draw_rect(Rect2(float(i) + 1.0, 0.0, 1.0, 1.0), Color(0, 0, 0, 0.26 * (1.0 - absf(float(i)) / 6.0)))
+		if kind == "cat":
+			_draw_cat()
+		else:
+			_draw_person()
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+	func _draw_cat() -> void:
+		var k := Color(0.05, 0.05, 0.07)
+		var ph := int(clock * 13.0) % 2                                   # two gallop frames
+		var bob := -1.0 if ph == 0 else 0.0
+		draw_rect(Rect2(-3.0, -4.0 + bob, 6.0, 3.0), k)                   # body
+		draw_rect(Rect2(3.0, -5.0 + bob, 3.0, 3.0), k)                    # head
+		draw_rect(Rect2(3.0, -6.0 + bob, 1.0, 1.0), k)                    # ears
+		draw_rect(Rect2(5.0, -6.0 + bob, 1.0, 1.0), k)
+		draw_rect(Rect2(5.0, -4.0 + bob, 1.0, 1.0), Color(0.78, 0.86, 0.3))   # an eye
+		draw_rect(Rect2(-4.0, -5.0 + bob, 1.0, 2.0), k)                   # the tail, up and curling
+		draw_rect(Rect2(-5.0, -6.0 + bob - float(ph), 1.0, 2.0), k)
+		if ph == 0:                                                       # legs reaching / pushing off
+			draw_rect(Rect2(3.0, -1.0, 2.0, 1.0), k)
+			draw_rect(Rect2(-4.0, -1.0, 2.0, 1.0), k)
+			draw_rect(Rect2(0.0, -1.0, 1.0, 1.0), k)
+		else:
+			draw_rect(Rect2(1.0, -1.0, 1.0, 1.0), k)
+			draw_rect(Rect2(-2.0, -1.0, 1.0, 1.0), k)
+			draw_rect(Rect2(4.0, -1.0, 1.0, 1.0), k)
+			draw_rect(Rect2(-3.0, -1.0, 1.0, 1.0), k)
+
+	func _draw_person() -> void:
+		var skin := Color(0.78, 0.6, 0.48)
+		var shirt := Color(0.8, 0.28, 0.24)
+		var legs := Color(0.16, 0.18, 0.28)
+		var ph := int(clock * 9.0) % 2
+		var bob := -1.0 if ph == 0 else 0.0
+		var lean := 1.0                                                   # leaning into the run
+		# legs mid-stride, alternating
+		if ph == 0:
+			draw_rect(Rect2(-1.0, -4.0, 1.0, 4.0), legs)
+			draw_rect(Rect2(2.0, -3.0, 2.0, 1.0), legs)
+			draw_rect(Rect2(3.0, -2.0, 1.0, 2.0), legs)
+		else:
+			draw_rect(Rect2(1.0, -4.0, 1.0, 4.0), legs)
+			draw_rect(Rect2(-3.0, -3.0, 2.0, 1.0), legs)
+			draw_rect(Rect2(-3.0, -2.0, 1.0, 2.0), legs)
+		draw_rect(Rect2(-1.0 + lean, -8.0 + bob, 3.0, 4.0), shirt)        # torso
+		draw_rect(Rect2(0.0 + lean, -10.0 + bob, 2.0, 2.0), skin)         # head
+		draw_rect(Rect2(0.0 + lean, -11.0 + bob, 2.0, 1.0), Color(0.18, 0.12, 0.1))
+		# arms flung up and back in terror, flailing
+		draw_rect(Rect2(-2.0 + lean, -10.0 + bob - float(ph), 1.0, 3.0), skin)
+		draw_rect(Rect2(3.0 + lean, -9.0 + bob + float(ph), 1.0, 3.0), skin)
+		if ph == 0:                                                       # a puff of dust at the heels
+			draw_rect(Rect2(-5.0, -1.0, 1.0, 1.0), Color(0.85, 0.8, 0.7, 0.5))
+			draw_rect(Rect2(-7.0, -2.0, 1.0, 1.0), Color(0.85, 0.8, 0.7, 0.3))
 
 
 # ---- survivors at the windows ------------------------------------------------------------------------------------------------
