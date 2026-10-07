@@ -293,13 +293,29 @@ def city_layer(h, ground_row, tmin, tmax, wmin, wmax, body, hi, lo, windows, see
         th = min(th, int(w * 4.2) + 6)
         if sun_gap is not None and x + w > sun_gap[0] and x < sun_gap[1]:
             th = min(th, sun_gap[2])
-        towers.append((x, w, th))
+        sw = rng.randrange(4, 7) if w >= 14 else 0                      # the side wall we see receding (depth: a tower is a BOX)
+        side = 'r' if x + w * 0.5 < W * 0.5 else 'l'                    # towers left of centre show their right side, the others their left
+        towers.append((x, w, th, sw, side))
         prev_h = th
-        x += w + rng.randrange(0, 3)
-    for (x, w, th) in towers:
+        x += w + sw + rng.randrange(0, 3)
+    for (fx, w, th, sw, side) in towers:
+        x = fx + (sw if side == 'l' else 0)                             # the front face's left edge
         yt = ground_row - th
         k = 0.90 + 0.18 * rng.random()                                  # this tower's own tone
         col, hi_t, lo_t = shade(body, k), shade(hi, k), shade(lo, k)
+        if sw:
+            sx = x + w if side == 'r' else fx
+            sd = shade(col, 0.66)
+            for i in range(sw):
+                ii = i if side == 'r' else sw - 1 - i                    # 0 at the front edge
+                top = yt + (ii + 1) // 2                                 # the roof edge recedes down toward the horizon
+                c.vline(sx + i, top, h - 1, sd)
+                c.put(sx + i, top, shade(col, 0.82))                     # a lit roof lip
+            for wy in range(yt + 5, ground_row - 3, 4):                  # windows seen edge-on: thin dark slits
+                for i in range(1, sw, 2):
+                    ii = i if side == 'r' else sw - 1 - i
+                    if wy > yt + (ii + 1) // 2 + 2 and rng.random() < 0.55:
+                        c.put(sx + i, wy, shade(sd, 0.55))
         tier = w >= 18 and th > 64 and rng.random() < 0.5
         top = yt
         if tier:                                                        # a setback: the upper floors step in
@@ -614,6 +630,15 @@ def draw_window(c, bx, y, state, sec, rng, meta, floor, bay, survivor=0.0):
                 if rng.random() < 0.85 - k * 0.04:
                     c.put(fx + 5 + xx + int(math.sin(k * 0.8) * 1.5), fy - k, (30, 24, 24, max(0, a - abs(xx) * 12)))
         meta['smoke'].append({'x': fx + 5, 'y': fy - 2, 'floor': floor, 'bay': bay})
+    # the opening is a RECESS in a thick wall: its left jamb and head cast a shadow onto the glass, the sill throws light back up
+    if state in ('dark', 'curtain', 'lit', 'open', 'broken'):
+        for yy in range(8):
+            c.put(gx, gy + yy, (10, 8, 16, 62))
+        for xx in range(9):
+            c.put(gx + xx, gy, (10, 8, 16, 78))
+            c.put(gx + xx, gy + 1, (10, 8, 16, 26))
+        for xx in range(1, 9):
+            c.put(gx + xx, gy + 7, (255, 255, 255, 22))
     # a mullion; hotel windows get a transom
     if state in ('dark', 'curtain', 'lit', 'open'):
         c.vline(gx + 4, gy, gy + 7, P['frame'])
@@ -728,11 +753,25 @@ def draw_facade(c, rng, meta, run=1):
                 else:
                     state = 'dark'
             draw_window(c, bx, y, state, sec, wr, meta, n, b, L['survivors'] if (n != 30 or b != 2) else 0.0)
+        # the piers between the bays are slightly proud of the glass: a lit edge on the left, a shaded one on the right
+        for b in range(BAYS):
+            bx = bay_x(b)
+            for yy in range(y + 1, y + FH - 1):
+                c.put(bx + 14, yy, (255, 255, 255, 26))
+                c.put(bx + 13, yy, (20, 14, 20, 34))
+        # the pilasters are round-ish: a lit left edge, a shaded right one
+        for (px0, px1) in ((BX0, BX0 + 5), (BX1 - 5, BX1)):
+            for yy in range(y, y + FH):
+                c.put(px0 + 1, yy, (255, 255, 255, 30))
+                c.put(px1 - 1, yy, (10, 8, 14, 52))
         # section ledges: a cornice at the top floor and where a section begins
         if n in (30, 21, 11):
             c.hline(BX0 - 1, BX1 + 1, y, shade(P['band'], 1.1))
             c.hline(BX0 - 1, BX1 + 1, y + 1, P['band'])
             c.hline(BX0 - 2, BX1 + 2, y + 2, shade(P['band'], 0.8))
+            for k_, a_ in enumerate((88, 56, 30)):                    # the ledge juts out: its shadow falls on the wall (and window heads) below
+                for xx in range(BX0, BX1 + 1):
+                    c.put(xx, y + 3 + k_, (8, 6, 12, a_))
         if n == 1:
             c.hline(BX0 - 1, BX1 + 1, y + FH - 1, shade(PAL['concrete']['band'], 0.8))
     # sheets hung out of windows with a word on them (more of them as it gets worse)
@@ -824,6 +863,66 @@ def breach(c, x, y):
                 c.put(x + w // 2 + xx + int(math.sin(k * 0.6) * 2), y - k, (28, 24, 24, int(150 * (1 - k / 26.0)) - abs(xx) * 5))
     for _ in range(26):                                            # rubble spilling down the face
         c.put(x + rng.randrange(0, w), y + h + rng.randrange(0, 12), hexc('8a8274') if rng.random() < 0.7 else hexc('5a5248'))
+
+
+SIDE_W = 20
+
+
+def draw_side_face(c, rng, meta, run):
+    """The building's right-hand SIDE wall, seen receding (owner round 36g: "improve the 2D… more depth and geometry"). The front is flat on to
+    the camera; the side is foreshortened toward a vanishing point at street level, so its top edge drops away to the right and
+    every floor line slants — the tower reads as a BOX, not a card. In shade (the sun is on the left), with edge-on windows."""
+    x0 = BX1 + 2
+    K = 0.030
+    for dx in range(SIDE_W):
+        s_ = 1.0 - K * dx / SIDE_W
+        fade = 0.60 - 0.14 * dx / SIDE_W
+
+        def Y(y):
+            return int(round(GROUND_Y - (GROUND_Y - y) * s_))
+        # parapet + roof band, each floor band in its section's wall, the stone base
+        bands = [(PARAPET_Y, TOP_Y, 'hotel')]
+        for n in range(30, 0, -1):
+            bands.append((floor_y(n), floor_y(n) + FH, section(n)))
+        bands.append((LOBBY_Y, GROUND_Y, 'stone'))
+        for (ya, yb, sec) in bands:
+            wall = hexc('8c8f93') if sec == 'stone' else PAL[sec]['wall']
+            col = shade(wall, fade)
+            c.vline(x0 + dx, Y(ya), Y(yb) - 1, col)
+        top = Y(PARAPET_Y)
+        c.put(x0 + dx, top, hexc('b8b09a'))                              # the parapet's lit cap
+        c.put(x0 + dx, Y(TOP_Y) - 1, shade(PAL['hotel']['dark'], 0.5))   # the cornice's under-shadow
+    # floor lines (the slabs show as slanted bands), more where a section begins
+    for n in range(30, 0, -1):
+        for dx in range(SIDE_W):
+            s_ = 1.0 - K * dx / SIDE_W
+            yy = int(round(GROUND_Y - (GROUND_Y - floor_y(n)) * s_))
+            c.put(x0 + dx, yy, (10, 8, 14, 70 if n not in (21, 11) else 120))
+    # windows seen at a slant: three narrow dark panes a floor
+    for n in range(30, 0, -1):
+        for (a, b) in ((3, 5), (8, 10), (13, 15)):
+            r = random.Random(n * 41 + a * 7 + 3)
+            for dx in range(a, b + 1):
+                s_ = 1.0 - K * dx / SIDE_W
+                ya = int(round(GROUND_Y - (GROUND_Y - (floor_y(n) + 3)) * s_))
+                yb = int(round(GROUND_Y - (GROUND_Y - (floor_y(n) + 11)) * s_))
+                glass = mix(hexc('2e3548'), hexc('46506a'), 0.5 * r.random())
+                for yy in range(ya, yb):
+                    c.put(x0 + dx, yy, glass)
+                c.put(x0 + dx, ya, (10, 8, 14, 90))
+            if r.random() < 0.3:                                         # a pane catching the sky
+                dx = a + 1
+                s_ = 1.0 - K * dx / SIDE_W
+                yy = int(round(GROUND_Y - (GROUND_Y - (floor_y(n) + 5)) * s_))
+                c.put(x0 + dx, yy, hexc('7e96b8'))
+    # the corner: a bright vertical edge where the front meets the side
+    c.vline(BX1 + 1, TOP_Y, GROUND_Y - 1, hexc('3e342e'))
+    # the shadow the whole block throws on the pavement and road (the low sun is on the left)
+    a_ = (86, 96, 34)[run - 1]
+    for yy in range(0, 20):
+        for xx in range(x0 - 1, min(W, x0 + SIDE_W + 26 + yy * 3)):
+            edge = (x0 + SIDE_W + 26 + yy * 3) - xx
+            c.put(xx, GROUND_Y + yy, (0, 0, 0, int(a_ * min(1.0, edge / 14.0) * (1.0 - yy / 26.0))))
 
 
 def draw_roof(c, rng, meta):
@@ -939,6 +1038,18 @@ def draw_entrance(c, rng, meta):
     c.hline(dx0 - 5, dx1 + 5, y1 - 2, hexc('efe9d8'))
 
 
+def cast_shadow(c, x, y, w, ry=1.7, a=78, dx=4):
+    """A soft cast shadow lying on the ground at row y, `w` wide, thrown to the right (the sun is low on the left in the
+    morning and at dusk): without one every prop floats on the ground as a flat sticker (owner round 36g: more depth)."""
+    cx = x + w * 0.5 + dx
+    for yy in range(int(y - ry), int(y + ry) + 1):
+        for xx in range(int(cx - w * 0.5 - dx), int(cx + w * 0.5 + 1)):
+            u = (xx - cx) / max(1.0, w * 0.5 + dx)
+            v = (yy - y) / max(0.5, ry)
+            if u * u + v * v <= 1.0:
+                c.put(xx, yy, (0, 0, 0, int(a * (1.0 - 0.45 * (u * u + v * v)))))
+
+
 def draw_street(c, rng, meta):
     """Pavement, kerb, road; a wrecked car, a streetlamp, a hydrant, bags, litter, a manhole, the outbreak's mark."""
     c.rect(0, GROUND_Y, W - 1, SCENE_H - 1, hexc('7d7a76'))
@@ -965,10 +1076,16 @@ def draw_street(c, rng, meta):
             c.put(xx + rng.randrange(0, 16), road_y + 17 + rng.randrange(0, 2), hexc('4a4a52'))
     c.ellipse(86, road_y + 22, 7, 2.2, hexc('3a3a42'))                 # a manhole, its lid off-centre
     c.ellipse(86, road_y + 21, 6, 1.6, hexc('55555e'))
-    # hydrant
+    # hydrant: a lit left flank, a shaded right one, a domed cap, side nozzles, a shadow on the paving
+    cast_shadow(c, 50, GROUND_Y + 12, 8, 1.2, 80, 4)
     c.rect(52, GROUND_Y + 5, 55, GROUND_Y + 12, hexc('b33a2a'))
+    c.vline(52, GROUND_Y + 5, GROUND_Y + 12, hexc('d4604a'))
+    c.vline(55, GROUND_Y + 5, GROUND_Y + 12, hexc('7a2418'))
     c.rect(51, GROUND_Y + 7, 56, GROUND_Y + 8, hexc('8a2a1e'))
-    c.hline(52, 55, GROUND_Y + 4, hexc('d4604a'))
+    c.hline(51, 52, GROUND_Y + 7, hexc('c4503c'))
+    c.hline(53, 54, GROUND_Y + 3, hexc('d4604a'))
+    c.hline(52, 55, GROUND_Y + 4, hexc('b33a2a'))
+    c.put(52, GROUND_Y + 4, hexc('d4604a'))
     c.hline(51, 56, GROUND_Y + 13, hexc('5a2018'))
     # streetlamp (right of the building): a pole, an arm, a head — bent a little
     lx = 270                                                          # (well clear of every car: nothing may clip into one)
@@ -979,8 +1096,10 @@ def draw_street(c, rng, meta):
     c.hline(lx - 15, lx - 11, GROUND_Y - 52, hexc('c9c2a0'))
     c.rect(lx - 3, GROUND_Y + 10, lx + 4, GROUND_Y + 12, hexc('2c3038'))
     meta['lamp'] = {'x': lx - 13, 'y': GROUND_Y - 52}
+    cast_shadow(c, lx - 3, GROUND_Y + 12, 8, 1.2, 80, 5)
     # bags, a cart, litter, papers
     for (bx, by, col) in ((70, 9, hexc('1c1c22')), (74, 10, hexc('2a2a32')), (66, 11, hexc('1c1c22')), (250, 8, hexc('24262e'))):
+        cast_shadow(c, bx - 3, GROUND_Y + by + 2, 7, 1.0, 70, 3)
         c.ellipse(bx, GROUND_Y + by, 3.2, 2.6, col)
         c.put(bx - 1, GROUND_Y + by - 3, shade(col, 1.4))
         c.put(bx - 1, GROUND_Y + by - 1, shade(col, 1.6))
@@ -988,6 +1107,7 @@ def draw_street(c, rng, meta):
         c.put(rng.randrange(0, W), GROUND_Y + rng.randrange(2, 13), hexc('e4e0d0') if rng.random() < 0.7 else hexc('b9605a'))
     # a shopping cart on its side
     cx = 36
+    cast_shadow(c, cx, GROUND_Y + 12, 11, 1.0, 70, 3)
     c.hline(cx, cx + 10, GROUND_Y + 9, hexc('8a9098'))
     c.hline(cx, cx + 10, GROUND_Y + 6, hexc('8a9098'))
     c.vline(cx, GROUND_Y + 6, GROUND_Y + 9, hexc('8a9098'))
@@ -1103,6 +1223,7 @@ def car_sprite(kind, body, state, rng):
 def car(c, x, y, body, rng, flip=False, kind='sedan', state='parked', upside=False):
     """Place a car whose wheels stand on row `y`, left edge at x (a flipped one faces left)."""
     img = car_sprite(kind, body, state, rng)
+    cast_shadow(c, x + 1, y + 1, img.size[0] - 2, 2.0, 96, 5)
     if flip:
         img = img.transpose(Image.FLIP_LEFT_RIGHT)
     if upside:
@@ -1129,6 +1250,7 @@ def planks(c, x0, y0, x1, y1, rng, n):
 def body_lying(c, x, y, rng, flip=False):
     """Someone lying in the street: clothes, a head, and what happened round them."""
     d = -1 if flip else 1
+    cast_shadow(c, min(x, x + 11 * d), y + 3, 12, 1.0, 70, 3)
     c.ellipse(x + 6 * d, y + 2, 8, 2.4, hexc('5a1c20'))
     clothes = rng.choice((hexc('3a4a6a'), hexc('6a4a3a'), hexc('4a5a44'), hexc('7a6a52')))
     c.rect(min(x, x + 8 * d), y, max(x, x + 8 * d), y + 2, clothes)
@@ -1175,6 +1297,7 @@ def draw_scene(run=1):
     draw_roof(c, rng, meta)
     draw_entrance(c, rng, meta)
     draw_street(c, rng, meta)
+    draw_side_face(c, rng, meta, run)
     xr = random.Random(900 + run)
     road_y = GROUND_Y + 16
     # the cars, far lane first (each stands on its own wheel line; none within reach of the lamp at x 270)

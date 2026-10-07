@@ -2361,4 +2361,5 @@ means no rendering — UI layout and art still need an in-editor look.
   (`pack_wheel.owns_point` in `pointer_over_widget`) so a slot over a scavenge node can be dragged; the pack opens BESIDE a found item (panel left, ring right) and items drag / swap
   either way (`loot_ui.swap_in`). (4) **Opening**: no wind/static (tonal `hum.wav`), real car silhouettes (3 models, none touching the lamp or each other), per-window looks, animated
   survivors at lit windows, HELP / ALL fire only from run 2, wider city towers. Suites run for this change: see the commit report (not claiming any others).
+- **ROUND 36g (owner):** the pack ring beside the loot panel is centred WITH it (`loot_ui.ring_centre_x`: panel + 40 px gap + ring centred on the screen); a search that finds NOTHING takes half as long (`loot_ui.reveal_time`, `EMPTY_REVEAL_FACTOR` 0.5 — `loot_test`); the opening's tower is a box (receding side wall, window recesses, bevelled piers, cornice shadows), the city towers show side walls and props / cars throw cast shadows (docs/OPENING.md "Round 36g").
 - Not started: quests.

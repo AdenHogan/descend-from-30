@@ -441,8 +441,8 @@ func _show(p: Node) -> void:
 	var s: Vector2 = get_viewport().get_canvas_transform() * p.global_position + Vector2(0, -(HEADROOM_PX + half))
 	centre = Vector2(clampf(s.x, half, HUD.SCREEN_W - half), clampf(s.y, half, maxf(half, SCREEN_LIMIT - half)))
 	if loot_panel() != null:
-		# opened beside a found item (the inventory was full): the ring takes the right of the screen, the panel slides left
-		centre = Vector2(HUD.SCREEN_W - half - 20.0, clampf(HUD.SCREEN_H * 0.5, half, maxf(half, SCREEN_LIMIT - half)))
+		# opened beside a found item (the inventory was full): the panel slides left and the ring sits just right of it — the pair centred on the screen
+		centre = Vector2(loot_panel().ring_centre_x(half), clampf(HUD.SCREEN_H * 0.5, half, maxf(half, SCREEN_LIMIT - half)))
 	hover = -1
 	_pad_k = -1
 	_opened_ms = Time.get_ticks_msec()

@@ -12,6 +12,7 @@ extends CanvasLayer
 # Built in code so the layout is controlled here.
 
 const REVEAL_TIME = 3.0
+const EMPTY_REVEAL_FACTOR = 0.5        # a search that turns up nothing takes half as long (owner round 36g: "finding nothing takes too long")
 const NOTHING_CLOSE_TIME = 1.6
 const RingGeo := preload("res://scripts/ring_geo.gd")
 const DRAG_THRESHOLD = 8.0
@@ -21,6 +22,7 @@ const SCREEN_W = 1152.0
 const SCREEN_H = 648.0
 
 var reveal_timer = 0.0
+var reveal_time = REVEAL_TIME          # this search's length (halved when the node holds nothing)
 var is_revealing = false
 var nothing_timer = 0.0
 var current_item_id = ""
@@ -45,6 +47,7 @@ var last_press_time = 0.0
 var _center: CenterContainer = null
 var _mouse_pos: Vector2 = Vector2.ZERO # the pointer as the last motion event reported it (a drag follows this — a touch drag has no cursor to poll)
 var _shift: float = 0.0                # how far the panel has slid left to make room for the pack ring
+const RING_GAP := 40.0                 # clear space between the panel and the ring
 const PACK_SHIFT := 340.0              # (the ring takes the right ~320 px of the screen; the panel centres in the rest)
 
 
@@ -129,6 +132,8 @@ func open(item_id: String, anchor_name: String, apartment_id: String) -> void:
 		current_key_target = WorldState.get_anchor_key_target(apartment_id, anchor_name)
 		current_item_id = WorldState.key_item_for(current_key_target)
 
+	reveal_time = REVEAL_TIME * (EMPTY_REVEAL_FACTOR if current_item_id == "" or ItemData.get_item(current_item_id).is_empty() else 1.0)
+
 	# Someone living here watches you go through their things (resident_npc.gd).
 	get_tree().call_group("resident_npc", "on_scavenge", "start", apartment_id)
 	if WorldState.is_anchor_searched(apartment_id, anchor_name):
@@ -168,6 +173,13 @@ func _reveal_item() -> void:
 	else:
 		name_label.text = item_data["name"]
 	hint_label.text = "Double-click, or drag onto your pack · walk away to leave"
+
+
+## Where the pack ring's centre sits while it shares the screen with this panel: the pair (panel + a gap + ring) is centred on the
+## screen, so neither is pushed out to an edge (owner round 36g: "the wheel is too far to the right… keep both relatively centre").
+static func ring_centre_x(ring_half: float) -> float:
+	var panel_right: float = SCREEN_W * 0.5 - PACK_SHIFT * 0.5 + PANEL_W * 0.5
+	return panel_right + RING_GAP + ring_half
 
 
 ## A found item is waiting (nothing mid-search): the pack ring may open beside it to make room (owner round 36f).
@@ -215,7 +227,7 @@ func _process(delta: float) -> void:
 			_close(false)
 			return
 		reveal_timer += delta
-		if reveal_timer >= REVEAL_TIME:
+		if reveal_timer >= reveal_time:
 			_reveal_item()
 		return
 

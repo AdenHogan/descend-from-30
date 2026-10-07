@@ -30,6 +30,7 @@ func _ready() -> void:
 	loot.open("006", "a1", "test")
 	check(loot.visible and loot.is_revealing, "opens in searching state")
 	check(not loot.has_item, "no takeable item during the search")
+	check(is_equal_approx(loot.reveal_time, loot.REVEAL_TIME), "a node holding something takes the full search (%.1f s)" % loot.reveal_time)
 	# Drive the reveal.
 	loot._process(loot.REVEAL_TIME + 0.1)
 	check(loot.has_item, "item revealed after the search")
@@ -41,6 +42,14 @@ func _ready() -> void:
 	check(WorldState.inventory.size() == before + 1, "take adds the item to inventory")
 	check(not loot.visible, "panel closes after taking")
 	check(not WorldState.loot_open, "loot_open lock cleared on close")
+	# a node holding NOTHING is searched in half the time
+	WorldState.set_anchor_item("test", "a2", "")
+	loot.open("", "a2", "test")
+	check(is_equal_approx(loot.reveal_time, loot.REVEAL_TIME * 0.5) and loot.is_revealing, "an empty node searches in half the time (%.2f s)" % loot.reveal_time)
+	loot._process(loot.REVEAL_TIME * 0.5 - 0.1)
+	check(loot.is_revealing, "…still searching just before the halved time")
+	loot._process(0.2)
+	check(not loot.is_revealing and loot.name_label.text == "Nothing found.", "…done at the halved time: Nothing found")
 	loot.queue_free()
 
 	# Clickable mode toggle on the HUD.

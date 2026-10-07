@@ -410,7 +410,10 @@ func _test_pack_beside_loot() -> void:
 	check(pw.is_open and loot.visible, "ring up, panel still up")
 	var pr: Rect2 = loot.panel.get_global_rect()
 	check(pw.centre.x - pw.RING_R - pw.DISC_SEL * 0.5 > pr.end.x, "the panel slid LEFT of the ring (panel ends %.0f, ring starts %.0f)" % [pr.end.x, pw.centre.x - pw.RING_R - pw.DISC_SEL * 0.5])
-	check(pw.centre.x > HUD.SCREEN_W * 0.7, "the ring is on the right of the screen (%.0f)" % pw.centre.x)
+	check(pw.centre.x > HUD.SCREEN_W * 0.55 and pw.centre.x < HUD.SCREEN_W * 0.72, "the ring sits right of the panel but near the middle, not at the edge (%.0f of %.0f)" % [pw.centre.x, HUD.SCREEN_W])
+	var pair_l: float = pr.position.x
+	var pair_r: float = pw.centre.x + pw.RING_R + pw.DISC_SEL * 0.5
+	check(absf((pair_l + pair_r) * 0.5 - HUD.SCREEN_W * 0.5) < 40.0, "…the panel + ring pair is centred on the screen (%.0f..%.0f)" % [pair_l, pair_r])
 	# a ring slot is HUD ground (the room's click-to-search must not take a press that lands on it)
 	check(HUD.pointer_over_widget(_slot_pos(0)) and HUD.pointer_over_widget(pw.centre), "a press on the ring belongs to the ring, not the room under it")
 	# ring → panel: onto the found item with the bag full puts that one down and takes the new one
