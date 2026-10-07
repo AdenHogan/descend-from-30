@@ -63,6 +63,7 @@ SCENE_H = 526
 PARAPET_Y = 22
 
 SKY_H, FAR_H, MID_H, FORE_H = 330, 230, 300, 200
+GARDEN_P = 1.18                    # the garden layer slides this much per px of camera climb (the building 1.00): the 2.5D separation
 STREET_FROM_BOTTOM = 44            # the ground line sits this far above each city layer's bottom
 
 
@@ -865,66 +866,6 @@ def breach(c, x, y):
         c.put(x + rng.randrange(0, w), y + h + rng.randrange(0, 12), hexc('8a8274') if rng.random() < 0.7 else hexc('5a5248'))
 
 
-SIDE_W = 20
-
-
-def draw_side_face(c, rng, meta, run):
-    """The building's right-hand SIDE wall, seen receding (owner round 36g: "improve the 2D… more depth and geometry"). The front is flat on to
-    the camera; the side is foreshortened toward a vanishing point at street level, so its top edge drops away to the right and
-    every floor line slants — the tower reads as a BOX, not a card. In shade (the sun is on the left), with edge-on windows."""
-    x0 = BX1 + 2
-    K = 0.030
-    for dx in range(SIDE_W):
-        s_ = 1.0 - K * dx / SIDE_W
-        fade = 0.60 - 0.14 * dx / SIDE_W
-
-        def Y(y):
-            return int(round(GROUND_Y - (GROUND_Y - y) * s_))
-        # parapet + roof band, each floor band in its section's wall, the stone base
-        bands = [(PARAPET_Y, TOP_Y, 'hotel')]
-        for n in range(30, 0, -1):
-            bands.append((floor_y(n), floor_y(n) + FH, section(n)))
-        bands.append((LOBBY_Y, GROUND_Y, 'stone'))
-        for (ya, yb, sec) in bands:
-            wall = hexc('8c8f93') if sec == 'stone' else PAL[sec]['wall']
-            col = shade(wall, fade)
-            c.vline(x0 + dx, Y(ya), Y(yb) - 1, col)
-        top = Y(PARAPET_Y)
-        c.put(x0 + dx, top, hexc('b8b09a'))                              # the parapet's lit cap
-        c.put(x0 + dx, Y(TOP_Y) - 1, shade(PAL['hotel']['dark'], 0.5))   # the cornice's under-shadow
-    # floor lines (the slabs show as slanted bands), more where a section begins
-    for n in range(30, 0, -1):
-        for dx in range(SIDE_W):
-            s_ = 1.0 - K * dx / SIDE_W
-            yy = int(round(GROUND_Y - (GROUND_Y - floor_y(n)) * s_))
-            c.put(x0 + dx, yy, (10, 8, 14, 70 if n not in (21, 11) else 120))
-    # windows seen at a slant: three narrow dark panes a floor
-    for n in range(30, 0, -1):
-        for (a, b) in ((3, 5), (8, 10), (13, 15)):
-            r = random.Random(n * 41 + a * 7 + 3)
-            for dx in range(a, b + 1):
-                s_ = 1.0 - K * dx / SIDE_W
-                ya = int(round(GROUND_Y - (GROUND_Y - (floor_y(n) + 3)) * s_))
-                yb = int(round(GROUND_Y - (GROUND_Y - (floor_y(n) + 11)) * s_))
-                glass = mix(hexc('2e3548'), hexc('46506a'), 0.5 * r.random())
-                for yy in range(ya, yb):
-                    c.put(x0 + dx, yy, glass)
-                c.put(x0 + dx, ya, (10, 8, 14, 90))
-            if r.random() < 0.3:                                         # a pane catching the sky
-                dx = a + 1
-                s_ = 1.0 - K * dx / SIDE_W
-                yy = int(round(GROUND_Y - (GROUND_Y - (floor_y(n) + 5)) * s_))
-                c.put(x0 + dx, yy, hexc('7e96b8'))
-    # the corner: a bright vertical edge where the front meets the side
-    c.vline(BX1 + 1, TOP_Y, GROUND_Y - 1, hexc('3e342e'))
-    # the shadow the whole block throws on the pavement and road (the low sun is on the left)
-    a_ = (86, 96, 34)[run - 1]
-    for yy in range(0, 20):
-        for xx in range(x0 - 1, min(W, x0 + SIDE_W + 26 + yy * 3)):
-            edge = (x0 + SIDE_W + 26 + yy * 3) - xx
-            c.put(xx, GROUND_Y + yy, (0, 0, 0, int(a_ * min(1.0, edge / 14.0) * (1.0 - yy / 26.0))))
-
-
 def draw_roof(c, rng, meta):
     P = PAL['hotel']
     # parapet: a cap, a face, and the shadow of the cornice below
@@ -1066,9 +1007,34 @@ PATH_J = hexc('9a937f')
 CX = (BX0 + BX1) // 2
 
 
+PATH_A = 16.0                       # half-width of the path at the steps
+PATH_B = 0.82                       # how fast it opens toward the viewer (px per ground row)
+WALL_T = 4                          # a path wall's thickness (px)
+WALL_FROM, WALL_TO = 12, 34         # the walls run from the front of the planting bed to the gate piers (ground rows)
+BED_ROWS = 12                       # the planting bed along the plinth
+
+
 def path_half(yy):
     """Half-width of the paved path at ground-row offset yy (0 at the steps): it opens out toward the viewer."""
-    return 16 + int(yy * 0.82)
+    return int(PATH_A + yy * PATH_B)
+
+
+def wall_h(yy):
+    """A path wall's height at ground row yy: low, a little taller toward the viewer (perspective)."""
+    return 6 + yy // 4
+
+
+def path_zone(x0, x1, yy):
+    """Where an object spanning x0..x1 at ground row yy stands: 'path' (wholly on the paving), 'lawn' (wholly clear of the path AND the
+    walls that edge it) or None (it would overlap the path's edge or a wall) — the rule that keeps trees, shrubs and benches off the path."""
+    hw = path_half(yy)
+    lo, hi = x0 - CX, x1 - CX
+    if lo >= -(hw - 1) and hi <= hw - 1:
+        return 'path'
+    clear = hw + 2 + (WALL_T + 3 if WALL_FROM - 1 <= yy <= WALL_TO + 2 else 0)
+    if hi <= -clear or lo >= clear:
+        return 'lawn'
+    return None
 
 
 def lawn_tone(rng, x, y, dry):
@@ -1078,8 +1044,201 @@ def lawn_tone(rng, x, y, dry):
     return GRASS[0] if r < 0.28 else (GRASS[1] if r < 0.74 else (GRASS[2] if r < 0.93 else GRASS[3]))
 
 
-def draw_ground(c, rng, meta, run):
-    """Plinth, planting bed, lawn, the path, the hedge — everything flat on the ground, before the trees."""
+SLAB_TONES = [hexc('d3ccba'), hexc('c6bfac'), hexc('bab3a0'), hexc('cfc8b6'), hexc('c1baa7')]
+KERB_A, KERB_B, KERB_GAP = hexc('9b9482'), hexc('aca594'), hexc('6f6959')
+MOSS = hexc('5c8a3e')
+
+
+def slab_bounds():
+    """Ground rows where a course of paving slabs starts: shallow at the steps, deeper toward the viewer (perspective)."""
+    ys, d = [1], 3
+    while ys[-1] < 48:
+        ys.append(ys[-1] + d)
+        if len(ys) % 2 == 0:
+            d += 1
+    return ys
+
+
+def draw_path(c, rng, meta, run):
+    """The paved path (owner round 36j: "give more detail to the path itself. It's looking too basic"): a kerb of setts along each edge, then
+    courses of slabs laid in running bond (each slab its own tone, a lit top edge and a dark joint, the courses deepening toward the viewer),
+    cracks and weeds in the joints, a drain grating, a worn middle, and what the run did to it (leaves, wet puddles at night)."""
+    g0 = GROUND_Y
+    bounds = slab_bounds()
+    nb = len(bounds)
+    wear = (0.0, 0.5, 1.0)[run - 1]
+    for y in range(g0 + 1, SCENE_H):
+        yy = y - g0
+        hw = path_half(yy)
+        k = 0
+        while k + 1 < nb and bounds[k + 1] <= yy:
+            k += 1
+        v = yy - bounds[k]
+        inner = max(4, hw - 4)
+        cellw = max(4.0, 2.0 * inner / 3.0)
+        off = 0.5 if k % 2 else 0.0
+        for x in range(CX - hw, CX + hw + 1):
+            dx = x - CX
+            adx = abs(dx)
+            if adx > hw - 4:                                      # the kerb: little setts end to end
+                seg = (yy // 3) % 2
+                col = KERB_A if seg else KERB_B
+                if yy % 3 == 0:
+                    col = KERB_GAP
+                if adx == hw:
+                    col = shade(KERB_GAP, 0.9)
+                c.put(x, y, mix(col, hexc('857e6c'), rng.random() * 0.15))
+                continue
+            u = dx / float(inner)
+            s = (u + 1.0) * 1.5 + off
+            cell = int(math.floor(s))
+            f = s - cell
+            sr = random.Random(k * 977 + cell * 31 + run * 7)
+            tone = SLAB_TONES[sr.randrange(len(SLAB_TONES))]
+            col = shade(tone, 0.94 + 0.09 * sr.random())
+            if f * cellw < 1.0 or v == 0:                         # the joint
+                col = shade(PATH_J, 0.88)
+            elif v == 1 or f * cellw < 2.0:                       # the lit top / left edge of a slab
+                col = shade(tone, 1.07)
+            elif v >= (bounds[k + 1] - bounds[k] - 1 if k + 1 < nb else 6):
+                col = shade(tone, 0.9)                           # its shaded lower edge
+            c.put(x, y, mix(col, hexc('a69f8c'), rng.random() * 0.12))
+    # a worn, darker line down the middle where everyone walked
+    for yy in range(3, 44):
+        for dx in (-1, 0, 1):
+            if rng.random() < 0.55:
+                c.put(CX + dx + int(2 * math.sin(yy * 0.3)), g0 + yy, (70, 62, 50, 26))
+    # cracks across some slabs, more as the world falls apart
+    cracks = int(3 + 6 * wear)
+    for _ in range(cracks):
+        x = CX + rng.randrange(-28, 29)
+        y = g0 + 6 + rng.randrange(0, 34)
+        for _s in range(rng.randrange(4, 9)):
+            if abs(x - CX) < path_half(y - g0) - 5:
+                c.put(x, y, shade(PATH_J, 0.7))
+            x += rng.choice((-1, 0, 1))
+            y += 1 if rng.random() < 0.7 else 0
+    # weeds and moss pushing up in the joints
+    for _ in range(int(14 + 30 * wear)):
+        yy = rng.randrange(3, 44)
+        x = CX + rng.randrange(-path_half(yy) + 5, path_half(yy) - 4)
+        c.put(x, g0 + yy, MOSS if rng.random() < 0.7 else hexc('86bd58'))
+        if rng.random() < 0.4:
+            c.put(x, g0 + yy - 1, hexc('86bd58'))
+    # a drain grating let into the paving, and the gate's cobbled threshold across the walls' ends
+    gx, gy = CX + 20, g0 + 23
+    c.rect(gx, gy, gx + 7, gy + 2, hexc('3c3e44'))
+    for bx in range(gx + 1, gx + 7, 2):
+        c.vline(bx, gy, gy + 2, hexc('1c1d22'))
+    c.hline(gx, gx + 7, gy, hexc('6a6c72'))
+    for yy in range(WALL_TO, WALL_TO + 3):
+        hw = path_half(yy)
+        for x in range(CX - hw + 4, CX + hw - 3):
+            col = mix(hexc('8f887a'), hexc('6a6458'), 0.5 if ((x // 3 + yy) % 2) else 0.15)
+            c.put(x, g0 + yy, col)
+    # the run's own marks
+    if run <= 2:                                                  # fallen leaves (more in the afternoon)
+        for _ in range(16 if run == 1 else 30):
+            yy = rng.randrange(3, 44)
+            x = CX + rng.randrange(-path_half(yy) + 5, path_half(yy) - 4)
+            c.put(x, g0 + yy, rng.choice((hexc('b8742c'), hexc('d2962c'), hexc('8c5a24'), hexc('a8a03c'))))
+    if run == 3:                                                  # the night's rain: puddles with a sky-grey sheen, and a few ripples
+        for (px_, py_, rx_, ry_) in ((-22, 14, 6, 1.4), (14, 20, 8, 1.6), (-6, 33, 10, 1.8), (28, 38, 7, 1.6), (-30, 41, 6, 1.4)):
+            for yy in range(int(py_ - ry_), int(py_ + ry_) + 1):
+                for xx in range(int(px_ - rx_), int(px_ + rx_) + 1):
+                    if ((xx - px_) / rx_) ** 2 + ((yy - py_) / ry_) ** 2 <= 1.0 and abs(CX + xx - CX) < path_half(yy) - 5:
+                        c.put(CX + xx, g0 + yy, mix(hexc('4a566e'), hexc('7e8cac'), 0.5 + 0.5 * rng.random()))
+            c.put(CX + int(px_), g0 + int(py_), hexc('b8c4de'))
+
+
+def draw_path_walls(c, rng, meta, run):
+    """A small stone wall along each side of the path, from the planting bed to the gate piers (owner round 36j: "build a small wall alongside
+    both sides of the path and keep plants and trees to the correct sides"). Seen from the front a low wall running away along the path is a
+    slanted ribbon: its inner face (shaded on the left wall, lit on the right — the sun is on the left), a pale capstone ribbon on top, mortar
+    courses and staggered joints, a shadow thrown across the path from the left wall, and a pier at each end."""
+    g0 = GROUND_Y
+    face_a, face_b, mortar, cap_c = hexc('a89f8a'), hexc('b7ae98'), hexc('766f5e'), hexc('d8d1bf')
+    for side in (-1, 1):                                          # far to near so the near stones overlap the far
+        for yy in range(WALL_FROM, WALL_TO + 1):
+            hw = path_half(yy)
+            xi = CX + side * (hw + 1)
+            h = wall_h(yy)
+            yb = g0 + yy
+            top = yb - h
+            lit = 1.12 if side == 1 else 0.80
+            for y in range(top + 2, yb + 1):
+                dy = yb - y
+                course = dy // 3
+                joint = (dy % 3 == 0)
+                along = (yy + (course % 2) * 3) // 6
+                tone = face_a if (along + course) % 2 else face_b
+                col = shade(tone, lit * (0.96 + 0.08 * ((along * 5 + course * 3) % 4) / 3.0))
+                if joint and dy > 0:
+                    col = shade(mortar, lit)
+                elif (yy + (course % 2) * 3) % 6 == 0:
+                    col = shade(mortar, lit)
+                if dy == 0:
+                    col = shade(mortar, 0.7 * lit)               # the dark line where it meets the ground
+                c.put(xi, y, col)
+            for d in range(WALL_T):                               # the capstone ribbon
+                cc = cap_c if d < WALL_T - 1 else shade(cap_c, 0.82)
+                c.put(xi + side * d, top, shade(cap_c, 1.06))
+                c.put(xi + side * d, top + 1, cc)
+            # a shadow the left wall throws across the path, and on the lawn the right wall's falls away outside
+            if side == -1:
+                for sx in range(1, 4):
+                    c.put(CX - hw + sx, yb, (30, 26, 20, 46 - sx * 9))
+            else:
+                for sx in range(1, 4):
+                    c.put(CX + hw + WALL_T + sx, yb, (20, 30, 14, 52 - sx * 10))
+    # piers at both ends of each wall: a square post, a capstone that overhangs, a ball finial
+    for side in (-1, 1):
+        for (yy, ph) in ((WALL_FROM - 1, 11), (WALL_TO + 1, 19)):
+            hw = path_half(yy)
+            cx = CX + side * (hw + 1 + WALL_T // 2)
+            yb = g0 + yy
+            lit = 1.12 if side == 1 else 0.82
+            for y in range(yb - ph, yb + 1):
+                for x in range(cx - 3, cx + 3):
+                    dy = yb - y
+                    col = shade(hexc('b0a792'), lit * (1.0 if (dy // 3) % 2 else 0.93))
+                    if dy % 3 == 0:
+                        col = shade(mortar, lit)
+                    if x == cx + 2:
+                        col = shade(col, 0.8)
+                    c.put(x, y, col)
+            c.rect(cx - 4, yb - ph - 2, cx + 3, yb - ph, shade(cap_c, 1.0))
+            c.hline(cx - 4, cx + 3, yb - ph - 2, shade(cap_c, 1.12))
+            c.ellipse(cx - 0.5, yb - ph - 4, 2.2, 2.0, shade(cap_c, 0.95))
+            c.put(cx - 1, yb - ph - 5, hexc('f4eedc'))
+            cast_shadow(c, cx - 3, yb + 1, 8, 1.2, 70, 3)
+    # the wear: capstones knocked off, stains and moss on the face (a little in the afternoon, a lot after the night)
+    if run >= 2:
+        for _ in range(3 * run):
+            side = rng.choice((-1, 1))
+            yy = rng.randrange(WALL_FROM + 3, WALL_TO - 2)
+            hw = path_half(yy)
+            xi = CX + side * (hw + 1)
+            for d in range(WALL_T):
+                c.put(xi + side * d, g0 + yy - wall_h(yy), (0, 0, 0, 0))
+                c.put(xi + side * d, g0 + yy - wall_h(yy) + 1, shade(hexc('8a8372'), 0.9))
+    for _ in range(18 * run):
+        side = rng.choice((-1, 1))
+        yy = rng.randrange(WALL_FROM, WALL_TO)
+        xi = CX + side * (path_half(yy) + 1)
+        y = g0 + yy - rng.randrange(0, wall_h(yy))
+        c.put(xi, y, MOSS if rng.random() < 0.65 else shade(face_a, 0.7))
+    if run == 3:                                                  # a smeared hand on the left wall, blood run down the stones
+        yy = 24
+        xi = CX - (path_half(yy) + 1)
+        for k in range(5):
+            c.put(xi, g0 + yy - 2 - k, BLOOD if k % 2 else BLOOD_DK)
+        c.vline(xi, g0 + yy - 6, g0 + yy, BLOOD_DK)
+
+
+def draw_ground(c, rng, meta, run, front=True):
+    """Plinth, planting bed, lawn, the hedge. `front` (the garden layer) adds the path and its detail; the plain version is the BACK plane the
+    building stands on, which shows through as the garden layer slides past (the opening's 2.5D)."""
     g0 = GROUND_Y
     dry = (0.0, 0.10, 0.26)[run - 1]
     # the lawn first, with mowing bands lighter / darker
@@ -1090,7 +1249,7 @@ def draw_ground(c, rng, meta, run):
             col = lawn_tone(rng, x, y, dry)
             c.put(x, y, shade(col, band * (0.92 + 0.10 * min(yy, 30) / 30.0)))
     # blades and tufts (bigger toward the viewer)
-    for _ in range(420):
+    for _ in range(420 if front else 120):
         x, y = rng.randrange(0, W), g0 + 10 + rng.randrange(0, SCENE_H - g0 - 10)
         h = 1 + (y - g0) // 16
         col = rng.choice(GRASS + [hexc('86bd58')])
@@ -1105,39 +1264,28 @@ def draw_ground(c, rng, meta, run):
     c.hline(0, W - 1, g0 + 11, hexc('8a8576'))
     c.hline(0, W - 1, g0 + 12, hexc('5f5b50'))
     # the paved path, opening out toward the viewer
-    for y in range(g0 + 2, SCENE_H):
-        yy = y - g0
-        hw = path_half(yy)
-        for x in range(CX - hw, CX + hw + 1):
-            c.put(x, y, mix(PATH_C, hexc('b4ad9a'), rng.random() * 0.25))
-        c.put(CX - hw, y, PATH_E)
-        c.put(CX + hw, y, PATH_E)
-        c.put(CX - hw - 1, y, (0, 0, 0, 38))
-        c.put(CX + hw + 1, y, (0, 0, 0, 38))
-    for k in range(0, 44, 5):                                     # slab joints: horizontal rows, spaced wider as they come near
-        yy = int(k * (1.0 + k / 40.0)) + 3
-        y = g0 + yy
-        if y >= SCENE_H:
-            break
-        hw = path_half(yy)
-        c.hline(CX - hw, CX + hw, y, PATH_J)
-        off = (k // 5) % 2
-        for j in range(-4 + off, 5, 2):
-            c.vline(CX + int(j * hw / 4.0), y, min(SCENE_H - 1, y + 4 + k // 8), PATH_J)
-    # the hedge: a low clipped run along the bed, broken for the path
+    if front:
+        draw_path(c, random.Random(31 + run), meta, run)
+    else:
+        for y in range(g0 + 2, SCENE_H):
+            hw = path_half(y - g0)
+            for x in range(CX - hw, CX + hw + 1):
+                c.put(x, y, mix(PATH_C, hexc('b4ad9a'), rng.random() * 0.25))
+    # the hedge: a low clipped run along the bed, never across the path
     for x in range(0, W):
-        if abs(x - CX) < 20:
-            continue
         bump = int(1.6 * math.sin(x * 0.9) + rng.randrange(0, 2))
         top = g0 + 2 + bump
         for y in range(top, g0 + 10):
+            if abs(x - CX) <= path_half(y - g0) + 1:
+                continue
             col = mix(hexc('2c5a2a'), hexc('3f7a34'), (y - top) / 8.0 * 0.6 + rng.random() * 0.25)
             c.put(x, y, col)
-        c.put(x, top, hexc('86bd58') if rng.random() < 0.6 else hexc('5fa046'))
-    # flowers in front of the hedge, sparse as the world falls apart
+        if abs(x - CX) > path_half(top - g0) + 1:
+            c.put(x, top, hexc('86bd58') if rng.random() < 0.6 else hexc('5fa046'))
+    # flowers in front of the hedge, sparse as the world falls apart (never on the path)
     flower_p = (0.55, 0.30, 0.10)[run - 1]
     for x in range(2, W - 2, 3):
-        if abs(x - CX) < 22 or rng.random() > flower_p:
+        if abs(x - CX) < path_half(10) + 4 or rng.random() > flower_p:
             continue
         col = rng.choice((hexc('e8584a'), hexc('f0c840'), hexc('f4f0e0'), hexc('b07ad8'), hexc('f08ab0')))
         y = g0 + 9 + rng.randrange(0, 2)
@@ -1293,47 +1441,87 @@ def litter(c, x, y, rng, kind):
     cast_shadow(c, x, y + 1, 6, 0.9, 70, 2)
 
 
+def tree_half(R, kind):
+    """How far a tree's canopy reaches sideways of its trunk."""
+    return int(R * (0.9 if kind == 'poplar' else 1.4)) + 1
+
+
+def stand(meta, what, x0, x1, yy, want):
+    """Place-check one object: it must stand wholly on the lawn (or on the path, for what the story drops there). A violation stops the build —
+    nature never grows through the paving or its walls."""
+    z = path_zone(int(x0), int(x1), int(yy))
+    if z != want:
+        raise SystemExit('opening garden: %s at x %d..%d, ground row %d is %s, wanted %s' % (what, x0, x1, yy, z, want))
+    meta['placed'].append({'what': what, 'x0': int(x0), 'x1': int(x1), 'yy': int(yy), 'zone': z})
+
+
 def draw_garden_objects(c, rng, meta, run):
-    """Everything standing / lying ON the ground: shrubs, planters, a bench, the trees, the lamp, and what happened here."""
+    """Everything standing / lying ON the ground: the walls, shrubs, planters, a bench, the trees, the lamps, and what happened here. Plants
+    and trees stand on the LAWN, outside the path's walls (`stand` checks every one); only what people dropped lies on the path."""
     g0 = GROUND_Y
     xr = random.Random(7000 + run)
     meta['trees'] = []
     meta['bodies'] = []
     meta['bushes'] = []
-    # planters flanking the steps
-    planter(c, CX - 30, g0 + 8, xr)
-    planter(c, CX + 24, g0 + 8, xr)
+    meta['placed'] = []
+    meta['path'] = {'cx': CX, 'a': PATH_A, 'b': PATH_B, 'wall_t': WALL_T, 'wall_from': WALL_FROM, 'wall_to': WALL_TO}
+    draw_path_walls(c, random.Random(55 + run), meta, run)
+    # planters flanking the steps, just OUTSIDE the paving
+    for (px_, want_x) in ((CX - 32, 'L'), (CX + 27, 'R')):
+        stand(meta, 'planter', px_, px_ + 6, 8, 'lawn')
+        planter(c, px_, g0 + 8, xr)
     # shrubs along the bed, a few round bushes on the lawn
     for bx in (88, 108, 176, 196, 12, 56):
-        bush(c, bx, g0 + 8 + xr.randrange(0, 2), 5 + xr.randrange(0, 3), xr)
-    for (bx, by, br) in ((46, g0 + 26, 4), (240, g0 + 30, 5), (112, g0 + 38, 4), (200, g0 + 40, 4)):
+        r_ = 5 + xr.randrange(0, 3)
+        by = g0 + 8 + xr.randrange(0, 2)
+        stand(meta, 'bed shrub', bx - r_ - 1, bx + r_ + 1, by - g0, 'lawn')
+        bush(c, bx, by, r_, xr)
+    # low shrubs hugging the OUTSIDE of each wall, spaced along it (a planted border)
+    for side in (-1, 1):
+        for yy in range(WALL_FROM + 3, WALL_TO, 7):
+            bx = CX + side * (path_half(yy) + WALL_T + 11)
+            stand(meta, 'wall shrub', bx - 4, bx + 4, yy, 'lawn')
+            bush(c, bx, g0 + yy, 3, xr)
+    for (bx, by, br) in ((46, g0 + 26, 4), (240, g0 + 30, 5), (76, g0 + 38, 4), (210, g0 + 40, 4)):
+        stand(meta, 'lawn bush', bx - br - 1, bx + br + 1, by - g0, 'lawn')
         bush(c, bx, by, br, xr)
         meta['bushes'].append({'x': bx, 'y': by})
-    bench(c, 188, g0 + 22, xr, toppled=(run >= 2))
-    # trees: two big ones framing the building, small ones near the entrance, a flowering one on the path's edge
-    specs = [(30, g0 + 24, 20, 'oak'), (262, g0 + 22, 18, 'oak'), (66, g0 + 17, 9, 'blossom'), (231, g0 + 16, 10, 'oak'), (104, g0 + 36, 8, 'blossom'),
-             (14, g0 + 40, 12, 'poplar'), (276, g0 + 42, 12, 'poplar')]
+    stand(meta, 'bench', 205, 223, 22, 'lawn')
+    bench(c, 205, g0 + 22, xr, toppled=(run >= 2))
+    # trees: two big ones framing the building, small ones near the entrance, flowering ones, poplars at the gate — all on the lawn
+    specs = [(30, g0 + 24, 20, 'oak'), (262, g0 + 22, 18, 'oak'), (66, g0 + 17, 9, 'blossom'), (231, g0 + 16, 10, 'oak'), (74, g0 + 37, 8, 'blossom'),
+             (14, g0 + 38, 12, 'poplar'), (276, g0 + 39, 12, 'poplar')]
     for (tx, ty, tr, kind) in sorted(specs, key=lambda s_: s_[1]):
+        hh = tree_half(tr, kind)
+        stand(meta, 'tree ' + kind, tx - hh, tx + hh, ty - g0, 'lawn')
         tree(c, tx, ty, tr, kind, xr, run)
         meta['trees'].append({'x': tx, 'y': ty, 'r': tr, 'kind': kind})
-    lamp_post(c, 112, g0 + 20, meta)
-    lamp_post(c, 176, g0 + 20, {})
+    # the lamps stand outside the walls, either side of the gate
+    for (k, side) in enumerate((-1, 1)):
+        lx = CX + side * (path_half(30) + WALL_T + 13)
+        stand(meta, 'lamp', lx - 3, lx + 4, 30, 'lawn')
+        lamp_post(c, lx, g0 + 30, meta if k == 0 else {})
     # what happened
     if run >= 2:
-        for (lx, ly, kind) in ((90, g0 + 30, 'bag'), (151, g0 + 19, 'shoe'), (205, g0 + 34, 'pram'), (120, g0 + 33, 'toy'), (170, g0 + 31, 'shoe')):
+        for (lx, ly, kind, want) in ((84, g0 + 30, 'bag', 'lawn'), (151, g0 + 19, 'shoe', 'path'), (214, g0 + 34, 'pram', 'lawn'),
+                                     (120, g0 + 33, 'toy', 'path'), (170, g0 + 31, 'shoe', 'path')):
+            stand(meta, 'litter ' + kind, lx, lx + 9, ly - g0, want)
             litter(c, lx, ly, xr, kind)
         blood_trail(c, 118, g0 + 24, 146, g0 + 18, xr)
-        barricade_door(c, xr, run)
         meta['fires'].append({'x': 74, 'y': g0 + 12, 'scale': 0.9})
         bush(c, 74, g0 + 12, 6, xr, burnt=True)
         if run == 2:
-            body_lying(c, 160, g0 + 24, xr)
-            blood_pool(c, 169, g0 + 26, 9, 2, xr)
-            meta['bodies'].append({'x': 160, 'y': g0 + 24})
+            stand(meta, 'body', 152, 170, 24, 'path')
+            body_lying(c, 152, g0 + 24, xr)
+            blood_pool(c, 161, g0 + 26, 9, 2, xr)
+            meta['bodies'].append({'x': 152, 'y': g0 + 24})
     if run == 3:
-        spots = [(40, g0 + 30, 1), (80, g0 + 34, 0), (126, g0 + 22, 1), (150, g0 + 29, 0), (186, g0 + 20, 1), (214, g0 + 33, 0), (248, g0 + 28, 1),
-                 (100, g0 + 41, 0), (170, g0 + 40, 1), (230, g0 + 41, 0), (20, g0 + 22, 1), (136, g0 + 14, 0)]
-        for (bx, by, fl) in spots:
+        spots = [(40, g0 + 30, 1, 'lawn'), (62, g0 + 34, 0, 'lawn'), (130, g0 + 22, 1, 'path'), (150, g0 + 29, 0, 'path'), (214, g0 + 20, 1, 'lawn'),
+                 (214, g0 + 33, 0, 'lawn'), (248, g0 + 28, 1, 'lawn'), (100, g0 + 41, 0, 'path'), (170, g0 + 40, 1, 'path'), (230, g0 + 41, 0, 'lawn'),
+                 (20, g0 + 22, 1, 'lawn'), (136, g0 + 14, 0, 'path')]
+        for (bx, by, fl, want) in spots:
+            lo, hi = (bx - 16, bx + 1) if fl else (bx - 1, bx + 16)
+            stand(meta, 'body', lo, hi, by - g0, want)
             blood_pool(c, bx + (6 if not fl else -6), by + 2, 10, 2, xr)
             blood_trail(c, bx + (14 if not fl else -14), by + 1, bx + (28 if not fl else -28), by - 3 + xr.randrange(0, 4), xr, 1)
             body_lying(c, bx, by, xr, flip=bool(fl))
@@ -1343,15 +1531,15 @@ def draw_garden_objects(c, rng, meta, run):
         blood_trail(c, CX + 8, g0 + 43, CX + 3, g0 + 5, xr, 2)
         for _ in range(26):
             c.put(CX - 14 + xr.randrange(0, 29), g0 + 2 + xr.randrange(0, 40), BLOOD)
-        meta['fires'].append({'x': 118, 'y': g0 + 18, 'scale': 1.0})
-        bush(c, 118, g0 + 18, 5, xr, burnt=True)
-    # the animated runner (the game draws it; here only where / when / which way)
+        meta['fires'].append({'x': 90, 'y': g0 + 18, 'scale': 1.0})
+        bush(c, 90, g0 + 18, 5, xr, burnt=True)
+    # the animated runner (the game draws it; here only where / when / which way) — across the gate, in front of everything standing
     if run == 1:
-        meta['runner'] = {'kind': 'cat', 'y': g0 + 31, 'dir': 1, 'start': 1.0, 'dur': 6.0, 'x0': -14, 'x1': 300}
+        meta['runner'] = {'kind': 'cat', 'y': g0 + 42, 'dir': 1, 'start': 1.0, 'dur': 6.0, 'x0': -14, 'x1': 300}
     elif run == 2:
-        meta['runner'] = {'kind': 'human', 'y': g0 + 27, 'dir': -1, 'start': 1.1, 'dur': 5.2, 'x0': 300, 'x1': -14}
+        meta['runner'] = {'kind': 'human', 'y': g0 + 42, 'dir': -1, 'start': 1.1, 'dur': 5.2, 'x0': 300, 'x1': -14}
     else:
-        meta['runner'] = {'kind': '', 'y': g0 + 31, 'dir': 1, 'start': 0.0, 'dur': 1.0, 'x0': 0, 'x1': 0}
+        meta['runner'] = {'kind': '', 'y': g0 + 42, 'dir': 1, 'start': 0.0, 'dur': 1.0, 'x0': 0, 'x1': 0}
 
 
 def planks(c, x0, y0, x1, y1, rng, n):
@@ -1401,17 +1589,21 @@ def barricade_door(c, rng, run):
 
 
 def draw_scene(run=1):
+    """TWO pictures on the SAME grid (owner round 36j: "the garden is a front facing image, the building doesn't need to be a 3D cuboid… 2.5D
+    where items in the foreground appear on a different plane from the background"): the BUILDING — a flat, front-on facade with a crisp
+    silhouette — on a plain back lawn, and the GARDEN (lawn, path, walls, trees, what happened) as its own layer the game slides faster. At
+    camera 0 they coincide exactly; as it climbs the garden slides away and the building looms behind."""
     rng = random.Random(404)
     L = LOOK[run]
     c = Canvas(W, SCENE_H, seed=404)
-    meta = {'lit': [], 'smoke': [], 'beacon': [], 'fires': [], 'survivors': [], 'helps': [],
+    meta = {'lit': [], 'smoke': [], 'beacon': [], 'survivors': [], 'helps': [],
             'grid': {'x0': INNER_X0, 'bay_w': BAY_W, 'bays': BAYS, 'floor0_y': TOP_Y, 'floor_h': FH, 'frame': [2, 2, 11, 10]}}
     draw_facade(c, rng, meta, run)
     draw_roof(c, rng, meta)
     draw_entrance(c, rng, meta)
-    draw_ground(c, random.Random(515), meta, run)
-    draw_side_face(c, rng, meta, run)
-    draw_garden_objects(c, rng, meta, run)
+    barricade_door(c, random.Random(77 + run), run) if run >= 2 else None
+    draw_ground(c, random.Random(515), {}, run, front=False)     # the back plane the building stands on
+    edge_light(c, run)
     xr = random.Random(900 + run)
     if run == 3:
         for k in range(18):                                       # parapet knocked off at the corner, the pieces down the face
@@ -1422,7 +1614,35 @@ def draw_scene(run=1):
     if L['grade'] is not None:
         grade_scene(c.img, L['grade'], meta['lit'], run)
         c.px = c.img.load()
-    return c.img, meta
+    # the garden layer, on its own canvas
+    cg = Canvas(W, SCENE_H, seed=505)
+    gmeta = {'fires': []}
+    draw_ground(cg, random.Random(516), gmeta, run, front=True)
+    draw_garden_objects(cg, random.Random(7100 + run), gmeta, run)
+    base_shadow(cg, run)
+    if L['grade'] is not None:
+        grade_scene(cg.img, L['grade'], [], run)
+    return c.img, meta, cg.img, gmeta
+
+
+def edge_light(c, run):
+    """A crisp silhouette for the flat facade: a dark hairline down each side with a pale rim on the sunward (left) edge, so the front-on
+    tower stands off the sky and the city behind it instead of melting into them."""
+    top, bot = PARAPET_Y, GROUND_Y - 1
+    c.vline(BX0 - 1, top, bot, hexc('2c2824'))
+    c.vline(BX1 + 1, top, bot, hexc('2c2824'))
+    rim = (hexc('d6c9a8'), hexc('c9a98a'), hexc('6a7088'))[run - 1]
+    c.vline(BX0, top + 2, bot, mix(rim, hexc('2c2824'), 0.25))
+    c.vline(BX1 + 2, top, bot, (20, 16, 24, 70))                  # a faint soft edge-shadow on the sky side
+    c.hline(BX0 - 1, BX1 + 1, top - 1, hexc('2c2824'))
+
+
+def base_shadow(cg, run):
+    """The building's contact shadow on the planting bed, in the garden layer (so it travels with the ground it falls on)."""
+    for yy in range(0, 10):
+        a = int((60, 70, 30)[run - 1] * (1.0 - yy / 10.0))
+        for x in range(BX0 - 2, BX1 + 4):
+            cg.put(x, GROUND_Y + yy, (0, 0, 0, a))
 
 
 def grade_scene(img, g, lit, run):
@@ -1517,6 +1737,49 @@ def crow(c, x, y):
     c.put(x + 1, y, k)
 
 
+# ================================================================================================================== FOG
+def draw_fog(run, kind):
+    """The afternoon's FOG (owner round 36j: "in the afternoon we can add a little fog"): soft, dithered banks that tile sideways so the game can
+    drift them. 'mid' lies between the building and the garden — a thick bank on the ground, a thin one up the tower; 'front' lies over the
+    garden — a low veil. Pixel-honest: alpha steps through four levels with a Bayer dither at the edges, no smooth gradient."""
+    rng = random.Random(8800 + (1 if kind == 'mid' else 2))
+    img = Image.new('RGBA', (W, SCENE_H), (0, 0, 0, 0))
+    px = img.load()
+
+    def noise(gw, gh, seed):
+        r = random.Random(seed)
+        g = Image.new('L', (gw, gh))
+        gp = g.load()
+        for yy in range(gh):
+            for xx in range(gw):
+                gp[xx, yy] = r.randrange(256)
+        big = Image.new('L', (gw * 3, gh))
+        for k in range(3):
+            big.paste(g, (k * gw, 0))
+        big = big.resize((W * 3, SCENE_H), Image.BICUBIC)
+        return big.crop((W, 0, W * 2, SCENE_H)).load()
+    n1 = noise(9, 40, 11 + (0 if kind == 'mid' else 50))
+    n2 = noise(20, 90, 23 + (0 if kind == 'mid' else 50))
+    tint = (236, 206, 204)
+    for y in range(SCENE_H):
+        if kind == 'mid':
+            ground = math.exp(-((y - (GROUND_Y - 8)) / 20.0) ** 2) * 1.0           # a bank hugging the ground line
+            tower = math.exp(-((y - 300) / 26.0) ** 2) * 0.42 + math.exp(-((y - 120) / 22.0) ** 2) * 0.30
+            env = max(ground, tower)
+        else:
+            env = math.exp(-((y - (GROUND_Y + 30)) / 16.0) ** 2) * 0.75
+        if env < 0.02:
+            continue
+        for x in range(W):
+            v = (0.62 * n1[x, y] + 0.38 * n2[x, y]) / 255.0
+            a = (v - 0.34) * 2.2 * env
+            a += (bayer(x, y) - 0.5) * 0.12
+            lvl = 0 if a < 0.12 else (1 if a < 0.30 else (2 if a < 0.52 else 3))
+            if lvl:
+                px[x, y] = tint + ((0, 34, 64, 98)[lvl],)
+    return img
+
+
 # ============================================================================================================== BURN
 def draw_burn():
     """What the game lays over a floor that is ACTUALLY on fire in this playthrough (WorldState.fire_intensity): three charred windows
@@ -1560,21 +1823,26 @@ def build(run):
     out['far_%d.png' % run] = far
     mid, mid_meta = draw_mid(run)
     out['mid_%d.png' % run] = mid
-    scene, scene_meta = draw_scene(run)
+    scene, scene_meta, garden, garden_meta = draw_scene(run)
     out['scene_%d.png' % run] = scene
+    out['garden_%d.png' % run] = garden
+    if run == 2:                                                  # the afternoon's fog (owner round 36j)
+        out['fog_2.png'] = draw_fog(2, 'mid')
+        out['fogf_2.png'] = draw_fog(2, 'front')
     out['fore_%d.png' % run] = draw_fore(run)
     L = LOOK[run]
     meta = {
         'run': run,
         'view': [W, VIEW_H],
         'layers': {'sky': {'p': 0.30, 'h': SKY_H}, 'far': {'p': 0.50, 'h': FAR_H}, 'mid': {'p': 0.75, 'h': MID_H},
-                   'scene': {'p': 1.00, 'h': SCENE_H}, 'fore': {'p': 1.30, 'h': FORE_H, 'lift': 30}},
+                   'scene': {'p': 1.00, 'h': SCENE_H}, 'fog': {'p': 1.08, 'h': SCENE_H, 'drift': 3.0},
+                   'garden': {'p': GARDEN_P, 'h': SCENE_H}, 'fogf': {'p': 1.22, 'h': SCENE_H, 'drift': 5.0}, 'fore': {'p': 1.30, 'h': FORE_H, 'lift': 30}},
         'scroll': 457,
         'clouds_atlas': cloud_meta,
-        'far': far_meta, 'mid': mid_meta, 'scene': scene_meta,
+        'far': far_meta, 'mid': mid_meta, 'scene': scene_meta, 'garden': garden_meta,
         'building': {'x0': BX0, 'x1': BX1, 'ground': GROUND_Y, 'parapet': PARAPET_Y, 'top_floor_y': TOP_Y, 'floor_h': FH},
         'look': {'city_fires': L['city_fires'], 'city_smokes': list(L['city_smokes']), 'rain': run == 3,
-                 'moon': run == 3, 'night': run == 3},
+                 'moon': run == 3, 'night': run == 3, 'fog': run == 2},
     }
     return out, meta
 
@@ -1644,6 +1912,10 @@ def compose(files, meta, cam, run):
             img.alpha_composite(spr, (cl['x'], y))
     top = VIEW_H - L['scene']['h'] + int(round(L['scene']['p'] * cam))
     img.alpha_composite(files['scene_%d.png' % run], (0, top))
+    for key, f in (('fog', 'fog_%d.png'), ('garden', 'garden_%d.png'), ('fogf', 'fogf_%d.png')):
+        if (f % run) in files:
+            top = VIEW_H - L[key]['h'] + int(round(L[key]['p'] * cam))
+            img.alpha_composite(files[f % run], (0, top))
     top = VIEW_H - L['fore']['h'] + L['fore']['lift'] + int(round(L['fore']['p'] * cam))
     img.alpha_composite(files['fore_%d.png' % run], (0, top))
     return img.convert('RGB')

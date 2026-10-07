@@ -69,6 +69,7 @@ var title: Label = null
 var shade: ColorRect = null
 var flash: ColorRect = null
 var rain: Control = null
+var bolt: Control = null                # a pixel bolt of lightning (night)
 var flickers: Array = []                # [{"rect": ColorRect, "next": float, "off": bool}]
 var beacons: Array = []                 # [{"node": CanvasItem, "phase": float}]
 var flames: Array = []                  # [{"glow": Sprite2D, "phase": float}] — the glows over every fire, pulsing
@@ -84,6 +85,7 @@ var _thunder: AudioStreamPlayer = null
 var _siren_played := false
 var _swell_played := false
 var _bolt_in: float = 5.0               # seconds to the next lightning (night)
+var _flicker_in: float = -1.0
 var _boom_in: float = -1.0              # seconds to its thunder
 var _glow_tex: Texture2D = null
 
@@ -189,7 +191,7 @@ func _ready() -> void:
 
 
 static func art_present(for_run: int = 1) -> bool:
-	for f in ["sky", "far", "mid", "scene", "fore", "clouds"]:
+	for f in ["sky", "far", "mid", "scene", "garden", "fore", "clouds"]:
 		if not ResourceLoader.exists("%s%s_%d.png" % [DIR, f, for_run]):
 			return false
 	return ResourceLoader.exists(DIR + "burn.png") and FileAccess.file_exists("%sopening_meta_%d.json" % [DIR, for_run])
@@ -226,6 +228,14 @@ func _build() -> bool:
 	_decorate_city("mid")
 	_add_layer("scene", spec)
 	_decorate_scene()
+	# the garden is its OWN plane, sliding faster than the building (2.5D, owner round 36j) — with the afternoon's fog banks either side of it
+	var fog_on: bool = bool(meta.get("look", {}).get("fog", false)) and ResourceLoader.exists("%sfog_%d.png" % [DIR, run])
+	if fog_on:
+		_add_layer("fog", spec)
+	_add_layer("garden", spec)
+	_decorate_garden()
+	if fog_on:
+		_add_layer("fogf", spec)
 	_add_layer("fore", spec)
 
 	if bool(meta.get("look", {}).get("rain", false)):
@@ -246,6 +256,12 @@ func _build() -> bool:
 	mat.shader = sh
 	vig.material = mat
 	add_child(vig)
+
+	bolt = _Bolt.new()
+	bolt.name = "Bolt"
+	bolt.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	bolt.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(bolt)
 
 	flash = ColorRect.new()
 	flash.name = "Flash"
@@ -296,7 +312,13 @@ func _add_layer(key: String, spec: Dictionary) -> void:
 	world.add_child(n)
 	var d: Dictionary = spec.get(key, {})
 	layers[key] = {"node": n, "p": float(d.get("p", 1.0)), "h": float(d.get("h", tex.get_height() if tex != null else 0)),
-		"lift": float(d.get("lift", 0.0))}
+		"lift": float(d.get("lift", 0.0)), "drift": float(d.get("drift", 0.0)), "w": float(tex.get_width() if tex != null else VIEW_W)}
+	if float(d.get("drift", 0.0)) > 0.0 and tex != null:          # a bank of fog: two copies side by side, slid along and wrapped
+		var s2 := Sprite2D.new()
+		s2.centered = false
+		s2.texture = tex
+		s2.position.x = float(tex.get_width())
+		n.add_child(s2)
 
 
 func _add_clouds() -> void:
@@ -452,11 +474,6 @@ func _decorate_scene() -> void:
 		survivors.people = sv
 		survivors.run = run
 		node.add_child(survivors)
-	# fires in the street
-	for f in m.get("fires", []):
-		var at := Vector2(float(f["x"]), float(f["y"]))
-		_smoke_sprite(node, at + Vector2(0, -8), 1.0, Color(1, 1, 1, 0.95))
-		_flame(node, at, float(f.get("scale", 1.0)) * 1.2, 1.5)
 	# a failing lamp or two: a dark pane that comes and goes over a lit window (the floor-30 window you wake in stays steady)
 	var lit: Array = m.get("lit", [])
 	var pool: Array = []
@@ -473,13 +490,6 @@ func _decorate_scene() -> void:
 		r.modulate.a = 0.0
 		node.add_child(r)
 		flickers.append({"rect": r, "next": 0.6 + _rng.randf() * 3.0, "off": false})
-	# the garden's one moving figure: a cat / someone running in fear (none at night — only the dead are there)
-	var rn: Dictionary = m.get("runner", {})
-	if String(rn.get("kind", "")) != "":
-		runner = _Runner.new()
-		runner.name = "Runner"
-		runner.spec = rn
-		node.add_child(runner)
 	# crows circling above the roof (not at night — they have gone)
 	if run < 3:
 		birds = _Birds.new()
@@ -487,6 +497,24 @@ func _decorate_scene() -> void:
 		var bld: Dictionary = meta.get("building", {})
 		birds.position = Vector2((float(bld.get("x0", 78)) + float(bld.get("x1", 209))) * 0.5, -26.0)
 		node.add_child(birds)
+
+
+## The garden plane: its fires and the one figure crossing it (children of the garden layer, so they slide with it).
+func _decorate_garden() -> void:
+	var node: Node2D = layers["garden"]["node"]
+	var g: Dictionary = meta.get("garden", {})
+	# fires in the garden
+	for f in g.get("fires", []):
+		var at := Vector2(float(f["x"]), float(f["y"]))
+		_smoke_sprite(node, at + Vector2(0, -8), 1.0, Color(1, 1, 1, 0.95))
+		_flame(node, at, float(f.get("scale", 1.0)) * 1.2, 1.5)
+	# the garden's one moving figure: a cat / someone running in fear (none at night — only the dead are there)
+	var rn: Dictionary = g.get("runner", {})
+	if String(rn.get("kind", "")) != "":
+		runner = _Runner.new()
+		runner.name = "Runner"
+		runner.spec = rn
+		node.add_child(runner)
 
 
 ## Lay the charred windows / soot / flames for burn_plan() on the building (a child of the scene layer, so it scrolls with it).
@@ -621,6 +649,11 @@ func _apply(dt: float) -> void:
 		var l: Dictionary = layers[key]
 		var y: float = VIEW_H - float(l["h"]) + float(l["lift"]) + float(l["p"]) * c
 		(l["node"] as Node2D).position = Vector2(0.0, _snap(y))
+		if float(l.get("drift", 0.0)) > 0.0:
+			var w: float = float(l["w"])
+			var dx: float = -floorf(fposmod(float(l["drift"]) * t, w))
+			(l["node"] as Node2D).get_child(0).position.x = dx
+			(l["node"] as Node2D).get_child(1).position.x = dx + w
 	for cl in clouds:
 		# drifts slowly right, wrapping round just off both edges
 		var cw: float = float(cl["w"])
@@ -628,6 +661,9 @@ func _apply(dt: float) -> void:
 		var x: float = fposmod(float(cl["x"]) + float(cl["v"]) * t + cw + 20.0, span) - cw - 20.0
 		var y: float = float(cl["y"]) + float(cl["p"]) * c
 		(cl["node"] as Sprite2D).position = Vector2(_snap(x), _snap(y))
+	if rain != null:
+		var gy: float = (float(layers["garden"]["node"].position.y) + 482.0) * PIXEL
+		rain.set("ground_y", gy if gy < 648.0 else -1.0)
 	shade.color.a = black_alpha(t, with_title)
 	var ta := title_visible(t, with_title)
 	title.modulate.a = ta
@@ -671,10 +707,17 @@ func _apply(dt: float) -> void:
 func _lightning(dt: float) -> void:
 	if run != 3 or flash == null:
 		return
+	if _flicker_in >= 0.0:                                 # the second, weaker flash a beat after the first (lightning stutters)
+		_flicker_in -= dt
+		if _flicker_in < 0.0:
+			flash.modulate.a = maxf(flash.modulate.a, 0.28)
 	flash.modulate.a = maxf(0.0, flash.modulate.a - dt * 2.6)
 	_bolt_in -= dt
 	if _bolt_in <= 0.0:
 		flash.modulate.a = 0.5
+		_flicker_in = 0.11
+		if bolt != null:
+			bolt.strike(_rng, _rng.randf() < 0.5)
 		_bolt_in = 4.5 + _rng.randf() * 6.0
 		_boom_in = 0.5 + _rng.randf() * 1.0
 	if _boom_in >= 0.0:
@@ -872,34 +915,108 @@ class _Survivors:
 
 
 # ---- rain over the whole picture (night) --------------------------------------------------------------------------------
+# PIXEL rain (owner round 36j: "pixel animated rain"): every drop is a short run of whole game-pixels (4x4 on screen) stepping left as it
+# falls, in two depths — a dim, slow, small far sheet and a brighter, faster, longer near one — so it reads as the same pixel art as the
+# picture instead of anti-aliased lines laid over it. Ripples (two-pixel splashes) pop on the garden's ground while it is on screen.
 class _Rain:
 	extends Control
 
-	const N := 150
+	const PX := 4.0
+	const N_FAR := 170
+	const N_NEAR := 100
 	var drops: Array = []
+	var splashes: Array = []                # [{"x": float (0..1), "y": float (screen px), "age": float}]
 	var clock := 0.0
+	var ground_y := -1.0                    # screen y of the garden's ground line (set by the opening each frame; < 0 = off screen)
+	var _splash_in := 0.0
 
 	func _ready() -> void:
 		var r := RandomNumberGenerator.new()
 		r.seed = 77
-		for i in N:
-			drops.append({"x": r.randf(), "y": r.randf(), "v": 0.9 + r.randf() * 0.9, "len": 7.0 + r.randf() * 9.0, "a": 0.18 + r.randf() * 0.22})
+		for i in N_FAR:
+			drops.append({"x": r.randf(), "y": r.randf(), "v": 0.55 + r.randf() * 0.35, "segs": 2, "a": 0.20 + r.randf() * 0.12})
+		for i in N_NEAR:
+			drops.append({"x": r.randf(), "y": r.randf(), "v": 1.05 + r.randf() * 0.55, "segs": 3 + (i % 2), "a": 0.38 + r.randf() * 0.22})
 
 	func _process(delta: float) -> void:
 		clock += delta
 		for d in drops:
-			d["y"] = float(d["y"]) + delta * float(d["v"]) * 1.15
-			d["x"] = float(d["x"]) - delta * float(d["v"]) * 0.12
-			if float(d["y"]) > 1.05:
+			d["y"] = float(d["y"]) + delta * float(d["v"]) * 1.25
+			d["x"] = float(d["x"]) - delta * float(d["v"]) * 0.10
+			if float(d["y"]) > 1.0:
 				d["y"] = -0.05
 				d["x"] = fposmod(float(d["x"]) + 0.37, 1.0)
 			if float(d["x"]) < -0.02:
 				d["x"] = 1.02
+		_splash_in -= delta
+		if _splash_in <= 0.0 and ground_y >= 0.0 and ground_y < size.y - 40.0 and splashes.size() < 40:    # ripples on the garden while it is on screen
+			_splash_in = 0.04 + randf() * 0.05
+			var top := ground_y + 24.0
+			var bottom := minf(size.y - 8.0, ground_y + 172.0)
+			splashes.append({"x": randf(), "y": top + randf() * maxf(1.0, bottom - top), "age": 0.0})
+		for sp in splashes:
+			sp["age"] = float(sp["age"]) + delta
+		splashes = splashes.filter(func(sp): return float(sp["age"]) < 0.22)
 		queue_redraw()
+
+	func _snap(v: float) -> float:
+		return floorf(v / PX) * PX
 
 	func _draw() -> void:
 		var w := size.x
 		var h := size.y
 		for d in drops:
-			var p := Vector2(float(d["x"]) * w, float(d["y"]) * h)
-			draw_line(p, p + Vector2(-2.0, float(d["len"])), Color(0.72, 0.8, 0.95, float(d["a"])), 2.0)
+			var x := _snap(float(d["x"]) * w)
+			var y := _snap(float(d["y"]) * h)
+			var col := Color(0.74, 0.82, 0.97, float(d["a"]))
+			for k in int(d["segs"]):
+				draw_rect(Rect2(x - float(k / 2) * PX, y + float(k) * PX, PX, PX), col)
+		for sp in splashes:
+			var a := 1.0 - float(sp["age"]) / 0.22
+			var x := _snap(float(sp["x"]) * w)
+			var y := _snap(float(sp["y"]))
+			var col := Color(0.78, 0.86, 1.0, 0.45 * a)
+			draw_rect(Rect2(x - PX, y, PX, PX), col)
+			draw_rect(Rect2(x + PX, y, PX, PX), col)
+
+
+# ---- a bolt of lightning (night) ---------------------------------------------------------------------------------------------------
+# A jagged pixel bolt that cracks down through the sky beside the tower, lit for a few frames with the flash; the shape is re-rolled for each strike.
+class _Bolt:
+	extends Control
+
+	const PX := 4.0
+	var pts: Array = []                     # whole-pixel cells of the bolt, screen coords
+	var life := 0.0
+
+	func strike(rng: RandomNumberGenerator, left_side: bool) -> void:
+		pts.clear()
+		var x := (60.0 + rng.randf() * 160.0) if left_side else (880.0 + rng.randf() * 200.0)
+		var y := 0.0
+		var limit := 300.0 + rng.randf() * 160.0
+		while y < limit:
+			pts.append(Vector2(floorf(x / PX) * PX, floorf(y / PX) * PX))
+			y += PX
+			x += PX * float(rng.randi_range(-1, 1)) * (1.0 if rng.randf() < 0.55 else 0.0)
+			if rng.randf() < 0.07 and y > 80.0:                       # a short fork
+				var fx := x
+				var fy := y
+				var dir := -1.0 if rng.randf() < 0.5 else 1.0
+				for j in rng.randi_range(3, 7):
+					fx += PX * dir
+					fy += PX * (1.0 if j % 2 == 0 else 0.0)
+					pts.append(Vector2(floorf(fx / PX) * PX, floorf(fy / PX) * PX))
+		life = 0.20
+
+	func _process(delta: float) -> void:
+		if life > 0.0:
+			life = maxf(0.0, life - delta)
+			queue_redraw()
+
+	func _draw() -> void:
+		if life <= 0.0:
+			return
+		var a := clampf(life / 0.20, 0.0, 1.0)
+		for p in pts:
+			draw_rect(Rect2(p - Vector2(PX, 0.0), Vector2(PX * 3.0, PX)), Color(0.55, 0.65, 1.0, 0.30 * a))
+			draw_rect(Rect2(p, Vector2(PX, PX)), Color(0.96, 0.98, 1.0, a))

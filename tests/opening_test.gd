@@ -36,6 +36,8 @@ func _ready() -> void:
 	await _test_layers()
 	await _test_survivors()
 	await _test_runner()
+	_test_garden_plan()
+	await _test_depth_and_weather()
 	await _test_runs()
 	await _test_burning()
 	await _test_overlay_flow()
@@ -67,7 +69,7 @@ func _mean_lum(tex: Texture2D) -> float:
 func _test_art() -> void:
 	print("[art — three runs]")
 	var want := {"sky": Vector2i(288, 330), "far": Vector2i(288, 230), "mid": Vector2i(288, 300),
-		"scene": Vector2i(288, 526), "fore": Vector2i(288, 200)}
+		"scene": Vector2i(288, 526), "garden": Vector2i(288, 526), "fore": Vector2i(288, 200)}
 	for run in [1, 2, 3]:
 		check(Ext.art_present(run), "run %d: every layer + the meta are in assets/opening/" % run)
 		for f in want:
@@ -77,11 +79,11 @@ func _test_art() -> void:
 		check(m.has("layers") and m.has("clouds") and m.has("scene") and m.has("burn") and int(m.get("run", 0)) == run,
 			"run %d: the meta lists layers, clouds, the scene's details and the burn sheet" % run)
 		var L: Dictionary = m.get("layers", {})
-		for k in ["sky", "far", "mid", "scene", "fore"]:
+		for k in ["sky", "far", "mid", "scene", "garden", "fore"]:
 			check(L.has(k) and float(L[k]["h"]) > 0.0, "run %d layer %s has a parallax + height" % [run, k])
 		check(float(L["sky"]["p"]) < float(L["far"]["p"]) and float(L["far"]["p"]) < float(L["mid"]["p"])
-			and float(L["mid"]["p"]) < float(L["scene"]["p"]) and float(L["scene"]["p"]) < float(L["fore"]["p"]),
-			"run %d: parallax grows toward the viewer (sky < far < mid < building < foreground)" % run)
+			and float(L["mid"]["p"]) < float(L["scene"]["p"]) and float(L["scene"]["p"]) < float(L["garden"]["p"]) and float(L["garden"]["p"]) < float(L["fore"]["p"]),
+			"run %d: parallax grows toward the viewer (sky < far < mid < building < garden < foreground wires)" % run)
 		check(float(m["scroll"]) > 300.0, "run %d: a real climb (%d px)" % [run, int(m["scroll"])])
 		check(m["scene"]["lit"].size() >= 4, "run %d: a few lamps are on (%d)" % [run, m["scene"]["lit"].size()])
 		var floor30 := false
@@ -110,23 +112,23 @@ func _test_looks() -> void:
 	var m1 := _meta(1)
 	var m2 := _meta(2)
 	var m3 := _meta(3)
-	check(m1["scene"]["fires"].size() == 0 and m2["scene"]["fires"].size() >= 1 and m3["scene"]["fires"].size() > m2["scene"]["fires"].size(),
-		"fires in the street: none, some, more (%d / %d / %d)" % [m1["scene"]["fires"].size(), m2["scene"]["fires"].size(), m3["scene"]["fires"].size()])
+	check(m1["garden"]["fires"].size() == 0 and m2["garden"]["fires"].size() >= 1 and m3["garden"]["fires"].size() > m2["garden"]["fires"].size(),
+		"fires in the garden: none, some, more (%d / %d / %d)" % [m1["garden"]["fires"].size(), m2["garden"]["fires"].size(), m3["garden"]["fires"].size()])
 	check(m1["scene"]["helps"].size() == 0 and m2["scene"]["helps"].size() >= 1 and m3["scene"]["helps"].size() > m2["scene"]["helps"].size(),
 		"HELP / SOS sheets hang out of windows only from the afternoon: none, some, more (%d / %d / %d)" % [m1["scene"]["helps"].size(), m2["scene"]["helps"].size(), m3["scene"]["helps"].size()])
 	check(int(m1["look"]["city_smokes"][0]) == 0 and int(m1["look"]["city_smokes"][1]) == 0 and int(m2["look"]["city_smokes"][0]) > 0,
 		"…and so do the smoke columns over the city %s / %s" % [str(m1["look"]["city_smokes"]), str(m2["look"]["city_smokes"])])
 	# the ground is a GARDEN (owner round 36h: "get rid of the road… trees… a cat… a human running in fear… bodies everywhere at night")
 	for run in [1, 2, 3]:
-		var gm: Dictionary = _meta(run)["scene"]
+		var gm: Dictionary = _meta(run)["garden"]
 		check(not gm.has("cars") and gm["trees"].size() >= 5, "run %d: no cars, no road — %d trees in the garden" % [run, gm["trees"].size()])
-	var b1: int = _meta(1)["scene"]["bodies"].size()
-	var b2: int = _meta(2)["scene"]["bodies"].size()
-	var b3: int = _meta(3)["scene"]["bodies"].size()
+	var b1: int = _meta(1)["garden"]["bodies"].size()
+	var b2: int = _meta(2)["garden"]["bodies"].size()
+	var b3: int = _meta(3)["garden"]["bodies"].size()
 	check(b1 == 0 and b2 >= 1 and b3 >= 8 and b3 > b2, "bodies on the ground: none by morning, one by the afternoon, everywhere at night (%d / %d / %d)" % [b1, b2, b3])
-	check(String(_meta(1)["scene"]["runner"]["kind"]) == "cat" and String(_meta(2)["scene"]["runner"]["kind"]) == "human" and String(_meta(3)["scene"]["runner"]["kind"]) == "",
+	check(String(_meta(1)["garden"]["runner"]["kind"]) == "cat" and String(_meta(2)["garden"]["runner"]["kind"]) == "human" and String(_meta(3)["garden"]["runner"]["kind"]) == "",
 		"a black cat crosses the lawn in the morning, a person flees in the afternoon, no one runs at night")
-	var road_row: Image = (load(Ext.DIR + "scene_1.png") as Texture2D).get_image()
+	var road_row: Image = (load(Ext.DIR + "garden_1.png") as Texture2D).get_image()
 	var grey := 0
 	for x in range(0, 288, 2):
 		var px := road_row.get_pixel(x, 515)
@@ -587,3 +589,125 @@ func _test_fallback() -> void:
 	check(intro.stage == "card" and intro.gore.modulate.a == 1.0, "…then the card with the handprint already up, as before")
 	intro.queue_free()
 	await get_tree().process_frame
+
+
+# ---- round 36j: the garden's path, its walls, what may stand where; the 2.5D split; fog; pixel rain + bolt --------------------------------
+func _zone(path: Dictionary, x0: int, x1: int, yy: int) -> String:
+	var hw := int(float(path["a"]) + float(yy) * float(path["b"]))
+	var lo: int = x0 - int(path["cx"])
+	var hi: int = x1 - int(path["cx"])
+	if lo >= -(hw - 1) and hi <= hw - 1:
+		return "path"
+	var wall := int(path["wall_t"]) + 3 if (yy >= int(path["wall_from"]) - 1 and yy <= int(path["wall_to"]) + 2) else 0
+	var clear := hw + 2 + wall
+	if hi <= -clear or lo >= clear:
+		return "lawn"
+	return ""
+
+
+func _test_garden_plan() -> void:
+	print("[the garden: a path with walls, nature kept to the lawn]")
+	for run in [1, 2, 3]:
+		var gm: Dictionary = _meta(run)["garden"]
+		var path: Dictionary = gm["path"]
+		var plants := 0
+		var bad: Array = []
+		for pl in gm["placed"]:
+			var what := String(pl["what"])
+			var z := _zone(path, int(pl["x0"]), int(pl["x1"]), int(pl["yy"]))
+			if what.begins_with("tree") or what.contains("shrub") or what.contains("bush") or what == "planter" or what == "bench" or what == "lamp":
+				plants += 1
+				if z != "lawn":
+					bad.append(what)
+			if String(pl["zone"]) != z:
+				bad.append("zone drift " + what)
+		check(plants >= 14 and bad.is_empty(), "run %d: %d trees / shrubs / planters / benches / lamps, every one on the lawn, none on the path or its walls %s" % [run, plants, str(bad)])
+		for t_ in gm["trees"]:
+			var hh := int(float(t_["r"]) * (0.9 if t_["kind"] == "poplar" else 1.4)) + 1
+			check(_zone(path, int(t_["x"]) - hh, int(t_["x"]) + hh, int(t_["y"]) - 482) == "lawn", "run %d: the %s at x %d does not reach the path" % [run, t_["kind"], int(t_["x"])])
+		# the walls are really drawn: stone (grey, low saturation) at the wall's foot on both sides, grass beyond it; the path itself is paving
+		var img: Image = (load("%sgarden_%d.png" % [Ext.DIR, run]) as Texture2D).get_image()
+		var cx := int(path["cx"])
+		var yy := 28
+		var hw := int(float(path["a"]) + yy * float(path["b"]))
+		for side in [-1, 1]:
+			var px := img.get_pixel(cx + side * (hw + 1), 482 + yy - 2)
+			var lawn := img.get_pixel(cx + side * (hw + int(path["wall_t"]) + 24), 482 + yy)
+			var paving := img.get_pixel(cx + side * (hw - 8), 482 + yy)
+			var nm := "left" if side < 0 else "right"
+			check(px.a > 0.9 and lawn.a > 0.9 and (px.to_html(false) != lawn.to_html(false)) and (px.to_html(false) != paving.to_html(false)),
+				"run %d: a wall stands between the paving and the lawn on the %s" % [run, nm])
+			if run == 1:
+				check(px.s < 0.30, "run 1: it is stone, not leaf (sat %.2f)" % px.s)
+				check(lawn.g > lawn.r and lawn.g > lawn.b, "run 1: grass beyond it on the %s" % nm)
+		var tones := {}
+		for x in range(cx - hw + 6, cx + hw - 5, 2):
+			tones[img.get_pixel(x, 482 + 14).to_html(false)] = true
+		check(tones.size() >= 6, "run %d: the paving has real detail (%d tones across a row of slabs)" % [run, tones.size()])
+
+
+func _test_depth_and_weather() -> void:
+	print("[2.5D: a flat facade, the garden on its own plane; fog; pixel rain + lightning]")
+	var sc: Image = (load(Ext.DIR + "scene_1.png") as Texture2D).get_image()
+	var right_of := sc.get_pixel(209 + 6, 300)
+	var below := sc.get_pixel(143, 482 + 30)
+	check(right_of.a < 0.05, "the facade is flat on to us: nothing is drawn on its right (no receding side wall)")
+	check(below.a > 0.9, "…and the building stands on its own back lawn, so the garden can slide past without a hole")
+	var gd: Image = (load(Ext.DIR + "garden_1.png") as Texture2D).get_image()
+	check(gd.get_pixel(143, 100).a < 0.05 and gd.get_pixel(143, 482 + 30).a > 0.9, "the garden layer holds only the ground and what stands on it")
+	# the garden slides faster than the building as the camera climbs
+	var e := _built("", 1)
+	await get_tree().process_frame
+	e.t = 0.0
+	e._apply(0.0)
+	var d0: float = e.layers["garden"]["node"].position.y - e.layers["scene"]["node"].position.y
+	e.t = Ext.t_pan_end()
+	e._apply(0.0)
+	var d1: float = e.layers["garden"]["node"].position.y - e.layers["scene"]["node"].position.y
+	check(is_equal_approx(d0, 0.0) and d1 > 40.0, "the garden and the building coincide at the start and part company on the climb (%.0f px apart at the end)" % d1)
+	check(e.runner != null and e.runner.get_parent() == e.layers["garden"]["node"], "the cat is a child of the garden plane")
+	check(not e.layers.has("fog"), "morning: no fog")
+	e.queue_free()
+	await get_tree().process_frame
+	# the afternoon's fog drifts
+	var f := _built("", 2)
+	await get_tree().process_frame
+	check(f.layers.has("fog") and f.layers.has("fogf"), "afternoon: a fog bank behind the garden and a veil in front of it")
+	if f.layers.has("fog"):
+		f.t = 1.0
+		f._apply(0.0)
+		var x1: float = f.layers["fog"]["node"].get_child(0).position.x
+		f.t = 5.0
+		f._apply(0.0)
+		var x2: float = f.layers["fog"]["node"].get_child(0).position.x
+		check(x2 < x1, "…and it drifts sideways (%.0f -> %.0f)" % [x1, x2])
+		var order: Array = f.world.get_children().map(func(n): return n.name)
+		check(order.find("Scene") < order.find("Fog") and order.find("Fog") < order.find("Garden") and order.find("Garden") < order.find("Fogf"), "…layered building < fog < garden < front fog")
+	f.queue_free()
+	await get_tree().process_frame
+	var n3 := _built("", 3)
+	await get_tree().process_frame
+	check(not n3.layers.has("fog"), "night: no fog (rain instead)")
+	# night: pixel rain (whole 4 px game pixels) and a pixel bolt with a double flash
+	check(n3.rain != null and n3.rain.drops.size() >= 150, "night: rain in two depths (%d drops)" % n3.rain.drops.size())
+	var snapped := true
+	n3.rain.size = Vector2(1152, 648)
+	for d in n3.rain.drops:
+		var x: float = float(d["x"]) * 1152.0
+		var sx: float = floorf(x / 4.0) * 4.0
+		if fmod(sx, 4.0) != 0.0:
+			snapped = false
+	check(snapped, "…every drop draws on the 4 px pixel grid")
+	check(n3.bolt != null, "night: a bolt layer is in the picture")
+	n3._bolt_in = 0.0
+	n3._lightning(0.016)
+	check(n3.bolt.life > 0.0 and n3.bolt.pts.size() >= 20 and n3.flash.modulate.a >= 0.4, "a strike draws a jagged bolt (%d cells) with a flash" % n3.bolt.pts.size())
+	var cell_ok := true
+	for p in n3.bolt.pts:
+		if fmod(p.x, 4.0) != 0.0 or fmod(p.y, 4.0) != 0.0:
+			cell_ok = false
+	check(cell_ok, "…whose every cell is a whole game pixel")
+	for k in 10:
+		n3._lightning(0.016)
+	check(n3.flash.modulate.a >= 0.2 or n3._flicker_in < 0.0, "…and the flash stutters once after the first")
+	n3.queue_free()

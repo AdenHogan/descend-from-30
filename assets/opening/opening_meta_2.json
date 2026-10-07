@@ -342,15 +342,367 @@
    ]
   ]
  },
+ "garden": {
+  "bodies": [
+   {
+    "x": 152,
+    "y": 506
+   }
+  ],
+  "bushes": [
+   {
+    "x": 46,
+    "y": 508
+   },
+   {
+    "x": 240,
+    "y": 512
+   },
+   {
+    "x": 76,
+    "y": 520
+   },
+   {
+    "x": 210,
+    "y": 522
+   }
+  ],
+  "fires": [
+   {
+    "scale": 0.9,
+    "x": 74,
+    "y": 494
+   }
+  ],
+  "lamp": {
+   "x": 85,
+   "y": 479
+  },
+  "path": {
+   "a": 16.0,
+   "b": 0.82,
+   "cx": 143,
+   "wall_from": 12,
+   "wall_t": 4,
+   "wall_to": 34
+  },
+  "placed": [
+   {
+    "what": "planter",
+    "x0": 111,
+    "x1": 117,
+    "yy": 8,
+    "zone": "lawn"
+   },
+   {
+    "what": "planter",
+    "x0": 170,
+    "x1": 176,
+    "yy": 8,
+    "zone": "lawn"
+   },
+   {
+    "what": "bed shrub",
+    "x0": 80,
+    "x1": 96,
+    "yy": 9,
+    "zone": "lawn"
+   },
+   {
+    "what": "bed shrub",
+    "x0": 102,
+    "x1": 114,
+    "yy": 9,
+    "zone": "lawn"
+   },
+   {
+    "what": "bed shrub",
+    "x0": 170,
+    "x1": 182,
+    "yy": 9,
+    "zone": "lawn"
+   },
+   {
+    "what": "bed shrub",
+    "x0": 189,
+    "x1": 203,
+    "yy": 8,
+    "zone": "lawn"
+   },
+   {
+    "what": "bed shrub",
+    "x0": 6,
+    "x1": 18,
+    "yy": 8,
+    "zone": "lawn"
+   },
+   {
+    "what": "bed shrub",
+    "x0": 48,
+    "x1": 64,
+    "yy": 9,
+    "zone": "lawn"
+   },
+   {
+    "what": "wall shrub",
+    "x0": 96,
+    "x1": 104,
+    "yy": 15,
+    "zone": "lawn"
+   },
+   {
+    "what": "wall shrub",
+    "x0": 90,
+    "x1": 98,
+    "yy": 22,
+    "zone": "lawn"
+   },
+   {
+    "what": "wall shrub",
+    "x0": 85,
+    "x1": 93,
+    "yy": 29,
+    "zone": "lawn"
+   },
+   {
+    "what": "wall shrub",
+    "x0": 182,
+    "x1": 190,
+    "yy": 15,
+    "zone": "lawn"
+   },
+   {
+    "what": "wall shrub",
+    "x0": 188,
+    "x1": 196,
+    "yy": 22,
+    "zone": "lawn"
+   },
+   {
+    "what": "wall shrub",
+    "x0": 193,
+    "x1": 201,
+    "yy": 29,
+    "zone": "lawn"
+   },
+   {
+    "what": "lawn bush",
+    "x0": 41,
+    "x1": 51,
+    "yy": 26,
+    "zone": "lawn"
+   },
+   {
+    "what": "lawn bush",
+    "x0": 234,
+    "x1": 246,
+    "yy": 30,
+    "zone": "lawn"
+   },
+   {
+    "what": "lawn bush",
+    "x0": 71,
+    "x1": 81,
+    "yy": 38,
+    "zone": "lawn"
+   },
+   {
+    "what": "lawn bush",
+    "x0": 205,
+    "x1": 215,
+    "yy": 40,
+    "zone": "lawn"
+   },
+   {
+    "what": "bench",
+    "x0": 205,
+    "x1": 223,
+    "yy": 22,
+    "zone": "lawn"
+   },
+   {
+    "what": "tree oak",
+    "x0": 216,
+    "x1": 246,
+    "yy": 16,
+    "zone": "lawn"
+   },
+   {
+    "what": "tree blossom",
+    "x0": 53,
+    "x1": 79,
+    "yy": 17,
+    "zone": "lawn"
+   },
+   {
+    "what": "tree oak",
+    "x0": 236,
+    "x1": 288,
+    "yy": 22,
+    "zone": "lawn"
+   },
+   {
+    "what": "tree oak",
+    "x0": 1,
+    "x1": 59,
+    "yy": 24,
+    "zone": "lawn"
+   },
+   {
+    "what": "tree blossom",
+    "x0": 62,
+    "x1": 86,
+    "yy": 37,
+    "zone": "lawn"
+   },
+   {
+    "what": "tree poplar",
+    "x0": 3,
+    "x1": 25,
+    "yy": 38,
+    "zone": "lawn"
+   },
+   {
+    "what": "tree poplar",
+    "x0": 265,
+    "x1": 287,
+    "yy": 39,
+    "zone": "lawn"
+   },
+   {
+    "what": "lamp",
+    "x0": 83,
+    "x1": 90,
+    "yy": 30,
+    "zone": "lawn"
+   },
+   {
+    "what": "lamp",
+    "x0": 197,
+    "x1": 204,
+    "yy": 30,
+    "zone": "lawn"
+   },
+   {
+    "what": "litter bag",
+    "x0": 84,
+    "x1": 93,
+    "yy": 30,
+    "zone": "lawn"
+   },
+   {
+    "what": "litter shoe",
+    "x0": 151,
+    "x1": 160,
+    "yy": 19,
+    "zone": "path"
+   },
+   {
+    "what": "litter pram",
+    "x0": 214,
+    "x1": 223,
+    "yy": 34,
+    "zone": "lawn"
+   },
+   {
+    "what": "litter toy",
+    "x0": 120,
+    "x1": 129,
+    "yy": 33,
+    "zone": "path"
+   },
+   {
+    "what": "litter shoe",
+    "x0": 170,
+    "x1": 179,
+    "yy": 31,
+    "zone": "path"
+   },
+   {
+    "what": "body",
+    "x0": 152,
+    "x1": 170,
+    "yy": 24,
+    "zone": "path"
+   }
+  ],
+  "runner": {
+   "dir": -1,
+   "dur": 5.2,
+   "kind": "human",
+   "start": 1.1,
+   "x0": 300,
+   "x1": -14,
+   "y": 524
+  },
+  "trees": [
+   {
+    "kind": "oak",
+    "r": 10,
+    "x": 231,
+    "y": 498
+   },
+   {
+    "kind": "blossom",
+    "r": 9,
+    "x": 66,
+    "y": 499
+   },
+   {
+    "kind": "oak",
+    "r": 18,
+    "x": 262,
+    "y": 504
+   },
+   {
+    "kind": "oak",
+    "r": 20,
+    "x": 30,
+    "y": 506
+   },
+   {
+    "kind": "blossom",
+    "r": 8,
+    "x": 74,
+    "y": 519
+   },
+   {
+    "kind": "poplar",
+    "r": 12,
+    "x": 14,
+    "y": 520
+   },
+   {
+    "kind": "poplar",
+    "r": 12,
+    "x": 276,
+    "y": 521
+   }
+  ]
+ },
  "layers": {
   "far": {
    "h": 230,
    "p": 0.5
   },
+  "fog": {
+   "drift": 3.0,
+   "h": 526,
+   "p": 1.08
+  },
+  "fogf": {
+   "drift": 5.0,
+   "h": 526,
+   "p": 1.22
+  },
   "fore": {
    "h": 200,
    "lift": 30,
    "p": 1.3
+  },
+  "garden": {
+   "h": 526,
+   "p": 1.18
   },
   "mid": {
    "h": 300,
@@ -371,6 +723,7 @@
    3,
    2
   ],
+  "fog": true,
   "moon": false,
   "night": false,
   "rain": false
@@ -446,37 +799,6 @@
     "y": 0
    }
   ],
-  "bodies": [
-   {
-    "x": 160,
-    "y": 506
-   }
-  ],
-  "bushes": [
-   {
-    "x": 46,
-    "y": 508
-   },
-   {
-    "x": 240,
-    "y": 512
-   },
-   {
-    "x": 112,
-    "y": 520
-   },
-   {
-    "x": 200,
-    "y": 522
-   }
-  ],
-  "fires": [
-   {
-    "scale": 0.9,
-    "x": 74,
-    "y": 494
-   }
-  ],
   "grid": {
    "bay_w": 15,
    "bays": 8,
@@ -502,10 +824,6 @@
     "y": 279
    }
   ],
-  "lamp": {
-   "x": 111,
-   "y": 469
-  },
   "lit": [
    {
     "bay": 0,
@@ -780,15 +1098,6 @@
     "y": 411
    }
   ],
-  "runner": {
-   "dir": -1,
-   "dur": 5.2,
-   "kind": "human",
-   "start": 1.1,
-   "x0": 300,
-   "x1": -14,
-   "y": 509
-  },
   "smoke": [],
   "survivors": [
    {
@@ -867,50 +1176,6 @@
     "w": 9,
     "x": 132,
     "y": 383
-   }
-  ],
-  "trees": [
-   {
-    "kind": "oak",
-    "r": 10,
-    "x": 231,
-    "y": 498
-   },
-   {
-    "kind": "blossom",
-    "r": 9,
-    "x": 66,
-    "y": 499
-   },
-   {
-    "kind": "oak",
-    "r": 18,
-    "x": 262,
-    "y": 504
-   },
-   {
-    "kind": "oak",
-    "r": 20,
-    "x": 30,
-    "y": 506
-   },
-   {
-    "kind": "blossom",
-    "r": 8,
-    "x": 104,
-    "y": 518
-   },
-   {
-    "kind": "poplar",
-    "r": 12,
-    "x": 14,
-    "y": 522
-   },
-   {
-    "kind": "poplar",
-    "r": 12,
-    "x": 276,
-    "y": 524
    }
   ]
  },
