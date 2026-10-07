@@ -177,7 +177,7 @@ func _test_back_plane() -> void:
 	check(p.back_spot == spot, "(stepped up again)")
 	check(p.pack_blocked_reason() == "", "up at the furniture, nothing blocks the backpack")
 	check(p.begin_pack() and p.pack_phase == "kneel", "the backpack kneels from the back plane")
-	check(is_instance_valid(p._pack_prop) and p._pack_prop.scale.x < 1.0 and p._pack_prop.scale.x > 0.5,
+	check(is_instance_valid(p._pack_prop) and absf(p._pack_prop.scale.x) < 1.0 and absf(p._pack_prop.scale.x) > 0.5,
 		"…with the bag drawn to the plane's smaller scale (%.2f)" % p._pack_prop.scale.x)
 	await _settle(40)
 	check(p.pack_phase == "open" and p.back_spot == spot and absf(p.global_position.y - (lane_y - spot.rise)) < 0.5, "…open, and the player has not moved off the plane")

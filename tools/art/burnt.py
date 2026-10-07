@@ -211,33 +211,97 @@ def burn(arr, seed, ox=0, oy=0, kind='module'):
     return outa
 
 
-def debris(img, seed):
-    """Things lying on the burnt floor: charred planks, ash heaps, a few embers. Module only (PIL)."""
+MODULES = os.path.join(ROOT, 'scenes', 'Room_Modules')
+STAND_Y0, STAND_Y1 = 102, 118          # pixlib.STAND_ROWS: the stand zone of a back-plane spot
+STAND_HALF = 14                        # pixlib.BP_HALF_W + 1
+
+
+def stand_bands(name):
+    """Columns (lo, hi) of every back-plane spot's stand zone in this module (a spot centres on any run of 'bp' nodes <= 40 px apart, so a
+    cluster's band runs from its first node - 14 to its last + 14). Read from the module scene, like tools/gen_module_blueprint.py."""
+    import re
+    p = os.path.join(MODULES, name + '.tscn')
+    if not os.path.exists(p):
+        return []
+    txt = open(p).read()
+    xs = sorted(float(m.group(2)) for m in re.finditer(
+        r'\[node name="([^"]+)" type="Marker2D"[^\]]*\]\s*\n\s*position = Vector2\(([-\d.]+),\s*[-\d.]+\)((?:\s*\n\s*metadata/\w+ = \w+)*)', txt)
+        if 'back_plane = true' in m.group(3))
+    bands, cur = [], []
+    for x in xs:
+        if cur and x - cur[-1] > 40:
+            bands.append((int(cur[0]) - STAND_HALF, int(cur[-1]) + STAND_HALF))
+            cur = []
+        cur.append(x)
+    if cur:
+        bands.append((int(cur[0]) - STAND_HALF, int(cur[-1]) + STAND_HALF))
+    return bands
+
+
+def bare_floor_mask(name):
+    """True where the module's (run 3) art is plain floor — what a plank or an ash heap may lie on. Furniture is never lain over (owner round 36k)."""
+    a = os.path.join(ROOMS, name + '_r3.png')
+    f = os.path.join(ROOMS, name + '_r3_floor.png')
+    if not (os.path.exists(a) and os.path.exists(f)):
+        a = os.path.join(ROOMS, name + '.png')
+        f = os.path.join(ROOMS, name + '_floor.png')
+    art = np.asarray(Image.open(a).convert('RGBA'))
+    fl = np.asarray(Image.open(f).convert('RGBA'))
+    bare = np.zeros((W, H), bool)
+    bare[:, SEAM:] = (art[SEAM:] == fl).all(-1).T
+    return bare
+
+
+def debris(img, seed, bare=None, bands=()):
+    """Things lying on the burnt floor: charred planks, ash heaps, a few embers. Module only (PIL). Each piece lies wholly on BARE floor (never
+    across a sofa or a table) and never in a step-up spot's stand zone, where the character would walk over it — a piece that finds no such
+    place in 40 tries is dropped."""
     rng = np.random.default_rng(seed + 99)
     d = ImageDraw.Draw(img)
+
+    def free(x0, y0, x1, y1):
+        if bare is None:
+            return True
+        if x0 < 2 or x1 > W - 3 or y0 < SEAM + 2 or y1 > H - 2:
+            return False
+        for (lo, hi) in bands:
+            if x1 >= lo and x0 <= hi and y1 >= STAND_Y0 and y0 <= STAND_Y1:
+                return False
+        return bool(bare[x0:x1 + 1, y0:y1 + 1].all())
+
     for _ in range(9):
-        x, y = int(rng.uniform(14, W - 14)), int(rng.uniform(SEAM + 8, H - 8))
-        kind = rng.integers(0, 3)
-        if kind == 0:                                              # a charred plank, slanting
-            ln = int(rng.uniform(9, 24))
-            dy = int(rng.uniform(-5, 5))
-            d.line([(x, y), (x + ln, y + dy)], fill=(22, 17, 14, 255), width=2)
-            d.line([(x, y - 1), (x + ln, y + dy - 1)], fill=(64, 46, 34, 255), width=1)
-            if rng.random() < 0.5:
-                d.point((x + ln // 2, y + dy // 2 - 1), fill=(226, 104, 38, 255))
-        elif kind == 1:                                            # an ash heap
-            rx, ry = int(rng.uniform(5, 11)), int(rng.uniform(2, 4))
-            d.ellipse([x - rx, y - ry, x + rx, y + ry], fill=(86, 83, 78, 255))
-            d.ellipse([x - rx + 2, y - ry, x + rx - 3, y + ry - 1], fill=(112, 108, 102, 255))
-            d.point((x - 2, y - ry), fill=(150, 146, 140, 255))
-        else:                                                      # a blackened lump of something
-            r = int(rng.uniform(2, 5))
-            d.ellipse([x - r, y - r // 2, x + r, y + r // 2 + 1], fill=(28, 23, 20, 255))
-            d.point((x - 1, y - r // 2), fill=(70, 62, 54, 255))
+        for _try in range(40):
+            x, y = int(rng.uniform(14, W - 14)), int(rng.uniform(SEAM + 8, H - 8))
+            kind = rng.integers(0, 3)
+            if kind == 0:
+                ln = int(rng.uniform(9, 24))
+                dy = int(rng.uniform(-5, 5))
+                box = (x, min(y, y + dy) - 2, x + ln, max(y, y + dy) + 2)
+            elif kind == 1:
+                rx, ry = int(rng.uniform(5, 11)), int(rng.uniform(2, 4))
+                box = (x - rx, y - ry, x + rx, y + ry)
+            else:
+                r = int(rng.uniform(2, 5))
+                box = (x - r, y - r // 2 - 1, x + r, y + r // 2 + 2)
+            if not free(*box):
+                continue
+            if kind == 0:                                          # a charred plank, slanting
+                d.line([(x, y), (x + ln, y + dy)], fill=(22, 17, 14, 255), width=2)
+                d.line([(x, y - 1), (x + ln, y + dy - 1)], fill=(64, 46, 34, 255), width=1)
+                if rng.random() < 0.5:
+                    d.point((x + ln // 2, y + dy // 2 - 1), fill=(226, 104, 38, 255))
+            elif kind == 1:                                        # an ash heap
+                d.ellipse([x - rx, y - ry, x + rx, y + ry], fill=(86, 83, 78, 255))
+                d.ellipse([x - rx + 2, y - ry, x + rx - 3, y + ry - 1], fill=(112, 108, 102, 255))
+                d.point((x - 2, y - ry), fill=(150, 146, 140, 255))
+            else:                                                  # a blackened lump of something
+                d.ellipse([x - r, y - r // 2, x + r, y + r // 2 + 1], fill=(28, 23, 20, 255))
+                d.point((x - 1, y - r // 2), fill=(70, 62, 54, 255))
+            break
     return img
 
 
-def burn_file(src, dst, seed, kind='module', ox=0, oy=0, with_debris=False):
+def burn_file(src, dst, seed, kind='module', ox=0, oy=0, with_debris=False, name=None):
     if not os.path.exists(src):
         return False
     im = Image.open(src).convert('RGBA')
@@ -245,7 +309,7 @@ def burn_file(src, dst, seed, kind='module', ox=0, oy=0, with_debris=False):
     out = burn(arr, seed, ox, oy, kind)
     img = Image.fromarray((out * 255 + 0.5).astype(np.uint8), 'RGBA')
     if with_debris:
-        img = debris(img, seed)
+        img = debris(img, seed, bare_floor_mask(name), stand_bands(name)) if name else debris(img, seed)
     img.save(dst)
     return True
 
@@ -259,7 +323,7 @@ def build(preview=False, out_dir=ROOMS):
             src = os.path.join(ROOMS, name + '_r3.png')
             if not os.path.exists(src):
                 src = os.path.join(ROOMS, name + '.png')
-            if burn_file(src, os.path.join(out_dir, name + '_burnt.png'), seed, 'module', 0, 0, True):
+            if burn_file(src, os.path.join(out_dir, name + '_burnt.png'), seed, 'module', 0, 0, True, name):
                 done.append(name)
             strip = os.path.join(ROOMS, name + '_r3_strip.png')
             if not os.path.exists(strip):

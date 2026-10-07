@@ -878,6 +878,23 @@ def _bp_centres(anchors):
 BP_FEET_ROW = 115                # the player's feet up there (local y)
 
 
+STAND_ROWS = (BP_ROWS.start, BP_FEET_ROW + 3)      # rows of a step-up spot's stand zone, feet and a little below (local y)
+
+
+def stand_bands(anchors):
+    """The columns of every step-up spot's stand zone (a 1 px margin either side), as (lo, hi) — what nothing lying or standing on the floor
+    may occupy in the zone's rows (STAND_ROWS): the character's sprite is drawn over ALL baked art, so a body, a dropped bag or a plank
+    there is walked over (owner round 36i / 36k). Used by the nest overlays (bodies, dropped things) and the run looks' floor debris."""
+    bands = sorted((max(0, int(cx) - BP_HALF_W - 1), min(W - 1, int(cx) + BP_HALF_W + 1)) for cx in _bp_centres(anchors))
+    merged = []
+    for lo, hi in bands:
+        if merged and lo <= merged[-1][1] + 1:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], hi))
+        else:
+            merged.append((lo, hi))
+    return merged
+
+
 def check_back_plane_floor_pieces(anchors):
     """A piece lying or standing ON THE FLOOR in front of a back-plane spot is a drawing the player walks OVER: the player sprite is above
     all the room art, so a toppled chair across the stand zone is overdrawn by the character (owner round 36i: "the character walked over
@@ -1143,7 +1160,7 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
             os.remove(fp)
     _node_overlay(full.img, anchors, os.path.join(prev, 'nodes', name + '_nodes.png'))
     import nest                                   # the BREACH-ROOM look of this module (tools/art/nest.py)
-    nest.write(name, full.img, bare_floor.img, seed, ROOT, FLAT_PIECES.get(id(full), {}))
+    nest.write(name, full.img, bare_floor.img, seed, ROOT, FLAT_PIECES.get(id(full), {}), keep_clear=stand_bands(anchors))
     per_level = {}
     if per_run is not None:
         for lv in (2, 3):
@@ -1170,7 +1187,7 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
     import growth_map                             # where vegetation may grow here (tools/art/growth_map.py)
     growth_map.write(name, [full.img] + [v[1] for v in per_level.values()], bare_floor.img, ROOT)
     runs = run_looks(name, ROOT, main.img, nofront, bare.img, bare_floor.img, floor_fn, seed, strip_fn is not None,
-                     per_level=per_level)
+                     per_level=per_level, keep_clear=stand_bands(anchors))
     sheet = Image.new('RGBA', (W * 2, H * 2 * 3), (0, 0, 0, 255))
     for i, im in enumerate((full.img, runs[2], runs[3])):
         sheet.paste(im.resize((W * 2, H * 2), Image.NEAREST), (0, H * 2 * i))
@@ -1234,7 +1251,7 @@ def _floor_grime(img, y0, level, dirt):
 
 
 def run_looks(name, root, main_img, full_img, bare_wall_img, bare_floor_img, floor_fn, seed, has_strip,
-              per_level=None):
+              per_level=None, keep_clear=()):
     import os
     out = {}
     for level in (2, 3):
@@ -1463,6 +1480,8 @@ def run_looks(name, root, main_img, full_img, bare_wall_img, bare_floor_img, flo
         for _ in range(d['debris']):
             x, y = rng.randrange(6, W - 6), rng.randrange(103, 142)
             kind = rng.random()
+            if STAND_ROWS[0] - 2 <= y <= STAND_ROWS[1] and any(lo - 6 <= x <= hi for (lo, hi) in keep_clear):
+                continue                                          # nothing lying where the player steps up (the rng draws above stay in step)
             if kind < 0.5:
                 for (dx, dy) in ((0, 0), (1, 0), (0, -1), (2, 0)):
                     floor_put(x + dx, y + dy, plaster)

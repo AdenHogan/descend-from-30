@@ -292,7 +292,11 @@ func _test_ring_actions() -> void:
 	pw.drop_at(1)
 	check(WorldState.get_instance_at(1) == null or WorldState.get_instance_at(1).item_id != held_id, "Delete takes the item out of the bag…")
 	check(_world_has_drop(held_id), "…and it is on the floor (a world drop of %s exists)" % held_id)
-	# closing by the middle
+	# closing by the middle. The item just dropped was tossed out at a random spot and may lie under the ring's centre — a click that takes a
+	# world drop claims the click (round 36e), so clear the live drops first or this check is a coin flip.
+	for d in get_tree().get_nodes_in_group("world_drop"):
+		d.queue_free()
+	await get_tree().process_frame
 	await _click(HUD.pack_wheel.centre)
 	check(p.pack_phase == "stand" or p.pack_phase == "", "a click in the middle closes it")
 	await _reset()

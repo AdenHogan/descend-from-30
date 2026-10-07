@@ -599,3 +599,10 @@ registry: a LYING piece may not touch the spot's stand columns (centre +- `BP_HA
 reach below the feet row 115 there. `CLIP_REPORT=1` lists offenders; `FRONT_REPORT=1` prints drawn-but-unregistered front marks (informational —
 rugs and floor shadows are fine). Pieces not registered with `chair3d.draw_model` / `furn.table_front` / `flat_piece` are only caught by the older
 bare-column test, so register new floor pieces.
+
+**Round 36k — the same rule for everything else that lands on the floor** (owner: "check for other areas where the player may be clipping over drawn-in furniture"). Audited all 30 modules × every run look × the ten breach-nest overlays × the burnt looks. Found and fixed:
+- **Breach-nest overlays** (bodies, dropped bags / keys / shoes / weapons, blood) could lie in a step-up spot's stand zone (e.g. dining D's corpse, study C's doorkill bodies). `pixlib.stand_bands(anchors)` (the zone's columns ±1, rows `STAND_ROWS` 102-118) is now passed to `nest.write(..., keep_clear=)`, which removes the zone from the FLAT / CLEAR masks — nothing is placed or drawn there (188 of 300 overlays re-rolled; none lost its body). The gate (`gen_module_blueprint.py --check`, `stand_zone_overlays`) fails any overlay that draws there.
+- **Run-look floor debris** (plaster chunks, paper scraps, glass) skips the zone (`run_looks(..., keep_clear=)`); blood / damp STAINS are flat marks and still may run under the player.
+- **Burnt looks**: `burnt.debris` scattered planks / ash heaps / lumps at RANDOM spots, over furniture as readily as floor. Each piece now lies wholly on bare floor (`bare_floor_mask`: the run-3 art equals its floor reference) and outside the zone (`stand_bands(name)` from the module scene); a piece that finds no place in 40 tries is dropped.
+Known + intended: flat floor marks (rugs, shadows, stains, blood pools) are walked over — they are decals, not objects; the lane in front of everything is walked over by design.
+

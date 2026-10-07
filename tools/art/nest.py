@@ -36,6 +36,7 @@ import zlib
 from PIL import Image
 
 W, H, SEAM = 320, 144, 100
+STAND_Y0, STAND_Y1 = 102, 118                      # = pixlib.STAND_ROWS (the stand zone of a back-plane spot)
 LANE_Y = 129                     # the walking line (world 353 − the module's top 224): the trail's line
 ROLES = ('door_l', 'kill_l', 'doorkill_l', 'corpse_l', 'rise_l', 'door_r', 'kill_r', 'doorkill_r', 'corpse_r', 'rise_r')
 
@@ -70,7 +71,7 @@ class Layer:
                     self.put(x, y, c)
 
 
-def _masks(full, bare_floor, flat_pieces=None):
+def _masks(full, bare_floor, flat_pieces=None, keep_clear=()):
     fp, bp = full.load(), bare_floor.load()
     bare = [[fp[x, y] == bp[x, y] for y in range(H)] for x in range(W)]
     # FLAT = bare floor, or art lying flat ON the floor (a rug): a run of non-bare pixels down a column
@@ -100,6 +101,13 @@ def _masks(full, bare_floor, flat_pieces=None):
         if y >= SEAM and fp[x, y] == col:
             flat[x][y] = True
             clear[x][y] = True
+    # the step-up spots' stand zones (pixlib.stand_bands): the character is drawn over all baked art, so nothing may lie there — no body, no
+    # dropped bag or weapon, no mark (owner round 36k: "we cannot have any clipping through or over items")
+    for (lo, hi) in keep_clear:
+        for x in range(lo, hi + 1):
+            for y in range(STAND_Y0, STAND_Y1 + 1):
+                flat[x][y] = False
+                clear[x][y] = False
     return bare, flat, clear
 
 
@@ -645,13 +653,13 @@ def _kill(wall, floor, obj, rng, bare, masks, s, lo, hi):
     return [(hx, hy - 9), (px, py - 4)], bodies
 
 
-def render(name, full, bare_floor, seed, role, flat_pieces=None):
+def render(name, full, bare_floor, seed, role, flat_pieces=None, keep_clear=()):
     part, side = role.split('_')
     s = 1 if side == 'l' else -1                 # the way the story runs across the flat
     e = 0 if s > 0 else W - 1                     # the edge it comes in from (the front door, in ENTRY)
     far = W - 1 if s > 0 else 0
     rng = random.Random(zlib.crc32(('nest:%s:%s:%d' % (name, role, seed)).encode()))
-    bare, flat, clear = _masks(full, bare_floor, flat_pieces)
+    bare, flat, clear = _masks(full, bare_floor, flat_pieces, keep_clear)
     masks = (clear, flat)
     wall, floor, obj = Layer(), Layer(), Layer()
     flies, bodies, riser, zombies = [], [], None, []
@@ -715,7 +723,7 @@ def render(name, full, bare_floor, seed, role, flat_pieces=None):
 META = os.path.join('assets', 'rooms', 'nest_meta.json')
 
 
-def write(name, full, bare_floor, seed, root, flat_pieces=None):
+def write(name, full, bare_floor, seed, root, flat_pieces=None, keep_clear=()):
     d = os.path.join(root, 'assets', 'rooms')
     old = os.path.join(d, name + '_nest.png')                         # the round-21 single overlay
     for p in (old, old + '.import'):
@@ -732,7 +740,7 @@ def write(name, full, bare_floor, seed, root, flat_pieces=None):
     meta = json.load(open(meta_path)) if os.path.exists(meta_path) else {}
     imgs = {}
     for role in ROLES:
-        img, flies, bodies, riser, zombies = render(name, full, bare_floor, seed, role, flat_pieces)
+        img, flies, bodies, riser, zombies = render(name, full, bare_floor, seed, role, flat_pieces, keep_clear)
         img.save(os.path.join(d, '%s_nest_%s.png' % (name, role)))
         meta['%s_nest_%s' % (name, role)] = {'flies': flies, 'bodies': bodies}
         if riser is not None:

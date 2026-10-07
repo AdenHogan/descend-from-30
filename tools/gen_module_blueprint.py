@@ -473,10 +473,37 @@ def blocked_spots():
     return bad
 
 
+STAND_ROWS = (102, 118)                              # pixlib.STAND_ROWS: the stand zone's rows, feet (115) and a little below
+
+
+def stand_zone_overlays():
+    """(owner round 36k: "we cannot have any clipping through or over items") The character is drawn over ALL baked art, so a body, a dropped
+    bag or a mark lying in a back-plane spot's stand zone is walked over. No breach-nest overlay (<module>_nest_<role>_<l|r>.png) may draw
+    anything there. [(overlay, spot band, opaque px)]."""
+    bad = []
+    for n in all_modules():
+        groups = spot_centres(parse_nodes(n))
+        if not groups:
+            continue
+        for role in ("door", "kill", "doorkill", "corpse", "rise"):
+            for side in ("l", "r"):
+                p = os.path.join(ROOMS_DIR, "%s_nest_%s_%s.png" % (n, role, side))
+                if not os.path.exists(p):
+                    continue
+                im = Image.open(p).convert("RGBA")
+                for grp in groups:
+                    lo, hi = max(0, int(min(grp)) - BP_HALF_W - 1), min(MW - 1, int(max(grp)) + BP_HALF_W + 1)
+                    n_px = sum(1 for x in range(lo, hi + 1) for y in range(STAND_ROWS[0], STAND_ROWS[1] + 1) if im.getpixel((x, y))[3] > 40)
+                    if n_px:
+                        bad.append(("%s_nest_%s_%s" % (n, role, side), (lo, hi), n_px))
+    return bad
+
+
 def check():
     """The gate: every committed file matches a fresh render (pixel for pixel), nothing extra, and
     no back-plane spot is blocked. Returns a list of problems."""
     probs = ["%s: back-plane spot %s blocked at columns %s" % b for b in blocked_spots()]
+    probs += ["%s draws %d px in the stand zone at columns %s — the character would walk over it" % (o, n_, b) for (o, b, n_) in stand_zone_overlays()]
     want = everything()
     for rel, im in want.items():
         p = os.path.join(OUT_DIR, rel)
