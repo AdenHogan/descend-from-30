@@ -173,6 +173,10 @@ func _finish_press(pos: Vector2) -> void:
 		if to == from:
 			equip_at(from)
 		return
+	var loot = loot_panel()
+	if loot != null and loot.over_panel(pos):
+		loot.swap_in(self, from)          # onto the found item: make room if it needs it, then take it
+		return
 	if dropping_out(pos):
 		drop_at(from)
 		return
@@ -278,6 +282,21 @@ func craft_onto(from: int, to: int) -> Dictionary:
 ## Is a screen point on the ring (the band + the middle) — a click there is the ring's, not the world's.
 func on_ring(pos: Vector2) -> bool:
 	return (pos - centre).length() <= RING_R + DISC_SEL * 0.5 + 6.0
+
+
+## The ring, or its open right-click menu: everything a pointer here belongs to (HUD.pointer_over_widget reads it).
+func owns_point(pos: Vector2) -> bool:
+	if on_ring(pos):
+		return true
+	return menu_k >= 0 and Rect2(menu_pos, Vector2(MENU_W, MENU_ROW_H * menu_rows.size() + 8.0)).has_point(pos)
+
+
+## The scavenge panel sharing the screen (an item found, waiting to be taken), or null. The pack opens BESIDE it: panel left, ring right.
+func loot_panel():
+	for m in get_tree().get_nodes_in_group("loot_ui"):
+		if is_instance_valid(m) and m.visible and m.has_method("can_share_screen") and m.can_share_screen():
+			return m
+	return null
 
 
 func _slot_inst(k: int):
@@ -421,6 +440,9 @@ func _show(p: Node) -> void:
 	# (the offset is in SCREEN px — the camera zooms the world, so a world-unit offset would be miles off)
 	var s: Vector2 = get_viewport().get_canvas_transform() * p.global_position + Vector2(0, -(HEADROOM_PX + half))
 	centre = Vector2(clampf(s.x, half, HUD.SCREEN_W - half), clampf(s.y, half, maxf(half, SCREEN_LIMIT - half)))
+	if loot_panel() != null:
+		# opened beside a found item (the inventory was full): the ring takes the right of the screen, the panel slides left
+		centre = Vector2(HUD.SCREEN_W - half - 20.0, clampf(HUD.SCREEN_H * 0.5, half, maxf(half, SCREEN_LIMIT - half)))
 	hover = -1
 	_pad_k = -1
 	_opened_ms = Time.get_ticks_msec()

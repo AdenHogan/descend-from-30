@@ -56,23 +56,34 @@ must stay a walk). Players who preferred the old way: Settings → Controls → 
 
 `scripts/touch_overlay.gd` (a child of the HUD) draws a fixed thumb-stick bottom-left and a deliberately QUIET right hand
 (owner round 36b, first phone playtest: "the button set up is really unintuitive on the right hand side… too much going on"; round 36d: no
-duplicated controls). Main hand: ONE big **contextual** button, **USE**, **PUSH**. Edge column: **DUCK**. PAUSE / JOURNAL top-left. That is all
-that is ever on screen in plain play.
-- **The big button follows what is in hand** (`HUD.hand_context()` → label + the action it presses): a weapon is **HIT** (a gun **SHOOT**), and
-  **DRAW** while scavenging (the attack key already draws a weapon and swings); a first aid kit **HEAL**, an extinguisher **SPRAY**, a can / bottle /
-  molotov **THROW**, a stamina boost **DRINK**, a toolbox **FIX** — those press `item_use`. Empty hands (or a key / junk / a worn-out thing in hand)
-  = **HIT** in combat (the bare-handed swing), no button at all while scavenging (nothing to do). The press lets go of the action it sent even if the
-  hand changes mid-press. There is no separate ITEM button any more.
+duplicated controls; **round 36f, second phone playtest: PUSH was dead, scavenging showed only PUSH + DUCK, and the layout needed a colour-coded
+stance button — rebuilt below**). Right hand: a **stance pill** (green SCAVENGE / red COMBAT, "TAP TO SWITCH") above ONE big **contextual** button, with a
+smaller **PUSH** to its LEFT in combat — close enough that the right thumb slides between them, clear of it so they never overlap. **PAUSE** top-right.
+Context buttons (**USE** in combat, **LISTEN**, **FORCE**) stack up the right edge only while a world prompt offers them. DUCK is gone (it is the stick),
+and so is the journal button (the framed avatar top-left IS the journal button). That is all that is ever on screen in plain play.
+- **The stance pill** (`Btn_mode_toggle`, a pill-shaped `touch_stick.gd` widget) shows the CURRENT stance in its colour (`COL_SCAV` green / `COL_COMBAT` red)
+  and says "TAP TO SWITCH"; it presses `mode_toggle`. The big button and PUSH wear the same colour, so in a tight spot one glance says which stance you are
+  in. The HUD's text SCAVENGE / COMBAT pill is hidden under touch (this one replaces it).
+- **The big button follows the stance, then the hand** (`touch_overlay._primary_ctx`): **SCAVENGING it is USE** (`interact` — open / search / take; nodes and doors can
+  also just be tapped in the world). **In COMBAT** it follows `HUD.hand_context()` (label + the action it presses): a weapon is **HIT** (a gun **SHOOT**);
+  a first aid kit **HEAL**, an extinguisher **SPRAY**, a can / bottle / molotov **THROW**, a stamina boost **DRINK**, a toolbox **FIX** — those press `item_use`;
+  empty hands (or a key / junk / a worn-out thing) = **HIT**, the bare-handed swing. The press lets go of the action it sent even if the hand changes mid-press.
 - **Tapping the in-hand box uses what is in hand** (`HUD.use_equipped`, also a click on PC): a usable item is used, a gun reloads, a melee weapon is
-  drawn when scavenging, and **empty hands open the backpack**. The box is a registered HUD widget, so the tap never also walks.
-- **No RUN button: how hard you push the stick is how fast you go.** From the dead zone to `STICK_SPRINT_ON` (0.92 of the stick's travel) the walk
-  eases from a creep to a full walk — no stamina cost; pushing out to the rim holds the sprint action (the game's own rules still apply: combat stance,
-  not ducking, stamina). `STICK_SPRINT_OFF` (0.80) is the way back, so a thumb resting at the rim doesn't flicker. A dashed ring on the stick marks the
-  path the knob rides at full push and lights while you run. A vertical flick never sprints.
-- **No second stance switch.** The HUD's **SCAVENGE / COMBAT** pill (bottom-left, by the name) IS the stance toggle on every device — it is drawn as a
-  bordered button in the mode's colour (hover / press states), not as text a player has to guess is clickable, and the touch overlay has no copy of it.
-- **Context buttons appear only when they would do something**: **LISTEN** / **FORCE** only while a world prompt next to you offers them
+  drawn when scavenging, and **empty hands open the backpack**. The box is a registered HUD widget, so the tap never also walks. (In scavenge this is how
+  you heal / draw — the big button is USE.)
+- **PUSH (combat only; gone while scavenging).** The 36f bug: a touch press arrives as an *action* but `player._is_mouse_over_hud()` asks where the (emulated)
+  mouse is — on a phone that is the PUSH button itself, so the HUD gate ate the press. `Player.push_blocked_by_hud(device, over_hud)` now applies the gate to
+  `kbm` only. Headless can't see it (`_is_mouse_over_hud` is false there), so `controls_test` pins the pure function.
+- **DUCK is the stick** (`_duck_edge`): pushing it DOWN past 0.6 of its travel crouches, pushing it back UP past 0.6 stands — only the *entry* into a zone ducks
+  or stands, so sideways walking while ducked works and **letting go of the stick never stands you up**. It does nothing on the back / balcony planes or while
+  at the pack, where the same push already means "step down / get up" (`move_down` is still sent). The stick draws a chevron at each end that lights for the state.
+- **Run is a deliberate push PAST the rim** (owner: "you can run way too easily"): the walk eases from the dead zone to the rim (full walk at 1.0 of the
+  stick's radius); sprint holds from `STICK_SPRINT_ON` 1.3 radii (≈107 px) and lets go below `STICK_SPRINT_OFF` 1.12, read from the RAW offset
+  (`stick_raw`, not clamped). A dashed ring OUTSIDE the stick marks it and lights while you run; the knob is drawn at the finger. A vertical flick never sprints.
+- **Context buttons appear only when they would do something**: **USE** (combat), **LISTEN**, **FORCE** only while a world prompt next to you offers them
   (`HUD.world_prompt_mentions("[FORCE]")`). The bag is the HUD's own backpack button (no copy here).
+- **The avatar rides the TOP-left** under a touchscreen (`HUD.apply_identity_layout`, re-run on `device_changed`): a smaller bust in a framed card, the name +
+  stamina beside it, the in-hand box at its right — so the stick no longer sits over it and the journal (the portrait) is easy to hit.
 Each is a real Control in `hud_widget_extra`, so `HUD.pointer_over_widget` is true over it (a hidden one is not) and a tap on a
 button never also walks / swings in the world. They press `InputEventAction`s, so `_input` handlers and polling both see them; multi-touch
 works (walk + hit). The stick sends analog `move_left/right` (a flick up / down is `move_up/down`).
@@ -83,7 +94,7 @@ switch to combat [MODE]"), and the tutorial's shove beat first draws a still-sca
 Taps anywhere else are ordinary clicks (`emulate_mouse_from_touch`): tap the floor to walk, a node to scavenge, a zombie to hit.
 Shown when a touchscreen is in use (`SettingsManager.touch_ui_wanted`: last device = touch, or Settings → "Always on"), hidden on keyboard / pad;
 hiding or pausing (outside a strict beat) **lets go of everything held**. `project.godot`: landscape (`window/handheld/orientation=0`), `quit_on_go_back=false`.
-**Phone-tested once by the owner** (Godot 4.7.1 Android editor, Run in the editor) — that is how the cluttered layout and the beat lock were found; round 36d's changes (above) came from the same session and are tested with synthetic touches only.
+**Phone-tested twice by the owner** (Godot 4.7.1 Android editor, Run in the editor) — that is how the cluttered layout, the beat lock and the dead PUSH were found; rounds 36d / 36f's changes (above) are tested with synthetic touches only (`controls_test._test_touch_layout`).
 
 ## Prompts name the right button
 

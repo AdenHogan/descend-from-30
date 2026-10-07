@@ -34,6 +34,7 @@ func _ready() -> void:
 	await _test_refusals()
 	await _test_button_and_key()
 	await _test_full_ring_and_prompts()
+	await _test_pack_beside_loot()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -376,6 +377,78 @@ func _test_exits() -> void:
 	await get_tree().process_frame
 	get_tree().paused = false
 	check(Engine.time_scale == 1.0, "a pause never leaves time scaled")
+	await _reset()
+
+
+## Owner round 36f: "if my inventory is full and I scavenge an item, I should be able to open the backpack while still in that scavenge
+## UI… the search panel can move left and the item wheel show on the right… drag from the node to the wheel" — and "dragging items from the
+## item wheel doesn't work when that item is on top of a scavenge node" (the room's click-to-search swallowed the press).
+func _test_pack_beside_loot() -> void:
+	print("[the pack beside a found item]")
+	await _reset()
+	var pw = HUD.pack_wheel
+	WorldState.is_scavenge_mode = true
+	WorldState.current_apartment_id = "test"
+	WorldState.inventory.clear()
+	for id in ["002", "012", "007", "004", "035"]:
+		if WorldState.inventory.size() < WorldState.get_inventory_slots():
+			_give(id)
+	HUD.refresh_inventory()
+	check(WorldState.inventory.size() == WorldState.get_inventory_slots(), "(the bag is full: %d)" % WorldState.inventory.size())
+	WorldState.set_anchor_item("test", "a1", "011")
+	var loot = load("res://scenes/loot_ui.tscn").instantiate()
+	add_child(loot)
+	await get_tree().process_frame
+	loot.open("011", "a1", "test")
+	check(not pw.toggle(), "mid-search the bag stays shut")
+	loot._process(loot.REVEAL_TIME + 0.1)
+	loot._take()
+	check(loot.visible and loot.name_label.text == "Inventory full", "a full bag refuses the found item")
+	check(p.pack_blocked_reason() == "" and not WorldState.inventory.is_empty(), "…and the pack MAY open beside it")
+	check(pw.toggle() and p.pack_phase == "kneel", "the pack opens while the panel is up")
+	await _frames(int(ceil(p.PACK_KNEEL_TIME * 60.0)) + 20)
+	check(pw.is_open and loot.visible, "ring up, panel still up")
+	var pr: Rect2 = loot.panel.get_global_rect()
+	check(pw.centre.x - pw.RING_R - pw.DISC_SEL * 0.5 > pr.end.x, "the panel slid LEFT of the ring (panel ends %.0f, ring starts %.0f)" % [pr.end.x, pw.centre.x - pw.RING_R - pw.DISC_SEL * 0.5])
+	check(pw.centre.x > HUD.SCREEN_W * 0.7, "the ring is on the right of the screen (%.0f)" % pw.centre.x)
+	# a ring slot is HUD ground (the room's click-to-search must not take a press that lands on it)
+	check(HUD.pointer_over_widget(_slot_pos(0)) and HUD.pointer_over_widget(pw.centre), "a press on the ring belongs to the ring, not the room under it")
+	# ring → panel: onto the found item with the bag full puts that one down and takes the new one
+	var first: String = WorldState.inventory[0].item_id
+	await _drag(_slot_pos(0), pr.get_center())
+	await _frames(2)
+	var has_new := false
+	for inst in WorldState.inventory:
+		if inst.item_id == "011":
+			has_new = true
+	check(has_new and not loot.visible and not WorldState.loot_open, "dragging a bag item onto the found item swaps them (took the ice pack, panel closed)")
+	check(_world_has_drop(first), "…and the swapped-out item (%s) lies at the feet, not lost" % first)
+	check(pw.is_open and p.pack_phase == "open", "…the pack stays open")
+	# panel → ring: the other way
+	while WorldState.inventory.size() < WorldState.get_inventory_slots():
+		_give("007")
+	HUD.refresh_inventory()
+	WorldState.set_anchor_item("test", "a2", "011")
+	loot.open("011", "a2", "test")
+	loot._process(loot.REVEAL_TIME + 0.1)
+	await get_tree().process_frame
+	pr = loot.panel.get_global_rect()
+	await get_tree().create_timer(0.45).timeout        # (a second press inside DOUBLE_CLICK_TIME is a double-click = take)
+	var gone: String = WorldState.inventory[1].item_id
+	var count_gone: int = 0
+	for inst in WorldState.inventory:
+		if inst.item_id == gone:
+			count_gone += 1
+	await _drag(pr.get_center(), _slot_pos(1))
+	await _frames(2)
+	var count_after: int = 0
+	for inst in WorldState.inventory:
+		if inst.item_id == gone:
+			count_after += 1
+	check(not loot.visible and count_after == count_gone - 1, "dragging the found item onto a ring slot swaps it in (%d → %d of %s)" % [count_gone, count_after, gone])
+	loot.queue_free()
+	WorldState.loot_open = false
+	WorldState.is_scavenge_mode = false
 	await _reset()
 
 

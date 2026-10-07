@@ -23,12 +23,14 @@ simply loads.
 
 | run | light | what has happened to the building and the city |
 |---|---|---|
-| 1 MORNING | clear sky, a low sun, crows | a few smoke columns, some broken / boarded windows, one HELP sheet, lamps still on |
+| 1 MORNING | clear sky, a low sun, crows | the calm before it: some broken / boarded windows, lamps on, a few people at their windows, three parked cars — **no HELP sheet, no smoke, no fire anywhere** (owner round 36f) |
 | 2 AFTERNOON | violet → orange dusk, a big low sun | lamps on in the dusk, more glass broken, a SOS sheet too, a wrecked balcony, the doors barricaded with a chair and boards, an overturned car, bodies in the street, a burning car, two towers burning, a wire sagging low |
 | 3 NIGHT | stars, a moon, a blood-orange horizon, **rain + lightning + thunder** | wires down, the doors boarded behind a fridge, a breach blown through the wall at floor 8, the parapet knocked off, three fires in the street, five towers burning, bodies, no crows |
 
 It is the SAME tower in all three: each window's state comes from its own seeded draw and the thresholds only shift up with the run, so a
 window broken in the morning is still broken at dusk. (`opening_test` checks 99.5% of the face agrees across runs.)
+
+**Round 36f (owner playtest):** HELP / SOS sheets and ALL fire (the burnt floors, smoke columns, street / tower fires) only from run 2 (`LOOK.helps` 0/2/3, `city_smokes` (0,0) in run 1, `_lay_burning` returns on run 1 — `burn_plan()` stays the fire sim's truth). **Cars** are real silhouettes now (`car_sprite`: sedan / hatch / van — profile polygon, glass, door seams, wheel arches, tyres, bumpers, lamps; states parked / wreck / burnt; one overturned on its roof), three on three separate wheel lines and the street lamp moved to x 270, so nothing clips into a car (the meta lists every car rect and `opening_test` checks none touches another or the lamp). **Windows** each carry their own look from their own seeded rng (glass tint, interior tone, reflection, five curtain styles, five kinds of light — warm / amber lamp pool / cool TV / white / rose — plants, shelves, lamps) — the same in every run. **Survivors**: some LIT windows hold a tiny animated person (`meta.scene.survivors`, drawn by `opening_exterior._Survivors` off the opening's clock: wave / pace / peer / sway; ~2 / 5 / 5 by run). **The city** is built from towers wide enough for their height (never slimmer than 1:4.2), each its own tone, tall ones stepped back. **Sound**: the noise-band wind is GONE (it read as loud static as the building pans) — a noise-free tonal `hum.wav` sits under it; the siren and the title swell are unchanged.
 
 ### The burnt floors are this playthrough's own
 
@@ -47,7 +49,7 @@ Native 288x162 shown at 4x (the 1152x648 screen), as parallax layers the game sl
 run's palettes, sun / moon, grade and how much damage it adds. The building's three sections echo the corridors inside it (hotel 21+,
 brick 11-20, concrete 1-10) and decay with depth; **floor 30 keeps one warm window** (where you wake).
 `python3 tools/art/opening.py --preview` writes `docs/art_reference/opening.png` (one row per run, five camera heights);
-`--check` is in the gate. Sounds: `tools/gen_opening_audio.py` → `assets/audio/opening/` (wind loop, a far siren, a dark swell for the
+`--check` is in the gate. Sounds: `tools/gen_opening_audio.py` → `assets/audio/opening/` (a low tonal hum loop — no noise — a far siren, a dark swell for the
 title; CC0, generated); night also uses the storm's thunder. `tools/opening_capture.tscn -- --run=3 --times=1.5,6,12` renders frames.
 
 ## Not done / owner's call

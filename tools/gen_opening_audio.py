@@ -2,7 +2,8 @@
 """Sound for the new-game opening (scripts/opening_exterior.gd) — procedurally made, CC0, like the rest of assets/audio.
 Mono 22050 Hz 16-bit PCM WAV.
 
-  wind.wav   — 8 s of a high-rise wind: band-limited noise with slow gusts and a faint whistle; loops (seam cross-faded).
+  hum.wav    — 8 s of the city's low air under the picture: a few soft sine partials with slow swells, NO noise (owner round 36f: the old
+               noise-band "wind" read as loud static as the building pans); loops exactly (every partial and swell fits the 8 s).
   siren.wav  — 7 s of a siren a long way off across the city: two slow wails, rolled off hard, with an echo; fades in and out.
   swell.wav  — 5 s of a low dark swell for the title: a minor drone that rises, and a soft boom as it lands.
 
@@ -49,16 +50,14 @@ def loop_seam(x, fade):
     return x
 
 
-def wind():
-    n = int(9.0 * SR)
-    noise = RNG.standard_normal(n)
-    body = lowpass(noise, 900) - lowpass(noise, 120)               # a band: rumble out, hiss out
+def hum():
+    n = int(8.0 * SR)
     t = np.arange(n) / SR
-    gust = 0.55 + 0.30 * np.sin(2 * np.pi * t / 3.1 + 0.6) + 0.15 * np.sin(2 * np.pi * t / 1.7 + 2.0)
-    whistle = 0.05 * np.sin(2 * np.pi * (780 + 90 * np.sin(2 * np.pi * t / 4.3)) * t) * (0.5 + 0.5 * np.sin(2 * np.pi * t / 5.3))
-    x = body * gust * 3.2 + whistle
-    x = loop_seam(x, 1.0)
-    return 0.55 * x / np.max(np.abs(x))
+    x = np.zeros(n)
+    # pure tones on whole cycles per 8 s, so the loop point is silent-seamless; each breathes on its own slow swell (also whole cycles)
+    for f, g, swell_hz, ph in ((55.0, 1.0, 0.125, 0.0), (82.5, 0.55, 0.25, 1.3), (110.0, 0.32, 0.125, 2.4), (165.0, 0.14, 0.375, 0.7)):
+        x += g * np.sin(2 * np.pi * f * t + ph) * (0.72 + 0.28 * np.sin(2 * np.pi * swell_hz * t + ph))
+    return 0.5 * x / np.max(np.abs(x))
 
 
 def siren():
@@ -89,6 +88,6 @@ def swell():
 
 
 if __name__ == "__main__":
-    write("wind.wav", wind())
+    write("hum.wav", hum())
     write("siren.wav", siren())
     write("swell.wav", swell())

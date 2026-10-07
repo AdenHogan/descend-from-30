@@ -13,6 +13,7 @@ extends CanvasLayer
 
 const REVEAL_TIME = 3.0
 const NOTHING_CLOSE_TIME = 1.6
+const RingGeo := preload("res://scripts/ring_geo.gd")
 const DRAG_THRESHOLD = 8.0
 const DOUBLE_CLICK_TIME = 0.35
 const PANEL_W = 300.0
@@ -41,6 +42,10 @@ var drag_active = false
 var drag_from = Vector2.ZERO
 var ghost: TextureRect = null
 var last_press_time = 0.0
+var _center: CenterContainer = null
+var _mouse_pos: Vector2 = Vector2.ZERO # the pointer as the last motion event reported it (a drag follows this — a touch drag has no cursor to poll)
+var _shift: float = 0.0                # how far the panel has slid left to make room for the pack ring
+const PACK_SHIFT := 340.0              # (the ring takes the right ~320 px of the screen; the panel centres in the rest)
 
 
 func _ready() -> void:
@@ -61,6 +66,7 @@ func _build_ui() -> void:
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(center)
+	_center = center
 
 	panel = PanelContainer.new()
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -164,9 +170,31 @@ func _reveal_item() -> void:
 	hint_label.text = "Double-click, or drag onto your pack · walk away to leave"
 
 
+## A found item is waiting (nothing mid-search): the pack ring may open beside it to make room (owner round 36f).
+func can_share_screen() -> bool:
+	return visible and has_item and not is_revealing
+
+
+func over_panel(pos: Vector2) -> bool:
+	return visible and panel != null and panel.get_global_rect().has_point(pos)
+
+
+## Is the pack ring up beside this panel?
+func _pack_open() -> bool:
+	return HUD.pack_wheel != null and is_instance_valid(HUD.pack_wheel) and HUD.pack_wheel.is_open
+
+
 func _process(delta: float) -> void:
 	if not visible:
+		_shift = 0.0
 		return
+	# the panel slides left while the pack ring is up on the right
+	var want: float = PACK_SHIFT if _pack_open() else 0.0
+	_shift = lerpf(_shift, want, clampf(delta * 14.0, 0.0, 1.0))
+	if absf(_shift - want) < 0.5:
+		_shift = want
+	if _center != null:
+		_center.offset_right = -_shift
 
 	# Walk away = leave. (Skip while actively dragging the item to a slot.)
 	if not drag_active and anchor_node != null and is_instance_valid(anchor_node):
@@ -204,7 +232,7 @@ func _process(delta: float) -> void:
 func _update_drag() -> void:
 	if not drag_armed:
 		return
-	var mouse = get_viewport().get_mouse_position()
+	var mouse: Vector2 = _mouse_pos
 	if not drag_active:
 		if mouse.distance_to(drag_from) > DRAG_THRESHOLD:
 			_start_drag()
@@ -237,6 +265,8 @@ func _end_drag(take: bool) -> void:
 func _input(event: InputEvent) -> void:
 	if not visible:
 		return
+	if event is InputEventMouseMotion or (event is InputEventMouseButton and event.pressed):
+		_mouse_pos = event.position
 	# A click in the world, off the panel (and not on the hotbar, where you make room): leave,
 	# and let the click go on through to click-to-move / click-to-scavenge. Any state — searching,
 	# "nothing found", an item shown, "inventory full".
@@ -267,17 +297,37 @@ func _input(event: InputEvent) -> void:
 		else:
 			# Release: a drag that ended over the pack takes it.
 			if drag_active:
-				_end_drag(HUD.inventory_drop_rect().has_point(event.position))
+				var ring = HUD.pack_wheel
+				var on_ring: bool = ring != null and is_instance_valid(ring) and ring.is_open and ring.on_ring(event.position)
+				if on_ring:
+					# dropped on the pack ring: into the bag — onto an item with the bag full, that item is put down to make room
+					var k: int = RingGeo.index_for(event.position - ring.centre, ring.slots.size(), ring.DEAD_ZONE)
+					_end_drag(false)
+					swap_in(ring, k, true)
+				else:
+					_end_drag(HUD.inventory_drop_rect().has_point(event.position))
 				get_viewport().set_input_as_handled()
 			else:
 				drag_armed = false
 
 
-func _take() -> void:
+## Take the found item, first putting wedge `k` of the ring down if the bag is full (and `k` holds something). Used both ways:
+## the item dragged onto the ring (`from_panel`, k = the wedge it landed on) and a ring item dragged onto the panel.
+func swap_in(ring, k: int, from_panel: bool = false) -> void:
+	if not has_item or is_revealing:
+		return
+	if _take():
+		return
+	if k >= 0 and ring != null and ring._slot_inst(k) != null:
+		ring.drop_at(k)        # the bag was full: put that one down at the feet…
+		_take()                # …and the found item goes in
+
+
+func _take() -> bool:
 	WorldState.interaction_handled = true
 	if current_item_id == "":
 		_close(true)
-		return
+		return true
 	var added: bool
 	var cabinet := _is_cabinet_weapon()
 	if current_key_target != "":
@@ -299,9 +349,11 @@ func _take() -> void:
 		get_tree().call_group("resident_npc", "on_scavenge", "take", current_apartment_id)
 		HUD.refresh_inventory()
 		_close(true)
+		return true
 	else:
 		name_label.text = "Inventory full"
-		hint_label.text = "Drop something first."
+		hint_label.text = "Drag something off the ring (or onto this) to make room." if _pack_open() else "Open your pack and make room."
+		return false
 
 
 # The anchor is an opened gun cabinet still holding its weapon.

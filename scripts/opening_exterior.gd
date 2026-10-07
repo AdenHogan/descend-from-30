@@ -74,8 +74,9 @@ var beacons: Array = []                 # [{"node": CanvasItem, "phase": float}]
 var flames: Array = []                  # [{"glow": Sprite2D, "phase": float}] — the glows over every fire, pulsing
 var burning: Array = []                 # burn_plan() as laid on the building
 var birds: Node2D = null
+var survivors: Node2D = null            # the little people at lit windows (meta "survivors"), animated off `t`
 var _rng := RandomNumberGenerator.new()
-var _wind: AudioStreamPlayer = null
+var _hum: AudioStreamPlayer = null
 var _siren: AudioStreamPlayer = null
 var _swell: AudioStreamPlayer = null
 var _thunder: AudioStreamPlayer = null
@@ -440,8 +441,16 @@ func _decorate_scene() -> void:
 			r.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			node.add_child(r)
 			beacons.append({"node": r, "phase": 0.0})
-	# the floors this playthrough has on fire
+	# the floors this playthrough has on fire (from the second run on — the first morning shows no fire anywhere, owner round 36f)
 	_lay_burning(node)
+	# survivors at some of the lit windows: a wave, pacing, peering out, swaying
+	var sv: Array = m.get("survivors", [])
+	if not sv.is_empty():
+		survivors = _Survivors.new()
+		survivors.name = "Survivors"
+		survivors.people = sv
+		survivors.run = run
+		node.add_child(survivors)
 	# fires in the street
 	for f in m.get("fires", []):
 		var at := Vector2(float(f["x"]), float(f["y"]))
@@ -474,6 +483,8 @@ func _decorate_scene() -> void:
 
 ## Lay the charred windows / soot / flames for burn_plan() on the building (a child of the scene layer, so it scrolls with it).
 func _lay_burning(node: Node2D) -> void:
+	if run < 2:
+		return                                           # run 1 is the calm before it: no fire on the tower (burn_plan() stays the sim's truth)
 	burning = burn_plan()
 	if burning.is_empty():
 		return
@@ -554,12 +565,12 @@ func _player(path: String, loop: bool, vol: float) -> AudioStreamPlayer:
 
 
 func _build_audio() -> void:
-	_wind = _player(AUDIO_DIR + "wind.wav", true, -80.0)
+	_hum = _player(AUDIO_DIR + "hum.wav", true, -80.0)
 	_siren = _player(AUDIO_DIR + "siren.wav", false, -17.0 if run == 1 else -13.0)
 	_swell = _player(AUDIO_DIR + "swell.wav", false, -8.0)
 	_thunder = _player(THUNDER[0], false, -6.0)
-	if _wind.stream != null:
-		_wind.play()
+	if _hum.stream != null:
+		_hum.play()
 
 
 # ---- per frame -------------------------------------------------------------------------------------------------------
@@ -628,12 +639,15 @@ func _apply(dt: float) -> void:
 	for fl in flames:
 		var k: float = 0.78 + 0.22 * sin(t * 7.0 + float(fl["phase"])) * sin(t * 3.1 + float(fl["phase"]) * 1.7)
 		(fl["glow"] as Sprite2D).modulate.a = float(fl["base"]) * k
+	if survivors != null:
+		survivors.clock = t
+		survivors.queue_redraw()
 	_lightning(dt)
-	# the sounds: wind under the whole thing (harder at night), a siren far off, a swell under the title
-	if _wind != null and _wind.stream != null:
+	# the sounds: a low tonal hum under the whole thing (no noise — it read as static; a touch fuller at night), a siren far off, a swell under the title
+	if _hum != null and _hum.stream != null:
 		var fin := clampf(t / 3.0, 0.0, 1.0)
 		var fout := 1.0 - clampf((t - t_out(with_title)) / T_FADE_OUT, 0.0, 1.0)
-		_wind.volume_db = linear_to_db(maxf(0.0001, (0.7 if run == 3 else 0.5) * fin * fout))
+		_hum.volume_db = linear_to_db(maxf(0.0001, (0.5 if run == 3 else 0.38) * fin * fout))
 	if not _siren_played and t >= t_pan0() + 2.5 and _siren != null and _siren.stream != null:
 		_siren_played = true
 		_siren.play()
@@ -666,7 +680,7 @@ func _snap(v: float) -> float:
 
 
 func _stop_audio() -> void:
-	for p in [_wind, _siren, _swell, _thunder]:
+	for p in [_hum, _siren, _swell, _thunder]:
 		if p != null:
 			p.stop()
 
@@ -703,6 +717,63 @@ class _Birds:
 			draw_line(p, p + Vector2(2.6, -wing * 0.5 + wy), col, 1.0)
 			draw_line(p + Vector2(2.6, -wing * 0.5 + wy), p + Vector2(4.4, wing * 0.2), col, 1.0)
 			draw_rect(Rect2(p + Vector2(-0.5, -0.5), Vector2(1.5, 1.0)), col)
+
+
+# ---- survivors at the windows ------------------------------------------------------------------------------------------------
+# Tiny pixel people (3 px wide, 7 tall) at some lit windows, in the glass's own coordinates: one waves, one paces from side to side,
+# one stands and now and then leans to look out, one sways. A pure function of the clock, so a test can walk it.
+class _Survivors:
+	extends Node2D
+
+	var people: Array = []
+	var clock := 0.0
+	var run := 1
+
+	func person_x(p: Dictionary) -> float:
+		var ph: float = float(p.get("phase", 0.0))
+		match String(p.get("kind", "peer")):
+			"pace":
+				return 4.0 + 2.2 * sin(clock * 0.55 + ph)
+			"wave":
+				return 5.0
+			"sway":
+				return 4.0 + 0.7 * sin(clock * 0.7 + ph)
+		return 3.0 + float(int(ph * 10.0) % 3)
+
+	func _draw() -> void:
+		var dim := 1.0 if run == 1 else (0.82 if run == 2 else 0.7)
+		for p in people:
+			var gx: float = float(p["x"])
+			var gy: float = float(p["y"])
+			var ph: float = float(p.get("phase", 0.0))
+			var kind := String(p.get("kind", "peer"))
+			var cx := roundf(person_x(p))
+			var face := 1.0
+			if kind == "pace":
+				face = 1.0 if cos(clock * 0.55 + ph) >= 0.0 else -1.0
+			var x := gx + cx
+			var bob := 0.0
+			if kind == "peer" and fposmod(clock + ph, 3.2) < 0.3:
+				bob = 1.0                                   # leans in to look out
+			var shirt := Color.from_string("#" + String(p.get("shirt", "c9605a")), Color(0.8, 0.4, 0.35))
+			shirt = Color(shirt.r * 0.8 * dim, shirt.g * 0.8 * dim, shirt.b * 0.8 * dim)
+			var skin := Color(0.62 * dim, 0.47 * dim, 0.38 * dim)
+			var legs := Color(0.14 * dim, 0.13 * dim, 0.18 * dim)
+			var step := 0.0
+			if kind == "pace" and int(clock * 3.0) % 2 == 0:
+				step = 1.0
+			draw_rect(Rect2(x - 1.0, gy + 6.0, 1.0, 2.0), legs)                      # legs (a step in a pace)
+			draw_rect(Rect2(x + 1.0 - step, gy + 6.0, 1.0, 2.0 - step), legs)
+			draw_rect(Rect2(x - 1.0, gy + 3.0 + bob, 3.0, 3.0 - bob), shirt)         # torso
+			var hx := x - 1.0 + (1.0 if face > 0.0 else 0.0)
+			draw_rect(Rect2(hx, gy + 1.0 + bob, 2.0, 2.0), skin)                     # head
+			if kind == "wave":
+				var up := sin(clock * 7.0 + ph) > 0.0
+				draw_rect(Rect2(x + 2.0, gy + (1.0 if up else 2.0), 1.0, 2.0), skin)   # the raised arm, waving
+				draw_rect(Rect2(x - 2.0, gy + 4.0, 1.0, 2.0), shirt)
+			else:
+				draw_rect(Rect2(x - 2.0, gy + 4.0, 1.0, 2.0), shirt)
+				draw_rect(Rect2(x + 2.0, gy + 4.0, 1.0, 2.0), shirt)
 
 
 # ---- rain over the whole picture (night) --------------------------------------------------------------------------------

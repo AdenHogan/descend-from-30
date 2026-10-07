@@ -2308,7 +2308,7 @@ means no rendering — UI layout and art still need an in-editor look.
   BLAZE windows, smoke on LIGHT / charred ones — a window count by stage (1-2 / 3-5 / 6-8), seeded per floor; fires put out for good leave the
   building clean. The timeline is a pure function of `t` (statics take `with_title`); a key hurries the climb (5×) then skips the hold; a long
   load frame is clamped to 0.1 s; missing art / `exterior_enabled=false` falls back to the old black title screen (a load just loads). **The gate runs
-  `opening.py --check`**, so regenerate after any change. Sounds: `tools/gen_opening_audio.py` (wind, far siren, title swell) + the existing thunder.
+  `opening.py --check`**, so regenerate after any change. Sounds: `tools/gen_opening_audio.py` (a noise-free tonal hum — the old wind read as static, round 36f — a far siren, the title swell) + the existing thunder.
   Locked by `opening_test` (61st suite; mutation-checked: burn plan vs the fire sim, run-start exterior, the short cut, night rain) + `tutorial_test._test_opener`
   + `run_bookends_test`. `tools/opening_capture.tscn` (`--run=N --seed=S --times=…`, xvfb) renders it at chosen times. The LOOK needs the owner's eye.
 - **CONTROLS (owner round 36 — "intuitive to anyone used to mouse and keyboard games… controller… touch if we ship on android"; docs/CONTROLS.md):**
@@ -2352,4 +2352,13 @@ means no rendering — UI layout and art still need an in-editor look.
   135 px starts `room._tut_wake_scene` — the player is HELD (`player.hold_for_scene` / `release_hold`, camera eased to the midpoint), the curiosity line on the way in + «Mrs Delacroix?» (`3003_name`) as she rises, a long twitch + a slow rise
   (`TUTORIAL_*_TIME`), then APPROACH → the unchanged lunge / shove / find-a-weapon beats. Every exit releases the player. Also from the first phone playtest: the touch overlay was reworked (quiet
   right hand, context buttons, a strict teaching beat keeps its button up) and push-while-scavenging says why (docs/CONTROLS.md).
+- **PHONE ROUND 2 (owner round 36f; docs/CONTROLS.md "Touch", docs/BACKPACK.md "The pack beside a found item", docs/OPENING.md):** (1) **PUSH works on a phone** — the HUD
+  pointer gate in `player.gd` ate a touch press because the emulated mouse sits on the PUSH button (`Player.push_blocked_by_hud(device, over_hud)`: only `kbm` is gated;
+  headless can't see `_is_mouse_over_hud`, so the pure function is what `controls_test` pins). (2) **Touch layout rebuilt**: a colour-coded stance PILL (green SCAVENGE / red COMBAT)
+  above the big button, which is USE while scavenging and the hand's verb in combat; PUSH small to its LEFT (combat only); PAUSE top-right; USE / LISTEN / FORCE only on a prompt;
+  **DUCK moved into the stick** (push down = crouch, back up = stand, release never stands you, planes exempt); **sprint = a push past the rim** (`STICK_SPRINT_ON` 1.3 radii, raw
+  offset); no journal button — the avatar is moved **top-left in a frame** under touch (`HUD.apply_identity_layout`) and IS the journal. (3) **Pack ring**: an open ring is a HUD widget
+  (`pack_wheel.owns_point` in `pointer_over_widget`) so a slot over a scavenge node can be dragged; the pack opens BESIDE a found item (panel left, ring right) and items drag / swap
+  either way (`loot_ui.swap_in`). (4) **Opening**: no wind/static (tonal `hum.wav`), real car silhouettes (3 models, none touching the lamp or each other), per-window looks, animated
+  survivors at lit windows, HELP / ALL fire only from run 2, wider city towers. Suites run for this change: see the commit report (not claiming any others).
 - Not started: quests.

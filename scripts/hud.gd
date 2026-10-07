@@ -93,6 +93,12 @@ const HOTBAR_W = SLOT_SIZE * 6 + 8 * 5
 const IDENT_Y = SCREEN_H - PORTRAIT_H - 4.0          # the bottom-left block's top edge
 const IDENT_TEXT_X = PORTRAIT_W + 16.0               # the name row / stamina underline / in-hand column
 const IDENT_ROW_Y = SCREEN_H - 68.0                  # the NAME + MODE row; the stamina underline sits right under it
+# TOUCH LAYOUT (owner round 36f: "the left direction pad is over the player avatar UI… get our avatar on the top left… the avatar then may
+# need a frame"): with a touchscreen in use the identity block rides the TOP-left instead — a smaller bust in a framed card, the name +
+# stamina beside it, the in-hand box at its right. The stance pill is the touch overlay's own colour-coded button, so this one hides.
+const TOP_PORTRAIT_W = 72.0
+const TOP_PORTRAIT_H = 90.0
+const TOP_PAD = 8.0
 const CURRENCY_X = SCREEN_W - CLUSTER_MARGIN - 124.0   # top-right: notes + scrap (icon, then the number)
 const CURRENCY_Y = 12.0
 const CURRENCY_ROW = 34.0
@@ -112,6 +118,8 @@ var touch_overlay: Control = null        # on-screen stick + buttons (touch_over
 var pack_wheel: Control = null           # the backpack ring (pack_wheel.gd) — real time, whole bag
 var pack_button: Control = null          # the clickable backpack in the strip (hud_pack_button.gd)
 var _health_stage: int = 0
+var ident_top: bool = false              # touch: the identity block is top-left (apply_identity_layout)
+var ident_frame: Panel = null            # the card behind it (touch layout only)
 
 func _ready() -> void:
 	_layout()
@@ -142,6 +150,8 @@ func _ready() -> void:
 	_create_character_panel()
 	update_mode_indicator()
 	refresh_inventory()
+	SettingsManager.device_changed.connect(func(_k): apply_identity_layout())
+	apply_identity_layout()
 
 func _layout() -> void:
 	# The root Control spans the whole screen: it must NOT swallow mouse
@@ -212,6 +222,17 @@ func _create_cluster() -> void:
 	equip_box = preload("res://scripts/hud_equip_box.gd").new()
 	$Control.add_child(equip_box)
 	equip_box.tapped.connect(use_equipped)
+	ident_frame = Panel.new()
+	ident_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ident_frame.visible = false
+	var fst := StyleBoxFlat.new()
+	fst.bg_color = Color(0.045, 0.045, 0.06, 0.58)
+	fst.border_color = Color(AMBER.r, AMBER.g, AMBER.b, 0.6)
+	fst.set_border_width_all(2)
+	fst.set_corner_radius_all(10)
+	ident_frame.add_theme_stylebox_override("panel", fst)
+	$Control.add_child(ident_frame)
+	$Control.move_child(ident_frame, 0)
 
 
 
@@ -997,16 +1018,61 @@ func _layout_identity_row() -> void:
 		return
 	var f: Font = name_label.get_theme_default_font()
 	var nw: float = f.get_string_size(name_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x
+	var tx: float = ident_text_x()
+	var ry: float = ident_row_y()
+	name_label.position = Vector2(tx, ry)
 	name_label.size.x = nw + 4.0
 	mode_label.reset_size()
 	var mw: float = f.get_string_size(mode_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x
-	mode_label.position = Vector2(IDENT_TEXT_X + nw + 12.0, IDENT_ROW_Y)
+	mode_label.visible = not ident_top
+	mode_label.position = Vector2(tx + nw + 12.0, ry)
 	mode_label.size = Vector2(mw + MODE_PAD, 24.0)
 	var w: float = maxf(nw + 12.0 + mw + MODE_PAD, 150.0)
+	if ident_top:
+		w = maxf(nw + 8.0, 120.0)
+	stamina_bar.position = Vector2(tx, ry + 26.0)
 	stamina_bar.size = Vector2(w, STAMINA_BAR_H)
 	if equip_box != null:
-		# the in-hand box sits to the RIGHT of the whole name / mode / stamina block, level with it
-		equip_box.position = Vector2(IDENT_TEXT_X + w + 18.0, SCREEN_H - equip_box.size.y - 12.0)
+		if ident_top:
+			# right of the name block, centred on the portrait
+			equip_box.position = Vector2(tx + w + 14.0, TOP_PAD + 4.0 + (TOP_PORTRAIT_H - equip_box.size.y) * 0.5)
+		else:
+			# the in-hand box sits to the RIGHT of the whole name / mode / stamina block, level with it
+			equip_box.position = Vector2(tx + w + 18.0, SCREEN_H - equip_box.size.y - 12.0)
+	if ident_frame != null:
+		ident_frame.visible = ident_top
+		if ident_top:
+			var right: float = tx + w + 14.0
+			if equip_box != null:
+				right = equip_box.position.x + equip_box.size.x + 10.0
+			ident_frame.position = Vector2(TOP_PAD - 4.0, TOP_PAD - 4.0)
+			ident_frame.size = Vector2(right - (TOP_PAD - 4.0), TOP_PORTRAIT_H + 16.0)
+	if boon_badge != null:
+		boon_badge.position = Vector2(CLUSTER_MARGIN, TOP_PAD + TOP_PORTRAIT_H + 16.0) if ident_top else Vector2(CLUSTER_MARGIN, IDENT_Y - 38.0)
+
+
+## Where the identity block's text column and name row sit: bottom-left normally, top-left under a touchscreen.
+func ident_text_x() -> float:
+	return (TOP_PAD + 4.0 + TOP_PORTRAIT_W + 10.0) if ident_top else IDENT_TEXT_X
+
+
+func ident_row_y() -> float:
+	return (TOP_PAD + 8.0) if ident_top else IDENT_ROW_Y
+
+
+## Put the identity block where the device wants it (re-run when the device / the touch setting changes).
+func apply_identity_layout() -> void:
+	ident_top = SettingsManager.touch_ui_wanted()
+	if portrait == null:
+		return
+	if ident_top:
+		portrait.position = Vector2(TOP_PAD + 4.0, TOP_PAD + 4.0)
+		portrait.size = Vector2(TOP_PORTRAIT_W, TOP_PORTRAIT_H)
+	else:
+		portrait.position = Vector2(CLUSTER_MARGIN - 8.0, IDENT_Y)
+		portrait.size = Vector2(PORTRAIT_W, PORTRAIT_H)
+	portrait.pivot_offset = portrait.size * 0.5
+	_layout_identity_row()
 
 
 func _create_mode_tip() -> void:
@@ -1371,17 +1437,21 @@ const IDENT_FADE_ALPHA := 0.3
 func _fade_identity_over_player(delta: float) -> void:
 	if portrait == null:
 		return
-	var block_w: float = IDENT_TEXT_X + 250.0
-	if equip_box != null:
-		block_w = maxf(block_w, equip_box.position.x + equip_box.size.x + 8.0)
-	var block := Rect2(Vector2(0.0, IDENT_Y - 8.0), Vector2(block_w, SCREEN_H - IDENT_Y + 8.0))
+	var block := Rect2()
+	if ident_top and ident_frame != null:
+		block = Rect2(ident_frame.position, ident_frame.size)
+	else:
+		var block_w: float = IDENT_TEXT_X + 250.0
+		if equip_box != null:
+			block_w = maxf(block_w, equip_box.position.x + equip_box.size.x + 8.0)
+		block = Rect2(Vector2(0.0, IDENT_Y - 8.0), Vector2(block_w, SCREEN_H - IDENT_Y + 8.0))
 	var under := false
 	var pl = get_tree().get_first_node_in_group("player")
 	if pl != null and is_instance_valid(pl) and pl is Node2D:
 		var sp: Vector2 = get_viewport().get_canvas_transform() * (pl as Node2D).global_position
 		under = block.grow(20.0).has_point(sp)
 	var a: float = IDENT_FADE_ALPHA if under else 1.0
-	for n in [portrait, name_label, stamina_bar, mode_label, equip_box]:
+	for n in [portrait, name_label, stamina_bar, mode_label, equip_box, ident_frame]:
 		if n != null and is_instance_valid(n):
 			n.modulate.a = lerpf(n.modulate.a, a, clampf(delta * 8.0, 0.0, 1.0))
 
@@ -1444,6 +1514,10 @@ func pointer_over_widget(pos: Vector2) -> bool:
 	for w in [pack_button, mode_label, portrait, boon_badge, context_menu, equip_box]:
 		if w != null and is_instance_valid(w) and w.visible and w.get_global_rect().has_point(pos):
 			return true
+	# An open pack ring (+ its right-click menu) is the ring's, not the world's: without this a ring slot lying over a scavenge node
+	# was swallowed by the room's click-to-search and could not be dragged (owner round 36f).
+	if pack_wheel != null and is_instance_valid(pack_wheel) and pack_wheel.is_open and pack_wheel.owns_point(pos):
+		return true
 	# Clickable things that live elsewhere (a resident's speech bubble with its trade buttons).
 	for w in get_tree().get_nodes_in_group("hud_widget_extra"):
 		if w is Control and w.is_visible_in_tree() and w.get_global_rect().has_point(pos):

@@ -575,7 +575,8 @@ func _test_primary_button(ov) -> void:
 	check(big.visible and big.label == "HIT", "bare-handed in combat: the big button is HIT (%s)" % big.label)
 	WorldState.is_scavenge_mode = true
 	ov.refresh()
-	check(not big.visible, "bare-handed while scavenging: nothing to offer, so no button")
+	check(big.visible and big.label == "USE" and ov._action_for(big) == "interact", "scavenging: the big button is USE on interact (%s / %s)" % [big.label, ov._action_for(big)])
+	WorldState.is_scavenge_mode = false
 	# a first aid kit → HEAL, pressing item_use (not attack)
 	var kit := ItemInstance.new()
 	kit.setup("007")
@@ -609,7 +610,7 @@ func _test_primary_button(ov) -> void:
 	check(big.label == "HIT" and ov._action_for(big) == "attack", "a club in hand in combat: HIT on attack")
 	WorldState.is_scavenge_mode = true
 	ov.refresh()
-	check(big.visible and big.label == "DRAW" and ov._action_for(big) == "attack", "…and DRAW while scavenging (the attack key draws it)")
+	check(big.visible and big.label == "USE" and ov._action_for(big) == "interact", "…and USE while scavenging (a tap on the in-hand box draws it)")
 	WorldState.is_scavenge_mode = false
 	# an extinguisher / a can name what they do
 	var ext := ItemInstance.new()
@@ -650,6 +651,116 @@ func _test_primary_button(ov) -> void:
 	WorldState.inventory.clear()
 	HUD.selected_slot = -1
 	WorldState.is_scavenge_mode = false
+	ov.refresh()
+
+
+## Owner round 36f, the second phone playtest: PUSH did nothing (the emulated pointer sat on the button and the HUD gate ate the press — invisible
+## headless), a colour-coded stance button, PUSH beside the big button, DUCK in the stick, a harder sprint, the avatar top-left.
+func _test_touch_layout(ov) -> void:
+	print("[touch layout: stance button, push, duck, avatar]")
+	WorldState.inventory.clear()
+	HUD.selected_slot = -1
+	WorldState.is_scavenge_mode = false
+	SettingsManager.set_touch_mode("on")
+	ov.refresh()
+	# PUSH: a touch / pad press is never swallowed by the HUD gate, a mouse press on a widget still is
+	check(not p.push_blocked_by_hud("touch", true) and not p.push_blocked_by_hud("pad", true) and p.push_blocked_by_hud("kbm", true) and not p.push_blocked_by_hud("kbm", false),
+		"a touch press isn't swallowed by the HUD gate (the PUSH button IS where the emulated pointer sits); an RMB on a widget still is")
+	# the layout: PUSH beside the big button, related but not overlapping, in combat only
+	var big = ov.get_node("Btn_attack")
+	var push = ov.get_node("Btn_push")
+	var pill = ov.get_node("Btn_mode_toggle")
+	check(push.visible and push.centre.x < big.centre.x - (push.radius + big.radius) and absf(push.centre.y - big.centre.y) < 60.0,
+		"PUSH sits LEFT of the big button, clear of it and on the same thumb arc (%s vs %s)" % [str(push.centre), str(big.centre)])
+	check(pill.visible and pill.centre.y < big.centre.y - big.radius and pill.is_pill(), "the stance button is a pill above the big one (vis %s, y %s, big %s, pill %s)" % [pill.visible, pill.centre.y, big.centre.y, pill.is_pill()])
+	check(pill.label == "COMBAT" and pill.tint.r > pill.tint.g and big.tint == pill.tint, "combat: a RED pill that says COMBAT, and the big button wears the same colour")
+	var rects: Array = []
+	for w in ov.widgets:
+		if w.visible:
+			rects.append([w.name, Rect2(w.centre - Vector2(maxf(w.half_w, w.radius), w.radius), Vector2(maxf(w.half_w, w.radius), w.radius) * 2.0)])
+	var clash: Array = []
+	for i in range(rects.size()):
+		for j in range(i + 1, rects.size()):
+			if rects[i][1].intersects(rects[j][1]):
+				clash.append("%s/%s" % [rects[i][0], rects[j][0]])
+	check(clash.is_empty(), "no two visible touch widgets overlap %s" % str(clash))
+	WorldState.is_scavenge_mode = true
+	ov.refresh()
+	check(not push.visible and ov.widget_at(push.centre) == null, "scavenging: PUSH goes (shoving is a combat move), nothing to tap there")
+	check(pill.label == "SCAVENGE" and pill.tint.g > pill.tint.r and big.tint == pill.tint and big.label == "USE",
+		"scavenge: a GREEN pill that says SCAVENGE, the big button USE in the same green")
+	# a tap on the pill is the mode switch
+	WorldState.is_scavenge_mode = false
+	ov.refresh()
+	var catcher := Node.new()
+	catcher.set_script(load("res://tests/controls_catcher.gd"))
+	add_child(catcher)
+	catcher.action = "mode_toggle"
+	_touch(7, pill.centre, true)
+	await _flush()
+	check(catcher.got, "a tap on the pill arrives as mode_toggle")
+	_touch(7, pill.centre, false)
+	catcher.queue_free()
+	for i in range(40):                    # (let the stance switch finish)
+		await get_tree().physics_frame
+	WorldState.is_scavenge_mode = false
+	p.is_switching_mode = false
+	ov.refresh()
+	# DUCK is the stick: down = crouch, up = stand, letting go changes nothing, sideways still walks while ducked
+	p.is_crouching = false
+	_touch(0, ov.STICK_CENTRE, true)
+	_drag_to(0, ov.STICK_CENTRE + Vector2(0, 62))
+	for i in range(14):
+		await get_tree().physics_frame
+	check(p.is_crouching, "the stick pushed DOWN crouches")
+	_drag_to(0, ov.STICK_CENTRE + Vector2(0, 5))
+	for i in range(8):
+		await get_tree().physics_frame
+	check(p.is_crouching, "…back near the middle keeps the crouch")
+	_drag_to(0, ov.STICK_CENTRE + Vector2(60, 62))
+	for i in range(8):
+		await get_tree().physics_frame
+	check(p.is_crouching and Input.is_action_pressed("move_right"), "…and walking sideways while ducked still works")
+	_touch(0, ov.STICK_CENTRE, false)
+	for i in range(14):
+		await get_tree().physics_frame
+	check(p.is_crouching, "LETTING GO of the stick does NOT stand you up")
+	_touch(0, ov.STICK_CENTRE, true)
+	_drag_to(0, ov.STICK_CENTRE + Vector2(0, -62))
+	for i in range(14):
+		await get_tree().physics_frame
+	check(not p.is_crouching, "pushing the stick back UP stands")
+	_touch(0, ov.STICK_CENTRE, false)
+	for i in range(8):
+		await get_tree().physics_frame
+	check(not p.is_crouching and not Input.is_action_pressed("crouch_toggle"), "…and letting go leaves you standing, with no toggle left pressed")
+	# a stick that merely wobbles through the dead area / sideways never ducks
+	_touch(0, ov.STICK_CENTRE, true)
+	_drag_to(0, ov.STICK_CENTRE + Vector2(90, 20))
+	for i in range(10):
+		await get_tree().physics_frame
+	check(not p.is_crouching, "a sideways push with a little downward drift doesn't duck")
+	_touch(0, ov.STICK_CENTRE, false)
+	await _flush()
+	# the avatar rides the top-left on a touchscreen, clear of every touch widget, framed; back at the bottom for keyboard + mouse
+	var pr: Rect2 = HUD.portrait.get_global_rect()
+	check(HUD.ident_top and pr.position.y < 40.0 and pr.end.x < 260.0 and pr.end.y < 140.0 and HUD.ident_frame.visible,
+		"touch: the avatar is top-left in a frame (%s)" % str(pr))
+	var hit: Array = []
+	for w in ov.widgets:
+		if w.visible and Rect2(w.centre - Vector2(maxf(w.half_w, w.radius), w.radius), Vector2(maxf(w.half_w, w.radius), w.radius) * 2.0).intersects(HUD.ident_frame.get_global_rect()):
+			hit.append(w.name)
+	check(hit.is_empty(), "…and under no touch widget %s" % str(hit))
+	check(not HUD.mode_label.visible and HUD.pointer_over_widget(pr.get_center()), "…the text stance pill hides (the overlay has its own) and the avatar is still the journal button")
+	var eq: Rect2 = HUD.equip_box.get_global_rect()
+	check(eq.position.y < 140.0 and eq.end.x < 520.0 and not eq.intersects(pr), "…the in-hand box beside it, not over it (%s)" % str(eq))
+	SettingsManager.set_touch_mode("off")
+	SettingsManager.note_device("kbm")
+	HUD.apply_identity_layout()
+	check(not HUD.ident_top and HUD.portrait.get_global_rect().position.y > 400.0 and not HUD.ident_frame.visible and HUD.mode_label.visible,
+		"keyboard + mouse: the avatar is back bottom-left, no frame, the text pill is shown")
+	SettingsManager.set_touch_mode("on")
+	HUD.apply_identity_layout()
 	ov.refresh()
 
 
@@ -715,30 +826,34 @@ func _test_touch_overlay() -> void:
 	_touch(1, _btn_pos("attack"), false)
 	await _flush()
 	check(not Input.is_action_pressed("attack") and Input.is_action_pressed("move_right"), "…letting go of HIT leaves the walk")
-	# HOW HARD you push is how fast you go (owner round 36d): no RUN button — the rim is run
-	check(ov.get_node_or_null("Btn_sprint") == null and ov.get_node_or_null("Btn_mode_toggle") == null and ov.get_node_or_null("Btn_item_use") == null,
-		"no RUN, no second MODE switch, no tiny ITEM button on the overlay")
-	check(Input.is_action_pressed("sprint") and ov.sprinting, "pushed out to the rim, the stick holds sprint")
+	# HOW HARD you push is how fast you go: no RUN button — a push PAST the rim (the dashed ring outside the stick) is run (owner round 36f:
+	# "you can run way too easily on mobile")
+	check(ov.get_node_or_null("Btn_sprint") == null and ov.get_node_or_null("Btn_item_use") == null and ov.get_node_or_null("Btn_crouch_toggle") == null
+			and ov.get_node_or_null("Btn_open_journal") == null,
+		"no RUN, no tiny ITEM, no DUCK and no JOURNAL button on the overlay (duck is the stick, the journal is the portrait)")
+	check(not Input.is_action_pressed("sprint") and not ov.sprinting, "the rim itself is a full-speed WALK, not a run")
+	_drag_to(0, ov.STICK_CENTRE + Vector2(100, 0))
+	await _flush()
+	check(not Input.is_action_pressed("sprint"), "…and so is a hard push just past it (122%% of the stick — the old rule ran from 92%%)")
+	_drag_to(0, ov.STICK_CENTRE + Vector2(115, 0))
+	await _flush()
+	check(Input.is_action_pressed("sprint") and ov.sprinting, "pushed out onto the run ring, the stick holds sprint")
 	_drag_to(0, ov.STICK_CENTRE + Vector2(58, 0))
 	await _flush()
 	check(not Input.is_action_pressed("sprint") and not ov.sprinting and Input.get_axis("move_left", "move_right") > 0.6,
 		"a firm but not full push is a fast WALK (%.2f), no sprint" % Input.get_axis("move_left", "move_right"))
-	_drag_to(0, ov.STICK_CENTRE + Vector2(72, 0))
+	_drag_to(0, ov.STICK_CENTRE + Vector2(115, 0))
 	await _flush()
-	check(not Input.is_action_pressed("sprint"), "…it takes the rim to start the sprint (no accidental run at 88%)")
-	_drag_to(0, ov.STICK_CENTRE + Vector2(80, 0))
+	_drag_to(0, ov.STICK_CENTRE + Vector2(95, 0))
 	await _flush()
-	check(Input.is_action_pressed("sprint"), "…and the rim does")
-	_drag_to(0, ov.STICK_CENTRE + Vector2(68, 0))
-	await _flush()
-	check(Input.is_action_pressed("sprint"), "a thumb easing a little off the rim keeps running (hysteresis, no flicker)")
+	check(Input.is_action_pressed("sprint"), "a thumb easing a little off the ring keeps running (hysteresis, no flicker)")
 	_drag_to(0, ov.STICK_CENTRE + Vector2(30, 0))
 	await _flush()
 	check(not Input.is_action_pressed("sprint"), "easing right off ends it — walking costs no stamina")
-	_drag_to(0, ov.STICK_CENTRE + Vector2(0, -80))
+	_drag_to(0, ov.STICK_CENTRE + Vector2(0, -115))
 	await _flush()
 	check(not Input.is_action_pressed("sprint"), "a vertical flick never sprints")
-	_drag_to(0, ov.STICK_CENTRE + Vector2(80, 0))
+	_drag_to(0, ov.STICK_CENTRE + Vector2(115, 0))
 	await _flush()
 	check(Input.is_action_pressed("sprint"), "(running again, so the hide below has something to let go of)")
 	# hiding lets go of everything
@@ -765,10 +880,13 @@ func _test_touch_overlay() -> void:
 	add_child(catcher)
 	catcher.action = "interact"
 	TutorialManager.guard_interact()      # (the player stands in a real corridor: don't let this press also open a door)
-	_touch(4, _btn_pos("interact"), true)
+	WorldState.is_scavenge_mode = true    # (scavenging, the big button IS USE)
+	ov.refresh()
+	_touch(4, _btn_pos("attack"), true)
 	await _flush()
 	check(catcher.got, "a tap on USE arrives as an input EVENT for interact")
-	_touch(4, _btn_pos("interact"), false)
+	_touch(4, _btn_pos("attack"), false)
+	WorldState.is_scavenge_mode = false
 	catcher.queue_free()
 	await _flush()
 	# --- owner round 36b: a quiet right hand, context buttons, and a teaching beat a phone can answer ---
@@ -777,17 +895,18 @@ func _test_touch_overlay() -> void:
 	# plain play, so no world prompt is on screen)
 	for e in HUD._world_prompts.values():
 		e["panel"].visible = false
+	WorldState.is_scavenge_mode = false
 	ov.refresh()
 	var always: Array = []
 	for w in ov.widgets:
 		if w.visible and w.kind == "button":
 			always.append(w.action)
-	check(always.size() <= 8, "at most 8 buttons on screen in plain play, stick aside (%d: %s)" % [always.size(), str(always)])
+	check(always.size() <= 5, "at most 5 buttons on screen in plain combat, stick aside (%d: %s)" % [always.size(), str(always)])
 	check(not always.has("open_pack") and not always.has("item_context") and not always.has("listen") and not always.has("item_use")
-			and not always.has("sprint") and not always.has("mode_toggle"),
-		"the pack / force / listen buttons are NOT up until they'd do something; run + mode + item are not buttons at all %s (prompts: %s)" % [str(always), _visible_prompts()])
-	for want in ["attack", "interact", "push"]:
-		check(always.has(want), "the main hand has %s" % want)
+			and not always.has("sprint") and not always.has("interact") and not always.has("crouch_toggle") and not always.has("open_journal"),
+		"the pack / force / listen / use buttons are NOT up until they'd do something; run + duck + item + journal are not buttons at all %s (prompts: %s)" % [str(always), _visible_prompts()])
+	for want in ["attack", "push", "mode_toggle", "pause"]:
+		check(always.has(want), "the hands have %s" % want)
 	var hidden_force = ov.get_node("Btn_item_context")
 	check(not hidden_force.visible and ov.widget_at(hidden_force.centre) == null and not HUD.pointer_over_widget(hidden_force.centre),
 		"a hidden button can't be tapped and doesn't block world clicks")
@@ -798,6 +917,7 @@ func _test_touch_overlay() -> void:
 	ov.refresh()
 	check(not ov.get_node("Btn_item_context").visible, "…and go again with the prompt")
 	await _test_primary_button(ov)
+	await _test_touch_layout(ov)
 	# a paused strict teaching beat: ONLY the push button, pulsing, and pressing it carries on
 	var beat_done := [false]
 	TutorialManager.prompt("test beat", "push", func(): beat_done[0] = true, "[PUSH] to shove", true)

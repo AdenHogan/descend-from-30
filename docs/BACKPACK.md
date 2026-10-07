@@ -80,6 +80,14 @@ backpack to pick up which will become the inventory."
   If the result won't fit, the whole craft is undone (CLAUDE.md robustness rule 5). Held-slot index follows the craft.
 - Locked by `molotov_test` (mutation-checked: broken bottles, drag-vs-click).
 
+## The pack beside a found item (owner round 36f — BUILT)
+"If my inventory is full and I scavenge an item, I should be able to open the backpack while still in that scavenge UI… the search panel can move left and the item wheel show on the right… drag from the node to the wheel."
+- A found item waiting in the loot panel (`loot_ui.can_share_screen()`: visible, has an item, not mid-search) no longer blocks the pack: `RingGeo.ui_block_reason` and `player.pack_blocked_reason` let it open. The ring then opens on the RIGHT of the screen, the panel slides LEFT (`PACK_SHIFT`); mid-search or "nothing found" still refuse. A "full" panel says "Open your pack and make room." (or, with the ring up, "Drag something off the ring (or onto this) to make room.").
+- **Drag either way** (`loot_ui.swap_in`): a ring item dropped ON the panel, or the found item dropped ON a ring slot — if the bag has room it is simply taken; if it is full, that ring item is put down at the feet (`drop_at`, never lost) and the found one goes in.
+- **Bug fixed: a ring slot lying over a scavenge node couldn't be dragged** — the room's click-to-search took the press first. An open ring (and its right-click menu) is now a HUD widget (`HUD.pointer_over_widget` → `pack_wheel.owns_point`), so the room, click-to-move and attacks all leave it alone.
+- Standing from the pack after a low-node auto-crouch no longer brings the crouch back (`restore_stance` clears `_pack_was_crouching`).
+- Locked by `pack_test._test_pack_beside_loot`.
+
 ## Design notes
 - **The player owns the state** (`pack_phase`: `""` / `kneel` / `open` / `stand`); the ring is a pure VIEW
   of it (`_process` shows it only in `open`), so it cannot desync, strand the game, or scale time. Any way

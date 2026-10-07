@@ -37,8 +37,8 @@ static func ui_block_reason(tree: SceneTree) -> String:
 		if is_instance_valid(m) and m.visible:
 			return "a panel is open"
 	for m in tree.get_nodes_in_group("loot_ui"):
-		if is_instance_valid(m) and "visible" in m and m.visible:
-			return "loot is open"
+		if is_instance_valid(m) and "visible" in m and m.visible and not (m.has_method("can_share_screen") and m.can_share_screen()):
+			return "loot is open"      # (a found item waiting to be taken CAN share the screen with the pack — make room, then take it)
 	if HUD.dialogue_panel != null and HUD.dialogue_panel.visible:
 		return "dialogue"
 	if HUD.character_panel != null and HUD.character_panel.visible:

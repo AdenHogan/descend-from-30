@@ -34,6 +34,7 @@ func _ready() -> void:
 	_test_looks()
 	_test_timeline()
 	await _test_layers()
+	await _test_survivors()
 	await _test_runs()
 	await _test_burning()
 	await _test_overlay_flow()
@@ -92,7 +93,7 @@ func _test_art() -> void:
 	check(load(Ext.DIR + "burn.png") is Texture2D, "the burn sheet (charred windows + soot)")
 	var bm: Dictionary = _meta(1)["burn"]
 	check(bm["char"].size() >= 3 and bm["soot"].size() >= 3, "…with %d charred windows and %d soot streaks" % [bm["char"].size(), bm["soot"].size()])
-	for f in ["wind.wav", "siren.wav", "swell.wav"]:
+	for f in ["hum.wav", "siren.wav", "swell.wav"]:
 		check(load(Ext.AUDIO_DIR + f) is AudioStream, "sound %s" % f)
 
 
@@ -110,6 +111,25 @@ func _test_looks() -> void:
 	var m3 := _meta(3)
 	check(m1["scene"]["fires"].size() == 0 and m2["scene"]["fires"].size() >= 1 and m3["scene"]["fires"].size() > m2["scene"]["fires"].size(),
 		"fires in the street: none, some, more (%d / %d / %d)" % [m1["scene"]["fires"].size(), m2["scene"]["fires"].size(), m3["scene"]["fires"].size()])
+	check(m1["scene"]["helps"].size() == 0 and m2["scene"]["helps"].size() >= 1 and m3["scene"]["helps"].size() > m2["scene"]["helps"].size(),
+		"HELP / SOS sheets hang out of windows only from the afternoon: none, some, more (%d / %d / %d)" % [m1["scene"]["helps"].size(), m2["scene"]["helps"].size(), m3["scene"]["helps"].size()])
+	check(int(m1["look"]["city_smokes"][0]) == 0 and int(m1["look"]["city_smokes"][1]) == 0 and int(m2["look"]["city_smokes"][0]) > 0,
+		"…and so do the smoke columns over the city %s / %s" % [str(m1["look"]["city_smokes"]), str(m2["look"]["city_smokes"])])
+	# cars are real rectangles in the meta: none overlaps another or the street lamp (owner round 36f: a traffic light clipped into a car)
+	for run in [1, 2, 3]:
+		var cm: Dictionary = _meta(run)["scene"]
+		var rects: Array = []
+		for cr in cm["cars"]:
+			rects.append(Rect2(float(cr["x"]), float(cr["y"]), float(cr["w"]), float(cr["h"])))
+		var lamp := Rect2(float(cm["lamp"]["x"]) - 4.0, float(cm["lamp"]["y"]) - 6.0, 22.0, 70.0)
+		var clash := false
+		for i in range(rects.size()):
+			if rects[i].intersects(lamp):
+				clash = true
+			for j in range(i + 1, rects.size()):
+				if rects[i].intersects(rects[j]):
+					clash = true
+		check(rects.size() == 3 and not clash, "run %d: three cars, none touching each other or the street lamp" % run)
 	var cf := [int(m1["look"]["city_fires"]), int(m2["look"]["city_fires"]), int(m3["look"]["city_fires"])]
 	check(cf[0] == 0 and cf[1] > 0 and cf[2] > cf[1], "towers burning in the city: none, some, more %s" % str(cf))
 	check(not bool(m1["look"]["rain"]) and not bool(m2["look"]["rain"]) and bool(m3["look"]["rain"]), "rain and storm only at night")
@@ -214,9 +234,52 @@ func _test_layers() -> void:
 	e._apply(0.0)
 	check(not is_equal_approx(e.clouds[0]["node"].position.x, cx0), "clouds drift across the sky")
 	var smokes := e.find_children("*", "AnimatedSprite2D", true, false)
-	check(smokes.size() >= 3, "smoke plumes are animating (%d)" % smokes.size())
+	check(smokes.size() == 0, "the first morning has no smoke or fire anywhere (%d plumes)" % smokes.size())
 	check(e.beacons.size() >= 2 and e.flickers.size() >= 1, "beacons blink and a lamp is failing (%d / %d)" % [e.beacons.size(), e.flickers.size()])
 	check(e.birds != null, "crows circle the roof")
+	e.queue_free()
+
+
+func _test_survivors() -> void:
+	print("[survivors at the windows]")
+	var e := _built("", 2)
+	await get_tree().process_frame
+	var sv = e.survivors
+	check(sv != null and sv.people.size() >= 2, "run 2: survivors are at lit windows (%d)" % (sv.people.size() if sv != null else 0))
+	if sv == null:
+		e.queue_free()
+		return
+	var kinds := {}
+	var lit := {}
+	for w in e.meta["scene"]["lit"]:
+		lit["%d:%d" % [int(w["floor"]), int(w["bay"])]] = true
+	var inside := true
+	for p in sv.people:
+		kinds[String(p["kind"])] = true
+		inside = inside and lit.has("%d:%d" % [int(p["floor"]), int(p["bay"])])
+	check(inside, "…every one at a LIT window (a silhouette against the light)")
+	check(kinds.size() >= 2, "…not all doing the same thing %s" % str(kinds.keys()))
+	# a pacer actually walks; everyone stays inside the 9 px of glass
+	var moved := false
+	var within := true
+	for p in sv.people:
+		sv.clock = 0.0
+		var x0: float = sv.person_x(p)
+		var lo := x0
+		var hi := x0
+		for k in range(60):
+			sv.clock = float(k) * 0.25
+			var xx: float = sv.person_x(p)
+			lo = minf(lo, xx)
+			hi = maxf(hi, xx)
+		if String(p["kind"]) == "pace" and hi - lo > 2.0:
+			moved = true
+		within = within and roundf(lo) >= 2.0 and roundf(hi) <= 6.0
+	check(moved or not kinds.has("pace"), "a pacer crosses its window")
+	check(within, "…and nobody steps out of the glass")
+	e.t = 6.0
+	e._apply(0.0)
+	check(is_equal_approx(sv.clock, 6.0), "they animate off the opening's own clock")
 	e.queue_free()
 
 
@@ -234,7 +297,12 @@ func _test_runs() -> void:
 		if run >= 2:
 			check(e.flames.size() >= 2, "run %d: things are burning in the city and the street (%d flames)" % [run, e.flames.size()])
 		var smokes := e.find_children("*", "AnimatedSprite2D", true, false)
-		check(smokes.size() >= 3 + run, "run %d: the smoke / flame sprites are animating (%d)" % [run, smokes.size()])
+		if run == 1:
+			check(smokes.size() == 0 and e.flames.is_empty() and e.layers["scene"]["node"].get_node_or_null("Burning") == null,
+				"run 1: no smoke, flame or burnt window anywhere (%d sprites) — fire only arrives with the afternoon" % smokes.size())
+		else:
+			check(smokes.size() >= 3 + run, "run %d: the smoke / flame sprites are animating (%d)" % [run, smokes.size()])
+		check(e.survivors != null and e.survivors.people.size() >= 1, "run %d: someone is at a window (%d)" % [run, e.survivors.people.size() if e.survivors != null else 0])
 		# the night lightning flashes the picture and settles
 		if run == 3:
 			e._bolt_in = 0.0
@@ -301,6 +369,14 @@ func _test_burning() -> void:
 		check(every, "run %d: exactly the floors the corridors will have alight" % run)
 		check(str(Ext.burn_plan()) == str(plan), "run %d: the plan is the same every time it's asked" % run)
 	check(counts[0] >= 1 and counts[1] >= counts[0] and counts[2] >= counts[1], "the fire climbs the building run by run %s" % str(counts))
+	# …but the first morning's picture shows none of it, though the sim has a light fire going (it arrives with the afternoon)
+	WorldState.current_run = 1
+	var calm: Control = _built("", 1)
+	await get_tree().process_frame
+	check(not Ext.burn_plan().is_empty() and calm.layers["scene"]["node"].get_node_or_null("Burning") == null and calm.burning.is_empty(),
+		"run 1: the fire sim has a light fire, the exterior still shows none")
+	calm.queue_free()
+	await get_tree().process_frame
 	# stages escalate on a floor: the same origin floor is LIGHT, then BLAZE, then CHARRED
 	var origin := -1
 	for f in range(2, 30):

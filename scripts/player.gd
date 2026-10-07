@@ -389,7 +389,10 @@ func _physics_process(delta: float) -> void:
 
 	if not WorldState.is_scavenge_mode:
 		if Input.is_action_just_pressed("push") and not is_pushing:
-			if not _is_mouse_over_hud():
+			# The HUD gate is for a mouse button (RMB) pressed ON a widget. A touch / pad press arrives as an action whose
+			# pointer is wherever the last tap emulated a mouse — on a phone that is the PUSH button itself, so gating
+			# there made PUSH dead (owner phone playtest). Headless can't see it (`_is_mouse_over_hud` is false there).
+			if not push_blocked_by_hud(SettingsManager.last_device, _is_mouse_over_hud()):
 				_do_push()
 	elif Input.is_action_just_pressed("push"):
 		# Shoving is a combat move. Say so instead of doing nothing (a touch player has no other clue why PUSH is dead).
@@ -1283,6 +1286,8 @@ func restore_stance() -> void:
 	if auto_stance_changed:
 		is_crouching = false
 		auto_stance_changed = false
+		if pack_phase != "":
+			_pack_was_crouching = false      # (the pack was opened while the panel was up: standing from it must not bring the crouch back)
 
 
 func _mouse_world_pos() -> Vector2:
@@ -1328,9 +1333,17 @@ func pack_blocked_reason() -> String:
 		return "not in play"
 	if is_switching_mode or is_attacking or is_pushing:
 		return "busy"
-	if WorldState.loot_open:
+	if WorldState.loot_open and not _loot_shares_screen():
 		return "loot is open"
 	return ""
+
+
+## A found item waiting in the loot panel (nothing mid-search) — the pack may open beside it to make room (owner round 36f).
+func _loot_shares_screen() -> bool:
+	for m in get_tree().get_nodes_in_group("loot_ui"):
+		if is_instance_valid(m) and m.visible and m.has_method("can_share_screen") and m.can_share_screen():
+			return true
+	return false
 
 
 func begin_pack() -> bool:
@@ -1810,6 +1823,12 @@ func _zombie_under_cursor() -> Node:
 			best_dist = d
 			best = zombie
 	return best
+
+
+## Is a push press swallowed because the pointer sits on a HUD widget? Only a MOUSE press can be (RMB on a slot); a touch / pad
+## press arrives as an action with no pointer of its own — on a phone the emulated pointer is the PUSH button itself.
+static func push_blocked_by_hud(device: String, over_hud: bool) -> bool:
+	return device == "kbm" and over_hud
 
 
 func _is_mouse_over_hud() -> bool:
