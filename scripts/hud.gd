@@ -1084,6 +1084,8 @@ func ident_row_y() -> float:
 ## Put the identity block where the device wants it (re-run when the device / the touch setting changes).
 func apply_identity_layout() -> void:
 	ident_top = SettingsManager.touch_ui_wanted()
+	if pack_button != null and is_instance_valid(pack_button) and pack_button.has_method("set_touch_pad"):
+		pack_button.set_touch_pad(ident_top)        # a bigger hit area for a thumb (the art stays put)
 	if portrait == null:
 		return
 	if ident_top:

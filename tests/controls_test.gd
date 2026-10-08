@@ -534,6 +534,12 @@ func _flush() -> void:
 	await get_tree().process_frame
 
 
+## A release goes out only MIN_HOLD after its press (touch_overlay): wait that out (real time) before asserting a button is let go.
+func _after_hold() -> void:
+	await get_tree().create_timer(0.2).timeout
+	await _flush()
+
+
 func _btn_pos(action: String) -> Vector2:
 	for b in HUD.touch_overlay.BUTTONS:
 		if b[0] == action:
@@ -598,7 +604,7 @@ func _test_primary_button(ov) -> void:
 	WorldState.is_scavenge_mode = false
 	ov.refresh()
 	_touch(6, _btn_pos("attack"), false)
-	await _flush()
+	await _after_hold()
 	check(not Input.is_action_pressed("item_use") and not Input.is_action_pressed("attack"), "…and lifting the finger lets go of what was pressed")
 	catcher.queue_free()
 	# a weapon → HIT in combat, DRAW while scavenging
@@ -795,36 +801,37 @@ func _test_touch_overlay() -> void:
 	# every button names a real action
 	var bad: Array = []
 	for b in ov.BUTTONS:
-		if not InputMap.has_action(b[0]):
+		if not InputMap.has_action(b[0]) and b[0] != "stairs":        # (STAIRS walks to the stairwell: no action of its own)
 			bad.append(b[0])
 	check(bad.is_empty(), "every button presses a real action %s" % str(bad))
-	# the stick
+	# the stick (offsets are fractions of its radius — it grew from 82 to 100 px in round 37)
+	var R: float = ov.STICK_R
 	_touch(0, ov.STICK_CENTRE, true)
-	_drag_to(0, ov.STICK_CENTRE + Vector2(80, 0))
+	_drag_to(0, ov.STICK_CENTRE + Vector2(0.98 * R, 0))
 	await _flush()
 	check(Input.is_action_pressed("move_right") and not Input.is_action_pressed("move_left"), "the stick pushed right walks right")
 	check(Input.get_axis("move_left", "move_right") > 0.8, "…at nearly full strength (%.2f)" % Input.get_axis("move_left", "move_right"))
-	_drag_to(0, ov.STICK_CENTRE + Vector2(30, 0))
+	_drag_to(0, ov.STICK_CENTRE + Vector2(0.37 * R, 0))
 	await _flush()
 	var part: float = Input.get_axis("move_left", "move_right")
 	check(part > 0.0 and part < 0.6, "a gentle push walks slower (%.2f)" % part)
-	_drag_to(0, ov.STICK_CENTRE + Vector2(-80, -2))
+	_drag_to(0, ov.STICK_CENTRE + Vector2(-0.98 * R, -0.02 * R))
 	await _flush()
 	check(Input.is_action_pressed("move_left") and not Input.is_action_pressed("move_right"), "…and left")
-	_drag_to(0, ov.STICK_CENTRE + Vector2(0, -80))
+	_drag_to(0, ov.STICK_CENTRE + Vector2(0, -0.98 * R))
 	await _flush()
 	check(Input.is_action_pressed("move_up") and not Input.is_action_pressed("move_left"), "flicking it up is move_up")
 	_touch(0, ov.STICK_CENTRE, false)
-	await _flush()
+	await _after_hold()
 	check(not Input.is_action_pressed("move_left") and not Input.is_action_pressed("move_right") and not Input.is_action_pressed("move_up"), "letting go stops everything")
 	# buttons + multi-touch: hold the stick AND press HIT with the other thumb
 	_touch(0, ov.STICK_CENTRE, true)
-	_drag_to(0, ov.STICK_CENTRE + Vector2(80, 0))
+	_drag_to(0, ov.STICK_CENTRE + Vector2(0.98 * R, 0))
 	_touch(1, _btn_pos("attack"), true)
 	await _flush()
 	check(Input.is_action_pressed("attack") and Input.is_action_pressed("move_right"), "two thumbs: walking and hitting at once")
 	_touch(1, _btn_pos("attack"), false)
-	await _flush()
+	await _after_hold()
 	check(not Input.is_action_pressed("attack") and Input.is_action_pressed("move_right"), "…letting go of HIT leaves the walk")
 	# HOW HARD you push is how fast you go: no RUN button — a push PAST the rim (the dashed ring outside the stick) is run (owner round 36f:
 	# "you can run way too easily on mobile")
@@ -832,28 +839,28 @@ func _test_touch_overlay() -> void:
 			and ov.get_node_or_null("Btn_open_journal") == null,
 		"no RUN, no tiny ITEM, no DUCK and no JOURNAL button on the overlay (duck is the stick, the journal is the portrait)")
 	check(not Input.is_action_pressed("sprint") and not ov.sprinting, "the rim itself is a full-speed WALK, not a run")
-	_drag_to(0, ov.STICK_CENTRE + Vector2(100, 0))
+	_drag_to(0, ov.STICK_CENTRE + Vector2(1.22 * R, 0))
 	await _flush()
 	check(not Input.is_action_pressed("sprint"), "…and so is a hard push just past it (122%% of the stick — the old rule ran from 92%%)")
-	_drag_to(0, ov.STICK_CENTRE + Vector2(115, 0))
+	_drag_to(0, ov.STICK_CENTRE + Vector2(1.4 * R, 0))
 	await _flush()
 	check(Input.is_action_pressed("sprint") and ov.sprinting, "pushed out onto the run ring, the stick holds sprint")
-	_drag_to(0, ov.STICK_CENTRE + Vector2(58, 0))
+	_drag_to(0, ov.STICK_CENTRE + Vector2(0.74 * R, 0))
 	await _flush()
-	check(not Input.is_action_pressed("sprint") and not ov.sprinting and Input.get_axis("move_left", "move_right") > 0.6,
+	check(not Input.is_action_pressed("sprint") and not ov.sprinting and Input.get_axis("move_left", "move_right") > 0.55,
 		"a firm but not full push is a fast WALK (%.2f), no sprint" % Input.get_axis("move_left", "move_right"))
-	_drag_to(0, ov.STICK_CENTRE + Vector2(115, 0))
+	_drag_to(0, ov.STICK_CENTRE + Vector2(1.4 * R, 0))
 	await _flush()
-	_drag_to(0, ov.STICK_CENTRE + Vector2(95, 0))
+	_drag_to(0, ov.STICK_CENTRE + Vector2(1.16 * R, 0))
 	await _flush()
 	check(Input.is_action_pressed("sprint"), "a thumb easing a little off the ring keeps running (hysteresis, no flicker)")
-	_drag_to(0, ov.STICK_CENTRE + Vector2(30, 0))
+	_drag_to(0, ov.STICK_CENTRE + Vector2(0.37 * R, 0))
 	await _flush()
 	check(not Input.is_action_pressed("sprint"), "easing right off ends it — walking costs no stamina")
-	_drag_to(0, ov.STICK_CENTRE + Vector2(0, -115))
+	_drag_to(0, ov.STICK_CENTRE + Vector2(0, -1.4 * R))
 	await _flush()
 	check(not Input.is_action_pressed("sprint"), "a vertical flick never sprints")
-	_drag_to(0, ov.STICK_CENTRE + Vector2(115, 0))
+	_drag_to(0, ov.STICK_CENTRE + Vector2(1.4 * R, 0))
 	await _flush()
 	check(Input.is_action_pressed("sprint"), "(running again, so the hide below has something to let go of)")
 	# hiding lets go of everything
@@ -865,7 +872,7 @@ func _test_touch_overlay() -> void:
 	SettingsManager.set_touch_mode("on")
 	ov.refresh()
 	_touch(3, ov.STICK_CENTRE, true)
-	_drag_to(3, ov.STICK_CENTRE + Vector2(80, 0))
+	_drag_to(3, ov.STICK_CENTRE + Vector2(0.98 * R, 0))
 	await _flush()
 	check(Input.is_action_pressed("move_right"), "(walking again)")
 	get_tree().paused = true
@@ -908,8 +915,9 @@ func _test_touch_overlay() -> void:
 	for want in ["attack", "push", "mode_toggle", "pause"]:
 		check(always.has(want), "the hands have %s" % want)
 	var hidden_force = ov.get_node("Btn_item_context")
-	check(not hidden_force.visible and ov.widget_at(hidden_force.centre) == null and not HUD.pointer_over_widget(hidden_force.centre),
-		"a hidden button can't be tapped and doesn't block world clicks")
+	check(not hidden_force.visible and ov.widget_at(hidden_force.centre) != hidden_force and not hidden_force.get_global_rect().has_point(Vector2(-1, -1)),
+		"a hidden button can't be tapped (and its slot is free for whatever is up)")
+	check(not ov.get_node("Btn_listen").visible and not ov.get_node("Btn_interact").visible, "(no door prompt: no USE / LISTEN either)")
 	HUD.show_world_prompt(self, "2805 - Locked  [%s] Force lock  [%s] Listen" % [SettingsManager.action_text("item_context"), SettingsManager.action_text("listen")], Vector2(600, 300))
 	ov.refresh()
 	check(ov.get_node("Btn_item_context").visible and ov.get_node("Btn_listen").visible, "FORCE + LISTEN appear when a door prompt offers them")
@@ -918,6 +926,7 @@ func _test_touch_overlay() -> void:
 	check(not ov.get_node("Btn_item_context").visible, "…and go again with the prompt")
 	await _test_primary_button(ov)
 	await _test_touch_layout(ov)
+	await _test_touch_round37(ov)
 	# a paused strict teaching beat: ONLY the push button, pulsing, and pressing it carries on
 	var beat_done := [false]
 	TutorialManager.prompt("test beat", "push", func(): beat_done[0] = true, "[PUSH] to shove", true)
@@ -1118,3 +1127,202 @@ func _test_push_in_scavenge_says_why() -> void:
 	Input.parse_input_event(up)
 	await _flush()
 	WorldState.is_scavenge_mode = false
+
+
+## Distance from point `c` to the horizontal segment (x0..x1, y) — a stadium's spine.
+func _seg_dist(c: Vector2, x0: float, x1: float, y: float) -> float:
+	return Vector2(c.x - clampf(c.x, x0, x1), c.y - y).length()
+
+
+## The clear gap between the DRAWN shapes of two widgets (circles / the stance pill's stadium), px; negative = they overlap.
+func _gap(a, b) -> float:
+	var ra: float = a.radius
+	var rb: float = b.radius
+	var sa: float = maxf(a.half_w - a.radius, 0.0)
+	var sb: float = maxf(b.half_w - b.radius, 0.0)
+	if sa == 0.0 and sb == 0.0:
+		return a.centre.distance_to(b.centre) - ra - rb
+	if sa > 0.0 and sb == 0.0:
+		return _seg_dist(b.centre, a.centre.x - sa, a.centre.x + sa, a.centre.y) - ra - rb
+	if sb > 0.0 and sa == 0.0:
+		return _seg_dist(a.centre, b.centre.x - sb, b.centre.x + sb, b.centre.y) - ra - rb
+	return 0.0 if absf(a.centre.y - b.centre.y) < ra + rb and absf(a.centre.x - b.centre.x) < sa + sb + ra + rb else 1.0
+
+
+## Owner round 37: "too spaced apart on the right, some feel too small especially for larger fingers, they don't always feel responsive,
+## and the left stick makes it hard to descend a staircase".
+func _test_touch_round37(ov) -> void:
+	print("[touch round 37: bigger, packed round the big button, responsive, a STAIRS button]")
+	SettingsManager.set_touch_mode("on")
+	WorldState.is_scavenge_mode = false
+	for e in HUD._world_prompts.values():
+		e["panel"].visible = false
+	p.is_cutscene = false
+	p.is_dead = false
+	ov.refresh()
+	var big = ov.get_node("Btn_attack")
+	var push = ov.get_node("Btn_push")
+	var pill = ov.get_node("Btn_mode_toggle")
+	var stairs = ov.get_node("Btn_stairs")
+	# --- size: the canvas is 1152 px across, ~10 cm of phone in the editor's letterboxed window, so 100 px is ~9 mm (the least a thumb hits reliably)
+	var small: Array = []
+	for w in ov.widgets:
+		if w.kind == "button" and w.radius < 38.0:
+			small.append("%s r%.0f" % [w.name, w.radius])
+	check(small.is_empty(), "no touch button is smaller than 76 px across %s" % str(small))
+	check(big.radius >= 66.0 and push.radius >= 48.0 and stairs.radius >= 42.0 and pill.radius >= 36.0 and ov.STICK_R >= 96.0,
+		"the big button, PUSH, the context buttons, the pill and the stick are all grown (big %.0f, push %.0f, context %.0f, pill %.0f tall, stick %.0f)" % [big.radius, push.radius, stairs.radius, pill.radius * 2.0, ov.STICK_R])
+	check(push.get_global_rect().size.x > push.radius * 2.0 + 20.0, "…and each takes a touch a little OUTSIDE its rim (hit slop)")
+	# --- packed: every spot a button can appear in is within a thumb's reach of the big one
+	var far: Array = []
+	for slot in ov.PROMPT_SLOTS:
+		if slot.distance_to(big.centre) > 300.0:
+			far.append(slot)
+	check(far.is_empty() and push.centre.distance_to(big.centre) < 160.0 and pill.centre.distance_to(big.centre) < 180.0,
+		"the PUSH, the pill and every context slot are packed within a thumb of the big button %s" % str(far))
+	# --- nothing overlaps, anywhere a button can be (every slot occupied at once), and it all stays on screen
+	var probe: Array = [big, push, pill, ov.get_node("Btn_pause")]
+	var slot_widgets: Array = []
+	for i in range(ov.PROMPT_SLOTS.size()):
+		var tmp = ov.Stick.new()
+		tmp.setup("x", "", ov.PROMPT_SLOTS[i], 44.0)
+		slot_widgets.append(tmp)
+		probe.append(tmp)
+	var tight: Array = []
+	for i in range(probe.size()):
+		for j in range(i + 1, probe.size()):
+			var g: float = _gap(probe[i], probe[j])
+			if g < 8.0:
+				tight.append("%d/%d %.0f" % [i, j, g])
+	check(tight.is_empty(), "every button and every context slot clears the others by at least 8 px %s" % str(tight))
+	var off: Array = []
+	for w in probe:
+		var hw: float = maxf(w.half_w, w.radius)
+		if w.centre.x - hw < 8.0 or w.centre.x + hw > 1144.0 or w.centre.y - w.radius < 8.0 or w.centre.y + w.radius > 640.0:
+			off.append(w.centre)
+	check(off.is_empty(), "…all of them on screen %s" % str(off))
+	for t in slot_widgets:
+		t.free()
+	# --- the backpack button's hit area grows for a thumb too, without touching the big button
+	if HUD.pack_button != null:
+		HUD.apply_identity_layout()
+		var pr: Rect2 = HUD.pack_button.get_global_rect()
+		check(HUD.pack_button.pad.x > 0.0 and pr.size.x >= 90.0 and pr.size.y >= 110.0, "touch: the backpack button's hit area is bigger (%s)" % str(pr.size))
+		var near := Vector2(clampf(big.centre.x, pr.position.x, pr.end.x), clampf(big.centre.y, pr.position.y, pr.end.y))
+		check(near.distance_to(big.centre) > big.radius + 10.0, "…and clear of the big button (gap %.0f)" % (near.distance_to(big.centre) - big.radius))
+	# --- landing near a button counts: the NEAREST one wins, a near-miss is not a world tap
+	var miss: Vector2 = push.centre + Vector2(-(push.radius + 20.0), 0.0)
+	check(ov.widget_at(miss) == push and push.get_global_rect().has_point(miss), "a touch 20 px outside PUSH's rim still presses PUSH (and the world doesn't get its click)")
+	check(ov.widget_at(push.centre + Vector2(-(push.radius + 80.0), 0.0)) == null, "…80 px outside it is the world's")
+	var mid: Vector2 = big.centre.lerp(push.centre, 0.62)
+	check(ov.widget_at(mid) == push and ov.widget_at(big.centre.lerp(push.centre, 0.38)) == big, "between HIT and PUSH, the nearer one wins")
+	var sk = ov.get_node("Stick")
+	check(ov.widget_at(ov.STICK_CENTRE + Vector2(ov.STICK_R + 22.0, 0.0)) == sk, "a thumb landing just off the stick's base still holds it")
+	# --- a quick tap is never lost: down + up in ONE frame still reaches a polling reader
+	var cnt := Node.new()
+	cnt.set_script(load("res://tests/controls_counter.gd"))
+	add_child(cnt)
+	cnt.action = "attack"
+	_touch(20, big.centre, true)
+	_touch(20, big.centre, false)                 # (no frame between: a slow phone batches both)
+	await get_tree().process_frame
+	check(Input.is_action_pressed("attack") and cnt.presses == 1, "tap and lift inside one frame: the press is still down when the game polls (presses %d)" % cnt.presses)
+	await _after_hold()
+	check(not Input.is_action_pressed("attack") and cnt.releases >= 1, "…and is let go once the minimum hold is up")
+	# a second tap inside the hold window is a new press, not swallowed
+	cnt.presses = 0
+	_touch(20, big.centre, true)
+	_touch(20, big.centre, false)
+	await get_tree().process_frame
+	_touch(21, big.centre, true)
+	_touch(21, big.centre, false)
+	await _after_hold()
+	check(cnt.presses == 2 and not Input.is_action_pressed("attack"), "two quick taps are two presses (%d)" % cnt.presses)
+	cnt.queue_free()
+	# --- the right thumb slides between HIT and PUSH, but never onto the stance pill
+	var pc := Node.new()
+	pc.set_script(load("res://tests/controls_counter.gd"))
+	add_child(pc)
+	pc.action = "mode_toggle"
+	_touch(22, big.centre, true)
+	await _flush()
+	check(Input.is_action_pressed("attack") and not Input.is_action_pressed("push"), "(a thumb on HIT)")
+	_drag_to(22, push.centre)
+	await _after_hold()
+	check(Input.is_action_pressed("push") and not Input.is_action_pressed("attack"), "sliding it onto PUSH lets go of HIT and presses PUSH")
+	_drag_to(22, pill.centre)
+	await _after_hold()
+	check(pc.presses == 0 and Input.is_action_pressed("push"), "…and sliding on over the stance pill does NOT switch stance (a drifting thumb must never)")
+	_touch(22, pill.centre, false)
+	await _after_hold()
+	check(not Input.is_action_pressed("push") and pc.presses == 0, "(lifted: PUSH let go, still no stance switch)")
+	pc.queue_free()
+	# --- STAIRS: a button that walks to the down stairwell and takes it
+	var st = ov._live_down_stair()
+	check(st != null and stairs.visible and stairs.label == "STAIRS", "a corridor with a down stairwell shows the STAIRS button (%s)" % str(st))
+	if st == null:
+		return
+	check(stairs.centre.is_equal_approx(ov.PROMPT_SLOTS[0]), "…in the first slot beside the stance pill, in the thumb's arc (%s)" % str(stairs.centre))
+	p.global_position.x = 640.0
+	_touch(23, stairs.centre, true)
+	await _flush()
+	_touch(23, stairs.centre, false)
+	check(st.touch_auto and p.has_move_target and absf(p.move_target_x - st.auto_target_x()) < 1.0,
+		"a tap walks the player to the stairwell (target x %.0f)" % p.move_target_x)
+	ov.refresh()
+	check(stairs.label == "STOP" and stairs.pulse, "…and the button says STOP while it walks")
+	_touch(24, stairs.centre, true)
+	await _flush()
+	_touch(24, stairs.centre, false)
+	check(not st.touch_auto and not p.has_move_target, "a second tap stops the walk")
+	st.request_auto_descend()
+	p.has_move_target = false
+	st._auto_age = 1.0
+	st._tick_auto(0.1)
+	check(not st.touch_auto, "the walk ending anywhere else (the thumb took over) cancels it")
+	st.request_auto_descend()
+	st._auto_age = st.AUTO_MAX_TIME + 1.0
+	st._tick_auto(0.1)
+	check(not st.touch_auto, "…and so does taking too long")
+	st.request_auto_descend()
+	var uses0: int = st.touch_uses
+	p.has_move_target = false
+	st.player_nearby = true
+	p.escaping = true                              # (so the stairs' own use refuses — this test must not change floor)
+	st._tick_auto(0.1)
+	check(not st.touch_auto and st.touch_uses == uses0 + 1, "arriving on the steps takes them, through the stairwell's own use (%d)" % st.touch_uses)
+	p.escaping = false
+	st.player_nearby = false
+	p._clear_move_target()
+	p.is_cutscene = true
+	ov.refresh()
+	check(not stairs.visible, "mid-cutscene there is no STAIRS button")
+	p.is_cutscene = false
+	# slots: STAIRS first, then the door verbs, nearest the thumb first and never on top of each other
+	HUD.show_world_prompt(self, "2805 - Locked  [%s] Force lock  [%s] Listen" % [SettingsManager.action_text("item_context"), SettingsManager.action_text("listen")], Vector2(600, 300))
+	ov.refresh()
+	var force = ov.get_node("Btn_item_context")
+	var listen = ov.get_node("Btn_listen")
+	# (a real door's prompt may also be in reach in the random building, so the expectation is built from whatever is up)
+	var order_ok := true
+	var idx := 0
+	var names: Array = []
+	for a in ov.PROMPT_ORDER:
+		var pw = ov.get_node("Btn_" + String(a))
+		if pw.visible:
+			names.append(pw.name)
+			order_ok = order_ok and pw.centre.is_equal_approx(ov.PROMPT_SLOTS[mini(idx, ov.PROMPT_SLOTS.size() - 1)])
+			idx += 1
+	check(stairs.visible and force.visible and listen.visible and order_ok and ov.PROMPT_ORDER[0] == "stairs" and names[0] == "Btn_stairs",
+		"STAIRS first, then the door verbs, each in the next slot of the thumb's arc %s" % str(names))
+	var worst := 99.0
+	var vis: Array = []
+	for w in ov.widgets:
+		if w.visible and w.kind == "button":
+			vis.append(w)
+	for i in range(vis.size()):
+		for j in range(i + 1, vis.size()):
+			worst = minf(worst, _gap(vis[i], vis[j]))
+	check(worst >= 8.0, "…and with all of them up nothing overlaps (tightest gap %.0f px)" % worst)
+	HUD.hide_world_prompt(self)
+	ov.refresh()

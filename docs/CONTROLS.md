@@ -57,7 +57,7 @@ must stay a walk). Players who preferred the old way: Settings → Controls → 
 `scripts/touch_overlay.gd` (a child of the HUD) draws a fixed thumb-stick bottom-left and a deliberately QUIET right hand
 (owner round 36b, first phone playtest: "the button set up is really unintuitive on the right hand side… too much going on"; round 36d: no
 duplicated controls; **round 36f, second phone playtest: PUSH was dead, scavenging showed only PUSH + DUCK, and the layout needed a colour-coded
-stance button — rebuilt below**). Right hand: a **stance pill** (green SCAVENGE / red COMBAT, "TAP TO SWITCH") above ONE big **contextual** button, with a
+stance button — rebuilt below**). Right hand (sizes and positions: see "Round 37" below): a **stance pill** (green SCAVENGE / red COMBAT, "TAP TO SWITCH") above ONE big **contextual** button, with a
 smaller **PUSH** to its LEFT in combat — close enough that the right thumb slides between them, clear of it so they never overlap. **PAUSE** top-right.
 Context buttons (**USE** in combat, **LISTEN**, **FORCE**) stack up the right edge only while a world prompt offers them. DUCK is gone (it is the stick),
 and so is the journal button (the framed avatar top-left IS the journal button). That is all that is ever on screen in plain play.
@@ -95,6 +95,31 @@ Taps anywhere else are ordinary clicks (`emulate_mouse_from_touch`): tap the flo
 Shown when a touchscreen is in use (`SettingsManager.touch_ui_wanted`: last device = touch, or Settings → "Always on"), hidden on keyboard / pad;
 hiding or pausing (outside a strict beat) **lets go of everything held**. `project.godot`: landscape (`window/handheld/orientation=0`), `quit_on_go_back=false`.
 **Phone-tested twice by the owner** (Godot 4.7.1 Android editor, Run in the editor) — that is how the cluttered layout, the beat lock and the dead PUSH were found; rounds 36d / 36f's changes (above) are tested with synthetic touches only (`controls_test._test_touch_layout`).
+
+### Round 37 — bigger, packed, responsive, and a STAIRS button (owner: "too spaced apart on the right… some feel too small especially for larger fingers… don't always feel responsive… the left stick makes it hard to descend a staircase")
+- **Size.** The canvas is 1152 px across and the Godot Android editor shows it letterboxed to ~10 cm of phone, so **100 px is ~9 mm** — the least a thumb hits reliably.
+  Everything was 52-68 px across (the context buttons 4-5 mm). Now: big button r70, PUSH r50, context buttons r44, stance pill 76 px tall × 168 wide, PAUSE r38,
+  stick r100 (sprint ring 1.3 radii, same rule); the HUD backpack button's hit area grows under touch (`hud_pack_button.set_touch_pad`, the art stays put).
+  `controls_test._test_touch_round37` fails on any button under 76 px.
+- **Packed round the big button** (`BUTTONS`, `PROMPT_SLOTS`). One thumb arc: PUSH left of it, the stance pill above it, and the context buttons — **STAIRS, USE, FORCE,
+  LISTEN** (`PROMPT_ORDER`) — take the next free slot (`_assign_prompt_slots`): beside the pill, above it, above that, then left of PUSH; none farther than ~290 px
+  from the big button (they used to be a column up the right edge, 200-400 px away). Gaps ≥ 8 px between every pair, every slot occupied at once, all on screen (tested).
+- **Hit slop + nearest-wins.** Every button takes a touch up to `HIT_SLOP` 26 px outside its rim (the stick 30), the nearest one wins where two overlap, and the widget's
+  Control covers the slop too — so a near-miss never becomes a world click that walks the player to where the thumb landed (the likeliest cause of "unresponsive").
+- **A quick tap is never lost** (`MIN_HOLD` 0.11 s). On a slow phone a tap's DOWN and UP arrive in one frame, and an action already released when the game POLLS
+  (`Input.is_action_just_pressed` — interact, doors, stairs) is never seen. Every pressed action is held at least `MIN_HOLD` before its release goes out (the analog
+  walk / sprint axes excepted); a second tap inside the window lets go first, so it is a fresh press. Tested with down + up pushed in one call.
+- **Slide between HIT and PUSH** (`SLIDE_CONTEXTS`): a thumb dragged from one onto the other lets go of the first and presses the second (the doc always said "the thumb slides
+  between them"; it never did). It never slides onto the stance pill or PAUSE — a drifting thumb must not switch stance in a fight.
+- **STAIRS** (`Btn_stairs`, context `stairs`). The stairs are taken with the stick's UP flick (`move_up`, the W key) — and on EVEN floors the down staircase is bottom-LEFT,
+  right under the stick and the thumb on it, with the character hidden behind both; a corridor is also ~3 screens wide. The button is up in any corridor with a live down
+  stairwell (not in the tutorial before the stairs open, mid-cutscene, dead, stepped up on a plane): a tap **walks to the stairwell and takes it** exactly as W would
+  (`stairwell.request_auto_descend` → click-to-move to the stairs' centre → `_use_stairs`, so a barricade, the tutorial's one-way warning and an enemy on the steps all still
+  apply); the button says STOP and pulses while it walks and a second tap, the thumb taking over, the walk ending elsewhere or 14 s cancel it. The stick's up flick still
+  works. (`touch_uses` counts the arrivals for tests.)
+- **The stick base is faint while untouched** (and its run ring / chevrons), strong under a thumb — so it doesn't hide the left staircase.
+- Feel numbers (`STICK_DEAD` 0.18, `STICK_FLICK` 0.55 / off 0.38) were nudged for the larger base; the duck / run rules are unchanged.
+- Still synthetic-touch only (`controls_test`) plus xvfb renders of the layout; no real phone has used this layout yet.
 
 ## Prompts name the right button
 

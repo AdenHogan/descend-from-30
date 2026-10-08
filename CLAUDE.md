@@ -2389,4 +2389,13 @@ means no rendering — UI layout and art still need an in-editor look.
   `room._add_nest_dead` and sorted like the rest. 360 regenerated overlays + 209 new layers (build_all is deterministic; with the rise off, overlay + layer recomposite to the
   old overlay except ≤122 px of weapon overdraw in 21 corpse overlays). Locked by `corpse_depth_test` (66th suite; mutation-checked). Not done: the resident / player-corpse
   bodies and risers aren't sorted (they weren't in the screenshot); the LOOK of the 6 px rise needs the owner's eye — one constant each (`BODY_RISE` + `RISE`, regenerate).
+- **TOUCH ROUND 37 (owner: "I still don't like the positions of the touch controls around [the context button]. Too spaced apart on the right, some feel too small
+  especially for larger fingers. They don't always feel responsive to touch. Also the left direction stick, it's hard to descend a staircase because of it";
+  docs/CONTROLS.md "Round 37"):** everything bigger (big r70, PUSH r50, context r44, pill 76 px tall, stick r100, pack hit area grown — set for the editor's letterboxed window, 100 px ≈ 9 mm)
+  and packed in one arc round the big button (`PROMPT_SLOTS`: STAIRS / USE / FORCE / LISTEN take the next free slot, none > ~290 px from it); hit slop 26 px, nearest wins, the Control
+  covers the slop (a near-miss no longer walks the player); **a tap can't be lost** — every pressed action is held ≥ `MIN_HOLD` 0.11 s (a slow phone batches DOWN+UP into one frame
+  and polled presses — interact, stairs — were never seen); a thumb **slides** HIT ↔ PUSH (never onto the stance pill); and a **STAIRS button** walks to this floor's down stairwell and
+  takes it (`stairwell.request_auto_descend` / `_tick_auto` → the stairs' own `_use_stairs`, every gate intact) — on even floors that staircase is bottom-LEFT under the stick. Locked
+  by `controls_test._test_touch_round37` (sizes, slots, gaps, slop, one-frame tap, double tap, slide, STAIRS walk / stop / cancel / arrive). Synthetic touches + xvfb renders only —
+  the owner's thumb is the real test; the numbers (sizes, `MIN_HOLD`, slot order) are first guesses.
 - Not started: quests.

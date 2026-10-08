@@ -17,29 +17,40 @@ const Stick := preload("res://scripts/touch_stick.gd")
 #   weapon is HIT / SHOOT, a first aid kit HEAL, an extinguisher SPRAY, a can THROW …) and presses the matching action; SCAVENGE: USE
 #   (interact — open / search / take);
 #   "combat"  — only in the combat stance (the small PUSH button, left of the big one so the right thumb slides between them);
-#   "prompt"  — only while a world prompt offers it (Use a door in combat, Force a door, Listen at a stairwell).
+#   "prompt"  — only while a world prompt offers it (Use a door in combat, Force a door, Listen at a stairwell);
+#   "stairs"  — the STAIRS button: walks to this floor's DOWN stairwell and takes it (stairwell.request_auto_descend).
 # Owner round 36f, on the second phone playtest: a COLOUR-CODED stance button (green SCAVENGE / red COMBAT) above the big button, PUSH
 # beside it, DUCK moved INTO the stick (push down = crouch, back up = stand — letting go never stands you), and the journal / avatar
 # live top-left (the portrait IS the journal button; PAUSE is top-right).
+# Owner round 37 ("too spaced apart on the right, some feel too small especially for larger fingers, don't always feel responsive; the
+# stick makes it hard to descend a staircase"): everything is BIGGER and PACKED round the big button in one thumb arc — the sizes are
+# set for the worst case, the Godot Android editor's letterboxed game window (1 canvas px is ~0.09 mm, so a 100 px target is ~9 mm, the
+# smallest a thumb can hit reliably); the context buttons (STAIRS / USE / FORCE / LISTEN) take the next free slot of PROMPT_SLOTS as
+# they appear instead of a column up the screen edge; and a STAIRS button walks to the down stairwell for you (on even floors that
+# staircase is bottom-LEFT, right under the stick and the thumb that holds it).
 # Earlier (round 36d): no RUN button (the stick's far ring is run — see STICK_SPRINT_ON) and no tiny ITEM button (the big button IS it).
 # The bag is the HUD's own backpack button (bottom-right), not a copy here; tapping the in-hand box uses what is in hand.
 const BUTTONS := [
-	["attack", "HIT", Vector2(1030, 478), 56.0, false, "primary"],
-	["push", "PUSH", Vector2(926, 522), 34.0, false, "combat"],
-	["mode_toggle", "COMBAT", Vector2(1046, 384), 25.0, false, "always"],
-	["interact", "USE", Vector2(1112, 300), 26.0, false, "prompt"],
-	["listen", "LISTEN", Vector2(1112, 240), 26.0, false, "prompt"],
-	["item_context", "FORCE", Vector2(1112, 180), 26.0, false, "prompt"],
-	["pause", "PAUSE", Vector2(1112, 116), 22.0, false, "always"],
+	["attack", "HIT", Vector2(985, 440), 70.0, false, "primary"],
+	["push", "PUSH", Vector2(845, 468), 50.0, false, "combat"],
+	["mode_toggle", "COMBAT", Vector2(985, 316), 38.0, false, "always"],
+	["stairs", "STAIRS", Vector2(822, 340), 44.0, false, "stairs"],
+	["interact", "USE", Vector2(822, 340), 44.0, false, "prompt"],
+	["item_context", "FORCE", Vector2(822, 340), 44.0, false, "prompt"],
+	["listen", "LISTEN", Vector2(822, 340), 44.0, false, "prompt"],
+	["pause", "PAUSE", Vector2(1104, 112), 38.0, false, "always"],
 ]
-const MODE_PILL_HALF_W := 62.0
+const MODE_PILL_HALF_W := 84.0
+## Where the context buttons sit as they appear, nearest the thumb first (the first visible one takes slot 0, and so on).
+const PROMPT_SLOTS := [Vector2(822, 340), Vector2(985, 212), Vector2(822, 232), Vector2(700, 410)]
+const PROMPT_ORDER := ["stairs", "interact", "item_context", "listen"]
 const COL_SCAV := Color(0.55, 0.9, 0.5)
 const COL_COMBAT := Color(0.95, 0.4, 0.34)
-const STICK_CENTRE := Vector2(140, 500)
-const STICK_R := 82.0
-const STICK_DEAD := 0.22                # across the stick: below this, no walk
-const STICK_FLICK := 0.6                # up / down past this = move_up / move_down (and crouch / stand)
-const STICK_FLICK_OFF := 0.4            # back inside this = the zone is left (so a thumb on the line doesn't chatter)
+const STICK_CENTRE := Vector2(160, 484)
+const STICK_R := 100.0
+const STICK_DEAD := 0.18                # across the stick: below this, no walk
+const STICK_FLICK := 0.55               # up / down past this = move_up / move_down (and crouch / stand)
+const STICK_FLICK_OFF := 0.38           # back inside this = the zone is left (so a thumb on the line doesn't chatter)
 # HOW HARD you push is how fast you go (owner round 36d): from the dead zone to the rim the walk eases from a creep to a full walk (no
 # stamina cost); SPRINT is a deliberate push PAST the rim, onto the dashed ring drawn outside the stick (owner round 36f: "you can run
 # way too easily on mobile") — 1.3 radii = ~107 px from the centre. The game's own rules still apply (combat stance, not ducking,
@@ -47,6 +58,13 @@ const STICK_FLICK_OFF := 0.4            # back inside this = the zone is left (s
 const STICK_SPRINT_ON := 1.3
 const STICK_SPRINT_OFF := 1.12
 const TAP_TIME := 0.12                  # a tapped action (crouch / stand) is held this long so a physics tick always sees the press
+# RESPONSIVENESS (owner round 37: "they don't always feel responsive to touch"): a quick tap can put the touch DOWN and UP into one frame
+# on a slow phone, and a press that is already let go when the game POLLS (`Input.is_action_just_pressed` in a _process / physics tick —
+# doors, stairs, interact) is never seen. Every pressed action is therefore held at least MIN_HOLD before its release goes out (the
+# analog walk / run axes excepted), and a second tap inside that window re-presses cleanly.
+const MIN_HOLD := 0.11
+const NO_MIN_HOLD := ["move_left", "move_right", "sprint"]
+const SLIDE_CONTEXTS := ["primary", "combat"]    # a thumb sliding between HIT and PUSH switches; it never slides onto the stance pill / pause
 
 var widgets: Array = []                 # the TouchWidget controls (buttons + the stick area)
 var _touch_widget: Dictionary = {}      # finger index -> widget
@@ -60,6 +78,8 @@ var _zone_up: bool = false
 var _taps: Dictionary = {}              # action -> seconds left to hold a tapped press
 var sprinting: bool = false             # the stick is out at the rim → the sprint action is held (the thumb draws brighter)
 var _down_action: Dictionary = {}       # widget -> the action its press sent (the big button's action changes with the hand)
+var _pressed_ms: Dictionary = {}        # action -> when its press went out (msec)
+var _release_in: Dictionary = {}        # action -> seconds until a release that was held back by MIN_HOLD goes out
 
 
 func _ready() -> void:
@@ -108,8 +128,9 @@ func refresh() -> void:
 	var stance: Color = COL_SCAV if scav else COL_COMBAT
 	var pl = get_tree().get_first_node_in_group("player")
 	crouch_hint = pl != null and is_instance_valid(pl) and pl.get("is_crouching") == true
+	var stair: Node = _live_down_stair()
 	for w in widgets:
-		var show: bool = _widget_wanted(w, beat, ctx)
+		var show: bool = _widget_wanted(w, beat, ctx, stair)
 		if w.visible and not show and _touch_widget.values().has(w):
 			_release_widget(w)
 		w.visible = show
@@ -122,7 +143,14 @@ func refresh() -> void:
 			w.label = "SCAVENGE" if scav else "COMBAT"
 			w.sub_label = "TAP TO SWITCH"
 			w.tint = stance
-		w.pulse = beat != "" and _action_for(w, ctx) == beat
+		elif w.action == "stairs":
+			var going: bool = stair != null and bool(stair.get("touch_auto"))
+			w.label = "STOP" if going else "STAIRS"
+			w.sub_label = "WALKING" if going else ""
+			w.tint = Color(0.95, 0.75, 0.3)
+			w.pulse = going
+		w.pulse = w.pulse if w.action == "stairs" else (beat != "" and _action_for(w, ctx) == beat)
+	_assign_prompt_slots()
 
 
 ## What the big button does. Scavenging it is USE (the search / open / take verb — nodes and doors can also be tapped in the world);
@@ -147,12 +175,14 @@ func _action_for(w: Control, ctx: Dictionary = {}) -> String:
 	return w.action
 
 
-func _widget_wanted(w: Control, beat: String, ctx: Dictionary) -> bool:
+func _widget_wanted(w: Control, beat: String, ctx: Dictionary, stair: Node = null) -> bool:
 	if beat != "":
 		return w.kind == "button" and _action_for(w, ctx) == beat
 	match w.context:
 		"primary":
 			return true
+		"stairs":
+			return stair != null
 		"combat":
 			return not WorldState.is_scavenge_mode
 		"prompt":
@@ -161,6 +191,51 @@ func _widget_wanted(w: Control, beat: String, ctx: Dictionary) -> bool:
 				return false
 			return HUD.world_prompt_mentions("[%s]" % SettingsManager.action_text(w.action))
 	return true
+
+
+## The next free slot of PROMPT_SLOTS for each context button that is up, in PROMPT_ORDER (stairs first, then use / force / listen).
+func _assign_prompt_slots() -> void:
+	var slot := 0
+	for a in PROMPT_ORDER:
+		var w: Control = get_node_or_null("Btn_" + String(a))
+		if w != null and w.visible:
+			var at: Vector2 = PROMPT_SLOTS[mini(slot, PROMPT_SLOTS.size() - 1)]
+			if not w.centre.is_equal_approx(at):
+				w.set_centre(at)
+			slot += 1
+
+
+## This floor's live DOWN stairwell, or null: the STAIRS button is up only while there is one to go to and the player could use it
+## (not mid-cutscene, dead, escaping, lashing a rope, stepped up on a back plane / the balcony, or in the tutorial before the stairs open).
+func _live_down_stair() -> Node:
+	var pl = get_tree().get_first_node_in_group("player")
+	if pl == null or not is_instance_valid(pl) or pl.is_dead or pl.is_cutscene or pl.escaping or pl.is_lashing:
+		return null
+	if pl.get("back_spot") != null or pl.get("on_balcony_plane") == true or TutorialManager.stairs_locked():
+		return null
+	var root: Node = WorldState.owning_scene_root(pl)
+	var best: Node = null
+	var best_d := INF
+	for st in get_tree().get_nodes_in_group("stairwell"):
+		if not is_instance_valid(st) or st.get("direction") != "down" or not st.can_process() or WorldState.owning_scene_root(st) != root:
+			continue
+		var d: float = absf(st.global_position.x - pl.global_position.x)
+		if d < best_d:
+			best = st
+			best_d = d
+	return best
+
+
+## A tap on STAIRS: walk to the down stairwell and take it; a second tap while it is walking stops. (The stairs' own rules all still apply —
+## a barricade, the tutorial's gate and the one-way warning, something on the steps — because it ends in the stairwell's own `_use_stairs`.)
+func _stairs_pressed() -> void:
+	var st: Node = _live_down_stair()
+	if st == null:
+		return
+	if bool(st.get("touch_auto")):
+		st.cancel_auto_descend()
+	else:
+		st.request_auto_descend()
 
 
 func _release_widget(w: Control) -> void:
@@ -176,17 +251,29 @@ func _process(delta: float) -> void:
 		_taps[a] = float(_taps[a]) - delta
 		if float(_taps[a]) <= 0.0:
 			_taps.erase(a)
-			_send(String(a), false)
+			_emit(String(a), false, 0.0)
+	for a2 in _release_in.keys():                    # a release MIN_HOLD held back
+		_release_in[a2] = float(_release_in[a2]) - delta
+		if float(_release_in[a2]) <= 0.0:
+			_release_in.erase(a2)
+			_emit(String(a2), false, 0.0)
 	for w in widgets:
 		if w.visible:
 			w.queue_redraw()
 
 
+## The widget a touch at `pos` means: of every visible one whose hit area (the shape + its slop) holds the point, the NEAREST to it — so
+## a thumb landing between HIT and PUSH goes to whichever it is closer to rather than to the first one in the list or to the world.
 func widget_at(pos: Vector2) -> Control:
+	var best: Control = null
+	var best_d := INF
 	for w in widgets:
 		if w.visible and w.contains(pos):
-			return w
-	return null
+			var d: float = w.edge_distance(pos)
+			if d < best_d:
+				best = w
+				best_d = d
+	return best
 
 
 func _input(event: InputEvent) -> void:
@@ -206,6 +293,14 @@ func _input(event: InputEvent) -> void:
 		var w3: Control = _touch_widget[event.index]
 		if w3.kind == "stick":
 			_stick_to(event.position)
+		elif SLIDE_CONTEXTS.has(w3.context):
+			# the right thumb slides between HIT and PUSH: moving over the other one lets go of this and presses that
+			var nw := widget_at(event.position)
+			if nw != null and nw != w3 and nw.kind == "button" and SLIDE_CONTEXTS.has(nw.context) and not _touch_widget.values().has(nw) \
+					and nw.edge_distance(event.position) < w3.edge_distance(event.position):
+				_touch_widget[event.index] = nw
+				_up(w3)
+				_down(nw, event.position)
 
 
 func _down(w: Control, pos: Vector2) -> void:
@@ -216,6 +311,9 @@ func _down(w: Control, pos: Vector2) -> void:
 	else:
 		var act: String = _action_for(w)
 		_down_action[w] = act
+		if act == "stairs":
+			_stairs_pressed()
+			return
 		_send(act, true)
 
 
@@ -227,8 +325,10 @@ func _up(w: Control) -> void:
 		stick_raw = Vector2.ZERO
 		_apply_stick()
 	else:
-		_send(String(_down_action.get(w, w.action)), false)
+		var was: String = String(_down_action.get(w, w.action))
 		_down_action.erase(w)
+		if was != "stairs":
+			_send(was, false)
 
 
 func _stick_to(pos: Vector2) -> void:
@@ -291,8 +391,30 @@ func _tap(action: String) -> void:
 	_taps[action] = TAP_TIME
 
 
-## Press / release an action as a real input event (so `_input` handlers AND polling see it). Only changes are sent.
+## Press / release an action as a real input event (so `_input` handlers AND polling see it). Only changes are sent. A release that comes
+## sooner than MIN_HOLD after its press is held back until MIN_HOLD is up (see above); a press that arrives while such a release is waiting
+## lets go first, so the new press is a fresh edge.
 func _send(action: String, pressed: bool, strength: float = 1.0) -> void:
+	if not InputMap.has_action(action):
+		return
+	if pressed:
+		if _release_in.has(action):
+			_release_in.erase(action)
+			_emit(action, false, 0.0)
+		_emit(action, true, strength)
+		return
+	if not _held.has(action) or _release_in.has(action):
+		return
+	if not NO_MIN_HOLD.has(action):
+		var age: float = float(Time.get_ticks_msec() - int(_pressed_ms.get(action, 0))) / 1000.0
+		if age < MIN_HOLD:
+			_release_in[action] = MIN_HOLD - age
+			return
+	_emit(action, false, 0.0)
+
+
+## The raw send: only an actual change goes out as an event.
+func _emit(action: String, pressed: bool, strength: float) -> void:
 	if not InputMap.has_action(action):
 		return
 	var was: float = float(_held.get(action, 0.0))
@@ -300,6 +422,8 @@ func _send(action: String, pressed: bool, strength: float = 1.0) -> void:
 	if is_equal_approx(was, now):
 		return
 	if pressed:
+		if was <= 0.0:
+			_pressed_ms[action] = Time.get_ticks_msec()
 		_held[action] = now
 	else:
 		_held.erase(action)
@@ -320,6 +444,8 @@ func release_all() -> void:
 		Input.parse_input_event(ev)
 	_held.clear()
 	_taps.clear()
+	_release_in.clear()
+	_pressed_ms.clear()
 	_touch_widget.clear()
 	stick_vec = Vector2.ZERO
 	stick_raw = Vector2.ZERO

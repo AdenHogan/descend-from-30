@@ -19,6 +19,7 @@ var is_prying: bool = false
 var pry_timer: float = 0.0
 
 func _ready() -> void:
+	add_to_group("stairwell")          # the touch STAIRS button finds this floor's down stairwell by group (round 37)
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
 	input_event.connect(_on_click)
@@ -120,10 +121,63 @@ func _on_body_exited(body: Node2D) -> void:
 		else:
 			HUD.hide_world_prompt(self)
 
+# --- The touch STAIRS button (owner round 37: "the left direction stick… it's hard to descend a staircase"; on even floors the down
+# staircase is bottom-LEFT, under the stick and the thumb on it, and a corridor is 3 screens wide) — walk to the stairwell, then take it
+# exactly as W would (so every gate in _use_stairs still applies). Cancelled by a second tap, by the player taking over (the stick / a
+# click clears their move target), by the walk ending anywhere else, or after AUTO_MAX_TIME.
+const AUTO_MAX_TIME := 14.0
+var touch_auto: bool = false
+var touch_uses: int = 0            # how many times a walk-here-and-descend ended in the stairs' own use (tests count it)
+var _auto_age: float = 0.0
+
+
+## The x the player walks to: the stairs' own centre (where they stand to use them).
+func auto_target_x() -> float:
+	var cs := get_node_or_null("CollisionShape2D") as CollisionShape2D
+	return cs.global_position.x if cs != null else global_position.x
+
+
+func request_auto_descend() -> void:
+	var pl = get_tree().get_first_node_in_group("player")
+	if pl == null or not is_instance_valid(pl) or pl.is_dead or pl.is_cutscene:
+		return
+	if player_nearby:
+		_use_stairs()               # already on the steps: this is just W
+		return
+	touch_auto = true
+	_auto_age = 0.0
+	pl.set_move_target(auto_target_x())
+
+
+func cancel_auto_descend() -> void:
+	if not touch_auto:
+		return
+	touch_auto = false
+	var pl = get_tree().get_first_node_in_group("player")
+	if pl != null and is_instance_valid(pl) and pl.has_method("_clear_move_target"):
+		pl._clear_move_target()
+
+
+func _tick_auto(delta: float) -> void:
+	var pl = get_tree().get_first_node_in_group("player")
+	_auto_age += delta
+	if pl == null or not is_instance_valid(pl) or pl.is_dead or pl.is_cutscene or _auto_age > AUTO_MAX_TIME:
+		touch_auto = false
+		return
+	if player_nearby and not pl.has_move_target:
+		touch_auto = false          # arrived: take the stairs
+		touch_uses += 1
+		_use_stairs()
+	elif not player_nearby and not pl.has_move_target and _auto_age > 0.3:
+		touch_auto = false          # the walk ended somewhere else (the thumb took over, or something stopped them)
+
+
 func _process(_delta: float) -> void:
 	if is_prying:
 		_tick_pry(_delta)
 		return
+	if touch_auto:
+		_tick_auto(_delta)
 	_update_hint(_delta)
 	# W at the BANISTER vaults it (round 31e). Standing between the two zones, the nearer one wins, so one press never
 	# takes the stairs AND jumps.
