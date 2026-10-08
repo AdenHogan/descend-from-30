@@ -592,6 +592,23 @@ nest overlays, the blueprints (`gen_module_blueprint.py` composites them) and th
 seeded per flat, so a front piece over the LEFT window box is over a window in some flats and over bare wall in others — design it to read either way. Dining E is the first user
 (`tools/art/dining_room_variants.py`: the gift table + torn box + balloons; the party table, chairs, cake, hats and cups use `tools/art/party3d.py`'s true-perspective helpers).
 
+## THE LYING DEAD ARE THEIR OWN LAYER (owner round 37)
+
+"There's a clipping situation with this corpse position. If it's a little higher then we can have player walk behind the corpse, as it
+would cover the player's lower legs, which gives the scene a little depth." The player is drawn over all baked art, so a body baked into
+a breach / corpse overlay was always UNDER a player stepped up behind it (the legs painted straight over the body). `tools/art/nest.py` now
+draws every LYING body — a person (`_body`), and the zombie they killed (`_zombie_dead`: body + head + shadow) — into its own layer,
+saved as `<name>_nest_<role>_dead.png` for each overlay that has one (209 of the 300). The overlay keeps everything else (the pool, the
+stain, the trail, dropped things, the hand's weapon). Each body is drawn **up to `BODY_RISE` (6) px further back** than the floor row it
+was placed on, but only as far as the rows it moves into are clear floor across its whole width (`_rise` — a body never rises into a
+table leg), and `nest_meta.json` records each one: `"dead": [[x0, y0, x1, y1, feet row], …]` (the `"bodies"` search spots follow the rise).
+`room._add_nest_dead` lays one sprite per rect (an `AtlasTexture` of the dead layer, group `nest_dead`) straight over the overlay;
+`corpse_depth.gd` sorts each by its feet row against the player's — over the player (z 2) while the player is further back than the
+body, under them otherwise. `BODY_RISE` must equal `corpse_depth.gd` `RISE` (`corpse_depth_test`). Verified lossless before the rise
+was switched on: with `BODY_RISE = 0` overlay + dead layer recomposite to the old overlay (21 `corpse` overlays differ by ≤122 px only
+where the hand's weapon used to overdraw the body). Regenerate with `python3 tools/art/build_all.py` (deterministic, ~90 s); the previews
+`breach_nests.png` / `human_dead.png` / `risers.png` compose the dead layers on top.
+
 ## NO WALKING OVER THINGS — back-plane floor pieces (owner round 36i)
 The player sprite draws above all baked room art, so any floor piece standing or lying under a step-up spot is visibly "walked over" (dining C's
 toppled chair lay in front of the sideboard's chest). `pixlib.check_back_plane_floor_pieces` (run by `finish_module`) reads the `FLOOR_PIECES`

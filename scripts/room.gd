@@ -23,6 +23,7 @@ enum TutStep { INTRO, APPROACH, PUSH, WEAPON, SCAVENGE, COMBAT, PACK, HEAL, DONE
 # barricade, teaching that barricades drain durability too) → 2 left for the
 # hallway choice, where forcing the 3004 lock (−1) OR fighting the corridor
 # zombie (−2, breaks the club) is a real either/or.
+const EnemyFeet = preload("res://scripts/enemy_feet.gd")
 const TUT_CLUB_DURABILITY = 6
 # The neighbour stands almost at the back wall; with the trigger at 200px the
 # curiosity beat fires when the player is about a quarter into the final room.
@@ -1002,6 +1003,7 @@ func _add_breach_nest(module: Node, _slot: int, role: String) -> void:
 	# flies over the pool / the dead, where the art put them (module space = the art's top-left)
 	var origin: Vector2 = art.position - (art.texture.get_size() * 0.5 if art.centered else Vector2.ZERO)
 	var entry: Dictionary = nest_meta().get(path.get_file().get_basename(), {})
+	_add_nest_dead(module, nest, base + "_nest_" + role + "_dead.png", entry.get("dead", []), origin, art.scale)
 	for f in entry.get("flies", []):
 		_nest_anim(module, origin + Vector2(float(f[0]), float(f[1])), "flies", 0, "1a1414", 12, 7)
 	# each body drawn there can be searched (_setup_dead_bodies, once the room's anchors are dealt)
@@ -1013,6 +1015,44 @@ func _add_breach_nest(module: Node, _slot: int, role: String) -> void:
 	var r = entry.get("riser", null)
 	if r is Array and r.size() >= 3:
 		_riser_spot = {"pos": (module as Node2D).position + origin + Vector2(float(r[0]), float(r[1])), "dir": float(r[2])}
+
+
+## The lying dead of a story are their OWN layer (tools/art/nest.py, owner round 37): one sprite per body, cut out of the module's
+## `<name>_nest_<role>_dead.png` by the rects the meta records, laid right over the overlay. They draw under the player like the rest
+## of the art — except while the player stands further back than a body (up on a back plane), when corpse_depth.gd lifts that body
+## over them, so a player at the bookshelf is hidden to the knees by the body lying in front of it. `feet_off` = rows from a sprite's
+## top to the body's underside.
+func _add_nest_dead(module: Node, nest: Node, dead_path: String, rects: Array, origin: Vector2, art_scale: Vector2) -> void:
+	if rects.is_empty() or not ResourceLoader.exists(dead_path):
+		return
+	var tex: Texture2D = load(dead_path)
+	if tex == null:
+		return
+	var at_index: int = nest.get_index() + 1
+	for r in rects:
+		if not (r is Array) or r.size() < 5:
+			continue
+		var x0: int = maxi(0, int(r[0]))
+		var y0: int = maxi(0, int(r[1]))
+		var x1: int = mini(tex.get_width() - 1, int(r[2]))
+		var y1: int = mini(tex.get_height() - 1, int(r[3]))
+		if x1 < x0 or y1 < y0:
+			continue
+		var atlas := AtlasTexture.new()
+		atlas.atlas = tex
+		atlas.region = Rect2(x0, y0, x1 - x0 + 1, y1 - y0 + 1)
+		var spr := Sprite2D.new()
+		spr.name = "NestDead"
+		spr.texture = atlas
+		spr.centered = false
+		spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		spr.scale = art_scale
+		spr.position = origin + Vector2(x0, y0) * art_scale
+		spr.set_meta("feet_off", float(int(r[4]) - y0))
+		spr.add_to_group("nest_dead")
+		module.add_child(spr)
+		module.move_child(spr, at_index)
+		at_index += 1
 
 
 func _nest_anim(module: Node, at: Vector2, kind: String, fall: int, col: String, w: int, h: int) -> void:
@@ -1345,6 +1385,10 @@ func _after_modules_ready() -> void:
 	_build_back_plane_spots()
 
 	_spawn_corpses(WorldState.current_floor, WorldState.current_apartment_id)
+	var depth := CorpseDepth.new()        # bodies lie a little back and draw over a player standing behind them (owner round 37)
+	depth.name = "CorpseDepth"
+	depth.room = self
+	add_child(depth)
 	_spawn_world_drops(WorldState.current_floor)
 	# A character who died INSIDE this apartment leaves a recoverable body here (step 7).
 	WorldState.spawn_player_corpse_into(self, WorldState.current_floor,
@@ -2117,9 +2161,11 @@ func _spawn_corpses(floor_num: int, apt_id: String = "") -> void:
 	# of its "Death" animation, paused.
 	var std_instance = preload("res://scenes/enemy_zombie_standard.tscn").instantiate()
 	var std_frames = std_instance.get_node("AnimatedSprite2D").sprite_frames
+	var std_feet: float = EnemyFeet.collision_bottom(std_instance)     # collision-bottom below the origin (the body's feet row)
 	std_instance.queue_free()
 	var big_instance = preload("res://scenes/enemy_zombie_big.tscn").instantiate()
 	var big_frames = big_instance.get_node("AnimatedSprite2D").sprite_frames
+	var big_feet: float = EnemyFeet.collision_bottom(big_instance)
 	big_instance.queue_free()
 	for entry in corpse_positions:
 		var corpse = AnimatedSprite2D.new()
@@ -2132,7 +2178,13 @@ func _spawn_corpses(floor_num: int, apt_id: String = "") -> void:
 			corpse.sprite_frames = std_frames
 			corpse.animation = "Dead_Dead"
 			corpse.autoplay = "Dead_Dead"
-		corpse.global_position = entry["pos"]
+		# Lie where the live body lay: the same drawn row a living enemy's sprite is lifted to (EnemyFeet — the big one's static
+		# sprite sat 4 px lower than the body that died), then CorpseDepth.RISE back from the lane (bodies have depth in a flat).
+		var feet_below: float = big_feet if entry["type"] == "big" else std_feet
+		var lift: float = roundf(EnemyFeet.drawn_bottom(corpse) - (feet_below - EnemyFeet.PLAYER_DRAWN_ABOVE_COLLISION))
+		corpse.global_position = entry["pos"] - Vector2(0.0, lift + CorpseDepth.RISE)
+		corpse.set_meta("feet_y", float(entry["pos"].y) + feet_below)
+		corpse.add_to_group("room_corpse")
 		corpse.z_index = 0
 		add_child(corpse)
 

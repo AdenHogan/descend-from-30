@@ -148,26 +148,30 @@ func _test_lamp_rig_builds() -> void:
 func _test_more_dead_deeper_and_later() -> void:
 	print("[failing lower/later building]")
 	WorldState.new_game()
-	# Average dead across floors is higher deep than up top (seeded per floor, so compare
-	# a spread rather than a single seed which can tie).
+	# Dead lamps are SEEDED per floor, so one random building can tie or even invert a six-floor comparison (it did, once in a full gate:
+	# bottom 7 vs top 8). Add up the same bands over eight FIXED seeds instead — the trend is real, the draw no longer is.
 	WorldState.current_run = 1
 	var dead_top := 0
 	var dead_bot := 0
-	for f in range(25, 31):        # near the top
-		var r := FLOOR_LIGHTING.new(); add_child(r); r.setup(f)
-		dead_top += _dead_count(r); r.queue_free()
-	for f in range(1, 7):          # near the bottom
-		var r2 := FLOOR_LIGHTING.new(); add_child(r2); r2.setup(f)
-		dead_bot += _dead_count(r2); r2.queue_free()
-	check(dead_bot >= dead_top, "more lamps dead deep in the building (bottom %d >= top %d)" % [dead_bot, dead_top])
+	for seed_ in range(1, 9):
+		WorldState.master_seed = seed_
+		for f in range(25, 31):        # near the top
+			var r := FLOOR_LIGHTING.new(); add_child(r); r.setup(f)
+			dead_top += _dead_count(r); r.queue_free()
+		for f in range(1, 7):          # near the bottom
+			var r2 := FLOOR_LIGHTING.new(); add_child(r2); r2.setup(f)
+			dead_bot += _dead_count(r2); r2.queue_free()
+	check(dead_bot >= dead_top, "more lamps dead deep in the building (bottom %d >= top %d, 8 seeds)" % [dead_bot, dead_top])
 	# Later runs kill more lamps on the same floor band.
 	var dead_r1 := 0
 	var dead_r3 := 0
-	for f in range(10, 20):
-		WorldState.current_run = 1
-		var a := FLOOR_LIGHTING.new(); add_child(a); a.setup(f)
-		dead_r1 += _dead_count(a); a.queue_free()
-		WorldState.current_run = 3
-		var b := FLOOR_LIGHTING.new(); add_child(b); b.setup(f)
-		dead_r3 += _dead_count(b); b.queue_free()
-	check(dead_r3 >= dead_r1, "more lamps dead later in the arc (run3 %d >= run1 %d)" % [dead_r3, dead_r1])
+	for seed_ in range(1, 9):
+		WorldState.master_seed = seed_
+		for f in range(10, 20):
+			WorldState.current_run = 1
+			var a := FLOOR_LIGHTING.new(); add_child(a); a.setup(f)
+			dead_r1 += _dead_count(a); a.queue_free()
+			WorldState.current_run = 3
+			var b := FLOOR_LIGHTING.new(); add_child(b); b.setup(f)
+			dead_r3 += _dead_count(b); b.queue_free()
+	check(dead_r3 >= dead_r1, "more lamps dead later in the arc (run3 %d >= run1 %d, 8 seeds)" % [dead_r3, dead_r1])
