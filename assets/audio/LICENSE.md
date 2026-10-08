@@ -26,3 +26,6 @@
 - `zombie/shuffle_*.wav` — procedurally generated zombie footfalls (a low thump, a band-passed noise drag,
   a wet creak on some; `tools/gen_zombie_steps.py`), played by `scripts/enemy_steps.gd`. **CC0.** Replace with
   recorded shuffles later.
+- `cat/meow_*.wav`, `story/scream_far.wav`, `story/growl.wav` — procedurally generated placeholder cues for the four run openings
+  and Vivianne's cat (three meows, a far scream muffled by distance, a stomach growl; source-filter synthesis,
+  `tools/gen_story_audio.py`). **CC0.** Replace with recorded sounds later (docs/CHARACTER_STORIES.md).

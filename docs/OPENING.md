@@ -14,7 +14,7 @@ save file. That exterior can also be used to show more damage and disaster outsi
 | a LOAD (Continue) — the save's own run | `Game.continue_game` → `opening_sequence.gd` | yes | ~19 s |
 
 After it fades to black the run carries on as before: the time card (MORNING / name / subtitle over the handprint) → the character's
-line → the lockout. A load then drops into the saved scene out of black (the cold open is never replayed on Continue).
+line (over their own cue — round 37, docs/CHARACTER_STORIES.md) → the lockout (only Joe and Amina are locked out). A load then drops into the saved scene out of black (the cold open is never replayed on Continue).
 A key **hurries** it: during the climb the clock runs 5× (it never cuts); once the title is up (or the climb is over, on the title-less
 cut) the next key goes straight to the fade out. If any art is missing, a new game falls back to the old black title screen and a load
 simply loads.

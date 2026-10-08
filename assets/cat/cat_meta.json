@@ -1,0 +1,19 @@
+{
+ "feet_row": 17,
+ "fps": {
+  "meow": 5,
+  "run": 14,
+  "sit": 2,
+  "walk": 8
+ },
+ "frame": [
+  28,
+  18
+ ],
+ "frames": {
+  "meow": 2,
+  "run": 4,
+  "sit": 2,
+  "walk": 4
+ }
+}

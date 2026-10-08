@@ -118,6 +118,7 @@ func new_game() -> void:
 	# of the menu hard-cutting away. (The cold open waits while Transition is busy.)
 	await Transition.cover(0.45)
 	WorldState.packless_rule = true          # every real game starts with pockets only (docs/BACKPACK.md)
+	WorldState.story_rule = true             # …and each run opens on its own character's story (docs/CHARACTER_STORIES.md)
 	WorldState.new_game()
 	HUD.show_hud()
 	go_to_scene("hallway")

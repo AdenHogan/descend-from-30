@@ -410,6 +410,16 @@ static func add_to(root: Node, floor_num: int, run: int, base_name: String, art_
 	door.name = "CorridorDoorDecals"
 	door.position = art_pos
 	var floor_rects: Array = []
+	# A SCRIPTED body (owner round 37: Alex finds a neighbour dead on floor 29): reserved before the dressing is planned, so nothing is
+	# dropped on top of it, then laid first among the dead below.
+	var story: Dictionary = CharacterStory.alex_body(floor_num)
+	var story_tex: Texture2D = _tex(String(story["name"])) if not story.is_empty() else null
+	var story_rect := Rect2()
+	if story_tex != null:
+		var sz0: Vector2 = story_tex.get_size()
+		story["pos"] = Vector2(float(story["pos"].x), (DEAD_LINE.x + DEAD_LINE.y) * 0.5 + DEAD_FOOT - sz0.y)
+		story_rect = Rect2(story["pos"], sz0)
+		extra_taken = extra_taken + [story_rect.grow(24)]
 	for d in plan(floor_num, run, base_name, extra_taken, horror_boost):
 		var s := Sprite2D.new()
 		s.texture = _tex(d["name"])
@@ -422,7 +432,10 @@ static func add_to(root: Node, floor_num: int, run: int, base_name: String, art_
 		(door if d["layer"] == "door" else wall).add_child(s)
 		if float(d["pos"].y) >= FLOOR_Y and s.texture != null:
 			floor_rects.append(Rect2(d["pos"], s.texture.get_size()))
-	for d in dead_plan(floor_num, run, floor_rects):
+	var deads: Array = dead_plan(floor_num, run, floor_rects + ([story_rect.grow(24)] if story_tex != null else []))
+	if story_tex != null:
+		deads.push_front(story)
+	for d in deads:
 		var s := Sprite2D.new()
 		s.texture = _tex(d["name"])
 		s.centered = false
@@ -440,6 +453,12 @@ static func add_to(root: Node, floor_num: int, run: int, base_name: String, art_
 		bz.name = "Body_" + bz.body_name
 		bz.position = Vector2(d["pos"].x + s.texture.get_size().x * 0.5, LANE_Y - art_pos.y)
 		wall.add_child(bz)
+		if d is Dictionary and d.get("idx", 0) == story.get("idx", -1) and story_tex != null:
+			var trig = load("res://scripts/story_trigger.gd").new()    # walk up to it and the beat plays
+			trig.story = "alex_body"
+			trig.name = "StoryAlexBody"
+			trig.position = bz.position
+			wall.add_child(trig)
 		var f := Node2D.new()                                     # flies over them
 		var sz: Vector2 = s.texture.get_size()
 		f.position = d["pos"] + Vector2(sz.x - 24.0 if not s.flip_h else 24.0, sz.y - 14.0)

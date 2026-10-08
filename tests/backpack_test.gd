@@ -110,6 +110,9 @@ func _test_overload() -> void:
 
 func _test_take_and_runs() -> void:
 	print("[taking it, and the next run]")
+	WorldState.packless_rule = true
+	WorldState.new_game()                  # (a fresh pack-less character: the previous test left the classic bag on)
+	check(not WorldState.has_backpack and not WorldState.backpack_found, "(starting pack-less, nobody has found it)")
 	WorldState.take_backpack()
 	check(WorldState.has_backpack, "has_backpack after taking it")
 	check(WorldState.get_inventory_slots() >= WorldState.MAX_INVENTORY_SLOTS, "the slots open out to the full bag")
@@ -120,9 +123,16 @@ func _test_take_and_runs() -> void:
 	HUD.set_hotbar_visible(true)
 	check(HUD.hotbar_visible, "the opt-in hotbar still opens")
 	HUD.set_hotbar_visible(false)
-	# THE TIME SKIP: a fresh character starts pockets-only again
+	# THE TIME SKIP (owner round 37): once the first character has FOUND the pack, the next ones simply have it on
+	# (a fresh character otherwise: no items, a full bag's worth of slots)
+	check(WorldState.backpack_found, "taking the pack records it as found for the playthrough")
 	WorldState.advance_run()
-	check(not WorldState.has_backpack and WorldState.inventory.is_empty(), "advance_run: the new character has no pack and no items")
+	check(WorldState.has_backpack and WorldState.inventory.is_empty(), "advance_run: the next character already has the pack (and no items)")
+	# …but if nobody found it, the next character is pockets-only again
+	WorldState.new_game()
+	check(not WorldState.backpack_found and not WorldState.has_backpack, "a new game: nobody has found the pack")
+	WorldState.advance_run()
+	check(not WorldState.has_backpack and WorldState.inventory.is_empty(), "advance_run with the pack never found: the new character is pockets-only")
 	# …but with the rule off, a time skip keeps the classic bag
 	WorldState.packless_rule = false
 	WorldState.new_game()

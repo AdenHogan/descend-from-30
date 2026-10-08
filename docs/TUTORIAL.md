@@ -34,16 +34,18 @@ from black with no hard cut.
       orange / NIGHT blue — the Transition time-card look the owner preferred) drifting up,
       with the character's name and the time subtitle under it.
    c. **The line** — on CLEAN black (the handprint fades out WITH the time card — owner: the red
-      was overwhelming behind the text): a short loud burst of banging, then the character's
-      line + [any key], a door-slam, then the black lifts on the hallway.
+      was overwhelming behind the text): the CHARACTER'S OWN cue (round 37 — Joe's banging, Alex's far
+      scream, Vivianne's meow, Amina's growling stomach), then their line + [any key], then the black
+      lifts on the hallway. **Joe is always the tutorial's character** (docs/CHARACTER_STORIES.md).
    A key during (a)/(b) hurries that screen to its fade (never skips it). Waits while a
    Transition still covers the screen. Runs 2/3 open on (b) — the death/escape end card hands
    straight to it (`Transition.to_run_start`), no separate time card.
-2. **Visible lockout** (`hallway.start_opener_lockout()`): the player — on screen, not
-   black — steps up and bangs on their own door 3001 (`player.knock_door`), gets no answer,
-   and says the run's lockout lines (`hallway.opener_config()`): run 1 tutorial = remember the
-   3003 spare key; run 1 without the tutorial = «no time for a spare key»; runs 2/3 = locked
-   out + a nod to how the previous character's story ended.
+2. **Visible lockout** (`hallway.start_opener_lockout()`) — only for the characters who ARE locked out
+   (Joe, Amina; round 37): the player — on screen, not black — steps up and bangs on their own door 3001
+   (`player.knock_door`), gets no answer, and says their lockout lines (`hallway.opener_config()`): Joe in
+   the tutorial = remember the 3003 spare key; Joe without it = «no time for a spare key»; a later run =
+   locked out + a nod to how the previous character's story ended. Alex and Vivianne aren't locked out:
+   one line as they set off. Every run then begins its personal quest (banner + journal), docs/CHARACTER_STORIES.md.
 Any key / mouse click advances every beat. SFX are placeholder impacts. See
 THREE_RUN_ARC.md → "Run bookends" for the matching END card.
 

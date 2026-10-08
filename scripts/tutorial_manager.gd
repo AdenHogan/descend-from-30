@@ -29,13 +29,9 @@ const LINES := {
 	"opener_5": "Whatever, I need the spare key. The lady in 3003 has it.",
 	# Run 1 WITHOUT the tutorial (a returning player): same lockout, no spare-key errand.
 	"opener_5_free": "No time to hunt for a spare key. I need to get out of this building.",
-	# --- EVERY run opens the same way (owner: "synergy for all three runs"): a black-screen
-	#     cold open (banging + the new character's first line), then the visible lockout at
-	#     3001. run2_/run3_ are the new character's black-screen line; run_lockout_* play at
-	#     the door. run_after_* nods to how the PREVIOUS character's run ended. ---
-	"run2_open": "More banging... How long was I out? It's the afternoon already.",
-	"run3_open": "It's dark. Something is scratching at every door on this floor.",
-	"run_lockout": "The door clicked shut behind me. Locked out - there's no going back in.",
+	# --- EVERY run opens with ITS character's own story (owner round 37; scripts/character_story.gd holds
+	#     Alex's / Vivianne's / Amina's lines). Joe's are the opener_* lines above. These two are the nods a
+	#     LATER run's lockout makes to how the PREVIOUS character's run ended (Joe and Amina, who knock). ---
 	"run_after_fell": "I heard screaming on the stairs earlier. Whoever it was didn't make it.",
 	"run_after_escaped": "I heard the lobby doors earlier. Somebody got out. So can I.",
 	# --- Run END cards (the fade to black when a character's story ends) ---

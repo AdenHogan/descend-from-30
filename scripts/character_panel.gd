@@ -465,7 +465,7 @@ func _refresh() -> void:
 	# Chronicle (Before you).
 	before_text.text = _chronicle_bbcode()
 	# Quests & NPCs.
-	var q := "[b]Quests[/b]\n[i]No active quests. Story quests will be logged here as they open.[/i]\n\n[b]People[/b]\n"
+	var q := "[b]Quests[/b]\n" + _quest_bbcode() + "\n\n[b]People[/b]\n"
 	if NPC_STORIES.is_empty():
 		q += "[i]Stories you uncover from the building's residents will collect here.[/i]"
 	else:
@@ -476,6 +476,18 @@ func _refresh() -> void:
 		map_view.queue_redraw()
 	_build_codex()
 	_fit_all()
+
+
+## This run's personal quest (docs/CHARACTER_STORIES.md): its title, the objectives already behind them struck through, and the one now.
+func _quest_bbcode() -> String:
+	var cq: Dictionary = CharacterStory.current_quest()
+	if cq.is_empty():
+		return "[i]No active quests. Story quests will be logged here as they open.[/i]"
+	var out := "[b]%s[/b]\n" % str(cq["title"])
+	for done in cq["earlier"]:
+		out += "[s]%s[/s]\n" % str(done)
+	out += "- %s" % str(cq["objective"])
+	return out
 
 
 ## The Codex tab: a legend for the in-hand box's colour, then every item with its durability and how it wears

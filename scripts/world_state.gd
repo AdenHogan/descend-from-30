@@ -73,6 +73,22 @@ const OVERLOAD_STAMINA_MULT = 0.5
 var packless_rule: bool = false
 ## Does this character carry a backpack? Per-run (a new character starts without one under the rule).
 var has_backpack: bool = true
+## A backpack found by ANY character stays found: every later character of the playthrough comes in with it
+## already on their back (owner round 37: "if player 1 picks up the backpack, players 2 and 3 will just
+## automatically have it equipped"). Per-playthrough (reset by new_game, saved); only meaningful under the rule.
+var backpack_found: bool = false
+
+## THE STORY RULE (owner round 37; docs/CHARACTER_STORIES.md): when on (the real New Game turns it on, like
+## `packless_rule`), the four characters' personal openings run for real — Joe is always the tutorial's
+## character, Alex's neighbour lies dead on floor 29, Vivianne's cat is about, a run's quest banner shows. Off by
+## default so a plain `new_game()` (every test) keeps the random cast and an untouched building. Saved.
+var story_rule: bool = false
+## This playthrough casts Joe as its FIRST character (the tutorial's). Decided by new_game, saved with the cast.
+var joe_opens: bool = false
+## THIS run's personal quest: -1 = not begun, else the stage reached (0 = the opening objective). Per-run (reset by
+## new_game / advance_run), saved. `run_story_flags` records the one-off beats this run (str keys, saved).
+var run_story_stage: int = -1
+var run_story_flags: Dictionary = {}
 const MAX_AMMO_PER_SLOT = 8
 const WORLD_DROP_SCRIPT := preload("res://scripts/world_drop.gd")   # REST_LIFT for live drops
 const MAX_THROWABLE_PER_SLOT = 3   # cans held per slot (was one-and-done)
@@ -202,6 +218,7 @@ func note_floor_arrival(root: Node, floor_num: int) -> void:
 	note_floor_visited(floor_num)          # clears this floor's fog on the journal map
 	if scene_has_live_zombies(root):
 		note_enemies_on_floor(floor_num)
+	CharacterStory.on_floor_arrival(floor_num)   # a personal quest may turn on where you are (Joe's first descent)
 	# (run boons are the MERCHANT's since round 33 — shop_ui.open queues one, not the arrival)
 
 
@@ -1079,26 +1096,34 @@ func profile_status() -> String:
 # selectable profiles are a later job; for now it's a random draw per playthrough. Deterministic
 # from master_seed, so the cast is stable across save/load and re-entry (master_seed persists).
 const CHARACTERS := ["blond_man", "dark_woman", "bald_man", "blond_woman"]
+const TUTORIAL_CHARACTER := "blond_man"     # Joe — the tutorial's character, always (round 37)
 
 
 var _cast_cache: Array = []
 var _cast_cache_seed: int = -1
+var _cast_cache_joe: bool = false
 
 
 func run_cast() -> Array:
 	# A shuffled pick of THREE of the four characters (Fisher-Yates, seeded by master_seed).
 	# Cached per master_seed: every stat getter reads the run's character (traits fold), and
 	# those run every physics frame — no need to re-shuffle each call. Returns a copy.
-	if _cast_cache_seed == master_seed and not _cast_cache.is_empty():
+	# JOE OPENS (owner round 37: "lock it in that Joe is always the tutorial character"): a playthrough that
+	# includes the tutorial (story rule on, tutorial not yet completed) casts Joe as its FIRST character; the other
+	# two are still a seeded draw from the other three.
+	if _cast_cache_seed == master_seed and _cast_cache_joe == joe_opens and not _cast_cache.is_empty():
 		return _cast_cache.duplicate()
 	var pool: Array = CHARACTERS.duplicate()
+	if joe_opens:
+		pool.erase(TUTORIAL_CHARACTER)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(str(master_seed) + "cast")
 	for i in range(pool.size() - 1, 0, -1):
 		var j: int = rng.randi_range(0, i)
 		var t = pool[i]; pool[i] = pool[j]; pool[j] = t
-	_cast_cache = pool.slice(0, 3)
+	_cast_cache = ([TUTORIAL_CHARACTER] + pool.slice(0, 2)) if joe_opens else pool.slice(0, 3)
 	_cast_cache_seed = master_seed
+	_cast_cache_joe = joe_opens
 	return _cast_cache.duplicate()
 
 
@@ -1115,6 +1140,7 @@ func new_game() -> void:
 	# A NEW GAME is not a new PLAYER: only someone who has never finished the
 	# tutorial gets taught it again.
 	is_first_run = not tutorial_completed
+	joe_opens = story_rule and is_first_run            # the tutorial's character opens the playthrough (set before any cast read)
 	record_run_started()
 	master_seed = dev_seed if dev_seed != 0 else randi()
 	apartment_layouts.clear()
@@ -1123,6 +1149,9 @@ func new_game() -> void:
 	searched_anchors.clear()
 	inventory.clear()
 	has_backpack = not packless_rule
+	backpack_found = false
+	run_story_stage = -1
+	run_story_flags.clear()
 	_overloaded_last = false
 	current_floor = 30
 	current_run = 1
@@ -1242,7 +1271,9 @@ func advance_run() -> bool:
 	# --- FRESH CHARACTER (per-run state, wiped) — mirrors new_game's character block.
 	#     Cross-run rewards (active_upgrades, wallet UNLOCK) are deliberately KEPT. ---
 	inventory.clear()
-	has_backpack = not packless_rule        # the new character comes in with only their pockets
+	has_backpack = (not packless_rule) or backpack_found   # pockets only — unless an earlier character already took the pack
+	run_story_stage = -1                    # the new character's own quest begins at their opening
+	run_story_flags.clear()
 	_overloaded_last = false
 	player_health = 0                       # player._ready re-derives max + fills to full
 	is_dying = false
@@ -1493,6 +1524,7 @@ func add_to_inventory(item_id: String, amount: int = 0) -> bool:
 	var ok: bool = _add_to_inventory(item_id, amount)
 	if ok:
 		note_item_seen(item_id)
+		CharacterStory.on_item_gained(item_id)   # Amina's quest is food
 	return ok
 
 
@@ -2288,6 +2320,7 @@ func take_backpack() -> void:
 	if has_backpack:
 		return
 	has_backpack = true
+	backpack_found = true                   # …and it stays found: the next characters start with it equipped
 	HUD.refresh_inventory()
 	HUD.update_backpack_state()
 
@@ -5212,6 +5245,11 @@ func save_game(scene_path: String, record_live_zombies: bool = true) -> void:
 		"opener_seen": opener_seen,
 		"packless_rule": packless_rule,
 		"has_backpack": has_backpack,
+		"backpack_found": backpack_found,
+		"story_rule": story_rule,
+		"joe_opens": joe_opens,
+		"run_story_stage": run_story_stage,
+		"run_story_flags": run_story_flags,
 		"run_boons": run_boons,
 		"session_perks": session_perks,
 		"handoff_items": handoff_items,
@@ -5314,6 +5352,11 @@ func load_game() -> String:
 	opener_seen = bool(data.get("opener_seen", true))
 	packless_rule = bool(data.get("packless_rule", false))
 	has_backpack = bool(data.get("has_backpack", true))
+	backpack_found = bool(data.get("backpack_found", has_backpack and packless_rule))
+	story_rule = bool(data.get("story_rule", false))
+	joe_opens = bool(data.get("joe_opens", false))
+	run_story_stage = int(data.get("run_story_stage", -1))
+	run_story_flags = Dictionary(data.get("run_story_flags", {}))
 	run_boons = Array(data.get("run_boons", []))
 	# Older saves predate the session record: rebuild it from what's still visible.
 	handoff_items = Array(data.get("handoff_items", []))

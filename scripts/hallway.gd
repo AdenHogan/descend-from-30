@@ -74,38 +74,35 @@ func _ready() -> void:
 		WorldState.opener_seen = true
 		var intro = preload("res://scripts/intro_overlay.gd").new()
 		var cfg := opener_config()
-		for k in ["title_text", "time_word", "time_color", "name_text", "sub_text", "line_text"]:
+		for k in ["title_text", "time_word", "time_color", "name_text", "sub_text", "line_text", "cue"]:
 			intro.set(k, cfg[k])
 		add_child(intro)
 
 
 # What this run's cold open says — ONE shape for all three runs (the owner's "synergy"): the
 # game's title on its own screen (run 1 only), then the time-of-day card (the big coloured word +
-# who this is + a subtitle) over the bloody handprint, then the character's line; then the lockout
-# lines, which on runs 2/3 nod to how the previous character's story ended. Lines:
-# TutorialManager.LINES.
-static func opener_config() -> Dictionary:
+# who this is + a subtitle) over the bloody handprint, then the CHARACTER'S OWN opening — their cue sound and
+# first line (CharacterStory.opener: Joe's banging, Alex's scream, Vivianne's cat, Amina's empty stomach) — then,
+# for the two who are locked out (Joe, Amina), the lockout lines at 3001; for the other two ("knock" false) one
+# line as they set off. Lines: CharacterStory / TutorialManager.LINES. `cid` defaults to this run's character.
+static func opener_config(cid: String = "") -> Dictionary:
 	var run: int = WorldState.current_run
 	var i: int = clampi(run - 1, 0, WorldState.RUN_NAMES.size() - 1)
-	var L: Dictionary = TutorialManager.LINES
-	var cfg := {
+	if cid == "":
+		cid = WorldState.current_character()
+	var op: Dictionary = CharacterStory.opener(cid)
+	return {
 		"title_text": "DESCEND FROM 30" if run <= 1 else "",
 		"time_word": WorldState.RUN_NAMES[i].to_upper(),
 		"time_color": Transition.TIME_WORD_COLORS[i],
-		"name_text": WorldState.character_display_name(WorldState.current_character()),
+		"name_text": WorldState.character_display_name(cid),
 		"sub_text": WorldState.TIME_SUBTITLES[i],
+		"line_text": str(op["line"]),
+		"cue": str(op["cue"]),
+		"knock": bool(op["knock"]),
+		"lockout": CharacterStory.lockout_lines(cid, run),
+		"walkout": str(op["walkout"]),
 	}
-	if run <= 1:
-		cfg["line_text"] = L["opener_1"]
-		cfg["lockout"] = [L["opener_4"], L["opener_5"] if WorldState.is_first_run else L["opener_5_free"]]
-		return cfg
-	cfg["line_text"] = L["run2_open"] if run == 2 else L["run3_open"]
-	var lockout: Array = [L["run_lockout"]]
-	match str(WorldState.chronicle_entry(run - 1).get("outcome", "")):
-		"fell": lockout.append(L["run_after_fell"])
-		"escaped": lockout.append(L["run_after_escaped"])
-	cfg["lockout"] = lockout
-	return cfg
 
 
 func _build_world() -> void:
@@ -121,6 +118,7 @@ func _build_world() -> void:
 	# A character who fell here (floor 30) leaves a recoverable body for the next one.
 	WorldState.spawn_player_corpse_into(self, 30, scene_file_path, "")
 	_spawn_backpack()
+	_spawn_cat_cameo()
 	# The wall sconces, like every other floor — otherwise the top floor sits dark at
 	# night beside a lit floor 29 and the pan between them shows the seam.
 	if get_node_or_null("FloorLighting") == null:
@@ -178,6 +176,24 @@ func _spawn_backpack() -> void:
 	pack.global_position = Vector2(BACKPACK_X, BACKPACK_FEET_Y)
 
 
+## Vivianne's cat on floor 30 (round 37): sitting in the hall at the start of her run; when she nears it bolts for the stairwell and is gone —
+## the hook that sends her down. Live-only, once (the pan backdrop and any re-entry skip it once she has seen it or it has gone).
+const CAT_CAMEO_X := 600.0
+const CAT_CAMEO_BOLT_X := 190.0
+
+
+func _spawn_cat_cameo() -> void:
+	if passive or not WorldState.story_rule or WorldState.current_character() != CharacterStory.VIVIANNE or WorldState.current_run < 1:
+		return
+	if CharacterStory.flag("cat_seen") or get_node_or_null("Cat") != null or not preload("res://scripts/cat_actor.gd").art_present():
+		return
+	var cat = preload("res://scripts/cat_actor.gd").new()
+	cat.name = "Cat"
+	cat.position = Vector2(CAT_CAMEO_X, 419.0)
+	cat.bolt_to_x = CAT_CAMEO_BOLT_X
+	add_child(cat)
+
+
 func _frame_camera(player: Node) -> void:
 	PanBackdrop.frame_camera(self, player)
 
@@ -223,13 +239,16 @@ func _process(_delta: float) -> void:
 
 
 func start_opener_lockout() -> void:
-	# Called by intro_overlay after the title fades: the player (visible now,
-	# not on black) steps up and bangs on their own door 3001, gets no answer, and
-	# says this run's lockout lines (opener_config). knock_door provides the
-	# up-to-the-door movement; the lines chain on any key / click.
+	# Called by intro_overlay after the title fades. A character who is LOCKED OUT of their flat (Joe, Amina — opener "knock")
+	# steps up and bangs on their own door 3001, gets no answer, and says their lockout lines (the up-to-the-door movement is
+	# knock_door; the lines chain on any key / click); the others (Alex, Vivianne) just say their one line and set off. Either way
+	# the run's personal quest begins when the opening ends (CharacterStory.begin_run_quest — the banner).
 	var player = get_tree().get_first_node_in_group("player")
 	var door = get_node_or_null("3001")
 	if player == null:
+		return
+	if not bool(opener_config()["knock"]):
+		_opener_walkout()
 		return
 	if door != null and player.has_method("knock_door"):
 		player.knock_door(door.global_position, _opener_lockout_lines)
@@ -247,8 +266,17 @@ func _opener_lockout_lines() -> void:
 
 func _next_lockout_line() -> void:
 	if _lockout_queue.is_empty():
+		CharacterStory.begin_run_quest()
 		return
 	TutorialManager.prompt(str(_lockout_queue.pop_front()), "interact", _next_lockout_line, "[continue]")
+
+
+## The two who aren't locked out: one spoken line (no pause) as they set off, then the quest banner.
+func _opener_walkout() -> void:
+	var line: String = str(opener_config()["walkout"])
+	if line != "":
+		HUD.show_dialogue(line)
+	CharacterStory.begin_run_quest()
 
 
 func _maybe_hint_barricade() -> void:

@@ -19,6 +19,10 @@ upgrades stack on top and nothing is ever written directly into a stat.
 | `bald_man` | Alex (the Super) | Knows the building by sound | Hears the **EXACT** enemy count at doors + down the stairwell; listens 25% faster; melee −10% stamina | Unlucky: ~20% more enemies per floor |
 | `dark_woman` | Amina (the Nurse) | Lucky hands, shaky aim | Scavenge spots hold something +8% more often; rare finds likelier, junk rarer | −15% gun hit chance |
 
+**Stories (owner round 37):** each character also opens their run on their own cue and carries a personal quest — Joe is
+always the tutorial character; Alex hears a scream and finds Mr Hale on 29; Vivianne chases her black cat; Amina is hungry
+and locked out. See docs/CHARACTER_STORIES.md.
+
 ## The owner's brief → what was built
 
 - **White male (blond_man)** — "all-rounder, two more pushes from the stamina bar, less melee

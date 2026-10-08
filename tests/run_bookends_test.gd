@@ -47,30 +47,48 @@ func _ready() -> void:
 
 
 func _test_opener_config() -> void:
-	print("[every run opens the same way, in its own words]")
+	print("[every run opens in its own character's story (round 37), on the same cards]")
 	WorldState.new_game()
 	WorldState.is_first_run = true
-	var c1: Dictionary = HallwayScript.opener_config()
 	var L: Dictionary = TutorialManager.LINES
-	check(c1["title_text"] == "DESCEND FROM 30" and c1["line_text"] == L["opener_1"], "run 1: the game's title (its own screen) + the banging line")
+	# run 1: the game's title on its own screen, MORNING, whoever the cast gave us
+	var c1: Dictionary = HallwayScript.opener_config()
+	check(c1["title_text"] == "DESCEND FROM 30", "run 1: the game's title (its own screen)")
 	check(c1["time_word"] == "MORNING" and c1["time_color"] == Transition.TIME_WORD_COLORS[0], "run 1's time card: MORNING in its own colour")
-	check(c1["lockout"] == [L["opener_4"], L["opener_5"]], "run 1 (tutorial): the spare-key lockout")
 	check(c1["name_text"] == WorldState.character_display_name(WorldState.current_character()),
 		"run 1's card names who you are (%s)" % c1["name_text"])
+	# Joe: the banging, then the spare-key lockout (the tutorial's) — or the free one without the tutorial
+	var joe: Dictionary = HallwayScript.opener_config(CharacterStory.JOE)
+	check(joe["line_text"] == L["opener_1"] and joe["cue"] == "bang" and joe["knock"], "Joe: the banging on his door, then the knock")
+	check(joe["lockout"] == [L["opener_4"], L["opener_5"]], "Joe (tutorial): the spare-key lockout")
 	WorldState.is_first_run = false
-	check(HallwayScript.opener_config()["lockout"][1] == L["opener_5_free"], "run 1 without the tutorial: no spare-key errand")
+	check(HallwayScript.opener_config(CharacterStory.JOE)["lockout"][1] == L["opener_5_free"], "Joe without the tutorial: no spare-key errand")
+	# the other three each have their own sound, line and shape
+	var alex: Dictionary = HallwayScript.opener_config(CharacterStory.ALEX)
+	var viv: Dictionary = HallwayScript.opener_config(CharacterStory.VIVIANNE)
+	var amina: Dictionary = HallwayScript.opener_config(CharacterStory.AMINA)
+	check(alex["cue"] == "scream" and viv["cue"] == "meow" and amina["cue"] == "growl", "scream / meow / growl: three different black-screen cues")
+	check(not alex["knock"] and alex["lockout"] == [] and str(alex["walkout"]) != "", "Alex isn't locked out: no knock, one line as he sets off")
+	check(not viv["knock"] and viv["lockout"] == [] and str(viv["walkout"]) != "", "Vivianne isn't locked out either: no knock, one line")
+	check(amina["knock"] and amina["lockout"].size() >= 2 and str(amina["walkout"]) == "", "Amina IS locked out: the knock and her lockout lines")
+	var lines := {}
+	for cid in WorldState.CHARACTERS:
+		lines[HallwayScript.opener_config(cid)["line_text"]] = true
+	check(lines.size() == WorldState.CHARACTERS.size(), "each of the four opens on a line of their own")
+	# a LATER run: no title, its own time word; a knocking character nods to how the last one ended
 	WorldState.set_run_outcome(1, "dead")
 	WorldState.advance_run()
 	var c2: Dictionary = HallwayScript.opener_config()
 	var who2: String = WorldState.character_display_name(WorldState.current_character())
-	check(c2["title_text"] == "" and c2["name_text"] == who2, "run 2: no game title — the NEW character on the time card (%s)" % c2["name_text"])
-	check(c2["line_text"] == L["run2_open"] and c2["time_word"] == "AFTERNOON", "run 2: its own line, AFTERNOON")
-	check(c2["lockout"] == [L["run_lockout"], L["run_after_fell"]], "run 2's lockout nods to the character who FELL")
+	check(c2["title_text"] == "" and c2["name_text"] == who2 and c2["time_word"] == "AFTERNOON",
+		"run 2: no game title — the NEW character on the AFTERNOON card (%s)" % c2["name_text"])
+	check(HallwayScript.opener_config(CharacterStory.AMINA)["lockout"].back() == L["run_after_fell"], "run 2: a knocker nods to the character who FELL")
+	check(HallwayScript.opener_config(CharacterStory.ALEX)["lockout"] == [], "run 2: Alex has no lockout to nod in")
 	WorldState.set_run_outcome(2, "survived")
 	WorldState.advance_run()
 	var c3: Dictionary = HallwayScript.opener_config()
-	check(c3["line_text"] == L["run3_open"] and c3["time_word"] == "NIGHT", "run 3: its own line, NIGHT")
-	check(c3["lockout"] == [L["run_lockout"], L["run_after_escaped"]], "run 3's lockout nods to the one who ESCAPED")
+	check(c3["time_word"] == "NIGHT", "run 3: NIGHT")
+	check(HallwayScript.opener_config(CharacterStory.AMINA)["lockout"].back() == L["run_after_escaped"], "run 3: a knocker nods to the one who ESCAPED")
 
 
 func _test_opener_flag_lifecycle() -> void:

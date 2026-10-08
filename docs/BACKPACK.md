@@ -63,7 +63,11 @@ backpack to pick up which will become the inventory."
 - **The icon:** `hud_pack_button.gd` now draws the shared `PackArt` texture (16x20: grab loop, domed lid, two tan
   straps with brass buckles, front pocket with zip, bottle pockets) — replacing the code-drawn version that read as a
   Polaroid camera. The kneel prop (`held_pack.gd`) is still a separate placeholder.
-- Locked by `backpack_test` (mutation-checked: dropping the `advance_run` reset and the empty-junk rule each fail).
+- **Carry-over (owner round 37):** once ANY character takes the pack it stays found for the playthrough
+  (`WorldState.backpack_found`, set by `take_backpack`, saved, reset by `new_game`); `advance_run` gives the next
+  character `has_backpack = (not packless_rule) or backpack_found` — runs 2 and 3 simply have it on, and Floor 30 lays
+  no pack beside 3001 for them. Nobody found it = pockets only again (docs/CHARACTER_STORIES.md).
+- Locked by `backpack_test` (mutation-checked: dropping the empty-junk rule fails; the old `advance_run` reset became the carry-over, see `character_story_test`).
 - Not built: a pack-less-run achievement, a corpse carrying its backpack (the next character just gets a fresh one),
   a rummage-sound / pickup-sound.
 

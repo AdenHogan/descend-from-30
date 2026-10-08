@@ -302,6 +302,7 @@ func _ready() -> void:
 	_spawn_door_fire(floor_num)
 	WorldState.apply_time_tint(self, floor_num)   # ambient darkness the real lights punch through
 	_spawn_floor_lighting(floor_num)              # the wall sconces (the floor's light)
+	_spawn_cat(floor_num)                         # Vivianne's cat, on some floors (round 37)
 	_frame_camera(player)
 	# Keep the HUD floor counter honest for EVERY way of landing on a floor — not
 	# just stair transitions. A dev jump / F2 rebuild used to leave it stale (e.g.
@@ -844,6 +845,19 @@ func _fire_origin_for(floor_num: int) -> float:
 	return origin_x
 
 
+## Vivianne's black cat on the corridor plane of some floors (owner round 37; scripts/cat_actor.gd). Only in her run, a seeded third of
+## floors 1-29; live-only (go_live spawns it too) and idempotent. It is never in a combat group — it can't be hurt, and never dies.
+func _spawn_cat(floor_num: int) -> void:
+	if passive or get_node_or_null("Cat") != null:
+		return
+	if not CharacterStory.cat_on_floor(floor_num) or not preload("res://scripts/cat_actor.gd").art_present():
+		return
+	var cat = preload("res://scripts/cat_actor.gd").new()
+	cat.name = "Cat"
+	cat.position = Vector2(CharacterStory.cat_start_x(floor_num, WorldState.current_run), PLAYER_PLANE_Y + 33.0)
+	add_child(cat)
+
+
 func _spawn_floor_lighting(floor_num: int) -> void:
 	# Real lighting from the WALL SCONCES: warm PointLight2D lamps on drawn fixtures (some flickering, some dead —
 	# more dead the deeper/later you go) that cast actual pools through the ambient darkness
@@ -1375,6 +1389,7 @@ func go_live() -> void:
 	_spawn_merchant(floor_num)
 	WorldState.apply_time_tint(self, floor_num)   # a woken pan backdrop gets its ambient here
 	_spawn_floor_lighting(floor_num)              # guarded — passive backdrop already built these
+	_spawn_cat(floor_num)                         # live-only: it wanders, so the backdrop doesn't carry it
 	# Journal/cross-run memory: arriving by STAIRS is the main way down, and it lands here, not
 	# in the live _ready — so depth, the map's fog and enemy sightings must be recorded here too.
 	_note_floor_arrival(floor_num)

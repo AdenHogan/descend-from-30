@@ -44,6 +44,8 @@ var feedback_timer: float = 0.0
 # own panel above the action bar. Transient lines auto-hide; prompt lines
 # persist (a paused teaching beat) until TutorialManager dismisses them.
 var dialogue_panel: PanelContainer = null
+var quest_banner: PanelContainer = null     # the NEW QUEST / OBJECTIVE UPDATED plate (quest_banner.gd)
+var fg_cat: Control = null                  # Vivianne's cat dashing across the foreground (fg_cat.gd)
 var dialogue_label: Label = null
 var dialogue_hint: Label = null
 var dialogue_timer: float = 0.0
@@ -130,6 +132,8 @@ func _ready() -> void:
 	_create_mode_tip()
 	_create_feedback_label()
 	_create_dialogue_panel()
+	_create_quest_banner()
+	_create_fg_cat()
 	_create_context_menu()
 	_create_stamina_bar()
 	_create_wallet_label()
@@ -547,6 +551,23 @@ func show_dialogue(text: String, hint: String = "", persist: bool = false, secon
 		dialogue_hint.visible = false
 	dialogue_panel.visible = true
 	dialogue_timer = 0.0 if persist else seconds
+
+
+## The personal-quest banner (scripts/quest_banner.gd; docs/CHARACTER_STORIES.md): a kicker, the quest's title, the objective.
+func _create_quest_banner() -> void:
+	quest_banner = preload("res://scripts/quest_banner.gd").new()
+	$Control.add_child(quest_banner)
+
+
+func show_quest_banner(kicker: String, title_text: String, objective: String) -> void:
+	if quest_banner != null:
+		quest_banner.show_banner(kicker, title_text, objective)
+
+
+## Vivianne's cat running across the foreground now and then (scripts/fg_cat.gd).
+func _create_fg_cat() -> void:
+	fg_cat = preload("res://scripts/fg_cat.gd").new()
+	$Control.add_child(fg_cat)
 
 
 func hide_dialogue() -> void:

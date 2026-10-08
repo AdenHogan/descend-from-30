@@ -24,6 +24,7 @@ var time_color: Color = Color(1.00, 0.86, 0.45)
 var name_text: String = ""
 var sub_text: String = ""
 var line_text: String = ""
+var cue: String = "bang"             # what the black screen HEARS before the character speaks (CharacterStory.opener): bang | scream | meow | growl
 var exterior_enabled: bool = true     # false = the old black title screen (a test, or the art missing)
 
 const BANG_STREAMS = [
@@ -32,6 +33,13 @@ const BANG_STREAMS = [
 	preload("res://assets/audio/impacts/impactWood_heavy_002.ogg"),
 ]
 const SLAM_STREAM = preload("res://assets/audio/doors/metalLatch.ogg")
+# The other characters' cues (owner round 37; tools/gen_story_audio.py): [time into the line screen, file, dB]. "bang" is the burst above.
+const CUE_AUDIO := {
+	"scream": [[0.0, "res://assets/audio/story/scream_far.wav", -1.0]],
+	"meow": [[0.0, "res://assets/audio/cat/meow_1.wav", -1.0], [1.15, "res://assets/audio/cat/meow_3.wav", -5.0]],
+	"growl": [[0.0, "res://assets/audio/doors/metalLatch.ogg", -2.0], [0.55, "res://assets/audio/story/growl.wav", 0.0]],
+}
+const CUE_DELAY := {"scream": 2.0, "meow": 1.8, "growl": 2.3}   # the cue plays, THEN the line reacts to it
 
 const SCREEN_W = 1152.0
 const SCREEN_H = 648.0
@@ -64,6 +72,8 @@ var t: float = 0.0               # time in the current stage
 var burst_left: int = BURST_BANGS
 var burst_timer: float = 0.0
 var line_shown: bool = false
+var _cue_left: Array = []
+var _cue_started: bool = false
 var fading: bool = false
 var fade_t: float = 0.0
 
@@ -189,8 +199,10 @@ func skip_to_line() -> void:
 	card.modulate.a = 0.0
 	gore.modulate.a = 0.0
 	burst_left = 0
+	_cue_started = true
+	_cue_left = []
 	_next_stage("line")
-	t = LINE_DELAY
+	t = _line_delay()
 
 
 func _process(delta: float) -> void:
@@ -234,18 +246,34 @@ func _process(delta: float) -> void:
 			if t >= CARD_FADE + CARD_HOLD + OUT_FADE:
 				_next_stage("line")
 		"line":
-			# A short, loud burst of banging — then the character reacts to it.
+			# The character's cue — Joe's short, loud burst of banging, or Alex's scream / Vivianne's meow / Amina's growl — then they react to it.
+			if not _cue_started:
+				_cue_started = true
+				_cue_left = CUE_AUDIO.get(cue, []).duplicate(true)
+				if not CUE_AUDIO.has(cue):
+					burst_left = BURST_BANGS
+				else:
+					burst_left = 0
 			if burst_left > 0:
 				burst_timer -= delta
 				if burst_timer <= 0.0:
 					burst_timer = BURST_GAP
 					_play(BANG_STREAMS.pick_random(), 3.0)
 					burst_left -= 1
-			if t >= LINE_DELAY and not line_shown:
+			while not _cue_left.is_empty() and t >= float(_cue_left[0][0]):
+				var ev: Array = _cue_left.pop_front()
+				var stream = load(str(ev[1]))
+				if stream is AudioStream:
+					_play(stream, float(ev[2]))
+			if t >= _line_delay() and not line_shown:
 				line_shown = true
 				line.text = line_text if line_text != "" else TutorialManager.LINES["opener_1"]
 				line.visible = true
 				hint.visible = true
+
+
+func _line_delay() -> float:
+	return float(CUE_DELAY.get(cue, LINE_DELAY))
 
 
 static func _in_hold_out(tt: float, fade_in: float, hold: float, fade_out: float) -> float:
