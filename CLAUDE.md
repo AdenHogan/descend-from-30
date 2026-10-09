@@ -1590,7 +1590,7 @@ means no rendering — UI layout and art still need an in-editor look.
   a plant stand (`plant_stand_fallen` — the stand over, the pot broken, a short trail of soil and a dead
   plant) and a bike (`bicycle_wrecked` — upright against the wall, front wheel buckled, saddle gone, chain
   hanging; the flat "bike on its side" is gone). No bin bags are baked into the corridor art any more (rubbish goes out by a door).
-  Wall notices keep ±31 of a door and hang in the band just over the rail (local y 58..94) and HORROR
+  Wall notices keep ±31 of a door and hang from row 67 under the sconces, above the rail at 96 (round 38; was y 58..94) and HORROR
   (blood smears, handprints, spatter, bullet bursts, claw gouges, slide-down smears, blood scrawls
   "HELP"/"DONT GO DOWN"…, pools / drag trails / footprints / casings, and on plain door faces
   bullet holes, a bloody hand, the rescue teams' orange search X). `horror_level(floor, run)` =
@@ -2398,4 +2398,21 @@ means no rendering — UI layout and art still need an in-editor look.
   takes it (`stairwell.request_auto_descend` / `_tick_auto` → the stairs' own `_use_stairs`, every gate intact) — on even floors that staircase is bottom-LEFT under the stick. Locked
   by `controls_test._test_touch_round37` (sizes, slots, gaps, slop, one-frame tap, double tap, slide, STAIRS walk / stop / cancel / arrive). Synthetic touches + xvfb renders only —
   the owner's thumb is the real test; the numbers (sizes, `MIN_HOLD`, slot order) are first guesses.
+- **WALL ART PASS (owner round 38 — "the bins out Monday sign looks very plain… posters with generic words like SPACE… image posters with better visuals and
+  poster / picture-frame borders"; then "the music ones… pikachu tails… the tree is extending beyond the frame… not very symmetrical… that light square… the
+  computer is too flat"; full write-up docs/art_reference/modules/README.md "WALL ART"):** ONE kit, `tools/art/wallart.py` (`furn.py`'s poster / frame / note /
+  sticky / newspaper / missing helpers delegate to it, old call shapes kept). **Posters are pictures, no title words**: an upright electric guitar on a
+  sunburst, a vinyl record, a horror one-sheet (house on a hill), a space poster (ringed planet), a roller wall map, a sunset with a palm, a rainbow, a crayon
+  drawing (mirrored about its centre) — every picture drawn into a scratch canvas the size of its rect and copied in (`_paint`), so nothing can leave its frame;
+  posters get a paper margin + pins / tape, framed pictures a bevelled moulding + mat + glint (`frame`, `kind_for`). Bedroom B's flat CRT is a real object
+  (`furn.crt_on_top` — bezel + lofted tube housing, keyboard, can, boxes ON the desk top in `setback`'s own perspective via `furn.top_projector`; also study B),
+  its "ripped-poster" light square is deleted, the desk moved 3 px right / deeper (nodes moved with it). **Corridor paper** is `wallart.CORRIDOR_PAPER` (14
+  pieces: memos on a letterhead, safety plates with pictograms, hazard / quarantine signs, a neighbour's torn-page note, MISSING + new LOST CAT flyers, the kid's
+  drawing; pools gained `notice_fire_door`, `poster_lost_cat`). **They must fit the slot** — rule in `corridor_decals.gd` "poster" zone: every notice hangs from row
+  67, ≤ 38 × 29 or ≤ 52 × 23; the first 52 × 28 versions were never placed at all (found by counting placements: 17 notices, all small) — now 44 notices on 39
+  floor-runs vs 40 on 34 before (seed 12345, 29 floors × 3 runs). `building_floors_test`'s notice band changed from 58..94 to 67..96 (an intended change, not a
+  loosening to pass). `python3 tools/art/wallart.py --check` is in `tools/run_all_tests.sh` (stale decal PNGs, an oversized piece or a missing helper fail it).
+  **Latent bug fixed on the way:** `corridor_decals.py` crashed on regeneration since round 37 (`nest._zombie_dead` gained a layer argument; `dead()` wasn't
+  updated and nothing runs that tool in the gate) — the regenerated `dead_*` decals are byte-identical to the committed ones. The LOOK needs the owner's eye
+  (xvfb only).
 - Not started: quests.

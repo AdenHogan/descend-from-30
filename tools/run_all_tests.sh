@@ -52,6 +52,14 @@ else
 	echo "FAIL   cat art — run: python3 tools/art/cat.py"; head -3 "$LOG_DIR/_cat.log"
 	bad=$((bad + 1))
 fi
+# The corridor's paper (notices, flyers, the kid's drawing — assets/corridor/decals/) and every room poster / frame come
+# from tools/art/wallart.py: a stale decal PNG, a piece over the notice slot, or a helper that has gone missing fails here.
+if python3 tools/art/wallart.py --check >"$LOG_DIR/_wallart.log" 2>&1; then
+	echo "ok     wall art (corridor paper current, room pieces draw)"
+else
+	echo "FAIL   wall art — run: python3 tools/art/corridor_decals.py"; head -5 "$LOG_DIR/_wallart.log"
+	bad=$((bad + 1))
+fi
 for t in tests/*.tscn; do
 	n=$(basename "$t" .tscn)
 	if [ $# -gt 0 ]; then

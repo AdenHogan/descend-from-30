@@ -1191,7 +1191,8 @@ func _test_corridor_decals() -> void:
 	for b in CD.DRESSING_KEPT + CD.DRESSING_TIRED + CD.DRESSING_GONE + CD.KNOCKED.values():
 		for n in CD.dressing_variants(b):
 			dressing[n] = true
-	# notices hang in the band just over the rail — never up by the ceiling, never across the rail —
+	# notices hang in the band just over the rail — never up by the ceiling, never across the rail (it starts at row 96),
+	# never over a sconce (their box ends at row 67; round 38: the notices grew into full memos / signs, 52 x 29 at most) —
 	# and the corridor carries what residents leave outside (owner round 24)
 	var notices := 0
 	var outdoor := {}
@@ -1203,7 +1204,7 @@ func _test_corridor_decals() -> void:
 				if nm in CD.WALL_DRESSING:
 					notices += 1
 					var sz: Vector2 = CD._tex(nm).get_size()
-					if d["pos"].y < 58.0 or d["pos"].y + sz.y > 94.0:
+					if d["pos"].y < 67.0 or d["pos"].y + sz.y > 96.0 or sz.x > 52.0 or sz.y > 29.0:
 						high_notice = "%s@%s floor %d" % [nm, d["pos"], f]
 				elif CD.base_of(nm) in ["bicycle", "bicycle_wrecked", "kids_bike", "bin_bags", "recycling_box", "pram",
 						"newspapers", "shoe_rack", "shoe_tray", "umbrella_stand", "plant_stand", "hall_table"]:

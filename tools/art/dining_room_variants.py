@@ -63,12 +63,8 @@ def b_wall(c):
 
 def b_decor(c):
     # a framed geometric print + a snapshot of the family who ate here
-    c.box(104, 24, 138, 54, hexc('e8e2d2'), hexc('3a3a3a'))
-    c.rect(107, 27, 135, 51, hexc('f4f0e4'))
-    c.rect(109, 29, 121, 49, hexc('d9662e'))
-    c.rect(123, 29, 133, 38, hexc('2f6a6a'))
-    c.rect(123, 40, 133, 49, MUSTARD)
-    c.ellipse(115, 39, 4, 4, hexc('f4f0e4'))
+    import wallart                                                                            # behind glass, a card mat, a thin black frame
+    wallart.picture_print(c, 104, 24, 138, 54, 'black')
     F.photo(c, 145, 30, 161, 44, [(hexc('e0c0a0'), hexc('3a2a1e'), hexc('d9662e'), 9), (hexc('d8b89a'), hexc('6a4a2a'), hexc('2f6a6a'), 10),
                                   (hexc('e8c8a8'), hexc('b08a50'), hexc('e8b83a'), 6)], frame=hexc('3a2718'))
     # the serving hatch to the kitchen: folding louvred doors open onto the dim kitchen beyond

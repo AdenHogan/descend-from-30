@@ -26,11 +26,11 @@ texture = ExtResource("1_art")
 centered = false
 
 [node name="anchor_bedroom_desk" type="Marker2D" parent="."]
-position = Vector2(28, 74)
+position = Vector2(31, 78)
 metadata/back_plane = true
 
 [node name="anchor_bedroom_desk_drawer" type="Marker2D" parent="."]
-position = Vector2(14, 96)
+position = Vector2(17, 99)
 metadata/back_plane = true
 
 [node name="anchor_bedroom_clothes_pile" type="Marker2D" parent="."]
@@ -63,7 +63,7 @@ metadata/kind = "flush"
 [node name="Anims" type="Node2D" parent="."]
 
 [node name="anim_0" type="Node2D" parent="Anims"]
-position = Vector2(25, 68)
+position = Vector2(34, 72)
 script = ExtResource("4_anim")
 metadata/kind = "blink"
 metadata/fall = 0

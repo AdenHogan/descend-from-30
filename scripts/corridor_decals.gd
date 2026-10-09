@@ -59,17 +59,17 @@ const MAX_PER_KIND := {"scrawl": 2, "slide": 2, "drag": 2, "door_x": 2}
 const DRESSING_KEPT := ["plant_tall", "plant_stand", "umbrella_stand", "shoe_tray", "shoe_tray", "shoe_rack",
 	"hall_table", "hall_table", "parcels", "chair", "scooter", "shopping_bag", "kid_drawing", "bicycle", "kids_bike",
 	"pram", "bin_bags", "recycling_box", "newspapers",
-	"notice_meeting", "notice_bins", "notice_smoking", "notice_quiet", "notice_water", "notice_lift"]
+	"notice_meeting", "notice_bins", "notice_smoking", "notice_quiet", "notice_water", "notice_lift", "notice_fire_door"]
 const DRESSING_TIRED := ["plant_tall", "plant_dead", "parcels", "chair", "shoe_tray", "suitcase", "bin_bags", "hall_table",
 	"bin_bags", "recycling_box", "bicycle", "shoe_rack", "newspapers", "plant_stand",
-	"shopping_bag", "notice_quarantine", "poster_missing", "notice_lift", "notice_water", "notice_evac"]
+	"shopping_bag", "notice_quarantine", "poster_missing", "notice_lift", "notice_water", "notice_evac", "poster_lost_cat"]
 const DRESSING_GONE := ["plant_dead", "chair_down", "suitcase", "parcels", "poster_missing", "bin_bags",
 	"bin_bags", "bicycle_wrecked", "pram", "newspapers", "plant_stand_fallen",
-	"notice_quarantine", "shopping_bag", "notice_evac", "notice_curfew", "notice_dont_open"]
+	"notice_quarantine", "shopping_bag", "notice_evac", "notice_curfew", "notice_dont_open", "poster_lost_cat"]
 # building notices (owner round 23 — "a variety of notices for the building"), readable, per floor
 const WALL_DRESSING := ["kid_drawing", "notice_quarantine", "poster_missing", "notice_lift", "notice_water",
 	"notice_meeting", "notice_bins", "notice_smoking", "notice_quiet", "notice_evac", "notice_curfew",
-	"notice_dont_open"]
+	"notice_dont_open", "notice_fire_door", "poster_lost_cat"]
 # THE DEAD (owner round 21c): someone lying where they fell — in a pool, or at the end of the trail
 # they crawled. A separate seeded pass (its own RNG, so the dressing/horror draws above never move),
 # up to two per floor, each appearing once the floor's horror level passes its seeded threshold and
@@ -356,8 +356,8 @@ static func _find(rng: RandomNumberGenerator, taken: Array, size: Vector2, zone:
 			y_lo = SKIRT_TOP - size.y; y_hi = y_lo
 		"floor":
 			y_lo = FLOOR_Y + 3.0; y_hi = 190.0 - size.y
-		"poster":                                              # pinned up in the band just over the rail —
-			y_lo = 58.0; y_hi = 94.0 - size.y                  # never up by the ceiling (owner round 24)
+		"poster":                                              # pinned up in the band just over the rail, UNDER the wall sconces
+			y_lo = 67.0; y_hi = 67.0                           # ALL hang from row 67 — under the sconces (their box ends at 67), clear of the door plates (row 90 on) for a 52 x 23 memo, above the rail (row 96) for a 29-tall flyer; never up by the ceiling (owner round 24; round 38: the notices grew)
 	var floor_zone := zone == "floor"
 	for attempt in range(40):
 		var x: float = float(rng.randi_range(8 if floor_zone else int(WALL_X.x), int((1112.0 if floor_zone else WALL_X.y) - size.x)))

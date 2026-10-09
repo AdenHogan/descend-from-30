@@ -34,19 +34,18 @@ B_WALL = hexc('5e7f86')
 
 def b_wall(c):
     F.wall_plain(c, B_WALL, hexc('4a656b'), hexc('d8d2c2'), texture=hexc('587880'))
-    # decay: a scuffed patch where a poster was ripped down, blu-tack marks
-    c.rect(150, 28, 170, 50, shade(B_WALL, 1.06))
-    for (x, y) in ((150, 28), (170, 28), (150, 50), (170, 50)):
-        c.put(x, y, hexc('7aa0c8'))
 
 
 def b_decor(c):
-    # posters you can read (owner round 14: the abstract colour blocks "don't really make any sense")
-    F.poster_gig(c, 10, 18, 40, 48, 'ROCK', paper=hexc('e8dcc0'), ink=hexc('1e1e24'), spot=hexc('c8322a'))
-    F.poster_film(c, 102, 22, 128, 58, 'NIGHT', torn=True)
+    # posters (owner round 38: "posters with generic words like SPACE… just image posters with better visuals and
+    # poster / picture-frame borders") — pictures, no title words, each in its own paper margin held up with pins,
+    # a roller map on its rods, and a pinned school timetable where the EXAM sticky was
+    F.poster_gig(c, 10, 18, 40, 48)
+    F.poster_film(c, 102, 22, 128, 58, torn=True)
     F.poster_map(c, 180, 26, 216, 50)
-    F.poster_game(c, 278, 20, 308, 44, 'SPACE')
-    F.sticky(c, 188, 54, 'EXAM', col=hexc('9ad0e0'))                                   # (was a stray scrawl)
+    F.poster_game(c, 278, 20, 308, 44)
+    import wallart
+    wallart.draw_timetable(c, 189, 54)
 
 
 @persp
@@ -58,7 +57,7 @@ def _b_desk(c):
     # the desk against the wall (x < 50), SYMMETRIC (owner round 14: the monitor sat over a one-sided
     # pedestal and "goes over the right side… no symmetry"): a pedestal of drawers at each end, the
     # CRT centred on the top, the keyboard centred under it, two cans at the end
-    x0, x1, cx = 6, 48, 27
+    x0, x1, cx = 9, 51, 30
     c.shadow(cx, 100, 22, 2, 100)
     c.rect(x0, 72, x1, 74, F.PINE[1])
     c.hline(x0, x1, 72, F.PINE[3])
@@ -68,22 +67,12 @@ def _b_desk(c):
             c.box(p0 + 2, d0, p1 - 2, d1, F.PINE[0], F.PINE[2])
             c.put((p0 + p1) // 2, (d0 + d1) // 2, F.BRASS)
     c.rect(x0 + 13, 75, x1 - 13, 77, F.PINE[2])                                            # the modesty rail
-    c.box(cx - 11, 52, cx + 11, 70, hexc('c9c2b1'), hexc('6d6a60'))                        # CRT
-    c.rect(cx - 8, 55, cx + 8, 66, hexc('22302c'))
-    c.rect(cx - 6, 57, cx - 2, 58, hexc('3e524b'))
-    for (ly, lw) in ((60, 9), (62, 5)):                                                     # a few lines of text,
-        c.hline(cx - 6, cx - 6 + lw, ly, hexc('4e8a5a'))
-    c.hline(cx - 6, cx - 4, 64, hexc('7ac08a'))                                             # the prompt,
-    PX.anim(cx - 2, 64, 'blink', color='9ae0aa', w=2, h=1)                                  # the cursor waiting
-    c.rect(cx - 5, 70, cx + 5, 71, hexc('a9a496'))                                          # its foot
-    c.rect(cx - 10, 69, cx + 10, 71, hexc('d8d2c2'))                                        # keyboard
-    c.hline(cx - 9, cx + 9, 70, hexc('b8b2a2'))
-    c.rect(x1 - 5, 67, x1 - 3, 71, hexc('b0453a'))                                          # a can
 
 
 def b_furniture(c):
     from pixlib import setback
-    setback(c, _b_desk, depth=5, top=72, x_range=(6, 48), rake=1.0)
+    shift = setback(c, _b_desk, depth=8, top=72, x_range=(9, 51), rake=1.0)
+    F.crt_on_top(c, shift, 30, 72)
     # the desk chair rolled back from the desk and swivelled toward the room (3D, like the study's) —
     # clear of the desk's back-plane spot, upright or knocked over (owner round 13b)
     import chair3d as C3
@@ -129,7 +118,7 @@ def b_furniture(c):
     F.flush_light(c, 148)                                                                  # the ceiling dome
 
 
-B_ANCHORS = [('anchor_bedroom_desk', 28, 70, 'bp'), ('anchor_bedroom_desk_drawer', 14, 88, 'bp'),
+B_ANCHORS = [('anchor_bedroom_desk', 31, 78, 'bp'), ('anchor_bedroom_desk_drawer', 17, 88, 'bp'),
              ('anchor_bedroom_clothes_pile', 150, 109, ''), ('anchor_bedroom_beanbag', 118, 90, 'bp'),
              ('anchor_bed_pillow', 260, 88, ''), ('anchor_floor_underbed', 210, 110, ''),
              ('anchor_bedroom_crate', 301, 90, 'bp')]
@@ -402,10 +391,9 @@ def e_decor(c):
         c.hline(100, 105, y, hexc('4a4a4a'))
         F.text3(c, 107, y - 2, age, hexc('5a5a5a'))
     F.text3(c, 100, 57, 'MIA', hexc('5a5a5a'))
-    c.box(170, 24, 196, 46, hexc('e6e0cc'), hexc('8a8270'))                      # a crayon drawing
-    c.line(174, 42, 180, 32, hexc('3a7a3a')); c.ellipse(186, 30, 3, 3, hexc('d9c24a'))
-    for (x, col) in ((176, hexc('3a3a3a')), (182, hexc('3a3a3a')), (188, hexc('a8322c'))):
-        c.vline(x, 36, 42, col); c.ellipse(x, 35, 1, 1, col)
+    import wallart                                                                # a crayon drawing in a cheap white frame,
+    wallart.picture_crayon(c, 166, 22, 196, 46)                                   # and a rainbow poster taped up beside the lamp
+    wallart.poster_rainbow(c, 106, 22, 124, 46)
 
 
 @persp

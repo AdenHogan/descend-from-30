@@ -35,11 +35,8 @@ def b_wall(c):
 
 
 def b_decor(c):
-    F.frame_pic(c, 104, 26, 130, 44, hexc('26262a'), hexc('e6e0cc'), wire=False)            # a certificate
-    F.text3(c, 104 + (27 - F.text3_width('AWARD')) // 2, 29, 'AWARD', hexc('2a2622'))
-    for y in (36, 38):
-        c.hline(108, 126, y, hexc('9a927e'))
-    c.ellipse(117, 41, 1.5, 1.5, hexc('b0453a'))                                              # the seal
+    import wallart                                                                                  # a certificate in a black frame
+    wallart.draw_certificate(c, 103, 24, 131, 46)
     def board(c):
         c.box(148, 20, 200, 52, hexc('9a7650'), hexc('3b2718'))                              # a corkboard
         c.dither(149, 21, 199, 51, hexc('86653f'), 0.3, pattern='random')
@@ -84,18 +81,13 @@ def b_furniture(c):
             c.box(112, d0, 126, d1, BEIGE[0], BEIGE[2])
             c.rect(117, (d0 + d1) // 2, 121, (d0 + d1) // 2, hexc('7e8486'))
         c.rect(180, 74, 182, 99, BEIGE[2])
-        c.box(132, 48, 160, 68, BEIGE[0], BEIGE[3])                                           # the monitor
-        c.rect(135, 51, 157, 64, hexc('1e2a3a'))
-        c.rect(138, 54, 150, 55, hexc('3a5a8a'))
-        for (ly, lw) in ((57, 15), (59, 12), (61, 6)):                                        # a letter, mid-sentence
-            c.hline(138, 138 + lw, ly, hexc('5a7aa8'))
-        PX.anim(145, 61, 'blink', color='c8d8f0', w=1, h=1)
-        c.rect(142, 68, 150, 69, BEIGE[2])
-        c.box(162, 56, 178, 69, BEIGE[0], BEIGE[3])                                           # the tower
-        c.rect(164, 59, 176, 60, BEIGE[2]); c.put(170, 64, hexc('4e8a5a'))
-        c.rect(130, 69, 158, 69, hexc('e6e0cc'))                                              # keyboard
         c.rect(112, 64, 118, 69, hexc('e6e0cc')); c.put(119, 66, hexc('e6e0cc'))              # a mug
-    setback(c, lambda l: F.moved(l, desk, -8, 0), depth=5, top=70, x_range=(100, 176), rake=1.0)
+    shift = setback(c, lambda l: F.moved(l, desk, -8, 0), depth=5, top=70, x_range=(100, 176), rake=1.0)
+    # the computer (owner round 38: "the computer is too flat"): a real CRT lofted away behind its bezel, a keyboard in
+    # front of it, and the tower beside it — boxes standing ON the desk top in the desk's own perspective
+    F.crt_on_top(c, shift, 138, 70, with_can=False)
+    P = F.top_projector(shift)
+    F.box_on_top(c, P, 155, 55, 170, 70, 0.34, 0.8, BEIGE[0], BEIGE[1], BEIGE[2], BEIGE[3])
     # an office chair rolled out from the desk and left swivelled at an angle (owner round 13: the
     # square-on chair "looks a bit weird" — built in 3D like the armchairs). It stands at the desk's
     # RIGHT end, clear of the desk's back-plane spot at the drawer end — upright or knocked over.
@@ -159,7 +151,7 @@ def b_furniture(c):
     F.tube_light(c, 220)                                                 # the office fluorescent
 
 B_ANCHORS = [('anchor_study_low_shelf', 26, 88, 'bp s'), ('anchor_study_box_files', 64, 88, 'bp s'),
-             ('anchor_centre_desk', 128, 62, 'bp'), ('anchor_study_desk_drawer', 111, 88, 'bp'),
+             ('anchor_centre_desk', 128, 66, 'bp'), ('anchor_study_desk_drawer', 111, 88, 'bp'),
              ('anchor_study_office_chair', 160, 100, ''), ('anchor_study_printer', 196, 72, 'bp'),
              ('anchor_study_armchair', 234, 98, ''),
              ('anchor_study_side_table', 278, 107, '')]
@@ -260,8 +252,8 @@ def d_decor(c):
     # river, the blocks, this building ringed ("US"), the way out drawn in red to the SAFE zone and the
     # bridge crossed out
     # (round 23: pinned a hand's width clear of the aerial lead and of the transceiver below)
-    c.rect(104, 22, 176, 55, hexc('e4dcc0'))
-    c.rect(103, 21, 177, 21, hexc('b9b09a')); c.hline(103, 177, 56, hexc('9a927e'))
+    import wallart
+    wallart.sheet(c, 104, 22, 176, 55, hexc('e4dcc0'), seed=5, fold=None, curl='br', grain=0.02)
     for x in range(110, 176, 12):
         c.vline(x, 23, 54, hexc('c9c0a6'))                                                    # streets
     for y in range(28, 55, 8):
@@ -277,13 +269,10 @@ def d_decor(c):
     for (a_, b_) in zip(route, route[1:]):
         c.line(a_[0], a_[1], b_[0], b_[1], hexc('b0332a'))
     c.line(135, 50, 141, 56, hexc('1e1e24')); c.line(141, 50, 135, 56, hexc('1e1e24'))          # the bridge, out
-    F.pin(c, 103, 23); F.pin(c, 174, 23)
+    wallart.paper_folds(c, 104, 22, 176, 55, vert=(128, 152), horiz=(38,))                       # it was folded to fit a pocket
+    wallart.pushpin(c, 103, 22, hexc('c0453a')); wallart.pushpin(c, 173, 22, hexc('3a6a9a'))
     # the emergency notice pushed under every door
-    c.box(184, 24, 210, 46, hexc('e8c83a'), hexc('3a3420'))
-    c.hline(186, 208, 26, hexc('1e1e24'))
-    F.text3(c, 184 + (27 - F.text3_width('STAY')) // 2, 29, 'STAY', hexc('1e1e24'))
-    F.text3(c, 184 + (27 - F.text3_width('INSIDE')) // 2, 35, 'INSIDE', hexc('1e1e24'))
-    c.hline(186, 208, 42, hexc('1e1e24'))
+    wallart.draw_emergency_notice(c, 184, 24, 210, 46)
 
 
 @persp

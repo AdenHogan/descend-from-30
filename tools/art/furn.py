@@ -148,80 +148,40 @@ def text3_width(word):
 
 
 def _paper(c, x0, y0, x1, y1, bg):
-    c.rect(x0, y0, x1, y1, bg)
-    c.rect(x0 + 1, y1 + 1, x1 + 1, y1 + 1, hexc('000000', 60))          # a hair of shadow
-    for tx in (x0, x1):
-        c.rect(tx - 1, y0 - 1, tx + 1, y0, hexc('f0ead2', 190))          # tape / pins
+    """A sheet of paper stuck to the wall (tools/art/wallart.py: grain, a lit and a shaded edge, a drop shadow,
+    a curled corner) held up by a strip of tape at each top corner."""
+    import wallart
+    wallart.sheet(c, x0, y0, x1, y1, bg, seed=x0 * 31 + y0, curl='br' if (x0 + y0) % 2 else 'bl')
+    wallart.tape(c, x0 - 2, y0 - 1, 5, 3, 1)
+    wallart.tape(c, x1 - 4, y0 - 1, 5, 3, -1)
 
 
-def poster_gig(c, x0, y0, x1, y1, title='LIVE', paper=hexc('e4d8bc'), ink=hexc('b8332a'), spot=hexc('e0913a')):
-    """A gig poster: the title, a guitarist silhouette in a spotlight, the small print."""
-    _paper(c, x0, y0, x1, y1, paper)
-    cx = (x0 + x1) // 2
-    text3(c, cx - text3_width(title) // 2, y0 + 3, title, ink)
-    cy = (y0 + y1) // 2 + 3
-    r = max(4, min(x1 - x0, y1 - y0) // 4)
-    c.ellipse(cx, cy, r + 1, r, spot)
-    blk = hexc('1e1a1c')
-    c.rect(cx - 1, cy - r + 1, cx + 1, cy - r + 3, blk)
-    c.rect(cx - 2, cy - r + 4, cx + 2, cy + 1, blk)
-    c.line(cx - 1, cy + 2, cx - 3, cy + r, blk); c.line(cx + 1, cy + 2, cx + 3, cy + r, blk)
-    c.line(cx - 5, cy + 1, cx + 5, cy - 4, blk)
-    c.rect(cx - 5, cy - 1, cx - 3, cy + 2, blk)
-    c.hline(x0 + 3, x1 - 3, y1 - 4, hexc('7a6e5c'))
-    c.hline(x0 + 5, x1 - 5, y1 - 2, hexc('7a6e5c'))
+# Owner round 38 ("posters with generic words like SPACE… image posters with better visuals and poster /
+# picture-frame borders"): the posters are PICTURES now — no title words — drawn by tools/art/wallart.py in
+# their own paper margin or frame. The old `title` / colour arguments are accepted and ignored so every
+# caller keeps working (the picture is the poster).
+def poster_gig(c, x0, y0, x1, y1, title=None, paper=None, ink=None, spot=None, scheme='sun', fix='pins'):
+    """A rock poster: a sunburst, a guitar slashed across it, a lightning bolt, a strip of tour dates."""
+    import wallart
+    wallart.poster_guitar(c, x0, y0, x1, y1, scheme, fix, seed=x0 + y0)
 
 
-def poster_film(c, x0, y0, x1, y1, title='NIGHT', torn=False):
-    """A horror-film poster: a night sky, a big pale moon, a black treeline and a reaching hand, the
-    title in red on a black band at the foot."""
-    _paper(c, x0, y0, x1, y1, hexc('1c2440'))
-    for y in range(y0, y1 - 7):
-        t = (y - y0) / float(max(1, y1 - 7 - y0))
-        c.hline(x0, x1, y, mix(hexc('1c2440'), hexc('3a2a4a'), t))
-    mx, my = (x0 + x1) // 2 + 3, y0 + 9
-    c.ellipse(mx, my, 6, 6, hexc('e8e2c8'))
-    c.put(mx - 2, my - 1, hexc('c8c2a8')); c.put(mx + 2, my + 2, hexc('c8c2a8'))
-    for x in range(x0, x1 + 1):                                          # a treeline
-        h = 3 + (x * 7) % 5
-        c.vline(x, y1 - 8 - h, y1 - 8, hexc('0e0e14'))
-    hx = (x0 + x1) // 2 - 3                                                # the hand, reaching up
-    c.rect(hx, y1 - 14, hx + 3, y1 - 8, hexc('0e0e14'))
-    for k in range(4):
-        c.vline(hx + k, y1 - 18 + (k % 2), y1 - 14, hexc('0e0e14'))
-    c.rect(x0, y1 - 7, x1, y1, hexc('0e0e14'))
-    text3(c, (x0 + x1) // 2 - text3_width(title) // 2, y1 - 6, title, hexc('c8322a'))
-    if torn:                                                               # the bottom corner torn off
-        for j in range(6):
-            for i in range(6 - j):
-                c.put(x1 - i, y1 - j, hexc('ece6d4') if i else hexc('c8c0aa'))
+def poster_film(c, x0, y0, x1, y1, title=None, torn=False):
+    """A horror one-sheet: a bruised sky, a moon, a house on a hill with two lit windows, bats, blood from the top edge."""
+    import wallart
+    wallart.poster_horror(c, x0, y0, x1, y1, 'pins', seed=x0 + y0, torn=torn)
 
 
 def poster_map(c, x0, y0, x1, y1):
-    """A world map: pale sea, green-khaki continents, a pin or two."""
-    _paper(c, x0, y0, x1, y1, hexc('a8c4d0'))
-    c.rect(x0, y0, x1, y0 + 1, hexc('e8e2d0')); c.rect(x0, y1 - 1, x1, y1, hexc('e8e2d0'))
-    w, h = x1 - x0, y1 - y0
-    land = hexc('a8b070')
-    for (fx, fy, rx, ry) in ((0.22, 0.35, 0.12, 0.18), (0.30, 0.68, 0.06, 0.16), (0.52, 0.32, 0.08, 0.12),
-                             (0.55, 0.62, 0.07, 0.16), (0.72, 0.36, 0.16, 0.16), (0.84, 0.72, 0.07, 0.07)):
-        c.ellipse(x0 + int(fx * w), y0 + int(fy * h), max(1, int(rx * w)), max(1, int(ry * h)), land)
-    c.put(x0 + int(0.24 * w), y0 + int(0.33 * h), hexc('c0302a'))
-    c.put(x0 + int(0.74 * w), y0 + int(0.40 * h), hexc('c0302a'))
+    """A roller wall map: rods top and bottom, a cord to a nail, the continents, three pins."""
+    import wallart
+    wallart.poster_map(c, x0, y0, x1, y1, seed=x0 + y0)
 
 
-def poster_game(c, x0, y0, x1, y1, title='SPACE'):
-    """A game poster: stars, a ringed planet, a little ship, the title."""
-    _paper(c, x0, y0, x1, y1, hexc('14142a'))
-    for k in range(18):
-        c.put(x0 + 1 + (k * 13) % max(1, x1 - x0 - 1), y0 + 1 + (k * 7) % max(1, y1 - y0 - 8), hexc('d8d8f0'))
-    px, py = x0 + (x1 - x0) // 3, y0 + (y1 - y0) // 2
-    c.ellipse(px, py, 5, 5, hexc('d98a4a'))
-    c.hline(px - 8, px + 8, py, hexc('e8c890')); c.hline(px - 7, px + 7, py + 1, hexc('b86a3a'))
-    sx, sy = x1 - 8, y0 + 7
-    c.poly([(sx, sy), (sx + 5, sy + 2), (sx, sy + 4)], hexc('c8d0e0'))
-    c.put(sx - 1, sy + 2, hexc('e0702c')); c.put(sx - 2, sy + 2, hexc('e0a02c'))
-    text3(c, (x0 + x1) // 2 - text3_width(title) // 2, y1 - 6, title, hexc('4ec8e0'))
+def poster_game(c, x0, y0, x1, y1, title=None):
+    """A space poster: a nebula, stars, a ringed planet, a little rocket, a moon."""
+    import wallart
+    wallart.poster_space(c, x0, y0, x1, y1, 'pins', seed=x0 + y0)
 
 
 def _register_feet(name, spans, base):
@@ -320,12 +280,11 @@ def poster(c, x0, y0, x1, y1, bg, fg, accent=None, torn=False):
 
 
 def frame_pic(c, x0, y0, x1, y1, fr, fill, wire=True):
-    c.box(x0, y0, x1, y1, fr, shade(fr, 0.55))
-    c.rect(x0 + 2, y0 + 2, x1 - 2, y1 - 2, fill)
-    if wire:
-        mx = (x0 + x1) // 2
-        c.line(x0 + 3, y0, mx, y0 - 6, shade(fr, 0.55))
-        c.line(x1 - 3, y0, mx, y0 - 6, shade(fr, 0.55))
+    """A framed picture: a bevelled moulding in the frame colour's family, a mat, the glass; `fill` is the card."""
+    import wallart
+    r = wallart.frame(c, x0, y0, x1, y1, wallart.kind_for(fr), mat=None, thick=1, hang='wire' if wire else None, lip=False)
+    c.rect(r[0], r[1], r[2], r[3], fill)
+    wallart.glint(c, r, 36)
 
 
 def rug(c, x0, x1, y0, y1, col, border, pattern=None, fringe=None):
@@ -876,29 +835,16 @@ def tape(c, x, y):
 
 def note(c, x0, y0, lines, w=None, paper=PAPER, ink=INK, fix='pin', tilt=0):
     """A paper with words: each line in the 3x5 capitals, centred; `fix` = 'pin' / 'tape' / None."""
+    import wallart
     w = w or max(text3_width(t) for t in lines) + 5
-    h = 6 * len(lines) + 4
-    x1, y1 = x0 + w, y0 + h
-    _paper(c, x0, y0, x1, y1, paper)
-    c.hline(x0, x1, y1, shade(paper, 0.85))
-    for i, t in enumerate(lines):
-        col = RED_INK if t.endswith('!') else ink
-        text3(c, x0 + (w - text3_width(t)) // 2 + 1, y0 + 3 + 6 * i, t, col)
-    if fix == 'pin':
-        pin(c, (x0 + x1) // 2, y0 + 1)
-    elif fix == 'tape':
-        tape(c, x0 + 2, y0); tape(c, x1 - 2, y0)
-    return (x0, y0, x1, y1)
+    return wallart.draw_note(c, x0, y0, lines, w, paper, ink, RED_INK, fix)
 
 
 def sticky(c, x0, y0, word, col=hexc('e8d45a')):
     """A square sticky note with one word on it, its bottom edge curling."""
+    import wallart
     w = max(9, text3_width(word) + 4)
-    c.rect(x0, y0, x0 + w, y0 + 9, col)
-    c.hline(x0 + 1, x0 + w, y0 + 9, shade(col, 0.78))
-    c.put(x0 + w, y0 + 8, shade(col, 0.7))
-    text3(c, x0 + 2, y0 + 2, word, INK)
-    return x0 + w
+    return wallart.draw_sticky(c, x0, y0, word, col, INK, w)
 
 
 def calendar(c, x0, y0, month='MAY', crossed=12, ringed=19, header=hexc('4a6e8a'), picture=None):
@@ -940,7 +886,13 @@ def photo(c, x0, y0, x1, y1, people, bg=hexc('9ac0d8'), ground=hexc('7a9a5a'), b
     """A photograph of PEOPLE (owner round 17 — pictures of nothing read as meaningless): a white
     border (or a frame), sky + ground, and a row of little figures — each (skin, hair, clothes, height)."""
     if frame is not None:
-        c.box(x0 - 2, y0 - 2, x1 + 2, y1 + 2, frame, shade(frame, 0.55))
+        import wallart
+        wallart.frame(c, x0 - 2, y0 - 2, x1 + 2, y1 + 2, wallart.kind_for(frame), mat=None, thick=1, lip=False)
+    else:
+        for xx in range(x0 + 1, x1 + 2):                                                 # a snapshot: a hair of shadow
+            c.put(xx, y1 + 1, hexc('000000', 60))
+        for yy in range(y0 + 1, y1 + 2):
+            c.put(x1 + 1, yy, hexc('000000', 46))
     c.rect(x0, y0, x1, y1, border)
     ix0, iy0, ix1, iy1 = x0 + 1, y0 + 1, x1 - 1, y1 - (3 if frame is None else 1)
     c.rect(ix0, iy0, ix1, iy1, bg)
@@ -959,45 +911,17 @@ def photo(c, x0, y0, x1, y1, people, bg=hexc('9ac0d8'), ground=hexc('7a9a5a'), b
 
 
 def newspaper(c, x0, y0, headline, sub=None, w=None):
-    """A front page taped to the wall: the masthead rule, a big headline you can read, a photo block
-    and the columns."""
+    """A front page taped to the wall: the masthead rules, a big headline you can read, a halftone photo
+    with a skyline, and the columns."""
+    import wallart
     w = w or max(22, text3_width(headline) + 5)
-    x1, y1 = x0 + w, y0 + 26
-    _paper(c, x0, y0, x1, y1, hexc('ddd6c2'))
-    c.hline(x0 + 2, x1 - 2, y0 + 2, INK)
-    c.hline(x0 + 2, x1 - 2, y0 + 3, hexc('8a8270'))
-    text3(c, x0 + (w - text3_width(headline)) // 2 + 1, y0 + 5, headline, INK)
-    yy = y0 + 11
-    if sub:
-        text3(c, x0 + (w - text3_width(sub)) // 2 + 1, yy, sub, hexc('5a544a'))
-        yy += 6
-    c.rect(x0 + 2, yy, x0 + w // 2 - 1, y1 - 2, hexc('8a8478'))            # the photo
-    c.rect(x0 + 3, yy + 1, x0 + w // 2 - 2, y1 - 3, hexc('6a665c'))
-    for ly in range(yy, y1 - 1, 2):
-        c.hline(x0 + w // 2 + 1, x1 - 2, ly, hexc('9a9282'))
-    tape(c, x0 + 3, y0); tape(c, x1 - 3, y0)
-    return (x0, y0, x1, y1)
+    return wallart.draw_newspaper(c, x0, y0, headline, sub, w)
 
 
 def missing_poster(c, x0, y0, name='ANNA', col=hexc('f0ece0')):
-    """MISSING — a photo of the face, the name, a phone number tab row torn off at the bottom."""
-    w, h = 29, 30
-    x1, y1 = x0 + w, y0 + h
-    _paper(c, x0, y0, x1, y1, col)
-    text3(c, x0 + (w - text3_width('MISSING')) // 2 + 1, y0 + 2, 'MISSING', RED_INK)
-    c.rect(x0 + 5, y0 + 9, x1 - 5, y0 + 19, hexc('8a847a'))                 # the photo
-    c.ellipse((x0 + x1) // 2, y0 + 13, 2.5, 3, hexc('d8b89a'))
-    c.hline((x0 + x1) // 2 - 3, (x0 + x1) // 2 + 3, y0 + 10, hexc('4a3424'))
-    c.rect((x0 + x1) // 2 - 3, y0 + 17, (x0 + x1) // 2 + 3, y0 + 19, hexc('5a7aa0'))
-    text3(c, x0 + (w - text3_width(name)) // 2 + 1, y0 + 21, name, INK)
-    for k in range(7):                                                    # the tear-off tabs
-        tx = x0 + 1 + k * 4
-        if k in (1, 4):
-            continue                                                      # two already taken
-        c.rect(tx, y1 - 3, tx + 2, y1, col)
-        c.vline(tx + 3, y1 - 3, y1, shade(col, 0.8))
-    tape(c, x0 + 3, y0)
-    return (x0, y0, x1, y1)
+    """MISSING — a photo of the face, the name, a row of phone-number tabs torn off at the bottom."""
+    import wallart
+    return wallart.draw_missing(c, x0, y0, name, col)
 
 
 def text_spray(c, x, y, word, col, scale=2, drips=True, seed=3):
@@ -1025,8 +949,8 @@ def portrait(c, x0, y0, x1, y1, sitter='man', bg=hexc('4a4234'), coat=hexc('2a2a
     sitter's hair — 'man' (short, a moustache), 'woman' (hair up in a bun), 'girl' (long, a bow),
     'old' (grey, balding, spectacles)."""
     if frame is not None:
-        c.box(x0 - 2, y0 - 2, x1 + 2, y1 + 2, frame, shade(frame, 0.55))
-        c.hline(x0 - 1, x1 + 1, y0 - 1, shade(frame, 1.25))
+        import wallart
+        wallart.frame(c, x0 - 2, y0 - 2, x1 + 2, y1 + 2, wallart.kind_for(frame), mat=None, thick=1, lip=False)
     c.rect(x0, y0, x1, y1, bg)
     for yy in range(y0, y1 + 1):                                        # a painter's dark vignette
         c.put(x0, yy, shade(bg, 0.8)); c.put(x1, yy, shade(bg, 0.8))
@@ -1195,3 +1119,95 @@ def silver(c, kind, cx, base, col=hexc('b9bfc1')):
         c.vline(cx + 2, base - 4, base - 1, dk); c.vline(cx - 2, base - 4, base - 1, lt)
         c.hline(cx - 2, cx + 2, base - 4, shade(col, 0.8))
         c.put(cx + 3, base - 3, dk)
+
+
+# --- THINGS STANDING ON A SET-BACK PIECE'S TOP, in the same perspective as the piece (owner round 38: "the computer
+# is too flat") ----------------------------------------------------------------------------------------------------
+def top_projector(shift):
+    """Points ON a set-back piece's top surface, matching pixlib.setback exactly: the piece's flat drawing is moved DOWN
+    by `shift` (its front plane, x unchanged) and everything behind it converges on the vanishing point (160, 0) so its
+    back lands on the seam. P(x, y, u): flat wall coords (x, y), u = 0 at the front lip .. 1 at the wall -> art pixel."""
+    import pixlib as PX
+    k0 = PX.SEAM_Y / float(PX.SEAM_Y + shift)
+
+    def P(x, y, u):
+        k = 1.0 - u * (1.0 - k0)
+        return (int(round(160 + (x - 160) * k)), int(round((y + shift) * k)))
+    return P
+
+
+def box_on_top(c, P, x0, y0, x1, y1, uf, ub, front, top, side, out):
+    """A box standing on a top surface: x0..x1 wide, y0 (its top) .. y1 (its base) in flat coords, from depth uf (nearer)
+    to ub (further). Left of the vanishing point its right side shows, right of it its left side, across it neither."""
+    fl, fr, fbl, fbr = P(x0, y0, uf), P(x1, y0, uf), P(x0, y1, uf), P(x1, y1, uf)
+    bl, br, bbl, bbr = P(x0, y0, ub), P(x1, y0, ub), P(x0, y1, ub), P(x1, y1, ub)
+    if x1 <= 160:
+        c.poly([br, fr, fbr, bbr], side)
+    elif x0 >= 160:
+        c.poly([bl, fl, fbl, bbl], side)
+    c.poly([bl, br, fr, fl], top)
+    c.rect(fl[0], fl[1], fbr[0], fbr[1], front)
+    if out is not None:
+        c.line(bl[0], bl[1], br[0], br[1], out); c.line(fl[0], fl[1], bl[0], bl[1], out)
+        c.line(fr[0], fr[1], br[0], br[1], out)
+        if x1 <= 160:
+            c.line(br[0], br[1], bbr[0], bbr[1], out); c.line(bbr[0], bbr[1], fbr[0], fbr[1], out)
+        elif x0 >= 160:
+            c.line(bl[0], bl[1], bbl[0], bbl[1], out); c.line(bbl[0], bbl[1], fbl[0], fbl[1], out)
+        c.hline(fl[0], fr[0], fl[1], out); c.hline(fbl[0], fbr[0], fbl[1], out)
+        c.vline(fl[0], fl[1], fbl[1], out); c.vline(fr[0], fr[1], fbr[1], out)
+    return {'fl': fl, 'fr': fr, 'fbl': fbl, 'fbr': fbr, 'bl': bl, 'br': br}
+
+
+def crt_on_top(c, shift, cx, top, with_can=True):
+    """An old beige CRT computer standing on a desk whose top is at flat y `top` (a set-back piece moved forward by
+    `shift`): a slab keyboard with rows of keys at the front lip, a swivel foot, the bezel with the tube housing LOFTED
+    away behind it (the back face smaller and set up and to the right, the way the desk's own sides converge, so the
+    top and right flank of the housing show), a recessed screen with a lit text prompt and a blinking cursor, a power
+    light and a floppy slot — and optionally a can beside it."""
+    import pixlib as PX
+    P = top_projector(shift)
+    beige, beige_lt, beige_dk, edge = hexc('cfc8b6'), hexc('e2dccb'), hexc('a49d8c'), hexc('5e5a50')
+    c.shadow(cx + 2, top + shift * 0.7, 16, 2.2, 90)
+    kb = box_on_top(c, P, cx - 11, top - 1, cx + 11, top, 0.06, 0.34, hexc('b9b3a2'), hexc('dcd6c6'), hexc('8e8878'), edge)
+    for r_ in range(3):                                                                        # rows of keys on the sloping top
+        t = (r_ + 0.8) / 3.6
+        ya = kb['fl'][1] + (kb['bl'][1] - kb['fl'][1]) * t
+        xa = kb['fl'][0] + (kb['bl'][0] - kb['fl'][0]) * t + 2
+        xb = kb['fr'][0] + (kb['br'][0] - kb['fr'][0]) * t - 2
+        for x in range(int(round(xa)), int(round(xb)) + 1):
+            if (x + r_) % 2 == 0:
+                c.put(x, int(round(ya)), hexc('8e8878'))
+    box_on_top(c, P, cx - 6, top - 3, cx + 6, top, 0.44, 0.72, hexc('a9a496'), hexc('c2bdae'), hexc('7e7a6c'), edge)   # the foot
+    (fx0, fy0), (fx1, fy1) = P(cx - 11, top - 21, 0.42), P(cx + 11, top - 3, 0.42)
+    bw, bh, ox, oy = 7, 6, 6, -5                                    # half width / half height of the back face, its offset
+    mx, my = (fx0 + fx1) // 2 + ox, (fy0 + fy1) // 2 + oy
+    bx0, bx1, by0, by1 = mx - bw, mx + bw, my - bh, my + bh
+    c.poly([(fx1, fy0), (bx1, by0), (bx1, by1), (fx1, fy1)], beige_dk)                       # the right flank
+    c.poly([(fx0, fy0), (fx1, fy0), (bx1, by0), (bx0, by0)], beige_lt)                      # the top
+    c.line(fx0, fy0, bx0, by0, edge); c.line(fx1, fy0, bx1, by0, edge); c.line(bx0, by0, bx1, by0, edge)
+    c.line(bx1, by0, bx1, by1, edge); c.line(bx1, by1, fx1, fy1, edge)
+    for k in range(5):                                              # cooling slots across the top and down the flank
+        t = (k + 1) / 6.0
+        c.put(int(round(fx0 + (bx0 - fx0) * 0.5 + (fx1 - fx0) * t * 0.55)), int(round(fy0 + (by0 - fy0) * 0.5)), edge)
+    for k in range(3):
+        xx = int(round(fx1 + (bx1 - fx1) * 0.55))
+        c.hline(xx - 1, xx + 1, int(round(fy0 + (fy1 - fy0) * (0.25 + 0.2 * k))), shade(beige_dk, 0.7))
+    c.rect(fx0, fy0, fx1, fy1, beige)                                                         # the bezel's front face
+    c.hline(fx0, fx1, fy0, beige_lt); c.vline(fx0, fy0, fy1, beige_lt)
+    c.hline(fx0, fx1, fy1, beige_dk); c.vline(fx1, fy0, fy1, beige_dk)
+    c.hline(fx0, fx1, fy0, edge); c.hline(fx0, fx1, fy1, edge); c.vline(fx0, fy0, fy1, edge); c.vline(fx1, fy0, fy1, edge)
+    (sx0, sy0), (sx1, sy1) = P(cx - 8, top - 17.5, 0.42), P(cx + 8, top - 6.5, 0.42)
+    c.rect(sx0 - 1, sy0 - 1, sx1 + 1, sy1 + 1, hexc('4a463e'))                               # the recess
+    c.rect(sx0, sy0, sx1, sy1, hexc('1c2824'))
+    c.hline(sx0, sx1, sy0, hexc('0e1614')); c.vline(sx0, sy0, sy1, hexc('0e1614'))            # shadow inside the lip
+    for (ly, lw) in ((sy0 + 3, 9), (sy0 + 5, 5), (sy0 + 7, 8)):                              # a few lines of text,
+        c.hline(sx0 + 2, min(sx1 - 2, sx0 + 2 + lw), ly, hexc('4e8a5a'))
+    c.hline(sx0 + 2, sx0 + 4, sy0 + 9, hexc('7ac08a'))                                       # the prompt,
+    PX.anim(sx0 + 6, sy0 + 9, 'blink', color='9ae0aa', w=2, h=1)                             # the cursor waiting
+    c.put(sx0 + 1, sy0 + 1, hexc('5a7a6a')); c.put(sx0 + 2, sy0 + 1, hexc('4a6a5a')); c.put(sx0 + 1, sy0 + 2, hexc('4a6a5a'))   # glass glare
+    c.put(sx1 - 2, sy1 + 2, hexc('5ac85a'))                                                   # the power light
+    c.hline(sx0 + 1, sx0 + 7, sy1 + 2, beige_dk)                                              # the floppy slot
+    if with_can:
+        cc = box_on_top(c, P, cx + 14, top - 6, cx + 17, top, 0.36, 0.5, hexc('b0453a'), hexc('d8887a'), hexc('7a2a22'), hexc('4a1a14'))
+        c.hline(cc['fl'][0] + 1, cc['fr'][0] - 1, cc['fl'][1] + 2, hexc('e8e2d0'))

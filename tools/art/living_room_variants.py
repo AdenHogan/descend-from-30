@@ -87,8 +87,10 @@ def lamp_shade(c, x, shade_col, shade_dk, pole, top=56, base=112, cone=False):
 
 
 def frame(c, x0, y0, x1, y1, fr, fr_dk, fill):
-    c.box(x0, y0, x1, y1, fr, fr_dk)
-    c.rect(x0 + 2, y0 + 2, x1 - 2, y1 - 2, fill)
+    """A picture frame (owner round 38: a real moulding — lit top and left, shaded below and right — not a flat box)."""
+    import wallart
+    r = wallart.frame(c, x0, y0, x1, y1, wallart.kind_for(fr), mat=None, thick=1, lip=False)
+    c.rect(r[0], r[1], r[2], r[3], fill)
 
 
 # --- B: MID-CENTURY ----------------------------------------------------------------------------
@@ -115,11 +117,9 @@ def b_wall(c):
 
 
 def b_decor(c):
-    # an abstract print above the sofa
-    frame(c, 176, 30, 218, 56, hexc('d9cfb8'), hexc('8a826d'), hexc('d9cfb8'))
-    c.rect(181, 35, 196, 51, hexc('c8783b'))
-    c.ellipse(205, 42, 7, 7, hexc('d8a641'))
-    c.rect(199, 46, 213, 51, hexc('3d5c63'))
+    # a mid-century print above the sofa, behind glass in a thin black frame with a card mat
+    import wallart
+    wallart.picture_print(c, 176, 30, 218, 56, 'black')
     # a starburst clock (between the left window and the TV)
     for dx, dy in ((0, -9), (6, -6), (9, 0), (6, 6), (0, 9), (-6, 6), (-9, 0), (-6, -6)):
         c.line(112, 42, 112 + dx, 42 + dy, hexc('b58f4a'))
@@ -364,71 +364,20 @@ def guitar_on_stand(c, cx, floor):
         c.put(cx + dx, ntop + dy, hexc('d9d0bc'))
 
 def gig_poster(c, x0, y0, x1, y1):
-    """A gig poster: cream paper, the title LIVE in red block letters, a black guitarist's
-    silhouette in an orange spotlight, the small print below — tape at the corners."""
-    PAPER, INK, RED, SUN = hexc('e4d8bc'), hexc('1e1a1c'), hexc('b8332a'), hexc('e0913a')
-    c.rect(x0, y0, x1, y1, PAPER)
-    c.rect(x0 + 1, y1, x1 + 1, y1 + 1, hexc('000000', 60))      # a hair of shadow
-    GL = {'L': ['1..', '1..', '1..', '1..', '111'], 'I': ['1', '1', '1', '1', '1'],
-          'V': ['1.1', '1.1', '1.1', '1.1', '.1.'], 'E': ['111', '1..', '11.', '1..', '111']}
-    x = x0 + 4
-    for ch in 'LIVE':
-        g = GL[ch]
-        for gy, row in enumerate(g):
-            for gx, v in enumerate(row):
-                if v == '1':
-                    c.put(x + gx, y0 + 3 + gy, RED)
-        x += len(g[0]) + 1
-    cx, cy = (x0 + x1) // 2, y0 + 19
-    for y in range(cy - 7, cy + 8):
-        for xx in range(cx - 8, cx + 9):
-            if ((xx - cx) / 8.5) ** 2 + ((y - cy) / 7.5) ** 2 <= 1.0:
-                c.put(xx, y, SUN)
-    # the guitarist: head, body, legs apart, a guitar across the body
-    c.rect(cx - 1, cy - 6, cx + 1, cy - 4, INK)
-    c.rect(cx - 2, cy - 3, cx + 2, cy + 2, INK)
-    c.line(cx - 1, cy + 3, cx - 3, cy + 7, INK); c.line(cx + 1, cy + 3, cx + 3, cy + 7, INK)
-    c.line(cx - 5, cy + 2, cx + 5, cy - 3, INK)                   # the guitar's neck
-    c.rect(cx - 5, cy, cx - 3, cy + 3, INK)                       # its body
-    c.hline(x0 + 4, x1 - 4, y1 - 5, hexc('7a6e5c'))                # small print
-    c.hline(x0 + 6, x1 - 6, y1 - 3, hexc('7a6e5c'))
-    for tx, ty in ((x0, y0), (x1, y0)):
-        c.rect(tx - 1, ty - 1, tx + 1, ty, hexc('f0ead2', 190))    # tape
+    """A music poster (owner round 38: pictures, not title words): a magenta sunburst, a vinyl record with the
+    tonearm's needle on it, a strip of tour dates, pinned at the corners."""
+    import wallart
+    wallart.poster_record(c, x0, y0, x1, y1, 'pins', seed=x0 + y0)
+
 
 def travel_poster(c, x0, y0, x1, y1):
-    """A holiday poster half torn away: sunset bands, the sun going down into the sea, a palm —
-    the bottom corner torn off (the wall behind) with the flap folded down, its white back out."""
-    bands = [hexc('e8a04a'), hexc('e07a44'), hexc('c85a4a'), hexc('8a4a5e')]
-    tear = lambda x: y1 - 4 - int(6 * (x - x0) / max(1, x1 - x0)) + ((x * 5) % 3 == 0)
-    for x in range(x0, x1 + 1):
-        for y in range(y0, tear(x) + 1):
-            k = min(3, (y - y0) * 4 // max(1, (y1 - y0 - 8)))
-            c.put(x, y, bands[k])
-    sy = y0 + 12
-    for y in range(sy - 4, sy + 1):
-        for x in range(x0 + 6, x0 + 15):
-            if ((x - (x0 + 10)) / 4.5) ** 2 + ((y - sy) / 4.5) ** 2 <= 1.0:
-                c.put(x, y, hexc('f6d68a'))
-    for x in range(x0, x1 + 1):
-        if tear(x) >= sy + 1:
-            c.put(x, sy + 1, hexc('3a4a78'))
-        for y in range(sy + 2, min(tear(x), sy + 6) + 1):
-            c.put(x, y, hexc('2e3a62') if (x + y) % 4 else hexc('4a5a8a'))
-    PALM = hexc('1e1a1c')
-    px = x1 - 6
-    for y in range(y0 + 8, sy + 5):                                   # the trunk, leaning
-        c.put(px + (sy + 5 - y) // 6, y, PALM)
-    cx_, cy_ = px + (sy + 5 - (y0 + 8)) // 6, y0 + 7
-    for (dx, dy) in ((-5, 3), (-4, 2), (-3, 1), (-2, 0), (-1, 0), (1, 0), (2, 0), (3, 1), (4, 2), (5, 3),
-                     (-3, -1), (-2, -2), (2, -2), (3, -1), (0, -1)):       # fronds drooping from the crown
-        c.put(cx_ + dx, cy_ + dy, PALM)
-    # the flap: the torn-off corner folded down, its back (white) showing
-    for j in range(5):
+    """A holiday poster half torn away: a sunset, the sun going down into the sea, a palm, a sail — the
+    bottom corner torn off with the flap folded down, its white back out."""
+    import wallart
+    wallart.poster_travel(c, x0, y0, x1, y1, 'tape', seed=x0 + y0)
+    for j in range(5):                                                      # the flap: the torn-off corner folded down
         for i in range(6 - j):
-            c.put(x1 - i, tear(x1) + 1 + j, hexc('ece6d4') if i else hexc('c8c0aa'))
-    for tx, ty in ((x0, y0), (x1, y0)):
-        c.rect(tx - 1, ty - 1, tx + 1, ty, hexc('f0ead2', 190))
-
+            c.put(x1 - i, y1 - 4 + j, hexc('ece6d4') if i else hexc('c8c0aa'))
 
 
 def c_decor(c):

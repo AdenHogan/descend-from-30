@@ -623,3 +623,59 @@ bare-column test, so register new floor pieces.
 - **Burnt looks**: `burnt.debris` scattered planks / ash heaps / lumps at RANDOM spots, over furniture as readily as floor. Each piece now lies wholly on bare floor (`bare_floor_mask`: the run-3 art equals its floor reference) and outside the zone (`stand_bands(name)` from the module scene); a piece that finds no place in 40 tries is dropped.
 Known + intended: flat floor marks (rugs, shadows, stains, blood pools) are walked over — they are decals, not objects; the lane in front of everything is walked over by design.
 
+
+## WALL ART — posters, frames, papers (owner round 38)
+> "Another pass at the various posters and wall arts… the sign saying bins out Monday… very plain and basic for what is an announcement from
+> building management… the child's bedroom has posters with generic words like SPACE — do away with the words and just have image posters,
+> with better visuals and poster / picture-frame borders… quality beyond generic detail." Then, on the first look: "the music ones make no
+> sense, they look like they have pikachu tails… the tree is extending beyond the frame… the person on the right is going past the border, which
+> is also not very symmetrical… that light square in the middle feels strange… the computer is too flat."
+
+ONE kit, `tools/art/wallart.py` (the room helpers in `furn.py` — `poster_gig/film/map/game`, `frame_pic`, `note`, `sticky`, `newspaper`,
+`missing_poster`, `photo`/`portrait` frames, `_paper` — keep their old call shapes and delegate to it, so no room script had to change its calls).
+`python3 tools/art/wallart.py` writes `docs/art_reference/wall_art.png` (everything at 4x); `--check` (in `tools/run_all_tests.sh`) builds every piece,
+compares the corridor PNGs to a fresh render, and fails if a notice outgrows its slot or a helper has gone missing.
+
+**Rules the pieces follow**
+- **Pictures, not words.** A poster has no title lettering (the old ROCK / NIGHT / SPACE / LIVE are gone; the old `title` arguments are accepted and
+  ignored). Words stay where they carry story — a certificate's title, a MISSING flyer's name, a sticky's errand, a newspaper headline, a notice.
+- **Everything is drawn into a scratch canvas the size of its picture rect and copied in (`_paint`)**, so nothing — a palm frond, a shadow, a person —
+  can leave its frame. Sizes inside a picture come from the rect, never fixed offsets (a fixed-offset crayon drawing ran its right-hand figure out
+  of the frame).
+- **Posters are paper**: a margin, a drop shadow, a lit top-left and shaded bottom-right edge, and pins / tape / blu-tack (`poster_paper`). **Framed
+  pictures** get a bevelled moulding (`frame`: oak / walnut / pine / white / black / gilt — `kind_for(colour)` picks one from the old frame colour), an
+  optional card mat (`matw`), a lip, wire to a nail, two glints of window light (`glint`). A frame's OUTER rect is what you give it.
+- **Symmetry where a frame implies it**: the crayon drawing mirrors about its centre line; the guitar stands upright and centred.
+
+**The pictures** (`img_*`, each takes an inner rect): `img_guitar` (a sunburst, ONE upright electric guitar: double-cutaway body, pickguard, pickups,
+bridge, knob, fretted neck, string, tuners — the first slanting guitar + lightning bolt read as a Pikachu tail), `img_record` (a grooved vinyl, a sheen,
+an orange label, the tonearm), `img_horror` (a bruised sky, a moon, a house on a hill with lit windows, a bare tree, bats, blood from the top edge),
+`img_space` (a dithered nebula, stars, a ringed planet lit from the upper left, a rocket, a moon), `img_map` (a school wall map on rollers: graticule,
+coloured continents with a coast line, three pins), `img_travel` (a banded sunset, the sun sinking into the sea, a palm that fits, a sail), `img_rainbow`,
+`img_crayon`, `img_mcm` (a mid-century print: nested arches, a sun, reeds). Where they hang: bedroom B = guitar / horror / map / space + a pinned timetable
+(where the EXAM sticky was); bedroom E = a rainbow poster + the crayon picture in a white frame; living B / dining B = the mid-century print; living C = the
+record poster + the half-torn sunset; study B = a framed certificate (rosette, rules, signature) and, in study D, a folded street map + a printed STAY INSIDE
+notice. Other rooms' notes, stickies, newspapers, MISSING flyers, calendars and photo / portrait frames take the new paper and mouldings through the helpers.
+
+**The light square is gone** (bedroom B's `b_wall` drew a lighter patch with blu-tack dots for "where a poster was ripped down" — read as a stray square).
+
+**The computer is a real object** (`furn.crt_on_top`, used by bedroom B and study B): a CRT whose bezel is a short front and whose tube housing is LOFTED
+away behind it (a smaller back face set up and to the right, so the top and right flank show), a swivel foot, a recessed screen with a lit prompt and the
+blinking cursor (`PX.anim`), a slab keyboard with rows of keys, a can; the study's tower stands beside it. Every piece is a box ON the desk top in the
+desk's own perspective (`furn.top_projector(shift)` — the exact mapping `pixlib.setback` uses: front plane moved down by the shift, everything behind
+converging on the vanishing point). Bedroom B's desk moved 3 px right and was given the deeper top (`setback depth 8` → shift 11) so there is room to read
+depth; its two scavenge nodes moved with it (desk node onto the keyboard (31, 78); drawer (17, 99)); study B's node is unchanged at (128, 66).
+
+**Corridor paper** (`wallart.CORRIDOR_PAPER` — the one table `corridor_decals.py` writes): memos on the management's LETTERHEAD (a dark band with the
+building's tower mark and a word — MANAGERS / RESIDENTS / BY ORDER —, a gold rule, a pictogram, two lines of notice, a fold, a curl, a pin: bins out Monday
+with a wheelie bin, water off with a drop, a meeting with a clock, the curfew order); safety plates with their pictograms (NO SMOKING ring + slash, the green
+running-man EVACUATE plate, a blue FIRE DOOR KEEP SHUT, a DO NOT OPEN DOORS warning triangle); a hazard-striped OUT OF ORDER lift card; a neighbour's PLEASE
+KEEP IT DOWN on a torn ruled page with a crossed-out loudspeaker; the QUARANTINE trefoil; MISSING and (new) LOST CAT flyers with a snapshot and tear-off tabs
+(the cat is Vivianne's); the kid's crayon drawing. **Slot rule** (`corridor_decals.gd` "poster" zone): every notice hangs from row **67** — under the wall
+sconces (their box ends at 67) and above the rail (row 96) — and must be at most 38 wide x 29 tall (it fits between a door's light switch and the next door's
+number plate) or 52 x 23 (clear of the plate, which starts at row 90). The first, bigger versions (52 x 28) were NEVER placed — a count over 29 floors x 3 runs
+(master seed 12345) showed only the small flyers appearing — so they were re-laid to 23 rows; after: 44 notices on 39 floor-runs, before the pass 40 on 34.
+`building_floors_test` checks the band (67..96) and the sizes.
+
+Regenerate order is unchanged: `build_all.py` → `openables.py` → `burnt.py` → `gen_module_blueprint.py` (+ `corridor_decals.py` for the corridor paper; it deletes the
+decal `.import` files — `git checkout` them back so their uids stay).

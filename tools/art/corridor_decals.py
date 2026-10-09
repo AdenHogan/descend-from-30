@@ -349,93 +349,15 @@ def shadow_row(c, x0, x1, y):
 
 
 # --- wall paper things -------------------------------------------------------------------------
-def kid_drawing(name, seed):
-    w, h = 14, 12
-    c = canvas(w, h, seed)
-    rng = random.Random(seed)
-    c.rect(0, 1, 13, 11, hexc('f2eee4'))
-    c.hline(0, 13, 11, hexc('c8c4ba'))
-    c.rect(1, 0, 3, 1, hexc('d8d8a0', 200))                        # tape
-    c.rect(10, 0, 12, 1, hexc('d8d8a0', 200))
-    c.ellipse(4, 4, 2, 2, hexc('e8c040'))                          # a sun
-    c.hline(1, 12, 9, hexc('4a9a4a'))                              # grass
-    for (x, y) in ((8, 5), (8, 6), (8, 7), (7, 8), (9, 8), (7, 6), (9, 6)):
-        c.put(x, y, hexc('2a4aa0'))                                # a figure
-    c.put(8, 4, hexc('c83a3a'))
-    save(name, c)
-
-
-def poster_missing(name, seed):
-    w, h = 16, 20
-    c = canvas(w, h, seed)
-    c.rect(0, 0, 15, 19, hexc('eeeae0'))
-    c.hline(0, 15, 19, hexc('c8c4ba'))
-    c.rect(2, 1, 13, 3, hexc('2a2a2a'))                            # MISSING
-    c.rect(4, 5, 11, 11, hexc('8a8478'))                           # a photo
-    c.ellipse(7, 8, 2, 2, hexc('c8a88a'))
-    for y in (13, 15, 17):
-        c.hline(2, 13, y, hexc('8a8a86'))
-    c.put(7, 0, hexc('c83a2c'))
-    save(name, c)
-
-
-def notice_quarantine(name, seed):
-    w, h = 18, 22
-    c = canvas(w, h, seed)
-    c.rect(0, 0, 17, 21, hexc('f0e6a8'))
-    c.hline(0, 17, 21, hexc('c8be88'))
-    c.rect(1, 1, 16, 5, hexc('c8322a'))                            # a red banner
-    for x in range(3, 15, 2):
-        c.put(x, 3, hexc('f0e6a8'))
-    for y in range(8, 20, 2):
-        c.hline(2, 15 - (y % 4), y, hexc('4a4a44'))
-    c.rect(1, 0, 3, 0, hexc('d8d8a0', 200))
-    c.rect(14, 0, 16, 0, hexc('d8d8a0', 200))
-    save(name, c)
-
-
-def notice(name, seed, lines, paper='f2eee4', head=None, ink='2a2a2e', head_ink='f2eee4', pin='tape', lean=0):
-    """A readable building notice (owner round 23 — "a variety of notices for the building"): the first
-    line on a coloured band when `head` is given, the rest in ink, 3x5 capitals (furn.text3), taped or
-    pinned. A seeded curl on one corner so no two look pasted."""
-    import furn as F
-    rng = random.Random(seed)
-    w = max(F.text3_width(t) for t in lines) + 6
-    h = len(lines) * 7 + 4
-    c = canvas(w + 2, h + 2, seed)
-    P = hexc(paper)
-    c.rect(0, 1, w - 1, h, P)
-    c.hline(1, w, h + 1, hexc('000000', 60))                          # a hair of shadow
-    c.vline(w, 2, h + 1, hexc('000000', 45))
-    y = 3
-    for i, t in enumerate(lines):
-        if i == 0 and head:
-            c.rect(1, 2, w - 2, 8, hexc(head))
-            F.text3(c, (w - F.text3_width(t)) // 2, y, t, hexc(head_ink))
-        else:
-            F.text3(c, (w - F.text3_width(t)) // 2, y, t, hexc(ink))
-        y += 7
-    if pin == 'tape':
-        c.rect(1, 0, 4, 1, hexc('d8d8a0', 190)); c.rect(w - 5, 0, w - 2, 1, hexc('d8d8a0', 190))
-    else:
-        c.put(w // 2, 1, hexc('c0453a')); c.put(w // 2, 2, hexc('8a2a24'))
-    if rng.random() < 0.6:                                               # a corner curling off the wall
-        cx = w - 1 if rng.random() < 0.5 else 0
-        c.put(cx, h, shade(P, 0.8)); c.put(cx, h - 1, shade(P, 0.9))
-    save(name, c)
-
-
 def building_notices():
-    # what a building puts up — then what it put up once things went wrong
-    notice('notice_lift', 70, ['LIFT', 'OUT OF', 'ORDER'], head='c8322a')
-    notice('notice_water', 71, ['WATER', 'OFF TUES', '9 - 5'], head='3a6a9a')
-    notice('notice_meeting', 72, ['RESIDENTS', 'MEETING', 'THURS 7'], head='4a7a4a', pin='pin')
-    notice('notice_bins', 73, ['BINS OUT', 'MONDAY'], paper='e8e2c8')
-    notice('notice_smoking', 74, ['NO', 'SMOKING'], paper='f4f2ea', ink='b8332a')
-    notice('notice_quiet', 75, ['PLEASE', 'KEEP IT', 'DOWN'], paper='dce4ec', pin='pin')
-    notice('notice_evac', 76, ['EVACUATE', 'USE THE', 'STAIRS'], head='2e7a4a')
-    notice('notice_curfew', 77, ['CURFEW', 'DOORS', 'LOCKED 8'], head='1e1e22', paper='e8e4d8')
-    notice('notice_dont_open', 78, ['DO NOT', 'OPEN', 'DOORS'], head='c8322a', paper='f0e6a8')
+    """What a building puts up — then what it put up once things went wrong (owner round 38: "a sign saying
+    bins out Monday… very plain and basic for an announcement from building management"). All drawn by
+    tools/art/wallart.py (its CORRIDOR_PAPER table is the one list of them): memos on the management's
+    letterhead, safety plates with pictograms, hazard signs, a neighbour's note, missing / lost flyers with
+    tear-off tabs, a child's drawing."""
+    import wallart as W
+    for name, fn, seed in W.CORRIDOR_PAPER:
+        save(name, fn(seed))
 
 
 def dead(name, seed, how, fought=False):
@@ -456,7 +378,7 @@ def dead(name, seed, how, fought=False):
     nest._body(body, rng, fx, fy, 1)
     if fought:
         nest._weapon(body, rng, fx + rng.randint(40, 52), fy + 5, rng.choice((1, -1)), rng.choice(nest.WEAPONS))
-        nest._zombie_dead(body, rng, fx + nest.BODY_W + rng.randint(8, 18), fy + rng.randint(-2, 2), 1)
+        nest._zombie_dead(floor, body, rng, fx + nest.BODY_W + rng.randint(8, 18), fy + rng.randint(-2, 2), 1)
     img = floor.img.copy()
     img.alpha_composite(body.img)
     c = canvas(1, 1, seed)
@@ -535,10 +457,7 @@ def main():
         json.dump({'note': 'tools/art/corridor_props.py: per standing prop — rule (door/open), depth on the '
                            'floor, contact (sprite row of its front floor contact)', 'props': meta},
                   fh, indent=1, sort_keys=True)
-    kid_drawing('kid_drawing', 64)
     building_notices()
-    poster_missing('poster_missing', 65)
-    notice_quarantine('notice_quarantine', 66)
     dead('dead_1', 70, 'pool'); dead('dead_2', 71, 'crawl'); dead('dead_3', 72, 'pool'); dead('dead_4', 73, 'crawl')
     dead('dead_5', 74, 'pool', fought=True); dead('dead_6', 75, 'pool', fought=True)
     # the contact sheets, each decal at 3x on a mid-tone wall swatch: one of everything for the docs,

@@ -79,10 +79,10 @@ metadata/kind = "tube"
 [node name="Anims" type="Node2D" parent="."]
 
 [node name="anim_0" type="Node2D" parent="Anims"]
-position = Vector2(137, 65)
+position = Vector2(137, 68)
 script = ExtResource("4_anim")
 metadata/kind = "blink"
 metadata/fall = 0
-metadata/color = "c8d8f0"
-metadata/w = 1
+metadata/color = "9ae0aa"
+metadata/w = 2
 metadata/h = 1
