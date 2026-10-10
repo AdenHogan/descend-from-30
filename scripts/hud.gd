@@ -1230,7 +1230,7 @@ func item_tip_content(inst) -> Dictionary:
 	elif inst.count > 1:
 		stats.append("x%d" % inst.count)
 	if d.get("is_health_item", false):
-		stats.append("Heals %d" % (int(d.get("heals_states", 0)) + WorldState.get_heal_bonus()))
+		stats.append("Heals %d%s" % [inst.base_heals() + WorldState.get_heal_bonus(), "  (part used)" if inst.heal_scale < 0.999 else ""])
 	var hint := ""
 	if d.get("is_key", false) and str(inst.target_apartment) != "":
 		var tgt: String = str(inst.target_apartment)

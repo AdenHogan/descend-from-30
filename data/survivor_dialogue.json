@@ -1,0 +1,41 @@
+{
+  "_note": "PLACEHOLDER LINES — functional stand-ins so every moment has a voice. The owner writes the real ones; keep the moment names (the code asks for them) and keep at least one line per moment (survivor_ai_test fails on an empty pool). {player} = the current character's name.",
+
+  "all": {
+    "hurt": ["Ah!", "Agh — !", "That hurt!"],
+    "death": ["No...", "Not like this...", "Tell someone..."]
+  },
+
+  "defender": {
+    "greet": ["Stay behind me.", "Keep your voice down. They hear everything.", "You're not bitten? Good."],
+    "greet_again": ["Still here.", "Back again."],
+    "spot": ["One coming!", "Here they come.", "Movement. Get ready."],
+    "engage": ["Get back!", "Not today!", "Come on, then!"],
+    "help": ["I've got your back!", "Go — I'll hold them!", "On your left!"],
+    "wounded": ["I can't... keep this up.", "Falling back — cover me.", "I'm hurt. Bad."],
+    "recovered": ["I can fight.", "Okay. Okay. Back to it."],
+    "out_of_ammo": ["Out of rounds!", "Click. That's it — I'm dry.", "No more bullets!"],
+    "clear": ["Quiet again.", "That's the last of them. For now.", "Good. Good."],
+    "thanks": ["You came back for me. Thanks.", "Appreciate it."]
+  },
+
+  "hider": {
+    "peek": ["...are you alive?", "Please. Please don't be one of them.", "Shh. Don't make a sound."],
+    "trust": ["You're real. Oh, thank God.", "I thought no one was left."],
+    "freeze": ["...", "(holding their breath)", "Don't move. Don't move."],
+    "panic": ["No no no no —", "Get away from me!", "HELP!"],
+    "relieved": ["Is it... gone?", "They're gone. They're gone.", "Thank you. Thank you."],
+    "gift": ["Take this. Please. It's all I have.", "You saved me. Here — take it."],
+    "thanks": ["Be careful out there.", "I'll stay put. Go on."],
+    "cornered": ["Stay back!", "I'll use it, I swear!"]
+  },
+
+  "waiter": {
+    "mutter": ["It has to come. It has to.", "Any minute now.", "They said the lift would be back."],
+    "bang": ["Open up!", "Please!", "Somebody!"],
+    "startle": ["Who's there?!", "Don't come any closer!"],
+    "calm": ["...Sorry. I know. It's the noise.", "It won't come, will it.", "I'll stop. I'll stop."],
+    "thanks": ["Thank you for staying with me.", "I'll keep quiet now."],
+    "flee": ["They're coming!", "Run!"]
+  }
+}

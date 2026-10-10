@@ -901,7 +901,8 @@ func _do_gun_attack(instance: ItemInstance, _slot_index: int) -> void:
 	# Lucky Bullet: sometimes the round isn't spent.
 	# Every round actually expended wears the gun (a mark per 6 shots — docs/SCRAP_UPGRADES.md).
 	var worn_out := false
-	if not (instance.perk_add("free_shot") > 0.0 and randf() < instance.perk_add("free_shot")):
+	var refund: float = instance.perk_add("free_shot") + WorldState.get_gun_refund()      # Lucky Bullet + a quest's "Waste Not"
+	if not (refund > 0.0 and randf() < refund):
 		instance.mag_count -= 1
 		worn_out = instance.register_shot() and instance.is_depleted
 	HUD.refresh_inventory()
@@ -1879,7 +1880,7 @@ func use_item(slot_index: int) -> void:
 
 	if item_data["is_health_item"]:
 		# Field Medic upgrade bumps every heal by +1 state.
-		var heals = item_data["heals_states"] + WorldState.get_heal_bonus()
+		var heals = instance.base_heals() + WorldState.get_heal_bonus()
 		# Don't burn a use of the item if we're already at full health.
 		if heal(heals):
 			instance.use()

@@ -212,6 +212,14 @@ runs (some locked flats open or barricade; more breaches).
 Survivors behind LOCKED doors: **scared** (run, cower, beg), **hostile** (square up, threaten, attack), **trader** (swap
 offers). They shout, can be fought, die, and return as revenants. Their lines are the owner's, in `data/npc_dialogue.json`.
 
+### 7.4b Survivors, allies and the smarter dead (BUILT v1 — `NPC_AI.md`)
+People the building still has, placed by context: armed **defenders** holding a stairwell or a door in the corridor, **waiters** by the
+lift (bang in threes — the dead hear it), **hiders** crouched at the back of walk-in flats. Every one perceives → decides one of a few NAMED
+behaviours → acts, and shows a **tell** over its head (`!` alert, `?` search, `…` fear). They fight at **half the player's damage**
+(derived from the player's own weapon tables) and the dead bite them for full damage — a survivor can die. The dead think a little too: a noise
+tells them *where* (they investigate the source, search, give up), losing you sends them to your last-seen spot, a lunge alerts the dead beside
+it, and they go for the nearer meal. Placeholder art and lines.
+
 ### 7.5 The dead and breach rooms (BUILT)
 Breach rooms are "nests" with a story told in generated art (the door, the kill, the drag); an ordinary flat holds a body
 10–22% of the time by run (searchable pockets); corridors have bodies; some bodies **rise**. Fire and breach rules agree
@@ -259,20 +267,21 @@ start with nothing but what the earlier runs left behind. *Pressure, not power f
 
 ## 11. Quests (status)
 
-The quest list (`QUEST_LIST.md`) is the **design**; the engine has *character personal quests* (one per character, with
-banner + journal) and *world encounters* that overlap some quests, but **no general quest system** (no quest log
-beyond the personal one, no quest-room reservation from the reshuffle, no achievements).
+The quest list (`QUEST_LIST.md`) is the **design**. The engine now has a **data-driven quest framework** (`QUESTS.md`: `data/quests.json`,
+seeded sites, conversations with need-checked choices and effects, outcomes that change the place in later runs, a Quests journal page) with
+two quests on it, plus *character personal quests* and *world encounters* that overlap others. Still open: quest-room reservation from the
+reshuffle, achievements, and the other quests.
 
 | # | Quest | Status |
 |---|---|---|
-| 001 | Old Lady Ethel | NOT BUILT |
+| 001 | Old Lady Ethel | BUILT v1 — flat quest on the framework; supplied → the turned + a half-strength kit, mercy → she mourns, then a revolver (`QUESTS.md`); placeholder lines |
 | 002 | The Shopkeeper (save him on 25) | PARTIAL — the merchant exists on 25/20/15/10/5 **unconditionally**; the elevator-doors rescue, the "dead shopkeeper" hard-run branch and its achievement are not built |
 | 003 | The Babysitter | NOT BUILT |
 | 004 | Power the Elevator | PARTIAL — the fuse/elevator **mechanic** is built as a system (maintenance room, 3 fuses, 5-floor jump); the maintenance-worker NPC encounter is not |
 | 005 | The Prepper | NOT BUILT (a trader resident and a "safe rest spot" are different things) |
-| 006 | Into the Breach | PARTIAL — breach rooms, leaders and keys are built; the neighbour-to-save NPC and its reward are not |
+| 006 | Into the Breach | PARTIAL — breach rooms, leaders and keys are built, and the dead now go for the nearer meal (a survivor); the neighbour-to-save quest layout, its timer and its reward are not |
 | 007–009, 011 | Stubs | Not designed |
-| 010 | Johnny the Gun Guy | NOT BUILT |
+| 010 | Johnny the Gun Guy | BUILT v1 — corridor quest on the framework; 10 bullets → a Durable Hand Cannon, 20 more → Waste Not or Johnny's Eye (`QUESTS.md`) |
 | — | The Gun Cabinet (unannounced) | BUILT |
 | — | Personal quests (Joe/Vivianne/Alex/Amina) | BUILT v1 — one hook each; later stages open |
 
@@ -307,9 +316,9 @@ quest system and the deep narrative.
 the quest stories themselves and their later stages). The quest **mechanics** below are engineering and are listed.*
 
 ### A. Gameplay and systems still to build
-1. **A quest system** — a quest log beyond the single personal quest; quest-room reservation from the building shift
-   ("storied rooms" were never specified); quests 001, 003, 005, 010 and the mechanical halves of 002 (rescue + hard-run
-   branch), 004 (maintenance-worker encounter, ten-floor ride), 006 (save-the-neighbour timer); an **achievements**
+1. **More quests on the framework** (`QUESTS.md` — 001 Ethel and 010 Johnny are built) — quests 003, 005 and the mechanical halves of
+   002 (rescue + hard-run branch), 004 (maintenance-worker encounter, ten-floor ride), 006 (save-the-neighbour timer); quest-room reservation
+   from the building shift ("storied rooms" were never specified); a gamepad/keyboard way to pick a conversation choice; an **achievements**
    system (the shopkeeper hard-run and the pack-less "ultra difficult" run are both specced as achievements).
 2. **Barricade-keeper NPC** — seeded groundwork only.
 3. **Weapon content** — the **hammer upgrade tree** (placeholder; the owner is writing it), more special mods, merchant-sold
@@ -317,7 +326,8 @@ the quest stories themselves and their later stages). The quest **mechanics** be
 4. **Hazards** — fire spreading from door frames onto corridor walls; fire on the ceiling (dropped); fire reacting to
    overgrowth; a fire-elemental enemy (art exists); the horde stair block's own enemy type and tuning; melee noise pulling
    enemies across floors (currently quiet by design); a balcony-route hint when a stairwell is blocked.
-5. **Enemies** — a distinct boss silhouette/behaviour; per-type AI beyond the spitter's kiting and the crawler's pounce;
+5. **Enemies** — a distinct boss silhouette/behaviour; per-type AI beyond the spitter's kiting, the crawler's pounce and the shared
+   investigate / search / spot / prey layer (`NPC_AI.md`; no flanking, door-opening or fear of fire yet);
    **depth biomes** (30–21 Hotel, 20–13 Rot, 12–6 Green, 5–1 Nest, each with its own enemy variant — a proposal, nothing built);
    growth in stairwells, in-run growth, light/shade plants.
 6. **Backpack** — drag-to-reorder and stack-splitting on the ring, a quick-use subset, a rummage noise cost, a corpse that
@@ -378,7 +388,8 @@ controls for three input families, the opening and the run bookends, saves. The 
 | Tutorial | `TUTORIAL.md` |
 | Characters, personal quests | `CHARACTERS.md`, `CHARACTER_STORIES.md` |
 | Residents | `RESIDENTS.md` |
-| Quests | `QUEST_LIST.md` |
+| Survivors, ally combat, enemy intelligence | `NPC_AI.md` |
+| Quests (design / how they run) | `QUEST_LIST.md` / `QUESTS.md` |
 | Controls (kb/m, pad, touch) | `CONTROLS.md` |
 | Opening / exterior | `OPENING.md` |
 | Items | `ITEMS_SHEET.md` (reference), `data/Items.json` (source) |

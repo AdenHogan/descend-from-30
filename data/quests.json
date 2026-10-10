@@ -1,0 +1,116 @@
+{
+  "_note": "QUEST DATA (docs/QUESTS.md). The MECHANICS are real; every `lines`, `label` and `journal` string is a PLACEHOLDER the owner rewrites — keep the keys and structure. A quest is a set of STATES; each state has what the giver says (`lines`, optionally per run: {\"1\": [...], \"2\": [...]}), what the journal says (`journal`), and the `choices` the player can make. A choice may `need` something (\"ammo\": N bullets, or \"item\": id) and `do` a list of effects: take_ammo:N  take_item:ID  give_item:ID  give_gun:PRESET  upgrade:ID  kill:NPC  outcome:NAME  complete  goto:STATE  banner:TEXT  flag:NAME. `world` says what the quest's place looks like in LATER runs, by outcome (\"\" = never resolved): a list of specs per run — {npc,mood} {body} {zombies} {drop,half,key} {gun,key}.",
+
+  "johnny": {
+    "number": "010",
+    "title": "Johnny the Gun Guy",
+    "kind": "corridor",
+    "floors": [9, 22],
+    "npc": {"role": "defender", "weapon": "004", "ammo": 6, "look": 4, "hp": 10, "name": "Johnny"},
+    "start": "offer",
+    "on_giver_died": "lost",
+    "states": {
+      "offer": {
+        "journal": "Johnny, holding his floor with a gun, will trade a good gun for ten bullets.",
+        "lines": ["Hey. You got bullets? Ten of them and I'll make it worth your while.", "Ten bullets. That's the price of a proper gun. You in?"],
+        "choices": [
+          {"label": "Give 10 bullets", "need": {"ammo": 10}, "do": ["take_ammo:10", "give_gun:johnny", "banner:Johnny's gun", "goto:paid"]},
+          {"label": "Not now"}
+        ]
+      },
+      "paid": {
+        "journal": "Johnny gave you a gun. Twenty more bullets and he'll give you something better.",
+        "lines": ["Told you I'd make it worth it. Bring me twenty more and I'll do more than hand you a gun.", "Twenty more. Then I teach you something."],
+        "choices": [
+          {"label": "Twenty bullets: waste fewer rounds", "need": {"ammo": 20}, "do": ["take_ammo:20", "upgrade:Q_refund", "complete", "goto:done"]},
+          {"label": "Twenty bullets: steadier aim", "need": {"ammo": 20}, "do": ["take_ammo:20", "upgrade:Q_crit", "complete", "goto:done"]},
+          {"label": "Not now"}
+        ]
+      },
+      "done": {
+        "journal": "Johnny is square with you.",
+        "lines": ["We're square. Don't go getting yourself killed."],
+        "choices": []
+      },
+      "lost": {
+        "journal": "Johnny is dead.",
+        "lines": [],
+        "choices": []
+      }
+    }
+  },
+
+  "ethel": {
+    "number": "001",
+    "title": "Old Lady Ethel",
+    "kind": "flat",
+    "floors": [14, 26],
+    "npcs": {
+      "ethel": {"role": "host", "look": 5, "hp": 4, "name": "Ethel", "dx": 0},
+      "husband": {"role": "patient", "look": 3, "hp": 4, "name": "her husband", "dx": 52}
+    },
+    "giver": "ethel",
+    "start": "offer",
+    "on_giver_died": "lost",
+    "states": {
+      "offer": {
+        "journal": "Ethel's husband has been bitten. She begs for medicine — or for you to end it.",
+        "lines": ["My husband... he was bitten. Please, have you anything for him? Anything at all?", "He's burning up. If there's a cure, a medicine, anything — please."],
+        "choices": [
+          {"label": "Give her a first aid kit", "need": {"item": "007"}, "do": ["take_item:007", "outcome:supplied", "banner:You gave Ethel supplies", "goto:supplied"]},
+          {"label": "Give her bandages", "need": {"item": "006"}, "do": ["take_item:006", "outcome:supplied", "banner:You gave Ethel supplies", "goto:supplied"]},
+          {"label": "Put him out of his misery", "do": ["kill:husband", "outcome:mercy", "banner:You ended it", "goto:mercy"]},
+          {"label": "Leave"}
+        ]
+      },
+      "supplied": {
+        "journal": "You gave Ethel supplies. Whether they were enough, you'll learn later.",
+        "lines": ["Thank you. Thank you. We'll stay right here and hope."],
+        "choices": []
+      },
+      "mercy": {
+        "journal": "You put Ethel's husband out of his misery.",
+        "lines": [],
+        "choices": []
+      },
+      "lost": {
+        "journal": "Ethel is dead.",
+        "lines": [],
+        "choices": []
+      }
+    },
+    "talk_mourn": {
+      "2": ["He's gone. I keep thinking I should have... never mind. Leave me be.", "I can't leave him. Not yet."]
+    },
+    "world": {
+      "supplied": {
+        "2": [
+          {"zombies": 2, "key": "turned"},
+          {"drop": "007", "half": true, "key": "kit"}
+        ],
+        "3": [
+          {"zombies": 2, "key": "turned"}
+        ]
+      },
+      "mercy": {
+        "2": [
+          {"npc": "ethel", "mood": "mourn"},
+          {"body": "husband"}
+        ],
+        "3": [
+          {"body": "ethel"},
+          {"body": "husband"},
+          {"gun": "revolver", "key": "revolver"}
+        ]
+      },
+      "": {
+        "2": [
+          {"zombies": 2, "key": "turned"}
+        ],
+        "3": [
+          {"zombies": 2, "key": "turned"}
+        ]
+      }
+    }
+  }
+}

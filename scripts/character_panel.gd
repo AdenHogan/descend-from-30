@@ -478,16 +478,30 @@ func _refresh() -> void:
 	_fit_all()
 
 
-## This run's personal quest (docs/CHARACTER_STORIES.md): its title, the objectives already behind them struck through, and the one now.
+## The quests page: this run's personal quest (docs/CHARACTER_STORIES.md) — its title, the objectives already behind
+## them struck through, the one now — then every building quest the player has begun (scripts/quests.gd).
 func _quest_bbcode() -> String:
+	var parts: Array = []
 	var cq: Dictionary = CharacterStory.current_quest()
-	if cq.is_empty():
+	if not cq.is_empty():
+		var out := "[b]%s[/b]\n" % str(cq["title"])
+		for done in cq["earlier"]:
+			out += "[s]%s[/s]\n" % str(done)
+		out += "- %s" % str(cq["objective"])
+		parts.append(out)
+	for e in Quests.journal_entries():
+		var head := "[b]%s[/b]" % str(e["title"])
+		if e["done"]:
+			head += "  [i](done)[/i]"
+		elif e["failed"]:
+			head += "  [i](failed)[/i]"
+		var body := "- %s" % str(e["objective"])
+		if e["done"] or e["failed"]:
+			body = "[s]%s[/s]" % str(e["objective"])
+		parts.append(head + "\n" + body)
+	if parts.is_empty():
 		return "[i]No active quests. Story quests will be logged here as they open.[/i]"
-	var out := "[b]%s[/b]\n" % str(cq["title"])
-	for done in cq["earlier"]:
-		out += "[s]%s[/s]\n" % str(done)
-	out += "- %s" % str(cq["objective"])
-	return out
+	return "\n\n".join(parts)
 
 
 ## The Codex tab: a legend for the in-hand box's colour, then every item with its durability and how it wears

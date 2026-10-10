@@ -83,6 +83,12 @@ var backpack_found: bool = false
 ## character, Alex's neighbour lies dead on floor 29, Vivianne's cat is about, a run's quest banner shows. Off by
 ## default so a plain `new_game()` (every test) keeps the random cast and an untouched building. Saved.
 var story_rule: bool = false
+## THE SURVIVOR RULE (owner round 39; docs/NPC_AI.md): when on (the real New Game turns it on, like `packless_rule` /
+## `story_rule`), the building holds its survivors — corridor defenders and waiters, hiders in walk-in flats, the quests'
+## people. Off by default so a plain `new_game()` (every test that builds a corridor with its own enemies) keeps a floor
+## with ONLY what the test put there: a random bat-carrying defender fighting the test's zombies made enemy_variety_test
+## flaky. Saved (an old save has none = off).
+var survivor_rule: bool = false
 ## This playthrough casts Joe as its FIRST character (the tutorial's). Decided by new_game, saved with the cast.
 var joe_opens: bool = false
 ## THIS run's personal quest: -1 = not begun, else the stage reached (0 = the opening objective). Per-run (reset by
@@ -1212,6 +1218,9 @@ func new_game() -> void:
 	gun_cabinets.clear()
 	residents.clear()
 	revenants.clear()
+	survivors.clear()
+	quests.clear()
+	quest_upgrades.clear()
 	elevator_powered = false
 	elevator_fuses_loaded = 0
 	fire_dealt_with.clear()
@@ -1319,6 +1328,7 @@ func advance_run() -> bool:
 	# Loot depletion PERSISTS: searched_anchors, world_drops and consumed keys are left
 	# untouched, so an emptied building stays emptied (runs 2/3 inherit a looted map).
 	_settle_revenants()            # a revenant killed this run stays dead (read before the kill memory goes)
+	Quests.settle_time_skip()      # …and so does a quest's turned neighbour
 	killed_zombies.clear()
 	zombie_positions.clear()
 	# Per-run world systems reset so they re-derive fresh for the new run.
@@ -2249,6 +2259,8 @@ func _stat_mods_sources() -> Array:
 		out.append(Progression.boon(id).get("mods", {}))
 	for id in permanent_perks:                             # tier 3: the profile's permanent perks
 		out.append(Progression.perk_info(id).get("mods", {}))
+	for id in quest_upgrades:                              # earned from a quest (scripts/quests.gd)
+		out.append(Quests.UPGRADES.get(id, {}).get("mods", {}))
 	return out
 
 
@@ -2397,18 +2409,21 @@ func resolve_upgrade_offer(floor_num: int, chosen_id: String) -> void:
 		stamina = min(stamina, get_max_stamina())
 
 
-func emit_noise(pos: Vector2, radius: float, duration: float = 1.0) -> void:
+func emit_noise(pos: Vector2, radius: float, duration: float = 1.0, cross_floor: bool = true) -> void:
 	# Central noise event: every living zombie within the radius is alerted
 	# (their detection range opens up for the duration — see alert_to_noise).
-	# A loud enough noise near a stairwell also carries to the adjacent floors.
-	note_cross_floor_pull(pos, radius)
+	# A loud enough noise near a stairwell also carries to the adjacent floors — but only the PLAYER's noise does:
+	# `cross_floor` is false for a survivor's shot or a hider's scream (docs/NPC_AI.md), which the floor hears and
+	# the neighbouring floors do not.
+	if cross_floor:
+		note_cross_floor_pull(pos, radius)
 	var tree = Engine.get_main_loop() as SceneTree
 	if tree == null:
 		return
 	for z in tree.get_nodes_in_group("zombie"):
 		if not z.is_dead and z.has_method("alert_to_noise"):
 			if z.global_position.distance_to(pos) <= radius:
-				z.alert_to_noise(duration)
+				z.alert_to_noise(duration, pos)      # WHERE the noise was — not where the player is (EnemyMind)
 				# Loud enough (running / forcing a door / gunfire) also snaps a
 				# can-distracted zombie back onto the player; quiet gaits don't.
 				if radius >= NOISE_BREAKS_DISTRACTION and z.has_method("break_distraction"):
@@ -4426,6 +4441,33 @@ func resident_listen_line(apartment_id: String) -> String:
 	return str(resident_lines().get("listen", {}).get(t, "Someone's in there. Alive."))
 
 
+# SURVIVORS (owner round 39 — "populate the building with NPCs in contextually appropriate areas… some may be
+# cowering, others may also have weapons like our player, and use their AI to fight… half damage of the player").
+# Who is alive in the corridors and the open flats, and where: scripts/survivor_plan.gd rolls and SETTLES a record
+# per (place, run) into this dict (saved, cleared by new_game); scripts/survivor.gd is the person. Their moves and
+# fights are docs/NPC_AI.md. A killed survivor stays dead for the run (and is remembered by the quest system).
+var survivors: Dictionary = {}     # "f17:defender:r1" / "1703:hider:r1" -> record (SurvivorPlan._roll), or {"none": true}
+var dev_survivors: int = 0         # F1: 0 = normal, 1 = every eligible slot holds one (not saved)
+
+
+## Write back what a survivor is doing so re-entry, a pan backdrop and a save all see the same person.
+func update_survivor(key: String, fields: Dictionary) -> void:
+	if not survivors.has(key) or survivors[key].get("none", false):
+		return
+	for f in fields:
+		survivors[key][f] = fields[f]
+
+
+# QUESTS (owner round 39 — "let's start on quest mechanics"; scripts/quests.gd, data/quests.json, docs/QUESTS.md).
+# Cross-run, saved, cleared by new_game: what each quest is up to, what the player chose, where it happens. The
+# upgrades a quest grants (`Quests.UPGRADES`) fold into every stat getter like a merchant upgrade does.
+var quests: Dictionary = {}          # qid -> {"started", "stage", "outcome", "done", "flags", "site"} (string keys only)
+var quest_upgrades: Array = []       # ids of Quests.UPGRADES earned this playthrough
+
+
+func get_gun_refund() -> float: return clampf(_upgrade_stat_add("gun_refund"), 0.0, 0.9)
+
+
 # REVENANTS (owner round 32b — "if you fight and kill a resident, they will respawn in a subsequent run as a
 # crawler or spitter, but let's punish the player by making them 20% faster and 20% more health"). A
 # resident killed in run 1 or 2 is remembered by its flat (cross-run, saved); from the next run on, room.gd
@@ -5247,6 +5289,7 @@ func save_game(scene_path: String, record_live_zombies: bool = true) -> void:
 		"has_backpack": has_backpack,
 		"backpack_found": backpack_found,
 		"story_rule": story_rule,
+		"survivor_rule": survivor_rule,
 		"joe_opens": joe_opens,
 		"run_story_stage": run_story_stage,
 		"run_story_flags": run_story_flags,
@@ -5301,6 +5344,9 @@ func save_game(scene_path: String, record_live_zombies: bool = true) -> void:
 		"gun_cabinets": gun_cabinets,
 		"residents": residents,
 		"revenants": revenants,
+		"survivors": survivors,
+		"quests": quests,
+		"quest_upgrades": quest_upgrades,
 		"elevator_powered": elevator_powered,
 		"elevator_fuses_loaded": elevator_fuses_loaded,
 		"fire_dealt_with": fire_dealt_with,
@@ -5354,6 +5400,7 @@ func load_game() -> String:
 	has_backpack = bool(data.get("has_backpack", true))
 	backpack_found = bool(data.get("backpack_found", has_backpack and packless_rule))
 	story_rule = bool(data.get("story_rule", false))
+	survivor_rule = bool(data.get("survivor_rule", false))
 	joe_opens = bool(data.get("joe_opens", false))
 	run_story_stage = int(data.get("run_story_stage", -1))
 	run_story_flags = Dictionary(data.get("run_story_flags", {}))
@@ -5412,6 +5459,9 @@ func load_game() -> String:
 	gun_cabinets = data.get("gun_cabinets", {})
 	residents = data.get("residents", {}) if data.get("residents", {}) is Dictionary else {}
 	revenants = data.get("revenants", {}) if data.get("revenants", {}) is Dictionary else {}
+	survivors = data.get("survivors", {}) if data.get("survivors", {}) is Dictionary else {}
+	quests = data.get("quests", {}) if data.get("quests", {}) is Dictionary else {}
+	quest_upgrades = data.get("quest_upgrades", []) if data.get("quest_upgrades", []) is Array else []
 	elevator_powered = bool(data.get("elevator_powered", false))
 	elevator_fuses_loaded = int(data.get("elevator_fuses_loaded", 0))
 	fire_dealt_with = data.get("fire_dealt_with", {})
@@ -5487,6 +5537,7 @@ func instance_to_dict(instance) -> Dictionary:
 		"forged_by": instance.forged_by,
 		"crossings": instance.crossings,
 		"forge_paid": instance.forge_paid,
+		"heal_scale": instance.heal_scale,
 	}
 
 
@@ -5513,6 +5564,7 @@ func instance_from_dict(entry: Dictionary) -> ItemInstance:
 	instance.forged_by = String(entry.get("forged_by", ""))
 	instance.crossings = int(entry.get("crossings", 0))
 	instance.forge_paid = int(entry.get("forge_paid", 0))
+	instance.heal_scale = clampf(float(entry.get("heal_scale", 1.0)), 0.1, 1.0)
 	instance.shots_since_mark = int(entry.get("shots_since_mark", 0))
 	# Guns had no durability before they wore (-1 = "runs on ammo"): an old save's gun is as new.
 	if instance.current_durability < 0 and instance.get_max_durability() > 0:

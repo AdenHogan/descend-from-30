@@ -99,3 +99,8 @@ func _deliver_attack(_distance: float) -> void:
 	var launch_y: float = player.global_position.y - 8.0 if player != null else global_position.y
 	proj.global_position = Vector2(global_position.x + dir * 22.0, launch_y)
 	get_parent().add_child(proj)
+
+
+## A spitter only ever spits at the player (its kiting + projectile are built for them) — it ignores survivors.
+func allows_survivor_prey() -> bool:
+	return false

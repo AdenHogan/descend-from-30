@@ -130,3 +130,10 @@ Focusing is dangerous. On listen start, one random roll:
 `tests/listen_noise_test.tscn` — noise radii ordering, emit_noise range
 gating, category thresholds, kill subtraction, nearness determinism,
 lobby edge case.
+
+
+## Round 39 change — a noise tells the dead WHERE, not where you are (`NPC_AI.md`, "What changed against SOUND_STEALTH.md")
+`WorldState.emit_noise` now calls `alert_to_noise(duration, pos)` with the noise's SOURCE. A zombie walks to that spot, looks about (4 s) and gives
+up; it chases only what it sees. Callers that pass no source (the stairwell muster after a pry, the far-zombie pulls in `player.gd`) keep the old
+"it knows" behaviour. `emit_noise(pos, radius, duration, cross_floor=false)` lets a source stay on its own floor (a survivor's gunshot / scream / bang).
+The radii in this document are unchanged; what a noise DOES to a zombie is not.

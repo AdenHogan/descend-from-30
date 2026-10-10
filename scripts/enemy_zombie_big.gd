@@ -102,6 +102,17 @@ func burn_tick(delta: float) -> void:
 			_die()
 # Gunfire (and future noise sources) override detection range while this runs.
 var alert_timer: float = 0.0
+# THE DEAD THINK A LITTLE (scripts/enemy_mind.gd, docs/NPC_AI.md) — the same fields the standard zombie carries.
+var _alert_positional: bool = false
+var prey: Node2D = null
+var mind: String = ""
+var mind_x: float = 0.0
+var mind_t: float = 0.0
+var _seen_x: float = 0.0
+var _seen_valid: bool = false
+var _look_t: float = 0.0
+var _spread_cd: float = 0.0
+var ai_tell: AiTell = null
 
 # Deep-pitched moans — the big one sounds heavier and carries further.
 const MOAN_STREAMS = [
@@ -113,8 +124,20 @@ var moan_player: AudioStreamPlayer2D = null
 var moan_timer: float = 0.0
 
 
-func alert_to_noise(duration: float = 6.0) -> void:
+## A noise reached me. With a `source` I go and INVESTIGATE the spot; without one I know where the player is (as before).
+func alert_to_noise(duration: float = 6.0, source: Vector2 = Vector2.INF) -> void:
+	var was_active := alert_timer > 0.0
 	alert_timer = max(alert_timer, duration)
+	if source.is_finite():
+		if not was_active:
+			_alert_positional = true
+		EnemyMind.hear(self, source.x)
+	else:
+		_alert_positional = false
+
+
+func allows_survivor_prey() -> bool:
+	return true
 
 
 func _ready() -> void:
@@ -123,6 +146,7 @@ func _ready() -> void:
 	animated_sprite = $AnimatedSprite2D
 	animated_sprite.play("Idle")
 	EnemyFeet.lift_sprite(self, animated_sprite)   # drawn feet on the player's line, alive or dead (round 33)
+	ai_tell = AiTell.attach(self, 112.0)
 	player = get_tree().get_first_node_in_group("player")
 	add_to_group("zombie")
 	add_to_group("big_zombie")
@@ -280,6 +304,9 @@ func _die() -> void:
 	if is_dead:
 		return
 	is_dead = true
+	if ai_tell != null and is_instance_valid(ai_tell):
+		ai_tell.clear()
+	prey = null
 	WorldState.note_kill()          # journal stat: enemies felled this run
 	if on_fire:                    # died alight → the corpse smoulders (smoke, not flame)
 		var sm = BODY_SMOKE.new()
@@ -422,6 +449,9 @@ func _physics_process(delta: float) -> void:
 
 	if alert_timer > 0:
 		alert_timer -= delta
+		if alert_timer <= 0:
+			_alert_positional = false
+	_spread_cd = maxf(0.0, _spread_cd - delta)
 	if hurt_timer > 0.0:
 		hurt_timer -= delta
 	if _push_pass_timer > 0.0:
@@ -449,7 +479,9 @@ func _physics_process(delta: float) -> void:
 			velocity.x = 0
 			state_timer -= delta
 			if state_timer <= 0:
-				if _reach_to_player() <= _attack_reach() + _crowd_bonus:
+				if EnemyMind.prey_is_ally(self):
+					EnemyMind.deliver_ally_attack(self, 2 * (2 if on_fire else 1))      # the swing was for a survivor
+				elif _reach_to_player() <= _attack_reach() + _crowd_bonus:
 					if is_instance_valid(player) and player.has_method("receive_hit"):
 						player.receive_hit(2 * (2 if on_fire else 1))   # alight = double, like every enemy
 				state = "chase"
@@ -459,11 +491,15 @@ func _physics_process(delta: float) -> void:
 				player = get_tree().get_first_node_in_group("player")
 			if player != null:
 				var distance = global_position.distance_to(player.global_position)
-				var effective_detection = detection_range if alert_timer <= 0 else 2000.0
+				var effective_detection = detection_range if (alert_timer <= 0 or _alert_positional) else 2000.0
 				var reach := _reach_to_player()
 				var crank: int = ENEMY_CROWD.rank(self, player)
 				var stand: float = ENEMY_CROWD.stand_distance(crank, _attack_reach())
-				if crank > 0 and reach < stand - 6.0:
+				var ally: Node2D = EnemyMind.pick_prey(self, detection_range, reach, distance <= effective_detection)
+				var was_state: String = state
+				if ally != null:
+					EnemyMind.tick_ally(self, ally, SPEED, 1.2)
+				elif crank > 0 and reach < stand - 6.0:
 					# too close for my crowd spot (enemy_crowd.gd): shuffle back, facing the player
 					state = "chase"
 					var face = sign(player.global_position.x - global_position.x)
@@ -488,8 +524,24 @@ func _physics_process(delta: float) -> void:
 					animated_sprite.flip_h = direction < 0
 					animated_sprite.play("Walk")
 				else:
-					state = "idle"
-					velocity.x = 0
-					animated_sprite.play("Idle")
+					# Out of sight: go to where I last saw them / heard something, and look (EnemyMind).
+					if state == "chase" and _seen_valid and mind == "":
+						EnemyMind.lose(self)
+					if not EnemyMind.idle_tick(self, delta, SPEED):
+						state = "idle"
+						velocity.x = 0
+						animated_sprite.play("Idle")
+				if ally != null:
+					prey = ally
+					_seen_x = ally.global_position.x          # lose a survivor and it hunts the last-seen spot too
+					_seen_valid = true
+				elif state == "chase" or state == "attack":
+					prey = player
+					_seen_x = player.global_position.x
+					_seen_valid = true
+					if was_state == "idle":
+						EnemyMind.spotted(self, player)
+				else:
+					prey = null
 	move_and_slide()
 	ENEMY_PLANE.hold(self)

@@ -119,6 +119,7 @@ func new_game() -> void:
 	await Transition.cover(0.45)
 	WorldState.packless_rule = true          # every real game starts with pockets only (docs/BACKPACK.md)
 	WorldState.story_rule = true             # …and each run opens on its own character's story (docs/CHARACTER_STORIES.md)
+	WorldState.survivor_rule = true          # …and the building holds its survivors and quest givers (docs/NPC_AI.md, docs/QUESTS.md)
 	WorldState.new_game()
 	HUD.show_hud()
 	go_to_scene("hallway")

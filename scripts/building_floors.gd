@@ -226,6 +226,7 @@ func _ready() -> void:
 		# them again below; go_live re-enables via _restore_dormant + _enable_stair_triggers.
 		_enable_stair_triggers(floor_num)
 		_spawn_zombies(floor_num, true)
+		_spawn_survivors(floor_num, true)         # frozen scenery too (woken with the zombies in go_live)
 		_spawn_corpses(floor_num)
 		# Register the elevator fire-extinguisher BEFORE _spawn_world_drops so it renders
 		# in the backdrop too — otherwise a floor first reached via the seamless stair PAN
@@ -287,6 +288,7 @@ func _ready() -> void:
 		close_door_behind(self, WorldState.exit_spawn_x)   # you just came out of that flat
 
 	_spawn_zombies(floor_num, false)
+	_spawn_survivors(floor_num, false)
 	_note_floor_arrival(floor_num)
 	_spawn_corpses(floor_num)
 	_place_elevator_kit(floor_num)
@@ -1248,6 +1250,20 @@ func _spawn_zombies(floor_num: int, as_scenery: bool) -> void:
 	_spawn_corridor_boss(floor_num, as_scenery)
 
 
+var _survivors_built: bool = false     # the survivors are placed once per built floor (a backdrop's, then go_live's, are the same)
+
+
+## The people still alive out in this corridor (scripts/survivor_plan.gd — seeded per floor + run, settled in
+## WorldState.survivors): a defender holding the stairs or a door, a waiter by the lift. As a pan backdrop they
+## are frozen scenery that scrolls into view with the floor and wakes at the commit (like the stair enemies).
+func _spawn_survivors(floor_num: int, as_scenery: bool) -> void:
+	if _survivors_built:
+		return
+	_survivors_built = true
+	for rec in SurvivorPlan.corridor_records(floor_num):
+		Survivor.spawn(self, rec, Survivor.FEET_CORRIDOR, -1.0, as_scenery)
+
+
 func _spawn_corridor_boss(floor_num: int, as_scenery: bool) -> void:
 	# A tougher Big Zombie loose in the corridor (docs/THREE_RUN_ARC.md) — at most one,
 	# seeded per (floor, run). It guards nothing so drops NO key, but drops better loot
@@ -1351,7 +1367,10 @@ func _wake_scenery_zombies() -> void:
 		if not is_ancestor_of(z):
 			continue
 		z.remove_from_group("pan_scenery")
-		z.set_physics_process(true)
+		if z.has_method("wake"):
+			z.wake()                    # a survivor's frozen backdrop copy (scripts/survivor.gd)
+		else:
+			z.set_physics_process(true)
 
 
 # Wake a floor that was BUILT as a passive/inert backdrop into a fully live one,
@@ -1370,6 +1389,7 @@ func go_live() -> void:
 	_apply_stair_visuals(floor_num)        # pure function of the floor — arrival-independent
 	_enable_stair_triggers(floor_num)
 	_wake_scenery_zombies()
+	_spawn_survivors(floor_num, false)      # guarded — the backdrop already placed (and just woke) them
 	# The PASSIVE backdrop build skipped every live hazard (they sit after the
 	# `if passive: return` in _ready), so arriving via the seamless stair PAN left a
 	# floor with NO fire / barricades / hordes — that was the "fire gone after stairs"

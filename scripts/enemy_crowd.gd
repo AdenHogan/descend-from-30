@@ -27,6 +27,9 @@ static func engaged(o: Node) -> bool:
 		return false
 	if o.get("stair_mode") == true or o.get("is_distracted") == true or o.get("tutorial_scripted") == true:
 		return false
+	var pr = o.get("prey")
+	if pr != null and is_instance_valid(pr) and not pr.is_in_group("player"):
+		return false          # busy with a survivor — it isn't part of the PLAYER's crowd
 	return str(o.get("state")) in ENGAGED_STATES
 
 

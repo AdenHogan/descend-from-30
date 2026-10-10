@@ -27,6 +27,9 @@ var forged_by: String = ""          # "<character id>:<run>" when it became lege
 # toward its next heirloom tier (instalments ride the weapon).
 var crossings: int = 0
 var forge_paid: int = 0
+# A health item can be PART of what it was (a half-used kit Ethel left behind — quest 001): the fraction of its heal that
+# is left. 1.0 = as made. Saved with the instance.
+var heal_scale: float = 1.0
 
 const MAG_CAP = 18          # Met-issue Glock: 17+1
 const MAG_CAP_DAMAGED = 10
@@ -140,6 +143,15 @@ func tier_tag() -> String:
 
 func get_data() -> Dictionary:
 	return ItemData.items.get(item_id, {})
+
+
+## Health states this item restores (before the Field Medic bonus): the catalogue's number scaled by `heal_scale`,
+## never below 1 for an item that heals at all.
+func base_heals() -> int:
+	var base := int(get_data().get("heals_states", 0))
+	if base <= 0 or heal_scale >= 0.999:
+		return base
+	return maxi(1, int(floor(float(base) * heal_scale)))
 
 
 func use() -> bool:

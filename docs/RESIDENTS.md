@@ -1,5 +1,7 @@
 # Residents — survivors behind locked doors (BUILT v1, owner round 32)
 
+> Survivors in the CORRIDOR and in walk-in flats (defenders, waiters, hiders, quest givers) are a different system: `NPC_AI.md`. A resident's flat never holds a hider or a quest.
+
 > "Let's populate some of the locked door rooms with NPCs. We want them to shout at the player when
 > inside demanding the player leaves, moving towards, running around, even threatening with weapons.
 > If player scavenges items, NPCs can beg not to, might get violent, or offer to trade."

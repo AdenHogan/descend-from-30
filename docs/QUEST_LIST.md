@@ -5,6 +5,8 @@
 
 ## Quest 001: Old Lady Ethel
 
+> **BUILT v1 (round 39)** on the quest framework — see `QUESTS.md`. The kit left behind is a First Aid Kit with `heal_scale` 0.5 (heals 1 of 3 states). Lines are placeholders.
+
 A little old lady needs help with her husband. He's been bitten. You can give
 her medical supplies hoping they can reach a cure in time, if there is one,
 or put her husband out of his misery.
@@ -128,6 +130,8 @@ apartment where a neighbour is desperately trying to survive.
 *(Stub — not yet designed.)*
 
 ## Quest 010: Johnny the Gun Guy
+
+> **BUILT v1 (round 39)** on the quest framework — see `QUESTS.md`. "High-durability gun" = a Lv2 Durable Hand Cannon (6 rounds); the two upgrades are Waste Not (+20% a shot spends no round) and Johnny's Eye (+10% headshot). Lines are placeholders.
 
 Bring Johnny ten bullets and he'll give you a good gun. Bring him more
 bullets for an even greater reward.

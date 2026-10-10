@@ -240,6 +240,9 @@ func _ready() -> void:
 			pass   # burnt-out ruin — no enemies
 		elif afs == WorldState.FIRE_BLAZE:
 			_spawn_burnt_corpses(1 + (hash(apartment_id) % 2))   # 1-2 burned corpses
+		elif Quests.is_quest_flat(apartment_id):
+			# A quest's flat (scripts/quests.gd): its own people, dead and drops — run by the outcome, not by the ordinary roll.
+			quest_people = Quests.populate_flat(self, apartment_id, entrance_side)
 		elif not WorldState.resident_for(apartment_id).is_empty():
 			# Someone has held this flat behind its lock (resident_npc.gd) — no dead in here with them.
 			resident = RESIDENT_NPC.spawn(self, apartment_id, WorldState.resident_for(apartment_id), entrance_side)
@@ -267,6 +270,8 @@ func _ready() -> void:
 			_spawn_riser(false)
 		if afs != WorldState.FIRE_CHARRED and afs != WorldState.FIRE_BLAZE:
 			_spawn_revenant()
+		# Someone hiding in a flat you can walk into (docs/NPC_AI.md) — the dead are about, so they hide.
+		_spawn_hider(entrance_side)
 
 	# Interior fire (after enemies, so burning enemies can already be in the room).
 	_spawn_apartment_fire()
@@ -2051,6 +2056,24 @@ func _spawn_passive_enemies(floor_num: int, breached: bool) -> void:
 # crawler or spitter — faster and tougher. Where they fell; remembered / killed like any enemy (its kill
 # sticks across runs). The first sight of it each run, the player knows who it was.
 var revenant: Node = null
+
+var hider: Node = null          # the survivor hiding here, if any (SurvivorPlan.hider_for)
+var quest_people: Array = []    # a quest flat's survivors (Quests.populate_flat)
+
+
+## A HIDER (scripts/survivor.gd): crouched at the back of the flat, as far from the front door as it goes. Never in
+## the tutorial's flats, a nest, a ruin or a resident's flat (SurvivorPlan.hider_flat_ok decides).
+func _spawn_hider(entrance_side: String) -> void:
+	var rec := SurvivorPlan.hider_for(apartment_id)
+	if rec.is_empty():
+		return
+	var x: float = float(rec.get("x", -1.0))
+	if x < 0.0:
+		var far_mod := 2 if entrance_side == "left" else 0
+		x = float(LEFT_WALL_X) + far_mod * MODULE_WIDTH + 70.0 + float(rec.get("spot", 0.5)) * 180.0
+		rec["post"] = x
+	hider = Survivor.spawn(self, rec, ROOM_FEET_Y, x)
+
 
 func _spawn_revenant() -> Node:
 	var r := WorldState.revenant_for(apartment_id)
