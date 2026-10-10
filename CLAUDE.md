@@ -10,9 +10,10 @@ and fighting floor by floor. One full session = three character runs
 All agreed design lives in `docs/` (converted from the owner's Word/Excel
 originals — the markdown here is canonical for development):
 
-- `docs/GAME_DESIGN_DOC.md` — core loop, tutorial (Floor 30), player/world
-  systems, door states, listen system. Oldest doc; some parts superseded
-  (noted inline).
+- `docs/GAME_DESIGN_DOC.md` — **the reconciled map of the whole game** (2026-10-10): every system tagged
+  BUILT / PARTIAL / NOT BUILT with a pointer to its doc, a "what changed since the original GDD" table, the quest
+  status table, and the **Outstanding work (non-narrative)** list — start there to see what is left. The per-system
+  docs below hold the detail; update the GDD's tags when a system lands.
 - `docs/THREE_RUN_ARC.md` — three-run structure, time skips, escalation,
   fires, balcony descent, fresh-character state. Agreed, pre-implementation.
 - `docs/STORE_DESIGN.md` — **FINAL v3**: bank notes, wallet, merchant, shop
@@ -2415,4 +2416,9 @@ means no rendering — UI layout and art still need an in-editor look.
   **Latent bug fixed on the way:** `corridor_decals.py` crashed on regeneration since round 37 (`nest._zombie_dead` gained a layer argument; `dead()` wasn't
   updated and nothing runs that tool in the gate) — the regenerated `dead_*` decals are byte-identical to the committed ones. The LOOK needs the owner's eye
   (xvfb only).
-- Not started: quests.
+- **GDD RECONCILIATION (owner, 2026-10-10: "go through our game design doc and update and compare with everything we've done… establish what is
+  still outstanding other than narrative work"):** `docs/GAME_DESIGN_DOC.md` rewritten against the status log and the per-system docs — what the game is now,
+  BUILT / PARTIAL / NOT BUILT tags, the original-vs-now table, the quest table (001-011), and an "Outstanding work (non-narrative)" list (gameplay systems, art,
+  audio, platform + verification debt). `docs/PLAYTEST_CHECKLIST.md`'s stale "Known-not-done" list corrected. `docs/GAME_DESIGN_DOC.docx` is a GENERATED Word copy (`python3 tools/gdd_to_docx.py`, needs python-docx) — the markdown stays canonical; regenerate the .docx after editing the GDD. Docs-only: no game code or art changed, no suite run.
+- Not started: a general quest system (quest log beyond the personal quest, quest-room reservation, achievements; quests 001/003/005/010 and the mechanical
+  halves of 002/004/006 — see the GDD §11). The personal quests and the gun cabinet ARE built.

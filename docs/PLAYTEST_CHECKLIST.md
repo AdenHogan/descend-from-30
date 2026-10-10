@@ -190,8 +190,10 @@ corridor (tinted reddish so it reads as elite). Rare; more common on low floors.
 
 ## Known-not-done (don't flag these)
 
-- Night is a colour grade only — no real darkness/flashlight difficulty yet.
-- No brand-new enemy TYPES yet (heavies = the existing Big Zombie); the table is
-  ready for new art to slot in.
-- No descent boon on a successful exit yet; no player-corpse recovery yet.
-- Storied/quest rooms are not reserved from the reshuffle yet.
+(Reconciled with the build 2026-10-10 — see `GAME_DESIGN_DOC.md` "Outstanding work" for the full list.)
+
+- Storied/quest rooms are not reserved from the reshuffle yet (no general quest system).
+- The five enemy types exist, but all still share one placeholder rig — no distinct silhouettes yet (art task).
+- No distinct boss silhouette or behaviour; a corridor boss is a tougher Big Zombie.
+- (Built since this list was written, so no longer "not done": real 2D lighting with a near-black night, the
+  Crawler / Long Arm / Spitter types, the descent boon / Descent Valour, and player-corpse recovery.)
