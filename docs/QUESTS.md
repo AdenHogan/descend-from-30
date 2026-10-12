@@ -44,6 +44,14 @@ choice that can't be met is shown disabled with a hint ("need 10 bullets"). Choo
 | `complete` | marks the quest done (banner, `note_quest_completed` → Valour) |
 | `banner:TEXT` / `flag:NAME` / `goto:STATE` | feedback line / a once-flag / move to a state |
 
+**Paying in instalments (`pay`, round 41).** A choice can be a *payment* instead of a `need`:
+`{"label": "Give bullets ({paid} of {goal})", "pay": {"ammo": 10, "ledger": "gun", "collect": "Take Johnny's gun", "more": "…{left} more…"}, "do": [...]}`.
+Whatever bullets the player has (never more than is still owed) go onto a **ledger** in the quest's state (`WorldState.quests[qid].ledger`,
+saved, so it outlives the time skips and every character); the button shows where you are, the journal says "(4 of 10 bullets given)",
+and the giver says how many are still owed (`more`). The moment the goal is met the choice's `do` runs. The bullets are the giver's once
+handed over — if the reward will not fit the pockets the payment is still taken and the reward **waits** (`collect` becomes the button:
+"Take Johnny's gun"); with the pack still full that is refused and nothing is lost.
+
 **Never half a trade.** Everything the player must hand over is checked first; if the quest is to GIVE a gun/item and it won't fit
 (counting the slots the payment itself frees — `_slots_freed`), the WHOLE choice is refused ("No room to carry it.") and nothing is taken
 (robustness rule 5). The giver **dying** (a zombie, a bad fight, the player's hand) moves the quest to its `on_giver_died` state for good,
@@ -67,12 +75,21 @@ Run 1 lays the quest's base people. **Runs 2 and 3 read the `world` table by the
 
 ## Built quests
 
-### 010 — Johnny the Gun Guy (corridor, floors 9–22)
-Johnny holds a post with his own gun (hp 10 — he is a fighter and will help you, see NPC_AI). *Ten bullets* → he hands you a **Durable
-Hand Cannon** (`johnny` preset: Lv2, `G_durable`, 6 rounds). Then *twenty more* → one of two quest upgrades (your pick):
+### 010 — Johnny the Gun Guy (corridor, floors 10–20)
+Johnny holds a post with his own gun (hp 10 — in the show he can't be hurt, see NPC_AI). **Ten bullets** → he hands you a **Durable
+Hand Cannon** (`johnny` preset: Lv2, `G_durable`, 6 rounds). Then **twenty more** → he lets you pick one of two quest upgrades:
 **Waste Not** (`Q_refund`, `gun_refund` +0.20: a shot has a 20% chance not to spend a round — folded with the gun's own Lucky Bullet in
-`player._do_gun_attack`) or **Johnny's Eye** (`Q_crit`, `headshot_bonus` +0.10). "Not now" leaves the quest open; if you never pay, he is
-simply still there in later runs and gives nothing — exactly the owner's outcomes B/D. If he dies the quest is `lost`.
+`player._do_gun_attack`) or **Johnny's Eye** (`Q_crit`, `headshot_bonus` +0.10).
+
+*Round 41 (owner): "we keep it at 10 and 20 but the bullets can carry over. Run 3 is the hardest so working with Johnny is an investment…
+Johnny appears anywhere between floor 20 and floor 10 giving players a lot of spread to find ammo across those three runs, but also a lot
+of opportunities to use the weapons provided by Johnny."* So: both prices are **instalments on a ledger that lasts the whole playthrough**
+(states `offer` → `paid` → `pick` → `done`; ledgers `gun` 10 and `upgrade` 20), and his floor is 10–20 (above him is where you find ammo;
+below him is where you use the gun — a floor-20 Johnny leaves nineteen floors to use it on). Johnny is re-created every run, so a payment
+made in run 1 is still on his books in run 3. The upgrades are for the playthrough (`quest_upgrades`); the gun is the character's, so a
+gun paid for in run 1 does not follow the next character — pay late if you want it in run 3 (open question for the owner: should he hand a
+fresh gun to each new character once it has been paid for?). "Not now" leaves the quest open; if you never pay he is simply still there in
+later runs and gives nothing. In the show nothing can kill him; if he ever died the quest is `lost` (the legacy fight, `performative = false`).
 
 ### 001 — Old Lady Ethel (flat, floors 14–26)
 Ethel (host, hp 4) begs; her bitten husband lies (patient — the dead don't go for the dying). Choices: **give a first aid kit**, **give
@@ -91,5 +108,5 @@ bandages**, **put him out of his misery**, **leave**.
 - Choosing a quest option with a **gamepad or keyboard**: the options are buttons in the bubble (mouse / touch) and nothing focuses them.
 - A dev hook in the F1 menu to jump a quest's stage (tests set it directly).
 
-Numbers (bullet supply vs Johnny's ask, his survival odds): `docs/NPC_BALANCE.md`. Locked by `tests/quest_test.gd` (site rules + 160-seed coverage, Johnny's trades incl. a full pack refusing whole, upgrades folding into the stat sheet,
+Numbers (bullet supply vs Johnny's ask, his survival odds — the survival half is moot since round 41): `docs/NPC_BALANCE.md`. Locked by `tests/quest_test.gd` (site rules + 160-seed coverage, Johnny's trades incl. a full pack refusing whole, upgrades folding into the stat sheet,
 Ethel's three outcomes across all three runs, kills remembered, the giver dying, save/load round-trip, the journal).

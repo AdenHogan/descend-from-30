@@ -263,6 +263,13 @@ func is_hurt() -> bool:
 	return hurt_timer > 0.0
 
 
+## A survivor's pretend blow (see enemy_zombie_standard.show_hit): the white flash, no damage, no stagger.
+func show_hit() -> void:
+	if is_dead:
+		return
+	ENEMY_HURT.blink(self, 0.24)
+
+
 func place_on_balcony(cx: float, floor_y: float) -> void:
 	ENEMY_PLANE.place(self, cx, floor_y)
 

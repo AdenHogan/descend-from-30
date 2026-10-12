@@ -1262,6 +1262,12 @@ func _spawn_survivors(floor_num: int, as_scenery: bool) -> void:
 	_survivors_built = true
 	for rec in SurvivorPlan.corridor_records(floor_num):
 		Survivor.spawn(self, rec, Survivor.FEET_CORRIDOR, -1.0, as_scenery)
+		# A RESCUE: someone shouting for help — and the three dead walking at them (scenery too in a backdrop: frozen, scrolling in).
+		if SurvivorPlan.rescue_status(rec) == "open" and not bool(rec.get("dead", false)):
+			var at: float = float(rec.get("x", -1.0))
+			if at < 0.0:
+				at = float(rec.get("post", 600.0))
+			SurvivorPlan.spawn_rescue_dead(self, rec, at, ZOMBIE_SETTLED_Y, 265.0, 1105.0, 1.0 if at < 685.0 else -1.0, floor_num, as_scenery)
 
 
 func _spawn_corridor_boss(floor_num: int, as_scenery: bool) -> void:

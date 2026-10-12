@@ -2948,10 +2948,14 @@ func get_floor_zombie_count(floor_num: int) -> int:
 	rng.seed = hash(str(master_seed) + "enemyluck" + str(floor_num) + str(current_run))
 	if rng.randf() < scaled - float(whole):
 		whole += 1
-	return maxi(whole, 0)
+	return _opening_capped(floor_num, maxi(whole, 0))        # (the busy character's extra one never undoes the opening cap)
 
 
 func _base_floor_zombie_count(floor_num: int) -> int:
+	return _opening_capped(floor_num, _rolled_floor_zombie_count(floor_num))
+
+
+func _rolled_floor_zombie_count(floor_num: int) -> int:
 	var rng = RandomNumberGenerator.new()
 	rng.seed = (master_seed ^ (floor_num * 1000003)) & 0xFFFFFFFF
 	var roll = rng.randf()
@@ -3063,6 +3067,19 @@ const RUN_OPENING_EASE := {29: 0.30, 28: 0.55, 27: 0.80}   # tough-type multipli
 func run_opening_ease(floor_num: int) -> float:
 	# 1.0 = full strength; < 1.0 on the run-opening floors (also the "no boss here" marker).
 	return float(RUN_OPENING_EASE.get(floor_num, 1.0))
+
+
+# THE OPENING FLOORS ARE ALSO CAPPED IN HEADCOUNT (owner round 41, after a phone playtest where nobody got past floor 28 —
+# tools/ probe: a bot with a hammer failed floors 29-27 one life in four, and the corridor is one lane, so every dead one
+# between you and the stairs is a forced fight). The type ease above only thinned the TOUGH types; this caps how MANY. Every
+# run (the fresh character is the same weak character in each). A cap, not a rebalance: the seeded roll still happens, the
+# result is clamped, so every other floor and every other seed's numbers are exactly what they were.
+const OPENING_COUNT_CAP := {29: 2, 28: 2, 27: 3}      # most dead the corridor may hold (no 10-dead floors up here)
+const OPENING_STAIR_CAP := {29: 0, 28: 0, 27: 1}      # most the dead on a staircase (the shaft of this floor's DOWN stairs)
+
+
+func _opening_capped(floor_num: int, count: int) -> int:
+	return mini(count, int(OPENING_COUNT_CAP[floor_num])) if OPENING_COUNT_CAP.has(floor_num) else count
 
 
 func heavy_chance(floor_num: int) -> float:
@@ -3214,13 +3231,14 @@ func stair_enemy_count(floor_num: int) -> int:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(str(master_seed) + "stairenemycount" + str(floor_num) + str(current_run))
 	var r := rng.randf()
+	var n := 3
 	if r < 0.60:
-		return 0
-	if r < 0.86:
-		return 1
-	if r < 0.97:
-		return 2
-	return 3
+		n = 0
+	elif r < 0.86:
+		n = 1
+	elif r < 0.97:
+		n = 2
+	return mini(n, int(OPENING_STAIR_CAP[floor_num])) if OPENING_STAIR_CAP.has(floor_num) else n      # the opening floors are gentler
 
 
 # --- Hazard 3: fire ---------------------------------------------------------
@@ -4463,7 +4481,7 @@ func resident_listen_line(apartment_id: String) -> String:
 # per (place, run) into this dict (saved, cleared by new_game); scripts/survivor.gd is the person. Their moves and
 # fights are docs/NPC_AI.md. A killed survivor stays dead for the run (and is remembered by the quest system).
 var survivors: Dictionary = {}     # "f17:defender:r1" / "1703:hider:r1" -> record (SurvivorPlan._roll), or {"none": true}
-var dev_survivors: int = 0         # F1: 0 = normal, 1 = every eligible slot holds one (not saved)
+var dev_survivors: int = 0         # F1: 0 = normal, 1 = every eligible slot holds one, 2 = …and every eligible place has a RESCUE on (not saved)
 
 
 ## Write back what a survivor is doing so re-entry, a pan backdrop and a save all see the same person.

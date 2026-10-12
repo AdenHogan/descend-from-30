@@ -3,7 +3,11 @@
 
   "all": {
     "hurt": ["Ah!", "Agh — !", "That hurt!"],
-    "death": ["No...", "Not like this...", "Tell someone..."]
+    "death": ["No...", "Not like this...", "Tell someone..."],
+    "rescue_call": ["Help! Somebody — help!", "Over here! Please, over here!", "They're coming — please help me!", "Anyone! Please!"],
+    "rescue_saved": ["You came. Thank you — I thought that was it.", "They're down. Oh god. Thank you.", "I don't know why you stopped. Thank you."],
+    "rescue_overrun": ["Too many... I can't...", "No — no, not now —"],
+    "rescue_thanks": ["You're the one who saved me. I won't forget it.", "Still here. Thanks to you."]
   },
 
   "defender": {

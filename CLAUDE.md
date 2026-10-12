@@ -2464,4 +2464,21 @@ means no rendering — UI layout and art still need an in-editor look.
   is paced in real time headless, so it raises `physics_ticks_per_second` AND `time_scale` together — the per-step delta stays 1/60 s — to run 8× faster; the heavy floors only reach
   ~100 steps/s though) and `npc_soak_test` (70th suite: populated corridors + flats with a roaming player — invariants only — plus an ISOLATED run, one zombie alone told of a noise beyond the corridor wall, that must give up; that run is the mutation-checked one: removing the investigate budget fails it). Locked by `quest_test` (coverage + protection),
   `enemy_mind_test` (unreachable spot), `survivor_ai_test` (the talk claim) — each mutation-checked.
+- **ROUND 41 — SURVIVORS ARE THEATRE, JOHNNY'S LEDGER, RESCUES, AND A GENTLER OPENING (owner: "Johnny and the other NPC decisions… place in option 1 and tune 29-27 to
+  be a little more forgiving"; full write-ups docs/NPC_AI.md, docs/QUESTS.md, docs/NPC_BALANCE.md):** **(1) Performative survivors** — `AllyCombat.performative` (a static switch,
+  default TRUE): a survivor's swings and shots call `show_hit()` on the dead (a white blink, NO damage — standard + big), the dead's bites call `Survivor._flinch()` (the hurt pose, a cry now and
+  then, NO damage), and a gun never spends a round. So a survivor can't be killed by the show and can't kill anything; they walk through and around the dead with no push/blocking worries. The
+  old half-the-player's-damage maths is still in the file behind `performative = false` (the balance tool and `enemy_mind_test` switch it off; **a test that needs real bites must too**).
+  This SUPERSEDES the round-39 "survivors fight at half damage and can die" text above. **(2) Rescues** (`SurvivorPlan` rescue block, `Survivor` `_tick_peril`/`_overrun`/`_rescued`): a corridor
+  defender-slot or a flat hider may be a survivor SHOUTING FOR HELP (`RESCUE_CHANCE` 12% / 6%, floors 1-26, appearing in one run of the three — `RESCUE_APPEARS`) with three slow dead
+  (`rescue_dead` zombies, key `rescue:<place>:<i>`, sent at them with `EnemyMind.hear`) closing in. The ONLY way a survivor dies: they hold for a clock of contact (`RESCUE_HOLD` 26 s within
+  64 px) — kill or draw off the dead before it runs out and they are `saved` (aided +4 Valour, once; a thank-you line or a gift), otherwise `lost` (they become a body later runs find).
+  The place's rescue identity is persistent per playthrough (`f%d:rescue`, `<apt>:rescue`), `rescue_status` is lazy (future/open/saved/lost); a pan backdrop spawns the dead as frozen scenery.
+  F1 `dev_survivors` 2 forces a rescue everywhere. **(3) Johnny** — floors **10-20** (was a narrower band); both prices stay **10 then 20 bullets** but are paid in INSTALMENTS on a LEDGER
+  (`pay` choices in `data/quests.json`, `WorldState.quests[qid].ledger`, saved) that lasts the whole playthrough; states offer → paid → pick → done; the reward waits ("Take Johnny's gun")
+  if the pockets are full. The upgrade belongs to the playthrough, the gun to the character that was handed it (open question: re-issue to later characters?). **(4) The opening floors
+  29 / 28 / 27 are capped in HEADCOUNT** (`WorldState.OPENING_COUNT_CAP` {29: 2, 28: 2, 27: 3}, `OPENING_STAIR_CAP` {29: 0, 28: 0, 27: 1}; `_opening_capped` clamps after the seeded roll and the
+  Super's +20%, every run) — `RUN_OPENING_EASE` already thinned the TOUGH types there, this thins how MANY (a bot probe failed 29-27 one life in four; the corridor is one lane, so each dead body
+  is a forced fight). Every other floor's numbers are untouched (clamp only). Locked by `enemy_variety_test`, `survivor_ai_test` (theatre + rescue tests), `quest_test` (ledger, no-room, legacy fight).
+  Test gotcha found on the way: a `quest_test` block that built a second corridor while the first was still in the tree had the old floor's dead "alert" the new Johnny — free the old floor first.
 - Not started: more quests on the framework (003, 005, 006 and the mechanical halves of 002/004; quest-room reservation, achievements — see the GDD §11). The personal quests, the gun cabinet, 001 and 010 ARE built.

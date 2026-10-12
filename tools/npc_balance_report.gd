@@ -31,6 +31,9 @@ func _ready() -> void:
 		elif a.begins_with("--speed="):
 			_speed = clampi(int(a.substr(8)), 1, 16)
 	await get_tree().process_frame
+	# The fights this tool measures are the REAL half-damage ones (the maths behind the show); survivors fight for show in the shipped
+	# game (AllyCombat.performative, round 41), where there is nothing to measure — every fight is a draw by design.
+	AllyCombat.performative = false
 	# Headless physics is paced in real time; raising the tick rate AND the time scale together keeps each step's delta at
 	# exactly 1/60 s (so every rule behaves as in play) while running `_speed` times faster.
 	Engine.physics_ticks_per_second = 60 * _speed

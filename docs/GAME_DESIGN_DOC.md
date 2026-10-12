@@ -178,7 +178,7 @@ The original GDD described one zombie and "other types introduced later". Now:
 | Spitter | Ranged, **kites**; crouching dodges the spit. |
 
 - **Mix, not density:** per-(floor band × run) tables; the infestation **migrates upward** over the arc; LOW floors =
-  the swarm, MID = bruisers, HIGH = ranged. A **run-opening grace** keeps floors 29–27 gentle every run.
+  the swarm, MID = bruisers, HIGH = ranged. A **run-opening grace** keeps floors 29–27 gentle every run: the TOUGH types are thinned there (`RUN_OPENING_EASE`) and, since round 41, the HEADCOUNT is capped too (at most 2 / 2 / 3 corridor dead on 29 / 28 / 27, and no stair enemies on 29–28, at most 1 on 27 — `OPENING_COUNT_CAP`, `OPENING_STAIR_CAP`).
 - **Variants:** breach-room leaders (big / crawler nest / long-arm / spitter), **risers** (the dead who get up),
   **revenants** (a killed resident returns stronger in later runs), **stairwell enemies** (one population per staircase;
   rise head-first from the shaft), **followers** (the *same node* chases you across floors).
@@ -215,8 +215,11 @@ offers). They shout, can be fought, die, and return as revenants. Their lines ar
 ### 7.4b Survivors, allies and the smarter dead (BUILT v1 — `NPC_AI.md`)
 People the building still has, placed by context: armed **defenders** holding a stairwell or a door in the corridor, **waiters** by the
 lift (bang in threes — the dead hear it), **hiders** crouched at the back of walk-in flats. Every one perceives → decides one of a few NAMED
-behaviours → acts, and shows a **tell** over its head (`!` alert, `?` search, `…` fear). They fight at **half the player's damage**
-(derived from the player's own weapon tables) and the dead bite them for full damage — a survivor can die. The dead think a little too: a noise
+behaviours → acts, and shows a **tell** over its head (`!` alert, `?` search, `…` fear). **Round 41 — they are theatre:** they swing and shoot at
+the dead and the dead bite them, the hit animations all play, but **nothing is wounded and nothing dies from it** and they never run out of rounds
+(`AllyCombat.performative`; the half-damage maths is kept behind the switch). A survivor's fate is the PLAYER's doing, never its own: the
+exception is a **rescue** — a survivor shouting for help with three slow dead closing in; help them in time and they live (and thank you, maybe
+with a gift), ignore them and the dead overrun them, a body later runs will find. The dead think a little too: a noise
 tells them *where* (they investigate the source, search, give up), losing you sends them to your last-seen spot, a lunge alerts the dead beside
 it, and they go for the nearer meal. Placeholder art and lines.
 
@@ -281,7 +284,7 @@ reshuffle, achievements, and the other quests.
 | 005 | The Prepper | NOT BUILT (a trader resident and a "safe rest spot" are different things) |
 | 006 | Into the Breach | PARTIAL — breach rooms, leaders and keys are built, and the dead now go for the nearer meal (a survivor); the neighbour-to-save quest layout, its timer and its reward are not |
 | 007–009, 011 | Stubs | Not designed |
-| 010 | Johnny the Gun Guy | BUILT v1 — corridor quest on the framework; 10 bullets → a Durable Hand Cannon, 20 more → Waste Not or Johnny's Eye (`QUESTS.md`) |
+| 010 | Johnny the Gun Guy | BUILT v1 — corridor quest on the framework, floors 10–20; 10 bullets → a Durable Hand Cannon, 20 more → Waste Not or Johnny's Eye, paid in **instalments on a ledger that lasts all three runs** (round 41; `QUESTS.md`) |
 | — | The Gun Cabinet (unannounced) | BUILT |
 | — | Personal quests (Joe/Vivianne/Alex/Amina) | BUILT v1 — one hook each; later stages open |
 

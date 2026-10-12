@@ -14,6 +14,15 @@ extends RefCounted
 # Everything is seeded per (place, run) like the rest of the world — `hash(master_seed + "survivor" + key)` — and
 # SETTLED into `WorldState.survivors` (saved), so a record is stable across re-entry, a stair pan's backdrop and
 # its live commit agree, and a dead one stays dead. A new run is a new key, so a new roll: they dwindle.
+#
+# RESCUES (owner round 41) are the exception to "a new run, a new roll", and the only survivors who can die. Somewhere
+# (a corridor post, a walk-in flat) a person is SHOUTING FOR HELP while three of the dead walk slowly at them. They fend
+# them off for show; if the player lets it go on too long they are overrun, live. Whether the player stepped in is what
+# settles their fate — never their own fighting, never how long the player took to get there in a run they weren't:
+#   • one identity per PLACE (key without the run), rolled once, appearing in a seeded run (`appears`, 1-3);
+#   • in that run the event is OPEN; saved by the player → "saved" for good (alive, grateful, in every later run);
+#     overrun live → "lost"; an event whose run ended unanswered is lost too (`rescue_status`, worked out when asked — no
+#     time-skip step to forget) — in a later run there is a body where they stood.
 
 const CHANCE := {
 	"defender": {1: 0.30, 2: 0.24, 3: 0.16},
@@ -41,6 +50,13 @@ const STAIR_POST_X := {"left": 335.0, "right": 1005.0}    # ~150 px in from the 
 const DOOR_POST_OFFSET := 56.0                   # beside an apartment door
 const FIRST_FLOOR := 1
 const LAST_FLOOR := 28                           # 29 keeps its scripted neighbour (character stories) and the run-opening grace
+# --- rescues ---
+const RESCUE_CHANCE := {"corridor": 0.12, "flat": 0.06}     # of the floors / of the walk-in flats, once per playthrough
+const RESCUE_LAST_FLOOR := 26                    # none on the eased opening floors 29-27 (WorldState.OPENING_COUNT_CAP) — nor 28
+const RESCUE_APPEARS := {1: 45, 2: 30, 3: 25}    # weight of the run the event happens in
+const RESCUE_DEAD := 3                           # the dead walking at them
+const RESCUE_STEPS := [250.0, 320.0, 390.0]      # how far from the survivor each starts
+const RESCUE_HOLD := 26.0                        # seconds of being swarmed (a dead one on them) before they are overrun
 
 
 static func _run() -> int:
@@ -104,11 +120,14 @@ static func corridor_records(floor_num: int) -> Array:
 		return out
 	var quest_npcs: Array = Quests.corridor_records(floor_num) if floor_ok(floor_num) else []
 	out.append_array(quest_npcs)
+	var rescue: Dictionary = {} if not quest_npcs.is_empty() else rescue_for_floor(floor_num)
+	if not rescue.is_empty():
+		out.append(rescue)
 	for role in ["defender", "waiter"]:
 		if not role_fits(role, floor_num):
 			continue
-		if role == "defender" and not quest_npcs.is_empty():
-			continue                                  # the floor's armed post is a quest giver's
+		if role == "defender" and (not quest_npcs.is_empty() or not rescue.is_empty()):
+			continue                                  # the floor's armed post is a quest giver's — or the one who is shouting
 		var rec := _settled(corridor_key(floor_num, role), role, floor_num, "")
 		if not rec.is_empty():
 			out.append(rec)
@@ -122,6 +141,9 @@ static func hider_for(apartment_id: String) -> Dictionary:
 	var f: int = WorldState._apartment_floor(apartment_id)
 	if not floor_ok(f) or not hider_flat_ok(apartment_id):
 		return {}
+	var rescue := rescue_for_flat(apartment_id)
+	if not rescue.is_empty():
+		return rescue                              # the flat's one survivor is the one shouting for help (or what became of them)
 	return _settled(hider_key(apartment_id), "hider", f, apartment_id)
 
 
@@ -155,10 +177,10 @@ static func _settled(key: String, role: String, floor_num: int, apt: String) -> 
 	return rec
 
 
-static func _roll(key: String, role: String, floor_num: int, apt: String) -> Dictionary:
+static func _roll(key: String, role: String, floor_num: int, apt: String, forced_run: int = 0) -> Dictionary:
 	var rng := _rng(key)
-	var run := _run()
-	if rng.randf() >= float(CHANCE[role][run]) and WorldState.dev_survivors == 0:
+	var run: int = forced_run if forced_run > 0 else _run()
+	if forced_run == 0 and rng.randf() >= float(CHANCE[role][run]) and WorldState.dev_survivors == 0:
 		return {}
 	var weapon := ""
 	var ammo := 0
@@ -202,6 +224,139 @@ static func _roll(key: String, role: String, floor_num: int, apt: String) -> Dic
 		"x": -1.0, "post": post, "post_kind": post_kind, "spot": rng.randf(),
 		"met": 0, "aided": false, "calm": false, "gave": false, "quest": "",
 	}
+
+
+# =============================== RESCUES ===============================================
+
+static func rescue_key_corridor(floor_num: int) -> String:
+	return "f%d:rescue" % floor_num                 # (no run: one person, all three runs)
+
+
+static func rescue_key_flat(apartment_id: String) -> String:
+	return "%s:rescue" % apartment_id
+
+
+## The shouting survivor of this corridor floor, or what became of them ({} = nobody, or not yet). Never on the opening floors.
+static func rescue_for_floor(floor_num: int) -> Dictionary:
+	if not active() or floor_num < FIRST_FLOOR or floor_num > RESCUE_LAST_FLOOR or not floor_ok(floor_num):
+		return {}
+	return _rescue_settled(rescue_key_corridor(floor_num), "corridor", floor_num, "")
+
+
+## The same for a walk-in flat (call only for a flat `hider_flat_ok` allows).
+static func rescue_for_flat(apartment_id: String) -> Dictionary:
+	var f: int = WorldState._apartment_floor(apartment_id)
+	if not active() or f < FIRST_FLOOR or f > RESCUE_LAST_FLOOR:
+		return {}
+	return _rescue_settled(rescue_key_flat(apartment_id), "flat", f, apartment_id)
+
+
+static func _rescue_settled(key: String, kind: String, floor_num: int, apt: String) -> Dictionary:
+	var all: Dictionary = WorldState.survivors
+	var rec: Dictionary = {}
+	if all.has(key):
+		rec = all[key]
+		if rec.get("none", false):
+			if WorldState.dev_survivors < 2:
+				return {}
+			rec = {}
+	if rec.is_empty():
+		rec = _roll_rescue(key, kind, floor_num, apt)
+		all[key] = rec if not rec.is_empty() else {"none": true}
+		if rec.is_empty():
+			return {}
+	var status := rescue_status(rec)
+	if status == "future":
+		return {}
+	if status == "lost" and not bool(rec.get("dead", false)):
+		rec["dead"] = true                           # an event that came and went unanswered: a body where they stood
+		rec["hp"] = 0
+		rec["rescue"] = "lost"
+	return rec
+
+
+static func _roll_rescue(key: String, kind: String, floor_num: int, apt: String) -> Dictionary:
+	var rng := _rng(key + ":appears")
+	var force: bool = WorldState.dev_survivors >= 2        # the dev switch (2): a rescue at every place that can hold one
+	if not force and rng.randf() >= float(RESCUE_CHANCE[kind]):
+		return {}
+	var appears := int(_weighted(RESCUE_APPEARS, rng))
+	if force:
+		appears = _run()                              # …happening NOW, whatever run it is
+	var rec := _roll(key, "defender" if kind == "corridor" else "hider", floor_num, apt, appears)
+	if rec.is_empty():
+		return {}
+	if kind == "flat" and str(rec.get("weapon", "")) == "":
+		var wr := _rng(key + ":arms")
+		if wr.randf() < 0.30:
+			rec["weapon"] = "001"                      # a kitchen knife, to shove the first one off with
+	if kind == "corridor":
+		var g := _weighted_gift(_rng(key + ":gift"))        # a thank-you for whoever saves them (the flat's hider already carries one)
+		rec["gift"] = g
+		rec["gift_n"] = int(GIFTS[g][1])
+	rec["rescue"] = "pending"
+	rec["appears"] = appears
+	rec["peril"] = RESCUE_HOLD
+	return rec
+
+
+## "" = not a rescue · "future" = their event is in a later run (nobody here yet) · "open" = the event is on NOW ·
+## "saved" / "lost" = what the player made of it. An event whose run is over without an answer is "lost".
+static func rescue_status(rec: Dictionary) -> String:
+	var st := str(rec.get("rescue", ""))
+	if st == "":
+		return ""
+	if st == "saved" or st == "lost":
+		return st
+	var appears := int(rec.get("appears", 1))
+	if _run() < appears:
+		return "future"
+	return "open" if _run() == appears else "lost"
+
+
+static func rescue_dead_key(rec: Dictionary, i: int) -> String:
+	return "rescue:%s:%d" % [str(rec.get("key", "")), i]
+
+
+## How many of the three are still to be killed (the kill memory holds the ones already put down this run).
+static func rescue_remaining(rec: Dictionary) -> int:
+	var n := 0
+	for i in RESCUE_DEAD:
+		var k := rescue_dead_key(rec, i)
+		if not WorldState.killed_zombies.has(k) and not WorldState.followed_away.has(k):      # (one that followed the player away is no longer here)
+			n += 1
+	return n
+
+
+## Lays the three dead walking at the survivor: `toward` is the way they come from (-1 left / +1 right), at the spread
+## RESCUE_STEPS from `at_x`, clamped inside [lo, hi]. They are ordinary standard zombies (kills are remembered by their key,
+## their health follows the floor) sent to the survivor's spot; as a pan backdrop's SCENERY they are frozen until it commits.
+static func spawn_rescue_dead(parent: Node, rec: Dictionary, at_x: float, origin_y: float, lo: float, hi: float, toward: float, floor_num: int, as_scenery: bool) -> Array:
+	var out: Array = []
+	var scene: PackedScene = preload("res://scenes/enemy_zombie_standard.tscn")
+	for i in RESCUE_DEAD:
+		var skey := rescue_dead_key(rec, i)
+		if WorldState.killed_zombies.has(skey) or WorldState.followed_away.has(skey):
+			continue
+		var x := clampf(at_x + toward * float(RESCUE_STEPS[i]), lo, hi)
+		if absf(x - at_x) < 120.0:                     # no room on that side: they come from the other
+			x = clampf(at_x - toward * float(RESCUE_STEPS[i]), lo, hi)
+		var z = scene.instantiate()
+		z.position = Vector2(x, origin_y)
+		z.spawn_key = skey
+		z.hp_floor = floor_num
+		z.add_to_group("rescue_dead")
+		if as_scenery:
+			z.add_to_group("pan_scenery")
+		parent.add_child(z)
+		WorldState.apply_saved_zombie(z)
+		if as_scenery:
+			z.set_physics_process(false)
+			EnemyMind._begin_investigate(z, at_x)      # (silently: nobody should hear a backdrop)
+		else:
+			EnemyMind.hear(z, at_x)
+		out.append(z)
+	return out
 
 
 static func _weighted_gift(rng: RandomNumberGenerator) -> String:

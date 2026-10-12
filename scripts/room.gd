@@ -246,6 +246,8 @@ func _ready() -> void:
 		elif not WorldState.resident_for(apartment_id).is_empty():
 			# Someone has held this flat behind its lock (resident_npc.gd) — no dead in here with them.
 			resident = RESIDENT_NPC.spawn(self, apartment_id, WorldState.resident_for(apartment_id), entrance_side)
+		elif _rescue_flat_open():
+			pass     # someone in here is shouting for help — the three dead walking at them are laid in _spawn_hider, and no others
 		else:
 			var zombie_count = WorldState.get_apartment_zombie_count(apartment_id)
 			if zombie_count > 0:
@@ -2073,6 +2075,15 @@ func _spawn_hider(entrance_side: String) -> void:
 		x = float(LEFT_WALL_X) + far_mod * MODULE_WIDTH + 70.0 + float(rec.get("spot", 0.5)) * 180.0
 		rec["post"] = x
 	hider = Survivor.spawn(self, rec, ROOM_FEET_Y, x)
+	if SurvivorPlan.rescue_status(rec) == "open" and not bool(rec.get("dead", false)):
+		# A RESCUE (scripts/survivor_plan.gd): the three dead come from the front door's side, walking at them.
+		SurvivorPlan.spawn_rescue_dead(self, rec, x, ROOM_STD_ORIGIN_Y, 170.0, 1010.0, -1.0 if entrance_side == "left" else 1.0, _apt_floor(), false)
+
+
+## Is a rescue ON in this flat this run (someone shouting for help, not yet saved or lost)?
+func _rescue_flat_open() -> bool:
+	var rec := SurvivorPlan.hider_for(apartment_id)
+	return not rec.is_empty() and SurvivorPlan.rescue_status(rec) == "open" and not bool(rec.get("dead", false))
 
 
 func _spawn_revenant() -> Node:

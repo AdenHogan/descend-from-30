@@ -13,6 +13,14 @@ extends RefCounted
 #   fists  — the player cannot hurt anything bare-handed, so neither can a survivor: an unarmed survivor hides.
 #
 # Zombies hit a survivor for their ordinary ATTACK_DAMAGE — the dead are no gentler with them than with you.
+#
+# ...EXCEPT THAT NOTHING OF THIS IS REAL ANY MORE (owner round 41): "NPCs are theatre dressing". With `performative` on
+# (the default) a survivor's swing or shot plays the dead one's damage flash and does NOTHING else, a bite plays the
+# survivor's flinch and does nothing else, and no gun ever runs dry. What decides a survivor's fate is whether the PLAYER
+# stepped in (a rescue — scripts/survivor_plan.gd), never their own fighting; and because nothing they do changes the world
+# they can walk through and around the dead with no push or blocking to think about. The half-damage maths above is kept
+# (and tested) behind `performative = false` — the one switch to give the melee fighters their teeth back.
+static var performative: bool = true
 
 # (player.gd is loaded LAZILY: WorldState reaches this file through Quests → Survivor, and player.gd reaches WorldState —
 # a preload here made a compile cycle that broke type inference in player.gd itself.)

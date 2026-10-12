@@ -11,9 +11,15 @@ extends Area2D
 #   HIDER    (unarmed-ish, in a flat) hide → peek → trust ⇄ freeze → panic → relieved
 #   WAITER   (by the lift)          wait (+ bangs in threes) → startle → calm ⇄ flee
 #
-# THEY FIGHT AT HALF YOUR DAMAGE (scripts/ally_combat.gd): the player must still be the one who takes initiative.
-# The dead fight back — zombies pick a survivor as prey when it is the nearer meal (AllyCombat / the zombie's
-# _pick_prey) and bite it for their ordinary damage; a survivor can die, and stays dead.
+# THEY FIGHT FOR SHOW (owner round 41: "NPCs are theatre dressing" — scripts/ally_combat.gd `performative`): their swings and
+# shots flash the dead one white, the dead one's bites make them flinch, and NEITHER side loses a point; no gun runs dry. The
+# player must still be the one who takes initiative, and what happens to a survivor is the PLAYER's doing: they die live only
+# in a rescue they ignore (below), and which of them are still there in a later run is settled by whether the player stepped
+# in. (With `AllyCombat.performative = false` the old half-damage fight comes back: real hits, real bites, finite rounds.)
+# The dead still pick a survivor as prey when it is the nearer meal (AllyCombat / the zombie's _pick_prey).
+#
+# A RESCUE is the one place a survivor can die (scripts/survivor_plan.gd `rescue_*`): they shout for help while three of the
+# dead walk slowly at them; they fend them off for show, and only if the player lets it go on for too long are they overrun.
 #
 # SOFTLOCK-SAFE by construction, like a resident: an Area2D with NO collision layers — it never blocks or shoves
 # the player, whatever it does. It is not in the "zombie" group, so no zombie system (memory, crowds, cans) treats
@@ -48,8 +54,12 @@ const RECOVER_QUIET := 6.0         # calm for this long and a wounded one gets b
 const SCAN_MIN := 3.5
 const SCAN_MAX := 6.0
 const GUN_STAND_OFF := 150.0       # a gun-holder likes this much room, and backs off if closed on
-const SHOT_NOISE := 900.0          # a survivor's gunshot carries this far (the floor hears; other floors do not)
+const SHOT_NOISE := 900.0          # a survivor's REAL gunshot carries this far (the floor hears; other floors do not)
+const SHOW_SHOT_NOISE := 420.0     # … a pretend one only a little way: the show must not drag the whole floor to a corridor post
 const MELEE_NOISE := 120.0
+const FLINCH_TIME := 0.25          # a bite they feel and shrug off (performative)
+const SWARM_GAP := 64.0            # a dead one this close is ON a rescue survivor — the clock to being overrun runs
+const HURT_SAY_GAP := 5.0          # …and they do not cry out at every one
 # --- hider ---
 const PEEK_RANGE := 170.0
 const TRUST_NEAR := 84.0
@@ -116,7 +126,13 @@ var _scan_t: float = 3.0
 var _face: float = 1.0
 var _quiet_t: float = 0.0              # time with no threat in sense
 var _said: Dictionary = {}             # one-shot lines this encounter (reset when the threat clears)
+var rescuing: bool = false             # a rescue is ON: shouting for help while the dead walk at them (SurvivorPlan.rescue_status)
+var _peril: float = 0.0                # seconds of being swarmed left before they are overrun
+var _shout_t: float = 1.2
+var _nudge_t: float = 5.0
+var _flail_t: float = 0.0
 var _hurt_t: float = 0.0
+var _hurt_say_cd: float = 0.0
 var _trust_t: float = 0.0
 var _scream_cd: float = 0.0
 var _bang_t: float = 12.0
@@ -166,7 +182,7 @@ func _ready() -> void:
 	post = float(rec.get("post", global_position.x))
 	quest_id = str(rec.get("quest", "")) if Quests.is_giver(rec) else ""
 	kind = AllyCombat.kind_of(weapon)
-	if kind == "gun" and ammo <= 0:
+	if kind == "gun" and ammo <= 0 and not AllyCombat.performative:
 		kind = "fists"
 	_rng.seed = hash(key + str(WorldState.master_seed))
 	_scan_t = _rng.randf_range(SCAN_MIN, SCAN_MAX)
@@ -191,6 +207,13 @@ func _ready() -> void:
 	if role != "patient":
 		add_to_group("survivor_prey")                 # (a bitten man on his back is not a meal the dead go for)
 	_set_behaviour({"hider": "hide", "waiter": "wait", "host": "plead", "patient": "lie"}.get(role, "hold"))
+	match SurvivorPlan.rescue_status(rec):
+		"open":
+			rescuing = true                                # the event is on (a frozen backdrop copy starts when it wakes)
+			_peril = float(rec.get("peril", SurvivorPlan.RESCUE_HOLD))
+			_set_behaviour("shout")
+		"saved":
+			_set_behaviour("trust" if role == "hider" else "hold")      # they know who you are
 	if scenery:
 		add_to_group("pan_scenery")        # building_floors._make_inert keeps scenery processing (the idle animation)
 		set_physics_process(false)
@@ -431,6 +454,11 @@ func _physics_process(delta: float) -> void:
 	_b_t += delta
 	_cd = maxf(0.0, _cd - delta)
 	_scream_cd = maxf(0.0, _scream_cd - delta)
+	_hurt_say_cd = maxf(0.0, _hurt_say_cd - delta)
+	if rescuing:
+		_tick_peril(delta)                                 # (before the flinch below: bites must not buy them time)
+		if is_dead:
+			return
 	if not _met_logged:
 		_met_logged = true
 		var met: int = int(rec.get("met", 0))
@@ -445,13 +473,16 @@ func _physics_process(delta: float) -> void:
 		if _hurt_t <= 0.0:
 			_play("Idle", true)
 		return
-	match role:
-		"defender": _tick_defender(delta)
-		"hider": _tick_hider(delta)
-		"waiter": _tick_waiter(delta)
-		"host": _tick_host(delta)
-		"patient": _tick_patient()
-		_: _set_behaviour("hold")
+	if rescuing:
+		_tick_rescue(delta)
+	else:
+		match role:
+			"defender": _tick_defender(delta)
+			"hider": _tick_hider(delta)
+			"waiter": _tick_waiter(delta)
+			"host": _tick_host(delta)
+			"patient": _tick_patient()
+			_: _set_behaviour("hold")
 	_tick_choices()
 	animated_sprite.flip_h = _face < 0.0
 
@@ -484,7 +515,7 @@ func _set_behaviour(b: String) -> void:
 func _tick_defender(delta: float) -> void:
 	var threats := _threats(SENSE)
 	var player_gap := _player_gap()
-	var can_fight: bool = kind != "fists" and not (kind == "gun" and ammo <= 0)
+	var can_fight: bool = kind != "fists" and not (kind == "gun" and ammo <= 0 and not AllyCombat.performative)
 	var wounded: bool = float(current_hp) <= float(max_hp) * RETREAT_FRAC
 	var cornered: Dictionary = {}
 	if not threats.is_empty() and float(threats[0]["gap"]) <= CORNERED_GAP:
@@ -632,7 +663,7 @@ func _is_on_someone(z: Node) -> bool:
 	return prey != null and is_instance_valid(prey) and prey != self
 
 
-func _fight(z: Node2D, delta: float) -> void:
+func _fight(z: Node2D, delta: float, hold: bool = false) -> void:
 	var g := AiMind.gap(self, z)
 	_face = AiMind.facing(global_position.x, z.global_position.x, _face)
 	_show_weapon(true, -0.9)
@@ -651,8 +682,8 @@ func _fight(z: Node2D, delta: float) -> void:
 	if g > reach * 0.92:
 		# Closing in. If the dead one is already coming and close, let it arrive: stand ground, strike first at reach.
 		var coming: bool = z.get("prey") == self or (z.get("state") == "chase" and g < reach + 70.0)
-		if coming and g < reach + 70.0:
-			_play("Idle")
+		if hold or (coming and g < reach + 70.0):
+			_play("Idle")                          # (a rescue holds its ground: they stand and fend, they do not go out to meet them)
 		else:
 			_walk_to(z.global_position.x - signf(z.global_position.x - global_position.x) * (reach * 0.8), WALK * 1.5, delta)
 	elif _cd <= 0.0:
@@ -704,24 +735,34 @@ func _strike(z: Node2D) -> void:
 	var s := AllyCombat.take_swing(_carry, kind)
 	_carry = float(s["carry"])
 	var amount: int = int(s["amount"])
+	if AllyCombat.performative:
+		if amount > 0 and z.has_method("show_hit"):
+			z.show_hit()                             # the flash of a blow, none of its weight
+		return
 	if amount > 0 and z.has_method("receive_damage"):
 		z.receive_damage(amount, AllyCombat.damage_type(kind))
 
 
 func _shoot(z: Node2D) -> void:
-	ammo -= 1
-	rec["ammo"] = ammo
-	WorldState.update_survivor(key, {"ammo": ammo})
+	var pretend: bool = AllyCombat.performative
+	if not pretend:
+		ammo -= 1
+		rec["ammo"] = ammo
+		WorldState.update_survivor(key, {"ammo": ammo})
 	_gun_player.pitch_scale = _rng.randf_range(0.95, 1.05)
 	_gun_player.play()
-	WorldState.emit_noise(global_position, SHOT_NOISE, 4.0, false)
+	WorldState.emit_noise(global_position, SHOW_SHOT_NOISE if pretend else SHOT_NOISE, 4.0, false)
 	var g := AiMind.gap(self, z)
 	if AllyCombat.gun_hits(g, _rng.randf()):
-		var s := AllyCombat.take_swing(_carry, "gun")
-		_carry = float(s["carry"])
-		if int(s["amount"]) > 0 and z.has_method("receive_damage"):
-			z.receive_damage(int(s["amount"]), "bullet")
-	if ammo <= 0:
+		if pretend:
+			if z.has_method("show_hit"):
+				z.show_hit()                         # a hit that only LOOKS like one
+		else:
+			var s := AllyCombat.take_swing(_carry, "gun")
+			_carry = float(s["carry"])
+			if int(s["amount"]) > 0 and z.has_method("receive_damage"):
+				z.receive_damage(int(s["amount"]), "bullet")
+	if ammo <= 0 and not pretend:
 		kind = "fists"
 		say("out_of_ammo")
 
@@ -934,6 +975,112 @@ func _become_calm() -> void:
 	say("calm")
 
 
+# =============================== RESCUE (shouting for help) ==============================
+#
+# Pattern: they stand where they are and CALL — "Help!" every few seconds, the "!" over their head — while three of the dead
+# walk slowly at them. When the dead reach them they fend them off for show (the swings and shots are the same pretend ones
+# as everywhere). The clock: every second a dead one is ON them counts; at `SurvivorPlan.RESCUE_HOLD` seconds of that they are
+# overrun, for real (the one place a survivor dies). It stops running while the dead are off them — pulled away by the player,
+# or killed. Kill all three and they are SAVED: thanks, a gift on the next talk, and still there, alive, in every later run.
+# Walk away and leave them to it, and the event's run ends in a body. Nothing else decides this — not who is shooting, not
+# how long it took the player to get to a floor they were not on.
+
+func _rescue_dead() -> Array:
+	var out: Array = []
+	var prefix := "rescue:%s:" % key
+	for z in get_tree().get_nodes_in_group("rescue_dead"):
+		if is_instance_valid(z) and AiMind.present(z) and str(z.get("spawn_key")).begins_with(prefix):
+			out.append(z)
+	return out
+
+
+## The clock to being overrun: runs only while one of the three is ON them.
+func _tick_peril(delta: float) -> void:
+	for z in _rescue_dead():
+		if AiMind.gap(self, z) <= SWARM_GAP:
+			_peril = maxf(_peril - delta, 0.0)
+			rec["peril"] = _peril
+			if _peril <= 0.0:
+				_overrun()
+			return
+
+
+func _tick_rescue(delta: float) -> void:
+	var dead_ones := _rescue_dead()
+	if dead_ones.is_empty():
+		if SurvivorPlan.rescue_remaining(rec) == 0:
+			_rescued()                                     # every one of the three is down: they are safe
+		else:
+			_set_behaviour("shout")
+			_play("Idle")
+		return
+	var nearest: Node2D = dead_ones[0]
+	var best := AiMind.gap(self, nearest)
+	for z in dead_ones:
+		var g := AiMind.gap(self, z)
+		if g < best:
+			best = g
+			nearest = z
+	_nudge_t -= delta                                       # keep the dead coming: any that lost the thread are sent again
+	if _nudge_t <= 0.0:
+		_nudge_t = 5.0
+		for z in dead_ones:
+			if str(z.get("mind")) == "" and z.get("prey") == null and str(z.get("state")) != "chase":
+				EnemyMind.hear(z, global_position.x)
+	_shout_t -= delta
+	if _shout_t <= 0.0:
+		_shout_t = _rng.randf_range(4.5, 7.0)
+		say("rescue_call", 2.2)
+		tell.show_mark("alert", 0.9)
+	_face = AiMind.facing(global_position.x, nearest.global_position.x, _face)
+	_set_behaviour("fend" if best <= SWARM_GAP else "shout")
+	if kind == "fists":
+		_show_weapon(false, 0.0)
+		if best <= SWARM_GAP + 20.0:
+			_flail(delta)                                  # bare-handed: they shove and flail
+		else:
+			_play("Idle")
+		return
+	var in_reach: bool = best <= (AllyCombat.GUN_RANGE if kind == "gun" else AllyCombat.reach(kind) + 90.0)
+	if in_reach:
+		_fight(nearest, delta, true)
+	else:
+		_show_weapon(true, -0.9)
+		_play("Idle")
+
+
+func _flail(delta: float) -> void:
+	_flail_t -= delta
+	_play("Idle")
+	if _flail_t <= 0.0:
+		_flail_t = 0.9
+		_play("Special", true)
+
+
+func _overrun() -> void:
+	if is_dead:
+		return
+	rescuing = false
+	rec["rescue"] = "lost"
+	rec["peril"] = 0.0
+	HUD.show_feedback("They didn't make it.")
+	_die()                                                 # the one place a survivor really dies
+
+
+func _rescued() -> void:
+	rescuing = false
+	rec["rescue"] = "saved"
+	rec["aided"] = true
+	if not bool(rec.get("credited", false)):
+		rec["credited"] = true
+		WorldState.note_npc_aided()                        # +Valour, once
+		WorldState.add_run_trace("Saved a stranger from the dead.")
+	_wind = -1.0
+	_show_weapon(false, 0.0)
+	say("rescue_saved", 3.0)
+	_set_behaviour("trust" if role == "hider" else "hold")
+
+
 # =============================== HOST + PATIENT (a quest's people) =============================
 #
 # Pattern: the HOST stays beside the one she will not leave — pleading, facing whoever comes near (or crouched
@@ -1049,6 +1196,10 @@ func talk() -> String:
 		return ""
 	if quest_id != "":
 		return Quests.talk(self)
+	if str(rec.get("rescue", "")) == "saved":
+		if str(rec.get("gift", "")) != "" and not bool(rec.get("gave", false)):
+			return _give_gift()                            # the thank-you they have been keeping
+		return say("rescue_thanks")
 	match role:
 		"hider":
 			if not bool(rec.get("gave", false)) and rec.get("gift", "") != "":
@@ -1086,6 +1237,9 @@ func is_hurt() -> bool:
 func receive_damage(amount: int, _damage_type: String = "") -> void:
 	if is_dead:
 		return
+	if AllyCombat.performative:
+		_flinch()                                   # felt and shrugged off: the show takes nothing from anyone
+		return
 	if Quests.protects(rec):
 		amount = mini(amount, current_hp - 1)       # never finished before the first conversation (Quests.protects)
 		if amount <= 0:
@@ -1099,6 +1253,15 @@ func receive_damage(amount: int, _damage_type: String = "") -> void:
 	_hurt_t = HURT_TIME
 	_wind = -1.0
 	_play("Hurt", true)
+
+
+## The pretend bite: the hurt pose for a beat and, now and then, a cry — no damage, nothing changes.
+func _flinch() -> void:
+	_hurt_t = FLINCH_TIME
+	_play("Hurt", true)
+	if _hurt_say_cd <= 0.0:
+		_hurt_say_cd = HURT_SAY_GAP
+		say("hurt")
 
 
 func receive_push(force: float) -> void:

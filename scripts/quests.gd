@@ -14,7 +14,12 @@ extends RefCounted
 #     the outcome — a turned couple, a mourner, a body and a revolver (`world`).
 #   • A giver can die (a zombie, a bad fight): the quest turns to its `on_giver_died` state and stays there.
 #
-# State lives in WorldState.quests[qid] = {started, stage, outcome, done, flags, site}; string keys only.
+#   • A choice can be a PAYMENT IN INSTALMENTS (`pay`, owner round 41 — "keep it at 10 and 20 but the bullets can carry over"):
+#     whatever bullets the player hands over are added to a LEDGER that lives in the quest's state, so it survives the time skips
+#     and all three characters; the choice's `do` runs the moment the goal is met, and until then the giver just says how many
+#     are still owed. The bullets are always his once handed over — if the reward does not fit the pockets it WAITS for them.
+#
+# State lives in WorldState.quests[qid] = {started, stage, outcome, done, flags, ledger, site}; string keys only.
 
 const FILE := "res://data/quests.json"
 ## Upgrades only quests grant. Same shape as WorldState.UPGRADE_POOL mods, folded by WorldState._stat_mods_sources.
@@ -63,8 +68,16 @@ static func def(qid: String) -> Dictionary:
 static func state_of(qid: String) -> Dictionary:
 	var all: Dictionary = WorldState.quests
 	if not all.has(qid):
-		all[qid] = {"started": false, "stage": str(def(qid).get("start", "offer")), "outcome": "", "done": false, "flags": {}, "site": {}}
-	return all[qid]
+		all[qid] = {"started": false, "stage": str(def(qid).get("start", "offer")), "outcome": "", "done": false, "flags": {}, "ledger": {}, "site": {}}
+	var st: Dictionary = all[qid]
+	if not st.has("ledger"):
+		st["ledger"] = {}                 # (a save from before the ledger)
+	return st
+
+
+## How much of an instalment goal the player has already handed over (bullets), across every run so far.
+static func ledger_paid(qid: String, name: String) -> int:
+	return int(state_of(qid)["ledger"].get(name, 0))
 
 
 static func started(qid: String) -> bool:
@@ -346,14 +359,27 @@ static func choices(qid: String) -> Array:
 	for c in sd.get("choices", []):
 		var ok := true
 		var hint := ""
+		var label := str(c.get("label", "…"))
 		var need: Dictionary = c.get("need", {})
+		if c.has("pay"):
+			var pay: Dictionary = c["pay"]
+			var goal := int(pay["ammo"])
+			var paid := ledger_paid(qid, str(pay["ledger"]))
+			var left := maxi(goal - paid, 0)
+			if left <= 0 and str(pay.get("collect", "")) != "":
+				label = str(pay["collect"])                       # paid in full: what is left is taking what is owed
+			else:
+				label = label.replace("{paid}", str(paid)).replace("{goal}", str(goal)).replace("{left}", str(left))
+				if left > 0 and WorldState.get_ammo_total() < 1:
+					ok = false
+					hint = "no bullets"
 		if need.has("ammo") and WorldState.get_ammo_total() < int(need["ammo"]):
 			ok = false
 			hint = "need %d bullets" % int(need["ammo"])
 		if need.has("item") and not _has_item(str(need["item"])):
 			ok = false
 			hint = "need %s" % str(ItemData.get_item(str(need["item"])).get("name", "it"))
-		out.append({"label": str(c.get("label", "…")), "enabled": ok, "hint": hint})
+		out.append({"label": label, "enabled": ok, "hint": hint})
 	return out
 
 
@@ -394,6 +420,8 @@ static func choose(who: Node, idx: int) -> bool:
 	var shown := choices(qid)
 	if idx >= shown.size() or not bool(shown[idx]["enabled"]):
 		return false
+	if c.has("pay"):
+		return _pay(qid, c, who)
 	var dos: Array = c.get("do", [])
 	if dos.is_empty():
 		who.hide_choices()                   # "Not now" / "Leave": nothing happens, the quest stays open
@@ -422,6 +450,62 @@ static func choose(who: Node, idx: int) -> bool:
 	var more := choices(qid)
 	if not more.is_empty():
 		who.show_choices(more)
+	return true
+
+
+## A payment in instalments: hand over what you have toward the goal (never more than is owed); the ledger remembers it
+## for the rest of the playthrough. The moment the goal is met the choice's `do` runs. The bullets are the giver's once
+## handed over — if the reward will not fit the pockets, it WAITS (the choice turns into "take what you are owed") rather than
+## the payment being refused or the reward lost.
+static func _pay(qid: String, c: Dictionary, who: Node) -> bool:
+	var pay: Dictionary = c["pay"]
+	var ledger_name := str(pay["ledger"])
+	var goal := int(pay["ammo"])
+	var paid := ledger_paid(qid, ledger_name)
+	var left := maxi(goal - paid, 0)
+	var give := mini(WorldState.get_ammo_total(), left)
+	if left > 0 and give <= 0:
+		HUD.show_feedback("You have no bullets to give.")
+		return false
+	var completes: bool = give >= left
+	var dos: Array = c.get("do", [])
+	var receives := 0
+	for e in dos:
+		if str(e).begins_with("give_gun:") or str(e).begins_with("give_item:"):
+			receives += 1
+	var fits := true
+	if completes and receives > 0:
+		var freed := _slots_freed(["take_ammo:%d" % give]) if give > 0 else 0
+		fits = WorldState.inventory.size() - freed + receives <= WorldState.get_inventory_slots()
+	if completes and not fits and give <= 0:
+		HUD.show_feedback("No room to carry it.")
+		return false
+	if give > 0:
+		WorldState.consume_ammo(give)
+		state_of(qid)["ledger"][ledger_name] = paid + give
+		HUD.show_feedback("You hand over %d bullet%s." % [give, "" if give == 1 else "s"])
+	var before := stage(qid)
+	if completes and fits:
+		for e in dos:
+			_apply(qid, str(e), who)
+	elif completes:
+		HUD.show_feedback("No room to carry it — make space and come back for it.")
+	WorldState.sync_overload()
+	HUD.refresh_inventory()
+	who.hide_choices()
+	if stage(qid) != before and not completed(qid):
+		_banner("OBJECTIVE UPDATED", qid)
+	if stage(qid) != before:
+		var ls := _lines_for(qid, stage(qid), who)       # the new state speaks at once
+		if not ls.is_empty():
+			who.say_text("quest", str(ls[randi() % ls.size()]), TALK_HOLD)
+	elif not completes:
+		var more := str(pay.get("more", ""))             # still short: how many are owed
+		if more != "":
+			who.say_text("quest", more.replace("{left}", str(left - give)).replace("{paid}", str(paid + give)).replace("{goal}", str(goal)), TALK_HOLD)
+	var again := choices(qid)
+	if not again.is_empty():
+		who.show_choices(again)
 	return true
 
 
@@ -544,6 +628,17 @@ static func on_survivor_died(rec: Dictionary) -> void:
 
 # --- the journal ---------------------------------------------------------------------------------
 
+## " (4 of 10 bullets given)" for a state that is waiting on a payment; "" otherwise.
+static func progress_text(qid: String) -> String:
+	for c in state_def(qid, stage(qid)).get("choices", []):
+		if c.has("pay"):
+			var goal := int(c["pay"]["ammo"])
+			var paid := ledger_paid(qid, str(c["pay"]["ledger"]))
+			if paid < goal:
+				return "  (%d of %d bullets given)" % [paid, goal]
+	return ""
+
+
 ## [{title, number, objective, done, failed}] for every quest the player has begun.
 static func journal_entries() -> Array:
 	var out: Array = []
@@ -554,7 +649,7 @@ static func journal_entries() -> Array:
 		var st := stage(qid)
 		out.append({
 			"id": qid, "title": str(d.get("title", qid)), "number": str(d.get("number", "")),
-			"objective": str(state_def(qid, st).get("journal", "")),
+			"objective": str(state_def(qid, st).get("journal", "")) + progress_text(qid),
 			"done": completed(qid), "failed": st == str(d.get("on_giver_died", "")) and not completed(qid),
 		})
 	return out

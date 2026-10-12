@@ -1,30 +1,37 @@
 {
-  "_note": "QUEST DATA (docs/QUESTS.md). The MECHANICS are real; every `lines`, `label` and `journal` string is a PLACEHOLDER the owner rewrites — keep the keys and structure. A quest is a set of STATES; each state has what the giver says (`lines`, optionally per run: {\"1\": [...], \"2\": [...]}), what the journal says (`journal`), and the `choices` the player can make. A choice may `need` something (\"ammo\": N bullets, or \"item\": id) and `do` a list of effects: take_ammo:N  take_item:ID  give_item:ID  give_gun:PRESET  upgrade:ID  kill:NPC  outcome:NAME  complete  goto:STATE  banner:TEXT  flag:NAME. `world` says what the quest's place looks like in LATER runs, by outcome (\"\" = never resolved): a list of specs per run — {npc,mood} {body} {zombies} {drop,half,key} {gun,key}.",
+  "_note": "QUEST DATA (docs/QUESTS.md). The MECHANICS are real; every `lines`, `label` and `journal` string is a PLACEHOLDER the owner rewrites — keep the keys and structure. A quest is a set of STATES; each state has what the giver says (`lines`, optionally per run: {\"1\": [...], \"2\": [...]}), what the journal says (`journal`), and the `choices` the player can make. A choice may `need` something (\"ammo\": N bullets, or \"item\": id), or be a `pay`ment in instalments ({ammo: goal, ledger: name, collect: label, more: line} — whatever the player hands over is added to a ledger that survives all three runs, and `do` runs once the goal is met), and `do` a list of effects: take_ammo:N  take_item:ID  give_item:ID  give_gun:PRESET  upgrade:ID  kill:NPC  outcome:NAME  complete  goto:STATE  banner:TEXT  flag:NAME. `world` says what the quest's place looks like in LATER runs, by outcome (\"\" = never resolved): a list of specs per run — {npc,mood} {body} {zombies} {drop,half,key} {gun,key}.",
 
   "johnny": {
     "number": "010",
     "title": "Johnny the Gun Guy",
     "kind": "corridor",
-    "floors": [9, 22],
+    "floors": [10, 20],
     "npc": {"role": "defender", "weapon": "004", "ammo": 6, "look": 4, "hp": 10, "name": "Johnny"},
     "start": "offer",
     "on_giver_died": "lost",
     "states": {
       "offer": {
-        "journal": "Johnny, holding his floor with a gun, will trade a good gun for ten bullets.",
-        "lines": ["Hey. You got bullets? Ten of them and I'll make it worth your while.", "Ten bullets. That's the price of a proper gun. You in?"],
+        "journal": "Johnny, holding his floor with a gun, will trade a good gun for ten bullets. Hand them over as you find them — he keeps count, across all three of you.",
+        "lines": ["Hey. You got bullets? Ten of them and I'll make it worth your while.", "Ten bullets. That's the price of a proper gun. Bring what you've got — I keep count."],
         "choices": [
-          {"label": "Give 10 bullets", "need": {"ammo": 10}, "do": ["take_ammo:10", "give_gun:johnny", "banner:Johnny's gun", "goto:paid"]},
+          {"label": "Give bullets ({paid} of {goal})", "pay": {"ammo": 10, "ledger": "gun", "collect": "Take Johnny's gun", "more": "Good. {left} more and the gun's yours. I'll remember."}, "do": ["give_gun:johnny", "banner:Johnny's gun", "goto:paid"]},
           {"label": "Not now"}
         ]
       },
       "paid": {
-        "journal": "Johnny gave you a gun. Twenty more bullets and he'll give you something better.",
-        "lines": ["Told you I'd make it worth it. Bring me twenty more and I'll do more than hand you a gun.", "Twenty more. Then I teach you something."],
+        "journal": "Johnny gave you a gun. Twenty more bullets, in whatever instalments you can manage, and he'll teach you something better.",
+        "lines": ["Told you I'd make it worth it. Bring me twenty more — a few at a time is fine — and I'll do more than hand you a gun.", "Twenty more. Then I teach you something."],
         "choices": [
-          {"label": "Twenty bullets: waste fewer rounds", "need": {"ammo": 20}, "do": ["take_ammo:20", "upgrade:Q_refund", "complete", "goto:done"]},
-          {"label": "Twenty bullets: steadier aim", "need": {"ammo": 20}, "do": ["take_ammo:20", "upgrade:Q_crit", "complete", "goto:done"]},
+          {"label": "Give bullets ({paid} of {goal})", "pay": {"ammo": 20, "ledger": "upgrade", "collect": "Hear what Johnny will teach", "more": "That's the way. {left} to go."}, "do": ["goto:pick"]},
           {"label": "Not now"}
+        ]
+      },
+      "pick": {
+        "journal": "Johnny is square on the bullets. He'll teach you one thing.",
+        "lines": ["That's twenty. Right. One thing I can teach you — pick."],
+        "choices": [
+          {"label": "Waste fewer rounds", "do": ["upgrade:Q_refund", "complete", "goto:done"]},
+          {"label": "Steadier aim", "do": ["upgrade:Q_crit", "complete", "goto:done"]}
         ]
       },
       "done": {

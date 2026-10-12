@@ -24,6 +24,9 @@ func check(cond: bool, label: String) -> void:
 
 func _ready() -> void:
 	print("=== enemy mind test ===")
+	# This suite is about the dead's prey logic, which needs REAL bites: the survivors' theatre
+	# (round 41) is switched off here and its own tests live in survivor_ai_test.
+	AllyCombat.performative = false
 	await _test_noise_is_where()
 	await _test_legacy_alert_still_knows()
 	await _test_lose_the_player()

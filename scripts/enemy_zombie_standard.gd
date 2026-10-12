@@ -159,6 +159,7 @@ var _plane_pos0: Vector2 = Vector2.ZERO
 # HURT (scripts/enemy_hurt.gd): a hit that doesn't kill stuns me for HURT_TIME — I blink white,
 # can't attack, and can be slipped past — but I'm never immune: every hit still lands.
 const HURT_TIME := 0.5
+const SHOW_HIT_TIME := 0.24            # a survivor's pretend blow: one quick white flash
 var hurt_timer: float = 0.0
 var _hurt_stun: bool = false     # the current "hit" state is a HURT stun (not a push stagger)
 var passable_to_player: bool = false
@@ -924,6 +925,15 @@ const REACH_PAST_CONTACT := 7.0       # standard: 30 range - (10 radius + 13) co
 
 func is_hurt() -> bool:
 	return hurt_timer > 0.0 or state == "knockdown"
+
+
+## A blow that only LOOKS like one (a survivor's — scripts/ally_combat.gd `performative`): the white blink for a beat and
+## nothing else. No damage, no stun, no knock-down, no noise: the dead one goes on with whatever it was doing, so a fight
+## around a survivor stays a lively scuffle instead of a stun-lock, and nothing it does changes what is alive.
+func show_hit() -> void:
+	if is_dead or stair_mode or riser_phase != "":
+		return
+	ENEMY_HURT.blink(self, SHOW_HIT_TIME)
 
 
 func place_on_balcony(cx: float, floor_y: float) -> void:

@@ -1,12 +1,16 @@
 extends Node
 
-# Headless test for the SURVIVORS (docs/NPC_AI.md): who is where, how they think, how they fight — and that they
-# fight at HALF the player's damage. Every pattern the doc promises is asserted here by running the real thing.
+# Headless test for the SURVIVORS (docs/NPC_AI.md): who is where, how they think, how they fight. Every pattern the doc
+# promises is asserted here by running the real thing. Since owner round 41 their fighting is THEATRE (AllyCombat.performative:
+# the flash of a blow, none of its weight) — the first half of this file runs the OLD half-damage fight with that switch OFF
+# (it is still the maths behind the switch, and the patterns — alert → engage → return — are the same either way); the second
+# half pins the theatre itself and the RESCUE events, with it on.
 #   godot --headless res://tests/survivor_ai_test.tscn
 
 var failures: int = 0
 var _n: int = 0
 const STANDARD := "res://scenes/enemy_zombie_standard.tscn"
+const ENEMY_HURT := preload("res://scripts/enemy_hurt.gd")
 
 
 func check(cond: bool, label: String) -> void:
@@ -19,6 +23,7 @@ func check(cond: bool, label: String) -> void:
 
 func _ready() -> void:
 	print("=== survivor AI test ===")
+	AllyCombat.performative = false                  # the old, real fight: its maths and its patterns (below), then the theatre
 	await _test_half_damage_math()
 	await _test_survivor_really_hits_half()
 	await _test_defender_pattern()
@@ -35,6 +40,12 @@ func _ready() -> void:
 	await _test_spawning()
 	await _test_hider_in_a_flat()
 	_test_safety_and_dialogue()
+	AllyCombat.performative = true                   # …and the shipped behaviour
+	await _test_theatre()
+	await _test_rescue_rules()
+	await _test_rescue_overrun()
+	await _test_rescue_saved()
+	await _test_rescue_in_a_flat()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -525,8 +536,8 @@ func _test_plan_rules() -> void:
 					break
 				floors_checked += 1
 				for r in SurvivorPlan.corridor_records(f):
-					if str(r.get("quest", "")) != "":
-						continue                # a quest giver is specified by data/quests.json (quest_test), not by the random role tables
+					if str(r.get("quest", "")) != "" or str(r.get("rescue", "")) != "":
+						continue                # a quest giver is specified by data/quests.json (quest_test), a rescue by the rescue tests — not by the random role tables
 					if r["role"] == "defender":
 						def_by_run[run] += 1
 						if not SurvivorPlan.DEFENDER_WEAPONS[run].has(r["weapon"]):
@@ -674,7 +685,7 @@ func _test_hider_in_a_flat() -> void:
 		WorldState.seed_floor_door_states(f)
 		for col in range(1, 6):
 			var a := "%d%02d" % [f, col]
-			if SurvivorPlan.hider_flat_ok(a) and not SurvivorPlan.hider_for(a).is_empty() and WorldState.get_door_state(a) == WorldState.DoorState.OPEN:
+			if SurvivorPlan.hider_flat_ok(a) and not SurvivorPlan.hider_for(a).is_empty() and str(SurvivorPlan.hider_for(a).get("rescue", "")) == "" and WorldState.get_door_state(a) == WorldState.DoorState.OPEN:
 				apt = a
 				break
 		if apt != "":
@@ -718,7 +729,7 @@ func _test_safety_and_dialogue() -> void:
 	print("[SAFETY + DIALOGUE]")
 	var lines := Survivor.lines()
 	var need := {
-		"all": ["hurt", "death"],
+		"all": ["hurt", "death", "rescue_call", "rescue_saved", "rescue_overrun", "rescue_thanks"],
 		"defender": ["greet", "greet_again", "spot", "engage", "help", "wounded", "recovered", "out_of_ammo", "clear", "thanks"],
 		"hider": ["peek", "trust", "freeze", "panic", "relieved", "gift", "thanks", "cornered"],
 		"waiter": ["mutter", "bang", "startle", "calm", "thanks", "flee"],
@@ -743,3 +754,312 @@ func _test_safety_and_dialogue() -> void:
 	t.clear()
 	check(not t.is_showing(), "clear() hides it")
 	host.free()
+
+
+# --- THEATRE (owner round 41): the show takes nothing from anyone -------------------------------------------
+
+## Physics at `mult`× real time with the per-step delta unchanged (the headless run is paced in real time otherwise).
+func _fast(mult: int) -> void:
+	Engine.physics_ticks_per_second = 60 * mult
+	Engine.max_physics_steps_per_frame = 64
+	Engine.time_scale = float(mult)
+
+
+func _test_theatre() -> void:
+	print("[THEATRE: survivors fight for show — the flash of a blow, none of its weight, and no gun runs dry]")
+	check(AllyCombat.performative, "(setup) the shipped default is the show")
+	var bf = await _corridor()
+	# a bat: ten swings flash the dead one white and take NOTHING off it, stun nothing, knock nothing down
+	var d := _survivor(bf, "defender", "014", 0, 600.0)
+	var z = _zombie(bf, 640.0, 100, true)
+	await _frames(2)
+	for i in 10:
+		d._strike(z)
+	check(z.current_hp == 100, "ten bat swings take nothing off the dead one (hp %d)" % z.current_hp)
+	check(ENEMY_HURT.is_blinking(z), "…but it flashes white: the damage animation still plays")
+	check(z.state != "hit" and z.state != "knockdown" and not z.is_hurt(), "…and it is not stunned, staggered or knocked down (%s)" % z.state)
+	# a gun never runs dry and never hurts
+	var g := _survivor(bf, "defender", "004", 3, 520.0)
+	var target = _zombie(bf, 700.0, 100, true)
+	await _frames(2)
+	for i in 12:
+		g._shoot(target)
+	check(g.ammo == 3 and g.kind == "gun", "twelve shots later it still has its three rounds and its gun (ammo %d, %s)" % [g.ammo, g.kind])
+	check(target.current_hp == 100, "…and none of them hurt (hp %d)" % target.current_hp)
+	check(Survivor.SHOW_SHOT_NOISE < Survivor.SHOT_NOISE, "a pretend shot carries less far than a real one (it must not drag the floor to the post)")
+	# the dead's bite: the flinch, not the wound
+	var hp0: int = d.current_hp
+	d.receive_damage(99, "bite")
+	check(not d.is_dead and d.current_hp == hp0 and int(WorldState.survivors[d.key]["hp"]) == hp0, "a bite that would have killed them changes nothing (hp %d/%d)" % [d.current_hp, d.max_hp])
+	check(d.is_hurt(), "…but they flinch (the hurt pose plays)")
+	await _finish(bf)
+	# a whole fight: a bat-holder, three of the dead on it — nobody is hurt, nobody dies, and they DID fight
+	bf = await _corridor()
+	_player(bf).global_position = Vector2(1180.0, 386.0)
+	var d2 := _survivor(bf, "defender", "014", 0, 600.0)
+	var dead_ones: Array = []
+	for x in [430.0, 470.0, 520.0]:
+		dead_ones.append(_zombie(bf, x, 4))
+	_fast(8)
+	var seen: Array = []
+	for i in 1500:
+		await get_tree().physics_frame
+		if seen.is_empty() or seen[-1] != d2.behaviour:
+			seen.append(d2.behaviour)
+	_fast(1)
+	var untouched := true
+	for zz in dead_ones:
+		if zz.is_dead or zz.current_hp != zz.max_hp:
+			untouched = false
+	check(seen.has("engage"), "the show is a fight: it engaged (%s)" % str(seen))
+	check(untouched, "…and after twenty-five seconds of it not one of the dead is hurt or down")
+	check(not d2.is_dead and d2.current_hp == d2.max_hp, "…nor is the survivor (hp %d/%d)" % [d2.current_hp, d2.max_hp])
+	await _finish(bf)
+
+
+# --- RESCUES --------------------------------------------------------------------------------------------------
+
+func _rescue_rec(weapon: String, role: String = "defender", appears: int = 1) -> Dictionary:
+	var rec := _rec(role, weapon, 0, 900.0)
+	rec["rescue"] = "pending"
+	rec["appears"] = appears
+	rec["peril"] = SurvivorPlan.RESCUE_HOLD
+	return rec
+
+
+func _test_rescue_rules() -> void:
+	print("[RESCUE: status by run, where it can be, and that it persists]")
+	WorldState.new_game()
+	WorldState.survivor_rule = true
+	WorldState.is_first_run = false
+	WorldState.tutorial_completed = true
+	WorldState.master_seed = 515151
+	var rec := {"key": "test:r", "rescue": "pending", "appears": 2}
+	WorldState.current_run = 1
+	check(SurvivorPlan.rescue_status(rec) == "future", "an event due in run 2 is not here in run 1")
+	WorldState.current_run = 2
+	check(SurvivorPlan.rescue_status(rec) == "open", "…it is ON in run 2")
+	WorldState.current_run = 3
+	check(SurvivorPlan.rescue_status(rec) == "lost", "…and in run 3 an unanswered one is lost (no step at the time skip to forget)")
+	rec["rescue"] = "saved"
+	check(SurvivorPlan.rescue_status(rec) == "saved", "a saved one stays saved")
+	check(SurvivorPlan.rescue_status({"role": "defender"}) == "", "an ordinary survivor is not a rescue")
+	var back = JSON.parse_string(JSON.stringify({"key": "test:r", "rescue": "pending", "appears": 2}))
+	WorldState.current_run = 2
+	check(SurvivorPlan.rescue_status(back) == "open", "the status survives a JSON round trip (appears comes back a float)")
+	# where it can be
+	WorldState.current_run = 1
+	WorldState.dev_survivors = 2
+	var opening := 0
+	var elsewhere := 0
+	for f in range(1, 31):
+		if not SurvivorPlan.rescue_for_floor(f).is_empty():
+			if f >= 27:
+				opening += 1
+			else:
+				elsewhere += 1
+	check(opening == 0, "never on the eased opening floors 27-30 (%d)" % opening)
+	check(elsewhere > 10, "…but all over the rest of the building with the dev switch on (%d floors)" % elsewhere)
+	WorldState.dev_survivors = 0
+	WorldState.survivor_rule = false
+	var any := 0
+	for f in range(1, 31):
+		any += 0 if SurvivorPlan.rescue_for_floor(f).is_empty() else 1
+	check(any == 0, "with the survivor rule off nobody is shouting anywhere (%d)" % any)
+	WorldState.survivor_rule = true
+	# how common, and when: one identity per place, rolled once, whatever run it is first asked in
+	var made := 0
+	var appear := {1: 0, 2: 0, 3: 0}
+	var floors_seen := 0
+	for sd in range(1, 121):
+		WorldState.master_seed = 7000 + sd
+		WorldState.survivors.clear()
+		WorldState.current_run = 1 + (sd % 3)
+		for f in range(1, 27):
+			if WorldState.fire_intensity(f) >= WorldState.FIRE_BLAZE:
+				continue
+			floors_seen += 1
+			SurvivorPlan.rescue_for_floor(f)
+			var r = WorldState.survivors.get(SurvivorPlan.rescue_key_corridor(f), {})
+			if r is Dictionary and not r.is_empty() and not r.get("none", false):
+				made += 1
+				appear[int(r["appears"])] += 1
+	var rate: float = float(made) / float(floors_seen)
+	check(rate > 0.07 and rate < 0.17, "about one corridor floor in eight holds a rescue over the three runs (%.3f)" % rate)
+	check(appear[1] > appear[3] and appear[2] > 0 and appear[3] > 0, "…spread over the runs, the first the most (%s)" % str(appear))
+	# an event whose run has gone by unanswered is a body where they stood
+	WorldState.new_game()
+	WorldState.survivor_rule = true
+	WorldState.is_first_run = false
+	WorldState.tutorial_completed = true
+	var qf := _quiet_floor(12)
+	var key := SurvivorPlan.rescue_key_corridor(qf)
+	var seeded := SurvivorPlan._roll(key, "defender", qf, "", 1)
+	seeded["rescue"] = "pending"
+	seeded["appears"] = 1
+	seeded["peril"] = SurvivorPlan.RESCUE_HOLD
+	WorldState.survivors[key] = seeded
+	WorldState.current_run = 1
+	var live := SurvivorPlan.rescue_for_floor(qf)
+	check(not live.is_empty() and not bool(live.get("dead", false)) and SurvivorPlan.rescue_status(live) == "open", "in its own run the event is open and they are alive")
+	WorldState.current_run = 2
+	var gone := SurvivorPlan.rescue_for_floor(qf)
+	check(bool(gone.get("dead", false)) and str(gone.get("rescue", "")) == "lost", "…the run after, unanswered, they are a body where they stood")
+	check(SurvivorPlan.corridor_records(qf).any(func(r): return str(r.get("key", "")) == key), "…which the floor lays (as the dead, not as a defender)")
+
+
+func _test_rescue_overrun() -> void:
+	print("[RESCUE: ignored, they are overrun live — only then — and the dead they were fending are untouched]")
+	var bf = await _corridor()
+	_player(bf).global_position = Vector2(1180.0, 386.0)
+	var rec := _rescue_rec("014")
+	var d := Survivor.spawn(bf, rec, Survivor.FEET_CORRIDOR, 900.0)
+	var dead_ones := SurvivorPlan.spawn_rescue_dead(bf, rec, 900.0, 370.0, 265.0, 1105.0, -1.0, 12, false)
+	await _frames(3)
+	check(dead_ones.size() == 3 and get_tree().get_nodes_in_group("rescue_dead").size() == 3, "three of the dead are laid (%d)" % dead_ones.size())
+	check(d.rescuing and d.behaviour == "shout", "they are shouting for help (%s)" % d.behaviour)
+	var starts_left := true
+	for z in dead_ones:
+		if z.global_position.x >= 900.0 - 120.0:
+			starts_left = false
+	check(starts_left, "…and the dead start well away, on the side they come from")
+	_fast(8)
+	var called := false
+	var fended := false
+	var walked := true
+	for i in 1100:
+		await get_tree().physics_frame
+		if d.last_moment == "rescue_call":
+			called = true
+		if d.behaviour == "fend":
+			fended = true
+		if i == 120:
+			for z in dead_ones:
+				if str(z.get("mind")) not in ["investigate", "search"] and str(z.get("state")) != "chase":
+					walked = false
+	check(called, "they called out ('rescue_call')")
+	check(walked, "the dead were SENT at them (investigating their spot, not milling)")
+	check(fended and not d.is_dead, "the dead reached them and they fended them off — alive so far (%s, peril %.1f)" % [d.behaviour, float(rec["peril"])])
+	check(float(rec["peril"]) < SurvivorPlan.RESCUE_HOLD, "…and the clock to being overrun is running down (%.1f of %.0f)" % [float(rec["peril"]), SurvivorPlan.RESCUE_HOLD])
+	var died := await _until(func(): return d.is_dead, 3200)
+	_fast(1)
+	check(died, "ignored, they are finally overrun")
+	check(str(rec["rescue"]) == "lost" and bool(WorldState.survivors[d.key]["dead"]), "…recorded as lost, dead")
+	var untouched := true
+	for z in dead_ones:
+		if is_instance_valid(z) and (z.is_dead or z.current_hp != z.max_hp):
+			untouched = false
+	check(untouched, "…and not one of the dead was hurt by anything they did")
+	await _finish(bf)
+	# leaving mid-event does not reset the clock
+	bf = await _corridor()
+	_player(bf).global_position = Vector2(1180.0, 386.0)
+	var rec2 := _rescue_rec("014")
+	rec2["peril"] = 9.5
+	var d2 := Survivor.spawn(bf, rec2, Survivor.FEET_CORRIDOR, 900.0)
+	await _frames(2)
+	check(absf(d2._peril - 9.5) < 0.01, "a survivor spawned mid-event picks the clock up where it was (%.1f)" % d2._peril)
+	await _finish(bf)
+
+
+func _test_rescue_saved() -> void:
+	print("[RESCUE: step in and they are saved — thanks, a gift, and still there next run]")
+	var bf = await _corridor()
+	_player(bf).global_position = Vector2(1180.0, 386.0)
+	var rec := _rescue_rec("014")
+	rec["gift"] = "006"
+	rec["gift_n"] = 0
+	var d := Survivor.spawn(bf, rec, Survivor.FEET_CORRIDOR, 900.0)
+	var dead_ones := SurvivorPlan.spawn_rescue_dead(bf, rec, 900.0, 370.0, 265.0, 1105.0, -1.0, 12, false)
+	await _frames(40)
+	var aided0: int = int(WorldState.run_chronicle[0].get("npcs_aided", 0))
+	check(d.rescuing and d.behaviour == "shout", "(setup) the event is on")
+	for z in dead_ones:
+		z.receive_damage(999, "blunt")
+	await _frames(20)
+	check(not d.rescuing and str(rec["rescue"]) == "saved", "all three down: they are SAVED")
+	check(not d.is_dead and d.behaviour == "hold", "…alive, and settle into holding their post (%s)" % d.behaviour)
+	check(d.last_moment == "rescue_saved", "…and they say so ('%s')" % d.last_moment)
+	check(int(WorldState.run_chronicle[0].get("npcs_aided", 0)) == aided0 + 1, "…counted once as an NPC aided (Valour)")
+	await _frames(30)
+	check(int(WorldState.run_chronicle[0].get("npcs_aided", 0)) == aided0 + 1, "…and only once")
+	_player(bf).global_position = Vector2(d.global_position.x - 30.0, 386.0)
+	await _frames(5)
+	var bandages_before := _count_items("006")
+	var said := d.talk()
+	check(_count_items("006") == bandages_before + 1, "talking to them hands over what they were keeping for you")
+	var said2 := d.talk()
+	check(said == "" or said2 != "", "…and next time they just thank you ('%s')" % said2)
+	check(d.last_moment == "rescue_thanks", "…in their own words ('%s')" % d.last_moment)
+	# the next run: still there, alive, no dead laid, no shouting
+	WorldState.current_run = 2
+	check(SurvivorPlan.rescue_status(rec) == "saved", "in the next run they are still saved")
+	var again := Survivor.spawn(bf, rec, Survivor.FEET_CORRIDOR, 900.0)
+	await _frames(3)
+	check(not again.rescuing and not again.is_dead and again.behaviour == "hold", "…standing at their post, not shouting (%s)" % again.behaviour)
+	WorldState.current_run = 1
+	await _finish(bf)
+
+
+func _test_rescue_in_a_flat() -> void:
+	print("[RESCUE in a flat: the dead come from the front door's side, and no others]")
+	WorldState.new_game()
+	WorldState.survivor_rule = true
+	WorldState.is_first_run = false
+	WorldState.tutorial_completed = true
+	WorldState.current_run = 1
+	WorldState.god_mode = true
+	var apt := ""
+	for f in range(3, 20):
+		WorldState.seed_floor_door_states(f)
+		for col in range(1, 6):
+			var a := "%d%02d" % [f, col]
+			if SurvivorPlan.hider_flat_ok(a) and WorldState.get_door_state(a) == WorldState.DoorState.OPEN:
+				apt = a
+				break
+		if apt != "":
+			break
+	check(apt != "", "(setup) a flat to hold it (%s)" % apt)
+	if apt == "":
+		return
+	var f := WorldState._apartment_floor(apt)
+	var key := SurvivorPlan.rescue_key_flat(apt)
+	var seeded := SurvivorPlan._roll(key, "hider", f, apt, 1)
+	seeded["rescue"] = "pending"
+	seeded["appears"] = 1
+	seeded["peril"] = SurvivorPlan.RESCUE_HOLD
+	WorldState.survivors[key] = seeded
+	WorldState.set_door_state(apt, WorldState.DoorState.OPEN)
+	WorldState.current_apartment_id = apt
+	WorldState.current_floor = f
+	WorldState.spawn_source = ""
+	WorldState.saved_player_x = 0.0
+	var room = load("res://scenes/room.tscn").instantiate()
+	add_child(room)
+	await _frames(4)
+	var h = room.get("hider")
+	check(h != null and is_instance_valid(h) and h.rescuing, "the person in the flat is shouting for help")
+	var mine: Array = []
+	var others := 0
+	for z in get_tree().get_nodes_in_group("zombie"):
+		if room.is_ancestor_of(z):
+			if z.is_in_group("rescue_dead"):
+				mine.append(z)
+			else:
+				others += 1
+	check(mine.size() == 3 and others == 0, "three of the dead, and no ordinary ones (%d / %d others)" % [mine.size(), others])
+	if h != null and mine.size() == 3:
+		var side := WorldState.get_entrance_side(apt)
+		var door_side_ok := true
+		for z in mine:
+			if (side == "left" and z.global_position.x >= h.global_position.x) or (side != "left" and z.global_position.x <= h.global_position.x):
+				door_side_ok = false
+		check(door_side_ok, "…all on the front door's side of them (door %s)" % side)
+		for z in mine:
+			z.receive_damage(999, "blunt")
+		await _frames(25)
+		check(not h.rescuing and str(seeded["rescue"]) == "saved" and h.behaviour == "trust", "kill them and the flat's hider is saved, and trusts you (%s)" % h.behaviour)
+	room.queue_free()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	WorldState.god_mode = false

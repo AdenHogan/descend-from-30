@@ -275,7 +275,9 @@ Floor 30 after run 1:
    line, not the standard's 370; `BIG_ZOMBIE_SETTLED_Y`); new art-gated types slot
    into the same table. Faithful to the migration model: heavies rare + LOW-floor
    only in the morning, reaching MID by afternoon, common even up HIGH at night.
-   Density stays with `get_floor_zombie_count` (mix, not count — no cramming).
+   Density stays with `get_floor_zombie_count` (mix, not count — no cramming), with ONE exception added in round 41: the **opening floors 29 / 28 / 27**
+   are capped in headcount (2 / 2 / 3 corridor dead; stair enemies 0 / 0 / 1 — `WorldState.OPENING_COUNT_CAP` / `OPENING_STAIR_CAP`, applied every run after the
+   seeded roll and the Super's +20%), because each run starts with the same fresh, weak character and a one-lane corridor makes every dead body a forced fight.
    **Three new types added** (Crawler / Long Arm / Spitter — art in `assets/Enemies/`),
    each with its own `*_CHANCE` table alongside `HEAVY_CHANCE` and its own scene/script
    (reskins of the standard AI; the Spitter adds a real ranged projectile).

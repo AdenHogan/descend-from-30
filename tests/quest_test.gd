@@ -23,6 +23,7 @@ func _ready() -> void:
 	await _test_sites()
 	await _test_johnny()
 	await _test_no_half_trades()
+	await _test_johnny_no_room()
 	await _test_johnny_dies()
 	await _test_ethel_supplied()
 	await _test_ethel_mercy()
@@ -201,9 +202,11 @@ func _bullets(n: int) -> void:
 
 
 func _test_johnny() -> void:
-	print("[JOHNNY (010): ten bullets for a gun, twenty more for an upgrade — and never a half-done trade]")
+	print("[JOHNNY (010): ten bullets for a gun, twenty more for an upgrade — in instalments that carry over all three runs]")
 	_fresh()
-	var floor_num := int(Quests.site("johnny")["floor"])
+	var site := Quests.site("johnny")
+	var floor_num := int(site["floor"])
+	check(floor_num >= 10 and floor_num <= 20, "he is somewhere between floors 10 and 20 (%d)" % floor_num)
 	var bf = await _corridor(floor_num)
 	var j := _giver_in(bf, "johnny")
 	check(j != null, "Johnny holds his post on floor %d" % floor_num)
@@ -217,40 +220,64 @@ func _test_johnny() -> void:
 	p.global_position = Vector2(j.global_position.x - 40.0, 386.0)
 	await _frames(40)
 	check(j.can_talk(), "he can be talked to")
-	_bullets(9)
+	_bullets(0)
 	var line := j.talk()
 	check(line != "" and Quests.started("johnny"), "talking starts the quest and he speaks ('%s')" % line)
 	check(Quests.journal_entries().size() == 1 and Quests.journal_entries()[0]["title"] == "Johnny the Gun Guy", "it is in the journal")
 	var ch := Quests.choices("johnny")
-	check(ch.size() == 2 and not ch[0]["enabled"] and ch[0]["hint"].contains("10"), "nine bullets: 'Give 10' is disabled and says why (%s)" % ch[0]["hint"])
+	check(ch.size() == 2 and not ch[0]["enabled"] and ch[0]["label"].contains("0 of 10"), "no bullets: 'Give bullets (0 of 10)' is disabled (%s / %s)" % [ch[0]["label"], ch[0]["hint"]])
 	check(j.has_choices(), "the choices are on screen")
 	check(not Quests.choose(j, 0), "…and choosing a disabled one does nothing")
-	check(WorldState.get_ammo_total() == 9 and Quests.stage("johnny") == "offer", "nothing taken, nothing moved")
-	_bullets(10)
-	ch = Quests.choices("johnny")
-	check(ch[0]["enabled"], "ten bullets: it is enabled")
-	WorldState.inventory.clear()
-	_bullets(10)
-	check(Quests.choose(j, 0), "ten bullets for the gun")
-	check(WorldState.get_ammo_total() == 0, "exactly ten bullets were taken")
+	check(Quests.ledger_paid("johnny", "gun") == 0 and Quests.stage("johnny") == "offer", "nothing taken, nothing moved")
+	# instalment one: four bullets
+	_bullets(4)
+	check(Quests.choose(j, 0), "four bullets are accepted toward the ten")
+	check(WorldState.get_ammo_total() == 0 and Quests.ledger_paid("johnny", "gun") == 4, "all four taken, the ledger says 4")
+	check(Quests.stage("johnny") == "offer" and not WorldState.inventory.any(func(i): return i.item_id == "004"), "…no gun yet, the quest is still open")
+	check(Quests.choices("johnny")[0]["label"].contains("4 of 10"), "the button says where you are (%s)" % Quests.choices("johnny")[0]["label"])
+	check(Quests.journal_entries()[0]["objective"].contains("4 of 10"), "…and so does the journal (%s)" % Quests.journal_entries()[0]["objective"])
+	check(j.last_line.contains("6"), "Johnny says how many are still owed ('%s')" % j.last_line)
+	# the ledger outlives the character: a time skip wipes the pockets and keeps the debt
+	bf.free()
+	await get_tree().process_frame
+	WorldState.advance_run()
+	check(Quests.ledger_paid("johnny", "gun") == 4 and Quests.stage("johnny") == "offer", "next run: the 4 bullets are still on the ledger")
+	var bf2 = await _corridor(floor_num)
+	var j2 := _giver_in(bf2, "johnny")
+	check(j2 != null and not j2.is_dead, "…and Johnny is still on his floor in run 2")
+	if j2 == null:
+		bf2.free()
+		return
+	bf2.get_node("Player").global_position = Vector2(j2.global_position.x - 40.0, 386.0)
+	await _frames(40)
+	# instalment two pays only what is owed — never more — and the gun comes with it
+	_bullets(25)
+	j2.talk()
+	check(Quests.choose(j2, 0), "run 2: twenty-five bullets in hand, only the six owed are taken")
+	check(WorldState.get_ammo_total() == 19, "…19 are left in the pocket (%d)" % WorldState.get_ammo_total())
 	var gun: ItemInstance = null
 	for it in WorldState.inventory:
 		if it.item_id == "004":
 			gun = it
 	check(gun != null and gun.perks.has("G_durable") and gun.mag_count == 6 and gun.current_durability == gun.get_max_durability(), "the gun is a Durable Hand Cannon, full of wear, six rounds in")
 	check(Quests.stage("johnny") == "paid" and not Quests.completed("johnny"), "the quest moves on to the second tier")
-	check(j.has_choices() and Quests.choices("johnny").size() == 3, "…and offers refund / aim / not now")
-	_bullets(19)
-	check(not Quests.choices("johnny")[0]["enabled"], "nineteen bullets are not twenty")
-	_bullets(20)
-	var done_before := int(WorldState.run_chronicle[0].get("quests_completed", 0)) if WorldState.run_chronicle.size() > 0 else 0
+	check(j2.has_choices() and Quests.choices("johnny").size() == 2, "…and offers the twenty (and 'not now')")
+	# the second tier: twelve now, eight to follow — then the pick
+	_bullets(12)
+	check(Quests.choose(j2, 0) and Quests.ledger_paid("johnny", "upgrade") == 12 and Quests.stage("johnny") == "paid", "twelve of the twenty")
+	_bullets(8)
+	check(Quests.choose(j2, 0), "…and the eight that finish it")
+	check(Quests.stage("johnny") == "pick" and Quests.choices("johnny").size() == 2, "…and now he lets you pick what he teaches (%d choices)" % Quests.choices("johnny").size())
+	var done_before := int(WorldState.run_chronicle[1].get("quests_completed", 0)) if WorldState.run_chronicle.size() > 1 else 0
 	var crit_before := WorldState.get_headshot_bonus()
-	check(Quests.choose(j, 1), "twenty bullets for a steadier aim")
-	check(WorldState.get_ammo_total() == 0 and "Q_crit" in WorldState.quest_upgrades, "twenty taken; the upgrade is granted")
+	check(Quests.choose(j2, 1), "steadier aim")
+	check("Q_crit" in WorldState.quest_upgrades, "the upgrade is granted")
 	check(is_equal_approx(WorldState.get_headshot_bonus() - crit_before, 0.10), "…and it folds into the headshot stat (+0.10)")
 	check(Quests.completed("johnny") and Quests.stage("johnny") == "done", "the quest is complete")
-	check(int(WorldState.run_chronicle[0].get("quests_completed", 0)) == done_before + 1, "…and counted once (Valour: quests completed)")
-	check(not Quests.choose(j, 0) or Quests.stage("johnny") == "done", "nothing more to buy")
+	check(int(WorldState.run_chronicle[1].get("quests_completed", 0)) == done_before + 1, "…and counted once (Valour: quests completed)")
+	check(not Quests.choose(j2, 0) or Quests.stage("johnny") == "done", "nothing more to buy")
+	bf2.free()
+	await get_tree().process_frame
 	# the other branch
 	_fresh()
 	WorldState.quest_upgrades.clear()
@@ -258,6 +285,37 @@ func _test_johnny() -> void:
 	WorldState.quest_upgrades.append("Q_refund")
 	check(is_equal_approx(WorldState.get_gun_refund(), 0.20), "Waste Not = a 20% chance a shot isn't spent")
 	WorldState.quest_upgrades.clear()
+
+
+func _test_johnny_no_room() -> void:
+	print("[JOHNNY: the bullets are his the moment they are handed over — if the gun will not fit, it waits for you]")
+	_fresh()
+	var floor_num := int(Quests.site("johnny")["floor"])
+	var bf = await _corridor(floor_num)
+	var j := _giver_in(bf, "johnny")
+	bf.get_node("Player").global_position = Vector2(j.global_position.x - 40.0, 386.0)
+	await _frames(40)
+	j.talk()
+	# a full pack: junk in every slot but one, and one stack of eight bullets — three owed leaves five, so no slot is freed
+	Quests.state_of("johnny")["ledger"]["gun"] = 7
+	WorldState.inventory.clear()
+	for i in WorldState.get_inventory_slots() - 1:
+		WorldState.add_to_inventory("023")
+	WorldState.add_to_inventory("016", 8)
+	check(WorldState.inventory.size() == WorldState.get_inventory_slots(), "(a full pack, with a stack of eight bullets)")
+	check(Quests.choose(j, 0), "the last three bullets are handed over")
+	check(WorldState.get_ammo_total() == 5 and Quests.ledger_paid("johnny", "gun") == 10, "…they are his: five left, the ledger says paid in full")
+	check(Quests.stage("johnny") == "offer" and not WorldState.inventory.any(func(i): return i.item_id == "004"), "…but the gun did not fit, so it waits (stage %s)" % Quests.stage("johnny"))
+	check(Quests.choices("johnny")[0]["label"] == "Take Johnny's gun" and Quests.choices("johnny")[0]["enabled"], "the button now reads 'Take Johnny's gun'")
+	var held := WorldState.inventory.size()
+	check(not Quests.choose(j, 0) and WorldState.inventory.size() == held and Quests.stage("johnny") == "offer", "with the pack still full that is refused, and nothing is lost")
+	# make room
+	for i in range(WorldState.inventory.size() - 1, -1, -1):
+		if WorldState.inventory[i].item_id == "023":
+			WorldState.remove_from_inventory(i)
+			break
+	check(Quests.choose(j, 0), "with a slot free it is handed over")
+	check(WorldState.inventory.any(func(i): return i.item_id == "004") and Quests.stage("johnny") == "paid", "…the gun is in the pack and the quest moves on")
 	bf.free()
 	await get_tree().process_frame
 
@@ -304,28 +362,41 @@ func _test_no_half_trades() -> void:
 
 
 func _test_johnny_dies() -> void:
-	print("[JOHNNY dies: the quest fails for good; he is gone in later runs — but never before he has been met]")
+	print("[JOHNNY cannot be bitten to death — only the legacy fight kills (and then the quest fails for good, unless he is yet to be met)]")
 	_fresh()
 	var floor_num := int(Quests.site("johnny")["floor"])
 	var bf = await _corridor(floor_num)
 	var j := _giver_in(bf, "johnny")
-	# before the first conversation the dead can wound him, never finish him (a quest lost unmet was ~37% of real floors)
-	check(Quests.protects(j.rec) and not Quests.started("johnny"), "(setup) he is protected until he has been spoken to")
+	# the show (shipped): the dead's bites are flinches — he is never wounded, met or not
+	check(AllyCombat.performative, "(setup) the shipped default is the show")
 	j.receive_damage(99, "bite")
-	check(not j.is_dead and j.current_hp == 1 and Quests.stage("johnny") == "offer", "an overwhelming bite leaves him alive on 1 hp (hp %d, %s)" % [j.current_hp, Quests.stage("johnny")])
-	j.receive_damage(5, "bite")
-	check(not j.is_dead and j.current_hp == 1, "…and the next bites change nothing")
 	j.talk()
-	check(Quests.started("johnny"), "begun")
-	check(not Quests.protects(j.rec), "once spoken to he is mortal like anyone")
 	j.receive_damage(99, "bite")
-	check(j.is_dead and Quests.stage("johnny") == "lost", "killed: the quest turns to 'lost'")
+	check(not j.is_dead and j.current_hp == j.max_hp and Quests.stage("johnny") == "offer", "bitten 'to death' before AND after the first conversation, he is untouched (hp %d/%d, %s)" % [j.current_hp, j.max_hp, Quests.stage("johnny")])
+	# the real fight (the switch OFF): protected until met, then mortal like anyone
+	AllyCombat.performative = false
+	bf.free()                                        # (the show's floor goes — its dead would stand in the legacy floor's view)
+	await get_tree().process_frame
+	_fresh()
+	var bfl = await _corridor(int(Quests.site("johnny")["floor"]))
+	var jl := _giver_in(bfl, "johnny")
+	check(Quests.protects(jl.rec) and not Quests.started("johnny"), "(legacy) he is protected until he has been spoken to")
+	jl.receive_damage(99, "bite")
+	check(not jl.is_dead and jl.current_hp == 1 and Quests.stage("johnny") == "offer", "an overwhelming bite leaves him alive on 1 hp (hp %d, %s)" % [jl.current_hp, Quests.stage("johnny")])
+	jl.receive_damage(5, "bite")
+	check(not jl.is_dead and jl.current_hp == 1, "…and the next bites change nothing")
+	jl.talk()
+	check(Quests.started("johnny"), "begun")
+	check(not Quests.protects(jl.rec), "once spoken to he is mortal like anyone")
+	jl.receive_damage(99, "bite")
+	check(jl.is_dead and Quests.stage("johnny") == "lost", "killed: the quest turns to 'lost'")
 	var e: Dictionary = Quests.journal_entries()[0]
 	check(e["failed"] and not e["done"], "the journal says it failed")
-	bf.free()
+	AllyCombat.performative = true
+	bfl.free()
 	await get_tree().process_frame
 	WorldState.advance_run()
-	check(Quests.corridor_records(floor_num).is_empty(), "next run he is simply not there")
+	check(Quests.corridor_records(int(Quests.site("johnny")["floor"])).is_empty(), "next run he is simply not there")
 	check(Quests.stage("johnny") == "lost", "and the quest stays lost")
 
 

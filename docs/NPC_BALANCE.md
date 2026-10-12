@@ -1,5 +1,13 @@
 # NPC balance — what was measured, what was fixed, what is still the owner's call (round 40)
 
+> **Round 41 acted on most of this page** (owner decisions): survivors are now *theatre* — melee and gun alike deal and take no real damage
+> and never run out of rounds, so "melee immortal / gun useless / Johnny dies on 37% of floors" are settled by design, not by numbers (see
+> NPC_AI "Theatre"); Johnny's 10 + 20 stay but are **paid in instalments on a ledger that lasts all three runs**, and he is on floors **10–20**
+> (QUESTS "010"); people who can really die are only the **rescues** (NPC_AI "Rescues"). The bullet supply below (≈0.6 a flat; 10 ≈ 17 flats,
+> 20 more ≈ 34) is still the right yardstick for what the ledger asks of a playthrough: ≈ 51 flats' worth over three runs. The fights /
+> survival tables are history. Also round 41: the opening floors 29–27 are **capped in headcount** (`WorldState.OPENING_COUNT_CAP` 2 / 2 / 3
+> dead, `OPENING_STAIR_CAP` 0 / 0 / 1; the phone-playtest probe that prompted it is described in the round-41 entry of CLAUDE.md).
+
 > Re-measure any time: `godot --headless res://tools/npc_balance_report.tscn -- --only=quests,census,loot,fights,floors,johnny,waiter --trials=10`
 > (`--speed=8` is the default: physics runs 8× real time with the per-step delta unchanged, so the whole report takes ~10 minutes.)
 > All numbers below are from the real scenes and rules, standard dead unless said, floors ~12 (3-5 hp each) unless said. The tool is the

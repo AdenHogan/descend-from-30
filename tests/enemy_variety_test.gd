@@ -487,6 +487,30 @@ func _test_run_opening_grace() -> void:
 	WorldState.current_run = 2
 	check(WorldState.floor_boss_chance(26) > 0.0 and WorldState.floor_boss_chance(2) > 0.0,
 		"bosses possible below the opening stretch (fl26 %.2f / fl2 %.2f)" % [WorldState.floor_boss_chance(26), WorldState.floor_boss_chance(2)])
+	# HEADCOUNT is capped on the opening floors too (owner round 41): across many buildings, all three runs and every
+	# character's multiplier, the corridor never holds more than the cap, the staircases never more than theirs — and the
+	# floor just below the stretch still gets the full, uncapped roll (the cap is not a retune of the whole building).
+	var worst := {29: 0, 28: 0, 27: 0}
+	var worst_stairs := {29: 0, 28: 0, 27: 0}
+	var worst26 := 0
+	var rolled_untouched := true
+	for sd in range(1, 241):
+		WorldState.master_seed = sd * 7919
+		for run in [1, 2, 3]:
+			WorldState.current_run = run
+			for f in [29, 28, 27]:
+				worst[f] = maxi(int(worst[f]), WorldState.get_floor_zombie_count(f))
+				worst_stairs[f] = maxi(int(worst_stairs[f]), WorldState.stair_enemy_count(f))
+			worst26 = maxi(worst26, WorldState.get_floor_zombie_count(26))
+		for f in [26, 20, 12, 5]:
+			if WorldState._base_floor_zombie_count(f) != WorldState._rolled_floor_zombie_count(f):
+				rolled_untouched = false
+	check(int(worst[29]) <= 2 and int(worst[28]) <= 2 and int(worst[27]) <= 3,
+		"the corridor holds at most 2 / 2 / 3 dead on floors 29 / 28 / 27 (worst seen %d / %d / %d)" % [worst[29], worst[28], worst[27]])
+	check(int(worst_stairs[29]) == 0 and int(worst_stairs[28]) == 0 and int(worst_stairs[27]) <= 1,
+		"no dead on the staircases of 29 / 28, at most one on 27's (worst seen %d / %d / %d)" % [worst_stairs[29], worst_stairs[28], worst_stairs[27]])
+	check(worst26 >= 4, "floor 26 (just below the stretch) still rolls busy floors (worst seen %d)" % worst26)
+	check(rolled_untouched, "below the opening stretch the count IS the raw seeded roll (the cap changes nothing there)")
 	await get_tree().process_frame
 
 

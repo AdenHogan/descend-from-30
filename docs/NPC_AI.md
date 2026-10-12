@@ -1,4 +1,11 @@
-# NPC AI — survivors, allies and a smarter dead (BUILT v1, round 39)
+# NPC AI — survivors, allies and a smarter dead (BUILT v1, round 39; THEATRE + RESCUES round 41)
+
+> **Round 41 supersedes the fighting rules below.** *"Gun survivors: let's make it performative… they can shoot at enemies, hit
+> them, but don't actually cause damage that wounds or causes death. The damage animations still fire, same with if the enemy
+> attacks the NPCs, but no damage… No need to have them run out of ammo… NPCs are theatre dressing, with quests of course. What
+> changes their fate is if the player intervenes or not… not from their own actions or if the player is delayed in reaching
+> them."* → see **"Theatre"** and **"Rescues"** below. The half-damage section is kept as the maths behind
+> `AllyCombat.performative = false`.
 
 > Owner brief: *"populating our building with NPCs in contextually appropriate areas — apartments, hallways, elevators;
 > some cowering, others armed like our player and using their AI to fight. They will do half damage of the player
@@ -56,6 +63,10 @@ A survivor is an `Area2D` with **no collision layers** (like a resident): it can
 It is not in the `zombie` group (no zombie system — memory, crowds, cans — treats it as one); the dead find it through
 group `survivor_prey`. Ranges and timings are consts at the top of `survivor.gd`.
 
+(The rows below describe the behaviours as built. **Round 41:** in the show survivors are never wounded and guns never empty, so
+**retreat / wounded and "out of rounds" are unreachable unless `AllyCombat.performative` is switched off**; a rescue adds `shout` /
+`fend` — see "Rescues".)
+
 **DEFENDER** — `hold → alert → engage ⇄ help → (retreat → wounded) → return → hold`
 
 | behaviour | enters when | does | tell |
@@ -85,7 +96,23 @@ after 1.2 s; the dead within 200 px and it flees.
 
 **HOST / PATIENT** (quest 001): the host pleads / mourns; the patient lies (not prey — the dead do not go for the dying).
 
-### Half damage (`AllyCombat`, FRACTION 0.5)
+### Theatre (`AllyCombat.performative`, default **on** — owner round 41)
+
+Survivors fight for show, and the same goes for the dead's bites on them. ONE static switch, `AllyCombat.performative`:
+
+- A survivor's **swing or shot** plays the dead one's damage flash (`show_hit()` on the standard family and the big zombie: the white
+  blink, 0.24 s) and nothing else — no damage, no stun, no knock-down. The dead one carries on with whatever it was doing, so a fight
+  stays a lively scuffle rather than a stun-lock, and nothing a survivor does changes what is alive.
+- The dead's **bite** on a survivor makes it flinch (the hurt pose, 0.25 s, a cry at most every 5 s) and takes nothing.
+- **No gun runs dry** (`ammo` is never spent; a "gun with 0 rounds" never becomes fists), and a pretend shot carries only
+  `SHOW_SHOT_NOISE` 420 px (a real one 900) so the show cannot drag the whole floor to a corridor post.
+- They never get wounded, so the retreat / wounded states of the defender are unreachable in the show (they stay for the switch-off).
+- Survivors can walk through and around the dead with no push or blocking to think about (they never had collision; now they never
+  need to care either).
+- With the switch **off** everything below ("Half damage") is live again — real hits, real bites, finite rounds. Every pre-round-41
+  test in `survivor_ai_test.gd` runs that way, which is what keeps the maths and the patterns honest.
+
+### Half damage (`AllyCombat`, FRACTION 0.5) — the maths behind `performative = false`
 
 All numbers are **derived from the player's own tables**, read off `player.gd` (`WEAPON_DAMAGE/RANGES/COOLDOWN` — a retune of
 the player's hammer retunes every survivor's at half), never copied:
@@ -100,6 +127,44 @@ the player's hammer retunes every survivor's at half), never copied:
 `AllyCombat.player_script()` loads `player.gd` **lazily**: a `preload` made a compile cycle
 (`WorldState → Quests → Survivor → AllyCombat → player.gd → WorldState`) that broke `:=` type inference inside `player.gd`
 itself. Do not turn it back into a `preload`.
+
+## Rescues (round 41) — the one place a survivor can die
+
+> *"If it's a floor or an apartment with a survivor shouting for help, we can have a group of three enemies, slowly approaching the
+> survivor. If the player doesn't intervene while the survivor fends off the attack, … the survivor can be killed in live
+> gameplay. This adds an urgency, but only if we get 'help help'."*
+
+**What it is.** A place (a corridor floor, or a walk-in flat) holds a person SHOUTING for help while **three** of the dead walk at
+them (`SurvivorPlan.RESCUE_DEAD`, starting 250 / 320 / 390 px away, sent to the survivor's spot with `EnemyMind.hear`). They stand and
+fend off for show (melee: the usual show swing; gun: pretend shots; bare-handed: a flail). Behaviours: `shout` (calling, "!") →
+`fend` (a dead one is ON them) → `trust` / `hold` once saved.
+
+**The clock.** Every second a dead one is within `SWARM_GAP` (64 px) of them counts; at `RESCUE_HOLD` (26 s) they are **overrun for
+real** (`_overrun` → `_die`, "They didn't make it."). It only runs while the dead are ON them — pull them off (a nearer meal: you) or
+kill them and it stops. It is saved on the record (`peril`), so leaving and coming back does not reset it, and it ticks before the
+flinch freeze so bites cannot buy time. Dead ones that lose the thread are sent again every 5 s.
+
+**Saved.** All three down → `rescue = "saved"`: they thank you (`rescue_saved`), count once as an NPC aided (+Valour), settle into
+holding their post (a flat's person trusts you at once); talking hands over the gift they were keeping (`rescue_thanks` after).
+
+**Fate across runs** (`SurvivorPlan.rescue_status`, worked out when asked — there is no time-skip step to forget):
+
+| status | when | what the place holds |
+|---|---|---|
+| `future` | the event is in a later run (`appears`) | nobody yet |
+| `open` | this is its run, unanswered | the event |
+| `saved` | the player stepped in | the person, alive, in **every** later run |
+| `lost` | overrun live, **or** the run ended without an answer | a body where they stood |
+
+One identity per **place** (key `f12:rescue` / `1405:rescue`, no run in it), rolled once (corridor 12 %, walk-in flat 6 %), appearing in
+a seeded run (weights 45 / 30 / 25), so events spread across the three runs and last runs' people are *seen* again. Never on floors
+27–30 (the eased opening), never on a quest floor, never where a quest flat is; a rescue **replaces** the floor's random defender / the
+flat's random hider (one survivor per post). A flat's ordinary dead are not laid while the event is on (just the three). Backdrop:
+a pan's corridor rescue is frozen scenery (survivor + dead) and wakes with the floor. `WorldState.dev_survivors = 2` forces a rescue
+at every eligible place (1 fills the ordinary slots only).
+
+**Not built:** a rescue in the listen report ("someone shouting"), rescuers that are quest people, a rescue whose dead walk in from
+the stairs, letting the revenant system punish a lost one.
 
 ## The dead think a little (`EnemyMind`, shared by the standard family and the big zombie)
 
@@ -149,10 +214,13 @@ and `quest_test` do); an old save has no key = off.
 ## Persistence and the pan
 
 - `WorldState.survivors` (saved): per-record `x`, `hp`, `ammo`, `dead`, `met`, `aided`, `gave`, `calm`. `Survivor._exit_tree` writes back.
+  Ordinary survivors are keyed **per run** (a new run is a new roll — they dwindle); a **rescue** is keyed per **place** (no run) and keeps
+  `rescue` (`pending`/`saved`/`lost`), `appears` (1-3), `peril` (seconds left) and `credited` (the Valour was paid) across all three runs.
 - A stair pan builds the destination as a passive backdrop: `building_floors._spawn_survivors(floor, true)` lays the survivors there as
   **scenery** (frozen, group `pan_scenery`), `go_live` wakes them (`wake()`) and skips a re-spawn (`_survivors_built`). **Flats do not
   pan** (a hider is only built when you walk in).
-- Dev: `WorldState.dev_survivors` (non-zero forces every roll to succeed — used by tests; **no F1 button yet**).
+- Dev: `WorldState.dev_survivors` (1 forces every ordinary roll to succeed, 2 also forces a rescue at every eligible place — used by tests;
+  **no F1 button yet**).
 
 ## Not built / owner's call
 
@@ -161,6 +229,6 @@ and `quest_test` do); an old save has no key = off.
 - Elevator survivors (the waiter stands *beside* the lift; nobody rides it).
 - The dead's intelligence is v1: no group flanking, no door-opening, no fear of fire.
 
-Locked by `tests/survivor_ai_test.gd` (every behaviour edge, half damage maths, placement census over 300 seeds × 3 runs, persistence,
-pan scenery) and `tests/enemy_mind_test.gd` (investigate / search / give up / lose / spot / prey, the noise change, spitters). The older
+Locked by `tests/survivor_ai_test.gd` (every behaviour edge, half damage maths — switch off — and the theatre — switch on, placement
+census over 300 seeds × 3 runs, persistence, pan scenery, and the rescues: status by run, the overrun clock, saved + gift + next run, a flat's) and `tests/enemy_mind_test.gd` (investigate / search / give up / lose / spot / prey, the noise change, spitters). The older
 `enemy`, `gun`, `listen`, `crowd`, `can_throw`, `softlock` and `plane` suites were run against the enemy changes (see the commit report).
