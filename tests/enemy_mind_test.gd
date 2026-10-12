@@ -31,6 +31,7 @@ func _ready() -> void:
 	await _test_prey_is_the_nearer_meal()
 	await _test_other_types()
 	await _test_scripted_and_noise_scope()
+	await _test_unreachable_spot_is_given_up()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -41,8 +42,9 @@ func _corridor() -> Node:
 	WorldState.tutorial_completed = true
 	WorldState.god_mode = true
 	WorldState.dev_survivors = 0
-	WorldState.current_floor = 12
-	WorldState.seed_floor_door_states(12)
+	var quiet := _quiet_floor(12)
+	WorldState.current_floor = quiet
+	WorldState.seed_floor_door_states(quiet)
 	var bf = load("res://scenes/building_floors.tscn").instantiate()
 	add_child(bf)
 	await get_tree().physics_frame
@@ -53,6 +55,17 @@ func _corridor() -> Node:
 		if bf.is_ancestor_of(s):
 			s.free()
 	return bf
+
+
+## A floor with no fire on it this seed, of the same parity as `want` (so its stairwell side is the same). About one seed in
+## eight burns floor 12 in run 1; a burning corridor scorches the dead and survivors a test is counting, which made the
+## checks flaky by seed.
+func _quiet_floor(want: int) -> int:
+	for step in [0, 2, -2, 4, -4, 6, -6]:
+		var f: int = want + step
+		if f >= 2 and f <= 28 and WorldState.fire_intensity(f) < 0:
+			return f
+	return want
 
 
 func _finish(bf: Node) -> void:
@@ -126,6 +139,27 @@ func _test_noise_is_where() -> void:
 	check(flips >= 2, "while searching it turns its head (%d looks)" % flips)
 	check(z.mind == "" and z.state == "idle", "…then gives up and stands (%s / %s)" % [z.mind, z.state])
 	check(z.state != "chase" and absf(z.global_position.x - 500.0) < 40.0, "it never went for the player")
+	await _finish(bf)
+
+
+func _test_unreachable_spot_is_given_up() -> void:
+	print("[A spot it can never reach is given up on — it does not stand pushing at the wall for ever]")
+	var bf = await _corridor()
+	var p = bf.get_node("Player")
+	p.global_position = Vector2(200.0, 386.0)
+	var z = _zombie(bf, 900.0)
+	await _frames(5)
+	EnemyMind.hear(z, 1500.0)                              # (the corridor ends near x 1235)
+	check(z.mind == "investigate" and z.mind_t > 0.0, "(setup) it sets off for x=1500 with a time limit (%.1f s)" % z.mind_t)
+	var budget_frames := int(z.mind_t * 60.0)
+	await _frames(int(budget_frames * 0.55))
+	check(z.mind == "investigate" and z.global_position.x > 1100.0, "(setup) it is at the far wall, still trying (x %.0f, %s)" % [z.global_position.x, z.mind])
+	var gave_up := await _until(func(): return z.mind == "", budget_frames)
+	check(gave_up, "…and gives up once its time is spent (mind '%s' at x %.0f)" % [z.mind, z.global_position.x])
+	check(z.state == "idle" and absf(z.velocity.x) < 0.01, "…standing, not pushing on (%s, vx %.1f)" % [z.state, z.velocity.x])
+	# a fresh noise starts a fresh budget
+	EnemyMind.hear(z, 300.0)
+	check(z.mind == "investigate" and z.mind_t > 15.0, "a new noise gives it a new limit (%.1f s)" % z.mind_t)
 	await _finish(bf)
 
 

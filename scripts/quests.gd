@@ -29,7 +29,8 @@ const GUN_PRESETS := {
 	"revolver": {"item": "004", "perks": ["G_durable"], "level": 2, "rounds": 5},
 }
 const MERCHANT_FLOORS_CLEAR := true            # corridor quests keep off a merchant's floor
-const FIRE_CLEARANCE := 3                      # a quest's floor keeps this far from any seeded fire origin
+const FIRE_CLEARANCE := 3                      # a quest's floor keeps this far from any seeded fire origin …
+const FIRE_CLEARANCE_STEPS := [3, 2, 1]        # … relaxing in these steps when that leaves no floor (never below 1: two floors clear)
 const POSTS := {"left": 335.0, "right": 1005.0}
 const TALK_HOLD := 14.0                        # how long a conversation bubble stays up
 
@@ -102,6 +103,11 @@ static func _run_key() -> String:
 
 ## The quest's place: {floor, apt} for a flat, {floor, post, post_kind} for a corridor. Chosen once per playthrough
 ## (seeded on the master seed), pinned in the quest's state. {} = nowhere suitable.
+## It keeps well clear of the building's fires (FIRE_CLEARANCE floors from any outbreak origin) — but fire origins are
+## common enough (~12% of floors) that two of them can rule out a whole 10-floor band, which silently dropped the quest
+## from ~1 playthrough in 9 (tools/npc_balance_report.tscn `quests`). So the clearance relaxes in steps
+## (FIRE_CLEARANCE_STEPS) rather than giving up; the last step still keeps two floors from an origin, where the worst a
+## later run does is a LIGHT fire.
 static func site(qid: String) -> Dictionary:
 	var st := state_of(qid)
 	if not st["site"].is_empty():
@@ -119,30 +125,31 @@ static func site(qid: String) -> Dictionary:
 		var t = cands[i]
 		cands[i] = cands[j]
 		cands[j] = t
-	for f in cands:
-		if f in WorldState.MERCHANT_FLOORS or _fire_near(f):
-			continue
-		if str(d.get("kind", "")) == "flat":
-			WorldState.seed_floor_door_states(f)               # pins which flats are OPEN (they stay open all arc)
-			for col in range(1, 6):
-				var apt := "%d%02d" % [f, col]
-				if WorldState.get_door_state(apt) == WorldState.DoorState.OPEN:
-					st["site"] = {"floor": f, "apt": apt}
-					return st["site"]
-		else:
-			var kind := "stairs" if rng.randf() < 0.5 else "door"
-			var post: float
-			if kind == "stairs":
-				post = float(POSTS[WorldState.stair_down_side(f)])
+	for clearance in FIRE_CLEARANCE_STEPS:
+		for f in cands:
+			if f in WorldState.MERCHANT_FLOORS or _fire_near(f, int(clearance)):
+				continue
+			if str(d.get("kind", "")) == "flat":
+				WorldState.seed_floor_door_states(f)               # pins which flats are OPEN (they stay open all arc)
+				for col in range(1, 6):
+					var apt := "%d%02d" % [f, col]
+					if WorldState.get_door_state(apt) == WorldState.DoorState.OPEN:
+						st["site"] = {"floor": f, "apt": apt}
+						return st["site"]
 			else:
-				post = float(WorldState.APARTMENT_X[1 + rng.randi() % 5]) + (-1.0 if rng.randf() < 0.5 else 1.0) * SurvivorPlan.DOOR_POST_OFFSET
-			st["site"] = {"floor": f, "post": post, "post_kind": kind}
-			return st["site"]
+				var kind := "stairs" if rng.randf() < 0.5 else "door"
+				var post: float
+				if kind == "stairs":
+					post = float(POSTS[WorldState.stair_down_side(f)])
+				else:
+					post = float(WorldState.APARTMENT_X[1 + rng.randi() % 5]) + (-1.0 if rng.randf() < 0.5 else 1.0) * SurvivorPlan.DOOR_POST_OFFSET
+				st["site"] = {"floor": f, "post": post, "post_kind": kind}
+				return st["site"]
 	return {}
 
 
-static func _fire_near(f: int) -> bool:
-	for k in range(-FIRE_CLEARANCE, FIRE_CLEARANCE + 1):
+static func _fire_near(f: int, clearance: int = FIRE_CLEARANCE) -> bool:
+	for k in range(-clearance, clearance + 1):
 		if WorldState._fire_origin_seeded(f + k):
 			return true
 	return false
@@ -504,6 +511,17 @@ static func is_giver(rec: Dictionary) -> bool:
 	if qid == "" or def(qid).is_empty():
 		return false
 	return str(rec.get("npc", "giver")) == str(def(qid).get("giver", "giver"))
+
+
+## A quest's giver cannot be KILLED before the player has spoken to them: the dead can wound them (they fall back and
+## tend it) but never finish them. Measured: with the player merely standing on his floor, Johnny was dead within 90 s on
+## ~37% of real floors (tools/npc_balance_report.tscn `johnny`) — the quest lost before it was ever offered. Once the first
+## conversation has happened (`started`) they are as mortal as anyone. `"protected_until_met": false` in the data opts out.
+static func protects(rec: Dictionary) -> bool:
+	if not is_giver(rec):
+		return false
+	var qid: String = str(rec.get("quest", ""))
+	return bool(def(qid).get("protected_until_met", true)) and not started(qid)
 
 
 ## A survivor died (any cause). If it was a quest's giver, the quest turns to its `on_giver_died` state for good.

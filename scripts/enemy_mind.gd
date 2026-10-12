@@ -18,6 +18,7 @@ extends RefCounted
 # mind_t, prey, _seen_x, _seen_valid, _look_t, _spread_cd, ai_tell, plus state / velocity / animated_sprite / player.
 
 const SEARCH_TIME := 4.0            # how long it looks about after arriving
+const INVESTIGATE_SLACK := 3.0      # seconds beyond the walk itself before it gives up reaching the spot (a wall, a jam)
 const LOOK_EVERY := 1.1             # it turns its head this often while searching
 const ARRIVE := 18.0                # close enough to the noise / last-seen spot
 const SPREAD_RANGE := 170.0         # the dead this near a lunge turn toward it
@@ -53,19 +54,26 @@ static func hear(e: Node2D, source_x: float) -> void:
 		return                                  # already on someone; a noise doesn't pull it off them
 	if str(e.get("mind")) != "investigate":
 		tell(e, "search")
-	e.set("mind", "investigate")
-	e.set("mind_x", source_x)
-	e.set("_seen_valid", false)
+	_begin_investigate(e, source_x)
 
 
 ## It was on me and has lost me: go to where I was last seen.
 static func lose(e: Node2D) -> void:
 	if not can_think(e):
 		return
-	e.set("mind", "investigate")
-	e.set("mind_x", float(e.get("_seen_x")))
-	e.set("_seen_valid", false)
+	_begin_investigate(e, float(e.get("_seen_x")))
 	tell(e, "search")
+
+
+## Head for `x` — with a time limit: the walk there plus a little slack. A spot it can never reach (past the corridor's end,
+## behind a wall, a jam) would otherwise leave it pressed against the obstacle for ever, neither searching nor giving up.
+static func _begin_investigate(e: Node2D, x: float) -> void:
+	var sp = e.get("SPEED")
+	var speed: float = maxf(float(sp) if sp != null else 40.0, 10.0)
+	e.set("mind", "investigate")
+	e.set("mind_x", x)
+	e.set("mind_t", absf(x - e.global_position.x) / speed + INVESTIGATE_SLACK)
+	e.set("_seen_valid", false)
 
 
 ## Runs the investigate / search patterns on a frame the enemy has nothing to chase. Returns true if it owned the
@@ -86,6 +94,13 @@ static func idle_tick(e, delta: float, speed: float) -> bool:
 				spr.play("Idle")
 				tell(e, "search", SEARCH_TIME)
 				return true
+			var budget: float = float(e.get("mind_t")) - delta
+			e.set("mind_t", budget)
+			if budget <= 0.0:                    # it cannot get there: give up where it stands
+				e.set("mind", "")
+				e.set("_seen_valid", false)
+				e.velocity.x = 0.0
+				return false
 			e.state = "idle"                    # (never "chase": that word means "on the player")
 			e.velocity.x = signf(d) * speed
 			spr.flip_h = d < 0.0

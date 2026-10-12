@@ -25,6 +25,10 @@ apartment whose door is **OPEN** (`seed_floor_door_states` pins which are open, 
 get in). Both keep off merchant floors and **±3 floors of any fire origin**. A flat quest's flat gets no hider, no resident, no
 ordinary dead (`Quests.is_quest_flat`); a corridor giver replaces that floor's random defender.
 
+The fire clearance **relaxes in steps** (`FIRE_CLEARANCE_STEPS` 3 → 2 → 1 floors) rather than giving up: fire origins are ~12% of floors, and two of them
+used to rule out a whole 10-floor band, silently dropping a quest from ~1 playthrough in 9. The last step still keeps two floors from an origin
+(the worst a later run does there is a LIGHT fire). A giver is **protected until the first conversation** (`Quests.protects`): wounded, never killed.
+
 ### The conversation (`talk` / `choose`)
 Talking to the giver (`[{interact}] Talk`) starts the quest (a **NEW QUEST** banner + a journal entry) and shows the state's line and its
 **choices** as buttons in the speech bubble. A choice may **need** bullets (`{"ammo": 10}`) or an item (`{"item": "007"}`) — a
@@ -87,5 +91,5 @@ bandages**, **put him out of his misery**, **leave**.
 - Choosing a quest option with a **gamepad or keyboard**: the options are buttons in the bubble (mouse / touch) and nothing focuses them.
 - A dev hook in the F1 menu to jump a quest's stage (tests set it directly).
 
-Locked by `tests/quest_test.gd` (site rules, Johnny's trades incl. a full pack refusing whole, upgrades folding into the stat sheet,
+Numbers (bullet supply vs Johnny's ask, his survival odds): `docs/NPC_BALANCE.md`. Locked by `tests/quest_test.gd` (site rules + 160-seed coverage, Johnny's trades incl. a full pack refusing whole, upgrades folding into the stat sheet,
 Ethel's three outcomes across all three runs, kills remembered, the giver dying, save/load round-trip, the journal).

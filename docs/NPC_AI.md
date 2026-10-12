@@ -134,6 +134,18 @@ corridor sometimes rolled a bat-carrying defender, whose half-damage bludgeon kn
 whose presence changed what the crawler/crowd checks saw. **Any test that wants survivors sets `WorldState.survivor_rule = true` itself** (`survivor_ai_test`
 and `quest_test` do); an old save has no key = off.
 
+## Round 40 audit additions (details and numbers: `NPC_BALANCE.md`)
+
+- **The Talk key is claimed.** A survivor offering `[Talk]` holds the interact press (`WorldState.claim_interact_for_talk`, time-based so it does not
+  depend on node order); every scene-changing E-poller (doors, the powered lift, the lobby door, the floor backpack) already asks
+  `TutorialManager.interact_guarded()`, which now includes the claim. A survivor itself asks `tutorial_guard_active()` (just the tutorial's window).
+  Without it a defender posted beside a door, or a waiter 45 px from the lift (80 px ride range), changed the scene on the same press.
+- **Investigating has a time limit** (`EnemyMind.INVESTIGATE_SLACK`: the walk to the spot + 3 s). An unreachable spot — past the corridor's end,
+  behind a wall — used to leave a zombie pushing at the wall for ever.
+- **A quest giver cannot be killed before the first conversation** (`Quests.protects`, data opt-out `protected_until_met`): the dead can wound
+  them, never finish them. Johnny was dead before he could be met on ~37% of real floors.
+- **Known, deliberate:** survivors are not in `resident_target` (the player's swing/shot/push can never hurt them) and are not in any fire/blast group.
+
 ## Persistence and the pan
 
 - `WorldState.survivors` (saved): per-record `x`, `hp`, `ammo`, `dead`, `met`, `aided`, `gave`, `calm`. `Survivor._exit_tree` writes back.

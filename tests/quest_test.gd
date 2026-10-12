@@ -136,11 +136,26 @@ func _test_sites() -> void:
 			var f := int(s["floor"])
 			seen_floors[f] = true
 			var band: Array = d["floors"]
-			if f < int(band[0]) or f > int(band[1]) or (f in WorldState.MERCHANT_FLOORS) or Quests._fire_near(f):
+			if f < int(band[0]) or f > int(band[1]) or (f in WorldState.MERCHANT_FLOORS) or Quests._fire_near(f, Quests.FIRE_CLEARANCE_STEPS[-1]):
 				check(false, "seed %d: %s on floor %d breaks the band / merchant / fire rule" % [seed_value, qid, f])
 			if str(d["kind"]) == "flat":
 				check(WorldState.get_door_state(str(s["apt"])) == WorldState.DoorState.OPEN, "…its flat %s is OPEN" % s["apt"])
 	check(seen_floors.size() >= 4, "different seeds put quests on different floors (%d distinct)" % seen_floors.size())
+	# EVERY playthrough has both quests: fire origins are common, and two of them used to rule out a whole band (the quest
+	# silently never existed in ~1 playthrough in 9 — tools/npc_balance_report.tscn `quests`)
+	var missing := 0
+	var relaxed := 0
+	for seed_value in range(1, 161):
+		_fresh(seed_value)
+		for qid in Quests.ids():
+			var s2 := Quests.site(qid)
+			if s2.is_empty():
+				missing += 1
+				continue
+			if Quests._fire_near(int(s2["floor"])):
+				relaxed += 1                                      # (found only because the clearance relaxed)
+	check(missing == 0, "160 seeds × both quests: every one has a site (%d missing)" % missing)
+	check(relaxed > 0, "(setup) the relaxed-clearance path was really exercised (%d sites)" % relaxed)
 	# stable: asking again (even in a later run) gives the same place, and the flat stays open
 	_fresh(424242)
 	var a := Quests.site("ethel").duplicate()
@@ -289,13 +304,20 @@ func _test_no_half_trades() -> void:
 
 
 func _test_johnny_dies() -> void:
-	print("[JOHNNY dies: the quest fails for good; he is gone in later runs]")
+	print("[JOHNNY dies: the quest fails for good; he is gone in later runs — but never before he has been met]")
 	_fresh()
 	var floor_num := int(Quests.site("johnny")["floor"])
 	var bf = await _corridor(floor_num)
 	var j := _giver_in(bf, "johnny")
+	# before the first conversation the dead can wound him, never finish him (a quest lost unmet was ~37% of real floors)
+	check(Quests.protects(j.rec) and not Quests.started("johnny"), "(setup) he is protected until he has been spoken to")
+	j.receive_damage(99, "bite")
+	check(not j.is_dead and j.current_hp == 1 and Quests.stage("johnny") == "offer", "an overwhelming bite leaves him alive on 1 hp (hp %d, %s)" % [j.current_hp, Quests.stage("johnny")])
+	j.receive_damage(5, "bite")
+	check(not j.is_dead and j.current_hp == 1, "…and the next bites change nothing")
 	j.talk()
 	check(Quests.started("johnny"), "begun")
+	check(not Quests.protects(j.rec), "once spoken to he is mortal like anyone")
 	j.receive_damage(99, "bite")
 	check(j.is_dead and Quests.stage("johnny") == "lost", "killed: the quest turns to 'lost'")
 	var e: Dictionary = Quests.journal_entries()[0]

@@ -716,6 +716,22 @@ var player_health: int = 0
 var is_dying: bool = false
 var dying_timer: float = 0.0
 var interaction_handled: bool = false
+## THE TALK CLAIM (docs/NPC_AI.md): a survivor offering [Talk] holds the interact press for as long as the offer stands,
+## so the door / lift / lobby door a few pixels behind them (a defender posts 56 px from a door; a waiter stands 45 px
+## from the lift) does not take the SAME press and change the scene mid-sentence. Every E-poller that changes scene asks
+## `TutorialManager.interact_guarded()`, which includes this. Time-based, so it does not depend on which node runs first.
+var _talk_claim_msec: int = -100000
+const TALK_CLAIM_MS := 160
+
+
+func claim_interact_for_talk() -> void:
+	_talk_claim_msec = Time.get_ticks_msec()
+
+
+func interact_claimed_by_talk() -> bool:
+	return Time.get_ticks_msec() - _talk_claim_msec < TALK_CLAIM_MS
+
+
 var is_scavenge_mode: bool = false
 var inventory: Array = []
 var stamina: float = 100.0

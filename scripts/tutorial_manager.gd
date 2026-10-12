@@ -205,7 +205,13 @@ func guard_interact() -> void:
 
 func interact_guarded() -> bool:
 	# True briefly after a prompt resume: the dismissing key press must not also
-	# drive a door/stair on the same frame.
+	# drive a door/stair on the same frame. Also true while a survivor is offering
+	# [Talk] — that press is theirs (WorldState.claim_interact_for_talk).
+	return tutorial_guard_active() or WorldState.interact_claimed_by_talk()
+
+
+## Just the tutorial's own window (a survivor asks THIS, not interact_guarded — it would be blocked by its own claim).
+func tutorial_guard_active() -> bool:
 	return Time.get_ticks_msec() - _interact_guard_msec < INTERACT_GUARD_MS
 
 

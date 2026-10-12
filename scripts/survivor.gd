@@ -1037,8 +1037,10 @@ func _update_prompt() -> void:
 			HUD.show_world_prompt(self, "[{interact}] Talk", global_position + Vector2(0, -60))
 		else:
 			HUD.hide_world_prompt(self)
-	if near and Input.is_action_just_pressed("interact") and not TutorialManager.interact_guarded():
-		talk()
+	if near:
+		WorldState.claim_interact_for_talk()      # this press is mine — not the door's or the lift's behind me
+		if Input.is_action_just_pressed("interact") and not TutorialManager.tutorial_guard_active():
+			talk()
 
 
 ## Talk to them. Returns the line said ("" = nothing).
@@ -1084,6 +1086,10 @@ func is_hurt() -> bool:
 func receive_damage(amount: int, _damage_type: String = "") -> void:
 	if is_dead:
 		return
+	if Quests.protects(rec):
+		amount = mini(amount, current_hp - 1)       # never finished before the first conversation (Quests.protects)
+		if amount <= 0:
+			return                                  # (already at 1 hp: further bites change nothing — no endless flinch)
 	current_hp -= maxi(amount, 0)
 	WorldState.update_survivor(key, {"hp": current_hp})
 	if current_hp <= 0:

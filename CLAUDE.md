@@ -65,6 +65,9 @@ originals — the markdown here is canonical for development):
   context, the perceive→decide→act model with NAMED behaviours and `!`/`?`/`…` tells, their fighting at HALF the player's damage (derived from `player.gd`'s
   tables), and the smarter dead (a noise tells them WHERE — investigate/search/give up, last-seen search, alert spread, nearer-meal prey). Read its
   "What changed against SOUND_STEALTH.md" before touching stealth.
+- `docs/NPC_BALANCE.md` — **MEASURED (round 40)**: the numbers behind survivors, quests and the dead's brain (fight odds by weapon, Johnny's survival on real floors,
+  the bullet supply against his 10-then-20 ask, quest-placement coverage), what the audit fixed, and the ranked suggestions that are still the owner's call.
+  Re-measure with `tools/npc_balance_report.tscn` (`-- --only=quests,census,loot,fights,floors,johnny,waiter`).
 - `docs/QUESTS.md` — **BUILT v1 (round 39)**: the data-driven quest framework (`data/quests.json` + `scripts/quests.gd`: seeded sites, conversations with
   need-checked choices/effects, outcomes that change the place in later runs, journal page) and the two quests on it (010 Johnny, 001 Ethel). 006 and the rest are not built.
 
@@ -244,7 +247,7 @@ Robustness rules; with suite-name words it runs only those). What it covers:
   `dev_menu_test`, `lighting_test`, `plane_lock_test`, `apartment_window_test`,
   `scavenge_node_test`, `drop_physics_test`, `softlock_test`, `character_panel_test`,
   `corpse_recovery_test`, `run_memory_test`, `attack_input_test`, `character_stats_test`, `transition_seam_test`, `run_bookends_test`, `weapon_upgrade_test`, `progression_test`, `back_plane_test`,
-  `apartment_lamp_test`, `gun_cabinet_test`, `breach_test`, `item_icon_test`, `hud_wheel_test`, `motion_test`, `growth_test`, `pack_test`, `backpack_test`, `molotov_test`, `banister_test`, `stair_heights_test`, `resident_npc_test`, `open_furniture_test`, `burnt_apartment_test`, `opening_test`, `controls_test`, `crowd_push_test`, `click_claim_test`, `character_story_test`, `corpse_depth_test`, `survivor_ai_test`, `enemy_mind_test`, `quest_test` — run all 69 before commit. Balance tool: `tools/economy_report.tscn` (scrap per run, ~25 min a seed). (`new_game()` rolls a RANDOM seed, so any test meets any of the four
+  `apartment_lamp_test`, `gun_cabinet_test`, `breach_test`, `item_icon_test`, `hud_wheel_test`, `motion_test`, `growth_test`, `pack_test`, `backpack_test`, `molotov_test`, `banister_test`, `stair_heights_test`, `resident_npc_test`, `open_furniture_test`, `burnt_apartment_test`, `opening_test`, `controls_test`, `crowd_push_test`, `click_claim_test`, `character_story_test`, `corpse_depth_test`, `survivor_ai_test`, `enemy_mind_test`, `quest_test`, `npc_soak_test` — run all 70 before commit. Balance tool: `tools/economy_report.tscn` (scrap per run, ~25 min a seed). (`new_game()` rolls a RANDOM seed, so any test meets any of the four
   characters — an assert on a trait-affected value must be trait-aware; see docs/CHARACTERS.md.) (Run ONE godot at a time — a killed/backgrounded headless run can
   linger and block the next, and a GDScript **parse error makes a test scene load but
   never call `quit()`, so it "hangs" until timeout** rather than printing an error line;
@@ -2448,4 +2451,17 @@ means no rendering — UI layout and art still need an in-editor look.
   conversation option (buttons only); an F1 hook for `dev_survivors`; survivors don't follow, trade or fight each other; flats don't pan-scenery their hiders; the survivor art is the
   homeless pack and every line is a placeholder. Locked by `survivor_ai_test`, `enemy_mind_test`, `quest_test` (mutation-checked: FRACTION 1.0, an omniscient noise and an
   ignored `heal_scale` each fail them). The LOOK/FEEL (tells, bubbles, pacing of a fight) was checked headless only.
+- **NPC AUDIT PASS (owner round 40 — "a pass through for bugs or soft locks. Check the numbers and see that balance is working. Make suggestions"; full numbers
+  in docs/NPC_BALANCE.md):** **fixed** — (1) quests were silently ABSENT from ~1 playthrough in 9 (the ±3-floor fire clearance could rule out a whole band): `Quests.site` now relaxes
+  3 → 2 → 1 (`FIRE_CLEARANCE_STEPS`); (2) **E to talk also drove the door / powered lift behind the survivor** (defenders post 56 px from a door, waiters 45 px from the lift):
+  a survivor offering Talk now holds the press (`WorldState.claim_interact_for_talk`, folded into `TutorialManager.interact_guarded()`; the survivor itself asks
+  `tutorial_guard_active()`); (3) a zombie sent to an unreachable spot pushed at the wall for ever: investigating has a time limit (`EnemyMind.INVESTIGATE_SLACK`);
+  (4) a quest giver could be killed before ever being met (Johnny: dead on ~37% of real floors): `Quests.protects` — wounded, never killed, until the first conversation;
+  (5) test flakes: floor 12 burns for 12.5% of seeds and scorched the dead the survivor/mind tests count (they now build on a fire-free floor of the same parity — a new test that
+  builds a floor with a random seed should do the same). **Measured, NOT changed (owner's call):** melee survivors lose no hp against ordinary dead (the hurt stun-locks them; they
+  never miss) while 6-round gun survivors die to two or more; **bullets are ~0.6 per apartment (84% of flats have none), so Johnny's 10 + 20 is ~17 + ~34 apartments' worth** —
+  top suggestion: pay in instalments across the three runs + a bullet faucet; the rest are ranked in NPC_BALANCE.md §3. New: `tools/npc_balance_report.tscn` (the measuring tool; physics
+  is paced in real time headless, so it raises `physics_ticks_per_second` AND `time_scale` together — the per-step delta stays 1/60 s — to run 8× faster; the heavy floors only reach
+  ~100 steps/s though) and `npc_soak_test` (70th suite: populated corridors + flats with a roaming player — invariants only — plus an ISOLATED run, one zombie alone told of a noise beyond the corridor wall, that must give up; that run is the mutation-checked one: removing the investigate budget fails it). Locked by `quest_test` (coverage + protection),
+  `enemy_mind_test` (unreachable spot), `survivor_ai_test` (the talk claim) — each mutation-checked.
 - Not started: more quests on the framework (003, 005, 006 and the mechanical halves of 002/004; quest-room reservation, achievements — see the GDD §11). The personal quests, the gun cabinet, 001 and 010 ARE built.

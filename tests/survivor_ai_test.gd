@@ -29,6 +29,7 @@ func _ready() -> void:
 	await _test_hider()
 	await _test_hider_talk()
 	await _test_waiter()
+	await _test_talk_claim()
 	await _test_plan_rules()
 	await _test_persistence()
 	await _test_spawning()
@@ -47,6 +48,7 @@ func _corridor(floor_num: int = 12) -> Node:
 	WorldState.god_mode = true                       # the real player stands in these scenes; zombies must not end the test
 	WorldState.dev_survivors = 0
 	WorldState.survivor_rule = false                 # these tests place their OWN survivors — no random defender fighting beside them
+	floor_num = _quiet_floor(floor_num)
 	WorldState.current_floor = floor_num
 	WorldState.seed_floor_door_states(floor_num)
 	var bf = load("res://scenes/building_floors.tscn").instantiate()
@@ -59,6 +61,17 @@ func _corridor(floor_num: int = 12) -> Node:
 		if bf.is_ancestor_of(s):
 			s.free()
 	return bf
+
+
+## A floor with no fire on it this seed, of the same parity as `want` (so its stairwell side is the same). About one seed in
+## eight burns floor 12 in run 1; a burning corridor scorches the dead and survivors a test is counting, which made the
+## checks flaky by seed.
+func _quiet_floor(want: int) -> int:
+	for step in [0, 2, -2, 4, -4, 6, -6]:
+		var f: int = want + step
+		if f >= 2 and f <= 28 and WorldState.fire_intensity(f) < 0:
+			return f
+	return want
 
 
 func _finish(bf: Node) -> void:
@@ -351,6 +364,31 @@ func _test_hider() -> void:
 	check(h.behaviour == "relieved", "the dead one gone, it is RELIEVED (%s)" % h.behaviour)
 	await _frames(170)
 	check(h.behaviour == "trust", "…and then trusts (%s)" % h.behaviour)
+	await _finish(bf)
+
+
+func _test_talk_claim() -> void:
+	print("[THE TALK CLAIM: while a survivor offers [Talk], the same press is not also the door's / lift's]")
+	var bf = await _corridor()
+	var p = _player(bf)
+	# a defender posted a few px from an apartment door, and the player between them
+	var d := _survivor(bf, "defender", "001", 0, 640.0)
+	p.global_position = Vector2(620.0, 386.0)
+	WorldState.is_scavenge_mode = true
+	await _frames(20)
+	check(d.can_talk() and d._talk_near, "(setup) the defender is offering Talk (%s)" % d.behaviour)
+	check(WorldState.interact_claimed_by_talk() and TutorialManager.interact_guarded(),
+		"the interact press is CLAIMED: doors, the lift and the lobby door (all ask interact_guarded) stand down")
+	check(not TutorialManager.tutorial_guard_active(), "…without borrowing the tutorial's own guard (the survivor's own press still gets through)")
+	# step away: the claim lapses within a moment and the door has its key back
+	p.global_position = Vector2(1000.0, 386.0)
+	await _frames(30)
+	check(not d._talk_near, "(setup) out of range, the offer is withdrawn")
+	check(not WorldState.interact_claimed_by_talk() and not TutorialManager.interact_guarded(), "…and the claim has lapsed (the door is the door again)")
+	# a survivor who cannot talk (mid-fight / hiding) claims nothing
+	var h := _survivor(bf, "hider", "", 0, 1000.0)
+	await _frames(20)
+	check(not h.can_talk() and not WorldState.interact_claimed_by_talk(), "a hider that has not yet trusted you claims nothing (%s)" % h.behaviour)
 	await _finish(bf)
 
 

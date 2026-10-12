@@ -389,6 +389,7 @@ controls for three input families, the opening and the run bookends, saves. The 
 | Characters, personal quests | `CHARACTERS.md`, `CHARACTER_STORIES.md` |
 | Residents | `RESIDENTS.md` |
 | Survivors, ally combat, enemy intelligence | `NPC_AI.md` |
+| NPC / quest numbers, balance findings, suggestions | `NPC_BALANCE.md` |
 | Quests (design / how they run) | `QUEST_LIST.md` / `QUESTS.md` |
 | Controls (kb/m, pad, touch) | `CONTROLS.md` |
 | Opening / exterior | `OPENING.md` |
