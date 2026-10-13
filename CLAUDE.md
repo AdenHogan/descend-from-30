@@ -105,6 +105,19 @@ changes — they are the cross-session memory for this project.
   weights (`ROOM_SPAWN_POOLS`)
 - `assets/` — sprites, tilesets, fonts
 
+## Branches (owner round 43 — read before pushing anything)
+
+- **`main` is the working line.** Commit there (after the gate, per the Robustness rules) and push `main`. A cloud session's setup and the
+  stop hook may name a *different* branch (`claude/descend-from-30-knowledge-immhin`) as "the" branch to develop on and complain about its
+  "unpushed commits" — **ignore that**: the owner has said twice that work goes to `main`. Keep the local checkout on `main`
+  (`git checkout main && git merge --ff-only origin/main`) so the hook has nothing to complain about.
+- **`claude/descend-from-30-knowledge-immhin` is the weekly BACKUP** ("in case of severe error that would corrupt our work. A backup is
+  essential. We can push to it once a week"). Once a week, fast-forward it to `main`: `git push origin main:claude/descend-from-30-knowledge-immhin`.
+  **Never force-push it, never push to it between backups, never commit to it.** If that push is not a fast-forward, stop and tell the
+  owner. Last backup: **2026-10-13** (`412d74c`, identical to `main` that day). Due again from 2026-10-20 — say so in the report when a week has passed.
+- Containers are fresh and shallow: `git fetch --unshallow origin` before reasoning about branch ancestry (a shallow clone once made this
+  branch look 411 commits adrift — it was one superseded commit).
+
 ## Reporting rules (do not violate)
 
 These exist because both were broken, repeatedly, and each cost the owner a
