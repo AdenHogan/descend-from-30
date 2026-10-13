@@ -315,6 +315,8 @@ func _die() -> void:
 		ai_tell.clear()
 	prey = null
 	WorldState.note_kill()          # journal stat: enemies felled this run
+	if is_inside_tree():
+		get_tree().call_group("survivor", "on_dead_down", self)     # a defender fighting nearby has been helped (Survivor.on_dead_down)
 	if on_fire:                    # died alight → the corpse smoulders (smoke, not flame)
 		var sm = BODY_SMOKE.new()
 		sm.position = Vector2(0, -10)

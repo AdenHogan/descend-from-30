@@ -24,6 +24,7 @@ func _ready() -> void:
 	await _test_johnny()
 	await _test_no_half_trades()
 	await _test_johnny_no_room()
+	await _test_johnny_gun_is_never_reissued()
 	await _test_johnny_dies()
 	await _test_ethel_supplied()
 	await _test_ethel_mercy()
@@ -288,7 +289,7 @@ func _test_johnny() -> void:
 
 
 func _test_johnny_no_room() -> void:
-	print("[JOHNNY: the bullets are his the moment they are handed over — if the gun will not fit, it waits for you]")
+	print("[JOHNNY: the instalment that would complete the price is refused WHOLE while the gun will not fit — nothing taken, nothing left waiting]")
 	_fresh()
 	var floor_num := int(Quests.site("johnny")["floor"])
 	var bf = await _corridor(floor_num)
@@ -303,21 +304,77 @@ func _test_johnny_no_room() -> void:
 		WorldState.add_to_inventory("023")
 	WorldState.add_to_inventory("016", 8)
 	check(WorldState.inventory.size() == WorldState.get_inventory_slots(), "(a full pack, with a stack of eight bullets)")
-	check(Quests.choose(j, 0), "the last three bullets are handed over")
-	check(WorldState.get_ammo_total() == 5 and Quests.ledger_paid("johnny", "gun") == 10, "…they are his: five left, the ledger says paid in full")
-	check(Quests.stage("johnny") == "offer" and not WorldState.inventory.any(func(i): return i.item_id == "004"), "…but the gun did not fit, so it waits (stage %s)" % Quests.stage("johnny"))
-	check(Quests.choices("johnny")[0]["label"] == "Take Johnny's gun" and Quests.choices("johnny")[0]["enabled"], "the button now reads 'Take Johnny's gun'")
-	var held := WorldState.inventory.size()
-	check(not Quests.choose(j, 0) and WorldState.inventory.size() == held and Quests.stage("johnny") == "offer", "with the pack still full that is refused, and nothing is lost")
-	# make room
+	check(not Quests.choose(j, 0), "the last three bullets are refused while the gun cannot be carried")
+	check(WorldState.get_ammo_total() == 8 and Quests.ledger_paid("johnny", "gun") == 7, "…nothing was taken: all eight bullets, the ledger still at seven")
+	check(Quests.stage("johnny") == "offer" and not WorldState.inventory.any(func(i): return i.item_id == "004"), "…and no gun was left waiting (stage %s)" % Quests.stage("johnny"))
+	check(str(Quests.choices("johnny")[0]["label"]).begins_with("Give bullets"), "the button still reads as a payment, never 'take what you are owed'")
+	# a part-payment that does NOT complete the price is fine with a full pack
+	Quests.state_of("johnny")["ledger"]["gun"] = 0
+	WorldState.inventory.clear()
+	for i in WorldState.get_inventory_slots() - 1:
+		WorldState.add_to_inventory("023")
+	WorldState.add_to_inventory("016", 4)
+	check(Quests.choose(j, 0) and Quests.ledger_paid("johnny", "gun") == 4 and Quests.stage("johnny") == "offer", "four bullets toward ten are taken even with a full pack (the ledger shows 4)")
+	# make room and finish
+	WorldState.add_to_inventory("016", 6)
 	for i in range(WorldState.inventory.size() - 1, -1, -1):
 		if WorldState.inventory[i].item_id == "023":
 			WorldState.remove_from_inventory(i)
 			break
-	check(Quests.choose(j, 0), "with a slot free it is handed over")
+	check(Quests.choose(j, 0), "with a slot free the last six are handed over")
 	check(WorldState.inventory.any(func(i): return i.item_id == "004") and Quests.stage("johnny") == "paid", "…the gun is in the pack and the quest moves on")
 	bf.free()
 	await get_tree().process_frame
+
+
+func _test_johnny_gun_is_never_reissued() -> void:
+	print("[JOHNNY'S GUN is never given twice: die holding it and the next character finds it on your body — Johnny owes them nothing]")
+	_fresh()
+	var floor_num := int(Quests.site("johnny")["floor"])
+	var bf = await _corridor(floor_num)
+	var j := _giver_in(bf, "johnny")
+	bf.get_node("Player").global_position = Vector2(j.global_position.x - 40.0, 386.0)
+	await _frames(40)
+	j.talk()
+	_bullets(10)
+	check(Quests.choose(j, 0), "ten bullets are paid")
+	check(WorldState.inventory.any(func(i): return i.item_id == "004") and Quests.stage("johnny") == "paid", "the gun is in the pack and the quest is on its second price")
+	# the character dies holding it: the game records the body, then the time skip
+	WorldState.record_player_corpse(floor_num, "res://scenes/building_floors.tscn", "", Vector2(600.0, 419.0))
+	bf.free()
+	await get_tree().process_frame
+	check(not WorldState.advance_run(), "the time skip (run 2 begins)")
+	check(not WorldState.inventory.any(func(i): return i.item_id == "004"), "the new character starts without the gun")
+	check(Quests.stage("johnny") == "paid", "Johnny is still on the second price (%s)" % Quests.stage("johnny"))
+	var offers_gun := false
+	for c in Quests.choices("johnny"):
+		offers_gun = offers_gun or str(c["label"]).to_lower().contains("gun")
+	check(not offers_gun, "he offers no gun to the new character")
+	# the second price completes, as run 2's character pays it — and still no gun appears
+	var bf2 = await _corridor(floor_num)
+	var j2 := _giver_in(bf2, "johnny")
+	bf2.get_node("Player").global_position = Vector2(j2.global_position.x - 40.0, 386.0)
+	await _frames(40)
+	j2.talk()
+	_bullets(20)
+	check(Quests.choose(j2, 0) and Quests.stage("johnny") == "pick", "twenty more bullets move him on to the upgrade")
+	check(not WorldState.inventory.any(func(i): return i.item_id == "004"), "…and still no gun was handed to anyone")
+	bf2.free()
+	await get_tree().process_frame
+	# …but the dead character's body has it, to be looted
+	var body := WorldState.get_player_corpse_for(floor_num, "res://scenes/building_floors.tscn", "")
+	check(not body.is_empty(), "the first character's body lies where they fell")
+	var has_gun := false
+	for it in body.get("data", {}).get("items", []):
+		has_gun = has_gun or str(it.get("item_id", "")) == "004"
+	check(has_gun, "…with Johnny's gun on it")
+	WorldState.inventory.clear()
+	WorldState.recover_player_corpse(str(body.get("key", "1")))
+	var gun = null
+	for it in WorldState.inventory:
+		if it.item_id == "004":
+			gun = it
+	check(gun != null and int(gun.level) == 2 and "G_durable" in gun.perks, "looting the body returns the very same Lv2 Durable Hand Cannon")
 
 
 func _test_no_half_trades() -> void:

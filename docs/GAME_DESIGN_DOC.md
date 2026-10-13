@@ -218,8 +218,11 @@ lift (bang in threes — the dead hear it), **hiders** crouched at the back of w
 behaviours → acts, and shows a **tell** over its head (`!` alert, `?` search, `…` fear). **Round 41 — they are theatre:** they swing and shoot at
 the dead and the dead bite them, the hit animations all play, but **nothing is wounded and nothing dies from it** and they never run out of rounds
 (`AllyCombat.performative`; the half-damage maths is kept behind the switch). A survivor's fate is the PLAYER's doing, never its own: the
-exception is a **rescue** — a survivor shouting for help with three slow dead closing in; help them in time and they live (and thank you, maybe
-with a gift), ignore them and the dead overrun them, a body later runs will find. The dead think a little too: a noise
+exception is a **rescue** — a survivor shouting for help with three slow dead closing in; help them in time and they live (thanks in an item,
+scrap or money), ignore them and the dead overrun them, a body later runs will find. **Round 42 — helping makes them permanent (HAVENS):** a
+fighting defender the player backs up (two of the dead put down beside them mid-fight) and a rescued survivor stay in every later run, and
+their place goes quiet — a helped defender's FLOOR has no corridor dead, no boss and empty staircases from the next run; a rescued hider's FLAT is a
+safe room; a rescued survivor also patches the player up (once a run). An unaided survivor is re-rolled per run as before. The dead think a little too: a noise
 tells them *where* (they investigate the source, search, give up), losing you sends them to your last-seen spot, a lunge alerts the dead beside
 it, and they go for the nearer meal. Placeholder art and lines.
 
@@ -284,7 +287,7 @@ reshuffle, achievements, and the other quests.
 | 005 | The Prepper | NOT BUILT (a trader resident and a "safe rest spot" are different things) |
 | 006 | Into the Breach | PARTIAL — breach rooms, leaders and keys are built, and the dead now go for the nearer meal (a survivor); the neighbour-to-save quest layout, its timer and its reward are not |
 | 007–009, 011 | Stubs | Not designed |
-| 010 | Johnny the Gun Guy | BUILT v1 — corridor quest on the framework, floors 10–20; 10 bullets → a Durable Hand Cannon, 20 more → Waste Not or Johnny's Eye, paid in **instalments on a ledger that lasts all three runs** (round 41; `QUESTS.md`) |
+| 010 | Johnny the Gun Guy | BUILT v1 — corridor quest on the framework, floors 10–20; 10 bullets → a Durable Hand Cannon, 20 more → Waste Not or Johnny's Eye, paid in **instalments on a ledger that lasts all three runs** (round 41); the gun is handed over once and never re-issued — a dead player's is lootable from the body (round 42; `QUESTS.md`) |
 | — | The Gun Cabinet (unannounced) | BUILT |
 | — | Personal quests (Joe/Vivianne/Alex/Amina) | BUILT v1 — one hook each; later stages open |
 

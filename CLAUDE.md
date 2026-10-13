@@ -2476,9 +2476,27 @@ means no rendering — UI layout and art still need an in-editor look.
   The place's rescue identity is persistent per playthrough (`f%d:rescue`, `<apt>:rescue`), `rescue_status` is lazy (future/open/saved/lost); a pan backdrop spawns the dead as frozen scenery.
   F1 `dev_survivors` 2 forces a rescue everywhere. **(3) Johnny** — floors **10-20** (was a narrower band); both prices stay **10 then 20 bullets** but are paid in INSTALMENTS on a LEDGER
   (`pay` choices in `data/quests.json`, `WorldState.quests[qid].ledger`, saved) that lasts the whole playthrough; states offer → paid → pick → done; the reward waits ("Take Johnny's gun")
-  if the pockets are full. The upgrade belongs to the playthrough, the gun to the character that was handed it (open question: re-issue to later characters?). **(4) The opening floors
+  if the pockets are full. The upgrade belongs to the playthrough, the gun to the character that was handed it (decided in round 42: never re-issued — see below). (Round 42 also REMOVED the 'reward waits' behaviour round 41 described: the instalment that would complete a price is refused whole while the reward does not fit.) **(4) The opening floors
   29 / 28 / 27 are capped in HEADCOUNT** (`WorldState.OPENING_COUNT_CAP` {29: 2, 28: 2, 27: 3}, `OPENING_STAIR_CAP` {29: 0, 28: 0, 27: 1}; `_opening_capped` clamps after the seeded roll and the
   Super's +20%, every run) — `RUN_OPENING_EASE` already thinned the TOUGH types there, this thins how MANY (a bot probe failed 29-27 one life in four; the corridor is one lane, so each dead body
   is a forced fight). Every other floor's numbers are untouched (clamp only). Locked by `enemy_variety_test`, `survivor_ai_test` (theatre + rescue tests), `quest_test` (ledger, no-room, legacy fight).
   Test gotcha found on the way: a `quest_test` block that built a second corridor while the first was still in the tree had the old floor's dead "alert" the new Johnny — free the old floor first.
+- **ROUND 42 — THE PLAYER'S HELP MAKES SURVIVORS PERMANENT: HAVENS (owner: "Johnny's gun, no… rewarding someone's death with a free weapon isn't what we do"; "if you help
+  them they should persist… that floor should be a safe haven with no enemies… an in-peril survivor can give an item, scrap or money, and in later runs be a safe room that heals the
+  player too"; docs/NPC_AI.md "Havens", docs/QUESTS.md, docs/NPC_BALANCE.md "Round 42"):** **(1) Johnny's gun is never re-issued.** It rides a dead character's body like anything else
+  (`record_player_corpse` → `recover_player_corpse` returns the same Lv2 Durable Hand Cannon); Johnny's state stays `paid`, so a later character is only offered the 20-bullet upgrade. To keep
+  that true the instalment that would COMPLETE a price is now refused whole while the reward won't fit (`Quests._pay`; the round-41 'reward waits' path is gone — a waiting gun would have gone to
+  the next character if the payer died first; `pay.collect` survives only for a ledger completed earlier). **(2) `WorldState.havens`** (saved, cleared by `new_game`; place → `{run, kind
+  post|rescue, floor, apt, snap}`; `note_haven` / `haven_floor` / `haven_flat` / `haven_info`) is the cross-run record of what the PLAYER helped. A haven is live only from the run AFTER it was
+  earned. Live haven floor: `get_floor_zombie_count` → 0, `floor_has_boss` → false, `stair_enemy_count` → 0 for chokes *F* and *F+1* (a staircase is seen from both floors it joins, so this also
+  empties floor *F+1*'s down shaft); live haven flat: `room.gd` lays no dead and no riser. **(3) Helping a fighting survivor** — `Survivor.on_dead_down` (every enemy's `_die` calls group
+  `survivor`): a defender in `alert/engage/help/retreat` with `AID_KILLS` (2) of the dead dying within `AID_RANGE` (320 px) is HELPED → `SurvivorPlan.register_haven(rec, "post")`; later runs rebuild
+  the same person (look/weapon/post from `snap`) under the run-less key `f<floor>:haven` (`SurvivorPlan.haven_for_floor`), flagged `helped`/`credited` so they never pay Valour twice. Quest givers,
+  rescues, backdrop copies don't count; a floor with a quest giver or a rescue still to happen can't be a haven (`can_haven_floor`). Run 3: thanked (`helped_last`), nothing written. **(4) Rescues**
+  register a haven when saved (`_rescued`; corridor → the floor, flat → the flat), draw their thank-you from `SurvivorPlan.RESCUE_GIFTS` (items + scrap 28 + money 40; the hider's `GIFTS` is unchanged),
+  and in every later run (`saved_run < current_run`) talking to them heals the player fully once a run (`_tend_player`, `tended_run`). Waiters and ordinary hiders are NOT helped by this rule.
+  Locked by `survivor_ai_test` (5 new tests) and `quest_test` (`_test_johnny_no_room` rewritten, `_test_johnny_gun_is_never_reissued`); mutation-checked (aid count/range, the three floor effects,
+  the safe room, the heal, same-run rule, rescue registration, the completing-instalment refusal each fail the suite when removed). **Not measured:** how many havens a real descent produces —
+  they stack as an easing, so count them in a playtest/bot before trusting the balance. Environment note: a fresh cloud container needs `python3 -m pip install pillow numpy python-docx` before
+  the gate's art checks and the GDD docx will run (`pip` may target a different Python than `python3`).
 - Not started: more quests on the framework (003, 005, 006 and the mechanical halves of 002/004; quest-room reservation, achievements — see the GDD §11). The personal quests, the gun cabinet, 001 and 010 ARE built.

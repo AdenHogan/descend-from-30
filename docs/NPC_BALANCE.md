@@ -73,3 +73,20 @@ Before the fix: Johnny present in 89.8%, Ethel in 87.8% (the ±3-floor fire clea
 
 ## 4. Verification debt
 The tells, the speech bubbles, the pacing of a fight and the choice buttons were checked headless only. The soak test (`npc_soak_test`, 70th suite) asserts invariants (finite positions, named behaviours, the player never held), not feel. Its checks on a *busy* floor can pass without the give-up rule (an investigating zombie is soon overtaken by newer news), so the rule is proven by an **isolated run**: one zombie alone, a still player at the far end, a noise 250 px beyond the east / west wall — it must walk to the wall, press on it, and give up inside the rule's time. Mutation-checked (disabling the budget fails two checks, with the zombie still pressed at x 138 / 1214 after 12 s).
+
+## Round 42 — havens: what helping now buys (NOT measured)
+
+Owner decision: a survivor the player stands by persists, and their floor (or flat) is quiet from the next run (docs/NPC_AI.md "Havens").
+I have **not** measured how often that will happen in play, so these are the levers, not results:
+
+- **Supply.** An ordinary defender stands on ~30 % / 24 % / 16 % of floors by run (`SurvivorPlan.CHANCE`), floors 1-28. One becomes a
+  haven when two of the dead die within 320 px of them while they are fighting — so roughly: the floors where the player walks past a
+  defender with a fight on. On a full descent that could be several per run; the headcount cost to the building is one floor's dead
+  (plus its stair enemies and boss) each, from the next run. This is the intended pull ("encourage helping in order to make the descent
+  more manageable"), but it is also an easing that stacks: **a bot probe or a playtest should count havens per run before this is
+  trusted** (`tools/npc_balance_report.tscn` has the floor census to extend).
+- **Knobs** (all constants): `Survivor.AID_KILLS` 2, `AID_RANGE` 320; the rescue chances (12 % / 6 %) and `RESCUE_GIFTS` amounts (scrap 28,
+  money 40 — a natural scrap bag is 6-14, the first workbench level 50); one heal per rescued survivor per run.
+- **Side effect worth knowing:** a haven on floor *F* also empties the staircase between *F+1* and *F*, i.e. floor *F+1*'s down shaft.
+- Not covered: waiters and ordinary hiders do not make havens; a haven floor can still burn (fire is independent).
+

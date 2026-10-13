@@ -42,6 +42,10 @@ const DEFENDER_WEAPONS := {
 }
 # What a hider will give the person who saves them: item id -> [weight, amount (0 = one item)].
 const GIFTS := {"006": [5, 0], "010": [4, 0], "005": [4, 0], "016": [3, 4], "007": [1, 0]}
+# What someone you SAVED from the dead gives (owner round 42: "an item as a thank you or scrap or money"): the hider's table plus
+# scrap (a Scrap Bag, 037, goes straight to the counter) and money (Bank Notes, 033, straight to the wallet). Amounts are a good
+# find, not a windfall: a natural bag is 6-14 scrap, the first workbench level is 50.
+const RESCUE_GIFTS := {"006": [4, 0], "010": [3, 0], "005": [3, 0], "016": [3, 4], "007": [1, 0], "037": [4, 28], "033": [4, 40]}
 
 # The corridor (building_floors.tscn): the lift, and where a defender holds.
 const LIFT_X := 1029.5
@@ -123,11 +127,14 @@ static func corridor_records(floor_num: int) -> Array:
 	var rescue: Dictionary = {} if not quest_npcs.is_empty() else rescue_for_floor(floor_num)
 	if not rescue.is_empty():
 		out.append(rescue)
+	var haven: Dictionary = {} if (not quest_npcs.is_empty() or not rescue.is_empty()) else haven_for_floor(floor_num)
+	if not haven.is_empty():
+		out.append(haven)
 	for role in ["defender", "waiter"]:
 		if not role_fits(role, floor_num):
 			continue
-		if role == "defender" and (not quest_npcs.is_empty() or not rescue.is_empty()):
-			continue                                  # the floor's armed post is a quest giver's — or the one who is shouting
+		if role == "defender" and (not quest_npcs.is_empty() or not rescue.is_empty() or not haven.is_empty()):
+			continue                                  # the floor's armed post is a quest giver's — the one who is shouting — or the one you stood by
 		var rec := _settled(corridor_key(floor_num, role), role, floor_num, "")
 		if not rec.is_empty():
 			out.append(rec)
@@ -226,6 +233,70 @@ static func _roll(key: String, role: String, floor_num: int, apt: String, forced
 	}
 
 
+# =============================== HAVENS (the ones you stood by) =========================
+#
+# Owner round 42: "if you help them they should persist". A fighting survivor the player backs up (`Survivor._helped`) is
+# recorded in `WorldState.havens` with a snapshot of who they are; from the next run on the SAME person holds the SAME post (their
+# record lives under a run-less key, `f26:haven`) and the floor has no dead (WorldState.haven_floor). An unaided survivor is
+# re-rolled per run as ever — the player's help is the only thing that makes anyone permanent. (A rescued survivor is already
+# permanent — the rescue record below — and registers its haven when it is saved.)
+
+static func haven_key(floor_num: int) -> String:
+	return "f%d:haven" % floor_num
+
+
+## May the floor's armed post become a haven? Not a quest giver's floor, not one where a rescue is still to happen / happening
+## (that person owns the post — and the three dead walking at them would sit badly in a "safe" floor).
+static func can_haven_floor(floor_num: int) -> bool:
+	if floor_num < FIRST_FLOOR or floor_num > LAST_FLOOR or not floor_ok(floor_num):
+		return false
+	if not Quests.corridor_records(floor_num).is_empty():
+		return false
+	var r = WorldState.survivors.get(rescue_key_corridor(floor_num), null)
+	if r is Dictionary and not r.get("none", false) and rescue_status(r) != "saved":
+		return false
+	return true
+
+
+## Remember that the player stood by / saved this survivor (called by `Survivor`). `kind` "post" = a fighting defender,
+## "rescue" = someone saved from the dead. False = nothing was written (the last run: no later run to be quiet for; or no room for it).
+static func register_haven(rec: Dictionary, kind: String) -> bool:
+	if not active():
+		return false
+	var f := int(rec.get("floor", 0))
+	var apt := str(rec.get("apt", ""))
+	var place: String = apt if (apt != "" and str(rec.get("role", "")) == "hider") else "f%d" % f
+	if kind == "post":
+		if place != "f%d" % f or not can_haven_floor(f):
+			return false
+	var snap := {}
+	for k in ["look", "weapon", "ammo", "post", "post_kind", "spot", "max_hp"]:
+		snap[k] = rec.get(k)
+	return WorldState.note_haven(place, {"kind": kind, "floor": f, "apt": apt if place == apt else "", "snap": snap})
+
+
+## The floor's helped defender THIS run ({} = none): the same person as the run they were helped in, grateful, at the same post.
+static func haven_for_floor(floor_num: int) -> Dictionary:
+	if not active() or not floor_ok(floor_num) or not WorldState.haven_floor(floor_num):
+		return {}
+	var h: Dictionary = WorldState.haven_info("f%d" % floor_num)
+	if str(h.get("kind", "")) != "post":
+		return {}                                      # a rescued survivor is the floor's rescue record, not this
+	var key := haven_key(floor_num)
+	var all: Dictionary = WorldState.survivors
+	if not all.has(key) or all[key].get("none", false):
+		var snap: Dictionary = h.get("snap", {})
+		var max_hp := int(snap.get("max_hp", HP["defender"]))
+		all[key] = {
+			"key": key, "role": "defender", "floor": floor_num, "apt": "", "look": int(snap.get("look", 1)),
+			"weapon": str(snap.get("weapon", "")), "ammo": int(snap.get("ammo", 0)), "gift": "", "gift_n": 0,
+			"hp": max_hp, "max_hp": max_hp, "dead": false,
+			"x": -1.0, "post": float(snap.get("post", 600.0)), "post_kind": str(snap.get("post_kind", "")), "spot": float(snap.get("spot", 0.5)),
+			"met": 0, "aided": true, "calm": false, "gave": false, "quest": "", "haven": true, "helped": true, "credited": true,
+		}
+	return all[key]
+
+
 # =============================== RESCUES ===============================================
 
 static func rescue_key_corridor(floor_num: int) -> String:
@@ -290,10 +361,9 @@ static func _roll_rescue(key: String, kind: String, floor_num: int, apt: String)
 		var wr := _rng(key + ":arms")
 		if wr.randf() < 0.30:
 			rec["weapon"] = "001"                      # a kitchen knife, to shove the first one off with
-	if kind == "corridor":
-		var g := _weighted_gift(_rng(key + ":gift"))        # a thank-you for whoever saves them (the flat's hider already carries one)
-		rec["gift"] = g
-		rec["gift_n"] = int(GIFTS[g][1])
+	var g := _weighted_gift(_rng(key + ":gift"), RESCUE_GIFTS)       # a thank-you for whoever saves them (their own table: it can be scrap or money)
+	rec["gift"] = g
+	rec["gift_n"] = int(RESCUE_GIFTS[g][1])
 	rec["rescue"] = "pending"
 	rec["appears"] = appears
 	rec["peril"] = RESCUE_HOLD
@@ -359,10 +429,10 @@ static func spawn_rescue_dead(parent: Node, rec: Dictionary, at_x: float, origin
 	return out
 
 
-static func _weighted_gift(rng: RandomNumberGenerator) -> String:
+static func _weighted_gift(rng: RandomNumberGenerator, table: Dictionary = GIFTS) -> String:
 	var w := {}
-	for id in GIFTS:
-		w[id] = int(GIFTS[id][0])
+	for id in table:
+		w[id] = int(table[id][0])
 	return _weighted(w, rng)
 
 

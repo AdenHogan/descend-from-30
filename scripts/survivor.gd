@@ -18,6 +18,11 @@ extends Area2D
 # in. (With `AllyCombat.performative = false` the old half-damage fight comes back: real hits, real bites, finite rounds.)
 # The dead still pick a survivor as prey when it is the nearer meal (AllyCombat / the zombie's _pick_prey).
 #
+# STANDING BY THEM (owner round 42): the player is what makes a survivor permanent. A defender the player backs up in a fight
+# (`on_dead_down`: two of the dead put down near them while they are fighting) is HELPED — `SurvivorPlan.register_haven` remembers
+# them, and from the next run the same person holds the same post on a floor with no dead (WorldState.havens). Someone saved from
+# the dead (below) is remembered the same way, thanks the player with an item / scrap / money, and in later runs patches them up.
+#
 # A RESCUE is the one place a survivor can die (scripts/survivor_plan.gd `rescue_*`): they shout for help while three of the
 # dead walk slowly at them; they fend them off for show, and only if the player lets it go on for too long are they overrun.
 #
@@ -60,6 +65,9 @@ const MELEE_NOISE := 120.0
 const FLINCH_TIME := 0.25          # a bite they feel and shrug off (performative)
 const SWARM_GAP := 64.0            # a dead one this close is ON a rescue survivor — the clock to being overrun runs
 const HURT_SAY_GAP := 5.0          # …and they do not cry out at every one
+const AID_KILLS := 2               # the dead put down near a fighting defender before it counts as the player standing by them
+const AID_RANGE := 320.0           # …"near" being this far from the defender along the lane
+const AID_FIGHTING := ["alert", "engage", "help", "retreat"]     # behaviours that mean a fight is on
 # --- hider ---
 const PEEK_RANGE := 170.0
 const TRUST_NEAR := 84.0
@@ -131,6 +139,7 @@ var _peril: float = 0.0                # seconds of being swarmed left before th
 var _shout_t: float = 1.2
 var _nudge_t: float = 5.0
 var _flail_t: float = 0.0
+var _aid_kills: int = 0                # the dead put down near this defender while it was fighting (AID_KILLS makes it helped)
 var _hurt_t: float = 0.0
 var _hurt_say_cd: float = 0.0
 var _trust_t: float = 0.0
@@ -1071,14 +1080,48 @@ func _rescued() -> void:
 	rescuing = false
 	rec["rescue"] = "saved"
 	rec["aided"] = true
+	rec["saved_run"] = WorldState.current_run              # (they patch the player up in the runs AFTER this one)
 	if not bool(rec.get("credited", false)):
 		rec["credited"] = true
 		WorldState.note_npc_aided()                        # +Valour, once
 		WorldState.add_run_trace("Saved a stranger from the dead.")
+	SurvivorPlan.register_haven(rec, "rescue")             # a corridor post / a flat that is quiet from the next run on
 	_wind = -1.0
 	_show_weapon(false, 0.0)
 	say("rescue_saved", 3.0)
 	_set_behaviour("trust" if role == "hider" else "hold")
+
+
+# =============================== STANDING BY A DEFENDER =====================================
+#
+# Called (group "survivor") by every enemy that dies. A defender in the middle of a fight whose dead are being put down by someone else —
+# in a theatre fight nothing they swing can kill — has been helped; two is enough. A quest giver, a rescue and a frozen backdrop copy
+# never count (they have their own ways).
+
+func on_dead_down(z: Node) -> void:
+	if is_dead or scenery or rescuing or role != "defender" or quest_id != "" or not is_instance_valid(z):
+		return
+	if bool(rec.get("helped", false)) or rec.has("rescue") or z.get_parent() != get_parent():
+		return
+	if not (behaviour in AID_FIGHTING):
+		return
+	if absf((z as Node2D).global_position.x - global_position.x) > AID_RANGE:
+		return
+	_aid_kills += 1
+	if _aid_kills >= AID_KILLS:
+		_helped()
+
+
+func _helped() -> void:
+	rec["helped"] = true
+	rec["aided"] = true
+	WorldState.update_survivor(key, {"helped": true, "aided": true})
+	if not bool(rec.get("credited", false)):
+		rec["credited"] = true
+		WorldState.note_npc_aided()                        # +Valour, once
+		WorldState.add_run_trace("Fought beside a stranger.")
+	var kept := SurvivorPlan.register_haven(rec, "post")   # false in the last run (no run left) or on a floor a rescue / quest owns
+	say("helped" if kept else "helped_last", 3.5)
 
 
 # =============================== HOST + PATIENT (a quest's people) =============================
@@ -1199,6 +1242,8 @@ func talk() -> String:
 	if str(rec.get("rescue", "")) == "saved":
 		if str(rec.get("gift", "")) != "" and not bool(rec.get("gave", false)):
 			return _give_gift()                            # the thank-you they have been keeping
+		if int(rec.get("saved_run", 99)) < WorldState.current_run:
+			return _tend_player()                          # a run later: a safe place, and someone to patch you up
 		return say("rescue_thanks")
 	match role:
 		"hider":
@@ -1208,6 +1253,8 @@ func talk() -> String:
 		"waiter":
 			return say("thanks")
 		"defender":
+			if bool(rec.get("haven", false)):
+				return say("haven")                       # the one you stood by, holding a quiet floor
 			return say("thanks" if bool(rec.get("aided", false)) else "greet_again")
 	return ""
 
@@ -1223,8 +1270,27 @@ func _give_gift() -> String:
 	WorldState.update_survivor(key, {"gave": true, "aided": true})
 	WorldState.note_npc_aided()
 	HUD.refresh_inventory()
-	HUD.show_feedback("%s gives you %s." % ["They", str(ItemData.get_item(id).get("name", "something"))])
+	match id:
+		"037": HUD.show_feedback("They give you %d scrap." % n)
+		"033": HUD.show_feedback("They give you %d notes." % n)
+		_: HUD.show_feedback("%s gives you %s." % ["They", str(ItemData.get_item(id).get("name", "something"))])
 	return say("gift")
+
+
+## A saved survivor in a LATER run: patch the player up (all the way — once a run) and say so. Healthy, or already patched this run:
+## just a word. Never touches anything but health.
+func _tend_player() -> String:
+	var p = _player()
+	if p == null or not p.has_method("heal") or WorldState.player_health <= 0:
+		return say("haven_fine")
+	if int(rec.get("tended_run", 0)) == WorldState.current_run:
+		return say("haven_again")
+	if not p.heal(5):
+		return say("haven_fine")
+	rec["tended_run"] = WorldState.current_run
+	WorldState.update_survivor(key, {"tended_run": WorldState.current_run})
+	HUD.show_feedback("They patch you up.")
+	return say("haven_tend")
 
 
 # --- being hurt ----------------------------------------------------------------------------------

@@ -1235,6 +1235,7 @@ func new_game() -> void:
 	residents.clear()
 	revenants.clear()
 	survivors.clear()
+	havens.clear()
 	quests.clear()
 	quest_upgrades.clear()
 	elevator_powered = false
@@ -2938,6 +2939,8 @@ func get_floor_zombie_count(floor_num: int) -> int:
 	# floors). Counts are small ints, so ×1.2 would round away to nothing: the fractional part
 	# becomes a SEEDED chance of one extra (2 × 1.2 = 2.4 → 3 on 40% of floors). Deterministic
 	# per (floor, run), so the spawner, a stair-pan backdrop and the listen report all agree.
+	if haven_floor(floor_num):
+		return 0                       # a helped survivor's floor: quiet from the next run on (havens)
 	var base := _base_floor_zombie_count(floor_num)
 	var mult := get_enemy_count_mult()
 	if base <= 0 or is_equal_approx(mult, 1.0):
@@ -3152,6 +3155,8 @@ func floor_has_boss(floor_num: int) -> bool:
 	# character shouldn't meet a boss on the first floors of a run. First boss is floor 26.
 	if run_opening_ease(floor_num) < 1.0:
 		return false
+	if haven_floor(floor_num):
+		return false                   # (havens: nothing roams a helped survivor's floor)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(str(master_seed) + "floorboss" + str(floor_num) + str(current_run))
 	return rng.randf() < floor_boss_chance(floor_num)
@@ -3226,6 +3231,8 @@ func stair_enemy_count(floor_num: int) -> int:
 	# enemies` forces one for testing.
 	if floor_num >= 30 or floor_num <= 1:
 		return 0
+	if haven_floor(floor_num) or haven_floor(floor_num - 1):
+		return 0                       # a staircase is seen from the two floors it joins: a haven's two are empty (havens)
 	if dev_force_stair_enemies:
 		return 1
 	var rng := RandomNumberGenerator.new()
@@ -4492,6 +4499,43 @@ func update_survivor(key: String, fields: Dictionary) -> void:
 		survivors[key][f] = fields[f]
 
 
+# HAVENS (owner round 42 — "if you help them they should persist… in run 3 that floor should be a safe haven with no enemies. Helping
+# survivors helps the player and helps the building"). A place whose survivor the PLAYER stood by — a fighting one they backed up
+# (`Survivor._helped`), or one shouting for help they saved (`Survivor._rescued`) — is remembered here for the rest of the
+# playthrough (cross-run, saved, cleared by new_game). From the NEXT run on (`current_run > run`, never the run it was earned in: the
+# floor's dead are already seeded), a corridor haven's floor holds NO corridor dead, no stair enemies on its two staircases and no
+# boss, and a flat haven (a rescued hider's) holds none of the dead inside. The survivor themselves is scripts/survivor_plan.gd's job.
+# Only the player's intervention writes here — never a survivor's own fight, never the player arriving late (NPC_AI.md).
+var havens: Dictionary = {}        # "f26" (a corridor floor) / "1703" (a flat) -> {"run", "kind": "post"|"rescue", "floor", "apt", "snap"}
+
+
+## Remember a helped place. The first record for a place wins; false = nothing recorded (already held, or no run left to be quiet for).
+func note_haven(place: String, info: Dictionary) -> bool:
+	if place == "" or havens.has(place) or current_run >= RUN_NAMES.size():
+		return false
+	var h := info.duplicate(true)
+	h["run"] = current_run
+	havens[place] = h
+	return true
+
+
+func haven_info(place: String) -> Dictionary:
+	var h = havens.get(place, {})
+	return h if h is Dictionary else {}
+
+
+## Is this corridor floor a safe haven NOW (earned in an earlier run)?
+func haven_floor(floor_num: int) -> bool:
+	var h := haven_info("f%d" % floor_num)
+	return not h.is_empty() and current_run > int(h.get("run", 99))
+
+
+## The same for one flat (a rescued hider's).
+func haven_flat(apartment_id: String) -> bool:
+	var h := haven_info(apartment_id)
+	return not h.is_empty() and current_run > int(h.get("run", 99))
+
+
 # QUESTS (owner round 39 — "let's start on quest mechanics"; scripts/quests.gd, data/quests.json, docs/QUESTS.md).
 # Cross-run, saved, cleared by new_game: what each quest is up to, what the player chose, where it happens. The
 # upgrades a quest grants (`Quests.UPGRADES`) fold into every stat getter like a merchant upgrade does.
@@ -5379,6 +5423,7 @@ func save_game(scene_path: String, record_live_zombies: bool = true) -> void:
 		"residents": residents,
 		"revenants": revenants,
 		"survivors": survivors,
+		"havens": havens,
 		"quests": quests,
 		"quest_upgrades": quest_upgrades,
 		"elevator_powered": elevator_powered,
@@ -5494,6 +5539,7 @@ func load_game() -> String:
 	residents = data.get("residents", {}) if data.get("residents", {}) is Dictionary else {}
 	revenants = data.get("revenants", {}) if data.get("revenants", {}) is Dictionary else {}
 	survivors = data.get("survivors", {}) if data.get("survivors", {}) is Dictionary else {}
+	havens = data.get("havens", {}) if data.get("havens", {}) is Dictionary else {}
 	quests = data.get("quests", {}) if data.get("quests", {}) is Dictionary else {}
 	quest_upgrades = data.get("quest_upgrades", []) if data.get("quest_upgrades", []) is Array else []
 	elevator_powered = bool(data.get("elevator_powered", false))

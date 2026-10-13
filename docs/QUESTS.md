@@ -49,8 +49,10 @@ choice that can't be met is shown disabled with a hint ("need 10 bullets"). Choo
 Whatever bullets the player has (never more than is still owed) go onto a **ledger** in the quest's state (`WorldState.quests[qid].ledger`,
 saved, so it outlives the time skips and every character); the button shows where you are, the journal says "(4 of 10 bullets given)",
 and the giver says how many are still owed (`more`). The moment the goal is met the choice's `do` runs. The bullets are the giver's once
-handed over — if the reward will not fit the pockets the payment is still taken and the reward **waits** (`collect` becomes the button:
-"Take Johnny's gun"); with the pack still full that is refused and nothing is lost.
+handed over — **but the instalment that would COMPLETE the price is refused whole while the reward will not fit the pockets** ("No room
+to carry it — make space and come back."; nothing is taken, nothing is left waiting). Round 42, owner: *"rewarding someone's death with a
+free weapon isn't what we do"* — a gun paid for but not yet collected would otherwise go to the next character if the payer died first.
+(`pay.collect` — "Take Johnny's gun" — only serves a ledger completed before that rule.)
 
 **Never half a trade.** Everything the player must hand over is checked first; if the quest is to GIVE a gun/item and it won't fit
 (counting the slots the payment itself frees — `_slots_freed`), the WHOLE choice is refused ("No room to carry it.") and nothing is taken
@@ -86,9 +88,12 @@ Johnny appears anywhere between floor 20 and floor 10 giving players a lot of sp
 of opportunities to use the weapons provided by Johnny."* So: both prices are **instalments on a ledger that lasts the whole playthrough**
 (states `offer` → `paid` → `pick` → `done`; ledgers `gun` 10 and `upgrade` 20), and his floor is 10–20 (above him is where you find ammo;
 below him is where you use the gun — a floor-20 Johnny leaves nineteen floors to use it on). Johnny is re-created every run, so a payment
-made in run 1 is still on his books in run 3. The upgrades are for the playthrough (`quest_upgrades`); the gun is the character's, so a
-gun paid for in run 1 does not follow the next character — pay late if you want it in run 3 (open question for the owner: should he hand a
-fresh gun to each new character once it has been paid for?). "Not now" leaves the quest open; if you never pay he is simply still there in
+made in run 1 is still on his books in run 3. The upgrades are for the playthrough (`quest_upgrades`); **the gun is handed over once, to
+the character who completes the price, and never again** (owner round 42: *"If a player dies with it, the run 2/3 players have the chance
+to loot it from player 1's corpse… rewarding someone's death with a free weapon isn't what we do"*). It rides the dead character's body
+like anything else they carried (`record_player_corpse` → looting it returns the very same Lv2 Durable Hand Cannon); Johnny's state stays
+`paid`, so a later character is only ever offered the 20-bullet upgrade. A character who ESCAPES takes it out of the building with them (or
+scraps / stashes it at the lobby door — the usual rules). "Not now" leaves the quest open; if you never pay he is simply still there in
 later runs and gives nothing. In the show nothing can kill him; if he ever died the quest is `lost` (the legacy fight, `performative = false`).
 
 ### 001 — Old Lady Ethel (flat, floors 14–26)
@@ -108,5 +113,5 @@ bandages**, **put him out of his misery**, **leave**.
 - Choosing a quest option with a **gamepad or keyboard**: the options are buttons in the bubble (mouse / touch) and nothing focuses them.
 - A dev hook in the F1 menu to jump a quest's stage (tests set it directly).
 
-Numbers (bullet supply vs Johnny's ask, his survival odds — the survival half is moot since round 41): `docs/NPC_BALANCE.md`. Locked by `tests/quest_test.gd` (site rules + 160-seed coverage, Johnny's trades incl. a full pack refusing whole, upgrades folding into the stat sheet,
+Numbers (bullet supply vs Johnny's ask, his survival odds — the survival half is moot since round 41): `docs/NPC_BALANCE.md`. Locked by `tests/quest_test.gd` (site rules + 160-seed coverage, Johnny's trades incl. a full pack refusing the completing instalment whole, the gun never re-issued to a later character and lootable from the dead one's body, upgrades folding into the stat sheet,
 Ethel's three outcomes across all three runs, kills remembered, the giver dying, save/load round-trip, the journal).

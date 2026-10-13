@@ -7,7 +7,10 @@
     "rescue_call": ["Help! Somebody — help!", "Over here! Please, over here!", "They're coming — please help me!", "Anyone! Please!"],
     "rescue_saved": ["You came. Thank you — I thought that was it.", "They're down. Oh god. Thank you.", "I don't know why you stopped. Thank you."],
     "rescue_overrun": ["Too many... I can't...", "No — no, not now —"],
-    "rescue_thanks": ["You're the one who saved me. I won't forget it.", "Still here. Thanks to you."]
+    "rescue_thanks": ["You're the one who saved me. I won't forget it.", "Still here. Thanks to you."],
+    "haven_tend": ["Sit. Let me see that.", "Hold still — I've got something for it.", "You're hurt. Come here, quick."],
+    "haven_fine": ["You look all right. Stay as long as you like.", "It's quiet here. You made it quiet.", "Nothing's come through since you."],
+    "haven_again": ["That's all I can do. Rest a minute.", "I've done what I can — it's quiet, at least."]
   },
 
   "defender": {
@@ -20,7 +23,10 @@
     "recovered": ["I can fight.", "Okay. Okay. Back to it."],
     "out_of_ammo": ["Out of rounds!", "Click. That's it — I'm dry.", "No more bullets!"],
     "clear": ["Quiet again.", "That's the last of them. For now.", "Good. Good."],
-    "thanks": ["You came back for me. Thanks.", "Appreciate it."]
+    "thanks": ["You came back for me. Thanks.", "Appreciate it."],
+    "helped": ["You stood with me. I'll hold this floor — come back, it'll be quiet.", "Thank you. Nothing gets past me here now. Not after that."],
+    "helped_last": ["You stood with me. Thank you.", "I won't forget that."],
+    "haven": ["Quiet, isn't it? That's you.", "Go on, rest. I've got this floor."]
   },
 
   "hider": {

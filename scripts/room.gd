@@ -248,6 +248,8 @@ func _ready() -> void:
 			resident = RESIDENT_NPC.spawn(self, apartment_id, WorldState.resident_for(apartment_id), entrance_side)
 		elif _rescue_flat_open():
 			pass     # someone in here is shouting for help — the three dead walking at them are laid in _spawn_hider, and no others
+		elif WorldState.haven_flat(apartment_id):
+			pass     # someone you saved in an earlier run lives here: a safe room — no dead, no riser (WorldState.havens)
 		else:
 			var zombie_count = WorldState.get_apartment_zombie_count(apartment_id)
 			if zombie_count > 0:

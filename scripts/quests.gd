@@ -454,9 +454,9 @@ static func choose(who: Node, idx: int) -> bool:
 
 
 ## A payment in instalments: hand over what you have toward the goal (never more than is owed); the ledger remembers it
-## for the rest of the playthrough. The moment the goal is met the choice's `do` runs. The bullets are the giver's once
-## handed over — if the reward will not fit the pockets, it WAITS (the choice turns into "take what you are owed") rather than
-## the payment being refused or the reward lost.
+## for the rest of the playthrough. The moment the goal is met the choice's `do` runs. The payment that would COMPLETE the
+## goal is refused whole while the reward will not fit the pockets (nothing taken — see below), so a reward is never left
+## waiting for whoever talks to the giver next; the `collect` label only serves a ledger that was completed before that rule.
 static func _pay(qid: String, c: Dictionary, who: Node) -> bool:
 	var pay: Dictionary = c["pay"]
 	var ledger_name := str(pay["ledger"])
@@ -477,19 +477,20 @@ static func _pay(qid: String, c: Dictionary, who: Node) -> bool:
 	if completes and receives > 0:
 		var freed := _slots_freed(["take_ammo:%d" % give]) if give > 0 else 0
 		fits = WorldState.inventory.size() - freed + receives <= WorldState.get_inventory_slots()
-	if completes and not fits and give <= 0:
-		HUD.show_feedback("No room to carry it.")
+	if completes and not fits:
+		# Never half a trade, and no reward left waiting on the counter (owner round 42: "rewarding someone's death with a free weapon
+		# isn't what we do" — a gun paid for but not yet collected would go to the next character if this one died first). The final
+		# instalment is refused WHOLE, bullets and all, until the reward fits.
+		HUD.show_feedback("No room to carry it — make space and come back.")
 		return false
 	if give > 0:
 		WorldState.consume_ammo(give)
 		state_of(qid)["ledger"][ledger_name] = paid + give
 		HUD.show_feedback("You hand over %d bullet%s." % [give, "" if give == 1 else "s"])
 	var before := stage(qid)
-	if completes and fits:
+	if completes:
 		for e in dos:
 			_apply(qid, str(e), who)
-	elif completes:
-		HUD.show_feedback("No room to carry it — make space and come back for it.")
 	WorldState.sync_overload()
 	HUD.refresh_inventory()
 	who.hide_choices()

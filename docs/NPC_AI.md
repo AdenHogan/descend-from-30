@@ -1,4 +1,10 @@
-# NPC AI — survivors, allies and a smarter dead (BUILT v1, round 39; THEATRE + RESCUES round 41)
+# NPC AI — survivors, allies and a smarter dead (BUILT v1, round 39; THEATRE + RESCUES round 41; HAVENS round 42)
+
+> **Round 42 — the player's help is what makes anyone permanent.** *"Be them theatre or in peril, if you help them they should persist.
+> If a theatre style gun or melee survivor is fighting on floor 26 and you help them in run 2, then in run 3 that floor should be a safe
+> haven with no enemies. Helping survivors helps the player and helps the building. Likewise if you help an in-peril survivor, you can get
+> an item as a thank you or scrap or money, but in subsequent runs they can also be a safe room and heal the player too."* → see
+> **"Havens"** below.
 
 > **Round 41 supersedes the fighting rules below.** *"Gun survivors: let's make it performative… they can shoot at enemies, hit
 > them, but don't actually cause damage that wounds or causes death. The damage animations still fire, same with if the enemy
@@ -166,6 +172,44 @@ at every eligible place (1 fills the ordinary slots only).
 **Not built:** a rescue in the listen report ("someone shouting"), rescuers that are quest people, a rescue whose dead walk in from
 the stairs, letting the revenant system punish a lost one.
 
+## Havens (round 42) — who you stood by stays, and the building is quieter for it
+
+`WorldState.havens` (saved, cleared by `new_game`) remembers a **place** the player helped — `"f26"` for a corridor floor, `"1703"` for a
+flat — as `{run, kind: "post"|"rescue", floor, apt, snap}`. It is only ever written by the player's own intervention
+(`SurvivorPlan.register_haven`): never by a survivor's fight, never by the player arriving late.
+
+**Helping a fighting survivor (kind `post`).** A defender in a fight (`alert` / `engage` / `help` / `retreat`) whose dead are put down by
+someone else — in the theatre nothing the defender swings can kill — has been **helped** after `AID_KILLS` (2) of the dead die within
+`AID_RANGE` (320 px) of them (`Survivor.on_dead_down`, called by every enemy's `_die` through the `survivor` group). They say `helped`,
+count once as an NPC aided (+Valour), and the floor becomes a haven. A quest giver, a rescue and a frozen backdrop copy never count; a
+floor with a quest giver, or a rescue still to happen/happening, cannot become a haven (`SurvivorPlan.can_haven_floor`). Helped in run
+3: thanked (`helped_last`) but nothing is written — there is no later run.
+
+**What a haven is, from the NEXT run on** (`current_run > run`; never the run it was earned in — that floor's dead are already seeded):
+
+| haven of | the place holds |
+|---|---|
+| a **floor** (`post`, or a rescued corridor survivor) | **no corridor dead** (`get_floor_zombie_count` → 0), **no boss** (`floor_has_boss`), and **no stair enemies on its two staircases** — a staircase is seen from the two floors it joins, so floor *F* empties chokes *F* and *F+1* (`stair_enemy_count`; this also thins floor *F+1*'s down shaft). Flats on the floor keep their own dead. |
+| a **flat** (a rescued hider's) | no dead and no riser inside (`room.gd`); the corridor outside is untouched |
+
+The person is the same one: a `post` haven's defender is rebuilt from the snapshot (`look`, `weapon`, `ammo`, `post`, `post_kind`)
+under a **run-less key** `f26:haven` (`SurvivorPlan.haven_for_floor`), holds the same post, greets you (`haven`) and cannot be
+"helped" or paid for again (`helped`/`credited` are set on the record). They are not healers — the floor is the gift. A rescued survivor
+is already a run-less record (below), so it needs no rebuild.
+
+**Rescued survivors (kind `rescue`).** The thank-you is drawn from `SurvivorPlan.RESCUE_GIFTS`: the hider's items plus **scrap** (a Scrap
+Bag, 28) and **money** (Bank Notes, 40) — the ordinary hider's `GIFTS` table is unchanged. In every **later** run
+(`rec.saved_run < current_run`) talking to them **patches the player up all the way, once a run** (`_tend_player`; `tended_run` on the
+record): `haven_tend`, then `haven_again` the same run, `haven_fine` if you are not hurt. A corridor rescue also makes its floor a
+haven; a flat rescue makes the flat a safe room.
+
+**Unaided survivors are exactly as before** — re-rolled per run, gone when the dice say so. Waiters (calmed) and ordinary hiders (trusted,
+a gift given) are *not* "helped" by this rule; only a fighting defender and a rescue are.
+
+Locked by `survivor_ai_test` (`_test_stand_by_a_defender`, `_test_haven_effects`, `_test_rescue_reward_and_heal`, `_test_safe_room`,
+`_test_haven_roundtrip` — mutation-checked: the aid count, the aid range, the floor / staircase / boss effects, the safe room, the heal,
+the same-run rule and the rescue registration each fail a check when removed).
+
 ## The dead think a little (`EnemyMind`, shared by the standard family and the big zombie)
 
 | pattern | trigger | does | tell |
@@ -214,6 +258,7 @@ and `quest_test` do); an old save has no key = off.
 ## Persistence and the pan
 
 - `WorldState.survivors` (saved): per-record `x`, `hp`, `ammo`, `dead`, `met`, `aided`, `gave`, `calm`. `Survivor._exit_tree` writes back.
+  `WorldState.havens` (saved, string keys) is the separate ledger of what the player helped (see "Havens"); a helped defender is rebuilt under `f<floor>:haven`.
   Ordinary survivors are keyed **per run** (a new run is a new roll — they dwindle); a **rescue** is keyed per **place** (no run) and keeps
   `rescue` (`pending`/`saved`/`lost`), `appears` (1-3), `peril` (seconds left) and `credited` (the Valour was paid) across all three runs.
 - A stair pan builds the destination as a passive backdrop: `building_floors._spawn_survivors(floor, true)` lays the survivors there as

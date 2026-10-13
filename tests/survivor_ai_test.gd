@@ -46,6 +46,11 @@ func _ready() -> void:
 	await _test_rescue_overrun()
 	await _test_rescue_saved()
 	await _test_rescue_in_a_flat()
+	await _test_stand_by_a_defender()
+	await _test_haven_effects()
+	await _test_rescue_reward_and_heal()
+	await _test_safe_room()
+	_test_haven_roundtrip()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -729,8 +734,8 @@ func _test_safety_and_dialogue() -> void:
 	print("[SAFETY + DIALOGUE]")
 	var lines := Survivor.lines()
 	var need := {
-		"all": ["hurt", "death", "rescue_call", "rescue_saved", "rescue_overrun", "rescue_thanks"],
-		"defender": ["greet", "greet_again", "spot", "engage", "help", "wounded", "recovered", "out_of_ammo", "clear", "thanks"],
+		"all": ["hurt", "death", "rescue_call", "rescue_saved", "rescue_overrun", "rescue_thanks", "haven_tend", "haven_fine", "haven_again"],
+		"defender": ["greet", "greet_again", "spot", "engage", "help", "wounded", "recovered", "out_of_ammo", "clear", "thanks", "helped", "helped_last", "haven"],
 		"hider": ["peek", "trust", "freeze", "panic", "relieved", "gift", "thanks", "cornered"],
 		"waiter": ["mutter", "bang", "startle", "calm", "thanks", "flee"],
 	}
@@ -1063,3 +1068,409 @@ func _test_rescue_in_a_flat() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	WorldState.god_mode = false
+
+
+# =============================== STANDING BY THEM: HELPED SURVIVORS PERSIST (owner round 42) ==================================
+#
+# "If you help them they should persist… in run 3 that floor should be a safe haven with no enemies… an in-peril survivor can give an
+# item, scrap or money, and in later runs be a safe room that heals the player too." The player is what makes anyone permanent.
+
+## A floor that is calm in ALL THREE runs (no fire on it or its neighbours), has no quest giver or rescue of its own, and whose ordinary
+## dead number at least one in run 2 (so "the haven floor is empty" has something to be empty against). Call after new_game, with
+## `survivor_rule` on.
+func _calm_floor(want: int) -> int:
+	for step in [0, 2, -2, 4, -4, 6, -6, 8, -8]:
+		var f: int = want + step
+		if f < 4 or f > 24:
+			continue
+		var ok: bool = Quests.corridor_records(f).is_empty()
+		SurvivorPlan.rescue_for_floor(f)
+		var rr = WorldState.survivors.get(SurvivorPlan.rescue_key_corridor(f), {})
+		ok = ok and rr is Dictionary and bool(rr.get("none", false))
+		var keep := WorldState.current_run
+		for r in [1, 2, 3]:
+			WorldState.current_run = r
+			ok = ok and WorldState.fire_intensity(f) < 0 and WorldState.fire_intensity(f - 1) < 0 and WorldState.fire_intensity(f + 1) < 0
+		WorldState.current_run = 2
+		ok = ok and WorldState._base_floor_zombie_count(f) > 0
+		WorldState.current_run = keep
+		if ok:
+			return f
+	return want
+
+
+func _playthrough(seed_value: int) -> void:
+	WorldState.new_game()
+	WorldState.survivor_rule = true
+	WorldState.is_first_run = false
+	WorldState.tutorial_completed = true
+	WorldState.god_mode = true
+	WorldState.dev_survivors = 0
+	WorldState.master_seed = seed_value
+	WorldState.current_run = 1
+
+
+## The real corridor for `f` as the state stands (survivor_rule as given), emptied of what it rolled when `clear`.
+func _build(f: int, clear: bool) -> Node:
+	WorldState.current_floor = f
+	WorldState.seed_floor_door_states(f)
+	var bf = load("res://scenes/building_floors.tscn").instantiate()
+	add_child(bf)
+	await get_tree().physics_frame
+	if clear:
+		for z in get_tree().get_nodes_in_group("zombie"):
+			if bf.is_ancestor_of(z):
+				z.free()
+		for sv in get_tree().get_nodes_in_group("survivor"):
+			if bf.is_ancestor_of(sv):
+				sv.free()
+	return bf
+
+
+func _test_stand_by_a_defender() -> void:
+	print("[STANDING BY A DEFENDER: two of the dead put down beside one mid-fight = HELPED, and remembered]")
+	_playthrough(777001)
+	var f := _calm_floor(14)
+	WorldState.survivor_rule = false                 # the floor is built empty; the defender below is the test's own
+	var bf = await _build(f, true)
+	WorldState.survivor_rule = true
+	var rec := _rec("defender", "002", 0, 600.0)
+	rec["floor"] = f
+	var d := Survivor.spawn(bf, rec, Survivor.FEET_CORRIDOR, 600.0)
+	_player(bf).global_position = Vector2(1150.0, 386.0)
+	var aided0: int = int(WorldState.run_chronicle[0].get("npcs_aided", 0))
+	var a := _zombie(bf, 700.0, 4, true)
+	var far := _zombie(bf, 1000.0, 4, true)           # 400 away: past their sense and past the aid range
+	check(await _until(func(): return d.behaviour in ["engage", "help"], 120), "(setup) the defender is in the fight (%s)" % d.behaviour)
+	far.receive_damage(999, "blunt")
+	await _frames(3)
+	check(d._aid_kills == 0, "a death far from them is not help")
+	a.receive_damage(999, "blunt")
+	await _frames(3)
+	check(d._aid_kills == 1 and not bool(rec.get("helped", false)), "one put down beside them is not yet enough (%d)" % d._aid_kills)
+	check(WorldState.havens.is_empty(), "…and nothing is remembered yet")
+	var c := _zombie(bf, 700.0, 4, true)
+	check(await _until(func(): return d.behaviour in ["engage", "help"], 120), "(the next one comes and they fight it)")
+	c.receive_damage(999, "blunt")
+	await _frames(3)
+	check(bool(rec.get("helped", false)) and bool(rec.get("aided", false)), "the second makes it HELPED")
+	var h := WorldState.haven_info("f%d" % f)
+	check(not h.is_empty() and str(h.get("kind", "")) == "post" and int(h.get("run", 0)) == 1, "the floor is remembered as theirs (%s)" % str(h))
+	check(int(h.get("snap", {}).get("look", 0)) == 3 and str(h.get("snap", {}).get("weapon", "")) == "002" and float(h.get("snap", {}).get("post", 0)) == 600.0, "…with who they are and where they stand")
+	check(d.last_moment == "helped", "…and they say so ('%s')" % d.last_moment)
+	check(int(WorldState.run_chronicle[0].get("npcs_aided", 0)) == aided0 + 1, "…counted once as an NPC aided")
+	check(not WorldState.haven_floor(f), "the floor is not quiet in the run it was earned in (its dead are already seeded)")
+	var z4 := _zombie(bf, 700.0, 4, true)
+	await _frames(40)
+	z4.receive_damage(999, "blunt")
+	await _frames(3)
+	check(int(WorldState.run_chronicle[0].get("npcs_aided", 0)) == aided0 + 1, "more help is not counted again")
+	# the last run has no later run to be quiet for
+	WorldState.havens.clear()
+	WorldState.current_run = 3
+	var rec3 := _rec("defender", "002", 0, 400.0)
+	rec3["floor"] = f
+	var d3 := Survivor.spawn(bf, rec3, Survivor.FEET_CORRIDOR, 400.0)
+	var z5 := _zombie(bf, 480.0, 4, true)
+	var z6 := _zombie(bf, 470.0, 4, true)
+	check(await _until(func(): return d3.behaviour in ["engage", "help"], 120), "(run 3: another defender in a fight)")
+	z5.receive_damage(999, "blunt")
+	z6.receive_damage(999, "blunt")
+	await _frames(3)
+	check(bool(rec3.get("helped", false)) and WorldState.havens.is_empty(), "helped in the last run: thanked, but there is no later run to remember it in")
+	check(d3.last_moment == "helped_last", "…and they say the plainer thing ('%s')" % d3.last_moment)
+	# a rescue's person is not 'helped' by kills — they have their own way
+	WorldState.current_run = 1
+	var rr := _rescue_rec("014")
+	rr["floor"] = f
+	var rd := Survivor.spawn(bf, rr, Survivor.FEET_CORRIDOR, 900.0)
+	var rz := _zombie(bf, 940.0, 4, true)
+	await _frames(20)
+	rz.receive_damage(999, "blunt")
+	await _frames(3)
+	check(not bool(rr.get("helped", false)) and rd._aid_kills == 0, "a person shouting for help is saved or lost, never 'helped' by a stray kill")
+	await _finish(bf)
+
+
+func _test_haven_effects() -> void:
+	print("[A HAVEN: from the next run the same person holds the same post, and the floor — its dead, its stairs, its boss — is empty]")
+	_playthrough(777002)
+	var f := _calm_floor(14)
+	var rec := {"key": "x", "role": "defender", "floor": f, "apt": "", "look": 4, "weapon": "014", "ammo": 0, "post": 480.0, "post_kind": "door", "spot": 0.3, "max_hp": 8}
+	check(SurvivorPlan.register_haven(rec, "post") and WorldState.haven_floor(f) == false, "(setup) a defender helped in run 1 on floor %d" % f)
+	WorldState.current_run = 2
+	var before_count := WorldState.get_floor_zombie_count(f)
+	check(WorldState.haven_floor(f) and before_count == 0, "run 2: the haven floor holds no corridor dead (%d)" % before_count)
+	var held := WorldState.havens.duplicate(true)
+	WorldState.havens.clear()
+	var control := WorldState.get_floor_zombie_count(f)
+	check(control > 0, "(control: the same floor, same run, with no haven, holds %d)" % control)
+	WorldState.havens = held
+	# only its own floor and staircases change — compare every other floor / choke value against the no-haven world
+	var count_diff: Array = []
+	var choke_diff: Array = []
+	var boss_diff: Array = []
+	for g in range(1, 30):
+		var with_c := WorldState.get_floor_zombie_count(g)
+		var with_s := WorldState.stair_enemy_count(g)
+		var with_b := WorldState.floor_has_boss(g)
+		WorldState.havens = {}
+		if with_c != WorldState.get_floor_zombie_count(g):
+			count_diff.append(g)
+		if with_s != WorldState.stair_enemy_count(g):
+			choke_diff.append(g)
+		if with_b != WorldState.floor_has_boss(g):
+			boss_diff.append(g)
+		WorldState.havens = held
+	check(count_diff.is_empty() or count_diff == [f], "no other floor's headcount moved (differs on: %s)" % str(count_diff))
+	check(choke_diff.is_empty() or choke_diff.all(func(c): return c == f or c == f + 1), "no other staircase's population moved (differs on: %s)" % str(choke_diff))
+	check(boss_diff.is_empty() or boss_diff == [f], "no other floor's boss moved (differs on: %s)" % str(boss_diff))
+	# a staircase that does hold dead, on this floor's two sides, is emptied
+	WorldState.havens = {}
+	var c_hit := -1
+	for c in range(3, 29):
+		if WorldState.stair_enemy_count(c) > 0:
+			c_hit = c
+			break
+	check(c_hit > 0, "(a staircase with dead on it exists: %d)" % c_hit)
+	if c_hit > 0:
+		WorldState.current_run = 1
+		check(WorldState.note_haven("f%d" % c_hit, {"kind": "post", "floor": c_hit, "apt": "", "snap": {}}), "(a haven on floor %d, run 1)" % c_hit)
+		WorldState.current_run = 2
+		check(WorldState.haven_floor(c_hit) and WorldState.stair_enemy_count(c_hit) == 0, "the floor's own down staircase (choke %d) is empty" % c_hit)
+		WorldState.havens = {}
+		WorldState.current_run = 1
+		check(WorldState.note_haven("f%d" % (c_hit - 1), {"kind": "post", "floor": c_hit - 1, "apt": "", "snap": {}}), "(a haven on floor %d instead)" % (c_hit - 1))
+		WorldState.current_run = 2
+		check(WorldState.haven_floor(c_hit - 1) and WorldState.stair_enemy_count(c_hit) == 0, "…and the staircase that climbs to it from below (choke %d, seen from floor %d) is empty" % [c_hit, c_hit - 1])
+	# a boss floor loses its boss
+	WorldState.havens = {}
+	WorldState.current_run = 2
+	var boss_floor := -1
+	for g in range(4, 27):
+		if WorldState.floor_has_boss(g):
+			boss_floor = g
+			break
+	check(boss_floor > 0, "(a floor with a roaming boss exists: %d)" % boss_floor)
+	if boss_floor > 0:
+		WorldState.current_run = 1
+		check(WorldState.note_haven("f%d" % boss_floor, {"kind": "post", "floor": boss_floor, "apt": "", "snap": {}}), "(a haven on floor %d, run 1)" % boss_floor)
+		WorldState.current_run = 2
+		check(WorldState.haven_floor(boss_floor) and not WorldState.floor_has_boss(boss_floor), "the haven floor's boss is gone")
+	# the person: same look / weapon / post, a quiet floor built for real
+	WorldState.havens = held
+	WorldState.survivors.clear()
+	WorldState.current_run = 2
+	var bf = await _build(f, false)
+	var zs := 0
+	for z in get_tree().get_nodes_in_group("zombie"):
+		if bf.is_ancestor_of(z):
+			zs += 1
+	check(zs == 0, "built for real: no dead on the haven floor (%d)" % zs)
+	var me: Survivor = null
+	for sv in get_tree().get_nodes_in_group("survivor"):
+		if bf.is_ancestor_of(sv) and bool(sv.rec.get("haven", false)):
+			me = sv
+	check(me != null, "…and the person you stood by is at their post")
+	if me != null:
+		check(me.look == 4 and me.weapon == "014" and absf(me.post - 480.0) < 0.5 and me.role == "defender", "…the same look, weapon and post (%d / %s / %.0f)" % [me.look, me.weapon, me.post])
+		check(me.rec["key"] == SurvivorPlan.haven_key(f) and WorldState.survivors.has(SurvivorPlan.haven_key(f)), "…one identity, kept under a run-less key")
+		_player(bf).global_position = Vector2(me.global_position.x - 30.0, 386.0)
+		await _frames(30)
+		check(me.behaviour == "hold", "…holding, calm (%s)" % me.behaviour)
+		var said := me.talk()
+		check(said != "" and me.last_moment == "haven", "…and they greet the one who stood by them ('%s')" % me.last_moment)
+		# helped-again can never double the Valour or re-register
+		var n0: int = int(WorldState.run_chronicle[1].get("npcs_aided", 0)) if WorldState.run_chronicle.size() > 1 else 0
+		var z1 := _zombie(bf, me.global_position.x + 90.0, 4, true)
+		var z2 := _zombie(bf, me.global_position.x + 80.0, 4, true)
+		await _until(func(): return me.behaviour in ["engage", "help"], 120)
+		z1.receive_damage(999, "blunt")
+		z2.receive_damage(999, "blunt")
+		await _frames(3)
+		var n1: int = int(WorldState.run_chronicle[1].get("npcs_aided", 0)) if WorldState.run_chronicle.size() > 1 else 0
+		check(n1 == n0, "a haven's person, fought beside again, does not pay out twice")
+	# an unhelped floor is untouched
+	var g_plain := -1
+	for g in range(4, 25):
+		if g != f and not WorldState.haven_floor(g):
+			g_plain = g
+			break
+	check(g_plain > 0 and not WorldState.haven_floor(g_plain) and SurvivorPlan.haven_for_floor(g_plain).is_empty(), "a floor nobody stood by has no haven")
+	# a rescue still to come on a floor keeps the post out of the haven list (the person who will be shouting owns it)
+	WorldState.havens.clear()
+	WorldState.survivors[SurvivorPlan.rescue_key_corridor(f)] = {"key": "r", "role": "defender", "rescue": "pending", "appears": 3, "floor": f}
+	check(not SurvivorPlan.can_haven_floor(f) and not SurvivorPlan.register_haven(rec, "post"), "a floor with a rescue still to happen cannot become a haven")
+	WorldState.survivors.erase(SurvivorPlan.rescue_key_corridor(f))
+	await _finish(bf)
+
+
+func _saved_rescue(bf: Node, gift: String, n: int, x: float) -> Dictionary:
+	var rec := _rescue_rec("014", "defender", 1)
+	rec["floor"] = WorldState.current_floor
+	rec["gift"] = gift
+	rec["gift_n"] = n
+	var d := Survivor.spawn(bf, rec, Survivor.FEET_CORRIDOR, x)
+	var dead_ones := SurvivorPlan.spawn_rescue_dead(bf, rec, x, 370.0, 265.0, 1105.0, -1.0, 12, false)
+	await _frames(30)
+	for z in dead_ones:
+		z.receive_damage(999, "blunt")
+	await _frames(20)
+	return {"rec": rec, "who": d}
+
+
+func _test_rescue_reward_and_heal() -> void:
+	print("[A RESCUE: an item, scrap or money now — and in a later run they patch you up, once a run]")
+	_playthrough(777003)
+	var f := _calm_floor(14)
+	WorldState.survivor_rule = false
+	var bf = await _build(f, true)
+	WorldState.survivor_rule = true
+	_player(bf).global_position = Vector2(1150.0, 386.0)
+	# scrap
+	var got = await _saved_rescue(bf, "037", 28, 900.0)
+	var rec: Dictionary = got["rec"]
+	var d: Survivor = got["who"]
+	check(str(rec.get("rescue", "")) == "saved" and int(rec.get("saved_run", 0)) == 1, "(setup) saved in run 1")
+	var h := WorldState.haven_info("f%d" % f)
+	check(str(h.get("kind", "")) == "rescue" and int(h.get("run", 0)) == 1, "…and the floor is remembered as theirs (%s)" % str(h.get("kind", "")))
+	var scrap0 := WorldState.scrap
+	_player(bf).global_position = Vector2(d.global_position.x - 30.0, 386.0)
+	await _frames(5)
+	d.talk()
+	check(WorldState.scrap == scrap0 + 28, "their thank-you can be scrap (+28: %d → %d)" % [scrap0, WorldState.scrap])
+	check(bool(rec.get("gave", false)), "…given once")
+	var heal_before := WorldState.player_health
+	d.talk()
+	check(d.last_moment == "rescue_thanks" and WorldState.player_health == heal_before, "in the same run they only thank you (no patching up yet)")
+	# money
+	WorldState.wallet_unlocked = true
+	var got2 = await _saved_rescue(bf, "033", 40, 700.0)
+	var d2: Survivor = got2["who"]
+	var wallet0 := WorldState.wallet_balance
+	_player(bf).global_position = Vector2(d2.global_position.x + 30.0, 386.0)
+	await _frames(5)
+	d2.talk()
+	check(WorldState.wallet_balance == wallet0 + 40, "…or money (+40: %d → %d)" % [wallet0, WorldState.wallet_balance])
+	# the table itself: scrap and money are rescue gifts only
+	check(not SurvivorPlan.GIFTS.has("037") and not SurvivorPlan.GIFTS.has("033"), "an ordinary hider's table is unchanged (no scrap, no money)")
+	var seen := {}
+	for i in 400:
+		seen[SurvivorPlan._weighted_gift(SurvivorPlan._rng("rg%d" % i), SurvivorPlan.RESCUE_GIFTS)] = true
+	check(seen.has("037") and seen.has("033") and seen.has("006"), "a rescue's thank-you is drawn from items, scrap and money (%s)" % str(seen.keys()))
+	# a later run: patched up
+	WorldState.current_run = 2
+	var p = _player(bf)
+	var d3 := Survivor.spawn(bf, rec, Survivor.FEET_CORRIDOR, 900.0)
+	await _frames(3)
+	check(d3.behaviour == "hold" and not d3.rescuing, "run 2: they are still there, holding (%s)" % d3.behaviour)
+	p.dev_set_health_state(3)
+	check(WorldState.player_health == 3, "(the player is wounded)")
+	d3.talk()
+	check(WorldState.player_health == 0 and d3.last_moment == "haven_tend", "they patch the player up all the way ('%s', health %d)" % [d3.last_moment, WorldState.player_health])
+	check(int(rec.get("tended_run", 0)) == 2, "…recorded for this run")
+	p.dev_set_health_state(2)
+	d3.talk()
+	check(WorldState.player_health == 2 and d3.last_moment == "haven_again", "…but only once a run ('%s', health %d)" % [d3.last_moment, WorldState.player_health])
+	WorldState.current_run = 3
+	d3.talk()
+	check(WorldState.player_health == 0 and d3.last_moment == "haven_tend", "run 3: they can do it again")
+	d3.talk()
+	check(d3.last_moment == "haven_fine", "…and, healthy now, the player just gets a word ('%s')" % d3.last_moment)
+	p.dev_set_health_state(0)
+	WorldState.current_run = 2
+	rec["tended_run"] = 0
+	d3.talk()
+	check(d3.last_moment == "haven_fine", "a healthy player is not 'patched up' ('%s')" % d3.last_moment)
+	check(not rec.has("helped") and d3._aid_kills == 0, "(a rescued person is never ALSO a 'helped' defender)")
+	await _finish(bf)
+
+
+func _test_safe_room() -> void:
+	print("[A SAFE ROOM: a flat whose shouting hider you saved holds no dead in the next run — and they patch you up]")
+	_playthrough(777004)
+	var apt := ""
+	for f in range(4, 20):
+		WorldState.seed_floor_door_states(f)
+		for col in range(1, 6):
+			var a := "%d%02d" % [f, col]
+			if SurvivorPlan.hider_flat_ok(a) and WorldState.get_door_state(a) == WorldState.DoorState.OPEN:
+				WorldState.current_run = 2
+				var n := WorldState.get_apartment_zombie_count(a)
+				WorldState.current_run = 1
+				if n > 0:
+					apt = a
+					break
+		if apt != "":
+			break
+	check(apt != "", "(setup) a walk-in flat that holds dead in run 2 (%s)" % apt)
+	if apt == "":
+		return
+	var f := WorldState._apartment_floor(apt)
+	var key := SurvivorPlan.rescue_key_flat(apt)
+	var seeded := SurvivorPlan._roll(key, "hider", f, apt, 1)
+	seeded["rescue"] = "pending"
+	seeded["appears"] = 1
+	seeded["peril"] = SurvivorPlan.RESCUE_HOLD
+	WorldState.survivors[key] = seeded
+	# saved in run 1 (the same call the survivor makes)
+	seeded["rescue"] = "saved"
+	seeded["saved_run"] = 1
+	check(SurvivorPlan.register_haven(seeded, "rescue") and WorldState.haven_info(apt).get("kind", "") == "rescue", "a flat rescue registers the FLAT (not the floor): %s" % str(WorldState.haven_info(apt).keys()))
+	check(not WorldState.havens.has("f%d" % f), "…the corridor outside is not a haven")
+	WorldState.current_run = 2
+	check(WorldState.haven_flat(apt) and not WorldState.haven_flat("1" + apt), "from run 2 the flat is a safe room")
+	WorldState.set_door_state(apt, WorldState.DoorState.OPEN)
+	WorldState.current_apartment_id = apt
+	WorldState.current_floor = f
+	WorldState.spawn_source = ""
+	WorldState.saved_player_x = 0.0
+	var room = load("res://scenes/room.tscn").instantiate()
+	add_child(room)
+	await _frames(4)
+	var inside := 0
+	for z in get_tree().get_nodes_in_group("zombie"):
+		if room.is_ancestor_of(z):
+			inside += 1
+	check(inside == 0, "built for real: no dead inside (%d)" % inside)
+	var h = room.get("hider")
+	check(h != null and is_instance_valid(h) and not h.rescuing and h.behaviour == "trust", "…and the person you saved is there, trusting you (%s)" % (h.behaviour if h != null else "-"))
+	if h != null:
+		var p = room.get_node("Player")
+		p.dev_set_health_state(4)
+		h.rec["gave"] = true
+		h.talk()
+		check(WorldState.player_health == 0 and h.last_moment == "haven_tend", "…and patches the player up ('%s')" % h.last_moment)
+	room.queue_free()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	# control: the same flat with no haven holds its dead
+	WorldState.havens.clear()
+	room = load("res://scenes/room.tscn").instantiate()
+	add_child(room)
+	await _frames(4)
+	var control := 0
+	for z in get_tree().get_nodes_in_group("zombie"):
+		if room.is_ancestor_of(z):
+			control += 1
+	check(control > 0, "(control: with no haven the same flat holds %d)" % control)
+	room.queue_free()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	WorldState.god_mode = false
+
+
+func _test_haven_roundtrip() -> void:
+	print("[HAVENS are saved: a Continue keeps who you stood by]")
+	_playthrough(777005)
+	SurvivorPlan.register_haven({"key": "x", "role": "defender", "floor": 9, "apt": "", "look": 2, "weapon": "001", "ammo": 0, "post": 300.0, "post_kind": "door", "spot": 0.1, "max_hp": 8}, "post")
+	var before := WorldState.havens.duplicate(true)
+	check(before.has("f9"), "(setup) a haven on floor 9")
+	WorldState.save_game("res://scenes/hallway.tscn")
+	WorldState.havens.clear()
+	WorldState.load_game()
+	var as_json = JSON.parse_string(JSON.stringify(before))          # (JSON hands every number back as a float)
+	check(WorldState.havens == as_json and WorldState.haven_info("f9").get("snap", {}).get("look", 0) == 2.0 and int(WorldState.haven_info("f9").get("run", 0)) == 1, "…it survives the real save and load (string keys)")
+	WorldState.new_game()
+	check(WorldState.havens.is_empty(), "a new game forgets them")
+

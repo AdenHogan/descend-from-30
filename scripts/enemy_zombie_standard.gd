@@ -1074,6 +1074,8 @@ func _die() -> void:
 		_riser_up()
 	is_dead = true
 	WorldState.note_kill()          # journal stat: enemies felled this run
+	if is_inside_tree():
+		get_tree().call_group("survivor", "on_dead_down", self)     # a defender fighting nearby has been helped (Survivor.on_dead_down)
 	# A follower that dies breaks the chase chain; make sure it's never left dangling as
 	# the in-transit reference either.
 	if is_follower:
