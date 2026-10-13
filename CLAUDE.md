@@ -68,6 +68,8 @@ originals — the markdown here is canonical for development):
 - `docs/NPC_BALANCE.md` — **MEASURED (round 40)**: the numbers behind survivors, quests and the dead's brain (fight odds by weapon, Johnny's survival on real floors,
   the bullet supply against his 10-then-20 ask, quest-placement coverage), what the audit fixed, and the ranked suggestions that are still the owner's call.
   Re-measure with `tools/npc_balance_report.tscn` (`-- --only=quests,census,loot,fights,floors,johnny,waiter`).
+- `docs/BOT_RUNS.md` — **MEASURED (round 43)**: the descent bot (`tools/bot_run.tscn`, `tools/bot_sweep.sh`, `tools/bot_summary.py`) — what it is, how to run it, the sweep's numbers
+  (the briefed kit — 2 hammers, a gun with 8 rounds, 2 first aids — reaches floor ~18 on average and never the lobby), the analysis, caveats and the owner-call suggestions. Raw tables in `docs/bot_runs/`.
 - `docs/QUESTS.md` — **BUILT v1 (round 39)**: the data-driven quest framework (`data/quests.json` + `scripts/quests.gd`: seeded sites, conversations with
   need-checked choices/effects, outcomes that change the place in later runs, journal page) and the two quests on it (010 Johnny, 001 Ethel). 006 and the rest are not built.
 
@@ -2512,4 +2514,13 @@ means no rendering — UI layout and art still need an in-editor look.
   the safe room, the heal, same-run rule, rescue registration, the completing-instalment refusal each fail the suite when removed). **Not measured:** how many havens a real descent produces —
   they stack as an easing, so count them in a playtest/bot before trusting the balance. Environment note: a fresh cloud container needs `python3 -m pip install pillow numpy python-docx` before
   the gate's art checks and the GDD docx will run (`pip` may target a different Python than `python3`).
+- **ROUND 43 — THE DESCENT BOT (owner: "send a bot run down through the building. Two hammers, one gun with eight bullets, two first aid kits… allow it to pick upgrades at the five-floor
+  increments… if it makes it to the lobby, make notes… and continue with run 2 and 3"; full write-up docs/BOT_RUNS.md):** `tools/bot_run.gd` plays the REAL scenes with the real rules through the
+  player's own controls (held move / sprint actions, the attack action, `use_item`, the stairwell's `request_auto_descend`, the merchant's `_open_shop`), takes the merchant upgrade + boon on 25/20/15/10/5,
+  heals at Wounded-or-worse, and writes a markdown + JSON report after every character. It does NOT scavenge. The one liberty: a barricaded stairwell is handed a Crowbar at that moment (`--no-crowbar` takes
+  it away). `tools/bot_sweep.sh` runs it over seeds, `tools/bot_summary.py` summarises a folder. **Result: 80 character-descents, none reached the lobby (deepest floor 13); as briefed the median death is floor
+  18-22, 11 of 12 no-crowbar runs stop at the first barricade (floors 21-29).** **Fixed on the way — a real stairwell bug:** after a crowbar pry a stale touch-walk flag (`touch_auto`) fired the stairs a SECOND
+  time while the pry's fade ran; `Transition.to_scene` ignored it but `current_floor` stepped down, so the counter jumped a floor ahead of the floor that loaded (28 -> 26). `stairwell._use_stairs` now refuses
+  while `Transition.busy` / `StairPan.panning`, and `_begin_pry` disarms the walk; `stair_block_test._test_one_crossing_at_a_time` (mutation-checked). Bot gotchas: it runs in `PROCESS_MODE_ALWAYS` (the cold open
+  pauses the tree) and presses through any pausing line (`TutorialManager._awaiting` — Joe's and Amina's lockout lines stalled the first sweep). Suites run for this change: see the commit report.
 - Not started: more quests on the framework (003, 005, 006 and the mechanical halves of 002/004; quest-room reservation, achievements — see the GDD §11). The personal quests, the gun cabinet, 001 and 010 ARE built.

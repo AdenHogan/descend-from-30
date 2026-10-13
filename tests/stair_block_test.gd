@@ -33,6 +33,7 @@ func _ready() -> void:
 	_test_barricade_keeper()
 	_test_item_icons()
 	_test_save_load()
+	await _test_one_crossing_at_a_time()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -442,3 +443,52 @@ func _test_save_load() -> void:
 	check(WorldState.saved_on_balcony_plane, "balcony-plane flag survives save/load")
 	check(WorldState.get_barricade_keeper_state(9) == "hostile", "barricade keeper state survives save/load")
 	WorldState.delete_save()
+
+
+const SW := preload("res://scripts/stairwell.gd")
+
+
+## A crowbar pry (or any crossing) in flight must not be followed by a SECOND crossing off the same stairwell: the bot found
+## `touch_auto` still armed after a pry, so its arrival tick took the (now cleared) stairs again while the fade ran —
+## `Transition.to_scene` ignored the scene change but `current_floor` stepped down anyway (floor 28 → 26, floor 27 never loaded).
+func _test_one_crossing_at_a_time() -> void:
+	print("[one crossing at a time]")
+	for sd in range(7150, 8150):
+		WorldState.master_seed = sd
+		if not WorldState.is_stair_blocked(15) and WorldState.fire_intensity(15) <= 0 and WorldState.fire_intensity(14) <= 0 \
+				and WorldState.stair_enemy_count(15) == 0:
+			break
+	WorldState.god_mode = false
+	WorldState.current_floor = 15
+	WorldState.spawn_source = "stair"
+	WorldState.stair_spawn_side = WorldState.canonical_stair_arrival_side(15)
+	var stub := Node.new()
+	get_tree().root.add_child.call_deferred(stub)
+	await get_tree().process_frame
+	get_tree().current_scene = stub
+	get_tree().change_scene_to_file("res://scenes/building_floors.tscn")
+	for i in 6:
+		await get_tree().process_frame
+	var st = null
+	for n in get_tree().current_scene.get_children():
+		if n is Area2D and n.get_script() == SW and n.direction == "down" and n.process_mode != Node.PROCESS_MODE_DISABLED:
+			st = n
+	check(st != null, "floor 15 has a live down stairwell")
+	if st == null:
+		return
+	# 1. while a fade is running the stairs do nothing at all
+	Transition.busy = true
+	st.touch_auto = true
+	st._use_stairs()
+	check(WorldState.current_floor == 15 and not StairPan.panning, "a press during a running transition starts nothing (floor %d, pan %s)" % [WorldState.current_floor, str(StairPan.panning)])
+	Transition.busy = false
+	# 2. nor during a pan
+	StairPan.panning = true
+	st._use_stairs()
+	check(WorldState.current_floor == 15 and not Transition.busy, "…nor during a pan (floor %d, transition %s)" % [WorldState.current_floor, str(Transition.busy)])
+	StairPan.panning = false
+	# 3. starting a pry disarms a touch walk, so the commit can't fire the stairs a second time
+	st.touch_auto = true
+	st._begin_pry()
+	check(st.is_prying and not st.touch_auto, "starting a pry disarms the touch walk")
+	st._cancel_pry("test over")

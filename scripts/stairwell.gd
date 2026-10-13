@@ -268,6 +268,11 @@ func _use_stairs() -> void:
 	var who = get_tree().get_first_node_in_group("player")
 	if who == null or who.is_dead or who.is_cutscene or who.escaping or who.is_lashing:
 		return
+	# One crossing at a time. A second press (or the touch walk's arrival tick) landing while a fade or pan is already
+	# running used to step `current_floor` down again while `Transition.to_scene` ignored the scene change — the floor
+	# counter jumped a floor ahead of the floor that loaded (a crowbar pry then a stale touch walk skipped floor 27).
+	if Transition.busy or StairPan.panning:
+		return
 	# Tutorial run: no going back UP to Floor 30 (its scripted rooms are a
 	# one-way door — actions have consequences). Pause + refuse.
 	if direction == "up" and WorldState.is_first_run and WorldState.current_floor == 29:
@@ -449,6 +454,7 @@ func _perform_transition(shift: bool = false) -> void:
 
 func _begin_pry() -> void:
 	is_prying = true
+	touch_auto = false         # a touch walk that was still armed would fire the stairs again the moment the pry commits
 	pry_timer = PRY_TIME
 	# Loud from the first heave — draws the current floor's dead toward the steps
 	# and snaps any can-distracted ones back (same door_work loudness as forcing).
