@@ -93,9 +93,19 @@ func _process(_delta: float) -> void:
 		var near = global_position.distance_to(player.global_position) <= DOOR_OPEN_DISTANCE
 		if near != doors_open:
 			_set_doors_open(near)
-	if player_nearby and Input.is_action_just_pressed("interact"):
+	if player_nearby and Input.is_action_just_pressed("interact") and not _maintenance_door_is_nearer(player):
 		if shop_ui == null or not shop_ui.visible:
 			_open_shop()
+
+
+## The maintenance door's reach overlaps this one on floor 15 — the nearer answers the press (door.gd `_merchant_is_nearer`).
+func _maintenance_door_is_nearer(player) -> bool:
+	if player == null:
+		return false
+	for n in get_parent().get_children():
+		if n != self and n.get("is_maintenance") == true and n.get("player_nearby") == true:
+			return absf(player.global_position.x - n.global_position.x) <= absf(player.global_position.x - global_position.x)
+	return false
 
 
 func _set_doors_open(open: bool) -> void:

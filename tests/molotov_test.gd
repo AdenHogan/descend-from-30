@@ -451,7 +451,8 @@ func _test_ring_drag() -> void:
 	await _frames(2)
 	await _open_pack()
 	var pw = HUD.pack_wheel
-	check(pw.is_open and pw.slots.size() >= 4, "the ring is open with the bag on it")
+	check(pw.is_open and pw.slots.size() >= 4, "the ring is open with the bag on it (open %s, slots %d, blocked: '%s', health stage %d, dead near: %s)" % [
+		str(pw.is_open), pw.slots.size(), p.pack_blocked_reason(), WorldState.player_health, str(get_tree().get_nodes_in_group("zombie").size())])
 	# a plain click (press + release, no movement) still equips
 	await _click_drag(_slot_pos(0), _slot_pos(0))
 	check(HUD.selected_slot == 0, "a click that never moves still equips (slot %d)" % HUD.selected_slot)

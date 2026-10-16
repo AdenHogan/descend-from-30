@@ -505,7 +505,8 @@ func _process(delta: float) -> void:
 	if Input.is_action_just_pressed("interact") and not TutorialManager.interact_guarded():
 		match current_state:
 			WorldState.DoorState.OPEN, WorldState.DoorState.BREACHED:
-				_enter_apartment()
+				if not _merchant_is_nearer():
+					_enter_apartment()
 
 	# Listen works in BOTH modes — sound is a first-class read, not a
 	# scavenge-only action (docs/SOUND_STEALTH.md).
@@ -528,6 +529,21 @@ func _process(delta: float) -> void:
 				_attempt_locked()
 			WorldState.DoorState.BARRICADED_FORCEABLE, WorldState.DoorState.BARRICADED_LOCKED:
 				_attempt_barricade_removal()
+
+
+## Floor 15 has a maintenance door (x 929) AND the merchant's lift (x 1029.5), and the two reaches overlap for ~35 px: one
+## [interact] press there used to take BOTH — the shop opened while the player was walked into the maintenance room (found by
+## the descent bot, round 44). Where they overlap the NEARER one answers the press (merchant.gd asks the same of the door).
+func _merchant_is_nearer() -> bool:
+	if not is_maintenance:
+		return false
+	var player = get_tree().get_first_node_in_group("player")
+	if player == null:
+		return false
+	for n in get_parent().get_children():
+		if n != self and n.has_method("_open_shop") and n.get("player_nearby") == true:
+			return absf(player.global_position.x - n.global_position.x) < absf(player.global_position.x - global_position.x)
+	return false
 
 
 func _on_click(_viewport: Node, event: InputEvent, _shape_idx: int) -> void:

@@ -61,6 +61,37 @@ func _test_run_cast() -> void:
 		WorldState.master_seed = 1000 + i * 7919
 		seen[",".join(WorldState.run_cast())] = true
 	check(seen.size() >= 2, "the cast varies across playthroughs (%d distinct over 12 seeds)" % seen.size())
+	# A building SHIFT (a rest, a pried barricade) re-rolls master_seed — it must NOT re-cast the characters (round 44, found by
+	# the descent bot: one shift changed the cast in ~190 of 200 seeds and swapped the running character mid-run).
+	var shifted_ok := true
+	var running_ok := true
+	for i in range(40):
+		WorldState.dev_seed = 5000 + i * 37
+		WorldState.new_game()
+		WorldState.dev_seed = 0
+		var before: Array = WorldState.run_cast()
+		var who: String = WorldState.current_character()
+		WorldState.shift_building()
+		WorldState.shift_building()
+		if WorldState.run_cast() != before:
+			shifted_ok = false
+		if WorldState.current_character() != who:
+			running_ok = false
+	check(shifted_ok, "two building shifts leave the cast exactly as drawn (40 playthroughs)")
+	check(running_ok, "…and the RUNNING character is still the same person (40 playthroughs)")
+	# …and it survives a save + load after a shift
+	WorldState.dev_seed = 424242
+	WorldState.new_game()
+	WorldState.dev_seed = 0
+	var cast_before: Array = WorldState.run_cast()
+	WorldState.shift_building()
+	WorldState.save_game("res://scenes/hallway.tscn", false)
+	var seed_after_shift: int = WorldState.master_seed
+	WorldState.cast_seed = -1
+	WorldState.master_seed = 12345                      # a different building in memory …
+	WorldState.load_game()                              # … the save puts everything back
+	check(WorldState.master_seed == seed_after_shift, "load restores the shifted master_seed")
+	check(WorldState.run_cast() == cast_before, "the cast survives shift + save + load (%s)" % str(WorldState.run_cast()))
 	# The HUD loads THAT run's character's portrait set (not a hardcoded one).
 	WorldState.new_game()
 	WorldState.current_run = 2

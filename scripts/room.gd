@@ -1318,7 +1318,10 @@ func _after_modules_ready() -> void:
 			# then discard the result.
 			var already_searched = WorldState.is_anchor_searched(apartment_id, anchor.name)
 
-			if not already_searched:
+			# A node that was searched but NOT emptied (the player left the item) is still a live node: only
+			# one `_ready()` hid (nothing left) stays dark. `set_script` alone does not start `_process`, so
+			# without this a node you had left something in went inert on re-entry (found by the descent bot).
+			if not already_searched or anchor.visible:
 				anchor.set_process(true)
 
 			var passed_spawn_roll = apt_rng_items.randf() <= spawn_chance
@@ -1470,8 +1473,8 @@ func _setup_dead_bodies(interactable_script) -> void:
 			if str(loot.get("item", "")) != "":
 				WorldState.set_anchor_item(apartment_id, anchor.name, str(loot["item"]))
 		anchor._ready()
-		if not WorldState.is_anchor_searched(apartment_id, anchor.name):
-			anchor.set_process(true)
+		if not WorldState.is_anchor_searched(apartment_id, anchor.name) or anchor.visible:
+			anchor.set_process(true)           # (a searched body that still holds something stays searchable)
 
 
 func _build_back_plane_spots() -> void:

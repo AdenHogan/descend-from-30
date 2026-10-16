@@ -1117,10 +1117,15 @@ func profile_status() -> String:
 # the four, one per run, in a seeded RANDOM order (so any 3 of 4, no fixed order). Names /
 # selectable profiles are a later job; for now it's a random draw per playthrough. Deterministic
 # from master_seed, so the cast is stable across save/load and re-entry (master_seed persists).
+# BUT `shift_building()` (a rest, a pried barricade) RE-ROLLS master_seed to re-shuffle the dead: that must
+# never re-cast the characters (found by the descent bot, round 44: one shift changed the cast in 187 of 200 seeds
+# and swapped the RUNNING character's name, portrait and stats mid-run). So a shift first LOCKS the cast to the
+# seed it was drawn from (`cast_seed`); -1 = still following master_seed, which is every fresh game and every test.
 const CHARACTERS := ["blond_man", "dark_woman", "bald_man", "blond_woman"]
 const TUTORIAL_CHARACTER := "blond_man"     # Joe — the tutorial's character, always (round 37)
 
 
+var cast_seed: int = -1                     # saved; -1 = the cast follows master_seed (see above)
 var _cast_cache: Array = []
 var _cast_cache_seed: int = -1
 var _cast_cache_joe: bool = false
@@ -1133,18 +1138,19 @@ func run_cast() -> Array:
 	# JOE OPENS (owner round 37: "lock it in that Joe is always the tutorial character"): a playthrough that
 	# includes the tutorial (story rule on, tutorial not yet completed) casts Joe as its FIRST character; the other
 	# two are still a seeded draw from the other three.
-	if _cast_cache_seed == master_seed and _cast_cache_joe == joe_opens and not _cast_cache.is_empty():
+	var key: int = master_seed if cast_seed == -1 else cast_seed
+	if _cast_cache_seed == key and _cast_cache_joe == joe_opens and not _cast_cache.is_empty():
 		return _cast_cache.duplicate()
 	var pool: Array = CHARACTERS.duplicate()
 	if joe_opens:
 		pool.erase(TUTORIAL_CHARACTER)
 	var rng := RandomNumberGenerator.new()
-	rng.seed = hash(str(master_seed) + "cast")
+	rng.seed = hash(str(key) + "cast")
 	for i in range(pool.size() - 1, 0, -1):
 		var j: int = rng.randi_range(0, i)
 		var t = pool[i]; pool[i] = pool[j]; pool[j] = t
 	_cast_cache = ([TUTORIAL_CHARACTER] + pool.slice(0, 2)) if joe_opens else pool.slice(0, 3)
-	_cast_cache_seed = master_seed
+	_cast_cache_seed = key
 	_cast_cache_joe = joe_opens
 	return _cast_cache.duplicate()
 
@@ -1165,6 +1171,7 @@ func new_game() -> void:
 	joe_opens = story_rule and is_first_run            # the tutorial's character opens the playthrough (set before any cast read)
 	record_run_started()
 	master_seed = dev_seed if dev_seed != 0 else randi()
+	cast_seed = -1                                     # a fresh playthrough draws a fresh cast (from this seed)
 	apartment_layouts.clear()
 	anchor_items.clear()
 	anchor_amounts.clear()
@@ -3607,6 +3614,8 @@ func shift_building() -> void:
 	# cached apartment layouts + anchor rolls so floors re-generate. This is the
 	# SAME shift a rest performs (player._reseed_zombies delegates here) — enemies
 	# move. On its own it carries NO stamina heal; the rest path adds that.
+	if cast_seed == -1:
+		cast_seed = master_seed                        # the characters do not change because the building did
 	master_seed = randi()
 	apartment_layouts.clear()
 	anchor_items.clear()
@@ -5355,6 +5364,7 @@ func save_game(scene_path: String, record_live_zombies: bool = true) -> void:
 	var save_data = {
 		"scene_path": scene_path,
 		"master_seed": master_seed,
+		"cast_seed": cast_seed,
 		"current_floor": current_floor,
 		"current_apartment_id": current_apartment_id,
 		"spawn_source": spawn_source,
@@ -5465,6 +5475,7 @@ func load_game() -> String:
 		return ""
 	var data = json.get_data()
 	master_seed = data["master_seed"]
+	cast_seed = int(data.get("cast_seed", -1))         # (a save from before the lock follows master_seed, as it always did)
 	current_floor = data["current_floor"]
 	current_apartment_id = data["current_apartment_id"]
 	spawn_source = data["spawn_source"]

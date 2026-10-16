@@ -16,6 +16,7 @@ func _ready() -> void:
 	await _test_toss_settles()
 	await _test_extinguisher_has_no_orb_light()
 	await _test_discard_spawns_live()
+	await _test_toss_stops_at_the_wall()
 	_test_registered_drops_rest_on_the_floor()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
@@ -46,6 +47,60 @@ func _test_toss_settles() -> void:
 		if c is PointLight2D: has_light = true
 	check(has_light, "an item drop carries the orb's glow light")
 	drop.queue_free()
+	await get_tree().process_frame
+
+
+## A kill beside the stairwell used to toss its drop THROUGH the end wall (cash at x 76, a hammer at x 111, behind the wall at x 128):
+## out of reach for good (found by the descent bot, round 44). A tossed drop must come to rest in front of the nearest wall.
+func _test_toss_stops_at_the_wall() -> void:
+	print("[a tossed drop never leaves the corridor]")
+	WorldState.dev_seed = 424242
+	WorldState.new_game()
+	WorldState.dev_seed = 0
+	WorldState.is_first_run = false
+	WorldState.tutorial_completed = true
+	WorldState.current_floor = 16
+	WorldState.spawn_source = "stair"
+	WorldState.stair_spawn_side = WorldState.canonical_stair_arrival_side(16)
+	WorldState.stair_direction = "down"
+	var bf = load("res://scenes/building_floors.tscn").instantiate()
+	add_child(bf)
+	for i in range(30):
+		await get_tree().physics_frame
+	var worst_left := 1.0e9
+	var worst_right := -1.0e9
+	var drops: Array = []
+	for i in range(24):
+		var d = load("res://scenes/world_drop.tscn").instantiate()
+		d.item_id = "005"
+		bf.add_child(d)
+		# kills right beside the left end wall (x 128) and the right one (x 1224), tossed INTO the wall
+		var left_side: bool = i % 2 == 0
+		d.toss(Vector2(142.0 + float(i), 370.0) if left_side else Vector2(1210.0 - float(i), 370.0), 419.0, -1.0 if left_side else 1.0)
+		d._vel.x = (-95.0 if left_side else 95.0)       # the hardest throw
+		drops.append(d)
+	for i in range(240):
+		await get_tree().physics_frame
+	for d in drops:
+		worst_left = minf(worst_left, d.global_position.x)
+		worst_right = maxf(worst_right, d.global_position.x)
+	check(worst_left > 128.0, "no drop came to rest behind the left wall (leftmost x %.0f, wall at 128)" % worst_left)
+	check(worst_right < 1224.0, "no drop came to rest behind the right wall (rightmost x %.0f, wall at 1224)" % worst_right)
+	var settled := true
+	for d in drops:
+		if d._tossing:
+			settled = false
+	check(settled, "…and every one still comes to rest")
+	# in open floor nothing changes: it flies its usual distance
+	var free = load("res://scenes/world_drop.tscn").instantiate()
+	free.item_id = "005"
+	bf.add_child(free)
+	free.toss(Vector2(600.0, 370.0), 419.0, 1.0)
+	free._vel.x = 90.0
+	for i in range(240):
+		await get_tree().physics_frame
+	check(free.global_position.x > 630.0, "away from a wall the toss is untouched (x %.0f)" % free.global_position.x)
+	bf.queue_free()
 	await get_tree().process_frame
 
 

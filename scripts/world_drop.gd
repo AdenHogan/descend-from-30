@@ -11,6 +11,7 @@ const FL := preload("res://scripts/floor_lighting.gd")
 const GRAVITY := 900.0
 const REST_LIFT := 7.0        # orb centre rests this far above the floor line so it sits ON it
 const ORB_BASE_R := 8.0
+const WALL_GAP := 8.0         # a drop comes to rest this far in front of a wall
 
 var item_id: String = ""
 var target_apartment: String = ""
@@ -29,6 +30,8 @@ var _tossing: bool = false
 var _vel: Vector2 = Vector2.ZERO
 var _rest_y: float = 0.0
 var _bounces: int = 0
+var _x_lo: float = -1.0e9      # the nearest wall each side of the corpse: a tossed drop never passes it
+var _x_hi: float = 1.0e9
 
 @onready var proximity_label: Label = $ProximityLabel
 
@@ -65,7 +68,36 @@ func toss(from_pos: Vector2, land_y: float, dir_x: float) -> void:
 		global_position.y = _rest_y - 2.0   # nudge above the floor so it visibly drops
 	_vel = Vector2(dir_x * randf_range(45.0, 95.0), -randf_range(150.0, 220.0))
 	_bounces = 0
+	_find_walls(from_pos)
 	_tossing = true
+
+
+## A drop used to fly straight through the end wall of the corridor (a kill beside the stairwell left cash and a hammer at x 76-111,
+## behind the wall at 128 — unreachable; found by the descent bot, round 44). Look for the static wall either side of the corpse
+## and clamp the toss to it. Bodies of actors (the player, the dead) are not walls: the ray skips them.
+func _find_walls(from: Vector2) -> void:
+	_x_lo = -1.0e9
+	_x_hi = 1.0e9
+	if not is_inside_tree():
+		return
+	var space := get_world_2d().direct_space_state
+	if space == null:
+		return
+	for sgn in [-1.0, 1.0]:
+		var exclude: Array[RID] = []
+		for _i in range(8):
+			var q := PhysicsRayQueryParameters2D.create(from, from + Vector2(sgn * 240.0, 0.0), 1, exclude)
+			var hit: Dictionary = space.intersect_ray(q)
+			if hit.is_empty():
+				break
+			var col = hit["collider"]
+			if col is StaticBody2D or col is TileMapLayer:
+				if sgn < 0.0:
+					_x_lo = float(hit["position"].x) + WALL_GAP
+				else:
+					_x_hi = float(hit["position"].x) - WALL_GAP
+				break
+			exclude.append(hit["rid"])
 
 
 func _physics_process(delta: float) -> void:
@@ -73,6 +105,9 @@ func _physics_process(delta: float) -> void:
 		return
 	_vel.y += GRAVITY * delta
 	global_position += _vel * delta
+	if global_position.x < _x_lo or global_position.x > _x_hi:
+		global_position.x = clampf(global_position.x, _x_lo, _x_hi)
+		_vel.x = 0.0
 	if global_position.y >= _rest_y and _vel.y > 0.0:
 		global_position.y = _rest_y
 		_bounces += 1
