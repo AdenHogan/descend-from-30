@@ -176,7 +176,7 @@ merchant's prompt shows — inside the overlap — and that ONE press was answer
   gifts so the fuse box, lift and shop get exercised) with `god2` / `god3` starting the 2nd / 3rd character from floor 24 (the decayed building without a three-hour descent). Gifts (`--scrap --fuses --notes --power --unarmed`) change the
   balance and are never used for a balance number.
 
-### What running it found in the game (11 fixes, each with a regression test that fails without it)
+### What running it found in the game (12 fixes, each with a regression test that fails without it)
 
 | # | what a player would have met | cause | locked by |
 |---|---|---|---|
@@ -191,6 +191,7 @@ merchant's prompt shows — inside the overlap — and that ONE press was answer
 | 9 | **a breach flat you could not enter**: the player came in and was walked straight back out of the front door, every time | a crawler nest spawned over the arrival point; the physics server still held its *spawn* position for the first step, so the player's first `move_and_slide` depenetrated 43 px into the exit trigger → bodies are now spawned clear of the arrival point | `breach_test._test_arrival_clear` |
 | 10 | **the third character's escape ended on a black screen**: the end screen sat behind the cover for good | `lobby_exit` awaited `get_tree()` after `change_scene_to_file` (Godot 4.6 swaps at once; the node is already out of the tree) → script error, `Transition.reveal()` never ran → the swap-and-reveal now lives in the `Transition` autoload | `run_bookends_test._test_final_escape_ends_on_the_end_screen` |
 | 11 | (my own regression, caught by the sweep) an error line per physics frame while a freed zombie lingered in the player's exception list | a first version of fix 8 asked `get_collision_exceptions()`, which resolves every RID, freed ones included | `softlock_test._test_freed_phased_body_is_quiet` (installs a `Logger`; the gate only scans for SCRIPT ERROR) |
+| 12 | a character carrying a max-stamina drawback (Pack Mule −25 %, Glass Cannon −30 %, Loadbearer −20 %) began runs 2/3 with the bar over-full: 100 of 75 until the first drain | `new_game` / `advance_run` reset stamina to a flat 100 before the upgrades fold in → `stamina = get_max_stamina()` after the resets | `run_arc_test._test_stamina_starts_full` |
 
 Fix 11 is worth a sentence: the full gate passed on the version that introduced it, because nothing in the suites left a freed body in the player's exception list *and* a phased neighbour. The sweep's engine-log capture found
 it in the first 40 s of the first run. That is the case for the watcher.
@@ -241,18 +242,34 @@ class the watcher did catch is fix 11 above, found and fixed before this sweep).
 |---|---|---|
 | `TAKE_NO_EFFECT` | 3 of 947 takes (224 `need`, 283 `all`, 440 `safe`) | 2 were a **second key** for a door whose key the bag already held (the game accepts it silently, `add_key_to_inventory`; fixed in the bot's accounting), 1 a take of bandages (006) with a free slot that changed nothing — **not explained**; every other take verified |
 | `NO_PROGRESS` / `DOOR_TIMEOUT` / `ANCHOR_UNREACHABLE` / `ROOM_LONG` | 3 stalls in 48 playthroughs | **2 not explained, 1 the bot's own.** In `need_103` (floor 26) and `safe_102` (floor 18) the player stood 30–75 s at a spot in the corridor ~140 px short of a door, `move_right` held, beside **a defender fighting zombies that never die** (survivors are performative: they blink the dead, they do not hurt them, so a fight beside a door goes on for ever). Position constant to 0.01 px, `stuck` timer 0 — the anti-stuck net never fired. A scripted copy of the scene (defender + 3 zombies, one on the player's x) walks through in 0.5 s, so it needs something else; the trace now lists every body touching the player. In `all_424242` (floor 25, flat 2501) the player stood 150 s at x≈613 with no zombie and no survivor and `sprint` held but no move key, failing to click-walk to a set-back node: **not explained**. All three cost the bot 30–150 s, none ended a character |
-| `STAMINA_RANGE` | 1 | **stamina 100 of 75** at the start of a later character: `advance_run` / `new_game` reset stamina to 100 before the upgrades fold in, so a character carrying a max-stamina drawback (Pack Mule −25 %, Glass Cannon −30 %, Loadbearer −20 %) starts above its maximum until the first drain. Cosmetic (the bar over-fills); found, not yet fixed — see "Open" |
+| `STAMINA_RANGE` | 1 | **stamina 100 of 75** at the start of a later character: `advance_run` / `new_game` reset stamina to 100 before the upgrades fold in, so a character carrying a max-stamina drawback (Pack Mule −25 %, Glass Cannon −30 %, Loadbearer −20 %) started above its maximum until the first drain. **Fixed after the sweep (fix 12)** |
 | engine log | 0 | no `ERROR` / `SCRIPT ERROR` in 48 logs |
+
+### The coverage runs (`god`: cannot be hurt, so they say nothing about balance — only whether the building works)
+
+Six playthroughs, **8 characters, every one walked down the whole building to the lobby and out the door** (`god` = run 1 from floor 30; `god2` = runs 2 and 3; `god3` = run 3, the later ones starting from floor 24 so the decayed
+building is reached without a three-hour descent; seeds 424242, 101, 102, 103 — tables in `docs/bot_runs/round44_coverage.md`). Between them: **~930 flats and 72 staff rooms entered (108-121 flats a character), ~5,400 nodes
+searched, 311 shut or locked doors forced, 116 barricaded doors torn open, 190 breach rooms entered**, 19 merchant visits, the workbench used 56 upgrades / 57 tunings / 128 salvages, and the third character's escape reached
+the end screen every time. **No anomaly from the watcher, no script error, and the only engine line in any log is the headless renderer's `texture_2d_get Parameter "t" is null` (×3 a playthrough, from `balcony_pan._hold_last_frame` reading a viewport
+texture the dummy renderer does not provide).** Newly exercised by these runs and clean: the **fuse box** (3 fuses fitted), the **powered lift and an elevator ride**, a **key used on its door**, **the gun
+reloaded from the bag**, the **burnt flats' "Take" scrap** (578 bags), **the lobby door's panel** (the leave-one-item path in `god3_102`; both paths in the 25-second checks below). Still **never** exercised in the coverage runs: something **sold** at the merchant, something **mended** with a
+toolbox, a **Molotov** thrown (a god character is never hurt, so the bot has no reason to mend or throw, and it never held a surplus to sell). Counts are for what the bot did, not what a player might; a god character never dies, so
+the dying flow, corpse recovery and the death card are NOT in these runs (the sweep's 144 deaths cover them).
+
+**One more finding, and it was the bot's, not the game's:** `god3_102` sat paused at the lobby door for ever (the watcher's `PAUSE_STUCK`). When the kit holds an upgraded weapon, `lobby_exit.leave()` opens the door panel
+(`handoff_ui.gd`: leave ONE item for a future game, or scrap the kit for Valour) and **pauses until it is answered**; the bot never answered it, and the watcher did not know the panel as a reason for a pause. A person can always
+answer (the panel has a "scrap it all" button, Esc / ✕ mean the same), so this is not a softlock. The bot now answers within 1.5 s — the 1st and 3rd character leave their best candidate, the 2nd scraps, so a sweep runs both
+paths (`DOOR` events; a `--heirloom` gift makes the first hammer Lv3 for a 25-second check of the door) — and the watcher raises `DOOR_PANEL_OPEN` if it is ever left up 20 s. Checked: Lv3 hammer left by the door on run 3 and
+the end screen reached; kit scrapped on run 2 and the run closed. The earlier god runs (seed 424242, and `god3_101`) passed the door without the panel ever opening — it only opens when the kit holds an upgraded weapon, and a stuck panel would have stopped them — so their kits held none.
 
 ### Open (found, not fixed — the owner's call or not yet understood)
 
 1. **The unexplained pin beside a defender's fight** (above). If it is real it is a softlock-class bug; the next sweep's `[stall]` trace should show what the player is pressed against.
 2. **Survivors' fights never end.** A performative defender and the zombies engaged with it blink at each other for ever, in the middle of a corridor, on top of a door the player wants. The player can (and a human would) kill the zombie; the bot treats it as
    "not coming for me" until it blocks. Worth a look if a defender is meant to hold a door open rather than ornament it.
-3. **Stamina above the maximum at the start of runs 2/3** with a drawback upgrade (fix is one line in `advance_run`/`new_game`: `stamina = get_max_stamina()` after the upgrade fold; needs a full gate).
-4. **Breach rooms: ~10× the cost of a normal flat for no extra loot** (above) — a balance decision, not a bug. The bot's `safe` policy is the evidence for "skip them", which may or may not be what the owner wants players to learn.
-5. **A second key for a door the bag already holds** is accepted silently and the node is emptied (the duplicate node is wasted, nothing is lost); two nodes holding the same key target is a seeding quirk.
-6. **Bullets: an all-or-nothing bundle** leaves a 6-round stack unable to take a 4-round pile; the pile stays where it lies (by rule 5, nothing is destroyed). A human sees "Inventory full".
+3. **Breach rooms: ~10× the cost of a normal flat for no extra loot** (above) — a balance decision, not a bug. The bot's `safe` policy is the evidence for "skip them", which may or may not be what the owner wants players to learn.
+4. **A second key for a door the bag already holds** is accepted silently and the node is emptied (the duplicate node is wasted, nothing is lost); two nodes holding the same key target is a seeding quirk.
+5. **Bullets: an all-or-nothing bundle** leaves a 6-round stack unable to take a 4-round pile; the pile stays where it lies (by rule 5, nothing is destroyed). A human sees "Inventory full".
 
 ### What the bot does NOT cover (so a green sweep is not "everything works")
 
@@ -271,5 +288,5 @@ python3 tools/bot_sweep.py <outdir> --seeds 424242 --configs god,god2,god3 --job
 python3 tools/bot_summary.py <outdir>                                                                                # the tables below
 godot --headless res://tools/bot_run.tscn -- --seed=424242 --speed=8 --runs=3 --keep-going --loot=need [--avoid-breach] [--god] [--trace] --out=/tmp/bot.md
 ```
-Flags: `--loot=none|need|all`, `--avoid-breach`, `--god`, `--elevator`, `--rest`, `--balcony`, `--start-run=N --start-floor=N`, `--apt=ID,ID` (loot only these flats), `--trace`, and the gifts `--scrap --fuses --notes --power --unarmed`.
+Flags: `--loot=none|need|all`, `--avoid-breach`, `--god`, `--elevator`, `--rest`, `--balcony`, `--start-run=N --start-floor=N`, `--apt=ID,ID` (loot only these flats), `--trace`, and the gifts `--scrap --fuses --notes --power --unarmed --heirloom` (the first hammer is Lv3, so the lobby door has something to offer).
 Output per run: `<name>.md` (the report), `.json` (everything, for the summary), `.log` (the run + the engine log). The summary's `anomalies` table is the thing to read first; `[stall]` lines in a log are the per-frame trace of a stall.
