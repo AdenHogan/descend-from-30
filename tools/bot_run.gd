@@ -17,6 +17,8 @@ extends Node
 # Runs in the test sandbox (res://tools/ → WorldState.data_dir()), never the player's saves. The physics is sped up the way the balance tool does
 # it (tick rate AND time scale together, so every step is still 1/60 s of game).
 
+const BotLoot := preload("res://tools/bot_loot.gd")
+const BotWatch := preload("res://tools/bot_watch.gd")
 const BUILDING := "res://scenes/building_floors.tscn"
 const HALLWAY := "res://scenes/hallway.tscn"
 const LOBBY := "res://scenes/lobby.tscn"
@@ -28,6 +30,7 @@ const SWING_COST := 26.0                # …and its stamina — player.WEAPON_S
 const PUSH_COST := 28.0
 const FLOOR_TIMEOUT := 150.0            # game seconds on one floor before the bot calls itself stuck
 const MAX_RUN_TIME := 5400.0
+const MAX_RUN_TIME_LOOT := 21600.0      # a character that searches every flat is on the clock for hours of game time
 const GUN_MIN_RANGE := 70.0
 
 # What the bot prefers at the merchant (survival for a fighter with a fixed kit); anything not listed scores 0, drawbacks are penalised.
@@ -53,9 +56,39 @@ var with_opener: bool = false           # debugging: leave the cold open ON for 
 var start_run: int = 1                  # debugging: begin as the Nth character (the world has decayed N-1 time skips)
 var keep_going: bool = false            # keep playing after a run-1 death (default: stop there — the brief)
 var give_crowbar: bool = true
+var crowbar_mode: String = "fallback"      # liberty = hand one over at the first barricade · fallback = loot for one first, hand it over when the floor is exhausted · found = never
+var loot_mode: String = "need"             # none (the briefed kit only) · need (loot while the kit is short) · all (every door on the way)
+var god_no_saveload: bool = false      # (debugging) skip the save + load fidelity check at every third floor
+var god: bool = false                  # COVERAGE runs: the player cannot be hurt, so the bot walks the whole building (balance numbers come from runs without it)
+var rest_mode: bool = false             # COVERAGE: rest (T) whenever a rest is banked and the bot is winded — the building shift it causes is a world rebuild worth exercising
+var balcony_first: bool = false         # (debugging) take the balcony in the first flat that has one
+var balcony_mode: bool = false          # COVERAGE: leave up to three flats a character by the balcony (the rope / jump descent and its pan)
+var elevator_mode: bool = false         # ride the powered elevator when there is one (it jumps five floors — skips the loot between)
+var _elev_gate: float = 0.0
+var _fight_since: float = -1.0
+var _fight_kills: int = 0
+var _ignore_threats_until: float = 0.0
+var goal_override: float = -1.0         # while the looter is fighting inside a room: where "onward" is (the way out)
+var debug_scrap: int = 0                # debugging ONLY (changes the balance): start every character with this much scrap
+var debug_unarmed: bool = false         # … and no hammers (the gun is emptied too): how the bot copes with nothing
+var debug_power: bool = false           # … and the elevator already powered
+var debug_notes: int = 0                # … and this many notes (the wallet unlocked)
+var debug_fuses: int = 0                # … and this many fuses
+var loot = null
+var watch = null
+var wall_start_ms: int = 0
+var only_apts: Array = []
+var dt: float = 0.0
+var want_scav: bool = false
+var anomalies: Array = []
+var _taps: Dictionary = {}
+var _afters: Array = []
+var _kind: String = ""
 var trace: bool = false                 # print the bot's state every 2 s (debugging the bot)
 var _trace_t: float = 0.0
+var _dbg_cut: bool = false
 var _raw_floor: int = -1
+var _last_scene: String = ""
 var _hb_t: float = 0.0
 
 # --- bookkeeping ---
@@ -119,9 +152,44 @@ func _ready() -> void:
 			keep_going = true
 		elif a == "--no-crowbar":
 			give_crowbar = false
+			crowbar_mode = "found"
+		elif a.begins_with("--crowbar="):
+			crowbar_mode = a.substr(10)
+			give_crowbar = crowbar_mode != "found"
+		elif a.begins_with("--loot="):
+			loot_mode = a.substr(7)
+		elif a.begins_with("--apt="):
+			only_apts = a.substr(6).split(",")
+		elif a.begins_with("--scrap="):
+			debug_scrap = int(a.substr(8))
+		elif a.begins_with("--notes="):
+			debug_notes = int(a.substr(8))
+		elif a.begins_with("--fuses="):
+			debug_fuses = int(a.substr(8))
+		elif a == "--unarmed":
+			debug_unarmed = true
+		elif a == "--power":
+			debug_power = true
+		elif a == "--no-saveload":
+			god_no_saveload = true
+		elif a == "--god":
+			god = true
+		elif a == "--elevator":
+			elevator_mode = true
+		elif a == "--balcony":
+			balcony_mode = true
+		elif a == "--balcony-first":
+			balcony_mode = true
+			balcony_first = true
+		elif a == "--rest":
+			rest_mode = true
 		elif a == "--trace":
 			trace = true
 	process_mode = Node.PROCESS_MODE_ALWAYS     # the cold open pauses the tree: the bot must keep ticking to press through it
+	loot = BotLoot.new(self, loot_mode)
+	loot.only_apts = only_apts
+	watch = BotWatch.new(self)
+	wall_start_ms = Time.get_ticks_msec()
 	set_physics_process(false)
 	await get_tree().process_frame
 	# Survive the scene swaps: hand "current scene" to a stub the first change will free (the bot is a child of the root).
@@ -149,7 +217,7 @@ func _new_playthrough() -> void:
 	WorldState.is_first_run = false
 	WorldState.tutorial_completed = true
 	WorldState.opener_seen = not with_opener
-	WorldState.god_mode = false
+	WorldState.god_mode = god
 	HUD.show_hud()
 	_give_kit()
 	_begin_run()
@@ -176,6 +244,23 @@ func _give_kit() -> void:
 	WorldState.add_to_inventory("007")
 	WorldState.add_to_inventory("007")
 	WorldState.is_scavenge_mode = false
+	if debug_scrap > 0:
+		WorldState.add_scrap(debug_scrap)
+	if debug_unarmed:
+		for i in range(WorldState.inventory.size() - 1, -1, -1):
+			var inst0 = WorldState.inventory[i]
+			if inst0.item_id == "002":
+				WorldState.inventory.remove_at(i)
+			elif inst0.item_id == "004":
+				inst0.mag_count = 0
+	if debug_power:
+		WorldState.elevator_fuses_loaded = WorldState.ELEVATOR_FUSES_NEEDED
+		WorldState.elevator_powered = true
+	if debug_notes > 0:
+		WorldState.wallet_unlocked = true
+		WorldState.wallet_balance = debug_notes
+	for _i in range(debug_fuses):
+		WorldState.add_to_inventory("020")
 	HUD.refresh_inventory()
 	HUD.select_slot(0)
 	if WorldState.inventory.size() != 5:
@@ -203,10 +288,13 @@ func _physics_process(delta: float) -> void:
 	if finished:
 		return
 	t += delta
+	dt = delta
+	_run_taps_and_afters()
 	_swing_gate = maxf(0.0, _swing_gate - delta)
 	_push_gate = maxf(0.0, _push_gate - delta)
 	_heal_gate = maxf(0.0, _heal_gate - delta)
 	_stairs_gate = maxf(0.0, _stairs_gate - delta)
+	_stance_gate = maxf(0.0, _stance_gate - delta)
 	_slot_gate = maxf(0.0, _slot_gate - delta)
 	_shop_gate = maxf(0.0, _shop_gate - delta)
 	_exit_gate = maxf(0.0, _exit_gate - delta)
@@ -219,7 +307,10 @@ func _physics_process(delta: float) -> void:
 		if _hb_t >= 5.0:
 			_hb_t = 0.0
 			var sc = get_tree().current_scene
-			print("    [heartbeat t=%.0f] phase=%s scene=%s transition_busy=%s paused=%s player=%s dead=%s run=%d" % [t, phase, str(sc.scene_file_path) if sc != null else "none", str(Transition.busy), str(get_tree().paused), str(_player() != null), str(_player().is_dead) if _player() != null else "-", WorldState.current_run])
+			var hp = _player()
+			print("    [heartbeat t=%.0f] phase=%s scene=%s transition_busy=%s paused=%s player=%s dead=%s run=%d | cutscene=%s escaping=%s lashing=%s panning=%s switching=%s pack=%s listening=%s loot_open=%s dying=%s" % [t, phase, str(sc.scene_file_path) if sc != null else "none", str(Transition.busy), str(get_tree().paused), str(hp != null), str(hp.is_dead) if hp != null else "-", WorldState.current_run, str(hp.is_cutscene) if hp != null else "-", str(hp.escaping) if hp != null else "-", str(hp.is_lashing) if hp != null else "-", str(StairPan.panning), str(hp.is_switching_mode) if hp != null else "-", str(hp.pack_phase) if hp != null else "-", str(hp.is_listening) if hp != null else "-", str(WorldState.loot_open), str(WorldState.is_dying)])
+			if hp != null:
+				print("    [heartbeat+] p.is_dying=%s physics_processing=%s process_mode=%d switch_timer=%.3f is_hit=%s god=%s hp=%d can_process=%s parent_mode=%d parent=%s frames=%d time_scale=%.1f tps=%d pos=(%.0f,%.0f) balcony_pan=%s cam_y=%s" % [str(hp.is_dying), str(hp.is_physics_processing()), hp.process_mode, hp.mode_switch_timer, str(hp.is_hit), str(WorldState.god_mode), WorldState.player_health, str(hp.can_process()), hp.get_parent().process_mode, str(hp.get_parent().name), Engine.get_physics_frames(), Engine.time_scale, Engine.physics_ticks_per_second, hp.global_position.x, hp.global_position.y, str(BalconyPan.panning), str(hp.get_node_or_null("Camera2D").position.y) if hp.get_node_or_null("Camera2D") != null else "-"])
 	var scene = get_tree().current_scene
 	if scene != null and scene.scene_file_path.ends_with("game_over.tscn"):
 		# the arc is over (the third character walked out, or fell): the game has swapped to its end card
@@ -228,7 +319,20 @@ func _physics_process(delta: float) -> void:
 		_finish_all()
 		return
 	var p = _player()
+	if watch != null:
+		watch.tick(p, delta, _activity_text())
 	if p == null:
+		var sc0 = get_tree().current_scene
+		if sc0 != null and str(sc0.scene_file_path).ends_with("/elevator_interior.tscn") and phase == "play":
+			_release_all()
+			_elev_gate -= delta
+			if _elev_gate <= 0.0:
+				_elev_gate = 1.5
+				# down, unless the car would overshoot the ground (WorldState.elevator_destination clamps)
+				tap("move_down" if WorldState.elevator_destination(-1) != WorldState.current_floor else "move_up", 0.15)
+				if loot != null:
+					loot.count("elevator_rider_presses")
+			return
 		_release_all()
 		return
 	if p.is_dead:
@@ -242,30 +346,52 @@ func _physics_process(delta: float) -> void:
 				return
 		_on_new_character(p)
 		return
-	if t - float(run_rec["t_start"]) > MAX_RUN_TIME:
-		_finish_run("timeout", "ran out of the %.0f-minute allowance" % (MAX_RUN_TIME / 60.0))
+	var allowance: float = MAX_RUN_TIME if loot_mode == "none" else MAX_RUN_TIME_LOOT
+	if t - float(run_rec["t_start"]) > allowance:
+		_finish_run("timeout", "ran out of the %.0f-minute allowance" % (allowance / 60.0))
 		return
 	if trace and WorldState.current_floor != _raw_floor:
 		print("    [trace t=%.1f] WorldState.current_floor %d -> %d (busy: transition %s pan %s cutscene %s)" % [t, _raw_floor, WorldState.current_floor, str(Transition.busy), str(StairPan.panning), str(p.is_cutscene)])
 		_raw_floor = WorldState.current_floor
+	if trace and p.is_cutscene != _dbg_cut:
+		_dbg_cut = p.is_cutscene
+		print("    [trace t=%.2f] is_cutscene -> %s (floor %d, scene %s, on_balcony_plane %s, panning %s)" % [t, str(_dbg_cut), WorldState.current_floor, _kind, str(p.on_balcony_plane), str(BalconyPan.get("panning"))])
+	var sp: String = str(get_tree().current_scene.scene_file_path) if get_tree().current_scene != null else ""
+	if sp != _last_scene and sp != "":
+		if _last_scene != "":
+			_event("SCENE", "%s -> %s (floor %d, x=%d, keys=%s, apartment=%s)" % [_last_scene.get_file(), sp.get_file(), WorldState.current_floor, int(p.global_position.x), str(_kb), str(WorldState.current_apartment_id)])
+		_last_scene = sp
+	var kind_now := _scene_kind(get_tree().current_scene)
+	if kind_now != _kind:
+		if _kind in ["room", "maint"] and loot != null:
+			loot.left_room()
+		_kind = kind_now
+	if _kind in ["room", "maint"] or (loot != null and loot.cur_door != null):
+		_floor_enter_t += delta                 # looting is not being stuck: the floor clock waits while the bot is at a door or inside
 	var busy: bool = p.is_cutscene or p.escaping or p.is_lashing or Transition.busy or StairPan.panning or get_tree().paused
 	var f: int = WorldState.current_floor
 	if f != _last_floor and not StairPan.panning and not Transition.busy:
 		# logged BEFORE the busy gate, so a floor passed through mid-transition still appears in the record
 		_on_floor_change(f, p)
 	_observe(p)
+	if busy and get_tree().paused and _kind == "maint" and loot != null and loot.bench_ui_visible(get_tree().current_scene):
+		loot.room_tick(p, get_tree().current_scene, "maint")      # the workbench pauses the tree; the bot is driving its screen
+		return
 	if busy:
 		_release_all()
 		return
-	if p.is_switching_mode or p.pack_phase != "" or p.is_listening or WorldState.loot_open:
+	if p.is_switching_mode or p.pack_phase != "" or p.is_listening or (WorldState.loot_open and not (_kind in ["room", "maint"])):
 		_release_all()
+		return
+	if phase == "play" and (_kind == "room" or _kind == "maint") and loot != null:
+		loot.room_tick(p, get_tree().current_scene, "flat" if _kind == "room" else "maint")
 		return
 	if trace:
 		_trace_t += delta
 		if _trace_t >= 2.0:
 			_trace_t = 0.0
 			var st = _down_stairs()
-			print("    [trace t=%.1f] f%d x=%.0f vx=%.0f dir_keys=%s move_target=%s(%.0f) mode=%s sel=%d atk=%s stam=%.0f stairs_x=%s zs=%s" % [t, f, p.global_position.x, p.velocity.x, str(_kb), str(p.has_move_target), p.move_target_x, "scav" if WorldState.is_scavenge_mode else "combat", HUD.selected_slot, str(p.is_attacking), WorldState.stamina, str(_goal_x(st)) if st != null else "none", str(_zombies(p, SIGHT).map(func(z): return "%s@%d,y%d:%s%s hp%s" % [_type_of(z), int(z.global_position.x), int(z.global_position.y), str(z.get("state")), (" STAIR:" + str(z.get("_stair_phase"))) if z.get("stair_mode") == true else "", str(z.get("hp"))]))])
+			print("    [trace t=%.1f] f%d x=%.0f vx=%.0f dir_keys=%s move_target=%s(%.0f) mode=%s sel=%d atk=%s stam=%.0f stairs_x=%s zs=%s | %s" % [t, f, p.global_position.x, p.velocity.x, str(_kb), str(p.has_move_target), p.move_target_x, "scav" if WorldState.is_scavenge_mode else "combat", HUD.selected_slot, str(p.is_attacking), WorldState.stamina, str(_goal_x(st)) if st != null else "none", str(_zombies(p, SIGHT).map(func(z): return "%s@%d,y%d:%s%s hp%s" % [_type_of(z), int(z.global_position.x), int(z.global_position.y), str(z.get("state")), (" STAIR:" + str(z.get("_stair_phase"))) if z.get("stair_mode") == true else "", str(z.get("hp"))])), loot.state_line() if loot != null else ""])
 	match phase:
 		"play":
 			if f == 0:
@@ -336,6 +462,10 @@ func _on_floor_change(f: int, p) -> void:
 	_shop_state = "none"
 	_shop_floor = f
 	_known.clear()
+	if loot != null:
+		loot.on_floor_change(f)
+	if watch != null and f >= 1 and f % 3 == 0 and not god_no_saveload:
+		watch.check_save_load("floor %d" % f)
 	print("  [run %d] floor %2d  t=%6.1fs  hp=%s  stamina=%d  kit: %s" % [WorldState.current_run, f, t - float(run_rec["t_start"]), WorldState.health_word(), int(WorldState.stamina), _kit_summary()])
 	if f == 0:
 		_seen_lobby = true
@@ -384,14 +514,21 @@ func _play_floor(p, f: int) -> void:
 	_manage_kit(p, zs)
 	if _try_heal(p, zs):
 		return
-	# a barricaded stairwell: hand over the crowbar (logged), and make sure nothing is on the bot while it heaves
-	if st != null and WorldState.is_stair_blocked(_choke(st)) and give_crowbar and not WorldState.has_crowbar():
-		var cb := ItemInstance.new()
-		cb.setup("035")
-		WorldState.inventory.append(cb)                # outside the five slots on purpose: the kit stays as given
-		floor_rec["pried"] = true
-		floor_rec["notes"].append("crowbar handed over for the barricade")
-		_event("CROWBAR", "floor %d: barricaded stairwell — a crowbar was handed to the bot (it has no way to scavenge one)" % f)
+	# a barricaded stairwell needs a crowbar. liberty: hand one over now · fallback: only once the floor's doors have been tried ·
+	# found: never (the bot is stuck here, and the report says so)
+	if st != null and WorldState.is_stair_blocked(_choke(st)) and not WorldState.has_crowbar() and crowbar_mode != "found":
+		floor_rec["blocked"] = true
+		var exhausted: bool = crowbar_mode == "liberty" or loot_mode == "none" or (loot != null and threat == null and loot.floor_exhausted(p, get_tree().current_scene))
+		if exhausted:
+			var cb := ItemInstance.new()
+			cb.setup("035")
+			cb.set_meta("bot_gift", true)
+			WorldState.inventory.append(cb)                # outside the five slots on purpose
+			floor_rec["pried"] = true
+			floor_rec["notes"].append("crowbar handed over for the barricade (%s)" % ("liberty" if crowbar_mode == "liberty" or loot_mode == "none" else "after the floor's doors gave none"))
+			_event("CROWBAR", "floor %d: barricaded stairwell — a crowbar was handed to the bot (%s)" % [f, crowbar_mode])
+			if loot != null:
+				loot.count("crowbar_liberties")
 	if st != null and st.is_prying:
 		if threat != null and _edge(p, threat) < 80.0:
 			st._cancel_pry("The bot breaks off to fight.")
@@ -402,11 +539,43 @@ func _play_floor(p, f: int) -> void:
 	if f in WorldState.MERCHANT_FLOORS and _shop_state != "done" and (threat == null or _edge(p, threat) > 200.0):
 		if _visit_merchant(p, f):
 			return
+	# a fight that has gone nowhere for a long while (nobody dies, nobody is hurt — the dance in a crowd that overlaps the bot, most
+	# often with god mode on) is dropped for a few seconds: get on with the floor
 	if threat != null:
+		if _fight_since < 0.0 or int(run_rec["kills"]) != _fight_kills:
+			_fight_since = t
+			_fight_kills = int(run_rec["kills"])
+		elif t - _fight_since > 14.0 and t >= _ignore_threats_until:
+			_ignore_threats_until = t + 7.0
+			_fight_since = -1.0
+			if loot != null:
+				loot.count("fights_dropped")
+			_event("FIGHT", "floor %d: 14 s of fighting and no kill — walking on" % f)
+		if t < _ignore_threats_until:
+			threat = null
+	else:
+		_fight_since = -1.0
+	if threat != null:
+		want_scav = false                     # a fight is fought drawn: without this the door-work's "scavenge" stance and the fight's drew-the-weapon stance toggle for ever
 		_fight(p, threat, zs)
 		_stuck_watch(p, true)
 		return
 	_kite_until = 0.0
+	if loot != null and loot_mode != "none" and not (st != null and st.is_prying):
+		if loot.corridor_tick(p, get_tree().current_scene):
+			_stuck_watch(p, false)
+			return
+	if rest_mode and WorldState.rest_available and threat == null and WorldState.stamina < WorldState.get_max_stamina() * 0.7 and not p.is_attacking and _stairs_gate <= 0.0:
+		_stairs_gate = 1.0
+		var rest_ev := InputEventAction.new()
+		rest_ev.action = "rest"
+		rest_ev.pressed = true
+		get_viewport().push_input(rest_ev)
+		if loot != null:
+			loot.count("rests")
+	if elevator_mode and loot != null and WorldState.can_ride_elevator() and f >= 8 and not (f in WorldState.MERCHANT_FLOORS) and _ride_elevator(p):
+		return
+	want_scav = false
 	_advance(p, st, zs)
 	_stuck_watch(p, false)
 
@@ -415,6 +584,8 @@ func _play_floor(p, f: int) -> void:
 func _pick_threat(p, zs: Array, st):
 	if zs.is_empty():
 		return null
+	if god and not _armed() and _slot_of_gun() < 0:
+		return null                       # nothing to fight with and nothing can hurt it: walk on (the unjam valve lets it through a body)
 	var goal := _goal_x(st)
 	var dir_goal: float = signf(goal - p.global_position.x)
 	var best = null
@@ -448,18 +619,29 @@ func _fight(p, z, zs: Array) -> void:
 	var dx: float = z.global_position.x - p.global_position.x
 	var facing_right: bool = not p.animated_sprite.flip_h
 	# a body standing ON the bot has no side: keep the way we face, or the turn-round step flip-flops for ever against a wall
-	var dirx: float = signf(dx) if absf(dx) > 6.0 else (1.0 if facing_right else -1.0)
+	var dirx: float = signf(dx) if absf(dx) > 14.0 else (1.0 if facing_right else -1.0)
 	var edge := _edge(p, z)
 	var stam: float = WorldState.stamina
 	var max_stam: float = WorldState.get_max_stamina()
-	var winded: bool = stam < max_stam * 0.25 + 1.0 or stam < SWING_COST
+	var winded: bool = stam < max_stam * 0.25 + 1.0 or stam < _cur_cost
 	var ty := _type_of(z)
 	_sprint(false)
+	# winded and nothing is actually coming for us (the dead in reach are standing idle): catch the breath where we stand — kiting away from
+	# an idle body only ping-pongs against whatever walks us back (the looter's walk to its node)
+	if winded:
+		var active := false
+		for o in zs:
+			if _edge(p, o) < 260.0 and str(o.get("state")) in ["chase", "attack", "hit"]:
+				active = true
+		if not active:
+			_walk(0.0)
+			return
 	# the gun: for the ones that are worst to meet with a hammer, while it has rounds and they are not in our face
 	var gun_slot := _slot_of_gun()
 	var gun_ok: bool = (ty in ["big", "spitter"]) or (z.get("is_corridor_boss") == true) or not _armed()
 	var cornered_winded: bool = winded and edge < 130.0 and not _room_behind(p, dirx)
-	if gun_slot >= 0 and ((gun_ok and edge > GUN_MIN_RANGE) or (winded and edge < 160.0) or cornered_winded) and edge < 240.0:
+	var unarmed_gun: bool = gun_slot >= 0 and not _armed()          # nothing else to hit with: the gun, at any range
+	if gun_slot >= 0 and ((gun_ok and edge > GUN_MIN_RANGE) or unarmed_gun or (winded and edge < 160.0) or cornered_winded) and edge < 240.0:
 		if _select(gun_slot):
 			if (dirx > 0.0) != facing_right:
 				_walk(dirx)
@@ -479,6 +661,7 @@ func _fight(p, z, zs: Array) -> void:
 	if not _select(w):
 		_walk(0.0)
 		return
+	_note_weapon(WorldState.inventory[w])
 	# shove: two or more on us, or a big one in our face, and the wind for it
 	var adjacent := 0
 	for o in zs:
@@ -489,8 +672,7 @@ func _fight(p, z, zs: Array) -> void:
 			_walk(dirx)
 			return
 		_push_gate = 1.4
-		Input.action_press("push")
-		_kb["push"] = true
+		tap("push", 0.3)
 		floor_rec["pushes"] = int(floor_rec["pushes"]) + 1
 		run_rec["pushes"] = int(run_rec["pushes"]) + 1
 		return
@@ -505,10 +687,10 @@ func _fight(p, z, zs: Array) -> void:
 	if (dirx > 0.0) != facing_right:
 		_walk(dirx)                           # one step to turn round
 		return
-	if edge > REACH * 0.85:
+	if edge > _cur_reach * 0.85:
 		var coming: bool = _on_me(p, z)
-		_hold_t = _hold_t + get_physics_process_delta_time() if (coming and edge < REACH + 60.0) else 0.0
-		if coming and edge < REACH + 60.0 and _hold_t < 1.2:
+		_hold_t = _hold_t + get_physics_process_delta_time() if (coming and edge < _cur_reach + 60.0) else 0.0
+		if coming and edge < _cur_reach + 60.0 and _hold_t < 1.2:
 			_walk(0.0)                        # let it come: the first swing is ours (but not for ever)
 		else:
 			_walk(dirx)
@@ -533,8 +715,7 @@ func _brawl(p, z, zs: Array) -> void:
 	var stam: float = WorldState.stamina
 	if edge < 50.0 and stam >= PUSH_COST and _push_gate <= 0.0 and not p.is_pushing and (dx > 0.0) == facing_right:
 		_push_gate = 1.3
-		Input.action_press("push")
-		_kb["push"] = true
+		tap("push", 0.3)
 		floor_rec["pushes"] = int(floor_rec["pushes"]) + 1
 		run_rec["pushes"] = int(run_rec["pushes"]) + 1
 	_walk(goal_dir if goal_dir != 0.0 else signf(dx))
@@ -547,6 +728,20 @@ func _brawl(p, z, zs: Array) -> void:
 
 func _armed() -> bool:
 	return _best_hammer_slot() >= 0
+
+
+var _cur_reach: float = REACH
+var _cur_cost: float = SWING_COST
+
+
+## The reach and stamina cost of the melee weapon in hand (the game's own tables).
+func _note_weapon(inst) -> void:
+	var ty := _weapon_type(inst)
+	var p = _player()
+	if p == null or not p.WEAPON_RANGES.has(ty):
+		return
+	_cur_reach = float(p.WEAPON_RANGES[ty])
+	_cur_cost = float(p.WEAPON_STAMINA_COST[ty])
 
 
 ## Nothing to fight: walk (sprint when the way is clear and there is wind to spare) to the down stairs and take them.
@@ -573,6 +768,8 @@ func _advance(p, st, zs: Array) -> void:
 
 
 func _goal_x(st) -> float:
+	if goal_override >= 0.0:
+		return goal_override
 	if st == null:
 		return 600.0
 	return float(st.auto_target_x())
@@ -594,19 +791,32 @@ func _down_stairs():
 
 ## The kit's upkeep: the working hammer in hand, mode combat.
 func _manage_kit(p, _zs: Array) -> void:
-	if WorldState.is_scavenge_mode and not p.is_switching_mode:
+	if god and not _armed() and _slot_of_gun() < 0:
+		# COVERAGE runs only: a god-mode character cannot die, so unarmed it just stands pinned among the dead for hours. Hand it a hammer
+		# (outside the slots, like the crowbar) so it clears its way and the run goes on to the parts of the game it is there to visit.
+		var hm := ItemInstance.new()
+		hm.setup("002")
+		hm.set_meta("bot_gift", true)
+		WorldState.inventory.append(hm)
+		if loot != null:
+			loot.count("god_hammers")
+	if WorldState.is_scavenge_mode != want_scav and not p.is_switching_mode and not WorldState.loot_open:
 		p.request_mode_toggle()
+	if loot != null:
+		loot.maintain_kit(p, _zs)
 
 
 func _try_heal(p, zs: Array) -> bool:
 	if _heal_gate > 0.0:
 		return false
 	var hs: int = WorldState.player_health
-	if hs < 3:
+	if hs < 2:
 		return false
-	var slot := _slot_of_kit()
+	var slot := _pick_heal_slot(hs)
 	if slot < 0:
 		return false
+	if hs < 3 and WorldState.inventory[slot].item_id == "007":
+		return false                      # a first aid is for a real wound
 	var close := 0
 	for z in zs:
 		if _edge(p, z) < 60.0:
@@ -615,11 +825,35 @@ func _try_heal(p, zs: Array) -> bool:
 		return false                     # fight first unless it's dire
 	_heal_gate = 1.0
 	_release_all()
+	var used_id: String = WorldState.inventory[slot].item_id
+	var used_name: String = WorldState.inventory[slot].get_item_name()
 	p.use_item(slot)
 	floor_rec["heals"] = int(floor_rec["heals"]) + 1
 	run_rec["heals"] = int(run_rec["heals"]) + 1
-	_event("HEAL", "floor %d: first aid at %s" % [WorldState.current_floor, WorldState.HEALTH_WORDS[clampi(hs, 0, 5)]])
+	if loot != null:
+		loot.count("heal_" + used_id)
+	_event("HEAL", "floor %d: %s at %s" % [WorldState.current_floor, used_name, WorldState.HEALTH_WORDS[clampi(hs, 0, 5)]])
 	return true
+
+
+## The health item that covers the wound with the least waste (or the biggest one there is).
+func _pick_heal_slot(hs: int) -> int:
+	var best := -1
+	var best_h := 0
+	var big := -1
+	var big_h := 0
+	for i in WorldState.inventory.size():
+		var inst = WorldState.inventory[i]
+		if not inst.get_data().get("is_health_item", false):
+			continue
+		var h: int = inst.base_heals() + WorldState.get_heal_bonus()
+		if h >= hs and (best < 0 or h < best_h):
+			best = i
+			best_h = h
+		if h > big_h:
+			big = i
+			big_h = h
+	return best if best >= 0 else big
 
 
 # --- the merchant -----------------------------------------------------------------------------------
@@ -671,6 +905,8 @@ func _visit_merchant(p, f: int) -> bool:
 					_shop_gate = 0.6
 				return true
 			_shop_choices(ui, f)
+			if loot != null:
+				loot.shop_trade(ui, f)
 			_shop_state = "done"
 			ui.close()
 			return false
@@ -778,8 +1014,12 @@ func _on_death(p) -> void:
 			continue
 		if absf(z.global_position.x - p.global_position.x) <= 400.0:
 			near.append("%s %d px %s" % [_type_of(z), int(absf(z.global_position.x - p.global_position.x)), str(z.get("state"))])
+	for r in get_tree().get_nodes_in_group("resident_npc"):
+		if is_instance_valid(r) and r.get("is_dead") != true and scene != null and scene.is_ancestor_of(r) and absf(r.global_position.x - p.global_position.x) <= 400.0:
+			near.append("RESIDENT %s %d px %s%s" % [str(r.get("temper")), int(absf(r.global_position.x - p.global_position.x)), str(r.get("state")), " VIOLENT" if r.get("violent") == true else ""])
 	run_rec["death"] = {
-		"floor": WorldState.current_floor, "t": t - float(run_rec["t_start"]), "near": near, "timeline": _timeline.duplicate(),
+		"floor": WorldState.current_floor, "t": t - float(run_rec["t_start"]), "near": near, "timeline": _timeline.duplicate(), "scene": _kind,
+		"room": (loot.room_id if loot != null and loot.in_room else ""),
 		"kit": _kit_summary(), "was_dying": WorldState.is_dying,
 	}
 	_event("DEATH", "run %d: died on floor %d after %.0f s — near: %s" % [WorldState.current_run, WorldState.current_floor, t - float(run_rec["t_start"]), str(near)])
@@ -794,6 +1034,13 @@ func _finish_run(outcome: String, why: String) -> void:
 	run_rec["why"] = why
 	run_rec["t_end"] = t
 	run_rec["kit_end"] = _kit_summary()
+	run_rec["scrap_end"] = WorldState.scrap
+	run_rec["notes_end"] = WorldState.get_money_total()
+	run_rec["fuses_loaded"] = WorldState.elevator_fuses_loaded
+	run_rec["fuses_carried"] = WorldState.fuse_count()
+	run_rec["powered"] = WorldState.elevator_powered
+	run_rec["searched_total"] = WorldState.run_scavenged
+	run_rec["wall_s"] = snappedf(float(Time.get_ticks_msec() - wall_start_ms) / 1000.0, 0.1)
 	if outcome == "stuck" or outcome == "timeout":
 		_close_floor(false)
 	_release_all()
@@ -825,7 +1072,11 @@ func _finish_all() -> void:
 	phase = "over"
 	finished = true
 	_release_all()
+	if watch != null:
+		watch.tick(null, 0.6, "finishing")       # one last sweep of the engine log
 	_write_report()
+	if watch != null:
+		watch.detach()
 	print("=== bot run done: ", _headline(), " ===")
 	get_tree().quit(0)
 
@@ -880,6 +1131,10 @@ func _type_of(z) -> String:
 func _nearest_type(p) -> String:
 	var zs := _zombies(p, 120.0)
 	if zs.is_empty():
+		# a resident who has turned on us (survivors behind locked doors) is not in the `zombie` group
+		for r in get_tree().get_nodes_in_group("resident_npc"):
+			if is_instance_valid(r) and r.get("is_dead") != true and r.get("violent") == true and absf(r.global_position.x - p.global_position.x) < 120.0:
+				return "resident"
 		return "fire/ranged/other"
 	return _type_of(zs[0])
 
@@ -939,6 +1194,116 @@ func _press_attack() -> void:
 	get_viewport().push_input(ev)
 
 
+# --- helpers the looter (bot_loot.gd) uses ---------------------------------------------------------------
+
+## Press an action for `dur` seconds of game time (a polled `is_action_just_pressed` needs the frame to see it down).
+## Press an action for `dur` game seconds. A tap that is still down is NOT extended: the game polls `is_action_just_pressed`, which needs a
+## fresh press edge, and a key re-tapped every tick is simply held down for ever (the first press can be lost — a stance still
+## switching, a door not yet in reach — and nothing would ever press again). Long enough to span an idle frame at the sped-up tick rate.
+func tap(action: String, dur: float = 0.4) -> void:
+	if _taps.has(action):
+		return
+	Input.action_press(action)
+	_taps[action] = t + dur
+
+
+func after(secs: float, cb: Callable) -> void:
+	_afters.append([t + secs, cb])
+
+
+func _run_taps_and_afters() -> void:
+	for a in _taps.keys():
+		if t >= float(_taps[a]):
+			Input.action_release(a)
+			_taps.erase(a)
+	var keep: Array = []
+	for e in _afters:
+		if t >= float(e[0]):
+			if e[1].is_valid():
+				e[1].call()
+		else:
+			keep.append(e)
+	_afters = keep
+
+
+## The stance the looter wants (scavenge = hands free to search, combat = a weapon up). True once it is the stance we are in.
+func stance_settled(scav: bool) -> bool:
+	if WorldState.is_scavenge_mode == scav and not _player().is_switching_mode:
+		return true
+	if not _player().is_switching_mode and not WorldState.loot_open and _stance_gate <= 0.0:
+		_stance_gate = 0.6
+		_player().request_mode_toggle()
+	return false
+
+
+var _stance_gate: float = 0.0
+
+
+func select_slot(slot: int) -> void:
+	if slot >= 0 and slot < WorldState.inventory.size() and HUD.selected_slot != slot and _slot_gate <= 0.0:
+		_slot_gate = 0.25
+		HUD.select_slot(slot)
+
+
+func is_player_busy(p) -> bool:
+	return p.is_cutscene or p.is_switching_mode or p.get("_back_stepping") == true or p.is_attacking or p.is_pushing
+
+
+func try_heal_now(p, zs: Array) -> bool:
+	return _try_heal(p, zs)
+
+
+func _scene_kind(scene: Node) -> String:
+	if scene == null:
+		return ""
+	var sp: String = str(scene.scene_file_path)
+	if sp.ends_with("/room.tscn"):
+		return "room"
+	if sp.ends_with("/maintenance.tscn"):
+		return "maint"
+	if sp.ends_with("/hallway.tscn"):
+		return "hallway"
+	if sp.ends_with("/lobby.tscn"):
+		return "lobby"
+	if sp.ends_with("/building_floors.tscn"):
+		return "corridor"
+	return "other"
+
+
+## Walk to the powered lift and press [interact]; the car takes it from there (elevator_interior.gd, polled keys).
+func _ride_elevator(p) -> bool:
+	var ex := 1029.5
+	if absf(p.global_position.x - ex) > 24.0:
+		_walk(signf(ex - p.global_position.x))
+		_sprint(absf(ex - p.global_position.x) > 220.0)
+		return true
+	_walk(0.0)
+	_stairs_gate -= get_physics_process_delta_time()
+	if _stairs_gate <= 0.0:
+		_stairs_gate = 2.0
+		WorldState.interaction_handled = false
+		tap("interact")
+		loot.count("elevator_rides_started")
+	return true
+
+
+## What the bot is in the middle of, in words (the watcher quotes it when nothing has changed for a while).
+func _activity_text() -> String:
+	var bits: Array = ["phase=" + phase, "scene=" + _kind, "shop=" + _shop_state]
+	if loot != null:
+		if loot.in_room:
+			bits.append("room=%s anchor=%s stage=%s exiting=%s panel=%s" % [loot.room_id, str(loot.cur_anchor.name) if loot.cur_anchor != null and is_instance_valid(loot.cur_anchor) else "-", loot.anchor_stage, str(loot.exiting), str(WorldState.loot_open)])
+		elif loot.cur_door != null and is_instance_valid(loot.cur_door):
+			bits.append("door=%s stage=%s state=%s" % [str(loot.cur_door.apartment_id), loot.door_stage, loot._state_name(int(loot.cur_door.current_state))])
+	return " ".join(bits)
+
+
+## A thing that should not happen: logged, counted, written into the report (and the sweep summary).
+func _anomaly(kind: String, msg: String) -> void:
+	anomalies.append({"t": snappedf(t, 0.1), "run": WorldState.current_run, "floor": WorldState.current_floor, "kind": kind, "msg": msg})
+	print("  [ANOMALY] %s: %s" % [kind, msg])
+
+
 # slots ---------------------------------------------------------------------------------------------------
 
 func _slot_of_gun() -> int:
@@ -949,12 +1314,33 @@ func _slot_of_gun() -> int:
 	return -1
 
 
+## The best working melee weapon (any kind the game has): a bat-class weapon over a sword over a knife, then by uses left.
 func _best_hammer_slot() -> int:
+	var best := -1
+	var best_s := -1.0
 	for i in WorldState.inventory.size():
 		var inst = WorldState.inventory[i]
-		if inst.item_id == "002" and not inst.is_depleted:
-			return i
-	return -1
+		if inst.is_depleted or not inst.get_data().get("is_weapon", false):
+			continue
+		var ty := _weapon_type(inst)
+		if ty == "gun" or ty == "":
+			continue
+		var sc: float = float(BotLoot.MELEE_RANK.get(ty, 0)) + float(inst.current_durability)
+		if sc > best_s:
+			best_s = sc
+			best = i
+	return best
+
+
+func _weapon_type(inst) -> String:
+	return _weapon_type_of_data(inst.get_data())
+
+
+func _weapon_type_of_data(d: Dictionary) -> String:
+	var p = _player()
+	if p == null:
+		return ""
+	return str(p.call("_get_weapon_type", d))
 
 
 func _slot_of_kit() -> int:
@@ -1046,7 +1432,7 @@ func _skip_intro() -> void:
 
 func _event(kind: String, msg: String) -> void:
 	events.append({"t": snappedf(t, 0.1), "run": WorldState.current_run, "kind": kind, "msg": msg})
-	if kind in ["RUN", "LOBBY", "DEATH", "STUCK", "UPGRADE", "BOON", "CROWBAR", "EXIT", "KIT"]:
+	if kind in ["RUN", "LOBBY", "DEATH", "STUCK", "UPGRADE", "BOON", "CROWBAR", "EXIT", "KIT", "SCENE"]:
 		print("  [%s] %s" % [kind, msg])
 
 
@@ -1103,6 +1489,7 @@ func _write_report() -> void:
 	if upgrades_taken.is_empty() and boons_taken.is_empty():
 		md.append("- none (never reached a merchant floor with a merchant out)")
 	md.append("")
+	md.append_array(_scavenge_md())
 	md.append("## Event log")
 	md.append("")
 	md.append("```")
@@ -1117,10 +1504,84 @@ func _write_report() -> void:
 			f.close()
 			var jf := FileAccess.open(out_path.get_basename() + ".json", FileAccess.WRITE)
 			if jf != null:
-				jf.store_string(JSON.stringify({"seed": seed_value, "style": style, "runs": runs, "floors": floors_log, "events": events, "upgrades": upgrades_taken, "boons": boons_taken}, "  "))
+				jf.store_string(JSON.stringify({"seed": seed_value, "style": style, "loot_mode": loot_mode, "runs": runs, "floors": floors_log, "events": events, "upgrades": upgrades_taken, "boons": boons_taken,
+					"loot": {"apartments": loot.apartments, "finds": loot.finds, "skips": loot.skips, "cov": loot.cov} if loot != null else {},
+					"anomalies": anomalies, "watch": watch.summary() if watch != null else {}, "wall_s": snappedf(float(Time.get_ticks_msec() - wall_start_ms) / 1000.0, 0.1)}, "  "))
 				jf.close()
 	else:
 		print(text)
+
+
+## The scavenging, anomaly and coverage sections of the markdown report.
+func _scavenge_md() -> Array:
+	var md: Array = []
+	md.append("## Scavenging (loot mode: %s)" % loot_mode)
+	md.append("")
+	if loot == null or loot_mode == "none":
+		md.append("- the bot did not scavenge in this run")
+		md.append("")
+	else:
+		for r in runs:
+			var rn: int = int(r["run"])
+			var flats := 0
+			var maint := 0
+			var nodes := 0
+			var searched := 0
+			var secs := 0.0
+			var took: Dictionary = {}
+			var left: Dictionary = {}
+			var worst_hp := 0
+			var zomb := 0
+			for a in loot.apartments:
+				if int(a["run"]) != rn:
+					continue
+				if a["kind"] == "maint":
+					maint += 1
+				else:
+					flats += 1
+				nodes += int(a["nodes"])
+				searched += int(a["searched"])
+				secs += float(a["t"])
+				zomb += int(a["zombies"])
+				worst_hp = maxi(worst_hp, int(a["hp_out"]))
+				for k in a["took"]:
+					took[k] = int(took.get(k, 0)) + int(a["took"][k])
+				for k in a["left"]:
+					left[k] = int(left.get(k, 0)) + int(a["left"][k])
+			md.append("- **run %d**: %d apartments + %d maintenance rooms entered, %d nodes opened, %d items shown, %.0f s inside; zombies met inside %d; scrap at the end %s, notes %s" % [
+				rn, flats, maint, nodes, searched, secs, zomb, str(r.get("scrap_end", "?")), str(r.get("notes_end", "?"))])
+			md.append("  - taken: %s" % (_names(took) if not took.is_empty() else "nothing"))
+			md.append("  - left behind: %s" % (_names(left) if not left.is_empty() else "nothing"))
+		md.append("")
+		md.append("Coverage counters: " + ", ".join(PackedStringArray((loot.cov.keys() as Array).map(func(k): return "%s=%s" % [k, str(loot.cov[k])]))))
+		md.append("")
+		if not loot.skips.is_empty():
+			md.append("Doors passed over (%d): " % loot.skips.size() + "; ".join(PackedStringArray((loot.skips as Array).slice(0, 40).map(func(k): return "f%d %s (%s)" % [int(k["floor"]), str(k["apt"]), str(k["why"])]))))
+			md.append("")
+	md.append("## Anomalies (%d)" % anomalies.size())
+	md.append("")
+	if anomalies.is_empty():
+		md.append("- none")
+	for a in anomalies:
+		md.append("- t=%.0f run %d floor %d **%s** — %s" % [a["t"], a["run"], a["floor"], a["kind"], a["msg"]])
+	md.append("")
+	if watch != null:
+		md.append("Watcher: %d invariant sweeps; repeats: %s" % [watch.checks_run, str(watch.seen)])
+		if not watch.engine_errors.is_empty():
+			md.append("")
+			md.append("Engine log (distinct errors / warnings):")
+			for e in watch.engine_errors:
+				md.append("- [%s/%s] x%d %s:%d %s (first at t=%.0f, run %d floor %d, %s)" % [e["kind"], e["owner"], int(e["count"]), e["file"], int(e["line"]), str(e["msg"]).left(160), float(e["first_t"]), int(e["run"]), int(e["floor"]), str(e["scene"]).get_file()])
+		md.append("")
+	return md
+
+
+func _names(counts: Dictionary) -> String:
+	var parts: Array = []
+	for id in counts:
+		var d: Dictionary = ItemData.get_item(str(id))
+		parts.append("%s ×%d" % [d.get("name", id), int(counts[id])])
+	return ", ".join(PackedStringArray(parts))
 
 
 func _hw(i) -> String:
