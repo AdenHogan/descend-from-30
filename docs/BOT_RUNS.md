@@ -262,6 +262,33 @@ answer (the panel has a "scrap it all" button, Esc / ✕ mean the same), so this
 paths (`DOOR` events; a `--heirloom` gift makes the first hammer Lv3 for a 25-second check of the door) — and the watcher raises `DOOR_PANEL_OPEN` if it is ever left up 20 s. Checked: Lv3 hammer left by the door on run 3 and
 the end screen reached; kit scrapped on run 2 and the run closed. The earlier god runs (seed 424242, and `god3_101`) passed the door without the panel ever opening — it only opens when the kit holds an upgraded weapon, and a stuck panel would have stopped them — so their kits held none.
 
+### Round 44b — can the progression tiers carry the bot to the lobby? (the ceiling experiment)
+
+Asked: "can players beat this game, even with multiple runs, upgraded weapons carrying over and permanent boons?" The bot cannot play a session-after-session grind, so the question was put the other way round: **give it the
+whole permanent tier up front and see how far it moves.** New flags `--perm=ID,...` (permanent Valour-shop perks, on for all three characters) and `--hammer-level=N` (the first hammer arrives levelled, first perk of each tree step);
+sweep configs `none_m3` (Strong Arm + Field Medic + Second Wind, 625 Valour), `none_m10` (the ten-perk collection, 3,125 Valour: Strong Arm, Crushing Blows, Field Medic, Second Wind, Marathoner, Iron Lungs, Deep Pockets,
+Sprinter's Legs, Ghost, Featherfoot), `none_m10h` (+ a Lv4 hammer), `safe_m10h`. Same 12 seeds as the main sweep, paired by seed and run. **An OPTIMISTIC bound** — every character gets everything from floor 30, which no real
+route to those perks allows. Tables: `docs/bot_runs/round44_meta.md`.
+
+| config (12 seeds × 3 characters) | deepest floor, median run 1 / 2 / 3 | best character | paired Δ vs the baseline (floors deeper; 95% CI) |
+|---|---|---|---|
+| `none` — baseline | 17.5 / 20 / 20 | floor 11 | — |
+| + 3 perks | 17 / 17 / 21 | floor 10 | +0.4 [−1.0, +1.8] |
+| + 10 perks | 16.5 / 17.5 / 20 | floor 7 | +1.0 [−0.7, +2.7] |
+| + 10 perks + Lv4 hammer | 18 / 20 / 19.5 | floor 11 | −0.3 [−2.0, +1.3] |
+| `safe` — baseline | 22.5 / 26 / 25 | floor 16 | — |
+| `safe` + 10 perks + Lv4 hammer | 20 / 25 / 24.5 | floor 10 | +1.2 [−0.2, +2.6] |
+
+**Maxed permanent perks and a levelled weapon move the bot by about one floor, which is inside the noise; no character reached the lobby; the deepest of 144 was floor 7.** The perks work (early stamina 138 vs 84 — checked in the
+logs); they simply do not touch what limits the run. **What does:** (1) **kill capacity.** The briefed kit is two 10-use hammers and 8 rounds: the dive bot makes 19.5 swings + 8 shots for 20.3 kills a character (1.36 actions a
+kill) — it kills in about one swing already, so +damage has nothing to improve — and a full descent holds a median **88 corridor dead** (67–128 over 12 seeds, per `get_floor_zombie_count`, before stair enemies, bosses and the
+flats). (2) **Unarmed, the hit rate triples:** 0.77 stage-hits a floor while a weapon works, 2.34 once every hammer is broken and the gun is empty; 19 of 36 dive characters died on a floor they entered unarmed; the median
+floor the weapons ran out on is 19, which is where `none` dies. No permanent perk adds durability, swings, rounds or weapon finds (Tinkerer is scrap, not weapons). **(3) The permanent tier is priced in depth the bot does not
+reach.** Valour per game (`d + ⌊d²/60⌋`, +10 escaped, summed over three characters), from the sweep's own deaths: `none` 38.8, `safe` 19.1, `need` 10.6, `all` 11.5 — the ten-perk set (3,125) is **80 games** at `none`'s rate,
+164 at `safe`'s, ~290 at `need`/`all`'s; the first 150-Valour perk 4-14 games. Reaching the lobby pays ~165 a game (19 games for the set). **Valour pays for depth only, so the scavenging policies earn a third to a half of
+what the dive earns** — the economy that is meant to reward looting pays more for not looting. The heirloom / door-stash tier needs an escape first (1/2/3 lobby-door crossings), so it cannot help anyone who has not already won.
+Caveats: one bot policy, melee-first; the hammer tree is a placeholder; a human uses stealth, thrown cans, Molotovs, corpse recovery (the bot does none of these), so the human ceiling is unknown — see the report.
+
 ### Open (found, not fixed — the owner's call or not yet understood)
 
 1. **The unexplained pin beside a defender's fight** (above). If it is real it is a softlock-class bug; the next sweep's `[stall]` trace should show what the player is pressed against.

@@ -133,6 +133,8 @@ var _kite_until: float = 0.0
 var _exit_gate: float = 0.0
 var _leave_t: float = 0.0
 var _door_wait: float = 0.0
+var perm_ids: Array = []              # META CEILING: permanent perks (the Valour shop's) switched on for the whole playthrough
+var hammer_level: int = 1             # META CEILING: the first hammer arrives levelled (what a stashed heirloom / a bench-forged weapon would be); first perk of each tree step
 var debug_heirloom: bool = false      # gift: the first hammer is Lv3, so the lobby door has something to offer (tests the door panel without a three-hour run)
 var _hold_t: float = 0.0
 
@@ -179,6 +181,10 @@ func _ready() -> void:
 			debug_unarmed = true
 		elif a == "--heirloom":
 			debug_heirloom = true
+		elif a.begins_with("--perm="):
+			perm_ids = a.substr(7).split(",", false)
+		elif a.begins_with("--hammer-level="):
+			hammer_level = clampi(int(a.substr(15)), 1, 7)
 		elif a == "--power":
 			debug_power = true
 		elif a == "--no-saveload":
@@ -226,6 +232,14 @@ func _new_playthrough() -> void:
 	WorldState.survivor_rule = true          # the building holds its survivors, like a real New Game
 	for _i in range(start_run - 1):
 		WorldState.advance_run()
+	if not perm_ids.is_empty():
+		WorldState.permanent_perks = []
+		for id in perm_ids:
+			if not Progression.perk_info(String(id)).is_empty() and WorldState.permanent_perks.size() < Progression.PERMANENT_CAP:
+				WorldState.permanent_perks.append(String(id))
+			else:
+				push_error("bot: unknown permanent perk %s" % id)
+		_event("KIT", "permanent perks on: %s" % str(WorldState.permanent_perks))
 	WorldState.is_first_run = false
 	WorldState.tutorial_completed = true
 	WorldState.opener_seen = not with_opener
@@ -269,6 +283,19 @@ func _give_kit() -> void:
 		for inst1 in WorldState.inventory:
 			if inst1.item_id == "002":
 				inst1.level = 3
+				break
+	if hammer_level > 1:
+		for inst2 in WorldState.inventory:
+			if inst2.item_id == "002":
+				while inst2.level < hammer_level:
+					var choices: Array = WeaponUpgrades.next_choices(inst2)
+					var base_max: int = inst2.get_max_durability()
+					inst2.level += 1
+					if not choices.is_empty():
+						inst2.perks.append(choices[0])
+					WorldState._apply_durability_headroom(inst2, base_max)
+				if inst2.get_max_durability() > 0:
+					inst2.current_durability = inst2.get_max_durability()
 				break
 	if debug_power:
 		WorldState.elevator_fuses_loaded = WorldState.ELEVATOR_FUSES_NEEDED

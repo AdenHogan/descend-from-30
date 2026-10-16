@@ -33,6 +33,13 @@ CONFIGS = {
     "safe": ["--loot=need", "--avoid-breach"],                 # a prudent scavenger: loot while short, never enter a breach room
     # (the coverage configs are handed 3 fuses and some notes — gifts that change the balance and exist ONLY so the fuse box, the lift, the shop's
     #  buy / sell and the workbench get exercised; never used for a balance number)
+    # META CEILING (never a balance number for a first-time player): the dive / prudent-scavenger bots with the permanent tiers switched on.
+    # m3 = three cheap perks (~625 Valour: Strong Arm, Field Medic, Second Wind); m10 = the full ten-perk collection (~3,100 Valour); h4 = the first
+    # hammer arrives Lv4 (a stashed / forged heirloom). An OPTIMISTIC bound: every character gets them, from floor 30.
+    "none_m3": ["--loot=none", "--crowbar=liberty", "--perm=U_melee_s,U_heal,U_stam_s"],
+    "none_m10": ["--loot=none", "--crowbar=liberty", "--perm=U_melee_s,U_melee_m,U_heal,U_stam_s,U_stam_m,U_stam_l,U_slot,U_speed_m,U_quiet_m,U_sprint_m"],
+    "none_m10h": ["--loot=none", "--crowbar=liberty", "--hammer-level=4", "--perm=U_melee_s,U_melee_m,U_heal,U_stam_s,U_stam_m,U_stam_l,U_slot,U_speed_m,U_quiet_m,U_sprint_m"],
+    "safe_m10h": ["--loot=need", "--avoid-breach", "--hammer-level=4", "--perm=U_melee_s,U_melee_m,U_heal,U_stam_s,U_stam_m,U_stam_l,U_slot,U_speed_m,U_quiet_m,U_sprint_m"],
     "god": ["--loot=all", "--god", "--elevator", "--rest", "--balcony", "--fuses=3", "--notes=300"],
     # the later characters, started part-way down (the world has decayed N-1 time skips): run 2 and 3 content without a 3-hour descent
     "god2": ["--loot=all", "--god", "--elevator", "--rest", "--balcony", "--fuses=3", "--notes=300", "--start-run=2", "--start-floor=24"],
