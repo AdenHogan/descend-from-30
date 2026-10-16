@@ -93,6 +93,7 @@ var _last_scene: String = ""
 var _room_in_t: float = -1.0               # game time the current room scene was entered
 var _bounces: Dictionary = {}              # apartment id -> times the game put the player back in the corridor within 3 s of entering
 var _bounce_trace: int = 0
+var _stall_test_done: bool = false
 var _hb_t: float = 0.0
 
 # --- bookkeeping ---
@@ -328,6 +329,9 @@ func _physics_process(delta: float) -> void:
 	var p = _player()
 	if watch != null:
 		watch.tick(p, delta, _activity_text())
+		if not _stall_test_done and p != null and t > 6.0 and OS.get_environment("BOT_STALL_TEST") != "":
+			_stall_test_done = true
+			watch.stall_trace = 2                       # (debugging the tracer itself: print two frames)
 		if watch.stall_trace > 0 and p != null:
 			watch.stall_trace -= 1
 			_print_stall_frame(p)
@@ -1335,7 +1339,21 @@ func _print_stall_frame(p) -> void:
 	for i in p.get_slide_collision_count():
 		var o = p.get_slide_collision(i).get_collider()
 		cols.append("%s@%.0f" % [str(o.name), o.global_position.x if o is Node2D else -1.0])
-	print("      [stall] f=%d x=%.2f vx=%.0f stuck=%.2f phased=%d keys=%s mt=%s(%.0f,anchor=%s) back=%s scav=%s atk=%s(cd=%.2f) push=%s [dying=%s escaping=%s cut=%s lash=%s pack=%s switch=%s listen=%s dead=%s hit=%s] cols=%s zs=%s | %s" % [Engine.get_physics_frames(), p.global_position.x, p.velocity.x, float(p._stuck_time), p._phased_bodies.size(), str(_kb), str(p.has_move_target), p.move_target_x, str(p.pending_anchor.name) if p.pending_anchor != null and is_instance_valid(p.pending_anchor) else "-", str(p.back_spot != null), str(WorldState.is_scavenge_mode), str(p.is_attacking), float(p.attack_cooldown_timer), str(p.is_pushing), str(p.is_dying), str(p.escaping), str(p.is_cutscene), str(p.is_lashing), str(p.pack_phase), str(p.is_switching_mode), str(p.is_listening), str(p.is_dead), str(p.is_hit), str(cols), str(near), _activity_text().left(110)])
+	# every body physically touching the player right now (the thing a held key is pressing against, when the slide list is empty)
+	var overl: Array = []
+	var shape_node = p.get_node_or_null("CollisionShape2D")
+	if shape_node != null and shape_node.shape != null:
+		var q := PhysicsShapeQueryParameters2D.new()
+		q.shape = shape_node.shape
+		q.transform = shape_node.global_transform
+		q.collision_mask = 0xFFFFFFFF
+		q.exclude = [p.get_rid()]
+		for r in p.get_world_2d().direct_space_state.intersect_shape(q, 8):
+			var c = r["collider"]
+			if c is Node2D:
+				overl.append("%s@%.0f(L%d,M%d)" % [str(c.name), c.global_position.x, int(c.get("collision_layer")) if c.get("collision_layer") != null else -1, int(c.get("collision_mask")) if c.get("collision_mask") != null else -1])
+	print("      [stall] wall=%s floor=%s real_v=%s overlapping=%s" % [str(p.is_on_wall()), str(p.is_on_floor()), str(p.get_real_velocity()), str(overl)])
+	print("      [stall] f=%d x=%.2f vx=%.0f stuck=%.2f phased=%d keys=%s mt=%s(%.0f,anchor=%s) back=%s bal=%s scav=%s atk=%s(cd=%.2f) push=%s [dying=%s escaping=%s cut=%s lash=%s pack=%s switch=%s listen=%s dead=%s hit=%s] cols=%s zs=%s | %s" % [Engine.get_physics_frames(), p.global_position.x, p.velocity.x, float(p._stuck_time), p._phased_bodies.size(), str(_kb), str(p.has_move_target), p.move_target_x, str(p.pending_anchor.name) if p.pending_anchor != null and is_instance_valid(p.pending_anchor) else "-", str(p.back_spot != null), str(p.on_balcony_plane), str(WorldState.is_scavenge_mode), str(p.is_attacking), float(p.attack_cooldown_timer), str(p.is_pushing), str(p.is_dying), str(p.escaping), str(p.is_cutscene), str(p.is_lashing), str(p.pack_phase), str(p.is_switching_mode), str(p.is_listening), str(p.is_dead), str(p.is_hit), str(cols), str(near), _activity_text().left(110)])
 
 
 func _activity_text() -> String:
