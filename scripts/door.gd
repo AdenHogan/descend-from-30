@@ -213,6 +213,7 @@ func _is_sealed() -> bool:
 
 
 func _ready() -> void:
+	add_to_group("door_interact")         # survivor.gd asks which doors the player is at (a Talk must not eat a door's own press)
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
 	# LMB on the door mirrors the X-key action (force / unlock / barricade).
@@ -505,7 +506,7 @@ func _process(delta: float) -> void:
 	if Input.is_action_just_pressed("interact") and not TutorialManager.interact_guarded():
 		match current_state:
 			WorldState.DoorState.OPEN, WorldState.DoorState.BREACHED:
-				if not _merchant_is_nearer():
+				if not _other_is_nearer():
 					_enter_apartment()
 
 	# Listen works in BOTH modes — sound is a first-class read, not a
@@ -531,18 +532,23 @@ func _process(delta: float) -> void:
 				_attempt_barricade_removal()
 
 
-## Floor 15 has a maintenance door (x 929) AND the merchant's lift (x 1029.5), and the two reaches overlap for ~35 px: one
-## [interact] press there used to take BOTH — the shop opened while the player was walked into the maintenance room (found by
-## the descent bot, round 44). Where they overlap the NEARER one answers the press (merchant.gd asks the same of the door).
-func _merchant_is_nearer() -> bool:
+## The maintenance door (x 929) sits close to the lift (x 1029.5), and its reach overlaps the lift's on every maintenance floor: on
+## floor 15 the MERCHANT's, on any other the elevator's [E] Ride once it is powered. One [interact] press there used to take BOTH — the
+## shop opened (or the car was boarded) while the player was walked into the maintenance room (found by the descent bot, round 44).
+## Where they overlap the NEARER one answers the press (merchant.gd and building_floors.gd ask the same of the door).
+func _other_is_nearer() -> bool:
 	if not is_maintenance:
 		return false
 	var player = get_tree().get_first_node_in_group("player")
 	if player == null:
 		return false
+	var mine: float = absf(player.global_position.x - global_position.x)
 	for n in get_parent().get_children():
 		if n != self and n.has_method("_open_shop") and n.get("player_nearby") == true:
-			return absf(player.global_position.x - n.global_position.x) < absf(player.global_position.x - global_position.x)
+			return absf(player.global_position.x - n.global_position.x) < mine
+	var parent = get_parent()
+	if parent != null and parent.has_method("lift_answers_press") and bool(parent.call("lift_answers_press", player)):
+		return absf(player.global_position.x - float(parent.get("ELEVATOR_X"))) < mine
 	return false
 
 

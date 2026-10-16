@@ -36,6 +36,7 @@ func _ready() -> void:
 	await _test_enemy_balcony_plane()
 	await _test_balcony_spawn_and_memory()
 	await _test_descent_lands_on_plane()
+	await _test_pan_does_not_wait_for_a_renderer()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -794,3 +795,18 @@ func _test_descent_lands_on_plane() -> void:
 	check(absf(p.global_position.x - float(room.balcony_centers[0])) <= BalconyGeo.HALF_WIDTH + 0.5, "inside the balcony rails")
 	room.free()
 	await get_tree().process_frame
+
+
+## The pan ends with "the picture is on screen" — `RenderingServer.frame_post_draw`, which a HEADLESS run never emits: the pan hung there for
+## ever (found by the descent bot, round 44 — a character stood frozen mid-descent for an hour of game time). `BalconyPan._drawn()` waits
+## one plain frame there instead. A hang is the failure, so the wait is bounded.
+func _test_pan_does_not_wait_for_a_renderer() -> void:
+	print("[the pan's last frame never waits on a renderer that is not there]")
+	var st := {"done": false}
+	var waiter := func() -> void:
+		await BalconyPan._drawn()
+		st["done"] = true
+	waiter.call()
+	for i in range(12):
+		await get_tree().process_frame
+	check(st["done"], "BalconyPan._drawn() comes back within a dozen frames (headless: %s)" % str(DisplayServer.get_name() == "headless"))

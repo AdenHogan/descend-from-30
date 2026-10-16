@@ -3,7 +3,9 @@ extends Node
 # Floor 15 is both a MERCHANT floor (the lift at x 1029.5) and a MAINTENANCE floor (the staff door at x 929). Their reaches overlap
 # for ~35 px, and ONE [interact] press there used to take both: the shop opened while the player was walked off into the
 # maintenance room (found by the descent bot, round 44 — it looked like a bot "stuck" until traced). Where they overlap the NEARER
-# one answers the press, and exactly one does.
+# one answers the press, and exactly one does. The same overlap exists on EVERY maintenance floor once the elevator is powered (the lift's
+# [E] Ride reaches 80 px each side of x 1029.5, the staff door's zone out to ~990): a bot on floor 3 boarded the lift when it pressed
+# [E] at the staff door.
 # Run:  godot --headless res://tests/floor15_test.tscn
 
 var failures: int = 0
@@ -20,6 +22,7 @@ func check(cond: bool, label: String) -> void:
 func _ready() -> void:
 	print("=== floor 15: merchant + maintenance door ===")
 	await _test_overlap()
+	await _test_powered_lift_overlap()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -84,11 +87,11 @@ func _test_overlap() -> void:
 	p.global_position = Vector2(950.0, p.global_position.y)
 	md.player_nearby = true
 	merchant.player_nearby = true
-	check(not md._merchant_is_nearer() and merchant._maintenance_door_is_nearer(p), "x 950, both in reach: the door answers, the lift yields")
+	check(not md._other_is_nearer() and merchant._maintenance_door_is_nearer(p), "x 950, both in reach: the door answers, the lift yields")
 	p.global_position = Vector2(1000.0, p.global_position.y)
-	check(md._merchant_is_nearer() and not merchant._maintenance_door_is_nearer(p), "x 1000, both in reach: the lift answers, the door yields")
+	check(md._other_is_nearer() and not merchant._maintenance_door_is_nearer(p), "x 1000, both in reach: the lift answers, the door yields")
 	p.global_position = Vector2(979.0, p.global_position.y)
-	check(md._merchant_is_nearer() != merchant._maintenance_door_is_nearer(p) or (not md._merchant_is_nearer() and merchant._maintenance_door_is_nearer(p)),
+	check(md._other_is_nearer() != merchant._maintenance_door_is_nearer(p) or (not md._other_is_nearer() and merchant._maintenance_door_is_nearer(p)),
 		"x 979 (about halfway): exactly one of them answers")
 	# the real press near the lift: the shop opens, and the door does NOT start walking the player into the maintenance room
 	var r2: Dictionary = await _press_at(p, md, merchant, 1000.0, true)
@@ -103,4 +106,41 @@ func _test_overlap() -> void:
 	merchant.player_nearby = false
 	md.player_nearby = true
 	p.global_position = Vector2(925.0, p.global_position.y)
-	check(not md._merchant_is_nearer(), "at the staff door alone, nothing stands in its way")
+	check(not md._other_is_nearer(), "at the staff door alone, nothing stands in its way")
+
+
+func _test_powered_lift_overlap() -> void:
+	print("[a maintenance floor with a POWERED lift]")
+	WorldState.dev_seed = 424242
+	WorldState.new_game()
+	WorldState.dev_seed = 0
+	WorldState.is_first_run = false
+	WorldState.tutorial_completed = true
+	WorldState.current_floor = 21               # a maintenance floor (3,6,…,27) that is not a merchant floor
+	WorldState.spawn_source = "stair"
+	WorldState.stair_spawn_side = WorldState.canonical_stair_arrival_side(21)
+	WorldState.stair_direction = "down"
+	WorldState.god_mode = true
+	WorldState.elevator_fuses_loaded = WorldState.ELEVATOR_FUSES_NEEDED
+	WorldState.elevator_powered = true
+	var bf = load("res://scenes/building_floors.tscn").instantiate()
+	add_child(bf)
+	for i in range(40):
+		await get_tree().physics_frame
+	var p = get_tree().get_first_node_in_group("player")
+	var md = bf.get_node_or_null("MaintenanceDoor")
+	check(p != null and md != null and WorldState.can_ride_elevator(), "floor 21 has the player, the staff door and a powered, rideable lift")
+	if p == null or md == null:
+		return
+	md.player_nearby = true
+	p.global_position = Vector2(960.0, p.global_position.y)
+	check(bf.lift_answers_press(p), "x 960 is inside the lift's reach too")
+	check(not md._other_is_nearer() and bf._maintenance_door_is_nearer(p), "x 960, both in reach: the staff door answers, the lift yields")
+	p.global_position = Vector2(1000.0, p.global_position.y)
+	check(md._other_is_nearer() and not bf._maintenance_door_is_nearer(p), "x 1000, both in reach: the lift answers, the staff door yields")
+	# (A real press near the lift would start the boarding and a scene change; the rule is asked directly.)
+	p.global_position = Vector2(929.0, p.global_position.y)
+	check(not md._other_is_nearer(), "at the staff door itself nothing stands in its way")
+	md.player_nearby = false
+	p.global_position = Vector2(1040.0, p.global_position.y)
+	check(bf.lift_answers_press(p) and not bf._maintenance_door_is_nearer(p), "at the lift alone the lift answers")

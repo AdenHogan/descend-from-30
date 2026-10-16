@@ -98,7 +98,7 @@ func _process(_delta: float) -> void:
 			_open_shop()
 
 
-## The maintenance door's reach overlaps this one on floor 15 — the nearer answers the press (door.gd `_merchant_is_nearer`).
+## The maintenance door's reach overlaps this one on floor 15 — the nearer answers the press (door.gd `_other_is_nearer`).
 func _maintenance_door_is_nearer(player) -> bool:
 	if player == null:
 		return false

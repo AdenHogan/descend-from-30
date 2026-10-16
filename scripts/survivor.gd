@@ -1219,8 +1219,22 @@ func can_talk() -> bool:
 	return false
 
 
+## A door the player is at, and nearer to than to me, answers the press (a defender posts ~50 px from the door it holds: the talk claim
+## used to eat the press at the door's OWN centre, so a player standing in front of the door got a greeting, over and over — found by the
+## descent bot, round 44). Mirrors door.gd `_other_is_nearer`: where reaches overlap, the nearer answers.
+func _door_answers_instead() -> bool:
+	var p := _player()
+	if p == null:
+		return false
+	var mine: float = absf(p.global_position.x - global_position.x)
+	for d in get_tree().get_nodes_in_group("door_interact"):
+		if is_instance_valid(d) and d.get("player_nearby") == true and absf(p.global_position.x - d.global_position.x) < mine:
+			return true
+	return false
+
+
 func _update_prompt() -> void:
-	var near: bool = can_talk() and _player_gap() <= TALK_RANGE and not WorldState.loot_open
+	var near: bool = can_talk() and _player_gap() <= TALK_RANGE and not WorldState.loot_open and not _door_answers_instead()
 	if near != _talk_near:
 		_talk_near = near
 		if near:

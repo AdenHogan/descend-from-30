@@ -401,6 +401,30 @@ func _test_talk_claim() -> void:
 	await _frames(30)
 	check(not d._talk_near, "(setup) out of range, the offer is withdrawn")
 	check(not WorldState.interact_claimed_by_talk() and not TutorialManager.interact_guarded(), "…and the claim has lapsed (the door is the door again)")
+	# the player AT a door (nearer to it than to the survivor) gets the DOOR: the survivor stands down, claims nothing, and the press is the door's
+	var dn := Area2D.new()
+	dn.set_script(preload("res://tests/stub_door.gd"))
+	bf.add_child(dn)
+	dn.global_position = Vector2(300.0, 386.0)
+	dn.add_to_group("door_interact")
+	p.global_position = Vector2(620.0, 386.0)
+	await _frames(20)
+	check(d._talk_near, "(setup) with no door about, the defender 20 px away offers Talk")
+	dn.player_nearby = true
+	dn.global_position = Vector2(628.0, 386.0)          # the door's own centre 8 px away, the defender 20
+	await _frames(40)
+	check(d._door_answers_instead(), "a door at the player (8 px) nearer than the defender (20 px) answers the press")
+	check(not d._talk_near and not WorldState.interact_claimed_by_talk(), "…so the survivor withdraws Talk and claims nothing (the door's press is not swallowed)")
+	dn.global_position = Vector2(560.0, 386.0)          # the door 60 px off, the defender 20 px
+	await _frames(40)
+	check(not d._door_answers_instead() and d._talk_near and WorldState.interact_claimed_by_talk(), "a door FARTHER than the defender does not (the survivor still takes the press)")
+	dn.player_nearby = false
+	dn.global_position = Vector2(628.0, 386.0)
+	await _frames(40)
+	check(not d._door_answers_instead() and d._talk_near, "a nearer door the player is not AT (out of its reach) does not stand the survivor down")
+	dn.queue_free()
+	p.global_position = Vector2(1000.0, 386.0)
+	await _frames(30)
 	# a survivor who cannot talk (mid-fight / hiding) claims nothing
 	var h := _survivor(bf, "hider", "", 0, 1000.0)
 	await _frames(20)

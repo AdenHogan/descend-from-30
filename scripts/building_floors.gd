@@ -716,11 +716,29 @@ func _elevator_ride_process(player) -> void:
 		return
 	if absf(player.global_position.x - ELEVATOR_X) < ELEVATOR_RIDE_RANGE:
 		HUD.show_world_prompt(self, "Elevator (powered)  [{interact}] Ride", Vector2(ELEVATOR_X, 300.0))
-		if Input.is_action_just_pressed("interact") and not TutorialManager.interact_guarded():
+		if Input.is_action_just_pressed("interact") and not TutorialManager.interact_guarded() and not _maintenance_door_is_nearer(player):
 			HUD.hide_world_prompt(self)
 			_board_elevator(elevator)
 	else:
 		HUD.hide_world_prompt(self)
+
+
+## The staff door (x 929) and the lift's reach overlap by ~40 px: there the NEARER one answers [interact] (door.gd `_other_is_nearer`).
+func _maintenance_door_is_nearer(player) -> bool:
+	var md = get_node_or_null("MaintenanceDoor")
+	if md == null or md.get("player_nearby") != true:
+		return false
+	return absf(player.global_position.x - md.global_position.x) <= absf(player.global_position.x - ELEVATOR_X)
+
+
+## True while the powered lift is offering [E] Ride to this player (what the maintenance door asks before it answers a press).
+func lift_answers_press(player) -> bool:
+	if _elevator_boarding or not WorldState.can_ride_elevator():
+		return false
+	var elevator = get_node_or_null("Elevator")
+	if elevator == null or not elevator.visible:
+		return false
+	return absf(player.global_position.x - ELEVATOR_X) < ELEVATOR_RIDE_RANGE
 
 
 var _elevator_boarding: bool = false

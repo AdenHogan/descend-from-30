@@ -259,7 +259,7 @@ func pan_down(target_apartment: String, slot: int, roped: bool) -> void:
 			player.flash_hurt()
 		WorldState.balcony_arrival_hurt = true
 		WorldState.balcony_pending_injury = 0
-	await RenderingServer.frame_post_draw   # make sure the final pose/flare is on screen
+	await _drawn()   # make sure the final pose/flare is on screen
 
 	# HOLD THE LAST FRAME across the scene swap. change_scene_to_file frees the
 	# old scene and instantiates the new one on the next idle frame, and that gap
@@ -282,8 +282,18 @@ func pan_down(target_apartment: String, slot: int, roped: bool) -> void:
 			if ncam != null:
 				ncam.reset_smoothing()
 				ncam.force_update_scroll()
-		await RenderingServer.frame_post_draw
+		await _drawn()
 		cover.queue_free()
+
+
+## "The picture is on screen" — one rendered frame later. A HEADLESS run has no renderer and never emits `frame_post_draw`, so the pan
+## used to hang for ever at touchdown there (found by the descent bot, round 44): wait a plain frame instead, and the whole drop can be
+## driven by a test or a bot.
+func _drawn() -> void:
+	if DisplayServer.get_name() == "headless":
+		await get_tree().process_frame
+	else:
+		await RenderingServer.frame_post_draw
 
 
 func _shred_material() -> ShaderMaterial:
