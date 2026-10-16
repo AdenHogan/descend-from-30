@@ -1335,7 +1335,7 @@ func _print_stall_frame(p) -> void:
 	for i in p.get_slide_collision_count():
 		var o = p.get_slide_collision(i).get_collider()
 		cols.append("%s@%.0f" % [str(o.name), o.global_position.x if o is Node2D else -1.0])
-	print("      [stall] f=%d x=%.2f vx=%.0f stuck=%.2f phased=%d keys=%s atk=%s(cd=%.2f) push=%s [dying=%s escaping=%s cut=%s lash=%s pack=%s switch=%s listen=%s dead=%s hit=%s] cols=%s zs=%s | %s" % [Engine.get_physics_frames(), p.global_position.x, p.velocity.x, float(p._stuck_time), p._phased_bodies.size(), str(_kb), str(p.is_attacking), float(p.attack_cooldown_timer), str(p.is_pushing), str(p.is_dying), str(p.escaping), str(p.is_cutscene), str(p.is_lashing), str(p.pack_phase), str(p.is_switching_mode), str(p.is_listening), str(p.is_dead), str(p.is_hit), str(cols), str(near), _activity_text().left(110)])
+	print("      [stall] f=%d x=%.2f vx=%.0f stuck=%.2f phased=%d keys=%s mt=%s(%.0f,anchor=%s) back=%s scav=%s atk=%s(cd=%.2f) push=%s [dying=%s escaping=%s cut=%s lash=%s pack=%s switch=%s listen=%s dead=%s hit=%s] cols=%s zs=%s | %s" % [Engine.get_physics_frames(), p.global_position.x, p.velocity.x, float(p._stuck_time), p._phased_bodies.size(), str(_kb), str(p.has_move_target), p.move_target_x, str(p.pending_anchor.name) if p.pending_anchor != null and is_instance_valid(p.pending_anchor) else "-", str(p.back_spot != null), str(WorldState.is_scavenge_mode), str(p.is_attacking), float(p.attack_cooldown_timer), str(p.is_pushing), str(p.is_dying), str(p.escaping), str(p.is_cutscene), str(p.is_lashing), str(p.pack_phase), str(p.is_switching_mode), str(p.is_listening), str(p.is_dead), str(p.is_hit), str(cols), str(near), _activity_text().left(110)])
 
 
 func _activity_text() -> String:
