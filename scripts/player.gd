@@ -536,6 +536,14 @@ func _update_unjam(wants_move: bool, moved: float) -> void:
 		if not is_instance_valid(b):
 			_phased_bodies.remove_at(i)
 			continue
+		# A zombie takes the exception off ITSELF when it re-solidifies (enemy_zombie_standard._try_resolidify / the big one:
+		# they remove the mutual exception once the player is horizontally clear of the body). The list still said "phased", the
+		# body was a wall again, and the net — which never re-adds a body it believes it already phases — stood by while the
+		# player was pinned for good (found by the descent bot in god mode: stuck timer 30 s and counting, "phased=3").
+		# So an entry whose exception is gone is simply not phased any more.
+		if not get_collision_exceptions().has(b):
+			_phased_bodies.remove_at(i)
+			continue
 		if absf(b.global_position.x - global_position.x) > UNJAM_CLEAR_RANGE:
 			remove_collision_exception_with(b)
 			_phased_bodies.remove_at(i)

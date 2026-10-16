@@ -25,6 +25,8 @@ func _ready() -> void:
 	await _test_unstick(load("res://scenes/enemy_zombie_standard.tscn"), "standard zombie")
 	await _test_unstick(load("res://scenes/enemy_zombie_big.tscn"), "big zombie / boss (no passable API)")
 	await _test_unstick(load("res://scenes/enemy_zombie_crawler.tscn"), "crawler (wide 80px body)")
+	await _test_net_survives_zombie_resolidify(load("res://scenes/enemy_zombie_standard.tscn"), "standard zombie")
+	await _test_net_survives_zombie_resolidify(load("res://scenes/enemy_zombie_big.tscn"), "big zombie")
 	await _test_wall_only_no_error()
 	await _test_resolidify_clearance()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
@@ -65,6 +67,54 @@ func _test_unstick(scene: PackedScene, label: String) -> void:
 	check(end_x > 700.0, "%s: player got PAST the wall (x %.1f -> %.1f)" % [label, start_x, end_x])
 	# Once clear, the body must re-solidify (exception dropped) — the net is momentary.
 	check(not (z in p.get("_phased_bodies")), "%s: body released from the phase list once cleared" % label)
+	p.queue_free()
+	if is_instance_valid(z):
+		z.queue_free()
+	WorldState.god_mode = false
+	await get_tree().physics_frame
+
+
+func _test_net_survives_zombie_resolidify(scene: PackedScene, label: String) -> void:
+	# The descent bot found the net defeated for good: it phased a zombie, the ZOMBIE then re-solidified itself
+	# (taking the mutual collision exception off with its own remove_collision_exception_with — what _try_resolidify does
+	# once the player is horizontally clear of it), the player's phase list still listed it, so the net never phased it
+	# again and the player stood pinned with the stuck timer climbing. The net must notice the exception is gone.
+	print("[the net still frees the player after a %s re-solidifies itself mid-overlap]" % label)
+	WorldState.new_game()
+	WorldState.god_mode = true
+	var p = load("res://scenes/player.tscn").instantiate()
+	add_child(p)
+	p.global_position = Vector2(600, 388)
+	var z = scene.instantiate()
+	add_child(z)
+	z.global_position = Vector2(645, 372)
+	z.set("state", "idle")
+	z.set_physics_process(false)
+	for i in range(3):
+		await get_tree().physics_frame
+	p.set("has_move_target", true)
+	p.set("move_target_x", 780.0)
+	# wait until the net has phased it and the player is sliding INTO the body
+	var phased := false
+	for f in range(200):
+		await get_tree().physics_frame
+		p.set("has_move_target", true)
+		p.set("move_target_x", 780.0)
+		if z in p.get("_phased_bodies") and p.global_position.x >= z.global_position.x - 14.0:
+			phased = true
+			break
+	check(phased, "%s: the net phased it and the player is inside its body (x %.1f, body %.1f)" % [label, p.global_position.x, z.global_position.x])
+	# the zombie re-solidifies itself, exactly as _try_resolidify does — the list is NOT told
+	z.remove_collision_exception_with(p)
+	p.remove_collision_exception_with(z)
+	z.set("passable_to_player", false)
+	check(z in p.get("_phased_bodies"), "(setup) the player's list still says phased while the body is solid again")
+	var x0: float = p.global_position.x
+	for f in range(180):                    # 3 s: the 0.5 s dwell, then through
+		await get_tree().physics_frame
+		p.set("has_move_target", true)
+		p.set("move_target_x", 780.0)
+	check(p.global_position.x > z.global_position.x + 20.0, "%s: the player still got PAST it (x %.1f -> %.1f, body at %.1f)" % [label, x0, p.global_position.x, z.global_position.x])
 	p.queue_free()
 	if is_instance_valid(z):
 		z.queue_free()
