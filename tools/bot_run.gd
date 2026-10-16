@@ -78,6 +78,7 @@ var loot = null
 var watch = null
 var wall_start_ms: int = 0
 var only_apts: Array = []
+var avoid_breach: bool = false
 var dt: float = 0.0
 var want_scav: bool = false
 var anomalies: Array = []
@@ -89,6 +90,9 @@ var _trace_t: float = 0.0
 var _dbg_cut: bool = false
 var _raw_floor: int = -1
 var _last_scene: String = ""
+var _room_in_t: float = -1.0               # game time the current room scene was entered
+var _bounces: Dictionary = {}              # apartment id -> times the game put the player back in the corridor within 3 s of entering
+var _bounce_trace: int = 0
 var _hb_t: float = 0.0
 
 # --- bookkeeping ---
@@ -160,6 +164,8 @@ func _ready() -> void:
 			loot_mode = a.substr(7)
 		elif a.begins_with("--apt="):
 			only_apts = a.substr(6).split(",")
+		elif a == "--avoid-breach":
+			avoid_breach = true
 		elif a.begins_with("--scrap="):
 			debug_scrap = int(a.substr(8))
 		elif a.begins_with("--notes="):
@@ -188,6 +194,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS     # the cold open pauses the tree: the bot must keep ticking to press through it
 	loot = BotLoot.new(self, loot_mode)
 	loot.only_apts = only_apts
+	loot.avoid_breach = avoid_breach
 	watch = BotWatch.new(self)
 	wall_start_ms = Time.get_ticks_msec()
 	set_physics_process(false)
@@ -363,7 +370,22 @@ func _physics_process(delta: float) -> void:
 	if sp != _last_scene and sp != "":
 		if _last_scene != "":
 			_event("SCENE", "%s -> %s (floor %d, x=%d, keys=%s, apartment=%s)" % [_last_scene.get_file(), sp.get_file(), WorldState.current_floor, int(p.global_position.x), str(_kb), str(WorldState.current_apartment_id)])
+			# a flat the game puts the player straight back out of (seen once in 36 runs: 60 enter / leave cycles of one door in 150 s)
+			if _last_scene.ends_with("/room.tscn") and _room_in_t >= 0.0 and t - _room_in_t < 3.0 and (loot == null or loot.room_started() == false):
+				var apt := str(WorldState.current_apartment_id)
+				_bounces[apt] = int(_bounces.get(apt, 0)) + 1
+				if int(_bounces[apt]) == 2:
+					_bounce_trace = 150
+				if int(_bounces[apt]) >= 4 and loot != null:
+					_anomaly("ENTER_EXIT_LOOP", "floor %d apt %s: the game put the player back in the corridor %d times within 3 s of entering (x=%d, keys=%s)" % [WorldState.current_floor, apt, int(_bounces[apt]), int(p.global_position.x), str(_kb)])
+					loot.done[apt] = "bounced out by the game"
+					_bounces[apt] = 0
 		_last_scene = sp
+		_room_in_t = t if sp.ends_with("/room.tscn") else -1.0
+	if _bounce_trace > 0 and get_tree().current_scene != null and str(get_tree().current_scene.scene_file_path).ends_with("/room.tscn"):
+		_bounce_trace -= 1
+		var ex = loot.exit_node(get_tree().current_scene) if loot != null else null
+		print("      [bounce] t=%.2f x=%.1f vx=%.0f busy=%s cut=%s keys=%s exit_x=%s overlaps=%s stairs_pan=%s" % [t, p.global_position.x, p.velocity.x, str(Transition.busy), str(p.is_cutscene), str(_kb), str(ex.global_position.x) if ex != null else "-", str(ex.overlaps_body(p)) if ex != null else "-", str(StairPan.panning)])
 	var kind_now := _scene_kind(get_tree().current_scene)
 	if kind_now != _kind:
 		if _kind in ["room", "maint"] and loot != null:

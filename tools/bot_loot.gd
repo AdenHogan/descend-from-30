@@ -13,6 +13,7 @@ const MELEE_RANK := {"bat": 100, "sword": 60, "knife": 40}
 
 var bot                                   # the bot_run node (untyped: this file is preloaded by it)
 var only_apts: Array = []                 # debugging: loot only these apartments (--apt=2903,2904)
+var avoid_breach: bool = false            # --avoid-breach: never go into a breach room (a prudent player's rule)
 var mode: String = "need"                 # need = loot while the kit is short · all = every door on the way
 
 # --- per floor ---
@@ -285,6 +286,8 @@ func door_blocker(d) -> String:
 		WorldState.DoorState.OPEN:
 			return ""
 		WorldState.DoorState.BREACHED:
+			if avoid_breach:
+				return "breach room (avoided)"
 			if mode != "all" and WorldState.player_health >= 3:
 				return "breach room, hurt"
 			if bm < 0:
@@ -453,8 +456,8 @@ func _work_door(p) -> bool:
 				_entering_maint = d.get("is_maintenance") == true
 			# a survivor holding this door (a defender posts ~50 px from it) takes the press as [Talk] while the player is nearer to THEM than to
 			# the door (survivor.gd TALK_RANGE): stand on the door itself, as a player has to
-			if _survivor_talk_near(p) and absf(p.global_position.x - d.global_position.x) > 10.0:
-				_walk_to(p, d.global_position.x)
+			if _survivor_talk_near(p) and absf(p.global_position.x - d.global_position.x) > 3.0:
+				bot._walk(signf(d.global_position.x - p.global_position.x))           # (not _walk_to: it stops 8 px short, and the survivor may stand nearer than that)
 				_count_door("door_beside_survivor", apt)
 				return true
 			_enter_wait -= bot.dt

@@ -9,6 +9,7 @@ A configuration is a name and the bot arguments behind it (docs/BOT_RUNS.md):
     none   the briefed kit only, the crowbar handed over at the first barricade        (the round-43 baseline)
     need   scavenge while the kit is short                                              (a prudent player)
     all    scavenge every door on the way                                               (the stress test)
+    safe   scavenge while the kit is short, never enter a breach room                   (a prudent player)
     god    scavenge every door, the player cannot be hurt, ride the lift when powered   (COVERAGE: walks the whole building for errors)
     god2/3 the same, but the 2nd / 3rd character only, from floor 24 down (the decayed building without a three-hour descent)
 
@@ -29,6 +30,7 @@ CONFIGS = {
     "none": ["--loot=none", "--crowbar=liberty"],
     "need": ["--loot=need"],
     "all": ["--loot=all"],
+    "safe": ["--loot=need", "--avoid-breach"],                 # a prudent scavenger: loot while short, never enter a breach room
     "god": ["--loot=all", "--god", "--elevator", "--rest", "--balcony"],
     # the later characters, started part-way down (the world has decayed N-1 time skips): run 2 and 3 content without a 3-hour descent
     "god2": ["--loot=all", "--god", "--elevator", "--rest", "--balcony", "--start-run=2", "--start-floor=24"],
