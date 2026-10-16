@@ -27,6 +27,7 @@ func _ready() -> void:
 	await _test_unstick(load("res://scenes/enemy_zombie_crawler.tscn"), "crawler (wide 80px body)")
 	await _test_net_survives_zombie_resolidify(load("res://scenes/enemy_zombie_standard.tscn"), "standard zombie")
 	await _test_net_survives_zombie_resolidify(load("res://scenes/enemy_zombie_big.tscn"), "big zombie")
+	await _test_freed_phased_body_is_quiet()
 	await _test_wall_only_no_error()
 	await _test_resolidify_clearance()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
@@ -118,6 +119,64 @@ func _test_net_survives_zombie_resolidify(scene: PackedScene, label: String) -> 
 	p.queue_free()
 	if is_instance_valid(z):
 		z.queue_free()
+	WorldState.god_mode = false
+	await get_tree().physics_frame
+
+
+## Collects engine errors while a test runs (OS.add_logger): the gate only scans for SCRIPT ERROR / Parse Error, and an engine ERROR line
+## would otherwise pass unseen.
+class ErrCatch extends Logger:
+	var n: int = 0
+	var last: String = ""
+
+	func _log_error(function: String, file: String, line: int, _code: String, rationale: String, _editor_notify: bool, _error_type: int, _backtraces: Array[ScriptBacktrace]) -> void:
+		n += 1
+		last = "%s:%d in %s: %s" % [file, line, function, rationale]
+
+
+func _test_freed_phased_body_is_quiet() -> void:
+	# The net checks that a body it phased is still excepted. Asking the player for get_collision_exceptions() resolved EVERY
+	# excepted RID to an object — including those of zombies since freed — and logged "Parameter body is null" once per call, per
+	# frame (2469 lines in one bot run). The net must be quiet when a phased neighbour dies and is freed.
+	print("[the net is quiet when a body in the player's exception list has been freed]")
+	WorldState.new_game()
+	WorldState.god_mode = true
+	var catcher := ErrCatch.new()
+	OS.add_logger(catcher)
+	var p = load("res://scenes/player.tscn").instantiate()
+	add_child(p)
+	p.global_position = Vector2(600, 388)
+	var z1 = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
+	var z2 = load("res://scenes/enemy_zombie_big.tscn").instantiate()
+	add_child(z1)
+	add_child(z2)
+	z1.global_position = Vector2(640, 372)
+	z2.global_position = Vector2(650, 372)
+	for z in [z1, z2]:
+		z.set("state", "idle")
+		z.set_physics_process(false)
+	for i in range(3):
+		await get_tree().physics_frame
+	var both := false
+	for f in range(150):
+		p.set("has_move_target", true)
+		p.set("move_target_x", 780.0)
+		await get_tree().physics_frame
+		if (p.get("_phased_bodies") as Array).size() >= 2:
+			both = true
+			break
+	check(both, "the net phased both bodies (%d in the list)" % (p.get("_phased_bodies") as Array).size())
+	z1.queue_free()                       # one dies and is freed; the other is still in the list
+	var before := catcher.n
+	for f in range(20):
+		p.set("has_move_target", true)
+		p.set("move_target_x", 780.0)
+		await get_tree().physics_frame
+	check(catcher.n == before, "no engine error while a freed body's exception lingers (%d new: %s)" % [catcher.n - before, catcher.last])
+	OS.remove_logger(catcher)
+	p.queue_free()
+	if is_instance_valid(z2):
+		z2.queue_free()
 	WorldState.god_mode = false
 	await get_tree().physics_frame
 

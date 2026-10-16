@@ -536,14 +536,6 @@ func _update_unjam(wants_move: bool, moved: float) -> void:
 		if not is_instance_valid(b):
 			_phased_bodies.remove_at(i)
 			continue
-		# A zombie takes the exception off ITSELF when it re-solidifies (enemy_zombie_standard._try_resolidify / the big one:
-		# they remove the mutual exception once the player is horizontally clear of the body). The list still said "phased", the
-		# body was a wall again, and the net — which never re-adds a body it believes it already phases — stood by while the
-		# player was pinned for good (found by the descent bot in god mode: stuck timer 30 s and counting, "phased=3").
-		# So an entry whose exception is gone is simply not phased any more.
-		if not get_collision_exceptions().has(b):
-			_phased_bodies.remove_at(i)
-			continue
 		if absf(b.global_position.x - global_position.x) > UNJAM_CLEAR_RANGE:
 			remove_collision_exception_with(b)
 			_phased_bodies.remove_at(i)
@@ -555,9 +547,16 @@ func _update_unjam(wants_move: bool, moved: float) -> void:
 			for z in get_tree().get_nodes_in_group("zombie"):
 				if not is_instance_valid(z) or not (z is PhysicsBody2D):
 					continue
-				if absf(z.global_position.x - global_position.x) <= UNJAM_ADD_RANGE and not (z in _phased_bodies):
+				if absf(z.global_position.x - global_position.x) <= UNJAM_ADD_RANGE:
+					# Added EVERY stuck frame, not once: a zombie takes the exception off ITSELF when it re-solidifies
+					# (enemy_zombie_standard._try_resolidify / the big one remove the mutual exception once the player is horizontally
+					# clear of its body), and the old "already in my list" test then never phased it again — the player stood pinned for
+					# good (found by the descent bot in god mode: stuck timer 30 s and counting). Adding twice is harmless.
+					# (Do not ask get_collision_exceptions() whether it is still there: it resolves every excepted RID to an object and
+					# logs "Parameter body is null" once per freed zombie, per call — 2469 lines in one bot run.)
 					add_collision_exception_with(z)
-					_phased_bodies.append(z)
+					if not (z in _phased_bodies):
+						_phased_bodies.append(z)
 	else:
 		_stuck_time = 0.0
 
