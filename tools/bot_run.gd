@@ -1129,6 +1129,10 @@ func _zombies(p, rng: float) -> Array:
 			continue
 		if AiMind.gap(p, z) >= AiMind.NO_REACH:
 			continue
+		# a nest crawler clinging to the wall / ceiling is off the plane: it can't be swung at, shot or shoved and it blocks nothing — it drops
+		# (and becomes a fight) when the player comes within its range. A player doesn't swing at the wall; the bot did, for 30+ s.
+		if str(z.get("wall_mode")) in ["wall", "ceiling"]:
+			continue
 		if absf(z.global_position.x - p.global_position.x) <= rng:
 			out.append(z)
 	out.sort_custom(func(a, b): return absf(a.global_position.x - p.global_position.x) < absf(b.global_position.x - p.global_position.x))

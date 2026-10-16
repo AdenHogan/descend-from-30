@@ -1124,6 +1124,7 @@ func _loot_next(p, room: Node) -> void:
 	var back = a.get("back_spot")
 	if back != null:
 		# set-back furniture: step up to it (the game's own click-to-search path does the step), then search
+		bot._walk(0.0)               # (a key left held by an earlier step overrides the click-move for good: the player pressed on into a wall for 30 s)
 		if p.back_spot != back:
 			_retarget_t -= bot.dt
 			if p.back_spot != null and not bot.is_player_busy(p) and _stepdown_t <= 0.0:
