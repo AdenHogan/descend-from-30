@@ -262,7 +262,7 @@ Robustness rules; with suite-name words it runs only those). What it covers:
   `dev_menu_test`, `lighting_test`, `plane_lock_test`, `apartment_window_test`,
   `scavenge_node_test`, `drop_physics_test`, `softlock_test`, `character_panel_test`,
   `corpse_recovery_test`, `run_memory_test`, `attack_input_test`, `character_stats_test`, `transition_seam_test`, `run_bookends_test`, `weapon_upgrade_test`, `progression_test`, `back_plane_test`,
-  `apartment_lamp_test`, `gun_cabinet_test`, `breach_test`, `item_icon_test`, `hud_wheel_test`, `motion_test`, `growth_test`, `pack_test`, `backpack_test`, `molotov_test`, `banister_test`, `stair_heights_test`, `resident_npc_test`, `open_furniture_test`, `burnt_apartment_test`, `opening_test`, `controls_test`, `crowd_push_test`, `click_claim_test`, `character_story_test`, `corpse_depth_test`, `survivor_ai_test`, `enemy_mind_test`, `quest_test`, `npc_soak_test` — run all 70 before commit. Balance tool: `tools/economy_report.tscn` (scrap per run, ~25 min a seed). (`new_game()` rolls a RANDOM seed, so any test meets any of the four
+  `apartment_lamp_test`, `gun_cabinet_test`, `breach_test`, `item_icon_test`, `hud_wheel_test`, `motion_test`, `growth_test`, `pack_test`, `backpack_test`, `molotov_test`, `banister_test`, `stair_heights_test`, `resident_npc_test`, `open_furniture_test`, `burnt_apartment_test`, `opening_test`, `controls_test`, `crowd_push_test`, `click_claim_test`, `character_story_test`, `corpse_depth_test`, `survivor_ai_test`, `enemy_mind_test`, `quest_test`, `npc_soak_test`, `revisit_test`, `floor15_test` — run all 72 before commit. Balance tool: `tools/economy_report.tscn` (scrap per run, ~25 min a seed). (`new_game()` rolls a RANDOM seed, so any test meets any of the four
   characters — an assert on a trait-affected value must be trait-aware; see docs/CHARACTERS.md.) (Run ONE godot at a time — a killed/backgrounded headless run can
   linger and block the next, and a GDScript **parse error makes a test scene load but
   never call `quit()`, so it "hangs" until timeout** rather than printing an error line;
@@ -1267,7 +1267,7 @@ means no rendering — UI layout and art still need an in-editor look.
   `_base_floor_zombie_count`); Nurse = luck (`loot_luck` → `luck_weight(rarity)` reweights anchor
   pools toward rare/away from junk) + find rate, but −15% gun hit chance. New stats:
   `push_cost` / `melee_cost` / `sprint_speed` / `enemy_count` / `loot_luck`. `run_cast()` is now
-  cached per master_seed (the getters read the character every physics frame). The journal Story
+  cached per cast seed (the getters read the character every physics frame; round 44: the key is `WorldState.cast_seed`, locked to the master seed the first time `shift_building` re-rolls it, so a rest or a pry can never re-deal the three characters). The journal Story
   tab shows each character's tagline + strengths/weakness (`character_panel.traits_bbcode`).
   Covered by `character_stats_test` (+ `listen_noise_test` made trait-aware — seed 424242 casts
   the Super). Names are the owner's (round 28: Joe = blond man / the Tenant, Vivianne = blond woman / the Neighbour, Amina = dark woman / the Nurse, Alex = bald man / the Super — `WorldState.CHARACTER_NAMES`; role words survive only in code comments + docs); balance numbers need a playtest.
