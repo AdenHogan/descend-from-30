@@ -51,6 +51,7 @@ var _loot_ghost_t: float = 0.0
 var _prog_sig: String = ""
 var _prog_t: float = 0.0
 var _prog_reported: bool = false
+var stall_trace: int = 0                   # physics frames of per-frame detail still to print after a NO_PROGRESS (the bot prints them)
 var _nan_reported: Dictionary = {}
 var _cast0: Array = []
 
@@ -281,6 +282,7 @@ func _check_progress(p, step: float, activity: String) -> void:
 	_prog_t += step
 	if _prog_t > STUCK_AFTER and not _prog_reported:
 		_prog_reported = true
+		stall_trace = 240
 		report("NO_PROGRESS", "floor %d: nothing changed for %d s — %s :: %s" % [WorldState.current_floor, int(_prog_t), activity, (bot.loot.diag(p) if bot.loot != null else "")], "noprog%d" % WorldState.current_floor)
 
 

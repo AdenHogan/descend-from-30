@@ -321,6 +321,9 @@ func _physics_process(delta: float) -> void:
 	var p = _player()
 	if watch != null:
 		watch.tick(p, delta, _activity_text())
+		if watch.stall_trace > 0 and p != null:
+			watch.stall_trace -= 1
+			_print_stall_frame(p)
 	if p == null:
 		var sc0 = get_tree().current_scene
 		if sc0 != null and str(sc0.scene_file_path).ends_with("/elevator_interior.tscn") and phase == "play":
@@ -1288,6 +1291,19 @@ func _ride_elevator(p) -> bool:
 
 
 ## What the bot is in the middle of, in words (the watcher quotes it when nothing has changed for a while).
+## One physics frame of detail about a stall (after a NO_PROGRESS): where the player is, what it is told to do, and every body about it.
+func _print_stall_frame(p) -> void:
+	var near: Array = []
+	for z in get_tree().get_nodes_in_group("zombie"):
+		if is_instance_valid(z) and absf(z.global_position.x - p.global_position.x) < 160.0 and not z.is_in_group("pan_scenery"):
+			near.append("%s@%.1f:%s%s%s" % [_type_of(z), z.global_position.x, str(z.get("state")), "(S)" if z.collision_layer & 1 != 0 else "", "(X)" if p.get_collision_exceptions().has(z) else ""])
+	var cols: Array = []
+	for i in p.get_slide_collision_count():
+		var o = p.get_slide_collision(i).get_collider()
+		cols.append("%s@%.0f" % [str(o.name), o.global_position.x if o is Node2D else -1.0])
+	print("      [stall] f=%d x=%.2f vx=%.0f stuck=%.2f phased=%d keys=%s atk=%s push=%s cols=%s zs=%s | %s" % [Engine.get_physics_frames(), p.global_position.x, p.velocity.x, float(p._stuck_time), p._phased_bodies.size(), str(_kb), str(p.is_attacking), str(p.is_pushing), str(cols), str(near), _activity_text().left(110)])
+
+
 func _activity_text() -> String:
 	var bits: Array = ["phase=" + phase, "scene=" + _kind, "shop=" + _shop_state]
 	if loot != null:
