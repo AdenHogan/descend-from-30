@@ -12,6 +12,7 @@ const SPITTER := "res://scenes/enemy_zombie_spitter.tscn"
 const CRAWLER := "res://scenes/enemy_zombie_crawler.tscn"
 const ENEMY_CROWD := preload("res://scripts/enemy_crowd.gd")
 var _n: int = 0
+const BIG_NOMINAL_SIGHT := 130.0   # enemy_zombie_big.DETECTION_RANGE, before its per-spawn +/- 45 roll
 
 
 func check(cond: bool, label: String) -> void:
@@ -263,9 +264,13 @@ func _test_other_types() -> void:
 	var s := _hider(bf, 170.0)
 	s.current_hp = 9
 	s.max_hp = 9
-	var big = _zombie(bf, 250.0, BIG)                          # 80 px off
+	var big = _zombie(bf, 250.0, BIG)                          # 80 px off (the hider settles a few px further out, ~89)
+	# The big rolls its own sight per spawn (130 +/- 45, seeded by master seed + position): a low roll (85-89) cannot see a survivor 89 px away, so with a random
+	# seed this check failed about 1 run in 30. This check is about WHOM it goes for, not how keen its eyes are - pin the nominal sight.
+	big.detection_range = BIG_NOMINAL_SIGHT
 	await _frames(10)
-	check(big.prey == s, "a BIG zombie goes for the nearer survivor too")
+	check(big.prey == s, "a BIG zombie goes for the nearer survivor too (prey %s, state %s, mind '%s', x %.0f, survivor x %.0f, sight %.0f, seed %s, character %s)"
+		% [str(big.prey), big.state, big.mind, big.global_position.x, s.global_position.x, big.detection_range, str(WorldState.master_seed), WorldState.current_character()])
 	var hit := await _until(func(): return s.current_hp < 9, 900)
 	check(hit and 9 - s.current_hp == 2, "…and its swing does 2 (hp 9 → %d)" % s.current_hp)
 	big.free()
