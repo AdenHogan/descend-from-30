@@ -94,6 +94,11 @@ const TUTORIAL_LAYOUTS = {
 
 const MODULE_WIDTH = 320
 const LEFT_WALL_X = 113
+var _arrived_by_balcony: bool = false   # the player came down a balcony, not through the front door (set in _ready before spawn_source is cleared)
+const ARRIVAL_X_LEFT := 140.0           # where the player stands on arrival (the two `player.position.x =` lines in _ready)
+const ARRIVAL_X_RIGHT := 1050.0
+const ARRIVAL_PLAYER_HALF := 13.0       # the player's capsule half-width
+const ARRIVAL_MARGIN := 14.0            # + clear air between them and a body stepped off the arrival point
 # Wall-window placement inside a module. Y sits the whole window ON THE WALLPAPER band of the
 # module art (world 262 = module-local 38: pane + frame span local ~10..66, under the crown
 # moulding at 0..5 and above the chair rail at 70). At the old 284 (local 60) the window ran down
@@ -200,6 +205,7 @@ func _ready() -> void:
 	# Arrived by climbing DOWN a balcony (see player.begin_balcony_descent): land
 	# OUT ON this apartment's balcony plane (not back on the corridor), so the
 	# player can move along it, step back inside with S, or re-access it later.
+	_arrived_by_balcony = WorldState.spawn_source == "balcony"
 	if WorldState.spawn_source == "balcony":
 		var bslot = WorldState.balcony_slot_in_apartment(apartment_id)
 		if bslot < 0:
@@ -264,7 +270,7 @@ func _ready() -> void:
 					if WorldState.killed_zombies.has(key):
 						continue
 					var zombie = zombie_scene.instantiate()
-					zombie.global_position = pos
+					zombie.global_position = pos if _arrived_by_balcony else Vector2(_arrival_clear_x(zombie, pos.x, entrance_side == "left"), pos.y)
 					zombie.spawn_key = key
 					add_child(zombie)
 					# Living-enemy memory: position + facing + health + alert + which plane (was
@@ -285,6 +291,10 @@ func _ready() -> void:
 	if WorldState.is_apartment_charred(_apt_floor(), _apt_index()) and WorldState.take_charred_intro(apartment_id):
 		HUD.show_dialogue(WorldState.charred_intro_line(apartment_id), "", false, 5.0)
 
+	var arrived_by_door: bool = WorldState.saved_player_x == 0.0 and not _arrived_by_balcony
+	if arrived_by_door:
+		_keep_arrival_clear(player, entrance_side)
+
 	if WorldState.saved_player_x != 0.0:
 		player.global_position = Vector2(WorldState.saved_player_x, WorldState.saved_player_y)
 		WorldState.saved_player_x = 0.0
@@ -301,6 +311,46 @@ func _ready() -> void:
 
 	_after_modules_ready()
 	_frame_camera(player)
+
+
+## Nothing solid may stand on the arrival point. A breach pack's positions run from x 150 (left) to 1030 (right), a remembered body
+## may be standing at the door where the player fled it, and the player arrives at 140 / 1050 — so a body could overlap the arrival.
+## A WIDE crawler (80 px) overlapping it shoved the player ~43 px on the first physics step, straight into the exit trigger, which
+## walked them back out of the front door the instant they came in: the flat could not be entered (the descent bot met it in ~1 of 30
+## characters; probe: 2 of 1740 builds). The cause is a GHOST: a body moved after it entered the tree is still where it was
+## SPAWNED in the physics server until the first step (kinematic bodies take a new transform only then), and the player's first
+## move_and_slide runs before that step — so the body must be spawned clear (`_arrival_clear_x` on the position BEFORE add_child), and
+## one remembered somewhere on the spot is stepped off it afterwards (`_keep_arrival_clear`). Spawn keys (the kill / memory
+## identity) are untouched. A door arrival only: a balcony landing or a loaded position is somewhere else.
+func _arrival_clear_x(z: Node, x: float, left: bool) -> float:
+	var half := 10.0
+	var cs = z.get_node_or_null("CollisionShape2D")
+	if cs != null and cs.shape != null:
+		if cs.shape is RectangleShape2D:
+			half = cs.shape.size.x * 0.5
+		elif cs.shape is CapsuleShape2D or cs.shape is CircleShape2D:
+			half = cs.shape.radius
+	var need: float = half + ARRIVAL_PLAYER_HALF + ARRIVAL_MARGIN
+	var ax: float = ARRIVAL_X_LEFT if left else ARRIVAL_X_RIGHT
+	if absf(x - ax) < need:
+		return ax + (need if left else -need)
+	return x
+
+
+func _keep_arrival_clear(player: Node, entrance_side: String) -> void:
+	var left := entrance_side == "left"
+	for z in get_tree().get_nodes_in_group("zombie"):
+		if not is_instance_valid(z) or not (z is CharacterBody2D) or not is_ancestor_of(z):
+			continue
+		# (a nest crawler clinging to the wall has no collision YET — it drops the moment you walk in and lands solid where it hung)
+		var clinging: bool = str(z.get("wall_mode")) in ["wall", "ceiling"]
+		if z.get("is_dead") == true or (z.collision_layer & 1 == 0 and not clinging):
+			continue                      # a corpse, a body lying still: nothing solid to push on
+		var to_x: float = _arrival_clear_x(z, z.global_position.x, left)
+		if to_x != z.global_position.x:
+			if clinging:
+				z.set("_wall_home_x", to_x)          # where it creeps about / drops from
+			z.global_position.x = to_x
 
 
 func _frame_camera(player: Node) -> void:
@@ -2173,7 +2223,10 @@ func _spawn_breached_enemies() -> void:
 			continue
 		var kind := WorldState.breach_slot_type(apartment_id, i)
 		var z = BREACH_SCENES[kind].instantiate()
-		z.global_position = entry["position"]
+		var bpos: Vector2 = entry["position"]
+		if not _arrived_by_balcony:
+			bpos.x = _arrival_clear_x(z, bpos.x, WorldState.get_entrance_side(apartment_id) == "left")
+		z.global_position = bpos
 		z.spawn_key = key
 		if i == 0 and kind == "big":
 			z.drops_key = true

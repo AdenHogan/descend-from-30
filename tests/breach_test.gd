@@ -32,6 +32,7 @@ func _ready() -> void:
 	await _test_foreground()
 	await _test_wall_crawlers()
 	await _test_longarm()
+	await _test_arrival_clear()
 	WorldState.dev_seed = 0
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
@@ -593,3 +594,53 @@ func _test_risers() -> void:
 	await get_tree().process_frame
 	WorldState.killed_zombies.erase(key)
 	WorldState.zombie_positions.erase(key)
+
+
+func _test_arrival_clear() -> void:
+	# The descent bot met flats it could not enter: the player came in and was walked straight back out. A breach
+	# pack's bodies run from x 150 and the player arrives at 140 — a WIDE crawler on that spot shoved the player ~43 px,
+	# into the exit trigger, which walked them out of the front door the instant they arrived (probe: 2 of 1740 builds).
+	print("[a body never stands on the arrival point: the flat can always be entered]")
+	for c in [[102, 2, "2703"], [102, 3, "2804"]]:
+		WorldState.new_game()
+		WorldState.master_seed = c[0]
+		WorldState.is_first_run = false
+		WorldState.current_run = c[1]
+		WorldState.god_mode = true
+		var room = _room(c[2])
+		for i in range(14):
+			await get_tree().physics_frame
+		var pl = room.get_node("Player")
+		var ex = room.get_node("Area2D")
+		var crawlers := 0
+		for z in get_tree().get_nodes_in_group("zombie"):
+			if room.is_ancestor_of(z) and z.scene_file_path.ends_with("enemy_zombie_crawler.tscn"):
+				crawlers += 1
+		check(crawlers > 0, "%s (seed %d run %d): a crawler nest (%d crawlers) — the case that threw the player out" % [c[2], c[0], c[1], crawlers])
+		check(absf(pl.global_position.x - 140.0) < 6.0, "%s: the player is where they arrived (x %.1f, not shoved)" % [c[2], pl.global_position.x])
+		check(not pl.is_cutscene and not ex.overlaps_body(pl), "%s: not walking out of the front door, not in the exit trigger" % c[2])
+		room.queue_free()
+		await get_tree().physics_frame
+	# a body remembered standing at the door (the player fled the flat with it on their heels) is stepped off the spot too
+	WorldState.new_game()
+	WorldState.is_first_run = false
+	WorldState.god_mode = true
+	var room2 = _open_flat("2903")
+	for i in range(6):
+		await get_tree().physics_frame
+	var cr = load("res://scenes/enemy_zombie_crawler.tscn").instantiate()
+	room2.add_child(cr)
+	cr.global_position = Vector2(118.0, 321.0)
+	await get_tree().physics_frame
+	room2._keep_arrival_clear(room2.get_node("Player"), "left")
+	var need: float = 40.0 + RoomScript.ARRIVAL_PLAYER_HALF + RoomScript.ARRIVAL_MARGIN
+	check(cr.global_position.x >= room2.get_node("Player").global_position.x + need - 0.5,
+		"a crawler standing at the door is stepped inward to clear the player (x %.1f >= %.1f)" % [cr.global_position.x, room2.get_node("Player").global_position.x + need])
+	var far = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
+	room2.add_child(far)
+	far.global_position = Vector2(600.0, 321.0)
+	room2._keep_arrival_clear(room2.get_node("Player"), "left")
+	check(absf(far.global_position.x - 600.0) < 0.1, "a body well away from the arrival is left exactly where it is")
+	room2.queue_free()
+	WorldState.god_mode = false
+	await get_tree().physics_frame
