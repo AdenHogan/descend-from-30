@@ -93,10 +93,8 @@ func leave() -> void:
 		WorldState.finish_session()      # score the session → Descent Valour + the perk offer
 		WorldState.delete_save()
 		HUD.hide_hud()
-		get_tree().change_scene_to_file("res://scenes/game_over.tscn")
-		await get_tree().process_frame
-		await get_tree().process_frame
-		await Transition.reveal()
+		# (not awaited, and not get_tree() after the swap: this node leaves the tree with the lobby — see Transition.to_end_screen)
+		Transition.to_end_screen("res://scenes/game_over.tscn")
 		return
 	# Persist the fresh run WITHOUT recording the lobby's zombies into it, then time-skip into the
 	# next character's Floor 30 cold open.

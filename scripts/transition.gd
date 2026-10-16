@@ -300,6 +300,18 @@ func to_run_start(path: String) -> void:
 		await reveal(0.3)
 
 
+## The playthrough's LAST swap: to the end screen, then lift the black cover. It lives here, in an autoload, because the caller is a
+## node of the scene being left: Godot 4.6 swaps the scene at once, so that node is out of the tree on the very next line and a
+## `await get_tree().process_frame` there read a null tree (script error), the coroutine died and `reveal()` never ran — the
+## third character's escape ended on a black screen with the cover still up (found by the descent bot at the lobby door, twice in
+## four god-mode escapes). Call it WITHOUT await from a scene node.
+func to_end_screen(path: String) -> void:
+	get_tree().change_scene_to_file(path)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await reveal()
+
+
 func to_run_shift(path: String, run_index: int, hold: float = 2.0, already_covered: bool = false) -> void:
 	# already_covered = the caller already ran cover() (screen is black, busy is set) so the
 	# run-advance happened out of sight; skip the initial fade and continue from black.

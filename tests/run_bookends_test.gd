@@ -40,6 +40,7 @@ func _ready() -> void:
 	await _test_lobby_exit_art()
 	await _test_hallway_decals()
 	await _test_escape_white_card_to_next_run()
+	await _test_final_escape_ends_on_the_end_screen()
 	await _test_escape_art_slot()
 	Engine.time_scale = 1.0
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
@@ -403,6 +404,47 @@ func _test_escape_white_card_to_next_run() -> void:
 	check(get_tree().current_scene.scene_file_path.ends_with("hallway.tscn"), "…on Floor 30")
 	Transition.survive_min_hold = 2.2
 	Transition.survive_max_wait = 20.0
+	Engine.time_scale = 1.0
+	get_tree().paused = false
+	WorldState.delete_save()
+
+
+func _test_final_escape_ends_on_the_end_screen() -> void:
+	# The THIRD character walking out ends the playthrough. lobby_exit used to swap to game_over.tscn and then `await get_tree()...`
+	# — but Godot 4.6 swaps at once, so that node was already out of the tree: a script error, the coroutine died, Transition.reveal()
+	# never ran and the end screen sat behind a black cover for good (found by the descent bot in god mode, twice in four escapes).
+	print("[the third character's escape reaches the end screen and the black cover lifts]")
+	WorldState.new_game()
+	WorldState.current_floor = 0
+	WorldState.inventory = []
+	WorldState.current_run = 3
+	var r: Array = await _lobby_with_player()
+	var exit = r[1]
+	for z in get_tree().get_nodes_in_group("zombie"):
+		z.queue_free()
+	Engine.time_scale = 8.0
+	Transition.survive_min_hold = 0.1
+	Transition.survive_max_wait = 0.2
+	Transition.survive_art_hold = 0.2
+	exit.leave()
+	var guard := 0
+	while guard < 4000 and not (get_tree().current_scene != null and get_tree().current_scene.scene_file_path.ends_with("game_over.tscn")):
+		await get_tree().process_frame
+		guard += 1
+	check(get_tree().current_scene != null and get_tree().current_scene.scene_file_path.ends_with("game_over.tscn"), "the playthrough ended on the game-over screen")
+	guard = 0
+	while Transition.busy and guard < 2000:
+		await get_tree().process_frame
+		guard += 1
+	for i in 6:
+		await get_tree().process_frame
+	check(not Transition.busy and not Transition.rect.visible, "…and the black cover LIFTED (busy %s, visible %s) — the end screen can be seen" % [str(Transition.busy), str(Transition.rect.visible)])
+	var src := FileAccess.get_file_as_string("res://scripts/lobby_exit.gd")
+	check(src.contains("Transition.to_end_screen(") and not src.contains("change_scene_to_file"),
+		"lobby_exit.gd hands the last swap to the Transition autoload (a scene node must not wait on get_tree() after leaving the tree)")
+	Transition.survive_min_hold = 2.2
+	Transition.survive_max_wait = 20.0
+	Transition.survive_art_hold = 3.5
 	Engine.time_scale = 1.0
 	get_tree().paused = false
 	WorldState.delete_save()
