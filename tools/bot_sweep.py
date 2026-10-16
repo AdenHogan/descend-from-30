@@ -31,10 +31,12 @@ CONFIGS = {
     "need": ["--loot=need"],
     "all": ["--loot=all"],
     "safe": ["--loot=need", "--avoid-breach"],                 # a prudent scavenger: loot while short, never enter a breach room
-    "god": ["--loot=all", "--god", "--elevator", "--rest", "--balcony"],
+    # (the coverage configs are handed 3 fuses and some notes — gifts that change the balance and exist ONLY so the fuse box, the lift, the shop's
+    #  buy / sell and the workbench get exercised; never used for a balance number)
+    "god": ["--loot=all", "--god", "--elevator", "--rest", "--balcony", "--fuses=3", "--notes=300"],
     # the later characters, started part-way down (the world has decayed N-1 time skips): run 2 and 3 content without a 3-hour descent
-    "god2": ["--loot=all", "--god", "--elevator", "--rest", "--balcony", "--start-run=2", "--start-floor=24"],
-    "god3": ["--loot=all", "--god", "--elevator", "--rest", "--balcony", "--start-run=3", "--start-floor=24"],
+    "god2": ["--loot=all", "--god", "--elevator", "--rest", "--balcony", "--fuses=3", "--notes=300", "--start-run=2", "--start-floor=24"],
+    "god3": ["--loot=all", "--god", "--elevator", "--rest", "--balcony", "--fuses=3", "--notes=300", "--start-run=3", "--start-floor=24"],
 }
 
 # lines the engine prints at EVERY exit of a headless run: not findings

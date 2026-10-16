@@ -831,9 +831,12 @@ func shop_trade(ui, f: int) -> void:
 				continue
 			_put_down(ws, bot._player())
 		var sig := _inv_signature()
+		var room_before := free_slots() > 0 or _stacks_with(id2) or _no_slot(id2)
 		ui._on_buy_pressed(int(want["i"]))
 		ui._on_buy_pressed(int(want["i"]))
-		if sig == _inv_signature():
+		if sig == _inv_signature() and not room_before:
+			count("shop_no_room")                    # the bag was still full when the buy was pressed (a put-down lands a beat later): "Inventory full." by design
+		elif sig == _inv_signature():
 			bot._anomaly("BUY_NO_EFFECT", "floor %d: bought %s for %d with %d notes and nothing changed" % [f, id2, int(want["price"]), money])
 		else:
 			count("shop_bought")
@@ -1575,8 +1578,8 @@ func diag(p) -> String:
 		var c = p.get_slide_collision(i)
 		var o = c.get_collider()
 		hits.append("%s@%d[%s,layer%d]" % [str(o.name) if o != null else "?", int(o.global_position.x) if o is Node2D else -1, str(o.get_script().resource_path.get_file()) if o != null and o.get_script() != null else "-", int(o.collision_layer) if o is CollisionObject2D else -1])
-	return "slide=%s unjam=%.2f phased=%d x=%d y=%d vel=(%d,%d) target=%s(%d) back=%s switching=%s attacking=%s pushing=%s cutscene=%s listening=%s crouch=%s keys=%s zombies=%s survivors=%s residents=%s talk_claim=%s guard=%s" % [
-		str(hits), float(p._stuck_time), p._phased_bodies.size(), int(p.global_position.x), int(p.global_position.y), int(p.velocity.x), int(p.velocity.y), str(p.has_move_target), int(p.move_target_x),
+	return "atk=%s(cd=%.2f) dying=%s escaping=%s pack=%s lash=%s slide=%s unjam=%.2f phased=%d x=%d y=%d vel=(%d,%d) target=%s(%d) back=%s switching=%s attacking=%s pushing=%s cutscene=%s listening=%s crouch=%s keys=%s zombies=%s survivors=%s residents=%s talk_claim=%s guard=%s" % [
+		str(p.is_attacking), float(p.attack_cooldown_timer), str(p.is_dying), str(p.escaping), str(p.pack_phase), str(p.is_lashing), str(hits), float(p._stuck_time), p._phased_bodies.size(), int(p.global_position.x), int(p.global_position.y), int(p.velocity.x), int(p.velocity.y), str(p.has_move_target), int(p.move_target_x),
 		str(p.back_spot != null), str(p.is_switching_mode), str(p.is_attacking), str(p.is_pushing), str(p.is_cutscene), str(p.is_listening), str(p.is_crouching),
 		str(bot._kb), str(zs), str(sv), str(rs), str(WorldState.interact_claimed_by_talk()), str(TutorialManager.interact_guarded())]
 
