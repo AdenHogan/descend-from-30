@@ -4,8 +4,9 @@
 > See how far it gets and allow it to pick upgrades if it makes the various five-floor increments. If it makes it to the lobby, make
 > notes for analysis and evaluation and continue with run 2 and 3."
 
-**Status: BUILT (tools only — no game rule was changed to make it work).** `tools/bot_run.tscn` plays the real game headless;
-`tools/bot_sweep.sh` runs it over many seeds; `tools/bot_summary.py` turns a folder of its reports into the tables below.
+**Status: BUILT.** `tools/bot_run.tscn` plays the real game headless; `tools/bot_sweep.py` runs it over seeds × policies; `tools/bot_summary.py` turns a folder of its reports into the tables.
+**Round 43 (below) is the briefed-kit-only bot. Round 44 (the last section) adds scavenging, a watcher and a wide sweep, corrects the "stuck on floor 15" explanation, and found 11 game bugs (fixed, each with a test).**
+Round 44 supersedes every sentence below that says the bot "does not scavenge", and the floor-15 caveat.
 
 ## Headline
 
@@ -59,14 +60,13 @@ and 3") therefore never triggered; runs 2 and 3 below are `--keep-going` data, n
 
 ## Caveats (read before quoting any number)
 
-* **The bot does not scavenge, loot, trade, rest, throw, craft or use the banister**, so every number is a floor for a careful human, whose kit grows as they descend. It says how far
+* **(Round 43 bot only — round 44's `need` / `all` / `safe` policies scavenge, trade, mend and throw; none of them crafts, rests, listens or uses the banister.) The briefed-kit bot does not scavenge, loot, trade, rest, throw, craft or use the banister**, so every number is a floor for a careful human, whose kit grows as they descend. It says how far
   *a fixed kit* goes, not how far *a player* goes. A scavenging bot (or a human playtest of the same seeds) is the missing half.
 * It has perfect knowledge of the zombies on its plane within a screen and reacts every physics tick; it never mis-clicks and never panics. Its fight rules are mine (`_fight` / `_pick_threat`), tuned on
   ~10 shake-down runs; a better rule set would go deeper. The fighter and runner styles bracket it, they do not bound it.
 * **Speed 8 changes the game slightly:** code that reads real time (`Time.get_ticks_msec`: the attack buffer, a few prompt guards) runs 8× fast. Runs of one seed differ (see the primary seed above). I did not run a
   speed-1 comparison.
-* **Two characters ended `stuck` on floor 15** with no weapon left: `fighter_110` had a stair enemy holding the crossing (the bot neither makes a noise to draw it up nor vaults the half-wall); `runner_107`'s cause I did
-  not diagnose. 2 of 80.
+* **Two characters ended `stuck` on floor 15.** Round 44 explains both (and corrects what this line used to say): the lift and the maintenance door answered ONE [interact] press together — a game bug, fixed; see "Round 44".
 * The crowbar is a liberty the brief did not give: fighter / runner numbers include it (1.7 per character). The strict group is what the brief says without it.
 * Health is stages: "hits" in every table are stage drops. Kills count any dead body the bot saw fall (fire kills included), so kills ≠ swings.
 * Runs 2 / 3 carry the earlier characters' merchant upgrades and the world's decay (fire, door states, more bosses); the kit is reset, the upgrades are not. The characters differ per seed.
@@ -107,7 +107,7 @@ The report is rewritten after every character, so a cut-off sweep keeps what it 
   action, `use_item` for a first aid, `HUD.select_slot`, the stairwell's own `request_auto_descend` (the touch STAIRS button's path), the
   merchant's own `_open_shop`. It sees what a player sees (one screen of corridor each way) and knows what a player knows (which side the
   down stairs are on, from the sign).
-* **It does NOT** scavenge, loot, open a door, talk to a survivor, throw anything, craft, use the banister, or rest. It has what it was given
+* **The round-43 policy (`--loot=none`) does NOT** scavenge, loot, open a door, talk to a survivor, throw anything, craft, use the banister, or rest. It has what it was given
   plus what the merchant offers. That makes every number below a **floor for a careful human** (who finds weapons, kits and bullets), not a
   prediction of one.
 * **Styles.** `fighter` (the default, and the brief): fights what is in its way or coming for it, waits for a charging dead body so the first
@@ -145,3 +145,131 @@ restores three, so a character that spends both kits and dies has always absorbe
 3. Nothing else broke: no script errors across the whole sweep, and the cold open's pausing lockout lines for Joe / Amina (which stalled the first
    sweep until the bot learned to press through them) are a reminder that **a pausing line needs a press to continue** — fine for a player, a
    trap for any future automated driver.
+
+
+## Round 44 — the bot scavenges, watches itself and goes wide (owner: "In your caveats you said two characters got stuck in 15. What kind of stuck… test this again, and this time I want the bots to scavenge too. This needs to be a complete test to check for balance and errors/problems. This way we divide and conquer. You check for hard fact and I check for feel")
+
+### What "stuck on floor 15" was — and a correction to round 43
+
+Two round-43 characters ended `stuck` on floor 15. I explained one of them wrongly and did not diagnose the other; **both were the same thing, a game bug and a bot gap together.**
+Floor 15 is a merchant floor (the lift, x 1029.5) *and* a maintenance floor (the staff door, x 929); their [interact] reaches overlap for a few pixels (x ≈ 955–990). The bot walks to the lift and presses [interact] the moment the
+merchant's prompt shows — inside the overlap — and that ONE press was answered twice: the shop opened *and* the maintenance door walked the player into the staff room. The bot knew nothing of maintenance rooms and stood in there until its
+150 s floor clock ran out. (`fighter_110` was **not** "a stair enemy holding the crossing", as this document said above; `runner_107` was the same floor-15 press.) Traced in the engine at t = 20.9 s: the player at x = 963 had both
+`MaintenanceDoor.player_nearby` and `Merchant.player_nearby` true, the press landed, the scene became `maintenance.tscn`. **Fixed in the game**: where two reaches overlap the nearer thing answers (`door.gd _other_is_nearer`,
+`merchant.gd`; `tests/floor15_test.tscn`). The same overlap exists on every other maintenance floor with the powered lift's `[E] Ride` — fixed the same way (`building_floors.lift_answers_press`).
+
+### What was built
+
+* `tools/bot_loot.gd` — **the looter**. Owns no input of its own: it asks the bot to walk / tap / switch stance, so one set of keys is held. It walks the corridor's doors (nearest first), opens / forces / unlocks them (best melee tool + X; a key
+  opens its door; a barricade is torn off board by board), goes in, searches every node through the game's own path (`auto_stance_for_anchor` → `try_interact` → the loot panel), **takes or leaves by worth** (money / scrap / wallet always, a key,
+  a gun if it has none, a weapon by the swings it adds, health by what the bag already holds…), **puts the least valuable thing down** when the bag is full, picks up what the dead drop, steps up to set-back furniture the way a click does, leaves,
+  and goes on. In maintenance rooms it fits fuses and sits at the workbench (salvages, raises the best weapons as far as the scrap and rules go and records *why* a level was refused, spends tuning points). At the merchant it sells the surplus
+  and buys what the kit is short of. Between fights it reloads, mends with a toolbox, throws a Molotov. It fights a resident who has turned on it, leaves one that has only warned it, and steps onto a door a survivor is standing near.
+  Policies: `--loot=none` (the round-43 bot), `need` (loot while the bag is short of swings / healing / rounds), `all` (every door), and `--avoid-breach` (never enter a breach room; sweep config `safe`).
+* `tools/bot_watch.gd` — **the watcher**. (1) Hooks the engine's own error log (`OS.add_logger`): every `SCRIPT ERROR` / `ERROR` lands in the report with floor, scene, time, who owns the file (bot / game / headless renderer) and the script
+  backtrace. (2) ~25 **invariants** twice a game-second: nothing in the bag that cannot be, no negative notes / scrap, health 0–5, stamina in range, floor 0–30, the corridor on screen is the floor the counter says, the player on the plane, no stuck
+  pause / fade / loot panel, drops lying where a player can stand, no enemy flood, the **cast of three never changing**, and a **progress watchdog** ("nothing changed for 30 s", with the player's full state and a 240-frame trace).
+  (3) Every third floor it **saves and loads and compares ~35 fields**. `ENTER_EXIT_LOOP` catches a flat the game keeps putting the player out of.
+* `tools/bot_sweep.py` — seeds × configurations, several at a time, each with its **own `user://`** (`XDG_DATA_HOME`); resumable. `tools/bot_summary.py` — the tables: depth and reach, scavenging (flats, time, hits and kills per flat, by door
+  state; what the nodes held and why it was left; finds per flat), the economy (scrap, notes, bench, shop), **coverage** (what was exercised and what never was), **anomalies by kind** and the **engine log**.
+* Configs: `none` (briefed kit only, crowbar liberty — the round-43 bot), `need`, `all`, `safe`, and the coverage runs `god` (cannot be hurt; walks the whole building, rides the lift, rests, goes over balconies; 3 fuses and 300 notes as
+  gifts so the fuse box, lift and shop get exercised) with `god2` / `god3` starting the 2nd / 3rd character from floor 24 (the decayed building without a three-hour descent). Gifts (`--scrap --fuses --notes --power --unarmed`) change the
+  balance and are never used for a balance number.
+
+### What running it found in the game (11 fixes, each with a regression test that fails without it)
+
+| # | what a player would have met | cause | locked by |
+|---|---|---|---|
+| 1 | a node you searched but did not empty (the item left on the shelf) went dark and could never be searched again when you re-entered the flat, in the same run or a later one | `room.gd` rebuilt it with `set_script`, which does not start `_process`, and skipped `set_process(true)` for every node with a "searched" record | `revisit_test` |
+| 2 | the three characters re-dealt after a rest / a pry (a different cast mid-playthrough) | `shift_building()` re-rolls `master_seed`, and the cast was keyed on it → `WorldState.cast_seed`, locked at the first shift | `run_arc_test` |
+| 3 | one press at floor 15's lift opened the shop **and** walked you into the staff room (the "stuck" above) | merchant door and maintenance door both answered one [interact] → the nearer answers | `floor15_test` |
+| 4 | a dropped item tossed toward an end wall came to rest beyond it (x 64 / 1279), out of reach | `world_drop` toss ignored the walls → stops at them (`WALL_GAP`) | `drop_physics_test` |
+| 5 | (headless) the balcony descent never finished | `BalconyPan` awaited `RenderingServer.frame_post_draw`, which never fires without a renderer | `balcony_test` |
+| 6 | the same double answer on every other maintenance floor: [E] Ride boarded the lift while the staff door walked you in | powered lift vs maintenance door → nearer answers | `floor15_test._test_powered_lift_overlap` |
+| 7 | standing in front of a door a defender guards, [E] gave a greeting over and over and the door never opened | a survivor's `[Talk]` claimed the press even when the door was nearer | `survivor_ai_test._test_talk_claim` |
+| 8 | **pinned for good between a zombie and nothing**: the anti-stuck net never phased a body that had re-solidified itself | the zombie takes the player's collision exception off itself (`_try_resolidify`); the net believed it was still phased and never added it again → now re-adds every stuck frame | `softlock_test` (two checks) |
+| 9 | **a breach flat you could not enter**: the player came in and was walked straight back out of the front door, every time | a crawler nest spawned over the arrival point; the physics server still held its *spawn* position for the first step, so the player's first `move_and_slide` depenetrated 43 px into the exit trigger → bodies are now spawned clear of the arrival point | `breach_test._test_arrival_clear` |
+| 10 | **the third character's escape ended on a black screen**: the end screen sat behind the cover for good | `lobby_exit` awaited `get_tree()` after `change_scene_to_file` (Godot 4.6 swaps at once; the node is already out of the tree) → script error, `Transition.reveal()` never ran → the swap-and-reveal now lives in the `Transition` autoload | `run_bookends_test._test_final_escape_ends_on_the_end_screen` |
+| 11 | (my own regression, caught by the sweep) an error line per physics frame while a freed zombie lingered in the player's exception list | a first version of fix 8 asked `get_collision_exceptions()`, which resolves every RID, freed ones included | `softlock_test._test_freed_phased_body_is_quiet` (installs a `Logger`; the gate only scans for SCRIPT ERROR) |
+
+Fix 11 is worth a sentence: the full gate passed on the version that introduced it, because nothing in the suites left a freed body in the player's exception list *and* a phased neighbour. The sweep's engine-log capture found
+it in the first 40 s of the first run. That is the case for the watcher.
+
+### The sweep (hard facts)
+
+48 playthroughs = 144 characters: 12 seeds (424242, 101–111) × four policies, each playing all three characters (`--keep-going`). **No character reached the lobby. No engine error or script error in any of the 48 logs** (the one
+class the watcher did catch is fix 11 above, found and fixed before this sweep). Raw tables: `docs/bot_runs/round44_sweep.md`; per-character JSON/logs are in the scratch folder only (regenerate with the commands below).
+
+| policy | what it is | deepest floor, median (run 1 / 2 / 3) | median time alive (s) | stage-hits taken per character | flats entered per character | died inside a flat / staff room |
+|---|---|---|---|---|---|---|
+| `none` | the briefed kit only, crowbar handed over (the round-43 bot, re-run) | **18 / 20 / 20** | 167 / 132 / 138 | 11.0 | 0 | 0 of 36 |
+| `safe` | scavenge while the kit is short; **never enter a breach room** | **22 / 26 / 25** | 1157 / 637 / 469 | 16.2 | 13.4 | 7 of 36 |
+| `need` | scavenge while the kit is short (breach rooms allowed when healthy) | 27 / 26 / 27 | 394 / 487 / 428 | 13.6 | 8.5 | 13 of 36 |
+| `all` | scavenge every door | 26 / 26 / 27 | 486 / 693 / 458 | 14.2 | 10.4 | 14 of 36 |
+
+(The round-43 numbers reproduce: `none` runs 1/2/3 median 18 / 20 / 20, 25+ floors for 34 of 36, none past floor 11 below. Lower floor = deeper.)
+
+**What the numbers say**
+
+1. **Scavenging does not buy depth for this bot — it costs it, and one rule explains most of it.** `need` / `all` die on floors 29–24 (median 26–27) because they spend the character in the first flats: ~8–10 flats and 6–8 minutes
+   against `none`'s 2.5 minutes of straight dive. `safe` is `need` with ONE rule changed (skip breach rooms) and goes **five floors deeper in run 1 and lives three times as long** (median 1157 s vs 394 s).
+2. **A breach room costs ~10× the health of any other flat and pays no more.** Breached flats: **4.4–4.7 stage-hits and 3.8–4.4 kills per flat** (all four policies' data: 27 + 28 flats); every other flat: **0.45–0.60 hits, 1.4–1.5 kills**.
+   Items shown per flat: 2.5–3.1 in a breach room vs 3.3–3.5 elsewhere. Breach rooms are ~8% of the flats entered and **~45–55% of all the damage taken inside flats**. (The reward that is meant to justify them — the leader's key, and the gun
+   cabinet's key — the bot never used: 2 keys used on their doors in 48 playthroughs.) A human who skips them is the `safe` row.
+3. **Outside breach rooms scavenging is roughly health-neutral and pays in kit.** A flat costs ~0.5 stage-hits and returns ~0.3 healing items (~0.45 stages) plus **0.8–0.9 weapons, 0.2–0.3 scrap bags, ~0.2 cash, 0.06–0.10 crowbars,
+   0.09 fuses** (per flat entered, floors 29–23, run 1–3 mixed). The health budget is not the constraint it was in round 43; the clock and the bag are.
+4. **The bag is the binding constraint.** Of the items shown on nodes, **64–71% were left because the bag was full** (`need` 734 of 1038, `all` 909 of 1320, `safe` 1113 of 1745), against 64–160 "not worth a slot" and 16–47 "did not fit" (an ammo bundle must
+   fit WHOLLY, so a 6-round stack with 2 free refuses a bundle of 4 and the node keeps it). Five slots, two hammers, a gun, two kits: every found hammer, bat, knife or kit competes with them. Pack Mule and Deep Pockets are the upgrades that move this;
+   the bot almost never reached a merchant (floor 25: 13 / 14 / 19 of 36 characters in `need` / `all` / `safe`, 35 in `none`; floor 20: 0 / 0 / 7 / 27; floor 15: 0 / 0 / 0 / 3).
+5. **Later characters find less, not more danger.** Per flat entered, run 1 → 2 → 3: nodes opened 6.0 → 5.4 → 2.9, items shown 4.2 → 3.5 → 2.6, seconds inside 63 → 56 → 22, hits 0.59 → 0.62 → 0.34 (`safe`). The persistent loot depletion means a later
+   character walks into half-emptied flats on the top floors — they get through them quickly and safely and find little. Whether that is wanted (the building running dry) is the owner's call; it is also why run 2/3 characters of `safe` die at 25–26
+   with a kit that grew less than run 1's.
+6. **The dive policy (`none`) is still the deepest** because nothing in it spends health on anything but the next staircase: 11.0 stage-hits, dead by floor ~18–20, 1.4 barricades a character (51 in 36 characters) and **14 of 36 died within three floors
+   below a barricade**. The scavenging policies meet 0.2–0.5 per character (they die above them): crowbars were 0.06–0.10 per flat, so the first barricade (~floor 21–29) is again the wall for anyone who gets that far.
+7. **Where the hits come from.** Stage-hits by source over the 144 characters (the bot files a hit under the nearest dead within 120 px, else `fire` if the player stands in a burning cell, else the nearest dead within 400 px by what it was doing):
+   standard zombies 181 / 212 / 222 / 272 (`none` / `need` / `all` / `safe`), **fire 85 / 170 / 175 / 194**, crawlers 47 / 23 / 30 / 32, then spitters (spit from range, 15–25 as `far:spitter:attack`, plus 11–22 up close), bigs, bosses, long-arms.
+   **Fire is the second-largest source: 21 % of the hits in the dive, 31–35 % with scavenging (4.7–5.4 stage-hits per character against 2.4 in the dive)** — a looting character spends minutes inside flats, and the bot makes no effort to
+   walk round an apartment fire (a human would; in the corridor it sprints through, which the game lets you do unburned). 20–27 of 36 deaths had a standard zombie within 400 px; **5 / 10 / 13 deaths had nothing near** (`all` / `need` / `safe`):
+   the dying countdown running out on a character whose last first aid was already spent — the damage was done earlier, the death is the timer.
+8. **Merchants.** `safe` reached the floor-25 merchant in 19 characters and floor 20 in 7: 18 upgrade picks, 5 purchases (160 notes), 0 sales; the bag-full rule stopped most buys. `none` reached 25 in 35 and 20 in 27.
+9. **Workbench:** 18 upgrades and 19 tunings in `safe`, 33 items salvaged; the commonest refusal was "Needs 50 scrap (you have…)" (22) — the first upgrade level costs 50 and a character earns a median of ~28 by death; "Needs a spare Lv1 bat/Gun" (17) is the other —
+   the feed-a-spare rule is the real gate. The characters die long before the economy tool (`tools/economy_report.tscn`'s ~200 scrap a character) matters.
+
+**Anomalies the sweep logged (and what they were)**
+
+| kind | n | what it was |
+|---|---|---|
+| `TAKE_NO_EFFECT` | 3 of 947 takes (224 `need`, 283 `all`, 440 `safe`) | 2 were a **second key** for a door whose key the bag already held (the game accepts it silently, `add_key_to_inventory`; fixed in the bot's accounting), 1 a take of bandages (006) with a free slot that changed nothing — **not explained**; every other take verified |
+| `NO_PROGRESS` / `DOOR_TIMEOUT` / `ANCHOR_UNREACHABLE` / `ROOM_LONG` | 3 stalls in 48 playthroughs | **2 not explained, 1 the bot's own.** In `need_103` (floor 26) and `safe_102` (floor 18) the player stood 30–75 s at a spot in the corridor ~140 px short of a door, `move_right` held, beside **a defender fighting zombies that never die** (survivors are performative: they blink the dead, they do not hurt them, so a fight beside a door goes on for ever). Position constant to 0.01 px, `stuck` timer 0 — the anti-stuck net never fired. A scripted copy of the scene (defender + 3 zombies, one on the player's x) walks through in 0.5 s, so it needs something else; the trace now lists every body touching the player. In `all_424242` (floor 25, flat 2501) the player stood 150 s at x≈613 with no zombie and no survivor and `sprint` held but no move key, failing to click-walk to a set-back node: **not explained**. All three cost the bot 30–150 s, none ended a character |
+| `STAMINA_RANGE` | 1 | **stamina 100 of 75** at the start of a later character: `advance_run` / `new_game` reset stamina to 100 before the upgrades fold in, so a character carrying a max-stamina drawback (Pack Mule −25 %, Glass Cannon −30 %, Loadbearer −20 %) starts above its maximum until the first drain. Cosmetic (the bar over-fills); found, not yet fixed — see "Open" |
+| engine log | 0 | no `ERROR` / `SCRIPT ERROR` in 48 logs |
+
+### Open (found, not fixed — the owner's call or not yet understood)
+
+1. **The unexplained pin beside a defender's fight** (above). If it is real it is a softlock-class bug; the next sweep's `[stall]` trace should show what the player is pressed against.
+2. **Survivors' fights never end.** A performative defender and the zombies engaged with it blink at each other for ever, in the middle of a corridor, on top of a door the player wants. The player can (and a human would) kill the zombie; the bot treats it as
+   "not coming for me" until it blocks. Worth a look if a defender is meant to hold a door open rather than ornament it.
+3. **Stamina above the maximum at the start of runs 2/3** with a drawback upgrade (fix is one line in `advance_run`/`new_game`: `stamina = get_max_stamina()` after the upgrade fold; needs a full gate).
+4. **Breach rooms: ~10× the cost of a normal flat for no extra loot** (above) — a balance decision, not a bug. The bot's `safe` policy is the evidence for "skip them", which may or may not be what the owner wants players to learn.
+5. **A second key for a door the bag already holds** is accepted silently and the node is emptied (the duplicate node is wasted, nothing is lost); two nodes holding the same key target is a seeding quirk.
+6. **Bullets: an all-or-nothing bundle** leaves a 6-round stack unable to take a 4-round pile; the pile stays where it lies (by rule 5, nothing is destroyed). A human sees "Inventory full".
+
+### What the bot does NOT cover (so a green sweep is not "everything works")
+
+* **Listening** (R at doors / stairwells), **talking** to survivors and quests (010 Johnny, 001 Ethel, the personal quests), **crafting** (Molotov / rope), **cans and the extinguisher against fire**, the **banister jump**, the **backpack ring**
+  and every UI that needs a pointer; the **real save file → quit → Continue** flow (the watcher round-trips `save_game` / `load_game` and compares ~35 fields, but never restarts the scene); the **tutorial** and the packless / story rules (a sweep
+  plays `new_game` with them off); **gamepad and touch**; **look and sound** (a headless run draws nothing).
+* It reads the game's state directly for what a player would see (zombies within a screen, the stairwell side), and it never mis-clicks or hesitates. A human is slower and more careful in some places (avoids a breach room) and worse in others.
+* Speed 8 distorts real-time-driven code (`Time.get_ticks_msec` guards, the attack buffer); runs of one seed differ a little from run to run, and the sweep runs several godots at once. Compare configs, not single runs.
+* The sweep's bot rules are mine (`worth()`, `door_blocker()`, `_fight`); a different policy goes a different depth. `need` / `all` / `safe` bracket scavenging, they do not bound it.
+
+### How to run it
+
+```
+python3 tools/bot_sweep.py <outdir> --seeds 424242,101,102 --configs none,need,all,safe [--jobs 3] [--timeout 5400]   # resumable; each run gets its own user://
+python3 tools/bot_sweep.py <outdir> --seeds 424242 --configs god,god2,god3 --jobs 1 --timeout 14400                    # coverage runs (hours of game time)
+python3 tools/bot_summary.py <outdir>                                                                                # the tables below
+godot --headless res://tools/bot_run.tscn -- --seed=424242 --speed=8 --runs=3 --keep-going --loot=need [--avoid-breach] [--god] [--trace] --out=/tmp/bot.md
+```
+Flags: `--loot=none|need|all`, `--avoid-breach`, `--god`, `--elevator`, `--rest`, `--balcony`, `--start-run=N --start-floor=N`, `--apt=ID,ID` (loot only these flats), `--trace`, and the gifts `--scrap --fuses --notes --power --unarmed`.
+Output per run: `<name>.md` (the report), `.json` (everything, for the summary), `.log` (the run + the engine log). The summary's `anomalies` table is the thing to read first; `[stall]` lines in a log are the per-frame trace of a stall.
