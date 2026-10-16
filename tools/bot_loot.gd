@@ -1224,7 +1224,8 @@ func _panel_tick(p) -> void:
 	var id: String = str(ui.current_item_id)
 	var is_key: bool = str(ui.current_key_target) != ""
 	var w := worth(id, is_key)
-	var rec := {"run": WorldState.current_run, "floor": WorldState.current_floor, "apt": room_id, "anchor": str(cur_anchor.name) if cur_anchor != null and is_instance_valid(cur_anchor) else "?", "item": id, "worth": w}
+	var key_tgt := str(ui.current_key_target)
+	var rec := {"key_target": key_tgt, "run": WorldState.current_run, "floor": WorldState.current_floor, "apt": room_id, "anchor": str(cur_anchor.name) if cur_anchor != null and is_instance_valid(cur_anchor) else "?", "item": id, "worth": w}
 	_room_rec["searched"] = int(_room_rec["searched"]) + 1
 	var take := false
 	var why := ""
@@ -1339,6 +1340,20 @@ func _verify_take(rec: Dictionary, before: String, id: String) -> void:
 	rec["landed"] = ok
 	finds.append(rec)
 	var nm := str(rec.get("anchor", "?"))
+	var held_key := false
+	if str(rec.get("key_target", "")) != "":
+		for inst in WorldState.inventory:
+			if inst.target_apartment == str(rec["key_target"]):
+				held_key = true
+	if not ok and held_key:
+		# a second key for a door the bag already holds the key to: the game takes it "silently" (WorldState.add_key_to_inventory) — by design
+		rec["why"] = "already held"
+		count("keys_already_held")
+		done_anchors[nm] = "taken (already held)"
+		_leave_panel()
+		cur_anchor = null
+		panel_t = 0.0
+		return
 	if not ok:
 		if free_slots() == 0 and not _no_slot(id):
 			# the bag was full for it (an ammo bundle must fit WHOLLY): the game leaves it on the node — by design, remembered, not a finding
