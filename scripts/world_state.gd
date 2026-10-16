@@ -1277,6 +1277,7 @@ func new_game() -> void:
 	if not carry_items.is_empty():
 		carry_items = []
 		save_profile()
+	stamina = get_max_stamina()    # (full - not 100: a permanent perk can lower the maximum, and stamina above it overfills the bar)
 
 
 # Advance to the NEXT character run — THE TIME SKIP (docs/THREE_RUN_ARC.md). The
@@ -1380,6 +1381,10 @@ func advance_run() -> bool:
 	balcony_jump_warned = false
 	balcony_arrival_hurt = false
 	balcony_pending_injury = 0
+	# A fresh character starts at FULL stamina - of THEIR maximum. It was reset to a flat 100 above, before the upgrades fold in, so a character
+	# carrying a max-stamina drawback (Pack Mule -25 %, Glass Cannon -30 %, Loadbearer -20 %) began at 100 of 75 until the first drain
+	# (the descent bot's STAMINA_RANGE: "stamina 100.00 of 75.00" on floor 30 of run 2).
+	stamina = get_max_stamina()
 	return false
 
 

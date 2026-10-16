@@ -25,8 +25,26 @@ func _ready() -> void:
 	_test_door_decay()
 	await _test_enemy_reshuffle()
 	_test_run_cast()
+	_test_stamina_starts_full()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
+
+
+func _test_stamina_starts_full() -> void:
+	# A new character starts at FULL stamina of THEIR maximum. The reset used a flat 100 before the upgrades folded in, so a character carrying a
+	# max-stamina drawback began above its own maximum (the descent bot's STAMINA_RANGE: "stamina 100.00 of 75.00" on floor 30 of run 2).
+	print("[a new character starts at full stamina, never above their maximum]")
+	WorldState.new_game()
+	check(is_equal_approx(WorldState.stamina, WorldState.get_max_stamina()), "a new game starts full (%.1f of %.1f)" % [WorldState.stamina, WorldState.get_max_stamina()])
+	var plain: float = WorldState.get_max_stamina()
+	WorldState.active_upgrades = ["U_db_slotstam"]        # Pack Mule: -25 % max stamina
+	var lowered: float = WorldState.get_max_stamina()
+	check(lowered < plain, "(setup) the drawback lowers the maximum (%.1f -> %.1f)" % [plain, lowered])
+	WorldState.stamina = 12.0
+	WorldState.advance_run()
+	check(is_equal_approx(WorldState.stamina, WorldState.get_max_stamina()) and WorldState.stamina <= lowered + 0.01,
+		"the next character starts full of THEIR maximum, not at 100 (%.1f of %.1f)" % [WorldState.stamina, WorldState.get_max_stamina()])
+	WorldState.active_upgrades = []
 
 
 func _test_run_cast() -> void:
