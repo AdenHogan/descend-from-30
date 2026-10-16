@@ -267,8 +267,15 @@ func _give_kit() -> void:
 	if debug_notes > 0:
 		WorldState.wallet_unlocked = true
 		WorldState.wallet_balance = debug_notes
-	for _i in range(debug_fuses):
-		WorldState.add_to_inventory("020")
+	var fuses_left := debug_fuses
+	while fuses_left > 0:
+		# (outside the five slots, tagged: with the kit filling all five, add_to_inventory refused every gifted fuse and the fuse box was never exercised)
+		var fz := ItemInstance.new()
+		fz.setup("020")
+		fz.count = mini(fuses_left, WorldState.MAX_FUSE_PER_SLOT)
+		fz.set_meta("bot_gift", true)
+		WorldState.inventory.append(fz)
+		fuses_left -= fz.count
 	HUD.refresh_inventory()
 	HUD.select_slot(0)
 	if WorldState.inventory.size() != 5:
