@@ -19,10 +19,13 @@ class ErrLog extends Logger:
 	var mutex := Mutex.new()
 	var items: Array = []
 
-	func _log_error(function: String, file: String, line: int, code: String, rationale: String, _editor_notify: bool, error_type: int, _backtraces: Array[ScriptBacktrace]) -> void:
+	func _log_error(function: String, file: String, line: int, code: String, rationale: String, _editor_notify: bool, error_type: int, backtraces: Array[ScriptBacktrace]) -> void:
+		var bt := ""
+		for b in backtraces:
+			bt += b.format(0, 4) + " | "
 		mutex.lock()
 		if items.size() < 400:
-			items.append({"fn": function, "file": file, "line": line, "code": code, "msg": rationale, "type": error_type})
+			items.append({"fn": function, "file": file, "line": line, "code": code, "msg": rationale, "type": error_type, "trace": bt.left(700)})
 		mutex.unlock()
 
 	func drain() -> Array:
@@ -105,7 +108,7 @@ func _drain_engine_errors() -> void:
 			rec["count"] = int(rec["count"]) + 1
 			continue
 		var rec2 := {"sig": sig, "count": 1, "file": file, "line": int(e["line"]), "fn": str(e["fn"]), "msg": msg, "kind": kind, "owner": owner_of,
-			"first_t": snappedf(bot.t, 0.1), "run": WorldState.current_run, "floor": WorldState.current_floor,
+			"trace": str(e.get("trace", "")), "first_t": snappedf(bot.t, 0.1), "run": WorldState.current_run, "floor": WorldState.current_floor,
 			"scene": str(bot.get_tree().current_scene.scene_file_path) if bot.get_tree().current_scene != null else "none"}
 		_eng_index[sig] = rec2
 		engine_errors.append(rec2)
