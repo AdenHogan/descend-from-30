@@ -48,6 +48,7 @@ var counters: Dictionary = {}              # what the watcher saw (coverage of t
 # --- invariant state ---
 var _floor_mismatch_t: float = 0.0
 var _plane_t: float = 0.0
+var _door_t: float = 0.0
 var _pause_t: float = 0.0
 var _trans_t: float = 0.0
 var _loot_ghost_t: float = 0.0
@@ -197,6 +198,14 @@ func _check_state(step: float) -> void:
 			report("PAUSE_STUCK", "the tree has been paused 25 s with nothing open that explains it (scene %s)" % (str(sc.scene_file_path) if sc != null else "none"))
 	else:
 		_pause_t = 0.0
+	# ... and the door's panel must not outlast the bot's answer (a panel nobody can answer would be a dead end)
+	if bot._door_panel() != null:
+		_door_t += step
+		if _door_t > 20.0:
+			report("DOOR_PANEL_OPEN", "the lobby door's panel has been open 20 s unanswered")
+			_door_t = -1e9
+	else:
+		_door_t = 0.0
 	if Transition.busy and bot.phase == "play":
 		_trans_t += step
 		if _trans_t > 45.0:
@@ -245,6 +254,9 @@ func _legit_pause() -> bool:
 			if sp.ends_with("intro_overlay.gd") or sp.ends_with("character_panel.gd") or sp.ends_with("choice_panel.gd") or sp.ends_with("workbench_ui.gd"):
 				return true
 	var sc = bot.get_tree().current_scene
+	# the lobby door's panel (handoff_ui.gd) hangs off the tree root and pauses the exit until it is answered - the bot answers it within ~2 s
+	if bot._door_panel() != null:
+		return true
 	return sc == null or Transition.busy or WorldState.loot_open
 
 

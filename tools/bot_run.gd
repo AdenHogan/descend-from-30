@@ -132,6 +132,8 @@ var _last_x: float = 0.0
 var _kite_until: float = 0.0
 var _exit_gate: float = 0.0
 var _leave_t: float = 0.0
+var _door_wait: float = 0.0
+var debug_heirloom: bool = false      # gift: the first hammer is Lv3, so the lobby door has something to offer (tests the door panel without a three-hour run)
 var _hold_t: float = 0.0
 
 
@@ -175,6 +177,8 @@ func _ready() -> void:
 			debug_fuses = int(a.substr(8))
 		elif a == "--unarmed":
 			debug_unarmed = true
+		elif a == "--heirloom":
+			debug_heirloom = true
 		elif a == "--power":
 			debug_power = true
 		elif a == "--no-saveload":
@@ -261,6 +265,11 @@ func _give_kit() -> void:
 				WorldState.inventory.remove_at(i)
 			elif inst0.item_id == "004":
 				inst0.mag_count = 0
+	if debug_heirloom:
+		for inst1 in WorldState.inventory:
+			if inst1.item_id == "002":
+				inst1.level = 3
+				break
 	if debug_power:
 		WorldState.elevator_fuses_loaded = WorldState.ELEVATOR_FUSES_NEEDED
 		WorldState.elevator_powered = true
@@ -410,6 +419,8 @@ func _physics_process(delta: float) -> void:
 		# logged BEFORE the busy gate, so a floor passed through mid-transition still appears in the record
 		_on_floor_change(f, p)
 	_observe(p)
+	if phase == "leaving":
+		_answer_door_panel()                  # (before the busy gate: the panel pauses the tree and the escaping player counts as busy)
 	if busy and get_tree().paused and _kind == "maint" and loot != null and loot.bench_ui_visible(get_tree().current_scene):
 		loot.room_tick(p, get_tree().current_scene, "maint")      # the workbench pauses the tree; the bot is driving its screen
 		return
@@ -436,7 +447,7 @@ func _physics_process(delta: float) -> void:
 				_play_floor(p, f)
 		"leaving":
 			_release_all()
-			if t - _leave_t > 25.0 and f == 0:
+			if t - _leave_t > 25.0 and f == 0 and _door_panel() == null:
 				phase = "play"          # the door never took the press: try again
 		_:
 			_release_all()
@@ -1016,6 +1027,40 @@ func _play_lobby(p) -> void:
 		_walk(signf(LOBBY_EXIT_X - p.global_position.x))
 
 
+## THE DOOR (handoff_ui.gd, added to the tree ROOT by lobby_exit.leave): when the kit holds an upgraded weapon the exit PAUSES THE GAME until someone answers -
+## leave ONE item by the door for a future game, or scrap the kit for Valour. Until round 44 the bot never answered, so a god run whose kit held an upgraded
+## weapon sat paused at the lobby for ever (the watcher's PAUSE_STUCK). The 1st and 3rd character leave their best candidate, the 2nd scraps - so a sweep runs
+## both paths of leave_for_next / note_door_scrap.
+func _door_panel():
+	for n in get_tree().root.get_children():
+		if n.has_signal("decided") and n.has_method("choose"):
+			return n
+	return null
+
+
+func _answer_door_panel() -> void:
+	var panel = _door_panel()
+	if panel == null:
+		_door_wait = 0.0
+		return
+	_door_wait += dt
+	if _door_wait < 1.5:                  # (a person reads it first)
+		return
+	var slot := -1
+	var best := 0
+	for i in WorldState.handoff_candidates():
+		var w: int = Progression.door_worth(WorldState.inventory[i])
+		if w > best:
+			best = w
+			slot = i
+	if WorldState.current_run == 2:
+		slot = -1
+	var label: String = str(WorldState.inventory[slot].item_id) if slot >= 0 else ""
+	_event("DOOR", ("left %s (worth %d Valour) by the door" % [label, best]) if slot >= 0 else "scrapped the kit at the door (%d candidates)" % WorldState.handoff_candidates().size())
+	_door_wait = 0.0
+	panel.choose(slot)
+
+
 func _pick_lobby_threat(p, zs: Array):
 	var best = null
 	var bs := INF
@@ -1507,7 +1552,7 @@ func _skip_intro() -> void:
 
 func _event(kind: String, msg: String) -> void:
 	events.append({"t": snappedf(t, 0.1), "run": WorldState.current_run, "kind": kind, "msg": msg})
-	if kind in ["RUN", "LOBBY", "DEATH", "STUCK", "UPGRADE", "BOON", "CROWBAR", "EXIT", "KIT", "SCENE"]:
+	if kind in ["RUN", "LOBBY", "DEATH", "STUCK", "UPGRADE", "BOON", "CROWBAR", "EXIT", "DOOR", "KIT", "SCENE"]:
 		print("  [%s] %s" % [kind, msg])
 
 
