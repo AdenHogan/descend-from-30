@@ -1330,7 +1330,7 @@ func _print_stall_frame(p) -> void:
 	var near: Array = []
 	for z in get_tree().get_nodes_in_group("zombie"):
 		if is_instance_valid(z) and absf(z.global_position.x - p.global_position.x) < 160.0 and not z.is_in_group("pan_scenery"):
-			near.append("%s@%.1f:%s%s%s" % [_type_of(z), z.global_position.x, str(z.get("state")), "(S)" if z.collision_layer & 1 != 0 else "", "(X)" if p.get_collision_exceptions().has(z) else ""])
+			near.append("%s@%.1f:%s%s%s" % [_type_of(z), z.global_position.x, str(z.get("state")), "(S)" if z.collision_layer & 1 != 0 else "", "(P)" if p._phased_bodies.has(z) else ""])
 	var cols: Array = []
 	for i in p.get_slide_collision_count():
 		var o = p.get_slide_collision(i).get_collider()
