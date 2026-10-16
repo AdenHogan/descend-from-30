@@ -1138,7 +1138,15 @@ func _nearest_type(p) -> String:
 		for r in get_tree().get_nodes_in_group("resident_npc"):
 			if is_instance_valid(r) and r.get("is_dead") != true and r.get("violent") == true and absf(r.global_position.x - p.global_position.x) < 120.0:
 				return "resident"
-		return "fire/ranged/other"
+		# standing in flame (a corridor blaze or an apartment fire share the fire_field interface)
+		for f in get_tree().get_nodes_in_group("fire_field"):
+			if is_instance_valid(f) and f.has_method("is_burning_at") and f.is_burning_at(p.global_position.x):
+				return "fire"
+		# a spit, a pounce that has already landed, a body that bit and was shoved off: the nearest dead within a screen, by how it was acting
+		var far := _zombies(p, 400.0)
+		if not far.is_empty():
+			return "far:%s:%s" % [_type_of(far[0]), str(far[0].get("state"))]
+		return "unknown"
 	return _type_of(zs[0])
 
 
