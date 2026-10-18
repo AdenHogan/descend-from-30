@@ -36,6 +36,11 @@ const GUNSHOT := preload("res://assets/audio/gunshot.wav")
 const ART := "res://assets/homeless-character-pixel-art-pack/%d/%s.png"
 const FRAME := 48
 const SPRITE_SCALE := 1.6
+const WEAPON_SCALE := 0.34         # the 56 px item icon, in hand
+const WEAPON_GRIP := Vector2(14.0, -14.0)   # icon texels: moves the icon's lower-left (the grip end) onto the hand
+const HAND_REACH := 8.0            # the front hand, this far in front of the body's centre
+const HAND_Y := -27.0              # …and this high (the 48 px frame's hands hang ~ row 31)
+static var _body_cx_cache: Dictionary = {}
 const WALK := 42.0
 const RUN := 100.0
 const FEET_ROOM := 353.0           # room.ROOM_FEET_Y
@@ -278,7 +283,8 @@ func _build_weapon() -> void:
 	_weapon_sprite.name = "Weapon"
 	_weapon_sprite.texture = tex
 	_weapon_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	_weapon_sprite.scale = Vector2(0.3, 0.3)
+	_weapon_sprite.scale = Vector2(WEAPON_SCALE, WEAPON_SCALE)
+	_weapon_sprite.offset = WEAPON_GRIP         # the icon's GRIP corner sits on the node's position (the hand), so a swing turns about the hand
 	_weapon_sprite.visible = false
 	add_child(_weapon_sprite)
 
@@ -1422,13 +1428,41 @@ func _walk_to(x: float, speed: float, delta: float) -> bool:
 	return false
 
 
+## How far the BODY stands from the node's origin, facing right (px, world; negative = to its left). The survivor art draws the
+## figure in the LEFT part of its 48 px frame (its opaque pixels centre on x ~11-14, not 24), so the origin sits ~17 px beside the
+## body — and a weapon placed from the origin (owner round 45: "the NPCs weapon was floating in front in midair") hung that far
+## off the hand. Measured once per look from Idle frame 0.
+func _body_offset() -> float:
+	var cx: float = float(_body_cx_cache.get(look, -1.0))
+	if cx < 0.0:
+		cx = FRAME * 0.5
+		if animated_sprite != null and animated_sprite.sprite_frames != null and animated_sprite.sprite_frames.has_animation("Idle"):
+			var tex: Texture2D = animated_sprite.sprite_frames.get_frame_texture("Idle", 0)
+			var img: Image = tex.get_image() if tex != null else null
+			if img != null:
+				if img.is_compressed():
+					img.decompress()
+				var sum := 0.0
+				var n := 0
+				for y in img.get_height():
+					for x in img.get_width():
+						if img.get_pixel(x, y).a > 0.5:
+							sum += float(x)
+							n += 1
+				if n > 0:
+					cx = sum / float(n)
+		_body_cx_cache[look] = cx
+	return (cx - FRAME * 0.5) * SPRITE_SCALE
+
+
 func _show_weapon(on: bool, angle: float) -> void:
 	if _weapon_sprite == null:
 		return
 	_weapon_sprite.visible = on
 	var f := -1.0 if animated_sprite.flip_h else 1.0
-	_weapon_sprite.position = Vector2(6.0 * f, -24.0)
-	_weapon_sprite.flip_h = animated_sprite.flip_h
+	# the front hand: the body's centre (it mirrors with the sprite) plus an arm's reach, at hand height
+	_weapon_sprite.position = Vector2(_body_offset() * f + HAND_REACH * f, HAND_Y)
+	_weapon_sprite.scale = Vector2(WEAPON_SCALE * f, WEAPON_SCALE)      # mirrored by scale, so the grip offset mirrors with it
 	_weapon_sprite.rotation = angle * f
 
 

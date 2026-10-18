@@ -18,6 +18,7 @@ const RingGeo := preload("res://scripts/ring_geo.gd")
 const DRAG_THRESHOLD = 8.0
 const DOUBLE_CLICK_TIME = 0.35
 const PANEL_W = 300.0
+const SEARCH_W = 220.0                 # the compact panel while a search runs (owner round 45: "the searching box is far too big")
 const SCREEN_W = 1152.0
 const SCREEN_H = 648.0
 
@@ -37,6 +38,8 @@ var panel: PanelContainer = null
 var icon: TextureRect = null
 var name_label: Label = null
 var hint_label: Label = null
+var icon_row: CenterContainer = null
+var search_bar: Control = null         # the filling bar shown while a search runs
 
 # drag / double-click
 var drag_armed = false
@@ -88,7 +91,7 @@ func _build_ui() -> void:
 	vbox.add_theme_constant_override("separation", 8)
 	panel.add_child(vbox)
 
-	var icon_row = CenterContainer.new()
+	icon_row = CenterContainer.new()
 	icon_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	icon_row.custom_minimum_size = Vector2(PANEL_W - 32, 112)
 	vbox.add_child(icon_row)
@@ -115,6 +118,24 @@ func _build_ui() -> void:
 	hint_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hint_label.custom_minimum_size = Vector2(PANEL_W - 32, 0)
 	vbox.add_child(hint_label)
+
+	search_bar = SearchBar.new()
+	search_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	search_bar.custom_minimum_size = Vector2(SEARCH_W - 32, SearchBar.BAR_H)
+	search_bar.visible = false
+	vbox.add_child(search_bar)
+
+
+## A search is running: a small panel with just the word and a bar that fills across it; or it has finished: the full panel.
+func _layout(searching: bool) -> void:
+	var w: float = SEARCH_W if searching else PANEL_W
+	panel.custom_minimum_size = Vector2(w, 0)
+	name_label.custom_minimum_size = Vector2(w - 32, 0)
+	name_label.add_theme_font_size_override("font_size", 16 if searching else 22)
+	icon_row.visible = not searching
+	hint_label.visible = not searching
+	search_bar.visible = searching
+	panel.reset_size()           # a PanelContainer keeps its biggest size until told to shrink
 
 
 func open(item_id: String, anchor_name: String, apartment_id: String) -> void:
@@ -144,12 +165,15 @@ func open(item_id: String, anchor_name: String, apartment_id: String) -> void:
 	reveal_timer = 0.0
 	is_revealing = true
 	icon.texture = null
-	name_label.text = "Searching…"
+	name_label.text = "Searching"
 	hint_label.text = ""
+	_layout(true)
+	search_bar.set_progress(0.0, reveal_time)
 	visible = true
 
 
 func _reveal_item() -> void:
+	_layout(false)
 	WorldState.mark_anchor_searched(current_apartment_id, current_anchor_name)
 	get_tree().call_group("open_furniture", "on_searched", current_apartment_id, current_anchor_name)   # the drawer opens
 	is_revealing = false
@@ -227,6 +251,8 @@ func _process(delta: float) -> void:
 			_close(false)
 			return
 		reveal_timer += delta
+		search_bar.set_progress(reveal_timer, reveal_time)
+		name_label.text = "Searching" + ".".repeat(1 + int(reveal_timer * 2.5) % 3)
 		if reveal_timer >= reveal_time:
 			_reveal_item()
 		return
@@ -405,3 +431,47 @@ func _close(item_taken: bool) -> void:
 func _notify_anchor_closed(item_taken: bool) -> void:
 	if anchor_node != null and is_instance_valid(anchor_node) and anchor_node.has_method("on_loot_closed"):
 		anchor_node.on_loot_closed(item_taken)
+
+
+## The search bar (owner round 45: "add an opaque bar to fill the box horizontally, just like similar bars for force door effects"): the
+## same warm look as the barricade's board bar — a dark opaque track in a bronze frame, an amber fill that grows left to right with a
+## brighter, pulsing leading edge, a highlight that sweeps along the fill, and a tick every tenth so the pace of the search reads.
+class SearchBar extends Control:
+	const BAR_H := 14.0
+	var elapsed := 0.0
+	var total := 1.0
+	var _t := 0.0
+
+	func set_progress(done: float, of: float) -> void:
+		elapsed = clampf(done, 0.0, maxf(of, 0.001))
+		total = maxf(of, 0.001)
+		queue_redraw()
+
+	func fraction() -> float:
+		return clampf(elapsed / total, 0.0, 1.0)
+
+	func _process(delta: float) -> void:
+		if visible:
+			_t += delta
+			queue_redraw()
+
+	func _draw() -> void:
+		var w := size.x
+		var h := size.y
+		draw_rect(Rect2(0, 0, w, h), Color(0.05, 0.04, 0.035, 1.0))                        # opaque track
+		var inner := Rect2(2, 2, w - 4, h - 4)
+		draw_rect(inner, Color(0.16, 0.13, 0.10, 1.0))
+		var fill := inner.size.x * fraction()
+		if fill >= 1.0:
+			draw_rect(Rect2(inner.position, Vector2(fill, inner.size.y)), Color(0.95, 0.66, 0.28, 1.0))
+			var pulse := 0.65 + 0.35 * sin(_t * 12.0)                                      # the leading edge breathes
+			draw_rect(Rect2(inner.position.x + fill - 3.0, inner.position.y, 3.0, inner.size.y), Color(1.0, 0.86, 0.5, pulse))
+			var sweep := fmod(_t * 60.0, maxf(fill, 1.0) + 12.0) - 12.0                    # a highlight running along the fill
+			var sx := clampf(sweep, 0.0, fill)
+			var ex := clampf(sweep + 12.0, 0.0, fill)
+			if ex > sx:
+				draw_rect(Rect2(inner.position.x + sx, inner.position.y, ex - sx, 2.0), Color(1.0, 0.92, 0.66, 0.55))
+		for i in range(1, 10):                                                              # tenths
+			var tx := inner.position.x + inner.size.x * float(i) / 10.0
+			draw_rect(Rect2(tx, inner.position.y, 1.0, inner.size.y), Color(0.05, 0.04, 0.035, 0.55))
+		draw_rect(Rect2(0, 0, w, h), Color(0.62, 0.46, 0.30, 1.0), false, 1.0)               # bronze frame

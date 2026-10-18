@@ -84,6 +84,11 @@ backpack to pick up which will become the inventory."
   If the result won't fit, the whole craft is undone (CLAUDE.md robustness rule 5). Held-slot index follows the craft.
 - Locked by `molotov_test` (mutation-checked: broken bottles, drag-vs-click).
 
+- **Loading a gun from the ring (owner round 45):** bullets dragged onto a gun in the ring now LOAD it (the gun glows green and the
+  middle says "DROP TO LOAD" — `WorldState.ammo_gun_pair` finds which of the two is the gun, `load_gun_from_pack` does what the hotbar's
+  drop does). It used to answer "Those don't go together" because only recipes were tried. A full magazine says so; nothing is spent.
+  `molotov_test._test_ring_drag`.
+
 ## The pack beside a found item (owner round 36f — BUILT)
 "If my inventory is full and I scavenge an item, I should be able to open the backpack while still in that scavenge UI… the search panel can move left and the item wheel show on the right… drag from the node to the wheel."
 - A found item waiting in the loot panel (`loot_ui.can_share_screen()`: visible, has an item, not mid-search) no longer blocks the pack: `RingGeo.ui_block_reason` and `player.pack_blocked_reason` let it open. The panel slides LEFT (`PACK_SHIFT`) and the ring opens just right of it, the pair centred on the screen (`loot_ui.ring_centre_x` — owner round 36g: it was too far right); mid-search or "nothing found" still refuse. A "full" panel says "Open your pack and make room." (or, with the ring up, "Drag something off the ring (or onto this) to make room.").

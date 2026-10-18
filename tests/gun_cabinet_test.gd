@@ -8,6 +8,7 @@ extends Node
 
 var failures: int = 0
 var cab := ""          # a cabinet apartment on the found seed
+var cab_seed := 0
 var key_room := ""     # its key carrier's breach room
 
 
@@ -26,6 +27,7 @@ func _ready() -> void:
 		check(false, "found a seed with a gun cabinet and a key room")
 	else:
 		_test_where()
+		_test_cabinet_rules()
 		_test_weapon()
 		_test_open_with_key()
 		_test_open_with_crowbar()
@@ -53,6 +55,7 @@ func _find_seed() -> void:
 				if room != "":
 					cab = apt
 					key_room = room
+					cab_seed = 7000 + s
 					print("  seed %d: cabinet %s, key room %s" % [7000 + s, cab, key_room])
 					return
 
@@ -93,6 +96,45 @@ func _test_where() -> void:
 			tut = false
 	WorldState.is_first_run = false
 	check(tut, "no cabinet in the tutorial's rooms (first run, floor 30)")
+
+
+func _test_cabinet_rules() -> void:
+	# OWNER ROUND 45: "floor 29 and there are two apartments with gun cabinets. This is too much" — floors 24 and down, one a floor.
+	print("[cabinet rules: floors 24 and down, at most one a floor, and the art follows]")
+	var floors_with := 0
+	var floors_total := 0
+	var worst := 0
+	var above := 0
+	var mismatched := 0
+	var living := 0
+	var RoomScript = load("res://scripts/room.gd")
+	for s in range(1, 21):
+		_fresh(9100 + s)
+		for f in range(1, 31):
+			var cabs: Array = WorldState.gun_cabinets_on_floor(f)
+			worst = maxi(worst, cabs.size())
+			if f > 24 and not cabs.is_empty():                         # (the owner's line, not the constant)
+				above += 1
+			if f <= 24:
+				floors_total += 1
+				floors_with += 1 if not cabs.is_empty() else 0
+			# the living-room variant that carries the cabinet is shown exactly where a cabinet is
+			for i in range(1, 6):
+				var apt := str(f) + "0" + str(i)
+				var layout: Array = WorldState.get_apartment_layout(apt)
+				for slot in range(layout.size()):
+					if layout[slot] != "living_room":
+						continue
+					living += 1
+					var shows: bool = RoomScript.module_scene_for(apt, slot, "living_room") == WorldState.GUN_CABINET_SCENE
+					if shows != (WorldState.gun_cabinet_slot(apt) == slot):
+						mismatched += 1
+	check(worst <= 1, "no floor holds more than one cabinet (the most: %d)" % worst)
+	check(above == 0, "no cabinet above floor 24 (%d floors)" % above)
+	var share := float(floors_with) / float(floors_total)
+	check(share > 0.10 and share < 0.40, "about one floor in four holds one — a few a building, not a corridor-full (%.0f%% of %d floors)" % [share * 100.0, floors_total])
+	check(mismatched == 0 and living > 100, "the cabinet's living room is shown where a cabinet is, and nowhere else (%d living rooms, %d mismatched)" % [living, mismatched])
+	_fresh(cab_seed)
 
 
 func _test_weapon() -> void:

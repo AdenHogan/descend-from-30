@@ -42,6 +42,7 @@ func _ready() -> void:
 	_test_safety_and_dialogue()
 	AllyCombat.performative = true                   # …and the shipped behaviour
 	await _test_theatre()
+	await _test_weapon_in_hand()
 	await _test_rescue_rules()
 	await _test_rescue_overrun()
 	await _test_rescue_saved()
@@ -53,6 +54,45 @@ func _ready() -> void:
 	_test_haven_roundtrip()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
+
+
+# OWNER ROUND 45: "the NPCs weapon was floating in front in midair". The survivor art draws the figure in the LEFT part of its 48 px
+# frame, so the node's origin is ~17 px beside the body; the weapon used to be placed from the origin. The check measures the body from
+# the art's own pixels (not from the code under test) and asks the drawn weapon to be in the hand, both facings, every look.
+func _test_weapon_in_hand() -> void:
+	print("[a survivor's weapon is in its hand, not in the air in front of it]")
+	var bf = await _corridor()
+	var worst := 0.0
+	var worst_label := ""
+	for look in SurvivorPlan.LOOKS:
+		if look == SurvivorPlan.STICK_LOOK:
+			continue                                  # that look carries its bat in its own art
+		var rec := _rec("defender", "002", 0, 600.0)
+		rec["look"] = look
+		var d := Survivor.spawn(bf, rec, Survivor.FEET_CORRIDOR, 600.0)
+		await get_tree().physics_frame
+		d.set_physics_process(false)
+		var tex: Texture2D = load(Survivor.ART % [look, "Idle"])
+		var img: Image = tex.get_image().duplicate()
+		img.crop(int(Survivor.FRAME), int(Survivor.FRAME))          # frame 0 (the sheet's left-most 48 px)
+		var sum := 0.0
+		var n := 0
+		for y in img.get_height():
+			for x in img.get_width():
+				if img.get_pixel(x, y).a > 0.5:
+					sum += float(x)
+					n += 1
+		var body_dx: float = (sum / float(n) - Survivor.FRAME * 0.5) * Survivor.SPRITE_SCALE       # facing right
+		for face in [1.0, -1.0]:
+			d.animated_sprite.flip_h = face < 0.0
+			d._show_weapon(true, -0.7)
+			var w: Node2D = d.get_node("Weapon")
+			var gap: float = absf(w.global_position.x - (d.global_position.x + body_dx * face))
+			if gap > worst:
+				worst = gap
+				worst_label = "look %d facing %s" % [look, "right" if face > 0.0 else "left"]
+	check(worst <= 14.0, "the weapon is within 14 px of the body's centre, every look and both facings (worst %.1f px, %s)" % [worst, worst_label])
+	await _finish(bf)
 
 
 # --- harness -------------------------------------------------------------------------------------

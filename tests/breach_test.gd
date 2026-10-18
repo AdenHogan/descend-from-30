@@ -24,6 +24,7 @@ func _ready() -> void:
 	WorldState.dev_seed = 5151
 	WorldState.new_game()
 	WorldState.is_first_run = false
+	_test_breach_rules()
 	_test_leaders()
 	_test_listen()
 	_test_nest_art()
@@ -36,6 +37,71 @@ func _ready() -> void:
 	WorldState.dev_seed = 0
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
+
+
+func _test_breach_rules() -> void:
+	# OWNER ROUND 45: "breaches only really begin to appear from floors 24 and down", "reduce enemy number in breaches by 30%", and "I entered a
+	# breach and immediately five enemies… were walking like a conga line straight toward me".
+	print("[breach rules: floors 24 and down, a smaller pack, far from the front door]")
+	var high := 0
+	var low := 0
+	for seed_ in [5151, 5152, 5153, 5154, 5155, 5156]:
+		WorldState.dev_seed = seed_
+		WorldState.new_game()
+		WorldState.is_first_run = false
+		for run in [1, 2, 3]:
+			WorldState.current_run = run
+			if run > 1:
+				WorldState.mutate_door_states_for_new_run()        # the time skip's decay: it must not breach up top either
+			for f in range(1, 30):
+				for i in range(1, 6):
+					var apt := str(f) + "0" + str(i)
+					if WorldState.get_door_state(apt) == WorldState.DoorState.BREACHED:
+						if f > 24:                                  # (the owner's line, not the constant: a test that reads the constant can't catch it moving)
+							high += 1
+						else:
+							low += 1
+	check(high == 0, "no breach room on floors 25-29, in any run, across 6 buildings (%d)" % high)
+	check(low > 20, "…and they still turn up from floor 24 down (%d)" % low)
+	# an old save's breach up top becomes a shut door; one at the line stays
+	WorldState.door_states["2703"] = WorldState.DoorState.BREACHED
+	WorldState.door_states["2404"] = WorldState.DoorState.BREACHED
+	WorldState._drop_high_breaches()
+	check(WorldState.door_states["2703"] == WorldState.DoorState.SHUT_FORCEABLE and WorldState.door_states["2404"] == WorldState.DoorState.BREACHED,
+		"loading an old save turns a floor-27 breach into a shut door and leaves floor 24's")
+	WorldState.door_states.erase("2703")
+	WorldState.door_states.erase("2404")
+	# the pack: 30% smaller (the old 4..9 → 3..6), and at the far end from where the player arrives
+	WorldState.dev_seed = 5151
+	WorldState.new_game()
+	WorldState.is_first_run = false
+	var sizes: Array = []
+	var nearest := INF
+	var left_rooms := 0
+	var right_rooms := 0
+	for run in [1, 2, 3]:
+		WorldState.current_run = run
+		for f in range(2, 25):
+			for i in range(1, 6):
+				var apt := str(f) + "0" + str(i)
+				var pack: Array = WorldState.get_breached_room_enemies(apt, 150.0, 1030.0, 321.0)
+				sizes.append(pack.size())
+				var left: bool = WorldState.get_entrance_side(apt) == "left"
+				var arrive: float = RoomScript.ARRIVAL_X_LEFT if left else RoomScript.ARRIVAL_X_RIGHT
+				if left:
+					left_rooms += 1
+				else:
+					right_rooms += 1
+				for e in pack:
+					nearest = minf(nearest, absf(float(e["position"].x) - arrive))
+	var total := 0
+	for n in sizes:
+		total += int(n)
+	var mean := float(total) / float(sizes.size())
+	check(sizes.min() >= 3 and sizes.max() <= 6, "a pack is 3 to 6 bodies (was 4 to 9): %d..%d" % [sizes.min(), sizes.max()])
+	check(mean <= 6.5 * 0.75, "…about 30%% fewer on average (%.2f against the old 6.5)" % mean)
+	check(left_rooms > 50 and right_rooms > 50, "both entrance sides were measured (%d left / %d right)" % [left_rooms, right_rooms])
+	check(nearest >= 400.0, "no body stands within 400 px of the arrival point, either side — the nearest is %.0f px (a standard senses 100, a long arm 120)" % nearest)
 
 
 func _find(kind: String) -> String:

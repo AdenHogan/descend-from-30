@@ -70,6 +70,13 @@ of the stairs, so where and when you cross is a real decision.
      **milling by the steps**, roused. A **building shift clears** any pending
      pulls (the world rearranged — the situation reset).
 
+2b. **A barricade is never a dead end (owner round 45 — a softlock: two crowbars spent on gun cabinets, none left for the stairwell).**
+   With no crowbar a barricaded stairwell can still be pried **by hand**: the first press says what it costs, a second press
+   within 4 s (`HAND_CONFIRM_WINDOW`; not inside 0.35 s) starts an **18 s** channel (`HAND_PRY_TIME`; a crowbar's is ~6 s) that is
+   just as loud, and the crossing is identical — building shift, a rest slot (burnt, or the next merchant-floor rest forfeited),
+   stamina to the exhausted floor, the dead milling at the far landing. Nothing is consumed. `stairwell.gd` (`pry_by_hand`),
+   `WorldState.cross_blocked_stair(..., by_hand)`; `stair_block_test._hand_pry`.
+
 3. **The Crowbar is a TOOL, not a weapon.** Tagged `is_tool, is_crowbar`.
    It can't attack, force locks, or de-barricade — its one job is the stairwell
    pry. **No durability; consumed on use** (`single_use`). Findable in rooms

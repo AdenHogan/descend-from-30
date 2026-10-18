@@ -4,6 +4,18 @@ const GLOW_DISTANCE = 80.0
 const INTERACT_DISTANCE = 50.0
 
 const FL = preload("res://scripts/floor_lighting.gd")
+# Prying a gun cabinet open breaks its glass (owner round 45: "there was no glass smashing SFX when opening the gun cabinet with a crowbar").
+const CABINET_SMASH_STREAMS := [
+	preload("res://assets/audio/impacts/glass_smash_0.wav"),
+	preload("res://assets/audio/impacts/glass_smash_1.wav"),
+	preload("res://assets/audio/impacts/glass_smash_2.wav"),
+]
+const CABINET_CRACK_STREAMS := [
+	preload("res://assets/audio/impacts/impactWood_heavy_000.ogg"),
+	preload("res://assets/audio/impacts/impactWood_heavy_001.ogg"),
+	preload("res://assets/audio/impacts/impactWood_heavy_002.ogg"),
+]
+const GLASS_SHARDS := preload("res://scripts/glass_shards.gd")
 
 # --- Scavenge marker: a glowing TRANSLUCENT orb ------------------------------
 # Replaces the old flat circle. A small luminous orb — soft radial layers built from the round
@@ -236,12 +248,40 @@ func _open_gun_cabinet() -> bool:
 	elif WorldState.has_crowbar():
 		WorldState.open_gun_cabinet(apartment_id, "pry")
 		WorldState.emit_noise(global_position, WorldState.NOISE_RADIUS["door_work"], 2.0)
+		smash_cabinet_glass()
 		HUD.show_feedback("You lever the door off its hinge. Glass everywhere — and loud.")
 	else:
 		HUD.show_feedback("Locked. There's a gun inside. It needs its key — or a crowbar.")
 		return false
 	get_tree().call_group("gun_cabinet_art", "refresh")
 	return true
+
+
+## The glass of a pried-open cabinet: the wood cracks, the pane goes (one of three smashes), and a burst of shards falls to the floor.
+## The sound and the shards are separate nodes on this node's parent that free themselves, so they outlast the search panel.
+func smash_cabinet_glass() -> void:
+	var holder: Node = get_parent()
+	if holder == null or not is_inside_tree():
+		return
+	var glass := AudioStreamPlayer2D.new()
+	glass.stream = CABINET_SMASH_STREAMS.pick_random()
+	glass.pitch_scale = randf_range(0.92, 1.06)
+	glass.volume_db = 2.0
+	glass.max_distance = 900.0
+	var crack := AudioStreamPlayer2D.new()
+	crack.stream = CABINET_CRACK_STREAMS.pick_random()
+	crack.pitch_scale = randf_range(0.8, 0.95)
+	crack.volume_db = -2.0
+	crack.max_distance = 900.0
+	for pl in [crack, glass]:
+		holder.add_child(pl)
+		pl.global_position = global_position
+		pl.finished.connect(pl.queue_free)
+		pl.play()
+	var shards = GLASS_SHARDS.new()
+	holder.add_child(shards)
+	shards.global_position = global_position
+	shards.burst(1.0 if randf() < 0.5 else -1.0)
 
 
 func _open_loot() -> void:

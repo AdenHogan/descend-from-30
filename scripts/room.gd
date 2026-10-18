@@ -1279,6 +1279,7 @@ func _after_modules_ready() -> void:
 	# _setup_tutorial_room() (3002/3004/3005) place exactly what's specified.
 	var tutorial_apartment = WorldState.is_first_run and apartment_id in ["3002", "3003", "3004", "3005"]
 
+	var gear_held := 0          # gear pieces this FLAT has handed out so far, across its modules (loot by depth: a cap per flat up top)
 	for module in (get_tree().get_nodes_in_group("room_module") if not tutorial_apartment else []):
 		var room_type = ""
 		for rt in MODULE_SCENES.keys():
@@ -1349,6 +1350,9 @@ func _after_modules_ready() -> void:
 					2: spawn_chance = 0.33
 					3: spawn_chance = 0.27
 					_: spawn_chance = 0.33
+				if not tutorial_apartment:
+					# LOOT BY DEPTH (WorldState): the top floors pay less than the basement (owner round 45)
+					spawn_chance *= WorldState.loot_chance_scale(int(apartment_id.left(apartment_id.length() - 2)))
 
 			spawn_chance = min(spawn_chance + barricade_bonus + WorldState.get_scavenge_bonus(), 0.95)
 
@@ -1405,6 +1409,16 @@ func _after_modules_ready() -> void:
 				if valid_items.is_empty():
 					continue
 				var item_id = valid_items[apt_rng_items.randi() % valid_items.size()]
+				# One flat only hands out so much gear on the upper floors (WorldState.loot_gear_cap): past the cap a
+				# gear roll becomes a plain find. Counted on nodes that actually hold something; the extra draw happens
+				# only past the cap, so the sequence is the same on every visit.
+				if not tutorial_apartment and WorldState.is_gear_item(item_id):
+					if gear_held >= WorldState.loot_gear_cap(_fnum):
+						var plain: Array = valid_items.filter(func(i): return not WorldState.is_gear_item(i))
+						if not plain.is_empty():
+							item_id = plain[apt_rng_items.randi() % plain.size()]
+					elif passed_spawn_roll:
+						gear_held += 1
 				if passed_spawn_roll and not already_searched:
 					WorldState.set_anchor_item(apartment_id, anchor.name, item_id)
 

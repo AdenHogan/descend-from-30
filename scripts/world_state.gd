@@ -2864,6 +2864,19 @@ func module_variant_index(apartment_id: String, slot: int, room_type: String, co
 	# The live room and a balcony-pan backdrop of it agree because both ask here.
 	if count <= 1:
 		return 0
+	var idx := _raw_module_variant_index(apartment_id, slot, room_type, count)
+	# The living room that holds the GUN CABINET is only ever shown where a cabinet may be (gun_cabinet_slot: floors 24 and
+	# down, one a floor — owner round 45); anywhere else the hash's pick of that variant becomes a different living room.
+	if room_type == "living_room" and idx == _cabinet_variant_index() and idx >= 0 and gun_cabinet_slot(apartment_id) != slot:
+		var h := hash(str(master_seed) + "modvariant_nocabinet" + apartment_id + ":" + str(slot))
+		return (idx + 1 + absi(h) % (count - 1)) % count
+	return idx
+
+
+# The hash's own pick (what module_variant_index returned before the cabinet rule) — gun_cabinet_slot starts from it.
+func _raw_module_variant_index(apartment_id: String, slot: int, room_type: String, count: int) -> int:
+	if count <= 1:
+		return 0
 	var h := hash(str(master_seed) + "modvariant" + apartment_id + ":" + str(slot) + ":" + room_type)
 	return absi(h) % count
 
@@ -4018,6 +4031,50 @@ func luck_weight(rarity: int) -> float:
 	return lerpf(1.0, float(LUCK_RARITY_WEIGHT.get(rarity, 1.0)), luck)
 
 
+# LOOT BY DEPTH (owner round 45, on floor 29: "more than three hammers… two knives, a baseball bat, a golf club, three fuses, two
+# toolboxes, a screwdriver, two crowbars… two level 3 weapons. This is too much for level 29… Not sparse, but not plentiful").
+# The pools and the per-node chance were the same at the top as in the basement, so the first floors out-paid the hardest ones. A
+# floor's DEPTH runs 0 (floor 29 and up) to 1 (floor 15 and down): up top a node is less likely to hold anything
+# (`loot_chance_scale`), the GEAR in the pool (weapons, fuses, toolbox, screwdriver, extinguisher) is rarer (`loot_gear_scale`), and one
+# flat only ever hands out a few pieces of gear (`loot_gear_cap`). Junk, food, medicine, money and ammo are left alone, as are
+# the crowbar (the barricade tool — a stairwell must stay passable) and the keys. Pure functions of the floor; the rolls stay seeded.
+const LOOT_DEPTH_SPAN := 14.0           # floors from 29 down to full loot
+const LOOT_CHANCE_TOP := 0.70           # × the per-node chance on floor 29
+const LOOT_GEAR_TOP := 0.40             # × a gear item's weight on floor 29
+const LOOT_GEAR_CAP_TOP := 1            # gear pieces one flat may hold: floors 25-29
+const LOOT_GEAR_CAP_UPPER := 2          # floors 17-24; deeper = no cap
+
+
+func loot_depth(floor_num: int) -> float:
+	return clampf(float(29 - floor_num) / LOOT_DEPTH_SPAN, 0.0, 1.0)
+
+
+func loot_chance_scale(floor_num: int) -> float:
+	return lerpf(LOOT_CHANCE_TOP, 1.0, loot_depth(floor_num))
+
+
+func loot_gear_scale(floor_num: int) -> float:
+	return lerpf(LOOT_GEAR_TOP, 1.0, loot_depth(floor_num))
+
+
+func loot_gear_cap(floor_num: int) -> int:
+	if floor_num >= 25:
+		return LOOT_GEAR_CAP_TOP
+	if floor_num >= 17:
+		return LOOT_GEAR_CAP_UPPER
+	return 99
+
+
+## Gear = what makes a character stronger rather than what keeps them going: any weapon, a fuse, a toolbox, a screwdriver,
+## the extinguisher. (The crowbar is deliberately NOT gear here — see above.)
+func is_gear_item(item_id: String) -> bool:
+	var d: Dictionary = ItemData.get_item(item_id)
+	if d.is_empty() or d.get("is_crowbar", false):
+		return false
+	return bool(d.get("is_weapon", false) or d.get("is_fuse", false) or d.get("can_repair", false) \
+			or d.get("can_force_lock", false) or d.get("is_extinguisher", false))
+
+
 func get_items_for_anchor(anchor_name: String, apartment_id: String, room_type: String = "") -> Array:
 	# room_type: the module the node lives in, when the caller knows it (room.gd does). A module ART
 	# VARIANT places its own nodes on its own furniture under names of its own, which the fixed
@@ -4049,6 +4106,9 @@ func get_items_for_anchor(anchor_name: String, apartment_id: String, room_type: 
 		# Character LUCK (The Nurse): rare finds likelier, junk rarer. Pool contents only, so
 		# the seeded draw at the call site stays deterministic.
 		weight *= luck_weight(int(ItemData.get_item(item_id).get("rarity", 3)))
+		# Depth: gear is rarer up top (see LOOT BY DEPTH). Pool contents only, like luck — the seeded draw stays deterministic.
+		if is_gear_item(item_id):
+			weight *= loot_gear_scale(_apartment_floor(apartment_id))
 		var whole = int(floor(weight))
 		for i in range(whole):
 			valid_items.append(item_id)
@@ -4129,6 +4189,25 @@ func _get_door_weights(run_num: int) -> Array:
 	return [0, 40, 28, 14, 10, 8]
 
 
+# BREACH ROOMS ONLY FROM FLOOR 24 DOWN (owner round 45: "breaches only really begin to appear from floors 24 and down" — the
+# opening floors are a fresh character's first look at the building, and a breach flat costs ~10x the health of any other). A
+# breach that a roll (or a later run's decay) would put higher up is just a door that is shut and forceable.
+const BREACH_TOP_FLOOR := 24
+
+
+func _no_high_breach(floor_num: int, state: int) -> int:
+	if state == DoorState.BREACHED and floor_num > BREACH_TOP_FLOOR:
+		return DoorState.SHUT_FORCEABLE
+	return state
+
+
+## An old save may hold a breach above the line; it becomes a shut door the way a new roll would (called by load).
+func _drop_high_breaches() -> void:
+	for apt in door_states.keys():
+		if int(door_states[apt]) == DoorState.BREACHED and _apartment_floor(str(apt)) > BREACH_TOP_FLOOR:
+			door_states[apt] = DoorState.SHUT_FORCEABLE
+
+
 func _pick_door_state(rng: RandomNumberGenerator, weights: Array) -> int:
 	var total = 0
 	for w in weights:
@@ -4183,7 +4262,7 @@ func seed_floor_door_states(floor_num: int) -> void:
 	for i in range(open_count, apartments.size()):
 		var apt_id = apartments[i]
 		if not door_states.has(apt_id):
-			door_states[apt_id] = _pick_door_state(rng, weights)
+			door_states[apt_id] = _no_high_breach(floor_num, _pick_door_state(rng, weights))
 	_ensure_cabinet_key_room(floor_num)
 
 
@@ -4214,25 +4293,27 @@ func mutate_door_states_for_new_run() -> void:
 	for apt_id in door_states.keys():
 		var state = door_states[apt_id]
 		var roll = rng.randf()
+		var may_breach: bool = _apartment_floor(str(apt_id)) <= BREACH_TOP_FLOOR     # (the roll is drawn either way: the sequence is unchanged)
 
 		match state:
 			DoorState.SHUT_FORCEABLE:
-				if roll < 0.15:
+				if roll < 0.15 and may_breach:
 					door_states[apt_id] = DoorState.BREACHED
 			DoorState.SHUT_LOCKED:
 				if roll < 0.12:
-					door_states[apt_id] = DoorState.BREACHED
+					if may_breach:
+						door_states[apt_id] = DoorState.BREACHED
 				elif roll < 0.14:
 					door_states[apt_id] = DoorState.SHUT_FORCEABLE
 			DoorState.BARRICADED_FORCEABLE:
 				if roll < 0.20:
 					door_states[apt_id] = DoorState.SHUT_FORCEABLE
-				elif roll < 0.25:
+				elif roll < 0.25 and may_breach:
 					door_states[apt_id] = DoorState.BREACHED
 			DoorState.BARRICADED_LOCKED:
 				if roll < 0.15:
 					door_states[apt_id] = DoorState.SHUT_LOCKED
-				elif roll < 0.20:
+				elif roll < 0.20 and may_breach:
 					door_states[apt_id] = DoorState.BREACHED
 			DoorState.OPEN:
 				pass
@@ -4252,18 +4333,33 @@ func was_key_opened(apartment_id: String) -> bool:
 	return door_keys_consumed.get(apartment_id, false)
 
 
+const BREACH_PACK_FACTOR := 0.7          # of the original 4..9 (owner round 45: -30%)
+const BREACH_PACK_MIN := 3
+
+
 func get_breached_room_enemies(apartment_id: String, min_x: float, max_x: float, y: float) -> Array:
 	var rng = RandomNumberGenerator.new()
 	rng.seed = hash(str(master_seed) + "breached" + apartment_id + str(current_run))
 
-	var count = 4 + (rng.randi() % 6)
+	# Owner round 45: "reduce enemy number in breaches by 30%" — the roll (4..9) is drawn as before, then scaled, so a slot that
+	# still exists keeps its place and its spawn key (a kill recorded in an earlier game still matches).
+	var raw_count: int = 4 + (rng.randi() % 6)
+	var count: int = maxi(BREACH_PACK_MIN, roundi(float(raw_count) * BREACH_PACK_FACTOR))
 
 	var enemies = []
 	var center_x = rng.randf_range(min_x + 60, min_x + 200)
 	var spread = rng.randf_range(60, 200)
+	# Owner round 45: "I entered a breach and immediately five enemies… were walking like a conga line straight toward me". The pack
+	# always stood at the LEFT end, so a flat entered from the left put the player down among them (a standard senses 100 px, and a
+	# lunge alerts every body within 170 — one sighting started the whole line). It now lives at the FAR end from the front door:
+	# the layout above is mirrored for a left-hand entrance, so the nearest body is ~490 px (> every detection range but the spitter's
+	# 320) from where the player arrives, and they come only once you've crossed the room — or made a noise.
+	var from_left: bool = get_entrance_side(apartment_id) == "left"
 
 	for i in range(count):
 		var pos_x = clamp(center_x + rng.randf_range(-spread, spread), min_x, max_x)
+		if from_left:
+			pos_x = (min_x + max_x) - pos_x
 		enemies.append({
 			"type": "zombie_standard",
 			"position": Vector2(pos_x, y)
@@ -4675,23 +4771,51 @@ const CABINET_LOOTED_CHANCE := {2: 0.30, 3: 0.35}         # per run: someone bro
 const CABINET_KEY_DAMAGE_MULT := 2
 
 
-# The living-room slot showing the gun cabinet in this apartment, or -1. A pure function of the
-# seed (the layout + module variant), so the live room, a backdrop and the door seeding all agree.
-func gun_cabinet_slot(apartment_id: String) -> int:
-	var floor_num := _apartment_floor(apartment_id)
-	if floor_num < 1 or floor_num > 30:
-		return -1
-	if is_first_run and floor_num == 30:
-		return -1                                    # the tutorial's fixed rooms
+# WHERE CABINETS MAY BE (owner round 45: "floor 29 and there are two apartments with gun cabinets. This is too much"): only floors
+# CABINET_TOP_FLOOR and down (a cabinet's key is carried by a spitter in a breach room, and breaches start there), at most ONE a
+# floor (a seeded pick among the flats whose living room would show it), and only on CABINET_FLOOR_CHANCE of the floors that
+# could — roughly one floor in four holds a Lv3 gun, not two flats in one corridor.
+const CABINET_TOP_FLOOR := 24
+const CABINET_FLOOR_CHANCE := 0.6
+
+
+func _cabinet_variant_index() -> int:
+	var variants: Array = load("res://scripts/room.gd").MODULE_VARIANTS.get("living_room", [])
+	return variants.find(GUN_CABINET_SCENE)
+
+
+# The living-room slot whose art HASHED to the cabinet variant (before the one-a-floor / height rules), or -1.
+func _raw_cabinet_slot(apartment_id: String) -> int:
 	var variants: Array = load("res://scripts/room.gd").MODULE_VARIANTS.get("living_room", [])
 	var idx := variants.find(GUN_CABINET_SCENE)
 	if idx < 0:
 		return -1
 	var layout: Array = get_apartment_layout(apartment_id)
 	for i in range(layout.size()):
-		if layout[i] == "living_room" and module_variant_index(apartment_id, i, "living_room", variants.size()) == idx:
+		if layout[i] == "living_room" and _raw_module_variant_index(apartment_id, i, "living_room", variants.size()) == idx:
 			return i
 	return -1
+
+
+# The living-room slot showing the gun cabinet in this apartment, or -1. A pure function of the
+# seed (the layout + module variant), so the live room, a backdrop and the door seeding all agree.
+func gun_cabinet_slot(apartment_id: String) -> int:
+	var floor_num := _apartment_floor(apartment_id)
+	if floor_num < 1 or floor_num > CABINET_TOP_FLOOR:
+		return -1                                    # (the tutorial's fixed rooms on floor 30 are above the line)
+	var raw := _raw_cabinet_slot(apartment_id)
+	if raw < 0:
+		return -1
+	var candidates: Array = []
+	for i in range(1, 6):
+		var apt := str(floor_num) + "0" + str(i)
+		if _raw_cabinet_slot(apt) >= 0:
+			candidates.append(apt)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "cabinetfloor" + str(floor_num))
+	if rng.randf() >= CABINET_FLOOR_CHANCE:
+		return -1
+	return raw if candidates[rng.randi() % candidates.size()] == apartment_id else -1
 
 
 func has_gun_cabinet(apartment_id: String) -> bool:
@@ -5575,6 +5699,7 @@ func load_game() -> String:
 	roped_balconies = data.get("roped_balconies", {})
 	balcony_jump_warned = data.get("balcony_jump_warned", false)
 	door_states = data["door_states"]
+	_drop_high_breaches()
 	door_keys_consumed = data["door_keys_consumed"]
 	stair_blocks_cleared = data.get("stair_blocks_cleared", {})
 	pending_stair_pulls = data.get("pending_stair_pulls", {})

@@ -163,7 +163,12 @@ Five layers, all feeding **one stat fold** (`base × ∏mult + Σadd`, never dir
    tradeable for a 50% refund). Fortune's Favour tilts offers toward desirable perks.
 
 The gun cabinet is an *unannounced* quest: a locked cabinet with a guaranteed Lv3 gun, its key carried by a tough
-spitter in a breach room on the same floor, or pried with a crowbar.
+spitter in a breach room on the same floor, or pried with a crowbar (the glass smashes). **Floors 24 and down only, one a
+floor at most, on about one floor in four** (owner round 45: two on floor 29 was "too much").
+
+**Loot scales with depth (owner round 45):** the top floors pay less than the basement — a node is less likely to hold anything
+(× 0.70 on floor 29, full from floor 15 down), gear is rarer (× 0.40 → 1.0), and one flat holds at most 1 piece of gear on
+floors 25-29 and 2 on 17-24. Junk, food, medicine, money, ammo and crowbars are unchanged.
 
 ## 6. Enemies (BUILT — `THREE_RUN_ARC.md` escalation table)
 
@@ -227,12 +232,14 @@ tells them *where* (they investigate the source, search, give up), losing you se
 it, and they go for the nearer meal. Placeholder art and lines.
 
 ### 7.5 The dead and breach rooms (BUILT)
+**Breach rooms only exist on floors 24 and down** (owner round 45), their packs are 30% smaller (3-6 bodies) and stand at the far end
+from the front door, so you are never met on the threshold.
 Breach rooms are "nests" with a story told in generated art (the door, the kill, the drag); an ordinary flat holds a body
 10–22% of the time by run (searchable pockets); corridors have bodies; some bodies **rise**. Fire and breach rules agree
 (a burnt breach has no boss).
 
 ### 7.6 Hazards (BUILT — `STAIR_BARRICADES.md`)
-- **Barricade** — pry with a Crowbar (single-use, ~6 s, loud), both directions, costs a rest slot and shifts the building.
+- **Barricade** — pry with a Crowbar (single-use, ~6 s, loud), or **by hand with no crowbar (18 s, same cost — never a dead end)**; both directions, costs a rest slot and shifts the building.
 - **Horde** — a live-enemy stair block (v1; dev-cycle placeholder type).
 - **Fire** — a spreading, deterministic sim that creeps within a run and **climbs the building across runs** (LIGHT →
   BLAZE → CHARRED), never self-extinguishes; Extinguishers (every floor) put it out for good; charred apartments are

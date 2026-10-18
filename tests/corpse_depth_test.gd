@@ -92,6 +92,37 @@ func _test_rule_and_constants() -> void:
 	check(art_rise == int(CD.RISE), "tools/art/nest.py BODY_RISE (%d) = corpse_depth.gd RISE (%d)" % [art_rise, int(CD.RISE)])
 
 
+# OWNER ROUND 45: "the corpse drops below the Y plane then clumsily moves back up". The 6 px rise used to wait for the Death animation to
+# END and then slide (0.3 s) — a visible hop. It is now spread over the fall, whole pixels, and nothing moves once the body has landed.
+func _test_no_hop(room: Node) -> void:
+	var z = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
+	z.spawn_key = ""
+	room.add_child(z)
+	z.global_position = Vector2(700.0, 321.0)
+	await _frames(40)
+	var spr: AnimatedSprite2D = z.get_node("AnimatedSprite2D")
+	z.receive_damage(999, "melee")
+	var last_y: float = spr.position.y
+	var biggest := 0.0
+	var after_landing := 0.0
+	var landed := false
+	var settle_frames := 2
+	for i in range(160):
+		await get_tree().physics_frame
+		var step: float = absf(spr.position.y - last_y)
+		last_y = spr.position.y
+		biggest = maxf(biggest, step)
+		if landed and settle_frames <= 0:
+			after_landing = maxf(after_landing, step)
+		if landed:
+			settle_frames -= 1
+		if spr.animation == "Death" and spr.frame == spr.sprite_frames.get_frame_count("Death") - 1:
+			landed = true                       # (the depth node ticks on the idle frame: give its last pixel two frames)
+	check(landed and biggest <= 1.01, "the body never moves more than a pixel in a frame (biggest step %.2f px)" % biggest)
+	check(after_landing == 0.0, "…and nothing moves once it has landed (%.2f px)" % after_landing)
+	z.free()
+
+
 # --- a live enemy that died in the flat ---------------------------------------------------------------------------------
 
 func _test_live_corpse() -> void:
@@ -114,6 +145,7 @@ func _test_live_corpse() -> void:
 	check(absf(float(z.get_meta("cd_rise", 0.0)) - CD.RISE) < 0.01 and absf(spr.position.y - (alive_rise - CD.RISE)) < 0.01,
 		"the body has eased back %.0f px from the lane (sprite y %.1f -> %.1f)" % [CD.RISE, alive_rise, spr.position.y])
 	check(z.z_index == 0, "the player on the lane (feet %.0f): the body stays under them (z %d), as it always did" % [lane_feet, z.z_index])
+	await _test_no_hop(room)
 	_plane(p, true)
 	await _frames(4)
 	check(absf(p.feet_position().y - 339.0) < 0.6, "the player up on the back plane (feet %.0f)" % p.feet_position().y)

@@ -9,8 +9,9 @@ extends Node
 # player on the lane standing with their legs poking out from under a body) so the player's legs were painted straight over it, and a
 # lying body is only 15 px tall, so even drawn in front it would barely reach their feet. Two things, both for FLATS only (this node is
 # added by room.gd; corridors have no second line and keep their bodies on the player's row — enemy_variety_test):
-#   1. a body SITS `RISE` px further back than the lane (its sprite eased up once it has finished falling, so it reads as lying back from
-#      the walking line, and reaches up over a back-plane player's lower legs);
+#   1. a body SITS `RISE` px further back than the lane (its sprite eased up WHILE it falls — a pixel at a time, with the Death animation's
+#      progress — so it reads as lying back from the walking line and reaches up over a back-plane player's lower legs; owner round 45:
+#      it used to settle on the lane and THEN slide up 6 px, "drops below the Y plane then clumsily moves back up");
 #   2. a body draws IN FRONT of the player (z `FRONT_Z`) only while it is nearer than them by `FRONT_GAP` px — i.e. while they are up on the
 #      back plane (or the balcony) behind it. On the lane (same line, or further forward than the body) the player still draws over it, as before.
 #
@@ -22,7 +23,6 @@ extends Node
 const EnemyFeet = preload("res://scripts/enemy_feet.gd")
 
 const RISE := 6.0                 # how far back from the lane a body lies (px)
-const RISE_TIME := 0.3            # …eased over this long once the body has finished falling
 const FRONT_GAP := 6.0            # a body is "nearer" when its feet row is at least this much lower than the player's
 const FRONT_Z := 2                # actors are z 1; the body goes just over them
 
@@ -54,6 +54,19 @@ static func in_front_of(body_feet: float, player_feet: float) -> bool:
 	return body_feet - player_feet >= FRONT_GAP
 
 
+## How far back a body's sprite should be by now: the whole RISE once it lies there, and a share of it, in WHOLE pixels, while its
+## Death animation plays (frame k of n puts it floor(RISE * k / (n-1)) px back), so there is never a slide after it has landed.
+static func rise_for(spr: AnimatedSprite2D) -> float:
+	if spr == null or spr.sprite_frames == null:
+		return 0.0
+	if _settled(spr):
+		return RISE
+	if spr.animation == "Death" and spr.sprite_frames.has_animation("Death"):
+		var last: int = maxi(spr.sprite_frames.get_frame_count("Death") - 1, 1)
+		return floorf(RISE * clampf(float(spr.frame) / float(last), 0.0, 1.0))
+	return 0.0
+
+
 static func _settled(spr: AnimatedSprite2D) -> bool:
 	if spr == null or spr.sprite_frames == null:
 		return false
@@ -68,12 +81,11 @@ func _tend_live(z: Node2D, delta: float, player_feet: float) -> void:
 		return
 	var col := z.get_node_or_null("CollisionShape2D")
 	var feet: float = z.global_position.y + (EnemyFeet.collision_bottom(z) if col != null else 0.0)
-	if _settled(spr):
-		var done: float = float(z.get_meta("cd_rise", 0.0))
-		if done < RISE:
-			var step: float = minf(RISE - done, RISE * delta / RISE_TIME)
-			spr.position.y -= step
-			z.set_meta("cd_rise", done + step)
+	var want: float = rise_for(spr)
+	var done: float = float(z.get_meta("cd_rise", 0.0))
+	if want > done:
+		spr.position.y -= want - done
+		z.set_meta("cd_rise", want)
 	z.z_index = FRONT_Z if in_front_of(feet, player_feet) else 0
 
 
