@@ -251,6 +251,35 @@ OPENINGS = {
                                      cavity='fridge', items=fridge_items),
         'anchor_centre_oven': dict(kind='door_drop', rect=(157, 87, 183, 105), angle=72, base=106),
     },
+    # --- the other variants (owner round 45: "more furniture items need to open up when interacted with") — rects read off the finished art
+    'bedroom_b': {
+        'anchor_bedroom_desk_drawer': dict(kind='drawer', rect=(14, 99, 20, 107), depth=8, base=108,
+                                           contents=[(0.1, 0.5, 0.3, (200, 190, 160, 255)), (0.55, 0.9, 0.5, (120, 90, 80, 255))]),
+    },
+    'kitchen_c': {
+        'anchor_kitchen_dresser_drawer': dict(kind='drawer', rect=(10, 91, 40, 99), depth=10, base=108,
+                                              contents=[(0.08, 0.45, 0.3, (206, 200, 186, 255)), (0.5, 0.92, 0.45, (150, 120, 90, 255))]),
+    },
+    'bedroom_c': {
+        'anchor_bedroom_pill_cabinet': dict(kind='drawer', rect=(283, 87, 300, 93), depth=9, base=108,
+                                            contents=[(0.1, 0.5, 0.3, (214, 206, 190, 255)), (0.55, 0.9, 0.5, (96, 140, 150, 255))]),
+    },
+    'dining_room_b': {
+        'anchor_right_lowerdrawers': dict(kind='drawer', rect=(252, 96, 307, 103), depth=9, base=108,
+                                          contents=[(0.08, 0.5, 0.3, (214, 206, 190, 255)), (0.55, 0.92, 0.5, (170, 130, 90, 255))]),
+    },
+    'living_room_d': {
+        'anchor_living_cabinet_cupboard': dict(kind='drawer', rect=(267, 98, 299, 102), depth=8, base=108,
+                                               contents=[(0.1, 0.5, 0.3, (200, 190, 170, 255)), (0.55, 0.9, 0.5, (140, 100, 90, 255))]),
+    },
+    'study_b': {
+        'anchor_study_desk_drawer': dict(kind='drawer', rect=(104, 93, 117, 102), depth=8, base=108,
+                                         contents=[(0.1, 0.55, 0.25, (220, 214, 190, 255)), (0.4, 0.9, 0.5, (190, 184, 160, 255))]),
+    },
+    'dining_room_c': {
+        'anchor_right_upperdrawers': dict(kind='drawer', rect=(258, 84, 308, 92), depth=10, base=108,
+                                          contents=[(0.08, 0.5, 0.3, (214, 206, 190, 255)), (0.55, 0.92, 0.5, (150, 120, 90, 255))]),
+    },
     'dining_room': {
         'anchor_right_upperdrawers': dict(kind='drawer', rect=(279, 67, 294, 74), depth=9, base=108,
                                           contents=[(0.15, 0.55, 0.3, (214, 206, 190, 255)), (0.6, 0.9, 0.5, (150, 120, 90, 255))]),

@@ -4,7 +4,7 @@
 > done. The drawer opens, for example, or a door swings open. Let's focus on the tutorial floor first… if we can get it
 > working visually we can roll out to more modules."
 
-**BUILT v1 (10 openings on the base modules).** The module art is one baked picture, so an opened look is a **patch**
+**BUILT v1 (10 openings on the base modules) + 7 on other variants (owner round 45).** The module art is one baked picture, so an opened look is a **patch**
 laid over it once the node on that furniture is searched.
 
 ## Pipeline (`tools/art/openables.py`)
@@ -36,6 +36,16 @@ living_room: dresser top drawer (`anchor_right_chair`) · bedroom: nightstand dr
 filing drawer (`anchor_study_filing`) · kitchen: fridge (`anchor_centre_fridge`), oven (`anchor_centre_oven`) · dining_room:
 sideboard drawer (`anchor_right_upperdrawers`) + door (`anchor_right_lowerdrawers`).
 The tutorial flats (3002-3005) use the base modules, so these are what the first run shows.
+
+## Openings on the other variants (owner round 45: "more furniture items need to open up when interacted with")
+Seven drawers, each read off the finished art and checked in `docs/art_reference/open_furniture.png`: bedroom B's desk pedestal
+(`anchor_bedroom_desk_drawer`), bedroom C's bedside chest (`anchor_bedroom_pill_cabinet`), dining B's sideboard lower drawer
+(`anchor_right_lowerdrawers`), dining C's sideboard upper drawer (`anchor_right_upperdrawers`), kitchen C's pine-dresser drawer
+(`anchor_kitchen_dresser_drawer`), living D's china-cabinet drawer (`anchor_living_cabinet_cupboard`), study B's desk drawer
+(`anchor_study_desk_drawer`). **Tried and dropped:** bedroom E's small wardrobe door — it stands at the room's right edge, so a
+hinged door swung to the camera covers the other door and the cavity never shows (the "edge limit" above); it needs a design
+decision (sliding doors? open from the other side?) before it is worth baking. Pieces on the balcony STRIP (dining B / C's
+cabinets at the left) are not in the main art PNG, so `openables.py` cannot read them yet.
 
 ## Rolling out
 Add an entry to `OPENINGS` (rect of the front, kind, depth / angle, contents) — nothing else; the variants B-E and the nodes

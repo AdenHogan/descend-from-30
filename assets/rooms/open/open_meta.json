@@ -22,6 +22,24 @@
    "y": 90
   }
  },
+ "bedroom_b": {
+  "anchor_bedroom_desk_drawer": {
+   "frames": 3,
+   "h": 19,
+   "w": 19,
+   "x": 3,
+   "y": 99
+  }
+ },
+ "bedroom_c": {
+  "anchor_bedroom_pill_cabinet": {
+   "frames": 3,
+   "h": 17,
+   "w": 31,
+   "x": 283,
+   "y": 87
+  }
+ },
  "dining_room": {
   "anchor_right_lowerdrawers": {
    "frames": 3,
@@ -36,6 +54,24 @@
    "w": 28,
    "x": 279,
    "y": 67
+  }
+ },
+ "dining_room_b": {
+  "anchor_right_lowerdrawers": {
+   "frames": 3,
+   "h": 19,
+   "w": 68,
+   "x": 252,
+   "y": 96
+  }
+ },
+ "dining_room_c": {
+  "anchor_right_upperdrawers": {
+   "frames": 3,
+   "h": 20,
+   "w": 62,
+   "x": 258,
+   "y": 84
   }
  },
  "kitchen": {
@@ -54,6 +90,15 @@
    "y": 87
   }
  },
+ "kitchen_c": {
+  "anchor_kitchen_dresser_drawer": {
+   "frames": 3,
+   "h": 20,
+   "w": 42,
+   "x": 0,
+   "y": 91
+  }
+ },
  "living_room": {
   "anchor_right_chair": {
    "frames": 3,
@@ -61,6 +106,15 @@
    "w": 50,
    "x": 264,
    "y": 78
+  }
+ },
+ "living_room_d": {
+  "anchor_living_cabinet_cupboard": {
+   "frames": 3,
+   "h": 15,
+   "w": 44,
+   "x": 267,
+   "y": 98
   }
  },
  "study": {
@@ -77,6 +131,15 @@
    "w": 41,
    "x": 279,
    "y": 67
+  }
+ },
+ "study_b": {
+  "anchor_study_desk_drawer": {
+   "frames": 3,
+   "h": 20,
+   "w": 19,
+   "x": 100,
+   "y": 93
   }
  }
 }

@@ -59,7 +59,7 @@ func _test_meta() -> void:
 				if OF._texture_for(art, anchor, r) == null:
 					run_files = false
 		scene.free()
-	check(total >= 10, "at least ten openings are defined (%d)" % total)
+	check(total >= 17, "at least seventeen openings are defined — the ten on the base modules and seven on other variants (%d)" % total)
 	check(all_ok, "every opening fits its 320x144 module and its sheet is frames x patch size")
 	check(near_ok, "every opening belongs to a real anchor sitting on that furniture")
 	check(run_files, "every opening has a look for runs 2 and 3 (they fall back to run 1 at worst)")
