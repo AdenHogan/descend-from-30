@@ -317,3 +317,9 @@ godot --headless res://tools/bot_run.tscn -- --seed=424242 --speed=8 --runs=3 --
 ```
 Flags: `--loot=none|need|all`, `--avoid-breach`, `--god`, `--elevator`, `--rest`, `--balcony`, `--start-run=N --start-floor=N`, `--apt=ID,ID` (loot only these flats), `--trace`, and the gifts `--scrap --fuses --notes --power --unarmed --heirloom` (the first hammer is Lv3, so the lobby door has something to offer).
 Output per run: `<name>.md` (the report), `.json` (everything, for the summary), `.log` (the run + the engine log). The summary's `anomalies` table is the thing to read first; `[stall]` lines in a log are the per-frame trace of a stall.
+
+## Round 45 — the same sweep after the owner's floor-29 playtest (36 playthroughs, tables in `docs/bot_runs/round45_sweep.md`)
+Same bot, same 12 seeds, policies `none` / `need` / `safe`. The changes under test: no breach rooms above floor 24 (and packs 30% smaller, at the far end), loot by depth
+(`WorldState` "LOOT BY DEPTH"), one gun cabinet a floor at most. **Zero engine findings in 36 logs.** Depth did not move within the noise (`need` medians 27/26/28 → 25/28/26, `safe`
+22/26/25 → 24/25/26); what moved is what a flat costs and pays: breach flats entered 27 → 2, stage-hits per flat in run 1 1.48 → 0.51, **weapons found per flat 0.86 → 0.25**, fuses 0.10 → 0.02,
+crowbars unchanged. The bot still dies in the corridors of floors 25-29, so its binding limit is still kill capacity (round 44b), not loot or breach rooms. Dial if the top feels sparse: `LOOT_GEAR_TOP`.
