@@ -953,19 +953,9 @@ func _drop_on_slot(from: int, to: int) -> void:
 		return
 	# Bullets onto a gun (either direction) load the magazine.
 	if to < WorldState.inventory.size():
-		var to_inst = WorldState.get_instance_at(to)
-		var to_data = to_inst.get_data()
-		var gun_inst: ItemInstance = null
-		if from_data.get("is_ammo", false) and to_data.get("name", "").to_lower().contains("gun"):
-			gun_inst = to_inst
-		elif to_data.get("is_ammo", false) and from_data.get("name", "").to_lower().contains("gun"):
-			gun_inst = from_inst
+		var gun_inst: ItemInstance = WorldState.ammo_gun_pair(from_inst, WorldState.get_instance_at(to))
 		if gun_inst != null:
-			var loaded = WorldState.reload_gun(gun_inst)
-			if loaded > 0:
-				show_feedback("Loaded %d — mag %d/%d." % [loaded, gun_inst.mag_count, gun_inst.get_mag_cap()])
-			else:
-				show_feedback("Magazine full." if gun_inst.mag_count >= gun_inst.get_mag_cap() else "No bullets to load.")
+			show_feedback(String(WorldState.load_gun_from_pack(gun_inst)["msg"]))
 			return
 	WorldState.swap_inventory_slots(from, to)
 	refresh_inventory()

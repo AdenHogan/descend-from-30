@@ -32,6 +32,7 @@ var _rest_y: float = 0.0
 var _bounces: int = 0
 var _x_lo: float = -1.0e9      # the nearest wall each side of the corpse: a tossed drop never passes it
 var _x_hi: float = 1.0e9
+var _hud_checked: bool = false  # has this drop been moved out from under a HUD widget yet (see _clear_of_hud)
 
 @onready var proximity_label: Label = $ProximityLabel
 
@@ -70,6 +71,7 @@ func toss(from_pos: Vector2, land_y: float, dir_x: float) -> void:
 	_bounces = 0
 	_find_walls(from_pos)
 	_tossing = true
+	_hud_checked = false
 
 
 ## A drop used to fly straight through the end wall of the corridor (a kill beside the stairwell left cash and a hammer at x 76-111,
@@ -119,6 +121,57 @@ func _physics_process(delta: float) -> void:
 			_vel.x *= 0.55
 
 
+# --- never under the HUD (owner round 45) ------------------------------------------------------------------------------------------------
+# A drop that came to rest at the far-left wall lay UNDER the portrait: the portrait hid it, and a click there was swallowed by the drop
+# (the pickup claims its click), so with a full pack the item could not be taken AND the portrait could not be pressed. A drop is now moved
+# out from under any HUD widget when it comes to rest, and a click on a HUD widget is never a pickup's.
+const HUD_MARGIN_PX := 40.0     # the orb's own size on screen: its whole disc must clear the widget, not just its centre
+const HUD_NUDGE_STEP := 6.0
+const HUD_NUDGE_MAX := 90
+
+
+## Where a world point is on screen (the click maths in reverse); Vector2.INF while there is no camera (a test, a scene change).
+func _screen_of(world: Vector2) -> Vector2:
+	var p = get_tree().get_first_node_in_group("player")
+	var cam = p.get_node_or_null("Camera2D") if p != null else null
+	if cam == null or not cam.is_inside_tree():
+		return Vector2.INF
+	return (world - cam.get_screen_center_position()) * cam.zoom + get_viewport().get_visible_rect().size / 2.0
+
+
+func _under_hud(world: Vector2) -> bool:
+	var sp := _screen_of(world)
+	if sp == Vector2.INF:
+		return false
+	for off in [Vector2.ZERO, Vector2(HUD_MARGIN_PX, 0.0), Vector2(-HUD_MARGIN_PX, 0.0), Vector2(0.0, -HUD_MARGIN_PX)]:
+		if HUD.pointer_over_widget(sp + off):
+			return true
+	return false
+
+
+## Slide a resting drop sideways (away from the nearer screen edge, never past a wall) until no HUD widget covers it.
+## True once it could be judged (there is a camera to judge by).
+func _clear_of_hud() -> bool:
+	var sp := _screen_of(global_position)
+	if sp == Vector2.INF:
+		return false
+	if not _under_hud(global_position):
+		return true
+	if _x_lo < -1.0e8 and _x_hi > 1.0e8:
+		_find_walls(global_position)
+	var dir: float = 1.0 if sp.x < get_viewport().get_visible_rect().size.x * 0.5 else -1.0
+	for _i in range(HUD_NUDGE_MAX):
+		var x: float = global_position.x + dir * HUD_NUDGE_STEP
+		if x < _x_lo or x > _x_hi:
+			break
+		global_position.x = x
+		if not _under_hud(global_position):
+			break
+	if player_nearby:
+		HUD.show_world_prompt(self, _prompt_text(), global_position)
+	return true
+
+
 func _prompt_text() -> String:
 	if target_apartment != "":
 		return WorldState.key_display(target_apartment) + "   [Click] Take"
@@ -144,6 +197,8 @@ func _input(event: InputEvent) -> void:
 	if not player_nearby:
 		return
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		if HUD.pointer_over_widget(event.position):
+			return                              # that click is the HUD's (the portrait, the pack button): never a pickup's
 		if _is_mouse_over_orb(event.position):
 			var vp := get_viewport()
 			_try_pickup()
@@ -161,6 +216,8 @@ func _process(delta: float) -> void:
 		# TIGHT cast pool that hugs the orb body (matches interactable.gd — no oversized halo).
 		_light.energy = lvl * 0.5 * ORB.ORB_LIGHT_GAIN * pulse
 		_light.texture_scale = 0.035 + 0.025 * lvl
+	if not _tossing and not _hud_checked and item_id != "036":
+		_hud_checked = _clear_of_hud()
 	if not player_nearby:
 		return
 	if Input.is_action_just_pressed("interact"):

@@ -492,3 +492,61 @@ func _test_one_crossing_at_a_time() -> void:
 	st._begin_pry()
 	check(st.is_prying and not st.touch_auto, "starting a pry disarms the touch walk")
 	st._cancel_pry("test over")
+	await _hand_pry(st)
+
+
+## OWNER ROUND 45 SOFTLOCK: both crowbars were spent on gun cabinets and the stairwell below was barricaded - no way down. A barricade is never a
+## dead end: with no crowbar it can be torn apart by hand (3x as long, a deliberate second press, the same rest + building-shift cost).
+func _hand_pry(st) -> void:
+	print("[a barricade with no crowbar is never a dead end]")
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_BARRICADE
+	for i in range(WorldState.inventory.size() - 1, -1, -1):
+		if ItemData.get_item(WorldState.inventory[i].item_id).get("is_crowbar", false):
+			WorldState.inventory.remove_at(i)
+	WorldState.add_to_inventory("002")
+	var kit_before: int = WorldState.inventory.size()
+	WorldState.rest_available = true
+	WorldState.rest_forfeit_pending = false
+	WorldState.stamina = WorldState.get_max_stamina()
+	check(WorldState.is_stair_blocked(15) and not WorldState.has_crowbar(), "(setup) a barricaded stairwell, no crowbar in the pack")
+	check(SW.HAND_PRY_TIME >= 3.0 * SW.PRY_TIME, "by hand takes at least three times as long as a crowbar (%.0f s vs %.0f s)" % [SW.HAND_PRY_TIME, SW.PRY_TIME])
+	st.is_prying = false
+	st.touch_auto = false
+	st._hand_confirm_time = -100.0
+	st._use_stairs()
+	check(not st.is_prying and WorldState.current_floor == 15, "the first press only says what it costs")
+	st._use_stairs()
+	check(not st.is_prying, "...and the same press twice does not start it (a touch walk calls the stairs twice in a row)")
+	await get_tree().create_timer(0.45).timeout
+	st._use_stairs()
+	check(st.is_prying and st.pry_by_hand, "a deliberate second press starts tearing it apart by hand")
+	check(is_equal_approx(st.pry_timer, SW.HAND_PRY_TIME), "...for the full hand time (%.1f s)" % st.pry_timer)
+	st._cancel_pry("test over")
+	check(not st.is_prying and not st.pry_by_hand, "cancelling clears the hand flag too")
+	# a crowbar still does it the fast way
+	WorldState.add_to_inventory("035")
+	st._use_stairs()
+	check(st.is_prying and not st.pry_by_hand and is_equal_approx(st.pry_timer, SW.PRY_TIME), "with a crowbar it is the short crowbar pry")
+	st._cancel_pry("test over")
+	for i in range(WorldState.inventory.size() - 1, -1, -1):
+		if ItemData.get_item(WorldState.inventory[i].item_id).get("is_crowbar", false):
+			WorldState.inventory.remove_at(i)
+	# finish one by hand: the crossing opens the stairwell, spends the rest, leaves you spent, and takes NOTHING from the pack
+	var kit_now: int = WorldState.inventory.size()
+	st._begin_pry(true)
+	st.pry_timer = 0.01
+	var seed_before: int = WorldState.master_seed
+	st._tick_pry(0.05)
+	check(WorldState.is_stair_block_cleared(15), "the hand pry clears the stairwell for the run")
+	check(not WorldState.rest_available, "...and spends the rest, like a crowbar crossing")
+	check(WorldState.stamina <= WorldState.get_max_stamina() * WorldState.PRY_EXHAUST_FRACTION + 0.01, "...and leaves you spent")
+	check(WorldState.master_seed != seed_before, "...and the building shifts")
+	check(WorldState.inventory.size() == kit_now and kit_now == kit_before, "...and nothing was taken from the pack (%d items)" % WorldState.inventory.size())
+	var got_down: bool = false
+	for i in 900:
+		await get_tree().process_frame
+		if WorldState.current_floor == 14:
+			got_down = true
+			break
+	check(got_down, "...and the player ends up on the floor below (floor %d)" % WorldState.current_floor)
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE

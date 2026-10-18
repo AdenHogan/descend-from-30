@@ -497,6 +497,58 @@ func _test_ring_drag() -> void:
 	check(_ids().has("002") and _ids().has("006"), "…the rest of the bag is untouched")
 	check(pw.drag_k < 0 and pw._press_k < 0, "…and the drag state is clear")
 	check(pw.is_open, "…the pack is still open after crafting")
+	# OWNER ROUND 45: bullets dragged onto the gun in the ring said "Those don't go together" - the ring only knew crafting
+	WorldState.inventory.clear()
+	for id in ["004", "002", "006"]:
+		WorldState.add_to_inventory(id)
+	WorldState.add_to_inventory("016")
+	var gun_inst = WorldState.inventory[0]
+	gun_inst.level = 3
+	gun_inst.mag_count = 6
+	var cap: int = gun_inst.get_mag_cap()
+	var ammo_slot := -1
+	for i in WorldState.inventory.size():
+		if WorldState.inventory[i].get_data().get("is_ammo", false):
+			ammo_slot = i
+	WorldState.inventory[ammo_slot].count = 4          # as in the playtest screenshot: x4 rounds, a gun at 6/18
+	HUD.refresh_inventory()
+	pw.slots = pw.build_slots()
+	await _frames(2)
+	var rounds_before: int = WorldState.get_ammo_total()
+	check(ammo_slot >= 0 and rounds_before > 0 and cap > 6, "(setup) a gun 6/%d and %d rounds in the pack" % [cap, rounds_before])
+	var ring_ammo: int = pw.slots.find(ammo_slot)
+	var ring_gun: int = pw.slots.find(0)
+	await _click_drag(_slot_pos(ring_ammo), _slot_pos(ring_gun))
+	var want: int = mini(cap, 6 + rounds_before)
+	check(gun_inst.mag_count == want, "dragging the bullets onto the gun LOADS it (mag %d/%d, wanted %d)" % [gun_inst.mag_count, cap, want])
+	check(WorldState.get_ammo_total() == rounds_before - (want - 6), "...and the rounds come out of the pack (%d left)" % WorldState.get_ammo_total())
+	check(pw.is_open and pw.drag_k < 0, "...the ring stays open, no drag left over")
+	# and the other way round: the gun onto the bullets
+	gun_inst.mag_count = 4
+	var rounds2: int = WorldState.get_ammo_total()
+	if rounds2 > 0:
+		pw.slots = pw.build_slots()
+		var rg: int = pw.slots.find(0)
+		var ra: int = -1
+		for k in pw.slots.size():
+			var si: int = int(pw.slots[k])
+			if si >= 0 and si < WorldState.inventory.size() and WorldState.inventory[si].get_data().get("is_ammo", false):
+				ra = k
+		await _click_drag(_slot_pos(rg), _slot_pos(ra))
+		check(gun_inst.mag_count > 4, "...and the gun dragged onto the bullets loads it too (mag %d)" % gun_inst.mag_count)
+	# a full magazine says so and takes nothing
+	gun_inst.mag_count = gun_inst.get_mag_cap()
+	var rounds3: int = WorldState.get_ammo_total()
+	if rounds3 > 0:
+		pw.slots = pw.build_slots()
+		var rg3: int = pw.slots.find(0)
+		var ra3: int = -1
+		for k in pw.slots.size():
+			var si3: int = int(pw.slots[k])
+			if si3 >= 0 and si3 < WorldState.inventory.size() and WorldState.inventory[si3].get_data().get("is_ammo", false):
+				ra3 = k
+		await _click_drag(_slot_pos(ra3), _slot_pos(rg3))
+		check(WorldState.get_ammo_total() == rounds3, "a full magazine takes nothing from the pack")
 	# the ring can't strand: closing mid-drag leaves nothing behind
 	await _click_drag(_slot_pos(0), _slot_pos(0))
 	p.end_pack(true)

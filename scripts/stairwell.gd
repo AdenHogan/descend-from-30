@@ -15,8 +15,17 @@ const DESCEND_CONFIRM_WINDOW = 4.0
 # over a channeled PRY (loud from the first heave, so the current floor's dead
 # come to investigate). Cancels on walking off the steps or any other action.
 const PRY_TIME := 6.0   # long enough that the floor's roused dead can close in
+# NO CROWBAR (owner round 45 softlock: both crowbars went on floor 29's gun cabinets and the barricade below had no way down): a blocked
+# stairwell is NEVER a dead end. By hand it is three times as long, far louder, and spends the rest exactly like a crowbar crossing does
+# (WorldState.cross_blocked_stair) - the crowbar stays the fast, cheap way.
+const HAND_PRY_TIME := 18.0
+const HAND_CONFIRM_WINDOW := 4.0    # the first press says what it costs; a deliberate second press inside this starts it
+const HAND_CONFIRM_MIN := 0.35      # ...but not the SAME press twice (a touch walk calls the stairs on arrival and again a frame later)
+const HAND_PRY_LINE := "No crowbar. I could tear it apart with my hands - it would take ages, and everything on this floor would hear. [{interact}] again to start."
 var is_prying: bool = false
+var pry_by_hand: bool = false
 var pry_timer: float = 0.0
+var _hand_confirm_time := -100.0
 
 func _ready() -> void:
 	add_to_group("stairwell")          # the touch STAIRS button finds this floor's down stairwell by group (round 37)
@@ -302,10 +311,20 @@ func _use_stairs() -> void:
 	if WorldState.is_stair_blocked(_choke_floor()):
 		if is_prying:
 			return   # already levering — don't restart the channel
-		if not WorldState.has_crowbar():
-			TutorialManager.say("Someone's barricaded the stairwell — furniture, planks, the lot, wedged in tight. I'd need a crowbar to lever it apart.")
+		if WorldState.has_crowbar():
+			_begin_pry(false)
 			return
-		_begin_pry()
+		# No crowbar: bare hands, after a deliberate second press (it is long, loud and spends the rest).
+		var hand_now: float = Time.get_ticks_msec() / 1000.0
+		var since: float = hand_now - _hand_confirm_time
+		if since > HAND_CONFIRM_WINDOW:
+			_hand_confirm_time = hand_now
+			TutorialManager.say(HAND_PRY_LINE)
+			return
+		if since < HAND_CONFIRM_MIN:
+			return
+		_hand_confirm_time = -100.0
+		_begin_pry(true)
 		return
 
 	# Enemies physically on the steps block the crossing (emergent — not a hazard): you
@@ -452,15 +471,16 @@ func _perform_transition(shift: bool = false) -> void:
 
 # --- Crowbar pry (heavy stairwell horde) ----------------------------------
 
-func _begin_pry() -> void:
+func _begin_pry(by_hand: bool = false) -> void:
 	is_prying = true
+	pry_by_hand = by_hand
 	touch_auto = false         # a touch walk that was still armed would fire the stairs again the moment the pry commits
-	pry_timer = PRY_TIME
+	pry_timer = HAND_PRY_TIME if by_hand else PRY_TIME
 	# Loud from the first heave — draws the current floor's dead toward the steps
 	# and snaps any can-distracted ones back (same door_work loudness as forcing).
-	WorldState.emit_noise(global_position, WorldState.NOISE_RADIUS["door_work"], PRY_TIME)
-	HUD.show_world_prompt(self, "Prying... %.1fs" % pry_timer, _prompt_anchor())
-	TutorialManager.say("Come on... get the claw in and heave. Almost through...")
+	WorldState.emit_noise(global_position, WorldState.NOISE_RADIUS["door_work"], pry_timer)
+	HUD.show_world_prompt(self, ("Tearing it apart... %.1fs" if by_hand else "Prying... %.1fs") % pry_timer, _prompt_anchor())
+	TutorialManager.say("Fingers under the boards... pull. Don't stop." if by_hand else "Come on... get the claw in and heave. Almost through...")
 
 
 func _tick_pry(delta: float) -> void:
@@ -471,7 +491,7 @@ func _tick_pry(delta: float) -> void:
 		_cancel_pry("Prying interrupted.")
 		return
 	pry_timer -= delta
-	HUD.show_world_prompt(self, "Prying... %.1fs" % max(pry_timer, 0.0), _prompt_anchor())
+	HUD.show_world_prompt(self, ("Tearing it apart... %.1fs" if pry_by_hand else "Prying... %.1fs") % max(pry_timer, 0.0), _prompt_anchor())
 	if pry_timer <= 0.0:
 		_commit_pry()
 
@@ -480,6 +500,7 @@ func _cancel_pry(reason: String) -> void:
 	if not is_prying:
 		return
 	is_prying = false
+	pry_by_hand = false
 	pry_timer = 0.0
 	HUD.hide_world_prompt(self)
 	_hint_up = ""            # the countdown sat in the listen pill's place — let _update_hint put a hint back if one is due
@@ -487,15 +508,18 @@ func _cancel_pry(reason: String) -> void:
 
 
 func _commit_pry() -> void:
+	var by_hand: bool = pry_by_hand
 	is_prying = false
+	pry_by_hand = false
 	pry_timer = 0.0
 	HUD.hide_world_prompt(self)   # about to transition off this floor
-	# Spend the crowbar and commit the crossing (works either direction): opens the
+	# Spend the crowbar (not when it was done by hand) and commit the crossing (works either direction): opens the
 	# stairwell for the run, shifts the building (enemies move, no heal), costs a
 	# rest slot, and musters the arrival floor's horde at the stairwell.
 	var arrival: int = WorldState.current_floor + (-1 if direction == "down" else 1)
-	WorldState.consume_crowbar()
-	WorldState.cross_blocked_stair(_choke_floor(), arrival)
+	if not by_hand:
+		WorldState.consume_crowbar()
+	WorldState.cross_blocked_stair(_choke_floor(), arrival, by_hand)
 	# The heavy time-skip transition carries the "building shifted" beat (fade to
 	# black + held caption), then lands the player on the floor they fought toward.
 	_perform_transition(true)
@@ -589,7 +613,7 @@ func vault_banister() -> bool:
 			_herd_back(who)
 			return false
 		"barricade":
-			TutorialManager.say("The well's choked with the barricade's junk — nowhere to land. I'd need a crowbar to clear the stairs.")
+			TutorialManager.say("The well's choked with the barricade's junk — nowhere to land. It has to be cleared from the stairs first (a crowbar, or my hands).")
 			return false
 	# A real drop: a DELIBERATE second press within the window, as at a balcony with no rope.
 	var now := Time.get_ticks_msec() / 1000.0

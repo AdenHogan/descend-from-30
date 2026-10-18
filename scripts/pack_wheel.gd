@@ -271,6 +271,12 @@ func _menu_input(event: InputEvent) -> bool:
 func craft_onto(from: int, to: int) -> Dictionary:
 	if _slot_inst(from) == null or _slot_inst(to) == null:
 		return {"ok": false, "name": "", "why": ""}
+	# Bullets onto the gun (or the gun onto the bullets) LOAD it - the same rule as the hotbar drag (WorldState.ammo_gun_pair).
+	var gun: ItemInstance = WorldState.ammo_gun_pair(_slot_inst(from), _slot_inst(to))
+	if gun != null:
+		var res: Dictionary = WorldState.load_gun_from_pack(gun)
+		HUD.show_feedback(String(res["msg"]))
+		return {"ok": int(res["loaded"]) > 0, "name": "", "why": String(res["msg"]), "loaded": int(res["loaded"])}
 	var r: Dictionary = Crafting.craft(int(slots[from]), int(slots[to]))
 	if bool(r.get("ok", false)):
 		HUD.show_feedback("Crafted: %s." % String(r["name"]))
@@ -495,6 +501,10 @@ func _draw() -> void:
 		for k2 in range(n):
 			if k2 != drag_k and _slot_inst(k2) != null:
 				var pl: Dictionary = Crafting.plan(int(slots[drag_k]), int(slots[k2]))
+				var ld: ItemInstance = WorldState.ammo_gun_pair(_slot_inst(drag_k), _slot_inst(k2))
+				if ld != null:
+					var full: bool = ld.mag_count >= ld.get_mag_cap()
+					pl = {"ok": not full and WorldState.get_ammo_total() > 0, "name": "LOAD THE GUN", "why": "Magazine full." if full else "No bullets to load.", "load": true}
 				if not pl.is_empty():
 					plans[k2] = pl
 	for k in range(n):
@@ -546,7 +556,7 @@ func _draw() -> void:
 		if plans.has(hover):
 			var hp: Dictionary = plans[hover]
 			if bool(hp["ok"]):
-				_text(font, centre + Vector2(-cw * 0.5, -22), "DROP TO CRAFT", 12, GOOD, cw, HORIZONTAL_ALIGNMENT_CENTER)
+				_text(font, centre + Vector2(-cw * 0.5, -22), "DROP TO LOAD" if bool(hp.get("load", false)) else "DROP TO CRAFT", 12, GOOD, cw, HORIZONTAL_ALIGNMENT_CENTER)
 				_text(font, centre + Vector2(-cw * 0.5, 0), String(hp["name"]).to_upper(), 16, ROOT_TEXT, cw, HORIZONTAL_ALIGNMENT_CENTER)
 			else:
 				_text(font, centre + Vector2(-cw * 0.5, -22), "NOT YET", 12, BAD, cw, HORIZONTAL_ALIGNMENT_CENTER)

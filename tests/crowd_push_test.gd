@@ -223,7 +223,13 @@ func _test_make_way_is_temporary() -> void:
 	b.make_way()
 	check(b.passable_to_player, "make_way lets the player through")
 	p.global_position.x = 800.0         # well clear of it
-	for i in range(30):
+	# Re-solidifying only runs in the chase / idle / distracted states, and a fixed 30-frame wait failed about 1 run in 10 (round 45:
+	# 2 of ~21 runs, none in 20 more with the state printed — b was in "chase" on every passing run, so the failing run's state is
+	# NOT pinned down). Wait up to 2 s for it instead; "never" still fails, and the message now carries what it was doing.
+	for i in range(120):
 		await get_tree().physics_frame
-	check(not b.passable_to_player, "…and it is solid again once the player is clear")
+		if not b.passable_to_player:
+			break
+	check(not b.passable_to_player, "…and it is solid again once the player is clear (b %s at %.0f, player at %.0f, clearance %.0f)" % [
+		b.state, b.global_position.x, p.global_position.x, b._resolidify_clearance()])
 	await _finish(bf)

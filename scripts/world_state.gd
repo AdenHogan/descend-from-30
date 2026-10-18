@@ -2086,6 +2086,31 @@ func _roll_shop_band(pool: Dictionary, count: int, band: String, rng: RandomNumb
 	return result
 
 
+## Ammo + a gun, in either order, is a LOAD (owner round 45: dragging bullets onto the gun in the pack ring said "Those don't go together" -
+## the ring only knew crafting). ONE rule for the hotbar drag and the pack ring. Returns the gun of such a pair, else null.
+func ammo_gun_pair(a, b) -> ItemInstance:
+	if a == null or b == null:
+		return null
+	var da: Dictionary = a.get_data()
+	var db: Dictionary = b.get_data()
+	if bool(da.get("is_ammo", false)) and String(db.get("name", "")).to_lower().contains("gun"):
+		return b
+	if bool(db.get("is_ammo", false)) and String(da.get("name", "")).to_lower().contains("gun"):
+		return a
+	return null
+
+
+## Load `gun` from the pack and say what happened. {"loaded": n, "msg": text}.
+func load_gun_from_pack(gun: ItemInstance) -> Dictionary:
+	var loaded: int = reload_gun(gun)
+	var msg: String
+	if loaded > 0:
+		msg = "Loaded %d — mag %d/%d." % [loaded, gun.mag_count, gun.get_mag_cap()]
+	else:
+		msg = "Magazine full." if gun.mag_count >= gun.get_mag_cap() else "No bullets to load."
+	return {"loaded": loaded, "msg": msg}
+
+
 func reload_gun(gun: ItemInstance) -> int:
 	# Moves bullets from inventory stacks into the gun's magazine, up to its
 	# cap (smaller when damaged). Returns rounds loaded.
@@ -3672,8 +3697,10 @@ var followed_away: Dictionary = {}
 const PRY_EXHAUST_FRACTION := 0.1
 
 
-func cross_blocked_stair(choke_floor: int, arrival_floor: int) -> void:
-	# Commit a crowbar crossing of a choked stairwell (blocks BOTH directions).
+func cross_blocked_stair(choke_floor: int, arrival_floor: int, by_hand: bool = false) -> void:
+	# Commit a crowbar crossing of a choked stairwell (blocks BOTH directions). `by_hand` = no crowbar was
+	# spent (owner round 45: a barricade must never be a dead end) - the consequences are the same, the pry
+	# itself was just three times as long and as loud (stairwell.HAND_PRY_TIME).
 	# `choke_floor` is the staircase's index (the upper floor's down-stair);
 	# `arrival_floor` is the floor you step out onto (choke_floor-1 descending,
 	# current+1 ascending). The crowbar is already spent by the caller. This:
@@ -3694,6 +3721,8 @@ func cross_blocked_stair(choke_floor: int, arrival_floor: int) -> void:
 	# reads WorldState.stamina on load so the bar comes up empty.
 	stamina = minf(stamina, get_max_stamina() * PRY_EXHAUST_FRACTION)
 	pending_pry_arrival_floor = arrival_floor
+	if by_hand:
+		add_run_trace("Tore a barricade apart with bare hands")
 
 
 # --- Barricade keeper (STORY GROUNDWORK — full NPC/quest is a later pass) ----

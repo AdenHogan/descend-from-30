@@ -65,6 +65,8 @@ func _input(event: InputEvent) -> void:
 	if not player_nearby:
 		return
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		if HUD.pointer_over_widget(event.position):
+			return                          # a HUD widget's click (owner round 45), never a pickup's
 		if _is_mouse_over():
 			var vp := get_viewport()
 			take()
