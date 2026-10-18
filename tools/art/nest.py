@@ -40,6 +40,7 @@ import json
 import math
 import os
 import random
+import sys
 import zlib
 
 from PIL import Image
@@ -48,6 +49,8 @@ W, H, SEAM = 320, 144, 100
 STAND_Y0, STAND_Y1 = 102, 118                      # = pixlib.STAND_ROWS (the stand zone of a back-plane spot)
 BODY_RISE = 6                    # how far back from its floor row a lying body sits (= scripts/corpse_depth.gd RISE)
 LANE_Y = 129                     # the walking line (world 353 − the module's top 224): the trail's line
+OBJECT_BASE_MAX = 122                # dropped OBJECTS (a shoe, a bag, a weapon) sit at or behind this row — never on the walking line (owner round 45b:
+                                    # "player standing on the… things that are flat on the floor"; the player draws over every baked pixel). Small flat marks (keys, a bone, a rag) may lie anywhere
 ROLES = ('door_l', 'kill_l', 'doorkill_l', 'corpse_l', 'rise_l', 'door_r', 'kill_r', 'doorkill_r', 'corpse_r', 'rise_r')
 
 BLOOD = (112, 12, 14, 255)
@@ -231,7 +234,11 @@ def _footprint(L, rng, x, y, s, fade):
         L.put(x + s * (6 + t % 2), y - 1 + t, BLOOD_OLD)
 
 
+_PLACED = []        # (kind, x, bottom row) of every dropped OBJECT this render — checked against OBJECT_BASE_MAX
+
+
 def _shoe(L, rng, x, y, s):
+    _PLACED.append(('shoe', x, y))
     _x2(L, _shoe1, x, y, s, rng)
 
 
@@ -270,6 +277,7 @@ def _keys(L, x, y):
 
 
 def _bag(L, rng, x, y, s):
+    _PLACED.append(('bag', x, y))
     _x2(L, _bag1, x, y, s, rng)
 
 
@@ -473,6 +481,7 @@ WEAPONS = ('knife', 'hammer', 'pin', 'club', 'pan', 'leg')
 
 def _weapon(L, rng, x, y, s, kind):
     # what the resident fought with, dropped by their hand: 2x, bloodied at the business end
+    _PLACED.append(('weapon', x, y))
     _x2(L, _weapon1, x, y, s, rng, kind)
 
 
@@ -556,11 +565,11 @@ def _flight(wall, floor, obj, rng, bare, flat, e, s):
     # a shoe, a spilt bag) and the dead came in after them — bare bloody prints heading into the flat
     _x2(floor, lambda T, x_, y_, s_: _keys(T, x_, y_), e + s * rng.randint(8, 16), rng.randint(124, 136), s)
     spot = _pick_floor(flat, rng, list(range(min(e + s * 40, e + s * 90), max(e + s * 40, e + s * 90), 4)),
-                       range(116, 138, 3), 5)
+                       range(110, OBJECT_BASE_MAX + 1, 3), 5)
     if spot:
         _shoe(obj, rng, spot[0], spot[1], -s)
     spot = _pick_floor(flat, rng, list(range(min(e + s * 16, e + s * 70), max(e + s * 16, e + s * 70), 4)),
-                       range(132, 142, 2), 22)
+                       range(110, OBJECT_BASE_MAX + 1, 2), 22)
     if spot:
         _bag(obj, rng, spot[0], spot[1], s)
     _splinters(floor, rng, e, s, flat)
@@ -695,6 +704,7 @@ def render(name, full, bare_floor, seed, role, flat_pieces=None, keep_clear=()):
     e = 0 if s > 0 else W - 1                     # the edge it comes in from (the front door, in ENTRY)
     far = W - 1 if s > 0 else 0
     rng = random.Random(zlib.crc32(('nest:%s:%s:%d' % (name, role, seed)).encode()))
+    _PLACED.clear()
     bare, flat, clear = _masks(full, bare_floor, flat_pieces, keep_clear)
     global _FLAT
     _FLAT = flat
@@ -738,11 +748,14 @@ def render(name, full, bare_floor, seed, role, flat_pieces=None, keep_clear=()):
             if rng.random() < FOUGHT_BACK:                  # they took one of them with them
                 x0, x1 = sorted((fx, fx + s * ln))
                 wx = fx + s * rng.randint(40, 56)                # their hand, about the chest: what they fought with
-                _weapon(obj, rng, wx, fy + rng.randint(4, 6), s if rng.random() < 0.5 else -s, rng.choice(WEAPONS))
+                _weapon(obj, rng, wx, min(fy + rng.randint(4, 6), OBJECT_BASE_MAX), s if rng.random() < 0.5 else -s, rng.choice(WEAPONS))
                 z = _first(lambda m: _fought_back(floor, obj, dead, rng, m, fx, fy, s, [(x0, fy - BODY_H, x1, fy + 3)]), masks)
                 if z is not None:
                     flies.append(z)
                     zombies.append(z)
+    low = [t for t in _PLACED if t[2] > OBJECT_BASE_MAX]
+    if low:
+        sys.exit('%s %s: dropped objects on the walking line (row > %d): %s' % (name, role, OBJECT_BASE_MAX, low))
     # composite through the masks: wall marks on bare wall only, floor marks on bare floor only
     out = Image.new('RGBA', (W, H), WASH[part])
     op = out.load()

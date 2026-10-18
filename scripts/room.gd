@@ -1254,7 +1254,7 @@ func _add_front_art(module: Node, has_balcony: bool, charred: bool) -> void:
 const OVER_ART_Z := 3
 
 
-static func over_art_path(art_path: String) -> String:
+static func over_art_candidate(art_path: String) -> String:
 	var base: String = art_path.get_basename()
 	if base.ends_with("_burnt"):
 		return ""
@@ -1264,8 +1264,12 @@ static func over_art_path(art_path: String) -> String:
 			look = sfx
 			base = base.left(base.length() - sfx.length())
 			break
-	var path: String = base + "_over" + look + ".png"
-	return path if ResourceLoader.exists(path) else ""
+	return base + "_over" + look + ".png"
+
+
+static func over_art_path(art_path: String) -> String:
+	var path := over_art_candidate(art_path)
+	return path if path != "" and ResourceLoader.exists(path) else ""
 
 
 func _add_over_art(module: Node, charred: bool) -> void:

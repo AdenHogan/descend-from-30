@@ -155,7 +155,7 @@ def b_furniture(c):
     C3.draw_model(c, cx, base, C3.tulip_table(), 0, TULIP, srad=26)
     C3.draw_model(c, 110, 121, C3.tulip_chair(), -62, TULIP, srad=9)                          # at its left
     fallen = C3.fall(C3.tulip_chair(), 'side', 8.0)
-    C3.draw_model(c, 212, 128, fallen, 35, TULIP, shadow='footprint')                         # knocked over
+    C3.draw_model(c, 212, 121, fallen, 35, TULIP, shadow='footprint')                         # knocked over — behind the walking line (base row 121; owner round 45b)
     # what was on the table: two places laid, a vase of tulips going over, a glass knocked down,
     # the wine running off the edge
     top = base - 24
@@ -287,7 +287,7 @@ def c_furniture(c):
     HIGH = {'wood': hexc('4a2c1c'), 'seat': hexc('5a3622'), 'fab': hexc('6a2a2e')}
     for (x, yaw) in ((148, 180), (178, 180)):                                                # high-backs, backs to us
         C3.draw_model(c, x, 100, C3.dining_chair('high'), yaw, HIGH, srad=10)
-    C3.draw_model(c, 182, 128, C3.fall(C3.dining_chair('high'), 'side', -8.0), -30, HIGH, shadow='footprint')   # the third, knocked flying — CLEAR of the table's legs (owner round 34) AND of the sideboard's step-up spot (owner round 36i: the player walked over it)
+    C3.draw_model(c, 182, 121, C3.fall(C3.dining_chair('high'), 'side', -8.0), -30, HIGH, shadow='footprint')   # (base row 121, behind the walking line — owner round 45b) the third, knocked flying — CLEAR of the table's legs (owner round 34) AND of the sideboard's step-up spot (owner round 36i: the player walked over it)
     F.table_front(c, 126, 236, 92, 120, F.WOOD, depth=6)
     c.rect(125, 92, 237, 98, F.WOOD[1])
     c.hline(125, 237, 92, F.WOOD[3])
@@ -578,12 +578,7 @@ def e_front_strip(c):
     # balloons tied to the stack, drifting up across the window's glass behind them
     _balloon(c, 60, 36, PARTY[4], 59, tie=56)
     _balloon(c, 71, 29, PARTY[1], 59, tie=58)
-    before = c.img.copy()
-    P3.torn_box(c, 74, 88, 13, 21, 100.0, 9.0, PARTY[3], shade(PARTY[3], 0.62), hexc('9cc89c'), hexc('efe8d8'))
-    # the box (and its ribbon and torn paper) stands NEARER than a body lying on the lane — its base is at row ~122, the ribbon and paper
-    # run on below it — so a corpse goes behind it (owner round 45: "corpses are resting on top of floor art assets"); see pixlib.register_near
-    ap, bp_ = c.img.load(), before.load()
-    PX.register_near({(x, y) for y in range(c.img.height) for x in range(c.img.width) if ap[x, y] != bp_[x, y]}, strip=True)
+    P3.torn_box(c, 74, 88, 9, 17, 100.0, 9.0, PARTY[3], shade(PARTY[3], 0.62), hexc('9cc89c'), hexc('efe8d8'))
 
 
 # --- the party table ---------------------------------------------------------------------------------------
@@ -659,8 +654,10 @@ def e_furniture(c):
     s_ = P3.disc(c, 211.0, top, 15.5, 4.2, BLOOD)
     P3.disc(c, 214.0, top, 16.5, 2.2, BLOOD_DK)
     P3.knife(c, 206.0, top, 17.0, ang=0.5)
-    # the toppled chair, clear of the table's legs (owner round 36e: a leg was clipping into it)
-    C3.draw_model(c, 187, 131, C3.fall(mdl, 'side', 8.0), 40, PINEP, shadow='footprint')
+    # the toppled chair, clear of the table's legs (owner round 36e: a leg was clipping into it) and CLEAR OF THE WALKING LINE (owner round 45b:
+    # at base row 131 it lay across the lane, so a player standing at it looked to be clipping through — 'the chair is way too close').
+    # Its base is row 121, eight rows behind the lane (129): the player walks in front of it, and a body on the lane lies in front of it too.
+    C3.draw_model(c, 187, 121, C3.fall(mdl, 'side', 8.0), 40, PINEP, shadow='footprint')
     # a sideboard with a cassette player and a stack of paper cups (with depth)
     def _sb(c):
         F.chest(c, 250, 310, 72, 100, F.PINE, drawers=2, open_row=0)

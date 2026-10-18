@@ -934,62 +934,44 @@ def register_floor_piece(name, kind, pixels):
     FLOOR_PIECES.append((name, kind, set(pixels)))
 
 
-# NEAR PIECES (owner round 45: "enemy corpses are resting on top of floor art assets… needs adjustment so there is no overlap"): a body
-# lies on the lane with its drawn bottom at local row 122 (the 129 lane row, less CorpseDepth.RISE 6, less the drawn-feet 1). Anything
-# lying on the floor whose silhouette reaches BELOW that row is NEARER than the body, so the body must go behind it — but the art is one
-# baked image drawn under every actor. finish_module therefore exports a 1-bit MASK of such pieces (`<name>_near.png`, `_near_r2/_r3` when a
-# run look moves them, `_near_strip.png` for the balcony-strip part): scripts/corpse_depth.gd clips a corpse's sprite where the mask is set.
-NEAR_LINE = 122
-NEAR_EXTRA = []          # (pixels, in_strip) a module script marks as nearer than a corpse though it isn't a registered floor piece
-
-
-def register_near(pixels, strip=False):
-    NEAR_EXTRA.append((set(pixels), bool(strip)))
-
-
-def _near_of(pieces):
-    px = set()
-    for (_name, kind, pts) in pieces:
-        if kind == 'lying' and pts and max(q[1] for q in pts) > NEAR_LINE:
-            px |= pts
-    return px
-
-
-def _near_extra(strip):
-    px = set()
-    for (pts, in_strip) in NEAR_EXTRA:
-        if in_strip == strip:
-            px |= pts
-    return px
-
-
-def _write_near(root, name, suffix, pixels):
-    """assets/rooms/<name>_near<suffix>.png — white where a near piece is, transparent elsewhere; no pixels = no file."""
+def _remove_asset(fp):
+    """Delete a generated PNG and its Godot .import file together — an orphaned .import makes ResourceLoader.exists() say yes to a file
+    that is gone, and the engine then draws the OLD texture from its cache (found when dining E's chair was moved: its over layer lived on)."""
     import os
-    fp = os.path.join(root, 'assets', 'rooms', name + '_near' + suffix + '.png')
-    if not pixels:
-        if os.path.exists(fp):
-            os.remove(fp)
-        return
-    im = Image.new('RGBA', (W, H), (0, 0, 0, 0))
-    for (x, y) in pixels:
-        if 0 <= x < W and 0 <= y < H:
-            im.putpixel((x, y), (255, 255, 255, 255))
-    im.save(fp)
+    for f in (fp, fp + '.import'):
+        if os.path.exists(f):
+            os.remove(f)
 
 
-# OVER PIECES (owner round 45b: "that chair could potentially be in front of enemies and player as it's lower on the plane"): a piece whose
-# silhouette reaches BELOW the lane row (129, the row the player's and every enemy's feet stand on) is nearer than any actor on the lane, so it
-# must draw over them. The art is one baked image under every actor, so finish_module cuts those pieces out as COLOURED overlays
-# (`<name>_over.png`, `_over_r2.png`, `_over_r3.png` — one per look, cut from that look's own finished art so the dust and darkening match);
-# scripts/room.gd lays each above the actors (`OverArt`). A piece nearer than a BODY (row 122) but not than the lane is only a corpse clip (_near_*).
+# THE WALKING LINE (owner round 45b: "player standing on the… things that are flat on the floor", "the chair is way too close so it looks like
+# player is clipping through", "polish requires items have physical presence instead of something that is walked over"): the player (feet row
+# 129, the LANE) and every enemy draw over ALL baked art, so anything standing or lying on the lane reads as walked over / clipped through.
+# So a piece registered as standing / lying on the floor is either entirely BEHIND the walking band — its lowest row is LANE_CLEAR_ROW (122) or
+# higher up — or entirely IN FRONT of it — its highest row is LANE_FRONT_ROW (131) or lower down, and then finish_module cuts it out as a
+# COLOURED overlay (`<name>_over.png`, `_over_r2.png`, `_over_r3.png` — one per look, cut from that look's own finished art so the dust and
+# darkening match) which scripts/room.gd lays above the actors (`OverArt`), so the player walks BEHIND it. Anything straddling the band is
+# refused. (Dropped objects in the nest overlays follow the same rule: tools/art/nest.py OBJECT_BASE_MAX.)
 LANE_ROW = 129
+LANE_CLEAR_ROW = 122
+LANE_FRONT_ROW = 131
+
+
+def _lane_violations(pieces):
+    """[(name, kind, lowest row, highest row)] of the pieces that stand or lie ON the walking band."""
+    bad = []
+    for (pn, kind, pts) in pieces:
+        if pts:
+            low = max(q[1] for q in pts)
+            high = min(q[1] for q in pts)
+            if low > LANE_CLEAR_ROW and high < LANE_FRONT_ROW:
+                bad.append((pn, kind, low, high))
+    return bad
 
 
 def _over_of(pieces):
     px = set()
     for (_name, _kind, pts) in pieces:
-        if pts and max(q[1] for q in pts) > LANE_ROW:
+        if pts and min(q[1] for q in pts) >= LANE_FRONT_ROW:
             px |= pts
     return px
 
@@ -1000,8 +982,7 @@ def _write_over(root, name, suffix, pixels):
     import os
     fp = os.path.join(root, 'assets', 'rooms', name + '_over' + suffix + '.png')
     if not pixels:
-        if os.path.exists(fp):
-            os.remove(fp)
+        _remove_asset(fp)
         return
     src = Image.open(os.path.join(root, 'assets', 'rooms', name + suffix + '.png')).convert('RGBA')
     im = Image.new('RGBA', (W, H), (0, 0, 0, 0))
@@ -1073,7 +1054,6 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
     SETBACKS.clear()
     OVERHANGS.clear()
     FLOOR_PIECES.clear()
-    NEAR_EXTRA.clear()
     full = Canvas(seed=seed)
     build_fn(full)
     n_main = len(LIGHTS)
@@ -1127,14 +1107,30 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
             print('  CLIP %s: %s' % (name, msg))
         else:
             errs.append(msg)
+    for (pn, kind, low, high) in _lane_violations(FLOOR_PIECES):
+        msg = ('%s (%s) stands / lies on the walking band (rows %d..%d; lane 129): move it back so its lowest row is %d or higher up, or fully in '
+               'front (highest row %d or lower down) — owner round 45b: "player standing on the paint cans… the chair is way too close so it looks '
+               'like player is clipping through"') % (pn, kind, high, low, LANE_CLEAR_ROW, LANE_FRONT_ROW)
+        if os.environ.get('CLIP_REPORT'):
+            print('  LANECLEAR %s: %s' % (name, msg))
+        else:
+            errs.append(msg)
     if os.environ.get('LANE_REPORT'):
-        # audit: every piece registered as lying / standing on the floor, with the rows it covers — a corpse lies on the lane with its
-        # bottom at local row 122 (the 129 lane row less CorpseDepth.RISE) and reaches up to ~107: anything BELOW 122 is nearer than a
-        # corpse and should draw over it, anything above is behind it (owner round 45)
+        # audit: every piece registered as lying / standing on the floor, with the rows it covers
         for (pn, kind, pts) in FLOOR_PIECES:
             ys_ = [q[1] for q in pts]
             xs_ = [q[0] for q in pts]
             print('  LANE %s: %s (%s) rows %d..%d x %d..%d' % (name, pn, kind, min(ys_), max(ys_), min(xs_), max(xs_)))
+    if os.environ.get('LANE_REPORT'):
+        # everything drawn that is NOT bare floor and NOT flat (a rug, a stain, a shadow) in the rows from just below the lane-clear line to a
+        # little past the lane — registered or not. These are the things the player walks over; the registered ones are refused above, this
+        # lists the unregistered ones (bags, boxes, bins, tins drawn straight onto the canvas)
+        import nest as _nest
+        b_, flat_, _clear = _nest._masks(full.img, bare_floor.img, FLAT_PIECES.get(id(full), {}))
+        pts_ = [(x, y) for y in range(LANE_CLEAR_ROW + 1, 139) for x in range(8, W - 8) if not b_[x][y] and not flat_[x][y]]
+        if pts_:
+            print('  LANEBAND %s: %d px of standing art in rows %d..138, x %d..%d, rows %d..%d' % (
+                name, len(pts_), LANE_CLEAR_ROW + 1, min(p[0] for p in pts_), max(p[0] for p in pts_), min(p[1] for p in pts_), max(p[1] for p in pts_)))
     if os.environ.get('FRONT_REPORT'):
         # everything drawn (not floor) in front of a step-up spot's player, below the feet row: rugs / shadows / marks show up too — a list to LOOK at
         for cx in sorted(_bp_centres(anchors)):
@@ -1240,10 +1236,6 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
                 if p != main.img.getpixel((x, y)):
                     s.putpixel((x, y), p)
         s.save(os.path.join(ROOT, 'assets', 'rooms', name + '_strip.png'))
-    near_main = _near_of(FLOOR_PIECES[:n_pm]) | _near_extra(False)
-    near_strip = _near_of(FLOOR_PIECES[n_pm:n_ps]) | _near_extra(True)
-    _write_near(ROOT, name, '', near_main)
-    _write_near(ROOT, name, '_strip', near_strip)
     over_main = _over_of(FLOOR_PIECES[:n_pm])
     over_by_look = {'': over_main, '_r2': over_main, '_r3': over_main}      # (a run look that rebuilds its furniture overrides its own below)
     if _over_of(FLOOR_PIECES[n_pm:n_ps]):
@@ -1252,8 +1244,8 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
         fp = os.path.join(ROOT, 'assets', 'rooms', name + suffix + '.png')
         if lay is not None:
             lay.save(fp)
-        elif os.path.exists(fp):
-            os.remove(fp)
+        else:
+            _remove_asset(fp)
     _node_overlay(full.img, anchors, os.path.join(prev, 'nodes', name + '_nodes.png'))
     import nest                                   # the BREACH-ROOM look of this module (tools/art/nest.py)
     nest.write(name, full.img, bare_floor.img, seed, ROOT, FLAT_PIECES.get(id(full), {}), keep_clear=stand_bands(anchors))
@@ -1271,12 +1263,10 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
             if strip_fn is not None:
                 strip_fn(fr)
             k1 = len(FLOOR_PIECES)
-            # a run look may knock a chair somewhere else: its own mask, written only when it differs from the first look's
-            run_main = _near_of(FLOOR_PIECES[:n_pm_r]) | _near_extra(False)
-            run_strip = _near_of(FLOOR_PIECES[k0:k1]) | _near_extra(True)
-            _write_near(ROOT, name, '_r%d' % lv, run_main if run_main != near_main else set())
+            # a run look may knock a piece somewhere else: the same lane rule, and its own over pieces
+            for (pn, kind, low, high) in _lane_violations(FLOOR_PIECES):
+                sys.exit('%s: run %d look: %s (%s) stands / lies on the walking band (rows %d..%d)' % (name, lv, pn, kind, high, low))
             over_by_look['_r%d' % lv] = _over_of(FLOOR_PIECES[:n_pm_r])
-            _write_near(ROOT, name, '_r%d_strip' % lv, run_strip if run_strip != near_strip else set())
             per_level[lv] = (mr.img, fr.img)
             for (an, ax, ay, fl_) in anchors:
                 ref = fr if 's' in fl_.replace('bp', '') else mr

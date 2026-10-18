@@ -64,8 +64,11 @@ become props and how loud they should be before any art is changed.
 ## 5. Built this round (related)
 
 - Corpses no longer slide up 6 px after landing (the rise is spread over the fall) — `corpse_depth.gd`.
-- A corpse goes BEHIND floor pieces that stand nearer than it (a toppled chair, the torn gift box): `tools/art/pixlib.py`
-  `register_near` / `NEAR_LINE`, masks `assets/rooms/<art>_near*.png`, applied to the corpse's sprite by `corpse_depth.gd`.
-- A piece that stands NEARER than the lane (a toppled chair whose lowest edge is below row 129 — only dining E's today) is cut out of each look's finished art as a
-  coloured overlay (`assets/rooms/<art>_over[_r2|_r3].png`, `pixlib.LANE_ROW` / `_over_of`) and laid above the actors by `room._add_over_art` (`OVER_ART_Z` 3), so it draws over a body, an enemy AND the player (owner round 45b).
-  The art tool refuses a balcony-strip piece below the lane (not built).
+- (Round 45c, REMOVED in 45b) A corpse went BEHIND floor pieces that stood nearer than it, via `_near*.png` masks and a `corpse_depth.gd` shader — superseded by the walking-line rule below, which keeps every piece off the lane.
+- **THE WALKING-LINE RULE (round 45b).** The player and every enemy draw over all baked art, so nothing may stand or lie on the lane (row 129): a registered floor piece is wholly
+  behind it (lowest row <= 122) or wholly in front (highest row >= 131, drawn over the actors as `<art>_over.png`, `room._add_over_art`, so the player walks behind it); anything straddling is refused by the
+  art tool (`pixlib._lane_violations`, first look and every run look). A breach flat's dropped objects (`nest.py` `OBJECT_BASE_MAX` 122) follow it. The earlier attempt — drawing the toppled chair over the
+  player — put it on the player's legs ("it looks like the player is clipping through"); the chair, two more toppled chairs and the torn gift box moved behind the line instead. The corpse-clip masks of round 45c are gone (nothing can be nearer than a body now).
+- **The process from here** (owner: "this will take time to iterate from. It's a process"): (1) the rule above keeps NEW art honest; (2) the next step for small clutter (cans, bottles, shoes, a mug, a book) is the loose-prop system in §4 — kickable `RigidBody2D`s with a clatter —
+  because a thing you can push or knock over has presence that a baked picture cannot; (3) the furniture-perspective options A / B / C (§2) still wait for the owner's pick on mocks; (4) each pass: render the real flat under xvfb at game zoom, look, then fix.
+  Gotcha: regenerate art, then `godot --headless --import` BEFORE capturing, and delete a removed asset's `.import` with it (`pixlib._remove_asset`).

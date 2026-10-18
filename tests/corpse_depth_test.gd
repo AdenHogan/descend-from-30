@@ -28,7 +28,7 @@ func _ready() -> void:
 	await _test_live_corpse()
 	await _test_static_corpses()
 	await _test_baked_dead()
-	await _test_near_masks()
+	await _test_lane_rule()
 	await _test_corridor_unchanged()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
@@ -221,53 +221,32 @@ func _room_keep_kills(apt: String) -> Node:
 	return r2
 
 
-# --- floor pieces nearer than a body (owner round 45) -----------------------------------------------------------------------
-
-# "enemy corpses are resting on top of floor art assets… needs adjustment so there is no overlap": a toppled chair (dining B / C / E) and the
-# torn gift box (dining E) reach below a body's bottom row, so the body goes BEHIND them — the art tool writes a mask, corpse_depth.gd clips
-# the body's sprite where it is set. Only the mechanism is testable headless (the clip itself is a shader — checked by eye under xvfb).
-func _test_near_masks() -> void:
-	print("[near pieces: a mask per module that has one, and a body clipped by it]")
-	var CD = load("res://scripts/corpse_depth.gd")
+# THE WALKING LINE (owner round 45b: "the chair is way too close so it looks like player is clipping through", "player standing on the paint cans
+# that are flat on the floor"). The player and every enemy draw over ALL baked art, so a piece standing / lying on the lane reads as walked over.
+# The art tool refuses one (tools/art/pixlib.py `_lane_violations`: a piece is wholly behind row 122 or wholly in front of row 131), nest.py keeps
+# dropped objects at row 122 or higher up, and a piece wholly IN FRONT is laid over the actors as an `<art>_over.png` layer (room._add_over_art).
+func _test_lane_rule() -> void:
+	print("[the walking line: nothing baked on it; anything in front is an over layer]")
 	var rooms := "res://assets/rooms/"
-	check(CD.mask_paths(rooms + "dining_room_e.png", true) == [rooms + "dining_room_e_near.png", rooms + "dining_room_e_near_strip.png"],
-		"dining E: its chair mask + its torn-box (strip) mask")
-	check(CD.mask_paths(rooms + "dining_room_e.png", false) == [rooms + "dining_room_e_near.png", ""],
-		"…and the strip's mask only while the strip is shown (a balcony slot hides the box)")
-	check(CD.mask_paths(rooms + "dining_room_c_r3.png", false) == [rooms + "dining_room_c_near.png", ""],
-		"a run look with no mask of its own uses the first look's")
-	check(CD.mask_paths(rooms + "dining_room_e_burnt.png", true) == ["", ""], "a burnt flat has none (its art is its own husk)")
-	check(CD.mask_paths(rooms + "living_room.png", true) == ["", ""], "a module with nothing nearer than a body has none")
-	# every mask is a real 1-bit cut of its art: it has pixels, only where the art has pixels, and reaches below a body's bottom row
-	for n in ["dining_room_b", "dining_room_c", "dining_room_e"]:
-		var m: Image = load(rooms + n + "_near.png").get_image()
-		var a: Image = load(rooms + n + ".png").get_image()
-		var lowest := -1
-		var pixels := 0
-		for y in range(m.get_height()):
-			for x in range(m.get_width()):
-				if m.get_pixel(x, y).a > 0.5:
-					pixels += 1
-					lowest = maxi(lowest, y)
-		check(pixels > 100 and lowest > 122 and m.get_size() == a.get_size(),
-			"%s: a mask of %d px reaching row %d (a body's bottom is row 122)" % [n, pixels, lowest])
-	# OVER layers (owner round 45b: "that chair could potentially be in front of enemies and player as it's lower on the plane"): a piece
-	# whose silhouette reaches BELOW the lane row (129) is nearer than every actor standing on the lane
-	check(RoomScript.over_art_path(rooms + "dining_room_e.png") == rooms + "dining_room_e_over.png", "dining E has an over layer (its chair reaches row 131)")
-	check(RoomScript.over_art_path(rooms + "dining_room_e_r2.png") == rooms + "dining_room_e_over_r2.png"
-			and RoomScript.over_art_path(rooms + "dining_room_e_r3.png") == rooms + "dining_room_e_over_r3.png", "…and one cut from each run look")
-	check(RoomScript.over_art_path(rooms + "dining_room_e_burnt.png") == "", "a burnt flat has none")
-	check(RoomScript.over_art_path(rooms + "dining_room_c.png") == "", "dining C's chair (row 128) stays behind the lane: no over layer")
-	check(RoomScript.over_art_path(rooms + "living_room.png") == "", "a module with nothing below the lane has none")
-	var over_files := 0
+	check(RoomScript.over_art_candidate(rooms + "dining_room_e.png") == rooms + "dining_room_e_over.png", "an over layer is named <art>_over.png")
+	check(RoomScript.over_art_candidate(rooms + "dining_room_e_r2.png") == rooms + "dining_room_e_over_r2.png"
+			and RoomScript.over_art_candidate(rooms + "dining_room_e_r3.png") == rooms + "dining_room_e_over_r3.png", "…one per run look")
+	check(RoomScript.over_art_candidate(rooms + "dining_room_e_burnt.png") == "", "a burnt flat has none")
+	check(RoomScript.OVER_ART_Z > load("res://scripts/corpse_depth.gd").FRONT_Z and RoomScript.OVER_ART_Z > 1,
+		"an over layer draws over the actors AND over a body in front of a back-plane player (z %d)" % RoomScript.OVER_ART_Z)
+	# nothing in the art is in front of the lane today: the chairs and the torn box that were moved BEHIND it must not leave a layer (or its .import) behind
+	var over_files := []
+	var near_files := []
 	for fn in DirAccess.get_files_at("res://assets/rooms"):
-		if not (fn.contains("_over") and fn.ends_with(".png")):
-			continue
-		over_files += 1
+		if fn.contains("_over") and fn.ends_with(".png"):
+			over_files.append(fn)
+		if fn.contains("_near"):
+			near_files.append(fn)
+	check(near_files.is_empty(), "the corpse-clip masks (_near) are gone with the pieces that needed them (%s)" % str(near_files.slice(0, 3)))
+	for fn in over_files:
 		var oi: Image = load(rooms + fn).get_image()
-		var art_name := fn.replace("_over", "")
-		var ai: Image = load(rooms + art_name).get_image()
-		var lowest := -1
+		var ai: Image = load(rooms + fn.replace("_over", "")).get_image()
+		var top := 999
 		var n := 0
 		var same := true
 		for y in range(oi.get_height()):
@@ -275,79 +254,29 @@ func _test_near_masks() -> void:
 				var px := oi.get_pixel(x, y)
 				if px.a > 0.5:
 					n += 1
-					lowest = maxi(lowest, y)
+					top = mini(top, y)
 					if not px.is_equal_approx(ai.get_pixel(x, y)):
 						same = false
-		check(n > 100 and lowest > 129 and same and oi.get_size() == ai.get_size(),
-			"%s: %d px of its own art, reaching row %d (below the 129 lane)" % [fn, n, lowest])
-	check(over_files == 3, "exactly three over layers exist today: dining E's, one per look (%d)" % over_files)
-	# a real flat: find one showing dining E, kill a body in it, and see the body clipped (and one elsewhere not)
-	var apt := ""
-	var slot := -1
-	WorldState.new_game()
-	WorldState.master_seed = 4242
-	for f in range(2, 25):
-		for i in range(1, 6):
-			var cand := str(f) + "0" + str(i)
-			var layout: Array = WorldState.get_apartment_layout(cand)
-			for sl in range(layout.size()):
-				if apt == "" and layout[sl] == "dining_room" and RoomScript.module_scene_for(cand, sl, "dining_room").ends_with("dining_room_e.tscn"):
-					apt = cand
-					slot = sl
-	check(apt != "", "found a flat showing dining E (%s, slot %d)" % [apt, slot])
-	if apt == "":
-		return
-	var room = await _room(apt)
-	var module: Node = null
+		check(n > 20 and top >= 131 and same and oi.get_size() == ai.get_size(),
+			"%s: %d px of its own art, wholly in front of the lane (highest row %d >= 131)" % [fn, n, top])
+	# a generated PNG removed by the art tool must take its .import with it: an orphan makes ResourceLoader.exists() say yes to a file that
+	# is gone, and the engine draws the OLD texture from its cache (dining E's chair lived on that way)
+	var orphans := []
+	for fn in DirAccess.get_files_at("res://assets/rooms"):
+		if fn.ends_with(".png.import") and not FileAccess.file_exists("res://assets/rooms/" + fn.trim_suffix(".import")):
+			orphans.append(fn)
+	check(orphans.is_empty(), "no orphaned .import file under assets/rooms (%s)" % str(orphans.slice(0, 3)))
+	# the art tool's own rule, read from its source so a loosened rule fails here
+	var pix: String = FileAccess.get_file_as_string("res://tools/art/pixlib.py")
+	check(pix.contains("LANE_CLEAR_ROW = 122") and pix.contains("LANE_FRONT_ROW = 131"),
+		"pixlib.py holds the lane rule: behind row 122 or in front of row 131")
+	var nest: String = FileAccess.get_file_as_string("res://tools/art/nest.py")
+	check(nest.contains("OBJECT_BASE_MAX = 122"), "nest.py keeps dropped objects at row 122 or higher up")
+	# in a real flat nothing is laid over the actors today
+	var room = await _room("2703")
 	for m in room.get_children():
-		if m.is_in_group("room_module") and String(m.scene_file_path).ends_with("dining_room_e.tscn"):
-			module = m
-	check(module != null, "that module is in the flat")
-	if module == null:
-		room.free()
-		return
-	var other: Node = null
-	for m in room.get_children():
-		if m.is_in_group("room_module") and m != module and CD.mask_paths((m.get_node("Art") as Sprite2D).texture.resource_path, true) == ["", ""]:
-			other = m
-	var inside = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
-	inside.spawn_key = ""
-	room.add_child(inside)
-	inside.global_position = Vector2((module as Node2D).global_position.x + 187.0, 304.0)
-	var outside = null
-	if other != null:
-		outside = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
-		outside.spawn_key = ""
-		room.add_child(outside)
-		outside.global_position = Vector2((other as Node2D).global_position.x + 160.0, 304.0)
-	await _frames(10)
-	inside.receive_damage(999, "melee")
-	if outside != null:
-		outside.receive_damage(999, "melee")
-	await _frames(120)
-	var spr: AnimatedSprite2D = inside.get_node("AnimatedSprite2D")
-	var mat := spr.material as ShaderMaterial
-	check(mat != null and mat.shader != null and mat.shader.code.contains("near_a"), "the body in dining E is clipped by the near shader")
-	if mat != null:
-		var art := module.get_node("Art") as Sprite2D
-		var want_origin: Vector2 = (module as Node2D).global_position + art.position - (art.texture.get_size() * 0.5 if art.centered else Vector2.ZERO)
-		check((mat.get_shader_parameter("origin") as Vector2).is_equal_approx(want_origin),
-			"…in the module's own coordinates (origin %s)" % str(mat.get_shader_parameter("origin")))
-		var ta: Texture2D = mat.get_shader_parameter("near_a")
-		check(ta != null and ta.get_width() == 320 and ta.get_height() == 144, "…with the room's chair mask")
-	if outside != null:
-		check((outside.get_node("AnimatedSprite2D") as AnimatedSprite2D).material == null,
-			"a body in a module with nothing nearer than it is left as it was")
-	var over := module.get_node_or_null("OverArt") as Sprite2D
-	check(over != null and over.z_index > 1 and over.z_index > load("res://scripts/corpse_depth.gd").FRONT_Z,
-		"dining E's chair is laid over the actors AND over a body in front of a back-plane player (z %s)" % (str(over.z_index) if over != null else "none"))
-	if over != null:
-		var art2 := module.get_node("Art") as Sprite2D
-		check(over.position == art2.position and over.scale == art2.scale and over.texture.get_size() == art2.texture.get_size(),
-			"…registered exactly over the art")
-	for m in room.get_children():
-		if m.is_in_group("room_module") and m != module and m.get_node_or_null("OverArt") != null:
-			check(false, "a module with no over art got an OverArt layer: " + String(m.scene_file_path))
+		if m.is_in_group("room_module") and m.get_node_or_null("OverArt") != null:
+			check(false, "no module has art in front of the lane today, yet one got an OverArt layer: " + String(m.scene_file_path))
 	room.free()
 	await get_tree().process_frame
 
