@@ -28,6 +28,7 @@ func _ready() -> void:
 	await _test_live_corpse()
 	await _test_static_corpses()
 	await _test_baked_dead()
+	await _test_near_masks()
 	await _test_corridor_unchanged()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
@@ -218,6 +219,97 @@ func _room_keep_kills(apt: String) -> Node:
 	add_child(r2)
 	await _built(r2)
 	return r2
+
+
+# --- floor pieces nearer than a body (owner round 45) -----------------------------------------------------------------------
+
+# "enemy corpses are resting on top of floor art assets… needs adjustment so there is no overlap": a toppled chair (dining B / C / E) and the
+# torn gift box (dining E) reach below a body's bottom row, so the body goes BEHIND them — the art tool writes a mask, corpse_depth.gd clips
+# the body's sprite where it is set. Only the mechanism is testable headless (the clip itself is a shader — checked by eye under xvfb).
+func _test_near_masks() -> void:
+	print("[near pieces: a mask per module that has one, and a body clipped by it]")
+	var CD = load("res://scripts/corpse_depth.gd")
+	var rooms := "res://assets/rooms/"
+	check(CD.mask_paths(rooms + "dining_room_e.png", true) == [rooms + "dining_room_e_near.png", rooms + "dining_room_e_near_strip.png"],
+		"dining E: its chair mask + its torn-box (strip) mask")
+	check(CD.mask_paths(rooms + "dining_room_e.png", false) == [rooms + "dining_room_e_near.png", ""],
+		"…and the strip's mask only while the strip is shown (a balcony slot hides the box)")
+	check(CD.mask_paths(rooms + "dining_room_c_r3.png", false) == [rooms + "dining_room_c_near.png", ""],
+		"a run look with no mask of its own uses the first look's")
+	check(CD.mask_paths(rooms + "dining_room_e_burnt.png", true) == ["", ""], "a burnt flat has none (its art is its own husk)")
+	check(CD.mask_paths(rooms + "living_room.png", true) == ["", ""], "a module with nothing nearer than a body has none")
+	# every mask is a real 1-bit cut of its art: it has pixels, only where the art has pixels, and reaches below a body's bottom row
+	for n in ["dining_room_b", "dining_room_c", "dining_room_e"]:
+		var m: Image = load(rooms + n + "_near.png").get_image()
+		var a: Image = load(rooms + n + ".png").get_image()
+		var lowest := -1
+		var pixels := 0
+		for y in range(m.get_height()):
+			for x in range(m.get_width()):
+				if m.get_pixel(x, y).a > 0.5:
+					pixels += 1
+					lowest = maxi(lowest, y)
+		check(pixels > 100 and lowest > 122 and m.get_size() == a.get_size(),
+			"%s: a mask of %d px reaching row %d (a body's bottom is row 122)" % [n, pixels, lowest])
+	# a real flat: find one showing dining E, kill a body in it, and see the body clipped (and one elsewhere not)
+	var apt := ""
+	var slot := -1
+	WorldState.new_game()
+	WorldState.master_seed = 4242
+	for f in range(2, 25):
+		for i in range(1, 6):
+			var cand := str(f) + "0" + str(i)
+			var layout: Array = WorldState.get_apartment_layout(cand)
+			for sl in range(layout.size()):
+				if apt == "" and layout[sl] == "dining_room" and RoomScript.module_scene_for(cand, sl, "dining_room").ends_with("dining_room_e.tscn"):
+					apt = cand
+					slot = sl
+	check(apt != "", "found a flat showing dining E (%s, slot %d)" % [apt, slot])
+	if apt == "":
+		return
+	var room = await _room(apt)
+	var module: Node = null
+	for m in room.get_children():
+		if m.is_in_group("room_module") and String(m.scene_file_path).ends_with("dining_room_e.tscn"):
+			module = m
+	check(module != null, "that module is in the flat")
+	if module == null:
+		room.free()
+		return
+	var other: Node = null
+	for m in room.get_children():
+		if m.is_in_group("room_module") and m != module and CD.mask_paths((m.get_node("Art") as Sprite2D).texture.resource_path, true) == ["", ""]:
+			other = m
+	var inside = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
+	inside.spawn_key = ""
+	room.add_child(inside)
+	inside.global_position = Vector2((module as Node2D).global_position.x + 187.0, 304.0)
+	var outside = null
+	if other != null:
+		outside = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
+		outside.spawn_key = ""
+		room.add_child(outside)
+		outside.global_position = Vector2((other as Node2D).global_position.x + 160.0, 304.0)
+	await _frames(10)
+	inside.receive_damage(999, "melee")
+	if outside != null:
+		outside.receive_damage(999, "melee")
+	await _frames(120)
+	var spr: AnimatedSprite2D = inside.get_node("AnimatedSprite2D")
+	var mat := spr.material as ShaderMaterial
+	check(mat != null and mat.shader != null and mat.shader.code.contains("near_a"), "the body in dining E is clipped by the near shader")
+	if mat != null:
+		var art := module.get_node("Art") as Sprite2D
+		var want_origin: Vector2 = (module as Node2D).global_position + art.position - (art.texture.get_size() * 0.5 if art.centered else Vector2.ZERO)
+		check((mat.get_shader_parameter("origin") as Vector2).is_equal_approx(want_origin),
+			"…in the module's own coordinates (origin %s)" % str(mat.get_shader_parameter("origin")))
+		var ta: Texture2D = mat.get_shader_parameter("near_a")
+		check(ta != null and ta.get_width() == 320 and ta.get_height() == 144, "…with the room's chair mask")
+	if outside != null:
+		check((outside.get_node("AnimatedSprite2D") as AnimatedSprite2D).material == null,
+			"a body in a module with nothing nearer than it is left as it was")
+	room.free()
+	await get_tree().process_frame
 
 
 # --- the baked dead of a corpse / breach story -----------------------------------------------------------------------------

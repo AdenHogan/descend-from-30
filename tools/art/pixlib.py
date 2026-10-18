@@ -934,6 +934,50 @@ def register_floor_piece(name, kind, pixels):
     FLOOR_PIECES.append((name, kind, set(pixels)))
 
 
+# NEAR PIECES (owner round 45: "enemy corpses are resting on top of floor art assets… needs adjustment so there is no overlap"): a body
+# lies on the lane with its drawn bottom at local row 122 (the 129 lane row, less CorpseDepth.RISE 6, less the drawn-feet 1). Anything
+# lying on the floor whose silhouette reaches BELOW that row is NEARER than the body, so the body must go behind it — but the art is one
+# baked image drawn under every actor. finish_module therefore exports a 1-bit MASK of such pieces (`<name>_near.png`, `_near_r2/_r3` when a
+# run look moves them, `_near_strip.png` for the balcony-strip part): scripts/corpse_depth.gd clips a corpse's sprite where the mask is set.
+NEAR_LINE = 122
+NEAR_EXTRA = []          # (pixels, in_strip) a module script marks as nearer than a corpse though it isn't a registered floor piece
+
+
+def register_near(pixels, strip=False):
+    NEAR_EXTRA.append((set(pixels), bool(strip)))
+
+
+def _near_of(pieces):
+    px = set()
+    for (_name, kind, pts) in pieces:
+        if kind == 'lying' and pts and max(q[1] for q in pts) > NEAR_LINE:
+            px |= pts
+    return px
+
+
+def _near_extra(strip):
+    px = set()
+    for (pts, in_strip) in NEAR_EXTRA:
+        if in_strip == strip:
+            px |= pts
+    return px
+
+
+def _write_near(root, name, suffix, pixels):
+    """assets/rooms/<name>_near<suffix>.png — white where a near piece is, transparent elsewhere; no pixels = no file."""
+    import os
+    fp = os.path.join(root, 'assets', 'rooms', name + '_near' + suffix + '.png')
+    if not pixels:
+        if os.path.exists(fp):
+            os.remove(fp)
+        return
+    im = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+    for (x, y) in pixels:
+        if 0 <= x < W and 0 <= y < H:
+            im.putpixel((x, y), (255, 255, 255, 255))
+    im.save(fp)
+
+
 def check_floor_pieces():
     """Pieces that touch the floor must not occupy the same floor: a toppled chair lying across a table
     leg's foot, two chairs on one spot. Returns the offending pairs [(a, b, n_px, first_px)]."""
@@ -996,11 +1040,14 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
     SETBACKS.clear()
     OVERHANGS.clear()
     FLOOR_PIECES.clear()
+    NEAR_EXTRA.clear()
     full = Canvas(seed=seed)
     build_fn(full)
     n_main = len(LIGHTS)
+    n_pm = len(FLOOR_PIECES)                       # registered floor pieces of the room proper …
     if strip_fn is not None:
         strip_fn(full)
+    n_ps = len(FLOOR_PIECES)                       # … and of the balcony strip (it only exists on a slot with no balcony)
     strip_lights = LIGHTS[n_main:]
     n_after_strip = len(LIGHTS)
     nofront = full.img.copy()                      # everything except the front layers: what the window-box rule judges
@@ -1047,6 +1094,14 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
             print('  CLIP %s: %s' % (name, msg))
         else:
             errs.append(msg)
+    if os.environ.get('LANE_REPORT'):
+        # audit: every piece registered as lying / standing on the floor, with the rows it covers — a corpse lies on the lane with its
+        # bottom at local row 122 (the 129 lane row less CorpseDepth.RISE) and reaches up to ~107: anything BELOW 122 is nearer than a
+        # corpse and should draw over it, anything above is behind it (owner round 45)
+        for (pn, kind, pts) in FLOOR_PIECES:
+            ys_ = [q[1] for q in pts]
+            xs_ = [q[0] for q in pts]
+            print('  LANE %s: %s (%s) rows %d..%d x %d..%d' % (name, pn, kind, min(ys_), max(ys_), min(xs_), max(xs_)))
     if os.environ.get('FRONT_REPORT'):
         # everything drawn (not floor) in front of a step-up spot's player, below the feet row: rugs / shadows / marks show up too — a list to LOOK at
         for cx in sorted(_bp_centres(anchors)):
@@ -1152,6 +1207,10 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
                 if p != main.img.getpixel((x, y)):
                     s.putpixel((x, y), p)
         s.save(os.path.join(ROOT, 'assets', 'rooms', name + '_strip.png'))
+    near_main = _near_of(FLOOR_PIECES[:n_pm]) | _near_extra(False)
+    near_strip = _near_of(FLOOR_PIECES[n_pm:n_ps]) | _near_extra(True)
+    _write_near(ROOT, name, '', near_main)
+    _write_near(ROOT, name, '_strip', near_strip)
     for (suffix, lay) in (('_front', front_img), ('_front_strip', front_strip_img)):
         fp = os.path.join(ROOT, 'assets', 'rooms', name + suffix + '.png')
         if lay is not None:
@@ -1165,12 +1224,21 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
     if per_run is not None:
         for lv in (2, 3):
             per_run(lv)
+            FLOOR_PIECES.clear()
             mr = Canvas(seed=seed)
             build_fn(mr)
+            n_pm_r = len(FLOOR_PIECES)
             fr = Canvas(seed=seed)
             build_fn(fr)
+            k0 = len(FLOOR_PIECES)
             if strip_fn is not None:
                 strip_fn(fr)
+            k1 = len(FLOOR_PIECES)
+            # a run look may knock a chair somewhere else: its own mask, written only when it differs from the first look's
+            run_main = _near_of(FLOOR_PIECES[:n_pm_r]) | _near_extra(False)
+            run_strip = _near_of(FLOOR_PIECES[k0:k1]) | _near_extra(True)
+            _write_near(ROOT, name, '_r%d' % lv, run_main if run_main != near_main else set())
+            _write_near(ROOT, name, '_r%d_strip' % lv, run_strip if run_strip != near_strip else set())
             per_level[lv] = (mr.img, fr.img)
             for (an, ax, ay, fl_) in anchors:
                 ref = fr if 's' in fl_.replace('bp', '') else mr

@@ -578,7 +578,12 @@ def e_front_strip(c):
     # balloons tied to the stack, drifting up across the window's glass behind them
     _balloon(c, 60, 36, PARTY[4], 59, tie=56)
     _balloon(c, 71, 29, PARTY[1], 59, tie=58)
+    before = c.img.copy()
     P3.torn_box(c, 74, 88, 13, 21, 100.0, 9.0, PARTY[3], shade(PARTY[3], 0.62), hexc('9cc89c'), hexc('efe8d8'))
+    # the box (and its ribbon and torn paper) stands NEARER than a body lying on the lane — its base is at row ~122, the ribbon and paper
+    # run on below it — so a corpse goes behind it (owner round 45: "corpses are resting on top of floor art assets"); see pixlib.register_near
+    ap, bp_ = c.img.load(), before.load()
+    PX.register_near({(x, y) for y in range(c.img.height) for x in range(c.img.width) if ap[x, y] != bp_[x, y]}, strip=True)
 
 
 # --- the party table ---------------------------------------------------------------------------------------
