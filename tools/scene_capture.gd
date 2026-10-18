@@ -40,6 +40,8 @@ extends Node
 #   ws:<prop>:<val>  set any WorldState field (e.g. ws:current_apartment_id:2003, ws:dev_hazard_mode:3)
 #   drop:<slot>      discard an inventory slot to the floor (what the pack ring's Drop does)
 #   search:<apt>:<anchor>  mark a node searched → its drawer / door opens (open_furniture.gd)
+#   breach:<apt>     make that flat's door BREACHED (before its room loads)
+#   anchor:<apt>:<anchor>:<item>  put an item in a node BEFORE its room loads (so the node is live and drawn)
 #   eval:<method>    call a no-arg method on the current scene
 #   call:<group>:<method>[:<arg>]  call a method on the first node in a group (e.g. modal_panel)
 # Other args: --tutorial=1|0 (first-run tutorial on/off), --seed=<n>.
@@ -233,6 +235,14 @@ func _do(step: String) -> void:
 		"drop":
 			# drop:<slot> — discard an inventory slot to the world (the pack ring's Delete / right-click Drop)
 			HUD.discard_slot(int(p[1]))
+			await _frames(1)
+		"breach":
+			WorldState.set_door_state(p[1], WorldState.DoorState.BREACHED)
+			await _frames(1)
+		"anchor":
+			# anchor:<apartment>:<anchor>:<item id> — give a node something to hold (set before the scene loads)
+			WorldState.set_anchor_item(p[1], p[2], p[3])
+			WorldState.set_anchor_amount(p[1], p[2], 1)
 			await _frames(1)
 		"search":
 			# search:<apartment>:<anchor> — mark a node searched and open its furniture (the loot panel's own call)

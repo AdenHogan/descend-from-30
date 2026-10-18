@@ -295,10 +295,30 @@ func _test_exit_through_door() -> void:
 			var act := "move_left" if left else "move_right"
 			Input.action_press(act)
 			var frames := 0
+			var trace: Array = []                  # the walk-out's own path, one point a frame
 			while not called[0] and frames < 900:
 				await get_tree().physics_frame
 				frames += 1
+				if p.escaping:
+					trace.append(p.global_position)
 			Input.action_release(act)
+			# OWNER ROUND 45b: "the player reaches the end and then sort of moves up slightly to leave an apartment. This is clunky":
+			# the step up into the door's depth used to be its own beat (a near-vertical hop before the walk went on). It is ONE walk now:
+			# no frame moves the player sideways-less (a pure vertical hop) and the whole path is a steady diagonal.
+			var hop := 0.0
+			var biggest_dy := 0.0
+			var reversed := false
+			for i in range(1, trace.size()):
+				var dx: float = (trace[i].x - trace[i - 1].x) * out
+				var dy: float = absf(trace[i].y - trace[i - 1].y)
+				biggest_dy = maxf(biggest_dy, dy)
+				if dx < -0.01:
+					reversed = true
+				if dy > 0.25 and dx < dy * 1.5:
+					hop = maxf(hop, dy)
+			check(trace.size() >= 8, "%s: the walk-out was traced (%d frames)" % [side, trace.size()])
+			check(hop == 0.0, "%s: …no near-vertical hop at the end of the walk (the biggest hop %.2f px)" % [side, hop])
+			check(not reversed and biggest_dy < 1.0, "%s: …it never steps back, and the step up is spread out (%.2f px a frame at most)" % [side, biggest_dy])
 			check(called[0], "%s: walking into the entrance leaves the room (%d frames)" % [side, frames])
 			check((p.global_position.x - face) * out > 10.0, "%s: …having walked out PAST the door's face (%.1f vs %.1f)" % [side, p.global_position.x, face])
 			check(p.global_position.y < y0 - 3.0, "%s: …stepping up into the door's depth (y %.1f -> %.1f)" % [side, y0, p.global_position.y])

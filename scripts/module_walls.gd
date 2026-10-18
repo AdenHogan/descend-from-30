@@ -49,6 +49,8 @@ var boundaries: Array = []     # [{x, left_mod, right_mod, door, outside}]
 var _exts: Dictionary = {}     # module instance id + texture path → its perspective floor export
 var _kx := 0.0                 # a horizontal shift every projected point takes (0 — kept for _p)
 var _cols: Dictionary = {}     # module instance id + side → Array[Color] (ROWS rows)
+var breached := false          # the flat's front door was torn out from the corridor side (owner round 45b: "should look breached from the inside too")
+var _breach_seed := 0          # the wreck's own pattern, per flat (stable across frames, runs and re-entry)
 
 
 func setup(module_nodes: Array, left_x: float, width: float, entrance_side: String) -> void:
@@ -64,6 +66,13 @@ func setup(module_nodes: Array, left_x: float, width: float, entrance_side: Stri
 		boundaries.append({"x": x, "left": lm, "right": rm, "door": (not is_end) or entrance, "outside": entrance})
 	z_index = 0
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	queue_redraw()
+
+
+## A BREACHED flat's front door seen from inside: the doorway is a wreck, not an opening (see _front_door_breached).
+func set_breached(on: bool, apartment_id: String) -> void:
+	breached = on
+	_breach_seed = absi(hash(apartment_id + "_breach_door"))
 	queue_redraw()
 
 
@@ -307,6 +316,9 @@ func _front_door(cx: float, xb: float, face_x: float, cols: Array, s_door: float
 	# stub to the back wall, a jamb between it and the front cut), an architrave round it, a
 	# threshold, and the dark corridor beyond with a sliver of its floor.
 	var s_ent := _s_for_floor(ENTRANCE_FRONT)
+	if breached:
+		_front_door_breached(cx, xb, face_x, cols, s_door, s_ent, s_front)
+		return
 	_face(cx, face_x, 1.0, s_door, 0, ROWS, cols, FACE_SHADE)          # back stub
 	_face(cx, face_x, s_door, s_ent, 0, DOOR_ROWS, cols, FACE_SHADE)   # over the door
 	_face(cx, face_x, s_ent, s_front, 0, ROWS, cols, FACE_SHADE)       # front jamb
@@ -323,4 +335,117 @@ func _front_door(cx: float, xb: float, face_x: float, cols: Array, s_door: float
 	draw_line(_p(cx, face_x, top - 1.0, s_ent), _p(cx, face_x, SEAM, s_ent), TRIM_COL, 3.0)
 	draw_line(_p(cx, face_x, top + 1.0, s_door), _p(cx, face_x, top + 1.0, s_ent), TRIM_LT, 1.0)
 	draw_line(_p(cx, face_x, SEAM, s_door), _p(cx, face_x, SEAM, s_ent), THRESHOLD, 2.0)
+	_slab(cx, xb, s_front, 0, ROWS, CUT_COL)
+
+
+# --- a BREACHED front door, from the inside ------------------------------------------------------------------------------------
+# Owner round 45b: "for a breach apartment, visually the doorway still looks like a regular doorway. It should also look breached from
+# the inside too." Whatever came through came IN: the door is torn off its hinges (a splintered stile and a torn panel still hang from the
+# back jamb), the architrave is ripped away (a stub of jamb, a casing board sagging from the head), the wall round the opening is chewed
+# back to its core, and the corridor beyond is no longer black - its light spills across the boards. Planks and plaster lie on the floor.
+# Everything is a pure function of the flat (`_breach_seed`) and drawn in the same (depth u across the opening, wall row) frame as the
+# clean door, so it shifts with the camera exactly as the clean one does. `u` = 0 at the back jamb, 1 at the front jamb.
+const WRECK_WOOD := Color(0.30, 0.20, 0.12)
+const WRECK_WOOD_LT := Color(0.50, 0.36, 0.22)
+const WRECK_CORE := Color(0.12, 0.10, 0.09)
+const WRECK_LATH := Color(0.42, 0.32, 0.21)
+const HINGE_STEEL := Color(0.55, 0.57, 0.60)
+const SPILL := Color(0.62, 0.74, 0.95)
+
+
+func _dp(cx: float, face_x: float, s_door: float, s_ent: float, u: float, y: float) -> Vector2:
+	return _p(cx, face_x, y, lerpf(s_door, s_ent, u))
+
+
+func _front_door_breached(cx: float, xb: float, face_x: float, cols: Array, s_door: float, s_ent: float, s_front: float) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = _breach_seed
+	var into := -1.0 if cx < xb else 1.0                  # toward the room's inside along x
+	_face(cx, face_x, 1.0, s_door, 0, ROWS, cols, FACE_SHADE)          # back stub
+	_face(cx, face_x, s_door, s_ent, 0, DOOR_ROWS, cols, FACE_SHADE)   # over the door
+	_face(cx, face_x, s_ent, s_front, 0, ROWS, cols, FACE_SHADE)       # front jamb
+	var top := TOP + DOOR_ROWS
+	var foot := SEAM
+	# the wall chewed back round the opening: bites into the back stub, the front jamb and the header, down to the lath / core
+	var y := top + 2.0
+	while y < foot - 8.0:
+		var h := rng.randf_range(4.0, 9.0)
+		var bite := rng.randf_range(0.04, 0.17)
+		var col := WRECK_CORE if rng.randf() < 0.7 else WRECK_LATH
+		draw_colored_polygon(PackedVector2Array([_dp(cx, face_x, s_door, s_ent, 0.0, y), _dp(cx, face_x, s_door, s_ent, 0.0, y + h),
+			_dp(cx, face_x, s_door, s_ent, -bite, y + h * rng.randf_range(0.3, 0.8))]), col)
+		y += h * rng.randf_range(0.7, 1.0)
+	y = top + 3.0
+	while y < foot - 12.0:
+		var h2 := rng.randf_range(4.0, 8.0)
+		var bite2 := rng.randf_range(0.03, 0.13)
+		var col2 := WRECK_CORE if rng.randf() < 0.75 else WRECK_LATH
+		draw_colored_polygon(PackedVector2Array([_dp(cx, face_x, s_door, s_ent, 1.0, y), _dp(cx, face_x, s_door, s_ent, 1.0, y + h2),
+			_dp(cx, face_x, s_door, s_ent, 1.0 + bite2, y + h2 * rng.randf_range(0.3, 0.8))]), col2)
+		y += h2 * rng.randf_range(0.7, 1.0)
+	var u0 := 0.0
+	while u0 < 1.0:                                       # the lintel, knocked up and ragged
+		var w := rng.randf_range(0.12, 0.28)
+		var up := rng.randf_range(2.0, 7.0)
+		var u1 := minf(1.0, u0 + w)
+		draw_colored_polygon(PackedVector2Array([_dp(cx, face_x, s_door, s_ent, u0, top), _dp(cx, face_x, s_door, s_ent, u1, top),
+			_dp(cx, face_x, s_door, s_ent, (u0 + u1) * 0.5, top - up)]), WRECK_CORE)
+		u0 = u1
+	# the opening: the corridor's cold light now reaches in (dark above, paler toward its floor)
+	draw_polygon(PackedVector2Array([_dp(cx, face_x, s_door, s_ent, 0.0, top), _dp(cx, face_x, s_door, s_ent, 1.0, top),
+		_dp(cx, face_x, s_door, s_ent, 1.0, foot), _dp(cx, face_x, s_door, s_ent, 0.0, foot)]),
+		PackedColorArray([OUTSIDE_COL, OUTSIDE_COL, Color(0.20, 0.22, 0.29), Color(0.20, 0.22, 0.29)]))
+	draw_colored_polygon(PackedVector2Array([_dp(cx, face_x, s_door, s_ent, 0.0, foot - 6.0), _dp(cx, face_x, s_door, s_ent, 1.0, foot - 6.0),
+		_dp(cx, face_x, s_door, s_ent, 1.0, foot), _dp(cx, face_x, s_door, s_ent, 0.0, foot)]), Color(0.33, 0.30, 0.27))
+	# the architrave ripped away: a jagged stub of the back jamb, the front jamb gone to its plinth, a casing board sagging from the head
+	var jag := PackedVector2Array([_dp(cx, face_x, s_door, s_ent, 0.0, foot), _dp(cx, face_x, s_door, s_ent, 0.0, top + 34.0),
+		_dp(cx, face_x, s_door, s_ent, 0.05, top + 28.0), _dp(cx, face_x, s_door, s_ent, -0.01, top + 22.0), _dp(cx, face_x, s_door, s_ent, 0.04, top + 16.0)])
+	draw_polyline(jag, TRIM_COL, 3.0)
+	draw_polyline(PackedVector2Array([_dp(cx, face_x, s_door, s_ent, 1.0, foot), _dp(cx, face_x, s_door, s_ent, 1.0, foot - 13.0),
+		_dp(cx, face_x, s_door, s_ent, 0.93, foot - 16.0), _dp(cx, face_x, s_door, s_ent, 1.02, foot - 19.0)]), TRIM_COL, 3.0)
+	draw_polyline(PackedVector2Array([_dp(cx, face_x, s_door, s_ent, 0.0, top - 1.0), _dp(cx, face_x, s_door, s_ent, 0.38, top - 1.0),
+		_dp(cx, face_x, s_door, s_ent, 0.55, top + 8.0)]), TRIM_COL, 3.0)               # the casing, snapped, drooping
+	draw_polyline(PackedVector2Array([_dp(cx, face_x, s_door, s_ent, 0.0, top + 1.0), _dp(cx, face_x, s_door, s_ent, 0.36, top + 1.0),
+		_dp(cx, face_x, s_door, s_ent, 0.52, top + 9.0)]), TRIM_LT, 1.0)
+	for i in range(7):                                    # splinters: pale slivers poking out of the snapped ends
+		var ux := rng.randf_range(-0.04, 0.5) if i % 2 == 0 else rng.randf_range(0.88, 1.04)
+		var uy := top + rng.randf_range(10.0, 34.0) if i % 2 == 0 else foot - rng.randf_range(12.0, 22.0)
+		var tip := Vector2(rng.randf_range(0.05, 0.14) * (1.0 if i % 2 == 0 else -1.0), rng.randf_range(-6.0, 4.0))
+		draw_line(_dp(cx, face_x, s_door, s_ent, ux, uy), _dp(cx, face_x, s_door, s_ent, ux + tip.x, uy + tip.y), WRECK_WOOD_LT, 1.0)
+	# what is left of the door: the hinge-side stile still on the back jamb, a torn panel hanging from the top hinge
+	draw_colored_polygon(PackedVector2Array([_dp(cx, face_x, s_door, s_ent, 0.0, top + 3.0), _dp(cx, face_x, s_door, s_ent, 0.06, top + 3.0),
+		_dp(cx, face_x, s_door, s_ent, 0.09, top + 26.0), _dp(cx, face_x, s_door, s_ent, 0.04, top + 46.0), _dp(cx, face_x, s_door, s_ent, 0.08, foot - 22.0),
+		_dp(cx, face_x, s_door, s_ent, 0.0, foot - 16.0)]), WRECK_WOOD)
+	draw_colored_polygon(PackedVector2Array([_dp(cx, face_x, s_door, s_ent, 0.05, top + 4.0), _dp(cx, face_x, s_door, s_ent, 0.50, top + 6.0),
+		_dp(cx, face_x, s_door, s_ent, 0.40, top + 20.0), _dp(cx, face_x, s_door, s_ent, 0.30, top + 33.0), _dp(cx, face_x, s_door, s_ent, 0.12, top + 38.0)]), WRECK_WOOD)
+	draw_line(_dp(cx, face_x, s_door, s_ent, 0.10, top + 12.0), _dp(cx, face_x, s_door, s_ent, 0.42, top + 13.0), WRECK_CORE, 1.0)      # a panel groove
+	draw_line(_dp(cx, face_x, s_door, s_ent, 0.10, top + 26.0), _dp(cx, face_x, s_door, s_ent, 0.32, top + 27.0), WRECK_CORE, 1.0)
+	draw_line(_dp(cx, face_x, s_door, s_ent, 0.05, top + 4.0), _dp(cx, face_x, s_door, s_ent, 0.50, top + 6.0), WRECK_WOOD_LT, 1.0)  # the broken top edge, lit
+	for hy in [top + 8.0, top + 36.0, foot - 28.0]:     # hinge plates, one bent
+		var hp := _dp(cx, face_x, s_door, s_ent, 0.0, hy)
+		draw_rect(Rect2(hp.x - 1.0, hp.y, 2.5, 3.0), HINGE_STEEL)
+	# the room floor: the corridor's light across the boards, planks and plaster where the door and the wall landed
+	var floor_near := _p(cx, face_x, foot, lerpf(s_door, s_ent, -0.18))
+	var floor_near2 := _p(cx, face_x, foot, lerpf(s_door, s_ent, 1.18))
+	var far_a := _p(cx + 0.0, face_x + into * 64.0, foot, lerpf(s_door, s_ent, -0.55))
+	var far_b := _p(cx + 0.0, face_x + into * 64.0, foot, lerpf(s_door, s_ent, 1.55))
+	var lit := Color(SPILL.r, SPILL.g, SPILL.b, 0.20)
+	var dim := Color(SPILL.r, SPILL.g, SPILL.b, 0.0)
+	draw_polygon(PackedVector2Array([floor_near, floor_near2, far_b, far_a]), PackedColorArray([lit, lit, dim, dim]))
+	for k in range(4):
+		var px := face_x + into * rng.randf_range(2.0, 12.0)
+		var pu := rng.randf_range(-0.2, 1.2)
+		var a := _p(cx, px, foot, lerpf(s_door, s_ent, pu))
+		var w := rng.randf_range(2.5, 5.0)
+		draw_colored_polygon(PackedVector2Array([a + Vector2(-w, 0.0), a + Vector2(w, 0.0), a + Vector2(rng.randf_range(-1.5, 1.5), -rng.randf_range(1.5, 3.0))]), Color(0.42, 0.39, 0.34))
+	for k in range(3):                                    # planks of the door
+		var px2 := face_x + into * rng.randf_range(6.0, 30.0)
+		var pu2 := rng.randf_range(0.05, 0.85)
+		var plen := rng.randf_range(9.0, 20.0)
+		var tilt := rng.randf_range(-0.05, 0.05)
+		var p0 := _p(cx, px2, foot, lerpf(s_door, s_ent, pu2))
+		var p1 := _p(cx, px2 + into * plen, foot, lerpf(s_door, s_ent, pu2 + tilt))
+		draw_line(p0, p1, WRECK_WOOD, 2.0)
+		draw_line(p0 + Vector2(0.0, -1.0), p1 + Vector2(0.0, -1.0), WRECK_WOOD_LT, 1.0)
+	draw_line(_dp(cx, face_x, s_door, s_ent, 0.0, foot), _dp(cx, face_x, s_door, s_ent, 1.0, foot), THRESHOLD.darkened(0.35), 2.0)   # the threshold, scarred
 	_slab(cx, xb, s_front, 0, ROWS, CUT_COL)

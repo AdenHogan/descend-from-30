@@ -234,6 +234,7 @@ it, and they go for the nearer meal. Placeholder art and lines.
 ### 7.5 The dead and breach rooms (BUILT)
 **Breach rooms only exist on floors 24 and down** (owner round 45), their packs are 30% smaller (3-6 bodies) and stand at the far end
 from the front door, so you are never met on the threshold.
+**Breach entrants (round 45b):** some breach flats (35 / 45 / 55% by run; one or two) also send plain standards in through the torn-out front door once you are well inside — they fade in from the doorway and are locked on to you, so a breach flat can close from both ends. The front door is a drawn wreck from the inside.
 Breach rooms are "nests" with a story told in generated art (the door, the kill, the drag); an ordinary flat holds a body
 10–22% of the time by run (searchable pockets); corridors have bodies; some bodies **rise**. Fire and breach rules agree
 (a burnt breach has no boss).

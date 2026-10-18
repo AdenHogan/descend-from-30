@@ -115,8 +115,10 @@ var mode_switch_timer = 0.0
 const APPROACH_DEPTH = 12.0     # how far "into" the hallway (up) the player steps
 const APPROACH_TIME = 0.35
 const BACK_STEP_TIME = 0.28     # stepping up to / down from set-back furniture (the back plane)
-const EXIT_STEP_TIME = 0.30     # walking out of an apartment: into the door's threshold…
-const EXIT_THROUGH_TIME = 0.45  # …then on through it, fading into the corridor's dark
+const EXIT_WALK_SPEED = 90.0    # walking out of an apartment: ONE steady walk into the doorway and through it (px/s) …
+const EXIT_WALK_MIN_TIME = 0.42 # … never shorter than this (a player already at the door still takes a beat to go through) …
+const EXIT_STEP_SHARE = 0.60    # … stepping up to the door's depth over the first 60% of the path (a diagonal), level after that,
+const EXIT_FADE_SHARE = 0.55    # … and fading into the corridor's dark over the last 55% of it
 # Melee reach is HEIGHT-INDEPENDENT: the corridor is one plane, but the rigs have
 # different ORIGINS (player ~388, zombies ~370-374 — feet all on 419), so a euclidean
 # distance folds an ~18px vertical gap into every range check and shortens reach. We gate
@@ -1148,9 +1150,11 @@ func can_walk_out() -> bool:
 
 
 func walk_out_through(threshold: Vector2, beyond: Vector2, on_done: Callable = Callable()) -> void:
-	# Leave an apartment through its drawn front door: step into the threshold (up to the door's
-	# depth), then on through the opening into the dark beyond, fading as the corridor swallows us —
-	# then on_done (the scene change). Untouchable meanwhile, like the lobby escape: we're out the door.
+	# Leave an apartment through its drawn front door: ONE continuous walk from where the player stands, up to the door's depth and on
+	# through the opening into the dark beyond, fading as the corridor swallows us - then on_done (the scene change). The step up to the
+	# door's depth (a few px: the lane is a little nearer than the door's mid-depth) is spread along the path as a diagonal, never a
+	# beat of its own (owner round 45b: "the player reaches the end and then sort of moves up slightly to leave an apartment. This is
+	# clunky"). `threshold` only says what depth to be at; the walk never steps back. Untouchable meanwhile, like the lobby escape.
 	if not can_walk_out():
 		if on_done.is_valid():
 			on_done.call()
@@ -1161,10 +1165,13 @@ func walk_out_through(threshold: Vector2, beyond: Vector2, on_done: Callable = C
 	velocity = Vector2.ZERO
 	animated_sprite.flip_h = beyond.x < global_position.x
 	animated_sprite.play("walk")
+	var from := global_position
+	var to := Vector2(beyond.x, threshold.y)
+	var dur := maxf(EXIT_WALK_MIN_TIME, absf(to.x - from.x) / EXIT_WALK_SPEED)
 	var tw = create_tween()
-	tw.tween_property(self, "global_position", threshold, EXIT_STEP_TIME)
-	tw.tween_property(self, "global_position", beyond, EXIT_THROUGH_TIME)
-	tw.parallel().tween_property(self, "modulate", Color(0.05, 0.04, 0.05, 0.0), EXIT_THROUGH_TIME)
+	tw.tween_method(func(u: float) -> void:
+		global_position = Vector2(lerpf(from.x, to.x, u), lerpf(from.y, to.y, smoothstep(0.0, EXIT_STEP_SHARE, u))), 0.0, 1.0, dur)
+	tw.parallel().tween_property(self, "modulate", Color(0.05, 0.04, 0.05, 0.0), dur * EXIT_FADE_SHARE).set_delay(dur * (1.0 - EXIT_FADE_SHARE))
 	await tw.finished
 	if on_done.is_valid():
 		on_done.call()

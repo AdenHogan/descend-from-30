@@ -382,3 +382,7 @@ aligning different-sized rigs by origin instead of feet, and (c) reusing the
 player's pixel offsets on the bigger zombie. **Measure (collision-bottom / a
 headless trace), align by FEET = 419, and check this table first.** Update this
 file whenever a Y constant changes.
+
+## Leaving a flat (round 45b)
+The exit trigger sits at the wall foot on the lane (feet 353); the drawn front door's mid-depth is 347 (`room.exit_door_floor_y`). `player.walk_out_through` goes from where the player stands to
+the door's depth and on through it as ONE walk: x moves at a steady 90 px/s and the ~6 px step up is a smoothstep over the first 60% of the path (a diagonal, never a beat of its own). Locked by `apartment_window_test`.

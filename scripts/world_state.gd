@@ -5076,6 +5076,34 @@ func breach_on_wall(apartment_id: String, i: int) -> bool:
 	return rng.randf() < BREACH_WALL_CRAWLER_CHANCE
 
 
+# BREACH ENTRANTS (owner round 45b: "rather than always have the enemies come from further in the apartment to attack, we should also add
+# one or two enemies coming in from the breach itself… they can be scripted procedurally to enter, so they can swarm the player. Not always,
+# but can."): a breach flat may send one or two plain standards in through its torn-out front door once the player is well inside, locked on
+# to them. A pure function of (seed, flat, run) — the same flat sends the same number on every visit of a run; a later run rolls again.
+const BREACH_ENTRANT_CHANCE := {1: 0.35, 2: 0.45, 3: 0.55}
+const BREACH_ENTRANT_TWO_CHANCE := 0.4        # of the flats that send any: how many send two
+const BREACH_ENTRANT_FIRST_DELAY := 3.0       # seconds after the flat is entered (and the player is clear of the door) …
+const BREACH_ENTRANT_GAP := 3.5               # … then this much later for the next one, plus up to 2.5 s of jitter
+
+
+func breach_entrants(apartment_id: String) -> int:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "breachentrants" + apartment_id + str(current_run))
+	if rng.randf() >= float(BREACH_ENTRANT_CHANCE[clampi(current_run, 1, 3)]):
+		return 0
+	return 2 if rng.randf() < BREACH_ENTRANT_TWO_CHANCE else 1
+
+
+func breach_entrant_key(apartment_id: String, i: int) -> String:
+	return str(_apartment_floor(apartment_id)) + ":breach_in:" + apartment_id + ":" + str(i)
+
+
+func breach_entrant_delay(apartment_id: String, i: int) -> float:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "breachentrantdelay" + apartment_id + str(i) + str(current_run))
+	return BREACH_ENTRANT_FIRST_DELAY + BREACH_ENTRANT_GAP * float(i) + rng.randf_range(0.0, 2.5)
+
+
 # The leader's memory key (slot 0's spawn key) — its kill record says the leader's dead.
 func breach_leader_key(apartment_id: String) -> String:
 	var list: Array = get_breached_room_enemies(apartment_id, 150.0, 1030.0, BREACH_SPAWN_Y)

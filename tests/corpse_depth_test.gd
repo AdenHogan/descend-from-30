@@ -251,6 +251,36 @@ func _test_near_masks() -> void:
 					lowest = maxi(lowest, y)
 		check(pixels > 100 and lowest > 122 and m.get_size() == a.get_size(),
 			"%s: a mask of %d px reaching row %d (a body's bottom is row 122)" % [n, pixels, lowest])
+	# OVER layers (owner round 45b: "that chair could potentially be in front of enemies and player as it's lower on the plane"): a piece
+	# whose silhouette reaches BELOW the lane row (129) is nearer than every actor standing on the lane
+	check(RoomScript.over_art_path(rooms + "dining_room_e.png") == rooms + "dining_room_e_over.png", "dining E has an over layer (its chair reaches row 131)")
+	check(RoomScript.over_art_path(rooms + "dining_room_e_r2.png") == rooms + "dining_room_e_over_r2.png"
+			and RoomScript.over_art_path(rooms + "dining_room_e_r3.png") == rooms + "dining_room_e_over_r3.png", "…and one cut from each run look")
+	check(RoomScript.over_art_path(rooms + "dining_room_e_burnt.png") == "", "a burnt flat has none")
+	check(RoomScript.over_art_path(rooms + "dining_room_c.png") == "", "dining C's chair (row 128) stays behind the lane: no over layer")
+	check(RoomScript.over_art_path(rooms + "living_room.png") == "", "a module with nothing below the lane has none")
+	var over_files := 0
+	for fn in DirAccess.get_files_at("res://assets/rooms"):
+		if not (fn.contains("_over") and fn.ends_with(".png")):
+			continue
+		over_files += 1
+		var oi: Image = load(rooms + fn).get_image()
+		var art_name := fn.replace("_over", "")
+		var ai: Image = load(rooms + art_name).get_image()
+		var lowest := -1
+		var n := 0
+		var same := true
+		for y in range(oi.get_height()):
+			for x in range(oi.get_width()):
+				var px := oi.get_pixel(x, y)
+				if px.a > 0.5:
+					n += 1
+					lowest = maxi(lowest, y)
+					if not px.is_equal_approx(ai.get_pixel(x, y)):
+						same = false
+		check(n > 100 and lowest > 129 and same and oi.get_size() == ai.get_size(),
+			"%s: %d px of its own art, reaching row %d (below the 129 lane)" % [fn, n, lowest])
+	check(over_files == 3, "exactly three over layers exist today: dining E's, one per look (%d)" % over_files)
 	# a real flat: find one showing dining E, kill a body in it, and see the body clipped (and one elsewhere not)
 	var apt := ""
 	var slot := -1
@@ -308,6 +338,16 @@ func _test_near_masks() -> void:
 	if outside != null:
 		check((outside.get_node("AnimatedSprite2D") as AnimatedSprite2D).material == null,
 			"a body in a module with nothing nearer than it is left as it was")
+	var over := module.get_node_or_null("OverArt") as Sprite2D
+	check(over != null and over.z_index > 1 and over.z_index > load("res://scripts/corpse_depth.gd").FRONT_Z,
+		"dining E's chair is laid over the actors AND over a body in front of a back-plane player (z %s)" % (str(over.z_index) if over != null else "none"))
+	if over != null:
+		var art2 := module.get_node("Art") as Sprite2D
+		check(over.position == art2.position and over.scale == art2.scale and over.texture.get_size() == art2.texture.get_size(),
+			"…registered exactly over the art")
+	for m in room.get_children():
+		if m.is_in_group("room_module") and m != module and m.get_node_or_null("OverArt") != null:
+			check(false, "a module with no over art got an OverArt layer: " + String(m.scene_file_path))
 	room.free()
 	await get_tree().process_frame
 

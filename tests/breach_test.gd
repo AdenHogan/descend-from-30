@@ -34,6 +34,8 @@ func _ready() -> void:
 	await _test_wall_crawlers()
 	await _test_longarm()
 	await _test_arrival_clear()
+	await _test_door_wreck()
+	await _test_entrants()
 	WorldState.dev_seed = 0
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
@@ -708,5 +710,145 @@ func _test_arrival_clear() -> void:
 	room2._keep_arrival_clear(room2.get_node("Player"), "left")
 	check(absf(far.global_position.x - 600.0) < 0.1, "a body well away from the arrival is left exactly where it is")
 	room2.queue_free()
+	WorldState.god_mode = false
+	await get_tree().physics_frame
+
+
+# OWNER ROUND 45b: "for a breach apartment, visually the doorway still looks like a regular doorway. It should also look breached from the
+# inside too." The flat's front door (drawn by module_walls) is a torn-out wreck while the door state is BREACHED, and a clean doorway otherwise.
+func _test_door_wreck() -> void:
+	print("[a breached flat's front door is a wreck from the inside too]")
+	WorldState.new_game()
+	WorldState.is_first_run = false
+	WorldState.god_mode = true
+	var seeds := []
+	for apt in ["2703", "2804"]:
+		var room = _room(apt)
+		for i in range(8):
+			await get_tree().physics_frame
+		var walls = room.get_node_or_null("ModuleWalls")
+		check(walls != null and walls.breached, "%s (breached): its front door is drawn as a wreck" % apt)
+		if walls != null:
+			seeds.append(walls._breach_seed)
+			walls.queue_redraw()                       # draw it again with the camera where the player stands (no script error)
+			await get_tree().process_frame
+		room.queue_free()
+		await get_tree().physics_frame
+	check(seeds.size() == 2 and seeds[0] != seeds[1], "…and no two flats are wrecked alike (%s)" % str(seeds))
+	var room2 = _open_flat("2903")
+	for i in range(8):
+		await get_tree().physics_frame
+	var walls2 = room2.get_node_or_null("ModuleWalls")
+	check(walls2 != null and not walls2.breached, "an ordinary flat keeps its clean doorway")
+	room2.queue_free()
+	WorldState.god_mode = false
+	await get_tree().physics_frame
+
+
+# OWNER ROUND 45b: "we should also add one or two enemies coming in from the breach itself… scripted procedurally to enter, so they can swarm the
+# player. Not always, but can."
+func _test_entrants() -> void:
+	print("[breach entrants: one or two come in through the torn-out door, not always]")
+	WorldState.new_game()
+	WorldState.master_seed = 777
+	WorldState.is_first_run = false
+	# the roll: a pure function, 0..2, in the run's proportions, stable
+	for run in [1, 2, 3]:
+		WorldState.current_run = run
+		var some := 0
+		var two := 0
+		var n := 0
+		var stable := true
+		for f in range(2, 29):
+			for i in range(1, 7):
+				var apt := str(f) + "0" + str(i)
+				var c: int = WorldState.breach_entrants(apt)
+				stable = stable and c == WorldState.breach_entrants(apt) and c >= 0 and c <= 2
+				n += 1
+				if c > 0:
+					some += 1
+				if c == 2:
+					two += 1
+		var want: float = WorldState.BREACH_ENTRANT_CHANCE[run]
+		check(stable, "run %d: the count is 0, 1 or 2 and the same every time it is asked" % run)
+		check(absf(float(some) / n - want) < 0.12 and two > 0 and two < some, "run %d: about %.0f%% of flats send some (%.0f%%), a few send two (%d of %d)" % [run, want * 100.0, 100.0 * some / n, two, some])
+	check(WorldState.BREACH_ENTRANT_CHANCE[1] < 0.5 and WorldState.BREACH_ENTRANT_CHANCE[3] < 0.7, "…so it is 'not always': even by night most breach flats send none or the occasional pair")
+	check(WorldState.breach_entrant_key("2703", 0) != WorldState.breach_entrant_key("2703", 1)
+			and WorldState.breach_entrant_delay("2703", 1) > WorldState.breach_entrant_delay("2703", 0) - 0.01, "each has its own key; the second comes after the first")
+	# a flat that sends some, and one that sends none
+	WorldState.current_run = 2
+	var yes := ""
+	var no := ""
+	for f in range(6, 25):
+		for i in range(1, 6):
+			var apt2 := str(f) + "0" + str(i)
+			# (a breach flat that BURNED has no pack and no entrants — fire wins — so look for one that did not)
+			var burnt: bool = WorldState.apartment_fire_stage(f, int(apt2.substr(apt2.length() - 2))) in [WorldState.FIRE_CHARRED, WorldState.FIRE_BLAZE]
+			if yes == "" and not burnt and WorldState.breach_entrants(apt2) == 2:      # a pair: one is killed, one left alive (the memory path)
+				yes = apt2
+			if no == "" and not burnt and WorldState.breach_entrants(apt2) == 0:
+				no = apt2
+	check(yes != "" and no != "", "found a flat that sends some (%s) and one that sends none (%s)" % [yes, no])
+	if yes == "" or no == "":
+		return
+	WorldState.god_mode = true
+	var count: int = WorldState.breach_entrants(yes)
+	var room = _room(yes)
+	for i in range(10):
+		await get_tree().physics_frame
+	for z in get_tree().get_nodes_in_group("zombie"):
+		if room.is_ancestor_of(z):
+			z.free()
+	var pl = room.get_node("Player")
+	var door = room.get_node("Area2D")
+	check(room._entrant_todo.size() == count, "%s: %d entrants are planned, none in yet" % [yes, count])
+	# nothing comes in while the player is at the door …
+	room._entrants_tick(60.0)
+	check(room._entrant_todo.size() == count, "…the clock does not run while the player stands at the door")
+	# … but once they are well inside it does
+	var left: bool = WorldState.get_entrance_side(yes) == "left"
+	pl.global_position.x = door.global_position.x + (400.0 if left else -400.0)
+	room._entrants_tick(0.5)
+	check(room._entrant_todo.size() == count, "…and none is in before its delay (%.1f s)" % WorldState.breach_entrant_delay(yes, 0))
+	room._entrants_tick(30.0)
+	check(room._entrant_todo.is_empty(), "…then all %d come in" % count)
+	await get_tree().physics_frame
+	var ins := []
+	for z in get_tree().get_nodes_in_group("zombie"):
+		if room.is_ancestor_of(z) and str(z.spawn_key).contains(":breach_in:"):
+			ins.append(z)
+	check(ins.size() == count, "%d entrant bodies stand in the flat (%d)" % [count, ins.size()])
+	if not ins.is_empty():
+		var z0 = ins[0]
+		var spr0 = z0.get_node("AnimatedSprite2D")
+		check(absf(z0.global_position.x - door.global_position.x) < 40.0, "they come in AT the door (x %.0f, door %.0f)" % [z0.global_position.x, door.global_position.x])
+		check(spr0.modulate.a < 1.0, "…fading in out of the doorway (alpha %.2f)" % spr0.modulate.a)
+		check(z0.alert_timer > 5.0, "…locked on to the player (alert %.1f s)" % z0.alert_timer)
+		check(z0.scene_file_path.ends_with("enemy_zombie_standard.tscn"), "…plain standards")
+		# kill one: it stays dead on the next visit
+		z0.receive_damage(999, "melee")
+		await get_tree().physics_frame
+		check(WorldState.killed_zombies.has(z0.spawn_key), "a killed entrant is on the kill record")
+	# leave with the rest alive: they are inside, standing, on the next visit — and nobody is planned again
+	room.queue_free()
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	var again = _room(yes)
+	for i in range(10):
+		await get_tree().physics_frame
+	var present := 0
+	for z in get_tree().get_nodes_in_group("zombie"):
+		if again.is_ancestor_of(z) and str(z.spawn_key).contains(":breach_in:") and z.get("is_dead") != true:
+			present += 1
+	check(again._entrant_todo.is_empty(), "back again: nobody is left to come in through the door")
+	check(present == maxi(0, count - 1), "…the %d still alive (not killed) are standing inside (%d)" % [maxi(0, count - 1), present])
+	again.queue_free()
+	await get_tree().physics_frame
+	# a flat that sends none
+	var room3 = _room(no)
+	for i in range(10):
+		await get_tree().physics_frame
+	check(room3._entrant_todo.is_empty(), "%s sends none" % no)
+	room3.queue_free()
 	WorldState.god_mode = false
 	await get_tree().physics_frame

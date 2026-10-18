@@ -66,3 +66,6 @@ become props and how loud they should be before any art is changed.
 - Corpses no longer slide up 6 px after landing (the rise is spread over the fall) — `corpse_depth.gd`.
 - A corpse goes BEHIND floor pieces that stand nearer than it (a toppled chair, the torn gift box): `tools/art/pixlib.py`
   `register_near` / `NEAR_LINE`, masks `assets/rooms/<art>_near*.png`, applied to the corpse's sprite by `corpse_depth.gd`.
+- A piece that stands NEARER than the lane (a toppled chair whose lowest edge is below row 129 — only dining E's today) is cut out of each look's finished art as a
+  coloured overlay (`assets/rooms/<art>_over[_r2|_r3].png`, `pixlib.LANE_ROW` / `_over_of`) and laid above the actors by `room._add_over_art` (`OVER_ART_Z` 3), so it draws over a body, an enemy AND the player (owner round 45b).
+  The art tool refuses a balcony-strip piece below the lane (not built).

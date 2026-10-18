@@ -978,6 +978,7 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 			_place_before_anchors(instance, window)
 			window.setup(Vector2(wlx, MODULE_WINDOW_Y - instance.position.y), live, absi(hash(apartment_id + "_win_" + str(i))))
 		_add_front_art(instance, has_balcony, charred_flat)
+		_add_over_art(instance, charred_flat)
 
 	# The walls BETWEEN the modules (and at both ends), drawn in live perspective so the flat reads
 	# as the inside of a box and each doorway shows the right face from either side
@@ -986,6 +987,7 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 	walls.name = "ModuleWalls"
 	add_child(walls)
 	walls.setup(built_modules, float(LEFT_WALL_X), float(MODULE_WIDTH), entrance_side)
+	walls.set_breached(breached, apartment_id)          # a breached flat's front door is torn out (module_walls._front_door_breached)
 	# The flat's frame — ceiling slab + end walls in cross-section — replacing the stone tiles
 	# (scripts/room_shell.gd). After the walls so their front cuts run up into the slab.
 	var shell = load("res://scripts/room_shell.gd").new()
@@ -1243,6 +1245,45 @@ func _add_front_art(module: Node, has_balcony: bool, charred: bool) -> void:
 		spr.visible = not (part == "_strip" and has_balcony)
 		module.add_child(spr)
 		_place_before_anchors(module, spr)
+
+
+## Furniture that stands NEARER than the lane (a toppled chair whose lowest edge is below the row every actor's feet stand on) has to
+## draw over actors, not under them (owner round 45b: "that chair could potentially be in front of enemies and player as it's lower on
+## the plane"). tools/art/pixlib.py cuts those pieces out of each look's finished art as `<art>_over[_r2|_r3].png`; this lays it above
+## the actor layer (z 1) and a body lying in front of a back-plane player (CorpseDepth.FRONT_Z). A burnt flat has none.
+const OVER_ART_Z := 3
+
+
+static func over_art_path(art_path: String) -> String:
+	var base: String = art_path.get_basename()
+	if base.ends_with("_burnt"):
+		return ""
+	var look := ""
+	for sfx in ["_r3", "_r2"]:
+		if base.ends_with(sfx):
+			look = sfx
+			base = base.left(base.length() - sfx.length())
+			break
+	var path: String = base + "_over" + look + ".png"
+	return path if ResourceLoader.exists(path) else ""
+
+
+func _add_over_art(module: Node, charred: bool) -> void:
+	var art = module.get_node_or_null("Art")
+	if charred or not (art is Sprite2D) or art.texture == null or art.texture.resource_path == "":
+		return
+	var path := over_art_path(art.texture.resource_path)
+	if path == "":
+		return
+	var spr := Sprite2D.new()
+	spr.name = "OverArt"
+	spr.texture = load(path)
+	spr.centered = art.centered
+	spr.position = art.position
+	spr.scale = art.scale
+	spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	spr.z_index = OVER_ART_Z
+	module.add_child(spr)
 
 
 func _apply_balcony_strip(module: Node, has_balcony: bool) -> void:
@@ -2255,6 +2296,75 @@ func _spawn_breached_enemies() -> void:
 			var room_y: float = (get("global_position") as Vector2).y
 			z.start_on_wall("ceiling" if on_ceiling else "wall", room_y + ROOM_BIG_ORIGIN_Y,
 				str(WorldState.master_seed) + key)
+	_plan_breach_entrants()
+
+
+# --- BREACH ENTRANTS: one or two more come in through the torn-out front door (WorldState.breach_entrants) ---------------------------
+# Not part of the pack in the flat: they arrive from the corridor, a few seconds after the player is well inside (and never while the player
+# stands at the door), fading in out of the dark doorway with a crash of splintered wood, and locked on to the player — so a breach flat can
+# close from BOTH ends. A killed one stays dead (kill memory under its own key); one that was still alive when the player left is remembered
+# standing inside; leaving before it comes in costs nothing (it is planned again on the next visit).
+const ENTRANT_FAR := 150.0           # the player must be at least this far from the door before anything comes in through it
+const ENTRANT_FADE := 0.55
+const ENTRANT_ALERT := 12.0
+const ENTRANT_CRASH := preload("res://assets/audio/impacts/impactWood_heavy_000.ogg")
+var _entrant_todo: Array = []        # [{key, delay}] not in yet
+var _entrant_clock := 0.0
+
+
+func _plan_breach_entrants() -> void:
+	_entrant_todo.clear()
+	_entrant_clock = 0.0
+	for i in range(WorldState.breach_entrants(apartment_id)):
+		var key := WorldState.breach_entrant_key(apartment_id, i)
+		if WorldState.killed_zombies.has(key):
+			continue
+		if WorldState.zombie_positions.has(key):          # came in on an earlier visit and was left alive: it is inside now
+			var z = BREACH_SCENES["standard"].instantiate()
+			z.spawn_key = key
+			add_child(z)
+			WorldState.apply_saved_zombie(z)
+			continue
+		_entrant_todo.append({"key": key, "delay": WorldState.breach_entrant_delay(apartment_id, i)})
+
+
+func _entrants_tick(delta: float) -> void:
+	if _entrant_todo.is_empty():
+		return
+	var pl = get_node_or_null("Player")
+	var door = get_node_or_null("Area2D")
+	if not is_instance_valid(pl) or door == null or pl.get("is_dead") == true or pl.get("is_dying") == true or pl.get("is_cutscene") == true:
+		return
+	if absf(pl.global_position.x - door.global_position.x) < ENTRANT_FAR:
+		return                                            # the clock only runs once they are well clear of the door
+	_entrant_clock += delta
+	while not _entrant_todo.is_empty() and _entrant_clock >= float(_entrant_todo[0]["delay"]):
+		var e: Dictionary = _entrant_todo.pop_front()
+		_enter_through_the_door(String(e["key"]), pl, door)
+
+
+func _enter_through_the_door(key: String, pl: Node, door: Node) -> void:
+	var left := WorldState.get_entrance_side(apartment_id) == "left"
+	var z = BREACH_SCENES["standard"].instantiate()
+	z.spawn_key = key
+	z.global_position = Vector2(door.global_position.x + (14.0 if left else -14.0), WorldState.BREACH_SPAWN_Y)
+	add_child(z)
+	z.make_way()                                          # passable until it is clear of the player: it can never wall them off
+	var spr = z.get_node_or_null("AnimatedSprite2D")
+	if spr != null:
+		spr.modulate.a = 0.0
+		var tw := create_tween()
+		tw.tween_property(spr, "modulate:a", 1.0, ENTRANT_FADE)
+	z.alert_to_noise(ENTRANT_ALERT)                       # no source: it knows where they are
+	var crash := AudioStreamPlayer2D.new()
+	crash.stream = ENTRANT_CRASH
+	crash.pitch_scale = randf_range(0.85, 0.95)
+	crash.volume_db = -3.0
+	crash.max_distance = 1100.0
+	add_child(crash)
+	crash.global_position = z.global_position
+	crash.finished.connect(crash.queue_free)
+	crash.play()
 
 
 func _spawn_corpses(floor_num: int, apt_id: String = "") -> void:
@@ -2331,6 +2441,7 @@ func _is_player_facing_anchor(anchor: Node) -> bool:
 
 
 func _process(_delta: float) -> void:
+	_entrants_tick(_delta)
 	_tutorial_process(_delta)
 	_apartment_fire_process(_delta)
 	_maintenance_process(_delta)

@@ -978,6 +978,39 @@ def _write_near(root, name, suffix, pixels):
     im.save(fp)
 
 
+# OVER PIECES (owner round 45b: "that chair could potentially be in front of enemies and player as it's lower on the plane"): a piece whose
+# silhouette reaches BELOW the lane row (129, the row the player's and every enemy's feet stand on) is nearer than any actor on the lane, so it
+# must draw over them. The art is one baked image under every actor, so finish_module cuts those pieces out as COLOURED overlays
+# (`<name>_over.png`, `_over_r2.png`, `_over_r3.png` — one per look, cut from that look's own finished art so the dust and darkening match);
+# scripts/room.gd lays each above the actors (`OverArt`). A piece nearer than a BODY (row 122) but not than the lane is only a corpse clip (_near_*).
+LANE_ROW = 129
+
+
+def _over_of(pieces):
+    px = set()
+    for (_name, _kind, pts) in pieces:
+        if pts and max(q[1] for q in pts) > LANE_ROW:
+            px |= pts
+    return px
+
+
+def _write_over(root, name, suffix, pixels):
+    """assets/rooms/<name>_over<suffix>.png — the art's own pixels where an over piece is, transparent elsewhere; no pixels = no file.
+    `suffix` is '' (first look), '_r2' or '_r3': the cut comes from that look's finished art on disk."""
+    import os
+    fp = os.path.join(root, 'assets', 'rooms', name + '_over' + suffix + '.png')
+    if not pixels:
+        if os.path.exists(fp):
+            os.remove(fp)
+        return
+    src = Image.open(os.path.join(root, 'assets', 'rooms', name + suffix + '.png')).convert('RGBA')
+    im = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+    for (x, y) in pixels:
+        if 0 <= x < W and 0 <= y < H:
+            im.putpixel((x, y), src.getpixel((x, y)))
+    im.save(fp)
+
+
 def check_floor_pieces():
     """Pieces that touch the floor must not occupy the same floor: a toppled chair lying across a table
     leg's foot, two chairs on one spot. Returns the offending pairs [(a, b, n_px, first_px)]."""
@@ -1211,6 +1244,10 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
     near_strip = _near_of(FLOOR_PIECES[n_pm:n_ps]) | _near_extra(True)
     _write_near(ROOT, name, '', near_main)
     _write_near(ROOT, name, '_strip', near_strip)
+    over_main = _over_of(FLOOR_PIECES[:n_pm])
+    over_by_look = {'': over_main, '_r2': over_main, '_r3': over_main}      # (a run look that rebuilds its furniture overrides its own below)
+    if _over_of(FLOOR_PIECES[n_pm:n_ps]):
+        sys.exit(name + ': a balcony-strip piece reaches below the lane row — an over layer for the strip is not built yet (tools/art/pixlib.py _over_of)')
     for (suffix, lay) in (('_front', front_img), ('_front_strip', front_strip_img)):
         fp = os.path.join(ROOT, 'assets', 'rooms', name + suffix + '.png')
         if lay is not None:
@@ -1238,6 +1275,7 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
             run_main = _near_of(FLOOR_PIECES[:n_pm_r]) | _near_extra(False)
             run_strip = _near_of(FLOOR_PIECES[k0:k1]) | _near_extra(True)
             _write_near(ROOT, name, '_r%d' % lv, run_main if run_main != near_main else set())
+            over_by_look['_r%d' % lv] = _over_of(FLOOR_PIECES[:n_pm_r])
             _write_near(ROOT, name, '_r%d_strip' % lv, run_strip if run_strip != near_strip else set())
             per_level[lv] = (mr.img, fr.img)
             for (an, ax, ay, fl_) in anchors:
@@ -1256,6 +1294,8 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
     growth_map.write(name, [full.img] + [v[1] for v in per_level.values()], bare_floor.img, ROOT)
     runs = run_looks(name, ROOT, main.img, nofront, bare.img, bare_floor.img, floor_fn, seed, strip_fn is not None,
                      per_level=per_level, keep_clear=stand_bands(anchors))
+    for look, px_ in over_by_look.items():
+        _write_over(ROOT, name, look, px_)
     sheet = Image.new('RGBA', (W * 2, H * 2 * 3), (0, 0, 0, 255))
     for i, im in enumerate((full.img, runs[2], runs[3])):
         sheet.paste(im.resize((W * 2, H * 2), Image.NEAREST), (0, H * 2 * i))

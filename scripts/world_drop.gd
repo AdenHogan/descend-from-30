@@ -52,9 +52,10 @@ func _ready() -> void:
 	if item_id != "036":
 		_tex = FL.light_texture()
 		texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		material = ORB.unshaded_material()      # the star shows as drawn, day or night (the fixture below stays lit)
 		_light = PointLight2D.new()
 		_light.texture = _tex
-		_light.color = ORB.GOLD["light"]
+		_light.color = ORB.STAR["light"]
 		_light.energy = 0.0
 		_light.texture_scale = 0.06
 		_light.z_index = 0
@@ -299,7 +300,7 @@ func _draw() -> void:
 	if lvl <= 0.0:
 		return
 	var base_r := ORB_BASE_R + (2.0 if target_apartment != "" else 0.0)
-	ORB.draw_orb(self, _tex, Vector2.ZERO, base_r, ORB.GOLD, _t, lvl)
+	ORB.draw_orb(self, _tex, Vector2.ZERO, base_r, ORB.STAR, _t, lvl)
 
 
 const EXTINGUISHER_ART := "res://assets/corridor/fixtures/extinguisher_wall.png"   # tools/art/fixtures.py
