@@ -5,9 +5,13 @@ body of the sound), and a cloud of TINKLES — dozens of high sine pings at rand
 which is the glass pieces landing. Mono 16-bit 44.1 kHz, deterministic per variant. CC0 (made for this project).
 """
 import os
+import sys
 import wave
 
 import numpy as np
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import audiolib  # noqa: E402  (round 46: a bright smash, but not a fizz — pink body, pings under 6.5 kHz, a steep ceiling)
 
 SR = 44100
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -33,12 +37,12 @@ def smash(seed):
     c = int(SR * 0.012)
     out[:c] += rng.normal(0, 1, c) * np.exp(-np.arange(c) / (c * 0.35)) * 1.0
     # the body: bright noise that dies over ~0.3 s, brighter at the start
-    body = highpass(rng.normal(0, 1, n), 0.93) * np.exp(-t / 0.085) * 0.55
+    body = audiolib.bp(audiolib.pink(n, rng), SR, 900, 5500, order=2) * np.exp(-t / 0.085) * 0.55
     out += body
     # the tinkles: glass pieces pinging and skittering
     for _ in range(int(rng.integers(34, 52))):
         onset = float(rng.beta(1.2, 3.0)) * 0.85
-        f = float(rng.uniform(2200, 8800))
+        f = float(rng.uniform(1900, 6200))
         dec = float(rng.uniform(0.012, 0.055))
         amp = float(rng.uniform(0.10, 0.34)) * (1.0 - onset * 0.6)
         i0 = int(onset * SR)
@@ -49,6 +53,7 @@ def smash(seed):
     # a little room: one quiet echo
     e = int(SR * 0.09)
     out[e:] += out[:-e] * 0.18
+    out = audiolib.lp(out, SR, 9000, order=4)
     out = np.tanh(out * 1.1)
     out /= max(1e-6, np.abs(out).max())
     fade = int(SR * 0.04)

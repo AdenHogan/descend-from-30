@@ -37,6 +37,8 @@ func _test_streams() -> void:
 		"res://assets/audio/impacts/knifeSlice.ogg",
 		"res://assets/audio/impacts/knifeSlice2.ogg",
 		"res://assets/audio/impacts/impactWood_medium_000.ogg",
+		"res://assets/audio/music/dread_loop.ogg",
+		"res://assets/audio/music/breach_loop.ogg",
 	]
 	for i in range(5):
 		paths.append("res://assets/audio/footsteps/footstep_carpet_00%d.ogg" % i)

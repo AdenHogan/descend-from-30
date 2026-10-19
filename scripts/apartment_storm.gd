@@ -32,7 +32,7 @@ func _ready() -> void:
 	if s is AudioStreamWAV:
 		(s as AudioStreamWAV).loop_mode = AudioStreamWAV.LOOP_FORWARD
 	_rain.stream = s
-	_rain.volume_db = -14.0
+	_rain.volume_db = -10.0                  # the loop itself is ~6 dB quieter since round 46 (a soft pink wash, not a white hiss)
 	_rain.bus = "Master"
 	add_child(_rain)
 	_rain.play()

@@ -30,42 +30,48 @@ Mono 22050 Hz 16-bit WAV, a few variants of each, deterministic.
 Run:  python3 tools/gen_node_audio.py   (needs numpy)   ->  assets/audio/room/
 """
 import os
-import wave
+import sys
 
 import numpy as np
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import audiolib  # noqa: E402  (shared clean-audio DSP: pink noise, steep ceilings, soft limiting — round 46)
 
 SR = 22050
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "audio", "room")
 
+# How far up each sound may reach (Hz). Round 46: the noise-built ones used to run to the top of the spectrum (40-50 % of their energy above
+# 6 kHz = "static"); they are now pink noise under a steep ceiling picked for what the thing is. Anything not listed gets 7 kHz.
+CEILING = {"rustle": 4200, "paper": 3800, "tin": 6500, "scrape": 3200, "tap": 4600, "cistern": 4800, "static": 3400, "roll": 3200,
+           "fridge": 4200, "printer": 4200, "needle": 4600, "pffft": 2800, "spring": 4000, "fall": 6000}
+
 
 def _write(name, x):
     os.makedirs(OUT, exist_ok=True)
-    x = np.clip(x, -1.0, 1.0)
-    path = os.path.join(OUT, name)
-    with wave.open(path, "w") as w:
-        w.setnchannels(1)
-        w.setsampwidth(2)
-        w.setframerate(SR)
-        w.writeframes((x * 32767.0).astype("<i2").tobytes())
+    hi = CEILING.get(name.rsplit("_", 1)[0], 7000)
+    audiolib.write_wav(os.path.join(OUT, name), audiolib.polish(x, SR, hi=hi, peak=0.5), SR)
+
+
+def _pn(r, n):
+    """Pink noise of n samples from rng `r` (never white: the top octave is where static lives)."""
+    return audiolib.pink(n, r)
+
+
+def _wob(r, n, fc):
+    """A slow random wobble in [-1, 1] (noise low-passed at `fc` Hz) — how running water's level moves; a sine reads as a motor."""
+    x = audiolib.lp(r.normal(0, 1, n), SR, fc, order=2)
+    return x / max(1e-9, float(np.abs(x).max()))
 
 
 def _lp(x, k):
-    y = np.zeros_like(x)
-    p = 0.0
-    for i, v in enumerate(x):
-        p += k * (v - p)
-        y[i] = p
-    return y
+    """Low-pass; `k` is the old one-pole coefficient (kept so the call sites read as before), mapped to the equivalent cutoff, now 12 dB/oct."""
+    fc = -np.log(1.0 - min(max(k, 1e-4), 0.99)) * SR / (2.0 * np.pi)
+    return audiolib.lp(x, SR, fc, order=2)
 
 
 def _hp(x, k=0.95):
-    y = np.zeros_like(x)
-    px = py = 0.0
-    for i, v in enumerate(x):
-        py = k * (py + v - px)
-        px = v
-        y[i] = py
-    return y
+    fc = -np.log(min(max(k, 0.01), 0.9999)) * SR / (2.0 * np.pi)
+    return audiolib.hp(x, SR, fc, order=2)
 
 
 def _norm(x, peak=0.7):
@@ -85,7 +91,7 @@ def rustle(seed):
     r = np.random.default_rng(seed)
     n = int(SR * r.uniform(0.42, 0.6))
     t = np.arange(n) / SR
-    noise = _hp(_lp(r.normal(0, 1, n), 0.55), 0.9)
+    noise = _hp(_lp(_pn(r, n), 0.55), 0.9)
     env = np.zeros(n)
     for _ in range(int(r.integers(3, 6))):
         c = r.uniform(0.04, t[-1] - 0.06)
@@ -103,7 +109,10 @@ def paper(seed):
         i = int(r.beta(1.4, 2.2) * (n - 80))
         L = int(r.integers(8, 40))
         x[i:i + L] += r.normal(0, 1, L) * np.exp(-np.arange(L) / (L * 0.3)) * r.uniform(0.2, 1.0)
-    x = _hp(x, 0.9)
+    crisp = _lp(x, 0.3)                                                   # the crinkle's edge, rolled off (~2.5 kHz)
+    swell = audiolib.lp(np.abs(x), SR, 60, order=2)                       # where the crinkling is happening ...
+    body = _bp(_pn(r, n), 220, 1800) * swell / max(1e-9, float(swell.max())) * 0.5     # ... carries a soft pink body, so it is a rustle, not a tick-train
+    x = crisp / max(1e-9, float(np.abs(crisp).max())) + body
     return _fade(_norm(x * np.exp(-t / 0.3), 0.6))
 
 
@@ -140,7 +149,7 @@ def scrape(seed):
     r = np.random.default_rng(seed + 170)
     n = int(SR * 0.42)
     t = np.arange(n) / SR
-    noise = _lp(r.normal(0, 1, n), 0.12)
+    noise = _lp(_pn(r, n), 0.12)
     sweep = np.clip(t / 0.28, 0, 1) ** 0.7
     env = sweep * np.where(t < 0.3, 1.0, np.exp(-(t - 0.3) / 0.03))
     rub = noise * env * (0.65 + 0.35 * np.sin(2 * np.pi * (7 + 5 * r.random()) * t))
@@ -164,7 +173,7 @@ def fall(seed):
     r = np.random.default_rng(seed + 210)
     n = int(SR * 0.7)
     t = np.arange(n) / SR
-    knock = np.sin(2 * np.pi * 140 * t) * np.exp(-t / 0.03) * 0.8 + _lp(r.normal(0, 1, n), 0.4) * np.exp(-t / 0.012) * 0.5
+    knock = np.sin(2 * np.pi * 140 * t) * np.exp(-t / 0.03) * 0.8 + _lp(_pn(r, n), 0.4) * np.exp(-t / 0.012) * 0.5
     roll = np.zeros(n)
     for k in range(int(r.integers(5, 8))):
         on = 0.06 + 0.08 * k ** 1.25
@@ -183,7 +192,7 @@ def _env(n, a, d):
 
 
 def _bp(x, lo, hi):
-    return _lp(_hp(x, 1.0 - lo * 2 * np.pi / SR), min(0.95, hi * 2 * np.pi / SR))
+    return audiolib.bp(x, SR, lo, hi, order=2)
 
 
 def tap(seed):
@@ -191,7 +200,7 @@ def tap(seed):
     n = int(SR * 0.75)
     t = np.arange(n) / SR
     sq = np.sin(2 * np.pi * np.cumsum(900 + 700 * np.clip(t / 0.05, 0, 1)) / SR) * np.exp(-t / 0.03) * 0.5     # the handle squeaks
-    flow = _bp(r.normal(0, 1, n), 900, 4200) * (0.55 + 0.45 * np.sin(2 * np.pi * (24 + 6 * r.random()) * t)) * np.clip((t - 0.04) / 0.12, 0, 1)
+    flow = _bp(_pn(r, n), 450, 3800) * (0.7 + 0.3 * _wob(r, n, 20)) * np.clip((t - 0.04) / 0.12, 0, 1)
     flow *= np.exp(-np.clip(t - 0.45, 0, None) / 0.12)
     return _fade(_norm(sq + flow * 0.8, 0.55), 10)
 
@@ -205,8 +214,8 @@ def cistern(seed):
         on = int(k * 0.05 * SR)
         tt = t[: n - on]
         x[on:] += np.sin(2 * np.pi * f * tt) * np.exp(-tt / 0.05) * (0.7 - 0.2 * k)
-    drag = _lp(r.normal(0, 1, n), 0.2) * np.exp(-((t - 0.12) / 0.07) ** 2) * 0.5
-    trickle = _bp(r.normal(0, 1, n), 700, 2600) * np.clip((t - 0.25) / 0.2, 0, 1) * np.exp(-np.clip(t - 0.4, 0, None) / 0.2) * 0.35
+    drag = _lp(_pn(r, n), 0.2) * np.exp(-((t - 0.12) / 0.07) ** 2) * 0.5
+    trickle = _bp(_pn(r, n), 700, 2600) * np.clip((t - 0.25) / 0.2, 0, 1) * np.exp(-np.clip(t - 0.4, 0, None) / 0.2) * 0.35
     return _fade(_norm(x + drag + trickle, 0.55), 8)
 
 
@@ -241,7 +250,7 @@ def static(_seed):
     r = np.random.default_rng(7)
     n = int(SR * 0.55)
     t = np.arange(n) / SR
-    hiss = _bp(r.normal(0, 1, n), 600, 5000) * (0.6 + 0.4 * np.sin(2 * np.pi * 9 * t)) * np.exp(-t / 0.3)
+    hiss = _bp(_pn(r, n), 600, 5000) * (0.6 + 0.4 * np.sin(2 * np.pi * 9 * t)) * np.exp(-t / 0.3)
     whistle = np.sin(2 * np.pi * np.cumsum(500 + 1800 * np.clip(t / 0.4, 0, 1) ** 2) / SR) * np.exp(-t / 0.25) * 0.18
     return _fade(_norm(hiss + whistle, 0.5), 6)
 
@@ -268,7 +277,7 @@ def spring(seed):
         f0 = r.uniform(180, 320)
         tt = np.clip(t - on, 0, None)
         x += np.sin(2 * np.pi * np.cumsum(f0 * (1 + 0.35 * np.clip((t - on) / d, 0, 1)) + 25 * np.sin(2 * np.pi * 30 * t)) / SR) * np.where(t >= on, np.exp(-tt / d), 0) * 0.45
-    return _fade(_norm(x + _lp(r.normal(0, 1, n), 0.3) * 0.08, 0.5), 8)
+    return _fade(_norm(x + _lp(_pn(r, n), 0.3) * 0.08, 0.5), 8)
 
 
 def squeak(seed):
@@ -284,7 +293,7 @@ def roll(seed):
     r = np.random.default_rng(seed + 500)
     n = int(SR * 0.65)
     t = np.arange(n) / SR
-    rumble = _lp(r.normal(0, 1, n), 0.08) * (0.6 + 0.4 * np.sin(2 * np.pi * 11 * t)) * np.exp(-t / 0.4)
+    rumble = _lp(_pn(r, n), 0.08) * (0.6 + 0.4 * np.sin(2 * np.pi * 11 * t)) * np.exp(-t / 0.4)
     x = rumble * 0.9
     for k in range(int(r.integers(5, 9))):
         i = int(r.uniform(0.02, 0.5) * SR)
@@ -298,7 +307,7 @@ def fridge(_seed):
     n = int(SR * 0.7)
     t = np.arange(n) / SR
     thunk = np.sin(2 * np.pi * 85 * t) * np.exp(-t / 0.05) * 0.9
-    seal = _bp(r.normal(0, 1, n), 1500, 6000) * np.exp(-np.clip(t - 0.03, 0, None) / 0.08) * (t > 0.03) * 0.3
+    seal = _bp(_pn(r, n), 1500, 6000) * np.exp(-np.clip(t - 0.03, 0, None) / 0.08) * (t > 0.03) * 0.3
     hum = np.sin(2 * np.pi * 100 * t) * np.clip((t - 0.3) / 0.15, 0, 1) * np.exp(-np.clip(t - 0.45, 0, None) / 0.2) * 0.15
     return _fade(_norm(thunk + seal + hum, 0.55), 6)
 
@@ -309,7 +318,7 @@ def printer(_seed):
     t = np.arange(n) / SR
     saw = ((t * 140) % 1.0 * 2 - 1) * 0.25
     mot = _lp(saw, 0.15) * np.clip(t / 0.05, 0, 1) * np.exp(-np.clip(t - 0.4, 0, None) / 0.12)
-    feed = _bp(r.normal(0, 1, n), 1200, 4800) * (0.5 + 0.5 * np.sin(2 * np.pi * 38 * t)) * np.clip((t - 0.05) / 0.05, 0, 1) * np.exp(-np.clip(t - 0.45, 0, None) / 0.12) * 0.35
+    feed = _bp(_pn(r, n), 1200, 4800) * (0.5 + 0.5 * np.sin(2 * np.pi * 38 * t)) * np.clip((t - 0.05) / 0.05, 0, 1) * np.exp(-np.clip(t - 0.45, 0, None) / 0.12) * 0.35
     return _fade(_norm(mot + feed, 0.5), 8)
 
 
@@ -322,7 +331,7 @@ def needle(_seed):
         i = int(r.uniform(0.0, 0.5) * SR)
         L = int(r.integers(6, 30))
         crackle[i:i + L] += r.normal(0, 1, L) * np.exp(-np.arange(L) / 6.0) * r.uniform(0.1, 0.7)
-    drag = _lp(r.normal(0, 1, n), 0.22) * np.exp(-((t - 0.12) / 0.09) ** 2) * 0.7
+    drag = _lp(_pn(r, n), 0.22) * np.exp(-((t - 0.12) / 0.09) ** 2) * 0.7
     thump = np.sin(2 * np.pi * 70 * np.clip(t - 0.3, 0, None)) * np.exp(-np.clip(t - 0.3, 0, None) / 0.04) * (t >= 0.3) * 0.5
     return _fade(_norm(crackle + drag + thump, 0.5), 6)
 
@@ -334,7 +343,7 @@ def pffft(_seed):
     k = 0.45 * np.exp(-t / 0.15) + 0.05
     y = np.zeros(n)
     p = 0.0
-    nz = r.normal(0, 1, n)
+    nz = _pn(r, n)
     for i in range(n):
         p += k[i] * (nz[i] - p)
         y[i] = p

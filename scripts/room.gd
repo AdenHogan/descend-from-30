@@ -230,6 +230,7 @@ func _ready() -> void:
 		_burnt_breach(breach_fire)
 	elif door_state == WorldState.DoorState.BREACHED:
 		_spawn_breached_enemies()
+		_begin_breach_music()
 	elif WorldState.is_first_run and apartment_id == "3003":
 		# The scripted first encounter: one zombie at the BACK of 3003 (the
 		# GDD's weaponless first fight). Other tutorial apartments stay empty so
@@ -427,6 +428,7 @@ func _place_wall_inner_edge(wall: Node2D, inner_x: float, is_left: bool) -> void
 
 
 func _exit_tree() -> void:
+	Game.music_release(self)
 	# Don't leave the interior-fire haze lingering over the next scene. (Not a backdrop: freeing
 	# the apartment below on stepping back in used to clear the LIVE room's haze.)
 	if passive:
@@ -2303,6 +2305,45 @@ func _spawn_breached_enemies() -> void:
 	_plan_breach_entrants()
 
 
+# --- BREACH MUSIC (owner round 46: "a more pulse pounding track… that fits horror themes for entering breach rooms") ----------------------------------
+# The moment a breach flat is entered with its pack still standing, the pulse (assets/audio/music/breach_loop.ogg) takes over from the exploration bed
+# (`Game.music_claim`). It hands back — slowly, the way tension drains — once the last of the dead in this flat is down and nobody else is still due
+# through the front door. Freed with the room (`_exit_tree` releases; `Game` also drops a claim whose node left the tree). Live rooms only.
+const BREACH_MUSIC_POLL := 0.5
+var _breach_music_on := false
+var _breach_music_clock := 0.0
+
+
+## True while anything hostile and alive stands in THIS flat (the pack, its leader, a wall crawler, an entrant already in) or an entrant is still due.
+func breach_threat_alive() -> bool:
+	if not _entrant_todo.is_empty():
+		return true
+	for z in get_tree().get_nodes_in_group("zombie"):
+		if is_instance_valid(z) and is_ancestor_of(z) and z.get("is_dead") != true:
+			return true
+	return false
+
+
+func _begin_breach_music() -> void:
+	if passive or not breach_threat_alive():
+		return
+	_breach_music_on = true
+	_breach_music_clock = 0.0
+	Game.music_claim(self, "breach")
+
+
+func _breach_music_tick(delta: float) -> void:
+	if not _breach_music_on:
+		return
+	_breach_music_clock += delta
+	if _breach_music_clock < BREACH_MUSIC_POLL:
+		return
+	_breach_music_clock = 0.0
+	if not breach_threat_alive():
+		_breach_music_on = false
+		Game.music_release(self)
+
+
 # --- BREACH ENTRANTS: one or two more come in through the torn-out front door (WorldState.breach_entrants) ---------------------------
 # Not part of the pack in the flat: they arrive from the corridor, a few seconds after the player is well inside (and never while the player
 # stands at the door), fading in out of the dark doorway with a crash of splintered wood, and locked on to the player — so a breach flat can
@@ -2445,6 +2486,7 @@ func _is_player_facing_anchor(anchor: Node) -> bool:
 
 
 func _process(_delta: float) -> void:
+	_breach_music_tick(_delta)
 	_entrants_tick(_delta)
 	_tutorial_process(_delta)
 	_apartment_fire_process(_delta)

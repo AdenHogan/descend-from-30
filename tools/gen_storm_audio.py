@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Generate night-storm ambience for apartment windows: a couple of thunder
-rumbles and a seamless rain loop. Pure stdlib (matches the project's synth SFX
-approach — CC0-equivalent, generated here). Mono 22050 Hz, 16-bit PCM WAV.
+rumbles and a seamless rain loop. Generated here (CC0-equivalent). Mono 22050 Hz, 16-bit PCM WAV.
+The thunder is pure stdlib; the rain loop (round 46) uses tools/audiolib.py (numpy + scipy) — the old loop was white noise through a
+one-pole high-pass, ~half its energy above 6 kHz: a constant TV-static hiss under every night flat.
 
 Run:  python3 tools/gen_storm_audio.py
 Writes into assets/audio/ambience/.
@@ -10,7 +11,13 @@ import math
 import os
 import random
 import struct
+import sys
 import wave
+
+import numpy as np
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import audiolib  # noqa: E402
 
 SR = 22050
 OUT = os.path.join(os.path.dirname(__file__), "..", "assets", "audio", "ambience")
@@ -76,33 +83,29 @@ def thunder(seed, dur=3.6, rolls=3):
     return [0.9 * x / m for x in out]
 
 
-def rain_loop(seed, dur=4.0):
-    """Steady hiss of rain: high-passed white noise, level and seamless so it
-    loops without a seam. A slow shimmer gives it life without a detectable period."""
-    rng = random.Random(seed)
+def rain_loop(seed, dur=6.0):
+    """Rain heard through a window and a roof, and NOT a hiss: a soft wash of PINK noise (250 Hz - 4.2 kHz, nothing above), the patter of single drops
+    (short damped pings, each its own pitch and loudness) and a low drum of water on the roof. It is PERIODIC by construction (the wash is built in the
+    frequency domain, the drops wrap round the end, every swell is a whole number of cycles per loop), so there is no seam and no tick."""
+    rng = np.random.default_rng(seed)
     n = int(SR * dur)
-    # White noise -> simple one-pole high-pass (rain is bright/hissy, not rumbly).
-    white = [rng.uniform(-1.0, 1.0) for _ in range(n)]
-    hp = [0.0] * n
-    prev_in = 0.0
-    prev_out = 0.0
-    a = 0.85
-    for i in range(n):
-        hp[i] = a * (prev_out + white[i] - prev_in)
-        prev_in = white[i]
-        prev_out = hp[i]
-    out = []
-    for i in range(n):
-        # Gentle amplitude shimmer (two slow sines, non-harmonic) so it's not flat.
-        sh = 0.82 + 0.10 * math.sin(2 * math.pi * i / SR * 0.7) \
-                  + 0.08 * math.sin(2 * math.pi * i / SR * 1.9)
-        out.append(hp[i] * 0.34 * sh)
-    # Cross-fade the last 40ms into the first so the loop point is seamless.
-    xf = int(0.04 * SR)
-    for i in range(xf):
-        w = i / xf
-        out[i] = out[i] * w + out[n - xf + i] * (1.0 - w)
-    return out[: n - xf]
+    t = np.arange(n) / SR
+    wash = audiolib.periodic_noise(n, rng, SR, lo=250.0, hi=4200.0, tilt=0.75)
+    roof = audiolib.periodic_noise(n, rng, SR, lo=70.0, hi=420.0, tilt=0.4)
+    drops = np.zeros(n)
+    for _ in range(int(dur * 70)):                                      # ~70 drops a second
+        i = int(rng.integers(0, n))
+        f = float(rng.uniform(1100.0, 3300.0))
+        L = int(SR * float(rng.uniform(0.004, 0.011)))
+        tt = np.arange(L) / SR
+        ping = np.sin(2 * np.pi * f * tt) * np.exp(-tt / (L / SR * 0.35)) * float(rng.beta(1.2, 4.0))
+        idx = (i + np.arange(L)) % n                                    # wraps, so the loop point is not a seam
+        drops[idx] += ping
+    swell = 1.0 + 0.10 * np.sin(2 * np.pi * 1.0 * t / dur + 0.4) + 0.06 * np.sin(2 * np.pi * 3.0 * t / dur + 1.9)
+    x = (wash * 0.62 + roof * 0.30 + drops * 2.2) * swell
+    x = audiolib.soft(x / np.abs(x).max(), 1.2)
+    x *= 0.07 / audiolib.rms(x)                                         # about -23 dBFS RMS: a bed, not a wall (the old loop was -17)
+    return list(x)
 
 
 if __name__ == "__main__":

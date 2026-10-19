@@ -261,7 +261,8 @@ Sound lives under the hood: every action has a radius (crouch 45 → walk 120 �
 gunshot whole floor). The one player-facing mode is **anchored Listen (R)** at an apartment door or down-stairwell: rooted ~3 s
 in real time (any hit or movement cancels, no report), the world greys, red pings pulse faster the nearer the dead are,
 and you get a deliberately vague report (a number only for Alex). The roaming "TLOU" listen mode was *dropped* by design.
-Audio is CC0 / generated: footsteps, zombie shuffles, moans, glass, fire, storm, room hums, a tonal opening drone.
+Audio is CC0 / generated: footsteps, zombie shuffles, moans, glass, fire, storm, room hums, a tonal opening drone. **Round 46 (`AUDIO.md`):** cleaned of static (pink noise under steep ceilings,
+a Master limiter, a gate that measures every file), a recomposed stereo exploration loop, and a **pulse-pounding 140 BPM breach-room track** that takes over while a breach flat's dead stand.
 
 ## 9. Risk and resource design
 
@@ -367,7 +368,7 @@ made to be replaced by an artist working from the locked templates.
 
 ### C. Audio
 Replace the synthetic moans / gunshot / heartbeat with recorded SFX; an ambient building tone per time of day; listen
-animation audio; resident voices; pack flap/slam, rummage, drawer/door-open sounds; an opening music cue.
+animation audio; resident voices; pack flap/slam, rummage; an opening music cue; more music moods on the claim system (`Game.music_claim` — a merchant, a rest, a boss, the lobby); a loudness / true-peak pass and volume sliders in Settings. (Drawer / door-open / node sounds are built — round 45c/d.)
 
 ### D. Platform and verification debt
 - **Android:** the exported APK is untried (Godot export template, keystore, `gl_compatibility` on a device, low-end

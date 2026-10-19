@@ -11,28 +11,58 @@ const SCENES = {
 	"building_floors": "res://scenes/building_floors.tscn"
 }
 
-var music_player: AudioStreamPlayer = null
+var music_player: AudioStreamPlayer = null          # the exploration bed (dread_loop) — always playing, ducked while a claim wants another mood
+var breach_player: AudioStreamPlayer = null         # the breach-room track (breach_loop) — runs only while something claims the "breach" mood
 
 # A dedicated bus for enemy SFX (zombie moans). The stair ascent fades THIS bus
 # out as the player climbs away, so the floor's zombies recede without touching
 # the music. Everything else stays on Master.
 const ENEMY_BUS := "Enemies"
+const MUSIC_BUS := "Music"
+
+# --- MUSIC MOODS (owner round 46: "a more pulse pounding track… for entering breach rooms") ----------------------------------------------------
+# One mood plays at a time. A scene that wants a mood CLAIMS it (`music_claim(self, "breach")`) and releases it when its reason is over; a claim
+# whose node is freed / out of the tree is dropped on its own, so a scene change, a death or a quit can never leave the pulse stuck on. The newest
+# claim wins; with none the mood is "calm". Moods cross-fade in real time (not game time — a slow-motion beat must not stretch a fade) and keep
+# running through the pause menu. The calm loop is only DUCKED during a breach (it keeps its place), the breach loop starts over each entry.
+## `in` / `out` = seconds for the mood to rise to full / fall to silence. The pulse comes in FAST (the first boom + beat must land as the door opens, under the fade
+## from black), the bed drops away fast to make room, and each hands back SLOWLY — the bed swells back over 3.2 s, the pulse drains over 3.2 s — the way tension does.
+const MUSIC_MOODS := {
+	"calm": {"stream": "res://assets/audio/music/dread_loop.ogg", "db": -10.0, "in": 3.2, "out": 0.6},
+	"breach": {"stream": "res://assets/audio/music/breach_loop.ogg", "db": -9.0, "in": 0.25, "out": 3.2},
+}
+const SILENT_DB := -80.0
+var music_mood := "calm"
+var music_fade_scale := 1.0           # tests raise this to cross-fade in a blink
+var _music_claims: Array = []         # [{"node": Node, "mood": String}], oldest first
+var _mood_gain := {"calm": 1.0, "breach": 0.0}     # linear 0..1 each mood is currently at
+var _music_tick_msec := 0
 
 
 func _ready() -> void:
 	# Must keep handling input while the tree is paused, so Esc can un-pause.
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_ensure_enemy_bus()
-	# Background dread loop (assets/audio/music) — lives on this autoload so
-	# it survives scene changes and keeps droning through the pause menu.
-	music_player = AudioStreamPlayer.new()
-	music_player.name = "MusicPlayer"
-	var stream = preload("res://assets/audio/music/dread_loop.ogg")
-	stream.loop = true
-	music_player.stream = stream
-	music_player.volume_db = -16.0
-	add_child(music_player)
+	_ensure_music_bus()
+	_ensure_master_limiter()
+	# Background music (assets/audio/music) — lives on this autoload so it survives scene changes and keeps droning through the pause menu.
+	music_player = _make_music_player("MusicPlayer", "calm")
 	music_player.play()
+	breach_player = _make_music_player("BreachMusicPlayer", "breach")      # silent and stopped until something claims the mood
+	_music_tick_msec = Time.get_ticks_msec()
+
+
+func _make_music_player(node_name: String, mood: String) -> AudioStreamPlayer:
+	var p := AudioStreamPlayer.new()
+	p.name = node_name
+	var stream = load(String(MUSIC_MOODS[mood]["stream"]))
+	if stream != null and "loop" in stream:
+		stream.loop = true
+	p.stream = stream
+	p.bus = MUSIC_BUS
+	p.volume_db = float(MUSIC_MOODS[mood]["db"]) if mood == "calm" else SILENT_DB
+	add_child(p)
+	return p
 
 
 func _ensure_enemy_bus() -> void:
@@ -44,6 +74,83 @@ func _ensure_enemy_bus() -> void:
 	AudioServer.add_bus(idx)
 	AudioServer.set_bus_name(idx, ENEMY_BUS)
 	AudioServer.set_bus_send(idx, "Master")
+
+
+func _ensure_music_bus() -> void:
+	if AudioServer.get_bus_index(MUSIC_BUS) != -1:
+		return
+	var idx := AudioServer.bus_count
+	AudioServer.add_bus(idx)
+	AudioServer.set_bus_name(idx, MUSIC_BUS)
+	AudioServer.set_bus_send(idx, "Master")
+
+
+## The last net under every sound (owner round 46: "static and noise"): several loud sounds at once (a crowd's moans, a gunshot over a door slam) used to sum
+## past full scale on the Master bus and hard-CLIP, which is a crackle. A limiter on Master rounds those peaks off instead. Idempotent.
+func _ensure_master_limiter() -> void:
+	var master := AudioServer.get_bus_index("Master")
+	for i in range(AudioServer.get_bus_effect_count(master)):
+		if AudioServer.get_bus_effect(master, i) is AudioEffectLimiter:
+			return
+	var lim := AudioEffectLimiter.new()
+	lim.ceiling_db = -1.0
+	lim.threshold_db = -4.0
+	AudioServer.add_bus_effect(master, lim)
+
+
+## Ask for a music mood on behalf of `node` ("breach"). The newest claim wins; the claim ends with `music_release(node)` or when the node is freed.
+func music_claim(node: Node, mood: String) -> void:
+	if node == null or not MUSIC_MOODS.has(mood):
+		return
+	music_release(node)
+	_music_claims.append({"node": node, "mood": mood})
+
+
+func music_release(node: Node) -> void:
+	for i in range(_music_claims.size() - 1, -1, -1):
+		if _music_claims[i]["node"] == node:
+			_music_claims.remove_at(i)
+
+
+## The mood the claims ask for right now ("calm" with none). Dead claims are dropped here — a freed node, or one no longer in the tree.
+func wanted_music_mood() -> String:
+	for i in range(_music_claims.size() - 1, -1, -1):
+		var n = _music_claims[i]["node"]
+		if not is_instance_valid(n) or not (n as Node).is_inside_tree():
+			_music_claims.remove_at(i)
+	return String(_music_claims[_music_claims.size() - 1]["mood"]) if not _music_claims.is_empty() else "calm"
+
+
+func _process(_delta: float) -> void:
+	var now := Time.get_ticks_msec()
+	var dt := minf(float(now - _music_tick_msec) / 1000.0, 0.25)             # real seconds, clamped (a hitch must not jump a fade)
+	_music_tick_msec = now
+	if music_player == null:
+		return
+	music_mood = wanted_music_mood()
+	for mood in _mood_gain.keys():
+		var want := 1.0 if mood == music_mood else 0.0
+		var g: float = _mood_gain[mood]
+		var span: float = float(MUSIC_MOODS[mood]["in" if want > g else "out"])
+		g = move_toward(g, want, dt * music_fade_scale / span)
+		_mood_gain[mood] = g
+	_apply_music_levels()
+
+
+func _apply_music_levels() -> void:
+	for mood in ["calm", "breach"]:
+		var p: AudioStreamPlayer = music_player if mood == "calm" else breach_player
+		if p == null:
+			continue
+		var g: float = _mood_gain[mood]
+		if g <= 0.001:
+			p.volume_db = SILENT_DB
+			if mood == "breach" and p.playing:
+				p.stop()                                                      # the pulse starts again from its first beat on the next entry
+			continue
+		if mood == "breach" and not p.playing:
+			p.play()
+		p.volume_db = float(MUSIC_MOODS[mood]["db"]) + linear_to_db(g)
 
 
 func _input(event: InputEvent) -> void:

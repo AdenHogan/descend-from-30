@@ -113,6 +113,9 @@ Focusing is dangerous. On listen start, one random roll:
 - **Gunshot** (synth), **barricade plank rips + door-force impacts + lock
   latch** (Kenney), **listen heartbeat** (synth, swells with the grey).
 
+**Round 46:** the whole audio set was audited and cleaned of static, a Master limiter and a Music bus were added, the exploration music was recomposed, and a pulse-pounding
+breach-room track plays while a breach flat's dead stand — see `AUDIO.md`.
+
 ## Open tasks
 
 - **Audio upgrade:** replace synth moans/gunshot/heartbeat with recorded

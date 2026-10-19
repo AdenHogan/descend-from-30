@@ -11,10 +11,14 @@
 Mono 16-bit 44.1 kHz, deterministic.
 """
 import os
+import sys
 import wave
 
 import numpy as np
 from scipy.signal import butter, lfilter
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import audiolib  # noqa: E402  (round 46: pink noise + a steep ceiling — the old noise was white and ran to 20 kHz)
 
 SR = 44100
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -38,7 +42,7 @@ def hp(x, f):
 
 def swept_noise(rng, n, f0, f1, fmid_t, q=1.6):
     """Noise through a band-pass whose centre glides f0 -> f1 -> f0 (peak at fmid_t of the length), block by block."""
-    noise = rng.normal(0, 1, n)
+    noise = audiolib.pink(n, rng)
     out = np.zeros(n)
     block = 512
     for i0 in range(0, n, block):
@@ -62,7 +66,11 @@ def crackles(rng, n, count, t0=0.0, t1=1.0, amp=0.5, lo=1500, hi=7000):
     return out
 
 
+CEILING = 7000.0      # nothing above this survives (round 46): fire is a low roar and a crackle, the fizz above 7 kHz was static
+
+
 def norm(x, peak=0.9, fade=0.02):
+    x = audiolib.lp(x, SR, CEILING, order=4)
     x = np.tanh(x * 1.05)
     x = x / max(1e-6, np.abs(x).max()) * peak
     f = int(SR * fade)
@@ -91,7 +99,7 @@ def ignite(seed=77):
     thump = np.sin(ph) * np.exp(-t / 0.16) * 1.2
     # the bloom: noise roaring up fast, tailing off
     env = (1 - np.exp(-t / 0.045)) * np.exp(-t / 0.5)
-    roar = lp(rng.normal(0, 1, n), 1400) * env * 1.4
+    roar = lp(audiolib.pink(n, rng), 1400) * env * 1.4
     air = swept_noise(rng, n, 300, 1800, 0.12) * np.exp(-t / 0.35) * 0.8
     crack = crackles(rng, n, 26, 0.04, 0.95, 0.5) * np.exp(-t / 0.9)
     return norm(thump + roar + air + crack, 0.92, 0.03)
@@ -111,18 +119,19 @@ def fire_loop(seed=5, secs=4.0):
     rng = np.random.default_rng(seed)
     n = int(SR * secs)
     t = np.arange(n) / SR
-    rumble = lp(rng.normal(0, 1, n), 220) * (0.9 + 0.25 * np.sin(2 * np.pi * 0.7 * t) * np.sin(2 * np.pi * 0.37 * t + 1.0))
-    hiss = hp(lp(rng.normal(0, 1, n), 5200), 1800) * 0.18 * (0.8 + 0.3 * np.sin(2 * np.pi * 1.3 * t))
+    rumble = lp(audiolib.pink(n, rng), 260) * (0.9 + 0.25 * np.sin(2 * np.pi * 0.7 * t) * np.sin(2 * np.pi * 0.37 * t + 1.0))
+    hiss = hp(lp(audiolib.pink(n, rng), 3600), 1200) * 0.20 * (0.8 + 0.3 * np.sin(2 * np.pi * 1.3 * t))
     pops = crackles(rng, n, int(secs * 15), 0.0, 1.0, 0.7)
-    sparks = crackles(rng, n, int(secs * 6), 0.0, 1.0, 0.45, 3500, 9500)
-    x = rumble * 1.1 + hiss + pops + sparks
+    sparks = crackles(rng, n, int(secs * 6), 0.0, 1.0, 0.40, 3000, 6500)
+    x = rumble * 0.55 + hiss * 1.3 + pops * 1.25 + sparks * 1.2         # a roar UNDER the crackle (the pops carry the fire's character)
     # seamless: cross-fade the last 0.35 s into the first 0.35 s
     c = int(SR * 0.35)
     ramp = np.linspace(0, 1, c)
     head = x[:c] * ramp + x[-c:] * (1 - ramp)
     x = np.concatenate([head, x[c:-c]])
-    x = np.tanh(x * 0.9)
-    return (x / np.abs(x).max() * 0.8 * 32767).astype(np.int16)
+    x = audiolib.lp(x, SR, CEILING, order=4)
+    x = np.tanh(x * (0.14 / audiolib.rms(x)))                           # level by loudness (about -17 dBFS), not by the highest pop
+    return (x * 32767).astype(np.int16)
 
 
 def douse(seed=33):
@@ -130,8 +139,8 @@ def douse(seed=33):
     n = int(SR * 1.1)
     t = np.arange(n) / SR
     env = (1 - np.exp(-t / 0.04)) * np.exp(-t / 0.42)
-    hiss = hp(lp(rng.normal(0, 1, n), 9000), 1500) * env * 1.2
-    steam = crackles(rng, n, 9, 0.2, 0.95, 0.3, 2500, 8000) * np.exp(-t / 0.5)
+    hiss = hp(lp(audiolib.pink(n, rng), 4200), 300) * env * 1.1 + lp(audiolib.pink(n, rng), 600) * env * 0.5     # a pink hiss over a soft low body
+    steam = crackles(rng, n, 9, 0.2, 0.95, 0.3, 1500, 4200) * np.exp(-t / 0.5)
     return norm(hiss + steam, 0.8, 0.05)
 
 

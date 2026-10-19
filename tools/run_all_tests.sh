@@ -60,6 +60,14 @@ else
 	echo "FAIL   wall art — run: python3 tools/art/corridor_decals.py"; head -5 "$LOG_DIR/_wallart.log"
 	bad=$((bad + 1))
 fi
+# Every sound must stay clean (owner round 46: "a lot of what feels like static and noise in the audio"): no hiss / fizz above the budgets in
+# tools/audio_audit.py, no clipping or DC offset, no tick at a loop's join, no music that is all sub. Decodes every file in assets/audio.
+if python3 tools/audio_audit.py --check >"$LOG_DIR/_audio.log" 2>&1; then
+	echo "ok     audio quality ($(tail -1 "$LOG_DIR/_audio.log" | sed 's/^AUDIO: //'))"
+else
+	echo "FAIL   audio quality — see tools/audio_audit.py; regenerate with tools/gen_*audio.py / tools/gen_music.py / tools/audio_clean.py"; grep "AUDIO:" "$LOG_DIR/_audio.log" | head -8
+	bad=$((bad + 1))
+fi
 for t in tests/*.tscn; do
 	n=$(basename "$t" .tscn)
 	if [ $# -gt 0 ]; then
