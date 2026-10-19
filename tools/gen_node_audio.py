@@ -12,6 +12,21 @@ Mono 22050 Hz 16-bit WAV, a few variants of each, deterministic.
   switch_0  — a screen going off (a relay click and a fading whine)
   fall_N    — something tipping over and rolling a little (a knock, then a rolling rattle that slows)
 
+  — and the SPECIAL sounds a few kinds of node make (scripts/node_reaction.gd `SPECIAL`, keyed on the anchor's name):
+  tap_N     — a tap squeaks open and water runs (sinks, basins, taps, tubs, showers)
+  cistern_0 — a ceramic lid scraped off and the cistern trickling (toilets)
+  piano_N   — a hand falls on the keys (a few uneven notes)
+  clock_0   — a tick, a tock, a soft chime
+  static_0  — a radio / handset: a burst of tuning static
+  beep_0    — a microwave, three beeps
+  spring_N  — bed / sofa springs creaking
+  squeak_N  — a toy or a rubber thing squeaking
+  roll_N    — small wheels rattling (a trolley, a wheelchair)
+  fridge_0  — a seal letting go and the motor catching
+  printer_0 — a whir and a paper feed
+  needle_0  — a stylus dragged across a record
+  pffft_0   — a beanbag letting out its air
+
 Run:  python3 tools/gen_node_audio.py   (needs numpy)   ->  assets/audio/room/
 """
 import os
@@ -162,6 +177,170 @@ def fall(seed):
     return _fade(_norm(knock + roll, 0.6), 6)
 
 
+def _env(n, a, d):
+    t = np.arange(n) / SR
+    return np.minimum(t / max(a, 1e-4), 1.0) * np.exp(-t / d)
+
+
+def _bp(x, lo, hi):
+    return _lp(_hp(x, 1.0 - lo * 2 * np.pi / SR), min(0.95, hi * 2 * np.pi / SR))
+
+
+def tap(seed):
+    r = np.random.default_rng(seed + 300)
+    n = int(SR * 0.75)
+    t = np.arange(n) / SR
+    sq = np.sin(2 * np.pi * np.cumsum(900 + 700 * np.clip(t / 0.05, 0, 1)) / SR) * np.exp(-t / 0.03) * 0.5     # the handle squeaks
+    flow = _bp(r.normal(0, 1, n), 900, 4200) * (0.55 + 0.45 * np.sin(2 * np.pi * (24 + 6 * r.random()) * t)) * np.clip((t - 0.04) / 0.12, 0, 1)
+    flow *= np.exp(-np.clip(t - 0.45, 0, None) / 0.12)
+    return _fade(_norm(sq + flow * 0.8, 0.55), 10)
+
+
+def cistern(seed):
+    r = np.random.default_rng(seed + 340)
+    n = int(SR * 0.8)
+    t = np.arange(n) / SR
+    x = np.zeros(n)
+    for k, f in enumerate((2300, 3100)):
+        on = int(k * 0.05 * SR)
+        tt = t[: n - on]
+        x[on:] += np.sin(2 * np.pi * f * tt) * np.exp(-tt / 0.05) * (0.7 - 0.2 * k)
+    drag = _lp(r.normal(0, 1, n), 0.2) * np.exp(-((t - 0.12) / 0.07) ** 2) * 0.5
+    trickle = _bp(r.normal(0, 1, n), 700, 2600) * np.clip((t - 0.25) / 0.2, 0, 1) * np.exp(-np.clip(t - 0.4, 0, None) / 0.2) * 0.35
+    return _fade(_norm(x + drag + trickle, 0.55), 8)
+
+
+def piano(seed):
+    r = np.random.default_rng(seed + 380)
+    n = int(SR * 0.9)
+    t = np.arange(n) / SR
+    x = np.zeros(n)
+    for k in range(int(r.integers(2, 4))):
+        f = 110.0 * 2 ** (int(r.choice([0, 3, 5, 7, 10, 12, 15])) / 12.0) * float(r.choice([1, 2]))
+        on = int(r.uniform(0.0, 0.12) * SR) + int(k * 0.03 * SR)
+        tt = t[: n - on]
+        x[on:] += (np.sin(2 * np.pi * f * tt) + 0.5 * np.sin(2 * np.pi * 2.01 * f * tt) + 0.25 * np.sin(2 * np.pi * 3.02 * f * tt)) * np.exp(-tt / 0.35) * 0.5
+    return _fade(_norm(x, 0.55), 6)
+
+
+def clock(_seed):
+    n = int(SR * 1.2)
+    t = np.arange(n) / SR
+    x = np.zeros(n)
+    for k, (on, f) in enumerate(((0.0, 1500), (0.32, 1250))):
+        i = int(on * SR)
+        tt = t[: n - i]
+        x[i:] += np.sin(2 * np.pi * f * tt) * np.exp(-tt / 0.012) * 0.8
+    i = int(0.62 * SR)
+    tt = t[: n - i]
+    x[i:] += (np.sin(2 * np.pi * 523 * tt) + 0.4 * np.sin(2 * np.pi * 1318 * tt) + 0.2 * np.sin(2 * np.pi * 2093 * tt)) * np.exp(-tt / 0.28) * 0.5
+    return _fade(_norm(x, 0.55), 8)
+
+
+def static(_seed):
+    r = np.random.default_rng(7)
+    n = int(SR * 0.55)
+    t = np.arange(n) / SR
+    hiss = _bp(r.normal(0, 1, n), 600, 5000) * (0.6 + 0.4 * np.sin(2 * np.pi * 9 * t)) * np.exp(-t / 0.3)
+    whistle = np.sin(2 * np.pi * np.cumsum(500 + 1800 * np.clip(t / 0.4, 0, 1) ** 2) / SR) * np.exp(-t / 0.25) * 0.18
+    return _fade(_norm(hiss + whistle, 0.5), 6)
+
+
+def beep(_seed):
+    n = int(SR * 0.7)
+    t = np.arange(n) / SR
+    x = np.zeros(n)
+    for k in range(3):
+        i = int(k * 0.2 * SR)
+        L = int(0.09 * SR)
+        x[i:i + L] += np.sin(2 * np.pi * 2000 * np.arange(L) / SR) * np.minimum(np.arange(L) / 60.0, 1.0) * np.minimum((L - np.arange(L)) / 60.0, 1.0) * 0.6
+    return _fade(_norm(x, 0.45), 4)
+
+
+def spring(seed):
+    r = np.random.default_rng(seed + 420)
+    n = int(SR * 0.55)
+    t = np.arange(n) / SR
+    x = np.zeros(n)
+    for k in range(int(r.integers(3, 5))):
+        on = r.uniform(0.0, 0.3)
+        d = r.uniform(0.07, 0.14)
+        f0 = r.uniform(180, 320)
+        tt = np.clip(t - on, 0, None)
+        x += np.sin(2 * np.pi * np.cumsum(f0 * (1 + 0.35 * np.clip((t - on) / d, 0, 1)) + 25 * np.sin(2 * np.pi * 30 * t)) / SR) * np.where(t >= on, np.exp(-tt / d), 0) * 0.45
+    return _fade(_norm(x + _lp(r.normal(0, 1, n), 0.3) * 0.08, 0.5), 8)
+
+
+def squeak(seed):
+    r = np.random.default_rng(seed + 460)
+    n = int(SR * 0.34)
+    t = np.arange(n) / SR
+    f = (900 + 500 * r.random()) * (1 + 0.5 * np.clip(t / 0.12, 0, 1)) * (1 + 0.04 * np.sin(2 * np.pi * 40 * t))
+    x = np.sin(2 * np.pi * np.cumsum(f) / SR) * _env(n, 0.01, 0.12) + 0.3 * np.sin(2 * np.pi * np.cumsum(2 * f) / SR) * _env(n, 0.01, 0.08)
+    return _fade(_norm(x, 0.5), 6)
+
+
+def roll(seed):
+    r = np.random.default_rng(seed + 500)
+    n = int(SR * 0.65)
+    t = np.arange(n) / SR
+    rumble = _lp(r.normal(0, 1, n), 0.08) * (0.6 + 0.4 * np.sin(2 * np.pi * 11 * t)) * np.exp(-t / 0.4)
+    x = rumble * 0.9
+    for k in range(int(r.integers(5, 9))):
+        i = int(r.uniform(0.02, 0.5) * SR)
+        L = int(0.012 * SR)
+        x[i:i + L] += r.normal(0, 1, L) * np.exp(-np.arange(L) / 40.0) * 0.5
+    return _fade(_norm(x, 0.5), 10)
+
+
+def fridge(_seed):
+    r = np.random.default_rng(11)
+    n = int(SR * 0.7)
+    t = np.arange(n) / SR
+    thunk = np.sin(2 * np.pi * 85 * t) * np.exp(-t / 0.05) * 0.9
+    seal = _bp(r.normal(0, 1, n), 1500, 6000) * np.exp(-np.clip(t - 0.03, 0, None) / 0.08) * (t > 0.03) * 0.3
+    hum = np.sin(2 * np.pi * 100 * t) * np.clip((t - 0.3) / 0.15, 0, 1) * np.exp(-np.clip(t - 0.45, 0, None) / 0.2) * 0.15
+    return _fade(_norm(thunk + seal + hum, 0.55), 6)
+
+
+def printer(_seed):
+    r = np.random.default_rng(13)
+    n = int(SR * 0.8)
+    t = np.arange(n) / SR
+    saw = ((t * 140) % 1.0 * 2 - 1) * 0.25
+    mot = _lp(saw, 0.15) * np.clip(t / 0.05, 0, 1) * np.exp(-np.clip(t - 0.4, 0, None) / 0.12)
+    feed = _bp(r.normal(0, 1, n), 1200, 4800) * (0.5 + 0.5 * np.sin(2 * np.pi * 38 * t)) * np.clip((t - 0.05) / 0.05, 0, 1) * np.exp(-np.clip(t - 0.45, 0, None) / 0.12) * 0.35
+    return _fade(_norm(mot + feed, 0.5), 8)
+
+
+def needle(_seed):
+    r = np.random.default_rng(17)
+    n = int(SR * 0.55)
+    t = np.arange(n) / SR
+    crackle = np.zeros(n)
+    for _ in range(90):
+        i = int(r.uniform(0.0, 0.5) * SR)
+        L = int(r.integers(6, 30))
+        crackle[i:i + L] += r.normal(0, 1, L) * np.exp(-np.arange(L) / 6.0) * r.uniform(0.1, 0.7)
+    drag = _lp(r.normal(0, 1, n), 0.22) * np.exp(-((t - 0.12) / 0.09) ** 2) * 0.7
+    thump = np.sin(2 * np.pi * 70 * np.clip(t - 0.3, 0, None)) * np.exp(-np.clip(t - 0.3, 0, None) / 0.04) * (t >= 0.3) * 0.5
+    return _fade(_norm(crackle + drag + thump, 0.5), 6)
+
+
+def pffft(_seed):
+    r = np.random.default_rng(19)
+    n = int(SR * 0.4)
+    t = np.arange(n) / SR
+    k = 0.45 * np.exp(-t / 0.15) + 0.05
+    y = np.zeros(n)
+    p = 0.0
+    nz = r.normal(0, 1, n)
+    for i in range(n):
+        p += k[i] * (nz[i] - p)
+        y[i] = p
+    return _fade(_norm(y * np.exp(-t / 0.2), 0.5), 12)
+
+
 def main():
     for k in range(3):
         _write("rustle_%d.wav" % k, rustle(k))
@@ -172,6 +351,21 @@ def main():
     for k in range(2):
         _write("scrape_%d.wav" % k, scrape(k))
     _write("switch_0.wav", switch_off(0))
+    for k in range(2):
+        _write("tap_%d.wav" % k, tap(k))
+        _write("spring_%d.wav" % k, spring(k))
+        _write("squeak_%d.wav" % k, squeak(k))
+        _write("roll_%d.wav" % k, roll(k))
+    for k in range(3):
+        _write("piano_%d.wav" % k, piano(k))
+    _write("cistern_0.wav", cistern(0))
+    _write("clock_0.wav", clock(0))
+    _write("static_0.wav", static(0))
+    _write("beep_0.wav", beep(0))
+    _write("fridge_0.wav", fridge(0))
+    _write("printer_0.wav", printer(0))
+    _write("needle_0.wav", needle(0))
+    _write("pffft_0.wav", pffft(0))
     print("wrote", len(os.listdir(OUT)), "files to", os.path.relpath(OUT))
 
 

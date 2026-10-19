@@ -29,6 +29,8 @@ func _ready() -> void:
 	await _test_press_starts_it()
 	await _test_generic_reaction()
 	await _test_new_kinds()
+	await _test_special_sounds()
+	await _test_critters()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -233,7 +235,7 @@ func _test_generic_reaction() -> void:
 	WorldState.new_game()
 	var v: Node2D = load("res://scenes/Room_Modules/bathroom.tscn").instantiate()
 	add_child(v)
-	var node := _interactive(v, "anchor_floor_laundrybag", "g1")
+	var node := _interactive(v, "anchor_bath_left", "g1")
 	var before := v.get_child_count()
 	node.on_search_begin()
 	var puffs := 0
@@ -244,7 +246,7 @@ func _test_generic_reaction() -> void:
 		if c is AudioStreamPlayer2D:
 			sounds += 1
 	check(puffs == 1 and sounds == 1, "a node with no specific animation puffs and sounds at the press (%d puff, %d sound)" % [puffs, sounds])
-	check(WorldState.opened_anchors.has("g1:anchor_floor_laundrybag"), "…and is noted as opened")
+	check(WorldState.opened_anchors.has("g1:anchor_bath_left"), "…and is noted as opened")
 	node.on_search_begin()
 	check(v.get_child_count() == before + 2, "pressing it again (a search resumed) does not pile on another puff")
 	# the gun cabinet and a burnt flat's scrap keep their own handling
@@ -321,4 +323,114 @@ func _test_new_kinds() -> void:
 			after += 1
 	check(after == before + 1, "the switch-off click plays at the press (%d -> %d players)" % [before, after])
 	s2.queue_free()
+	await get_tree().process_frame
+
+
+func _test_special_sounds() -> void:
+	print("[round 45d: nodes with a sound of their own]")
+	var NR = load("res://scripts/node_reaction.gd")
+	var cases := {
+		"anchor_centre_toilet": "cistern_0", "anchor_bathroom_gold_throne": "cistern_0", "anchor_wall_sink": "tap_0", "anchor_bathroom_pink_tub": "tap_0",
+		"anchor_living_piano": "piano_0", "anchor_dining_grandfather_clock": "clock_0", "anchor_study_radio": "static_0", "anchor_kitchen_microwave": "beep_0",
+		"anchor_centre_fridge": "fridge_0", "anchor_study_printer": "printer_0", "anchor_dining_record_player": "needle_0", "anchor_bedroom_beanbag": "pffft_0",
+		"anchor_centre_sofaleft": "spring_0", "anchor_bedroom_rocking_horse": "squeak_0", "anchor_bedroom_wheelchair": "roll_0",
+	}
+	var bad := []
+	for k in cases.keys():
+		var e: Dictionary = NR.special_for(k)
+		if e.is_empty() or not String(e["sounds"][0]).begins_with(String(cases[k]).split("_")[0]):
+			bad.append(k)
+	check(bad.is_empty(), "special_for maps names to their own sound (%s)" % str(bad))
+	check(NR.special_for("anchor_bathroom_toilet_rolls").is_empty() and NR.special_for("anchor_right_sinkcupboard").is_empty(),
+		"…but not toilet rolls or a sink CUPBOARD")
+	var missing := []
+	for e in NR.SPECIAL:
+		for stem in e["sounds"]:
+			if NR._stream(String(stem)) == null:
+				missing.append(stem)
+	check(missing.is_empty(), "every special sound file exists (%s)" % str(missing))
+	# a toilet node (no specific animation) plays its cistern in place of the material sound, with no dust
+	WorldState.new_game()
+	var b: Node2D = load("res://scenes/Room_Modules/bathroom.tscn").instantiate()
+	add_child(b)
+	var toilet := _interactive(b, "anchor_centre_toilet", "s1")
+	toilet.on_search_begin()
+	var players := 0
+	var puffs := 0
+	for c in b.get_children():
+		if c is AudioStreamPlayer2D:
+			players += 1
+		if c.get_script() != null and String(c.get_script().resource_path).ends_with("dust_puff.gd"):
+			puffs += 1
+	check(players == 1 and puffs == 0, "a toilet makes ONE sound (its cistern) and no dust (%d sounds, %d puffs)" % [players, puffs])
+	b.queue_free()
+	# a microwave opens (door sound) AND beeps
+	var k: Node2D = _module("kitchen_d", "s2")
+	var mw := _interactive(k, "anchor_kitchen_microwave", "s2")
+	mw.on_search_begin()
+	var n2 := 0
+	for c in k.get_children():
+		if c is AudioStreamPlayer2D:
+			n2 += 1
+	check(n2 == 2, "a microwave's door AND its beep sound at the press (%d players)" % n2)
+	k.queue_free()
+	await get_tree().process_frame
+
+
+func _test_critters() -> void:
+	print("[round 45d: something small bolts out of a node now and then]")
+	WorldState.new_game()
+	var NR = load("res://scripts/node_reaction.gd")
+	# eligibility is by NAME, the roll is seeded: the same node answers the same way every time and about CRITTER_CHANCE of them are due one
+	var hits := 0
+	var total := 0
+	var again_same := true
+	for i in range(400):
+		var apt := "c%d" % i
+		var a: String = NR.critter_for(apt, "anchor_bedroom_clothes_pile")
+		total += 1
+		if a != "":
+			hits += 1
+		if NR.critter_for(apt, "anchor_bedroom_clothes_pile") != a:
+			again_same = false
+	check(again_same, "the same node answers the same way every time (seeded, never re-rolled)")
+	check(hits > total * 0.07 and hits < total * 0.24, "about %d%% of piles are due a rat (%d of %d)" % [int(NR.CRITTER_CHANCE * 100.0), hits, total])
+	check(NR.critter_for("c1", "anchor_study_desk_drawer") == "" and NR.critter_for("c1", "anchor_living_piano") == "", "a drawer or a piano never hides one")
+	var kinds := {}
+	for i in range(400):
+		for nm in ["anchor_bedroom_clothes_pile", "anchor_kitchen_tins", "anchor_bedroom_wardrobe"]:
+			var k: String = NR.critter_for("c%d" % i, nm)
+			if k != "":
+				kinds[k] = true
+	check(kinds.has("rat") and kinds.has("roach") and kinds.has("moth"), "piles give rats, food and damp give roaches, a wardrobe gives moths (%s)" % str(kinds.keys()))
+	# a due node really lets one out at the press, and it is harmless decoration that frees itself
+	var apt := ""
+	for i in range(400):
+		if NR.critter_for("d%d" % i, "anchor_bedroom_clothes_pile") == "rat":
+			apt = "d%d" % i
+			break
+	check(apt != "", "found a flat whose clothes pile hides a rat")
+	var m: Node2D = _module("bedroom_b", apt)
+	var node := _interactive(m, "anchor_bedroom_clothes_pile", apt)
+	node.on_search_begin()
+	var crit: Node2D = null
+	for c in m.get_children():
+		if c is NodeCritter:
+			crit = c
+	check(crit != null and crit.kind == "rat", "pressing the pile lets a rat out")
+	if crit != null:
+		check(not (crit is CollisionObject2D) and not crit.is_in_group("zombie") and not crit.is_in_group("survivor_prey"),
+			"…which has no body and is in no enemy group (it cannot block, bite or be bitten)")
+		var x0 := crit.position.x
+		await get_tree().create_timer(0.5).timeout
+		check(is_instance_valid(crit) and absf(crit.position.x - x0) > 20.0, "…it runs (moved %.0f px)" % absf(crit.position.x - x0))
+		await get_tree().create_timer(1.6).timeout
+		check(not is_instance_valid(crit), "…and is gone again by itself")
+	node.on_search_begin()
+	var n2 := 0
+	for c in m.get_children():
+		if c is NodeCritter:
+			n2 += 1
+	check(n2 == 0, "pressing the same node again lets nothing else out")
+	m.queue_free()
 	await get_tree().process_frame

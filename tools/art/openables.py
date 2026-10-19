@@ -352,16 +352,24 @@ def draw_topple(canvas, base_img, rect, f, direction, bg=None, thr=36, pivot_pad
     _paint_moved(canvas, mask, 0.0, 0.0, deg, pivot)
 
 
-def draw_shift(canvas, base_img, rect, f, dx, dy, deg=0.0, bg=None, thr=36, hump=0.0, fg=None, ref=None):
-    """A small thing shoved, slid or dropped: moved by (dx, dy) over the animation (`hump` lifts it on the way: something knocked off a shelf)."""
+def draw_shift(canvas, base_img, rect, f, dx, dy, deg=0.0, bg=None, thr=36, hump=0.0, fg=None, ref=None, path=None, idx=0, pivot='center'):
+    """A small thing shoved, slid, dropped or SWUNG. Either one move over the animation — by (dx, dy), turned `deg`, with a `hump` that
+    lifts it on the way (something knocked off a shelf) — or, with `path`, an explicit (dx, dy, deg) for every frame (a hanging garment
+    swinging, a rocker rocking: the last entry is where it rests). `pivot` is what it turns about: its 'center', its 'top' (hung from a
+    rail) or its 'bottom' (stood on the floor)."""
     mask = object_mask(base_img, rect, bg, thr, fg, ref)
     if not mask:
         return
     fill_vacated(canvas, base_img, mask)
     xs = [p[0] for p in mask]; ys = [p[1] for p in mask]
-    pivot = ((min(xs) + max(xs) + 1) / 2.0, (min(ys) + max(ys) + 1) / 2.0)
+    cx = (min(xs) + max(xs) + 1) / 2.0
+    cy = {'top': float(min(ys)), 'bottom': float(max(ys) + 1)}.get(pivot, (min(ys) + max(ys) + 1) / 2.0)
+    if path:
+        mdx, mdy, mdeg = path[max(0, min(idx, len(path) - 1))]
+        _paint_moved(canvas, mask, round(mdx), round(mdy), mdeg, (cx, cy))
+        return
     lift = -hump * 4.0 * f * (1.0 - f)
-    _paint_moved(canvas, mask, round(dx * f), round(dy * f + lift), deg * f, pivot)
+    _paint_moved(canvas, mask, round(dx * f), round(dy * f + lift), deg * f, (cx, cy))
 
 
 def draw_screen_off(canvas, base_img, rect, f, glass=(14, 18, 20)):
@@ -510,6 +518,18 @@ def clock_items(canvas, rect):
     rect_fill(canvas, mx - 2, y1 - 10, mx + 2, y1 - 10, (120, 98, 52, 255))
 
 
+def plates_items(canvas, rect):
+    """A china cabinet's insides: two shelves of plates stood on edge, a few cups."""
+    x0, y0, x1, y1 = rect
+    for sy in (y0 + (y1 - y0) // 3, y0 + 2 * (y1 - y0) // 3):
+        rect_fill(canvas, x0, sy + 3, x1, sy + 3, (120, 82, 56, 255))
+        px_ = x0 + 1
+        while px_ + 2 <= x1:
+            rect_fill(canvas, px_, sy - 3, px_ + 1, sy + 2, (224, 220, 206, 255))
+            rect_fill(canvas, px_, sy - 1, px_ + 1, sy, (96, 132, 176, 255))
+            px_ += 4
+
+
 OPENINGS_45C = {
     # ----- kitchens: ovens, a cooker, a microwave, a pizza box, things on tables -----
     'kitchen_b': {
@@ -608,6 +628,43 @@ OPENINGS_45C = {
 for _art, _d in OPENINGS_45C.items():
     OPENINGS.setdefault(_art, {}).update(_d)
 
+# --- round 45d: more of them — things that SWING or ROCK (a path of per-frame turns about a pivot), more doors, lids and tips ---
+OPENINGS_45D = {
+    'bedroom_d': {
+        'anchor_bedroom_clothes_rail': dict(kind='shift', rect=(225, 72, 259, 100), pivot='top', thr=8,
+                                            fg=[(95, 107, 78), (138, 74, 66), (46, 46, 51), (78, 93, 112), (76, 85, 62), (62, 74, 89),
+                                                (110, 59, 52), (36, 36, 40)],
+                                            path=[(0, 0, 6), (0, 0, -5), (0, 0, 3), (0, 0, -2), (0, 0, 0)]),
+    },
+    'bedroom_e': {
+        'anchor_bed_pillow': dict(kind='topple', rect=(126, 79, 140, 99), dir='r', fg=[(154, 106, 58), (107, 61, 40)], thr=10),
+    },
+    'bathroom_c': {
+        'anchor_bathroom_towel_stand': dict(kind='shift', rect=(232, 66, 248, 93), pivot='top', thr=8,
+                                            fg=[(122, 31, 42), (97, 24, 33), (141, 62, 72), (109, 27, 37)],
+                                            path=[(0, 0, 6), (0, 0, -5), (0, 0, 3), (0, 0, -2), (0, 0, 0)]),
+    },
+    'living_room_d': {
+        'anchor_living_china_cabinet': dict(kind='door_h', rect=(269, 80, 283, 97), angle=70, base=108, hinge='l', cavity='dark',
+                                            items=plates_items),
+    },
+    'kitchen_c': {
+    },
+    'kitchen_e': {
+        'anchor_kitchen_bag_table': dict(kind='topple', rect=(280, 81, 294, 96), dir='l', fg=[(78, 110, 160), (62, 88, 128)], thr=8),
+        'anchor_kitchen_buried_counter': dict(kind='topple', rect=(150, 66, 158, 77), dir='r', fg=[(122, 138, 90)], thr=10),
+        'anchor_kitchen_cat_tins': dict(kind='shift', rect=(264, 114, 271, 123), dx=9, dy=0, deg=180, hump=2.5, fg=[(78, 122, 160)], thr=10),
+    },
+    'study_d': {
+        'anchor_study_crates': dict(kind='lid', rect=(207, 69, 224, 82), rise=7, base=108, inside=(50, 62, 42), under=(84, 98, 70)),
+        'anchor_study_handset': dict(kind='shift', rect=(235, 76, 249, 100), pivot='bottom', thr=10,
+                                     fg=[(168, 50, 44), (92, 27, 24), (134, 40, 35)],
+                                     path=[(0, 0, 8), (1, 0, -6), (0, 0, 3), (0, 0, 0)]),
+    },
+}
+for _art, _d in OPENINGS_45D.items():
+    OPENINGS.setdefault(_art, {}).update(_d)
+
 
 def render(art_img, spec, f, ref=None):
     cv = art_img.copy()
@@ -622,8 +679,10 @@ def render(art_img, spec, f, ref=None):
     elif kind == 'topple':
         draw_topple(cv, art_img, spec['rect'], f, spec.get('dir', 'r'), spec.get('bg'), spec.get('thr', 36), spec.get('pad', 0), spec.get('fg'), ref)
     elif kind == 'shift':
+        nfr = len(spec['path']) if spec.get('path') else int(spec.get('frames', DEFAULT_FRAMES['shift']))
         draw_shift(cv, art_img, spec['rect'], f, spec.get('dx', 0), spec.get('dy', 0), spec.get('deg', 0.0), spec.get('bg'),
-                   spec.get('thr', 36), spec.get('hump', 0.0), spec.get('fg'), ref)
+                   spec.get('thr', 36), spec.get('hump', 0.0), spec.get('fg'), ref, spec.get('path'), int(round(f * nfr)) - 1,
+                   spec.get('pivot', 'center'))
     elif kind == 'screen_off':
         draw_screen_off(cv, art_img, spec['rect'], f, spec.get('glass', (14, 18, 20)))
     elif kind == 'lid':
@@ -643,7 +702,7 @@ def build_one(art_name, run, anchor, spec):
     base = Image.open(path).convert('RGBA')
     first = os.path.join(ROOMS, art_name + '.png')
     ref = Image.open(first).convert('RGBA') if run != 1 and os.path.exists(first) else None
-    nfr = int(spec.get('frames', DEFAULT_FRAMES.get(spec['kind'], FRAMES)))
+    nfr = len(spec['path']) if spec.get('path') else int(spec.get('frames', DEFAULT_FRAMES.get(spec['kind'], FRAMES)))
     fracs = [(i + 1) / float(nfr) for i in range(nfr)]
     frames = [render(base, spec, f, ref) for f in fracs]
     bp = base.load()

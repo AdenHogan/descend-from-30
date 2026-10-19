@@ -4,7 +4,7 @@
 > done. The drawer opens, for example, or a door swings open. Let's focus on the tutorial floor first… if we can get it
 > working visually we can roll out to more modules."
 
-**BUILT v1 (10 openings on the base modules) + 7 on other variants (owner round 45) + round 45c: 51 specific animations, a reaction on EVERY node, played at the press (see "Round 45c" below).** The module art is one baked picture, so an opened look is a **patch**
+**BUILT v1 (10 openings on the base modules) + 7 on other variants (owner round 45) + round 45c: 60 specific animations, a reaction on EVERY node, played at the press (see "Round 45c" / "Round 45d" below).** The module art is one baked picture, so an opened look is a **patch**
 laid over it once the node on that furniture is searched.
 
 ## Pipeline (`tools/art/openables.py`)
@@ -80,3 +80,24 @@ open frame's light, openings that survive a breach "nest" overlay being drawn ov
   mug, tea set, 2 TVs), studies (lamp, brush jar, CRT, monitor). Everything else: generic reaction.
 - **Not done:** beds' pillows / sofa cushions / toilets' lids (ambiguous in the art) / bookcases' books (the colour mask failed on busy shelves); real
   particles with weight; a tilt-and-rest for the chairs.
+
+## Round 45d — more to interact with when you search (owner: "add more interact features to searching nodes")
+- **Swing and rock** — `shift` gained `path` (an explicit `(dx, dy, deg)` for every frame; the last is where it rests) and `pivot` (`top` for something hung
+  from a rail, `bottom` for something stood on the floor, else `center`): the clothes on bedroom D's rail and bathroom C's towel sway, study D's jerrycan
+  rattles; a teddy bear (bedroom E) topples off its bed, a china cabinet's glass door (living D) swings, a crate lid (study D) lifts, a bag (kitchen E) falls
+  over, a can rolls. **60 specific animations** now (51 + 9; tried and dropped: kitchen C's pine-dresser door — the diamond-pattern front warps to noise).
+  Specs live in `OPENINGS_45D` (the 45c ones in `OPENINGS_45C`) — keep one entry per art, the later dict replaces by anchor.
+- **A sound of its own** (`NodeReaction.SPECIAL`, by anchor name; `not` excludes — toilet ROLLS, a sink CUPBOARD): toilets / thrones a ceramic lid + the
+  cistern trickling, sinks / basins / taps / tubs / showers a tap squeak and running water, a piano a hand on the keys, the grandfather clock tick-tock + chime,
+  a radio / handset tuning static, the microwave three beeps, the fridge a seal letting go, the printer a whir and feed, a record player / record shelf a needle
+  dragged, a beanbag letting out its air, sofas / armchairs / mattresses creaking springs, a rocking horse / toy chest squeaking, a wheelchair / trolley
+  rattling on its wheels (19 new generated files, `tools/gen_node_audio.py`). In place of the material sound on a generic node (`puff` says whether the dust
+  stays); `also` means it plays alongside a SPECIFIC animation (the microwave opens AND beeps, the clock's door opens AND it chimes, the radio's screen
+  dies AND it hisses). 57 nodes have one.
+- **Something small bolts out** (`scripts/node_critter.gd`, `NodeReaction.critter_for` / `startle`): about `CRITTER_CHANCE` 14% of the nodes that could hide
+  one — a RAT from piles / bags / boxes / bedding, a ROACH from damp and food places, a MOTH from a wardrobe or a clothes rail — let one out on the first
+  press: it freezes a beat, then runs away from the player across the floor (rat, roach) or flutters up (moth), a squeak, gone in ~1.5 s. Decoration only:
+  a plain Node2D, no body, no group, drawn in code. Seeded per (game, flat, node, run) so a re-entry never replays it. A test that counts what a press
+  produces must use a node whose NAME can't hide one (the generic-reaction test uses `bath_left`).
+- **Checked in the real engine** (xvfb, a scratch scene that rendered a module at game zoom and played a reaction): kitchen B's larder jar tips, its oven
+  drops, the rat runs. The rest are contact strips + headless tests.

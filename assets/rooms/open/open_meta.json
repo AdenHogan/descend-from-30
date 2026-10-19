@@ -25,6 +25,14 @@
    "w": 16,
    "x": 198,
    "y": 81
+  },
+  "anchor_bathroom_towel_stand": {
+   "frames": 5,
+   "h": 26,
+   "kind": "shift",
+   "w": 17,
+   "x": 231,
+   "y": 67
   }
  },
  "bathroom_e": {
@@ -131,9 +139,25 @@
    "w": 22,
    "x": 283,
    "y": 55
+  },
+  "anchor_bedroom_clothes_rail": {
+   "frames": 5,
+   "h": 31,
+   "kind": "shift",
+   "w": 39,
+   "x": 222,
+   "y": 72
   }
  },
  "bedroom_e": {
+  "anchor_bed_pillow": {
+   "frames": 4,
+   "h": 21,
+   "kind": "topple",
+   "w": 31,
+   "x": 128,
+   "y": 76
+  },
   "anchor_bedroom_dollhouse": {
    "frames": 4,
    "h": 18,
@@ -335,6 +359,30 @@
    "w": 28,
    "x": 205,
    "y": 91
+  },
+  "anchor_kitchen_bag_table": {
+   "frames": 4,
+   "h": 16,
+   "kind": "topple",
+   "w": 26,
+   "x": 267,
+   "y": 80
+  },
+  "anchor_kitchen_buried_counter": {
+   "frames": 4,
+   "h": 6,
+   "kind": "topple",
+   "w": 8,
+   "x": 151,
+   "y": 69
+  },
+  "anchor_kitchen_cat_tins": {
+   "frames": 4,
+   "h": 7,
+   "kind": "shift",
+   "w": 14,
+   "x": 264,
+   "y": 115
   }
  },
  "living_room": {
@@ -383,6 +431,14 @@
    "w": 44,
    "x": 267,
    "y": 98
+  },
+  "anchor_living_china_cabinet": {
+   "frames": 3,
+   "h": 32,
+   "kind": "door_h",
+   "w": 22,
+   "x": 270,
+   "y": 80
   },
   "anchor_living_tea_table": {
    "frames": 4,
@@ -438,6 +494,22 @@
   }
  },
  "study_d": {
+  "anchor_study_crates": {
+   "frames": 3,
+   "h": 19,
+   "kind": "lid",
+   "w": 19,
+   "x": 207,
+   "y": 64
+  },
+  "anchor_study_handset": {
+   "frames": 4,
+   "h": 19,
+   "kind": "shift",
+   "w": 17,
+   "x": 235,
+   "y": 80
+  },
   "anchor_study_radio": {
    "frames": 4,
    "h": 11,

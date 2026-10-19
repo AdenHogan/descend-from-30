@@ -51,6 +51,26 @@ const KIND_SOUNDS := {
 }
 
 
+## Things with a sound of their own (round 45d): the first entry whose `names` appear in the anchor's name (and none of its `not`) wins. `puff` =
+## also the dust of its material; `also` = it plays alongside a SPECIFIC animation too (a microwave that opens AND beeps), not only in place of
+## the generic sound.
+const SPECIAL := [
+	{"names": ["toilet", "throne"], "not": ["rolls"], "sounds": ["cistern_0"], "db": -13.0, "puff": false, "also": false},
+	{"names": ["sink", "basin", "taps", "tub", "shower", "washstand", "bubbles"], "not": ["cupboard"], "sounds": ["tap_0", "tap_1"], "db": -14.0, "puff": false, "also": false},
+	{"names": ["piano"], "sounds": ["piano_0", "piano_1", "piano_2"], "db": -12.0, "puff": false, "also": false},
+	{"names": ["clock"], "sounds": ["clock_0"], "db": -14.0, "puff": false, "also": true},
+	{"names": ["radio", "handset"], "sounds": ["static_0"], "db": -15.0, "puff": false, "also": true},
+	{"names": ["microwave"], "sounds": ["beep_0"], "db": -14.0, "puff": false, "also": true},
+	{"names": ["fridge"], "sounds": ["fridge_0"], "db": -12.0, "puff": false, "also": true},
+	{"names": ["printer"], "sounds": ["printer_0"], "db": -14.0, "puff": true, "also": false},
+	{"names": ["record_player", "records"], "sounds": ["needle_0"], "db": -14.0, "puff": false, "also": true},
+	{"names": ["beanbag"], "sounds": ["pffft_0"], "db": -13.0, "puff": true, "also": false},
+	{"names": ["sofa", "armchair", "wingback", "mattress"], "sounds": ["spring_0", "spring_1"], "db": -15.0, "puff": true, "also": false},
+	{"names": ["rocking_horse", "toy_chest"], "sounds": ["squeak_0", "squeak_1"], "db": -14.0, "puff": true, "also": false},
+	{"names": ["wheelchair", "trolley"], "sounds": ["roll_0", "roll_1"], "db": -14.0, "puff": false, "also": true},
+]
+
+
 ## What a node is made of, from its name ("anchor_study_book_pile" → paper). Anything else is wood (furniture).
 static func material_for(anchor_name: String) -> String:
 	var n := anchor_name.to_lower().replace("anchor_", "")
@@ -104,6 +124,73 @@ static func play_kind_sound(holder: Node, kind: String, at: Vector2) -> void:
 		_play_at(holder, load(path) as AudioStream, at, float(spec[2]))
 
 
+## Which nodes may startle a small creature, by their NAME (round 45d): piles / bags / boxes / bedding hide a rat, damp or food places a roach,
+## cloth in a wardrobe a moth. `CRITTER_CHANCE` of them actually do, seeded per game + flat + node + run so a re-entry never re-rolls.
+const CRITTER_NAMES := {
+	"rat": ["clothes", "laundry", "bag", "boxes", "crates", "pallet", "trash", "sleeping", "mattress", "hamper", "backpack", "pile", "underbed"],
+	"roach": ["sink", "cupboard", "oven", "pizza", "tins", "bucket", "larder", "units", "basin", "washer", "tub"],
+	"moth": ["wardrobe", "clothes_rail", "quilt", "chest"],
+}
+const CRITTER_CHANCE := 0.14
+const CRITTER_SQUEAK := "squeak_0"
+
+
+## "rat" / "roach" / "moth" if this node startles one this game, else "". Pure: the same node answers the same every time.
+static func critter_for(apartment_id: String, anchor_name: String) -> String:
+	var n := anchor_name.to_lower().replace("anchor_", "")
+	var kind := ""
+	for k in ["moth", "rat", "roach"]:
+		for kw in CRITTER_NAMES[k]:
+			if kind == "" and n.contains(String(kw)):
+				kind = k
+	if kind == "":
+		return ""
+	var h: int = hash(str(WorldState.master_seed) + "critter" + apartment_id + anchor_name + str(WorldState.current_run))
+	return kind if float(absi(h) % 1000) / 1000.0 < CRITTER_CHANCE else ""
+
+
+## Let one out (if this node is due one): it runs away from the player's side of the node, over the floor of `holder`'s coordinates.
+static func startle(node: Node2D, holder: Node) -> String:
+	var kind := critter_for(String(node.get("apartment_id")), node.name)
+	if kind == "" or holder == null:
+		return ""
+	var dir_x := 1.0 if (hash(node.name + str(WorldState.current_run)) % 2) == 0 else -1.0
+	var player := node.get_tree().get_first_node_in_group("player") as Node2D
+	if player != null:                                                    # away from the player
+		dir_x = 1.0 if node.global_position.x >= player.global_position.x else -1.0
+	if NodeCritter.spawn(holder, node.global_position + Vector2(0.0, -3.0), kind, dir_x, 120.0) == null:
+		return ""
+	if kind != "moth":
+		_play_at(holder, _stream(CRITTER_SQUEAK), node.global_position, -16.0, 1.9)
+	return kind
+
+
+## The special-sound entry for a node's name ({} if it has none).
+static func special_for(anchor_name: String) -> Dictionary:
+	var n := anchor_name.to_lower().replace("anchor_", "")
+	for entry in SPECIAL:
+		var blocked := false
+		for kw in entry.get("not", []):
+			if n.contains(String(kw)):
+				blocked = true
+		if blocked:
+			continue
+		for kw in entry["names"]:
+			if n.contains(String(kw)):
+				return entry
+	return {}
+
+
+## Play a node's own sound. `with_specific` = a specific animation is playing too: only the entries marked `also` sound then. Returns whether one played.
+static func play_special(holder: Node, anchor_name: String, at: Vector2, with_specific: bool) -> bool:
+	var entry := special_for(anchor_name)
+	if entry.is_empty() or (with_specific and not bool(entry["also"])):
+		return false
+	var stems: Array = entry["sounds"]
+	_play_at(holder, _stream(String(stems[randi() % stems.size()])), at, float(entry["db"]))
+	return true
+
+
 static func puff(holder: Node, material: String, at: Vector2) -> void:
 	if holder == null or not holder.is_inside_tree():
 		return
@@ -122,7 +209,9 @@ static func puff(holder: Node, material: String, at: Vector2) -> void:
 static func play_generic(node: Node2D, dead: bool = false) -> String:
 	var holder: Node = node.get_parent() if node.get_parent() != null else node
 	var material := "cloth" if dead else material_for(node.name)
-	if not dead:
+	var special: Dictionary = {} if dead else special_for(node.name)
+	if not dead and (special.is_empty() or bool(special["puff"])):
 		puff(holder, material, node.global_position + Vector2(0.0, -2.0))
-	play_material_sound(holder, material, node.global_position)
+	if special.is_empty() or not play_special(holder, node.name, node.global_position, false):
+		play_material_sound(holder, material, node.global_position)
 	return material

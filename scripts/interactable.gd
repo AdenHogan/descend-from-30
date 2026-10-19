@@ -358,8 +358,12 @@ func on_search_begin() -> void:
 	var spec: Node = holder.get_node_or_null("Open_" + String(name)) if holder != null else null
 	if spec != null and spec.has_method("play"):
 		spec.play()
+		if fresh:
+			NodeReaction.play_special(holder, name, global_position, true)      # a microwave that opens AND beeps
 	elif fresh:
 		NodeReaction.play_generic(self, has_meta("dead_body"))
+	if fresh and holder != null and not has_meta("dead_body"):
+		NodeReaction.startle(self, holder)                              # now and then something small bolts out of it
 
 
 func _open_loot() -> void:
