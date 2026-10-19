@@ -43,6 +43,7 @@ var _reach := 0.0
 
 
 func _ready() -> void:
+	add_to_group("module_anim")
 	kind = str(get_meta("kind", "drip"))
 	fall = float(get_meta("fall", 20))
 	col = Color(str(get_meta("color", "f2efe4")))
@@ -68,6 +69,17 @@ func _ready() -> void:
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	if SOUNDS.has(kind) and not _in_backdrop():
 		_start_sound(SOUNDS[kind])
+
+
+## A screen under this live detail was switched off (open_furniture.gd, kind `screen_off`): the snow / the struck picture / the blinking light stops.
+func screen_off(rect: Rect2) -> void:
+	if kind in ["static", "tv", "blink"] and rect.has_point(global_position):
+		visible = false
+		set_process(false)
+		if _sound != null:
+			_sound.stop()
+			_sound.queue_free()
+			_sound = null
 
 
 func _in_backdrop() -> bool:

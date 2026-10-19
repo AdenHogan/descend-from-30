@@ -164,6 +164,9 @@ func open(item_id: String, anchor_name: String, apartment_id: String) -> void:
 
 	reveal_timer = 0.0
 	is_revealing = true
+	# The press starts it: the drawer opens, the glass tips, the screen goes dark NOW, while the bar fills (owner round 45c)
+	if anchor_node != null and is_instance_valid(anchor_node) and anchor_node.has_method("on_search_begin"):
+		anchor_node.on_search_begin()
 	icon.texture = null
 	name_label.text = "Searching"
 	hint_label.text = ""
@@ -175,7 +178,7 @@ func open(item_id: String, anchor_name: String, apartment_id: String) -> void:
 func _reveal_item() -> void:
 	_layout(false)
 	WorldState.mark_anchor_searched(current_apartment_id, current_anchor_name)
-	get_tree().call_group("open_furniture", "on_searched", current_apartment_id, current_anchor_name)   # the drawer opens
+	get_tree().call_group("open_furniture", "on_searched", current_apartment_id, current_anchor_name)   # (already open since the press; a no-op then)
 	is_revealing = false
 	var item_data = ItemData.get_item(current_item_id)
 	if current_item_id == "" or item_data.is_empty():

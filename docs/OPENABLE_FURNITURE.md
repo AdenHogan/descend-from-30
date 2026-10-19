@@ -4,7 +4,7 @@
 > done. The drawer opens, for example, or a door swings open. Let's focus on the tutorial floor first… if we can get it
 > working visually we can roll out to more modules."
 
-**BUILT v1 (10 openings on the base modules) + 7 on other variants (owner round 45).** The module art is one baked picture, so an opened look is a **patch**
+**BUILT v1 (10 openings on the base modules) + 7 on other variants (owner round 45) + round 45c: 51 specific animations, a reaction on EVERY node, played at the press (see "Round 45c" below).** The module art is one baked picture, so an opened look is a **patch**
 laid over it once the node on that furniture is searched.
 
 ## Pipeline (`tools/art/openables.py`)
@@ -52,3 +52,31 @@ Add an entry to `OPENINGS` (rect of the front, kind, depth / angle, contents) �
 that sit on open shelves / cushions / sacks are still static. Candidates: bathroom cabinet, bedside tables in other variants,
 toilet lid, laundry sack, sofa cushions. Not built: a drawer / door sound (the doors' `doorOpen` set would do), a tween for the
 open frame's light, openings that survive a breach "nest" overlay being drawn over them (the overlay draws above).
+
+
+## Round 45c — nodes react the moment you press interact (owner)
+> "More things should move when a node is scavenged. Also the movement animations should happen when the player presses interact to begin the
+> scavenge of the node, not after… Every node, if it makes logical sense, should have an animation: search a table and a glass falls over, search
+> the oven and the oven door opens, search a computer and the static or screen turns off."
+
+- **When:** `Interactable.on_search_begin()` (from `loot_ui.open`) — at the press. It notes `WorldState.opened_anchors` (saved; "apt:anchor"), plays the
+  node's `Open_<anchor>` patch (`open_furniture.play`) or, with none, the generic reaction. `is_anchor_opened` = pressed OR searched, so a search
+  walked away from leaves the drawer open and an old save (searched only) still shows its drawers open. `loot_ui._reveal_item`'s old call stays as a
+  no-op safety.
+- **Generic reaction (all 205 nodes, `node_reaction.gd`):** dust / lint / paper specks (`dust_puff.gd`) + a positional sound by MATERIAL, read from the
+  anchor's name (`MATERIALS`: paper, cloth, metal, ceramic; else wood). Sounds are generated (`tools/gen_node_audio.py`).
+- **Specific kinds** (`openables.py`; each has a sound in `NodeReaction.KIND_SOUNDS`): `drawer`, `door_h`, `door_drop` as before; **`lid`** (top squashes
+  then the underside stands over the back edge — hamper, box, record player, pizza box; `inside` / `under` / `items`), **`topple`** (a small standing
+  thing tips about its bottom corner, 90° over `f^1.6`), **`shift`** (a small thing slid / knocked: dx, dy, deg, hump), **`screen_off`** (4 frames: the
+  picture squashes to a bright band, a line, a dot, dead glass with a sheen; the live static / TV / blink under it stops — `module_anim.screen_off`).
+  `topple` / `shift` find the object with `object_mask`: `fg=[colours]` (best against a busy backdrop) or `bg=[points|colours]`; the object is
+  FOUND on the run-1 art and its pixels TAKEN from the run's own look (the aged colours differ), the pixels it leaves are filled from the backdrop along
+  the row (`fill_vacated`), and rotation is sampled with four sub-pixel taps so 1-px sticks survive a tilt. **Gotcha:** a `bg` sample point that lands
+  ON the object makes the mask empty (the first dining-trolley bottle did nothing) — prefer `fg`; and check every spec on a contact strip.
+- **Placement rule (test):** drawers / doors sit ON their node's furniture (patch ±6 px); tipping things, screens and lids sit within 30 px sideways of the
+  node of the piece they belong to (a glass on its table, a TV over its sofa — the sofa's node turns the TV off: "you find the remote").
+- **Coverage:** `51 / 205`. By module: kitchens (ovens B/C/E, microwave, pizza box, cup, jars), bathrooms (vanity, cabinet, hamper, champagne), bedrooms
+  (3 wardrobes, trolley bottle, block tower, CRT, boxes), dining (trolley, vase, candelabra, party hat, record-player lid, clock case), living (coffee-table
+  mug, tea set, 2 TVs), studies (lamp, brush jar, CRT, monitor). Everything else: generic reaction.
+- **Not done:** beds' pillows / sofa cushions / toilets' lids (ambiguous in the art) / bookcases' books (the colour mask failed on busy shelves); real
+  particles with weight; a tilt-and-rest for the chairs.

@@ -346,6 +346,22 @@ func smash_cabinet_glass() -> void:
 	shards.burst(1.0 if randf() < 0.5 else -1.0)
 
 
+## The player pressed interact: the node's furniture reacts NOW, not when the search ends (owner round 45c). A specific animation if the module has
+## one for this node (`Open_<name>`, scripts/open_furniture.gd), else a generic puff + the sound of what it is made of (scripts/node_reaction.gd).
+## Called by loot_ui when a fresh search begins; remembered as opened so it stays open if the player walks away.
+func on_search_begin() -> void:
+	if name == WorldState.GUN_CABINET_ANCHOR or has_meta("ruin_scrap"):
+		return                                     # the cabinet has its own glass; a burnt flat's scrap is taken without a search
+	var fresh: bool = not WorldState.is_anchor_opened(apartment_id, name)
+	WorldState.note_anchor_opened(apartment_id, name)
+	var holder := get_parent()
+	var spec: Node = holder.get_node_or_null("Open_" + String(name)) if holder != null else null
+	if spec != null and spec.has_method("play"):
+		spec.play()
+	elif fresh:
+		NodeReaction.play_generic(self, has_meta("dead_body"))
+
+
 func _open_loot() -> void:
 	var item_id = WorldState.get_anchor_item(apartment_id, name)
 	var loot_ui = get_tree().get_root().find_child("LootUI", true, false)

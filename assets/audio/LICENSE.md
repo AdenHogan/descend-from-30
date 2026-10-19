@@ -29,3 +29,4 @@
 - `cat/meow_*.wav`, `story/scream_far.wav`, `story/growl.wav` — procedurally generated placeholder cues for the four run openings
   and Vivianne's cat (three meows, a far scream muffled by distance, a stomach growl; source-filter synthesis,
   `tools/gen_story_audio.py`). **CC0.** Replace with recorded sounds later (docs/CHARACTER_STORIES.md).
+- `room/*.wav` — procedurally generated sounds for searching a node (cloth rustle, paper crinkle, a ceramic / glass clink, a tin rattle, a drawer scraping out, a screen switching off, something tipping over and rolling; `tools/gen_node_audio.py`), played by `scripts/node_reaction.gd`. **CC0.** Replace with recorded foley later.

@@ -350,7 +350,8 @@ the quest stories themselves and their later stages). The quest **mechanics** be
 8. **Economy** — merchant stock / salvage worth for the Molotov, tooltip/hint wording for throwables, perk effects shown on
    durability in the Codex.
 9. **World** — per-floor decals on the lobby; the lobby's city view; hallway/lobby stair-sign polish; other module variants
-   beyond A getting openable furniture and front-layer window furniture; the cat in apartments / the lobby.
+   beyond A getting front-layer window furniture; the cat in apartments / the lobby. (Round 45c: every node already reacts at the press — a puff +
+   a material sound — and 51 of the 205 have their own animation; the other 154 can be given one in `OPENINGS_45C`.)
 10. **Y_PLANES §9** — the agreed placement-grid overlay for positioning things (spec locked, not built).
 11. **Arrival hitch** — `STAIRWELL_LAYERS.md` records a scene-load hitch on the fade path as still open. The seamless pan is
     now the main route down and I have not re-measured the hitch on either path, so treat it as unverified, not fixed.

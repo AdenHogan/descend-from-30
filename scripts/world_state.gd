@@ -709,6 +709,8 @@ var anchor_items: Dictionary = {}
 # = roll a random bundle as normal.
 var anchor_amounts: Dictionary = {}
 var searched_anchors: Dictionary = {}
+var opened_anchors: Dictionary = {}     # 'apt:anchor' → true once the player PRESSED interact on a node (its furniture opens / its things move then, not when the
+                                       # search ends; a search walked away from leaves the drawer open). Persists like searched_anchors; a save keeps it.
 # True while the loot panel is open — the panel then owns input (take with E /
 # click), so the room's anchor handling and the player's move/attack stand down.
 var loot_open: bool = false
@@ -1176,6 +1178,7 @@ func new_game() -> void:
 	anchor_items.clear()
 	anchor_amounts.clear()
 	searched_anchors.clear()
+	opened_anchors.clear()
 	inventory.clear()
 	has_backpack = not packless_rule
 	backpack_found = false
@@ -2680,6 +2683,9 @@ func dev_reset_tutorial() -> void:
 	for k in searched_anchors.keys():
 		if String(k).begins_with("3003:"):
 			searched_anchors.erase(k)
+	for k in opened_anchors.keys():
+		if String(k).begins_with("3003:"):
+			opened_anchors.erase(k)
 
 
 func mark_anchor_searched(apartment_id: String, anchor_name: String) -> void:
@@ -2690,6 +2696,17 @@ func mark_anchor_searched(apartment_id: String, anchor_name: String) -> void:
 func is_anchor_searched(apartment_id: String, anchor_name: String) -> bool:
 	var key = apartment_id + ":" + anchor_name
 	return searched_anchors.get(key, false)
+
+
+## The player pressed interact on this node: its furniture opens now (open_furniture.gd), whether or not the search is finished.
+func note_anchor_opened(apartment_id: String, anchor_name: String) -> void:
+	opened_anchors[apartment_id + ":" + anchor_name] = true
+
+
+## Open = pressed on, or searched (a node searched before this existed counts).
+func is_anchor_opened(apartment_id: String, anchor_name: String) -> bool:
+	var key = apartment_id + ":" + anchor_name
+	return opened_anchors.get(key, false) or searched_anchors.get(key, false)
 
 
 func _get_apartment_rng(apartment_id: String) -> RandomNumberGenerator:
@@ -5586,6 +5603,7 @@ func save_game(scene_path: String, record_live_zombies: bool = true) -> void:
 		"paradise_apartments": paradise_apartments,
 		"anchor_items": anchor_items,
 		"searched_anchors": searched_anchors,
+		"opened_anchors": opened_anchors,
 		"apartment_layouts": apartment_layouts,
 		"active_upgrades": active_upgrades,
 		"inventory": _serialize_inventory(),
@@ -5706,6 +5724,7 @@ func load_game() -> String:
 	paradise_apartments = data["paradise_apartments"]
 	anchor_items = data["anchor_items"]
 	searched_anchors = data["searched_anchors"]
+	opened_anchors = data.get("opened_anchors", {})
 	apartment_layouts = data["apartment_layouts"]
 	active_upgrades = data["active_upgrades"]
 	tutorial_zombie_spawned = data["tutorial_zombie_spawned"]

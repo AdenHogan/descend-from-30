@@ -1,17 +1,19 @@
 extends Sprite2D
 
-## A piece of furniture that CHANGES once its node has been searched (owner round 34: "when you search a
-## piece of furniture, many pieces of furniture change appearance when you're done. The drawer opens, or
-## a door swings open"). tools/art/openables.py bakes, per module art + anchor, a small frame sheet of the
-## furniture opening in true perspective (assets/rooms/open/<art>__<anchor>[_r2|_r3].png + open_meta.json);
+## A piece of furniture that CHANGES when its node is searched (owner round 34: "when you search a piece of furniture, many pieces of furniture
+## change appearance… The drawer opens, or a door swings open"; round 45c: "the movement animations should happen when the player presses interact
+## to begin the scavenge of the node, not after… every node, if it makes logical sense, should have an animation: search a table and a glass falls
+## over, search the oven and the oven door opens, search a computer and the screen turns off").
+## tools/art/openables.py bakes, per module art + anchor, a small frame sheet of the thing happening in true perspective
+## (assets/rooms/open/<art>__<anchor>[_r2|_r3].png + open_meta.json: a `kind` — drawer / door_h / door_drop / lid / topple / screen_off — and the frames);
 ## this node lies it over the module's art, just above the baked picture and below the scavenge orbs.
-## loot_ui calls `on_searched` the moment a search finishes (group "open_furniture"): the frames play once;
-## an anchor already searched (a re-entry, a load) simply shows the open look. Pure view of
-## WorldState.searched_anchors — nothing here is saved.
+## It PLAYS the moment the search BEGINS (Interactable.on_search_begin → `play`, which also notes WorldState.opened_anchors and makes the sound of
+## its kind); a search walked away from leaves it open. An anchor already opened or searched (a re-entry, a load) simply shows the rest state.
+## A pure view of WorldState.opened_anchors / searched_anchors — nothing here is saved.
 
 const META_PATH := "res://assets/rooms/open/open_meta.json"
 const DIR := "res://assets/rooms/open/"
-const STEP := 0.085                       # seconds per frame of the opening
+const STEP := 0.11                        # seconds per frame of the opening
 
 static var _meta: Dictionary = {}
 static var _meta_loaded := false
@@ -19,6 +21,7 @@ static var _meta_loaded := false
 var apartment_id := ""
 var anchor_name := ""
 var frames_total := 1
+var kind := "drawer"
 var _tween: Tween = null
 
 
@@ -57,6 +60,7 @@ static func attach(module: Node, apt: String, run: int) -> Array:
 		s.texture = tex
 		s.hframes = int(d.get("frames", 1))
 		s.frames_total = s.hframes
+		s.kind = String(d.get("kind", "drawer"))
 		s.centered = false
 		s.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		s.position = Vector2(float(d["x"]), float(d["y"]))
@@ -83,16 +87,19 @@ func is_open() -> bool:
 	return visible
 
 
-## Show the rest state (open if searched, hidden if not) with no animation.
+## Show the rest state (open if pressed on or searched, hidden if not) with no animation.
 func refresh() -> void:
 	if _tween != null and _tween.is_valid():
 		_tween.kill()
-	visible = WorldState.is_anchor_searched(apartment_id, anchor_name)
+	visible = WorldState.is_anchor_opened(apartment_id, anchor_name)
 	frame = frames_total - 1
+	if visible:
+		_stop_live_screens()
 
 
-func on_searched(apt: String, anchor: String) -> void:
-	if apt != apartment_id or anchor != anchor_name or visible:
+## The player pressed interact on this node: play the opening now (once), with the sound of its kind.
+func play() -> void:
+	if visible:
 		return
 	visible = true
 	frame = 0
@@ -102,3 +109,29 @@ func on_searched(apt: String, anchor: String) -> void:
 	for i in range(1, frames_total):
 		_tween.tween_interval(STEP)
 		_tween.tween_callback(func(): frame = i)
+	if kind == "screen_off":
+		_tween.tween_callback(_stop_live_screens)
+	NodeReaction.play_kind_sound(get_parent() if get_parent() != null else self, kind, _centre())
+
+
+## A search is finished: make sure it is open (it normally has been since the press). Kept as the old entry point (group call / tools).
+func on_searched(apt: String, anchor: String) -> void:
+	if apt == apartment_id and anchor == anchor_name:
+		play()
+
+
+func on_search_start(apt: String, anchor: String) -> void:
+	if apt == apartment_id and anchor == anchor_name:
+		play()
+
+
+func _centre() -> Vector2:
+	return to_global(Vector2(float(texture.get_width()) / float(maxi(1, hframes)), float(texture.get_height())) * 0.5) if texture != null else global_position
+
+
+## A live screen under this patch (static, a struck TV, a blinking light) goes dark with it (scripts/module_anim.gd `screen_off`).
+func _stop_live_screens() -> void:
+	if kind != "screen_off" or texture == null:
+		return
+	var size := Vector2(float(texture.get_width()) / float(maxi(1, hframes)), float(texture.get_height()))
+	get_tree().call_group("module_anim", "screen_off", Rect2(global_position, size))

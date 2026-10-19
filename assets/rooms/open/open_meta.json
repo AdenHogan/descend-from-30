@@ -1,8 +1,55 @@
 {
+ "bathroom_b": {
+  "anchor_bathroom_radio_stool": {
+   "frames": 4,
+   "h": 8,
+   "kind": "screen_off",
+   "w": 12,
+   "x": 273,
+   "y": 79
+  },
+  "anchor_bathroom_vanity": {
+   "frames": 3,
+   "h": 38,
+   "kind": "door_h",
+   "w": 28,
+   "x": 0,
+   "y": 87
+  }
+ },
+ "bathroom_c": {
+  "anchor_bathroom_champagne": {
+   "frames": 4,
+   "h": 13,
+   "kind": "topple",
+   "w": 16,
+   "x": 198,
+   "y": 81
+  }
+ },
+ "bathroom_e": {
+  "anchor_bathroom_frosted_cabinet": {
+   "frames": 3,
+   "h": 35,
+   "kind": "door_h",
+   "w": 19,
+   "x": 282,
+   "y": 77
+  },
+  "anchor_bathroom_hamper": {
+   "frames": 3,
+   "h": 19,
+   "kind": "lid",
+   "w": 22,
+   "x": 211,
+   "y": 71
+  }
+ },
  "bedroom": {
   "anchor_bedside": {
    "frames": 3,
    "h": 19,
+   "kind": "drawer",
    "w": 32,
    "x": 44,
    "y": 89
@@ -10,6 +57,7 @@
   "anchor_floor_underbed": {
    "frames": 3,
    "h": 18,
+   "kind": "drawer",
    "w": 29,
    "x": 138,
    "y": 108
@@ -17,33 +65,105 @@
   "anchor_wall_right_lower": {
    "frames": 3,
    "h": 25,
+   "kind": "drawer",
    "w": 41,
    "x": 279,
    "y": 90
+  },
+  "anchor_wall_right_upper": {
+   "frames": 3,
+   "h": 61,
+   "kind": "door_h",
+   "w": 25,
+   "x": 279,
+   "y": 42
   }
  },
  "bedroom_b": {
+  "anchor_bedroom_desk": {
+   "frames": 4,
+   "h": 13,
+   "kind": "screen_off",
+   "w": 16,
+   "x": 29,
+   "y": 62
+  },
   "anchor_bedroom_desk_drawer": {
    "frames": 3,
    "h": 19,
+   "kind": "drawer",
    "w": 19,
    "x": 3,
    "y": 99
   }
  },
  "bedroom_c": {
+  "anchor_bedroom_med_trolley": {
+   "frames": 4,
+   "h": 7,
+   "kind": "topple",
+   "w": 9,
+   "x": 257,
+   "y": 83
+  },
   "anchor_bedroom_pill_cabinet": {
    "frames": 3,
    "h": 17,
+   "kind": "drawer",
    "w": 31,
    "x": 283,
    "y": 87
+  },
+  "anchor_bedroom_wardrobe": {
+   "frames": 3,
+   "h": 74,
+   "kind": "door_h",
+   "w": 26,
+   "x": 0,
+   "y": 41
+  }
+ },
+ "bedroom_d": {
+  "anchor_bedroom_boxes": {
+   "frames": 3,
+   "h": 18,
+   "kind": "lid",
+   "w": 22,
+   "x": 283,
+   "y": 55
+  }
+ },
+ "bedroom_e": {
+  "anchor_bedroom_dollhouse": {
+   "frames": 4,
+   "h": 18,
+   "kind": "topple",
+   "w": 25,
+   "x": 50,
+   "y": 78
+  },
+  "anchor_bedroom_small_wardrobe": {
+   "frames": 3,
+   "h": 70,
+   "kind": "door_h",
+   "w": 28,
+   "x": 292,
+   "y": 46
   }
  },
  "dining_room": {
+  "anchor_dining_trolley": {
+   "frames": 4,
+   "h": 14,
+   "kind": "topple",
+   "w": 17,
+   "x": 246,
+   "y": 74
+  },
   "anchor_right_lowerdrawers": {
    "frames": 3,
    "h": 42,
+   "kind": "door_h",
    "w": 24,
    "x": 280,
    "y": 76
@@ -51,33 +171,79 @@
   "anchor_right_upperdrawers": {
    "frames": 3,
    "h": 16,
+   "kind": "drawer",
    "w": 28,
    "x": 279,
    "y": 67
   }
  },
  "dining_room_b": {
+  "anchor_dining_record_player": {
+   "frames": 3,
+   "h": 14,
+   "kind": "lid",
+   "w": 22,
+   "x": 277,
+   "y": 58
+  },
   "anchor_right_lowerdrawers": {
    "frames": 3,
    "h": 19,
+   "kind": "drawer",
    "w": 68,
    "x": 252,
    "y": 96
+  },
+  "anchor_table_left": {
+   "frames": 4,
+   "h": 24,
+   "kind": "topple",
+   "w": 36,
+   "x": 152,
+   "y": 71
   }
  },
  "dining_room_c": {
+  "anchor_dining_candelabra": {
+   "frames": 4,
+   "h": 24,
+   "kind": "topple",
+   "w": 36,
+   "x": 170,
+   "y": 67
+  },
+  "anchor_dining_grandfather_clock": {
+   "frames": 3,
+   "h": 52,
+   "kind": "door_h",
+   "w": 17,
+   "x": 104,
+   "y": 60
+  },
   "anchor_right_upperdrawers": {
    "frames": 3,
    "h": 20,
+   "kind": "drawer",
    "w": 62,
    "x": 258,
    "y": 84
+  }
+ },
+ "dining_room_e": {
+  "anchor_table_left": {
+   "frames": 4,
+   "h": 14,
+   "kind": "topple",
+   "w": 20,
+   "x": 152,
+   "y": 76
   }
  },
  "kitchen": {
   "anchor_centre_fridge": {
    "frames": 3,
    "h": 88,
+   "kind": "door_h",
    "w": 31,
    "x": 7,
    "y": 34
@@ -85,42 +251,161 @@
   "anchor_centre_oven": {
    "frames": 3,
    "h": 31,
+   "kind": "door_drop",
    "w": 33,
    "x": 156,
    "y": 87
   }
  },
+ "kitchen_b": {
+  "anchor_centre_oven": {
+   "frames": 3,
+   "h": 27,
+   "kind": "door_drop",
+   "w": 29,
+   "x": 93,
+   "y": 90
+  },
+  "anchor_kitchen_formica_table": {
+   "frames": 4,
+   "h": 10,
+   "kind": "shift",
+   "w": 17,
+   "x": 206,
+   "y": 84
+  },
+  "anchor_kitchen_larder": {
+   "frames": 4,
+   "h": 7,
+   "kind": "topple",
+   "w": 10,
+   "x": 287,
+   "y": 78
+  }
+ },
  "kitchen_c": {
+  "anchor_centre_oven": {
+   "frames": 3,
+   "h": 46,
+   "kind": "door_h",
+   "w": 26,
+   "x": 134,
+   "y": 86
+  },
   "anchor_kitchen_dresser_drawer": {
    "frames": 3,
    "h": 20,
+   "kind": "drawer",
    "w": 42,
    "x": 0,
+   "y": 91
+  },
+  "anchor_kitchen_pine_table": {
+   "frames": 4,
+   "h": 10,
+   "kind": "topple",
+   "w": 14,
+   "x": 246,
+   "y": 84
+  }
+ },
+ "kitchen_d": {
+  "anchor_kitchen_microwave": {
+   "frames": 3,
+   "h": 26,
+   "kind": "door_h",
+   "w": 20,
+   "x": 194,
+   "y": 63
+  },
+  "anchor_kitchen_pizza_boxes": {
+   "frames": 3,
+   "h": 17,
+   "kind": "lid",
+   "w": 20,
+   "x": 244,
+   "y": 86
+  }
+ },
+ "kitchen_e": {
+  "anchor_centre_oven": {
+   "frames": 3,
+   "h": 26,
+   "kind": "door_drop",
+   "w": 28,
+   "x": 205,
    "y": 91
   }
  },
  "living_room": {
+  "anchor_centre_coffeetable": {
+   "frames": 4,
+   "h": 10,
+   "kind": "topple",
+   "w": 15,
+   "x": 172,
+   "y": 89
+  },
   "anchor_right_chair": {
    "frames": 3,
    "h": 21,
+   "kind": "drawer",
    "w": 50,
    "x": 264,
    "y": 78
+  }
+ },
+ "living_room_b": {
+  "anchor_centre_sofaleft": {
+   "frames": 4,
+   "h": 16,
+   "kind": "screen_off",
+   "w": 17,
+   "x": 139,
+   "y": 55
+  }
+ },
+ "living_room_c": {
+  "anchor_centre_sofaleft": {
+   "frames": 4,
+   "h": 28,
+   "kind": "screen_off",
+   "w": 56,
+   "x": 148,
+   "y": 34
   }
  },
  "living_room_d": {
   "anchor_living_cabinet_cupboard": {
    "frames": 3,
    "h": 15,
+   "kind": "drawer",
    "w": 44,
    "x": 267,
    "y": 98
+  },
+  "anchor_living_tea_table": {
+   "frames": 4,
+   "h": 13,
+   "kind": "topple",
+   "w": 21,
+   "x": 115,
+   "y": 88
   }
  },
  "study": {
+  "anchor_centre_desk": {
+   "frames": 4,
+   "h": 21,
+   "kind": "topple",
+   "w": 35,
+   "x": 148,
+   "y": 69
+  },
   "anchor_study_desk_drawer": {
    "frames": 3,
    "h": 20,
+   "kind": "drawer",
    "w": 25,
    "x": 199,
    "y": 96
@@ -128,18 +413,48 @@
   "anchor_study_filing": {
    "frames": 3,
    "h": 21,
+   "kind": "drawer",
    "w": 41,
    "x": 279,
    "y": 67
   }
  },
  "study_b": {
+  "anchor_centre_desk": {
+   "frames": 4,
+   "h": 12,
+   "kind": "screen_off",
+   "w": 14,
+   "x": 131,
+   "y": 59
+  },
   "anchor_study_desk_drawer": {
    "frames": 3,
    "h": 20,
+   "kind": "drawer",
    "w": 19,
    "x": 100,
    "y": 93
+  }
+ },
+ "study_d": {
+  "anchor_study_radio": {
+   "frames": 4,
+   "h": 11,
+   "kind": "screen_off",
+   "w": 17,
+   "x": 151,
+   "y": 63
+  }
+ },
+ "study_e": {
+  "anchor_study_trestle": {
+   "frames": 4,
+   "h": 15,
+   "kind": "topple",
+   "w": 20,
+   "x": 228,
+   "y": 81
   }
  }
 }
