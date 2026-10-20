@@ -56,7 +56,12 @@ window back-off). **`furnlib.LEAN_MODE = 'none'`** renders everything straight-o
 
 ```
 tools/art/furnlib.py        the kit: @piece(...) registry, the sprite renderer (lean buckets, open states), the logic table
-tools/art/furn_bedroom.py   shared + adult pieces      furn_bedroom_b.py teen   _c.py sick   _d.py refuge   _e.py kid
+tools/art/furn_bedroom.py   shared + adult pieces      furn_bedroom_b.py teen   _c.py sick   _d.py refuge   _e.py kid     (the first-pass pieces that have NOT been redrawn yet — see "Art pass" below)
+tools/art/propkit.py        shaded primitives (sphere / cylinder / frustum / slab, tone ramps, selective outline, contact shadow) — what makes a small thing look round
+tools/art/bedding.py + furn_beds.py   every bed: covers drawn IN PERSPECTIVE (pattern mapped back onto the mattress plane), pillows, folds, throws, mattress + sleeping bag
+tools/art/furn_props.py, furn_props2.py, furn_more.py   the small things (lamps, clock, books, suitcase… shoes, clothes, rug, backpack, crates, boxes, plants, bedside table)
+tools/art/furn_seats.py     the chairs + rocking horse as little 3D models (chair3d.py renders them)     furn_medical.py  drip stand, wheelchair (3D), trolley
+tools/art/furn_dollhouse.py, furn_wardrobes.py   the dolls' house; the wardrobes + pill cabinet
 tools/art/furn_rooms.py     the recipes (shape of each style) + the rules export
 tools/art/shells.py, furn_shells.py   the bare rooms
 tools/art/furn_build.py     writes assets/furniture/*.png (+ open/ strips), data/furniture.json, docs/art_reference/furniture/pieces.png     [--check = the gate]
@@ -98,7 +103,31 @@ end), `lights`, `slots` (surfaces things stand on: `kinds` it takes), `anims`, `
   other rooms (lamps, pictures, rugs, plants, clocks, mirrors, chests, bookcases, armchairs, backpacks, boxes) — those are the first things the next room type reuses.
 * **Per-piece loot** (a nightstand holding pills, a toy chest holding toys) — loot is still by room type.
 
+## Art pass 1 (owner round 47b — "bad, bad mspaint… more depth and detail… let's iterate")
+
+The first-pass pieces were flat colour fills. What changed, and the method (so the next pass does the same):
+
+* **A kit for volume** (`propkit.py`): spheres, cylinders and cones are lit by their own surface normal (a 5-tone ramp, light from the upper left), glossy things get a specular dash, every
+  object is drawn on a scratch layer and given a **selective outline** (the darkened colour of what it surrounds, never plain black), and stands in a soft contact shadow.
+* **Beds** (`bedding.py`): the cover's pattern (stripe, band, check, plaid, quilt stitching, stars, dots, patchwork) is drawn by mapping each pixel of the mattress top back to its place on the bed
+  (the inverse of `pixlib.pp`), so it converges like everything else and is regular whatever the lean. Tucked / rolled edges, a turned-down sheet, creases, a lump over the feet, a front drape with folds
+  and piping, a knitted throw with fringe, a plump pillow with a dent and a pillowcase border; a floor mattress is ticking with tufts and stains, with a real sleeping bag (baffles, zip, lining) on it.
+  `furn.persp_bed` gained an optional `bedding=` hook (default None — the baked rooms are byte-identical). **There is no box under any bed any more**: the dark gap under the frame is what the
+  `underbed` node searches. Variants are `<head>_<cover>` (`l_sage`, `r_plum`…).
+* **Chairs and the horse are 3D** (`furn_seats.py`, `furn_medical.py`): `chair3d` renders a small model turned by a yaw, so a chair / child's chair / rocking horse / wheelchair has depth from any angle.
+  The **beanbag is gone**; a wooden chair (ladder or spindle back, a cardigan sometimes thrown over it, at most one a room), a child's chair (painted) and a **rocking horse** (white, grey, brown — and a
+  bloodied one in one variant of four) took its place. A new `vanity` slot kind keeps jewellery boxes, scent bottles and hairbrushes on dressing tables and chests of drawers (never a bookcase).
+* **Redrawn**: all 12 things that stand on a surface; shoes, trainers, slippers, clothes, the rug, the backpack, the bedside crate, cardboard boxes, the ghost of a picture; the armchair (3D);
+  the dolls' house (two storeys open at the front, four papered rooms with tiny furniture, one dark with a doll in it, a shingled roof and a brick chimney); the wardrobes (cornice, raised panels, escutcheons,
+  a mirrored one with a gilt frame and a cracked variant, the child's with a scalloped pelmet and a stencilled star / moon) and the pill cabinet; the drip stand (cut to scale), the trolley, the
+  plants, the bedside table, the crates with a camping stove.
+* **Still first-pass (flat) — the next pass**: bookcase_low, chest_drawers, dressing_table, desk_crt's chair-less desk body, clothes_rail, toy_chest, toy_shelf, block_tower, ball, rag_doll, laundry_basket,
+  floor_stain, tally_marks, the wall pictures / clock / mirror / shelf, the ceiling lights, `bed_*` frames (headboards are the legacy boards).
+* Checks added: `furniture_test` — no bed variant is a "box" variant, every bed keeps a node to search, the beanbag is gone, the chairs / horse exist, and the vanity rule (mutation-checked: the host test fails
+  if it is narrowed to chests only). **Test gotcha learned**: a SCRIPT ERROR inside a test function aborts it and the scene still prints "ALL PASSED" — only `tools/run_all_tests.sh` (which scans for it) is
+  trustworthy; when running a suite by hand grep for `SCRIPT ERROR` too.
+
 ## Numbers (so far)
 
-77 pieces, 571 sprites; 5 shells; 5 recipes. 1000 planned rooms in the test: 0 rule violations, 0 fallbacks; planning costs ~16 ms a room on average (cached per flat+slot,
+78 pieces, 716 sprites; 5 shells; 5 recipes. 1000 planned rooms in the test: 0 rule violations, 0 fallbacks; planning costs ~16 ms a room on average (cached per flat+slot,
 shared by the live room and its pan backdrop).

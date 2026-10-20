@@ -12,39 +12,6 @@ from pixlib import hexc, shade, rrect, pp, pbox
 from furn_bedroom import _legacy
 
 TOY_R, TOY_Y, TOY_B, TOY_G = BV.TOY_R, BV.TOY_Y, BV.TOY_B, BV.TOY_G
-KID_DUVETS = {'pink': (hexc('d98aa0'), hexc('b86a80'), hexc('e8a8b8')), 'blue': (hexc('7aa0c8'), hexc('5a80a8'), hexc('9ac0e0')), 'yellow': (hexc('e6c24a'), hexc('c4a032'), hexc('f0d472'))}
-BOARD = (hexc('e6e0cc'), hexc('f4f0e4'), hexc('8a8270'))
-
-
-def _kid_beds():
-    v = {}
-    for h in ('left', 'right'):
-        for d in KID_DUVETS:
-            v['%s_%s' % (h[0], d)] = {'head': h, 'duvet': d}
-    return v
-
-
-@piece('bed_kid', 79, 40, 'front', rooms={'bedroom': 5}, styles={'kid': 8}, tags=('sleeping',), variants=_kid_beds(), bucketed=True,
-       anchors=({'name': 'bed_pillow', 'dx': 16, 'dy': -26, 'head_rel': True},), feet=(114, 116), near=('bedside',), note='a small bed with a teddy bear on the pillow')
-def bed_kid(c, ox, oy, p):
-    d = KID_DUVETS[p['duvet']]
-    F.persp_bed(c, ox, ox + 78, oy, head=p['head'], head_top=76, foot_top=84, board=BOARD, duvet=d)
-    hx = 16 if p['head'] == 'left' else 62                                                  # the teddy sits at the head end
-    c.ellipse(ox + hx, oy - 28, 5, 5, hexc('9a6a3a')); c.ellipse(ox + hx - 4, oy - 33, 2, 2, hexc('9a6a3a'))
-    c.ellipse(ox + hx + 4, oy - 33, 2, 2, hexc('9a6a3a')); c.put(ox + hx - 1, oy - 29, hexc('1e1a16')); c.put(ox + hx + 2, oy - 29, hexc('1e1a16'))
-    c.ellipse(ox + hx, oy - 21, 4, 3, hexc('9a6a3a'))
-
-
-def _dollhouse(c):
-    BV._e_dollhouse(c)
-
-
-@piece('dollhouse_table', 41, 56, 'wall', rooms={'bedroom': 4, 'living_room': 2}, styles={'kid': 8}, tags=('toy',), depth=4, surface_h=19, variants={'a': {}},
-       anchors=({'name': 'dollhouse', 'dx': 20, 'dy': -25},), feet=(105, 108), note="a dolls' house on a low table: one room dark, a tiny figure in it")
-def dollhouse_table(c, ox, oy, p):
-    _legacy(c, _dollhouse, ox - 5, oy - 99)
-
-
 @piece('toy_shelf', 28, 22, 'decor', rooms={'bedroom': 5, 'living_room': 2}, styles={'kid': 8}, tags=('toy', 'shelf'), wall_y=(36, 50), limit=1,
        note='a painted shelf on brackets: blocks, a bunny, a toy car')
 def toy_shelf(c, ox, oy, p):
@@ -75,25 +42,6 @@ def ball(c, ox, oy, p):
     c.ellipse(ox + 5, oy - 4, 4, 4, TOY_R)
     c.hline(ox + 1, ox + 9, oy - 4, hexc('f0ead8'))
     c.put(ox + 3, oy - 6, hexc('f0a8a0'))
-
-
-def _horse(c):
-    c.shadow(76, 121, 14, 2, 110)
-    for x in range(60, 95):
-        y = 121 - int(((x - 77) / 17.0) ** 2 * 6)
-        c.put(x, y, F.WOOD[0]); c.put(x, y - 1, F.WOOD[1])
-    c.line(68, 119, 72, 106, F.WOOD[0]); c.line(86, 119, 82, 106, F.WOOD[0])
-    rrect(c, 66, 98, 88, 107, hexc('e6e0cc'), 3)
-    c.poly([(84, 99), (92, 90), (96, 92), (90, 101)], hexc('e6e0cc'))
-    c.put(93, 92, hexc('1e1a16'))
-    c.poly([(86, 98), (90, 90), (88, 98)], hexc('8a4a2a'))
-    c.rect(72, 97, 78, 99, hexc('a8322c'))
-
-
-@piece('rocking_horse', 38, 20, 'floor', rooms={'bedroom': 4, 'living_room': 3}, styles={'kid': 8}, tags=('toy',), variants={'a': {}}, anchors=({'name': 'rocking_horse', 'dx': 17, 'dy': -19},),
-       near=('sleeping',), feet=(116, 121), note='a rocking horse on its curved rockers')
-def rocking_horse(c, ox, oy, p):
-    _legacy(c, _horse, ox - 60, oy - 121)
 
 
 def _toy_chest(c, cx):
@@ -133,12 +81,6 @@ def rag_doll(c, ox, oy, p):
     c.put(ox + 4, oy - 12, hexc('1e1a16')); c.put(ox + 6, oy - 12, hexc('1e1a16'))
     c.poly([(ox + 2, oy - 9), (ox + 8, oy - 9), (ox + 10, oy - 3), (ox, oy - 3)], hexc('7a9ad0'))
     c.put(ox, oy - 3, hexc('f0d8c0')); c.put(ox + 10, oy - 3, hexc('f0d8c0'))
-
-
-@piece('wardrobe_small', 29, 68, 'wall', rooms={'bedroom': 4}, styles={'kid': 8}, tags=('wardrobe', 'storage'), depth=4, variants={'a': {}},
-       anchors=({'name': 'small_wardrobe', 'dx': 14, 'dy': -29},), feet=(105, 108), note='a small white wardrobe with a pink pelmet')
-def wardrobe_small(c, ox, oy, p):
-    _legacy(c, BV._e_wardrobe, ox - 278, oy - 99)
 
 
 @piece('ceiling_paper', 15, 22, 'ceiling', rooms={'bedroom': 3, 'living_room': 2}, styles={'kid': 8}, tags=('light', 'ceiling'), variants={'white': {}},

@@ -617,7 +617,7 @@ def _q(p_):
 
 def persp_bed(c, x0, x1, base, head='left', head_top=70, foot_top=80, board=None, duvet=None,
               iron=False, knob=None, sheet=(BED_SHEET, BED_SHEET_DK), pillow=(BED_PILLOW, BED_PILLOW_DK),
-              legs=True, rail=True, fold=True, rumples=True, hem_drop=8, low=False):
+              legs=True, rail=True, fold=True, rumples=True, hem_drop=8, low=False, bedding=None):
     from pixlib import pp, pbox
     d1 = base - 100
     s1 = (100.0 + d1) / 100.0
@@ -686,6 +686,15 @@ def persp_bed(c, x0, x1, base, head='left', head_top=70, foot_top=80, board=None
             c.rect(a_[0], a_[1] + 1, b_[0], b_[1], out)
     sh, sh_dk = sheet
     pbox(c, xm0, ym, xm1, ymb, 0, d1, sh_dk, sh, shade(sh_dk, 0.85))
+    if bedding is not None:                      # a piece that dresses its own bed (tools/art/bedding.py — the furniture library): it paints the pillow, the covers and whatever lies
+        geo = {'wx0': wx0, 'wx1': wx1, 'xm0': xm0, 'xm1': xm1, 'd1': d1, 'ym': ym, 'ymb': ymb, 'head': head, 'low': low}      # on the mattress, then the board that stands in front of them
+        bedding(c, geo)
+        for (side, bx0, bx1, top) in ends:
+            if iron:
+                draw_board(side, bx0, bx1, top, 'front')
+            elif not faces_in(side, bx0, bx1):
+                draw_board(side, bx0, bx1, top)
+        return geo
     # the pillow at the head end, lying on the mattress
     pw = 14
     px0, px1 = (xm0 + 1, xm0 + 1 + pw) if head == 'left' else (xm1 - 1 - pw, xm1 - 1)

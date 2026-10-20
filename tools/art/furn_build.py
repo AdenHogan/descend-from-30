@@ -20,6 +20,14 @@ import furn_bedroom_b  # noqa: F401
 import furn_bedroom_c  # noqa: F401
 import furn_bedroom_d  # noqa: F401
 import furn_bedroom_e  # noqa: F401
+import furn_props  # noqa: F401
+import furn_beds  # noqa: F401
+import furn_seats  # noqa: F401
+import furn_dollhouse  # noqa: F401
+import furn_wardrobes  # noqa: F401
+import furn_props2  # noqa: F401
+import furn_medical  # noqa: F401
+import furn_more  # noqa: F401
 import furn_rooms
 
 PIECE_MODULES = ('furn_bedroom',)

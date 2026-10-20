@@ -24,15 +24,15 @@ RECIPES = {
         flank=dict(tag='bedside', chance=0.9),
         wall=dict(count=[1, 3], must=['wardrobe|dressing']),
         tops=0.8, decor=[2, 4], clutter=[1, 3], rug=0.6, ceiling=1.0, min_front=2,
-        fallback=[dict(id='bed_wood', variant='l_sage_box', x=100, y=115), dict(id='nightstand_wood', variant='dark', x=62, y=106),
-                  dict(id='clothes_pile', variant='blue_red', x=170, y=120), dict(id='ceiling_flush', variant='a', x=150, y=0)]),
+        fallback=[dict(id='bed_wood', variant='l_sage', x=100, y=115), dict(id='nightstand_wood', variant='dark', x=62, y=106),
+                  dict(id='clothes_pile', variant='blue_red', x=170, y=119), dict(id='ceiling_flush', variant='a', x=150, y=0)]),
     'bedroom/teen': dict(
         legacy=1, weight=22, shell='bedroom_shell_b',
         centre=dict(tag='sleeping', x=[70, 170]),
         flank=dict(tag='bedside', chance=0.85),
         wall=dict(count=[1, 3], must=['work']),
         tops=0.8, decor=[2, 4], clutter=[1, 3], rug=0.3, ceiling=1.0, min_front=2,
-        fallback=[dict(id='bed_pine', variant='l_stars_box', x=100, y=115), dict(id='trainers', variant='white', x=60, y=119), dict(id='ceiling_flush', variant='a', x=150, y=0)]),
+        fallback=[dict(id='bed_pine', variant='l_stars', x=100, y=115), dict(id='trainers', variant='white', x=60, y=119), dict(id='ceiling_flush', variant='a', x=150, y=0)]),
     'bedroom/sick': dict(
         legacy=2, weight=14, shell='bedroom_shell_c',
         centre=dict(tag='sleeping', x=[60, 150]),
@@ -53,7 +53,7 @@ RECIPES = {
         flank=dict(tag='bedside', chance=0.8),
         wall=dict(count=[1, 3], must=['toy|wardrobe']),
         tops=0.6, decor=[2, 4], clutter=[2, 4], rug=0.6, ceiling=1.0, min_front=2,
-        fallback=[dict(id='bed_kid', variant='l_pink', x=110, y=115), dict(id='rocking_horse', variant='a', x=215, y=119), dict(id='ceiling_paper', variant='white', x=150, y=0)]),
+        fallback=[dict(id='bed_kid', variant='l_pink', x=110, y=115), dict(id='rocking_horse', variant='white_l', x=215, y=119), dict(id='ceiling_paper', variant='white', x=150, y=0)]),
 }
 
 # THE LOGIC as data: piece tags -> the only room types they may be registered in (furnlib.TAG_ROOMS is the source; exported so the game and its tests read the same table).

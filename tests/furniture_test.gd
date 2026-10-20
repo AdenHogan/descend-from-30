@@ -43,6 +43,25 @@ func _test_library() -> void:
 	print("[the library]")
 	var d: Dictionary = FurniturePlanner.data()
 	check(d.has("items") and d["items"].size() >= 60, "data/furniture.json lists the pieces (%d)" % d.get("items", {}).size())
+	check(not d["items"].has("beanbag"), "the beanbag is gone (owner round 47b: hard to identify — a chair, a child's chair and a rocking horse took its place)")
+	check(d["items"].has("chair_wood") and d["items"].has("chair_child") and d["items"]["rocking_horse"]["variants"].size() >= 12, "the chairs and the rocking horse (with its bloodied variant) are in the library")
+	var boxed: Array = []
+	var no_under: Array = []
+	for bid in d["items"]:
+		var brec: Dictionary = d["items"][bid]
+		if not ("sleeping" in brec["tags"]):
+			continue
+		for bvid in brec["variants"]:
+			if String(bvid).ends_with("_box"):
+				boxed.append("%s/%s" % [bid, bvid])
+			var has_under := false
+			for a in brec["variants"][bvid]["anchors"]:
+				if String(a["name"]) in ["underbed", "sleeping_bag", "quilt"] or String(bid) == "mattress_floor":
+					has_under = true
+			if not has_under and String(bid) != "mattress_floor":
+				no_under.append("%s/%s" % [bid, bvid])
+	check(boxed.is_empty(), "no bed has a box shoved under it any more %s" % str(boxed.slice(0, 3)))
+	check(no_under.is_empty(), "every bed keeps a node to search without the box (the dark gap under it) %s" % str(no_under.slice(0, 3)))
 	var missing: Array = []
 	var no_buckets: Array = []
 	var opens_missing: Array = []
@@ -116,6 +135,8 @@ func _test_plans_obey_the_rules() -> void:
 		var empty := 0
 		var wrong := 0
 		var seen_ids := {}
+		var vanity_wrong := 0
+		var vanity_seen := 0
 		var n := 0
 		for k in range(SEEDS_PER_STYLE):
 			for side in ["left", "right"]:
@@ -141,10 +162,21 @@ func _test_plans_obey_the_rules() -> void:
 					broke.append("fewer than 2 nodes")
 				for it in pl["items"]:
 					seen_ids[String(it["id"])] = true
+					if String(it["id"]) in ["jewel_box", "perfume_set", "hairbrush"]:           # a jewellery box / scent / brush stands on a dressing table or a chest of drawers, never a bookcase
+						vanity_seen += 1
+						var on_vanity := false
+						for h in pl["items"]:
+							if String(h["id"]) in ["dressing_table", "chest_drawers"] and int(it["x"]) >= int(h["x"]) and int(it["x"]) + int(it["w"]) <= int(h["x"]) + int(h["w"]) + 2:
+								on_vanity = true
+						if not on_vanity:
+							vanity_wrong += 1
 					if not FurniturePlanner.eligible(String(it["id"]), "bedroom", style):
 						wrong += 1
 				if String(pl["style"]) != style or String(pl["room"]) != "bedroom":
 					wrong += 1
+		check(vanity_wrong == 0, "bedroom/%s: dressing-table things (%d placed) stand only on a dressing table or a chest of drawers (%d strays)" % [style, vanity_seen, vanity_wrong])
+		if style == "adult":
+			check(vanity_seen > 0, "bedroom/adult: the vanity check really sees jewellery boxes / scent / brushes (%d)" % vanity_seen)
 		check(empty == 0, "bedroom/%s: every seed yields a plan" % style)
 		check(broke.is_empty(), "bedroom/%s: %d plans break no rule %s" % [style, n, str(broke.slice(0, 2))])
 		check(wrong == 0, "bedroom/%s: every placed piece belongs in a %s bedroom (%d strays)" % [style, style, wrong])
@@ -179,8 +211,8 @@ func _violations(pl: Dictionary, side: String = "left") -> String:
 
 func _test_rules_can_fail() -> void:
 	print("[each rule fails on a plan that breaks it]")
-	var ok := _plan_of("adult", [["bed_wood", "l_sage_box", 110, 115], ["wardrobe_wood", "walnut", 276, 106]])
-	check(FurniturePlanner.validate(ok, {"window": "left"}).is_empty(), "a sane layout passes (left window)")
+	var ok := _plan_of("adult", [["bed_wood", "l_sage", 110, 115], ["wardrobe_wood", "walnut", 268, 106]])
+	check(FurniturePlanner.validate(ok, {"window": "left"}).is_empty(), "a sane layout passes (left window) %s" % str(FurniturePlanner.validate(ok, {"window": "left"})))
 	var win := _plan_of("adult", [["wardrobe_wood", "walnut", 60, 106]])
 	check("window" in _violations(win, "left"), "a wardrobe standing in front of the left window is refused")
 	check(FurniturePlanner.validate(win, {"window": "right"}).is_empty(), "…and the same wardrobe is fine when the window is on the other side")
@@ -188,13 +220,13 @@ func _test_rules_can_fail() -> void:
 	check("not allowed in a kitchen" in _violations(kitchen), "a bed in a kitchen is refused")
 	var bath := {"room": "bathroom", "style": "adult", "items": _plan_of("adult", [["wardrobe_wood", "walnut", 200, 106]])["items"]}
 	check("not allowed in a bathroom" in _violations(bath), "a wardrobe in a bathroom is refused")
-	var wrong_style := _plan_of("kid", [["drip_stand", "a", 200, 116]])
+	var wrong_style := _plan_of("kid", [["drip_stand", "clear", 200, 116]])
 	check("not allowed" in _violations(wrong_style), "a drip stand in the child's room is refused")
-	var overlap := _plan_of("adult", [["bed_wood", "l_sage_box", 110, 115], ["wardrobe_wood", "walnut", 200, 106]])
+	var overlap := _plan_of("adult", [["bed_wood", "l_sage", 110, 115], ["wardrobe_wood", "walnut", 200, 106]])
 	check("overlaps" in _violations(overlap), "a wardrobe in the middle of the bed is refused (the wall line is exclusive)")
 	var lane := _plan_of("adult", [["clothes_pile", "blue_red", 200, 130]])
 	check("walking lane" in _violations(lane), "clothes dropped on the walking lane are refused")
-	var stand := _plan_of("adult", [["nightstand_wood", "dark", 60, 106], ["bed_wood", "l_sage_box", 74, 115]])
+	var stand := _plan_of("adult", [["nightstand_wood", "dark", 60, 106], ["bed_wood", "l_sage", 74, 115]])
 	check("stand zone" in _violations(stand), "a bed pushed against a bedside table (over the spot the player steps up to) is refused")
 	var dup := _plan_of("adult", [["wardrobe_wood", "walnut", 20, 106], ["wardrobe_wood", "oak", 200, 106]])
 	check("limit" in _violations(dup, "right"), "a room with two wardrobes is refused (a piece's limit)")

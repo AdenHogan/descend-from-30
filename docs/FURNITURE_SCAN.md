@@ -5,6 +5,12 @@ specks, flat shading, missing outline, illegible size, feet off the feet row, le
 `--sheets` also writes a 3× review sheet per plane (`docs/art_reference/furniture/scan_<plane>.png`). The automatic pass finds the technical faults; the rest below is from LOOKING at every piece
 at 3× and in the composed rooms (`bedroom_<style>.png`). Nothing has been changed yet — this is the backlog.
 
+> **STATUS after round 47b (art pass 1):** items **1** (beanbag — cut, replaced by chairs + a rocking horse), **2** (suitcase), **3** (backpack), **4** (drip stand — cut to scale), **5** (armchair — 3D),
+> **6** (iron bed + quilt), **7** (crate), **8** (clothes), **9** (rug), **10** (crates + stove), **11** (child's wardrobe), **12** (ghost frame), **13** (shoes / slippers / trainers / hairbrush / glass), **14** (floor
+> mattress) and **15** (bedside table) are REDRAWN — see docs/FURNITURE.md "Art pass 1". Also redone at the owner's request: every bed's covers (and no more boxes under beds), the dolls' house, the
+> wardrobes, the pill cabinet, the wheelchair + trolley, the plants, the lamps and the other small things. The scan now reports 10 egregious findings, all technical (one wasted sprite at a bed's right-most
+> bucket, a stray pixel, flat 4-colour sprites on the dead plant / wheelchair / spray text). Still flat: see the "next pass" list in docs/FURNITURE.md.
+
 ## Egregious (fix first)
 
 | # | Piece | What is wrong | Suggested fix |
