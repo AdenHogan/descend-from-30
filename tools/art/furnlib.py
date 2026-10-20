@@ -1,0 +1,339 @@
+"""FURNITURE AS ASSETS — the kit, the registry and the sprite renderer (owner round 47).
+
+The owner: "converting all art furniture and objects into their own assets like what you've done with the posters and wall art, that a seed can
+natively place… so even two versions of a bedroom module A will have variance… the purpose is that just because an item is currently in a bedroom
+doesn't mean it can't also be in another room — so some rule and logic needs to be in place: we do not ever need a bed in a kitchen."
+
+Until now every room module was ONE baked picture: the furniture was drawn into it at fixed coordinates by that module's own script. Here each piece
+of furniture / each object is its OWN sprite with a record of what it is and where it may go; the game puts them in a room at runtime
+(scripts/furniture_planner.gd) from a seed. Nothing in this file decides WHERE — it decides what a piece LOOKS like and what it SAYS about itself:
+
+    plane   wall    stands against the back wall (feet ~104-108): wardrobes, dressers, nightstands, desks; their scavenge nodes are BACK-PLANE (step-up)
+            front   stands out toward the lane (feet 114-120): beds, chairs, chests; its nodes are FRONT nodes (reached from the walking lane)
+            decor   hangs on the wall (pictures, posters, mirrors)           rug  lies flat on the floor (drawn first, walked over)
+            floor   a small thing on the floor (clothes, shoes, a box)       top  stands ON a surface (a lamp on a nightstand)
+            ceiling a light fitting hung from the ceiling
+    rooms   {room type: weight} — THE LOGIC: a piece is only ever placed in a room it lists (a bed lists "bedroom" and nothing else; a kettle will list
+            "kitchen"). The planner draws from the room's own pool; tests/furniture_test.gd proves nothing escapes it.
+    styles  {style: weight} — what KIND of room within the type (adult / teen / kid / sick / refuge): a cot is for the child's room, an iron bedstead for the
+            sick room, crates for a refuge. Styles are the five old bedroom variants A-E, now archetypes the planner fills differently every time.
+    tags    what it is (sleeping, storage, light, work, toy, clutter…) — the planner's "needs" rules (a desk wants a chair; a lamp wants a surface).
+
+PERSPECTIVE. The rooms are drawn as if looking into a box: every module has one vanishing point at the ceiling over its middle, so a set-back piece shows the face
+turned to the middle (pixlib.setback / pp). Pieces that LEAN are therefore rendered once per LEAN BUCKET — the module x of their centre, LEAN_X — and the planner
+picks the sprite whose bucket is nearest to where it stands; the centre bucket (160) is the straight-on look with no side face. So a wardrobe at the left edge shows
+its right side, one at the right edge its left side, exactly as the baked rooms did — and the same sprite family works at any x. (If the owner picks the "no lean /
+fixed oblique" perspective option in docs/ROOM_DEPTH_AND_PROPS.md, it is one switch here: `LEAN_MODE`.)
+
+Run:  python3 tools/art/furn_build.py [--check]       (this file is the library; furn_bedroom.py holds the bedroom pieces)
+Out:  assets/furniture/*.png (+ open/ sheets)   data/furniture.json   docs/art_reference/furniture/*.png
+"""
+import json
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from PIL import Image
+
+import pixlib
+from pixlib import Canvas, hexc, shade, mix, W, H, SEAM_Y
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.abspath(os.path.join(HERE, '..', '..'))
+SPRITES = os.path.join(ROOT, 'assets', 'furniture')
+OPEN_DIR = os.path.join(SPRITES, 'open')
+DATA = os.path.join(ROOT, 'data', 'furniture.json')
+PREVIEW = os.path.join(ROOT, 'docs', 'art_reference', 'furniture')
+
+# The module x of a piece's CENTRE for each lean bucket (the planner picks the nearest). 160 = the module's vanishing point: straight on, no side face.
+LEAN_X = (36, 72, 116, 160, 204, 248, 284)
+LEAN_MODE = 'vp'                         # 'vp' = lean toward the module's middle (as the baked rooms); 'none' = every piece straight-on (renders only the centre bucket)
+
+PLANES = ('wall', 'front', 'decor', 'rug', 'floor', 'top', 'ceiling')
+STYLES = ('adult', 'teen', 'kid', 'sick', 'refuge')
+ROOM_TYPES = ('bedroom', 'bathroom', 'kitchen', 'study', 'living_room', 'dining_room')
+
+# THE LOGIC, as data (owner round 47: "we do not ever need a bed in a kitchen"). A piece carrying one of these TAGS may only list rooms from the set — registration REFUSES a
+# piece that breaks it, so a new piece cannot be put somewhere it makes no sense even by accident. The planner only ever draws from the room's own pool, and
+# tests/furniture_test.gd re-checks every placement it makes against the same table (data/furniture.json carries it as "rules").
+TAG_ROOMS = {
+    'sleeping': ('bedroom',),                                  # beds, cots, mattresses
+    'wardrobe': ('bedroom',),                                  # clothes storage
+    'bedside': ('bedroom',),
+    'dressing': ('bedroom', 'bathroom'),
+    'toy': ('bedroom', 'living_room'),
+    'medical': ('bedroom', 'bathroom', 'living_room'),         # care equipment: wherever somebody is being looked after
+    'cooking': ('kitchen',),
+    'food': ('kitchen', 'dining_room'),
+    'wet': ('bathroom', 'kitchen'),                            # sinks, baths, washing
+    'toilet': ('bathroom',),
+    'books': ('bedroom', 'study', 'living_room'),
+    'work': ('study', 'bedroom'),                              # desks (a teen's room has one)
+    'seating_lounge': ('living_room', 'study', 'dining_room', 'bedroom'),
+    'dining': ('dining_room', 'kitchen'),
+    'tv': ('living_room', 'bedroom'),
+}
+
+
+class Piece:
+    """One piece of furniture / one object. `draw(c, ox, oy, p)` paints it on a transparent canvas with its FRONT-LEFT corner at x = ox and its feet (the last row of the front
+    face) at y = oy; `p` is the variant's parameter dict (colourway, which way the head of a bed faces, an open state 0..1…)."""
+
+    def __init__(self, pid, draw, w, h, plane, rooms, styles, tags, variants, depth, lean, bucketed, surface_h, anchors, lights, slots, on, opens, anims,
+                 pair, near, wall_y, ceiling_drop, feet, sound, note, limit=None, needs=None, post=None, companion_only=False):
+        self.id, self.draw, self.w, self.h = pid, draw, w, h
+        self.plane, self.rooms, self.styles, self.tags = plane, rooms, styles, tags
+        self.variants = variants              # {variant id: params}
+        self.depth = depth                    # pixlib.setback depth (lean pieces)
+        self.lean, self.bucketed = lean, bucketed
+        self.surface_h = surface_h            # body height from the feet; anything drawn above stands ON the top (setback `top`)
+        self.anchors, self.lights, self.slots, self.on = anchors, lights, slots, on
+        self.opens, self.anims = opens, anims
+        self.pair, self.near = pair, near
+        self.wall_y = wall_y                  # decor: the (min, max) module y of its TOP edge on the wall
+        self.ceiling_drop = ceiling_drop
+        self.feet = feet                      # the module y of the feet line: (min, max) the planner may use
+        self.sound = sound
+        self.note = note
+        self.limit = limit                    # at most this many in one room (None = the planner's default for its plane)
+        self.companion_only = companion_only  # only ever placed as someone's companion (a desk chair), never on its own
+        self.post = post                      # post(c, ox, oy, p, shift): drawn AFTER the set-back lean (things whose own perspective needs the piece's final shift, a CRT on a desk)
+        self.needs = needs                    # {'tag': ..., 'dx': [min, max], 'chance': p}: a companion that must stand beside it (a desk wants its chair)
+
+
+REGISTRY = {}
+
+
+def piece(pid, w, h, plane, rooms, styles=None, tags=(), variants=None, depth=0, lean=None, bucketed=None, surface_h=None, anchors=(), lights=(), slots=(),
+          on=(), opens=None, anims=(), pair=None, near=(), wall_y=None, ceiling_drop=0, feet=None, sound=None, note='', limit=None, needs=None, post=None, companion_only=False):
+    """Register a piece (a decorator for its draw function). See Piece. `rooms` {room: weight}; `styles` {style: weight} (None = any style at weight 1)."""
+    assert plane in PLANES, plane
+    for r_ in rooms:
+        assert r_ in ROOM_TYPES, r_
+    for t_ in tags:
+        if t_ in TAG_ROOMS:
+            for r_ in rooms:
+                assert r_ in TAG_ROOMS[t_], '%s: a "%s" piece may not go in a %s (allowed: %s)' % (pid, t_, r_, ', '.join(TAG_ROOMS[t_]))
+    if styles is not None:
+        for s_ in styles:
+            assert s_ in STYLES, s_
+
+    def deco(fn):
+        assert pid not in REGISTRY, 'duplicate piece ' + pid
+        is_lean = (plane == 'wall' and depth > 0) if lean is None else lean
+        is_bucketed = is_lean if bucketed is None else bucketed
+        REGISTRY[pid] = Piece(pid, fn, w, h, plane, dict(rooms), dict(styles) if styles else None, tuple(tags), variants or {'a': {}}, depth, is_lean, is_bucketed,
+                              surface_h if surface_h is not None else h, tuple(anchors), tuple(lights), tuple(slots), tuple(on), opens, tuple(anims), pair, tuple(near),
+                              wall_y, ceiling_drop, feet or {'wall': (105, 109), 'front': (114, 120), 'floor': (108, 120), 'rug': (112, 118)}.get(plane, (0, 0)), sound, note, limit, needs, post, companion_only)
+        return fn
+    return deco
+
+
+# --------------------------------------------------------------------------------------------------------------------------- drawing kit
+def box3(c, x0, y0, x1, y1, front, top=None, d=4, out=None, hi=None, lo=None, inset=1):
+    """A straight-on box with real volume: its FRONT face x0..x1, y0..y1 and a TOP face d rows high above it (a little from above — the back edge `inset` px narrower each
+    side so the top reads as receding), a light line along the front's top edge, a shaded bottom row and an outline. No side face (the lean machinery adds those)."""
+    out = out or shade(front, 0.45)
+    if top is not None and d > 0:
+        for k in range(d):
+            i = int(round(inset * (k + 1) / float(d)))
+            c.hline(x0 + i, x1 - i, y0 - 1 - k, top if k < d - 1 else shade(top, 0.9))
+        c.hline(x0 + inset, x1 - inset, y0 - d - 1, out)
+        c.put(x0 + (inset), y0 - d, out) if inset else None
+    c.rect(x0, y0, x1, y1, front)
+    c.hline(x0, x1, y0, hi or shade(front, 1.18))
+    c.hline(x0, x1, y1, lo or shade(front, 0.72))
+    c.vline(x0, y0, y1, shade(front, 1.06))
+    c.vline(x1, y0, y1, shade(front, 0.84))
+    c.hline(x0, x1, y1 + 1, out)
+    c.vline(x0 - 1, y0, y1 + 1, out)
+    c.vline(x1 + 1, y0, y1 + 1, out)
+
+
+def knob(c, x, y, col=None):
+    c.put(x, y, col or hexc('b09456'))
+
+
+def foot_shadow(c, x0, x1, y, alpha=80, rows=1):
+    """A soft contact shadow on the floor under a piece (alpha so it lies on whatever floor the room has)."""
+    cx, rx = (x0 + x1) / 2.0, (x1 - x0) / 2.0 + 3
+    c.shadow(cx, y + 1, rx, rows + 1, alpha)
+
+
+def blank():
+    return Canvas(bg=(0, 0, 0, 0), seed=11)
+
+
+# --------------------------------------------------------------------------------------------------------------------------- rendering
+def _bbox(img, pad=0):
+    a = img.getchannel('A')
+    bb = a.getbbox()
+    if bb is None:
+        return None
+    return (max(0, bb[0] - pad), max(0, bb[1] - pad), min(img.width, bb[2] + pad), min(img.height, bb[3] + pad))
+
+
+def shift_of(pc):
+    """How far forward a leaning piece comes (pixlib.setback_depth): its feet move this many rows down from where the front face was drawn."""
+    return pixlib.setback_depth(pc.depth) if pc.lean else 0
+
+
+def on_top_of(pc):
+    s = shift_of(pc)
+    return s // 2 if s > 1 else s
+
+
+def _lean(c, fn, depth, top, x_range):
+    """pixlib.setback WITHOUT its back-off loop (a piece must come out the same depth at every x — the back-off was for a module's window boxes, which a sprite knows
+    nothing about): extrude toward the module's vanishing point, then lay the body forward and the things standing ON it (above `top`) to the middle of the surface."""
+    want = pixlib.setback_depth(depth)
+    ext, lyr, _opaque = pixlib._setback_render(fn, want, top, x_range, pixlib.VP_X, 1.0, 0)
+    shift = want
+    on_top = shift // 2 if (top is not None and shift > 1) else shift
+    c.img.alpha_composite(ext)
+    moved = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+    if top is None or on_top == shift:
+        moved.paste(lyr, (0, shift), lyr)
+    else:
+        body, above = lyr.copy(), lyr.copy()
+        bp_, ap_ = body.load(), above.load()
+        for y in range(H):
+            for x in range(W):
+                if y < top:
+                    bp_[x, y] = (0, 0, 0, 0)
+                else:
+                    ap_[x, y] = (0, 0, 0, 0)
+        moved.paste(body, (0, shift), body)
+        pixlib._on_top_volume(above, top)
+        moved.paste(above, (0, on_top), above)
+        pixlib._on_top_shadow(c, above, top, on_top)
+    c.img.alpha_composite(moved)
+    c.px = c.img.load()
+    pixlib.SETBACKS.clear()
+    return shift
+
+
+def render(pc, params, xk=160, state=0.0):
+    """Render one sprite of a piece at bucket x `xk`. Returns (RGBA image, info): info = {w, h, rx, ry (the reference point R — the front-left corner at the feet row — in sprite
+    px), l, r, t, b (the sprite's extents relative to R)}."""
+    pixlib.LIGHTS.clear()
+    pixlib.ANIMS.clear()
+    c = blank()
+    p = dict(params)
+    p['open'] = state
+    ox = int(round(xk - pc.w / 2.0)) if (pc.bucketed or pc.lean) else 40
+    oy = {'decor': 40, 'rug': 100, 'ceiling': 0, 'floor': 118, 'top': 80, 'front': 114}.get(pc.plane, SEAM_Y - 1)
+    if pc.lean:
+        _lean(c, lambda l: pc.draw(l, ox, oy, p), pc.depth, oy - pc.surface_h + 1, (ox - 2, ox + pc.w + 1))
+    else:
+        pc.draw(c, ox, oy, p)
+    if pc.post is not None:
+        pc.post(c, ox, oy, p, shift_of(pc))
+    feet = oy + shift_of(pc)
+    bb = _bbox(c.img, 1)
+    if bb is None:
+        raise SystemExit('piece %s drew nothing' % pc.id)
+    spr = c.img.crop(bb)
+    info = {'w': spr.width, 'h': spr.height, 'rx': ox - bb[0], 'ry': feet - bb[1],
+            'l': bb[0] - ox, 'r': bb[2] - 1 - ox, 't': bb[1] - feet, 'b': bb[3] - 1 - feet}
+    pixlib.LIGHTS.clear()
+    pixlib.ANIMS.clear()
+    return spr, info
+
+
+def bucket_of(x_centre):
+    best, bd = 0, 1e9
+    for k, xk in enumerate(LEAN_X):
+        if abs(xk - x_centre) < bd:
+            best, bd = k, abs(xk - x_centre)
+    return best
+
+
+def sprite_name(pid, vid, bucket=None):
+    return '%s_%s' % (pid, vid) if bucket is None else '%s_%s_b%d' % (pid, vid, bucket)
+
+
+def _buckets(pc):
+    """The lean buckets a piece is rendered for: every one whose centre x lets the whole piece sit inside the module (a 137-px bed centred at x 36 would hang off the canvas —
+    it simply has no bucket there, and the planner only ever picks from the list)."""
+    if not pc.bucketed:
+        return [None]
+    if LEAN_MODE == 'none':
+        return [3]
+    ok = [k for k, xk in enumerate(LEAN_X) if int(round(xk - pc.w / 2.0)) >= 2 and int(round(xk - pc.w / 2.0)) + pc.w <= W - 2]
+    return ok or [3]
+
+
+def _resolve(pc, items, params):
+    """A piece's anchors / lights / slots / anims for ONE variant, relative to the piece's FINAL feet row (R): `if` {param: value} keeps an entry only for matching variants (a box
+    under the bed only where the variant has one); `head_rel` measures dx from the HEAD end of a bed (mirrored for a head-right variant); a thing on the body moves forward with the
+    whole piece, a thing standing ON the top (`top: True`) only to the middle of the surface."""
+    s, ot = shift_of(pc), on_top_of(pc)
+    out = []
+    for a in items:
+        cond = a.get('if')
+        if cond and any(params.get(k) != v for k, v in cond.items()):
+            continue
+        d = {k: v for k, v in a.items() if k not in ('if', 'head_rel')}
+        if a.get('head_rel') and params.get('head') == 'right':
+            d['dx'] = pc.w - 1 - a['dx']
+        d['dy'] = a['dy'] + ((ot if a.get('top') else s) - s)
+        out.append(d)
+    return out
+
+
+def build_piece(pc):
+    """Render every variant × bucket (and the open-state strips). Returns (the JSON record, {relative filename: image})."""
+    files = {}
+    rec = {'plane': pc.plane, 'rooms': pc.rooms, 'styles': pc.styles, 'tags': list(pc.tags), 'w': pc.w, 'h': pc.h, 'lean': pc.lean, 'bucketed': pc.bucketed,
+           'variants': {}, 'on': list(pc.on), 'pair': pc.pair, 'near': list(pc.near), 'wall_y': list(pc.wall_y) if pc.wall_y else None,
+           'ceiling_drop': pc.ceiling_drop, 'feet': list(pc.feet), 'sound': pc.sound, 'note': pc.note, 'opens': dict(pc.opens) if pc.opens else None,
+           'limit': pc.limit, 'needs': pc.needs, 'companion_only': pc.companion_only}
+    for vid, params in pc.variants.items():
+        sprites = []
+        for bk in _buckets(pc):
+            xk = LEAN_X[bk] if bk is not None else 160
+            spr, info = render(pc, params, xk)
+            name = sprite_name(pc.id, vid, bk if pc.bucketed else None)
+            files[name + '.png'] = spr
+            info['file'] = name
+            info['bx'] = xk
+            if pc.opens:
+                frames = int(pc.opens.get('frames', 3))
+                strip = Image.new('RGBA', (spr.width * (frames + 1), spr.height), (0, 0, 0, 0))
+                strip.paste(spr, (0, 0))
+                for f in range(1, frames + 1):
+                    st_spr, st_info = render(pc, params, xk, state=f / float(frames))
+                    cell = Image.new('RGBA', spr.size, (0, 0, 0, 0))
+                    cell.paste(st_spr, (info['rx'] - st_info['rx'], info['ry'] - st_info['ry']), st_spr)      # anchored on R; an open state may be bigger — it is cropped to the closed box
+                    strip.paste(cell, (spr.width * f, 0))
+                files['open/' + name + '_open.png'] = strip
+                info['open_file'] = name + '_open'
+            sprites.append(info)
+        slots = []
+        for sl in _resolve(pc, pc.slots, params):
+            slots.append(sl)
+        rec['variants'][vid] = {'sprites': sprites, 'anchors': _resolve(pc, pc.anchors, params), 'lights': _resolve(pc, pc.lights, params), 'slots': slots,
+                                'anims': _resolve(pc, pc.anims, params), 'params': {k: v for k, v in params.items() if isinstance(v, (str, int, float, bool))}}
+    return rec, files
+
+
+def write_files(files, out_dir=SPRITES):
+    for rel, img in files.items():
+        path = os.path.join(out_dir, rel)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        img.save(path)
+
+
+def stale_files(wanted, out_dir=SPRITES):
+    have = []
+    for d, _dirs, fs in os.walk(out_dir):
+        for fn in fs:
+            if fn.endswith('.png'):
+                have.append(os.path.relpath(os.path.join(d, fn), out_dir).replace(os.sep, '/'))
+    return sorted(set(have) - set(wanted))
+
+
+def remove_stale(wanted, out_dir=SPRITES):
+    for rel in stale_files(wanted, out_dir):
+        pixlib._remove_asset(os.path.join(out_dir, rel))

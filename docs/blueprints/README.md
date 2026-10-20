@@ -1,5 +1,7 @@
 # ROOM-MODULE BLUEPRINTS — the locked template
 
+> Round 47: ordinary flats' BEDROOMS are no longer baked modules — they are a bare shell + seeded furniture pieces (`docs/FURNITURE.md`). The rules below (planes, kept-bare zones, node kinds) are still what the planner enforces, as data; the blueprints still show the baked modules (which story rooms keep).
+
 **LOCKED** (owner round 13c): this folder is THE template for apartment room modules and their
 scavenge nodes — for us and for any artist we bring in. It shows exactly where things may be drawn,
 where the player stands and steps up, and where the nodes go. Every file here is **generated** from

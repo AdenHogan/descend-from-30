@@ -861,11 +861,14 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 	var breached: bool = WorldState.get_door_state(apartment_id) == WorldState.DoorState.BREACHED
 	for i in range(3):
 		var scene_path: String
+		var charred_flat: bool = WorldState.is_apartment_charred(_apt_floor(), _apt_index())
+		var fplan: Dictionary = {}            # a room the PLANNER lays (scripts/furniture_planner.gd) rather than a baked module — {} for the baked ones
 		if WorldState.is_first_run and TUTORIAL_LAYOUTS.has(apartment_id):
 			var module_index = i if entrance_side == "left" else 2 - i
 			scene_path = MODULE_SCENES[TUTORIAL_LAYOUTS[apartment_id][module_index]]
 		else:
-			scene_path = module_scene_for(apartment_id, i, layout[i])
+			fplan = furniture_plan_for(apartment_id, i, layout[i], breached, charred_flat)
+			scene_path = FURNITURE_SHELL_DIR + String(fplan["shell"]) + ".tscn" if not fplan.is_empty() else baked_scene_for(apartment_id, i, layout[i])
 		var scene = load(scene_path)
 		var instance = scene.instantiate()
 		instance.position.x = LEFT_WALL_X + (i * MODULE_WIDTH)
@@ -874,7 +877,8 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 		add_child(instance)
 		built_modules.append(instance)
 		apply_run_art(instance, WorldState.current_run)
-		var charred_flat: bool = WorldState.is_apartment_charred(_apt_floor(), _apt_index())
+		if not fplan.is_empty():
+			RoomFurniture.build(instance, fplan, apartment_id, WorldState.current_run)
 		if charred_flat:
 			apply_burnt_art(instance)          # the fire's worst stage: the room is a blackened husk (tools/art/burnt.py)
 		else:
@@ -1129,6 +1133,47 @@ func _nest_anim(module: Node, at: Vector2, kind: String, fall: int, col: String,
 	a.set_script(MODULE_ANIM)
 	a.add_to_group("breach_nest_anim")
 	module.add_child(a)
+
+
+## FURNITURE AS ASSETS (owner round 47): which rooms are laid by the PLANNER from a seed instead of shown as a baked module. An ORDINARY flat's room of a type the planner has recipes
+## for (bedrooms so far) — never a breached / burnt flat, the room that holds one of the dead, or the fixed tutorial flats: their stories are baked into the legacy art (nest overlays, burnt
+## looks, scripted nodes) and stay on it. Seeded per (flat, slot) and NOT per run — the furniture is a physical feature of the flat (the run only changes its condition). {} = keep the
+## baked module. Otherwise the plan (FurniturePlanner.plan): {style, shell, items, anchors, lights}.
+const FURNITURE_SHELL_DIR := "res://scenes/Room_Shells/"
+static var _furniture_plans: Dictionary = {}
+
+
+static func furniture_plan_for(apt: String, slot: int, room_type: String, breached: bool, charred: bool) -> Dictionary:
+	if breached or charred or not FurniturePlanner.handles(room_type):
+		return {}
+	if WorldState.is_first_run and TUTORIAL_LAYOUTS.has(apt):
+		return {}
+	var dead: Dictionary = WorldState.apartment_corpse(apt)
+	if not dead.is_empty() and int(dead["slot"]) == slot:
+		return {}
+	var seed_ := hash(str(WorldState.master_seed) + "furn" + apt + ":" + str(slot))
+	var style := FurniturePlanner.pick_style(room_type, seed_)
+	if style == "":
+		return {}
+	var side := "" if WorldState.is_balcony_slot(apt, slot) else WorldState.apartment_window_side(apt, slot)
+	var key := "%s|%s|%d|%s" % [room_type, style, seed_, side]            # a plan is a pure function of these: a live room and its pan backdrop share it
+	if not _furniture_plans.has(key):
+		if _furniture_plans.size() > 200:
+			_furniture_plans.clear()
+		_furniture_plans[key] = FurniturePlanner.plan(room_type, style, seed_, {"window": side})
+	return _furniture_plans[key]
+
+
+## The BAKED module for a room whose type the planner lays: the old module of the SAME style the planner would have given it (FurniturePlanner recipe `legacy`), so a flat that
+## becomes a story room in a later run (breached, burnt, one of the dead) keeps its wallpaper, floor and character. Any other room type: module_scene_for.
+static func baked_scene_for(apt: String, slot: int, room_type: String) -> String:
+	if FurniturePlanner.handles(room_type):
+		var style := FurniturePlanner.pick_style(room_type, hash(str(WorldState.master_seed) + "furn" + apt + ":" + str(slot)))
+		var vs: Array = MODULE_VARIANTS.get(room_type, [])
+		var idx := int(FurniturePlanner.recipe(room_type, style).get("legacy", -1))
+		if idx >= 0 and idx < vs.size():
+			return vs[idx]
+	return module_scene_for(apt, slot, room_type)
 
 
 static func module_scene_for(apt: String, slot: int, room_type: String) -> String:
@@ -1608,14 +1653,49 @@ func _build_back_plane_spots() -> void:
 	for m in by_module:
 		var nodes: Array = by_module[m]
 		nodes.sort_custom(func(p, q): return p.global_position.x < q.global_position.x)
-		var cluster: Array = []
+		var pts: Array = []
 		for a in nodes:
-			if not cluster.is_empty() and a.global_position.x - cluster[cluster.size() - 1].global_position.x > BACK_SPOT_CLUSTER:
-				_add_back_spot(cluster, plane_feet, plane_scale)
-				cluster = []
-			cluster.append(a)
-		if not cluster.is_empty():
+			pts.append(a.global_position)
+		for group in back_spot_groups(pts):
+			var cluster: Array = []
+			for i in group:
+				cluster.append(nodes[i])
 			_add_back_spot(cluster, plane_feet, plane_scale)
+
+
+## Which set-back nodes share a back-plane spot. `points` are the nodes' GLOBAL positions, sorted by x; returns groups of indices. A node joins the previous group when it is within BACK_SPOT_CLUSTER of the
+## previous node AND every node of the group is still within BACK_SPOT_REACH of the group's centre — the player stands at the centre (up on the plane), and a node further than Interactable.INTERACT_DISTANCE
+## (50) from them could never be searched. (Chains of pieces laid by the furniture planner can run wider than a hand-drawn module's one bookshelf.)
+const BACK_SPOT_REACH := 44.0
+
+
+static func back_spot_groups(points: Array) -> Array:
+	var origin_y: float = ROOM_FEET_Y - 33.0 - BACK_PLANE_RISE          # the player's origin while stepped up (feet − 33, up the plane's rise)
+	var groups: Array = []
+	var cur: Array = []
+	for i in range(points.size()):
+		var join := false
+		if not cur.is_empty() and float(points[i].x) - float(points[cur[cur.size() - 1]].x) <= BACK_SPOT_CLUSTER:
+			var test: Array = cur.duplicate()
+			test.append(i)
+			var cx := 0.0
+			for k in test:
+				cx += float(points[k].x)
+			cx /= float(test.size())
+			join = true
+			for k in test:
+				if Vector2(float(points[k].x) - cx, float(points[k].y) - origin_y).length() > BACK_SPOT_REACH:
+					join = false
+					break
+		if join:
+			cur.append(i)
+		else:
+			if not cur.is_empty():
+				groups.append(cur)
+			cur = [i]
+	if not cur.is_empty():
+		groups.append(cur)
+	return groups
 
 
 func _add_back_spot(nodes: Array, plane_feet: float, plane_scale: float) -> void:

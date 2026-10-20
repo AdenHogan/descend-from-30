@@ -679,3 +679,5 @@ number plate) or 52 x 23 (clear of the plate, which starts at row 90). The first
 
 Regenerate order is unchanged: `build_all.py` → `openables.py` → `burnt.py` → `gen_module_blueprint.py` (+ `corridor_decals.py` for the corridor paper; it deletes the
 decal `.import` files — `git checkout` them back so their uids stay).
+
+**Round 47:** bedrooms in ordinary flats are now a shell + furniture pieces laid from a seed — see `docs/FURNITURE.md`. The baked bedroom modules above are what breached / burnt / dead-story / tutorial flats still show.

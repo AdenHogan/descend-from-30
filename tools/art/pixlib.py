@@ -1349,7 +1349,7 @@ def _floor_grime(img, y0, level, dirt):
 
 
 def run_looks(name, root, main_img, full_img, bare_wall_img, bare_floor_img, floor_fn, seed, has_strip,
-              per_level=None, keep_clear=()):
+              per_level=None, keep_clear=(), debris_y0=103):
     import os
     out = {}
     for level in (2, 3):
@@ -1576,7 +1576,7 @@ def run_looks(name, root, main_img, full_img, bare_wall_img, bare_floor_img, flo
                     if ((x - sx) / rx) ** 2 + ((y - sy) / max(ry, 1)) ** 2 <= 1.0:
                         floor_put(x, y, col)
         for _ in range(d['debris']):
-            x, y = rng.randrange(6, W - 6), rng.randrange(103, 142)
+            x, y = rng.randrange(6, W - 6), rng.randrange(debris_y0, 142)       # (a SHELL — furniture placed at runtime — keeps it in front of the step-up rows: debris_y0 119)
             kind = rng.random()
             if STAND_ROWS[0] - 2 <= y <= STAND_ROWS[1] and any(lo - 6 <= x <= hi for (lo, hi) in keep_clear):
                 continue                                          # nothing lying where the player steps up (the rng draws above stay in step)

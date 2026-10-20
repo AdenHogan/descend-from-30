@@ -206,6 +206,7 @@ drop that lands on the floor below). Stair layout is a pure function of the floo
 Three modules side by side (bedroom, kitchen, bathroom, study, living room, dining room — **30 variants**, each with
 run looks, lamps, live details like a dripping fridge or a TV, a window onto the city, a doorway saddle, and a back plane to step up to).
 Layout is seeded and stable. **Searched furniture opens** (10 openings on the base modules). Burnt flats look burnt.
+**Bedrooms are laid from a seed** (round 47, `docs/FURNITURE.md`): a bare shell plus furniture-as-assets under data-driven logic (no bed in a kitchen); 5 styles, no two rooms alike. The other five room types are still baked modules; story rooms (breach / burnt / the dead / tutorial) stay baked.
 Rooms follow a **locked template** (`docs/blueprints/`) so outside artists can draw to it.
 
 ### 7.3 Doors (BUILT)
