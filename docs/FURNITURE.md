@@ -150,7 +150,19 @@ Same kit, same method, one new file per family (the old definitions were cut out
   a flat piece any more (a wasted bed sprite at the right-most bucket, three one-pixel specks, three few-colour marks on a wall).
 * **Not done / owner's call:** the bed headboards (above); the LOOK in the editor at game zoom; the wedding portrait's faces are tiny (a 20×19 px window).
 
+
+### Round 47d — covers, toys and clocks (owner: "the blanket on beds now appears too flat and even shiny; ragdoll, toy chest and blocks still need work; clocks look too flat")
+
+* **Bed covers are matte cloth now** (`bedding.py`): the top is shaded from a HEIGHT FIELD (`Cloth`: a few long wrinkle ridges, a slumped hollow, a lump over the feet) lit from the upper left, quantised into the tone ramp with
+  an ORDERED DITHER between neighbouring tones (`tone()`), capped so it never reaches the bright end of the ramp (that was the satin look), with a woven-thread grain and dull flecks; the front drape's folds are continuous (lit on the
+  left of each fold, shaded on the right) instead of hard tone steps, the pale piping line is mixed into the cloth, and the mattress's own bright edge line is covered. Pillows use the same matte tone.
+* `furn_toys.py` (replaces those three pieces in `furn_kids.py`): **toy_chest** (two shades of plank, grain, a label plate with TOYS stencilled on it, paint chipped back to the wood, a hasp, a heart sticker and star on the lid, a teddy's arm over
+  the rim, toys heaped high), **block_tower** (3 variants — a tower with a roof and a knocked-over block / a bridge with a cylinder / a scatter with a cylinder on its side; real 3D wooden blocks with letters, numbers and animals), **rag_doll**
+  (2 colourways: yarn braids with ribbons, button eyes, stitched smile, apron, one arm up, striped stockings).
+* `furn_clocks.py`: **clock_wall** (a torus-shaded bezel, recessed face with the bezel's shadow on it, ticks, hands with shadows, a glass reflection, a wall shadow, a nail; brass / white / black), **clock_regulator** (a walnut Vienna regulator
+  with a pendulum and weights) and **clock_cuckoo** (a chalet clock with the bird out and pine-cone weights). 80 pieces, 730 sprites.
+
 ## Numbers (so far)
 
-78 pieces, 724 sprites; 5 shells; 5 recipes. 1000 planned rooms in the test: 0 rule violations, 0 fallbacks; planning costs ~16 ms a room on average (cached per flat+slot,
+80 pieces, 730 sprites; 5 shells; 5 recipes. 1000 planned rooms in the test: 0 rule violations, 0 fallbacks; planning costs ~16 ms a room on average (cached per flat+slot,
 shared by the live room and its pan backdrop).

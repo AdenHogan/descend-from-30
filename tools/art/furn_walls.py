@@ -198,37 +198,6 @@ def mirror_wall(c, ox, oy, p):
 
 
 # ================================================================================================================================ the wall clock
-@piece('clock_wall', 14, 16, 'decor', rooms={'bedroom': 4, 'kitchen': 6, 'living_room': 4, 'dining_room': 3, 'study': 3}, styles={'adult': 3, 'kid': 2, 'sick': 3, 'teen': 1}, tags=('clock',),
-       variants={'brass': {'rim': 'b09456'}, 'white': {'rim': 'd8d2c2'}}, wall_y=(22, 40),
-       note='a round wall clock: a shaded rim, a cream face with twelve marks, hands stopped at the hour it all went wrong, a glint on the glass')
-def clock_wall(c, ox, oy, p):
-    rim = hexc(p['rim'])
-    cx, cy, r = ox + 7.0, oy + 8.0, 7.0
-    L = K.Layer(c)
-    lc = L.c
-    tn = K.tones(rim, 5, 0.5, 1.3)
-    for y in range(int(cy - r) - 1, int(cy + r) + 2):                                              # the rim: a ring lit from the upper left
-        for x in range(int(cx - r) - 1, int(cx + r) + 2):
-            u, v = (x + 0.5 - cx) / r, (y + 0.5 - cy) / r
-            d2 = u * u + v * v
-            if d2 > 1.0:
-                continue
-            lam = max(0.0, 0.5 + 0.5 * (K.LX * u + K.LY * v) / 0.9)
-            lc.put(x, y, K._pick(tn, 0.15 + 0.85 * lam))
-    K.ell(lc, cx, cy, 5.2, 5.2, hexc('ece6d0'))                                                      # the face
-    for k in range(12):                                                                              # twelve marks
-        a = k * math.pi / 6.0
-        long = k % 3 == 0
-        rr = 4.4 if long else 4.1
-        lc.put(int(cx + math.sin(a) * rr), int(cy - math.cos(a) * rr), hexc('2a2a2a') if long else hexc('5a5a5a'))
-    lc.line(int(cx), int(cy), int(cx - 2), int(cy - 3), hexc('222222'))                              # minute hand, stopped near ten to
-    lc.line(int(cx), int(cy), int(cx + 3), int(cy - 1), hexc('222222'))
-    lc.put(int(cx), int(cy), hexc('a8322c'))
-    lc.put(int(cx - 3), int(cy - 4), hexc('ffffff'))                                                 # glint
-    L.flush()
-    c.put(int(cx), oy, hexc('4a3e30'))                                                               # the nail
-
-
 # ================================================================================================================================ the bracket shelf
 @piece('wall_shelf', 28, 18, 'decor', rooms={'bedroom': 4, 'living_room': 5, 'study': 4, 'kitchen': 3, 'dining_room': 2}, styles={'adult': 3, 'teen': 2, 'kid': 2}, tags=('shelf',),
        variants={'a': {'x': 0}, 'b': {'x': 1}}, wall_y=(30, 46),

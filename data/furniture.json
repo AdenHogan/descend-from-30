@@ -4193,14 +4193,14 @@
     106,
     112
    ],
-   "h": 24,
+   "h": 28,
    "lean": false,
    "limit": null,
    "near": [
     "toy"
    ],
    "needs": null,
-   "note": "lettered blocks stacked against the wall, a green roof block on top, one knocked off beside it",
+   "note": "wooden toy blocks with letters, numbers and little animals \u2014 a tower with a roof and one knocked over beside it, a bridge with a drum on top, or a scatter with a tipped block and a cylinder on its side",
    "on": [],
    "opens": null,
    "pair": null,
@@ -4221,25 +4221,73 @@
      "anchors": [],
      "anims": [],
      "lights": [],
-     "params": {},
+     "params": {
+      "v": 0
+     },
      "slots": [],
      "sprites": [
       {
-       "b": 2,
+       "b": 3,
        "bx": 160,
        "file": "block_tower_a",
-       "h": 30,
+       "h": 36,
        "l": -2,
-       "r": 17,
+       "r": 31,
        "rx": 2,
-       "ry": 27,
-       "t": -27,
-       "w": 20
+       "ry": 32,
+       "t": -32,
+       "w": 34
+      }
+     ]
+    },
+    "b": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "v": 1
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "block_tower_b",
+       "h": 26,
+       "l": -3,
+       "r": 34,
+       "rx": 3,
+       "ry": 22,
+       "t": -22,
+       "w": 38
+      }
+     ]
+    },
+    "c": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "v": 2
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "block_tower_c",
+       "h": 19,
+       "l": -2,
+       "r": 33,
+       "rx": 2,
+       "ry": 15,
+       "t": -15,
+       "w": 36
       }
      ]
     }
    },
-   "w": 16,
+   "w": 28,
    "wall_y": null
   },
   "book_pile": {
@@ -6946,6 +6994,129 @@
    "w": 46,
    "wall_y": null
   },
+  "clock_cuckoo": {
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 30,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "a chalet cuckoo clock: a shingled roof, a carved front with a little door and the bird half out, two pine-cone weights and a pendulum on chains",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "decor",
+   "rooms": {
+    "bedroom": 1,
+    "dining_room": 4,
+    "kitchen": 4,
+    "living_room": 3
+   },
+   "sound": null,
+   "styles": {
+    "adult": 3,
+    "kid": 2,
+    "sick": 1
+   },
+   "tags": [
+    "clock"
+   ],
+   "variants": {
+    "a": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {},
+     "slots": [],
+     "sprites": [
+      {
+       "b": 29,
+       "bx": 160,
+       "file": "clock_cuckoo_a",
+       "h": 31,
+       "l": -2,
+       "r": 18,
+       "rx": 2,
+       "ry": 1,
+       "t": -1,
+       "w": 21
+      }
+     ]
+    }
+   },
+   "w": 16,
+   "wall_y": [
+    16,
+    30
+   ]
+  },
+  "clock_regulator": {
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 36,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "a walnut regulator clock: a pediment with a finial, a dial in an arched case, a glass door over a brass pendulum and two weights, a plinth",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "decor",
+   "rooms": {
+    "bedroom": 2,
+    "dining_room": 4,
+    "living_room": 5,
+    "study": 4
+   },
+   "sound": null,
+   "styles": {
+    "adult": 4,
+    "sick": 2
+   },
+   "tags": [
+    "clock"
+   ],
+   "variants": {
+    "a": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {},
+     "slots": [],
+     "sprites": [
+      {
+       "b": 36,
+       "bx": 160,
+       "file": "clock_regulator_a",
+       "h": 38,
+       "l": -1,
+       "r": 17,
+       "rx": 1,
+       "ry": 1,
+       "t": -1,
+       "w": 19
+      }
+     ]
+    }
+   },
+   "w": 16,
+   "wall_y": [
+    16,
+    30
+   ]
+  },
   "clock_wall": {
    "bucketed": false,
    "ceiling_drop": 0,
@@ -6954,12 +7125,12 @@
     0,
     0
    ],
-   "h": 16,
+   "h": 21,
    "lean": false,
    "limit": null,
    "near": [],
    "needs": null,
-   "note": "a round wall clock: a shaded rim, a cream face with twelve marks, hands stopped at the hour it all went wrong, a glint on the glass",
+   "note": "a round wall clock with a torus-shaded bezel, a recessed face, ticks (bold quarters), hands that cast a shadow, glass with a curved reflection, a wall shadow and a nail (brass / white kitchen / black school)",
    "on": [],
    "opens": null,
    "pair": null,
@@ -6982,26 +7153,57 @@
     "clock"
    ],
    "variants": {
+    "black": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "face": "e2dcc6",
+      "ink": "1a1a1a",
+      "num": true,
+      "rim": "2e2e32",
+      "second": false
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 22,
+       "bx": 160,
+       "file": "clock_wall_black",
+       "h": 25,
+       "l": -2,
+       "r": 19,
+       "rx": 2,
+       "ry": 2,
+       "t": -2,
+       "w": 22
+      }
+     ]
+    },
     "brass": {
      "anchors": [],
      "anims": [],
      "lights": [],
      "params": {
-      "rim": "b09456"
+      "face": "ece6d0",
+      "ink": "2a2a2a",
+      "num": false,
+      "rim": "b09456",
+      "second": false
      },
      "slots": [],
      "sprites": [
       {
-       "b": 16,
+       "b": 22,
        "bx": 160,
        "file": "clock_wall_brass",
-       "h": 18,
+       "h": 25,
        "l": -2,
-       "r": 15,
+       "r": 19,
        "rx": 2,
-       "ry": 1,
-       "t": -1,
-       "w": 18
+       "ry": 2,
+       "t": -2,
+       "w": 22
       }
      ]
     },
@@ -7010,26 +7212,30 @@
      "anims": [],
      "lights": [],
      "params": {
-      "rim": "d8d2c2"
+      "face": "f4f2ea",
+      "ink": "1a1a1a",
+      "num": true,
+      "rim": "e4e0d4",
+      "second": true
      },
      "slots": [],
      "sprites": [
       {
-       "b": 16,
+       "b": 22,
        "bx": 160,
        "file": "clock_wall_white",
-       "h": 18,
+       "h": 25,
        "l": -2,
-       "r": 15,
+       "r": 19,
        "rx": 2,
-       "ry": 1,
-       "t": -1,
-       "w": 18
+       "ry": 2,
+       "t": -2,
+       "w": 22
       }
      ]
     }
    },
-   "w": 14,
+   "w": 18,
    "wall_y": [
     22,
     40
@@ -13029,14 +13235,14 @@
     112,
     119
    ],
-   "h": 16,
+   "h": 20,
    "lean": false,
    "limit": null,
    "near": [
     "sleeping"
    ],
    "needs": null,
-   "note": "a rag doll slumped against the foot of the bed: yarn hair, button eyes, a blue dress with an apron, striped stockings",
+   "note": "a rag doll slumped on the floor: yarn hair in braids with ribbons, button eyes, a stitched smile, rosy cheeks, a dress and apron, one arm up and one down, striped stockings, black shoes",
    "on": [],
    "opens": null,
    "pair": null,
@@ -13057,25 +13263,56 @@
      "anchors": [],
      "anims": [],
      "lights": [],
-     "params": {},
+     "params": {
+      "apron": "f0ead8",
+      "dress": "5a82c0",
+      "hair": "c8742c",
+      "skin": "f0d4b8"
+     },
      "slots": [],
      "sprites": [
       {
-       "b": 2,
+       "b": 3,
        "bx": 160,
        "file": "rag_doll_a",
-       "h": 21,
+       "h": 26,
        "l": -2,
-       "r": 11,
+       "r": 15,
        "rx": 2,
-       "ry": 18,
-       "t": -18,
-       "w": 14
+       "ry": 22,
+       "t": -22,
+       "w": 18
+      }
+     ]
+    },
+    "b": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "apron": "e6d8c0",
+      "dress": "c9a24e",
+      "hair": "4a3020",
+      "skin": "d8a880"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "rag_doll_b",
+       "h": 26,
+       "l": -2,
+       "r": 15,
+       "rx": 2,
+       "ry": 22,
+       "t": -22,
+       "w": 18
       }
      ]
     }
    },
-   "w": 10,
+   "w": 13,
    "wall_y": null
   },
   "rocking_horse": {
@@ -14476,7 +14713,7 @@
     "sleeping"
    ],
    "needs": null,
-   "note": "a blue toy chest in true perspective, lid thrown back with a stencilled star, planked, iron-cornered, a teddy, a ball, a block and a doll's leg heaped inside",
+   "note": "a worn blue toy chest in true perspective: two shades of plank, paint chipped back to wood, TOYS stencilled across the front, a lid with a star and a heart sticker, toys heaped high (teddy, drum, blocks, ball, trumpet, a stocking) and the teddy's arm hanging over the rim",
    "on": [],
    "opens": null,
    "pair": null,
@@ -14512,85 +14749,85 @@
        "b": 2,
        "bx": 36,
        "file": "toy_chest_blue_b0",
-       "h": 36,
-       "l": 1,
+       "h": 37,
+       "l": 0,
        "r": 41,
-       "rx": -1,
-       "ry": 33,
-       "t": -33,
-       "w": 41
+       "rx": 0,
+       "ry": 34,
+       "t": -34,
+       "w": 42
       },
       {
        "b": 2,
        "bx": 72,
        "file": "toy_chest_blue_b1",
-       "h": 36,
-       "l": 1,
+       "h": 37,
+       "l": 0,
        "r": 38,
-       "rx": -1,
-       "ry": 33,
-       "t": -33,
-       "w": 38
+       "rx": 0,
+       "ry": 34,
+       "t": -34,
+       "w": 39
       },
       {
        "b": 2,
        "bx": 116,
        "file": "toy_chest_blue_b2",
-       "h": 36,
-       "l": 1,
-       "r": 35,
-       "rx": -1,
-       "ry": 33,
-       "t": -33,
-       "w": 35
+       "h": 37,
+       "l": 0,
+       "r": 36,
+       "rx": 0,
+       "ry": 34,
+       "t": -34,
+       "w": 37
       },
       {
        "b": 2,
        "bx": 160,
        "file": "toy_chest_blue_b3",
-       "h": 36,
-       "l": 1,
-       "r": 35,
-       "rx": -1,
-       "ry": 33,
-       "t": -33,
-       "w": 35
+       "h": 37,
+       "l": 0,
+       "r": 36,
+       "rx": 0,
+       "ry": 34,
+       "t": -34,
+       "w": 37
       },
       {
        "b": 2,
        "bx": 204,
        "file": "toy_chest_blue_b4",
-       "h": 36,
-       "l": 1,
-       "r": 35,
-       "rx": -1,
-       "ry": 33,
-       "t": -33,
-       "w": 35
+       "h": 37,
+       "l": 0,
+       "r": 36,
+       "rx": 0,
+       "ry": 34,
+       "t": -34,
+       "w": 37
       },
       {
        "b": 2,
        "bx": 248,
        "file": "toy_chest_blue_b5",
-       "h": 36,
+       "h": 37,
        "l": -2,
-       "r": 35,
+       "r": 36,
        "rx": 2,
-       "ry": 33,
-       "t": -33,
-       "w": 38
+       "ry": 34,
+       "t": -34,
+       "w": 39
       },
       {
        "b": 2,
        "bx": 284,
        "file": "toy_chest_blue_b6",
-       "h": 36,
+       "h": 37,
        "l": -5,
-       "r": 35,
+       "r": 36,
        "rx": 5,
-       "ry": 33,
-       "t": -33,
-       "w": 41
+       "ry": 34,
+       "t": -34,
+       "w": 42
       }
      ]
     }

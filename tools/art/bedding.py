@@ -67,6 +67,56 @@ def fill_top(c, T, xa, xb, d0, d1, fn, base=None):
                     c.put(px, py, col)
 
 
+BAYER = ((0, 2), (3, 1))
+
+
+def tone(tn, f, px, py, cap=None):
+    """A tone at fractional index f, ordered-dithered between its neighbours so a soft fold reads as cloth (a gentle gradient), not as a hard band; `cap` keeps matte cloth from ever reaching
+    the bright end of the ramp (that is what made it look like satin)."""
+    top = len(tn) - 1.0 if cap is None else cap
+    f = max(0.0, min(top, f))
+    i = int(math.floor(f))
+    if i >= len(tn) - 1:
+        return tn[-1]
+    return tn[i + 1] if (f - i) > (BAYER[py & 1][px & 1] + 0.5) / 4.0 else tn[i]
+
+
+class Cloth:
+    """A height field for a soft cover lying on a bed: a few long wrinkle ridges (soft gaussians along slanted lines), a slumped hollow, a lump over the feet and a bunch near the front edge.
+    shade(x, d) is the lighting those slopes give, light from the upper left — positive = lit. Pure function of the seed."""
+
+    def __init__(self, xa, xb, d1, seed, lump_x=None, n=5):
+        rng = random.Random(seed * 7919 + 3)
+        self.ridges = []
+        span = xb - xa
+        for k in range(n):
+            x0 = xa + span * (0.06 + 0.88 * (k + rng.random() * 0.6) / n)
+            ln = rng.uniform(12, 26)
+            d0 = rng.uniform(1.5, d1 * 0.55)
+            slope = rng.uniform(0.22, 0.6) * (1 if rng.random() < 0.7 else -1)
+            self.ridges.append((x0, d0, x0 + ln, d0 + slope * ln * 0.45, rng.uniform(1.0, 1.9), rng.uniform(2.0, 3.4)))
+        self.lump = (lump_x if lump_x is not None else xb - span * 0.38, d1 * 0.5, 16.0, d1 * 0.5, 2.4)
+        self.xa, self.xb, self.d1 = xa, xb, d1
+
+    def h(self, x, d):
+        v = 0.0
+        for (x0, d0, x1, d1_, amp, w) in self.ridges:
+            dx, dd = x1 - x0, d1_ - d0
+            L = dx * dx + dd * dd * 4.0
+            t = max(0.0, min(1.0, ((x - x0) * dx + (d - d0) * dd * 4.0) / L))
+            ex, ed = x - (x0 + dx * t), (d - (d0 + dd * t)) * 2.0
+            v += amp * math.exp(-(ex * ex + ed * ed) / (w * w)) * (1.0 - 0.5 * abs(t - 0.5))
+        lx, ld, rx, rd, la = self.lump
+        v += la * math.exp(-(((x - lx) / rx) ** 2 + ((d - ld) / rd) ** 2))
+        return v
+
+    def shade(self, x, d):
+        e = 0.9
+        dhdx = (self.h(x + e, d) - self.h(x - e, d)) / (2 * e)
+        dhdd = (self.h(x, d + e) - self.h(x, d - e)) / (2 * e)
+        return dhdx * 1.0 - dhdd * 0.55
+
+
 def _hash(a, b, seed=0):
     h = (a * 73856093) ^ (b * 19349663) ^ (seed * 83492791)
     return (h & 0xffff) / 65535.0
@@ -154,26 +204,29 @@ def _cover(c, T, geo, spec, xa, xb, rng):
     spec['_tn'] = main
     spec['_lump_x'] = xb - (xb - xa) * 0.38
 
+    cloth = Cloth(xa, xb, d1, spec.get('seed', 1), lump_x=spec['_lump_x'])
+    spec['_cloth'] = cloth
+    grain = spec.get('grain', 0.55)
+
     def fn(x, d, px, py):
         which, off = pattern_index(spec, x, d, xa)
         tn = tns[which]
-        i = 3 + off
+        f = 3.0 + off + 2.6 * cloth.shade(x, d) + 0.35 * cloth.h(x, d) + 0.7 * (d / d1 - 0.5)
+        f += (_hash(px, py, 5) - 0.5) * grain                     # the grain of the weave
+        if (px + py) % 2 == 0 and _hash(px >> 1, py >> 1, 9) < 0.18:
+            f -= 0.35                                               # a dull fleck of thread
         if d < 1.6:
-            i -= 2                                                    # tucked against the wall: in shade
+            f -= 1.5                                                # tucked against the wall: in shade
         elif d < 3.2:
-            i -= 1
+            f -= 0.7
         if d > d1 - 0.5:
-            i += 2                                                    # the rolled front edge catches the light
+            f += 0.8                                                # the rolled front edge turns toward the light, a little
         elif d > d1 - 1.7:
-            i += 1
+            f += 0.35
         if x > xb - 1.6:
-            i -= 1
-        lm = _lump(x, d, spec, xb, d1)
-        if lm and i >= 3:
-            i += 2 if lm == 2 else 1
-        return _ix(tn, i)
+            f -= 0.8
+        return tone(tn, f, px, py, cap=4.6)
     fill_top(c, T, xa, xb, 0.0, d1 + 0.6, fn, base=main[3])
-    _creases(c, T, xa, xb, d1, spec, rng)
     return main, acc
 
 
@@ -193,27 +246,30 @@ def _drape(c, T, xa, xb, d_edge, hem, spec, ph, kind='duvet'):
     while x < fb:
         x += rng.randint(3, 6)
         cuts.append(x)
-    steps = [0, 1, -1, 0, 1, 0, -1, 1]
+    steps = [0.0, 0.5, -0.5, 0.2, 0.6, -0.2, -0.6, 0.4]
     for x in range(fa, fb + 1):
         k = x - fa
         xw = VPX + (x - VPX) / s1
         which, off = pattern_index(spec if kind == 'duvet' else dict(spec, pattern='wide'), xw, 0.5, xa)
         tn = tns[which] if kind == 'duvet' else (acc if which else main)
         fi = sum(1 for cc in cuts if cc <= x)
+        lo = max([cc for cc in cuts if cc <= x] + [fa])
+        hi = min([cc for cc in cuts if cc > x] + [fb + 1])
+        t = (x - lo) / float(max(1, hi - lo))                       # where in its fold this column is: lit on the left, shaded on the right
         crease = x in cuts
         edge_in = min(x - fa, fb - x)
+        c.put(x, ya, tone(tn, 3.0 + off + 0.5, x, ya, cap=4.6))          # the mattress's own pale edge line is covered by the cloth rolling over it
         wave = int(round(0.9 * math.sin(k * 0.17 + ph) + 0.5 * math.sin(k * 0.43 + ph * 2)))
         h = hem + wave - (1 if edge_in == 0 else 0)
         for y in range(ya + 1, ya + h + 1):
             f = (y - ya) / float(max(1, h))
-            i = 3 + off + steps[fi % len(steps)] - (1 if f > 0.5 else 0) - (1 if f > 0.82 else 0) - (1 if crease else 0)
+            fl = 3.0 + off + steps[fi % len(steps)] + 0.9 * (0.5 - t) * 2.0 - (1.1 if crease else 0.0) - 0.7 * f - (0.5 if f > 0.82 else 0.0)
+            fl += (_hash(x, y, 4) - 0.5) * 0.4
             if y == ya + 1:
-                i += 2                                                # the roll where it goes over the edge
-            elif y == ya + 2:
-                i += 1
-            c.put(x, y, _ix(tn, i))
+                fl += 0.9                                           # the roll where it goes over the edge
+            c.put(x, y, tone(tn, fl, x, y, cap=4.6))
             if y == ya + 1 and spec.get('piping') and kind == 'duvet':
-                c.put(x, y, spec['piping'])                           # piping along the rolled edge
+                c.put(x, y, mix(spec['piping'], _ix(tn, 3), 0.45))   # piping along the rolled edge, not a bright line
         c.put(x, ya + h, _ix(tn, 0))                                  # the hem, dark
         if kind == 'throw':
             c.put(x, ya + h + 1, _ix(acc, 3) if k % 2 == 0 else _ix(acc, 1))     # fringe
@@ -273,7 +329,7 @@ def _pillow(c, T, geo, spec, px0, px1):
         if 0.74 < abs(u) < 0.86:
             col = bn                                                 # the pillowcase border
             i = 3
-        return _ix(col, i)
+        return tone(col, i + 0.5 * (_hash(px, py, 6) - 0.5), px, py, cap=4.4)
     ya = Tp.spt(px0, dd1)[1]
     xa_, xb_ = Tp.spt(px0, dd1)[0], Tp.spt(px1, dd1)[0]
     fill_top(c, Tp, px0, px1, d0, dd1, fn, base=tn[3])

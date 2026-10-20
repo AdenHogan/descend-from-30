@@ -30,8 +30,10 @@ import furn_medical  # noqa: F401
 import furn_more  # noqa: F401
 import furn_case  # noqa: F401
 import furn_kids  # noqa: F401
+import furn_toys  # noqa: F401
 import furn_floor  # noqa: F401
 import furn_walls  # noqa: F401
+import furn_clocks  # noqa: F401
 import furn_desk  # noqa: F401
 import furn_rooms
 
