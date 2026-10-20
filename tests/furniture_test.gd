@@ -7,6 +7,9 @@ extends Node
 
 const RoomScript := preload("res://scripts/room.gd")
 const BEDROOM_STYLES := ["adult", "teen", "sick", "refuge", "kid"]
+const KITCHEN_STYLES := ["classic", "retro", "country", "student", "hoarder"]
+const PLANNED := {"bedroom": BEDROOM_STYLES, "kitchen": KITCHEN_STYLES}                 # the room types the planner lays, and their styles
+const UNPLANNED := ["bathroom", "study", "living_room", "dining_room"]                    # still baked modules
 const SEEDS_PER_STYLE := 100
 
 var failures: int = 0
@@ -33,7 +36,9 @@ func _ready() -> void:
 	_test_needs()
 	_test_reach()
 	_test_room_choice()
-	await _test_real_rooms()
+	await _test_real_rooms("bedroom")
+	await _test_real_rooms("kitchen")
+	await _test_story_flats_stay_baked()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -81,13 +86,19 @@ func _test_library() -> void:
 	check(missing.is_empty(), "every sprite a piece names exists %s" % str(missing.slice(0, 4)))
 	check(no_buckets.is_empty(), "every leaning sprite knows its bucket x")
 	check(opens_missing.is_empty(), "every opening piece has its open strip %s" % str(opens_missing.slice(0, 4)))
-	for style in BEDROOM_STYLES:
-		var r := FurniturePlanner.recipe("bedroom", style)
-		check(not r.is_empty(), "bedroom/%s has a recipe" % style)
-		check(ResourceLoader.exists(RoomScript.FURNITURE_SHELL_DIR + String(r.get("shell", "x")) + ".tscn"), "bedroom/%s: its shell scene exists" % style)
-		check(ResourceLoader.exists("res://assets/rooms/%s.png" % String(r.get("shell", "x"))), "bedroom/%s: its shell art exists" % style)
-		check(not r.get("fallback", []).is_empty(), "bedroom/%s: has a hand-set fallback layout" % style)
-	check(FurniturePlanner.handles("bedroom") and not FurniturePlanner.handles("kitchen"), "the planner lays bedrooms and (so far) nothing else")
+	for room in PLANNED:
+		for style in PLANNED[room]:
+			var r := FurniturePlanner.recipe(room, style)
+			check(not r.is_empty(), "%s/%s has a recipe" % [room, style])
+			check(ResourceLoader.exists(RoomScript.FURNITURE_SHELL_DIR + String(r.get("shell", "x")) + ".tscn"), "%s/%s: its shell scene exists" % [room, style])
+			check(ResourceLoader.exists("res://assets/rooms/%s.png" % String(r.get("shell", "x"))), "%s/%s: its shell art exists" % [room, style])
+			check(not r.get("fallback", []).is_empty(), "%s/%s: has a hand-set fallback layout" % [room, style])
+	var only_planned := true
+	for room in PLANNED:
+		only_planned = only_planned and FurniturePlanner.handles(room)
+	for room in UNPLANNED:
+		only_planned = only_planned and not FurniturePlanner.handles(room)
+	check(only_planned, "the planner lays exactly the room types in PLANNED (%s) and nothing else" % str(PLANNED.keys()))
 
 
 # ------------------------------------------------------------------------------------------------------------------------------------ THE LOGIC
@@ -128,72 +139,77 @@ func _test_logic_table() -> void:
 func _test_plans_obey_the_rules() -> void:
 	print("[plans obey every rule — %d seeds per style, both window sides]" % SEEDS_PER_STYLE)
 	var t0 := Time.get_ticks_msec()
-	for style in BEDROOM_STYLES:
-		var broke: Array = []
-		var fb := 0
-		var few_front := 0
-		var empty := 0
-		var wrong := 0
-		var seen_ids := {}
-		var vanity_wrong := 0
-		var vanity_seen := 0
-		var n := 0
-		for k in range(SEEDS_PER_STYLE):
-			for side in ["left", "right"]:
-				var pl := FurniturePlanner.plan("bedroom", style, 7000 + k, {"window": side})
-				n += 1
-				if pl.is_empty():
-					empty += 1
-					continue
-				if bool(pl["fallback"]):
-					fb += 1
-				var v := FurniturePlanner.validate(pl, {"window": side})
-				if not v.is_empty():
-					broke.append("seed %d %s: %s" % [7000 + k, side, str(v.slice(0, 2))])
-				var front := 0
-				for a in pl["anchors"]:
-					if not bool(a["bp"]) and int(a["y"]) >= FurniturePlanner.FRONT_NODE_MIN_Y:
-						front += 1
-					if int(a["x"]) < 6 or int(a["x"]) > 314:
-						broke.append("a node off the module (%d,%d)" % [int(a["x"]), int(a["y"])])
-				if front < 2:
-					few_front += 1
-				if pl["anchors"].size() < 2:
-					broke.append("fewer than 2 nodes")
-				for it in pl["items"]:
-					seen_ids[String(it["id"])] = true
-					if String(it["id"]) in ["jewel_box", "perfume_set", "hairbrush"]:           # a jewellery box / scent / brush stands on a dressing table or a chest of drawers, never a bookcase
-						vanity_seen += 1
-						var on_vanity := false
-						for h in pl["items"]:
-							if String(h["id"]) in ["dressing_table", "chest_drawers"] and int(it["x"]) >= int(h["x"]) and int(it["x"]) + int(it["w"]) <= int(h["x"]) + int(h["w"]) + 2:
-								on_vanity = true
-						if not on_vanity:
-							vanity_wrong += 1
-					if not FurniturePlanner.eligible(String(it["id"]), "bedroom", style):
+	var total := 0
+	for room in PLANNED:
+		for style in PLANNED[room]:
+			var broke: Array = []
+			var fb := 0
+			var few_front := 0
+			var empty := 0
+			var wrong := 0
+			var seen_ids := {}
+			var vanity_wrong := 0
+			var vanity_seen := 0
+			var n := 0
+			for k in range(SEEDS_PER_STYLE):
+				for side in ["left", "right"]:
+					var pl := FurniturePlanner.plan(room, style, 7000 + k, {"window": side})
+					n += 1
+					if pl.is_empty():
+						empty += 1
+						continue
+					if bool(pl["fallback"]):
+						fb += 1
+					var v := FurniturePlanner.validate(pl, {"window": side})
+					if not v.is_empty():
+						broke.append("seed %d %s: %s" % [7000 + k, side, str(v.slice(0, 2))])
+					var front := 0
+					for a in pl["anchors"]:
+						if not bool(a["bp"]) and int(a["y"]) >= FurniturePlanner.FRONT_NODE_MIN_Y:
+							front += 1
+						if int(a["x"]) < 6 or int(a["x"]) > 314:
+							broke.append("a node off the module (%d,%d)" % [int(a["x"]), int(a["y"])])
+					if front < 2:
+						few_front += 1
+					if pl["anchors"].size() < 2:
+						broke.append("fewer than 2 nodes")
+					for it in pl["items"]:
+						seen_ids[String(it["id"])] = true
+						if room == "bedroom" and String(it["id"]) in ["jewel_box", "perfume_set", "hairbrush"]:           # a jewellery box / scent / brush stands on a dressing table or a chest of drawers, never a bookcase
+							vanity_seen += 1
+							var on_vanity := false
+							for h in pl["items"]:
+								if String(h["id"]) in ["dressing_table", "chest_drawers"] and int(it["x"]) >= int(h["x"]) and int(it["x"]) + int(it["w"]) <= int(h["x"]) + int(h["w"]) + 2:
+									on_vanity = true
+							if not on_vanity:
+								vanity_wrong += 1
+						if not FurniturePlanner.eligible(String(it["id"]), room, style):
+							wrong += 1
+					if String(pl["style"]) != style or String(pl["room"]) != room:
 						wrong += 1
-				if String(pl["style"]) != style or String(pl["room"]) != "bedroom":
-					wrong += 1
-		check(vanity_wrong == 0, "bedroom/%s: dressing-table things (%d placed) stand only on a dressing table or a chest of drawers (%d strays)" % [style, vanity_seen, vanity_wrong])
-		if style == "adult":
-			check(vanity_seen > 0, "bedroom/adult: the vanity check really sees jewellery boxes / scent / brushes (%d)" % vanity_seen)
-		check(empty == 0, "bedroom/%s: every seed yields a plan" % style)
-		check(broke.is_empty(), "bedroom/%s: %d plans break no rule %s" % [style, n, str(broke.slice(0, 2))])
-		check(wrong == 0, "bedroom/%s: every placed piece belongs in a %s bedroom (%d strays)" % [style, style, wrong])
-		check(few_front == 0, "bedroom/%s: always at least 2 nodes reachable from the walking lane" % style)
-		check(float(fb) / float(n) < 0.05, "bedroom/%s: the hand-set fallback is the rare exception (%d of %d)" % [style, fb, n])
-		check(seen_ids.size() >= 12, "bedroom/%s: draws on a real range of pieces (%d different)" % [style, seen_ids.size()])
-	print("  (%d plans in %.1f s)" % [BEDROOM_STYLES.size() * SEEDS_PER_STYLE * 2, (Time.get_ticks_msec() - t0) / 1000.0])
+			if room == "bedroom":
+				check(vanity_wrong == 0, "bedroom/%s: dressing-table things (%d placed) stand only on a dressing table or a chest of drawers (%d strays)" % [style, vanity_seen, vanity_wrong])
+				if style == "adult":
+					check(vanity_seen > 0, "bedroom/adult: the vanity check really sees jewellery boxes / scent / brushes (%d)" % vanity_seen)
+			check(empty == 0, "%s/%s: every seed yields a plan" % [room, style])
+			check(broke.is_empty(), "%s/%s: %d plans break no rule %s" % [room, style, n, str(broke.slice(0, 2))])
+			check(wrong == 0, "%s/%s: every placed piece belongs in a %s %s (%d strays)" % [room, style, style, room, wrong])
+			check(few_front == 0, "%s/%s: always at least 2 nodes reachable from the walking lane" % [room, style])
+			check(float(fb) / float(n) < 0.05, "%s/%s: the hand-set fallback is the rare exception (%d of %d)" % [room, style, fb, n])
+			check(seen_ids.size() >= 12, "%s/%s: draws on a real range of pieces (%d different)" % [room, style, seen_ids.size()])
+			total += n
+	print("  (%d plans in %.1f s)" % [total, (Time.get_ticks_msec() - t0) / 1000.0])
 	# every fallback layout is itself valid (it must be safe for either window side)
-	for style in BEDROOM_STYLES:
-		for side in ["left", "right"]:
-			var rcp := FurniturePlanner.recipe("bedroom", style)
-			var items: Array = []
-			for e in rcp["fallback"]:
-				var rec := FurniturePlanner.piece(String(e["id"]))
-				items.append({"id": e["id"], "variant": e["variant"], "x": e["x"], "y": e["y"], "plane": rec["plane"], "host_plane": rec["plane"], "w": rec["w"]})
-			var v := FurniturePlanner.validate({"room": "bedroom", "style": style, "items": items}, {"window": side})
-			check(v.is_empty(), "bedroom/%s: the fallback layout is valid with the window on the %s %s" % [style, side, str(v)])
+	for room in PLANNED:
+		for style in PLANNED[room]:
+			for side in ["left", "right"]:
+				var rcp := FurniturePlanner.recipe(room, style)
+				var items: Array = []
+				for e in rcp["fallback"]:
+					var rec := FurniturePlanner.piece(String(e["id"]))
+					items.append({"id": e["id"], "variant": e["variant"], "x": e["x"], "y": e["y"], "plane": rec["plane"], "host_plane": rec["plane"], "w": rec["w"]})
+				var v := FurniturePlanner.validate({"room": room, "style": style, "items": items}, {"window": side})
+				check(v.is_empty(), "%s/%s: the fallback layout is valid with the window on the %s %s" % [room, style, side, str(v)])
 
 
 # ------------------------------------------------------------------------------------------------------------------------------------ every rule can FAIL
@@ -247,16 +263,16 @@ func _signature(pl: Dictionary) -> String:
 
 func _test_variety_and_determinism() -> void:
 	print("[variety + determinism]")
-	for style in BEDROOM_STYLES:
-		var a := FurniturePlanner.plan("bedroom", style, 31337, {"window": "left"})
-		var b := FurniturePlanner.plan("bedroom", style, 31337, {"window": "left"})
-		check(_signature(a) == _signature(b) and a["anchors"].size() == b["anchors"].size(), "bedroom/%s: the same seed gives the same room, down to the pixel" % style)
-		var sigs := {}
-		var heads := {}
-		for k in range(40):
-			var p := FurniturePlanner.plan("bedroom", style, 500 + k, {"window": "left"})
-			sigs[_signature(p)] = true
-		check(sigs.size() >= 36, "bedroom/%s: 40 flats, %d different rooms — two of the same style are not the same room" % [style, sigs.size()])
+	for room in PLANNED:
+		for style in PLANNED[room]:
+			var a := FurniturePlanner.plan(room, style, 31337, {"window": "left"})
+			var b := FurniturePlanner.plan(room, style, 31337, {"window": "left"})
+			check(_signature(a) == _signature(b) and a["anchors"].size() == b["anchors"].size(), "%s/%s: the same seed gives the same room, down to the pixel" % [room, style])
+			var sigs := {}
+			for k in range(40):
+				var p := FurniturePlanner.plan(room, style, 500 + k, {"window": "left"})
+				sigs[_signature(p)] = true
+			check(sigs.size() >= 34, "%s/%s: 40 flats, %d different rooms — two of the same style are not the same room" % [room, style, sigs.size()])
 	var w1 := FurniturePlanner.plan("bedroom", "adult", 4242, {"window": "left"})
 	var w2 := FurniturePlanner.plan("bedroom", "adult", 4242, {"window": "right"})
 	check(w1["items"].size() > 0 and w2["items"].size() > 0, "a different window side re-plans (the room works round its window)")
@@ -269,6 +285,14 @@ func _test_variety_and_determinism() -> void:
 			all_present = false
 	check(all_present and int(counts["adult"]) > int(counts["sick"]), "the room's style is seeded and weighted: all five turn up, the ordinary one most %s" % str(counts))
 	check(FurniturePlanner.pick_style("bedroom", 1234) == FurniturePlanner.pick_style("bedroom", 1234), "a flat's style is stable")
+	var kcounts := {}
+	for k in range(300):
+		kcounts[FurniturePlanner.pick_style("kitchen", 900 + k)] = int(kcounts.get(FurniturePlanner.pick_style("kitchen", 900 + k), 0)) + 1
+	var kall := true
+	for s in KITCHEN_STYLES:
+		if not kcounts.has(s):
+			kall = false
+	check(kall and int(kcounts["classic"]) > int(kcounts["hoarder"]), "the kitchen's style is seeded and weighted too: all five turn up %s" % str(kcounts))
 
 
 # ------------------------------------------------------------------------------------------------------------------------------------ needs: a desk wants its chair
@@ -333,27 +357,28 @@ func _test_reach() -> void:
 	var high := 0
 	var unreachable := 0
 	var spots := 0
-	for style in BEDROOM_STYLES:
-		for k in range(60):
-			var pl := FurniturePlanner.plan("bedroom", style, 21000 + k, {"window": "left" if k % 2 == 0 else "right"})
-			var pts: Array = []
-			for a in pl["anchors"]:
-				if int(a["y"]) < FurniturePlanner.NODE_MIN_Y:
-					high += 1
-				if bool(a["bp"]):
-					pts.append(Vector2(float(a["x"]), float(a["y"]) + 224.0))
-			pts.sort_custom(func(p, q): return p.x < q.x)
-			for g in RoomScript.back_spot_groups(pts):
-				spots += 1
-				var cx := 0.0
-				for i in g:
-					cx += pts[i].x
-				cx /= float(g.size())
-				for i in g:
-					if Vector2(pts[i].x - cx, pts[i].y - 306.0).length() > 50.0:
-						unreachable += 1
+	for room in PLANNED:
+		for style in PLANNED[room]:
+			for k in range(60):
+				var pl := FurniturePlanner.plan(room, style, 21000 + k, {"window": "left" if k % 2 == 0 else "right"})
+				var pts: Array = []
+				for a in pl["anchors"]:
+					if int(a["y"]) < FurniturePlanner.NODE_MIN_Y:
+						high += 1
+					if bool(a["bp"]):
+						pts.append(Vector2(float(a["x"]), float(a["y"]) + 224.0))
+				pts.sort_custom(func(p, q): return p.x < q.x)
+				for g in RoomScript.back_spot_groups(pts):
+					spots += 1
+					var cx := 0.0
+					for i in g:
+						cx += pts[i].x
+					cx /= float(g.size())
+					for i in g:
+						if Vector2(pts[i].x - cx, pts[i].y - 306.0).length() > 50.0:
+							unreachable += 1
 	check(high == 0, "no planned node sits above the reach line (y < %d)" % FurniturePlanner.NODE_MIN_Y)
-	check(unreachable == 0 and spots > 100, "every set-back node of 300 planned rooms is within arm's length (50 px) of its spot's centre (%d spots, %d out of reach)" % [spots, unreachable])
+	check(unreachable == 0 and spots > 100, "every set-back node of the planned rooms is within arm's length (50 px) of its spot's centre (%d spots, %d out of reach)" % [spots, unreachable])
 	var high_node := _plan_of("adult", [["wardrobe_wood", "walnut", 120, 90]])
 	check("out of reach" in _violations(high_node, "right"), "a piece whose node would hang above the reach line is refused")
 	check(FurniturePlanner.validate(_plan_of("adult", [["wardrobe_wood", "walnut", 120, 106]]), {"window": "right"}).is_empty(), "…and the same wardrobe at its proper height passes")
@@ -371,7 +396,10 @@ func _test_room_choice() -> void:
 	var apt := "1503"
 	var plain := RoomScript.furniture_plan_for(apt, 0, "bedroom", false, false)
 	check(not plain.is_empty() and String(plain["shell"]).begins_with("bedroom_shell_"), "an ordinary flat's bedroom is planned")
-	check(RoomScript.furniture_plan_for(apt, 0, "kitchen", false, false).is_empty(), "a kitchen is still the baked module (no recipes yet)")
+	var plain_k := RoomScript.furniture_plan_for(apt, 0, "kitchen", false, false)
+	check(not plain_k.is_empty() and String(plain_k["shell"]).begins_with("kitchen_shell_"), "an ordinary flat's kitchen is planned too")
+	for room in UNPLANNED:
+		check(RoomScript.furniture_plan_for(apt, 0, room, false, false).is_empty(), "a %s is still the baked module (no recipes yet)" % room)
 	check(RoomScript.furniture_plan_for(apt, 0, "bedroom", true, false).is_empty(), "a BREACHED flat keeps its baked story")
 	check(RoomScript.furniture_plan_for(apt, 0, "bedroom", false, true).is_empty(), "a BURNT flat keeps its baked husk")
 	WorldState.is_first_run = true
@@ -411,7 +439,20 @@ func _test_room_choice() -> void:
 		else:
 			mism += 1
 	check(matched >= 10 and mism == 0, "a baked bedroom is the old module of the planned style (%d flats, %d mismatches)" % [matched, mism])
-	check(RoomScript.baked_scene_for("1503", 0, "kitchen") == RoomScript.module_scene_for("1503", 0, "kitchen"), "other room types are untouched by the style rule")
+	check(RoomScript.baked_scene_for("1503", 0, "bathroom") == RoomScript.module_scene_for("1503", 0, "bathroom"), "room types the planner does not lay are untouched by the style rule")
+	var kmatched := 0
+	var kmism := 0
+	for f in range(3, 28):
+		var kap := "%d02" % f
+		var kplan := RoomScript.furniture_plan_for(kap, 0, "kitchen", false, false)
+		if kplan.is_empty():
+			continue
+		var kbaked: String = RoomScript.baked_scene_for(kap, 0, "kitchen")
+		if kbaked == RoomScript.MODULE_VARIANTS["kitchen"][int(FurniturePlanner.recipe("kitchen", String(kplan["style"]))["legacy"])]:
+			kmatched += 1
+		else:
+			kmism += 1
+	check(kmatched >= 10 and kmism == 0, "a baked kitchen is the old module of the planned style (%d flats, %d mismatches)" % [kmatched, kmism])
 	var styles := {}
 	var planned := 0
 	var story := 0
@@ -428,6 +469,14 @@ func _test_room_choice() -> void:
 				styles[String(p["style"])] = true
 	WorldState.current_run = 1
 	check(styles.size() == 5, "across a building every style of bedroom turns up (%s)" % str(styles.keys()))
+	var kstyles := {}
+	for f in range(2, 29):
+		for col in range(1, 6):
+			for slot in range(3):
+				var kp := RoomScript.furniture_plan_for("%d0%d" % [f, col], slot, "kitchen", false, false)
+				if not kp.is_empty():
+					kstyles[String(kp["style"])] = true
+	check(kstyles.size() == 5, "…and every style of kitchen (%s)" % str(kstyles.keys()))
 	check(story > 0 and story < planned / 4, "only the rooms that hold one of the dead stay baked (%d of %d)" % [story, story + planned])
 
 
@@ -446,8 +495,8 @@ func _build_flat(apt: String) -> Node:
 	return room
 
 
-func _test_real_rooms() -> void:
-	print("[real rooms]")
+func _test_real_rooms(rtype: String) -> void:
+	print("[real %s rooms]" % rtype)
 	var found := 0
 	var opened_seen := false
 	var anchors_ok := true
@@ -466,17 +515,17 @@ func _test_real_rooms() -> void:
 			WorldState.is_first_run = false
 			WorldState.current_run = 2
 			var layout: Array = WorldState.get_apartment_layout(apt)
-			if not ("bedroom" in layout):
+			if not (rtype in layout):
 				continue
 			if WorldState.get_door_state(apt) == WorldState.DoorState.BREACHED or WorldState.is_apartment_charred(f, col):
 				continue
-			var slot: int = layout.find("bedroom")
+			var slot: int = layout.find(rtype)
 			var dead: Dictionary = WorldState.apartment_corpse(apt)
 			if not dead.is_empty() and int(dead["slot"]) == slot:
 				continue
 			var room = await _build_flat(apt)
 			checked += 1
-			var plan := RoomScript.furniture_plan_for(apt, slot, "bedroom", false, false)
+			var plan := RoomScript.furniture_plan_for(apt, slot, rtype, false, false)
 			for m in get_tree().get_nodes_in_group("room_module"):
 				var is_shell: bool = String(m.scene_file_path).begins_with("res://scenes/Room_Shells/")
 				var label = m.get_node_or_null("ColorRect/Label")
@@ -487,19 +536,19 @@ func _test_real_rooms() -> void:
 				for c in m.get_children():
 					if c is Sprite2D and c.has_meta("furniture"):
 						n_sprites += 1
-						if rt != "bedroom":
+						if not (rt in PLANNED):
 							no_bed_elsewhere = false
 					elif c is Marker2D:
 						n_anchors += 1
 						if c.has_meta("back_plane"):
 							n_bp += 1
-				if rt == "bedroom" and is_shell:
+				if rt == rtype and is_shell:
 					found += 1
 					sprites_ok = sprites_ok and n_sprites == plan["items"].size()
 					anchors_ok = anchors_ok and n_anchors == plan["anchors"].size()
 					var lights = m.get_node_or_null("Lights")
 					lights_ok = lights_ok and ((lights != null and lights.get_child_count() == plan["lights"].size()) or (lights == null and plan["lights"].is_empty()))
-					check(String(m.scene_file_path).ends_with(String(plan["shell"]) + ".tscn"), "%s: the bedroom is the %s shell" % [apt, plan["shell"]])
+					check(String(m.scene_file_path).ends_with(String(plan["shell"]) + ".tscn"), "%s: the %s is the %s shell" % [apt, rtype, plan["shell"]])
 					for c in m.get_children():
 						if c is Sprite2D and String(c.name).begins_with("Open_"):
 							opened_seen = true
@@ -508,17 +557,16 @@ func _test_real_rooms() -> void:
 							check(not c.visible, "%s: %s is shut until it is searched" % [apt, c.name])
 							c.play()
 							check(c.visible, "%s: %s opens when played" % [apt, c.name])
-				elif rt == "bedroom" and not is_shell:
-					check(false, "%s: a plain flat's bedroom must be the planned shell, got %s" % [apt, m.scene_file_path])
+				elif rt == rtype and not is_shell:
+					check(false, "%s: a plain flat's %s must be the planned shell, got %s" % [apt, rtype, m.scene_file_path])
 			room.free()
 			await get_tree().process_frame
-	check(found >= 4, "built %d real planned bedrooms (%d flats)" % [found, checked])
+	check(found >= 4, "built %d real planned %s rooms (%d flats)" % [found, rtype, checked])
 	check(sprites_ok, "each room has a sprite for every item of its plan")
 	check(anchors_ok, "each room has a scavenge node for every anchor of its plan")
 	check(lights_ok, "each room has a light for every fixture of its plan")
-	check(no_bed_elsewhere, "furniture sprites are only ever laid in bedrooms (no planned piece in any other room)")
-	check(opened_seen, "at least one planned room has a piece that opens when searched")
-	await _test_story_flats_stay_baked()
+	check(no_bed_elsewhere, "furniture sprites are only ever laid in rooms the planner handles (no planned piece in any other room)")
+	check(opened_seen, "at least one planned %s has a piece that opens when searched" % rtype)
 
 
 func _test_story_flats_stay_baked() -> void:

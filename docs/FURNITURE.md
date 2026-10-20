@@ -1,7 +1,7 @@
 # FURNITURE AS ASSETS — rooms that are laid from a seed
 
-**Status: BUILT v1 for BEDROOMS (owner round 47, 2026-10-20).** Every other room type is still a baked module; the same pipeline is
-how they will be converted ("start with bedrooms and work from there").
+**Status: BUILT v1 for BEDROOMS (owner round 47, 2026-10-20) and KITCHENS (round 47e).** Living rooms, dining rooms, studies and bathrooms are still baked modules; the same pipeline is
+how they are being converted ("start with bedrooms and work from there" → "expand to other module types too").
 
 > The owner: *"converting all art furniture and objects into their own assets like what you've done with the posters and wall art — that a
 > seed can natively place in procedural items, so even two versions of a bedroom module A will have variance. This would be big, but it does
@@ -99,7 +99,7 @@ end), `lights`, `slots` (surfaces things stand on: `kinds` it takes), `anims`, `
   furniture. Not started.
 * **Run looks for furniture** are a tint only (the shells carry the damp / cracks). Grime, blood and breakage as per-piece variants are future work.
 * **No overgrowth** in planned bedrooms (growth maps are baked per module); no live CRT cursor (the desk's computer is static).
-* **Other room types** — kitchen, bathroom, study, living room, dining room. The logic table already names them (`cooking`, `wet`, `toilet`, `dining`, `tv`…), and many pieces list
+* **Other room types** — bathroom, study, living room, dining room (the kitchen is done, round 47e). The logic table already names them (`cooking`, `wet`, `toilet`, `dining`, `tv`…), and many pieces list
   other rooms (lamps, pictures, rugs, plants, clocks, mirrors, chests, bookcases, armchairs, backpacks, boxes) — those are the first things the next room type reuses.
 * **Per-piece loot** (a nightstand holding pills, a toy chest holding toys) — loot is still by room type.
 
@@ -162,7 +162,27 @@ Same kit, same method, one new file per family (the old definitions were cut out
 * `furn_clocks.py`: **clock_wall** (a torus-shaded bezel, recessed face with the bezel's shadow on it, ticks, hands with shadows, a glass reflection, a wall shadow, a nail; brass / white / black), **clock_regulator** (a walnut Vienna regulator
   with a pendulum and weights) and **clock_cuckoo** (a chalet clock with the bird out and pine-cone weights). 80 pieces, 730 sprites.
 
+### Round 47e — KITCHENS are planned rooms (owner: "expand to other module types too. Might as well do a big pass to fix the items while we have usage")
+
+* **Five styles = the old five kitchens** (`kitchen/classic` A sage, `retro` B yellow + checker, `country` C brick range + terracotta, `student` D white units + camping table, `hoarder` E cream + stacks), five shells
+  (`kitchen_shell_{a..e}`, `furn_shells.py` `kshell_*`, run looks + floor + floor_ext like the bedroom ones, `scenes/Room_Shells/kitchen_shell_*.tscn`). A story kitchen (breached / burnt / one of the dead) stays baked on the
+  old module of the same style (recipe `legacy` 0..4), exactly as bedrooms do.
+* **Pieces** (`furn_kitchen.py`, `furn_kitchen_small.py`; ~50 new, 120 pieces / 1334 sprites in all): a **worktop system** — `unit_base` (two-door / drawers / open-shelf-with-bucket), `unit_sink`, `unit_cooker` — drawn as real
+  carcasses with a door finish per style (`FIN`: sage shaker, yellow retro, white, pine, cream; slab doors, handles, plinth, a worktop slab with a lit front edge), a tall fridge (cream / mint / white / white with its door open, magnets
+  and a note), a larder, a brick **range recess** with a range cooker and copper pots (nodes: oven, pots), a Welsh dresser, a butler sink with a drainer, five tables (cloth / dinette with steel chairs / pine / camping / trestle).
+  On the worktops (`on=('worktop',)` / `('appliance',)`, slot dy −31): a kettle, toaster, bread bin, canisters, a chopping board + knife block, utensil jar, a bowl of fruit, a tea set, a microwave, a radio, pans and a stockpot, a dish rack,
+  stacked tins; on the floor: a mop bucket, bin bags, a recycling box, cardboard boxes (tins / bottles), a pet bowl, a gas bottle, newspaper bundles; on the wall: wall cupboards (`above=('unit',)`), spice / jar shelves, tea towels,
+  a calendar, a pegboard, a clock (shared), notes; ceiling: strip light / pendant / bare bulb.
+* **Planner additions** (all data-driven, all re-checked by `validate`): a recipe's **`run`** — a FLUSH run of units along the back wall (`count`, `must` tags such as `cold` / `cooking` / `wet`, an x window, `sides` = may run
+  from the right) filled left→right so units touch; a recipe's centre may be **`anywhere`** (a table is not tied to a spot); a decor piece may declare **`above`** (a wall cupboard hangs only over a unit, never in the open); a variant
+  may carry **`for: [styles]`** so a piece's finish belongs to a style (a sage unit never turns up in the retro kitchen). New logic: `cooking` is a kitchen-only tag, `wet` is kitchen + bathroom, `food` is kitchen + dining + living room (`TAG_ROOMS`; registration refuses a piece that breaks it); the window rule
+  (nothing may reach above y 68 inside the window's box) is what keeps units, cookers and sinks to the walls beside the window.
+* **Numbers:** 80 plans per style, 0 rule violations, 0 fallbacks; the five fallback layouts are each asserted valid with the window on the left AND the right. `furniture_test` now plans bedrooms AND kitchens (`PLANNED` / `UNPLANNED`
+  room lists — a room moves to PLANNED when it is converted) and re-checks that no kitchen holds a bed.
+* **Not done:** a few kitchen pieces are first-pass (the sink's inset basin is a flat steel strip; cooker rings / pans are small; the dresser's plates are tiny); kitchen D's dripping fridge (a live detail in the old art) is
+  not carried over; the LOOK needs the owner's eye at game zoom.
+
 ## Numbers (so far)
 
-80 pieces, 730 sprites; 5 shells; 5 recipes. 1000 planned rooms in the test: 0 rule violations, 0 fallbacks; planning costs ~16 ms a room on average (cached per flat+slot,
+120 pieces, 1334 sprites; 10 shells; 10 recipes (5 bedroom + 5 kitchen). (Round 47: 80 pieces / 730 sprites / 5 shells / 5 recipes.) 1000 planned rooms in the test: 0 rule violations, 0 fallbacks; planning costs ~16 ms a room on average (cached per flat+slot,
 shared by the live room and its pan backdrop).

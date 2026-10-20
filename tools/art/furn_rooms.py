@@ -56,6 +56,56 @@ RECIPES = {
         fallback=[dict(id='bed_kid', variant='l_pink', x=110, y=115), dict(id='rocking_horse', variant='white_l', x=215, y=119), dict(id='ceiling_paper', variant='white', x=150, y=0)]),
 }
 
+# ------------------------------------------------------------------------------------------------------------------------------------ kitchens (round 47e)
+# `run` = the fitted units along the back wall (tag `unit`, edge to edge on one feet row, every `must` tag at least once); `centre` = the table; the rest as for a bedroom.
+RECIPES.update({
+    'kitchen/classic': dict(
+        legacy=0, weight=26, shell='kitchen_shell_a',
+        centre=dict(tag='dining', x=[40, 210], anywhere=True),
+        run=dict(count=[4, 6], must=['cold', 'cooking', 'wet'], x=[6, 36], sides=2),
+        wall=dict(count=[0, 1], must=[]),
+        tops=0.7, decor=[3, 5], clutter=[2, 4], rug=0.0, ceiling=1.0, min_front=2,
+        fallback=[dict(id='fridge_tall', variant='cream', x=8, y=106), dict(id='unit_base', variant='sage_two', x=36, y=106), dict(id='unit_base', variant='sage_drawers', x=66, y=106),
+                  dict(id='unit_cooker', variant='white_pan', x=98, y=106), dict(id='unit_sink', variant='sage', x=128, y=106), dict(id='table_kitchen', variant='cloth', x=210, y=118),
+                  dict(id='light_tube', variant='a', x=130, y=0)]),
+    'kitchen/retro': dict(
+        legacy=1, weight=22, shell='kitchen_shell_b',
+        centre=dict(tag='dining', x=[40, 210], anywhere=True),
+        run=dict(count=[4, 6], must=['cold', 'cooking', 'wet'], x=[6, 36], sides=2),
+        wall=dict(count=[0, 1], must=[]),
+        tops=0.7, decor=[3, 5], clutter=[1, 3], rug=0.0, ceiling=1.0, min_front=2,
+        fallback=[dict(id='fridge_tall', variant='mint', x=8, y=106), dict(id='unit_base', variant='yellow_two', x=36, y=106), dict(id='unit_base', variant='yellow_drawers', x=66, y=106),
+                  dict(id='unit_cooker', variant='white_bare', x=98, y=106), dict(id='unit_sink', variant='yellow', x=128, y=106), dict(id='table_kitchen', variant='dinette', x=210, y=118),
+                  dict(id='light_dome_orange', variant='orange', x=150, y=0)]),
+    'kitchen/country': dict(
+        legacy=2, weight=18, shell='kitchen_shell_c',
+        centre=dict(tag='dining', x=[120, 250], anywhere=True),
+        run=dict(count=[2, 4], must=['cooking'], x=[60, 130]),
+        wall=dict(count=[1, 2], must=['wet']),
+        tops=0.7, decor=[2, 4], clutter=[2, 3], rug=0.0, ceiling=0.8, min_front=2,
+        fallback=[dict(id='sink_butler', variant='white', x=7, y=106), dict(id='range_recess', variant='green', x=100, y=106), dict(id='dresser_welsh', variant='pine', x=186, y=106),
+                  dict(id='table_kitchen', variant='pine', x=240, y=118)]),
+    'kitchen/student': dict(
+        legacy=3, weight=18, shell='kitchen_shell_d',
+        centre=dict(tag='dining', x=[40, 210], anywhere=True),
+        run=dict(count=[3, 5], must=['cold', 'cooking', 'wet'], x=[6, 36], sides=2),
+        wall=dict(count=[0, 1], must=[]),
+        tops=0.7, decor=[2, 4], clutter=[3, 5], rug=0.0, ceiling=1.0, min_front=2,
+        fallback=[dict(id='fridge_tall', variant='white_open', x=6, y=106), dict(id='unit_base', variant='white_two', x=44, y=106), dict(id='unit_base', variant='white_drawers', x=74, y=106),
+                  dict(id='unit_sink', variant='white', x=104, y=106), dict(id='unit_cooker', variant='black_bare', x=146, y=106), dict(id='table_kitchen', variant='camping', x=220, y=118),
+                  dict(id='light_bulb', variant='a', x=150, y=0)]),
+    'kitchen/hoarder': dict(
+        legacy=4, weight=16, shell='kitchen_shell_e',
+        centre=dict(tag='dining', x=[120, 230], anywhere=True),
+        run=dict(count=[3, 5], must=['cooking', 'wet'], x=[50, 110]),
+        wall=dict(count=[0, 1], must=['clutter|storage']),
+        tops=0.8, decor=[3, 5], clutter=[3, 5], rug=0.0, ceiling=1.0, min_front=2,
+        fallback=[dict(id='newspaper_stacks', variant='a', x=6, y=106), dict(id='unit_base', variant='cream_two', x=52, y=106), dict(id='unit_base', variant='cream_drawers', x=82, y=106),
+                  dict(id='unit_cooker', variant='cream_bare', x=112, y=106), dict(id='unit_sink', variant='cream', x=142, y=106), dict(id='table_kitchen', variant='trestle', x=200, y=118), dict(id='light_bulb', variant='a', x=150, y=0)]),
+})
+
+
+
 # THE LOGIC as data: piece tags -> the only room types they may be registered in (furnlib.TAG_ROOMS is the source; exported so the game and its tests read the same table).
 def rules():
     import furnlib as FL

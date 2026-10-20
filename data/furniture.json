@@ -1,6 +1,7 @@
 {
  "items": {
   "alarm_clock": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -131,6 +132,7 @@
    "wall_y": null
   },
   "armchair": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -1161,6 +1163,7 @@
    "wall_y": null
   },
   "backpack": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -1321,6 +1324,7 @@
    "wall_y": null
   },
   "ball": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -1379,6 +1383,7 @@
    "wall_y": null
   },
   "bed_iron": {
+   "above": [],
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -2087,6 +2092,7 @@
    "wall_y": null
   },
   "bed_kid": {
+   "above": [],
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -2620,6 +2626,7 @@
    "wall_y": null
   },
   "bed_pine": {
+   "above": [],
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -3319,6 +3326,7 @@
    "wall_y": null
   },
   "bed_wood": {
+   "above": [],
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -4185,7 +4193,107 @@
    "w": 137,
    "wall_y": null
   },
+  "bin_bags": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    106,
+    113
+   ],
+   "h": 24,
+   "lean": false,
+   "limit": null,
+   "near": [
+    "unit"
+   ],
+   "needs": null,
+   "note": "two tied black bin bags against the end of the counter; or one split open with rubbish on the floor",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "floor",
+   "rooms": {
+    "kitchen": 7,
+    "living_room": 1
+   },
+   "sound": null,
+   "styles": {
+    "classic": 4,
+    "hoarder": 6,
+    "retro": 2,
+    "student": 8
+   },
+   "tags": [
+    "clutter",
+    "rubbish"
+   ],
+   "variants": {
+    "split": {
+     "anchors": [
+      {
+       "dx": 12,
+       "dy": -10,
+       "name": "trashcan"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "split": true
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "bin_bags_split",
+       "h": 32,
+       "l": -3,
+       "r": 34,
+       "rx": 3,
+       "ry": 28,
+       "t": -28,
+       "w": 38
+      }
+     ]
+    },
+    "two": {
+     "anchors": [
+      {
+       "dx": 12,
+       "dy": -10,
+       "name": "trashcan"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "split": false
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "bin_bags_two",
+       "h": 32,
+       "l": -3,
+       "r": 34,
+       "rx": 3,
+       "ry": 28,
+       "t": -28,
+       "w": 38
+      }
+     ]
+    }
+   },
+   "w": 30,
+   "wall_y": null
+  },
   "block_tower": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -4291,6 +4399,7 @@
    "wall_y": null
   },
   "book_pile": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -4327,6 +4436,11 @@
      "anims": [],
      "lights": [],
      "params": {
+      "kind": [
+       "spine",
+       "pages",
+       "spine"
+      ],
       "ribbon": true
      },
      "slots": [],
@@ -4350,6 +4464,10 @@
      "anims": [],
      "lights": [],
      "params": {
+      "kind": [
+       "pages",
+       "spine"
+      ],
       "ribbon": false
      },
      "slots": [],
@@ -4373,6 +4491,12 @@
      "anims": [],
      "lights": [],
      "params": {
+      "kind": [
+       "spine",
+       "spine",
+       "pages",
+       "spine"
+      ],
       "ribbon": true
      },
      "slots": [],
@@ -4396,6 +4520,7 @@
    "wall_y": null
   },
   "bookcase_low": {
+   "above": [],
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -4769,7 +4894,145 @@
    "w": 31,
    "wall_y": null
   },
+  "box_cardboard": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    106,
+    114
+   ],
+   "h": 18,
+   "lean": false,
+   "limit": null,
+   "near": [
+    "unit"
+   ],
+   "needs": null,
+   "note": "a cardboard box on the floor: open on tins, on bottles, or flattened",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "floor",
+   "rooms": {
+    "kitchen": 6,
+    "living_room": 2,
+    "study": 2
+   },
+   "sound": null,
+   "styles": null,
+   "tags": [
+    "clutter"
+   ],
+   "variants": {
+    "bottles": {
+     "anchors": [
+      {
+       "dx": 13,
+       "dy": -8,
+       "name": "box"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "country",
+       "retro",
+       "classic"
+      ],
+      "k": "bottles"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "box_cardboard_bottles",
+       "h": 25,
+       "l": -1,
+       "r": 26,
+       "rx": 1,
+       "ry": 21,
+       "t": -21,
+       "w": 28
+      }
+     ]
+    },
+    "flat": {
+     "anchors": [
+      {
+       "dx": 13,
+       "dy": -8,
+       "name": "box"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "student",
+       "hoarder"
+      ],
+      "k": "flat"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "box_cardboard_flat",
+       "h": 16,
+       "l": -1,
+       "r": 26,
+       "rx": 1,
+       "ry": 12,
+       "t": -12,
+       "w": 28
+      }
+     ]
+    },
+    "tins": {
+     "anchors": [
+      {
+       "dx": 13,
+       "dy": -8,
+       "name": "box"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "classic",
+       "hoarder",
+       "student"
+      ],
+      "k": "tins"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "box_cardboard_tins",
+       "h": 23,
+       "l": -1,
+       "r": 26,
+       "rx": 1,
+       "ry": 19,
+       "t": -19,
+       "w": 28
+      }
+     ]
+    }
+   },
+   "w": 26,
+   "wall_y": null
+  },
   "boxes_stack": {
+   "above": [],
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -5008,7 +5271,192 @@
    "w": 34,
    "wall_y": null
   },
+  "bread_bin": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 11,
+   "lean": false,
+   "limit": null,
+   "near": [],
+   "needs": null,
+   "note": "an enamel bread bin with a roll-front lid and BREAD on it",
+   "on": [
+    "worktop"
+   ],
+   "opens": null,
+   "pair": null,
+   "plane": "top",
+   "rooms": {
+    "kitchen": 4
+   },
+   "sound": null,
+   "styles": null,
+   "tags": [
+    "small",
+    "food"
+   ],
+   "variants": {
+    "cream": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "col": "e0d8bc",
+      "for": [
+       "classic",
+       "hoarder",
+       "country"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "bread_bin_cream",
+       "h": 15,
+       "l": -1,
+       "r": 14,
+       "rx": 1,
+       "ry": 12,
+       "t": -12,
+       "w": 16
+      }
+     ]
+    },
+    "red": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "col": "b8362e",
+      "for": [
+       "retro",
+       "student"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "bread_bin_red",
+       "h": 15,
+       "l": -1,
+       "r": 14,
+       "rx": 1,
+       "ry": 12,
+       "t": -12,
+       "w": 16
+      }
+     ]
+    }
+   },
+   "w": 14,
+   "wall_y": null
+  },
+  "bucket_mop": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    106,
+    116
+   ],
+   "h": 30,
+   "lean": false,
+   "limit": null,
+   "near": [
+    "unit"
+   ],
+   "needs": null,
+   "note": "a mop in a bucket, the head wrung out grey",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "floor",
+   "rooms": {
+    "bathroom": 5,
+    "kitchen": 5
+   },
+   "sound": null,
+   "styles": null,
+   "tags": [
+    "clutter",
+    "wet"
+   ],
+   "variants": {
+    "blue": {
+     "anchors": [
+      {
+       "dx": 7,
+       "dy": -6,
+       "name": "bucket"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "col": "3f6aa8"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "bucket_mop_blue",
+       "h": 31,
+       "l": -1,
+       "r": 14,
+       "rx": 1,
+       "ry": 28,
+       "t": -28,
+       "w": 16
+      }
+     ]
+    },
+    "yellow": {
+     "anchors": [
+      {
+       "dx": 7,
+       "dy": -6,
+       "name": "bucket"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "col": "e0b83a"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "bucket_mop_yellow",
+       "h": 31,
+       "l": -1,
+       "r": 14,
+       "rx": 1,
+       "ry": 28,
+       "t": -28,
+       "w": 16
+      }
+     ]
+    }
+   },
+   "w": 14,
+   "wall_y": null
+  },
   "calendar_wall": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -5071,7 +5519,170 @@
     44
    ]
   },
+  "canisters": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 11,
+   "lean": false,
+   "limit": null,
+   "near": [],
+   "needs": null,
+   "note": "three storage tins labelled TEA, SUGAR and COFFEE",
+   "on": [
+    "worktop"
+   ],
+   "opens": null,
+   "pair": null,
+   "plane": "top",
+   "rooms": {
+    "kitchen": 4
+   },
+   "sound": null,
+   "styles": null,
+   "tags": [
+    "small",
+    "food"
+   ],
+   "variants": {
+    "a": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "cols": [
+       "c8483a",
+       "e0d8bc",
+       "3f6aa8"
+      ],
+      "for": [
+       "classic",
+       "retro",
+       "country"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "canisters_a",
+       "h": 16,
+       "l": -2,
+       "r": 16,
+       "rx": 2,
+       "ry": 13,
+       "t": -13,
+       "w": 19
+      }
+     ]
+    },
+    "b": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "cols": [
+       "b4bcc0",
+       "b4bcc0",
+       "b4bcc0"
+      ],
+      "for": [
+       "student",
+       "hoarder"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "canisters_b",
+       "h": 16,
+       "l": -2,
+       "r": 16,
+       "rx": 2,
+       "ry": 13,
+       "t": -13,
+       "w": 19
+      }
+     ]
+    }
+   },
+   "w": 15,
+   "wall_y": null
+  },
+  "cat_tins": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    106,
+    118
+   ],
+   "h": 8,
+   "lean": false,
+   "limit": null,
+   "near": [
+    "unit"
+   ],
+   "needs": null,
+   "note": "a saucer, two opened cat-food tins licked clean and one rolled away",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "floor",
+   "rooms": {
+    "kitchen": 5
+   },
+   "sound": null,
+   "styles": {
+    "hoarder": 9
+   },
+   "tags": [
+    "clutter",
+    "food"
+   ],
+   "variants": {
+    "a": {
+     "anchors": [
+      {
+       "dx": 10,
+       "dy": -3,
+       "name": "cat_tins"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {},
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "cat_tins_a",
+       "h": 10,
+       "l": -2,
+       "r": 20,
+       "rx": 2,
+       "ry": 7,
+       "t": -7,
+       "w": 23
+      }
+     ]
+    }
+   },
+   "w": 20,
+   "wall_y": null
+  },
   "ceiling_flush": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -5136,6 +5747,7 @@
    "wall_y": null
   },
   "ceiling_paper": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -5198,6 +5810,7 @@
    "wall_y": null
   },
   "ceiling_pendant": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -5354,6 +5967,7 @@
    "wall_y": null
   },
   "chair_child": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -5751,6 +6365,7 @@
    "wall_y": null
   },
   "chair_office": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": true,
@@ -5855,6 +6470,7 @@
    "wall_y": null
   },
   "chair_wood": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -6597,6 +7213,7 @@
    "wall_y": null
   },
   "chest_drawers": {
+   "above": [],
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -6994,7 +7611,71 @@
    "w": 46,
    "wall_y": null
   },
+  "chopping_board": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 12,
+   "lean": false,
+   "limit": null,
+   "near": [],
+   "needs": null,
+   "note": "a chopping board leaning on the wall with an onion and a knife",
+   "on": [
+    "worktop"
+   ],
+   "opens": null,
+   "pair": null,
+   "plane": "top",
+   "rooms": {
+    "kitchen": 4
+   },
+   "sound": null,
+   "styles": null,
+   "tags": [
+    "small",
+    "cooking"
+   ],
+   "variants": {
+    "a": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "classic",
+       "retro",
+       "country",
+       "student"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "chopping_board_a",
+       "h": 16,
+       "l": 0,
+       "r": 15,
+       "rx": 0,
+       "ry": 13,
+       "t": -13,
+       "w": 16
+      }
+     ]
+    }
+   },
+   "w": 14,
+   "wall_y": null
+  },
   "clock_cuckoo": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -7057,6 +7738,7 @@
    ]
   },
   "clock_regulator": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -7118,6 +7800,7 @@
    ]
   },
   "clock_wall": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -7242,6 +7925,7 @@
    ]
   },
   "clothes_pile": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -7371,6 +8055,7 @@
    "wall_y": null
   },
   "clothes_rail": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -7415,7 +8100,14 @@
      ],
      "anims": [],
      "lights": [],
-     "params": {},
+     "params": {
+      "kinds": [
+       "shirt",
+       "dress",
+       "coat",
+       "trousers"
+      ]
+     },
      "slots": [],
      "sprites": [
       {
@@ -7442,7 +8134,14 @@
      ],
      "anims": [],
      "lights": [],
-     "params": {},
+     "params": {
+      "kinds": [
+       "coat",
+       "jumper",
+       "dress",
+       "shirt"
+      ]
+     },
      "slots": [],
      "sprites": [
       {
@@ -7464,6 +8163,7 @@
    "wall_y": null
   },
   "crate_bedside": {
+   "above": [],
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -7725,7 +8425,73 @@
    "w": 21,
    "wall_y": null
   },
+  "crate_veg": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    106,
+    114
+   ],
+   "h": 18,
+   "lean": false,
+   "limit": null,
+   "near": [
+    "unit"
+   ],
+   "needs": null,
+   "note": "a slatted wooden crate of potatoes, onions and a cabbage, a sack of flour beside it",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "floor",
+   "rooms": {
+    "kitchen": 6
+   },
+   "sound": null,
+   "styles": {
+    "country": 9,
+    "hoarder": 2
+   },
+   "tags": [
+    "clutter",
+    "food"
+   ],
+   "variants": {
+    "a": {
+     "anchors": [
+      {
+       "dx": 11,
+       "dy": -8,
+       "name": "crate"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {},
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "crate_veg_a",
+       "h": 23,
+       "l": -1,
+       "r": 23,
+       "rx": 1,
+       "ry": 19,
+       "t": -19,
+       "w": 25
+      }
+     ]
+    }
+   },
+   "w": 22,
+   "wall_y": null
+  },
   "crates_stove": {
+   "above": [],
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -7986,6 +8752,7 @@
    "wall_y": null
   },
   "desk_crt": {
+   "above": [],
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -8134,6 +8901,7 @@
    "wall_y": null
   },
   "dollhouse_table": {
+   "above": [],
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -8470,7 +9238,180 @@
    "w": 41,
    "wall_y": null
   },
+  "dresser_welsh": {
+   "above": [],
+   "bucketed": true,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    106,
+    106
+   ],
+   "h": 86,
+   "lean": true,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "a Welsh dresser: three shelves of blue-and-white plates, jugs and cups under a pediment, two drawers over a cupboard below",
+   "on": [],
+   "opens": {
+    "anchor": "dresser_drawers",
+    "frames": 3,
+    "kind": "drawer"
+   },
+   "pair": null,
+   "plane": "wall",
+   "rooms": {
+    "dining_room": 4,
+    "kitchen": 6
+   },
+   "sound": null,
+   "styles": {
+    "country": 8,
+    "family": 2,
+    "formal": 4,
+    "hoarder": 1
+   },
+   "tags": [
+    "storage",
+    "dresser"
+   ],
+   "variants": {
+    "pine": {
+     "anchors": [
+      {
+       "dx": 18,
+       "dy": -57,
+       "name": "dresser_plates"
+      },
+      {
+       "dx": 18,
+       "dy": -28,
+       "name": "dresser_drawers"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "country",
+       "hoarder",
+       "formal",
+       "family"
+      ]
+     },
+     "slots": [
+      {
+       "dx0": 4,
+       "dx1": 32,
+       "dy": -90,
+       "id": "top",
+       "kinds": [
+        "worktop"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "dresser_welsh_pine_b0",
+       "h": 92,
+       "l": -3,
+       "open_file": "dresser_welsh_pine_b0_open",
+       "r": 46,
+       "rx": 3,
+       "ry": 88,
+       "t": -88,
+       "w": 50
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "dresser_welsh_pine_b1",
+       "h": 92,
+       "l": -3,
+       "open_file": "dresser_welsh_pine_b1_open",
+       "r": 42,
+       "rx": 3,
+       "ry": 88,
+       "t": -88,
+       "w": 46
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "dresser_welsh_pine_b2",
+       "h": 92,
+       "l": -3,
+       "open_file": "dresser_welsh_pine_b2_open",
+       "r": 38,
+       "rx": 3,
+       "ry": 88,
+       "t": -88,
+       "w": 42
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "dresser_welsh_pine_b3",
+       "h": 92,
+       "l": -3,
+       "open_file": "dresser_welsh_pine_b3_open",
+       "r": 37,
+       "rx": 3,
+       "ry": 88,
+       "t": -88,
+       "w": 41
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "dresser_welsh_pine_b4",
+       "h": 92,
+       "l": -3,
+       "open_file": "dresser_welsh_pine_b4_open",
+       "r": 37,
+       "rx": 3,
+       "ry": 88,
+       "t": -88,
+       "w": 41
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "dresser_welsh_pine_b5",
+       "h": 92,
+       "l": -7,
+       "open_file": "dresser_welsh_pine_b5_open",
+       "r": 37,
+       "rx": 7,
+       "ry": 88,
+       "t": -88,
+       "w": 45
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "dresser_welsh_pine_b6",
+       "h": 92,
+       "l": -11,
+       "open_file": "dresser_welsh_pine_b6_open",
+       "r": 37,
+       "rx": 11,
+       "ry": 88,
+       "t": -88,
+       "w": 49
+      }
+     ]
+    }
+   },
+   "w": 36,
+   "wall_y": null
+  },
   "dressing_table": {
+   "above": [],
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -8852,6 +9793,7 @@
    "wall_y": null
   },
   "drip_stand": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -8951,6 +9893,7 @@
    "wall_y": null
   },
   "floor_stain": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -9037,6 +9980,7 @@
    "wall_y": null
   },
   "frame_family": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -9099,6 +10043,7 @@
    ]
   },
   "frame_ghost": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -9158,7 +10103,585 @@
     44
    ]
   },
+  "fridge_tall": {
+   "above": [],
+   "bucketed": true,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    106,
+    106
+   ],
+   "h": 76,
+   "lean": true,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "a tall fridge-freezer: a rounded 50s cream one with a chrome handle and magnets, a mint one, a plain white one \u2014 or one left open with the milk gone off; the door swings open when searched",
+   "on": [],
+   "opens": {
+    "anchor": "fridge",
+    "frames": 3,
+    "kind": "door_h"
+   },
+   "pair": null,
+   "plane": "wall",
+   "rooms": {
+    "kitchen": 6
+   },
+   "sound": null,
+   "styles": null,
+   "tags": [
+    "unit",
+    "cold",
+    "storage"
+   ],
+   "variants": {
+    "cream": {
+     "anchors": [
+      {
+       "dx": 14,
+       "dy": -50,
+       "name": "fridge"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "classic",
+       "hoarder"
+      ],
+      "k": "cream"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "fridge_tall_cream_b0",
+       "h": 83,
+       "l": -2,
+       "open_file": "fridge_tall_cream_b0_open",
+       "r": 37,
+       "rx": 2,
+       "ry": 79,
+       "t": -79,
+       "w": 40
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "fridge_tall_cream_b1",
+       "h": 83,
+       "l": -2,
+       "open_file": "fridge_tall_cream_b1_open",
+       "r": 34,
+       "rx": 2,
+       "ry": 79,
+       "t": -79,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "fridge_tall_cream_b2",
+       "h": 83,
+       "l": -2,
+       "open_file": "fridge_tall_cream_b2_open",
+       "r": 30,
+       "rx": 2,
+       "ry": 79,
+       "t": -79,
+       "w": 33
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "fridge_tall_cream_b3",
+       "h": 83,
+       "l": -2,
+       "open_file": "fridge_tall_cream_b3_open",
+       "r": 28,
+       "rx": 2,
+       "ry": 79,
+       "t": -79,
+       "w": 31
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "fridge_tall_cream_b4",
+       "h": 83,
+       "l": -3,
+       "open_file": "fridge_tall_cream_b4_open",
+       "r": 28,
+       "rx": 3,
+       "ry": 79,
+       "t": -79,
+       "w": 32
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "fridge_tall_cream_b5",
+       "h": 83,
+       "l": -7,
+       "open_file": "fridge_tall_cream_b5_open",
+       "r": 28,
+       "rx": 7,
+       "ry": 79,
+       "t": -79,
+       "w": 36
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "fridge_tall_cream_b6",
+       "h": 83,
+       "l": -10,
+       "open_file": "fridge_tall_cream_b6_open",
+       "r": 28,
+       "rx": 10,
+       "ry": 79,
+       "t": -79,
+       "w": 39
+      }
+     ]
+    },
+    "mint": {
+     "anchors": [
+      {
+       "dx": 14,
+       "dy": -50,
+       "name": "fridge"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "retro"
+      ],
+      "k": "mint"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "fridge_tall_mint_b0",
+       "h": 83,
+       "l": -2,
+       "open_file": "fridge_tall_mint_b0_open",
+       "r": 37,
+       "rx": 2,
+       "ry": 79,
+       "t": -79,
+       "w": 40
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "fridge_tall_mint_b1",
+       "h": 83,
+       "l": -2,
+       "open_file": "fridge_tall_mint_b1_open",
+       "r": 34,
+       "rx": 2,
+       "ry": 79,
+       "t": -79,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "fridge_tall_mint_b2",
+       "h": 83,
+       "l": -2,
+       "open_file": "fridge_tall_mint_b2_open",
+       "r": 30,
+       "rx": 2,
+       "ry": 79,
+       "t": -79,
+       "w": 33
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "fridge_tall_mint_b3",
+       "h": 83,
+       "l": -2,
+       "open_file": "fridge_tall_mint_b3_open",
+       "r": 28,
+       "rx": 2,
+       "ry": 79,
+       "t": -79,
+       "w": 31
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "fridge_tall_mint_b4",
+       "h": 83,
+       "l": -3,
+       "open_file": "fridge_tall_mint_b4_open",
+       "r": 28,
+       "rx": 3,
+       "ry": 79,
+       "t": -79,
+       "w": 32
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "fridge_tall_mint_b5",
+       "h": 83,
+       "l": -7,
+       "open_file": "fridge_tall_mint_b5_open",
+       "r": 28,
+       "rx": 7,
+       "ry": 79,
+       "t": -79,
+       "w": 36
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "fridge_tall_mint_b6",
+       "h": 83,
+       "l": -10,
+       "open_file": "fridge_tall_mint_b6_open",
+       "r": 28,
+       "rx": 10,
+       "ry": 79,
+       "t": -79,
+       "w": 39
+      }
+     ]
+    },
+    "white": {
+     "anchors": [
+      {
+       "dx": 14,
+       "dy": -50,
+       "name": "fridge"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "student",
+       "classic"
+      ],
+      "k": "white"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "fridge_tall_white_b0",
+       "h": 83,
+       "l": -2,
+       "open_file": "fridge_tall_white_b0_open",
+       "r": 37,
+       "rx": 2,
+       "ry": 79,
+       "t": -79,
+       "w": 40
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "fridge_tall_white_b1",
+       "h": 83,
+       "l": -2,
+       "open_file": "fridge_tall_white_b1_open",
+       "r": 34,
+       "rx": 2,
+       "ry": 79,
+       "t": -79,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "fridge_tall_white_b2",
+       "h": 83,
+       "l": -2,
+       "open_file": "fridge_tall_white_b2_open",
+       "r": 30,
+       "rx": 2,
+       "ry": 79,
+       "t": -79,
+       "w": 33
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "fridge_tall_white_b3",
+       "h": 83,
+       "l": -2,
+       "open_file": "fridge_tall_white_b3_open",
+       "r": 28,
+       "rx": 2,
+       "ry": 79,
+       "t": -79,
+       "w": 31
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "fridge_tall_white_b4",
+       "h": 83,
+       "l": -3,
+       "open_file": "fridge_tall_white_b4_open",
+       "r": 28,
+       "rx": 3,
+       "ry": 79,
+       "t": -79,
+       "w": 32
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "fridge_tall_white_b5",
+       "h": 83,
+       "l": -7,
+       "open_file": "fridge_tall_white_b5_open",
+       "r": 28,
+       "rx": 7,
+       "ry": 79,
+       "t": -79,
+       "w": 36
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "fridge_tall_white_b6",
+       "h": 83,
+       "l": -10,
+       "open_file": "fridge_tall_white_b6_open",
+       "r": 28,
+       "rx": 10,
+       "ry": 79,
+       "t": -79,
+       "w": 39
+      }
+     ]
+    },
+    "white_open": {
+     "anchors": [
+      {
+       "dx": 14,
+       "dy": -50,
+       "name": "fridge"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "student"
+      ],
+      "k": "white",
+      "static_open": true
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "fridge_tall_white_open_b0",
+       "h": 83,
+       "l": -2,
+       "open_file": "fridge_tall_white_open_b0_open",
+       "r": 38,
+       "rx": 2,
+       "ry": 79,
+       "t": -79,
+       "w": 41
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "fridge_tall_white_open_b1",
+       "h": 83,
+       "l": -2,
+       "open_file": "fridge_tall_white_open_b1_open",
+       "r": 35,
+       "rx": 2,
+       "ry": 79,
+       "t": -79,
+       "w": 38
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "fridge_tall_white_open_b2",
+       "h": 83,
+       "l": -2,
+       "open_file": "fridge_tall_white_open_b2_open",
+       "r": 31,
+       "rx": 2,
+       "ry": 79,
+       "t": -79,
+       "w": 34
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "fridge_tall_white_open_b3",
+       "h": 83,
+       "l": -2,
+       "open_file": "fridge_tall_white_open_b3_open",
+       "r": 28,
+       "rx": 2,
+       "ry": 79,
+       "t": -79,
+       "w": 31
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "fridge_tall_white_open_b4",
+       "h": 83,
+       "l": -3,
+       "open_file": "fridge_tall_white_open_b4_open",
+       "r": 28,
+       "rx": 3,
+       "ry": 79,
+       "t": -79,
+       "w": 32
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "fridge_tall_white_open_b5",
+       "h": 83,
+       "l": -7,
+       "open_file": "fridge_tall_white_open_b5_open",
+       "r": 28,
+       "rx": 7,
+       "ry": 79,
+       "t": -79,
+       "w": 36
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "fridge_tall_white_open_b6",
+       "h": 83,
+       "l": -10,
+       "open_file": "fridge_tall_white_open_b6_open",
+       "r": 28,
+       "rx": 10,
+       "ry": 79,
+       "t": -79,
+       "w": 39
+      }
+     ]
+    }
+   },
+   "w": 28,
+   "wall_y": null
+  },
+  "fruit_bowl": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 11,
+   "lean": false,
+   "limit": null,
+   "near": [],
+   "needs": null,
+   "note": "a wooden bowl of fruit \u2014 or of what is left of it",
+   "on": [
+    "worktop"
+   ],
+   "opens": null,
+   "pair": null,
+   "plane": "top",
+   "rooms": {
+    "dining_room": 3,
+    "kitchen": 5
+   },
+   "sound": null,
+   "styles": null,
+   "tags": [
+    "small",
+    "food"
+   ],
+   "variants": {
+    "fresh": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "classic",
+       "retro",
+       "country"
+      ],
+      "rot": false
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "fruit_bowl_fresh",
+       "h": 16,
+       "l": -1,
+       "r": 14,
+       "rx": 1,
+       "ry": 13,
+       "t": -13,
+       "w": 16
+      }
+     ]
+    },
+    "rotten": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "student",
+       "hoarder",
+       "classic"
+      ],
+      "rot": true
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "fruit_bowl_rotten",
+       "h": 16,
+       "l": -1,
+       "r": 14,
+       "rx": 1,
+       "ry": 13,
+       "t": -13,
+       "w": 16
+      }
+     ]
+    }
+   },
+   "w": 14,
+   "wall_y": null
+  },
   "glass_water": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -9243,6 +10766,7 @@
    "wall_y": null
   },
   "hairbrush": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -9347,6 +10871,7 @@
    "wall_y": null
   },
   "height_chart": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -9406,6 +10931,7 @@
    ]
   },
   "jewel_box": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -9532,7 +11058,127 @@
    "w": 14,
    "wall_y": null
   },
+  "kettle": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 13,
+   "lean": false,
+   "limit": null,
+   "near": [],
+   "needs": null,
+   "note": "a kettle with a spout and a bakelite handle",
+   "on": [
+    "worktop"
+   ],
+   "opens": null,
+   "pair": null,
+   "plane": "top",
+   "rooms": {
+    "kitchen": 7
+   },
+   "sound": null,
+   "styles": null,
+   "tags": [
+    "small",
+    "cooking"
+   ],
+   "variants": {
+    "cream": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "col": "e0d8bc",
+      "for": [
+       "hoarder",
+       "country",
+       "classic"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "kettle_cream",
+       "h": 19,
+       "l": -1,
+       "r": 14,
+       "rx": 1,
+       "ry": 16,
+       "t": -16,
+       "w": 16
+      }
+     ]
+    },
+    "red": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "col": "b8362e",
+      "for": [
+       "retro",
+       "classic",
+       "country"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "kettle_red",
+       "h": 19,
+       "l": -1,
+       "r": 14,
+       "rx": 1,
+       "ry": 16,
+       "t": -16,
+       "w": 16
+      }
+     ]
+    },
+    "steel": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "col": "b4bcc0",
+      "for": [
+       "classic",
+       "student",
+       "retro"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "kettle_steel",
+       "h": 19,
+       "l": -1,
+       "r": 14,
+       "rx": 1,
+       "ry": 16,
+       "t": -16,
+       "w": 16
+      }
+     ]
+    }
+   },
+   "w": 13,
+   "wall_y": null
+  },
   "lamp_lava": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -9698,6 +11344,7 @@
    "wall_y": null
   },
   "lamp_table": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -10355,6 +12002,7 @@
    "wall_y": null
   },
   "lantern_battery": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -10481,7 +12129,263 @@
    "w": 11,
    "wall_y": null
   },
+  "larder_tall": {
+   "above": [],
+   "bucketed": true,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    106,
+    106
+   ],
+   "h": 82,
+   "lean": true,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "a tall larder cupboard: a door over open shelves of tins, jars and packets",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "wall",
+   "rooms": {
+    "kitchen": 4
+   },
+   "sound": null,
+   "styles": {
+    "country": 2,
+    "retro": 8
+   },
+   "tags": [
+    "unit",
+    "storage",
+    "food"
+   ],
+   "variants": {
+    "pine": {
+     "anchors": [
+      {
+       "dx": 14,
+       "dy": -30,
+       "name": "larder"
+      },
+      {
+       "dx": 14,
+       "dy": -56,
+       "name": "larder_top"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "pine",
+      "for": [
+       "country"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "larder_tall_pine_b0",
+       "h": 89,
+       "l": -2,
+       "r": 38,
+       "rx": 2,
+       "ry": 85,
+       "t": -85,
+       "w": 41
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "larder_tall_pine_b1",
+       "h": 89,
+       "l": -2,
+       "r": 35,
+       "rx": 2,
+       "ry": 85,
+       "t": -85,
+       "w": 38
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "larder_tall_pine_b2",
+       "h": 89,
+       "l": -2,
+       "r": 31,
+       "rx": 2,
+       "ry": 85,
+       "t": -85,
+       "w": 34
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "larder_tall_pine_b3",
+       "h": 89,
+       "l": -2,
+       "r": 28,
+       "rx": 2,
+       "ry": 85,
+       "t": -85,
+       "w": 31
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "larder_tall_pine_b4",
+       "h": 89,
+       "l": -4,
+       "r": 28,
+       "rx": 4,
+       "ry": 85,
+       "t": -85,
+       "w": 33
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "larder_tall_pine_b5",
+       "h": 89,
+       "l": -8,
+       "r": 28,
+       "rx": 8,
+       "ry": 85,
+       "t": -85,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "larder_tall_pine_b6",
+       "h": 89,
+       "l": -11,
+       "r": 28,
+       "rx": 11,
+       "ry": 85,
+       "t": -85,
+       "w": 40
+      }
+     ]
+    },
+    "yellow": {
+     "anchors": [
+      {
+       "dx": 14,
+       "dy": -30,
+       "name": "larder"
+      },
+      {
+       "dx": 14,
+       "dy": -56,
+       "name": "larder_top"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "yellow",
+      "for": [
+       "retro"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "larder_tall_yellow_b0",
+       "h": 89,
+       "l": -2,
+       "r": 38,
+       "rx": 2,
+       "ry": 85,
+       "t": -85,
+       "w": 41
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "larder_tall_yellow_b1",
+       "h": 89,
+       "l": -2,
+       "r": 35,
+       "rx": 2,
+       "ry": 85,
+       "t": -85,
+       "w": 38
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "larder_tall_yellow_b2",
+       "h": 89,
+       "l": -2,
+       "r": 31,
+       "rx": 2,
+       "ry": 85,
+       "t": -85,
+       "w": 34
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "larder_tall_yellow_b3",
+       "h": 89,
+       "l": -2,
+       "r": 28,
+       "rx": 2,
+       "ry": 85,
+       "t": -85,
+       "w": 31
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "larder_tall_yellow_b4",
+       "h": 89,
+       "l": -4,
+       "r": 28,
+       "rx": 4,
+       "ry": 85,
+       "t": -85,
+       "w": 33
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "larder_tall_yellow_b5",
+       "h": 89,
+       "l": -8,
+       "r": 28,
+       "rx": 8,
+       "ry": 85,
+       "t": -85,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "larder_tall_yellow_b6",
+       "h": 89,
+       "l": -11,
+       "r": 28,
+       "rx": 11,
+       "ry": 85,
+       "t": -85,
+       "w": 40
+      }
+     ]
+    }
+   },
+   "w": 28,
+   "wall_y": null
+  },
   "laundry_basket": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -10609,7 +12513,227 @@
    "w": 20,
    "wall_y": null
   },
+  "light_bulb": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 22,
+   "lean": false,
+   "limit": null,
+   "near": [],
+   "needs": null,
+   "note": "a bare bulb on a frayed flex",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "ceiling",
+   "rooms": {
+    "bedroom": 1,
+    "kitchen": 6,
+    "living_room": 2,
+    "study": 2
+   },
+   "sound": null,
+   "styles": {
+    "country": 2,
+    "hoarder": 9,
+    "radio": 4,
+    "squat": 6,
+    "student": 9
+   },
+   "tags": [
+    "light",
+    "ceiling"
+   ],
+   "variants": {
+    "a": {
+     "anchors": [],
+     "anims": [],
+     "lights": [
+      {
+       "dx": 4,
+       "dy": 20,
+       "kind": "bulb"
+      }
+     ],
+     "params": {
+      "for": [
+       "student",
+       "hoarder",
+       "country",
+       "squat",
+       "radio"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 22,
+       "bx": 160,
+       "file": "light_bulb_a",
+       "h": 23,
+       "l": 1,
+       "r": 6,
+       "rx": -1,
+       "ry": 0,
+       "t": 0,
+       "w": 6
+      }
+     ]
+    }
+   },
+   "w": 8,
+   "wall_y": null
+  },
+  "light_dome_orange": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 22,
+   "lean": false,
+   "limit": null,
+   "near": [],
+   "needs": null,
+   "note": "a 60s orange enamel dome pendant on a flex",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "ceiling",
+   "rooms": {
+    "dining_room": 2,
+    "kitchen": 5
+   },
+   "sound": null,
+   "styles": {
+    "diner": 6,
+    "retro": 9
+   },
+   "tags": [
+    "light",
+    "ceiling"
+   ],
+   "variants": {
+    "orange": {
+     "anchors": [],
+     "anims": [],
+     "lights": [
+      {
+       "dx": 7,
+       "dy": 20,
+       "kind": "pendant"
+      }
+     ],
+     "params": {
+      "col": "d8703a",
+      "for": [
+       "retro",
+       "diner"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 23,
+       "bx": 160,
+       "file": "light_dome_orange_orange",
+       "h": 24,
+       "l": -2,
+       "r": 16,
+       "rx": 2,
+       "ry": 0,
+       "t": 0,
+       "w": 19
+      }
+     ]
+    }
+   },
+   "w": 14,
+   "wall_y": null
+  },
+  "light_tube": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 6,
+   "lean": false,
+   "limit": null,
+   "near": [],
+   "needs": null,
+   "note": "a fluorescent batten on the ceiling",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "ceiling",
+   "rooms": {
+    "bathroom": 2,
+    "kitchen": 6,
+    "study": 3
+   },
+   "sound": null,
+   "styles": {
+    "classic": 8,
+    "office": 6,
+    "student": 3
+   },
+   "tags": [
+    "light",
+    "ceiling"
+   ],
+   "variants": {
+    "a": {
+     "anchors": [],
+     "anims": [],
+     "lights": [
+      {
+       "dx": 18,
+       "dy": 4,
+       "kind": "tube"
+      }
+     ],
+     "params": {
+      "for": [
+       "classic",
+       "student",
+       "office"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 5,
+       "bx": 160,
+       "file": "light_tube_a",
+       "h": 6,
+       "l": -1,
+       "r": 36,
+       "rx": 1,
+       "ry": 0,
+       "t": 0,
+       "w": 38
+      }
+     ]
+    }
+   },
+   "w": 36,
+   "wall_y": null
+  },
   "mattress_floor": {
+   "above": [],
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -11309,6 +13433,7 @@
    "wall_y": null
   },
   "med_trolley": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -11400,7 +13525,115 @@
    "w": 34,
    "wall_y": null
   },
+  "microwave": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 14,
+   "lean": false,
+   "limit": null,
+   "near": [],
+   "needs": null,
+   "note": "a microwave oven: a glass door with a dark window, a display and a handle",
+   "on": [
+    "appliance"
+   ],
+   "opens": null,
+   "pair": null,
+   "plane": "top",
+   "rooms": {
+    "kitchen": 5
+   },
+   "sound": null,
+   "styles": {
+    "classic": 2,
+    "hoarder": 3,
+    "retro": 2,
+    "student": 8
+   },
+   "tags": [
+    "small",
+    "cooking"
+   ],
+   "variants": {
+    "black": {
+     "anchors": [
+      {
+       "dx": 11,
+       "dy": -6,
+       "name": "microwave"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "col": "24262a",
+      "for": [
+       "student",
+       "hoarder"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "microwave_black",
+       "h": 19,
+       "l": -1,
+       "r": 22,
+       "rx": 1,
+       "ry": 16,
+       "t": -16,
+       "w": 24
+      }
+     ]
+    },
+    "white": {
+     "anchors": [
+      {
+       "dx": 11,
+       "dy": -6,
+       "name": "microwave"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "col": "e0e0da",
+      "for": [
+       "classic",
+       "retro",
+       "hoarder"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "microwave_white",
+       "h": 19,
+       "l": -1,
+       "r": 22,
+       "rx": 1,
+       "ry": 16,
+       "t": -16,
+       "w": 24
+      }
+     ]
+    }
+   },
+   "w": 22,
+   "wall_y": null
+  },
   "mirror_wall": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -11492,6 +13725,7 @@
    ]
   },
   "missing_lucy": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -11552,7 +13786,121 @@
     36
    ]
   },
+  "mugs": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 11,
+   "lean": false,
+   "limit": null,
+   "near": [],
+   "needs": null,
+   "note": "two mugs and a jar of spoons",
+   "on": [
+    "worktop"
+   ],
+   "opens": null,
+   "pair": null,
+   "plane": "top",
+   "rooms": {
+    "kitchen": 7
+   },
+   "sound": null,
+   "styles": null,
+   "tags": [
+    "small",
+    "food"
+   ],
+   "variants": {
+    "a": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "cols": [
+       "e6e0cc",
+       "3f6a8a"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "mugs_a",
+       "h": 17,
+       "l": -2,
+       "r": 16,
+       "rx": 2,
+       "ry": 14,
+       "t": -14,
+       "w": 19
+      }
+     ]
+    },
+    "b": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "cols": [
+       "b8362e",
+       "e8d45a"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "mugs_b",
+       "h": 17,
+       "l": -2,
+       "r": 16,
+       "rx": 2,
+       "ry": 14,
+       "t": -14,
+       "w": 19
+      }
+     ]
+    },
+    "c": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "cols": [
+       "4a7a5a",
+       "e6e0cc"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "mugs_c",
+       "h": 17,
+       "l": -2,
+       "r": 16,
+       "rx": 2,
+       "ry": 14,
+       "t": -14,
+       "w": 19
+      }
+     ]
+    }
+   },
+   "w": 14,
+   "wall_y": null
+  },
   "newspaper_evacuate": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -11613,7 +13961,148 @@
     36
    ]
   },
+  "newspaper_stacks": {
+   "above": [],
+   "bucketed": true,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    105,
+    108
+   ],
+   "h": 50,
+   "lean": true,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "tied bundles of old newspapers stacked against the wall, stepped, the string cutting into the edges",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "wall",
+   "rooms": {
+    "kitchen": 6,
+    "living_room": 1,
+    "study": 1
+   },
+   "sound": null,
+   "styles": {
+    "hoarder": 9
+   },
+   "tags": [
+    "clutter",
+    "paper"
+   ],
+   "variants": {
+    "a": {
+     "anchors": [
+      {
+       "dx": 18,
+       "dy": -24,
+       "name": "newspapers"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "hoarder"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "newspaper_stacks_a_b0",
+       "h": 55,
+       "l": -2,
+       "r": 40,
+       "rx": 2,
+       "ry": 51,
+       "t": -51,
+       "w": 43
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "newspaper_stacks_a_b1",
+       "h": 55,
+       "l": -2,
+       "r": 39,
+       "rx": 2,
+       "ry": 51,
+       "t": -51,
+       "w": 42
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "newspaper_stacks_a_b2",
+       "h": 55,
+       "l": -2,
+       "r": 39,
+       "rx": 2,
+       "ry": 51,
+       "t": -51,
+       "w": 42
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "newspaper_stacks_a_b3",
+       "h": 55,
+       "l": -2,
+       "r": 39,
+       "rx": 2,
+       "ry": 51,
+       "t": -51,
+       "w": 42
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "newspaper_stacks_a_b4",
+       "h": 55,
+       "l": -3,
+       "r": 39,
+       "rx": 3,
+       "ry": 51,
+       "t": -51,
+       "w": 43
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "newspaper_stacks_a_b5",
+       "h": 55,
+       "l": -5,
+       "r": 39,
+       "rx": 5,
+       "ry": 51,
+       "t": -51,
+       "w": 45
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "newspaper_stacks_a_b6",
+       "h": 55,
+       "l": -7,
+       "r": 39,
+       "rx": 7,
+       "ry": 51,
+       "t": -51,
+       "w": 47
+      }
+     ]
+    }
+   },
+   "w": 38,
+   "wall_y": null
+  },
   "nightstand_wood": {
+   "above": [],
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -11890,7 +14379,344 @@
    "w": 25,
    "wall_y": null
   },
+  "note_door": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 22,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "DONT OPEN DOOR!",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "decor",
+   "rooms": {
+    "kitchen": 5
+   },
+   "sound": null,
+   "styles": {
+    "hoarder": 9
+   },
+   "tags": [
+    "notice"
+   ],
+   "variants": {
+    "a": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {},
+     "slots": [],
+     "sprites": [
+      {
+       "b": 24,
+       "bx": 160,
+       "file": "note_door_a",
+       "h": 26,
+       "l": -1,
+       "r": 24,
+       "rx": 1,
+       "ry": 1,
+       "t": -1,
+       "w": 26
+      }
+     ]
+    }
+   },
+   "w": 20,
+   "wall_y": [
+    14,
+    32
+   ]
+  },
+  "note_milk_eggs": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 13,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "two sticky notes: MILK and EGGS",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "decor",
+   "rooms": {
+    "kitchen": 5
+   },
+   "sound": null,
+   "styles": {
+    "hoarder": 1,
+    "student": 9
+   },
+   "tags": [
+    "notice"
+   ],
+   "variants": {
+    "a": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {},
+     "slots": [],
+     "sprites": [
+      {
+       "b": 15,
+       "bx": 160,
+       "file": "note_milk_eggs_a",
+       "h": 17,
+       "l": -1,
+       "r": 39,
+       "rx": 1,
+       "ry": 1,
+       "t": -1,
+       "w": 41
+      }
+     ]
+    }
+   },
+   "w": 26,
+   "wall_y": [
+    20,
+    36
+   ]
+  },
+  "note_rent": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 24,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "RENT DUE FRI! taped to the wall",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "decor",
+   "rooms": {
+    "kitchen": 5
+   },
+   "sound": null,
+   "styles": {
+    "student": 9
+   },
+   "tags": [
+    "notice"
+   ],
+   "variants": {
+    "a": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {},
+     "slots": [],
+     "sprites": [
+      {
+       "b": 24,
+       "bx": 160,
+       "file": "note_rent_a",
+       "h": 28,
+       "l": -2,
+       "r": 23,
+       "rx": 2,
+       "ry": 3,
+       "t": -3,
+       "w": 26
+      }
+     ]
+    }
+   },
+   "w": 18,
+   "wall_y": [
+    18,
+    32
+   ]
+  },
+  "note_stores": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 26,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "the stores list: WATER TINS MEDS BATTS",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "decor",
+   "rooms": {
+    "kitchen": 5
+   },
+   "sound": null,
+   "styles": {
+    "hoarder": 9
+   },
+   "tags": [
+    "notice"
+   ],
+   "variants": {
+    "a": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {},
+     "slots": [],
+     "sprites": [
+      {
+       "b": 30,
+       "bx": 160,
+       "file": "note_stores_a",
+       "h": 34,
+       "l": -2,
+       "r": 28,
+       "rx": 2,
+       "ry": 3,
+       "t": -3,
+       "w": 31
+      }
+     ]
+    }
+   },
+   "w": 26,
+   "wall_y": [
+    14,
+    32
+   ]
+  },
+  "pedal_bin": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    106,
+    114
+   ],
+   "h": 22,
+   "lean": false,
+   "limit": null,
+   "near": [
+    "unit"
+   ],
+   "needs": null,
+   "note": "a pedal bin with a swing lid",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "floor",
+   "rooms": {
+    "kitchen": 6
+   },
+   "sound": null,
+   "styles": null,
+   "tags": [
+    "clutter",
+    "rubbish"
+   ],
+   "variants": {
+    "green": {
+     "anchors": [
+      {
+       "dx": 7,
+       "dy": -12,
+       "name": "trashcan"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "col": "6a8a62",
+      "for": [
+       "country",
+       "hoarder",
+       "classic"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "pedal_bin_green",
+       "h": 25,
+       "l": -1,
+       "r": 15,
+       "rx": 1,
+       "ry": 22,
+       "t": -22,
+       "w": 17
+      }
+     ]
+    },
+    "steel": {
+     "anchors": [
+      {
+       "dx": 7,
+       "dy": -12,
+       "name": "trashcan"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "col": "b4bcc0",
+      "for": [
+       "classic",
+       "retro",
+       "student"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "pedal_bin_steel",
+       "h": 25,
+       "l": -1,
+       "r": 15,
+       "rx": 1,
+       "ry": 22,
+       "t": -22,
+       "w": 17
+      }
+     ]
+    }
+   },
+   "w": 14,
+   "wall_y": null
+  },
   "perfume_set": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -12001,6 +14827,7 @@
    "wall_y": null
   },
   "photo_small": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -12142,6 +14969,7 @@
    "wall_y": null
   },
   "photo_wedding": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -12201,6 +15029,7 @@
    ]
   },
   "picture_crayon": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -12260,6 +15089,7 @@
    ]
   },
   "picture_landscape": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -12348,6 +15178,7 @@
    ]
   },
   "picture_portrait": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -12480,6 +15311,7 @@
    ]
   },
   "pill_bottles": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -12564,6 +15396,7 @@
    "wall_y": null
   },
   "pill_cabinet": {
+   "above": [],
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -12801,7 +15634,74 @@
    "w": 28,
    "wall_y": null
   },
+  "pizza_boxes": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    106,
+    116
+   ],
+   "h": 9,
+   "lean": false,
+   "limit": null,
+   "near": [
+    "unit"
+   ],
+   "needs": null,
+   "note": "three flat pizza boxes, grease through the lids, one askew",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "floor",
+   "rooms": {
+    "kitchen": 5,
+    "living_room": 3
+   },
+   "sound": null,
+   "styles": {
+    "hoarder": 2,
+    "student": 8
+   },
+   "tags": [
+    "clutter",
+    "food"
+   ],
+   "variants": {
+    "a": {
+     "anchors": [
+      {
+       "dx": 12,
+       "dy": -4,
+       "name": "pizza_boxes"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {},
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "pizza_boxes_a",
+       "h": 17,
+       "l": -1,
+       "r": 24,
+       "rx": 1,
+       "ry": 14,
+       "t": -14,
+       "w": 26
+      }
+     ]
+    }
+   },
+   "w": 24,
+   "wall_y": null
+  },
   "plant_pot": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -12912,6 +15812,7 @@
    "wall_y": null
   },
   "poster_film": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -12993,6 +15894,7 @@
    ]
   },
   "poster_game": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -13051,6 +15953,7 @@
    ]
   },
   "poster_gig": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -13110,6 +16013,7 @@
    ]
   },
   "poster_map": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -13170,7 +16074,67 @@
     36
    ]
   },
+  "poster_outbreak": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 28,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "a front page: OUTBREAK, STAY IN",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "decor",
+   "rooms": {
+    "kitchen": 5,
+    "living_room": 2
+   },
+   "sound": null,
+   "styles": {
+    "hoarder": 9
+   },
+   "tags": [
+    "notice"
+   ],
+   "variants": {
+    "a": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {},
+     "slots": [],
+     "sprites": [
+      {
+       "b": 28,
+       "bx": 160,
+       "file": "poster_outbreak_a",
+       "h": 32,
+       "l": -2,
+       "r": 38,
+       "rx": 2,
+       "ry": 3,
+       "t": -3,
+       "w": 41
+      }
+     ]
+    }
+   },
+   "w": 40,
+   "wall_y": [
+    14,
+    30
+   ]
+  },
   "poster_rainbow": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -13228,6 +16192,7 @@
    ]
   },
   "rag_doll": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -13315,7 +16280,318 @@
    "w": 13,
    "wall_y": null
   },
+  "range_recess": {
+   "above": [],
+   "bucketed": true,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    106,
+    106
+   ],
+   "h": 92,
+   "lean": true,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "a brick chimney recess with a mantel beam and copper pans on a rail, and an enamel range cooker in it (green / cream / black), the oven doors dropping open when searched",
+   "on": [],
+   "opens": {
+    "anchor": "oven",
+    "frames": 3,
+    "kind": "door_drop"
+   },
+   "pair": null,
+   "plane": "wall",
+   "rooms": {
+    "kitchen": 6
+   },
+   "sound": null,
+   "styles": {
+    "country": 8
+   },
+   "tags": [
+    "unit",
+    "cooking",
+    "hearth"
+   ],
+   "variants": {
+    "black": {
+     "anchors": [
+      {
+       "dx": 38,
+       "dy": -16,
+       "name": "oven"
+      },
+      {
+       "dx": 38,
+       "dy": -55,
+       "name": "copper_pots"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "col": "2a2a2e",
+      "for": [
+       "country"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "range_recess_black_b1",
+       "h": 97,
+       "l": -3,
+       "open_file": "range_recess_black_b1_open",
+       "r": 80,
+       "rx": 3,
+       "ry": 93,
+       "t": -93,
+       "w": 84
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "range_recess_black_b2",
+       "h": 97,
+       "l": -3,
+       "open_file": "range_recess_black_b2_open",
+       "r": 77,
+       "rx": 3,
+       "ry": 93,
+       "t": -93,
+       "w": 81
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "range_recess_black_b3",
+       "h": 97,
+       "l": -3,
+       "open_file": "range_recess_black_b3_open",
+       "r": 77,
+       "rx": 3,
+       "ry": 93,
+       "t": -93,
+       "w": 81
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "range_recess_black_b4",
+       "h": 97,
+       "l": -3,
+       "open_file": "range_recess_black_b4_open",
+       "r": 77,
+       "rx": 3,
+       "ry": 93,
+       "t": -93,
+       "w": 81
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "range_recess_black_b5",
+       "h": 97,
+       "l": -5,
+       "open_file": "range_recess_black_b5_open",
+       "r": 77,
+       "rx": 5,
+       "ry": 93,
+       "t": -93,
+       "w": 83
+      }
+     ]
+    },
+    "cream": {
+     "anchors": [
+      {
+       "dx": 38,
+       "dy": -16,
+       "name": "oven"
+      },
+      {
+       "dx": 38,
+       "dy": -55,
+       "name": "copper_pots"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "col": "d8d0b8",
+      "for": [
+       "country"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "range_recess_cream_b1",
+       "h": 97,
+       "l": -3,
+       "open_file": "range_recess_cream_b1_open",
+       "r": 80,
+       "rx": 3,
+       "ry": 93,
+       "t": -93,
+       "w": 84
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "range_recess_cream_b2",
+       "h": 97,
+       "l": -3,
+       "open_file": "range_recess_cream_b2_open",
+       "r": 77,
+       "rx": 3,
+       "ry": 93,
+       "t": -93,
+       "w": 81
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "range_recess_cream_b3",
+       "h": 97,
+       "l": -3,
+       "open_file": "range_recess_cream_b3_open",
+       "r": 77,
+       "rx": 3,
+       "ry": 93,
+       "t": -93,
+       "w": 81
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "range_recess_cream_b4",
+       "h": 97,
+       "l": -3,
+       "open_file": "range_recess_cream_b4_open",
+       "r": 77,
+       "rx": 3,
+       "ry": 93,
+       "t": -93,
+       "w": 81
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "range_recess_cream_b5",
+       "h": 97,
+       "l": -5,
+       "open_file": "range_recess_cream_b5_open",
+       "r": 77,
+       "rx": 5,
+       "ry": 93,
+       "t": -93,
+       "w": 83
+      }
+     ]
+    },
+    "green": {
+     "anchors": [
+      {
+       "dx": 38,
+       "dy": -16,
+       "name": "oven"
+      },
+      {
+       "dx": 38,
+       "dy": -55,
+       "name": "copper_pots"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "col": "2f5a42",
+      "for": [
+       "country"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "range_recess_green_b1",
+       "h": 97,
+       "l": -3,
+       "open_file": "range_recess_green_b1_open",
+       "r": 80,
+       "rx": 3,
+       "ry": 93,
+       "t": -93,
+       "w": 84
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "range_recess_green_b2",
+       "h": 97,
+       "l": -3,
+       "open_file": "range_recess_green_b2_open",
+       "r": 77,
+       "rx": 3,
+       "ry": 93,
+       "t": -93,
+       "w": 81
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "range_recess_green_b3",
+       "h": 97,
+       "l": -3,
+       "open_file": "range_recess_green_b3_open",
+       "r": 77,
+       "rx": 3,
+       "ry": 93,
+       "t": -93,
+       "w": 81
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "range_recess_green_b4",
+       "h": 97,
+       "l": -3,
+       "open_file": "range_recess_green_b4_open",
+       "r": 77,
+       "rx": 3,
+       "ry": 93,
+       "t": -93,
+       "w": 81
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "range_recess_green_b5",
+       "h": 97,
+       "l": -5,
+       "open_file": "range_recess_green_b5_open",
+       "r": 77,
+       "rx": 5,
+       "ry": 93,
+       "t": -93,
+       "w": 83
+      }
+     ]
+    }
+   },
+   "w": 76,
+   "wall_y": null
+  },
   "rocking_horse": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -13832,6 +17108,7 @@
    "wall_y": null
   },
   "rug_oblong": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -13970,6 +17247,7 @@
    "wall_y": null
   },
   "sampler_home": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -14029,7 +17307,77 @@
     40
    ]
   },
+  "shelf_jars": {
+   "above": [
+    "unit"
+   ],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 22,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "a plank shelf on brackets with jars, tins and a bag of flour",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "decor",
+   "rooms": {
+    "kitchen": 6
+   },
+   "sound": null,
+   "styles": {
+    "classic": 1,
+    "country": 8,
+    "hoarder": 6
+   },
+   "tags": [
+    "shelf",
+    "food"
+   ],
+   "variants": {
+    "a": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "country",
+       "hoarder",
+       "classic"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 26,
+       "bx": 160,
+       "file": "shelf_jars_a",
+       "h": 27,
+       "l": -1,
+       "r": 41,
+       "rx": 1,
+       "ry": 0,
+       "t": 0,
+       "w": 43
+      }
+     ]
+    }
+   },
+   "w": 40,
+   "wall_y": [
+    16,
+    30
+   ]
+  },
   "shoes_pair": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -14159,7 +17507,153 @@
    "w": 25,
    "wall_y": null
   },
+  "sink_butler": {
+   "above": [],
+   "bucketed": true,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    106,
+    106
+   ],
+   "h": 40,
+   "lean": true,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "a deep white butler sink on a brick-and-pine base with a brass swan-neck tap and a slatted wooden drainer",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "wall",
+   "rooms": {
+    "kitchen": 6
+   },
+   "sound": null,
+   "styles": {
+    "country": 8,
+    "hoarder": 1
+   },
+   "tags": [
+    "wet",
+    "storage"
+   ],
+   "variants": {
+    "white": {
+     "anchors": [
+      {
+       "dx": 14,
+       "dy": -32,
+       "name": "sink"
+      },
+      {
+       "dx": 14,
+       "dy": -10,
+       "name": "sink_cupboard"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "country",
+       "hoarder"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "sink_butler_white_b0",
+       "h": 54,
+       "l": -3,
+       "r": 41,
+       "rx": 3,
+       "ry": 50,
+       "t": -50,
+       "w": 45
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "sink_butler_white_b1",
+       "h": 54,
+       "l": -3,
+       "r": 38,
+       "rx": 3,
+       "ry": 50,
+       "t": -50,
+       "w": 42
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "sink_butler_white_b2",
+       "h": 54,
+       "l": -3,
+       "r": 34,
+       "rx": 3,
+       "ry": 50,
+       "t": -50,
+       "w": 38
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "sink_butler_white_b3",
+       "h": 54,
+       "l": -3,
+       "r": 31,
+       "rx": 3,
+       "ry": 50,
+       "t": -50,
+       "w": 35
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "sink_butler_white_b4",
+       "h": 54,
+       "l": -5,
+       "r": 31,
+       "rx": 5,
+       "ry": 50,
+       "t": -50,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "sink_butler_white_b5",
+       "h": 54,
+       "l": -9,
+       "r": 31,
+       "rx": 9,
+       "ry": 50,
+       "t": -50,
+       "w": 41
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "sink_butler_white_b6",
+       "h": 54,
+       "l": -12,
+       "r": 31,
+       "rx": 12,
+       "ry": 50,
+       "t": -50,
+       "w": 44
+      }
+     ]
+    }
+   },
+   "w": 30,
+   "wall_y": null
+  },
   "slippers": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -14267,6 +17761,7 @@
    "wall_y": null
   },
   "spray_nofood": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -14326,6 +17821,7 @@
    ]
   },
   "suitcase": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -14579,7 +18075,226 @@
    "w": 26,
    "wall_y": null
   },
+  "table_kitchen": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    116,
+    120
+   ],
+   "h": 40,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "the kitchen table of its style: a check oilcloth with a chair behind (classic), a formica dinette with two chrome chairs (retro), a pine table with a bench (country), a folding camping table (student), a trestle table loaded with shopping bags (hoarder)",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "front",
+   "rooms": {
+    "kitchen": 8
+   },
+   "sound": null,
+   "styles": null,
+   "tags": [
+    "dining",
+    "table"
+   ],
+   "variants": {
+    "camping": {
+     "anchors": [
+      {
+       "dx": 24,
+       "dy": -26,
+       "name": "table"
+      },
+      {
+       "dx": 40,
+       "dy": -26,
+       "name": "table_end"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "student"
+      ],
+      "t": "camping"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "table_kitchen_camping",
+       "h": 33,
+       "l": -1,
+       "r": 39,
+       "rx": 1,
+       "ry": 29,
+       "t": -29,
+       "w": 41
+      }
+     ]
+    },
+    "cloth": {
+     "anchors": [
+      {
+       "dx": 24,
+       "dy": -26,
+       "name": "table"
+      },
+      {
+       "dx": 40,
+       "dy": -26,
+       "name": "table_end"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "classic"
+      ],
+      "t": "cloth"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "table_kitchen_cloth",
+       "h": 40,
+       "l": -3,
+       "r": 49,
+       "rx": 3,
+       "ry": 36,
+       "t": -36,
+       "w": 53
+      }
+     ]
+    },
+    "dinette": {
+     "anchors": [
+      {
+       "dx": 24,
+       "dy": -26,
+       "name": "table"
+      },
+      {
+       "dx": 40,
+       "dy": -26,
+       "name": "table_end"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "retro"
+      ],
+      "t": "dinette"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "table_kitchen_dinette",
+       "h": 36,
+       "l": 0,
+       "r": 54,
+       "rx": 0,
+       "ry": 32,
+       "t": -32,
+       "w": 55
+      }
+     ]
+    },
+    "pine": {
+     "anchors": [
+      {
+       "dx": 24,
+       "dy": -26,
+       "name": "table"
+      },
+      {
+       "dx": 40,
+       "dy": -26,
+       "name": "table_end"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "country"
+      ],
+      "t": "pine"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "table_kitchen_pine",
+       "h": 44,
+       "l": -1,
+       "r": 61,
+       "rx": 1,
+       "ry": 40,
+       "t": -40,
+       "w": 63
+      }
+     ]
+    },
+    "trestle": {
+     "anchors": [
+      {
+       "dx": 24,
+       "dy": -26,
+       "name": "table"
+      },
+      {
+       "dx": 40,
+       "dy": -26,
+       "name": "table_end"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "hoarder"
+      ],
+      "t": "trestle"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "table_kitchen_trestle",
+       "h": 46,
+       "l": -1,
+       "r": 53,
+       "rx": 1,
+       "ry": 42,
+       "t": -42,
+       "w": 55
+      }
+     ]
+    }
+   },
+   "w": 62,
+   "wall_y": null
+  },
   "tally_marks": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -14639,7 +18354,191 @@
     60
    ]
   },
+  "tea_towel": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 22,
+   "lean": false,
+   "limit": null,
+   "near": [],
+   "needs": null,
+   "note": "a checked tea towel folded over a hook",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "decor",
+   "rooms": {
+    "kitchen": 6
+   },
+   "sound": null,
+   "styles": null,
+   "tags": [
+    "cloth"
+   ],
+   "variants": {
+    "blue": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "col": "4a6a98",
+      "for": [
+       "student",
+       "hoarder",
+       "country"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 22,
+       "bx": 160,
+       "file": "tea_towel_blue",
+       "h": 24,
+       "l": -2,
+       "r": 9,
+       "rx": 2,
+       "ry": 1,
+       "t": -1,
+       "w": 12
+      }
+     ]
+    },
+    "red": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "col": "b8594a",
+      "for": [
+       "classic",
+       "country",
+       "retro"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 22,
+       "bx": 160,
+       "file": "tea_towel_red",
+       "h": 24,
+       "l": -2,
+       "r": 9,
+       "rx": 2,
+       "ry": 1,
+       "t": -1,
+       "w": 12
+      }
+     ]
+    }
+   },
+   "w": 11,
+   "wall_y": [
+    24,
+    36
+   ]
+  },
+  "teapot": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 11,
+   "lean": false,
+   "limit": null,
+   "near": [],
+   "needs": null,
+   "note": "a glazed teapot in a knitted cosy",
+   "on": [
+    "worktop"
+   ],
+   "opens": null,
+   "pair": null,
+   "plane": "top",
+   "rooms": {
+    "dining_room": 4,
+    "kitchen": 4
+   },
+   "sound": null,
+   "styles": null,
+   "tags": [
+    "small",
+    "food"
+   ],
+   "variants": {
+    "blue": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "col": "4f6f8a",
+      "for": [
+       "classic",
+       "country",
+       "formal"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "teapot_blue",
+       "h": 15,
+       "l": -2,
+       "r": 13,
+       "rx": 2,
+       "ry": 12,
+       "t": -12,
+       "w": 16
+      }
+     ]
+    },
+    "brown": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "col": "8a5a3a",
+      "for": [
+       "classic",
+       "country",
+       "family"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "teapot_brown",
+       "h": 15,
+       "l": -2,
+       "r": 13,
+       "rx": 2,
+       "ry": 12,
+       "t": -12,
+       "w": 16
+      }
+     ]
+    }
+   },
+   "w": 11,
+   "wall_y": null
+  },
   "timetable": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -14698,7 +18597,183 @@
     48
    ]
   },
+  "tin_stack": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 12,
+   "lean": false,
+   "limit": null,
+   "near": [],
+   "needs": null,
+   "note": "a pyramid of tinned food, labels turned out",
+   "on": [
+    "worktop"
+   ],
+   "opens": null,
+   "pair": null,
+   "plane": "top",
+   "rooms": {
+    "kitchen": 5
+   },
+   "sound": null,
+   "styles": {
+    "classic": 1,
+    "hoarder": 8,
+    "student": 4
+   },
+   "tags": [
+    "small",
+    "food"
+   ],
+   "variants": {
+    "a": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "n": 3
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "tin_stack_a",
+       "h": 18,
+       "l": -2,
+       "r": 15,
+       "rx": 2,
+       "ry": 15,
+       "t": -15,
+       "w": 18
+      }
+     ]
+    },
+    "b": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "n": 5
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "tin_stack_b",
+       "h": 18,
+       "l": -4,
+       "r": 17,
+       "rx": 4,
+       "ry": 15,
+       "t": -15,
+       "w": 22
+      }
+     ]
+    }
+   },
+   "w": 14,
+   "wall_y": null
+  },
+  "toaster": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 10,
+   "lean": false,
+   "limit": null,
+   "near": [],
+   "needs": null,
+   "note": "a two-slot toaster with the toast up",
+   "on": [
+    "worktop"
+   ],
+   "opens": null,
+   "pair": null,
+   "plane": "top",
+   "rooms": {
+    "kitchen": 5
+   },
+   "sound": null,
+   "styles": null,
+   "tags": [
+    "small",
+    "cooking"
+   ],
+   "variants": {
+    "chrome": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "col": "b4bcc0",
+      "for": [
+       "retro",
+       "classic",
+       "student"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "toaster_chrome",
+       "h": 15,
+       "l": -1,
+       "r": 12,
+       "rx": 1,
+       "ry": 12,
+       "t": -12,
+       "w": 14
+      }
+     ]
+    },
+    "cream": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "col": "dcd5bf",
+      "for": [
+       "hoarder",
+       "classic"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "toaster_cream",
+       "h": 15,
+       "l": -1,
+       "r": 12,
+       "rx": 1,
+       "ry": 12,
+       "t": -12,
+       "w": 14
+      }
+     ]
+    }
+   },
+   "w": 12,
+   "wall_y": null
+  },
   "toy_chest": {
+   "above": [],
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -14836,6 +18911,7 @@
    "wall_y": null
   },
   "toy_shelf": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -14895,6 +18971,7 @@
    ]
   },
   "trainers": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -15005,7 +19082,4094 @@
    "w": 27,
    "wall_y": null
   },
+  "trolley_kitchen": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    112,
+    118
+   ],
+   "h": 30,
+   "lean": false,
+   "limit": null,
+   "near": [
+    "unit"
+   ],
+   "needs": null,
+   "note": "a steel utility trolley on castors with dishes, a pan and a box of cereal on its two shelves",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "front",
+   "rooms": {
+    "kitchen": 5
+   },
+   "sound": null,
+   "styles": {
+    "classic": 2,
+    "hoarder": 3,
+    "student": 4
+   },
+   "tags": [
+    "clutter",
+    "storage"
+   ],
+   "variants": {
+    "a": {
+     "anchors": [
+      {
+       "dx": 14,
+       "dy": -18,
+       "name": "trolley"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {},
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "trolley_kitchen_a",
+       "h": 40,
+       "l": -2,
+       "r": 29,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 32
+      }
+     ]
+    }
+   },
+   "w": 28,
+   "wall_y": null
+  },
+  "unit_base": {
+   "above": [],
+   "bucketed": true,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    106,
+    106
+   ],
+   "h": 32,
+   "lean": true,
+   "limit": 4,
+   "near": [],
+   "needs": null,
+   "note": "a fitted base unit in the finish of its kitchen (sage / yellow / white / pine / cream): two doors, three drawers, a drawer over a door, or a gap with a shelf; the doors / top drawer open when searched",
+   "on": [],
+   "opens": {
+    "anchor": "cupboard",
+    "frames": 3,
+    "kind": "door_h"
+   },
+   "pair": null,
+   "plane": "wall",
+   "rooms": {
+    "kitchen": 8
+   },
+   "sound": null,
+   "styles": null,
+   "tags": [
+    "unit",
+    "storage"
+   ],
+   "variants": {
+    "cream_dd": {
+     "anchors": [
+      {
+       "dx": 15,
+       "dy": -15,
+       "name": "cupboard"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "cream",
+      "for": [
+       "hoarder"
+      ],
+      "lay": "dd"
+     },
+     "slots": [
+      {
+       "dx0": 3,
+       "dx1": 27,
+       "dy": -34,
+       "id": "top",
+       "kinds": [
+        "worktop",
+        "appliance"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "unit_base_cream_dd_b0",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_cream_dd_b0_open",
+       "r": 36,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 39
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "unit_base_cream_dd_b1",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_cream_dd_b1_open",
+       "r": 34,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "unit_base_cream_dd_b2",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_cream_dd_b2_open",
+       "r": 32,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 35
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "unit_base_cream_dd_b3",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_cream_dd_b3_open",
+       "r": 30,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 33
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "unit_base_cream_dd_b4",
+       "h": 40,
+       "l": -3,
+       "open_file": "unit_base_cream_dd_b4_open",
+       "r": 30,
+       "rx": 3,
+       "ry": 36,
+       "t": -36,
+       "w": 34
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "unit_base_cream_dd_b5",
+       "h": 40,
+       "l": -5,
+       "open_file": "unit_base_cream_dd_b5_open",
+       "r": 30,
+       "rx": 5,
+       "ry": 36,
+       "t": -36,
+       "w": 36
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "unit_base_cream_dd_b6",
+       "h": 40,
+       "l": -7,
+       "open_file": "unit_base_cream_dd_b6_open",
+       "r": 30,
+       "rx": 7,
+       "ry": 36,
+       "t": -36,
+       "w": 38
+      }
+     ]
+    },
+    "cream_drawers": {
+     "anchors": [
+      {
+       "dx": 15,
+       "dy": -15,
+       "name": "cupboard"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "cream",
+      "for": [
+       "hoarder"
+      ],
+      "lay": "drawers"
+     },
+     "slots": [
+      {
+       "dx0": 3,
+       "dx1": 27,
+       "dy": -34,
+       "id": "top",
+       "kinds": [
+        "worktop",
+        "appliance"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "unit_base_cream_drawers_b0",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_cream_drawers_b0_open",
+       "r": 36,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 39
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "unit_base_cream_drawers_b1",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_cream_drawers_b1_open",
+       "r": 34,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "unit_base_cream_drawers_b2",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_cream_drawers_b2_open",
+       "r": 32,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 35
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "unit_base_cream_drawers_b3",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_cream_drawers_b3_open",
+       "r": 30,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 33
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "unit_base_cream_drawers_b4",
+       "h": 40,
+       "l": -3,
+       "open_file": "unit_base_cream_drawers_b4_open",
+       "r": 30,
+       "rx": 3,
+       "ry": 36,
+       "t": -36,
+       "w": 34
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "unit_base_cream_drawers_b5",
+       "h": 40,
+       "l": -5,
+       "open_file": "unit_base_cream_drawers_b5_open",
+       "r": 30,
+       "rx": 5,
+       "ry": 36,
+       "t": -36,
+       "w": 36
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "unit_base_cream_drawers_b6",
+       "h": 40,
+       "l": -7,
+       "open_file": "unit_base_cream_drawers_b6_open",
+       "r": 30,
+       "rx": 7,
+       "ry": 36,
+       "t": -36,
+       "w": 38
+      }
+     ]
+    },
+    "cream_open": {
+     "anchors": [
+      {
+       "dx": 15,
+       "dy": -15,
+       "name": "cupboard"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "cream",
+      "for": [
+       "hoarder"
+      ],
+      "lay": "open"
+     },
+     "slots": [
+      {
+       "dx0": 3,
+       "dx1": 27,
+       "dy": -34,
+       "id": "top",
+       "kinds": [
+        "worktop",
+        "appliance"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "unit_base_cream_open_b0",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_cream_open_b0_open",
+       "r": 36,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 39
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "unit_base_cream_open_b1",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_cream_open_b1_open",
+       "r": 34,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "unit_base_cream_open_b2",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_cream_open_b2_open",
+       "r": 32,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 35
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "unit_base_cream_open_b3",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_cream_open_b3_open",
+       "r": 30,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 33
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "unit_base_cream_open_b4",
+       "h": 40,
+       "l": -3,
+       "open_file": "unit_base_cream_open_b4_open",
+       "r": 30,
+       "rx": 3,
+       "ry": 36,
+       "t": -36,
+       "w": 34
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "unit_base_cream_open_b5",
+       "h": 40,
+       "l": -5,
+       "open_file": "unit_base_cream_open_b5_open",
+       "r": 30,
+       "rx": 5,
+       "ry": 36,
+       "t": -36,
+       "w": 36
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "unit_base_cream_open_b6",
+       "h": 40,
+       "l": -7,
+       "open_file": "unit_base_cream_open_b6_open",
+       "r": 30,
+       "rx": 7,
+       "ry": 36,
+       "t": -36,
+       "w": 38
+      }
+     ]
+    },
+    "cream_two": {
+     "anchors": [
+      {
+       "dx": 15,
+       "dy": -15,
+       "name": "cupboard"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "cream",
+      "for": [
+       "hoarder"
+      ],
+      "lay": "two"
+     },
+     "slots": [
+      {
+       "dx0": 3,
+       "dx1": 27,
+       "dy": -34,
+       "id": "top",
+       "kinds": [
+        "worktop",
+        "appliance"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "unit_base_cream_two_b0",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_cream_two_b0_open",
+       "r": 36,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 39
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "unit_base_cream_two_b1",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_cream_two_b1_open",
+       "r": 34,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "unit_base_cream_two_b2",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_cream_two_b2_open",
+       "r": 32,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 35
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "unit_base_cream_two_b3",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_cream_two_b3_open",
+       "r": 30,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 33
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "unit_base_cream_two_b4",
+       "h": 40,
+       "l": -3,
+       "open_file": "unit_base_cream_two_b4_open",
+       "r": 30,
+       "rx": 3,
+       "ry": 36,
+       "t": -36,
+       "w": 34
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "unit_base_cream_two_b5",
+       "h": 40,
+       "l": -5,
+       "open_file": "unit_base_cream_two_b5_open",
+       "r": 30,
+       "rx": 5,
+       "ry": 36,
+       "t": -36,
+       "w": 36
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "unit_base_cream_two_b6",
+       "h": 40,
+       "l": -7,
+       "open_file": "unit_base_cream_two_b6_open",
+       "r": 30,
+       "rx": 7,
+       "ry": 36,
+       "t": -36,
+       "w": 38
+      }
+     ]
+    },
+    "pine_dd": {
+     "anchors": [
+      {
+       "dx": 15,
+       "dy": -15,
+       "name": "cupboard"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "pine",
+      "for": [
+       "country"
+      ],
+      "lay": "dd"
+     },
+     "slots": [
+      {
+       "dx0": 3,
+       "dx1": 27,
+       "dy": -34,
+       "id": "top",
+       "kinds": [
+        "worktop",
+        "appliance"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "unit_base_pine_dd_b0",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_pine_dd_b0_open",
+       "r": 36,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 39
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "unit_base_pine_dd_b1",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_pine_dd_b1_open",
+       "r": 34,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "unit_base_pine_dd_b2",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_pine_dd_b2_open",
+       "r": 32,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 35
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "unit_base_pine_dd_b3",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_pine_dd_b3_open",
+       "r": 30,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 33
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "unit_base_pine_dd_b4",
+       "h": 40,
+       "l": -3,
+       "open_file": "unit_base_pine_dd_b4_open",
+       "r": 30,
+       "rx": 3,
+       "ry": 36,
+       "t": -36,
+       "w": 34
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "unit_base_pine_dd_b5",
+       "h": 40,
+       "l": -5,
+       "open_file": "unit_base_pine_dd_b5_open",
+       "r": 30,
+       "rx": 5,
+       "ry": 36,
+       "t": -36,
+       "w": 36
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "unit_base_pine_dd_b6",
+       "h": 40,
+       "l": -7,
+       "open_file": "unit_base_pine_dd_b6_open",
+       "r": 30,
+       "rx": 7,
+       "ry": 36,
+       "t": -36,
+       "w": 38
+      }
+     ]
+    },
+    "pine_drawers": {
+     "anchors": [
+      {
+       "dx": 15,
+       "dy": -15,
+       "name": "cupboard"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "pine",
+      "for": [
+       "country"
+      ],
+      "lay": "drawers"
+     },
+     "slots": [
+      {
+       "dx0": 3,
+       "dx1": 27,
+       "dy": -34,
+       "id": "top",
+       "kinds": [
+        "worktop",
+        "appliance"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "unit_base_pine_drawers_b0",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_pine_drawers_b0_open",
+       "r": 36,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 39
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "unit_base_pine_drawers_b1",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_pine_drawers_b1_open",
+       "r": 34,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "unit_base_pine_drawers_b2",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_pine_drawers_b2_open",
+       "r": 32,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 35
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "unit_base_pine_drawers_b3",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_pine_drawers_b3_open",
+       "r": 30,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 33
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "unit_base_pine_drawers_b4",
+       "h": 40,
+       "l": -3,
+       "open_file": "unit_base_pine_drawers_b4_open",
+       "r": 30,
+       "rx": 3,
+       "ry": 36,
+       "t": -36,
+       "w": 34
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "unit_base_pine_drawers_b5",
+       "h": 40,
+       "l": -5,
+       "open_file": "unit_base_pine_drawers_b5_open",
+       "r": 30,
+       "rx": 5,
+       "ry": 36,
+       "t": -36,
+       "w": 36
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "unit_base_pine_drawers_b6",
+       "h": 40,
+       "l": -7,
+       "open_file": "unit_base_pine_drawers_b6_open",
+       "r": 30,
+       "rx": 7,
+       "ry": 36,
+       "t": -36,
+       "w": 38
+      }
+     ]
+    },
+    "pine_open": {
+     "anchors": [
+      {
+       "dx": 15,
+       "dy": -15,
+       "name": "cupboard"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "pine",
+      "for": [
+       "country"
+      ],
+      "lay": "open"
+     },
+     "slots": [
+      {
+       "dx0": 3,
+       "dx1": 27,
+       "dy": -34,
+       "id": "top",
+       "kinds": [
+        "worktop",
+        "appliance"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "unit_base_pine_open_b0",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_pine_open_b0_open",
+       "r": 36,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 39
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "unit_base_pine_open_b1",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_pine_open_b1_open",
+       "r": 34,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "unit_base_pine_open_b2",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_pine_open_b2_open",
+       "r": 32,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 35
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "unit_base_pine_open_b3",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_pine_open_b3_open",
+       "r": 30,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 33
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "unit_base_pine_open_b4",
+       "h": 40,
+       "l": -3,
+       "open_file": "unit_base_pine_open_b4_open",
+       "r": 30,
+       "rx": 3,
+       "ry": 36,
+       "t": -36,
+       "w": 34
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "unit_base_pine_open_b5",
+       "h": 40,
+       "l": -5,
+       "open_file": "unit_base_pine_open_b5_open",
+       "r": 30,
+       "rx": 5,
+       "ry": 36,
+       "t": -36,
+       "w": 36
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "unit_base_pine_open_b6",
+       "h": 40,
+       "l": -7,
+       "open_file": "unit_base_pine_open_b6_open",
+       "r": 30,
+       "rx": 7,
+       "ry": 36,
+       "t": -36,
+       "w": 38
+      }
+     ]
+    },
+    "pine_two": {
+     "anchors": [
+      {
+       "dx": 15,
+       "dy": -15,
+       "name": "cupboard"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "pine",
+      "for": [
+       "country"
+      ],
+      "lay": "two"
+     },
+     "slots": [
+      {
+       "dx0": 3,
+       "dx1": 27,
+       "dy": -34,
+       "id": "top",
+       "kinds": [
+        "worktop",
+        "appliance"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "unit_base_pine_two_b0",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_pine_two_b0_open",
+       "r": 36,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 39
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "unit_base_pine_two_b1",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_pine_two_b1_open",
+       "r": 34,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "unit_base_pine_two_b2",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_pine_two_b2_open",
+       "r": 32,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 35
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "unit_base_pine_two_b3",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_pine_two_b3_open",
+       "r": 30,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 33
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "unit_base_pine_two_b4",
+       "h": 40,
+       "l": -3,
+       "open_file": "unit_base_pine_two_b4_open",
+       "r": 30,
+       "rx": 3,
+       "ry": 36,
+       "t": -36,
+       "w": 34
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "unit_base_pine_two_b5",
+       "h": 40,
+       "l": -5,
+       "open_file": "unit_base_pine_two_b5_open",
+       "r": 30,
+       "rx": 5,
+       "ry": 36,
+       "t": -36,
+       "w": 36
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "unit_base_pine_two_b6",
+       "h": 40,
+       "l": -7,
+       "open_file": "unit_base_pine_two_b6_open",
+       "r": 30,
+       "rx": 7,
+       "ry": 36,
+       "t": -36,
+       "w": 38
+      }
+     ]
+    },
+    "sage_dd": {
+     "anchors": [
+      {
+       "dx": 15,
+       "dy": -15,
+       "name": "cupboard"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "sage",
+      "for": [
+       "classic"
+      ],
+      "lay": "dd"
+     },
+     "slots": [
+      {
+       "dx0": 3,
+       "dx1": 27,
+       "dy": -34,
+       "id": "top",
+       "kinds": [
+        "worktop",
+        "appliance"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "unit_base_sage_dd_b0",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_sage_dd_b0_open",
+       "r": 36,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 39
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "unit_base_sage_dd_b1",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_sage_dd_b1_open",
+       "r": 34,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "unit_base_sage_dd_b2",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_sage_dd_b2_open",
+       "r": 32,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 35
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "unit_base_sage_dd_b3",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_sage_dd_b3_open",
+       "r": 30,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 33
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "unit_base_sage_dd_b4",
+       "h": 40,
+       "l": -3,
+       "open_file": "unit_base_sage_dd_b4_open",
+       "r": 30,
+       "rx": 3,
+       "ry": 36,
+       "t": -36,
+       "w": 34
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "unit_base_sage_dd_b5",
+       "h": 40,
+       "l": -5,
+       "open_file": "unit_base_sage_dd_b5_open",
+       "r": 30,
+       "rx": 5,
+       "ry": 36,
+       "t": -36,
+       "w": 36
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "unit_base_sage_dd_b6",
+       "h": 40,
+       "l": -7,
+       "open_file": "unit_base_sage_dd_b6_open",
+       "r": 30,
+       "rx": 7,
+       "ry": 36,
+       "t": -36,
+       "w": 38
+      }
+     ]
+    },
+    "sage_drawers": {
+     "anchors": [
+      {
+       "dx": 15,
+       "dy": -15,
+       "name": "cupboard"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "sage",
+      "for": [
+       "classic"
+      ],
+      "lay": "drawers"
+     },
+     "slots": [
+      {
+       "dx0": 3,
+       "dx1": 27,
+       "dy": -34,
+       "id": "top",
+       "kinds": [
+        "worktop",
+        "appliance"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "unit_base_sage_drawers_b0",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_sage_drawers_b0_open",
+       "r": 36,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 39
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "unit_base_sage_drawers_b1",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_sage_drawers_b1_open",
+       "r": 34,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "unit_base_sage_drawers_b2",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_sage_drawers_b2_open",
+       "r": 32,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 35
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "unit_base_sage_drawers_b3",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_sage_drawers_b3_open",
+       "r": 30,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 33
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "unit_base_sage_drawers_b4",
+       "h": 40,
+       "l": -3,
+       "open_file": "unit_base_sage_drawers_b4_open",
+       "r": 30,
+       "rx": 3,
+       "ry": 36,
+       "t": -36,
+       "w": 34
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "unit_base_sage_drawers_b5",
+       "h": 40,
+       "l": -5,
+       "open_file": "unit_base_sage_drawers_b5_open",
+       "r": 30,
+       "rx": 5,
+       "ry": 36,
+       "t": -36,
+       "w": 36
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "unit_base_sage_drawers_b6",
+       "h": 40,
+       "l": -7,
+       "open_file": "unit_base_sage_drawers_b6_open",
+       "r": 30,
+       "rx": 7,
+       "ry": 36,
+       "t": -36,
+       "w": 38
+      }
+     ]
+    },
+    "sage_open": {
+     "anchors": [
+      {
+       "dx": 15,
+       "dy": -15,
+       "name": "cupboard"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "sage",
+      "for": [
+       "classic"
+      ],
+      "lay": "open"
+     },
+     "slots": [
+      {
+       "dx0": 3,
+       "dx1": 27,
+       "dy": -34,
+       "id": "top",
+       "kinds": [
+        "worktop",
+        "appliance"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "unit_base_sage_open_b0",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_sage_open_b0_open",
+       "r": 36,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 39
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "unit_base_sage_open_b1",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_sage_open_b1_open",
+       "r": 34,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "unit_base_sage_open_b2",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_sage_open_b2_open",
+       "r": 32,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 35
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "unit_base_sage_open_b3",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_sage_open_b3_open",
+       "r": 30,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 33
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "unit_base_sage_open_b4",
+       "h": 40,
+       "l": -3,
+       "open_file": "unit_base_sage_open_b4_open",
+       "r": 30,
+       "rx": 3,
+       "ry": 36,
+       "t": -36,
+       "w": 34
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "unit_base_sage_open_b5",
+       "h": 40,
+       "l": -5,
+       "open_file": "unit_base_sage_open_b5_open",
+       "r": 30,
+       "rx": 5,
+       "ry": 36,
+       "t": -36,
+       "w": 36
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "unit_base_sage_open_b6",
+       "h": 40,
+       "l": -7,
+       "open_file": "unit_base_sage_open_b6_open",
+       "r": 30,
+       "rx": 7,
+       "ry": 36,
+       "t": -36,
+       "w": 38
+      }
+     ]
+    },
+    "sage_two": {
+     "anchors": [
+      {
+       "dx": 15,
+       "dy": -15,
+       "name": "cupboard"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "sage",
+      "for": [
+       "classic"
+      ],
+      "lay": "two"
+     },
+     "slots": [
+      {
+       "dx0": 3,
+       "dx1": 27,
+       "dy": -34,
+       "id": "top",
+       "kinds": [
+        "worktop",
+        "appliance"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "unit_base_sage_two_b0",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_sage_two_b0_open",
+       "r": 36,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 39
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "unit_base_sage_two_b1",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_sage_two_b1_open",
+       "r": 34,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "unit_base_sage_two_b2",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_sage_two_b2_open",
+       "r": 32,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 35
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "unit_base_sage_two_b3",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_sage_two_b3_open",
+       "r": 30,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 33
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "unit_base_sage_two_b4",
+       "h": 40,
+       "l": -3,
+       "open_file": "unit_base_sage_two_b4_open",
+       "r": 30,
+       "rx": 3,
+       "ry": 36,
+       "t": -36,
+       "w": 34
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "unit_base_sage_two_b5",
+       "h": 40,
+       "l": -5,
+       "open_file": "unit_base_sage_two_b5_open",
+       "r": 30,
+       "rx": 5,
+       "ry": 36,
+       "t": -36,
+       "w": 36
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "unit_base_sage_two_b6",
+       "h": 40,
+       "l": -7,
+       "open_file": "unit_base_sage_two_b6_open",
+       "r": 30,
+       "rx": 7,
+       "ry": 36,
+       "t": -36,
+       "w": 38
+      }
+     ]
+    },
+    "white_dd": {
+     "anchors": [
+      {
+       "dx": 15,
+       "dy": -15,
+       "name": "cupboard"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "white",
+      "for": [
+       "student"
+      ],
+      "lay": "dd"
+     },
+     "slots": [
+      {
+       "dx0": 3,
+       "dx1": 27,
+       "dy": -34,
+       "id": "top",
+       "kinds": [
+        "worktop",
+        "appliance"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "unit_base_white_dd_b0",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_white_dd_b0_open",
+       "r": 36,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 39
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "unit_base_white_dd_b1",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_white_dd_b1_open",
+       "r": 34,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "unit_base_white_dd_b2",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_white_dd_b2_open",
+       "r": 32,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 35
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "unit_base_white_dd_b3",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_white_dd_b3_open",
+       "r": 30,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 33
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "unit_base_white_dd_b4",
+       "h": 40,
+       "l": -3,
+       "open_file": "unit_base_white_dd_b4_open",
+       "r": 30,
+       "rx": 3,
+       "ry": 36,
+       "t": -36,
+       "w": 34
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "unit_base_white_dd_b5",
+       "h": 40,
+       "l": -5,
+       "open_file": "unit_base_white_dd_b5_open",
+       "r": 30,
+       "rx": 5,
+       "ry": 36,
+       "t": -36,
+       "w": 36
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "unit_base_white_dd_b6",
+       "h": 40,
+       "l": -7,
+       "open_file": "unit_base_white_dd_b6_open",
+       "r": 30,
+       "rx": 7,
+       "ry": 36,
+       "t": -36,
+       "w": 38
+      }
+     ]
+    },
+    "white_drawers": {
+     "anchors": [
+      {
+       "dx": 15,
+       "dy": -15,
+       "name": "cupboard"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "white",
+      "for": [
+       "student"
+      ],
+      "lay": "drawers"
+     },
+     "slots": [
+      {
+       "dx0": 3,
+       "dx1": 27,
+       "dy": -34,
+       "id": "top",
+       "kinds": [
+        "worktop",
+        "appliance"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "unit_base_white_drawers_b0",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_white_drawers_b0_open",
+       "r": 36,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 39
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "unit_base_white_drawers_b1",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_white_drawers_b1_open",
+       "r": 34,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "unit_base_white_drawers_b2",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_white_drawers_b2_open",
+       "r": 32,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 35
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "unit_base_white_drawers_b3",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_white_drawers_b3_open",
+       "r": 30,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 33
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "unit_base_white_drawers_b4",
+       "h": 40,
+       "l": -3,
+       "open_file": "unit_base_white_drawers_b4_open",
+       "r": 30,
+       "rx": 3,
+       "ry": 36,
+       "t": -36,
+       "w": 34
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "unit_base_white_drawers_b5",
+       "h": 40,
+       "l": -5,
+       "open_file": "unit_base_white_drawers_b5_open",
+       "r": 30,
+       "rx": 5,
+       "ry": 36,
+       "t": -36,
+       "w": 36
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "unit_base_white_drawers_b6",
+       "h": 40,
+       "l": -7,
+       "open_file": "unit_base_white_drawers_b6_open",
+       "r": 30,
+       "rx": 7,
+       "ry": 36,
+       "t": -36,
+       "w": 38
+      }
+     ]
+    },
+    "white_open": {
+     "anchors": [
+      {
+       "dx": 15,
+       "dy": -15,
+       "name": "cupboard"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "white",
+      "for": [
+       "student"
+      ],
+      "lay": "open"
+     },
+     "slots": [
+      {
+       "dx0": 3,
+       "dx1": 27,
+       "dy": -34,
+       "id": "top",
+       "kinds": [
+        "worktop",
+        "appliance"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "unit_base_white_open_b0",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_white_open_b0_open",
+       "r": 36,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 39
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "unit_base_white_open_b1",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_white_open_b1_open",
+       "r": 34,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "unit_base_white_open_b2",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_white_open_b2_open",
+       "r": 32,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 35
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "unit_base_white_open_b3",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_white_open_b3_open",
+       "r": 30,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 33
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "unit_base_white_open_b4",
+       "h": 40,
+       "l": -3,
+       "open_file": "unit_base_white_open_b4_open",
+       "r": 30,
+       "rx": 3,
+       "ry": 36,
+       "t": -36,
+       "w": 34
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "unit_base_white_open_b5",
+       "h": 40,
+       "l": -5,
+       "open_file": "unit_base_white_open_b5_open",
+       "r": 30,
+       "rx": 5,
+       "ry": 36,
+       "t": -36,
+       "w": 36
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "unit_base_white_open_b6",
+       "h": 40,
+       "l": -7,
+       "open_file": "unit_base_white_open_b6_open",
+       "r": 30,
+       "rx": 7,
+       "ry": 36,
+       "t": -36,
+       "w": 38
+      }
+     ]
+    },
+    "white_two": {
+     "anchors": [
+      {
+       "dx": 15,
+       "dy": -15,
+       "name": "cupboard"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "white",
+      "for": [
+       "student"
+      ],
+      "lay": "two"
+     },
+     "slots": [
+      {
+       "dx0": 3,
+       "dx1": 27,
+       "dy": -34,
+       "id": "top",
+       "kinds": [
+        "worktop",
+        "appliance"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "unit_base_white_two_b0",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_white_two_b0_open",
+       "r": 36,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 39
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "unit_base_white_two_b1",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_white_two_b1_open",
+       "r": 34,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "unit_base_white_two_b2",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_white_two_b2_open",
+       "r": 32,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 35
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "unit_base_white_two_b3",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_white_two_b3_open",
+       "r": 30,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 33
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "unit_base_white_two_b4",
+       "h": 40,
+       "l": -3,
+       "open_file": "unit_base_white_two_b4_open",
+       "r": 30,
+       "rx": 3,
+       "ry": 36,
+       "t": -36,
+       "w": 34
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "unit_base_white_two_b5",
+       "h": 40,
+       "l": -5,
+       "open_file": "unit_base_white_two_b5_open",
+       "r": 30,
+       "rx": 5,
+       "ry": 36,
+       "t": -36,
+       "w": 36
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "unit_base_white_two_b6",
+       "h": 40,
+       "l": -7,
+       "open_file": "unit_base_white_two_b6_open",
+       "r": 30,
+       "rx": 7,
+       "ry": 36,
+       "t": -36,
+       "w": 38
+      }
+     ]
+    },
+    "yellow_dd": {
+     "anchors": [
+      {
+       "dx": 15,
+       "dy": -15,
+       "name": "cupboard"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "yellow",
+      "for": [
+       "retro"
+      ],
+      "lay": "dd"
+     },
+     "slots": [
+      {
+       "dx0": 3,
+       "dx1": 27,
+       "dy": -34,
+       "id": "top",
+       "kinds": [
+        "worktop",
+        "appliance"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "unit_base_yellow_dd_b0",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_yellow_dd_b0_open",
+       "r": 36,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 39
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "unit_base_yellow_dd_b1",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_yellow_dd_b1_open",
+       "r": 34,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "unit_base_yellow_dd_b2",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_yellow_dd_b2_open",
+       "r": 32,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 35
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "unit_base_yellow_dd_b3",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_yellow_dd_b3_open",
+       "r": 30,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 33
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "unit_base_yellow_dd_b4",
+       "h": 40,
+       "l": -3,
+       "open_file": "unit_base_yellow_dd_b4_open",
+       "r": 30,
+       "rx": 3,
+       "ry": 36,
+       "t": -36,
+       "w": 34
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "unit_base_yellow_dd_b5",
+       "h": 40,
+       "l": -5,
+       "open_file": "unit_base_yellow_dd_b5_open",
+       "r": 30,
+       "rx": 5,
+       "ry": 36,
+       "t": -36,
+       "w": 36
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "unit_base_yellow_dd_b6",
+       "h": 40,
+       "l": -7,
+       "open_file": "unit_base_yellow_dd_b6_open",
+       "r": 30,
+       "rx": 7,
+       "ry": 36,
+       "t": -36,
+       "w": 38
+      }
+     ]
+    },
+    "yellow_drawers": {
+     "anchors": [
+      {
+       "dx": 15,
+       "dy": -15,
+       "name": "cupboard"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "yellow",
+      "for": [
+       "retro"
+      ],
+      "lay": "drawers"
+     },
+     "slots": [
+      {
+       "dx0": 3,
+       "dx1": 27,
+       "dy": -34,
+       "id": "top",
+       "kinds": [
+        "worktop",
+        "appliance"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "unit_base_yellow_drawers_b0",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_yellow_drawers_b0_open",
+       "r": 36,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 39
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "unit_base_yellow_drawers_b1",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_yellow_drawers_b1_open",
+       "r": 34,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "unit_base_yellow_drawers_b2",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_yellow_drawers_b2_open",
+       "r": 32,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 35
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "unit_base_yellow_drawers_b3",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_yellow_drawers_b3_open",
+       "r": 30,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 33
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "unit_base_yellow_drawers_b4",
+       "h": 40,
+       "l": -3,
+       "open_file": "unit_base_yellow_drawers_b4_open",
+       "r": 30,
+       "rx": 3,
+       "ry": 36,
+       "t": -36,
+       "w": 34
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "unit_base_yellow_drawers_b5",
+       "h": 40,
+       "l": -5,
+       "open_file": "unit_base_yellow_drawers_b5_open",
+       "r": 30,
+       "rx": 5,
+       "ry": 36,
+       "t": -36,
+       "w": 36
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "unit_base_yellow_drawers_b6",
+       "h": 40,
+       "l": -7,
+       "open_file": "unit_base_yellow_drawers_b6_open",
+       "r": 30,
+       "rx": 7,
+       "ry": 36,
+       "t": -36,
+       "w": 38
+      }
+     ]
+    },
+    "yellow_open": {
+     "anchors": [
+      {
+       "dx": 15,
+       "dy": -15,
+       "name": "cupboard"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "yellow",
+      "for": [
+       "retro"
+      ],
+      "lay": "open"
+     },
+     "slots": [
+      {
+       "dx0": 3,
+       "dx1": 27,
+       "dy": -34,
+       "id": "top",
+       "kinds": [
+        "worktop",
+        "appliance"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "unit_base_yellow_open_b0",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_yellow_open_b0_open",
+       "r": 36,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 39
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "unit_base_yellow_open_b1",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_yellow_open_b1_open",
+       "r": 34,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "unit_base_yellow_open_b2",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_yellow_open_b2_open",
+       "r": 32,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 35
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "unit_base_yellow_open_b3",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_yellow_open_b3_open",
+       "r": 30,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 33
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "unit_base_yellow_open_b4",
+       "h": 40,
+       "l": -3,
+       "open_file": "unit_base_yellow_open_b4_open",
+       "r": 30,
+       "rx": 3,
+       "ry": 36,
+       "t": -36,
+       "w": 34
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "unit_base_yellow_open_b5",
+       "h": 40,
+       "l": -5,
+       "open_file": "unit_base_yellow_open_b5_open",
+       "r": 30,
+       "rx": 5,
+       "ry": 36,
+       "t": -36,
+       "w": 36
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "unit_base_yellow_open_b6",
+       "h": 40,
+       "l": -7,
+       "open_file": "unit_base_yellow_open_b6_open",
+       "r": 30,
+       "rx": 7,
+       "ry": 36,
+       "t": -36,
+       "w": 38
+      }
+     ]
+    },
+    "yellow_two": {
+     "anchors": [
+      {
+       "dx": 15,
+       "dy": -15,
+       "name": "cupboard"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "yellow",
+      "for": [
+       "retro"
+      ],
+      "lay": "two"
+     },
+     "slots": [
+      {
+       "dx0": 3,
+       "dx1": 27,
+       "dy": -34,
+       "id": "top",
+       "kinds": [
+        "worktop",
+        "appliance"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "unit_base_yellow_two_b0",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_yellow_two_b0_open",
+       "r": 36,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 39
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "unit_base_yellow_two_b1",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_yellow_two_b1_open",
+       "r": 34,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "unit_base_yellow_two_b2",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_yellow_two_b2_open",
+       "r": 32,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 35
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "unit_base_yellow_two_b3",
+       "h": 40,
+       "l": -2,
+       "open_file": "unit_base_yellow_two_b3_open",
+       "r": 30,
+       "rx": 2,
+       "ry": 36,
+       "t": -36,
+       "w": 33
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "unit_base_yellow_two_b4",
+       "h": 40,
+       "l": -3,
+       "open_file": "unit_base_yellow_two_b4_open",
+       "r": 30,
+       "rx": 3,
+       "ry": 36,
+       "t": -36,
+       "w": 34
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "unit_base_yellow_two_b5",
+       "h": 40,
+       "l": -5,
+       "open_file": "unit_base_yellow_two_b5_open",
+       "r": 30,
+       "rx": 5,
+       "ry": 36,
+       "t": -36,
+       "w": 36
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "unit_base_yellow_two_b6",
+       "h": 40,
+       "l": -7,
+       "open_file": "unit_base_yellow_two_b6_open",
+       "r": 30,
+       "rx": 7,
+       "ry": 36,
+       "t": -36,
+       "w": 38
+      }
+     ]
+    }
+   },
+   "w": 30,
+   "wall_y": null
+  },
+  "unit_cooker": {
+   "above": [],
+   "bucketed": true,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    106,
+    106
+   ],
+   "h": 34,
+   "lean": true,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "a freestanding cooker: knobs on a fascia, an oven door with a window and a bar handle (it drops open when searched), a hob with rings and a pot / a kettle on it",
+   "on": [],
+   "opens": {
+    "anchor": "oven",
+    "frames": 3,
+    "kind": "door_drop"
+   },
+   "pair": null,
+   "plane": "wall",
+   "rooms": {
+    "kitchen": 8
+   },
+   "sound": null,
+   "styles": null,
+   "tags": [
+    "unit",
+    "cooking"
+   ],
+   "variants": {
+    "black_bare": {
+     "anchors": [
+      {
+       "dx": 14,
+       "dy": -14,
+       "name": "oven"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "col": "black",
+      "for": [
+       "student",
+       "hoarder"
+      ],
+      "on": "none"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "unit_cooker_black_bare_b0",
+       "h": 44,
+       "l": -2,
+       "open_file": "unit_cooker_black_bare_b0_open",
+       "r": 34,
+       "rx": 2,
+       "ry": 40,
+       "t": -40,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "unit_cooker_black_bare_b1",
+       "h": 44,
+       "l": -2,
+       "open_file": "unit_cooker_black_bare_b1_open",
+       "r": 32,
+       "rx": 2,
+       "ry": 40,
+       "t": -40,
+       "w": 35
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "unit_cooker_black_bare_b2",
+       "h": 44,
+       "l": -2,
+       "open_file": "unit_cooker_black_bare_b2_open",
+       "r": 30,
+       "rx": 2,
+       "ry": 40,
+       "t": -40,
+       "w": 33
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "unit_cooker_black_bare_b3",
+       "h": 44,
+       "l": -2,
+       "open_file": "unit_cooker_black_bare_b3_open",
+       "r": 28,
+       "rx": 2,
+       "ry": 40,
+       "t": -40,
+       "w": 31
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "unit_cooker_black_bare_b4",
+       "h": 44,
+       "l": -3,
+       "open_file": "unit_cooker_black_bare_b4_open",
+       "r": 28,
+       "rx": 3,
+       "ry": 40,
+       "t": -40,
+       "w": 32
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "unit_cooker_black_bare_b5",
+       "h": 44,
+       "l": -5,
+       "open_file": "unit_cooker_black_bare_b5_open",
+       "r": 28,
+       "rx": 5,
+       "ry": 40,
+       "t": -40,
+       "w": 34
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "unit_cooker_black_bare_b6",
+       "h": 44,
+       "l": -7,
+       "open_file": "unit_cooker_black_bare_b6_open",
+       "r": 28,
+       "rx": 7,
+       "ry": 40,
+       "t": -40,
+       "w": 36
+      }
+     ]
+    },
+    "cream_bare": {
+     "anchors": [
+      {
+       "dx": 14,
+       "dy": -14,
+       "name": "oven"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "col": "cream",
+      "for": [
+       "hoarder"
+      ],
+      "on": "none"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "unit_cooker_cream_bare_b0",
+       "h": 44,
+       "l": -2,
+       "open_file": "unit_cooker_cream_bare_b0_open",
+       "r": 34,
+       "rx": 2,
+       "ry": 40,
+       "t": -40,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "unit_cooker_cream_bare_b1",
+       "h": 44,
+       "l": -2,
+       "open_file": "unit_cooker_cream_bare_b1_open",
+       "r": 32,
+       "rx": 2,
+       "ry": 40,
+       "t": -40,
+       "w": 35
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "unit_cooker_cream_bare_b2",
+       "h": 44,
+       "l": -2,
+       "open_file": "unit_cooker_cream_bare_b2_open",
+       "r": 30,
+       "rx": 2,
+       "ry": 40,
+       "t": -40,
+       "w": 33
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "unit_cooker_cream_bare_b3",
+       "h": 44,
+       "l": -2,
+       "open_file": "unit_cooker_cream_bare_b3_open",
+       "r": 28,
+       "rx": 2,
+       "ry": 40,
+       "t": -40,
+       "w": 31
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "unit_cooker_cream_bare_b4",
+       "h": 44,
+       "l": -3,
+       "open_file": "unit_cooker_cream_bare_b4_open",
+       "r": 28,
+       "rx": 3,
+       "ry": 40,
+       "t": -40,
+       "w": 32
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "unit_cooker_cream_bare_b5",
+       "h": 44,
+       "l": -5,
+       "open_file": "unit_cooker_cream_bare_b5_open",
+       "r": 28,
+       "rx": 5,
+       "ry": 40,
+       "t": -40,
+       "w": 34
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "unit_cooker_cream_bare_b6",
+       "h": 44,
+       "l": -7,
+       "open_file": "unit_cooker_cream_bare_b6_open",
+       "r": 28,
+       "rx": 7,
+       "ry": 40,
+       "t": -40,
+       "w": 36
+      }
+     ]
+    },
+    "cream_pan": {
+     "anchors": [
+      {
+       "dx": 14,
+       "dy": -14,
+       "name": "oven"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "col": "cream",
+      "for": [
+       "hoarder",
+       "classic"
+      ],
+      "on": "pan"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "unit_cooker_cream_pan_b0",
+       "h": 48,
+       "l": -2,
+       "open_file": "unit_cooker_cream_pan_b0_open",
+       "r": 34,
+       "rx": 2,
+       "ry": 44,
+       "t": -44,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "unit_cooker_cream_pan_b1",
+       "h": 48,
+       "l": -2,
+       "open_file": "unit_cooker_cream_pan_b1_open",
+       "r": 32,
+       "rx": 2,
+       "ry": 44,
+       "t": -44,
+       "w": 35
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "unit_cooker_cream_pan_b2",
+       "h": 48,
+       "l": -2,
+       "open_file": "unit_cooker_cream_pan_b2_open",
+       "r": 30,
+       "rx": 2,
+       "ry": 44,
+       "t": -44,
+       "w": 33
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "unit_cooker_cream_pan_b3",
+       "h": 48,
+       "l": -2,
+       "open_file": "unit_cooker_cream_pan_b3_open",
+       "r": 28,
+       "rx": 2,
+       "ry": 44,
+       "t": -44,
+       "w": 31
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "unit_cooker_cream_pan_b4",
+       "h": 48,
+       "l": -3,
+       "open_file": "unit_cooker_cream_pan_b4_open",
+       "r": 28,
+       "rx": 3,
+       "ry": 44,
+       "t": -44,
+       "w": 32
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "unit_cooker_cream_pan_b5",
+       "h": 48,
+       "l": -5,
+       "open_file": "unit_cooker_cream_pan_b5_open",
+       "r": 28,
+       "rx": 5,
+       "ry": 44,
+       "t": -44,
+       "w": 34
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "unit_cooker_cream_pan_b6",
+       "h": 48,
+       "l": -7,
+       "open_file": "unit_cooker_cream_pan_b6_open",
+       "r": 28,
+       "rx": 7,
+       "ry": 44,
+       "t": -44,
+       "w": 36
+      }
+     ]
+    },
+    "white_bare": {
+     "anchors": [
+      {
+       "dx": 14,
+       "dy": -14,
+       "name": "oven"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "col": "white",
+      "for": [
+       "classic",
+       "retro",
+       "student"
+      ],
+      "on": "none"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "unit_cooker_white_bare_b0",
+       "h": 44,
+       "l": -2,
+       "open_file": "unit_cooker_white_bare_b0_open",
+       "r": 34,
+       "rx": 2,
+       "ry": 40,
+       "t": -40,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "unit_cooker_white_bare_b1",
+       "h": 44,
+       "l": -2,
+       "open_file": "unit_cooker_white_bare_b1_open",
+       "r": 32,
+       "rx": 2,
+       "ry": 40,
+       "t": -40,
+       "w": 35
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "unit_cooker_white_bare_b2",
+       "h": 44,
+       "l": -2,
+       "open_file": "unit_cooker_white_bare_b2_open",
+       "r": 30,
+       "rx": 2,
+       "ry": 40,
+       "t": -40,
+       "w": 33
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "unit_cooker_white_bare_b3",
+       "h": 44,
+       "l": -2,
+       "open_file": "unit_cooker_white_bare_b3_open",
+       "r": 28,
+       "rx": 2,
+       "ry": 40,
+       "t": -40,
+       "w": 31
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "unit_cooker_white_bare_b4",
+       "h": 44,
+       "l": -3,
+       "open_file": "unit_cooker_white_bare_b4_open",
+       "r": 28,
+       "rx": 3,
+       "ry": 40,
+       "t": -40,
+       "w": 32
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "unit_cooker_white_bare_b5",
+       "h": 44,
+       "l": -5,
+       "open_file": "unit_cooker_white_bare_b5_open",
+       "r": 28,
+       "rx": 5,
+       "ry": 40,
+       "t": -40,
+       "w": 34
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "unit_cooker_white_bare_b6",
+       "h": 44,
+       "l": -7,
+       "open_file": "unit_cooker_white_bare_b6_open",
+       "r": 28,
+       "rx": 7,
+       "ry": 40,
+       "t": -40,
+       "w": 36
+      }
+     ]
+    },
+    "white_kettle": {
+     "anchors": [
+      {
+       "dx": 14,
+       "dy": -14,
+       "name": "oven"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "col": "white",
+      "for": [
+       "classic",
+       "retro",
+       "student"
+      ],
+      "on": "kettle"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "unit_cooker_white_kettle_b0",
+       "h": 49,
+       "l": -2,
+       "open_file": "unit_cooker_white_kettle_b0_open",
+       "r": 34,
+       "rx": 2,
+       "ry": 45,
+       "t": -45,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "unit_cooker_white_kettle_b1",
+       "h": 49,
+       "l": -2,
+       "open_file": "unit_cooker_white_kettle_b1_open",
+       "r": 32,
+       "rx": 2,
+       "ry": 45,
+       "t": -45,
+       "w": 35
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "unit_cooker_white_kettle_b2",
+       "h": 49,
+       "l": -2,
+       "open_file": "unit_cooker_white_kettle_b2_open",
+       "r": 30,
+       "rx": 2,
+       "ry": 45,
+       "t": -45,
+       "w": 33
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "unit_cooker_white_kettle_b3",
+       "h": 49,
+       "l": -2,
+       "open_file": "unit_cooker_white_kettle_b3_open",
+       "r": 28,
+       "rx": 2,
+       "ry": 45,
+       "t": -45,
+       "w": 31
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "unit_cooker_white_kettle_b4",
+       "h": 49,
+       "l": -3,
+       "open_file": "unit_cooker_white_kettle_b4_open",
+       "r": 28,
+       "rx": 3,
+       "ry": 45,
+       "t": -45,
+       "w": 32
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "unit_cooker_white_kettle_b5",
+       "h": 49,
+       "l": -5,
+       "open_file": "unit_cooker_white_kettle_b5_open",
+       "r": 28,
+       "rx": 5,
+       "ry": 45,
+       "t": -45,
+       "w": 34
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "unit_cooker_white_kettle_b6",
+       "h": 49,
+       "l": -7,
+       "open_file": "unit_cooker_white_kettle_b6_open",
+       "r": 28,
+       "rx": 7,
+       "ry": 45,
+       "t": -45,
+       "w": 36
+      }
+     ]
+    },
+    "white_pan": {
+     "anchors": [
+      {
+       "dx": 14,
+       "dy": -14,
+       "name": "oven"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "col": "white",
+      "for": [
+       "classic",
+       "retro",
+       "student"
+      ],
+      "on": "pan"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "unit_cooker_white_pan_b0",
+       "h": 48,
+       "l": -2,
+       "open_file": "unit_cooker_white_pan_b0_open",
+       "r": 34,
+       "rx": 2,
+       "ry": 44,
+       "t": -44,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "unit_cooker_white_pan_b1",
+       "h": 48,
+       "l": -2,
+       "open_file": "unit_cooker_white_pan_b1_open",
+       "r": 32,
+       "rx": 2,
+       "ry": 44,
+       "t": -44,
+       "w": 35
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "unit_cooker_white_pan_b2",
+       "h": 48,
+       "l": -2,
+       "open_file": "unit_cooker_white_pan_b2_open",
+       "r": 30,
+       "rx": 2,
+       "ry": 44,
+       "t": -44,
+       "w": 33
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "unit_cooker_white_pan_b3",
+       "h": 48,
+       "l": -2,
+       "open_file": "unit_cooker_white_pan_b3_open",
+       "r": 28,
+       "rx": 2,
+       "ry": 44,
+       "t": -44,
+       "w": 31
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "unit_cooker_white_pan_b4",
+       "h": 48,
+       "l": -3,
+       "open_file": "unit_cooker_white_pan_b4_open",
+       "r": 28,
+       "rx": 3,
+       "ry": 44,
+       "t": -44,
+       "w": 32
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "unit_cooker_white_pan_b5",
+       "h": 48,
+       "l": -5,
+       "open_file": "unit_cooker_white_pan_b5_open",
+       "r": 28,
+       "rx": 5,
+       "ry": 44,
+       "t": -44,
+       "w": 34
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "unit_cooker_white_pan_b6",
+       "h": 48,
+       "l": -7,
+       "open_file": "unit_cooker_white_pan_b6_open",
+       "r": 28,
+       "rx": 7,
+       "ry": 44,
+       "t": -44,
+       "w": 36
+      }
+     ]
+    }
+   },
+   "w": 28,
+   "wall_y": null
+  },
+  "unit_sink": {
+   "above": [],
+   "bucketed": true,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    106,
+    106
+   ],
+   "h": 32,
+   "lean": true,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "a sink unit: a steel basin set in the worktop with a drainer, a gooseneck mixer tap, a dish rack of plates, doors below (one opens on a bucket)",
+   "on": [],
+   "opens": {
+    "anchor": "sink_cupboard",
+    "frames": 3,
+    "kind": "door_h"
+   },
+   "pair": null,
+   "plane": "wall",
+   "rooms": {
+    "kitchen": 8
+   },
+   "sound": null,
+   "styles": null,
+   "tags": [
+    "unit",
+    "wet",
+    "storage"
+   ],
+   "variants": {
+    "cream": {
+     "anchors": [
+      {
+       "dx": 14,
+       "dy": -34,
+       "name": "sink",
+       "top": true
+      },
+      {
+       "dx": 19,
+       "dy": -14,
+       "name": "sink_cupboard"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "cream",
+      "for": [
+       "hoarder"
+      ]
+     },
+     "slots": [
+      {
+       "dx0": 24,
+       "dx1": 36,
+       "dy": -34,
+       "id": "top",
+       "kinds": [
+        "worktop"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "unit_sink_cream_b0",
+       "h": 47,
+       "l": -2,
+       "open_file": "unit_sink_cream_b0_open",
+       "r": 44,
+       "rx": 2,
+       "ry": 43,
+       "t": -43,
+       "w": 47
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "unit_sink_cream_b1",
+       "h": 47,
+       "l": -2,
+       "open_file": "unit_sink_cream_b1_open",
+       "r": 42,
+       "rx": 2,
+       "ry": 43,
+       "t": -43,
+       "w": 45
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "unit_sink_cream_b2",
+       "h": 47,
+       "l": -2,
+       "open_file": "unit_sink_cream_b2_open",
+       "r": 39,
+       "rx": 2,
+       "ry": 43,
+       "t": -43,
+       "w": 42
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "unit_sink_cream_b3",
+       "h": 47,
+       "l": -2,
+       "open_file": "unit_sink_cream_b3_open",
+       "r": 38,
+       "rx": 2,
+       "ry": 43,
+       "t": -43,
+       "w": 41
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "unit_sink_cream_b4",
+       "h": 47,
+       "l": -2,
+       "open_file": "unit_sink_cream_b4_open",
+       "r": 38,
+       "rx": 2,
+       "ry": 43,
+       "t": -43,
+       "w": 41
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "unit_sink_cream_b5",
+       "h": 47,
+       "l": -5,
+       "open_file": "unit_sink_cream_b5_open",
+       "r": 38,
+       "rx": 5,
+       "ry": 43,
+       "t": -43,
+       "w": 44
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "unit_sink_cream_b6",
+       "h": 47,
+       "l": -7,
+       "open_file": "unit_sink_cream_b6_open",
+       "r": 38,
+       "rx": 7,
+       "ry": 43,
+       "t": -43,
+       "w": 46
+      }
+     ]
+    },
+    "sage": {
+     "anchors": [
+      {
+       "dx": 14,
+       "dy": -34,
+       "name": "sink",
+       "top": true
+      },
+      {
+       "dx": 19,
+       "dy": -14,
+       "name": "sink_cupboard"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "sage",
+      "for": [
+       "classic"
+      ]
+     },
+     "slots": [
+      {
+       "dx0": 24,
+       "dx1": 36,
+       "dy": -34,
+       "id": "top",
+       "kinds": [
+        "worktop"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "unit_sink_sage_b0",
+       "h": 47,
+       "l": -2,
+       "open_file": "unit_sink_sage_b0_open",
+       "r": 44,
+       "rx": 2,
+       "ry": 43,
+       "t": -43,
+       "w": 47
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "unit_sink_sage_b1",
+       "h": 47,
+       "l": -2,
+       "open_file": "unit_sink_sage_b1_open",
+       "r": 42,
+       "rx": 2,
+       "ry": 43,
+       "t": -43,
+       "w": 45
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "unit_sink_sage_b2",
+       "h": 47,
+       "l": -2,
+       "open_file": "unit_sink_sage_b2_open",
+       "r": 39,
+       "rx": 2,
+       "ry": 43,
+       "t": -43,
+       "w": 42
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "unit_sink_sage_b3",
+       "h": 47,
+       "l": -2,
+       "open_file": "unit_sink_sage_b3_open",
+       "r": 38,
+       "rx": 2,
+       "ry": 43,
+       "t": -43,
+       "w": 41
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "unit_sink_sage_b4",
+       "h": 47,
+       "l": -2,
+       "open_file": "unit_sink_sage_b4_open",
+       "r": 38,
+       "rx": 2,
+       "ry": 43,
+       "t": -43,
+       "w": 41
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "unit_sink_sage_b5",
+       "h": 47,
+       "l": -5,
+       "open_file": "unit_sink_sage_b5_open",
+       "r": 38,
+       "rx": 5,
+       "ry": 43,
+       "t": -43,
+       "w": 44
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "unit_sink_sage_b6",
+       "h": 47,
+       "l": -7,
+       "open_file": "unit_sink_sage_b6_open",
+       "r": 38,
+       "rx": 7,
+       "ry": 43,
+       "t": -43,
+       "w": 46
+      }
+     ]
+    },
+    "white": {
+     "anchors": [
+      {
+       "dx": 14,
+       "dy": -34,
+       "name": "sink",
+       "top": true
+      },
+      {
+       "dx": 19,
+       "dy": -14,
+       "name": "sink_cupboard"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "white",
+      "for": [
+       "student"
+      ]
+     },
+     "slots": [
+      {
+       "dx0": 24,
+       "dx1": 36,
+       "dy": -34,
+       "id": "top",
+       "kinds": [
+        "worktop"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "unit_sink_white_b0",
+       "h": 47,
+       "l": -2,
+       "open_file": "unit_sink_white_b0_open",
+       "r": 44,
+       "rx": 2,
+       "ry": 43,
+       "t": -43,
+       "w": 47
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "unit_sink_white_b1",
+       "h": 47,
+       "l": -2,
+       "open_file": "unit_sink_white_b1_open",
+       "r": 42,
+       "rx": 2,
+       "ry": 43,
+       "t": -43,
+       "w": 45
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "unit_sink_white_b2",
+       "h": 47,
+       "l": -2,
+       "open_file": "unit_sink_white_b2_open",
+       "r": 39,
+       "rx": 2,
+       "ry": 43,
+       "t": -43,
+       "w": 42
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "unit_sink_white_b3",
+       "h": 47,
+       "l": -2,
+       "open_file": "unit_sink_white_b3_open",
+       "r": 38,
+       "rx": 2,
+       "ry": 43,
+       "t": -43,
+       "w": 41
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "unit_sink_white_b4",
+       "h": 47,
+       "l": -2,
+       "open_file": "unit_sink_white_b4_open",
+       "r": 38,
+       "rx": 2,
+       "ry": 43,
+       "t": -43,
+       "w": 41
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "unit_sink_white_b5",
+       "h": 47,
+       "l": -5,
+       "open_file": "unit_sink_white_b5_open",
+       "r": 38,
+       "rx": 5,
+       "ry": 43,
+       "t": -43,
+       "w": 44
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "unit_sink_white_b6",
+       "h": 47,
+       "l": -7,
+       "open_file": "unit_sink_white_b6_open",
+       "r": 38,
+       "rx": 7,
+       "ry": 43,
+       "t": -43,
+       "w": 46
+      }
+     ]
+    },
+    "yellow": {
+     "anchors": [
+      {
+       "dx": 14,
+       "dy": -34,
+       "name": "sink",
+       "top": true
+      },
+      {
+       "dx": 19,
+       "dy": -14,
+       "name": "sink_cupboard"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "yellow",
+      "for": [
+       "retro"
+      ]
+     },
+     "slots": [
+      {
+       "dx0": 24,
+       "dx1": 36,
+       "dy": -34,
+       "id": "top",
+       "kinds": [
+        "worktop"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "unit_sink_yellow_b0",
+       "h": 47,
+       "l": -2,
+       "open_file": "unit_sink_yellow_b0_open",
+       "r": 44,
+       "rx": 2,
+       "ry": 43,
+       "t": -43,
+       "w": 47
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "unit_sink_yellow_b1",
+       "h": 47,
+       "l": -2,
+       "open_file": "unit_sink_yellow_b1_open",
+       "r": 42,
+       "rx": 2,
+       "ry": 43,
+       "t": -43,
+       "w": 45
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "unit_sink_yellow_b2",
+       "h": 47,
+       "l": -2,
+       "open_file": "unit_sink_yellow_b2_open",
+       "r": 39,
+       "rx": 2,
+       "ry": 43,
+       "t": -43,
+       "w": 42
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "unit_sink_yellow_b3",
+       "h": 47,
+       "l": -2,
+       "open_file": "unit_sink_yellow_b3_open",
+       "r": 38,
+       "rx": 2,
+       "ry": 43,
+       "t": -43,
+       "w": 41
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "unit_sink_yellow_b4",
+       "h": 47,
+       "l": -2,
+       "open_file": "unit_sink_yellow_b4_open",
+       "r": 38,
+       "rx": 2,
+       "ry": 43,
+       "t": -43,
+       "w": 41
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "unit_sink_yellow_b5",
+       "h": 47,
+       "l": -5,
+       "open_file": "unit_sink_yellow_b5_open",
+       "r": 38,
+       "rx": 5,
+       "ry": 43,
+       "t": -43,
+       "w": 44
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "unit_sink_yellow_b6",
+       "h": 47,
+       "l": -7,
+       "open_file": "unit_sink_yellow_b6_open",
+       "r": 38,
+       "rx": 7,
+       "ry": 43,
+       "t": -43,
+       "w": 46
+      }
+     ]
+    }
+   },
+   "w": 38,
+   "wall_y": null
+  },
+  "utensil_jar": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 14,
+   "lean": false,
+   "limit": null,
+   "near": [],
+   "needs": null,
+   "note": "a jar of wooden spoons and a whisk",
+   "on": [
+    "worktop"
+   ],
+   "opens": null,
+   "pair": null,
+   "plane": "top",
+   "rooms": {
+    "kitchen": 5
+   },
+   "sound": null,
+   "styles": null,
+   "tags": [
+    "small",
+    "cooking"
+   ],
+   "variants": {
+    "a": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "classic",
+       "retro",
+       "country",
+       "student"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "utensil_jar_a",
+       "h": 19,
+       "l": -2,
+       "r": 8,
+       "rx": 2,
+       "ry": 16,
+       "t": -16,
+       "w": 11
+      }
+     ]
+    }
+   },
+   "w": 8,
+   "wall_y": null
+  },
+  "wall_cupboards": {
+   "above": [
+    "unit"
+   ],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 36,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "wall cupboards over the run: three grey-green doors with the left one hanging open (classic), two yellow doors (retro), two cream, two white with one door missing (student), two pine (country)",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "decor",
+   "rooms": {
+    "kitchen": 7
+   },
+   "sound": null,
+   "styles": null,
+   "tags": [
+    "storage",
+    "unit_above"
+   ],
+   "variants": {
+    "cream_2": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "cream",
+      "for": [
+       "hoarder"
+      ],
+      "n": 2
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 36,
+       "bx": 160,
+       "file": "wall_cupboards_cream_2",
+       "h": 38,
+       "l": -1,
+       "r": 38,
+       "rx": 1,
+       "ry": 1,
+       "t": -1,
+       "w": 40
+      }
+     ]
+    },
+    "pine_2": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "pine",
+      "for": [
+       "country"
+      ],
+      "n": 2
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 36,
+       "bx": 160,
+       "file": "wall_cupboards_pine_2",
+       "h": 38,
+       "l": -1,
+       "r": 38,
+       "rx": 1,
+       "ry": 1,
+       "t": -1,
+       "w": 40
+      }
+     ]
+    },
+    "sage_3": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "sage",
+      "for": [
+       "classic"
+      ],
+      "n": 3
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 36,
+       "bx": 160,
+       "file": "wall_cupboards_sage_3",
+       "h": 38,
+       "l": -3,
+       "r": 46,
+       "rx": 3,
+       "ry": 1,
+       "t": -1,
+       "w": 50
+      }
+     ]
+    },
+    "white_2": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "white",
+      "for": [
+       "student"
+      ],
+      "n": 2
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 36,
+       "bx": 160,
+       "file": "wall_cupboards_white_2",
+       "h": 38,
+       "l": -1,
+       "r": 38,
+       "rx": 1,
+       "ry": 1,
+       "t": -1,
+       "w": 40
+      }
+     ]
+    },
+    "yellow_2": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "yellow",
+      "for": [
+       "retro"
+      ],
+      "n": 2
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 36,
+       "bx": 160,
+       "file": "wall_cupboards_yellow_2",
+       "h": 38,
+       "l": -1,
+       "r": 38,
+       "rx": 1,
+       "ry": 1,
+       "t": -1,
+       "w": 40
+      }
+     ]
+    }
+   },
+   "w": 46,
+   "wall_y": [
+    12,
+    16
+   ]
+  },
   "wall_shelf": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -15094,6 +23258,7 @@
    ]
   },
   "wardrobe_mirror": {
+   "above": [],
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -15333,6 +23498,7 @@
    "wall_y": null
   },
   "wardrobe_small": {
+   "above": [],
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -15670,6 +23836,7 @@
    "wall_y": null
   },
   "wardrobe_wood": {
+   "above": [],
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -16199,6 +24366,7 @@
    "wall_y": null
   },
   "wheelchair": {
+   "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
@@ -16652,6 +24820,447 @@
     ]
    },
    "weight": 22
+  },
+  "kitchen/classic": {
+   "ceiling": 1.0,
+   "centre": {
+    "anywhere": true,
+    "tag": "dining",
+    "x": [
+     40,
+     210
+    ]
+   },
+   "clutter": [
+    2,
+    4
+   ],
+   "decor": [
+    3,
+    5
+   ],
+   "fallback": [
+    {
+     "id": "fridge_tall",
+     "variant": "cream",
+     "x": 8,
+     "y": 106
+    },
+    {
+     "id": "unit_base",
+     "variant": "sage_two",
+     "x": 36,
+     "y": 106
+    },
+    {
+     "id": "unit_base",
+     "variant": "sage_drawers",
+     "x": 66,
+     "y": 106
+    },
+    {
+     "id": "unit_cooker",
+     "variant": "white_pan",
+     "x": 98,
+     "y": 106
+    },
+    {
+     "id": "unit_sink",
+     "variant": "sage",
+     "x": 128,
+     "y": 106
+    },
+    {
+     "id": "table_kitchen",
+     "variant": "cloth",
+     "x": 210,
+     "y": 118
+    },
+    {
+     "id": "light_tube",
+     "variant": "a",
+     "x": 130,
+     "y": 0
+    }
+   ],
+   "legacy": 0,
+   "min_front": 2,
+   "rug": 0.0,
+   "run": {
+    "count": [
+     4,
+     6
+    ],
+    "must": [
+     "cold",
+     "cooking",
+     "wet"
+    ],
+    "sides": 2,
+    "x": [
+     6,
+     36
+    ]
+   },
+   "shell": "kitchen_shell_a",
+   "tops": 0.7,
+   "wall": {
+    "count": [
+     0,
+     1
+    ],
+    "must": []
+   },
+   "weight": 26
+  },
+  "kitchen/country": {
+   "ceiling": 0.8,
+   "centre": {
+    "anywhere": true,
+    "tag": "dining",
+    "x": [
+     120,
+     250
+    ]
+   },
+   "clutter": [
+    2,
+    3
+   ],
+   "decor": [
+    2,
+    4
+   ],
+   "fallback": [
+    {
+     "id": "sink_butler",
+     "variant": "white",
+     "x": 7,
+     "y": 106
+    },
+    {
+     "id": "range_recess",
+     "variant": "green",
+     "x": 100,
+     "y": 106
+    },
+    {
+     "id": "dresser_welsh",
+     "variant": "pine",
+     "x": 186,
+     "y": 106
+    },
+    {
+     "id": "table_kitchen",
+     "variant": "pine",
+     "x": 240,
+     "y": 118
+    }
+   ],
+   "legacy": 2,
+   "min_front": 2,
+   "rug": 0.0,
+   "run": {
+    "count": [
+     2,
+     4
+    ],
+    "must": [
+     "cooking"
+    ],
+    "x": [
+     60,
+     130
+    ]
+   },
+   "shell": "kitchen_shell_c",
+   "tops": 0.7,
+   "wall": {
+    "count": [
+     1,
+     2
+    ],
+    "must": [
+     "wet"
+    ]
+   },
+   "weight": 18
+  },
+  "kitchen/hoarder": {
+   "ceiling": 1.0,
+   "centre": {
+    "anywhere": true,
+    "tag": "dining",
+    "x": [
+     120,
+     230
+    ]
+   },
+   "clutter": [
+    3,
+    5
+   ],
+   "decor": [
+    3,
+    5
+   ],
+   "fallback": [
+    {
+     "id": "newspaper_stacks",
+     "variant": "a",
+     "x": 6,
+     "y": 106
+    },
+    {
+     "id": "unit_base",
+     "variant": "cream_two",
+     "x": 52,
+     "y": 106
+    },
+    {
+     "id": "unit_base",
+     "variant": "cream_drawers",
+     "x": 82,
+     "y": 106
+    },
+    {
+     "id": "unit_cooker",
+     "variant": "cream_bare",
+     "x": 112,
+     "y": 106
+    },
+    {
+     "id": "unit_sink",
+     "variant": "cream",
+     "x": 142,
+     "y": 106
+    },
+    {
+     "id": "table_kitchen",
+     "variant": "trestle",
+     "x": 200,
+     "y": 118
+    },
+    {
+     "id": "light_bulb",
+     "variant": "a",
+     "x": 150,
+     "y": 0
+    }
+   ],
+   "legacy": 4,
+   "min_front": 2,
+   "rug": 0.0,
+   "run": {
+    "count": [
+     3,
+     5
+    ],
+    "must": [
+     "cooking",
+     "wet"
+    ],
+    "x": [
+     50,
+     110
+    ]
+   },
+   "shell": "kitchen_shell_e",
+   "tops": 0.8,
+   "wall": {
+    "count": [
+     0,
+     1
+    ],
+    "must": [
+     "clutter|storage"
+    ]
+   },
+   "weight": 16
+  },
+  "kitchen/retro": {
+   "ceiling": 1.0,
+   "centre": {
+    "anywhere": true,
+    "tag": "dining",
+    "x": [
+     40,
+     210
+    ]
+   },
+   "clutter": [
+    1,
+    3
+   ],
+   "decor": [
+    3,
+    5
+   ],
+   "fallback": [
+    {
+     "id": "fridge_tall",
+     "variant": "mint",
+     "x": 8,
+     "y": 106
+    },
+    {
+     "id": "unit_base",
+     "variant": "yellow_two",
+     "x": 36,
+     "y": 106
+    },
+    {
+     "id": "unit_base",
+     "variant": "yellow_drawers",
+     "x": 66,
+     "y": 106
+    },
+    {
+     "id": "unit_cooker",
+     "variant": "white_bare",
+     "x": 98,
+     "y": 106
+    },
+    {
+     "id": "unit_sink",
+     "variant": "yellow",
+     "x": 128,
+     "y": 106
+    },
+    {
+     "id": "table_kitchen",
+     "variant": "dinette",
+     "x": 210,
+     "y": 118
+    },
+    {
+     "id": "light_dome_orange",
+     "variant": "orange",
+     "x": 150,
+     "y": 0
+    }
+   ],
+   "legacy": 1,
+   "min_front": 2,
+   "rug": 0.0,
+   "run": {
+    "count": [
+     4,
+     6
+    ],
+    "must": [
+     "cold",
+     "cooking",
+     "wet"
+    ],
+    "sides": 2,
+    "x": [
+     6,
+     36
+    ]
+   },
+   "shell": "kitchen_shell_b",
+   "tops": 0.7,
+   "wall": {
+    "count": [
+     0,
+     1
+    ],
+    "must": []
+   },
+   "weight": 22
+  },
+  "kitchen/student": {
+   "ceiling": 1.0,
+   "centre": {
+    "anywhere": true,
+    "tag": "dining",
+    "x": [
+     40,
+     210
+    ]
+   },
+   "clutter": [
+    3,
+    5
+   ],
+   "decor": [
+    2,
+    4
+   ],
+   "fallback": [
+    {
+     "id": "fridge_tall",
+     "variant": "white_open",
+     "x": 6,
+     "y": 106
+    },
+    {
+     "id": "unit_base",
+     "variant": "white_two",
+     "x": 44,
+     "y": 106
+    },
+    {
+     "id": "unit_base",
+     "variant": "white_drawers",
+     "x": 74,
+     "y": 106
+    },
+    {
+     "id": "unit_sink",
+     "variant": "white",
+     "x": 104,
+     "y": 106
+    },
+    {
+     "id": "unit_cooker",
+     "variant": "black_bare",
+     "x": 146,
+     "y": 106
+    },
+    {
+     "id": "table_kitchen",
+     "variant": "camping",
+     "x": 220,
+     "y": 118
+    },
+    {
+     "id": "light_bulb",
+     "variant": "a",
+     "x": 150,
+     "y": 0
+    }
+   ],
+   "legacy": 3,
+   "min_front": 2,
+   "rug": 0.0,
+   "run": {
+    "count": [
+     3,
+     5
+    ],
+    "must": [
+     "cold",
+     "cooking",
+     "wet"
+    ],
+    "sides": 2,
+    "x": [
+     6,
+     36
+    ]
+   },
+   "shell": "kitchen_shell_d",
+   "tops": 0.7,
+   "wall": {
+    "count": [
+     0,
+     1
+    ],
+    "must": []
+   },
+   "weight": 18
   }
  },
  "rules": {
@@ -16663,6 +25272,9 @@
     "bedroom",
     "study",
     "living_room"
+   ],
+   "cold": [
+    "kitchen"
    ],
    "cooking": [
     "kitchen"
@@ -16677,7 +25289,12 @@
    ],
    "food": [
     "kitchen",
-    "dining_room"
+    "dining_room",
+    "living_room"
+   ],
+   "hearth": [
+    "living_room",
+    "kitchen"
    ],
    "medical": [
     "bedroom",
@@ -16703,6 +25320,10 @@
    "tv": [
     "living_room",
     "bedroom"
+   ],
+   "unit": [
+    "kitchen",
+    "bathroom"
    ],
    "wardrobe": [
     "bedroom"

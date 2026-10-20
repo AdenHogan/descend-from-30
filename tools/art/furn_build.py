@@ -34,6 +34,8 @@ import furn_toys  # noqa: F401
 import furn_floor  # noqa: F401
 import furn_walls  # noqa: F401
 import furn_clocks  # noqa: F401
+import furn_kitchen  # noqa: F401
+import furn_kitchen_small  # noqa: F401
 import furn_desk  # noqa: F401
 import furn_rooms
 
@@ -99,7 +101,9 @@ def main():
     if '--only' in args:
         only = set(args[args.index('--only') + 1:])
         data, files = build_all(only)
-        sheet(files, os.path.join(os.environ.get('FURN_PREVIEW', FL.PREVIEW), 'only.png'), data=data, scale=int(os.environ.get('FURN_SCALE', '3')))
+        allv = bool(os.environ.get('FURN_ALL'))                                     # FURN_ALL=1: every variant (centre bucket) instead of the first and last
+        sheet(files, os.path.join(os.environ.get('FURN_PREVIEW', FL.PREVIEW), 'only.png'), data=data, scale=int(os.environ.get('FURN_SCALE', '3')),
+              per_piece_variants=999 if allv else 2, buckets=(3,) if allv else (0, 3, 6))
         print('previewed', sorted(only))
         return
     data, files = build_all()

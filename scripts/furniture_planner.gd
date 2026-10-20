@@ -121,11 +121,22 @@ static func eligible(id: String, room_type: String, style: String) -> bool:
 	var st = rec.get("styles", null)
 	if st != null and float(st.get(style, 0.0)) <= 0.0:
 		return false
+	if not _any_variant_for(rec, style):
+		return false
 	var tag_rooms: Dictionary = data().get("rules", {}).get("tag_rooms", {})
 	for t in rec.get("tags", []):
 		if tag_rooms.has(t) and not (room_type in tag_rooms[t]):
 			return false
 	return true
+
+
+## Does at least one variant of the piece suit this style (a variant that names no styles suits all)?
+static func _any_variant_for(rec: Dictionary, style: String) -> bool:
+	for v in rec["variants"]:
+		var f = rec["variants"][v].get("params", {}).get("for", null)
+		if f == null or style in f:
+			return true
+	return false
 
 
 static func weight_of(id: String, room_type: String, style: String) -> float:
@@ -204,9 +215,19 @@ static func _make(id: String, vid: String, x: int, y: int, host: int = -1) -> Di
 		"params": rec["variants"][vid].get("params", {})}
 
 
-static func _vid(rng: RandomNumberGenerator, rec: Dictionary) -> String:
+## A variant of the piece, uniformly — but a variant that names its STYLES (`params.for`: a kitchen unit's sage doors are the classic kitchen's, its yellow doors the retro one's) is only
+## offered to those styles; a variant that names none is for every style.
+static func _vid(rng: RandomNumberGenerator, rec: Dictionary, style: String = "") -> String:
 	var vids: Array = rec["variants"].keys()
 	vids.sort()
+	if style != "":
+		var ok: Array = []
+		for v in vids:
+			var f = rec["variants"][v].get("params", {}).get("for", null)
+			if f == null or style in f:
+				ok.append(v)
+		if not ok.is_empty():
+			vids = ok
 	return String(vids[rng.randi() % vids.size()])
 
 
@@ -468,6 +489,11 @@ static func _attempt(st: Dictionary, rcp: Dictionary) -> bool:
 		var fr: Dictionary = rcp.get("flank", {})
 		if not fr.is_empty() and rng.randf() < float(fr.get("chance", 1.0)):
 			_place_flank(st, centre, fr)
+	if not rcp.get("run", {}).is_empty():
+		_fill_run(st, rcp["run"])
+		for tag in rcp["run"].get("must", []):
+			if not _has_tag(st, tag):
+				return false
 	_fill_wall(st, rcp.get("wall", {}))
 	for tag in rcp.get("wall", {}).get("must", []):
 		if not _has_tag(st, tag):
@@ -523,10 +549,15 @@ static func _place_centre(st: Dictionary, cr: Dictionary) -> int:
 	var rec := piece(id)
 	var xr: Array = cr["x"]
 	for t in range(12):
-		var vid := _vid(rng, rec)
+		var vid := _vid(rng, rec, String(st["style"]))
 		var it := _make(id, vid, rng.randi_range(int(xr[0]), int(xr[1])), _feet(rng, rec))
 		if _fits(st, it):
 			return _add(st, it)
+	if bool(cr.get("anywhere", false)):                                      # then anywhere the room has space (a kitchen table goes wherever the run left room)
+		for t in range(24):
+			var it2 := _make(id, _vid(rng, rec, String(st["style"])), rng.randi_range(EDGE_L, EDGE_R - int(rec["w"])), _feet(rng, rec))
+			if _fits(st, it2):
+				return _add(st, it2)
 	return -1
 
 
@@ -543,7 +574,7 @@ static func _place_flank(st: Dictionary, ci: int, fr: Dictionary) -> void:
 	if head != "left" and head != "right":
 		head = "left" if rng.randf() < 0.5 else "right"
 	var crect: Rect2 = c["rect"]
-	var vid := _vid(rng, rec)
+	var vid := _vid(rng, rec, String(st["style"]))
 	var w := int(rec["w"])
 	for step in range(0, 40):
 		var x := int(crect.position.x) - w - 1 - step if head == "left" else int(crect.end.x) + 1 + step
@@ -575,7 +606,7 @@ static func _fill_wall(st: Dictionary, wr: Dictionary) -> void:
 		if id == "":
 			continue
 		var rec := piece(id)
-		var vid := _vid(rng, rec)
+		var vid := _vid(rng, rec, String(st["style"]))
 		var w := int(rec["w"])
 		var xs: Array = [EDGE_L + rng.randi_range(0, 4), EDGE_R - w - rng.randi_range(0, 4)]
 		for k in range(SPOTS_PER_PIECE - 2):
@@ -593,6 +624,75 @@ static func _fill_wall(st: Dictionary, wr: Dictionary) -> void:
 				_place_needs(st, idx)
 				placed += 1
 				break
+
+
+## A RUN of units along the wall, edge to edge (a kitchen's line of fridge, base units, cooker and sink): pieces tagged `unit` laid one after another from a seeded start x, all at ONE feet row
+## (so their worktops line up), no gap between them; every `must` tag (cooking, wet…) is placed first. The recipe's `run`: {count:[a,b], x:[start range], must:[tags]}.
+static func _fill_run(st: Dictionary, rr: Dictionary) -> void:
+	var rng: RandomNumberGenerator = st["rng"]
+	var cnt: Array = rr.get("count", [3, 5])
+	var n := rng.randi_range(int(cnt[0]), int(cnt[1]))
+	var must: Array = rr.get("must", []).duplicate()
+	for k in range(must.size() - 1, 0, -1):                                   # the musts in a random order — not always fridge, cooker, sink from the left
+		var j := rng.randi() % (k + 1)
+		var tmp = must[k]
+		must[k] = must[j]
+		must[j] = tmp
+	var xr: Array = rr.get("x", [EDGE_L, 120])
+	var x := rng.randi_range(int(xr[0]), int(xr[1]))
+	var rtl: bool = int(rr.get("sides", 1)) > 1 and rng.randf() < 0.5      # a run may start from the right-hand wall and grow leftward: x is then the distance from the right edge
+	if rtl:
+		x = MODULE_W - x
+	var row := -1
+	var placed := 0
+	var last_id := ""
+	for guard in range(n * 6 + 16):
+		var unmet := ""
+		for t in must:
+			if not _has_tag(st, String(t)):
+				unmet = String(t)
+				break
+		if placed >= n and unmet == "":
+			break
+		var done := false
+		# the piece the room still needs (a fridge, a cooker, a sink) — if it does not fit here (the window is above this stretch of wall), a plain unit fills the gap and the need waits
+		for attempt in range(2):
+			var want := unmet if (attempt == 0 and unmet != "") else "unit"
+			var pool := _pool(st["room"], st["style"], ["wall"], want)
+			pool = pool.filter(func(e): return "unit" in piece(String(e[0]))["tags"])
+			if attempt == 1:
+				pool = pool.filter(func(e): return not _has_any_must(piece(String(e[0]))["tags"], must))
+			var id := _wpick(rng, pool)
+			if id == "":
+				continue
+			var rec := piece(id)
+			var vid := _vid(rng, rec, String(st["style"]))
+			if row < 0:
+				row = _feet(rng, rec)
+			var it := _make(id, vid, x - int(rec["w"]) if rtl else x, row)
+			if _fits(st, it, 0):
+				_add(st, it)
+				x += -int(rec["w"]) if rtl else int(rec["w"])
+				placed += 1
+				last_id = id
+				done = true
+				break
+		if not done:
+			break
+
+
+static func _has_any_must(tags: Array, must: Array) -> bool:
+	for m in must:
+		if String(m) in tags:
+			return true
+	return false
+
+
+static func _all_tags(st: Dictionary, tags: Array) -> bool:
+	for t in tags:
+		if not _has_tag(st, String(t)):
+			return false
+	return true
 
 
 ## A piece that needs company (a desk wants its chair): place the companion beside it or take the piece back out.
@@ -613,7 +713,7 @@ static func _place_needs(st: Dictionary, idx: int) -> void:
 	var dxr: Array = nd.get("dx", [0, 20])
 	for t in range(10):
 		var x := int(host["x"]) + rng.randi_range(int(dxr[0]), int(dxr[1]))
-		var it := _make(id, _vid(rng, crec), x, _feet(rng, crec))
+		var it := _make(id, _vid(rng, crec, String(st["style"])), x, _feet(rng, crec))
 		if _fits(st, it):
 			_add(st, it)
 			return
@@ -651,7 +751,7 @@ static func _fill_tops(st: Dictionary, chance: float) -> void:
 				if x0 + w - 1 > x1:
 					continue
 				var x := rng.randi_range(x0, x1 - w + 1)
-				var it := _make(id, _vid(rng, rec), x, int(host["y"]) + int(sl["dy"]), hi)
+				var it := _make(id, _vid(rng, rec, String(st["style"])), x, int(host["y"]) + int(sl["dy"]), hi)
 				it["host_plane"] = hrec["plane"]
 				if _fits(st, it):
 					_add(st, it)
@@ -669,10 +769,19 @@ static func _fill_decor(st: Dictionary, cnt: Array) -> void:
 			return
 		var rec := piece(id)
 		var wy: Array = rec.get("wall_y", [24, 44]) if rec.get("wall_y", null) != null else [24, 44]
-		var vid := _vid(rng, rec)
+		var vid := _vid(rng, rec, String(st["style"]))
 		var w := int(rec["w"])
+		var hosts: Array = []                                      # a hung unit prefers the run it belongs over (wall cupboards above the worktop)
+		for tg in rec.get("above", []):
+			for o in st["items"]:
+				if String(o["plane"]) == "wall" and String(tg) in o["tags"]:
+					hosts.append(o)
 		for t in range(SPOTS_PER_PIECE * 2):
-			var it := _make(id, vid, rng.randi_range(EDGE_L + 2, EDGE_R - w - 1), rng.randi_range(int(wy[0]), int(wy[1])))
+			var x := rng.randi_range(EDGE_L + 2, EDGE_R - w - 1)
+			if not hosts.is_empty() and t < SPOTS_PER_PIECE:
+				var h: Dictionary = hosts[rng.randi() % hosts.size()]
+				x = clampi(int(h["x"]) + rng.randi_range(-w / 3, int(h["w"]) - w * 2 / 3), EDGE_L + 2, EDGE_R - w - 1)
+			var it := _make(id, vid, x, rng.randi_range(int(wy[0]), int(wy[1])))
 			if _fits(st, it):
 				_add(st, it)
 				break
@@ -687,7 +796,7 @@ static func _fill_clutter(st: Dictionary, cnt: Array) -> void:
 		if id == "":
 			return
 		var rec := piece(id)
-		var vid := _vid(rng, rec)
+		var vid := _vid(rng, rec, String(st["style"]))
 		var w := int(rec["w"])
 		var near: Array = rec.get("near", [])
 		var xs: Array = []
@@ -724,7 +833,7 @@ static func _place_rug(st: Dictionary, centre: int) -> void:
 	var w := int(rec["w"])
 	for t in range(10):
 		var cx := rng.randi_range(70, 250)
-		var it := _make(id, _vid(rng, rec), cx - w / 2, _feet(rng, rec))
+		var it := _make(id, _vid(rng, rec, String(st["style"])), cx - w / 2, _feet(rng, rec))
 		if _fits(st, it) and _rug_ok(st, it):
 			_add(st, it)
 			return
@@ -748,7 +857,7 @@ static func _place_ceiling(st: Dictionary) -> void:
 		return
 	var rec := piece(id)
 	for t in range(8):
-		var it := _make(id, _vid(rng, rec), rng.randi_range(110, 200), 0)
+		var it := _make(id, _vid(rng, rec, String(st["style"])), rng.randi_range(110, 200), 0)
 		if _fits(st, it):
 			_add(st, it)
 			return

@@ -50,7 +50,12 @@ LEAN_X = (36, 72, 116, 160, 204, 248, 284)
 LEAN_MODE = 'vp'                         # 'vp' = lean toward the module's middle (as the baked rooms); 'none' = every piece straight-on (renders only the centre bucket)
 
 PLANES = ('wall', 'front', 'decor', 'rug', 'floor', 'top', 'ceiling')
-STYLES = ('adult', 'teen', 'kid', 'sick', 'refuge')
+STYLES = ('adult', 'teen', 'kid', 'sick', 'refuge',                       # bedrooms
+          'classic', 'retro', 'country', 'student', 'hoarder',               # kitchens
+          'cosy', 'mid', 'squat', 'parlour', 'lodge',                        # living rooms
+          'formal', 'diner', 'barricade', 'party', 'family',                 # dining rooms
+          'office', 'library', 'radio', 'studio', 'den',                     # studies
+          'tub', 'avocado', 'gilded', 'wetroom', 'pink')                     # bathrooms
 ROOM_TYPES = ('bedroom', 'bathroom', 'kitchen', 'study', 'living_room', 'dining_room')
 
 # THE LOGIC, as data (owner round 47: "we do not ever need a bed in a kitchen"). A piece carrying one of these TAGS may only list rooms from the set — registration REFUSES a
@@ -64,7 +69,7 @@ TAG_ROOMS = {
     'toy': ('bedroom', 'living_room'),
     'medical': ('bedroom', 'bathroom', 'living_room'),         # care equipment: wherever somebody is being looked after
     'cooking': ('kitchen',),
-    'food': ('kitchen', 'dining_room'),
+    'food': ('kitchen', 'dining_room', 'living_room'),
     'wet': ('bathroom', 'kitchen'),                            # sinks, baths, washing
     'toilet': ('bathroom',),
     'books': ('bedroom', 'study', 'living_room'),
@@ -72,6 +77,9 @@ TAG_ROOMS = {
     'seating_lounge': ('living_room', 'study', 'dining_room', 'bedroom'),
     'dining': ('dining_room', 'kitchen'),
     'tv': ('living_room', 'bedroom'),
+    'unit': ('kitchen', 'bathroom'),                           # fitted units that stand edge to edge in a run along the wall
+    'cold': ('kitchen',),                                      # fridges / larders
+    'hearth': ('living_room', 'kitchen'),
 }
 
 
@@ -80,7 +88,7 @@ class Piece:
     face) at y = oy; `p` is the variant's parameter dict (colourway, which way the head of a bed faces, an open state 0..1…)."""
 
     def __init__(self, pid, draw, w, h, plane, rooms, styles, tags, variants, depth, lean, bucketed, surface_h, anchors, lights, slots, on, opens, anims,
-                 pair, near, wall_y, ceiling_drop, feet, sound, note, limit=None, needs=None, post=None, companion_only=False):
+                 pair, near, wall_y, ceiling_drop, feet, sound, note, limit=None, needs=None, post=None, companion_only=False, above=()):
         self.id, self.draw, self.w, self.h = pid, draw, w, h
         self.plane, self.rooms, self.styles, self.tags = plane, rooms, styles, tags
         self.variants = variants              # {variant id: params}
@@ -95,6 +103,7 @@ class Piece:
         self.feet = feet                      # the module y of the feet line: (min, max) the planner may use
         self.sound = sound
         self.note = note
+        self.above = tuple(above)             # hung things: tags of the pieces it prefers to hang above (wall cupboards over the run)
         self.limit = limit                    # at most this many in one room (None = the planner's default for its plane)
         self.companion_only = companion_only  # only ever placed as someone's companion (a desk chair), never on its own
         self.post = post                      # post(c, ox, oy, p, shift): drawn AFTER the set-back lean (things whose own perspective needs the piece's final shift, a CRT on a desk)
@@ -105,7 +114,7 @@ REGISTRY = {}
 
 
 def piece(pid, w, h, plane, rooms, styles=None, tags=(), variants=None, depth=0, lean=None, bucketed=None, surface_h=None, anchors=(), lights=(), slots=(),
-          on=(), opens=None, anims=(), pair=None, near=(), wall_y=None, ceiling_drop=0, feet=None, sound=None, note='', limit=None, needs=None, post=None, companion_only=False):
+          on=(), opens=None, anims=(), pair=None, near=(), wall_y=None, ceiling_drop=0, feet=None, sound=None, note='', limit=None, needs=None, post=None, companion_only=False, above=()):
     """Register a piece (a decorator for its draw function). See Piece. `rooms` {room: weight}; `styles` {style: weight} (None = any style at weight 1)."""
     assert plane in PLANES, plane
     for r_ in rooms:
@@ -124,7 +133,7 @@ def piece(pid, w, h, plane, rooms, styles=None, tags=(), variants=None, depth=0,
         is_bucketed = is_lean if bucketed is None else bucketed
         REGISTRY[pid] = Piece(pid, fn, w, h, plane, dict(rooms), dict(styles) if styles else None, tuple(tags), variants or {'a': {}}, depth, is_lean, is_bucketed,
                               surface_h if surface_h is not None else h, tuple(anchors), tuple(lights), tuple(slots), tuple(on), opens, tuple(anims), pair, tuple(near),
-                              wall_y, ceiling_drop, feet or {'wall': (105, 109), 'front': (114, 120), 'floor': (108, 120), 'rug': (112, 118)}.get(plane, (0, 0)), sound, note, limit, needs, post, companion_only)
+                              wall_y, ceiling_drop, feet or {'wall': (105, 109), 'front': (114, 120), 'floor': (108, 120), 'rug': (112, 118)}.get(plane, (0, 0)), sound, note, limit, needs, post, companion_only, above)
         return fn
     return deco
 
@@ -288,7 +297,7 @@ def build_piece(pc):
     rec = {'plane': pc.plane, 'rooms': pc.rooms, 'styles': pc.styles, 'tags': list(pc.tags), 'w': pc.w, 'h': pc.h, 'lean': pc.lean, 'bucketed': pc.bucketed,
            'variants': {}, 'on': list(pc.on), 'pair': pc.pair, 'near': list(pc.near), 'wall_y': list(pc.wall_y) if pc.wall_y else None,
            'ceiling_drop': pc.ceiling_drop, 'feet': list(pc.feet), 'sound': pc.sound, 'note': pc.note, 'opens': dict(pc.opens) if pc.opens else None,
-           'limit': pc.limit, 'needs': pc.needs, 'companion_only': pc.companion_only}
+           'limit': pc.limit, 'needs': pc.needs, 'companion_only': pc.companion_only, 'above': list(pc.above)}
     for vid, params in pc.variants.items():
         sprites = []
         for bk in _buckets(pc):
@@ -314,7 +323,8 @@ def build_piece(pc):
         for sl in _resolve(pc, pc.slots, params):
             slots.append(sl)
         rec['variants'][vid] = {'sprites': sprites, 'anchors': _resolve(pc, pc.anchors, params), 'lights': _resolve(pc, pc.lights, params), 'slots': slots,
-                                'anims': _resolve(pc, pc.anims, params), 'params': {k: v for k, v in params.items() if isinstance(v, (str, int, float, bool))}}
+                                'anims': _resolve(pc, pc.anims, params), 'params': {k: (list(v) if isinstance(v, (list, tuple)) else v) for k, v in params.items()
+                                   if isinstance(v, (str, int, float, bool)) or (isinstance(v, (list, tuple)) and v and all(isinstance(i, str) for i in v))}}
     return rec, files
 
 
