@@ -354,7 +354,8 @@ def frame_ghost(c, ox, oy, p):
 
 
 # ================================================================================================================================ an armchair (3D)
-FABRICS = {'mustard': hexc('b08a3a'), 'green': hexc('5a7a55'), 'rose': hexc('a85a62'), 'grey': hexc('7a7f88')}
+FABRICS = {'mustard': hexc('b08a3a'), 'green': hexc('5a7a55'), 'rose': hexc('a85a62'), 'grey': hexc('7a7f88'), 'red': hexc('a0383a'), 'brown': hexc('9a6a3a'), 'teal': hexc('3f7a78')}
+LIVING_FAB_FOR = {'red': ['cosy', 'den'], 'mustard': ['mid', 'studio'], 'teal': ['mid', 'studio'], 'green': ['parlour', 'library'], 'brown': ['lodge', 'den', 'library'], 'rose': ['parlour'], 'grey': ['squat', 'office']}   # which room's chairs wear which fabric
 
 
 def _arm_variants():
@@ -362,11 +363,16 @@ def _arm_variants():
     for style in ('club', 'wing'):
         for k in FABRICS:
             for yn, yaw in (('l', 35), ('r', -35), ('L', 58), ('R', -58)):
-                v['%s_%s_%s' % (style, k, yn)] = {'style': style, 'fab': k, 'yaw': yaw}
+                params = {'style': style, 'fab': k, 'yaw': yaw}
+                if k in LIVING_FAB_FOR:
+                    params['for'] = LIVING_FAB_FOR[k] + (['adult', 'sick', 'refuge'] if k in ('mustard', 'green', 'rose', 'grey') else [])
+                else:
+                    params['for'] = ['adult', 'sick', 'refuge']
+                v['%s_%s_%s' % (style, k, yn)] = params
     return v
 
 
-@piece('armchair', 34, 38, 'front', rooms={'bedroom': 4, 'living_room': 8, 'study': 5, 'dining_room': 1}, styles={'adult': 3, 'sick': 1, 'refuge': 1}, tags=('seating_lounge',),
+@piece('armchair', 34, 38, 'front', rooms={'bedroom': 4, 'living_room': 8, 'study': 5, 'dining_room': 1}, styles={'adult': 3, 'sick': 1, 'refuge': 1, 'cosy': 6, 'mid': 6, 'parlour': 6, 'lodge': 6}, tags=('seating_lounge', 'armchair'),
        variants=_arm_variants(), anchors=({'name': 'armchair', 'dx': 17, 'dy': -12},), feet=(114, 119), limit=1,
        note='an armchair, club or wing back, rolled arms, a loose seat cushion — built as a 3D model so it is properly turned toward the room')
 def armchair(c, ox, oy, p):

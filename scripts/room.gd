@@ -1151,6 +1151,8 @@ static func furniture_plan_for(apt: String, slot: int, room_type: String, breach
 	var dead: Dictionary = WorldState.apartment_corpse(apt)
 	if not dead.is_empty() and int(dead["slot"]) == slot:
 		return {}
+	if _is_cabinet_room(apt, slot, room_type):
+		return {}                                            # the one living room that holds the GUN CABINET stays its baked module (the cabinet is drawn into it)
 	var seed_ := hash(str(WorldState.master_seed) + "furn" + apt + ":" + str(slot))
 	var style := FurniturePlanner.pick_style(room_type, seed_)
 	if style == "":
@@ -1164,10 +1166,15 @@ static func furniture_plan_for(apt: String, slot: int, room_type: String, breach
 	return _furniture_plans[key]
 
 
+## Is this room the living room that shows the gun cabinet (WorldState.gun_cabinet_slot)? It is never planned: the cabinet, its glass, its key and its looted looks are baked into that module.
+static func _is_cabinet_room(apt: String, slot: int, room_type: String) -> bool:
+	return room_type == "living_room" and WorldState.gun_cabinet_slot(apt) == slot
+
+
 ## The BAKED module for a room whose type the planner lays: the old module of the SAME style the planner would have given it (FurniturePlanner recipe `legacy`), so a flat that
 ## becomes a story room in a later run (breached, burnt, one of the dead) keeps its wallpaper, floor and character. Any other room type: module_scene_for.
 static func baked_scene_for(apt: String, slot: int, room_type: String) -> String:
-	if FurniturePlanner.handles(room_type):
+	if FurniturePlanner.handles(room_type) and not _is_cabinet_room(apt, slot, room_type):
 		var style := FurniturePlanner.pick_style(room_type, hash(str(WorldState.master_seed) + "furn" + apt + ":" + str(slot)))
 		var vs: Array = MODULE_VARIANTS.get(room_type, [])
 		var idx := int(FurniturePlanner.recipe(room_type, style).get("legacy", -1))

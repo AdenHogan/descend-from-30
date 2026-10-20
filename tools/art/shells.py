@@ -19,6 +19,7 @@ from pixlib import Canvas, W, H, SEAM_Y, save_floor_strip, floor_is_periodic, ru
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, '..', '..'))
 SHELL_DIR = os.path.join(ROOT, 'scenes', 'Room_Shells')
+from modscene import BALCONY_TYPES
 LABELS = {'bedroom': 'Bedroom', 'bathroom': 'Bathroom', 'kitchen': 'Kitchen', 'study': 'Study', 'living_room': 'Living Room', 'dining_room': 'Dining Room'}
 DEBRIS_Y0 = 119
 
@@ -33,12 +34,17 @@ def write_shell_scene(name, room_type, plan):
         if m:
             uid = ' uid="%s"' % m.group(1)
     out = ['[gd_scene format=3%s]' % uid, '',
-           '[ext_resource type="Texture2D" path="res://assets/rooms/%s.png" id="1_art"]' % name, '',
-           '[node name="Node2D" type="Node2D"]', 'metadata/furniture_plan = "%s"' % plan, '',
+           '[ext_resource type="Texture2D" path="res://assets/rooms/%s.png" id="1_art"]' % name]
+    if room_type in BALCONY_TYPES:                                                                         # a study / dining room may sit on a balcony slot: the doors (room.gd shows them there)
+        out.append('[ext_resource type="Texture2D" path="res://assets/rooms/balcony.png" id="3_balcony"]')
+    out += ['', '[node name="Node2D" type="Node2D"]', 'metadata/furniture_plan = "%s"' % plan, '',
            '[node name="ColorRect" type="ColorRect" parent="."]', 'offset_right = 320.0', 'offset_bottom = 144.0', 'color = Color(0.4, 0.4, 0.4, 1)', '',
            '[node name="Label" type="Label" parent="ColorRect"]', 'layout_mode = 0', 'offset_right = 318.0', 'offset_bottom = 100.0',
            'theme_override_font_sizes/font_size = 32', 'visible = false', 'text = "%s"' % LABELS[room_type], 'horizontal_alignment = 1', 'vertical_alignment = 1', '',
            '[node name="Art" type="Sprite2D" parent="."]', 'texture_filter = 1', 'texture = ExtResource("1_art")', 'centered = false', '']
+    if room_type in BALCONY_TYPES:
+        out += ['[node name="Balcony" type="Node2D" parent="."]', '', '[node name="BalconyArt" type="Sprite2D" parent="Balcony"]',
+                'texture_filter = 1', 'texture = ExtResource("3_balcony")', 'centered = false', '']
     open(path, 'w').write('\n'.join(out))
     return path
 

@@ -104,6 +104,158 @@ RECIPES.update({
                   dict(id='unit_cooker', variant='cream_bare', x=112, y=106), dict(id='unit_sink', variant='cream', x=142, y=106), dict(id='table_kitchen', variant='trestle', x=200, y=118), dict(id='light_bulb', variant='a', x=150, y=0)]),
 })
 
+RECIPES.update({
+    'living_room/cosy': dict(
+        legacy=0, weight=26, shell='living_shell_a',
+        centre=dict(tag='sofa', x=[40, 190]),
+        flank=dict(tag='armchair', chance=0.8),
+        wall=dict(count=[2, 3], must=['books|storage']),
+        tops=0.8, decor=[2, 4], clutter=[1, 3], rug=0.7, ceiling=0.9, min_front=2,
+        fallback=[dict(id='sofa', variant='gold', x=120, y=110), dict(id='coffee_table', variant='wood', x=136, y=116), dict(id='ceiling_pendant', variant='cream', x=150, y=0)]),
+    'living_room/mid': dict(
+        legacy=1, weight=22, shell='living_shell_b',
+        centre=dict(tag='sofa', x=[40, 190]),
+        flank=dict(tag='armchair', chance=0.7),
+        wall=dict(count=[2, 3], must=['sideboard']),
+        tops=0.9, decor=[2, 4], clutter=[1, 3], rug=0.6, ceiling=0.9, min_front=2,
+        fallback=[dict(id='sofa', variant='orange', x=120, y=110), dict(id='coffee_table', variant='kidney', x=136, y=116), dict(id='ceiling_pendant', variant='cream', x=150, y=0)]),
+    'living_room/squat': dict(
+        legacy=2, weight=20, shell='living_shell_c',
+        centre=dict(tag='sofa', x=[40, 200]),
+        wall=dict(count=[1, 2], must=['books|storage']),
+        tops=0.8, decor=[3, 5], clutter=[3, 5], rug=0.0, ceiling=1.0, min_front=2,
+        fallback=[dict(id='sofa', variant='grey', x=120, y=110), dict(id='coffee_table', variant='pallet', x=136, y=116), dict(id='light_bulb', variant='a', x=150, y=0)]),
+    'living_room/parlour': dict(
+        legacy=3, weight=18, shell='living_shell_d',
+        centre=dict(tag='sofa', x=[40, 190]),
+        flank=dict(tag='armchair', chance=0.8),
+        wall=dict(count=[2, 3], must=['music|display']),
+        tops=0.9, decor=[2, 4], clutter=[0, 2], rug=0.8, ceiling=0.9, min_front=2,
+        fallback=[dict(id='sofa', variant='floral', x=120, y=110), dict(id='coffee_table', variant='tea', x=136, y=116), dict(id='ceiling_pendant', variant='cream', x=150, y=0)]),
+    'living_room/lodge': dict(
+        legacy=-1, weight=14, shell='living_shell_e',
+        centre=dict(tag='sofa', x=[40, 200]),
+        flank=dict(tag='armchair', chance=0.7),
+        wall=dict(count=[1, 2], must=['hearth']),
+        tops=0.8, decor=[2, 4], clutter=[1, 3], rug=0.7, ceiling=0.9, min_front=2,
+        fallback=[dict(id='sofa', variant='tan', x=120, y=110), dict(id='coffee_table', variant='trunk', x=136, y=116), dict(id='ceiling_pendant', variant='cream', x=150, y=0)]),
+})
+
+
+
+RECIPES.update({
+    # ---- dining rooms (round 47f): A family, B diner, C formal, D barricade, E party. The table carries its chairs; balcony slots block x 4..96 (ctx.blocked).
+    'dining_room/family': dict(
+        legacy=0, weight=26, shell='dining_shell_a',
+        centre=dict(tag='dining', x=[30, 210]),
+        wall=dict(count=[1, 3], must=['storage|clock']),
+        tops=0.8, decor=[2, 4], clutter=[1, 2], rug=0.5, ceiling=0.9, min_front=2,
+        fallback=[dict(id='table_dining', variant='family', x=110, y=116), dict(id='ceiling_pendant', variant='cream', x=150, y=0)]),
+    'dining_room/diner': dict(
+        legacy=1, weight=20, shell='dining_shell_b',
+        centre=dict(tag='dining', x=[30, 210]),
+        wall=dict(count=[1, 2], must=['sideboard']),
+        tops=0.9, decor=[2, 4], clutter=[0, 2], rug=0.0, ceiling=0.9, min_front=2,
+        fallback=[dict(id='table_dining', variant='diner', x=110, y=116), dict(id='ceiling_pendant', variant='cream', x=150, y=0)]),
+    'dining_room/formal': dict(
+        legacy=2, weight=18, shell='dining_shell_c',
+        centre=dict(tag='dining', x=[30, 210]),
+        wall=dict(count=[2, 3], must=['clock|display']),
+        tops=0.9, decor=[2, 4], clutter=[0, 2], rug=0.6, ceiling=0.9, min_front=2,
+        fallback=[dict(id='table_dining', variant='formal', x=110, y=116), dict(id='ceiling_pendant', variant='cream', x=150, y=0)]),
+    'dining_room/barricade': dict(
+        legacy=3, weight=16, shell='dining_shell_d',
+        centre=dict(tag='dining', x=[40, 200]),
+        wall=dict(count=[1, 2], must=['storage']),
+        tops=0.4, decor=[2, 4], clutter=[2, 4], rug=0.0, ceiling=0.8, min_front=2,
+        fallback=[dict(id='table_dining', variant='tipped', x=110, y=116), dict(id='light_bulb', variant='a', x=150, y=0)]),
+    'dining_room/party': dict(
+        legacy=4, weight=14, shell='dining_shell_e',
+        centre=dict(tag='dining', x=[30, 210]),
+        wall=dict(count=[1, 2], must=['sideboard']),
+        tops=0.9, decor=[3, 5], clutter=[1, 3], rug=0.0, ceiling=0.8, min_front=2,
+        fallback=[dict(id='table_dining', variant='party', x=110, y=116), dict(id='ceiling_pendant', variant='cream', x=150, y=0)]),
+})
+
+
+RECIPES.update({
+    # ---- studies (round 47f): A den, B office, C library, D radio room, E studio. The desk carries its chair; balcony slots block x 4..96 (ctx.blocked).
+    'study/den': dict(
+        legacy=0, weight=24, shell='study_shell_a',
+        centre=dict(tag='desk', x=[40, 200]),
+        wall=dict(count=[2, 3], must=['books|files']),
+        tops=0.9, decor=[2, 4], clutter=[1, 2], rug=0.5, ceiling=0.9, min_front=2,
+        fallback=[dict(id='desk_study', variant='mahogany', x=120, y=112), dict(id='ceiling_pendant', variant='cream', x=150, y=0)]),
+    'study/office': dict(
+        legacy=1, weight=22, shell='study_shell_b',
+        centre=dict(tag='desk', x=[40, 200]),
+        wall=dict(count=[1, 3], must=['files']),
+        tops=0.9, decor=[2, 4], clutter=[2, 4], rug=0.0, ceiling=1.0, min_front=2,
+        fallback=[dict(id='desk_study', variant='steel', x=120, y=112), dict(id='light_tube', variant='a', x=130, y=0)]),
+    'study/library': dict(
+        legacy=2, weight=20, shell='study_shell_c',
+        centre=dict(tag='desk', x=[40, 200]),
+        flank=dict(tag='armchair', chance=0.6),
+        wall=dict(count=[2, 3], must=['books']),
+        tops=0.8, decor=[1, 3], clutter=[0, 2], rug=0.6, ceiling=0.9, min_front=2,
+        fallback=[dict(id='desk_study', variant='writing', x=120, y=112), dict(id='ceiling_pendant', variant='cream', x=150, y=0)]),
+    'study/radio': dict(
+        legacy=3, weight=18, shell='study_shell_d',
+        centre=dict(tag='desk', x=[40, 200]),
+        wall=dict(count=[1, 3], must=['storage']),
+        tops=0.9, decor=[2, 4], clutter=[2, 4], rug=0.0, ceiling=0.9, min_front=2,
+        fallback=[dict(id='desk_study', variant='trestle', x=120, y=112), dict(id='light_bulb', variant='a', x=150, y=0)]),
+    'study/studio': dict(
+        legacy=4, weight=16, shell='study_shell_e',
+        centre=dict(tag='desk', x=[40, 200]),
+        wall=dict(count=[1, 3], must=['art']),
+        tops=0.7, decor=[2, 4], clutter=[2, 4], rug=0.0, ceiling=0.9, min_front=2,
+        fallback=[dict(id='desk_study', variant='bench', x=120, y=112), dict(id='light_bulb', variant='a', x=150, y=0)]),
+})
+
+
+RECIPES.update({
+    # ---- bathrooms (round 47f): A tub (classic), B avocado, C gilded, D wetroom, E pink. The fixtures are FRONT pieces (`planes`), lifted from the old module's own 3D drawings.
+    'bathroom/tub': dict(
+        legacy=0, weight=26, shell='bath_shell_a',
+        centre=dict(tag='bath', x=[60, 190]),
+        wall=dict(count=[2, 3], must=['toilet', 'basin'], planes=['wall', 'front']),
+        tops=0.5, decor=[2, 3], clutter=[1, 3], rug=0.6, ceiling=1.0, min_front=2,
+        fallback=[dict(id='bath', variant='claw', x=110, y=114), dict(id='toilet', variant='white', x=20, y=114), dict(id='ceiling_flush', variant='a', x=150, y=0)]),
+    'bathroom/avocado': dict(
+        legacy=1, weight=20, shell='bath_shell_b',
+        centre=dict(tag='bath', x=[60, 190]),
+        wall=dict(count=[2, 3], must=['toilet', 'basin'], planes=['wall', 'front']),
+        tops=0.5, decor=[2, 3], clutter=[1, 3], rug=0.7, ceiling=1.0, min_front=2,
+        fallback=[dict(id='bath', variant='panel', x=110, y=114), dict(id='toilet', variant='avocado', x=20, y=114), dict(id='ceiling_flush', variant='a', x=150, y=0)]),
+    'bathroom/gilded': dict(
+        legacy=2, weight=14, shell='bath_shell_c',
+        centre=dict(tag='bath', x=[60, 190]),
+        wall=dict(count=[2, 3], must=['toilet', 'basin'], planes=['wall', 'front']),
+        tops=0.5, decor=[2, 3], clutter=[1, 2], rug=0.8, ceiling=1.0, min_front=2,
+        fallback=[dict(id='bath', variant='gold', x=110, y=114), dict(id='toilet', variant='gold', x=20, y=114), dict(id='chandelier', variant='gold', x=150, y=0)]),
+    'bathroom/wetroom': dict(
+        legacy=3, weight=20, shell='bath_shell_d',
+        centre=dict(tag='bath', x=[60, 190]),
+        wall=dict(count=[2, 4], must=['toilet', 'basin', 'laundry'], planes=['wall', 'front']),
+        tops=0.4, decor=[1, 3], clutter=[2, 4], rug=0.0, ceiling=1.0, min_front=2,
+        fallback=[dict(id='bath', variant='curtain', x=110, y=114), dict(id='toilet', variant='wet', x=20, y=114), dict(id='light_bulb', variant='a', x=150, y=0)]),
+    'bathroom/pink': dict(
+        legacy=4, weight=20, shell='bath_shell_e',
+        centre=dict(tag='bath', x=[60, 190]),
+        wall=dict(count=[2, 3], must=['toilet', 'basin'], planes=['wall', 'front']),
+        tops=0.5, decor=[2, 3], clutter=[1, 3], rug=0.7, ceiling=1.0, min_front=2,
+        fallback=[dict(id='bath', variant='tiled', x=110, y=114), dict(id='toilet', variant='pink', x=20, y=114), dict(id='ceiling_flush', variant='a', x=150, y=0)]),
+})
+
+
+# The room types whose pieces + shells are BUILT into the library (furn_build.py / furn_shells.py export and check only these). A room type's recipes may be written before its pieces exist; they
+# do not reach data/furniture.json - so the game never plans a room it has no pieces or shell for - until the type is added here.
+BUILT = ('bedroom', 'kitchen', 'living_room')
+
+
+def built_recipes():
+    return {k: v for k, v in RECIPES.items() if k.split('/')[0] in BUILT}
 
 
 # THE LOGIC as data: piece tags -> the only room types they may be registered in (furnlib.TAG_ROOMS is the source; exported so the game and its tests read the same table).

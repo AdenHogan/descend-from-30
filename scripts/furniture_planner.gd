@@ -386,7 +386,8 @@ static func _depth_ok(it: Dictionary, body: Dictionary) -> bool:
 	if String(body["plane"]) == "floor":
 		return not r.grow(1.0).intersects(b)
 	var overlap_y := minf(r.end.y, b.end.y) - maxf(r.position.y, b.position.y)
-	return overlap_y <= 6.0 and int(it["y"]) > int(body["y"])
+	var lap := float(piece(String(it["id"])).get("lap", 6))             # a coffee table may stand over the front of the sofa (its `lap`); a shoe may not
+	return overlap_y <= lap and int(it["y"]) > int(body["y"])
 
 
 # ------------------------------------------------------------------------------------------------------------------------------------ the plan
@@ -489,6 +490,7 @@ static func _attempt(st: Dictionary, rcp: Dictionary) -> bool:
 		var fr: Dictionary = rcp.get("flank", {})
 		if not fr.is_empty() and rng.randf() < float(fr.get("chance", 1.0)):
 			_place_flank(st, centre, fr)
+		_place_needs(st, centre)                                          # a sofa wants its coffee table (never at the cost of the sofa: `optional`)
 	if not rcp.get("run", {}).is_empty():
 		_fill_run(st, rcp["run"])
 		for tag in rcp["run"].get("must", []):
@@ -565,7 +567,7 @@ static func _place_centre(st: Dictionary, cr: Dictionary) -> int:
 static func _place_flank(st: Dictionary, ci: int, fr: Dictionary) -> void:
 	var rng: RandomNumberGenerator = st["rng"]
 	var c: Dictionary = st["items"][ci]
-	var pool := _pool(st["room"], st["style"], ["wall"], String(fr["tag"]))
+	var pool := _pool(st["room"], st["style"], ["wall", "front"], String(fr["tag"]))
 	var id := _wpick(rng, pool)
 	if id == "":
 		return
@@ -717,6 +719,8 @@ static func _place_needs(st: Dictionary, idx: int) -> void:
 		if _fits(st, it):
 			_add(st, it)
 			return
+	if bool(nd.get("optional", false)):
+		return                                                    # a sofa with no room for a coffee table is still a sofa
 	st["items"].remove_at(idx)                                # no room for the chair → no desk (never a desk with nowhere to sit)
 
 
@@ -831,8 +835,12 @@ static func _place_rug(st: Dictionary, centre: int) -> void:
 		return
 	var rec := piece(id)
 	var w := int(rec["w"])
+	var under: Array = rec.get("under", [])
 	for t in range(10):
 		var cx := rng.randi_range(70, 250)
+		if not under.is_empty() and centre >= 0:                      # a living-room rug lies under the sofa group, centred on it
+			var cf: Vector2 = st["items"][centre]["face"]
+			cx = int((cf.x + cf.y) * 0.5) + rng.randi_range(-12, 12)
 		var it := _make(id, _vid(rng, rec, String(st["style"])), cx - w / 2, _feet(rng, rec))
 		if _fits(st, it) and _rug_ok(st, it):
 			_add(st, it)
@@ -842,8 +850,15 @@ static func _place_rug(st: Dictionary, centre: int) -> void:
 ## A rug lies on open floor, clear of the bed / sofa — never half under it, peeking out from one side like a dropped towel.
 static func _rug_ok(st: Dictionary, rug: Dictionary) -> bool:
 	var rf: Vector2 = rug["face"]
+	var under: Array = piece(String(rug["id"])).get("under", [])
 	for o in st["items"]:
 		if String(o["plane"]) == "front":
+			var skip := false
+			for tg in under:
+				if String(tg) in o["tags"]:
+					skip = true                                           # the sofa / an armchair may stand on this rug, even half on it
+			if skip:
+				continue
 			var of: Vector2 = o["face"]
 			if rf.x <= of.y + 4.0 and rf.y >= of.x - 4.0:
 				return false

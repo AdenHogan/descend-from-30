@@ -8,8 +8,9 @@ extends Node
 const RoomScript := preload("res://scripts/room.gd")
 const BEDROOM_STYLES := ["adult", "teen", "sick", "refuge", "kid"]
 const KITCHEN_STYLES := ["classic", "retro", "country", "student", "hoarder"]
-const PLANNED := {"bedroom": BEDROOM_STYLES, "kitchen": KITCHEN_STYLES}                 # the room types the planner lays, and their styles
-const UNPLANNED := ["bathroom", "study", "living_room", "dining_room"]                    # still baked modules
+const LIVING_STYLES := ["cosy", "mid", "squat", "parlour", "lodge"]
+const PLANNED := {"bedroom": BEDROOM_STYLES, "kitchen": KITCHEN_STYLES, "living_room": LIVING_STYLES}   # the room types the planner lays, and their styles
+const UNPLANNED := ["bathroom", "study", "dining_room"]                                   # still baked modules
 const SEEDS_PER_STYLE := 100
 
 var failures: int = 0
@@ -38,6 +39,8 @@ func _ready() -> void:
 	_test_room_choice()
 	await _test_real_rooms("bedroom")
 	await _test_real_rooms("kitchen")
+	await _test_real_rooms("living_room")
+	_test_living()
 	await _test_story_flats_stay_baked()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
@@ -396,6 +399,8 @@ func _test_room_choice() -> void:
 	var apt := "1503"
 	var plain := RoomScript.furniture_plan_for(apt, 0, "bedroom", false, false)
 	check(not plain.is_empty() and String(plain["shell"]).begins_with("bedroom_shell_"), "an ordinary flat's bedroom is planned")
+	var plain_l := RoomScript.furniture_plan_for(apt, 0, "living_room", false, false)
+	check(not plain_l.is_empty() and String(plain_l["shell"]).begins_with("living_shell_"), "an ordinary flat's living room is planned too")
 	var plain_k := RoomScript.furniture_plan_for(apt, 0, "kitchen", false, false)
 	check(not plain_k.is_empty() and String(plain_k["shell"]).begins_with("kitchen_shell_"), "an ordinary flat's kitchen is planned too")
 	for room in UNPLANNED:
@@ -469,6 +474,14 @@ func _test_room_choice() -> void:
 				styles[String(p["style"])] = true
 	WorldState.current_run = 1
 	check(styles.size() == 5, "across a building every style of bedroom turns up (%s)" % str(styles.keys()))
+	var lstyles := {}
+	for f in range(2, 29):
+		for col in range(1, 6):
+			for slot in range(3):
+				var lp := RoomScript.furniture_plan_for("%d0%d" % [f, col], slot, "living_room", false, false)
+				if not lp.is_empty():
+					lstyles[String(lp["style"])] = true
+	check(lstyles.size() == 5, "…and every style of living room (%s)" % str(lstyles.keys()))
 	var kstyles := {}
 	for f in range(2, 29):
 		for col in range(1, 6):
@@ -478,6 +491,101 @@ func _test_room_choice() -> void:
 					kstyles[String(kp["style"])] = true
 	check(kstyles.size() == 5, "…and every style of kitchen (%s)" % str(kstyles.keys()))
 	check(story > 0 and story < planned / 4, "only the rooms that hold one of the dead stay baked (%d of %d)" % [story, story + planned])
+
+
+# ------------------------------------------------------------------------------------------------------------------------------------ living rooms
+func _test_living() -> void:
+	print("[living rooms]")
+	var sofaless := 0
+	var table_alone := 0
+	var tv_unhosted := 0
+	var lodge_hearth := 0
+	var lodge_n := 0
+	var parlour_music := 0
+	var parlour_n := 0
+	var tables := 0
+	var rooms := 0
+	for style in LIVING_STYLES:
+		for k in range(60):
+			var pl := FurniturePlanner.plan("living_room", style, 21000 + k, {"window": "left" if k % 2 == 0 else "right"})
+			rooms += 1
+			var sofa := false
+			var table := false
+			var hearth := false
+			var music := false
+			for it in pl["items"]:
+				var tags: Array = FurniturePlanner.piece(String(it["id"]))["tags"]
+				if "sofa" in tags:
+					sofa = true
+				if String(it["id"]) == "coffee_table":
+					table = true
+				if "hearth" in tags:
+					hearth = true
+				if "music" in tags or "display" in tags:
+					music = true
+				if String(it["id"]) == "tv_crt" and not ("host_plane" in it and String(it["host_plane"]) == "wall"):
+					tv_unhosted += 1
+			if not sofa:
+				sofaless += 1
+			if table:
+				tables += 1
+				if not sofa:
+					table_alone += 1
+			if style == "lodge":
+				lodge_n += 1
+				if hearth:
+					lodge_hearth += 1
+			if style == "parlour":
+				parlour_n += 1
+				if music:
+					parlour_music += 1
+	check(sofaless == 0, "every living room has a sofa or a settee (%d of %d without)" % [sofaless, rooms])
+	check(tables >= rooms / 2, "most living rooms have their coffee table in front of the sofa (%d of %d)" % [tables, rooms])
+	check(table_alone == 0 and bool(FurniturePlanner.piece("coffee_table").get("companion_only", false)), "a coffee table is only ever put with a sofa (%d alone)" % table_alone)
+	check(tv_unhosted == 0, "a CRT television only ever stands on something (%d on the floor)" % tv_unhosted)
+	check(lodge_hearth >= lodge_n * 9 / 10, "the hunting lodge has its hearth (%d of %d)" % [lodge_hearth, lodge_n])
+	check(parlour_music >= parlour_n * 9 / 10, "the parlour has its piano or its china cabinet (%d of %d)" % [parlour_music, parlour_n])
+	check(int(FurniturePlanner.piece("coffee_table").get("lap", 6)) > 6 and FurniturePlanner.piece("rug_large").get("under", []).size() > 0, "the coffee table may overlap the sofa's front and the rug lies under the group (the record carries both)")
+	# THE GUN CABINET'S living room is never planned: the cabinet is drawn into that baked module (and no other flat shows it)
+	var cabinet_apts := 0
+	var cabinet_planned := 0
+	var cabinet_wrong := 0
+	var cabinet_elsewhere := 0
+	var cabinet_scene: String = WorldState.GUN_CABINET_SCENE
+	for f in range(1, 25):
+		for col in range(1, 6):
+			var apt := "%d0%d" % [f, col]
+			var layout: Array = WorldState.get_apartment_layout(apt)
+			for slot in range(layout.size()):
+				if layout[slot] != "living_room":
+					continue
+				var is_cab: bool = WorldState.gun_cabinet_slot(apt) == slot
+				if is_cab:
+					cabinet_apts += 1
+					if not RoomScript.furniture_plan_for(apt, slot, "living_room", false, false).is_empty():
+						cabinet_planned += 1
+					if RoomScript.baked_scene_for(apt, slot, "living_room") != cabinet_scene:
+						cabinet_wrong += 1
+				elif RoomScript.baked_scene_for(apt, slot, "living_room") == cabinet_scene:
+					cabinet_elsewhere += 1
+	check(cabinet_apts >= 1 and cabinet_planned == 0 and cabinet_wrong == 0, "the gun cabinet's living room (%d flats) is never planned and stays the cabinet module" % cabinet_apts)
+	check(cabinet_elsewhere == 0, "…and no other flat's story living room ever shows the cabinet (%d did)" % cabinet_elsewhere)
+	# a baked living room (a story room) is the old module of its planned style — except the lodge, whose old module is the cabinet's
+	var matched := 0
+	var mism := 0
+	for f in range(3, 25):
+		var ap := "%d02" % f
+		var plan := RoomScript.furniture_plan_for(ap, 0, "living_room", false, false)
+		if plan.is_empty():
+			continue
+		var rcp: Dictionary = FurniturePlanner.recipe("living_room", String(plan["style"]))
+		if int(rcp["legacy"]) < 0:
+			continue
+		if RoomScript.baked_scene_for(ap, 0, "living_room") == RoomScript.MODULE_VARIANTS["living_room"][int(rcp["legacy"])]:
+			matched += 1
+		else:
+			mism += 1
+	check(matched >= 6 and mism == 0, "a baked living room is the old module of the planned style (%d flats, %d mismatches)" % [matched, mism])
 
 
 # ------------------------------------------------------------------------------------------------------------------------------------ real rooms
@@ -523,6 +631,8 @@ func _test_real_rooms(rtype: String) -> void:
 			var dead: Dictionary = WorldState.apartment_corpse(apt)
 			if not dead.is_empty() and int(dead["slot"]) == slot:
 				continue
+			if rtype == "living_room" and WorldState.gun_cabinet_slot(apt) == slot:
+				continue                                        # the gun cabinet's living room is baked (checked in _test_living)
 			var room = await _build_flat(apt)
 			checked += 1
 			var plan := RoomScript.furniture_plan_for(apt, slot, rtype, false, false)

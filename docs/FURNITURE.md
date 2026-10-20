@@ -1,6 +1,6 @@
 # FURNITURE AS ASSETS — rooms that are laid from a seed
 
-**Status: BUILT v1 for BEDROOMS (owner round 47, 2026-10-20) and KITCHENS (round 47e).** Living rooms, dining rooms, studies and bathrooms are still baked modules; the same pipeline is
+**Status: BUILT v1 for BEDROOMS (owner round 47, 2026-10-20), KITCHENS (round 47e) and LIVING ROOMS (round 47f).** Dining rooms, studies and bathrooms are still baked modules; the same pipeline is
 how they are being converted ("start with bedrooms and work from there" → "expand to other module types too").
 
 > The owner: *"converting all art furniture and objects into their own assets like what you've done with the posters and wall art — that a
@@ -99,7 +99,7 @@ end), `lights`, `slots` (surfaces things stand on: `kinds` it takes), `anims`, `
   furniture. Not started.
 * **Run looks for furniture** are a tint only (the shells carry the damp / cracks). Grime, blood and breakage as per-piece variants are future work.
 * **No overgrowth** in planned bedrooms (growth maps are baked per module); no live CRT cursor (the desk's computer is static).
-* **Other room types** — bathroom, study, living room, dining room (the kitchen is done, round 47e). The logic table already names them (`cooking`, `wet`, `toilet`, `dining`, `tv`…), and many pieces list
+* **Other room types** — bathroom, study, dining room (the kitchen is done, round 47e; the living room, round 47f). The logic table already names them (`cooking`, `wet`, `toilet`, `dining`, `tv`…), and many pieces list
   other rooms (lamps, pictures, rugs, plants, clocks, mirrors, chests, bookcases, armchairs, backpacks, boxes) — those are the first things the next room type reuses.
 * **Per-piece loot** (a nightstand holding pills, a toy chest holding toys) — loot is still by room type.
 
@@ -182,7 +182,25 @@ Same kit, same method, one new file per family (the old definitions were cut out
 * **Not done:** a few kitchen pieces are first-pass (the sink's inset basin is a flat steel strip; cooker rings / pans are small; the dresser's plates are tiny); kitchen D's dripping fridge (a live detail in the old art) is
   not carried over; the LOOK needs the owner's eye at game zoom.
 
+### Round 47f — LIVING ROOMS are planned rooms (owner: "expand to other module types too")
+
+* **Five styles = the old five living rooms**: `cosy` (A: green stripes + wainscot, gold sofa, red armchair), `mid` (B: teal, teak, a TV on a sideboard), `squat` (C: grey concrete, the wall TV, the pallet table, milk-crate shelves),
+  `parlour` (D: rose paper, piano, china cabinet, floral sofa) and `lodge` (E: green + boarding, a hearth). Shells `living_shell_{a..e}`; the old `*_decor` (pictures, clocks, cameos, antlers) is gone from the walls — those are pieces now.
+* **THE GUN CABINET'S living room is never planned** (`room._is_cabinet_room`, from `WorldState.gun_cabinet_slot`): the cabinet, its glass, its key and its looted looks are drawn into the baked `living_room_e`, so that one flat keeps it. The planned
+  **lodge** style therefore has `legacy = -1` — a story lodge falls back to the hash's baked living room (never the cabinet's) — and `furniture_test._test_living` proves no other flat's baked living room is the cabinet module.
+* **Pieces** (~25 new; 142 pieces / 1569 sprites): `sofa` + `loveseat` (3D models built from `chair3d` — arms, back, three seat cushions, turned feet — in 14 fabrics each tied to its style: gold / rust / olive, orange / mustard / avocado, a slashed grey or denim one,
+  floral / green velvet / burgundy, oxblood / tan leather / tartan), `armchair` (the existing 3D one + red / brown / teal, tied to styles by `for`), `coffee_table` (walnut with a magazine shelf / teak kidney / pallet on cinder blocks / round mahogany tea table / strapped trunk),
+  `pouf`, `sideboard` (teak / walnut / cream / oak — one door swings open), `tv_crt` (stands ON a sideboard; live snow, goes dark when searched) and `tv_wall` (the struck-TV live detail), `shelving_open` (mid-century), `crate_cubes`, `piano_upright`,
+  `china_cabinet` (a door opens), `fireplace` (stone or brick, a grate, logs, embers; its mantel is a surface), `lamp_floor`, `side_table`, `magazines`, `ashtray_pack`, `guitar_stand`, `rug_large` (maroon / shag gold / green / blue / tartan), `log_basket`, `stag_head`,
+  `cameos`, `print_hunting`. `furn_styles_living.py` adds the living styles to the shared bedroom pieces (a bookcase, a chest of drawers, clocks, plants, pictures, posters…) after they are registered.
+* **Planner additions:** a `needs` may be `optional` and a CENTRE piece now asks for its needs (the sofa wants its coffee table, never at the cost of the sofa); a `flank` may be a front piece (an armchair flush beside the sofa); a floor piece's `lap` says how many rows it may overlap
+  a body's drawn rect (a coffee table over the front of the sofa: 22; everything else 6); a rug's `under` tags let it lie under the sofa group, centred on it (`_rug_ok` skips those bodies). All carried by the piece records (`lap`, `under`).
+* **Tests:** `furniture_test` PLANNED gains `living_room` (200 plans a style break no rule, 0 fallbacks, the fallbacks are valid for both window sides, real flats are built), `_test_living` (every room has a sofa, a coffee table only with a sofa, a CRT TV only on something, the lodge
+  has its hearth, the parlour its piano or china cabinet, the cabinet's living room is never planned and no other flat shows it, a baked living room is the old module of its style).
+* **Not done:** the old room's openings for living-room furniture (drawers / doors that open in the baked art) exist only for the pieces whose record has `opens`; sofa cushions / bookcases have no animation; per-run grime beyond the shell tint; the LOOK at game zoom needs the owner's eye
+  (captured under xvfb: a lodge with its brick hearth reads well).
+
 ## Numbers (so far)
 
-120 pieces, 1334 sprites; 10 shells; 10 recipes (5 bedroom + 5 kitchen). (Round 47: 80 pieces / 730 sprites / 5 shells / 5 recipes.) 1000 planned rooms in the test: 0 rule violations, 0 fallbacks; planning costs ~16 ms a room on average (cached per flat+slot,
+142 pieces, 1569 sprites; 15 shells; 15 recipes (5 bedroom + 5 kitchen + 5 living room). (Round 47: 80 pieces / 730 sprites / 5 shells / 5 recipes.) 1000 planned rooms in the test: 0 rule violations, 0 fallbacks; planning costs ~16 ms a room on average (cached per flat+slot,
 shared by the live room and its pan backdrop).

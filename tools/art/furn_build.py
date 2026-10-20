@@ -36,14 +36,22 @@ import furn_walls  # noqa: F401
 import furn_clocks  # noqa: F401
 import furn_kitchen  # noqa: F401
 import furn_kitchen_small  # noqa: F401
+import furn_living  # noqa: F401
+import furn_living2  # noqa: F401
+import furn_living_small  # noqa: F401
 import furn_desk  # noqa: F401
+import furn_styles
 import furn_rooms
+
+for _m in [m for m in os.environ.get('FURN_EXTRA', '').split(',') if m]:                  # pieces written but not built into the library yet (dining / study / bathroom), for previews
+    __import__(_m)
+furn_styles.apply()
 
 PIECE_MODULES = ('furn_bedroom',)
 
 
 def build_all(only=None):
-    data = {'version': 1, 'lean_x': list(FL.LEAN_X), 'lean_mode': FL.LEAN_MODE, 'rules': furn_rooms.rules(), 'recipes': furn_rooms.RECIPES, 'items': {}}
+    data = {'version': 1, 'lean_x': list(FL.LEAN_X), 'lean_mode': FL.LEAN_MODE, 'rules': furn_rooms.rules(), 'recipes': furn_rooms.built_recipes(), 'items': {}}
     files = {}
     for pid, pc in FL.REGISTRY.items():
         if only and pid not in only:

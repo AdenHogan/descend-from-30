@@ -10,6 +10,7 @@
     0
    ],
    "h": 11,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [],
@@ -34,6 +35,7 @@
    "tags": [
     "small"
    ],
+   "under": [],
    "variants": {
     "blue": {
      "anchors": [],
@@ -141,6 +143,7 @@
     119
    ],
    "h": 38,
+   "lap": 6,
    "lean": false,
    "limit": 1,
    "near": [],
@@ -159,13 +162,167 @@
    "sound": null,
    "styles": {
     "adult": 3,
+    "cosy": 6,
+    "den": 5,
+    "library": 6,
+    "lodge": 6,
+    "mid": 6,
+    "office": 3,
+    "parlour": 6,
     "refuge": 1,
-    "sick": 1
+    "sick": 1,
+    "studio": 2
    },
    "tags": [
-    "seating_lounge"
+    "seating_lounge",
+    "armchair"
    ],
+   "under": [],
    "variants": {
+    "club_brown_L": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "brown",
+      "for": [
+       "lodge",
+       "den",
+       "library"
+      ],
+      "style": "club",
+      "yaw": 58
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "armchair_club_brown_L",
+       "h": 41,
+       "l": -3,
+       "r": 36,
+       "rx": 3,
+       "ry": 38,
+       "t": -38,
+       "w": 40
+      }
+     ]
+    },
+    "club_brown_R": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "brown",
+      "for": [
+       "lodge",
+       "den",
+       "library"
+      ],
+      "style": "club",
+      "yaw": -58
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "armchair_club_brown_R",
+       "h": 40,
+       "l": -3,
+       "r": 36,
+       "rx": 3,
+       "ry": 38,
+       "t": -38,
+       "w": 40
+      }
+     ]
+    },
+    "club_brown_l": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "brown",
+      "for": [
+       "lodge",
+       "den",
+       "library"
+      ],
+      "style": "club",
+      "yaw": 35
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "armchair_club_brown_l",
+       "h": 40,
+       "l": -4,
+       "r": 36,
+       "rx": 4,
+       "ry": 38,
+       "t": -38,
+       "w": 41
+      }
+     ]
+    },
+    "club_brown_r": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "brown",
+      "for": [
+       "lodge",
+       "den",
+       "library"
+      ],
+      "style": "club",
+      "yaw": -35
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "armchair_club_brown_r",
+       "h": 40,
+       "l": -3,
+       "r": 37,
+       "rx": 3,
+       "ry": 38,
+       "t": -38,
+       "w": 41
+      }
+     ]
+    },
     "club_green_L": {
      "anchors": [
       {
@@ -178,6 +335,13 @@
      "lights": [],
      "params": {
       "fab": "green",
+      "for": [
+       "parlour",
+       "library",
+       "adult",
+       "sick",
+       "refuge"
+      ],
       "style": "club",
       "yaw": 58
      },
@@ -209,6 +373,13 @@
      "lights": [],
      "params": {
       "fab": "green",
+      "for": [
+       "parlour",
+       "library",
+       "adult",
+       "sick",
+       "refuge"
+      ],
       "style": "club",
       "yaw": -58
      },
@@ -240,6 +411,13 @@
      "lights": [],
      "params": {
       "fab": "green",
+      "for": [
+       "parlour",
+       "library",
+       "adult",
+       "sick",
+       "refuge"
+      ],
       "style": "club",
       "yaw": 35
      },
@@ -271,6 +449,13 @@
      "lights": [],
      "params": {
       "fab": "green",
+      "for": [
+       "parlour",
+       "library",
+       "adult",
+       "sick",
+       "refuge"
+      ],
       "style": "club",
       "yaw": -35
      },
@@ -302,6 +487,13 @@
      "lights": [],
      "params": {
       "fab": "grey",
+      "for": [
+       "squat",
+       "office",
+       "adult",
+       "sick",
+       "refuge"
+      ],
       "style": "club",
       "yaw": 58
      },
@@ -333,6 +525,13 @@
      "lights": [],
      "params": {
       "fab": "grey",
+      "for": [
+       "squat",
+       "office",
+       "adult",
+       "sick",
+       "refuge"
+      ],
       "style": "club",
       "yaw": -58
      },
@@ -364,6 +563,13 @@
      "lights": [],
      "params": {
       "fab": "grey",
+      "for": [
+       "squat",
+       "office",
+       "adult",
+       "sick",
+       "refuge"
+      ],
       "style": "club",
       "yaw": 35
      },
@@ -395,6 +601,13 @@
      "lights": [],
      "params": {
       "fab": "grey",
+      "for": [
+       "squat",
+       "office",
+       "adult",
+       "sick",
+       "refuge"
+      ],
       "style": "club",
       "yaw": -35
      },
@@ -426,6 +639,13 @@
      "lights": [],
      "params": {
       "fab": "mustard",
+      "for": [
+       "mid",
+       "studio",
+       "adult",
+       "sick",
+       "refuge"
+      ],
       "style": "club",
       "yaw": 58
      },
@@ -457,6 +677,13 @@
      "lights": [],
      "params": {
       "fab": "mustard",
+      "for": [
+       "mid",
+       "studio",
+       "adult",
+       "sick",
+       "refuge"
+      ],
       "style": "club",
       "yaw": -58
      },
@@ -488,6 +715,13 @@
      "lights": [],
      "params": {
       "fab": "mustard",
+      "for": [
+       "mid",
+       "studio",
+       "adult",
+       "sick",
+       "refuge"
+      ],
       "style": "club",
       "yaw": 35
      },
@@ -519,6 +753,13 @@
      "lights": [],
      "params": {
       "fab": "mustard",
+      "for": [
+       "mid",
+       "studio",
+       "adult",
+       "sick",
+       "refuge"
+      ],
       "style": "club",
       "yaw": -35
      },
@@ -528,6 +769,146 @@
        "b": 1,
        "bx": 160,
        "file": "armchair_club_mustard_r",
+       "h": 40,
+       "l": -3,
+       "r": 37,
+       "rx": 3,
+       "ry": 38,
+       "t": -38,
+       "w": 41
+      }
+     ]
+    },
+    "club_red_L": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "red",
+      "for": [
+       "cosy",
+       "den"
+      ],
+      "style": "club",
+      "yaw": 58
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "armchair_club_red_L",
+       "h": 41,
+       "l": -3,
+       "r": 36,
+       "rx": 3,
+       "ry": 38,
+       "t": -38,
+       "w": 40
+      }
+     ]
+    },
+    "club_red_R": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "red",
+      "for": [
+       "cosy",
+       "den"
+      ],
+      "style": "club",
+      "yaw": -58
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "armchair_club_red_R",
+       "h": 40,
+       "l": -3,
+       "r": 36,
+       "rx": 3,
+       "ry": 38,
+       "t": -38,
+       "w": 40
+      }
+     ]
+    },
+    "club_red_l": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "red",
+      "for": [
+       "cosy",
+       "den"
+      ],
+      "style": "club",
+      "yaw": 35
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "armchair_club_red_l",
+       "h": 40,
+       "l": -4,
+       "r": 36,
+       "rx": 4,
+       "ry": 38,
+       "t": -38,
+       "w": 41
+      }
+     ]
+    },
+    "club_red_r": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "red",
+      "for": [
+       "cosy",
+       "den"
+      ],
+      "style": "club",
+      "yaw": -35
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "armchair_club_red_r",
        "h": 40,
        "l": -3,
        "r": 37,
@@ -550,6 +931,12 @@
      "lights": [],
      "params": {
       "fab": "rose",
+      "for": [
+       "parlour",
+       "adult",
+       "sick",
+       "refuge"
+      ],
       "style": "club",
       "yaw": 58
      },
@@ -581,6 +968,12 @@
      "lights": [],
      "params": {
       "fab": "rose",
+      "for": [
+       "parlour",
+       "adult",
+       "sick",
+       "refuge"
+      ],
       "style": "club",
       "yaw": -58
      },
@@ -612,6 +1005,12 @@
      "lights": [],
      "params": {
       "fab": "rose",
+      "for": [
+       "parlour",
+       "adult",
+       "sick",
+       "refuge"
+      ],
       "style": "club",
       "yaw": 35
      },
@@ -643,6 +1042,12 @@
      "lights": [],
      "params": {
       "fab": "rose",
+      "for": [
+       "parlour",
+       "adult",
+       "sick",
+       "refuge"
+      ],
       "style": "club",
       "yaw": -35
      },
@@ -662,6 +1067,290 @@
       }
      ]
     },
+    "club_teal_L": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "teal",
+      "for": [
+       "mid",
+       "studio"
+      ],
+      "style": "club",
+      "yaw": 58
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "armchair_club_teal_L",
+       "h": 41,
+       "l": -3,
+       "r": 36,
+       "rx": 3,
+       "ry": 38,
+       "t": -38,
+       "w": 40
+      }
+     ]
+    },
+    "club_teal_R": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "teal",
+      "for": [
+       "mid",
+       "studio"
+      ],
+      "style": "club",
+      "yaw": -58
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "armchair_club_teal_R",
+       "h": 40,
+       "l": -3,
+       "r": 36,
+       "rx": 3,
+       "ry": 38,
+       "t": -38,
+       "w": 40
+      }
+     ]
+    },
+    "club_teal_l": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "teal",
+      "for": [
+       "mid",
+       "studio"
+      ],
+      "style": "club",
+      "yaw": 35
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "armchair_club_teal_l",
+       "h": 40,
+       "l": -4,
+       "r": 36,
+       "rx": 4,
+       "ry": 38,
+       "t": -38,
+       "w": 41
+      }
+     ]
+    },
+    "club_teal_r": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "teal",
+      "for": [
+       "mid",
+       "studio"
+      ],
+      "style": "club",
+      "yaw": -35
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "armchair_club_teal_r",
+       "h": 40,
+       "l": -3,
+       "r": 37,
+       "rx": 3,
+       "ry": 38,
+       "t": -38,
+       "w": 41
+      }
+     ]
+    },
+    "wing_brown_L": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "brown",
+      "for": [
+       "lodge",
+       "den",
+       "library"
+      ],
+      "style": "wing",
+      "yaw": 58
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "armchair_wing_brown_L",
+       "h": 47,
+       "l": -3,
+       "r": 36,
+       "rx": 3,
+       "ry": 44,
+       "t": -44,
+       "w": 40
+      }
+     ]
+    },
+    "wing_brown_R": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "brown",
+      "for": [
+       "lodge",
+       "den",
+       "library"
+      ],
+      "style": "wing",
+      "yaw": -58
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "armchair_wing_brown_R",
+       "h": 46,
+       "l": -3,
+       "r": 36,
+       "rx": 3,
+       "ry": 44,
+       "t": -44,
+       "w": 40
+      }
+     ]
+    },
+    "wing_brown_l": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "brown",
+      "for": [
+       "lodge",
+       "den",
+       "library"
+      ],
+      "style": "wing",
+      "yaw": 35
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "armchair_wing_brown_l",
+       "h": 46,
+       "l": -4,
+       "r": 36,
+       "rx": 4,
+       "ry": 44,
+       "t": -44,
+       "w": 41
+      }
+     ]
+    },
+    "wing_brown_r": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "brown",
+      "for": [
+       "lodge",
+       "den",
+       "library"
+      ],
+      "style": "wing",
+      "yaw": -35
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "armchair_wing_brown_r",
+       "h": 46,
+       "l": -3,
+       "r": 37,
+       "rx": 3,
+       "ry": 44,
+       "t": -44,
+       "w": 41
+      }
+     ]
+    },
     "wing_green_L": {
      "anchors": [
       {
@@ -674,6 +1363,13 @@
      "lights": [],
      "params": {
       "fab": "green",
+      "for": [
+       "parlour",
+       "library",
+       "adult",
+       "sick",
+       "refuge"
+      ],
       "style": "wing",
       "yaw": 58
      },
@@ -705,6 +1401,13 @@
      "lights": [],
      "params": {
       "fab": "green",
+      "for": [
+       "parlour",
+       "library",
+       "adult",
+       "sick",
+       "refuge"
+      ],
       "style": "wing",
       "yaw": -58
      },
@@ -736,6 +1439,13 @@
      "lights": [],
      "params": {
       "fab": "green",
+      "for": [
+       "parlour",
+       "library",
+       "adult",
+       "sick",
+       "refuge"
+      ],
       "style": "wing",
       "yaw": 35
      },
@@ -767,6 +1477,13 @@
      "lights": [],
      "params": {
       "fab": "green",
+      "for": [
+       "parlour",
+       "library",
+       "adult",
+       "sick",
+       "refuge"
+      ],
       "style": "wing",
       "yaw": -35
      },
@@ -798,6 +1515,13 @@
      "lights": [],
      "params": {
       "fab": "grey",
+      "for": [
+       "squat",
+       "office",
+       "adult",
+       "sick",
+       "refuge"
+      ],
       "style": "wing",
       "yaw": 58
      },
@@ -829,6 +1553,13 @@
      "lights": [],
      "params": {
       "fab": "grey",
+      "for": [
+       "squat",
+       "office",
+       "adult",
+       "sick",
+       "refuge"
+      ],
       "style": "wing",
       "yaw": -58
      },
@@ -860,6 +1591,13 @@
      "lights": [],
      "params": {
       "fab": "grey",
+      "for": [
+       "squat",
+       "office",
+       "adult",
+       "sick",
+       "refuge"
+      ],
       "style": "wing",
       "yaw": 35
      },
@@ -891,6 +1629,13 @@
      "lights": [],
      "params": {
       "fab": "grey",
+      "for": [
+       "squat",
+       "office",
+       "adult",
+       "sick",
+       "refuge"
+      ],
       "style": "wing",
       "yaw": -35
      },
@@ -922,6 +1667,13 @@
      "lights": [],
      "params": {
       "fab": "mustard",
+      "for": [
+       "mid",
+       "studio",
+       "adult",
+       "sick",
+       "refuge"
+      ],
       "style": "wing",
       "yaw": 58
      },
@@ -953,6 +1705,13 @@
      "lights": [],
      "params": {
       "fab": "mustard",
+      "for": [
+       "mid",
+       "studio",
+       "adult",
+       "sick",
+       "refuge"
+      ],
       "style": "wing",
       "yaw": -58
      },
@@ -984,6 +1743,13 @@
      "lights": [],
      "params": {
       "fab": "mustard",
+      "for": [
+       "mid",
+       "studio",
+       "adult",
+       "sick",
+       "refuge"
+      ],
       "style": "wing",
       "yaw": 35
      },
@@ -1015,6 +1781,13 @@
      "lights": [],
      "params": {
       "fab": "mustard",
+      "for": [
+       "mid",
+       "studio",
+       "adult",
+       "sick",
+       "refuge"
+      ],
       "style": "wing",
       "yaw": -35
      },
@@ -1024,6 +1797,146 @@
        "b": 1,
        "bx": 160,
        "file": "armchair_wing_mustard_r",
+       "h": 46,
+       "l": -3,
+       "r": 37,
+       "rx": 3,
+       "ry": 44,
+       "t": -44,
+       "w": 41
+      }
+     ]
+    },
+    "wing_red_L": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "red",
+      "for": [
+       "cosy",
+       "den"
+      ],
+      "style": "wing",
+      "yaw": 58
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "armchair_wing_red_L",
+       "h": 47,
+       "l": -3,
+       "r": 36,
+       "rx": 3,
+       "ry": 44,
+       "t": -44,
+       "w": 40
+      }
+     ]
+    },
+    "wing_red_R": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "red",
+      "for": [
+       "cosy",
+       "den"
+      ],
+      "style": "wing",
+      "yaw": -58
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "armchair_wing_red_R",
+       "h": 46,
+       "l": -3,
+       "r": 36,
+       "rx": 3,
+       "ry": 44,
+       "t": -44,
+       "w": 40
+      }
+     ]
+    },
+    "wing_red_l": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "red",
+      "for": [
+       "cosy",
+       "den"
+      ],
+      "style": "wing",
+      "yaw": 35
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "armchair_wing_red_l",
+       "h": 46,
+       "l": -4,
+       "r": 36,
+       "rx": 4,
+       "ry": 44,
+       "t": -44,
+       "w": 41
+      }
+     ]
+    },
+    "wing_red_r": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "red",
+      "for": [
+       "cosy",
+       "den"
+      ],
+      "style": "wing",
+      "yaw": -35
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "armchair_wing_red_r",
        "h": 46,
        "l": -3,
        "r": 37,
@@ -1046,6 +1959,12 @@
      "lights": [],
      "params": {
       "fab": "rose",
+      "for": [
+       "parlour",
+       "adult",
+       "sick",
+       "refuge"
+      ],
       "style": "wing",
       "yaw": 58
      },
@@ -1077,6 +1996,12 @@
      "lights": [],
      "params": {
       "fab": "rose",
+      "for": [
+       "parlour",
+       "adult",
+       "sick",
+       "refuge"
+      ],
       "style": "wing",
       "yaw": -58
      },
@@ -1108,6 +2033,12 @@
      "lights": [],
      "params": {
       "fab": "rose",
+      "for": [
+       "parlour",
+       "adult",
+       "sick",
+       "refuge"
+      ],
       "style": "wing",
       "yaw": 35
      },
@@ -1139,6 +2070,12 @@
      "lights": [],
      "params": {
       "fab": "rose",
+      "for": [
+       "parlour",
+       "adult",
+       "sick",
+       "refuge"
+      ],
       "style": "wing",
       "yaw": -35
      },
@@ -1157,9 +2094,235 @@
        "w": 41
       }
      ]
+    },
+    "wing_teal_L": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "teal",
+      "for": [
+       "mid",
+       "studio"
+      ],
+      "style": "wing",
+      "yaw": 58
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "armchair_wing_teal_L",
+       "h": 47,
+       "l": -3,
+       "r": 36,
+       "rx": 3,
+       "ry": 44,
+       "t": -44,
+       "w": 40
+      }
+     ]
+    },
+    "wing_teal_R": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "teal",
+      "for": [
+       "mid",
+       "studio"
+      ],
+      "style": "wing",
+      "yaw": -58
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "armchair_wing_teal_R",
+       "h": 46,
+       "l": -3,
+       "r": 36,
+       "rx": 3,
+       "ry": 44,
+       "t": -44,
+       "w": 40
+      }
+     ]
+    },
+    "wing_teal_l": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "teal",
+      "for": [
+       "mid",
+       "studio"
+      ],
+      "style": "wing",
+      "yaw": 35
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "armchair_wing_teal_l",
+       "h": 46,
+       "l": -4,
+       "r": 36,
+       "rx": 4,
+       "ry": 44,
+       "t": -44,
+       "w": 41
+      }
+     ]
+    },
+    "wing_teal_r": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "teal",
+      "for": [
+       "mid",
+       "studio"
+      ],
+      "style": "wing",
+      "yaw": -35
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "armchair_wing_teal_r",
+       "h": 46,
+       "l": -3,
+       "r": 37,
+       "rx": 3,
+       "ry": 44,
+       "t": -44,
+       "w": 41
+      }
+     ]
     }
    },
    "w": 34,
+   "wall_y": null
+  },
+  "ashtray_pack": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 7,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "an ashtray with a pack of cigarettes and a lighter beside it",
+   "on": [
+    "low"
+   ],
+   "opens": null,
+   "pair": null,
+   "plane": "top",
+   "rooms": {
+    "living_room": 4
+   },
+   "sound": null,
+   "styles": {
+    "cosy": 2,
+    "mid": 5,
+    "squat": 4
+   },
+   "tags": [
+    "small"
+   ],
+   "under": [],
+   "variants": {
+    "glass": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "col": "5a8a9a"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "ashtray_pack_glass",
+       "h": 9,
+       "l": -2,
+       "r": 11,
+       "rx": 2,
+       "ry": 6,
+       "t": -6,
+       "w": 14
+      }
+     ]
+    },
+    "tin": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "col": "9aa0a2"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "ashtray_pack_tin",
+       "h": 9,
+       "l": -2,
+       "r": 11,
+       "rx": 2,
+       "ry": 6,
+       "t": -6,
+       "w": 14
+      }
+     ]
+    }
+   },
+   "w": 11,
    "wall_y": null
   },
   "backpack": {
@@ -1172,6 +2335,7 @@
     121
    ],
    "h": 24,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [
@@ -1185,19 +2349,24 @@
    "plane": "floor",
    "rooms": {
     "bedroom": 5,
+    "dining_room": 2,
     "living_room": 2,
     "study": 2
    },
    "sound": null,
    "styles": {
     "adult": 1,
+    "barricade": 4,
+    "radio": 3,
     "refuge": 8,
+    "squat": 4,
     "teen": 2
    },
    "tags": [
     "storage",
     "bag"
    ],
+   "under": [],
    "variants": {
     "navy": {
      "anchors": [
@@ -1333,6 +2502,7 @@
     119
    ],
    "h": 10,
+   "lap": 6,
    "lean": false,
    "limit": 1,
    "near": [
@@ -1356,6 +2526,7 @@
    "tags": [
     "toy"
    ],
+   "under": [],
    "variants": {
     "red": {
      "anchors": [],
@@ -1392,6 +2563,7 @@
     117
    ],
    "h": 47,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [
@@ -1414,6 +2586,7 @@
     "sleeping",
     "medical"
    ],
+   "under": [],
    "variants": {
     "l_blue_clean": {
      "anchors": [
@@ -2101,6 +3274,7 @@
     116
    ],
    "h": 40,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [
@@ -2122,6 +3296,7 @@
    "tags": [
     "sleeping"
    ],
+   "under": [],
    "variants": {
     "l_blue": {
      "anchors": [
@@ -2635,6 +3810,7 @@
     116
    ],
    "h": 47,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [
@@ -2656,6 +3832,7 @@
    "tags": [
     "sleeping"
    ],
+   "under": [],
    "variants": {
     "l_green": {
      "anchors": [
@@ -3335,6 +4512,7 @@
     116
    ],
    "h": 47,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [
@@ -3358,6 +4536,7 @@
    "tags": [
     "sleeping"
    ],
+   "under": [],
    "variants": {
     "l_mustard": {
      "anchors": [
@@ -4203,6 +5382,7 @@
     113
    ],
    "h": 24,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [
@@ -4215,20 +5395,25 @@
    "pair": null,
    "plane": "floor",
    "rooms": {
+    "dining_room": 2,
     "kitchen": 7,
     "living_room": 1
    },
    "sound": null,
    "styles": {
+    "barricade": 4,
     "classic": 4,
     "hoarder": 6,
+    "party": 1,
     "retro": 2,
+    "squat": 6,
     "student": 8
    },
    "tags": [
     "clutter",
     "rubbish"
    ],
+   "under": [],
    "variants": {
     "split": {
      "anchors": [
@@ -4302,6 +5487,7 @@
     112
    ],
    "h": 28,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [
@@ -4324,6 +5510,7 @@
    "tags": [
     "toy"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [],
@@ -4408,13 +5595,17 @@
     0
    ],
    "h": 12,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [],
    "needs": null,
    "note": "a few paperbacks and a hardback in a pile",
    "on": [
-    "small"
+    "small",
+    "desk",
+    "table",
+    "low"
    ],
    "opens": null,
    "pair": null,
@@ -4430,6 +5621,7 @@
     "small",
     "books"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [],
@@ -4529,6 +5721,7 @@
     108
    ],
    "h": 51,
+   "lap": 6,
    "lean": true,
    "limit": null,
    "near": [],
@@ -4546,13 +5739,21 @@
    "sound": null,
    "styles": {
     "adult": 3,
+    "cosy": 6,
+    "den": 4,
     "kid": 1,
+    "library": 3,
+    "lodge": 3,
+    "mid": 1,
+    "parlour": 4,
+    "studio": 2,
     "teen": 3
    },
    "tags": [
     "books",
     "storage"
    ],
+   "under": [],
    "variants": {
     "dark": {
      "anchors": [
@@ -4904,6 +6105,7 @@
     114
    ],
    "h": 18,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [
@@ -4916,6 +6118,7 @@
    "pair": null,
    "plane": "floor",
    "rooms": {
+    "dining_room": 2,
     "kitchen": 6,
     "living_room": 2,
     "study": 2
@@ -4925,6 +6128,7 @@
    "tags": [
     "clutter"
    ],
+   "under": [],
    "variants": {
     "bottles": {
      "anchors": [
@@ -5041,6 +6245,7 @@
     108
    ],
    "h": 40,
+   "lap": 6,
    "lean": true,
    "limit": null,
    "near": [],
@@ -5052,18 +6257,22 @@
    "plane": "wall",
    "rooms": {
     "bedroom": 5,
-    "dining_room": 1,
+    "dining_room": 3,
     "kitchen": 2,
     "living_room": 3,
-    "study": 3
+    "study": 4
    },
    "sound": null,
    "styles": {
-    "refuge": 8
+    "barricade": 6,
+    "radio": 5,
+    "refuge": 8,
+    "studio": 2
    },
    "tags": [
     "storage"
    ],
+   "under": [],
    "variants": {
     "closed": {
      "anchors": [
@@ -5281,6 +6490,7 @@
     0
    ],
    "h": 11,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [],
@@ -5301,6 +6511,7 @@
     "small",
     "food"
    ],
+   "under": [],
    "variants": {
     "cream": {
      "anchors": [],
@@ -5371,6 +6582,7 @@
     116
    ],
    "h": 30,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [
@@ -5392,6 +6604,7 @@
     "clutter",
     "wet"
    ],
+   "under": [],
    "variants": {
     "blue": {
      "anchors": [
@@ -5465,6 +6678,7 @@
     0
    ],
    "h": 36,
+   "lap": 6,
    "lean": false,
    "limit": 1,
    "near": [],
@@ -5476,6 +6690,7 @@
    "plane": "decor",
    "rooms": {
     "bedroom": 3,
+    "dining_room": 2,
     "kitchen": 7,
     "living_room": 2,
     "study": 4
@@ -5483,13 +6698,19 @@
    "sound": null,
    "styles": {
     "adult": 3,
+    "cosy": 2,
+    "den": 2,
+    "office": 5,
+    "radio": 2,
     "refuge": 2,
     "sick": 1,
+    "squat": 1,
     "teen": 1
    },
    "tags": [
     "notice"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [],
@@ -5519,6 +6740,68 @@
     44
    ]
   },
+  "cameos": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 22,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "a pair of silhouette cameos in oval gilt frames, the couple turned to face each other",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "decor",
+   "rooms": {
+    "dining_room": 3,
+    "living_room": 4
+   },
+   "sound": null,
+   "styles": {
+    "formal": 4,
+    "parlour": 9
+   },
+   "tags": [
+    "picture"
+   ],
+   "under": [],
+   "variants": {
+    "pair": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {},
+     "slots": [],
+     "sprites": [
+      {
+       "b": 21,
+       "bx": 160,
+       "file": "cameos_pair",
+       "h": 24,
+       "l": 1,
+       "r": 36,
+       "rx": -1,
+       "ry": 2,
+       "t": -2,
+       "w": 36
+      }
+     ]
+    }
+   },
+   "w": 38,
+   "wall_y": [
+    24,
+    36
+   ]
+  },
   "canisters": {
    "above": [],
    "bucketed": false,
@@ -5529,6 +6812,7 @@
     0
    ],
    "h": 11,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [],
@@ -5549,6 +6833,7 @@
     "small",
     "food"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [],
@@ -5627,6 +6912,7 @@
     118
    ],
    "h": 8,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [
@@ -5649,6 +6935,7 @@
     "clutter",
     "food"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [
@@ -5691,6 +6978,7 @@
     0
    ],
    "h": 5,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [],
@@ -5714,6 +7002,7 @@
     "light",
     "ceiling"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [],
@@ -5756,6 +7045,7 @@
     0
    ],
    "h": 22,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [],
@@ -5777,6 +7067,7 @@
     "light",
     "ceiling"
    ],
+   "under": [],
    "variants": {
     "white": {
      "anchors": [],
@@ -5819,6 +7110,7 @@
     0
    ],
    "h": 26,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [],
@@ -5838,13 +7130,23 @@
    "sound": null,
    "styles": {
     "adult": 4,
+    "cosy": 4,
+    "den": 3,
+    "diner": 2,
+    "family": 4,
+    "formal": 4,
     "kid": 3,
+    "library": 3,
+    "lodge": 3,
+    "mid": 3,
+    "parlour": 3,
     "sick": 1
    },
    "tags": [
     "light",
     "ceiling"
    ],
+   "under": [],
    "variants": {
     "cream": {
      "anchors": [],
@@ -5976,6 +7278,7 @@
     121
    ],
    "h": 28,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [
@@ -5999,6 +7302,7 @@
     "seat",
     "child"
    ],
+   "under": [],
    "variants": {
     "blue_f": {
      "anchors": [],
@@ -6374,6 +7678,7 @@
     121
    ],
    "h": 30,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [],
@@ -6395,6 +7700,7 @@
    "tags": [
     "seat"
    ],
+   "under": [],
    "variants": {
     "front": {
      "anchors": [],
@@ -6479,6 +7785,7 @@
     121
    ],
    "h": 40,
+   "lap": 6,
    "lean": false,
    "limit": 1,
    "near": [
@@ -6505,6 +7812,7 @@
    "tags": [
     "seat"
    ],
+   "under": [],
    "variants": {
     "ladder_dark_f": {
      "anchors": [],
@@ -7222,6 +8530,7 @@
     108
    ],
    "h": 41,
+   "lap": 6,
    "lean": true,
    "limit": null,
    "near": [],
@@ -7236,12 +8545,16 @@
    "pair": null,
    "plane": "wall",
    "rooms": {
-    "bedroom": 6
+    "bedroom": 6,
+    "living_room": 4
    },
    "sound": null,
    "styles": {
     "adult": 5,
+    "cosy": 6,
     "kid": 2,
+    "lodge": 2,
+    "parlour": 2,
     "sick": 2,
     "teen": 3
    },
@@ -7249,6 +8562,7 @@
     "storage",
     "drawers"
    ],
+   "under": [],
    "variants": {
     "dark": {
      "anchors": [
@@ -7611,6 +8925,277 @@
    "w": 46,
    "wall_y": null
   },
+  "china_cabinet": {
+   "above": [],
+   "bucketed": true,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    105,
+    108
+   ],
+   "h": 76,
+   "lap": 6,
+   "lean": true,
+   "limit": null,
+   "near": [],
+   "needs": null,
+   "note": "a glazed china cabinet: a pediment, two glass doors over shelves of blue-and-white plates, cups and a tureen, a drawer and a panelled cupboard below on bracket feet",
+   "on": [],
+   "opens": {
+    "anchor": "cabinet_cupboard",
+    "frames": 3,
+    "kind": "door_h"
+   },
+   "pair": null,
+   "plane": "wall",
+   "rooms": {
+    "dining_room": 8,
+    "living_room": 5
+   },
+   "sound": null,
+   "styles": {
+    "cosy": 1,
+    "family": 3,
+    "formal": 8,
+    "parlour": 8
+   },
+   "tags": [
+    "storage",
+    "display"
+   ],
+   "under": [],
+   "variants": {
+    "mahogany": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -53,
+       "name": "china_cabinet"
+      },
+      {
+       "dx": 17,
+       "dy": -17,
+       "name": "cabinet_cupboard"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "walnut"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "china_cabinet_mahogany_b0",
+       "h": 86,
+       "l": -3,
+       "open_file": "china_cabinet_mahogany_b0_open",
+       "r": 45,
+       "rx": 3,
+       "ry": 82,
+       "t": -82,
+       "w": 49
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "china_cabinet_mahogany_b1",
+       "h": 86,
+       "l": -3,
+       "open_file": "china_cabinet_mahogany_b1_open",
+       "r": 41,
+       "rx": 3,
+       "ry": 82,
+       "t": -82,
+       "w": 45
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "china_cabinet_mahogany_b2",
+       "h": 86,
+       "l": -3,
+       "open_file": "china_cabinet_mahogany_b2_open",
+       "r": 37,
+       "rx": 3,
+       "ry": 82,
+       "t": -82,
+       "w": 41
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "china_cabinet_mahogany_b3",
+       "h": 86,
+       "l": -3,
+       "open_file": "china_cabinet_mahogany_b3_open",
+       "r": 35,
+       "rx": 3,
+       "ry": 82,
+       "t": -82,
+       "w": 39
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "china_cabinet_mahogany_b4",
+       "h": 86,
+       "l": -4,
+       "open_file": "china_cabinet_mahogany_b4_open",
+       "r": 35,
+       "rx": 4,
+       "ry": 82,
+       "t": -82,
+       "w": 40
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "china_cabinet_mahogany_b5",
+       "h": 86,
+       "l": -8,
+       "open_file": "china_cabinet_mahogany_b5_open",
+       "r": 35,
+       "rx": 8,
+       "ry": 82,
+       "t": -82,
+       "w": 44
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "china_cabinet_mahogany_b6",
+       "h": 86,
+       "l": -12,
+       "open_file": "china_cabinet_mahogany_b6_open",
+       "r": 35,
+       "rx": 12,
+       "ry": 82,
+       "t": -82,
+       "w": 48
+      }
+     ]
+    },
+    "oak": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -53,
+       "name": "china_cabinet"
+      },
+      {
+       "dx": 17,
+       "dy": -17,
+       "name": "cabinet_cupboard"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "oak"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "china_cabinet_oak_b0",
+       "h": 86,
+       "l": -3,
+       "open_file": "china_cabinet_oak_b0_open",
+       "r": 45,
+       "rx": 3,
+       "ry": 82,
+       "t": -82,
+       "w": 49
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "china_cabinet_oak_b1",
+       "h": 86,
+       "l": -3,
+       "open_file": "china_cabinet_oak_b1_open",
+       "r": 41,
+       "rx": 3,
+       "ry": 82,
+       "t": -82,
+       "w": 45
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "china_cabinet_oak_b2",
+       "h": 86,
+       "l": -3,
+       "open_file": "china_cabinet_oak_b2_open",
+       "r": 37,
+       "rx": 3,
+       "ry": 82,
+       "t": -82,
+       "w": 41
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "china_cabinet_oak_b3",
+       "h": 86,
+       "l": -3,
+       "open_file": "china_cabinet_oak_b3_open",
+       "r": 35,
+       "rx": 3,
+       "ry": 82,
+       "t": -82,
+       "w": 39
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "china_cabinet_oak_b4",
+       "h": 86,
+       "l": -4,
+       "open_file": "china_cabinet_oak_b4_open",
+       "r": 35,
+       "rx": 4,
+       "ry": 82,
+       "t": -82,
+       "w": 40
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "china_cabinet_oak_b5",
+       "h": 86,
+       "l": -8,
+       "open_file": "china_cabinet_oak_b5_open",
+       "r": 35,
+       "rx": 8,
+       "ry": 82,
+       "t": -82,
+       "w": 44
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "china_cabinet_oak_b6",
+       "h": 86,
+       "l": -12,
+       "open_file": "china_cabinet_oak_b6_open",
+       "r": 35,
+       "rx": 12,
+       "ry": 82,
+       "t": -82,
+       "w": 48
+      }
+     ]
+    }
+   },
+   "w": 34,
+   "wall_y": null
+  },
   "chopping_board": {
    "above": [],
    "bucketed": false,
@@ -7621,6 +9206,7 @@
     0
    ],
    "h": 12,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [],
@@ -7641,6 +9227,7 @@
     "small",
     "cooking"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [],
@@ -7684,6 +9271,7 @@
     0
    ],
    "h": 30,
+   "lap": 6,
    "lean": false,
    "limit": 1,
    "near": [],
@@ -7695,19 +9283,24 @@
    "plane": "decor",
    "rooms": {
     "bedroom": 1,
-    "dining_room": 4,
+    "dining_room": 3,
     "kitchen": 4,
     "living_room": 3
    },
    "sound": null,
    "styles": {
     "adult": 3,
+    "cosy": 2,
+    "family": 3,
     "kid": 2,
+    "lodge": 4,
+    "parlour": 2,
     "sick": 1
    },
    "tags": [
     "clock"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [],
@@ -7747,6 +9340,7 @@
     0
    ],
    "h": 36,
+   "lap": 6,
    "lean": false,
    "limit": 1,
    "near": [],
@@ -7765,11 +9359,19 @@
    "sound": null,
    "styles": {
     "adult": 4,
+    "cosy": 2,
+    "den": 3,
+    "family": 2,
+    "formal": 5,
+    "library": 4,
+    "lodge": 3,
+    "parlour": 5,
     "sick": 2
    },
    "tags": [
     "clock"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [],
@@ -7809,6 +9411,7 @@
     0
    ],
    "h": 21,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [],
@@ -7828,13 +9431,25 @@
    "sound": null,
    "styles": {
     "adult": 3,
+    "cosy": 3,
+    "den": 2,
+    "diner": 3,
+    "family": 3,
+    "formal": 1,
     "kid": 2,
+    "library": 1,
+    "mid": 3,
+    "office": 4,
+    "parlour": 1,
+    "party": 2,
     "sick": 3,
+    "squat": 1,
     "teen": 1
    },
    "tags": [
     "clock"
    ],
+   "under": [],
    "variants": {
     "black": {
      "anchors": [],
@@ -7934,6 +9549,7 @@
     121
    ],
    "h": 14,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [
@@ -7956,6 +9572,7 @@
     "clutter",
     "clothes"
    ],
+   "under": [],
    "variants": {
     "blue_red": {
      "anchors": [
@@ -8064,6 +9681,7 @@
     119
    ],
    "h": 52,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [
@@ -8089,6 +9707,7 @@
     "storage",
     "clothes"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [
@@ -8162,6 +9781,271 @@
    "w": 49,
    "wall_y": null
   },
+  "coffee_table": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": true,
+   "feet": [
+    114,
+    118
+   ],
+   "h": 24,
+   "lap": 22,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "the low table in front of the sofa: a walnut one with a lower shelf of magazines (cosy), a teak kidney table on splayed brass legs (mid), a pallet on cinder blocks (squat), a round mahogany tea table (parlour), a strapped travelling trunk (lodge)",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "floor",
+   "rooms": {
+    "living_room": 8
+   },
+   "sound": null,
+   "styles": {
+    "cosy": 8,
+    "lodge": 6,
+    "mid": 8,
+    "parlour": 8,
+    "squat": 8
+   },
+   "tags": [
+    "table"
+   ],
+   "under": [],
+   "variants": {
+    "kidney": {
+     "anchors": [
+      {
+       "dx": 24,
+       "dy": -14,
+       "name": "coffee_table",
+       "top": true
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "mid"
+      ],
+      "kind": "kidney"
+     },
+     "slots": [
+      {
+       "dx0": 6,
+       "dx1": 43,
+       "dy": -17,
+       "id": "top",
+       "kinds": [
+        "small",
+        "low"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "coffee_table_kidney",
+       "h": 25,
+       "l": -1,
+       "r": 51,
+       "rx": 1,
+       "ry": 24,
+       "t": -24,
+       "w": 53
+      }
+     ]
+    },
+    "pallet": {
+     "anchors": [
+      {
+       "dx": 24,
+       "dy": -14,
+       "name": "coffee_table",
+       "top": true
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "squat"
+      ],
+      "kind": "pallet"
+     },
+     "slots": [
+      {
+       "dx0": 6,
+       "dx1": 43,
+       "dy": -17,
+       "id": "top",
+       "kinds": [
+        "small",
+        "low"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "coffee_table_pallet",
+       "h": 22,
+       "l": -1,
+       "r": 51,
+       "rx": 1,
+       "ry": 21,
+       "t": -21,
+       "w": 53
+      }
+     ]
+    },
+    "tea": {
+     "anchors": [
+      {
+       "dx": 24,
+       "dy": -14,
+       "name": "coffee_table",
+       "top": true
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "parlour"
+      ],
+      "kind": "tea"
+     },
+     "slots": [
+      {
+       "dx0": 6,
+       "dx1": 43,
+       "dy": -17,
+       "id": "top",
+       "kinds": [
+        "small",
+        "low"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "coffee_table_tea",
+       "h": 22,
+       "l": -1,
+       "r": 51,
+       "rx": 1,
+       "ry": 21,
+       "t": -21,
+       "w": 53
+      }
+     ]
+    },
+    "trunk": {
+     "anchors": [
+      {
+       "dx": 24,
+       "dy": -14,
+       "name": "coffee_table",
+       "top": true
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "lodge"
+      ],
+      "kind": "trunk"
+     },
+     "slots": [
+      {
+       "dx0": 6,
+       "dx1": 43,
+       "dy": -17,
+       "id": "top",
+       "kinds": [
+        "small",
+        "low"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "coffee_table_trunk",
+       "h": 20,
+       "l": -1,
+       "r": 51,
+       "rx": 1,
+       "ry": 19,
+       "t": -19,
+       "w": 53
+      }
+     ]
+    },
+    "wood": {
+     "anchors": [
+      {
+       "dx": 24,
+       "dy": -14,
+       "name": "coffee_table",
+       "top": true
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "cosy"
+      ],
+      "kind": "wood"
+     },
+     "slots": [
+      {
+       "dx0": 6,
+       "dx1": 43,
+       "dy": -17,
+       "id": "top",
+       "kinds": [
+        "small",
+        "low"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "coffee_table_wood",
+       "h": 23,
+       "l": -1,
+       "r": 51,
+       "rx": 1,
+       "ry": 22,
+       "t": -22,
+       "w": 53
+      }
+     ]
+    }
+   },
+   "w": 50,
+   "wall_y": null
+  },
   "crate_bedside": {
    "above": [],
    "bucketed": true,
@@ -8172,6 +10056,7 @@
     108
    ],
    "h": 20,
+   "lap": 6,
    "lean": true,
    "limit": null,
    "near": [],
@@ -8194,6 +10079,7 @@
     "storage",
     "bedside"
    ],
+   "under": [],
    "variants": {
     "grey": {
      "anchors": [
@@ -8425,6 +10311,267 @@
    "w": 21,
    "wall_y": null
   },
+  "crate_cubes": {
+   "above": [],
+   "bucketed": true,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    105,
+    108
+   ],
+   "h": 40,
+   "lap": 6,
+   "lean": true,
+   "limit": null,
+   "near": [],
+   "needs": null,
+   "note": "four milk crates stacked two by two on their sides, each stuffed with paperbacks and vinyl \u2014 a squatter's bookshelf",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "wall",
+   "rooms": {
+    "living_room": 6
+   },
+   "sound": null,
+   "styles": {
+    "squat": 8
+   },
+   "tags": [
+    "books",
+    "storage"
+   ],
+   "under": [],
+   "variants": {
+    "dairy": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -30,
+       "name": "crates_upper"
+      },
+      {
+       "dx": 17,
+       "dy": -10,
+       "name": "crates_lower"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "cols": [
+       "d8d8d0",
+       "c43a30",
+       "e0b830",
+       "2f5aa8"
+      ],
+      "seed": 2
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "crate_cubes_dairy_b0",
+       "h": 48,
+       "l": -3,
+       "r": 41,
+       "rx": 3,
+       "ry": 44,
+       "t": -44,
+       "w": 45
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "crate_cubes_dairy_b1",
+       "h": 48,
+       "l": -3,
+       "r": 38,
+       "rx": 3,
+       "ry": 44,
+       "t": -44,
+       "w": 42
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "crate_cubes_dairy_b2",
+       "h": 48,
+       "l": -3,
+       "r": 37,
+       "rx": 3,
+       "ry": 44,
+       "t": -44,
+       "w": 41
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "crate_cubes_dairy_b3",
+       "h": 48,
+       "l": -3,
+       "r": 37,
+       "rx": 3,
+       "ry": 44,
+       "t": -44,
+       "w": 41
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "crate_cubes_dairy_b4",
+       "h": 48,
+       "l": -3,
+       "r": 37,
+       "rx": 3,
+       "ry": 44,
+       "t": -44,
+       "w": 41
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "crate_cubes_dairy_b5",
+       "h": 48,
+       "l": -5,
+       "r": 37,
+       "rx": 5,
+       "ry": 44,
+       "t": -44,
+       "w": 43
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "crate_cubes_dairy_b6",
+       "h": 48,
+       "l": -8,
+       "r": 37,
+       "rx": 8,
+       "ry": 44,
+       "t": -44,
+       "w": 46
+      }
+     ]
+    },
+    "primary": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -30,
+       "name": "crates_upper"
+      },
+      {
+       "dx": 17,
+       "dy": -10,
+       "name": "crates_lower"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "cols": [
+       "e0b830",
+       "c43a30",
+       "2f5aa8",
+       "3a8a4a"
+      ],
+      "seed": 1
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "crate_cubes_primary_b0",
+       "h": 48,
+       "l": -3,
+       "r": 41,
+       "rx": 3,
+       "ry": 44,
+       "t": -44,
+       "w": 45
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "crate_cubes_primary_b1",
+       "h": 48,
+       "l": -3,
+       "r": 38,
+       "rx": 3,
+       "ry": 44,
+       "t": -44,
+       "w": 42
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "crate_cubes_primary_b2",
+       "h": 48,
+       "l": -3,
+       "r": 37,
+       "rx": 3,
+       "ry": 44,
+       "t": -44,
+       "w": 41
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "crate_cubes_primary_b3",
+       "h": 48,
+       "l": -3,
+       "r": 37,
+       "rx": 3,
+       "ry": 44,
+       "t": -44,
+       "w": 41
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "crate_cubes_primary_b4",
+       "h": 48,
+       "l": -3,
+       "r": 37,
+       "rx": 3,
+       "ry": 44,
+       "t": -44,
+       "w": 41
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "crate_cubes_primary_b5",
+       "h": 48,
+       "l": -5,
+       "r": 37,
+       "rx": 5,
+       "ry": 44,
+       "t": -44,
+       "w": 43
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "crate_cubes_primary_b6",
+       "h": 48,
+       "l": -8,
+       "r": 37,
+       "rx": 8,
+       "ry": 44,
+       "t": -44,
+       "w": 46
+      }
+     ]
+    }
+   },
+   "w": 34,
+   "wall_y": null
+  },
   "crate_veg": {
    "above": [],
    "bucketed": false,
@@ -8435,6 +10582,7 @@
     114
    ],
    "h": 18,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [
@@ -8458,6 +10606,7 @@
     "clutter",
     "food"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [
@@ -8500,6 +10649,7 @@
     108
    ],
    "h": 47,
+   "lap": 6,
    "lean": true,
    "limit": null,
    "near": [],
@@ -8520,6 +10670,7 @@
    "tags": [
     "storage"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [
@@ -8761,6 +10912,7 @@
     108
    ],
    "h": 28,
+   "lap": 6,
    "lean": true,
    "limit": null,
    "near": [],
@@ -8791,6 +10943,7 @@
     "work",
     "storage"
    ],
+   "under": [],
    "variants": {
     "pine": {
      "anchors": [
@@ -8910,6 +11063,7 @@
     108
    ],
    "h": 58,
+   "lap": 6,
    "lean": true,
    "limit": null,
    "near": [],
@@ -8930,6 +11084,7 @@
    "tags": [
     "toy"
    ],
+   "under": [],
    "variants": {
     "blue": {
      "anchors": [
@@ -9248,6 +11403,7 @@
     106
    ],
    "h": 86,
+   "lap": 6,
    "lean": true,
    "limit": 1,
    "near": [],
@@ -9276,6 +11432,7 @@
     "storage",
     "dresser"
    ],
+   "under": [],
    "variants": {
     "pine": {
      "anchors": [
@@ -9420,6 +11577,7 @@
     108
    ],
    "h": 34,
+   "lap": 6,
    "lean": true,
    "limit": null,
    "near": [],
@@ -9442,6 +11600,7 @@
     "mirror",
     "dressing"
    ],
+   "under": [],
    "variants": {
     "dark": {
      "anchors": [
@@ -9802,6 +11961,7 @@
     118
    ],
    "h": 62,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [
@@ -9825,6 +11985,7 @@
    "tags": [
     "medical"
    ],
+   "under": [],
    "variants": {
     "amber": {
      "anchors": [],
@@ -9892,6 +12053,223 @@
    "w": 16,
    "wall_y": null
   },
+  "fireplace": {
+   "above": [],
+   "bucketed": true,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    105,
+    108
+   ],
+   "h": 82,
+   "lap": 6,
+   "lean": true,
+   "limit": null,
+   "near": [],
+   "needs": null,
+   "note": "a hearth: a stone (or brick) surround, a timber mantel, a dark firebox with a grate, logs and a heap of embers, a hearth slab in front; the chimney breast runs up to the ceiling",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "wall",
+   "rooms": {
+    "living_room": 8
+   },
+   "sound": null,
+   "styles": {
+    "cosy": 1,
+    "lodge": 10,
+    "parlour": 2
+   },
+   "tags": [
+    "hearth",
+    "storage"
+   ],
+   "under": [],
+   "variants": {
+    "brick": {
+     "anchors": [
+      {
+       "dx": 36,
+       "dy": -18,
+       "name": "fireplace"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "kind": "brick"
+     },
+     "slots": [
+      {
+       "dx0": 6,
+       "dx1": 66,
+       "dy": -45,
+       "id": "top",
+       "kinds": [
+        "small",
+        "lamp"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "fireplace_brick_b1",
+       "h": 87,
+       "l": -5,
+       "r": 77,
+       "rx": 5,
+       "ry": 83,
+       "t": -83,
+       "w": 83
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "fireplace_brick_b2",
+       "h": 87,
+       "l": -5,
+       "r": 75,
+       "rx": 5,
+       "ry": 83,
+       "t": -83,
+       "w": 81
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "fireplace_brick_b3",
+       "h": 87,
+       "l": -5,
+       "r": 75,
+       "rx": 5,
+       "ry": 83,
+       "t": -83,
+       "w": 81
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "fireplace_brick_b4",
+       "h": 87,
+       "l": -5,
+       "r": 75,
+       "rx": 5,
+       "ry": 83,
+       "t": -83,
+       "w": 81
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "fireplace_brick_b5",
+       "h": 87,
+       "l": -6,
+       "r": 75,
+       "rx": 6,
+       "ry": 83,
+       "t": -83,
+       "w": 82
+      }
+     ]
+    },
+    "stone": {
+     "anchors": [
+      {
+       "dx": 36,
+       "dy": -18,
+       "name": "fireplace"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "kind": "stone"
+     },
+     "slots": [
+      {
+       "dx0": 6,
+       "dx1": 66,
+       "dy": -45,
+       "id": "top",
+       "kinds": [
+        "small",
+        "lamp"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "fireplace_stone_b1",
+       "h": 87,
+       "l": -5,
+       "r": 77,
+       "rx": 5,
+       "ry": 83,
+       "t": -83,
+       "w": 83
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "fireplace_stone_b2",
+       "h": 87,
+       "l": -5,
+       "r": 75,
+       "rx": 5,
+       "ry": 83,
+       "t": -83,
+       "w": 81
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "fireplace_stone_b3",
+       "h": 87,
+       "l": -5,
+       "r": 75,
+       "rx": 5,
+       "ry": 83,
+       "t": -83,
+       "w": 81
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "fireplace_stone_b4",
+       "h": 87,
+       "l": -5,
+       "r": 75,
+       "rx": 5,
+       "ry": 83,
+       "t": -83,
+       "w": 81
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "fireplace_stone_b5",
+       "h": 87,
+       "l": -6,
+       "r": 75,
+       "rx": 6,
+       "ry": 83,
+       "t": -83,
+       "w": 82
+      }
+     ]
+    }
+   },
+   "w": 72,
+   "wall_y": null
+  },
   "floor_stain": {
    "above": [],
    "bucketed": false,
@@ -9902,6 +12280,7 @@
     119
    ],
    "h": 8,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [],
@@ -9914,18 +12293,25 @@
    "rooms": {
     "bathroom": 3,
     "bedroom": 4,
+    "dining_room": 3,
     "kitchen": 3,
-    "living_room": 3
+    "living_room": 3,
+    "study": 2
    },
    "sound": null,
    "styles": {
+    "barricade": 6,
+    "cosy": 1,
     "refuge": 6,
     "sick": 3,
-    "teen": 1
+    "squat": 5,
+    "teen": 1,
+    "wetroom": 5
    },
    "tags": [
     "stain"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [],
@@ -9989,6 +12375,7 @@
     0
    ],
    "h": 24,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [],
@@ -10007,12 +12394,19 @@
    "sound": null,
    "styles": {
     "adult": 5,
+    "cosy": 5,
+    "den": 3,
+    "family": 5,
     "kid": 1,
+    "mid": 2,
+    "parlour": 3,
+    "party": 2,
     "sick": 1
    },
    "tags": [
     "picture"
    ],
+   "under": [],
    "variants": {
     "seaside": {
      "anchors": [],
@@ -10052,6 +12446,7 @@
     0
    ],
    "h": 22,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [],
@@ -10063,17 +12458,22 @@
    "plane": "decor",
    "rooms": {
     "bedroom": 3,
-    "dining_room": 2,
-    "living_room": 3
+    "dining_room": 3,
+    "living_room": 3,
+    "study": 1
    },
    "sound": null,
    "styles": {
-    "adult": 3
+    "adult": 3,
+    "barricade": 2,
+    "cosy": 2,
+    "parlour": 2
    },
    "tags": [
     "picture",
     "story"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [],
@@ -10113,6 +12513,7 @@
     106
    ],
    "h": 76,
+   "lap": 6,
    "lean": true,
    "limit": 1,
    "near": [],
@@ -10136,6 +12537,7 @@
     "cold",
     "storage"
    ],
+   "under": [],
    "variants": {
     "cream": {
      "anchors": [
@@ -10598,13 +13000,15 @@
     0
    ],
    "h": 11,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [],
    "needs": null,
    "note": "a wooden bowl of fruit \u2014 or of what is left of it",
    "on": [
-    "worktop"
+    "worktop",
+    "table"
    ],
    "opens": null,
    "pair": null,
@@ -10619,6 +13023,7 @@
     "small",
     "food"
    ],
+   "under": [],
    "variants": {
     "fresh": {
      "anchors": [],
@@ -10690,13 +13095,17 @@
     0
    ],
    "h": 9,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [],
    "needs": null,
    "note": "a tumbler of water",
    "on": [
-    "small"
+    "small",
+    "table",
+    "low",
+    "desk"
    ],
    "opens": null,
    "pair": null,
@@ -10714,6 +13123,7 @@
    "tags": [
     "small"
    ],
+   "under": [],
    "variants": {
     "full": {
      "anchors": [],
@@ -10765,6 +13175,91 @@
    "w": 7,
    "wall_y": null
   },
+  "guitar_stand": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    108,
+    118
+   ],
+   "h": 46,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "an acoustic guitar upright on an A-frame floor stand against the wall: the waisted body, the sound hole, the neck and the head with its tuners",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "floor",
+   "rooms": {
+    "bedroom": 1,
+    "living_room": 4
+   },
+   "sound": null,
+   "styles": {
+    "mid": 1,
+    "squat": 7,
+    "teen": 1
+   },
+   "tags": [
+    "music"
+   ],
+   "under": [],
+   "variants": {
+    "acoustic": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "body": "c88a3a"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "guitar_stand_acoustic",
+       "h": 52,
+       "l": 0,
+       "r": 18,
+       "rx": 0,
+       "ry": 49,
+       "t": -49,
+       "w": 19
+      }
+     ]
+    },
+    "dark": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "body": "5a2a1a"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "guitar_stand_dark",
+       "h": 52,
+       "l": 0,
+       "r": 18,
+       "rx": 0,
+       "ry": 49,
+       "t": -49,
+       "w": 19
+      }
+     ]
+    }
+   },
+   "w": 18,
+   "wall_y": null
+  },
   "hairbrush": {
    "above": [],
    "bucketed": false,
@@ -10775,6 +13270,7 @@
     0
    ],
    "h": 7,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [],
@@ -10796,6 +13292,7 @@
     "small",
     "dressing"
    ],
+   "under": [],
    "variants": {
     "black": {
      "anchors": [],
@@ -10880,6 +13377,7 @@
     0
    ],
    "h": 30,
+   "lap": 6,
    "lean": false,
    "limit": 1,
    "near": [],
@@ -10901,6 +13399,7 @@
    "tags": [
     "mark"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [],
@@ -10940,6 +13439,7 @@
     0
    ],
    "h": 14,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [],
@@ -10963,6 +13463,7 @@
     "small",
     "dressing"
    ],
+   "under": [],
    "variants": {
     "ebony": {
      "anchors": [
@@ -11068,6 +13569,7 @@
     0
    ],
    "h": 13,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [],
@@ -11088,6 +13590,7 @@
     "small",
     "cooking"
    ],
+   "under": [],
    "variants": {
     "cream": {
      "anchors": [],
@@ -11177,6 +13680,155 @@
    "w": 13,
    "wall_y": null
   },
+  "lamp_floor": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    108,
+    118
+   ],
+   "h": 56,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "a standard lamp on a round foot: a slender stem with a brass collar and a pleated drum shade, its inside glowing",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "floor",
+   "rooms": {
+    "dining_room": 1,
+    "living_room": 6,
+    "study": 3
+   },
+   "sound": null,
+   "styles": {
+    "cosy": 6,
+    "den": 3,
+    "library": 6,
+    "lodge": 3,
+    "mid": 6,
+    "office": 1,
+    "parlour": 5,
+    "squat": 1
+   },
+   "tags": [
+    "light",
+    "lamp"
+   ],
+   "under": [],
+   "variants": {
+    "black": {
+     "anchors": [],
+     "anims": [],
+     "lights": [
+      {
+       "dx": 9,
+       "dy": -46,
+       "kind": "table"
+      }
+     ],
+     "params": {
+      "col": "2a2a2e",
+      "for": [
+       "mid",
+       "squat"
+      ],
+      "shade": "d8d0b8"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "lamp_floor_black",
+       "h": 62,
+       "l": -1,
+       "r": 18,
+       "rx": 1,
+       "ry": 58,
+       "t": -58,
+       "w": 20
+      }
+     ]
+    },
+    "brass": {
+     "anchors": [],
+     "anims": [],
+     "lights": [
+      {
+       "dx": 9,
+       "dy": -46,
+       "kind": "table"
+      }
+     ],
+     "params": {
+      "col": "b89a48",
+      "for": [
+       "cosy",
+       "parlour",
+       "lodge"
+      ],
+      "shade": "e8d8a8"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "lamp_floor_brass",
+       "h": 62,
+       "l": -1,
+       "r": 18,
+       "rx": 1,
+       "ry": 58,
+       "t": -58,
+       "w": 20
+      }
+     ]
+    },
+    "teak": {
+     "anchors": [],
+     "anims": [],
+     "lights": [
+      {
+       "dx": 9,
+       "dy": -46,
+       "kind": "table"
+      }
+     ],
+     "params": {
+      "col": "7a4a2a",
+      "for": [
+       "mid",
+       "cosy"
+      ],
+      "shade": "c8a060"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "lamp_floor_teak",
+       "h": 62,
+       "l": -1,
+       "r": 18,
+       "rx": 1,
+       "ry": 58,
+       "t": -58,
+       "w": 20
+      }
+     ]
+    }
+   },
+   "w": 18,
+   "wall_y": null
+  },
   "lamp_lava": {
    "above": [],
    "bucketed": false,
@@ -11187,6 +13839,7 @@
     0
    ],
    "h": 18,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [],
@@ -11200,16 +13853,19 @@
    "plane": "top",
    "rooms": {
     "bedroom": 3,
-    "living_room": 1
+    "living_room": 3
    },
    "sound": null,
    "styles": {
+    "mid": 3,
+    "squat": 4,
     "teen": 8
    },
    "tags": [
     "light",
     "lamp"
    ],
+   "under": [],
    "variants": {
     "blue": {
      "anchors": [],
@@ -11353,13 +14009,15 @@
     0
    ],
    "h": 20,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [],
    "needs": null,
    "note": "a table lamp: a glazed or brass base under a drum shade, its inside glowing",
    "on": [
-    "lamp"
+    "lamp",
+    "desk"
    ],
    "opens": null,
    "pair": null,
@@ -11376,6 +14034,7 @@
     "light",
     "lamp"
    ],
+   "under": [],
    "variants": {
     "cream_blue": {
      "anchors": [],
@@ -12011,32 +14670,39 @@
     0
    ],
    "h": 14,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [],
    "needs": null,
    "note": "a battery camping lantern \u2014 it works without the flat's power",
    "on": [
-    "lamp"
+    "lamp",
+    "desk"
    ],
    "opens": null,
    "pair": null,
    "plane": "top",
    "rooms": {
     "bedroom": 3,
+    "dining_room": 2,
     "kitchen": 1,
     "living_room": 3,
     "study": 2
    },
    "sound": null,
    "styles": {
+    "barricade": 4,
+    "radio": 3,
     "refuge": 8,
-    "sick": 1
+    "sick": 1,
+    "squat": 2
    },
    "tags": [
     "light",
     "lamp"
    ],
+   "under": [],
    "variants": {
     "black": {
      "anchors": [],
@@ -12139,6 +14805,7 @@
     106
    ],
    "h": 82,
+   "lap": 6,
    "lean": true,
    "limit": 1,
    "near": [],
@@ -12161,6 +14828,7 @@
     "storage",
     "food"
    ],
+   "under": [],
    "variants": {
     "pine": {
      "anchors": [
@@ -12394,6 +15062,7 @@
     121
    ],
    "h": 16,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [
@@ -12421,6 +15090,7 @@
     "clutter",
     "clothes"
    ],
+   "under": [],
    "variants": {
     "blue": {
      "anchors": [
@@ -12523,6 +15193,7 @@
     0
    ],
    "h": 22,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [],
@@ -12550,6 +15221,7 @@
     "light",
     "ceiling"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [],
@@ -12600,6 +15272,7 @@
     0
    ],
    "h": 22,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [],
@@ -12622,6 +15295,7 @@
     "light",
     "ceiling"
    ],
+   "under": [],
    "variants": {
     "orange": {
      "anchors": [],
@@ -12670,6 +15344,7 @@
     0
    ],
    "h": 6,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [],
@@ -12688,12 +15363,14 @@
    "styles": {
     "classic": 8,
     "office": 6,
-    "student": 3
+    "student": 3,
+    "wetroom": 3
    },
    "tags": [
     "light",
     "ceiling"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [],
@@ -12732,6 +15409,659 @@
    "w": 36,
    "wall_y": null
   },
+  "log_basket": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    110,
+    120
+   ],
+   "h": 20,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [
+    "hearth"
+   ],
+   "needs": null,
+   "note": "a wicker basket of split logs by the hearth: a woven rim, the cut ends of logs sticking out, a bundle of kindling",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "floor",
+   "rooms": {
+    "living_room": 5
+   },
+   "sound": null,
+   "styles": {
+    "cosy": 1,
+    "lodge": 8,
+    "parlour": 1
+   },
+   "tags": [
+    "storage",
+    "wood"
+   ],
+   "under": [],
+   "variants": {
+    "wicker": {
+     "anchors": [
+      {
+       "dx": 11,
+       "dy": -9,
+       "name": "log_basket"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {},
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "log_basket_wicker",
+       "h": 22,
+       "l": -1,
+       "r": 22,
+       "rx": 1,
+       "ry": 18,
+       "t": -18,
+       "w": 24
+      }
+     ]
+    }
+   },
+   "w": 22,
+   "wall_y": null
+  },
+  "loveseat": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    108,
+    112
+   ],
+   "h": 44,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": {
+    "chance": 0.9,
+    "dx": [
+     6,
+     6
+    ],
+    "optional": true,
+    "tag": "table"
+   },
+   "note": "a two-seat settee of the same make, for the flat that has no room for the big one",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "front",
+   "rooms": {
+    "living_room": 4
+   },
+   "sound": null,
+   "styles": null,
+   "tags": [
+    "seating_lounge",
+    "sofa"
+   ],
+   "under": [],
+   "variants": {
+    "avocado": {
+     "anchors": [
+      {
+       "dx": 31,
+       "dy": -14,
+       "name": "loveseat"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "avocado",
+      "for": [
+       "mid"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "loveseat_avocado",
+       "h": 37,
+       "l": 2,
+       "r": 60,
+       "rx": -2,
+       "ry": 36,
+       "t": -36,
+       "w": 59
+      }
+     ]
+    },
+    "burgundy": {
+     "anchors": [
+      {
+       "dx": 31,
+       "dy": -14,
+       "name": "loveseat"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "burgundy",
+      "for": [
+       "parlour"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "loveseat_burgundy",
+       "h": 37,
+       "l": 2,
+       "r": 60,
+       "rx": -2,
+       "ry": 36,
+       "t": -36,
+       "w": 59
+      }
+     ]
+    },
+    "denim": {
+     "anchors": [
+      {
+       "dx": 31,
+       "dy": -14,
+       "name": "loveseat"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "denim",
+      "for": [
+       "squat"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "loveseat_denim",
+       "h": 37,
+       "l": 2,
+       "r": 60,
+       "rx": -2,
+       "ry": 36,
+       "t": -36,
+       "w": 59
+      }
+     ]
+    },
+    "floral": {
+     "anchors": [
+      {
+       "dx": 31,
+       "dy": -14,
+       "name": "loveseat"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "floral",
+      "for": [
+       "parlour"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "loveseat_floral",
+       "h": 37,
+       "l": 2,
+       "r": 60,
+       "rx": -2,
+       "ry": 36,
+       "t": -36,
+       "w": 59
+      }
+     ]
+    },
+    "gold": {
+     "anchors": [
+      {
+       "dx": 31,
+       "dy": -14,
+       "name": "loveseat"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "gold",
+      "for": [
+       "cosy"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "loveseat_gold",
+       "h": 37,
+       "l": 2,
+       "r": 60,
+       "rx": -2,
+       "ry": 36,
+       "t": -36,
+       "w": 59
+      }
+     ]
+    },
+    "grey": {
+     "anchors": [
+      {
+       "dx": 31,
+       "dy": -14,
+       "name": "loveseat"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "grey",
+      "for": [
+       "squat"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "loveseat_grey",
+       "h": 37,
+       "l": 2,
+       "r": 60,
+       "rx": -2,
+       "ry": 36,
+       "t": -36,
+       "w": 59
+      }
+     ]
+    },
+    "mustard": {
+     "anchors": [
+      {
+       "dx": 31,
+       "dy": -14,
+       "name": "loveseat"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "mustard",
+      "for": [
+       "mid"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "loveseat_mustard",
+       "h": 37,
+       "l": 2,
+       "r": 60,
+       "rx": -2,
+       "ry": 36,
+       "t": -36,
+       "w": 59
+      }
+     ]
+    },
+    "olive": {
+     "anchors": [
+      {
+       "dx": 31,
+       "dy": -14,
+       "name": "loveseat"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "olive",
+      "for": [
+       "cosy",
+       "mid"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "loveseat_olive",
+       "h": 37,
+       "l": 2,
+       "r": 60,
+       "rx": -2,
+       "ry": 36,
+       "t": -36,
+       "w": 59
+      }
+     ]
+    },
+    "orange": {
+     "anchors": [
+      {
+       "dx": 31,
+       "dy": -14,
+       "name": "loveseat"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "orange",
+      "for": [
+       "mid"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "loveseat_orange",
+       "h": 37,
+       "l": 2,
+       "r": 60,
+       "rx": -2,
+       "ry": 36,
+       "t": -36,
+       "w": 59
+      }
+     ]
+    },
+    "oxblood": {
+     "anchors": [
+      {
+       "dx": 31,
+       "dy": -14,
+       "name": "loveseat"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "oxblood",
+      "for": [
+       "lodge"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "loveseat_oxblood",
+       "h": 37,
+       "l": 2,
+       "r": 60,
+       "rx": -2,
+       "ry": 36,
+       "t": -36,
+       "w": 59
+      }
+     ]
+    },
+    "rust": {
+     "anchors": [
+      {
+       "dx": 31,
+       "dy": -14,
+       "name": "loveseat"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "rust",
+      "for": [
+       "cosy"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "loveseat_rust",
+       "h": 37,
+       "l": 2,
+       "r": 60,
+       "rx": -2,
+       "ry": 36,
+       "t": -36,
+       "w": 59
+      }
+     ]
+    },
+    "tan": {
+     "anchors": [
+      {
+       "dx": 31,
+       "dy": -14,
+       "name": "loveseat"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "tan",
+      "for": [
+       "lodge"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "loveseat_tan",
+       "h": 37,
+       "l": 2,
+       "r": 60,
+       "rx": -2,
+       "ry": 36,
+       "t": -36,
+       "w": 59
+      }
+     ]
+    },
+    "tartan": {
+     "anchors": [
+      {
+       "dx": 31,
+       "dy": -14,
+       "name": "loveseat"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "tartan",
+      "for": [
+       "lodge"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "loveseat_tartan",
+       "h": 37,
+       "l": 2,
+       "r": 60,
+       "rx": -2,
+       "ry": 36,
+       "t": -36,
+       "w": 59
+      }
+     ]
+    },
+    "velvet": {
+     "anchors": [
+      {
+       "dx": 31,
+       "dy": -14,
+       "name": "loveseat"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "velvet",
+      "for": [
+       "parlour"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "loveseat_velvet",
+       "h": 37,
+       "l": 2,
+       "r": 60,
+       "rx": -2,
+       "ry": 36,
+       "t": -36,
+       "w": 59
+      }
+     ]
+    }
+   },
+   "w": 62,
+   "wall_y": null
+  },
+  "magazines": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 8,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "a drift of glossy magazines, fanned, the top one with a face on the cover",
+   "on": [
+    "low"
+   ],
+   "opens": null,
+   "pair": null,
+   "plane": "top",
+   "rooms": {
+    "dining_room": 1,
+    "living_room": 6,
+    "study": 2
+   },
+   "sound": null,
+   "styles": null,
+   "tags": [
+    "small",
+    "paper"
+   ],
+   "under": [],
+   "variants": {
+    "a": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "cols": [
+       "a8584a",
+       "4a6a8a",
+       "d8c070"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "magazines_a",
+       "h": 11,
+       "l": -1,
+       "r": 17,
+       "rx": 1,
+       "ry": 8,
+       "t": -8,
+       "w": 19
+      }
+     ]
+    },
+    "b": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "cols": [
+       "3a6a5a",
+       "c8704a",
+       "e8e4d4"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "magazines_b",
+       "h": 11,
+       "l": -1,
+       "r": 17,
+       "rx": 1,
+       "ry": 8,
+       "t": -8,
+       "w": 19
+      }
+     ]
+    }
+   },
+   "w": 16,
+   "wall_y": null
+  },
   "mattress_floor": {
    "above": [],
    "bucketed": true,
@@ -12742,6 +16072,7 @@
     117
    ],
    "h": 24,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [
@@ -12763,6 +16094,7 @@
    "tags": [
     "sleeping"
    ],
+   "under": [],
    "variants": {
     "l_bare": {
      "anchors": [
@@ -13442,6 +16774,7 @@
     120
    ],
    "h": 38,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [
@@ -13464,6 +16797,7 @@
    "tags": [
     "medical"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [
@@ -13535,6 +16869,7 @@
     0
    ],
    "h": 14,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [],
@@ -13560,6 +16895,7 @@
     "small",
     "cooking"
    ],
+   "under": [],
    "variants": {
     "black": {
      "anchors": [
@@ -13642,6 +16978,7 @@
     0
    ],
    "h": 28,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [],
@@ -13660,12 +16997,18 @@
    "sound": null,
    "styles": {
     "adult": 4,
+    "cosy": 3,
+    "diner": 2,
+    "formal": 4,
+    "mid": 3,
+    "parlour": 4,
     "sick": 1
    },
    "tags": [
     "picture",
     "mirror"
    ],
+   "under": [],
    "variants": {
     "dark": {
      "anchors": [],
@@ -13734,6 +17077,7 @@
     0
    ],
    "h": 28,
+   "lap": 6,
    "lean": false,
    "limit": 1,
    "near": [],
@@ -13745,18 +17089,22 @@
    "plane": "decor",
    "rooms": {
     "bedroom": 3,
+    "dining_room": 2,
     "kitchen": 2,
     "living_room": 3,
     "study": 2
    },
    "sound": null,
    "styles": {
+    "barricade": 4,
     "kid": 1,
-    "refuge": 8
+    "refuge": 8,
+    "squat": 3
    },
    "tags": [
     "notice"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [],
@@ -13796,18 +17144,22 @@
     0
    ],
    "h": 11,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [],
    "needs": null,
    "note": "two mugs and a jar of spoons",
    "on": [
-    "worktop"
+    "worktop",
+    "table",
+    "low"
    ],
    "opens": null,
    "pair": null,
    "plane": "top",
    "rooms": {
+    "dining_room": 3,
     "kitchen": 7
    },
    "sound": null,
@@ -13816,6 +17168,7 @@
     "small",
     "food"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [],
@@ -13909,6 +17262,7 @@
     0
    ],
    "h": 30,
+   "lap": 6,
    "lean": false,
    "limit": 1,
    "near": [],
@@ -13920,6 +17274,7 @@
    "plane": "decor",
    "rooms": {
     "bedroom": 3,
+    "dining_room": 3,
     "kitchen": 2,
     "living_room": 3,
     "study": 2
@@ -13927,11 +17282,14 @@
    "sound": null,
    "styles": {
     "adult": 1,
-    "refuge": 8
+    "barricade": 6,
+    "refuge": 8,
+    "squat": 6
    },
    "tags": [
     "notice"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [],
@@ -13971,6 +17329,7 @@
     108
    ],
    "h": 50,
+   "lap": 6,
    "lean": true,
    "limit": 1,
    "near": [],
@@ -13981,18 +17340,25 @@
    "pair": null,
    "plane": "wall",
    "rooms": {
+    "dining_room": 1,
     "kitchen": 6,
-    "living_room": 1,
+    "living_room": 3,
     "study": 1
    },
    "sound": null,
    "styles": {
-    "hoarder": 9
+    "barricade": 3,
+    "den": 2,
+    "hoarder": 9,
+    "library": 2,
+    "radio": 3,
+    "squat": 3
    },
    "tags": [
     "clutter",
     "paper"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [
@@ -14111,6 +17477,7 @@
     108
    ],
    "h": 22,
+   "lap": 6,
    "lean": true,
    "limit": null,
    "near": [],
@@ -14138,6 +17505,7 @@
     "storage",
     "bedside"
    ],
+   "under": [],
    "variants": {
     "dark": {
      "anchors": [
@@ -14389,6 +17757,7 @@
     0
    ],
    "h": 22,
+   "lap": 6,
    "lean": false,
    "limit": 1,
    "near": [],
@@ -14408,6 +17777,7 @@
    "tags": [
     "notice"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [],
@@ -14447,6 +17817,7 @@
     0
    ],
    "h": 13,
+   "lap": 6,
    "lean": false,
    "limit": 1,
    "near": [],
@@ -14467,6 +17838,7 @@
    "tags": [
     "notice"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [],
@@ -14506,6 +17878,7 @@
     0
    ],
    "h": 24,
+   "lap": 6,
    "lean": false,
    "limit": 1,
    "near": [],
@@ -14525,6 +17898,7 @@
    "tags": [
     "notice"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [],
@@ -14564,6 +17938,7 @@
     0
    ],
    "h": 26,
+   "lap": 6,
    "lean": false,
    "limit": 1,
    "near": [],
@@ -14583,6 +17958,7 @@
    "tags": [
     "notice"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [],
@@ -14622,6 +17998,7 @@
     114
    ],
    "h": 22,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [
@@ -14642,6 +18019,7 @@
     "clutter",
     "rubbish"
    ],
+   "under": [],
    "variants": {
     "green": {
      "anchors": [
@@ -14725,6 +18103,7 @@
     0
    ],
    "h": 12,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [],
@@ -14749,6 +18128,7 @@
     "small",
     "dressing"
    ],
+   "under": [],
    "variants": {
     "amber": {
      "anchors": [],
@@ -14836,13 +18216,16 @@
     0
    ],
    "h": 14,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [],
    "needs": null,
    "note": "a framed photograph standing on a surface: two people and a child in front of the sea",
    "on": [
-    "small"
+    "small",
+    "table",
+    "desk"
    ],
    "opens": null,
    "pair": null,
@@ -14851,18 +18234,26 @@
     "bedroom": 4,
     "dining_room": 1,
     "living_room": 4,
-    "study": 2
+    "study": 3
    },
    "sound": null,
    "styles": {
     "adult": 4,
+    "cosy": 4,
+    "den": 3,
+    "family": 3,
+    "formal": 2,
     "kid": 1,
+    "mid": 3,
+    "office": 2,
+    "parlour": 3,
     "sick": 2
    },
    "tags": [
     "small",
     "picture"
    ],
+   "under": [],
    "variants": {
     "black_warm": {
      "anchors": [],
@@ -14978,6 +18369,7 @@
     0
    ],
    "h": 33,
+   "lap": 6,
    "lean": false,
    "limit": 1,
    "near": [],
@@ -14994,11 +18386,14 @@
    "sound": null,
    "styles": {
     "adult": 2,
+    "cosy": 2,
+    "parlour": 4,
     "sick": 6
    },
    "tags": [
     "picture"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [],
@@ -15028,6 +18423,270 @@
     40
    ]
   },
+  "piano_upright": {
+   "above": [],
+   "bucketed": true,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    105,
+    108
+   ],
+   "h": 60,
+   "lap": 6,
+   "lean": true,
+   "limit": null,
+   "near": [],
+   "needs": null,
+   "note": "an upright piano: a panelled case with a music desk and sheet music, a keyboard of ivory and black keys, a candle bracket each side, pedals; the stool is a separate piece",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "wall",
+   "rooms": {
+    "living_room": 6
+   },
+   "sound": null,
+   "styles": {
+    "lodge": 1,
+    "parlour": 9
+   },
+   "tags": [
+    "music",
+    "storage"
+   ],
+   "under": [],
+   "variants": {
+    "ebonised": {
+     "anchors": [
+      {
+       "dx": 23,
+       "dy": -26,
+       "name": "piano"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "black"
+     },
+     "slots": [
+      {
+       "dx0": 4,
+       "dx1": 42,
+       "dy": -64,
+       "id": "top",
+       "kinds": [
+        "small",
+        "lamp"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "piano_upright_ebonised_b0",
+       "h": 68,
+       "l": -4,
+       "r": 56,
+       "rx": 4,
+       "ry": 64,
+       "t": -64,
+       "w": 61
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "piano_upright_ebonised_b1",
+       "h": 68,
+       "l": -4,
+       "r": 53,
+       "rx": 4,
+       "ry": 64,
+       "t": -64,
+       "w": 58
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "piano_upright_ebonised_b2",
+       "h": 68,
+       "l": -4,
+       "r": 48,
+       "rx": 4,
+       "ry": 64,
+       "t": -64,
+       "w": 53
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "piano_upright_ebonised_b3",
+       "h": 68,
+       "l": -4,
+       "r": 48,
+       "rx": 4,
+       "ry": 64,
+       "t": -64,
+       "w": 53
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "piano_upright_ebonised_b4",
+       "h": 68,
+       "l": -4,
+       "r": 48,
+       "rx": 4,
+       "ry": 64,
+       "t": -64,
+       "w": 53
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "piano_upright_ebonised_b5",
+       "h": 68,
+       "l": -7,
+       "r": 48,
+       "rx": 7,
+       "ry": 64,
+       "t": -64,
+       "w": 56
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "piano_upright_ebonised_b6",
+       "h": 68,
+       "l": -11,
+       "r": 48,
+       "rx": 11,
+       "ry": 64,
+       "t": -64,
+       "w": 60
+      }
+     ]
+    },
+    "mahogany": {
+     "anchors": [
+      {
+       "dx": 23,
+       "dy": -26,
+       "name": "piano"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "walnut"
+     },
+     "slots": [
+      {
+       "dx0": 4,
+       "dx1": 42,
+       "dy": -64,
+       "id": "top",
+       "kinds": [
+        "small",
+        "lamp"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "piano_upright_mahogany_b0",
+       "h": 68,
+       "l": -4,
+       "r": 56,
+       "rx": 4,
+       "ry": 64,
+       "t": -64,
+       "w": 61
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "piano_upright_mahogany_b1",
+       "h": 68,
+       "l": -4,
+       "r": 53,
+       "rx": 4,
+       "ry": 64,
+       "t": -64,
+       "w": 58
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "piano_upright_mahogany_b2",
+       "h": 68,
+       "l": -4,
+       "r": 48,
+       "rx": 4,
+       "ry": 64,
+       "t": -64,
+       "w": 53
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "piano_upright_mahogany_b3",
+       "h": 68,
+       "l": -4,
+       "r": 48,
+       "rx": 4,
+       "ry": 64,
+       "t": -64,
+       "w": 53
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "piano_upright_mahogany_b4",
+       "h": 68,
+       "l": -4,
+       "r": 48,
+       "rx": 4,
+       "ry": 64,
+       "t": -64,
+       "w": 53
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "piano_upright_mahogany_b5",
+       "h": 68,
+       "l": -7,
+       "r": 48,
+       "rx": 7,
+       "ry": 64,
+       "t": -64,
+       "w": 56
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "piano_upright_mahogany_b6",
+       "h": 68,
+       "l": -11,
+       "r": 48,
+       "rx": 11,
+       "ry": 64,
+       "t": -64,
+       "w": 60
+      }
+     ]
+    }
+   },
+   "w": 46,
+   "wall_y": null
+  },
   "picture_crayon": {
    "above": [],
    "bucketed": false,
@@ -15038,6 +18697,7 @@
     0
    ],
    "h": 29,
+   "lap": 6,
    "lean": false,
    "limit": 1,
    "near": [],
@@ -15059,6 +18719,7 @@
    "tags": [
     "picture"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [],
@@ -15098,6 +18759,7 @@
     0
    ],
    "h": 24,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [],
@@ -15117,12 +18779,22 @@
    "sound": null,
    "styles": {
     "adult": 5,
+    "cosy": 6,
+    "den": 3,
+    "diner": 2,
+    "family": 5,
+    "formal": 2,
     "kid": 1,
+    "library": 2,
+    "lodge": 2,
+    "mid": 3,
+    "office": 1,
     "sick": 2
    },
    "tags": [
     "picture"
    ],
+   "under": [],
    "variants": {
     "hills": {
      "anchors": [],
@@ -15187,6 +18859,7 @@
     0
    ],
    "h": 28,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [],
@@ -15205,11 +18878,18 @@
    "sound": null,
    "styles": {
     "adult": 4,
+    "cosy": 3,
+    "den": 2,
+    "family": 2,
+    "formal": 3,
+    "library": 5,
+    "parlour": 5,
     "sick": 3
    },
    "tags": [
     "picture"
    ],
+   "under": [],
    "variants": {
     "girl": {
      "anchors": [],
@@ -15320,6 +19000,7 @@
     0
    ],
    "h": 10,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [],
@@ -15344,6 +19025,7 @@
     "small",
     "medical"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [],
@@ -15405,6 +19087,7 @@
     108
    ],
    "h": 30,
+   "lap": 6,
    "lean": true,
    "limit": null,
    "near": [],
@@ -15421,12 +19104,17 @@
    "sound": null,
    "styles": {
     "adult": 1,
-    "sick": 8
+    "avocado": 3,
+    "pink": 3,
+    "sick": 8,
+    "tub": 3,
+    "wetroom": 2
    },
    "tags": [
     "storage",
     "medical"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [
@@ -15644,6 +19332,7 @@
     116
    ],
    "h": 9,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [
@@ -15656,18 +19345,22 @@
    "pair": null,
    "plane": "floor",
    "rooms": {
+    "dining_room": 2,
     "kitchen": 5,
     "living_room": 3
    },
    "sound": null,
    "styles": {
     "hoarder": 2,
+    "party": 2,
+    "squat": 8,
     "student": 8
    },
    "tags": [
     "clutter",
     "food"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [
@@ -15710,6 +19403,7 @@
     119
    ],
    "h": 36,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [],
@@ -15730,13 +19424,27 @@
    "sound": null,
    "styles": {
     "adult": 3,
+    "cosy": 3,
+    "den": 2,
+    "diner": 4,
+    "family": 3,
+    "formal": 2,
+    "gilded": 5,
+    "library": 3,
+    "lodge": 1,
+    "mid": 4,
+    "office": 4,
+    "parlour": 2,
+    "pink": 2,
     "sick": 2,
-    "teen": 1
+    "teen": 1,
+    "tub": 2
    },
    "tags": [
     "plant",
     "clutter"
    ],
+   "under": [],
    "variants": {
     "dead": {
      "anchors": [],
@@ -15821,6 +19529,7 @@
     0
    ],
    "h": 39,
+   "lap": 6,
    "lean": false,
    "limit": 1,
    "near": [],
@@ -15836,11 +19545,13 @@
    },
    "sound": null,
    "styles": {
+    "squat": 4,
     "teen": 8
    },
    "tags": [
     "poster"
    ],
+   "under": [],
    "variants": {
     "torn": {
      "anchors": [],
@@ -15903,6 +19614,7 @@
     0
    ],
    "h": 27,
+   "lap": 6,
    "lean": false,
    "limit": 1,
    "near": [],
@@ -15914,15 +19626,17 @@
    "plane": "decor",
    "rooms": {
     "bedroom": 5,
-    "living_room": 1
+    "living_room": 3
    },
    "sound": null,
    "styles": {
+    "squat": 4,
     "teen": 8
    },
    "tags": [
     "poster"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [],
@@ -15962,6 +19676,7 @@
     0
    ],
    "h": 33,
+   "lap": 6,
    "lean": false,
    "limit": 1,
    "near": [],
@@ -15978,11 +19693,14 @@
    },
    "sound": null,
    "styles": {
+    "squat": 6,
+    "studio": 2,
     "teen": 8
    },
    "tags": [
     "poster"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [],
@@ -16022,6 +19740,7 @@
     0
    ],
    "h": 33,
+   "lap": 6,
    "lean": false,
    "limit": 1,
    "near": [],
@@ -16045,6 +19764,7 @@
    "tags": [
     "poster"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [],
@@ -16084,6 +19804,7 @@
     0
    ],
    "h": 28,
+   "lap": 6,
    "lean": false,
    "limit": 1,
    "near": [],
@@ -16104,6 +19825,7 @@
    "tags": [
     "notice"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [],
@@ -16143,6 +19865,7 @@
     0
    ],
    "h": 27,
+   "lap": 6,
    "lean": false,
    "limit": 1,
    "near": [],
@@ -16153,15 +19876,18 @@
    "pair": null,
    "plane": "decor",
    "rooms": {
-    "bedroom": 5
+    "bedroom": 5,
+    "dining_room": 3
    },
    "sound": null,
    "styles": {
+    "diner": 4,
     "kid": 8
    },
    "tags": [
     "poster"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [],
@@ -16191,6 +19917,202 @@
     34
    ]
   },
+  "pouf": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    112,
+    122
+   ],
+   "h": 18,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "a round leather pouf: a seam round the middle, a button and a worn patch where somebody sits",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "floor",
+   "rooms": {
+    "living_room": 4
+   },
+   "sound": null,
+   "styles": {
+    "mid": 2,
+    "squat": 8
+   },
+   "tags": [
+    "seat"
+   ],
+   "under": [],
+   "variants": {
+    "mustard": {
+     "anchors": [
+      {
+       "dx": 11,
+       "dy": -8,
+       "name": "pouf"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "col": "c09a30",
+      "for": [
+       "squat",
+       "mid"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "pouf_mustard",
+       "h": 19,
+       "l": -2,
+       "r": 25,
+       "rx": 2,
+       "ry": 17,
+       "t": -17,
+       "w": 28
+      }
+     ]
+    },
+    "red": {
+     "anchors": [
+      {
+       "dx": 11,
+       "dy": -8,
+       "name": "pouf"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "col": "a23a34",
+      "for": [
+       "squat",
+       "mid"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "pouf_red",
+       "h": 19,
+       "l": -2,
+       "r": 25,
+       "rx": 2,
+       "ry": 17,
+       "t": -17,
+       "w": 28
+      }
+     ]
+    },
+    "teal": {
+     "anchors": [
+      {
+       "dx": 11,
+       "dy": -8,
+       "name": "pouf"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "col": "3f7a78",
+      "for": [
+       "squat",
+       "mid"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "pouf_teal",
+       "h": 19,
+       "l": -2,
+       "r": 25,
+       "rx": 2,
+       "ry": 17,
+       "t": -17,
+       "w": 28
+      }
+     ]
+    }
+   },
+   "w": 24,
+   "wall_y": null
+  },
+  "print_hunting": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 24,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "a framed hunting print: a dark green glen, a stag on the ridge, hounds below",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "decor",
+   "rooms": {
+    "living_room": 4
+   },
+   "sound": null,
+   "styles": {
+    "lodge": 8
+   },
+   "tags": [
+    "picture"
+   ],
+   "under": [],
+   "variants": {
+    "gilt": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {},
+     "slots": [],
+     "sprites": [
+      {
+       "b": 25,
+       "bx": 160,
+       "file": "print_hunting_gilt",
+       "h": 33,
+       "l": -1,
+       "r": 27,
+       "rx": 1,
+       "ry": 7,
+       "t": -7,
+       "w": 29
+      }
+     ]
+    }
+   },
+   "w": 26,
+   "wall_y": [
+    24,
+    40
+   ]
+  },
   "rag_doll": {
    "above": [],
    "bucketed": false,
@@ -16201,6 +20123,7 @@
     119
    ],
    "h": 20,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [
@@ -16223,6 +20146,7 @@
    "tags": [
     "toy"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [],
@@ -16290,6 +20214,7 @@
     106
    ],
    "h": 92,
+   "lap": 6,
    "lean": true,
    "limit": 1,
    "near": [],
@@ -16315,6 +20240,7 @@
     "cooking",
     "hearth"
    ],
+   "under": [],
    "variants": {
     "black": {
      "anchors": [
@@ -16600,6 +20526,7 @@
     121
    ],
    "h": 30,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [
@@ -16622,6 +20549,7 @@
    "tags": [
     "toy"
    ],
+   "under": [],
    "variants": {
     "brown_fl": {
      "anchors": [
@@ -17107,6 +21035,202 @@
    "w": 36,
    "wall_y": null
   },
+  "rug_large": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    118,
+    122
+   ],
+   "h": 14,
+   "lap": 6,
+   "lean": false,
+   "limit": null,
+   "near": [],
+   "needs": null,
+   "note": "a big woven rug under the sofa group: border bands, lozenges, a medallion, fringe; or a shaggy gold sixties one",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "rug",
+   "rooms": {
+    "dining_room": 4,
+    "living_room": 8,
+    "study": 2
+   },
+   "sound": null,
+   "styles": {
+    "cosy": 8,
+    "family": 3,
+    "formal": 4,
+    "library": 3,
+    "lodge": 7,
+    "mid": 6,
+    "office": 1,
+    "parlour": 8
+   },
+   "tags": [
+    "rug"
+   ],
+   "under": [
+    "sofa",
+    "seating_lounge",
+    "table"
+   ],
+   "variants": {
+    "blue": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "border": "34485e",
+      "col": "4e6a8a",
+      "for": [
+       "formal",
+       "library",
+       "office"
+      ],
+      "pat": "d0c8a8"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "rug_large_blue",
+       "h": 15,
+       "l": 0,
+       "r": 119,
+       "rx": 0,
+       "ry": 14,
+       "t": -14,
+       "w": 120
+      }
+     ]
+    },
+    "gold": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "border": "8a6a1e",
+      "col": "b8902a",
+      "for": [
+       "mid"
+      ],
+      "pat": "e4cc78",
+      "shag": true
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "rug_large_gold",
+       "h": 15,
+       "l": 2,
+       "r": 117,
+       "rx": -2,
+       "ry": 14,
+       "t": -14,
+       "w": 116
+      }
+     ]
+    },
+    "green": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "border": "34482e",
+      "col": "4e6a4a",
+      "for": [
+       "parlour",
+       "formal"
+      ],
+      "pat": "c8c498"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "rug_large_green",
+       "h": 15,
+       "l": 0,
+       "r": 119,
+       "rx": 0,
+       "ry": 14,
+       "t": -14,
+       "w": 120
+      }
+     ]
+    },
+    "maroon": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "border": "5a2424",
+      "col": "8a3a38",
+      "for": [
+       "cosy",
+       "family",
+       "library"
+      ],
+      "pat": "d8b890"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "rug_large_maroon",
+       "h": 15,
+       "l": 0,
+       "r": 119,
+       "rx": 0,
+       "ry": 14,
+       "t": -14,
+       "w": 120
+      }
+     ]
+    },
+    "tartan": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "border": "7a2a2a",
+      "col": "2e5a3a",
+      "for": [
+       "lodge"
+      ],
+      "pat": "e4cc78",
+      "plaid": true
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "rug_large_tartan",
+       "h": 15,
+       "l": 2,
+       "r": 117,
+       "rx": -2,
+       "ry": 14,
+       "t": -14,
+       "w": 116
+      }
+     ]
+    }
+   },
+   "w": 120,
+   "wall_y": null
+  },
   "rug_oblong": {
    "above": [],
    "bucketed": false,
@@ -17117,6 +21241,7 @@
     122
    ],
    "h": 14,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [],
@@ -17141,6 +21266,7 @@
    "tags": [
     "rug"
    ],
+   "under": [],
    "variants": {
     "blue": {
      "anchors": [],
@@ -17256,6 +21382,7 @@
     0
    ],
    "h": 17,
+   "lap": 6,
    "lean": false,
    "limit": 1,
    "near": [],
@@ -17273,11 +21400,14 @@
    "sound": null,
    "styles": {
     "adult": 2,
+    "cosy": 3,
+    "parlour": 2,
     "sick": 6
    },
    "tags": [
     "picture"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [],
@@ -17319,6 +21449,7 @@
     0
    ],
    "h": 22,
+   "lap": 6,
    "lean": false,
    "limit": 1,
    "near": [],
@@ -17341,6 +21472,7 @@
     "shelf",
     "food"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [],
@@ -17376,6 +21508,283 @@
     30
    ]
   },
+  "shelving_open": {
+   "above": [],
+   "bucketed": true,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    105,
+    108
+   ],
+   "h": 64,
+   "lap": 6,
+   "lean": true,
+   "limit": null,
+   "near": [],
+   "needs": null,
+   "note": "mid-century open shelving: a teak frame with three open shelves \u2014 books, an orange vase and a bust, a rack of vinyl records \u2014 over a closed cupboard on tapered legs",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "wall",
+   "rooms": {
+    "living_room": 6,
+    "study": 5
+   },
+   "sound": null,
+   "styles": {
+    "lodge": 1,
+    "mid": 8
+   },
+   "tags": [
+    "books",
+    "storage"
+   ],
+   "under": [],
+   "variants": {
+    "oak": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -44,
+       "name": "shelving_upper"
+      },
+      {
+       "dx": 17,
+       "dy": -17,
+       "name": "shelving_records"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "oak",
+      "seed": 9
+     },
+     "slots": [
+      {
+       "dx0": 4,
+       "dx1": 30,
+       "dy": -67,
+       "id": "top",
+       "kinds": [
+        "small",
+        "lamp"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "shelving_open_oak_b0",
+       "h": 71,
+       "l": -2,
+       "r": 44,
+       "rx": 2,
+       "ry": 67,
+       "t": -67,
+       "w": 47
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "shelving_open_oak_b1",
+       "h": 71,
+       "l": -2,
+       "r": 41,
+       "rx": 2,
+       "ry": 67,
+       "t": -67,
+       "w": 44
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "shelving_open_oak_b2",
+       "h": 71,
+       "l": -2,
+       "r": 37,
+       "rx": 2,
+       "ry": 67,
+       "t": -67,
+       "w": 40
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "shelving_open_oak_b3",
+       "h": 71,
+       "l": -2,
+       "r": 34,
+       "rx": 2,
+       "ry": 67,
+       "t": -67,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "shelving_open_oak_b4",
+       "h": 71,
+       "l": -3,
+       "r": 34,
+       "rx": 3,
+       "ry": 67,
+       "t": -67,
+       "w": 38
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "shelving_open_oak_b5",
+       "h": 71,
+       "l": -7,
+       "r": 34,
+       "rx": 7,
+       "ry": 67,
+       "t": -67,
+       "w": 42
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "shelving_open_oak_b6",
+       "h": 71,
+       "l": -11,
+       "r": 34,
+       "rx": 11,
+       "ry": 67,
+       "t": -67,
+       "w": 46
+      }
+     ]
+    },
+    "teak": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -44,
+       "name": "shelving_upper"
+      },
+      {
+       "dx": 17,
+       "dy": -17,
+       "name": "shelving_records"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "teak",
+      "seed": 4
+     },
+     "slots": [
+      {
+       "dx0": 4,
+       "dx1": 30,
+       "dy": -67,
+       "id": "top",
+       "kinds": [
+        "small",
+        "lamp"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "shelving_open_teak_b0",
+       "h": 71,
+       "l": -2,
+       "r": 44,
+       "rx": 2,
+       "ry": 67,
+       "t": -67,
+       "w": 47
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "shelving_open_teak_b1",
+       "h": 71,
+       "l": -2,
+       "r": 41,
+       "rx": 2,
+       "ry": 67,
+       "t": -67,
+       "w": 44
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "shelving_open_teak_b2",
+       "h": 71,
+       "l": -2,
+       "r": 37,
+       "rx": 2,
+       "ry": 67,
+       "t": -67,
+       "w": 40
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "shelving_open_teak_b3",
+       "h": 71,
+       "l": -2,
+       "r": 34,
+       "rx": 2,
+       "ry": 67,
+       "t": -67,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "shelving_open_teak_b4",
+       "h": 71,
+       "l": -3,
+       "r": 34,
+       "rx": 3,
+       "ry": 67,
+       "t": -67,
+       "w": 38
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "shelving_open_teak_b5",
+       "h": 71,
+       "l": -7,
+       "r": 34,
+       "rx": 7,
+       "ry": 67,
+       "t": -67,
+       "w": 42
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "shelving_open_teak_b6",
+       "h": 71,
+       "l": -11,
+       "r": 34,
+       "rx": 11,
+       "ry": 67,
+       "t": -67,
+       "w": 46
+      }
+     ]
+    }
+   },
+   "w": 34,
+   "wall_y": null
+  },
   "shoes_pair": {
    "above": [],
    "bucketed": false,
@@ -17386,6 +21795,7 @@
     121
    ],
    "h": 7,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [
@@ -17406,6 +21816,7 @@
    "tags": [
     "clutter"
    ],
+   "under": [],
    "variants": {
     "black": {
      "anchors": [],
@@ -17507,6 +21918,848 @@
    "w": 25,
    "wall_y": null
   },
+  "side_table": {
+   "above": [],
+   "bucketed": true,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    105,
+    108
+   ],
+   "h": 26,
+   "lap": 6,
+   "lean": true,
+   "limit": null,
+   "near": [],
+   "needs": null,
+   "note": "a small side table to stand a lamp on: a round pedestal one, or a square one with a drawer and a shelf",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "wall",
+   "rooms": {
+    "dining_room": 2,
+    "living_room": 6,
+    "study": 2
+   },
+   "sound": null,
+   "styles": {
+    "cosy": 5,
+    "lodge": 3,
+    "mid": 4,
+    "parlour": 6
+   },
+   "tags": [
+    "storage"
+   ],
+   "under": [],
+   "variants": {
+    "drawer": {
+     "anchors": [
+      {
+       "dx": 12,
+       "dy": -13,
+       "name": "side_table"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "kind": "drawer"
+     },
+     "slots": [
+      {
+       "dx0": 4,
+       "dx1": 20,
+       "dy": -27,
+       "id": "top",
+       "kinds": [
+        "lamp",
+        "small"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "side_table_drawer_b0",
+       "h": 35,
+       "l": -2,
+       "r": 29,
+       "rx": 2,
+       "ry": 31,
+       "t": -31,
+       "w": 32
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "side_table_drawer_b1",
+       "h": 35,
+       "l": -2,
+       "r": 26,
+       "rx": 2,
+       "ry": 31,
+       "t": -31,
+       "w": 29
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "side_table_drawer_b2",
+       "h": 35,
+       "l": -2,
+       "r": 26,
+       "rx": 2,
+       "ry": 31,
+       "t": -31,
+       "w": 29
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "side_table_drawer_b3",
+       "h": 35,
+       "l": -2,
+       "r": 26,
+       "rx": 2,
+       "ry": 31,
+       "t": -31,
+       "w": 29
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "side_table_drawer_b4",
+       "h": 35,
+       "l": -2,
+       "r": 26,
+       "rx": 2,
+       "ry": 31,
+       "t": -31,
+       "w": 29
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "side_table_drawer_b5",
+       "h": 35,
+       "l": -3,
+       "r": 26,
+       "rx": 3,
+       "ry": 31,
+       "t": -31,
+       "w": 30
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "side_table_drawer_b6",
+       "h": 35,
+       "l": -5,
+       "r": 26,
+       "rx": 5,
+       "ry": 31,
+       "t": -31,
+       "w": 32
+      }
+     ]
+    },
+    "round": {
+     "anchors": [
+      {
+       "dx": 12,
+       "dy": -13,
+       "name": "side_table"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "kind": "round"
+     },
+     "slots": [
+      {
+       "dx0": 4,
+       "dx1": 20,
+       "dy": -27,
+       "id": "top",
+       "kinds": [
+        "lamp",
+        "small"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "side_table_round_b0",
+       "h": 35,
+       "l": -2,
+       "r": 29,
+       "rx": 2,
+       "ry": 31,
+       "t": -31,
+       "w": 32
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "side_table_round_b1",
+       "h": 35,
+       "l": -2,
+       "r": 27,
+       "rx": 2,
+       "ry": 31,
+       "t": -31,
+       "w": 30
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "side_table_round_b2",
+       "h": 35,
+       "l": -2,
+       "r": 26,
+       "rx": 2,
+       "ry": 31,
+       "t": -31,
+       "w": 29
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "side_table_round_b3",
+       "h": 35,
+       "l": -2,
+       "r": 26,
+       "rx": 2,
+       "ry": 31,
+       "t": -31,
+       "w": 29
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "side_table_round_b4",
+       "h": 35,
+       "l": -2,
+       "r": 26,
+       "rx": 2,
+       "ry": 31,
+       "t": -31,
+       "w": 29
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "side_table_round_b5",
+       "h": 35,
+       "l": -3,
+       "r": 26,
+       "rx": 3,
+       "ry": 31,
+       "t": -31,
+       "w": 30
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "side_table_round_b6",
+       "h": 35,
+       "l": -5,
+       "r": 26,
+       "rx": 5,
+       "ry": 31,
+       "t": -31,
+       "w": 32
+      }
+     ]
+    }
+   },
+   "w": 24,
+   "wall_y": null
+  },
+  "sideboard": {
+   "above": [],
+   "bucketed": true,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    105,
+    108
+   ],
+   "h": 28,
+   "lap": 6,
+   "lean": true,
+   "limit": null,
+   "near": [],
+   "needs": null,
+   "note": "a long sideboard on tapered legs: a cupboard each end and three drawers between, brass pulls, a lipped top; the right-hand door swings open when searched",
+   "on": [],
+   "opens": {
+    "anchor": "sideboard",
+    "frames": 3,
+    "kind": "door_h"
+   },
+   "pair": null,
+   "plane": "wall",
+   "rooms": {
+    "dining_room": 7,
+    "living_room": 7
+   },
+   "sound": null,
+   "styles": {
+    "cosy": 2,
+    "diner": 5,
+    "family": 4,
+    "formal": 4,
+    "mid": 8,
+    "parlour": 3,
+    "party": 6
+   },
+   "tags": [
+    "storage",
+    "sideboard"
+   ],
+   "under": [],
+   "variants": {
+    "cream": {
+     "anchors": [
+      {
+       "dx": 50,
+       "dy": -12,
+       "name": "sideboard"
+      },
+      {
+       "dx": 33,
+       "dy": -14,
+       "name": "sideboard_drawers"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "cream",
+      "for": [
+       "cosy",
+       "family",
+       "party"
+      ]
+     },
+     "slots": [
+      {
+       "dx0": 4,
+       "dx1": 62,
+       "dy": -30,
+       "id": "top",
+       "kinds": [
+        "lamp",
+        "small",
+        "tv",
+        "big"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "sideboard_cream_b0",
+       "h": 37,
+       "l": -3,
+       "open_file": "sideboard_cream_b0_open",
+       "r": 73,
+       "rx": 3,
+       "ry": 33,
+       "t": -33,
+       "w": 77
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "sideboard_cream_b1",
+       "h": 37,
+       "l": -3,
+       "open_file": "sideboard_cream_b1_open",
+       "r": 70,
+       "rx": 3,
+       "ry": 33,
+       "t": -33,
+       "w": 74
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "sideboard_cream_b2",
+       "h": 37,
+       "l": -3,
+       "open_file": "sideboard_cream_b2_open",
+       "r": 67,
+       "rx": 3,
+       "ry": 33,
+       "t": -33,
+       "w": 71
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "sideboard_cream_b3",
+       "h": 37,
+       "l": -3,
+       "open_file": "sideboard_cream_b3_open",
+       "r": 67,
+       "rx": 3,
+       "ry": 33,
+       "t": -33,
+       "w": 71
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "sideboard_cream_b4",
+       "h": 37,
+       "l": -3,
+       "open_file": "sideboard_cream_b4_open",
+       "r": 67,
+       "rx": 3,
+       "ry": 33,
+       "t": -33,
+       "w": 71
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "sideboard_cream_b5",
+       "h": 37,
+       "l": -5,
+       "open_file": "sideboard_cream_b5_open",
+       "r": 67,
+       "rx": 5,
+       "ry": 33,
+       "t": -33,
+       "w": 73
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "sideboard_cream_b6",
+       "h": 37,
+       "l": -8,
+       "open_file": "sideboard_cream_b6_open",
+       "r": 67,
+       "rx": 8,
+       "ry": 33,
+       "t": -33,
+       "w": 76
+      }
+     ]
+    },
+    "oak": {
+     "anchors": [
+      {
+       "dx": 50,
+       "dy": -12,
+       "name": "sideboard"
+      },
+      {
+       "dx": 33,
+       "dy": -14,
+       "name": "sideboard_drawers"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "oak",
+      "for": [
+       "cosy",
+       "family",
+       "formal",
+       "party"
+      ]
+     },
+     "slots": [
+      {
+       "dx0": 4,
+       "dx1": 62,
+       "dy": -30,
+       "id": "top",
+       "kinds": [
+        "lamp",
+        "small",
+        "tv",
+        "big"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "sideboard_oak_b0",
+       "h": 37,
+       "l": -3,
+       "open_file": "sideboard_oak_b0_open",
+       "r": 73,
+       "rx": 3,
+       "ry": 33,
+       "t": -33,
+       "w": 77
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "sideboard_oak_b1",
+       "h": 37,
+       "l": -3,
+       "open_file": "sideboard_oak_b1_open",
+       "r": 70,
+       "rx": 3,
+       "ry": 33,
+       "t": -33,
+       "w": 74
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "sideboard_oak_b2",
+       "h": 37,
+       "l": -3,
+       "open_file": "sideboard_oak_b2_open",
+       "r": 67,
+       "rx": 3,
+       "ry": 33,
+       "t": -33,
+       "w": 71
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "sideboard_oak_b3",
+       "h": 37,
+       "l": -3,
+       "open_file": "sideboard_oak_b3_open",
+       "r": 67,
+       "rx": 3,
+       "ry": 33,
+       "t": -33,
+       "w": 71
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "sideboard_oak_b4",
+       "h": 37,
+       "l": -3,
+       "open_file": "sideboard_oak_b4_open",
+       "r": 67,
+       "rx": 3,
+       "ry": 33,
+       "t": -33,
+       "w": 71
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "sideboard_oak_b5",
+       "h": 37,
+       "l": -5,
+       "open_file": "sideboard_oak_b5_open",
+       "r": 67,
+       "rx": 5,
+       "ry": 33,
+       "t": -33,
+       "w": 73
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "sideboard_oak_b6",
+       "h": 37,
+       "l": -8,
+       "open_file": "sideboard_oak_b6_open",
+       "r": 67,
+       "rx": 8,
+       "ry": 33,
+       "t": -33,
+       "w": 76
+      }
+     ]
+    },
+    "teak": {
+     "anchors": [
+      {
+       "dx": 50,
+       "dy": -12,
+       "name": "sideboard"
+      },
+      {
+       "dx": 33,
+       "dy": -14,
+       "name": "sideboard_drawers"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "teak",
+      "for": [
+       "mid",
+       "diner"
+      ]
+     },
+     "slots": [
+      {
+       "dx0": 4,
+       "dx1": 62,
+       "dy": -30,
+       "id": "top",
+       "kinds": [
+        "lamp",
+        "small",
+        "tv",
+        "big"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "sideboard_teak_b0",
+       "h": 37,
+       "l": -3,
+       "open_file": "sideboard_teak_b0_open",
+       "r": 73,
+       "rx": 3,
+       "ry": 33,
+       "t": -33,
+       "w": 77
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "sideboard_teak_b1",
+       "h": 37,
+       "l": -3,
+       "open_file": "sideboard_teak_b1_open",
+       "r": 70,
+       "rx": 3,
+       "ry": 33,
+       "t": -33,
+       "w": 74
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "sideboard_teak_b2",
+       "h": 37,
+       "l": -3,
+       "open_file": "sideboard_teak_b2_open",
+       "r": 67,
+       "rx": 3,
+       "ry": 33,
+       "t": -33,
+       "w": 71
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "sideboard_teak_b3",
+       "h": 37,
+       "l": -3,
+       "open_file": "sideboard_teak_b3_open",
+       "r": 67,
+       "rx": 3,
+       "ry": 33,
+       "t": -33,
+       "w": 71
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "sideboard_teak_b4",
+       "h": 37,
+       "l": -3,
+       "open_file": "sideboard_teak_b4_open",
+       "r": 67,
+       "rx": 3,
+       "ry": 33,
+       "t": -33,
+       "w": 71
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "sideboard_teak_b5",
+       "h": 37,
+       "l": -5,
+       "open_file": "sideboard_teak_b5_open",
+       "r": 67,
+       "rx": 5,
+       "ry": 33,
+       "t": -33,
+       "w": 73
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "sideboard_teak_b6",
+       "h": 37,
+       "l": -8,
+       "open_file": "sideboard_teak_b6_open",
+       "r": 67,
+       "rx": 8,
+       "ry": 33,
+       "t": -33,
+       "w": 76
+      }
+     ]
+    },
+    "walnut": {
+     "anchors": [
+      {
+       "dx": 50,
+       "dy": -12,
+       "name": "sideboard"
+      },
+      {
+       "dx": 33,
+       "dy": -14,
+       "name": "sideboard_drawers"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "walnut",
+      "for": [
+       "parlour",
+       "formal"
+      ]
+     },
+     "slots": [
+      {
+       "dx0": 4,
+       "dx1": 62,
+       "dy": -30,
+       "id": "top",
+       "kinds": [
+        "lamp",
+        "small",
+        "tv",
+        "big"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "sideboard_walnut_b0",
+       "h": 37,
+       "l": -3,
+       "open_file": "sideboard_walnut_b0_open",
+       "r": 73,
+       "rx": 3,
+       "ry": 33,
+       "t": -33,
+       "w": 77
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "sideboard_walnut_b1",
+       "h": 37,
+       "l": -3,
+       "open_file": "sideboard_walnut_b1_open",
+       "r": 70,
+       "rx": 3,
+       "ry": 33,
+       "t": -33,
+       "w": 74
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "sideboard_walnut_b2",
+       "h": 37,
+       "l": -3,
+       "open_file": "sideboard_walnut_b2_open",
+       "r": 67,
+       "rx": 3,
+       "ry": 33,
+       "t": -33,
+       "w": 71
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "sideboard_walnut_b3",
+       "h": 37,
+       "l": -3,
+       "open_file": "sideboard_walnut_b3_open",
+       "r": 67,
+       "rx": 3,
+       "ry": 33,
+       "t": -33,
+       "w": 71
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "sideboard_walnut_b4",
+       "h": 37,
+       "l": -3,
+       "open_file": "sideboard_walnut_b4_open",
+       "r": 67,
+       "rx": 3,
+       "ry": 33,
+       "t": -33,
+       "w": 71
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "sideboard_walnut_b5",
+       "h": 37,
+       "l": -5,
+       "open_file": "sideboard_walnut_b5_open",
+       "r": 67,
+       "rx": 5,
+       "ry": 33,
+       "t": -33,
+       "w": 73
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "sideboard_walnut_b6",
+       "h": 37,
+       "l": -8,
+       "open_file": "sideboard_walnut_b6_open",
+       "r": 67,
+       "rx": 8,
+       "ry": 33,
+       "t": -33,
+       "w": 76
+      }
+     ]
+    }
+   },
+   "w": 66,
+   "wall_y": null
+  },
   "sink_butler": {
    "above": [],
    "bucketed": true,
@@ -17517,6 +22770,7 @@
     106
    ],
    "h": 40,
+   "lap": 6,
    "lean": true,
    "limit": 1,
    "near": [],
@@ -17538,6 +22792,7 @@
     "wet",
     "storage"
    ],
+   "under": [],
    "variants": {
     "white": {
      "anchors": [
@@ -17662,6 +22917,7 @@
     121
    ],
    "h": 5,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [
@@ -17680,12 +22936,16 @@
    "sound": null,
    "styles": {
     "adult": 4,
+    "avocado": 2,
     "kid": 1,
-    "sick": 2
+    "pink": 3,
+    "sick": 2,
+    "tub": 3
    },
    "tags": [
     "clutter"
    ],
+   "under": [],
    "variants": {
     "blue": {
      "anchors": [],
@@ -17760,6 +23020,568 @@
    "w": 13,
    "wall_y": null
   },
+  "sofa": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    108,
+    112
+   ],
+   "h": 44,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": {
+    "chance": 0.9,
+    "dx": [
+     16,
+     16
+    ],
+    "optional": true,
+    "tag": "table"
+   },
+   "note": "a three-seat sofa built as a 3D model (arms, back, three seat + back cushions, turned feet): gold / rust / olive, orange / mustard / avocado, a slashed grey or denim one, floral / green velvet / burgundy, oxblood / tan leather or a tartan",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "front",
+   "rooms": {
+    "living_room": 10
+   },
+   "sound": null,
+   "styles": null,
+   "tags": [
+    "seating_lounge",
+    "sofa"
+   ],
+   "under": [],
+   "variants": {
+    "avocado": {
+     "anchors": [
+      {
+       "dx": 24,
+       "dy": -14,
+       "name": "sofa_left"
+      },
+      {
+       "dx": 58,
+       "dy": -14,
+       "name": "sofa_right"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "avocado",
+      "for": [
+       "mid"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "sofa_avocado",
+       "h": 37,
+       "l": 1,
+       "r": 81,
+       "rx": -1,
+       "ry": 36,
+       "t": -36,
+       "w": 81
+      }
+     ]
+    },
+    "burgundy": {
+     "anchors": [
+      {
+       "dx": 24,
+       "dy": -14,
+       "name": "sofa_left"
+      },
+      {
+       "dx": 58,
+       "dy": -14,
+       "name": "sofa_right"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "burgundy",
+      "for": [
+       "parlour"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "sofa_burgundy",
+       "h": 37,
+       "l": 1,
+       "r": 81,
+       "rx": -1,
+       "ry": 36,
+       "t": -36,
+       "w": 81
+      }
+     ]
+    },
+    "denim": {
+     "anchors": [
+      {
+       "dx": 24,
+       "dy": -14,
+       "name": "sofa_left"
+      },
+      {
+       "dx": 58,
+       "dy": -14,
+       "name": "sofa_right"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "denim",
+      "for": [
+       "squat"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "sofa_denim",
+       "h": 37,
+       "l": 1,
+       "r": 81,
+       "rx": -1,
+       "ry": 36,
+       "t": -36,
+       "w": 81
+      }
+     ]
+    },
+    "floral": {
+     "anchors": [
+      {
+       "dx": 24,
+       "dy": -14,
+       "name": "sofa_left"
+      },
+      {
+       "dx": 58,
+       "dy": -14,
+       "name": "sofa_right"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "floral",
+      "for": [
+       "parlour"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "sofa_floral",
+       "h": 37,
+       "l": 1,
+       "r": 81,
+       "rx": -1,
+       "ry": 36,
+       "t": -36,
+       "w": 81
+      }
+     ]
+    },
+    "gold": {
+     "anchors": [
+      {
+       "dx": 24,
+       "dy": -14,
+       "name": "sofa_left"
+      },
+      {
+       "dx": 58,
+       "dy": -14,
+       "name": "sofa_right"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "gold",
+      "for": [
+       "cosy"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "sofa_gold",
+       "h": 37,
+       "l": 1,
+       "r": 81,
+       "rx": -1,
+       "ry": 36,
+       "t": -36,
+       "w": 81
+      }
+     ]
+    },
+    "grey": {
+     "anchors": [
+      {
+       "dx": 24,
+       "dy": -14,
+       "name": "sofa_left"
+      },
+      {
+       "dx": 58,
+       "dy": -14,
+       "name": "sofa_right"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "grey",
+      "for": [
+       "squat"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "sofa_grey",
+       "h": 37,
+       "l": 1,
+       "r": 81,
+       "rx": -1,
+       "ry": 36,
+       "t": -36,
+       "w": 81
+      }
+     ]
+    },
+    "mustard": {
+     "anchors": [
+      {
+       "dx": 24,
+       "dy": -14,
+       "name": "sofa_left"
+      },
+      {
+       "dx": 58,
+       "dy": -14,
+       "name": "sofa_right"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "mustard",
+      "for": [
+       "mid"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "sofa_mustard",
+       "h": 37,
+       "l": 1,
+       "r": 81,
+       "rx": -1,
+       "ry": 36,
+       "t": -36,
+       "w": 81
+      }
+     ]
+    },
+    "olive": {
+     "anchors": [
+      {
+       "dx": 24,
+       "dy": -14,
+       "name": "sofa_left"
+      },
+      {
+       "dx": 58,
+       "dy": -14,
+       "name": "sofa_right"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "olive",
+      "for": [
+       "cosy",
+       "mid"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "sofa_olive",
+       "h": 37,
+       "l": 1,
+       "r": 81,
+       "rx": -1,
+       "ry": 36,
+       "t": -36,
+       "w": 81
+      }
+     ]
+    },
+    "orange": {
+     "anchors": [
+      {
+       "dx": 24,
+       "dy": -14,
+       "name": "sofa_left"
+      },
+      {
+       "dx": 58,
+       "dy": -14,
+       "name": "sofa_right"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "orange",
+      "for": [
+       "mid"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "sofa_orange",
+       "h": 37,
+       "l": 1,
+       "r": 81,
+       "rx": -1,
+       "ry": 36,
+       "t": -36,
+       "w": 81
+      }
+     ]
+    },
+    "oxblood": {
+     "anchors": [
+      {
+       "dx": 24,
+       "dy": -14,
+       "name": "sofa_left"
+      },
+      {
+       "dx": 58,
+       "dy": -14,
+       "name": "sofa_right"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "oxblood",
+      "for": [
+       "lodge"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "sofa_oxblood",
+       "h": 37,
+       "l": 1,
+       "r": 81,
+       "rx": -1,
+       "ry": 36,
+       "t": -36,
+       "w": 81
+      }
+     ]
+    },
+    "rust": {
+     "anchors": [
+      {
+       "dx": 24,
+       "dy": -14,
+       "name": "sofa_left"
+      },
+      {
+       "dx": 58,
+       "dy": -14,
+       "name": "sofa_right"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "rust",
+      "for": [
+       "cosy"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "sofa_rust",
+       "h": 37,
+       "l": 1,
+       "r": 81,
+       "rx": -1,
+       "ry": 36,
+       "t": -36,
+       "w": 81
+      }
+     ]
+    },
+    "tan": {
+     "anchors": [
+      {
+       "dx": 24,
+       "dy": -14,
+       "name": "sofa_left"
+      },
+      {
+       "dx": 58,
+       "dy": -14,
+       "name": "sofa_right"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "tan",
+      "for": [
+       "lodge"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "sofa_tan",
+       "h": 37,
+       "l": 1,
+       "r": 81,
+       "rx": -1,
+       "ry": 36,
+       "t": -36,
+       "w": 81
+      }
+     ]
+    },
+    "tartan": {
+     "anchors": [
+      {
+       "dx": 24,
+       "dy": -14,
+       "name": "sofa_left"
+      },
+      {
+       "dx": 58,
+       "dy": -14,
+       "name": "sofa_right"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "tartan",
+      "for": [
+       "lodge"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "sofa_tartan",
+       "h": 37,
+       "l": 1,
+       "r": 81,
+       "rx": -1,
+       "ry": 36,
+       "t": -36,
+       "w": 81
+      }
+     ]
+    },
+    "velvet": {
+     "anchors": [
+      {
+       "dx": 24,
+       "dy": -14,
+       "name": "sofa_left"
+      },
+      {
+       "dx": 58,
+       "dy": -14,
+       "name": "sofa_right"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "velvet",
+      "for": [
+       "parlour"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "sofa_velvet",
+       "h": 37,
+       "l": 1,
+       "r": 81,
+       "rx": -1,
+       "ry": 36,
+       "t": -36,
+       "w": 81
+      }
+     ]
+    }
+   },
+   "w": 82,
+   "wall_y": null
+  },
   "spray_nofood": {
    "above": [],
    "bucketed": false,
@@ -17770,6 +23592,7 @@
     0
    ],
    "h": 18,
+   "lap": 6,
    "lean": false,
    "limit": 1,
    "near": [],
@@ -17791,6 +23614,7 @@
    "tags": [
     "notice"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [],
@@ -17820,6 +23644,67 @@
     38
    ]
   },
+  "stag_head": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 38,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "a stag's head on a shield plaque: the brow, the glass eyes, a spread of antlers with tines",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "decor",
+   "rooms": {
+    "living_room": 4
+   },
+   "sound": null,
+   "styles": {
+    "lodge": 9
+   },
+   "tags": [
+    "picture",
+    "trophy"
+   ],
+   "under": [],
+   "variants": {
+    "twelve": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {},
+     "slots": [],
+     "sprites": [
+      {
+       "b": 35,
+       "bx": 160,
+       "file": "stag_head_twelve",
+       "h": 40,
+       "l": -2,
+       "r": 46,
+       "rx": 2,
+       "ry": 4,
+       "t": -4,
+       "w": 49
+      }
+     ]
+    }
+   },
+   "w": 44,
+   "wall_y": [
+    14,
+    26
+   ]
+  },
   "suitcase": {
    "above": [],
    "bucketed": false,
@@ -17830,6 +23715,7 @@
     0
    ],
    "h": 14,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [],
@@ -17854,6 +23740,7 @@
    "tags": [
     "storage"
    ],
+   "under": [],
    "variants": {
     "blue": {
      "anchors": [],
@@ -18085,6 +23972,7 @@
     120
    ],
    "h": 40,
+   "lap": 6,
    "lean": false,
    "limit": 1,
    "near": [],
@@ -18103,6 +23991,7 @@
     "dining",
     "table"
    ],
+   "under": [],
    "variants": {
     "camping": {
      "anchors": [
@@ -18303,6 +24192,7 @@
     0
    ],
    "h": 12,
+   "lap": 6,
    "lean": false,
    "limit": 1,
    "near": [],
@@ -18325,6 +24215,7 @@
    "tags": [
     "mark"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [],
@@ -18364,6 +24255,7 @@
     0
    ],
    "h": 22,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [],
@@ -18381,6 +24273,7 @@
    "tags": [
     "cloth"
    ],
+   "under": [],
    "variants": {
     "blue": {
      "anchors": [],
@@ -18455,13 +24348,16 @@
     0
    ],
    "h": 11,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [],
    "needs": null,
    "note": "a glazed teapot in a knitted cosy",
    "on": [
-    "worktop"
+    "worktop",
+    "table",
+    "low"
    ],
    "opens": null,
    "pair": null,
@@ -18476,6 +24372,7 @@
     "small",
     "food"
    ],
+   "under": [],
    "variants": {
     "blue": {
      "anchors": [],
@@ -18547,6 +24444,7 @@
     0
    ],
    "h": 17,
+   "lap": 6,
    "lean": false,
    "limit": 1,
    "near": [],
@@ -18563,11 +24461,13 @@
    "sound": null,
    "styles": {
     "kid": 1,
+    "office": 6,
     "teen": 6
    },
    "tags": [
     "notice"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [],
@@ -18607,6 +24507,7 @@
     0
    ],
    "h": 12,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [],
@@ -18631,6 +24532,7 @@
     "small",
     "food"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [],
@@ -18692,6 +24594,7 @@
     0
    ],
    "h": 10,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [],
@@ -18712,6 +24615,7 @@
     "small",
     "cooking"
    ],
+   "under": [],
    "variants": {
     "chrome": {
      "anchors": [],
@@ -18782,6 +24686,7 @@
     119
    ],
    "h": 30,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [
@@ -18806,6 +24711,7 @@
     "toy",
     "storage"
    ],
+   "under": [],
    "variants": {
     "blue": {
      "anchors": [
@@ -18920,6 +24826,7 @@
     0
    ],
    "h": 22,
+   "lap": 6,
    "lean": false,
    "limit": 1,
    "near": [],
@@ -18941,6 +24848,7 @@
     "toy",
     "shelf"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [],
@@ -18980,6 +24888,7 @@
     121
    ],
    "h": 7,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [
@@ -19000,11 +24909,13 @@
    "styles": {
     "adult": 1,
     "kid": 1,
+    "squat": 4,
     "teen": 6
    },
    "tags": [
     "clutter"
    ],
+   "under": [],
    "variants": {
     "black": {
      "anchors": [],
@@ -19092,6 +25003,7 @@
     118
    ],
    "h": 30,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [
@@ -19116,6 +25028,7 @@
     "clutter",
     "storage"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [
@@ -19148,6 +25061,253 @@
    "w": 28,
    "wall_y": null
   },
+  "tv_crt": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 28,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "a small CRT television on a cabinet case with rabbit-ear aerials: a curved glass with a glare, two knobs and a speaker grille; its live picture is snow, and goes dark when it is searched",
+   "on": [
+    "tv"
+   ],
+   "opens": {
+    "anchor": "tv",
+    "frames": 1,
+    "kind": "screen_off"
+   },
+   "pair": null,
+   "plane": "top",
+   "rooms": {
+    "living_room": 6
+   },
+   "sound": null,
+   "styles": {
+    "cosy": 1,
+    "mid": 8,
+    "parlour": 0.4
+   },
+   "tags": [
+    "tv"
+   ],
+   "under": [],
+   "variants": {
+    "black": {
+     "anchors": [
+      {
+       "dx": 13,
+       "dy": -11,
+       "name": "tv",
+       "top": true
+      }
+     ],
+     "anims": [
+      {
+       "color": "c8d4d0",
+       "dx": 4,
+       "dy": -17,
+       "h": 11,
+       "kind": "static",
+       "top": true,
+       "w": 13
+      }
+     ],
+     "lights": [],
+     "params": {
+      "case": "2a2a2e",
+      "for": [
+       "mid",
+       "cosy"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "tv_crt_black",
+       "h": 32,
+       "l": -1,
+       "open_file": "tv_crt_black_open",
+       "r": 27,
+       "rx": 1,
+       "ry": 29,
+       "t": -29,
+       "w": 29
+      }
+     ]
+    },
+    "white": {
+     "anchors": [
+      {
+       "dx": 13,
+       "dy": -11,
+       "name": "tv",
+       "top": true
+      }
+     ],
+     "anims": [
+      {
+       "color": "c8d4d0",
+       "dx": 4,
+       "dy": -17,
+       "h": 11,
+       "kind": "static",
+       "top": true,
+       "w": 13
+      }
+     ],
+     "lights": [],
+     "params": {
+      "case": "d8d2c0",
+      "for": [
+       "mid"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "tv_crt_white",
+       "h": 32,
+       "l": -1,
+       "open_file": "tv_crt_white_open",
+       "r": 27,
+       "rx": 1,
+       "ry": 29,
+       "t": -29,
+       "w": 29
+      }
+     ]
+    },
+    "wood": {
+     "anchors": [
+      {
+       "dx": 13,
+       "dy": -11,
+       "name": "tv",
+       "top": true
+      }
+     ],
+     "anims": [
+      {
+       "color": "c8d4d0",
+       "dx": 4,
+       "dy": -17,
+       "h": 11,
+       "kind": "static",
+       "top": true,
+       "w": 13
+      }
+     ],
+     "lights": [],
+     "params": {
+      "case": "8a5a34",
+      "for": [
+       "mid",
+       "cosy"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "tv_crt_wood",
+       "h": 32,
+       "l": -1,
+       "open_file": "tv_crt_wood_open",
+       "r": 27,
+       "rx": 1,
+       "ry": 29,
+       "t": -29,
+       "w": 29
+      }
+     ]
+    }
+   },
+   "w": 26,
+   "wall_y": null
+  },
+  "tv_wall": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 28,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "a big flat-screen on the wall: a thin bezel, the black glass with a diagonal glare, a standby light, the cable hanging down behind \u2014 its picture is the struck-TV detail: snow, flashes, a crack",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "decor",
+   "rooms": {
+    "living_room": 6
+   },
+   "sound": null,
+   "styles": {
+    "squat": 8
+   },
+   "tags": [
+    "tv"
+   ],
+   "under": [],
+   "variants": {
+    "black": {
+     "anchors": [],
+     "anims": [
+      {
+       "color": "c8d4d0",
+       "dx": 3,
+       "dy": 3,
+       "h": 20,
+       "kind": "tv",
+       "w": 36
+      }
+     ],
+     "lights": [],
+     "params": {},
+     "slots": [],
+     "sprites": [
+      {
+       "b": 36,
+       "bx": 160,
+       "file": "tv_wall_black",
+       "h": 39,
+       "l": -2,
+       "r": 43,
+       "rx": 2,
+       "ry": 2,
+       "t": -2,
+       "w": 46
+      }
+     ]
+    }
+   },
+   "w": 42,
+   "wall_y": [
+    26,
+    36
+   ]
+  },
   "unit_base": {
    "above": [],
    "bucketed": true,
@@ -19158,6 +25318,7 @@
     106
    ],
    "h": 32,
+   "lap": 6,
    "lean": true,
    "limit": 4,
    "near": [],
@@ -19180,6 +25341,7 @@
     "unit",
     "storage"
    ],
+   "under": [],
    "variants": {
     "cream_dd": {
      "anchors": [
@@ -21675,6 +27837,7 @@
     106
    ],
    "h": 34,
+   "lap": 6,
    "lean": true,
    "limit": 1,
    "near": [],
@@ -21697,6 +27860,7 @@
     "unit",
     "cooking"
    ],
+   "under": [],
    "variants": {
     "black_bare": {
      "anchors": [
@@ -22392,6 +28556,7 @@
     106
    ],
    "h": 32,
+   "lap": 6,
    "lean": true,
    "limit": 1,
    "near": [],
@@ -22415,6 +28580,7 @@
     "wet",
     "storage"
    ],
+   "under": [],
    "variants": {
     "cream": {
      "anchors": [
@@ -22942,6 +29108,7 @@
     0
    ],
    "h": 14,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [],
@@ -22962,6 +29129,7 @@
     "small",
     "cooking"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [],
@@ -23007,6 +29175,7 @@
     0
    ],
    "h": 36,
+   "lap": 6,
    "lean": false,
    "limit": 1,
    "near": [],
@@ -23025,6 +29194,7 @@
     "storage",
     "unit_above"
    ],
+   "under": [],
    "variants": {
     "cream_2": {
      "anchors": [],
@@ -23178,6 +29348,7 @@
     0
    ],
    "h": 18,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [],
@@ -23197,12 +29368,22 @@
    "sound": null,
    "styles": {
     "adult": 3,
+    "cosy": 3,
+    "den": 3,
+    "diner": 2,
+    "family": 3,
     "kid": 2,
+    "lodge": 2,
+    "mid": 3,
+    "radio": 2,
+    "squat": 1,
+    "studio": 2,
     "teen": 2
    },
    "tags": [
     "shelf"
    ],
+   "under": [],
    "variants": {
     "a": {
      "anchors": [],
@@ -23267,6 +29448,7 @@
     108
    ],
    "h": 80,
+   "lap": 6,
    "lean": true,
    "limit": null,
    "near": [],
@@ -23290,6 +29472,7 @@
     "mirror",
     "tall"
    ],
+   "under": [],
    "variants": {
     "clean": {
      "anchors": [
@@ -23507,6 +29690,7 @@
     108
    ],
    "h": 70,
+   "lap": 6,
    "lean": true,
    "limit": null,
    "near": [],
@@ -23527,6 +29711,7 @@
     "wardrobe",
     "storage"
    ],
+   "under": [],
    "variants": {
     "blue": {
      "anchors": [
@@ -23845,6 +30030,7 @@
     108
    ],
    "h": 73,
+   "lap": 6,
    "lean": true,
    "limit": null,
    "near": [],
@@ -23872,6 +30058,7 @@
     "wardrobe",
     "tall"
    ],
+   "under": [],
    "variants": {
     "dark": {
      "anchors": [
@@ -24375,6 +30562,7 @@
     120
    ],
    "h": 36,
+   "lap": 6,
    "lean": false,
    "limit": null,
    "near": [
@@ -24399,6 +30587,7 @@
    "tags": [
     "medical"
    ],
+   "under": [],
    "variants": {
     "green_l": {
      "anchors": [
@@ -25261,6 +31450,287 @@
     "must": []
    },
    "weight": 18
+  },
+  "living_room/cosy": {
+   "ceiling": 0.9,
+   "centre": {
+    "tag": "sofa",
+    "x": [
+     40,
+     190
+    ]
+   },
+   "clutter": [
+    1,
+    3
+   ],
+   "decor": [
+    2,
+    4
+   ],
+   "fallback": [
+    {
+     "id": "sofa",
+     "variant": "gold",
+     "x": 120,
+     "y": 110
+    },
+    {
+     "id": "coffee_table",
+     "variant": "wood",
+     "x": 136,
+     "y": 116
+    },
+    {
+     "id": "ceiling_pendant",
+     "variant": "cream",
+     "x": 150,
+     "y": 0
+    }
+   ],
+   "flank": {
+    "chance": 0.8,
+    "tag": "armchair"
+   },
+   "legacy": 0,
+   "min_front": 2,
+   "rug": 0.7,
+   "shell": "living_shell_a",
+   "tops": 0.8,
+   "wall": {
+    "count": [
+     2,
+     3
+    ],
+    "must": [
+     "books|storage"
+    ]
+   },
+   "weight": 26
+  },
+  "living_room/lodge": {
+   "ceiling": 0.9,
+   "centre": {
+    "tag": "sofa",
+    "x": [
+     40,
+     200
+    ]
+   },
+   "clutter": [
+    1,
+    3
+   ],
+   "decor": [
+    2,
+    4
+   ],
+   "fallback": [
+    {
+     "id": "sofa",
+     "variant": "tan",
+     "x": 120,
+     "y": 110
+    },
+    {
+     "id": "coffee_table",
+     "variant": "trunk",
+     "x": 136,
+     "y": 116
+    },
+    {
+     "id": "ceiling_pendant",
+     "variant": "cream",
+     "x": 150,
+     "y": 0
+    }
+   ],
+   "flank": {
+    "chance": 0.7,
+    "tag": "armchair"
+   },
+   "legacy": -1,
+   "min_front": 2,
+   "rug": 0.7,
+   "shell": "living_shell_e",
+   "tops": 0.8,
+   "wall": {
+    "count": [
+     1,
+     2
+    ],
+    "must": [
+     "hearth"
+    ]
+   },
+   "weight": 14
+  },
+  "living_room/mid": {
+   "ceiling": 0.9,
+   "centre": {
+    "tag": "sofa",
+    "x": [
+     40,
+     190
+    ]
+   },
+   "clutter": [
+    1,
+    3
+   ],
+   "decor": [
+    2,
+    4
+   ],
+   "fallback": [
+    {
+     "id": "sofa",
+     "variant": "orange",
+     "x": 120,
+     "y": 110
+    },
+    {
+     "id": "coffee_table",
+     "variant": "kidney",
+     "x": 136,
+     "y": 116
+    },
+    {
+     "id": "ceiling_pendant",
+     "variant": "cream",
+     "x": 150,
+     "y": 0
+    }
+   ],
+   "flank": {
+    "chance": 0.7,
+    "tag": "armchair"
+   },
+   "legacy": 1,
+   "min_front": 2,
+   "rug": 0.6,
+   "shell": "living_shell_b",
+   "tops": 0.9,
+   "wall": {
+    "count": [
+     2,
+     3
+    ],
+    "must": [
+     "sideboard"
+    ]
+   },
+   "weight": 22
+  },
+  "living_room/parlour": {
+   "ceiling": 0.9,
+   "centre": {
+    "tag": "sofa",
+    "x": [
+     40,
+     190
+    ]
+   },
+   "clutter": [
+    0,
+    2
+   ],
+   "decor": [
+    2,
+    4
+   ],
+   "fallback": [
+    {
+     "id": "sofa",
+     "variant": "floral",
+     "x": 120,
+     "y": 110
+    },
+    {
+     "id": "coffee_table",
+     "variant": "tea",
+     "x": 136,
+     "y": 116
+    },
+    {
+     "id": "ceiling_pendant",
+     "variant": "cream",
+     "x": 150,
+     "y": 0
+    }
+   ],
+   "flank": {
+    "chance": 0.8,
+    "tag": "armchair"
+   },
+   "legacy": 3,
+   "min_front": 2,
+   "rug": 0.8,
+   "shell": "living_shell_d",
+   "tops": 0.9,
+   "wall": {
+    "count": [
+     2,
+     3
+    ],
+    "must": [
+     "music|display"
+    ]
+   },
+   "weight": 18
+  },
+  "living_room/squat": {
+   "ceiling": 1.0,
+   "centre": {
+    "tag": "sofa",
+    "x": [
+     40,
+     200
+    ]
+   },
+   "clutter": [
+    3,
+    5
+   ],
+   "decor": [
+    3,
+    5
+   ],
+   "fallback": [
+    {
+     "id": "sofa",
+     "variant": "grey",
+     "x": 120,
+     "y": 110
+    },
+    {
+     "id": "coffee_table",
+     "variant": "pallet",
+     "x": 136,
+     "y": 116
+    },
+    {
+     "id": "light_bulb",
+     "variant": "a",
+     "x": 150,
+     "y": 0
+    }
+   ],
+   "legacy": 2,
+   "min_front": 2,
+   "rug": 0.0,
+   "shell": "living_shell_c",
+   "tops": 0.8,
+   "wall": {
+    "count": [
+     1,
+     2
+    ],
+    "must": [
+     "books|storage"
+    ]
+   },
+   "weight": 20
   }
  },
  "rules": {
