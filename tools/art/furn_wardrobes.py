@@ -178,7 +178,9 @@ def _mirror_glass(c, x0, y0, x1, y1, cracked, seed):
         f = (y - y0) / float(max(1, h))
         col = mix(top, bot, f * 0.9)
         c.hline(x0, x1, y, col)
-    c.dither(x0, y0 + int(h * 0.62), x1, y1, shade(bot, 0.92), 0.5)
+    yb = y0 + int(h * 0.64)                                                                         # the reflected floor: a dithered edge, then a darker plain band
+    c.dither(x0, yb - 1, x1, yb, shade(bot, 0.96), 0.5)
+    c.rect(x0, yb + 1, x1, y1, shade(bot, 0.94))
     w = x1 - x0
     for (sx, sw) in ((0.18, 2), (0.42, 1)):
         xs = int(x0 + w * sx)

@@ -11,6 +11,10 @@ at 3× and in the composed rooms (`bedroom_<style>.png`). Nothing has been chang
 > wardrobes, the pill cabinet, the wheelchair + trolley, the plants, the lamps and the other small things. The scan now reports 10 egregious findings, all technical (one wasted sprite at a bed's right-most
 > bucket, a stray pixel, flat 4-colour sprites on the dead plant / wheelchair / spray text). Still flat: see the "next pass" list in docs/FURNITURE.md.
 
+> **STATUS after round 47c (art pass 2):** the remaining flat pieces — bookcase, chest of drawers, dressing table, the desk body, clothes rail, laundry basket, toy chest / shelf, blocks, ball, rag doll, height chart,
+> floor stain, tally marks, sprayed NO FOOD, the framed photos, the sampler, the mirror, clock, wall shelf and the three ceiling lights — are REDRAWN (docs/FURNITURE.md "Art pass 2"). Findings now: 92, 10 egregious, all
+> technical (a wasted bed sprite, three one-pixel specks, few-colour marks on a wall, one dark chair).
+
 ## Egregious (fix first)
 
 | # | Piece | What is wrong | Suggested fix |

@@ -121,13 +121,36 @@ The first-pass pieces were flat colour fills. What changed, and the method (so t
   the dolls' house (two storeys open at the front, four papered rooms with tiny furniture, one dark with a doll in it, a shingled roof and a brick chimney); the wardrobes (cornice, raised panels, escutcheons,
   a mirrored one with a gilt frame and a cracked variant, the child's with a scalloped pelmet and a stencilled star / moon) and the pill cabinet; the drip stand (cut to scale), the trolley, the
   plants, the bedside table, the crates with a camping stove.
-* **Still first-pass (flat) — the next pass**: bookcase_low, chest_drawers, dressing_table, desk_crt's chair-less desk body, clothes_rail, toy_chest, toy_shelf, block_tower, ball, rag_doll, laundry_basket,
-  floor_stain, tally_marks, the wall pictures / clock / mirror / shelf, the ceiling lights, `bed_*` frames (headboards are the legacy boards).
+* **Still first-pass (flat)**: the `bed_*` frames' headboards are still the legacy boards (the covers, pillows and frame outline are redone; a finial / spindle pass on the headboards is the one item left — `furn.persp_bed`'s defaults are shared with the baked rooms, so it needs a post-draw hook, not an edit to the default).
+  Everything else on the first-pass list was redone in **art pass 2** below.
 * Checks added: `furniture_test` — no bed variant is a "box" variant, every bed keeps a node to search, the beanbag is gone, the chairs / horse exist, and the vanity rule (mutation-checked: the host test fails
   if it is narrowed to chests only). **Test gotcha learned**: a SCRIPT ERROR inside a test function aborts it and the scene still prints "ALL PASSED" — only `tools/run_all_tests.sh` (which scans for it) is
   trustworthy; when running a suite by hand grep for `SCRIPT ERROR` too.
 
+## Art pass 2 (owner round 47c — "Redo all still on the list that need upgrading")
+
+Same kit, same method, one new file per family (the old definitions were cut out of `furn_bedroom*.py`; `furn_build.py` imports the new files):
+
+* `furn_case.py` — **bookcase_low** (a crown, a dark back, thick boards with a shadow under each, books of every height with gilt bands and title dashes, one leaning, a pile lying flat, an ornament, bracket feet),
+  **chest_drawers** (now 46×41: a lipped top, three raised-panel drawers with bail pulls and horizontal grain, a keyhole, bracket feet; the top drawer still pulls out on a search),
+  **dressing_table** (a swivel mirror on turned posts with a thumbscrew each, a bevelled frame, glass with a dithered reflected-floor edge, a doily, two drawers, turned legs; new variant `dark_cracked`).
+  `furn_wardrobes._mirror_glass` lost its checkerboard (a transparency-grid look at 6×) — a two-row dithered edge then a plain darker band; the mirrored wardrobe gets the same glass.
+* `furn_kids.py` — **toy_chest** (still true perspective, bucketed: a lid thrown back with a stencilled star, planked front, iron corner brackets with rivets, a brass lock plate, a teddy, a block, a ball and a doll's stocking
+  heaped inside, clipped at the front rim), **toy_shelf** (a painted board on little brackets, three lettered blocks, a plush bunny, a toy car), **block_tower** (lettered shaded blocks, a roof block), **ball** (a shaded rubber ball
+  with a curved white band; limit 1 a room now), **rag_doll** (yarn hair, button eyes, an apron, striped stockings), **height_chart** (a paper tape of notches, pencilled marks fading with age, a name tab).
+* `furn_floor.py` — **laundry_basket** (a woven wicker frustum with a loop handle each side, clothes heaped over the rim, a sleeve down the front), **clothes_rail** (a chrome frame on castors; garments — shirt, dress, coat, jumper,
+  trousers — each lit, creased and outlined against the next; variants `a` / `b` hang different sets), **floor_stain** (an irregular tide-line with a darker rim, translucent so the boards show through).
+* `furn_walls.py` — **frame_family** (oak moulding, mat, glint, three figures at the sea), **photo_wedding** (a sepia portrait in an oval mat, 29×33: veil, white dress, dark suit), **sampler_home** (cross-stitched HOME, flowers, a heart),
+  **mirror_wall** (an arched frame, a gilt inner line, foxed silvering, a crest and cord; gilt and dark), **clock_wall** (a shaded rim, twelve marks, stopped hands), **wall_shelf** (a board on iron braces; books + a vase, or a plant + a photo
+  + books), **tally_marks** (grooves with a pale chipped lip, dust below, two struck-through fives and three singles), **spray_nofood** (a faint overspray halo, wet highlights, a long run ending in a bead), and the three **ceiling lights**
+  (a flush glass bowl, a pendant on a twisted flex with a rose and a trimmed cone, a ribbed paper lantern).
+* `furn_desk.py` — the teen's **desk_crt** body (a lit pine top over a dark kneehole with a pencil drawer, a pedestal of two raised-panel drawers each side with brass knobs, a plinth, a sticker); the CRT is still placed by its `post` hook.
+* `furn_props.py` — **jewel_box**: the lid is now thrown back at an angle (narrowing toward the hinge) with a quilted lining and a little oval mirror — it no longer reads as a small TV.
+* Checked: every redrawn piece at 8–10× next to its old self and in composed rooms (`bedroom_<style>.png`, 6 plans per style, 0 rule violations / 0 fallbacks); the scan reports 10 egregious findings, none of them
+  a flat piece any more (a wasted bed sprite at the right-most bucket, three one-pixel specks, three few-colour marks on a wall).
+* **Not done / owner's call:** the bed headboards (above); the LOOK in the editor at game zoom; the wedding portrait's faces are tiny (a 20×19 px window).
+
 ## Numbers (so far)
 
-78 pieces, 716 sprites; 5 shells; 5 recipes. 1000 planned rooms in the test: 0 rule violations, 0 fallbacks; planning costs ~16 ms a room on average (cached per flat+slot,
+78 pieces, 724 sprites; 5 shells; 5 recipes. 1000 planned rooms in the test: 0 rule violations, 0 fallbacks; planning costs ~16 ms a room on average (cached per flat+slot,
 shared by the live room and its pan backdrop).

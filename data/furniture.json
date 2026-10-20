@@ -1330,12 +1330,12 @@
    ],
    "h": 10,
    "lean": false,
-   "limit": null,
+   "limit": 1,
    "near": [
     "toy"
    ],
    "needs": null,
-   "note": "a red ball with a white band",
+   "note": "a rubber ball: red with a curved white band, a lit side and a highlight",
    "on": [],
    "opens": null,
    "pair": null,
@@ -1364,13 +1364,13 @@
        "b": 2,
        "bx": 160,
        "file": "ball_red",
-       "h": 12,
-       "l": 0,
-       "r": 10,
-       "rx": 0,
-       "ry": 9,
-       "t": -9,
-       "w": 11
+       "h": 14,
+       "l": -2,
+       "r": 11,
+       "rx": 2,
+       "ry": 11,
+       "t": -11,
+       "w": 14
       }
      ]
     }
@@ -4200,7 +4200,7 @@
     "toy"
    ],
    "needs": null,
-   "note": "blocks stacked against the wall, a roof block on top",
+   "note": "lettered blocks stacked against the wall, a green roof block on top, one knocked off beside it",
    "on": [],
    "opens": null,
    "pair": null,
@@ -4225,16 +4225,16 @@
      "slots": [],
      "sprites": [
       {
-       "b": 1,
+       "b": 2,
        "bx": 160,
        "file": "block_tower_a",
-       "h": 22,
-       "l": -1,
-       "r": 10,
-       "rx": 1,
-       "ry": 20,
-       "t": -20,
-       "w": 12
+       "h": 30,
+       "l": -2,
+       "r": 17,
+       "rx": 2,
+       "ry": 27,
+       "t": -27,
+       "w": 20
       }
      ]
     }
@@ -4355,12 +4355,12 @@
     105,
     108
    ],
-   "h": 50,
+   "h": 51,
    "lean": true,
    "limit": null,
    "near": [],
    "needs": null,
-   "note": "a low bookcase of paperbacks",
+   "note": "a low bookcase: a crown, thick shelf boards with a shadow under each, a dark back, books of every height with banded spines \u2014 one leaning, a pile lying flat, an ornament, a pot plant",
    "on": [],
    "opens": null,
    "pair": null,
@@ -4408,34 +4408,46 @@
      ],
      "sprites": [
       {
-       "b": 4,
+       "b": 3,
        "bx": 36,
        "file": "bookcase_low_dark_b0",
-       "h": 59,
+       "h": 58,
        "l": -2,
-       "r": 38,
+       "r": 40,
        "rx": 2,
        "ry": 54,
        "t": -54,
-       "w": 41
+       "w": 43
       },
       {
-       "b": 4,
+       "b": 3,
        "bx": 72,
        "file": "bookcase_low_dark_b1",
-       "h": 59,
+       "h": 58,
        "l": -2,
-       "r": 35,
+       "r": 37,
        "rx": 2,
        "ry": 54,
        "t": -54,
-       "w": 38
+       "w": 40
       },
       {
-       "b": 4,
+       "b": 3,
        "bx": 116,
        "file": "bookcase_low_dark_b2",
-       "h": 59,
+       "h": 58,
+       "l": -2,
+       "r": 34,
+       "rx": 2,
+       "ry": 54,
+       "t": -54,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "bookcase_low_dark_b3",
+       "h": 58,
        "l": -2,
        "r": 32,
        "rx": 2,
@@ -4444,52 +4456,40 @@
        "w": 35
       },
       {
-       "b": 4,
-       "bx": 160,
-       "file": "bookcase_low_dark_b3",
-       "h": 59,
-       "l": -2,
-       "r": 30,
-       "rx": 2,
-       "ry": 54,
-       "t": -54,
-       "w": 33
-      },
-      {
-       "b": 4,
+       "b": 3,
        "bx": 204,
        "file": "bookcase_low_dark_b4",
-       "h": 59,
-       "l": -3,
-       "r": 30,
-       "rx": 3,
-       "ry": 54,
-       "t": -54,
-       "w": 34
-      },
-      {
-       "b": 4,
-       "bx": 248,
-       "file": "bookcase_low_dark_b5",
-       "h": 59,
-       "l": -6,
-       "r": 30,
-       "rx": 6,
+       "h": 58,
+       "l": -4,
+       "r": 32,
+       "rx": 4,
        "ry": 54,
        "t": -54,
        "w": 37
       },
       {
-       "b": 4,
-       "bx": 284,
-       "file": "bookcase_low_dark_b6",
-       "h": 59,
-       "l": -9,
-       "r": 30,
-       "rx": 9,
+       "b": 3,
+       "bx": 248,
+       "file": "bookcase_low_dark_b5",
+       "h": 58,
+       "l": -7,
+       "r": 32,
+       "rx": 7,
        "ry": 54,
        "t": -54,
        "w": 40
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "bookcase_low_dark_b6",
+       "h": 58,
+       "l": -10,
+       "r": 32,
+       "rx": 10,
+       "ry": 54,
+       "t": -54,
+       "w": 43
       }
      ]
     },
@@ -4520,34 +4520,46 @@
      ],
      "sprites": [
       {
-       "b": 4,
+       "b": 3,
        "bx": 36,
        "file": "bookcase_low_light_b0",
-       "h": 59,
+       "h": 58,
        "l": -2,
-       "r": 38,
+       "r": 40,
        "rx": 2,
        "ry": 54,
        "t": -54,
-       "w": 41
+       "w": 43
       },
       {
-       "b": 4,
+       "b": 3,
        "bx": 72,
        "file": "bookcase_low_light_b1",
-       "h": 59,
+       "h": 58,
        "l": -2,
-       "r": 35,
+       "r": 37,
        "rx": 2,
        "ry": 54,
        "t": -54,
-       "w": 38
+       "w": 40
       },
       {
-       "b": 4,
+       "b": 3,
        "bx": 116,
        "file": "bookcase_low_light_b2",
-       "h": 59,
+       "h": 58,
+       "l": -2,
+       "r": 34,
+       "rx": 2,
+       "ry": 54,
+       "t": -54,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "bookcase_low_light_b3",
+       "h": 58,
        "l": -2,
        "r": 32,
        "rx": 2,
@@ -4556,52 +4568,40 @@
        "w": 35
       },
       {
-       "b": 4,
-       "bx": 160,
-       "file": "bookcase_low_light_b3",
-       "h": 59,
-       "l": -2,
-       "r": 30,
-       "rx": 2,
-       "ry": 54,
-       "t": -54,
-       "w": 33
-      },
-      {
-       "b": 4,
+       "b": 3,
        "bx": 204,
        "file": "bookcase_low_light_b4",
-       "h": 59,
-       "l": -3,
-       "r": 30,
-       "rx": 3,
-       "ry": 54,
-       "t": -54,
-       "w": 34
-      },
-      {
-       "b": 4,
-       "bx": 248,
-       "file": "bookcase_low_light_b5",
-       "h": 59,
-       "l": -6,
-       "r": 30,
-       "rx": 6,
+       "h": 58,
+       "l": -4,
+       "r": 32,
+       "rx": 4,
        "ry": 54,
        "t": -54,
        "w": 37
       },
       {
-       "b": 4,
-       "bx": 284,
-       "file": "bookcase_low_light_b6",
-       "h": 59,
-       "l": -9,
-       "r": 30,
-       "rx": 9,
+       "b": 3,
+       "bx": 248,
+       "file": "bookcase_low_light_b5",
+       "h": 58,
+       "l": -7,
+       "r": 32,
+       "rx": 7,
        "ry": 54,
        "t": -54,
        "w": 40
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "bookcase_low_light_b6",
+       "h": 58,
+       "l": -10,
+       "r": 32,
+       "rx": 10,
+       "ry": 54,
+       "t": -54,
+       "w": 43
       }
      ]
     },
@@ -4632,34 +4632,46 @@
      ],
      "sprites": [
       {
-       "b": 4,
+       "b": 3,
        "bx": 36,
        "file": "bookcase_low_oak_b0",
-       "h": 59,
+       "h": 58,
        "l": -2,
-       "r": 38,
+       "r": 40,
        "rx": 2,
        "ry": 54,
        "t": -54,
-       "w": 41
+       "w": 43
       },
       {
-       "b": 4,
+       "b": 3,
        "bx": 72,
        "file": "bookcase_low_oak_b1",
-       "h": 59,
+       "h": 58,
        "l": -2,
-       "r": 35,
+       "r": 37,
        "rx": 2,
        "ry": 54,
        "t": -54,
-       "w": 38
+       "w": 40
       },
       {
-       "b": 4,
+       "b": 3,
        "bx": 116,
        "file": "bookcase_low_oak_b2",
-       "h": 59,
+       "h": 58,
+       "l": -2,
+       "r": 34,
+       "rx": 2,
+       "ry": 54,
+       "t": -54,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "bookcase_low_oak_b3",
+       "h": 58,
        "l": -2,
        "r": 32,
        "rx": 2,
@@ -4668,57 +4680,45 @@
        "w": 35
       },
       {
-       "b": 4,
-       "bx": 160,
-       "file": "bookcase_low_oak_b3",
-       "h": 59,
-       "l": -2,
-       "r": 30,
-       "rx": 2,
-       "ry": 54,
-       "t": -54,
-       "w": 33
-      },
-      {
-       "b": 4,
+       "b": 3,
        "bx": 204,
        "file": "bookcase_low_oak_b4",
-       "h": 59,
-       "l": -3,
-       "r": 30,
-       "rx": 3,
-       "ry": 54,
-       "t": -54,
-       "w": 34
-      },
-      {
-       "b": 4,
-       "bx": 248,
-       "file": "bookcase_low_oak_b5",
-       "h": 59,
-       "l": -6,
-       "r": 30,
-       "rx": 6,
+       "h": 58,
+       "l": -4,
+       "r": 32,
+       "rx": 4,
        "ry": 54,
        "t": -54,
        "w": 37
       },
       {
-       "b": 4,
-       "bx": 284,
-       "file": "bookcase_low_oak_b6",
-       "h": 59,
-       "l": -9,
-       "r": 30,
-       "rx": 9,
+       "b": 3,
+       "bx": 248,
+       "file": "bookcase_low_oak_b5",
+       "h": 58,
+       "l": -7,
+       "r": 32,
+       "rx": 7,
        "ry": 54,
        "t": -54,
        "w": 40
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "bookcase_low_oak_b6",
+       "h": 58,
+       "l": -10,
+       "r": 32,
+       "rx": 10,
+       "ry": 54,
+       "t": -54,
+       "w": 43
       }
      ]
     }
    },
-   "w": 30,
+   "w": 31,
    "wall_y": null
   },
   "boxes_stack": {
@@ -5036,7 +5036,7 @@
    "limit": null,
    "near": [],
    "needs": null,
-   "note": "a flush ceiling dome",
+   "note": "a flush ceiling dome: a metal rim, a frosted glass bowl lit from inside, a ring of dust on the lip",
    "on": [],
    "opens": null,
    "pair": null,
@@ -5070,13 +5070,13 @@
      "slots": [],
      "sprites": [
       {
-       "b": 5,
+       "b": 6,
        "bx": 160,
        "file": "ceiling_flush_a",
-       "h": 6,
-       "l": -9,
-       "r": 9,
-       "rx": 9,
+       "h": 7,
+       "l": -1,
+       "r": 17,
+       "rx": 1,
        "ry": 0,
        "t": 0,
        "w": 19
@@ -5100,7 +5100,7 @@
    "limit": null,
    "near": [],
    "needs": null,
-   "note": "a paper-shade pendant",
+   "note": "a paper lantern: ribbed, soft white, a wire cap top and bottom, hung on a cord",
    "on": [],
    "opens": null,
    "pair": null,
@@ -5132,16 +5132,16 @@
      "slots": [],
      "sprites": [
       {
-       "b": 23,
+       "b": 22,
        "bx": 160,
        "file": "ceiling_paper_white",
-       "h": 24,
-       "l": -1,
+       "h": 23,
+       "l": -2,
        "r": 15,
-       "rx": 1,
+       "rx": 2,
        "ry": 0,
        "t": 0,
-       "w": 17
+       "w": 18
       }
      ]
     }
@@ -5162,7 +5162,7 @@
    "limit": null,
    "near": [],
    "needs": null,
-   "note": "a pendant on a flex",
+   "note": "a pendant on a twisted flex: a ceiling rose, a bulb holder and a shaded cone with a trim band and a bulb glowing under the hem",
    "on": [],
    "opens": null,
    "pair": null,
@@ -5196,7 +5196,7 @@
       }
      ],
      "params": {
-      "shade": "cream"
+      "shade": "e6dcc0"
      },
      "slots": [],
      "sprites": [
@@ -5205,12 +5205,12 @@
        "bx": 160,
        "file": "ceiling_pendant_cream",
        "h": 27,
-       "l": -1,
+       "l": -2,
        "r": 15,
-       "rx": 1,
+       "rx": 2,
        "ry": 0,
        "t": 0,
-       "w": 17
+       "w": 18
       }
      ]
     },
@@ -5225,7 +5225,7 @@
       }
      ],
      "params": {
-      "shade": "green"
+      "shade": "6f8f68"
      },
      "slots": [],
      "sprites": [
@@ -5234,12 +5234,12 @@
        "bx": 160,
        "file": "ceiling_pendant_green",
        "h": 27,
-       "l": -1,
+       "l": -2,
        "r": 15,
-       "rx": 1,
+       "rx": 2,
        "ry": 0,
        "t": 0,
-       "w": 17
+       "w": 18
       }
      ]
     },
@@ -5254,7 +5254,7 @@
       }
      ],
      "params": {
-      "shade": "mustard"
+      "shade": "c9a24e"
      },
      "slots": [],
      "sprites": [
@@ -5263,12 +5263,12 @@
        "bx": 160,
        "file": "ceiling_pendant_mustard",
        "h": 27,
-       "l": -1,
+       "l": -2,
        "r": 15,
-       "rx": 1,
+       "rx": 2,
        "ry": 0,
        "t": 0,
-       "w": 17
+       "w": 18
       }
      ]
     },
@@ -5283,7 +5283,7 @@
       }
      ],
      "params": {
-      "shade": "rose"
+      "shade": "c27a82"
      },
      "slots": [],
      "sprites": [
@@ -5292,12 +5292,12 @@
        "bx": 160,
        "file": "ceiling_pendant_rose",
        "h": 27,
-       "l": -1,
+       "l": -2,
        "r": 15,
-       "rx": 1,
+       "rx": 2,
        "ry": 0,
        "t": 0,
-       "w": 17
+       "w": 18
       }
      ]
     }
@@ -6556,12 +6556,12 @@
     105,
     108
    ],
-   "h": 36,
+   "h": 41,
    "lean": true,
    "limit": null,
    "near": [],
    "needs": null,
-   "note": "a chest of three drawers; the top one pulls out when it is searched",
+   "note": "a chest of three drawers: a lipped top, raised-panel drawers with bail pulls and a keyhole, bracket feet; the top drawer pulls out when it is searched",
    "on": [],
    "opens": {
     "anchor": "chest_drawers",
@@ -6588,8 +6588,8 @@
     "dark": {
      "anchors": [
       {
-       "dx": 22,
-       "dy": -20,
+       "dx": 23,
+       "dy": -23,
        "name": "chest_drawers"
       }
      ],
@@ -6599,8 +6599,8 @@
      "slots": [
       {
        "dx0": 4,
-       "dx1": 40,
-       "dy": -38,
+       "dx1": 41,
+       "dy": -43,
        "id": "top",
        "kinds": [
         "small",
@@ -6612,103 +6612,103 @@
      ],
      "sprites": [
       {
-       "b": 4,
+       "b": 3,
        "bx": 36,
        "file": "chest_drawers_dark_b0",
-       "h": 46,
-       "l": -2,
+       "h": 49,
+       "l": -3,
        "open_file": "chest_drawers_dark_b0_open",
-       "r": 53,
-       "rx": 2,
-       "ry": 41,
-       "t": -41,
+       "r": 54,
+       "rx": 3,
+       "ry": 45,
+       "t": -45,
+       "w": 58
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "chest_drawers_dark_b1",
+       "h": 49,
+       "l": -3,
+       "open_file": "chest_drawers_dark_b1_open",
+       "r": 52,
+       "rx": 3,
+       "ry": 45,
+       "t": -45,
        "w": 56
       },
       {
-       "b": 4,
-       "bx": 72,
-       "file": "chest_drawers_dark_b1",
-       "h": 46,
-       "l": -2,
-       "open_file": "chest_drawers_dark_b1_open",
-       "r": 50,
-       "rx": 2,
-       "ry": 41,
-       "t": -41,
-       "w": 53
-      },
-      {
-       "b": 4,
+       "b": 3,
        "bx": 116,
        "file": "chest_drawers_dark_b2",
-       "h": 46,
-       "l": -2,
+       "h": 49,
+       "l": -3,
        "open_file": "chest_drawers_dark_b2_open",
-       "r": 47,
-       "rx": 2,
-       "ry": 41,
-       "t": -41,
-       "w": 50
-      },
-      {
-       "b": 4,
-       "bx": 160,
-       "file": "chest_drawers_dark_b3",
-       "h": 46,
-       "l": -2,
-       "open_file": "chest_drawers_dark_b3_open",
-       "r": 45,
-       "rx": 2,
-       "ry": 41,
-       "t": -41,
-       "w": 48
-      },
-      {
-       "b": 4,
-       "bx": 204,
-       "file": "chest_drawers_dark_b4",
-       "h": 46,
-       "l": -4,
-       "open_file": "chest_drawers_dark_b4_open",
-       "r": 45,
-       "rx": 4,
-       "ry": 41,
-       "t": -41,
-       "w": 50
-      },
-      {
-       "b": 4,
-       "bx": 248,
-       "file": "chest_drawers_dark_b5",
-       "h": 46,
-       "l": -7,
-       "open_file": "chest_drawers_dark_b5_open",
-       "r": 45,
-       "rx": 7,
-       "ry": 41,
-       "t": -41,
+       "r": 49,
+       "rx": 3,
+       "ry": 45,
+       "t": -45,
        "w": 53
       },
       {
-       "b": 4,
+       "b": 3,
+       "bx": 160,
+       "file": "chest_drawers_dark_b3",
+       "h": 49,
+       "l": -3,
+       "open_file": "chest_drawers_dark_b3_open",
+       "r": 47,
+       "rx": 3,
+       "ry": 45,
+       "t": -45,
+       "w": 51
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "chest_drawers_dark_b4",
+       "h": 49,
+       "l": -3,
+       "open_file": "chest_drawers_dark_b4_open",
+       "r": 47,
+       "rx": 3,
+       "ry": 45,
+       "t": -45,
+       "w": 51
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "chest_drawers_dark_b5",
+       "h": 49,
+       "l": -7,
+       "open_file": "chest_drawers_dark_b5_open",
+       "r": 47,
+       "rx": 7,
+       "ry": 45,
+       "t": -45,
+       "w": 55
+      },
+      {
+       "b": 3,
        "bx": 284,
        "file": "chest_drawers_dark_b6",
-       "h": 46,
+       "h": 49,
        "l": -9,
        "open_file": "chest_drawers_dark_b6_open",
-       "r": 45,
+       "r": 47,
        "rx": 9,
-       "ry": 41,
-       "t": -41,
-       "w": 55
+       "ry": 45,
+       "t": -45,
+       "w": 57
       }
      ]
     },
     "light": {
      "anchors": [
       {
-       "dx": 22,
-       "dy": -20,
+       "dx": 23,
+       "dy": -23,
        "name": "chest_drawers"
       }
      ],
@@ -6718,8 +6718,8 @@
      "slots": [
       {
        "dx0": 4,
-       "dx1": 40,
-       "dy": -38,
+       "dx1": 41,
+       "dy": -43,
        "id": "top",
        "kinds": [
         "small",
@@ -6731,103 +6731,103 @@
      ],
      "sprites": [
       {
-       "b": 4,
+       "b": 3,
        "bx": 36,
        "file": "chest_drawers_light_b0",
-       "h": 46,
-       "l": -2,
+       "h": 49,
+       "l": -3,
        "open_file": "chest_drawers_light_b0_open",
-       "r": 53,
-       "rx": 2,
-       "ry": 41,
-       "t": -41,
+       "r": 54,
+       "rx": 3,
+       "ry": 45,
+       "t": -45,
+       "w": 58
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "chest_drawers_light_b1",
+       "h": 49,
+       "l": -3,
+       "open_file": "chest_drawers_light_b1_open",
+       "r": 52,
+       "rx": 3,
+       "ry": 45,
+       "t": -45,
        "w": 56
       },
       {
-       "b": 4,
-       "bx": 72,
-       "file": "chest_drawers_light_b1",
-       "h": 46,
-       "l": -2,
-       "open_file": "chest_drawers_light_b1_open",
-       "r": 50,
-       "rx": 2,
-       "ry": 41,
-       "t": -41,
-       "w": 53
-      },
-      {
-       "b": 4,
+       "b": 3,
        "bx": 116,
        "file": "chest_drawers_light_b2",
-       "h": 46,
-       "l": -2,
+       "h": 49,
+       "l": -3,
        "open_file": "chest_drawers_light_b2_open",
-       "r": 47,
-       "rx": 2,
-       "ry": 41,
-       "t": -41,
-       "w": 50
-      },
-      {
-       "b": 4,
-       "bx": 160,
-       "file": "chest_drawers_light_b3",
-       "h": 46,
-       "l": -2,
-       "open_file": "chest_drawers_light_b3_open",
-       "r": 45,
-       "rx": 2,
-       "ry": 41,
-       "t": -41,
-       "w": 48
-      },
-      {
-       "b": 4,
-       "bx": 204,
-       "file": "chest_drawers_light_b4",
-       "h": 46,
-       "l": -4,
-       "open_file": "chest_drawers_light_b4_open",
-       "r": 45,
-       "rx": 4,
-       "ry": 41,
-       "t": -41,
-       "w": 50
-      },
-      {
-       "b": 4,
-       "bx": 248,
-       "file": "chest_drawers_light_b5",
-       "h": 46,
-       "l": -7,
-       "open_file": "chest_drawers_light_b5_open",
-       "r": 45,
-       "rx": 7,
-       "ry": 41,
-       "t": -41,
+       "r": 49,
+       "rx": 3,
+       "ry": 45,
+       "t": -45,
        "w": 53
       },
       {
-       "b": 4,
+       "b": 3,
+       "bx": 160,
+       "file": "chest_drawers_light_b3",
+       "h": 49,
+       "l": -3,
+       "open_file": "chest_drawers_light_b3_open",
+       "r": 47,
+       "rx": 3,
+       "ry": 45,
+       "t": -45,
+       "w": 51
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "chest_drawers_light_b4",
+       "h": 49,
+       "l": -3,
+       "open_file": "chest_drawers_light_b4_open",
+       "r": 47,
+       "rx": 3,
+       "ry": 45,
+       "t": -45,
+       "w": 51
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "chest_drawers_light_b5",
+       "h": 49,
+       "l": -7,
+       "open_file": "chest_drawers_light_b5_open",
+       "r": 47,
+       "rx": 7,
+       "ry": 45,
+       "t": -45,
+       "w": 55
+      },
+      {
+       "b": 3,
        "bx": 284,
        "file": "chest_drawers_light_b6",
-       "h": 46,
+       "h": 49,
        "l": -9,
        "open_file": "chest_drawers_light_b6_open",
-       "r": 45,
+       "r": 47,
        "rx": 9,
-       "ry": 41,
-       "t": -41,
-       "w": 55
+       "ry": 45,
+       "t": -45,
+       "w": 57
       }
      ]
     },
     "oak": {
      "anchors": [
       {
-       "dx": 22,
-       "dy": -20,
+       "dx": 23,
+       "dy": -23,
        "name": "chest_drawers"
       }
      ],
@@ -6837,8 +6837,8 @@
      "slots": [
       {
        "dx0": 4,
-       "dx1": 40,
-       "dy": -38,
+       "dx1": 41,
+       "dy": -43,
        "id": "top",
        "kinds": [
         "small",
@@ -6850,100 +6850,100 @@
      ],
      "sprites": [
       {
-       "b": 4,
+       "b": 3,
        "bx": 36,
        "file": "chest_drawers_oak_b0",
-       "h": 46,
-       "l": -2,
+       "h": 49,
+       "l": -3,
        "open_file": "chest_drawers_oak_b0_open",
-       "r": 53,
-       "rx": 2,
-       "ry": 41,
-       "t": -41,
+       "r": 54,
+       "rx": 3,
+       "ry": 45,
+       "t": -45,
+       "w": 58
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "chest_drawers_oak_b1",
+       "h": 49,
+       "l": -3,
+       "open_file": "chest_drawers_oak_b1_open",
+       "r": 52,
+       "rx": 3,
+       "ry": 45,
+       "t": -45,
        "w": 56
       },
       {
-       "b": 4,
-       "bx": 72,
-       "file": "chest_drawers_oak_b1",
-       "h": 46,
-       "l": -2,
-       "open_file": "chest_drawers_oak_b1_open",
-       "r": 50,
-       "rx": 2,
-       "ry": 41,
-       "t": -41,
-       "w": 53
-      },
-      {
-       "b": 4,
+       "b": 3,
        "bx": 116,
        "file": "chest_drawers_oak_b2",
-       "h": 46,
-       "l": -2,
+       "h": 49,
+       "l": -3,
        "open_file": "chest_drawers_oak_b2_open",
-       "r": 47,
-       "rx": 2,
-       "ry": 41,
-       "t": -41,
-       "w": 50
-      },
-      {
-       "b": 4,
-       "bx": 160,
-       "file": "chest_drawers_oak_b3",
-       "h": 46,
-       "l": -2,
-       "open_file": "chest_drawers_oak_b3_open",
-       "r": 45,
-       "rx": 2,
-       "ry": 41,
-       "t": -41,
-       "w": 48
-      },
-      {
-       "b": 4,
-       "bx": 204,
-       "file": "chest_drawers_oak_b4",
-       "h": 46,
-       "l": -4,
-       "open_file": "chest_drawers_oak_b4_open",
-       "r": 45,
-       "rx": 4,
-       "ry": 41,
-       "t": -41,
-       "w": 50
-      },
-      {
-       "b": 4,
-       "bx": 248,
-       "file": "chest_drawers_oak_b5",
-       "h": 46,
-       "l": -7,
-       "open_file": "chest_drawers_oak_b5_open",
-       "r": 45,
-       "rx": 7,
-       "ry": 41,
-       "t": -41,
+       "r": 49,
+       "rx": 3,
+       "ry": 45,
+       "t": -45,
        "w": 53
       },
       {
-       "b": 4,
+       "b": 3,
+       "bx": 160,
+       "file": "chest_drawers_oak_b3",
+       "h": 49,
+       "l": -3,
+       "open_file": "chest_drawers_oak_b3_open",
+       "r": 47,
+       "rx": 3,
+       "ry": 45,
+       "t": -45,
+       "w": 51
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "chest_drawers_oak_b4",
+       "h": 49,
+       "l": -3,
+       "open_file": "chest_drawers_oak_b4_open",
+       "r": 47,
+       "rx": 3,
+       "ry": 45,
+       "t": -45,
+       "w": 51
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "chest_drawers_oak_b5",
+       "h": 49,
+       "l": -7,
+       "open_file": "chest_drawers_oak_b5_open",
+       "r": 47,
+       "rx": 7,
+       "ry": 45,
+       "t": -45,
+       "w": 55
+      },
+      {
+       "b": 3,
        "bx": 284,
        "file": "chest_drawers_oak_b6",
-       "h": 46,
+       "h": 49,
        "l": -9,
        "open_file": "chest_drawers_oak_b6_open",
-       "r": 45,
+       "r": 47,
        "rx": 9,
-       "ry": 41,
-       "t": -41,
-       "w": 55
+       "ry": 45,
+       "t": -45,
+       "w": 57
       }
      ]
     }
    },
-   "w": 44,
+   "w": 46,
    "wall_y": null
   },
   "clock_wall": {
@@ -6959,7 +6959,7 @@
    "limit": null,
    "near": [],
    "needs": null,
-   "note": "a round wall clock, stopped at the hour it all went wrong",
+   "note": "a round wall clock: a shaded rim, a cream face with twelve marks, hands stopped at the hour it all went wrong, a glint on the glass",
    "on": [],
    "opens": null,
    "pair": null,
@@ -6986,20 +6986,22 @@
      "anchors": [],
      "anims": [],
      "lights": [],
-     "params": {},
+     "params": {
+      "rim": "b09456"
+     },
      "slots": [],
      "sprites": [
       {
        "b": 16,
        "bx": 160,
        "file": "clock_wall_brass",
-       "h": 17,
-       "l": -1,
+       "h": 18,
+       "l": -2,
        "r": 15,
-       "rx": 1,
-       "ry": 0,
-       "t": 0,
-       "w": 17
+       "rx": 2,
+       "ry": 1,
+       "t": -1,
+       "w": 18
       }
      ]
     },
@@ -7007,20 +7009,22 @@
      "anchors": [],
      "anims": [],
      "lights": [],
-     "params": {},
+     "params": {
+      "rim": "d8d2c2"
+     },
      "slots": [],
      "sprites": [
       {
        "b": 16,
        "bx": 160,
        "file": "clock_wall_white",
-       "h": 17,
-       "l": -1,
+       "h": 18,
+       "l": -2,
        "r": 15,
-       "rx": 1,
-       "ry": 0,
-       "t": 0,
-       "w": 17
+       "rx": 2,
+       "ry": 1,
+       "t": -1,
+       "w": 18
       }
      ]
     }
@@ -7175,7 +7179,7 @@
     "sleeping"
    ],
    "needs": null,
-   "note": "a freestanding clothes rail on castors, a few things hung from it",
+   "note": "a freestanding chrome clothes rail on castors: wire hangers, four garments (shirt, dress, coat, jumper, trousers by variant), each lit, creased and outlined against the next",
    "on": [],
    "opens": null,
    "pair": null,
@@ -7209,16 +7213,43 @@
      "slots": [],
      "sprites": [
       {
-       "b": 2,
+       "b": 3,
        "bx": 160,
        "file": "clothes_rail_a",
-       "h": 52,
+       "h": 54,
        "l": -4,
-       "r": 48,
+       "r": 51,
        "rx": 4,
-       "ry": 49,
-       "t": -49,
-       "w": 53
+       "ry": 50,
+       "t": -50,
+       "w": 56
+      }
+     ]
+    },
+    "b": {
+     "anchors": [
+      {
+       "dx": 16,
+       "dy": -22,
+       "name": "clothes_rail"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {},
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "clothes_rail_b",
+       "h": 54,
+       "l": -4,
+       "r": 51,
+       "rx": 4,
+       "ry": 50,
+       "t": -50,
+       "w": 56
       }
      ]
     }
@@ -7768,7 +7799,7 @@
     ],
     "tag": "seat"
    },
-   "note": "a pine desk with a pedestal of drawers at each end and an old beige computer on it (it wants its chair)",
+   "note": "a pine desk: a lit top edge, a dark kneehole with a pencil drawer, a pedestal of two raised-panel drawers at each end with brass knobs, a plinth, a sticker and a scratched doodle (it wants its chair)",
    "on": [],
    "opens": null,
    "pair": null,
@@ -7811,60 +7842,60 @@
        "bx": 36,
        "file": "desk_crt_pine_b0",
        "h": 58,
-       "l": -1,
-       "r": 53,
-       "rx": 1,
+       "l": -2,
+       "r": 54,
+       "rx": 2,
        "ry": 54,
        "t": -54,
-       "w": 55
+       "w": 57
       },
       {
        "b": 3,
        "bx": 72,
        "file": "desk_crt_pine_b1",
        "h": 58,
-       "l": -1,
-       "r": 50,
-       "rx": 1,
+       "l": -2,
+       "r": 51,
+       "rx": 2,
        "ry": 54,
        "t": -54,
-       "w": 52
+       "w": 54
       },
       {
        "b": 3,
        "bx": 116,
        "file": "desk_crt_pine_b2",
        "h": 58,
-       "l": -1,
-       "r": 45,
-       "rx": 1,
+       "l": -2,
+       "r": 46,
+       "rx": 2,
        "ry": 54,
        "t": -54,
-       "w": 47
+       "w": 49
       },
       {
        "b": 3,
        "bx": 160,
        "file": "desk_crt_pine_b3",
        "h": 58,
-       "l": -1,
-       "r": 43,
-       "rx": 1,
+       "l": -2,
+       "r": 44,
+       "rx": 2,
        "ry": 54,
        "t": -54,
-       "w": 45
+       "w": 47
       },
       {
        "b": 3,
        "bx": 204,
        "file": "desk_crt_pine_b4",
        "h": 58,
-       "l": -3,
-       "r": 43,
-       "rx": 3,
+       "l": -4,
+       "r": 44,
+       "rx": 4,
        "ry": 54,
        "t": -54,
-       "w": 47
+       "w": 49
       },
       {
        "b": 3,
@@ -7872,23 +7903,23 @@
        "file": "desk_crt_pine_b5",
        "h": 58,
        "l": -8,
-       "r": 43,
+       "r": 44,
        "rx": 8,
        "ry": 54,
        "t": -54,
-       "w": 52
+       "w": 53
       },
       {
        "b": 3,
        "bx": 284,
        "file": "desk_crt_pine_b6",
        "h": 58,
-       "l": -11,
-       "r": 43,
-       "rx": 11,
+       "l": -12,
+       "r": 44,
+       "rx": 12,
        "ry": 54,
        "t": -54,
-       "w": 55
+       "w": 57
       }
      ]
     }
@@ -8246,7 +8277,7 @@
    "limit": null,
    "near": [],
    "needs": null,
-   "note": "a dressing table with a (cracked) mirror, two drawers",
+   "note": "a dressing table: a swivel mirror on turned posts (one is cracked), a lace doily on the top, two drawers with brass pulls, turned feet",
    "on": [],
    "opens": null,
    "pair": null,
@@ -8268,7 +8299,7 @@
     "dark": {
      "anchors": [
       {
-       "dx": 31,
+       "dx": 32,
        "dy": -41,
        "name": "dressing_table",
        "note": "the jewellery box on the top",
@@ -8277,11 +8308,13 @@
      ],
      "anims": [],
      "lights": [],
-     "params": {},
+     "params": {
+      "cracked": false
+     },
      "slots": [
       {
        "dx0": 24,
-       "dx1": 38,
+       "dx1": 40,
        "dy": -37,
        "id": "top",
        "kinds": [
@@ -8298,11 +8331,11 @@
        "file": "dressing_table_dark_b0",
        "h": 78,
        "l": -2,
-       "r": 50,
+       "r": 51,
        "rx": 2,
        "ry": 74,
        "t": -74,
-       "w": 53
+       "w": 54
       },
       {
        "b": 3,
@@ -8310,16 +8343,28 @@
        "file": "dressing_table_dark_b1",
        "h": 78,
        "l": -2,
-       "r": 47,
+       "r": 48,
        "rx": 2,
        "ry": 74,
        "t": -74,
-       "w": 50
+       "w": 51
       },
       {
        "b": 3,
        "bx": 116,
        "file": "dressing_table_dark_b2",
+       "h": 78,
+       "l": -2,
+       "r": 45,
+       "rx": 2,
+       "ry": 74,
+       "t": -74,
+       "w": 48
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "dressing_table_dark_b3",
        "h": 78,
        "l": -2,
        "r": 44,
@@ -8330,58 +8375,46 @@
       },
       {
        "b": 3,
-       "bx": 160,
-       "file": "dressing_table_dark_b3",
-       "h": 78,
-       "l": -2,
-       "r": 42,
-       "rx": 2,
-       "ry": 74,
-       "t": -74,
-       "w": 45
-      },
-      {
-       "b": 3,
        "bx": 204,
        "file": "dressing_table_dark_b4",
        "h": 78,
-       "l": -4,
-       "r": 42,
-       "rx": 4,
+       "l": -3,
+       "r": 44,
+       "rx": 3,
        "ry": 74,
        "t": -74,
-       "w": 47
+       "w": 48
       },
       {
        "b": 3,
        "bx": 248,
        "file": "dressing_table_dark_b5",
        "h": 78,
-       "l": -7,
-       "r": 42,
-       "rx": 7,
+       "l": -6,
+       "r": 44,
+       "rx": 6,
        "ry": 74,
        "t": -74,
-       "w": 50
+       "w": 51
       },
       {
        "b": 3,
        "bx": 284,
        "file": "dressing_table_dark_b6",
        "h": 78,
-       "l": -10,
-       "r": 42,
-       "rx": 10,
+       "l": -9,
+       "r": 44,
+       "rx": 9,
        "ry": 74,
        "t": -74,
-       "w": 53
+       "w": 54
       }
      ]
     },
-    "light": {
+    "dark_cracked": {
      "anchors": [
       {
-       "dx": 31,
+       "dx": 32,
        "dy": -41,
        "name": "dressing_table",
        "note": "the jewellery box on the top",
@@ -8390,11 +8423,128 @@
      ],
      "anims": [],
      "lights": [],
-     "params": {},
+     "params": {
+      "cracked": true
+     },
      "slots": [
       {
        "dx0": 24,
-       "dx1": 38,
+       "dx1": 40,
+       "dy": -37,
+       "id": "top",
+       "kinds": [
+        "small",
+        "vanity"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "dressing_table_dark_cracked_b0",
+       "h": 78,
+       "l": -2,
+       "r": 51,
+       "rx": 2,
+       "ry": 74,
+       "t": -74,
+       "w": 54
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "dressing_table_dark_cracked_b1",
+       "h": 78,
+       "l": -2,
+       "r": 48,
+       "rx": 2,
+       "ry": 74,
+       "t": -74,
+       "w": 51
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "dressing_table_dark_cracked_b2",
+       "h": 78,
+       "l": -2,
+       "r": 45,
+       "rx": 2,
+       "ry": 74,
+       "t": -74,
+       "w": 48
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "dressing_table_dark_cracked_b3",
+       "h": 78,
+       "l": -2,
+       "r": 44,
+       "rx": 2,
+       "ry": 74,
+       "t": -74,
+       "w": 47
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "dressing_table_dark_cracked_b4",
+       "h": 78,
+       "l": -3,
+       "r": 44,
+       "rx": 3,
+       "ry": 74,
+       "t": -74,
+       "w": 48
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "dressing_table_dark_cracked_b5",
+       "h": 78,
+       "l": -6,
+       "r": 44,
+       "rx": 6,
+       "ry": 74,
+       "t": -74,
+       "w": 51
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "dressing_table_dark_cracked_b6",
+       "h": 78,
+       "l": -9,
+       "r": 44,
+       "rx": 9,
+       "ry": 74,
+       "t": -74,
+       "w": 54
+      }
+     ]
+    },
+    "light": {
+     "anchors": [
+      {
+       "dx": 32,
+       "dy": -41,
+       "name": "dressing_table",
+       "note": "the jewellery box on the top",
+       "top": true
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "cracked": false
+     },
+     "slots": [
+      {
+       "dx0": 24,
+       "dx1": 40,
        "dy": -37,
        "id": "top",
        "kinds": [
@@ -8411,11 +8561,11 @@
        "file": "dressing_table_light_b0",
        "h": 78,
        "l": -2,
-       "r": 50,
+       "r": 51,
        "rx": 2,
        "ry": 74,
        "t": -74,
-       "w": 53
+       "w": 54
       },
       {
        "b": 3,
@@ -8423,16 +8573,28 @@
        "file": "dressing_table_light_b1",
        "h": 78,
        "l": -2,
-       "r": 47,
+       "r": 48,
        "rx": 2,
        "ry": 74,
        "t": -74,
-       "w": 50
+       "w": 51
       },
       {
        "b": 3,
        "bx": 116,
        "file": "dressing_table_light_b2",
+       "h": 78,
+       "l": -2,
+       "r": 45,
+       "rx": 2,
+       "ry": 74,
+       "t": -74,
+       "w": 48
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "dressing_table_light_b3",
        "h": 78,
        "l": -2,
        "r": 44,
@@ -8443,56 +8605,44 @@
       },
       {
        "b": 3,
-       "bx": 160,
-       "file": "dressing_table_light_b3",
-       "h": 78,
-       "l": -2,
-       "r": 42,
-       "rx": 2,
-       "ry": 74,
-       "t": -74,
-       "w": 45
-      },
-      {
-       "b": 3,
        "bx": 204,
        "file": "dressing_table_light_b4",
        "h": 78,
-       "l": -4,
-       "r": 42,
-       "rx": 4,
+       "l": -3,
+       "r": 44,
+       "rx": 3,
        "ry": 74,
        "t": -74,
-       "w": 47
+       "w": 48
       },
       {
        "b": 3,
        "bx": 248,
        "file": "dressing_table_light_b5",
        "h": 78,
-       "l": -7,
-       "r": 42,
-       "rx": 7,
+       "l": -6,
+       "r": 44,
+       "rx": 6,
        "ry": 74,
        "t": -74,
-       "w": 50
+       "w": 51
       },
       {
        "b": 3,
        "bx": 284,
        "file": "dressing_table_light_b6",
        "h": 78,
-       "l": -10,
-       "r": 42,
-       "rx": 10,
+       "l": -9,
+       "r": 44,
+       "rx": 9,
        "ry": 74,
        "t": -74,
-       "w": 53
+       "w": 54
       }
      ]
     }
    },
-   "w": 41,
+   "w": 43,
    "wall_y": null
   },
   "drip_stand": {
@@ -8607,7 +8757,7 @@
    "limit": null,
    "near": [],
    "needs": null,
-   "note": "a dried stain on the boards",
+   "note": "a dried stain on the boards: an irregular tide-line with a darker rim, a paler middle and a few spots",
    "on": [],
    "opens": null,
    "pair": null,
@@ -8633,21 +8783,22 @@
      "anims": [],
      "lights": [],
      "params": {
+      "col": "9a8a5a",
       "seed": 34
      },
      "slots": [],
      "sprites": [
       {
-       "b": -1,
+       "b": 0,
        "bx": 160,
        "file": "floor_stain_a",
-       "h": 7,
-       "l": 0,
+       "h": 10,
+       "l": 1,
        "r": 27,
-       "rx": 0,
-       "ry": 7,
-       "t": -7,
-       "w": 28
+       "rx": -1,
+       "ry": 9,
+       "t": -9,
+       "w": 27
       }
      ]
     },
@@ -8656,21 +8807,22 @@
      "anims": [],
      "lights": [],
      "params": {
+      "col": "6a5a42",
       "seed": 41
      },
      "slots": [],
      "sprites": [
       {
-       "b": -1,
+       "b": 1,
        "bx": 160,
        "file": "floor_stain_b",
-       "h": 7,
-       "l": 2,
+       "h": 11,
+       "l": 1,
        "r": 28,
-       "rx": -2,
-       "ry": 7,
-       "t": -7,
-       "w": 27
+       "rx": -1,
+       "ry": 9,
+       "t": -9,
+       "w": 28
       }
      ]
     }
@@ -8691,7 +8843,7 @@
    "limit": null,
    "near": [],
    "needs": null,
-   "note": "a framed family photo on a string",
+   "note": "a framed family photo at the seaside: a mat, an oak moulding, a glint on the glass, three figures, a gull",
    "on": [],
    "opens": null,
    "pair": null,
@@ -8720,16 +8872,16 @@
      "slots": [],
      "sprites": [
       {
-       "b": 24,
+       "b": 25,
        "bx": 160,
        "file": "frame_family_seaside",
-       "h": 26,
-       "l": -3,
-       "r": 22,
-       "rx": 3,
-       "ry": 1,
-       "t": -1,
-       "w": 26
+       "h": 28,
+       "l": -1,
+       "r": 21,
+       "rx": 1,
+       "ry": 2,
+       "t": -2,
+       "w": 23
       }
      ]
     }
@@ -9001,7 +9153,7 @@
    "limit": 1,
    "near": [],
    "needs": null,
-   "note": "height marks pencilled on the wall, each with the age beside it, and her name at the top",
+   "note": "a growth chart: a thin tape of notches, pencilled marks with the age beside each, older marks faded, her name on a tab at the top",
    "on": [],
    "opens": null,
    "pair": null,
@@ -9032,11 +9184,11 @@
        "file": "height_chart_a",
        "h": 32,
        "l": -1,
-       "r": 11,
+       "r": 18,
        "rx": 1,
        "ry": 1,
        "t": -1,
-       "w": 13
+       "w": 20
       }
      ]
     }
@@ -9055,12 +9207,12 @@
     0,
     0
    ],
-   "h": 13,
+   "h": 14,
    "lean": false,
    "limit": null,
    "near": [],
    "needs": null,
-   "note": "a jewellery box, lid up on its satin, a necklace trailing over the front",
+   "note": "a jewellery box, lid thrown back with a quilted lining and a little oval mirror, a necklace trailing over the front",
    "on": [
     "vanity"
    ],
@@ -9100,12 +9252,12 @@
        "b": 3,
        "bx": 160,
        "file": "jewel_box_ebony",
-       "h": 19,
+       "h": 20,
        "l": -2,
        "r": 15,
        "rx": 2,
-       "ry": 15,
-       "t": -15,
+       "ry": 16,
+       "t": -16,
        "w": 18
       }
      ]
@@ -9130,12 +9282,12 @@
        "b": 3,
        "bx": 160,
        "file": "jewel_box_plum",
-       "h": 19,
+       "h": 20,
        "l": -2,
        "r": 15,
        "rx": 2,
-       "ry": 15,
-       "t": -15,
+       "ry": 16,
+       "t": -16,
        "w": 18
       }
      ]
@@ -9160,12 +9312,12 @@
        "b": 3,
        "bx": 160,
        "file": "jewel_box_walnut",
-       "h": 19,
+       "h": 20,
        "l": -2,
        "r": 15,
        "rx": 2,
-       "ry": 15,
-       "t": -15,
+       "ry": 16,
+       "t": -16,
        "w": 18
       }
      ]
@@ -10139,7 +10291,7 @@
     "sleeping"
    ],
    "needs": null,
-   "note": "a wicker laundry basket, clothes spilling over the rim",
+   "note": "a woven wicker laundry basket with a loop handle each side, clothes heaped over the rim and a sleeve hanging down the front",
    "on": [],
    "opens": null,
    "pair": null,
@@ -10181,11 +10333,11 @@
        "file": "laundry_basket_blue",
        "h": 23,
        "l": -2,
-       "r": 20,
+       "r": 21,
        "rx": 2,
        "ry": 19,
        "t": -19,
-       "w": 23
+       "w": 24
       }
      ]
     },
@@ -10210,11 +10362,11 @@
        "file": "laundry_basket_cream",
        "h": 23,
        "l": -2,
-       "r": 20,
+       "r": 21,
        "rx": 2,
        "ry": 19,
        "t": -19,
-       "w": 23
+       "w": 24
       }
      ]
     },
@@ -10239,11 +10391,11 @@
        "file": "laundry_basket_grey",
        "h": 23,
        "l": -2,
-       "r": 20,
+       "r": 21,
        "rx": 2,
        "ry": 19,
        "t": -19,
-       "w": 23
+       "w": 24
       }
      ]
     }
@@ -11055,7 +11207,7 @@
    "limit": null,
    "near": [],
    "needs": null,
-   "note": "a mirror in a frame, the silvering going",
+   "note": "an arched wall mirror: a moulded frame with a gilt inner line and a small crest, glass that reflects the room, silvering going at the corners, hung from a nail",
    "on": [],
    "opens": null,
    "pair": null,
@@ -11080,7 +11232,11 @@
      "anchors": [],
      "anims": [],
      "lights": [],
-     "params": {},
+     "params": {
+      "dk": "2e1e14",
+      "fr": "5a3e2c",
+      "lt": "7a5640"
+     },
      "slots": [],
      "sprites": [
       {
@@ -11088,9 +11244,9 @@
        "bx": 160,
        "file": "mirror_wall_dark",
        "h": 30,
-       "l": -1,
-       "r": 18,
-       "rx": 1,
+       "l": 0,
+       "r": 19,
+       "rx": 0,
        "ry": 1,
        "t": -1,
        "w": 20
@@ -11101,7 +11257,11 @@
      "anchors": [],
      "anims": [],
      "lights": [],
-     "params": {},
+     "params": {
+      "dk": "7a5e24",
+      "fr": "c9a24e",
+      "lt": "f0d078"
+     },
      "slots": [],
      "sprites": [
       {
@@ -11109,9 +11269,9 @@
        "bx": 160,
        "file": "mirror_wall_gilt",
        "h": 30,
-       "l": -1,
-       "r": 18,
-       "rx": 1,
+       "l": 0,
+       "r": 19,
+       "rx": 0,
        "ry": 1,
        "t": -1,
        "w": 20
@@ -11783,12 +11943,12 @@
     0,
     0
    ],
-   "h": 28,
+   "h": 33,
    "lean": false,
    "limit": 1,
    "near": [],
    "needs": null,
-   "note": "a sepia wedding photograph",
+   "note": "a sepia wedding portrait in an oval mat: the bride in a veil and white dress, the groom in a dark suit",
    "on": [],
    "opens": null,
    "pair": null,
@@ -11814,15 +11974,15 @@
      "slots": [],
      "sprites": [
       {
-       "b": 30,
+       "b": 34,
        "bx": 160,
        "file": "photo_wedding_a",
-       "h": 32,
+       "h": 37,
        "l": -1,
        "r": 30,
        "rx": 1,
-       "ry": 1,
-       "t": -1,
+       "ry": 2,
+       "t": -2,
        "w": 32
       }
      ]
@@ -12876,7 +13036,7 @@
     "sleeping"
    ],
    "needs": null,
-   "note": "a rag doll sat against the foot of the bed",
+   "note": "a rag doll slumped against the foot of the bed: yarn hair, button eyes, a blue dress with an apron, striped stockings",
    "on": [],
    "opens": null,
    "pair": null,
@@ -12901,16 +13061,16 @@
      "slots": [],
      "sprites": [
       {
-       "b": -2,
+       "b": 2,
        "bx": 160,
        "file": "rag_doll_a",
-       "h": 15,
-       "l": -1,
+       "h": 21,
+       "l": -2,
        "r": 11,
-       "rx": 1,
-       "ry": 16,
-       "t": -16,
-       "w": 13
+       "rx": 2,
+       "ry": 18,
+       "t": -18,
+       "w": 14
       }
      ]
     }
@@ -13585,7 +13745,7 @@
    "limit": 1,
    "near": [],
    "needs": null,
-   "note": "a cross-stitch sampler that says HOME",
+   "note": "a cross-stitched HOME in a walnut frame: stitched letters, a heart, a border of little flowers",
    "on": [],
    "opens": null,
    "pair": null,
@@ -13612,16 +13772,16 @@
      "slots": [],
      "sprites": [
       {
-       "b": 15,
+       "b": 18,
        "bx": 160,
        "file": "sampler_home_a",
-       "h": 17,
+       "h": 19,
        "l": -1,
-       "r": 21,
+       "r": 23,
        "rx": 1,
-       "ry": 1,
-       "t": -1,
-       "w": 23
+       "ry": 0,
+       "t": 0,
+       "w": 25
       }
      ]
     }
@@ -13882,7 +14042,7 @@
    "limit": 1,
    "near": [],
    "needs": null,
-   "note": "NO FOOD, sprayed on the plaster for whoever comes in after",
+   "note": "NO FOOD, sprayed on the plaster in red: a soft halo of overspray round every letter, long runs that end in a bead, a crossed-out arrow under it",
    "on": [],
    "opens": null,
    "pair": null,
@@ -13908,16 +14068,16 @@
      "slots": [],
      "sprites": [
       {
-       "b": 17,
+       "b": 16,
        "bx": 160,
        "file": "spray_nofood_a",
-       "h": 19,
-       "l": -1,
-       "r": 52,
-       "rx": 1,
-       "ry": 1,
-       "t": -1,
-       "w": 54
+       "h": 20,
+       "l": -3,
+       "r": 56,
+       "rx": 3,
+       "ry": 3,
+       "t": -3,
+       "w": 60
       }
      ]
     }
@@ -14195,7 +14355,7 @@
    "limit": 1,
    "near": [],
    "needs": null,
-   "note": "the days, scratched into the plaster",
+   "note": "the days, scratched into the plaster: groups of five struck through, each scratch a dark groove with pale chipped plaster along it, dust below",
    "on": [],
    "opens": null,
    "pair": null,
@@ -14222,21 +14382,21 @@
      "slots": [],
      "sprites": [
       {
-       "b": 9,
+       "b": 12,
        "bx": 160,
        "file": "tally_marks_a",
-       "h": 11,
-       "l": -3,
-       "r": 21,
-       "rx": 3,
-       "ry": 1,
-       "t": -1,
-       "w": 25
+       "h": 13,
+       "l": -2,
+       "r": 30,
+       "rx": 2,
+       "ry": 0,
+       "t": 0,
+       "w": 33
       }
      ]
     }
    },
-   "w": 24,
+   "w": 31,
    "wall_y": [
     44,
     60
@@ -14316,7 +14476,7 @@
     "sleeping"
    ],
    "needs": null,
-   "note": "a blue toy chest, lid up, toys piled inside",
+   "note": "a blue toy chest in true perspective, lid thrown back with a stencilled star, planked, iron-cornered, a teddy, a ball, a block and a doll's leg heaped inside",
    "on": [],
    "opens": null,
    "pair": null,
@@ -14352,85 +14512,85 @@
        "b": 2,
        "bx": 36,
        "file": "toy_chest_blue_b0",
-       "h": 35,
-       "l": 2,
+       "h": 36,
+       "l": 1,
        "r": 41,
-       "rx": -2,
-       "ry": 32,
-       "t": -32,
-       "w": 40
+       "rx": -1,
+       "ry": 33,
+       "t": -33,
+       "w": 41
       },
       {
        "b": 2,
        "bx": 72,
        "file": "toy_chest_blue_b1",
-       "h": 35,
-       "l": 2,
+       "h": 36,
+       "l": 1,
        "r": 38,
-       "rx": -2,
-       "ry": 32,
-       "t": -32,
-       "w": 37
+       "rx": -1,
+       "ry": 33,
+       "t": -33,
+       "w": 38
       },
       {
        "b": 2,
        "bx": 116,
        "file": "toy_chest_blue_b2",
-       "h": 35,
-       "l": 2,
+       "h": 36,
+       "l": 1,
        "r": 35,
-       "rx": -2,
-       "ry": 32,
-       "t": -32,
-       "w": 34
+       "rx": -1,
+       "ry": 33,
+       "t": -33,
+       "w": 35
       },
       {
        "b": 2,
        "bx": 160,
        "file": "toy_chest_blue_b3",
-       "h": 35,
-       "l": 2,
-       "r": 34,
-       "rx": -2,
-       "ry": 32,
-       "t": -32,
-       "w": 33
+       "h": 36,
+       "l": 1,
+       "r": 35,
+       "rx": -1,
+       "ry": 33,
+       "t": -33,
+       "w": 35
       },
       {
        "b": 2,
        "bx": 204,
        "file": "toy_chest_blue_b4",
-       "h": 35,
+       "h": 36,
        "l": 1,
-       "r": 34,
+       "r": 35,
        "rx": -1,
-       "ry": 32,
-       "t": -32,
-       "w": 34
+       "ry": 33,
+       "t": -33,
+       "w": 35
       },
       {
        "b": 2,
        "bx": 248,
        "file": "toy_chest_blue_b5",
-       "h": 35,
+       "h": 36,
        "l": -2,
-       "r": 34,
+       "r": 35,
        "rx": 2,
-       "ry": 32,
-       "t": -32,
-       "w": 37
+       "ry": 33,
+       "t": -33,
+       "w": 38
       },
       {
        "b": 2,
        "bx": 284,
        "file": "toy_chest_blue_b6",
-       "h": 35,
+       "h": 36,
        "l": -5,
-       "r": 34,
+       "r": 35,
        "rx": 5,
-       "ry": 32,
-       "t": -32,
-       "w": 40
+       "ry": 33,
+       "t": -33,
+       "w": 41
       }
      ]
     }
@@ -14451,7 +14611,7 @@
    "limit": 1,
    "near": [],
    "needs": null,
-   "note": "a painted shelf on brackets: blocks, a bunny, a toy car",
+   "note": "a painted shelf on carved brackets: three lettered blocks, a plush bunny and a toy car",
    "on": [],
    "opens": null,
    "pair": null,
@@ -14477,16 +14637,16 @@
      "slots": [],
      "sprites": [
       {
-       "b": 19,
+       "b": 22,
        "bx": 160,
        "file": "toy_shelf_a",
-       "h": 20,
-       "l": 1,
-       "r": 29,
-       "rx": -1,
-       "ry": 0,
-       "t": 0,
-       "w": 29
+       "h": 26,
+       "l": -1,
+       "r": 28,
+       "rx": 1,
+       "ry": 3,
+       "t": -3,
+       "w": 30
       }
      ]
     }
@@ -14621,7 +14781,7 @@
    "limit": null,
    "near": [],
    "needs": null,
-   "note": "a bracketed shelf with a few books and an ornament",
+   "note": "a shelf on iron brackets with a thick board: spined books and a vase of dried flowers (a), a plant, a photo frame and a few books (b)",
    "on": [],
    "opens": null,
    "pair": null,
@@ -14653,15 +14813,15 @@
      "slots": [],
      "sprites": [
       {
-       "b": 20,
+       "b": 22,
        "bx": 160,
        "file": "wall_shelf_a",
-       "h": 20,
+       "h": 23,
        "l": -1,
        "r": 28,
        "rx": 1,
-       "ry": -1,
-       "t": 1,
+       "ry": 0,
+       "t": 0,
        "w": 30
       }
      ]
@@ -14676,15 +14836,15 @@
      "slots": [],
      "sprites": [
       {
-       "b": 20,
+       "b": 22,
        "bx": 160,
        "file": "wall_shelf_b",
-       "h": 17,
+       "h": 22,
        "l": -1,
        "r": 28,
        "rx": 1,
-       "ry": -4,
-       "t": 4,
+       "ry": -1,
+       "t": 1,
        "w": 30
       }
      ]

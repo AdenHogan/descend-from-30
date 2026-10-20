@@ -13,30 +13,6 @@ from furn_bedroom import _legacy, CLOTH
 PINE = F.PINE
 STAR = hexc('d9c24a')
 # --- the desk ----------------------------------------------------------------------------------------------------------------------------------------
-def _b_desk(c):
-    x0, x1, cx = 9, 51, 30
-    c.shadow(cx, 100, 22, 2, 100)
-    c.rect(x0, 72, x1, 74, F.PINE[1])
-    c.hline(x0, x1, 72, F.PINE[3])
-    for (p0, p1) in ((x0 + 2, x0 + 12), (x1 - 12, x1 - 2)):
-        c.box(p0, 75, p1, 99, F.PINE[0], F.PINE[3])
-        for (d0, d1) in ((77, 84), (86, 93)):
-            c.box(p0 + 2, d0, p1 - 2, d1, F.PINE[0], F.PINE[2])
-            c.put((p0 + p1) // 2, (d0 + d1) // 2, F.BRASS)
-    c.rect(x0 + 13, 75, x1 - 13, 77, F.PINE[2])
-
-
-def _desk_post(c, ox, oy, p, shift):
-    F.crt_on_top(c, shift, ox + 21, 72 + (oy - 99))
-
-
-@piece('desk_crt', 43, 28, 'wall', rooms={'bedroom': 8, 'study': 4}, styles={'teen': 8, 'adult': 1, 'refuge': 0}, tags=('work', 'storage'), depth=8,
-       variants={'pine': {}}, anchors=({'name': 'desk', 'dx': 22, 'dy': -21}, {'name': 'desk_drawer', 'dx': 8, 'dy': -11}), feet=(105, 108),
-       needs={'tag': 'seat', 'dx': [38, 52], 'chance': 1.0}, post=_desk_post, note='a pine desk with a pedestal of drawers at each end and an old beige computer on it (it wants its chair)')
-def desk_crt(c, ox, oy, p):
-    _legacy(c, _b_desk, ox - 9, oy - 99)
-
-
 @piece('chair_office', 28, 30, 'floor', rooms={'bedroom': 6, 'study': 8}, styles={'teen': 6, 'adult': 1}, tags=('seat',),
        variants={'left': {'yaw': -40}, 'right': {'yaw': 40}, 'front': {'yaw': 0}}, feet=(116, 121), companion_only=True, note='an office chair rolled back from the desk, swivelled toward the room')
 def chair_office(c, ox, oy, p):

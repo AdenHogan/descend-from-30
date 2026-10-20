@@ -164,25 +164,25 @@ def hairbrush(c, ox, oy, p):
 
 
 # ================================================================================================================================ a jewellery box
-@piece('jewel_box', 14, 13, 'top', rooms={'bedroom': 4}, styles={'adult': 4, 'kid': 1}, tags=('small', 'dressing'), on=('vanity',),
+@piece('jewel_box', 14, 14, 'top', rooms={'bedroom': 4}, styles={'adult': 4, 'kid': 1}, tags=('small', 'dressing'), on=('vanity',),
        variants={'plum': {'wood': '5c3c50', 'velvet': 'a02a40'}, 'walnut': {'wood': '6a4a33', 'velvet': '2a5a58'}, 'ebony': {'wood': '2e2428', 'velvet': '6a3a7a'}},
-       anchors=({'name': 'jewel_box', 'dx': 6, 'dy': -5},), note='a jewellery box, lid up on its satin, a necklace trailing over the front')
+       anchors=({'name': 'jewel_box', 'dx': 6, 'dy': -5},), note='a jewellery box, lid thrown back with a quilted lining and a little oval mirror, a necklace trailing over the front')
 def jewel_box(c, ox, oy, p):
     wood, vel = hexc(p['wood']), hexc(p['velvet'])
     _shadow(c, ox + 7, oy + 0.5, 8, 1.4)
     L = K.Layer(c)
     lc = L.c
-    # the lid standing open behind: a wood frame round a quilted satin lining
-    lc.rect(ox + 1, oy - 13, ox + 12, oy - 7, shade(wood, 1.05))
-    lc.hline(ox + 1, ox + 12, oy - 13, shade(wood, 1.4))
-    lc.vline(ox + 1, oy - 13, oy - 7, shade(wood, 1.2))
+    # the lid thrown back behind the box: leaning away, so it narrows toward the hinge's far edge; satin quilting inside and a little oval mirror
+    lc.poly([(ox + 1, oy - 7), (ox + 12, oy - 7), (ox + 11, oy - 14), (ox + 2, oy - 14)], shade(wood, 1.05))
+    lc.hline(ox + 2, ox + 11, oy - 14, shade(wood, 1.45))
     sat = hexc('e6d0c4')
-    lc.rect(ox + 2, oy - 12, ox + 11, oy - 8, sat)
-    for yy in range(oy - 12, oy - 7):
+    lc.poly([(ox + 2, oy - 8), (ox + 11, oy - 8), (ox + 10, oy - 13), (ox + 3, oy - 13)], sat)
+    for yy in range(oy - 13, oy - 7):
         for xx in range(ox + 2, ox + 12):
-            if (xx + yy) % 3 == 0:
-                lc.put(xx, yy, shade(sat, 0.86))                                  # the quilting
-    lc.hline(ox + 2, ox + 11, oy - 12, shade(sat, 1.12))
+            if lc.px[xx, yy][3] and (xx + yy) % 4 == 0:
+                lc.put(xx, yy, shade(sat, 0.9))                                   # the quilting
+    K.ell(lc, ox + 6.5, oy - 10.6, 2.3, 2.7, hexc('b4c4cc'))                      # the mirror in the lid
+    lc.put(ox + 5, oy - 12, hexc('f4f8fa')); lc.put(ox + 5, oy - 11, hexc('dce6e8')); lc.put(ox + 7, oy - 9, hexc('8aa0aa'))
     # the box: the opening seen from above (velvet, pearls, a ring), then the front face with its brass
     lc.poly([(ox + 1, oy - 7), (ox + 12, oy - 7), (ox + 13, oy - 4), (ox, oy - 4)], shade(vel, 0.7))
     lc.hline(ox + 2, ox + 11, oy - 6, vel)
