@@ -362,7 +362,7 @@ def _arm_variants():
     v = {}
     for style in ('club', 'wing'):
         for k in FABRICS:
-            for yn, yaw in (('l', 35), ('r', -35), ('L', 58), ('R', -58)):
+            for yn, yaw in (('l35', 35), ('r35', -35), ('l58', 58), ('r58', -58)):          # the turn in degrees — never a case-only difference (l / L): two files that differ only by case collide on Windows / macOS
                 params = {'style': style, 'fab': k, 'yaw': yaw}
                 if k in LIVING_FAB_FOR:
                     params['for'] = LIVING_FAB_FOR[k] + (['adult', 'sick', 'refuge'] if k in ('mustard', 'green', 'rose', 'grey') else [])

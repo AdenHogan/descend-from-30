@@ -64,6 +64,12 @@ def build_all(only=None):
         rec, f = FL.build_piece(pc)
         data['items'][pid] = rec
         files.update(f)
+    seen = {}
+    for name in files:                                                                  # two files that differ only by case collide on a case-insensitive filesystem (Windows, macOS): refuse them
+        low = name.lower()
+        if low in seen:
+            raise SystemExit('furn_build: sprite names %r and %r differ only by case — they would overwrite each other on Windows / macOS' % (seen[low], name))
+        seen[low] = name
     return data, files
 
 

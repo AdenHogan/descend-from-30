@@ -179,7 +179,43 @@
    ],
    "under": [],
    "variants": {
-    "club_brown_L": {
+    "club_brown_l35": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "brown",
+      "for": [
+       "lodge",
+       "den",
+       "library"
+      ],
+      "style": "club",
+      "yaw": 35
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "armchair_club_brown_l35",
+       "h": 40,
+       "l": -4,
+       "r": 36,
+       "rx": 4,
+       "ry": 38,
+       "t": -38,
+       "w": 41
+      }
+     ]
+    },
+    "club_brown_l58": {
      "anchors": [
       {
        "dx": 17,
@@ -204,7 +240,7 @@
       {
        "b": 2,
        "bx": 160,
-       "file": "armchair_club_brown_L",
+       "file": "armchair_club_brown_l58",
        "h": 41,
        "l": -3,
        "r": 36,
@@ -215,79 +251,7 @@
       }
      ]
     },
-    "club_brown_R": {
-     "anchors": [
-      {
-       "dx": 17,
-       "dy": -12,
-       "name": "armchair"
-      }
-     ],
-     "anims": [],
-     "lights": [],
-     "params": {
-      "fab": "brown",
-      "for": [
-       "lodge",
-       "den",
-       "library"
-      ],
-      "style": "club",
-      "yaw": -58
-     },
-     "slots": [],
-     "sprites": [
-      {
-       "b": 1,
-       "bx": 160,
-       "file": "armchair_club_brown_R",
-       "h": 40,
-       "l": -3,
-       "r": 36,
-       "rx": 3,
-       "ry": 38,
-       "t": -38,
-       "w": 40
-      }
-     ]
-    },
-    "club_brown_l": {
-     "anchors": [
-      {
-       "dx": 17,
-       "dy": -12,
-       "name": "armchair"
-      }
-     ],
-     "anims": [],
-     "lights": [],
-     "params": {
-      "fab": "brown",
-      "for": [
-       "lodge",
-       "den",
-       "library"
-      ],
-      "style": "club",
-      "yaw": 35
-     },
-     "slots": [],
-     "sprites": [
-      {
-       "b": 1,
-       "bx": 160,
-       "file": "armchair_club_brown_l",
-       "h": 40,
-       "l": -4,
-       "r": 36,
-       "rx": 4,
-       "ry": 38,
-       "t": -38,
-       "w": 41
-      }
-     ]
-    },
-    "club_brown_r": {
+    "club_brown_r35": {
      "anchors": [
       {
        "dx": 17,
@@ -312,7 +276,7 @@
       {
        "b": 1,
        "bx": 160,
-       "file": "armchair_club_brown_r",
+       "file": "armchair_club_brown_r35",
        "h": 40,
        "l": -3,
        "r": 37,
@@ -323,7 +287,81 @@
       }
      ]
     },
-    "club_green_L": {
+    "club_brown_r58": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "brown",
+      "for": [
+       "lodge",
+       "den",
+       "library"
+      ],
+      "style": "club",
+      "yaw": -58
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "armchair_club_brown_r58",
+       "h": 40,
+       "l": -3,
+       "r": 36,
+       "rx": 3,
+       "ry": 38,
+       "t": -38,
+       "w": 40
+      }
+     ]
+    },
+    "club_green_l35": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "green",
+      "for": [
+       "parlour",
+       "library",
+       "adult",
+       "sick",
+       "refuge"
+      ],
+      "style": "club",
+      "yaw": 35
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "armchair_club_green_l35",
+       "h": 40,
+       "l": -4,
+       "r": 36,
+       "rx": 4,
+       "ry": 38,
+       "t": -38,
+       "w": 41
+      }
+     ]
+    },
+    "club_green_l58": {
      "anchors": [
       {
        "dx": 17,
@@ -350,7 +388,7 @@
       {
        "b": 2,
        "bx": 160,
-       "file": "armchair_club_green_L",
+       "file": "armchair_club_green_l58",
        "h": 41,
        "l": -3,
        "r": 36,
@@ -361,83 +399,7 @@
       }
      ]
     },
-    "club_green_R": {
-     "anchors": [
-      {
-       "dx": 17,
-       "dy": -12,
-       "name": "armchair"
-      }
-     ],
-     "anims": [],
-     "lights": [],
-     "params": {
-      "fab": "green",
-      "for": [
-       "parlour",
-       "library",
-       "adult",
-       "sick",
-       "refuge"
-      ],
-      "style": "club",
-      "yaw": -58
-     },
-     "slots": [],
-     "sprites": [
-      {
-       "b": 1,
-       "bx": 160,
-       "file": "armchair_club_green_R",
-       "h": 40,
-       "l": -3,
-       "r": 36,
-       "rx": 3,
-       "ry": 38,
-       "t": -38,
-       "w": 40
-      }
-     ]
-    },
-    "club_green_l": {
-     "anchors": [
-      {
-       "dx": 17,
-       "dy": -12,
-       "name": "armchair"
-      }
-     ],
-     "anims": [],
-     "lights": [],
-     "params": {
-      "fab": "green",
-      "for": [
-       "parlour",
-       "library",
-       "adult",
-       "sick",
-       "refuge"
-      ],
-      "style": "club",
-      "yaw": 35
-     },
-     "slots": [],
-     "sprites": [
-      {
-       "b": 1,
-       "bx": 160,
-       "file": "armchair_club_green_l",
-       "h": 40,
-       "l": -4,
-       "r": 36,
-       "rx": 4,
-       "ry": 38,
-       "t": -38,
-       "w": 41
-      }
-     ]
-    },
-    "club_green_r": {
+    "club_green_r35": {
      "anchors": [
       {
        "dx": 17,
@@ -464,7 +426,7 @@
       {
        "b": 1,
        "bx": 160,
-       "file": "armchair_club_green_r",
+       "file": "armchair_club_green_r35",
        "h": 40,
        "l": -3,
        "r": 37,
@@ -475,7 +437,7 @@
       }
      ]
     },
-    "club_grey_L": {
+    "club_green_r58": {
      "anchors": [
       {
        "dx": 17,
@@ -486,499 +448,13 @@
      "anims": [],
      "lights": [],
      "params": {
-      "fab": "grey",
-      "for": [
-       "squat",
-       "office",
-       "adult",
-       "sick",
-       "refuge"
-      ],
-      "style": "club",
-      "yaw": 58
-     },
-     "slots": [],
-     "sprites": [
-      {
-       "b": 2,
-       "bx": 160,
-       "file": "armchair_club_grey_L",
-       "h": 41,
-       "l": -3,
-       "r": 36,
-       "rx": 3,
-       "ry": 38,
-       "t": -38,
-       "w": 40
-      }
-     ]
-    },
-    "club_grey_R": {
-     "anchors": [
-      {
-       "dx": 17,
-       "dy": -12,
-       "name": "armchair"
-      }
-     ],
-     "anims": [],
-     "lights": [],
-     "params": {
-      "fab": "grey",
-      "for": [
-       "squat",
-       "office",
-       "adult",
-       "sick",
-       "refuge"
-      ],
-      "style": "club",
-      "yaw": -58
-     },
-     "slots": [],
-     "sprites": [
-      {
-       "b": 1,
-       "bx": 160,
-       "file": "armchair_club_grey_R",
-       "h": 40,
-       "l": -3,
-       "r": 36,
-       "rx": 3,
-       "ry": 38,
-       "t": -38,
-       "w": 40
-      }
-     ]
-    },
-    "club_grey_l": {
-     "anchors": [
-      {
-       "dx": 17,
-       "dy": -12,
-       "name": "armchair"
-      }
-     ],
-     "anims": [],
-     "lights": [],
-     "params": {
-      "fab": "grey",
-      "for": [
-       "squat",
-       "office",
-       "adult",
-       "sick",
-       "refuge"
-      ],
-      "style": "club",
-      "yaw": 35
-     },
-     "slots": [],
-     "sprites": [
-      {
-       "b": 1,
-       "bx": 160,
-       "file": "armchair_club_grey_l",
-       "h": 40,
-       "l": -4,
-       "r": 36,
-       "rx": 4,
-       "ry": 38,
-       "t": -38,
-       "w": 41
-      }
-     ]
-    },
-    "club_grey_r": {
-     "anchors": [
-      {
-       "dx": 17,
-       "dy": -12,
-       "name": "armchair"
-      }
-     ],
-     "anims": [],
-     "lights": [],
-     "params": {
-      "fab": "grey",
-      "for": [
-       "squat",
-       "office",
-       "adult",
-       "sick",
-       "refuge"
-      ],
-      "style": "club",
-      "yaw": -35
-     },
-     "slots": [],
-     "sprites": [
-      {
-       "b": 1,
-       "bx": 160,
-       "file": "armchair_club_grey_r",
-       "h": 40,
-       "l": -3,
-       "r": 37,
-       "rx": 3,
-       "ry": 38,
-       "t": -38,
-       "w": 41
-      }
-     ]
-    },
-    "club_mustard_L": {
-     "anchors": [
-      {
-       "dx": 17,
-       "dy": -12,
-       "name": "armchair"
-      }
-     ],
-     "anims": [],
-     "lights": [],
-     "params": {
-      "fab": "mustard",
-      "for": [
-       "mid",
-       "studio",
-       "adult",
-       "sick",
-       "refuge"
-      ],
-      "style": "club",
-      "yaw": 58
-     },
-     "slots": [],
-     "sprites": [
-      {
-       "b": 2,
-       "bx": 160,
-       "file": "armchair_club_mustard_L",
-       "h": 41,
-       "l": -3,
-       "r": 36,
-       "rx": 3,
-       "ry": 38,
-       "t": -38,
-       "w": 40
-      }
-     ]
-    },
-    "club_mustard_R": {
-     "anchors": [
-      {
-       "dx": 17,
-       "dy": -12,
-       "name": "armchair"
-      }
-     ],
-     "anims": [],
-     "lights": [],
-     "params": {
-      "fab": "mustard",
-      "for": [
-       "mid",
-       "studio",
-       "adult",
-       "sick",
-       "refuge"
-      ],
-      "style": "club",
-      "yaw": -58
-     },
-     "slots": [],
-     "sprites": [
-      {
-       "b": 1,
-       "bx": 160,
-       "file": "armchair_club_mustard_R",
-       "h": 40,
-       "l": -3,
-       "r": 36,
-       "rx": 3,
-       "ry": 38,
-       "t": -38,
-       "w": 40
-      }
-     ]
-    },
-    "club_mustard_l": {
-     "anchors": [
-      {
-       "dx": 17,
-       "dy": -12,
-       "name": "armchair"
-      }
-     ],
-     "anims": [],
-     "lights": [],
-     "params": {
-      "fab": "mustard",
-      "for": [
-       "mid",
-       "studio",
-       "adult",
-       "sick",
-       "refuge"
-      ],
-      "style": "club",
-      "yaw": 35
-     },
-     "slots": [],
-     "sprites": [
-      {
-       "b": 1,
-       "bx": 160,
-       "file": "armchair_club_mustard_l",
-       "h": 40,
-       "l": -4,
-       "r": 36,
-       "rx": 4,
-       "ry": 38,
-       "t": -38,
-       "w": 41
-      }
-     ]
-    },
-    "club_mustard_r": {
-     "anchors": [
-      {
-       "dx": 17,
-       "dy": -12,
-       "name": "armchair"
-      }
-     ],
-     "anims": [],
-     "lights": [],
-     "params": {
-      "fab": "mustard",
-      "for": [
-       "mid",
-       "studio",
-       "adult",
-       "sick",
-       "refuge"
-      ],
-      "style": "club",
-      "yaw": -35
-     },
-     "slots": [],
-     "sprites": [
-      {
-       "b": 1,
-       "bx": 160,
-       "file": "armchair_club_mustard_r",
-       "h": 40,
-       "l": -3,
-       "r": 37,
-       "rx": 3,
-       "ry": 38,
-       "t": -38,
-       "w": 41
-      }
-     ]
-    },
-    "club_red_L": {
-     "anchors": [
-      {
-       "dx": 17,
-       "dy": -12,
-       "name": "armchair"
-      }
-     ],
-     "anims": [],
-     "lights": [],
-     "params": {
-      "fab": "red",
-      "for": [
-       "cosy",
-       "den"
-      ],
-      "style": "club",
-      "yaw": 58
-     },
-     "slots": [],
-     "sprites": [
-      {
-       "b": 2,
-       "bx": 160,
-       "file": "armchair_club_red_L",
-       "h": 41,
-       "l": -3,
-       "r": 36,
-       "rx": 3,
-       "ry": 38,
-       "t": -38,
-       "w": 40
-      }
-     ]
-    },
-    "club_red_R": {
-     "anchors": [
-      {
-       "dx": 17,
-       "dy": -12,
-       "name": "armchair"
-      }
-     ],
-     "anims": [],
-     "lights": [],
-     "params": {
-      "fab": "red",
-      "for": [
-       "cosy",
-       "den"
-      ],
-      "style": "club",
-      "yaw": -58
-     },
-     "slots": [],
-     "sprites": [
-      {
-       "b": 1,
-       "bx": 160,
-       "file": "armchair_club_red_R",
-       "h": 40,
-       "l": -3,
-       "r": 36,
-       "rx": 3,
-       "ry": 38,
-       "t": -38,
-       "w": 40
-      }
-     ]
-    },
-    "club_red_l": {
-     "anchors": [
-      {
-       "dx": 17,
-       "dy": -12,
-       "name": "armchair"
-      }
-     ],
-     "anims": [],
-     "lights": [],
-     "params": {
-      "fab": "red",
-      "for": [
-       "cosy",
-       "den"
-      ],
-      "style": "club",
-      "yaw": 35
-     },
-     "slots": [],
-     "sprites": [
-      {
-       "b": 1,
-       "bx": 160,
-       "file": "armchair_club_red_l",
-       "h": 40,
-       "l": -4,
-       "r": 36,
-       "rx": 4,
-       "ry": 38,
-       "t": -38,
-       "w": 41
-      }
-     ]
-    },
-    "club_red_r": {
-     "anchors": [
-      {
-       "dx": 17,
-       "dy": -12,
-       "name": "armchair"
-      }
-     ],
-     "anims": [],
-     "lights": [],
-     "params": {
-      "fab": "red",
-      "for": [
-       "cosy",
-       "den"
-      ],
-      "style": "club",
-      "yaw": -35
-     },
-     "slots": [],
-     "sprites": [
-      {
-       "b": 1,
-       "bx": 160,
-       "file": "armchair_club_red_r",
-       "h": 40,
-       "l": -3,
-       "r": 37,
-       "rx": 3,
-       "ry": 38,
-       "t": -38,
-       "w": 41
-      }
-     ]
-    },
-    "club_rose_L": {
-     "anchors": [
-      {
-       "dx": 17,
-       "dy": -12,
-       "name": "armchair"
-      }
-     ],
-     "anims": [],
-     "lights": [],
-     "params": {
-      "fab": "rose",
+      "fab": "green",
       "for": [
        "parlour",
+       "library",
        "adult",
        "sick",
        "refuge"
-      ],
-      "not": [
-       "parlour"
-      ],
-      "style": "club",
-      "yaw": 58
-     },
-     "slots": [],
-     "sprites": [
-      {
-       "b": 2,
-       "bx": 160,
-       "file": "armchair_club_rose_L",
-       "h": 41,
-       "l": -3,
-       "r": 36,
-       "rx": 3,
-       "ry": 38,
-       "t": -38,
-       "w": 40
-      }
-     ]
-    },
-    "club_rose_R": {
-     "anchors": [
-      {
-       "dx": 17,
-       "dy": -12,
-       "name": "armchair"
-      }
-     ],
-     "anims": [],
-     "lights": [],
-     "params": {
-      "fab": "rose",
-      "for": [
-       "parlour",
-       "adult",
-       "sick",
-       "refuge"
-      ],
-      "not": [
-       "parlour"
       ],
       "style": "club",
       "yaw": -58
@@ -988,7 +464,7 @@
       {
        "b": 1,
        "bx": 160,
-       "file": "armchair_club_rose_R",
+       "file": "armchair_club_green_r58",
        "h": 40,
        "l": -3,
        "r": 36,
@@ -999,7 +475,451 @@
       }
      ]
     },
-    "club_rose_l": {
+    "club_grey_l35": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "grey",
+      "for": [
+       "squat",
+       "office",
+       "adult",
+       "sick",
+       "refuge"
+      ],
+      "style": "club",
+      "yaw": 35
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "armchair_club_grey_l35",
+       "h": 40,
+       "l": -4,
+       "r": 36,
+       "rx": 4,
+       "ry": 38,
+       "t": -38,
+       "w": 41
+      }
+     ]
+    },
+    "club_grey_l58": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "grey",
+      "for": [
+       "squat",
+       "office",
+       "adult",
+       "sick",
+       "refuge"
+      ],
+      "style": "club",
+      "yaw": 58
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "armchair_club_grey_l58",
+       "h": 41,
+       "l": -3,
+       "r": 36,
+       "rx": 3,
+       "ry": 38,
+       "t": -38,
+       "w": 40
+      }
+     ]
+    },
+    "club_grey_r35": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "grey",
+      "for": [
+       "squat",
+       "office",
+       "adult",
+       "sick",
+       "refuge"
+      ],
+      "style": "club",
+      "yaw": -35
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "armchair_club_grey_r35",
+       "h": 40,
+       "l": -3,
+       "r": 37,
+       "rx": 3,
+       "ry": 38,
+       "t": -38,
+       "w": 41
+      }
+     ]
+    },
+    "club_grey_r58": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "grey",
+      "for": [
+       "squat",
+       "office",
+       "adult",
+       "sick",
+       "refuge"
+      ],
+      "style": "club",
+      "yaw": -58
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "armchair_club_grey_r58",
+       "h": 40,
+       "l": -3,
+       "r": 36,
+       "rx": 3,
+       "ry": 38,
+       "t": -38,
+       "w": 40
+      }
+     ]
+    },
+    "club_mustard_l35": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "mustard",
+      "for": [
+       "mid",
+       "studio",
+       "adult",
+       "sick",
+       "refuge"
+      ],
+      "style": "club",
+      "yaw": 35
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "armchair_club_mustard_l35",
+       "h": 40,
+       "l": -4,
+       "r": 36,
+       "rx": 4,
+       "ry": 38,
+       "t": -38,
+       "w": 41
+      }
+     ]
+    },
+    "club_mustard_l58": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "mustard",
+      "for": [
+       "mid",
+       "studio",
+       "adult",
+       "sick",
+       "refuge"
+      ],
+      "style": "club",
+      "yaw": 58
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "armchair_club_mustard_l58",
+       "h": 41,
+       "l": -3,
+       "r": 36,
+       "rx": 3,
+       "ry": 38,
+       "t": -38,
+       "w": 40
+      }
+     ]
+    },
+    "club_mustard_r35": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "mustard",
+      "for": [
+       "mid",
+       "studio",
+       "adult",
+       "sick",
+       "refuge"
+      ],
+      "style": "club",
+      "yaw": -35
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "armchair_club_mustard_r35",
+       "h": 40,
+       "l": -3,
+       "r": 37,
+       "rx": 3,
+       "ry": 38,
+       "t": -38,
+       "w": 41
+      }
+     ]
+    },
+    "club_mustard_r58": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "mustard",
+      "for": [
+       "mid",
+       "studio",
+       "adult",
+       "sick",
+       "refuge"
+      ],
+      "style": "club",
+      "yaw": -58
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "armchair_club_mustard_r58",
+       "h": 40,
+       "l": -3,
+       "r": 36,
+       "rx": 3,
+       "ry": 38,
+       "t": -38,
+       "w": 40
+      }
+     ]
+    },
+    "club_red_l35": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "red",
+      "for": [
+       "cosy",
+       "den"
+      ],
+      "style": "club",
+      "yaw": 35
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "armchair_club_red_l35",
+       "h": 40,
+       "l": -4,
+       "r": 36,
+       "rx": 4,
+       "ry": 38,
+       "t": -38,
+       "w": 41
+      }
+     ]
+    },
+    "club_red_l58": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "red",
+      "for": [
+       "cosy",
+       "den"
+      ],
+      "style": "club",
+      "yaw": 58
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "armchair_club_red_l58",
+       "h": 41,
+       "l": -3,
+       "r": 36,
+       "rx": 3,
+       "ry": 38,
+       "t": -38,
+       "w": 40
+      }
+     ]
+    },
+    "club_red_r35": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "red",
+      "for": [
+       "cosy",
+       "den"
+      ],
+      "style": "club",
+      "yaw": -35
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "armchair_club_red_r35",
+       "h": 40,
+       "l": -3,
+       "r": 37,
+       "rx": 3,
+       "ry": 38,
+       "t": -38,
+       "w": 41
+      }
+     ]
+    },
+    "club_red_r58": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "red",
+      "for": [
+       "cosy",
+       "den"
+      ],
+      "style": "club",
+      "yaw": -58
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "armchair_club_red_r58",
+       "h": 40,
+       "l": -3,
+       "r": 36,
+       "rx": 3,
+       "ry": 38,
+       "t": -38,
+       "w": 40
+      }
+     ]
+    },
+    "club_rose_l35": {
      "anchors": [
       {
        "dx": 17,
@@ -1028,7 +948,7 @@
       {
        "b": 1,
        "bx": 160,
-       "file": "armchair_club_rose_l",
+       "file": "armchair_club_rose_l35",
        "h": 40,
        "l": -4,
        "r": 36,
@@ -1039,7 +959,47 @@
       }
      ]
     },
-    "club_rose_r": {
+    "club_rose_l58": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "rose",
+      "for": [
+       "parlour",
+       "adult",
+       "sick",
+       "refuge"
+      ],
+      "not": [
+       "parlour"
+      ],
+      "style": "club",
+      "yaw": 58
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "armchair_club_rose_l58",
+       "h": 41,
+       "l": -3,
+       "r": 36,
+       "rx": 3,
+       "ry": 38,
+       "t": -38,
+       "w": 40
+      }
+     ]
+    },
+    "club_rose_r35": {
      "anchors": [
       {
        "dx": 17,
@@ -1068,7 +1028,7 @@
       {
        "b": 1,
        "bx": 160,
-       "file": "armchair_club_rose_r",
+       "file": "armchair_club_rose_r35",
        "h": 40,
        "l": -3,
        "r": 37,
@@ -1079,7 +1039,7 @@
       }
      ]
     },
-    "club_teal_L": {
+    "club_rose_r58": {
      "anchors": [
       {
        "dx": 17,
@@ -1090,51 +1050,15 @@
      "anims": [],
      "lights": [],
      "params": {
-      "fab": "teal",
+      "fab": "rose",
       "for": [
-       "mid",
-       "studio"
+       "parlour",
+       "adult",
+       "sick",
+       "refuge"
       ],
       "not": [
-       "mid"
-      ],
-      "style": "club",
-      "yaw": 58
-     },
-     "slots": [],
-     "sprites": [
-      {
-       "b": 2,
-       "bx": 160,
-       "file": "armchair_club_teal_L",
-       "h": 41,
-       "l": -3,
-       "r": 36,
-       "rx": 3,
-       "ry": 38,
-       "t": -38,
-       "w": 40
-      }
-     ]
-    },
-    "club_teal_R": {
-     "anchors": [
-      {
-       "dx": 17,
-       "dy": -12,
-       "name": "armchair"
-      }
-     ],
-     "anims": [],
-     "lights": [],
-     "params": {
-      "fab": "teal",
-      "for": [
-       "mid",
-       "studio"
-      ],
-      "not": [
-       "mid"
+       "parlour"
       ],
       "style": "club",
       "yaw": -58
@@ -1144,7 +1068,7 @@
       {
        "b": 1,
        "bx": 160,
-       "file": "armchair_club_teal_R",
+       "file": "armchair_club_rose_r58",
        "h": 40,
        "l": -3,
        "r": 36,
@@ -1155,7 +1079,7 @@
       }
      ]
     },
-    "club_teal_l": {
+    "club_teal_l35": {
      "anchors": [
       {
        "dx": 17,
@@ -1182,7 +1106,7 @@
       {
        "b": 1,
        "bx": 160,
-       "file": "armchair_club_teal_l",
+       "file": "armchair_club_teal_l35",
        "h": 40,
        "l": -4,
        "r": 36,
@@ -1193,7 +1117,45 @@
       }
      ]
     },
-    "club_teal_r": {
+    "club_teal_l58": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "teal",
+      "for": [
+       "mid",
+       "studio"
+      ],
+      "not": [
+       "mid"
+      ],
+      "style": "club",
+      "yaw": 58
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "armchair_club_teal_l58",
+       "h": 41,
+       "l": -3,
+       "r": 36,
+       "rx": 3,
+       "ry": 38,
+       "t": -38,
+       "w": 40
+      }
+     ]
+    },
+    "club_teal_r35": {
      "anchors": [
       {
        "dx": 17,
@@ -1220,7 +1182,7 @@
       {
        "b": 1,
        "bx": 160,
-       "file": "armchair_club_teal_r",
+       "file": "armchair_club_teal_r35",
        "h": 40,
        "l": -3,
        "r": 37,
@@ -1231,7 +1193,7 @@
       }
      ]
     },
-    "wing_brown_L": {
+    "club_teal_r58": {
      "anchors": [
       {
        "dx": 17,
@@ -1242,49 +1204,15 @@
      "anims": [],
      "lights": [],
      "params": {
-      "fab": "brown",
+      "fab": "teal",
       "for": [
-       "lodge",
-       "den",
-       "library"
+       "mid",
+       "studio"
       ],
-      "style": "wing",
-      "yaw": 58
-     },
-     "slots": [],
-     "sprites": [
-      {
-       "b": 2,
-       "bx": 160,
-       "file": "armchair_wing_brown_L",
-       "h": 47,
-       "l": -3,
-       "r": 36,
-       "rx": 3,
-       "ry": 44,
-       "t": -44,
-       "w": 40
-      }
-     ]
-    },
-    "wing_brown_R": {
-     "anchors": [
-      {
-       "dx": 17,
-       "dy": -12,
-       "name": "armchair"
-      }
-     ],
-     "anims": [],
-     "lights": [],
-     "params": {
-      "fab": "brown",
-      "for": [
-       "lodge",
-       "den",
-       "library"
+      "not": [
+       "mid"
       ],
-      "style": "wing",
+      "style": "club",
       "yaw": -58
      },
      "slots": [],
@@ -1292,18 +1220,18 @@
       {
        "b": 1,
        "bx": 160,
-       "file": "armchair_wing_brown_R",
-       "h": 46,
+       "file": "armchair_club_teal_r58",
+       "h": 40,
        "l": -3,
        "r": 36,
        "rx": 3,
-       "ry": 44,
-       "t": -44,
+       "ry": 38,
+       "t": -38,
        "w": 40
       }
      ]
     },
-    "wing_brown_l": {
+    "wing_brown_l35": {
      "anchors": [
       {
        "dx": 17,
@@ -1328,7 +1256,7 @@
       {
        "b": 1,
        "bx": 160,
-       "file": "armchair_wing_brown_l",
+       "file": "armchair_wing_brown_l35",
        "h": 46,
        "l": -4,
        "r": 36,
@@ -1339,7 +1267,43 @@
       }
      ]
     },
-    "wing_brown_r": {
+    "wing_brown_l58": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "brown",
+      "for": [
+       "lodge",
+       "den",
+       "library"
+      ],
+      "style": "wing",
+      "yaw": 58
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "armchair_wing_brown_l58",
+       "h": 47,
+       "l": -3,
+       "r": 36,
+       "rx": 3,
+       "ry": 44,
+       "t": -44,
+       "w": 40
+      }
+     ]
+    },
+    "wing_brown_r35": {
      "anchors": [
       {
        "dx": 17,
@@ -1364,7 +1328,7 @@
       {
        "b": 1,
        "bx": 160,
-       "file": "armchair_wing_brown_r",
+       "file": "armchair_wing_brown_r35",
        "h": 46,
        "l": -3,
        "r": 37,
@@ -1375,7 +1339,7 @@
       }
      ]
     },
-    "wing_green_L": {
+    "wing_brown_r58": {
      "anchors": [
       {
        "dx": 17,
@@ -1386,51 +1350,11 @@
      "anims": [],
      "lights": [],
      "params": {
-      "fab": "green",
+      "fab": "brown",
       "for": [
-       "parlour",
-       "library",
-       "adult",
-       "sick",
-       "refuge"
-      ],
-      "style": "wing",
-      "yaw": 58
-     },
-     "slots": [],
-     "sprites": [
-      {
-       "b": 2,
-       "bx": 160,
-       "file": "armchair_wing_green_L",
-       "h": 47,
-       "l": -3,
-       "r": 36,
-       "rx": 3,
-       "ry": 44,
-       "t": -44,
-       "w": 40
-      }
-     ]
-    },
-    "wing_green_R": {
-     "anchors": [
-      {
-       "dx": 17,
-       "dy": -12,
-       "name": "armchair"
-      }
-     ],
-     "anims": [],
-     "lights": [],
-     "params": {
-      "fab": "green",
-      "for": [
-       "parlour",
-       "library",
-       "adult",
-       "sick",
-       "refuge"
+       "lodge",
+       "den",
+       "library"
       ],
       "style": "wing",
       "yaw": -58
@@ -1440,7 +1364,7 @@
       {
        "b": 1,
        "bx": 160,
-       "file": "armchair_wing_green_R",
+       "file": "armchair_wing_brown_r58",
        "h": 46,
        "l": -3,
        "r": 36,
@@ -1451,7 +1375,7 @@
       }
      ]
     },
-    "wing_green_l": {
+    "wing_green_l35": {
      "anchors": [
       {
        "dx": 17,
@@ -1478,7 +1402,7 @@
       {
        "b": 1,
        "bx": 160,
-       "file": "armchair_wing_green_l",
+       "file": "armchair_wing_green_l35",
        "h": 46,
        "l": -4,
        "r": 36,
@@ -1489,7 +1413,45 @@
       }
      ]
     },
-    "wing_green_r": {
+    "wing_green_l58": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "green",
+      "for": [
+       "parlour",
+       "library",
+       "adult",
+       "sick",
+       "refuge"
+      ],
+      "style": "wing",
+      "yaw": 58
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "armchair_wing_green_l58",
+       "h": 47,
+       "l": -3,
+       "r": 36,
+       "rx": 3,
+       "ry": 44,
+       "t": -44,
+       "w": 40
+      }
+     ]
+    },
+    "wing_green_r35": {
      "anchors": [
       {
        "dx": 17,
@@ -1516,7 +1478,7 @@
       {
        "b": 1,
        "bx": 160,
-       "file": "armchair_wing_green_r",
+       "file": "armchair_wing_green_r35",
        "h": 46,
        "l": -3,
        "r": 37,
@@ -1527,7 +1489,7 @@
       }
      ]
     },
-    "wing_grey_L": {
+    "wing_green_r58": {
      "anchors": [
       {
        "dx": 17,
@@ -1538,499 +1500,13 @@
      "anims": [],
      "lights": [],
      "params": {
-      "fab": "grey",
-      "for": [
-       "squat",
-       "office",
-       "adult",
-       "sick",
-       "refuge"
-      ],
-      "style": "wing",
-      "yaw": 58
-     },
-     "slots": [],
-     "sprites": [
-      {
-       "b": 2,
-       "bx": 160,
-       "file": "armchair_wing_grey_L",
-       "h": 47,
-       "l": -3,
-       "r": 36,
-       "rx": 3,
-       "ry": 44,
-       "t": -44,
-       "w": 40
-      }
-     ]
-    },
-    "wing_grey_R": {
-     "anchors": [
-      {
-       "dx": 17,
-       "dy": -12,
-       "name": "armchair"
-      }
-     ],
-     "anims": [],
-     "lights": [],
-     "params": {
-      "fab": "grey",
-      "for": [
-       "squat",
-       "office",
-       "adult",
-       "sick",
-       "refuge"
-      ],
-      "style": "wing",
-      "yaw": -58
-     },
-     "slots": [],
-     "sprites": [
-      {
-       "b": 1,
-       "bx": 160,
-       "file": "armchair_wing_grey_R",
-       "h": 46,
-       "l": -3,
-       "r": 36,
-       "rx": 3,
-       "ry": 44,
-       "t": -44,
-       "w": 40
-      }
-     ]
-    },
-    "wing_grey_l": {
-     "anchors": [
-      {
-       "dx": 17,
-       "dy": -12,
-       "name": "armchair"
-      }
-     ],
-     "anims": [],
-     "lights": [],
-     "params": {
-      "fab": "grey",
-      "for": [
-       "squat",
-       "office",
-       "adult",
-       "sick",
-       "refuge"
-      ],
-      "style": "wing",
-      "yaw": 35
-     },
-     "slots": [],
-     "sprites": [
-      {
-       "b": 1,
-       "bx": 160,
-       "file": "armchair_wing_grey_l",
-       "h": 46,
-       "l": -4,
-       "r": 36,
-       "rx": 4,
-       "ry": 44,
-       "t": -44,
-       "w": 41
-      }
-     ]
-    },
-    "wing_grey_r": {
-     "anchors": [
-      {
-       "dx": 17,
-       "dy": -12,
-       "name": "armchair"
-      }
-     ],
-     "anims": [],
-     "lights": [],
-     "params": {
-      "fab": "grey",
-      "for": [
-       "squat",
-       "office",
-       "adult",
-       "sick",
-       "refuge"
-      ],
-      "style": "wing",
-      "yaw": -35
-     },
-     "slots": [],
-     "sprites": [
-      {
-       "b": 1,
-       "bx": 160,
-       "file": "armchair_wing_grey_r",
-       "h": 46,
-       "l": -3,
-       "r": 37,
-       "rx": 3,
-       "ry": 44,
-       "t": -44,
-       "w": 41
-      }
-     ]
-    },
-    "wing_mustard_L": {
-     "anchors": [
-      {
-       "dx": 17,
-       "dy": -12,
-       "name": "armchair"
-      }
-     ],
-     "anims": [],
-     "lights": [],
-     "params": {
-      "fab": "mustard",
-      "for": [
-       "mid",
-       "studio",
-       "adult",
-       "sick",
-       "refuge"
-      ],
-      "style": "wing",
-      "yaw": 58
-     },
-     "slots": [],
-     "sprites": [
-      {
-       "b": 2,
-       "bx": 160,
-       "file": "armchair_wing_mustard_L",
-       "h": 47,
-       "l": -3,
-       "r": 36,
-       "rx": 3,
-       "ry": 44,
-       "t": -44,
-       "w": 40
-      }
-     ]
-    },
-    "wing_mustard_R": {
-     "anchors": [
-      {
-       "dx": 17,
-       "dy": -12,
-       "name": "armchair"
-      }
-     ],
-     "anims": [],
-     "lights": [],
-     "params": {
-      "fab": "mustard",
-      "for": [
-       "mid",
-       "studio",
-       "adult",
-       "sick",
-       "refuge"
-      ],
-      "style": "wing",
-      "yaw": -58
-     },
-     "slots": [],
-     "sprites": [
-      {
-       "b": 1,
-       "bx": 160,
-       "file": "armchair_wing_mustard_R",
-       "h": 46,
-       "l": -3,
-       "r": 36,
-       "rx": 3,
-       "ry": 44,
-       "t": -44,
-       "w": 40
-      }
-     ]
-    },
-    "wing_mustard_l": {
-     "anchors": [
-      {
-       "dx": 17,
-       "dy": -12,
-       "name": "armchair"
-      }
-     ],
-     "anims": [],
-     "lights": [],
-     "params": {
-      "fab": "mustard",
-      "for": [
-       "mid",
-       "studio",
-       "adult",
-       "sick",
-       "refuge"
-      ],
-      "style": "wing",
-      "yaw": 35
-     },
-     "slots": [],
-     "sprites": [
-      {
-       "b": 1,
-       "bx": 160,
-       "file": "armchair_wing_mustard_l",
-       "h": 46,
-       "l": -4,
-       "r": 36,
-       "rx": 4,
-       "ry": 44,
-       "t": -44,
-       "w": 41
-      }
-     ]
-    },
-    "wing_mustard_r": {
-     "anchors": [
-      {
-       "dx": 17,
-       "dy": -12,
-       "name": "armchair"
-      }
-     ],
-     "anims": [],
-     "lights": [],
-     "params": {
-      "fab": "mustard",
-      "for": [
-       "mid",
-       "studio",
-       "adult",
-       "sick",
-       "refuge"
-      ],
-      "style": "wing",
-      "yaw": -35
-     },
-     "slots": [],
-     "sprites": [
-      {
-       "b": 1,
-       "bx": 160,
-       "file": "armchair_wing_mustard_r",
-       "h": 46,
-       "l": -3,
-       "r": 37,
-       "rx": 3,
-       "ry": 44,
-       "t": -44,
-       "w": 41
-      }
-     ]
-    },
-    "wing_red_L": {
-     "anchors": [
-      {
-       "dx": 17,
-       "dy": -12,
-       "name": "armchair"
-      }
-     ],
-     "anims": [],
-     "lights": [],
-     "params": {
-      "fab": "red",
-      "for": [
-       "cosy",
-       "den"
-      ],
-      "style": "wing",
-      "yaw": 58
-     },
-     "slots": [],
-     "sprites": [
-      {
-       "b": 2,
-       "bx": 160,
-       "file": "armchair_wing_red_L",
-       "h": 47,
-       "l": -3,
-       "r": 36,
-       "rx": 3,
-       "ry": 44,
-       "t": -44,
-       "w": 40
-      }
-     ]
-    },
-    "wing_red_R": {
-     "anchors": [
-      {
-       "dx": 17,
-       "dy": -12,
-       "name": "armchair"
-      }
-     ],
-     "anims": [],
-     "lights": [],
-     "params": {
-      "fab": "red",
-      "for": [
-       "cosy",
-       "den"
-      ],
-      "style": "wing",
-      "yaw": -58
-     },
-     "slots": [],
-     "sprites": [
-      {
-       "b": 1,
-       "bx": 160,
-       "file": "armchair_wing_red_R",
-       "h": 46,
-       "l": -3,
-       "r": 36,
-       "rx": 3,
-       "ry": 44,
-       "t": -44,
-       "w": 40
-      }
-     ]
-    },
-    "wing_red_l": {
-     "anchors": [
-      {
-       "dx": 17,
-       "dy": -12,
-       "name": "armchair"
-      }
-     ],
-     "anims": [],
-     "lights": [],
-     "params": {
-      "fab": "red",
-      "for": [
-       "cosy",
-       "den"
-      ],
-      "style": "wing",
-      "yaw": 35
-     },
-     "slots": [],
-     "sprites": [
-      {
-       "b": 1,
-       "bx": 160,
-       "file": "armchair_wing_red_l",
-       "h": 46,
-       "l": -4,
-       "r": 36,
-       "rx": 4,
-       "ry": 44,
-       "t": -44,
-       "w": 41
-      }
-     ]
-    },
-    "wing_red_r": {
-     "anchors": [
-      {
-       "dx": 17,
-       "dy": -12,
-       "name": "armchair"
-      }
-     ],
-     "anims": [],
-     "lights": [],
-     "params": {
-      "fab": "red",
-      "for": [
-       "cosy",
-       "den"
-      ],
-      "style": "wing",
-      "yaw": -35
-     },
-     "slots": [],
-     "sprites": [
-      {
-       "b": 1,
-       "bx": 160,
-       "file": "armchair_wing_red_r",
-       "h": 46,
-       "l": -3,
-       "r": 37,
-       "rx": 3,
-       "ry": 44,
-       "t": -44,
-       "w": 41
-      }
-     ]
-    },
-    "wing_rose_L": {
-     "anchors": [
-      {
-       "dx": 17,
-       "dy": -12,
-       "name": "armchair"
-      }
-     ],
-     "anims": [],
-     "lights": [],
-     "params": {
-      "fab": "rose",
+      "fab": "green",
       "for": [
        "parlour",
+       "library",
        "adult",
        "sick",
        "refuge"
-      ],
-      "not": [
-       "parlour"
-      ],
-      "style": "wing",
-      "yaw": 58
-     },
-     "slots": [],
-     "sprites": [
-      {
-       "b": 2,
-       "bx": 160,
-       "file": "armchair_wing_rose_L",
-       "h": 47,
-       "l": -3,
-       "r": 36,
-       "rx": 3,
-       "ry": 44,
-       "t": -44,
-       "w": 40
-      }
-     ]
-    },
-    "wing_rose_R": {
-     "anchors": [
-      {
-       "dx": 17,
-       "dy": -12,
-       "name": "armchair"
-      }
-     ],
-     "anims": [],
-     "lights": [],
-     "params": {
-      "fab": "rose",
-      "for": [
-       "parlour",
-       "adult",
-       "sick",
-       "refuge"
-      ],
-      "not": [
-       "parlour"
       ],
       "style": "wing",
       "yaw": -58
@@ -2040,7 +1516,7 @@
       {
        "b": 1,
        "bx": 160,
-       "file": "armchair_wing_rose_R",
+       "file": "armchair_wing_green_r58",
        "h": 46,
        "l": -3,
        "r": 36,
@@ -2051,7 +1527,451 @@
       }
      ]
     },
-    "wing_rose_l": {
+    "wing_grey_l35": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "grey",
+      "for": [
+       "squat",
+       "office",
+       "adult",
+       "sick",
+       "refuge"
+      ],
+      "style": "wing",
+      "yaw": 35
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "armchair_wing_grey_l35",
+       "h": 46,
+       "l": -4,
+       "r": 36,
+       "rx": 4,
+       "ry": 44,
+       "t": -44,
+       "w": 41
+      }
+     ]
+    },
+    "wing_grey_l58": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "grey",
+      "for": [
+       "squat",
+       "office",
+       "adult",
+       "sick",
+       "refuge"
+      ],
+      "style": "wing",
+      "yaw": 58
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "armchair_wing_grey_l58",
+       "h": 47,
+       "l": -3,
+       "r": 36,
+       "rx": 3,
+       "ry": 44,
+       "t": -44,
+       "w": 40
+      }
+     ]
+    },
+    "wing_grey_r35": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "grey",
+      "for": [
+       "squat",
+       "office",
+       "adult",
+       "sick",
+       "refuge"
+      ],
+      "style": "wing",
+      "yaw": -35
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "armchair_wing_grey_r35",
+       "h": 46,
+       "l": -3,
+       "r": 37,
+       "rx": 3,
+       "ry": 44,
+       "t": -44,
+       "w": 41
+      }
+     ]
+    },
+    "wing_grey_r58": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "grey",
+      "for": [
+       "squat",
+       "office",
+       "adult",
+       "sick",
+       "refuge"
+      ],
+      "style": "wing",
+      "yaw": -58
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "armchair_wing_grey_r58",
+       "h": 46,
+       "l": -3,
+       "r": 36,
+       "rx": 3,
+       "ry": 44,
+       "t": -44,
+       "w": 40
+      }
+     ]
+    },
+    "wing_mustard_l35": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "mustard",
+      "for": [
+       "mid",
+       "studio",
+       "adult",
+       "sick",
+       "refuge"
+      ],
+      "style": "wing",
+      "yaw": 35
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "armchair_wing_mustard_l35",
+       "h": 46,
+       "l": -4,
+       "r": 36,
+       "rx": 4,
+       "ry": 44,
+       "t": -44,
+       "w": 41
+      }
+     ]
+    },
+    "wing_mustard_l58": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "mustard",
+      "for": [
+       "mid",
+       "studio",
+       "adult",
+       "sick",
+       "refuge"
+      ],
+      "style": "wing",
+      "yaw": 58
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "armchair_wing_mustard_l58",
+       "h": 47,
+       "l": -3,
+       "r": 36,
+       "rx": 3,
+       "ry": 44,
+       "t": -44,
+       "w": 40
+      }
+     ]
+    },
+    "wing_mustard_r35": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "mustard",
+      "for": [
+       "mid",
+       "studio",
+       "adult",
+       "sick",
+       "refuge"
+      ],
+      "style": "wing",
+      "yaw": -35
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "armchair_wing_mustard_r35",
+       "h": 46,
+       "l": -3,
+       "r": 37,
+       "rx": 3,
+       "ry": 44,
+       "t": -44,
+       "w": 41
+      }
+     ]
+    },
+    "wing_mustard_r58": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "mustard",
+      "for": [
+       "mid",
+       "studio",
+       "adult",
+       "sick",
+       "refuge"
+      ],
+      "style": "wing",
+      "yaw": -58
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "armchair_wing_mustard_r58",
+       "h": 46,
+       "l": -3,
+       "r": 36,
+       "rx": 3,
+       "ry": 44,
+       "t": -44,
+       "w": 40
+      }
+     ]
+    },
+    "wing_red_l35": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "red",
+      "for": [
+       "cosy",
+       "den"
+      ],
+      "style": "wing",
+      "yaw": 35
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "armchair_wing_red_l35",
+       "h": 46,
+       "l": -4,
+       "r": 36,
+       "rx": 4,
+       "ry": 44,
+       "t": -44,
+       "w": 41
+      }
+     ]
+    },
+    "wing_red_l58": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "red",
+      "for": [
+       "cosy",
+       "den"
+      ],
+      "style": "wing",
+      "yaw": 58
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "armchair_wing_red_l58",
+       "h": 47,
+       "l": -3,
+       "r": 36,
+       "rx": 3,
+       "ry": 44,
+       "t": -44,
+       "w": 40
+      }
+     ]
+    },
+    "wing_red_r35": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "red",
+      "for": [
+       "cosy",
+       "den"
+      ],
+      "style": "wing",
+      "yaw": -35
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "armchair_wing_red_r35",
+       "h": 46,
+       "l": -3,
+       "r": 37,
+       "rx": 3,
+       "ry": 44,
+       "t": -44,
+       "w": 41
+      }
+     ]
+    },
+    "wing_red_r58": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "red",
+      "for": [
+       "cosy",
+       "den"
+      ],
+      "style": "wing",
+      "yaw": -58
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "armchair_wing_red_r58",
+       "h": 46,
+       "l": -3,
+       "r": 36,
+       "rx": 3,
+       "ry": 44,
+       "t": -44,
+       "w": 40
+      }
+     ]
+    },
+    "wing_rose_l35": {
      "anchors": [
       {
        "dx": 17,
@@ -2080,7 +2000,7 @@
       {
        "b": 1,
        "bx": 160,
-       "file": "armchair_wing_rose_l",
+       "file": "armchair_wing_rose_l35",
        "h": 46,
        "l": -4,
        "r": 36,
@@ -2091,7 +2011,47 @@
       }
      ]
     },
-    "wing_rose_r": {
+    "wing_rose_l58": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "rose",
+      "for": [
+       "parlour",
+       "adult",
+       "sick",
+       "refuge"
+      ],
+      "not": [
+       "parlour"
+      ],
+      "style": "wing",
+      "yaw": 58
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "armchair_wing_rose_l58",
+       "h": 47,
+       "l": -3,
+       "r": 36,
+       "rx": 3,
+       "ry": 44,
+       "t": -44,
+       "w": 40
+      }
+     ]
+    },
+    "wing_rose_r35": {
      "anchors": [
       {
        "dx": 17,
@@ -2120,7 +2080,7 @@
       {
        "b": 1,
        "bx": 160,
-       "file": "armchair_wing_rose_r",
+       "file": "armchair_wing_rose_r35",
        "h": 46,
        "l": -3,
        "r": 37,
@@ -2131,7 +2091,7 @@
       }
      ]
     },
-    "wing_teal_L": {
+    "wing_rose_r58": {
      "anchors": [
       {
        "dx": 17,
@@ -2142,51 +2102,15 @@
      "anims": [],
      "lights": [],
      "params": {
-      "fab": "teal",
+      "fab": "rose",
       "for": [
-       "mid",
-       "studio"
+       "parlour",
+       "adult",
+       "sick",
+       "refuge"
       ],
       "not": [
-       "mid"
-      ],
-      "style": "wing",
-      "yaw": 58
-     },
-     "slots": [],
-     "sprites": [
-      {
-       "b": 2,
-       "bx": 160,
-       "file": "armchair_wing_teal_L",
-       "h": 47,
-       "l": -3,
-       "r": 36,
-       "rx": 3,
-       "ry": 44,
-       "t": -44,
-       "w": 40
-      }
-     ]
-    },
-    "wing_teal_R": {
-     "anchors": [
-      {
-       "dx": 17,
-       "dy": -12,
-       "name": "armchair"
-      }
-     ],
-     "anims": [],
-     "lights": [],
-     "params": {
-      "fab": "teal",
-      "for": [
-       "mid",
-       "studio"
-      ],
-      "not": [
-       "mid"
+       "parlour"
       ],
       "style": "wing",
       "yaw": -58
@@ -2196,7 +2120,7 @@
       {
        "b": 1,
        "bx": 160,
-       "file": "armchair_wing_teal_R",
+       "file": "armchair_wing_rose_r58",
        "h": 46,
        "l": -3,
        "r": 36,
@@ -2207,7 +2131,7 @@
       }
      ]
     },
-    "wing_teal_l": {
+    "wing_teal_l35": {
      "anchors": [
       {
        "dx": 17,
@@ -2234,7 +2158,7 @@
       {
        "b": 1,
        "bx": 160,
-       "file": "armchair_wing_teal_l",
+       "file": "armchair_wing_teal_l35",
        "h": 46,
        "l": -4,
        "r": 36,
@@ -2245,7 +2169,45 @@
       }
      ]
     },
-    "wing_teal_r": {
+    "wing_teal_l58": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "teal",
+      "for": [
+       "mid",
+       "studio"
+      ],
+      "not": [
+       "mid"
+      ],
+      "style": "wing",
+      "yaw": 58
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "armchair_wing_teal_l58",
+       "h": 47,
+       "l": -3,
+       "r": 36,
+       "rx": 3,
+       "ry": 44,
+       "t": -44,
+       "w": 40
+      }
+     ]
+    },
+    "wing_teal_r35": {
      "anchors": [
       {
        "dx": 17,
@@ -2272,7 +2234,7 @@
       {
        "b": 1,
        "bx": 160,
-       "file": "armchair_wing_teal_r",
+       "file": "armchair_wing_teal_r35",
        "h": 46,
        "l": -3,
        "r": 37,
@@ -2280,6 +2242,44 @@
        "ry": 44,
        "t": -44,
        "w": 41
+      }
+     ]
+    },
+    "wing_teal_r58": {
+     "anchors": [
+      {
+       "dx": 17,
+       "dy": -12,
+       "name": "armchair"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "teal",
+      "for": [
+       "mid",
+       "studio"
+      ],
+      "not": [
+       "mid"
+      ],
+      "style": "wing",
+      "yaw": -58
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "armchair_wing_teal_r58",
+       "h": 46,
+       "l": -3,
+       "r": 36,
+       "rx": 3,
+       "ry": 44,
+       "t": -44,
+       "w": 40
       }
      ]
     }

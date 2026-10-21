@@ -177,6 +177,18 @@ real failure in this codebase.
 7. **Real player data is sacred.** Any `user://` file goes through `WorldState.data_dir()`, so
    test and tool runs use `user://test_sandbox/` and can never delete saves or keybinds.
 
+## Consistency and logic (owner round 47h: "consistency and logic are essential rules for us to follow")
+
+Not a style preference — a gate on every change. In practice:
+
+1. **One source of truth, everything that shows it agrees.** A colour, size, name or rule is written once and every consumer reads it: palettes live in the module art so the baked story room and the planned shell are the same room;
+   generated files are regenerated, never hand-edited; a change to a shared helper (a newspaper, a palette) means regenerating and checking everything downstream. A thing that looks one way in run 1 does not look another in run 2 without a reason.
+2. **Sets are uniform.** Things hung, laid or drawn as a set share their size, margin, height and style (a pair of pinned sheets, a row of frames, a family of chairs); a drawing stays inside its frame and never covers its own text.
+3. **Things are where, and what, they logically would be.** No bed in a kitchen; stems stand in the vase; a planter stands behind the lane a person walks; a colourway never vanishes into its wall; depth order follows the feet row; a lying thing is not walked over.
+   Logic is DATA + a check that can fail (`furniture_planner.validate`, `colour_audit.py --check`, the sweeps in `growth_test` / `furniture_test`) — a rule that lives only in someone's head or only in a comment is not a rule.
+4. **Names and data are unambiguous and follow one scheme** (a turn is `l35`, never `l` vs `L` — two files that differ only by case collide on Windows / macOS; `furn_build` refuses them). The same idea is spelled the same way everywhere.
+5. **When you fix one instance, sweep for its class** (grep, an audit tool, a contact sheet of every sibling) and say what the sweep covered and what it did not. A fix that leaves the same fault in the next piece is not a fix.
+
 ## Hard-won conventions (do not violate)
 
 - **Y planes: measure, don't eyeball; align by FEET, not origin.** The corridor

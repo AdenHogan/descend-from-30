@@ -17,10 +17,10 @@ main hue (the pink bathroom is pink fixtures on MINT tile; the teen's teal wall 
 import furnlib as FL
 
 AVOID = {
-    'armchair': {'club_rose_L': ['parlour'], 'club_rose_R': ['parlour'], 'club_rose_l': ['parlour'], 'club_rose_r': ['parlour'],
-                 'club_teal_L': ['mid'], 'club_teal_R': ['mid'], 'club_teal_l': ['mid'], 'club_teal_r': ['mid'],
-                 'wing_rose_L': ['parlour'], 'wing_rose_R': ['parlour'], 'wing_rose_l': ['parlour'], 'wing_rose_r': ['parlour'],
-                 'wing_teal_L': ['mid'], 'wing_teal_R': ['mid'], 'wing_teal_l': ['mid'], 'wing_teal_r': ['mid']},
+    'armchair': {'club_rose_l58': ['parlour'], 'club_rose_r58': ['parlour'], 'club_rose_l35': ['parlour'], 'club_rose_r35': ['parlour'],
+                 'club_teal_l58': ['mid'], 'club_teal_r58': ['mid'], 'club_teal_l35': ['mid'], 'club_teal_r35': ['mid'],
+                 'wing_rose_l58': ['parlour'], 'wing_rose_r58': ['parlour'], 'wing_rose_l35': ['parlour'], 'wing_rose_r35': ['parlour'],
+                 'wing_teal_l58': ['mid'], 'wing_teal_r58': ['mid'], 'wing_teal_l35': ['mid'], 'wing_teal_r35': ['mid']},
     'filing_cabinet': {'green': ['den']},
     'loveseat': {'olive': ['cosy']},
     'rug_oblong': {'mauve': ['adult', 'teen']},

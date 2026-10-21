@@ -244,6 +244,9 @@ Same kit, same method, one new file per family (the old definitions were cut out
   the ferns stay indoors, `BAL_POTS` / `BAL_DEAD_POTS`), and the vine from the lintel is the one short vine (`BAL_LINTEL_VINES` = `hang_3`, hung from row 17 so its foot is on row 46, above a head — which tops out near row 48, measured on a capture). `growth_test._test_balcony_lane` sweeps
   60 seeds x 3 runs x 3 floors (foot rows, widths, the two sides never meeting, the vine's foot) — mutation-checked with the old row.
 
+* **Names (consistency rule, CLAUDE.md "Consistency and logic").** The armchair's turn variants were `l` / `r` (35 degrees) and `L` / `R` (58) — files that differ only by case, which overwrite each other on Windows / macOS (14 armchair colourways were affected). They are `l35 r35 l58 r58`
+  now, and `furn_build.py` refuses any two sprite names that differ only by case; a repo-wide check found no other collision.
+
 ## Numbers (so far)
 
 142 pieces, 1569 sprites; 15 shells; 15 recipes (5 bedroom + 5 kitchen + 5 living room). (Round 47: 80 pieces / 730 sprites / 5 shells / 5 recipes.) 1000 planned rooms in the test: 0 rule violations, 0 fallbacks; planning costs ~16 ms a room on average (cached per flat+slot,
