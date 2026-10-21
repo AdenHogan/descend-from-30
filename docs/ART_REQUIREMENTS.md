@@ -112,6 +112,12 @@ px), or to a clean multiple of them, and tell us your tile size so we can slot i
 ## Asset list (by priority)
 
 ### Tier 0: brand / identity (do this first, it sets the look)
+> **Update (owner round 48): an in-house logo now exists** — `assets/logo/` (full logo, wordmark, one-ink versions, the handprint alone, a
+> square icon + `.ico`; SVG + PNG, all on transparent backgrounds), built by `tools/art/logo.py`, with usage rules in `docs/logo/README.md`.
+> It is a flat vector: two lines of Barlow Condensed Bold capitals (DESCEND / FROM 30, the 30 in blood) beside a slim handprint, no ornament.
+> It is a working brand mark, not a commission: an artist is welcome to redraw it, keeping the brief below. The studio credit lockup
+> (**Mammoth Games**) is not drawn yet. Not yet wired into the title screen or the project icon.
+
 - **Game logo / title wordmark** for **"Descend From 30"**, the single most visible
   piece of art (title screen, store page, marketing, app icon). The title screen today
   uses a plain pixel font (see the title screenshot) and needs a real designed logo.

@@ -84,6 +84,14 @@ else
 	echo "FAIL   art context — see tools/art/context_audit.py (the art must match a sudden event happening NOW)"; head -8 "$LOG_DIR/_context.log"
 	bad=$((bad + 1))
 fi
+# THE LOGO (owner round 48): assets/logo/* (png @1x / @4x, svg, ico) and docs/logo/logo_sheet.png are exactly what tools/art/logo.py draws, the four transparent
+# logo files really are transparent, the icon is 64 x 64, and the print's tones stay oxblood (never a comic red).
+if python3 tools/art/logo.py --check >"$LOG_DIR/_logo.log" 2>&1; then
+	echo "ok     logo ($(tail -1 "$LOG_DIR/_logo.log" | sed 's/^LOGO: //'))"
+else
+	echo "FAIL   logo — run: python3 tools/art/logo.py"; head -6 "$LOG_DIR/_logo.log"
+	bad=$((bad + 1))
+fi
 # Every sound must stay clean (owner round 46: "a lot of what feels like static and noise in the audio"): no hiss / fizz above the budgets in
 # tools/audio_audit.py, no clipping or DC offset, no tick at a loop's join, no music that is all sub. Decodes every file in assets/audio.
 if python3 tools/audio_audit.py --check >"$LOG_DIR/_audio.log" 2>&1; then
