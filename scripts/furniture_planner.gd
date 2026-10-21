@@ -136,11 +136,20 @@ static func eligible(id: String, room_type: String, style: String) -> bool:
 	return true
 
 
-## Does at least one variant of the piece suit this style (a variant that names no styles suits all)?
+## Does this variant suit the style? A variant that names no styles (`for`) suits all; one may also name styles it is NOT used in (`not` — a colourway that would vanish into that style's wall:
+## tools/art/furn_palette.py).
+static func variant_ok(rec: Dictionary, vid: String, style: String) -> bool:
+	var params: Dictionary = rec["variants"][vid].get("params", {})
+	var f = params.get("for", null)
+	if f != null and not (style in f):
+		return false
+	return not (style in params.get("not", []))
+
+
+## Does at least one variant of the piece suit this style?
 static func _any_variant_for(rec: Dictionary, style: String) -> bool:
 	for v in rec["variants"]:
-		var f = rec["variants"][v].get("params", {}).get("for", null)
-		if f == null or style in f:
+		if variant_ok(rec, v, style):
 			return true
 	return false
 
@@ -229,8 +238,7 @@ static func _vid(rng: RandomNumberGenerator, rec: Dictionary, style: String = ""
 	if style != "":
 		var ok: Array = []
 		for v in vids:
-			var f = rec["variants"][v].get("params", {}).get("for", null)
-			if f == null or style in f:
+			if variant_ok(rec, v, style):
 				ok.append(v)
 		if not ok.is_empty():
 			vids = ok
@@ -909,6 +917,8 @@ static func validate_state(st: Dictionary) -> Array:
 		var plane := String(it["plane"])
 		if not eligible(id, room, style):
 			bad.append("%s is not allowed in a %s (%s)" % [id, room, style])
+		elif not variant_ok(rec, String(it["variant"]), style):
+			bad.append("%s / %s is not used in a %s (a `for` list or a colourway that blends into the wall)" % [id, String(it["variant"]), style])
 		counts[id] = int(counts.get(id, 0)) + 1
 		var rect: Rect2 = it["rect"]
 		if plane != "ceiling" and (rect.position.x < EDGE_L or rect.end.x - 1.0 > EDGE_R):

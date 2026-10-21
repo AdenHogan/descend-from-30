@@ -221,6 +221,29 @@ Same kit, same method, one new file per family (the old definitions were cut out
   the bath, the wetroom's washing machine), `_check_baked_is_style_module` (a story room is the old module of the planned style, for dining / study / bathroom).
 * **Not done:** the LOOK at game zoom (checked as contact sheets and engine captures under xvfb only); bathrooms have only one openable; per-run grime beyond the shell's tint.
 
+### Round 47h — COLOUR HARMONY, PAIRED PICTURES AND THE BALCONY PLANTS (owner: "make sure furnishings and decorations aren't too garish against modules… this bathroom is a bit too pink with the tiling and also the bathtub… the picture of the ship and the picture of the flowers aren't the same size, one flower is not in the pot… the plant pots on the balcony are all over the balcony, I'm concerned the player will clip into them")
+
+* **Colour harmony.** `tools/art/colour_audit.py` composes every plan of a `furniture_dump` file onto its shell (the morning look: the loudest) and measures per room the VIVID share (saturation >= 0.60, value >= 0.50), the biggest share
+  of one hue family, and which large pieces BLEND into the wall / floor behind them (same hue, saturation and lightness) or CLASH with it. What it found, and what was done (palettes live in the module art, so the baked story rooms and the planned
+  shells change together — `build_all.py` → `furn_shells.py` → `openables.py` → `burnt.py` → `gen_module_blueprint.py` were re-run):
+  * **Pink bathroom (E)**: pink fixtures on pink tile was a monochrome room. Now the classic fifties pairing — pink toilet / basin / tub on soft MINT tile with grey-green grout, black trim, the b/w floor (`bathroom.E_TILE`, `E_GROUT`,
+    `E_TUB_GROUT`; the tub's body is `PINK`, no longer the tile colour). Pink is ~15 % of the room instead of ~45 %.
+  * **Avocado bathroom (B)**: the orange lino was saturation 0.68 over the whole floor — now an earthy sand / umber (`B_LINO_*`), so the avocado suite is the one bright thing. **Country kitchen (C)**: the terracotta quarry tiles were 0.65 — muted.
+    **Dining B (diner)**: the orange parquet softened. **Teen bedroom (B)**: blue on blue on blue (53 % of its colour in one hue) — the carpet is a warm taupe, the teal wall's complement.
+  * **A colourway that vanishes into its wall is not used there** (`tools/art/furn_palette.py` `AVOID`, written into the variant's params as `not`): rose armchairs in the rose parlour, teal armchairs in the teal living room, the olive sofa / loveseat under the
+    green wallpaper, the green filing cabinet in the green den, the mauve oblong rug on the mauve adult carpet, the cream sideboard in the cream party room. `FurniturePlanner.variant_ok` (the `for` list AND the `not` list) is read by `_vid` / `_any_variant_for` and re-checked
+    by `validate_state`. `python3 tools/art/colour_audit.py --avoid` lists the candidates (large pieces only, the browns of wood and leather exempt, only where another variant exists).
+  * **The gate** runs `colour_audit.py --check`: no shell wall / floor with saturation x value over 0.36 (before: 0.49 / 0.40 / 0.39), and no un-avoided blending variant. `furniture_test._test_palette` (olive sofa never in a cosy room over 120 rooms, a forced one is refused).
+  * The rules of thumb used: a room has ONE dominant hue at most ~45 % of its coloured area, its main hue gets a complementary or neutral partner, large surfaces are muted (accent = small + saturated), a big piece contrasts with its wall in hue OR lightness.
+    The audit tool prints the numbers per style; the LOOK is still the owner's call (contact sheets + xvfb captures only).
+* **Paired pictures.** `sketches_wall` (the studio's two pinned drawings) was a 15 x 14 boat beside a 15 x 17 tulip sheet whose outer stems stood beside the vase: now two 15 x 17 sheets pinned at the same height, every stem inside the vase's mouth
+  (`furniture_test._test_paired_pictures` — mutation-checked against the old sprite). **The newspaper front page** (`wallart.draw_newspaper`, used by the EVACUATE / OUTBREAK notices in the baked bedroom D / kitchen E and the planned pieces): with a strap line the
+  photo is only 4 rows tall and the skyline towers ran up over "GO NORTH" / "STAY IN" — kept inside the photo now. All 46 wall-hung pieces were audited at 5x (`FURN_ALL=1 FURN_PREVIEW=… furn_build.py --only <decor ids>`); nothing else broke the rules.
+* **Balcony plants.** A balcony's pots stood with their feet on module row 96, one row IN FRONT of the lane the player (and an enemy) stands on out there (row 95) — and the player is drawn over the art, so they walked through them; two 33-35 px
+  ferns could fill the whole floor. Now (`room_growth.gd`): every pot / shrub's foot is on row 90 (`BAL_FLOOR_Y`, `BAL_LANE_GAP` 3 behind the lane, so whoever walks out is nearer than the pot and draws over it, as past a planter), pots are at most 30 px wide (`BAL_MAX_POT_W`;
+  the ferns stay indoors, `BAL_POTS` / `BAL_DEAD_POTS`), and the vine from the lintel is the one short vine (`BAL_LINTEL_VINES` = `hang_3`, hung from row 17 so its foot is on row 46, above a head — which tops out near row 48, measured on a capture). `growth_test._test_balcony_lane` sweeps
+  60 seeds x 3 runs x 3 floors (foot rows, widths, the two sides never meeting, the vine's foot) — mutation-checked with the old row.
+
 ## Numbers (so far)
 
 142 pieces, 1569 sprites; 15 shells; 15 recipes (5 bedroom + 5 kitchen + 5 living room). (Round 47: 80 pieces / 730 sprites / 5 shells / 5 recipes.) 1000 planned rooms in the test: 0 rule violations, 0 fallbacks; planning costs ~16 ms a room on average (cached per flat+slot,

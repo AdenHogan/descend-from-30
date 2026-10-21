@@ -937,6 +937,9 @@
        "sick",
        "refuge"
       ],
+      "not": [
+       "parlour"
+      ],
       "style": "club",
       "yaw": 58
      },
@@ -973,6 +976,9 @@
        "adult",
        "sick",
        "refuge"
+      ],
+      "not": [
+       "parlour"
       ],
       "style": "club",
       "yaw": -58
@@ -1011,6 +1017,9 @@
        "sick",
        "refuge"
       ],
+      "not": [
+       "parlour"
+      ],
       "style": "club",
       "yaw": 35
      },
@@ -1048,6 +1057,9 @@
        "sick",
        "refuge"
       ],
+      "not": [
+       "parlour"
+      ],
       "style": "club",
       "yaw": -35
      },
@@ -1082,6 +1094,9 @@
       "for": [
        "mid",
        "studio"
+      ],
+      "not": [
+       "mid"
       ],
       "style": "club",
       "yaw": 58
@@ -1118,6 +1133,9 @@
        "mid",
        "studio"
       ],
+      "not": [
+       "mid"
+      ],
       "style": "club",
       "yaw": -58
      },
@@ -1153,6 +1171,9 @@
        "mid",
        "studio"
       ],
+      "not": [
+       "mid"
+      ],
       "style": "club",
       "yaw": 35
      },
@@ -1187,6 +1208,9 @@
       "for": [
        "mid",
        "studio"
+      ],
+      "not": [
+       "mid"
       ],
       "style": "club",
       "yaw": -35
@@ -1965,6 +1989,9 @@
        "sick",
        "refuge"
       ],
+      "not": [
+       "parlour"
+      ],
       "style": "wing",
       "yaw": 58
      },
@@ -2001,6 +2028,9 @@
        "adult",
        "sick",
        "refuge"
+      ],
+      "not": [
+       "parlour"
       ],
       "style": "wing",
       "yaw": -58
@@ -2039,6 +2069,9 @@
        "sick",
        "refuge"
       ],
+      "not": [
+       "parlour"
+      ],
       "style": "wing",
       "yaw": 35
      },
@@ -2076,6 +2109,9 @@
        "sick",
        "refuge"
       ],
+      "not": [
+       "parlour"
+      ],
       "style": "wing",
       "yaw": -35
      },
@@ -2110,6 +2146,9 @@
       "for": [
        "mid",
        "studio"
+      ],
+      "not": [
+       "mid"
       ],
       "style": "wing",
       "yaw": 58
@@ -2146,6 +2185,9 @@
        "mid",
        "studio"
       ],
+      "not": [
+       "mid"
+      ],
       "style": "wing",
       "yaw": -58
      },
@@ -2181,6 +2223,9 @@
        "mid",
        "studio"
       ],
+      "not": [
+       "mid"
+      ],
       "style": "wing",
       "yaw": 35
      },
@@ -2215,6 +2260,9 @@
       "for": [
        "mid",
        "studio"
+      ],
+      "not": [
+       "mid"
       ],
       "style": "wing",
       "yaw": -35
@@ -15457,7 +15505,10 @@
      "anims": [],
      "lights": [],
      "params": {
-      "f": "green"
+      "f": "green",
+      "not": [
+       "den"
+      ]
      },
      "slots": [
       {
@@ -20296,6 +20347,9 @@
       "for": [
        "cosy",
        "mid"
+      ],
+      "not": [
+       "cosy"
       ]
      },
      "slots": [],
@@ -27142,6 +27196,10 @@
      "params": {
       "border": "5e3a42",
       "col": "8a5a62",
+      "not": [
+       "adult",
+       "teen"
+      ],
       "pat": "c9a888"
      },
      "slots": [],
@@ -28208,6 +28266,9 @@
       "for": [
        "cosy",
        "family",
+       "party"
+      ],
+      "not": [
        "party"
       ]
      },
@@ -29357,6 +29418,9 @@
       "for": [
        "cosy",
        "mid"
+      ],
+      "not": [
+       "cosy"
       ]
      },
      "slots": [],

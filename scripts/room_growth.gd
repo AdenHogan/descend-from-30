@@ -41,10 +41,21 @@ const FIT := {
 # the first morning to a green loggia low down by night.
 const BAL_SHRUBS := ["shrub_small_1", "shrub_small_2", "shrub_small_3", "shrub_small_4"]
 const BAL_VINES := ["hang_1", "hang_2", "hang_4", "hang_3"]
-const BAL_FLOOR_Y := 96.0
+const BAL_LINTEL_VINES := ["hang_3"]      # the only vine short enough to hang from the lintel clear of a head (29 px: hung from row 17 its foot is on row 46)
+const BAL_POTS := ["pot_flowers_3", "pot_flowers_4", "pot_flowers_5", "pot_tall_6", "pot_tall_7"]      # POTS that fit BAL_MAX_POT_W
+const BAL_DEAD_POTS := ["pot_dead_8", "pot_dead_9"]
+# KEEP THE PLAYER'S LANE CLEAR (owner round 47h: "the plant pots on the balcony… are all over the balcony. I'm concerned player will clip in and overlap on them"): the player
+# (and any enemy) stands out there with the feet on module row 95 (`BalconyGeo.FEET - 224`) and is drawn OVER the loggia's art, so a pot whose foot was on row 96 stood IN
+# the player's lane and the player walked through it. A pot / shrub now stands on row 90 — BEHIND the lane, against the rail, so whoever walks out there is nearer than it and
+# draws over it the way a person passes a planter — and is no wider than 30 px, so the two sides never meet and the middle of the floor is open. A vine from the lintel is
+# short enough (its foot on row <= 46) to hang above the head of whoever stands on the balcony (a head tops out at row ~48: measured on a capture), never across their face.
+const BAL_FLOOR_Y := 90.0
+const BAL_LANE_GAP := 3.0                # a planter's foot is at least this far behind the player's feet row (the test reads it)
+const BAL_MAX_POT_W := 30                # a planter wider than this is not used out there (the 33-35 px ferns stay indoors)
 const BAL_LEFT := 16.0
 const BAL_RIGHT := 84.0
 const BAL_LINTEL_Y := 20.0
+const BAL_LINTEL_FOOT := 46.0            # the lowest a vine from the lintel may reach
 const BAL_RAIL_Y := 62.0
 const BAL_BASE_SHOW := 0.22             # the chance a slot is filled even on a clear floor
 
@@ -226,7 +237,7 @@ static func balcony_plan(floor_num: int, apartment_id: String, slot: int, run: i
 		if i < 2:
 			if pot:
 				var dead: bool = dead_roll < clampf(0.1 + 0.3 * float(run - 1) + 0.3 * WorldState.infection_depth(floor_num), 0.0, 0.85)
-				var list: Array = DEAD_POTS if dead else POTS
+				var list: Array = BAL_DEAD_POTS if dead else BAL_POTS
 				name = String(list[pick % list.size()])
 				kind = "potted"
 			else:
@@ -240,16 +251,17 @@ static func balcony_plan(floor_num: int, apartment_id: String, slot: int, run: i
 			var px: float = BAL_LEFT + edge if i == 0 else BAL_RIGHT - sz.x - edge
 			pos = Vector2(roundf(px), BAL_FLOOR_Y - sz.y)
 		else:
-			name = String(BAL_VINES[pick % BAL_VINES.size()])
+			var vines: Array = BAL_LINTEL_VINES if i == 2 else BAL_VINES
+			name = String(vines[pick % vines.size()])
 			kind = "hang"
 			var tex2 := _tex(name)
 			if tex2 == null:
 				continue
 			var x: float = 24.0 + float(pick % 40) + jit if i == 2 else 22.0 + float(pick % 44) + jit
 			# a lintel vine hangs from the top; the rail vine starts at the rail but never trails past the floor
-			var y0: float = BAL_LINTEL_Y if i == 2 else minf(BAL_RAIL_Y, 98.0 - tex2.get_size().y)
+			var y0: float = minf(BAL_LINTEL_Y, BAL_LINTEL_FOOT - tex2.get_size().y) if i == 2 else minf(BAL_RAIL_Y, 98.0 - tex2.get_size().y)
 			pos = Vector2(clampf(roundf(x), 12.0, 88.0 - tex2.get_size().x), y0)
-		out.append({"name": name, "pos": pos, "kind": kind, "thr": u})
+		out.append({"name": name, "pos": pos, "kind": kind, "thr": u, "slot": i})
 	return out
 
 

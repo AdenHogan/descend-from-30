@@ -741,9 +741,10 @@ B_GROUT = hexc('7a5e45')
 B_FLOWER = hexc('d9a24a')
 B_TRIM = hexc('6a4a30')
 B_PAINT = hexc('d8b98a')
-B_LINO_A = hexc('b8683a')
-B_LINO_B = hexc('9a522c')
-B_LINO_C = hexc('d18a4e')
+# round 47h: the seventies lino was a loud orange (saturation 0.68 over the whole floor) beside the olive suite; now an earthy sand-and-umber that lets the avocado be the one bright thing
+B_LINO_A = hexc('a9825a')
+B_LINO_B = hexc('8f6a46')
+B_LINO_C = hexc('c29a6a')
 
 
 def b_wall(c):
@@ -1324,15 +1325,19 @@ PINK = hexc('e0a8b4')
 PINK_LT = hexc('efc4cc')
 PINK_DK = hexc('c08894')
 PINK_OUT = hexc('6a4048')
-E_TILE = hexc('e8c4c8')
-E_TILE_DK = hexc('d8b0b6')
+# Round 47h (owner: "this bathroom is a bit too pink with the tiling and also the bathtub"): the fifties suite is pink FIXTURES against MINT tile — the classic pairing, and complementary on the
+# colour wheel — instead of pink on pink. Pink is now toilet / basin / tub / accents (~15 % of the room); the wall tile is a soft mint, the grout grey-green.
+E_TILE = hexc('bcdcc8')
+E_TILE_DK = hexc('a8c8b4')
+E_GROUT = hexc('8fa898')
+E_TUB_GROUT = hexc('b88a94')                 # the lines between the tub front's pink tiles
 E_TRIM = hexc('26262a')
 
 
 def e_wall(c):
     c.rect(0, 0, W - 1, 93, hexc('d8d0c0'))
     crown(c, hexc('a89a88'), hexc('c0b4a0'))
-    tiled_wall(c, 44, E_TILE, E_TILE_DK, hexc('b89aa0'), E_TRIM, size=8)
+    tiled_wall(c, 44, E_TILE, E_TILE_DK, E_GROUT, E_TRIM, size=8)
     c.rect(0, 58, W - 1, 59, E_TRIM)                                            # a black pencil-tile line
     mould_bloom(c, 3, 7, 30, 12, seed=21)                                        # creeping from the corners
     mould_bloom(c, W - 4, 7, 26, 14, seed=22)
@@ -1369,7 +1374,7 @@ def e_build(c):
     # a short pink tub on a tiled plinth, its front 20 px out; the curtain drawn back to the right end,
     # hanging from its rail INSIDE the tub
     x0, x1, rim = 118, 206, 80
-    wx0, wx1, f = bath3d(c, x0, x1, rim, body=E_TILE, lit=PINK_LT, dk=shade(E_TILE, 0.72), out=PINK_OUT,
+    wx0, wx1, f = bath3d(c, x0, x1, rim, body=PINK, lit=PINK_LT, dk=shade(PINK, 0.8), out=PINK_OUT,
                          inside=hexc('b07a86'))
     tx = int(round(wx0))
     c.rect(tx + 4, rim - 8, tx + 6, rim - 1, CHROME)                                  # taps on the wall
@@ -1382,11 +1387,11 @@ def e_build(c):
     for (x, y) in ((xb - 10, top + 12), (xb - 4, top + 28), (xb - 9, top + 44)):          # little pink fish on it
         c.rect(x, y, x + 3, y + 1, PINK_DK)
         c.put(x + 4, y, PINK_DK); c.put(x + 4, y + 1, PINK_DK)
-    fl, fbr = bath_front(c, wx0, wx1, rim, d_r, body=E_TILE, lit=PINK_LT, dk=shade(E_TILE, 0.72), out=PINK_OUT)
+    fl, fbr = bath_front(c, wx0, wx1, rim, d_r, body=PINK, lit=PINK_LT, dk=shade(PINK, 0.8), out=PINK_OUT)
     for y in range(fl[1] + 5, fbr[1], 6):                                             # the tiled plinth
-        c.hline(fl[0] + 1, fbr[0] - 1, y, hexc('b89aa0'))
+        c.hline(fl[0] + 1, fbr[0] - 1, y, E_TUB_GROUT)
     for x in range(fl[0] + 6, fbr[0], 8):
-        c.vline(x, fl[1] + 2, fbr[1] - 1, hexc('b89aa0'))
+        c.vline(x, fl[1] + 2, fbr[1] - 1, E_TUB_GROUT)
     c.line(154, fl[1] + 8, 156, fl[1] + 18, BLOOD)
     # a pink fluffy bath mat on the floor in front of it
     c.poly([(132, 123), (186, 123), (189, 129), (129, 129)], PINK_LT)

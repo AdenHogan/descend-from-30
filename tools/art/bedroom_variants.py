@@ -50,7 +50,9 @@ def b_decor(c):
 
 @persp
 def b_floor(c):
-    F.floor_carpet(c, hexc('5a5f7a'), hexc('6a6f8a'), hexc('4a4f68'), worn=hexc('70748e'))
+    # round 47h: the teen's room was blue on blue on blue (teal wall, blue-violet carpet, navy duvet — 53 % of its colour in one hue family); a warm taupe carpet is the wall's complement and lets the
+    # navy duvet and the pine desk read
+    F.floor_carpet(c, hexc('6e5e56'), hexc('7e6e64'), hexc('5c4c46'), worn=hexc('86766c'))
 
 
 def _b_desk(c):

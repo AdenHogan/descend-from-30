@@ -205,11 +205,11 @@ def c_floor(c):
     for r in range(len(rows) - 1):
         y0, y1 = rows[r], rows[r + 1] - 1
         for x in range(0, 320, 16):
-            col = hexc('a8583a') if ((x // 16) + r) % 2 else hexc('9a4e34')
+            col = hexc('a06c54') if ((x // 16) + r) % 2 else hexc('925f49')                 # round 47h: a muted quarry tile (the old a8583a / 9a4e34 was saturation 0.65 over the whole floor)
             c.rect(x, y0, x + 15, y1, col)
-            c.vline(x, y0, y1, hexc('6e3a26'))
-        c.hline(0, 319, y0, hexc('6e3a26'))
-    c.hline(0, 319, 100, hexc('4e2a1c'))
+            c.vline(x, y0, y1, hexc('6a4434'))
+        c.hline(0, 319, y0, hexc('6a4434'))
+    c.hline(0, 319, 100, hexc('48302a'))
 
 
 def range_cooker(c, x0, x1, top):

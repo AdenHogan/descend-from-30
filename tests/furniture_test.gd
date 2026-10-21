@@ -47,6 +47,8 @@ func _ready() -> void:
 	await _test_real_rooms("dining_room")
 	await _test_real_rooms("study")
 	await _test_real_rooms("bathroom")
+	_test_palette()
+	_test_paired_pictures()
 	_test_balcony()
 	await _test_balcony_flats()
 	_test_bathroom()
@@ -596,6 +598,112 @@ func _test_living() -> void:
 		else:
 			mism += 1
 	check(matched >= 6 and mism == 0, "a baked living room is the old module of the planned style (%d flats, %d mismatches)" % [matched, mism])
+
+
+# ------------------------------------------------------------------------------------------------------------------------------------ colour harmony
+## Owner round 47h: a colourway that would vanish into its room's wall (a rose armchair on rose wallpaper, an olive sofa under green paper, a green filing cabinet in the green den) is not used there
+## (`not` in the variant's params, tools/art/furn_palette.py AVOID).
+func _test_palette() -> void:
+	print("[colour harmony]")
+	var avoided := 0
+	for id in FurniturePlanner.data()["items"]:
+		var rec := FurniturePlanner.piece(String(id))
+		for vid in rec["variants"]:
+			avoided += (rec["variants"][vid].get("params", {}).get("not", []) as Array).size()
+	check(avoided >= 8, "the data names the colourways a style does not use (%d style entries)" % avoided)
+	var sofa := FurniturePlanner.piece("sofa")
+	check(not FurniturePlanner.variant_ok(sofa, "olive", "cosy") and FurniturePlanner.variant_ok(sofa, "olive", "mid"), "the olive sofa is not used in the green cosy room, and still is in the mid one")
+	var seen := 0
+	var olive := 0
+	var rose_on_rose := 0
+	for k in range(120):
+		for it in FurniturePlanner.plan("living_room", "cosy", 52000 + k, {"window": "left"})["items"]:
+			if String(it["id"]) in ["sofa", "loveseat"]:
+				seen += 1
+				if String(it["variant"]) == "olive":
+					olive += 1
+		for it in FurniturePlanner.plan("living_room", "parlour", 53000 + k, {"window": "right"})["items"]:
+			if String(it["id"]) == "armchair" and String(it["variant"]).contains("rose"):
+				rose_on_rose += 1
+	check(seen >= 60 and olive == 0, "120 cosy living rooms lay %d sofas / loveseats and none is the olive one (%d)" % [seen, olive])
+	check(rose_on_rose == 0, "…and no rose armchair stands against the parlour's rose wallpaper (%d)" % rose_on_rose)
+	var pl := FurniturePlanner.plan("living_room", "cosy", 52001, {"window": "left"})
+	var forced := pl.duplicate(true)
+	for it in forced["items"]:
+		if String(it["id"]) == "sofa" or String(it["id"]) == "loveseat":
+			var made := FurniturePlanner._make(String(it["id"]), "olive", int(it["x"]), int(it["y"]))
+			if not made.is_empty():
+				it["variant"] = "olive"
+	var broke := false
+	for msg in FurniturePlanner.validate(forced, {"window": "left"}):
+		if String(msg).contains("olive"):
+			broke = true
+	check(broke, "validate() refuses an avoided colourway when one is forced in (the rule can fail)")
+
+
+## Owner round 47h: "the picture of the ship and the picture of the flowers aren't the same size… one flower is not in the pot". The two pinned sheets of the studio's sketches are the same size,
+## pinned at the same height, and every stem of the tulips ends inside the vase's mouth.
+func _test_paired_pictures() -> void:
+	print("[pictures hung as a pair]")
+	var img: Image = load("res://assets/furniture/sketches_wall_sheets.png").get_image()
+	var paper := Color8(0xf4, 0xf0, 0xe4)
+	var runs: Array = []                                   # [x0, x1, y0, y1] of each run of paper-coloured columns
+	var in_run := false
+	var x0 := 0
+	for x in range(img.get_width() + 1):
+		var has := false
+		if x < img.get_width():
+			for y in range(0, 20):
+				if img.get_pixel(x, y).is_equal_approx(paper):
+					has = true
+					break
+		if has and not in_run:
+			in_run = true
+			x0 = x
+		elif not has and in_run:
+			in_run = false
+			var y0 := 99
+			var y1 := -1
+			for xx in range(x0, x):
+				for y in range(0, 20):
+					if img.get_pixel(xx, y).is_equal_approx(paper):
+						y0 = mini(y0, y)
+						y1 = maxi(y1, y)
+			runs.append([x0, x - 1, y0, y1])
+	check(runs.size() == 2, "the sketches are two sheets (%s)" % str(runs))
+	if runs.size() == 2:
+		var a: Array = runs[0]
+		var b: Array = runs[1]
+		check(int(a[1]) - int(a[0]) == int(b[1]) - int(b[0]), "…the same width (%d and %d)" % [int(a[1]) - int(a[0]) + 1, int(b[1]) - int(b[0]) + 1])
+		check(int(a[3]) - int(a[2]) == int(b[3]) - int(b[2]) and int(a[2]) == int(b[2]), "…the same height, hung at the same height (rows %d-%d and %d-%d)" % [int(a[2]), int(a[3]), int(b[2]), int(b[3])])
+		# the tulips' green stems: every one of them stands over the vase (a blue run of pixels at the mouth), not beside it
+		var stems_outside := 0
+		var stems := 0
+		var mouth_row := -1
+		for y in range(int(b[2]), int(b[3]) + 1):
+			var blue := 0
+			for x in range(int(b[0]), int(b[1]) + 1):
+				var c := img.get_pixel(x, y)
+				if c.b > c.r + 0.25 and c.b > 0.5 and c.a > 0.5:
+					blue += 1
+			if blue >= 7 and mouth_row < 0:
+				mouth_row = y
+		check(mouth_row > 0, "the tulips' vase is found (its mouth is on sheet row %d)" % (mouth_row - int(b[2])))
+		if mouth_row > 0:
+			var mx0 := 999
+			var mx1 := -1
+			for x in range(int(b[0]), int(b[1]) + 1):
+				var c := img.get_pixel(x, mouth_row)
+				if c.b > c.r + 0.25 and c.b > 0.5 and c.a > 0.5:
+					mx0 = mini(mx0, x)
+					mx1 = maxi(mx1, x)
+			for x in range(int(b[0]), int(b[1]) + 1):
+				var c2 := img.get_pixel(x, mouth_row - 1)                  # the row just above the mouth: stems only
+				if c2.g > c2.r + 0.15 and c2.g > c2.b and c2.a > 0.5:
+					stems += 1
+					if x < mx0 or x > mx1:
+						stems_outside += 1
+			check(stems >= 3 and stems_outside == 0, "…and every tulip stem enters the vase's mouth (%d stems, %d beside it)" % [stems, stems_outside])
 
 
 # ------------------------------------------------------------------------------------------------------------------------------------ balconies and bathrooms

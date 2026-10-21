@@ -206,7 +206,7 @@ def bath(c, ox, oy, p):
         c.line(cx - 5, fl[1] + 8, cx - 3, fl[1] + 18, BLOOD)
     else:                                                                                            # tiled
         x0, x1, rim = cx - 44, cx + 44, 80
-        wx0, wx1, f = BR.bath3d(c, x0, x1, rim, body=E_TILE, lit=PINK_LT, dk=shade(E_TILE, 0.72), out=PINK_OUT, inside=hexc('b07a86'))
+        wx0, wx1, f = BR.bath3d(c, x0, x1, rim, body=PINK, lit=PINK_LT, dk=shade(PINK, 0.8), out=PINK_OUT, inside=hexc('b07a86'))
         tx = int(round(wx0))
         c.rect(tx + 4, rim - 8, tx + 6, rim - 1, CHROME)                                             # taps on the wall
         c.rect(tx + 10, rim - 8, tx + 12, rim - 1, CHROME)
@@ -218,11 +218,11 @@ def bath(c, ox, oy, p):
             c.rect(x, y, x + 3, y + 1, PINK_DK)
             c.put(x + 4, y, PINK_DK)
             c.put(x + 4, y + 1, PINK_DK)
-        fl, fbr = BR.bath_front(c, wx0, wx1, rim, d_r, body=E_TILE, lit=PINK_LT, dk=shade(E_TILE, 0.72), out=PINK_OUT)
+        fl, fbr = BR.bath_front(c, wx0, wx1, rim, d_r, body=PINK, lit=PINK_LT, dk=shade(PINK, 0.8), out=PINK_OUT)
         for y in range(fl[1] + 5, fbr[1], 6):                                                        # the tiled plinth
-            c.hline(fl[0] + 1, fbr[0] - 1, y, hexc('b89aa0'))
+            c.hline(fl[0] + 1, fbr[0] - 1, y, BR.E_TUB_GROUT)
         for x in range(fl[0] + 6, fbr[0], 8):
-            c.vline(x, fl[1] + 2, fbr[1] - 1, hexc('b89aa0'))
+            c.vline(x, fl[1] + 2, fbr[1] - 1, BR.E_TUB_GROUT)
         c.line(cx - 8, fl[1] + 8, cx - 6, fl[1] + 18, BLOOD)
 
 

@@ -10,6 +10,7 @@ const CD := preload("res://scripts/corridor_decals.gd")
 const BF := preload("res://scripts/building_floors.gd")
 const Sway := preload("res://scripts/sway.gd")
 const RG := preload("res://scripts/room_growth.gd")
+const BalconyGeo := preload("res://scripts/balcony_geo.gd")
 
 var failures: int = 0
 
@@ -422,3 +423,43 @@ func _test_balconies() -> void:
 		if String(n).begins_with("shrub_") and not String(n).begins_with("shrub_small"):
 			no_big = false
 	check(no_big, "only the SMALL shrubs are ever used")
+	_test_balcony_lane()
+
+
+## Owner round 47h: "the plant pots on the balcony… are all over the balcony. I'm concerned player will clip in and overlap on them". Whoever walks out there stands with the feet on module row
+## 95 (BalconyGeo.FEET - 224) and is drawn over the art, so every planter must stand BEHIND that row, narrow enough that the two sides never meet, and a lintel vine must hang clear of a head.
+func _test_balcony_lane() -> void:
+	print("[balcony plants stay out of the player's lane]")
+	var lane: float = BalconyGeo.FEET - 224.0
+	var worst_foot := -999.0
+	var too_wide := 0
+	var met := 0
+	var vine_low := 0.0
+	var vine_n := 0
+	var planters := 0
+	for seed_ in range(1, 61):
+		WorldState.master_seed = seed_ * 911
+		for run in [1, 2, 3]:
+			for fl in [4, 12, 22]:
+				var items: Array = RG.balcony_plan(fl, "%d0%d" % [fl, 1 + seed_ % 5], seed_ % 3, run)
+				var standing: Array = []
+				for d in items:
+					var sz: Vector2 = RG._tex(d["name"]).get_size()
+					var kind := String(d["kind"])
+					if kind == "potted" or kind == "shrub":
+						planters += 1
+						worst_foot = maxf(worst_foot, d["pos"].y + sz.y)
+						if sz.x > float(RG.BAL_MAX_POT_W):
+							too_wide += 1
+						standing.append(Rect2(d["pos"], sz))
+					elif kind == "hang" and int(d["slot"]) == 2:
+						vine_n += 1
+						vine_low = maxf(vine_low, d["pos"].y + sz.y)
+				if standing.size() == 2 and (standing[0] as Rect2).end.x > (standing[1] as Rect2).position.x:
+					met += 1
+	WorldState.master_seed = 4242
+	check(planters >= 60, "the sweep really meets planters (%d)" % planters)
+	check(worst_foot <= lane - RG.BAL_LANE_GAP, "every planter's foot is behind the player's lane (lowest foot row %.0f, the lane is row %.0f)" % [worst_foot, lane])
+	check(too_wide == 0, "no planter is wider than %d px (%d were)" % [RG.BAL_MAX_POT_W, too_wide])
+	check(met == 0, "the two sides' planters never meet, so the middle of the floor is open (%d pairs touched)" % met)
+	check(vine_n >= 10 and vine_low <= RG.BAL_LINTEL_FOOT, "a vine from the lintel hangs clear of a head (%d vines, lowest foot row %.0f, limit %.0f, a head tops out at ~row 48)" % [vine_n, vine_low, RG.BAL_LINTEL_FOOT])

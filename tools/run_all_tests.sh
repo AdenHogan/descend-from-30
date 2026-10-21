@@ -68,6 +68,14 @@ else
 	echo "FAIL   furniture library — run: python3 tools/art/furn_build.py && python3 tools/art/furn_shells.py"; grep -E "FURNITURE:|SHELLS:|Error|error" "$LOG_DIR/_furniture.log" | head -5
 	bad=$((bad + 1))
 fi
+# COLOUR HARMONY (owner round 47h: "too garish against modules… colour matchups need to look appropriate and appealing"): no shell wall / floor is loud, and no large piece has a colourway that
+# blends into the wall or floor of a style it stands in (tools/art/colour_audit.py --check; the exceptions are listed in tools/art/furn_palette.py AVOID).
+if python3 tools/art/colour_audit.py --check >"$LOG_DIR/_colour.log" 2>&1; then
+	echo "ok     colour harmony ($(tail -1 "$LOG_DIR/_colour.log" | sed 's/^COLOUR: //'))"
+else
+	echo "FAIL   colour harmony — see tools/art/colour_audit.py and tools/art/furn_palette.py"; head -6 "$LOG_DIR/_colour.log"
+	bad=$((bad + 1))
+fi
 # Every sound must stay clean (owner round 46: "a lot of what feels like static and noise in the audio"): no hiss / fizz above the budgets in
 # tools/audio_audit.py, no clipping or DC offset, no tick at a loop's join, no music that is all sub. Decodes every file in assets/audio.
 if python3 tools/audio_audit.py --check >"$LOG_DIR/_audio.log" 2>&1; then

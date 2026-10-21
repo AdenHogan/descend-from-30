@@ -49,6 +49,8 @@ import furn_rooms
 for _m in [m for m in os.environ.get('FURN_EXTRA', '').split(',') if m]:                  # pieces written but not built into the library yet (dining / study / bathroom), for previews
     __import__(_m)
 furn_styles.apply()
+import furn_palette
+furn_palette.apply()
 
 PIECE_MODULES = ('furn_bedroom',)
 

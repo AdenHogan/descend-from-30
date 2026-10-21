@@ -97,7 +97,7 @@ def b_decor(c):
 def b_floor(c):
     # honey-oak parquet, basket-woven in 16px blocks (repeats every 32)
     rows = [101, 104, 108, 113, 119, 126, 134, 144]
-    oak, oak2, seam = hexc('c89a62'), hexc('b88852'), hexc('8a6238')
+    oak, oak2, seam = hexc('c4a176'), hexc('b38d5f'), hexc('8a6a48')                       # round 47h: softer honey (the old c89a62 / b88852 was bright orange at saturation 0.55)
     for r in range(len(rows) - 1):
         y0, y1 = rows[r], rows[r + 1] - 1
         for bx in range(0, 320, 16):

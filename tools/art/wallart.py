@@ -1399,10 +1399,11 @@ def draw_newspaper(c, x0, y0, headline, sub, w, seed=1):
             if (x + y) % 2 == 0:
                 px(c, x, y, hexc('7a7468'))
     for (bx, bh) in ((1, 3), (3, 5), (5, 4), (7, 6), (9, 3)):                          # a skyline with smoke
-        if px0 + bx + 1 <= px1:
-            prect(c, px0 + bx, y1 - 4 - bh, px0 + bx + 1, y1 - 4, hexc('3a362e'))
+        if px0 + bx + 1 <= px1:                                                         # round 47h: kept INSIDE the photo — with a strap line the photo is only 4 rows tall, and the
+            prect(c, px0 + bx, max(yy, y1 - 4 - bh), px0 + bx + 1, y1 - 4, hexc('3a362e'))   # taller towers used to run up over the strap line ("GO NORTH" / "STAY IN")
     for k in range(4):
-        px(c, px0 + 7 + (k % 2), yy + 1 + k, hexc('b8b2a2'))
+        if yy + 1 + k < y1 - 4:
+            px(c, px0 + 7 + (k % 2), yy + 1 + k, hexc('b8b2a2'))
     c.hline(px0, px1, y1 - 3, hexc('8a8270'))
     for ly in range(yy, y1 - 1, 2):
         greek(c, x0 + w // 2 + 1, x1 - 2, ly, hexc('9a9282'), random.Random(ly + seed), 1)
