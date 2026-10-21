@@ -9,8 +9,11 @@ const RoomScript := preload("res://scripts/room.gd")
 const BEDROOM_STYLES := ["adult", "teen", "sick", "refuge", "kid"]
 const KITCHEN_STYLES := ["classic", "retro", "country", "student", "hoarder"]
 const LIVING_STYLES := ["cosy", "mid", "squat", "parlour", "lodge"]
-const PLANNED := {"bedroom": BEDROOM_STYLES, "kitchen": KITCHEN_STYLES, "living_room": LIVING_STYLES}   # the room types the planner lays, and their styles
-const UNPLANNED := ["bathroom", "study", "dining_room"]                                   # still baked modules
+const DINING_STYLES := ["family", "diner", "formal", "barricade", "party"]
+const STUDY_STYLES := ["den", "office", "library", "radio", "studio"]
+const BATH_STYLES := ["tub", "avocado", "gilded", "wetroom", "pink"]
+const PLANNED := {"bedroom": BEDROOM_STYLES, "kitchen": KITCHEN_STYLES, "living_room": LIVING_STYLES, "dining_room": DINING_STYLES, "study": STUDY_STYLES, "bathroom": BATH_STYLES}   # the room types the planner lays, and their styles
+const UNPLANNED := []                                                                      # every room type is planned now
 const SEEDS_PER_STYLE := 100
 
 var failures: int = 0
@@ -41,6 +44,12 @@ func _ready() -> void:
 	await _test_real_rooms("kitchen")
 	await _test_real_rooms("living_room")
 	_test_living()
+	await _test_real_rooms("dining_room")
+	await _test_real_rooms("study")
+	await _test_real_rooms("bathroom")
+	_test_balcony()
+	await _test_balcony_flats()
+	_test_bathroom()
 	await _test_story_flats_stay_baked()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
@@ -444,7 +453,8 @@ func _test_room_choice() -> void:
 		else:
 			mism += 1
 	check(matched >= 10 and mism == 0, "a baked bedroom is the old module of the planned style (%d flats, %d mismatches)" % [matched, mism])
-	check(RoomScript.baked_scene_for("1503", 0, "bathroom") == RoomScript.module_scene_for("1503", 0, "bathroom"), "room types the planner does not lay are untouched by the style rule")
+	for rt in ["dining_room", "study", "bathroom"]:
+		_check_baked_is_style_module(rt)
 	var kmatched := 0
 	var kmism := 0
 	for f in range(3, 28):
@@ -586,6 +596,155 @@ func _test_living() -> void:
 		else:
 			mism += 1
 	check(matched >= 6 and mism == 0, "a baked living room is the old module of the planned style (%d flats, %d mismatches)" % [matched, mism])
+
+
+# ------------------------------------------------------------------------------------------------------------------------------------ balconies and bathrooms
+## A story room (breached / burnt / holding the dead) of a planned type shows the OLD module of the style its flat's room would have had.
+func _check_baked_is_style_module(rt: String) -> void:
+	var matched := 0
+	var mism := 0
+	for f in range(3, 28):
+		for col in range(1, 6):
+			var ap := "%d0%d" % [f, col]
+			var slot: int = WorldState.get_apartment_layout(ap).find(rt)
+			if slot < 0:
+				continue
+			var plan := RoomScript.furniture_plan_for(ap, slot, rt, false, false)
+			if plan.is_empty():
+				continue
+			var rcp: Dictionary = FurniturePlanner.recipe(rt, String(plan["style"]))
+			if int(rcp["legacy"]) < 0:
+				continue
+			if RoomScript.baked_scene_for(ap, slot, rt) == RoomScript.MODULE_VARIANTS[rt][int(rcp["legacy"])]:
+				matched += 1
+			else:
+				mism += 1
+	check(matched >= 20 and mism == 0, "a baked %s is the old module of the planned style (%d flats, %d mismatches)" % [rt, matched, mism])
+
+
+## A study / dining room on a BALCONY slot keeps x 4..96 clear (the doors go in the back wall there): nothing stands, lies or hangs in it, whatever the style.
+func _test_balcony() -> void:
+	print("[balcony slots]")
+	var box := FurniturePlanner.balcony_box()
+	var bad := 0
+	var rooms := 0
+	var fallbacks := 0
+	for room in ["dining_room", "study"]:
+		for style in PLANNED[room]:
+			for k in range(40):
+				var ctx := {"window": "", "blocked": [box]}
+				var pl := FurniturePlanner.plan(room, style, 33000 + k, ctx)
+				rooms += 1
+				if bool(pl.get("fallback", false)):
+					fallbacks += 1
+				if not FurniturePlanner.validate(pl, ctx).is_empty():
+					bad += 1
+				for it in pl["items"]:
+					if String(it["plane"]) in ["rug", "ceiling"]:
+						continue
+					var rect: Rect2 = Rect2(float(it["x"]), float(it["y"]), 1.0, 1.0)
+					var rec := FurniturePlanner.piece(String(it["id"]))
+					var info := FurniturePlanner._make(String(it["id"]), String(it["variant"]), int(it["x"]), int(it["y"]))
+					if not info.is_empty() and (info["rect"] as Rect2).intersects(box):
+						bad += 1
+	check(bad == 0, "%d balcony-slot plans (dining + study, every style): nothing in the doorway's box (%d problems)" % [rooms, bad])
+	check(fallbacks <= rooms / 20, "…and the seeded layouts almost never need the fallback there (%d of %d)" % [fallbacks, rooms])
+	for room in ["dining_room", "study"]:
+		for style in PLANNED[room]:
+			var fb: Array = FurniturePlanner.recipe(room, style)["fallback"]
+			var items: Array = []
+			for e in fb:
+				items.append({"id": e["id"], "variant": e["variant"], "x": e["x"], "y": e["y"]})
+			var plan := {"room": room, "style": style, "items": items}
+			check(FurniturePlanner.validate(plan, {"window": "", "blocked": [box]}).is_empty(), "%s/%s: the fallback layout is valid on a balcony slot too" % [room, style])
+
+
+func _test_balcony_flats() -> void:
+	print("[balcony flats]")
+	var checked := 0
+	var clear_ok := true
+	var shown_ok := true
+	for f in [25, 22, 19, 16, 13, 10, 7, 4]:
+		for col in range(1, 6):
+			if checked >= 4:
+				break
+			var apt := "%d0%d" % [f, col]
+			WorldState.dev_seed = 20261020
+			WorldState.new_game()
+			WorldState.dev_seed = 0
+			WorldState.is_first_run = false
+			WorldState.current_run = 1
+			var bs := WorldState.balcony_slot_in_apartment(apt)
+			if bs < 0:
+				continue
+			var layout: Array = WorldState.get_apartment_layout(apt)
+			if WorldState.get_door_state(apt) == WorldState.DoorState.BREACHED or WorldState.is_apartment_charred(f, col):
+				continue
+			var plan := RoomScript.furniture_plan_for(apt, bs, String(layout[bs]), false, false)
+			if plan.is_empty():
+				continue
+			var room = await _build_flat(apt)
+			checked += 1
+			for m in get_tree().get_nodes_in_group("room_module"):
+				if not String(m.scene_file_path).begins_with("res://scenes/Room_Shells/"):
+					continue
+				var bal = m.get_node_or_null("Balcony")
+				if bal == null:
+					continue
+				var idx: int = int(round((m.position.x - RoomScript.LEFT_WALL_X) / RoomScript.MODULE_WIDTH))
+				if idx == bs:
+					shown_ok = shown_ok and bal.visible
+					for c in m.get_children():
+						if c is Sprite2D and c.has_meta("furniture") and c.visible and c.name != "Art":
+							var r := Rect2(c.position, c.texture.get_size() if c.texture != null else Vector2.ZERO)
+							if r.intersects(FurniturePlanner.balcony_box()) and String(c.get_meta("plane", "")) not in ["rug", "ceiling"]:
+								clear_ok = false
+			room.free()
+			await get_tree().process_frame
+	check(checked >= 2, "built %d real balcony flats with a planned study / dining room" % checked)
+	check(shown_ok, "the balcony doors are shown on a balcony slot's shell")
+	check(clear_ok, "…and no furniture sprite stands in their box")
+
+
+func _test_bathroom() -> void:
+	print("[bathrooms]")
+	var no_toilet := 0
+	var no_basin := 0
+	var no_bath := 0
+	var no_washer := 0
+	var rooms := 0
+	for style in BATH_STYLES:
+		for k in range(50):
+			var pl := FurniturePlanner.plan("bathroom", style, 41000 + k, {"window": "left" if k % 2 == 0 else "right"})
+			rooms += 1
+			var toilet := false
+			var basin := false
+			var bath := false
+			var washer := false
+			for it in pl["items"]:
+				var tags: Array = FurniturePlanner.piece(String(it["id"]))["tags"]
+				if "laundry" in tags and "wet" in tags:
+					washer = true
+				if "toilet" in tags:
+					toilet = true
+				if "basin" in tags:
+					basin = true
+				if "bath" in tags:
+					bath = true
+			if not toilet:
+				no_toilet += 1
+			if not basin and style != "wetroom":                        # the squalid wetroom may have lost its basin (it has its washing machine instead)
+				no_basin += 1
+			if style == "wetroom" and not washer:
+				no_washer += 1
+			if not bath:
+				no_bath += 1
+	check(no_toilet <= rooms / 25, "a bathroom has its toilet (%d of %d without)" % [no_toilet, rooms])
+	check(no_basin <= rooms / 25, "…and its basin (%d without)" % no_basin)
+	check(no_bath == 0, "…and always the bath it is built round (%d without)" % no_bath)
+	check(no_washer == 0, "…and the wetroom always has its washing machine (%d without)" % no_washer)
+	var rules: Dictionary = FurniturePlanner.data().get("rules", {}).get("tag_rooms", {})
+	check(rules.get("toilet", []) == ["bathroom"], "a toilet is a bathroom thing, only")
 
 
 # ------------------------------------------------------------------------------------------------------------------------------------ real rooms

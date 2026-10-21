@@ -33,6 +33,7 @@ const STAND_TOP_ROW := 102         # the step-up spot's stand zone rows (pixlib.
 const STAND_HALF := 14             # the player's half width up there (13) + a pixel
 const BP_CLUSTER := 40             # nodes this close share a spot (room.gd BACK_SPOT_CLUSTER)
 const FRONT_NODE_MIN_Y := 66       # a node higher than this is out of reach from the walking lane (pixlib.FRONT_NODE_MIN_Y)
+const WANT_TRIES := 4              # how many spots a recipe's `want` tag is tried at before the room carries on without it
 const NODE_MIN_Y := 46             # no node higher than this at all: from the step-up plane (player origin y 82) a node more than ~44 px away in a straight line cannot be searched, and the window sits above
 const PLANE_ORIGIN_Y := 82         # the player's origin (module-local y) while stepped up at a set-back piece — room.gd back_spot_groups
 const WINDOW_INSET := 72           # room.MODULE_WINDOW_INSET
@@ -100,6 +101,11 @@ static func pick_style(room_type: String, seed_: int) -> String:
 		if r <= 0.0:
 			return String(o["style"])
 	return String(opts[opts.size() - 1]["style"])
+
+
+## The module-local rect the BALCONY doors take on a balcony slot (the same x 4..96 the old baked art kept its StripArt furniture in): no piece may touch it.
+static func balcony_box() -> Rect2:
+	return Rect2(4.0, 0.0, 93.0, 144.0)
 
 
 ## The module-local rect of the window a module shows on `side` ("left" / "right"); an empty Rect2 for anything else.
@@ -592,6 +598,8 @@ static func _fill_wall(st: Dictionary, wr: Dictionary) -> void:
 	var cnt: Array = wr.get("count", [0, 0])
 	var n := rng.randi_range(int(cnt[0]), int(cnt[1]))
 	var must: Array = wr.get("must", [])
+	var want: Array = wr.get("want", [])                              # tags TRIED a few times once the musts stand (a wet room's washing machine) — never a reason to fail the room
+	var want_tries := {}
 	var placed := 0
 	for guard in range(n + 8):
 		var unmet := ""
@@ -599,9 +607,15 @@ static func _fill_wall(st: Dictionary, wr: Dictionary) -> void:
 			if not _has_tag(st, String(t)):
 				unmet = String(t)
 				break
+		if unmet == "":
+			for t in want:
+				if not _has_tag(st, String(t)) and int(want_tries.get(String(t), 0)) < WANT_TRIES:
+					want_tries[String(t)] = int(want_tries.get(String(t), 0)) + 1
+					unmet = String(t)
+					break
 		if unmet == "" and placed >= n:
 			break
-		var pool := _pool(st["room"], st["style"], ["wall"], unmet)
+		var pool := _pool(st["room"], st["style"], wr.get("planes", ["wall"]), unmet)      # a bathroom's fixtures (a toilet, a basin) are FRONT pieces: `planes: ["wall", "front"]`
 		if String(st.get("flank_tag", "")) != "":                   # a bedside table stands at the bed, never alone in a corner
 			pool = pool.filter(func(e): return not (String(st["flank_tag"]) in piece(String(e[0]))["tags"]))
 		var id := _wpick(rng, pool)
@@ -778,7 +792,7 @@ static func _fill_decor(st: Dictionary, cnt: Array) -> void:
 		var hosts: Array = []                                      # a hung unit prefers the run it belongs over (wall cupboards above the worktop)
 		for tg in rec.get("above", []):
 			for o in st["items"]:
-				if String(o["plane"]) == "wall" and String(tg) in o["tags"]:
+				if _is_body(String(o["plane"])) and String(tg) in o["tags"]:
 					hosts.append(o)
 		for t in range(SPOTS_PER_PIECE * 2):
 			var x := rng.randi_range(EDGE_L + 2, EDGE_R - w - 1)

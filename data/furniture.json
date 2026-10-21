@@ -2553,6 +2553,1104 @@
    "w": 10,
    "wall_y": null
   },
+  "balloons": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 36,
+   "lap": 6,
+   "lean": false,
+   "limit": 2,
+   "near": [],
+   "needs": null,
+   "note": "a bunch of helium balloons tied with curling ribbon, bobbing against the ceiling",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "decor",
+   "rooms": {
+    "dining_room": 6
+   },
+   "sound": null,
+   "styles": {
+    "party": 9
+   },
+   "tags": [
+    "party"
+   ],
+   "under": [],
+   "variants": {
+    "bunch": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "cols": [
+       "4a7ab8",
+       "d8483a",
+       "e0b830"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 34,
+       "bx": 160,
+       "file": "balloons_bunch",
+       "h": 37,
+       "l": -2,
+       "r": 19,
+       "rx": 2,
+       "ry": 2,
+       "t": -2,
+       "w": 22
+      }
+     ]
+    },
+    "pair": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "cols": [
+       "a85ac8",
+       "3a9a52"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 34,
+       "bx": 160,
+       "file": "balloons_pair",
+       "h": 37,
+       "l": -2,
+       "r": 14,
+       "rx": 2,
+       "ry": 2,
+       "t": -2,
+       "w": 17
+      }
+     ]
+    }
+   },
+   "w": 14,
+   "wall_y": [
+    24,
+    40
+   ]
+  },
+  "banner_party": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 22,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "a HAPPY BIRTHDAY banner of printed letters on a paper strip, under a swag of coloured bunting",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "decor",
+   "rooms": {
+    "dining_room": 6
+   },
+   "sound": null,
+   "styles": {
+    "party": 9
+   },
+   "tags": [
+    "picture",
+    "party"
+   ],
+   "under": [],
+   "variants": {
+    "rainbow": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {},
+     "slots": [],
+     "sprites": [
+      {
+       "b": 21,
+       "bx": 160,
+       "file": "banner_party_rainbow",
+       "h": 22,
+       "l": 0,
+       "r": 52,
+       "rx": 0,
+       "ry": 0,
+       "t": 0,
+       "w": 53
+      }
+     ]
+    }
+   },
+   "w": 56,
+   "wall_y": [
+    20,
+    34
+   ]
+  },
+  "basin": {
+   "above": [],
+   "bucketed": true,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    114,
+    114
+   ],
+   "h": 40,
+   "lap": 6,
+   "lean": false,
+   "limit": null,
+   "near": [],
+   "needs": null,
+   "note": "a basin standing out from the wall, drawn in perspective so we look down into the bowl: a white pedestal basin with a tumbler of toothbrushes and a pump bottle on the rim, a pink one, or a small basin on iron brackets with a waste pipe, a drip and grime",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "front",
+   "rooms": {
+    "bathroom": 8
+   },
+   "sound": null,
+   "styles": {
+    "avocado": 0.01,
+    "gilded": 0.01,
+    "pink": 8,
+    "tub": 8,
+    "wetroom": 8
+   },
+   "tags": [
+    "basin",
+    "wet"
+   ],
+   "under": [],
+   "variants": {
+    "bracket": {
+     "anchors": [
+      {
+       "dx": 23,
+       "dy": -44,
+       "name": "wall_sink"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "wetroom"
+      ],
+      "t": "bracket"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": -14,
+       "bx": 36,
+       "file": "basin_bracket_b0",
+       "h": 42,
+       "l": -3,
+       "r": 34,
+       "rx": 3,
+       "ry": 55,
+       "t": -55,
+       "w": 38
+      },
+      {
+       "b": -14,
+       "bx": 72,
+       "file": "basin_bracket_b1",
+       "h": 42,
+       "l": 0,
+       "r": 35,
+       "rx": 0,
+       "ry": 55,
+       "t": -55,
+       "w": 36
+      },
+      {
+       "b": -14,
+       "bx": 116,
+       "file": "basin_bracket_b2",
+       "h": 42,
+       "l": 5,
+       "r": 39,
+       "rx": -5,
+       "ry": 55,
+       "t": -55,
+       "w": 35
+      },
+      {
+       "b": -14,
+       "bx": 160,
+       "file": "basin_bracket_b3",
+       "h": 42,
+       "l": 7,
+       "r": 44,
+       "rx": -7,
+       "ry": 55,
+       "t": -55,
+       "w": 38
+      },
+      {
+       "b": -14,
+       "bx": 204,
+       "file": "basin_bracket_b4",
+       "h": 42,
+       "l": 7,
+       "r": 48,
+       "rx": -7,
+       "ry": 55,
+       "t": -55,
+       "w": 42
+      },
+      {
+       "b": -14,
+       "bx": 248,
+       "file": "basin_bracket_b5",
+       "h": 42,
+       "l": 7,
+       "r": 52,
+       "rx": -7,
+       "ry": 55,
+       "t": -55,
+       "w": 46
+      },
+      {
+       "b": -14,
+       "bx": 284,
+       "file": "basin_bracket_b6",
+       "h": 42,
+       "l": 7,
+       "r": 56,
+       "rx": -7,
+       "ry": 55,
+       "t": -55,
+       "w": 50
+      }
+     ]
+    },
+    "pedestal": {
+     "anchors": [
+      {
+       "dx": 6,
+       "dy": -41,
+       "name": "basin"
+      },
+      {
+       "dx": 21,
+       "dy": -40,
+       "name": "wall_sink"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "tub"
+      ],
+      "t": "pedestal"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 36,
+       "file": "basin_pedestal_b0",
+       "h": 52,
+       "l": -3,
+       "r": 31,
+       "rx": 3,
+       "ry": 51,
+       "t": -51,
+       "w": 35
+      },
+      {
+       "b": 0,
+       "bx": 72,
+       "file": "basin_pedestal_b1",
+       "h": 52,
+       "l": 0,
+       "r": 35,
+       "rx": 0,
+       "ry": 51,
+       "t": -51,
+       "w": 36
+      },
+      {
+       "b": 0,
+       "bx": 116,
+       "file": "basin_pedestal_b2",
+       "h": 52,
+       "l": 0,
+       "r": 39,
+       "rx": 0,
+       "ry": 51,
+       "t": -51,
+       "w": 40
+      },
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "basin_pedestal_b3",
+       "h": 52,
+       "l": 0,
+       "r": 44,
+       "rx": 0,
+       "ry": 51,
+       "t": -51,
+       "w": 45
+      },
+      {
+       "b": 0,
+       "bx": 204,
+       "file": "basin_pedestal_b4",
+       "h": 52,
+       "l": 0,
+       "r": 48,
+       "rx": 0,
+       "ry": 51,
+       "t": -51,
+       "w": 49
+      },
+      {
+       "b": 0,
+       "bx": 248,
+       "file": "basin_pedestal_b5",
+       "h": 52,
+       "l": 0,
+       "r": 52,
+       "rx": 0,
+       "ry": 51,
+       "t": -51,
+       "w": 53
+      },
+      {
+       "b": 0,
+       "bx": 284,
+       "file": "basin_pedestal_b6",
+       "h": 52,
+       "l": 0,
+       "r": 56,
+       "rx": 0,
+       "ry": 51,
+       "t": -51,
+       "w": 57
+      }
+     ]
+    },
+    "pink": {
+     "anchors": [
+      {
+       "dx": 7,
+       "dy": -41,
+       "name": "basin"
+      },
+      {
+       "dx": 24,
+       "dy": -38,
+       "name": "wall_sink"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "pink"
+      ],
+      "t": "pink"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 36,
+       "file": "basin_pink_b0",
+       "h": 52,
+       "l": -3,
+       "r": 31,
+       "rx": 3,
+       "ry": 51,
+       "t": -51,
+       "w": 35
+      },
+      {
+       "b": 0,
+       "bx": 72,
+       "file": "basin_pink_b1",
+       "h": 52,
+       "l": 0,
+       "r": 35,
+       "rx": 0,
+       "ry": 51,
+       "t": -51,
+       "w": 36
+      },
+      {
+       "b": 0,
+       "bx": 116,
+       "file": "basin_pink_b2",
+       "h": 52,
+       "l": 0,
+       "r": 39,
+       "rx": 0,
+       "ry": 51,
+       "t": -51,
+       "w": 40
+      },
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "basin_pink_b3",
+       "h": 52,
+       "l": 0,
+       "r": 44,
+       "rx": 0,
+       "ry": 51,
+       "t": -51,
+       "w": 45
+      },
+      {
+       "b": 0,
+       "bx": 204,
+       "file": "basin_pink_b4",
+       "h": 52,
+       "l": 0,
+       "r": 48,
+       "rx": 0,
+       "ry": 51,
+       "t": -51,
+       "w": 49
+      },
+      {
+       "b": 0,
+       "bx": 248,
+       "file": "basin_pink_b5",
+       "h": 52,
+       "l": 0,
+       "r": 52,
+       "rx": 0,
+       "ry": 51,
+       "t": -51,
+       "w": 53
+      },
+      {
+       "b": 0,
+       "bx": 284,
+       "file": "basin_pink_b6",
+       "h": 52,
+       "l": 0,
+       "r": 56,
+       "rx": 0,
+       "ry": 51,
+       "t": -51,
+       "w": 57
+      }
+     ]
+    }
+   },
+   "w": 46,
+   "wall_y": null
+  },
+  "bath": {
+   "above": [],
+   "bucketed": true,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    114,
+    114
+   ],
+   "h": 48,
+   "lap": 6,
+   "lean": false,
+   "limit": null,
+   "near": [],
+   "needs": null,
+   "note": "the bath, drawn in perspective so we look over its lip into it: a roll-top on claw feet out in the room with a hand shower, a GOLD roll-top heaped with bubbles and a rubber duck, a panelled avocado bath with a glass screen and a kicked-in corner, a bath with its curtain drawn hanging INSIDE it, a tiled pink tub with its curtain pulled back",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "front",
+   "rooms": {
+    "bathroom": 10
+   },
+   "sound": null,
+   "styles": null,
+   "tags": [
+    "bath",
+    "wet"
+   ],
+   "under": [],
+   "variants": {
+    "claw": {
+     "anchors": [
+      {
+       "dx": 34,
+       "dy": -26,
+       "name": "bath_left"
+      },
+      {
+       "dx": 70,
+       "dy": -26,
+       "name": "bath_right"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "tub"
+      ],
+      "t": "claw"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 5,
+       "bx": 72,
+       "file": "bath_claw_b1",
+       "h": 73,
+       "l": 9,
+       "r": 92,
+       "rx": -9,
+       "ry": 67,
+       "t": -67,
+       "w": 84
+      },
+      {
+       "b": 5,
+       "bx": 116,
+       "file": "bath_claw_b2",
+       "h": 73,
+       "l": 11,
+       "r": 92,
+       "rx": -11,
+       "ry": 67,
+       "t": -67,
+       "w": 82
+      },
+      {
+       "b": 5,
+       "bx": 160,
+       "file": "bath_claw_b3",
+       "h": 73,
+       "l": 13,
+       "r": 92,
+       "rx": -13,
+       "ry": 67,
+       "t": -67,
+       "w": 80
+      },
+      {
+       "b": 5,
+       "bx": 204,
+       "file": "bath_claw_b4",
+       "h": 73,
+       "l": 14,
+       "r": 93,
+       "rx": -14,
+       "ry": 67,
+       "t": -67,
+       "w": 80
+      },
+      {
+       "b": 5,
+       "bx": 248,
+       "file": "bath_claw_b5",
+       "h": 73,
+       "l": 12,
+       "r": 95,
+       "rx": -12,
+       "ry": 67,
+       "t": -67,
+       "w": 84
+      }
+     ]
+    },
+    "curtain": {
+     "anchors": [
+      {
+       "dx": 55,
+       "dy": -44,
+       "name": "behind_curtain"
+      },
+      {
+       "dx": 21,
+       "dy": -26,
+       "name": "curtain_corner"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "wetroom"
+      ],
+      "t": "curtain"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 9,
+       "bx": 72,
+       "file": "bath_curtain_b1",
+       "h": 119,
+       "l": 4,
+       "r": 106,
+       "rx": -4,
+       "ry": 109,
+       "t": -109,
+       "w": 103
+      },
+      {
+       "b": 9,
+       "bx": 116,
+       "file": "bath_curtain_b2",
+       "h": 119,
+       "l": 4,
+       "r": 100,
+       "rx": -4,
+       "ry": 109,
+       "t": -109,
+       "w": 97
+      },
+      {
+       "b": 9,
+       "bx": 160,
+       "file": "bath_curtain_b3",
+       "h": 119,
+       "l": 4,
+       "r": 100,
+       "rx": -4,
+       "ry": 109,
+       "t": -109,
+       "w": 97
+      },
+      {
+       "b": 9,
+       "bx": 204,
+       "file": "bath_curtain_b4",
+       "h": 119,
+       "l": 4,
+       "r": 100,
+       "rx": -4,
+       "ry": 109,
+       "t": -109,
+       "w": 97
+      },
+      {
+       "b": 9,
+       "bx": 248,
+       "file": "bath_curtain_b5",
+       "h": 119,
+       "l": -2,
+       "r": 100,
+       "rx": 2,
+       "ry": 109,
+       "t": -109,
+       "w": 103
+      }
+     ]
+    },
+    "gold": {
+     "anchors": [
+      {
+       "dx": 34,
+       "dy": -22,
+       "name": "gold_tub"
+      },
+      {
+       "dx": 68,
+       "dy": -26,
+       "name": "bubbles"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "gilded"
+      ],
+      "t": "gold"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 5,
+       "bx": 72,
+       "file": "bath_gold_b1",
+       "h": 37,
+       "l": 10,
+       "r": 91,
+       "rx": -10,
+       "ry": 31,
+       "t": -31,
+       "w": 82
+      },
+      {
+       "b": 5,
+       "bx": 116,
+       "file": "bath_gold_b2",
+       "h": 37,
+       "l": 12,
+       "r": 89,
+       "rx": -12,
+       "ry": 31,
+       "t": -31,
+       "w": 78
+      },
+      {
+       "b": 5,
+       "bx": 160,
+       "file": "bath_gold_b3",
+       "h": 37,
+       "l": 14,
+       "r": 90,
+       "rx": -14,
+       "ry": 31,
+       "t": -31,
+       "w": 77
+      },
+      {
+       "b": 5,
+       "bx": 204,
+       "file": "bath_gold_b4",
+       "h": 37,
+       "l": 15,
+       "r": 92,
+       "rx": -15,
+       "ry": 31,
+       "t": -31,
+       "w": 78
+      },
+      {
+       "b": 5,
+       "bx": 248,
+       "file": "bath_gold_b5",
+       "h": 37,
+       "l": 13,
+       "r": 94,
+       "rx": -13,
+       "ry": 31,
+       "t": -31,
+       "w": 82
+      }
+     ]
+    },
+    "panel": {
+     "anchors": [
+      {
+       "dx": 28,
+       "dy": -38,
+       "name": "bath_taps"
+      },
+      {
+       "dx": 78,
+       "dy": -8,
+       "name": "bath_panel"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "avocado"
+      ],
+      "t": "panel"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 9,
+       "bx": 72,
+       "file": "bath_panel_b1",
+       "h": 95,
+       "l": 1,
+       "r": 108,
+       "rx": -1,
+       "ry": 85,
+       "t": -85,
+       "w": 108
+      },
+      {
+       "b": 9,
+       "bx": 116,
+       "file": "bath_panel_b2",
+       "h": 95,
+       "l": 1,
+       "r": 103,
+       "rx": -1,
+       "ry": 85,
+       "t": -85,
+       "w": 103
+      },
+      {
+       "b": 9,
+       "bx": 160,
+       "file": "bath_panel_b3",
+       "h": 95,
+       "l": 1,
+       "r": 103,
+       "rx": -1,
+       "ry": 85,
+       "t": -85,
+       "w": 103
+      },
+      {
+       "b": 9,
+       "bx": 204,
+       "file": "bath_panel_b4",
+       "h": 95,
+       "l": 1,
+       "r": 103,
+       "rx": -1,
+       "ry": 85,
+       "t": -85,
+       "w": 103
+      },
+      {
+       "b": 9,
+       "bx": 248,
+       "file": "bath_panel_b5",
+       "h": 95,
+       "l": -4,
+       "r": 103,
+       "rx": 4,
+       "ry": 85,
+       "t": -85,
+       "w": 108
+      }
+     ]
+    },
+    "tiled": {
+     "anchors": [
+      {
+       "dx": 50,
+       "dy": -22,
+       "name": "pink_tub"
+      },
+      {
+       "dx": 20,
+       "dy": -38,
+       "name": "pink_taps"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "pink"
+      ],
+      "t": "tiled"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 9,
+       "bx": 72,
+       "file": "bath_tiled_b1",
+       "h": 119,
+       "l": 5,
+       "r": 105,
+       "rx": -5,
+       "ry": 109,
+       "t": -109,
+       "w": 101
+      },
+      {
+       "b": 9,
+       "bx": 116,
+       "file": "bath_tiled_b2",
+       "h": 119,
+       "l": 5,
+       "r": 99,
+       "rx": -5,
+       "ry": 109,
+       "t": -109,
+       "w": 95
+      },
+      {
+       "b": 9,
+       "bx": 160,
+       "file": "bath_tiled_b3",
+       "h": 119,
+       "l": 5,
+       "r": 99,
+       "rx": -5,
+       "ry": 109,
+       "t": -109,
+       "w": 95
+      },
+      {
+       "b": 9,
+       "bx": 204,
+       "file": "bath_tiled_b4",
+       "h": 119,
+       "l": 5,
+       "r": 99,
+       "rx": -5,
+       "ry": 109,
+       "t": -109,
+       "w": 95
+      },
+      {
+       "b": 9,
+       "bx": 248,
+       "file": "bath_tiled_b5",
+       "h": 119,
+       "l": -1,
+       "r": 99,
+       "rx": 1,
+       "ry": 109,
+       "t": -109,
+       "w": 101
+      }
+     ]
+    }
+   },
+   "w": 104,
+   "wall_y": null
+  },
+  "bath_mat": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    120,
+    124
+   ],
+   "h": 14,
+   "lap": 6,
+   "lean": false,
+   "limit": null,
+   "near": [],
+   "needs": null,
+   "note": "a bath mat flat on the floor: a shaggy gold one, a fluffy pink one, or a leopard-skin rug under the gold tub",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "rug",
+   "rooms": {
+    "bathroom": 8
+   },
+   "sound": null,
+   "styles": {
+    "avocado": 8,
+    "gilded": 8,
+    "pink": 8,
+    "tub": 4
+   },
+   "tags": [
+    "rug"
+   ],
+   "under": [],
+   "variants": {
+    "fluffy_pink": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "col": "efc4cc",
+      "dk": "e0a8b4",
+      "for": [
+       "pink"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "bath_mat_fluffy_pink",
+       "h": 13,
+       "l": 2,
+       "r": 91,
+       "rx": -2,
+       "ry": 12,
+       "t": -12,
+       "w": 90
+      }
+     ]
+    },
+    "leopard": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "col": "c89a4a",
+      "dk": "4a3220",
+      "for": [
+       "gilded"
+      ],
+      "leopard": true
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "bath_mat_leopard",
+       "h": 13,
+       "l": 2,
+       "r": 90,
+       "rx": -2,
+       "ry": 12,
+       "t": -12,
+       "w": 89
+      }
+     ]
+    },
+    "shag_gold": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "col": "d9a24a",
+      "dk": "b8863a",
+      "for": [
+       "avocado",
+       "tub"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "bath_mat_shag_gold",
+       "h": 13,
+       "l": 2,
+       "r": 91,
+       "rx": -2,
+       "ry": 12,
+       "t": -12,
+       "w": 90
+      }
+     ]
+    }
+   },
+   "w": 94,
+   "wall_y": null
+  },
   "bed_iron": {
    "above": [],
    "bucketed": true,
@@ -6095,6 +7193,603 @@
    "w": 31,
    "wall_y": null
   },
+  "bookcase_tall": {
+   "above": [],
+   "bucketed": true,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    105,
+    108
+   ],
+   "h": 74,
+   "lap": 6,
+   "lean": true,
+   "limit": null,
+   "near": [],
+   "needs": null,
+   "note": "a tall library bookcase with a moulded cornice, five shelves of books of every height with a few lying flat and gaps where one was taken, a panelled cupboard base \u2014 one with a library ladder on a brass rail",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "wall",
+   "rooms": {
+    "living_room": 3,
+    "study": 8
+   },
+   "sound": null,
+   "styles": {
+    "cosy": 2,
+    "den": 6,
+    "library": 9,
+    "studio": 1
+   },
+   "tags": [
+    "books",
+    "storage"
+   ],
+   "under": [],
+   "variants": {
+    "ladder": {
+     "anchors": [
+      {
+       "dx": 18,
+       "dy": -52,
+       "name": "bookcase_upper"
+      },
+      {
+       "dx": 18,
+       "dy": -22,
+       "name": "bookcase_lower"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "walnut",
+      "ladder": true,
+      "seed": 4
+     },
+     "slots": [
+      {
+       "dx0": 4,
+       "dx1": 32,
+       "dy": -77,
+       "id": "top",
+       "kinds": [
+        "small"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "bookcase_tall_ladder_b0",
+       "h": 80,
+       "l": -3,
+       "r": 47,
+       "rx": 3,
+       "ry": 76,
+       "t": -76,
+       "w": 51
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "bookcase_tall_ladder_b1",
+       "h": 80,
+       "l": -3,
+       "r": 43,
+       "rx": 3,
+       "ry": 76,
+       "t": -76,
+       "w": 47
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "bookcase_tall_ladder_b2",
+       "h": 80,
+       "l": -3,
+       "r": 39,
+       "rx": 3,
+       "ry": 76,
+       "t": -76,
+       "w": 43
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "bookcase_tall_ladder_b3",
+       "h": 80,
+       "l": -3,
+       "r": 37,
+       "rx": 3,
+       "ry": 76,
+       "t": -76,
+       "w": 41
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "bookcase_tall_ladder_b4",
+       "h": 80,
+       "l": -4,
+       "r": 37,
+       "rx": 4,
+       "ry": 76,
+       "t": -76,
+       "w": 42
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "bookcase_tall_ladder_b5",
+       "h": 80,
+       "l": -8,
+       "r": 37,
+       "rx": 8,
+       "ry": 76,
+       "t": -76,
+       "w": 46
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "bookcase_tall_ladder_b6",
+       "h": 80,
+       "l": -12,
+       "r": 37,
+       "rx": 12,
+       "ry": 76,
+       "t": -76,
+       "w": 50
+      }
+     ]
+    },
+    "mahogany": {
+     "anchors": [
+      {
+       "dx": 18,
+       "dy": -52,
+       "name": "bookcase_upper"
+      },
+      {
+       "dx": 18,
+       "dy": -22,
+       "name": "bookcase_lower"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "walnut",
+      "seed": 2
+     },
+     "slots": [
+      {
+       "dx0": 4,
+       "dx1": 32,
+       "dy": -77,
+       "id": "top",
+       "kinds": [
+        "small"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "bookcase_tall_mahogany_b0",
+       "h": 80,
+       "l": -3,
+       "r": 47,
+       "rx": 3,
+       "ry": 76,
+       "t": -76,
+       "w": 51
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "bookcase_tall_mahogany_b1",
+       "h": 80,
+       "l": -3,
+       "r": 43,
+       "rx": 3,
+       "ry": 76,
+       "t": -76,
+       "w": 47
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "bookcase_tall_mahogany_b2",
+       "h": 80,
+       "l": -3,
+       "r": 39,
+       "rx": 3,
+       "ry": 76,
+       "t": -76,
+       "w": 43
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "bookcase_tall_mahogany_b3",
+       "h": 80,
+       "l": -3,
+       "r": 37,
+       "rx": 3,
+       "ry": 76,
+       "t": -76,
+       "w": 41
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "bookcase_tall_mahogany_b4",
+       "h": 80,
+       "l": -4,
+       "r": 37,
+       "rx": 4,
+       "ry": 76,
+       "t": -76,
+       "w": 42
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "bookcase_tall_mahogany_b5",
+       "h": 80,
+       "l": -8,
+       "r": 37,
+       "rx": 8,
+       "ry": 76,
+       "t": -76,
+       "w": 46
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "bookcase_tall_mahogany_b6",
+       "h": 80,
+       "l": -12,
+       "r": 37,
+       "rx": 12,
+       "ry": 76,
+       "t": -76,
+       "w": 50
+      }
+     ]
+    },
+    "oak": {
+     "anchors": [
+      {
+       "dx": 18,
+       "dy": -52,
+       "name": "bookcase_upper"
+      },
+      {
+       "dx": 18,
+       "dy": -22,
+       "name": "bookcase_lower"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "oak",
+      "seed": 6
+     },
+     "slots": [
+      {
+       "dx0": 4,
+       "dx1": 32,
+       "dy": -77,
+       "id": "top",
+       "kinds": [
+        "small"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "bookcase_tall_oak_b0",
+       "h": 80,
+       "l": -3,
+       "r": 47,
+       "rx": 3,
+       "ry": 76,
+       "t": -76,
+       "w": 51
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "bookcase_tall_oak_b1",
+       "h": 80,
+       "l": -3,
+       "r": 43,
+       "rx": 3,
+       "ry": 76,
+       "t": -76,
+       "w": 47
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "bookcase_tall_oak_b2",
+       "h": 80,
+       "l": -3,
+       "r": 39,
+       "rx": 3,
+       "ry": 76,
+       "t": -76,
+       "w": 43
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "bookcase_tall_oak_b3",
+       "h": 80,
+       "l": -3,
+       "r": 37,
+       "rx": 3,
+       "ry": 76,
+       "t": -76,
+       "w": 41
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "bookcase_tall_oak_b4",
+       "h": 80,
+       "l": -4,
+       "r": 37,
+       "rx": 4,
+       "ry": 76,
+       "t": -76,
+       "w": 42
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "bookcase_tall_oak_b5",
+       "h": 80,
+       "l": -8,
+       "r": 37,
+       "rx": 8,
+       "ry": 76,
+       "t": -76,
+       "w": 46
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "bookcase_tall_oak_b6",
+       "h": 80,
+       "l": -12,
+       "r": 37,
+       "rx": 12,
+       "ry": 76,
+       "t": -76,
+       "w": 50
+      }
+     ]
+    }
+   },
+   "w": 36,
+   "wall_y": null
+  },
+  "boombox": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 16,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "a boombox: two speaker cones, a tape deck with a window, a row of buttons and a telescopic aerial",
+   "on": [
+    "table",
+    "small",
+    "tv"
+   ],
+   "opens": null,
+   "pair": null,
+   "plane": "top",
+   "rooms": {
+    "dining_room": 5,
+    "living_room": 3
+   },
+   "sound": null,
+   "styles": {
+    "diner": 2,
+    "party": 8,
+    "squat": 5
+   },
+   "tags": [
+    "small",
+    "music"
+   ],
+   "under": [],
+   "variants": {
+    "black": {
+     "anchors": [
+      {
+       "dx": 11,
+       "dy": -8,
+       "name": "boombox",
+       "top": true
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "body": "2a2a2e"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "boombox_black",
+       "h": 27,
+       "l": -1,
+       "r": 24,
+       "rx": 1,
+       "ry": 24,
+       "t": -24,
+       "w": 26
+      }
+     ]
+    },
+    "silver": {
+     "anchors": [
+      {
+       "dx": 11,
+       "dy": -8,
+       "name": "boombox",
+       "top": true
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "body": "9aa0a4"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "boombox_silver",
+       "h": 27,
+       "l": -1,
+       "r": 24,
+       "rx": 1,
+       "ry": 24,
+       "t": -24,
+       "w": 26
+      }
+     ]
+    }
+   },
+   "w": 22,
+   "wall_y": null
+  },
+  "bottles_row": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 14,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "three bottles stood in a row: dark wine bottles or a decanter set, the labels pale",
+   "on": [
+    "table",
+    "small"
+   ],
+   "opens": null,
+   "pair": null,
+   "plane": "top",
+   "rooms": {
+    "dining_room": 5,
+    "living_room": 2
+   },
+   "sound": null,
+   "styles": {
+    "diner": 2,
+    "family": 3,
+    "formal": 5
+   },
+   "tags": [
+    "small",
+    "food"
+   ],
+   "under": [],
+   "variants": {
+    "spirits": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "cols": [
+       "c8a050",
+       "4a6a8a",
+       "6a2a2a"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "bottles_row_spirits",
+       "h": 19,
+       "l": 0,
+       "r": 21,
+       "rx": 0,
+       "ry": 16,
+       "t": -16,
+       "w": 22
+      }
+     ]
+    },
+    "wine": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "cols": [
+       "3a5a3a",
+       "6a2a2a",
+       "3a5a3a"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "bottles_row_wine",
+       "h": 19,
+       "l": 0,
+       "r": 21,
+       "rx": 0,
+       "ry": 16,
+       "t": -16,
+       "w": 22
+      }
+     ]
+    }
+   },
+   "w": 22,
+   "wall_y": null
+  },
   "box_cardboard": {
    "above": [],
    "bucketed": false,
@@ -6668,6 +8363,91 @@
    "w": 14,
    "wall_y": null
   },
+  "cake_party": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 20,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "a birthday cake on a stand: two tiers of iced sponge, a ring of candles, a slice cut out and left on a plate",
+   "on": [
+    "table"
+   ],
+   "opens": null,
+   "pair": null,
+   "plane": "top",
+   "rooms": {
+    "dining_room": 7
+   },
+   "sound": null,
+   "styles": {
+    "party": 9
+   },
+   "tags": [
+    "small",
+    "food"
+   ],
+   "under": [],
+   "variants": {
+    "blue": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "ic": "9ac4f0"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "cake_party_blue",
+       "h": 25,
+       "l": 0,
+       "r": 20,
+       "rx": 0,
+       "ry": 22,
+       "t": -22,
+       "w": 21
+      }
+     ]
+    },
+    "pink": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "ic": "f0a8b8"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "cake_party_pink",
+       "h": 25,
+       "l": 0,
+       "r": 20,
+       "rx": 0,
+       "ry": 22,
+       "t": -22,
+       "w": 21
+      }
+     ]
+    }
+   },
+   "w": 20,
+   "wall_y": null
+  },
   "calendar_wall": {
    "above": [],
    "bucketed": false,
@@ -6698,6 +8478,7 @@
    "sound": null,
    "styles": {
     "adult": 3,
+    "barricade": 1,
     "cosy": 2,
     "den": 2,
     "office": 5,
@@ -6802,6 +8583,107 @@
     36
    ]
   },
+  "candelabra": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 24,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "a three-branch candelabrum with a candle in each arm, the flames small and warm",
+   "on": [
+    "table"
+   ],
+   "opens": null,
+   "pair": null,
+   "plane": "top",
+   "rooms": {
+    "dining_room": 6
+   },
+   "sound": null,
+   "styles": {
+    "barricade": 0.01,
+    "family": 1,
+    "formal": 8
+   },
+   "tags": [
+    "small",
+    "light"
+   ],
+   "under": [],
+   "variants": {
+    "brass": {
+     "anchors": [],
+     "anims": [],
+     "lights": [
+      {
+       "dx": 7,
+       "dy": -20,
+       "kind": "lantern",
+       "top": true
+      }
+     ],
+     "params": {
+      "col": "c8a050"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "candelabra_brass",
+       "h": 24,
+       "l": 0,
+       "r": 14,
+       "rx": 0,
+       "ry": 21,
+       "t": -21,
+       "w": 15
+      }
+     ]
+    },
+    "silver": {
+     "anchors": [],
+     "anims": [],
+     "lights": [
+      {
+       "dx": 7,
+       "dy": -20,
+       "kind": "lantern",
+       "top": true
+      }
+     ],
+     "params": {
+      "col": "c8ccd0"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "candelabra_silver",
+       "h": 24,
+       "l": 0,
+       "r": 14,
+       "rx": 0,
+       "ry": 21,
+       "t": -21,
+       "w": 15
+      }
+     ]
+    }
+   },
+   "w": 14,
+   "wall_y": null
+  },
   "canisters": {
    "above": [],
    "bucketed": false,
@@ -6900,6 +8782,246 @@
     }
    },
    "w": 15,
+   "wall_y": null
+  },
+  "canvases_leaning": {
+   "above": [],
+   "bucketed": true,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    105,
+    108
+   ],
+   "h": 54,
+   "lap": 6,
+   "lean": true,
+   "limit": null,
+   "near": [],
+   "needs": null,
+   "note": "a stack of framed and stretched canvases leaning against the wall, backs out, the front one turned round to show a seascape with a sail",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "wall",
+   "rooms": {
+    "study": 7
+   },
+   "sound": null,
+   "styles": {
+    "library": 1,
+    "studio": 9
+   },
+   "tags": [
+    "storage",
+    "art"
+   ],
+   "under": [],
+   "variants": {
+    "few": {
+     "anchors": [
+      {
+       "dx": 20,
+       "dy": -26,
+       "name": "canvases"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "k": 1
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "canvases_leaning_few_b0",
+       "h": 52,
+       "l": -2,
+       "r": 48,
+       "rx": 2,
+       "ry": 48,
+       "t": -48,
+       "w": 51
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "canvases_leaning_few_b1",
+       "h": 52,
+       "l": -2,
+       "r": 46,
+       "rx": 2,
+       "ry": 48,
+       "t": -48,
+       "w": 49
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "canvases_leaning_few_b2",
+       "h": 52,
+       "l": -2,
+       "r": 46,
+       "rx": 2,
+       "ry": 48,
+       "t": -48,
+       "w": 49
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "canvases_leaning_few_b3",
+       "h": 52,
+       "l": -2,
+       "r": 46,
+       "rx": 2,
+       "ry": 48,
+       "t": -48,
+       "w": 49
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "canvases_leaning_few_b4",
+       "h": 52,
+       "l": -2,
+       "r": 46,
+       "rx": 2,
+       "ry": 48,
+       "t": -48,
+       "w": 49
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "canvases_leaning_few_b5",
+       "h": 52,
+       "l": -2,
+       "r": 46,
+       "rx": 2,
+       "ry": 48,
+       "t": -48,
+       "w": 49
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "canvases_leaning_few_b6",
+       "h": 52,
+       "l": -2,
+       "r": 46,
+       "rx": 2,
+       "ry": 48,
+       "t": -48,
+       "w": 49
+      }
+     ]
+    },
+    "stack": {
+     "anchors": [
+      {
+       "dx": 20,
+       "dy": -26,
+       "name": "canvases"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "k": 0
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "canvases_leaning_stack_b0",
+       "h": 59,
+       "l": -2,
+       "r": 51,
+       "rx": 2,
+       "ry": 55,
+       "t": -55,
+       "w": 54
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "canvases_leaning_stack_b1",
+       "h": 59,
+       "l": -2,
+       "r": 49,
+       "rx": 2,
+       "ry": 55,
+       "t": -55,
+       "w": 52
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "canvases_leaning_stack_b2",
+       "h": 59,
+       "l": -2,
+       "r": 48,
+       "rx": 2,
+       "ry": 55,
+       "t": -55,
+       "w": 51
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "canvases_leaning_stack_b3",
+       "h": 59,
+       "l": -2,
+       "r": 48,
+       "rx": 2,
+       "ry": 55,
+       "t": -55,
+       "w": 51
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "canvases_leaning_stack_b4",
+       "h": 59,
+       "l": -2,
+       "r": 48,
+       "rx": 2,
+       "ry": 55,
+       "t": -55,
+       "w": 51
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "canvases_leaning_stack_b5",
+       "h": 59,
+       "l": -2,
+       "r": 48,
+       "rx": 2,
+       "ry": 55,
+       "t": -55,
+       "w": 51
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "canvases_leaning_stack_b6",
+       "h": 59,
+       "l": -4,
+       "r": 48,
+       "rx": 4,
+       "ry": 55,
+       "t": -55,
+       "w": 53
+      }
+     ]
+    }
+   },
+   "w": 44,
    "wall_y": null
   },
   "cat_tins": {
@@ -8520,6 +10642,217 @@
    "w": 28,
    "wall_y": null
   },
+  "champagne_stand": {
+   "above": [],
+   "bucketed": true,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    118,
+    118
+   ],
+   "h": 38,
+   "lap": 6,
+   "lean": false,
+   "limit": null,
+   "near": [],
+   "needs": null,
+   "note": "a gold ice-bucket on a stand beside the tub with a bottle of champagne in it",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "floor",
+   "rooms": {
+    "bathroom": 5
+   },
+   "sound": null,
+   "styles": {
+    "gilded": 9
+   },
+   "tags": [
+    "clutter",
+    "drink"
+   ],
+   "under": [],
+   "variants": {
+    "gold": {
+     "anchors": [
+      {
+       "dx": 9,
+       "dy": -20,
+       "name": "champagne"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "gilded"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 36,
+       "file": "champagne_stand_gold_b0",
+       "h": 40,
+       "l": 0,
+       "r": 18,
+       "rx": 0,
+       "ry": 37,
+       "t": -37,
+       "w": 19
+      },
+      {
+       "b": 2,
+       "bx": 72,
+       "file": "champagne_stand_gold_b1",
+       "h": 40,
+       "l": 0,
+       "r": 18,
+       "rx": 0,
+       "ry": 37,
+       "t": -37,
+       "w": 19
+      },
+      {
+       "b": 2,
+       "bx": 116,
+       "file": "champagne_stand_gold_b2",
+       "h": 40,
+       "l": 0,
+       "r": 18,
+       "rx": 0,
+       "ry": 37,
+       "t": -37,
+       "w": 19
+      },
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "champagne_stand_gold_b3",
+       "h": 40,
+       "l": 0,
+       "r": 18,
+       "rx": 0,
+       "ry": 37,
+       "t": -37,
+       "w": 19
+      },
+      {
+       "b": 2,
+       "bx": 204,
+       "file": "champagne_stand_gold_b4",
+       "h": 40,
+       "l": 0,
+       "r": 18,
+       "rx": 0,
+       "ry": 37,
+       "t": -37,
+       "w": 19
+      },
+      {
+       "b": 2,
+       "bx": 248,
+       "file": "champagne_stand_gold_b5",
+       "h": 40,
+       "l": 0,
+       "r": 18,
+       "rx": 0,
+       "ry": 37,
+       "t": -37,
+       "w": 19
+      },
+      {
+       "b": 2,
+       "bx": 284,
+       "file": "champagne_stand_gold_b6",
+       "h": 40,
+       "l": 0,
+       "r": 18,
+       "rx": 0,
+       "ry": 37,
+       "t": -37,
+       "w": 19
+      }
+     ]
+    }
+   },
+   "w": 18,
+   "wall_y": null
+  },
+  "chandelier": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 28,
+   "lap": 6,
+   "lean": false,
+   "limit": null,
+   "near": [],
+   "needs": null,
+   "note": "a gold chandelier on a chain: two tiers of arms with candles, crystals hanging below",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "ceiling",
+   "rooms": {
+    "bathroom": 4,
+    "dining_room": 3
+   },
+   "sound": null,
+   "styles": {
+    "formal": 3,
+    "gilded": 9
+   },
+   "tags": [
+    "light",
+    "ceiling"
+   ],
+   "under": [],
+   "variants": {
+    "gold": {
+     "anchors": [],
+     "anims": [],
+     "lights": [
+      {
+       "dx": 14,
+       "dy": 20,
+       "kind": "chandelier"
+      }
+     ],
+     "params": {
+      "for": [
+       "gilded",
+       "formal"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 21,
+       "bx": 160,
+       "file": "chandelier_gold",
+       "h": 22,
+       "l": 0,
+       "r": 27,
+       "rx": 0,
+       "ry": 0,
+       "t": 0,
+       "w": 28
+      }
+     ]
+    }
+   },
+   "w": 28,
+   "wall_y": null
+  },
   "chest_drawers": {
    "above": [],
    "bucketed": true,
@@ -9330,6 +11663,249 @@
     30
    ]
   },
+  "clock_grandfather": {
+   "above": [],
+   "bucketed": true,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    105,
+    108
+   ],
+   "h": 78,
+   "lap": 6,
+   "lean": true,
+   "limit": null,
+   "near": [],
+   "needs": null,
+   "note": "a grandfather clock: a hooded case with a pale round dial and roman numerals, a long glass door showing the brass pendulum and two weights, a plinth",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "wall",
+   "rooms": {
+    "dining_room": 6,
+    "living_room": 3
+   },
+   "sound": null,
+   "styles": {
+    "cosy": 1,
+    "family": 2,
+    "formal": 9,
+    "parlour": 3
+   },
+   "tags": [
+    "clock",
+    "storage"
+   ],
+   "under": [],
+   "variants": {
+    "mahogany": {
+     "anchors": [
+      {
+       "dx": 10,
+       "dy": -40,
+       "name": "clock"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "wood": "6a3a2a"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "clock_grandfather_mahogany_b0",
+       "h": 83,
+       "l": -3,
+       "r": 29,
+       "rx": 3,
+       "ry": 79,
+       "t": -79,
+       "w": 33
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "clock_grandfather_mahogany_b1",
+       "h": 83,
+       "l": -3,
+       "r": 26,
+       "rx": 3,
+       "ry": 79,
+       "t": -79,
+       "w": 30
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "clock_grandfather_mahogany_b2",
+       "h": 83,
+       "l": -3,
+       "r": 23,
+       "rx": 3,
+       "ry": 79,
+       "t": -79,
+       "w": 27
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "clock_grandfather_mahogany_b3",
+       "h": 83,
+       "l": -3,
+       "r": 21,
+       "rx": 3,
+       "ry": 79,
+       "t": -79,
+       "w": 25
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "clock_grandfather_mahogany_b4",
+       "h": 83,
+       "l": -4,
+       "r": 21,
+       "rx": 4,
+       "ry": 79,
+       "t": -79,
+       "w": 26
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "clock_grandfather_mahogany_b5",
+       "h": 83,
+       "l": -7,
+       "r": 21,
+       "rx": 7,
+       "ry": 79,
+       "t": -79,
+       "w": 29
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "clock_grandfather_mahogany_b6",
+       "h": 83,
+       "l": -9,
+       "r": 21,
+       "rx": 9,
+       "ry": 79,
+       "t": -79,
+       "w": 31
+      }
+     ]
+    },
+    "oak": {
+     "anchors": [
+      {
+       "dx": 10,
+       "dy": -40,
+       "name": "clock"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "wood": "a07848"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "clock_grandfather_oak_b0",
+       "h": 83,
+       "l": -3,
+       "r": 29,
+       "rx": 3,
+       "ry": 79,
+       "t": -79,
+       "w": 33
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "clock_grandfather_oak_b1",
+       "h": 83,
+       "l": -3,
+       "r": 26,
+       "rx": 3,
+       "ry": 79,
+       "t": -79,
+       "w": 30
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "clock_grandfather_oak_b2",
+       "h": 83,
+       "l": -3,
+       "r": 23,
+       "rx": 3,
+       "ry": 79,
+       "t": -79,
+       "w": 27
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "clock_grandfather_oak_b3",
+       "h": 83,
+       "l": -3,
+       "r": 21,
+       "rx": 3,
+       "ry": 79,
+       "t": -79,
+       "w": 25
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "clock_grandfather_oak_b4",
+       "h": 83,
+       "l": -4,
+       "r": 21,
+       "rx": 4,
+       "ry": 79,
+       "t": -79,
+       "w": 26
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "clock_grandfather_oak_b5",
+       "h": 83,
+       "l": -7,
+       "r": 21,
+       "rx": 7,
+       "ry": 79,
+       "t": -79,
+       "w": 29
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "clock_grandfather_oak_b6",
+       "h": 83,
+       "l": -9,
+       "r": 21,
+       "rx": 9,
+       "ry": 79,
+       "t": -79,
+       "w": 31
+      }
+     ]
+    }
+   },
+   "w": 20,
+   "wall_y": null
+  },
   "clock_regulator": {
    "above": [],
    "bucketed": false,
@@ -9431,6 +12007,7 @@
    "sound": null,
    "styles": {
     "adult": 3,
+    "barricade": 1,
     "cosy": 3,
     "den": 2,
     "diner": 3,
@@ -10046,6 +12623,132 @@
    "w": 50,
    "wall_y": null
   },
+  "computer_crt": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 26,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "an early desktop computer: a deep CRT monitor with a green phosphor glow, a keyboard in front and the beige base box under it",
+   "on": [
+    "desk"
+   ],
+   "opens": {
+    "anchor": "terminal",
+    "frames": 1,
+    "kind": "screen_off"
+   },
+   "pair": null,
+   "plane": "top",
+   "rooms": {
+    "study": 7
+   },
+   "sound": null,
+   "styles": {
+    "office": 8,
+    "radio": 1
+   },
+   "tags": [
+    "small",
+    "work"
+   ],
+   "under": [],
+   "variants": {
+    "beige": {
+     "anchors": [
+      {
+       "dx": 10,
+       "dy": -10,
+       "name": "terminal",
+       "top": true
+      }
+     ],
+     "anims": [
+      {
+       "color": "4a9a6a",
+       "dx": 4,
+       "dy": -17,
+       "h": 9,
+       "kind": "static",
+       "top": true,
+       "w": 11
+      }
+     ],
+     "lights": [],
+     "params": {
+      "case": "d8d0b8"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "computer_crt_beige",
+       "h": 28,
+       "l": -1,
+       "open_file": "computer_crt_beige_open",
+       "r": 26,
+       "rx": 1,
+       "ry": 25,
+       "t": -25,
+       "w": 28
+      }
+     ]
+    },
+    "grey": {
+     "anchors": [
+      {
+       "dx": 10,
+       "dy": -10,
+       "name": "terminal",
+       "top": true
+      }
+     ],
+     "anims": [
+      {
+       "color": "4a9a6a",
+       "dx": 4,
+       "dy": -17,
+       "h": 9,
+       "kind": "static",
+       "top": true,
+       "w": 11
+      }
+     ],
+     "lights": [],
+     "params": {
+      "case": "8a8e94"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "computer_crt_grey",
+       "h": 28,
+       "l": -1,
+       "open_file": "computer_crt_grey_open",
+       "r": 26,
+       "rx": 1,
+       "ry": 25,
+       "t": -25,
+       "w": 28
+      }
+     ]
+    }
+   },
+   "w": 26,
+   "wall_y": null
+  },
   "crate_bedside": {
    "above": [],
    "bucketed": true,
@@ -10639,6 +13342,101 @@
    "w": 22,
    "wall_y": null
   },
+  "crates_ammo": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    108,
+    120
+   ],
+   "h": 26,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "army-green ammunition crates stacked two high with white stencilled codes, rope handles and a hinged lid or two left open",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "floor",
+   "rooms": {
+    "study": 6
+   },
+   "sound": null,
+   "styles": {
+    "radio": 9
+   },
+   "tags": [
+    "clutter",
+    "storage"
+   ],
+   "under": [],
+   "variants": {
+    "pair": {
+     "anchors": [
+      {
+       "dx": 16,
+       "dy": -12,
+       "name": "ammo_crates"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "n": 2
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "crates_ammo_pair",
+       "h": 20,
+       "l": -1,
+       "r": 35,
+       "rx": 1,
+       "ry": 16,
+       "t": -16,
+       "w": 37
+      }
+     ]
+    },
+    "stack": {
+     "anchors": [
+      {
+       "dx": 16,
+       "dy": -12,
+       "name": "ammo_crates"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "n": 3
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "crates_ammo_stack",
+       "h": 31,
+       "l": -1,
+       "r": 35,
+       "rx": 1,
+       "ry": 27,
+       "t": -27,
+       "w": 37
+      }
+     ]
+    }
+   },
+   "w": 34,
+   "wall_y": null
+  },
   "crates_stove": {
    "above": [],
    "bucketed": true,
@@ -11051,6 +13849,306 @@
     }
    },
    "w": 43,
+   "wall_y": null
+  },
+  "desk_study": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    110,
+    114
+   ],
+   "h": 40,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "the study's desk with its chair behind it: a mahogany partners desk with a green leather top and a swivel leather chair (den), a grey steel desk with a laminate top and an office chair (office), a small walnut writing desk (library), a steel trestle for the transmitters (radio), a long splashed bench (studio)",
+   "on": [],
+   "opens": {
+    "anchor": "desk_drawer",
+    "frames": 3,
+    "kind": "drawer"
+   },
+   "pair": null,
+   "plane": "front",
+   "rooms": {
+    "study": 10
+   },
+   "sound": null,
+   "styles": null,
+   "tags": [
+    "work",
+    "storage",
+    "desk"
+   ],
+   "under": [],
+   "variants": {
+    "bench": {
+     "anchors": [
+      {
+       "dx": 34,
+       "dy": -24,
+       "name": "desk",
+       "top": true
+      },
+      {
+       "dx": 12,
+       "dy": -12,
+       "name": "desk_drawer"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "studio"
+      ],
+      "kind": "bench"
+     },
+     "slots": [
+      {
+       "dx0": 6,
+       "dx1": 62,
+       "dy": -27,
+       "id": "top",
+       "kinds": [
+        "desk",
+        "small",
+        "lamp"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "desk_study_bench",
+       "h": 30,
+       "l": -3,
+       "open_file": "desk_study_bench_open",
+       "r": 69,
+       "rx": 3,
+       "ry": 26,
+       "t": -26,
+       "w": 73
+      }
+     ]
+    },
+    "mahogany": {
+     "anchors": [
+      {
+       "dx": 34,
+       "dy": -24,
+       "name": "desk",
+       "top": true
+      },
+      {
+       "dx": 12,
+       "dy": -12,
+       "name": "desk_drawer"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "den"
+      ],
+      "kind": "mahogany"
+     },
+     "slots": [
+      {
+       "dx0": 6,
+       "dx1": 62,
+       "dy": -27,
+       "id": "top",
+       "kinds": [
+        "desk",
+        "small",
+        "lamp"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "desk_study_mahogany",
+       "h": 49,
+       "l": -3,
+       "open_file": "desk_study_mahogany_open",
+       "r": 69,
+       "rx": 3,
+       "ry": 45,
+       "t": -45,
+       "w": 73
+      }
+     ]
+    },
+    "steel": {
+     "anchors": [
+      {
+       "dx": 34,
+       "dy": -24,
+       "name": "desk",
+       "top": true
+      },
+      {
+       "dx": 12,
+       "dy": -12,
+       "name": "desk_drawer"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "office"
+      ],
+      "kind": "steel"
+     },
+     "slots": [
+      {
+       "dx0": 6,
+       "dx1": 62,
+       "dy": -27,
+       "id": "top",
+       "kinds": [
+        "desk",
+        "small",
+        "lamp"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "desk_study_steel",
+       "h": 46,
+       "l": -3,
+       "open_file": "desk_study_steel_open",
+       "r": 69,
+       "rx": 3,
+       "ry": 42,
+       "t": -42,
+       "w": 73
+      }
+     ]
+    },
+    "trestle": {
+     "anchors": [
+      {
+       "dx": 34,
+       "dy": -24,
+       "name": "desk",
+       "top": true
+      },
+      {
+       "dx": 12,
+       "dy": -12,
+       "name": "desk_drawer"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "radio"
+      ],
+      "kind": "trestle"
+     },
+     "slots": [
+      {
+       "dx0": 6,
+       "dx1": 62,
+       "dy": -27,
+       "id": "top",
+       "kinds": [
+        "desk",
+        "small",
+        "lamp"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "desk_study_trestle",
+       "h": 31,
+       "l": -3,
+       "open_file": "desk_study_trestle_open",
+       "r": 69,
+       "rx": 3,
+       "ry": 27,
+       "t": -27,
+       "w": 73
+      }
+     ]
+    },
+    "writing": {
+     "anchors": [
+      {
+       "dx": 34,
+       "dy": -24,
+       "name": "desk",
+       "top": true
+      },
+      {
+       "dx": 12,
+       "dy": -12,
+       "name": "desk_drawer"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "library"
+      ],
+      "kind": "writing"
+     },
+     "slots": [
+      {
+       "dx0": 6,
+       "dx1": 62,
+       "dy": -27,
+       "id": "top",
+       "kinds": [
+        "desk",
+        "small",
+        "lamp"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "desk_study_writing",
+       "h": 49,
+       "l": -3,
+       "open_file": "desk_study_writing_open",
+       "r": 69,
+       "rx": 3,
+       "ry": 45,
+       "t": -45,
+       "w": 73
+      }
+     ]
+    }
+   },
+   "w": 68,
    "wall_y": null
   },
   "dollhouse_table": {
@@ -12051,6 +15149,550 @@
     }
    },
    "w": 16,
+   "wall_y": null
+  },
+  "easel": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    108,
+    120
+   ],
+   "h": 52,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "a wooden A-frame easel with a canvas on it \u2014 a half-finished portrait, a seascape with a sail, or a blank canvas \u2014 and a tray of tubes",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "floor",
+   "rooms": {
+    "study": 7
+   },
+   "sound": null,
+   "styles": {
+    "studio": 9
+   },
+   "tags": [
+    "clutter",
+    "art"
+   ],
+   "under": [],
+   "variants": {
+    "blank": {
+     "anchors": [
+      {
+       "dx": 12,
+       "dy": -26,
+       "name": "easel"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "k": "blank"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "easel_blank",
+       "h": 48,
+       "l": 1,
+       "r": 23,
+       "rx": -1,
+       "ry": 45,
+       "t": -45,
+       "w": 23
+      }
+     ]
+    },
+    "portrait": {
+     "anchors": [
+      {
+       "dx": 12,
+       "dy": -26,
+       "name": "easel"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "k": "portrait"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "easel_portrait",
+       "h": 48,
+       "l": 1,
+       "r": 23,
+       "rx": -1,
+       "ry": 45,
+       "t": -45,
+       "w": 23
+      }
+     ]
+    },
+    "seascape": {
+     "anchors": [
+      {
+       "dx": 12,
+       "dy": -26,
+       "name": "easel"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "k": "sea"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "easel_seascape",
+       "h": 48,
+       "l": 1,
+       "r": 23,
+       "rx": -1,
+       "ry": 45,
+       "t": -45,
+       "w": 23
+      }
+     ]
+    }
+   },
+   "w": 24,
+   "wall_y": null
+  },
+  "filing_cabinet": {
+   "above": [],
+   "bucketed": true,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    105,
+    108
+   ],
+   "h": 44,
+   "lap": 6,
+   "lean": true,
+   "limit": null,
+   "near": [],
+   "needs": null,
+   "note": "a steel filing cabinet of three drawers with label holders and recessed handles; the top drawer pulls out when searched",
+   "on": [],
+   "opens": {
+    "anchor": "filing_cabinet",
+    "frames": 3,
+    "kind": "drawer"
+   },
+   "pair": null,
+   "plane": "wall",
+   "rooms": {
+    "study": 7
+   },
+   "sound": null,
+   "styles": {
+    "den": 6,
+    "library": 1,
+    "office": 8,
+    "radio": 3,
+    "studio": 2
+   },
+   "tags": [
+    "storage",
+    "files"
+   ],
+   "under": [],
+   "variants": {
+    "cream": {
+     "anchors": [
+      {
+       "dx": 13,
+       "dy": -26,
+       "name": "filing_cabinet"
+      },
+      {
+       "dx": 13,
+       "dy": -10,
+       "name": "filing_lower"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "f": "cream"
+     },
+     "slots": [
+      {
+       "dx0": 3,
+       "dx1": 22,
+       "dy": -46,
+       "id": "top",
+       "kinds": [
+        "small",
+        "desk"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "filing_cabinet_cream_b0",
+       "h": 52,
+       "l": -2,
+       "open_file": "filing_cabinet_cream_b0_open",
+       "r": 34,
+       "rx": 2,
+       "ry": 48,
+       "t": -48,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "filing_cabinet_cream_b1",
+       "h": 52,
+       "l": -2,
+       "open_file": "filing_cabinet_cream_b1_open",
+       "r": 32,
+       "rx": 2,
+       "ry": 48,
+       "t": -48,
+       "w": 35
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "filing_cabinet_cream_b2",
+       "h": 52,
+       "l": -2,
+       "open_file": "filing_cabinet_cream_b2_open",
+       "r": 28,
+       "rx": 2,
+       "ry": 48,
+       "t": -48,
+       "w": 31
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "filing_cabinet_cream_b3",
+       "h": 52,
+       "l": -2,
+       "open_file": "filing_cabinet_cream_b3_open",
+       "r": 26,
+       "rx": 2,
+       "ry": 48,
+       "t": -48,
+       "w": 29
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "filing_cabinet_cream_b4",
+       "h": 52,
+       "l": -3,
+       "open_file": "filing_cabinet_cream_b4_open",
+       "r": 26,
+       "rx": 3,
+       "ry": 48,
+       "t": -48,
+       "w": 30
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "filing_cabinet_cream_b5",
+       "h": 52,
+       "l": -7,
+       "open_file": "filing_cabinet_cream_b5_open",
+       "r": 26,
+       "rx": 7,
+       "ry": 48,
+       "t": -48,
+       "w": 34
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "filing_cabinet_cream_b6",
+       "h": 52,
+       "l": -9,
+       "open_file": "filing_cabinet_cream_b6_open",
+       "r": 26,
+       "rx": 9,
+       "ry": 48,
+       "t": -48,
+       "w": 36
+      }
+     ]
+    },
+    "green": {
+     "anchors": [
+      {
+       "dx": 13,
+       "dy": -26,
+       "name": "filing_cabinet"
+      },
+      {
+       "dx": 13,
+       "dy": -10,
+       "name": "filing_lower"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "f": "green"
+     },
+     "slots": [
+      {
+       "dx0": 3,
+       "dx1": 22,
+       "dy": -46,
+       "id": "top",
+       "kinds": [
+        "small",
+        "desk"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "filing_cabinet_green_b0",
+       "h": 52,
+       "l": -2,
+       "open_file": "filing_cabinet_green_b0_open",
+       "r": 34,
+       "rx": 2,
+       "ry": 48,
+       "t": -48,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "filing_cabinet_green_b1",
+       "h": 52,
+       "l": -2,
+       "open_file": "filing_cabinet_green_b1_open",
+       "r": 32,
+       "rx": 2,
+       "ry": 48,
+       "t": -48,
+       "w": 35
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "filing_cabinet_green_b2",
+       "h": 52,
+       "l": -2,
+       "open_file": "filing_cabinet_green_b2_open",
+       "r": 28,
+       "rx": 2,
+       "ry": 48,
+       "t": -48,
+       "w": 31
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "filing_cabinet_green_b3",
+       "h": 52,
+       "l": -2,
+       "open_file": "filing_cabinet_green_b3_open",
+       "r": 26,
+       "rx": 2,
+       "ry": 48,
+       "t": -48,
+       "w": 29
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "filing_cabinet_green_b4",
+       "h": 52,
+       "l": -3,
+       "open_file": "filing_cabinet_green_b4_open",
+       "r": 26,
+       "rx": 3,
+       "ry": 48,
+       "t": -48,
+       "w": 30
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "filing_cabinet_green_b5",
+       "h": 52,
+       "l": -7,
+       "open_file": "filing_cabinet_green_b5_open",
+       "r": 26,
+       "rx": 7,
+       "ry": 48,
+       "t": -48,
+       "w": 34
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "filing_cabinet_green_b6",
+       "h": 52,
+       "l": -9,
+       "open_file": "filing_cabinet_green_b6_open",
+       "r": 26,
+       "rx": 9,
+       "ry": 48,
+       "t": -48,
+       "w": 36
+      }
+     ]
+    },
+    "grey": {
+     "anchors": [
+      {
+       "dx": 13,
+       "dy": -26,
+       "name": "filing_cabinet"
+      },
+      {
+       "dx": 13,
+       "dy": -10,
+       "name": "filing_lower"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "f": "grey"
+     },
+     "slots": [
+      {
+       "dx0": 3,
+       "dx1": 22,
+       "dy": -46,
+       "id": "top",
+       "kinds": [
+        "small",
+        "desk"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "filing_cabinet_grey_b0",
+       "h": 52,
+       "l": -2,
+       "open_file": "filing_cabinet_grey_b0_open",
+       "r": 34,
+       "rx": 2,
+       "ry": 48,
+       "t": -48,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "filing_cabinet_grey_b1",
+       "h": 52,
+       "l": -2,
+       "open_file": "filing_cabinet_grey_b1_open",
+       "r": 32,
+       "rx": 2,
+       "ry": 48,
+       "t": -48,
+       "w": 35
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "filing_cabinet_grey_b2",
+       "h": 52,
+       "l": -2,
+       "open_file": "filing_cabinet_grey_b2_open",
+       "r": 28,
+       "rx": 2,
+       "ry": 48,
+       "t": -48,
+       "w": 31
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "filing_cabinet_grey_b3",
+       "h": 52,
+       "l": -2,
+       "open_file": "filing_cabinet_grey_b3_open",
+       "r": 26,
+       "rx": 2,
+       "ry": 48,
+       "t": -48,
+       "w": 29
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "filing_cabinet_grey_b4",
+       "h": 52,
+       "l": -3,
+       "open_file": "filing_cabinet_grey_b4_open",
+       "r": 26,
+       "rx": 3,
+       "ry": 48,
+       "t": -48,
+       "w": 30
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "filing_cabinet_grey_b5",
+       "h": 52,
+       "l": -7,
+       "open_file": "filing_cabinet_grey_b5_open",
+       "r": 26,
+       "rx": 7,
+       "ry": 48,
+       "t": -48,
+       "w": 34
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "filing_cabinet_grey_b6",
+       "h": 52,
+       "l": -9,
+       "open_file": "filing_cabinet_grey_b6_open",
+       "r": 26,
+       "rx": 9,
+       "ry": 48,
+       "t": -48,
+       "w": 36
+      }
+     ]
+    }
+   },
+   "w": 26,
    "wall_y": null
   },
   "fireplace": {
@@ -13085,6 +16727,111 @@
    "w": 14,
    "wall_y": null
   },
+  "gifts_pile": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    108,
+    121
+   ],
+   "h": 18,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [
+    "table"
+   ],
+   "needs": null,
+   "note": "three wrapped presents on the floor, one on top of the other two, ribbons and bows, a gift tag hanging off the nearest",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "floor",
+   "rooms": {
+    "dining_room": 5
+   },
+   "sound": null,
+   "styles": {
+    "party": 9
+   },
+   "tags": [
+    "clutter",
+    "party"
+   ],
+   "under": [],
+   "variants": {
+    "a": {
+     "anchors": [
+      {
+       "dx": 12,
+       "dy": -8,
+       "name": "presents"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "cols": [
+       "d8483a",
+       "3a7ad8",
+       "e0b830"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "gifts_pile_a",
+       "h": 23,
+       "l": -1,
+       "r": 26,
+       "rx": 1,
+       "ry": 20,
+       "t": -20,
+       "w": 28
+      }
+     ]
+    },
+    "b": {
+     "anchors": [
+      {
+       "dx": 12,
+       "dy": -8,
+       "name": "presents"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "cols": [
+       "a85ac8",
+       "3a9a52",
+       "d8483a"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "gifts_pile_b",
+       "h": 23,
+       "l": -1,
+       "r": 26,
+       "rx": 1,
+       "ry": 20,
+       "t": -20,
+       "w": 28
+      }
+     ]
+    }
+   },
+   "w": 26,
+   "wall_y": null
+  },
   "glass_water": {
    "above": [],
    "bucketed": false,
@@ -13173,6 +16920,92 @@
     }
    },
    "w": 7,
+   "wall_y": null
+  },
+  "globe": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 18,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "a globe on a wooden stand: tilted on its brass meridian, blue seas and pale continents (or a yellowed old one)",
+   "on": [
+    "desk",
+    "small"
+   ],
+   "opens": null,
+   "pair": null,
+   "plane": "top",
+   "rooms": {
+    "study": 5
+   },
+   "sound": null,
+   "styles": {
+    "den": 4,
+    "library": 7
+   },
+   "tags": [
+    "small"
+   ],
+   "under": [],
+   "variants": {
+    "blue": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "sea": "3a5a8a"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "globe_blue",
+       "h": 22,
+       "l": -1,
+       "r": 14,
+       "rx": 1,
+       "ry": 19,
+       "t": -19,
+       "w": 16
+      }
+     ]
+    },
+    "old": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "sea": "b8a060"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "globe_old",
+       "h": 22,
+       "l": -1,
+       "r": 14,
+       "rx": 1,
+       "ry": 19,
+       "t": -19,
+       "w": 16
+      }
+     ]
+    }
+   },
+   "w": 14,
    "wall_y": null
   },
   "guitar_stand": {
@@ -13429,6 +17262,99 @@
     66
    ]
   },
+  "jerrycans": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    110,
+    121
+   ],
+   "h": 22,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [
+    "storage"
+   ],
+   "needs": null,
+   "note": "two or three jerrycans of fuel and water, red and olive and yellow, their cross-stamped flanks dented",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "floor",
+   "rooms": {
+    "kitchen": 1,
+    "study": 6
+   },
+   "sound": null,
+   "styles": {
+    "radio": 8
+   },
+   "tags": [
+    "clutter",
+    "fuel"
+   ],
+   "under": [],
+   "variants": {
+    "pair": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "cols": [
+       "c8302a",
+       "4a5a3a"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "jerrycans_pair",
+       "h": 22,
+       "l": 0,
+       "r": 24,
+       "rx": 0,
+       "ry": 19,
+       "t": -19,
+       "w": 25
+      }
+     ]
+    },
+    "trio": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "cols": [
+       "c8302a",
+       "4a5a3a",
+       "c8a030"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "jerrycans_trio",
+       "h": 22,
+       "l": 0,
+       "r": 28,
+       "rx": 0,
+       "ry": 19,
+       "t": -19,
+       "w": 29
+      }
+     ]
+    }
+   },
+   "w": 24,
+   "wall_y": null
+  },
   "jewel_box": {
    "above": [],
    "bucketed": false,
@@ -13678,6 +17604,108 @@
     }
    },
    "w": 13,
+   "wall_y": null
+  },
+  "lamp_banker": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 20,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "a banker's lamp: a brass stem and base under a long green glass shade, the light pooling on the leather",
+   "on": [
+    "lamp",
+    "desk"
+   ],
+   "opens": null,
+   "pair": null,
+   "plane": "top",
+   "rooms": {
+    "study": 7
+   },
+   "sound": null,
+   "styles": {
+    "den": 8,
+    "library": 5,
+    "office": 1
+   },
+   "tags": [
+    "light",
+    "lamp"
+   ],
+   "under": [],
+   "variants": {
+    "amber": {
+     "anchors": [],
+     "anims": [],
+     "lights": [
+      {
+       "dx": 7,
+       "dy": -14,
+       "kind": "table",
+       "top": true
+      }
+     ],
+     "params": {
+      "shade": "b8742a"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "lamp_banker_amber",
+       "h": 22,
+       "l": -1,
+       "r": 14,
+       "rx": 1,
+       "ry": 19,
+       "t": -19,
+       "w": 16
+      }
+     ]
+    },
+    "green": {
+     "anchors": [],
+     "anims": [],
+     "lights": [
+      {
+       "dx": 7,
+       "dy": -14,
+       "kind": "table",
+       "top": true
+      }
+     ],
+     "params": {
+      "shade": "2e6a46"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "lamp_banker_green",
+       "h": 22,
+       "l": -1,
+       "r": 14,
+       "rx": 1,
+       "ry": 19,
+       "t": -19,
+       "w": 16
+      }
+     ]
+    }
+   },
+   "w": 14,
    "wall_y": null
   },
   "lamp_floor": {
@@ -15183,6 +19211,363 @@
    "w": 20,
    "wall_y": null
   },
+  "laundry_basket3d": {
+   "above": [],
+   "bucketed": true,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    118,
+    118
+   ],
+   "h": 20,
+   "lap": 6,
+   "lean": false,
+   "limit": null,
+   "near": [
+    "wet"
+   ],
+   "needs": null,
+   "note": "a laundry basket by the wall: a blue plastic tub with slots, washing heaped in it; a round wicker hamper with a lid and a towel caught under it; or a white wicker one with a pink rim",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "floor",
+   "rooms": {
+    "bathroom": 7
+   },
+   "sound": null,
+   "styles": {
+    "avocado": 4,
+    "gilded": 0.01,
+    "pink": 4,
+    "tub": 5,
+    "wetroom": 9
+   },
+   "tags": [
+    "clutter",
+    "clothes",
+    "laundry"
+   ],
+   "under": [],
+   "variants": {
+    "plastic": {
+     "anchors": [
+      {
+       "dx": 14,
+       "dy": -10,
+       "name": "laundry_basket"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "wetroom"
+      ],
+      "k": "plastic"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": -4,
+       "bx": 36,
+       "file": "laundry_basket3d_plastic_b0",
+       "h": 31,
+       "l": 1,
+       "r": 29,
+       "rx": -1,
+       "ry": 34,
+       "t": -34,
+       "w": 29
+      },
+      {
+       "b": -4,
+       "bx": 72,
+       "file": "laundry_basket3d_plastic_b1",
+       "h": 31,
+       "l": 1,
+       "r": 29,
+       "rx": -1,
+       "ry": 34,
+       "t": -34,
+       "w": 29
+      },
+      {
+       "b": -4,
+       "bx": 116,
+       "file": "laundry_basket3d_plastic_b2",
+       "h": 31,
+       "l": 1,
+       "r": 29,
+       "rx": -1,
+       "ry": 34,
+       "t": -34,
+       "w": 29
+      },
+      {
+       "b": -4,
+       "bx": 160,
+       "file": "laundry_basket3d_plastic_b3",
+       "h": 31,
+       "l": 1,
+       "r": 29,
+       "rx": -1,
+       "ry": 34,
+       "t": -34,
+       "w": 29
+      },
+      {
+       "b": -4,
+       "bx": 204,
+       "file": "laundry_basket3d_plastic_b4",
+       "h": 31,
+       "l": 1,
+       "r": 29,
+       "rx": -1,
+       "ry": 34,
+       "t": -34,
+       "w": 29
+      },
+      {
+       "b": -4,
+       "bx": 248,
+       "file": "laundry_basket3d_plastic_b5",
+       "h": 31,
+       "l": 1,
+       "r": 29,
+       "rx": -1,
+       "ry": 34,
+       "t": -34,
+       "w": 29
+      },
+      {
+       "b": -4,
+       "bx": 284,
+       "file": "laundry_basket3d_plastic_b6",
+       "h": 31,
+       "l": 1,
+       "r": 29,
+       "rx": -1,
+       "ry": 34,
+       "t": -34,
+       "w": 29
+      }
+     ]
+    },
+    "white": {
+     "anchors": [
+      {
+       "dx": 14,
+       "dy": -10,
+       "name": "laundry_basket"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "pink"
+      ],
+      "k": "white"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": -11,
+       "bx": 36,
+       "file": "laundry_basket3d_white_b0",
+       "h": 35,
+       "l": 0,
+       "r": 35,
+       "rx": 0,
+       "ry": 45,
+       "t": -45,
+       "w": 36
+      },
+      {
+       "b": -11,
+       "bx": 72,
+       "file": "laundry_basket3d_white_b1",
+       "h": 35,
+       "l": 0,
+       "r": 34,
+       "rx": 0,
+       "ry": 45,
+       "t": -45,
+       "w": 35
+      },
+      {
+       "b": -11,
+       "bx": 116,
+       "file": "laundry_basket3d_white_b2",
+       "h": 35,
+       "l": 0,
+       "r": 31,
+       "rx": 0,
+       "ry": 45,
+       "t": -45,
+       "w": 32
+      },
+      {
+       "b": -11,
+       "bx": 160,
+       "file": "laundry_basket3d_white_b3",
+       "h": 35,
+       "l": 0,
+       "r": 30,
+       "rx": 0,
+       "ry": 45,
+       "t": -45,
+       "w": 31
+      },
+      {
+       "b": -11,
+       "bx": 204,
+       "file": "laundry_basket3d_white_b4",
+       "h": 35,
+       "l": -1,
+       "r": 30,
+       "rx": 1,
+       "ry": 45,
+       "t": -45,
+       "w": 32
+      },
+      {
+       "b": -11,
+       "bx": 248,
+       "file": "laundry_basket3d_white_b5",
+       "h": 35,
+       "l": -4,
+       "r": 30,
+       "rx": 4,
+       "ry": 45,
+       "t": -45,
+       "w": 35
+      },
+      {
+       "b": -11,
+       "bx": 284,
+       "file": "laundry_basket3d_white_b6",
+       "h": 35,
+       "l": -5,
+       "r": 30,
+       "rx": 5,
+       "ry": 45,
+       "t": -45,
+       "w": 36
+      }
+     ]
+    },
+    "wicker": {
+     "anchors": [
+      {
+       "dx": 14,
+       "dy": -10,
+       "name": "laundry_basket"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "tub",
+       "avocado"
+      ],
+      "k": "wicker"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": -4,
+       "bx": 36,
+       "file": "laundry_basket3d_wicker_b0",
+       "h": 38,
+       "l": 4,
+       "r": 26,
+       "rx": -4,
+       "ry": 41,
+       "t": -41,
+       "w": 23
+      },
+      {
+       "b": -4,
+       "bx": 72,
+       "file": "laundry_basket3d_wicker_b1",
+       "h": 38,
+       "l": 4,
+       "r": 26,
+       "rx": -4,
+       "ry": 41,
+       "t": -41,
+       "w": 23
+      },
+      {
+       "b": -4,
+       "bx": 116,
+       "file": "laundry_basket3d_wicker_b2",
+       "h": 38,
+       "l": 4,
+       "r": 26,
+       "rx": -4,
+       "ry": 41,
+       "t": -41,
+       "w": 23
+      },
+      {
+       "b": -4,
+       "bx": 160,
+       "file": "laundry_basket3d_wicker_b3",
+       "h": 38,
+       "l": 4,
+       "r": 26,
+       "rx": -4,
+       "ry": 41,
+       "t": -41,
+       "w": 23
+      },
+      {
+       "b": -4,
+       "bx": 204,
+       "file": "laundry_basket3d_wicker_b4",
+       "h": 38,
+       "l": 4,
+       "r": 26,
+       "rx": -4,
+       "ry": 41,
+       "t": -41,
+       "w": 23
+      },
+      {
+       "b": -4,
+       "bx": 248,
+       "file": "laundry_basket3d_wicker_b5",
+       "h": 38,
+       "l": 4,
+       "r": 26,
+       "rx": -4,
+       "ry": 41,
+       "t": -41,
+       "w": 23
+      },
+      {
+       "b": -4,
+       "bx": 284,
+       "file": "laundry_basket3d_wicker_b6",
+       "h": 38,
+       "l": 4,
+       "r": 26,
+       "rx": -4,
+       "ry": 41,
+       "t": -41,
+       "w": 23
+      }
+     ]
+    }
+   },
+   "w": 30,
+   "wall_y": null
+  },
   "light_bulb": {
    "above": [],
    "bucketed": false,
@@ -15386,7 +19771,8 @@
       "for": [
        "classic",
        "student",
-       "office"
+       "office",
+       "wetroom"
       ]
      },
      "slots": [],
@@ -15407,6 +19793,161 @@
     }
    },
    "w": 36,
+   "wall_y": null
+  },
+  "linen_cupboard": {
+   "above": [],
+   "bucketed": true,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    105,
+    108
+   ],
+   "h": 54,
+   "lap": 6,
+   "lean": true,
+   "limit": null,
+   "near": [],
+   "needs": null,
+   "note": "a cream linen cupboard with a cornice: open shelves of folded towels and spare rolls over two panelled doors, bun feet; the right-hand door swings open when searched",
+   "on": [],
+   "opens": {
+    "anchor": "linen_cupboard",
+    "frames": 3,
+    "kind": "door_h"
+   },
+   "pair": null,
+   "plane": "wall",
+   "rooms": {
+    "bathroom": 6
+   },
+   "sound": null,
+   "styles": {
+    "avocado": 2,
+    "pink": 9,
+    "tub": 2
+   },
+   "tags": [
+    "storage",
+    "linen"
+   ],
+   "under": [],
+   "variants": {
+    "cream": {
+     "anchors": [
+      {
+       "dx": 16,
+       "dy": -26,
+       "name": "linen_cupboard"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "pink",
+       "tub",
+       "avocado"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "linen_cupboard_cream_b0",
+       "h": 64,
+       "l": 0,
+       "open_file": "linen_cupboard_cream_b0_open",
+       "r": 42,
+       "rx": 0,
+       "ry": 60,
+       "t": -60,
+       "w": 43
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "linen_cupboard_cream_b1",
+       "h": 64,
+       "l": 0,
+       "open_file": "linen_cupboard_cream_b1_open",
+       "r": 39,
+       "rx": 0,
+       "ry": 60,
+       "t": -60,
+       "w": 40
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "linen_cupboard_cream_b2",
+       "h": 64,
+       "l": 0,
+       "open_file": "linen_cupboard_cream_b2_open",
+       "r": 36,
+       "rx": 0,
+       "ry": 60,
+       "t": -60,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "linen_cupboard_cream_b3",
+       "h": 64,
+       "l": 0,
+       "open_file": "linen_cupboard_cream_b3_open",
+       "r": 34,
+       "rx": 0,
+       "ry": 60,
+       "t": -60,
+       "w": 35
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "linen_cupboard_cream_b4",
+       "h": 64,
+       "l": -2,
+       "open_file": "linen_cupboard_cream_b4_open",
+       "r": 34,
+       "rx": 2,
+       "ry": 60,
+       "t": -60,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "linen_cupboard_cream_b5",
+       "h": 64,
+       "l": -5,
+       "open_file": "linen_cupboard_cream_b5_open",
+       "r": 34,
+       "rx": 5,
+       "ry": 60,
+       "t": -60,
+       "w": 40
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "linen_cupboard_cream_b6",
+       "h": 64,
+       "l": -8,
+       "open_file": "linen_cupboard_cream_b6_open",
+       "r": 34,
+       "rx": 8,
+       "ry": 60,
+       "t": -60,
+       "w": 43
+      }
+     ]
+    }
+   },
+   "w": 34,
    "wall_y": null
   },
   "log_basket": {
@@ -16061,6 +20602,67 @@
    },
    "w": 16,
    "wall_y": null
+  },
+  "map_evac": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 34,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "a large street map pinned to the wall: a blue river, a red marker line threading to a green box marked SAFE, an X, a ringed radio tower",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "decor",
+   "rooms": {
+    "study": 6
+   },
+   "sound": null,
+   "styles": {
+    "radio": 9
+   },
+   "tags": [
+    "picture",
+    "notice"
+   ],
+   "under": [],
+   "variants": {
+    "route": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {},
+     "slots": [],
+     "sprites": [
+      {
+       "b": 34,
+       "bx": 160,
+       "file": "map_evac_route",
+       "h": 36,
+       "l": -1,
+       "r": 46,
+       "rx": 1,
+       "ry": 1,
+       "t": -1,
+       "w": 48
+      }
+     ]
+    }
+   },
+   "w": 46,
+   "wall_y": [
+    20,
+    34
+   ]
   },
   "mattress_floor": {
    "above": [],
@@ -16968,6 +21570,182 @@
    "w": 22,
    "wall_y": null
   },
+  "mirror_bath": {
+   "above": [
+    "basin"
+   ],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 36,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "the mirror over the basin: a mirrored medicine cabinet with its door swung open on bottles (classic), a cracked round one (avocado), a gilt-framed one with ornate corners (gilded), a cracked mirror tile (wetroom), a round one in a pink frame",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "decor",
+   "rooms": {
+    "bathroom": 9
+   },
+   "sound": null,
+   "styles": {
+    "avocado": 9,
+    "gilded": 9,
+    "pink": 9,
+    "tub": 9,
+    "wetroom": 9
+   },
+   "tags": [
+    "picture",
+    "mirror"
+   ],
+   "under": [],
+   "variants": {
+    "cabinet": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "tub"
+      ],
+      "k": "cabinet"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 31,
+       "bx": 160,
+       "file": "mirror_bath_cabinet",
+       "h": 33,
+       "l": -1,
+       "r": 32,
+       "rx": 1,
+       "ry": 1,
+       "t": -1,
+       "w": 34
+      }
+     ]
+    },
+    "gilt": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "gilded"
+      ],
+      "k": "gilt"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 37,
+       "bx": 160,
+       "file": "mirror_bath_gilt",
+       "h": 39,
+       "l": 2,
+       "r": 30,
+       "rx": -2,
+       "ry": 1,
+       "t": -1,
+       "w": 29
+      }
+     ]
+    },
+    "pink_round": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "pink"
+      ],
+      "k": "pink"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 25,
+       "bx": 160,
+       "file": "mirror_bath_pink_round",
+       "h": 25,
+       "l": 1,
+       "r": 25,
+       "rx": -1,
+       "ry": -1,
+       "t": 1,
+       "w": 25
+      }
+     ]
+    },
+    "round_crack": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "avocado"
+      ],
+      "k": "round"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 21,
+       "bx": 160,
+       "file": "mirror_bath_round_crack",
+       "h": 21,
+       "l": 1,
+       "r": 21,
+       "rx": -1,
+       "ry": -1,
+       "t": 1,
+       "w": 21
+      }
+     ]
+    },
+    "tile": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "wetroom"
+      ],
+      "k": "tile"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 23,
+       "bx": 160,
+       "file": "mirror_bath_tile",
+       "h": 25,
+       "l": 4,
+       "r": 30,
+       "rx": -4,
+       "ry": 1,
+       "t": -1,
+       "w": 27
+      }
+     ]
+    }
+   },
+   "w": 36,
+   "wall_y": [
+    18,
+    32
+   ]
+  },
   "mirror_wall": {
    "above": [],
    "bucketed": false,
@@ -17133,6 +21911,151 @@
     22,
     36
    ]
+  },
+  "mop_bucket3d": {
+   "above": [],
+   "bucketed": true,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    118,
+    118
+   ],
+   "h": 34,
+   "lap": 6,
+   "lean": false,
+   "limit": null,
+   "near": [],
+   "needs": null,
+   "note": "a round red mop bucket standing a little out from the wall: grey water inside, the mop head sunk in it and its handle leant back against the wall, a wire handle",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "floor",
+   "rooms": {
+    "bathroom": 6
+   },
+   "sound": null,
+   "styles": {
+    "avocado": 9,
+    "tub": 2,
+    "wetroom": 4
+   },
+   "tags": [
+    "clutter",
+    "wet",
+    "cleaning"
+   ],
+   "under": [],
+   "variants": {
+    "red": {
+     "anchors": [
+      {
+       "dx": 14,
+       "dy": -10,
+       "name": "mop_bucket"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "avocado",
+       "wetroom",
+       "tub"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": -9,
+       "bx": 36,
+       "file": "mop_bucket3d_red_b0",
+       "h": 63,
+       "l": -4,
+       "r": 31,
+       "rx": 4,
+       "ry": 71,
+       "t": -71,
+       "w": 36
+      },
+      {
+       "b": -9,
+       "bx": 72,
+       "file": "mop_bucket3d_red_b1",
+       "h": 63,
+       "l": -3,
+       "r": 29,
+       "rx": 3,
+       "ry": 71,
+       "t": -71,
+       "w": 33
+      },
+      {
+       "b": -9,
+       "bx": 116,
+       "file": "mop_bucket3d_red_b2",
+       "h": 63,
+       "l": -2,
+       "r": 27,
+       "rx": 2,
+       "ry": 71,
+       "t": -71,
+       "w": 30
+      },
+      {
+       "b": -9,
+       "bx": 160,
+       "file": "mop_bucket3d_red_b3",
+       "h": 63,
+       "l": -1,
+       "r": 24,
+       "rx": 1,
+       "ry": 71,
+       "t": -71,
+       "w": 26
+      },
+      {
+       "b": -9,
+       "bx": 204,
+       "file": "mop_bucket3d_red_b4",
+       "h": 63,
+       "l": -1,
+       "r": 22,
+       "rx": 1,
+       "ry": 71,
+       "t": -71,
+       "w": 24
+      },
+      {
+       "b": -9,
+       "bx": 248,
+       "file": "mop_bucket3d_red_b5",
+       "h": 63,
+       "l": -3,
+       "r": 23,
+       "rx": 3,
+       "ry": 71,
+       "t": -71,
+       "w": 27
+      },
+      {
+       "b": -9,
+       "bx": 284,
+       "file": "mop_bucket3d_red_b6",
+       "h": 63,
+       "l": -4,
+       "r": 24,
+       "rx": 4,
+       "ry": 71,
+       "t": -71,
+       "w": 29
+      }
+     ]
+    }
+   },
+   "w": 28,
+   "wall_y": null
   },
   "mugs": {
    "above": [],
@@ -17987,6 +22910,418 @@
     14,
     32
    ]
+  },
+  "noticeboard": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 28,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "a cork board pinned over with snapshots and notes in a hand: CALL MOM, VET \u2014 or TAX DUE!, PAY, CALL BACK MON",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "decor",
+   "rooms": {
+    "study": 8
+   },
+   "sound": null,
+   "styles": {
+    "den": 9,
+    "office": 8,
+    "radio": 2
+   },
+   "tags": [
+    "notice",
+    "picture"
+   ],
+   "under": [],
+   "variants": {
+    "home": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "a": "CALL",
+      "b": "MOM",
+      "c": "VET"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 28,
+       "bx": 160,
+       "file": "noticeboard_home",
+       "h": 30,
+       "l": -1,
+       "r": 40,
+       "rx": 1,
+       "ry": 1,
+       "t": -1,
+       "w": 42
+      }
+     ]
+    },
+    "work": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "a": "TAX",
+      "b": "DUE!",
+      "c": "PAY"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 28,
+       "bx": 160,
+       "file": "noticeboard_work",
+       "h": 30,
+       "l": -1,
+       "r": 40,
+       "rx": 1,
+       "ry": 1,
+       "t": -1,
+       "w": 42
+      }
+     ]
+    }
+   },
+   "w": 40,
+   "wall_y": [
+    20,
+    34
+   ]
+  },
+  "paint_shelf": {
+   "above": [],
+   "bucketed": true,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    105,
+    108
+   ],
+   "h": 52,
+   "lap": 6,
+   "lean": true,
+   "limit": null,
+   "near": [],
+   "needs": null,
+   "note": "a pine shelving unit of paint tins, jars of brushes, bottles of turps and tubes \u2014 rows of labelled tins with drips of colour down the sides",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "wall",
+   "rooms": {
+    "study": 6
+   },
+   "sound": null,
+   "styles": {
+    "radio": 1,
+    "studio": 9
+   },
+   "tags": [
+    "storage",
+    "art",
+    "books"
+   ],
+   "under": [],
+   "variants": {
+    "pine": {
+     "anchors": [
+      {
+       "dx": 14,
+       "dy": -38,
+       "name": "paint_shelf_upper"
+      },
+      {
+       "dx": 14,
+       "dy": -14,
+       "name": "paint_shelf_lower"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fin": "oak"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "paint_shelf_pine_b0",
+       "h": 59,
+       "l": -2,
+       "r": 36,
+       "rx": 2,
+       "ry": 55,
+       "t": -55,
+       "w": 39
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "paint_shelf_pine_b1",
+       "h": 59,
+       "l": -2,
+       "r": 34,
+       "rx": 2,
+       "ry": 55,
+       "t": -55,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "paint_shelf_pine_b2",
+       "h": 59,
+       "l": -2,
+       "r": 30,
+       "rx": 2,
+       "ry": 55,
+       "t": -55,
+       "w": 33
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "paint_shelf_pine_b3",
+       "h": 59,
+       "l": -2,
+       "r": 28,
+       "rx": 2,
+       "ry": 55,
+       "t": -55,
+       "w": 31
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "paint_shelf_pine_b4",
+       "h": 59,
+       "l": -3,
+       "r": 28,
+       "rx": 3,
+       "ry": 55,
+       "t": -55,
+       "w": 32
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "paint_shelf_pine_b5",
+       "h": 59,
+       "l": -6,
+       "r": 28,
+       "rx": 6,
+       "ry": 55,
+       "t": -55,
+       "w": 35
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "paint_shelf_pine_b6",
+       "h": 59,
+       "l": -9,
+       "r": 28,
+       "rx": 9,
+       "ry": 55,
+       "t": -55,
+       "w": 38
+      }
+     ]
+    }
+   },
+   "w": 28,
+   "wall_y": null
+  },
+  "papers_pile": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 8,
+   "lap": 6,
+   "lean": false,
+   "limit": 2,
+   "near": [],
+   "needs": null,
+   "note": "a pile of papers and a folder: squared off on a tidy desk, slid and fanned on a messy one",
+   "on": [
+    "desk"
+   ],
+   "opens": null,
+   "pair": null,
+   "plane": "top",
+   "rooms": {
+    "study": 8
+   },
+   "sound": null,
+   "styles": null,
+   "tags": [
+    "small",
+    "paper"
+   ],
+   "under": [],
+   "variants": {
+    "messy": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "n": 8
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "papers_pile_messy",
+       "h": 9,
+       "l": 0,
+       "r": 22,
+       "rx": 0,
+       "ry": 6,
+       "t": -6,
+       "w": 23
+      }
+     ]
+    },
+    "tidy": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "n": 5
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "papers_pile_tidy",
+       "h": 9,
+       "l": 0,
+       "r": 22,
+       "rx": 0,
+       "ry": 6,
+       "t": -6,
+       "w": 23
+      }
+     ]
+    }
+   },
+   "w": 22,
+   "wall_y": null
+  },
+  "party_hats": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 12,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "paper party hats, striped and tilted, with a few left on their sides",
+   "on": [
+    "table"
+   ],
+   "opens": null,
+   "pair": null,
+   "plane": "top",
+   "rooms": {
+    "dining_room": 7
+   },
+   "sound": null,
+   "styles": {
+    "party": 9
+   },
+   "tags": [
+    "small"
+   ],
+   "under": [],
+   "variants": {
+    "a": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "cols": [
+       "d8483a",
+       "3a7ad8",
+       "3a9a52"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "party_hats_a",
+       "h": 16,
+       "l": -3,
+       "r": 24,
+       "rx": 3,
+       "ry": 14,
+       "t": -14,
+       "w": 28
+      }
+     ]
+    },
+    "b": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "cols": [
+       "e0b830",
+       "a85ac8",
+       "d8483a"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "party_hats_b",
+       "h": 16,
+       "l": -3,
+       "r": 24,
+       "rx": 3,
+       "ry": 14,
+       "t": -14,
+       "w": 28
+      }
+     ]
+    }
+   },
+   "w": 22,
+   "wall_y": null
   },
   "pedal_bin": {
    "above": [],
@@ -19105,9 +24440,7 @@
    "styles": {
     "adult": 1,
     "avocado": 3,
-    "pink": 3,
     "sick": 8,
-    "tub": 3,
     "wetroom": 2
    },
    "tags": [
@@ -19351,6 +24684,7 @@
    },
    "sound": null,
    "styles": {
+    "barricade": 3,
     "hoarder": 2,
     "party": 2,
     "squat": 8,
@@ -19392,6 +24726,182 @@
    },
    "w": 24,
    "wall_y": null
+  },
+  "place_settings": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 6,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "three places laid: a plate, a knife and a fork either side \u2014 or the plates left with a meal half eaten and a toppled glass",
+   "on": [
+    "table"
+   ],
+   "opens": null,
+   "pair": null,
+   "plane": "top",
+   "rooms": {
+    "dining_room": 8
+   },
+   "sound": null,
+   "styles": {
+    "diner": 3,
+    "family": 8,
+    "formal": 8,
+    "party": 2
+   },
+   "tags": [
+    "small",
+    "food"
+   ],
+   "under": [],
+   "variants": {
+    "gilt": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "plate": "f4f0e4",
+      "rim": "c9a24e"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "place_settings_gilt",
+       "h": 5,
+       "l": -3,
+       "r": 33,
+       "rx": 3,
+       "ry": 4,
+       "t": -4,
+       "w": 37
+      }
+     ]
+    },
+    "messy": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "messy": true,
+      "plate": "ece4cc",
+      "rim": "9ab0c8"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "place_settings_messy",
+       "h": 5,
+       "l": -3,
+       "r": 33,
+       "rx": 3,
+       "ry": 4,
+       "t": -4,
+       "w": 37
+      }
+     ]
+    },
+    "plain": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "plate": "f0ece0",
+      "rim": "9ab0c8"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "place_settings_plain",
+       "h": 5,
+       "l": -3,
+       "r": 33,
+       "rx": 3,
+       "ry": 4,
+       "t": -4,
+       "w": 37
+      }
+     ]
+    }
+   },
+   "w": 30,
+   "wall_y": null
+  },
+  "planks_wall": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 34,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "planks nailed across the wall in a hurry \u2014 three rough boards at angles, bent nails, a smear of dried blood and a scrawled STAY OUT",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "decor",
+   "rooms": {
+    "dining_room": 6
+   },
+   "sound": null,
+   "styles": {
+    "barricade": 9
+   },
+   "tags": [
+    "picture",
+    "boards"
+   ],
+   "under": [],
+   "variants": {
+    "boards": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {},
+     "slots": [],
+     "sprites": [
+      {
+       "b": 32,
+       "bx": 160,
+       "file": "planks_wall_boards",
+       "h": 33,
+       "l": 0,
+       "r": 59,
+       "rx": 0,
+       "ry": 0,
+       "t": 0,
+       "w": 60
+      }
+     ]
+    }
+   },
+   "w": 60,
+   "wall_y": [
+    22,
+    36
+   ]
   },
   "plant_pot": {
    "above": [],
@@ -19518,6 +25028,68 @@
    },
    "w": 20,
    "wall_y": null
+  },
+  "portraits_row": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 28,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "three gilt-framed oil portraits hung in a row: a lady in a high collar, a man in a hat and a bearded gentleman, their eyes following the table",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "decor",
+   "rooms": {
+    "dining_room": 5,
+    "living_room": 3
+   },
+   "sound": null,
+   "styles": {
+    "formal": 9,
+    "parlour": 3
+   },
+   "tags": [
+    "picture"
+   ],
+   "under": [],
+   "variants": {
+    "three": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {},
+     "slots": [],
+     "sprites": [
+      {
+       "b": 26,
+       "bx": 160,
+       "file": "portraits_row_three",
+       "h": 34,
+       "l": -1,
+       "r": 56,
+       "rx": 1,
+       "ry": 7,
+       "t": -7,
+       "w": 58
+      }
+     ]
+    }
+   },
+   "w": 56,
+   "wall_y": [
+    24,
+    38
+   ]
   },
   "poster_film": {
    "above": [],
@@ -20113,6 +25685,141 @@
     40
    ]
   },
+  "printer_stand": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    108,
+    120
+   ],
+   "h": 36,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "a printer on a wire stand: a beige dot-matrix with a fan of paper feeding out and a spill of printouts on the floor",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "floor",
+   "rooms": {
+    "study": 6
+   },
+   "sound": null,
+   "styles": {
+    "office": 9
+   },
+   "tags": [
+    "clutter",
+    "work"
+   ],
+   "under": [],
+   "variants": {
+    "cream": {
+     "anchors": [
+      {
+       "dx": 14,
+       "dy": -22,
+       "name": "printer"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "case": "d8d0b8"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "printer_stand_cream",
+       "h": 42,
+       "l": 0,
+       "r": 28,
+       "rx": 0,
+       "ry": 39,
+       "t": -39,
+       "w": 29
+      }
+     ]
+    }
+   },
+   "w": 28,
+   "wall_y": null
+  },
+  "radio_gear": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 20,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "a stack of survivor radio gear on the table: a long transmitter with a row of dials and amber lights, a smaller receiver with a speaker grille, a coiled lead and a telescopic aerial",
+   "on": [
+    "desk"
+   ],
+   "opens": null,
+   "pair": null,
+   "plane": "top",
+   "rooms": {
+    "study": 8
+   },
+   "sound": null,
+   "styles": {
+    "radio": 9
+   },
+   "tags": [
+    "small",
+    "radio"
+   ],
+   "under": [],
+   "variants": {
+    "set": {
+     "anchors": [
+      {
+       "dx": 14,
+       "dy": -8,
+       "name": "radio_set",
+       "top": true
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "k": 0
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "radio_gear_set",
+       "h": 25,
+       "l": -1,
+       "r": 37,
+       "rx": 1,
+       "ry": 22,
+       "t": -22,
+       "w": 39
+      }
+     ]
+    }
+   },
+   "w": 36,
+   "wall_y": null
+  },
   "rag_doll": {
    "above": [],
    "bucketed": false,
@@ -20514,6 +26221,116 @@
     }
    },
    "w": 76,
+   "wall_y": null
+  },
+  "record_player": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 12,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "a record player in a teak case: the lid up, a black record on the turntable and the tonearm over it",
+   "on": [
+    "table",
+    "small",
+    "tv"
+   ],
+   "opens": null,
+   "pair": null,
+   "plane": "top",
+   "rooms": {
+    "dining_room": 5,
+    "living_room": 4
+   },
+   "sound": null,
+   "styles": {
+    "diner": 8,
+    "mid": 5,
+    "parlour": 2
+   },
+   "tags": [
+    "small",
+    "music"
+   ],
+   "under": [],
+   "variants": {
+    "teak": {
+     "anchors": [],
+     "anims": [
+      {
+       "color": "1a1a1e",
+       "dx": 7,
+       "dy": -8,
+       "h": 3,
+       "kind": "spin",
+       "top": true,
+       "w": 10
+      }
+     ],
+     "lights": [],
+     "params": {
+      "case": "9a6234"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "record_player_teak",
+       "h": 16,
+       "l": -1,
+       "r": 22,
+       "rx": 1,
+       "ry": 13,
+       "t": -13,
+       "w": 24
+      }
+     ]
+    },
+    "white": {
+     "anchors": [],
+     "anims": [
+      {
+       "color": "1a1a1e",
+       "dx": 7,
+       "dy": -8,
+       "h": 3,
+       "kind": "spin",
+       "top": true,
+       "w": 10
+      }
+     ],
+     "lights": [],
+     "params": {
+      "case": "e8e4d8"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "record_player_white",
+       "h": 16,
+       "l": -1,
+       "r": 22,
+       "rx": 1,
+       "ry": 13,
+       "t": -13,
+       "w": 24
+      }
+     ]
+    }
+   },
+   "w": 22,
    "wall_y": null
   },
   "rocking_horse": {
@@ -21918,6 +27735,148 @@
    "w": 25,
    "wall_y": null
   },
+  "shower_walkin": {
+   "above": [],
+   "bucketed": true,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    114,
+    114
+   ],
+   "h": 56,
+   "lap": 6,
+   "lean": false,
+   "limit": null,
+   "near": [],
+   "needs": null,
+   "note": "a walk-in shower standing out into the room: a tiled back wall with its head and riser, a tray coming out with its drain and two bottles, a glass side screen in perspective \u2014 soap on a ledge, black mould along the tray",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "front",
+   "rooms": {
+    "bathroom": 6
+   },
+   "sound": null,
+   "styles": {
+    "tub": 9,
+    "wetroom": 2
+   },
+   "tags": [
+    "wet",
+    "shower"
+   ],
+   "under": [],
+   "variants": {
+    "glass": {
+     "anchors": [
+      {
+       "dx": 24,
+       "dy": -18,
+       "name": "wall_shower"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "tub",
+       "wetroom"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 36,
+       "file": "shower_walkin_glass_b0",
+       "h": 101,
+       "l": -12,
+       "r": 37,
+       "rx": 12,
+       "ry": 99,
+       "t": -99,
+       "w": 50
+      },
+      {
+       "b": 1,
+       "bx": 72,
+       "file": "shower_walkin_glass_b1",
+       "h": 101,
+       "l": -7,
+       "r": 37,
+       "rx": 7,
+       "ry": 99,
+       "t": -99,
+       "w": 45
+      },
+      {
+       "b": 1,
+       "bx": 116,
+       "file": "shower_walkin_glass_b2",
+       "h": 101,
+       "l": -1,
+       "r": 37,
+       "rx": 1,
+       "ry": 99,
+       "t": -99,
+       "w": 39
+      },
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "shower_walkin_glass_b3",
+       "h": 101,
+       "l": 5,
+       "r": 39,
+       "rx": -5,
+       "ry": 99,
+       "t": -99,
+       "w": 35
+      },
+      {
+       "b": 1,
+       "bx": 204,
+       "file": "shower_walkin_glass_b4",
+       "h": 101,
+       "l": 7,
+       "r": 45,
+       "rx": -7,
+       "ry": 99,
+       "t": -99,
+       "w": 39
+      },
+      {
+       "b": 1,
+       "bx": 248,
+       "file": "shower_walkin_glass_b5",
+       "h": 101,
+       "l": 7,
+       "r": 51,
+       "rx": -7,
+       "ry": 99,
+       "t": -99,
+       "w": 45
+      },
+      {
+       "b": 1,
+       "bx": 284,
+       "file": "shower_walkin_glass_b6",
+       "h": 101,
+       "l": 7,
+       "r": 56,
+       "rx": -7,
+       "ry": 99,
+       "t": -99,
+       "w": 50
+      }
+     ]
+    }
+   },
+   "w": 44,
+   "wall_y": null
+  },
   "side_table": {
    "above": [],
    "bucketed": true,
@@ -22907,6 +28866,68 @@
    "w": 30,
    "wall_y": null
   },
+  "sketches_wall": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 28,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "sheets of paper pinned to the plaster: a line drawing of a sailing boat, a watercolour of tulips in a blue vase, and a row of paint tubes hung below on a string",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "decor",
+   "rooms": {
+    "study": 6
+   },
+   "sound": null,
+   "styles": {
+    "library": 1,
+    "studio": 9
+   },
+   "tags": [
+    "picture",
+    "art"
+   ],
+   "under": [],
+   "variants": {
+    "sheets": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {},
+     "slots": [],
+     "sprites": [
+      {
+       "b": 26,
+       "bx": 160,
+       "file": "sketches_wall_sheets",
+       "h": 28,
+       "l": 0,
+       "r": 34,
+       "rx": 0,
+       "ry": 1,
+       "t": -1,
+       "w": 35
+      }
+     ]
+    }
+   },
+   "w": 36,
+   "wall_y": [
+    20,
+    36
+   ]
+  },
   "slippers": {
    "above": [],
    "bucketed": false,
@@ -22936,11 +28957,9 @@
    "sound": null,
    "styles": {
     "adult": 4,
-    "avocado": 2,
+    "gilded": 3,
     "kid": 1,
-    "pink": 3,
-    "sick": 2,
-    "tub": 3
+    "sick": 2
    },
    "tags": [
     "clutter"
@@ -23705,6 +29724,146 @@
     26
    ]
   },
+  "stool_radio": {
+   "above": [],
+   "bucketed": true,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    118,
+    118
+   ],
+   "h": 38,
+   "lap": 6,
+   "lean": false,
+   "limit": null,
+   "near": [],
+   "needs": null,
+   "note": "a wooden stool against the wall with a transistor radio on it, its aerial up, a speaker grille and a tuning dial",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "floor",
+   "rooms": {
+    "bathroom": 5
+   },
+   "sound": null,
+   "styles": {
+    "avocado": 9
+   },
+   "tags": [
+    "clutter",
+    "music"
+   ],
+   "under": [],
+   "variants": {
+    "teak": {
+     "anchors": [
+      {
+       "dx": 12,
+       "dy": -17,
+       "name": "radio_stool"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "avocado"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": -7,
+       "bx": 36,
+       "file": "stool_radio_teak_b0",
+       "h": 56,
+       "l": -5,
+       "r": 28,
+       "rx": 5,
+       "ry": 62,
+       "t": -62,
+       "w": 34
+      },
+      {
+       "b": -7,
+       "bx": 72,
+       "file": "stool_radio_teak_b1",
+       "h": 56,
+       "l": -3,
+       "r": 27,
+       "rx": 3,
+       "ry": 62,
+       "t": -62,
+       "w": 31
+      },
+      {
+       "b": -7,
+       "bx": 116,
+       "file": "stool_radio_teak_b2",
+       "h": 56,
+       "l": 0,
+       "r": 26,
+       "rx": 0,
+       "ry": 62,
+       "t": -62,
+       "w": 27
+      },
+      {
+       "b": -7,
+       "bx": 160,
+       "file": "stool_radio_teak_b3",
+       "h": 56,
+       "l": 2,
+       "r": 25,
+       "rx": -2,
+       "ry": 62,
+       "t": -62,
+       "w": 24
+      },
+      {
+       "b": -7,
+       "bx": 204,
+       "file": "stool_radio_teak_b4",
+       "h": 56,
+       "l": 1,
+       "r": 24,
+       "rx": -1,
+       "ry": 62,
+       "t": -62,
+       "w": 24
+      },
+      {
+       "b": -7,
+       "bx": 248,
+       "file": "stool_radio_teak_b5",
+       "h": 56,
+       "l": -2,
+       "r": 27,
+       "rx": 2,
+       "ry": 62,
+       "t": -62,
+       "w": 30
+      },
+      {
+       "b": -7,
+       "bx": 284,
+       "file": "stool_radio_teak_b6",
+       "h": 56,
+       "l": -4,
+       "r": 29,
+       "rx": 4,
+       "ry": 62,
+       "t": -62,
+       "w": 34
+      }
+     ]
+    }
+   },
+   "w": 24,
+   "wall_y": null
+  },
   "suitcase": {
    "above": [],
    "bucketed": false,
@@ -23960,6 +30119,284 @@
     }
    },
    "w": 26,
+   "wall_y": null
+  },
+  "table_dining": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    114,
+    118
+   ],
+   "h": 44,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "the dining table with its chairs standing behind it: a lace-clothed family table with spindle chairs, a round sixties tulip table with two moulded chairs, a long bare mahogany table with high-backed chairs, a birthday table under a confetti cloth with small chairs \u2014 or a table dragged on its edge with the chairs jammed against it",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "front",
+   "rooms": {
+    "dining_room": 10
+   },
+   "sound": null,
+   "styles": null,
+   "tags": [
+    "dining",
+    "table"
+   ],
+   "under": [],
+   "variants": {
+    "diner": {
+     "anchors": [
+      {
+       "dx": 30,
+       "dy": -26,
+       "name": "table",
+       "top": true
+      },
+      {
+       "dx": 66,
+       "dy": -26,
+       "name": "table_end",
+       "top": true
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "diner"
+      ],
+      "kind": "diner"
+     },
+     "slots": [
+      {
+       "dx0": 8,
+       "dx1": 84,
+       "dy": -27,
+       "id": "top",
+       "kinds": [
+        "table",
+        "small"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "table_dining_diner",
+       "h": 42,
+       "l": 6,
+       "r": 86,
+       "rx": -6,
+       "ry": 41,
+       "t": -41,
+       "w": 81
+      }
+     ]
+    },
+    "family": {
+     "anchors": [
+      {
+       "dx": 30,
+       "dy": -26,
+       "name": "table",
+       "top": true
+      },
+      {
+       "dx": 66,
+       "dy": -26,
+       "name": "table_end",
+       "top": true
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "family"
+      ],
+      "kind": "family"
+     },
+     "slots": [
+      {
+       "dx0": 8,
+       "dx1": 84,
+       "dy": -26,
+       "id": "top",
+       "kinds": [
+        "table",
+        "small"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "table_dining_family",
+       "h": 45,
+       "l": 0,
+       "r": 92,
+       "rx": 0,
+       "ry": 44,
+       "t": -44,
+       "w": 93
+      }
+     ]
+    },
+    "formal": {
+     "anchors": [
+      {
+       "dx": 30,
+       "dy": -26,
+       "name": "table",
+       "top": true
+      },
+      {
+       "dx": 66,
+       "dy": -26,
+       "name": "table_end",
+       "top": true
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "formal"
+      ],
+      "kind": "formal"
+     },
+     "slots": [
+      {
+       "dx0": 8,
+       "dx1": 84,
+       "dy": -26,
+       "id": "top",
+       "kinds": [
+        "table",
+        "small"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "table_dining_formal",
+       "h": 55,
+       "l": 0,
+       "r": 92,
+       "rx": 0,
+       "ry": 54,
+       "t": -54,
+       "w": 93
+      }
+     ]
+    },
+    "party": {
+     "anchors": [
+      {
+       "dx": 30,
+       "dy": -26,
+       "name": "table",
+       "top": true
+      },
+      {
+       "dx": 66,
+       "dy": -26,
+       "name": "table_end",
+       "top": true
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "party"
+      ],
+      "kind": "party"
+     },
+     "slots": [
+      {
+       "dx0": 8,
+       "dx1": 84,
+       "dy": -26,
+       "id": "top",
+       "kinds": [
+        "table",
+        "small"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "table_dining_party",
+       "h": 37,
+       "l": 0,
+       "r": 92,
+       "rx": 0,
+       "ry": 36,
+       "t": -36,
+       "w": 93
+      }
+     ]
+    },
+    "tipped": {
+     "anchors": [
+      {
+       "dx": 30,
+       "dy": -26,
+       "name": "table",
+       "top": true
+      },
+      {
+       "dx": 66,
+       "dy": -26,
+       "name": "table_end",
+       "top": true
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "barricade"
+      ],
+      "kind": "tipped"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 1,
+       "bx": 160,
+       "file": "table_dining_tipped",
+       "h": 43,
+       "l": -12,
+       "r": 96,
+       "rx": 12,
+       "ry": 41,
+       "t": -41,
+       "w": 109
+      }
+     ]
+    }
+   },
+   "w": 92,
    "wall_y": null
   },
   "table_kitchen": {
@@ -24676,6 +31113,659 @@
    "w": 12,
    "wall_y": null
   },
+  "toilet": {
+   "above": [],
+   "bucketed": true,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    114,
+    114
+   ],
+   "h": 36,
+   "lap": 6,
+   "lean": false,
+   "limit": null,
+   "near": [],
+   "needs": null,
+   "note": "a close-coupled toilet standing out from the wall, drawn in perspective: the cistern and its lever, the oval seat from above \u2014 white, avocado with its lid up, a gold throne with a red velvet seat, a squalid grey one, a pink one with a black seat \u2014 a roll of paper on its holder beside it",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "front",
+   "rooms": {
+    "bathroom": 10
+   },
+   "sound": null,
+   "styles": null,
+   "tags": [
+    "toilet",
+    "wet"
+   ],
+   "under": [],
+   "variants": {
+    "avocado": {
+     "anchors": [
+      {
+       "dx": 12,
+       "dy": -22,
+       "name": "toilet"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "avocado"
+      ],
+      "t": "avocado"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "toilet_avocado_b0",
+       "h": 49,
+       "l": -1,
+       "r": 44,
+       "rx": 1,
+       "ry": 45,
+       "t": -45,
+       "w": 46
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "toilet_avocado_b1",
+       "h": 49,
+       "l": -1,
+       "r": 44,
+       "rx": 1,
+       "ry": 45,
+       "t": -45,
+       "w": 46
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "toilet_avocado_b2",
+       "h": 49,
+       "l": -1,
+       "r": 44,
+       "rx": 1,
+       "ry": 45,
+       "t": -45,
+       "w": 46
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "toilet_avocado_b3",
+       "h": 49,
+       "l": 0,
+       "r": 44,
+       "rx": 0,
+       "ry": 45,
+       "t": -45,
+       "w": 45
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "toilet_avocado_b4",
+       "h": 49,
+       "l": -1,
+       "r": 44,
+       "rx": 1,
+       "ry": 45,
+       "t": -45,
+       "w": 46
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "toilet_avocado_b5",
+       "h": 49,
+       "l": -5,
+       "r": 44,
+       "rx": 5,
+       "ry": 45,
+       "t": -45,
+       "w": 50
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "toilet_avocado_b6",
+       "h": 49,
+       "l": -8,
+       "r": 44,
+       "rx": 8,
+       "ry": 45,
+       "t": -45,
+       "w": 53
+      }
+     ]
+    },
+    "gold": {
+     "anchors": [
+      {
+       "dx": 12,
+       "dy": -22,
+       "name": "toilet"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "gilded"
+      ],
+      "t": "gold"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "toilet_gold_b0",
+       "h": 49,
+       "l": -1,
+       "r": 38,
+       "rx": 1,
+       "ry": 45,
+       "t": -45,
+       "w": 40
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "toilet_gold_b1",
+       "h": 49,
+       "l": -1,
+       "r": 34,
+       "rx": 1,
+       "ry": 45,
+       "t": -45,
+       "w": 36
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "toilet_gold_b2",
+       "h": 49,
+       "l": -1,
+       "r": 30,
+       "rx": 1,
+       "ry": 45,
+       "t": -45,
+       "w": 32
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "toilet_gold_b3",
+       "h": 49,
+       "l": 0,
+       "r": 28,
+       "rx": 0,
+       "ry": 45,
+       "t": -45,
+       "w": 29
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "toilet_gold_b4",
+       "h": 49,
+       "l": -1,
+       "r": 29,
+       "rx": 1,
+       "ry": 45,
+       "t": -45,
+       "w": 31
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "toilet_gold_b5",
+       "h": 49,
+       "l": -5,
+       "r": 29,
+       "rx": 5,
+       "ry": 45,
+       "t": -45,
+       "w": 35
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "toilet_gold_b6",
+       "h": 49,
+       "l": -8,
+       "r": 29,
+       "rx": 8,
+       "ry": 45,
+       "t": -45,
+       "w": 38
+      }
+     ]
+    },
+    "pink": {
+     "anchors": [
+      {
+       "dx": 12,
+       "dy": -22,
+       "name": "toilet"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "pink"
+      ],
+      "t": "pink"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "toilet_pink_b0",
+       "h": 49,
+       "l": -1,
+       "r": 44,
+       "rx": 1,
+       "ry": 45,
+       "t": -45,
+       "w": 46
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "toilet_pink_b1",
+       "h": 49,
+       "l": -1,
+       "r": 44,
+       "rx": 1,
+       "ry": 45,
+       "t": -45,
+       "w": 46
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "toilet_pink_b2",
+       "h": 49,
+       "l": -1,
+       "r": 44,
+       "rx": 1,
+       "ry": 45,
+       "t": -45,
+       "w": 46
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "toilet_pink_b3",
+       "h": 49,
+       "l": 0,
+       "r": 44,
+       "rx": 0,
+       "ry": 45,
+       "t": -45,
+       "w": 45
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "toilet_pink_b4",
+       "h": 49,
+       "l": -1,
+       "r": 44,
+       "rx": 1,
+       "ry": 45,
+       "t": -45,
+       "w": 46
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "toilet_pink_b5",
+       "h": 49,
+       "l": -5,
+       "r": 44,
+       "rx": 5,
+       "ry": 45,
+       "t": -45,
+       "w": 50
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "toilet_pink_b6",
+       "h": 49,
+       "l": -8,
+       "r": 44,
+       "rx": 8,
+       "ry": 45,
+       "t": -45,
+       "w": 53
+      }
+     ]
+    },
+    "wet": {
+     "anchors": [
+      {
+       "dx": 12,
+       "dy": -22,
+       "name": "toilet"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "wetroom"
+      ],
+      "t": "wet"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "toilet_wet_b0",
+       "h": 49,
+       "l": -13,
+       "r": 56,
+       "rx": 13,
+       "ry": 45,
+       "t": -45,
+       "w": 70
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "toilet_wet_b1",
+       "h": 49,
+       "l": -13,
+       "r": 56,
+       "rx": 13,
+       "ry": 45,
+       "t": -45,
+       "w": 70
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "toilet_wet_b2",
+       "h": 49,
+       "l": -13,
+       "r": 56,
+       "rx": 13,
+       "ry": 45,
+       "t": -45,
+       "w": 70
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "toilet_wet_b3",
+       "h": 49,
+       "l": -13,
+       "r": 56,
+       "rx": 13,
+       "ry": 45,
+       "t": -45,
+       "w": 70
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "toilet_wet_b4",
+       "h": 49,
+       "l": -13,
+       "r": 56,
+       "rx": 13,
+       "ry": 45,
+       "t": -45,
+       "w": 70
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "toilet_wet_b5",
+       "h": 49,
+       "l": -13,
+       "r": 56,
+       "rx": 13,
+       "ry": 45,
+       "t": -45,
+       "w": 70
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "toilet_wet_b6",
+       "h": 49,
+       "l": -13,
+       "r": 56,
+       "rx": 13,
+       "ry": 45,
+       "t": -45,
+       "w": 70
+      }
+     ]
+    },
+    "white": {
+     "anchors": [
+      {
+       "dx": 12,
+       "dy": -22,
+       "name": "toilet"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "tub"
+      ],
+      "t": "white"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "toilet_white_b0",
+       "h": 49,
+       "l": -1,
+       "r": 44,
+       "rx": 1,
+       "ry": 45,
+       "t": -45,
+       "w": 46
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "toilet_white_b1",
+       "h": 49,
+       "l": -1,
+       "r": 44,
+       "rx": 1,
+       "ry": 45,
+       "t": -45,
+       "w": 46
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "toilet_white_b2",
+       "h": 49,
+       "l": -1,
+       "r": 44,
+       "rx": 1,
+       "ry": 45,
+       "t": -45,
+       "w": 46
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "toilet_white_b3",
+       "h": 49,
+       "l": 0,
+       "r": 44,
+       "rx": 0,
+       "ry": 45,
+       "t": -45,
+       "w": 45
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "toilet_white_b4",
+       "h": 49,
+       "l": -1,
+       "r": 44,
+       "rx": 1,
+       "ry": 45,
+       "t": -45,
+       "w": 46
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "toilet_white_b5",
+       "h": 49,
+       "l": -5,
+       "r": 44,
+       "rx": 5,
+       "ry": 45,
+       "t": -45,
+       "w": 50
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "toilet_white_b6",
+       "h": 49,
+       "l": -8,
+       "r": 44,
+       "rx": 8,
+       "ry": 45,
+       "t": -45,
+       "w": 53
+      }
+     ]
+    }
+   },
+   "w": 46,
+   "wall_y": null
+  },
+  "towel_rail": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 30,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "a towel rail on the wall under the window line: a heated chrome ladder rail with two towels slung over it, or a gold stand with a plush red towel",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "decor",
+   "rooms": {
+    "bathroom": 7
+   },
+   "sound": null,
+   "styles": {
+    "avocado": 2,
+    "gilded": 5,
+    "pink": 3,
+    "tub": 9,
+    "wetroom": 1
+   },
+   "tags": [
+    "towels"
+   ],
+   "under": [],
+   "variants": {
+    "chrome": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "tub",
+       "pink",
+       "avocado",
+       "wetroom"
+      ],
+      "k": "chrome"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 28,
+       "bx": 160,
+       "file": "towel_rail_chrome",
+       "h": 30,
+       "l": -1,
+       "r": 31,
+       "rx": 1,
+       "ry": 1,
+       "t": -1,
+       "w": 33
+      }
+     ]
+    },
+    "gold": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "gilded"
+      ],
+      "k": "gold"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 33,
+       "bx": 160,
+       "file": "towel_rail_gold",
+       "h": 35,
+       "l": -1,
+       "r": 14,
+       "rx": 1,
+       "ry": 1,
+       "t": -1,
+       "w": 16
+      }
+     ]
+    }
+   },
+   "w": 36,
+   "wall_y": [
+    68,
+    70
+   ]
+  },
   "toy_chest": {
    "above": [],
    "bucketed": true,
@@ -24993,6 +32083,107 @@
    "w": 27,
    "wall_y": null
   },
+  "trolley_drinks": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    110,
+    120
+   ],
+   "h": 34,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [
+    "table",
+    "storage"
+   ],
+   "needs": null,
+   "note": "a two-tier drinks trolley on castors: brass rails, bottles and a soda siphon on the top shelf, glasses and an ice bucket below",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "floor",
+   "rooms": {
+    "dining_room": 5,
+    "living_room": 2
+   },
+   "sound": null,
+   "styles": {
+    "diner": 2,
+    "family": 5,
+    "formal": 5
+   },
+   "tags": [
+    "clutter",
+    "storage"
+   ],
+   "under": [],
+   "variants": {
+    "brass": {
+     "anchors": [
+      {
+       "dx": 15,
+       "dy": -16,
+       "name": "trolley"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "col": "c8a050"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "trolley_drinks_brass",
+       "h": 48,
+       "l": -1,
+       "r": 31,
+       "rx": 1,
+       "ry": 44,
+       "t": -44,
+       "w": 33
+      }
+     ]
+    },
+    "chrome": {
+     "anchors": [
+      {
+       "dx": 15,
+       "dy": -16,
+       "name": "trolley"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "col": "b8bcc0"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "trolley_drinks_chrome",
+       "h": 48,
+       "l": -1,
+       "r": 31,
+       "rx": 1,
+       "ry": 44,
+       "t": -44,
+       "w": 33
+      }
+     ]
+    }
+   },
+   "w": 30,
+   "wall_y": null
+  },
   "trolley_kitchen": {
    "above": [],
    "bucketed": false,
@@ -25307,6 +32498,93 @@
     26,
     36
    ]
+  },
+  "typewriter": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 11,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "a manual typewriter with a sheet in the roller: a curved key bank, a round-keyed front, the carriage on top",
+   "on": [
+    "desk"
+   ],
+   "opens": null,
+   "pair": null,
+   "plane": "top",
+   "rooms": {
+    "study": 5
+   },
+   "sound": null,
+   "styles": {
+    "den": 6,
+    "library": 5,
+    "radio": 2
+   },
+   "tags": [
+    "small",
+    "work"
+   ],
+   "under": [],
+   "variants": {
+    "black": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "body": "2a2a2e"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "typewriter_black",
+       "h": 18,
+       "l": -1,
+       "r": 17,
+       "rx": 1,
+       "ry": 15,
+       "t": -15,
+       "w": 19
+      }
+     ]
+    },
+    "green": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "body": "3e5a4a"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "typewriter_green",
+       "h": 18,
+       "l": -1,
+       "r": 17,
+       "rx": 1,
+       "ry": 15,
+       "t": -15,
+       "w": 19
+      }
+     ]
+    }
+   },
+   "w": 16,
+   "wall_y": null
   },
   "unit_base": {
    "above": [],
@@ -29163,6 +36441,270 @@
    "w": 8,
    "wall_y": null
   },
+  "vanity": {
+   "above": [],
+   "bucketed": true,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    114,
+    114
+   ],
+   "h": 40,
+   "lap": 6,
+   "lean": false,
+   "limit": null,
+   "near": [],
+   "needs": null,
+   "note": "a vanity unit standing out from the wall: a tiled upstand, a worktop slab with an avocado basin set into it, two panelled doors over a recessed plinth \u2014 one open on bleach and sponges \u2014 and a tumbler on the slab",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "front",
+   "rooms": {
+    "bathroom": 7
+   },
+   "sound": null,
+   "styles": {
+    "avocado": 9
+   },
+   "tags": [
+    "basin",
+    "wet",
+    "storage"
+   ],
+   "under": [],
+   "variants": {
+    "avocado": {
+     "anchors": [
+      {
+       "dx": 3,
+       "dy": -24,
+       "name": "vanity"
+      },
+      {
+       "dx": 52,
+       "dy": -38,
+       "name": "worktop"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "avocado"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 5,
+       "bx": 36,
+       "file": "vanity_avocado_b0",
+       "h": 54,
+       "l": 1,
+       "r": 64,
+       "rx": -1,
+       "ry": 48,
+       "t": -48,
+       "w": 64
+      },
+      {
+       "b": 5,
+       "bx": 72,
+       "file": "vanity_avocado_b1",
+       "h": 54,
+       "l": 1,
+       "r": 60,
+       "rx": -1,
+       "ry": 48,
+       "t": -48,
+       "w": 60
+      },
+      {
+       "b": 5,
+       "bx": 116,
+       "file": "vanity_avocado_b2",
+       "h": 54,
+       "l": 1,
+       "r": 60,
+       "rx": -1,
+       "ry": 48,
+       "t": -48,
+       "w": 60
+      },
+      {
+       "b": 5,
+       "bx": 160,
+       "file": "vanity_avocado_b3",
+       "h": 54,
+       "l": 1,
+       "r": 60,
+       "rx": -1,
+       "ry": 48,
+       "t": -48,
+       "w": 60
+      },
+      {
+       "b": 5,
+       "bx": 204,
+       "file": "vanity_avocado_b4",
+       "h": 54,
+       "l": -1,
+       "r": 60,
+       "rx": 1,
+       "ry": 48,
+       "t": -48,
+       "w": 62
+      },
+      {
+       "b": 5,
+       "bx": 248,
+       "file": "vanity_avocado_b5",
+       "h": 54,
+       "l": -7,
+       "r": 60,
+       "rx": 7,
+       "ry": 48,
+       "t": -48,
+       "w": 68
+      },
+      {
+       "b": 5,
+       "bx": 284,
+       "file": "vanity_avocado_b6",
+       "h": 54,
+       "l": -12,
+       "r": 60,
+       "rx": 12,
+       "ry": 48,
+       "t": -48,
+       "w": 73
+      }
+     ]
+    }
+   },
+   "w": 62,
+   "wall_y": null
+  },
+  "vase_flowers": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 22,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "a glass vase of tulips or daisies on the table \u2014 or the same flowers long dead, brown heads hanging over the rim",
+   "on": [
+    "table",
+    "small"
+   ],
+   "opens": null,
+   "pair": null,
+   "plane": "top",
+   "rooms": {
+    "dining_room": 7,
+    "living_room": 2
+   },
+   "sound": null,
+   "styles": {
+    "cosy": 4,
+    "diner": 6,
+    "family": 6,
+    "formal": 4,
+    "parlour": 3
+   },
+   "tags": [
+    "small",
+    "plant"
+   ],
+   "under": [],
+   "variants": {
+    "daisies": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "bloom": "f4f0e0",
+      "vase": "c8a860"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "vase_flowers_daisies",
+       "h": 26,
+       "l": 0,
+       "r": 12,
+       "rx": 0,
+       "ry": 23,
+       "t": -23,
+       "w": 13
+      }
+     ]
+    },
+    "dead": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "bloom": "6a5a3a",
+      "dead": true,
+      "vase": "8ab4c0"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "vase_flowers_dead",
+       "h": 25,
+       "l": 0,
+       "r": 12,
+       "rx": 0,
+       "ry": 22,
+       "t": -22,
+       "w": 13
+      }
+     ]
+    },
+    "tulips": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "bloom": "e8503a",
+      "vase": "8ab4c0"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "vase_flowers_tulips",
+       "h": 26,
+       "l": 0,
+       "r": 12,
+       "rx": 0,
+       "ry": 23,
+       "t": -23,
+       "w": 13
+      }
+     ]
+    }
+   },
+   "w": 12,
+   "wall_y": null
+  },
   "wall_cupboards": {
    "above": [
     "unit"
@@ -29368,6 +36910,7 @@
    "sound": null,
    "styles": {
     "adult": 3,
+    "barricade": 1,
     "cosy": 3,
     "den": 3,
     "diner": 2,
@@ -30552,6 +38095,510 @@
    "w": 35,
    "wall_y": null
   },
+  "washer": {
+   "above": [],
+   "bucketed": true,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    114,
+    114
+   ],
+   "h": 52,
+   "lap": 6,
+   "lean": false,
+   "limit": null,
+   "near": [],
+   "needs": null,
+   "note": "a front-loader standing out from the wall: a control panel with a soap drawer, display and dial, a chrome-bezelled porthole over the steel drum, a kick plate \u2014 with the door swung wide and the wash dragged half out onto the floor, or shut",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "front",
+   "rooms": {
+    "bathroom": 7
+   },
+   "sound": null,
+   "styles": {
+    "avocado": 2,
+    "tub": 2,
+    "wetroom": 9
+   },
+   "tags": [
+    "wet",
+    "laundry"
+   ],
+   "under": [],
+   "variants": {
+    "open": {
+     "anchors": [
+      {
+       "dx": 40,
+       "dy": -28,
+       "name": "washer"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "door": true,
+      "for": [
+       "wetroom"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 5,
+       "bx": 36,
+       "file": "washer_open_b0",
+       "h": 53,
+       "l": 25,
+       "r": 73,
+       "rx": -25,
+       "ry": 47,
+       "t": -47,
+       "w": 49
+      },
+      {
+       "b": 5,
+       "bx": 72,
+       "file": "washer_open_b1",
+       "h": 53,
+       "l": 25,
+       "r": 69,
+       "rx": -25,
+       "ry": 47,
+       "t": -47,
+       "w": 45
+      },
+      {
+       "b": 5,
+       "bx": 116,
+       "file": "washer_open_b2",
+       "h": 53,
+       "l": 25,
+       "r": 65,
+       "rx": -25,
+       "ry": 47,
+       "t": -47,
+       "w": 41
+      },
+      {
+       "b": 5,
+       "bx": 160,
+       "file": "washer_open_b3",
+       "h": 53,
+       "l": 25,
+       "r": 65,
+       "rx": -25,
+       "ry": 47,
+       "t": -47,
+       "w": 41
+      },
+      {
+       "b": 5,
+       "bx": 204,
+       "file": "washer_open_b4",
+       "h": 53,
+       "l": 25,
+       "r": 65,
+       "rx": -25,
+       "ry": 47,
+       "t": -47,
+       "w": 41
+      },
+      {
+       "b": 5,
+       "bx": 248,
+       "file": "washer_open_b5",
+       "h": 53,
+       "l": 24,
+       "r": 65,
+       "rx": -24,
+       "ry": 47,
+       "t": -47,
+       "w": 42
+      },
+      {
+       "b": 5,
+       "bx": 284,
+       "file": "washer_open_b6",
+       "h": 53,
+       "l": 20,
+       "r": 65,
+       "rx": -20,
+       "ry": 47,
+       "t": -47,
+       "w": 46
+      }
+     ]
+    },
+    "shut": {
+     "anchors": [
+      {
+       "dx": 40,
+       "dy": -28,
+       "name": "washer"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "door": false,
+      "for": [
+       "tub",
+       "avocado",
+       "wetroom"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 0,
+       "bx": 36,
+       "file": "washer_shut_b0",
+       "h": 48,
+       "l": 32,
+       "r": 73,
+       "rx": -32,
+       "ry": 47,
+       "t": -47,
+       "w": 42
+      },
+      {
+       "b": 0,
+       "bx": 72,
+       "file": "washer_shut_b1",
+       "h": 48,
+       "l": 32,
+       "r": 69,
+       "rx": -32,
+       "ry": 47,
+       "t": -47,
+       "w": 38
+      },
+      {
+       "b": 0,
+       "bx": 116,
+       "file": "washer_shut_b2",
+       "h": 48,
+       "l": 32,
+       "r": 65,
+       "rx": -32,
+       "ry": 47,
+       "t": -47,
+       "w": 34
+      },
+      {
+       "b": 0,
+       "bx": 160,
+       "file": "washer_shut_b3",
+       "h": 48,
+       "l": 32,
+       "r": 65,
+       "rx": -32,
+       "ry": 47,
+       "t": -47,
+       "w": 34
+      },
+      {
+       "b": 0,
+       "bx": 204,
+       "file": "washer_shut_b4",
+       "h": 48,
+       "l": 28,
+       "r": 65,
+       "rx": -28,
+       "ry": 47,
+       "t": -47,
+       "w": 38
+      },
+      {
+       "b": 0,
+       "bx": 248,
+       "file": "washer_shut_b5",
+       "h": 48,
+       "l": 24,
+       "r": 65,
+       "rx": -24,
+       "ry": 47,
+       "t": -47,
+       "w": 42
+      },
+      {
+       "b": 0,
+       "bx": 284,
+       "file": "washer_shut_b6",
+       "h": 48,
+       "l": 20,
+       "r": 65,
+       "rx": -20,
+       "ry": 47,
+       "t": -47,
+       "w": 46
+      }
+     ]
+    }
+   },
+   "w": 60,
+   "wall_y": null
+  },
+  "washstand": {
+   "above": [],
+   "bucketed": true,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    114,
+    114
+   ],
+   "h": 42,
+   "lap": 6,
+   "lean": false,
+   "limit": null,
+   "near": [],
+   "needs": null,
+   "note": "a gilt washstand: a marble slab on cabriole legs with a gold basin set into it, a drawer in the apron, a perfume bottle, and a gilt trinket dish with a string of pearls spilling over its lip",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "front",
+   "rooms": {
+    "bathroom": 7
+   },
+   "sound": null,
+   "styles": {
+    "gilded": 9
+   },
+   "tags": [
+    "basin",
+    "wet",
+    "storage"
+   ],
+   "under": [],
+   "variants": {
+    "gilt": {
+     "anchors": [
+      {
+       "dx": 5,
+       "dy": -34,
+       "name": "washstand"
+      },
+      {
+       "dx": 48,
+       "dy": -39,
+       "name": "trinket_dish"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "gilded"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": -1,
+       "bx": 36,
+       "file": "washstand_gilt_b0",
+       "h": 49,
+       "l": 3,
+       "r": 59,
+       "rx": -3,
+       "ry": 49,
+       "t": -49,
+       "w": 57
+      },
+      {
+       "b": -1,
+       "bx": 72,
+       "file": "washstand_gilt_b1",
+       "h": 49,
+       "l": 3,
+       "r": 54,
+       "rx": -3,
+       "ry": 49,
+       "t": -49,
+       "w": 52
+      },
+      {
+       "b": -1,
+       "bx": 116,
+       "file": "washstand_gilt_b2",
+       "h": 49,
+       "l": 3,
+       "r": 51,
+       "rx": -3,
+       "ry": 49,
+       "t": -49,
+       "w": 49
+      },
+      {
+       "b": -1,
+       "bx": 160,
+       "file": "washstand_gilt_b3",
+       "h": 49,
+       "l": 3,
+       "r": 48,
+       "rx": -3,
+       "ry": 49,
+       "t": -49,
+       "w": 46
+      },
+      {
+       "b": -1,
+       "bx": 204,
+       "file": "washstand_gilt_b4",
+       "h": 49,
+       "l": 0,
+       "r": 45,
+       "rx": 0,
+       "ry": 49,
+       "t": -49,
+       "w": 46
+      },
+      {
+       "b": -1,
+       "bx": 248,
+       "file": "washstand_gilt_b5",
+       "h": 49,
+       "l": -5,
+       "r": 45,
+       "rx": 5,
+       "ry": 49,
+       "t": -49,
+       "w": 51
+      },
+      {
+       "b": -1,
+       "bx": 284,
+       "file": "washstand_gilt_b6",
+       "h": 49,
+       "l": -9,
+       "r": 45,
+       "rx": 9,
+       "ry": 49,
+       "t": -49,
+       "w": 55
+      }
+     ]
+    }
+   },
+   "w": 60,
+   "wall_y": null
+  },
+  "waste_bin": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    108,
+    121
+   ],
+   "h": 16,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [
+    "work"
+   ],
+   "needs": null,
+   "note": "a waste basket: black wire mesh or dented steel, crumpled paper heaped over the rim",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "floor",
+   "rooms": {
+    "bathroom": 3,
+    "living_room": 1,
+    "study": 6
+   },
+   "sound": null,
+   "styles": {
+    "avocado": 2,
+    "den": 4,
+    "gilded": 2,
+    "library": 2,
+    "office": 8,
+    "pink": 3,
+    "radio": 1,
+    "studio": 3,
+    "tub": 3,
+    "wetroom": 2
+   },
+   "tags": [
+    "clutter",
+    "rubbish"
+   ],
+   "under": [],
+   "variants": {
+    "steel": {
+     "anchors": [
+      {
+       "dx": 7,
+       "dy": -8,
+       "name": "trashcan"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "col": "8a9098"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "waste_bin_steel",
+       "h": 21,
+       "l": -1,
+       "r": 14,
+       "rx": 1,
+       "ry": 18,
+       "t": -18,
+       "w": 16
+      }
+     ]
+    },
+    "wire": {
+     "anchors": [
+      {
+       "dx": 7,
+       "dy": -8,
+       "name": "trashcan"
+      }
+     ],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "col": "4a4e54",
+      "wire": true
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 2,
+       "bx": 160,
+       "file": "waste_bin_wire",
+       "h": 21,
+       "l": -1,
+       "r": 14,
+       "rx": 1,
+       "ry": 18,
+       "t": -18,
+       "w": 16
+      }
+     ]
+    }
+   },
+   "w": 14,
+   "wall_y": null
+  },
   "wheelchair": {
    "above": [],
    "bucketed": false,
@@ -30725,6 +38772,308 @@
   284
  ],
  "recipes": {
+  "bathroom/avocado": {
+   "ceiling": 1.0,
+   "centre": {
+    "tag": "bath",
+    "x": [
+     60,
+     190
+    ]
+   },
+   "clutter": [
+    1,
+    3
+   ],
+   "decor": [
+    2,
+    3
+   ],
+   "fallback": [
+    {
+     "id": "bath",
+     "variant": "panel",
+     "x": 110,
+     "y": 114
+    },
+    {
+     "id": "toilet",
+     "variant": "avocado",
+     "x": 20,
+     "y": 114
+    },
+    {
+     "id": "ceiling_flush",
+     "variant": "a",
+     "x": 150,
+     "y": 0
+    }
+   ],
+   "legacy": 1,
+   "min_front": 2,
+   "rug": 0.7,
+   "shell": "bath_shell_b",
+   "tops": 0.5,
+   "wall": {
+    "count": [
+     2,
+     3
+    ],
+    "must": [
+     "toilet",
+     "basin"
+    ],
+    "planes": [
+     "wall",
+     "front"
+    ],
+    "want": [
+     "linen"
+    ]
+   },
+   "weight": 20
+  },
+  "bathroom/gilded": {
+   "ceiling": 1.0,
+   "centre": {
+    "tag": "bath",
+    "x": [
+     60,
+     190
+    ]
+   },
+   "clutter": [
+    1,
+    2
+   ],
+   "decor": [
+    2,
+    3
+   ],
+   "fallback": [
+    {
+     "id": "bath",
+     "variant": "gold",
+     "x": 110,
+     "y": 114
+    },
+    {
+     "id": "toilet",
+     "variant": "gold",
+     "x": 20,
+     "y": 114
+    },
+    {
+     "id": "chandelier",
+     "variant": "gold",
+     "x": 150,
+     "y": 0
+    }
+   ],
+   "legacy": 2,
+   "min_front": 2,
+   "rug": 0.8,
+   "shell": "bath_shell_c",
+   "tops": 0.5,
+   "wall": {
+    "count": [
+     2,
+     3
+    ],
+    "must": [
+     "toilet",
+     "basin"
+    ],
+    "planes": [
+     "wall",
+     "front"
+    ]
+   },
+   "weight": 14
+  },
+  "bathroom/pink": {
+   "ceiling": 1.0,
+   "centre": {
+    "tag": "bath",
+    "x": [
+     60,
+     190
+    ]
+   },
+   "clutter": [
+    1,
+    3
+   ],
+   "decor": [
+    2,
+    3
+   ],
+   "fallback": [
+    {
+     "id": "bath",
+     "variant": "tiled",
+     "x": 110,
+     "y": 114
+    },
+    {
+     "id": "toilet",
+     "variant": "pink",
+     "x": 20,
+     "y": 114
+    },
+    {
+     "id": "ceiling_flush",
+     "variant": "a",
+     "x": 150,
+     "y": 0
+    }
+   ],
+   "legacy": 4,
+   "min_front": 2,
+   "rug": 0.7,
+   "shell": "bath_shell_e",
+   "tops": 0.5,
+   "wall": {
+    "count": [
+     2,
+     3
+    ],
+    "must": [
+     "toilet",
+     "basin"
+    ],
+    "planes": [
+     "wall",
+     "front"
+    ],
+    "want": [
+     "linen"
+    ]
+   },
+   "weight": 20
+  },
+  "bathroom/tub": {
+   "ceiling": 1.0,
+   "centre": {
+    "tag": "bath",
+    "x": [
+     60,
+     190
+    ]
+   },
+   "clutter": [
+    1,
+    3
+   ],
+   "decor": [
+    2,
+    3
+   ],
+   "fallback": [
+    {
+     "id": "bath",
+     "variant": "claw",
+     "x": 110,
+     "y": 114
+    },
+    {
+     "id": "toilet",
+     "variant": "white",
+     "x": 20,
+     "y": 114
+    },
+    {
+     "id": "ceiling_flush",
+     "variant": "a",
+     "x": 150,
+     "y": 0
+    }
+   ],
+   "legacy": 0,
+   "min_front": 2,
+   "rug": 0.6,
+   "shell": "bath_shell_a",
+   "tops": 0.5,
+   "wall": {
+    "count": [
+     2,
+     3
+    ],
+    "must": [
+     "toilet",
+     "basin"
+    ],
+    "planes": [
+     "wall",
+     "front"
+    ],
+    "want": [
+     "linen"
+    ]
+   },
+   "weight": 26
+  },
+  "bathroom/wetroom": {
+   "ceiling": 1.0,
+   "centre": {
+    "tag": "bath",
+    "x": [
+     60,
+     190
+    ]
+   },
+   "clutter": [
+    2,
+    4
+   ],
+   "decor": [
+    1,
+    3
+   ],
+   "fallback": [
+    {
+     "id": "bath",
+     "variant": "curtain",
+     "x": 110,
+     "y": 114
+    },
+    {
+     "id": "toilet",
+     "variant": "wet",
+     "x": 20,
+     "y": 114
+    },
+    {
+     "id": "light_tube",
+     "variant": "a",
+     "x": 130,
+     "y": 0
+    }
+   ],
+   "legacy": 3,
+   "min_front": 2,
+   "rug": 0.0,
+   "shell": "bath_shell_d",
+   "tops": 0.4,
+   "wall": {
+    "count": [
+     3,
+     4
+    ],
+    "must": [
+     "toilet",
+     "laundry"
+    ],
+    "planes": [
+     "wall",
+     "front"
+    ],
+    "want": [
+     "basin"
+    ]
+   },
+   "weight": 20
+  },
   "bedroom/adult": {
    "ceiling": 1.0,
    "centre": {
@@ -31009,6 +39358,241 @@
     ]
    },
    "weight": 22
+  },
+  "dining_room/barricade": {
+   "ceiling": 0.8,
+   "centre": {
+    "tag": "dining",
+    "x": [
+     40,
+     200
+    ]
+   },
+   "clutter": [
+    2,
+    4
+   ],
+   "decor": [
+    2,
+    4
+   ],
+   "fallback": [
+    {
+     "id": "table_dining",
+     "variant": "tipped",
+     "x": 110,
+     "y": 116
+    },
+    {
+     "id": "ceiling_flush",
+     "variant": "a",
+     "x": 150,
+     "y": 0
+    }
+   ],
+   "legacy": 3,
+   "min_front": 2,
+   "rug": 0.0,
+   "shell": "dining_shell_d",
+   "tops": 0.4,
+   "wall": {
+    "count": [
+     1,
+     2
+    ],
+    "must": [
+     "storage"
+    ]
+   },
+   "weight": 16
+  },
+  "dining_room/diner": {
+   "ceiling": 0.9,
+   "centre": {
+    "tag": "dining",
+    "x": [
+     30,
+     210
+    ]
+   },
+   "clutter": [
+    0,
+    2
+   ],
+   "decor": [
+    2,
+    4
+   ],
+   "fallback": [
+    {
+     "id": "table_dining",
+     "variant": "diner",
+     "x": 110,
+     "y": 116
+    },
+    {
+     "id": "ceiling_pendant",
+     "variant": "cream",
+     "x": 150,
+     "y": 0
+    }
+   ],
+   "legacy": 1,
+   "min_front": 2,
+   "rug": 0.0,
+   "shell": "dining_shell_b",
+   "tops": 0.9,
+   "wall": {
+    "count": [
+     1,
+     2
+    ],
+    "must": [
+     "sideboard"
+    ]
+   },
+   "weight": 20
+  },
+  "dining_room/family": {
+   "ceiling": 0.9,
+   "centre": {
+    "tag": "dining",
+    "x": [
+     30,
+     210
+    ]
+   },
+   "clutter": [
+    1,
+    2
+   ],
+   "decor": [
+    2,
+    4
+   ],
+   "fallback": [
+    {
+     "id": "table_dining",
+     "variant": "family",
+     "x": 110,
+     "y": 116
+    },
+    {
+     "id": "ceiling_pendant",
+     "variant": "cream",
+     "x": 150,
+     "y": 0
+    }
+   ],
+   "legacy": 0,
+   "min_front": 2,
+   "rug": 0.5,
+   "shell": "dining_shell_a",
+   "tops": 0.8,
+   "wall": {
+    "count": [
+     1,
+     3
+    ],
+    "must": [
+     "storage|clock"
+    ]
+   },
+   "weight": 26
+  },
+  "dining_room/formal": {
+   "ceiling": 0.9,
+   "centre": {
+    "tag": "dining",
+    "x": [
+     30,
+     210
+    ]
+   },
+   "clutter": [
+    0,
+    2
+   ],
+   "decor": [
+    2,
+    4
+   ],
+   "fallback": [
+    {
+     "id": "table_dining",
+     "variant": "formal",
+     "x": 110,
+     "y": 116
+    },
+    {
+     "id": "ceiling_pendant",
+     "variant": "cream",
+     "x": 150,
+     "y": 0
+    }
+   ],
+   "legacy": 2,
+   "min_front": 2,
+   "rug": 0.6,
+   "shell": "dining_shell_c",
+   "tops": 0.9,
+   "wall": {
+    "count": [
+     2,
+     3
+    ],
+    "must": [
+     "clock|display"
+    ]
+   },
+   "weight": 18
+  },
+  "dining_room/party": {
+   "ceiling": 0.8,
+   "centre": {
+    "tag": "dining",
+    "x": [
+     30,
+     210
+    ]
+   },
+   "clutter": [
+    1,
+    3
+   ],
+   "decor": [
+    3,
+    5
+   ],
+   "fallback": [
+    {
+     "id": "table_dining",
+     "variant": "party",
+     "x": 110,
+     "y": 116
+    },
+    {
+     "id": "ceiling_flush",
+     "variant": "a",
+     "x": 150,
+     "y": 0
+    }
+   ],
+   "legacy": 4,
+   "min_front": 2,
+   "rug": 0.0,
+   "shell": "dining_shell_e",
+   "tops": 0.9,
+   "wall": {
+    "count": [
+     1,
+     2
+    ],
+    "must": [
+     "sideboard"
+    ]
+   },
+   "weight": 14
   },
   "kitchen/classic": {
    "ceiling": 1.0,
@@ -31731,6 +40315,245 @@
     ]
    },
    "weight": 20
+  },
+  "study/den": {
+   "ceiling": 0.9,
+   "centre": {
+    "tag": "desk",
+    "x": [
+     40,
+     200
+    ]
+   },
+   "clutter": [
+    1,
+    2
+   ],
+   "decor": [
+    2,
+    4
+   ],
+   "fallback": [
+    {
+     "id": "desk_study",
+     "variant": "mahogany",
+     "x": 120,
+     "y": 112
+    },
+    {
+     "id": "ceiling_pendant",
+     "variant": "cream",
+     "x": 150,
+     "y": 0
+    }
+   ],
+   "legacy": 0,
+   "min_front": 2,
+   "rug": 0.5,
+   "shell": "study_shell_a",
+   "tops": 0.9,
+   "wall": {
+    "count": [
+     2,
+     3
+    ],
+    "must": [
+     "books|files"
+    ]
+   },
+   "weight": 24
+  },
+  "study/library": {
+   "ceiling": 0.9,
+   "centre": {
+    "tag": "desk",
+    "x": [
+     40,
+     200
+    ]
+   },
+   "clutter": [
+    0,
+    2
+   ],
+   "decor": [
+    1,
+    3
+   ],
+   "fallback": [
+    {
+     "id": "desk_study",
+     "variant": "writing",
+     "x": 120,
+     "y": 112
+    },
+    {
+     "id": "ceiling_pendant",
+     "variant": "cream",
+     "x": 150,
+     "y": 0
+    }
+   ],
+   "flank": {
+    "chance": 0.6,
+    "tag": "armchair"
+   },
+   "legacy": 2,
+   "min_front": 2,
+   "rug": 0.6,
+   "shell": "study_shell_c",
+   "tops": 0.8,
+   "wall": {
+    "count": [
+     2,
+     3
+    ],
+    "must": [
+     "books"
+    ]
+   },
+   "weight": 20
+  },
+  "study/office": {
+   "ceiling": 1.0,
+   "centre": {
+    "tag": "desk",
+    "x": [
+     40,
+     200
+    ]
+   },
+   "clutter": [
+    2,
+    4
+   ],
+   "decor": [
+    2,
+    4
+   ],
+   "fallback": [
+    {
+     "id": "desk_study",
+     "variant": "steel",
+     "x": 120,
+     "y": 112
+    },
+    {
+     "id": "light_tube",
+     "variant": "a",
+     "x": 130,
+     "y": 0
+    }
+   ],
+   "legacy": 1,
+   "min_front": 2,
+   "rug": 0.0,
+   "shell": "study_shell_b",
+   "tops": 0.9,
+   "wall": {
+    "count": [
+     1,
+     3
+    ],
+    "must": [
+     "files"
+    ]
+   },
+   "weight": 22
+  },
+  "study/radio": {
+   "ceiling": 0.9,
+   "centre": {
+    "tag": "desk",
+    "x": [
+     40,
+     200
+    ]
+   },
+   "clutter": [
+    2,
+    4
+   ],
+   "decor": [
+    2,
+    4
+   ],
+   "fallback": [
+    {
+     "id": "desk_study",
+     "variant": "trestle",
+     "x": 120,
+     "y": 112
+    },
+    {
+     "id": "light_bulb",
+     "variant": "a",
+     "x": 150,
+     "y": 0
+    }
+   ],
+   "legacy": 3,
+   "min_front": 2,
+   "rug": 0.0,
+   "shell": "study_shell_d",
+   "tops": 0.9,
+   "wall": {
+    "count": [
+     1,
+     3
+    ],
+    "must": [
+     "storage"
+    ]
+   },
+   "weight": 18
+  },
+  "study/studio": {
+   "ceiling": 0.9,
+   "centre": {
+    "tag": "desk",
+    "x": [
+     40,
+     200
+    ]
+   },
+   "clutter": [
+    2,
+    4
+   ],
+   "decor": [
+    2,
+    4
+   ],
+   "fallback": [
+    {
+     "id": "desk_study",
+     "variant": "bench",
+     "x": 120,
+     "y": 112
+    },
+    {
+     "id": "ceiling_flush",
+     "variant": "a",
+     "x": 150,
+     "y": 0
+    }
+   ],
+   "legacy": 4,
+   "min_front": 2,
+   "rug": 0.0,
+   "shell": "study_shell_e",
+   "tops": 0.7,
+   "wall": {
+    "count": [
+     1,
+     3
+    ],
+    "must": [
+     "art"
+    ]
+   },
+   "weight": 16
   }
  },
  "rules": {

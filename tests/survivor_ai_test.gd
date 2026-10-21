@@ -962,6 +962,9 @@ func _test_rescue_rules() -> void:
 	WorldState.is_first_run = false
 	WorldState.tutorial_completed = true
 	var qf := _quiet_floor(12)
+	for step in [2, -2, 4, -4]:                                  # a floor with no quest giver on it: corridor_records lists the rescue only where there is none (a quest giver is the floor's one post)
+		if not Quests.corridor_records(qf).is_empty():
+			qf = _quiet_floor(12 + step)
 	var key := SurvivorPlan.rescue_key_corridor(qf)
 	var seeded := SurvivorPlan._roll(key, "defender", qf, "", 1)
 	seeded["rescue"] = "pending"
@@ -974,7 +977,8 @@ func _test_rescue_rules() -> void:
 	WorldState.current_run = 2
 	var gone := SurvivorPlan.rescue_for_floor(qf)
 	check(bool(gone.get("dead", false)) and str(gone.get("rescue", "")) == "lost", "…the run after, unanswered, they are a body where they stood")
-	check(SurvivorPlan.corridor_records(qf).any(func(r): return str(r.get("key", "")) == key), "…which the floor lays (as the dead, not as a defender)")
+	check(SurvivorPlan.corridor_records(qf).any(func(r): return str(r.get("key", "")) == key), "…which the floor lays (as the dead, not as a defender) [floor %d, active %s, records %s, quest npcs %s]" % [
+		qf, str(SurvivorPlan.active()), str(SurvivorPlan.corridor_records(qf).map(func(r): return str(r.get("key", "")))), str(Quests.corridor_records(qf).size())])
 
 
 func _test_rescue_overrun() -> void:

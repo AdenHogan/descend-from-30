@@ -448,7 +448,7 @@ def note_door(c, ox, oy, p):
 
 # ================================================================================================================================ the ceiling
 @piece('light_tube', 36, 6, 'ceiling', rooms={'kitchen': 6, 'study': 3, 'bathroom': 2}, styles={'classic': 8, 'student': 3, 'office': 6}, tags=('light', 'ceiling'), lights=({'dx': 18, 'dy': 4, 'kind': 'tube'},),
-       variants={'a': {'for': ['classic', 'student', 'office']}}, note='a fluorescent batten on the ceiling')
+       variants={'a': {'for': ['classic', 'student', 'office', 'wetroom']}}, note='a fluorescent batten on the ceiling')
 def light_tube(c, ox, oy, p):
     c.rect(ox, 0, ox + 35, 2, hexc('c9c6bc'))
     c.hline(ox, ox + 35, 0, hexc('a8a498'))

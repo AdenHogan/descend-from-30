@@ -789,13 +789,25 @@ func _test_front_layer() -> void:
 			if strip_img.get_pixel(x, y).a > 0.0:
 				in_box += 1
 	check(in_box >= 40, "the gift table's front piece really overlaps the left window box (%d px)" % in_box)
-	# the room: dev seed 77 → flat 802 slot 2 is a dining E with its window on the LEFT and no balcony
+	# the room: dining E is the BAKED module of the party style, which a flat shows once it is a story room (round 47g: an ordinary flat's dining room is planned). Dev seed 77: the first flat
+	# on floors 3-24 whose dining room is a party room, with its window on the LEFT and no balcony — breached, so it is the baked module
 	WorldState.dev_seed = 77
 	WorldState.new_game()
+	var apt := ""
+	for f in range(3, 25):
+		for col in range(1, 6):
+			var a := "%d0%d" % [f, col]
+			var s: int = WorldState.get_apartment_layout(a).find("dining_room")
+			if apt != "" or s < 0 or WorldState.is_balcony_slot(a, s) or WorldState.apartment_window_side(a, s) != "left":
+				continue
+			if FurniturePlanner.pick_style("dining_room", hash(str(WorldState.master_seed) + "furn" + a + ":" + str(s))) == "party":
+				apt = a
+	check(apt != "", "dev seed 77 has a party dining room with its window on the left (%s)" % apt)
+	WorldState.set_door_state(apt, WorldState.DoorState.BREACHED)
 	WorldState.is_first_run = false
 	WorldState.current_run = 1
-	WorldState.current_apartment_id = "802"
-	WorldState.current_floor = 8
+	WorldState.current_apartment_id = apt
+	WorldState.current_floor = int(apt.left(apt.length() - 2))
 	WorldState.spawn_source = ""
 	var room = load("res://scenes/room.tscn").instantiate()
 	add_child(room)
@@ -806,7 +818,7 @@ func _test_front_layer() -> void:
 		var art = m.get_node_or_null("Art")
 		if art is Sprite2D and art.texture != null and String(art.texture.resource_path).contains("dining_room_e"):
 			mod = m
-	check(mod != null, "found the dining E module in flat 802")
+	check(mod != null, "found the dining E module in flat %s" % apt)
 	if mod != null:
 		var win: Node = null
 		for w in get_tree().get_nodes_in_group("apt_window_light"):

@@ -1,6 +1,6 @@
 # FURNITURE AS ASSETS — rooms that are laid from a seed
 
-**Status: BUILT v1 for BEDROOMS (owner round 47, 2026-10-20), KITCHENS (round 47e) and LIVING ROOMS (round 47f).** Dining rooms, studies and bathrooms are still baked modules; the same pipeline is
+**Status: BUILT v1 for EVERY room type — bedrooms (owner round 47, 2026-10-20), kitchens (47e), living rooms (47f), dining rooms, studies and bathrooms (47g).** Only the story rooms (breached / burnt / one of the dead / the tutorial's flats, and the gun cabinet's living room) are still baked modules; the same pipeline is
 how they are being converted ("start with bedrooms and work from there" → "expand to other module types too").
 
 > The owner: *"converting all art furniture and objects into their own assets like what you've done with the posters and wall art — that a
@@ -64,7 +64,7 @@ tools/art/furn_seats.py     the chairs + rocking horse as little 3D models (chai
 tools/art/furn_dollhouse.py, furn_wardrobes.py   the dolls' house; the wardrobes + pill cabinet
 tools/art/furn_rooms.py     the recipes (shape of each style) + the rules export
 tools/art/shells.py, furn_shells.py   the bare rooms
-tools/art/furn_build.py     writes assets/furniture/*.png (+ open/ strips), data/furniture.json, docs/art_reference/furniture/pieces.png     [--check = the gate]
+tools/art/furn_build.py     writes assets/furniture/*.png (+ open/ strips), data/furniture.json, docs/art_reference/furniture/pieces.png (+ pieces_2.png… — a sheet is paged under 30000 px, Godot downsizes anything taller than 32768)     [--check = the gate]
 tools/art/furn_compose.py, furn_preview.py   Python composer: plan JSON → contact sheet (review)
 scripts/furniture_planner.gd   THE PLANNER (pure function of seed): plan(room, style, seed, {window}) → items / anchors / lights / anims
 scripts/room_furniture.gd      builds a plan into a module: Sprite2Ds, Marker2D scavenge nodes (back_plane meta), Lights, Anims, Open_<anchor> overlays
@@ -99,7 +99,7 @@ end), `lights`, `slots` (surfaces things stand on: `kinds` it takes), `anims`, `
   furniture. Not started.
 * **Run looks for furniture** are a tint only (the shells carry the damp / cracks). Grime, blood and breakage as per-piece variants are future work.
 * **No overgrowth** in planned bedrooms (growth maps are baked per module); no live CRT cursor (the desk's computer is static).
-* **Other room types** — bathroom, study, dining room (the kitchen is done, round 47e; the living room, round 47f). The logic table already names them (`cooking`, `wet`, `toilet`, `dining`, `tv`…), and many pieces list
+* **Other room types** — all six room types are planned now (rounds 47e-47g); what remains baked is the story rooms. The logic table already names them (`cooking`, `wet`, `toilet`, `dining`, `tv`…), and many pieces list
   other rooms (lamps, pictures, rugs, plants, clocks, mirrors, chests, bookcases, armchairs, backpacks, boxes) — those are the first things the next room type reuses.
 * **Per-piece loot** (a nightstand holding pills, a toy chest holding toys) — loot is still by room type.
 
@@ -192,13 +192,34 @@ Same kit, same method, one new file per family (the old definitions were cut out
   floral / green velvet / burgundy, oxblood / tan leather / tartan), `armchair` (the existing 3D one + red / brown / teal, tied to styles by `for`), `coffee_table` (walnut with a magazine shelf / teak kidney / pallet on cinder blocks / round mahogany tea table / strapped trunk),
   `pouf`, `sideboard` (teak / walnut / cream / oak — one door swings open), `tv_crt` (stands ON a sideboard; live snow, goes dark when searched) and `tv_wall` (the struck-TV live detail), `shelving_open` (mid-century), `crate_cubes`, `piano_upright`,
   `china_cabinet` (a door opens), `fireplace` (stone or brick, a grate, logs, embers; its mantel is a surface), `lamp_floor`, `side_table`, `magazines`, `ashtray_pack`, `guitar_stand`, `rug_large` (maroon / shag gold / green / blue / tartan), `log_basket`, `stag_head`,
-  `cameos`, `print_hunting`. `furn_styles_living.py` adds the living styles to the shared bedroom pieces (a bookcase, a chest of drawers, clocks, plants, pictures, posters…) after they are registered.
+  `cameos`, `print_hunting`. `furn_styles.py` adds the living styles to the shared bedroom pieces (a bookcase, a chest of drawers, clocks, plants, pictures, posters…) after they are registered.
 * **Planner additions:** a `needs` may be `optional` and a CENTRE piece now asks for its needs (the sofa wants its coffee table, never at the cost of the sofa); a `flank` may be a front piece (an armchair flush beside the sofa); a floor piece's `lap` says how many rows it may overlap
   a body's drawn rect (a coffee table over the front of the sofa: 22; everything else 6); a rug's `under` tags let it lie under the sofa group, centred on it (`_rug_ok` skips those bodies). All carried by the piece records (`lap`, `under`).
 * **Tests:** `furniture_test` PLANNED gains `living_room` (200 plans a style break no rule, 0 fallbacks, the fallbacks are valid for both window sides, real flats are built), `_test_living` (every room has a sofa, a coffee table only with a sofa, a CRT TV only on something, the lodge
   has its hearth, the parlour its piano or china cabinet, the cabinet's living room is never planned and no other flat shows it, a baked living room is the old module of its style).
 * **Not done:** the old room's openings for living-room furniture (drawers / doors that open in the baked art) exist only for the pieces whose record has `opens`; sofa cushions / bookcases have no animation; per-run grime beyond the shell tint; the LOOK at game zoom needs the owner's eye
   (captured under xvfb: a lodge with its brick hearth reads well).
+
+### Round 47g — DINING ROOMS, STUDIES AND BATHROOMS (owner: "expand to other module types too")
+
+193 pieces / 1919 sprites, 30 recipes, 30 shells (`dining_shell_*`, `study_shell_*`, `bath_shell_*`). Every flat's room is planned now, except a story room (breached / burnt / holding the dead / the tutorial's flats) and the gun cabinet's living room.
+
+* **Dining rooms** (family / diner / formal / barricade / party = the old A-E; `furn_dining.py`): `table_dining` is ONE piece that carries its chairs standing behind it (a lace-clothed family table with spindle chairs, a round sixties tulip table with two moulded chairs, a long bare
+  mahogany table, a confetti birthday table with small chairs, or — for the barricade — one tipped on its edge), `clock_grandfather`, `trolley_drinks`, `portraits_row`, `planks_wall`, the party kit (`banner_party`, `balloons`, `gifts_pile`, `cake_party`, `party_hats`, `boombox`) and table things
+  (`candelabra`, `vase_flowers`, `place_settings`, `bottles_row`, `record_player`); the sideboard / china cabinet / Welsh dresser are shared with the living room and kitchen.
+* **Studies** (den / office / library / radio / studio; `furn_study.py`): `desk_study` carries its chair (a mahogany partners desk + leather chair, a grey steel desk + office chair, a walnut writing desk, a steel trestle, a painter's bench), `filing_cabinet` (the top drawer pulls out),
+  `bookcase_tall`, `noticeboard`, `map_evac`, `printer_stand`, `crates_ammo`, `jerrycans`, `easel`, `canvases_leaning`, `paint_shelf`, `sketches_wall`, `waste_bin`, and desk things (`lamp_banker`, `typewriter`, `globe`, `papers_pile`, `computer_crt`, `radio_gear`).
+* **BALCONY slots** (study and dining are the only types a balcony can take): the shell scene carries the same `Balcony` node the baked modules have (`tools/art/shells.py`), `room.furniture_plan_for` passes `blocked: [FurniturePlanner.balcony_box()]` (x 4..96, the box the old
+  baked art kept its StripArt furniture out of) on a balcony slot (`side == ""`), so nothing stands, lies or hangs in the doorway — the rug and the ceiling light are exempt. The plan cache key already separated a no-window slot.
+* **Bathrooms** (tub / avocado / gilded / wetroom / pink; `furn_bathroom.py`): the fixtures are the old bathroom's own 3D solids (`tools/art/bathroom.py` + `solid3d.py`: toilets, basins, the vanity and washstand, the clawfoot / gold / panelled / curtained / tiled baths, the walk-in shower, the
+  washing machine, hampers, mop bucket, stool + radio, linen cupboard, mirrors, chandelier) lifted into BUCKETED front / floor pieces — they draw at the bucket's x on the module canvas and register the feet row the old art used, so they keep their perspective. The shower rail's ceiling stay
+  stops at row 6 (`_Stay`: a planned piece may not reach above `TOP_MIN_Y` 5). The linen cupboard's right door swings open when searched (`opens`, door_h) — the only openable in a bathroom.
+* **Planner additions:** `wall.planes` (a bathroom's fixtures are `["wall","front"]`), a decor piece's `above` may be a front piece, and a recipe's `wall.want` — tags TRIED (`WANT_TRIES` 4 spots) once the `must` tags stand, never a reason to fail the room (the wetroom's `must` is toilet + washing machine, its basin is a
+  `want`; tub / avocado / pink `want` a linen cupboard). The wetroom is the squalid one: with the bath's 97 px curtain, the 70 px toilet and the washer, a right-hand window leaves 221 px, so its basin is often missing.
+* **Data corrections found on the way:** a fallback layout may only use pieces its style allows (`light_bulb` / `ceiling_pendant` are not allowed in a barricade / party dining room or a studio — the three fallbacks use `ceiling_flush`; `light_tube` now lists `wetroom`); the old pill cabinet is a dark walnut cabinet and now stands only in the avocado and wetroom bathrooms.
+* **Tests:** `furniture_test` PLANNED = all six room types (UNPLANNED is empty); `_test_balcony` (400 balcony-slot plans: nothing in the doorway box, the fallbacks valid there too), `_test_balcony_flats` (real flats on a balcony slot show the doors and keep the box clear), `_test_bathroom` (toilet, basin — except the wetroom —,
+  the bath, the wetroom's washing machine), `_check_baked_is_style_module` (a story room is the old module of the planned style, for dining / study / bathroom).
+* **Not done:** the LOOK at game zoom (checked as contact sheets and engine captures under xvfb only); bathrooms have only one openable; per-run grime beyond the shell's tint.
 
 ## Numbers (so far)
 

@@ -168,13 +168,13 @@ RECIPES.update({
         centre=dict(tag='dining', x=[40, 200]),
         wall=dict(count=[1, 2], must=['storage']),
         tops=0.4, decor=[2, 4], clutter=[2, 4], rug=0.0, ceiling=0.8, min_front=2,
-        fallback=[dict(id='table_dining', variant='tipped', x=110, y=116), dict(id='light_bulb', variant='a', x=150, y=0)]),
+        fallback=[dict(id='table_dining', variant='tipped', x=110, y=116), dict(id='ceiling_flush', variant='a', x=150, y=0)]),
     'dining_room/party': dict(
         legacy=4, weight=14, shell='dining_shell_e',
         centre=dict(tag='dining', x=[30, 210]),
         wall=dict(count=[1, 2], must=['sideboard']),
         tops=0.9, decor=[3, 5], clutter=[1, 3], rug=0.0, ceiling=0.8, min_front=2,
-        fallback=[dict(id='table_dining', variant='party', x=110, y=116), dict(id='ceiling_pendant', variant='cream', x=150, y=0)]),
+        fallback=[dict(id='table_dining', variant='party', x=110, y=116), dict(id='ceiling_flush', variant='a', x=150, y=0)]),
 })
 
 
@@ -210,7 +210,7 @@ RECIPES.update({
         centre=dict(tag='desk', x=[40, 200]),
         wall=dict(count=[1, 3], must=['art']),
         tops=0.7, decor=[2, 4], clutter=[2, 4], rug=0.0, ceiling=0.9, min_front=2,
-        fallback=[dict(id='desk_study', variant='bench', x=120, y=112), dict(id='light_bulb', variant='a', x=150, y=0)]),
+        fallback=[dict(id='desk_study', variant='bench', x=120, y=112), dict(id='ceiling_flush', variant='a', x=150, y=0)]),
 })
 
 
@@ -219,13 +219,13 @@ RECIPES.update({
     'bathroom/tub': dict(
         legacy=0, weight=26, shell='bath_shell_a',
         centre=dict(tag='bath', x=[60, 190]),
-        wall=dict(count=[2, 3], must=['toilet', 'basin'], planes=['wall', 'front']),
+        wall=dict(count=[2, 3], must=['toilet', 'basin'], want=['linen'], planes=['wall', 'front']),
         tops=0.5, decor=[2, 3], clutter=[1, 3], rug=0.6, ceiling=1.0, min_front=2,
         fallback=[dict(id='bath', variant='claw', x=110, y=114), dict(id='toilet', variant='white', x=20, y=114), dict(id='ceiling_flush', variant='a', x=150, y=0)]),
     'bathroom/avocado': dict(
         legacy=1, weight=20, shell='bath_shell_b',
         centre=dict(tag='bath', x=[60, 190]),
-        wall=dict(count=[2, 3], must=['toilet', 'basin'], planes=['wall', 'front']),
+        wall=dict(count=[2, 3], must=['toilet', 'basin'], want=['linen'], planes=['wall', 'front']),
         tops=0.5, decor=[2, 3], clutter=[1, 3], rug=0.7, ceiling=1.0, min_front=2,
         fallback=[dict(id='bath', variant='panel', x=110, y=114), dict(id='toilet', variant='avocado', x=20, y=114), dict(id='ceiling_flush', variant='a', x=150, y=0)]),
     'bathroom/gilded': dict(
@@ -237,13 +237,13 @@ RECIPES.update({
     'bathroom/wetroom': dict(
         legacy=3, weight=20, shell='bath_shell_d',
         centre=dict(tag='bath', x=[60, 190]),
-        wall=dict(count=[2, 4], must=['toilet', 'basin', 'laundry'], planes=['wall', 'front']),
+        wall=dict(count=[3, 4], must=['toilet', 'laundry'], want=['basin'], planes=['wall', 'front']),
         tops=0.4, decor=[1, 3], clutter=[2, 4], rug=0.0, ceiling=1.0, min_front=2,
-        fallback=[dict(id='bath', variant='curtain', x=110, y=114), dict(id='toilet', variant='wet', x=20, y=114), dict(id='light_bulb', variant='a', x=150, y=0)]),
+        fallback=[dict(id='bath', variant='curtain', x=110, y=114), dict(id='toilet', variant='wet', x=20, y=114), dict(id='light_tube', variant='a', x=130, y=0)]),
     'bathroom/pink': dict(
         legacy=4, weight=20, shell='bath_shell_e',
         centre=dict(tag='bath', x=[60, 190]),
-        wall=dict(count=[2, 3], must=['toilet', 'basin'], planes=['wall', 'front']),
+        wall=dict(count=[2, 3], must=['toilet', 'basin'], want=['linen'], planes=['wall', 'front']),
         tops=0.5, decor=[2, 3], clutter=[1, 3], rug=0.7, ceiling=1.0, min_front=2,
         fallback=[dict(id='bath', variant='tiled', x=110, y=114), dict(id='toilet', variant='pink', x=20, y=114), dict(id='ceiling_flush', variant='a', x=150, y=0)]),
 })
@@ -251,7 +251,7 @@ RECIPES.update({
 
 # The room types whose pieces + shells are BUILT into the library (furn_build.py / furn_shells.py export and check only these). A room type's recipes may be written before its pieces exist; they
 # do not reach data/furniture.json - so the game never plans a room it has no pieces or shell for - until the type is added here.
-BUILT = ('bedroom', 'kitchen', 'living_room')
+BUILT = ('bedroom', 'kitchen', 'living_room', 'dining_room', 'study', 'bathroom')
 
 
 def built_recipes():

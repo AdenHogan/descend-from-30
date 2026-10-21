@@ -39,6 +39,9 @@ import furn_kitchen_small  # noqa: F401
 import furn_living  # noqa: F401
 import furn_living2  # noqa: F401
 import furn_living_small  # noqa: F401
+import furn_dining  # noqa: F401
+import furn_study  # noqa: F401
+import furn_bathroom  # noqa: F401
 import furn_desk  # noqa: F401
 import furn_styles
 import furn_rooms
@@ -72,6 +75,9 @@ def _png_bytes(img):
     return b.getvalue()
 
 
+MAX_SHEET_H = 30000
+
+
 def sheet(files, path, data=None, per_piece_variants=2, buckets=(0, 3, 6), scale=3, bg=(95, 106, 120, 255), full=False):
     """A contact sheet: per piece the first and last variants (`per_piece_variants`), and for a leaning piece the far-left / centre / far-right buckets."""
     keep = []
@@ -93,14 +99,27 @@ def sheet(files, path, data=None, per_piece_variants=2, buckets=(0, 3, 6), scale
     ch = max(i.height for _, i in cells) * scale + 22
     cols = max(1, min(8, 2000 // cw))
     rows = (len(cells) + cols - 1) // cols
-    sh = Image.new('RGBA', (cols * cw, rows * ch), bg)
-    d = ImageDraw.Draw(sh)
-    for k, (n, im) in enumerate(cells):
-        x, y = (k % cols) * cw + 5, (k // cols) * ch + 4
-        d.text((x, y), n[:-4], fill=(235, 235, 220, 255))
-        sh.alpha_composite(im.resize((im.width * scale, im.height * scale), Image.NEAREST), (x, y + 14))
+    page_rows = max(1, MAX_SHEET_H // ch)                                           # Godot imports docs/ too and downsizes a texture taller than 32768 px: long sheets are paged (pieces.png, pieces_2.png…)
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    sh.save(path)
+    base, ext = os.path.splitext(path)
+    pages = max(1, (rows + page_rows - 1) // page_rows)
+    for pg in range(pages):
+        first = pg * page_rows * cols
+        chunk = cells[first:first + page_rows * cols]
+        prow = (len(chunk) + cols - 1) // cols
+        sh = Image.new('RGBA', (cols * cw, max(1, prow) * ch), bg)
+        d = ImageDraw.Draw(sh)
+        for k, (n, im) in enumerate(chunk):
+            x, y = (k % cols) * cw + 5, (k // cols) * ch + 4
+            d.text((x, y), n[:-4], fill=(235, 235, 220, 255))
+            sh.alpha_composite(im.resize((im.width * scale, im.height * scale), Image.NEAREST), (x, y + 14))
+        sh.save(path if pg == 0 else '%s_%d%s' % (base, pg + 1, ext))
+    k = pages + 1                                                                   # a later run with fewer pages leaves no stale page behind
+    while os.path.exists('%s_%d%s' % (base, k, ext)):
+        os.remove('%s_%d%s' % (base, k, ext))
+        if os.path.exists('%s_%d%s.import' % (base, k, ext)):
+            os.remove('%s_%d%s.import' % (base, k, ext))
+        k += 1
 
 
 def main():

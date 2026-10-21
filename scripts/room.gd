@@ -1162,7 +1162,10 @@ static func furniture_plan_for(apt: String, slot: int, room_type: String, breach
 	if not _furniture_plans.has(key):
 		if _furniture_plans.size() > 200:
 			_furniture_plans.clear()
-		_furniture_plans[key] = FurniturePlanner.plan(room_type, style, seed_, {"window": side})
+		var ctx := {"window": side}
+		if side == "":                                       # a BALCONY slot (study / dining only): the doors go in the back wall at x 4..96 — nothing stands, hangs or lies there
+			ctx["blocked"] = [FurniturePlanner.balcony_box()]
+		_furniture_plans[key] = FurniturePlanner.plan(room_type, style, seed_, ctx)
 	return _furniture_plans[key]
 
 
