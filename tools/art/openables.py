@@ -656,7 +656,7 @@ OPENINGS_45D = {
         'anchor_kitchen_cat_tins': dict(kind='shift', rect=(264, 114, 271, 123), dx=9, dy=0, deg=180, hump=2.5, fg=[(78, 122, 160)], thr=10),
     },
     'study_d': {
-        'anchor_study_crates': dict(kind='lid', rect=(207, 69, 224, 82), rise=7, base=108, inside=(50, 62, 42), under=(84, 98, 70)),
+        'anchor_study_boxes': dict(kind='lid', rect=(207, 69, 224, 82), rise=7, base=108, inside=(88, 66, 40), under=(150, 112, 64)),
         'anchor_study_handset': dict(kind='shift', rect=(235, 76, 249, 100), pivot='bottom', thr=10,
                                      fg=[(168, 50, 44), (92, 27, 24), (134, 40, 35)],
                                      path=[(0, 0, 8), (1, 0, -6), (0, 0, 3), (0, 0, 0)]),

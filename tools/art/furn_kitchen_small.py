@@ -431,19 +431,14 @@ def note_rent(c, ox, oy, p):
     F.note(c, ox, oy, ['RENT', 'DUE', 'FRI!'], fix='tape')
 
 
-@piece('poster_outbreak', 40, 28, 'decor', rooms={'kitchen': 5, 'living_room': 2}, styles={'hoarder': 9}, tags=('notice',), wall_y=(14, 30), limit=1, variants={'a': {}}, note='a front page: OUTBREAK, STAY IN')
-def poster_outbreak(c, ox, oy, p):
-    F.newspaper(c, ox, oy, 'OUTBREAK', sub='STAY IN', w=36)
+@piece('note_cat_food', 18, 24, 'decor', rooms={'kitchen': 5}, styles={'hoarder': 9}, tags=('notice',), wall_y=(14, 32), limit=1, variants={'a': {}}, note='a note for whoever feeds the cat: CAT FOOD, TUES')
+def note_cat_food(c, ox, oy, p):
+    F.note(c, ox, oy, ['CAT', 'FOOD', 'TUES'], fix='tape')
 
 
-@piece('note_stores', 26, 26, 'decor', rooms={'kitchen': 5}, styles={'hoarder': 9}, tags=('notice',), wall_y=(14, 32), limit=1, variants={'a': {}}, note='the stores list: WATER TINS MEDS BATTS')
-def note_stores(c, ox, oy, p):
-    F.note(c, ox, oy, ['WATER', 'TINS', 'MEDS', 'BATTS'], fix='tape')
-
-
-@piece('note_door', 20, 22, 'decor', rooms={'kitchen': 5}, styles={'hoarder': 9}, tags=('notice',), wall_y=(14, 32), limit=1, variants={'a': {}}, note='DONT OPEN DOOR!')
-def note_door(c, ox, oy, p):
-    F.note(c, ox, oy, ['DONT', 'OPEN', 'DOOR!'], paper=hexc('e4dcc4'))
+@piece('note_bills', 20, 22, 'decor', rooms={'kitchen': 5}, styles={'hoarder': 9}, tags=('notice',), wall_y=(14, 32), limit=1, variants={'a': {}}, note='a reminder stuck up where it cannot be missed: PAY GAS BILL')
+def note_bills(c, ox, oy, p):
+    F.note(c, ox, oy, ['PAY', 'GAS', 'BILL'], paper=hexc('e4dcc4'))
 
 
 # ================================================================================================================================ the ceiling

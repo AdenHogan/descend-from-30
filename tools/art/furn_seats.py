@@ -80,7 +80,7 @@ def _cardigan(c, cx, base_y, cbuf, pbuf, yaw):
     c.vline(cx + x0 + w // 2 - 1, base_y + top + 1, base_y + top + 6, tn[0])
 
 
-@piece('chair_wood', 28, 40, 'floor', rooms={'bedroom': 5}, styles={'adult': 3, 'teen': 2, 'sick': 3, 'refuge': 2}, tags=('seat',), variants=_chair_variants(),
+@piece('chair_wood', 28, 40, 'floor', rooms={'bedroom': 5}, styles={'adult': 3, 'teen': 2, 'sick': 3, 'bedsit': 2}, tags=('seat',), variants=_chair_variants(),
        anchors=(), near=('sleeping', 'wardrobe', 'storage'), feet=(116, 121), limit=1, note='a plain wooden chair — ladder or spindle back, rush or cloth seat; sometimes a cardigan thrown over the back')
 def chair_wood(c, ox, oy, p):
     model = C3.dining_chair(p['style'])

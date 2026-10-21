@@ -12,8 +12,8 @@ resolution like the rest of the art (1 px = 1 world px, hard edges, FLAT — the
   frames       frame() — wood / black / gilt / snap / white-border around a picture; returns the inner rect
   pictures     the IMAGE posters (no words): guitar, horror, space, travel, map — each takes an outer rect
   notices      the building's paper: memos on letterhead, safety signs with pictograms, hazard signs, a
-               curfew order with its stamp, a missing-person flyer with tear-off tabs, a kid's drawing
-  rooms        note / sticky / newspaper / missing flyer for the flats (same footprints as before)
+               the building's memos, a wet-paint sign, a lessons flyer with tear-off tabs, a kid's drawing
+  rooms        note / sticky / timetable / certificate for the flats (same footprints as before)
 
 Run:  python3 tools/art/wallart.py      → docs/art_reference/wall_art.png (everything at 4x)
 """
@@ -279,21 +279,6 @@ def warning_triangle(c, cx, y, w, fill, edge, mark):
     c.rect(cx - 1, y + h - 3, cx, y + h - 2, mark)
 
 
-def biohazard(c, cx, cy, r, col, bg):
-    """The hazard trefoil: three 60 degree blades round a small disc, a ring gap between."""
-    for y in range(cy - r, cy + r + 1):
-        for x in range(cx - r, cx + r + 1):
-            d = math.hypot(x - cx, y - cy)
-            if d > r + 0.3:
-                continue
-            ang = (math.degrees(math.atan2(y - cy, x - cx)) + 90.0 + 30.0) % 360.0
-            blade = (ang % 120.0) < 60.0
-            if d <= max(1.6, r * 0.27):
-                px(c, x, y, col)
-            elif d >= r * 0.42 and blade:
-                px(c, x, y, col)
-
-
 def water_drop(c, cx, y, h, col, hi):
     for j in range(h):
         t = j / float(h)
@@ -518,8 +503,9 @@ def n_quiet(seed=75):
     return c
 
 
-def n_evac(seed=76):
-    """A green fire-exit plate: the running figure, EVACUATE, the way down and an arrow."""
+def n_fire_exit(seed=76):
+    """A green fire-exit plate: the running figure, FIRE EXIT, the way down and an arrow (the standard sign every
+    building has — it says nothing about today)."""
     c = _canvas(52, 23, seed)
     x0, y0, x1, y1 = 1, 1, 50, 21
     g = hexc('2d7a4c')
@@ -531,46 +517,33 @@ def n_evac(seed=76):
     for y in range(y0 + 2, y1 - 1):
         px(c, x0 + 2, y, rule); px(c, x1 - 2, y, rule)
     running_man(c, 4, 5, wh, 13)
-    text(c, 15, 6, 'EVACUATE', wh)
+    text(c, 15, 6, 'FIRE EXIT', wh)
     text(c, 15, 13, 'STAIRS', wh)
     c.hline(37, 42, 15, wh)
     c.poly([(42, 13), (45, 15), (42, 17)], wh)
     return c
 
 
-def n_curfew(seed=77):
-    """An order from the authorities: a black band (BY ORDER), the curfew hour, the doors."""
-    c = memo(seed, 'BY ORDER', ['CURFEW 8PM', 'DOORS LOCKED'], None, 0, [RED, INK], paper='grey', band=hexc('1e1e22'),
-             fold='h', pin=hexc('2a2a2e'))
-    return c
+def n_parcels(seed=77):
+    """The management's note about deliveries: a letterhead, PARCELS, where to collect them."""
+    return memo(seed, 'MANAGERS', ['PARCELS', 'AT NO. 1'], None, 0, [INK, GREEN], paper='cream')
 
 
-def n_dont_open(seed=78):
-    c = _canvas(52, 23, seed)
-    x0, y0, x1, y1 = 1, 1, 50, 21
-    sheet(c, x0, y0, x1, y1, PAPER['yellow'], seed, fold='v', curl='bl')
-    for y in range(y0 + 1, y1):
-        for k in (1, 2, 3):
-            px(c, x0 + k, y, RED); px(c, x1 - k, y, RED)
-    warning_triangle(c, 14, 4, 15, hexc('f0d23c'), hexc('26262a'), hexc('26262a'))
-    text(c, 27, 3, 'DO NOT', RED_DK)
-    text(c, 27, 9, 'OPEN', RED_DK)
-    text(c, 27, 15, 'DOORS', RED_DK)
-    tape(c, x0 + 1, y0 - 1, 6, 3, 1)
-    tape(c, x1 - 6, y0 - 1, 6, 3, -1)
-    return c
+def n_heating(seed=78):
+    """The management's note about the heating: a clock, the day and the hour of the check."""
+    return memo(seed, 'MANAGERS', ['HEATING', 'WED 10AM'], i_clock, 9, [INK, RED_DK], paper='white')
 
 
-def n_quarantine(seed=66):
-    """Portrait (38 x 29): a hazard-stripe frame, the trefoil, KEEP OUT."""
+def n_wet_paint(seed=66):
+    """Portrait (38 x 29): a hazard-stripe frame, a red drop of paint, WET PAINT."""
     c = _canvas(38, 29, seed)
     x0, y0, x1, y1 = 1, 2, 36, 27
     sheet(c, x0, y0, x1, y1, PAPER['yellow'], seed, fold=None, curl='br', edge=False)
     stripes(c, x0, y0, x1, y1, hexc('26262a'), hexc('e8c43c'), 3)
     prect(c, x0 + 2, y0 + 2, x1 - 2, y1 - 2, PAPER['yellow'])
-    biohazard(c, 19, 11, 6, hexc('26262a'), PAPER['yellow'])
-    centred(c, 19, 18, 'KEEP OUT', RED_DK)
-    greek(c, 6, 31, 24, hexc('9a8a4a'), random.Random(seed), 1)
+    water_drop(c, 19, 5, 7, hexc('c04a3a'), hexc('f0a090'))
+    centred(c, 19, 13, 'WET', RED_DK)
+    centred(c, 19, 19, 'PAINT', RED_DK)
     pushpin(c, 19, 1, hexc('c0453a'))
     return c
 
@@ -604,19 +577,22 @@ def face(c, cx, cy, skin, hair, cloth, scale=1.0):
     px(c, cx, cy + 2, shade(skin, 0.7))
 
 
-def n_missing(seed=65):
-    """A MISSING flyer (34 x 29): a red banner, a snapshot of the face, small print, and the strip of
+def n_lessons(seed=65):
+    """A PIANO LESSONS flyer (34 x 29): a navy banner, a snapshot of a keyboard, small print, and the strip of
     tear-off phone-number tabs along the bottom — two already taken."""
     c = _canvas(34, 29, seed)
     x0, y0, x1, y1 = 1, 2, 32, 27
     paper = hexc('f3f0e6')
     sheet(c, x0, y0, x1, y1 - 4, paper, seed, fold=None, curl='tr')
-    prect(c, x0 + 1, y0 + 1, x1 - 1, y0 + 7, RED)
-    centred(c, 17, y0 + 2, 'MISSING', hexc('f6f0e4'))
-    prect(c, 10, 11, 24, 21, hexc('fbf9f2'))                               # the snapshot, white border
-    prect(c, 11, 12, 23, 20, hexc('8aa4b8'))
-    prect(c, 11, 17, 23, 20, hexc('7a9a6a'))
-    face(c, 17, 15, hexc('d8b08a'), hexc('4a3424'), hexc('b84a3a'))
+    prect(c, x0 + 1, y0 + 1, x1 - 1, y0 + 7, NAVY)
+    centred(c, 17, y0 + 2, 'PIANO', hexc('f6f0e4'))
+    prect(c, 8, 11, 26, 21, hexc('fbf9f2'))                                # the snapshot, white border
+    prect(c, 9, 12, 25, 20, hexc('2c3a50'))                                # the keyboard: ivory keys, black ones between
+    prect(c, 9, 14, 25, 20, hexc('f4f0e4'))
+    for kx in range(9, 26, 2):
+        c.vline(kx, 14, 20, hexc('b8b4a8'))
+    for kx in (10, 12, 16, 18, 20, 24):
+        prect(c, kx, 14, kx, 17, hexc('1e1e24'))
     greek(c, 5, 28, 23, SMALL_PRINT, random.Random(seed))
     greek(c, 5, 28, 25, SMALL_PRINT, random.Random(seed + 1))
     tabs_y0 = y1 - 3
@@ -627,8 +603,6 @@ def n_missing(seed=65):
         prect(c, tx, tabs_y0, tx + 2, y1, paper)
         c.vline(tx + 3, tabs_y0, y1, shade(paper, 0.8))
         px(c, tx + 1, tabs_y0 + 1, hexc('7a766c'))
-    for x in range(x0, x1 + 1):
-        px(c, x, y1 + 1, hexc('000000', 0))
     tape(c, x0 + 12, y0 - 1, 7, 3, 0)
     return c
 
@@ -1375,72 +1349,6 @@ def draw_sticky(c, x0, y0, word, col, ink, w):
     return x0 + px_w
 
 
-def draw_newspaper(c, x0, y0, headline, sub, w, seed=1):
-    """A front page (w x 26): the masthead's thick-and-thin rules, an ornament, the headline, the strap line,
-    a halftone photo of a smoking skyline with its caption, and columns of small print."""
-    x1, y1 = x0 + w, y0 + 26
-    paper = hexc('ddd6c2')
-    sheet(c, x0, y0, x1, y1, paper, seed + x0, fold='h', curl='bl')
-    for x in range(x0 + 1, x1):                                                         # yellowed edges
-        px(c, x, y0 + 1, shade(paper, 0.94)); px(c, x, y1 - 1, shade(paper, 0.92))
-    c.hline(x0 + 2, x1 - 2, y0 + 2, INK)
-    c.hline(x0 + 2, x1 - 2, y0 + 3, INK)
-    c.hline(x0 + 2, x1 - 2, y0 + 5, hexc('8a8270'))
-    px(c, (x0 + x1) // 2, y0 + 4, RED)                                                  # the paper's ornament
-    text(c, x0 + (w - width(headline)) // 2 + 1, y0 + 7, headline, INK)
-    yy = y0 + 13
-    if sub:
-        text(c, x0 + (w - width(sub)) // 2 + 1, yy, sub, hexc('5a544a'))
-        yy += 6
-    px0, px1 = x0 + 2, x0 + w // 2 - 1                                                  # the photo: halftone
-    prect(c, px0, yy, px1, y1 - 4, hexc('9a9484'))
-    for x in range(px0, px1 + 1):
-        for y in range(yy, y1 - 3):
-            if (x + y) % 2 == 0:
-                px(c, x, y, hexc('7a7468'))
-    for (bx, bh) in ((1, 3), (3, 5), (5, 4), (7, 6), (9, 3)):                          # a skyline with smoke
-        if px0 + bx + 1 <= px1:                                                         # round 47h: kept INSIDE the photo — with a strap line the photo is only 4 rows tall, and the
-            prect(c, px0 + bx, max(yy, y1 - 4 - bh), px0 + bx + 1, y1 - 4, hexc('3a362e'))   # taller towers used to run up over the strap line ("GO NORTH" / "STAY IN")
-    for k in range(4):
-        if yy + 1 + k < y1 - 4:
-            px(c, px0 + 7 + (k % 2), yy + 1 + k, hexc('b8b2a2'))
-    c.hline(px0, px1, y1 - 3, hexc('8a8270'))
-    for ly in range(yy, y1 - 1, 2):
-        greek(c, x0 + w // 2 + 1, x1 - 2, ly, hexc('9a9282'), random.Random(ly + seed), 1)
-    tape(c, x0 - 1, y0 - 1, 5, 3, 1)
-    tape(c, x1 - 3, y0 - 1, 5, 3, -1)
-    return (x0, y0, x1, y1)
-
-
-def draw_missing(c, x0, y0, name, col=hexc('f0ece0'), seed=1):
-    """A MISSING flyer (30 x 30): the red banner, the photograph, the name (or small print), the strip of
-    tear-off tabs — two already taken."""
-    w, h = 29, 30
-    x1, y1 = x0 + w, y0 + h
-    sheet(c, x0, y0, x1, y1 - 4, col, seed + x0, fold=None, curl='tr')
-    prect(c, x0 + 1, y0 + 1, x1 - 1, y0 + 7, RED)
-    centred(c, (x0 + x1) // 2 + 1, y0 + 2, 'MISSING', hexc('f6f0e4'))
-    gx0, gx1 = (x0 + x1) // 2 - 8, (x0 + x1) // 2 + 8
-    prect(c, gx0, y0 + 9, gx1, y0 + 19, hexc('fbf9f2'))
-    prect(c, gx0 + 1, y0 + 10, gx1 - 1, y0 + 18, hexc('8aa4b8'))
-    prect(c, gx0 + 1, y0 + 15, gx1 - 1, y0 + 18, hexc('7a9a6a'))
-    face(c, (gx0 + gx1) // 2, y0 + 13, hexc('d8b08a'), hexc('4a3424'), hexc('b84a3a'))
-    if name:
-        centred(c, (x0 + x1) // 2 + 1, y0 + 21, name, INK)
-    else:
-        greek(c, x0 + 4, x1 - 4, y0 + 22, SMALL_PRINT, random.Random(seed))
-    greek(c, x0 + 4, x1 - 4, y0 + 26, SMALL_PRINT, random.Random(seed + 1))
-    for k in range(7):
-        tx = x0 + 1 + k * 4
-        if k in (1, 4):
-            continue
-        prect(c, tx, y1 - 3, tx + 2, y1, col)
-        c.vline(tx + 3, y1 - 3, y1, shade(col, 0.8))
-        px(c, tx + 1, y1 - 2, hexc('7a766c'))
-    tape(c, x0 + 11, y0 - 1, 7, 3, 0)
-    return (x0, y0, x1, y1)
-
-
 def draw_timetable(c, x0, y0, seed=1):
     """A pinned school timetable (18 x 13): a coloured header row, a grid of coloured lessons, one ringed in red."""
     x1, y1 = x0 + 17, y0 + 12
@@ -1480,20 +1388,6 @@ def draw_certificate(c, x0, y0, x1, y1, title='AWARD'):
     c.ellipse(rx, ry - 1, 2.2, 2.2, hexc('c8322a'))
     px(c, rx, ry - 1, hexc('e8c43c'))
     glint(c, r, 34)
-
-
-def draw_emergency_notice(c, x0, y0, x1, y1, top='STAY', bottom='INSIDE'):
-    """A printed emergency notice pushed under every door: hazard stripes top and bottom, the instruction in
-    large black capitals, a line of small print, a curl, taped at the corners."""
-    sheet(c, x0, y0, x1, y1, hexc('e8c83a'), seed=x0 + y0, fold='h', curl='br')
-    stripes(c, x0 + 1, y0 + 1, x1 - 1, y0 + 2, hexc('26262a'), hexc('e8c83a'), 3)
-    stripes(c, x0 + 1, y1 - 2, x1 - 1, y1 - 1, hexc('26262a'), hexc('e8c83a'), 3)
-    cx = (x0 + x1) // 2 + 1
-    centred(c, cx, y0 + 5, top, hexc('1e1e24'))
-    centred(c, cx, y0 + 11, bottom, hexc('1e1e24'))
-    greek(c, x0 + 4, x1 - 4, y0 + 17, hexc('6a5a20'), random.Random(x0), 1)
-    tape(c, x0 - 1, y0 - 1, 5, 3, 1)
-    tape(c, x1 - 3, y0 - 1, 5, 3, -1)
 
 
 def paper_folds(c, x0, y0, x1, y1, vert=(), horiz=(), tone=0.9):
@@ -1543,9 +1437,9 @@ def picture_print(c, x0, y0, x1, y1, kind='black', fn=None):
 CORRIDOR_PAPER = [
     ('notice_lift', n_lift, 70), ('notice_water', n_water, 71), ('notice_meeting', n_meeting, 72),
     ('notice_bins', n_bins, 73), ('notice_smoking', n_smoking, 74), ('notice_quiet', n_quiet, 75),
-    ('notice_evac', n_evac, 76), ('notice_curfew', n_curfew, 77), ('notice_dont_open', n_dont_open, 78),
+    ('notice_fire_exit', n_fire_exit, 76), ('notice_parcels', n_parcels, 77), ('notice_heating', n_heating, 78),
     ('notice_fire_door', n_fire_door, 79), ('poster_lost_cat', n_lost_cat, 81), ('kid_drawing', n_kid_drawing, 64),
-    ('poster_missing', n_missing, 65), ('notice_quarantine', n_quarantine, 66),
+    ('poster_lessons', n_lessons, 65), ('notice_wet_paint', n_wet_paint, 66),
 ]
 SLOT_MAX = (52, 29)             # the notice slot on the corridor wall (scripts/corridor_decals.gd "poster" zone, top row 67):
                                 # 38 wide x 29 tall between a door's switch and the next door's plate, or 52 x 23 (clear of the plate)
@@ -1606,8 +1500,8 @@ def check():
             bad.append('%s.png is stale — run tools/art/corridor_decals.py' % name)
     preview_sheet()                                                       # every room piece draws without raising
     for name in ('img_guitar', 'img_record', 'img_horror', 'img_space', 'img_map', 'img_travel', 'img_rainbow', 'img_crayon',
-                 'img_mcm', 'frame', 'draw_note', 'draw_sticky', 'draw_newspaper', 'draw_missing', 'draw_timetable',
-                 'draw_certificate', 'draw_emergency_notice', 'paper_folds', 'picture_print', 'poster_paper'):
+                 'img_mcm', 'frame', 'draw_note', 'draw_sticky', 'draw_timetable',
+                 'draw_certificate', 'paper_folds', 'picture_print', 'poster_paper'):
         if name not in globals():
             bad.append('wallart.%s has gone missing' % name)
     return bad

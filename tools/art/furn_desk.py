@@ -26,7 +26,7 @@ def _knob(c, x, y):
     c.put(x + 1, y + 1, BRASS_DK)
 
 
-@piece('desk_crt', 43, 28, 'wall', rooms={'bedroom': 8, 'study': 4}, styles={'teen': 8, 'adult': 1, 'refuge': 0}, tags=('work', 'storage'), depth=8,
+@piece('desk_crt', 43, 28, 'wall', rooms={'bedroom': 8, 'study': 4}, styles={'teen': 8, 'adult': 1, 'bedsit': 0}, tags=('work', 'storage'), depth=8,
        variants={'pine': {}}, anchors=({'name': 'desk', 'dx': 22, 'dy': -21}, {'name': 'desk_drawer', 'dx': 8, 'dy': -11}), feet=(105, 108),
        needs={'tag': 'seat', 'dx': [38, 52], 'chance': 1.0}, post=_desk_post,
        note='a pine desk: a lit top edge, a dark kneehole with a pencil drawer, a pedestal of two raised-panel drawers at each end with brass knobs, a plinth, a sticker and a scratched doodle (it wants its chair)')

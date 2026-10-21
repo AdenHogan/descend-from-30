@@ -83,7 +83,7 @@ open frame's light, openings that survive a breach "nest" overlay being drawn ov
 
 ## Round 45d — more to interact with when you search (owner: "add more interact features to searching nodes")
 - **Swing and rock** — `shift` gained `path` (an explicit `(dx, dy, deg)` for every frame; the last is where it rests) and `pivot` (`top` for something hung
-  from a rail, `bottom` for something stood on the floor, else `center`): the clothes on bedroom D's rail and bathroom C's towel sway, study D's jerrycan
+  from a rail, `bottom` for something stood on the floor, else `center`): the clothes on bedroom D's rail and bathroom C's towel sway, study D's red tool chest (was a jerrycan)
   rattles; a teddy bear (bedroom E) topples off its bed, a china cabinet's glass door (living D) swings, a crate lid (study D) lifts, a bag (kitchen E) falls
   over, a can rolls. **60 specific animations** now (51 + 9; tried and dropped: kitchen C's pine-dresser door — the diamond-pattern front warps to noise).
   Specs live in `OPENINGS_45D` (the 45c ones in `OPENINGS_45C`) — keep one entry per art, the later dict replaces by anchor.

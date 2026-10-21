@@ -494,7 +494,7 @@
   }
  },
  "study_d": {
-  "anchor_study_crates": {
+  "anchor_study_boxes": {
    "frames": 3,
    "h": 19,
    "kind": "lid",

@@ -8,7 +8,7 @@ Run:  python3 tools/art/study_variants.py [b c d]
      a printer on a stand, box files; strip: a low bookshelf + a stack of files on the floor.
   c  library — two tall bookcases with a ladder, a wingback reading chair + side table + lamp
      out in the room, a globe; strip: a third bookcase + books piled on the floor.
-  d  prepper's radio room — a ham radio bench, maps on the wall, supply crates + jerry cans
+  d  the radio room — a ham radio bench, a street map with pins, boxes of parts + a tool chest
      out in the room, a folding chair with a gas mask; strip: shelves of tins.
 """
 import pixlib as PX
@@ -239,7 +239,7 @@ C_ANCHORS = [('anchor_study_tall_shelf', 28, 58, 'bp s'), ('anchor_study_floor_b
 
 
 # ============================================================================================
-# D — prepper's radio room
+# D — a radio hobbyist's room
 # ============================================================================================
 def d_wall(c):
     F.wall_plain(c, hexc('7a8270'), hexc('5a6250'), hexc('3a3a30'), texture=hexc('727a68'))
@@ -248,9 +248,9 @@ def d_wall(c):
 
 
 def d_decor(c):
-    # (owner round 17: the marked-up map read as a conspiracy board) a street map of the city: the
-    # river, the blocks, this building ringed ("US"), the way out drawn in red to the SAFE zone and the
-    # bridge crossed out
+    # (owner round 17: the marked-up map read as a conspiracy board; round 47i: the event is brand new, so
+    # nothing here is about it) a street map of the town: the river, the blocks, this building ringed ("US"),
+    # a scatter of coloured pins where the owner has made contact with someone
     # (round 23: pinned a hand's width clear of the aerial lead and of the transceiver below)
     import wallart
     wallart.sheet(c, 104, 22, 176, 55, hexc('e4dcc0'), seed=5, fold=None, curl='br', grain=0.02)
@@ -261,18 +261,15 @@ def d_decor(c):
     for y in range(23, 55):                                                                     # the river
         rx = 130 + int(6 * __import__('math').sin(y / 5.0)) + (y - 23) // 3
         c.hline(rx, rx + 4, y, hexc('8ab0c8'))
-    c.rect(160, 23, 175, 34, hexc('a8c898'))                                                    # the safe zone
-    F.text3(c, 161, 26, 'SAFE', hexc('3a6a3a'))
+    c.rect(160, 23, 175, 34, hexc('a8c898'))                                                    # a park
     c.ellipse(114, 49, 5, 4, hexc('b0332a')); c.ellipse(114, 49, 4, 3, hexc('e4dcc0'))
     F.text3(c, 111, 47, 'US', hexc('b0332a'))
-    route = [(119, 48), (126, 44), (134, 44), (146, 38), (158, 31)]
-    for (a_, b_) in zip(route, route[1:]):
-        c.line(a_[0], a_[1], b_[0], b_[1], hexc('b0332a'))
-    c.line(135, 50, 141, 56, hexc('1e1e24')); c.line(141, 50, 135, 56, hexc('1e1e24'))          # the bridge, out
+    for (x_, y_, col_) in ((126, 38, '3a6ab0'), (150, 45, 'e0b830'), (167, 40, 'c8302a'), (138, 30, '3a9a52'), (120, 28, 'e0b830'), (156, 52, '3a6ab0')):
+        c.put(x_, y_, hexc(col_)); c.put(x_ + 1, y_ + 1, hexc('4a4038'))                        # a pin: a bright head, a dark shadow
     wallart.paper_folds(c, 104, 22, 176, 55, vert=(128, 152), horiz=(38,))                       # it was folded to fit a pocket
     wallart.pushpin(c, 103, 22, hexc('c0453a')); wallart.pushpin(c, 173, 22, hexc('3a6a9a'))
-    # the emergency notice pushed under every door
-    wallart.draw_emergency_notice(c, 184, 24, 210, 46)
+    # the operator's licence, framed
+    wallart.draw_certificate(c, 184, 24, 211, 46)
 
 
 @persp
@@ -285,23 +282,21 @@ def d_strip(c):
         F.shelves(c, 8, 46, 34, 100, F.METAL, [52, 70, 86, 97], c.rng, fill=0.0)
         for (y, h) in ((52, 8), (70, 9), (86, 8)):
             for x in range(11, 44, 5):
-                col = [hexc('b0453a'), hexc('c9b86a'), hexc('6a8a5a')][(x // 5 + y) % 3]
+                col = [hexc('7a8a9a'), hexc('c9b894'), hexc('5a6a8a')][(x // 5 + y) % 3]            # boxes of components
                 c.rect(x, y - h, x + 3, y - 1, col)
                 c.hline(x, x + 3, y - h, hexc('c9c7bd'))
     setback(c, _rack, depth=3, top=34, x_range=(8, 46), rake=1.0)
     def _crate(c):
-        # an ammo crate against the wall by the shelves, a gas mask dumped on it
+        # a cardboard box of cables against the wall by the shelves, a pair of headphones hung over it
+        dark = hexc('26262a')
         c.shadow(76, 121, 12, 2, 110)
-        c.box(64, 106, 88, 121, hexc('5a6a4a'), hexc('2e3a24'))
-        c.hline(65, 87, 107, hexc('6a7a5a'))
-        c.rect(70, 112, 82, 114, hexc('d9d0b0'))
-        c.rect(62, 108, 63, 111, hexc('3a3a36')); c.rect(89, 108, 90, 111, hexc('3a3a36'))     # handles
-        rrect(c, 68, 96, 82, 105, hexc('3a3a36'), 3)                                             # the mask
-        c.ellipse(72, 99, 2, 2, hexc('9aa3a8')); c.ellipse(78, 99, 2, 2, hexc('9aa3a8'))
-        c.ellipse(72, 99, 1, 1, hexc('4a5a6a')); c.ellipse(78, 99, 1, 1, hexc('4a5a6a'))
-        c.rect(73, 103, 77, 107, hexc('5a5a52'))                                                 # the filter
-        c.hline(73, 77, 105, hexc('3a3a36'))
-        c.line(68, 97, 62, 104, hexc('26262a'))                                                  # its strap
+        c.box(64, 106, 88, 121, hexc('a88a5c'), hexc('6e5636'))
+        c.hline(65, 87, 107, hexc('c4a878'))
+        c.rect(70, 112, 82, 114, hexc('e0d8c0'))                                                 # the label
+        for (a_, b_) in (((69, 104), (69, 99)), ((69, 99), (72, 96)), ((72, 96), (78, 96)), ((78, 96), (81, 99)), ((81, 99), (81, 104))):
+            c.line(a_[0], a_[1], b_[0], b_[1], dark)                                             # the band
+        rrect(c, 67, 102, 71, 107, hexc('3a3a36'), 1); rrect(c, 79, 102, 83, 107, hexc('3a3a36'), 1)   # the cups
+        c.line(81, 107, 86, 112, dark)                                                           # the cable
     F.moved(c, _crate, -12, -21)
 
 
@@ -340,52 +335,35 @@ def _d_bench(c):
 
 def _d_rest(c):
     def _supplies(c):
-        # supply crates + jerry cans stacked against the wall
+        # boxes of parts stacked against the wall, a red tool chest and a computer tower beside them
         c.shadow(214, 121, 18, 2, 110)
-        for (x0, y0, col) in ((198, 104, hexc('5a6a4a')), (214, 104, hexc('4e5e40')), (204, 90, hexc('5a6a4a'))):
+        for (x0, y0, col) in ((198, 104, hexc('a88a5c')), (214, 104, hexc('9a7c50')), (204, 90, hexc('a88a5c'))):
             c.box(x0, y0, x0 + 15, y0 + 13 if y0 == 90 else 121, col, shade(col, 0.6))
-            c.rect(x0 + 4, y0 + 4, x0 + 11, y0 + 6, hexc('d9d0b0'))
-        for (x, col) in ((236, hexc('a8322c')), (250, hexc('4a5a3a'))):
-            c.shadow(x + 6, 121, 7, 1, 110)
-            c.box(x, 102, x + 12, 121, col, shade(col, 0.55))
-            c.rect(x + 8, 98, x + 10, 101, shade(col, 0.7))
-            c.line(x + 2, 104, x + 10, 118, shade(col, 0.8)); c.line(x + 10, 104, x + 2, 118, shade(col, 0.8))
+            c.rect(x0 + 4, y0 + 4, x0 + 11, y0 + 6, hexc('e0d8c0'))
+        red = hexc('a8322c')
+        c.shadow(242, 121, 7, 1, 110)
+        c.box(236, 102, 248, 121, red, shade(red, 0.55))                                         # the tool chest
+        c.line(240, 98, 240, 101, shade(red, 0.7)); c.line(244, 98, 244, 101, shade(red, 0.7)); c.hline(240, 244, 98, shade(red, 0.7))   # its handle
+        c.hline(237, 247, 108, shade(red, 0.8)); c.hline(237, 247, 115, shade(red, 0.8))          # its latch bands
+        c.shadow(256, 121, 7, 1, 110)
+        c.box(250, 102, 262, 121, hexc('d8d0bc'), hexc('8a8470'))                                # the computer tower
+        c.rect(252, 106, 260, 107, hexc('5a5a52')); c.put(258, 114, hexc('4ac860'))              # its drive slot, a power light
     F.moved(c, _supplies, 0, -21)
     # a folding planning table out in the room: a map weighed down with a radio handset, a torch
     F.table_front(c, 190, 252, 98, 121, F.METAL, depth=5)
     c.rect(196, 96, 232, 99, hexc('d9d0b0'))
-    c.line(200, 97, 226, 98, hexc('a8322c'))
+    c.line(200, 97, 226, 98, hexc('5a5a60'))                                                  # a line of the log, in pencil
     c.rect(236, 93, 244, 97, hexc('3a3a36')); c.line(244, 94, 248, 90, hexc('26262a'))
-    c.rect(210, 95, 216, 96, hexc('d9b43a'))
-    # a camp bed folded against the wall on the right
-    def _camp(c):
-        # (round 18: it read as a green locker) an army camp bed folded up on its end against the
-        # wall: a tube frame round olive canvas, the fold across the middle, the X legs folded flat
-        # on it, a rolled sleeping bag strapped across the top
-        tube, tube_dk, can, can_dk = hexc('a8aca4'), hexc('6a6e68'), hexc('5a6a4a'), hexc('46543a')
-        c.shadow(292, 100, 14, 2, 100)
-        c.rect(281, 42, 303, 97, can)
-        for x in range(283, 302, 4):                                                          # canvas weave/sag
-            c.vline(x, 44, 95, can_dk)
-        c.hline(281, 303, 69, can_dk); c.hline(281, 303, 70, shade(can, 1.15))                # the fold
-        for (a, b) in ((280, 41), (304, 41)):
-            c.vline(a, 41, 98, tube); c.vline(a + (1 if a < 292 else -1), 41, 98, tube_dk)    # side tubes
-        c.hline(280, 304, 41, tube); c.hline(280, 304, 98, tube)                               # end bars
-        for (y0, y1) in ((47, 66), (73, 93)):                                                  # the X legs, folded flat
-            c.line(283, y0, 301, y1, tube_dk); c.line(301, y0, 283, y1, tube_dk)
-            c.line(283, y0 + 1, 301, y1 + 1, tube); c.line(301, y0 + 1, 283, y1 + 1, tube)
-        rrect(c, 282, 56, 302, 64, hexc('3a3a36'), 3)                                          # the sleeping roll
-        c.hline(284, 300, 57, hexc('4e4e48'))
-        c.ellipse(282, 60, 2, 4, hexc('2a2a26')); c.ellipse(282, 60, 1, 2.5, hexc('5a5a52'))   # its rolled end
-        for sx in (287, 297):
-            c.vline(sx, 55, 65, hexc('7a5a36'))                                                # webbing straps
-            c.put(sx, 60, hexc('c9a24a'))
-    setback(c, _camp, depth=2, top=41, rake=1.0)
+    c.rect(210, 93, 214, 97, hexc('c8c0a8')); c.put(215, 94, hexc('c8c0a8')); c.put(215, 96, hexc('c8c0a8'))   # a mug
+    # a tall shelving unit of manuals and magazines against the wall on the right
+    def _manuals(c):
+        F.shelves(c, 281, 303, 41, 98, F.WOOD, [56, 70, 84, 96], c.rng)
+    setback(c, _manuals, depth=2, top=41, rake=1.0)
     F.bare_bulb(c, 216, 22)
 
-D_ANCHORS = [('anchor_study_tins', 26, 62, 'bp s'), ('anchor_study_gas_mask', 63, 87, 'bp s'),
+D_ANCHORS = [('anchor_study_parts', 26, 62, 'bp s'), ('anchor_study_headphones', 63, 87, 'bp s'),
              ('anchor_study_radio', 130, 64, 'bp'), ('anchor_centre_desk', 126, 86, 'bp'),
-             ('anchor_study_crates', 212, 77, 'bp'), ('anchor_study_map_table', 214, 97, ''),
+             ('anchor_study_boxes', 212, 77, 'bp'), ('anchor_study_log_table', 214, 97, ''),
              ('anchor_study_handset', 240, 95, ''),
              ('anchor_right_shelf', 292, 66, 'bp')]
 

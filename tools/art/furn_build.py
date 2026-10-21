@@ -18,7 +18,6 @@ import furnlib as FL
 import furn_bedroom  # noqa: F401  (registers the bedroom pieces)
 import furn_bedroom_b  # noqa: F401
 import furn_bedroom_c  # noqa: F401
-import furn_bedroom_d  # noqa: F401
 import furn_bedroom_e  # noqa: F401
 import furn_props  # noqa: F401
 import furn_beds  # noqa: F401

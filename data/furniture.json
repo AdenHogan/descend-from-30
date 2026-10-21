@@ -162,6 +162,7 @@
    "sound": null,
    "styles": {
     "adult": 3,
+    "bedsit": 1,
     "cosy": 6,
     "den": 5,
     "library": 6,
@@ -169,7 +170,6 @@
     "mid": 6,
     "office": 3,
     "parlour": 6,
-    "refuge": 1,
     "sick": 1,
     "studio": 2
    },
@@ -340,7 +340,7 @@
        "library",
        "adult",
        "sick",
-       "refuge"
+       "bedsit"
       ],
       "style": "club",
       "yaw": 35
@@ -378,7 +378,7 @@
        "library",
        "adult",
        "sick",
-       "refuge"
+       "bedsit"
       ],
       "style": "club",
       "yaw": 58
@@ -416,7 +416,7 @@
        "library",
        "adult",
        "sick",
-       "refuge"
+       "bedsit"
       ],
       "style": "club",
       "yaw": -35
@@ -454,7 +454,7 @@
        "library",
        "adult",
        "sick",
-       "refuge"
+       "bedsit"
       ],
       "style": "club",
       "yaw": -58
@@ -492,7 +492,7 @@
        "office",
        "adult",
        "sick",
-       "refuge"
+       "bedsit"
       ],
       "style": "club",
       "yaw": 35
@@ -530,7 +530,7 @@
        "office",
        "adult",
        "sick",
-       "refuge"
+       "bedsit"
       ],
       "style": "club",
       "yaw": 58
@@ -568,7 +568,7 @@
        "office",
        "adult",
        "sick",
-       "refuge"
+       "bedsit"
       ],
       "style": "club",
       "yaw": -35
@@ -606,7 +606,7 @@
        "office",
        "adult",
        "sick",
-       "refuge"
+       "bedsit"
       ],
       "style": "club",
       "yaw": -58
@@ -644,7 +644,7 @@
        "studio",
        "adult",
        "sick",
-       "refuge"
+       "bedsit"
       ],
       "style": "club",
       "yaw": 35
@@ -682,7 +682,7 @@
        "studio",
        "adult",
        "sick",
-       "refuge"
+       "bedsit"
       ],
       "style": "club",
       "yaw": 58
@@ -720,7 +720,7 @@
        "studio",
        "adult",
        "sick",
-       "refuge"
+       "bedsit"
       ],
       "style": "club",
       "yaw": -35
@@ -758,7 +758,7 @@
        "studio",
        "adult",
        "sick",
-       "refuge"
+       "bedsit"
       ],
       "style": "club",
       "yaw": -58
@@ -935,7 +935,7 @@
        "parlour",
        "adult",
        "sick",
-       "refuge"
+       "bedsit"
       ],
       "not": [
        "parlour"
@@ -975,7 +975,7 @@
        "parlour",
        "adult",
        "sick",
-       "refuge"
+       "bedsit"
       ],
       "not": [
        "parlour"
@@ -1015,7 +1015,7 @@
        "parlour",
        "adult",
        "sick",
-       "refuge"
+       "bedsit"
       ],
       "not": [
        "parlour"
@@ -1055,7 +1055,7 @@
        "parlour",
        "adult",
        "sick",
-       "refuge"
+       "bedsit"
       ],
       "not": [
        "parlour"
@@ -1392,7 +1392,7 @@
        "library",
        "adult",
        "sick",
-       "refuge"
+       "bedsit"
       ],
       "style": "wing",
       "yaw": 35
@@ -1430,7 +1430,7 @@
        "library",
        "adult",
        "sick",
-       "refuge"
+       "bedsit"
       ],
       "style": "wing",
       "yaw": 58
@@ -1468,7 +1468,7 @@
        "library",
        "adult",
        "sick",
-       "refuge"
+       "bedsit"
       ],
       "style": "wing",
       "yaw": -35
@@ -1506,7 +1506,7 @@
        "library",
        "adult",
        "sick",
-       "refuge"
+       "bedsit"
       ],
       "style": "wing",
       "yaw": -58
@@ -1544,7 +1544,7 @@
        "office",
        "adult",
        "sick",
-       "refuge"
+       "bedsit"
       ],
       "style": "wing",
       "yaw": 35
@@ -1582,7 +1582,7 @@
        "office",
        "adult",
        "sick",
-       "refuge"
+       "bedsit"
       ],
       "style": "wing",
       "yaw": 58
@@ -1620,7 +1620,7 @@
        "office",
        "adult",
        "sick",
-       "refuge"
+       "bedsit"
       ],
       "style": "wing",
       "yaw": -35
@@ -1658,7 +1658,7 @@
        "office",
        "adult",
        "sick",
-       "refuge"
+       "bedsit"
       ],
       "style": "wing",
       "yaw": -58
@@ -1696,7 +1696,7 @@
        "studio",
        "adult",
        "sick",
-       "refuge"
+       "bedsit"
       ],
       "style": "wing",
       "yaw": 35
@@ -1734,7 +1734,7 @@
        "studio",
        "adult",
        "sick",
-       "refuge"
+       "bedsit"
       ],
       "style": "wing",
       "yaw": 58
@@ -1772,7 +1772,7 @@
        "studio",
        "adult",
        "sick",
-       "refuge"
+       "bedsit"
       ],
       "style": "wing",
       "yaw": -35
@@ -1810,7 +1810,7 @@
        "studio",
        "adult",
        "sick",
-       "refuge"
+       "bedsit"
       ],
       "style": "wing",
       "yaw": -58
@@ -1987,7 +1987,7 @@
        "parlour",
        "adult",
        "sick",
-       "refuge"
+       "bedsit"
       ],
       "not": [
        "parlour"
@@ -2027,7 +2027,7 @@
        "parlour",
        "adult",
        "sick",
-       "refuge"
+       "bedsit"
       ],
       "not": [
        "parlour"
@@ -2067,7 +2067,7 @@
        "parlour",
        "adult",
        "sick",
-       "refuge"
+       "bedsit"
       ],
       "not": [
        "parlour"
@@ -2107,7 +2107,7 @@
        "parlour",
        "adult",
        "sick",
-       "refuge"
+       "bedsit"
       ],
       "not": [
        "parlour"
@@ -2404,9 +2404,9 @@
    "sound": null,
    "styles": {
     "adult": 1,
-    "barricade": 4,
+    "bedsit": 8,
+    "houseshare": 4,
     "radio": 3,
-    "refuge": 8,
     "squat": 4,
     "teen": 2
    },
@@ -6547,9 +6547,9 @@
    },
    "sound": null,
    "styles": {
-    "barricade": 4,
     "classic": 4,
     "hoarder": 6,
+    "houseshare": 4,
     "party": 1,
     "retro": 2,
     "squat": 6,
@@ -8007,9 +8007,9 @@
    },
    "sound": null,
    "styles": {
-    "barricade": 6,
+    "bedsit": 8,
+    "houseshare": 6,
     "radio": 5,
-    "refuge": 8,
     "studio": 2
    },
    "tags": [
@@ -8526,12 +8526,12 @@
    "sound": null,
    "styles": {
     "adult": 3,
-    "barricade": 1,
+    "bedsit": 2,
     "cosy": 2,
     "den": 2,
+    "houseshare": 1,
     "office": 5,
     "radio": 2,
-    "refuge": 2,
     "sick": 1,
     "squat": 1,
     "teen": 1
@@ -8658,9 +8658,9 @@
    },
    "sound": null,
    "styles": {
-    "barricade": 0.01,
     "family": 1,
-    "formal": 8
+    "formal": 8,
+    "houseshare": 0.01
    },
    "tags": [
     "small",
@@ -9975,7 +9975,7 @@
    "sound": null,
    "styles": {
     "adult": 3,
-    "refuge": 2,
+    "bedsit": 2,
     "sick": 3,
     "teen": 2
    },
@@ -12055,12 +12055,12 @@
    "sound": null,
    "styles": {
     "adult": 3,
-    "barricade": 1,
     "cosy": 3,
     "den": 2,
     "diner": 3,
     "family": 3,
     "formal": 1,
+    "houseshare": 1,
     "kid": 2,
     "library": 1,
     "mid": 3,
@@ -12324,7 +12324,7 @@
    },
    "sound": null,
    "styles": {
-    "refuge": 8,
+    "bedsit": 8,
     "sick": 1,
     "teen": 1
    },
@@ -12822,8 +12822,8 @@
    },
    "sound": null,
    "styles": {
+    "bedsit": 2,
     "kid": 1,
-    "refuge": 2,
     "teen": 6
    },
    "tags": [
@@ -13390,364 +13390,6 @@
    "w": 22,
    "wall_y": null
   },
-  "crates_ammo": {
-   "above": [],
-   "bucketed": false,
-   "ceiling_drop": 0,
-   "companion_only": false,
-   "feet": [
-    108,
-    120
-   ],
-   "h": 26,
-   "lap": 6,
-   "lean": false,
-   "limit": 1,
-   "near": [],
-   "needs": null,
-   "note": "army-green ammunition crates stacked two high with white stencilled codes, rope handles and a hinged lid or two left open",
-   "on": [],
-   "opens": null,
-   "pair": null,
-   "plane": "floor",
-   "rooms": {
-    "study": 6
-   },
-   "sound": null,
-   "styles": {
-    "radio": 9
-   },
-   "tags": [
-    "clutter",
-    "storage"
-   ],
-   "under": [],
-   "variants": {
-    "pair": {
-     "anchors": [
-      {
-       "dx": 16,
-       "dy": -12,
-       "name": "ammo_crates"
-      }
-     ],
-     "anims": [],
-     "lights": [],
-     "params": {
-      "n": 2
-     },
-     "slots": [],
-     "sprites": [
-      {
-       "b": 3,
-       "bx": 160,
-       "file": "crates_ammo_pair",
-       "h": 20,
-       "l": -1,
-       "r": 35,
-       "rx": 1,
-       "ry": 16,
-       "t": -16,
-       "w": 37
-      }
-     ]
-    },
-    "stack": {
-     "anchors": [
-      {
-       "dx": 16,
-       "dy": -12,
-       "name": "ammo_crates"
-      }
-     ],
-     "anims": [],
-     "lights": [],
-     "params": {
-      "n": 3
-     },
-     "slots": [],
-     "sprites": [
-      {
-       "b": 3,
-       "bx": 160,
-       "file": "crates_ammo_stack",
-       "h": 31,
-       "l": -1,
-       "r": 35,
-       "rx": 1,
-       "ry": 27,
-       "t": -27,
-       "w": 37
-      }
-     ]
-    }
-   },
-   "w": 34,
-   "wall_y": null
-  },
-  "crates_stove": {
-   "above": [],
-   "bucketed": true,
-   "ceiling_drop": 0,
-   "companion_only": false,
-   "feet": [
-    105,
-    108
-   ],
-   "h": 47,
-   "lap": 6,
-   "lean": true,
-   "limit": null,
-   "near": [],
-   "needs": null,
-   "note": "crates stacked against the wall with a camping stove and a dented pot on top, tins with labels, a candle stub; room beside for a lantern",
-   "on": [],
-   "opens": null,
-   "pair": null,
-   "plane": "wall",
-   "rooms": {
-    "bedroom": 4,
-    "living_room": 1
-   },
-   "sound": null,
-   "styles": {
-    "refuge": 8
-   },
-   "tags": [
-    "storage"
-   ],
-   "under": [],
-   "variants": {
-    "a": {
-     "anchors": [
-      {
-       "dx": 15,
-       "dy": -29,
-       "name": "crates"
-      }
-     ],
-     "anims": [],
-     "lights": [],
-     "params": {
-      "col": "a88a58",
-      "pot": "b0453a"
-     },
-     "slots": [
-      {
-       "dx0": 28,
-       "dx1": 40,
-       "dy": -14,
-       "id": "lamp",
-       "kinds": [
-        "lamp"
-       ],
-       "top": false
-      }
-     ],
-     "sprites": [
-      {
-       "b": 3,
-       "bx": 36,
-       "file": "crates_stove_a_b0",
-       "h": 53,
-       "l": -2,
-       "r": 48,
-       "rx": 2,
-       "ry": 49,
-       "t": -49,
-       "w": 51
-      },
-      {
-       "b": 3,
-       "bx": 72,
-       "file": "crates_stove_a_b1",
-       "h": 53,
-       "l": -2,
-       "r": 46,
-       "rx": 2,
-       "ry": 49,
-       "t": -49,
-       "w": 49
-      },
-      {
-       "b": 3,
-       "bx": 116,
-       "file": "crates_stove_a_b2",
-       "h": 53,
-       "l": -2,
-       "r": 43,
-       "rx": 2,
-       "ry": 49,
-       "t": -49,
-       "w": 46
-      },
-      {
-       "b": 3,
-       "bx": 160,
-       "file": "crates_stove_a_b3",
-       "h": 53,
-       "l": -2,
-       "r": 42,
-       "rx": 2,
-       "ry": 49,
-       "t": -49,
-       "w": 45
-      },
-      {
-       "b": 3,
-       "bx": 204,
-       "file": "crates_stove_a_b4",
-       "h": 53,
-       "l": -3,
-       "r": 42,
-       "rx": 3,
-       "ry": 49,
-       "t": -49,
-       "w": 46
-      },
-      {
-       "b": 3,
-       "bx": 248,
-       "file": "crates_stove_a_b5",
-       "h": 53,
-       "l": -6,
-       "r": 42,
-       "rx": 6,
-       "ry": 49,
-       "t": -49,
-       "w": 49
-      },
-      {
-       "b": 3,
-       "bx": 284,
-       "file": "crates_stove_a_b6",
-       "h": 53,
-       "l": -8,
-       "r": 42,
-       "rx": 8,
-       "ry": 49,
-       "t": -49,
-       "w": 51
-      }
-     ]
-    },
-    "b": {
-     "anchors": [
-      {
-       "dx": 15,
-       "dy": -29,
-       "name": "crates"
-      }
-     ],
-     "anims": [],
-     "lights": [],
-     "params": {
-      "col": "8a8a7c",
-      "pot": "5a7a9a"
-     },
-     "slots": [
-      {
-       "dx0": 28,
-       "dx1": 40,
-       "dy": -14,
-       "id": "lamp",
-       "kinds": [
-        "lamp"
-       ],
-       "top": false
-      }
-     ],
-     "sprites": [
-      {
-       "b": 3,
-       "bx": 36,
-       "file": "crates_stove_b_b0",
-       "h": 53,
-       "l": -2,
-       "r": 48,
-       "rx": 2,
-       "ry": 49,
-       "t": -49,
-       "w": 51
-      },
-      {
-       "b": 3,
-       "bx": 72,
-       "file": "crates_stove_b_b1",
-       "h": 53,
-       "l": -2,
-       "r": 46,
-       "rx": 2,
-       "ry": 49,
-       "t": -49,
-       "w": 49
-      },
-      {
-       "b": 3,
-       "bx": 116,
-       "file": "crates_stove_b_b2",
-       "h": 53,
-       "l": -2,
-       "r": 43,
-       "rx": 2,
-       "ry": 49,
-       "t": -49,
-       "w": 46
-      },
-      {
-       "b": 3,
-       "bx": 160,
-       "file": "crates_stove_b_b3",
-       "h": 53,
-       "l": -2,
-       "r": 42,
-       "rx": 2,
-       "ry": 49,
-       "t": -49,
-       "w": 45
-      },
-      {
-       "b": 3,
-       "bx": 204,
-       "file": "crates_stove_b_b4",
-       "h": 53,
-       "l": -3,
-       "r": 42,
-       "rx": 3,
-       "ry": 49,
-       "t": -49,
-       "w": 46
-      },
-      {
-       "b": 3,
-       "bx": 248,
-       "file": "crates_stove_b_b5",
-       "h": 53,
-       "l": -6,
-       "r": 42,
-       "rx": 6,
-       "ry": 49,
-       "t": -49,
-       "w": 49
-      },
-      {
-       "b": 3,
-       "bx": 284,
-       "file": "crates_stove_b_b6",
-       "h": 53,
-       "l": -8,
-       "r": 42,
-       "rx": 8,
-       "ry": 49,
-       "t": -49,
-       "w": 51
-      }
-     ]
-    }
-   },
-   "w": 42,
-   "wall_y": null
-  },
   "desk_crt": {
    "above": [],
    "bucketed": true,
@@ -13782,7 +13424,7 @@
    "sound": null,
    "styles": {
     "adult": 1,
-    "refuge": 0,
+    "bedsit": 0,
     "teen": 8
    },
    "tags": [
@@ -15993,9 +15635,9 @@
    },
    "sound": null,
    "styles": {
-    "barricade": 6,
+    "bedsit": 6,
     "cosy": 1,
-    "refuge": 6,
+    "houseshare": 6,
     "sick": 3,
     "squat": 5,
     "teen": 1,
@@ -16124,73 +15766,6 @@
     }
    },
    "w": 20,
-   "wall_y": [
-    24,
-    44
-   ]
-  },
-  "frame_ghost": {
-   "above": [],
-   "bucketed": false,
-   "ceiling_drop": 0,
-   "companion_only": false,
-   "feet": [
-    0,
-    0
-   ],
-   "h": 22,
-   "lap": 6,
-   "lean": false,
-   "limit": null,
-   "near": [],
-   "needs": null,
-   "note": "where a picture used to hang \u2014 taken when they left: the unfaded paper, a dirt line round it, a nail, a snapped length of string",
-   "on": [],
-   "opens": null,
-   "pair": null,
-   "plane": "decor",
-   "rooms": {
-    "bedroom": 3,
-    "dining_room": 3,
-    "living_room": 3,
-    "study": 1
-   },
-   "sound": null,
-   "styles": {
-    "adult": 3,
-    "barricade": 2,
-    "cosy": 2,
-    "parlour": 2
-   },
-   "tags": [
-    "picture",
-    "story"
-   ],
-   "under": [],
-   "variants": {
-    "a": {
-     "anchors": [],
-     "anims": [],
-     "lights": [],
-     "params": {},
-     "slots": [],
-     "sprites": [
-      {
-       "b": 22,
-       "bx": 160,
-       "file": "frame_ghost_a",
-       "h": 23,
-       "l": -1,
-       "r": 18,
-       "rx": 1,
-       "ry": 0,
-       "t": 0,
-       "w": 20
-      }
-     ]
-    }
-   },
-   "w": 18,
    "wall_y": [
     24,
     44
@@ -17312,99 +16887,6 @@
     54,
     66
    ]
-  },
-  "jerrycans": {
-   "above": [],
-   "bucketed": false,
-   "ceiling_drop": 0,
-   "companion_only": false,
-   "feet": [
-    110,
-    121
-   ],
-   "h": 22,
-   "lap": 6,
-   "lean": false,
-   "limit": 1,
-   "near": [
-    "storage"
-   ],
-   "needs": null,
-   "note": "two or three jerrycans of fuel and water, red and olive and yellow, their cross-stamped flanks dented",
-   "on": [],
-   "opens": null,
-   "pair": null,
-   "plane": "floor",
-   "rooms": {
-    "kitchen": 1,
-    "study": 6
-   },
-   "sound": null,
-   "styles": {
-    "radio": 8
-   },
-   "tags": [
-    "clutter",
-    "fuel"
-   ],
-   "under": [],
-   "variants": {
-    "pair": {
-     "anchors": [],
-     "anims": [],
-     "lights": [],
-     "params": {
-      "cols": [
-       "c8302a",
-       "4a5a3a"
-      ]
-     },
-     "slots": [],
-     "sprites": [
-      {
-       "b": 2,
-       "bx": 160,
-       "file": "jerrycans_pair",
-       "h": 22,
-       "l": 0,
-       "r": 24,
-       "rx": 0,
-       "ry": 19,
-       "t": -19,
-       "w": 25
-      }
-     ]
-    },
-    "trio": {
-     "anchors": [],
-     "anims": [],
-     "lights": [],
-     "params": {
-      "cols": [
-       "c8302a",
-       "4a5a3a",
-       "c8a030"
-      ]
-     },
-     "slots": [],
-     "sprites": [
-      {
-       "b": 2,
-       "bx": 160,
-       "file": "jerrycans_trio",
-       "h": 22,
-       "l": 0,
-       "r": 28,
-       "rx": 0,
-       "ry": 19,
-       "t": -19,
-       "w": 29
-      }
-     ]
-    }
-   },
-   "w": 24,
-   "wall_y": null
   },
   "jewel_box": {
    "above": [],
@@ -18737,141 +18219,6 @@
     }
    },
    "w": 13,
-   "wall_y": null
-  },
-  "lantern_battery": {
-   "above": [],
-   "bucketed": false,
-   "ceiling_drop": 0,
-   "companion_only": false,
-   "feet": [
-    0,
-    0
-   ],
-   "h": 14,
-   "lap": 6,
-   "lean": false,
-   "limit": null,
-   "near": [],
-   "needs": null,
-   "note": "a battery camping lantern \u2014 it works without the flat's power",
-   "on": [
-    "lamp",
-    "desk"
-   ],
-   "opens": null,
-   "pair": null,
-   "plane": "top",
-   "rooms": {
-    "bedroom": 3,
-    "dining_room": 2,
-    "kitchen": 1,
-    "living_room": 3,
-    "study": 2
-   },
-   "sound": null,
-   "styles": {
-    "barricade": 4,
-    "radio": 3,
-    "refuge": 8,
-    "sick": 1,
-    "squat": 2
-   },
-   "tags": [
-    "light",
-    "lamp"
-   ],
-   "under": [],
-   "variants": {
-    "black": {
-     "anchors": [],
-     "anims": [],
-     "lights": [
-      {
-       "dx": 5,
-       "dy": -6,
-       "kind": "lantern"
-      }
-     ],
-     "params": {
-      "body": "2a2c30"
-     },
-     "slots": [],
-     "sprites": [
-      {
-       "b": 2,
-       "bx": 160,
-       "file": "lantern_battery_black",
-       "h": 19,
-       "l": -1,
-       "r": 12,
-       "rx": 1,
-       "ry": 16,
-       "t": -16,
-       "w": 14
-      }
-     ]
-    },
-    "green": {
-     "anchors": [],
-     "anims": [],
-     "lights": [
-      {
-       "dx": 5,
-       "dy": -6,
-       "kind": "lantern"
-      }
-     ],
-     "params": {
-      "body": "3f5a40"
-     },
-     "slots": [],
-     "sprites": [
-      {
-       "b": 2,
-       "bx": 160,
-       "file": "lantern_battery_green",
-       "h": 19,
-       "l": -1,
-       "r": 12,
-       "rx": 1,
-       "ry": 16,
-       "t": -16,
-       "w": 14
-      }
-     ]
-    },
-    "orange": {
-     "anchors": [],
-     "anims": [],
-     "lights": [
-      {
-       "dx": 5,
-       "dy": -6,
-       "kind": "lantern"
-      }
-     ],
-     "params": {
-      "body": "c4682a"
-     },
-     "slots": [],
-     "sprites": [
-      {
-       "b": 2,
-       "bx": 160,
-       "file": "lantern_battery_orange",
-       "h": 19,
-       "l": -1,
-       "r": 12,
-       "rx": 1,
-       "ry": 16,
-       "t": -16,
-       "w": 14
-      }
-     ]
-    }
-   },
-   "w": 11,
    "wall_y": null
   },
   "larder_tall": {
@@ -20657,7 +20004,7 @@
    "w": 16,
    "wall_y": null
   },
-  "map_evac": {
+  "map_street": {
    "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
@@ -20672,7 +20019,7 @@
    "limit": 1,
    "near": [],
    "needs": null,
-   "note": "a large street map pinned to the wall: a blue river, a red marker line threading to a green box marked SAFE, an X, a ringed radio tower",
+   "note": "a large street map of the town pinned to the wall: a blue river, a grid of streets, and a scatter of coloured pins where the owner has made contact with someone",
    "on": [],
    "opens": null,
    "pair": null,
@@ -20682,6 +20029,8 @@
    },
    "sound": null,
    "styles": {
+    "den": 2,
+    "office": 1,
     "radio": 9
    },
    "tags": [
@@ -20690,7 +20039,7 @@
    ],
    "under": [],
    "variants": {
-    "route": {
+    "pins": {
      "anchors": [],
      "anims": [],
      "lights": [],
@@ -20700,7 +20049,7 @@
       {
        "b": 34,
        "bx": 160,
-       "file": "map_evac_route",
+       "file": "map_street_pins",
        "h": 36,
        "l": -1,
        "r": 46,
@@ -20745,7 +20094,7 @@
    },
    "sound": null,
    "styles": {
-    "refuge": 8
+    "bedsit": 8
    },
    "tags": [
     "sleeping"
@@ -21899,73 +21248,6 @@
     40
    ]
   },
-  "missing_lucy": {
-   "above": [],
-   "bucketed": false,
-   "ceiling_drop": 0,
-   "companion_only": false,
-   "feet": [
-    0,
-    0
-   ],
-   "h": 28,
-   "lap": 6,
-   "lean": false,
-   "limit": 1,
-   "near": [],
-   "needs": null,
-   "note": "a missing-person poster: LUCY",
-   "on": [],
-   "opens": null,
-   "pair": null,
-   "plane": "decor",
-   "rooms": {
-    "bedroom": 3,
-    "dining_room": 2,
-    "kitchen": 2,
-    "living_room": 3,
-    "study": 2
-   },
-   "sound": null,
-   "styles": {
-    "barricade": 4,
-    "kid": 1,
-    "refuge": 8,
-    "squat": 3
-   },
-   "tags": [
-    "notice"
-   ],
-   "under": [],
-   "variants": {
-    "a": {
-     "anchors": [],
-     "anims": [],
-     "lights": [],
-     "params": {},
-     "slots": [],
-     "sprites": [
-      {
-       "b": 31,
-       "bx": 160,
-       "file": "missing_lucy_a",
-       "h": 34,
-       "l": -1,
-       "r": 31,
-       "rx": 1,
-       "ry": 2,
-       "t": -2,
-       "w": 33
-      }
-     ]
-    }
-   },
-   "w": 20,
-   "wall_y": [
-    22,
-    36
-   ]
-  },
   "mop_bucket3d": {
    "above": [],
    "bucketed": true,
@@ -22229,73 +21511,6 @@
    "w": 14,
    "wall_y": null
   },
-  "newspaper_evacuate": {
-   "above": [],
-   "bucketed": false,
-   "ceiling_drop": 0,
-   "companion_only": false,
-   "feet": [
-    0,
-    0
-   ],
-   "h": 30,
-   "lap": 6,
-   "lean": false,
-   "limit": 1,
-   "near": [],
-   "needs": null,
-   "note": "a front page taped to the wall: EVACUATE",
-   "on": [],
-   "opens": null,
-   "pair": null,
-   "plane": "decor",
-   "rooms": {
-    "bedroom": 3,
-    "dining_room": 3,
-    "kitchen": 2,
-    "living_room": 3,
-    "study": 2
-   },
-   "sound": null,
-   "styles": {
-    "adult": 1,
-    "barricade": 6,
-    "refuge": 8,
-    "squat": 6
-   },
-   "tags": [
-    "notice"
-   ],
-   "under": [],
-   "variants": {
-    "a": {
-     "anchors": [],
-     "anims": [],
-     "lights": [],
-     "params": {},
-     "slots": [],
-     "sprites": [
-      {
-       "b": 28,
-       "bx": 160,
-       "file": "newspaper_evacuate_a",
-       "h": 32,
-       "l": -2,
-       "r": 38,
-       "rx": 2,
-       "ry": 3,
-       "t": -3,
-       "w": 41
-      }
-     ]
-    }
-   },
-   "w": 37,
-   "wall_y": [
-    22,
-    36
-   ]
-  },
   "newspaper_stacks": {
    "above": [],
    "bucketed": true,
@@ -22324,9 +21539,9 @@
    },
    "sound": null,
    "styles": {
-    "barricade": 3,
     "den": 2,
     "hoarder": 9,
+    "houseshare": 3,
     "library": 2,
     "radio": 3,
     "squat": 3
@@ -22724,7 +21939,7 @@
    "w": 25,
    "wall_y": null
   },
-  "note_door": {
+  "note_bills": {
    "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
@@ -22739,7 +21954,7 @@
    "limit": 1,
    "near": [],
    "needs": null,
-   "note": "DONT OPEN DOOR!",
+   "note": "a reminder stuck up where it cannot be missed: PAY GAS BILL",
    "on": [],
    "opens": null,
    "pair": null,
@@ -22766,19 +21981,79 @@
       {
        "b": 24,
        "bx": 160,
-       "file": "note_door_a",
+       "file": "note_bills_a",
        "h": 26,
        "l": -1,
-       "r": 24,
+       "r": 20,
        "rx": 1,
        "ry": 1,
        "t": -1,
-       "w": 26
+       "w": 22
       }
      ]
     }
    },
    "w": 20,
+   "wall_y": [
+    14,
+    32
+   ]
+  },
+  "note_cat_food": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 24,
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "near": [],
+   "needs": null,
+   "note": "a note for whoever feeds the cat: CAT FOOD, TUES",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "decor",
+   "rooms": {
+    "kitchen": 5
+   },
+   "sound": null,
+   "styles": {
+    "hoarder": 9
+   },
+   "tags": [
+    "notice"
+   ],
+   "under": [],
+   "variants": {
+    "a": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {},
+     "slots": [],
+     "sprites": [
+      {
+       "b": 24,
+       "bx": 160,
+       "file": "note_cat_food_a",
+       "h": 28,
+       "l": -2,
+       "r": 22,
+       "rx": 2,
+       "ry": 3,
+       "t": -3,
+       "w": 25
+      }
+     ]
+    }
+   },
+   "w": 18,
    "wall_y": [
     14,
     32
@@ -22866,10 +22141,12 @@
    "pair": null,
    "plane": "decor",
    "rooms": {
+    "bedroom": 3,
     "kitchen": 5
    },
    "sound": null,
    "styles": {
+    "bedsit": 6,
     "student": 9
    },
    "tags": [
@@ -22902,66 +22179,6 @@
    "w": 18,
    "wall_y": [
     18,
-    32
-   ]
-  },
-  "note_stores": {
-   "above": [],
-   "bucketed": false,
-   "ceiling_drop": 0,
-   "companion_only": false,
-   "feet": [
-    0,
-    0
-   ],
-   "h": 26,
-   "lap": 6,
-   "lean": false,
-   "limit": 1,
-   "near": [],
-   "needs": null,
-   "note": "the stores list: WATER TINS MEDS BATTS",
-   "on": [],
-   "opens": null,
-   "pair": null,
-   "plane": "decor",
-   "rooms": {
-    "kitchen": 5
-   },
-   "sound": null,
-   "styles": {
-    "hoarder": 9
-   },
-   "tags": [
-    "notice"
-   ],
-   "under": [],
-   "variants": {
-    "a": {
-     "anchors": [],
-     "anims": [],
-     "lights": [],
-     "params": {},
-     "slots": [],
-     "sprites": [
-      {
-       "b": 30,
-       "bx": 160,
-       "file": "note_stores_a",
-       "h": 34,
-       "l": -2,
-       "r": 28,
-       "rx": 2,
-       "ry": 3,
-       "t": -3,
-       "w": 31
-      }
-     ]
-    }
-   },
-   "w": 26,
-   "wall_y": [
-    14,
     32
    ]
   },
@@ -24738,8 +23955,8 @@
    },
    "sound": null,
    "styles": {
-    "barricade": 3,
     "hoarder": 2,
+    "houseshare": 3,
     "party": 2,
     "squat": 8,
     "student": 8
@@ -24895,67 +24112,6 @@
    },
    "w": 30,
    "wall_y": null
-  },
-  "planks_wall": {
-   "above": [],
-   "bucketed": false,
-   "ceiling_drop": 0,
-   "companion_only": false,
-   "feet": [
-    0,
-    0
-   ],
-   "h": 34,
-   "lap": 6,
-   "lean": false,
-   "limit": 1,
-   "near": [],
-   "needs": null,
-   "note": "planks nailed across the wall in a hurry \u2014 three rough boards at angles, bent nails, a smear of dried blood and a scrawled STAY OUT",
-   "on": [],
-   "opens": null,
-   "pair": null,
-   "plane": "decor",
-   "rooms": {
-    "dining_room": 6
-   },
-   "sound": null,
-   "styles": {
-    "barricade": 9
-   },
-   "tags": [
-    "picture",
-    "boards"
-   ],
-   "under": [],
-   "variants": {
-    "boards": {
-     "anchors": [],
-     "anims": [],
-     "lights": [],
-     "params": {},
-     "slots": [],
-     "sprites": [
-      {
-       "b": 32,
-       "bx": 160,
-       "file": "planks_wall_boards",
-       "h": 33,
-       "l": 0,
-       "r": 59,
-       "rx": 0,
-       "ry": 0,
-       "t": 0,
-       "w": 60
-      }
-     ]
-    }
-   },
-   "w": 60,
-   "wall_y": [
-    22,
-    36
-   ]
   },
   "plant_pot": {
    "above": [],
@@ -25171,6 +24327,7 @@
    },
    "sound": null,
    "styles": {
+    "bedsit": 4,
     "squat": 4,
     "teen": 8
    },
@@ -25256,6 +24413,7 @@
    },
    "sound": null,
    "styles": {
+    "bedsit": 3,
     "squat": 4,
     "teen": 8
    },
@@ -25319,6 +24477,7 @@
    },
    "sound": null,
    "styles": {
+    "bedsit": 6,
     "squat": 6,
     "studio": 2,
     "teen": 8
@@ -25418,67 +24577,6 @@
    "wall_y": [
     20,
     36
-   ]
-  },
-  "poster_outbreak": {
-   "above": [],
-   "bucketed": false,
-   "ceiling_drop": 0,
-   "companion_only": false,
-   "feet": [
-    0,
-    0
-   ],
-   "h": 28,
-   "lap": 6,
-   "lean": false,
-   "limit": 1,
-   "near": [],
-   "needs": null,
-   "note": "a front page: OUTBREAK, STAY IN",
-   "on": [],
-   "opens": null,
-   "pair": null,
-   "plane": "decor",
-   "rooms": {
-    "kitchen": 5,
-    "living_room": 2
-   },
-   "sound": null,
-   "styles": {
-    "hoarder": 9
-   },
-   "tags": [
-    "notice"
-   ],
-   "under": [],
-   "variants": {
-    "a": {
-     "anchors": [],
-     "anims": [],
-     "lights": [],
-     "params": {},
-     "slots": [],
-     "sprites": [
-      {
-       "b": 28,
-       "bx": 160,
-       "file": "poster_outbreak_a",
-       "h": 32,
-       "l": -2,
-       "r": 38,
-       "rx": 2,
-       "ry": 3,
-       "t": -3,
-       "w": 41
-      }
-     ]
-    }
-   },
-   "w": 40,
-   "wall_y": [
-    14,
-    30
    ]
   },
   "poster_rainbow": {
@@ -25820,7 +24918,7 @@
    "limit": 1,
    "near": [],
    "needs": null,
-   "note": "a stack of survivor radio gear on the table: a long transmitter with a row of dials and amber lights, a smaller receiver with a speaker grille, a coiled lead and a telescopic aerial",
+   "note": "an amateur radio station on the table: a long transmitter with a row of dials and amber lights, a smaller receiver with a speaker grille, a coiled lead and a telescopic aerial",
    "on": [
     "desk"
    ],
@@ -29665,68 +28763,6 @@
    "w": 82,
    "wall_y": null
   },
-  "spray_nofood": {
-   "above": [],
-   "bucketed": false,
-   "ceiling_drop": 0,
-   "companion_only": false,
-   "feet": [
-    0,
-    0
-   ],
-   "h": 18,
-   "lap": 6,
-   "lean": false,
-   "limit": 1,
-   "near": [],
-   "needs": null,
-   "note": "NO FOOD, sprayed on the plaster in red: a soft halo of overspray round every letter, long runs that end in a bead, a crossed-out arrow under it",
-   "on": [],
-   "opens": null,
-   "pair": null,
-   "plane": "decor",
-   "rooms": {
-    "bedroom": 4,
-    "kitchen": 3,
-    "living_room": 3
-   },
-   "sound": null,
-   "styles": {
-    "refuge": 8
-   },
-   "tags": [
-    "notice"
-   ],
-   "under": [],
-   "variants": {
-    "a": {
-     "anchors": [],
-     "anims": [],
-     "lights": [],
-     "params": {},
-     "slots": [],
-     "sprites": [
-      {
-       "b": 16,
-       "bx": 160,
-       "file": "spray_nofood_a",
-       "h": 20,
-       "l": -3,
-       "r": 56,
-       "rx": 3,
-       "ry": 3,
-       "t": -3,
-       "w": 60
-      }
-     ]
-    }
-   },
-   "w": 35,
-   "wall_y": [
-    24,
-    38
-   ]
-  },
   "stag_head": {
    "above": [],
    "bucketed": false,
@@ -29957,7 +28993,7 @@
    "sound": null,
    "styles": {
     "adult": 4,
-    "refuge": 3,
+    "bedsit": 3,
     "teen": 1
    },
    "tags": [
@@ -30200,7 +29236,7 @@
    "limit": 1,
    "near": [],
    "needs": null,
-   "note": "the dining table with its chairs standing behind it: a lace-clothed family table with spindle chairs, a round sixties tulip table with two moulded chairs, a long bare mahogany table with high-backed chairs, a birthday table under a confetti cloth with small chairs \u2014 or a table dragged on its edge with the chairs jammed against it",
+   "note": "the dining table with its chairs standing behind it: a lace-clothed family table with spindle chairs, a round sixties tulip table with two moulded chairs, a long bare mahogany table with high-backed chairs, a birthday table under a confetti cloth with small chairs \u2014 or a bare pine table of a shared house with three chairs that do not match",
    "on": [],
    "opens": null,
    "pair": null,
@@ -30420,7 +29456,7 @@
       }
      ]
     },
-    "tipped": {
+    "shared": {
      "anchors": [
       {
        "dx": 30,
@@ -30439,23 +29475,35 @@
      "lights": [],
      "params": {
       "for": [
-       "barricade"
+       "houseshare"
       ],
-      "kind": "tipped"
+      "kind": "shared"
      },
-     "slots": [],
+     "slots": [
+      {
+       "dx0": 8,
+       "dx1": 84,
+       "dy": -26,
+       "id": "top",
+       "kinds": [
+        "table",
+        "small"
+       ],
+       "top": true
+      }
+     ],
      "sprites": [
       {
-       "b": 1,
+       "b": 0,
        "bx": 160,
-       "file": "table_dining_tipped",
-       "h": 43,
-       "l": -12,
-       "r": 96,
-       "rx": 12,
-       "ry": 41,
-       "t": -41,
-       "w": 109
+       "file": "table_dining_shared",
+       "h": 49,
+       "l": 0,
+       "r": 92,
+       "rx": 0,
+       "ry": 48,
+       "t": -48,
+       "w": 93
       }
      ]
     }
@@ -30682,69 +29730,6 @@
    },
    "w": 62,
    "wall_y": null
-  },
-  "tally_marks": {
-   "above": [],
-   "bucketed": false,
-   "ceiling_drop": 0,
-   "companion_only": false,
-   "feet": [
-    0,
-    0
-   ],
-   "h": 12,
-   "lap": 6,
-   "lean": false,
-   "limit": 1,
-   "near": [],
-   "needs": null,
-   "note": "the days, scratched into the plaster: groups of five struck through, each scratch a dark groove with pale chipped plaster along it, dust below",
-   "on": [],
-   "opens": null,
-   "pair": null,
-   "plane": "decor",
-   "rooms": {
-    "bedroom": 4,
-    "living_room": 2,
-    "study": 2
-   },
-   "sound": null,
-   "styles": {
-    "refuge": 8,
-    "sick": 1
-   },
-   "tags": [
-    "mark"
-   ],
-   "under": [],
-   "variants": {
-    "a": {
-     "anchors": [],
-     "anims": [],
-     "lights": [],
-     "params": {},
-     "slots": [],
-     "sprites": [
-      {
-       "b": 12,
-       "bx": 160,
-       "file": "tally_marks_a",
-       "h": 13,
-       "l": -2,
-       "r": 30,
-       "rx": 2,
-       "ry": 0,
-       "t": 0,
-       "w": 33
-      }
-     ]
-    }
-   },
-   "w": 31,
-   "wall_y": [
-    44,
-    60
-   ]
   },
   "tea_towel": {
    "above": [],
@@ -36974,11 +35959,11 @@
    "sound": null,
    "styles": {
     "adult": 3,
-    "barricade": 1,
     "cosy": 3,
     "den": 3,
     "diner": 2,
     "family": 3,
+    "houseshare": 1,
     "kid": 2,
     "lodge": 2,
     "mid": 3,
@@ -39201,6 +38186,57 @@
    },
    "weight": 30
   },
+  "bedroom/bedsit": {
+   "ceiling": 0.0,
+   "centre": {
+    "tag": "sleeping",
+    "x": [
+     60,
+     150
+    ]
+   },
+   "clutter": [
+    2,
+    4
+   ],
+   "decor": [
+    2,
+    4
+   ],
+   "fallback": [
+    {
+     "id": "mattress_floor",
+     "variant": "l_blue",
+     "x": 100,
+     "y": 116
+    },
+    {
+     "id": "backpack",
+     "variant": "olive",
+     "x": 210,
+     "y": 119
+    }
+   ],
+   "flank": {
+    "chance": 0.4,
+    "tag": "bedside"
+   },
+   "legacy": 3,
+   "min_front": 2,
+   "rug": 0.15,
+   "shell": "bedroom_shell_d",
+   "tops": 0.7,
+   "wall": {
+    "count": [
+     1,
+     3
+    ],
+    "must": [
+     "storage"
+    ]
+   },
+   "weight": 16
+  },
   "bedroom/kid": {
    "ceiling": 1.0,
    "centre": {
@@ -39257,57 +38293,6 @@
     ]
    },
    "weight": 18
-  },
-  "bedroom/refuge": {
-   "ceiling": 0.0,
-   "centre": {
-    "tag": "sleeping",
-    "x": [
-     60,
-     150
-    ]
-   },
-   "clutter": [
-    2,
-    4
-   ],
-   "decor": [
-    2,
-    4
-   ],
-   "fallback": [
-    {
-     "id": "mattress_floor",
-     "variant": "l_blue",
-     "x": 100,
-     "y": 116
-    },
-    {
-     "id": "backpack",
-     "variant": "olive",
-     "x": 210,
-     "y": 119
-    }
-   ],
-   "flank": {
-    "chance": 0.4,
-    "tag": "bedside"
-   },
-   "legacy": 3,
-   "min_front": 2,
-   "rug": 0.15,
-   "shell": "bedroom_shell_d",
-   "tops": 0.7,
-   "wall": {
-    "count": [
-     1,
-     3
-    ],
-    "must": [
-     "storage"
-    ]
-   },
-   "weight": 16
   },
   "bedroom/sick": {
    "ceiling": 1.0,
@@ -39422,53 +38407,6 @@
     ]
    },
    "weight": 22
-  },
-  "dining_room/barricade": {
-   "ceiling": 0.8,
-   "centre": {
-    "tag": "dining",
-    "x": [
-     40,
-     200
-    ]
-   },
-   "clutter": [
-    2,
-    4
-   ],
-   "decor": [
-    2,
-    4
-   ],
-   "fallback": [
-    {
-     "id": "table_dining",
-     "variant": "tipped",
-     "x": 110,
-     "y": 116
-    },
-    {
-     "id": "ceiling_flush",
-     "variant": "a",
-     "x": 150,
-     "y": 0
-    }
-   ],
-   "legacy": 3,
-   "min_front": 2,
-   "rug": 0.0,
-   "shell": "dining_shell_d",
-   "tops": 0.4,
-   "wall": {
-    "count": [
-     1,
-     2
-    ],
-    "must": [
-     "storage"
-    ]
-   },
-   "weight": 16
   },
   "dining_room/diner": {
    "ceiling": 0.9,
@@ -39610,6 +38548,53 @@
     ]
    },
    "weight": 18
+  },
+  "dining_room/houseshare": {
+   "ceiling": 0.8,
+   "centre": {
+    "tag": "dining",
+    "x": [
+     40,
+     200
+    ]
+   },
+   "clutter": [
+    2,
+    4
+   ],
+   "decor": [
+    2,
+    4
+   ],
+   "fallback": [
+    {
+     "id": "table_dining",
+     "variant": "shared",
+     "x": 110,
+     "y": 116
+    },
+    {
+     "id": "ceiling_flush",
+     "variant": "a",
+     "x": 150,
+     "y": 0
+    }
+   ],
+   "legacy": 3,
+   "min_front": 2,
+   "rug": 0.0,
+   "shell": "dining_shell_d",
+   "tops": 0.4,
+   "wall": {
+    "count": [
+     1,
+     2
+    ],
+    "must": [
+     "storage"
+    ]
+   },
+   "weight": 16
   },
   "dining_room/party": {
    "ceiling": 0.8,

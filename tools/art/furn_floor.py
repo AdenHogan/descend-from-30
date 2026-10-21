@@ -131,7 +131,7 @@ def _garment(lc, cx, top, kind, col, rng):
         lc.hline(cx - 5, cx - 1, y0 + 26, shade(col, 0.5)); lc.hline(cx + 1, cx + 5, y0 + 26, shade(col, 0.5))
 
 
-@piece('clothes_rail', 49, 52, 'floor', rooms={'bedroom': 4, 'living_room': 1}, styles={'refuge': 8, 'sick': 1, 'teen': 1}, tags=('storage', 'clothes'),
+@piece('clothes_rail', 49, 52, 'floor', rooms={'bedroom': 4, 'living_room': 1}, styles={'bedsit': 8, 'sick': 1, 'teen': 1}, tags=('storage', 'clothes'),
        variants={'a': {'kinds': ('shirt', 'dress', 'coat', 'trousers'), 'cols': (0, 1, 5, 3)}, 'b': {'kinds': ('coat', 'jumper', 'dress', 'shirt'), 'cols': (1, 3, 0, 2)}},
        anchors=({'name': 'clothes_rail', 'dx': 16, 'dy': -22},), feet=(116, 119), near=('sleeping',),
        note='a freestanding chrome clothes rail on castors: wire hangers, four garments (shirt, dress, coat, jumper, trousers by variant), each lit, creased and outlined against the next')
@@ -164,7 +164,7 @@ def clothes_rail(c, ox, oy, p):
 
 
 # ================================================================================================================================ a stain on the boards
-@piece('floor_stain', 28, 8, 'rug', rooms={'bedroom': 4, 'living_room': 3, 'kitchen': 3, 'bathroom': 3}, styles={'refuge': 6, 'sick': 3, 'teen': 1}, tags=('stain',), feet=(113, 119),
+@piece('floor_stain', 28, 8, 'rug', rooms={'bedroom': 4, 'living_room': 3, 'kitchen': 3, 'bathroom': 3}, styles={'bedsit': 6, 'sick': 3, 'teen': 1}, tags=('stain',), feet=(113, 119),
        variants={'a': {'seed': 34, 'col': '9a8a5a'}, 'b': {'seed': 41, 'col': '6a5a42'}},
        note='a dried stain on the boards: an irregular tide-line with a darker rim, a paler middle and a few spots')
 def floor_stain(c, ox, oy, p):

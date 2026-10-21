@@ -76,6 +76,14 @@ else
 	echo "FAIL   colour harmony — see tools/art/colour_audit.py and tools/art/furn_palette.py"; head -6 "$LOG_DIR/_colour.log"
 	bad=$((bad + 1))
 fi
+# CONTEXT (owner round 47i: "we don't want anything related to outbreaks… this event is happening brand new so preparedness is not a thing"): no drawn word, piece, decal or sprite name is about
+# preparation (stockpiles, go-bags, a safe zone), authority (evacuate / curfew / quarantine / rescue marks) or elapsed time (tally marks, MISSING posters) — tools/art/context_audit.py.
+if python3 tools/art/context_audit.py --check >"$LOG_DIR/_context.log" 2>&1; then
+	echo "ok     art context ($(tail -1 "$LOG_DIR/_context.log" | sed 's/^CONTEXT: //'))"
+else
+	echo "FAIL   art context — see tools/art/context_audit.py (the art must match a sudden event happening NOW)"; head -8 "$LOG_DIR/_context.log"
+	bad=$((bad + 1))
+fi
 # Every sound must stay clean (owner round 46: "a lot of what feels like static and noise in the audio"): no hiss / fizz above the budgets in
 # tools/audio_audit.py, no clipping or DC offset, no tick at a loop's join, no music that is all sub. Decodes every file in assets/audio.
 if python3 tools/audio_audit.py --check >"$LOG_DIR/_audio.log" 2>&1; then

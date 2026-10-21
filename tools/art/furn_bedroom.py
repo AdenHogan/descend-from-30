@@ -2,8 +2,8 @@
 
 The five old bedroom variants (tools/art/bedroom.py + bedroom_variants.py) were five baked pictures. Their pieces live here now, separately, with the logic of where they belong:
 styles `adult` (A: the faded blue-papered main bedroom), `teen` (B: posters, a desk with an old computer), `sick` (C: the sick room — an iron bedstead, a drip stand, a wheelchair),
-`refuge` (D: the squat — a mattress on the floor, crates, a camping lantern, boxes), `kid` (E: the child's room — a dolls' house, a rocking horse, a toy chest). A piece lists the
-styles it suits, so the planner never puts a drip stand in the child's room or a dolls' house in the squat; a piece lists the ROOMS it suits, so a bed can never turn up in a kitchen.
+`bedsit` (D: a young renter's room — a mattress on the floor, crates for a bedside, a clothes rail, a rucksack, moving boxes), `kid` (E: the child's room — a dolls' house, a rocking horse, a toy chest). A piece lists the
+styles it suits, so the planner never puts a drip stand in the child's room or a dolls' house in the bedsit; a piece lists the ROOMS it suits, so a bed can never turn up in a kitchen.
 
 Each piece is `draw(c, ox, oy, p)`: its FRONT-LEFT corner at x = ox, the last row of its front face (its feet) at y = oy, `p` the variant's parameters (colourway…) plus p['open'] (0..1,
 an opening piece drawn that far open). Set-back pieces ('wall' plane, depth > 0) are drawn FLAT and brought forward + leaned toward the module's middle by the kit (pixlib.setback).
@@ -73,7 +73,7 @@ def picture_portrait(c, ox, oy, p):
     F.portrait(c, ox + 3, oy + 4, ox + 16, oy + 22, sitter=p['s'], frame=hexc('6b4a2c'))
 
 
-@piece('calendar_wall', 25, 36, 'decor', rooms={'bedroom': 3, 'kitchen': 7, 'study': 4, 'living_room': 2}, styles={'adult': 3, 'teen': 1, 'refuge': 2, 'sick': 1}, tags=('notice',), limit=1,
+@piece('calendar_wall', 25, 36, 'decor', rooms={'bedroom': 3, 'kitchen': 7, 'study': 4, 'living_room': 2}, styles={'adult': 3, 'teen': 1, 'bedsit': 2, 'sick': 1}, tags=('notice',), limit=1,
        wall_y=(28, 44), note='a wall calendar: the days crossed off in red up to the 12th — and then nothing')
 def calendar_wall(c, ox, oy, p):
     F.calendar(c, ox, oy + 3, month='MAY', crossed=12, ringed=19)

@@ -32,6 +32,12 @@ supply of stamina, items and nerve. **Pillars:**
 - **Sound is a mechanic.** Everything you do has a loudness; listening at a door or stairwell is the one thing eyes cannot do.
 - **Every choice is a trade-off:** safety vs access, combat vs exploration, a key vs a slot, a weapon's last uses
   vs a barricade.
+- **It is happening NOW (owner, round 47i).** The event is brand new and sudden — one day, morning to night. Nobody is
+  prepared, nobody is in charge, nobody has a name for it yet. The art and text may show *reaction* (panic, blood, a
+  barricade of furniture made in a hurry, a HELP sheet, boards nailed up today) and ordinary life interrupted; they never
+  show *preparation* (stockpiles, go-bags, supply lists, a survivors' radio room, a map of a safe zone), *authority*
+  (evacuation / curfew / quarantine notices, rescue teams' marks, news headlines about it) or *elapsed time* (tally marks,
+  MISSING posters, "NO FOOD"). Locked for the art by `tools/art/context_audit.py` (in the gate).
 
 Tech: Godot 4.6, GL Compatibility renderer, GDScript. Targets keyboard + mouse, gamepad, and Android touch
 (the owner playtests on an Android phone through the editor; an exported APK is untried).
@@ -294,12 +300,34 @@ reshuffle, achievements, and the other quests.
 | 002 | The Shopkeeper (save him on 25) | PARTIAL — the merchant exists on 25/20/15/10/5 **unconditionally**; the elevator-doors rescue, the "dead shopkeeper" hard-run branch and its achievement are not built |
 | 003 | The Babysitter | NOT BUILT |
 | 004 | Power the Elevator | PARTIAL — the fuse/elevator **mechanic** is built as a system (maintenance room, 3 fuses, 5-floor jump); the maintenance-worker NPC encounter is not |
-| 005 | The Prepper | NOT BUILT (a trader resident and a "safe rest spot" are different things) |
+| 005 | The Prepper | NOT BUILT (a trader resident and a "safe rest spot" are different things). **Owner's call (round 47i):** "preparedness is not a thing" — a man who stocked up for exactly this sits against the sudden-event rule (§1); keep, recast, or drop |
 | 006 | Into the Breach | PARTIAL — breach rooms, leaders and keys are built, and the dead now go for the nearer meal (a survivor); the neighbour-to-save quest layout, its timer and its reward are not |
 | 007–009, 011 | Stubs | Not designed |
 | 010 | Johnny the Gun Guy | BUILT v1 — corridor quest on the framework, floors 10–20; 10 bullets → a Durable Hand Cannon, 20 more → Waste Not or Johnny's Eye, paid in **instalments on a ledger that lasts all three runs** (round 41); the gun is handed over once and never re-issued — a dead player's is lootable from the body (round 42; `QUESTS.md`) |
 | — | The Gun Cabinet (unannounced) | BUILT |
 | — | Personal quests (Joe/Vivianne/Alex/Amina) | BUILT v1 — one hook each; later stages open |
+
+## 11b. Story mode — two concepts (NOT BUILT; deliberately deferred)
+
+**Order of work (owner, 2026-10-21):** *missions and quests* first, then the **alpha test** and further development, and only
+then a story mode. A story mode is **not the focus now**; the concepts are recorded here so nothing built in the meantime
+closes a door on either. The two are alternatives — which one (or whether a blend) is the owner's call.
+
+1. **The viral weapon test** (*Resident Evil*). Scientists have been using the building for a viral-weapon test. The dead are
+   the result — a test, a leak, or both.
+2. **The occult infestation** (*Hellraiser*). Some of the people in the building summoned occult, Lovecraftian nightmares,
+   and they have invaded our world. The dead and what lies beneath them are that incursion.
+
+**What this asks of the game today (the rule that keeps both doors open):** at ground level the event is sudden and
+*unexplained*. Nothing the player sees now — a notice, a poster, a headline, a line of dialogue — may name a cause (a virus, a
+lab, a cult, "the outbreak") or show anyone who knew it was coming. The cause is the story mode's to reveal.
+
+*Suggestions only (mine, not decisions): both concepts have somewhere to land in what exists — the **depth biomes** (30–21 Hotel,
+20–13 Rot, 12–6 Green, 5–1 Nest; §A5), the **overgrowth** system and the building's sectional decay read naturally as either a
+sealed-off research programme or a thing coming up from below; the **maintenance rooms, fuse box and elevator** are a plausible
+home for sealed floors or a ritual floor; the **quest framework** (`QUESTS.md`) and the journal's Quests page are how documents,
+witnesses and the "who did this" thread would be delivered; and quest 005 (*The Prepper*) is the one existing design that sits
+awkwardly with "preparedness is not a thing" and needs the owner's decision (§11).*
 
 ## 12. Original demo scope (historical)
 
@@ -324,6 +352,7 @@ quest system and the deep narrative.
 | Session ends on lobby exit or death | Same, but only the **third** character ends it; a mid-arc death leaves a recoverable corpse |
 | Healing via consumables only | Same, plus rest (stamina only — the building shifts) |
 | Demo excluded multi-character / upgrades / NPCs / quests | Built, except a general quest system |
+| The building's paper and rooms told an outbreak story (EVACUATE / OUTBREAK front pages, a curfew and a quarantine notice, a stores list, a safe-zone map, tally marks, MISSING posters, a prepper's radio room) | **Removed** (round 47i): the event is sudden and happening now — the paper is the building's ordinary notices, the rooms are ordinary lives (a bedsit, a houseshare, a radio hobbyist's study); `context_audit.py` fails the gate if any of it returns |
 
 ## Outstanding work (non-narrative)
 
@@ -384,6 +413,9 @@ animation audio; resident voices; pack flap/slam, rummage; an opening music cue;
 - **Stale docs:** the "Known-not-done" list in `PLAYTEST_CHECKLIST.md` described an older build (corrected alongside this
   GDD). `STORE_DESIGN.md`'s "out of scope v1: selling" and `MAINTENANCE_ELEVATOR.md`'s "open questions" were answered by
   later builds (selling, every-3rd-floor rooms, the clamped 5-floor ride) but their text was not edited.
+
+### F. Deferred by the owner
+**Story mode** (§11b): the viral-weapon-test and the occult-infestation concepts. Order: missions / quests → alpha test → story mode.
 
 ### E. What is *not* outstanding
 Core loop, the three-run arc, tutorial structure, all five enemy types, the economy stack, fire / barricade hazards,

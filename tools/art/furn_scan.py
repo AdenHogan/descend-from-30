@@ -32,7 +32,7 @@ SPR = os.path.join(ROOT, 'assets', 'furniture')
 DATA = os.path.join(ROOT, 'data', 'furniture.json')
 
 SMALL_OK = ('top', 'floor')            # these are small things on purpose
-WALL_COLOURS = {'adult': (88, 106, 128), 'teen': (86, 140, 146), 'sick': (176, 164, 134), 'refuge': (164, 154, 136), 'kid': (176, 196, 212)}
+WALL_COLOURS = {'adult': (88, 106, 128), 'teen': (86, 140, 146), 'sick': (176, 164, 134), 'bedsit': (164, 154, 136), 'kid': (176, 196, 212)}
 
 
 def load(name):

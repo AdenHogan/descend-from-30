@@ -6,10 +6,10 @@ extends Node
 # Run:  godot --headless res://tests/furniture_test.tscn
 
 const RoomScript := preload("res://scripts/room.gd")
-const BEDROOM_STYLES := ["adult", "teen", "sick", "refuge", "kid"]
+const BEDROOM_STYLES := ["adult", "teen", "sick", "bedsit", "kid"]
 const KITCHEN_STYLES := ["classic", "retro", "country", "student", "hoarder"]
 const LIVING_STYLES := ["cosy", "mid", "squat", "parlour", "lodge"]
-const DINING_STYLES := ["family", "diner", "formal", "barricade", "party"]
+const DINING_STYLES := ["family", "diner", "formal", "houseshare", "party"]
 const STUDY_STYLES := ["den", "office", "library", "radio", "studio"]
 const BATH_STYLES := ["tub", "avocado", "gilded", "wetroom", "pink"]
 const PLANNED := {"bedroom": BEDROOM_STYLES, "kitchen": KITCHEN_STYLES, "living_room": LIVING_STYLES, "dining_room": DINING_STYLES, "study": STUDY_STYLES, "bathroom": BATH_STYLES}   # the room types the planner lays, and their styles

@@ -313,14 +313,14 @@ the floor… too many… the bins are flat on the wall… clipping… more cover
   `newspaper` (headline you can read), `missing_poster` (tear-off tabs, two taken), `text_spray`
   (sprayed capitals that drip). FONT3 gained B F J Q X Z, digits and punctuation. The red-string
   boards are gone: study A is a family corkboard, study B a desk board (TAX DUE!, PAY, CALL, BACK MON),
-  study D an evacuation street map (US ringed, the way to SAFE in red, the bridge crossed out) and a
-  STAY INSIDE notice, kitchen E a front page + the stores list + DONT OPEN DOOR!. Blank frames got
+  study D a street map with pins (US ringed) and a framed certificate, kitchen E notes for the cat, the gas bill and the vet
+  (round 47i: they were an evacuation map, a STAY INSIDE notice, a front page, the stores list and DONT OPEN DOOR! until the event became "brand new"). Blank frames got
   sitters: living D's two ovals are silhouette cameos of a couple, dining A a wedding photo, dining C
   three generations in oils (hers slashed), study C the old man whose books they were, study E a
   half-painted portrait on the easel (the other half still pencil), a boat study and a watercolour
   pinned up, the colours tried out on the wall (the confetti of paint flicks is gone); the fridge has
   a school photo and a child's drawing; bedroom B's scrawl is an EXAM sticky, bedroom E's height chart
-  has ages and MIA, bedroom D an EVACUATE front page, a MISSING poster and NO FOOD sprayed.
+  has ages and MIA, bedroom D a gig poster, a film one-sheet and a rent note (round 47i; it was an EVACUATE front page, a MISSING poster and NO FOOD sprayed).
 - LOGIC + CLIPPING pass over all 30: kitchen D's corner is two closed pizza boxes (a grease ring) and
   two slumped bin bags (`bin_bag` has a rounded bottom now); kitchen C's butler sink is a `pbox` on
   piers with its curtain; kitchen A's tea towel hangs checked over its hook; kitchen E's paper bundles
@@ -668,9 +668,10 @@ depth; its two scavenge nodes moved with it (desk node onto the keyboard (31, 78
 
 **Corridor paper** (`wallart.CORRIDOR_PAPER` — the one table `corridor_decals.py` writes): memos on the management's LETTERHEAD (a dark band with the
 building's tower mark and a word — MANAGERS / RESIDENTS / BY ORDER —, a gold rule, a pictogram, two lines of notice, a fold, a curl, a pin: bins out Monday
-with a wheelie bin, water off with a drop, a meeting with a clock, the curfew order); safety plates with their pictograms (NO SMOKING ring + slash, the green
-running-man EVACUATE plate, a blue FIRE DOOR KEEP SHUT, a DO NOT OPEN DOORS warning triangle); a hazard-striped OUT OF ORDER lift card; a neighbour's PLEASE
-KEEP IT DOWN on a torn ruled page with a crossed-out loudspeaker; the QUARANTINE trefoil; MISSING and (new) LOST CAT flyers with a snapshot and tear-off tabs
+with a wheelie bin, water off with a drop, a meeting with a clock, parcels at no. 1, the heating check); safety plates with their pictograms (NO SMOKING ring + slash, the green
+running-man FIRE EXIT plate, a blue FIRE DOOR KEEP SHUT, a WET PAINT hazard-stripe sign); a hazard-striped OUT OF ORDER lift card; a neighbour's PLEASE
+KEEP IT DOWN on a torn ruled page with a crossed-out loudspeaker; a PIANO LESSONS flyer and the LOST CAT flyer with tear-off tabs
+(round 47i: the curfew order, the EVACUATE plate, the DO NOT OPEN DOORS triangle, the QUARANTINE trefoil and the MISSING flyer were removed — nothing in the corridor is about the event)
 (the cat is Vivianne's); the kid's crayon drawing. **Slot rule** (`corridor_decals.gd` "poster" zone): every notice hangs from row **67** — under the wall
 sconces (their box ends at 67) and above the rail (row 96) — and must be at most 38 wide x 29 tall (it fits between a door's light switch and the next door's
 number plate) or 52 x 23 (clear of the plate, which starts at row 90). The first, bigger versions (52 x 28) were NEVER placed — a count over 29 floors x 3 runs

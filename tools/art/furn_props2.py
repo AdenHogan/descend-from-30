@@ -200,7 +200,7 @@ def rug_oblong(c, ox, oy, p):
 
 
 # ================================================================================================================================ a backpack
-@piece('backpack', 25, 24, 'floor', rooms={'bedroom': 5, 'living_room': 2, 'study': 2}, styles={'refuge': 8, 'teen': 2, 'adult': 1}, tags=('storage', 'bag'),
+@piece('backpack', 25, 24, 'floor', rooms={'bedroom': 5, 'living_room': 2, 'study': 2}, styles={'bedsit': 8, 'teen': 2, 'adult': 1}, tags=('storage', 'bag'),
        variants={'olive': {'col': '5a6a46', 'strap': '2e3a24'}, 'navy': {'col': '3a4a6a', 'strap': '222c44'}, 'red': {'col': '8a3a34', 'strap': '4a1e1c'}, 'tan': {'col': '9a8456', 'strap': '5a4a2a'}},
        anchors=({'name': 'backpack', 'dx': 11, 'dy': -14},), near=('sleeping',), feet=(116, 121), note='a rucksack slumped on the floor: a lid, a front pocket with a zip, a water bottle in the side pocket, a strap trailing')
 def backpack(c, ox, oy, p):
@@ -246,7 +246,7 @@ def backpack(c, ox, oy, p):
 
 
 # ================================================================================================================================ a wooden crate
-@piece('crate_bedside', 21, 20, 'wall', rooms={'bedroom': 4}, styles={'teen': 6, 'refuge': 2, 'kid': 1}, tags=('storage', 'bedside'), depth=3,
+@piece('crate_bedside', 21, 20, 'wall', rooms={'bedroom': 4}, styles={'teen': 6, 'bedsit': 2, 'kid': 1}, tags=('storage', 'bedside'), depth=3,
        variants={'pine': {'col': 'b08a58'}, 'grey': {'col': '8a8a7e'}},
        slots=({'id': 'top', 'dx0': 2, 'dx1': 18, 'dy': -19, 'top': True, 'kinds': ('lamp', 'small')},), anchors=({'name': 'crate', 'dx': 10, 'dy': -10},), feet=(105, 108),
        note='a slatted wooden crate stood on end for a bedside table: planks with gaps, corner posts, nail heads, a rope hole, a stencilled mark')
@@ -283,7 +283,7 @@ def crate_bedside(c, ox, oy, p):
 
 
 # ================================================================================================================================ cardboard boxes
-@piece('boxes_stack', 34, 40, 'wall', rooms={'bedroom': 5, 'living_room': 3, 'study': 3, 'kitchen': 2, 'dining_room': 1}, styles={'refuge': 8}, tags=('storage',), depth=4,
+@piece('boxes_stack', 34, 40, 'wall', rooms={'bedroom': 5, 'living_room': 3, 'study': 3, 'kitchen': 2, 'dining_room': 1}, styles={'bedsit': 8}, tags=('storage',), depth=4,
        variants={'closed': {'lid': False}, 'open': {'lid': True}}, anchors=({'name': 'boxes', 'dx': 16, 'dy': -13},), feet=(105, 108),
        note='cardboard boxes stacked against the wall: taped shut with a label and a marker scrawl, or one open with clothes spilling out; a crushed corner, a handle slot')
 def boxes_stack(c, ox, oy, p):
@@ -333,26 +333,6 @@ def boxes_stack(c, ox, oy, p):
     c.hline(bx0 - 1, bx1 + 1, top1, hexc('2a2018'))
 
 
-# ================================================================================================================================ where a picture used to hang
-@piece('frame_ghost', 18, 22, 'decor', rooms={'bedroom': 3, 'living_room': 3, 'dining_room': 2}, styles={'adult': 3}, tags=('picture', 'story'), wall_y=(24, 44),
-       note="where a picture used to hang — taken when they left: the unfaded paper, a dirt line round it, a nail, a snapped length of string")
-def frame_ghost(c, ox, oy, p):
-    base = hexc('5f6a78')
-    x0, y0, x1, y1 = ox + 1, oy + 6, ox + 16, oy + 20
-    c.rect(x0 - 1, y0 - 1, x1 + 1, y1 + 1, shade(base, 0.82))                                      # the dirt ring where the frame kept the dust off
-    c.rect(x0, y0, x1, y1, shade(base, 1.14))                                                      # the unfaded paper
-    c.dither(x0, y0, x1, y1, shade(base, 1.2), 0.5)
-    c.hline(x0, x1, y0, shade(base, 0.95))
-    c.vline(x0, y0, y1, shade(base, 0.98))
-    for k in range(3):                                                                              # a smudge of tape, a pale patch low down
-        c.put(x0 + 3 + k, y1 - 2, shade(base, 1.35))
-    nail = hexc('3b2718')
-    c.put(ox + 8, oy + 1, nail)
-    c.put(ox + 8, oy + 2, shade(nail, 1.5))
-    c.line(ox + 8, oy + 2, ox + 5, oy + 6, hexc('6a5a44'))                                         # the snapped string, still on the nail
-    c.put(ox + 4, oy + 7, hexc('6a5a44'))
-
-
 # ================================================================================================================================ an armchair (3D)
 FABRICS = {'mustard': hexc('b08a3a'), 'green': hexc('5a7a55'), 'rose': hexc('a85a62'), 'grey': hexc('7a7f88'), 'red': hexc('a0383a'), 'brown': hexc('9a6a3a'), 'teal': hexc('3f7a78')}
 LIVING_FAB_FOR = {'red': ['cosy', 'den'], 'mustard': ['mid', 'studio'], 'teal': ['mid', 'studio'], 'green': ['parlour', 'library'], 'brown': ['lodge', 'den', 'library'], 'rose': ['parlour'], 'grey': ['squat', 'office']}   # which room's chairs wear which fabric
@@ -365,14 +345,14 @@ def _arm_variants():
             for yn, yaw in (('l35', 35), ('r35', -35), ('l58', 58), ('r58', -58)):          # the turn in degrees — never a case-only difference (l / L): two files that differ only by case collide on Windows / macOS
                 params = {'style': style, 'fab': k, 'yaw': yaw}
                 if k in LIVING_FAB_FOR:
-                    params['for'] = LIVING_FAB_FOR[k] + (['adult', 'sick', 'refuge'] if k in ('mustard', 'green', 'rose', 'grey') else [])
+                    params['for'] = LIVING_FAB_FOR[k] + (['adult', 'sick', 'bedsit'] if k in ('mustard', 'green', 'rose', 'grey') else [])
                 else:
-                    params['for'] = ['adult', 'sick', 'refuge']
+                    params['for'] = ['adult', 'sick', 'bedsit']
                 v['%s_%s_%s' % (style, k, yn)] = params
     return v
 
 
-@piece('armchair', 34, 38, 'front', rooms={'bedroom': 4, 'living_room': 8, 'study': 5, 'dining_room': 1}, styles={'adult': 3, 'sick': 1, 'refuge': 1, 'cosy': 6, 'mid': 6, 'parlour': 6, 'lodge': 6}, tags=('seating_lounge', 'armchair'),
+@piece('armchair', 34, 38, 'front', rooms={'bedroom': 4, 'living_room': 8, 'study': 5, 'dining_room': 1}, styles={'adult': 3, 'sick': 1, 'bedsit': 1, 'cosy': 6, 'mid': 6, 'parlour': 6, 'lodge': 6}, tags=('seating_lounge', 'armchair'),
        variants=_arm_variants(), anchors=({'name': 'armchair', 'dx': 17, 'dy': -12},), feet=(114, 119), limit=1,
        note='an armchair, club or wing back, rolled arms, a loose seat cushion — built as a 3D model so it is properly turned toward the room')
 def armchair(c, ox, oy, p):

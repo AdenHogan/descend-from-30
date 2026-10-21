@@ -9,8 +9,8 @@ Run:  python3 tools/art/dining_room_variants.py [b c d]
      turning; strip: a mustard drinks cabinet, a velvet pouffe (round 21c redraw).
   c  formal — a long table with a candelabra, high-backed chairs, a grandfather clock, a silver
      sideboard, portraits; strip: a glass-front china cabinet.
-  d  barricaded — the table flipped on its side across the room as a barricade (something behind
-     it), chairs stacked, planks, tins, blood; strip: a pile of broken chairs.
+  d  barricaded — the table flipped on its side across the room as a barricade, made in a panic
+     TODAY (something behind it), chairs stacked, planks, blood, a dropped handbag; strip: a pile of broken chairs.
 """
 import os
 import sys
@@ -399,7 +399,7 @@ def d_floor(c):
 
 
 def d_strip(c):
-    # a heap of broken chairs piled against the wall (bits to barricade with)
+    # a heap of broken chairs piled against the wall (bits to barricade with, pulled over in a panic)
     c.shadow(30, 100, 22, 2, 100)
     for (a, b) in (((10, 99), (40, 72)), ((16, 99), (46, 80)), ((8, 84), (44, 90)), ((24, 70), (30, 99))):
         c.line(a[0], a[1], b[0], b[1], F.WOOD[0])
@@ -407,23 +407,20 @@ def d_strip(c):
     c.rect(14, 86, 34, 88, F.WOOD[1])                                                         # a seat
     c.rect(26, 74, 44, 76, F.WOOD[1])
     c.line(38, 70, 38, 62, F.WOOD[0]); c.line(44, 72, 44, 64, F.WOOD[0])
-    def _lantern(c):
-        # a lantern + tins set down against the wall beside the broken chairs
+    def _handbag(c):
+        # a handbag dropped by whoever dragged the chairs over, its things spilled beside the broken chairs
         c.shadow(72, 120, 10, 2, 110)
-        for (x, col, h) in ((64, hexc('b0453a'), 7), (70, hexc('c9b86a'), 8), (76, hexc('b0453a'), 6)):
-            F.tin(c, x, 120, 2, h, col, lid=hexc('c9c7bd'), handle=False)          # food tins
-        # a camping lantern: a glass chimney in a cage, a domed cap, a carry loop, a heavy base
-        c.rect(80, 116, 90, 120, hexc('3a3a36')); c.hline(80, 90, 120, hexc('1c1c1a'))
-        c.hline(80, 90, 116, hexc('5a5a52'))
-        c.rect(81, 107, 89, 115, hexc('d9b44a'))
-        c.vline(81, 107, 115, hexc('f0d27a')); c.vline(89, 107, 115, hexc('a8842e'))
-        for x in (81, 85, 89):
-            c.vline(x, 106, 116, hexc('2a2a26'))                                   # the cage bars
-        c.poly([(79, 106), (91, 106), (88, 102), (82, 102)], hexc('3a3a36'))      # the domed cap
-        c.hline(82, 88, 102, hexc('5a5a52'))
-        c.line(82, 102, 84, 98, hexc('2a2a26')); c.line(84, 98, 86, 98, hexc('2a2a26')); c.line(86, 98, 88, 102, hexc('2a2a26'))
-        F.light(85, 111, 'lantern')
-    F.moved(c, _lantern, -12, -21)
+        leather, leather_dk = hexc('7a4a32'), hexc('4a2c1e')
+        c.rect(64, 108, 82, 120, leather)
+        c.hline(64, 82, 108, shade(leather, 1.25)); c.vline(64, 108, 120, shade(leather, 1.12)); c.vline(82, 108, 120, leather_dk)
+        c.hline(64, 82, 120, leather_dk)
+        c.rect(71, 109, 75, 111, hexc('c9a24a'))                                   # the clasp
+        for (a, b) in (((66, 108), (67, 102)), ((67, 102), (72, 99)), ((72, 99), (77, 99)), ((77, 99), (79, 102)), ((79, 102), (80, 108))):
+            c.line(a[0], a[1], b[0], b[1], leather_dk)                            # the strap
+        c.rect(84, 117, 88, 119, hexc('b0453a'))                                   # a lipstick, rolled out
+        c.rect(88, 118, 91, 119, hexc('c9c7bd'))
+        c.rect(92, 115, 96, 120, hexc('2a2a30')); c.hline(92, 96, 115, hexc('5a5a64'))   # a phone, face down
+    F.moved(c, _handbag, -4, -21)
 
 
 def d_furniture(c):
@@ -506,7 +503,7 @@ def _leaning_mattress(c, wx0, wx1, wtop, wbot, lean=6, thick=4):
     c.line(btl[0], btl[1], btr[0], btr[1], shade(tick, 0.7))
 
 
-D_ANCHORS = [('anchor_dining_broken_chairs', 28, 86, 'bp s'), ('anchor_dining_lantern', 73, 91, 'bp s'),
+D_ANCHORS = [('anchor_dining_broken_chairs', 28, 86, 'bp s'), ('anchor_dining_handbag', 73, 91, 'bp s'),
              ('anchor_dining_behind_table', 168, 90, ''), ('anchor_table_right', 204, 110, ''),
              ('anchor_dining_mattress', 283, 64, 'bp'), ('anchor_dining_hammer', 228, 116, '')]
 

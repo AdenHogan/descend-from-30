@@ -15,8 +15,8 @@ of furniture / each object is its OWN sprite with a record of what it is and whe
             ceiling a light fitting hung from the ceiling
     rooms   {room type: weight} — THE LOGIC: a piece is only ever placed in a room it lists (a bed lists "bedroom" and nothing else; a kettle will list
             "kitchen"). The planner draws from the room's own pool; tests/furniture_test.gd proves nothing escapes it.
-    styles  {style: weight} — what KIND of room within the type (adult / teen / kid / sick / refuge): a cot is for the child's room, an iron bedstead for the
-            sick room, crates for a refuge. Styles are the five old bedroom variants A-E, now archetypes the planner fills differently every time.
+    styles  {style: weight} — what KIND of room within the type (adult / teen / kid / sick / bedsit): a cot is for the child's room, an iron bedstead for the
+            sick room, crates for a bedsit. Styles are the five old bedroom variants A-E, now archetypes the planner fills differently every time.
     tags    what it is (sleeping, storage, light, work, toy, clutter…) — the planner's "needs" rules (a desk wants a chair; a lamp wants a surface).
 
 PERSPECTIVE. The rooms are drawn as if looking into a box: every module has one vanishing point at the ceiling over its middle, so a set-back piece shows the face
@@ -50,10 +50,10 @@ LEAN_X = (36, 72, 116, 160, 204, 248, 284)
 LEAN_MODE = 'vp'                         # 'vp' = lean toward the module's middle (as the baked rooms); 'none' = every piece straight-on (renders only the centre bucket)
 
 PLANES = ('wall', 'front', 'decor', 'rug', 'floor', 'top', 'ceiling')
-STYLES = ('adult', 'teen', 'kid', 'sick', 'refuge',                       # bedrooms
+STYLES = ('adult', 'teen', 'kid', 'sick', 'bedsit',                       # bedrooms
           'classic', 'retro', 'country', 'student', 'hoarder',               # kitchens
           'cosy', 'mid', 'squat', 'parlour', 'lodge',                        # living rooms
-          'formal', 'diner', 'barricade', 'party', 'family',                 # dining rooms
+          'formal', 'diner', 'houseshare', 'party', 'family',                 # dining rooms
           'office', 'library', 'radio', 'studio', 'den',                     # studies
           'tub', 'avocado', 'gilded', 'wetroom', 'pink')                     # bathrooms
 ROOM_TYPES = ('bedroom', 'bathroom', 'kitchen', 'study', 'living_room', 'dining_room')

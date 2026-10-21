@@ -286,34 +286,6 @@ def lamp_table(c, ox, oy, p):
     L.flush()
 
 
-# ================================================================================================================================ a battery lantern
-@piece('lantern_battery', 11, 14, 'top', rooms={'bedroom': 3, 'living_room': 3, 'kitchen': 1, 'study': 2}, styles={'refuge': 8, 'sick': 1}, tags=('light', 'lamp'), on=('lamp',),
-       variants={'green': {'body': '3f5a40'}, 'orange': {'body': 'c4682a'}, 'black': {'body': '2a2c30'}}, lights=({'dx': 5, 'dy': -6, 'kind': 'lantern'},),
-       note="a battery camping lantern — it works without the flat's power")
-def lantern_battery(c, ox, oy, p):
-    body = hexc(p['body'])
-    cx = ox + 5.5
-    _shadow(c, cx, oy + 0.5, 6.2, 1.3)
-    L = K.Layer(c)
-    lc = L.c
-    for (hx, hy) in ((ox + 1, oy - 11), (ox + 1, oy - 13), (ox + 2, oy - 14), (ox + 3, oy - 14), (ox + 4, oy - 14), (ox + 5, oy - 14), (ox + 6, oy - 14), (ox + 7, oy - 14),
-                     (ox + 8, oy - 14), (ox + 9, oy - 13), (ox + 9, oy - 11)):                                    # the carry handle: a wire bail over the top
-        lc.put(hx, hy, hexc('8a8e94'))
-    lc.put(ox + 3, oy - 14, hexc('c4c8ce'))
-    K.cyl(lc, cx, oy - 3, oy - 1, 4.9, body, ry=1.4, gloss=True, n=5)                                              # the battery base
-    lc.hline(int(cx - 3), int(cx + 3), oy - 1, shade(body, 0.6))
-    lc.rect(ox + 7, oy - 2, ox + 8, oy - 1, hexc('d8483a'))                                                          # the switch
-    K.cyl(lc, cx, oy - 10, oy - 4, 4.2, hexc('f2e6bc'), ry=1.4, cap=False, n=4, lo=0.78, hi=1.18)               # the frosted globe, glowing
-    for x in (int(cx - 2), int(cx + 1)):
-        lc.vline(x, oy - 10, oy - 4, hexc('dccf9c'))                                                                # the ribs of the lens
-    lc.vline(int(cx - 3), oy - 9, oy - 5, hexc('fffbe8'))
-    lc.rect(int(cx - 1), oy - 8, int(cx), oy - 6, hexc('fff8d0'))                                                    # the mantle inside, white hot
-    K.frustum(lc, cx, oy - 12, oy - 10, 3.2, 4.7, body, ry_t=1.2, ry_b=1.4, gloss=True)                            # the vented cap
-    for vx in (int(cx - 2), int(cx), int(cx + 2)):
-        lc.put(vx, oy - 11, shade(body, 0.4))
-    L.flush()
-
-
 # ================================================================================================================================ perfume bottles on a tray
 @piece('perfume_set', 13, 12, 'top', rooms={'bedroom': 4, 'bathroom': 3}, styles={'adult': 3, 'kid': 1}, tags=('small', 'dressing'), on=('vanity',),
        variants={'rose': {'a': 'd8909e', 'b': '6a9ab8'}, 'amber': {'a': 'd8a050', 'b': '8a5aa8'}, 'jade': {'a': '7ac0a0', 'b': 'd8909e'}}, note='perfume bottles on a little gilt tray')
@@ -407,7 +379,7 @@ CASES = {'tan': {'a': 'a47a4a', 'trim': 'c9a46a', 'metal': 'b8a050', 'kind': 'le
          'brown': {'a': '6a4630', 'trim': '8a6644', 'metal': 'b09456', 'kind': 'leather'}, 'green': {'a': '4c6a50', 'trim': '78946c', 'metal': 'b09456', 'kind': 'hard'}}
 
 
-@piece('suitcase', 26, 14, 'top', rooms={'bedroom': 5, 'living_room': 1}, styles={'adult': 4, 'teen': 1, 'refuge': 3}, tags=('storage',), on=('big',),
+@piece('suitcase', 26, 14, 'top', rooms={'bedroom': 5, 'living_room': 1}, styles={'adult': 4, 'teen': 1, 'bedsit': 3}, tags=('storage',), on=('big',),
        variants={k + ('_stickered' if s else ''): dict(v, stickers=s) for k, v in CASES.items() for s in (False, True)},
        note='a suitcase lying on top of a wardrobe: binding, brass corners and latches, a leather handle; some are covered in travel stickers (scenery — a node up there could not be reached)')
 def suitcase(c, ox, oy, p):

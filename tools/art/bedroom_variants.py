@@ -6,8 +6,8 @@ Run:  python3 tools/art/bedroom_variants.py [b c d]
      starry duvet, a beanbag out in the room, a clothes pile.
   c  sick room — an iron bedstead in the middle with a drip stand, a wheelchair and a medicine
      trolley out in the room, a mirrored wardrobe, a cabinet of pill bottles.
-  d  squat — a mattress on the floor with a sleeping bag, a freestanding clothes rail, a
-     backpack, crates with a camping stove and candles, boxes; bare stained plaster.
+  d  bedsit — a mattress on the floor with a sleeping bag, a freestanding clothes rail, a
+     backpack, crates with books on, moving boxes; bare stained plaster, a gig poster and a rent note.
 """
 import pixlib as PX
 import os
@@ -284,14 +284,12 @@ def d_wall(c):
 
 
 def d_decor(c):
-    # (owner round 17: context) a front page taped to the wall, a missing poster, the days scratched
-    # into the plaster, and a warning sprayed for anyone who comes in after
-    F.newspaper(c, 102, 26, 'EVACUATE', sub='GO NORTH', w=36)
-    F.missing_poster(c, 140, 28, name='LUCY')
-    F.text_spray(c, 172, 30, 'NO FOOD', hexc('a8322c'))
-    for i in range(7):
-        c.vline(176 + i * 3, 50, 58, hexc('5a5244'))
-    c.line(174, 56, 196, 52, hexc('5a5244'))
+    # (owner round 47i: the event is brand new — nothing on this wall is about it) a rented room's wall:
+    # a gig poster, a horror film one-sheet, the landlord's reminder
+    import wallart
+    wallart.poster_guitar(c, 102, 26, 131, 55, 'sun')
+    wallart.poster_horror(c, 140, 26, 165, 61)
+    F.note(c, 176, 30, ['RENT', 'DUE', 'FRI!'], fix='tape')
 
 
 @persp
@@ -314,17 +312,18 @@ def _d_boxes(c):
 
 
 def _d_crates(c):
-    # crates against the wall on the left: a camping stove, cans, candles
+    # crates against the wall on the left: a stack of paperbacks, a mug
     c.shadow(28, 100, 22, 2, 100)
     for (cx0, cy0, col) in ((8, 80, hexc('9a7a4e')), (28, 80, hexc('8a6a44')), (16, 62, hexc('9a7a4e'))):
         c.box(cx0, cy0, cx0 + 18, cy0 + 17 if cy0 == 62 else 99, col, shade(col, 0.6))
         for gy in range(cy0 + 4, (cy0 + 17 if cy0 == 62 else 99), 5):
             c.hline(cx0 + 1, cx0 + 17, gy, shade(col, 0.8))
-    c.box(20, 55, 32, 61, hexc('3a5a7a'), hexc('1e2e3e'))                                 # a stove
-    c.rect(24, 53, 28, 54, hexc('6d6c64'))
-    for (x, h) in ((10, 4), (14, 6), (38, 5)):
-        c.rect(x, 79 - h, x + 2, 79, hexc('9aa3a8'))
-    F.lantern(c, 42, 79)                                                                   # a battery lantern
+    for (i, col) in enumerate((hexc('7a5a3a'), hexc('3a5a7a'), hexc('8a4a3a'))):          # paperbacks, stacked
+        c.rect(20, 60 - i * 2, 32 - i, 61 - i * 2, col)
+        c.hline(20, 32 - i, 60 - i * 2, shade(col, 1.25))
+    c.rect(10, 74, 14, 79, hexc('c8c0a8')); c.hline(10, 14, 74, hexc('e4ddc8'))             # a mug
+    c.put(15, 75, hexc('c8c0a8')); c.put(15, 77, hexc('c8c0a8'))
+    c.rect(11, 75, 13, 75, hexc('4a3426'))
 
 
 def _d_rest(c):

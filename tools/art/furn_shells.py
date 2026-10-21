@@ -51,7 +51,7 @@ def shell_c():
 
 def shell_d():
     import bedroom_variants as BV
-    _simple('bedroom_shell_d', 'bedroom/refuge', 24, BV.d_wall, BV.d_floor)
+    _simple('bedroom_shell_d', 'bedroom/bedsit', 24, BV.d_wall, BV.d_floor)
 
 
 def shell_e():
@@ -195,7 +195,7 @@ def dshell_c():
 
 def dshell_d():
     import dining_room_variants as DV
-    _room('dining_shell_d', 'dining_room', 'dining_room/barricade', 54, DV.d_wall, DV.d_floor)
+    _room('dining_shell_d', 'dining_room', 'dining_room/houseshare', 54, DV.d_wall, DV.d_floor)
 
 
 def dshell_e():

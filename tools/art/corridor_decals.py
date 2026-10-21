@@ -251,25 +251,29 @@ def scrawl(name, seed, text, col=None, dark=None, drip=True):
     save(name, c)
 
 
-def search_x(name, seed):
-    """The rescue teams' search mark sprayed on a door: an X, a date and a count."""
+def door_scratch(name, seed):
+    """Claw gouges raked across a door's face, through the paint to the bare wood (22 x 22): pale wood in the
+    cut, a dark torn edge, a few splinters standing proud."""
     w, h = 22, 22
     c = canvas(w, h, seed)
     rng = random.Random(seed)
-    paint = hexc('e0662a', 235)
-    for k in range(18):
-        for t in (0, 1):
-            c.put(2 + k, 2 + k + t, paint)
-            c.put(19 - k, 2 + k + t, paint)
-    for (x, y) in ((9, 0), (10, 0), (11, 0), (9, 1)):             # a number up top
-        c.put(x, y, paint)
-    for y in range(8, 14):                                          # a tally left, a digit right
-        c.put(3, y, paint)
-        c.put(5, y, paint)
-    for (x, y) in ((16, 9), (17, 9), (18, 9), (18, 10), (17, 11), (16, 12), (16, 13)):
-        c.put(x, y, paint)
-    for k in range(6):                                              # overspray
-        c.put(rng.randrange(0, w), rng.randrange(0, h), hexc('e0662a', 110))
+    wood, wood_lt, edge = hexc('d4b484'), hexc('ecd2a4'), hexc('2a1c14', 200)
+    for k in range(4):
+        x0 = 3 + k * 4
+        y0 = rng.randrange(0, 3)
+        ln = rng.randrange(15, 21)
+        for j in range(ln):
+            x = x0 + int(j * 0.18)
+            y = y0 + j
+            if y >= h:
+                break
+            t = j / float(ln)
+            c.put(x - 1, y, edge)                                     # the torn edge of the paint
+            c.put(x, y, wood if t > 0.15 else wood_lt)                # bare wood in the gouge
+            if t < 0.7:
+                c.put(x + 1, y, wood_lt)
+            if rng.random() < 0.12:
+                c.put(x + 2, y, wood)                                 # a splinter lifted out of it
     save(name, c)
 
 
@@ -350,11 +354,11 @@ def shadow_row(c, x0, x1, y):
 
 # --- wall paper things -------------------------------------------------------------------------
 def building_notices():
-    """What a building puts up — then what it put up once things went wrong (owner round 38: "a sign saying
-    bins out Monday… very plain and basic for an announcement from building management"). All drawn by
-    tools/art/wallart.py (its CORRIDOR_PAPER table is the one list of them): memos on the management's
-    letterhead, safety plates with pictograms, hazard signs, a neighbour's note, missing / lost flyers with
-    tear-off tabs, a child's drawing."""
+    """What a building puts up on an ordinary day (owner round 38: "a sign saying bins out Monday… very plain and
+    basic for an announcement from building management"; round 47i: the event is brand new, so NOTHING here is
+    about it). All drawn by tools/art/wallart.py (its CORRIDOR_PAPER table is the one list of them): memos on
+    the management's letterhead, safety plates with pictograms, a wet-paint sign, a neighbour's note, a lost-cat
+    flyer and a lessons flyer with tear-off tabs, a child's drawing."""
     import wallart as W
     for name, fn, seed in W.CORRIDOR_PAPER:
         save(name, fn(seed))
@@ -444,7 +448,7 @@ def main():
     claws('claws_1', 15); claws('claws_2', 16)
     for i, t in enumerate(('HELP', 'GET OUT', 'DONT GO DOWN', 'THEY HEAR YOU', 'NO WAY OUT', 'STAY QUIET')):
         scrawl('scrawl_%d' % (i + 1), 20 + i, t)
-    search_x('door_x', 30)
+    door_scratch('door_scratch', 30)
     handprint('door_hand', 31, dragged=True)
     pool('pool_1', 40, 34, 7); pool('pool_2', 41, 50, 9); pool('pool_3', 42, 24, 6)
     drag('drag_1', 43, 140); drag('drag_2', 44, 90)

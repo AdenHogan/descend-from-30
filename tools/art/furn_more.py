@@ -1,4 +1,4 @@
-"""STILL MORE REDRAWS — the houseplants, the bedside table and the refuge's stack of crates with a camping stove (owner round 47b: "everything very flat and very basic looking… more detail and
+"""STILL MORE REDRAWS — the houseplants and the bedside table (owner round 47b: "everything very flat and very basic looking… more detail and
 love"). Same method as furn_props.py (propkit: tones, a light from the upper left, a selective outline, a contact shadow)."""
 import math
 import os
@@ -143,70 +143,3 @@ def nightstand_wood(c, ox, oy, p):
         c.hline(fx, fx + 2, base, WO)
 
 
-# ================================================================================================================================ crates, a camping stove, cans
-def _crate(lc, x0, top, x1, base, col, rng):
-    """A slatted crate seen from the front: planks with dark gaps, corner posts, nail heads, grain, a lit top lip."""
-    lc.rect(x0, top, x1, base, shade(col, 0.4))
-    n = max(2, (base - top) // 5)
-    ph = (base - top - 1) // n
-    for k in range(n):
-        ya, yb = top + 1 + k * ph, top + (k + 1) * ph - (1 if k < n - 1 else 0)
-        for y in range(ya, yb + 1):
-            f = (y - ya) / float(max(1, yb - ya))
-            lc.hline(x0 + 1, x1 - 1, y, shade(col, 1.12 - 0.34 * f))
-        lc.hline(x0 + 1, x1 - 1, ya, shade(col, 1.3))
-        for _ in range(2):
-            gx = rng.randint(x0 + 4, max(x0 + 4, x1 - 7))
-            lc.hline(gx, gx + rng.randint(2, 4), (ya + yb) // 2, shade(col, 0.8))
-    for px in (x0 + 2, x1 - 2):
-        lc.rect(px - 1, top, px + 1, base, shade(col, 0.84))
-        lc.vline(px - 1, top, base, shade(col, 1.14))
-        lc.vline(px + 1, top, base, shade(col, 0.58))
-        for ny in range(top + 3, base - 1, 6):
-            lc.put(px, ny, hexc('2a2420'))
-    lc.hline(x0 - 1, x1 + 1, top - 1, shade(col, 1.25))
-    lc.hline(x0 - 1, x1 + 1, base + 1, hexc('2a2018'))
-
-
-def _can(lc, cx, base, h, label, rx=2.2):
-    """A tin: a label-coloured body with a metal rim top and bottom and a white band."""
-    K.cyl(lc, cx, base - h, base - 1, rx, label, ry=0.9, gloss=True, n=4, lo=0.6, hi=1.25, cap_col=hexc('c4ccd0'))
-    lc.hline(int(cx - rx), int(cx + rx) - 1, base - 1, hexc('8a949a'))
-    lc.hline(int(cx - rx) + 1, int(cx + rx) - 2, base - h + 2, hexc('e8e0cc'))
-    lc.put(int(cx), base - h + 4, hexc('2a2a2e'))
-
-
-@piece('crates_stove', 42, 47, 'wall', rooms={'bedroom': 4, 'living_room': 1}, styles={'refuge': 8}, tags=('storage',), depth=4, surface_h=37,
-       slots=({'id': 'lamp', 'dx0': 28, 'dx1': 40, 'dy': -14, 'top': False, 'kinds': ('lamp',)},), anchors=({'name': 'crates', 'dx': 15, 'dy': -29},), feet=(105, 108),
-       variants={'a': {'col': 'a88a58', 'pot': 'b0453a'}, 'b': {'col': '8a8a7c', 'pot': '5a7a9a'}},
-       note='crates stacked against the wall with a camping stove and a dented pot on top, tins with labels, a candle stub; room beside for a lantern')
-def crates_stove(c, ox, oy, p):
-    col = hexc(p['col'])
-    rng = random.Random(len(p['col']) * 5 + 1)
-    base = oy
-    c.shadow(ox + 20, base + 1, 22, 2, 95)
-    L = K.Layer(c)
-    lc = L.c
-    _crate(lc, ox + 1, base - 15, ox + 20, base, col, rng)                                     # the bottom left crate
-    _crate(lc, ox + 22, base - 13, ox + 39, base, shade(col, 0.92), rng)                       # the lower right crate, a little shorter
-    _crate(lc, ox + 3, base - 28, ox + 18, base - 16, shade(col, 1.06), rng)                  # a crate stacked on the first
-    # the stove on top: a steel case, a burner ring, a gas can beside it, a dented pot with a lid and a bail handle
-    sy = base - 29
-    lc.rect(ox + 3, sy - 4, ox + 17, sy, hexc('8a949a'))
-    lc.hline(ox + 3, ox + 17, sy - 4, hexc('d8dee2'))
-    lc.hline(ox + 3, ox + 17, sy, hexc('4a5258'))
-    lc.vline(ox + 3, sy - 4, sy, hexc('b4bcc0'))
-    lc.put(ox + 14, sy - 2, hexc('c0453a'))                                                        # the knob
-    lc.hline(ox + 6, ox + 11, sy - 5, hexc('3a3a3e'))                                              # the burner
-    pot = hexc(p['pot'])
-    K.cyl(lc, ox + 8.5, sy - 12, sy - 6, 4.6, pot, ry=1.5, gloss=True, n=5, inner=shade(pot, 0.5))
-    lc.rect(ox + 4, sy - 10, ox + 5, sy - 9, hexc('2a2a2e'))
-    lc.line(ox + 4, sy - 12, ox + 8, sy - 15, hexc('4a4a4e'))
-    lc.line(ox + 8, sy - 15, ox + 13, sy - 12, hexc('4a4a4e'))                                     # the bail handle
-    # on the lower right crate: tins with labels and a candle stub with its small flame
-    for (cx, h, lab) in ((ox + 25.0, 6, hexc('b0453a')), (ox + 30.5, 5, hexc('5a8a4a')), (ox + 35.5, 7, hexc('d8a83a'))):
-        _can(lc, cx, base - 14, h, lab)
-    lc.rect(ox + 38, base - 18, ox + 39, base - 14, hexc('ece0c0'))
-    lc.put(ox + 38, base - 19, hexc('f4d060'))
-    lc.put(ox + 38, base - 20, hexc('f8f0b0'))
-    L.flush()

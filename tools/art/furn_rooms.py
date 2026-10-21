@@ -40,7 +40,7 @@ RECIPES = {
         wall=dict(count=[1, 2], must=['wardrobe|medical']),
         tops=0.7, decor=[1, 3], clutter=[2, 4], rug=0.2, ceiling=1.0, min_front=2,
         fallback=[dict(id='bed_iron', variant='l_patch_clean', x=100, y=115), dict(id='med_trolley', variant='a', x=240, y=119), dict(id='ceiling_flush', variant='a', x=150, y=0)]),
-    'bedroom/refuge': dict(
+    'bedroom/bedsit': dict(
         legacy=3, weight=16, shell='bedroom_shell_d',
         centre=dict(tag='sleeping', x=[60, 150]),
         flank=dict(tag='bedside', chance=0.4),
@@ -144,7 +144,7 @@ RECIPES.update({
 
 
 RECIPES.update({
-    # ---- dining rooms (round 47f): A family, B diner, C formal, D barricade, E party. The table carries its chairs; balcony slots block x 4..96 (ctx.blocked).
+    # ---- dining rooms (round 47f): A family, B diner, C formal, D houseshare, E party. The table carries its chairs; balcony slots block x 4..96 (ctx.blocked).
     'dining_room/family': dict(
         legacy=0, weight=26, shell='dining_shell_a',
         centre=dict(tag='dining', x=[30, 210]),
@@ -163,12 +163,12 @@ RECIPES.update({
         wall=dict(count=[2, 3], must=['clock|display']),
         tops=0.9, decor=[2, 4], clutter=[0, 2], rug=0.6, ceiling=0.9, min_front=2,
         fallback=[dict(id='table_dining', variant='formal', x=110, y=116), dict(id='ceiling_pendant', variant='cream', x=150, y=0)]),
-    'dining_room/barricade': dict(
+    'dining_room/houseshare': dict(
         legacy=3, weight=16, shell='dining_shell_d',
         centre=dict(tag='dining', x=[40, 200]),
         wall=dict(count=[1, 2], must=['storage']),
         tops=0.4, decor=[2, 4], clutter=[2, 4], rug=0.0, ceiling=0.8, min_front=2,
-        fallback=[dict(id='table_dining', variant='tipped', x=110, y=116), dict(id='ceiling_flush', variant='a', x=150, y=0)]),
+        fallback=[dict(id='table_dining', variant='shared', x=110, y=116), dict(id='ceiling_flush', variant='a', x=150, y=0)]),
     'dining_room/party': dict(
         legacy=4, weight=14, shell='dining_shell_e',
         centre=dict(tag='dining', x=[30, 210]),

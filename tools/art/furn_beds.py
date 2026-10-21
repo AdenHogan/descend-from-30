@@ -157,7 +157,7 @@ def _mattresses():
     return v
 
 
-@piece('mattress_floor', 105, 24, 'front', rooms={'bedroom': 4}, styles={'refuge': 8}, tags=('sleeping',), variants=_mattresses(), bucketed=True,
+@piece('mattress_floor', 105, 24, 'front', rooms={'bedroom': 4}, styles={'bedsit': 8}, tags=('sleeping',), variants=_mattresses(), bucketed=True,
        anchors=({'name': 'bed_pillow', 'dx': 12, 'dy': -12, 'head_rel': True}, {'name': 'sleeping_bag', 'dx': 60, 'dy': -8, 'head_rel': True}), feet=(115, 117), near=('storage',),
        note='a ticking mattress on the floor, stained and tufted, a sleeping bag half unzipped across it (or just the bare mattress)')
 def mattress_floor(c, ox, oy, p):

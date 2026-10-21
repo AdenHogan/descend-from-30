@@ -42,9 +42,9 @@ const HORROR := {
 	"slide": [0.4, 1.5, "slide", ["slide_1", "slide_2"]],
 	"drag": [0.5, 1.0, "floor", ["drag_1", "drag_2"]],
 	"scrawl": [0.55, 1.2, "top", ["scrawl_1", "scrawl_2", "scrawl_3", "scrawl_4", "scrawl_5", "scrawl_6"]],
-	"door_x": [0.6, 1.0, "door", ["door_x"]],
+	"door_scratch": [0.6, 1.0, "door", ["door_scratch"]],
 }
-const MAX_PER_KIND := {"scrawl": 2, "slide": 2, "drag": 2, "door_x": 2}
+const MAX_PER_KIND := {"scrawl": 2, "slide": 2, "drag": 2, "door_scratch": 2}
 # resident things, by how far gone the floor is (corridor wear 0..4)
 # (owner round 24: "things like shoe racks, or trash, or plants, or other outside things. the occasional
 # bicycle" — the corridor carries what residents leave outside their doors, not picture frames)
@@ -62,14 +62,14 @@ const DRESSING_KEPT := ["plant_tall", "plant_stand", "umbrella_stand", "shoe_tra
 	"notice_meeting", "notice_bins", "notice_smoking", "notice_quiet", "notice_water", "notice_lift", "notice_fire_door"]
 const DRESSING_TIRED := ["plant_tall", "plant_dead", "parcels", "chair", "shoe_tray", "suitcase", "bin_bags", "hall_table",
 	"bin_bags", "recycling_box", "bicycle", "shoe_rack", "newspapers", "plant_stand",
-	"shopping_bag", "notice_quarantine", "poster_missing", "notice_lift", "notice_water", "notice_evac", "poster_lost_cat"]
-const DRESSING_GONE := ["plant_dead", "chair_down", "suitcase", "parcels", "poster_missing", "bin_bags",
+	"shopping_bag", "notice_wet_paint", "poster_lessons", "notice_lift", "notice_water", "notice_fire_exit", "poster_lost_cat"]
+const DRESSING_GONE := ["plant_dead", "chair_down", "suitcase", "parcels", "poster_lessons", "bin_bags",
 	"bin_bags", "bicycle_wrecked", "pram", "newspapers", "plant_stand_fallen",
-	"notice_quarantine", "shopping_bag", "notice_evac", "notice_curfew", "notice_dont_open", "poster_lost_cat"]
+	"notice_wet_paint", "shopping_bag", "notice_fire_exit", "notice_parcels", "notice_heating", "poster_lost_cat"]
 # building notices (owner round 23 — "a variety of notices for the building"), readable, per floor
-const WALL_DRESSING := ["kid_drawing", "notice_quarantine", "poster_missing", "notice_lift", "notice_water",
-	"notice_meeting", "notice_bins", "notice_smoking", "notice_quiet", "notice_evac", "notice_curfew",
-	"notice_dont_open", "notice_fire_door", "poster_lost_cat"]
+const WALL_DRESSING := ["kid_drawing", "notice_wet_paint", "poster_lessons", "notice_lift", "notice_water",
+	"notice_meeting", "notice_bins", "notice_smoking", "notice_quiet", "notice_fire_exit", "notice_parcels",
+	"notice_heating", "notice_fire_door", "poster_lost_cat"]
 # THE DEAD (owner round 21c): someone lying where they fell — in a pool, or at the end of the trail
 # they crawled. A separate seeded pass (its own RNG, so the dressing/horror draws above never move),
 # up to two per floor, each appearing once the floor's horror level passes its seeded threshold and

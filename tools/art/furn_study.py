@@ -2,7 +2,7 @@
 
 A study is a SHELL plus PIECES laid by the planner, in five STYLES — den (the green-papered den with the mahogany partners desk, the banker's lamp and the cork board), office (the grey
 open-plan cubicle: a steel desk, a computer, a printer, a swivel chair), library (the maroon-papered library of two tall bookcases, a portrait, a wing chair and a reading lamp), radio (the
-survivor's radio room: a trestle table of transmitters, the map with the safe route, ammunition crates and jerrycans) and studio (the painter's white-brick studio: canvases leaning, an easel,
+hobbyist's radio room: a trestle table of amateur radio gear, a street map with pins, shelves of boxed parts) and studio (the painter's white-brick studio: canvases leaning, an easel,
 a paint-stained table, shelves of tins). A desk carries its chair behind it, like the dining table carries its chairs.
 """
 import math
@@ -317,11 +317,11 @@ def noticeboard(c, ox, oy, p):
     c.put(ox + 28, oy + 17, hexc('e0b898'))
 
 
-# ================================================================================================================================ the radio room
+# ================================================================================================================================ the radio room (a hobbyist's)
 @piece('radio_gear', 36, 20, 'top', rooms={'study': 8}, styles={'radio': 9}, tags=('small', 'radio'), on=('desk',), limit=1,
        variants={'set': {'k': 0}},
        anchors=({'name': 'radio_set', 'dx': 14, 'dy': -8, 'top': True},), sound=None,
-       note='a stack of survivor radio gear on the table: a long transmitter with a row of dials and amber lights, a smaller receiver with a speaker grille, a coiled lead and a telescopic aerial')
+       note='an amateur radio station on the table: a long transmitter with a row of dials and amber lights, a smaller receiver with a speaker grille, a coiled lead and a telescopic aerial')
 def radio_gear(c, ox, oy, p):
     K.contact_shadow(c, ox + 18, oy + 0.5, 18, 1.4, 95)
     L = K.Layer(c)
@@ -337,9 +337,9 @@ def radio_gear(c, ox, oy, p):
     L.flush()
 
 
-@piece('map_evac', 46, 34, 'decor', rooms={'study': 6}, styles={'radio': 9}, tags=('picture', 'notice'), wall_y=(20, 34), limit=1, variants={'route': {}},
-       note='a large street map pinned to the wall: a blue river, a red marker line threading to a green box marked SAFE, an X, a ringed radio tower')
-def map_evac(c, ox, oy, p):
+@piece('map_street', 46, 34, 'decor', rooms={'study': 6}, styles={'radio': 9, 'den': 2, 'office': 1}, tags=('picture', 'notice'), wall_y=(20, 34), limit=1, variants={'pins': {}},
+       note='a large street map of the town pinned to the wall: a blue river, a grid of streets, and a scatter of coloured pins where the owner has made contact with someone')
+def map_street(c, ox, oy, p):
     c.rect(ox, oy, ox + 45, oy + 33, hexc('e6dcc0'))
     c.rect(ox + 1, oy + 1, ox + 44, oy + 32, hexc('f0e8d0'))
     for x in range(ox + 1, ox + 45, 7):
@@ -350,53 +350,13 @@ def map_evac(c, ox, oy, p):
     c.line(ox + 21, oy + 1, ox + 33, oy + 14, hexc('6a9ac8'))
     c.line(ox + 32, oy + 14, ox + 36, oy + 32, hexc('6a9ac8'))
     c.line(ox + 33, oy + 14, ox + 37, oy + 32, hexc('6a9ac8'))
-    pts = [(ox + 6, oy + 24), (ox + 14, oy + 20), (ox + 22, oy + 14), (ox + 28, oy + 9)]
-    for a, b in zip(pts, pts[1:]):
-        c.line(a[0], a[1], b[0], b[1], hexc('c8302a'))
-    c.rect(ox + 27, oy + 3, ox + 44, oy + 10, hexc('8ac48a'))
-    F.text3(c, ox + 29, oy + 5, 'SAFE', hexc('2a5a2a'))
-    K.ell(c, ox + 6, oy + 24, 3.0, 2.4, hexc('c8302a'))
-    c.line(ox + 16, oy + 27, ox + 20, oy + 31, hexc('1a1a1a'))
-    c.line(ox + 20, oy + 27, ox + 16, oy + 31, hexc('1a1a1a'))
+    c.rect(ox + 5, oy + 18, ox + 14, oy + 25, hexc('a8c898'))                                            # a park
+    for (x, y, col) in ((6, 10, 'c8302a'), (14, 6, '3a6ab0'), (25, 22, 'e0b830'), (38, 8, 'c8302a'), (41, 26, '3a6ab0'), (10, 28, 'e0b830'), (28, 4, '3a9a52')):
+        c.put(ox + x, oy + y, hexc(col))                                                                 # a pin: a bright head, a dark shadow
+        c.put(ox + x + 1, oy + y + 1, hexc('4a4038'))
     for (x, y) in ((ox, oy), (ox + 45, oy), (ox, oy + 33), (ox + 45, oy + 33)):
         c.put(x, y, hexc('d8483a'))
 
-
-@piece('crates_ammo', 34, 26, 'floor', rooms={'study': 6}, styles={'radio': 9}, tags=('clutter', 'storage'), limit=1,
-       variants={'stack': {'n': 3}, 'pair': {'n': 2}},
-       anchors=({'name': 'ammo_crates', 'dx': 16, 'dy': -12},), feet=(108, 120),
-       note='army-green ammunition crates stacked two high with white stencilled codes, rope handles and a hinged lid or two left open')
-def crates_ammo(c, ox, oy, p):
-    K.contact_shadow(c, ox + 17, oy + 0.5, 18, 1.6, 100)
-    L = K.Layer(c)
-    lc = L.c
-    green = hexc('4a5a3a')
-    spots = [(ox + 1, oy - 11), (ox + 18, oy - 11), (ox + 9, oy - 22)][:p['n']]
-    for k, (x, y) in enumerate(spots):
-        K.slab(lc, x, y, x + 14, y + 10, green, d=3, top=shade(green, 1.25))
-        lc.hline(x + 2, x + 12, y + 3, hexc('e8e4d0'))
-        lc.hline(x + 2, x + 8, y + 6, hexc('e8e4d0'))
-        lc.rect(x + 5, y + 8, x + 9, y + 9, hexc('2a3a22'))
-    L.flush()
-
-
-@piece('jerrycans', 24, 22, 'floor', rooms={'study': 6, 'kitchen': 1}, styles={'radio': 8}, tags=('clutter', 'fuel'), limit=1,
-       variants={'pair': {'cols': ('c8302a', '4a5a3a')}, 'trio': {'cols': ('c8302a', '4a5a3a', 'c8a030')}},
-       feet=(110, 121), near=('storage',),
-       note='two or three jerrycans of fuel and water, red and olive and yellow, their cross-stamped flanks dented')
-def jerrycans(c, ox, oy, p):
-    K.contact_shadow(c, ox + 12, oy + 0.5, 12, 1.4, 95)
-    L = K.Layer(c)
-    lc = L.c
-    for k, hx in enumerate(p['cols']):
-        col = hexc(hx)
-        x = ox + 2 + k * 8
-        K.slab(lc, x, oy - 14, x + 8, oy - 1, col, d=2, top=shade(col, 1.25))
-        lc.line(x + 1, oy - 12, x + 7, oy - 3, shade(col, 0.7))
-        lc.line(x + 7, oy - 12, x + 1, oy - 3, shade(col, 0.7))
-        lc.rect(x + 1, oy - 17, x + 4, oy - 15, shade(col, 0.85))
-        lc.put(x + 7, oy - 16, shade(col, 0.6))
-    L.flush()
 
 
 # ================================================================================================================================ the studio

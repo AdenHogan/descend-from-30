@@ -532,12 +532,13 @@ def e_wall(c):
 
 
 def e_decor(c):
-    # (owner round 17: the pinned clippings + red string read as a conspiracy board) — a front page
-    # taped up, the stores list, the calendar crossed off to the day it stopped
-    F.newspaper(c, 104, 22, 'OUTBREAK', sub='STAY IN', w=36)
-    F.note(c, 146, 24, ['WATER', 'TINS', 'MEDS', 'BATTS'], fix='tape')
+    # (owner round 17: the pinned clippings + red string read as a conspiracy board; round 47i: the event is
+    # brand new, so nothing here is about it) the notes of someone who keeps everything: a note for whoever
+    # feeds the cat, the gas bill, the calendar crossed off to the day it stopped, a reminder to ring the vet
+    F.note(c, 108, 24, ['CAT', 'FOOD', 'TUES'], fix='tape')
+    F.note(c, 146, 24, ['PAY', 'GAS', 'BILL'], paper=hexc('e4dcc4'))
     F.calendar(c, 176, 24)
-    F.note(c, 201, 30, ['DONT', 'OPEN', 'DOOR!'], paper=hexc('e4dcc4'))
+    F.note(c, 201, 30, ['RING', 'VET'], paper=hexc('e4dcc4'))
 
 
 @persp

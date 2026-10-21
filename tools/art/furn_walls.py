@@ -246,66 +246,6 @@ def wall_shelf(c, ox, oy, p):
     L.flush()
 
 
-# ================================================================================================================================ scratched tally
-@piece('tally_marks', 31, 12, 'decor', rooms={'bedroom': 4, 'living_room': 2, 'study': 2}, styles={'refuge': 8, 'sick': 1}, tags=('mark',), wall_y=(44, 60), limit=1,
-       note='the days, scratched into the plaster: groups of five struck through, each scratch a dark groove with pale chipped plaster along it, dust below')
-def tally_marks(c, ox, oy, p):
-    rng = random.Random(21)
-    groove, chip, dust = hexc('4a4236'), hexc('d6cdb6'), hexc('c4bba4')
-    def scratch(x, y0, y1):
-        wob = 0
-        for y in range(y0, y1 + 1):
-            if rng.random() < 0.12:
-                wob = rng.choice((-1, 0, 1)) if abs(wob) < 1 else 0
-            c.put(x + wob, y, groove if y % 3 else shade(groove, 0.8))
-            c.put(x + wob - 1, y, chip)                                                             # the pale lip of chipped plaster
-        c.put(x + wob, y1 + 1, dust)
-    for g in range(2):
-        gx = ox + g * 13
-        for i in range(4):
-            scratch(gx + i * 2, oy + 1 + (i % 2), oy + 8 + rng.randint(0, 1))
-        for k in range(10):                                                                          # the strike through the four
-            t = k / 9.0
-            x, y = int(gx - 1 + 8 * t), int(oy + 7 - 5 * t)
-            c.put(x, y, groove); c.put(x, y + 1, chip)
-    for i in range(3):                                                                               # the days since, not yet struck through
-        scratch(ox + 25 + i * 2, oy + 2 + (i % 2), oy + 9)
-    for (dx, dy) in ((3, 10), (9, 11), (15, 10), (6, 11), (20, 11)):                                # fallen plaster dust
-        c.put(ox + dx, oy + dy, dust)
-
-
-# ================================================================================================================================ sprayed NO FOOD
-@piece('spray_nofood', 35, 18, 'decor', rooms={'bedroom': 4, 'living_room': 3, 'kitchen': 3}, styles={'refuge': 8}, tags=('notice',), wall_y=(24, 38), limit=1,
-       note='NO FOOD, sprayed on the plaster in red: a soft halo of overspray round every letter, long runs that end in a bead, a crossed-out arrow under it')
-def spray_nofood(c, ox, oy, p):
-    rng = random.Random(3)
-    red = hexc('a8322c')
-    # overspray first: a faint wider halo, then the letters on top
-    wd = F.text_spray(c, ox, oy, 'NO FOOD', red, scale=2, drips=False, seed=3)
-    for y in range(oy, oy + 10):                                                                    # wet paint catches the light on the upper-left edge of each stroke
-        for x in range(ox, ox + wd):
-            if c.px[x, y][3] == 255 and c.px[x - 1, y][3] == 0 and c.px[x, y - 1][3] == 0:
-                c.put(x, y, shade(red, 1.28))
-    for y in range(oy - 2, oy + 12):
-        for x in range(ox - 2, ox + wd + 2):
-            if c.px[x, y][3] == 0:
-                near = 0
-                for (dx, dy) in ((-1, 0), (1, 0), (0, -1), (0, 1)):
-                    if 0 <= x + dx < c.w and 0 <= y + dy < c.h and c.px[x + dx, y + dy][3] == 255:
-                        near += 1
-                if near and rng.random() < 0.4:
-                    c.put(x, y, red[:3] + (80,))
-    for gx in (3, 9, 17, 29, 36, 44, 50):                                                            # drips: a long run that thickens to a bead at its end
-        x = ox + gx
-        if not (0 <= x < c.w) or c.px[x, oy + 9][3] == 0:
-            continue
-        ln = rng.randint(3, 9)
-        c.vline(x, oy + 10, oy + 10 + ln, red[:3] + (200,))
-        c.put(x, oy + 11 + ln, red); c.put(x + 1, oy + 11 + ln, shade(red, 0.8)); c.put(x, oy + 10 + ln, shade(red, 1.25))
-    for (dx, dy) in ((-2, 3), (wd + 1, 6), (wd - 6, -2), (12, 13)):                                  # stray flecks
-        c.put(ox + dx, oy + dy, red[:3] + (160,))
-
-
 # ================================================================================================================================ the ceiling lights
 @piece('ceiling_flush', 17, 5, 'ceiling', rooms={'bedroom': 6, 'living_room': 4, 'study': 3, 'dining_room': 2, 'bathroom': 4, 'kitchen': 3}, styles=None, tags=('light', 'ceiling'),
        lights=({'dx': 0, 'dy': 4, 'kind': 'flush'},), note='a flush ceiling dome: a metal rim, a frosted glass bowl lit from inside, a ring of dust on the lip')

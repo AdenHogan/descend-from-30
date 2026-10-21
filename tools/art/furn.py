@@ -587,16 +587,6 @@ def tube_light(c, x, w=34):
     light(x, 3, 'tube')
 
 
-def lantern(c, x, surface):
-    """A battery camping lantern (it works without the flat's power)."""
-    c.rect(x - 3, surface - 2, x + 3, surface, hexc('3a4a3a'))
-    c.rect(x - 2, surface - 9, x + 2, surface - 3, hexc('d8d8c8'))
-    c.vline(x - 3, surface - 9, surface - 3, hexc('3a4a3a')); c.vline(x + 3, surface - 9, surface - 3, hexc('3a4a3a'))
-    c.rect(x - 3, surface - 11, x + 3, surface - 10, hexc('3a4a3a'))
-    c.line(x - 2, surface - 12, x, surface - 14, hexc('2a2a2a')); c.line(x, surface - 14, x + 2, surface - 12, hexc('2a2a2a'))
-    light(x, surface - 6, 'lantern')
-
-
 def shade_col(col, f):
     return shade(col, f)
 

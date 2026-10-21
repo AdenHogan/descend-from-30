@@ -1,8 +1,8 @@
 """THE DINING ROOM — the table with its chairs, the clock, the trolley, and the things set out on a table (owner round 47f: "expand to other module types too… a big pass").
 
 A dining room is a SHELL (the bare room) plus PIECES laid by the planner, in five STYLES — family (the cloth-covered table, the Welsh dresser, the ladder-backed chairs), diner (the sixties
-tulip table and chairs, the sideboard with the record player), formal (the long mahogany table, the portraits, the grandfather clock, the candelabra), barricade (the table dragged on its edge
-against the wall, boards over it) and party (the birthday table: bunting, balloons, a cake, party hats, a boombox). The long table carries its chairs: they stand BEHIND it, so the table covers
+tulip table and chairs, the sideboard with the record player), formal (the long mahogany table, the portraits, the grandfather clock, the candelabra), houseshare (a bare pine table of a shared house, no two chairs alike, the takeaway
+boxes still out) and party (the birthday table: bunting, balloons, a cake, party hats, a boombox). The long table carries its chairs: they stand BEHIND it, so the table covers
 their legs (the kitchen table does the same).
 """
 import math
@@ -72,20 +72,17 @@ def _table_variants():
         'diner': {'kind': 'diner', 'for': ['diner']},
         'formal': {'kind': 'formal', 'for': ['formal']},
         'party': {'kind': 'party', 'for': ['party']},
-        'tipped': {'kind': 'tipped', 'for': ['barricade']},
+        'shared': {'kind': 'shared', 'for': ['houseshare']},
     }
 
 
 @piece('table_dining', 92, 44, 'front', rooms={'dining_room': 10}, styles=None, tags=('dining', 'table'), variants=_table_variants(), limit=1, feet=(114, 118),
-       slots=tuple({'id': 'top', 'dx0': 8, 'dx1': 84, 'dy': -26 if k != 'diner' else -27, 'top': True, 'kinds': ('table', 'small'), 'if': {'kind': k}} for k in ('family', 'diner', 'formal', 'party')),   # a tipped table has nothing on it
+       slots=tuple({'id': 'top', 'dx0': 8, 'dx1': 84, 'dy': -26 if k != 'diner' else -27, 'top': True, 'kinds': ('table', 'small'), 'if': {'kind': k}} for k in ('family', 'diner', 'formal', 'party', 'shared')),
        anchors=({'name': 'table', 'dx': 30, 'dy': -26, 'top': True}, {'name': 'table_end', 'dx': 66, 'dy': -26, 'top': True}),
-       note='the dining table with its chairs standing behind it: a lace-clothed family table with spindle chairs, a round sixties tulip table with two moulded chairs, a long bare mahogany table with high-backed chairs, a birthday table under a confetti cloth with small chairs — or a table dragged on its edge with the chairs jammed against it')
+       note='the dining table with its chairs standing behind it: a lace-clothed family table with spindle chairs, a round sixties tulip table with two moulded chairs, a long bare mahogany table with high-backed chairs, a birthday table under a confetti cloth with small chairs — or a bare pine table of a shared house with three chairs that do not match')
 def table_dining(c, ox, oy, p):
     k = p['kind']
     rng = random.Random(len(k) * 17)
-    if k == 'tipped':
-        _tipped(c, ox, oy)
-        return
     if k == 'diner':
         _diner(c, ox, oy)
         return
@@ -100,11 +97,14 @@ def table_dining(c, ox, oy, p):
     elif k == 'formal':
         for cx in (ox + 14, ox + 40, ox + 66):
             _chair(c, cx, oy - 9, 'high', 'dark', 'cloth')
+    elif k == 'shared':                                                                          # three chairs from three different sets
+        for cx, st, wd, sk in ((ox + 14, 'ladder', 'dark', 'cloth'), (ox + 44, 'spindle', 'white', 'blue'), (ox + 74, 'ladder', 'green', 'rush')):
+            _chair(c, cx, oy - 9, st, wd, sk)
     else:
         for cx in (ox + 16, ox + 46, ox + 76):
             _chair(c, cx, oy - 9, 'spindle', 'oak', 'rush')
-    if k == 'formal':                                                                            # bare mahogany: apron, four turned legs, a lipped top
-        wood, wl, wd = hexc('6a3a2a'), hexc('8e5640'), hexc('3e2018')
+    if k in ('formal', 'shared'):                                                                # bare wood: apron, four legs, a lipped top (mahogany, or the shared house's pine)
+        wood, wl, wd = (hexc('6a3a2a'), hexc('8e5640'), hexc('3e2018')) if k == 'formal' else (hexc('b08a58'), hexc('d0aa72'), hexc('7a5a38'))
         for lx in (ox + 5, ox + 82):
             for dx in (0, 5):
                 c.rect(lx + dx, top_y + 4, lx + dx + 1, ground, wd if dx else shade(wd, 1.15))
@@ -147,27 +147,8 @@ def _diner(c, ox, oy):
     C3.draw_model(c, ox + 46, ground, C3.tulip_table(28.0), 0, pal, srad=24)
 
 
-def _tipped(c, ox, oy):
-    """A table dragged up on its edge against the wall as a barricade: the top is a wide dark slab standing upright, the four legs sticking out to one side, two chairs jammed in front of it."""
-    ground = oy - 3
-    c.shadow(ox + 44, ground + 1, 44, 2, 105)
-    wood, wl, wd = hexc('6a3a2a'), hexc('8e5640'), hexc('3e2018')
-    c.rect(ox + 14, oy - 40, ox + 80, ground, wd)                                                  # the upright top, seen edge-on from the room: its underside and apron
-    c.rect(ox + 15, oy - 39, ox + 79, ground - 1, wood)
-    c.hline(ox + 15, ox + 79, oy - 39, wl)
-    c.vline(ox + 15, oy - 39, ground - 1, wl)
-    c.rect(ox + 20, oy - 34, ox + 74, oy - 31, shade(wood, 0.8))                                  # the apron rail
-    c.rect(ox + 20, oy - 12, ox + 74, oy - 9, shade(wood, 0.8))
-    for lx in (ox + 26, ox + 66):                                                                  # two legs pointing out toward the room, turned
-        K.cyl(c, lx, oy - 32, oy - 12, 2.2, wood, ry=0.8)
-    for yy in (oy - 39, oy - 30, oy - 21, oy - 12):                                                # old stains and scratches
-        c.hline(ox + 30 + (yy % 7), ox + 36 + (yy % 7), yy + 1, shade(wood, 0.7))
-    _chair(c, ox + 8, oy - 4, 'ladder', 'dark', 'cloth', yaw=0, fallen='side', srad=10)           # chairs jammed against it
-    _chair(c, ox + 86, oy - 4, 'spindle', 'oak', 'rush', yaw=0, fallen='back', srad=10)
-
-
 # ================================================================================================================================ things on the table
-@piece('candelabra', 14, 24, 'top', rooms={'dining_room': 6}, styles={'formal': 8, 'family': 1, 'barricade': 0.01}, tags=('small', 'light'), on=('table',), limit=1,
+@piece('candelabra', 14, 24, 'top', rooms={'dining_room': 6}, styles={'formal': 8, 'family': 1, 'houseshare': 0.01}, tags=('small', 'light'), on=('table',), limit=1,
        variants={'silver': {'col': 'c8ccd0'}, 'brass': {'col': 'c8a050'}}, lights=({'dx': 7, 'dy': -20, 'kind': 'lantern', 'top': True},),
        note='a three-branch candelabrum with a candle in each arm, the flames small and warm')
 def candelabra(c, ox, oy, p):
@@ -440,24 +421,6 @@ def portraits_row(c, ox, oy, p):
             c.rect(cx - 2, iy0 + 8, cx + 2, iy0 + 9, hexc('3a2a1a'))                             # a beard
         c.put(cx - 1, iy0 + 5, hexc('1a1410')); c.put(cx + 1, iy0 + 5, hexc('1a1410'))
         W.glint(c, (ix0, iy0, ix1, iy1))
-
-
-@piece('planks_wall', 60, 34, 'decor', rooms={'dining_room': 6}, styles={'barricade': 9}, tags=('picture', 'boards'), wall_y=(22, 36), limit=1, variants={'boards': {}},
-       note='planks nailed across the wall in a hurry — three rough boards at angles, bent nails, a smear of dried blood and a scrawled STAY OUT')
-def planks_wall(c, ox, oy, p):
-    rng = random.Random(5)
-    for k, (y0, ang) in enumerate(((oy + 3, -2), (oy + 14, 2), (oy + 25, -1))):
-        wood = hexc(('9a7a52', '8a6a46', 'a68858')[k])
-        for x in range(ox + 1, ox + 59):
-            yy = y0 + int(round((x - ox - 30) * ang / 30.0))
-            c.rect(x, yy, x, yy + 5, shade(wood, 1.0 + 0.1 * ((x // 4) % 2)))
-            c.put(x, yy, shade(wood, 1.3))
-            c.put(x, yy + 5, shade(wood, 0.6))
-        for nx in (ox + 5, ox + 54):
-            c.put(nx, y0 + 2 + int(round((nx - ox - 30) * ang / 30.0)), hexc('2a2a2e'))
-    for k in range(6):                                                                            # dried blood
-        c.put(ox + 34 + rng.randint(-3, 3), oy + 8 + rng.randint(0, 20), hexc('5a1e1c'))
-    c.vline(ox + 36, oy + 10, oy + 22, hexc('4a1814'))
 
 
 @piece('gifts_pile', 26, 18, 'floor', rooms={'dining_room': 5}, styles={'party': 9}, tags=('clutter', 'party'), limit=1,
