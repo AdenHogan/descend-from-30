@@ -2,22 +2,22 @@
 """THE GAME'S LOGO - "Descend From 30" (owner round 48: "make the logo for the game").
 
     python3 tools/art/logo.py            write assets/logo/* and docs/logo/logo_sheet.png
-    python3 tools/art/logo.py --check    the committed files must be exactly what this script draws (the gate runs it)
+    python3 tools/art/logo.py --check    the committed files must be what this script draws, give or take rounding (the gate runs it)
 
-THE IDEA (owner): a BLOODIED HANDPRINT BEHIND THE NUMBER.  A big 30 in warm white stands over one slim handprint in dried blood - the hand's
-fingers rise behind a small line of capitals, DESCEND FROM, that is tracked out to the exact width of the 30 - and the heel of the palm shows
-just under it.  (Round 48's first try set the print BESIDE the words; that was wrong.  Its first look, pixel art with a dithered print and a
-brick-tower 30, was "AI crap... it needs to be clear and clean", so everything here is flat and plain.)
+THE LOGO IS THE BLOODIED HANDPRINT (owner, round 48c: "the logo is the bloodied handprint and if that doesn't work then the logo doesn't work").
+A real print on a wall, behind the number: tools/art/logo_print.py draws how it TRANSFERRED - hard-pressed pads, the print breaking at the joints and
+the creases of the palm, a wet uneven edge, thick blood dark and thin blood bright, a few drips and a little spatter.  A flat red silhouette read as a
+cold-war poster, and a pixel-art / brick-tower version as "AI crap"; this is neither.
 
-  * TWO flat colours and nothing else (warm white + dried blood on a dark ground; ink + blood on a light one);
-  * ONE typeface, Barlow Condensed Bold (SIL OFL, assets/fonts/logo/), capitals with open tracking - the lettering of building signage and lift panels;
-  * ONE handprint (tools/art/logo_hand.py): slim and flat, its palm centred under the middle of the 30.
-No bevel, no outline, no shadow, no texture, no gradient.  Everything is a vector (shapely geometry -> SVG paths, and the same geometry
-rasterised for the PNGs), so it scales to any size.
+THE TYPE the owner likes ("clean and mature"): Barlow Condensed Bold capitals (SIL OFL, assets/fonts/logo/), vector, plain - no bevel, outline,
+shadow or distress.  The hard-worn thing is the print; the lettering stays quiet so the print does the work.
 
-VARIANTS (transparent backgrounds): dark = for dark grounds, light = for light grounds (ink letters over a paler print, so they never go dark-on-dark-red),
-white / black = one ink (the print is cut back a hair round every letter).  The WORDMARK alone (no print) sets the
-30 itself in blood.  THE ICON is the print on a dark rounded tile with the 30 over its palm; every size of the .ico is drawn natively from the vector.
+LAYOUT (round 48c, after the owner's reference; round 48d "directly behind the number"): DESCEND over FROM on the left, the big 30 on the right, the print
+DIRECTLY BEHIND the 30 - the hand's middle on the numerals' middle, its fingers rising over them, its wrist and drips hanging under them.  Landscape.
+
+VARIANTS (transparent backgrounds): dark = warm-white letters for dark grounds; light = ink letters for light grounds, the 30 warm white with an ink
+keyline so it reads over the blood AND over the paper.  The WORDMARK alone (no print, a pure vector: SVG + PNG) sets the 30 itself in blood.
+THE ICON is the print on a dark rounded tile with the 30 over its palm.
 
 The context rule (CLAUDE.md "Context") holds: nothing names or implies a cause, an authority or any preparation; the print is a REACTION,
 the same bloody handprint the opening's cold open already shows.
@@ -33,11 +33,12 @@ from fontTools.pens.recordingPen import DecomposingRecordingPen
 from fontTools.ttLib import TTFont
 from PIL import Image, ImageDraw
 from shapely import affinity
-from shapely.geometry import Polygon, box
+from shapely.geometry import Point, Polygon, box
 from shapely.ops import unary_union
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import logo_hand
+import logo_print
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 FONT = os.path.join(ROOT, 'assets', 'fonts', 'logo', 'BarlowCondensed-Bold.ttf')
@@ -45,30 +46,23 @@ FONT = os.path.join(ROOT, 'assets', 'fonts', 'logo', 'BarlowCondensed-Bold.ttf')
 # ---------------------------------------------------------------------------------------------------------------- palette
 WARM = (238, 230, 214)            # warm white, for letters on a dark ground
 INK = (24, 16, 28)                # the near-black of the game's night, for letters on a light ground
-BLOOD_D = (160, 33, 35)           # dried blood on a dark ground
-BLOOD_L = (136, 27, 30)           # the same, a step darker so it holds on a light ground
-BLOOD_PALE = (178, 84, 82)        # the print on a light ground, behind ink letters (ink on it reads 3.9:1, it on the paper 3.8:1)
+_MID = 0.45 * logo_print.THIN + 0.55 * logo_print.THICK
+BLOOD_D = tuple(int(round(v)) for v in _MID)                       # the flat blood of the wordmark's 30 = the print's own mid tone
+BLOOD_L = tuple(int(round(v * 0.9)) for v in _MID)                  # a step darker on paper
 TILE = (24, 16, 28)               # the icon's ground
-THEMES = {
-    'dark': {'text': WARM, 'hand': BLOOD_D, 'blood': BLOOD_D},
-    'light': {'text': INK, 'hand': BLOOD_PALE, 'blood': BLOOD_L},     # ink letters on the paper, over a paler print; the 30 alone is dark blood
-    'white': {'text': (255, 255, 255), 'hand': (255, 255, 255), 'blood': (255, 255, 255)},
-    'black': {'text': (0, 0, 0), 'hand': (0, 0, 0), 'blood': (0, 0, 0)},
-}
-ONE_INK = ('white', 'black')
-LAYER_ORDER = ('tile', 'hand', 'blood', 'text')
-ONE_INK_GAP = 34.0                # one ink: the print is cut back this far round every letter, so the letters stay clean
 
 # ---------------------------------------------------------------------------------------------------------------- layout (font units: 1000 / em)
-NUM_CAP = 1400.0                  # cap height of the big 30
-TRACK1 = 120                      # open tracking of DESCEND FROM (font units / 1000): its size follows from fitting the 30's width
-STACK_GAP = 0.16                  # air between the two lines, as a share of the 30's cap height
-HAND_ABOVE = 0.40                 # the fingertips rise this far over the top line (share of the 30's cap height)
-HAND_BELOW = 0.24                 # the heel of the palm hangs this far under the 30's baseline
+NUM_H = 1400.0                    # the height of the 30
+LINE_GAP = 0.14                   # between DESCEND and FROM, as a share of the 30's height (the two lines + the gap = the 30's height)
+TRACK_TEXT = 70                   # open tracking of DESCEND / FROM
 TRACK_NUM = 25                    # the 3 and the 0 sit close: one mark
-MARGIN = 0.12 * NUM_CAP           # clear space round every logo
-SS = 4                            # raster supersample
-
+GAP_X = 0.20                      # between the words and the 30, as a share of the 30's height
+HAND_WIDTH = 1.40                 # the print's box (thumb to little finger) is this wide, as a share of the 30's width: a hand a little wider than its number
+HAND_DY = 0.00                    # the middle of the hand sits this far below the middle of the 30, as a share of the 30's height (0 = centred on it)
+CLEAR = 0.07                      # clear space between the words and the thumb, as a share of the 30's height
+MARGIN = 0.10 * NUM_H             # clear space round every logo
+PRINT_PX = 2200                   # the print is drawn this tall, then scaled down for every output
+SS = 3                            # vector raster supersample
 
 # ---------------------------------------------------------------------------------------------------------------- type
 _FONT = None
@@ -135,151 +129,88 @@ def cap_height():
 
 
 def set_line(text, tracking):
-    """-> list of (char, geometry y DOWN with the baseline at y = 0) and the line's ink extent (x0, x1)."""
-    out, x = [], 0.0
+    """-> the line's glyphs as one geometry (y DOWN, baseline at y = 0) and its ink extent (x0, x1)."""
+    parts, x = [], 0.0
     ink0, ink1 = None, 0.0
     for ch in text:
         g, adv, (gx0, gx1) = glyph_geometry(ch)
         if not g.is_empty:
-            gd = affinity.scale(g, 1, -1, origin=(0, 0))
-            out.append((ch, affinity.translate(gd, x, 0)))
+            parts.append(affinity.translate(affinity.scale(g, 1, -1, origin=(0, 0)), x, 0))
             if ink0 is None:
                 ink0 = x + gx0
             ink1 = x + gx1
         x += adv + tracking
-    return out, (ink0, ink1)
-
-
-def _justified_tracking(text, target_width):
-    """The tracking that makes `text`'s ink exactly `target_width` wide."""
-    _, (a, b) = set_line(text, 0)
-    return (target_width - (b - a)) / (len(text) - 1)
+    return unary_union(parts), (ink0, ink1)
 
 
 def _scaled(geom, k):
     return affinity.scale(geom, k, k, origin=(0, 0))
 
 
-def build_stack():
-    """DESCEND FROM over a big 30, both on the SAME width (the first line is tracked out to the 30's width).
-    -> {'line1': geometry, 'num': geometry}, bounds (x0, y0, x1, y1) in font units, y DOWN, the top of line 1 at y = 0."""
+# ---------------------------------------------------------------------------------------------------------------- layout
+def build_layout():
+    """-> dict of shapely geometry in logo units (y DOWN, the top of the 30 at y = 0):
+    desc, frm (the two lines), num (the 30) and the hand's placement (palm-width -> unit scale and origin)."""
     cap = cap_height()
-    k2 = NUM_CAP / cap
-    num_chars, (n0, n1) = set_line('30', TRACK_NUM)
-    width = (n1 - n0) * k2
-    _, (a0, b0) = set_line('DESCEND FROM', TRACK1)
-    k1 = width / (b0 - a0)                                          # the line's size is whatever fits the 30's width at that tracking
-    c1 = cap * k1
-    l1, (a1, b1) = set_line('DESCEND FROM', TRACK1)
-    base2 = c1 + NUM_CAP * STACK_GAP + NUM_CAP                      # the 30's baseline
-    line1 = unary_union([affinity.translate(_scaled(g, k1), -a1 * k1, c1) for ch, g in l1])
-    num = unary_union([affinity.translate(_scaled(g, k2), -n0 * k2, base2) for ch, g in num_chars])
-    return {'line1': line1, 'num': num}, (0.0, 0.0, width, base2)
-
-
-def hand_behind(stack_bounds):
-    """The print scaled so its fingertips stand HAND_ABOVE over the top line and its heel hangs HAND_BELOW under the 30, the print's box centred on the 30."""
-    x0, y0, x1, y1 = stack_bounds
+    n_geom, (n0, n1) = set_line('30', TRACK_NUM)
+    nb = n_geom.bounds
+    kn = NUM_H / (nb[3] - nb[1])
+    num = affinity.translate(_scaled(n_geom, kn), -nb[0] * kn, -nb[1] * kn)          # top-left of the ink at (0, 0)
+    gap = LINE_GAP * NUM_H
+    c = (NUM_H - gap) / 2.0                                                          # the cap height of the two lines
+    kt = c / cap
+    d_geom, (d0, d1) = set_line('DESCEND', TRACK_TEXT)
+    f_geom, (f0, f1) = set_line('FROM', TRACK_TEXT)
+    desc = affinity.translate(_scaled(d_geom, kt), -d0 * kt, c)                      # baseline at y = c, cap top at 0
+    frm = affinity.translate(_scaled(f_geom, kt), -f0 * kt, NUM_H)                   # baseline at the 30's foot
+    wd = (d1 - d0) * kt
+    dx = wd + GAP_X * NUM_H
+    num = affinity.translate(num, dx, 0)
+    # the print: DIRECTLY behind the 30 (owner: "the handprint should be directly behind the number") - the hand's own middle (its centre of mass: the
+    # palm) on the middle of the numerals, the fingers standing above them and the wrist and the drips hanging below
     g = logo_hand.hand_geometry()
     gx0, gy0, gx1, gy1 = g.bounds
-    target = (y1 - y0) + NUM_CAP * (HAND_ABOVE + HAND_BELOW)
-    s = target / (gy1 - gy0)
-    g = affinity.scale(g, s, s, origin=(0, 0))
-    gx0, gy0, gx1, gy1 = g.bounds
-    return affinity.translate(g, (x0 + x1) / 2.0 - (gx0 + gx1) / 2.0, y0 - NUM_CAP * HAND_ABOVE - gy0)      # the print's own box is centred on the 30
+    nw = num.bounds[2] - num.bounds[0]
+    s = HAND_WIDTH * nw / (gx1 - gx0)                                                # units per palm-width
+    ccx, ccy = g.centroid.x, g.centroid.y
+    ncx, ncy = (num.bounds[0] + num.bounds[2]) / 2.0, (num.bounds[1] + num.bounds[3]) / 2.0
+    hx = ncx - ccx * s
+    hy = ncy + HAND_DY * NUM_H - ccy * s
+    # the thumb must not touch the words: if it would, the 30 and its print move right together
+    words_right = max(desc.bounds[2], frm.bounds[2])
+    hand_left = hx + gx0 * s
+    need = words_right + CLEAR * NUM_H - hand_left
+    if need > 0:
+        num = affinity.translate(num, need, 0)
+        hx += need
+    return {'desc': desc, 'frm': frm, 'num': num, 'hand_scale': s, 'hand_origin': (hx, hy)}
 
 
-def _union_bounds(*bs):
-    return (min(b[0] for b in bs), min(b[1] for b in bs), max(b[2] for b in bs), max(b[3] for b in bs))
+_PRINT = None
 
 
-def build_full():
-    """-> parts {'hand', 'line1', 'num'}, bounds."""
-    stack, sb = build_stack()
-    hand = hand_behind(sb)
-    parts = {'hand': hand, 'line1': stack['line1'], 'num': stack['num']}
-    return parts, _union_bounds(sb, hand.bounds)
+def the_print():
+    """The textured print (RGBA uint8, drawn once per run) and its info."""
+    global _PRINT
+    if _PRINT is None:
+        _PRINT = logo_print.print_image(PRINT_PX)
+    return _PRINT
 
 
-def layers_for(theme, parts):
-    """The drawable layers of a logo in a theme.  A wordmark (no 'hand') sets the 30 itself in blood."""
-    hand = parts.get('hand')
-    text = unary_union([parts['line1'], parts['num']])
-    if hand is None:
-        if theme in ONE_INK:
-            return {'text': text}
-        return {'text': parts['line1'], 'blood': parts['num']}
-    if theme in ONE_INK:                                             # one ink: the print is cut back a hair round the letters
-        return {'text': unary_union([text, hand.difference(text.buffer(ONE_INK_GAP, join_style=1))])}
-    return {'hand': hand, 'text': text}
+def print_rect(lay):
+    """Where the print's image lies in logo units: (x0, y0, x1, y1) of its inked pixels, and of the whole image."""
+    img, info = the_print()
+    u = lay['hand_scale'] / info['scale']                                            # units per print pixel
+    hx, hy = lay['hand_origin']
+    ix0, iy0 = hx - info['ox'] * u, hy - info['oy'] * u
+    ys, xs = np.nonzero(img[..., 3] > 6)
+    return ((ix0 + xs.min() * u, iy0 + ys.min() * u, ix0 + (xs.max() + 1) * u, iy0 + (ys.max() + 1) * u),
+            (ix0, iy0, ix0 + info['w'] * u, iy0 + info['h'] * u))
 
 
-def build_mark():
-    g = logo_hand.hand_geometry()
-    x0, y0, x1, y1 = g.bounds
-    s = 1600.0 / (y1 - y0)
-    g = affinity.translate(affinity.scale(g, s, s, origin=(0, 0)), -x0 * s, -y0 * s)
-    return {'blood': g}, g.bounds
-
-
-ICON_COLOURS = {'tile': TILE, 'hand': BLOOD_D, 'text': WARM}
-
-
-def build_icon():
-    """The print on a dark rounded tile with the 30 over its palm (the vector is in a 1000-unit square)."""
-    tile = box(0, 0, 1000, 1000).buffer(-220, join_style=1).buffer(220, join_style=1)
-    g = logo_hand.hand_geometry()
-    x0, y0, x1, y1 = g.bounds
-    s = 880.0 / (y1 - y0)
-    g = affinity.scale(g, s, s, origin=(0, 0))
-    gx0, gy0, gx1, gy1 = g.bounds
-    ox, oy = 500 - (gx0 + gx1) / 2.0, 60 - gy0                        # the print's box centred on the tile
-    g = affinity.translate(g, ox, oy)
-    chars, (n0, n1) = set_line('30', TRACK_NUM)
-    cap = 400.0
-    k = cap / cap_height()
-    num = unary_union([affinity.translate(_scaled(c, k), -(n0 + n1) / 2.0 * k + 500, oy + 0.78 * s + cap / 2.0) for ch, c in chars])
-    return {'tile': tile, 'hand': g, 'text': num}, (0.0, 0.0, 1000.0, 1000.0)
-
-
-# ---------------------------------------------------------------------------------------------------------------- export
-def _ring_d(coords, k):
-    pts = list(coords)[:-1]
-    return 'M' + 'L'.join('%.1f %.1f' % (x * k, y * k) for x, y in pts) + 'Z'
-
-
+# ---------------------------------------------------------------------------------------------------------------- rendering
 def _polys(geom):
     return [geom] if geom.geom_type == 'Polygon' else list(getattr(geom, 'geoms', []))
-
-
-def geom_path(geom, ox=0.0, oy=0.0):
-    geom = affinity.translate(geom, -ox, -oy).simplify(0.05)
-    d = []
-    for p in _polys(geom):
-        if p.is_empty:
-            continue
-        d.append(_ring_d(p.exterior.coords, 1.0))
-        for r in p.interiors:
-            d.append(_ring_d(r.coords, 1.0))
-    return ''.join(d)
-
-
-def _hex(c):
-    return '#%02x%02x%02x' % c
-
-
-def svg_of(layers, bounds, theme, margin, colours=None):
-    """layers {role: geometry}; colours {role: rgb} (default: the theme's)."""
-    x0, y0, x1, y1 = bounds
-    ox, oy = x0 - margin, y0 - margin
-    w, h = (x1 - x0) + 2 * margin, (y1 - y0) + 2 * margin
-    cols = colours or THEMES[theme]
-    parts = ['<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 %d %d">' % (round(w / 2), round(h / 2), round(w), round(h))]
-    for role in LAYER_ORDER:
-        if role in layers and not layers[role].is_empty:
-            parts.append('<path fill="%s" fill-rule="evenodd" d="%s"/>' % (_hex(cols[role]), geom_path(layers[role], ox, oy)))
-    parts.append('</svg>')
-    return '\n'.join(parts) + '\n'
 
 
 def _mask(geom, W, H, k, ox, oy):
@@ -295,21 +226,161 @@ def _mask(geom, W, H, k, ox, oy):
     return big.resize((W, H), Image.BOX)
 
 
-def raster(layers, bounds, theme, margin, width_px, colours=None):
-    """-> RGBA PIL image, `width_px` wide, transparent background."""
+def _paint(im, geom, colour, k, ox, oy):
+    W, H = im.size
+    layer = Image.new('RGBA', (W, H), tuple(colour) + (0,))
+    layer.putalpha(_mask(geom, W, H, k, ox, oy))
+    return Image.alpha_composite(im, layer)
+
+
+def _specks(num, n=9, seed=5):
+    """A few droplets of blood that landed on the 30 (round, small, none near the edge)."""
+    rng = np.random.RandomState(seed)
+    x0, y0, x1, y1 = num.bounds
+    inner = num.buffer(-0.02 * NUM_H)
+    out = []
+    while len(out) < n:
+        x, y = rng.uniform(x0, x1), rng.uniform(y0, y1)
+        if inner.contains(Point(x, y)):
+            r = float(np.exp(rng.normal(np.log(0.0085 * NUM_H), 0.5)))
+            out.append(Point(x, y).buffer(min(r, 0.02 * NUM_H), 24))
+    return unary_union(out)
+
+
+def render(parts, bounds, width_px, theme, hand=None, specks=None):
+    """-> RGBA PIL image `width_px` wide.  parts: {'desc','frm','num'} geometry; `hand`: the layout (to place the print) or None."""
     x0, y0, x1, y1 = bounds
-    ox, oy = x0 - margin, y0 - margin
-    w, h = (x1 - x0) + 2 * margin, (y1 - y0) + 2 * margin
+    ox, oy = x0 - MARGIN, y0 - MARGIN
+    w, h = (x1 - x0) + 2 * MARGIN, (y1 - y0) + 2 * MARGIN
     k = width_px / w
     W, H = int(width_px), int(round(h * k))
-    cols = colours or THEMES[theme]
-    out = Image.new('RGBA', (W, H), (0, 0, 0, 0))
-    for role in LAYER_ORDER:
-        if role in layers and not layers[role].is_empty:
-            layer = Image.new('RGBA', (W, H), cols[role] + (0,))
-            layer.putalpha(_mask(layers[role], W, H, k, ox, oy))
-            out = Image.alpha_composite(out, layer)
-    return out
+    im = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+    if hand is not None:
+        img, info = the_print()
+        u = hand['hand_scale'] / info['scale']
+        hx, hy = hand['hand_origin']
+        px, py = (hx - info['ox'] * u - ox) * k, (hy - info['oy'] * u - oy) * k
+        pw, ph = int(round(info['w'] * u * k)), int(round(info['h'] * u * k))
+        pr = Image.fromarray(img, 'RGBA').resize((pw, ph), Image.LANCZOS)
+        im.alpha_composite(pr, (int(round(px)), int(round(py)))) if px >= 0 and py >= 0 else _paste_clipped(im, pr, int(round(px)), int(round(py)))
+    lines = unary_union([parts['desc'], parts['frm']])
+    if hand is not None:
+        if theme == 'light':                                         # the 30: warm white inside an ink keyline, so it reads over blood and over paper
+            key = parts['num'].buffer(0.016 * NUM_H, join_style=1).difference(parts['num'])
+            im = _paint(im, key, INK, k, ox, oy)
+            im = _paint(im, lines, INK, k, ox, oy)
+            im = _paint(im, parts['num'], WARM, k, ox, oy)
+        else:
+            im = _paint(im, lines, WARM, k, ox, oy)
+            im = _paint(im, parts['num'], WARM, k, ox, oy)
+        if specks is not None:
+            im = _paint(im, specks, tuple(int(v) for v in logo_print.THIN * 0.55 + logo_print.THICK * 0.45), k, ox, oy)
+    else:
+        text, blood = (WARM, BLOOD_D) if theme == 'dark' else (INK, BLOOD_L)
+        im = _paint(im, lines, text, k, ox, oy)
+        im = _paint(im, parts['num'], blood, k, ox, oy)
+    return im
+
+
+def _paste_clipped(dst, src, x, y):
+    W, H = dst.size
+    sx0, sy0 = max(0, -x), max(0, -y)
+    sx1, sy1 = min(src.width, W - x), min(src.height, H - y)
+    if sx1 > sx0 and sy1 > sy0:
+        dst.alpha_composite(src.crop((sx0, sy0, sx1, sy1)), (x + sx0, y + sy0))
+
+
+def _union_bounds(*bs):
+    return (min(b[0] for b in bs), min(b[1] for b in bs), max(b[2] for b in bs), max(b[3] for b in bs))
+
+
+def full_bounds(lay):
+    ink, _whole = print_rect(lay)
+    tb = unary_union([lay['desc'], lay['frm'], lay['num']]).bounds
+    return _union_bounds(tb, ink)
+
+
+def word_bounds(lay):
+    return unary_union([lay['desc'], lay['frm'], lay['num']]).bounds
+
+
+# ---------------------------------------------------------------------------------------------------------------- the pieces
+def render_full(theme, width_px):
+    lay = build_layout()
+    return render(lay, full_bounds(lay), width_px, theme, hand=lay, specks=_specks(lay['num']))
+
+
+def render_wordmark(theme, width_px):
+    lay = build_layout()
+    return render(lay, word_bounds(lay), width_px, theme)
+
+
+def svg_wordmark(theme):
+    """The wordmark is pure vector: SVG paths (the lines in one colour, the 30 in blood)."""
+    lay = build_layout()
+    x0, y0, x1, y1 = word_bounds(lay)
+    ox, oy = x0 - MARGIN, y0 - MARGIN
+    w, h = (x1 - x0) + 2 * MARGIN, (y1 - y0) + 2 * MARGIN
+    text, blood = (WARM, BLOOD_D) if theme == 'dark' else (INK, BLOOD_L)
+
+    def d_of(geom):
+        geom = affinity.translate(geom, -ox, -oy).simplify(0.05)
+        out = []
+        for p in _polys(geom):
+            for ring in [p.exterior] + list(p.interiors):
+                pts = list(ring.coords)[:-1]
+                out.append('M' + 'L'.join('%.1f %.1f' % (x, y) for x, y in pts) + 'Z')
+        return ''.join(out)
+    hexc = lambda c: '#%02x%02x%02x' % tuple(c)
+    return ('<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 %d %d">\n'
+            '<path fill="%s" fill-rule="evenodd" d="%s"/>\n<path fill="%s" fill-rule="evenodd" d="%s"/>\n</svg>\n'
+            % (round(w / 2), round(h / 2), round(w), round(h), hexc(text), d_of(unary_union([lay['desc'], lay['frm']])), hexc(blood), d_of(lay['num']))).encode()
+
+
+def render_mark(width_px):
+    """The print alone (drips and all), cropped to its ink, transparent."""
+    img, _info = the_print()
+    ys, xs = np.nonzero(img[..., 3] > 6)
+    crop = Image.fromarray(img[ys.min():ys.max() + 1, xs.min():xs.max() + 1], 'RGBA')
+    h = int(round(crop.height * width_px / crop.width))
+    return crop.resize((width_px, h), Image.LANCZOS)
+
+
+def render_icon(n):
+    """The print on a dark rounded tile with the 30 over its palm, n px square."""
+    S = float(n)
+    tile = Image.new('RGBA', (n, n), (0, 0, 0, 0))
+    m = Image.new('L', (n * 4, n * 4), 0)
+    ImageDraw.Draw(m).rounded_rectangle([0, 0, n * 4 - 1, n * 4 - 1], radius=int(0.22 * n * 4), fill=255)
+    layer = Image.new('RGBA', (n, n), TILE + (0,))
+    layer.putalpha(m.resize((n, n), Image.BOX))
+    tile = Image.alpha_composite(tile, layer)
+    img, info = the_print()
+    # fit the print's hand (not its drips) into the tile: the hand's own box, centred, 80 % of the tile tall
+    g = logo_hand.hand_geometry()
+    gx0, gy0, gx1, gy1 = g.bounds
+    hand_h = (gy1 - gy0) * info['scale']                                              # the hand's height in print pixels
+    f = 0.78 * S / hand_h
+    pr = Image.fromarray(img, 'RGBA').resize((int(round(info['w'] * f)), int(round(info['h'] * f))), Image.LANCZOS)
+    hx0 = (gx0 * info['scale'] + info['ox']) * f
+    hy0 = (gy0 * info['scale'] + info['oy']) * f
+    x = int(round(S / 2 - (gx1 - gx0) * info['scale'] * f / 2 - hx0))
+    y = int(round(0.09 * S - hy0))
+    _paste_clipped(tile, pr, x, y)
+    # the tile is a rounded square: nothing of the print outside it
+    clip = Image.new('RGBA', (n, n), (0, 0, 0, 0))
+    clip.putalpha(m.resize((n, n), Image.BOX))
+    a = np.minimum(np.asarray(tile)[..., 3], np.asarray(clip)[..., 3])
+    t = np.asarray(tile).copy()
+    t[..., 3] = a
+    tile = Image.fromarray(t, 'RGBA')
+    # the 30, over the palm
+    cap = 0.30 * S
+    chars, (a0, a1) = set_line('30', TRACK_NUM)
+    nb = chars.bounds
+    kk = cap / (nb[3] - nb[1])
+    num = affinity.translate(_scaled(chars, kk), S / 2 - (a0 + a1) / 2 * kk, 0.60 * S + cap / 2 - nb[3] * kk)
+    return _paint(tile, num, WARM, 1.0, 0.0, 0.0)
 
 
 def _png(im):
@@ -332,27 +403,19 @@ def ico_bytes(frames):
 def all_outputs():
     """-> {relative path: bytes} of every generated file."""
     files = {}
-    full, fb = build_full()
-    word, wb = build_stack()
-    mark, mb = build_mark()
-    margin = MARGIN
-    for theme in THEMES:
-        for name, parts, bounds, wpx in (('logo_full', full, fb, 2000), ('logo_wordmark', word, wb, 1400)):
-            layers = layers_for(theme, parts)
-            base = 'assets/logo/%s_%s' % (name, theme)
-            files[base + '.svg'] = svg_of(layers, bounds, theme, margin).encode()
-            files[base + '.png'] = _png(raster(layers, bounds, theme, margin, wpx))
-            files[base + '_600.png'] = _png(raster(layers, bounds, theme, margin, 600))
     for theme in ('dark', 'light'):
-        base = 'assets/logo/mark_handprint_%s' % theme
-        files[base + '.svg'] = svg_of(mark, mb, theme, MARGIN * 0.5).encode()
-        files[base + '.png'] = _png(raster(mark, mb, theme, MARGIN * 0.5, 800))
-    ic, ib = build_icon()
-    files['assets/logo/icon.svg'] = svg_of(ic, ib, 'dark', 0, ICON_COLOURS).encode()
-    files['assets/logo/icon.png'] = _png(raster(ic, ib, 'dark', 0, 512, ICON_COLOURS))
-    files['assets/logo/icon_1024.png'] = _png(raster(ic, ib, 'dark', 0, 1024, ICON_COLOURS))
-    files['assets/logo/icon.ico'] = ico_bytes([(n, _png(raster(ic, ib, 'dark', 0, n, ICON_COLOURS))) for n in (16, 32, 48, 64, 128, 256)])
-    files['docs/logo/logo_sheet.png'] = _png(contact_sheet(full, fb, word, wb, margin))
+        full = render_full(theme, 2400)
+        files['assets/logo/logo_full_%s.png' % theme] = _png(full)
+        files['assets/logo/logo_full_%s_600.png' % theme] = _png(full.resize((600, int(round(full.height * 600 / full.width))), Image.LANCZOS))
+        word = render_wordmark(theme, 1600)
+        files['assets/logo/logo_wordmark_%s.png' % theme] = _png(word)
+        files['assets/logo/logo_wordmark_%s_600.png' % theme] = _png(render_wordmark(theme, 600))
+        files['assets/logo/logo_wordmark_%s.svg' % theme] = svg_wordmark(theme)
+    files['assets/logo/mark_handprint.png'] = _png(render_mark(1000))
+    files['assets/logo/icon.png'] = _png(render_icon(512))
+    files['assets/logo/icon_1024.png'] = _png(render_icon(1024))
+    files['assets/logo/icon.ico'] = ico_bytes([(n, _png(render_icon(n))) for n in (16, 32, 48, 64, 128, 256)])
+    files['docs/logo/logo_sheet.png'] = _png(contact_sheet())
     return files
 
 
@@ -361,38 +424,35 @@ def _flat(im, bg):
     return Image.alpha_composite(base, im).convert('RGB')
 
 
-def contact_sheet(full, fb, word, wb, margin):
-    """Every variant on the ground it is for, and the icon at 128 / 64 / 32 / 16 px."""
+def contact_sheet():
+    """Every variant on the ground it is for, the print alone, and the icon at 128 / 64 / 32 / 16 px."""
     dark, light = (18, 13, 22), (234, 228, 216)
-    pad = 28
+    pad = 36
+    a = _flat(render_full('dark', 1500), dark)
+    b = _flat(render_full('light', 1500), light)
+    c = _flat(render_wordmark('dark', 760), dark)
+    d = _flat(render_wordmark('light', 760), light)
+    width = a.width + 2 * pad
 
-    def tile(parts, bounds, theme, w):
-        return raster(layers_for(theme, parts), bounds, theme, margin, w)
-    tiles = [(tile(full, fb, 'dark', 700), dark), (tile(full, fb, 'light', 700), light),
-             (tile(word, wb, 'dark', 560), dark), (tile(word, wb, 'light', 560), light),
-             (tile(full, fb, 'white', 700), (70, 70, 76)), (tile(full, fb, 'black', 700), (216, 216, 210))]
-    cw = max(t.width for t, _ in tiles) + 2 * pad
-    rows = []
-    for i in range(0, 6, 2):
-        h = max(tiles[i][0].height, tiles[i + 1][0].height) + 2 * pad
-        row = Image.new('RGB', (cw * 2, h))
-        for j in (0, 1):
-            im, bg = tiles[i + j]
-            cell = Image.new('RGB', (cw, h), bg)
-            cell.paste(_flat(im, bg), ((cw - im.width) // 2, (h - im.height) // 2))
-            row.paste(cell, (j * cw, 0))
-        rows.append(row)
-    strip = Image.new('RGB', (cw * 2, 128 + 2 * pad), (30, 22, 36))
-    ic, ib = build_icon()
+    def cell(im, bg, w, h):
+        out = Image.new('RGB', (w, h), bg)
+        out.paste(im, ((w - im.width) // 2, (h - im.height) // 2))
+        return out
+    ha, hb = a.height + 2 * pad, b.height + 2 * pad
+    hc = max(c.height, d.height) + 2 * pad
+    sheet = Image.new('RGB', (width * 2, ha + hc + 128 + 2 * pad), dark)
+    sheet.paste(cell(a, dark, width, ha), (0, 0))
+    sheet.paste(cell(b, light, width, hb), (width, 0))
+    sheet.paste(cell(c, dark, width, hc), (0, ha))
+    sheet.paste(cell(d, light, width, hc), (width, ha))
+    strip = Image.new('RGB', (width * 2, 128 + 2 * pad), (30, 22, 36))
     x = pad
     for n in (128, 64, 32, 16):
-        strip.paste(_flat(raster(ic, ib, 'dark', 0, n, ICON_COLOURS), (30, 22, 36)), (x, pad + (128 - n)))
+        strip.paste(_flat(render_icon(n), (30, 22, 36)), (x, pad + (128 - n)))
         x += n + pad
-    sheet = Image.new('RGB', (cw * 2, sum(r.height for r in rows) + strip.height))
-    y = 0
-    for r in rows + [strip]:
-        sheet.paste(r, (0, y))
-        y += r.height
+    mk = _flat(render_mark(128 + 0), (30, 22, 36))
+    strip.paste(mk, (width * 2 - mk.width - pad, pad))
+    sheet.paste(strip, (0, ha + hc))
     return sheet
 
 
@@ -420,10 +480,14 @@ def check():
         if not os.path.exists(p):
             bad.append('missing %s' % rel)
         elif rel.endswith('.png'):
-            a = np.asarray(Image.open(p).convert('RGBA'))
-            b = np.asarray(Image.open(io.BytesIO(data)).convert('RGBA'))
-            if a.shape != b.shape or not (a == b).all():
-                bad.append('stale %s' % rel)
+            a = np.asarray(Image.open(p).convert('RGBA')).astype(np.int16)
+            b = np.asarray(Image.open(io.BytesIO(data)).convert('RGBA')).astype(np.int16)
+            if a.shape != b.shape:
+                bad.append('stale %s (size)' % rel)
+            else:                                                   # the print is procedural: allow rounding, refuse a different picture
+                diff = np.abs(a - b)
+                if diff.mean() > 0.6 or (diff.max(axis=2) > 24).mean() > 0.002:
+                    bad.append('stale %s (mean diff %.2f)' % (rel, diff.mean()))
         elif open(p, 'rb').read() != data:
             bad.append('stale %s' % rel)
     have = set()
@@ -437,8 +501,7 @@ def check():
         bad.append('extra %s' % extra)
     if not os.path.exists(os.path.join(ROOT, 'assets', 'fonts', 'logo', 'OFL.txt')):
         bad.append("the typeface's licence (assets/fonts/logo/OFL.txt) is missing")
-    # the brief: transparent backgrounds, a square icon, two lines of one width, the print behind the 30
-    for rel in files:
+    for rel in files:                                               # the brief: transparent backgrounds, a square icon
         if rel.endswith('.png') and rel.startswith('assets/logo/') and 'icon' not in rel:
             p = os.path.join(ROOT, rel)
             if os.path.exists(p) and not (np.asarray(Image.open(p).convert('RGBA'))[..., 3] == 0).any():
@@ -447,19 +510,23 @@ def check():
         p = os.path.join(ROOT, rel)
         if os.path.exists(p) and Image.open(p).size != (n, n):
             bad.append('%s is not %d x %d' % (rel, n, n))
-    stack, (sx0, sy0, sx1, sy1) = build_stack()
-    w1 = stack['line1'].bounds[2] - stack['line1'].bounds[0]
-    w2 = stack['num'].bounds[2] - stack['num'].bounds[0]
-    if abs(w1 - w2) > 0.5:
-        bad.append('DESCEND FROM and the 30 are not the same width (%.1f vs %.1f)' % (w1, w2))
-    full_parts, _ = build_full()
-    hb, nb = full_parts['hand'].bounds, stack['num'].bounds
-    if not (hb[0] < nb[0] + 0.5 * (nb[2] - nb[0]) < hb[2] and hb[1] < nb[1] and hb[3] > nb[3]):
-        bad.append('the print is not behind the 30 (it must rise above it and hang below it)')
-    behind = full_parts['hand'].intersection(full_parts['num']).area / full_parts['num'].area
-    if behind < 0.25:
+    # the composition: the print is DIRECTLY behind the 30 - the hand's middle on the middle of the numerals (within a tenth of the 30's size),
+    # its fingers rising above them, its wrist hanging under them, most of the numerals standing over the hand, and the thumb clear of the words
+    lay = build_layout()
+    g = affinity.translate(_scaled(logo_hand.hand_geometry(), lay['hand_scale']), *lay['hand_origin'])
+    nb, hb = lay['num'].bounds, g.bounds
+    ncx, ncy = (nb[0] + nb[2]) / 2.0, (nb[1] + nb[3]) / 2.0
+    if abs(g.centroid.x - ncx) > 0.10 * (nb[2] - nb[0]) or abs(g.centroid.y - ncy) > 0.10 * (nb[3] - nb[1]):
+        bad.append('the print is not directly behind the 30 (the hand is %.0f / %.0f units off the middle of the numerals)' % (g.centroid.x - ncx, g.centroid.y - ncy))
+    if not (hb[1] < nb[1] and hb[3] > nb[3]):
+        bad.append('the print must rise above the 30 and hang below it')
+    behind = g.intersection(lay['num']).area / lay['num'].area
+    if behind < 0.55:
         bad.append('the print is barely behind the 30 (only %.0f %% of the numerals stand over it)' % (100 * behind))
-    # the print: no fat base (wrist narrower than the palm), in proportion (not a glove), blood and not a cartoon red
+    words = unary_union([lay['desc'], lay['frm']])
+    if words.bounds[2] > nb[0] or words.distance(g) < 0.04 * NUM_H:
+        bad.append('DESCEND / FROM run into the 30 or the print')
+    # the print: no fat base (wrist narrower than the palm), in proportion (not a glove), and the blood is blood, not a cartoon red
     g0 = logo_hand.hand_geometry(rot=0.0)
 
     def width_at(y):
@@ -471,10 +538,10 @@ def check():
     x0, y0, x1, y1 = g0.bounds
     if not (0.55 <= (x1 - x0) / (y1 - y0) <= 0.78):
         bad.append('the print is out of proportion (width / height %.2f)' % ((x1 - x0) / (y1 - y0)))
-    for c in (BLOOD_D, BLOOD_L, BLOOD_PALE):
-        loud, v = _loudness(c)
-        if loud > 0.56 or v > 0.70:
-            bad.append('the blood colour %s is too loud (saturation x value %.2f, value %.2f; a comic red is ~0.78 / 0.86)' % (c, loud, v))
+    for name, c in (('THIN', logo_print.THIN), ('THICK', logo_print.THICK), ('flat blood', BLOOD_D)):
+        loud, v = _loudness(tuple(float(x) for x in c))
+        if loud > 0.60 or v > 0.74:
+            bad.append('the blood tone %s %s is too loud (saturation x value %.2f, value %.2f; a comic red is ~0.78 / 0.86)' % (name, tuple(int(x) for x in c), loud, v))
     return bad
 
 
@@ -486,7 +553,7 @@ if __name__ == '__main__':
         if problems:
             print('LOGO: %d problem(s) - run python3 tools/art/logo.py' % len(problems))
             sys.exit(1)
-        print('LOGO: assets/logo + docs/logo are exactly what tools/art/logo.py draws')
+        print('LOGO: assets/logo + docs/logo are what tools/art/logo.py draws')
         sys.exit(0)
     fs = write_all()
     print('wrote %d files' % len(fs))

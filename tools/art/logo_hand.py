@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
-"""The HANDPRINT in the game's logo - one slim, believable hand as a single flat vector shape.
+"""The HAND under the logo's print - the shape tools/art/logo_print.py draws the bloodied handprint on.
 
-Owner round 48: the first version (pixel art, dithered pressure texture, brick-tower numerals) read as "AI crap": too much going on.
-This one is deliberately plain - ONE flat colour, one clean outline, no texture - and gets its character from the DRAWING.
+Owner round 48: a slim, believable hand - NOT a fat base, which was one of the two failures of the AI attempts it was set against
+("too fat at the base and comically red, or red paint gore slop").  Proportions are measured in palm-widths W (palm 0.9 wide x 1.0 long, middle finger
+0.95, index 0.80, ring 0.86, pinky 0.64, finger width 0.19-0.23, a narrow curved thumb off the thenar swell) and the palm TAPERS to a wrist only 0.49 wide,
+cut off short (a print has no base).  `logo.py --check` measures it.
 
-The two failures of the AI attempts it was set against ("too fat at the base and comically red, or red paint gore slop"):
-  * no fat base: proportions are measured in palm-widths W (palm 0.9 wide x 1.0 long, middle finger 0.97, index 0.84, ring 0.88,
-    pinky 0.66, finger width 0.19-0.22, a narrow thumb off the thenar swell) and the palm TAPERS to a wrist only 0.49 wide, cut off short (a print has no base);
-  * no gore: no drips, splatter, gloss or texture.  (A first try cut thin joint creases across the fingers; they read as rings and
-    bandages, so they went.)
-
-Pure function (shapely): `hand_geometry()` -> a shapely (Multi)Polygon in palm-widths, +y DOWN, origin at the centre of the knuckle line.
+`hand_geometry()` -> a shapely (Multi)Polygon in palm-widths, +y DOWN, origin at the centre of the knuckle line.
+`features()` -> where a print would press (fingertips, the thumb tip, the heel) and where it would BREAK (the joints across the fingers, the heart and
+life lines of the palm), in the same frame.  Pure functions (shapely).
 """
 import math
 
@@ -71,6 +69,40 @@ def hand_geometry(rot=ROT):
     g = g.buffer(0.022, join_style=1).buffer(-0.022, join_style=1)          # round the valleys between the fingers and at the thumb's web
     g = g.buffer(-0.010, join_style=1).buffer(0.010, join_style=1)          # and the corners (the wrist's)
     return affinity.rotate(g, rot, origin=(0, 0))
+
+
+def features(rot=ROT):
+    """Where a print would press and where it would break, in the SAME frame as hand_geometry (palm-widths, rotated by `rot`):
+    {'tips': [(x, y, r)], 'joints': [(x, y, dx, dy, half)], 'palm': (x, y), 'thumb_tip': (x, y, r), 'creases': [[(x, y)...]]}.
+    A joint is a crease across a finger: its centre, the unit vector along it and its half length."""
+    c, sn = math.cos(math.radians(rot)), math.sin(math.radians(rot))
+
+    def R(x, y):
+        return (x * c - y * sn, x * sn + y * c)
+    tips, joints = [], []
+    for name, bx, by, lean, ln, w0, w1 in FINGERS:
+        a = math.radians(lean)
+        ux, uy = math.sin(a), -math.cos(a)
+        x0, y0 = bx, by + 0.10
+        tx, ty = x0 + ux * ln, y0 + uy * ln
+        tips.append(R(tx, ty) + (w1 * 0.5,))
+        for t in (0.42, 0.70):
+            cx, cy = x0 + ux * ln * t, y0 + uy * ln * t
+            w = w0 + (w1 - w0) * t
+            dx, dy = R(-uy, ux)                      # the crease runs across the finger
+            joints.append(R(cx, cy) + (dx, dy, w * 0.5))
+    (bx, by), (cx, cy), (tx, ty), tw0, tw1 = THUMB
+    thumb_tip = R(tx, ty) + (tw1 * 0.5,)
+    tbx, tby = (1 - 0.55) ** 2 * bx + 2 * 0.45 * 0.55 * cx + 0.55 ** 2 * tx, (1 - 0.55) ** 2 * by + 2 * 0.45 * 0.55 * cy + 0.55 ** 2 * ty
+    ddx, ddy = tx - bx, ty - by
+    n = math.hypot(ddx, ddy)
+    jd = R(-ddy / n, ddx / n)
+    joints.append(R(tbx, tby) + (jd[0], jd[1], (tw0 + (tw1 - tw0) * 0.55) * 0.5))
+    # two palm creases (heart line, life line) as polylines in the palm's own frame
+    heart = [(0.40, 0.46), (0.28, 0.40), (0.12, 0.36), (-0.06, 0.37), (-0.20, 0.42)]
+    life = [(-0.22, 0.40), (-0.27, 0.56), (-0.24, 0.74), (-0.14, 0.92), (-0.02, 1.02)]
+    return {'tips': tips, 'joints': joints, 'palm': R(0.02, 0.60), 'thumb_tip': thumb_tip,
+            'creases': [[R(x, y) for x, y in heart], [R(x, y) for x, y in life]]}
 
 
 if __name__ == '__main__':
