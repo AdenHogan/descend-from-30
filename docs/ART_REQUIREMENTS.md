@@ -114,7 +114,7 @@ px), or to a clean multiple of them, and tell us your tile size so we can slot i
 ### Tier 0: brand / identity (do this first, it sets the look)
 > **Update (owner round 48): an in-house logo now exists** — `assets/logo/` (full logo, wordmark, one-ink versions, the handprint alone, a
 > square icon + `.ico`; SVG + PNG, all on transparent backgrounds), built by `tools/art/logo.py`, with usage rules in `docs/logo/README.md`.
-> It is a flat vector: two lines of Barlow Condensed Bold capitals (DESCEND / FROM 30, the 30 in blood) beside a slim handprint, no ornament.
+> It is a flat vector: a bloodied handprint BEHIND a big 30, with DESCEND FROM (Barlow Condensed Bold capitals) over it at the 30's width, no ornament.
 > It is a working brand mark, not a commission: an artist is welcome to redraw it, keeping the brief below. The studio credit lockup
 > (**Mammoth Games**) is not drawn yet. Not yet wired into the title screen or the project icon.
 
