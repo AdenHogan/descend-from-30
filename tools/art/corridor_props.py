@@ -510,81 +510,21 @@ def suitcase(save, name, seed):
     record(name, "door", d, C)
 
 
-def bike(save, name, seed, kid=False, down=False):
-    """A bike leant on the wall beside a door, side on (its real outline), a kickstand and a shadow."""
+def bike(save, name, seed, kid=False, extra=None, stabilisers=False):
+    """A bike leant on the wall beside a door, side on: a whole bicycle with real proportions and volume (tools/art/corridor_bikes.py — owner round 48h:
+    "a fully realised object with the usual geometry and depth"). The sprite sizes and the floor contact are the ones the planner has always reserved
+    (64 x 39 adult, 46 x 29 kid's), so every floor's dressing lands exactly where it did."""
+    import corridor_bikes
     rng = random.Random(seed)
-    r = 6 if kid else 9
-    base = 28 if kid else 40
-    d = 3
-    w = base + 2 * r + 6
-    frame = rng.choice([hexc('b83a32'), hexc('2e5a8a'), hexc('3a6a3a'), hexc('2a2a2e'), hexc('c8a032')])
+    frame = rng.choice(corridor_bikes.FRAMES)
     if kid:
-        frame = rng.choice([hexc('d84a8a'), hexc('3a9ac8'), hexc('e0a020')])
-    tyre, spoke, steel = hexc('1e1c1a'), hexc('9a9a9e'), hexc('b8b8bc')
-    rx, fx = r + 2, r + 2 + base
-    if down:                                                        # knocked over, lying on the floor
-        d = 10
-        h = 8 + d + SHADOW
-        C = h - 1 - SHADOW
-        c = new(w, h, seed)
-        ground(c, 1, w - 2, C - d, C, 90)
-        for hx, dy in ((rx, 0), (fx, -3)):                          # wheels flat on the floor: ellipses
-            c.ellipse(hx, C - 4 + dy, r, 3, tyre)
-            c.ellipse(hx, C - 4 + dy, r - 2, 1, shade(hexc('5a5654'), 0.8))
-            c.hline(hx - r + 3, hx + r - 3, C - 4 + dy, spoke)
-        c.line(rx, C - 5, fx, C - 8, frame); c.line(rx, C - 4, fx, C - 7, frame)
-        c.line(rx + base // 3, C - 5, rx + base // 2, C - 10, frame)
-        c.line(fx - 3, C - 8, fx + 4, C - 12, steel)                # the bars, twisted up off the floor
-        c.rect(rx + base // 3 - 3, C - 12, rx + base // 3 + 2, C - 11, hexc('2a2622'))   # the saddle
-        save(name, c)
-        record(name, "door", d, C)
-        return
-    h = (24 if kid else 34) + d + SHADOW
+        frame = rng.choice(corridor_bikes.KID_FRAMES)
+    w, h, d = (46, 29, 3) if kid else (64, 39, 3)
     C = h - 1 - SHADOW
+    R, rx = (7.5, 8) if kid else (11.0, 14.5)
     c = new(w, h, seed)
-    y = C - r                                                       # the hubs
-    ground(c, rx - r, fx + r, C - d, C, 85)
-    for hx in (rx, fx):
-        for a in range(0, 360, 4):
-            t = math.radians(a)
-            for rr in (r, r - 1):
-                c.put(int(round(hx + rr * math.cos(t))), int(round(y + rr * math.sin(t))), tyre)
-        for a in range(0, 360, 45):
-            t = math.radians(a + (seed % 20))
-            c.line(hx, y, int(round(hx + (r - 2) * math.cos(t))), int(round(y + (r - 2) * math.sin(t))), spoke)
-        c.put(hx, y, steel)
-    bb = (rx + int(base * 0.42), y + 1)
-    seat = (rx + int(base * 0.33), y - int(r * 1.9))
-    head = (fx - int(base * 0.14), y - int(r * 1.75))
-    far = shade(frame, 0.55)
-    c.line(bb[0] - 3, bb[1] - 3, bb[0] + 3, bb[1] + 3, far)          # the far crank + pedal, behind
-    c.rect(bb[0] - 5, bb[1] - 4, bb[0] - 3, bb[1] - 4, hexc('1a1a1a'))
-    c.line(rx, y, bb[0], bb[1], frame)
-    c.line(rx, y, seat[0], seat[1] + 2, frame)
-    for dx in (0, 1):
-        c.line(bb[0] + dx, bb[1], seat[0] + dx, seat[1] + 2, frame)
-        c.line(bb[0] + dx, bb[1], head[0] + dx, head[1] + 3, frame)
-    c.line(seat[0], seat[1] + 3, head[0], head[1] + 1, frame)
-    c.line(seat[0], seat[1] + 2, head[0], head[1], shade(frame, 1.25))
-    c.line(head[0], head[1], fx, y, shade(frame, 0.8))
-    c.line(head[0] + 1, head[1], fx + 1, y - 1, shade(frame, 0.8))
-    c.ellipse(bb[0], bb[1], 2, 2, hexc('6a6a6e'))
-    c.line(bb[0], bb[1], bb[0] - 2, bb[1] + 4, steel)                # the near crank + pedal
-    c.rect(bb[0] - 4, bb[1] + 4, bb[0], bb[1] + 4, hexc('2a2a2a'))
-    c.line(bb[0] - 4, bb[1] + 1, bb[0] - 9, C, shade(steel, 0.85))    # the kickstand, down to the floor
-    c.line(seat[0], seat[1] + 2, seat[0] - 1, seat[1] - 1, steel)
-    c.rect(seat[0] - 4, seat[1] - 2, seat[0] + 2, seat[1] - 1, hexc('2a2622'))
-    c.line(head[0], head[1], head[0] - 1, head[1] - 4, steel)
-    c.hline(head[0] - 3, head[0] + 1, head[1] - 4, hexc('2a2a2a'))
-    c.put(head[0] - 1, head[1] - 5, shade(hexc('2a2a2a'), 1.6))      # the far grip, just showing
-    if kid:
-        c.put(head[0] - 3, head[1] - 3, hexc('e84a8a')); c.put(head[0] - 3, head[1] - 2, hexc('4ac8e8'))
-    elif rng.random() < 0.5:
-        c.rect(head[0] + 1, head[1] - 3, head[0] + 7, head[1] + 2, hexc('8a6a3a'))
-        c.hline(head[0] + 1, head[0] + 7, head[1] - 3, hexc('aa8a5a'))
-        c.vline(head[0] + 4, head[1] - 2, head[1] + 2, hexc('6a4a2a'))
-    else:
-        c.ellipse(seat[0] + 4, seat[1] + 5, 3, 2, hexc('e0c040'))
+    ground(c, rx - R, rx + 3.2 * R + R, C - d, C, 85)
+    corridor_bikes.draw_bike(c, C, rx, R, frame, state='intact', kid=kid, extra=extra, seed=seed, stabilisers=stabilisers)
     save(name, c)
     record(name, "door", d, C)
 
@@ -1094,57 +1034,18 @@ def scooter(save, name, seed):
 
 
 def bike_wrecked(save, name, seed):
-    """A bike that's been wrecked: the FRONT WHEEL wrenched off and lying flat on the floor, the frame
-    snapped and slumped forward onto it, the rear wheel taco'd (a wedge bent out), bars hanging, saddle askew."""
+    """A bike that's been wrecked, and still a whole bike: it stands on its kickstand with the rear tyre flat (it sags on its rim), the front wheel buckled and spokes snapped, the chain
+    off and lying on the floor, the saddle torn and askew, the bars knocked round and a pedal gone (tools/art/corridor_bikes.py). The old one had its front wheel lying flat on the floor and the frame
+    slumped over it — "it lost mass and got crushed by gravity" (owner round 48h). Same 66 x 37 sprite and contact as before, so the planner's reserved room is unchanged."""
+    import corridor_bikes
     rng = random.Random(seed)
-    r, base, d = 9, 40, 9
-    w = base + 2 * r + 8
-    h = 26 + d + SHADOW
+    frame = rng.choice(corridor_bikes.FRAMES_WRECKED)
+    w, h, d = 66, 37, 3
     C = h - 1 - SHADOW
+    R, rx = 10.5, 15
     c = new(w, h, seed)
-    frame = rng.choice([hexc('b83a32'), hexc('2e5a8a'), hexc('3a6a3a'), hexc('c8a032')])
-    tyre, spoke, steel = hexc('1e1c1a'), hexc('9a9a9e'), hexc('b8b8bc')
-    rx = r + 2
-    ground(c, 1, w - 2, C - d, C, 95)
-    y = C - r
-    # the REAR wheel, upright but buckled: a wedge of the tyre bent outward + missing spokes
-    for a in range(0, 360, 4):
-        t = math.radians(a)
-        rr = r if not (200 < a < 260) else r - 3                     # the dent
-        for k in (rr, rr - 1):
-            c.put(int(round(rx + k * math.cos(t))), int(round(y + k * math.sin(t))), tyre)
-    for a in range(0, 360, 40):
-        if 190 < a < 270:
-            continue                                                  # spokes gone where it's crushed
-        t = math.radians(a)
-        c.line(rx, y, int(round(rx + (r - 2) * math.cos(t))), int(round(y + (r - 2) * math.sin(t))), spoke)
-    c.put(rx, y, steel)
-    # the frame: seat tube up from the rear, the top tube SNAPPED and drooping to the floor
-    bb = (rx + 16, y + 1)
-    seat = (rx + 13, y - 15)
-    c.line(rx, y, bb[0], bb[1], frame); c.line(rx, y, seat[0], seat[1] + 2, frame)
-    c.line(bb[0], bb[1], seat[0] + 1, seat[1] + 2, frame); c.line(bb[0] + 1, bb[1], seat[0] + 2, seat[1] + 2, frame)
-    c.line(seat[0], seat[1] + 2, seat[0] + 12, C - 6, frame)          # the top tube, buckled downward
-    c.line(seat[0], seat[1] + 3, seat[0] + 12, C - 5, shade(frame, 0.7))
-    c.line(bb[0], bb[1], bb[0] + 14, C - 4, shade(frame, 0.85))       # the down tube, dragging on the floor
-    c.line(bb[0] - 4, bb[1] + 1, bb[0] - 9, C, shade(steel, 0.85))    # the kickstand, still down
-    # the saddle, torn askew off its post
-    c.line(seat[0], seat[1] + 2, seat[0] - 2, seat[1] - 1, steel)
-    c.rect(seat[0] - 6, seat[1] - 3, seat[0] + 1, seat[1] - 1, hexc('2a2622'))
-    c.put(seat[0] - 5, seat[1] - 3, hexc('4a423a'))
-    # the FRONT wheel: torn off, lying flat on the floor in front, rim kinked, tyre half off
-    fx = w - r - 4
-    c.ellipse(fx, C - 4, r, 3, tyre)
-    c.ellipse(fx, C - 4, r - 2, 2, shade(hexc('5a5654'), 0.85))
-    c.hline(fx - r + 3, fx + r - 3, C - 4, spoke); c.vline(fx, C - 6, C - 2, spoke)
-    c.hline(fx + 2, fx + r + 1, C - 2, hexc('0e0c0a'))                # the tyre peeled off the rim
-    c.put(fx + r + 1, C - 1, tyre)
-    # the fork and bars, twisted, lying across the wheel; the chain hanging from the crank
-    c.line(seat[0] + 12, C - 6, fx - 2, C - 9, steel)
-    c.line(fx - 2, C - 9, fx + 6, C - 12, steel)
-    c.hline(fx + 3, fx + 9, C - 12, hexc('2a2a2a')); c.put(fx + 9, C - 13, hexc('4a4a4e'))
-    for k in range(5):
-        c.put(bb[0] + 2 + k, bb[1] + 4 + (k % 2), hexc('4a4a4e'))    # the chain
+    ground(c, rx - R, rx + 3.2 * R + R, C - d, C, 95)
+    corridor_bikes.draw_bike(c, C, rx, R, frame, state='wrecked', seed=seed)
     save(name, c)
     record(name, "door", d, C)
 
@@ -1179,12 +1080,12 @@ def build(save):
     holdall(save, 'suitcase__3', 262)
     shopping_bag(save, 'shopping_bag', 63)
     carrier_bags(save, 'shopping_bag__2', 163)
-    bike(save, 'bicycle', 80)
-    bike(save, 'bicycle__2', 180)
+    bike(save, 'bicycle', 80, extra='rack')
+    bike(save, 'bicycle__2', 180, extra='basket')
     bike_wrecked(save, 'bicycle_wrecked', 80)
     bike_wrecked(save, 'bicycle_wrecked__2', 180)
     bike(save, 'kids_bike', 81, kid=True)
-    bike(save, 'kids_bike__2', 181, kid=True)
+    bike(save, 'kids_bike__2', 181, kid=True, stabilisers=True, extra='basket')
     scooter(save, 'scooter', 61)
     scooter(save, 'scooter__2', 161)
     planter(save, 'plant_tall', 50)
