@@ -521,7 +521,7 @@ def bike(save, name, seed, kid=False, extra=None, stabilisers=False):
         frame = rng.choice(corridor_bikes.KID_FRAMES)
     w, h, d = (46, 29, 3) if kid else (64, 39, 3)
     C = h - 1 - SHADOW
-    R, rx = (7.5, 8) if kid else (11.0, 14.5)
+    R, rx = (8.0, 8) if kid else (11.0, 14)
     c = new(w, h, seed)
     ground(c, rx - R, rx + 3.2 * R + R, C - d, C, 85)
     corridor_bikes.draw_bike(c, C, rx, R, frame, state='intact', kid=kid, extra=extra, seed=seed, stabilisers=stabilisers)
@@ -1042,7 +1042,7 @@ def bike_wrecked(save, name, seed):
     frame = rng.choice(corridor_bikes.FRAMES_WRECKED)
     w, h, d = 66, 37, 3
     C = h - 1 - SHADOW
-    R, rx = 10.5, 15
+    R, rx = 11.0, 14
     c = new(w, h, seed)
     ground(c, rx - R, rx + 3.2 * R + R, C - d, C, 95)
     corridor_bikes.draw_bike(c, C, rx, R, frame, state='wrecked', seed=seed)
