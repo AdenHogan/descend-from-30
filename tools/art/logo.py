@@ -32,7 +32,7 @@ import shapely
 from fontTools.pens.basePen import decomposeQuadraticSegment
 from fontTools.pens.recordingPen import DecomposingRecordingPen
 from fontTools.ttLib import TTFont
-from PIL import Image, ImageDraw
+from PIL import Image, ImageChops, ImageDraw
 from shapely import affinity
 from shapely.geometry import Point, Polygon, box
 from shapely.ops import unary_union
@@ -58,10 +58,9 @@ LINE_GAP = 0.12                   # between DESCEND and FROM, as a share of the 
 TRACK_TEXT = 14                   # open tracking of DESCEND / FROM
 TRACK_NUM = 25                    # the 3 and the 0 sit close: one mark
 WORD_GAP = 0.17                   # the plain wordmark: between the words and its 30, as a share of the 30's height
-GAP_X = 0.10                      # between the words and the 30, as a share of the 30's height
 HAND_WIDTH = 1.40                 # the print's box (thumb to little finger) is this wide, as a share of the 30's width: a hand a little wider than its number
 HAND_DY = 0.00                    # the middle of the hand sits this far below the middle of the 30, as a share of the 30's height (0 = centred on it)
-CLEAR = 0.12                      # clear space between the words and the thumb, as a share of the 30's height
+TIP_REACH = 0.15                  # how far the thumb's ink reaches in under DESCEND (owner round 48h: "okay with some of the handprint being behind DESCEND"), as a share of the 30's height; the words are drawn OVER the print
 MARGIN = 0.10 * NUM_H             # clear space round every logo
 PRINT_PX = 2200                   # the print is drawn this tall, then scaled down for every output
 SS = 3                            # vector raster supersample
@@ -163,19 +162,17 @@ def _left_edge():
     return _EDGE
 
 
-def _ink_gap(words, scale, origin):
-    """Distance from the words to the nearest ink of the print placed at `origin` with `scale` (units per palm-width)."""
+def _ink_left(scale, origin):
+    """The x of the print's leftmost inked pixel when placed at `origin` with `scale` (units per palm-width)."""
     px, info = _left_edge()
-    u = scale / info['scale']
-    pts = shapely.points(origin[0] + (px[:, 0] - info['ox']) * u, origin[1] + (px[:, 1] - info['oy']) * u)
-    return float(shapely.distance(words, pts).min())
+    return origin[0] + (px[:, 0].min() - info['ox']) * scale / info['scale']
 
 
 # ---------------------------------------------------------------------------------------------------------------- layout
 def build_layout(with_print=True):
     """-> dict of shapely geometry in logo units (y DOWN, the top of the 30 at y = 0):
     desc, frm (the two lines), num (the 30) and the hand's placement (palm-width -> unit scale and origin).
-    `with_print=False` is the plain wordmark: the 30 sits GAP_X from the words, with no room made for the print."""
+    `with_print=False` is the plain wordmark: the 30 sits WORD_GAP from the words, with no room made for the print."""
     cap = cap_height()
     n_geom, (n0, n1) = set_line('30', TRACK_NUM)
     nb = n_geom.bounds
@@ -189,8 +186,7 @@ def build_layout(with_print=True):
     desc = affinity.translate(_scaled(d_geom, kt), -d0 * kt, c)                      # baseline at y = c, cap top at 0
     frm = affinity.translate(_scaled(f_geom, kt), -f0 * kt, NUM_H)                   # baseline at the 30's foot
     wd = (d1 - d0) * kt
-    dx = wd + (GAP_X if with_print else WORD_GAP) * NUM_H
-    num = affinity.translate(num, dx, 0)
+    num = affinity.translate(num, wd + WORD_GAP * NUM_H, 0)                          # the plain wordmark's place; the print's version is set by the thumb below
     # the print: DIRECTLY behind the 30 (owner: "the handprint should be directly behind the number") - the hand's own middle (its centre of mass: the
     # palm) on the middle of the numerals, the fingers standing above them and the wrist and the drips hanging below
     g = logo_hand.hand_geometry()
@@ -201,15 +197,11 @@ def build_layout(with_print=True):
     ncx, ncy = (num.bounds[0] + num.bounds[2]) / 2.0, (num.bounds[1] + num.bounds[3]) / 2.0
     hx = ncx - ccx * s
     hy = ncy + HAND_DY * NUM_H - ccy * s
-    # the words must not touch the print: the nearest INK (its wobbly edge, not the clean outline) must stay CLEAR away, or the 30 and its print move right together
-    words = unary_union([desc, frm])
-    for _ in range(8 if with_print else 0):
-        gap = _ink_gap(words, s, (hx, hy))
-        if gap >= CLEAR * NUM_H - 1e-6:
-            break
-        step = CLEAR * NUM_H - gap
-        num = affinity.translate(num, step, 0)
-        hx += step
+    if with_print:
+        # the 30 + its print slide left together until the thumb's real INK (its wobbly edge, not the clean outline) reaches TIP_REACH in under DESCEND
+        shift = (desc.bounds[2] - TIP_REACH * NUM_H) - _ink_left(s, (hx, hy))
+        num = affinity.translate(num, shift, 0)
+        hx += shift
     return {'desc': desc, 'frm': frm, 'num': num, 'hand_scale': s, 'hand_origin': (hx, hy)}
 
 
@@ -291,6 +283,9 @@ def render(parts, bounds, width_px, theme, hand=None, specks=None):
         pr = Image.fromarray(img, 'RGBA').resize((pw, ph), Image.LANCZOS)
         im.alpha_composite(pr, (int(round(px)), int(round(py)))) if px >= 0 and py >= 0 else _paste_clipped(im, pr, int(round(px)), int(round(py)))
     lines = unary_union([parts['desc'], parts['frm']])
+    if hand is not None and theme == 'light':                        # ink letters over dark blood would vanish where the thumb tucks under DESCEND: knock the print out round them
+        halo = _mask(lines.buffer(0.02 * NUM_H, join_style=1), W, H, k, ox, oy)
+        im.putalpha(ImageChops.multiply(im.getchannel('A'), ImageChops.invert(halo)))
     if hand is not None:
         if theme == 'light':                                         # the 30: warm white inside an ink keyline, so it reads over blood and over paper
             key = parts['num'].buffer(0.016 * NUM_H, join_style=1).difference(parts['num'])
@@ -551,8 +546,11 @@ def check():
     if behind < 0.55:
         bad.append('the print is barely behind the 30 (only %.0f %% of the numerals stand over it)' % (100 * behind))
     words = unary_union([lay['desc'], lay['frm']])
-    if words.bounds[2] > nb[0] or _ink_gap(words, lay['hand_scale'], lay['hand_origin']) < 0.10 * NUM_H:
-        bad.append('DESCEND / FROM run into the 30 or the print')
+    if nb[0] - words.bounds[2] < 0.12 * NUM_H:
+        bad.append('DESCEND runs into the 30 (%.2f of its height apart, want >= 0.12)' % ((nb[0] - words.bounds[2]) / NUM_H))
+    reach = (words.bounds[2] - _ink_left(lay['hand_scale'], lay['hand_origin'])) / NUM_H           # the print may tuck in under DESCEND (owner round 48h) - a little
+    if not (0.02 <= reach <= 0.30):
+        bad.append('the thumb reaches %.2f of the 30 in under DESCEND (a little behind it is wanted: 0.02 .. 0.30)' % reach)
     # the print: no fat base (wrist narrower than the palm), in proportion (not a glove), and the blood is blood, not a cartoon red
     g0 = logo_hand.hand_geometry(rot=0.0)
 

@@ -8,8 +8,9 @@ extends Node2D
 # horror (`CorridorDecals.add_to` — blood, handprints, claw gouges, the dead on the floor), the apartment doors with their number plates, the wall
 # sconces (`FloorLighting` — some steady, some flickering, some BLINKING, some dead, real PointLight2Ds) and the standard dead (the real sprite
 # frames of `enemy_zombie_standard.tscn`, driven here by a tiny shamble state machine — no AI, no body, no groups, nothing that can touch the game).
-# On top of that the hall adds what only a title needs: a slow camera drift, now and then a BLACKOUT (every lamp cuts out, stutters, comes back) and an
-# odd distant moan.
+# On top of that the hall adds what only a title needs: now and then a BLACKOUT (every lamp cuts out, stutters, comes back) and an odd distant moan.
+# The CAMERA IS STILL (owner round 48h: "we don't need the scene to move… it looks juddery" — a slow pan at whole-pixel steps stutters): only the lamps,
+# the dead and the fade move.
 #
 # It reads WorldState while it builds (the seeds + the run decide which dressing, which lamps are dead) so it swaps in its OWN fixed seed and run for
 # that one synchronous stretch and puts the player's values back: the title looks the same every time the game opens, whatever state is loaded.
@@ -29,9 +30,7 @@ const HORROR_BOOST := 0.9               # extra horror on top of the night's own
 const AMBIENT := Color(0.10, 0.11, 0.19)   # the world's darkness; only lamps, glows and what they touch show
 const BAND_H := 192.0                   # the corridor band the camera frames (docs/Y_PLANES.md)
 const CAM_Y := 339.0                    # the band's centre (243 + 96)
-const CAM_X := 566.0                    # the drift's centre; the menu + logo cover the screen's left ~40 % (~140 world px), the dressing lives right of it
-const CAM_SWAY := 52.0                  # world px either side
-const CAM_PERIOD := 96.0                # seconds for one full drift
+const CAM_X := 566.0                    # where the camera stands, for good; the menu + logo cover the screen's left ~40 % (~140 world px), the dressing lives right of it
 const DOOR_Y := 363.0                   # an apartment door's centre (321..405)
 const DOOR_FRAME := Rect2(0, 0, 46, 84) # frame 0 of a door strip: closed
 const FADE_IN := 1.8                    # seconds from black to the hall
@@ -72,7 +71,6 @@ func _ready() -> void:
 		_build_camera()
 		_build_fade()
 		_build_audio()
-		_apply_camera()
 
 
 ## The hall's own build. False if the corridor art is missing (the title then shows its plain dark fallback).
@@ -155,6 +153,7 @@ func _build_camera() -> void:
 	camera.name = "Camera"
 	camera.zoom = Vector2.ONE * (648.0 / BAND_H)     # the band fills the screen's height, exactly as a corridor does in play
 	camera.position_smoothing_enabled = false
+	camera.position = Vector2(CAM_X, CAM_Y)          # fixed: nothing ever moves it (a whole-pixel drift judders)
 	add_child(camera)
 	camera.make_current()
 
@@ -178,18 +177,8 @@ func _build_audio() -> void:
 	add_child(_moan)
 
 
-## The drift: a slow cosine either side of CAM_X (a pure function of the clock, so a test can walk it).
-static func camera_x(tt: float) -> float:
-	return CAM_X + CAM_SWAY * sin(TAU * tt / CAM_PERIOD)
-
-
 static func fade_alpha(tt: float) -> float:
 	return 1.0 - clampf(tt / FADE_IN, 0.0, 1.0)
-
-
-func _apply_camera() -> void:
-	if camera != null:
-		camera.position = Vector2(roundf(camera_x(t)), CAM_Y)
 
 
 func _process(delta: float) -> void:
@@ -197,7 +186,6 @@ func _process(delta: float) -> void:
 		return
 	delta = minf(delta, 0.1)
 	t += delta
-	_apply_camera()
 	if fade != null:
 		fade.color.a = fade_alpha(t)
 	for z in dead:

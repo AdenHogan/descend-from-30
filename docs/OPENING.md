@@ -85,7 +85,8 @@ So the sequence is: **title** (inside, the dark) → **PLAY** (the same hall, th
 The hall is built from the game's own pieces, never redrawn: floor 22's corridor art for the third night (the faded hotel: damask, a red runner, brass sconces), `CorridorDecals` with `HORROR_BOOST` 0.9
 (blood, bullet bursts, handprints, a bike on its side…), five numbered doors, `FloorLighting`'s real sconces (seed 11: the three in view alive — one flickers, one is steady, one blinks — the two beyond dead),
 a near-black `CanvasModulate`, and three standard dead (the real `enemy_zombie_standard` frames, borrowed from the scene without running its script; a stand / lurching walk / lunge state machine each, `_Dead`).
-Live: a slow camera drift, a fade up from black, **blackouts** (every 9-21 s every lamp cuts out, flashes, cuts again, returns — `FloorLighting.set_power`) and a far moan now and then. It swaps in its own
+Live: a fade up from black, **blackouts** (every 9-21 s every lamp cuts out, flashes, cuts again, returns — `FloorLighting.set_power`) and a far moan now and then. **The camera is STILL** (owner round 48h: "we don't need the scene to move… it looks juddery" — a slow drift at whole-pixel steps stutters): it stands at `CAM_X` 566 for good,
+and only the lamps, the dead and the fade move. It swaps in its own
 seed + run while it builds and puts the player's back (so it is the same every launch whatever state is loaded).
 
 **PLAY** does not change scene: `title_screen._open_profiles` adds `profile_select.tscn` with `embedded = true` to the `Profiles` layer — its backdrop becomes a see-through veil, the menu + logo step aside, and Back / Esc

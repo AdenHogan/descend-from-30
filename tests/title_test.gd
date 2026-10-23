@@ -116,14 +116,12 @@ func _ready() -> void:
 func _test_hall(s: Node) -> void:
 	var Hall = preload("res://scripts/title_hall.gd")
 	# pure functions of the clock
-	chk(is_equal_approx(Hall.camera_x(0.0), Hall.CAM_X), "the camera starts at its centre")
-	var lo := 1.0e9
-	var hi := -1.0e9
-	for i in 1000:
-		var x: float = Hall.camera_x(float(i) * 0.31)
-		lo = minf(lo, x)
-		hi = maxf(hi, x)
-	chk(lo >= Hall.CAM_X - Hall.CAM_SWAY - 0.001 and hi <= Hall.CAM_X + Hall.CAM_SWAY + 0.001, "the camera drift stays in its band (%.1f..%.1f)" % [lo, hi])
+	var hall_script: Script = Hall
+	var methods: Array = []
+	for m in hall_script.get_script_method_list():
+		methods.append(String(m["name"]))
+	chk(methods.has("fade_alpha") and not methods.has("camera_x") and not hall_script.get_script_constant_map().has("CAM_SWAY"),
+		"there is no camera drift any more (owner round 48h: a slow whole-pixel pan judders) — the script still lists its other statics (%s)" % str(methods.has("fade_alpha")))
 	chk(is_equal_approx(Hall.fade_alpha(0.0), 1.0) and is_equal_approx(Hall.fade_alpha(Hall.FADE_IN), 0.0) and is_equal_approx(Hall.fade_alpha(99.0), 0.0),
 		"it lifts from black once and stays up")
 
@@ -163,7 +161,8 @@ func _test_hall(s: Node) -> void:
 			doors += 1
 	chk(doors == 5, "five numbered doors line it (%d)" % doors)
 
-	# alive: the dead walk (and stay on their stretch), the lamps cut out and come back, the camera drifts, the fade lifts
+	# alive: the dead walk (and stay on their stretch), the lamps cut out and come back, the camera STAYS PUT, the fade lifts
+	chk(hall.camera != null and hall.camera.position == Vector2(Hall.CAM_X, Hall.CAM_Y), "the camera stands at its fixed place from the first frame (%s)" % str(hall.camera.position if hall.camera != null else "none"))
 	var moved := false
 	var start_x: Array = []
 	for z in hall.dead:
@@ -185,6 +184,7 @@ func _test_hall(s: Node) -> void:
 	chk(on_stretch, "each keeps to its own stretch of corridor")
 	chk(hall.blackouts >= 8, "the lights cut out now and then (%d blackouts in 400 s)" % hall.blackouts)
 	chk(hall.fade.color.a < 0.01, "and the hall has faded up from black")
+	chk(hall.camera.position == Vector2(Hall.CAM_X, Hall.CAM_Y), "…and 400 s later the camera has not moved an inch (%s)" % str(hall.camera.position))
 
 	# a blackout really cuts every working lamp, and the power comes back
 	hall._blackout_steps = []

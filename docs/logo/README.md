@@ -13,8 +13,10 @@ card and `project.godot`'s `icon` still use the placeholders — see "Using it i
 **The bloodied handprint is the logo** (the owner: "if that doesn't work then the logo doesn't work"), and it sits **directly behind the 30** (round 48d):
 the hand's own middle (its centre of mass, the palm) is on the middle of the numerals (`logo.py --check` holds it within a tenth of the 30's size), the
 fingers rise above the numerals, the heel and a few drips hang below them. It is a **right hand with the thumb on the LEFT** (owner round 48e: "I prefer the hand to be the other
-way around with the thumb side on the left" — round 48d had mirrored it to a left hand), so the thumb reaches toward DESCEND / FROM; the 30 (and its print) only move right
-if the print's real, wobbly edge would come nearer the words than `CLEAR` (checked against the rendered ink, not the clean outline). The words stand on the left in plain capitals, set close (`TRACK_TEXT` 14). Landscape.
+way around with the thumb side on the left" — round 48d had mirrored it to a left hand), so the thumb reaches toward DESCEND / FROM, and **the thumb tucks in UNDER DESCEND** (owner round 48h: "the descend from is just a little too far away from the 30 and handprint… I am completely
+okay with some of the handprint being behind descend a little"): the 30 and its print are slid left together until the print's real, wobbly ink (not the clean outline) reaches `TIP_REACH` (0.15 of the 30's
+height) in under DESCEND. The words are drawn OVER the print; in the light version the print is knocked out in a thin halo round the letters so ink letters never vanish into dark blood
+(`logo.py --check` holds the reach to 0.02 .. 0.30 and DESCEND >= 0.12 of the 30's height clear of the numerals). The words stand on the left in plain capitals, set close (`TRACK_TEXT` 14). Landscape.
 
 **The print is a print, not a silhouette.** A flat red shape read as a cold-war poster (the owner: "some ww2 / cold war spy thriller"), and a first textured
 print read as foam / plastic wrap (mottled cloud noise, blobs of "shine", a flat bucket-shaped bottom). `logo_print.py` now draws how blood *transfers*:
