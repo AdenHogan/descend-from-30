@@ -28,6 +28,7 @@ import struct
 import sys
 
 import numpy as np
+import shapely
 from fontTools.pens.basePen import decomposeQuadraticSegment
 from fontTools.pens.recordingPen import DecomposingRecordingPen
 from fontTools.ttLib import TTFont
@@ -53,13 +54,14 @@ TILE = (24, 16, 28)               # the icon's ground
 
 # ---------------------------------------------------------------------------------------------------------------- layout (font units: 1000 / em)
 NUM_H = 1400.0                    # the height of the 30
-LINE_GAP = 0.14                   # between DESCEND and FROM, as a share of the 30's height (the two lines + the gap = the 30's height)
-TRACK_TEXT = 70                   # open tracking of DESCEND / FROM
+LINE_GAP = 0.12                   # between DESCEND and FROM, as a share of the 30's height (the two lines + the gap = the 30's height)
+TRACK_TEXT = 14                   # open tracking of DESCEND / FROM
 TRACK_NUM = 25                    # the 3 and the 0 sit close: one mark
-GAP_X = 0.20                      # between the words and the 30, as a share of the 30's height
+WORD_GAP = 0.17                   # the plain wordmark: between the words and its 30, as a share of the 30's height
+GAP_X = 0.10                      # between the words and the 30, as a share of the 30's height
 HAND_WIDTH = 1.40                 # the print's box (thumb to little finger) is this wide, as a share of the 30's width: a hand a little wider than its number
 HAND_DY = 0.00                    # the middle of the hand sits this far below the middle of the 30, as a share of the 30's height (0 = centred on it)
-CLEAR = 0.07                      # clear space between the words and the thumb, as a share of the 30's height
+CLEAR = 0.12                      # clear space between the words and the thumb, as a share of the 30's height
 MARGIN = 0.10 * NUM_H             # clear space round every logo
 PRINT_PX = 2200                   # the print is drawn this tall, then scaled down for every output
 SS = 3                            # vector raster supersample
@@ -147,10 +149,33 @@ def _scaled(geom, k):
     return affinity.scale(geom, k, k, origin=(0, 0))
 
 
+_EDGE = None
+
+
+def _left_edge():
+    """The print's leftmost inked pixel on every 4th row, as (x, y) print pixels - the part that could meet the words."""
+    global _EDGE
+    if _EDGE is None:
+        img, info = the_print()
+        a = img[::4, :, 3] > 40
+        rows = np.nonzero(a.any(axis=1))[0]
+        _EDGE = (np.stack([a[rows].argmax(axis=1), rows * 4], axis=1).astype(float), info)
+    return _EDGE
+
+
+def _ink_gap(words, scale, origin):
+    """Distance from the words to the nearest ink of the print placed at `origin` with `scale` (units per palm-width)."""
+    px, info = _left_edge()
+    u = scale / info['scale']
+    pts = shapely.points(origin[0] + (px[:, 0] - info['ox']) * u, origin[1] + (px[:, 1] - info['oy']) * u)
+    return float(shapely.distance(words, pts).min())
+
+
 # ---------------------------------------------------------------------------------------------------------------- layout
-def build_layout():
+def build_layout(with_print=True):
     """-> dict of shapely geometry in logo units (y DOWN, the top of the 30 at y = 0):
-    desc, frm (the two lines), num (the 30) and the hand's placement (palm-width -> unit scale and origin)."""
+    desc, frm (the two lines), num (the 30) and the hand's placement (palm-width -> unit scale and origin).
+    `with_print=False` is the plain wordmark: the 30 sits GAP_X from the words, with no room made for the print."""
     cap = cap_height()
     n_geom, (n0, n1) = set_line('30', TRACK_NUM)
     nb = n_geom.bounds
@@ -164,7 +189,7 @@ def build_layout():
     desc = affinity.translate(_scaled(d_geom, kt), -d0 * kt, c)                      # baseline at y = c, cap top at 0
     frm = affinity.translate(_scaled(f_geom, kt), -f0 * kt, NUM_H)                   # baseline at the 30's foot
     wd = (d1 - d0) * kt
-    dx = wd + GAP_X * NUM_H
+    dx = wd + (GAP_X if with_print else WORD_GAP) * NUM_H
     num = affinity.translate(num, dx, 0)
     # the print: DIRECTLY behind the 30 (owner: "the handprint should be directly behind the number") - the hand's own middle (its centre of mass: the
     # palm) on the middle of the numerals, the fingers standing above them and the wrist and the drips hanging below
@@ -176,13 +201,15 @@ def build_layout():
     ncx, ncy = (num.bounds[0] + num.bounds[2]) / 2.0, (num.bounds[1] + num.bounds[3]) / 2.0
     hx = ncx - ccx * s
     hy = ncy + HAND_DY * NUM_H - ccy * s
-    # the thumb must not touch the words: if it would, the 30 and its print move right together
-    words_right = max(desc.bounds[2], frm.bounds[2])
-    hand_left = hx + gx0 * s
-    need = words_right + CLEAR * NUM_H - hand_left
-    if need > 0:
-        num = affinity.translate(num, need, 0)
-        hx += need
+    # the words must not touch the print: the nearest INK (its wobbly edge, not the clean outline) must stay CLEAR away, or the 30 and its print move right together
+    words = unary_union([desc, frm])
+    for _ in range(8 if with_print else 0):
+        gap = _ink_gap(words, s, (hx, hy))
+        if gap >= CLEAR * NUM_H - 1e-6:
+            break
+        step = CLEAR * NUM_H - gap
+        num = affinity.translate(num, step, 0)
+        hx += step
     return {'desc': desc, 'frm': frm, 'num': num, 'hand_scale': s, 'hand_origin': (hx, hy)}
 
 
@@ -311,13 +338,13 @@ def render_full(theme, width_px):
 
 
 def render_wordmark(theme, width_px):
-    lay = build_layout()
+    lay = build_layout(False)
     return render(lay, word_bounds(lay), width_px, theme)
 
 
 def svg_wordmark(theme):
     """The wordmark is pure vector: SVG paths (the lines in one colour, the 30 in blood)."""
-    lay = build_layout()
+    lay = build_layout(False)
     x0, y0, x1, y1 = word_bounds(lay)
     ox, oy = x0 - MARGIN, y0 - MARGIN
     w, h = (x1 - x0) + 2 * MARGIN, (y1 - y0) + 2 * MARGIN
@@ -524,7 +551,7 @@ def check():
     if behind < 0.55:
         bad.append('the print is barely behind the 30 (only %.0f %% of the numerals stand over it)' % (100 * behind))
     words = unary_union([lay['desc'], lay['frm']])
-    if words.bounds[2] > nb[0] or words.distance(g) < 0.04 * NUM_H:
+    if words.bounds[2] > nb[0] or _ink_gap(words, lay['hand_scale'], lay['hand_origin']) < 0.10 * NUM_H:
         bad.append('DESCEND / FROM run into the 30 or the print')
     # the print: no fat base (wrist narrower than the palm), in proportion (not a glove), and the blood is blood, not a cartoon red
     g0 = logo_hand.hand_geometry(rot=0.0)

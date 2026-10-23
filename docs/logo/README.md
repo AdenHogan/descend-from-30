@@ -10,34 +10,35 @@ placeholders) — see "Using it in the game" below.
 
 ## What it is
 
-**The bloodied handprint is the logo** (the owner: "if that doesn't work then the logo doesn't work"), and it sits **directly behind the 30** (the owner,
-round 48d: "the handprint should be directly behind the number"): the hand's own middle (its centre of mass, the palm) is on the middle of the numerals
-(`logo.py --check` holds it within a tenth of the 30's size), the fingers rise above the numerals, the wrist and a few drips hang below, the thumb
-reaches left toward the words without touching them (if it would, the 30 and its print move right together), a little spatter lies round it and a few
-drops on the 30. The words **DESCEND / FROM** stand on the left in plain, mature capitals. Landscape.
+**The bloodied handprint is the logo** (the owner: "if that doesn't work then the logo doesn't work"), and it sits **directly behind the 30** (round 48d):
+the hand's own middle (its centre of mass, the palm) is on the middle of the numerals (`logo.py --check` holds it within a tenth of the 30's size), the
+fingers rise above the numerals, the heel and a few drips hang below them. It is a **left hand**, so the thumb points away from the words and DESCEND / FROM
+can sit close to the 30; the 30 (and its print) only move right if the print's real, wobbly edge would come nearer the words than `CLEAR` (checked against
+the rendered ink, not the clean outline). The words stand on the left in plain capitals, set close (`TRACK_TEXT` 14). Landscape.
 
-**The print is a print, not a silhouette.** A flat red shape read as a cold-war poster (the owner: "some ww2 / cold war spy thriller"), so
-`logo_print.py` draws how blood *transfers*:
+**The print is a print, not a silhouette.** A flat red shape read as a cold-war poster (the owner: "some ww2 / cold war spy thriller"), and a first textured
+print read as foam / plastic wrap (mottled cloud noise, blobs of "shine", a flat bucket-shaped bottom). `logo_print.py` now draws how blood *transfers*:
 
-- **Pressure decides everything.** The pads of the fingers and the heel of the palm press hard (solid, dark, a pooled rim where blood squeezed out at
-  the edge); the print BREAKS across the joints of the fingers (a few ragged dry-brush streaks that don't quite meet, never a ruled band) and along the
-  heart and life lines of the palm, and the arch of the palm barely touches; the hand slid a hair, so the blood is dragged in soft vertical smears.
-- **The edge is wet:** rounded, blobby and a little uneven (the shape is displaced with a low wobble, then softened and re-thresholded) - not the torn-paper
-  edge of fine noise. Thick blood is dark and thin blood brighter, so it has a surface; the thick places and the pooled rim catch a soft wet sheen (a height
-  field lit from the top left).
-- **Skin:** the ridges of the fingertips (loops round each pad) and a swirl over the palm leave a faint pattern in the thickness - the tell that this is a
-  real hand. (Round 48d dropped the fine vertical grain of the first print: it read as woven fabric.)
-- **A wall makes it run:** four or five plump drips from the lowest edge (leaving the print in a faint flare, swelling where a drop is on its way down,
-  ending in a teardrop, a glint down one shoulder), and spatter - round drops, some thrown off the hand in a streak with a tail pointing back to it.
-- It stays **dark blood, never a bright red** (`THIN` 180/38/34 to `THICK` 92/10/16), and restrained: no gore.
+- **Pressure decides where it touched.** The pads of the fingers and the heel press hardest; the print BREAKS across the finger joints and the heart / life
+  lines of the palm as narrow, wandering creases that dissolve into streaks (never a ruled band); the arch of the palm barely touches.
+- **The heel does not end, it lets go.** The wrist and the bottom of the palm fade out into long ragged streaks (a round heel, never a flat cut), and the
+  drips run out of that torn edge. The drips are drawn UNDER the print so they flow from its pooled rim, never as separate pipes.
+- **The edge is wet:** rounded and a little uneven (a low wobble, softened and re-thresholded), and every edge - the outline and the edge of any gap -
+  pools darker where the blood was squeezed out. A thin glint runs along the rim that faces the light, only where the blood is thick.
+- **Dry-brush streaks** all one way (the hand slid a hair) - a few long thin lines in patches that lighten the film; no fine grain (that read as woven cloth).
+- **Skin:** loops of ridges round every fingertip pad, visible where the film is thin - the tell that this is a real hand.
+- **A wall makes it run:** four or five irregular drips (wide where they leave the print, a neck, a swelling, a tall teardrop foot), and spatter - round
+  drops, some thrown off in a streak with a tail pointing back to the hand; none lands on the print or to its left.
+- It stays **dark blood, never a bright red** (`THIN` 180/38/34 to `THICK` 92/10/16, a pooled rim 50/5/10), and restrained: no gore.
 
 The hand under it (`logo_hand.py`) is anatomically measured (palm 0.9 wide, middle finger 0.95, four fingers in a natural fan, a curved thumb, a wrist
-only ~0.5 wide): `--check` keeps the wrist under 70 % of the palm and the hand 0.55-0.78 as wide as tall, so the base can never go "fat".
+only ~0.5 wide; mirrored to a left hand by `MIRROR`): `--check` keeps the wrist under 70 % of the palm and the hand 0.55-0.78 as wide as tall.
 
-**The type** is the owner's pick ("clean and mature"): Barlow Condensed Bold capitals, vector, no bevel / outline / shadow / distress. The print does
-the roughness; the lettering stays quiet. (Rejected on the way: pixel art with a dithered print and a brick-tower 30 - "AI crap"; the print beside the
-words - "incorrect"; the flat print - "spy thriller"; a gritty brush-lettering - the owner prefers the clean type; a first textured print placed up and
-to the right of the 30 - "should be directly behind the number" - with a fabric-like grain and stick-like drips - "could be improved".)
+**The type** is the owner's pick ("clean and mature"): Barlow Condensed Bold capitals, vector, no bevel / outline / shadow / distress, tracked close (the
+owner: "the text is spaced rather far apart"). The print does the roughness; the lettering stays quiet. (Rejected on the way: pixel art with a dithered
+print and a brick-tower 30 - "AI crap"; the print beside the words - "incorrect"; the flat print - "spy thriller"; gritty brush-lettering - the owner prefers
+the clean type; a first textured print up and to the right of the 30 - "should be directly behind the number"; the foam-textured second print - "still very
+far from good".)
 
 ## Variants and files (`assets/logo/`, all on transparent backgrounds)
 

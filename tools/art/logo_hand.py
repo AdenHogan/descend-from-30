@@ -29,6 +29,9 @@ PALM = [(-0.43, 0.06), (-0.22, -0.02), (0.00, -0.045), (0.20, -0.02), (0.40, 0.0
         (-0.45, 0.36), (-0.435, 0.16)]
 THUMB = ((-0.29, 0.80), (-0.68, 0.64), (-0.84, 0.10), 0.33, 0.225)                  # a curve base -> control -> tip, base width, tip width
 ROT = -9.0                                                                          # the hand is a little tilted, as a pressed hand is
+MIRROR = True                                                                       # a LEFT hand: the thumb on the right, away from the words beside the 30
+SGN = -1.0 if MIRROR else 1.0                                                       # +1 for the right hand drawn below, -1 once it is mirrored
+ROT_EFF = ROT * SGN                                                                 # the tilt as it appears on the page
 
 
 def _catmull(pts, n=14):
@@ -68,7 +71,8 @@ def hand_geometry(rot=ROT):
     g = unary_union(parts)
     g = g.buffer(0.022, join_style=1).buffer(-0.022, join_style=1)          # round the valleys between the fingers and at the thumb's web
     g = g.buffer(-0.010, join_style=1).buffer(0.010, join_style=1)          # and the corners (the wrist's)
-    return affinity.rotate(g, rot, origin=(0, 0))
+    g = affinity.rotate(g, rot, origin=(0, 0))
+    return affinity.scale(g, -1, 1, origin=(0, 0)) if MIRROR else g
 
 
 def features(rot=ROT):
@@ -78,7 +82,8 @@ def features(rot=ROT):
     c, sn = math.cos(math.radians(rot)), math.sin(math.radians(rot))
 
     def R(x, y):
-        return (x * c - y * sn, x * sn + y * c)
+        rx, ry = x * c - y * sn, x * sn + y * c
+        return (rx * SGN, ry)
     tips, joints = [], []
     for name, bx, by, lean, ln, w0, w1 in FINGERS:
         a = math.radians(lean)
