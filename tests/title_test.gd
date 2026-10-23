@@ -63,6 +63,34 @@ func _ready() -> void:
 			blank.append(b)
 	chk(blank.is_empty(), "no textless hitbox buttons %s" % str(blank))
 
+	# The title carries the in-house logo (docs/logo/README.md), not a Label: a transparent
+	# PNG over the painted building, wholly on screen and clear of the menu below it.
+	var logo = s.get_node_or_null("Logo")
+	chk(logo is Sprite2D, "the title has a Logo sprite")
+	if logo is Sprite2D:
+		chk(logo.texture != null and logo.texture.resource_path == "res://assets/logo/logo_full_dark.png",
+			"the Logo is assets/logo/logo_full_dark.png (got '%s')" % (logo.texture.resource_path if logo.texture != null else "none"))
+		var half: Vector2 = logo.texture.get_size() * logo.scale * 0.5
+		var rect := Rect2(logo.position - half, half * 2.0)
+		var shown := Rect2(Vector2.ZERO, Vector2(1152, 648))
+		chk(shown.encloses(rect), "the Logo sits wholly on screen (rect %s)" % str(rect))
+		var buttons_node = s.get_node("Menu/Root/Buttons")
+		var menu_rect := Rect2(Vector2(576.0 + buttons_node.offset_left, 324.0 + buttons_node.offset_top),
+			Vector2(buttons_node.offset_right - buttons_node.offset_left, buttons_node.offset_bottom - buttons_node.offset_top))
+		chk(not rect.intersects(menu_rect), "the Logo %s keeps clear of the menu %s" % [str(rect), str(menu_rect)])
+		chk(logo.position.x > 576.0 and logo.position.y < 324.0, "the Logo sits top-right (owner round 48e pick), at %s" % str(logo.position))
+		chk(logo.texture_filter == CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS,
+			"the Logo is drawn linear + mipmapped (a 2400 px image shrunk to ~380 px)")
+	var old_title := []
+	stack = [s]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		if n is Label and String(n.text).to_lower().contains("descend"):
+			old_title.append(n.name)
+		for c in n.get_children():
+			stack.append(c)
+	chk(old_title.is_empty(), "no placeholder title Label left under the logo %s" % str(old_title))
+
 	# Settings is the same rebinding menu the pause screen uses.
 	var sm = preload("res://scripts/settings_menu.gd").new()
 	chk(sm.has_method("open") and sm.has_method("close"),

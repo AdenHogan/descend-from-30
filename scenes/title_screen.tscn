@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://cclog4gqa3s10" path="res://scripts/title_screen.gd" id="1_mgrm8"]
 [ext_resource type="Texture2D" uid="uid://bcnpxkq16ter0" path="res://assets/Descend From 30 - Placeholder Title Screen.png" id="2_dc4i4"]
-[ext_resource type="FontFile" uid="uid://b5du76xt4b41q" path="res://assets/fonts/PixelOperator8-Bold.ttf" id="3_e54dn"]
+[ext_resource type="Texture2D" uid="uid://7412kuo6h4um" path="res://assets/logo/logo_full_dark.png" id="3_logo"]
 [ext_resource type="FontFile" uid="uid://tv2mlsq0xxsg" path="res://assets/fonts/PixelOperator8.ttf" id="4_3yumr"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_menu"]
@@ -15,14 +15,11 @@ position = Vector2(575, 325.5)
 scale = Vector2(0.81534094, 0.83203125)
 texture = ExtResource("2_dc4i4")
 
-[node name="Label" type="Label" parent="DescendFrom30PlaceholderTitleScreen" unique_id=2014089569]
-offset_left = -244.0697
-offset_top = -227.75587
-offset_right = 207.9303
-offset_bottom = -120.18779
-theme_override_fonts/font = ExtResource("3_e54dn")
-theme_override_font_sizes/font_size = 32
-text = "Descend From 30"
+[node name="Logo" type="Sprite2D" parent="." unique_id=1771227290]
+position = Vector2(900, 170)
+scale = Vector2(0.1586, 0.1586)
+texture_filter = 4
+texture = ExtResource("3_logo")
 
 [node name="Menu" type="CanvasLayer" parent="." unique_id=1219537324]
 

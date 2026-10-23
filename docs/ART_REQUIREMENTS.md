@@ -116,7 +116,7 @@ px), or to a clean multiple of them, and tell us your tile size so we can slot i
 > vector wordmark SVG, all on transparent backgrounds), built by `tools/art/logo.py`, with usage rules in `docs/logo/README.md`. It is a REAL bloodied
 > handprint (a textured print with drips and spatter) directly behind a big 30, with DESCEND / FROM in clean Barlow Condensed Bold capitals beside it. It is a working
 > brand mark, not a commission: an artist is welcome to redraw it, keeping the brief below. The studio credit lockup (**Mammoth Games**) is not drawn yet.
-> Not yet wired into the title screen or the project icon.
+> Wired into the title screen (round 48e); not yet the opening's title, the run-1 title card or the project icon.
 
 - **Game logo / title wordmark** for **"Descend From 30"**, the single most visible
   piece of art (title screen, store page, marketing, app icon). The title screen today

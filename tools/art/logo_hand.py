@@ -29,7 +29,7 @@ PALM = [(-0.43, 0.06), (-0.22, -0.02), (0.00, -0.045), (0.20, -0.02), (0.40, 0.0
         (-0.45, 0.36), (-0.435, 0.16)]
 THUMB = ((-0.29, 0.80), (-0.68, 0.64), (-0.84, 0.10), 0.33, 0.225)                  # a curve base -> control -> tip, base width, tip width
 ROT = -9.0                                                                          # the hand is a little tilted, as a pressed hand is
-MIRROR = True                                                                       # a LEFT hand: the thumb on the right, away from the words beside the 30
+MIRROR = False                                                                      # a RIGHT hand as drawn (owner round 48e): the thumb on the LEFT, toward the words beside the 30
 SGN = -1.0 if MIRROR else 1.0                                                       # +1 for the right hand drawn below, -1 once it is mirrored
 ROT_EFF = ROT * SGN                                                                 # the tilt as it appears on the page
 

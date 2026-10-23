@@ -3,8 +3,8 @@
 Made in-house (owner round 48) by `python3 tools/art/logo.py`: the print is drawn by `tools/art/logo_print.py` (on the hand shape of
 `tools/art/logo_hand.py`), the lettering is Barlow Condensed Bold (SIL OFL, `assets/fonts/logo/` with its licence). The files below are
 GENERATED — change the tools, never the files; `tools/art/logo.py --check` (in `tools/run_all_tests.sh`) fails on a stale or missing one.
-**It is not wired into the game yet** (`scenes/title_screen.tscn`, `scripts/opening_exterior.gd`, `project.godot`'s `icon` still use the
-placeholders) — see "Using it in the game" below.
+**It is wired into the TITLE SCREEN** (round 48e, `scenes/title_screen.tscn`); the opening's own title (`scripts/opening_exterior.gd`), the run-1 title
+card and `project.godot`'s `icon` still use the placeholders — see "Using it in the game" below.
 
 ![contact sheet](logo_sheet.png)
 
@@ -12,9 +12,9 @@ placeholders) — see "Using it in the game" below.
 
 **The bloodied handprint is the logo** (the owner: "if that doesn't work then the logo doesn't work"), and it sits **directly behind the 30** (round 48d):
 the hand's own middle (its centre of mass, the palm) is on the middle of the numerals (`logo.py --check` holds it within a tenth of the 30's size), the
-fingers rise above the numerals, the heel and a few drips hang below them. It is a **left hand**, so the thumb points away from the words and DESCEND / FROM
-can sit close to the 30; the 30 (and its print) only move right if the print's real, wobbly edge would come nearer the words than `CLEAR` (checked against
-the rendered ink, not the clean outline). The words stand on the left in plain capitals, set close (`TRACK_TEXT` 14). Landscape.
+fingers rise above the numerals, the heel and a few drips hang below them. It is a **right hand with the thumb on the LEFT** (owner round 48e: "I prefer the hand to be the other
+way around with the thumb side on the left" — round 48d had mirrored it to a left hand), so the thumb reaches toward DESCEND / FROM; the 30 (and its print) only move right
+if the print's real, wobbly edge would come nearer the words than `CLEAR` (checked against the rendered ink, not the clean outline). The words stand on the left in plain capitals, set close (`TRACK_TEXT` 14). Landscape.
 
 **The print is a print, not a silhouette.** A flat red shape read as a cold-war poster (the owner: "some ww2 / cold war spy thriller"), and a first textured
 print read as foam / plastic wrap (mottled cloud noise, blobs of "shine", a flat bucket-shaped bottom). `logo_print.py` now draws how blood *transfers*:
@@ -32,7 +32,7 @@ print read as foam / plastic wrap (mottled cloud noise, blobs of "shine", a flat
 - It stays **dark blood, never a bright red** (`THIN` 180/38/34 to `THICK` 92/10/16, a pooled rim 50/5/10), and restrained: no gore.
 
 The hand under it (`logo_hand.py`) is anatomically measured (palm 0.9 wide, middle finger 0.95, four fingers in a natural fan, a curved thumb, a wrist
-only ~0.5 wide; mirrored to a left hand by `MIRROR`): `--check` keeps the wrist under 70 % of the palm and the hand 0.55-0.78 as wide as tall.
+only ~0.5 wide; `MIRROR = False` draws the right hand as written, `True` mirrors it to a left hand): `--check` keeps the wrist under 70 % of the palm and the hand 0.55-0.78 as wide as tall.
 
 **The type** is the owner's pick ("clean and mature"): Barlow Condensed Bold capitals, vector, no bevel / outline / shadow / distress, tracked close (the
 owner: "the text is spaced rather far apart"). The print does the roughness; the lettering stays quiet. (Rejected on the way: pixel art with a dithered
@@ -67,10 +67,16 @@ mid tone (`#841718`, `#761416` on paper). All are in `tools/art/logo.py` / `logo
 - The **context rule** (CLAUDE.md "Context") holds: no cause, authority or preparation is named or drawn; the print is a *reaction*, the same
   bloody handprint the opening's cold open already shows.
 
-## Using it in the game (not done — the owner's call)
+## Using it in the game
 
-Wiring it in touches `scenes/title_screen.tscn` (the Label over the painted placeholder), `scripts/opening_exterior.gd` (the title that
-rises over the clouds: a Label at size 62 in `TITLE_COLOR`), `scripts/hallway.gd` / `scripts/intro_overlay.gd` (the run-1 title card)
-and `project.godot` (`config/icon="res://icon.svg"` is Godot's default). The full logo is landscape, about 1.65 : 1; on the 1152 × 648 title
-screen it wants roughly 700 px of width. The game's art is hard-edged pixel art, so decide whether the smooth logo should sit over it as it is.
-The suites to re-run after wiring: `title_test`, `opening_test`, `run_bookends_test`, `tutorial_test`.
+**Wired (round 48e, owner: "add it without background to our title and see how the text and handprint look with the building background"):**
+`scenes/title_screen.tscn` has a `Logo` Sprite2D — `assets/logo/logo_full_dark.png` (transparent, 2400 px) at scale 0.1586 (about 381 x 270 on the 1152 x 648
+screen), centred on (900, 170) — TOP-RIGHT, the owner's pick of the placements rendered — drawn LINEAR + MIPMAPPED (`texture_filter = 4`; the PNG's import has `mipmaps/generate=true` — the project default is nearest,
+which would shred a 2400 px image shrunk 6x) over the painted placeholder, replacing the "Descend From 30" Label; the menu stays where it was (centre). `title_test` locks it: the sprite is the dark logo,
+wholly on screen, top-right, its rect clear of the menu's (mutation-checked), mipmapped, and no placeholder Label is left. How it read on the Gemini painting (renders under xvfb): centred, the thumb and palm lay over the red-brown brick (red on red-brown) and lost contrast;
+top-right, on the stormy sky and city, the hand pops — the owner chose top-right. The painting itself is being replaced (round 48f).
+
+Still on the placeholders, and not touched without a word from the owner: `scripts/opening_exterior.gd` (the title that rises over the clouds: a Label at size 62
+in `TITLE_COLOR`), `scripts/hallway.gd` / `scripts/intro_overlay.gd` (the run-1 title card) and `project.godot` (`config/icon="res://icon.svg"` is Godot's default).
+The full logo is landscape, about 1.41 : 1 (2400 x 1702). The suites to re-run after wiring another place: `title_test`, `opening_test`, `run_bookends_test`,
+`tutorial_test`.
