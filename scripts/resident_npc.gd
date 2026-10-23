@@ -652,16 +652,26 @@ func accept_trade() -> bool:
 		_close_offer()
 		return false
 	var give: Dictionary = offer["give"]
-	WorldState.remove_from_inventory(idx)
+	# A stack of bandages gives up ONE unit (medical items stack, owner round 48h); anything else goes whole.
+	var one_of_stack: bool = inst.count > 1 and ItemData.get_item(inst.item_id).get("is_medical", false)
+	var taken_n: int = 1 if one_of_stack else inst.count
+	if one_of_stack:
+		inst.count -= 1
+	else:
+		WorldState.remove_from_inventory(idx)
 	if not WorldState.add_to_inventory(str(give["id"]), int(give.get("amount", 0))):
-		WorldState.inventory.insert(idx, inst)          # never destroy the player's things
+		if one_of_stack:
+			inst.count += 1
+		else:
+			WorldState.inventory.insert(idx, inst)          # never destroy the player's things
 		HUD.show_feedback("No room for it.")
 		HUD.refresh_inventory()
 		return false
-	if HUD.selected_slot == idx:
-		HUD.selected_slot = -1
-	elif HUD.selected_slot > idx:
-		HUD.selected_slot -= 1
+	if not one_of_stack:
+		if HUD.selected_slot == idx:
+			HUD.selected_slot = -1
+		elif HUD.selected_slot > idx:
+			HUD.selected_slot -= 1
 	# A fair swap with a survivor counts as helping them (the session's "NPCs aided" Valour, +4) — once each.
 	if not bool(rec.get("traded", false)):
 		WorldState.note_npc_aided()
@@ -670,7 +680,7 @@ func accept_trade() -> bool:
 		if goods[gi] is Dictionary and str(goods[gi].get("id", "")) == str(give["id"]):
 			goods.remove_at(gi)
 			break
-	goods.append({"id": inst.item_id, "amount": inst.count if inst.count > 1 else 0})
+	goods.append({"id": inst.item_id, "amount": taken_n if taken_n > 1 else 0})
 	rec["goods"] = goods
 	rec["traded"] = true
 	WorldState.update_resident(apartment_id, {"goods": goods, "traded": true})

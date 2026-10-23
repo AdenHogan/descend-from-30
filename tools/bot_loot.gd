@@ -149,6 +149,10 @@ func heal_points() -> int:
 		if d.get("is_health_item", false):
 			var per: int = inst.base_heals() + WorldState.get_heal_bonus()
 			var uses: int = maxi(1, inst.current_durability) if inst.item_id == "010" else 1
+			if inst.item_id == "010":
+				uses += (inst.count - 1) * 2       # (a stack: the front bottle's doses, then two a bottle)
+			else:
+				uses = maxi(1, inst.count)
 			n += per * uses
 	return n
 
@@ -1292,6 +1296,8 @@ func _has_room_for(id: String) -> bool:
 		cap = WorldState.MAX_FUSE_PER_SLOT
 	elif d.get("is_throwable", false):
 		cap = 3
+	elif d.get("is_medical", false):
+		cap = WorldState.MAX_MEDICAL_PER_SLOT
 	elif d.get("is_money", false):
 		return _stacks_with(id)
 	if cap > 0:

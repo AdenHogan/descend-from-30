@@ -99,6 +99,7 @@ const MAX_AMMO_PER_SLOT = 8
 const WORLD_DROP_SCRIPT := preload("res://scripts/world_drop.gd")   # REST_LIFT for live drops
 const MAX_THROWABLE_PER_SLOT = 3   # cans held per slot (was one-and-done)
 const MAX_FUSE_PER_SLOT = 3        # the elevator needs exactly 3 — one slot holds a full set
+const MAX_MEDICAL_PER_SLOT = 3     # the same bandages / first aid kit / painkillers / ice pack share a slot (owner round 48h: "up to three… Not weapons though")
 const CAN_SCAVENGE_BOOST = 1.18    # cans spawn 18% more, so they're a real option
 const CLOTHES_BEDROOM_BOOST = 1.30 # clothes +30% in bedrooms (3 make a clothes-rope)
 
@@ -1665,6 +1666,20 @@ func _add_to_inventory(item_id: String, amount: int = 0) -> bool:
 		fuse.count = 1
 		inventory.append(fuse)
 		return true
+	# Medical items stack up to MAX_MEDICAL_PER_SLOT of the SAME item in one slot (owner round 48h: "let bandages stack in inventory now, up to three. If it's
+	# the same med item, it can stack. That's fair. Not weapons though."). A half-strength kit (quest 001's) never takes another.
+	if ItemData.get_item(item_id).get("is_medical", false):
+		for held in inventory:
+			if held.item_id == item_id and held.count < MAX_MEDICAL_PER_SLOT and held.heal_scale >= 0.999:
+				held.count += 1
+				return true
+		if inventory.size() >= get_inventory_slots():
+			return false
+		var med = ItemInstance.new()
+		med.setup(item_id)
+		med.count = 1
+		inventory.append(med)
+		return true
 	if inventory.size() >= get_inventory_slots():
 		return false
 	var instance = ItemInstance.new()
@@ -2096,11 +2111,16 @@ func ammo_gun_pair(a, b) -> ItemInstance:
 		return null
 	var da: Dictionary = a.get_data()
 	var db: Dictionary = b.get_data()
-	if bool(da.get("is_ammo", false)) and String(db.get("name", "")).to_lower().contains("gun"):
+	if bool(da.get("is_ammo", false)) and is_gun_instance(b):
 		return b
-	if bool(db.get("is_ammo", false)) and String(da.get("name", "")).to_lower().contains("gun"):
+	if bool(db.get("is_ammo", false)) and is_gun_instance(a):
 		return a
 	return null
+
+
+## Is this item THE gun (item 004)? An exact name, not "contains gun": the Gun Cabinet Key's name does, and bullets dragged onto it used to "load" it.
+func is_gun_instance(inst) -> bool:
+	return inst != null and String(inst.get_data().get("name", "")).to_lower() == "gun"
 
 
 ## Load `gun` from the pack and say what happened. {"loaded": n, "msg": text}.
@@ -2128,6 +2148,113 @@ func reload_gun(gun: ItemInstance) -> int:
 	gun.mag_count += to_load
 	HUD.refresh_inventory()
 	return to_load
+
+
+## FOUND ROUNDS (owner round 48h: "If I find bullets, and my inventory is full, but my gun in my inventory is not fully loaded, I have to drop an item from
+## inventory to add the bullets then drag them to the gun to load it, then re-pick up the item I dropped… I should just be able to drag or press my buttons to
+## autoload the gun"). A gun the character carries is somewhere bullets can go without a pocket. The guns with room in the magazine: the one in hand first,
+## then pack order. A worn-out (broken) gun can't fire, so it isn't offered.
+func guns_with_room() -> Array:
+	var out: Array = []
+	var held = get_instance_at(HUD.selected_slot) if HUD.selected_slot >= 0 and HUD.selected_slot < inventory.size() else null
+	for inst in inventory:
+		if is_gun_instance(inst) and not inst.is_depleted and inst.get_mag_cap() - inst.mag_count > 0:
+			if inst == held:
+				out.push_front(inst)
+			else:
+				out.append(inst)
+	return out
+
+
+## Put up to `n` found bullets into magazines - `only_gun`, or the guns with room in order. {"n": rounds loaded, "gun": the first gun that took any}.
+func load_found_rounds(n: int, only_gun = null) -> Dictionary:
+	var left: int = n
+	var gone := 0
+	var first = null
+	var targets: Array = []
+	if only_gun != null:
+		if is_gun_instance(only_gun) and not only_gun.is_depleted:
+			targets = [only_gun]
+	else:
+		targets = guns_with_room()
+	for g in targets:
+		if left <= 0:
+			break
+		var put: int = mini(g.get_mag_cap() - g.mag_count, left)
+		if put > 0:
+			g.mag_count += put
+			left -= put
+			gone += put
+			if first == null:
+				first = g
+	if gone > 0:
+		HUD.refresh_inventory()
+	return {"n": gone, "gun": first}
+
+
+## Take a bundle of found bullets: into the pockets if it all fits (as ever), else into the magazines of the guns carried first, and what is left into the
+## pockets if THAT fits. {"left": rounds that went nowhere (they stay where they were - nothing is ever destroyed), "to_gun", "to_pack", "msg"}.
+func take_found_ammo(item_id: String, amount: int) -> Dictionary:
+	var n: int = maxi(amount, 1)
+	if add_to_inventory(item_id, n):
+		return {"left": 0, "to_gun": 0, "to_pack": n, "msg": ""}
+	var res: Dictionary = load_found_rounds(n)
+	var to_gun: int = int(res["n"])
+	if to_gun > 0:
+		note_item_seen(item_id)                     # (the codex counts bullets that went straight into a gun as found)
+	var left: int = n - to_gun
+	var to_pack := 0
+	if to_gun > 0 and left > 0 and add_to_inventory(item_id, left):
+		to_pack = left
+		left = 0
+	var msg := ""
+	if to_gun > 0:
+		var g = res["gun"]
+		msg = "Loaded %d — mag %d/%d." % [to_gun, g.mag_count, g.get_mag_cap()]
+		if to_pack > 0:
+			msg += " The other %d are in your pack." % to_pack
+		elif left > 0:
+			msg += " %d more won't fit — the pack is full." % left
+	return {"left": left, "to_gun": to_gun, "to_pack": to_pack, "msg": msg}
+
+
+## MEDICAL STACKS: can `incoming` (an item on its way in) join the stack `held`? The same medical item, both at whole strength, and the two together
+## within MAX_MEDICAL_PER_SLOT. (The stack's FRONT unit may be part-used; the incoming one must be whole.)
+func medical_stacks(held, incoming) -> bool:
+	if held == null or incoming == null or held == incoming or held.item_id != incoming.item_id:
+		return false
+	if not ItemData.get_item(held.item_id).get("is_medical", false):
+		return false
+	if held.heal_scale < 0.999 or not incoming.is_whole():
+		return false
+	return held.count + incoming.count <= MAX_MEDICAL_PER_SLOT
+
+
+## Drag one medical stack onto another of the same item: move whole units from the back of `from` until `to` is full (or `from` has no whole unit to spare).
+## Returns the units moved. An emptied slot is removed.
+func merge_medical_slots(from: int, to: int) -> int:
+	if from == to or from < 0 or to < 0 or from >= inventory.size() or to >= inventory.size():
+		return 0
+	var a = inventory[from]
+	var b = inventory[to]
+	if a.item_id != b.item_id or not ItemData.get_item(a.item_id).get("is_medical", false):
+		return 0
+	if a.heal_scale < 0.999 or b.heal_scale < 0.999:
+		return 0
+	var spare: int = a.count if a.is_whole() else a.count - 1        # a part-used front unit stays where it is
+	var moved: int = mini(spare, MAX_MEDICAL_PER_SLOT - b.count)
+	if moved <= 0:
+		return 0
+	a.count -= moved
+	b.count += moved
+	if a.count <= 0:
+		inventory.remove_at(from)
+		if HUD.selected_slot == from:
+			HUD.selected_slot = -1
+		elif HUD.selected_slot > from:
+			HUD.selected_slot -= 1
+	HUD.refresh_inventory()
+	return moved
 
 
 # --- Selling to the merchant (max SELL_LIMIT_PER_VISIT items per visit) ---
@@ -2169,7 +2296,7 @@ func sell_item(slot_index: int, floor_num: int) -> bool:
 	var price = get_sell_price(instance.item_id)
 	if price <= 0:
 		return false
-	if ItemData.get_item(instance.item_id).get("is_ammo", false):
+	if ItemData.get_item(instance.item_id).get("is_ammo", false) or ItemData.get_item(instance.item_id).get("is_medical", false):
 		price *= instance.count
 	inventory.remove_at(slot_index)
 	if HUD.selected_slot == slot_index:
@@ -5305,7 +5432,7 @@ func add_world_drop(item_id: String, pos: Vector2, floor_num: int, extra: Dictio
 ## live in the scene `who` stands in, tossed out so it visibly drops — a discard used to only register, so the
 ## item vanished until the scene was re-entered. `extra` is add_world_drop's (amount / instance / target_apartment).
 ## Returns the drop's key.
-func drop_item_from(who: Node2D, item_id: String, extra: Dictionary = {}) -> String:
+func drop_item_from(who: Node2D, item_id: String, extra: Dictionary = {}, dir_x: float = 0.0) -> String:
 	var feet: float = who.global_position.y + 33.0
 	var cs = who.get_node_or_null("CollisionShape2D")
 	if cs != null and cs.shape is CapsuleShape2D:
@@ -5313,7 +5440,9 @@ func drop_item_from(who: Node2D, item_id: String, extra: Dictionary = {}) -> Str
 	elif cs != null and cs.shape is RectangleShape2D:
 		feet = who.global_position.y + cs.position.y + (cs.shape as RectangleShape2D).size.y * 0.5
 	var rest_lift: float = WORLD_DROP_SCRIPT.REST_LIFT
-	var at := Vector2(who.global_position.x + randf_range(-20.0, 20.0), feet - rest_lift)
+	var sgn: float = signf(dir_x)
+	# A drop with a DIRECTION (an item dragged out of the pack to one side, owner round 48h) is thrown that way, clear of whatever lies at the player's feet.
+	var at := Vector2(who.global_position.x + (sgn * 70.0 if sgn != 0.0 else randf_range(-20.0, 20.0)), feet - rest_lift)
 	var ex: Dictionary = extra.duplicate()
 	ex["scene"] = world_scene_of(who)
 	var key: String = add_world_drop(item_id, at, current_floor, ex)
@@ -5327,7 +5456,7 @@ func drop_item_from(who: Node2D, item_id: String, extra: Dictionary = {}) -> Str
 	drop.drop_key = key
 	drop.target_apartment = ex.get("target_apartment", "")
 	parent.add_child(drop)
-	drop.toss(who.global_position + Vector2(0.0, -10.0), feet, -1.0 if randf() < 0.5 else 1.0)
+	drop.toss(who.global_position + Vector2(0.0, -10.0), feet, sgn if sgn != 0.0 else (-1.0 if randf() < 0.5 else 1.0), sgn != 0.0)
 	# toss() settles at the floor line; the registered position is the rested one.
 	return key
 
@@ -5871,7 +6000,13 @@ func instance_from_dict(entry: Dictionary) -> ItemInstance:
 
 # Put a specific, already-built item back in a free slot (a picked-up drop keeps its state).
 func add_instance_to_inventory(instance) -> bool:
-	if instance == null or inventory.size() >= get_inventory_slots():
+	if instance == null:
+		return false
+	for held in inventory:
+		if medical_stacks(held, instance):          # a dropped stack of bandages rejoins the bandages in the pack
+			held.count += instance.count
+			return true
+	if inventory.size() >= get_inventory_slots():
 		return false
 	inventory.append(instance)
 	return true

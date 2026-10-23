@@ -936,9 +936,9 @@ func _finish_drag() -> void:
 		if slots[i].get_global_rect().has_point(mouse) and i != from:
 			_drop_on_slot(from, i)
 			return
-	# Dropped on the game world (anywhere that isn't a HUD widget) = discard.
+	# Dropped on the game world (anywhere that isn't a HUD widget) = discard, thrown the way it was dragged (owner round 48h).
 	if not pointer_over_widget(mouse):
-		_discard_slot(from)
+		_discard_slot(from, drop_dir_for(mouse))
 
 
 func _drop_on_slot(from: int, to: int) -> void:
@@ -957,16 +957,20 @@ func _drop_on_slot(from: int, to: int) -> void:
 		if gun_inst != null:
 			show_feedback(String(WorldState.load_gun_from_pack(gun_inst)["msg"]))
 			return
+		# The same medical item onto itself: pour the units across (up to three a slot).
+		if WorldState.merge_medical_slots(from, to) > 0:
+			refresh_inventory()
+			return
 	WorldState.swap_inventory_slots(from, to)
 	refresh_inventory()
 
 
-func _discard_slot(slot_index: int) -> void:
+func _discard_slot(slot_index: int, dir_x: float = 0.0) -> void:
 	if slot_index < 0 or slot_index >= WorldState.inventory.size():
 		return
 	var instance = WorldState.get_instance_at(slot_index)
 	var item_data = instance.get_data()
-	_drop_to_world(instance)
+	_drop_to_world(instance, dir_x)
 	if selected_slot > slot_index:
 		selected_slot -= 1
 	elif selected_slot == slot_index:
@@ -980,7 +984,7 @@ func _discard_slot(slot_index: int) -> void:
 # a weapon keeps its durability / magazine / damage / workbench level + perks, a stack keeps its
 # count, and a BROKEN weapon or tool still drops (it's repairable, and upgrade feed) — an accidental
 # drop is always recoverable exactly as it was. Only a used-up consumable just goes.
-func _drop_to_world(instance) -> void:
+func _drop_to_world(instance, dir_x: float = 0.0) -> void:
 	if instance.is_depleted and not instance.is_repairable():
 		return
 	var player = get_tree().get_first_node_in_group("player")
@@ -995,7 +999,32 @@ func _drop_to_world(instance) -> void:
 		extra["amount"] = instance.count          # a stack comes back as the same count
 	else:
 		extra["instance"] = WorldState.instance_to_dict(instance)
-	WorldState.drop_item_from(player, instance.item_id, extra)
+	WorldState.drop_item_from(player, instance.item_id, extra, dir_x)
+
+
+## Which way an item let go at screen point `pos` is thrown (owner round 48h: "if I drag an item out to drop it, it should fall out in the direction I dragged it
+## out"): toward the side of the player it was dragged to, -1 left / +1 right; 0 = let go right over them (a short toss either way, as before).
+const DROP_DEADZONE := 14.0
+const NO_CAMERA := -99999.0
+
+
+## The player's x on screen, or NO_CAMERA while there is none (a test, a scene change).
+func player_screen_x() -> float:
+	var p = get_tree().get_first_node_in_group("player")
+	var cam = p.get_node_or_null("Camera2D") if p != null else null
+	if cam == null or not cam.is_inside_tree():
+		return NO_CAMERA
+	return (p.global_position.x - cam.get_screen_center_position().x) * cam.zoom.x + get_viewport().get_visible_rect().size.x * 0.5
+
+
+func drop_dir_for(pos: Vector2, fallback_x: float = NO_CAMERA) -> float:
+	var sx: float = player_screen_x()
+	if sx == NO_CAMERA:
+		sx = fallback_x
+	if sx == NO_CAMERA:
+		return 0.0
+	var dx: float = pos.x - sx
+	return 0.0 if absf(dx) < DROP_DEADZONE else signf(dx)
 
 
 # --- ITEM TOOLTIP: hover a slot for the details (owner: "recognise the item instantly, then hover
@@ -1566,11 +1595,11 @@ func _context_use() -> void:
 	if player and player.has_method("use_item"):
 		player.use_item(context_slot)
 
-func _context_discard() -> void:
+func _context_discard(dir_x: float = 0.0) -> void:
 	context_menu.visible = false
 	if context_slot >= 0 and context_slot < WorldState.inventory.size():
 		var instance = WorldState.get_instance_at(context_slot)
-		_drop_to_world(instance)
+		_drop_to_world(instance, dir_x)
 		if selected_slot > context_slot:
 			selected_slot -= 1
 		elif selected_slot == context_slot:
@@ -1582,9 +1611,9 @@ func _context_discard() -> void:
 
 ## Drop the item in inventory slot `slot` at the player's feet (the pack ring's Delete; the hotbar's
 ## context-menu Discard — one path, so nothing is ever deleted, only put on the floor).
-func discard_slot(slot: int) -> void:
+func discard_slot(slot: int, dir_x: float = 0.0) -> void:
 	context_slot = slot
-	_context_discard()
+	_context_discard(dir_x)
 
 
 func _context_cancel() -> void:
@@ -1764,7 +1793,8 @@ func refresh_inventory() -> void:
 				key_label.visible = true
 			elif item_data.get("is_money", false) or item_data.get("is_ammo", false) \
 					or (item_data.get("is_throwable", false) and instance.count > 1) \
-					or (item_data.get("is_fuse", false) and instance.count > 1):
+					or (item_data.get("is_fuse", false) and instance.count > 1) \
+					or (item_data.get("is_medical", false) and instance.count > 1):
 				key_label.text = "x" + str(instance.count)
 				key_label.visible = true
 			elif instance.is_depleted and int(item_data.get("max_durability", -1)) > 0:

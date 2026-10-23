@@ -200,6 +200,8 @@ func _reveal_item() -> void:
 	else:
 		name_label.text = item_data["name"]
 	hint_label.text = "Double-click, or drag onto your pack · walk away to leave"
+	if _is_rounds() and not WorldState.guns_with_room().is_empty():
+		hint_label.text = SettingsManager.localize("Drag onto your gun, or press [{item_use}], to load it · [{interact}] takes it")
 
 
 ## Where the pack ring's centre sits while it shares the screen with this panel: the pair (panel + a gap + ring) is centred on the
@@ -322,6 +324,13 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		_take()
 		return
+	# The use key loads a carried gun straight from found bullets (owner round 48h: "drag or press my buttons to autoload the gun").
+	if event.is_action_pressed("item_use") and _is_rounds():
+		var guns: Array = WorldState.guns_with_room()
+		if not guns.is_empty():
+			get_viewport().set_input_as_handled()
+			load_gun(guns[0])
+			return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
 			var now = Time.get_ticks_msec() / 1000.0
@@ -357,6 +366,14 @@ func _input(event: InputEvent) -> void:
 func swap_in(ring, k: int, from_panel: bool = false) -> void:
 	if not has_item or is_revealing:
 		return
+	# Found bullets dropped on a GUN load it - and never put the gun down to make room for bullets that are for it.
+	if _is_rounds() and k >= 0 and ring != null and WorldState.is_gun_instance(ring._slot_inst(k)):
+		var g = ring._slot_inst(k)
+		if g.get_mag_cap() - g.mag_count > 0 and not g.is_depleted:
+			load_gun(g)
+		else:
+			HUD.show_feedback("Magazine full." if not g.is_depleted else "That gun is broken.")
+		return
 	if _take():
 		return
 	if k >= 0 and ring != null and ring._slot_inst(k) != null:
@@ -376,25 +393,83 @@ func _take() -> bool:
 	elif cabinet:
 		# The gun cabinet's Lv3 gun: the built instance, not a plain new one.
 		added = WorldState.add_instance_to_inventory(WorldState.gun_cabinet_weapon(current_apartment_id))
+	elif _is_rounds():
+		return _take_rounds()
 	else:
 		var amount = WorldState.get_anchor_amount(current_apartment_id, current_anchor_name)
-		if amount <= 0 and ItemData.get_item(current_item_id).get("is_ammo", false):
-			amount = _roll_ammo_bundle()
 		added = WorldState.add_to_inventory(current_item_id, amount)
 	if added:
-		if cabinet:
-			WorldState.note_gun_cabinet_taken(current_apartment_id)
-			get_tree().call_group("gun_cabinet_art", "refresh")
-		WorldState.clear_anchor_item(current_apartment_id, current_anchor_name)
-		WorldState.note_scavenge(current_apartment_id)   # journal stats: items + apartments looted
-		get_tree().call_group("resident_npc", "on_scavenge", "take", current_apartment_id)
-		HUD.refresh_inventory()
-		_close(true)
+		_finish_taken(cabinet)
 		return true
 	else:
 		name_label.text = "Inventory full"
 		hint_label.text = "Drag something off the ring (or onto this) to make room." if _pack_open() else "Open your pack and make room."
 		return false
+
+
+## The found thing is in the pack now: the node is spent, the journal counts it, the panel closes.
+func _finish_taken(cabinet: bool) -> void:
+	if cabinet:
+		WorldState.note_gun_cabinet_taken(current_apartment_id)
+		get_tree().call_group("gun_cabinet_art", "refresh")
+	WorldState.clear_anchor_item(current_apartment_id, current_anchor_name)
+	WorldState.note_scavenge(current_apartment_id)   # journal stats: items + apartments looted
+	get_tree().call_group("resident_npc", "on_scavenge", "take", current_apartment_id)
+	HUD.refresh_inventory()
+	_close(true)
+
+
+## The node holds bullets (not a key, not the cabinet's gun).
+func _is_rounds() -> bool:
+	return has_item and current_key_target == "" and current_item_id != "" and ItemData.get_item(current_item_id).get("is_ammo", false)
+
+
+## How many bullets this node holds: the amount the room recorded, else the bundle its seed rolls.
+func _rounds_here() -> int:
+	var amount: int = WorldState.get_anchor_amount(current_apartment_id, current_anchor_name)
+	return amount if amount > 0 else _roll_ammo_bundle()
+
+
+## Found bullets: into the pockets if they all fit, else into the magazine of a gun carried (owner round 48h); what fits nowhere stays on the node.
+func _take_rounds() -> bool:
+	var res: Dictionary = WorldState.take_found_ammo(current_item_id, _rounds_here())
+	if int(res["left"]) <= 0:
+		if str(res["msg"]) != "":
+			HUD.show_feedback(str(res["msg"]))
+		_finish_taken(false)
+		return true
+	if int(res["to_gun"]) + int(res["to_pack"]) > 0:
+		_rounds_left(int(res["left"]), str(res["msg"]))
+	else:
+		name_label.text = "Inventory full"
+		hint_label.text = "Drag something off the ring (or onto this) to make room." if _pack_open() else "Open your pack and make room."
+	return false
+
+
+## Load `gun` straight from the found bullets, no pocket needed. The rest stays on the node.
+func load_gun(gun) -> bool:
+	var here: int = _rounds_here()
+	var res: Dictionary = WorldState.load_found_rounds(here, gun)
+	var put: int = int(res["n"])
+	if put <= 0:
+		HUD.show_feedback("Magazine full.")
+		return false
+	var msg := "Loaded %d — mag %d/%d." % [put, gun.mag_count, gun.get_mag_cap()]
+	if here - put <= 0:
+		HUD.show_feedback(msg)
+		_finish_taken(false)
+	else:
+		_rounds_left(here - put, msg)
+	return true
+
+
+## Part of the bundle went into a gun / the pack: say so, and what remains on the node.
+func _rounds_left(left: int, msg: String) -> void:
+	WorldState.set_anchor_amount(current_apartment_id, current_anchor_name, left)
+	HUD.show_feedback(msg)
+	HUD.refresh_inventory()
+	name_label.text = "%s x%d" % [ItemData.get_item(current_item_id).get("name", "Bullets"), left]
+	hint_label.text = "The pack is full — drag something off the ring to make room for the rest." if _pack_open() else "The pack is full — make room for the rest."
 
 
 # The anchor is an opened gun cabinet still holding its weapon.

@@ -1897,16 +1897,14 @@ func use_item(slot_index: int) -> void:
 		var heals = instance.base_heals() + WorldState.get_heal_bonus()
 		# Don't burn a use of the item if we're already at full health.
 		if heal(heals):
-			instance.use()
-			if instance.is_depleted:
+			if instance.spend_dose():          # a stack hands its next unit forward; true = nothing left
 				WorldState.remove_from_inventory(slot_index)
 				HUD.selected_slot = -1
 			HUD.refresh_inventory()
 	elif item_data["is_speed_boost"]:
 		restore_stamina(WorldState.get_max_stamina() * 0.35)
 		HUD.show_feedback("Stamina restored.")
-		instance.use()
-		if instance.is_depleted:
+		if instance.spend_dose():
 			WorldState.remove_from_inventory(slot_index)
 			HUD.selected_slot = -1
 		HUD.refresh_inventory()

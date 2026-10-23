@@ -97,6 +97,7 @@ func _load_data() -> void:
 			"is_ammo": properties.has("is_ammo"),
 			"can_repair": properties.has("can_repair"),
 			"is_speed_boost": properties.has("is_speed_boost"),
+			"is_medical": properties.has("is_health_item") or properties.has("is_speed_boost"),   # bandages, first aid, painkillers, the ice pack: they stack (WorldState.MAX_MEDICAL_PER_SLOT)
 			"is_junk": properties.has("is_junk"),
 			"is_money": properties.has("is_money"),
 			"is_rope": properties.has("is_rope"),

@@ -154,6 +154,39 @@ func base_heals() -> int:
 	return maxi(1, int(floor(float(base) * heal_scale)))
 
 
+## Untouched: every dose left and full strength. Only a whole unit can join a medical stack (WorldState.medical_stacks).
+func is_whole() -> bool:
+	if is_depleted or heal_scale < 0.999:
+		return false
+	var max_d: int = int(get_data().get("max_durability", -1))
+	return max_d <= 0 or current_durability >= max_d
+
+
+## Doses a NEW unit of this item carries (what setup() gives it).
+func _fresh_doses() -> int:
+	var data = get_data()
+	if data.get("single_use", false):
+		return 1
+	if int(data.get("max_durability", -1)) > 0:
+		return int(data["max_durability"])
+	return -1
+
+
+## Spend one dose of a medical item. A STACK (`count` units: the front one in use, the rest whole) hands the next unit forward when the front one runs dry.
+## True = nothing is left (the caller drops the slot); false = this instance still holds something.
+func spend_dose() -> bool:
+	use()
+	if not is_depleted:
+		return false
+	if count > 1:
+		count -= 1
+		is_depleted = false
+		current_durability = _fresh_doses()
+		heal_scale = 1.0
+		return false
+	return true
+
+
 func use() -> bool:
 	if is_depleted:
 		return false

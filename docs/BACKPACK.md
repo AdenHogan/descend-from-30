@@ -146,3 +146,11 @@ can't drift; `character_panel_test` checks every item is listed once with number
 notebook tabs + pages were restyled as paper at the same time. Not built: discovery (every item is listed from the
 start — a "???" until first found is easy to add), per-item lore, upgrades/perk effects on durability (the text is the
 BASE value).
+
+## Inventory flow (round 48h)
+
+Three frictions the owner hit mid-playtest, all in one suite (`tests/inventory_flow_test.gd`):
+
+- **Medical items stack, three to a slot** (`WorldState.MAX_MEDICAL_PER_SLOT`; item flag `is_medical` = a health item or the ice pack: bandages 006, first aid 007, torn clothes 009, painkillers 010, ice pack 011). The same item only, whole-strength units only (a half-used kit stands alone), never a weapon. Using a stack spends one dose and brings the next unit forward (`ItemInstance.spend_dose`). A dropped stack rejoins as a stack (`add_instance_to_inventory`); dragging one stack onto another in the ring or the hotbar pours units across (`merge_medical_slots`); a quest, a trade or a crafting recipe takes ONE unit; the merchant pays for every unit.
+- **Found bullets load a carried gun when the pockets can't hold them** (`WorldState.take_found_ammo`): from the loot panel ([interact], double-click, drag onto the pack) and from a bundle lying on the floor. The panel's use key (`item_use`) and a drag onto the gun's wedge load the gun straight from the panel, even with room in the pack. What fits nowhere stays on the node / the floor with its new amount.
+- **A dragged-out item lands on the side it was dragged to** (`HUD.drop_dir_for`: left or right of the player on screen; letting go right over them keeps the old short random toss). A thrown item leaves at 170-230 px/s and comes to rest ~80-155 px away; its saved position is where it came to rest.

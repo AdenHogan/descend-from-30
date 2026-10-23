@@ -11,6 +11,7 @@ const FL := preload("res://scripts/floor_lighting.gd")
 const GRAVITY := 900.0
 const REST_LIFT := 7.0        # orb centre rests this far above the floor line so it sits ON it
 const ORB_BASE_R := 8.0
+const THROWN_SPEED := Vector2(170.0, 230.0)   # px/s sideways for an item thrown out of the pack (it comes to rest ~80-155 px away)
 const WALL_GAP := 8.0         # a drop comes to rest this far in front of a wall
 
 var item_id: String = ""
@@ -63,13 +64,15 @@ func _ready() -> void:
 		add_child(_light)
 
 
-func toss(from_pos: Vector2, land_y: float, dir_x: float) -> void:
-	# Start a fresh drop flying out of the corpse; it settles at the floor line near it.
+func toss(from_pos: Vector2, land_y: float, dir_x: float, thrown: bool = false) -> void:
+	# Start a fresh drop flying out of the corpse; it settles at the floor line near it. `thrown`: an item the player dragged out of the pack to one side
+	# (owner round 48h) goes FAR enough to clear what lies at their feet - a corpse's loot just falls out beside it.
 	global_position = from_pos
 	_rest_y = land_y - REST_LIFT
 	if global_position.y >= _rest_y:
 		global_position.y = _rest_y - 2.0   # nudge above the floor so it visibly drops
-	_vel = Vector2(dir_x * randf_range(45.0, 95.0), -randf_range(150.0, 220.0))
+	var speed: float = randf_range(THROWN_SPEED.x, THROWN_SPEED.y) if thrown else randf_range(45.0, 95.0)
+	_vel = Vector2(dir_x * speed, -randf_range(150.0, 220.0))
 	_bounces = 0
 	_find_walls(from_pos)
 	_tossing = true
@@ -118,6 +121,7 @@ func _physics_process(delta: float) -> void:
 		if _bounces >= 3 or absf(_vel.y) < 55.0:
 			_tossing = false
 			_vel = Vector2.ZERO
+			_sync_registered_x()
 		else:
 			_vel.y = -_vel.y * 0.42     # each bounce loses most of its energy
 			_vel.x *= 0.55
@@ -153,6 +157,12 @@ func _under_hud(world: Vector2) -> bool:
 
 ## Slide a resting drop sideways (away from the nearer screen edge, never past a wall) until no HUD widget covers it.
 ## True once it could be judged (there is a camera to judge by).
+## The saved record of this drop says where it CAME TO REST (so a re-entry shows what you saw).
+func _sync_registered_x() -> void:
+	if drop_key != "" and WorldState.world_drops.has(drop_key):
+		WorldState.world_drops[drop_key]["x"] = snappedf(global_position.x, 1.0)
+
+
 func _clear_of_hud() -> bool:
 	var sp := _screen_of(global_position)
 	if sp == Vector2.INF:
@@ -220,6 +230,8 @@ func _process(delta: float) -> void:
 		_light.texture_scale = 0.035 + 0.025 * lvl
 	if not _tossing and not _hud_checked and item_id != "036":
 		_hud_checked = _clear_of_hud()
+		if _hud_checked:
+			_sync_registered_x()
 	if not player_nearby:
 		return
 	if Input.is_action_just_pressed("interact"):
@@ -267,6 +279,21 @@ func _try_pickup() -> void:
 		else:
 			HUD.show_feedback("Inventory full.")
 			return
+	elif ItemData.get_item(item_id).get("is_ammo", false):
+		# Bullets that don't wholly fit the pockets load a gun carried (owner round 48h); what fits nowhere stays on the floor.
+		var res: Dictionary = WorldState.take_found_ammo(item_id, amount)
+		if int(res["left"]) > 0:
+			if int(res["to_gun"]) + int(res["to_pack"]) > 0:
+				amount = int(res["left"])
+				if drop_key != "" and WorldState.world_drops.has(drop_key):
+					WorldState.world_drops[drop_key]["amount"] = amount
+				HUD.show_feedback(str(res["msg"]))
+				HUD.refresh_inventory()
+			else:
+				HUD.show_feedback("Inventory full.")
+			return
+		HUD.show_feedback(str(res["msg"]) if str(res["msg"]) != "" else ItemData.get_item(item_id).get("name", "Item") + " picked up.")
+		HUD.refresh_inventory()
 	else:
 		added = WorldState.add_to_inventory(item_id, amount)
 		if added:

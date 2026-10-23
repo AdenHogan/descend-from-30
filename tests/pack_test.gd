@@ -435,8 +435,9 @@ func _test_pack_beside_loot() -> void:
 	while WorldState.inventory.size() < WorldState.get_inventory_slots():
 		_give("007")
 	HUD.refresh_inventory()
-	WorldState.set_anchor_item("test", "a2", "011")
-	loot.open("011", "a2", "test")
+	# (junk: an item that can't stack onto something already in the bag - medical items now stack, so a found ice pack would simply join the one it carries)
+	WorldState.set_anchor_item("test", "a2", "025")
+	loot.open("025", "a2", "test")
 	loot._process(loot.REVEAL_TIME + 0.1)
 	await get_tree().process_frame
 	pr = loot.panel.get_global_rect()

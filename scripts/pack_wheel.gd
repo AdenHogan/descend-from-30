@@ -178,7 +178,7 @@ func _finish_press(pos: Vector2) -> void:
 		loot.swap_in(self, from)          # onto the found item: make room if it needs it, then take it
 		return
 	if dropping_out(pos):
-		drop_at(from)
+		drop_at(from, HUD.drop_dir_for(pos, centre.x))      # it falls out the way it was dragged (owner round 48h)
 		return
 	if to >= 0 and to != from:
 		craft_onto(from, to)
@@ -277,6 +277,11 @@ func craft_onto(from: int, to: int) -> Dictionary:
 		var res: Dictionary = WorldState.load_gun_from_pack(gun)
 		HUD.show_feedback(String(res["msg"]))
 		return {"ok": int(res["loaded"]) > 0, "name": "", "why": String(res["msg"]), "loaded": int(res["loaded"])}
+	# The same medical item onto itself: pour the units across (up to three a slot).
+	var moved: int = WorldState.merge_medical_slots(int(slots[from]), int(slots[to]))
+	if moved > 0:
+		HUD.show_feedback("Stacked.")
+		return {"ok": true, "name": "", "why": "", "merged": moved}
 	var r: Dictionary = Crafting.craft(int(slots[from]), int(slots[to]))
 	if bool(r.get("ok", false)):
 		HUD.show_feedback("Crafted: %s." % String(r["name"]))
@@ -346,10 +351,10 @@ func drop_hovered() -> void:
 
 
 ## Delete: drop it at your feet (it goes to the world, never lost — the hotbar's own discard).
-func drop_at(k: int) -> void:
+func drop_at(k: int, dir_x: float = 0.0) -> void:
 	if _slot_inst(k) == null:
 		return
-	HUD.discard_slot(int(slots[k]))
+	HUD.discard_slot(int(slots[k]), dir_x)
 
 
 # ---------------------------------------------------------------- per-frame

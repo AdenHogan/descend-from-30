@@ -516,7 +516,11 @@ static func _slots_freed(dos: Array) -> int:
 	for e in dos:
 		var parts := str(e).split(":", true, 2)
 		if parts[0] == "take_item":
-			freed += 1
+			for it in WorldState.inventory:
+				if it != null and it.item_id == parts[1]:
+					if it.count <= 1:
+						freed += 1          # a stack of two kits gives up ONE: its slot stays
+					break
 		elif parts[0] == "take_ammo":
 			var remaining := int(parts[1])
 			for i in range(WorldState.inventory.size() - 1, -1, -1):
@@ -541,6 +545,9 @@ static func _apply(qid: String, effect: String, who: Node) -> void:
 		"take_item":
 			for i in WorldState.inventory.size():
 				if WorldState.inventory[i] != null and WorldState.inventory[i].item_id == arg:
+					if WorldState.inventory[i].count > 1:          # a stack gives up ONE unit and keeps its slot
+						WorldState.inventory[i].count -= 1
+						break
 					WorldState.remove_from_inventory(i)
 					if HUD.selected_slot == i:
 						HUD.selected_slot = -1

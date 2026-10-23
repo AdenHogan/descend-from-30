@@ -362,6 +362,27 @@ func _test_trader() -> void:
 	var again: bool = npc.make_offer() and npc.accept_trade()
 	check(again and int(WorldState.run_chronicle[WorldState.current_run - 1].get("npcs_aided", 0)) == aided1,
 		"...once per resident (a second swap: %s, aided %d)" % [str(again), int(WorldState.run_chronicle[WorldState.current_run - 1].get("npcs_aided", 0))])
+	# A stack of bandages gives up ONE unit in a trade (owner round 48h: medical items stack) - a medical item the trader doesn't already hold
+	var med_id := ""
+	var held_ids: Array = []
+	for g in npc.rec.get("goods", []):
+		held_ids.append(str(g.get("id", "")))
+	for cand in ["006", "007", "010", "011"]:
+		if not (cand in held_ids):
+			med_id = cand
+			break
+	WorldState.inventory.clear()
+	for i in range(3):
+		WorldState.add_to_inventory(med_id)
+	var gave_stack: bool = npc.make_offer() and npc.accept_trade()
+	var left_of: int = 0
+	var given_in: bool = false
+	for inst in WorldState.inventory:
+		if inst.item_id == med_id:
+			left_of += inst.count
+		else:
+			given_in = true                                 # (the pack held only the stack, so anything else is the trader's goods)
+	check(gave_stack and left_of == 2 and given_in, "a stack of three %s gives up ONE in a trade (two left, and the goods came in) (made %s, left %d)" % [med_id, str(gave_stack), left_of])
 	await _close(room)
 	# Robbed after an offer: this one turns.
 	WorldState.new_game()

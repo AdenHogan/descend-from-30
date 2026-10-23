@@ -155,6 +155,8 @@ func _check_state(step: float) -> void:
 			report("INV_MAG", "the gun's magazine reads %d" % inst.mag_count)
 		if d.get("is_ammo", false) and inst.count > WorldState.MAX_AMMO_PER_SLOT:
 			report("INV_AMMO_STACK", "ammo stack of %d (limit %d)" % [inst.count, WorldState.MAX_AMMO_PER_SLOT])
+		if d.get("is_medical", false) and inst.count > WorldState.MAX_MEDICAL_PER_SLOT:
+			report("INV_MEDICAL_STACK", "medical stack of %d (limit %d)" % [inst.count, WorldState.MAX_MEDICAL_PER_SLOT])
 		if d.get("is_fuse", false) and inst.count > WorldState.MAX_FUSE_PER_SLOT:
 			report("INV_FUSE_STACK", "fuse stack of %d (limit %d)" % [inst.count, WorldState.MAX_FUSE_PER_SLOT])
 	# --- numbers ---
