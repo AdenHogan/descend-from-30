@@ -59,6 +59,7 @@ func _build_world(as_scenery: bool) -> void:
 	# so the commit shows exactly what already scrolled into view.
 	load("res://scripts/building_floors.gd").add_corridor_art(self,
 		load("res://scripts/building_floors.gd").corridor_art_named("corridor_lobby", WorldState.current_run))
+	CorpseDepth.ensure(self)                          # the dead draw in front of whoever stands level with them (owner round 48h)
 	load("res://scripts/building_floors.gd").add_endpoint_signs(self, 0, ["right"], false)
 	load("res://scripts/stair_window.gd").attach(get_node_or_null("LobbyRight"), "up", true, 1)   # the city behind its glass
 	load("res://scripts/lobby_exit_fx.gd").add_to(self)        # the way out: stone entrance, vestibule, steps, the street in glare

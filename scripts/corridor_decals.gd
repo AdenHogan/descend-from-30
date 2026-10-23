@@ -467,6 +467,7 @@ static func add_to(root: Node, floor_num: int, run: int, base_name: String, art_
 		f.set_meta("w", 12)
 		f.set_meta("h", 7)
 		f.set_script(load("res://scripts/module_anim.gd"))
+		f.z_index = CorpseDepth.Z + 1                             # over the body (it may be drawn in front of the player: CorpseDepth)
 		wall.add_child(f)
 	root.add_child(wall)
 	var art = root.get_node_or_null("CorridorArt")

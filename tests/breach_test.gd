@@ -574,7 +574,9 @@ func _test_risers() -> void:
 	check(not z.get_collision_layer_value(1) and not z.get_collision_mask_value(1), "...no body collision while it lies there")
 	check(absf(absf(z.animated_sprite.rotation) - PI * 0.5) < 0.01, "...on its back (rotation %.2f)" % z.animated_sprite.rotation)
 	var feet_y: float = z.global_position.y + z.RISER_FEET
-	check(z.z_index == 0, "...on the floor layer, under the living")
+	# (owner round 48h: the dead lie in front of whoever stands level with them - CorpseDepth sorts a lying riser by its feet row against the player's)
+	var want_z: int = CorpseDepth.Z if CorpseDepth.in_front_of(feet_y, player.feet_position().y) else 0
+	check(z.z_index == want_z, "...sorted against the player by its feet row (feet %.0f vs player %.0f -> z %d, want %d)" % [feet_y, player.feet_position().y, z.z_index, want_z])
 	# the lying body rests on the floor: its drawn extent (a rotated frame) sits above its feet line
 	check(absf(z.animated_sprite.global_position.y - (feet_y - z.RISER_HALF * z.RISER_FLAT)) < 30.0, "...its body rests on the floor (sprite %.0f, feet %.0f)" % [z.animated_sprite.global_position.y, feet_y])
 	for i in range(30):

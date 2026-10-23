@@ -53,6 +53,7 @@ func _ready() -> void:
 		_tex = FL.light_texture()
 		texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 		material = ORB.unshaded_material()      # the star shows as drawn, day or night (the fixture below stays lit)
+		z_index = CorpseDepth.Z + 1             # over a body lying in front of the player (z 2): loot tossed out of a corpse must not land behind it
 		_light = PointLight2D.new()
 		_light.texture = _tex
 		_light.color = ORB.STAR["light"]

@@ -1,12 +1,11 @@
 extends Node
 
-# LYING BODIES HAVE DEPTH IN A FLAT (owner round 37: "there's a clipping situation with this corpse position. If it's a little higher then we
-# can have player walk behind the corpse, as it would cover the player's lower legs"). A flat's second walking line is the BACK plane (a
-# player stepped up at set-back furniture stands 14 px further back than the lane); a body lying on the lane is nearer than that player, so
-# it now sits `CorpseDepth.RISE` px back from the lane and draws IN FRONT of them (z 2) while they are behind it, and under them (z 0, as ever)
-# on the lane. Three kinds of body: a live enemy that died here, the static sprite a re-entered flat lays for a recorded kill, and the BAKED
-# dead of a breach / corpse story (their own layer since tools/art/nest.py split them out of the overlay). Corridors keep their bodies on the
-# player's row (enemy_variety_test). Run: godot --headless res://tests/corpse_depth_test.tscn
+# THE DEAD LIE IN FRONT OF WHOEVER STANDS LEVEL WITH THEM (owner round 48h: "I am standing on top of bodies in an over clipping way, both for NPCs and
+# enemies… have those elements in front of players feet… so it looks like player is walking behind them"). Every body used to draw UNDER the living (z 0), so a
+# player level with a body had their legs painted over it. Now each body is sorted by its FEET ROW (corpse_depth.gd): level with the player or nearer (up to REACH)
+# it draws IN FRONT (z 2); clearly behind them it stays under. Nothing is shifted any more (round 37's 6 px "sit back" is gone, tools/art/nest.py BODY_RISE is 0).
+# Kinds: a live enemy that died, a riser still lying, a resident / survivor that died, the static sprite a re-entered flat lays, the baked dead of a story, a
+# corridor's baked dead, and a previous character's body — in flats AND corridors. Run: godot --headless res://tests/corpse_depth_test.tscn
 
 const RoomScript := preload("res://scripts/room.gd")
 const EnemyFeet := preload("res://scripts/enemy_feet.gd")
@@ -29,7 +28,8 @@ func _ready() -> void:
 	await _test_static_corpses()
 	await _test_baked_dead()
 	await _test_lane_rule()
-	await _test_corridor_unchanged()
+	await _test_other_kinds()
+	await _test_corridor()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -78,98 +78,57 @@ func _plane(p: Node, up: bool) -> void:
 func _test_rule_and_constants() -> void:
 	print("[the rule, and the art's constant]")
 	var CD = load("res://scripts/corpse_depth.gd")
-	check(CD.in_front_of(353.0, 339.0), "a body on the lane is in front of a player on the back plane")
-	check(not CD.in_front_of(353.0, 353.0), "…not in front of a player on the lane (they still draw over it)")
-	check(not CD.in_front_of(339.0, 353.0), "…and a body behind the player never is")
-	check(not CD.in_front_of(352.0, 353.0) and CD.in_front_of(359.0, 353.0), "the gap must be real (%.0f px), not a pixel's difference" % CD.FRONT_GAP)
-	check(CD.FRONT_Z > 1, "in front means over the actor layer (z 1)")
-	# the art bakes the same rise into the dead layers: one number, two files
+	check(CD.in_front_of(353.0, 353.0), "a body level with the player (same feet row) is in front of them")
+	check(CD.in_front_of(353.0, 339.0), "…a body on the lane is in front of a player up on the back plane")
+	check(CD.in_front_of(351.0, 353.0) and not CD.in_front_of(349.0, 353.0), "…a body just behind them (within %.0f px) still counts as level; further back it is behind them" % CD.SAME)
+	check(not CD.in_front_of(330.0, 353.0), "…a body clearly behind the player stays under them (a player in front of it draws over it)")
+	check(CD.in_front_of(353.0 + CD.REACH, 353.0) and not CD.in_front_of(353.0 + CD.REACH + 1.0, 353.0), "…and one far in front can't overlap them, so it is left alone (REACH %.0f px: another floor in a pan stays out)" % CD.REACH)
+	check(CD.Z > 1, "in front means over the actor layer (z 1)")
+	# the art bakes its bodies on the row they were placed on: one number, two files
 	var nest_py: String = FileAccess.get_file_as_string("res://tools/art/nest.py")
 	var rise_line := ""
 	for line in nest_py.split("\n"):
 		if line.begins_with("BODY_RISE"):
 			rise_line = line
 	var art_rise: int = int(rise_line.split("=")[1].strip_edges().split(" ")[0]) if rise_line != "" else -1
-	check(art_rise == int(CD.RISE), "tools/art/nest.py BODY_RISE (%d) = corpse_depth.gd RISE (%d)" % [art_rise, int(CD.RISE)])
-
-
-# OWNER ROUND 45: "the corpse drops below the Y plane then clumsily moves back up". The 6 px rise used to wait for the Death animation to
-# END and then slide (0.3 s) — a visible hop. It is now spread over the fall, whole pixels, and nothing moves once the body has landed.
-func _test_no_hop(room: Node) -> void:
-	var z = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
-	z.spawn_key = ""
-	room.add_child(z)
-	z.global_position = Vector2(700.0, 321.0)
-	await _frames(40)
-	var spr: AnimatedSprite2D = z.get_node("AnimatedSprite2D")
-	z.receive_damage(999, "melee")
-	var last_y: float = spr.position.y
-	var biggest := 0.0
-	var after_landing := 0.0
-	var landed := false
-	var settle_frames := 2
-	for i in range(160):
-		await get_tree().physics_frame
-		var step: float = absf(spr.position.y - last_y)
-		last_y = spr.position.y
-		biggest = maxf(biggest, step)
-		if landed and settle_frames <= 0:
-			after_landing = maxf(after_landing, step)
-		if landed:
-			settle_frames -= 1
-		if spr.animation == "Death" and spr.frame == spr.sprite_frames.get_frame_count("Death") - 1:
-			landed = true                       # (the depth node ticks on the idle frame: give its last pixel two frames)
-	check(landed and biggest <= 1.01, "the body never moves more than a pixel in a frame (biggest step %.2f px)" % biggest)
-	check(after_landing == 0.0, "…and nothing moves once it has landed (%.2f px)" % after_landing)
-	z.free()
+	check(art_rise == int(CD.BAKED_RISE) and art_rise == 0, "tools/art/nest.py BODY_RISE (%d) = corpse_depth.gd BAKED_RISE (%d) = 0: no body sits behind its row" % [art_rise, int(CD.BAKED_RISE)])
+	check(not ("RISE" in CD) and not ("FRONT_GAP" in CD), "the old sit-back constants are gone")
 
 
 # --- a live enemy that died in the flat ---------------------------------------------------------------------------------
 
 func _test_live_corpse() -> void:
-	print("[a live corpse: sits back, and goes in front of a player behind it]")
+	print("[a live corpse: stays where it fell, and draws in front of a player level with it]")
 	var CD = load("res://scripts/corpse_depth.gd")
 	var room = await _room("1001")
 	var p = room.get_node("Player")
-	check(room.get_node_or_null("CorpseDepth") != null, "a flat has the depth node")
+	check(room.get_node_or_null("CorpseDepth") is CorpseDepth, "a flat has the sorter")
 	var z = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
 	z.spawn_key = ""
 	room.add_child(z)
 	z.global_position = Vector2(560.0, 321.0)
 	await _frames(40)
 	var spr: AnimatedSprite2D = z.get_node("AnimatedSprite2D")
-	var alive_rise: float = spr.position.y
+	var alive_y: float = spr.position.y
 	z.receive_damage(999, "melee")
 	await _frames(150)
-	var lane_feet: float = p.feet_position().y
 	check(z.is_dead and spr.animation == "Death" and spr.frame == spr.sprite_frames.get_frame_count("Death") - 1, "it has died and finished falling")
-	check(absf(float(z.get_meta("cd_rise", 0.0)) - CD.RISE) < 0.01 and absf(spr.position.y - (alive_rise - CD.RISE)) < 0.01,
-		"the body has eased back %.0f px from the lane (sprite y %.1f -> %.1f)" % [CD.RISE, alive_rise, spr.position.y])
-	check(z.z_index == 0, "the player on the lane (feet %.0f): the body stays under them (z %d), as it always did" % [lane_feet, z.z_index])
-	await _test_no_hop(room)
+	check(absf(spr.position.y - alive_y) < 0.01, "the body has not been shifted: it lies where it fell (sprite y %.1f -> %.1f)" % [alive_y, spr.position.y])
+	check(z.z_index == CD.Z, "the player on the lane, level with it: the body draws OVER them (z %d)" % z.z_index)
 	_plane(p, true)
 	await _frames(4)
 	check(absf(p.feet_position().y - 339.0) < 0.6, "the player up on the back plane (feet %.0f)" % p.feet_position().y)
-	check(z.z_index == CD.FRONT_Z, "…the body now draws OVER them (z %d)" % z.z_index)
-	# it reaches up over the player's lower legs: the body's top row is above the player's drawn feet
-	var tex: Texture2D = spr.sprite_frames.get_frame_texture("Death", spr.sprite_frames.get_frame_count("Death") - 1)
-	var img: Image = tex.get_image()
-	if img.is_compressed():
-		img.decompress()
-	var top_row := -1
-	for yy in range(img.get_height()):
-		for xx in range(img.get_width()):
-			if img.get_pixel(xx, yy).a > 0.5:
-				top_row = yy
-				break
-		if top_row >= 0:
-			break
-	var body_top: float = z.global_position.y + spr.position.y + (spr.offset.y - float(img.get_height()) * 0.5 + float(top_row)) * spr.scale.y
-	var player_feet_drawn: float = p.feet_position().y - EnemyFeet.PLAYER_DRAWN_ABOVE_COLLISION
-	check(body_top <= player_feet_drawn - 4.0, "…and reaches %.0f px up over their feet (body top %.0f, their drawn feet %.0f)" % [player_feet_drawn - body_top, body_top, player_feet_drawn])
+	check(z.z_index == CD.Z, "…the body is nearer than them: over them (z %d)" % z.z_index)
+	# it hides the player's feet: the body's drawn bottom is at (or below) the lane row the player's feet stand on
+	var drawn_bottom: float = z.global_position.y + EnemyFeet.drawn_bottom(spr)     # (drawn_bottom is in the body's own space)
+	check(drawn_bottom >= RoomScript.ROOM_FEET_Y - EnemyFeet.PLAYER_DRAWN_ABOVE_COLLISION - 0.6, "its drawn bottom (%.1f) is on the player's row: their lower legs go behind it" % drawn_bottom)
 	_plane(p, false)
+	p.global_position.y += 12.0                          # a player standing NEARER than the body (in front of it)
 	await _frames(4)
-	check(z.z_index == 0, "back on the lane: under them again")
+	check(z.z_index == 0, "a player standing in front of it (12 px nearer): the body stays under them (z %d)" % z.z_index)
+	p.global_position.y -= 12.0
+	await _frames(4)
+	check(z.z_index == CD.Z, "back level with it: over them again")
 	room.free()
 	await get_tree().process_frame
 
@@ -177,7 +136,7 @@ func _test_live_corpse() -> void:
 # --- the static bodies a re-entered flat lays ----------------------------------------------------------------------------
 
 func _test_static_corpses() -> void:
-	print("[static corpses: the same row as the body that died, sat back, sorted]")
+	print("[static corpses: the same row as the body that died, in front]")
 	var CD = load("res://scripts/corpse_depth.gd")
 	WorldState.new_game()
 	WorldState.master_seed = 4242
@@ -192,17 +151,18 @@ func _test_static_corpses() -> void:
 		if room.is_ancestor_of(c):
 			bodies.append(c)
 	check(bodies.size() == 2, "both recorded kills lie in the flat (%d)" % bodies.size())
-	var want: float = RoomScript.ROOM_FEET_Y - EnemyFeet.PLAYER_DRAWN_ABOVE_COLLISION - CD.RISE
+	var want: float = RoomScript.ROOM_FEET_Y - EnemyFeet.PLAYER_DRAWN_ABOVE_COLLISION
 	for c in bodies:
 		var bottom: float = EnemyFeet.drawn_bottom(c)      # (the corpse IS the sprite: its position is already in it)
 		var kind: String = "big" if c.sprite_frames.has_animation("Death") and not c.sprite_frames.has_animation("Dead_Dead") else "standard"
-		check(absf(bottom - want) < 0.6, "%s: drawn bottom %.1f = the lane row %.0f less the rise (%.1f)" % [kind, bottom, RoomScript.ROOM_FEET_Y - 1.0, want])
+		check(absf(bottom - want) < 0.6, "%s: drawn bottom %.1f = the lane row %.0f (no sit-back)" % [kind, bottom, want])
+	await _frames(4)
 	for c in bodies:
-		check(c.z_index == 0, "player on the lane: under them")
+		check(c.z_index == CD.Z, "player on the lane, level with it: the body is over them")
 	_plane(p, true)
 	await _frames(4)
 	for c in bodies:
-		check(c.z_index == CD.FRONT_Z, "player on the back plane: the body is over them")
+		check(c.z_index == CD.Z, "player on the back plane: the body is over them")
 	room.free()
 	await get_tree().process_frame
 	WorldState.killed_zombies.erase("t:std")
@@ -232,7 +192,7 @@ func _test_lane_rule() -> void:
 	check(RoomScript.over_art_candidate(rooms + "dining_room_e_r2.png") == rooms + "dining_room_e_over_r2.png"
 			and RoomScript.over_art_candidate(rooms + "dining_room_e_r3.png") == rooms + "dining_room_e_over_r3.png", "…one per run look")
 	check(RoomScript.over_art_candidate(rooms + "dining_room_e_burnt.png") == "", "a burnt flat has none")
-	check(RoomScript.OVER_ART_Z > load("res://scripts/corpse_depth.gd").FRONT_Z and RoomScript.OVER_ART_Z > 1,
+	check(RoomScript.OVER_ART_Z > load("res://scripts/corpse_depth.gd").Z and RoomScript.OVER_ART_Z > 1,
 		"an over layer draws over the actors AND over a body in front of a back-plane player (z %d)" % RoomScript.OVER_ART_Z)
 	# nothing in the art is in front of the lane today: the chairs and the torn box that were moved BEHIND it must not leave a layer (or its .import) behind
 	var over_files := []
@@ -284,7 +244,7 @@ func _test_lane_rule() -> void:
 # --- the baked dead of a corpse / breach story -----------------------------------------------------------------------------
 
 func _test_baked_dead() -> void:
-	print("[the baked dead: their own layer, drawn back, sorted]")
+	print("[the baked dead: their own layer, on their row, sorted]")
 	var CD = load("res://scripts/corpse_depth.gd")
 	var meta := RoomScript.nest_meta()
 	# every story overlay that has bodies has its dead layer, with sane rects
@@ -334,17 +294,17 @@ func _test_baked_dead() -> void:
 	var any_over_lane := false
 	for d in dead_sprites:
 		var feet: float = d.global_position.y + float(d.get_meta("feet_off")) * d.global_scale.y
-		check(d.z_index == (CD.FRONT_Z if CD.in_front_of(feet, p.feet_position().y) else 0), "player on the lane: z %d for a body whose feet are at %.0f" % [d.z_index, feet])
-		any_over_lane = any_over_lane or d.z_index == CD.FRONT_Z
+		check(d.z_index == (CD.Z if CD.in_front_of(feet, p.feet_position().y) else 0), "player on the lane: z %d for a body whose feet are at %.0f (player %.0f)" % [d.z_index, feet, p.feet_position().y])
+		any_over_lane = any_over_lane or d.z_index == CD.Z
 	_plane(p, true)
 	await _frames(4)
 	for d in dead_sprites:
 		var feet2: float = d.global_position.y + float(d.get_meta("feet_off")) * d.global_scale.y
-		check(CD.in_front_of(feet2, p.feet_position().y) == (d.z_index == CD.FRONT_Z), "player on the back plane: z %d (feet %.0f vs theirs %.0f)" % [d.z_index, feet2, p.feet_position().y])
-		check(CD.in_front_of(feet2, p.feet_position().y) or feet2 < 339.0 + CD.FRONT_GAP, "(a body further forward than the lane would be over them: %.0f)" % feet2)
-	check(any_over_lane or dead_sprites.size() > 0, "(at least one body checked)")
-	# the search node sits on the raised body, not under it
+		check(CD.in_front_of(feet2, p.feet_position().y) == (d.z_index == CD.Z), "player on the back plane: z %d (feet %.0f vs theirs %.0f)" % [d.z_index, feet2, p.feet_position().y])
+	check(any_over_lane, "a body lying level with the lane draws over a player standing on it")
+	# the search spot sits on the body, and ABOVE it (a body in front of the player is z 2 — its star must not be hidden behind it)
 	var search_ok := false
+	var star_over := false
 	for d in get_tree().get_nodes_in_group("nest_dead"):
 		if not room.is_ancestor_of(d):
 			continue
@@ -356,16 +316,70 @@ func _test_baked_dead() -> void:
 				var h: float = (d.texture as AtlasTexture).region.size.y
 				if a.position.y >= top - 2.0 and a.position.y <= top + h + 2.0:
 					search_ok = true
-	check(search_ok, "its search spot is on the (raised) body")
+				if a.z_index > d.z_index and a.z_index > CD.Z:
+					star_over = true
+	check(search_ok, "its search spot is on the body")
+	check(star_over, "…and its star draws above the body (z %d > %d)" % [CD.Z + 1, CD.Z])
 	# a charred / backdrop room has no sorter: its sprites just stay under the player
 	room.free()
 	await get_tree().process_frame
 
 
-# --- corridors don't change --------------------------------------------------------------------------------------------------
+# --- the other kinds: a riser lying, a resident / survivor that died, a previous character's body --------------------------------
 
-func _test_corridor_unchanged() -> void:
-	print("[a corridor keeps its bodies on the player's row]")
+func _test_other_kinds() -> void:
+	print("[a riser, the NPC dead, a fallen character: all sorted by their feet]")
+	var CD = load("res://scripts/corpse_depth.gd")
+	var room = await _room("1001")
+	var p = room.get_node("Player")
+	var feet: float = p.feet_position().y
+	# a riser lying on the lane is a body; once up it is an ordinary zombie again
+	var rz = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
+	rz.spawn_key = ""
+	room.add_child(rz)
+	rz.global_position = Vector2(640.0, 321.0)
+	rz.start_riser(1.0, "t:riser", 0.0)
+	await _frames(6)
+	check(rz.is_riser_down() and rz.z_index == CD.Z, "a riser lying level with the player is over them (z %d)" % rz.z_index)
+	rz._riser_up()
+	await _frames(4)
+	check(rz.z_index == 1, "…once up it is an actor again (z %d), never left in front" % rz.z_index)
+	rz.free()
+	# a resident / survivor that died: anything in those groups with is_dead is a body at its origin (= its feet)
+	for g in ["resident_npc", "survivor"]:
+		var n := Node2D.new()
+		n.set_script(load("res://tests/_dead_stub.gd"))
+		room.add_child(n)
+		n.add_to_group(g)
+		n.global_position = Vector2(700.0, feet)
+		n.is_dead = true
+		await _frames(4)
+		check(n.z_index == CD.Z, "a dead member of group %s level with the player is over them (z %d)" % [g, n.z_index])
+		n.global_position.y = feet - 30.0
+		await _frames(4)
+		check(n.z_index == 0, "…one lying 30 px behind them stays under (z %d)" % n.z_index)
+		n.is_dead = false
+		n.global_position.y = feet
+		await _frames(4)
+		check(n.z_index == 0 or n.z_index == 1, "…a living one is never lifted by the sorter (z %d)" % n.z_index)
+		n.free()
+	# the body of a previous character
+	var pc = load("res://scripts/player_corpse.gd").new()
+	pc.corpse_key = "t:corpse"
+	room.add_child(pc)
+	pc.global_position = Vector2(780.0, feet)
+	await _frames(4)
+	check(pc.z_index == CD.Z, "a fallen character's body level with the player is over them (z %d)" % pc.z_index)
+	pc.free()
+	room.free()
+	await get_tree().process_frame
+
+
+# --- corridors: the same rule ---------------------------------------------------------------------------------------------------
+
+func _test_corridor() -> void:
+	print("[a corridor: the same rule, for its dead zombies and its baked dead]")
+	var CD = load("res://scripts/corpse_depth.gd")
 	WorldState.new_game()
 	WorldState.tutorial_completed = true
 	WorldState.is_first_run = false
@@ -377,7 +391,8 @@ func _test_corridor_unchanged() -> void:
 	bf.setup_floor = 15
 	add_child(bf)
 	await _frames(6)
-	check(bf.get_node_or_null("CorpseDepth") == null, "no depth node in a corridor")
+	check(bf.get_node_or_null("CorpseDepth") is CorpseDepth, "a corridor has the sorter")
+	var p = bf.get_node("Player")
 	var z = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
 	z.spawn_key = ""
 	bf.add_child(z)
@@ -387,6 +402,20 @@ func _test_corridor_unchanged() -> void:
 	var before: float = spr.position.y
 	z.receive_damage(999, "melee")
 	await _frames(150)
-	check(z.is_dead and absf(spr.position.y - before) < 0.01 and z.z_index == 0, "a dead zombie stays where it fell (sprite y %.1f -> %.1f, z %d)" % [before, spr.position.y, z.z_index])
+	check(z.is_dead and absf(spr.position.y - before) < 0.01, "a dead zombie stays where it fell (sprite y %.1f -> %.1f)" % [before, spr.position.y])
+	check(z.z_index == CD.Z, "…and, level with the player's row, draws over them (z %d)" % z.z_index)
+	# a baked body (a decal in group corridor_dead): its feet are its sprite's bottom row
+	var tex: Texture2D = load("res://assets/corridor/decals/dead_1.png")
+	var s := Sprite2D.new()
+	s.texture = tex
+	s.centered = false
+	s.add_to_group("corridor_dead")
+	bf.add_child(s)
+	s.global_position = Vector2(300.0, p.feet_position().y - float(tex.get_height()) + 1.0)
+	await _frames(4)
+	check(s.z_index == CD.Z, "a baked corridor body lying on the player's row is over them (z %d)" % s.z_index)
+	s.global_position.y -= 40.0
+	await _frames(4)
+	check(s.z_index == 0, "…one lying 40 px behind them is under (z %d)" % s.z_index)
 	bf.free()
 	await get_tree().process_frame

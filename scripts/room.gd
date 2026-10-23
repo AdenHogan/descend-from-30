@@ -1086,9 +1086,9 @@ func _add_breach_nest(module: Node, _slot: int, role: String) -> void:
 
 ## The lying dead of a story are their OWN layer (tools/art/nest.py, owner round 37): one sprite per body, cut out of the module's
 ## `<name>_nest_<role>_dead.png` by the rects the meta records, laid right over the overlay. They draw under the player like the rest
-## of the art — except while the player stands further back than a body (up on a back plane), when corpse_depth.gd lifts that body
-## over them, so a player at the bookshelf is hidden to the knees by the body lying in front of it. `feet_off` = rows from a sprite's
-## top to the body's underside.
+## of the art — except that corpse_depth.gd sorts each body by its feet row: a body level with the player (or nearer) is drawn over them, so the
+## player walks BEHIND it (owner round 48h) — a player at the bookshelf is hidden to the knees by the body lying in front of it. `feet_off` = rows
+## from a sprite's top to the body's underside.
 func _add_nest_dead(module: Node, nest: Node, dead_path: String, rects: Array, origin: Vector2, art_scale: Vector2) -> void:
 	if rects.is_empty() or not ResourceLoader.exists(dead_path):
 		return
@@ -1130,6 +1130,8 @@ func _nest_anim(module: Node, at: Vector2, kind: String, fall: int, col: String,
 	a.set_meta("color", col)
 	a.set_meta("w", w)
 	a.set_meta("h", h)
+	if kind == "flies":
+		a.z_index = CorpseDepth.Z + 1        # over the bodies (a body in front of the player is z 2)
 	a.set_script(MODULE_ANIM)
 	a.add_to_group("breach_nest_anim")
 	module.add_child(a)
@@ -1307,7 +1309,7 @@ func _add_front_art(module: Node, has_balcony: bool, charred: bool) -> void:
 ## Furniture that stands NEARER than the lane (a toppled chair whose lowest edge is below the row every actor's feet stand on) has to
 ## draw over actors, not under them (owner round 45b: "that chair could potentially be in front of enemies and player as it's lower on
 ## the plane"). tools/art/pixlib.py cuts those pieces out of each look's finished art as `<art>_over[_r2|_r3].png`; this lays it above
-## the actor layer (z 1) and a body lying in front of a back-plane player (CorpseDepth.FRONT_Z). A burnt flat has none.
+## the actor layer (z 1) and a body lying in front of the player (CorpseDepth.Z). A burnt flat has none.
 const OVER_ART_Z := 3
 
 
@@ -1563,10 +1565,7 @@ func _after_modules_ready() -> void:
 	_build_back_plane_spots()
 
 	_spawn_corpses(WorldState.current_floor, WorldState.current_apartment_id)
-	var depth := CorpseDepth.new()        # bodies lie a little back and draw over a player standing behind them (owner round 37)
-	depth.name = "CorpseDepth"
-	depth.room = self
-	add_child(depth)
+	CorpseDepth.ensure(self)              # the dead draw in front of whoever stands level with them (owner round 48h)
 	_spawn_world_drops(WorldState.current_floor)
 	# A character who died INSIDE this apartment leaves a recoverable body here (step 7).
 	WorldState.spawn_player_corpse_into(self, WorldState.current_floor,
@@ -1631,6 +1630,7 @@ func _setup_dead_bodies(interactable_script) -> void:
 		anchor.name = str(d["name"])
 		anchor.position = d["pos"]
 		anchor.set_meta("dead_body", true)
+		anchor.z_index = CorpseDepth.Z + 1          # over the body (z 2): a body in front of the player must not hide its own search star
 		module.add_child(anchor)
 		anchor.set_script(interactable_script)
 		anchor.apartment_id = apartment_id
@@ -2530,10 +2530,10 @@ func _spawn_corpses(floor_num: int, apt_id: String = "") -> void:
 			corpse.animation = "Dead_Dead"
 			corpse.autoplay = "Dead_Dead"
 		# Lie where the live body lay: the same drawn row a living enemy's sprite is lifted to (EnemyFeet — the big one's static
-		# sprite sat 4 px lower than the body that died), then CorpseDepth.RISE back from the lane (bodies have depth in a flat).
+		# sprite sat 4 px lower than the body that died). No further shift: CorpseDepth sorts it by its feet row (in front of a player level with it).
 		var feet_below: float = big_feet if entry["type"] == "big" else std_feet
 		var lift: float = roundf(EnemyFeet.drawn_bottom(corpse) - (feet_below - EnemyFeet.PLAYER_DRAWN_ABOVE_COLLISION))
-		corpse.global_position = entry["pos"] - Vector2(0.0, lift + CorpseDepth.RISE)
+		corpse.global_position = entry["pos"] - Vector2(0.0, lift)
 		corpse.set_meta("feet_y", float(entry["pos"].y) + feet_below)
 		corpse.add_to_group("room_corpse")
 		corpse.z_index = 0

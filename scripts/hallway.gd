@@ -110,6 +110,7 @@ func _build_world() -> void:
 	# loads fresh or is built as a pan backdrop, so nothing pops in when a pan commits.
 	load("res://scripts/building_floors.gd").add_corridor_art(self,
 		load("res://scripts/building_floors.gd").corridor_art_named("corridor_hallway", WorldState.current_run))
+	CorpseDepth.ensure(self)                          # the dead draw in front of whoever stands level with them (owner round 48h)
 	load("res://scripts/building_floors.gd").add_endpoint_signs(self, 30, ["left"], true)
 	load("res://scripts/stair_window.gd").attach(get_node_or_null("HallwayStaircaseLeft"), "down", false, 0)   # the city behind its glass
 	_add_floor_decals()

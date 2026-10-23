@@ -210,6 +210,7 @@ func _ready() -> void:
 	# content — floors then stack flush and the camera can frame one exactly.
 	_strip_junk()
 	_apply_corridor_art(floor_num)
+	CorpseDepth.ensure(self)                          # the dead draw in front of whoever stands level with them (owner round 48h); a backdrop's node only touches bodies near the live player's row
 
 	# A passive backdrop instance carries no live PLAYER, but it DOES show the
 	# floor's enemies: during a stair pan the player must see what's waiting on

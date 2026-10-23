@@ -59,19 +59,20 @@ corridor floor. Measured (collision-bottom of the CollisionShape2D):
   family's and the big's `_ready`) raises each enemy's SPRITE so its lowest Idle pixel sits at collision-bottom − 1 = the
   player's row: **drawn feet 418 in a corridor, 352 in a flat, alive or dead** (the Death frames end on the same row as
   Idle). Collision, origins and every number above are unchanged. Locked by `enemy_variety_test._test_drawn_feet_level`.
-- **LYING BODIES HAVE DEPTH IN A FLAT (owner round 37 — "if it's a little higher then we can have player walk behind the corpse, as
-  it would cover the player's lower legs").** A flat's second walking line is the BACK plane: a player stepped up at set-back
-  furniture stands at feet **339** (14 px behind the lane's 353). A body lying on the lane is NEARER than that player, but corpses
-  used to draw on the floor layer under every actor, so the player's legs were painted over the body (and a lying body is only ~15 px
-  tall, so even in front it barely reached their feet). `scripts/corpse_depth.gd` (a node `room.gd` adds to every LIVE flat; corridors
-  have no second line and keep their bodies on the player's row): (1) a body sits **`RISE` 6 px back** from the lane (live enemy
-  corpses ease up once they've finished falling; static re-entry corpses and the baked dead are placed there); (2) a body draws **in
-  front of the player (z 2)** only while it is nearer than them by `FRONT_GAP` 6 px — i.e. while the player is up on the back plane
-  (feet 339) behind a body on the lane (feet ~347 after the rise); on the lane the player still draws over the body, as before. The
-  three kinds of body: a live enemy that died there, the static sprite a re-entered flat lays (group `room_corpse` — which now also
-  uses the live body's drawn row: the BIG zombie's static corpse lay 4 px lower than the body that died), and the BAKED dead of a
-  breach / corpse story (`<module>_nest_<role>_dead.png`, drawn up to `BODY_RISE` 6 px back by `tools/art/nest.py` — only as far as
-  the rows above stay clear floor — and recorded in `nest_meta.json` "dead"). Locked by `corpse_depth_test`.
+- **THE DEAD LIE IN FRONT OF WHOEVER STANDS LEVEL WITH THEM (owner round 48h — "I am standing on top of bodies in an over clipping way, both for NPCs and
+  enemies… have those elements in front of players feet… so it looks like player is walking behind them and they sprawled out in the room"; supersedes
+  round 37's "sit 6 px back").** Everything is sorted by FEET ROW, like the rest of the 2.5D scene. A body that is **level with the player (its feet at most
+  `CorpseDepth.SAME` 3 px ABOVE theirs) or nearer (below them, up to `REACH` 40 px)** draws **over the actors (z `Z` 2)**: the player walks behind it, their
+  lower legs hidden by the body. A body clearly BEHIND the player (further up the screen) stays under them (z 0) — a player in front of it draws over it, as
+  anything would. A player up on a back plane (feet 339, 14 px behind the lane's 353) is behind a body on the lane, so the body is over them there too.
+  Bodies lie EXACTLY where they fell / were placed: nothing is shifted any more (`RISE` and `FRONT_GAP` are gone; `tools/art/nest.py BODY_RISE` is 0 =
+  `CorpseDepth.BAKED_RISE`). `scripts/corpse_depth.gd` is one node per world scene (`CorpseDepth.ensure(root)`: flats, corridors, the hallway, the lobby —
+  each sorts only the bodies under its own root, and `REACH` keeps a pan's second floor from interfering). The kinds it sorts, each by its own feet row: a
+  live enemy that died there (feet = origin + collision bottom) and a RISER still lying, a dead resident or survivor (feet = origin), the static sprite a
+  re-entered flat lays (`room_corpse`, meta `feet_y`), the BAKED dead of a breach / corpse story (`nest_dead`, one sprite a body, meta `feet_off`), a corridor's
+  baked dead decal (`corridor_dead`: its feet are the sprite's bottom row) and the body of a previous character (`player_corpse`). Things that must stay readable
+  over a body — loot stars and drops, search spots on a body (`dead_<slot>_<k>`), the flies — are z `Z + 1` (3, = `room.OVER_ART_Z`). Locked by
+  `corpse_depth_test` (mutation-checked).
 - **Never align two different rigs by their ORIGIN.** Matching origins puts a
   bigger rig's feet lower. Align by FEET (collision-bottom = 419). This is the
   bug that made the stair enemy sit 18px low.

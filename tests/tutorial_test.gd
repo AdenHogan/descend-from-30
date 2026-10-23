@@ -187,7 +187,8 @@ func _test_3003_scripted_content() -> void:
 		check(tz.tutorial_scripted, "neighbour is in scripted (no-RNG) mode")
 		check(tz.tutorial_frozen, "neighbour starts frozen until the player nears")
 		check(tz.riser_scripted and tz.riser_phase == "lying", "she starts as a BODY on the floor (a scripted riser, phase %s)" % tz.riser_phase)
-		check(not tz.get_collision_layer_value(1) and tz.z_index == 0, "…lying on the floor layer, no collision (she can't block anyone)")
+		# (owner round 48h: a body is sorted against the player by its feet row - z 0 under them, z 2 over them when level with / nearer; never z 1, the living's layer)
+		check(not tz.get_collision_layer_value(1) and (tz.z_index == 0 or tz.z_index == CorpseDepth.Z), "…lying on the floor (z %d, sorted against the player by CorpseDepth), no collision (she can't block anyone)" % tz.z_index)
 		check(tz.drops_key and tz.key_target_apartment == "3002", "neighbour yields the 3002 key on death")
 		var zx = tz.global_position.x
 		check(absf(zx - (1035.0 - room.TUT_BODY_INSET)) < 10.0 or absf(zx - (155.0 + room.TUT_BODY_INSET)) < 10.0,
