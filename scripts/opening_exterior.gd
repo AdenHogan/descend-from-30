@@ -48,6 +48,16 @@ const T_HOLD_SHORT := 0.9
 const T_FADE_OUT := 1.4                 # picture + title -> black
 const HURRY_SPEED := 5.0
 
+# TITLE MODE (owner round 48f: "that background needs changing… more animated… a new one"): the run-3 night, alive behind the logo. There is no
+# climb, no title card, no fade out and no end — the camera starts on the roof (where floor 30's warm window is) and sinks, very slowly, down the
+# tower and back (a cosine, so it eases at both ends), under the rain, the bolts and the thunder, the burning towers, the blinking beacons and the
+# failing lamps. A pure function of `t`, so a test can walk it.
+const TITLE_RUN := 3
+const TITLE_FADE_IN := 1.6
+const TITLE_DROP := 130.0               # native px the camera sinks from the roof (~9 floors)
+const TITLE_PERIOD := 84.0              # seconds for one full sink and rise
+const TITLE_RAIN_DB := -15.0
+const TITLE_THUNDER_DB := -8.0
 const TITLE_COLOR := Color(0.72, 0.05, 0.05)
 const GLASS_DARK := Color(0.24, 0.26, 0.32)
 
@@ -55,6 +65,7 @@ var title_text: String = "DESCEND FROM 30"
 var run: int = 0                        # 0 = the run the game is on (WorldState.current_run)
 var own_input: bool = false             # a key hurries it (the cold open's overlay does this itself)
 var with_title: bool = true
+var title_mode: bool = false            # the TITLE SCREEN's live backdrop (owner round 48f): the night held near the roof, drifting, never ending
 var load_ok: bool = false
 var done: bool = false
 var t: float = 0.0
@@ -82,6 +93,7 @@ var _hum: AudioStreamPlayer = null
 var _siren: AudioStreamPlayer = null
 var _swell: AudioStreamPlayer = null
 var _thunder: AudioStreamPlayer = null
+var _rain_snd: AudioStreamPlayer = null  # title mode only: the rain's wash
 var _siren_played := false
 var _swell_played := false
 var _bolt_in: float = 5.0               # seconds to the next lightning (night)
@@ -140,7 +152,19 @@ static func title_visible(tt: float, wt: bool = true) -> float:
 
 
 func camera() -> float:
+	if title_mode:
+		return title_camera(t, scroll)
 	return scroll * pan_u(t, with_title)
+
+
+## The title backdrop's camera: `top` (the roof) at t = 0, `TITLE_DROP` lower half a period later, back at the roof after a whole one.
+static func title_camera(tt: float, top: float) -> float:
+	return top - TITLE_DROP * (0.5 - 0.5 * cos(TAU * tt / TITLE_PERIOD))
+
+
+## The title backdrop's fade up from black (it never fades out).
+static func title_black(tt: float) -> float:
+	return 1.0 - clampf(tt / TITLE_FADE_IN, 0.0, 1.0)
 
 
 # ---- which floors burn: THIS playthrough's fire ------------------------------------------------------------------------
@@ -152,25 +176,39 @@ static func burn_plan() -> Array:
 		var st: int = WorldState.fire_intensity(fl)
 		if st < 0:
 			continue
-		var r := RandomNumberGenerator.new()
-		r.seed = hash(str(WorldState.master_seed) + "openburn" + str(fl))
-		var n: int
-		match st:
-			WorldState.FIRE_LIGHT:
-				n = r.randi_range(1, 2)
-			WorldState.FIRE_BLAZE:
-				n = r.randi_range(3, 5)
-			_:
-				n = r.randi_range(6, 8)
-		var bays: Array = [0, 1, 2, 3, 4, 5, 6, 7]
-		for i in range(bays.size() - 1, 0, -1):
-			var j: int = r.randi_range(0, i)
-			var tmp = bays[i]
-			bays[i] = bays[j]
-			bays[j] = tmp
-		var pick: Array = bays.slice(0, n)
-		pick.sort()
-		out.append({"floor": fl, "stage": st, "bays": pick})
+		out.append(burn_entry(fl, st, str(WorldState.master_seed) + "openburn" + str(fl)))
+	return out
+
+
+## One burning floor: which of its 8 window bays show the fire (seeded by `seed_text`, so the same building burns the same way every time).
+static func burn_entry(fl: int, st: int, seed_text: String) -> Dictionary:
+	var r := RandomNumberGenerator.new()
+	r.seed = hash(seed_text)
+	var n: int
+	match st:
+		WorldState.FIRE_LIGHT:
+			n = r.randi_range(1, 2)
+		WorldState.FIRE_BLAZE:
+			n = r.randi_range(3, 5)
+		_:
+			n = r.randi_range(6, 8)
+	var bays: Array = [0, 1, 2, 3, 4, 5, 6, 7]
+	for i in range(bays.size() - 1, 0, -1):
+		var j: int = r.randi_range(0, i)
+		var tmp = bays[i]
+		bays[i] = bays[j]
+		bays[j] = tmp
+	var pick: Array = bays.slice(0, n)
+	pick.sort()
+	return {"floor": fl, "stage": st, "bays": pick}
+
+
+## The TITLE's fixed fire: a few floors of the top third alight, so the face the camera drifts over always has something burning (a title is
+## not this playthrough's state — it must look the same every time the game opens).
+static func title_burn_plan() -> Array:
+	var out: Array = []
+	for f in [[27, WorldState.FIRE_BLAZE], [25, WorldState.FIRE_LIGHT], [23, WorldState.FIRE_BLAZE], [22, WorldState.FIRE_CHARRED]]:
+		out.append(burn_entry(int(f[0]), int(f[1]), "titleburn" + str(f[0])))
 	return out
 
 
@@ -187,6 +225,9 @@ func _ready() -> void:
 	with_title = title_text != ""
 	load_ok = _build()
 	if load_ok:
+		if title_mode and layers.has("sky"):
+			# the moon sits over the right edge in the art; the title's logo is top-right, so the sky is turned round (the moon over the left)
+			((layers["sky"]["node"] as Node2D).get_child(0) as Sprite2D).flip_h = true
 		_apply(0.0)
 
 
@@ -521,7 +562,7 @@ func _decorate_garden() -> void:
 func _lay_burning(node: Node2D) -> void:
 	if run < 2:
 		return                                           # run 1 is the calm before it: no fire on the tower (burn_plan() stays the sim's truth)
-	burning = burn_plan()
+	burning = title_burn_plan() if title_mode else burn_plan()
 	if burning.is_empty():
 		return
 	var sheet := _tex("burn.png")
@@ -601,6 +642,19 @@ func _player(path: String, loop: bool, vol: float) -> AudioStreamPlayer:
 
 
 func _build_audio() -> void:
+	if title_mode:
+		# the title already has Game's music bed: no hum, no siren, no swell — just the storm (a soft rain wash and the thunder behind each flash)
+		var rs = load("res://assets/audio/ambience/rain_loop.wav")
+		if rs is AudioStreamWAV:
+			(rs as AudioStreamWAV).loop_mode = AudioStreamWAV.LOOP_FORWARD     # authored to loop seamlessly (apartment_storm does the same)
+		_rain_snd = AudioStreamPlayer.new()
+		_rain_snd.stream = rs if rs is AudioStream else null
+		_rain_snd.volume_db = TITLE_RAIN_DB
+		add_child(_rain_snd)
+		_thunder = _player(THUNDER[0], false, TITLE_THUNDER_DB)
+		if _rain_snd.stream != null:
+			_rain_snd.play()
+		return
 	_hum = _player(AUDIO_DIR + "hum.wav", true, -80.0)
 	_siren = _player(AUDIO_DIR + "siren.wav", false, -17.0 if run == 1 else -13.0)
 	_swell = _player(AUDIO_DIR + "swell.wav", false, -8.0)
@@ -619,7 +673,7 @@ func tick(delta: float) -> void:
 	if speed > 1.0 and t >= t_title_in(with_title):    # a hurried climb still lets the title land at its own pace
 		speed = 1.0
 	_apply(delta * speed)
-	if t >= t_end(with_title):
+	if not title_mode and t >= t_end(with_title):
 		done = true
 		_stop_audio()
 
@@ -664,7 +718,7 @@ func _apply(dt: float) -> void:
 	if rain != null:
 		var gy: float = (float(layers["garden"]["node"].position.y) + 482.0) * PIXEL
 		rain.set("ground_y", gy if gy < 648.0 else -1.0)
-	shade.color.a = black_alpha(t, with_title)
+	shade.color.a = title_black(t) if title_mode else black_alpha(t, with_title)
 	var ta := title_visible(t, with_title)
 	title.modulate.a = ta
 	title.position.y = 120.0 + 14.0 * (1.0 - title_alpha(t, with_title))
@@ -691,14 +745,14 @@ func _apply(dt: float) -> void:
 		runner.queue_redraw()
 	_lightning(dt)
 	# the sounds: a low tonal hum under the whole thing (no noise — it read as static; a touch fuller at night), a siren far off, a swell under the title
-	if _hum != null and _hum.stream != null:
+	if _hum != null and _hum.stream != null and not title_mode:
 		var fin := clampf(t / 3.0, 0.0, 1.0)
 		var fout := 1.0 - clampf((t - t_out(with_title)) / T_FADE_OUT, 0.0, 1.0)
 		_hum.volume_db = linear_to_db(maxf(0.0001, (0.5 if run == 3 else 0.38) * fin * fout))
-	if not _siren_played and t >= t_pan0() + 2.5 and _siren != null and _siren.stream != null:
+	if not title_mode and not _siren_played and t >= t_pan0() + 2.5 and _siren != null and _siren.stream != null:
 		_siren_played = true
 		_siren.play()
-	if with_title and not _swell_played and t >= t_title_in(true) and _swell != null and _swell.stream != null:
+	if not title_mode and with_title and not _swell_played and t >= t_title_in(true) and _swell != null and _swell.stream != null:
 		_swell_played = true
 		_swell.play()
 
@@ -734,7 +788,7 @@ func _snap(v: float) -> float:
 
 
 func _stop_audio() -> void:
-	for p in [_hum, _siren, _swell, _thunder]:
+	for p in [_hum, _siren, _swell, _thunder, _rain_snd]:
 		if p != null:
 			p.stop()
 

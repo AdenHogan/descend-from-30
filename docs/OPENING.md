@@ -72,3 +72,24 @@ asphalt grey on row 515), >=5 trees, bodies 0 / >=1 / >=8 by run, the runner kin
 - **Fog (afternoon only, `look.fog`)**: `fog_2.png` (behind the garden: a bank on the ground + thin ones up the tower) and `fogf_2.png` (a low veil in front), dithered four-level alpha, drifting sideways (`drift` px/s, two wrapped copies).
 - **Night weather**: pixel rain in two depths on the 4 px grid (far dim + near bright) with ripples on the garden while it is on screen, a jagged pixel BOLT (`_Bolt`, re-rolled per strike, beside the tower) with a double flash, then the thunder as before.
 
+## Title mode — the TITLE SCREEN's live backdrop (round 48f)
+
+**Owner:** "Top right corner [for the logo] looks best so far. Also that background itself needs changing. That old Gemini one feels lacking and should be more animated too. Let's make a new one."
+`scenes/title_screen.tscn` no longer shows the painted Gemini placeholder: its `Backdrop` CanvasLayer (layer -5, over a plain dark `Fallback` ColorRect) holds a live
+`OpeningExterior` with `title_mode = true` (built by `title_screen.gd _build_backdrop`, ticked from its `_process`; if the art is missing the Fallback stays). It is the
+run-3 NIGHT of the opening — same art, same rain / bolt / flash / thunder, burning windows, blinking beacons, failing lamps, survivors at the lit windows, drifting cloud — with:
+
+- **no climb, no title card, no fade out, no end**: the camera starts ON THE ROOF (floor 30's one warm window) and sinks `TITLE_DROP` 130 px (~9 floors) down the tower and back, on a cosine
+  of `TITLE_PERIOD` 84 s (`OpeningExterior.title_camera(t, scroll)`, a pure function), after a 1.6 s fade up from black (`title_black`). `tick` never sets `done` in title mode.
+- **its own fire** (`title_burn_plan()`: floors 27 / 23 BLAZE, 25 LIGHT, 22 CHARRED, seeded per floor) — a title must look the same every time the game opens, not like this playthrough's
+  fire sim; `burn_plan()` (the opening's) is unchanged, both now build their entries with `burn_entry(floor, stage, seed_text)`.
+- **the sky is turned round** (`flip_h` on the sky sprite): the art has the moon at the right, exactly under the top-right logo; flipped, it hangs over the tower's left.
+- **its own sound**: no hum / siren / swell (the title already has Game's music bed) — a soft loop of `rain_loop.wav` (-15 dB) and the thunder behind each flash (-8 dB).
+- **a soft dark pool behind the menu** (`Menu/Root/MenuShade`, a shader ellipse, strength 0.62) so Play / Settings / Exit read over a lit window or a fire.
+
+`tools/scene_capture.tscn --steps="scene:res://scenes/title_screen.tscn,w:60,rec:1500:50"` renders it (xvfb). Locked by `tests/title_test.gd` `_test_backdrop` (the camera band, the fade, the
+state-independent fire and that every burning floor drifts into view, it builds + never ends + lightning keeps striking + the building really moves — mutation-checked: the `done` guard and the sky flip).
+**Not done / owner's call:** the Gemini painting (`assets/Descend From 30 - Placeholder Title Screen.png`) is now unreferenced and left in the repo; the garden / street level (the dead walking
+on the lawn) is never in view — the camera stays in the top third; a bespoke wider composition (tower off-centre with the burning city beside it) would need wider layers than the opening's 288 px;
+the LOOK and the SOUND are checked under xvfb only (frames) and by number.
+

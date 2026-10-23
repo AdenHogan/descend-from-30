@@ -1,19 +1,40 @@
 [gd_scene format=3 uid="uid://c0eulj0yqefjo"]
 
 [ext_resource type="Script" uid="uid://cclog4gqa3s10" path="res://scripts/title_screen.gd" id="1_mgrm8"]
-[ext_resource type="Texture2D" uid="uid://bcnpxkq16ter0" path="res://assets/Descend From 30 - Placeholder Title Screen.png" id="2_dc4i4"]
 [ext_resource type="Texture2D" uid="uid://7412kuo6h4um" path="res://assets/logo/logo_full_dark.png" id="3_logo"]
 [ext_resource type="FontFile" uid="uid://tv2mlsq0xxsg" path="res://assets/fonts/PixelOperator8.ttf" id="4_3yumr"]
+
+[sub_resource type="Shader" id="Shader_menushade"]
+code = "shader_type canvas_item;
+// a soft dark pool behind the menu so the words read over a lit window or a fire (the backdrop is alive: it cannot be relied on to stay dark there)
+uniform vec2 centre = vec2(0.5, 0.52);
+uniform vec2 radius = vec2(0.20, 0.20);
+uniform float strength = 0.62;
+void fragment() {
+	float d = length((UV - centre) / radius);
+	COLOR = vec4(0.015, 0.015, 0.04, strength * (1.0 - smoothstep(0.35, 1.0, d)));
+}
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_menushade"]
+shader = SubResource("Shader_menushade")
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_menu"]
 
 [node name="Node2D" type="Node2D" unique_id=1771227286]
 script = ExtResource("1_mgrm8")
 
-[node name="DescendFrom30PlaceholderTitleScreen" type="Sprite2D" parent="." unique_id=191731836]
-position = Vector2(575, 325.5)
-scale = Vector2(0.81534094, 0.83203125)
-texture = ExtResource("2_dc4i4")
+[node name="Backdrop" type="CanvasLayer" parent="." unique_id=1771227291]
+layer = -5
+
+[node name="Fallback" type="ColorRect" parent="Backdrop" unique_id=1771227292]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.03, 0.03, 0.07, 1)
 
 [node name="Logo" type="Sprite2D" parent="." unique_id=1771227290]
 position = Vector2(900, 170)
@@ -25,6 +46,16 @@ texture = ExtResource("3_logo")
 
 [node name="Root" type="Control" parent="Menu" unique_id=2065395798]
 layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="MenuShade" type="ColorRect" parent="Menu/Root" unique_id=1771227293]
+material = SubResource("ShaderMaterial_menushade")
+layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0

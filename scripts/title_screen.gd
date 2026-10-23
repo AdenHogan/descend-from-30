@@ -8,14 +8,23 @@ extends Node2D
 # just asked the same question twice, and "Continue" had to be greyed out when
 # no slot had a run.
 #
-# Layout lives in scenes/title_screen.tscn; this script only wires presses.
-# Node contract: Menu/Root/Buttons/{Play,Settings,Exit}Button.
+# Layout lives in scenes/title_screen.tscn; this script wires presses and starts the backdrop.
+# Node contract: Menu/Root/Buttons/{Play,Settings,Exit}Button, Backdrop (a CanvasLayer behind everything, with a dark Fallback).
+#
+# THE BACKDROP (owner round 48f: "that background itself needs changing… more animated… let's make a new one") is the game's own night
+# exterior held in TITLE MODE (scripts/opening_exterior.gd): the tower in a storm with rain, bolts + thunder, burning towers, blinking beacons,
+# failing lamps and drifting cloud, the camera sinking slowly down from the roof. It is live, not a picture; if its art is missing the
+# Fallback's plain dark colour stays (a title must always come up).
+
+const Exterior := preload("res://scripts/opening_exterior.gd")
 
 var settings_menu: CanvasLayer = null
+var backdrop: Control = null
 
 
 func _ready() -> void:
 	HUD.hide_hud()
+	_build_backdrop()
 
 	# Same rebinding menu the pause screen uses — it's a self-contained
 	# CanvasLayer, so it drops in here unchanged.
@@ -32,6 +41,27 @@ func _ready() -> void:
 	var play := get_node_or_null("Menu/Root/Buttons/PlayButton")
 	if play != null:
 		play.grab_focus()
+
+
+func _build_backdrop() -> void:
+	var layer := get_node_or_null("Backdrop")
+	if layer == null or not Exterior.art_present(Exterior.TITLE_RUN):
+		return
+	var e: Control = Exterior.new()
+	e.name = "Exterior"
+	e.title_mode = true
+	e.title_text = ""
+	e.run = Exterior.TITLE_RUN
+	layer.add_child(e)
+	if e.load_ok:
+		backdrop = e
+	else:
+		e.queue_free()
+
+
+func _process(delta: float) -> void:
+	if backdrop != null and is_instance_valid(backdrop):
+		backdrop.tick(delta)
 
 
 func _connect(path: String, fn: Callable) -> void:

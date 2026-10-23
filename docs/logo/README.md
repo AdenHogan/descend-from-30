@@ -74,7 +74,7 @@ mid tone (`#841718`, `#761416` on paper). All are in `tools/art/logo.py` / `logo
 screen), centred on (900, 170) — TOP-RIGHT, the owner's pick of the placements rendered — drawn LINEAR + MIPMAPPED (`texture_filter = 4`; the PNG's import has `mipmaps/generate=true` — the project default is nearest,
 which would shred a 2400 px image shrunk 6x) over the painted placeholder, replacing the "Descend From 30" Label; the menu stays where it was (centre). `title_test` locks it: the sprite is the dark logo,
 wholly on screen, top-right, its rect clear of the menu's (mutation-checked), mipmapped, and no placeholder Label is left. How it read on the Gemini painting (renders under xvfb): centred, the thumb and palm lay over the red-brown brick (red on red-brown) and lost contrast;
-top-right, on the stormy sky and city, the hand pops — the owner chose top-right. The painting itself is being replaced (round 48f).
+top-right, on the stormy sky and city, the hand pops — the owner chose top-right. The painting itself was replaced in round 48f by a live night exterior (docs/OPENING.md "Title mode"), over which the top-right logo sits on open sky.
 
 Still on the placeholders, and not touched without a word from the owner: `scripts/opening_exterior.gd` (the title that rises over the clouds: a Label at size 62
 in `TITLE_COLOR`), `scripts/hallway.gd` / `scripts/intro_overlay.gd` (the run-1 title card) and `project.godot` (`config/icon="res://icon.svg"` is Godot's default).
