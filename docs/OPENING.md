@@ -72,24 +72,24 @@ asphalt grey on row 515), >=5 trees, bodies 0 / >=1 / >=8 by run, the runner kin
 - **Fog (afternoon only, `look.fog`)**: `fog_2.png` (behind the garden: a bank on the ground + thin ones up the tower) and `fogf_2.png` (a low veil in front), dithered four-level alpha, drifting sideways (`drift` px/s, two wrapped copies).
 - **Night weather**: pixel rain in two depths on the 4 px grid (far dim + near bright) with ripples on the garden while it is on screen, a jagged pixel BOLT (`_Bolt`, re-rolled per strike, beside the tower) with a double flash, then the thunder as before.
 
-## Title mode — the TITLE SCREEN's live backdrop (round 48f)
+## The title — a live hallway INSIDE the building (round 48g)
 
-**Owner:** "Top right corner [for the logo] looks best so far. Also that background itself needs changing. That old Gemini one feels lacking and should be more animated too. Let's make a new one."
-`scenes/title_screen.tscn` no longer shows the painted Gemini placeholder: its `Backdrop` CanvasLayer (layer -5, over a plain dark `Fallback` ColorRect) holds a live
-`OpeningExterior` with `title_mode = true` (built by `title_screen.gd _build_backdrop`, ticked from its `_process`; if the art is missing the Fallback stays). It is the
-run-3 NIGHT of the opening — same art, same rain / bolt / flash / thunder, burning windows, blinking beacons, failing lamps, survivors at the lit windows, drifting cloud — with:
+**Owner:** "I think it is double dipping. When we start a run we see the intro animation of the outside of the building with the pan up and title before the run begins… let's try live
+scenes inside the building, hallways looking ominous, blinking lights, bloody walls, enemies shambling, darkness, etc. logo, play settings exit on the left side, cleanly, then press play have
+the three profiles display on top of that live scene, so no longer a black screen behind profiles. Then when selecting it then moves to the outside building current transition."
+(Round 48e put the logo on the Gemini painting; round 48f replaced the painting with this tower's own night exterior in a `title_mode` — reverted: it repeated the opening.)
 
-- **no climb, no title card, no fade out, no end**: the camera starts ON THE ROOF (floor 30's one warm window) and sinks `TITLE_DROP` 130 px (~9 floors) down the tower and back, on a cosine
-  of `TITLE_PERIOD` 84 s (`OpeningExterior.title_camera(t, scroll)`, a pure function), after a 1.6 s fade up from black (`title_black`). `tick` never sets `done` in title mode.
-- **its own fire** (`title_burn_plan()`: floors 27 / 23 BLAZE, 25 LIGHT, 22 CHARRED, seeded per floor) — a title must look the same every time the game opens, not like this playthrough's
-  fire sim; `burn_plan()` (the opening's) is unchanged, both now build their entries with `burn_entry(floor, stage, seed_text)`.
-- **the sky is turned round** (`flip_h` on the sky sprite): the art has the moon at the right, exactly under the top-right logo; flipped, it hangs over the tower's left.
-- **its own sound**: no hum / siren / swell (the title already has Game's music bed) — a soft loop of `rain_loop.wav` (-15 dB) and the thunder behind each flash (-8 dB).
-- **a soft dark pool behind the menu** (`Menu/Root/MenuShade`, a shader ellipse, strength 0.62) so Play / Settings / Exit read over a lit window or a fire.
+So the sequence is: **title** (inside, the dark) → **PLAY** (the same hall, the three profile slots over it) → **pick a slot** (`Game.new_game` / `continue_game`) → **this document's exterior opening**, the pan up the outside.
 
-`tools/scene_capture.tscn --steps="scene:res://scenes/title_screen.tscn,w:60,rec:1500:50"` renders it (xvfb). Locked by `tests/title_test.gd` `_test_backdrop` (the camera band, the fade, the
-state-independent fire and that every burning floor drifts into view, it builds + never ends + lightning keeps striking + the building really moves — mutation-checked: the `done` guard and the sky flip).
-**Not done / owner's call:** the Gemini painting (`assets/Descend From 30 - Placeholder Title Screen.png`) is now unreferenced and left in the repo; the garden / street level (the dead walking
-on the lawn) is never in view — the camera stays in the top third; a bespoke wider composition (tower off-centre with the burning city beside it) would need wider layers than the opening's 288 px;
-the LOOK and the SOUND are checked under xvfb only (frames) and by number.
+`scenes/title_screen.tscn`: a dark `Fallback` layer (a title must always come up) → `Hall` (`scripts/title_hall.gd`) → `Profiles` (a CanvasLayer, 2) and `Menu` (the logo + Play / Settings / Exit in the LEFT column over a soft `LeftShade`).
+The hall is built from the game's own pieces, never redrawn: floor 22's corridor art for the third night (the faded hotel: damask, a red runner, brass sconces), `CorridorDecals` with `HORROR_BOOST` 0.9
+(blood, bullet bursts, handprints, a bike on its side…), five numbered doors, `FloorLighting`'s real sconces (seed 11: the three in view alive — one flickers, one is steady, one blinks — the two beyond dead),
+a near-black `CanvasModulate`, and three standard dead (the real `enemy_zombie_standard` frames, borrowed from the scene without running its script; a stand / lurching walk / lunge state machine each, `_Dead`).
+Live: a slow camera drift, a fade up from black, **blackouts** (every 9-21 s every lamp cuts out, flashes, cuts again, returns — `FloorLighting.set_power`) and a far moan now and then. It swaps in its own
+seed + run while it builds and puts the player's back (so it is the same every launch whatever state is loaded).
+
+**PLAY** does not change scene: `title_screen._open_profiles` adds `profile_select.tscn` with `embedded = true` to the `Profiles` layer — its backdrop becomes a see-through veil, the menu + logo step aside, and Back / Esc
+(`back_requested`) close it with the hall still running. The profile scene on its own is unchanged (opaque; Back reloads the title). `tests/title_test.gd` locks all of it.
+**Not done / owner's call:** the look and the moan are checked under xvfb frames only; the hall is one corridor (floor 22) — other sections / floors, a second camera angle, doors that open on a dark flat, dust in the lamp light and a distant door slam are easy additions; the shamblers walk the one lane (there is no depth to a side-on corridor);
+the Gemini painting (`assets/Descend From 30 - Placeholder Title Screen.png`) is left in the repo, unreferenced.
 

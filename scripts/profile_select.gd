@@ -19,8 +19,17 @@ extends Control
 #             Playtime, SurvivorCaption, Survivor1..3, SurvivorFace1..3,
 #             SurvivorTag1..3, Money, Status, RunsMade, RunsWon, SelectButton}
 
+## The title screen hosts this screen OVER its live hall (owner round 48g: "have the three profiles display on top of that live scene, so no longer a black
+## screen behind profiles"): it sets `embedded` before adding it, the opaque backdrop turns into a dim veil the hall shows through, and Back hands control
+## to the title (`back_requested`) instead of reloading the title scene — which would restart the hall. Opened on its own (the scene file, the tests) it is
+## exactly what it was.
+signal back_requested
+
+var embedded: bool = false
 var _selected: int = 1
 var _confirm_delete: bool = false
+
+const EMBEDDED_VEIL_ALPHA := 0.62
 
 
 func _ready() -> void:
@@ -28,7 +37,10 @@ func _ready() -> void:
 	_connect("Nav/ContinueButton", _on_continue)
 	_connect("Nav/NewGameButton", _on_new_game)
 	_connect("Nav/DeleteButton", _on_delete)
-	_connect("Nav/BackButton", func(): Game.go_to_scene("title"))
+	_connect("Nav/BackButton", _on_back)
+	var veil := get_node_or_null("Background") as ColorRect
+	if embedded and veil != null:
+		veil.color.a = EMBEDDED_VEIL_ALPHA
 	_add_legacy_button()
 	for slot in range(1, WorldState.SLOT_COUNT + 1):
 		var btn := get_node_or_null("Slot%d/SelectButton" % slot)
@@ -213,6 +225,13 @@ func _fill_nav(info: Dictionary) -> void:
 	if del != null:
 		del.visible = info["exists"]
 		del.text = "DELETE — CONFIRM?" if _confirm_delete else "DELETE"
+
+
+func _on_back() -> void:
+	if embedded:
+		back_requested.emit()
+	else:
+		Game.go_to_scene("title")
 
 
 func _on_continue() -> void:

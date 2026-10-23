@@ -390,7 +390,7 @@ the quest stories themselves and their later stages). The quest **mechanics** be
 ### B. Art still placeholder or missing (see `ART_REQUIREMENTS.md`)
 Player rig and animations (scavenge, listen/cup-ear, door knock, **kneel/open pack**, balcony lash — all stand-ins);
 the standard zombie rig and **distinct silhouettes** for Crawler / Long Arm / Spitter (all five share one rig today) and
-the Big/boss; the **merchant** and **resident** bodies (reuse the player/homeless sheets); the **game logo** (an in-house one is BUILT — `assets/logo/`, `docs/logo/README.md` — wired into the title screen in round 48e (over a live night-exterior backdrop, round 48f), not yet the opening's title / project icon; the studio credit lockup is not drawn); the three
+the Big/boss; the **merchant** and **resident** bodies (reuse the player/homeless sheets); the **game logo** (an in-house one is BUILT — `assets/logo/`, `docs/logo/README.md` — wired into the title screen in rounds 48e / 48g (the left column over a live hallway inside the building), not yet the opening's title / project icon; the studio credit lockup is not drawn); the three
 **escape stills** (`assets/escape/escape_<time>.png` — the slot exists, nothing in it); a cat; the maintenance **bench**
 art; the extra survivors the art brief anticipates (up to ~8, now 4); per-section **grotesque** environment + enemy art;
 final fire/FX (impact puffs, muzzle flash). All in-house art (rooms, corridors, icons, openings, fire, wall paper) was

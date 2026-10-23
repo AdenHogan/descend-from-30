@@ -306,6 +306,18 @@ func setup(floor_num: int, window_sides: Array = ["left", "right"], style: Strin
 			_add_window_beam(Vector2(wx, STAIR_WINDOW_Y), 1.25)
 
 
+## Cut or restore every WORKING lamp at once (the title hall's blackouts — docs/OPENING.md "Title"): the light and the shade's glow go with it;
+## a dead lamp was never in the list, so it stays dead. The per-lamp flicker / blink keeps running underneath and shows again on power.
+func set_power(on: bool) -> void:
+	for e in _lamps:
+		var lt = e["light"]
+		if is_instance_valid(lt):
+			lt.visible = on
+		var g = e["glow"]
+		if is_instance_valid(g):
+			g.visible = on
+
+
 func _add_window_beam(pos: Vector2, length_scale: float = 1.0) -> void:
 	# A slanting light shaft through the stairwell window (see window_beam.gd). load() (not
 	# preload) avoids a cyclic const preload — window_beam.gd preloads THIS script.

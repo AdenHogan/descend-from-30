@@ -3,7 +3,7 @@
 Made in-house (owner round 48) by `python3 tools/art/logo.py`: the print is drawn by `tools/art/logo_print.py` (on the hand shape of
 `tools/art/logo_hand.py`), the lettering is Barlow Condensed Bold (SIL OFL, `assets/fonts/logo/` with its licence). The files below are
 GENERATED — change the tools, never the files; `tools/art/logo.py --check` (in `tools/run_all_tests.sh`) fails on a stale or missing one.
-**It is wired into the TITLE SCREEN** (round 48e, `scenes/title_screen.tscn`); the opening's own title (`scripts/opening_exterior.gd`), the run-1 title
+**It is wired into the TITLE SCREEN** (round 48e / 48g, `scenes/title_screen.tscn`); the opening's own title (`scripts/opening_exterior.gd`), the run-1 title
 card and `project.godot`'s `icon` still use the placeholders — see "Using it in the game" below.
 
 ![contact sheet](logo_sheet.png)
@@ -69,12 +69,13 @@ mid tone (`#841718`, `#761416` on paper). All are in `tools/art/logo.py` / `logo
 
 ## Using it in the game
 
-**Wired (round 48e, owner: "add it without background to our title and see how the text and handprint look with the building background"):**
-`scenes/title_screen.tscn` has a `Logo` Sprite2D — `assets/logo/logo_full_dark.png` (transparent, 2400 px) at scale 0.1586 (about 381 x 270 on the 1152 x 648
-screen), centred on (900, 170) — TOP-RIGHT, the owner's pick of the placements rendered — drawn LINEAR + MIPMAPPED (`texture_filter = 4`; the PNG's import has `mipmaps/generate=true` — the project default is nearest,
-which would shred a 2400 px image shrunk 6x) over the painted placeholder, replacing the "Descend From 30" Label; the menu stays where it was (centre). `title_test` locks it: the sprite is the dark logo,
-wholly on screen, top-right, its rect clear of the menu's (mutation-checked), mipmapped, and no placeholder Label is left. How it read on the Gemini painting (renders under xvfb): centred, the thumb and palm lay over the red-brown brick (red on red-brown) and lost contrast;
-top-right, on the stormy sky and city, the hand pops — the owner chose top-right. The painting itself was replaced in round 48f by a live night exterior (docs/OPENING.md "Title mode"), over which the top-right logo sits on open sky.
+**Wired (round 48e, owner: "add it without background to our title"; re-laid in round 48g):** `scenes/title_screen.tscn` has `Menu/Logo`, a Sprite2D of
+`assets/logo/logo_full_dark.png` (transparent, 2400 px) at scale 0.168 (about 403 x 286 on the 1152 x 648 screen), centred on (244, 188) — the LEFT column, with Play /
+Settings / Exit left-aligned under it — drawn LINEAR + MIPMAPPED (`texture_filter = 4`; the PNG's import has `mipmaps/generate=true` — the project default is nearest, which
+would shred a 2400 px image shrunk 6x), above a soft dark shade column (`Menu/Root/LeftShade`) so it reads over the live hallway behind it (docs/OPENING.md "The title").
+`title_test` locks it: the dark logo, wholly on screen, in the left half, clear of the three buttons, drawn over the shade, mipmapped. History: round 48e first put it
+top-right over the Gemini painting (centred, the red hand lost contrast on the red-brown brick; top-right on the stormy sky it popped); round 48f tried a live night-exterior
+backdrop under it, and the owner called that "double dipping" with the opening's pan up the outside — so the title now lives INSIDE the building (round 48g).
 
 Still on the placeholders, and not touched without a word from the owner: `scripts/opening_exterior.gd` (the title that rises over the clouds: a Label at size 62
 in `TITLE_COLOR`), `scripts/hallway.gd` / `scripts/intro_overlay.gd` (the run-1 title card) and `project.godot` (`config/icon="res://icon.svg"` is Godot's default).

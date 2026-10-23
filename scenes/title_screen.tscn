@@ -1,46 +1,45 @@
 [gd_scene format=3 uid="uid://c0eulj0yqefjo"]
 
 [ext_resource type="Script" uid="uid://cclog4gqa3s10" path="res://scripts/title_screen.gd" id="1_mgrm8"]
+[ext_resource type="Script" path="res://scripts/title_hall.gd" id="2_hall"]
 [ext_resource type="Texture2D" uid="uid://7412kuo6h4um" path="res://assets/logo/logo_full_dark.png" id="3_logo"]
 [ext_resource type="FontFile" uid="uid://tv2mlsq0xxsg" path="res://assets/fonts/PixelOperator8.ttf" id="4_3yumr"]
 
-[sub_resource type="Shader" id="Shader_menushade"]
+[sub_resource type="Shader" id="Shader_leftshade"]
 code = "shader_type canvas_item;
-// a soft dark pool behind the menu so the words read over a lit window or a fire (the backdrop is alive: it cannot be relied on to stay dark there)
-uniform vec2 centre = vec2(0.5, 0.52);
-uniform vec2 radius = vec2(0.20, 0.20);
-uniform float strength = 0.62;
+// a soft dark column down the left of the screen, so the logo and the menu read over whatever the live hall is doing behind them
+uniform float width = 0.62;
+uniform float strength = 0.86;
 void fragment() {
-	float d = length((UV - centre) / radius);
-	COLOR = vec4(0.015, 0.015, 0.04, strength * (1.0 - smoothstep(0.35, 1.0, d)));
+	COLOR = vec4(0.012, 0.010, 0.025, strength * (1.0 - smoothstep(0.0, width, UV.x)));
 }
 "
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_menushade"]
-shader = SubResource("Shader_menushade")
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_leftshade"]
+shader = SubResource("Shader_leftshade")
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_menu"]
 
 [node name="Node2D" type="Node2D" unique_id=1771227286]
 script = ExtResource("1_mgrm8")
 
-[node name="Backdrop" type="CanvasLayer" parent="." unique_id=1771227291]
+[node name="Fallback" type="CanvasLayer" parent="."]
 layer = -5
 
-[node name="Fallback" type="ColorRect" parent="Backdrop" unique_id=1771227292]
+[node name="Dark" type="ColorRect" parent="Fallback"]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.03, 0.03, 0.07, 1)
+color = Color(0.02, 0.02, 0.04, 1)
 
-[node name="Logo" type="Sprite2D" parent="." unique_id=1771227290]
-position = Vector2(900, 170)
-scale = Vector2(0.1586, 0.1586)
-texture_filter = 4
-texture = ExtResource("3_logo")
+[node name="Hall" type="Node2D" parent="."]
+script = ExtResource("2_hall")
+
+[node name="Profiles" type="CanvasLayer" parent="."]
+layer = 2
 
 [node name="Menu" type="CanvasLayer" parent="." unique_id=1219537324]
 
@@ -53,8 +52,8 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="MenuShade" type="ColorRect" parent="Menu/Root" unique_id=1771227293]
-material = SubResource("ShaderMaterial_menushade")
+[node name="LeftShade" type="ColorRect" parent="Menu/Root"]
+material = SubResource("ShaderMaterial_leftshade")
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -65,17 +64,10 @@ mouse_filter = 2
 
 [node name="Buttons" type="VBoxContainer" parent="Menu/Root" unique_id=1510334375]
 layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -130.0
-offset_top = -40.0
-offset_right = 130.0
-offset_bottom = 74.0
-grow_horizontal = 2
-grow_vertical = 2
+offset_left = 72.0
+offset_top = 372.0
+offset_right = 332.0
+offset_bottom = 486.0
 theme_override_constants/separation = 6
 
 [node name="PlayButton" type="Button" parent="Menu/Root/Buttons" unique_id=649506589]
@@ -96,6 +88,7 @@ theme_override_styles/disabled = SubResource("StyleBoxEmpty_menu")
 theme_override_styles/focus = SubResource("StyleBoxEmpty_menu")
 text = "Play"
 flat = true
+alignment = 0
 
 [node name="SettingsButton" type="Button" parent="Menu/Root/Buttons" unique_id=1984033564]
 custom_minimum_size = Vector2(0, 34)
@@ -115,6 +108,7 @@ theme_override_styles/disabled = SubResource("StyleBoxEmpty_menu")
 theme_override_styles/focus = SubResource("StyleBoxEmpty_menu")
 text = "Settings"
 flat = true
+alignment = 0
 
 [node name="ExitButton" type="Button" parent="Menu/Root/Buttons" unique_id=1861465055]
 custom_minimum_size = Vector2(0, 34)
@@ -134,3 +128,10 @@ theme_override_styles/disabled = SubResource("StyleBoxEmpty_menu")
 theme_override_styles/focus = SubResource("StyleBoxEmpty_menu")
 text = "Exit"
 flat = true
+alignment = 0
+
+[node name="Logo" type="Sprite2D" parent="Menu"]
+position = Vector2(244, 188)
+scale = Vector2(0.168, 0.168)
+texture_filter = 4
+texture = ExtResource("3_logo")
