@@ -168,9 +168,8 @@ def radiator(c):
 def pictures(c):
     # a pendant lamp over the table, a landscape and a small portrait either side of it
     c.box(104, 22, 132, 42, FRAME, FRAME_DK)                  # landscape
-    c.rect(107, 25, 129, 32, hexc('8a9aa0'))
-    c.rect(107, 33, 129, 39, hexc('5f6e4a'))
-    c.poly([(107, 33), (114, 28), (121, 33)], hexc('6c7a78'))
+    import wall_art3d                                          # the furniture library's landscape in the frame (one drawing per thing)
+    wall_art3d.landscape(c, 107, 25, 129, 39, seed=7)
     c.line(118, 16, 104, 22, FRAME_DK); c.line(118, 16, 132, 22, FRAME_DK)
     # the family on their wedding day (round 17: a scratched-out blank read as nothing)
     import furn as F
@@ -178,14 +177,8 @@ def pictures(c):
                                   (hexc('d8b89a'), hexc('3a2a1e'), hexc('2a2a30'), 11)],
             bg=hexc('c9c2b1'), ground=hexc('a8a090'), frame=FRAME)
     c.line(187, 24, 192, 19, FRAME_DK); c.line(197, 24, 192, 19, FRAME_DK)
-    # the pendant lamp: a cord from the ceiling, a fabric shade
-    c.vline(158, 5, 38, hexc('2a2622'))
-    c.rect(156, 37, 160, 39, BRASS)
-    c.poly([(150, 40), (166, 40), (170, 48), (146, 48)], SHADE)
-    c.hline(146, 170, 48, SHADE_DK)
-    c.hline(151, 165, 41, shade(SHADE, 1.1))
-    from pixlib import light
-    light(158, 46, 'pendant')
+    # the pendant lamp: a cord from the ceiling, a fabric shade — the shared shaded pendant (furn.pendant), a cream shade on a long flex
+    F.pendant(c, 158, 42, 'cream')
 
 
 CHAIR_PAL = {'wood': hexc('6a4630'), 'seat': hexc('7e5638')}

@@ -48,6 +48,11 @@ def clock_wall(c, ox, oy, p):
     _wall_shadow(c, cx + 1.6, cy + 2.0, r, r, 78)
     c.line(int(cx), oy, int(cx), oy + 2, hexc('3a3228'))                                          # the cord up to its nail
     c.put(int(cx), oy - 1, hexc('8a8a82'))
+    _disc(c, cx, cy, r, rim, face, ink, p)
+
+
+def _disc(c, cx, cy, r, rim, face, ink, p):
+    """The clock itself — bezel torus, recessed face, ticks, hands with shadows, centre cap, glass reflection — at any radius (the wall clock and the starburst clock share it)."""
     L = K.Layer(c)
     lc = L.c
     tn = K.tones(rim, 6, 0.48, 1.38)
@@ -94,6 +99,43 @@ def clock_wall(c, ox, oy, p):
         if lc.px[int(cx + gx), int(cy + gy)][3]:
             lc.put(int(cx + gx), int(cy + gy), mix(face, hexc('ffffff'), 0.6))
     L.flush()
+
+
+# ================================================================================================================================ the starburst clock
+STAR = {
+    'brass': {'rim': 'b09456', 'ray': 'c9a24e', 'face': 'ece6d0', 'ink': '2a2a2a'},
+    'copper': {'rim': 'a8683a', 'ray': 'c0793e', 'face': 'e8e0c8', 'ink': '2a2420'},
+}
+
+
+@piece('clock_sunburst', 24, 24, 'decor', rooms={}, tags=('clock',), variants={k: dict(v) for k, v in STAR.items()}, wall_y=(20, 34),
+       note='a mid-century starburst clock: sixteen shaded brass spikes (long and short) round a bezelled face — baked rooms only (rooms {}): the planner never picks it')
+def clock_sunburst(c, ox, oy, p):
+    rim, ray, face, ink = hexc(p['rim']), hexc(p['ray']), hexc(p['face']), hexc(p['ink'])
+    cx, cy = ox + 12.0, oy + 12.0
+    _wall_shadow(c, cx + 1.6, cy + 2.0, 11.0, 11.0, 66)
+    c.line(int(cx), oy - 1, int(cx), oy + 1, hexc('3a3228'))
+    c.put(int(cx), oy - 2, hexc('8a8a82'))
+    tn = K.tones(ray, 5, 0.55, 1.35)
+    for k in range(16):                                                                         # sixteen spokes: a long one every 45 degrees, a short one between
+        a_ = k * math.pi / 8.0
+        sx, sy = math.sin(a_), -math.cos(a_)
+        long_ = k % 2 == 0
+        r0, r1 = 6.6, 11.0 if long_ else 9.2
+        facing = -(sx * 0.7 + sy * 0.7)                                                          # a spoke pointing to the upper left is lit
+        tone = K._pick(tn, max(0.0, min(0.999, 0.55 + 0.4 * facing)))
+        dark = K._pick(tn, 0.12)
+        pts = []
+        for t in range(int(r0 * 4), int(r1 * 4) + 1):
+            pts.append((int(round(cx + sx * t / 4.0 - 0.5)), int(round(cy + sy * t / 4.0 - 0.5))))
+        for (x, y) in dict.fromkeys(pts):
+            c.put(x + 1, y + 1, dark)                                                            # the spoke's shadow side, one pixel down-right
+        for (x, y) in dict.fromkeys(pts):
+            c.put(x, y, tone)
+        tx, ty = pts[-1]
+        if long_:                                                                                # a little ball at the tip of the long ones
+            c.put(tx, ty, K._pick(tn, 0.95)); c.put(tx + 1, ty, tone); c.put(tx, ty + 1, tone); c.put(tx + 1, ty + 1, dark)
+    _disc(c, cx, cy, 7.0, rim, face, ink, dict(p, num=False, second=False))
 
 
 # ================================================================================================================================ the regulator

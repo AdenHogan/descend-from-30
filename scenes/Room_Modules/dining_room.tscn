@@ -63,5 +63,5 @@ metadata/balcony_strip = true
 [node name="Lights" type="Node2D" parent="."]
 
 [node name="lamp_0" type="Node2D" parent="Lights"]
-position = Vector2(158, 46)
+position = Vector2(158, 43)
 metadata/kind = "pendant"

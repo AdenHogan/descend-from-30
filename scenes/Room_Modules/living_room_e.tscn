@@ -33,7 +33,7 @@ position = Vector2(160, 96)
 metadata/back_plane = true
 
 [node name="anchor_living_log_basket" type="Marker2D" parent="."]
-position = Vector2(120, 97)
+position = Vector2(120, 92)
 metadata/back_plane = true
 
 [node name="anchor_centre_sofaleft" type="Marker2D" parent="."]

@@ -84,13 +84,9 @@ def b_decor(c):
             c.hline(d0 + 1, d1 - 1, y, hexc('c9bfa6'))
     c.rect(186, 52, 192, 57, PLATE)                                                           # a plate left on the sill
     c.put(191, 51, hexc('d9662e'))
-    # a sunburst clock over the sideboard, stopped
-    for k in range(16):
-        import math
-        a = 2 * math.pi * k / 16
-        c.line(292, 36, 292 + int(round(math.cos(a) * (9 if k % 2 else 12))), 36 + int(round(math.sin(a) * (9 if k % 2 else 12))), hexc('c9a24a'))
-    c.ellipse(292, 36, 4, 4, hexc('f4f0e4'))
-    c.line(292, 36, 292, 33, hexc('2a2622')); c.line(292, 36, 295, 37, hexc('2a2622'))
+    # a sunburst clock over the sideboard — the furniture library's starburst clock (one drawing per thing)
+    import furn_embed as FE
+    FE.lay(c, 'clock_sunburst', 'brass', 280, 24, floor=False)
 
 
 @persp
@@ -378,14 +374,43 @@ def d_wall(c):
         c.ellipse(sx, sy, rx, ry, hexc('5a4a3a', 70))
 
 
+def _board(c, x0, y0, x1, y1, th=4):
+    """A rough board nailed across a gap: a parallelogram `th` rows thick from (x0, y0) to (x1, y1) — a lit top edge, a mid body with grain running along it, a shaded underside, a soft shadow
+    thrown on the wall below, a nail head at each end with its own tiny shadow."""
+    wood, lt, dk = hexc('8a6a44'), hexc('b8946a'), hexc('4e3822')
+    n = max(abs(x1 - x0), 1)
+    for i in range(n + 1):
+        x = x0 + i
+        y = y0 + int(round((y1 - y0) * i / float(n)))
+        c.put(x, y + th + 1, hexc('000000', 52))                                              # the shadow it throws on the wall
+        c.put(x, y + th + 2, hexc('000000', 26))
+        for k in range(th):
+            f = k / float(max(1, th - 1))
+            col = lt if k == 0 else dk if k == th - 1 else (wood if (i // 5 + k) % 3 else shade(wood, 0.9))
+            c.put(x, y + k, col)
+        if i % 9 == 4:
+            c.put(x, y + 1 + (i // 9) % 2, shade(wood, 0.78))                                   # a grain flake
+    for (nx, ny) in ((x0 + 3, y0 + int(round((y1 - y0) * 3 / float(n)))), (x1 - 3, y1 - int(round((y1 - y0) * 3 / float(n))))):
+        c.put(nx, ny + 1, hexc('b9bdbe')); c.put(nx, ny + 2, hexc('4a4c4e')); c.put(nx + 1, ny + 2, hexc('000000', 60))
+
+
 def d_decor(c):
-    # planks nailed across where something came through the plaster
-    c.poly([(150, 30), (172, 26), (180, 40), (170, 56), (152, 52)], hexc('2a2019'))
-    for (y, a, b) in ((32, 142, 188), (44, 140, 190)):
-        c.line(a, y, b, y + 4, hexc('8a6a44'))
-        c.line(a, y + 1, b, y + 5, hexc('8a6a44'))
-        c.line(a, y + 2, b, y + 6, hexc('6a4e30'))
-        c.put(a + 3, y + 1, hexc('3a3a36')); c.put(b - 3, y + 5, hexc('3a3a36'))
+    # planks nailed across where something came through the plaster: the hole has depth (dark toward the middle, broken lath, a chipped plaster lip) and two boards with grain, edges and nails
+    hole = [(150, 30), (172, 26), (180, 40), (170, 56), (152, 52)]
+    c.poly(hole, hexc('2a2019'))
+    for yy in range(28, 56):                                                              # darker toward the middle of the gap
+        for xx in range(151, 180):
+            if c.px[xx, yy][:3] == hexc('2a2019')[:3]:
+                d = abs(xx - 166) / 14.0 + abs(yy - 41) / 16.0
+                c.put(xx, yy, shade(hexc('2a2019'), 0.55 + 0.45 * min(1.0, d)))
+    for (ly, la, lb) in ((36, 156, 176), (45, 154, 172)):                                  # a broken lath showing through
+        c.hline(la, lb, ly, hexc('5a4630')); c.hline(la, lb, ly + 1, hexc('3a2e1e'))
+    c.line(150, 30, 172, 26, hexc('d8d0c0')); c.line(172, 26, 180, 40, hexc('b8b0a0'))     # the plaster lip: chipped, lit on the top and the left edges
+    c.line(180, 40, 170, 56, hexc('6a5e50')); c.line(170, 56, 152, 52, hexc('6a5e50')); c.line(152, 52, 150, 30, hexc('c8c0b0'))
+    for (px_, py_) in ((148, 33), (147, 41), (182, 33), (181, 47), (160, 24)):   # plaster crumbs on the wall round it
+        c.put(px_, py_, hexc('d8d0c0'))
+    _board(c, 142, 32, 188, 36, 4)
+    _board(c, 140, 44, 190, 48, 4)
     with PX.wall_mark(c):                  # a mark on the wall: it can run down behind the sideboard
         for i in range(4):                                                                    # a bloody handprint
             c.line(118 + i * 2, 58, 117 + i * 2, 50 - i, BLOOD)
@@ -535,8 +560,9 @@ def e_decor(c):
             if (x - x0) % 10 == 0 and x0 < x < x1:
                 col = PARTY[((x - x0) // 10) % len(PARTY)]
                 c.poly([(x - 3, y + 1), (x + 3, y + 1), (x, y + 7)], col)
-    c.rect(122, 34, 200, 44, hexc('efe8d8'))                                     # the banner, hand-painted
-    c.hline(122, 200, 44, shade(hexc('efe8d8'), 0.85))
+    import wallart as WA                                                         # the banner: a sheet of paper (grain, a soft light-to-shade gradient, a curling corner) taped at both ends, hand-painted
+    WA.sheet(c, 122, 34, 200, 44, hexc('efe8d8'), seed=3, fold=None, curl='br', grain=0.05)
+    WA.tape(c, 122, 33, 6, 3, 0); WA.tape(c, 195, 33, 6, 3, 0)
     word = 'HAPPY BIRTHDAY'
     x = 122 + (79 - F.text3_width(word)) // 2
     for i, ch in enumerate(word):

@@ -182,8 +182,9 @@ def cameos(c, ox, oy, p):
     """A pair of cameos in oval gilt frames: each frame a convex ring (a dark outer edge, a lit upper-left arc, a mid band, a shaded lower-right arc), a black velvet rebate, the cream
     cameo with a soft vignette and the silhouette in profile; a bow of ribbon on the cord, a shadow on the wall."""
     cord = hexc('4a3e30')
+    gap = int(p.get('gap', 18))                                                    # the distance between the two centres (a baked room hangs them further apart)
     for k, flip in enumerate((1, -1)):
-        cx = ox + 10 + k * 18
+        cx = ox + 10 + k * gap
         cy = oy + 11
         rx, ry = 8.2, 10.4
         for y in range(int(cy - ry) - 1, int(cy + ry) + 3):                       # the cast shadow, an oval offset down-right
@@ -219,8 +220,8 @@ def cameos(c, ox, oy, p):
             c.hline(int(cx - 1) - hw, int(cx - 1) + hw, yy, sil)
         (c.put(int(cx - 1) - flip * 4, oy + 8, sil) if k == 1 else c.put(int(cx - 1) - flip * 4, oy + 7, sil))
         W.px(c, int(cx), oy - 1, cord)
-    c.hline(ox + 10, ox + 28, oy, cord)
-    bx = ox + 19                                                                   # the ribbon bow where the cords meet
+    c.hline(ox + 10, ox + 10 + gap, oy, cord)
+    bx = ox + 10 + gap // 2                                                                   # the ribbon bow where the cords meet
     for (dx, dy, col) in ((-2, 1, 'a8322a'), (-1, 1, 'c8483a'), (1, 1, 'c8483a'), (2, 1, 'a8322a'), (0, 1, '7a2018'), (-1, 2, 'a8322a'), (1, 2, 'a8322a')):
         W.px(c, bx + dx, oy - 1 + dy, hexc(col))
 
@@ -430,23 +431,28 @@ def tea_towel(c, ox, oy, p):
 def tv_wall(c, ox, oy, p):
     """A flat-screen on the wall: a thin bezel with a lit upper edge and a shaded lower one, a silver chin with a maker's mark, glass that darkens from a cold navy at the top to near-black at
     the bottom with a soft window reflection and two diagonal glints, a vignette in the corners, a standby light that glows, the wall bracket's shadow and the cable hanging down.
-    The screen (x 3..38, y 3..22) is where the live picture is laid by module_anim."""
+    The screen (x 3..sw+2, y 3..sh+2; 36 x 20 by default) is where the live picture is laid by module_anim. `sw` / `sh` make the same set any size (the baked struck-TV room asks for 52 x 28 — one
+    drawing per thing); `cable` False leaves the cord to the caller."""
+    sw, sh = int(p.get('sw', 36)), int(p.get('sh', 20))
+    wd, ht = sw + 6, sh + 6                                                          # the whole set: bezel 3 px each side, the chin below the glass
+    xr, yb = ox + wd - 1, oy + ht - 1                                                # its last column / row
+    mid = ox + wd // 2 - 1                                                           # the standby light + the maker's mark sit at the middle
     L = K.Layer(c)
     lc = L.c
-    W.prect(lc, ox, oy, ox + 41, oy + 25, hexc('1c1d22'))
-    for x in range(ox, ox + 42):                                                    # the bezel, bevelled
-        W.px(lc, x, oy, hexc('4a4d58')); W.px(lc, x, oy + 25, hexc('0e0f12'))
-    for y in range(oy, oy + 26):
-        W.px(lc, ox, y, hexc('3c3f48')); W.px(lc, ox + 41, y, hexc('121316'))
-    W.prect(lc, ox + 2, oy + 22, ox + 39, oy + 24, hexc('2a2c33'))                  # the chin
-    W.prect(lc, ox + 2, oy + 24, ox + 39, oy + 24, hexc('8a8e98'))                  # its silver lip
-    W.prect(lc, ox + 18, oy + 23, ox + 23, oy + 23, hexc('5a5e68'))                 # the maker's mark
+    W.prect(lc, ox, oy, xr, yb, hexc('1c1d22'))
+    for x in range(ox, xr + 1):                                                     # the bezel, bevelled
+        W.px(lc, x, oy, hexc('4a4d58')); W.px(lc, x, yb, hexc('0e0f12'))
+    for y in range(oy, yb + 1):
+        W.px(lc, ox, y, hexc('3c3f48')); W.px(lc, xr, y, hexc('121316'))
+    W.prect(lc, ox + 2, yb - 3, xr - 2, yb - 1, hexc('2a2c33'))                     # the chin
+    W.prect(lc, ox + 2, yb - 1, xr - 2, yb - 1, hexc('8a8e98'))                     # its silver lip
+    W.prect(lc, mid - 2, yb - 2, mid + 3, yb - 2, hexc('5a5e68'))                   # the maker's mark
     # the glass
-    for y in range(oy + 3, oy + 23):
-        t = (y - (oy + 3)) / 19.0
+    for y in range(oy + 3, oy + 3 + sh + 0):
+        t = (y - (oy + 3)) / float(sh - 1)
         base = mix(hexc('1e2430'), hexc('0a0c10'), t)
-        for x in range(ox + 3, ox + 39):
-            u = (x - (ox + 3)) / 35.0
+        for x in range(ox + 3, ox + 3 + sw):
+            u = (x - (ox + 3)) / float(sw - 1)
             vig = 0.0
             if u < 0.08 or u > 0.92:
                 vig = 0.18
@@ -454,27 +460,29 @@ def tv_wall(c, ox, oy, p):
                 vig += 0.12
             W.px(lc, x, y, shade(base, 1.0 - vig))
     for y in range(oy + 4, oy + 12):                                                # a pale window reflected in the glass: a soft quadrilateral, brighter at its top
-        for x in range(ox + 6, ox + 17 - (y - oy - 4) // 3):
+        for x in range(ox + 6, ox + 6 + int(sw * 11 / 36.0) - (y - oy - 4) // 3):
             W.px(lc, x, y, hexc('ffffff', 12 + (8 - (y - oy - 4))))
-    for k in range(11):                                                             # two diagonal glints
-        W.px(lc, ox + 29 + k // 2, oy + 3 + k, hexc('ffffff', 30))
-        W.px(lc, ox + 31 + k // 2, oy + 3 + k, hexc('ffffff', 17))
+    gx = ox + 3 + int(round((sw - 7) * 26 / 29.0))                                  # two diagonal glints near the right of the glass
+    for k in range(min(11, sh - 3)):
+        W.px(lc, gx + k // 2, oy + 3 + k, hexc('ffffff', 30))
+        W.px(lc, gx + 2 + k // 2, oy + 3 + k, hexc('ffffff', 17))
     for dy in (-1, 0, 1):                                                           # the standby light: a red core with a faint halo
         for dx in (-1, 0, 1):
             if dx or dy:
-                W.px(lc, ox + 20 + dx, oy + 25 + dy, hexc('d8483a', 70))
-    W.px(lc, ox + 20, oy + 25, hexc('ff5a4a'))
+                W.px(lc, mid + dx, yb + dy, hexc('d8483a', 70))
+    W.px(lc, mid, yb, hexc('ff5a4a'))
     L.flush()
-    for x in range(ox + 3, ox + 41):                                                # the set's shadow on the wall and the bracket in the gap behind it
-        W.px(c, x, oy + 26, hexc('000000', 80))
-        W.px(c, x, oy + 27, hexc('000000', 36))
-    for y in range(oy + 2, oy + 27):
-        W.px(c, ox + 42, y, hexc('000000', 56))
-    W.prect(c, ox + 15, oy + 26, ox + 26, oy + 26, hexc('3a3c44'))
-    for k in range(5):                                                              # the cable: a 2 px dark cord with a lit edge, hanging then bending
-        W.px(c, ox + 21, oy + 27 + k, hexc('2a2a30')); W.px(c, ox + 20, oy + 27 + k, hexc('4a4c54'))
-    for k in range(5):
-        W.px(c, ox + 22, oy + 31 + k, hexc('2a2a30')); W.px(c, ox + 21, oy + 31 + k, hexc('4a4c54'))
+    for x in range(ox + 3, xr):                                                     # the set's shadow on the wall and the bracket in the gap behind it
+        W.px(c, x, yb + 1, hexc('000000', 80))
+        W.px(c, x, yb + 2, hexc('000000', 36))
+    for y in range(oy + 2, yb + 2):
+        W.px(c, xr + 1, y, hexc('000000', 56))
+    W.prect(c, mid - 5, yb + 1, mid + 6, yb + 1, hexc('3a3c44'))
+    if p.get('cable', True):
+        for k in range(5):                                                          # the cable: a 2 px dark cord with a lit edge, hanging then bending
+            W.px(c, mid + 1, yb + 2 + k, hexc('2a2a30')); W.px(c, mid, yb + 2 + k, hexc('4a4c54'))
+        for k in range(5):
+            W.px(c, mid + 2, yb + 6 + k, hexc('2a2a30')); W.px(c, mid + 1, yb + 6 + k, hexc('4a4c54'))
 
 
 # ------------------------------------------------------------------------------------------------------------------------------------ chrome + glass

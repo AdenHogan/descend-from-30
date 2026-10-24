@@ -282,6 +282,14 @@ The rule (GDD §1, `tools/art/context_audit.py`): the art shows **reaction** (pa
 - **Measured, not just looked at:** `tools/art/baked_objects.py` (called from `pixlib.finish_module`) finds every object a baked module draws on its bare wall + floor (a pixel that differs and is not soft shadow; touching pixels are one object) and measures it like a library sprite — colours, one-colour share, tonal range — into `assets/rooms/object_meta.json` (generated; hashed against the art, so `python3 tools/art/volume_audit.py --baked` says when it is stale). **It is a REPORT, not a gate**: a sofa on its rug counts as one object and wall bands / floor marks read as flat, so it over-reports (127 entries after this round, perhaps a third of them false). It is the list to work down: the biggest real ones are sofas (living A / B / C / E are one block with arms), the kitchen B / C chairs, the med trolley and drip stand (the library's own are built the same way and pass its tone count), study D / E tables with no top face, a few towels and wall cupboards.
 - **Not done / owner's call:** the baked sofas, the retro / country kitchen chairs and the study tables above; story rooms still use baked modules (the open question: lay story rooms from planned pieces — a nest overlay per shell and the bodies' rects as planner obstacles); the LOOK at game zoom (checked as 5-10x crops and the topple / opening frame strips only).
 
+### Round 48j, part 2 — the depth sweep (baked rooms call the library)
+
+`python3 tools/art/volume_audit.py --baked --sheets <dir>` measures every baked object and writes contact sheets of the ones under the library's bar. 127 → 100 after this pass. What changed is listed
+in CLAUDE.md "ROUND 48j, PART 2"; the rule it applies is the same one-drawing-per-thing: a baked room asks `furn_embed.lay` for the library's piece (stag head, wheelchair, sampler, sketches, clocks,
+cameos, landscapes) or both call the same helper (`props3d.chest`, `props3d.door_slab`, `props3d.copper_pot`, `wall_art3d.tv_wall` / `glass_shade` / `convex_ring`). A library piece may be made
+baked-only by registering it with `rooms={}` (`clock_sunburst`): the planner never sees it. The report over-reports — wall panelling, wallpaper motifs and floor mats are counted as objects — so read
+its contact sheets, not its count. Still below the bar and left alone: the sofas seen from behind (a different view from the library's sofa), the baked piano, grandfather clock and wardrobe.
+
 ## Numbers (so far)
 
 142 pieces, 1569 sprites; 15 shells; 15 recipes (5 bedroom + 5 kitchen + 5 living room). (Round 47: 80 pieces / 730 sprites / 5 shells / 5 recipes.) 1000 planned rooms in the test: 0 rule violations, 0 fallbacks; planning costs ~16 ms a room on average (cached per flat+slot,

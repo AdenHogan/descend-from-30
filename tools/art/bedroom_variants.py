@@ -147,11 +147,8 @@ def c_decor(c):
                                   (hexc('d8b89a'), hexc('2a2420'), hexc('2e2e33'), 13)],
             bg=hexc('c8b89a'), ground=hexc('a8987a'), frame=hexc('6b4a2c'))
     c.line(160, 24, 146, 30, hexc('3b2718')); c.line(160, 24, 174, 30, hexc('3b2718'))
-    c.box(192, 26, 212, 40, hexc('6b4a2c'), hexc('3b2718'))                                # a cross-stitch sampler
-    c.rect(194, 28, 210, 38, hexc('e6ddc4'))
-    F.text3(c, 194 + (17 - F.text3_width('HOME')) // 2, 29, 'HOME', hexc('a0505a'))
-    for (hx, hy) in ((200, 35), (202, 35), (199, 36), (203, 36), (200, 36), (201, 36), (202, 36), (201, 37)):
-        c.put(hx, hy, hexc('b0453a'))
+    import furn_embed as FE
+    FE.lay(c, 'sampler_home', 'a', 191, 26, floor=False)                                  # a cross-stitch sampler — the furniture library's own
 
 
 @persp
@@ -248,7 +245,8 @@ def _c_wardrobe(c):
 
 
 def _c_rest(c):
-    wheelchair(c, 58, 120)
+    import furn_embed as FE
+    FE.lay(c, 'wheelchair', 'purple_l', 57, 120)                                          # the furniture library's own wheelchair (one drawing per thing)
     drip_stand(c, 104, 116)
     iron_bed(c, 108, 226, 116)
     # the medicine trolley pulled up beside the foot of the bed

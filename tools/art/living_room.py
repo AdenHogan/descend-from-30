@@ -229,10 +229,8 @@ def picture(c):
     x0, y0, x1, y1 = 104, 26, 154, 54
     c.box(x0, y0, x1, y1, FRAME, FRAME_DK)
     c.box(x0 + 2, y0 + 2, x1 - 2, y1 - 2, FRAME_DK)
-    c.rect(x0 + 3, y0 + 3, x1 - 3, y1 - 3, PAINT_SKY)
-    c.ellipse(136, 34, 3, 3, PAINT_SUN)
-    c.poly([(x0 + 3, 46), (118, 38), (134, 44), (x1 - 3, 40), (x1 - 3, y1 - 3), (x0 + 3, y1 - 3)], PAINT_HILL)
-    c.poly([(x0 + 3, 50), (124, 45), (x1 - 3, 49), (x1 - 3, y1 - 3), (x0 + 3, y1 - 3)], PAINT_HILL2)
+    import wall_art3d                                          # the painting is the furniture library's own landscape (one drawing per thing), in this frame
+    wall_art3d.landscape(c, x0 + 3, y0 + 3, x1 - 3, y1 - 3, seed=4)
     c.line(146, y0 + 3, 150, y0 + 11, shade(PAINT_SKY, 0.8))   # cracked glass
     c.line(150, y0 + 11, 148, y0 + 16, shade(PAINT_SKY, 0.8))
     # the wire it hangs from
@@ -242,14 +240,8 @@ def picture(c):
 
 
 def clock(c):
-    cx, cy = 190, 40
-    c.ellipse(cx, cy, 7, 7, OUT)
-    c.ellipse(cx, cy, 6, 6, FRAME)
-    c.ellipse(cx, cy, 5, 5, CLOCK_FACE)
-    for a, b in ((0, -4), (4, 0), (0, 4), (-4, 0)):
-        c.put(cx + a, cy + b, shade(CLOCK_FACE, 0.6))
-    c.vline(cx, cy - 3, cy, OUT)                       # stopped at a quarter past something
-    c.hline(cx, cx + 2, cy, OUT)
+    import furn_embed as FE
+    FE.lay(c, 'clock_wall', 'brass', 181, 29, floor=False)          # the furniture library's own wall clock (one drawing per thing)
 
 
 def decay(c):

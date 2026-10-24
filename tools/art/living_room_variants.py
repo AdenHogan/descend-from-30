@@ -120,11 +120,9 @@ def b_decor(c):
     # a mid-century print above the sofa, behind glass in a thin black frame with a card mat
     import wallart
     wallart.picture_print(c, 176, 30, 218, 56, 'black')
-    # a starburst clock (between the left window and the TV)
-    for dx, dy in ((0, -9), (6, -6), (9, 0), (6, 6), (0, 9), (-6, 6), (-9, 0), (-6, -6)):
-        c.line(112, 42, 112 + dx, 42 + dy, hexc('b58f4a'))
-    c.ellipse(112, 42, 3, 3, hexc('d9c690'))
-    c.put(112, 41, lr.OUT)
+    # a starburst clock (between the left window and the TV) — the furniture library's own (one drawing per thing)
+    import furn_embed as FE
+    FE.lay(c, 'clock_sunburst', 'brass', 100, 30, floor=False)
 
 
 @persp
@@ -145,6 +143,8 @@ def sofa_back(c, cx, base, pal, wear=False):
     # the back panel
     rrect(c, x0 + 6, b - 35, x1 - 6, b - 2, SOFA_OUT, 3)
     rrect(c, x0 + 7, b - 34, x1 - 7, b - 3, SOFA, 2)
+    for yy in range(b - 33, b - 10):                                    # the cloth is lit from above and darkens toward the seat
+        c.hline(x0 + 8, x1 - 8, yy, shade(SOFA, 1.05 - 0.14 * (yy - (b - 33)) / 23.0))
     c.hline(x0 + 9, x1 - 9, b - 34, SOFA_LT)                            # the top, seen from a little above
     c.hline(x0 + 8, x1 - 8, b - 33, shade(SOFA_LT, 0.94))
     c.hline(x0 + 8, x1 - 8, b - 31, SOFA_DK)                            # piping
@@ -154,6 +154,11 @@ def sofa_back(c, cx, base, pal, wear=False):
     c.rect(x0 + 7, b - 9, x1 - 7, b - 3, SOFA_DK)                        # the skirt
     c.hline(x0 + 7, x1 - 7, b - 9, shade(SOFA_DK, 0.85))
     c.dither(x0 + 8, b - 29, x1 - 8, b - 11, shade(SOFA, 0.95), 0.12, 'random')
+    for ty in (b - 24, b - 16):                                         # tufted buttons: a dark dimple with a lit rim, in two staggered rows
+        for k in range(1, 7):
+            tx = x0 + 6 + (x1 - x0 - 12) * k // 7 + (4 if ty == b - 16 else 0)
+            if x0 + 10 < tx < x1 - 10:
+                c.put(tx, ty, shade(SOFA_DK, 0.9)); c.put(tx - 1, ty - 1, shade(SOFA_LT, 1.05)); c.put(tx + 1, ty + 1, shade(SOFA, 0.82))
     # the arms, lower, at each end
     for ax0 in (x0, x1 - 9):
         rrect(c, ax0, b - 27, ax0 + 9, b - 2, SOFA_OUT, 2)
@@ -486,28 +491,16 @@ def d_wall(c):
 
 
 def d_decor(c):
-    # a pair of SILHOUETTE cameos in oval frames, the couple turned to face each other — hers with her
-    # hair up, his glass cracked (round 17: two blank ovals read as nothing)
-    gilt, card, ink = hexc('b58f4a'), hexc('e8dcc4'), hexc('1e1a18')
-    for (cx_, d, bun) in ((122, 1, True), (144, -1, False)):
-        cy = 38
-        c.ellipse(cx_, cy, 8, 11, gilt)
-        c.ellipse(cx_, cy, 6, 9, card)
-        hx = cx_ - d
-        c.ellipse(hx, cy - 3, 3, 3.5, ink)                                            # the head
-        c.poly([(hx + 2 * d, cy - 5), (hx + 4 * d, cy - 2), (hx + 3 * d, cy - 1), (hx + 3 * d, cy + 1), (hx, cy + 1)], ink)   # brow, nose, lips, chin
-        c.rect(hx - 1, cy, hx + 1, cy + 4, ink)                                       # the neck
-        c.poly([(cx_ - 5, cy + 8), (cx_ - 3, cy + 4), (cx_ + 3, cy + 4), (cx_ + 5, cy + 8)], ink)             # shoulders
-        if bun:
-            c.ellipse(hx - 3 * d, cy - 5, 2, 2, ink)
-        for yy in range(cy - 11, cy + 12):                                             # re-cut the gilt ring
-            for xx in range(cx_ - 8, cx_ + 9):
-                u, v = (xx - cx_) / 8.0, (yy - cy) / 11.0
-                ui, vi = (xx - cx_) / 6.3, (yy - cy) / 9.3
-                if u * u + v * v <= 1.0 and ui * ui + vi * vi > 1.0:
-                    c.put(xx, yy, gilt if (xx + yy) % 5 else shade(gilt, 1.25))
+    # a pair of SILHOUETTE cameos in oval frames, the couple turned to face each other — the furniture library's own pair (wall_art3d.cameos), hung 22 px apart here; his glass cracked
+    import furn_embed as FE
+    FE.lay(c, 'cameos', 'pair', 112, 27, floor=False, override={'draw': _cameos_wide})
     for (ax, ay, bx, by) in ((147, 32, 149, 29), (147, 32, 150, 34), (147, 32, 144, 30)):   # a star crack in his glass
         c.line(ax, ay, bx, by, hexc('f4f0e4', 150))
+
+
+def _cameos_wide(c, ox, oy, p):
+    import wall_art3d
+    wall_art3d.cameos(c, ox, oy, dict(p, gap=22))
 
 
 @persp
@@ -714,19 +707,10 @@ def e_wall(c):
 
 
 def e_decor(c):
-    # antlers on a shield plaque, a hunting print
-    cx = 162
-    c.poly([(cx - 6, 34), (cx + 6, 34), (cx + 5, 46), (cx, 50), (cx - 5, 46)], hexc('6b4a31'))
-    c.poly([(cx - 3, 36), (cx + 3, 36), (cx + 2, 42), (cx - 2, 42)], hexc('8a7a6a'))
-    for d in (-1, 1):
-        pts = [(cx + 3 * d, 36), (cx + 10 * d, 30), (cx + 16 * d, 22), (cx + 20 * d, 14)]
-        for a, b in zip(pts, pts[1:]):
-            c.line(a[0], a[1], b[0], b[1], hexc('d9cfb8'))
-        c.line(cx + 10 * d, 30, cx + 14 * d, 34, hexc('d9cfb8'))
-        c.line(cx + 16 * d, 22, cx + 22 * d, 24, hexc('d9cfb8'))
-        c.line(cx + 16 * d, 22, cx + 14 * d, 14, hexc('d9cfb8'))
-    frame(c, 196, 26, 220, 46, hexc('b58f4a'), hexc('7a6a4a'), hexc('6a7a5a'))
-    c.poly([(200, 40), (206, 34), (212, 38), (216, 32), (216, 42), (200, 42)], hexc('4a5a3a'))
+    # the antlers on their shield plaque and the hunting-lodge landscape are the furniture library's own pieces (tools/art/furn_embed.py: one drawing per thing)
+    import furn_embed as FE
+    FE.lay(c, 'stag_head', 'twelve', 140, 14, floor=False)
+    FE.lay(c, 'picture_landscape', 'hills_green', 196, 26, floor=False)
 
 
 CAB_STATE = 'locked'     # the gun cabinet's look: locked | open | smashed | open_empty | smashed_empty
@@ -779,6 +763,7 @@ def _cabinet_floor(c):
 
 def e_furniture(c):
     import furn as F
+    import furn_embed as FE
     FX = 160
 
     def _gun_cabinet(c):
@@ -962,10 +947,10 @@ def e_furniture(c):
     setback(c, lambda l: lr.shifted(l, _gun_cabinet, 0, -3), depth=5, top=22, x_range=(5, 41), rake=1.0)
     _cabinet_floor(c)
     setback(c, _fireplace, depth=4, top=52, x_range=(FX - 30, FX + 30))
-    setback(c, _basket, depth=3, top=86, x_range=(FX - 48, FX - 33))
+    FE.lay(c, 'log_basket', 'wicker', FX - 50, 99)                    # the library's log basket on the hearth, left (a set-back scavenge spot)
     setback(c, _poker, depth=3)
     # a chesterfield in oxblood leather, and a bear-skin rug before it
-    sofa_as(c, (hexc('6e2a24'), hexc('55201c'), hexc('84403a'), hexc('2a100e')), dx=128)
+    FE.lay(c, 'sofa', 'oxblood', 216, 116)
     import props3d
     with flat_piece(c):                                              # the bear-skin: the pelt and its head (tools/art/props3d.py bearskin — fur, a rolled edge, a domed head)
         props3d.bearskin(c, [(118, 126), (128, 120), (132, 116), (140, 120), (170, 119), (178, 115), (184, 120), (196, 124),

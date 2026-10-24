@@ -389,26 +389,8 @@ def e_decor(c):
     # (round 17: paint flicked all over the wall read as confetti) what a painter pins up: a charcoal
     # study for the boat on the canvas below, a watercolour of flowers in a jug, and the colours tried
     # out on the wall, a stroke of each
-    paper, ch = hexc('ece6d4'), hexc('4a4640')
-    x0, y0 = 174, 26                                                              # the boat, in charcoal
-    c.rect(x0, y0, x0 + 18, y0 + 15, paper); c.hline(x0, x0 + 18, y0 + 15, hexc('c9c2ae'))
-    c.hline(x0 + 1, x0 + 17, y0 + 10, hexc('8a8478'))                             # the sea line
-    c.vline(x0 + 8, y0 + 2, y0 + 10, ch)
-    c.line(x0 + 8, y0 + 2, x0 + 13, y0 + 9, ch); c.hline(x0 + 8, x0 + 13, y0 + 9, ch)
-    c.line(x0 + 4, y0 + 10, x0 + 6, y0 + 12, ch); c.hline(x0 + 6, x0 + 13, y0 + 12, ch); c.line(x0 + 13, y0 + 12, x0 + 15, y0 + 10, ch)
-    F.pin(c, x0 + 9, y0 + 1)
-    x0, y0 = 198, 30                                                              # flowers in a jug
-    c.rect(x0, y0, x0 + 16, y0 + 20, paper); c.hline(x0, x0 + 16, y0 + 20, hexc('c9c2ae'))
-    c.rect(x0 + 5, y0 + 12, x0 + 11, y0 + 18, hexc('6a8ab0')); c.vline(x0 + 5, y0 + 12, y0 + 18, hexc('8aa8c8'))
-    c.put(x0 + 12, y0 + 13, hexc('6a8ab0')); c.put(x0 + 12, y0 + 14, hexc('6a8ab0'))
-    for (dx, dy, col) in ((4, 5, SPLASH[0]), (8, 3, SPLASH[2]), (12, 6, SPLASH[4]), (7, 7, SPLASH[0])):
-        c.line(x0 + 8, y0 + 12, x0 + dx, y0 + dy + 1, SPLASH[3])
-        c.ellipse(x0 + dx, y0 + dy, 1.5, 1.5, col)
-    F.tape(c, x0 + 3, y0); F.tape(c, x0 + 13, y0)
-    for i, col in enumerate(SPLASH):
-        x = 200 + i * 5
-        c.rect(x, 55, x + 2, 61, col)               # clear of the canvas on its easel below
-        c.put(x + 1, 62, col); c.put(x + 3, 56, shade(col, 0.8))
+    import furn_embed as FE
+    FE.lay(c, 'sketches_wall', 'sheets', 176, 27, floor=False)                         # the furniture library's pair: a charcoal boat and a watercolour of flowers, two same-size sheets, the paint tubes on a string
 
 
 @persp

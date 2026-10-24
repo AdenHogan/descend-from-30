@@ -12,20 +12,12 @@ from pixlib import hexc, shade
 
 
 def wall_tv(c, x0, y0, w, h):
-    """A wide flat TV on a wall bracket: a thin black bezel all round (the same on both sides), a
-    sheen along the top, a standby LED under the screen, standing a finger off the wall (its left edge
-    and a soft shadow to the right). Returns the screen's top-left."""
-    x1, y1 = x0 + w + 3, y0 + h + 3
-    for y in range(y0 + 2, y1 + 3):                                   # its shadow on the wall
-        c.put(x1 + 1, y, hexc('000000', 60))
-        c.put(x1 + 2, y, hexc('000000', 30))
-    c.hline(x0 + 2, x1 + 1, y1 + 1, hexc('000000', 60))
-    c.vline(x0 - 1, y0 + 1, y1 - 1, hexc('3a3a3e'))                   # its edge, a finger off the wall
-    c.box(x0, y0, x1, y1, hexc('161618'), hexc('0a0a0c'))             # the bezel
-    c.hline(x0 + 1, x1 - 1, y0 + 1, hexc('2a2a2e'))                    # a sheen along its top
-    c.rect(x0 + 2, y0 + 2, x0 + 1 + w, y0 + 1 + h, hexc('060608'))     # the screen
-    c.put((x0 + x1) // 2, y1 - 1, hexc('c0453a'))                     # the standby LED
-    return x0 + 2, y0 + 2
+    """A wide flat TV on a wall bracket — the furniture library's own set (wall_art3d.tv_wall) at this room's size: a bevelled bezel, a chin with a maker's mark, glass with a soft window
+    reflection and two glints, a standby light, the bracket's shadow. The cable is the room's to draw. Returns the screen's top-left (where the live picture is laid)."""
+    import wall_art3d
+    sx0, sy0 = x0 + 2, y0 + 2
+    wall_art3d.tv_wall(c, sx0 - 3, sy0 - 3, {'sw': w, 'sh': h, 'cable': False})
+    return sx0, sy0
 
 
 def guitar_on_floor(c, cx, cy, ang, seed=22, scale=1.35):

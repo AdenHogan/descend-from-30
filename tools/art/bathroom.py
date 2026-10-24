@@ -707,6 +707,7 @@ def a_build(c):
     a_wall(c)
     a_floor(c)
     mirror_cabinet(c, 24, 24, 48, 54, hexc('d6d2c4'), PORC_OUT, open_door='left')   # over the tap
+    _mirror_glass(c, 'cabinet')
     basin3d(c, 36, rim=70)
     rim_things(c, 15, 75)
     c.ellipse(34, 76, 2, 1, BLOOD)
@@ -909,6 +910,7 @@ def b_build(c):
     c.ellipse(39, 38, 7.5, 7.5, MIRROR)
     c.line(34, 43, 42, 32, MIRROR_HI)
     c.line(35, 33, 44, 42, shade(MIRROR, 0.8))                           # cracked
+    _mirror_glass(c, 'round')
     vanity3d(c, 6, 50, 72)
     rim_things(c, 55, 76, mug=hexc('e8a0b0'))
     toilet3d(c, 84, porc=AVO, out=AVO_OUT, lid_up=True, seat=hexc('d9cfa8'))
@@ -1024,6 +1026,20 @@ def chandelier(c, cx):
     light(cx, 18, 'chandelier')
 
 
+def _mirror_glass(c, kind):
+    """Turn the flat mirror a baked bathroom just drew into glass with a moulding — the SAME passes the furniture library's `mirror_bath` piece applies after drawing these very fixtures
+    (wall_art3d.glass_shade / convex_ring / bevel_frame), at the origin the piece uses for each kind: one drawing per thing."""
+    import wall_art3d
+    ox, oy = {'cabinet': (17, 24), 'round': (28, 27), 'gilt': (20, 15), 'tile': (20, 30), 'pink': (24, 19)}[kind]
+    wall_art3d.glass_shade(c, ox, oy, 36, 36)
+    if kind == 'round':
+        wall_art3d.convex_ring(c, ox + 11, oy + 11, 9.5, 7.5, hexc('9a8660'))
+    elif kind == 'pink':
+        wall_art3d.convex_ring(c, ox + 13, oy + 13, 11.0, 9.0, PINK_DK)
+    elif kind == 'tile':
+        wall_art3d.bevel_frame(c, ox + 5, oy, ox + 29, oy + 22, hexc('7a8480'), 2)
+
+
 def gilt_mirror(c, x0, y0, x1, y1):
     c.box(x0, y0, x1, y1, GOLD, GOLD_OUT)
     c.box(x0 + 2, y0 + 2, x1 - 2, y1 - 2, GOLD_DK)
@@ -1048,6 +1064,7 @@ def c_build(c):
     c_wall(c)
     c_floor(c)
     gilt_mirror(c, 24, 20, 48, 50)                                        # over the washstand's tap
+    _mirror_glass(c, 'gilt')
     washstand3d(c, 9, 47, 72)
     # a gilt trinket dish at the slab's right end, a string of pearls spilling over its lip (owner round 33: the node used to sit
     # up on the mirror, too high to reach from the walking line — it's here now, at hand height)
@@ -1409,6 +1426,7 @@ def d_build(c):
     c.rect(27, 32, 47, 50, MIRROR)
     c.line(29, 48, 44, 34, MIRROR_HI)
     c.line(34, 34, 40, 48, shade(MIRROR, 0.75)); c.line(40, 48, 45, 42, shade(MIRROR, 0.75))
+    _mirror_glass(c, 'tile')
     c.vline(37, 80, 99, IRON)                                            # the waste pipe, down the wall
     c.rect(34, 92, 40, 97, RUST)
     basin3d(c, 37, rim=66, pedestal=False, inside=hexc('b9b09a'), drip=True)
@@ -1505,6 +1523,7 @@ def e_build(c):
     c.ellipse(37, 32, 11, 11, PINK_DK)
     c.ellipse(37, 32, 9, 9, MIRROR)
     c.line(32, 38, 41, 25, MIRROR_HI)
+    _mirror_glass(c, 'pink')
     basin3d(c, 37, rim=70, porc=PINK, out=PINK_OUT)
     rim_things(c, 16, 75, mug=hexc('e0d9b8'), bottle=hexc('c07a3a'))
     toilet3d(c, 84, porc=PINK, out=PINK_OUT, seat=hexc('26262a'))

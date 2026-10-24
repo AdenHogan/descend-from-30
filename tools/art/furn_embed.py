@@ -16,9 +16,8 @@ import pixlib
 
 
 def _load_pieces():
-    """Register the library's pieces (furn_build imports the same files; importing one twice under one name is harmless)."""
-    for mod in ('furn_beds', 'furn_kids', 'furn_toys', 'furn_wardrobes', 'furn_props2', 'furn_floor'):
-        __import__(mod)
+    """Register every piece of the library — exactly the set furn_build renders (importing the module twice under one name is harmless)."""
+    import furn_build  # noqa: F401  (registers the pieces; its main() only runs as a script)
 
 
 def lay(c, pid, variant, x, feet_y, floor=True, override=None):

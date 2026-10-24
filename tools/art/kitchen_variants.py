@@ -110,9 +110,8 @@ def b_wall(c):
 
 
 def b_decor(c):
-    c.ellipse(170, 34, 9, 9, hexc('d9b84a'))                                                # a sunburst clock
-    c.ellipse(170, 34, 6, 6, hexc('f0ecd8'))
-    c.vline(170, 30, 34, hexc('26262a')); c.hline(170, 173, 34, hexc('26262a'))
+    import furn_embed as FE
+    FE.lay(c, 'clock_wall', 'brass', 161, 23, floor=False)                                  # the furniture library's wall clock (one drawing per thing)
 
 
 @persp
@@ -192,10 +191,9 @@ def c_wall(c):
 def c_decor(c):
     # copper pans hanging on a rail over the range
     c.hline(130, 190, 30, hexc('3a3a36'))
+    import props3d
     for (x, r) in ((138, 6), (156, 8), (176, 5)):
-        c.vline(x, 30, 34, hexc('3a3a36'))
-        c.ellipse(x, 34 + r, r, r, hexc('b8703a'))
-        c.ellipse(x - 2, 32 + r, r // 2, r // 2, hexc('d8904a'))
+        props3d.copper_pot(c, x, 30, r)
 
 
 @persp

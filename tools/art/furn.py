@@ -24,37 +24,9 @@ DARK = hexc('24180f')
 
 def chest(c, x0, x1, top, base, P, drawers=3, open_row=None, knobs=BRASS, legs=True):
     """A chest of drawers / cabinet against the wall: a top lip, drawers, feet. `open_row` pulls
-    that drawer out (its dark inside shows)."""
-    b, lt, dk, out = P
-    c.shadow((x0 + x1) // 2, base + 1, (x1 - x0) // 2 + 2, 2, 100)
-    # the TOP: a polished slab overhanging the carcass, lit — two rows thick so the set-back pass
-    # (which samples two px in) turns it into a lit top surface, not a dark slab (owner round 18)
-    c.rect(x0 - 1, top, x1 + 1, top + 2, shade(lt, 1.08))
-    c.hline(x0 - 1, x1 + 1, top, out)
-    c.hline(x0 - 1, x1 + 1, top + 2, lt)
-    foot = 3 if legs else 0
-    c.box(x0, top + 3, x1, base - foot, b, out)
-    c.hline(x0 + 1, x1 - 1, top + 4, dk)                                  # the shadow under the top
-    h = (base - foot - top - 5) // drawers
-    for i in range(drawers):
-        y0 = top + 5 + i * h
-        y1 = y0 + h - 2
-        if i == open_row:
-            c.rect(x0 + 2, y0, x1 - 2, y0 + 1, DARK)
-            c.box(x0 + 1, y0 + 2, x1 - 1, y1 + 1, b, out)
-            c.hline(x0 + 2, x1 - 2, y0 + 3, lt)
-        else:
-            c.box(x0 + 2, y0, x1 - 2, y1, b, dk)
-            c.hline(x0 + 3, x1 - 3, y0 + 1, lt)
-        my = (y0 + y1) // 2 + (1 if i == open_row else 0)
-        if x1 - x0 > 24:
-            c.rect(x0 + 6, my, x0 + 8, my, knobs)
-            c.rect(x1 - 8, my, x1 - 6, my, knobs)
-        else:
-            c.rect((x0 + x1) // 2 - 1, my, (x0 + x1) // 2 + 1, my, knobs)
-    if legs:
-        for fx in (x0 + 1, x1 - 3):
-            c.rect(fx, base - 2, fx + 2, base, out)
+    that drawer out (its dark inside shows). Drawn with volume in tools/art/props3d.py (round 48j)."""
+    import props3d
+    props3d.chest(c, x0, x1, top, base, P, drawers, open_row, knobs, legs, DARK)
 
 
 def shelves(c, x0, x1, top, base, P, rows, rng, fill=0.85, back=DARK):

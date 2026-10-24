@@ -159,9 +159,10 @@ def counter(c):
     for dx0 in range(x0 + 2, x1 - 20, 22):
         if 150 <= dx0 <= 186:                               # the cooker sits here
             continue
-        c.box(dx0, 75, dx0 + 19, 96, CAB, CAB_DK)
-        c.hline(dx0 + 1, dx0 + 18, 76, CAB_LT)
+        import props3d
+        props3d.door_slab(c, dx0, 75, dx0 + 19, 96, CAB, CAB_LT, CAB_DK)
         c.rect(dx0 + 16, 83, dx0 + 16, 88, HANDLE)
+        c.put(dx0 + 17, 83, shade(HANDLE, 0.5)); c.put(dx0 + 15, 83, shade(HANDLE, 1.4))
     # one door hanging open (the centre cupboard node): the dark inside + a tin
     c.rect(110, 75, 129, 96, CAB_IN)
     c.hline(110, 129, 85, shade(CAB_IN, 1.4))
@@ -194,9 +195,10 @@ def wall_cupboards(c):
             c.rect(a + 22, top + 20, a + 30, top + 29, hexc('c05a3a'))
             c.poly([(a, top + 2), (a - 3, top + 4), (a - 3, bot - 3), (a, bot - 2)], CAB_LT)
         else:
-            c.box(a, top + 2, b, bot - 2, CAB, CAB_DK)
-            c.hline(a + 1, b - 1, top + 3, CAB_LT)
+            import props3d
+            props3d.door_slab(c, a, top + 2, b, bot - 2, CAB, CAB_LT, CAB_DK)
             c.rect(a + 3, bot - 8, a + 3, bot - 5, HANDLE)
+            c.put(a + 4, bot - 8, shade(HANDLE, 0.5)); c.put(a + 2, bot - 8, shade(HANDLE, 1.4))
     c.put(150, 30, CHIP); c.put(151, 30, CHIP)
 
 

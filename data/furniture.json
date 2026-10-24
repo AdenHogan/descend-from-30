@@ -12762,6 +12762,95 @@
     30
    ]
   },
+  "clock_sunburst": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 24,
+   "lap": 6,
+   "lean": false,
+   "limit": null,
+   "near": [],
+   "needs": null,
+   "note": "a mid-century starburst clock: sixteen shaded brass spikes (long and short) round a bezelled face \u2014 baked rooms only (rooms {}): the planner never picks it",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "decor",
+   "rooms": {},
+   "sound": null,
+   "styles": null,
+   "tags": [
+    "clock"
+   ],
+   "under": [],
+   "variants": {
+    "brass": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "face": "ece6d0",
+      "ink": "2a2a2a",
+      "ray": "c9a24e",
+      "rim": "b09456"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 25,
+       "bx": 160,
+       "file": "clock_sunburst_brass",
+       "h": 29,
+       "l": -1,
+       "r": 25,
+       "rx": 1,
+       "ry": 3,
+       "sb": 23,
+       "t": -3,
+       "w": 27
+      }
+     ]
+    },
+    "copper": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "face": "e8e0c8",
+      "ink": "2a2420",
+      "ray": "c0793e",
+      "rim": "a8683a"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 25,
+       "bx": 160,
+       "file": "clock_sunburst_copper",
+       "h": 29,
+       "l": -1,
+       "r": 25,
+       "rx": 1,
+       "ry": 3,
+       "sb": 23,
+       "t": -3,
+       "w": 27
+      }
+     ]
+    }
+   },
+   "w": 24,
+   "wall_y": [
+    20,
+    34
+   ]
+  },
   "clock_wall": {
    "above": [],
    "bucketed": false,

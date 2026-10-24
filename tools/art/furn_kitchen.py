@@ -55,30 +55,12 @@ def _handle(c, x, y, fin, vertical=True, knob=False):
 
 
 def _door_slab(c, x0, y0, x1, y1, fin, shade_f=1.0):
-    """A cabinet door: flat with a lit top-left edge (retro / student / hoarder) or a shaker frame with an inset panel (classic / country)."""
-    door, lt, dk, out = fin['door'], fin['lt'], fin['dk'], fin['out']
+    """A cabinet door: flat with a lit top-left edge (retro / student / hoarder) or a shaker frame with an inset panel (classic / country) — props3d.door_slab, shared with the baked kitchen."""
+    import props3d
+    door, lt, dk = fin['door'], fin['lt'], fin['dk']
     if shade_f != 1.0:
         door, lt, dk = shade(door, shade_f), shade(lt, shade_f), shade(dk, shade_f)
-    c.rect(x0, y0, x1, y1, door)
-    if not fin['shaker'] and x1 - x0 >= 6 and y1 - y0 >= 8:                                  # a flat-fronted door is not one colour: lit toward the top, a hair darker at the foot, a faint fleck of grain
-        h = y1 - y0
-        for yy in range(y0, y1 + 1):
-            f = (yy - y0) / float(max(1, h))
-            c.hline(x0, x1, yy, shade(door, 1.05 - 0.10 * f))
-        for k, yy in enumerate(range(y0 + 5, y1 - 2, 7)):
-            c.hline(x0 + 2 + (k * 5) % 5, min(x1 - 2, x0 + 4 + (k * 5) % 5), yy, shade(door, 0.95))
-        c.hline(x0 + 1, x1 - 1, y0 + 1, shade(lt, 0.98))                                      # the bevel: a second, softer lit row inside the edge
-        c.vline(x1 - 1, y0 + 1, y1 - 1, shade(dk, 1.08))
-    c.hline(x0, x1, y0, lt)
-    c.vline(x0, y0, y1, lt)
-    c.hline(x0, x1, y1, dk)
-    c.vline(x1, y0, y1, dk)
-    if fin['shaker'] and x1 - x0 >= 8 and y1 - y0 >= 9:
-        c.rect(x0 + 2, y0 + 2, x1 - 2, y1 - 2, shade(door, 0.94))
-        c.hline(x0 + 2, x1 - 2, y1 - 2, lt)
-        c.vline(x1 - 2, y0 + 2, y1 - 2, lt)
-        c.hline(x0 + 2, x1 - 2, y0 + 2, dk)
-        c.vline(x0 + 2, y0 + 2, y1 - 2, dk)
+    props3d.door_slab(c, x0, y0, x1, y1, door, lt, dk, fin['shaker'])
 
 
 def _door_cell(c, x0, y0, x1, y1, fin, hinge, t, rng, knob=False):

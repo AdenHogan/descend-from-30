@@ -131,7 +131,7 @@ def load_backlog():
     return json.load(open(BACKLOG))
 
 
-def baked_report():
+def baked_report(sheet_dir=None):
     sys.path.insert(0, HERE)
     import math
     import baked_objects as B
@@ -157,12 +157,48 @@ def baked_report():
         print('STALE (the art changed since object_meta.json was written — run tools/art/build_all.py): %s' % ', '.join(stale))
     for sc, name, o in rows[:60]:
         print('  %-14s %-22s n=%4d colours=%3d (need %2d) one colour %2d%%, range %.2f' % (name, o['bbox'], o['n'], o['colours'], B.need(o['n']), round(100 * o['dom']), o['range']))
+    if sheet_dir:
+        baked_sheets(rows, sheet_dir)
     return 0
+
+
+def baked_sheets(rows, out_dir, scale=3, width=1500, per_sheet=24):
+    """Contact sheets of the flagged objects, worst first: each crop is cut from the module's finished art at `scale`, labelled with its module, box and colour count — the list to work down."""
+    from PIL import ImageDraw
+    os.makedirs(out_dir, exist_ok=True)
+    pad = 3
+    cells = []
+    for sc, name, o in rows:
+        x0, y0, x1, y1 = o['bbox']
+        art = Image.open(os.path.join(ROOT, 'assets', 'rooms', name + '.png')).convert('RGBA')
+        box = (max(0, x0 - pad), max(0, y0 - pad), min(art.width, x1 + pad + 1), min(art.height, y1 + pad + 1))
+        crop = art.crop(box).resize(((box[2] - box[0]) * scale, (box[3] - box[1]) * scale), Image.NEAREST)
+        cells.append((crop, '%s %s n=%d c=%d' % (name, o['bbox'], o['n'], o['colours'])))
+    n_sheet = 0
+    for i in range(0, len(cells), per_sheet):
+        chunk = cells[i:i + per_sheet]
+        x = y = row_h = 0
+        placed = []
+        for crop, label in chunk:
+            w, h = max(crop.width, 220), crop.height + 14
+            if x + w > width:
+                x, y, row_h = 0, y + row_h + 6, 0
+            placed.append((x, y, crop, label))
+            x += w + 6
+            row_h = max(row_h, h)
+        sheet = Image.new('RGBA', (width, y + row_h + 6), (34, 34, 38, 255))
+        d = ImageDraw.Draw(sheet)
+        for (px, py, crop, label) in placed:
+            d.text((px, py), label, fill=(230, 230, 120, 255))
+            sheet.alpha_composite(crop, (px, py + 12))
+        sheet.convert('RGB').save(os.path.join(out_dir, 'baked_%02d.png' % n_sheet))
+        n_sheet += 1
+    print('wrote %d contact sheet(s) of %d objects to %s' % (n_sheet, len(cells), out_dir))
 
 
 def main(argv):
     if '--baked' in argv:
-        return baked_report()
+        return baked_report(argv[argv.index('--sheets') + 1] if '--sheets' in argv else None)
     flat = flat_now()
     back = load_backlog()
     if '--write' in argv:

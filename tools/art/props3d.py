@@ -340,3 +340,101 @@ def bearskin(c, pelt, head, eye, nose, seed=5):
     K.sphere(c, hcx + hrx * 0.62, hcy + hry * 0.2, hrx * 0.42, hry * 0.5, hexc('b8946a'), n=5)      # the snout
     c.put(nose[0], nose[1], hexc('1a1410')); c.put(nose[0] - 1, nose[1], hexc('2a2018'))
     c.put(eye[0], eye[1], hexc('120e0a')); c.put(eye[0], eye[1] - 1, hexc('d9cfb8'))
+
+
+# ================================================================================================================================ chest of drawers
+def chest(c, x0, x1, top, base, P, drawers, open_row, knobs, legs, dark):
+    """A chest of drawers / sideboard against the wall (the baked rooms' `furn.chest`, SAME footprint and drawer rows as before so no node or opening moves): a polished top with a lit
+    front edge and a lip, a shadow under it, raised-panel drawer fronts (a lit top / left bevel, a shaded bottom / right one, wood grain along the front), bail pulls, bracket feet that
+    are lit on the left and shaded on the right; an `open_row` drawer stands pulled out with its dark gap above and its own shadow."""
+    b, lt, dk, out = P
+    c.shadow((x0 + x1) // 2, base + 1, (x1 - x0) // 2 + 2, 2, 100)
+    c.rect(x0 - 1, top, x1 + 1, top + 2, shade(lt, 1.08))                                   # the top: a polished slab, two rows thick (the set-back pass lights it as a surface)
+    c.hline(x0 - 1, x1 + 1, top, out)
+    c.hline(x0, x1, top + 1, shade(lt, 1.28))                                                # its lit front edge
+    c.hline(x0 - 1, x1 + 1, top + 2, shade(lt, 0.82))                                        # the lip's underside
+    c.put(x0 - 1, top + 1, shade(lt, 1.2)); c.put(x1 + 1, top + 1, shade(dk, 1.0))
+    foot = 3 if legs else 0
+    c.box(x0, top + 3, x1, base - foot, b, out)                                              # the carcass
+    c.vline(x0 + 1, top + 4, base - foot - 1, shade(lt, 0.96))                               # lit left edge, shaded right
+    c.vline(x1 - 1, top + 4, base - foot - 1, shade(dk, 1.0))
+    c.hline(x0 + 1, x1 - 1, top + 4, dk)                                                     # the shadow under the top
+    c.hline(x0 + 1, x1 - 1, top + 5, shade(dk, 1.15))
+    h = (base - foot - top - 5) // drawers
+    for i in range(drawers):
+        y0 = top + 5 + i * h
+        y1 = y0 + h - 2
+        if i == open_row:
+            c.rect(x0 + 2, y0, x1 - 2, y0 + 1, dark)                                         # the gap the drawer came out of
+            c.box(x0 + 1, y0 + 2, x1 - 1, y1 + 1, b, out)
+            c.hline(x0 + 2, x1 - 2, y0 + 3, lt)
+            c.hline(x0 + 2, x1 - 2, y1 + 2, shade(dk, 0.7))                                  # its shadow on the drawer below
+            front = (y0 + 4, y1)
+        else:
+            c.box(x0 + 2, y0, x1 - 2, y1, b, dk)
+            c.hline(x0 + 3, x1 - 3, y0 + 1, lt)
+            front = (y0 + 2, y1 - 1)
+        fy0, fy1 = front                                                                      # the raised panel on the drawer front
+        if fy1 - fy0 >= 2 and x1 - x0 > 12:
+            c.rect(x0 + 4, fy0, x1 - 4, fy1, shade(b, 1.06))
+            c.hline(x0 + 4, x1 - 4, fy0, shade(lt, 1.12)); c.vline(x0 + 4, fy0, fy1, shade(lt, 1.05))
+            c.hline(x0 + 4, x1 - 4, fy1, shade(dk, 0.95)); c.vline(x1 - 4, fy0, fy1, shade(dk, 0.95))
+            rng = random.Random(x0 * 31 + y0)
+            for _ in range(max(1, (fy1 - fy0) // 2)):                                         # grain along the front
+                gy = rng.randint(fy0 + 1, max(fy0 + 1, fy1 - 1))
+                gx = rng.randint(x0 + 6, max(x0 + 6, x1 - 12))
+                for j in range(rng.randint(3, 6)):
+                    if gx + j < x1 - 5:
+                        c.put(gx + j, gy, shade(b, 0.92) if (gy + j) % 2 else shade(lt, 1.0))
+        my = (y0 + y1) // 2 + (1 if i == open_row else 0)
+        pulls = ((x0 + 6, x0 + 9), (x1 - 9, x1 - 6)) if x1 - x0 > 24 else (((x0 + x1) // 2 - 1, (x0 + x1) // 2 + 1),)
+        for (a, z) in pulls:                                                                  # a bail pull: a lit bar on two dark posts
+            c.hline(a, z, my, knobs)
+            c.hline(a, z, my - 1, shade(knobs, 1.3))
+            c.put(a - 1, my, shade(knobs, 0.5)); c.put(z + 1, my, shade(knobs, 0.5))
+            c.hline(a, z, my + 1, shade(knobs, 0.45))                                         # its shadow on the drawer
+    if legs:
+        for fx in (x0 + 1, x1 - 3):                                                           # bracket feet: lit on the left, shaded on the right
+            c.rect(fx, base - 2, fx + 2, base, out)
+            c.vline(fx, base - 2, base - 1, shade(lt, 0.9)); c.put(fx + 1, base - 2, shade(b, 0.9)); c.put(fx + 2, base - 1, shade(dk, 0.7))
+
+
+# ================================================================================================================================ cabinet doors
+def door_slab(c, x0, y0, x1, y1, door, lt, dk, shaker=False):
+    """A cabinet door — the ONE drawing the furniture library's kitchen units (`furn_kitchen._door_slab`) and the baked kitchen's wall / base cupboards share: a flat-fronted door is not one
+    colour (lit toward the top, a hair darker at the foot, a faint fleck of grain, a second soft bevel row inside the edge), a shaker door is a frame with an inset panel; both have a lit
+    top / left edge and a shaded bottom / right edge."""
+    c.rect(x0, y0, x1, y1, door)
+    if not shaker and x1 - x0 >= 6 and y1 - y0 >= 8:
+        h = y1 - y0
+        for yy in range(y0, y1 + 1):
+            f = (yy - y0) / float(max(1, h))
+            c.hline(x0, x1, yy, shade(door, 1.05 - 0.10 * f))
+        for k, yy in enumerate(range(y0 + 5, y1 - 2, 7)):
+            c.hline(x0 + 2 + (k * 5) % 5, min(x1 - 2, x0 + 4 + (k * 5) % 5), yy, shade(door, 0.95))
+        c.hline(x0 + 1, x1 - 1, y0 + 1, shade(lt, 0.98))
+        c.vline(x1 - 1, y0 + 1, y1 - 1, shade(dk, 1.08))
+    c.hline(x0, x1, y0, lt)
+    c.vline(x0, y0, y1, lt)
+    c.hline(x0, x1, y1, dk)
+    c.vline(x1, y0, y1, dk)
+    if shaker and x1 - x0 >= 8 and y1 - y0 >= 9:
+        c.rect(x0 + 2, y0 + 2, x1 - 2, y1 - 2, shade(door, 0.94))
+        c.hline(x0 + 2, x1 - 2, y1 - 2, lt)
+        c.vline(x1 - 2, y0 + 2, y1 - 2, lt)
+        c.hline(x0 + 2, x1 - 2, y0 + 2, dk)
+        c.vline(x0 + 2, y0 + 2, y1 - 2, dk)
+
+
+# ================================================================================================================================ a hanging copper pot
+def copper_pot(c, x, rail_y, r):
+    """A copper pan hung from a rail by its handle's hook: a rounded body lit on the upper left with a bright glint, a darker rolled rim, a dark inside showing at the lip, a short handle."""
+    cy = rail_y + 4 + r
+    L = K.Layer(c)
+    lc = L.c
+    lc.vline(x, rail_y, rail_y + 4, hexc('3a3a36'))                                          # the hook
+    K.sphere(lc, x, cy + 1, r, r * 0.92, hexc('b8703a'), n=6, lo=0.52, hi=1.3, gloss=True)
+    lc.hline(x - r + 1, x + r - 1, cy - r + 1, hexc('4a2a18'))                                # the lip, dark inside
+    lc.hline(x - r + 2, x + r - 2, cy - r, hexc('d8904a'))
+    lc.rect(x + r, cy - 1, x + r + 3, cy, hexc('6a4a30'))                                     # the handle
+    L.flush()
