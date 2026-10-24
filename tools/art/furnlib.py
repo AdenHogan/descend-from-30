@@ -240,6 +240,8 @@ def render(pc, params, xk=160, state=0.0):
         pc.draw(c, ox, oy, p)
     if pc.post is not None:
         pc.post(c, ox, oy, p, shift_of(pc))
+    import furn_finish                                                                    # a finishing pass for pieces built from big flat faces (edge light, banded tone, grain)
+    furn_finish.apply(pc.id, c)
     feet = oy + shift_of(pc)
     bb = _bbox(c.img, 1)
     if bb is None:

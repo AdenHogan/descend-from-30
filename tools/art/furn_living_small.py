@@ -261,23 +261,8 @@ def stag_head(c, ox, oy, p):
 @piece('cameos', 38, 22, 'decor', rooms={'living_room': 4, 'dining_room': 3}, styles={'parlour': 9, 'formal': 4}, tags=('picture',), wall_y=(24, 36), limit=1, variants={'pair': {}},
        note='a pair of silhouette cameos in oval gilt frames, the couple turned to face each other')
 def cameos(c, ox, oy, p):
-    for k, flip in enumerate((1, -1)):
-        cx = ox + 10 + k * 18
-        K.ell(c, cx, oy + 11, 8.5, 10.5, hexc('7a5e24'))
-        K.ell(c, cx, oy + 11, 7.5, 9.5, hexc('c9a24e'))
-        K.ell(c, cx, oy + 11, 6.0, 8.0, hexc('e8dcc0'))
-        c.put(int(cx - 5), oy + 6, hexc('f0d078')); c.put(int(cx - 5), oy + 7, hexc('f0d078'))
-        sil = hexc('1c1418')                                                                      # the silhouette: a head and shoulders in profile, facing in
-        K.ell(c, cx - 0.5 * flip, oy + 8.5, 2.7, 3.4, sil)
-        c.put(int(cx + 3 * flip) - (1 if flip < 0 else 0), oy + 9, sil)                         # the nose
-        c.put(int(cx + 3 * flip) - (1 if flip < 0 else 0), oy + 10, sil)
-        c.rect(int(cx - 2), oy + 11, int(cx), oy + 13, sil)                                       # the neck
-        for yy in range(oy + 13, oy + 19):                                                        # the shoulders widening
-            hw = 2 + (yy - (oy + 13)) * 1
-            c.hline(int(cx - 1) - hw, int(cx - 1) + hw, yy, sil)
-        c.put(int(cx - 1) - flip * 4, oy + 8, sil) if k == 1 else c.put(int(cx - 1) - flip * 4, oy + 7, sil)   # a hair bun / a curl
-        c.put(int(cx), oy - 1, hexc('3a3228'))                                                    # the hanging cord
-    c.hline(ox + 10, ox + 28, oy, hexc('4a3e30'))
+    import wall_art3d
+    wall_art3d.cameos(c, ox, oy, p)
 
 
 @piece('print_hunting', 26, 24, 'decor', rooms={'living_room': 4}, styles={'lodge': 8}, tags=('picture',), wall_y=(24, 40), limit=1, variants={'gilt': {}},

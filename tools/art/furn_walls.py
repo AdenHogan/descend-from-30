@@ -121,24 +121,8 @@ def photo_wedding(c, ox, oy, p):
 @piece('sampler_home', 22, 17, 'decor', rooms={'bedroom': 3, 'living_room': 3, 'kitchen': 3}, styles={'sick': 6, 'adult': 2}, tags=('picture',), wall_y=(24, 40), limit=1,
        note='a cross-stitched HOME in a walnut frame: stitched letters, a heart, a border of little flowers')
 def sampler_home(c, ox, oy, p):
-    ix0, iy0, ix1, iy1 = W.frame(c, ox, oy + 1, ox + 21, oy + 16, 'walnut', mat=None, thick=1, hang=None, lip=False)
-    c.rect(ix0, iy0, ix1, iy1, hexc('e6dcc0'))                                                  # linen
-    for y in range(iy0, iy1 + 1, 2):
-        for x in range(ix0 + ((y - iy0) // 2) % 2, ix1 + 1, 2):
-            c.put(x, y, hexc('d8ccae'))                                                          # the weave
-    green, red, blue = hexc('5a8a5a'), hexc('b0453a'), hexc('4a6aa0')
-    for x in range(ix0 + 1, ix1, 2):                                                             # a running-stitch border
-        c.put(x, iy0, green); c.put(x, iy1, green)
-    for y in range(iy0 + 1, iy1, 2):
-        c.put(ix0, y, green); c.put(ix1, y, green)
-    for (fx, fy) in ((ix0, iy0), (ix1, iy0), (ix0, iy1), (ix1, iy1)):
-        c.put(fx, fy, red)                                                                       # a flower in each corner
-    F.text3(c, ix0 + 1 + (ix1 - ix0 - 15) // 2, iy0 + 2, 'HOME', red)
-    hx, hy = (ix0 + ix1) // 2, iy1 - 2
-    for (dx, dy) in ((-1, 0), (1, 0), (-2, -1), (2, -1), (0, 1)):                                # a stitched heart
-        c.put(hx + dx, hy + dy, blue)
-    c.put(hx, hy, blue)
-    W.glint(c, (ix0, iy0, ix1, iy1), 30)
+    import wall_art3d
+    wall_art3d.sampler_home(c, ox, oy, p)
 
 
 # ================================================================================================================================ the arched mirror

@@ -62,9 +62,8 @@ FABRICS = {'mustard': (hexc('b08a3a'), hexc('8a6a28'), hexc('c9a24e')), 'green':
        variants={'hills': {'water': None, 'boat': False, 'fr': hexc('6b4a2c')}, 'sea': {'water': hexc('5a7a9a'), 'boat': True, 'fr': hexc('b09456')}}, wall_y=(22, 38),
        note='a painted landscape in a frame: hills, or the sea with a sailing boat')
 def picture_landscape(c, ox, oy, p):
-    import wallart
-    r = wallart.frame(c, ox, oy + 2, ox + 21, oy + 20, wallart.kind_for(p['fr']), mat=None, thick=1, hang='wire', lip=False)
-    F.landscape(c, r[0], r[1], r[2], r[3], water=p['water'], boat=p['boat'])
+    import wall_art3d
+    wall_art3d.picture_landscape(c, ox, oy, p)
 
 
 @piece('picture_portrait', 22, 28, 'decor', rooms={'bedroom': 5, 'living_room': 6, 'dining_room': 5, 'study': 5}, styles={'adult': 4, 'sick': 3}, tags=('picture',),

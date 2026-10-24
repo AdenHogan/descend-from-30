@@ -104,7 +104,7 @@ def screw(c, x, y, col=hexc('8a8f96')):
     px(c, x + 1, y + 1, shade(col, 0.55))
 
 
-def sheet(c, x0, y0, x1, y1, paper, seed=1, fold=None, curl=None, grain=0.05, edge=True):
+def sheet(c, x0, y0, x1, y1, paper, seed=1, fold=None, curl=None, grain=0.05, edge=True, bands=False):
     """A piece of paper stuck to a wall: the sheet, a soft grain, a lit top-left and shaded bottom-right
     edge, a hair of drop shadow outside it, optionally a FOLD (crease line across: 'h' / 'v' / 'h2'),
     a CURL (a lifted corner: 'br' / 'bl' / 'tr' / 'tl')."""
@@ -112,8 +112,11 @@ def sheet(c, x0, y0, x1, y1, paper, seed=1, fold=None, curl=None, grain=0.05, ed
     for y in range(y0, y1 + 1):
         for x in range(x0, x1 + 1):
             col = paper
+            if bands:                                                                 # a sheet is never one tone: lit toward the top, a hair darker toward the foot, fibre running down it
+                f = (y - y0) / float(max(1, y1 - y0))
+                col = shade(paper, 1.04 - 0.09 * f + (0.015 if (x + y // 2) % 3 == 0 else 0.0))
             if grain and rng.random() < grain:
-                col = shade(paper, 0.95 if rng.random() < 0.7 else 1.04)
+                col = shade(col, 0.95 if rng.random() < 0.7 else 1.04)
             px(c, x, y, col)
     for x in range(x0 + 1, x1 + 2):                                                  # drop shadow
         px(c, x, y1 + 1, hexc('000000', 62))
@@ -1322,7 +1325,7 @@ def draw_note(c, x0, y0, lines, w, paper, ink, red, fix, seed=1):
     h = 6 * len(lines) + 4
     x1, y1 = x0 + w, y0 + h
     sheet(c, x0, y0, x1, y1, paper, seed + x0 + y0, fold='h' if len(lines) >= 3 else None,
-          curl='br' if (x0 + y0) % 2 else 'bl')
+          curl='br' if (x0 + y0) % 2 else 'bl', grain=0.07, bands=True)
     for i, t in enumerate(lines):
         col = red if t.endswith('!') else ink
         text(c, x0 + (w - width(t)) // 2 + 1, y0 + 3 + 6 * i, t, col)
@@ -1337,7 +1340,8 @@ def draw_note(c, x0, y0, lines, w, paper, ink, red, fix, seed=1):
 def draw_sticky(c, x0, y0, word, col, ink, w):
     """A square sticky note: a darker glue strip across the top, the word, the bottom corner curling off the wall."""
     px_w = w
-    prect(c, x0, y0, x0 + px_w, y0 + 9, col)
+    for yy in range(y0, y0 + 10):                                                    # a sticky note is lit toward its glued top and fades a little toward its free edge
+        prect(c, x0, yy, x0 + px_w, yy, shade(col, 1.06 - 0.075 * (yy - y0) / 9.0))
     prect(c, x0, y0, x0 + px_w, y0, shade(col, 0.9))                                 # the glue edge
     for x in range(x0 + 1, x0 + px_w + 2):
         px(c, x, y0 + 10, hexc('000000', 50))

@@ -60,6 +60,15 @@ def _door_slab(c, x0, y0, x1, y1, fin, shade_f=1.0):
     if shade_f != 1.0:
         door, lt, dk = shade(door, shade_f), shade(lt, shade_f), shade(dk, shade_f)
     c.rect(x0, y0, x1, y1, door)
+    if not fin['shaker'] and x1 - x0 >= 6 and y1 - y0 >= 8:                                  # a flat-fronted door is not one colour: lit toward the top, a hair darker at the foot, a faint fleck of grain
+        h = y1 - y0
+        for yy in range(y0, y1 + 1):
+            f = (yy - y0) / float(max(1, h))
+            c.hline(x0, x1, yy, shade(door, 1.05 - 0.10 * f))
+        for k, yy in enumerate(range(y0 + 5, y1 - 2, 7)):
+            c.hline(x0 + 2 + (k * 5) % 5, min(x1 - 2, x0 + 4 + (k * 5) % 5), yy, shade(door, 0.95))
+        c.hline(x0 + 1, x1 - 1, y0 + 1, shade(lt, 0.98))                                      # the bevel: a second, softer lit row inside the edge
+        c.vline(x1 - 1, y0 + 1, y1 - 1, shade(dk, 1.08))
     c.hline(x0, x1, y0, lt)
     c.vline(x0, y0, y1, lt)
     c.hline(x0, x1, y1, dk)
@@ -323,14 +332,38 @@ def fridge_tall(c, ox, oy, p):
             c.ellipse((x0 + x1) // 2 - 2, base + 1, 9, 1.6, hexc('e8e4d8'))                      # the spilt milk
         return
     rrect(c, x0 + 1, top + 1, x1 - 1, base - 2, col, r)
-    c.vline(x0 + 3, top + 6, base - 7, lt)
-    c.vline(x1 - 3, top + 6, base - 7, dk)
-    c.hline(x0 + 2, x1 - 2, top + 22, dk)                                                         # the freezer seam
+    # the doors are gently domed: every column takes its tone from how far round the curve it is (lit on the left, deep on the right), in four steps; the freezer door a shade lighter
+    cxm = (x0 + x1) / 2.0
+    half = (x1 - x0) / 2.0
+    for y in range(top + 1, base - 1):
+        for x in range(x0 + 1, x1):
+            if c.px[x, y][:3] != col[:3]:
+                continue
+            u = (x - cxm) / half
+            step = int((u + 1.0) / 2.0 * 4.0)                                                       # 0 lit .. 3 shaded
+            c.px[x, y] = shade(col, (1.10, 1.03, 0.97, 0.86)[max(0, min(3, step))])
+    for k, (ya, yb) in enumerate(((top + 5, top + 17), (top + 28, top + 56))):                      # a window-light streak down each door, broken in two
+        for y in range(ya, yb):
+            if (y - ya) % 9 != 8:
+                c.px[x0 + 5, y] = shade(lt, 1.18)
+                c.px[x0 + 6, y] = shade(lt, 1.05)
+    c.hline(x0 + 2, x1 - 2, top + 21, dk)                                                         # the gap between the doors: a dark seam, shaded under the freezer's lower lip
+    c.hline(x0 + 2, x1 - 2, top + 22, shade(dk, 0.7))
     c.hline(x0 + 2, x1 - 2, top + 23, lt)
-    c.rect(x1 - 7, top + 26, x1 - 5, top + 42, hexc('a9aeb0'))                                     # the chrome handle
-    c.vline(x1 - 5, top + 26, top + 42, hexc('7b8083'))
-    c.vline(x1 - 7, top + 26, top + 42, hexc('d8dcde'))
-    c.rect(x1 - 7, top + 6, x1 - 5, top + 16, hexc('a9aeb0')); c.vline(x1 - 5, top + 6, top + 16, hexc('7b8083'))
+    c.hline(x0 + 2, x1 - 2, top + 2, shade(lt, 1.15))                                             # the lit top edge
+    for yy in (top + 4, top + 18, top + 27, top + 60):                                              # the hinges on the left edge
+        c.rect(x0 + 1, yy, x0 + 2, yy + 2, shade(dk, 0.6))
+        c.put(x0 + 1, yy, hexc('b8bec0'))
+    c.hline(x1 - 12, x1 - 6, top + 4, hexc('b8bec0'))                                              # the maker's badge: a chrome dash with a dark underline
+    c.hline(x1 - 12, x1 - 6, top + 5, hexc('4a5052'))
+    for (hy0, hy1) in ((top + 26, top + 42), (top + 6, top + 16)):                                 # chrome handles, round in section: bright / mid / dark across, a stub at each end, a shadow beside
+        for yy in range(hy0, hy1 + 1):
+            c.put(x1 - 7, yy, hexc('f2f6f8'))
+            c.put(x1 - 6, yy, hexc('b8bec0'))
+            c.put(x1 - 5, yy, hexc('6a7276'))
+            c.put(x1 - 4, yy, shade(col, 0.72))
+        for yy in (hy0, hy1):
+            c.rect(x1 - 7, yy, x1 - 5, yy, hexc('4a5052'))
     c.rect(x0 + 6, base - 6, x1 - 6, base - 3, hexc('7b8083'))                                     # the vent grille
     for gx in range(x0 + 7, x1 - 6, 2):
         c.vline(gx, base - 6, base - 3, hexc('565a5c'))

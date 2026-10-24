@@ -201,12 +201,8 @@ def utensil_jar(c, ox, oy, p):
        anchors=({'name': 'trashcan', 'dx': 12, 'dy': -10},), variants={'two': {'split': False}, 'split': {'split': True}}, near=('unit',),
        note='two tied black bin bags against the end of the counter; or one split open with rubbish on the floor')
 def bin_bags(c, ox, oy, p):
-    _shadow(c, ox + 15, oy + 0.6, 15.0, 1.8, 105)
-    F.bin_bag(c, ox + 9, oy, 18, 22, seed=3)
-    F.bin_bag(c, ox + 23, oy, 16, 16, split=p['split'], seed=7)
-    if p['split']:
-        c.rect(ox + 12, oy - 1, ox + 17, oy + 1, hexc('d8d2c2'))
-        c.put(ox + 8, oy, hexc('c7b16a')); c.put(ox + 10, oy + 1, hexc('7a8a5a')); c.put(ox + 20, oy + 1, hexc('a8483a'))
+    import furn_small3d
+    furn_small3d.bin_bags(c, ox, oy, p)
 
 
 @piece('box_cardboard', 26, 18, 'floor', rooms={'kitchen': 6, 'living_room': 2, 'study': 2}, styles=None, tags=('clutter',), feet=(106, 114),
@@ -408,16 +404,8 @@ def shelf_jars(c, ox, oy, p):
 @piece('tea_towel', 11, 22, 'decor', rooms={'kitchen': 6}, styles=None, tags=('cloth',), wall_y=(24, 36), variants={'red': {'col': 'b8594a', 'for': ['classic', 'country', 'retro']},
        'blue': {'col': '4a6a98', 'for': ['student', 'hoarder', 'country']}}, note='a checked tea towel folded over a hook')
 def tea_towel(c, ox, oy, p):
-    red, cream = hexc(p['col']), hexc('e8dcc4')
-    c.rect(ox + 4, oy, ox + 6, oy + 2, hexc('7b8083'))
-    for y in range(oy + 1, oy + 20):
-        for x in range(ox, ox + 9):
-            chk = ((x - ox) // 2 + (y - oy) // 2) % 2
-            c.put(x, y, red if chk else cream)
-    c.hline(ox, ox + 8, oy + 1, shade(red, 1.15)); c.hline(ox, ox + 8, oy + 2, shade(red, 0.75))
-    c.vline(ox - 1, oy + 2, oy + 19, shade(red, 0.8)); c.hline(ox, ox + 8, oy + 20, shade(red, 0.7))
-    for x in range(ox, ox + 9, 2):
-        c.put(x, oy + 21, shade(cream, 0.8))
+    import wall_art3d
+    wall_art3d.tea_towel(c, ox, oy, p)
 
 
 @piece('note_milk_eggs', 26, 13, 'decor', rooms={'kitchen': 5}, styles={'student': 9, 'hoarder': 1}, tags=('notice',), wall_y=(20, 36), limit=1, variants={'a': {}}, note='two sticky notes: MILK and EGGS')
@@ -445,11 +433,8 @@ def note_bills(c, ox, oy, p):
 @piece('light_tube', 36, 6, 'ceiling', rooms={'kitchen': 6, 'study': 3, 'bathroom': 2}, styles={'classic': 8, 'student': 3, 'office': 6}, tags=('light', 'ceiling'), lights=({'dx': 18, 'dy': 4, 'kind': 'tube'},),
        variants={'a': {'for': ['classic', 'student', 'office', 'wetroom']}}, note='a fluorescent batten on the ceiling')
 def light_tube(c, ox, oy, p):
-    c.rect(ox, 0, ox + 35, 2, hexc('c9c6bc'))
-    c.hline(ox, ox + 35, 0, hexc('a8a498'))
-    c.hline(ox + 1, ox + 34, 3, hexc('eef0ec'))
-    c.hline(ox + 3, ox + 32, 4, hexc('fffff4'))
-    c.put(ox, 3, hexc('8a8880')); c.put(ox + 35, 3, hexc('8a8880'))
+    import furn_small3d
+    furn_small3d.light_tube(c, ox, oy, p)
 
 
 @piece('light_dome_orange', 14, 22, 'ceiling', rooms={'kitchen': 5, 'dining_room': 2}, styles={'retro': 9, 'diner': 6}, tags=('light', 'ceiling'), lights=({'dx': 7, 'dy': 20, 'kind': 'pendant'},),
@@ -470,8 +455,5 @@ def light_dome_orange(c, ox, oy, p):
 @piece('light_bulb', 8, 22, 'ceiling', rooms={'kitchen': 6, 'living_room': 2, 'study': 2, 'bedroom': 1}, styles={'student': 9, 'hoarder': 9, 'country': 2, 'squat': 6, 'radio': 4}, tags=('light', 'ceiling'),
        lights=({'dx': 4, 'dy': 20, 'kind': 'bulb'},), variants={'a': {'for': ['student', 'hoarder', 'country', 'squat', 'radio']}}, note='a bare bulb on a frayed flex')
 def light_bulb(c, ox, oy, p):
-    cx = ox + 4
-    for y in range(0, 17):
-        c.put(cx, y, hexc('2a2622') if y % 3 else hexc('5a5650'))
-    c.rect(cx - 1, 15, cx + 1, 17, hexc('6a6a66'))
-    K.sphere(c, cx, 19.5, 2.4, 2.8, hexc('f0e6c8'), n=4, lo=0.85, hi=1.3)
+    import furn_small3d
+    furn_small3d.light_bulb(c, ox, oy, p)

@@ -121,22 +121,8 @@ def tv_crt(c, ox, oy, p):
        variants={'black': {}}, anims=({'kind': 'tv', 'dx': 3, 'dy': 3, 'w': 36, 'h': 20, 'color': 'c8d4d0'},),
        note='a big flat-screen on the wall: a thin bezel, the black glass with a diagonal glare, a standby light, the cable hanging down behind — its picture is the struck-TV detail: snow, flashes, a crack')
 def tv_wall(c, ox, oy, p):
-    L = K.Layer(c)
-    lc = L.c
-    lc.rect(ox, oy, ox + 41, oy + 25, hexc('1a1a1e'))
-    lc.rect(ox + 1, oy + 1, ox + 40, oy + 24, hexc('0c0c10'))
-    lc.rect(ox + 2, oy + 2, ox + 39, oy + 23, hexc('15171c'))
-    for k in range(9):                                                                           # a glare across the glass
-        lc.put(ox + 28 + k // 2, oy + 3 + k, hexc('2a2e36'))
-        lc.put(ox + 29 + k // 2, oy + 3 + k, hexc('22262e'))
-    lc.hline(ox, ox + 41, oy, hexc('3a3c44'))
-    lc.vline(ox, oy, oy + 25, hexc('3a3c44'))
-    lc.put(ox + 20, oy + 25, hexc('d8483a'))                                                     # the standby light
-    L.flush()
-    c.rect(ox + 10, oy + 26, ox + 31, oy + 26, hexc('000000', 60))                               # the wall bracket's shadow under the set
-    c.vline(ox + 21, oy + 27, oy + 31, hexc('1a1a1e'))                                           # the cable hanging down
-    c.vline(ox + 22, oy + 31, oy + 35, hexc('1a1a1e'))
-    c.put(ox + 21, oy + 27, hexc('3a3c44'))
+    import wall_art3d
+    wall_art3d.tv_wall(c, ox, oy, p)
 
 
 # ================================================================================================================================ open shelving

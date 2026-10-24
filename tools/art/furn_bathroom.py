@@ -299,14 +299,8 @@ def champagne_stand(c, ox, oy, p):
        variants={'chrome': {'k': 'chrome', 'for': ['tub', 'pink', 'avocado', 'wetroom']}, 'gold': {'k': 'gold', 'for': ['gilded']}},
        note='a towel rail on the wall under the window line: a heated chrome ladder rail with two towels slung over it, or a gold stand with a plush red towel')
 def towel_rail(c, ox, oy, p):
-    if p['k'] == 'chrome':
-        BR.towel_rail(_Off(c, ox - 232, oy - 70), 232, 262, 70)                                      # the old module's rows: the rail's top row (70) lands on the decor origin
-    else:
-        sub = _Off(c, ox - 232, oy - 67)
-        sub.rect(238, 67, 239, 99, GOLD_DK)
-        sub.hline(232, 245, 99, GOLD_DK)
-        sub.hline(232, 245, 67, GOLD)
-        BR.hung_towel(sub, 233, 245, 68, 88, hexc('7a1f2a'))
+    import wall_art3d
+    wall_art3d.towel_rail(c, ox, oy, p)
 
 
 class _Stay:
@@ -395,6 +389,14 @@ def mirror_bath(c, ox, oy, p):
         s.ellipse(37, 32, 11, 11, PINK_DK)
         s.ellipse(37, 32, 9, 9, MIRROR)
         s.line(32, 38, 41, 25, MIRROR_HI)
+    import wall_art3d
+    wall_art3d.glass_shade(c, ox, oy, 36, 36)
+    if k == 'round':
+        wall_art3d.convex_ring(c, ox + 11, oy + 11, 9.5, 7.5, hexc('9a8660'))
+    elif k == 'pink':
+        wall_art3d.convex_ring(c, ox + 13, oy + 13, 11.0, 9.0, PINK_DK)
+    elif k == 'tile':
+        wall_art3d.bevel_frame(c, ox + 5, oy, ox + 29, oy + 22, hexc('7a8480'), 2)
 
 
 # ================================================================================================================================ the linen cupboard and the chandelier
@@ -448,7 +450,8 @@ def linen_cupboard(c, ox, oy, p):
 @piece('chandelier', 28, 28, 'ceiling', rooms={'bathroom': 4, 'dining_room': 3}, styles={'gilded': 9, 'formal': 3}, tags=('light', 'ceiling'), lights=({'dx': 14, 'dy': 20, 'kind': 'chandelier'},),
        variants={'gold': {'for': ['gilded', 'formal']}}, note='a gold chandelier on a chain: two tiers of arms with candles, crystals hanging below')
 def chandelier(c, ox, oy, p):
-    BR.chandelier(_Off(c, ox - 12 + 14, oy - 5), 12)
+    import furn_small3d
+    furn_small3d.chandelier(c, ox, oy, p)
 
 
 # ================================================================================================================================ mats

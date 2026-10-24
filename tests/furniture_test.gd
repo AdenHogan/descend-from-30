@@ -641,6 +641,16 @@ func _test_palette() -> void:
 	check(broke, "validate() refuses an avoided colourway when one is forced in (the rule can fail)")
 
 
+## The sheets are shaded paper now (round 48h: grain, a lit-to-shaded gradient, a darker edge, a stem drawn straight down the middle of one), not one flat colour, so a sheet is found by
+## being LIGHT and NEUTRAL (paper or its edge): the boat's wash, the vase, the tulips, the leaves and the ink are all tinted or dark, so a drawing still splits nothing of the sheet's width.
+func _is_paper(c: Color, _paper: Color) -> bool:
+	if c.a < 0.9:
+		return false
+	var lo := minf(c.r, minf(c.g, c.b))
+	var hi := maxf(c.r, maxf(c.g, c.b))
+	return lo > 0.62 and hi - lo < 0.12
+
+
 ## Owner round 47h: "the picture of the ship and the picture of the flowers aren't the same size… one flower is not in the pot". The two pinned sheets of the studio's sketches are the same size,
 ## pinned at the same height, and every stem of the tulips ends inside the vase's mouth.
 func _test_paired_pictures() -> void:
@@ -654,7 +664,7 @@ func _test_paired_pictures() -> void:
 		var has := false
 		if x < img.get_width():
 			for y in range(0, 20):
-				if img.get_pixel(x, y).is_equal_approx(paper):
+				if _is_paper(img.get_pixel(x, y), paper):
 					has = true
 					break
 		if has and not in_run:
@@ -666,7 +676,7 @@ func _test_paired_pictures() -> void:
 			var y1 := -1
 			for xx in range(x0, x):
 				for y in range(0, 20):
-					if img.get_pixel(xx, y).is_equal_approx(paper):
+					if _is_paper(img.get_pixel(xx, y), paper):
 						y0 = mini(y0, y)
 						y1 = maxi(y1, y)
 			runs.append([x0, x - 1, y0, y1])

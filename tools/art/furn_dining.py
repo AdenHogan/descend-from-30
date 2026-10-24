@@ -192,14 +192,8 @@ def vase_flowers(c, ox, oy, p):
        variants={'plain': {'plate': 'f0ece0', 'rim': '9ab0c8'}, 'gilt': {'plate': 'f4f0e4', 'rim': 'c9a24e'}, 'messy': {'plate': 'ece4cc', 'rim': '9ab0c8', 'messy': True}},
        note='three places laid: a plate, a knife and a fork either side — or the plates left with a meal half eaten and a toppled glass')
 def place_settings(c, ox, oy, p):
-    plate, rim = hexc(p['plate']), hexc(p['rim'])
-    for cx in (ox + 4, ox + 15, ox + 26):
-        K.ell(c, cx, oy - 1.5, 4.0, 1.6, shade(rim, 0.85))
-        K.ell(c, cx, oy - 1.6, 3.2, 1.2, plate)
-        c.put(int(cx) - 6, oy - 1, hexc('b8bcc0')); c.put(int(cx) - 6, oy - 2, hexc('b8bcc0'))
-        c.put(int(cx) + 6, oy - 1, hexc('b8bcc0')); c.put(int(cx) + 6, oy - 2, hexc('b8bcc0'))
-        if p.get('messy'):
-            c.put(int(cx) - 1, oy - 2, hexc('8a3a2a')); c.put(int(cx), oy - 2, hexc('c8a050')); c.put(int(cx) + 1, oy - 1, hexc('5a7a3a'))
+    import furn_small3d
+    furn_small3d.place_settings(c, ox, oy, p)
 
 
 @piece('cake_party', 20, 20, 'top', rooms={'dining_room': 7}, styles={'party': 9}, tags=('small', 'food'), on=('table',), limit=1,
@@ -364,20 +358,8 @@ def trolley_drinks(c, ox, oy, p):
 @piece('banner_party', 56, 22, 'decor', rooms={'dining_room': 6}, styles={'party': 9}, tags=('picture', 'party'), wall_y=(20, 34), limit=1, variants={'rainbow': {}},
        note='a HAPPY BIRTHDAY banner of printed letters on a paper strip, under a swag of coloured bunting')
 def banner_party(c, ox, oy, p):
-    import furn as F
-    cols = ('4a7ab8', 'e0b830', '3a9a52', 'a85ac8', 'd8483a')
-    for k in range(13):                                                                           # the bunting: a sagging line of pennants
-        x = ox + 2 + k * 4
-        sag = int(round(4 * math.sin(math.pi * (x - ox) / 56.0)))
-        c.put(x, oy + 1 + sag, hexc('4a3e30'))
-        col = hexc(cols[k % 5])
-        c.rect(x - 1, oy + 2 + sag, x + 1, oy + 3 + sag, col)
-        c.put(x, oy + 4 + sag, col)
-    c.rect(ox + 8, oy + 10, ox + 47, oy + 20, hexc('f0ece0'))                                     # the banner strip
-    c.hline(ox + 8, ox + 47, oy + 10, hexc('c8c4b4'))
-    c.hline(ox + 8, ox + 47, oy + 20, hexc('c8c4b4'))
-    F.text3(c, ox + 9, oy + 13, 'HAPPY', hexc('d8483a'))
-    F.text3(c, ox + 31, oy + 13, 'BDAY', hexc('3a7ad8'))
+    import wall_art3d
+    wall_art3d.banner_party(c, ox, oy, p)
 
 
 @piece('balloons', 14, 36, 'decor', rooms={'dining_room': 6}, styles={'party': 9}, tags=('party',), wall_y=(24, 40), limit=2, variants={'bunch': {'cols': ('4a7ab8', 'd8483a', 'e0b830')}, 'pair': {'cols': ('a85ac8', '3a9a52')}},

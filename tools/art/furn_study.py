@@ -168,15 +168,8 @@ def globe(c, ox, oy, p):
        variants={'tidy': {'n': 5}, 'messy': {'n': 8}},
        note='a pile of papers and a folder: squared off on a tidy desk, slid and fanned on a messy one')
 def papers_pile(c, ox, oy, p):
-    K.contact_shadow(c, ox + 11, oy + 0.5, 11, 1.3, 90)
-    rng = random.Random(p['n'])
-    for k in range(p['n']):
-        dx = rng.randint(-2, 2) if p['n'] > 5 else 0
-        y = oy - 1 - k // 2
-        c.rect(ox + 3 + dx + (k % 2), y - 1, ox + 17 + dx + (k % 2), y, hexc('ece6d4') if k % 3 else hexc('d8d0b4'))
-        c.hline(ox + 3 + dx + (k % 2), ox + 17 + dx + (k % 2), y - 1, hexc('f8f4e8'))
-    c.rect(ox + 4, oy - 5, ox + 12, oy - 3, hexc('c8a050'))
-    c.hline(ox + 4, ox + 12, oy - 5, hexc('e8c870'))
+    import furn_small3d
+    furn_small3d.papers_pile(c, ox, oy, p)
 
 
 @piece('computer_crt', 26, 26, 'top', rooms={'study': 7}, styles={'office': 8, 'radio': 1}, tags=('small', 'work'), on=('desk',), limit=1,
@@ -301,20 +294,8 @@ def bookcase_tall(c, ox, oy, p):
        variants={'home': {'a': 'CALL', 'b': 'MOM', 'c': 'VET'}, 'work': {'a': 'TAX', 'b': 'DUE!', 'c': 'PAY'}},
        note='a cork board pinned over with snapshots and notes in a hand: CALL MOM, VET — or TAX DUE!, PAY, CALL BACK MON')
 def noticeboard(c, ox, oy, p):
-    c.rect(ox, oy, ox + 39, oy + 27, hexc('5a3e28'))                                                      # the frame
-    c.rect(ox + 1, oy + 1, ox + 38, oy + 26, hexc('b08a58'))                                              # the cork
-    rng = random.Random(3)
-    for _ in range(60):
-        c.put(rng.randint(ox + 2, ox + 37), rng.randint(oy + 2, oy + 25), hexc('9a7448') if rng.random() < 0.5 else hexc('c8a070'))
-    for (x, y, w, h, col, word) in ((ox + 3, oy + 3, 14, 11, 'f0ece0', p['a']), (ox + 20, oy + 4, 16, 9, 'f4e07a', p['b']), (ox + 5, oy + 16, 12, 8, 'f0a8b8', p['c'])):
-        c.rect(x, y, x + w - 1, y + h - 1, hexc(col))
-        c.hline(x, x + w - 1, y, shade(hexc(col), 1.1))
-        c.put(x + w // 2, y, hexc('d8483a'))                                                              # the pin
-        F.text3(c, x + 1, y + 3, word, hexc('3a2a22'))
-    c.rect(ox + 22, oy + 16, ox + 34, oy + 24, hexc('9ac4e0'))                                            # a snapshot
-    c.rect(ox + 22, oy + 22, ox + 34, oy + 24, hexc('5a8a4a'))
-    c.rect(ox + 26, oy + 18, ox + 28, oy + 22, hexc('d8483a'))
-    c.put(ox + 28, oy + 17, hexc('e0b898'))
+    import wall_art3d
+    wall_art3d.noticeboard(c, ox, oy, p)
 
 
 # ================================================================================================================================ the radio room (a hobbyist's)
@@ -340,22 +321,8 @@ def radio_gear(c, ox, oy, p):
 @piece('map_street', 46, 34, 'decor', rooms={'study': 6}, styles={'radio': 9, 'den': 2, 'office': 1}, tags=('picture', 'notice'), wall_y=(20, 34), limit=1, variants={'pins': {}},
        note='a large street map of the town pinned to the wall: a blue river, a grid of streets, and a scatter of coloured pins where the owner has made contact with someone')
 def map_street(c, ox, oy, p):
-    c.rect(ox, oy, ox + 45, oy + 33, hexc('e6dcc0'))
-    c.rect(ox + 1, oy + 1, ox + 44, oy + 32, hexc('f0e8d0'))
-    for x in range(ox + 1, ox + 45, 7):
-        c.vline(x, oy + 1, oy + 32, hexc('d0c8a8'))
-    for y in range(oy + 1, oy + 33, 7):
-        c.hline(ox + 1, ox + 44, y, hexc('d0c8a8'))
-    c.line(ox + 20, oy + 1, ox + 32, oy + 14, hexc('6a9ac8'))                                            # the river
-    c.line(ox + 21, oy + 1, ox + 33, oy + 14, hexc('6a9ac8'))
-    c.line(ox + 32, oy + 14, ox + 36, oy + 32, hexc('6a9ac8'))
-    c.line(ox + 33, oy + 14, ox + 37, oy + 32, hexc('6a9ac8'))
-    c.rect(ox + 5, oy + 18, ox + 14, oy + 25, hexc('a8c898'))                                            # a park
-    for (x, y, col) in ((6, 10, 'c8302a'), (14, 6, '3a6ab0'), (25, 22, 'e0b830'), (38, 8, 'c8302a'), (41, 26, '3a6ab0'), (10, 28, 'e0b830'), (28, 4, '3a9a52')):
-        c.put(ox + x, oy + y, hexc(col))                                                                 # a pin: a bright head, a dark shadow
-        c.put(ox + x + 1, oy + y + 1, hexc('4a4038'))
-    for (x, y) in ((ox, oy), (ox + 45, oy), (ox, oy + 33), (ox + 45, oy + 33)):
-        c.put(x, y, hexc('d8483a'))
+    import wall_art3d
+    wall_art3d.map_street(c, ox, oy, p)
 
 
 
@@ -500,37 +467,5 @@ def waste_bin(c, ox, oy, p):
 @piece('sketches_wall', 36, 28, 'decor', rooms={'study': 6}, styles={'studio': 9, 'library': 1}, tags=('picture', 'art'), wall_y=(20, 36), limit=1, variants={'sheets': {}},
        note='sheets of paper pinned to the plaster: a line drawing of a sailing boat, a watercolour of tulips in a blue vase, and a row of paint tubes hung below on a string')
 def sketches_wall(c, ox, oy, p):
-    # TWO SHEETS OF THE SAME SIZE (15 x 17, owner round 47h: "the picture of the ship and the picture of the flowers aren't the same size… one flower is not in the pot"), pinned at the same
-    # height; everything drawn on a sheet is inside it. Sheet rows 0..16, columns 0..14 (relative to the sheet's own corner).
-    paper, edge = hexc('f4f0e4'), hexc('c8c4b4')
-    ink, sea = hexc('3a3a44'), hexc('6a9ac8')
-    for sx in (ox + 1, ox + 19):
-        c.rect(sx, oy, sx + 14, oy + 16, paper)
-        c.hline(sx, sx + 14, oy, edge)
-    s = ox + 1                                                                                            # the sailing boat: a mast, a mainsail and a jib, a hull, the water
-    c.line(s + 7, oy + 3, s + 7, oy + 10, ink)
-    c.poly([(s + 8, oy + 3), (s + 12, oy + 10), (s + 8, oy + 10)], hexc('9ac0e0'))
-    c.poly([(s + 6, oy + 5), (s + 3, oy + 10), (s + 6, oy + 10)], hexc('c8dcee'))
-    c.hline(s + 3, s + 12, oy + 11, ink)
-    c.hline(s + 4, s + 11, oy + 12, ink)
-    c.hline(s + 2, s + 12, oy + 14, sea)
-    c.hline(s + 4, s + 10, oy + 15, hexc('9ac0e0'))
-    s = ox + 19                                                                                           # the tulips: three heads on three stems that all stand inside the vase's mouth
-    stems = (s + 4, s + 7, s + 10)
-    heads = ((s + 3, oy + 4, 'd8483a'), (s + 6, oy + 2, 'e0b830'), (s + 9, oy + 4, 'd8483a'))               # (left, top, colour): each head 3 wide x 4 tall over its stem
-    for (hx, hy, col) in heads:
-        c.rect(hx, hy, hx + 2, hy + 3, hexc(col))
-        c.put(hx + 1, hy - 1 if col == 'e0b830' else hy, shade(hexc(col), 1.18))
-    for k, sx_ in enumerate(stems):
-        c.vline(sx_, oy + (6 if k == 1 else 8), oy + 10, hexc('4a8a4a'))
-    c.put(s + 5, oy + 9, hexc('4a8a4a'))
-    c.put(s + 9, oy + 9, hexc('4a8a4a'))
-    c.rect(s + 3, oy + 11, s + 11, oy + 12, hexc('6a9ad8'))                                               # the vase: a rim and a body narrowing to its foot
-    c.rect(s + 4, oy + 13, s + 10, oy + 14, hexc('4a7ab8'))
-    c.rect(s + 5, oy + 15, s + 9, oy + 15, hexc('3a6aa8'))
-    for k, col in enumerate(('d8483a', '3a7ad8', 'e0b830', '3a9a52', 'a85ac8')):                          # tubes hung on a string
-        c.rect(ox + 4 + k * 6, oy + 21, ox + 6 + k * 6, oy + 25, hexc(col))
-        c.put(ox + 5 + k * 6, oy + 20, hexc('3a3228'))
-    c.hline(ox + 3, ox + 32, oy + 19, hexc('6a5a44'))
-    for (x, y) in ((ox + 8, oy), (ox + 26, oy)):
-        c.put(x, y, hexc('d8483a'))
+    import wall_art3d
+    wall_art3d.sketches_wall(c, ox, oy, p)
