@@ -12,7 +12,8 @@ cold-war poster, and a pixel-art / brick-tower version as "AI crap"; this is nei
 THE TYPE the owner likes ("clean and mature"): Barlow Condensed Bold capitals (SIL OFL, assets/fonts/logo/), vector, plain - no bevel, outline,
 shadow or distress.  The hard-worn thing is the print; the lettering stays quiet so the print does the work.
 
-LAYOUT (round 48c, after the owner's reference; round 48d "directly behind the number"): DESCEND over FROM on the left, the big 30 on the right, the print
+LAYOUT (round 48c, after the owner's reference; round 48d "directly behind the number"; round 48i "too spaced out"): DESCEND over FROM on the left (FROM flush with DESCEND's
+right end, so both lines sit the same distance from the 30), the big 30 on the right, the print
 DIRECTLY BEHIND the 30 - the hand's middle on the numerals' middle, its fingers rising over them, its wrist and drips hanging under them.  Landscape.
 
 VARIANTS (transparent backgrounds): dark = warm-white letters for dark grounds; light = ink letters for light grounds, the 30 warm white with an ink
@@ -60,7 +61,8 @@ TRACK_NUM = 25                    # the 3 and the 0 sit close: one mark
 WORD_GAP = 0.17                   # the plain wordmark: between the words and its 30, as a share of the 30's height
 HAND_WIDTH = 1.40                 # the print's box (thumb to little finger) is this wide, as a share of the 30's width: a hand a little wider than its number
 HAND_DY = 0.00                    # the middle of the hand sits this far below the middle of the 30, as a share of the 30's height (0 = centred on it)
-TIP_REACH = 0.15                  # how far the thumb's ink reaches in under DESCEND (owner round 48h: "okay with some of the handprint being behind DESCEND"), as a share of the 30's height; the words are drawn OVER the print
+FROM_ALIGN = 'right'              # FROM sits under DESCEND flush 'left' or flush 'right' (owner round 48i: DESCEND FROM "too spaced out" from the 30 - flush left left a hole a whole 30-height wide under the thumb; flush right sits as close to the 30 as DESCEND does)
+TIP_REACH = 0.25                  # how far the thumb's ink reaches in under DESCEND (owner round 48h: "okay with some of the handprint being behind DESCEND"), as a share of the 30's height; the words are drawn OVER the print
 MARGIN = 0.10 * NUM_H             # clear space round every logo
 PRINT_PX = 2200                   # the print is drawn this tall, then scaled down for every output
 SS = 3                            # vector raster supersample
@@ -186,6 +188,8 @@ def build_layout(with_print=True):
     desc = affinity.translate(_scaled(d_geom, kt), -d0 * kt, c)                      # baseline at y = c, cap top at 0
     frm = affinity.translate(_scaled(f_geom, kt), -f0 * kt, NUM_H)                   # baseline at the 30's foot
     wd = (d1 - d0) * kt
+    if FROM_ALIGN == 'right':
+        frm = affinity.translate(frm, wd - (f1 - f0) * kt, 0)                        # FROM's last letter ends where DESCEND's does
     num = affinity.translate(num, wd + WORD_GAP * NUM_H, 0)                          # the plain wordmark's place; the print's version is set by the thumb below
     # the print: DIRECTLY behind the 30 (owner: "the handprint should be directly behind the number") - the hand's own middle (its centre of mass: the
     # palm) on the middle of the numerals, the fingers standing above them and the wrist and the drips hanging below
@@ -548,6 +552,9 @@ def check():
     words = unary_union([lay['desc'], lay['frm']])
     if nb[0] - words.bounds[2] < 0.12 * NUM_H:
         bad.append('DESCEND runs into the 30 (%.2f of its height apart, want >= 0.12)' % ((nb[0] - words.bounds[2]) / NUM_H))
+    frm_gap = (nb[0] - lay['frm'].bounds[2]) / NUM_H                                             # the second line must not leave a hole between the words and the 30 (owner round 48i)
+    if frm_gap > 0.30:
+        bad.append('FROM is %.2f of the 30\'s height from the 30 (the lines read as a block with the number close beside it: want <= 0.30)' % frm_gap)
     reach = (words.bounds[2] - _ink_left(lay['hand_scale'], lay['hand_origin'])) / NUM_H           # the print may tuck in under DESCEND (owner round 48h) - a little
     if not (0.02 <= reach <= 0.30):
         bad.append('the thumb reaches %.2f of the 30 in under DESCEND (a little behind it is wanted: 0.02 .. 0.30)' % reach)

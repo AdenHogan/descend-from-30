@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://cclog4gqa3s10" path="res://scripts/title_screen.gd" id="1_mgrm8"]
 [ext_resource type="Script" path="res://scripts/title_hall.gd" id="2_hall"]
 [ext_resource type="Texture2D" uid="uid://7412kuo6h4um" path="res://assets/logo/logo_full_dark.png" id="3_logo"]
-[ext_resource type="FontFile" uid="uid://tv2mlsq0xxsg" path="res://assets/fonts/PixelOperator8.ttf" id="4_3yumr"]
+[ext_resource type="FontFile" uid="uid://iw4nfvjbsa28" path="res://assets/fonts/logo/BarlowCondensed-Bold.ttf" id="4_3yumr"]
 
 [sub_resource type="Shader" id="Shader_leftshade"]
 code = "shader_type canvas_item;
@@ -17,6 +17,10 @@ void fragment() {
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_leftshade"]
 shader = SubResource("Shader_leftshade")
+
+[sub_resource type="FontVariation" id="FontVariation_menu"]
+base_font = ExtResource("4_3yumr")
+spacing_glyph = 2
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_menu"]
 
@@ -64,14 +68,14 @@ mouse_filter = 2
 
 [node name="Buttons" type="VBoxContainer" parent="Menu/Root" unique_id=1510334375]
 layout_mode = 1
-offset_left = 72.0
+offset_left = 51.0
 offset_top = 372.0
-offset_right = 332.0
-offset_bottom = 486.0
+offset_right = 311.0
+offset_bottom = 510.0
 theme_override_constants/separation = 6
 
 [node name="PlayButton" type="Button" parent="Menu/Root/Buttons" unique_id=649506589]
-custom_minimum_size = Vector2(0, 34)
+custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
 focus_neighbor_top = NodePath("../ExitButton")
 focus_neighbor_bottom = NodePath("../SettingsButton")
@@ -79,19 +83,19 @@ theme_override_colors/font_color = Color(0.72, 0.72, 0.76, 1)
 theme_override_colors/font_focus_color = Color(1, 1, 1, 1)
 theme_override_colors/font_pressed_color = Color(0.85, 0.24, 0.24, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_fonts/font = ExtResource("4_3yumr")
-theme_override_font_sizes/font_size = 24
+theme_override_fonts/font = SubResource("FontVariation_menu")
+theme_override_font_sizes/font_size = 34
 theme_override_styles/normal = SubResource("StyleBoxEmpty_menu")
 theme_override_styles/pressed = SubResource("StyleBoxEmpty_menu")
 theme_override_styles/hover = SubResource("StyleBoxEmpty_menu")
 theme_override_styles/disabled = SubResource("StyleBoxEmpty_menu")
 theme_override_styles/focus = SubResource("StyleBoxEmpty_menu")
-text = "Play"
+text = "PLAY"
 flat = true
 alignment = 0
 
 [node name="SettingsButton" type="Button" parent="Menu/Root/Buttons" unique_id=1984033564]
-custom_minimum_size = Vector2(0, 34)
+custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
 focus_neighbor_top = NodePath("../PlayButton")
 focus_neighbor_bottom = NodePath("../ExitButton")
@@ -99,19 +103,19 @@ theme_override_colors/font_color = Color(0.72, 0.72, 0.76, 1)
 theme_override_colors/font_focus_color = Color(1, 1, 1, 1)
 theme_override_colors/font_pressed_color = Color(0.85, 0.24, 0.24, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_fonts/font = ExtResource("4_3yumr")
-theme_override_font_sizes/font_size = 24
+theme_override_fonts/font = SubResource("FontVariation_menu")
+theme_override_font_sizes/font_size = 34
 theme_override_styles/normal = SubResource("StyleBoxEmpty_menu")
 theme_override_styles/pressed = SubResource("StyleBoxEmpty_menu")
 theme_override_styles/hover = SubResource("StyleBoxEmpty_menu")
 theme_override_styles/disabled = SubResource("StyleBoxEmpty_menu")
 theme_override_styles/focus = SubResource("StyleBoxEmpty_menu")
-text = "Settings"
+text = "SETTINGS"
 flat = true
 alignment = 0
 
 [node name="ExitButton" type="Button" parent="Menu/Root/Buttons" unique_id=1861465055]
-custom_minimum_size = Vector2(0, 34)
+custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
 focus_neighbor_top = NodePath("../SettingsButton")
 focus_neighbor_bottom = NodePath("../PlayButton")
@@ -119,14 +123,14 @@ theme_override_colors/font_color = Color(0.72, 0.72, 0.76, 1)
 theme_override_colors/font_focus_color = Color(1, 1, 1, 1)
 theme_override_colors/font_pressed_color = Color(0.85, 0.24, 0.24, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_fonts/font = ExtResource("4_3yumr")
-theme_override_font_sizes/font_size = 24
+theme_override_fonts/font = SubResource("FontVariation_menu")
+theme_override_font_sizes/font_size = 34
 theme_override_styles/normal = SubResource("StyleBoxEmpty_menu")
 theme_override_styles/pressed = SubResource("StyleBoxEmpty_menu")
 theme_override_styles/hover = SubResource("StyleBoxEmpty_menu")
 theme_override_styles/disabled = SubResource("StyleBoxEmpty_menu")
 theme_override_styles/focus = SubResource("StyleBoxEmpty_menu")
-text = "Exit"
+text = "EXIT"
 flat = true
 alignment = 0
 

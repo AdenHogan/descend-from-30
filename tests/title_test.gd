@@ -17,7 +17,7 @@ func _ready() -> void:
 	var s = load("res://scenes/title_screen.tscn").instantiate()
 	chk(s != null, "title_screen.tscn loads")
 
-	var expected := {"PlayButton": "Play", "SettingsButton": "Settings", "ExitButton": "Exit"}
+	var expected := {"PlayButton": "PLAY", "SettingsButton": "SETTINGS", "ExitButton": "EXIT"}
 	for nm in expected:
 		var btn = s.get_node_or_null("Menu/Root/Buttons/%s" % nm)
 		chk(btn != null, "Menu/Root/Buttons/%s exists" % nm)
@@ -26,6 +26,11 @@ func _ready() -> void:
 			chk(btn.text == expected[nm],
 				"%s reads '%s' (got '%s')" % [nm, expected[nm], btn.text])
 			chk(not btn.disabled, "%s starts enabled" % nm)
+			# owner round 48i: "make the font for play settings and exit match the logo font" - the logo's Barlow Condensed Bold, in capitals like the logo
+			var fnt: Font = btn.get_theme_font("font")
+			var base: Font = (fnt as FontVariation).base_font if fnt is FontVariation else fnt
+			chk(base is FontFile and base.resource_path == "res://assets/fonts/logo/BarlowCondensed-Bold.ttf",
+				"%s is set in the logo's typeface (got '%s')" % [nm, base.resource_path if base != null else "none"])
 
 	# New Game / Continue moved to the profile screen — nothing may still offer
 	# them here, or the player is asked the same question twice.
@@ -79,6 +84,20 @@ func _ready() -> void:
 		var menu_rect := Rect2(Vector2(bx.offset_left, bx.offset_top), Vector2(bx.offset_right - bx.offset_left, bx.offset_bottom - bx.offset_top))
 		chk(menu_rect.end.x < 576.0 and menu_rect.position.x < rect.position.x + 60.0, "the menu is the same left column (%s)" % str(menu_rect))
 		chk(not rect.intersects(menu_rect), "the Logo %s keeps clear of the menu %s" % [str(rect), str(menu_rect)])
+		# the menu's left edge is the logo's: DESCEND's first letter (the leftmost warm-white pixel of the picture) and the buttons' text start on one line
+		var img: Image = logo.texture.get_image()
+		var ink_x := -1
+		for xx in range(img.get_width()):
+			for yy in range(0, img.get_height(), 3):
+				var px := img.get_pixel(xx, yy)
+				if px.a > 0.9 and px.r > 0.8 and px.g > 0.75 and px.b > 0.65:
+					ink_x = xx
+					break
+			if ink_x >= 0:
+				break
+		var ink_left: float = logo.position.x - logo.texture.get_size().x * logo.scale.x * 0.5 + float(ink_x) * logo.scale.x
+		chk(ink_x >= 0 and absf(bx.offset_left - ink_left) <= 3.0,
+			"the menu's left edge (%.1f) lines up with DESCEND's first letter (%.1f)" % [bx.offset_left, ink_left])
 		chk(logo.get_index() > s.get_node("Menu/Root").get_index(), "the Logo draws OVER the left shade (it would be dimmed under it)")
 		chk(logo.texture_filter == CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS,
 			"the Logo is drawn linear + mipmapped (a 2400 px image shrunk to ~400 px)")
