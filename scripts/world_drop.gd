@@ -179,9 +179,11 @@ func _clear_of_hud() -> bool:
 		global_position.x = x
 		if not _under_hud(global_position):
 			break
-	if player_nearby:
-		HUD.show_world_prompt(self, _prompt_text(), global_position)
 	return true
+
+
+var _compare_key: String = ""
+var _compare_text: String = ""
 
 
 func _prompt_text() -> String:
@@ -189,14 +191,24 @@ func _prompt_text() -> String:
 		return WorldState.key_display(target_apartment) + "   [Click] Take"
 	var item_data = ItemData.get_item(item_id)
 	var display_name = item_data.get("name", "Item") if not item_data.is_empty() else "Item"
-	return display_name + "   [Click] Take"
+	var text: String = display_name + "   [Click] Take"
+	if item_data.get("is_weapon", false):                                    # what it is against the weapon in hand, in a line (ItemCompare)
+		var held = ItemCompare.held_weapon()
+		var key: String = "%s|%s|%d|%d" % [item_id, "" if held == null else held.item_id, 0 if held == null else held.current_durability, 0 if held == null else held.level]
+		if key != _compare_key:                                              # (this runs every frame: build the line only when the two weapons change)
+			_compare_key = key
+			var inst := ItemInstance.new()
+			inst.setup(item_id)
+			_compare_text = ItemCompare.pill_suffix(ItemCompare.card(inst, held))
+		if _compare_text != "":
+			text += "   ·   " + _compare_text
+	return text
 
 
 func _on_body_entered(body: Node2D) -> void:
 	if body.is_in_group("player"):
 		player = body
 		player_nearby = true
-		HUD.show_world_prompt(self, _prompt_text(), global_position)
 
 
 func _on_body_exited(body: Node2D) -> void:
@@ -212,10 +224,17 @@ func _input(event: InputEvent) -> void:
 		if HUD.pointer_over_widget(event.position):
 			return                              # that click is the HUD's (the portrait, the pack button): never a pickup's
 		if _is_mouse_over_orb(event.position):
+			if focus_drop(get_tree(), event.position) != self:
+				return                          # a click is ONE pickup's: the nearest to the pointer, not every drop within 40 px of it
+			# A scavenge node under the pointer and nearer to it than this drop owns the click (owner round 48i: "this baseball bat item is lower and has taken priority in the
+			# selection… Scavenge node is unsearchable as a result"): the drop's reach is 40 px, a node's click circle 10.
+			if _node_has_the_click(event.position):
+				return
 			var vp := get_viewport()
-			_try_pickup()
-			# The click was THIS pickup's: nothing behind it (a stairwell, a door) may also act on it.
-			vp.set_input_as_handled()
+			# Only a pickup that DID something claims the click (nothing behind it — a stairwell, a door — may also act on it). A drop the full bag can't take lets the click go on
+			# (to the node under it, to click-to-move), after its "Inventory full." line.
+			if _try_pickup():
+				vp.set_input_as_handled()
 
 
 func _process(delta: float) -> void:
@@ -234,7 +253,12 @@ func _process(delta: float) -> void:
 			_sync_registered_x()
 	if not player_nearby:
 		return
-	if Input.is_action_just_pressed("interact"):
+	var focused: bool = focus_drop(get_tree()) == self
+	if focused:
+		HUD.show_world_prompt(self, _prompt_text(), global_position)
+	else:
+		HUD.hide_world_prompt(self)
+	if focused and Input.is_action_just_pressed("interact"):
 		_try_pickup()
 
 
@@ -248,20 +272,74 @@ func _orb_level() -> float:
 	return 1.0 - clampf((dist - PICKUP_RANGE) / (GLOW_RANGE - PICKUP_RANGE), 0.0, 1.0)
 
 
-func _is_mouse_over_orb(at: Vector2 = Vector2.INF) -> bool:
-	# `at` = where the click landed (the event's own position — a touch tap has no resting mouse); default = the pointer.
+## Where `at` (the click's own position — a touch tap has no resting mouse; default = the pointer) is in the WORLD, or Vector2.INF with no player / camera.
+func _pointer_world(at: Vector2 = Vector2.INF) -> Vector2:
 	var p = get_tree().get_first_node_in_group("player")
 	if p == null:
-		return false
+		return Vector2.INF
 	var cam = p.get_node_or_null("Camera2D")
 	if cam == null:
-		return false
-	var mouse_world = cam.get_screen_center_position() + \
+		return Vector2.INF
+	return cam.get_screen_center_position() + \
 		((get_viewport().get_mouse_position() if at == Vector2.INF else at) - get_viewport().get_visible_rect().size / 2) / cam.zoom
-	return global_position.distance_to(mouse_world) <= PICKUP_RANGE
 
 
-func _try_pickup() -> void:
+func _is_mouse_over_orb(at: Vector2 = Vector2.INF) -> bool:
+	var mouse_world := _pointer_world(at)
+	return mouse_world != Vector2.INF and global_position.distance_to(mouse_world) <= PICKUP_RANGE
+
+
+const NODE_CLICK_RADIUS := 10.0        # room.CLICK_RADIUS: a scavenge node is "under the pointer" inside this
+
+static var _focus_frame: int = -1
+static var _focus_at: Vector2 = Vector2.INF
+static var _focus: Node = null
+
+
+## THE drop a click / [interact] would take (owner round 48i: "too much clutter in text and choice" - three pickups lying together each posted their own "[Click] Take" pill, on top of
+## one another, and one press took them all). Of the drops in reach it is the one nearest the pointer when the pointer is over any of them (`at` = where a click landed), else the one
+## nearest the player. Only that drop shows its prompt; a click or [interact] takes that one and no other. Cached per frame.
+static func focus_drop(tree: SceneTree, at: Vector2 = Vector2.INF) -> Node:
+	var frame := Engine.get_process_frames()
+	if frame == _focus_frame and at == _focus_at and is_instance_valid(_focus):
+		return _focus
+	var best: Node = null
+	var best_d := INF
+	var best_pointer := false
+	for d in tree.get_nodes_in_group("world_drop"):
+		if not is_instance_valid(d) or not d.player_nearby or d.is_queued_for_deletion():
+			continue
+		var pw: Vector2 = d._pointer_world(at)
+		if at == Vector2.INF and SettingsManager.last_device != "kbm":
+			pw = Vector2.INF                    # a pad / a phone has no resting pointer: the nearest to the player is the one
+		var over: bool = pw != Vector2.INF and d.global_position.distance_to(pw) <= PICKUP_RANGE
+		var dist: float = d.global_position.distance_to(pw) if over else (d.global_position.distance_to(d.player.global_position) if d.player != null else INF)
+		if (over and not best_pointer) or (over == best_pointer and dist < best_d):
+			best = d
+			best_d = dist
+			best_pointer = over
+	_focus_frame = frame
+	_focus_at = at
+	_focus = best
+	return best
+
+
+## Is a scavenge node in reach under the pointer AND nearer to it than this drop? Then the click is the node's.
+func _node_has_the_click(at: Vector2) -> bool:
+	var pw := _pointer_world(at)
+	if pw == Vector2.INF:
+		return false
+	var mine := global_position.distance_to(pw)
+	for n in get_tree().get_nodes_in_group("scavenge_anchor"):
+		if not is_instance_valid(n) or not n.visible or n.get("is_in_range") == false:
+			continue
+		var d: float = n.global_position.distance_to(pw)
+		if d <= NODE_CLICK_RADIUS and d < mine:
+			return true
+	return false
+
+
+func _try_pickup() -> bool:
 	var added: bool
 	if target_apartment != "":
 		added = WorldState.add_key_to_inventory(target_apartment)
@@ -270,7 +348,7 @@ func _try_pickup() -> void:
 			HUD.refresh_inventory()
 		else:
 			HUD.show_feedback("Inventory full.")
-			return
+			return false
 	elif not instance_data.is_empty():
 		added = WorldState.add_instance_to_inventory(WorldState.instance_from_dict(instance_data))
 		if added:
@@ -278,7 +356,7 @@ func _try_pickup() -> void:
 			HUD.refresh_inventory()
 		else:
 			HUD.show_feedback("Inventory full.")
-			return
+			return false
 	elif ItemData.get_item(item_id).get("is_ammo", false):
 		# Bullets that don't wholly fit the pockets load a gun carried (owner round 48h); what fits nowhere stays on the floor.
 		var res: Dictionary = WorldState.take_found_ammo(item_id, amount)
@@ -289,9 +367,9 @@ func _try_pickup() -> void:
 					WorldState.world_drops[drop_key]["amount"] = amount
 				HUD.show_feedback(str(res["msg"]))
 				HUD.refresh_inventory()
-			else:
-				HUD.show_feedback("Inventory full.")
-			return
+				return true                      # some of it went into the gun / the pack: the click did something, the rest stays on the floor
+			HUD.show_feedback("Inventory full.")
+			return false
 		HUD.show_feedback(str(res["msg"]) if str(res["msg"]) != "" else ItemData.get_item(item_id).get("name", "Item") + " picked up.")
 		HUD.refresh_inventory()
 	else:
@@ -302,11 +380,12 @@ func _try_pickup() -> void:
 			HUD.refresh_inventory()
 		else:
 			HUD.show_feedback("Inventory full.")
-			return
+			return false
 	if drop_key != "":
 		WorldState.remove_world_drop(drop_key)
 	HUD.hide_world_prompt(self)
 	queue_free()
+	return true
 
 
 func _exit_tree() -> void:

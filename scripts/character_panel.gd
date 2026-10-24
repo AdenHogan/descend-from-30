@@ -69,7 +69,8 @@ var before_text: RichTextLabel = null
 var traits_text: RichTextLabel = null
 var portrait_rect: TextureRect = null
 var npc_text: RichTextLabel = null
-var map_view: Control = null
+var map_view: BuildingMap = null
+var map_scroll: ScrollContainer = null      # the map is a whole building tall: it scrolls (and opens at the current floor)
 var codex_box: VBoxContainer = null       # the Codex tab's rows (built once, on first open)
 var tabs: TabContainer = null
 var bookmarks: Array = []                 # the coloured tabs down the page edge (one per tab, in order)
@@ -349,9 +350,13 @@ func _build() -> void:
 	tabs.add_child(npc_text)
 
 	# --- Tab 3: Map (fog-of-war building, drawn as if sketched on the page) ---
-	map_view = _MapView.new()
-	map_view.name = "Map"
-	tabs.add_child(map_view)
+	map_scroll = ScrollContainer.new()
+	map_scroll.name = "Map"
+	map_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	map_view = BuildingMap.new()
+	map_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	map_scroll.add_child(map_view)
+	tabs.add_child(map_scroll)
 
 	# --- Tab 4: Codex (every item's durability, in words) ---
 	var codex_scroll := ScrollContainer.new()
@@ -394,9 +399,19 @@ func _loose(n: Control) -> void:
 	loose.append({"node": n, "pos": n.position, "rot": n.rotation_degrees})
 
 
+## Open the map on the floor the player is on (a building is a long page): deferred, because a hidden tab has no size to scroll yet.
+func _scroll_map_to_current() -> void:
+	if map_scroll == null:
+		return
+	var target: float = maxf(0.0, BuildingMap.row_top(WorldState.current_floor) - 150.0)
+	map_scroll.set_deferred("scroll_vertical", int(target))
+
+
 func _pick_tab(i: int) -> void:
 	if tabs != null:
 		tabs.current_tab = clampi(i, 0, tabs.get_tab_count() - 1)
+		if tabs.get_current_tab_control() == map_scroll:
+			_scroll_map_to_current()
 	for b in bookmarks:
 		b.active = b.index == i
 		b.queue_redraw()
@@ -473,7 +488,9 @@ func _refresh() -> void:
 			q += "[b]%s[/b]\n%s\n\n" % [str(entry.get("name", "?")), str(entry.get("story", ""))]
 	npc_text.text = q
 	if map_view != null:
+		map_view.custom_minimum_size = Vector2(300, BuildingMap.content_height())
 		map_view.queue_redraw()
+		_scroll_map_to_current()
 	_build_codex()
 	_fit_all()
 
@@ -577,15 +594,15 @@ static func traits_bbcode(cid: String) -> String:
 	return out.strip_edges()
 
 
-# What else is lifting this character (docs/PROGRESSION.md): this run's boons (gone at the time
-# skip) and the profile's permanent perks (Descent Valour — every game in this save).
+# What else is lifting this character (docs/PROGRESSION.md): the upgrades taken at the merchant (kept for
+# the whole arc) and the profile's permanent boons (Descent Valour — every game in this save).
 static func progression_bbcode() -> String:
 	var out := ""
-	if not WorldState.run_boons.is_empty():
+	if not WorldState.active_upgrades.is_empty():
 		var names: Array = []
-		for id in WorldState.run_boons:
-			names.append(Progression.boon(id).get("name", id))
-		out += "\n[color=#8a5a10]This run: %s[/color]" % ", ".join(names)
+		for id in WorldState.active_upgrades:
+			names.append(Progression.perk_info(id).get("name", id))
+		out += "\n[color=#8a5a10]Upgrades: %s[/color]" % ", ".join(names)
 	if not WorldState.permanent_perks.is_empty():
 		var kept: Array = []
 		for id in WorldState.permanent_perks:
@@ -954,70 +971,3 @@ class _CloseScrap:
 
 
 # ---- The fog-of-war building map (a code-drawn strip of all 30 floors, sketched in the character's hand) ------------------
-class _MapView:
-	extends Control
-
-	const FONT := preload("res://assets/fonts/PixelOperator8.ttf")
-
-	var hand: Font = null
-	var ink: Color = Color(0.20, 0.15, 0.09)
-
-	func _ready() -> void:
-		custom_minimum_size = Vector2(300, 400)
-
-	func _corpse_floors() -> Dictionary:
-		var out: Dictionary = {}
-		for k in WorldState.player_corpses:
-			out[str(int(WorldState.player_corpses[k].get("floor", -1)))] = true
-		return out
-
-	## A pen-drawn rectangle: four slightly wandering sides that overshoot a little at the corners.
-	func _sketch(r: Rect2, col: Color, width: float, seed_: int) -> void:
-		var rng := RandomNumberGenerator.new()
-		rng.seed = seed_
-		var j := func() -> float: return rng.randf_range(-1.1, 1.1)
-		var a := r.position
-		var b := Vector2(r.end.x, r.position.y)
-		var c := r.end
-		var d := Vector2(r.position.x, r.end.y)
-		draw_line(a + Vector2(-1.5, j.call()), b + Vector2(1.5, j.call()), col, width)
-		draw_line(b + Vector2(j.call(), -1.5), c + Vector2(j.call(), 1.5), col, width)
-		draw_line(c + Vector2(1.5, j.call()), d + Vector2(-1.5, j.call()), col, width)
-		draw_line(d + Vector2(j.call(), 1.5), a + Vector2(j.call(), -1.5), col, width)
-
-	func _draw() -> void:
-		var f: Font = hand if hand != null else FONT
-		var w: float = size.x
-		var h: float = size.y
-		var gutter := 30.0
-		var barx := gutter + 4.0
-		var barw: float = w - barx - 10.0
-		var rows := 31                          # floors 30 … 1 plus the lobby (0)
-		var rh: float = h / float(rows)
-		var corpses := _corpse_floors()
-		for fl in range(0, 31):
-			var y: float = float(30 - fl) * rh      # floor 30 at the top, the lobby at the bottom
-			var r := Rect2(barx, y + 1.5, barw, rh - 3.0)
-			var visited: bool = WorldState.visited_floors.has(str(fl))
-			# Fog: floors you haven't been to are shaded in soft pencil; visited floors are left as clear paper.
-			if visited:
-				draw_rect(r, Color(ink.r, ink.g, ink.b, 0.06))
-			else:
-				draw_rect(r, Color(0.25, 0.22, 0.18, 0.15))
-				for hx in range(0, int(barw), 10):
-					draw_line(Vector2(barx + hx, r.end.y), Vector2(barx + hx + 5.0, r.position.y), Color(0.2, 0.17, 0.13, 0.11), 1.0)
-			_sketch(r, Color(ink.r, ink.g, ink.b, 0.55 if visited else 0.30), 1.2, fl * 53 + 7)
-			if visited:
-				# The dead were seen here (red) and/or a fallen character lies here (blue).
-				if WorldState.floors_enemy_seen.has(str(fl)):
-					draw_circle(Vector2(barx + barw - 12.0, y + rh * 0.5), 3.5, Color(0.75, 0.16, 0.13))
-				if corpses.has(str(fl)):
-					draw_circle(Vector2(barx + barw - 26.0, y + rh * 0.5), 3.5, Color(0.30, 0.45, 0.85))
-			if fl == WorldState.current_floor:
-				_sketch(Rect2(r.position - Vector2(2, 1), r.size + Vector2(4, 2)), Color(0.80, 0.22, 0.12), 2.2, 991)   # YOU ARE HERE
-				draw_string(f, Vector2(barx + 8.0, y + rh - 3.0), "← you",
-					HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(0.70, 0.16, 0.08))
-			# Floor number gutter every 5th floor (+ floor 1); "L" marks the lobby.
-			if fl == 0 or fl % 5 == 0 or fl == 1:
-				draw_string(f, Vector2(2.0, y + rh - 3.0), "L" if fl == 0 else str(fl),
-					HORIZONTAL_ALIGNMENT_LEFT, gutter, 15, ink)

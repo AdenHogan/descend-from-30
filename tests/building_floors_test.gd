@@ -1,5 +1,7 @@
 extends Node
 
+const BF_SCRIPT := preload("res://scripts/building_floors.gd")
+
 # Headless test for the stair-pan groundwork: building_floors can be built as a
 # PASSIVE backdrop for a specific floor (no player/enemies/merchant, correct
 # door IDs) — what StairPan instances beside the live floor. Also checks the
@@ -354,11 +356,12 @@ func _test_pried_arrival_milling() -> void:
 		# skew the milling asserts.
 		if z.is_in_group("stair_enemy"):
 			continue
-		if z.global_position.x < 230.0 or z.global_position.x > 500.0:
+		# the band starts BF_SCRIPT.PRY_ARRIVAL_CLEAR px further along than the old 245..470 (owner round 48i: "no time to process")
+		if z.global_position.x < 245.0 + BF_SCRIPT.PRY_ARRIVAL_CLEAR - 10.0 or z.global_position.x > 470.0 + BF_SCRIPT.PRY_ARRIVAL_CLEAR + 30.0:
 			all_in_band = false
 		if z.alert_timer <= 0.0:
 			all_roused = false
-	check(all_in_band, "horde clustered by the LEFT arrival stairwell")
+	check(all_in_band, "horde gathers along the LEFT arrival stairwell's side - %d px or more from it, not on top of it" % int(BF_SCRIPT.PRY_ARRIVAL_CLEAR))
 	check(all_roused, "arrival horde is roused (alerted)")
 	check(WorldState.pending_pry_arrival_floor == -1, "arrival flag consumed after milling")
 	bf.queue_free()

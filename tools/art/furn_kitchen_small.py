@@ -71,20 +71,29 @@ def bread_bin(c, ox, oy, p):
     L.flush()
 
 
-@piece('mugs', 14, 11, 'top', rooms={'kitchen': 7}, styles=None, tags=('small', 'food'), on=('worktop',),
+@piece('mugs', 18, 13, 'top', rooms={'kitchen': 7}, styles=None, tags=('small', 'food'), on=('worktop',),
        variants={'a': {'cols': ('e6e0cc', '3f6a8a')}, 'b': {'cols': ('b8362e', 'e8d45a')}, 'c': {'cols': ('4a7a5a', 'e6e0cc')}},
-       note='two mugs and a jar of spoons')
+       note='two mugs, one nearer than the other, and a jar of spoons')
 def mugs(c, ox, oy, p):
-    _shadow(c, ox + 7, oy + 0.5, 7.4)
+    """Two mugs (a glazed body shaded across its width, a dark inside seen through an elliptical rim, a handle with thickness) at DIFFERENT depths, and a spoon jar behind them
+    (owner round 48i: the three coloured things "feel flat")."""
+    _shadow(c, ox + 8, oy + 0.5, 8.6)
     L = K.Layer(c)
     lc = L.c
-    for i, hx in enumerate(p['cols']):
-        mx = ox + 2.6 + i * 5.2
-        K.cyl(lc, mx, oy - 6, oy - 2, 2.3, hexc(hx), ry=1.0, cap=True, inner=hexc('3a2a20'), gloss=True)
-        lc.put(int(mx) + 3, oy - 5, hexc(hx)); lc.put(int(mx) + 3, oy - 4, hexc(hx))
-    K.cyl(lc, ox + 12.0, oy - 8, oy - 2, 2.2, hexc('a8c8c0'), ry=0.9, cap=True, inner=hexc('3a2a20'), gloss=True)
-    for k in range(3):
-        lc.line(ox + 11 + k, oy - 9, ox + 11 + k + (k - 1), oy - 12, hexc('b08a52'))
+    jar = hexc('a8c8c0')
+    K.cyl(lc, ox + 14.0, oy - 11, oy - 3, 2.9, jar, ry=1.1, cap=True, inner=hexc('3a2a20'), gloss=False, n=4, lo=0.66, hi=1.2)
+    lc.vline(ox + 12, oy - 9, oy - 6, shade(jar, 1.5))
+    lc.hline(ox + 12, ox + 16, oy - 5, shade(jar, 0.72))                                          # a label band round the jar
+    for k in range(4):                                                                            # spoon handles standing in it
+        lc.line(ox + 12 + k, oy - 10, ox + 11 + k + (k % 2) * 2, oy - 14, hexc('b08a52') if k % 2 else hexc('c8ccd0'))
+    for i, (hx, mx, dy) in enumerate(zip(p['cols'], (ox + 3.4, ox + 9.6), (0, -1))):              # the second mug stands a row further back
+        col = hexc(hx)
+        top = oy - 8 + dy
+        K.cyl(lc, mx, top, oy - 1 + dy, 2.7, col, ry=1.1, cap=True, inner=hexc('3a2a20'), gloss=False, n=4, lo=0.62, hi=1.22)
+        lc.vline(int(mx) - 1, top + 2, top + 4, shade(col, 1.5))                                  # a short highlight, not a stripe the whole height
+        for hy in (top + 2, top + 5):                                                             # the handle: a C with thickness, shaded
+            lc.put(int(mx) + 3, hy, shade(col, 0.8)); lc.put(int(mx) + 4, hy, shade(col, 0.55))
+        lc.put(int(mx) + 4, top + 3, shade(col, 0.7)); lc.put(int(mx) + 4, top + 4, shade(col, 0.6))
     L.flush()
 
 

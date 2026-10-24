@@ -41,6 +41,7 @@ const WINDOW_HALF_W := 22
 const WINDOW_Y0 := 10
 const WINDOW_Y1 := 66
 const MAX_TRIES := 48
+const DEFAULT_MAX_GAP := 60        # no stretch of the wall line wider than this stays bare (a recipe may say `max_gap`; 0 = off): owner round 48i, "too much free space... very spartan"
 const SPOTS_PER_PIECE := 14        # x candidates tried for one piece before it is given up on
 const DEFAULT_LIMIT := {"wall": 1, "front": 1, "floor": 2, "top": 2, "decor": 2, "rug": 1, "ceiling": 1}
 
@@ -227,7 +228,7 @@ static func _make(id: String, vid: String, x: int, y: int, host: int = -1) -> Di
 	var rect := Rect2(x + int(info["l"]), y + int(info["t"]), int(info["r"]) - int(info["l"]) + 1, int(info["b"]) - int(info["t"]) + 1)
 	return {"id": id, "variant": vid, "plane": rec["plane"], "x": x, "y": y, "file": info["file"], "rx": int(info["rx"]), "ry": int(info["ry"]),
 		"open_file": info.get("open_file", ""), "rect": rect, "face": Vector2(x, x + int(rec["w"]) - 1), "w": int(rec["w"]), "host": host, "tags": rec["tags"],
-		"params": rec["variants"][vid].get("params", {})}
+		"sb": int(info.get("sb", -1)), "params": rec["variants"][vid].get("params", {})}
 
 
 ## A variant of the piece, uniformly — but a variant that names its STYLES (`params.for`: a kitchen unit's sage doors are the classic kitchen's, its yellow doors the retro one's) is only
@@ -514,6 +515,7 @@ static func _attempt(st: Dictionary, rcp: Dictionary) -> bool:
 	for tag in rcp.get("wall", {}).get("must", []):
 		if not _has_tag(st, tag):
 			return false
+	_fill_gaps(st, rcp)
 	_fill_tops(st, float(rcp.get("tops", 0.7)))
 	_fill_decor(st, rcp.get("decor", [0, 0]))
 	_fill_clutter(st, rcp.get("clutter", [0, 0]))
@@ -650,6 +652,80 @@ static func _fill_wall(st: Dictionary, wr: Dictionary) -> void:
 				break
 
 
+## The stretches of the wall line with no body standing on them: [Vector2(start, end)] wider than `min_w`, widest first. A blocked box (a balcony's doors) counts as taken.
+static func _wall_gaps(st: Dictionary, min_w: int) -> Array:
+	var spans: Array = []
+	for o in st["items"]:
+		if _is_body(String(o["plane"])):
+			var f: Vector2 = o["face"]
+			spans.append(Vector2(f.x, f.y + 1.0))
+	for b in st["ctx"].get("blocked", []):
+		var br: Rect2 = b
+		spans.append(Vector2(br.position.x, br.end.x))
+	spans.sort_custom(func(a, b): return a.x < b.x)
+	var gaps: Array = []
+	var cur := float(EDGE_L)
+	for sp in spans:
+		if sp.x - cur >= float(min_w):
+			gaps.append(Vector2(cur, sp.x))
+		cur = maxf(cur, sp.y)
+	if float(EDGE_R + 1) - cur >= float(min_w):
+		gaps.append(Vector2(cur, float(EDGE_R + 1)))
+	gaps.sort_custom(func(a, b): return (a.y - a.x) > (b.y - b.x))
+	return gaps
+
+
+## Close the wide bare stretches of wall (owner round 48i: "too much free space... our furniture units should bring presence to our room modules... very spartan"): while the widest bare stretch
+## is wider than the recipe's `max_gap`, put in a piece of the room's wall pool that fits it (the widest pieces are the likeliest, so a gap is closed in one or two goes), then carry on. A room
+## whose pool has nothing that fits simply keeps its gap (a window stretch, a doorway).
+static func _fill_gaps(st: Dictionary, rcp: Dictionary) -> void:
+	var rng: RandomNumberGenerator = st["rng"]
+	var max_gap: int = int(rcp.get("max_gap", DEFAULT_MAX_GAP))
+	if max_gap <= 0:
+		return
+	var planes: Array = rcp.get("wall", {}).get("planes", ["wall"])
+	var skip_tag := String(st.get("flank_tag", ""))
+	var failed := {}
+	for guard in range(10):
+		var gaps := _wall_gaps(st, max_gap)
+		var g := Vector2.ZERO
+		for cand in gaps:
+			if not failed.has(int(cand.x)):
+				g = cand
+				break
+		if g == Vector2.ZERO:
+			return
+		var gw := int(g.y - g.x)
+		var pool: Array = []
+		for e in _pool(st["room"], st["style"], planes):
+			var rec := piece(String(e[0]))
+			if int(rec["w"]) > gw - 2 or (skip_tag != "" and skip_tag in rec["tags"]) or bool(rec.get("companion_only", false)):
+				continue
+			if "unit" in rec["tags"]:
+				continue                                                 # a run's units belong to the run, not to a stray gap
+			pool.append([e[0], float(e[1]) * (0.4 + float(rec["w"]) / float(gw))])
+		var placed := false
+		for attempt in range(8):
+			var id := _wpick(rng, pool)
+			if id == "":
+				break
+			var rec2 := piece(id)
+			var vid := _vid(rng, rec2, String(st["style"]))
+			var w := int(rec2["w"])
+			for k in range(6):
+				var x := int(g.x) + 1 + rng.randi_range(0, maxi(0, gw - w - 2))
+				var it := _make(id, vid, x, _feet(rng, rec2))
+				if _fits(st, it, 1):
+					var idx := _add(st, it)
+					_place_needs(st, idx)
+					placed = true
+					break
+			if placed:
+				break
+		if not placed:
+			failed[int(g.x)] = true
+
+
 ## A RUN of units along the wall, edge to edge (a kitchen's line of fridge, base units, cooker and sink): pieces tagged `unit` laid one after another from a seeded start x, all at ONE feet row
 ## (so their worktops line up), no gap between them; every `must` tag (cooking, wet…) is placed first. The recipe's `run`: {count:[a,b], x:[start range], must:[tags]}.
 static func _fill_run(st: Dictionary, rr: Dictionary) -> void:
@@ -746,7 +822,9 @@ static func _place_needs(st: Dictionary, idx: int) -> void:
 	st["items"].remove_at(idx)                                # no room for the chair → no desk (never a desk with nowhere to sit)
 
 
-## Things that stand ON a surface: each slot of each placed piece may take one or two small things / a lamp of this room's pool.
+## Things that stand ON a surface: each slot of each placed piece may take one or two small things / a lamp of this room's pool. They are SPREAD over the surface (owner round 48i,
+## on a dresser whose things all stood at its back left: "space is not being adequately taken advantage of"): each lands in a random free stretch of the slot's width, not always to the right
+## of the last, and at a random depth between the top face's back edge and its front (`dy` .. `bottom_max`, measured from the sprite by furnlib._settle_slots).
 static func _fill_tops(st: Dictionary, chance: float) -> void:
 	var rng: RandomNumberGenerator = st["rng"]
 	var hosts: Array = st["items"].duplicate()
@@ -758,12 +836,11 @@ static func _fill_tops(st: Dictionary, chance: float) -> void:
 			if rng.randf() >= chance:
 				continue
 			var kinds: Array = sl.get("kinds", [])
-			var x0 := int(host["x"]) + int(sl["dx0"])
-			var x1 := int(host["x"]) + int(sl["dx1"])
 			var cap := 1 if "lamp" in kinds and not ("small" in kinds) else 2
 			var placed := 0
+			var free: Array = [Vector2i(int(host["x"]) + int(sl["dx0"]), int(host["x"]) + int(sl["dx1"]))]      # free stretches of columns
 			for t in range(cap * 3):
-				if placed >= cap or x0 > x1:
+				if placed >= cap or free.is_empty():
 					break
 				var pool: Array = []
 				for kd in kinds:
@@ -774,15 +851,38 @@ static func _fill_tops(st: Dictionary, chance: float) -> void:
 					break
 				var rec := piece(id)
 				var w := int(rec["w"])
-				if x0 + w - 1 > x1:
+				var roomy: Array = []
+				var total := 0
+				for iv in free:
+					var span: int = iv.y - iv.x + 1
+					if span >= w:
+						roomy.append(iv)
+						total += span
+				if roomy.is_empty():
 					continue
-				var x := rng.randi_range(x0, x1 - w + 1)
-				var it := _make(id, _vid(rng, rec, String(st["style"])), x, int(host["y"]) + int(sl["dy"]), hi)
+				var pick := rng.randi_range(0, total - 1)                              # a stretch, weighted by its width
+				var at: Vector2i = roomy[0]
+				for iv in roomy:
+					var span2: int = iv.y - iv.x + 1
+					if pick < span2:
+						at = iv
+						break
+					pick -= span2
+				var x := rng.randi_range(at.x, at.y - w + 1)
+				var vid := _vid(rng, rec, String(st["style"]))
+				var info := _sprite_for(rec, vid, float(x) + float(w) * 0.5)
+				var y_lo := int(host["y"]) + int(sl["dy"])
+				var y_hi := maxi(y_lo, int(host["y"]) + int(sl.get("bottom_max", sl["dy"])) - int(info.get("sb", -1)))
+				var it := _make(id, vid, x, rng.randi_range(y_lo, y_hi), hi)
 				it["host_plane"] = hrec["plane"]
 				if _fits(st, it):
 					_add(st, it)
 					placed += 1
-					x0 = x + w + 1
+					free.erase(at)
+					if x - 2 - at.x + 1 >= 1:
+						free.append(Vector2i(at.x, x - 2))
+					if at.y - (x + w + 1) + 1 >= 1:
+						free.append(Vector2i(x + w + 1, at.y))
 
 
 ## Pictures and notices: hung on the wall clear of every piece and of the window.
@@ -902,6 +1002,36 @@ static func _place_ceiling(st: Dictionary) -> void:
 
 # ------------------------------------------------------------------------------------------------------------------------------------ validation
 ## Every rule, re-checked on a finished plan state (used by the planner to accept an attempt, and by tests on `plan()` results through `validate()`).
+## A thing on top stands ON something: some other piece has a top slot that takes its kind, and the thing lies inside that slot's columns and between its back contact row and the
+## lowest row its solid pixels may reach (the host's measured top face, data/furniture.json `slots`).
+static func _top_supported(it: Dictionary, items: Array) -> bool:
+	var on: Array = piece(String(it["id"])).get("on", [])
+	var w := int(it["w"])
+	for h in items:
+		if h == it or String(h["plane"]) == "top":
+			continue
+		var hrec := piece(String(h["id"]))
+		if hrec.is_empty() or not hrec["variants"].has(String(h["variant"])):
+			continue
+		for sl in hrec["variants"][String(h["variant"])].get("slots", []):
+			if not bool(sl.get("top", false)):
+				continue
+			var takes := false
+			for k in sl.get("kinds", []):
+				if k in on:
+					takes = true
+			if not takes:
+				continue
+			var hx := int(h["x"])
+			if int(it["x"]) < hx + int(sl["dx0"]) or int(it["x"]) + w - 1 > hx + int(sl["dx1"]):
+				continue
+			var y_lo := int(h["y"]) + int(sl["dy"])
+			var y_hi := maxi(y_lo, int(h["y"]) + int(sl.get("bottom_max", sl["dy"])) - int(it.get("sb", -1)))
+			if int(it["y"]) >= y_lo and int(it["y"]) <= y_hi:
+				return true
+	return false
+
+
 static func validate_state(st: Dictionary) -> Array:
 	var bad: Array = []
 	var items: Array = st["items"]
@@ -930,6 +1060,8 @@ static func validate_state(st: Dictionary) -> Array:
 				bad.append("%s has a node out of reach (y %d)" % [id, int(a["y"])])
 		if plane == "floor" and rect.end.y - 1.0 > LANE_CLEAR_ROW:
 			bad.append("%s lies past the walking lane (row %d)" % [id, int(rect.end.y) - 1])
+		if plane == "top" and not _top_supported(it, items):
+			bad.append("%s floats: no surface under it takes it (owner round 48i: \"if it's an item it needs to physically be on top of the furniture rather than float\")" % id)
 		if (plane == "front" or plane == "floor") and _in_stand_zone(rect, bands):
 			bad.append("%s is in a step-up spot's stand zone" % id)
 		if _is_body(plane):

@@ -152,7 +152,7 @@ def clothes_pile(c, ox, oy, p):
 @piece('rug_oblong', 66, 14, 'rug', rooms={'bedroom': 5, 'living_room': 5, 'study': 3, 'dining_room': 2}, styles={'adult': 3, 'kid': 3, 'teen': 2},
        variants={'mauve': {'col': '8a5a62', 'border': '5e3a42', 'pat': 'c9a888'}, 'green': {'col': '5e7a5a', 'border': '3c5238', 'pat': 'c8c498'}, 'blue': {'col': '4e6a8a', 'border': '34485e', 'pat': 'd0c8a8'},
                  'red': {'col': '8a3a38', 'border': '5a2424', 'pat': 'd8b890'}},
-       tags=('rug',), feet=(118, 122), note='a woven rug on the floor — border bands, a field of lozenges, a medallion, fringe at both ends, worn in the middle')
+       tags=('rug',), feet=(129, 134), note='a woven rug on the floor — border bands, a field of lozenges, a medallion, fringe at both ends, worn in the middle')
 def rug_oblong(c, ox, oy, p):
     col, bor, pat = hexc(p['col']), hexc(p['border']), hexc(p['pat'])
     rng = random.Random(len(p['col']) * 31 + ord(p['col'][0]))

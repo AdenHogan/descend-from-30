@@ -1,7 +1,7 @@
 class_name ChoicePanel
 extends CanvasLayer
 
-# Shared base for the small PAUSING choice panels (run boons, legacy): a dimmed screen, a dark card
+# Shared base for the small PAUSING choice panels (the door, legacy): a dimmed screen, a dark card
 # in the workbench's style, pixel fonts, ESC/✕ to close, and the pause restored on close. Joins
 # "modal_panel" so Game._input closes it on ESC before the pause menu opens.
 

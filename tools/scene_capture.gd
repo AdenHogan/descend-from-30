@@ -25,13 +25,13 @@ extends Node
 #   pack:<k|-1|x>    open the backpack ring (kneel first — add a w: step) with the pointer on item k (-1 = middle, x = close)
 #   tip:<n>          hover the pointer over inventory slot n (shows its tooltip after a beat)
 #   scrap:<n>        set the scrap counter
-#   boon:<floor>     reach a run-boon milestone (queues the HUD badge)
 #   valour:<n>       set the profile's Descent Valour
 #   perk:<id>        record a perk as acquired this session (the Valour offer's pool)
 #   chron:<run>:<deepest>:<dead|survived>  set a run's deepest floor + outcome (for scoring)
 #   perm:<id>        keep a perk permanently (the profile's collection)
 #   finish           score the session (WorldState.finish_session) → Valour + offer
-#   hud:<method>     call a no-arg HUD method (e.g. open_boon_offer)
+#   mapdemo          fill the journal map's memory with a plausible descent (floors 30-14 seen, doors, fire, the dead, a body) — for reviewing it
+#   hud:<method>     call a no-arg HUD method (e.g. refresh_inventory)
 #   journal:<0-3|x>  open the journal on a tab (3 = Codex) / close it
 #   eqstyle:<square|rounded|circle>  shape of the in-hand box;  wear:<0..1>  wear the selected item to that fraction
 #   kill             kill the player now (player._die → the real Game.game_over flow)
@@ -155,8 +155,24 @@ func _do(step: String) -> void:
 		"tip":
 			HUD.set_hotbar_visible(true)
 			HUD.tip_mouse_override = HUD.slots[int(p[1])].get_global_rect().get_center()
-		"boon":
-			WorldState.note_boon_milestone(int(p[1]))
+		"mapdemo":
+			for f in range(30, 13, -1):
+				WorldState.visited_floors[str(f)] = true
+			for f in [29, 27, 24, 22, 20, 18]:
+				WorldState.floors_enemy_seen[str(f)] = true
+			WorldState.map_sights["29"] = {"dead": [336.0, 904.0], "people": [], "run": 1}
+			WorldState.map_sights["22"] = {"dead": [288.0, 440.0, 816.0], "people": [624.0], "run": 1}
+			WorldState.map_sights["18"] = {"dead": [560.0], "people": [], "run": 1}
+			for id in ["2901", "2903", "2203", "2005", "1802"]:
+				WorldState.map_entered[id] = true
+			WorldState.door_states["2504"] = WorldState.DoorState.BREACHED
+			WorldState.door_states["2302"] = WorldState.DoorState.BARRICADED_FORCEABLE
+			WorldState.door_states["1703"] = WorldState.DoorState.BREACHED
+			var cells: Array = []
+			for i in 26:
+				cells.append(1 if i in [9, 10, 11, 12] else (2 if i in [7, 8, 13] else 0))
+			WorldState.fire_cells[str(20) + ":" + str(WorldState.current_run)] = {"stage": 1, "cells": cells}
+			WorldState.player_corpses["1"] = {"floor": 17, "scene": "res://scenes/building_floors.tscn", "apartment_id": "", "x": 700.0, "y": 419.0, "feet": true, "notes": 0, "scrap": 0, "items": []}
 		"valour":
 			WorldState.valour = int(p[1])
 		"perk":

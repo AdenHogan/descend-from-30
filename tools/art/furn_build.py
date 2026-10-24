@@ -42,6 +42,7 @@ import furn_dining  # noqa: F401
 import furn_study  # noqa: F401
 import furn_bathroom  # noqa: F401
 import furn_desk  # noqa: F401
+import furn_fillers  # noqa: F401           (round 48i: radiator, blanket trunk, coat stand - the ordinary things a sparse wall was missing)
 import furn_styles
 import furn_rooms
 

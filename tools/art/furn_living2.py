@@ -227,50 +227,110 @@ def crate_cubes(c, ox, oy, p):
        anchors=({'name': 'piano', 'dx': 23, 'dy': -26},), feet=(105, 108),
        note='an upright piano: a panelled case with a music desk and sheet music, a keyboard of ivory and black keys, a candle bracket each side, pedals; the stool is a separate piece')
 def piano_upright(c, ox, oy, p):
-    f = FIN_C['walnut'] if p['fin'] == 'walnut' else dict(body=hexc('2a2a30'), lt=hexc('484a54'), dk=hexc('14141a'), out=hexc('0a0a0e'), handle=BRASS)
+    """An upright piano, front elevation (owner round 48i: it "looks like a giant vending machine with vertical piano keys"): a cornice, a music desk in front of a pierced
+    fret over silk with sheet music standing ON its ledge, a fallboard with a thin brass name strip, the KEYBOARD (eleven ivory keys, black keys in the real 2-and-3 pattern, cheek
+    blocks either side) over a key slip that projects past the case with its shadow below, a panelled lower board, three brass pedals and bun feet."""
+    walnut = p['fin'] == 'walnut'
+    f = FIN_C['walnut'] if walnut else dict(body=hexc('2a2a30'), lt=hexc('484a54'), dk=hexc('14141a'), out=hexc('0a0a0e'), handle=BRASS)
+    silk = hexc('5a2430') if walnut else hexc('1e3a34')
+    slat = hexc('9a7a40') if walnut else hexc('8a8e98')
+    ivory, gap = hexc('eee6cf'), hexc('b2aa94')
     x0, x1 = ox + 1, ox + 44
     top, base = oy - 58, oy
-    c.shadow((x0 + x1) // 2, base + 1, 26, 2, 105)
-    c.rect(x0 - 1, top, x1 + 1, base - 5, f['out'])
-    c.rect(x0, top + 2, x1, top + 4, f['lt'])                                                    # the lid
-    c.hline(x0 - 1, x1 + 1, top, shade(f['lt'], 1.2))
-    c.rect(x0 + 1, top + 5, x1 - 1, top + 22, f['body'])                                         # the upper case
-    c.rect(x0 + 5, top + 8, x1 - 5, top + 19, shade(f['body'], 0.86))                            # a panel, with a carved fret
-    c.hline(x0 + 5, x1 - 5, top + 8, f['dk'])
-    c.vline(x0 + 5, top + 8, top + 19, f['dk'])
-    c.hline(x0 + 5, x1 - 5, top + 19, f['lt'])
-    for k in range(5):
-        c.put(x0 + 9 + k * 6, top + 13, BRASS if f is FIN_C['walnut'] else hexc('6a6a74'))
-    c.rect(x0 + 2, top + 23, x1 - 2, top + 25, f['dk'])                                          # the music desk
-    c.rect(x0 + 12, top + 17, x0 + 24, top + 24, hexc('ece6d0'))                                 # sheet music on it
-    for k in range(4):
-        c.hline(x0 + 13, x0 + 23, top + 19 + k, hexc('9a9484'))
-    c.put(x0 + 15, top + 20, hexc('1a1a1a')); c.put(x0 + 19, top + 21, hexc('1a1a1a')); c.put(x0 + 22, top + 19, hexc('1a1a1a'))
-    c.rect(x0 + 1, top + 26, x1 - 1, top + 28, f['lt'])                                          # the fall
-    c.rect(x0 + 2, top + 29, x1 - 2, top + 36, hexc('e8e0cc'))                                   # the keyboard: ivory keys
-    c.hline(x0 + 2, x1 - 2, top + 36, hexc('b8b09a'))
-    for k in range(x0 + 4, x1 - 3, 3):
-        c.vline(k, top + 29, top + 36, hexc('b8b09a'))
-    for k in range(x0 + 5, x1 - 4, 3):
-        if (k - x0) % 9 not in (2, 8):
-            c.rect(k, top + 29, k + 1, top + 33, hexc('1a1a1e'))                                  # the black keys
-    c.rect(x0 + 1, top + 37, x1 - 1, top + 38, f['dk'])
-    c.rect(x0 + 1, top + 39, x1 - 1, base - 6, f['body'])                                        # the lower panel
-    c.rect(x0 + 4, top + 42, x1 - 4, base - 9, shade(f['body'], 0.9))
-    c.hline(x0 + 4, x1 - 4, top + 42, f['dk'])
-    c.vline(x0 + 4, top + 42, base - 9, f['dk'])
-    c.hline(x0 + 4, x1 - 4, base - 9, f['lt'])
-    for bx in (x0 + 8, x1 - 9):                                                                   # candle brackets either side of the desk
-        c.rect(bx, top + 26, bx + 1, top + 27, BRASS)
-    for px in (x0 + 18, x0 + 23, x0 + 28):                                                        # the pedals, brass, under the case
-        c.rect(px, base - 4, px + 2, base - 3, BRASS)
-        c.hline(px, px + 2, base - 4, BRASS_LT)
-    c.rect(x0, base - 5, x1, base - 3, f['dk'])
+    mid = (x0 + x1) // 2
+
+    def grad(xa, ya, xb, yb, col, g0=1.08, g1=0.88):
+        for y in range(ya, yb + 1):
+            k = (y - ya) / float(max(1, yb - ya))
+            c.hline(xa, xb, y, shade(col, g0 + (g1 - g0) * k))
+
+    c.shadow(mid, base + 1, 26, 2, 105)
+    c.rect(x0, top, x1, base - 6, f['out'])                                                       # the case's dark outline
+    # --- cornice: a lit moulding that overhangs the case, a shadow line under it
+    c.rect(x0 - 1, top + 1, x1 + 1, top + 3, f['lt'])
+    c.hline(x0 - 1, x1 + 1, top, shade(f['lt'], 1.3))
+    c.hline(x0, x1, top + 2, shade(f['lt'], 0.88))
+    c.hline(x0, x1, top + 4, f['dk'])
+    # --- the upper case: stiles each side, a recessed pierced fret over silk between them
+    grad(x0 + 1, top + 5, x1 - 1, top + 24, f['body'], 1.05, 0.9)
+    c.vline(x0 + 1, top + 5, top + 24, f['lt'])
+    c.vline(x1 - 1, top + 5, top + 24, f['dk'])
+    px0, px1, py0, py1 = x0 + 5, x1 - 5, top + 7, top + 22
+    c.rect(px0 - 1, py0 - 1, px1 + 1, py1 + 1, f['dk'])                                           # the panel's dark frame
+    c.hline(px0 - 1, px1 + 1, py1 + 1, f['lt'])                                                   # ...lit along its lower lip
+    grad(px0, py0, px1, py1, silk, 0.78, 1.0)                                                     # silk, darker where the frame shades it
+    for sx in range(px0 + 1, px1, 4):                                                             # the fret: a pale slat every fourth column over the silk
+        c.vline(sx, py0, py1, shade(slat, 0.82))
+        c.vline(sx + 1, py0, py1, shade(silk, 0.82))
+    c.hline(px0, px1, py0, shade(silk, 0.5))
+    for side in (-1, 1):                                                                          # a brass candle bracket + candle each side of the desk
+        bx = (x0 + 4) if side < 0 else (x1 - 4)
+        c.rect(bx, top + 15, bx + 1, top + 15, BRASS)
+        c.put(bx, top + 14, BRASS_LT)
+        c.rect(bx, top + 10, bx, top + 13, hexc('e8e0c8'))
+        c.put(bx, top + 9, hexc('f0c060'))
+    # --- sheet music: standing on the desk's ledge, leaning back against the fret, with a staff and a few notes
+    sx0, sx1 = mid - 7, mid + 7
+    c.rect(sx1 + 1, py0 + 6, sx1 + 1, py1, shade(silk, 0.45))                                     # its shadow on the silk
+    c.rect(sx0, py0 + 5, sx1, py1, hexc('efe8d2'))
+    c.hline(sx0, sx1, py0 + 5, hexc('fffaf0'))
+    c.vline(sx1, py0 + 5, py1, hexc('c9c2aa'))
+    c.put(sx1, py0 + 5, hexc('d8d0b8'))                                                           # a curled corner
+    for ly in range(py0 + 8, py0 + 15, 2):                                                        # five staff lines
+        c.hline(sx0 + 1, sx1 - 1, ly, hexc('9a9484'))
+    ink = hexc('2a2622')
+    for (nx, ny) in ((sx0 + 3, py0 + 12), (sx0 + 7, py0 + 10), (sx0 + 11, py0 + 14)):             # three notes: a head on a line, a one-pixel stem
+        c.put(nx, ny, ink); c.put(nx + 1, ny, ink)
+        c.vline(nx + 1, ny - 3, ny - 1, ink)
+    c.rect(x0 + 3, py1 + 1, x1 - 3, py1 + 2, f['lt'])                                             # the music desk's ledge...
+    c.hline(x0 + 3, x1 - 3, py1 + 3, f['dk'])                                                     # ...and the shadow under it
+    # --- the fallboard, with a thin brass name strip
+    grad(x0 + 1, top + 26, x1 - 1, top + 29, f['body'], 1.12, 0.92)
+    c.hline(x0 + 2, x1 - 2, top + 26, f['lt'])
+    c.hline(x0 + 4, x1 - 4, top + 27, shade(BRASS, 0.8))
+    c.hline(mid - 5, mid + 5, top + 28, BRASS)
+    c.hline(x0 + 1, x1 - 1, top + 30, f['dk'])
+    # --- the keyboard: cheek blocks, then eleven ivory keys with the black keys in the real pattern
+    kx0, keys = x0 + 5, 11
+    kx1 = kx0 + 3 * keys - 1
+    for (a, b, edge_x) in ((x0 + 1, kx0 - 1, x0 + 1), (kx1 + 1, x1 - 1, x1 - 1)):
+        grad(a, top + 31, b, top + 42, f['body'], 1.0, 0.85)
+        c.vline(edge_x, top + 31, top + 42, f['lt'] if a == x0 + 1 else f['dk'])
+    c.rect(kx0, top + 31, kx1, top + 42, shade(f['dk'], 0.6))                                    # the dark keybed behind the keys
+    for i in range(keys):
+        kx = kx0 + 3 * i
+        c.rect(kx, top + 32, kx + 1, top + 39, ivory)
+        c.vline(kx + 2, top + 32, top + 39, gap)
+        c.hline(kx, kx + 1, top + 40, shade(ivory, 0.8))                                           # the key's front lip
+    for i in range(keys - 1):
+        if i % 7 in (0, 1, 3, 4, 5):
+            bx = kx0 + 3 * (i + 1) - 1
+            c.rect(bx, top + 32, bx + 1, top + 36, hexc('1c1a20'))
+            c.put(bx, top + 32, hexc('3c3c46'))
+            c.vline(bx + 2, top + 33, top + 37, shade(ivory, 0.74))                               # the shadow a black key throws
+    # --- the key slip projects past the case; the board under it sits in its shadow
+    c.rect(x0 - 1, top + 43, x1 + 1, top + 44, f['lt'])
+    c.hline(x0 - 1, x1 + 1, top + 43, shade(f['lt'], 1.25))
+    c.hline(x0 - 1, x1 + 1, top + 45, f['out'])
+    grad(x0 + 1, top + 46, x1 - 1, base - 7, f['body'], 0.78, 0.92)                              # the lower board, shaded under the slip
+    c.vline(x0 + 1, top + 46, base - 7, shade(f['lt'], 0.9))
+    c.rect(x0 + 5, top + 48, x1 - 5, base - 9, shade(f['body'], 0.86))                           # its panel
+    c.hline(x0 + 5, x1 - 5, top + 48, f['dk'])
+    c.vline(x0 + 5, top + 48, base - 9, f['dk'])
+    c.hline(x0 + 5, x1 - 5, base - 9, shade(f['lt'], 0.9))
+    c.vline(x1 - 5, top + 48, base - 9, shade(f['lt'], 0.8))
+    for gx in range(x0 + 8, x1 - 6, 5):                                                           # a little grain
+        c.vline(gx, top + 50, base - 11, shade(f['body'], 0.78))
+    # --- plinth, pedals and bun feet
+    c.rect(x0 + 1, base - 6, x1 - 1, base - 4, f['dk'])
+    c.hline(x0 + 1, x1 - 1, base - 6, shade(f['dk'], 1.3))
+    for px_ in (mid - 6, mid - 1, mid + 4):
+        c.rect(px_, base - 3, px_ + 2, base - 2, BRASS)
+        c.hline(px_, px_ + 2, base - 3, BRASS_LT)
     for lx in (x0 + 1, x1 - 4):
-        c.rect(lx, base - 3, lx + 3, base, f['body'])
-        c.vline(lx, base - 3, base, f['lt'])
-    for k in range(3):
-        c.hline(x0 + 3 + k * 11, x0 + 8 + k * 11, top + 3, shade(f['lt'], 0.8))
+        c.rect(lx, base - 3, lx + 3, base - 1, f['body'])
+        c.vline(lx, base - 3, base - 1, f['lt'])
+        c.hline(lx, lx + 3, base - 1, f['dk'])
 
 
 # ================================================================================================================================ the china cabinet

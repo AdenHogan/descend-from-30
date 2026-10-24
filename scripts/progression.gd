@@ -1,25 +1,26 @@
 class_name Progression
 extends RefCounted
 
-# PLAYER PROGRESSION beyond the merchant (docs/PROGRESSION.md). Three tiers, ONE stat fold
+# PLAYER PROGRESSION beyond the merchant (docs/PROGRESSION.md). Two tiers, ONE stat fold
 # (base × ∏mult + Σadd, never direct writes — WorldState._stat_mods_sources folds them all):
 #
-#   1. MERCHANT upgrades   — STORE_DESIGN.md (unchanged): pick 1 of 2 at merchant floors,
-#                             kept across the whole three-run arc.
-#   2. RUN BOONS (temporary) — this CHARACTER only. At depth milestones (between merchant floors)
-#                             a pick 1 of 2 from a punchier pool; the time skip wipes them.
-#   3. DESCENT VALOUR (permanent) — the PROFILE, forever. At the end of a 3-run session, Valour
-#                             (by how deep each run got) buys ONE of the perks acquired that
-#                             session to keep for every future game (max 10, tradeable).
+#   1. UPGRADES (in a run)  — at each merchant floor ONE offer of three (MERCHANT_OFFER) from the merged pool
+#                             (the merchant's UPGRADE_POOL + the former run boons, RUN_BOONS below); pick one;
+#                             it is kept across the whole three-run arc. (Owner round 48i: "upgrades and boons
+#                             are essentially the same… players won't understand the difference".)
+#   2. BOONS (for good)     — DESCENT VALOUR, the PROFILE, forever. At the end of a 3-run session, Valour
+#                             (depth reached, the dead felled, nodes searched, flats looted, quests, residents
+#                             aided, escaping) buys ONE of the upgrades acquired that session to keep for every
+#                             future game (max 10, tradeable).
 #   (+ per-weapon workbench perks — WeaponUpgrades, scrap.)
 #
 # Every number lives here. mods use the UPGRADE_POOL shape: stat → {"add": x} / {"mult": x}.
 
-# --- Tier 2: run boons -------------------------------------------------------------------
-# THE MERCHANT'S (owner round 33 — "we should not be getting boons on 27. boons are only on every 5th floor and collectable
-# from the merchant"): this character's first visit to each merchant (25/20/15/10/5) offers a boon after the upgrade pick, in
-# the merchant's own window (shop_ui.gd, the BOON step). No arrival badge any more.
-const BOON_MILESTONES := [25, 20, 15, 10, 5]
+# --- The former run boons (now ordinary upgrades) ----------------------------------------
+# Round 48i: these used to be a second pick at every merchant that lasted one character. They are in the merchant's offer
+# now (weight BOON_WEIGHT beside the upgrades' own `w`), and a pick is kept for the arc like any other upgrade.
+const MERCHANT_OFFER := 3                # cards in a merchant's offer; the player takes ONE
+const BOON_WEIGHT := 3                   # how often a former boon turns up beside the merchant's own `w` 1-7
 
 const RUN_BOONS := {
 	"B_adrenaline": {"name": "Adrenaline", "d": 4, "desc": "+20% move speed", "mods": {"move_speed": {"mult": 1.20}}},
@@ -47,6 +48,12 @@ const RUN_BOONS := {
 const VALOUR_ESCAPE_BONUS := 10
 const VALOUR_PER_QUEST := 8             # each quest completed that run (owner: quests + NPCs count)
 const VALOUR_PER_NPC := 4               # each NPC aided that run
+# More of what a descent is made of (owner round 48i: "Valour for enemies felled, nodes scavenged, apartments investigated,
+# quests completed, NPCs aided, successful descents, which level you reach before dying"). Small steady trickles beside the
+# depth curve: a full descent felling ~90 and searching ~25 nodes in ~6 flats adds ~25-30, a quarter of a middling game.
+const KILLS_PER_VALOUR := 8             # the dead felled: one Valour per eight
+const NODES_PER_VALOUR := 5             # things searched (a node that gave something): one per five
+const VALOUR_PER_FLAT := 2              # each distinct apartment looted
 # THE DOOR (owner, round 4 — "a real hard choice"): an escaping character's KIT is scrapped at the
 # door for Valour — every weapon's worth (DOOR_WORTH by level + a share of heirloom scrap put in) —
 # UNLESS they leave one item by the door for their next game (the stash), which forfeits THAT
@@ -55,7 +62,7 @@ const VALOUR_PER_NPC := 4               # each NPC aided that run
 const DOOR_BRAVE_BONUS := 25            # left nothing by the door — braved the unknown
 # Only UPGRADED weapons count (owner, round 5: "we don't want any old junk scrappable for max valour
 # at the door") — a Lv1 weapon, a tool or junk melts for nothing, and can't be left by the door.
-const DOOR_WORTH := {1: 0, 2: 20, 3: 40, 4: 70, 5: 110, 6: 160, 7: 220}
+const DOOR_WORTH := {1: 0, 2: 10, 3: 20, 4: 40, 5: 70, 6: 110, 7: 160, 8: 220}      # Lv2 = just Reinforced: a taste, worth a little
 const DOOR_FORGE_SHARE := 0.2           # heirloom scrap already put in counts this much toward worth
 const VALOUR_DEPTH_CURVE := 60.0        # floors descended d → d + floor(d² / curve)
 const OFFER_COUNT := 3                   # perks offered at the end of a session
@@ -87,10 +94,12 @@ const DESIRE_NEUTRAL := 3
 # → 45 (+10 escaped = 55); each quest +8, each NPC aided +4.
 # `door` = what the character's kit was scrapped for at the lobby door (door_valour) — escapes only.
 static func valour_for_run(deepest_floor: int, escaped: bool, quests: int = 0, npcs: int = 0,
-		door: int = 0) -> int:
+		door: int = 0, kills: int = 0, nodes: int = 0, flats: int = 0) -> int:
 	var d := clampi(30 - deepest_floor, 0, 30)
+	@warning_ignore("integer_division")
 	return d + int(floor(d * d / VALOUR_DEPTH_CURVE)) + (VALOUR_ESCAPE_BONUS if escaped else 0) \
 		+ maxi(0, quests) * VALOUR_PER_QUEST + maxi(0, npcs) * VALOUR_PER_NPC \
+		+ maxi(0, kills) / KILLS_PER_VALOUR + maxi(0, nodes) / NODES_PER_VALOUR + maxi(0, flats) * VALOUR_PER_FLAT \
 		+ (maxi(0, door) if escaped else 0)
 
 
@@ -147,6 +156,20 @@ static func boon(id: String) -> Dictionary:
 	return RUN_BOONS.get(id, {})
 
 
+## Every id the merchant may put in an offer: his own upgrades, then the former boons (a fixed order, so a seeded draw is reproducible).
+static func offer_pool() -> Array:
+	var ids: Array = WorldState.UPGRADE_POOL.keys()
+	ids.append_array(RUN_BOONS.keys())
+	return ids
+
+
+## How often an id turns up in an offer: an upgrade by its rarity `w`, a former boon by BOON_WEIGHT.
+static func offer_weight(id: String) -> int:
+	if id.begins_with("B_"):
+		return BOON_WEIGHT
+	return int(WorldState.UPGRADE_POOL.get(id, {}).get("w", 1))
+
+
 # --- perk luck -------------------------------------------------------------------------------
 static func desirability(id: String) -> int:
 	return int(perk_info(id).get("d", DESIRE_NEUTRAL))
@@ -192,10 +215,10 @@ static func perk_table_markdown() -> String:
 	lines.append("# Perk list (generated — do not edit by hand)")
 	lines.append("")
 	lines.append("Regenerate with `godot --headless res://tools/perk_table.tscn` after changing a perk.")
-	lines.append("Edit the data in `scripts/world_state.gd` `UPGRADE_POOL` (merchant upgrades) and")
-	lines.append("`scripts/progression.gd` `RUN_BOONS` (run boons). Columns:")
+	lines.append("Edit the data in `scripts/world_state.gd` `UPGRADE_POOL` (the merchant's own upgrades) and")
+	lines.append("`scripts/progression.gd` `RUN_BOONS` (the former run boons, now in the same offer). Columns:")
 	lines.append("")
-	lines.append("- **Rarity `w`** — how often the merchant offers it (higher = more common; boons are drawn evenly).")
+	lines.append("- **Rarity `w`** — how often the merchant offers it (higher = more common; the former boons all weigh %d)." % BOON_WEIGHT)
 	lines.append("- **Desirability `d`** — 1-5, how much a player wants it (5 = coveted). Only matters under")
 	lines.append("  perk luck (Fortune's Favour): offers tilt toward high-`d` perks (x%.1f per step from 3)." % DESIRE_TILT)
 	lines.append("- **Keep forever** — its Descent Valour price to make it permanent.")
@@ -206,8 +229,8 @@ static func perk_table_markdown() -> String:
 	ids.append_array(RUN_BOONS.keys())
 	for id in ids:
 		var d: Dictionary = perk_info(id)
-		var kind := "Run boon" if d.get("kind", "") == "boon" else ("Merchant (drawback)" if d.get("drawback", false) else "Merchant")
-		var w := "—" if d.get("kind", "") == "boon" else str(d.get("w", ""))
+		var kind := "Upgrade (once a run boon)" if d.get("kind", "") == "boon" else ("Upgrade (drawback)" if d.get("drawback", false) else "Upgrade")
+		var w := str(BOON_WEIGHT) if d.get("kind", "") == "boon" else str(d.get("w", ""))
 		lines.append("| `%s` | %s | %s | %s | %s | %d | %d |" % [id, d.get("name", id), kind,
 			String(d.get("desc", "")).replace("|", "/"), w, int(d.get("d", DESIRE_NEUTRAL)), int(d.get("cost", 0))])
 	lines.append("")

@@ -25,14 +25,12 @@ var pending_confirm: int = -1
 var sell_box: VBoxContainer = null
 var sell_buttons: Array = []
 var pending_sell_confirm: int = -1
-# Upgrades tab (step 6): the pick-1-of-2 offer leads the visit; shop is the
+# Upgrades tab (step 6): the offer of three (pick one) leads the visit; shop is the
 # errand. Tab bar lets you flip back to review owned upgrades.
 var shop_content: VBoxContainer = null
 var upgrades_box: VBoxContainer = null
 var tab_shop_btn: Button = null
 var tab_upg_btn: Button = null
-var tab_boon_btn: Button = null
-var boon_box: VBoxContainer = null       # the BOON step (round 33): this character's boon, after the upgrade
 var active_tab: String = "shop"
 var refuse_armed: bool = false
 
@@ -101,11 +99,6 @@ func _build_ui() -> void:
 	tab_upg_btn.custom_minimum_size = Vector2(150, 28)
 	tab_upg_btn.pressed.connect(func(): _show_tab("upgrades"))
 	tabs.add_child(tab_upg_btn)
-	tab_boon_btn = Button.new()
-	tab_boon_btn.text = "★ BOON"
-	tab_boon_btn.custom_minimum_size = Vector2(150, 28)
-	tab_boon_btn.pressed.connect(func(): _show_tab("boon"))
-	tabs.add_child(tab_boon_btn)
 	tab_shop_btn = Button.new()
 	tab_shop_btn.text = "SHOP"
 	tab_shop_btn.custom_minimum_size = Vector2(150, 28)
@@ -119,11 +112,6 @@ func _build_ui() -> void:
 	upgrades_box.add_theme_constant_override("separation", 8)
 	upgrades_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	vbox.add_child(upgrades_box)
-
-	boon_box = VBoxContainer.new()
-	boon_box.add_theme_constant_override("separation", 8)
-	boon_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	vbox.add_child(boon_box)
 
 	# Shop tab content (wares + sell)
 	shop_content = VBoxContainer.new()
@@ -156,43 +144,27 @@ func open(floor_num: int, greeting: String) -> void:
 	# Something left for this character by one who got out (the handoff) — hinted up front, handed
 	# over once this visit's upgrade is settled.
 	if WorldState.handoff_pending() and not WorldState.is_upgrade_offer_resolved(floor_num):
-		dialogue_label.text += "\n\"Somebody left something by the lobby door, a while back. I kept it for you. Business first.\""
+		dialogue_label.text += "\nSomething was left for you by the lobby door. It is yours once you have chosen."
 	pending_confirm = -1
 	refuse_armed = false
-	# This character's first visit here owes them a run boon (Progression.BOON_MILESTONES = the merchant floors).
-	WorldState.note_boon_milestone(floor_num)
 	_refresh()
-	# The upgrade offer leads the visit until resolved, then this character's boon, then the shop.
-	_show_tab("upgrades" if not WorldState.is_upgrade_offer_resolved(floor_num) else _after_upgrade())
+	# The upgrade offer leads the visit until it is settled, then the shop.
+	_show_tab("upgrades" if not WorldState.is_upgrade_offer_resolved(floor_num) else "shop")
 	visible = true
-
-
-func _boon_waiting() -> bool:
-	return current_floor in WorldState.pending_boon_floors
-
-
-## Where the visit goes once the upgrade is settled: the boon if one waits here, else the shop.
-func _after_upgrade() -> String:
-	return "boon" if _boon_waiting() else "shop"
 
 
 func _show_tab(tab: String) -> void:
 	active_tab = tab
 	refuse_armed = false
 	upgrades_box.visible = tab == "upgrades"
-	boon_box.visible = tab == "boon"
 	shop_content.visible = tab == "shop"
 	tab_upg_btn.disabled = tab == "upgrades"
-	tab_boon_btn.disabled = tab == "boon"
-	tab_boon_btn.visible = _boon_waiting()
 	tab_shop_btn.disabled = tab == "shop"
 	if tab == "upgrades":
 		_refresh_upgrades()
 		return
-	if tab == "boon":
-		_refresh_boon()
 	if WorldState.is_upgrade_offer_resolved(current_floor):
-		_give_handoff_gift()                  # the gift follows the upgrade pick, whichever step comes next
+		_give_handoff_gift()                  # the gift follows the upgrade pick
 
 
 # THE GIFT (owner): after the visit's upgrade, the shopkeeper hands over what an escaped character
@@ -203,11 +175,11 @@ func _give_handoff_gift() -> Dictionary:
 	var res: Dictionary = WorldState.collect_handoff_gifts()
 	var lines: Array = []
 	if not res["given"].is_empty():
-		lines.append("\"Here. Left by the door by someone who got out: %s. No charge.\"" % ", ".join(res["given"]))
+		lines.append("Left by the lobby door by someone who got out: %s. Free." % ", ".join(res["given"]))
 		HUD.refresh_inventory()
 		HUD.show_feedback("Gift: " + ", ".join(res["given"]))
 	if not res["kept"].is_empty():
-		lines.append("\"Your hands are full. I'll hold the %s till you're lighter.\"" % ", ".join(res["kept"]))
+		lines.append("Your pockets are full. The %s waits here until you have room." % ", ".join(res["kept"]))
 	dialogue_label.text = "\n".join(lines)
 	_refresh()
 	return res
@@ -226,37 +198,37 @@ func _refresh_upgrades() -> void:
 		_render_owned_upgrades()
 		return
 
-	var pair = WorldState.get_upgrade_pair(current_floor)
+	var offer: Array = WorldState.get_upgrade_offer(current_floor)
 	var intro = Label.new()
 	intro.add_theme_font_size_override("font_size", 13)
 	intro.add_theme_color_override("font_color", Color(0.85, 0.8, 0.6, 1.0))
-	if pair.is_empty():
-		intro.text = "\"Nothing left to teach you, friend.\""
+	if offer.is_empty():
+		intro.text = "Nothing left to offer."
 		upgrades_box.add_child(intro)
 		_add_upgrade_button("Continue to shop", func(): WorldState.resolve_upgrade_offer(current_floor, ""); _show_tab("shop"))
 		return
-	intro.text = "Choose one — it stays with you for the whole descent."
+	intro.text = "Choose one of the three — it stays with you for the whole descent."
 	upgrades_box.add_child(intro)
 
 	var cards = HBoxContainer.new()
 	cards.add_theme_constant_override("separation", 12)
 	upgrades_box.add_child(cards)
-	for id in pair:
+	for id in offer:
 		cards.add_child(_make_upgrade_card(id))
 
 	# Refusal is a live choice (drawbacks make skipping sometimes right).
 	var refuse = Button.new()
 	refuse.custom_minimum_size = Vector2(180, 30)
-	refuse.text = "Take neither"
+	refuse.text = "Take none"
 	refuse.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	refuse.pressed.connect(_on_refuse)
 	upgrades_box.add_child(refuse)
 
 
 func _make_upgrade_card(id: String) -> Control:
-	var up = WorldState.UPGRADE_POOL.get(id, {})
+	var up: Dictionary = Progression.perk_info(id)
 	var card = PanelContainer.new()
-	card.custom_minimum_size = Vector2(320, 130)
+	card.custom_minimum_size = Vector2(236, 150)
 	var style = StyleBoxFlat.new()
 	style.bg_color = Color(0.12, 0.12, 0.14, 1.0)
 	style.set_border_width_all(2)
@@ -301,88 +273,17 @@ func _on_take_upgrade(id: String) -> void:
 	if player != null:
 		HUD.update_stamina(WorldState.stamina, WorldState.get_max_stamina())
 	HUD.refresh_inventory()
-	HUD.show_feedback("Upgrade: " + WorldState.UPGRADE_POOL[id]["name"])
-	_show_tab(_after_upgrade())
+	HUD.show_feedback("Upgrade: " + String(Progression.perk_info(id).get("name", id)))
+	_show_tab("shop")
 
 
 func _on_refuse() -> void:
 	if not refuse_armed:
 		refuse_armed = true
-		HUD.show_feedback("You sure, friend? Click again to pass.")
+		HUD.show_feedback("Click again to take none of them.")
 		return
 	WorldState.resolve_upgrade_offer(current_floor, "")
-	_show_tab(_after_upgrade())
-
-
-## The BOON step: two of this character's run boons (Progression.RUN_BOONS) — they last for this life, not the next.
-func _refresh_boon() -> void:
-	for child in boon_box.get_children():
-		child.queue_free()
-	var intro = Label.new()
-	intro.add_theme_font_size_override("font_size", 13)
-	intro.add_theme_color_override("font_color", Color(1.0, 0.85, 0.35, 1.0))
-	intro.text = "\"Something for you, not the road. Won't outlast you.\"  Choose one — it lasts for the rest of this life, not the next."
-	intro.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	intro.custom_minimum_size = Vector2(PANEL_W - 60, 0)
-	boon_box.add_child(intro)
-	var cards = HBoxContainer.new()
-	cards.add_theme_constant_override("separation", 12)
-	boon_box.add_child(cards)
-	for id in WorldState.boon_offer(current_floor):
-		var d: Dictionary = Progression.boon(id)
-		cards.add_child(_make_card(String(d.get("name", id)), String(d.get("desc", "")), Color(0.85, 0.66, 0.22), func(): take_boon(id)))
-	var pass_b = Button.new()
-	pass_b.custom_minimum_size = Vector2(180, 30)
-	pass_b.text = "Pass"
-	pass_b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	pass_b.pressed.connect(pass_boon)
-	boon_box.add_child(pass_b)
-
-
-func take_boon(id: String) -> String:
-	var err: String = WorldState.take_boon(current_floor, id)
-	if err == "":
-		HUD.show_feedback("%s — for the rest of this run." % Progression.boon(id).get("name", id))
-		_show_tab("shop")
-	return err
-
-
-func pass_boon() -> void:
-	WorldState.skip_boon(current_floor)
 	_show_tab("shop")
-
-
-func _make_card(title: String, desc_text: String, col: Color, cb: Callable) -> Control:
-	var card = PanelContainer.new()
-	card.custom_minimum_size = Vector2(320, 120)
-	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.12, 0.12, 0.14, 1.0)
-	style.set_border_width_all(2)
-	style.border_color = col
-	card.add_theme_stylebox_override("panel", style)
-	var m = MarginContainer.new()
-	for side in ["left", "right", "top", "bottom"]:
-		m.add_theme_constant_override("margin_" + side, 10 if side in ["left", "right"] else 8)
-	card.add_child(m)
-	var box = VBoxContainer.new()
-	box.add_theme_constant_override("separation", 6)
-	m.add_child(box)
-	var name_l = Label.new()
-	name_l.text = title
-	name_l.add_theme_font_size_override("font_size", 16)
-	name_l.add_theme_color_override("font_color", col.lightened(0.3))
-	box.add_child(name_l)
-	var desc = Label.new()
-	desc.text = desc_text
-	desc.add_theme_font_size_override("font_size", 12)
-	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	desc.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	box.add_child(desc)
-	var take = Button.new()
-	take.text = "Take"
-	take.pressed.connect(cb)
-	box.add_child(take)
-	return card
 
 
 func _render_owned_upgrades() -> void:
@@ -397,7 +298,7 @@ func _render_owned_upgrades() -> void:
 		none.add_theme_font_size_override("font_size", 12)
 		upgrades_box.add_child(none)
 	for id in WorldState.active_upgrades:
-		var up = WorldState.UPGRADE_POOL.get(id, {})
+		var up: Dictionary = Progression.perk_info(id)
 		var row = Label.new()
 		row.text = "• " + up.get("name", id) + " — " + up.get("desc", "")
 		row.add_theme_font_size_override("font_size", 12)

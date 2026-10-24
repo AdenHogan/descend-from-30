@@ -42,45 +42,71 @@ def pin(c, x, y, col):
 
 
 # ------------------------------------------------------------------------------------------------------------------------------------ pictures
-def landscape(c, x0, y0, x1, y1, water=None, boat=False, seed=1):
+SEAS = {      # colourways for the sea picture: water, sky (4 bands, top to bottom), sail, jib, hull, stripe, sun
+    'blue': dict(water=hexc('5a7a9a'), sky=('6a9ac8', '86b0d4', 'a4c6de', 'c8dcea'), sail=('f2ecde', 'c8c0ae'), jib='e6e0d0', hull='6a3a2a', stripe='b08a5a', sun='f6e8b8'),
+    'teal': dict(water=hexc('3e7a7a'), sky=('7ab0b8', '98c4c8', 'b8d8d4', 'd8e8e0'), sail=('f4ead6', 'cabca0'), jib='ecdcc0', hull='2a3a52', stripe='c8a45a', sun='f8ecc0'),
+    'grey': dict(water=hexc('5e6e7a'), sky=('7a8892', '98a4ac', 'b4bec4', 'd0d8dc'), sail=('e8e4da', 'b8b4a8'), jib='dcd8cc', hull='3a3a42', stripe='9a9aa2', sun='e8e8e0'),
+    'dusk': dict(water=hexc('6a5a7a'), sky=('7a6a9a', 'b0789a', 'e09a8a', 'f4c89a'), sail=('f6e4d0', 'c8a8a0'), jib='ecd0c0', hull='4a2a32', stripe='d8984a', sun='ffe0a0'),
+    'red_sail': dict(water=hexc('4e7aa0'), sky=('6a9ac8', '86b0d4', 'a4c6de', 'c8dcea'), sail=('d8584a', 'a03a30'), jib='e8d0b8', hull='2a3a4a', stripe='e0c060', sun='f6e8b8'),
+    'ochre': dict(water=hexc('5a8a86'), sky=('8ab4c0', 'a8c8d0', 'c4dcdc', 'e0eae0'), sail=('e0b860', 'b08a3a'), jib='f0e0b8', hull='5a3a22', stripe='e8d8a0', sun='fff0c0'),
+}
+HILLS = {     # colourways for the landscape: sky, far / mid / near hills, tree
+    'green': dict(sky=('6a9ac8', '86b0d4', 'a4c6de', 'c8dcea'), far='9ab0c4', mid='6e9468', near='4a7448', tree=('3a6a38', '4c8444', '5a9650', '2e5a2e'), sun='f6e8b8'),
+    'autumn': dict(sky=('8aa4c0', 'a8bcd0', 'c8d4dc', 'e4e4e0'), far='b0a8a4', mid='a4783a', near='7a5a2a', tree=('a8483a', 'c86a2e', 'd89a3a', '7a2e22'), sun='f8e0a8'),
+    'dusk': dict(sky=('6a5a8a', 'a0709a', 'd8908a', 'f0c098'), far='8a7098', mid='5a5a74', near='3a4660', tree=('2a3a4a', '3a4a5a', '4a5a6a', '1e2a38'), sun='ffd890'),
+    'snow': dict(sky=('8ca4bc', 'a8bccc', 'c4d2dc', 'e0e8ee'), far='c8d4e0', mid='dce6ee', near='eef2f6', tree=('3a5a44', '4a6a54', '5a7a64', '2a4434'), sun='f4f0e0'),
+    'meadow': dict(sky=('78a8d8', '98c0e4', 'b8d6ec', 'd8e8f4'), far='a4c0a0', mid='88b068', near='5e9048', tree=('3a7a3a', '5a9a4a', '7ab05a', '2e6a30'), sun='fff0b8'),
+}
+
+
+def landscape(c, x0, y0, x1, y1, water=None, boat=False, seed=1, pal=None):
     """A painted view with its own tones: a sky that deepens toward the top, two clouds with shaded undersides, a sun with a halo, hills in three layers (a hazy far range, a mid
-    green, a dark near field with grass flecks and a tree) — or the sea: bands of wave light, a sailing boat whose sail is lit on one side and shaded on the other."""
+    green, a dark near field with grass flecks and a tree) - or the sea: bands of wave light, a sailing boat whose sail is lit on one side and shaded on the other. `pal` = one of HILLS / SEAS
+    (the colourway); the boat is scaled to the picture and kept WHOLLY inside it (owner round 48i: "the sail on the ship clips over the frame")."""
     rng = random.Random(seed)
     h = y1 - y0 + 1
-    sky = [hexc('6a9ac8'), hexc('86b0d4'), hexc('a4c6de'), hexc('c8dcea')]
+    if pal is None:
+        pal = SEAS['blue'] if water is not None else HILLS['green']
+    sky = [hexc(k) for k in pal['sky']]
     hz = y0 + int(h * 0.62)
     for y in range(y0, hz + 1):
         W.prect(c, x0, y, x1, y, sky[min(3, (y - y0) * 4 // max(1, hz - y0 + 1))])
     sx, sy = x1 - 3, y0 + 3                                                      # the sun: a pale halo and a bright core
+    sun = hexc(pal['sun'])
     for dy in range(-2, 3):
         for dx in range(-2, 3):
             if dx * dx + dy * dy <= 5:
-                W.px(c, sx + dx, sy + dy, hexc('f6e8b8') if dx * dx + dy * dy > 2 else hexc('fff4d0'))
+                W.px(c, sx + dx, sy + dy, shade(sun, 0.96) if dx * dx + dy * dy > 2 else shade(sun, 1.12))
     for (cx, cy, wid) in ((x0 + 3, y0 + 3, 5), (x0 + 9, y0 + 5, 4)):             # clouds: a white top, a blue-grey underside
         W.prect(c, cx, cy, cx + wid - 1, cy, hexc('f4f6f8'))
         W.prect(c, cx + 1, cy - 1, cx + wid - 2, cy - 1, hexc('ffffff'))
         W.prect(c, cx, cy + 1, cx + wid - 1, cy + 1, hexc('b8cade'))
     if water is not None:
+        wat = pal['water']
         for y in range(hz, y1 + 1):
             k = (y - hz) / float(max(1, y1 - hz))
-            W.prect(c, x0, y, x1, y, shade(water, 1.12 - 0.42 * k))
+            W.prect(c, x0, y, x1, y, shade(wat, 1.12 - 0.42 * k))
         for yy in range(hz + 1, y1 + 1, 2):                                       # wave light: short bright dashes that spread out toward the viewer
             for xx in range(x0 + (yy % 3), x1 - 1, 5):
-                W.prect(c, xx, yy, xx + 1 + (yy - hz) // 3, yy, shade(water, 1.5))
+                W.prect(c, xx, yy, xx + 1 + (yy - hz) // 3, yy, shade(wat, 1.5))
         if boat:
             bx = x0 + (x1 - x0) * 2 // 5
-            for r in range(8):                                                    # the mainsail: a triangle off the mast, lit on its left half and shaded on its right
-                wid = 1 + r // 2
+            sail_h = max(4, min(8, hz - y0 - 3))                                  # the mast's top is at least one row inside the picture
+            top = hz - 1 - sail_h
+            lit, shd = hexc(pal['sail'][0]), hexc(pal['sail'][1])
+            for r in range(sail_h):                                               # the mainsail: a triangle off the mast, lit on its left half and shaded on its right
+                wid = 1 + (r * 4) // sail_h
                 for dx in range(wid):
-                    W.px(c, bx + 1 + dx, hz - 9 + r, hexc('f2ecde') if dx < (wid + 1) // 2 else hexc('c8c0ae'))
-            for r in range(5):                                                    # the jib, smaller, on the other side of the mast
+                    W.px(c, bx + 1 + dx, top + r, lit if dx < (wid + 1) // 2 else shd)
+            for r in range(max(3, sail_h - 3)):                                   # the jib, smaller, on the other side of the mast
                 for dx in range(1 + r // 2):
-                    W.px(c, bx - 1 - dx, hz - 6 + r, hexc('e6e0d0'))
-            W.prect(c, bx - 3, hz - 1, bx + 5, hz, hexc('6a3a2a'))                 # the hull and its pale stripe
-            W.prect(c, bx - 2, hz - 1, bx + 4, hz - 1, hexc('b08a5a'))
-            W.px(c, bx, hz - 10, hexc('3a2e24'))
+                    W.px(c, bx - 1 - dx, hz - 1 - max(3, sail_h - 3) + r, hexc(pal['jib']))
+            W.prect(c, bx - 3, hz - 1, bx + 5, hz, hexc(pal['hull']))             # the hull and its pale stripe
+            W.prect(c, bx - 2, hz - 1, bx + 4, hz - 1, hexc(pal['stripe']))
+            W.px(c, bx, top - 1, hexc('3a2e24'))                                  # the masthead
+            W.prect(c, bx, top, bx, hz - 2, hexc('3a2e24'))                       # the mast itself
     else:
-        rows = [(hz - 5, hexc('9ab0c4'), 0.0), (hz - 3, hexc('6e9468'), 1.0), (hz, hexc('4a7448'), 2.0)]   # far range, mid hills, near field
+        rows = [(hz - 5, hexc(pal['far']), 0.0), (hz - 3, hexc(pal['mid']), 1.0), (hz, hexc(pal['near']), 2.0)]   # far range, mid hills, near field
         for (base, col, ph) in rows:
             for x in range(x0, x1 + 1):
                 top = base + int(round(1.6 * math.sin((x - x0) / (3.4 + ph) + ph) + 1.0 * math.sin((x - x0) / 1.6 + ph * 2)))
@@ -88,14 +114,15 @@ def landscape(c, x0, y0, x1, y1, water=None, boat=False, seed=1):
                     shade_k = 1.0 - 0.10 * (y - top)
                     W.px(c, x, y, shade(col, max(0.62, shade_k)))
         for y in range(hz + 1, y1 + 1):
-            W.prect(c, x0, y, x1, y, shade(hexc('4a7448'), 0.92 - 0.10 * (y - hz) / max(1, y1 - hz)))
+            W.prect(c, x0, y, x1, y, shade(hexc(pal['near']), 0.92 - 0.10 * (y - hz) / max(1, y1 - hz)))
         tx = x0 + (x1 - x0) // 3                                                  # a tree: a dark trunk and a canopy in three tones
         W.prect(c, tx, hz - 3, tx, hz, hexc('4a3426'))
-        for (dx, dy, col) in ((-1, -4, '3a6a38'), (0, -5, '4c8444'), (1, -4, '3a6a38'), (0, -4, '5a9650'), (-1, -3, '2e5a2e'), (1, -3, '2e5a2e')):
-            W.px(c, tx + dx, hz + dy, hexc(col))
+        t0, t1, t2, t3 = (hexc(k) for k in pal['tree'])
+        for (dx, dy, col) in ((-1, -4, t0), (0, -5, t1), (1, -4, t0), (0, -4, t2), (-1, -3, t3), (1, -3, t3)):
+            W.px(c, tx + dx, hz + dy, col)
         for _ in range(5):
             gx, gy = rng.randint(x0, x1), rng.randint(hz + 2, y1)
-            W.px(c, gx, gy, hexc('7aa860'))
+            W.px(c, gx, gy, shade(hexc(pal['mid']), 1.12))
     return (x0, y0, x1, y1)
 
 
@@ -104,7 +131,7 @@ def picture_landscape(c, ox, oy, p):
     shadow on the wall, hung from a nail on a cord."""
     kind = W.kind_for(p['fr'])
     r = W.frame(c, ox, oy + 2, ox + 21, oy + 20, kind, mat=hexc('ece2c8'), thick=2, hang='wire', lip=True, matw=1)
-    landscape(c, r[0], r[1], r[2], r[3], water=p['water'], boat=p['boat'], seed=3 if p['boat'] else 1)
+    landscape(c, r[0], r[1], r[2], r[3], water=p['water'], boat=p['boat'], seed=p.get('seed', 3 if p['boat'] else 1), pal=(SEAS if p['boat'] else HILLS)[p['pal']])
     W.glint(c, r, 40)
 
 

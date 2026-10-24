@@ -1224,7 +1224,7 @@ func _panel_tick(p) -> void:
 		return
 	anchor_stage = "decide"
 	if not ui.has_item:
-		return                      # "Nothing found" closes itself
+		return                      # an empty search closes itself (a line, no panel)
 	var id: String = str(ui.current_item_id)
 	var is_key: bool = str(ui.current_key_target) != ""
 	var w := worth(id, is_key)
@@ -1295,7 +1295,7 @@ func _has_room_for(id: String) -> bool:
 	elif d.get("is_fuse", false):
 		cap = WorldState.MAX_FUSE_PER_SLOT
 	elif d.get("is_throwable", false):
-		cap = 3
+		cap = WorldState.throwable_cap(id)
 	elif d.get("is_medical", false):
 		cap = WorldState.MAX_MEDICAL_PER_SLOT
 	elif d.get("is_money", false):

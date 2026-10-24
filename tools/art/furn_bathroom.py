@@ -87,7 +87,7 @@ def basin(c, ox, oy, p):
         c.vline(cx, 80, 99, IRON)                                                                    # the waste pipe, down the wall
         c.rect(cx - 3, 92, cx + 3, 97, BR.RUST)
         BR.basin3d(c, cx, **spec['kw'])
-        c.dither(cx - 19, 69, cx - 1, 72, hexc('8a7a5a', 120), 0.4, pattern='random')               # grime in the basin
+        BR.grime_patch(c, cx - 19, 69, cx - 1, 72, hexc('8a7a5a'), seed=31, cover=0.55)             # grime in the basin
         return
     BR.basin3d(c, cx, **spec['kw'])
     if p['t'] == 'pedestal':
@@ -160,8 +160,7 @@ def bath(c, ox, oy, p):
             c.ellipse(q[0], q[1] - 1, 3, 2, hexc('f4f2ec'))
             c.put(q[0] - 1, q[1] - 2, hexc('ffffff'))
         dk_ = S3.P(wx1 - 10, 81, 15)
-        c.rect(dk_[0], dk_[1] - 3, dk_[0] + 4, dk_[1], hexc('f0cf3a'))                               # a rubber duck
-        c.put(dk_[0] + 5, dk_[1] - 2, hexc('e07a2a'))
+        BR.rubber_duck(c, dk_[0] - 6, dk_[1] - 8)                                                    # a rubber duck, afloat in the bubbles
     elif k == 'panel':
         x0, x1, rim = cx - 48, cx + 48, 78
         tx = int(round(S3.wall_x(x0, 20)))
@@ -191,10 +190,9 @@ def bath(c, ox, oy, p):
         d_r, rail_y = 11, 13
         BR.shower_rail(_Stay(c), wx0, wx1, rail_y, d_r)
         xa, xb, top, hem = BR.curtain_in_tub(c, wx0, wx1, rim, d_r, rail_y, hexc('c9c48a'), wx0 + 13, wx1, wx0 + 13)
-        for (fx, fy) in ((xa + 18, top + 12), (xa + 42, top + 8), (xa + 30, top + 26), (xa + 56, top + 30)):   # ducks printed on it
-            c.rect(fx, fy, fx + 4, fy + 3, hexc('d9b43a'))
-            c.put(fx + 5, fy + 1, hexc('c06a2a'))
-        c.dither(xa, hem - 20, xb, hem - 8, hexc('7a7a4a', 90), 0.4, pattern='random')                # grime low down
+        for (fx, fy, fl_) in ((xa + 14, top + 10, False), (xa + 40, top + 6, True), (xa + 26, top + 26, True), (xa + 52, top + 28, False)):   # ducks printed on it
+            BR.rubber_duck(c, fx, fy, printed=True, flip=fl_, fold=(xa, 7))
+        BR.grime_patch(c, xa, hem - 20, xb, hem - 8, hexc('7a7a4a'), seed=32, cover=0.28)             # grime low down
         c.line(xa + 3, top + 40, xa + 9, top + 58, BLOOD)                                            # a smear down the plastic
         c.line(xa + 5, top + 40, xa + 10, top + 54, BLOOD)
         for (hx, hy) in ((xa + 1, top + 44), (xa + 1, top + 47), (xa + 1, top + 50)):                # fingers round its edge
@@ -202,7 +200,7 @@ def bath(c, ox, oy, p):
         fl, fbr = BR.bath_front(c, wx0, wx1, rim, d_r)
         c.box(fl[0] + 4, fl[1] + 5, fbr[0] - 4, fbr[1] - 4, PORC, PORC_DK)                          # the bath panel
         c.hline(fl[0] + 5, fbr[0] - 5, fl[1] + 6, PORC_LT)
-        c.dither(fl[0] + 1, fbr[1] - 6, fbr[0] - 1, fbr[1] - 1, hexc('8a8a70', 120), 0.45, pattern='random')
+        BR.grime_patch(c, fl[0] + 1, fbr[1] - 6, fbr[0] - 1, fbr[1] - 1, hexc('8a8a70'), seed=33, cover=0.3)
         c.line(cx - 5, fl[1] + 8, cx - 3, fl[1] + 18, BLOOD)
     else:                                                                                            # tiled
         x0, x1, rim = cx - 44, cx + 44, 80
@@ -455,7 +453,7 @@ def chandelier(c, ox, oy, p):
 
 
 # ================================================================================================================================ mats
-@piece('bath_mat', 94, 14, 'rug', rooms={'bathroom': 8}, styles={'avocado': 8, 'pink': 8, 'gilded': 8, 'tub': 4}, tags=('rug',), feet=(120, 124),
+@piece('bath_mat', 94, 14, 'rug', rooms={'bathroom': 8}, styles={'avocado': 8, 'pink': 8, 'gilded': 8, 'tub': 4}, tags=('rug',), feet=(129, 134),
        variants={'shag_gold': {'col': 'd9a24a', 'dk': 'b8863a', 'for': ['avocado', 'tub']}, 'fluffy_pink': {'col': 'efc4cc', 'dk': 'e0a8b4', 'for': ['pink']},
                  'leopard': {'col': 'c89a4a', 'dk': '4a3220', 'leopard': True, 'for': ['gilded']}},
        note='a bath mat flat on the floor: a shaggy gold one, a fluffy pink one, or a leopard-skin rug under the gold tub')

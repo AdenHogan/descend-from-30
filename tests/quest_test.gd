@@ -374,7 +374,7 @@ func _test_johnny_gun_is_never_reissued() -> void:
 	for it in WorldState.inventory:
 		if it.item_id == "004":
 			gun = it
-	check(gun != null and int(gun.level) == 2 and "G_durable" in gun.perks, "looting the body returns the very same Lv2 Durable Hand Cannon")
+	check(gun != null and int(gun.level) == 3 and "G_durable" in gun.perks and "R_gun" in gun.perks, "looting the body returns the very same Lv3 Durable Hand Cannon")
 
 
 func _test_no_half_trades() -> void:

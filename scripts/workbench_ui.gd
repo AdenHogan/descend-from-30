@@ -2,8 +2,9 @@ extends CanvasLayer
 
 # THE WORKBENCH (docs/SCRAP_UPGRADES.md) — opened at a maintenance room's bench. Pauses the game
 # (like the journal / shop). Three tabs share one list of the weapons you carry:
-#   UPGRADE — the next level: its cost (scrap + any spare stripped for parts) and, for a weapon with
-#             a tree, the Hades-style PICK ONE OF TWO. Past Legendary (Lv4) it's the HEIRLOOM forge:
+#   UPGRADE — the next level: what it COSTS (scrap + any spare stripped for parts) and what it GIVES.
+#             Lv2 is the plain first step (REINFORCED: nothing to choose); from Lv3 a weapon picks one of
+#             two upgrades and earns tuning points. Past Legendary (Lv5) it's the HEIRLOOM forge:
 #             scrap put in by instalments (it rides the weapon) and a door-crossing requirement.
 #   TUNE    — spend the weapon's tuning points on its own stat sheet (stage with − / +, then "Set in
 #             steel" — points, once set, are set). A legendary weapon can be renamed here.
@@ -17,11 +18,16 @@ const INK := Color(0.93, 0.90, 0.84)
 const DIM := Color(0.62, 0.60, 0.56)
 const GOLD := Color(1.0, 0.82, 0.30)
 const BAD := Color(0.95, 0.45, 0.38)
+const GOOD := Color(0.55, 0.85, 0.50)
 const LEGEND := Color(1.0, 0.62, 0.25)
 const FONT := preload("res://assets/fonts/PixelOperator8.ttf")
 const FONT_BOLD := preload("res://assets/fonts/PixelOperator8-Bold.ttf")
 const FORGE_STEP := 25                 # "Put in 25" at the heirloom forge
 const RIGHT_X := 290.0
+# The tune grid's columns (name | pips | - | + | effect) must add up, with the 4 gaps of 8, to no more than the right pane (W - RIGHT_X - 24 = 506) - tests/weapon_upgrade_test checks it.
+const TUNE_NAME_W := 84.0
+const TUNE_PIPS_W := 112.0
+const TUNE_DESC_W := 222.0
 
 var selected_slot: int = -1
 var chosen_perk: String = ""
@@ -35,7 +41,7 @@ var _list_hint: Label = null
 var _detail: RichTextLabel = null
 var _perk_box: HBoxContainer = null
 var _forge_box: VBoxContainer = null
-var _cost_label: Label = null
+var _cost_label: RichTextLabel = null
 var _upgrade_btn: Button = null
 var _msg: Label = null
 var tab := "upgrade"                 # "upgrade" | "tune" | "salvage"
@@ -43,7 +49,9 @@ var _upgrade_page: Control = null
 var _tune_page: Control = null
 var _salvage_page: Control = null
 var _salvage_grid: GridContainer = null
+var _tune_col: VBoxContainer = null
 var _tune_head: RichTextLabel = null
+var _tune_explain: RichTextLabel = null
 var _tune_grid: GridContainer = null
 var _points_label: Label = null
 var _set_btn: Button = null
@@ -151,6 +159,15 @@ func _rich(pos: Vector2, size: Vector2) -> RichTextLabel:
 	return r
 
 
+## A rich-text block for a VBox: it wraps at `w` and is exactly as tall as its text.
+func _flow_rich(w: float) -> RichTextLabel:
+	var r := _rich(Vector2.ZERO, Vector2(w, 20))
+	r.fit_content = true
+	r.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	r.custom_minimum_size = Vector2(w, 18)
+	return r
+
+
 func _build_upgrade_page() -> void:
 	_detail = _rich(Vector2(RIGHT_X, 60), Vector2(W - RIGHT_X - 24, 118))
 	_upgrade_page.add_child(_detail)
@@ -164,10 +181,9 @@ func _build_upgrade_page() -> void:
 	_forge_box.size = Vector2(W - RIGHT_X - 24, 130)
 	_forge_box.add_theme_constant_override("separation", 8)
 	_upgrade_page.add_child(_forge_box)
-	_cost_label = _label("", 13, INK)
-	_cost_label.position = Vector2(RIGHT_X, 324)
-	_cost_label.size = Vector2(W - RIGHT_X - 24, 70)
-	_cost_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_cost_label = _rich(Vector2(RIGHT_X, 324), Vector2(W - RIGHT_X - 24, 70))
+	_cost_label.add_theme_font_size_override("normal_font_size", 13)
+	_cost_label.add_theme_font_size_override("bold_font_size", 13)
 	_upgrade_page.add_child(_cost_label)
 	_upgrade_btn = Button.new()
 	_upgrade_btn.text = "Upgrade"
@@ -178,17 +194,28 @@ func _build_upgrade_page() -> void:
 
 
 func _build_tune_page() -> void:
-	_tune_head = _rich(Vector2(RIGHT_X, 60), Vector2(W - RIGHT_X - 24, 52))
-	_tune_page.add_child(_tune_head)
+	# ONE column lays the page out top to bottom (each block takes the height its text needs), so nothing can sit on top of anything else.
+	var col_w: float = W - RIGHT_X - 24
+	_tune_col = VBoxContainer.new()
+	_tune_col.position = Vector2(RIGHT_X, 56)
+	_tune_col.size = Vector2(col_w, H - 160)
+	_tune_col.add_theme_constant_override("separation", 6)
+	_tune_page.add_child(_tune_col)
+	_tune_head = _flow_rich(col_w)
+	_tune_col.add_child(_tune_head)
+	_tune_explain = _flow_rich(col_w)
+	_tune_explain.add_theme_font_size_override("normal_font_size", 11)
+	_tune_explain.add_theme_color_override("default_color", DIM)
+	_tune_col.add_child(_tune_explain)
 	_points_label = _label("", 13, GOLD, FONT_BOLD)
-	_points_label.position = Vector2(RIGHT_X, 114)
-	_tune_page.add_child(_points_label)
+	_points_label.custom_minimum_size = Vector2(col_w, 20)
+	_points_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_tune_col.add_child(_points_label)
 	_tune_grid = GridContainer.new()
 	_tune_grid.columns = 5                 # name | pips | − | + | what a rank does
-	_tune_grid.position = Vector2(RIGHT_X, 138)
 	_tune_grid.add_theme_constant_override("h_separation", 8)
 	_tune_grid.add_theme_constant_override("v_separation", 4)
-	_tune_page.add_child(_tune_grid)
+	_tune_col.add_child(_tune_grid)
 	_name_row = HBoxContainer.new()
 	_name_row.position = Vector2(RIGHT_X, H - 96)
 	_name_row.add_theme_constant_override("separation", 8)
@@ -325,12 +352,14 @@ func confirm() -> String:
 	chosen_perk = ""
 	_play_clank()
 	refresh()
-	var pts := "+%d tuning points" % WeaponUpgrades.POINTS_PER_LEVEL
+	var pts := "you got %d tuning points to spend on the Tune tab" % WeaponUpgrades.POINTS_PER_LEVEL
+	if inst.level == WeaponUpgrades.REINFORCE_LEVEL:
+		pts = "tougher and harder-hitting. The next upgrade gives you a pick of two and your first tuning points"
 	if not was_titled and inst.title != "":
-		_say("LEGENDARY. It has earned a name: \"%s\". %s — rename it on the Tune tab." % [inst.title, pts])
+		_say("LEGENDARY. It has earned a name: \"%s\" (rename it on the Tune tab) - %s." % [inst.title, pts])
 	else:
-		_say("%s is now %s%s — %s." % [inst.get_display_name(), WeaponUpgrades.tier_name(inst.level),
-			(" (" + perk_name + ")") if perk_name != "" else "", pts])
+		_say("%s is now %s%s - %s." % [inst.get_display_name(), WeaponUpgrades.tier_name(inst.level),
+			(" (" + perk_name + ")") if perk_name != "" and inst.level != WeaponUpgrades.REINFORCE_LEVEL else "", pts])
 	return ""
 
 
@@ -431,7 +460,7 @@ func _refresh_list() -> void:
 		var b := Button.new()
 		var tag: String = inst.tier_tag()
 		var pts: int = WeaponUpgrades.points_free(inst)
-		b.text = "%s%s%s" % [inst.get_display_name(), ("   " + tag) if tag != "" else "", ("  (%d pt)" % pts) if pts > 0 else ""]
+		b.text = "%s%s%s" % [inst.get_display_name(), ("   " + tag) if tag != "" else "", ("  · %d pt%s" % [pts, "" if pts == 1 else "s"]) if pts > 0 else ""]
 		b.clip_text = true
 		b.toggle_mode = true
 		b.button_pressed = i == selected_slot
@@ -470,13 +499,13 @@ func _refresh_upgrade() -> void:
 	var slots := upgradable_slots()
 	if slots.is_empty():
 		_detail.text = "[color=#%s]Nothing here the bench can rework. Bring a weapon — a gun, a blade, a bat or a hammer.[/color]" % DIM.to_html(false)
-		_cost_label.text = ""
+		_set_cost("")
 		_upgrade_btn.disabled = true
 		return
 	var inst = _selected()
 	if inst == null or not WeaponUpgrades.can_upgrade(inst.item_id):
 		_detail.text = "Pick a weapon."
-		_cost_label.text = ""
+		_set_cost("")
 		_upgrade_btn.disabled = true
 		return
 	var txt := _header_bbcode(inst)
@@ -498,8 +527,7 @@ func _refresh_upgrade() -> void:
 		txt += "\n" + "   ".join(parts)
 	_detail.text = txt
 	if inst.level >= WeaponUpgrades.MAX_LEVEL:
-		_cost_label.text = "Legendary +++. There is nothing more the bench can do — only you."
-		_cost_label.add_theme_color_override("font_color", LEGEND)
+		_set_cost("[color=#%s]Legendary +++. There is nothing more the bench can do — only you.[/color]" % LEGEND.to_html(false))
 		_upgrade_btn.disabled = true
 		return
 	var chk: Dictionary = WeaponUpgrades.check(inst, WorldState.inventory, WorldState.scrap)
@@ -524,26 +552,36 @@ func _refresh_upgrade() -> void:
 		card.pressed.connect(choose_perk.bind(pid))
 		_perk_box.add_child(card)
 	if choices.is_empty():
-		var l := _label("It already has every special the bench knows — this level gives it %d more tuning points." % WeaponUpgrades.POINTS_PER_LEVEL, 12, DIM)
+		var msg := "It already has every special the bench knows — this level gives it %d more tuning points." % WeaponUpgrades.POINTS_PER_LEVEL
+		var ink := DIM
+		if WeaponUpgrades.is_plain_step(inst.level + 1):
+			var rd: Dictionary = WeaponUpgrades.perk(WeaponUpgrades.auto_perk(inst.item_id, inst.level + 1))
+			msg = "REINFORCE\n\n%s\n\nNothing to choose: the first step is the same for every weapon, and cheap - a taste of what the bench can do. From Lv%d each upgrade lets you pick one of two specials and earns %d tuning points to spend on the Tune tab." % [
+				rd.get("desc", ""), WeaponUpgrades.REINFORCE_LEVEL + 1, WeaponUpgrades.POINTS_PER_LEVEL]
+			ink = INK
+		var l := _label(msg, 12, ink)
 		l.custom_minimum_size = Vector2(W - RIGHT_X - 24, 0)
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_perk_box.add_child(l)
 	var to: int = inst.level + 1
-	var cost := "%s costs %d scrap" % [WeaponUpgrades.tier_name(to), chk["scrap"]]
+	# TWO plain lines, never mixed: what it COSTS (scrap, a spare) and what it GIVES. ("+2 tuning points" beside the price once read as a
+	# second thing to pay - owner round 48i: "it says you need 50 scrap and 2 tuning points, but tuning needs an upgrade first".)
+	var costs := "%d scrap" % chk["scrap"]
 	if chk["heirloom"]:
-		cost = "Paid and carried through the door — %s is ready" % WeaponUpgrades.tier_name(to)
+		costs = "paid in full, and carried through the door"
 	if chk["feed_level"] > 0:
-		cost += " + %s (stripped for parts)" % WeaponUpgrades.feed_label(inst, chk["feed_level"])
-	cost += ".  +%d tuning points." % WeaponUpgrades.POINTS_PER_LEVEL
-	if to == WeaponUpgrades.LEGENDARY_LEVEL:
-		cost += "  It becomes LEGENDARY and earns a name."
+		costs += "  +  %s (stripped for parts)" % WeaponUpgrades.feed_label(inst, chk["feed_level"])
+	var cost := "[b][color=#%s]COSTS[/color][/b]  %s\n[b][color=#%s]GIVES[/color][/b]  %s" % [BAD.to_html(false), costs, GOOD.to_html(false), WeaponUpgrades.gives_text(inst)]
 	if not chk["ok"]:
-		cost += "\n" + chk["reason"]
-	_cost_label.text = cost
-	_cost_label.add_theme_color_override("font_color", INK if chk["ok"] else BAD)
-	_upgrade_btn.text = "Temper" if chk["heirloom"] else "Upgrade"
+		cost += "\n[color=#%s]%s[/color]" % [BAD.to_html(false), chk["reason"]]
+	_set_cost(cost)
+	_upgrade_btn.text = "Temper" if chk["heirloom"] else ("Reinforce" if to == WeaponUpgrades.REINFORCE_LEVEL else "Upgrade")
 	_upgrade_btn.visible = true
 	_upgrade_btn.disabled = not chk["ok"] or (not choices.is_empty() and chosen_perk == "")
+
+
+func _set_cost(bbcode: String) -> void:
+	_cost_label.text = bbcode
 
 
 # The heirloom forge: instalments + the crossing requirement.
@@ -586,8 +624,7 @@ func _refresh_forge(inst, _chk: Dictionary) -> void:
 	if inst.crossings < int(need["crossings"]):
 		why += "\nIt can only become %s once it has been left by the lobby door and carried into a later game %d time%s." % [
 			WeaponUpgrades.tier_name(to), int(need["crossings"]), "" if int(need["crossings"]) == 1 else "s"]
-	_cost_label.text = why
-	_cost_label.add_theme_color_override("font_color", DIM)
+	_set_cost("[color=#%s]%s[/color]" % [DIM.to_html(false), why])
 	# The tier completes the moment it's paid AND crossed (forge_heirloom) — no separate button.
 	_upgrade_btn.visible = false
 
@@ -597,6 +634,7 @@ func _refresh_tune() -> void:
 	var inst = _selected()
 	if inst == null or not WeaponUpgrades.can_upgrade(inst.item_id):
 		_tune_head.text = "[color=#%s]Bring a weapon to tune.[/color]" % DIM.to_html(false)
+		_tune_explain.text = ""
 		_points_label.text = ""
 		_set_btn.disabled = true
 		_name_row.visible = false
@@ -605,24 +643,31 @@ func _refresh_tune() -> void:
 	var staged_total := 0
 	for id in staged:
 		staged_total += int(staged[id])
+	var earned: int = WeaponUpgrades.points_earned(inst)
 	var free: int = WeaponUpgrades.points_free(inst) - staged_total
-	_points_label.text = "Points to spend: %d%s        (each rank:)" % [free, ("   (%d staged)" % staged_total) if staged_total > 0 else ""]
-	if WeaponUpgrades.points_earned(inst) == 0:
-		_points_label.text = "Upgrade it once to earn tuning points."
+	var first_pick: int = WeaponUpgrades.REINFORCE_LEVEL + 1
+	# What a tuning point IS and where it comes from - said every time, in plain words.
+	if earned == 0:
+		_tune_explain.text = "[b]Tuning points[/b] are earned by upgrading. This weapon has none yet: reinforce it on the Upgrade tab (Lv%d, cheap), then upgrade it again - from Lv%d every upgrade gives %d points to spend here." % [
+			WeaponUpgrades.REINFORCE_LEVEL, first_pick, WeaponUpgrades.POINTS_PER_LEVEL]
+		_points_label.text = "No tuning points yet (they start at Lv%d)." % first_pick
+	else:
+		_tune_explain.text = "[b]Tuning points[/b]: every upgrade from Lv%d gives %d. Each point is one rank of a stat below - a permanent bonus for this weapon. Stage ranks with + / -, then press Set in steel; set points can't be moved." % [first_pick, WeaponUpgrades.POINTS_PER_LEVEL]
+		_points_label.text = "Points to spend: %d of %d%s" % [free, earned, ("   (%d staged)" % staged_total) if staged_total > 0 else ""]
 	for id in WeaponUpgrades.stats_for(inst.item_id):
 		var st: Dictionary = WeaponUpgrades.stat(id)
 		var have: int = int(inst.tuning.get(id, 0))
 		var add: int = int(staged.get(id, 0))
 		var cap: int = WeaponUpgrades.cap_for(inst, id)
 		var n := _label(String(st["name"]), 12, INK, FONT_BOLD)
-		n.custom_minimum_size = Vector2(96, 26)
+		n.custom_minimum_size = Vector2(TUNE_NAME_W, 26)
 		n.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		_tune_grid.add_child(n)
 		var pips := RichTextLabel.new()
 		pips.bbcode_enabled = true
 		pips.fit_content = false
 		pips.scroll_active = false
-		pips.custom_minimum_size = Vector2(120, 26)
+		pips.custom_minimum_size = Vector2(TUNE_PIPS_W, 26)
 		pips.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		pips.add_theme_font_override("normal_font", FONT)
 		pips.add_theme_font_size_override("normal_font_size", 12)
@@ -643,7 +688,8 @@ func _refresh_tune() -> void:
 		plus.pressed.connect(stage_point.bind(id, 1))
 		_tune_grid.add_child(plus)
 		var d := _label(String(st["desc"]), 11, DIM)
-		d.custom_minimum_size = Vector2(0, 24)
+		d.custom_minimum_size = Vector2(TUNE_DESC_W, 24)           # a rank's effect wraps inside the card (it ran off the edge at one line)
+		d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		d.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		_tune_grid.add_child(d)
 	_set_btn.disabled = staged_total <= 0

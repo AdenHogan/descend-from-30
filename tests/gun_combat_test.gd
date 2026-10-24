@@ -1,6 +1,6 @@
 extends Node
 
-# Headless smoke test for gun combat: ammo stacking (max 8/slot), ammo
+# Headless smoke test for gun combat: ammo stacking (one slot holds WorldState.MAX_AMMO_PER_SLOT), ammo
 # consumption, runtime gun animations, outcome bands, and noise alerts.
 # Run:  godot --headless res://tests/gun_combat_test.tscn
 
@@ -30,38 +30,51 @@ func _ready() -> void:
 
 func _test_ammo_stacking() -> void:
 	print("[ammo stacking]")
+	# Owner round 48i: "Screw it, let bullets stack. That's a better UI proposal" - one slot holds MAX_AMMO_PER_SLOT rounds (it was 8).
 	WorldState.new_game()
+	var mx: int = WorldState.MAX_AMMO_PER_SLOT
+	check(mx >= 30, "a slot of bullets holds a real supply (%d), not a clip" % mx)
 	check(WorldState.add_to_inventory("016"), "single bullet enters inventory")
 	check(WorldState.inventory.size() == 1 and WorldState.inventory[0].count == 1,
 		"one stack of 1")
-	for i in range(7):
+	for i in range(mx - 1):
 		WorldState.add_to_inventory("016")
-	check(WorldState.inventory.size() == 1 and WorldState.inventory[0].count == 8,
-		"8 bullets fill one slot")
+	check(WorldState.inventory.size() == 1 and WorldState.inventory[0].count == mx,
+		"%d bullets fill one slot" % mx)
 	WorldState.add_to_inventory("016")
 	check(WorldState.inventory.size() == 2 and WorldState.inventory[1].count == 1,
-		"9th bullet overflows to a second slot")
-	check(WorldState.get_ammo_total() == 9, "ammo total counts across stacks")
+		"bullet %d overflows to a second slot" % (mx + 1))
+	check(WorldState.get_ammo_total() == mx + 1, "ammo total counts across stacks")
 
-	check(WorldState.add_to_inventory("016", 12), "bundle add spreads across stacks")
-	check(WorldState.get_ammo_total() == 21, "bundle lands in full")
-	check(WorldState.inventory.size() == 3, "bundle used minimal slots (8+8+5)")
-	check(WorldState.inventory[0].count == 8 and WorldState.inventory[1].count == 8
-		and WorldState.inventory[2].count == 5, "stack fills are 8/8/5")
+	check(WorldState.add_to_inventory("016", 12), "bundle add tops up the open stack")
+	check(WorldState.get_ammo_total() == mx + 13, "bundle lands in full")
+	check(WorldState.inventory.size() == 2, "bundle used no new slot (%d + 13)" % mx)
+	check(WorldState.inventory[0].count == mx and WorldState.inventory[1].count == 13, "stack fills are %d / 13" % mx)
 
-	# Fill remaining 2 slots with non-ammo, then over-cap ammo must refuse.
+	# Fill the remaining 3 slots with non-ammo, then over-cap ammo must refuse.
 	WorldState.add_to_inventory("001")
 	WorldState.add_to_inventory("002")
-	check(not WorldState.add_to_inventory("016", 4), "bundle over capacity refused whole")
-	check(WorldState.add_to_inventory("016", 3), "bundle exactly at capacity accepted")
-	check(WorldState.get_ammo_total() == 24, "capacity math holds (3 stacks x 8)")
+	WorldState.add_to_inventory("003")
+	check(WorldState.inventory.size() == WorldState.get_inventory_slots(), "(setup) the bag is full")
+	check(not WorldState.add_to_inventory("016", mx - 13 + 1), "bundle one over capacity refused whole")
+	check(WorldState.get_ammo_total() == mx + 13, "...and nothing was added")
+	check(WorldState.add_to_inventory("016", mx - 13), "bundle exactly at capacity accepted")
+	check(WorldState.get_ammo_total() == 2 * mx, "capacity math holds (2 stacks x %d)" % mx)
+	# a dropped stack of bullets joins the held one when the two fit one slot (the pack ring's Drop and a pickup return a whole stack)
+	WorldState.new_game()
+	WorldState.add_to_inventory("016", 10)
+	var dropped = ItemInstance.new()
+	dropped.setup("016")
+	dropped.count = 12
+	check(WorldState.add_instance_to_inventory(dropped) and WorldState.inventory.size() == 1 and WorldState.inventory[0].count == 22,
+		"a dropped stack of 12 rejoins the 10 in the pack: one stack of 22")
 
 
 func _test_ammo_consumption() -> void:
 	print("[ammo consumption]")
 	WorldState.new_game()
 	WorldState.add_to_inventory("004")        # gun
-	WorldState.add_to_inventory("016", 10)    # 8 + 2
+	WorldState.add_to_inventory("016", 10)
 	HUD.selected_slot = 0
 	check(WorldState.consume_ammo(1), "single shot consumes")
 	check(WorldState.get_ammo_total() == 9, "one bullet gone")

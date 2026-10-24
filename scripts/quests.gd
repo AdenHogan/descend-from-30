@@ -29,9 +29,9 @@ const UPGRADES := {
 }
 const GUN_PRESETS := {
 	# "high-durability gun" (quest 010): a Durable Hand Cannon, full of rounds.
-	"johnny":   {"item": "004", "perks": ["G_durable"], "level": 2, "rounds": 6},
+	"johnny":   {"item": "004", "perks": ["R_gun", "G_durable"], "level": 3, "rounds": 6},
 	# Ethel's revolver (quest 001): five of six bullets, the same sort of tough gun.
-	"revolver": {"item": "004", "perks": ["G_durable"], "level": 2, "rounds": 5},
+	"revolver": {"item": "004", "perks": ["R_gun", "G_durable"], "level": 3, "rounds": 5},
 }
 const MERCHANT_FLOORS_CLEAR := true            # corridor quests keep off a merchant's floor
 const FIRE_CLEARANCE := 3                      # a quest's floor keeps this far from any seeded fire origin …

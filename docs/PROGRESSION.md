@@ -1,6 +1,6 @@
 # DF30 — Player Progression (all tiers)
 
-> **Status: BUILT.** Run boons (tier 2) are Claude's v1 proposal. The permanent tier (tier 3,
+> **Status: BUILT.** The upgrade offer (tier 2) is Claude's v1 proposal, merged with the boons in round 48i. The permanent tier (tier 3,
 > **Descent Valour**) is the OWNER'S design (it replaced Claude's earlier ranked "Legacy" shop).
 > Every number and perk lives in ONE data file (`scripts/progression.gd`) so it's cheap to retune.
 > The merchant upgrades (STORE_DESIGN.md, FINAL) were NOT changed, except that a perk kept
@@ -13,25 +13,28 @@ Every tier feeds the SAME modifier fold (base × ∏mult + Σadd, never direct w
 
 | Tier | Lasts | Earned | Spent / chosen | Where |
 |---|---|---|---|---|
-| **Weapon** (workbench) | the weapon | scrap | maintenance-room bench, pick 1 of 2 per level | SCRAP_UPGRADES.md |
-| **Merchant upgrades** | the whole 3-run arc | merchant visits (25/20/15/10/5) | pick 1 of 2 before the shop | STORE_DESIGN.md |
-| **Run boons** (temporary) | THIS character only | each merchant visit (25/20/15/10/5) | pick 1 of 2 in the merchant's window, after the upgrade | below |
-| **Descent Valour** (permanent) | the PROFILE, forever | how deep each run got (scored at the session's end) | keep ONE perk found that session; max 10 kept | below |
+| **Weapon** (workbench) | the weapon | scrap | maintenance-room bench: a plain Reinforce at Lv2, then pick 1 of 2 per level | SCRAP_UPGRADES.md |
+| **Upgrades** (the merchant's offer; the former "run boons" are in it) | the whole 3-run arc | merchant visits (25/20/15/10/5) | pick 1 of **3** in the merchant's window, or take none | below, STORE_DESIGN.md |
+| **Boons / Descent Valour** (permanent) | the PROFILE, forever | what the descent did: depth, the dead felled, things searched, flats looted, quests, residents aided, escaping | spend Valour on ONE upgrade taken that session; max 10 kept | below |
 
-## Tier 2 — Run boons (temporary)
+## Tier 2 — Upgrades (the merchant's one offer) — owner round 48i
 
-- **When (owner round 33 — "boons are only on every 5th floor and collectable from the merchant"):** this
-  character's FIRST visit to each merchant — floors **25, 20, 15, 10, 5** (`Progression.BOON_MILESTONES` =
-  `WorldState.MERCHANT_FLOORS`). Arriving on a floor offers nothing by itself (the old 27/22/17/12/7 arrival badge is gone).
-- **How it's offered:** in the merchant's window (`shop_ui.gd`): the upgrade pick first, then the **★ BOON** step —
-  pick one of two, or Pass — then the shop. Leaving before choosing keeps it waiting at that merchant.
-  (`boon_offer_ui.gd` + `HUD.open_boon_offer` still exist; nothing opens them in play.)
-- **What:** a punchier pool than the merchant's (they don't last): Adrenaline, Second Wind,
-  Rage, Steady Nerves, Holding Breath, Sharp Eye, Big Lungs, Light Feet, Brawler, Heightened
-  Senses. Seeded per (playthrough, run, floor) — a reload offers the same pair; never a boon you
-  already have.
-- **Lifetime:** this character. The time skip (`advance_run`) wipes them; a save keeps them.
-- State: `WorldState.run_boons`, `run_milestones_seen`, `pending_boon_floors` (per-run, saved).
+> Owner: *"upgrades and boons are essentially the same… players won't understand the difference. Upgrades should be ONE offer of three, and boons the permanent legacy bought with
+> Valour — a boon is a thing you can stack up to 10, with Valour earned from enemies felled, nodes scavenged, apartments investigated, quests, NPCs aided, successful descents and
+> the level you reach before dying."* This SUPERSEDES the round-33 "run boon" step (a second pick after the upgrade, lasting one character).
+
+- **One offer, three cards** (`WorldState.get_upgrade_offer`, `shop_ui.gd`): at each merchant floor (25 / 20 / 15 / 10 / 5) the first visit offers THREE distinct cards from the merged
+  pool (`Progression.offer_pool()` = the merchant's `UPGRADE_POOL` + the ten former boons `RUN_BOONS`); pick one (it is kept for the arc, all three runs) or **Take none** (one
+  armed confirm: "Click again to take none of them."). A former boon is `BOON_WEIGHT` 3 beside the merchant's own `w` 1-7. Fortune's Favour still tilts the draw toward high-`d`
+  perks (`Progression.offer_weight` / `weighted_draw`). Seeded per (playthrough, run, floor): a reload offers the same three. Stored as `{"offer":[…], "resolved": bool}`; a v1 save's
+  `"pair"` still reads.
+- The boon step, the `★ BOON` badge, `boon_offer_ui.gd`, `HUD.open_boon_offer`, `WorldState.run_boons` / `run_milestones_seen` / `pending_boon_floors` / `take_boon` are GONE. An old
+  save's `run_boons` are folded into `active_upgrades` on load (`B_*` ids resolve through `Progression.perk_info`).
+- **Valour sources** (`Progression.valour_for_run`, per character, scored at the session's end — `WorldState.finish_session`): depth `d + d²/60`, +10 escaped, +8 per quest,
+  +4 per resident aided, **+1 per 8 of the dead felled** (`KILLS_PER_VALOUR`), **+1 per 5 nodes searched that gave something** (`NODES_PER_VALOUR`), **+2 per distinct flat looted**
+  (`VALOUR_PER_FLAT`), + the door's worth. The tallies are stamped into the chronicle when a run ends (`stamp_run_tallies`: `kills` / `nodes` / `flats`) and shown on the end screen
+  and the "YOU SURVIVED" card. A full descent (~90 felled, ~25 nodes, ~6 flats) adds ~25-30 — about a quarter of a middling game; retune the three constants.
+- Flavour text: the merchant's greeting line is "Text TBA" until the owner writes it (the old generated lines are gone); the handoff-gift lines are neutral.
 
 ## Tier 3 — Descent Valour (permanent)
 

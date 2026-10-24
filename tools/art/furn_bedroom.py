@@ -58,18 +58,40 @@ FABRICS = {'mustard': (hexc('b08a3a'), hexc('8a6a28'), hexc('c9a24e')), 'green':
 # --- on the floor ---------------------------------------------------------------------------------------------------------------------------------
 # --- on the wall ----------------------------------------------------------------------------------------------------------------------------------
 # --- more pictures --------------------------------------------------------------------------------------------------------------------------------
+def _landscape_variants():
+    import wall_art3d
+    v = {}
+    frames = [hexc('6b4a2c'), hexc('b09456'), hexc('3a2a22'), hexc('d8d0c0'), hexc('8a6a3a')]
+    for i, k in enumerate(wall_art3d.HILLS):
+        v['hills_' + k] = {'water': None, 'boat': False, 'fr': frames[i % len(frames)], 'pal': k, 'seed': 1 + i}
+    for i, k in enumerate(wall_art3d.SEAS):
+        v['sea_' + k] = {'water': hexc('5a7a9a'), 'boat': True, 'fr': frames[(i + 1) % len(frames)], 'pal': k, 'seed': 3}
+    return v
+
+
 @piece('picture_landscape', 24, 24, 'decor', rooms={'bedroom': 5, 'living_room': 6, 'dining_room': 5, 'study': 3, 'kitchen': 2}, styles={'adult': 5, 'sick': 2, 'kid': 1}, tags=('picture',),
-       variants={'hills': {'water': None, 'boat': False, 'fr': hexc('6b4a2c')}, 'sea': {'water': hexc('5a7a9a'), 'boat': True, 'fr': hexc('b09456')}}, wall_y=(22, 38),
-       note='a painted landscape in a frame: hills, or the sea with a sailing boat')
+       variants=_landscape_variants(), wall_y=(22, 38),
+       note='a painted landscape in a frame: hills in green, autumn, dusk, snow or meadow, or the sea with a sailing boat whose water, sky, sail and hull come in six colourways - the boat is kept inside the picture')
 def picture_landscape(c, ox, oy, p):
     import wall_art3d
     wall_art3d.picture_landscape(c, ox, oy, p)
 
 
+def _portrait_variants():
+    import portrait_gallery as PG
+    return {'p%02d' % s['i']: {'i': s['i']} for s in PG.SPECS}
+
+
 @piece('picture_portrait', 22, 28, 'decor', rooms={'bedroom': 5, 'living_room': 6, 'dining_room': 5, 'study': 5}, styles={'adult': 4, 'sick': 3}, tags=('picture',),
-       variants={'man': {'s': 'man'}, 'woman': {'s': 'woman'}, 'old': {'s': 'old'}, 'girl': {'s': 'girl'}}, wall_y=(20, 34), note='a portrait someone actually sat for')
+       variants=_portrait_variants(), wall_y=(20, 34),
+       note='a framed portrait of someone - one of a gallery of 36 sitters (men, women, children, the old; oil portraits, studio and school photographs) so no two flats hang the same faces')
 def picture_portrait(c, ox, oy, p):
-    F.portrait(c, ox + 3, oy + 4, ox + 16, oy + 22, sitter=p['s'], frame=hexc('6b4a2c'))
+    import portrait_gallery as PG
+    import wallart as W
+    spec = PG.SPECS[int(p['i'])]
+    r = W.frame(c, ox, oy + 1, ox + 21, oy + 27, PG.frame_kind(spec), mat=PG.mat_for(spec), thick=1, hang='wire', lip=True, matw=1)
+    PG.paint(c, r[0], r[1], r[2], r[3], spec)
+    W.glint(c, r, 36)
 
 
 @piece('calendar_wall', 25, 36, 'decor', rooms={'bedroom': 3, 'kitchen': 7, 'study': 4, 'living_room': 2}, styles={'adult': 3, 'teen': 1, 'bedsit': 2, 'sick': 1}, tags=('notice',), limit=1,

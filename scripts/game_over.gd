@@ -63,6 +63,12 @@ func _build_ui() -> void:
 			var where := "the Lobby" if bool(r.get("escaped", false)) else "Floor %d" % int(r.get("deepest", 30))
 			line = "%s:  %s  (%s)  +%d" % [run_nm, verb, where, int(r.get("valour", 0))]
 			var extra: Array = []
+			if int(r.get("kills", 0)) > 0:
+				extra.append("%d felled" % int(r["kills"]))
+			if int(r.get("nodes", 0)) > 0:
+				extra.append("%d searched" % int(r["nodes"]))
+			if int(r.get("flats", 0)) > 0:
+				extra.append("%d flat%s" % [int(r["flats"]), "" if int(r["flats"]) == 1 else "s"])
 			if int(r.get("quests", 0)) > 0:
 				extra.append("%d quest%s" % [int(r["quests"]), "" if int(r["quests"]) == 1 else "s"])
 			if int(r.get("npcs", 0)) > 0:

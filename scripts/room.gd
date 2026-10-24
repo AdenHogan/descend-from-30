@@ -178,6 +178,8 @@ func _ready() -> void:
 		_setup_maintenance()
 		return
 
+	WorldState.note_apartment_entered(apartment_id)             # the journal map shows the flats you have stood inside
+
 	var door = $Area2D
 	var player = $Player
 	var entrance_side = WorldState.get_entrance_side(apartment_id)

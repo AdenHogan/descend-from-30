@@ -38,6 +38,10 @@ import sys
 import numpy as np
 from PIL import Image, ImageDraw
 
+HERE_ = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE_)
+import wardrobe_inside  # noqa: E402
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, '..', '..'))
 ROOMS = os.path.join(ROOT, 'assets', 'rooms')
@@ -109,6 +113,17 @@ def rect_fill(canvas, x0, y0, x1, y1, col):
 
 
 # --- interiors ---------------------------------------------------------------------------------------
+def _wardrobe_interior(canvas, rect, body):
+    """The inside of a wardrobe (tools/art/wardrobe_inside.py - shared with the planned wardrobe piece)."""
+    px = canvas.load()
+    x0, y0, x1, y1 = rect
+
+    def put(x, y, col):
+        if 0 <= x < canvas.width and 0 <= y < canvas.height:
+            px[x, y] = col
+    wardrobe_inside.draw(put, rect, body)
+
+
 def fill_cavity(canvas, rect, kind, body):
     """The dark / lit space a door or an oven front hides. `body` = the furniture's own mean colour."""
     x0, y0, x1, y1 = rect
@@ -137,17 +152,8 @@ def fill_cavity(canvas, rect, kind, body):
         rect_fill(canvas, x0, y0, x0 + 1, y1, (200, 188, 144, 255))
         rect_fill(canvas, x0 + 2, y1 - 1, x1 - 2, y1, (150, 138, 104, 255))
         return
-    if kind == 'wardrobe':                                         # a wardrobe: shadow, a rail, a few garments
-        rect_fill(canvas, x0, y0, x1, y1, shade(body, 0.14))
-        rect_fill(canvas, x0, y0 + 3, x1, y0 + 3, (150, 142, 128, 255))
-        cols = [(96, 60, 60), (70, 84, 110), (110, 100, 70), (82, 70, 96)]
-        gx = x0 + 1
-        i = 0
-        while gx + 2 <= x1:
-            c = cols[i % len(cols)] + (255,)
-            rect_fill(canvas, gx, y0 + 4, gx + 2, y0 + 4 + 10 + (i * 3) % 9, c)
-            gx += 4
-            i += 1
+    if kind == 'wardrobe':
+        _wardrobe_interior(canvas, rect, body)
         return
     dark = shade(body, 0.22)                                       # a cupboard: the body's own wood, in shadow
     rect_fill(canvas, x0, y0, x1, y1, dark)

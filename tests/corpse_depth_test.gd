@@ -98,7 +98,7 @@ func _test_rule_and_constants() -> void:
 # --- a live enemy that died in the flat ---------------------------------------------------------------------------------
 
 func _test_live_corpse() -> void:
-	print("[a live corpse: stays where it fell, and draws in front of a player level with it]")
+	print("[a live corpse: lies DROP px lower than where it stood, and draws in front of a player level with it]")
 	var CD = load("res://scripts/corpse_depth.gd")
 	var room = await _room("1001")
 	var p = room.get_node("Player")
@@ -113,7 +113,7 @@ func _test_live_corpse() -> void:
 	z.receive_damage(999, "melee")
 	await _frames(150)
 	check(z.is_dead and spr.animation == "Death" and spr.frame == spr.sprite_frames.get_frame_count("Death") - 1, "it has died and finished falling")
-	check(absf(spr.position.y - alive_y) < 0.01, "the body has not been shifted: it lies where it fell (sprite y %.1f -> %.1f)" % [alive_y, spr.position.y])
+	check(absf(spr.position.y - (alive_y + CD.DROP)) < 0.01, "the body is drawn exactly DROP (%.0f px) lower than it stood (sprite y %.1f -> %.1f)" % [CD.DROP, alive_y, spr.position.y])
 	check(z.z_index == CD.Z, "the player on the lane, level with it: the body draws OVER them (z %d)" % z.z_index)
 	_plane(p, true)
 	await _frames(4)
@@ -155,7 +155,7 @@ func _test_static_corpses() -> void:
 	for c in bodies:
 		var bottom: float = EnemyFeet.drawn_bottom(c)      # (the corpse IS the sprite: its position is already in it)
 		var kind: String = "big" if c.sprite_frames.has_animation("Death") and not c.sprite_frames.has_animation("Dead_Dead") else "standard"
-		check(absf(bottom - want) < 0.6, "%s: drawn bottom %.1f = the lane row %.0f (no sit-back)" % [kind, bottom, want])
+		check(absf(bottom - (want + CD.DROP)) < 0.6, "%s: drawn bottom %.1f = the lane row %.0f + DROP %.0f" % [kind, bottom, want, CD.DROP])
 	await _frames(4)
 	for c in bodies:
 		check(c.z_index == CD.Z, "player on the lane, level with it: the body is over them")
@@ -364,6 +364,7 @@ func _test_other_kinds() -> void:
 		check(n.z_index == 0 or n.z_index == 1, "…a living one is never lifted by the sorter (z %d)" % n.z_index)
 		n.free()
 	# the body of a previous character
+	WorldState.player_corpses["t:corpse"] = {"floor": 15, "scene": "", "apartment_id": "", "x": 780.0, "y": feet, "feet": true, "notes": 1, "scrap": 0, "items": []}      # (a body with no record is spent: it frees itself)
 	var pc = load("res://scripts/player_corpse.gd").new()
 	pc.corpse_key = "t:corpse"
 	room.add_child(pc)
@@ -371,6 +372,7 @@ func _test_other_kinds() -> void:
 	await _frames(4)
 	check(pc.z_index == CD.Z, "a fallen character's body level with the player is over them (z %d)" % pc.z_index)
 	pc.free()
+	WorldState.player_corpses.erase("t:corpse")
 	room.free()
 	await get_tree().process_frame
 
@@ -402,7 +404,7 @@ func _test_corridor() -> void:
 	var before: float = spr.position.y
 	z.receive_damage(999, "melee")
 	await _frames(150)
-	check(z.is_dead and absf(spr.position.y - before) < 0.01, "a dead zombie stays where it fell (sprite y %.1f -> %.1f)" % [before, spr.position.y])
+	check(z.is_dead and absf(spr.position.y - (before + CD.DROP)) < 0.01, "a dead zombie is drawn DROP lower than it fell (sprite y %.1f -> %.1f)" % [before, spr.position.y])
 	check(z.z_index == CD.Z, "…and, level with the player's row, draws over them (z %d)" % z.z_index)
 	# a baked body (a decal in group corridor_dead): its feet are its sprite's bottom row
 	var tex: Texture2D = load("res://assets/corridor/decals/dead_1.png")

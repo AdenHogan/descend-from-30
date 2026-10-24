@@ -151,7 +151,7 @@ func _test_crossing() -> void:
 	WorldState.rest_available = true
 	WorldState.rest_forfeit_pending = false
 	WorldState.stamina = WorldState.get_max_stamina()   # arrive here fully rested...
-	WorldState.cross_blocked_stair(target, target - 1)
+	WorldState.cross_blocked_stair(target, target - 1, true)   # (the costs below are the BARE-HANDS route's: a crowbar crossing is tested after this block)
 	check(WorldState.is_stair_block_cleared(target), "crossing clears the stairwell for the run")
 	check(not WorldState.is_stair_blocked(target), "crossed stairwell is no longer blocked")
 	check(not WorldState.rest_available, "crossing with a banked rest burns it")
@@ -164,13 +164,13 @@ func _test_crossing() -> void:
 	# It only ever LOWERS stamina: an already-tired player isn't topped up to the floor.
 	WorldState.stamina = 5.0
 	WorldState.rest_available = true
-	WorldState.cross_blocked_stair(target, target - 1)
+	WorldState.cross_blocked_stair(target, target - 1, true)
 	check(WorldState.stamina == 5.0, "a crossing never refreshes stamina (already-low stays low)")
 
 	# Branch 2: crossing with NO banked rest forfeits the next merchant rest.
 	WorldState.rest_available = false
 	WorldState.rest_forfeit_pending = false
-	WorldState.cross_blocked_stair(target, target - 1)
+	WorldState.cross_blocked_stair(target, target - 1, true)
 	check(not WorldState.rest_available, "crossing with no rest leaves rest unavailable")
 	check(WorldState.rest_forfeit_pending, "crossing with no banked rest forfeits the next rest")
 
@@ -186,6 +186,21 @@ func _test_crossing() -> void:
 	WorldState.rest_forfeit_pending = false
 	WorldState.on_floor_arrived(15)
 	check(WorldState.rest_available, "a normal merchant floor grants a rest")
+
+	# A CROWBAR crossing (owner round 48i: "the building shift shouldn't happen if the player has the crowbar too, because we already have it for if the player
+	# does so with bare hands"): the crowbar was the price. The stairwell opens and NOTHING else changes.
+	WorldState.stair_blocks_cleared.clear()
+	WorldState.master_seed = 1337
+	WorldState.rest_available = true
+	WorldState.rest_forfeit_pending = false
+	WorldState.pending_pry_arrival_floor = -1
+	WorldState.stamina = WorldState.get_max_stamina()
+	WorldState.cross_blocked_stair(target, target - 1, false)
+	check(WorldState.is_stair_block_cleared(target) and not WorldState.is_stair_blocked(target), "a crowbar crossing opens the stairwell for the run")
+	check(WorldState.master_seed == 1337, "...the building does NOT shift (seed %d)" % WorldState.master_seed)
+	check(WorldState.rest_available and not WorldState.rest_forfeit_pending, "...no rest slot is lost")
+	check(is_equal_approx(WorldState.stamina, WorldState.get_max_stamina()), "...you are not spent (stamina %.1f of %.1f)" % [WorldState.stamina, WorldState.get_max_stamina()])
+	check(WorldState.pending_pry_arrival_floor == -1, "...and nobody is mustered on the arrival floor")
 
 
 func _test_cross_floor_pull() -> void:
@@ -347,7 +362,7 @@ func _test_extinguisher_item() -> void:
 	check(d.get("is_extinguisher", false), "036 has is_extinguisher flag")
 	check(d.get("is_tool", false), "036 is a tool")
 	check(not d.get("is_weapon", false), "036 is NOT a weapon")
-	check(int(d.get("max_durability", -1)) == 2, "036 has 2 uses")
+	check(int(d.get("max_durability", -1)) == 5, "036 has 5 uses (owner round 48i: two charges did not put out a three-patch outbreak)")
 
 
 func _test_hazard_warning() -> void:
@@ -453,6 +468,23 @@ const SW := preload("res://scripts/stairwell.gd")
 ## `Transition.to_scene` ignored the scene change but `current_floor` stepped down anyway (floor 28 → 26, floor 27 never loaded).
 func _test_one_crossing_at_a_time() -> void:
 	print("[one crossing at a time]")
+	var st = await _open_floor15()
+	if st == null:
+		return
+	# 1. while a fade is running the stairs do nothing at all
+	_one_crossing_checks(st)
+	await _hand_pry(st)
+	var st2 = await _open_floor15()
+	if st2 != null:
+		await _crowbar_pry(st2)
+
+
+## Builds floor 15 (a seed whose stairwell there is not barricaded, quiet, and fire-free) and returns its live DOWN stairwell, or null.
+func _open_floor15():
+	for _i in 3000:                          # a crossing in flight (the time-skip fade holds its caption) must be over before the next scene is built
+		if not Transition.busy and not StairPan.panning:
+			break
+		await get_tree().process_frame
 	for sd in range(7150, 8150):
 		WorldState.master_seed = sd
 		if not WorldState.is_stair_blocked(15) and WorldState.fire_intensity(15) <= 0 and WorldState.fire_intensity(14) <= 0 \
@@ -474,8 +506,10 @@ func _test_one_crossing_at_a_time() -> void:
 		if n is Area2D and n.get_script() == SW and n.direction == "down" and n.process_mode != Node.PROCESS_MODE_DISABLED:
 			st = n
 	check(st != null, "floor 15 has a live down stairwell")
-	if st == null:
-		return
+	return st
+
+
+func _one_crossing_checks(st) -> void:
 	# 1. while a fade is running the stairs do nothing at all
 	Transition.busy = true
 	st.touch_auto = true
@@ -492,7 +526,49 @@ func _test_one_crossing_at_a_time() -> void:
 	st._begin_pry()
 	check(st.is_prying and not st.touch_auto, "starting a pry disarms the touch walk")
 	st._cancel_pry("test over")
-	await _hand_pry(st)
+
+
+## OWNER ROUND 48i: "the building shift shouldn't happen if the player has the crowbar too, because we already have it for if the player does so with bare hands" -
+## a crowbar pry spends the crowbar and changes nothing else, and the player takes the ordinary stairs afterwards.
+func _crowbar_pry(st) -> void:
+	print("[a crowbar crossing costs the crowbar and nothing else]")
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_BARRICADE
+	WorldState.stair_blocks_cleared.clear()
+	for i in range(WorldState.inventory.size() - 1, -1, -1):
+		if ItemData.get_item(WorldState.inventory[i].item_id).get("is_crowbar", false):
+			WorldState.inventory.remove_at(i)
+	WorldState.add_to_inventory("002")
+	WorldState.add_to_inventory("035")
+	WorldState.rest_available = true
+	WorldState.rest_forfeit_pending = false
+	WorldState.pending_pry_arrival_floor = -1
+	WorldState.stamina = WorldState.get_max_stamina()
+	check(WorldState.is_stair_blocked(15) and WorldState.has_crowbar(), "(setup) a barricaded stairwell and a crowbar in the pack")
+	st.is_prying = false
+	st.touch_auto = false
+	var who = get_tree().get_first_node_in_group("player")
+	st._use_stairs()
+	check(st.is_prying and not st.pry_by_hand, "with a crowbar the first press starts the short pry (busy %s, panning %s, player %s, floor %d, blocked %s, crowbar %s, prying %s)" % [
+		str(Transition.busy), str(StairPan.panning), "none" if who == null else "dead %s cutscene %s" % [str(who.is_dead), str(who.is_cutscene)],
+		WorldState.current_floor, str(WorldState.is_stair_blocked(st._choke_floor())), str(WorldState.has_crowbar()), str(st.is_prying)])
+	var seed_before: int = WorldState.master_seed
+	var kit_before: int = WorldState.inventory.size()
+	st.pry_timer = 0.01
+	st._tick_pry(0.05)
+	check(WorldState.is_stair_block_cleared(15), "the pry opens the stairwell for the run")
+	check(not WorldState.has_crowbar() and WorldState.inventory.size() == kit_before - 1, "...and spends the crowbar and only the crowbar (%d -> %d items)" % [kit_before, WorldState.inventory.size()])
+	check(WorldState.master_seed == seed_before, "...the building does not shift")
+	check(WorldState.rest_available and not WorldState.rest_forfeit_pending, "...no rest slot goes")
+	check(is_equal_approx(WorldState.stamina, WorldState.get_max_stamina()), "...and you are not left spent (stamina %.1f of %.1f)" % [WorldState.stamina, WorldState.get_max_stamina()])
+	check(WorldState.pending_pry_arrival_floor == -1, "...and no one is mustered on the floor below")
+	var got_down: bool = false
+	for i in 900:
+		await get_tree().process_frame
+		if WorldState.current_floor == 14:
+			got_down = true
+			break
+	check(got_down, "...the player ends up on the floor below (floor %d)" % WorldState.current_floor)
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
 
 
 ## OWNER ROUND 45 SOFTLOCK: both crowbars were spent on gun cabinets and the stairwell below was barricaded - no way down. A barricade is never a

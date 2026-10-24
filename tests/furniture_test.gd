@@ -241,7 +241,7 @@ func _violations(pl: Dictionary, side: String = "left") -> String:
 
 func _test_rules_can_fail() -> void:
 	print("[each rule fails on a plan that breaks it]")
-	var ok := _plan_of("adult", [["bed_wood", "l_sage", 110, 115], ["wardrobe_wood", "walnut", 268, 106]])
+	var ok := _plan_of("adult", [["bed_wood", "l_sage", 110, 115], ["wardrobe_wood", "walnut", 256, 106]])
 	check(FurniturePlanner.validate(ok, {"window": "left"}).is_empty(), "a sane layout passes (left window) %s" % str(FurniturePlanner.validate(ok, {"window": "left"})))
 	var win := _plan_of("adult", [["wardrobe_wood", "walnut", 60, 106]])
 	check("window" in _violations(win, "left"), "a wardrobe standing in front of the left window is refused")
@@ -396,7 +396,7 @@ func _test_reach() -> void:
 	var high_node := _plan_of("adult", [["wardrobe_wood", "walnut", 120, 90]])
 	check("out of reach" in _violations(high_node, "right"), "a piece whose node would hang above the reach line is refused")
 	check(FurniturePlanner.validate(_plan_of("adult", [["wardrobe_wood", "walnut", 120, 106]]), {"window": "right"}).is_empty(), "…and the same wardrobe at its proper height passes")
-	var tall := _plan_of("adult", [["wardrobe_wood", "walnut", 120, 106], ["suitcase", "tan", 123, 31, "wall"]])
+	var tall := _plan_of("adult", [["wardrobe_wood", "walnut", 120, 106], ["suitcase", "tan", 123, 34, "wall"]])
 	check(FurniturePlanner.validate(tall, {"window": "left"}).is_empty(), "a suitcase on a wardrobe is scenery and passes (it has no node to strand)")
 
 

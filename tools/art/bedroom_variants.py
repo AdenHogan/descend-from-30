@@ -88,12 +88,11 @@ def b_furniture(c):
         c.rect(96, 116, 104, 119, hexc('e0dcd0')); c.hline(96, 104, 119, hexc('a8322c'))
     F.moved(c, _clothes, 72, -4)                                  # against the bed's foot
     def _beanbag(c):
-        # a beanbag slumped against the wall under the posters
-        c.shadow(128, 121, 16, 2, 110)
-        c.poly([(112, 121), (113, 110), (120, 102), (132, 100), (142, 106), (146, 115), (144, 121)], hexc('a8522c'))
-        c.poly([(116, 112), (124, 104), (132, 103), (126, 110)], shade(hexc('a8522c'), 1.15))
-        c.line(118, 118, 140, 118, shade(hexc('a8522c'), 0.8))
-        c.rect(128, 110, 134, 113, hexc('3a3a3d'))                                             # a controller on it
+        # a lounger bean bag against the wall under the posters (tools/art/beanbag3d.py: back rest, seat with its dip, gore seams, stitched hem)
+        import beanbag3d
+        beanbag3d.draw(c, 128, 121, hexc('a8522c'), 34, 22, -3, 3)
+        c.rect(133, 108, 139, 110, hexc('3a3a3d'))                                             # a controller on the seat
+        c.hline(133, 139, 108, hexc('5a5a60'))
     F.moved(c, _beanbag, -12, -19)
     # the single bed on the RIGHT: headboard at the right end (kept clear of the crate's back-plane
     # spot in the corner)
@@ -405,7 +404,13 @@ def e_floor(c):
 def e_furniture(c):
     # WITH DEPTH (owner round 14): the dollhouse table (3px left), the little wardrobe
     from pixlib import setback
-    setback(c, lambda l: F.moved(l, _e_dollhouse, -3, 0), depth=4, top=80, x_range=(5, 43), rake=1.0)
+    setback(c, lambda l: F.moved(l, _e_dollhouse, -3, 0), depth=4, top=80, x_range=(5, 49), rake=1.0)
+    # the house itself is a little 3D building (owner round 48i: "still a flat object on the back... no depth or shape"): it brings its own side wall and roof
+    # planes, so it is drawn AFTER the table's lean, standing on the table's top (what stands on a set-back piece comes forward half as far as its body)
+    import dollhouse3d
+    from pixlib import setback_depth
+    sh = setback_depth(4)
+    dollhouse3d.draw(c, 9, 80 + (sh // 2 if sh > 1 else sh), 'cream', 'r', top_col=F.PINE[1])
     _e_toys_wall(c)
     _e_rest(c)
     setback(c, _e_wardrobe, depth=4, top=32, x_range=(278, 306), rake=1.0)
@@ -415,14 +420,9 @@ def e_furniture(c):
 
 
 def _e_dollhouse(c):
-    # a dollhouse on a low table against the wall (x < 50)
-    c.shadow(27, 100, 22, 2, 100)
-    c.rect(8, 80, 46, 82, F.PINE[1]); c.rect(10, 83, 12, 99, F.PINE[2]); c.rect(42, 83, 44, 99, F.PINE[2])
-    c.poly([(10, 58), (27, 44), (44, 58)], hexc('a8322c'))
-    c.box(12, 58, 42, 79, hexc('e6e0cc'), hexc('8a8270'))
-    c.rect(14, 60, 26, 68, hexc('7aa0c8')); c.rect(28, 60, 40, 68, hexc('d9a0b0'))
-    c.rect(14, 70, 26, 78, hexc('d9c24a')); c.rect(28, 70, 40, 78, hexc('1e1a16'))           # one room dark
-    c.rect(31, 73, 33, 77, hexc('e6ddc8'))                                                    # a tiny figure in it
+    # the low pine table the dolls' house stands on, against the wall (x < 50); the house is tools/art/dollhouse3d.py, drawn on top (e_furniture)
+    c.shadow(29, 100, 24, 2, 100)
+    c.rect(8, 80, 52, 82, F.PINE[1]); c.rect(10, 83, 12, 99, F.PINE[2]); c.rect(48, 83, 50, 99, F.PINE[2])
 
 
 # the child's room gets MORE TOYS (owner round 14: "I love the child's bedroom, add more toys") —

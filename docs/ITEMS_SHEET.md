@@ -91,7 +91,7 @@ Spawn weights per room module (0 = never spawns there):
 > - **034 Screwdriver** (`can_force_lock`, 5 uses).
 > - **035 Crowbar** (`is_tool, is_crowbar`, single-use/consumed) — pries open a
 >   barricaded stairwell; **not** a weapon. See `docs/STAIR_BARRICADES.md`.
-> - **036 Fire Extinguisher** (`is_tool, is_extinguisher`, 3 uses) — groundwork
+> - **036 Fire Extinguisher** (`is_tool, is_extinguisher`, 5 uses) — groundwork
 >   for the future fire hazard (put out a stairwell blaze). Not yet functional.
 > - **037 Scrap Bag** (`is_scrap`) — see `docs/SCRAP_UPGRADES.md`.
 > - **039 Molotov Cocktail** (`is_throwable, is_molotov`, single use, rarity 1, stacks x3 like a can) — a lit-rag bottle.

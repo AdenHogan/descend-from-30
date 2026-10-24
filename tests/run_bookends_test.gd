@@ -298,7 +298,8 @@ func _test_escape_guard_and_summary() -> void:
 	for r in WorldState.run_summary("Hammer Lv3"):
 		rows[r[0]] = r[1]
 	check(rows.get("Felled") == "7" and rows.get("Searched") == "12" and rows.get("Apartments looted") == "2", "kills / searches / apartments (%s)" % str(rows))
-	check(rows.get("Quests completed") == "1" and rows.get("Descent Valour") == "+%d" % Progression.valour_for_run(0, true, 1, 0), "quests + this run's Valour")
+	# (owner round 48i: the dead felled, things searched and flats looted score Valour too - the card's line counts the same run tallies)
+	check(rows.get("Quests completed") == "1" and rows.get("Descent Valour") == "+%d" % Progression.valour_for_run(0, true, 1, 0, 0, 7, 12, 2), "quests + this run's Valour (%s)" % str(rows.get("Descent Valour")))
 	check(not rows.has("Residents aided"), "a fact that didn't happen isn't listed")
 	check(String(rows.get("Left by the door", "")).begins_with("Hammer Lv3") and not rows.has("Braved the unknown"),
 		"the stashed item (for the next game), no brave row")
@@ -314,7 +315,7 @@ func _test_escape_guard_and_summary() -> void:
 	check(plain.has("Braved the unknown") and String(plain.get("Scrapped at the door", "")).contains("Knife"),
 		"left nothing → the brave row + what was scrapped (%s)" % str(plain))
 	check(door == Progression.DOOR_BRAVE_BONUS + Progression.DOOR_WORTH[2]
-		and plain.get("Descent Valour") == "+%d" % Progression.valour_for_run(0, true, 1, 0, door), "…and its Valour (+%d at the door)" % door)
+		and plain.get("Descent Valour") == "+%d" % Progression.valour_for_run(0, true, 1, 0, door, 7, 12, 2), "…and its Valour (+%d at the door; %s)" % [door, str(plain.get("Descent Valour"))])
 
 
 func _lobby_with_player() -> Array:

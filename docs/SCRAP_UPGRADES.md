@@ -66,6 +66,24 @@
 - **Still open:** merchant-sold pre-upgraded
   weapons; more weapon trees; real bench art; balance numbers (playtest).
 
+## Round 48i — a plain REINFORCE first: eight levels (supersedes the level numbers below)
+
+Owner, on the first bench: *"add a plain Lv2 that's a taste of upgrading — more durable, more attack — before the picks"*; the Tune tab overflowed and nobody could say what a tuning point was.
+
+| Level | What it is | Cost | Gives |
+|---|---|---|---|
+| Lv1 | as found | | |
+| **Lv2 Reinforced** | the plain first step, every weapon | 30 scrap, no spare | melee: +1 damage, durability ×1.5 (`R_melee`); gun: +5 % to hit head and body, wears ×1.5 slower (`R_gun`). No pick, **no tuning points** |
+| Lv3 | pick of two (tree weapons) or two special mods | 50 scrap, no spare | + 2 tuning points |
+| Lv4 | pick of two | 80 scrap + a spare | + 2 points |
+| **Lv5 LEGENDARY** | a TITLE; renamable | 100 scrap + a spare of Lv4 | + 2 points (6 in all) |
+| Lv6 / 7 / 8 | Legendary + / ++ / +++ (heirloom) | 400 / 500 / 600 scrap, 1 / 2 / 3 lobby-door crossings | + 2 points each, caps +1 |
+
+- `WeaponUpgrades`: `MAX_LEVEL` 8, `LEGENDARY_LEVEL` 5, `REINFORCE_LEVEL` 2, `STEP_COST` keys 2-5, `HEIRLOOM` keys 6-8, `TREES` keyed Lv3-5 (the gun's Aim / Silencer / Lucky and the hammer's placeholders are the old Lv2-4 picks), `POINTS_PER_LEVEL` counts from `REINFORCE_LEVEL` (`points_earned = 2 × (level − 2)`), `auto_perk` / `is_plain_step` / `gives_text`. `Progression.DOOR_WORTH` has eight rows (Lv2 = 10: a taste).
+- **Save compatibility.** A weapon is saved with `wv` (`WORKBENCH_VERSION` 2). A version-1 weapon at level ≥ 2 is moved up one level on load (`WorldState.instance_from_dict`): same picks, same tuning, same legendary / heirloom standing, and it is given the Reinforced perk it never paid for. Forge instalments (`forge_paid`) carry over by weapon. A legendary title earned at old Lv4 is kept.
+- **The bench** (`workbench_ui.gd`): the Upgrade tab's next-level card says what that step GIVES (`gives_text` — the plain step shows its own bonus and "nothing to choose; tuning points start at Lv3"); the Tune tab opens with a plain-words explanation of what a tuning point is and where it comes from, shows "no tuning points yet" on a Lv1-2 weapon, and lays its stat rows out in fixed columns (name / pips / − / + / effect) with the effect text wrapping inside the card.
+- Tests: `weapon_upgrade_test` rewritten against these numbers (the plain step, the pick levels, legendary at 5, the version-1 migration, tuning points from Lv3); `progression_test` (door worth); `quest_test`. Quest guns (`Quests.GUN_PRESETS`: Johnny's and Ethel's) are **Lv3** now with `R_gun` + `G_durable` (they were "Lv2 Durable Hand Cannon" - the same weapon, renumbered).
+
 ## What's built (v2): make it YOURS — tuning, legendary names, heirlooms
 
 Owner, round 4: *"re-look at weapons so players can really add their own stats within scope, so

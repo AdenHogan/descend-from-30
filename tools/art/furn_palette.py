@@ -23,9 +23,11 @@ AVOID = {
                  'wing_teal_l58': ['mid'], 'wing_teal_r58': ['mid'], 'wing_teal_l35': ['mid'], 'wing_teal_r35': ['mid']},
     'filing_cabinet': {'green': ['den']},
     'loveseat': {'olive': ['cosy']},
+    'picture_portrait': {'p00': ['adult', 'formal'], 'p11': ['adult', 'formal']},
     'rug_oblong': {'mauve': ['adult', 'teen']},
     'sideboard': {'cream': ['party']},
     'sofa': {'olive': ['cosy']},
+    'trunk': {'green': ['den']},
 }
 
 

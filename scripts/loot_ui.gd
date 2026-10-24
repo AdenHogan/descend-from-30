@@ -38,6 +38,7 @@ var panel: PanelContainer = null
 var icon: TextureRect = null
 var name_label: Label = null
 var hint_label: Label = null
+var compare_label: RichTextLabel = null      # a found weapon's numbers, set beside the one in hand (ItemCompare)
 var icon_row: CenterContainer = null
 var search_bar: Control = null         # the filling bar shown while a search runs
 
@@ -110,6 +111,18 @@ func _build_ui() -> void:
 	name_label.custom_minimum_size = Vector2(PANEL_W - 32, 0)
 	vbox.add_child(name_label)
 
+	compare_label = RichTextLabel.new()
+	compare_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	compare_label.bbcode_enabled = true
+	compare_label.fit_content = true
+	compare_label.scroll_active = false
+	compare_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	compare_label.add_theme_font_size_override("normal_font_size", 14)
+	compare_label.add_theme_color_override("default_color", Color(0.78, 0.82, 0.86))
+	compare_label.custom_minimum_size = Vector2(PANEL_W - 32, 0)
+	compare_label.visible = false
+	vbox.add_child(compare_label)
+
 	hint_label = Label.new()
 	hint_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hint_label.add_theme_font_size_override("font_size", 13)
@@ -134,6 +147,7 @@ func _layout(searching: bool) -> void:
 	name_label.add_theme_font_size_override("font_size", 16 if searching else 22)
 	icon_row.visible = not searching
 	hint_label.visible = not searching
+	compare_label.visible = false
 	search_bar.visible = searching
 	panel.reset_size()           # a PanelContainer keeps its biggest size until told to shrink
 
@@ -159,7 +173,7 @@ func open(item_id: String, anchor_name: String, apartment_id: String) -> void:
 	get_tree().call_group("resident_npc", "on_scavenge", "start", apartment_id)
 	if WorldState.is_anchor_searched(apartment_id, anchor_name):
 		_reveal_item()
-		visible = true
+		visible = has_item                    # an empty one has already said so and closed itself
 		return
 
 	reveal_timer = 0.0
@@ -175,13 +189,32 @@ func open(item_id: String, anchor_name: String, apartment_id: String) -> void:
 	visible = true
 
 
+## What the player mutters over an empty search: a short line, stable per node (so re-searching reads the same).
+const NOTHING_LINES := ["Nothing.", "Empty.", "Just dust.", "Nothing useful.", "Nothing here.", "Picked clean."]
+
+
+static func nothing_line(apartment_id: String, anchor_name: String) -> String:
+	return NOTHING_LINES[absi(hash(apartment_id + "/" + anchor_name)) % NOTHING_LINES.size()]
+
+
 func _reveal_item() -> void:
 	_layout(false)
 	WorldState.mark_anchor_searched(current_apartment_id, current_anchor_name)
 	get_tree().call_group("open_furniture", "on_searched", current_apartment_id, current_anchor_name)   # (already open since the press; a no-op then)
 	is_revealing = false
 	var item_data = ItemData.get_item(current_item_id)
-	if current_item_id == "" or item_data.is_empty():
+	if current_item_id == "":
+		# An empty search is a line, not a panel (owner round 48i: "if there is nothing found, we don't need a big empty inventory box that pops... the
+		# player can say nothing in real time following the search, allowing us to just keep going"): close at once and say so in passing.
+		icon.texture = null
+		name_label.text = ""
+		hint_label.text = ""
+		has_item = false
+		nothing_timer = 0.0
+		HUD.show_feedback(nothing_line(current_apartment_id, current_anchor_name))
+		_close(false)
+		return
+	if item_data.is_empty():
 		icon.texture = null
 		name_label.text = "Nothing found."
 		hint_label.text = ""
@@ -200,8 +233,24 @@ func _reveal_item() -> void:
 	else:
 		name_label.text = item_data["name"]
 	hint_label.text = "Double-click, or drag onto your pack · walk away to leave"
+	_show_compare(item_data)
 	if _is_rounds() and not WorldState.guns_with_room().is_empty():
 		hint_label.text = SettingsManager.localize("Drag onto your gun, or press [{item_use}], to load it · [{interact}] takes it")
+
+
+## A weapon in the panel shows its numbers beside the one in hand, so the choice never needs the bag opened to compare (owner round 48i).
+func _show_compare(item_data: Dictionary) -> void:
+	compare_label.visible = false
+	compare_label.text = ""
+	if _is_cabinet_weapon() or current_key_target != "" or not item_data.get("is_weapon", false):
+		return
+	var inst := ItemInstance.new()
+	inst.setup(current_item_id)
+	var c: Dictionary = ItemCompare.card(inst, ItemCompare.held_weapon())
+	if c.is_empty():
+		return
+	compare_label.text = ItemCompare.bbcode(c)
+	compare_label.visible = true
 
 
 ## Where the pack ring's centre sits while it shares the screen with this panel: the pair (panel + a gap + ring) is centred on the

@@ -57,6 +57,8 @@ func _ready() -> void:
 	check(HUD.character_panel.tabs.get_tab_count() == 4, "four tabs (Story + Quests & NPCs + Map + Codex)")
 	check(HUD.character_panel.npc_text.text.length() > 0, "NPC tab has placeholder copy")
 	_test_codex()
+	_test_map()
+	await _test_map_page()
 
 	# 4. Closing restores the prior pause state.
 	HUD.character_panel.close()
@@ -242,3 +244,128 @@ func _test_book() -> void:
 		drift = maxf(drift, absf(e["node"].rotation_degrees - float(e["rot"])))
 	check(drift < 0.5, "the papers settle onto their marks (drift %.2f)" % drift)
 	cp.close()
+
+
+## The journal's MAP (owner round 48i): a scrollable page of the building, a row per floor, drawn from what the player has SEEN. `BuildingMap.row_model`
+## is the deciding half (pure: reads the world's memory), so these checks prove what the map says; the drawing is judged by eye.
+func _test_map() -> void:
+	print("[the journal map: what has been seen, floor by floor]")
+	WorldState.new_game()
+	WorldState.master_seed = 4242
+	check(BuildingMap.floor_at(BuildingMap.row_top(30) + 2.0) == 30 and BuildingMap.floor_at(BuildingMap.row_top(0) + 2.0) == 0, "floor 30 is the top row, the lobby the bottom")
+	var rows_ok := true
+	for f in range(0, 31):
+		rows_ok = rows_ok and BuildingMap.floor_at(BuildingMap.row_top(f) + BuildingMap.ROW_H * 0.5) == f
+	check(rows_ok and BuildingMap.content_height() >= BuildingMap.row_top(0) + BuildingMap.ROW_H, "every floor owns its row and the page is as tall as the building")
+	# fog: a floor never visited says nothing
+	var fog: Dictionary = BuildingMap.row_model(12)
+	check(not fog["visited"] and fog["doors"].is_empty() and fog["stairs"].is_empty() and fog["fire"].is_empty() and fog["dead"].is_empty(), "an unvisited floor is fog and nothing else")
+	# a visited floor shows its five doors, its stairs (the way down on the side stair_down_side says), the lift
+	WorldState.visited_floors["22"] = true
+	var m: Dictionary = BuildingMap.row_model(22)
+	check(m["visited"] and m["doors"].size() == 5 and m["stairs"].size() == 2 and m["lift"], "a visited floor: five doors, two stairwells, the lift")
+	var down_side: String = WorldState.stair_down_side(22)
+	var down_ok := true
+	for s in m["stairs"]:
+		down_ok = down_ok and (bool(s["down"]) == (String(s["side"]) == down_side))
+	check(down_ok, "the way down is marked on the side the building says (%s)" % down_side)
+	# doors as they are SEEN
+	WorldState.door_states["2204"] = WorldState.DoorState.BREACHED
+	WorldState.door_states["2202"] = WorldState.DoorState.BARRICADED_FORCEABLE
+	WorldState.door_states["2201"] = WorldState.DoorState.SHUT_LOCKED
+	WorldState.map_entered["2203"] = true
+	m = BuildingMap.row_model(22)
+	var kinds := {}
+	for d in m["doors"]:
+		kinds[int(d["idx"])] = d["kind"]
+	check(kinds[4] == BuildingMap.D_BREACH and kinds[2] == BuildingMap.D_BOARDED, "a breached door shows its hole, a barricaded one its boards (%s)" % str(kinds))
+	check(kinds[3] == BuildingMap.D_IN, "a flat you have stood inside shows as been-in")
+	check(kinds[1] == BuildingMap.D_SHUT, "a locked door looks like any shut door — the map doesn't know what you haven't tried")
+	# the lobby / floor 30 end pieces
+	WorldState.visited_floors["0"] = true
+	WorldState.visited_floors["30"] = true
+	check(BuildingMap.row_model(0)["exit"] and BuildingMap.row_model(0)["stairs"].size() == 1 and BuildingMap.row_model(30)["stairs"].size() == 1, "the lobby shows its street door, the top floor its one stairwell")
+	check(BuildingMap.row_model(30)["doors"].size() == 5 and BuildingMap.row_model(0)["doors"].is_empty(), "five doors on 30, none in the lobby")
+	# maintenance + merchant floors
+	WorldState.visited_floors["15"] = true
+	WorldState.visited_floors["22"] = true
+	check(BuildingMap.row_model(15)["maintenance"] and BuildingMap.row_model(15)["merchant"] and not BuildingMap.row_model(22)["maintenance"] and not BuildingMap.row_model(22)["merchant"], "floor 15 shows the staff door and the merchant's lift; 22 neither (a maintenance floor is every third: 21 would have the staff door)")
+	# a barricaded stair
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_BARRICADE
+	var blocked := false
+	for s in BuildingMap.row_model(22)["stairs"]:
+		blocked = blocked or (bool(s["down"]) and bool(s["blocked"]))
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
+	check(blocked, "a barricaded way down is crossed through")
+	# fire, last seen
+	var cells: Array = []
+	for i in 26:
+		cells.append(1 if i in [9, 10] else (2 if i == 8 else 0))
+	WorldState.fire_cells[str(22) + ":" + str(WorldState.current_run)] = {"stage": 1, "cells": cells}
+	m = BuildingMap.row_model(22)
+	check(m["fire"].size() == 2 and m["spent"].size() == 1 and is_equal_approx(float(m["fire"][0]), 150.0 + 9.5 * 42.0), "burning cells and burnt-out cells are where the fire field puts them (%s / %s)" % [str(m["fire"]), str(m["spent"])])
+	WorldState.fire_cells.erase(str(22) + ":" + str(WorldState.current_run))
+	WorldState.fire_scars["22"] = 1
+	m = BuildingMap.row_model(22)
+	check(m["fire"].is_empty() and not m["spent"].is_empty() and float(m["spent"].back()) < 115.0 + 1120.0 / 3.0, "an earlier run's fire leaves soot over the third that burned")
+	WorldState.fire_scars.erase("22")
+	# the dead and the living, last seen
+	var root := Node2D.new()
+	add_child(root)
+	for x in [300.0, 620.0]:
+		var z := Node2D.new()
+		z.position = Vector2(x, 400)
+		z.set("is_dead", false)
+		z.add_to_group("zombie")
+		root.add_child(z)
+	var gone := Node2D.new()
+	gone.position = Vector2(900, 400)
+	gone.set_script(load("res://tests/_dead_stub.gd"))
+	gone.set("is_dead", true)                                  # a corpse: the stub defaults to alive
+	gone.add_to_group("zombie")
+	root.add_child(gone)
+	var elsewhere := Node2D.new()
+	elsewhere.position = Vector2(150, 400)
+	elsewhere.add_to_group("zombie")
+	add_child(elsewhere)
+	var person := Node2D.new()
+	person.position = Vector2(480, 400)
+	person.add_to_group("survivor")
+	root.add_child(person)
+	WorldState.note_floor_sight(22, root)
+	m = BuildingMap.row_model(22)
+	check(m["dead"].size() == 2 and m["people"].size() == 1, "the live dead and the living under the floor are remembered; a body and another floor's zombie are not (%s / %s)" % [str(m["dead"]), str(m["people"])])
+	check(WorldState.floors_enemy_seen.has("22"), "…and the floor counts as having shown the dead")
+	for n in [root, elsewhere]:
+		n.queue_free()
+	# one of your own, fallen
+	WorldState.player_corpses["1"] = {"floor": 22, "scene": "res://scenes/building_floors.tscn", "apartment_id": "", "x": 700.0, "y": 419.0, "feet": true, "notes": 0, "scrap": 0, "items": []}
+	check(BuildingMap.row_model(22)["corpses"].size() == 1, "a fallen character's body is on its floor")
+	WorldState.player_corpses.clear()
+	# memory persists: a save keeps it, the time skip keeps it, a new game forgets it
+	WorldState.save_game("res://scenes/hallway.tscn", false)
+	WorldState.map_sights = {}
+	WorldState.map_entered = {}
+	WorldState.load_game()
+	check(WorldState.map_sights.has("22") and WorldState.map_entered.has("2203"), "a save keeps the map's memory")
+	WorldState.advance_run()
+	check(WorldState.map_sights.has("22") and WorldState.map_entered.has("2203"), "the next character inherits the map (the building is the same building)")
+	WorldState.delete_save()
+	WorldState.new_game()
+	check(WorldState.map_sights.is_empty() and WorldState.map_entered.is_empty(), "a new game starts with a blank map")
+
+
+func _test_map_page() -> void:
+	print("[the journal's Map tab: a scrolling page, opened on your floor]")
+	WorldState.new_game()
+	WorldState.current_floor = 12
+	WorldState.visited_floors["12"] = true
+	var cp = HUD.character_panel
+	cp.close()                                                 # (the caller left it open: open() remembers the pause state it finds, and the caller's close() must restore ITS own)
+	cp.open()
+	cp._pick_tab(2)
+	for i in 4:
+		await get_tree().process_frame
+	check(cp.map_scroll != null and cp.map_view.get_parent() == cp.map_scroll and cp.tabs.get_current_tab_control() == cp.map_scroll, "the Map tab is a scroll page holding the building")
+	check(cp.map_view.custom_minimum_size.y >= BuildingMap.content_height() - 1.0, "…as tall as the whole building")
+	check(cp.map_scroll.scroll_vertical > 0, "…and opened down at floor 12, not left at the top (scroll %d)" % cp.map_scroll.scroll_vertical)

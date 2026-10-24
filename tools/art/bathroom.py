@@ -203,7 +203,29 @@ def cistern3d(L, wcx, top, bottom, hw, d1, porc):
     L.hline(a_[0], b_[0], a_[1], shade(porc, 1.25))                                     # its lit front edge
 
 
-def toilet3d(c, cx, porc=PORC, out=PORC_OUT, lid_up=False, seat=None, lever=CHROME, cistern=True, crest=None):
+def toilet3d(c, cx, **kw):
+    """A toilet at screen x `cx`. It is drawn ONCE, straight on at the vanishing point's own x and then slid sideways to `cx` (owner round 48i: "the toilet has a poor looking bowl and a
+    cistern that doesn't match in fit"): the room's perspective shears everything that stands out from the wall away from the middle - the bowl (12 px out) sat 7 px to the side of the
+    cistern against the wall on a toilet near a module's edge, so the two never lined up. A fixture this small is seen head-on: one axis, the cistern centred over the bowl."""
+    tmp = Canvas(c.w, c.h)
+    _toilet3d_raw(tmp, S3.VP, **kw)
+    bb = tmp.img.getbbox()
+    if bb is None:
+        return cx
+    dx = int(round(cx - S3.VP))
+    crop = tmp.img.crop(bb)
+    x0, y0 = bb[0] + dx, bb[1]
+    if x0 < 0:
+        crop = crop.crop((-x0, 0, crop.width, crop.height))
+        x0 = 0
+    if x0 + crop.width > c.w:
+        crop = crop.crop((0, 0, c.w - x0, crop.height))
+    c.img.alpha_composite(crop, dest=(x0, y0))
+    c.px = c.img.load()
+    return cx
+
+
+def _toilet3d_raw(c, cx, porc=PORC, out=PORC_OUT, lid_up=False, seat=None, lever=CHROME, cistern=True, crest=None):
     """A close-coupled toilet facing the room: the cistern against the wall (0..6 out), the bowl
     coming 20 px out toward us, its seat an oval seen from above, the pan narrowing to its foot."""
     seat = seat or porc
@@ -214,17 +236,17 @@ def toilet3d(c, cx, porc=PORC, out=PORC_OUT, lid_up=False, seat=None, lever=CHRO
     lay = S3.Layer()
     L = lay.c
     if cistern:
-        cistern3d(L, wcx, 71, 84, 8.5, 5.0, porc)
-    sl = S3.lerp_slices(100, 93, (6.0, 12.0, 4.0), (6.5, 12.0, 4.5))
-    sl += S3.lerp_slices(93, 85, (6.5, 12.0, 4.5), (11.0, 12.5, 7.5), ease=lambda t: t ** 0.55)
+        cistern3d(L, wcx, 71, 84, 10.0, 5.6, porc)
+    sl = S3.lerp_slices(100, 98, (6.8, 12.0, 4.6), (5.6, 12.0, 4.0))                                # a small flare at the foot ...
+    sl += S3.lerp_slices(98, 85, (5.6, 12.0, 4.0), (9.4, 12.5, 7.2), ease=lambda t: t ** 0.85)     # ... and the pan opens like a bowl to the seat (a trapezoid from the front, not a drum)
     S3.lathe(L, wcx, sl, porc, lit, dk)
     lay.commit(c, out)
     if cistern:
-        f = _P3(wcx + 6.5, 74, 5.2)
+        f = _P3(wcx + 7.6, 74, 5.8)
         c.rect(f[0] - 3, f[1], f[0], f[1] + 1, lever)                              # the flush lever
         c.put(f[0] + 1, f[1], shade(lever, 0.7))
         if crest is not None:                                                       # a moulded front panel + a crown
-            a_, b_ = _P3(wcx - 6, 75, 5.1), _P3(wcx + 6, 82, 5.1)
+            a_, b_ = _P3(wcx - 7, 75, 5.7), _P3(wcx + 7, 82, 5.7)
             c.box(a_[0], a_[1], b_[0], b_[1], shade(porc, 1.02), shade(porc, 0.7))
             c.hline(a_[0] + 1, b_[0] - 1, a_[1] + 1, shade(porc, 1.2))
             m_ = ((a_[0] + b_[0]) // 2, (a_[1] + b_[1]) // 2)
@@ -233,14 +255,16 @@ def toilet3d(c, cx, porc=PORC, out=PORC_OUT, lid_up=False, seat=None, lever=CHRO
                 c.put(m_[0] + dx, m_[1], crest)
             c.put(m_[0] - 2, m_[1] - 1, crest); c.put(m_[0] + 2, m_[1] - 1, crest); c.put(m_[0], m_[1] - 2, crest)
     # the seat, an oval from above
-    ex, ey, erx, ery = S3.ell_geo(wcx, 84.5, 5.0, 20.0, 11.5)
+    ex, ey, erx, ery = S3.ell_geo(wcx, 84.5, 5.0, 20.0, 10.0)
+    c.ellipse(ex, ey + 2, erx + 1, ery + 1, out)                                             # the seat has a THICKNESS: its underside shows below the rim
+    S3.fill_ellipse_shaded(c, ex, ey + 1.5, erx, ery, shade(seat, 0.9), shade(seat, 0.72), shade(seat, 0.55))
     c.ellipse(ex, ey, erx + 1, ery + 1, out)
     S3.fill_ellipse_shaded(c, ex, ey, erx, ery, shade(seat, 1.12), seat, shade(seat, 0.82))
     if lid_up:
-        ix, iy, irx, iry = S3.ell_geo(wcx, 84.5, 7.5, 18.0, 8.0)
+        ix, iy, irx, iry = S3.ell_geo(wcx, 84.5, 7.5, 18.0, 6.8)
         c.ellipse(ix, iy, irx, iry, shade(porc, 0.6))                           # the open pan
         c.ellipse(ix, iy + iry * 0.35, irx * 0.72, iry * 0.55, (96, 110, 100, 255))   # the water
-        l0, l1 = _P3(wcx - 9, 70, 6.5), _P3(wcx + 9, 84, 6.5)
+        l0, l1 = _P3(wcx - 9.5, 70, 7.0), _P3(wcx + 9.5, 84, 7.0)
         rrect(c, l0[0], l0[1], l1[0], l1[1], out, 3)                             # the lid, up against the cistern
         rrect(c, l0[0] + 1, l0[1] + 1, l1[0] - 1, l1[1] - 1, seat, 3)
         c.hline(l0[0] + 3, l1[0] - 3, l0[1] + 2, shade(seat, 1.14))
@@ -1049,7 +1073,7 @@ def c_build(c):
         c.ellipse(q[0], q[1] - 1, 3, 2, hexc('f4f2ec'))
         c.put(q[0] - 1, q[1] - 2, hexc('ffffff'))
     dk_ = S3.P(wx1 - 10, 81, 15)
-    c.rect(dk_[0], dk_[1] - 3, dk_[0] + 4, dk_[1], hexc('f0cf3a')); c.put(dk_[0] + 5, dk_[1] - 2, hexc('e07a2a'))   # a rubber duck
+    rubber_duck(c, dk_[0] - 6, dk_[1] - 8)                                # a rubber duck, afloat in the bubbles
     champagne(c, 205, 118)                                                # on its stand by the tub
     # a potted palm (right of the R window box) + a gold towel stand
     c.shadow(292, 100, 10, 2, 90)
@@ -1084,22 +1108,137 @@ D_TRIM = hexc('7a8480')
 D_PAINT = hexc('8e948a')
 
 
-def mould_bloom(c, sx, sy, rx, ry, seed=1, up=False):
-    """Black mould spreading from a source point: dense and dark where it starts, thinning out in
-    ragged speckled fingers — never a rectangle."""
+# A RUBBER DUCK (owner round 48i: the ducks on the curtain and in the gold bath were yellow rectangles with an orange dot - "unreadable"). 12 x 10, facing right (flip= faces left):
+# a round head with an eye and an orange beak, a body with a wing, an upturned tail, a dark outline. `printed` = the pattern on a shower curtain (cream with an olive outline so it
+# reads on the pale-yellow plastic), otherwise the real thing in the gold bath (yellow).
+DUCK = (
+    ".....OOOO...",
+    "....OYLLYO..",
+    "....OYYEYOBB",
+    "O...OYYYYOBO",
+    "OO..OYYYYOO.",
+    "OYOOYYYYYYO.",
+    ".OYYYWWYYYSO",
+    "..OYYWWYYYSO",
+    "...OYYYYYSO.",
+    "....OOOOOO..",
+)
+DUCK_W, DUCK_H = 12, 10
+_DUCK_REAL = dict(O=hexc('6a4a10'), Y=hexc('f4cc26'), L=hexc('fff0a0'), S=hexc('c9981c'), W=hexc('e8b420'), B=hexc('e8782a'), E=hexc('2a2418'))
+_DUCK_PRINT = dict(O=hexc('7a5214'), Y=hexc('f6cf2a'), L=hexc('ffee90'), S=hexc('cc9a1e'), W=hexc('e8b420'), B=hexc('ea7a28'), E=hexc('2a2418'))
+
+
+def rubber_duck(c, x, y, printed=False, flip=False, fold=None):
+    """Draw the duck with its top-left corner at (x, y). `fold` = (x0, period) of the pleated curtain it is printed on: a PRINT lies on the cloth, so it takes the cloth's folds -
+    each column is lit / shaded like the fold it falls on (the same factor `pleated_curtain` uses) and a column in a fold's trough sits one row lower, so the ducks crinkle with the
+    plastic instead of lying flat on top of it (owner round 48i: "they appear flat on what is looking like a crinkled curtain")."""
     import math as _m
+    pal = _DUCK_PRINT if printed else _DUCK_REAL
+    for r, row in enumerate(DUCK):
+        for k, ch in enumerate(row):
+            if ch not in pal:
+                continue
+            xx = x + (len(row) - 1 - k if flip else k)
+            col = pal[ch]
+            yy = y + r
+            if fold is not None:
+                ph = ((xx - fold[0]) % fold[1]) / float(fold[1])
+                f = 0.80 + 0.30 * (0.5 + 0.5 * _m.cos(2 * _m.pi * ph))
+                col = shade(col, f / 0.95)
+                if 0.3 < ph < 0.7:
+                    yy += 1
+            c.put(xx, yy, col)
+
+
+def _value_noise(rng, cell, w, h):
+    """Smooth 0..1 noise over a w x h grid: random lattice points `cell` px apart, bilinearly blended (so a patch has a size, not a speckle)."""
+    gw, gh = w // cell + 2, h // cell + 2
+    lat = [[rng.random() for _ in range(gw)] for _ in range(gh)]
+    out = [[0.0] * w for _ in range(h)]
+    for y in range(h):
+        gy, fy = divmod(y, cell)
+        fy /= float(cell)
+        for x in range(w):
+            gx, fx = divmod(x, cell)
+            fx /= float(cell)
+            a = lat[gy][gx] * (1 - fx) + lat[gy][gx + 1] * fx
+            b = lat[gy + 1][gx] * (1 - fx) + lat[gy + 1][gx + 1] * fx
+            out[y][x] = a * (1 - fy) + b * fy
+    return out
+
+
+def grime_patch(c, x0, y0, x1, y1, col, seed=1, cover=0.5):
+    """Dirt as a STAIN (owner round 48i: random-pixel dither read as noise beside the toilet and bath): smooth noise inside the box decides where it has settled and how heavily
+    (a faint film, then a darker patch), drawn in the box's own corners and never as a lone pixel. `col` = (r, g, b) or an hexc colour; `cover` = roughly how much of the box."""
     rng = random.Random(seed)
-    for _ in range(int(rx * ry * 0.9)):
-        a = rng.uniform(0, _m.pi)
-        r = rng.random() ** 1.6
-        dx = _m.cos(a) * rx * r * (1 if rng.random() < 0.5 else -1)
-        dy = abs(_m.sin(a)) * ry * r * (-1 if up else 1)
-        x, y = int(sx + dx), int(sy + dy)
-        dens = 1 - r
-        col = MOULD if dens > 0.45 else MOULD[:3] + (int(90 + 120 * dens),)
+    w, h = x1 - x0 + 1, y1 - y0 + 1
+    if w < 2 or h < 2:
+        return
+    n1 = _value_noise(rng, 4, w, h)
+    n2 = _value_noise(rng, 9, w, h)
+    cut = 1.0 - cover
+    cells = {}
+    for yy in range(h):
+        for xx in range(w):
+            d = n1[yy][xx] * 0.45 + n2[yy][xx] * 0.55
+            if d > cut:
+                cells[(xx, yy)] = d
+    base = tuple(col[:3])
+    for (xx, yy), d in cells.items():
+        nb = sum(1 for (ax, ay) in ((1, 0), (-1, 0), (0, 1), (0, -1)) if (xx + ax, yy + ay) in cells)
+        if nb < 2:
+            continue
+        a = int(24 + 70 * min(1.0, (d - cut) / max(0.05, 1.0 - cut)))
+        c.put(x0 + xx, y0 + yy, base + (a,))
+
+
+MOULD_REACH = 0.58                          # a bloom covers this much of the radii the callers name (they were written for sparse pixel dust; patches read far heavier)
+MOULD_INK = (54, 56, 50)                    # a dull grey-black, not green: the owner read the old colour as "green looking slime"
+
+
+def mould_bloom(c, sx, sy, rx, ry, seed=1, up=False):
+    """Black mould spreading from a source point, drawn as PATCHES (owner round 48i: the old one scattered single pixels and read as dust / noise next to the toilet; then "the grime and
+    green looking slime on the walls appears to be rather extreme"): a smooth two-scale noise decides where it has taken hold, how far it has crept from the source decides how thick it
+    is - a dark mottled core, a damp halo round it, a faint stain at the edge - and a pass removes any pixel that has no neighbour, so it is never a speckle. Densest at the source,
+    ragged at its edge, never a rectangle; small (MOULD_REACH) and dull (MOULD_INK) - it is a stain in a corner, not a flood."""
+    import math as _m
+    rx, ry = rx * MOULD_REACH, ry * MOULD_REACH
+    rng = random.Random(seed)
+    w, h = int(rx * 2) + 5, int(ry) + 5
+    n1 = _value_noise(rng, 5, w, h)
+    n2 = _value_noise(rng, 11, w, h)
+    cells = {}
+    for yy in range(h):
+        for xx in range(w):
+            dx = (xx - w / 2.0) / float(max(rx, 1.0))
+            dy = yy / float(max(ry, 1.0))
+            r = _m.sqrt(dx * dx + dy * dy)
+            if r >= 1.15:
+                continue
+            d = (1.0 - r) * 1.7 + (n1[yy][xx] - 0.5) * 0.85 + (n2[yy][xx] - 0.5) * 1.1
+            if d > 0.70:
+                cells[(xx, yy)] = (3, d)               # the core: the mould itself
+            elif d > 0.48:
+                cells[(xx, yy)] = (2, d)               # the damp halo
+            elif d > 0.34:
+                cells[(xx, yy)] = (1, d)               # the stain at the edge
+    keep = {}
+    for (xx, yy), v in cells.items():
+        nb = sum(1 for (ax, ay) in ((1, 0), (-1, 0), (0, 1), (0, -1)) if (xx + ax, yy + ay) in cells)
+        if nb >= 2:
+            keep[(xx, yy)] = v
+    for (xx, yy), (lvl, d) in keep.items():
+        x = int(sx - w / 2.0 + xx)
+        y = int(sy + (-yy if up else yy))
+        t = n1[yy][xx]
+        if lvl == 3:                                    # the core is mottled: darker where it has been there longest
+            k = 0.78 + 0.4 * t
+            col = tuple(min(255, int(ch * k)) for ch in MOULD_INK) + (215,)
+        elif lvl == 2:
+            col = MOULD_INK + (int(70 + 60 * t),)
+        else:
+            col = MOULD_INK + (int(26 + 30 * t),)
         c.put(x, y, col)
-        if dens > 0.6 and rng.random() < 0.5:
-            c.put(x + 1, y, col)
 
 
 def d_wall(c):
@@ -1273,7 +1412,7 @@ def d_build(c):
     c.vline(37, 80, 99, IRON)                                            # the waste pipe, down the wall
     c.rect(34, 92, 40, 97, RUST)
     basin3d(c, 37, rim=66, pedestal=False, inside=hexc('b9b09a'), drip=True)
-    c.dither(18, 69, 36, 72, hexc('8a7a5a', 120), 0.4, pattern='random')  # grime in the basin
+    grime_patch(c, 18, 69, 36, 72, hexc('8a7a5a'), seed=31, cover=0.55)  # grime in the basin
     mould_bloom(c, 62, 92, 12, 22, seed=14, up=True)                    # mould creeping up behind the pan
     standing_rolls(c, 97, 102)                                           # spare rolls by the pan
     toilet3d(c, 70, lid_up=True, seat=hexc('b9b4a4'))
@@ -1285,10 +1424,9 @@ def d_build(c):
     shower_rail(c, wx0, wx1, rail_y, d_r)
     cur = hexc('c9c48a')
     xa, xb, top, hem = curtain_in_tub(c, wx0, wx1, rim, d_r, rail_y, cur, wx0 + 13, wx1, wx0 + 13)
-    for (fx, fy) in ((xa + 18, top + 12), (xa + 42, top + 8), (xa + 30, top + 26), (xa + 56, top + 30)):   # ducks printed on it
-        c.rect(fx, fy, fx + 4, fy + 3, hexc('d9b43a'))
-        c.put(fx + 5, fy + 1, hexc('c06a2a'))
-    c.dither(xa, hem - 20, xb, hem - 8, hexc('7a7a4a', 90), 0.4, pattern='random')   # grime low down
+    for (fx, fy, fl_) in ((xa + 14, top + 10, False), (xa + 40, top + 6, True), (xa + 26, top + 26, True), (xa + 52, top + 28, False)):   # ducks printed on it
+        rubber_duck(c, fx, fy, printed=True, flip=fl_, fold=(xa, 7))
+    grime_patch(c, xa, hem - 20, xb, hem - 8, hexc('7a7a4a'), seed=32, cover=0.28)   # grime low down
     c.line(xa + 3, top + 40, xa + 9, top + 58, BLOOD)                   # a smear down the plastic
     c.line(xa + 5, top + 40, xa + 10, top + 54, BLOOD)
     for (hx, hy) in ((xa + 1, top + 44), (xa + 1, top + 47), (xa + 1, top + 50)):   # fingers round its edge
@@ -1296,7 +1434,7 @@ def d_build(c):
     fl, fbr = bath_front(c, wx0, wx1, rim, d_r)
     c.box(fl[0] + 4, fl[1] + 5, fbr[0] - 4, fbr[1] - 4, PORC, PORC_DK)       # the bath panel
     c.hline(fl[0] + 5, fbr[0] - 5, fl[1] + 6, PORC_LT)
-    c.dither(fl[0] + 1, fbr[1] - 6, fbr[0] - 1, fbr[1] - 1, hexc('8a8a70', 120), 0.45, pattern='random')   # scum at its foot
+    grime_patch(c, fl[0] + 1, fbr[1] - 6, fbr[0] - 1, fbr[1] - 1, hexc('8a8a70'), seed=33, cover=0.3)   # scum at its foot
     c.line(150, fl[1] + 8, 152, fl[1] + 18, BLOOD)
     # the washing machine standing out on the right, the wash dragged out onto the floor; a laundry
     # basket against the wall beside it (loose things go with what they belong to)

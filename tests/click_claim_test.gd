@@ -26,6 +26,8 @@ func _unhandled_input(event: InputEvent) -> void:
 func _ready() -> void:
 	print("=== click claim test ===")
 	await _test_drop_claims_click()
+	await _test_drop_yields_to_a_node()
+	await _test_one_pickup_at_a_time()
 	await _test_other_pickups_claim_click()
 	await _test_drop_never_under_the_hud()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
@@ -90,13 +92,111 @@ func _test_drop_claims_click() -> void:
 	await get_tree().process_frame
 
 
+## OWNER ROUND 48i: "Cannot select the scavenge node because this baseball bat item is lower and has taken priority in the selection. Inventory is full so cannot take the bat.
+## Scavenge node is unsearchable as a result." A drop reaches 40 px, a node's click circle is 10; the drop used to claim every click inside its 40 and, with a full bag, did nothing with it.
+func _test_drop_yields_to_a_node() -> void:
+	print("[a drop never eats a click it cannot use, and never outranks a node under the pointer]")
+	var bf = await _corridor()
+	var p = bf.get_node("Player")
+	p.global_position = Vector2(640, 386)
+	await get_tree().physics_frame
+	var drop = load("res://scenes/world_drop.tscn").instantiate()
+	drop.item_id = "017"                                                    # the baseball bat
+	drop.global_position = Vector2(655, 412)
+	bf.add_child(drop)
+	for i in range(4):
+		await get_tree().physics_frame
+	check(drop.player_nearby, "(setup) the player is in reach of the bat")
+	# 1. a FULL bag: the click is not the bat's, it goes on
+	WorldState.inventory.clear()
+	for i in range(WorldState.get_inventory_slots()):
+		WorldState.add_to_inventory("002")
+	var full: int = WorldState.inventory.size()
+	unhandled_clicks = 0
+	await _click_world(p, drop.global_position)
+	check(WorldState.inventory.size() == full and is_instance_valid(drop) and not drop.is_queued_for_deletion(), "a full bag takes nothing: the bat stays on the floor")
+	check(unhandled_clicks == 1, "...and the click was NOT swallowed - it reached whatever is behind (a node, click-to-move) (%d)" % unhandled_clicks)
+	# 2. room in the bag, a scavenge node 4 px from the pointer and the bat 30 px away: the node has the click
+	WorldState.inventory.clear()
+	var node := Node2D.new()
+	node.add_to_group("scavenge_anchor")
+	bf.add_child(node)
+	node.global_position = drop.global_position + Vector2(30, 0)
+	unhandled_clicks = 0
+	await _click_world(p, node.global_position + Vector2(-4, 0))
+	check(WorldState.inventory.is_empty() and not drop.is_queued_for_deletion(), "a node under the pointer, nearer than the bat: the bat is NOT taken")
+	check(unhandled_clicks == 1, "...the click went on to the node (%d)" % unhandled_clicks)
+	# 3. the bat nearer to the pointer than the node: the bat is the click's
+	unhandled_clicks = 0
+	await _click_world(p, drop.global_position + Vector2(-2, 0))
+	check(WorldState.inventory.size() == 1 and unhandled_clicks == 0, "the pointer on the bat (the node 30 px off): the bat is picked up, nothing else acts (%d, %d)" % [WorldState.inventory.size(), unhandled_clicks])
+	WorldState.inventory.clear()
+	bf.free()
+	await get_tree().process_frame
+
+
+## OWNER ROUND 48i: "too much clutter in text and choice" - three drops lying together posted three "[Click] Take" pills on top of one another, and one [interact] took them all.
+func _test_one_pickup_at_a_time() -> void:
+	print("[three pickups together: one prompt, one pickup]")
+	SettingsManager.last_device = "kbm"
+	var bf = await _corridor()
+	var p = bf.get_node("Player")
+	p.global_position = Vector2(640, 386)
+	await get_tree().physics_frame
+	var drops: Array = []
+	for k in range(3):
+		var d = load("res://scenes/world_drop.tscn").instantiate()
+		d.item_id = ["005", "012", "017"][k]
+		d.global_position = Vector2(628 + 14 * k, 412)
+		bf.add_child(d)
+		drops.append(d)
+	for i in range(6):
+		await get_tree().physics_frame
+	for i in range(4):
+		await get_tree().process_frame
+	var shown := 0
+	for d in drops:
+		var pill = HUD.world_prompt_panel(d)
+		if d.player_nearby and pill != null and pill.visible:
+			shown += 1
+	check(drops[0].player_nearby and drops[1].player_nearby and drops[2].player_nearby, "(setup) all three are in reach")
+	check(shown == 1, "only ONE of the three shows its prompt (%d; focus %s, pills %s)" % [shown, str(world_drop_focus()), str(drops.map(func(d): return [HUD.world_prompt_panel(d) != null, HUD.world_prompt_panel(d) != null and HUD.world_prompt_panel(d).visible]))])
+	# [interact] takes the one that has the prompt, not all three
+	WorldState.inventory.clear()
+	Input.action_press("interact")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	Input.action_release("interact")
+	await get_tree().process_frame
+	check(WorldState.inventory.size() == 1, "[interact] takes exactly one pickup (%d)" % WorldState.inventory.size())
+	# a click takes the one nearest the pointer
+	var left: Array = []
+	for d in drops:
+		if is_instance_valid(d) and not d.is_queued_for_deletion():
+			left.append(d)
+	check(left.size() == 2, "(two are left)")
+	if left.size() == 2:
+		var target = left[1] if left[1].global_position.x > left[0].global_position.x else left[0]
+		var before: int = WorldState.inventory.size()
+		await _click_world(p, target.global_position + Vector2(2, 0))
+		check(WorldState.inventory.size() == before + 1 and (not is_instance_valid(target) or target.is_queued_for_deletion()),
+			"a click takes only the pickup nearest the pointer (%d -> %d, the clicked one is gone: %s)" % [before, WorldState.inventory.size(), str(not is_instance_valid(target) or target.is_queued_for_deletion())])
+	WorldState.inventory.clear()
+	bf.free()
+	await get_tree().process_frame
+
+
+func world_drop_focus():
+	return load("res://scripts/world_drop.gd").focus_drop(get_tree())
+
+
 func _test_other_pickups_claim_click() -> void:
 	# Every click-to-take thing claims its click: the player's own body, the backpack on the floor, a body in a corridor.
 	print("[the other click-to-take things claim their click too]")
 	for f in ["res://scripts/world_drop.gd", "res://scripts/backpack_pickup.gd", "res://scripts/corridor_body.gd", "res://scripts/player_corpse.gd"]:
 		var src: String = FileAccess.get_file_as_string(f)
 		var at: int = src.find("func _input(")
-		var body: String = src.substr(at, 700) if at >= 0 else ""
+		var body: String = src.substr(at, 1600) if at >= 0 else ""
 		check(at >= 0 and body.contains("set_input_as_handled()"), "%s claims the click it acts on" % f.get_file())
 
 

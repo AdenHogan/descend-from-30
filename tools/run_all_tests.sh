@@ -92,6 +92,14 @@ else
 	echo "FAIL   volume audit — a flat drawing: see tools/art/volume_audit.py (redraw it with volume; do not edit the backlog to pass)"; head -8 "$LOG_DIR/_volume.log"
 	bad=$((bad + 1))
 fi
+# NO FLOATING ITEMS (owner round 48i: "the pills are sort of suspended in the air over this dresser… We can't have floaty things. If it's an item it needs to physically be on top of the
+# furniture"): every thing the planner can stand on a host piece's top rests on that host's surface at every place along the slot (tools/art/support_audit.py).
+if python3 tools/art/support_audit.py --check >"$LOG_DIR/_support.log" 2>&1; then
+	echo "ok     support audit ($(tail -1 "$LOG_DIR/_support.log" | sed 's/^ok support audit: //'))"
+else
+	echo "FAIL   support audit — something would float above its furniture: see tools/art/support_audit.py and furnlib._settle_slots"; head -8 "$LOG_DIR/_support.log"
+	bad=$((bad + 1))
+fi
 # THE LOGO (owner round 48): assets/logo/* (png @1x / @4x, svg, ico) and docs/logo/logo_sheet.png are exactly what tools/art/logo.py draws, the four transparent
 # logo files really are transparent, the icon is 64 x 64, and the print's tones stay oxblood (never a comic red).
 if python3 tools/art/logo.py --check >"$LOG_DIR/_logo.log" 2>&1; then

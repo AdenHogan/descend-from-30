@@ -308,7 +308,7 @@ func _check_progress(p, step: float, activity: String) -> void:
 const FINGERPRINT_FIELDS := ["master_seed", "cast_seed", "current_floor", "current_run", "player_health", "is_dying", "rest_available", "rest_count",
 	"anchor_items", "searched_anchors", "door_states", "door_keys_consumed", "killed_zombies", "world_drops", "player_corpses", "wallet_balance", "wallet_unlocked", "scrap",
 	"active_upgrades", "visited_floors", "run_chronicle", "elevator_powered", "elevator_fuses_loaded", "stair_blocks_cleared", "havens", "survivors", "quests",
-	"run_kills", "run_scavenged", "run_boons", "followed_away", "gun_cabinets", "residents", "revenants"]
+	"run_kills", "run_scavenged", "followed_away", "gun_cabinets", "residents", "revenants"]
 
 
 ## JSON turns every number into a float on the way back in, so 3 and 3.0 are the same value: compare values, not spellings

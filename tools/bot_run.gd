@@ -10,7 +10,7 @@ extends Node
 # It plays the REAL scenes with the REAL rules (no god mode, the real stairs / pans / merchant / lobby door), through the player's own
 # controls: held move / sprint actions, the attack key as an input event, `use_item`, the push action. It sees what a player sees (one
 # screen's width of the corridor) and knows what a player knows (the floor's stair side from its sign). It does NOT scavenge, loot, talk to
-# anyone or enter an apartment — it has exactly the kit it was given (+ the upgrades and boon it takes at the merchant floors 25/20/15/10/5).
+# anyone or enter an apartment — it has exactly the kit it was given (+ the upgrade it takes at the merchant floors 25/20/15/10/5).
 # The one liberty: a BARRICADED stairwell needs a crowbar the bot could never have found, so one is handed to it AT THAT MOMENT (outside the
 # five slots, logged) and the real pry follows — see docs/BOT_RUNS.md.
 #
@@ -106,7 +106,6 @@ var floor_rec: Dictionary = {}
 var floors_log: Array = []              # every floor visited, in order
 var events: Array = []
 var upgrades_taken: Array = []
-var boons_taken: Array = []
 var _last_floor: int = -999
 var _last_health: int = 0
 var _known: Dictionary = {}             # instance id -> type of a zombie we have seen alive
@@ -293,6 +292,8 @@ func _give_kit() -> void:
 					inst2.level += 1
 					if not choices.is_empty():
 						inst2.perks.append(choices[0])
+					elif WeaponUpgrades.auto_perk(inst2.item_id, inst2.level) != "":
+						inst2.perks.append(WeaponUpgrades.auto_perk(inst2.item_id, inst2.level))
 					WorldState._apply_durability_headroom(inst2, base_max)
 				if inst2.get_max_durability() > 0:
 					inst2.current_durability = inst2.get_max_durability()
@@ -609,7 +610,7 @@ func _play_floor(p, f: int) -> void:
 		else:
 			_release_all()
 			return
-	# the merchant (floors 25 / 20 / 15 / 10 / 5): the upgrade pick and the boon
+	# the merchant (floors 25 / 20 / 15 / 10 / 5): the upgrade pick
 	if f in WorldState.MERCHANT_FLOORS and _shop_state != "done" and (threat == null or _edge(p, threat) > 200.0):
 		if _visit_merchant(p, f):
 			return
@@ -988,37 +989,22 @@ func _visit_merchant(p, f: int) -> bool:
 
 
 func _shop_choices(ui, f: int) -> void:
-	# the upgrade (pick-1-of-2) …
+	# the upgrade (pick 1 of 3) …
 	if not WorldState.is_upgrade_offer_resolved(f):
-		var pair: Array = WorldState.get_upgrade_pair(f)
+		var pair: Array = WorldState.get_upgrade_offer(f)
 		var best := ""
 		var best_score := -999
 		for id in pair:
-			var sc: int = int(UPGRADE_SCORE.get(id, 0))
+			var sc: int = int(UPGRADE_SCORE.get(id, BOON_SCORE.get(id, 0)))
 			if sc > best_score:
 				best_score = sc
 				best = id
 		if best != "":
 			ui._on_take_upgrade(best)
-			upgrades_taken.append({"run": WorldState.current_run, "floor": f, "taken": best, "name": WorldState.UPGRADE_POOL[best]["name"], "offered": pair.duplicate()})
-			floor_rec["notes"].append("upgrade: %s (offered %s)" % [WorldState.UPGRADE_POOL[best]["name"], str(pair)])
-			_event("UPGRADE", "floor %d: took %s — %s (offered %s)" % [f, best, WorldState.UPGRADE_POOL[best]["name"], str(pair)])
-	# … then this character's boon
-	if f in WorldState.pending_boon_floors:
-		var offer: Array = WorldState.boon_offer(f)
-		var bb := ""
-		var bs := -999
-		for id in offer:
-			var sc2: int = int(BOON_SCORE.get(id, 0))
-			if sc2 > bs:
-				bs = sc2
-				bb = id
-		if bb != "":
-			var err: String = ui.take_boon(bb)
-			if err == "":
-				boons_taken.append({"run": WorldState.current_run, "floor": f, "taken": bb, "offered": offer.duplicate()})
-				floor_rec["notes"].append("boon: %s (offered %s)" % [bb, str(offer)])
-				_event("BOON", "floor %d: took %s (offered %s)" % [f, bb, str(offer)])
+			var pname: String = String(Progression.perk_info(best).get("name", best))
+			upgrades_taken.append({"run": WorldState.current_run, "floor": f, "taken": best, "name": pname, "offered": pair.duplicate()})
+			floor_rec["notes"].append("upgrade: %s (offered %s)" % [pname, str(pair)])
+			_event("UPGRADE", "floor %d: took %s — %s (offered %s)" % [f, best, pname, str(pair)])
 
 
 # --- the lobby ----------------------------------------------------------------------------------------
@@ -1627,13 +1613,11 @@ func _write_report() -> void:
 				str(fr["kills"]).replace("{", "").replace("}", ""), str(fr["seen"]).replace("{", "").replace("}", ""),
 				fr["swings"], fr["shots"], fr["pushes"], fr["heals"], "; ".join(fr["notes"]) + ("; planned dead %d, on stairs %d" % [fr["planned_dead"], fr["stair_dead"]] if int(fr["planned_dead"]) >= 0 else "")])
 		md.append("")
-	md.append("## Upgrades and boons taken")
+	md.append("## Upgrades taken")
 	md.append("")
 	for u in upgrades_taken:
 		md.append("- run %d, floor %d: **%s** (offered %s)" % [u["run"], u["floor"], u["name"], str(u["offered"])])
-	for b in boons_taken:
-		md.append("- run %d, floor %d: boon **%s** (offered %s)" % [b["run"], b["floor"], b["taken"], str(b["offered"])])
-	if upgrades_taken.is_empty() and boons_taken.is_empty():
+	if upgrades_taken.is_empty():
 		md.append("- none (never reached a merchant floor with a merchant out)")
 	md.append("")
 	md.append_array(_scavenge_md())
@@ -1651,7 +1635,7 @@ func _write_report() -> void:
 			f.close()
 			var jf := FileAccess.open(out_path.get_basename() + ".json", FileAccess.WRITE)
 			if jf != null:
-				jf.store_string(JSON.stringify({"seed": seed_value, "style": style, "loot_mode": loot_mode, "runs": runs, "floors": floors_log, "events": events, "upgrades": upgrades_taken, "boons": boons_taken,
+				jf.store_string(JSON.stringify({"seed": seed_value, "style": style, "loot_mode": loot_mode, "runs": runs, "floors": floors_log, "events": events, "upgrades": upgrades_taken,
 					"loot": {"apartments": loot.apartments, "finds": loot.finds, "skips": loot.skips, "cov": loot.cov} if loot != null else {},
 					"anomalies": anomalies, "watch": watch.summary() if watch != null else {}, "wall_s": snappedf(float(Time.get_ticks_msec() - wall_start_ms) / 1000.0, 0.1)}, "  "))
 				jf.close()

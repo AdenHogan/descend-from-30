@@ -58,7 +58,7 @@ scavenge, fight, push past, or avoid → spend what you found (heal, repair, cra
 | 3 | Night | Near-black; storm; the worst of everything. Its character's end is the end of the playthrough. |
 
 - A run ends when its character **exits through the lobby door** (escape) or **dies**. Either triggers the time
-  skip (`WorldState.advance_run()`): a **fresh character** (inventory, health, stamina, wallet balance, boons wiped)
+  skip (`WorldState.advance_run()`): a **fresh character** (inventory, health, stamina, wallet balance wiped; upgrades taken from the merchant are kept)
   inherits the **decayed world on the same master seed** — loot depletion, kills' aftermath, opened doors and fire
   scars persist; enemies re-shuffle; locks loosen; more breaches and barricades; fire climbs.
 - A session casts **3 of 4 characters**, one per run, in a seeded order (Joe always opens the tutorial run).
@@ -146,7 +146,7 @@ carries a personal quest** (banner + journal). The cast/portraits/names are sing
 - No bottom bar: the HUD floats — portrait bottom-left with name / mode / stamina bar and the in-hand vial, pack
   button bottom-right, notes + scrap top-right.
 - **Journal** (click the portrait / J): a worn journal of loose papers in each character's own handwriting — Story
-  (profile, traits, the cross-run chronicle), Quests, Map (fog-of-war over 30 floors + lobby), Codex.
+  (profile, traits, the cross-run chronicle), Quests, Map (a scrollable plan of all 30 floors + lobby that fills in as you see things: each floor's doors and their state, stairs, lift, maintenance door, flames and soot, the dead and people seen, bodies; `BuildingMap`), Codex.
 - Dev F1 menu (god mode, warp, spawn item, set run / hazard / health…).
 
 ## 5. Economy and progression (BUILT — `STORE_DESIGN.md`, `SCRAP_UPGRADES.md`, `PROGRESSION.md`, `PERKS.md`)
@@ -156,17 +156,18 @@ Five layers, all feeding **one stat fold** (`base × ∏mult + Σadd`, never dir
 1. **Bank Notes + Wallet.** Cash drops as notes; a Wallet item unlocks a counter; the balance is per-run, the
    unlock is cross-run. Dying leaves a **recoverable body** with your notes and kit for the next character.
 2. **The Merchant** — one man, in the jammed elevator on floors 25/20/15/10/5 (sheltering when his floor burns).
-   Each character's first visit to each merchant: a **pick-1-of-2 upgrade** (persists across the whole arc; a refusal
-   needs a "you sure?" confirm), then a **pick-1-of-2 run boon** (temporary — this character only), then the shop
-   (seeded stock, a Legendary hold, buy and **sell** 3 items per visit). ~30 upgrades incl. drawbacks.
+   Each character's first visit to each merchant: **ONE offer of three upgrades** (pick one, persists across the whole
+   arc; "take none" needs a second click), then the shop (seeded stock, a Legendary hold, buy and **sell** 3 items per
+   visit). ~40 upgrades incl. drawbacks and the former "run boons" (owner round 48i: upgrades and boons were the same thing).
 3. **Scrap + the workbench.** Charred apartments are the main scrap faucet (a scrap node there reads "[E] Take" and
-   needs no search); the maintenance-room bench levels a weapon (pick 1 of 2 per level), with seven levels
-   (Lv4 Legendary, then Legendary + / ++ / +++), per-weapon **tuning** points, legendary names, **heirloom** tiers gated
+   needs no search); the maintenance-room bench levels a weapon with eight levels (a plain cheap **Reinforce** at Lv2, then
+   pick 1 of 2 per level, **Lv5 Legendary**, then Legendary + / ++ / +++), per-weapon **tuning** points, legendary names, **heirloom** tiers gated
    by lobby-door crossings, **special mods** (fire, wound, knockdown…), and **Salvage**.
-4. **Run boons** — temporary, via the merchant.
+4. **Boons** — the permanent tier (below): what Valour buys. (The old temporary run boons are ordinary merchant upgrades now.)
 5. **Descent Valour** (permanent, the owner's design) — at the session's end each run is scored by depth (+ escape bonus +
-   what the kit scrapped for at the door); the player may buy **one** perk found that session, forever (max 10,
-   tradeable for a 50% refund). Fortune's Favour tilts offers toward desirable perks.
+   quests, residents aided, the dead felled, things searched, flats looted + what the kit scrapped for at the door); the player may
+   buy **one** upgrade taken that session, forever (max 10, tradeable for a 50% refund). Fortune's Favour tilts offers toward
+   desirable perks.
 
 The gun cabinet is an *unannounced* quest: a locked cabinet with a guaranteed Lv3 gun, its key carried by a tough
 spitter in a breach room on the same floor, or pried with a crowbar (the glass smashes). **Floors 24 and down only, one a
@@ -279,7 +280,7 @@ start with nothing but what the earlier runs left behind. *Pressure, not power f
 
 ## 10. State model
 
-- **Per-run:** inventory, health, stamina, wallet balance, run boons, scrap, the personal-quest stage, `has_backpack`
+- **Per-run:** inventory, health, stamina, wallet balance, scrap, the personal-quest stage, `has_backpack`
   (carried over once found), follower, kills/looted tallies.
 - **Cross-run (the arc):** `master_seed`, door states, loot depletion, world drops, fire scars + dealt-with sources,
   active merchant upgrades, wallet unlock, player corpses, run chronicle, map memory, revenants, gun-cabinet states.
@@ -342,7 +343,7 @@ quest system and the deep narrative.
 |---|---|
 | Death → new run from Apartment 3001 (Roommate ×2) | New run begins outside 3001 (never accessible) after an end card and a cold open; Joe's run is the tutorial |
 | 4 inventory slots | **Pockets (2) until the backpack is found, then 5 + a locked 6th** |
-| Upgrades "do not carry over"; choice of THREE; awarded every 5 floors | **Persist across the arc**; choice of **TWO**, from the **merchant** at 25/20/15/10/5 (+ boons, scrap upgrades, Valour) |
+| Upgrades "do not carry over"; choice of THREE; awarded every 5 floors | **Persist across the arc**; choice of **THREE** (again, round 48i), from the **merchant** at 25/20/15/10/5 (+ weapon upgrades at the bench, Valour-bought boons) |
 | Tutorial forces the player back to 3003 / forced prompts | Soft, diegetic herding + paused teaching beats |
 | One zombie type | Five corridor types + bosses, leaders, risers, revenants, stairwell enemies, followers |
 | Listen = a free roaming sound view ("full stealth postponed") | **Anchored R-listen** at doors and stairwells; noise model built; roaming listen dropped |

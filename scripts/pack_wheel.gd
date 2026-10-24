@@ -177,6 +177,9 @@ func _finish_press(pos: Vector2) -> void:
 	if loot != null and loot.over_panel(pos):
 		loot.swap_in(self, from)          # onto the found item: make room if it needs it, then take it
 		return
+	if HUD.body_ring != null and HUD.body_ring.is_open and HUD.body_ring.on_ring(pos):
+		HUD.body_ring.put(int(slots[from]))     # onto the body's ring: lay it on them (owner round 48i)
+		return
 	if dropping_out(pos):
 		drop_at(from, HUD.drop_dir_for(pos, centre.x))      # it falls out the way it was dragged (owner round 48h)
 		return
@@ -208,8 +211,28 @@ func open_menu(k: int) -> void:
 	var at: Vector2 = RingGeo.slot_position(centre, k, slots.size(), RING_R)
 	var right: bool = at.x >= centre.x
 	var h: float = MENU_ROW_H * menu_rows.size() + 8.0
-	var x: float = at.x + DISC * 0.5 + 6.0 if right else at.x - DISC * 0.5 - 6.0 - MENU_W
-	menu_pos = Vector2(clampf(x, 4.0, HUD.SCREEN_W - MENU_W - 4.0), clampf(at.y - h * 0.5, 4.0, SCREEN_LIMIT - h))
+	var y: float = clampf(at.y - h * 0.5, 4.0, SCREEN_LIMIT - h)
+	var xr: float = at.x + DISC * 0.5 + 6.0
+	var xl: float = at.x - DISC * 0.5 - 6.0 - MENU_W
+	# The found-item panel sits ABOVE this ring (its own, higher layer): a menu opened under it was half hidden (owner round 48i: "menu and item overlap"). The menu
+	# takes the side of the slot the panel is NOT on - and, if neither side is clear, goes above or below the slot.
+	var avoid := Rect2()
+	var lp = loot_panel()
+	if lp != null and lp.visible and lp.panel != null:
+		avoid = (lp.panel as Control).get_global_rect().grow(6.0)
+	var order: Array = [xr, xl] if right else [xl, xr]
+	for cx in order:
+		var px: float = clampf(cx, 4.0, HUD.SCREEN_W - MENU_W - 4.0)
+		if not avoid.intersects(Rect2(Vector2(px, y), Vector2(MENU_W, h))):
+			menu_pos = Vector2(px, y)
+			return
+	var px2: float = clampf(at.x - MENU_W * 0.5, 4.0, HUD.SCREEN_W - MENU_W - 4.0)
+	for cy in [at.y - DISC * 0.5 - 6.0 - h, at.y + DISC * 0.5 + 6.0]:
+		var py: float = clampf(cy, 4.0, SCREEN_LIMIT - h)
+		if not avoid.intersects(Rect2(Vector2(px2, py), Vector2(MENU_W, h))):
+			menu_pos = Vector2(px2, py)
+			return
+	menu_pos = Vector2(clampf(order[0], 4.0, HUD.SCREEN_W - MENU_W - 4.0), y)
 
 
 func close_menu() -> void:
@@ -451,6 +474,8 @@ func _show(p: Node) -> void:
 	# (the offset is in SCREEN px — the camera zooms the world, so a world-unit offset would be miles off)
 	var s: Vector2 = get_viewport().get_canvas_transform() * p.global_position + Vector2(0, -(HEADROOM_PX + half))
 	centre = Vector2(clampf(s.x, half, HUD.SCREEN_W - half), clampf(s.y, half, maxf(half, SCREEN_LIMIT - half)))
+	if HUD.body_ring != null and HUD.body_ring.wants_pair():
+		centre.x = float(HUD.body_ring.pair_x(s.x, half)[0])        # searching a body: this ring on the right, the body's on the left (body_ring.gd)
 	if loot_panel() != null:
 		# opened beside a found item (the inventory was full): the panel slides left and the ring sits just right of it — the pair centred on the screen
 		centre = Vector2(loot_panel().ring_centre_x(half), clampf(HUD.SCREEN_H * 0.5, half, maxf(half, SCREEN_LIMIT - half)))
@@ -580,10 +605,18 @@ func _draw() -> void:
 		_text(font, centre + Vector2(-cw * 0.5, -6), "EMPTY", 15, DIM_TEXT, cw, HORIZONTAL_ALIGNMENT_CENTER)
 	elif inst_h != null:
 		var c: Dictionary = HUD.item_tip_content(inst_h)
-		_text(font, centre + Vector2(-cw * 0.5, -22), String(c["title"]).to_upper(), 16, Color(1.0, 0.85, 0.4) if c.get("legendary", false) else ROOT_TEXT, cw, HORIZONTAL_ALIGNMENT_CENTER)
-		var stats: Array = c["stats"]
-		for i in range(mini(stats.size(), 2)):
-			_text(font, centre + Vector2(-cw * 0.5, 0 + i * 16), String(stats[i]), 12, Color(0.75, 0.79, 0.84), cw, HORIZONTAL_ALIGNMENT_CENTER)
+		var cmp: Dictionary = ItemCompare.card(inst_h, ItemCompare.held_weapon())        # a weapon that isn't the one in hand: its numbers against it
+		_text(font, centre + Vector2(-cw * 0.5, -40 if not cmp.is_empty() else -22), String(c["title"]).to_upper(), 16, Color(1.0, 0.85, 0.4) if c.get("legendary", false) else ROOT_TEXT, cw, HORIZONTAL_ALIGNMENT_CENTER)
+		if cmp.is_empty() or String(cmp["vs"]) == "":
+			var stats: Array = c["stats"]
+			for i in range(mini(stats.size(), 2)):
+				_text(font, centre + Vector2(-cw * 0.5, 0 + i * 16), String(stats[i]), 12, Color(0.75, 0.79, 0.84), cw, HORIZONTAL_ALIGNMENT_CENTER)
+		else:
+			var rows: Array = cmp["rows"]
+			for i in range(mini(rows.size(), 4)):
+				var crow: Dictionary = rows[i]
+				var tone_col: Color = ItemCompare.GOOD if int(crow["tone"]) > 0 else (ItemCompare.BAD if int(crow["tone"]) < 0 else Color(0.75, 0.79, 0.84))
+				_text(font, centre + Vector2(-cw * 0.5, -20 + i * 15), "%s  %s   %s" % [crow["label"], crow["text"], crow["delta"]], 12, tone_col, cw, HORIZONTAL_ALIGNMENT_CENTER)
 	else:
 		_text(font, centre + Vector2(-cw * 0.5, -6), "YOUR PACK", 15, ROOT_TEXT, cw, HORIZONTAL_ALIGNMENT_CENTER)
 		_text(font, centre + Vector2(-cw * 0.5, 14), "click here to close", 12, DIM_TEXT, cw, HORIZONTAL_ALIGNMENT_CENTER)

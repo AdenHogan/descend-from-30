@@ -13,6 +13,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import furn as F
 import furnlib as FL
 import propkit as K
+import wardrobe_inside as WI
 from furnlib import piece
 from pixlib import hexc, shade, mix
 
@@ -115,8 +116,7 @@ def _door(c, xa, xb, ya, yb, WA, WA_DK, WA_LT, seed, handle_x=None):
 
 # ================================================================================================================================ the wardrobe
 def _wardrobe_body(c, x0, x1, top, base, pal, t):
-    """The adult wardrobe: cornice, two panelled doors, a drawer, a plinth on bracket feet; at t > 0 the RIGHT door swings out on its hinge to show a shelf, a hat box and clothes hanging."""
-    import bedroom as BR
+    """The adult wardrobe: cornice, two panelled doors, a drawer, a plinth on bracket feet; at t > 0 the RIGHT door swings out on its hinge to show the inside (wardrobe_inside.py)."""
     WA, WA_DK, WA_LT = pal
     out = shade(WA_DK, 0.55)
     c.shadow((x0 + x1) // 2, base + 1, 23, 2, 100)
@@ -129,14 +129,7 @@ def _wardrobe_body(c, x0, x1, top, base, pal, t):
     if t <= 0.0:
         _door(c, mid + 1, x1 - 1, dy0, dy1, WA, WA_DK, WA_LT, 9, handle_x=mid + 3)
     else:
-        c.rect(mid + 1, dy0, x1 - 1, dy1, hexc('2c211b'))                  # the dark inside
-        c.hline(mid + 1, x1 - 1, dy0, hexc('1c1510'))
-        c.hline(mid + 1, x1 - 1, dy0 + 9, WA_LT)                           # the shelf
-        c.box(mid + 3, dy0 + 2, mid + 13, dy0 + 8, hexc('8f7a6a'), hexc('5f4f43'))     # a hat box
-        c.hline(mid + 3, mid + 13, dy0 + 2, hexc('b8a592'))
-        rail = dy0 + 14
-        c.hline(mid + 1, x1 - 2, rail, BRASS)
-        BR.hanging_clothes(c, mid, rail)
+        WI.draw(c.put, (mid + 1, dy0, x1 - 1, dy1), WA)                    # the inside, with real geometry (wardrobe_inside.py: shared with the baked wardrobes)
         dw = (x1 - 1) - (mid + 1)
         wd = max(3, int(round(dw * (1.0 - t) ** 0.8)))                      # the leaf seen foreshortened as it swings out
         xa = x1 - 1 - wd + 1
@@ -157,15 +150,15 @@ def _wardrobe_body(c, x0, x1, top, base, pal, t):
     _feet(c, x0, x1, base, WA, WA_DK, WA_LT)
 
 
-@piece('wardrobe_wood', 35, 73, 'wall', rooms={'bedroom': 6}, styles={'adult': 6, 'sick': 1, 'teen': 1}, tags=('storage', 'wardrobe', 'tall'), depth=4,
+@piece('wardrobe_wood', 46, 73, 'wall', rooms={'bedroom': 6}, styles={'adult': 6, 'sick': 1, 'teen': 1}, tags=('storage', 'wardrobe', 'tall'), depth=4,
        variants={'walnut': {'pal': (hexc('6a4a33'), hexc('533826'), hexc('7e5a3f'))}, 'oak': {'pal': (hexc('7a5a3a'), hexc('5e4430'), hexc('8e6a46'))},
                  'dark': {'pal': (hexc('4e3626'), hexc('3a281c'), hexc('62463a'))}, 'painted': {'pal': (hexc('7a8a80'), hexc('5a685f'), hexc('94a498'))}},
-       slots=({'id': 'top', 'dx0': 3, 'dx1': 31, 'dy': -72, 'top': True, 'kinds': ('big',)},),
-       anchors=({'name': 'wardrobe_upper', 'dx': 24, 'dy': -53}, {'name': 'wardrobe_lower', 'dx': 17, 'dy': -9}),
+       slots=({'id': 'top', 'dx0': 3, 'dx1': 42, 'dy': -72, 'top': True, 'kinds': ('big',)},),
+       anchors=({'name': 'wardrobe_upper', 'dx': 33, 'dy': -53}, {'name': 'wardrobe_lower', 'dx': 22, 'dy': -9}),
        opens={'kind': 'door_h', 'frames': 3, 'anchor': 'wardrobe_upper'}, feet=(105, 108),
        note='a tall wardrobe: built-up cornice, two raised-panel doors with escutcheons, a drawer on bracket feet; the right door opens on clothes (walnut, oak, dark, or painted sage)')
 def wardrobe_wood(c, ox, oy, p):
-    _wardrobe_body(c, ox, ox + 34, oy - 72, oy, p['pal'], p['open'])
+    _wardrobe_body(c, ox, ox + 45, oy - 72, oy, p['pal'], p['open'])
 
 
 # ================================================================================================================================ the mirrored wardrobe
@@ -205,14 +198,14 @@ def _mirror_glass(c, x0, y0, x1, y1, cracked, seed):
         c.put(pts[0][0] + 1, pts[0][1], hexc('f0f6f8'))
 
 
-@piece('wardrobe_mirror', 39, 80, 'wall', rooms={'bedroom': 4}, styles={'sick': 8, 'adult': 2}, tags=('wardrobe', 'storage', 'mirror', 'tall'), depth=5,
+@piece('wardrobe_mirror', 46, 80, 'wall', rooms={'bedroom': 4}, styles={'sick': 8, 'adult': 2}, tags=('wardrobe', 'storage', 'mirror', 'tall'), depth=5,
        variants={'clean': {'cracked': False}, 'cracked': {'cracked': True}},
-       anchors=({'name': 'wardrobe', 'dx': 7, 'dy': -39},), feet=(105, 108),
+       anchors=({'name': 'wardrobe', 'dx': 9, 'dy': -39},), feet=(105, 108),
        note='a tall mahogany wardrobe with a pediment and finial, a panelled door and a gilt-framed mirrored door whose glass reflects the room (one is cracked)')
 def wardrobe_mirror(c, ox, oy, p):
     WA, WA_DK, WA_LT = hexc('5e3a2a'), hexc('46291d'), hexc('7a4e38')
     out = shade(WA_DK, 0.55)
-    x0, x1 = ox, ox + 38
+    x0, x1 = ox, ox + 45
     top, base = oy - 79, oy
     c.shadow((x0 + x1) // 2, base + 1, 23, 2, 100)
     c.rect(x0 - 1, top + 12, x1 + 1, base - 5, out)
@@ -266,15 +259,15 @@ def _stencil(c, cx, cy, kind, col):
             c.put(cx + dx, cy + dy, col)
 
 
-@piece('wardrobe_small', 31, 70, 'wall', rooms={'bedroom': 4}, styles={'kid': 8}, tags=('wardrobe', 'storage'), depth=4,
+@piece('wardrobe_small', 38, 70, 'wall', rooms={'bedroom': 4}, styles={'kid': 8}, tags=('wardrobe', 'storage'), depth=4,
        variants={k: {'trim': k} for k in KID_WARD},
-       anchors=({'name': 'small_wardrobe', 'dx': 14, 'dy': -29},), feet=(105, 108),
+       anchors=({'name': 'small_wardrobe', 'dx': 18, 'dy': -29},), feet=(105, 108),
        note='a small cream-painted wardrobe with a scalloped pelmet, a stencilled star and moon on the doors, round knobs and bracket feet')
 def wardrobe_small(c, ox, oy, p):
     trim = KID_WARD[p['trim']]
     cream, cream_dk, cream_lt = hexc('e6e0cc'), hexc('b9b3a4'), hexc('f6f2e4')
     out = hexc('8a8270')
-    x0, x1 = ox, ox + 30
+    x0, x1 = ox, ox + 37
     top, base = oy - 68, oy
     c.shadow((x0 + x1) // 2, base + 1, 19, 2, 100)
     # the rounded top with a cap moulding, the scalloped pelmet under it

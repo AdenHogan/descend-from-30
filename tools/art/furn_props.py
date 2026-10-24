@@ -344,8 +344,8 @@ def photo_small(c, ox, oy, p):
 
 
 # ================================================================================================================================ tablets
-@piece('pill_bottles', 14, 10, 'top', rooms={'bedroom': 4, 'bathroom': 6}, styles={'adult': 2, 'sick': 6}, tags=('small', 'medical'), on=('small',),
-       variants={'a': {'amber': 'c2701e'}, 'b': {'amber': '9a6428'}}, note='an amber pill bottle with a label and a white cap, one lying on its side, tablets spilled')
+@piece('pill_bottles', 17, 10, 'top', rooms={'bedroom': 4, 'bathroom': 6}, styles={'adult': 2, 'sick': 6}, tags=('small', 'medical'), on=('small',),
+       variants={'a': {'amber': 'c2701e'}, 'b': {'amber': '9a6428'}}, note='an amber pill bottle with a label and a white cap, one lying on its side, a few tablets spilled beside it (ON the surface: no pixel below the feet row, so the bottle never overhangs a thin desktop)')
 def pill_bottles(c, ox, oy, p):
     amber = hexc(p['amber'])
     _shadow(c, ox + 7, oy + 0.5, 8, 1.4)
@@ -369,7 +369,7 @@ def pill_bottles(c, ox, oy, p):
     K.cyl(lc, ox + 3.5, oy - 10, oy - 8, 2.4, hexc('ece8dc'), ry=1.0, gloss=True, n=4, lo=0.72, hi=1.2, cap_col=hexc('f8f4ea'))
     for rx in (ox + 2, ox + 4):
         lc.put(rx, oy - 8, hexc('b8b4a4'))
-    for (tx, ty, col) in ((10, 0, 'f4f0e8'), (12, 0, 'e8a8a0'), (11, 1, 'f4f0e8')):                                    # spilled tablets
+    for (tx, ty, col) in ((14, -1, 'f4f0e8'), (16, -1, 'e8a8a0'), (15, -2, 'f4f0e8')):                                 # spilled tablets, beside the bottles on the same row they stand on
         lc.put(ox + tx, oy + ty, hexc(col))
     L.flush()
 

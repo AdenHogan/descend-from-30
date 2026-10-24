@@ -102,8 +102,8 @@ customers, resulting in an ever-changing storefront selection.
 
 ## Upgrades
 
-**Acquisition model (decided, supersedes earlier priced model):**
-- **FREE: choose one of two, once per merchant visit** (Hades-boon style)
+**Acquisition model (decided, supersedes earlier priced model; round 48i: the offer is now ONE choice of THREE, merged with the former run boons - docs/PROGRESSION.md "Tier 2"):**
+- **FREE: choose one of two (now three), once per merchant visit** (Hades-boon style)
 - Money buys items only
 - Choosing is optional — an unpicked pair does NOT bank; skip it and it's
   gone until next visit's fresh pair

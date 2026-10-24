@@ -191,29 +191,29 @@ func _test_upgrades() -> void:
 	WorldState.active_upgrades = ["U_slot"]
 	check(WorldState.get_inventory_slots() == 6, "inventory-slot upgrade unlocks the 6th")
 
-	# Offer generation: two distinct unowned upgrades, seeded stable.
+	# Offer generation: three distinct unowned perks, seeded stable.
 	_fresh_state(9001)
-	var pair_a = WorldState.get_upgrade_pair(25)
-	var pair_b = WorldState.get_upgrade_pair(25)
-	check(pair_a.size() == 2, "offer is a pair")
-	check(pair_a[0] != pair_a[1], "pair has no duplicate")
-	check(pair_a == pair_b, "pair is stable across calls (seeded)")
+	var pair_a = WorldState.get_upgrade_offer(25)
+	var pair_b = WorldState.get_upgrade_offer(25)
+	check(pair_a.size() == 3, "offer is three cards")
+	check(pair_a[0] != pair_a[1] and pair_a[1] != pair_a[2] and pair_a[0] != pair_a[2], "the offer has no duplicate")
+	check(pair_a == pair_b, "the offer is stable across calls (seeded)")
 
 	# No duplicate offers: an owned upgrade never reappears in a fresh pair.
 	_fresh_state(9001)
 	WorldState.active_upgrades = [pair_a[0]]
-	var pair_c = WorldState.get_upgrade_pair(20)
+	var pair_c = WorldState.get_upgrade_offer(20)
 	check(not (pair_a[0] in pair_c), "owned upgrade excluded from new offers")
 
 	# Resolve: taking one records it and marks the visit resolved.
 	_fresh_state(9001)
-	var pair = WorldState.get_upgrade_pair(25)
+	var pair = WorldState.get_upgrade_offer(25)
 	check(not WorldState.is_upgrade_offer_resolved(25), "offer starts unresolved")
 	WorldState.resolve_upgrade_offer(25, pair[0])
 	check(WorldState.is_upgrade_offer_resolved(25), "offer resolved after taking")
 	check(pair[0] in WorldState.active_upgrades, "chosen upgrade is owned")
 	# Refuse path
-	WorldState.get_upgrade_pair(20)
+	WorldState.get_upgrade_offer(20)
 	WorldState.resolve_upgrade_offer(20, "")
 	check(WorldState.is_upgrade_offer_resolved(20), "refusal also resolves the visit")
 	check(WorldState.active_upgrades.size() == 1, "refusal grants nothing")

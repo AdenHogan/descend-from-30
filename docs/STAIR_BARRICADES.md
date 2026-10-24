@@ -39,7 +39,13 @@ of the stairs, so where and when you cross is a real decision.
      below), opens that stairwell **for the rest of the run**, and commits the
      crossing. A clear cue fires — feedback + a player-speech line — because the
      building shift is the whole cost.
-   - **Cost = a rest slot.** Crossing triggers the **same building shift a rest
+   - **A CROWBAR crossing costs the crowbar and NOTHING ELSE (owner round 48i: "the building shift shouldn't happen if the player has the crowbar too, because we
+     already have it for if the player does so with bare hands").** The crowbar is spent, the stairwell opens for the run, and the player takes the ordinary stair crossing
+     (a pan between the two floors; a chaser may follow). No building shift, no rest slot, no exhaustion, nobody mustered on the arrival floor
+     (`WorldState.cross_blocked_stair(..., by_hand = false)` clears the block and returns; `stairwell._commit_pry` passes `_perform_transition(by_hand)`, so only a hand
+     crossing takes the heavy time-skip fade). The long, loud channel itself is still the price of the pry. **Everything below this bullet is the BARE-HANDS crossing's cost**
+     (section 2b) - it was the crowbar's too until round 48i.
+   - **Cost = a rest slot (bare hands only).** Crossing triggers the **same building shift a rest
      does** (`WorldState.shift_building` — the world reseeds and the dead
      wander), but is **not billed as rest**: **no stamina heal**, no rest-stat
      bump. It costs **exactly one rest opportunity, wherever you cross**: if a
@@ -47,7 +53,7 @@ of the stairs, so where and when you cross is a real decision.
      **next** merchant-floor rest is **forfeited** (`rest_forfeit_pending`,
      consumed in `on_floor_arrived`). Never both. So you weigh: spend the shift
      here to punch through, or keep the slot to actually rest and heal.
-   - **You arrive EXHAUSTED (the anti-rest).** The crossing is deliberately the
+   - **You arrive EXHAUSTED (the anti-rest; bare hands only since round 48i).** The crossing is deliberately the
      *opposite* of resting: on top of the no-heal shift, stamina is drained to a
      small exhausted floor (`PRY_EXHAUST_FRACTION` of max, via `minf()` so it can
      only ever LOWER it — an already-tired player is never topped up). The pry
@@ -55,7 +61,7 @@ of the stairs, so where and when you cross is a real decision.
      building has shifted, and you're spent"), then lands you on the floor you
      fought toward — bar near-empty. You worked all that time to tear it open;
      you step out drained, into the roused floor below.
-   - **The destination floor is waiting.** Arriving via a pry, that floor's
+   - **The destination floor is waiting (bare hands only).** Arriving via a hand-pry, that floor's
      whole horde is **milling at the stairwell you tore open**, roused —
      tactical planning required (and you're spent when you get there).
 
@@ -73,7 +79,7 @@ of the stairs, so where and when you cross is a real decision.
 2b. **A barricade is never a dead end (owner round 45 — a softlock: two crowbars spent on gun cabinets, none left for the stairwell).**
    With no crowbar a barricaded stairwell can still be pried **by hand**: the first press says what it costs, a second press
    within 4 s (`HAND_CONFIRM_WINDOW`; not inside 0.35 s) starts an **18 s** channel (`HAND_PRY_TIME`; a crowbar's is ~6 s) that is
-   just as loud, and the crossing is identical — building shift, a rest slot (burnt, or the next merchant-floor rest forfeited),
+   just as loud, and it keeps EVERY cost the crowbar no longer pays (round 48i) — building shift, a rest slot (burnt, or the next merchant-floor rest forfeited),
    stamina to the exhausted floor, the dead milling at the far landing. Nothing is consumed. `stairwell.gd` (`pry_by_hand`),
    `WorldState.cross_blocked_stair(..., by_hand)`; `stair_block_test._hand_pry`.
 

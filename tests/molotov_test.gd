@@ -71,12 +71,24 @@ func _test_item() -> void:
 		weights += maxi(0, w)
 	check(weights > 0, "…and at least one room can actually roll it (premade molotovs turn up in scavenging)")
 	check(int(d.get("rarity", 0)) == 1, "it is a RARE find (rarity 1)")
-	# it stacks like a can
+	# it stacks, two to a slot (owner round 48i: "molotovs can stack up to two") - cans and bottles still three
+	_fresh()
+	check(WorldState.MAX_MOLOTOV_PER_SLOT == 2 and WorldState.throwable_cap("039") == 2 and WorldState.throwable_cap("005") == WorldState.MAX_THROWABLE_PER_SLOT,
+		"a Molotov slot holds two, a can slot three")
+	for _i in range(2):
+		check(WorldState.add_to_inventory("039"), "a molotov fits")
+	check(WorldState.inventory.size() == 1 and WorldState.inventory[0].count == 2, "two molotovs share one slot")
+	check(WorldState.add_to_inventory("039") and WorldState.inventory.size() == 2 and WorldState.inventory[1].count == 1, "a third takes a new slot rather than overflowing the stack")
 	_fresh()
 	for _i in range(3):
-		check(WorldState.add_to_inventory("039"), "a molotov fits")
-	check(WorldState.inventory.size() == 1 and WorldState.inventory[0].count == 3, "three molotovs share one slot (throwables stack to 3)")
-	check(not WorldState.add_to_inventory("039") or WorldState.inventory.size() == 2, "a fourth takes a new slot rather than overflowing the stack")
+		WorldState.add_to_inventory("005")
+	check(WorldState.inventory.size() == 1 and WorldState.inventory[0].count == 3, "(unchanged) three cans still share one slot")
+	var dropped = ItemInstance.new()
+	dropped.setup("039")
+	dropped.count = 2
+	_fresh()
+	WorldState.add_to_inventory("039")
+	check(WorldState.add_instance_to_inventory(dropped) and WorldState.inventory.size() == 2, "a dropped stack of two does not squeeze into a held one past the cap of two")
 
 
 # ---------------------------------------------------------------- crafting rules

@@ -3,13 +3,18 @@ extends RefCounted
 
 # THE WORKBENCH'S RULES (docs/SCRAP_UPGRADES.md) — one data table, edited in one place.
 #
-# A weapon climbs SEVEN levels:
-#   Lv1-3  ordinary        — every level-up grants TUNING POINTS the player spends on the weapon's
-#                            own stat sheet (below), within caps; a weapon with a TREE also picks
-#                            one of two perks per level (gun + hammer today).
-#   Lv4    LEGENDARY       — it earns a TITLE (generated from how it was built; the player can
+# A weapon climbs EIGHT levels:
+#   Lv2    REINFORCED      — the first, CHEAP step (30 scrap, no spare, no choice, no tuning points): the
+#                            weapon is simply tougher and hits harder (owner round 48i: "a taste of
+#                            upgrading" — `R_melee` / `R_gun` below). Every weapon, always, so a character
+#                            who reaches the first bench has something affordable to try.
+#   Lv3-4  ordinary        — every level-up from here grants TUNING POINTS the player spends on the
+#                            weapon's own stat sheet (below), within caps; a weapon with a TREE also
+#                            picks one of two perks per level (gun + hammer today), a tree-less one
+#                            picks one of two special mods.
+#   Lv5    LEGENDARY       — it earns a TITLE (generated from how it was built; the player can
 #                            rename it). "Hammer "Widowmaker"".
-#   Lv5-7  HEIRLOOM + ++ +++ — only for a weapon that has CROSSED THE LOBBY DOOR (stashed at an
+#   Lv6-8  HEIRLOOM + ++ +++ — only for a weapon that has CROSSED THE LOBBY DOOR (stashed at an
 #                            escape, collected in a later game) 1 / 2 / 3 times: the new-game-plus
 #                            upgrades. Scrap is paid in INSTALMENTS that ride the weapon, so several
 #                            characters (and games) can feed it. Each tier grants more points and
@@ -20,28 +25,31 @@ extends RefCounted
 # modifier fold (base × ∏mult + Σadd — never direct writes): ItemInstance.perk_add / perk_mult /
 # has_perk_flag.
 
-const MAX_LEVEL := 7
-const LEGENDARY_LEVEL := 4
+const MAX_LEVEL := 8
+const LEGENDARY_LEVEL := 5
+const REINFORCE_LEVEL := 2            # the plain first step (above): no pick, no tuning points
+const WORKBENCH_VERSION := 2          # saved with every weapon: a version-1 save counted Lv2 as its first PICK level, so its level >= 2 moves up one (WorldState.instance_from_dict)
 
-# Lv1→2, 2→3, 3→4: scrap + (from Lv3) a spare weapon stripped for parts (the lowest qualifying
+# Lv1→2, 2→3, 3→4, 4→5: scrap + (from Lv4) a spare weapon stripped for parts (the lowest qualifying
 # one is used, never a better one). The spare is the SAME weapon, or — for melee — any weapon of
 # the same FAMILY (FAMILY below), so a rare blade or bat can still reach legendary.
 const STEP_COST := {
-	2: {"scrap": 50, "feed_level": 0},     # feed_level 0 = no spare needed
-	3: {"scrap": 80, "feed_level": 1},
-	4: {"scrap": 100, "feed_level": 2},
+	2: {"scrap": 30, "feed_level": 0},     # feed_level 0 = no spare needed
+	3: {"scrap": 50, "feed_level": 0},
+	4: {"scrap": 80, "feed_level": 1},
+	5: {"scrap": 100, "feed_level": 2},
 }
 
 # Heirloom tiers: crossings needed + scrap paid in instalments (WorldState.forge_heirloom). Sized
 # against tools/economy_report (docs/SCRAP_UPGRADES.md v2): a character who searches ~45 apartments
 # on the way down finds ~200 scrap, so each tier is two to three characters' worth.
 const HEIRLOOM := {
-	5: {"crossings": 1, "scrap": 400},
-	6: {"crossings": 2, "scrap": 500},
-	7: {"crossings": 3, "scrap": 600},
+	6: {"crossings": 1, "scrap": 400},
+	7: {"crossings": 2, "scrap": 500},
+	8: {"crossings": 3, "scrap": 600},
 }
 
-const POINTS_PER_LEVEL := 2          # tuning points each level above 1 grants (Lv4 = 6, Lv7 = 12)
+const POINTS_PER_LEVEL := 2          # tuning points each level above REINFORCE_LEVEL grants (Lv3 = 2, Lv5 = 6, Lv8 = 12)
 
 # Which weapons the bench works on, and their stat sheet. "melee" / "gun".
 const KIND := {
@@ -64,7 +72,7 @@ const FAMILY := {
 
 # THE STAT SHEET — what a player can put their points into. Per rank: `add` adds to a fold stat,
 # `mult` moves a fold stat's multiplier by that much (×(1 + ranks × mult)). `cap` = most ranks at
-# Lv1-4; each heirloom tier lifts every cap by one. Fold stat names are the ones combat reads
+# Lv1-5; each heirloom tier lifts every cap by one. Fold stat names are the ones combat reads
 # (ItemInstance.perk_add / perk_mult): damage, execute, reach, cooldown, stamina, durability,
 # headshot, body, mag, shots_per_mark, free_shot.
 const STATS := {
@@ -92,25 +100,30 @@ const STATS := {
 		"mods": {"free_shot": {"add": 0.05}}},
 }
 
-# Item id → {level: [perk A, perk B]}. A weapon WITH a tree picks one of these two at Lv2-4. Every
-# OTHER level-up — a tree-less weapon's Lv2-4, and EVERY heirloom tier — offers two SPECIAL MODS
+# Item id → {level: [perk A, perk B]}. A weapon WITH a tree picks one of these two at Lv3-5. Every
+# OTHER level-up — a tree-less weapon's Lv3-5, and EVERY heirloom tier — offers two SPECIAL MODS
 # (MODS below, seeded per weapon + level). Add a weapon's tree here.
 const TREES := {
 	"004": {   # Gun
-		2: ["G_aim", "G_durable"],
-		3: ["G_silencer", "G_pierce"],
-		4: ["G_lucky", "G_bang"],
+		3: ["G_aim", "G_durable"],
+		4: ["G_silencer", "G_pierce"],
+		5: ["G_lucky", "G_bang"],
 	},
 	"002": {   # Hammer — PLACEHOLDER perks: the doc leaves the hammer tree to the owner. Rename /
 		# rebalance freely in PERKS below; the ids only need to stay unique.
-		2: ["H_heavy", "H_reinforced"],
-		3: ["H_doorbreaker", "H_sweep"],
-		4: ["H_skull", "H_feather"],
+		3: ["H_heavy", "H_reinforced"],
+		4: ["H_doorbreaker", "H_sweep"],
+		5: ["H_skull", "H_feather"],
 	},
 }
 
 # mods: stat → {"add": x} and/or {"mult": x}; flags: qualitative behaviours read by the combat code.
 const PERKS := {
+	# --- the first step, every weapon (Lv2): applied by the bench itself, never offered as a choice. No "title" key: it doesn't say what a legendary weapon is best at. ---
+	"R_melee": {"name": "Reinforced", "desc": "+1 damage and half as much durability again.",
+		"mods": {"damage": {"add": 1}, "durability": {"mult": 1.5}}},
+	"R_gun": {"name": "Reinforced", "desc": "+5% to hit (head and body), and it wears half as fast again.",
+		"mods": {"headshot": {"add": 0.05}, "body": {"add": 0.05}, "shots_per_mark": {"mult": 1.5}}},
 	# --- Gun (the doc's tree) ---
 	"G_aim": {"name": "Aim Assist", "desc": "Steadier aim: +10% headshot and +10% body-hit chance.",
 		"mods": {"headshot": {"add": 0.10}, "body": {"add": 0.10}}, "title": "T_sights"},
@@ -173,7 +186,7 @@ const MODS := {
 }
 
 # LEGENDARY TITLES — word banks keyed by what the weapon is best at (its highest-ranked stat, or
-# the flavour of its perks). One is drawn (seeded, stable) when it reaches Lv4; the player can
+# the flavour of its perks). One is drawn (seeded, stable) when it reaches Lv5; the player can
 # rename it at the bench. Add words freely.
 const TITLE_BANKS := {
 	"T_weight": ["Widowmaker", "Bonebreaker", "The Last Word", "Heavy Heart", "Doorstop"],
@@ -219,6 +232,18 @@ static func perk(id: String) -> Dictionary:
 
 static func is_mod(id: String) -> bool:
 	return MODS.has(id)
+
+
+# The perk the bench gives on its own when a weapon reaches `to_level` ("" = none: that level is a pick). Today only the first, plain step.
+static func auto_perk(item_id: String, to_level: int) -> String:
+	if to_level != REINFORCE_LEVEL or not can_upgrade(item_id):
+		return ""
+	return "R_gun" if kind_of(item_id) == "gun" else "R_melee"
+
+
+# Does the step INTO this level carry no choice and no tuning points (the plain first step)?
+static func is_plain_step(to_level: int) -> bool:
+	return to_level == REINFORCE_LEVEL
 
 
 # The chance a mod's proc fires on THIS weapon: its base, + per_tier for each heirloom tier.
@@ -298,14 +323,29 @@ static func is_heirloom_step(to_level: int) -> bool:
 	return HEIRLOOM.has(to_level)
 
 
-# The two choices for this weapon's NEXT level: its tree's pair at Lv2-4, otherwise two special
-# mods ([] at max level / not a weapon the bench works on).
+# The two choices for this weapon's NEXT level: its tree's pair at Lv3-5, otherwise two special
+# mods ([] at max level / the plain first step / not a weapon the bench works on).
 static func next_choices(inst) -> Array:
-	if inst == null or not can_upgrade(inst.item_id) or inst.level >= MAX_LEVEL:
+	if inst == null or not can_upgrade(inst.item_id) or inst.level >= MAX_LEVEL or is_plain_step(inst.level + 1):
 		return []
 	if has_perk_tree(inst.item_id) and TREES[inst.item_id].has(inst.level + 1):
 		return TREES[inst.item_id][inst.level + 1]
 	return mod_pair(inst)
+
+
+# What the NEXT level (`inst.level + 1`) GIVES, as one line for the bench (its "COSTS ..." line is separate): the plain first step's own bonus, or a pick + tuning points (+ a name at Legendary).
+static func gives_text(inst) -> String:
+	var to_level: int = inst.level + 1
+	var parts: PackedStringArray = []
+	if is_plain_step(to_level):
+		parts.append(String(perk(auto_perk(inst.item_id, to_level)).get("desc", "")).trim_suffix("."))
+		parts.append("nothing to choose; tuning points start at Lv%d" % (REINFORCE_LEVEL + 1))
+		return " · ".join(parts)
+	parts.append("a pick of two upgrades" if not next_choices(inst).is_empty() else "every stat can go one rank higher")
+	parts.append("%d tuning points to spend" % POINTS_PER_LEVEL)
+	if to_level == LEGENDARY_LEVEL:
+		parts.append("a NAME: it becomes legendary")
+	return " · ".join(parts)
 
 
 static func step_cost(to_level: int) -> Dictionary:
@@ -316,7 +356,7 @@ static func step_cost(to_level: int) -> Dictionary:
 
 # --- tuning --------------------------------------------------------------------------------
 static func points_earned(inst) -> int:
-	return POINTS_PER_LEVEL * maxi(0, inst.level - 1)
+	return POINTS_PER_LEVEL * maxi(0, inst.level - REINFORCE_LEVEL)
 
 
 static func points_spent(inst) -> int:

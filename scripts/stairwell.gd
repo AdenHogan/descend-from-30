@@ -513,16 +513,14 @@ func _commit_pry() -> void:
 	pry_by_hand = false
 	pry_timer = 0.0
 	HUD.hide_world_prompt(self)   # about to transition off this floor
-	# Spend the crowbar (not when it was done by hand) and commit the crossing (works either direction): opens the
-	# stairwell for the run, shifts the building (enemies move, no heal), costs a
-	# rest slot, and musters the arrival floor's horde at the stairwell.
+	# Commit the crossing (works either direction). A CROWBAR is spent and that is the whole price: the stairwell opens and the player takes the
+	# ordinary stair crossing (a pan, a chaser may follow). BARE HANDS keep every cost (WorldState.cross_blocked_stair): the building shifts, a rest
+	# slot goes, you arrive spent — through the heavy time-skip transition, whose held caption carries the "building shifted" beat.
 	var arrival: int = WorldState.current_floor + (-1 if direction == "down" else 1)
 	if not by_hand:
 		WorldState.consume_crowbar()
 	WorldState.cross_blocked_stair(_choke_floor(), arrival, by_hand)
-	# The heavy time-skip transition carries the "building shifted" beat (fade to
-	# black + held caption), then lands the player on the floor they fought toward.
-	_perform_transition(true)
+	_perform_transition(by_hand)
 
 
 # --- The BANISTER (owner round 31e) ------------------------------------------

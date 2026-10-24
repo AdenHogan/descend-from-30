@@ -362,21 +362,29 @@ def banner_party(c, ox, oy, p):
     wall_art3d.banner_party(c, ox, oy, p)
 
 
-@piece('balloons', 14, 36, 'decor', rooms={'dining_room': 6}, styles={'party': 9}, tags=('party',), wall_y=(24, 40), limit=2, variants={'bunch': {'cols': ('4a7ab8', 'd8483a', 'e0b830')}, 'pair': {'cols': ('a85ac8', '3a9a52')}},
-       note='a bunch of helium balloons tied with curling ribbon, bobbing against the ceiling')
+@piece('balloons', 14, 36, 'top', rooms={'dining_room': 6}, styles={'party': 9}, tags=('party',), on=('table',), limit=2,
+       variants={'bunch': {'cols': ('4a7ab8', 'd8483a', 'e0b830')}, 'pair': {'cols': ('a85ac8', '3a9a52')}},
+       note='a bunch of helium balloons on curling ribbon, tied to a little foil weight standing on the table (never loose against a wall: the ribbons end ON something)')
 def balloons(c, ox, oy, p):
+    """Owner round 48i: "These balloons are hanging on nothing." They are a TOP piece now: the ribbons gather in a knot on a small foil weight that stands on the table, the balloons
+    float above it."""
+    K.contact_shadow(c, ox + 7, oy + 0.5, 3.6, 1.0, 110)
     L = K.Layer(c)
     lc = L.c
     cols = [hexc(k) for k in p['cols']]
+    wx, wy = ox + 7, oy - 2                                                                       # the weight: a foil-wrapped lump
+    K.sphere(lc, wx, wy, 2.4, 2.0, hexc('b4bac4'), gloss=True)
+    lc.put(wx - 1, wy - 1, hexc('f4f6fa'))
+    spots = ((4.2, -25.0), (9.8, -26.5), (7.0, -31.0)) if len(cols) > 2 else ((4.8, -25.0), (9.2, -27.5))
+    knot = (wx, wy - 3)
     for k, col in enumerate(cols):
-        cx = ox + 4 + k * 5
-        cy = oy + 5 + (k % 2) * 3
-        K.sphere(lc, cx, cy, 4.2, 5.0, col, gloss=True)
-        lc.put(int(cx), int(cy + 5.5), shade(col, 0.6))
-        lc.line(int(cx), int(cy + 6), ox + 7, oy + 30, hexc('d8d0c0'))
+        bx, by = spots[k]
+        cx, cy = ox + bx, oy + by
+        lc.line(int(cx), int(cy + 5), knot[0], knot[1], hexc('d8d0c0'))                           # the ribbon, down to the knot on the weight
+        K.sphere(lc, cx, cy, 3.9, 4.7, col, gloss=True)
+        lc.put(int(cx), int(cy + 5.2), shade(col, 0.55))                                         # the tied end
+    lc.put(knot[0], knot[1], hexc('f0eadc'))
     L.flush()
-    for k in range(4):
-        c.put(ox + 7 + (k % 2) * 2 - 1, oy + 30 + k, hexc('d8d0c0'))
 
 
 @piece('portraits_row', 56, 28, 'decor', rooms={'dining_room': 5, 'living_room': 3}, styles={'formal': 9, 'parlour': 3}, tags=('picture',), wall_y=(24, 38), limit=1, variants={'three': {}},

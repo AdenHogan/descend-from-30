@@ -22,7 +22,7 @@ func check(cond: bool, label: String) -> void:
 
 
 func _ready() -> void:
-	print("=== progression test (run boons + descent valour) ===")
+	print("=== progression test (the merchant's offer of three + descent valour) ===")
 	_saved_slot = WorldState.active_slot
 	_saved = {"valour": WorldState.valour, "perks": WorldState.permanent_perks.duplicate(),
 		"offer": WorldState.valour_offer.duplicate(), "last": WorldState.last_valour.duplicate(true),
@@ -31,6 +31,7 @@ func _ready() -> void:
 	await _test_milestones()
 	_test_boon_offer_and_fold()
 	_test_boons_are_per_character()
+	_test_valour_sources()
 	_test_valour_maths()
 	_test_session_perks()
 	_test_finish_session_offer()
@@ -41,7 +42,6 @@ func _ready() -> void:
 	_test_handoff_next_game()
 	await _test_handoff_shop_gift()
 	await _test_handoff_ui()
-	await _test_boon_ui()
 	await _test_legacy_ui()
 	await _test_game_over_screen()
 	_test_journal_line()
@@ -62,85 +62,148 @@ func _ready() -> void:
 
 
 func _test_milestones() -> void:
-	# Owner round 33: "we should not be getting boons on 27. boons are only on every 5th floor and collectable from the merchant".
-	print("[run boons are the merchant's: no arrival badge, offered in the merchant's window]")
+	# Owner round 48i: "upgrades and boons are essentially the same… merge the two in game and offer three options, only one selectable".
+	print("[the merchant makes ONE offer of three — no separate boon step, badge or tab]")
 	WorldState.new_game()
 	var root := Node.new()
 	add_child(root)
 	for f in [28, 27, 25, 22]:
 		WorldState.note_floor_arrival(root, f)
-	check(WorldState.pending_boon_floors.is_empty(), "arriving anywhere (27 and the merchant's 25 too) owes nothing by itself")
-	check(not HUD.boon_badge.visible, "…and there's no HUD badge")
-	check(Progression.BOON_MILESTONES == WorldState.MERCHANT_FLOORS, "boons come on the merchant floors (%s)" % str(Progression.BOON_MILESTONES))
 	root.queue_free()
-	# the merchant's window: upgrade first, then the BOON step, then the shop
+	check(not WorldState.has_method("note_boon_milestone") and not WorldState.has_method("boon_offer") and not WorldState.has_method("take_boon"),
+		"the old boon machinery is gone from WorldState")
+	check(not ("run_boons" in WorldState) and not ("pending_boon_floors" in WorldState), "…and its state")
+	check(not ("boon_badge" in HUD) and not HUD.has_method("open_boon_offer"), "…and the HUD badge")
+	check(Progression.MERCHANT_OFFER == 3, "an offer is three cards")
 	var shop = load("res://scripts/shop_ui.gd").new()
 	add_child(shop)
 	shop.open(25, "Well, well.")
-	check(25 in WorldState.pending_boon_floors and shop.active_tab == "upgrades", "the first visit to 25 owes a boon; the upgrade comes first")
-	shop._on_refuse()
-	shop._on_refuse()
-	check(shop.active_tab == "boon" and shop.boon_box.visible and shop.tab_boon_btn.visible, "after the upgrade: the BOON step")
-	var offer: Array = WorldState.boon_offer(25)
-	check(offer.size() == 2, "two boons on offer (%s)" % str(offer))
-	check(shop.take_boon(offer[0]) == "" and offer[0] in WorldState.run_boons and shop.active_tab == "shop", "taking one gives it to this character, on to the shop")
+	check(shop.active_tab == "upgrades" and not ("tab_boon_btn" in shop) and not ("boon_box" in shop), "the first visit opens on the offer; there is no boon tab")
+	var offer: Array = WorldState.get_upgrade_offer(25)
+	check(offer.size() == 3 and offer[0] != offer[1] and offer[1] != offer[2] and offer[0] != offer[2], "three different perks on offer (%s)" % str(offer))
+	var cards := 0
+	for child in shop.upgrades_box.get_children():
+		if child is HBoxContainer:
+			cards = child.get_child_count()
+	check(cards == 3, "…three cards on the screen (%d)" % cards)
+	shop._on_take_upgrade(offer[1])
+	check(offer[1] in WorldState.active_upgrades and WorldState.active_upgrades.size() == 1 and shop.active_tab == "shop", "taking one keeps just that one, on to the shop")
+	check(WorldState.is_upgrade_offer_resolved(25), "the offer is settled")
 	shop.close()
 	shop.open(25, "Back again.")
-	check(shop.active_tab == "shop" and not shop.tab_boon_btn.visible and not (25 in WorldState.pending_boon_floors), "coming back to 25 owes no second boon")
+	check(shop.active_tab == "shop", "coming back to 25 offers nothing more")
 	shop.queue_free()
 	await get_tree().process_frame
+	# the merged pool: across games both the merchant's own upgrades and the former boons turn up
+	var saw_u := false
+	var saw_b := false
+	for n in 60:
+		WorldState.new_game()
+		WorldState.master_seed = 4200 + n
+		WorldState.upgrade_offers.clear()
+		for id in WorldState.get_upgrade_offer(20):
+			saw_u = saw_u or id.begins_with("U_") or not id.begins_with("B_")
+			saw_b = saw_b or id.begins_with("B_")
+	check(saw_u and saw_b, "the offer draws on both the upgrades and the former boons (%s / %s)" % [saw_u, saw_b])
 
 
 func _test_boon_offer_and_fold() -> void:
-	print("[pick one of two; it lifts the stats through the fold]")
+	print("[pick one of three; it lifts the stats through the fold]")
 	WorldState.new_game()
-	WorldState.note_boon_milestone(20)
-	var offer: Array = WorldState.boon_offer(20)
-	check(offer.size() == 2 and offer[0] != offer[1], "two different boons offered (%s)" % str(offer))
-	check(WorldState.boon_offer(20) == offer, "seeded — a reload offers the same pair")
-	check(WorldState.take_boon(20, "B_not_offered") != "", "only the offered two can be taken")
+	var offer: Array = WorldState.get_upgrade_offer(20)
+	check(offer.size() == 3, "three on offer (%s)" % str(offer))
+	check(WorldState.get_upgrade_offer(20) == offer, "seeded — a reload offers the same three")
 	var before := {"speed": WorldState.get_move_speed_mult(), "stam": WorldState.get_max_stamina(),
 		"regen": WorldState.get_stamina_regen_mult(), "dmg": WorldState.get_melee_damage_bonus()}
-	var pick: String = offer[0]
-	check(WorldState.take_boon(20, pick) == "", "taking %s works" % pick)
-	check(pick in WorldState.run_boons and WorldState.pending_boon_floors.is_empty(), "it's this character's now; nothing waiting")
-	var mods: Dictionary = Progression.boon(pick)["mods"]
-	var moved := false
-	moved = moved or (mods.has("move_speed") and WorldState.get_move_speed_mult() > before["speed"])
-	moved = moved or (mods.has("max_stamina") and WorldState.get_max_stamina() > before["stam"])
-	moved = moved or (mods.has("stamina_regen") and WorldState.get_stamina_regen_mult() > before["regen"])
-	moved = moved or (mods.has("melee_damage") and WorldState.get_melee_damage_bonus() > before["dmg"])
-	moved = moved or not (mods.has("move_speed") or mods.has("max_stamina") or mods.has("stamina_regen") or mods.has("melee_damage"))
-	check(moved, "the boon reaches the stat getters")
-	WorldState.run_boons = []
-	WorldState.run_boons.append("B_adrenaline")
+	WorldState.resolve_upgrade_offer(20, "B_adrenaline")
+	check("B_adrenaline" in WorldState.active_upgrades and "B_adrenaline" in WorldState.session_perks, "a former boon is an upgrade now: kept, and recorded for the session")
 	check(is_equal_approx(WorldState.get_move_speed_mult(), before["speed"] * 1.20), "Adrenaline = ×1.20 move speed")
-	WorldState.note_boon_milestone(15)
-	check(not ("B_adrenaline" in WorldState.boon_offer(15)), "a boon you have is never offered again this run")
-	WorldState.skip_boon(15)
-	check(WorldState.pending_boon_floors.is_empty(), "passing clears the offer")
-	# Every boon already kept permanently → a milestone owes nothing (no empty badge to dismiss).
+	WorldState.resolve_upgrade_offer(15, "B_rage")
+	check(WorldState.get_melee_damage_bonus() == int(before["dmg"]) + 2, "Rage = +2 melee, folded like every other upgrade")
+	WorldState.upgrade_offers.clear()
+	check(not ("B_adrenaline" in WorldState.get_upgrade_offer(10)) and not ("B_rage" in WorldState.get_upgrade_offer(10)), "what you have is never offered again")
+	# Everything kept permanently → nothing left to offer; two left → an offer of two.
 	var kept := WorldState.permanent_perks.duplicate()
-	WorldState.permanent_perks = Progression.RUN_BOONS.keys()
-	WorldState.note_boon_milestone(10)
-	check(WorldState.pending_boon_floors.is_empty(), "nothing left to offer → no badge")
+	WorldState.active_upgrades = []
+	WorldState.permanent_perks = Progression.offer_pool()
+	WorldState.upgrade_offers.clear()
+	check(WorldState.get_upgrade_offer(5).is_empty(), "every perk kept for good → an empty offer (the merchant says so and moves on)")
+	WorldState.permanent_perks = Progression.offer_pool().slice(2)
+	WorldState.upgrade_offers.clear()
+	check(WorldState.get_upgrade_offer(5).size() == 2, "two left → an offer of two")
 	WorldState.permanent_perks = kept
 
 
 func _test_boons_are_per_character() -> void:
-	print("[boons belong to THIS character — the time skip wipes them; a save keeps them]")
+	print("[an upgrade is kept for the whole arc — a save keeps it, the time skip does not take it; an old save's boons become upgrades]")
 	WorldState.new_game()
-	WorldState.run_boons = ["B_rage"]
-	WorldState.note_boon_milestone(10)
+	WorldState.active_upgrades = ["B_rage"]
 	WorldState.save_game("res://scenes/hallway.tscn", false)
-	WorldState.run_boons = []
-	WorldState.pending_boon_floors = []
+	WorldState.active_upgrades = []
 	WorldState.load_game()
-	check(WorldState.run_boons == ["B_rage"] and WorldState.pending_boon_floors == [10], "a save keeps boons + a waiting offer")
-	WorldState.delete_save()
+	check(WorldState.active_upgrades == ["B_rage"], "a save keeps it")
 	WorldState.advance_run()
-	check(WorldState.run_boons.is_empty() and WorldState.pending_boon_floors.is_empty() and WorldState.run_milestones_seen.is_empty(),
-		"the next character starts with none (and owes milestones afresh)")
+	check(WorldState.active_upgrades == ["B_rage"], "the next character keeps it")
+	# a save written before the merge carried `run_boons`: they come back as upgrades, once
+	WorldState.save_game("res://scenes/hallway.tscn", false)
+	var save_path: String = WorldState.slot_save_path()
+	var jf := FileAccess.open(save_path, FileAccess.READ)
+	var raw: String = jf.get_as_text() if jf != null else ""
+	if jf != null:
+		jf.close()
+	var data = JSON.parse_string(raw) if raw != "" else null
+	if data == null:
+		check(false, "could not read the save back to age it (%s)" % save_path)
+	else:
+		data["run_boons"] = ["B_steady", "B_rage"]
+		data["active_upgrades"] = ["U_slot"]
+		var wf := FileAccess.open(save_path, FileAccess.WRITE)
+		wf.store_string(JSON.stringify(data))
+		wf.close()
+		WorldState.active_upgrades = []
+		WorldState.load_game()
+		check("U_slot" in WorldState.active_upgrades and "B_steady" in WorldState.active_upgrades and "B_rage" in WorldState.active_upgrades
+			and WorldState.active_upgrades.size() == 3, "an old save's boons are folded into the upgrades, none doubled (%s)" % str(WorldState.active_upgrades))
+	WorldState.delete_save()
+
+
+func _test_valour_sources() -> void:
+	# Owner round 48i: Valour from "enemies felled, nodes scavenged, apartments investigated, quests, NPCs aided, successful descents, depth".
+	print("[Valour is earned by what a descent is made of: the dead felled, things searched, flats looted — as well as depth, quests, residents, escaping]")
+	check(Progression.valour_for_run(30, false, 0, 0, 0, 7, 0, 0) == 0 and Progression.valour_for_run(30, false, 0, 0, 0, 8, 0, 0) == 1, "eight of the dead = 1 Valour")
+	check(Progression.valour_for_run(30, false, 0, 0, 0, 0, 4, 0) == 0 and Progression.valour_for_run(30, false, 0, 0, 0, 0, 5, 0) == 1, "five things searched = 1 Valour")
+	check(Progression.valour_for_run(30, false, 0, 0, 0, 0, 0, 3) == 3 * Progression.VALOUR_PER_FLAT, "each flat looted adds %d" % Progression.VALOUR_PER_FLAT)
+	check(Progression.valour_for_run(15, false, 0, 0, 0, 16, 10, 2) == 18 + 2 + 2 + 2 * Progression.VALOUR_PER_FLAT, "they add to depth, not replace it")
+	check(Progression.valour_for_run(15, false, 2, 1) == 18 + 16 + 4, "the old call shape still scores the same")
+	# the tallies are stamped into the chronicle when a run ends, and finish_session scores them
+	WorldState.new_game()
+	WorldState.run_kills = 40
+	WorldState.run_scavenged = 25
+	WorldState.run_apartments_looted = ["2901", "2902", "2803"]
+	WorldState.set_run_outcome(1, "dead")
+	var e: Dictionary = WorldState.run_chronicle[0]
+	check(int(e["kills"]) == 40 and int(e["nodes"]) == 25 and int(e["flats"]) == 3, "the run's tallies are stamped when it ends (%s/%s/%s)" % [e["kills"], e["nodes"], e["flats"]])
+	WorldState.advance_run()
+	check(WorldState.run_kills == 0 and int(WorldState.run_chronicle[0]["kills"]) == 40, "the next character starts at zero; the dead one's tally stays")
+	WorldState.run_chronicle[0]["deepest_floor"] = 20
+	WorldState.run_chronicle[1]["outcome"] = "fell"
+	WorldState.run_chronicle[2]["outcome"] = "fell"
+	WorldState.run_chronicle[1]["deepest_floor"] = 30
+	WorldState.run_chronicle[2]["deepest_floor"] = 30
+	WorldState._valour_scored_seed = 0
+	WorldState.last_valour = {}
+	var res: Dictionary = WorldState.finish_session()
+	var r0: Dictionary = res["runs"][0]
+	check(int(r0["kills"]) == 40 and int(r0["valour"]) == Progression.valour_for_run(20, false, 0, 0, 0, 40, 25, 3), "finish_session scores them (%s)" % str(r0))
+	var summ: Array = []
+	WorldState.run_kills = 16
+	WorldState.run_scavenged = 10
+	WorldState.run_apartments_looted = ["1", "2"]
+	for row in WorldState.run_summary():
+		if String(row[0]) == "Descent Valour":
+			summ = row
+	check(not summ.is_empty() and String(summ[1]) == "+%d" % Progression.valour_for_run(0, true, 0, 0, 0, 16, 10, 2), "the escape card's Valour line counts them too (%s)" % str(summ))
+	_clear_valour()
 
 
 func _clear_valour() -> void:
@@ -231,20 +294,18 @@ func _test_valour_maths() -> void:
 
 
 func _test_session_perks() -> void:
-	print("[the session records every perk acquired — merchant AND boons, across all 3 runs]")
+	print("[the session records every perk acquired — at any merchant, across all 3 runs]")
 	WorldState.new_game()
 	check(WorldState.session_perks.is_empty(), "a new game starts with none")
 	WorldState.resolve_upgrade_offer(25, "U_slot")
-	WorldState.note_boon_milestone(25)
-	var b: String = WorldState.boon_offer(25)[0]
-	WorldState.take_boon(25, b)
-	check("U_slot" in WorldState.session_perks and b in WorldState.session_perks, "merchant pick + boon both recorded")
+	WorldState.resolve_upgrade_offer(20, "B_rage")
+	check("U_slot" in WorldState.session_perks and "B_rage" in WorldState.session_perks, "both picks recorded")
 	WorldState.advance_run()
-	check(b in WorldState.session_perks, "the time skip wipes the boon from the character, NOT from the session record")
+	check("B_rage" in WorldState.session_perks and "B_rage" in WorldState.active_upgrades, "the time skip keeps them (they last the arc) and the session record")
 	WorldState.save_game("res://scenes/hallway.tscn", false)
 	WorldState.session_perks = []
 	WorldState.load_game()
-	check("U_slot" in WorldState.session_perks and b in WorldState.session_perks, "saved with the game")
+	check("U_slot" in WorldState.session_perks and "B_rage" in WorldState.session_perks, "saved with the game")
 	WorldState.delete_save()
 	WorldState.new_game()
 	check(WorldState.session_perks.is_empty(), "…and a new game clears it")
@@ -312,18 +373,19 @@ func _test_buy_and_permanence() -> void:
 	check(WorldState.get_inventory_slots() == WorldState.MAX_INVENTORY_SLOTS + 1, "a NEW game starts with the extra slot unlocked")
 	var in_pool := false
 	for f in [25, 20, 15, 10, 5]:
-		in_pool = in_pool or "U_slot" in WorldState.get_upgrade_pair(f)
+		in_pool = in_pool or "U_slot" in WorldState.get_upgrade_offer(f)
 	for r in 3:
 		WorldState.current_run = r + 1
 		WorldState.upgrade_offers.clear()
 		for f in [25, 20, 15, 10, 5]:
-			in_pool = in_pool or "U_slot" in WorldState.get_upgrade_pair(f)
+			in_pool = in_pool or "U_slot" in WorldState.get_upgrade_offer(f)
 	check(not in_pool, "Deep Pockets never shows at the merchant again")
 	WorldState.permanent_perks.append("B_rage")
 	var boon_seen := false
-	for f in Progression.BOON_MILESTONES:
-		boon_seen = boon_seen or "B_rage" in WorldState.boon_offer(f)
-	check(not boon_seen, "a permanent boon leaves the boon pool too")
+	for f in WorldState.MERCHANT_FLOORS:
+		WorldState.upgrade_offers.clear()
+		boon_seen = boon_seen or "B_rage" in WorldState.get_upgrade_offer(f)
+	check(not boon_seen, "a permanent boon leaves the merchant's pool too")
 	check(WorldState.get_melee_damage_bonus() >= 2, "…and applies (Rage +2 melee)")
 	WorldState.load_profile()
 	check(WorldState.permanent_perks == ["U_slot"], "saved in the profile (the unsaved test add is gone)")
@@ -356,20 +418,6 @@ func _test_cap_and_trade() -> void:
 	check(WorldState.trade_out_permanent("U_push") == Progression.trade_refund("U_push") and WorldState.valour > before, "trading out from the collection refunds part")
 	check(WorldState.permanent_perks.size() == 9, "…and frees a slot")
 	_clear_valour()
-
-
-func _test_boon_ui() -> void:
-	print("[the badge opens the choice; choosing resumes play]")
-	WorldState.new_game()
-	WorldState.note_boon_milestone(25)
-	get_tree().paused = false
-	HUD.open_boon_offer()
-	var ui = HUD.boon_ui
-	check(ui != null and ui.visible and get_tree().paused, "the offer opens and pauses")
-	var pick: String = WorldState.boon_offer(25)[1]
-	check(ui.choose(pick) == "" and pick in WorldState.run_boons, "choosing takes the boon")
-	check(not ui.visible and not get_tree().paused and not HUD.boon_badge.visible, "…closes, resumes play, clears the badge")
-	await get_tree().process_frame
 
 
 func _test_quest_valour() -> void:
@@ -513,14 +561,14 @@ func _test_handoff_shop_gift() -> void:
 	add_child(shop)
 	await get_tree().process_frame
 	shop.open(25, "Well, look who it is.")
-	check(shop.dialogue_label.text.contains("left something"), "the greeting hints something's waiting")
+	check(shop.dialogue_label.text.contains("was left for you"), "the greeting hints something's waiting")
 	check(WorldState.inventory.is_empty(), "…but nothing before the upgrade is settled")
 	shop._show_tab("shop")                              # peeking at the shop first doesn't release it
 	check(WorldState.inventory.is_empty() and WorldState.handoff_pending(), "no gift until the upgrade is resolved")
-	var pair: Array = WorldState.get_upgrade_pair(25)
+	var pair: Array = WorldState.get_upgrade_offer(25)
 	shop._on_take_upgrade(pair[0])
 	check(WorldState.inventory.size() == 1 and WorldState.inventory[0].level == 3, "after the upgrade pick: the hammer, free")
-	check(shop.dialogue_label.text.contains("No charge"), "the shopkeeper says so (%s)" % shop.dialogue_label.text)
+	check(shop.dialogue_label.text.contains("Free."), "the shop says so (%s)" % shop.dialogue_label.text)
 	check(not WorldState.handoff_pending(), "nothing left waiting")
 	shop.close()
 	shop._show_tab("shop")
@@ -616,12 +664,12 @@ func _test_game_over_screen() -> void:
 
 
 func _test_journal_line() -> void:
-	print("[the journal shows this run's boons + the permanent perks]")
-	WorldState.run_boons = ["B_rage"]
+	print("[the journal shows the merchant upgrades + the permanent boons]")
+	WorldState.active_upgrades = ["B_rage"]
 	WorldState.permanent_perks = ["U_heal"]
 	var txt: String = load("res://scripts/character_panel.gd").progression_bbcode()
-	check(txt.contains("Rage") and txt.contains("Legacy: Field Medic"), "listed (%s)" % txt.replace("\n", " "))
-	WorldState.run_boons = []
+	check(txt.contains("Upgrades: Rage") and txt.contains("Legacy: Field Medic"), "listed (%s)" % txt.replace("\n", " "))
+	WorldState.active_upgrades = []
 	WorldState.permanent_perks = []
 
 
@@ -641,7 +689,7 @@ func _test_desirability_column() -> void:
 	var doc: String = f.get_as_text() if f != null else ""
 	check(doc == Progression.perk_table_markdown(),
 		"docs/PERKS.md matches the data (stale → run godot --headless res://tools/perk_table.tscn)")
-	check(doc.contains("`U_fortune`") and doc.contains("`B_rage`"), "…and lists merchant upgrades and run boons")
+	check(doc.contains("`U_fortune`") and doc.contains("`B_rage`"), "…and lists both halves of the merchant's pool")
 
 
 # Mean desirability of what a draw hands out, over many seeds.
@@ -695,31 +743,16 @@ func _test_perk_luck() -> void:
 			WorldState.master_seed = 9000 + n
 			WorldState.active_upgrades = ["U_fortune"] if with_luck else []
 			WorldState.upgrade_offers.clear()
-			var pair: Array = WorldState.get_upgrade_pair(25)
-			(lucky if with_luck else plain).append_array(pair)
+			var offered: Array = WorldState.get_upgrade_offer(25)
+			(lucky if with_luck else plain).append_array(offered)
 	# Direction only: the SIZE of the lean depends on how the owner rates perks (design data that is
 	# meant to change), so a fixed margin here would fail on a re-rating while the code is fine.
-	check(_mean_d(lucky) > _mean_d(plain), "merchant pairs lean desirable (d %.2f vs %.2f)" % [_mean_d(lucky), _mean_d(plain)])
+	check(_mean_d(lucky) > _mean_d(plain), "merchant offers lean desirable (d %.2f vs %.2f)" % [_mean_d(lucky), _mean_d(plain)])
 	var dup := false
-	for i in range(0, lucky.size(), 2):
-		dup = dup or lucky[i] == lucky[i + 1] or lucky[i] == "U_fortune" or lucky[i + 1] == "U_fortune"
-	check(not dup, "a lucky pair never repeats itself or offers what you already own")
-	# Boons.
-	var bp: Array = []
-	var bl: Array = []
-	for n in 150:
-		for with_luck in [false, true]:
-			WorldState.new_game()
-			WorldState.master_seed = 7000 + n
-			WorldState.active_upgrades = ["U_fortune"] if with_luck else []
-			(bl if with_luck else bp).append_array(WorldState.boon_offer(20))
-	var boon_ds := {}
-	for id in Progression.RUN_BOONS:
-		boon_ds[Progression.desirability(id)] = true
-	if boon_ds.size() < 2:
-		check(true, "(every boon shares one desirability — nothing for luck to tilt)")
-	else:
-		check(_mean_d(bl) > _mean_d(bp), "boon offers lean desirable (d %.2f vs %.2f)" % [_mean_d(bl), _mean_d(bp)])
+	var n_card := Progression.MERCHANT_OFFER
+	for i in range(0, lucky.size() - n_card + 1, n_card):
+		dup = dup or lucky[i] == lucky[i + 1] or lucky[i + 1] == lucky[i + 2] or lucky[i] == lucky[i + 2] or "U_fortune" in lucky.slice(i, i + n_card)
+	check(not dup, "a lucky offer never repeats a card or offers what you already own")
 	# The end-of-game offer: ONLY what you selected, tilted toward the coveted.
 	_clear_valour()
 	# The most coveted merchant perk (whatever the owner has rated highest) among five of the least.
@@ -784,21 +817,15 @@ func _test_perk_luck() -> void:
 				for seed_n in 40:
 					WorldState.master_seed = 500 + seed_n
 					WorldState.upgrade_offers.clear()
-					if id in WorldState.get_upgrade_pair(fl):
+					if id in WorldState.get_upgrade_offer(fl):
 						return true
 		return false
-	var in_boons := func(id: String) -> bool:
-		for seed_n in 200:
-			WorldState.master_seed = 800 + seed_n
-			if id in WorldState.boon_offer(20):
-				return true
-		return false
-	check(not in_merchant.call("U_slot") and not in_boons.call("B_rage"), "while kept: never offered in a run")
+	check(not in_merchant.call("U_slot") and not in_merchant.call("B_rage"), "while kept: never offered in a run")
 	WorldState.valour_offer = ["U_heal"]
 	WorldState.valour = 1000
 	check(WorldState.buy_permanent("U_heal", "U_slot") == "", "full collection: Field Medic in, Deep Pockets traded out")
 	check(in_merchant.call("U_slot"), "…and Deep Pockets is back in the merchant's pool")
-	check(WorldState.trade_out_permanent("B_rage") > 0 and in_boons.call("B_rage"), "a boon traded out from the collection is back in the boon pool")
+	check(WorldState.trade_out_permanent("B_rage") > 0 and in_merchant.call("B_rage"), "a boon traded out from the collection is back in the merchant's pool")
 	WorldState.current_run = 1
 	WorldState.session_perks = ["U_slot"]
 	WorldState._valour_scored_seed = 0

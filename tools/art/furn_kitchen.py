@@ -298,15 +298,15 @@ def _fridge_variants():
     return v
 
 
-@piece('fridge_tall', 28, 76, 'wall', rooms={'kitchen': 6}, styles=None, tags=('unit', 'cold', 'storage'), depth=6, variants=_fridge_variants(), limit=1, feet=(106, 106),
-       slots=(), anchors=({'name': 'fridge', 'dx': 14, 'dy': -50},), opens={'kind': 'door_h', 'frames': 3, 'anchor': 'fridge'},
+@piece('fridge_tall', 33, 76, 'wall', rooms={'kitchen': 6}, styles=None, tags=('unit', 'cold', 'storage'), depth=5, variants=_fridge_variants(), limit=1, feet=(106, 106),
+       slots=(), anchors=({'name': 'fridge', 'dx': 17, 'dy': -50},), opens={'kind': 'door_h', 'frames': 3, 'anchor': 'fridge'},
        note='a tall fridge-freezer: a rounded 50s cream one with a chrome handle and magnets, a mint one, a plain white one — or one left open with the milk gone off; the door swings open when searched')
 def fridge_tall(c, ox, oy, p):
     f = FRIDGES[p['k']]
     col, lt, dk = hexc(f['col']), hexc(f['lt']), hexc(f['dk'])
     t = 1.0 if p.get('static_open') else p['open']
-    x0, x1, top, base = ox + 1, ox + 26, oy - 75, oy
-    c.shadow((x0 + x1) // 2, base + 1, 15, 2, 100)
+    x0, x1, top, base = ox + 1, ox + 32, oy - 75, oy         # (owner round 48i: "the fridge is too narrow" - 26 -> 32 px across; any wider and its rect reaches the left window's box, which no fallback layout may touch)
+    c.shadow((x0 + x1) // 2, base + 1, 18, 2, 100)
     r = 5 if f['round'] else 2
     from pixlib import rrect
     rrect(c, x0, top, x1, base - 1, hexc('2a2622'), r)
@@ -317,12 +317,12 @@ def fridge_tall(c, ox, oy, p):
         for k, y in enumerate((top + 20, top + 36, top + 52)):
             c.hline(x0 + 3, x1 - 3, y, hexc('9aa8a4'))
             c.hline(x0 + 3, x1 - 3, y + 1, hexc('c4cec8'))
-        for (fx, fy, fc, fh) in ((x0 + 5, top + 20, hexc('d4b84a'), 9), (x0 + 12, top + 20, hexc('c8483a'), 7), (x0 + 17, top + 20, hexc('6a9a58'), 10),
-                                 (x0 + 6, top + 36, hexc('e8e2d0'), 8), (x0 + 14, top + 36, hexc('8a6a3a'), 6), (x0 + 5, top + 52, hexc('d8d2b8'), 9),
-                                 (x0 + 15, top + 52, hexc('4f6f8a'), 7)):
+        for (fx, fy, fc, fh) in ((x0 + 5, top + 20, hexc('d4b84a'), 9), (x0 + 12, top + 20, hexc('c8483a'), 7), (x0 + 17, top + 20, hexc('6a9a58'), 10), (x0 + 23, top + 20, hexc('b0b4b8'), 8),
+                                 (x0 + 6, top + 36, hexc('e8e2d0'), 8), (x0 + 14, top + 36, hexc('8a6a3a'), 6), (x0 + 21, top + 36, hexc('c8483a'), 9),
+                                 (x0 + 5, top + 52, hexc('d8d2b8'), 9), (x0 + 15, top + 52, hexc('4f6f8a'), 7), (x0 + 22, top + 52, hexc('d4b84a'), 6)):
             c.rect(fx, fy - fh + 1, fx + 3, fy - 1, fc)
         c.hline(x0 + 3, x1 - 3, top + 12, hexc('9aa8a4'))
-        dw = max(4, int(round(24 * (1.0 - 0.8 * min(1.0, t)))))
+        dw = max(4, int(round(29 * (1.0 - 0.8 * min(1.0, t)))))
         c.rect(x1 - dw + 1, top + 1, x1 + 1, base - 3, shade(col, 0.82))
         c.vline(x1 - dw + 1, top + 1, base - 3, shade(col, 1.1))
         c.vline(x1 + 1, top + 1, base - 3, shade(col, 0.6))
@@ -354,8 +354,8 @@ def fridge_tall(c, ox, oy, p):
     for yy in (top + 4, top + 18, top + 27, top + 60):                                              # the hinges on the left edge
         c.rect(x0 + 1, yy, x0 + 2, yy + 2, shade(dk, 0.6))
         c.put(x0 + 1, yy, hexc('b8bec0'))
-    c.hline(x1 - 12, x1 - 6, top + 4, hexc('b8bec0'))                                              # the maker's badge: a chrome dash with a dark underline
-    c.hline(x1 - 12, x1 - 6, top + 5, hexc('4a5052'))
+    c.hline(x1 - 14, x1 - 8, top + 4, hexc('b8bec0'))                                              # the maker's badge: a chrome dash with a dark underline
+    c.hline(x1 - 14, x1 - 8, top + 5, hexc('4a5052'))
     for (hy0, hy1) in ((top + 26, top + 42), (top + 6, top + 16)):                                 # chrome handles, round in section: bright / mid / dark across, a stub at each end, a shadow beside
         for yy in range(hy0, hy1 + 1):
             c.put(x1 - 7, yy, hexc('f2f6f8'))

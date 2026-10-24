@@ -249,6 +249,9 @@ def render(pc, params, xk=160, state=0.0):
     spr = c.img.crop(bb)
     info = {'w': spr.width, 'h': spr.height, 'rx': ox - bb[0], 'ry': feet - bb[1],
             'l': bb[0] - ox, 'r': bb[2] - 1 - ox, 't': bb[1] - feet, 'b': bb[3] - 1 - feet}
+    sp_ = spr.load()
+    solid = [y for y in range(spr.height) if any(sp_[x, y][3] >= 200 for x in range(spr.width))]
+    info['sb'] = (max(solid) if solid else spr.height - 1) - info['ry']           # the lowest SOLID row relative to R: a thing drawn below its feet row (spilled tablets) or not (a shadow does not count)
     pixlib.LIGHTS.clear()
     pixlib.ANIMS.clear()
     return spr, info
@@ -295,6 +298,79 @@ def _resolve(pc, items, params):
     return out
 
 
+TOP_FACE_MAX = 12          # a lean top face is a few rows deep; the scan for its back edge never climbs further than this
+MIN_SUPPORTED_RUN = 8      # a slot is never tightened to fewer columns than the smallest thing that stands on one
+
+
+def _measure_slot(pc, sl, spr, info):
+    """One bucket's reading of a top slot: (dy, bottom_max, dx0, dx1) relative to R, or None when nothing solid lies in its columns."""
+    px = spr.load()
+    x0, x1 = info['rx'] + sl['dx0'], info['rx'] + sl['dx1']
+    cols = range(max(0, x0), min(spr.width - 1, x1) + 1)
+    rows = [y for y in range(spr.height) if any(px[x, y][3] >= 200 for x in cols)]
+    if not rows:
+        return None
+    back = min(rows)
+    front = None
+    if pc.lean:
+        front = max(back + 2, info['ry'] - pc.surface_h)                    # the body's top edge: the top face ends one row above it
+        r = front - 1
+        n = max(1, len(cols))
+        if r >= back and sum(1 for x in cols if px[x, r][3] >= 200) * 2 >= n:
+            top = r                                                          # climb the contiguous band that ends at the top face
+            while top - 1 >= back and front - 1 - (top - 1) < TOP_FACE_MAX and sum(1 for x in cols if px[x, top - 1][3] >= 200) * 2 >= n:
+                top -= 1
+            back = max(back, top)
+    lo = back + 2                                                            # the feet row (contact - 1) is the surface's second row
+    if pc.lean:
+        dy, bottom_max = lo - info['ry'], max(lo - 1, front - 1) - info['ry']
+    else:
+        dy = max(info['ry'] + sl['dy'], lo) - info['ry']
+        bottom_max = dy - 1
+    # the longest unbroken run of columns the contact row has solid under it
+    row = min(spr.height - 1, lo)
+    best, run0 = (0, 0), None
+    for x in list(cols) + [None]:
+        if x is not None and px[x, row][3] >= 200:
+            if run0 is None:
+                run0 = x
+        elif run0 is not None:
+            end = x if x is not None else cols[-1] + 1
+            if end - run0 > best[1] - best[0]:
+                best = (run0, end)
+            run0 = None
+    if best[1] - best[0] >= MIN_SUPPORTED_RUN:
+        return dy, bottom_max, best[0] - info['rx'], best[1] - 1 - info['rx']
+    return dy, bottom_max, sl['dx0'], sl['dx1']
+
+
+def _settle_slots(pc, slots, sprs):
+    """A top slot's contact rows are MEASURED off the rendered sprites (owner round 48i: "the pills are sort of suspended in the air over this dresser… We can't have floaty
+    things. If it's an item it needs to physically be on top of the furniture"; a hand-set `dy` was a guess at the lid's row and was 1-3 rows above it on a bookcase, a Welsh dresser,
+    a piano, a wardrobe). `dy` = the BACK-most contact row (relative to R): the row just under the first solid row of the host's top in the slot's columns, so an item's feet land
+    ON the surface. `bottom_max` = the lowest row an item's SOLID pixels may reach (the last row of the top face, relative to R): the planner puts a thing anywhere between the two
+    (a lean piece's top face is a few rows deep — the room's perspective — and was only ever used at its very back). A flat-topped host (a table, a desk) keeps one contact row,
+    never above its surface.
+    Three ways the first version still left things in the air (found by `tools/art/support_audit.py`): (1) the FIRST solid row in the slot's columns can be a mirror or a back panel that
+    stands up behind the surface with a gap under it (a dressing table), so a lean piece's back edge is the top of the CONTIGUOUS band that ends at the top face (never climbing more
+    than TOP_FACE_MAX rows); (2) the slot's columns can run past the surface (a fireplace's mantel is narrower than the slot), so the slot is cut down to the columns the contact
+    row really has under it; (3) a lean piece is drawn once per lean bucket and its surface moves between them, while the planner reads ONE slot per variant, so the slot is the
+    SAFE reading of all of them: the lowest contact row, the shallowest top face, and only the columns every bucket has support under."""
+    out = []
+    for sl in slots:
+        sl = dict(sl)
+        if sl.get('top'):
+            reads = [m for m in (_measure_slot(pc, sl, spr, info) for spr, info in sprs) if m is not None]
+            if reads:
+                sl['dy'] = max(m[0] for m in reads)
+                sl['bottom_max'] = max(sl['dy'] - 1, min(m[1] for m in reads))
+                lo, hi = max(m[2] for m in reads), min(m[3] for m in reads)
+                if hi - lo + 1 >= MIN_SUPPORTED_RUN:
+                    sl['dx0'], sl['dx1'] = lo, hi
+        out.append(sl)
+    return out
+
+
 def build_piece(pc):
     """Render every variant × bucket (and the open-state strips). Returns (the JSON record, {relative filename: image})."""
     files = {}
@@ -304,13 +380,18 @@ def build_piece(pc):
            'limit': pc.limit, 'needs': pc.needs, 'companion_only': pc.companion_only, 'above': list(pc.above), 'lap': pc.lap, 'under': list(pc.under)}
     for vid, params in pc.variants.items():
         sprites = []
+        first_spr = first_info = None
+        measured = []
         for bk in _buckets(pc):
             xk = LEAN_X[bk] if bk is not None else 160
             spr, info = render(pc, params, xk)
             name = sprite_name(pc.id, vid, bk if pc.bucketed else None)
             files[name + '.png'] = spr
+            if first_spr is None:
+                first_spr, first_info = spr, info
             info['file'] = name
             info['bx'] = xk
+            measured.append((spr, info))
             if pc.opens:
                 frames = int(pc.opens.get('frames', 3))
                 strip = Image.new('RGBA', (spr.width * (frames + 1), spr.height), (0, 0, 0, 0))
@@ -323,9 +404,7 @@ def build_piece(pc):
                 files['open/' + name + '_open.png'] = strip
                 info['open_file'] = name + '_open'
             sprites.append(info)
-        slots = []
-        for sl in _resolve(pc, pc.slots, params):
-            slots.append(sl)
+        slots = _settle_slots(pc, _resolve(pc, pc.slots, params), measured)
         rec['variants'][vid] = {'sprites': sprites, 'anchors': _resolve(pc, pc.anchors, params), 'lights': _resolve(pc, pc.lights, params), 'slots': slots,
                                 'anims': _resolve(pc, pc.anims, params), 'params': {k: (list(v) if isinstance(v, (list, tuple)) else v) for k, v in params.items()
                                    if isinstance(v, (str, int, float, bool)) or (isinstance(v, (list, tuple)) and v and all(isinstance(i, str) for i in v))}}

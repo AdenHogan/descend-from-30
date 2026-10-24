@@ -448,14 +448,8 @@ def c_furniture(c):
     setback(c, _crate, depth=4, top=87, x_range=(CX - 16, CX + 16))
     sofa_back(c, CX, 118, (hexc('6d6e70'), hexc('555658'), hexc('848587'), hexc('2c2d2f')), wear=True)
     # a slumped beanbag by the sofa, under window R
-    BB, BB_DK, BB_LT = hexc('7a2e28'), hexc('551f1b'), hexc('94403a')
-    bx = 248
-    c.shadow(bx, 112, 16, 2, 110)
-    c.ellipse(bx, 104, 15, 9, hexc('2a1210'))
-    c.ellipse(bx, 104, 14, 8, BB)
-    c.ellipse(bx, 108, 13, 4, BB_DK)
-    c.ellipse(bx - 4, 100, 6, 3, BB_LT)
-    c.line(bx - 8, 105, bx + 6, 103, BB_DK)
+    import beanbag3d
+    beanbag3d.draw(c, 248, 112, hexc('7a2e28'), 32, 21, 3, 5)
     # the guitar, dropped on the floor in the corner after it was swung at something (round 22)
     guitar_on_floor(c, 280, 119, 3.26)
     import furn as F

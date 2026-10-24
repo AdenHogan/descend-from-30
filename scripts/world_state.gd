@@ -95,9 +95,10 @@ var joe_opens: bool = false
 ## new_game / advance_run), saved. `run_story_flags` records the one-off beats this run (str keys, saved).
 var run_story_stage: int = -1
 var run_story_flags: Dictionary = {}
-const MAX_AMMO_PER_SLOT = 8
+const MAX_AMMO_PER_SLOT = 40       # bullets stack in ONE slot (owner round 48i: "Screw it, let bullets stack. That's a better UI proposal" - it was 8, so a few clips took the bag)
 const WORLD_DROP_SCRIPT := preload("res://scripts/world_drop.gd")   # REST_LIFT for live drops
-const MAX_THROWABLE_PER_SLOT = 3   # cans held per slot (was one-and-done)
+const MAX_THROWABLE_PER_SLOT = 3   # cans / bottles held per slot (was one-and-done)
+const MAX_MOLOTOV_PER_SLOT = 2     # a Molotov is a weapon, not a distraction: two to a slot (owner round 48i: "molotovs can stack up to two")
 const MAX_FUSE_PER_SLOT = 3        # the elevator needs exactly 3 — one slot holds a full set
 const MAX_MEDICAL_PER_SLOT = 3     # the same bandages / first aid kit / painkillers / ice pack share a slot (owner round 48h: "up to three… Not weapons though")
 const CAN_SCAVENGE_BOOST = 1.18    # cans spawn 18% more, so they're a real option
@@ -180,6 +181,11 @@ var run_scavenged: int = 0             # items taken from scavenge anchors this 
 var run_apartments_looted: Array = []  # distinct apartment ids this character has looted this run
 var visited_floors: Dictionary = {}    # str(floor) -> true : the MAP's fog-of-war memory
 var floors_enemy_seen: Dictionary = {} # str(floor) -> true : floors where the dead were sighted
+# THE MAP'S DETAIL (owner round 48i: "it should show us what we've seen so far in the building"): where the dead / the living were LAST SEEN
+# standing in a floor's corridor, and the flats the player has stood inside. Cross-run, saved, cleared by new_game (like the fog itself).
+var map_sights: Dictionary = {}        # str(floor) -> {"dead": [x…], "people": [x…], "run": n}  (world x, snapped to 8 px, at most MAP_SIGHT_MAX each)
+var map_entered: Dictionary = {}       # str(apartment id) -> true
+const MAP_SIGHT_MAX := 14
 
 const HEALTH_WORDS := ["Healthy", "Hurt", "Injured", "Wounded", "Severely Wounded", "Dying"]
 
@@ -209,6 +215,30 @@ func note_enemies_on_floor(floor_num: int) -> void:
 	floors_enemy_seen[str(floor_num)] = true
 
 
+## Remember who is standing in a floor's corridor right now (called on a slow cadence by the LIVE floor, never a backdrop): the live dead and the
+## living people under `root`. What the player saw last is what the map shows, so a cleared corridor shows none.
+func note_floor_sight(floor_num: int, root: Node) -> void:
+	if floor_num < 0 or root == null or not is_instance_valid(root):
+		return
+	var dead: Array = []
+	var people: Array = []
+	for z in get_tree().get_nodes_in_group("zombie"):
+		if root.is_ancestor_of(z) and not (("is_dead" in z) and z.is_dead) and not z.is_in_group("pan_scenery") and dead.size() < MAP_SIGHT_MAX:
+			dead.append(snappedf(z.global_position.x, 8.0))
+	for grp in ["survivor", "resident_npc"]:
+		for p in get_tree().get_nodes_in_group(grp):
+			if root.is_ancestor_of(p) and people.size() < MAP_SIGHT_MAX:
+				people.append(snappedf(p.global_position.x, 8.0))
+	map_sights[str(floor_num)] = {"dead": dead, "people": people, "run": current_run}
+	if not dead.is_empty():
+		floors_enemy_seen[str(floor_num)] = true
+
+
+func note_apartment_entered(apartment_id: String) -> void:
+	if apartment_id != "":
+		map_entered[apartment_id] = true
+
+
 func scene_has_live_zombies(root: Node) -> bool:
 	# Only zombies that belong to `root` (this floor's scene). During a stair pan the floor just
 	# left is still in the tree, so the global group alone would credit ITS dead to this floor.
@@ -232,10 +262,8 @@ func note_floor_arrival(root: Node, floor_num: int) -> void:
 # ============================================================
 # PROGRESSION tiers 2 + 3 (docs/PROGRESSION.md; data in progression.gd)
 # ============================================================
-# Tier 2 — RUN BOONS: this character only (reset by the time skip).
-var run_boons: Array = []              # boon ids taken this run
-var run_milestones_seen: Array = []    # milestone floors already reached this run (str keys)
-var pending_boon_floors: Array = []    # milestones reached whose boon hasn't been chosen yet
+# (Tier 2 — the old per-character RUN BOONS — is gone: the merchant now makes ONE offer of three from the merged pool
+# (UPGRADE_POOL + Progression.RUN_BOONS) and every pick is kept for the whole arc. Old saves' boons are folded into active_upgrades on load.)
 # Every perk ACQUIRED this session (merchant upgrades + run boons, any of the 3 runs) — the pool
 # the end-of-session Descent Valour offer draws from. Game save; cleared by new_game only.
 var session_perks: Array = []
@@ -245,61 +273,6 @@ var permanent_perks: Array = []        # perk ids kept forever (max Progression.
 var valour_offer: Array = []           # the unresolved end-of-session offer (survives a quit)
 var last_valour: Dictionary = {}       # the last session's scoring: {"runs": [...], "total": n}
 var _valour_scored_seed: int = 0       # master_seed already scored (never bank one session twice)
-
-
-func note_boon_milestone(floor_num: int) -> void:
-	# The FIRST time this character reaches a milestone floor it owes them a boon. It isn't forced
-	# on them (no pause on arrival — you may be arriving mid-fight or mid-pan): a HUD badge offers
-	# it, and it waits until they choose.
-	if not (floor_num in Progression.BOON_MILESTONES):
-		return
-	var key := str(floor_num)
-	if key in run_milestones_seen:
-		return
-	run_milestones_seen.append(key)
-	# Nothing left to offer (every boon taken this run or kept permanently) → no empty badge.
-	if boon_offer(floor_num).is_empty():
-		return
-	pending_boon_floors.append(floor_num)
-	HUD.refresh_boon_badge()
-
-
-# The two boons offered for a milestone — seeded per (playthrough, run, floor) so a reload offers
-# the same pair; never one this character already has.
-func boon_offer(floor_num: int) -> Array:
-	var pool: Array = []
-	for id in Progression.RUN_BOONS:
-		if not (id in run_boons) and not (id in permanent_perks):   # a permanent boon is always on
-			pool.append(id)
-	pool.sort()
-	var rng := RandomNumberGenerator.new()
-	rng.seed = hash(str(master_seed) + "boon" + str(floor_num) + str(current_run))
-	var luck := get_perk_luck()
-	if luck > 0.0:                          # Fortune's Favour: lean toward the desirable ones
-		return Progression.weighted_draw(rng, pool, 2, luck)
-	var out: Array = []
-	while out.size() < 2 and not pool.is_empty():
-		out.append(pool.pop_at(rng.randi() % pool.size()))
-	return out
-
-
-# Take one of a milestone's two boons ("" on success). skip = decline it (it's gone).
-func take_boon(floor_num: int, boon_id: String) -> String:
-	if not (floor_num in pending_boon_floors):
-		return "No boon waiting."
-	if not (boon_id in boon_offer(floor_num)):
-		return "Pick one of the two."
-	run_boons.append(boon_id)
-	note_perk_acquired(boon_id)
-	pending_boon_floors.erase(floor_num)
-	HUD.refresh_boon_badge()
-	HUD.update_stamina(stamina, get_max_stamina())
-	return ""
-
-
-func skip_boon(floor_num: int) -> void:
-	pending_boon_floors.erase(floor_num)
-	HUD.refresh_boon_badge()
 
 
 func note_perk_acquired(perk_id: String) -> void:
@@ -336,10 +309,13 @@ func finish_session() -> Dictionary:
 		var deepest: int = 0 if escaped else int(e.get("deepest_floor", 30))
 		var quests: int = int(e.get("quests_completed", 0))
 		var npcs: int = int(e.get("npcs_aided", 0))
-		var v: int = Progression.valour_for_run(deepest, escaped, quests, npcs, _door_valour_of(e))
+		var kills: int = int(e.get("kills", 0))
+		var nodes: int = int(e.get("nodes", 0))
+		var flats: int = int(e.get("flats", 0))
+		var v: int = Progression.valour_for_run(deepest, escaped, quests, npcs, _door_valour_of(e), kills, nodes, flats)
 		total += v
 		runs.append({"run": i + 1, "character": String(e.get("character", "")), "deepest": deepest,
-			"escaped": escaped, "quests": quests, "npcs": npcs, "valour": v})
+			"escaped": escaped, "quests": quests, "npcs": npcs, "kills": kills, "nodes": nodes, "flats": flats, "valour": v})
 	valour += total
 	var pool: Array = []
 	for id in session_perks:
@@ -500,6 +476,16 @@ func note_quest_completed() -> void:
 	e["quests_completed"] = int(e.get("quests_completed", 0)) + 1
 
 
+## Copy this run's tallies (the dead felled, things searched, flats looted) into its chronicle entry, where Descent Valour reads them.
+## Called when the run ends (set_run_outcome), before advance_run wipes the counters; harmless to call again (the same numbers).
+func stamp_run_tallies(run_index: int) -> void:
+	_ensure_chronicle()
+	var e: Dictionary = run_chronicle[clampi(run_index, 0, 2)]
+	e["kills"] = run_kills
+	e["nodes"] = run_scavenged
+	e["flats"] = run_apartments_looted.size()
+
+
 func note_npc_aided() -> void:
 	_ensure_chronicle()
 	var e: Dictionary = run_chronicle[clampi(current_run - 1, 0, 2)]
@@ -533,6 +519,9 @@ func _blank_chronicle_entry(character: String = "") -> Dictionary:
 		"thoughts": [],            # collected lore + later characters' comments about them
 		"quests_completed": 0,     # Descent Valour counts these (docs/PROGRESSION.md)
 		"npcs_aided": 0,
+		"kills": 0,                # the dead felled this run (stamped when the run ends — set_run_outcome)
+		"nodes": 0,                # things searched this run
+		"flats": 0,                # distinct apartments looted this run
 		"left_behind": "",         # the item they left by the door when they escaped (display name)
 		"braved": false,           # escaped leaving nothing by the door → the brave bonus
 		"door_valour": 0,          # what their kit scrapped for at the door (Progression.door_valour)
@@ -600,7 +589,7 @@ func run_summary(left_behind: String = "") -> Array:
 		out.append(["Scrapped at the door", ", ".join(PackedStringArray(melted.slice(0, 2))) + (" +%d more" % (melted.size() - 2) if melted.size() > 2 else "")])
 	if left_behind != "":
 		out.append(["Left by the door", left_behind + " (for your next game)"])
-	out.append(["Descent Valour", "+%d" % Progression.valour_for_run(0, true, q, n, door)])
+	out.append(["Descent Valour", "+%d" % Progression.valour_for_run(0, true, q, n, door, run_kills, run_scavenged, run_apartments_looted.size())])
 	return out
 
 
@@ -678,6 +667,7 @@ func set_run_outcome(run_index: int, outcome: String) -> void:
 	run_outcomes[i] = outcome
 	# Mirror into the chronicle in its own words (fell / escaped), keeping depth/traces intact.
 	_ensure_chronicle()
+	stamp_run_tallies(i)
 	if outcome == "dead":
 		run_chronicle[i]["outcome"] = "fell"
 	elif outcome == "survived":
@@ -1206,9 +1196,6 @@ func new_game() -> void:
 	wallet_balance = 0
 	scrap_unlocked = false
 	scrap = 0
-	run_boons.clear()
-	run_milestones_seen.clear()
-	pending_boon_floors.clear()
 	session_perks.clear()
 	initialize_paradise_apartments()
 	spawn_source = ""
@@ -1229,6 +1216,8 @@ func new_game() -> void:
 	_reset_run_journal_stats()     # journal tallies + map memory start blank
 	visited_floors.clear()
 	floors_enemy_seen.clear()
+	map_sights.clear()
+	map_entered.clear()
 	roped_balconies.clear()
 	balcony_jump_warned = false
 	charred_intro_seen.clear()
@@ -1328,9 +1317,6 @@ func advance_run() -> bool:
 	rest_forfeit_pending = false
 	wallet_balance = 0                      # per-run (recoverable from the corpse later)
 	scrap = 0                               # per-run too (the corpse carries it; the unlock stays)
-	run_boons.clear()                       # run boons are THIS character's (docs/PROGRESSION.md)
-	run_milestones_seen.clear()
-	pending_boon_floors.clear()
 	available_upgrades.clear()
 	upgrade_offers.clear()
 	spawn_source = ""
@@ -1642,7 +1628,7 @@ func _add_to_inventory(item_id: String, amount: int = 0) -> bool:
 	# few and using them to herd enemies is a real strategy, not a one-shot.
 	if ItemData.get_item(item_id).get("is_throwable", false):
 		for instance in inventory:
-			if instance.item_id == item_id and instance.count < MAX_THROWABLE_PER_SLOT:
+			if instance.item_id == item_id and instance.count < throwable_cap(item_id):
 				instance.count += 1
 				return true
 		if inventory.size() >= get_inventory_slots():
@@ -1686,6 +1672,11 @@ func _add_to_inventory(item_id: String, amount: int = 0) -> bool:
 	instance.setup(item_id)
 	inventory.append(instance)
 	return true
+
+
+## How many of this throwable share a slot: cans and bottles three, a Molotov two.
+func throwable_cap(item_id: String) -> int:
+	return MAX_MOLOTOV_PER_SLOT if ItemData.get_item(item_id).get("is_molotov", false) else MAX_THROWABLE_PER_SLOT
 
 
 func get_ammo_total() -> int:
@@ -1889,8 +1880,8 @@ func salvage_item(slot: int) -> int:
 # THE WORKBENCH ACTION: level the weapon in `slot` up by one. `perk_id` is one of its two offered
 # perks when it has a tree ("" when that level has none). Spends the scrap (an heirloom step's
 # scrap was already paid in instalments — forge_heirloom) and consumes the spare the step needs;
-# the weapon keeps every perk + tuning it had and gains POINTS_PER_LEVEL tuning points. Reaching
-# Lv4 makes it LEGENDARY: it earns a title. Returns "" on success, else the reason it can't.
+# the weapon keeps every perk + tuning it had and (from the second level-up on) gains POINTS_PER_LEVEL tuning
+# points. Reaching Lv5 makes it LEGENDARY: it earns a title. Returns "" on success, else the reason it can't.
 func upgrade_weapon(slot: int, perk_id: String = "") -> String:
 	if slot < 0 or slot >= inventory.size():
 		return "Nothing there."
@@ -1901,10 +1892,10 @@ func upgrade_weapon(slot: int, perk_id: String = "") -> String:
 	var choices: Array = WeaponUpgrades.next_choices(inst)
 	if not choices.is_empty() and not (perk_id in choices):
 		return "Pick one of the two upgrades."
-	if choices.is_empty():
-		perk_id = ""
 	var base_max: int = inst.get_max_durability()
 	var to: int = inst.level + 1
+	if choices.is_empty():
+		perk_id = WeaponUpgrades.auto_perk(inst.item_id, to)     # the plain first step carries its own perk; every other no-choice level none
 	if chk["heirloom"]:
 		inst.forge_paid = maxi(0, inst.forge_paid - int(WeaponUpgrades.step_cost(to)["scrap"]))
 	else:
@@ -2376,7 +2367,7 @@ const UPGRADE_POOL = {
 }
 
 # Per-visit upgrade offer state (seeded pairs; resolution persists per visit).
-var upgrade_offers: Dictionary = {}  # "run:floor" -> {"pair": [id,id], "resolved": bool}
+var upgrade_offers: Dictionary = {}  # "run:floor" -> {"offer": [id,id,id], "resolved": bool}
 
 
 # ============================================================
@@ -2436,11 +2427,9 @@ func has_trait_flag(flag: String) -> bool:
 func _stat_mods_sources() -> Array:
 	# Every modifier source in the fold: owned upgrades + the run's character traits.
 	var out: Array = []
-	for id in active_upgrades:
-		out.append(UPGRADE_POOL.get(id, {}).get("mods", {}))
+	for id in active_upgrades:                             # tier 1: everything the merchant gave (upgrades and the former boons alike)
+		out.append(Progression.perk_info(id).get("mods", {}))
 	out.append(character_traits().get("mods", {}))
-	for id in run_boons:                                   # tier 2: this character's boons
-		out.append(Progression.boon(id).get("mods", {}))
 	for id in permanent_perks:                             # tier 3: the profile's permanent perks
 		out.append(Progression.perk_info(id).get("mods", {}))
 	for id in quest_upgrades:                              # earned from a quest (scripts/quests.gd)
@@ -2542,38 +2531,37 @@ func get_salvage_yield_mult() -> float: return _upgrade_stat_mult("salvage_yield
 func get_perk_luck() -> float: return maxf(0.0, _upgrade_stat_add("perk_luck"))
 
 
-func get_upgrade_pair(floor_num: int) -> Array:
-	# Seeded pair of UNOWNED upgrades, weighted. Stable per (run, floor) so a
-	# reload can't reroll the offer. <2 unowned -> offer one; none -> empty.
+## THE MERCHANT'S OFFER (owner round 48i: "upgrades and boons are the same thing to a player… offer three options with only one selectable"):
+## ONE offer of `Progression.MERCHANT_OFFER` (3) distinct perks from the merged pool — the merchant's upgrades (weight `w`) and the
+## former run boons (`Progression.BOON_WEIGHT`) — none already owned or kept for good. Whatever is picked is kept for the whole arc.
+## Seeded per (playthrough, run, floor) so a reload can't re-roll it; fewer than three left → the offer is that many; none → empty.
+func get_upgrade_offer(floor_num: int) -> Array:
 	var key = str(current_run) + ":" + str(floor_num)
 	if upgrade_offers.has(key):
-		return upgrade_offers[key]["pair"]
+		var held: Dictionary = upgrade_offers[key]
+		return held.get("offer", held.get("pair", []))             # "pair" = a save from before the offer grew to three
 	var rng = RandomNumberGenerator.new()
 	rng.seed = hash(str(master_seed) + "upgrade" + str(floor_num) + str(current_run))
+	var candidates: Array = []
+	for id in Progression.offer_pool():
+		if not (id in active_upgrades or id in permanent_perks):   # a permanent perk is always on
+			candidates.append(id)
 	var luck := get_perk_luck()
+	var offer: Array = []
 	if luck > 0.0:
 		# Fortune's Favour: the same rarity weights, tilted toward desirable perks.
-		var candidates: Array = []
-		for id in UPGRADE_POOL:
-			if not (id in active_upgrades or id in permanent_perks):
-				candidates.append(id)
-		var lucky: Array = Progression.weighted_draw(rng, candidates, 2, luck,
-			func(id): return float(UPGRADE_POOL[id]["w"]))
-		upgrade_offers[key] = {"pair": lucky, "resolved": false}
-		return lucky
-	var pool: Array = []
-	for id in UPGRADE_POOL:
-		if id in active_upgrades or id in permanent_perks:   # a permanent perk is always on
-			continue
-		for i in range(int(UPGRADE_POOL[id]["w"])):
-			pool.append(id)
-	var pair: Array = []
-	while pair.size() < 2 and not pool.is_empty():
-		var pick = pool[rng.randi() % pool.size()]
-		pair.append(pick)
-		pool = pool.filter(func(x): return x != pick)  # no dup in the same pair
-	upgrade_offers[key] = {"pair": pair, "resolved": false}
-	return pair
+		offer = Progression.weighted_draw(rng, candidates, Progression.MERCHANT_OFFER, luck, Progression.offer_weight)
+	else:
+		var pool: Array = []
+		for id in candidates:
+			for i in range(Progression.offer_weight(id)):
+				pool.append(id)
+		while offer.size() < Progression.MERCHANT_OFFER and not pool.is_empty():
+			var pick = pool[rng.randi() % pool.size()]
+			offer.append(pick)
+			pool = pool.filter(func(x): return x != pick)         # no dup in the same offer
+	upgrade_offers[key] = {"offer": offer, "resolved": false}
+	return offer
 
 
 func is_upgrade_offer_resolved(floor_num: int) -> bool:
@@ -2584,7 +2572,7 @@ func is_upgrade_offer_resolved(floor_num: int) -> bool:
 func resolve_upgrade_offer(floor_num: int, chosen_id: String) -> void:
 	var key = str(current_run) + ":" + str(floor_num)
 	if not upgrade_offers.has(key):
-		get_upgrade_pair(floor_num)
+		get_upgrade_offer(floor_num)
 	upgrade_offers[key]["resolved"] = true
 	if chosen_id != "" and chosen_id not in active_upgrades:
 		active_upgrades.append(chosen_id)
@@ -3855,16 +3843,19 @@ const PRY_EXHAUST_FRACTION := 0.1
 
 
 func cross_blocked_stair(choke_floor: int, arrival_floor: int, by_hand: bool = false) -> void:
-	# Commit a crowbar crossing of a choked stairwell (blocks BOTH directions). `by_hand` = no crowbar was
-	# spent (owner round 45: a barricade must never be a dead end) - the consequences are the same, the pry
-	# itself was just three times as long and as loud (stairwell.HAND_PRY_TIME).
-	# `choke_floor` is the staircase's index (the upper floor's down-stair);
-	# `arrival_floor` is the floor you step out onto (choke_floor-1 descending,
-	# current+1 ascending). The crowbar is already spent by the caller. This:
-	# opens the stairwell for the run, shifts the building (enemies move — NO heal,
-	# so it is deliberately not billed as a rest), costs one rest slot, and flags
-	# the arrival floor so its stairwell horde is milling there when you step out.
+	# Commit a crossing of a choked stairwell (blocks BOTH directions). `choke_floor` is the staircase's index (the upper
+	# floor's down-stair); `arrival_floor` is the floor you step out onto (choke_floor-1 descending, current+1 ascending).
+	# Opens the stairwell for the run either way. WHAT IT COSTS depends on how it was done (owner round 48i: "the building
+	# shift shouldn't happen if the player has the crowbar too, because we already have it for if the player does so with bare
+	# hands"; the pry itself is already long and loud on the departure floor):
+	#   * CROWBAR - the crowbar (spent by the caller) was the price. Nothing else changes: the building does not shift, no rest slot
+	#     is lost, you are not spent, nobody is mustered on the arrival floor; the caller takes the ordinary stair crossing.
+	#   * BARE HANDS - the long, loud way, and the heavy one: the building shifts (enemies move — NO heal, so it is deliberately not
+	#     billed as a rest), it costs one rest slot, you arrive SPENT (the OPPOSITE of a rest) and the arrival floor's dead are roused
+	#     and converging on the stairwell you tore open (building_floors, `pending_pry_arrival_floor`).
 	clear_stair_block(choke_floor)
+	if not by_hand:
+		return
 	shift_building()
 	# Cost exactly one rest opportunity: burn a banked rest if you have one, else
 	# forfeit the next merchant-floor rest. Never both — a crossing is one slot.
@@ -3872,14 +3863,12 @@ func cross_blocked_stair(choke_floor: int, arrival_floor: int, by_hand: bool = f
 		rest_available = false
 	else:
 		rest_forfeit_pending = true
-	# You tore through by hand over all that time — arrive SPENT, the OPPOSITE of a
-	# rest. Drain stamina to an exhausted floor. min() so it can only ever lower it
+	# Drain stamina to an exhausted floor. min() so it can only ever lower it
 	# (a crossing never refreshes stamina or health), and the destination floor
 	# reads WorldState.stamina on load so the bar comes up empty.
 	stamina = minf(stamina, get_max_stamina() * PRY_EXHAUST_FRACTION)
 	pending_pry_arrival_floor = arrival_floor
-	if by_hand:
-		add_run_trace("Tore a barricade apart with bare hands")
+	add_run_trace("Tore a barricade apart with bare hands")
 
 
 # --- Barricade keeper (STORY GROUNDWORK — full NPC/quest is a later pass) ----
@@ -4909,7 +4898,7 @@ const GUN_CABINET_SCENE := "res://scenes/Room_Modules/living_room_e.tscn"
 const CABINET_KEY_PREFIX := "cab:"
 const CABINET_KEY_ITEM := "038"                          # the Gun Cabinet Key (its own item + icon)
 const CABINET_WEAPON := "004"                              # the Gun
-const CABINET_LEVEL := 3
+const CABINET_LEVEL := 4              # Reinforced (Lv2) + two picks (Lv3, Lv4)
 const CABINET_ROUNDS := 6                                  # a few left in the magazine
 const CABINET_LOOTED_CHANCE := {2: 0.30, 3: 0.35}         # per run: someone broke in since
 const CABINET_KEY_DAMAGE_MULT := 2
@@ -5052,8 +5041,8 @@ func has_cabinet_key(apartment_id: String) -> bool:
 	return _find_cabinet_key(apartment_id) >= 0
 
 
-# The weapon inside — built the same way every time (seeded per cabinet): the Gun at Lv3, one of
-# each level's two perks already chosen, its 4 tuning points left FREE for the bench (make it yours),
+# The weapon inside — built the same way every time (seeded per cabinet): the Gun at Lv4 (Reinforced, then one of
+# each of two levels' perks already chosen), its 4 tuning points left FREE for the bench (make it yours),
 # full wear, a few rounds in the magazine.
 func gun_cabinet_weapon(apartment_id: String) -> ItemInstance:
 	var inst := ItemInstance.new()
@@ -5066,6 +5055,8 @@ func gun_cabinet_weapon(apartment_id: String) -> ItemInstance:
 		inst.level += 1
 		if not choices.is_empty():
 			inst.perks.append(choices[rng.randi() % choices.size()])
+		elif WeaponUpgrades.auto_perk(inst.item_id, inst.level) != "":
+			inst.perks.append(WeaponUpgrades.auto_perk(inst.item_id, inst.level))
 		_apply_durability_headroom(inst, base_max)
 	if inst.get_max_durability() > 0:
 		inst.current_durability = inst.get_max_durability()
@@ -5569,14 +5560,11 @@ func get_player_corpse_for(floor_num: int, scene: String, apartment: String = ""
 	return {}
 
 
-func recover_player_corpse(key: String) -> Dictionary:
-	# Loot the fallen character: credit its notes to the wallet (or pocket them if the wallet is
-	# somehow still locked), then restore as many items as fit — each rebuilt as an ItemInstance
-	# so its saved durability/mag/count survive (never re-rolled). Items that don't fit STAY on
-	# the corpse for a return trip; the record clears only when the body is empty. Returns a
-	# summary {notes, items_taken, items_left}.
+func loot_body_valuables(key: String) -> Dictionary:
+	# The part of looting a body that needs no slot: its NOTES credit to the wallet (or are pocketed as a Bank Notes stack if the wallet is somehow still locked), its SCRAP merges
+	# into yours (a counter - never two separate "bags"). Only what was actually taken leaves the body (a full pocket must never destroy cash). Returns {notes, notes_left, scrap}.
 	if not player_corpses.has(key):
-		return {"notes": 0, "items_taken": 0, "items_left": 0}
+		return {"notes": 0, "notes_left": 0, "scrap": 0}
 	var data = player_corpses[key]
 	var notes: int = int(data.get("notes", 0))
 	var credited := 0
@@ -5585,15 +5573,27 @@ func recover_player_corpse(key: String) -> Dictionary:
 			wallet_balance += notes
 			HUD.update_wallet()
 			credited = notes
-		elif add_to_inventory("033", notes):   # no wallet yet — take the cash as a stack
+		elif add_to_inventory("033", notes):   # no wallet yet - take the cash as a stack
 			credited = notes
-		# Only what was actually taken leaves the body (a full pocket must never destroy cash).
 		data["notes"] = notes - credited
-	# Their scrap total MERGES into yours (a counter — never two separate "bags").
 	var scrap_found: int = int(data.get("scrap", 0))
 	if scrap_found > 0:
 		add_scrap(scrap_found)
 		data["scrap"] = 0
+	player_corpses[key] = data
+	return {"notes": credited, "notes_left": int(data.get("notes", 0)), "scrap": scrap_found}
+
+
+func recover_player_corpse(key: String) -> Dictionary:
+	# Loot the fallen character: credit its notes to the wallet (or pocket them if the wallet is
+	# somehow still locked), then restore as many items as fit — each rebuilt as an ItemInstance
+	# so its saved durability/mag/count survive (never re-rolled). Items that don't fit STAY on
+	# the corpse for a return trip; the record clears only when the body is empty. Returns a
+	# summary {notes, items_taken, items_left}.
+	if not player_corpses.has(key):
+		return {"notes": 0, "items_taken": 0, "items_left": 0}
+	var vals: Dictionary = loot_body_valuables(key)
+	var data = player_corpses[key]
 	var leftover: Array = []
 	var taken := 0
 	for entry in data.get("items", []):
@@ -5610,8 +5610,73 @@ func recover_player_corpse(key: String) -> Dictionary:
 		player_corpses.erase(key)              # body emptied — clear the record
 	else:
 		player_corpses[key] = data             # partial: whatever didn't fit stays for a return trip
-	return {"notes": credited, "notes_left": notes_left, "scrap": scrap_found,
+	return {"notes": int(vals["notes"]), "notes_left": notes_left, "scrap": int(vals["scrap"]),
 		"items_taken": taken, "items_left": leftover.size()}
+
+
+# --- Looting a body ITEM BY ITEM (owner round 48i: "two rings side by side, drag items across, Arc Raiders style" — scripts/body_ring.gd is the view) ---
+const MAX_BODY_ITEMS := 8              # what a body can hold: what a character carried (6) plus a little room to leave things on it
+
+func body_items(key: String) -> Array:
+	# The item records still on the body (copies of the dictionaries - the ring only reads them).
+	if not player_corpses.has(key):
+		return []
+	return (player_corpses[key].get("items", []) as Array).duplicate(true)
+
+
+func _settle_body(key: String) -> void:
+	# A body with nothing left on it (no items, no notes, no scrap) is gone: the record clears and its body stops being an interactable.
+	if not player_corpses.has(key):
+		return
+	var d = player_corpses[key]
+	if (d.get("items", []) as Array).is_empty() and int(d.get("notes", 0)) <= 0 and int(d.get("scrap", 0)) <= 0:
+		player_corpses.erase(key)
+
+
+func take_body_item(key: String, idx: int) -> Dictionary:
+	# Move ONE item from the body into the pack. Nothing is destroyed: if it does not fit it stays on the body and says why. Returns {ok, name, why}.
+	if not player_corpses.has(key):
+		return {"ok": false, "name": "", "why": "There is nothing there."}
+	var items: Array = player_corpses[key].get("items", [])
+	if idx < 0 or idx >= items.size():
+		return {"ok": false, "name": "", "why": ""}
+	var inst = instance_from_dict(items[idx])
+	var nm: String = inst.get_display_name()
+	if not add_instance_to_inventory(inst):
+		return {"ok": false, "name": nm, "why": "Your pack is full."}
+	items.remove_at(idx)
+	player_corpses[key]["items"] = items
+	_settle_body(key)
+	HUD.refresh_inventory()
+	return {"ok": true, "name": nm, "why": ""}
+
+
+func take_body_all(key: String) -> Dictionary:
+	# Everything that fits, notes and scrap first (they take no slot), then the items in order. Returns recover_player_corpse's summary.
+	return recover_player_corpse(key)
+
+
+func put_body_item(key: String, slot: int) -> Dictionary:
+	# Lay ONE item from the pack on the body (the other way across the two rings). The record keeps its full state (durability, magazine, level, perks, count).
+	if not player_corpses.has(key):
+		return {"ok": false, "name": "", "why": "There is nothing there."}
+	var inst = get_instance_at(slot) if slot >= 0 and slot < inventory.size() else null
+	if inst == null:
+		return {"ok": false, "name": "", "why": ""}
+	var items: Array = player_corpses[key].get("items", [])
+	if items.size() >= MAX_BODY_ITEMS:
+		return {"ok": false, "name": inst.get_display_name(), "why": "There is no room on the body."}
+	var nm: String = inst.get_display_name()
+	items.append(instance_to_dict(inst))
+	player_corpses[key]["items"] = items
+	if HUD.selected_slot > slot:
+		HUD.selected_slot -= 1
+	elif HUD.selected_slot == slot:
+		HUD.selected_slot = -1
+	remove_from_inventory(slot)
+	HUD._update_slot_highlights()
+	HUD.refresh_inventory()
+	return {"ok": true, "name": nm, "why": ""}
 
 
 func spawn_player_corpse_into(parent: Node, floor_num: int, scene: String, apartment: String = "") -> void:
@@ -5713,11 +5778,8 @@ func save_game(scene_path: String, record_live_zombies: bool = true) -> void:
 		"joe_opens": joe_opens,
 		"run_story_stage": run_story_stage,
 		"run_story_flags": run_story_flags,
-		"run_boons": run_boons,
 		"session_perks": session_perks,
 		"handoff_items": handoff_items,
-		"run_milestones_seen": run_milestones_seen,
-		"pending_boon_floors": pending_boon_floors,
 		"current_run": current_run,
 		"player_health": player_health,
 		"is_dying": is_dying,
@@ -5753,6 +5815,8 @@ func save_game(scene_path: String, record_live_zombies: bool = true) -> void:
 		"run_apartments_looted": run_apartments_looted,
 		"visited_floors": visited_floors,
 		"floors_enemy_seen": floors_enemy_seen,
+		"map_sights": map_sights,
+		"map_entered": map_entered,
 		"roped_balconies": roped_balconies,
 		"balcony_jump_warned": balcony_jump_warned,
 		"door_states": door_states,
@@ -5827,18 +5891,14 @@ func load_game() -> String:
 	joe_opens = bool(data.get("joe_opens", false))
 	run_story_stage = int(data.get("run_story_stage", -1))
 	run_story_flags = Dictionary(data.get("run_story_flags", {}))
-	run_boons = Array(data.get("run_boons", []))
 	# Older saves predate the session record: rebuild it from what's still visible.
 	handoff_items = Array(data.get("handoff_items", []))
 	door_stash_pending = []            # an uncommitted door choice belongs to the abandoned timeline
 	var old_handoff: Dictionary = Dictionary(data.get("handoff_item", {}))   # v1 save: one item
 	if not old_handoff.is_empty():
 		handoff_items.append(old_handoff)
-	session_perks = Array(data.get("session_perks", Array(data.get("active_upgrades", [])) + run_boons))
-	run_milestones_seen = Array(data.get("run_milestones_seen", []))
-	pending_boon_floors = []
-	for f in data.get("pending_boon_floors", []):
-		pending_boon_floors.append(int(f))              # JSON reads numbers back as floats
+	var old_boons: Array = Array(data.get("run_boons", []))        # a save from before the merge: the character's boons become upgrades
+	session_perks = Array(data.get("session_perks", Array(data.get("active_upgrades", [])) + old_boons))
 	current_run = data["current_run"]
 	player_health = data["player_health"]
 	is_dying = data["is_dying"]
@@ -5856,6 +5916,9 @@ func load_game() -> String:
 	opened_anchors = data.get("opened_anchors", {})
 	apartment_layouts = data["apartment_layouts"]
 	active_upgrades = data["active_upgrades"]
+	for id in old_boons:                         # the former per-character boons are upgrades now (kept for the arc)
+		if not (id in active_upgrades):
+			active_upgrades.append(id)
 	tutorial_zombie_spawned = data["tutorial_zombie_spawned"]
 	last_exited_apartment = data["last_exited_apartment"]
 	saved_player_x = data["saved_player_x"]
@@ -5872,6 +5935,8 @@ func load_game() -> String:
 	run_apartments_looted = data.get("run_apartments_looted", [])
 	visited_floors = data.get("visited_floors", {})
 	floors_enemy_seen = data.get("floors_enemy_seen", {})
+	map_sights = Dictionary(data.get("map_sights", {}))
+	map_entered = Dictionary(data.get("map_entered", {}))
 	roped_balconies = data.get("roped_balconies", {})
 	balcony_jump_warned = data.get("balcony_jump_warned", false)
 	door_states = data["door_states"]
@@ -5957,6 +6022,7 @@ func instance_to_dict(instance) -> Dictionary:
 		"is_damaged": instance.is_damaged,
 		"shots_since_mark": instance.shots_since_mark,
 		"level": instance.level,
+		"wv": WeaponUpgrades.WORKBENCH_VERSION,
 		"perks": instance.perks.duplicate(),
 		"tuning": instance.tuning.duplicate(),
 		"title": instance.title,
@@ -5978,6 +6044,13 @@ func instance_from_dict(entry: Dictionary) -> ItemInstance:
 	instance.is_damaged = bool(entry.get("is_damaged", false))
 	instance.level = int(entry.get("level", 1))
 	instance.perks = Array(entry.get("perks", []))
+	# A save from before the plain first step (Lv2 = Reinforced, round 48i) counted its first PICK as Lv2: every level from there moves up one - same perks, same tuning points,
+	# same legendary / heirloom standing - and the weapon gets the Reinforced step it never paid for.
+	if int(entry.get("wv", 1)) < WeaponUpgrades.WORKBENCH_VERSION and instance.level >= 2 and WeaponUpgrades.can_upgrade(instance.item_id):
+		instance.level += 1
+		var plain: String = WeaponUpgrades.auto_perk(instance.item_id, WeaponUpgrades.REINFORCE_LEVEL)
+		if plain != "" and not (plain in instance.perks):
+			instance.perks.push_front(plain)
 	# JSON brings numbers back as floats: tuning ranks are ints.
 	var tun: Dictionary = {}
 	var raw_tuning = entry.get("tuning", {})
@@ -5999,11 +6072,27 @@ func instance_from_dict(entry: Dictionary) -> ItemInstance:
 
 
 # Put a specific, already-built item back in a free slot (a picked-up drop keeps its state).
+## A dropped stack of bullets / throwables joins a held stack of the SAME item when the two fit one slot together.
+func _plain_stack_joins(held, incoming) -> bool:
+	if held.item_id != incoming.item_id:
+		return false
+	var d: Dictionary = ItemData.get_item(held.item_id)
+	var cap := 0
+	if d.get("is_ammo", false):
+		cap = MAX_AMMO_PER_SLOT
+	elif d.get("is_throwable", false):
+		cap = throwable_cap(held.item_id)
+	return cap > 0 and held.count + incoming.count <= cap
+
+
 func add_instance_to_inventory(instance) -> bool:
 	if instance == null:
 		return false
 	for held in inventory:
 		if medical_stacks(held, instance):          # a dropped stack of bandages rejoins the bandages in the pack
+			held.count += instance.count
+			return true
+		if _plain_stack_joins(held, instance):      # ...and so does a dropped stack of bullets / cans / Molotovs
 			held.count += instance.count
 			return true
 	if inventory.size() >= get_inventory_slots():

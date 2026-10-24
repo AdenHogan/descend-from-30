@@ -1183,7 +1183,7 @@ func _sprite_bottom_global(spr: AnimatedSprite2D) -> float:
 
 
 ## Owner round 33: "corpse bodies are below the player y plane". Every enemy type — standing AND dead — draws its feet on the
-## same row as the player's (the art used to draw 2-3 px under its collision feet, so bodies lay "in front of" the floor).
+## same row as the player's while alive; a dead body is drawn CorpseDepth.DROP lower still (owner round 48i: "I can just see the players feet below the corpse").
 func _test_drawn_feet_level() -> void:
 	print("[drawn feet: enemies alive and dead on the player's row]")
 	var bf = await _corridor()
@@ -1210,6 +1210,6 @@ func _test_drawn_feet_level() -> void:
 			await get_tree().physics_frame
 			guard += 1
 		var dead: float = _sprite_bottom_global(spr)
-		check(z.is_dead and absf(dead - player_row) < 0.6, "%s dead: the body lies on the same row (%.1f)" % [n, dead])
+		check(z.is_dead and absf(dead - (player_row + CorpseDepth.DROP)) < 0.6, "%s dead: the body is drawn DROP (%.0f px) below the player's row (%.1f)" % [n, CorpseDepth.DROP, dead])
 	bf.free()
 	await get_tree().process_frame

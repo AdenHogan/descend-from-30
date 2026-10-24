@@ -57,6 +57,7 @@ var _light: PointLight2D = null
 
 
 func _ready() -> void:
+	add_to_group("scavenge_anchor")      # a pickup lying under the pointer asks these before it claims a click (world_drop._node_has_the_click)
 	player = get_tree().get_first_node_in_group("player")
 	_tex = FL.light_texture()          # soft round cookie (bright centre → transparent edge)
 	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR   # smooth the scaled cookie

@@ -74,6 +74,10 @@ func _input(event: InputEvent) -> void:
 func _process(delta: float) -> void:
 	_t += delta
 	queue_redraw()
+	if corpse_key != "" and not WorldState.player_corpses.has(corpse_key):
+		HUD.hide_world_prompt(self)               # searched down to nothing on the rings: the body is spent
+		queue_free()
+		return
 	if _light != null:
 		var lvl := _glow_level()
 		_light.energy = lvl * 0.5 * (1.0 + 0.08 * sin(_t * 2.4))
@@ -106,12 +110,23 @@ func _is_mouse_over_body() -> bool:
 
 
 func _recover() -> void:
+	# A body with things on it is SEARCHED on the two rings (the player kneels; the body's ring beside their own pack: take, or lay things down - scripts/body_ring.gd, owner
+	# round 48i). What takes no slot comes at once. No pack to open (pockets only), a pad in use, or something else already open: the old "take everything that fits".
+	if HUD.body_ring != null and HUD.body_ring.key == corpse_key:
+		return                                    # already searching this body (interact again is not "take it all")
+	if not WorldState.body_items(corpse_key).is_empty() and HUD.body_ring != null and HUD.body_ring.begin(corpse_key):
+		var vals: Dictionary = WorldState.loot_body_valuables(corpse_key)
+		_remember_them()
+		var bits: Array = []
+		if int(vals.get("notes", 0)) > 0:
+			bits.append("%d notes" % int(vals["notes"]))
+		if int(vals.get("scrap", 0)) > 0:
+			bits.append("%d scrap" % int(vals["scrap"]))
+		if not bits.is_empty():
+			HUD.show_feedback("Recovered " + " and ".join(bits) + ".")
+		return
 	var summary = WorldState.recover_player_corpse(corpse_key)
-	# Collect the fallen character's MEMORY too (STORE_DESIGN corpse recovery + cross-run memory):
-	# unlock their lore in the chronicle and leave this character's comment on finding them.
-	if corpse_key.is_valid_int():
-		var dead_run := int(corpse_key)
-		WorldState.recover_run_memory(dead_run, WorldState.make_finder_thought(dead_run))
+	_remember_them()
 	var parts: Array = []
 	if int(summary.get("notes", 0)) > 0:
 		parts.append("%d notes" % int(summary["notes"]))
@@ -128,6 +143,13 @@ func _recover() -> void:
 	if not left_behind:
 		HUD.hide_world_prompt(self)
 		queue_free()
+
+
+## Collect the fallen character's MEMORY too (STORE_DESIGN corpse recovery + cross-run memory): unlock their lore in the chronicle and leave this character's comment on finding them.
+func _remember_them() -> void:
+	if corpse_key.is_valid_int():
+		var dead_run := int(corpse_key)
+		WorldState.recover_run_memory(dead_run, WorldState.make_finder_thought(dead_run))
 
 
 func _exit_tree() -> void:

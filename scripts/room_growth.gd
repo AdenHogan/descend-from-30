@@ -23,6 +23,7 @@ const DIR := "res://assets/growth/"
 const W := 320
 const SLOTS := 40
 const MARGIN := 14                      # the perspective walls between modules cover the outer columns
+const PLANT_REST := 6                   # a houseplant stands within this many px of a corner of the room or of a piece of furniture
 const FOOTING := 3                       # rows of clear floor a standing plant needs under it
 const BALCONY_X := 100                  # a balcony slot's doors occupy the left of the module
 const POTS := ["pot_fern_1", "pot_fern_2", "pot_flowers_3", "pot_flowers_4", "pot_flowers_5", "pot_tall_6", "pot_tall_7"]
@@ -174,15 +175,41 @@ static func _houseplant(rng: RandomNumberGenerator, m: Dictionary, placed: Array
 	var sky: Array = m.get("up_floor", [])
 	if sky.size() < W:
 		return null
-	for k in range(24):
-		var x: int = lo_x + int((x_roll + k * 37) % maxi(1, int(W - MARGIN - size.x) - lo_x))
+	# A plant stands where someone would put it: in a corner of the room or snug against a piece of furniture - never alone in the middle of a bare wall (owner round 48i: "this plant on the
+	# ground, middle of nowhere, it's just poorly placed and planned. Looks haphazard"). A flat with no such spot simply has no houseplant.
+	var spots: Array = []
+	var x_hi: int = int(W - MARGIN - size.x)
+	for x in range(lo_x, x_hi + 1):
 		if clear_over(sky, x, int(size.x)) < int(size.y):      # the whole plant, not just its footing, in the open
 			continue
+		if rest_gap(sky, x, int(size.x), int(size.y), lo_x, W - MARGIN) > PLANT_REST:
+			continue
+		spots.append(x)
+	if spots.is_empty():
+		return null
+	for k in range(mini(spots.size(), 24)):
+		var x: int = int(spots[(x_roll + k * 7) % spots.size()])
 		var r := Rect2(Vector2(x, float(base_row("floor")) - size.y), size)
 		if CG._overlap_frac(placed, r, ["fern", "shrub"]) > 0.15:
 			continue
 		return {"name": name, "pos": r.position, "kind": "potted", "thr": 0.0}
 	return null
+
+
+## How many open columns lie between a plant `w` wide at column x and the nearest thing that holds it in - furniture standing taller than `h` (a column whose clear height is under `h`)
+## or the end of the room (`lo`..`hi`) - on either side. 0 = touching, a big number = adrift in the middle of a wall.
+static func rest_gap(sky: Array, x: int, w: int, h: int, lo: int, hi: int) -> int:
+	var left := 0
+	var cx := x - 1
+	while cx >= lo and int(sky[cx]) >= h:
+		left += 1
+		cx -= 1
+	var right := 0
+	cx = x + w
+	while cx < hi and int(sky[cx]) >= h:
+		right += 1
+		cx += 1
+	return mini(left, right)
 
 
 ## Lay the growth on a module instance (a Node2D at the module's origin): a "Growth" node straight above its art.

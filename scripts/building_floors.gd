@@ -39,6 +39,8 @@ const ENEMY_SCENES := {
 # Settled origin Y per type (feet on the 419 floor line — MEASURED, see docs/Y_PLANES.md).
 # Only the standard sits at 370; the big + all three new rigs rest at 374. Used for
 # pan-backdrop scenery placement (no physics step to settle them).
+## How far along the corridor from the arrival stairwell the dead roused by a BARE-HANDS crossing start (stairwell.gd / world_state.cross_blocked_stair).
+const PRY_ARRIVAL_CLEAR := 330.0
 const ENEMY_SETTLED_Y := {
 	"zombie_standard": 370.0,
 	"zombie_big": 374.0,
@@ -616,6 +618,12 @@ func _process(delta: float) -> void:
 		if dist <= APPROACH_WARN_DIST and not WorldState.hazard_warned(floor_num, target["side"]):
 			WorldState.mark_hazard_warned(floor_num, target["side"])
 			_warn_hazard("Wait — I can hear them ahead. The stairwell's crawling with them. Careful now.")
+	# The journal map's memory of this corridor (who is standing in it) — every couple of seconds, LIVE floors only (a pan backdrop never calls
+	# _process with a player of its own, and `passive` floors return before any of this).
+	_sight_acc += delta
+	if _sight_acc >= SIGHT_EVERY:
+		_sight_acc = 0.0
+		WorldState.note_floor_sight(_built_floor, self)
 	# Fire memory: snapshot the fire's spread PERIODICALLY (not only in _exit_tree),
 	# keyed by the floor THIS scene built. _exit_tree alone proved unreliable across a
 	# stair transition (the fire came back empty), so we also keep a fresh snapshot on
@@ -813,6 +821,8 @@ const FIRE_FIELD := preload("res://scripts/fire_field.gd")
 var _fire_field = null                 # the floor's fire, or null
 var _fire_dmg_acc: float = 0.0
 var _fire_save_acc: float = 0.0        # throttles the periodic fire-memory snapshot
+var _sight_acc: float = 0.0            # …and the map's memory of who stands in the corridor
+const SIGHT_EVERY := 2.0
 var _fire_was_burning: bool = false    # to catch the moment the floor's fire goes out
 const FIRE_DMG_INTERVAL := 1.1         # a health hit this often while standing in flame
 # Throttle the player's fire voice lines so they don't spam every damage tick.
@@ -1204,8 +1214,10 @@ func _spawn_zombies(floor_num: int, as_scenery: bool) -> void:
 	# behind the stair art was effectively invisible until it moved.
 	var positions: Array
 	if pried_arrival:
-		var band_min: float = 245.0 if arrived_left else 895.0
-		var band_max: float = 470.0 if arrived_left else 1105.0
+		# The roused dead gather toward the stairwell you tore open, but not ON it: a band PRY_ARRIVAL_CLEAR px further along the corridor, so the first
+		# one is seconds away (a standard walks 40 px/s) - time to take a breath, find your feet and shove (owner round 48i: "there was just no time to process").
+		var band_min: float = 245.0 + PRY_ARRIVAL_CLEAR if arrived_left else 895.0 - PRY_ARRIVAL_CLEAR
+		var band_max: float = 470.0 + PRY_ARRIVAL_CLEAR if arrived_left else 1105.0 - PRY_ARRIVAL_CLEAR
 		positions = WorldState.get_zombie_positions(zombie_count, floor_rng, band_min, band_max, 388.0)
 	else:
 		positions = WorldState.get_zombie_positions(zombie_count, floor_rng, 265.0, 1105.0, 388.0)

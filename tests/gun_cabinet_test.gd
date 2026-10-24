@@ -1,7 +1,7 @@
 extends Node
 
 # THE GUN CABINET (owner round 20 — "a quest without saying it"): living room E's locked cabinet
-# holds a GUARANTEED Lv3 gun; its key or a crowbar opens it; the key is on a tough SPITTER (double
+# holds a GUARANTEED Lv4 gun (Reinforced + two picks); its key or a crowbar opens it; the key is on a tough SPITTER (double
 # HP, double spit damage) in a boss-less breach room on the same floor; in runs 2/3 someone may have
 # broken in first. Run:
 #   godot --headless res://tests/gun_cabinet_test.tscn
@@ -140,13 +140,13 @@ func _test_cabinet_rules() -> void:
 func _test_weapon() -> void:
 	var a = WorldState.gun_cabinet_weapon(cab)
 	var b = WorldState.gun_cabinet_weapon(cab)
-	check(a.item_id == WorldState.CABINET_WEAPON and a.level == 3, "inside: the Gun at Lv3 (%s Lv%d)" % [a.item_id, a.level])
-	check(a.perks.size() == 2 and a.perks[0] in WeaponUpgrades.TREES["004"][2] and a.perks[1] in WeaponUpgrades.TREES["004"][3],
+	check(a.item_id == WorldState.CABINET_WEAPON and a.level == 4, "inside: the Gun at Lv4 (%s Lv%d)" % [a.item_id, a.level])
+	check(a.perks.size() == 3 and a.perks[0] == "R_gun" and a.perks[1] in WeaponUpgrades.TREES["004"][3] and a.perks[2] in WeaponUpgrades.TREES["004"][4],
 		"one of each level's two perks (%s)" % str(a.perks))
 	check(WeaponUpgrades.points_free(a) == 4, "its 4 tuning points left for the bench")
 	check(a.mag_count == WorldState.CABINET_ROUNDS, "a few rounds in the magazine")
 	check(a.perks == b.perks, "the same gun every time (seeded)")
-	check(a.tier_label() == "Lv3", "reads as Lv3")
+	check(a.tier_label() == "Lv4", "reads as Lv4")
 
 
 func _test_open_with_key() -> void:

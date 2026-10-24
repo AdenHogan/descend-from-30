@@ -104,7 +104,7 @@ func _build_offer() -> void:
 		var id: String = offer[i]
 		var d: Dictionary = Progression.perk_info(id)
 		var cost: int = int(d.get("cost", 0))
-		var kind := "Run boon" if d.get("kind", "") == "boon" else "Merchant upgrade"
+		var kind := "An upgrade you took this session"
 		var short := maxi(0, cost - WorldState.valour)
 		var b := choice_button(String(d.get("name", id)),
 			"%s\n\n%s\n\nKeep forever — %d Valour%s" % [d.get("desc", ""), kind, cost,

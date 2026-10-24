@@ -8,6 +8,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import furn as F
 import furnlib as FL
 import propkit as K
+import instruments as IN
 from furnlib import piece
 from pixlib import hexc, shade, mix
 
@@ -110,29 +111,29 @@ def ashtray_pack(c, ox, oy, p):
 
 
 # ================================================================================================================================ the guitar
-@piece('guitar_stand', 18, 46, 'floor', rooms={'living_room': 4, 'bedroom': 1}, styles={'squat': 7, 'mid': 1, 'teen': 1}, tags=('music',), limit=1,
-       variants={'acoustic': {'body': 'c88a3a'}, 'dark': {'body': '5a2a1a'}}, feet=(108, 118),
-       note='an acoustic guitar upright on an A-frame floor stand against the wall: the waisted body, the sound hole, the neck and the head with its tuners')
+@piece('guitar_stand', 28, 64, 'floor', rooms={'living_room': 4, 'bedroom': 1}, styles={'squat': 7, 'mid': 1, 'teen': 1}, tags=('music',), limit=1,
+       variants={'acoustic': {'body': 'c88a3a'}, 'dark': {'body': '7a3a1c'}}, feet=(108, 118),
+       note='an acoustic guitar upright on an A-frame floor stand against the wall: a wide bound body with a pinched waist, a ringed sound hole, a pickguard and bridge, a fretted neck and a tapered head with its tuning pegs')
 def guitar_stand(c, ox, oy, p):
+    """(owner round 48i: "the guitar looks like some bizarre flute thing") the drawing lives in instruments.py: a body 26 rows long and 19 wide at the lower bout, then the neck."""
     body = hexc(p['body'])
-    cx = ox + 9
-    K.contact_shadow(c, cx, oy + 0.5, 9, 1.4, 95)
+    cx = ox + 14
+    by = oy - 12                                   # the belly rests in the stand's cradle
+    K.contact_shadow(c, cx, oy + 0.5, 11, 1.5, 100)
     L = K.Layer(c)
     lc = L.c
-    for sx in (-1, 1):                                                                           # the stand's legs
-        lc.line(cx, oy - 12, cx + sx * 7, oy, hexc('3a3a3e'))
-    lc.line(cx, oy - 12, cx, oy - 18, hexc('3a3a3e'))
-    K.sphere(lc, cx, oy - 17, 5.6, 6.0, body, gloss=True)                                        # the lower bout
-    K.sphere(lc, cx, oy - 26, 4.2, 4.4, body, gloss=True)                                        # the upper bout
-    lc.rect(int(cx - 3), oy - 24, int(cx + 2), oy - 19, shade(body, 0.95))                       # the waist
-    K.ell(lc, cx, oy - 19, 2.2, 2.2, hexc('1a1410'))                                             # the sound hole
-    lc.rect(int(cx - 2), oy - 13, int(cx + 1), oy - 12, hexc('3a2418'))                          # the bridge
-    lc.rect(int(cx - 1), oy - 44, int(cx), oy - 29, hexc('3a2418'))                              # the neck
-    lc.rect(int(cx - 2), oy - 47, int(cx + 1), oy - 44, hexc('2a1810'))                          # the head
-    for k in range(3):
-        lc.put(int(cx - 3), oy - 46 + k, hexc('c8c8c0')); lc.put(int(cx + 2), oy - 46 + k, hexc('c8c8c0'))
-    for fy in range(oy - 41, oy - 30, 3):
-        lc.hline(int(cx - 1), int(cx), fy, hexc('b8b8b0'))
+    steel, steel_lt, pad = hexc('34343a'), hexc('5c5c66'), hexc('1c1c20')
+    for sx in (-1, 1):                              # the A-frame: two legs meeting under the belly, a crossbar, padded cradle arms hugging the lower bout
+        lc.line(cx + sx * 1, by + 2, cx + sx * 9, oy, steel)
+        lc.line(cx + sx * 1 + 1, by + 2, cx + sx * 9 + 1, oy, steel if sx > 0 else steel_lt)
+    lc.hline(cx - 5, cx + 5, oy - 4, steel)
+    lc.line(cx, by + 2, cx, by, steel)
+    for sx in (-1, 1):
+        for k in range(5):
+            lc.put(cx + sx * 9, by - 1 - k, pad)
+        lc.put(cx + sx * 8, by - 5, pad)
+        lc.hline(cx + sx * 6, cx + sx * 8, by + 1, steel)
+    IN.acoustic_guitar(lc, cx, by, body)
     L.flush()
 
 
@@ -201,7 +202,7 @@ def _large_rug(c, ox, oy, p, W):
                     c.put(ox + W - 2 + fx - int(round(3.5 * (1.0 - (y - top) / float(bot - top)))), y, shade(pat, 0.9))
 
 
-@piece('rug_large', 120, 14, 'rug', rooms={'living_room': 8, 'dining_room': 4, 'study': 2}, styles={'cosy': 8, 'mid': 6, 'parlour': 8, 'lodge': 7, 'family': 3, 'formal': 4, 'library': 3, 'office': 1}, tags=('rug',), feet=(118, 122), under=('sofa', 'seating_lounge', 'table'),
+@piece('rug_large', 120, 14, 'rug', rooms={'living_room': 8, 'dining_room': 4, 'study': 2}, styles={'cosy': 8, 'mid': 6, 'parlour': 8, 'lodge': 7, 'family': 3, 'formal': 4, 'library': 3, 'office': 1}, tags=('rug',), feet=(129, 134), under=('sofa', 'seating_lounge', 'table'),
        variants={'maroon': {'col': '8a3a38', 'border': '5a2424', 'pat': 'd8b890', 'for': ['cosy', 'family', 'library']}, 'gold': {'col': 'b8902a', 'border': '8a6a1e', 'pat': 'e4cc78', 'shag': True, 'for': ['mid']},
                  'tartan': {'col': '2e5a3a', 'border': '7a2a2a', 'pat': 'e4cc78', 'plaid': True, 'for': ['lodge']},
                  'green': {'col': '4e6a4a', 'border': '34482e', 'pat': 'c8c498', 'for': ['parlour', 'formal']}, 'blue': {'col': '4e6a8a', 'border': '34485e', 'pat': 'd0c8a8', 'for': ['formal', 'library', 'office']}},

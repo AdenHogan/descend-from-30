@@ -68,8 +68,6 @@ var drag_icon: TextureRect = null
 var stamina_bar: Control = null
 var wallet_label: Label = null
 var scrap_label: Label = null
-var boon_badge: Button = null          # "a boon is waiting" — click to choose (docs/PROGRESSION.md)
-var boon_ui = null
 var slot_level_labels: Array = []
 var listen_overlay: CanvasLayer = null
 const STAMINA_BAR_W = 170.0            # the stamina bar lies under the portrait's name (bottom-left)
@@ -118,6 +116,7 @@ var scrap_icon: TextureRect = null
 var equip_box: Control = null            # the in-hand item box right of the name row (hud_equip_box.gd)
 var touch_overlay: Control = null        # on-screen stick + buttons (touch_overlay.gd)
 var pack_wheel: Control = null           # the backpack ring (pack_wheel.gd) — real time, whole bag
+var body_ring: Control = null            # a searched body's ring, beside the pack's (body_ring.gd, owner round 48i)
 var pack_button: Control = null          # the clickable backpack in the strip (hud_pack_button.gd)
 var _health_stage: int = 0
 var ident_top: bool = false              # touch: the identity block is top-left (apply_identity_layout)
@@ -138,7 +137,6 @@ func _ready() -> void:
 	_create_stamina_bar()
 	_create_wallet_label()
 	_create_scrap_label()
-	_create_boon_badge()
 	_create_pack()
 	_create_dev_warp_prompt()
 	_create_dev_item_prompt()
@@ -251,6 +249,8 @@ func _create_pack() -> void:
 			pack_wheel.toggle())
 	pack_wheel = preload("res://scripts/pack_wheel.gd").new()
 	$Control.add_child(pack_wheel)
+	body_ring = preload("res://scripts/body_ring.gd").new()        # added AFTER the pack ring so its _input runs first (a press on it is never the pack's "click in the world")
+	$Control.add_child(body_ring)
 	# On-screen controls for a touchscreen (hidden unless one is in use — docs/CONTROLS.md).
 	touch_overlay = preload("res://scripts/touch_overlay.gd").new()
 	add_child(touch_overlay)
@@ -396,6 +396,7 @@ func _create_feedback_label() -> void:
 const WORLD_PROMPT_FONT_SIZE := 17
 const WORLD_PROMPT_PAD := Vector2(13, 6)   # padding around the text inside the pill
 const WORLD_PROMPT_GAP := 12.0             # screen px the pill floats above its anchor
+const WORLD_PROMPT_STACK_GAP := 3.0        # screen px kept between two pills that would overlap (they stack)
 var _world_prompts: Dictionary = {}        # owner instance_id -> {panel, label, pos}
 
 
@@ -460,6 +461,7 @@ func _update_world_prompt() -> void:
 	# behind being locked, it should disappear. it overlaps the wheel"). Faded, not hidden — `visible` is the pill's own state,
 	# so each comes straight back when the ring closes.
 	var hush: bool = pack_wheel != null and pack_wheel.is_visible_in_tree()
+	var shown: Array = []
 	for id in _world_prompts.keys():
 		# Owner gone (scene change, freed drop): drop its pill so nothing leaks.
 		if instance_from_id(id) == null:
@@ -484,6 +486,37 @@ func _update_world_prompt() -> void:
 		var x: float = clampf(screen.x - pw / 2.0, 6.0, SCREEN_W - pw - 6.0)
 		var y: float = clampf(screen.y - ph - WORLD_PROMPT_GAP, 6.0, SCREEN_H - 6.0 - ph)
 		panel.position = Vector2(x, y)
+		shown.append({"id": id, "panel": panel, "sx": screen.x})
+	_separate_world_prompts(shown)
+
+
+## Two pills never overlap (owner round 48i, on a screenshot of "Fire…" hidden behind "Torn Clothes [Click] Take": two pickups lay side by side, so their pills
+## floated at the same spot). They are laid left to right by their anchor's screen x (a stable order: a pill never swaps places as the player walks), and one that
+## would land on an earlier pill steps UP above it; if that leaves the screen it goes BELOW the stack instead, so every pill stays readable and on-screen.
+func _separate_world_prompts(shown: Array) -> void:
+	shown.sort_custom(func(a, b): return a["sx"] < b["sx"] or (a["sx"] == b["sx"] and int(a["id"]) < int(b["id"])))
+	var placed: Array[Rect2] = []
+	for e in shown:
+		var panel: Panel = e["panel"]
+		var r := Rect2(panel.position, panel.size)
+		var up := _free_spot(r, placed, true)
+		if up.position.y < 6.0:
+			up = _free_spot(r, placed, false)
+		panel.position = up.position
+		placed.append(up)
+
+
+func _free_spot(r: Rect2, placed: Array[Rect2], upward: bool) -> Rect2:
+	for _i in range(placed.size() + 1):
+		var blocker := -1
+		for k in range(placed.size()):
+			if r.grow(WORLD_PROMPT_STACK_GAP).intersects(placed[k]):
+				blocker = k
+				break
+		if blocker < 0:
+			break
+		r.position.y = placed[blocker].position.y - r.size.y - WORLD_PROMPT_STACK_GAP if upward else placed[blocker].end.y + WORLD_PROMPT_STACK_GAP
+	return r
 
 
 func world_prompt_panel(prompt_owner: Node) -> Panel:
@@ -659,35 +692,6 @@ func _create_scrap_label() -> void:
 	scrap_label = _hud_label("", 18, Color(0.85, 0.75, 0.5), Vector2(CURRENCY_X + 34.0, CURRENCY_Y + 2.0), Vector2(90, 24))
 	scrap_label.visible = false
 	update_scrap()
-
-
-func _create_boon_badge() -> void:
-	# A milestone floor's run boon is OFFERED, never forced: this badge waits beside the portrait
-	# until the player clicks it (arriving mid-fight or mid-stair-pan must not pause the game).
-	boon_badge = Button.new()
-	boon_badge.text = "★ BOON"
-	boon_badge.position = Vector2(CLUSTER_MARGIN, IDENT_Y - 38.0)      # above the portrait
-	boon_badge.size = Vector2(150, 30)
-	boon_badge.mouse_filter = Control.MOUSE_FILTER_STOP
-	boon_badge.add_theme_color_override("font_color", Color(1.0, 0.85, 0.35))
-	boon_badge.visible = false
-	boon_badge.pressed.connect(open_boon_offer)
-	$Control.add_child(boon_badge)
-
-
-func refresh_boon_badge() -> void:
-	if boon_badge == null:
-		return
-	# Round 33: boons are the merchant's (shop_ui's BOON step) — the arrival badge never shows. Kept as a node (and
-	# open_boon_offer) so nothing that names it breaks.
-	boon_badge.visible = false
-
-
-func open_boon_offer() -> void:
-	if boon_ui == null or not is_instance_valid(boon_ui):
-		boon_ui = preload("res://scripts/boon_offer_ui.gd").new()
-		add_child(boon_ui)
-	boon_ui.open()
 
 
 func update_scrap() -> void:
@@ -1087,8 +1091,6 @@ func _layout_identity_row() -> void:
 				right = equip_box.position.x + equip_box.size.x + 10.0
 			ident_frame.position = Vector2(TOP_PAD - 4.0, TOP_PAD - 4.0)
 			ident_frame.size = Vector2(right - (TOP_PAD - 4.0), TOP_PORTRAIT_H + 16.0)
-	if boon_badge != null:
-		boon_badge.position = Vector2(CLUSTER_MARGIN, TOP_PAD + TOP_PORTRAIT_H + 16.0) if ident_top else Vector2(CLUSTER_MARGIN, IDENT_Y - 38.0)
 
 
 ## Where the identity block's text column and name row sit: bottom-left normally, top-left under a touchscreen.
@@ -1548,17 +1550,19 @@ func inventory_drop_rect() -> Rect2:
 
 
 ## Is a screen point over something the player would click ON (a slot, the pack, the mode toggle, the
-## portrait, the boon badge, an open context menu)? Clicks anywhere else belong to the world. This replaces
+## portrait, an open context menu)? Clicks anywhere else belong to the world. This replaces
 ## the old "below y 528 is the bar" band test now that there is no bar.
 func pointer_over_widget(pos: Vector2) -> bool:
 	if hotbar_rect().has_point(pos):
 		return true
-	for w in [pack_button, mode_label, portrait, boon_badge, context_menu, equip_box]:
+	for w in [pack_button, mode_label, portrait, context_menu, equip_box]:
 		if w != null and is_instance_valid(w) and w.visible and w.get_global_rect().has_point(pos):
 			return true
 	# An open pack ring (+ its right-click menu) is the ring's, not the world's: without this a ring slot lying over a scavenge node
 	# was swallowed by the room's click-to-search and could not be dragged (owner round 36f).
 	if pack_wheel != null and is_instance_valid(pack_wheel) and pack_wheel.is_open and pack_wheel.owns_point(pos):
+		return true
+	if body_ring != null and is_instance_valid(body_ring) and body_ring.owns_point(pos):
 		return true
 	# Clickable things that live elsewhere (a resident's speech bubble with its trade buttons).
 	for w in get_tree().get_nodes_in_group("hud_widget_extra"):
@@ -1768,7 +1772,6 @@ func refresh_inventory() -> void:
 	# or scrap event, and they used to show the previous game's values until the next pickup.
 	update_wallet()
 	update_scrap()
-	refresh_boon_badge()
 	update_backpack_state()
 	WorldState.sync_overload()
 	for i in range(slots.size()):

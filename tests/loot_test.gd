@@ -59,7 +59,9 @@ func _ready() -> void:
 	loot._process(loot.REVEAL_TIME * 0.5 - 0.1)
 	check(loot.is_revealing, "…still searching just before the halved time")
 	loot._process(0.2)
-	check(not loot.is_revealing and loot.name_label.text == "Nothing found.", "…done at the halved time: Nothing found")
+	check(not loot.is_revealing and not loot.visible and not WorldState.loot_open, "…done at the halved time: no panel pops - it closes at once (owner round 48i)")
+	check(HUD.feedback_label.text in loot.NOTHING_LINES, "…and the player says so in passing (\"%s\")" % HUD.feedback_label.text)
+	check(not loot.has_item and loot.nothing_timer == 0.0, "…with nothing left waiting to close")
 	loot.queue_free()
 
 	# Clickable mode toggle on the HUD.
