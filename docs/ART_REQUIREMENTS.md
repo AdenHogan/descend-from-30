@@ -58,6 +58,15 @@ backgrounds and we scale to fit.
    integer frame sizes, crisp edges (no soft anti-aliased halos unless a glow is intended).
    For **full-art**: clean high-resolution art, transparent backgrounds, and we scale to fit.
 
+6. **No flat drawings. Ever.** (Owner, round 48h: "We absolutely do not want any flat drawings anywhere. Even for wall art, there needs to be quality.")
+   Rule 2 asks for *flat lighting* — no baked sun, no hard cast shadows — NOT for flat drawing. Every object must still read as a solid thing: its forms in
+   several tones (a lit face, a shaded face, a darker contact edge, the material's own marks — grain, weave, sheen, creases), a visible top or thickness where
+   it has one, a contact shadow where it touches something. A silhouette filled with one or two colours is a rejected delivery. Wall art is no exception: a
+   framed picture has a bevelled moulding, a mat and a glass glint and casts a shadow on the wall; a paper notice has its tape or pins, curled corners, fold
+   creases and print texture. Our own gate measures this (`tools/art/volume_audit.py`: a count of distinct tones, how much one colour covers, the tonal range) and
+   rejects a sprite that fails — aim well above it. (In-house we bake a gentle upper-left light because the corridor's lamps are overhead; a contractor may use
+   neutral ambient volume instead. Either is fine; a flat fill is not.)
+
 ---
 
 ## Canvas, scale & density

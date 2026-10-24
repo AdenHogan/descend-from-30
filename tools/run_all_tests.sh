@@ -84,6 +84,14 @@ else
 	echo "FAIL   art context — see tools/art/context_audit.py (the art must match a sudden event happening NOW)"; head -8 "$LOG_DIR/_context.log"
 	bad=$((bad + 1))
 fi
+# NO FLAT DRAWINGS (owner round 48h: "We absolutely do not want any flat drawings anywhere. Even for wall art, there needs to be quality"): every corridor prop and every furniture piece is built from
+# many tones (tools/art/volume_audit.py). A NEW flat sprite fails; so does a sprite still listed in data/art_flat_backlog.json after it was fixed — the debt can only shrink.
+if python3 tools/art/volume_audit.py --check >"$LOG_DIR/_volume.log" 2>&1; then
+	echo "ok     volume audit ($(tail -1 "$LOG_DIR/_volume.log" | sed 's/^volume audit: //'))"
+else
+	echo "FAIL   volume audit — a flat drawing: see tools/art/volume_audit.py (redraw it with volume; do not edit the backlog to pass)"; head -8 "$LOG_DIR/_volume.log"
+	bad=$((bad + 1))
+fi
 # THE LOGO (owner round 48): assets/logo/* (png @1x / @4x, svg, ico) and docs/logo/logo_sheet.png are exactly what tools/art/logo.py draws, the four transparent
 # logo files really are transparent, the icon is 64 x 64, and the print's tones stay oxblood (never a comic red).
 if python3 tools/art/logo.py --check >"$LOG_DIR/_logo.log" 2>&1; then
