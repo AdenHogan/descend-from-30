@@ -14,6 +14,12 @@ Exempt, with the reason in EXEMPT: a MARK (a stain, a smear: flat by nature) and
     python3 tools/art/volume_audit.py            # print the ranked report (flat sprites, then the backlog)
     python3 tools/art/volume_audit.py --check    # the gate: exit 1 on a new flat sprite or a stale backlog entry
     python3 tools/art/volume_audit.py --write    # rewrite the backlog from what is flat NOW (only when adding debt on purpose — say why in the commit)
+    python3 tools/art/volume_audit.py --baked    # the BAKED room modules: every object in each picture below the library's bar, worst first (a report, not a gate — see below)
+
+The baked modules are one picture each, so their objects are found by `tools/art/baked_objects.py` (what differs from the bare wall + floor, minus soft shadow, grouped by touching) while
+`pixlib.finish_module` renders them, and recorded in assets/rooms/object_meta.json. `--baked` reads that, says when it is stale against the art, and ranks what is below the furniture bar.
+It is NOT gated yet: a touching group (a sofa on its rug, a picture and its wall mark) counts as one object and floor marks / wall bands read as flat, so the list over-reports (round 48j:
+~135 entries, a third of them false). Use it to find what to redraw next; the shared small things (lamps, plants, tins, bags, boxes, books) were redrawn at their source (tools/art/props3d.py).
 """
 import json
 import os
@@ -125,7 +131,38 @@ def load_backlog():
     return json.load(open(BACKLOG))
 
 
+def baked_report():
+    sys.path.insert(0, HERE)
+    import math
+    import baked_objects as B
+    path = os.path.join(ROOT, B.META)
+    if not os.path.exists(path):
+        print('no %s — run tools/art/build_all.py' % B.META)
+        return 1
+    data = json.load(open(path))
+    rows, stale = [], []
+    for name in sorted(data):
+        art = os.path.join(ROOT, 'assets', 'rooms', name + '.png')
+        if not os.path.exists(art) or B.sha(Image.open(art).convert('RGBA')) != data[name]['sha']:
+            stale.append(name)
+        for o in data[name]['objects']:
+            x0, y0, x1, y1 = o['bbox']
+            if not B.is_flat(o) or y1 >= 119 or (y1 - y0) <= 5 or (y0 <= 6 and o['n'] < 200):      # floor mats, slivers, ceiling-edge fixtures
+                continue
+            deficit = max(B.need(o['n']) - o['colours'], 0) + (8 if o['dom'] > 0.5 else 0)
+            rows.append((deficit * math.sqrt(o['n']), name, o))
+    rows.sort(key=lambda r: -r[0])
+    print('baked modules: %d, objects measured %d, below the furniture bar (floor marks and slivers left out): %d' % (len(data), sum(len(v['objects']) for v in data.values()), len(rows)))
+    if stale:
+        print('STALE (the art changed since object_meta.json was written — run tools/art/build_all.py): %s' % ', '.join(stale))
+    for sc, name, o in rows[:60]:
+        print('  %-14s %-22s n=%4d colours=%3d (need %2d) one colour %2d%%, range %.2f' % (name, o['bbox'], o['n'], o['colours'], B.need(o['n']), round(100 * o['dom']), o['range']))
+    return 0
+
+
 def main(argv):
+    if '--baked' in argv:
+        return baked_report()
     flat = flat_now()
     back = load_backlog()
     if '--write' in argv:

@@ -342,8 +342,9 @@ def _paint_moved(canvas, mask, dx, dy, deg, pivot):
                 cp[x, y] = hit[:3] + (255,)
 
 
-def draw_topple(canvas, base_img, rect, f, direction, bg=None, thr=36, pivot_pad=0, fg=None, ref=None):
-    """A small thing standing on a surface tips over (a glass, a jar, a candlestick) — hinged on its bottom corner on the side it falls toward."""
+def draw_topple(canvas, base_img, rect, f, direction, bg=None, thr=36, pivot_pad=0, fg=None, ref=None, front=None):
+    """A small thing standing on a surface tips over (a glass, a jar, a candlestick) — hinged on its bottom corner on the side it falls toward.
+    `front` = a rect holding something that stands NEARER than the tipping thing (a rocking horse in front of a tower of blocks): whatever in it is not `bg` is laid back over the fall."""
     mask = object_mask(base_img, rect, bg, thr, fg, ref)
     if not mask:
         return
@@ -356,6 +357,10 @@ def draw_topple(canvas, base_img, rect, f, direction, bg=None, thr=36, pivot_pad
         pivot, sign = (float(min(xs)), by), -1.0
     deg = sign * 90.0 * (f ** 1.6)
     _paint_moved(canvas, mask, 0.0, 0.0, deg, pivot)
+    if front:
+        cp, bp = canvas.load(), base_img.load()
+        for (x, y), col in object_mask(base_img, front, bg, thr, None, ref).items():
+            cp[x, y] = col
 
 
 def draw_shift(canvas, base_img, rect, f, dx, dy, deg=0.0, bg=None, thr=36, hump=0.0, fg=None, ref=None, path=None, idx=0, pivot='center'):
@@ -582,8 +587,10 @@ OPENINGS_45C = {
         'anchor_bedroom_med_trolley': dict(kind='topple', rect=(257, 82, 263, 89), dir='r', fg=[(192, 122, 58)], thr=14),
     },
     'bedroom_e': {
-        'anchor_bedroom_dollhouse': dict(kind='topple', rect=(50, 79, 58, 95), dir='r', bg=[(185, 201, 214), (122, 154, 176)], thr=30),
-        'anchor_bedroom_small_wardrobe': dict(kind='door_h', rect=(292, 46, 305, 103), angle=75, base=108, hinge='r', cavity='wardrobe'),
+        # the block tower beside the table (bedroom_variants.TOWER_X) falls to the right; the rocking horse stands NEARER than it, so what the horse covers is laid back over the fall
+        'anchor_bedroom_dollhouse': dict(kind='topple', rect=(61, 68, 77, 99), dir='r', front=(78, 88, 114, 99), thr=30,
+                                         bg=[(185, 201, 214), (230, 227, 217), (224, 220, 208), (112, 110, 104)]),
+        'anchor_bedroom_small_wardrobe': dict(kind='door_h', rect=(291, 49, 302, 98), angle=75, base=108, hinge='r', cavity='wardrobe'),     # the library's kid wardrobe, 28 wide (bedroom_variants.WARDROBE_X)
     },
     # ----- dining rooms -----
     'dining_room': {
@@ -637,13 +644,13 @@ for _art, _d in OPENINGS_45C.items():
 # --- round 45d: more of them — things that SWING or ROCK (a path of per-frame turns about a pivot), more doors, lids and tips ---
 OPENINGS_45D = {
     'bedroom_d': {
-        'anchor_bedroom_clothes_rail': dict(kind='shift', rect=(225, 72, 259, 100), pivot='top', thr=8,
-                                            fg=[(95, 107, 78), (138, 74, 66), (46, 46, 51), (78, 93, 112), (76, 85, 62), (62, 74, 89),
-                                                (110, 59, 52), (36, 36, 40)],
+        # the library's clothes rail (furn_embed.lay 'clothes_rail' at x 220): the garments below the rail bar sway on their hangers; everything that is not the wall behind them moves
+        'anchor_bedroom_clothes_rail': dict(kind='shift', rect=(224, 73, 262, 101), pivot='top', thr=30, bg=[(270, 85), (270, 95)],
                                             path=[(0, 0, 6), (0, 0, -5), (0, 0, 3), (0, 0, -2), (0, 0, 0)]),
     },
     'bedroom_e': {
-        'anchor_bed_pillow': dict(kind='topple', rect=(126, 79, 140, 99), dir='r', fg=[(154, 106, 58), (107, 61, 40)], thr=10),
+        'anchor_bed_pillow': dict(kind='topple', rect=(126, 78, 143, 99), dir='r', thr=10,           # the library's teddy (furn_beds._teddy): its ramp, ribbon and outline
+                                  fg=[(192, 158, 126), (166, 117, 72), (124, 84, 46), (80, 54, 30), (63, 44, 27), (47, 31, 17), (30, 20, 11), (192, 74, 82), (214, 192, 171), (224, 122, 130), (72, 60, 47), (56, 25, 20), (30, 26, 22), (96, 79, 64), (76, 39, 28), (95, 52, 35), (123, 82, 68), (119, 89, 80)]),   # + its eyes and the smear across it
     },
     'bathroom_c': {
         'anchor_bathroom_towel_stand': dict(kind='shift', rect=(232, 66, 248, 93), pivot='top', thr=8,
@@ -683,7 +690,7 @@ def render(art_img, spec, f, ref=None):
     elif kind == 'door_drop':
         draw_door_drop(cv, art_img, spec['rect'], f, spec['angle'], spec['base'])
     elif kind == 'topple':
-        draw_topple(cv, art_img, spec['rect'], f, spec.get('dir', 'r'), spec.get('bg'), spec.get('thr', 36), spec.get('pad', 0), spec.get('fg'), ref)
+        draw_topple(cv, art_img, spec['rect'], f, spec.get('dir', 'r'), spec.get('bg'), spec.get('thr', 36), spec.get('pad', 0), spec.get('fg'), ref, spec.get('front'))
     elif kind == 'shift':
         nfr = len(spec['path']) if spec.get('path') else int(spec.get('frames', DEFAULT_FRAMES['shift']))
         draw_shift(cv, art_img, spec['rect'], f, spec.get('dx', 0), spec.get('dy', 0), spec.get('deg', 0.0), spec.get('bg'),

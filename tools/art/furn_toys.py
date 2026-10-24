@@ -131,91 +131,49 @@ def toy_chest(c, ox, oy, p):
 
 
 # ================================================================================================================================ blocks
-GLYPHS = {
-    'heart': ('01010', '11111', '11111', '01110', '00100'),
-    'star': ('00100', '00100', '11111', '01110', '01010'),
-    'cat': ('10001', '11111', '10101', '11111', '01110'),
-    'duck': ('01100', '11110', '01111', '01110', '01100'),
-    'sun': ('10101', '01110', '11111', '01110', '10101'),
-}
+# the drawing is tools/art/toys3d.py — the SAME cube / roof block / cylinder the baked bedroom E uses (owner round 48j: one standard for a toy wherever it stands)
+import toys3d as T3
 
 
-def _glyph(c, x, y, name, col):
-    for gy, row in enumerate(GLYPHS[name]):
-        for gx, v in enumerate(row):
-            if v == '1':
-                c.put(x + gx, y + gy, col)
+def _cube(lc, x0, yb, w, col, face, rng, d=3, sgn=1):
+    T3.cube(lc, x0, yb, w, col, face, rng, d=d, sgn=sgn)
 
 
-def _cube(lc, x0, yb, w, col, face, rng, d=3, tilt=0):
-    """A wooden toy block: front face w x w lit from the upper left, a lit top, a dark right side, paint chipped at the corners, grain on the top, a letter / number / picture on the face."""
-    K.slab(lc, x0, yb - w + 1, x0 + w - 1, yb, col, d=d, inset=1, side=1)
-    cream = hexc('f4ecd8')
-    cx = x0 + (w - 3) // 2
-    cy = yb - w + 1 + (w - 5) // 2
-    if face in GLYPHS:
-        _glyph(lc, x0 + (w - 5) // 2, yb - w + 1 + (w - 5) // 2, face, cream)
-    else:
-        F.text3(lc, cx, cy, face, cream)
-    for (cxx, cyy) in ((x0, yb - w + 1), (x0 + w - 1, yb - w + 1), (x0, yb), (x0 + w - 1, yb)):    # the corners chipped back to the wood
-        if rng.random() < 0.7:
-            lc.put(cxx, cyy, WOOD_BARE)
-    if rng.random() < 0.8:
-        lc.put(x0 + rng.randint(1, w - 2), yb, shade(col, 0.6))
-    for k in range(d - 1):                                                                         # a streak of grain across the top
-        lc.put(x0 + 2 + k * 2, yb - w - 0 - k, shade(col, 1.35))
-
-
-def _wedge(lc, cx, base, w, h, col):
-    """A triangular roof block: a lit left slope, a shaded right slope, a bare-wood end."""
-    for k in range(h):
-        half = max(0, int(round((w / 2.0) * (1.0 - k / float(h)))))
-        lc.hline(cx - half, cx + half, base - k, shade(col, 0.95))
-        lc.put(cx - half, base - k, shade(col, 1.3))
-        lc.put(cx + half, base - k, shade(col, 0.6))
-    lc.hline(cx - w // 2, cx + w // 2, base, shade(col, 0.55))
+def _wedge(lc, cx, base, w, h, col, sgn=1):
+    T3.roof(lc, cx, base, w, h, col, d=3, sgn=sgn)
 
 
 def _lying_cyl(lc, x0, x1, yb, r, col):
-    """A cylinder block lying on its side: a lit top, a darker belly, a pale end cap with a ring."""
-    tn = K.tones(col, 5, 0.5, 1.3)
-    for x in range(x0, x1 + 1):
-        for k in range(2 * r):
-            f = k / float(2 * r - 1)
-            lc.put(x, yb - 2 * r + 1 + k, K._pick(tn, 0.95 - 0.8 * f))
-    K.ell(lc, x0, yb - r + 0.5, 1.6, r, shade(col, 1.25))
-    K.ell(lc, x0, yb - r + 0.5, 0.9, r * 0.55, shade(col, 0.95))
+    T3.lying_cyl(lc, x0, x1, yb, r, col)
 
 
-@piece('block_tower', 28, 28, 'floor', rooms={'bedroom': 4, 'living_room': 3}, styles={'kid': 8}, tags=('toy',), near=('toy',), feet=(106, 112),
+@piece('block_tower', 28, 28, 'floor', rooms={'bedroom': 4, 'living_room': 3}, styles={'kid': 8}, tags=('toy',), near=('toy',), feet=(106, 112), bucketed=True, lean=False,
        variants={'a': {'v': 0}, 'b': {'v': 1}, 'c': {'v': 2}},
-       note='wooden toy blocks with letters, numbers and little animals — a tower with a roof and one knocked over beside it, a bridge with a drum on top, or a scatter with a tipped block and a cylinder on its side')
+       note='wooden toy blocks with letters, numbers and little animals, in the baked child\'s room\'s own drawing (toys3d.py): a square tower of three with a roof block and one beside it, a plank bridge with a drum on top, or a scatter with a roof block and a cylinder on its side; the side faces turn toward the room\'s middle')
 def block_tower(c, ox, oy, p):
     rng = random.Random(5 + p['v'])
+    sg = 1 if ox + 14 <= 160 else -1                                                                 # a block left of the room's middle shows its right side, one on the right its left
     K.contact_shadow(c, ox + 14, oy + 0.5, 15.0, 1.6, 100)
     L = K.Layer(c)
     lc = L.c
     v = p['v']
     if v == 0:
-        _cube(lc, ox, oy, 9, TOY_B, 'A', rng)
-        _cube(lc, ox + 9, oy, 9, TOY_R, 'heart', rng)
-        _cube(lc, ox + 4, oy - 9, 9, TOY_Y, 'B', rng)
-        _cube(lc, ox + 5, oy - 18, 6, TOY_G, '3', rng, d=2)
-        _wedge(lc, ox + 8, oy - 26, 6, 5, hexc('c8483a'))
-        _cube(lc, ox + 20, oy, 8, hexc('e8883a'), 'cat', rng)                                       # one knocked off beside the tower
+        _cube(lc, ox, oy, 8, TOY_B, 'A', rng, sgn=sg)                                                # three blocks square on one another, a roof block on top
+        _cube(lc, ox, oy - 8, 8, TOY_R, 'heart', rng, sgn=sg)
+        _cube(lc, ox, oy - 16, 8, TOY_Y, 'B', rng, sgn=sg)
+        _wedge(lc, ox + 4, oy - 24, 8, 5, hexc('c8483a'), sgn=sg)
+        _cube(lc, ox + 18, oy, 7, hexc('e8883a'), 'cat', rng, d=2, sgn=sg)                           # one more on the floor beside it
     elif v == 1:
-        _cube(lc, ox, oy, 9, TOY_R, 'M', rng)
-        _cube(lc, ox + 15, oy, 9, TOY_B, 'duck', rng)
-        for k in range(3):                                                                           # a plank across for a bridge
-            lc.hline(ox - 1, ox + 24, oy - 10 - k, shade(hexc('d8b070'), 1.12 - 0.17 * k))
-        lc.hline(ox - 1, ox + 24, oy - 13, shade(hexc('d8b070'), 1.35))
-        K.cyl(lc, ox + 12, oy - 19, oy - 14, 3.2, TOY_G, ry=1.3, cap=True, gloss=True)             # a cylinder standing on it
-        _cube(lc, ox + 26, oy, 5, TOY_Y, '7', rng, d=2)
+        _cube(lc, ox, oy, 8, TOY_R, 'M', rng, sgn=sg)
+        _cube(lc, ox + 15, oy, 8, TOY_B, 'duck', rng, sgn=sg)
+        T3.plank(lc, ox - 1, ox + 24, oy - 8, hexc('d8b070'), sgn=sg)                                # a plank across for a bridge
+        K.cyl(lc, ox + 12, oy - 18, oy - 12, 3.2, TOY_G, ry=1.3, cap=True, gloss=True)             # a cylinder standing on it
+        _cube(lc, ox + 26, oy, 5, TOY_Y, '7', rng, d=2, sgn=sg)
     else:
-        _cube(lc, ox, oy, 9, TOY_G, 'D', rng)
-        _cube(lc, ox + 11, oy, 9, TOY_Y, 'sun', rng)
+        _cube(lc, ox, oy, 8, TOY_G, 'D', rng, sgn=sg)
+        _cube(lc, ox + 11, oy, 8, TOY_Y, 'sun', rng, sgn=sg)
         _lying_cyl(lc, ox + 21, ox + 31, oy, 3, hexc('d86a9a'))
-        _wedge(lc, ox + 15, oy - 9, 7, 5, TOY_B)
+        _wedge(lc, ox + 15, oy - 8, 7, 5, TOY_B, sgn=sg)
     L.flush()
 
 

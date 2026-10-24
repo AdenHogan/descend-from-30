@@ -11,11 +11,13 @@ Run:  python3 tools/art/bedroom_variants.py [b c d]
 """
 import pixlib as PX
 import os
+import random
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
 from pixlib import persp
 from pixlib import Canvas, hexc, shade, rrect, finish_module, pp, pbox
 import furn as F
+import propkit as K
 
 OUT = hexc('2a1c17')
 SHEET = hexc('c9c2b1')
@@ -300,7 +302,7 @@ def d_furniture(c):
     # WITH DEPTH (owner round 14): the crates (3px left, clear of window L), the boxes in the corner
     from pixlib import setback
     setback(c, lambda l: F.moved(l, _d_crates, -3, 0), depth=4, top=62, x_range=(5, 43), rake=1.0)
-    setback(c, _d_boxes, depth=4, top=62, x_range=(276, 308))
+    setback(c, _d_boxes, depth=4, top=57, x_range=(274, 313))                     # top = the row of outline above the upper box's lit top face (box3d draws that above its front face)
     _d_rest(c)
 
 
@@ -326,37 +328,15 @@ def _d_crates(c):
 
 
 def _d_rest(c):
-    def _backpack(c):
-        # a backpack dumped beside the head of the mattress
-        c.shadow(70, 121, 10, 2, 110)
-        c.poly([(60, 121), (61, 106), (66, 100), (76, 100), (80, 106), (80, 121)], hexc('4a5a3a'))
-        c.rect(62, 110, 78, 116, hexc('3a4a2e'))
-        c.line(64, 102, 64, 108, hexc('2e3a24')); c.line(76, 102, 76, 108, hexc('2e3a24'))
-        c.rect(68, 99, 72, 101, hexc('2e3a24'))
-    F.moved(c, _backpack, 20, -5)
-    # the mattress on the floor, a sleeping bag half off it
-    x0, x1 = 100, 204
-    F.persp_bed(c, x0, x1, 116, head='left', low=True, sheet=(hexc('c9c0a8'), hexc('a89f88')))
-    for x in range(x0 + 6, x1, 12):
-        c.put(x, 114, hexc('8a8270'))                                                        # buttons
+    # a rucksack dumped beside the head of the mattress: the library's `backpack` (lid, front pocket with a zip, a water bottle, a strap trailing)
+    import furn_embed as FE
+    FE.lay(c, 'backpack', 'olive', 78, 116)
+    # the mattress on the floor, a sleeping bag half off it: the library's `mattress_floor` (ticking with tufts and stains, the bag's fold, a dented pillow), head on the left
+    import furn_beds as FB
+    FB.mattress_floor(c, 100, 116, {'head': 'left', 'bag': 'blue'})
     F.floor_stain(c, 165, 107, 12, 2.5, hexc('9a8a5a'), seed=34)                              # a dried stain
-    rrect(c, x0 + 3, 101, x0 + 22, 107, PILLOW, 2)
-    c.poly([(x0 + 26, 103), (x1 - 12, 102), (x1 + 6, 110), (x1 + 4, 119), (x0 + 30, 114)], hexc('3a5a7a'))
-    c.line(x0 + 30, 108, x1 - 4, 108, hexc('2a4460'))
-    c.line(x0 + 30, 111, x1 + 2, 113, hexc('2a4460'))
-    c.rect(x1 - 30, 104, x1 - 28, 106, hexc('c0453a'))                                    # zip pull
-    # a freestanding clothes rail on castors, out in the room (below the R window box)
-    rx0, rx1, rtop, rbase = 222, 266, 70, 118
-    c.shadow((rx0 + rx1) // 2, rbase, 24, 2, 110)
-    c.vline(rx0, rtop, rbase - 2, hexc('9aa3a8'))
-    c.vline(rx1, rtop, rbase - 2, hexc('9aa3a8'))
-    c.hline(rx0, rx1, rtop, hexc('9aa3a8'))
-    c.hline(rx0 - 3, rx0 + 3, rbase - 1, hexc('9aa3a8')); c.hline(rx1 - 3, rx1 + 3, rbase - 1, hexc('9aa3a8'))
-    for (hx, col, ln) in ((228, CLOTH[0], 26), (238, CLOTH[3], 34), (248, CLOTH[5], 22), (257, CLOTH[1], 30)):
-        c.line(hx, rtop + 1, hx - 3, rtop + 4, hexc('6d6c64'))
-        c.line(hx, rtop + 1, hx + 3, rtop + 4, hexc('6d6c64'))
-        c.poly([(hx - 4, rtop + 4), (hx + 4, rtop + 4), (hx + 5, rtop + 4 + ln), (hx - 5, rtop + 4 + ln)], col)
-        c.vline(hx, rtop + 6, rtop + 3 + ln, shade(col, 0.8))
+    # a freestanding clothes rail on castors, out in the room (below the R window box): the library's `clothes_rail` — chrome uprights, wire hangers, four garments each lit, creased and outlined
+    FE.lay(c, 'clothes_rail', 'a', 220, 118)
 
 
 D_ANCHORS = [('anchor_bedroom_crates', 23, 70, 'bp'), ('anchor_bedroom_backpack', 90, 103, ''),
@@ -392,7 +372,7 @@ def e_decor(c):
         F.text3(c, 107, y - 2, age, hexc('5a5a5a'))
     F.text3(c, 100, 57, 'MIA', hexc('5a5a5a'))
     import wallart                                                                # a crayon drawing in a cheap white frame,
-    wallart.picture_crayon(c, 166, 22, 196, 46)                                   # and a rainbow poster taped up beside the lamp
+    wallart.picture_crayon(c, 162, 22, 192, 46)                                   # and a rainbow poster taped up beside the lamp
     wallart.poster_rainbow(c, 106, 22, 124, 46)
 
 
@@ -413,7 +393,7 @@ def e_furniture(c):
     dollhouse3d.draw(c, 9, 80 + (sh // 2 if sh > 1 else sh), 'cream', 'r', top_col=F.PINE[1])
     _e_toys_wall(c)
     _e_rest(c)
-    setback(c, _e_wardrobe, depth=4, top=32, x_range=(278, 306), rake=1.0)
+    _e_wardrobe(c)
     import chair3d
     if chair3d.RUN >= 3:
         _e_night_blood(c)
@@ -430,97 +410,61 @@ def _e_dollhouse(c):
 TOY_R, TOY_Y, TOY_B, TOY_G = hexc('c8423a'), hexc('e6c24a'), hexc('4a7ac0'), hexc('5aa05a')
 
 
-def _block(c, x, y, col):
-    c.box(x, y, x + 4, y + 4, col, shade(col, 0.6))
-    c.put(x + 2, y + 2, hexc('f0ead8'))
+TOWER_X, HORSE_X, HORSE_BASE, WARDROBE_X = 63, 92, 116, 278        # the tower's left edge, the horse's centre column and its rockers' row (behind the walking line, <= 122)
+
+
+def tower(c):
+    """Three blocks and a roof block, square on one another against the wall (feet on the wall's foot, row 99), their depth toward the room's middle."""
+    import toys3d as T3
+    rng = random.Random(25)
+    x, w = TOWER_X, 8
+    L = K.Layer(c)
+    c.shadow(x + 6, 100, 9, 1, 90)
+    T3.cube(L.c, x, 99, w, TOY_B, 'A', rng)
+    T3.cube(L.c, x, 91, w, TOY_R, 'heart', rng)
+    T3.cube(L.c, x, 83, w, TOY_Y, 'B', rng)
+    T3.roof(L.c, x + w // 2, 75, w, 5, TOY_R)
+    L.flush()
 
 
 def _e_toys_wall(c):
-    # a painted shelf on brackets (clear of the window boxes: x 200..224): blocks, a bunny, a car
-    c.rect(198, 56, 224, 57, hexc('e6e0cc'))
-    c.hline(198, 224, 58, hexc('8a8270'))
-    for bx in (201, 221):
-        c.vline(bx, 59, 62, hexc('8a8270'))
-    _block(c, 200, 51, TOY_R); _block(c, 205, 51, TOY_B); _block(c, 202, 46, TOY_Y)
-    c.ellipse(214, 52, 3, 3, hexc('e8e2d8'))                                     # the bunny
-    c.vline(212, 45, 49, hexc('e8e2d8')); c.vline(215, 45, 49, hexc('e8e2d8'))
-    c.put(212, 46, hexc('e8a8b8')); c.put(215, 46, hexc('e8a8b8'))
-    c.put(213, 51, hexc('1e1a16')); c.put(215, 51, hexc('1e1a16'))
-    c.rect(218, 52, 223, 54, TOY_R); c.rect(219, 50, 222, 51, TOY_R)             # a toy car
-    c.put(219, 55, hexc('1e1a16')); c.put(222, 55, hexc('1e1a16'))
-    # a tower of blocks stacked against the wall beside the dollhouse table
-    for i, (dx, col) in enumerate(((0, TOY_B), (5, TOY_R), (2, TOY_Y), (1, TOY_G))):
-        _block(c, 50 + dx, 95 - (0 if i < 2 else 5 * (i - 1)), col)
-    c.poly([(52, 85), (55, 80), (58, 85)], TOY_R)                                # a roof block on top
-    # a ball against the wall under the window, by the wardrobe
-    c.shadow(266, 100, 5, 1, 80)
-    c.ellipse(266, 96, 4, 4, TOY_R)
-    c.hline(262, 270, 96, hexc('f0ead8'))
-    c.put(264, 94, hexc('f0a8a0'))
+    # the painted toy shelf (clear of the window boxes: x 198..225): the LIBRARY's own piece — three lettered blocks, a plush bunny and a toy car — so the baked room and a planned one are one drawing
+    import furn_embed as FE
+    FE.lay(c, 'toy_shelf', 'a', 198, 41, floor=False)
+    # a tower of blocks stacked against the wall beside the dollhouse table: TOWER_X is a clear gap off the table's right leg (owner round 48j: "too close to clipping the table"),
+    # the three blocks sit square on one another and the roof block is a real prism — the same drawing as the planned `block_tower` (tools/art/toys3d.py)
+    tower(c)
+    import furn_embed as FE
+    # a ball against the wall under the window, by the wardrobe: the library's ball
+    FE.lay(c, 'ball', 'red', 247, 100)
 
 
 def _e_rest(c):
     F.pendant(c, 140, 20, 'white', dome=True)                                                 # a paper-shade pendant
-    def _horse(c):
-        # a rocking horse out on the carpet
-        c.shadow(76, 121, 14, 2, 110)
-        for x in range(60, 95):                                                                   # the curved rocker
-            y = 121 - int(((x - 77) / 17.0) ** 2 * 6)
-            c.put(x, y, F.WOOD[0]); c.put(x, y - 1, F.WOOD[1])
-        c.line(68, 119, 72, 106, F.WOOD[0]); c.line(86, 119, 82, 106, F.WOOD[0])
-        rrect(c, 66, 98, 88, 107, hexc('e6e0cc'), 3)                                              # body
-        c.poly([(84, 99), (92, 90), (96, 92), (90, 101)], hexc('e6e0cc'))                         # neck + head
-        c.put(93, 92, hexc('1e1a16'))
-        c.poly([(86, 98), (90, 90), (88, 98)], hexc('8a4a2a'))                                    # mane
-        c.rect(72, 97, 78, 99, hexc('a8322c'))                                                    # saddle
-    F.moved(c, _horse, 0, -4)
+    # the rocking horse out on the carpet: the planned piece's own 3D model (rockers, legs, barrel, neck, head, mane, saddle), facing the room
+    import toys3d as T3
+    T3.horse(c, HORSE_X, HORSE_BASE, 'white', -62)
     # a small bed with a teddy, pushed against the wall
     x0, x1 = 118, 196
     F.persp_bed(c, x0, x1, 114, head='left', head_top=76, foot_top=84,
                 board=(hexc('e6e0cc'), hexc('f4f0e4'), hexc('8a8270')), duvet=(hexc('d98aa0'), hexc('b86a80'), hexc('e8a8b8')))
-    c.ellipse(134, 86, 5, 5, hexc('9a6a3a')); c.ellipse(130, 81, 2, 2, hexc('9a6a3a'))       # the teddy
-    c.ellipse(138, 81, 2, 2, hexc('9a6a3a')); c.put(133, 85, hexc('1e1a16')); c.put(136, 85, hexc('1e1a16'))
-    c.ellipse(134, 93, 4, 3, hexc('9a6a3a'))
+    import furn_beds as FB                                                                    # the teddy: the library's own bear, sat against the pillow
+    FB._teddy(c, 135, 94)
     c.line(130, 94, 140, 90, BLOOD)
-    # a rag doll sat against the foot of the bed
-    c.ellipse(184, 88, 2, 2, hexc('f0d8c0'))                                                 # head
-    c.rect(182, 85, 186, 86, hexc('c87a3a'))                                                 # woollen hair
-    c.put(183, 88, hexc('1e1a16')); c.put(185, 88, hexc('1e1a16'))
-    c.poly([(181, 91), (187, 91), (189, 97), (179, 97)], hexc('7a9ad0'))                      # dress
-    c.put(179, 97, hexc('f0d8c0')); c.put(189, 97, hexc('f0d8c0'))
-    # a toy chest at the foot of the bed, lid up, toys piled inside (none strewn on the floor) — a real
-    # box out on the carpet, seen from above (owner round 15: nothing painted flat)
-    blue, blue_lt, blue_out = hexc('7aa0c8'), hexc('9ac0e0'), hexc('3a5a78')
-    d0, d1 = 8, 16
-    wx0 = 160 + (198 - 160) * 100.0 / (100 + d1)
-    wx1 = 160 + (226 - 160) * 100.0 / (100 + d1)
-    c.shadow(212, 117, 16, 2, 110)
-    lb, lr_ = pp(wx0 + 1, 90, d0), pp(wx1 - 1, 90, d0)                   # the lid, standing open at the back
-    lid = [(round(lb[0]), round(lb[1]) - 11), (round(lr_[0]), round(lr_[1]) - 11), (round(lr_[0]), round(lr_[1])),
-           (round(lb[0]), round(lb[1]))]
-    c.poly(lid, hexc('5a80a8'))
-    c.line(lid[0][0], lid[0][1], lid[1][0], lid[1][1], blue_out)
-    c.line(lid[0][0], lid[0][1], lid[3][0], lid[3][1], blue_out)
-    c.line(lid[1][0], lid[1][1], lid[2][0], lid[2][1], blue_out)
-    c.hline(lid[0][0] + 2, lid[1][0] - 2, lid[0][1] + 2, hexc('6f95bd'))
-    f = pbox(c, wx0, 90, wx1, 100, d0, d1, blue, hexc('2a3a4e'), shade(blue, 0.72), blue_out)
-    c.hline(f['fl'][0] + 1, f['fr'][0] - 1, f['fl'][1] + 1, blue_lt)
-    c.hline(f['fl'][0] + 3, f['fr'][0] - 3, f['fbl'][1] - 3, shade(blue, 0.88))
-    # toys piled inside, poking up over the rim
-    c.rect(f['bl'][0] + 4, f['bl'][1] - 4, f['bl'][0] + 10, f['fl'][1] - 1, hexc('d9c24a'))
-    c.hline(f['bl'][0] + 4, f['bl'][0] + 10, f['bl'][1] - 4, shade(hexc('d9c24a'), 1.15))
-    c.ellipse(f['br'][0] - 8, f['br'][1] - 1, 3, 3, hexc('a8322c'))
-    c.put(f['br'][0] - 9, f['br'][1] - 3, hexc('d8645c'))
-    c.line(f['bl'][0] + 14, f['bl'][1] - 6, f['bl'][0] + 17, f['fl'][1] - 1, hexc('8a6a3a'))   # a wooden sword
+    # a rag doll sat on the bed, against the foot: the library's doll
+    import furn_embed as FE
+    FE.lay(c, 'rag_doll', 'a', 168, 97, floor=False)
+    # a toy chest at the foot of the bed, lid up, toys heaped in it: the library's chest (centre column 212, feet row 117 — where the baked one stood)
+    FE.lay(c, 'toy_chest', 'blue', 194, 117)
 
 
 def _e_wardrobe(c):
-    # a small white wardrobe in the corner
-    c.shadow(292, 100, 16, 2, 100)
-    c.box(278, 36, 306, 99, hexc('e6e0cc'), hexc('8a8270'))
-    c.vline(292, 38, 97, hexc('b9b3a4'))
-    c.rect(289, 64, 290, 68, hexc('d9c24a')); c.rect(294, 64, 295, 68, hexc('d9c24a'))
-    c.poly([(278, 36), (306, 36), (304, 32), (280, 32)], hexc('d98aa0'))
+    # the small cream wardrobe in the corner: the library's `wardrobe_small` (scalloped pelmet, raised-panel doors, stencilled star and moon, round knobs, bracket feet), 28 wide where a
+    # window box and the end wall leave no more than that; laid at its lean bucket with the library's own finishing pass
+    import furn_embed as FE
+    import furn_wardrobes as FW
+    FE.lay(c, 'wardrobe_small', 'pink', WARDROBE_X, 105, floor=False,
+           override=dict(w=28, draw=lambda cc, ox, oy, p: FW.draw_small_wardrobe(cc, ox, oy, FW.KID_WARD['pink'], 28)))
 
 
 def _e_night_blood(c):
@@ -552,7 +496,7 @@ def _e_night_blood(c):
         c.rect(x, 128 - (x // 9) % 2 * 3, x + 1, 130 - (x // 9) % 2 * 3, B2)
 
 
-E_ANCHORS = [('anchor_bedroom_dollhouse', 31, 74, 'bp'), ('anchor_bedroom_rocking_horse', 76, 98, ''),
+E_ANCHORS = [('anchor_bedroom_dollhouse', 34, 74, 'bp'), ('anchor_bedroom_rocking_horse', 92, 100, ''),
              ('anchor_bed_pillow', 134, 88, ''), ('anchor_bedroom_toy_chest', 212, 107, ''),
              ('anchor_bedroom_small_wardrobe', 292, 70, 'bp')]
 

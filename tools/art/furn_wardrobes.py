@@ -264,12 +264,16 @@ def _stencil(c, cx, cy, kind, col):
        anchors=({'name': 'small_wardrobe', 'dx': 18, 'dy': -29},), feet=(105, 108),
        note='a small cream-painted wardrobe with a scalloped pelmet, a stencilled star and moon on the doors, round knobs and bracket feet')
 def wardrobe_small(c, ox, oy, p):
-    trim = KID_WARD[p['trim']]
+    draw_small_wardrobe(c, ox, oy, KID_WARD[p['trim']], 38)
+
+
+def draw_small_wardrobe(c, ox, oy, trim, w=38):
+    """The kid's wardrobe, `w` px wide (38 in the library; the baked child's room — bedroom_variants.py — stands it 28 wide in its corner, where a window box leaves no more)."""
     cream, cream_dk, cream_lt = hexc('e6e0cc'), hexc('b9b3a4'), hexc('f6f2e4')
     out = hexc('8a8270')
-    x0, x1 = ox, ox + 37
+    x0, x1 = ox, ox + w - 1
     top, base = oy - 68, oy
-    c.shadow((x0 + x1) // 2, base + 1, 19, 2, 100)
+    c.shadow((x0 + x1) // 2, base + 1, w // 2, 2, 100)
     # the rounded top with a cap moulding, the scalloped pelmet under it
     c.rect(x0 - 1, top + 3, x1 + 1, top + 5, cream_lt)
     c.hline(x0 - 1, x1 + 1, top + 3, hexc('ffffff'))
@@ -288,7 +292,8 @@ def wardrobe_small(c, ox, oy, p):
         c.put(x + 1, top + 10, shade(trim, 0.75)); c.put(x + 2, top + 10, shade(trim, 0.75))
     mid = (x0 + x1) // 2
     dy0, dy1 = top + 12, base - 7
-    for (xa, xb, kind, sx) in ((x0 + 3, mid - 1, 'star', mid - 8), (mid + 1, x1 - 3, 'moon', mid + 8)):
+    for (xa, xb, kind) in ((x0 + 3, mid - 1, 'star'), (mid + 1, x1 - 3, 'moon')):
+        sx = (xa + xb) // 2                                                  # each stencil on the middle of its door
         c.rect(xa, dy0, xb, dy1, cream)
         c.hline(xa, xb, dy0, cream_lt)
         c.hline(xa, xb, dy1, cream_dk)

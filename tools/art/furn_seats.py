@@ -25,14 +25,7 @@ def scaled(m, k):
     return out
 
 
-def extrude_yz(m, poly, x0, x1, part, mat):
-    """A solid from a side-view outline: `poly` is [(y, z)…] (convex-ish), thickness from x0 to x1. Faces on both sides and round the edge."""
-    n = len(poly)
-    m.add([(x0, y, z) for (y, z) in poly], part, mat)
-    m.add([(x1, y, z) for (y, z) in reversed(poly)], part, mat)
-    for i in range(n):
-        (ya, za), (yb, zb) = poly[i], poly[(i + 1) % n]
-        m.add([(x0, ya, za), (x1, ya, za), (x1, yb, zb), (x0, yb, zb)], part, mat)
+from toys3d import extrude_yz                                                                  # the side-view-outline-to-solid helper (furn_medical imports it from here)
 
 
 # ================================================================================================================================ a wooden chair
@@ -112,46 +105,10 @@ def chair_child(c, ox, oy, p):
 
 
 # ================================================================================================================================ a rocking horse
-def horse_model():
-    """A rocking horse, head toward -y (the chairs' front): side-view outlines extruded across its width. Units are px."""
-    m = C3.Model()
-    # two curved runners joined by a stretcher: each a strip of short segments along an arc, rising at both ends
-    n = 9
-    for sx in (-4.4, 4.4):
-        for k in range(n):
-            ya, yb = -15.0 + 30.0 * k / n, -15.0 + 30.0 * (k + 1) / n
-            za = 4.2 * (abs(ya) / 15.0) ** 2
-            zb = 4.2 * (abs(yb) / 15.0) ** 2
-            extrude_yz(m, [(ya, za), (yb, zb), (yb, zb + 2.0), (ya, za + 2.0)], sx - 0.8, sx + 0.8, 'rocker%d' % (sx > 0), 'rocker')
-    m.box(-4.4, 4.4, -0.5, 0.5, 1.2, 2.4, 'stretch', 'rocker')
-    # four legs, splayed a little, from the runners up under the body
-    for sx in (-3.4, 3.4):
-        extrude_yz(m, [(-10.4, 3.4), (-8.9, 3.4), (-6.2, 9.0), (-8.0, 9.0)], sx - 0.8, sx + 0.8, 'legf%d' % (sx > 0), 'wood')
-        extrude_yz(m, [(9.4, 3.4), (10.9, 3.4), (8.4, 9.0), (6.6, 9.0)], sx - 0.8, sx + 0.8, 'legb%d' % (sx > 0), 'wood')
-    # the body, a bevelled barrel
-    m.box(-4.2, 4.2, -9.0, 10.0, 8.5, 15.2, 'body', 'wood', bevel=1.5)
-    # the neck, the head with its long face, the ears, the mane
-    extrude_yz(m, [(-3.0, 14.2), (-7.4, 23.4), (-11.4, 22.8), (-9.4, 14.2)], -2.6, 2.6, 'neck', 'wood')
-    extrude_yz(m, [(-9.6, 23.8), (-14.0, 23.8), (-19.2, 19.6), (-19.4, 16.4), (-16.6, 15.4), (-11.0, 19.4)], -2.3, 2.3, 'head', 'wood')
-    for sx in (-1.6, 1.6):
-        extrude_yz(m, [(-9.4, 23.6), (-8.6, 27.4), (-7.4, 23.4)], sx - 0.5, sx + 0.5, 'ear%d' % (sx > 0), 'wood')
-    extrude_yz(m, [(-3.0, 14.6), (-7.6, 24.2), (-8.6, 23.6), (-4.6, 14.2)], -0.7, 0.7, 'mane', 'mane')
-    extrude_yz(m, [(-9.8, 23.6), (-11.6, 24.2), (-12.2, 22.4), (-10.0, 22.2)], -0.7, 0.7, 'forelock', 'mane')
-    extrude_yz(m, [(9.8, 14.4), (13.4, 13.0), (15.4, 6.0), (13.6, 5.6), (11.6, 10.4)], -1.0, 1.0, 'tail', 'mane')
-    # the saddle, the handles across the neck, the eyes
-    m.box(-4.7, 4.7, -2.0, 5.5, 14.8, 16.8, 'saddle', 'saddle', bevel=0.7)
-    m.box(-5.8, 5.8, -10.0, -9.0, 19.4, 20.4, 'handle', 'rocker')
-    for sx in (-5.8, 5.8):
-        m.box(sx - 0.7, sx + 0.7, -10.2, -8.8, 19.2, 20.6, 'knob%d' % (sx > 0), 'rocker')
-    for sx in (-2.55, 2.55):
-        m.box(sx - 0.3, sx + 0.3, -14.6, -13.6, 20.6, 21.6, 'eye%d' % (sx > 0), 'eye')
-    return m
-
-
-HORSES = {'white': dict(wood=hexc('e2dccb'), mane=hexc('4a3a30'), saddle=hexc('b0453a'), rocker=hexc('a07848')),
-          'grey': dict(wood=hexc('9ca0a8'), mane=hexc('34363c'), saddle=hexc('3a5a7a'), rocker=hexc('8a6844')),
-          'brown': dict(wood=hexc('8a5a3a'), mane=hexc('2a1c14'), saddle=hexc('c4a040'), rocker=hexc('6a4a2c')),
-          'white_blood': dict(wood=hexc('d8d0bc'), mane=hexc('4a3a30'), saddle=hexc('8a3a34'), rocker=hexc('8a6a44'), blood=True)}
+# the model + its paint live in tools/art/toys3d.py (one source: the baked child's room draws the same horse)
+import toys3d as T3
+HORSES = T3.HORSES
+horse_model = T3.horse_model
 
 
 def _horse_variants():
@@ -165,11 +122,4 @@ def _horse_variants():
 @piece('rocking_horse', 36, 30, 'floor', rooms={'bedroom': 4, 'living_room': 3}, styles={'kid': 8}, tags=('toy',), variants=_horse_variants(), anchors=({'name': 'rocking_horse', 'dx': 18, 'dy': -17},),
        near=('sleeping',), feet=(116, 121), note='a rocking horse on its curved rockers: painted white, grey or brown — one in four is bloodied, as if a child had been taken off it in a hurry')
 def rocking_horse(c, ox, oy, p):
-    spec = HORSES[p['horse']]
-    pal = {'wood': spec['wood'], 'mane': spec['mane'], 'saddle': spec['saddle'], 'rocker': spec['rocker'], 'eye': hexc('18120e')}
-    r = C3.draw_model(c, ox + 18, oy, horse_model(), p['yaw'], pal, srad=15)
-    if r and spec.get('blood'):
-        cbuf, pbuf, sbuf = r
-        rng = random.Random(41 + int(p['yaw']))
-        C3._bloody(c, ox + 18, oy, cbuf, pbuf, sbuf, rng, heavy=False, fallen=False,
-                   blobs=[((0.0, -6.0, 18.0), 3.2), ((0.0, 1.0, 15.2), 4.6)], skip=('rocker', 'stretch', 'eye'))
+    T3.horse(c, ox + 18, oy, p['horse'], p['yaw'])

@@ -221,7 +221,7 @@ def c_furniture(c):
         c.hline(165, 175, 120, F.WOOD[0])
         c.rect(164, 100, 172, 103, F.BOOKS[0]); c.hline(164, 172, 100, shade(F.BOOKS[0], 1.2))
         c.rect(174, 99, 177, 103, hexc('c9c2b1'))
-        F.floor_lamp(c, 188, 67, 121, hexc('c9ab7e'), hexc('3a2a1a'))
+        F.floor_lamp(c, 188, 69, 121, hexc('c9ab7e'), hexc('3a2a1a'))
     F.moved(c, table_lamp, 60, 0)
     # a writing slope on the right against the wall
     def _slope(l):
@@ -359,7 +359,7 @@ def _d_rest(c):
     def _manuals(c):
         F.shelves(c, 281, 303, 41, 98, F.WOOD, [56, 70, 84, 96], c.rng)
     setback(c, _manuals, depth=2, top=41, rake=1.0)
-    F.bare_bulb(c, 216, 22)
+    F.bare_bulb(c, 220, 22)
 
 D_ANCHORS = [('anchor_study_parts', 26, 62, 'bp s'), ('anchor_study_headphones', 63, 87, 'bp s'),
              ('anchor_study_radio', 130, 64, 'bp'), ('anchor_centre_desk', 126, 86, 'bp'),

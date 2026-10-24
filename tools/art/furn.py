@@ -251,17 +251,8 @@ def side_chair(c, x0, base, P, facing_right=True):
 
 
 def cardboard_box(c, x0, x1, top, base, open_flaps=True, label=True, col=hexc('a88a5c')):
-    dk = shade(col, 0.75)
-    c.shadow((x0 + x1) // 2, base, (x1 - x0) // 2 + 2, 2, 110)
-    c.box(x0, top, x1, base, col, dk)
-    c.hline(x0 + 1, x1 - 1, top + 1, shade(col, 1.1))
-    if open_flaps:
-        c.poly([(x0, top), (x0 - 4, top - 4), (x0 - 3, top - 5), (x0 + 1, top - 1)], dk)
-        c.poly([(x1, top), (x1 + 4, top - 5), (x1 + 5, top - 4), (x1 + 1, top + 1)], col)
-    else:
-        c.hline(x0, x1, top + (base - top) // 3, shade(col, 0.9))
-    if label:
-        c.rect(x0 + 4, top + (base - top) // 2 - 1, x1 - 4, top + (base - top) // 2 + 1, PAPER)
+    import props3d
+    props3d.cardboard_box(c, x0, x1, top, base, open_flaps, label, col)
 
 
 def poster(c, x0, y0, x1, y1, bg, fg, accent=None, torn=False):
@@ -301,31 +292,20 @@ def rug(c, x0, x1, y0, y1, col, border, pattern=None, fringe=None):
 
 
 def floor_lamp(c, x, top, base, shade_col, pole):
+    import props3d
     c.shadow(x, base + 1, 6, 2, 90)
-    c.poly([(x - 4, top), (x + 4, top), (x + 8, top + 11), (x - 8, top + 11)], shade_col)
-    c.hline(x - 8, x + 8, top + 11, shade(shade_col, 0.8))
-    c.vline(x, top + 12, base - 1, pole)
-    c.ellipse(x, base, 4, 1, pole)
+    props3d.floor_lamp(c, x, top, base, shade_col, pole)
     light(x, top + 8, 'floor')
 
 
 def candle(c, x, base, h=5):
-    c.rect(x - 1, base - h, x + 1, base, hexc('e3dcc6'))
-    c.put(x, base - h - 1, hexc('3a2a1a'))
-    c.put(x + 1, base, hexc('d8cfb4'))
+    import props3d
+    props3d.candle(c, x, base, h)
 
 
 def potted_plant(c, cx, base, dead=False, big=False):
-    pot = hexc('9a5a3a')
-    leaf = [hexc('7a6a3e'), hexc('5f5231')] if dead else [hexc('4d6a3c'), hexc('5e8240')]
-    h = 30 if big else 18
-    c.shadow(cx, base, 8, 2, 90)
-    c.poly([(cx - 6, base - 12), (cx + 6, base - 12), (cx + 5, base), (cx - 5, base)], pot)
-    c.hline(cx - 7, cx + 7, base - 13, shade(pot, 1.1))
-    for i, (dx, dy) in enumerate(((-9, -h), (-4, -h - 6), (3, -h - 4), (9, -h + 2), (-11, -h + 8), (11, -h + 10))):
-        col = leaf[i % 2]
-        c.line(cx, base - 13, cx + dx, base + dy, col)
-        c.ellipse(cx + dx, base + dy, 2, 3, col)
+    import props3d
+    props3d.potted_plant(c, cx, base, dead, big)
 
 
 # --- walls + floors --------------------------------------------------------------------------
@@ -483,12 +463,8 @@ def side_cabinet(c, x0, x1, top, base, P):
 
 def book_stack(c, x0, top_y, widths, cols, fallen=None):
     """Books lying flat in a stack whose TOP surface rests at top_y (sitting on furniture)."""
-    for i, (w_, col) in enumerate(zip(widths, cols)):
-        y = top_y - 3 - i * 3
-        x = x0 + (i % 2) * 2
-        c.rect(x, y, x + w_, y + 2, col)
-        c.hline(x, x + w_, y, shade(col, 1.18))
-        c.vline(x + w_, y, y + 2, shade(col, 0.75))
+    import props3d
+    props3d.book_stack(c, x0, top_y, widths, cols)
 
 
 def magazine_rack(c, x0, x1, top, base, metal=None, papers=None):
@@ -522,68 +498,46 @@ LAMP_SHADES = {'cream': (hexc('d9c9a0'), hexc('b7a67c')), 'rose': (hexc('c98f8a'
 
 def table_lamp(c, x, surface, shade='cream', base=None, tall=False):
     """A table lamp standing on a surface (a desk, the top of a chest, a coffee / side table):
-    a small foot, a stem, a tapered fabric shade. `surface` = the y the foot stands on."""
+    a turned foot, a stem, a tapered fabric shade. `surface` = the y the foot stands on."""
+    import props3d
     sc, sd = LAMP_SHADES[shade]
-    bc = base or hexc('8a6a44')
-    h = 8 if tall else 5
-    c.rect(x - 2, surface - 1, x + 2, surface, bc)                       # the foot
-    c.hline(x - 2, x + 2, surface, shade_col(bc, 0.7))
-    c.vline(x, surface - 1 - h, surface - 2, bc)                          # the stem
-    top = surface - 2 - h - 7
-    c.poly([(x - 3, top), (x + 3, top), (x + 5, top + 7), (x - 5, top + 7)], sc)
-    c.hline(x - 5, x + 5, top + 7, sd)
-    c.hline(x - 3, x + 3, top, shade_col(sc, 1.08))
+    top = props3d.table_lamp(c, x, surface, sc, sd, base or hexc('8a6a44'), tall)
     light(x, top + 5, 'table')
 
 
 def desk_lamp(c, x, surface, col=None, facing=1):
     """An angled desk lamp (anglepoise): a heavy foot, two arms, a cone head tipped at the desk."""
-    k = col or hexc('3a3a40')
-    c.rect(x - 3, surface - 1, x + 3, surface, k)
-    c.line(x, surface - 2, x - 2 * facing, surface - 9, k)
-    c.line(x - 2 * facing, surface - 9, x + 4 * facing, surface - 14, k)
-    hx = x + 6 * facing
-    c.poly([(hx - 3, surface - 16), (hx + 3, surface - 16), (hx + 4, surface - 11), (hx - 4, surface - 11)], k)
-    c.hline(hx - 4, hx + 4, surface - 11, shade_col(k, 1.4))
+    import props3d
+    hx = props3d.desk_lamp(c, x, surface, col or hexc('3a3a40'), facing)
     light(hx, surface - 11, 'desk')
 
 
 def pendant(c, x, drop=24, shade='cream', dome=False):
-    """A pendant hanging from the ceiling: a cord and a shade (a cone, or a dome)."""
+    """A pendant hanging from the ceiling: a flex and a shade (a cone, or a dome)."""
+    import props3d
     sc, sd = LAMP_SHADES[shade]
-    c.vline(x, 0, drop - 6, hexc('2a2622'))
-    if dome:
-        c.ellipse(x, drop - 2, 7, 4, sc)
-        c.rect(x - 7, drop - 2, x + 7, drop, sc)
-        c.hline(x - 7, x + 7, drop, sd)
-    else:
-        c.poly([(x - 2, drop - 6), (x + 2, drop - 6), (x + 7, drop), (x - 7, drop)], sc)
-        c.hline(x - 7, x + 7, drop, sd)
-    c.put(x, drop + 1, hexc('f0e6c8'))                                      # the bulb peeking out
+    props3d.pendant(c, x, drop, sc, sd, dome)
     light(x, drop + 1, 'pendant')
 
 
 def bare_bulb(c, x, drop=26):
     """A bare bulb on a flex — the cheap / stripped-out flat."""
-    c.vline(x, 0, drop - 3, hexc('2a2622'))
-    c.rect(x - 1, drop - 3, x + 1, drop - 2, hexc('6a6a66'))
-    c.ellipse(x, drop, 2, 2, hexc('e6e0cc'))
+    import props3d
+    props3d.bare_bulb(c, x, drop)
     light(x, drop, 'bulb')
 
 
 def flush_light(c, x):
     """A flush ceiling dome."""
-    c.ellipse(x, 1, 8, 3, hexc('e6e0d0'))
-    c.hline(x - 8, x + 8, 0, hexc('bdb6a4'))
-    c.hline(x - 6, x + 6, 3, hexc('c9c2b0'))
+    import props3d
+    props3d.flush_light(c, x)
     light(x, 4, 'flush')
 
 
 def tube_light(c, x, w=34):
     """A fluorescent batten on the ceiling (kitchens, home offices)."""
-    c.rect(x - w // 2, 0, x + w // 2, 2, hexc('c9c6bc'))
-    c.hline(x - w // 2 + 1, x + w // 2 - 1, 3, hexc('eef0ec'))
-    c.put(x - w // 2, 3, hexc('8a8880')); c.put(x + w // 2, 3, hexc('8a8880'))
+    import props3d
+    props3d.tube_light(c, x, w)
     light(x, 3, 'tube')
 
 
@@ -746,73 +700,14 @@ def persp_bed(c, x0, x1, base, head='left', head_top=70, foot_top=80, board=None
 def tin(c, cx, base, r, h, body, label=None, lid=hexc('b8bcbc'), open_col=None, handle=True):
     """A tin / paint can standing on the floor: a cylinder — the lit left edge, the shadowed right,
     a label band, and its TOP seen from above (a lid with a rim, or open with the paint inside)."""
-    ry = max(1.0, r * 0.4)
-    top = base - h
-    c.shadow(cx + 1, base + 1, r + 2, 1.5, 100)
-    c.rect(cx - r, top, cx + r, base, body)
-    c.vline(cx - r, top, base, shade(body, 1.18))
-    c.vline(cx + r, top, base, shade(body, 0.62))
-    c.vline(cx + r - 1, top, base, shade(body, 0.8))
-    c.ellipse(cx, base, r, ry, shade(body, 0.72))                     # the rounded bottom edge
-    c.hline(cx - r + 1, cx + r - 1, base - 1, shade(body, 0.85))
-    if label is not None:
-        lt_ = top + max(2, h // 3)
-        c.rect(cx - r, lt_, cx + r, lt_ + max(2, h // 3), label)
-        c.vline(cx + r, lt_, lt_ + max(2, h // 3), shade(label, 0.65))
-        c.vline(cx - r, lt_, lt_ + max(2, h // 3), shade(label, 1.15))
-    c.ellipse(cx, top, r, ry, shade(lid, 0.7))
-    if open_col is not None:
-        c.ellipse(cx, top, r - 1, max(0.6, ry - 0.6), open_col)
-        c.put(cx - 1, int(top), shade(open_col, 1.25))
-    else:
-        c.ellipse(cx, top, r - 1, max(0.6, ry - 0.6), lid)
-        c.hline(cx - r + 2, cx, int(round(top - ry + 1)), shade(lid, 1.2))
-    if handle:
-        c.line(cx - r, int(top), cx - r + 2, int(top - ry - 3), hexc('6a6e70'))
-        c.line(cx - r + 2, int(top - ry - 3), cx + r - 2, int(top - ry - 3), hexc('6a6e70'))
-        c.line(cx + r - 2, int(top - ry - 3), cx + r, int(top), hexc('6a6e70'))
+    import props3d
+    props3d.tin(c, cx, base, r, h, body, label, lid, open_col, handle)
 
 
 def bin_bag(c, cx, base, w, h, knot=True, split=False, seed=1):
-    """A tied black bin bag slumped on the floor: a lumpy sack, widest low down, narrowing to a
-    knotted neck; shiny plastic — streaks of light on the left lobes, deep shade on the right."""
-    import math as _m
-    import random as _r
-    rng = _r.Random(seed)
-    bag, dk, lt, hi = hexc('2f2e2c'), hexc('1c1b1a'), hexc('4e4d4a'), hexc('6e6d68')
-    c.shadow(cx, base + 1, w / 2 + 3, 2, 110)
-    ph = [rng.random() * 6.28 for _ in range(3)]
-    rows = {}
-    for y in range(base - h, base + 1):
-        t = (base - y) / float(h)                       # 0 at the floor, 1 at the neck
-        hw = w / 2.0 * (0.9 + 0.1 * t / 0.3 if t < 0.3 else max(0.0, 1 - ((t - 0.3) / 0.72) ** 2) ** 0.5)
-        if t < 0.06:
-            hw *= 0.82 + 3.0 * t                          # the slumped, rounded bottom on the floor
-        hw *= 1 + 0.07 * _m.sin(t * 9 + ph[0]) + 0.05 * _m.sin(t * 17 + ph[1])
-        if t > 0.8:
-            hw = max(1.5, hw * 0.55)
-        rows[y] = (int(round(cx - hw + 0.8 * _m.sin(t * 5 + ph[2]))), int(round(cx + hw)))
-    for y, (a, b) in rows.items():
-        for x in range(a, b + 1):
-            u = (x - a) / max(1.0, float(b - a))
-            col = lt if u < 0.22 else (bag if u < 0.72 else dk)
-            c.put(x, y, col)
-        c.put(a, y, dk); c.put(b, y, hexc('121110'))
-    for k in range(3):                                    # the plastic's shine: short curved streaks
-        yy = base - int(h * (0.25 + 0.2 * k))
-        if yy in rows:
-            a, b = rows[yy]
-            c.line(a + 2, yy, a + 3 + k, yy - 3, hi)
-    c.hline(rows[base][0] + 1, rows[base][1] - 1, base, dk)
-    if knot:
-        ky = base - h
-        c.poly([(cx - 2, ky), (cx - 4, ky - 4), (cx - 1, ky - 2), (cx + 1, ky - 5), (cx + 2, ky)], dk)
-        c.put(cx - 3, ky - 3, lt)
-    if split:
-        sy = base - h // 3
-        c.poly([(cx + 1, sy - 3), (cx + w // 3, sy - 1), (cx + w // 4, sy + 3)], hexc('141312'))
-        c.rect(cx + 3, sy + 1, cx + 6, sy + 3, hexc('b0453a'))            # a can
-        c.rect(cx - 1, base, cx + 3, base + 1, hexc('d8d2c2'))            # paper
+    """A tied black bin bag slumped on the floor (the corridor's own sack, tools/art/corridor_props3d.py)."""
+    import props3d
+    props3d.bin_bag(c, cx, base, w, h, knot, split, seed)
 
 
 
@@ -1017,23 +912,8 @@ def landscape(c, x0, y0, x1, y1, sky=hexc('9ab8c8'), hills=hexc('5a7a4a'), water
 def waste_basket(c, cx, base, r, h, body=hexc('3a3a44'), paper=True):
     """A round wastepaper basket on the floor, seen from a little above: a mesh cylinder (lit left,
     dark right), its OPEN rim an ellipse with the dark inside and crumpled paper heaped in it."""
-    ry = max(1.5, r * 0.38)
-    top = base - h
-    c.shadow(cx + 1, base + 1, r + 2, 1.5, 110)
-    for yy in range(top, base + 1):                                     # it narrows toward the foot
-        t = (yy - top) / float(max(1, h))
-        rr = int(round(r - t * 1.5))
-        c.hline(cx - rr, cx + rr, yy, body)
-        c.put(cx - rr, yy, shade(body, 1.3)); c.put(cx + rr, yy, shade(body, 0.6))
-        if (yy - top) % 3 == 1:
-            c.hline(cx - rr + 1, cx + rr - 1, yy, shade(body, 1.12))    # the mesh bands
-    c.ellipse(cx, base, r - 1.5, ry * 0.8, shade(body, 0.7))
-    c.ellipse(cx, top, r, ry, shade(body, 1.35))                        # the rim
-    c.ellipse(cx, top, r - 1, ry - 0.6, hexc('141418'))                 # inside
-    if paper:
-        for (dx, dy, rr_) in ((-2, -1, 2), (1, -2, 2.5), (3, 0, 1.5)):
-            c.ellipse(cx + dx, top + dy, rr_, rr_ * 0.8, hexc('e6e0cc'))
-            c.put(cx + dx, top + dy, hexc('b9b09a'))
+    import props3d
+    props3d.waste_basket(c, cx, base, r, h, body, paper)
 
 
 def water_stain(c, cx, cy, rx, ry, col, seed=1, run=True):

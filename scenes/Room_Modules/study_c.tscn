@@ -69,5 +69,5 @@ metadata/back_plane = true
 [node name="Lights" type="Node2D" parent="."]
 
 [node name="lamp_0" type="Node2D" parent="Lights"]
-position = Vector2(248, 75)
+position = Vector2(248, 77)
 metadata/kind = "floor"

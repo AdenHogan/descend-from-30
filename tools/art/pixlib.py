@@ -1282,6 +1282,8 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
         per_run(1)
     import growth_map                             # where vegetation may grow here (tools/art/growth_map.py)
     growth_map.write(name, [full.img] + [v[1] for v in per_level.values()], bare_floor.img, ROOT)
+    import baked_objects                          # what the picture is made of, measured (tools/art/baked_objects.py): the flat-drawing audit reads it
+    baked_objects.write(name, full.img, bare_floor.img, ROOT, main.img)
     runs = run_looks(name, ROOT, main.img, nofront, bare.img, bare_floor.img, floor_fn, seed, strip_fn is not None,
                      per_level=per_level, keep_clear=stand_bands(anchors))
     for look, px_ in over_by_look.items():

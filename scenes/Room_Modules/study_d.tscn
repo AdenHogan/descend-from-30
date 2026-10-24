@@ -74,7 +74,7 @@ metadata/back_plane = true
 [node name="Lights" type="Node2D" parent="."]
 
 [node name="lamp_0" type="Node2D" parent="Lights"]
-position = Vector2(216, 22)
+position = Vector2(220, 22)
 metadata/kind = "bulb"
 
 [node name="Anims" type="Node2D" parent="."]

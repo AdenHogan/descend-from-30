@@ -142,11 +142,11 @@
   },
   "anchor_bedroom_clothes_rail": {
    "frames": 5,
-   "h": 31,
+   "h": 33,
    "kind": "shift",
-   "w": 39,
-   "x": 222,
-   "y": 72
+   "w": 45,
+   "x": 221,
+   "y": 71
   }
  },
  "bedroom_e": {
@@ -154,25 +154,25 @@
    "frames": 4,
    "h": 21,
    "kind": "topple",
-   "w": 31,
-   "x": 128,
-   "y": 76
+   "w": 30,
+   "x": 129,
+   "y": 75
   },
   "anchor_bedroom_dollhouse": {
    "frames": 4,
-   "h": 18,
+   "h": 33,
    "kind": "topple",
-   "w": 25,
-   "x": 50,
-   "y": 78
+   "w": 45,
+   "x": 62,
+   "y": 67
   },
   "anchor_bedroom_small_wardrobe": {
    "frames": 3,
-   "h": 70,
+   "h": 62,
    "kind": "door_h",
-   "w": 28,
-   "x": 292,
-   "y": 46
+   "w": 25,
+   "x": 291,
+   "y": 49
   }
  },
  "dining_room": {
@@ -370,19 +370,19 @@
   },
   "anchor_kitchen_buried_counter": {
    "frames": 4,
-   "h": 6,
+   "h": 2,
    "kind": "topple",
-   "w": 8,
-   "x": 151,
-   "y": 69
+   "w": 2,
+   "x": 153,
+   "y": 70
   },
   "anchor_kitchen_cat_tins": {
    "frames": 4,
-   "h": 7,
+   "h": 4,
    "kind": "shift",
-   "w": 14,
-   "x": 264,
-   "y": 115
+   "w": 10,
+   "x": 265,
+   "y": 118
   }
  },
  "living_room": {

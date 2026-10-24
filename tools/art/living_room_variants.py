@@ -966,13 +966,11 @@ def e_furniture(c):
     setback(c, _poker, depth=3)
     # a chesterfield in oxblood leather, and a bear-skin rug before it
     sofa_as(c, (hexc('6e2a24'), hexc('55201c'), hexc('84403a'), hexc('2a100e')), dx=128)
-    bear, bear_dk = hexc('9a7450'), hexc('6a4a34')
-    with flat_piece(c):
-        c.poly([(118, 126), (128, 120), (132, 116), (140, 120), (170, 119), (178, 115), (184, 120), (196, 124),
-                (184, 128), (178, 132), (170, 128), (140, 129), (132, 133), (128, 129)], bear)   # the pelt
-        c.poly([(196, 124), (206, 120), (212, 123), (208, 128)], bear)                          # the head
-        c.put(206, 122, hexc('1e1a16')); c.put(211, 124, hexc('d9cfb8'))
-        c.line(140, 124, 170, 124, bear_dk)
+    import props3d
+    with flat_piece(c):                                              # the bear-skin: the pelt and its head (tools/art/props3d.py bearskin — fur, a rolled edge, a domed head)
+        props3d.bearskin(c, [(118, 126), (128, 120), (132, 116), (140, 120), (170, 119), (178, 115), (184, 120), (196, 124),
+                             (184, 128), (178, 132), (170, 128), (140, 129), (132, 133), (128, 129)],
+                         [(194, 124), (203, 118), (213, 120), (218, 126), (212, 131), (201, 129)], eye=(206, 122), nose=(216, 125))
     import furn as F
     F.pendant(c, 296, 22, 'mustard')                                 # over the chesterfield
 
