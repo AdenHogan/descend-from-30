@@ -64,7 +64,7 @@ const DRESSING_TIRED := ["plant_tall", "plant_dead", "parcels", "chair", "shoe_t
 	"bin_bags", "recycling_box", "bicycle", "shoe_rack", "newspapers", "plant_stand",
 	"shopping_bag", "notice_wet_paint", "poster_lessons", "notice_lift", "notice_water", "notice_fire_exit", "poster_lost_cat"]
 const DRESSING_GONE := ["plant_dead", "chair_down", "suitcase", "parcels", "poster_lessons", "bin_bags",
-	"bin_bags", "bicycle_wrecked", "pram", "newspapers", "plant_stand_fallen",
+	"bin_bags", "bicycle", "pram", "newspapers", "plant_stand_fallen",
 	"notice_wet_paint", "shopping_bag", "notice_fire_exit", "notice_parcels", "notice_heating", "poster_lost_cat"]
 # building notices (owner round 23 — "a variety of notices for the building"), readable, per floor
 const WALL_DRESSING := ["kid_drawing", "notice_wet_paint", "poster_lessons", "notice_lift", "notice_water",
@@ -82,8 +82,10 @@ const DEAD_CHANCE := 0.55                        # not every floor, even when it
 
 const META_PATH := "res://assets/corridor/decals/dressing.json"
 # what a prop becomes when it's been knocked over / gone through, later in the day
-const KNOCKED := {"plant_tall": "plant_fallen", "chair": "chair_down", "bicycle": "bicycle_wrecked",
-	"plant_stand": "plant_stand_fallen"}
+const KNOCKED := {"plant_tall": "plant_fallen", "chair": "chair_down", "plant_stand": "plant_stand_fallen"}
+# A bicycle is never knocked over (owner round 48h: no damaged one), but its placement still reserves the 66 px the knocked-over sprite used to need, so every floor's seeded
+# dressing lands where it always did — the width is part of the RNG's fit checks, not a look.
+const SPAN_RESERVE := {"bicycle": 66.0}
 const DOOR_FRAME := 27.0                          # a door's face + frame, either side of its centre
 # the "open" spots: the wall between each pair of doors (under its sconce) and beside the lift
 const OPEN_SPOTS := [265.0, 392.0, 518.0, 647.0, 852.0]
@@ -225,6 +227,8 @@ static func plan(floor_num: int, run: int, base_name: String, extra_taken: Array
 				var k2 := _tex(str(kv[vroll % kv.size()]))
 				if k2 != null:
 					span.x = maxf(span.x, k2.get_size().x)
+			if SPAN_RESERVE.has(base):
+				span.x = maxf(span.x, float(SPAN_RESERVE[base]))
 			pos = _place_standing(rng, taken, name, span)
 		if pos == null:
 			continue
@@ -234,7 +238,7 @@ static func plan(floor_num: int, run: int, base_name: String, extra_taken: Array
 		var shown := name
 		var knocked := (base == "plant_tall" and run >= 2 and keep < 0.75) \
 			or (base == "plant_stand" and run >= 2 and keep < 0.7) \
-			or (base in ["chair", "bicycle"] and run >= 3 and keep < 0.8)
+			or (base == "chair" and run >= 3 and keep < 0.8)
 		if knocked:
 			var kv2 := dressing_variants(str(KNOCKED[base]))
 			shown = str(kv2[vroll % kv2.size()])

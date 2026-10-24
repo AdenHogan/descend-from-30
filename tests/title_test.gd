@@ -182,6 +182,21 @@ func _test_hall(s: Node) -> void:
 	chk(walked.size() >= 2, "the dead shamble about (%d of 3 went more than 30 px)" % walked.size())
 	chk(states_seen.has("walk") and states_seen.has("idle") and states_seen.has("lunge"), "they walk, stand and lunge (%s)" % str(states_seen.keys()))
 	chk(on_stretch, "each keeps to its own stretch of corridor")
+	# the hall's bicycle is a WHOLE bicycle (no damaged one exists) and none of the dead can stand in front of it
+	var bike_rect := Rect2()
+	var bike_name := ""
+	for n in hall.get_node("CorridorDecals").get_children():
+		if n is Sprite2D and n.has_meta("decal") and str(n.get_meta("decal")).begins_with("bicycle") and n.texture != null:
+			bike_rect = Rect2(n.global_position, n.texture.get_size())
+			bike_name = str(n.get_meta("decal"))
+	chk(bike_name != "" and not bike_name.contains("wreck"), "the hall carries a whole bicycle (%s)" % bike_name)
+	var clear := true
+	var worst := ""
+	for z in hall.dead:
+		if z.hi > bike_rect.position.x - Hall.BIKE_CLEAR and z.lo < bike_rect.end.x + Hall.BIKE_CLEAR:
+			clear = false
+			worst = "stretch %s..%s vs bike %s..%s" % [z.lo, z.hi, bike_rect.position.x, bike_rect.end.x]
+	chk(clear, "no dead's stretch crosses the bicycle (%s)" % worst)
 	chk(hall.blackouts >= 8, "the lights cut out now and then (%d blackouts in 400 s)" % hall.blackouts)
 	chk(hall.fade.color.a < 0.01, "and the hall has faded up from black")
 	chk(hall.camera.position == Vector2(Hall.CAM_X, Hall.CAM_Y), "…and 400 s later the camera has not moved an inch (%s)" % str(hall.camera.position))

@@ -521,10 +521,10 @@ def bike(save, name, seed, kid=False, extra=None, stabilisers=False):
         frame = rng.choice(corridor_bikes.KID_FRAMES)
     w, h, d = (46, 29, 3) if kid else (64, 39, 3)
     C = h - 1 - SHADOW
-    R, rx = (8.0, 8) if kid else (11.0, 14)
+    R, rx = (8, 9) if kid else (11, 14)
     c = new(w, h, seed)
     ground(c, rx - R, rx + 3.2 * R + R, C - d, C, 85)
-    corridor_bikes.draw_bike(c, C, rx, R, frame, state='intact', kid=kid, extra=extra, seed=seed, stabilisers=stabilisers)
+    corridor_bikes.draw_bike(c, C, rx, R, frame, kid=kid, extra=extra, seed=seed, stabilisers=stabilisers)
     save(name, c)
     record(name, "door", d, C)
 
@@ -649,7 +649,7 @@ def hall_chair(save, name, seed, down=False, spindle=False):
 
 
 
-# --- ROUND 24e: variants, trays, tables, a knocked-over stand, a wrecked bike ---------------------
+# --- ROUND 24e: variants, trays, tables, a knocked-over stand ---------------------
 # (owner: "either they shouldn't be on the floor, and should be on a desk or table or something outside the
 # apartment door or could have variants… the plant pot on the table… one where the plant has been knocked
 # over… the bicycle on its side… looks kind of deflated")
@@ -1033,24 +1033,6 @@ def scooter(save, name, seed):
     record(name, "door", d, C)
 
 
-def bike_wrecked(save, name, seed):
-    """A bike that's been wrecked, and still a whole bike: it stands on its kickstand with the rear tyre flat (it sags on its rim), the front wheel buckled and spokes snapped, the chain
-    off and lying on the floor, the saddle torn and askew, the bars knocked round and a pedal gone (tools/art/corridor_bikes.py). The old one had its front wheel lying flat on the floor and the frame
-    slumped over it — "it lost mass and got crushed by gravity" (owner round 48h). Same 66 x 37 sprite and contact as before, so the planner's reserved room is unchanged."""
-    import corridor_bikes
-    rng = random.Random(seed)
-    frame = rng.choice(corridor_bikes.FRAMES_WRECKED)
-    w, h, d = 66, 37, 3
-    C = h - 1 - SHADOW
-    R, rx = 11.0, 14
-    c = new(w, h, seed)
-    ground(c, rx - R, rx + 3.2 * R + R, C - d, C, 95)
-    corridor_bikes.draw_bike(c, C, rx, R, frame, state='wrecked', seed=seed)
-    save(name, c)
-    record(name, "door", d, C)
-
-
-
 def build(save):
     """Every standing prop (base names are the catalogue keys in scripts/corridor_decals.gd; `__N` are
     that prop's variants — the game picks one per placement)."""
@@ -1082,8 +1064,6 @@ def build(save):
     carrier_bags(save, 'shopping_bag__2', 163)
     bike(save, 'bicycle', 80, extra='rack')
     bike(save, 'bicycle__2', 180, extra='basket')
-    bike_wrecked(save, 'bicycle_wrecked', 80)
-    bike_wrecked(save, 'bicycle_wrecked__2', 180)
     bike(save, 'kids_bike', 81, kid=True)
     bike(save, 'kids_bike__2', 181, kid=True, stabilisers=True, extra='basket')
     scooter(save, 'scooter', 61)

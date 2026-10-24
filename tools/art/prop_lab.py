@@ -36,7 +36,7 @@ LABELS = {
     'shoe_rack': 'Shoe rack', 'shoe_tray': 'Shoe tray', 'umbrella_stand': 'Umbrella stand',
     'hall_table': 'Hall table', 'parcels': 'Parcels', 'pram': 'Pram', 'bin_bags': 'Bin bags',
     'recycling_box': 'Recycling box', 'newspapers': 'Newspapers', 'suitcase': 'Suitcase',
-    'shopping_bag': 'Shopping bag', 'bicycle': 'Bicycle', 'bicycle_wrecked': 'Wrecked bicycle',
+    'shopping_bag': 'Shopping bag', 'bicycle': 'Bicycle',
     'kids_bike': "Kid's bike", 'scooter': 'Scooter', 'plant_tall': 'Floor planter', 'plant_dead': 'Dead planter',
     'plant_fallen': 'Knocked-over planter', 'plant_stand': 'Plant on a stand',
     'plant_stand_fallen': 'Knocked-over plant stand', 'chair': 'Hall chair', 'chair_down': 'Knocked-over chair',

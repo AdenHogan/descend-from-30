@@ -13,18 +13,6 @@
    "depth": 3,
    "rule": "door"
   },
-  "bicycle_wrecked": {
-   "base": "bicycle_wrecked",
-   "contact": 34,
-   "depth": 3,
-   "rule": "door"
-  },
-  "bicycle_wrecked__2": {
-   "base": "bicycle_wrecked",
-   "contact": 34,
-   "depth": 3,
-   "rule": "door"
-  },
   "bin_bags": {
    "base": "bin_bags",
    "contact": 28,

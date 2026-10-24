@@ -1206,7 +1206,7 @@ func _test_corridor_decals() -> void:
 					var sz: Vector2 = CD._tex(nm).get_size()
 					if d["pos"].y < 67.0 or d["pos"].y + sz.y > 96.0 or sz.x > 52.0 or sz.y > 29.0:
 						high_notice = "%s@%s floor %d" % [nm, d["pos"], f]
-				elif CD.base_of(nm) in ["bicycle", "bicycle_wrecked", "kids_bike", "bin_bags", "recycling_box", "pram",
+				elif CD.base_of(nm) in ["bicycle", "kids_bike", "bin_bags", "recycling_box", "pram",
 						"newspapers", "shoe_rack", "shoe_tray", "umbrella_stand", "plant_stand", "hall_table"]:
 					outdoor[CD.base_of(nm)] = true
 	check(notices > 0 and high_notice == "", "notices sit in the rail band (%d placed) %s" % [notices, high_notice])

@@ -40,8 +40,10 @@ const MOAN_MIN := 16.0
 const MOAN_MAX := 34.0
 const MOAN_DB := -19.0
 const MOANS := ["res://assets/audio/zombie/moan_1.wav", "res://assets/audio/zombie/moan_2.wav", "res://assets/audio/zombie/moan_3.wav", "res://assets/audio/zombie/moan_4.wav"]
-# [x to start, the stretch of corridor it keeps to] — three shamblers, spread so one is always near a lamp
-const DEAD := [[610.0, 500.0, 760.0], [742.0, 640.0, 880.0], [452.0, 380.0, 560.0]]
+# [x to start, low end, high end of the stretch of corridor it keeps to] — three shamblers. The hall's bicycle stands in the lamp's pool at x 602..666 (the first thing the title shows —
+# owner round 48h: it must read on its own), so no stretch crosses it: one dead keeps to the left of it, one to the right, one down by the menu (title_test checks the gap).
+const DEAD := [[530.0, 470.0, 575.0], [780.0, 690.0, 880.0], [430.0, 380.0, 460.0]]
+const BIKE_CLEAR := 24.0               # a dead's centre keeps at least this far (px) from the bicycle's rect: its sprite is ~30 px wide, so it never covers the bike
 
 var build_ok: bool = false
 var t: float = 0.0
