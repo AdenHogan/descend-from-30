@@ -1,11 +1,11 @@
 # The Ledger — the look the menus that act on the world share
 
-**BUILT v1 (round 48j).** Owner: *"I quite like the ledger look as it ties together with the Player detail UI. At the same time, I'd like the appropriate amount of UX design too, from glitz,
+**BUILT v1 (round 48j) — two looks, one for each job (see "The Lamplight" below: the rings, the found-item panel and SEARCHING were moved to it after the owner saw the paper rings).** Owner: *"I quite like the ledger look as it ties together with the Player detail UI. At the same time, I'd like the appropriate amount of UX design too, from glitz,
 glam, lighting, sound effects and whatnot that makes a UI like this look good. We want it to look good, clean, connected, and strong… and no offence, we don't want it to look like AI slop."*
 
-It is paper, ink and a desk, because that is what the journal already is (`character_panel.gd`'s paper kit). The menus that wear it: **the merchant** (`shop_ui.gd`), **the workbench**
-(`workbench_ui.gd`), **the found-item panel** (`loot_ui.gd`), **the pack ring and the body ring** (`pack_wheel.gd`, `body_ring.gd`). The journal itself is the reference the kit was
-drawn from, not a consumer of it (it keeps its own `_Paper`).
+It is paper, ink and a desk, because that is what the journal already is (`character_panel.gd`'s paper kit). The menus that wear it: **the merchant** (`shop_ui.gd`) and **the workbench**
+(`workbench_ui.gd`) — the places you sit and read. The journal itself is the reference the kit was drawn from, not a consumer of it (it keeps its own `_Paper`).
+The glance-and-go layer over the live game (**the pack ring, the body ring, the found-item panel, SEARCHING**) is the dark Lamplight look, below.
 
 ## The rules that keep it from being a stock "fantasy UI"
 
@@ -33,30 +33,58 @@ drawn from, not a consumer of it (it keeps its own `_Paper`).
 | `ledger_button.gd` | a real `Button` (focus, shortcut and pad all work) drawn as a box ruled in ink; hover = pencil hatching, pressed = ink floods, disabled = dotted + struck through, focus = four proofreader's corner marks; `refuse()` shivers it with a knock. |
 | `ledger_stamp.gd` | a rubber stamp: red ink, ruled border, thick where it pressed and thin where it did not, a little crooked; `play()` lands it (comes down too big, thuds, knocks the sheet). Once pressed it stays. |
 | `ledger_rule.gd`, `ledger_pips.gd` | a pen line (single, or the bookkeeper's double that closes a column); tally boxes (set = inked, staged = pencilled, empty = ruled). |
-| `ledger_ring.gd` (`LedgerRing`) | the ring kit, pure drawing on a `CanvasItem`: `shade`, `tag` (a paper disc that lifts), `pen_circle`, `dashed` (pencil outline of where something was), `slip`, `card` (the middle slip: head, body, typed lines and stat rows with the hand's mark), `plate` (a strip of paper, kept on screen), `padlock`, `gauge`, `fit`. `BODY_TINT` = the body ring's cooler stock. |
 
-## The four menus
+## The two paper menus
 
 - **Merchant** — one sheet on a dimmed desk (vignette backdrop, the page settles in). "THE OFFER" / "WARES" are tabs; the offer is three taped slips (rarity word printed in an ink by the
   perk's weight; a drawback in red); TAKE presses a TAKEN stamp, the other two slips are set aside, then the page moves on to the wares. Wares are ruled lines; SOLD is stamped; BUY
   → SIGN?, SELL → SURE? (the two-click confirms are unchanged). The notes and the floor line are in the player's hand.
 - **Workbench** — the same sheet; the perk choice is two slips; the tuning column is a fixed grid with `LedgerPips`; a spare part / scrap line is written, not printed.
-- **Found-item panel** — a slip of paper taped down; the thing lies on it with its shadow; the name is a printed head over a pen rule; the comparison with the weapon in hand is a ruled
-  column in ink (`ItemCompare.bbcode(c, true)`; the dark form stays the default for the floor pill and the rings) with the better / worse mark in the player's hand (green / red ink);
-  the hint is what the player jots to themselves. The slip *lands* (a hair large and turned, settling in a tenth of a second) with the paper sound. While it searches, the bar is a **box
-  the player's pen fills in**, diagonal strokes laid down left to right, the one being drawn only part-way across. A refused take turns the name red and knocks twice.
-- **Pack ring / body ring** — the pack lies open on a dark shade and every slot is a paper tag on it. The one in hand is circled in the player's pen (and labelled "in hand" on its
-  outer side); a craft that would work is ringed green, one that would not red; durability is a pen line under the thing; stacks are typed `x3`. The middle is a taped slip. The help
-  strip is paper. The right-click menu is a slip with the hovered row underlined. The body's tags are a cooler stock. A tick when the pointer moves onto an item, a pen scratch when you
-  equip, tape when a craft works, a page when you drop, two raps when it will not.
 
-## Tested (`tests/ledger_test.gd`, the 78th suite; mutation-checked: no stamp press, no paper under the loot panel, no on-screen clamp on the help strip each fail it)
+## The Lamplight — rings, found-item panel, SEARCHING (round 48j, part 4)
 
-The kit's purity (same seed, same sheet; edges stay inside the rectangle; no flicker), the faces exist and differ, every named sound exists on disk, a muted kit plays nothing and a
-throttled one does not machine-gun; the merchant (one slip per perk on offer, none cut the same, the stamp presses at once but the choice waits for the beat and then runs exactly once);
-the workbench opens, tabs and gives the pause back; the loot panel (paper first, no stock box, the shadow and the icon one picture, the landing settles, paper vs dark comparison); the
-rings are the same family. Existing suites cover the rules: `loot_test`, `item_compare_test`, `pack_test`, `body_ring_test`, `weapon_upgrade_test`, `merchant_smoke_test`,
-`click_claim_test`, `hud_wheel_test`, `inventory_flow_test`.
+Owner, on the taped-paper rings: *"I don't like this. Can you give me a version of the wheel that looked like that other mockup… the one that was dark and goldish in the corners. It looked
+pretty smart and clean. The grungy taped on style looks nice in the profile UI, but it might be a bit too much now. Also there's just way too much text going on up there at the top…
+It needs to be clean information a player can glance at and recognise. If we even need text, it needs to be one word (equip, drop, compare, etc). I also definitely don't like the search bar
+like this… the word searching literally can be the bar… going from the S to the G… once the word is filled in we know if it's something or nothing found."* And: *"Place the searching over
+the node being searched, not in the centre of the screen."*
+
+The look is the "Descent Menu Mockups" Lamplight board's, hex for hex (`scripts/lamp.gd`, `Lamp`): dark glass (a vertical gradient with a faint warm inner light), a 2-px brass-brown edge, brass
+corner brackets, warm cream text, green / red for better / worse and a cool steel for a body's things. Barlow Condensed (heads and letter-spaced one-word captions) over Barlow — the logo's faces.
+**Rules (a gate on any later UI of this layer):** information first — a word is ONE word (EQUIP, DROP, HELD, LOCKED, CRAFT, LOAD, CLOSE, EMPTY, BROKEN), a number carries a drawn ▲ / ▼ (drawn,
+not a font glyph: none of our fonts has them), never a sentence; **no help strips**; brass = what is yours or chosen (in hand, brackets, what you are about to do), green / red only ever mean
+better / worse; everything is drawing — nothing in the kit decides anything.
+
+- **Pack ring** (`pack_wheel.gd`) — a smoked dark ring with a dashed track; every slot a dark card (`Lamp.slot`): the thing at 56 px, its key number, an `x3` count, and a 3-px bar of what is left
+  of it (green / brass / red). The one in hand has brass brackets and a **HELD** tab; the pointer lifts a slot (brass edge, a warm halo, 76 px); a craft being dragged over an item rings it green
+  (it will work) or red. Ring radius 120 / slot 64 so the card in the middle never touches a slot (`lamp_test` measures it for 3-6 wedges). **The middle is ONE small card** (`Lamp.info`): the
+  item's name and — for a weapon — the three rows that matter (the ones that differ from the weapon in hand come first, `Lamp.pick_rows`, in the card's own order), a short fact for anything
+  else (`Heals 2`), one word when broken; with a drag in hand it is just the word — **CRAFT** over what it makes, **LOAD**, **DROP**, **NO** over the reason — and **CLOSE** when the pointer is
+  on nothing. The right-click menu is a dark panel, one word a row (Equip / **Unequip** / Use / Drop), the row under the pointer lit in brass (a drop in red). **The long help line is gone.**
+  Sounds are the desk ones, softly (a tick on hover / equip, the pack's flap on open, tape on a craft, a page on a drop, two raps for no).
+- **Body ring** (`body_ring.gd`) — the same drawing in steel (`Lamp.STEEL` brackets, edge and base) with the fallen character's NAME on a steel tab over it; the middle says LOOT (take all) /
+  EMPTY / TAKE (a drag over the pack) / the item as the pack ring reads it (`Lamp.item_lines`, so a thing reads the same on either).
+- **Found-item panel** (`loot_ui.gd`) — dark glass with brass brackets at two corners (the board's), the icon at 2× on a dark well, a one-word caption (BAT / MEDICAL / KEY…, `Lamp.kind_word`),
+  the name, a "VS KNIFE" comparison box for a weapon (`LampRows`, drawn rows with drawn arrows), and one line of keys: **[E] TAKE** (+ **[R] LOAD** for bullets when a gun has room). A refusal turns
+  the name red and says MAKE ROOM. It fades up and settles in a tenth of a second. Taking is unchanged (E, double-click, drag onto the pack / a ring slot).
+- **SEARCHING** (`search_word.gd`, `SearchWord`) — **no panel and no bar while a search runs.** The word hangs just above the node being searched (screen position through the canvas transform
+  of the node `Interactable` hands over — never the screen's centre; with no node it hangs over the player), on a thin dark plate, and its letters light **one after another, S to G**, dim to brass, as
+  the timer runs (a very quiet tick as each comes on). When the last is lit it resolves where it hangs: **found** = the whole word flares warm white and lifts away as the result panel arrives;
+  **nothing** = the letters go grey and sink and a line is said in passing ("Nothing."). Walking away takes it at once. The search's length, what it finds and the cancel rules are `loot_ui`'s and
+  unchanged. `tools/scene_capture` steps: `loot:<apt>:<anchor>[:<fraction>]` (a fraction holds the search there), `anchors` (lists a room's nodes), `ringmenu:<k>`, `ringdrag:<k>[:out]`.
+
+## Tested
+
+`tests/ledger_test.gd` (the 78th suite; mutation-checked: no stamp press fails it) — the paper kit's purity (same seed, same sheet; edges stay inside the rectangle; no flicker), the faces exist and
+differ, every named sound exists on disk, a muted kit plays nothing and a throttled one does not machine-gun; the merchant (one slip per perk on offer, none cut the same, the stamp presses at once but
+the choice waits for the beat and then runs exactly once); the workbench opens, tabs and gives the pause back.
+`tests/lamp_test.gd` (the 79th suite) — the palette is the board's hex for hex, the type settings differ, `fit` never runs over and stops at 8 px, `pick_rows`, the card grows with what it says, every
+item's caption is one word; SEARCHING lights its letters in order and never goes back, resolves found / nothing and is gone after its beat, cancels at once; the loot panel is dark glass, has no
+progress bar, shows NO panel while searching, hangs the word over the node (a stub node at a known position), lights half the word half-way, shows the panel + a resolved-FOUND word at the end, names the
+item with a one-word caption and one line of keys, compares a weapon, turns red on a refusal; an empty node ends as NOTHING with no panel; leaving mid-search takes the word; the rings are drawn in the
+kit (source check), have no help strip, the middle card never overlaps a slot for 3-6 wedges, every menu row and every readout is one word, a bottle dragged onto torn clothes says CRAFT over
+"Molotov Cocktail". Existing suites cover the rules: `loot_test`, `item_compare_test`, `pack_test`, `body_ring_test`, `weapon_upgrade_test`, `merchant_smoke_test`, `click_claim_test`, `hud_wheel_test`,
+`inventory_flow_test`.
 
 ## Capturing it
 

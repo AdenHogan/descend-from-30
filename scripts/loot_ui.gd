@@ -1,6 +1,9 @@
 extends CanvasLayer
 
-# Scavenge result panel — CENTRED, shows the item icon + name, and is taken by:
+# Scavenge: the SEARCH and its RESULT (owner round 48j: "maybe we don't even need the bar… the word searching literally can be the bar").
+# While a search runs there is no panel at all: a small SEARCHING hangs above the node and its letters light S to G (scripts/search_word.gd), so the player and the room stay in view;
+# when the last letter is lit it resolves where it hangs — and either the result panel below appears (something found) or a one-line "Nothing." is said (nothing).
+# The result panel — CENTRED, dark glass with brass corners (scripts/lamp.gd), shows the item icon + name, and is taken by:
 #   • double-clicking it, or
 #   • dragging it onto your pack (the backpack button, bottom-right — there is no bar or hotbar), or
 #   • pressing E / interact,
@@ -13,21 +16,19 @@ extends CanvasLayer
 
 const REVEAL_TIME = 3.0
 const EMPTY_REVEAL_FACTOR = 0.5        # a search that turns up nothing takes half as long (owner round 36g: "finding nothing takes too long")
-const NOTHING_CLOSE_TIME = 1.6
 const RingGeo := preload("res://scripts/ring_geo.gd")
 const DRAG_THRESHOLD = 8.0
 const DOUBLE_CLICK_TIME = 0.35
-const PANEL_W = 300.0
-const PAD := 22.0                      # the paper's margin round its contents
-const REST_TILT := -0.009             # a slip is never quite square to the desk
-const SEARCH_W = 220.0                 # the compact panel while a search runs (owner round 45: "the searching box is far too big")
+const PANEL_W = 380.0
+const PAD := 20.0                      # the glass's margin round its contents
+const ICON_BOX := 120.0                # the 56-px icon at exactly 2x (112) on a dark well
+const WORD_RISE := 34.0                # how far above the node the SEARCHING word hangs (screen px)
 const SCREEN_W = 1152.0
 const SCREEN_H = 648.0
 
 var reveal_timer = 0.0
 var reveal_time = REVEAL_TIME          # this search's length (halved when the node holds nothing)
 var is_revealing = false
-var nothing_timer = 0.0
 var current_item_id = ""
 var current_key_target = ""
 var current_anchor_name = ""
@@ -36,18 +37,18 @@ var anchor_node: Node = null
 var has_item = false               # a takeable item is currently shown
 
 # UI
-var panel: PanelContainer = null
-var paper: LedgerPaper = null
+var panel: PanelContainer = null       # the RESULT panel (hidden while a search runs)
+var glass: LampGlass = null
 var icon: TextureRect = null
-var icon_shadow: TextureRect = null
-var name_rule: LedgerRule = null
 var _land_tween: Tween = null
-var _pen_clock: float = 0.0
 var name_label: Label = null
-var hint_label: Label = null
-var compare_label: RichTextLabel = null      # a found weapon's numbers, set beside the one in hand (ItemCompare)
-var icon_row: CenterContainer = null
-var search_bar: Control = null         # the filling bar shown while a search runs
+var kind_label: Label = null           # one word: what sort of thing it is
+var hint_label: Label = null           # the keys: "[E] TAKE"
+var compare_label: LampRows = null     # a found weapon's numbers, set beside the one in hand (ItemCompare)
+var icon_row: HBoxContainer = null
+var search_word: SearchWord = null     # SEARCHING, lit S to G while a search runs
+var _word_layer: CanvasLayer = null    # its own layer: it outlives this one's visibility for the beat it takes to resolve
+var _last_lit: int = 0
 
 # drag / double-click
 var drag_armed = false
@@ -82,134 +83,125 @@ func _build_ui() -> void:
 	add_child(center)
 	_center = center
 
-	# The panel is a slip of ledger paper (scripts/ledger.gd): the paper only draws, a margin holds the contents, so a panel that changes height — a found weapon with its numbers under it — is
-	# still one sheet whatever it holds.
+	# The panel is a pane of dark glass (scripts/lamp.gd): the glass only draws, a margin holds the contents, so a panel that changes height — a found weapon with its numbers under it — is
+	# still one pane whatever it holds.
 	panel = PanelContainer.new()
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.custom_minimum_size = Vector2(PANEL_W, 0)
 	panel.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+	panel.visible = false
 	center.add_child(panel)
-	paper = LedgerPaper.new()
-	paper.seed_value = 41
-	panel.add_child(paper)
+	glass = LampGlass.new()
+	panel.add_child(glass)
 	var pad := MarginContainer.new()
 	pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	pad.add_theme_constant_override("margin_left", int(PAD))
-	pad.add_theme_constant_override("margin_right", int(PAD))
-	pad.add_theme_constant_override("margin_top", int(PAD) + 8)           # the tape
-	pad.add_theme_constant_override("margin_bottom", int(PAD) - 2)
+	for side in ["left", "right", "top", "bottom"]:
+		pad.add_theme_constant_override("margin_" + side, int(PAD))
 	panel.add_child(pad)
 
 	var vbox = VBoxContainer.new()
 	vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	vbox.add_theme_constant_override("separation", 8)
+	vbox.add_theme_constant_override("separation", 12)
 	pad.add_child(vbox)
 
-	icon_row = CenterContainer.new()
+	icon_row = HBoxContainer.new()
 	icon_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	icon_row.custom_minimum_size = Vector2(PANEL_W - 2.0 * PAD, 112)
+	icon_row.add_theme_constant_override("separation", 16)
 	vbox.add_child(icon_row)
-	var plate := Control.new()                          # the thing lies on the paper: a shadow a few px down and right of it
-	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	plate.custom_minimum_size = Vector2(112, 112)
-	icon_row.add_child(plate)
-	icon_shadow = TextureRect.new()
-	icon_shadow.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	icon_shadow.size = Vector2(112, 112)
-	icon_shadow.position = Vector2(5, 6)
-	icon_shadow.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon_shadow.modulate = Color(0.12, 0.07, 0.02, 0.26)
-	plate.add_child(icon_shadow)
+	var well := PanelContainer.new()                    # the thing sits on a dark well with a thin brass-brown edge, as on the board
+	well.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	well.custom_minimum_size = Vector2(ICON_BOX, ICON_BOX)
+	var well_style := StyleBoxFlat.new()
+	well_style.bg_color = Lamp.WELL
+	well_style.border_color = Lamp.EDGE
+	well_style.set_border_width_all(1)
+	well.add_theme_stylebox_override("panel", well_style)
+	icon_row.add_child(well)
 	icon = TextureRect.new()
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	icon.size = Vector2(112, 112)                      # the 56px icon at exactly 2x
+	icon.custom_minimum_size = Vector2(112, 112)        # the 56px icon at exactly 2x
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	plate.add_child(icon)
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	well.add_child(icon)
 
-	name_label = Ledger.label("", "head", 28, Ledger.INK, true)
-	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	name_label.custom_minimum_size = Vector2(PANEL_W - 2.0 * PAD, 0)
-	vbox.add_child(name_label)
+	var col := VBoxContainer.new()
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col.alignment = BoxContainer.ALIGNMENT_CENTER
+	col.add_theme_constant_override("separation", 2)
+	icon_row.add_child(col)
+	kind_label = _lamp_label("", "label", 14, Lamp.LABEL)
+	col.add_child(kind_label)
+	name_label = _lamp_label("", "head", 34, Lamp.TEXT)
+	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	name_label.custom_minimum_size = Vector2(PANEL_W - 2.0 * PAD - ICON_BOX - 16.0, 0)
+	col.add_child(name_label)
 
-	name_rule = LedgerRule.new()
-	name_rule.seed_value = 9
-	vbox.add_child(name_rule)
-
-	compare_label = RichTextLabel.new()
-	compare_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	compare_label.bbcode_enabled = true
-	compare_label.fit_content = true
-	compare_label.scroll_active = false
-	compare_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	compare_label.add_theme_font_override("normal_font", Ledger.font("body"))
-	compare_label.add_theme_font_size_override("normal_font_size", 15)
-	compare_label.add_theme_color_override("default_color", Ledger.INK)
+	compare_label = LampRows.new()
 	compare_label.custom_minimum_size = Vector2(PANEL_W - 2.0 * PAD, 0)
 	compare_label.visible = false
 	vbox.add_child(compare_label)
 
-	hint_label = Ledger.label("", "hand", 15, Ledger.hand_ink(), true)                # what the player jots to themselves
-	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hint_label.custom_minimum_size = Vector2(PANEL_W - 2.0 * PAD, 0)
+	hint_label = _lamp_label("", "label", 16, Lamp.BRASS)             # the keys, in brass: "[E] TAKE"
 	vbox.add_child(hint_label)
 
-	search_bar = SearchBar.new()
-	search_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	search_bar.custom_minimum_size = Vector2(SEARCH_W - 2.0 * PAD, SearchBar.BAR_H)
-	search_bar.visible = false
-	vbox.add_child(search_bar)
+	# SEARCHING lives on a layer of its own, above this one.
+	_word_layer = CanvasLayer.new()
+	_word_layer.layer = 4
+	add_child(_word_layer)
+	search_word = SearchWord.new()
+	_word_layer.add_child(search_word)
 
 
-## The player writes in their own hand, and the cast changes between runs: re-ink what is theirs each time the panel opens.
+func _lamp_label(text: String, kind: String, px: int, col: Color) -> Label:
+	var l := Label.new()
+	l.text = text
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	l.add_theme_font_override("font", Lamp.font(kind))
+	l.add_theme_font_size_override("font_size", px)
+	l.add_theme_color_override("font_color", col)
+	return l
+
+
+## Each time the panel opens: the name is bright again (a refused take turns it red).
 func _restyle() -> void:
-	Ledger.style(hint_label, "hand", 15, Ledger.hand_ink())
-	name_label.add_theme_color_override("font_color", Ledger.INK)
+	name_label.add_theme_color_override("font_color", Lamp.TEXT)
 
 
-## The icon and the shadow it throws on the paper are one picture.
 func _set_icon(tex: Texture2D) -> void:
 	icon.texture = tex
-	icon_shadow.texture = tex
 
 
-## The slip lands: a hair large and turned, settling flat in a tenth of a second, with the paper's own sound.
+## The panel arrives: it fades up and settles from a hair large (a tenth of a second), with a soft tick.
 func _land(sound: String) -> void:
-	Ledger.play(sound, -13.0, 0.12)
+	Ledger.play(sound, -14.0, 0.12)
 	panel.pivot_offset = panel.size * 0.5
 	if _land_tween != null and _land_tween.is_valid():
 		_land_tween.kill()
-	panel.scale = Vector2(1.035, 1.035)
-	panel.rotation = -0.022
+	panel.scale = Vector2(1.03, 1.03)
+	panel.modulate.a = 0.0
 	_land_tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	_land_tween.tween_property(panel, "scale", Vector2.ONE, 0.11)
-	_land_tween.tween_property(panel, "rotation", REST_TILT, 0.13)
+	_land_tween.tween_property(panel, "scale", Vector2.ONE, 0.12)
+	_land_tween.tween_property(panel, "modulate:a", 1.0, 0.10)
 
 
-## A search is running: a small panel with just the word and a bar that fills across it; or it has finished: the full panel.
-func _layout(searching: bool) -> void:
-	var w: float = SEARCH_W if searching else PANEL_W
-	panel.custom_minimum_size = Vector2(w, 0)
-	name_label.custom_minimum_size = Vector2(w - 2.0 * PAD, 0)
-	name_label.add_theme_font_size_override("font_size", 22 if searching else 28)
-	name_label.add_theme_color_override("font_color", Ledger.INK)
-	icon_row.visible = not searching
-	name_rule.visible = not searching
-	hint_label.visible = not searching
-	compare_label.visible = false
-	search_bar.visible = searching
-	panel.reset_size()           # a PanelContainer keeps its biggest size until told to shrink
+## The result panel shows (a search finished or the node was already searched), or hides (a search is running).
+func _show_panel(on: bool) -> void:
+	panel.visible = on
+	if on:
+		panel.reset_size()           # a PanelContainer keeps its biggest size until told to shrink
 
 
-func open(item_id: String, anchor_name: String, apartment_id: String) -> void:
+## `node` = the scavenge node being searched (the SEARCHING word hangs over it); without it the node is looked up by name.
+func open(item_id: String, anchor_name: String, apartment_id: String, node: Node = null) -> void:
 	WorldState.loot_open = true
 	is_revealing = false
 	has_item = false
-	nothing_timer = 0.0
 	current_item_id = item_id
 	current_anchor_name = anchor_name
 	current_apartment_id = apartment_id
 	current_key_target = ""
-	anchor_node = get_tree().get_root().find_child(anchor_name, true, false)
+	anchor_node = node if node != null and is_instance_valid(node) else get_tree().get_root().find_child(anchor_name, true, false)
 
 	if WorldState.is_anchor_a_key(apartment_id, anchor_name):
 		current_key_target = WorldState.get_anchor_key_target(apartment_id, anchor_name)
@@ -227,18 +219,18 @@ func open(item_id: String, anchor_name: String, apartment_id: String) -> void:
 
 	reveal_timer = 0.0
 	is_revealing = true
-	# The press starts it: the drawer opens, the glass tips, the screen goes dark NOW, while the bar fills (owner round 45c)
+	# The press starts it: the drawer opens, the glass tips, the screen goes dark NOW, while the word fills (owner round 45c)
 	if anchor_node != null and is_instance_valid(anchor_node) and anchor_node.has_method("on_search_begin"):
 		anchor_node.on_search_begin()
 	_set_icon(null)
-	_restyle()
-	name_label.text = "Searching"
+	name_label.text = ""
 	hint_label.text = ""
-	_layout(true)
-	search_bar.set_progress(0.0, reveal_time)
-	_pen_clock = 0.0
+	kind_label.text = ""
+	_show_panel(false)                       # no panel while it runs: SEARCHING is the whole readout, and the room stays in view
+	_last_lit = 0
+	search_word.begin()
+	_place_word()
 	visible = true
-	_land("sheet")
 
 
 ## What the player mutters over an empty search: a short line, stable per node (so re-searching reads the same).
@@ -250,33 +242,26 @@ static func nothing_line(apartment_id: String, anchor_name: String) -> String:
 
 
 func _reveal_item() -> void:
-	_layout(false)
 	WorldState.mark_anchor_searched(current_apartment_id, current_anchor_name)
 	get_tree().call_group("open_furniture", "on_searched", current_apartment_id, current_anchor_name)   # (already open since the press; a no-op then)
 	is_revealing = false
 	var item_data = ItemData.get_item(current_item_id)
-	if current_item_id == "":
+	if current_item_id == "" or item_data.is_empty():
 		# An empty search is a line, not a panel (owner round 48i: "if there is nothing found, we don't need a big empty inventory box that pops... the
-		# player can say nothing in real time following the search, allowing us to just keep going"): close at once and say so in passing.
+		# player can say nothing in real time following the search, allowing us to just keep going"): the word goes grey and sinks, the player says so in passing.
+		search_word.resolve(false)
 		_set_icon(null)
 		name_label.text = ""
 		hint_label.text = ""
 		has_item = false
-		nothing_timer = 0.0
 		HUD.show_feedback(nothing_line(current_apartment_id, current_anchor_name))
 		_close(false)
 		return
-	if item_data.is_empty():
-		_set_icon(null)
-		name_label.text = "Nothing found."
-		hint_label.text = ""
-		has_item = false
-		nothing_timer = NOTHING_CLOSE_TIME
-		_notify_anchor_closed(false)
-		return
+	search_word.resolve(true)                # the word flares and lifts away as the panel arrives
 	has_item = true
 	_set_icon(ItemData.get_texture(current_item_id))
 	WorldState.note_item_seen(current_item_id)   # seeing it in the panel counts as found (codex)
+	kind_label.text = "KEY" if current_key_target != "" else Lamp.kind_word(item_data)
 	if current_key_target != "":
 		name_label.text = WorldState.key_display(current_key_target)
 	elif _is_cabinet_weapon():
@@ -284,18 +269,19 @@ func _reveal_item() -> void:
 		name_label.text = inst.get_display_name() + "  ·  " + inst.tier_label()
 	else:
 		name_label.text = item_data["name"]
-	hint_label.text = "Double-click, or drag onto your pack · walk away to leave"
+	hint_label.text = SettingsManager.localize("[{interact}]  TAKE")
 	_show_compare(item_data)
 	if _is_rounds() and not WorldState.guns_with_room().is_empty():
-		hint_label.text = SettingsManager.localize("Drag onto your gun, or press [{item_use}], to load it · [{interact}] takes it")
+		hint_label.text = SettingsManager.localize("[{interact}]  TAKE      [{item_use}]  LOAD")
+	_show_panel(true)
 	visible = true
-	_land("page")
+	_land("tick")
 
 
 ## A weapon in the panel shows its numbers beside the one in hand, so the choice never needs the bag opened to compare (owner round 48i).
 func _show_compare(item_data: Dictionary) -> void:
 	compare_label.visible = false
-	compare_label.text = ""
+	compare_label.set_card({})
 	if _is_cabinet_weapon() or current_key_target != "" or not item_data.get("is_weapon", false):
 		return
 	var inst := ItemInstance.new()
@@ -303,8 +289,20 @@ func _show_compare(item_data: Dictionary) -> void:
 	var c: Dictionary = ItemCompare.card(inst, ItemCompare.held_weapon())
 	if c.is_empty():
 		return
-	compare_label.text = ItemCompare.bbcode(c, true)
+	compare_label.set_card(c)
 	compare_label.visible = true
+
+
+## SEARCHING hangs a little above the node being searched (screen px, via the canvas transform — never current_scene), kept on the screen. If the node is somehow unknown it hangs over the
+## player instead — never in the middle of the screen, away from anything.
+func _place_word() -> void:
+	var src: Node2D = anchor_node as Node2D if anchor_node != null and is_instance_valid(anchor_node) else null
+	if src == null:
+		src = get_tree().get_first_node_in_group("player") as Node2D
+	var at := Vector2(SCREEN_W * 0.5, SCREEN_H * 0.3)
+	if src != null:
+		at = get_viewport().get_canvas_transform() * src.global_position - Vector2(0, WORD_RISE if src == anchor_node else WORD_RISE * 3.0)
+	search_word.position = Vector2(clampf(at.x, 80.0, SCREEN_W - 80.0), clampf(at.y, 30.0, SCREEN_H - 90.0)) - search_word.size * 0.5
 
 
 ## Where the pack ring's centre sits while it shares the screen with this panel: the pair (panel + a gap + ring) is centred on the
@@ -320,7 +318,7 @@ func can_share_screen() -> bool:
 
 
 func over_panel(pos: Vector2) -> bool:
-	return visible and panel != null and panel.get_global_rect().has_point(pos)
+	return visible and panel != null and panel.visible and panel.get_global_rect().has_point(pos)
 
 
 ## Is the pack ring up beside this panel?
@@ -360,21 +358,14 @@ func _process(delta: float) -> void:
 			_close(false)
 			return
 		reveal_timer += delta
-		_pen_clock += delta
-		if _pen_clock >= 0.85:                                                  # the pen keeps scratching while the box fills
-			_pen_clock = 0.0
-			Ledger.play("pen", -21.0, 0.5)
-		search_bar.set_progress(reveal_timer, reveal_time)
-		name_label.text = "Searching" + ".".repeat(1 + int(reveal_timer * 2.5) % 3)
+		search_word.set_progress(reveal_timer, reveal_time)
+		var lit: int = search_word.lit_letters()
+		if lit > _last_lit:                                                      # a very quiet tick as each letter comes on
+			_last_lit = lit
+			Ledger.play("tick", -29.0, 0.05)
+		_place_word()
 		if reveal_timer >= reveal_time:
 			_reveal_item()
-		return
-
-	# "Nothing found" auto-dismisses shortly.
-	if not has_item and nothing_timer > 0.0:
-		nothing_timer -= delta
-		if nothing_timer <= 0.0:
-			_close(false)
 		return
 
 	_update_drag()
@@ -422,7 +413,7 @@ func _input(event: InputEvent) -> void:
 	# and let the click go on through to click-to-move / click-to-scavenge. Any state — searching,
 	# "nothing found", an item shown, "inventory full".
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT \
-			and not drag_active and not HUD.pointer_over_widget(event.position) and not panel.get_global_rect().has_point(event.position):
+			and not drag_active and not HUD.pointer_over_widget(event.position) and not over_panel(event.position):
 		_close(false)
 		return
 	if is_revealing or not has_item:
@@ -514,11 +505,11 @@ func _take() -> bool:
 		return false
 
 
-## The pockets can't take it: the name goes red in the margin, the slip says why, and a knuckle on the desk.
-func _say_full(hint: String) -> void:
+## The pockets can't take it: the name turns red and the keys line says what to do (two words), with a knock.
+func _say_full(_hint: String) -> void:
 	name_label.text = "Inventory full"
-	name_label.add_theme_color_override("font_color", Ledger.RED_INK)
-	hint_label.text = hint
+	name_label.add_theme_color_override("font_color", Lamp.RED)
+	hint_label.text = "MAKE ROOM"
 	Ledger.play("deny", -12.0, 0.4)
 
 
@@ -585,7 +576,7 @@ func _rounds_left(left: int, msg: String) -> void:
 	HUD.refresh_inventory()
 	name_label.text = "%s x%d" % [ItemData.get_item(current_item_id).get("name", "Bullets"), left]
 	Ledger.play("tick", -14.0)
-	hint_label.text = "The pack is full — drag something off the ring to make room for the rest." if _pack_open() else "The pack is full — make room for the rest."
+	hint_label.text = "MAKE ROOM"
 
 
 # The anchor is an opened gun cabinet still holding its weapon.
@@ -610,6 +601,8 @@ func _roll_ammo_bundle() -> int:
 
 func _close(item_taken: bool) -> void:
 	_end_drag(false)
+	if not search_word.resolving:
+		search_word.cancel()                 # a search walked away from: the word goes at once (one that finished is allowed its beat)
 	is_revealing = false
 	has_item = false
 	visible = false
@@ -625,53 +618,3 @@ func _close(item_taken: bool) -> void:
 func _notify_anchor_closed(item_taken: bool) -> void:
 	if anchor_node != null and is_instance_valid(anchor_node) and anchor_node.has_method("on_loot_closed"):
 		anchor_node.on_loot_closed(item_taken)
-
-
-## The search bar (owner round 45: "add an opaque bar to fill the box horizontally, just like similar bars for force door effects"; round 48j: ledger look): a box ruled on the slip,
-## which the player's pen FILLS IN as the search runs — diagonal strokes laid down left to right, each a little off the last, in their own ink; the stroke being drawn is only part
-## of the way across the box. A tick under every tenth keeps the pace readable. `fraction()` is still how full it is.
-class SearchBar extends Control:
-	const BAR_H := 18.0
-	const STROKE_GAP := 5.5
-	const SLANT := 7.0
-	var elapsed := 0.0
-	var total := 1.0
-
-	func set_progress(done: float, of: float) -> void:
-		elapsed = clampf(done, 0.0, maxf(of, 0.001))
-		total = maxf(of, 0.001)
-		queue_redraw()
-
-	func fraction() -> float:
-		return clampf(elapsed / total, 0.0, 1.0)
-
-	func _draw() -> void:
-		var w := size.x
-		var h := size.y - 6.0                                                      # the ticks hang under the box
-		var ink := Ledger.INK_SOFT
-		var box := Rect2(1.5, 1.5, w - 3.0, h - 3.0)
-		var tl := box.position
-		var tr := Vector2(box.end.x, box.position.y)
-		var br := box.end
-		var bl := Vector2(box.position.x, box.end.y)
-		for e in [[tl, tr, 1], [tr, br, 2], [br, bl, 3], [bl, tl, 4]]:
-			draw_polyline(Ledger.pen_line(e[0], e[1], int(e[2]) + 40, 0.6), Color(ink.r, ink.g, ink.b, 0.85), 1.3, true)
-		var fill := box.size.x * fraction()
-		var hand := Ledger.hand_ink()
-		var n := int(floor(fill / STROKE_GAP))
-		for i in range(n + 1):
-			var x := box.position.x + 2.0 + i * STROKE_GAP
-			var part := 1.0 if i < n else clampf((fill - n * STROKE_GAP) / STROKE_GAP, 0.0, 1.0)     # the stroke in the pen right now is half drawn
-			if part <= 0.05:
-				continue
-			var j := sin(float(i) * 12.9898) * 43758.5453
-			j = j - floor(j)
-			var top := Vector2(x + SLANT + j * 1.6, box.position.y + 2.0 + j * 1.2)
-			var bot := Vector2(x - 0.5 + j, box.end.y - 2.0 - (1.0 - j) * 1.2)
-			if bot.x > box.position.x + 2.0 + fill + 1.0:
-				continue
-			draw_line(bot, bot.lerp(top, part), Color(hand.r, hand.g, hand.b, 0.78 + 0.18 * j), 1.5, true)
-		for k in range(1, 10):                                                          # tenths
-			var tx := box.position.x + box.size.x * float(k) / 10.0
-			var tall := 4.0 if k == 5 else 2.5
-			draw_line(Vector2(tx, size.y - 6.0 + 1.0), Vector2(tx, size.y - 6.0 + 1.0 + tall), Color(ink.r, ink.g, ink.b, 0.7), 1.0)

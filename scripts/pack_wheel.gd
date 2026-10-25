@@ -20,9 +20,9 @@ extends Control
 const RingGeo := preload("res://scripts/ring_geo.gd")
 
 const OPEN_TIME := 0.16
-const RING_R := 100.0
-const DISC := 66.0
-const DISC_SEL := 80.0
+const RING_R := 120.0
+const DISC := 64.0
+const DISC_SEL := 76.0
 const DEAD_ZONE := 36.0
 const DRAG_START_PX := 8.0              # a press that moves this far becomes a drag (below it, a click)
 const HEADROOM_PX := 60.0               # screen px between the kneeling player's origin and the ring's bottom edge
@@ -199,7 +199,7 @@ func open_menu(k: int) -> void:
 	var d: Dictionary = inst.get_data()
 	menu_rows = []
 	var held: bool = int(slots[k]) == HUD.selected_slot
-	menu_rows.append(["Put away" if held else "Equip", "equip"])
+	menu_rows.append(["Unequip" if held else "Equip", "equip"])
 	if _usable(d):
 		menu_rows.append(["Use", "use"])
 	menu_rows.append(["Drop", "drop"])
@@ -351,7 +351,7 @@ func is_locked(k: int) -> bool:
 func equip_at(k: int) -> void:
 	if _slot_inst(k) == null:
 		return
-	Ledger.play("pen", -15.0, 0.1)                        # the circle round it, drawn with a pen
+	Ledger.play("tick", -12.0, 0.1)
 	HUD.select_slot(int(slots[k]))
 
 
@@ -512,160 +512,96 @@ func _open_t() -> float:
 	return 1.0 - pow(1.0 - t, 3.0)
 
 
+## While dragging: wedge -> Crafting.plan against the dragged item (and "load the gun" when bullets meet a gun).
+func _drag_plans(n: int) -> Dictionary:
+	var plans := {}
+	if drag_k < 0:
+		return plans
+	for k2 in range(n):
+		if k2 != drag_k and _slot_inst(k2) != null:
+			var pl: Dictionary = Crafting.plan(int(slots[drag_k]), int(slots[k2]))
+			var ld: ItemInstance = WorldState.ammo_gun_pair(_slot_inst(drag_k), _slot_inst(k2))
+			if ld != null:
+				var full: bool = ld.mag_count >= ld.get_mag_cap()
+				pl = {"ok": not full and WorldState.get_ammo_total() > 0, "name": "LOAD THE GUN", "why": "Magazine full." if full else "No bullets to load.", "load": true}
+			if not pl.is_empty():
+				plans[k2] = pl
+	return plans
+
+
+## The lamplight look (scripts/lamp.gd, docs/LEDGER_UI.md): a dark ring, every slot a dark card with the thing on it, the one in hand marked in brass with HELD, and in the middle ONE small
+## readout — a name and the numbers that matter, or a single word for what the drag in your hand would do. No help text: the ring is what it does.
 func _draw() -> void:
 	if not is_open or slots.is_empty():
 		return
 	var t: float = _open_t()
 	var n: int = slots.size()
-	# The pack lies open on a dark shade (the world stays lit and moving beyond it) and every slot is a paper TAG on it — the look the loot panel and the merchant share (scripts/ledger_ring.gd).
-	LedgerRing.shade(self, centre, (RING_R + DISC) * 1.05 * (0.6 + 0.4 * t), t)
 	var r: float = RING_R * (0.55 + 0.45 * t)
-	var pen: Color = Ledger.hand_ink()
-	var plans := {}                     # while dragging: wedge -> Crafting.plan with the dragged item
-	if drag_k >= 0:
-		for k2 in range(n):
-			if k2 != drag_k and _slot_inst(k2) != null:
-				var pl: Dictionary = Crafting.plan(int(slots[drag_k]), int(slots[k2]))
-				var ld: ItemInstance = WorldState.ammo_gun_pair(_slot_inst(drag_k), _slot_inst(k2))
-				if ld != null:
-					var full: bool = ld.mag_count >= ld.get_mag_cap()
-					pl = {"ok": not full and WorldState.get_ammo_total() > 0, "name": "LOAD THE GUN", "why": "Magazine full." if full else "No bullets to load.", "load": true}
-				if not pl.is_empty():
-					plans[k2] = pl
-	var in_hand: Array = []             # [centre, slot] — the "in hand" labels go on last, over the neighbouring tags
+	Lamp.ring_base(self, centre, (RING_R + DISC) * 1.05 * (0.6 + 0.4 * t), r, t)
+	var plans: Dictionary = _drag_plans(n)
+	var pulse: float = 0.5 + 0.5 * sin(float(Time.get_ticks_msec()) / 1000.0 * 7.0)
+	var order: Array = []
 	for k in range(n):
+		if k != hover:
+			order.append(k)
+	if hover >= 0 and hover < n:
+		order.append(hover)                      # the lifted one is drawn last, over its neighbours
+	for k in order:
 		var slot: int = int(slots[k])
 		var inst = WorldState.get_instance_at(slot) if slot >= 0 and slot < WorldState.inventory.size() else null
-		var pos: Vector2 = RingGeo.slot_position(centre, k, n, r)
 		var on: bool = k == hover
+		var side: float = (DISC_SEL if on and inst != null else DISC) * (0.7 + 0.3 * t)
+		var pos: Vector2 = RingGeo.slot_position(centre, k, n, r)
+		var rect := Rect2((pos - Vector2(side, side) * 0.5).round(), Vector2(side, side))
 		if slot == LOCKED_SLOT:
-			_draw_locked(pos, DISC * 0.5 * (0.7 + 0.3 * t), t)
-			continue
-		if k == drag_k:
-			LedgerRing.dashed(self, pos, DISC * 0.5, Color(Ledger.PAPER.r, Ledger.PAPER.g, Ledger.PAPER.b, 0.5 * t))
-			continue                    # lifted: only its pencilled outline stays where it was
-		var held: bool = slot == HUD.selected_slot and inst != null
-		var rad: float = (DISC_SEL if on and inst != null else DISC) * 0.5 * (0.7 + 0.3 * t)
-		if inst == null:
-			LedgerRing.dashed(self, pos, rad * 0.8, Color(Ledger.PAPER.r, Ledger.PAPER.g, Ledger.PAPER.b, 0.30 * t))
-			LedgerRing.text(self, "typed", pos + Vector2(-rad, 4.0), str(slot + 1), 12, Color(Ledger.PAPER.r, Ledger.PAPER.g, Ledger.PAPER.b, 0.34 * t), rad * 2.0)
-			continue
-		LedgerRing.tag(self, pos, rad, 11 + slot, 1.0 if on else 0.0, t)
-		var c: Vector2 = pos + Vector2(0, -4.0 if on else 0.0)
-		var tex: Texture2D = ItemData.get_texture(inst.item_id)
-		if tex != null:
-			var broken: bool = inst.is_depleted and inst.get_max_durability() > 0
-			draw_texture_rect(tex, Rect2(c - Vector2(25, 24), Vector2(56, 56)), false, Color(0.12, 0.07, 0.02, 0.26))           # the thing lies on the tag: its shadow
-			draw_texture_rect(tex, Rect2(c - Vector2(28, 28), Vector2(56, 56)), false, Color(0.5, 0.4, 0.4, 1.0) if broken else Color(1, 1, 1, 1))
-		LedgerRing.text(self, "typed", c + Vector2(-rad * 0.78, -rad * 0.42), str(slot + 1), 10, Ledger.INK_FAINT, 14.0, HORIZONTAL_ALIGNMENT_LEFT)
-		if held:
-			LedgerRing.pen_circle(self, c, rad - 4.0, Color(pen.r, pen.g, pen.b, 0.92 * t), 100 + slot)       # the one in hand is circled
-			var out_dir: Vector2 = (pos - centre).normalized() if pos.distance_to(centre) > 1.0 else Vector2.DOWN
-			in_hand.append(c + out_dir * (rad + 13.0) - Vector2(0, 8.0))        # the label sits on the OUTER side of its tag, clear of the slip in the middle
-		if plans.has(k):
-			var good: bool = bool(plans[k]["ok"])
-			var pulse: float = 0.5 + 0.5 * sin(float(Time.get_ticks_msec()) / 1000.0 * 7.0)
-			var ink: Color = Ledger.GREEN_INK if good else Ledger.RED_INK
-			LedgerRing.pen_circle(self, c, rad - 2.0, Color(ink.r, ink.g, ink.b, 0.6 + 0.35 * pulse), 200 + slot, 2.6)
-		var max_d: int = inst.get_max_durability()
-		if max_d > 1 and not inst.is_depleted:
-			var bw: float = rad * 1.1
-			LedgerRing.gauge(self, Vector2(c.x - bw * 0.5, c.y + rad * 0.78), bw, clampf(float(inst.current_durability) / float(max_d), 0.0, 1.0), slot)
-		if inst.count > 1:
-			LedgerRing.text(self, "typed", c + Vector2(rad * 0.1, rad * 0.62), "x%d" % inst.count, 12, Ledger.INK, rad * 0.8, HORIZONTAL_ALIGNMENT_RIGHT)
-	for hp2 in in_hand:
-		LedgerRing.plate(self, "hand", hp2, "in hand", 12, Ledger.INK, 300, false, t)
-	# The middle: a slip of paper — what the pointer is on, or the pack's own header.
-	var inst_h = _slot_inst(hover)
-	var lines: Array = []
-	if drag_k >= 0:
-		var inst_d = _slot_inst(drag_k)
-		var dn: String = String(inst_d.get_data().get("name", "")).to_upper() if inst_d != null else ""
-		if plans.has(hover):
-			var hp: Dictionary = plans[hover]
-			if bool(hp["ok"]):
-				lines = [{"kind": "hand", "text": "drop to load" if bool(hp.get("load", false)) else "drop to craft", "px": 13, "col": Ledger.GREEN_INK},
-					{"kind": "head", "text": String(hp["name"]).to_upper(), "px": 17, "col": Ledger.INK}]
-			else:
-				lines = [{"kind": "hand", "text": "not yet", "px": 13, "col": Ledger.RED_INK}, {"kind": "body", "text": String(hp["why"]), "px": 12, "col": Ledger.INK_SOFT}]
-		elif dropping_out(_mouse):
-			lines = [{"kind": "hand", "text": "let go to drop", "px": 13, "col": Ledger.RED_INK}, {"kind": "head", "text": dn, "px": 16, "col": Ledger.INK}]
+			_draw_locked(rect, t, on)
+		elif k == drag_k:
+			Lamp.dashed_rect(self, rect, Lamp.fade(Lamp.BRASS_DIM, 0.8 * t))      # lifted: only its outline stays where it was
 		else:
-			lines = [{"kind": "head", "text": dn, "px": 16, "col": Ledger.INK}, {"kind": "hand", "text": "drop it on something", "px": 12, "col": Ledger.INK_SOFT},
-				{"kind": "hand", "text": "to combine them", "px": 12, "col": Ledger.INK_SOFT}]
-	elif is_locked(hover):
-		lines = [{"kind": "head", "text": "LOCKED", "px": 17, "col": Ledger.INK_SOFT}, {"kind": "body", "text": "a pack upgrade", "px": 12, "col": Ledger.INK_SOFT},
-			{"kind": "body", "text": "opens this slot", "px": 12, "col": Ledger.INK_SOFT}]
-	elif hover >= 0 and inst_h == null:
-		lines = [{"kind": "head", "text": "EMPTY", "px": 16, "col": Ledger.INK_SOFT}]
-	elif inst_h != null:
-		var c2: Dictionary = HUD.item_tip_content(inst_h)
-		var cmp: Dictionary = ItemCompare.card(inst_h, ItemCompare.held_weapon())        # a weapon that isn't the one in hand: its numbers against it
-		lines = [{"kind": "head", "text": String(c2["title"]).to_upper(), "px": 17, "col": Ledger.GOLD_INK if c2.get("legendary", false) else Ledger.INK}]
-		if cmp.is_empty() or String(cmp["vs"]) == "":
-			var stats: Array = c2["stats"]
-			for i in range(mini(stats.size(), 2)):
-				lines.append({"kind": "body", "text": String(stats[i]), "px": 12, "col": Ledger.INK_SOFT})
-		else:
-			var rows: Array = cmp["rows"]
-			for i in range(mini(rows.size(), 4)):
-				var crow: Dictionary = rows[i]
-				lines.append({"row": true, "label": crow["label"], "value": crow["text"], "delta": crow["delta"], "tone": crow["tone"]})
-	else:
-		lines = [{"kind": "head", "text": "YOUR PACK", "px": 17, "col": Ledger.INK}, {"kind": "hand", "text": "click here to close", "px": 12, "col": Ledger.INK_SOFT}]
-	LedgerRing.card(self, centre, lines, 77, Ledger.PAPER_SLIP, 124.0, t)
+			Lamp.slot(self, rect, inst, {"on": on, "held": slot == HUD.selected_slot and inst != null, "plan": (1 if bool(plans[k]["ok"]) else 0) if plans.has(k) else -1,
+				"t": t, "num": slot + 1, "pulse": pulse})
+	Lamp.info(self, centre, _middle_lines(plans), t)
 	if drag_k >= 0:
 		var di = _slot_inst(drag_k)
 		if di != null:
 			var dtex: Texture2D = ItemData.get_texture(di.item_id)
 			if dtex != null:
 				var out: bool = dropping_out(_mouse)
-				draw_texture_rect(dtex, Rect2(_mouse - Vector2(22, 20), Vector2(56, 56)), false, Color(0.0, 0.0, 0.0, 0.30))               # held up off the table: a shadow under it
-				draw_texture_rect(dtex, Rect2(_mouse - Vector2(28, 28), Vector2(56, 56)), false, Color(1.0, 0.7, 0.65, 0.85) if out else Color(1, 1, 1, 0.92))
+				draw_texture_rect(dtex, Rect2(_mouse - Vector2(22, 20), Vector2(56, 56)), false, Color(0.0, 0.0, 0.0, 0.34))               # held up off the table: a shadow under it
+				draw_texture_rect(dtex, Rect2(_mouse - Vector2(28, 28), Vector2(56, 56)), false, Color(1.0, 0.7, 0.65, 0.9) if out else Color(1, 1, 1, 0.94))
 	_draw_menu()
-	# The help line LAST, on its own strip of paper clear above the ring (owner round 33: it ran behind the top item).
-	LedgerRing.plate(self, "body", Vector2(centre.x, hint_top()), hint_text(), 12, Ledger.INK_SOFT, 21, false, t, 560.0, HUD.SCREEN_W)
 
 
-## The locked slot: a darker, plainer tag with a padlock in ink — always there until the upgrade, so the pack's true size is never a secret.
-func _draw_locked(pos: Vector2, rad: float, t: float) -> void:
-	LedgerRing.tag(self, pos, rad * 0.9, 61, 0.0, t, Ledger.PAPER.darkened(0.42))
-	LedgerRing.padlock(self, pos + Vector2(0, -2), Color(Ledger.INK.r, Ledger.INK.g, Ledger.INK.b, 0.85 * t))
-	LedgerRing.text(self, "typed", pos + Vector2(-rad, rad * 0.5 + 6.0), "LOCKED", 9, Color(Ledger.INK.r, Ledger.INK.g, Ledger.INK.b, 0.7 * t), rad * 2.0)
+## What the card in the middle says: what the pointer is on, or — while an item is in the hand — the one word for what letting go would do.
+func _middle_lines(plans: Dictionary) -> Array:
+	var inst_h = _slot_inst(hover)
+	if drag_k >= 0:
+		var inst_d = _slot_inst(drag_k)
+		if plans.has(hover):
+			var hp: Dictionary = plans[hover]
+			if bool(hp["ok"]):
+				return [{"big": "LOAD", "col": Lamp.GREEN}] if bool(hp.get("load", false)) else [{"word": "CRAFT", "col": Lamp.GREEN}, {"title": String(hp["name"]).capitalize()}]
+			return [{"word": "NO", "col": Lamp.RED}, {"note": String(hp["why"])}]
+		if dropping_out(_mouse):
+			return [{"big": "DROP", "col": Lamp.RED}]
+		return [{"title": inst_d.get_display_name()}] if inst_d != null else []
+	if is_locked(hover):
+		return [{"word": "LOCKED", "col": Lamp.DIM}]
+	if hover >= 0 and inst_h == null:
+		return [{"word": "EMPTY", "col": Lamp.DIM}]
+	if inst_h != null:
+		return Lamp.item_lines(inst_h)
+	return [{"word": "CLOSE", "col": Lamp.LABEL}]
 
 
-const HINT_PAD := "{right stick} choose  ·  {interact} equip  ·  {attack} options  ·  {push} close"
+## The locked slot: a plain dark card with a brass padlock — always there until the upgrade, so the pack's true size is never a secret. Hover says LOCKED in the middle.
+func _draw_locked(rect: Rect2, t: float, on: bool) -> void:
+	Lamp.card(self, rect, Lamp.WELL, Lamp.EDGE if on else Lamp.EDGE_DIM, t)
+	Lamp.padlock(self, rect.get_center() + Vector2(0, -1), Lamp.fade(Lamp.BRASS_DIM, t))
 
 
-## The help line for the device in use (the keyboard one is HINT; a pad gets its own buttons).
-func hint_text() -> String:
-	if SettingsManager.last_device == "pad":
-		return HINT_PAD.replace("{right stick}", "R-stick").replace("{interact}", SettingsManager.action_text("interact")) \
-			.replace("{attack}", SettingsManager.action_text("attack")).replace("{push}", SettingsManager.action_text("push"))
-	return HINT
-
-
-const HINT := "click equip  ·  right-click options  ·  drag onto an item to craft  ·  drag out to drop  ·  Esc close"
-
-## The help line's top edge: above the ring's shade, or under it when the ring sits against the top of the screen.
-func hint_top() -> float:
-	var shade_top: float = centre.y - (RING_R + DISC) * 1.05
-	if shade_top - 26.0 >= 4.0:
-		return shade_top - 26.0
-	return centre.y + (RING_R + DISC) * 1.05 + 6.0
-
-
-## The right-click menu is a slip of paper too; the row under the pointer gets a pen line under it (a drop is in red ink).
+## The right-click menu: one word a row, the row under the pointer lit in brass (a drop in red).
 func _draw_menu() -> void:
 	if menu_k < 0:
 		return
-	var h: float = MENU_ROW_H * menu_rows.size() + 8.0
-	LedgerRing.slip(self, Rect2(menu_pos, Vector2(MENU_W, h)), 91, Ledger.PAPER_SLIP, false)
-	var hov: int = pad_row if SettingsManager.last_device == "pad" else menu_row_at(_mouse)
-	for i in range(menu_rows.size()):
-		var y: float = menu_pos.y + 4.0 + MENU_ROW_H * i
-		var drop_row: bool = String(menu_rows[i][1]) == "drop"
-		var col: Color = Ledger.RED_INK if drop_row else Ledger.INK
-		LedgerRing.text(self, "typed", Vector2(menu_pos.x + 12.0, y + 16.0), String(menu_rows[i][0]), 13, col, MENU_W - 24.0, HORIZONTAL_ALIGNMENT_LEFT)
-		if i == hov:
-			draw_polyline(Ledger.pen_line(Vector2(menu_pos.x + 10.0, y + MENU_ROW_H - 3.0), Vector2(menu_pos.x + MENU_W - 10.0, y + MENU_ROW_H - 3.0), 30 + i, 0.8), Color(col.r, col.g, col.b, 0.75), 1.5, true)
+	Lamp.menu(self, menu_pos, MENU_W, MENU_ROW_H, menu_rows, pad_row if SettingsManager.last_device == "pad" else menu_row_at(_mouse))

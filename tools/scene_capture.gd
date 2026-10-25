@@ -23,6 +23,7 @@ extends Node
 #   give:<id>[:<lvl>] put an item in the inventory (optionally at a workbench level)
 #   sel:<n>          select an inventory slot (what the attack key uses)
 #   pack:<k|-1|x>    open the backpack ring (kneel first — add a w: step) with the pointer on item k (-1 = middle, x = close)
+#   ringmenu:<k>     open the open pack ring's right-click menu on item k;  ringdrag:<k>[:out]  start dragging item k (pointer stays where pack:<j> put it; `out` lets go off the ring)
 #   tip:<n>          hover the pointer over inventory slot n (shows its tooltip after a beat)
 #   scrap:<n>        set the scrap counter
 #   valour:<n>       set the profile's Descent Valour
@@ -45,6 +46,7 @@ extends Node
 #   search:<apt>:<anchor>  mark a node searched → its drawer / door opens (open_furniture.gd)
 #   breach:<apt>     make that flat's door BREACHED (before its room loads)
 #   anchor:<apt>:<anchor>:<item>  put an item in a node BEFORE its room loads (so the node is live and drawn)
+#   anchors          print the scavenge nodes of the current scene (name + screen position)
 #   eval:<method>    call a no-arg method on the current scene
 #   call:<group>:<method>[:<arg>]  call a method on the first node in a group (e.g. modal_panel)
 # Other args: --tutorial=1|0 (first-run tutorial on/off), --seed=<n>.
@@ -157,6 +159,18 @@ func _do(step: String) -> void:
 						await get_tree().process_frame
 				var k := int(p[1])
 				w.mouse_override = w.centre if k < 0 else RingGeo.slot_position(w.centre, k, w.slots.size(), w.RING_R)
+		"ringmenu":
+			# ringmenu:<k> opens the open ring's right-click menu on item k;  ringdrag:<k>[:<out>] starts dragging item k (pointer where pack:<j> put it, or `out` = let go off the ring)
+			var rw = HUD.pack_wheel
+			if p[0] == "ringmenu":
+				rw.open_menu(int(p[1]))
+			await _frames(2)
+		"ringdrag":
+			var rw2 = HUD.pack_wheel
+			rw2.drag_k = int(p[1])
+			if p.size() > 2 and p[2] == "out":
+				rw2.mouse_override = rw2.centre + Vector2(rw2.RING_R + 190.0, 40.0)
+			await _frames(2)
 		"tip":
 			HUD.set_hotbar_visible(true)
 			HUD.tip_mouse_override = HUD.slots[int(p[1])].get_global_rect().get_center()
@@ -247,9 +261,14 @@ func _do(step: String) -> void:
 				WorldState.set_anchor_amount(p[1], p[2], 1)
 				if p.size() > 4:
 					WorldState.is_scavenge_mode = true
-					lu.open(p[3], p[2], p[1])
+					var an: Node = null
+					for cand in get_tree().get_nodes_in_group("scavenge_anchor"):
+						if str(cand.name) == p[2]:
+							an = cand                                 # the real node, as Interactable._open_loot hands it over
+					lu.open(p[3], p[2], p[1], an)
+					lu.reveal_time = 1000.0                               # hold the search where it is for the frame (the word fills as reveal_timer / reveal_time)
 					lu.reveal_timer = lu.reveal_time * float(p[4])
-					lu.search_bar.set_progress(lu.reveal_timer, lu.reveal_time)
+					lu.search_word.set_progress(lu.reveal_timer, lu.reveal_time)
 				else:
 					WorldState.mark_anchor_searched(p[1], p[2])
 					lu.open(p[3], p[2], p[1])
@@ -321,6 +340,12 @@ func _do(step: String) -> void:
 			# search:<apartment>:<anchor> — mark a node searched and open its furniture (the loot panel's own call)
 			WorldState.mark_anchor_searched(p[1], p[2])
 			get_tree().call_group("open_furniture", "on_searched", p[1], p[2])
+			await _frames(1)
+		"anchors":
+			# list the scavenge nodes in the current scene (name, screen position) — to pick one for a `loot:` step
+			for n in get_tree().get_nodes_in_group("scavenge_anchor"):
+				if n is Node2D:
+					print("anchor ", n.name, " at ", get_viewport().get_canvas_transform() * (n as Node2D).global_position)
 			await _frames(1)
 		"eval":
 			var sc = get_tree().current_scene

@@ -31,19 +31,16 @@ func _ready() -> void:
 	check(loot.visible and loot.is_revealing, "opens in searching state")
 	check(not loot.has_item, "no takeable item during the search")
 	check(is_equal_approx(loot.reveal_time, loot.REVEAL_TIME), "a node holding something takes the full search (%.1f s)" % loot.reveal_time)
-	# the search panel is small and carries a bar that fills (owner round 45: "far too big with no effects to show the pace of time")
-	check(loot.search_bar.visible and not loot.icon_row.visible and not loot.hint_label.visible,
-		"while searching: just the word and the bar — no blank icon area")
-	check(is_equal_approx(loot.panel.custom_minimum_size.x, loot.SEARCH_W) and loot.SEARCH_W < loot.PANEL_W,
-		"…in the compact panel (%d px, the result panel is %d)" % [int(loot.SEARCH_W), int(loot.PANEL_W)])
-	check(loot.search_bar.fraction() == 0.0, "the bar starts empty")
+	# a search is a small word, not a panel (owner round 48j: "the word searching literally can be the bar"): SEARCHING hangs in the room, its letters light S to G
+	check(loot.search_word.visible and not loot.panel.visible, "while searching: just the word SEARCHING — no panel, no bar, the room stays in view")
+	check(loot.search_word.fraction() == 0.0 and loot.search_word.lit_letters() == 0, "the word starts with every letter dim")
 	loot._process(loot.reveal_time * 0.5)
-	check(absf(loot.search_bar.fraction() - 0.5) < 0.02, "…and is half full half-way through (%.2f)" % loot.search_bar.fraction())
+	check(absf(loot.search_word.fraction() - 0.5) < 0.02, "…and is half lit half-way through (%.2f)" % loot.search_word.fraction())
 	# Drive the reveal.
 	loot._process(loot.REVEAL_TIME + 0.1)
 	check(loot.has_item, "item revealed after the search")
-	check(loot.icon_row.visible and not loot.search_bar.visible and is_equal_approx(loot.panel.custom_minimum_size.x, loot.PANEL_W),
-		"the result shows the full panel again (icon, no bar)")
+	check(loot.panel.visible and loot.icon_row.visible and is_equal_approx(loot.panel.custom_minimum_size.x, loot.PANEL_W) and loot.search_word.resolving,
+		"the result shows the full panel (icon and name) while the word resolves")
 	check(loot.name_label.text == "Bandages", "shows the item name (%s)" % loot.name_label.text)
 	check(WorldState.loot_open, "loot_open lock is set while open")
 
@@ -61,7 +58,7 @@ func _ready() -> void:
 	loot._process(0.2)
 	check(not loot.is_revealing and not loot.visible and not WorldState.loot_open, "…done at the halved time: no panel pops - it closes at once (owner round 48i)")
 	check(HUD.feedback_label.text in loot.NOTHING_LINES, "…and the player says so in passing (\"%s\")" % HUD.feedback_label.text)
-	check(not loot.has_item and loot.nothing_timer == 0.0, "…with nothing left waiting to close")
+	check(not loot.has_item and not loot.panel.visible, "…with no panel ever shown for it")
 	loot.queue_free()
 
 	# Clickable mode toggle on the HUD.

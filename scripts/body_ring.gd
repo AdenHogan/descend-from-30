@@ -269,75 +269,52 @@ func _draw() -> void:
 		return
 	var t: float = _open_t()
 	var n: int = _slots
-	# The same paper tags on the same dark shade as the pack's ring (scripts/ledger_ring.gd) — a cooler stock, so the body's ring is never taken for the pack's.
-	LedgerRing.shade(self, centre, (PW.RING_R + PW.DISC) * 1.05 * (0.6 + 0.4 * t), t)
+	# The same dark ring as the pack's (scripts/lamp.gd), in cool steel instead of brass, so the body's ring is never taken for the pack's.
 	var r: float = PW.RING_R * (0.55 + 0.45 * t)
+	Lamp.ring_base(self, centre, (PW.RING_R + PW.DISC) * 1.05 * (0.6 + 0.4 * t), r, t, Lamp.STEEL.darkened(0.45))
 	var pack_hot: bool = drag_k >= 0 and HUD.pack_wheel != null and HUD.pack_wheel.is_open and HUD.pack_wheel.on_ring(_mouse)
+	var order: Array = []
 	for k in range(n):
+		if k != hover:
+			order.append(k)
+	if hover >= 0 and hover < n:
+		order.append(hover)
+	for k in order:
 		var inst = inst_at(k)
-		var pos: Vector2 = RingGeo.slot_position(centre, k, n, r)
 		var on: bool = k == hover
+		var side: float = (PW.DISC_SEL if on and inst != null else PW.DISC) * (0.7 + 0.3 * t)
+		var pos: Vector2 = RingGeo.slot_position(centre, k, n, r)
+		var rect := Rect2((pos - Vector2(side, side) * 0.5).round(), Vector2(side, side))
 		if k == drag_k:
-			LedgerRing.dashed(self, pos, PW.DISC * 0.5, Color(LedgerRing.BODY_TINT.r, LedgerRing.BODY_TINT.g, LedgerRing.BODY_TINT.b, 0.5 * t))
-			continue
-		var rad: float = (PW.DISC_SEL if on and inst != null else PW.DISC) * 0.5 * (0.7 + 0.3 * t)
-		if inst == null:
-			LedgerRing.dashed(self, pos, rad * 0.8, Color(LedgerRing.BODY_TINT.r, LedgerRing.BODY_TINT.g, LedgerRing.BODY_TINT.b, 0.30 * t), 1.4)
-			continue
-		LedgerRing.tag(self, pos, rad, 71 + k, 1.0 if on else 0.0, t, LedgerRing.BODY_TINT)
-		var c: Vector2 = pos + Vector2(0, -4.0 if on else 0.0)
-		var tex: Texture2D = ItemData.get_texture(inst.item_id)
-		if tex != null:
-			var broken: bool = inst.is_depleted and inst.get_max_durability() > 0
-			draw_texture_rect(tex, Rect2(c - Vector2(25, 24), Vector2(56, 56)), false, Color(0.05, 0.07, 0.12, 0.26))
-			draw_texture_rect(tex, Rect2(c - Vector2(28, 28), Vector2(56, 56)), false, Color(0.5, 0.4, 0.4, 1.0) if broken else Color(1, 1, 1, 1))
-		var max_d: int = inst.get_max_durability()
-		if max_d > 1 and not inst.is_depleted:
-			var bw: float = rad * 1.1
-			LedgerRing.gauge(self, Vector2(c.x - bw * 0.5, c.y + rad * 0.78), bw, clampf(float(inst.current_durability) / float(max_d), 0.0, 1.0), k)
-		if inst.count > 1:
-			LedgerRing.text(self, "typed", c + Vector2(rad * 0.1, rad * 0.62), "x%d" % inst.count, 12, Ledger.INK, rad * 0.8, HORIZONTAL_ALIGNMENT_RIGHT)
-	# The middle: a slip — what the pointer is on, or whose body this is.
+			Lamp.dashed_rect(self, rect, Lamp.fade(Lamp.STEEL.darkened(0.3), 0.8 * t))
+		else:
+			Lamp.slot(self, rect, inst, {"on": on, "t": t, "accent": Lamp.STEEL, "lit": Lamp.STEEL.lightened(0.25)})
+	# The middle: one small readout — what the pointer is on, or what the middle does.
 	var inst_h = inst_at(hover)
 	var notes_left: int = int(WorldState.player_corpses.get(key, {}).get("notes", 0))
 	var lines: Array = []
 	if drag_k >= 0 and inst_at(drag_k) != null:
-		var dn: String = String(inst_at(drag_k).get_data().get("name", "")).to_upper()
-		lines = [{"kind": "hand", "text": "let go to take" if pack_hot else "let go on your pack", "px": 13, "col": Ledger.GREEN_INK if pack_hot else Ledger.INK_SOFT},
-			{"kind": "head", "text": dn, "px": 16, "col": Ledger.INK}]
+		lines = [{"big": "TAKE", "col": Lamp.GREEN}] if pack_hot else [{"title": inst_at(drag_k).get_display_name()}]
 	elif inst_h != null:
-		var c2: Dictionary = HUD.item_tip_content(inst_h)
-		var cmp: Dictionary = ItemCompare.card(inst_h, ItemCompare.held_weapon())
-		lines = [{"kind": "head", "text": String(c2["title"]).to_upper(), "px": 17, "col": Ledger.GOLD_INK if c2.get("legendary", false) else Ledger.INK}]
-		if cmp.is_empty() or String(cmp["vs"]) == "":
-			var stats: Array = c2["stats"]
-			for i in range(mini(stats.size(), 2)):
-				lines.append({"kind": "body", "text": String(stats[i]), "px": 12, "col": Ledger.INK_SOFT})
-		else:
-			var rows: Array = cmp["rows"]
-			for i in range(mini(rows.size(), 4)):
-				var crow: Dictionary = rows[i]
-				lines.append({"row": true, "label": crow["label"], "value": crow["text"], "delta": crow["delta"], "tone": crow["tone"]})
+		lines = Lamp.item_lines(inst_h)
 	else:
 		var empty: bool = true
 		for i2 in _insts:
 			if i2 != null:
 				empty = false
-		lines = [{"kind": "head", "text": body_name(), "px": 16, "col": Ledger.INK},
-			{"kind": "hand", "text": "nothing left on them" if empty and notes_left <= 0 else "click here: take all", "px": 12, "col": Ledger.INK_SOFT}]
+		lines = [{"word": "EMPTY" if empty and notes_left <= 0 else "LOOT", "col": Lamp.DIM if empty and notes_left <= 0 else Lamp.STEEL}]
 		if notes_left > 0:
-			lines.append({"kind": "body", "text": "%d notes (no room)" % notes_left, "px": 12, "col": Ledger.GREEN_INK})
-	LedgerRing.card(self, centre, lines, 83, LedgerRing.BODY_TINT, 124.0, t)
+			lines.append({"note": "%d notes" % notes_left, "col": Lamp.GREEN})
+	Lamp.info(self, centre, lines, t, Lamp.STEEL)
 	if drag_k >= 0:
 		var di = inst_at(drag_k)
 		if di != null:
 			var dtex: Texture2D = ItemData.get_texture(di.item_id)
 			if dtex != null:
-				draw_texture_rect(dtex, Rect2(_mouse - Vector2(22, 20), Vector2(56, 56)), false, Color(0.0, 0.0, 0.0, 0.30))
-				draw_texture_rect(dtex, Rect2(_mouse - Vector2(28, 28), Vector2(56, 56)), false, Color(1, 1, 1, 0.92))
-	# a tag over the ring: whose body this is
-	var title: String = "THEIR BODY" if key == "" else "%s - ON THE BODY" % body_name()
-	var hy: float = centre.y - (PW.RING_R + PW.DISC) * 1.05 - 26.0
-	if hy < 4.0:
+				draw_texture_rect(dtex, Rect2(_mouse - Vector2(22, 20), Vector2(56, 56)), false, Color(0.0, 0.0, 0.0, 0.34))
+				draw_texture_rect(dtex, Rect2(_mouse - Vector2(28, 28), Vector2(56, 56)), false, Color(1, 1, 1, 0.94))
+	# whose body this is: their name on a steel tab over the ring
+	var hy: float = centre.y - (PW.RING_R + PW.DISC) * 1.05 - 6.0
+	if hy - 7.0 < 4.0:
 		hy = centre.y + (PW.RING_R + PW.DISC) * 1.05 + 6.0
-	LedgerRing.plate(self, "head", Vector2(centre.x, hy), title, 14, Ledger.INK, 87, false, t, 400.0, HUD.SCREEN_W)
+	Lamp.tab(self, Vector2(centre.x, hy), body_name(), Lamp.STEEL, t)

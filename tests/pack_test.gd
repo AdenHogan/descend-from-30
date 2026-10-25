@@ -233,7 +233,7 @@ func _test_ring_actions() -> void:
 	await _click(_row_pos(_row_of("equip")))
 	check(HUD.selected_slot == 0 and pw.menu_k == -1, "'Equip' equips it and the menu closes")
 	await _click(_slot_pos(0), MOUSE_BUTTON_RIGHT)
-	check(String(pw.menu_rows[0][0]) == "Put away", "in hand, the first option is 'Put away'")
+	check(String(pw.menu_rows[0][0]) == "Unequip", "in hand, the first option is 'Unequip' (one word)")
 	await _click(Vector2(pw.centre.x + 5.0, pw.centre.y + 5.0))
 	check(pw.menu_k == -1 and p.pack_phase == "open", "a click elsewhere just closes the menu (the pack stays open)")
 	HUD.select_slot(0)
@@ -276,17 +276,8 @@ func _test_ring_actions() -> void:
 	last = WorldState.inventory.size() - 1
 	await _drag(_slot_pos(last), HUD.pack_button.get_global_rect().get_center())
 	check(WorldState.inventory.size() == last + 1, "let go over the pack button: kept")
-	# the help line sits clear of the ring (it used to run behind the top item)
-	var font: Font = pw.get_theme_default_font()
-	var hw: float = font.get_string_size(pw.HINT, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x + 20.0
-	var hr := Rect2(pw.centre.x - hw * 0.5, pw.hint_top(), hw, 20.0)
-	var clear := true
-	for k in range(pw.slots.size()):
-		var sp: Vector2 = _slot_pos(k)
-		var rad: float = pw.DISC_SEL * 0.5
-		if hr.intersects(Rect2(sp - Vector2(rad, rad), Vector2(rad, rad) * 2.0)):
-			clear = false
-	check(clear and hr.position.y >= 0.0, "the help line is clear of every item on the ring (top %.0f)" % hr.position.y)
+	# there is no help line over the ring at all (owner round 48j: "way too much text going on up there at the top")
+	check(not pw.has_method("hint_text") and not pw.has_method("hint_top"), "the ring carries no help strip")
 	# delete drops it out of the bag — never destroyed silently
 	var held_id: String = WorldState.get_instance_at(1).item_id
 	pw.drop_at(1)

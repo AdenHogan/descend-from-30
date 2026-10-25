@@ -328,7 +328,7 @@ func _test_loot_panel_rounds() -> void:
 	await get_tree().process_frame
 	var cap: int = gun.get_mag_cap()
 	_open_rounds(loot, "t1", "a1", 5)
-	check(loot.has_item and loot.hint_label.text.to_lower().contains("gun"), "the panel offers to load the gun (%s)" % loot.hint_label.text)
+	check(loot.has_item and loot.hint_label.text.to_lower().contains("load"), "the panel offers to LOAD (%s)" % loot.hint_label.text)
 	var n: int = WorldState.inventory.size()
 	check(not loot._take(), "[interact] with a full pack and a gun 3 short: 3 load, 2 stay (the panel stays open)")
 	check(gun.mag_count == cap and WorldState.inventory.size() == n, "…the gun is full and the pockets are untouched")

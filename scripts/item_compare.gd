@@ -112,13 +112,11 @@ static func held_weapon():
 	return null
 
 
-## A compact BBCode form for a panel: "Damage  3  ▲ +2" per row, coloured, a header naming what it's set against. `paper` is the ledger's version for a slip of paper (the loot panel):
-## ink instead of light-on-dark, the numbers in a column, the player's own hand for what they notice (what it is compared with, the better / worse mark).
-static func bbcode(c: Dictionary, paper: bool = false) -> String:
+## A compact BBCode form for the floor pill: "Damage  3  ▲ +2" per row, coloured, a header naming what it's set against. (The found-item panel and the rings draw the same card themselves —
+## scripts/lamp_rows.gd, scripts/lamp.gd — with drawn arrows.)
+static func bbcode(c: Dictionary) -> String:
 	if c.is_empty():
 		return ""
-	if paper:
-		return _paper_bbcode(c)
 	var out := ""
 	if String(c["vs"]) != "":
 		out += "[color=#9aa0a8]compared with your %s[/color]\n" % String(c["vs"])
@@ -129,24 +127,6 @@ static func bbcode(c: Dictionary, paper: bool = false) -> String:
 			out += "  [color=#%s]%s[/color]" % [col.to_html(false), r["delta"]]
 		out += "\n"
 	return out.strip_edges()
-
-
-static func _paper_bbcode(c: Dictionary) -> String:
-	var hand_path := String(Ledger.hand_info().get("path", ""))
-	var hand_px := int(round(15.0 * Ledger.hand_scale()))
-	var soft := Ledger.INK_SOFT.to_html(false)
-	var ink := Ledger.INK.to_html(false)
-	var out := ""
-	if String(c["vs"]) != "":
-		out += "[font=%s][font_size=%d][color=#%s]compared with your %s[/color][/font_size][/font]\n" % [hand_path, hand_px, Ledger.hand_ink().to_html(false), String(c["vs"])]
-	out += "[table=3]"
-	for r in c["rows"]:
-		out += "[cell][color=#%s]%s[/color][/cell][cell padding=16,0,16,0][color=#%s]%s[/color][/cell][cell]" % [soft, r["label"], ink, r["text"]]
-		if String(r["delta"]) != "":
-			var col: Color = Ledger.GREEN_INK if int(r["tone"]) > 0 else Ledger.RED_INK
-			out += "[font=%s][font_size=%d][color=#%s]%s[/color][/font_size][/font]" % [hand_path, hand_px, col.to_html(false), r["delta"]]
-		out += "[/cell]"
-	return out + "[/table]"
 
 
 ## One line for a world pill: "▲ dmg +2 · ▼ dur -2" (only what differs), "" when there is nothing to say.

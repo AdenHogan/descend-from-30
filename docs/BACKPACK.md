@@ -12,12 +12,13 @@ entirely"; its geometry lives on in `scripts/ring_geo.gd`.) The HUD has a small 
    "just have the player crouch and the bag open/close beside on the floor") — and a placeholder pack
    (`scripts/held_pack.gd`) lies on the floor BESIDE them, on the side they face, its flap opening.
 2. **Open** — the ring (`scripts/pack_wheel.gd`) floats above them: EVERY slot of the bag — filled, EMPTY (a faint
-   numbered outline) and, until the Deep Pockets upgrade, the **LOCKED** sixth (a padlock; hover says "a pack upgrade opens
-   this slot") — even when the bag is empty, and dropping an item never shrinks it (round 33: "players can identify that
-   there is always a locked slot"). **Real time** — no slow motion. Left-click = equip / put away (on release);
-   **right-click = an options menu** beside the slot (Equip / Put away, Use when it's usable, Drop); **drag an item off the
-   ring and let go = drop it** at your feet ("LET GO TO DROP"); drag onto another item = craft; **Delete** = drop the hovered
-   one. The help line sits on its own plate ABOVE the ring. While the ring is open every **world pill** (door / loot prompts)
+   numbered outline) and, until the Deep Pockets upgrade, the **LOCKED** sixth (a padlock; hover says LOCKED) — even when the bag is empty, and dropping an item never shrinks it (round 33: "players can identify that
+   there is always a locked slot"). **Real time** — no slow motion. Left-click = equip / unequip (on release);
+   **right-click = an options menu** beside the slot (Equip / Unequip, Use when it's usable, Drop — one word a row); **drag an
+   item off the ring and let go = drop it** at your feet (the middle says DROP); drag onto another item = craft (CRAFT / LOAD);
+   **Delete** = drop the hovered one. **There is no help line** (round 48j: "way too much text"): the ring is drawn in the dark
+   Lamplight look (`scripts/lamp.gd`, docs/LEDGER_UI.md) — a card per slot, a HELD tab on the one in hand, and ONE small card in the
+   middle. While the ring is open every **world pill** (door / loot prompts)
    steps aside (`HUD._update_world_prompt`, faded out, back when it closes). The middle, **Esc**, **B**, or a click out in
    the world closes it.
 3. **Stand** (0.3 s, still rooted and vulnerable).

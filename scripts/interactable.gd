@@ -373,7 +373,7 @@ func _open_loot() -> void:
 	if loot_ui == null:
 		push_error("LootUI not found")
 		return
-	loot_ui.open(item_id, name, apartment_id)
+	loot_ui.open(item_id, name, apartment_id, self)             # (this node itself — the SEARCHING word hangs over IT, not over whatever shares its name)
 
 
 # Called by loot_ui after the interaction resolves
