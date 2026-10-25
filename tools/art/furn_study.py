@@ -327,7 +327,7 @@ def map_street(c, ox, oy, p):
 
 
 # ================================================================================================================================ the studio
-@piece('easel', 24, 52, 'floor', rooms={'study': 7}, styles={'studio': 9}, tags=('clutter', 'art'), limit=1,
+@piece('easel', 24, 52, 'floor', keep='tall', rooms={'study': 7}, styles={'studio': 9}, tags=('clutter', 'art'), limit=1,
        variants={'portrait': {'k': 'portrait'}, 'seascape': {'k': 'sea'}, 'blank': {'k': 'blank'}},
        anchors=({'name': 'easel', 'dx': 12, 'dy': -26},), feet=(108, 120),
        note='a wooden A-frame easel with a canvas on it — a half-finished portrait, a seascape with a sail, or a blank canvas — and a tray of tubes')
@@ -420,7 +420,7 @@ def paint_shelf(c, ox, oy, p):
             x += w + 1
 
 
-@piece('printer_stand', 28, 36, 'floor', rooms={'study': 6}, styles={'office': 9}, tags=('clutter', 'work'), limit=1,
+@piece('printer_stand', 28, 36, 'floor', keep='stand', rooms={'study': 6}, styles={'office': 9}, tags=('clutter', 'work'), limit=1,
        variants={'cream': {'case': 'd8d0b8'}},
        anchors=({'name': 'printer', 'dx': 14, 'dy': -22},), feet=(108, 120),
        note='a printer on a wire stand: a beige dot-matrix with a fan of paper feeding out and a spill of printouts on the floor')
@@ -445,7 +445,7 @@ def printer_stand(c, ox, oy, p):
     L.flush()
 
 
-@piece('waste_bin', 14, 16, 'floor', rooms={'study': 6, 'bathroom': 3, 'living_room': 1}, styles={'office': 8, 'den': 4, 'library': 2, 'studio': 3, 'radio': 1}, tags=('clutter', 'rubbish'), limit=1,
+@piece('waste_bin', 14, 16, 'floor', keep='rubbish', rooms={'study': 6, 'bathroom': 3, 'living_room': 1}, styles={'office': 8, 'den': 4, 'library': 2, 'studio': 3, 'radio': 1}, tags=('clutter', 'rubbish'), limit=1,
        variants={'wire': {'col': '4a4e54', 'wire': True}, 'steel': {'col': '8a9098'}},
        feet=(108, 121), near=('work',), anchors=({'name': 'trashcan', 'dx': 7, 'dy': -8},),
        note='a waste basket: black wire mesh or dented steel, crumpled paper heaped over the rim')

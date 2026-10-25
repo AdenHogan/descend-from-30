@@ -31,6 +31,7 @@ func _ready() -> void:
 	await _test_new_kinds()
 	await _test_special_sounds()
 	await _test_critters()
+	await _test_toilet_roll()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -434,3 +435,89 @@ func _test_critters() -> void:
 	check(n2 == 0, "pressing the same node again lets nothing else out")
 	m.queue_free()
 	await get_tree().process_frame
+
+
+func _solid_in_cell(img: Image, cell: int, cells: int) -> int:
+	var cw := img.get_width() / cells
+	var n := 0
+	for y in range(img.get_height()):
+		for x in range(cell * cw, (cell + 1) * cw):
+			if img.get_pixel(x, y).a > 0.5:
+				n += 1
+	return n
+
+
+func _test_toilet_roll() -> void:
+	print("[round 48k: the toilet roll is an object, and its sheet comes off when it is searched]")
+	var NR = load("res://scripts/node_reaction.gd")
+	check(NR.KIND_SOUNDS.has("unroll") and ResourceLoader.exists(String(NR.KIND_SOUNDS["unroll"][0])), "the unrolling has a sound of its own")
+	check(NR.material_for("anchor_bathroom_toilet_rolls") == "paper", "a toilet-roll node is paper (not the toilet's ceramic)")
+	var rec: Dictionary = FurniturePlanner.piece("toilet")
+	var op = rec.get("opens", null)
+	check(op != null and String(op["kind"]) == "unroll" and String(op["anchor"]) == "toilet_rolls", "the planned toilet's roll opens with the `unroll` animation")
+	var grown: Array = []
+	var no_node: Array = []
+	for vid in ["white", "avocado", "pink"]:
+		var v: Dictionary = rec["variants"][vid]
+		var has_node := false
+		for a in v["anchors"]:
+			if String(a["name"]) == "toilet_rolls":
+				has_node = true
+		if not has_node:
+			no_node.append(vid)
+		var sp: Dictionary = v["sprites"][v["sprites"].size() / 2]
+		var tex := RoomFurniture.texture("open/" + String(sp.get("open_file", "")))
+		if tex == null:
+			grown.append(vid + " (no strip)")
+			continue
+		var img := tex.get_image()
+		var cells := 1 + int(op["frames"])
+		var first := _solid_in_cell(img, 0, cells)
+		var last := _solid_in_cell(img, cells - 1, cells)
+		var mid := _solid_in_cell(img, cells / 2, cells)
+		if not (last > mid and mid > first):
+			grown.append("%s %d/%d/%d" % [vid, first, mid, last])
+	check(no_node.is_empty(), "every toilet that hangs a roll gives it a node (%s without)" % str(no_node))
+	check(grown.is_empty(), "…and the sheet gets LONGER frame by frame (more drawn paper from the first cell to the last) %s" % str(grown))
+	for vid in ["gold", "wet"]:
+		var has := false
+		for a in rec["variants"][vid]["anchors"]:
+			if String(a["name"]) == "toilet_rolls":
+				has = true
+		check(not has, "the %s toilet hangs no roll, so it has no roll node" % vid)
+	# a spare roll stands ON the cistern (a surface), never anywhere else
+	var spare: Dictionary = FurniturePlanner.piece("toilet_roll_spare")
+	check(spare["plane"] == "top" and "cistern" in spare["on"] and FurniturePlanner.home_issue(spare, "bathroom") == "" and FurniturePlanner.home_issue(spare, "kitchen") != "",
+		"a spare roll is a surface piece that stands on a cistern, kept in a bathroom only")
+	var slot_ok := false
+	for sl in rec["variants"]["white"]["slots"]:
+		if bool(sl.get("top", false)) and "cistern" in sl["kinds"]:
+			slot_ok = true
+	check(slot_ok, "the toilet's cistern is a surface (a slot that takes small things)")
+	# a REAL planned bathroom: the roll's node exists, starts closed, and pressing interact unrolls it (the overlay plays through every frame and stays)
+	var found := false
+	for seed_ in range(1, 60):
+		var pl := FurniturePlanner.plan("bathroom", "tub", seed_, {"window": "left"})
+		var has_node := false
+		for a in pl["anchors"]:
+			if String(a["name"]) == "anchor_bathroom_toilet_rolls":
+				has_node = true
+		if not has_node:
+			continue
+		var module := Node2D.new()
+		add_child(module)
+		WorldState.new_game()
+		var made: Dictionary = RoomFurniture.build(module, pl, "9996", 1)
+		var ov: Sprite2D = null
+		for o in made["opens"]:
+			if String(o.name) == "Open_anchor_bathroom_toilet_rolls":
+				ov = o
+		check(ov != null and ov.kind == "unroll" and not ov.visible, "a planned bathroom's toilet roll starts closed, as an `unroll` overlay (seed %d)" % seed_)
+		if ov != null:
+			ov.play()
+			await get_tree().create_timer(float(ov.frames_total) * 0.11 + 0.3).timeout
+			check(ov.visible and ov.frame == ov.frames_total - 1, "…pressing interact on it plays the sheet off the roll through all %d frames and leaves it out" % ov.frames_total)
+		module.queue_free()
+		found = true
+		break
+	check(found, "some planned tub bathroom carries a hanging roll to test")

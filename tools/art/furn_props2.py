@@ -73,7 +73,7 @@ def _sole_up(lc, x, base, L=12, col=hexc('2a2220'), heel=hexc('46382e')):
     lc.put(x + L - 1, base, shade(col, 0.7))
 
 
-@piece('shoes_pair', 25, 7, 'floor', rooms={'bedroom': 6, 'living_room': 2}, tags=('clutter',),
+@piece('shoes_pair', 25, 7, 'floor', keep='footwear', rooms={'bedroom': 6, 'living_room': 2}, tags=('clutter',),
        variants={'pale': {'col': 'b8a68a', 'kicked': False}, 'dark': {'col': '3a3036', 'kicked': False}, 'brown': {'col': '7a4a2c', 'kicked': True}, 'black': {'col': '2e2c30', 'kicked': True}},
        near=('sleeping',), feet=(116, 121), note='a pair of leather shoes, laces undone — one of them sometimes kicked over, sole up')
 def shoes_pair(c, ox, oy, p):
@@ -90,7 +90,7 @@ def shoes_pair(c, ox, oy, p):
     L.flush()
 
 
-@piece('trainers', 27, 7, 'floor', rooms={'bedroom': 6, 'living_room': 2}, styles={'teen': 6, 'adult': 1, 'kid': 1}, tags=('clutter',),
+@piece('trainers', 27, 7, 'floor', keep='footwear', rooms={'bedroom': 6, 'living_room': 2}, styles={'teen': 6, 'adult': 1, 'kid': 1}, tags=('clutter',),
        variants={'white': {'col': 'e6e2d6', 'acc': 'a8322c'}, 'grey': {'col': '9aa0a8', 'acc': 'e0b83a'}, 'black': {'col': '3a3a40', 'acc': '5a9ae0'}},
        near=('sleeping', 'work'), feet=(116, 121), note='a pair of trainers kicked off, one on its side')
 def trainers(c, ox, oy, p):
@@ -107,7 +107,7 @@ def trainers(c, ox, oy, p):
     L.flush()
 
 
-@piece('slippers', 13, 5, 'floor', rooms={'bedroom': 6, 'bathroom': 2}, styles={'adult': 4, 'sick': 2, 'kid': 1}, tags=('clutter',),
+@piece('slippers', 13, 5, 'floor', keep='footwear', rooms={'bedroom': 6, 'bathroom': 2}, styles={'adult': 4, 'sick': 2, 'kid': 1}, tags=('clutter',),
        variants={'blue': {'c': '5a6a8a'}, 'tan': {'c': 'a8845a'}, 'pink': {'c': 'c88a9a'}}, near=('sleeping',), feet=(116, 121), note='a pair of slippers with a fleece trim, side by side by the bed')
 def slippers(c, ox, oy, p):
     col = hexc(p['c'])
@@ -126,7 +126,7 @@ def slippers(c, ox, oy, p):
 CLOTH = [hexc('8a4a42'), hexc('4e5d70'), hexc('c1b69c'), hexc('5f6b4e'), hexc('7d6a8a'), hexc('2e2e33')]
 
 
-@piece('clothes_pile', 34, 14, 'floor', rooms={'bedroom': 7, 'bathroom': 2}, styles=None, tags=('clutter', 'clothes'),
+@piece('clothes_pile', 34, 14, 'floor', keep='clothes', rooms={'bedroom': 7, 'bathroom': 2}, styles=None, tags=('clutter', 'clothes'),
        variants={'blue_red': {'a': 1, 'b': 0, 'c': 2}, 'green_grey': {'a': 3, 'b': 5, 'c': 2}, 'plum_tan': {'a': 4, 'b': 2, 'c': 1}}, near=('sleeping', 'wardrobe'),
        anchors=({'name': 'clothes_pile', 'dx': 13, 'dy': -5},), feet=(116, 121), note='clothes dropped where they were taken off: jeans, a shirt with one sleeve flung out, a sock')
 def clothes_pile(c, ox, oy, p):
@@ -200,7 +200,7 @@ def rug_oblong(c, ox, oy, p):
 
 
 # ================================================================================================================================ a backpack
-@piece('backpack', 25, 24, 'floor', rooms={'bedroom': 5, 'living_room': 2, 'study': 2}, styles={'bedsit': 8, 'teen': 2, 'adult': 1}, tags=('storage', 'bag'),
+@piece('backpack', 25, 24, 'floor', keep='bag', rooms={'bedroom': 5, 'living_room': 2, 'study': 2}, styles={'bedsit': 8, 'teen': 2, 'adult': 1}, tags=('storage', 'bag'),
        variants={'olive': {'col': '5a6a46', 'strap': '2e3a24'}, 'navy': {'col': '3a4a6a', 'strap': '222c44'}, 'red': {'col': '8a3a34', 'strap': '4a1e1c'}, 'tan': {'col': '9a8456', 'strap': '5a4a2a'}},
        anchors=({'name': 'backpack', 'dx': 11, 'dy': -14},), near=('sleeping',), feet=(116, 121), note='a rucksack slumped on the floor: a lid, a front pocket with a zip, a water bottle in the side pocket, a strap trailing')
 def backpack(c, ox, oy, p):

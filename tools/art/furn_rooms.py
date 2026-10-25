@@ -261,4 +261,5 @@ def built_recipes():
 # THE LOGIC as data: piece tags -> the only room types they may be registered in (furnlib.TAG_ROOMS is the source; exported so the game and its tests read the same table).
 def rules():
     import furnlib as FL
-    return {'tag_rooms': {k: list(v) for k, v in FL.TAG_ROOMS.items()}}
+    import home_logic as HL
+    return {'tag_rooms': {k: list(v) for k, v in FL.TAG_ROOMS.items()}, 'home': HL.rules()}

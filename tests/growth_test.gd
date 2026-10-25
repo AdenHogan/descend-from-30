@@ -352,6 +352,8 @@ func _test_rooms() -> void:
 	var n_top := 0
 	var n_low := 0
 	var blocked: Array = []
+	var small_on_floor: Array = []                        # HOME LOGIC: a flat's floor takes only TALL pots (tools/art/home_logic.py PLANT_FLOOR_MIN_H, read from data/furniture.json)
+	var min_plant_h := int(FurniturePlanner.data().get("rules", {}).get("home", {}).get("keeps", {}).get("plant", {}).get("min_h", 0))
 	for art in ["bedroom_e", "dining_room_c", "kitchen_c", "bathroom_c", "living_room_b", "study_c"]:
 		for seed_ in range(1, 40):
 			WorldState.master_seed = seed_ * 977
@@ -361,6 +363,8 @@ func _test_rooms() -> void:
 						if d["kind"] != "potted":
 							continue
 						var sz: Vector2 = RG._tex(d["name"]).get_size()
+						if not (String(d["name"]) in RG.FLOOR_POTS or String(d["name"]) in RG.FLOOR_DEAD_POTS) or int(sz.y) < min_plant_h:
+							small_on_floor.append("%s (%d px) in %s" % [d["name"], int(sz.y), art])
 						var sky: Array = RG.map_for(art)["up_floor"]
 						if RG.clear_over(sky, int(d["pos"].x), int(sz.x)) < int(sz.y):
 							blocked.append("%s %s at x %d" % [art, d["name"], int(d["pos"].x)])
@@ -373,6 +377,12 @@ func _test_rooms() -> void:
 	WorldState.master_seed = 4242
 	check(blocked.is_empty(), "a houseplant's WHOLE height stands in clear space — never in front of furniture %s" % str(blocked.slice(0, 3)))
 	check(n_top > 0 and n_low > 0, "flats keep houseplants (%d up top, %d low)" % [n_top, n_low])
+	check(min_plant_h >= 48 and small_on_floor.is_empty(), "a plant on a flat's floor is a TALL one in a big pot (>= %d px, from the home-logic table) — never a small one %s" % [min_plant_h, str(small_on_floor.slice(0, 3))])
+	var pots_ok := true
+	for nm in RG.FLOOR_POTS + RG.FLOOR_DEAD_POTS:
+		if int(RG._tex(nm).get_size().y) < min_plant_h:
+			pots_ok = false
+	check(pots_ok, "every pot in FLOOR_POTS / FLOOR_DEAD_POTS is at least that tall")
 	check(float(dead_low) / maxf(1.0, n_low) > float(dead_top) / maxf(1.0, n_top), "…and they die lower down and later (%d/%d vs %d/%d)" % [dead_low, n_low, dead_top, n_top])
 
 

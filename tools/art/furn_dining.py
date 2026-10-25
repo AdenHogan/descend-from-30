@@ -325,7 +325,7 @@ def clock_grandfather(c, ox, oy, p):
 
 
 # ================================================================================================================================ the drinks trolley
-@piece('trolley_drinks', 30, 34, 'floor', rooms={'dining_room': 5, 'living_room': 2}, styles={'family': 5, 'formal': 5, 'diner': 2}, tags=('clutter', 'storage'), limit=1,
+@piece('trolley_drinks', 30, 34, 'floor', keep='stand', rooms={'dining_room': 5, 'living_room': 2}, styles={'family': 5, 'formal': 5, 'diner': 2}, tags=('clutter', 'storage'), limit=1,
        variants={'brass': {'col': 'c8a050'}, 'chrome': {'col': 'b8bcc0'}},
        anchors=({'name': 'trolley', 'dx': 15, 'dy': -16},), feet=(110, 120), near=('table', 'storage'),
        note='a two-tier drinks trolley on castors: brass rails, bottles and a soda siphon on the top shelf, glasses and an ice bucket below')
@@ -413,7 +413,7 @@ def portraits_row(c, ox, oy, p):
         W.glint(c, (ix0, iy0, ix1, iy1))
 
 
-@piece('gifts_pile', 26, 18, 'floor', rooms={'dining_room': 5}, styles={'party': 9}, tags=('clutter', 'party'), limit=1,
+@piece('gifts_pile', 26, 18, 'floor', keep='party', rooms={'dining_room': 5}, styles={'party': 9}, tags=('clutter', 'party'), limit=1,
        variants={'a': {'cols': ('d8483a', '3a7ad8', 'e0b830')}, 'b': {'cols': ('a85ac8', '3a9a52', 'd8483a')}},
        anchors=({'name': 'presents', 'dx': 12, 'dy': -8},), feet=(108, 121), near=('table',),
        note='three wrapped presents on the floor, one on top of the other two, ribbons and bows, a gift tag hanging off the nearest')

@@ -206,7 +206,7 @@ def utensil_jar(c, ox, oy, p):
 
 
 # ================================================================================================================================ the floor
-@piece('bin_bags', 30, 24, 'floor', rooms={'kitchen': 7, 'living_room': 1}, styles={'classic': 4, 'student': 8, 'hoarder': 6, 'retro': 2}, tags=('clutter', 'rubbish'), feet=(106, 113),
+@piece('bin_bags', 30, 24, 'floor', keep='rubbish', rooms={'kitchen': 7, 'living_room': 1}, styles={'classic': 4, 'student': 8, 'hoarder': 6, 'retro': 2}, tags=('clutter', 'rubbish'), feet=(106, 113),
        anchors=({'name': 'trashcan', 'dx': 12, 'dy': -10},), variants={'two': {'split': False}, 'split': {'split': True}}, near=('unit',),
        note='two tied black bin bags against the end of the counter; or one split open with rubbish on the floor')
 def bin_bags(c, ox, oy, p):
@@ -214,7 +214,7 @@ def bin_bags(c, ox, oy, p):
     furn_small3d.bin_bags(c, ox, oy, p)
 
 
-@piece('box_cardboard', 26, 18, 'floor', rooms={'kitchen': 6, 'living_room': 2, 'study': 2}, styles=None, tags=('clutter',), feet=(106, 114),
+@piece('box_cardboard', 26, 18, 'floor', keep='storage', rooms={'kitchen': 6, 'living_room': 2, 'study': 2}, styles=None, tags=('clutter',), feet=(106, 114),
        anchors=({'name': 'box', 'dx': 13, 'dy': -8},), near=('unit',),
        variants={'tins': {'k': 'tins', 'for': ['classic', 'hoarder', 'student']}, 'bottles': {'k': 'bottles', 'for': ['country', 'retro', 'classic']}, 'flat': {'k': 'flat', 'for': ['student', 'hoarder']}},
        note='a cardboard box on the floor: open on tins, on bottles, or flattened')
@@ -242,7 +242,7 @@ def box_cardboard(c, ox, oy, p):
     L.flush()
 
 
-@piece('pizza_boxes', 24, 9, 'floor', rooms={'kitchen': 5, 'living_room': 3}, styles={'student': 8, 'hoarder': 2}, tags=('clutter', 'food'), feet=(106, 116), anchors=({'name': 'pizza_boxes', 'dx': 12, 'dy': -4},),
+@piece('pizza_boxes', 24, 9, 'floor', keep='rubbish', rooms={'kitchen': 5, 'living_room': 3}, styles={'student': 8, 'hoarder': 2}, tags=('clutter', 'food'), feet=(106, 116), anchors=({'name': 'pizza_boxes', 'dx': 12, 'dy': -4},),
        near=('unit',), variants={'a': {}}, note='three flat pizza boxes, grease through the lids, one askew')
 def pizza_boxes(c, ox, oy, p):
     _shadow(c, ox + 12, oy + 0.6, 12.4, 1.4, 100)
@@ -277,7 +277,7 @@ def newspaper_stacks(c, ox, oy, p):
         L.flush()
 
 
-@piece('cat_tins', 20, 8, 'floor', rooms={'kitchen': 5}, styles={'hoarder': 9}, tags=('clutter', 'food'), feet=(106, 118), anchors=({'name': 'cat_tins', 'dx': 10, 'dy': -3},), near=('unit',),
+@piece('cat_tins', 20, 8, 'floor', keep='pet', rooms={'kitchen': 5}, styles={'hoarder': 9}, tags=('clutter', 'food'), feet=(106, 118), anchors=({'name': 'cat_tins', 'dx': 10, 'dy': -3},), near=('unit',),
        variants={'a': {}}, note='a saucer, two opened cat-food tins licked clean and one rolled away')
 def cat_tins(c, ox, oy, p):
     _shadow(c, ox + 10, oy + 0.5, 10.0, 1.2, 90)
@@ -290,7 +290,7 @@ def cat_tins(c, ox, oy, p):
     L.flush()
 
 
-@piece('pedal_bin', 14, 22, 'floor', rooms={'kitchen': 6}, styles=None, tags=('clutter', 'rubbish'), feet=(106, 114), anchors=({'name': 'trashcan', 'dx': 7, 'dy': -12},), near=('unit',),
+@piece('pedal_bin', 14, 22, 'floor', keep='rubbish', rooms={'kitchen': 6}, styles=None, tags=('clutter', 'rubbish'), feet=(106, 114), anchors=({'name': 'trashcan', 'dx': 7, 'dy': -12},), near=('unit',),
        variants={'steel': {'col': 'b4bcc0', 'for': ['classic', 'retro', 'student']}, 'green': {'col': '6a8a62', 'for': ['country', 'hoarder', 'classic']}}, note='a pedal bin with a swing lid')
 def pedal_bin(c, ox, oy, p):
     col = hexc(p['col'])
@@ -303,7 +303,7 @@ def pedal_bin(c, ox, oy, p):
     L.flush()
 
 
-@piece('bucket_mop', 14, 30, 'floor', rooms={'kitchen': 5, 'bathroom': 5}, styles=None, tags=('clutter', 'wet'), feet=(106, 116), anchors=({'name': 'bucket', 'dx': 7, 'dy': -6},), near=('unit',),
+@piece('bucket_mop', 14, 30, 'floor', keep='cleaning', rooms={'kitchen': 5, 'bathroom': 5}, styles=None, tags=('clutter', 'wet'), feet=(106, 116), anchors=({'name': 'bucket', 'dx': 7, 'dy': -6},), near=('unit',),
        variants={'blue': {'col': '3f6aa8'}, 'yellow': {'col': 'e0b83a'}}, note='a mop in a bucket, the head wrung out grey')
 def bucket_mop(c, ox, oy, p):
     col = hexc(p['col'])
@@ -317,7 +317,7 @@ def bucket_mop(c, ox, oy, p):
     L.flush()
 
 
-@piece('crate_veg', 22, 18, 'floor', rooms={'kitchen': 6}, styles={'country': 9, 'hoarder': 2}, tags=('clutter', 'food'), feet=(106, 114), anchors=({'name': 'crate', 'dx': 11, 'dy': -8},), near=('unit',),
+@piece('crate_veg', 22, 18, 'floor', keep='storage', rooms={'kitchen': 6}, styles={'country': 9, 'hoarder': 2}, tags=('clutter', 'food'), feet=(106, 114), anchors=({'name': 'crate', 'dx': 11, 'dy': -8},), near=('unit',),
        variants={'a': {}}, note='a slatted wooden crate of potatoes, onions and a cabbage, a sack of flour beside it')
 def crate_veg(c, ox, oy, p):
     _shadow(c, ox + 11, oy + 0.6, 11.4, 1.5, 100)
@@ -361,7 +361,7 @@ def _cupboard_variants():
 
 
 @piece('wall_cupboards', 46, 36, 'decor', rooms={'kitchen': 7}, styles=None, tags=('storage', 'unit_above'), variants=_cupboard_variants(), wall_y=(12, 16), limit=1,
-       above=('unit',), note='wall cupboards over the run: three grey-green doors with the left one hanging open (classic), two yellow doors (retro), two cream, two white with one door missing (student), two pine (country)')
+       above=('unit',), must_above=True, note='wall cupboards over the run: three grey-green doors with the left one hanging open (classic), two yellow doors (retro), two cream, two white with one door missing (student), two pine (country)')
 def wall_cupboards(c, ox, oy, p):
     fin = _fin(p['fin'])
     n = p['n']
@@ -388,7 +388,7 @@ def wall_cupboards(c, ox, oy, p):
             _handle(c, b - 3 if i % 2 == 0 else a + 2, bot - 13, fin, True, p['fin'] == 'pine')
 
 
-@piece('shelf_jars', 40, 22, 'decor', rooms={'kitchen': 6}, styles={'country': 8, 'hoarder': 6, 'classic': 1}, tags=('shelf', 'food'), wall_y=(16, 30), limit=1, above=('unit',),
+@piece('shelf_jars', 40, 22, 'decor', rooms={'kitchen': 6}, styles={'country': 8, 'hoarder': 6, 'classic': 1}, tags=('shelf', 'food'), wall_y=(16, 30), limit=1, above=('unit',), must_above=True,
        variants={'a': {'for': ['country', 'hoarder', 'classic']}}, note='a plank shelf on brackets with jars, tins and a bag of flour')
 def shelf_jars(c, ox, oy, p):
     rng = random.Random(4)

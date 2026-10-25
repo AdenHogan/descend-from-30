@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c8wyw0givg826"
-path="res://.godot/imported/plant_pot_dead.png-fdb9c7aae11aa5e622da48bc5124b34f.ctex"
+uid="uid://wgatn06vyuca"
+path="res://.godot/imported/toilet_white_b1_open.png-f4595d4614fea364d0dbd2d194005758.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/furniture/plant_pot_dead.png"
-dest_files=["res://.godot/imported/plant_pot_dead.png-fdb9c7aae11aa5e622da48bc5124b34f.ctex"]
+source_file="res://assets/furniture/open/toilet_white_b1_open.png"
+dest_files=["res://.godot/imported/toilet_white_b1_open.png-f4595d4614fea364d0dbd2d194005758.ctex"]
 
 [params]
 

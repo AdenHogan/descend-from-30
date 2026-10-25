@@ -374,7 +374,7 @@ def pot_body(c, cx, base, pw, ph, colpair):
 def potted(name, seed, style, out):
     """A houseplant in its pot: the same greens as the wild growth, but tended — until it isn't."""
     rng = random.Random(seed)
-    pal = P(DRY if style == 'dead' else rng.choice(GREENS))
+    pal = P(DRY if style in ('dead', 'taldead') else rng.choice(GREENS))
     c = new(46, 72, seed)
     cx, base = 23, 70
     pw = rng.choice((11, 12, 13))
@@ -406,6 +406,15 @@ def potted(name, seed, style, out):
             i = 12 + k * 2
             side = 1 if k % 2 else -1
             leaf(c, x + side * rng.randint(3, 6), top - i + rng.randint(-1, 1), 6, pal, rng, k=rng.choice((0, 1, 2, 3)))
+    elif style == 'taldead':                                    # a tall one nobody watered (home_logic: a flat's FLOOR takes only tall pots): a bare woody stem, a few dry leaves hanging
+        x = float(cx)
+        for i in range(rng.randint(40, 44)):
+            x += rng.uniform(-0.15, 0.15)
+            c.put(int(x), top - i, WOOD[2] if i % 4 else WOOD[0])
+        for k in range(rng.randint(5, 7)):
+            i = 12 + k * 5
+            side = 1 if k % 2 else -1
+            leaf(c, x + side * rng.randint(3, 5), top - i + rng.randint(0, 2), 4, pal, rng, k=rng.choice((0, 1, 2, 3)))
     else:                                                       # dead: a few dry stalks over the rim
         for k in range(rng.randint(5, 8)):
             a = rng.uniform(-1.0, 1.0)
@@ -540,7 +549,7 @@ def build():
         moss('moss_%d' % (i + 1), 800 + i, w, h, out, wall=wall)
     for i, k in enumerate(['bracket', 'bracket', 'stool', 'stool']):
         fungus('fungus_%d' % (i + 1), 900 + i, k, out)
-    for i, st in enumerate(['fern', 'fern', 'flowers', 'flowers', 'flowers', 'tall', 'tall', 'dead', 'dead']):
+    for i, st in enumerate(['fern', 'fern', 'flowers', 'flowers', 'flowers', 'tall', 'tall', 'dead', 'dead', 'taldead', 'taldead']):
         potted('pot_%s_%d' % (st, i + 1), 1000 + i, st, out)
     return out
 

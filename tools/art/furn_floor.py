@@ -22,7 +22,7 @@ WICKER, WICKER_DK, WICKER_LT = hexc('a8845a'), hexc('6b4f30'), hexc('c9a478')
 
 
 # ================================================================================================================================ the laundry basket
-@piece('laundry_basket', 20, 16, 'floor', rooms={'bedroom': 5, 'bathroom': 6}, styles={'adult': 3, 'teen': 3, 'kid': 2, 'sick': 1}, tags=('clutter', 'clothes'),
+@piece('laundry_basket', 20, 16, 'floor', keep='clothes', rooms={'bedroom': 5, 'bathroom': 6}, styles={'adult': 3, 'teen': 3, 'kid': 2, 'sick': 1}, tags=('clutter', 'clothes'),
        variants={'blue': {'a': 1}, 'grey': {'a': 5}, 'cream': {'a': 2}}, anchors=({'name': 'laundry_basket', 'dx': 9, 'dy': -8},), near=('wardrobe', 'sleeping'), feet=(116, 121),
        note='a woven wicker laundry basket with a loop handle each side, clothes heaped over the rim and a sleeve hanging down the front')
 def laundry_basket(c, ox, oy, p):
@@ -131,7 +131,7 @@ def _garment(lc, cx, top, kind, col, rng):
         lc.hline(cx - 5, cx - 1, y0 + 26, shade(col, 0.5)); lc.hline(cx + 1, cx + 5, y0 + 26, shade(col, 0.5))
 
 
-@piece('clothes_rail', 49, 52, 'floor', rooms={'bedroom': 4, 'living_room': 1}, styles={'bedsit': 8, 'sick': 1, 'teen': 1}, tags=('storage', 'clothes'),
+@piece('clothes_rail', 49, 52, 'floor', keep='tall', rooms={'bedroom': 4, 'living_room': 1}, styles={'bedsit': 8, 'sick': 1, 'teen': 1}, tags=('storage', 'clothes'),
        variants={'a': {'kinds': ('shirt', 'dress', 'coat', 'trousers'), 'cols': (0, 1, 5, 3)}, 'b': {'kinds': ('coat', 'jumper', 'dress', 'shirt'), 'cols': (1, 3, 0, 2)}},
        anchors=({'name': 'clothes_rail', 'dx': 16, 'dy': -22},), feet=(116, 119), near=('sleeping',),
        note='a freestanding chrome clothes rail on castors: wire hangers, four garments (shirt, dress, coat, jumper, trousers by variant), each lit, creased and outlined against the next')

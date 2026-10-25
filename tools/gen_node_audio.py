@@ -26,6 +26,7 @@ Mono 22050 Hz 16-bit WAV, a few variants of each, deterministic.
   printer_0 — a whir and a paper feed
   needle_0  — a stylus dragged across a record
   pffft_0   — a beanbag letting out its air
+  unroll_0  — a toilet roll spun by a pull: the axle ticking as it slows, the sheet rasping off, a tear (round 48k: the searched roll unrolls)
 
 Run:  python3 tools/gen_node_audio.py   (needs numpy)   ->  assets/audio/room/
 """
@@ -43,7 +44,7 @@ OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "
 # How far up each sound may reach (Hz). Round 46: the noise-built ones used to run to the top of the spectrum (40-50 % of their energy above
 # 6 kHz = "static"); they are now pink noise under a steep ceiling picked for what the thing is. Anything not listed gets 7 kHz.
 CEILING = {"rustle": 4200, "paper": 3800, "tin": 6500, "scrape": 3200, "tap": 4600, "cistern": 4800, "static": 3400, "roll": 3200,
-           "fridge": 4200, "printer": 4200, "needle": 4600, "pffft": 2800, "spring": 4000, "fall": 6000}
+           "fridge": 4200, "printer": 4200, "needle": 4600, "pffft": 2800, "spring": 4000, "fall": 6000, "unroll": 3800}
 
 
 def _write(name, x):
@@ -350,6 +351,25 @@ def pffft(_seed):
     return _fade(_norm(y * np.exp(-t / 0.2), 0.5), 12)
 
 
+def unroll(_seed):
+    r = np.random.default_rng(4801)
+    n = int(SR * 0.74)
+    t = np.arange(n) / SR
+    x = np.zeros(n)
+    tt, period = 0.0, 0.016                                                 # the roll turning on its spindle: ticks that slow as the pull stops
+    while tt < 0.5:
+        i = int(tt * SR)
+        L = int(0.006 * SR)
+        x[i:i + L] += r.normal(0, 1, L) * np.exp(-np.arange(L) / 18.0) * 0.45
+        tt += period
+        period *= 1.075
+    swell = np.exp(-((t - 0.2) / 0.18) ** 2)                                # the paper rasping off while it is pulled
+    body = _bp(_pn(r, n), 300, 2600) * swell
+    j, L = int(0.54 * SR), int(0.05 * SR)                                    # the tear
+    x[j:j + L] += _hp(_lp(r.normal(0, 1, L), 0.4), 0.9) * np.exp(-np.arange(L) / (L * 0.25)) * 0.7
+    return _fade(_norm(_lp(x, 0.4) * 0.9 + body * 0.9, 0.55))
+
+
 def main():
     for k in range(3):
         _write("rustle_%d.wav" % k, rustle(k))
@@ -375,6 +395,7 @@ def main():
     _write("printer_0.wav", printer(0))
     _write("needle_0.wav", needle(0))
     _write("pffft_0.wav", pffft(0))
+    _write("unroll_0.wav", unroll(0))
     print("wrote", len(os.listdir(OUT)), "files to", os.path.relpath(OUT))
 
 

@@ -16,7 +16,7 @@ BRASS, BRASS_LT = hexc('b89a48'), hexc('e4cc78')
 
 
 # ================================================================================================================================ the standard lamp
-@piece('lamp_floor', 18, 56, 'floor', rooms={'living_room': 6, 'study': 3, 'dining_room': 1}, styles={'cosy': 6, 'mid': 6, 'parlour': 5, 'lodge': 3, 'squat': 1}, tags=('light', 'lamp'), limit=1,
+@piece('lamp_floor', 18, 56, 'floor', keep='light', rooms={'living_room': 6, 'study': 3, 'dining_room': 1}, styles={'cosy': 6, 'mid': 6, 'parlour': 5, 'lodge': 3, 'squat': 1}, tags=('light', 'lamp'), limit=1,
        variants={'brass': {'col': 'b89a48', 'shade': 'e8d8a8', 'for': ['cosy', 'parlour', 'lodge']}, 'black': {'col': '2a2a2e', 'shade': 'd8d0b8', 'for': ['mid', 'squat']},
                  'teak': {'col': '7a4a2a', 'shade': 'c8a060', 'for': ['mid', 'cosy']}},
        lights=({'dx': 9, 'dy': -46, 'kind': 'table'},), feet=(108, 118),
@@ -111,7 +111,7 @@ def ashtray_pack(c, ox, oy, p):
 
 
 # ================================================================================================================================ the guitar
-@piece('guitar_stand', 28, 64, 'floor', rooms={'living_room': 4, 'bedroom': 1}, styles={'squat': 7, 'mid': 1, 'teen': 1}, tags=('music',), limit=1,
+@piece('guitar_stand', 28, 64, 'floor', keep='tall', rooms={'living_room': 4, 'bedroom': 1}, styles={'squat': 7, 'mid': 1, 'teen': 1}, tags=('music',), limit=1,
        variants={'acoustic': {'body': 'c88a3a'}, 'dark': {'body': '7a3a1c'}}, feet=(108, 118),
        note='an acoustic guitar upright on an A-frame floor stand against the wall: a wide bound body with a pinched waist, a ringed sound hole, a pickguard and bridge, a fretted neck and a tapered head with its tuning pegs')
 def guitar_stand(c, ox, oy, p):
@@ -212,7 +212,7 @@ def rug_large(c, ox, oy, p):
 
 
 # ================================================================================================================================ the lodge's things
-@piece('log_basket', 22, 20, 'floor', rooms={'living_room': 5}, styles={'lodge': 8, 'cosy': 1, 'parlour': 1}, tags=('storage', 'wood'), limit=1,
+@piece('log_basket', 22, 20, 'floor', keep='storage', rooms={'living_room': 5}, styles={'lodge': 8, 'cosy': 1, 'parlour': 1}, tags=('storage', 'wood'), limit=1,
        variants={'wicker': {}}, anchors=({'name': 'log_basket', 'dx': 11, 'dy': -9},), near=('hearth',), feet=(110, 120),
        note='a wicker basket of split logs by the hearth: a woven rim, the cut ends of logs sticking out, a bundle of kindling')
 def log_basket(c, ox, oy, p):

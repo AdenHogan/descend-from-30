@@ -15,6 +15,10 @@ extends RefCounted
 ##   * the wall line is exclusive (two wardrobes never overlap, a bed is never in front of a dresser), nothing tall stands in front of the room's window, nothing is closer than the edge
 ##     columns, everything on the floor lies behind the walking lane (feet ≤ 122), and nothing standing or lying on the floor is in a step-up spot's stand zone (the player is drawn over
 ##     everything baked, so a body there would be walked over — owner rounds 36i / 36k / 45b);
+##   * HOME LOGIC for EVERY piece (owner round 48k: "the apartment must have internal rules, regardless of which items are procedurally generated in it… no one on earth has a piano in their
+##     kitchen"): each piece is ONE kind of thing (tools/art/home_kinds.py) and each kind lists the only rooms a home could keep it in; a thing on the FLOOR states why a home keeps it
+##     there (shoes by the bed, a bin, a chair, a TALL plant in a big pot — never a small one) and a thing on a surface is small; a floor piece that belongs with something (shoes → the bed)
+##     is only put BESIDE it; a bathroom mirror / wall cupboards hang only OVER the basin / the worktop (`home_issue`, `rules.home`, docs/HOME_LOGIC.md);
 ##   * things on top (a lamp, a glass) stand on a surface that has a slot for them; hung things (pictures) hang clear of every piece and of the window; clutter lies near what it belongs to;
 ##   * a room always has enough to search: ≥ `min_front` scavenge nodes reachable from the walking lane (the old per-module rule), and a plan that can't be made falls back to a hand-set one.
 ##
@@ -43,7 +47,7 @@ const WINDOW_Y1 := 66
 const MAX_TRIES := 48
 const DEFAULT_MAX_GAP := 60        # no stretch of the wall line wider than this stays bare (a recipe may say `max_gap`; 0 = off): owner round 48i, "too much free space... very spartan"
 const SPOTS_PER_PIECE := 14        # x candidates tried for one piece before it is given up on
-const DEFAULT_LIMIT := {"wall": 1, "front": 1, "floor": 2, "top": 2, "decor": 2, "rug": 1, "ceiling": 1}
+const DEFAULT_LIMIT := {"wall": 1, "front": 1, "floor": 2, "top": 2, "decor": 1, "rug": 1, "ceiling": 1}      # decor 1: the same picture is never hung twice in a room (round 48k)
 
 static var _data: Dictionary = {}
 static var _loaded := false
@@ -134,7 +138,52 @@ static func eligible(id: String, room_type: String, style: String) -> bool:
 	for t in rec.get("tags", []):
 		if tag_rooms.has(t) and not (room_type in tag_rooms[t]):
 			return false
-	return true
+	return home_issue(rec, room_type) == ""
+
+
+## HOME LOGIC (tools/art/home_logic.py + home_kinds.py, data/furniture.json `rules.home`): may a home keep this piece like this, in this room? "" = yes; otherwise why not.
+## Every piece is one KIND of thing and a kind lists the only rooms a home could have it in (a piano: living room, bedroom, study, dining room — never a kitchen or a bathroom); a thing on
+## the FLOOR must give a reason a home keeps it there (`keep`), some of which need a minimum height (only a TALL plant stands on a floor) or particular rooms; a thing on a SURFACE is small.
+static func home_issue(rec: Dictionary, room_type: String) -> String:
+	var hl: Dictionary = data().get("rules", {}).get("home", {})
+	if hl.is_empty():
+		return ""
+	var kinds: Dictionary = hl.get("kinds", {})
+	var kind := ""
+	if rec.get("kind", null) != null:
+		kind = String(rec["kind"])
+	if kind == "" or not kinds.has(kind):
+		return "has no kind, so a home cannot say where it may be"
+	if not (room_type in kinds[kind]["rooms"]):
+		return "is a %s and a home does not keep one in a %s" % [kind, room_type]
+	var plane := String(rec.get("plane", ""))
+	var h := int(rec.get("h", 0))
+	var tags: Array = rec.get("tags", [])
+	if plane == "floor":
+		var keep := ""
+		if rec.get("keep", null) != null:
+			keep = String(rec["keep"])
+		var keeps: Dictionary = hl.get("keeps", {})
+		if keep == "" or not keeps.has(keep):
+			return "stands on a floor with no reason a home keeps it there"
+		for t in hl.get("surface_tags", []):
+			if String(t) in tags:
+				return "is a small thing (%s): a home keeps it on a surface, never the floor" % String(t)
+		var k: Dictionary = keeps[keep]
+		if h < int(k.get("min_h", 0)):
+			return "is only %d px tall: a home keeps a '%s' on the floor from %d px (a smaller one sits on a surface)" % [h, keep, int(k["min_h"])]
+		if k.get("rooms", null) != null and not (room_type in k["rooms"]):
+			return "is not kept on the floor of a %s (%s)" % [room_type, ", ".join(k["rooms"])]
+		if "plant" in tags and keep != "plant":
+			return "is a plant on the floor but not kept as a tall one in a big pot"
+	elif plane == "top":
+		if h > int(hl.get("surface_max_h", 999)):
+			return "is %d px tall: too big to stand on a surface" % h
+		var by_tag: Dictionary = hl.get("top_max_by_tag", {})
+		for t in tags:
+			if by_tag.has(t) and h > int(by_tag[t]):
+				return "is a %s %d px tall: on a surface it is a small one (at most %d px)" % [String(t), h, int(by_tag[t])]
+	return ""
 
 
 ## Does this variant suit the style? A variant that names no styles (`for`) suits all; one may also name styles it is NOT used in (`not` — a colourway that would vanish into that style's wall:
@@ -183,6 +232,48 @@ static func _pool(room_type: String, style: String, planes: Array, tag: String =
 			continue
 		out.append([id, weight_of(id, room_type, style)])
 	return out
+
+
+## HOME LOGIC — one of a kind (tools/art/home_kinds.py GROUP_LIMITS, `rules.home.group_limits`): is the group this piece belongs to already full in this room?
+static var _kind_cache: Dictionary = {}
+static var _groups_cache: Dictionary = {}
+
+
+static func _kind_of(id: String) -> String:
+	if not _kind_cache.has(id):
+		var k = piece(id).get("kind", null)
+		_kind_cache[id] = "" if k == null else String(k)
+	return String(_kind_cache[id])
+
+
+## The one-of-a-kind groups a kind belongs to (usually none — the fast path).
+static func _groups_of(kind: String) -> Array:
+	if not _groups_cache.has(kind):
+		var out: Array = []
+		for g in data().get("rules", {}).get("home", {}).get("group_limits", []):
+			if kind in g["kinds"]:
+				out.append(g)
+		_groups_cache[kind] = out
+	return _groups_cache[kind]
+
+
+static func _group_full(items: Array, id: String) -> bool:
+	var gs := _groups_of(_kind_of(id))
+	if gs.is_empty():
+		return false
+	for g in gs:
+		var n := 0
+		for o in items:
+			if _kind_of(String(o["id"])) in g["kinds"]:
+				n += 1
+		if n >= int(g["max"]):
+			return true
+	return false
+
+
+## The pool without anything whose group is already full (a second clock is never even picked).
+static func _open_pool(st: Dictionary, pool: Array) -> Array:
+	return pool.filter(func(e): return not _group_full(st["items"], String(e[0])))
 
 
 static func _wpick(rng: RandomNumberGenerator, pool: Array) -> String:
@@ -336,6 +427,8 @@ static func _fits(st: Dictionary, it: Dictionary, gap: int = 1) -> bool:
 			same += 1
 	if same >= _limit_of(rec):
 		return false
+	if _group_full(items, String(it["id"])):
+		return false                                                      # a room holds one clock, one television… (HOME LOGIC, one of a kind)
 	var face: Vector2 = it["face"]
 	var bands := _bands(items)
 	match plane:
@@ -459,7 +552,7 @@ static func _result(st: Dictionary, room_type: String, style: String, rcp: Dicti
 		var it: Dictionary = items[int(o[3])]
 		var n: int = out_items.size()
 		var d := {"id": it["id"], "variant": it["variant"], "plane": it["plane"], "x": it["x"], "y": it["y"], "file": it["file"], "rx": it["rx"], "ry": it["ry"],
-			"open_file": it["open_file"], "z": n, "w": it["w"], "host_plane": String(it.get("host_plane", it["plane"]))}
+			"open_file": it["open_file"], "z": n, "w": it["w"], "host_plane": String(it.get("host_plane", it["plane"])), "clutter": bool(it.get("clutter", false))}
 		var rec := piece(String(it["id"]))
 		var v: Dictionary = rec["variants"][it["variant"]]
 		for a in _item_anchors(it):
@@ -560,7 +653,7 @@ static func _add(st: Dictionary, it: Dictionary) -> int:
 ## The centrepiece (a bed): its tag picks the piece, the recipe's x range where it may start.
 static func _place_centre(st: Dictionary, cr: Dictionary) -> int:
 	var rng: RandomNumberGenerator = st["rng"]
-	var pool := _pool(st["room"], st["style"], ["front", "wall"], String(cr["tag"]))
+	var pool := _open_pool(st, _pool(st["room"], st["style"], ["front", "wall"], String(cr["tag"])))
 	var id := _wpick(rng, pool)
 	if id == "":
 		return -1
@@ -583,7 +676,7 @@ static func _place_centre(st: Dictionary, cr: Dictionary) -> int:
 static func _place_flank(st: Dictionary, ci: int, fr: Dictionary) -> void:
 	var rng: RandomNumberGenerator = st["rng"]
 	var c: Dictionary = st["items"][ci]
-	var pool := _pool(st["room"], st["style"], ["wall", "front"], String(fr["tag"]))
+	var pool := _open_pool(st, _pool(st["room"], st["style"], ["wall", "front"], String(fr["tag"])))
 	var id := _wpick(rng, pool)
 	if id == "":
 		return
@@ -628,6 +721,7 @@ static func _fill_wall(st: Dictionary, wr: Dictionary) -> void:
 		var pool := _pool(st["room"], st["style"], wr.get("planes", ["wall"]), unmet)      # a bathroom's fixtures (a toilet, a basin) are FRONT pieces: `planes: ["wall", "front"]`
 		if String(st.get("flank_tag", "")) != "":                   # a bedside table stands at the bed, never alone in a corner
 			pool = pool.filter(func(e): return not (String(st["flank_tag"]) in piece(String(e[0]))["tags"]))
+		pool = _open_pool(st, pool)
 		var id := _wpick(rng, pool)
 		if id == "":
 			continue
@@ -706,6 +800,7 @@ static func _fill_gaps(st: Dictionary, rcp: Dictionary) -> void:
 			pool.append([e[0], float(e[1]) * (0.4 + float(rec["w"]) / float(gw))])
 		var placed := false
 		for attempt in range(8):
+			pool = _open_pool(st, pool)
 			var id := _wpick(rng, pool)
 			if id == "":
 				break
@@ -890,7 +985,7 @@ static func _fill_decor(st: Dictionary, cnt: Array) -> void:
 	var rng: RandomNumberGenerator = st["rng"]
 	var n := rng.randi_range(int(cnt[0]), int(cnt[1]))
 	for k in range(n):
-		var id := _wpick(rng, _pool(st["room"], st["style"], ["decor"]))
+		var id := _wpick(rng, _open_pool(st, _pool(st["room"], st["style"], ["decor"])))
 		if id == "":
 			return
 		var rec := piece(id)
@@ -902,9 +997,12 @@ static func _fill_decor(st: Dictionary, cnt: Array) -> void:
 			for o in st["items"]:
 				if _is_body(String(o["plane"])) and String(tg) in o["tags"]:
 					hosts.append(o)
+		var must_over := bool(rec.get("must_above", false))
+		if must_over and hosts.is_empty():
+			continue                                              # a bathroom mirror with no basin to hang over is not hung at all
 		for t in range(SPOTS_PER_PIECE * 2):
 			var x := rng.randi_range(EDGE_L + 2, EDGE_R - w - 1)
-			if not hosts.is_empty() and t < SPOTS_PER_PIECE:
+			if not hosts.is_empty() and (t < SPOTS_PER_PIECE or must_over):
 				var h: Dictionary = hosts[rng.randi() % hosts.size()]
 				x = clampi(int(h["x"]) + rng.randi_range(-w / 3, int(h["w"]) - w * 2 / 3), EDGE_L + 2, EDGE_R - w - 1)
 			var it := _make(id, vid, x, rng.randi_range(int(wy[0]), int(wy[1])))
@@ -936,6 +1034,8 @@ static func _fill_clutter(st: Dictionary, cnt: Array) -> void:
 							xs.append(int(r.end.x) + gap)
 						xs.append(rng.randi_range(int(r.position.x), maxi(int(r.position.x), int(r.end.x) - w)))
 		if xs.is_empty():
+			if not near.is_empty():
+				continue                                          # it belongs WITH something this room does not have (shoes with no bed): it is not scattered at random
 			for t in range(10):
 				xs.append(rng.randi_range(EDGE_L + 2, EDGE_R - w - 2))
 		for m in range(xs.size() - 1, 0, -1):
@@ -946,6 +1046,7 @@ static func _fill_clutter(st: Dictionary, cnt: Array) -> void:
 		for x in xs:
 			var it := _make(id, vid, int(x), _feet(rng, rec))
 			if _fits(st, it):
+				it["clutter"] = true                              # placed as something lying about: `validate_state` checks it stands by what it belongs with
 				_add(st, it)
 				break
 
@@ -989,7 +1090,7 @@ static func _rug_ok(st: Dictionary, rug: Dictionary) -> bool:
 
 static func _place_ceiling(st: Dictionary) -> void:
 	var rng: RandomNumberGenerator = st["rng"]
-	var id := _wpick(rng, _pool(st["room"], st["style"], ["ceiling"]))
+	var id := _wpick(rng, _open_pool(st, _pool(st["room"], st["style"], ["ceiling"])))
 	if id == "":
 		return
 	var rec := piece(id)
@@ -1032,6 +1133,45 @@ static func _top_supported(it: Dictionary, items: Array) -> bool:
 	return false
 
 
+static func _belong_gap() -> int:
+	return int(data().get("rules", {}).get("home", {}).get("belong_gap", 32))
+
+
+## A floor thing that belongs with something (`near`: shoes → the bed, a bin → the worktop) stands within the belonging gap of a body that carries one of those tags. No `near` = it belongs to nothing in particular.
+static func _belongs(it: Dictionary, items: Array, near: Array) -> bool:
+	if near.is_empty():
+		return true
+	var r: Rect2 = it["rect"]
+	for o in items:
+		if not _is_body(String(o["plane"])):
+			continue
+		var hit := false
+		for t in near:
+			if String(t) in o["tags"]:
+				hit = true
+		if not hit:
+			continue
+		var b: Rect2 = o["rect"]
+		var gap := maxf(0.0, maxf(b.position.x - (r.end.x - 1.0), r.position.x - (b.end.x - 1.0)))
+		if gap <= float(_belong_gap()):
+			return true
+	return false
+
+
+## A hung thing that belongs OVER something (a bathroom mirror over the basin): its middle lies over one of those bodies' faces (a few px of give for the module edge).
+static func _hangs_over(it: Dictionary, items: Array, above: Array) -> bool:
+	var cx: float = float(it["x"]) + float(it["w"]) * 0.5
+	for o in items:
+		if not _is_body(String(o["plane"])):
+			continue
+		for t in above:
+			if String(t) in o["tags"]:
+				var f: Vector2 = o["face"]
+				if cx >= f.x - 8.0 and cx <= f.y + 8.0:
+					return true
+	return false
+
+
 static func validate_state(st: Dictionary) -> Array:
 	var bad: Array = []
 	var items: Array = st["items"]
@@ -1045,6 +1185,13 @@ static func validate_state(st: Dictionary) -> Array:
 		var id := String(it["id"])
 		var rec := piece(id)
 		var plane := String(it["plane"])
+		var home_why := home_issue(rec, room)
+		if home_why != "":
+			bad.append("%s %s" % [id, home_why])
+		if plane == "floor" and bool(it.get("clutter", false)) and not _belongs(it, items, rec.get("near", [])):
+			bad.append("%s belongs beside %s but nothing of the kind is within %d px of it" % [id, str(rec.get("near", [])), _belong_gap()])
+		if plane == "decor" and bool(rec.get("must_above", false)) and not _hangs_over(it, items, rec.get("above", [])):
+			bad.append("%s hangs over nothing: it belongs above %s" % [id, str(rec.get("above", []))])
 		if not eligible(id, room, style):
 			bad.append("%s is not allowed in a %s (%s)" % [id, room, style])
 		elif not variant_ok(rec, String(it["variant"]), style):
@@ -1075,6 +1222,14 @@ static func validate_state(st: Dictionary) -> Array:
 	for id in counts:
 		if int(counts[id]) > _limit_of(piece(id)):
 			bad.append("%d × %s (limit %d)" % [int(counts[id]), id, _limit_of(piece(id))])
+	for g in data().get("rules", {}).get("home", {}).get("group_limits", []):       # one of a kind: a room is not doubled up
+		var held := 0
+		for it2 in items:
+			var kd = piece(String(it2["id"])).get("kind", null)
+			if kd != null and String(kd) in g["kinds"]:
+				held += 1
+		if held > int(g["max"]):
+			bad.append("%d × %s in one room (a home has %d at most: %s)" % [held, String(g["name"]), int(g["max"]), String(g["why"])])
 	return bad
 
 
@@ -1094,6 +1249,7 @@ static func validate(pl: Dictionary, ctx_in: Dictionary = {}) -> Array:
 		if it.is_empty():
 			return ["unknown piece %s / %s" % [String(d["id"]), String(d["variant"])]]
 		it["host_plane"] = String(d.get("host_plane", it["plane"]))
+		it["clutter"] = bool(d.get("clutter", false))
 		items.append(it)
 	var st := {"items": items, "room": String(pl["room"]), "style": String(pl["style"]), "ctx": ctx}
 	return validate_state(st)

@@ -34,6 +34,7 @@ func _ready() -> void:
 	WorldState.is_first_run = false
 	_test_library()
 	_test_logic_table()
+	_test_home_logic()
 	_test_plans_obey_the_rules()
 	_test_rules_can_fail()
 	_test_variety_and_determinism()
@@ -224,6 +225,151 @@ func _test_plans_obey_the_rules() -> void:
 					items.append({"id": e["id"], "variant": e["variant"], "x": e["x"], "y": e["y"], "plane": rec["plane"], "host_plane": rec["plane"], "w": rec["w"]})
 				var v := FurniturePlanner.validate({"room": room, "style": style, "items": items}, {"window": side})
 				check(v.is_empty(), "%s/%s: the fallback layout is valid with the window on the %s %s" % [room, style, side, str(v)])
+
+
+# ------------------------------------------------------------------------------------------------------------------------------------ HOME LOGIC (owner round 48k)
+func _v(id: String) -> String:
+	var ks: Array = FurniturePlanner.piece(id)["variants"].keys()
+	ks.sort()
+	return String(ks[0])
+
+
+## A plan in ANY room: entries [id, x, y] or [id, x, y, {extra keys on the item, e.g. "clutter": true}].
+func _plan_in(room: String, style: String, entries: Array) -> Dictionary:
+	var items: Array = []
+	for e in entries:
+		var rec := FurniturePlanner.piece(String(e[0]))
+		var it := {"id": e[0], "variant": _v(String(e[0])), "x": e[1], "y": e[2], "plane": rec["plane"], "host_plane": rec["plane"], "w": rec["w"]}
+		if e.size() > 3:
+			for k in e[3]:
+				it[k] = e[3][k]
+		items.append(it)
+	return {"room": room, "style": style, "items": items}
+
+
+func _test_home_logic() -> void:
+	print("[home logic: every piece is something, and a home keeps it in certain rooms only (owner round 48k)]")
+	var d: Dictionary = FurniturePlanner.data()
+	var hl: Dictionary = d["rules"].get("home", {})
+	check(hl.get("kinds", {}).size() >= 50 and hl.get("keeps", {}).size() >= 12 and int(hl.get("floor_min_h", 0)) > 0, "the rules carry the home table (%d kinds, %d ways of keeping a thing on a floor)" % [hl.get("kinds", {}).size(), hl.get("keeps", {}).size()])
+	# every piece in the library: it has a kind, every room it is dealt into is inside its kind's bound, a floor piece says why it stands there
+	var stray: Array = []
+	var floors := 0
+	for id in d["items"]:
+		var rec: Dictionary = d["items"][id]
+		if String(rec["plane"]) == "floor":
+			floors += 1
+		for room in rec["rooms"]:
+			var why := FurniturePlanner.home_issue(rec, String(room))
+			if why != "":
+				stray.append("%s in a %s %s" % [id, room, why])
+	check(stray.is_empty(), "all %d pieces sit inside their kind's rooms (and the %d floor pieces each give a reason) %s" % [d["items"].size(), floors, str(stray.slice(0, 3))])
+	# the owner's example: a piano
+	var piano: Dictionary = FurniturePlanner.piece("piano_upright")
+	var ok_rooms := true
+	for room in ["living_room", "bedroom", "study", "dining_room"]:
+		if FurniturePlanner.home_issue(piano, room) != "":
+			ok_rooms = false
+	check(ok_rooms, "a piano may be kept in a living room, a bedroom, a study or a dining room")
+	check("does not keep one in a kitchen" in FurniturePlanner.home_issue(piano, "kitchen") and "does not keep one in a bathroom" in FurniturePlanner.home_issue(piano, "bathroom"),
+		"…but never in a kitchen or a bathroom")
+	piano["rooms"]["kitchen"] = 5.0                                           # somebody mis-registers it into a kitchen: the kind still refuses it
+	check(not FurniturePlanner.eligible("piano_upright", "kitchen", "classic"), "a piano mis-registered into a kitchen is still never dealt there")
+	check("does not keep one in a kitchen" in _violations(_plan_in("kitchen", "classic", [["piano_upright", 20, 106]])), "…and a plan with a piano in a kitchen is refused for it")
+	piano["rooms"].erase("kitchen")
+	check(not FurniturePlanner.piece("piano_upright")["rooms"].has("kitchen"), "(the mutation is undone)")
+	var no_kind: Dictionary = FurniturePlanner.piece("sofa").duplicate(true)
+	no_kind.erase("kind")
+	check("has no kind" in FurniturePlanner.home_issue(no_kind, "living_room"), "a piece with no kind is refused outright")
+	var bed: Dictionary = FurniturePlanner.piece("bed_wood")
+	check("does not keep one in a kitchen" in FurniturePlanner.home_issue(bed, "kitchen") and "does not keep one in a bathroom" in FurniturePlanner.home_issue(bed, "bathroom"), "a bed is a bedroom thing only")
+	# the owner's screenshot: a small plant standing on the floor of a bathroom
+	var pf: Dictionary = FurniturePlanner.piece("plant_floor")
+	check(String(pf["keep"]) == "plant" and int(pf["h"]) >= 48 and pf["plane"] == "floor", "the floor plant is a TALL one (%d px)" % int(pf["h"]))
+	check(FurniturePlanner.home_issue(pf, "bathroom") != "" and FurniturePlanner.home_issue(pf, "kitchen") != "" and FurniturePlanner.home_issue(pf, "living_room") == "",
+		"…kept in a living space, never a bathroom or a kitchen")
+	var h0 := int(pf["h"])
+	pf["h"] = 36
+	check("only 36 px tall" in FurniturePlanner.home_issue(pf, "living_room"), "a 36 px plant on a floor is refused (the old plant_pot that stood by the toilet)")
+	pf["h"] = h0
+	var pd: Dictionary = FurniturePlanner.piece("plant_desk")
+	check(pd["plane"] == "top" and int(pd["h"]) <= 26 and FurniturePlanner.home_issue(pd, "bathroom") == "", "a small plant is a surface piece (%d px), fine in any room — on something" % int(pd["h"]))
+	pd["plane"] = "floor"
+	check("no reason a home keeps it there" in FurniturePlanner.home_issue(pd, "bathroom"), "…and a small plant dealt to the floor is refused")
+	pd["plane"] = "top"
+	var ph0 := int(pd["h"])
+	pd["h"] = 40
+	check("small one" in FurniturePlanner.home_issue(pd, "bedroom"), "a plant too big for a table is refused on one")
+	pd["h"] = ph0
+	check(FurniturePlanner.home_issue(pd, "bathroom") == "", "(the mutations are undone)")
+	# BELONGING: shoes go with a bed; with no bed in the room they are not put anywhere
+	var shoes := _plan_in("bedroom", "adult", [["shoes_pair", 150, 119, {"clutter": true}]])
+	check("belongs beside" in _violations(shoes), "shoes lying about a bedroom with no bed are refused")
+	var bd := FurniturePlanner._make("bed_wood", _v("bed_wood"), 110, 115)
+	var near_x := int((bd["rect"] as Rect2).end.x) + 4
+	var shoes_ok := _plan_in("bedroom", "adult", [["bed_wood", 110, 115], ["shoes_pair", near_x, 119, {"clutter": true}]])
+	check(not ("belongs beside" in _violations(shoes_ok)), "…and shoes right beside the bed are fine")
+	var shoes_far := _plan_in("bedroom", "adult", [["bed_wood", 110, 115], ["shoes_pair", int((bd["rect"] as Rect2).end.x) + 90, 119, {"clutter": true}]])
+	check("belongs beside" in _violations(shoes_far), "…but not 90 px away down the wall")
+	# HUNG THINGS: a bathroom mirror hangs over the basin
+	var mir := _plan_in("bathroom", "tub", [["mirror_bath", 150, 24]])
+	check("hangs over nothing" in _violations(mir), "a bathroom mirror with no basin under it is refused")
+	var bs := FurniturePlanner._make("basin", _v("basin"), 140, 118)
+	var mir_ok := _plan_in("bathroom", "tub", [["basin", 140, 118], ["mirror_bath", int((bs["face"] as Vector2).x) - 6, 24]])
+	check(not ("hangs over nothing" in _violations(mir_ok)), "…and the same mirror over the basin is fine")
+	# ONE OF A KIND: a room is not doubled up (found by looking at planned rooms: a formal dining room hung a grandfather clock, a cuckoo clock and a wall clock)
+	var groups: Array = hl.get("group_limits", [])
+	check(groups.size() >= 6, "the rules carry the one-of-a-kind groups (%d)" % groups.size())
+	var two_clocks := _plan_in("dining_room", "formal", [["clock_grandfather", 20, 106], ["clock_wall", 150, 24]])
+	check("clock in one room" in _violations(two_clocks), "a grandfather clock AND a wall clock in one dining room are refused")
+	var two_walls := _plan_in("dining_room", "houseshare", [["clock_wall", 120, 24], ["clock_wall", 150, 24]])
+	check("limit 1" in _violations(two_walls), "the same wall clock hung twice is refused (a picture is never hung twice either)")
+	var one_clock := _plan_in("dining_room", "formal", [["clock_wall", 150, 24]])
+	check(not ("one room" in _violations(one_clock)), "…and one clock is fine")
+	var tvs := _plan_in("living_room", "cosy", [["tv_wall", 60, 26], ["tv_crt", 150, 60]])
+	check("television in one room" in _violations(tvs), "two televisions in one room are refused")
+	# a sweep over real plans: nothing that breaks a home rule, the tall plant only in living spaces, desk plants on something
+	var tall_in_wrong := 0
+	var tall_seen := 0
+	var desk_seen := 0
+	var desk_bath := 0
+	var floor_without_why := 0
+	var plans := 0
+	var piano_rooms := {}
+	var piano_wrong := 0
+	var doubled := 0
+	for room in PLANNED:
+		for style in PLANNED[room]:
+			for k in range(24):
+				var pl := FurniturePlanner.plan(String(room), String(style), 910000 + k * 31, {"window": "left" if k % 2 == 0 else "right"})
+				if pl.is_empty():
+					continue
+				plans += 1
+				var clocks := 0
+				for it0 in pl["items"]:
+					if String(FurniturePlanner.piece(String(it0["id"])).get("kind", "")) in ["wall_clock", "long_case_clock"]:
+						clocks += 1
+				if clocks > 1:
+					doubled += 1
+				for it in pl["items"]:
+					var rec: Dictionary = FurniturePlanner.piece(String(it["id"]))
+					if String(it["id"]) == "plant_floor":
+						tall_seen += 1
+						if not (String(room) in ["living_room", "dining_room", "study", "bedroom"]):
+							tall_in_wrong += 1
+					if String(it["id"]) == "piano_upright":
+						piano_rooms[String(room)] = int(piano_rooms.get(String(room), 0)) + 1
+						if String(room) in ["kitchen", "bathroom"]:
+							piano_wrong += 1
+					if String(it["id"]) == "plant_desk":
+						desk_seen += 1
+						desk_bath += 1 if String(room) == "bathroom" else 0
+					if String(it["plane"]) == "floor" and FurniturePlanner.home_issue(rec, String(room)) != "":
+						floor_without_why += 1
+	check(plans > 600 and floor_without_why == 0 and tall_in_wrong == 0, "%d planned rooms: every floor thing has its reason and the tall plant is only in a living space (%d placed)" % [plans, tall_seen])
+	check(doubled == 0, "…and none of the %d planned rooms hangs more than one clock" % plans)
+	check(piano_wrong == 0 and piano_rooms.size() >= 2, "a piano turns up in more than one kind of room %s — and never in a kitchen or a bathroom" % str(piano_rooms))
+	check(tall_seen > 0 and desk_seen > 0, "…and both plants really are dealt (%d tall, %d small — %d of those in bathrooms, on a surface)" % [tall_seen, desk_seen, desk_bath])
 
 
 # ------------------------------------------------------------------------------------------------------------------------------------ every rule can FAIL

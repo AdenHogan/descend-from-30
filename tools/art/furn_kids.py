@@ -84,7 +84,7 @@ def toy_shelf(c, ox, oy, p):
 
 # ================================================================================================================================ the block tower
 # ================================================================================================================================ the ball
-@piece('ball', 10, 10, 'floor', rooms={'bedroom': 4, 'living_room': 3}, styles={'kid': 8, 'teen': 1}, tags=('toy',), near=('toy',), feet=(106, 119), variants={'red': {}}, limit=1,
+@piece('ball', 10, 10, 'floor', keep='toy', rooms={'bedroom': 4, 'living_room': 3}, styles={'kid': 8, 'teen': 1}, tags=('toy',), near=('toy',), feet=(106, 119), variants={'red': {}}, limit=1,
        note='a rubber ball: red with a curved white band, a lit side and a highlight')
 def ball(c, ox, oy, p):
     K.contact_shadow(c, ox + 5, oy + 0.5, 5.2, 1.3, 90)

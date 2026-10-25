@@ -43,6 +43,7 @@ import furn_study  # noqa: F401
 import furn_bathroom  # noqa: F401
 import furn_desk  # noqa: F401
 import furn_fillers  # noqa: F401           (round 48i: radiator, blanket trunk, coat stand - the ordinary things a sparse wall was missing)
+import furn_plants  # noqa: F401           (round 48k: the tall floor plant and the small desk plant that replace the one 36 px plant on the floor)
 import furn_styles
 import furn_rooms
 
@@ -56,6 +57,7 @@ PIECE_MODULES = ('furn_bedroom',)
 
 
 def build_all(only=None):
+    FL.recheck_registry()                                                               # every rule on the final registry (after furn_styles widened some pieces)
     data = {'version': 1, 'lean_x': list(FL.LEAN_X), 'lean_mode': FL.LEAN_MODE, 'rules': furn_rooms.rules(), 'recipes': furn_rooms.built_recipes(), 'items': {}}
     files = {}
     for pid, pc in FL.REGISTRY.items():

@@ -16,7 +16,7 @@ const DustPuff := preload("res://scripts/dust_puff.gd")
 
 ## material → [name keywords (first match wins in this order)]
 const MATERIALS := [
-	["paper", ["book", "paper", "file_box", "file", "map", "plan", "canvas", "record", "box", "pizza", "dollhouse", "present", "note"]],
+	["paper", ["book", "paper", "toilet_roll", "file_box", "file", "map", "plan", "canvas", "record", "box", "pizza", "dollhouse", "present", "note"]],
 	["cloth", ["clothes", "pillow", "quilt", "sofa", "armchair", "wingback", "beanbag", "sleeping_bag", "sleeping", "towel", "hamper", "laundry", "bag",
 		"backpack", "mattress", "curtain", "pouffe", "rail", "bubbles", "rocking_horse", "toy"]],
 	["metal", ["tin", "bucket", "trolley", "trash", "toolbox", "gas_mask", "microwave", "kettle", "fridge", "oven", "filing", "candelabra", "lantern",
@@ -48,6 +48,7 @@ const KIND_SOUNDS := {
 	"lid": ["res://assets/audio/doors/creak1.ogg", 1, -12.0],
 	"topple": ["res://assets/audio/room/fall_%d.wav", 3, -10.0],
 	"screen_off": ["res://assets/audio/room/switch_0.wav", 1, -12.0],
+	"unroll": ["res://assets/audio/room/unroll_0.wav", 1, -12.0],
 }
 
 

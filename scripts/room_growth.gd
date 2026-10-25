@@ -26,8 +26,10 @@ const MARGIN := 14                      # the perspective walls between modules 
 const PLANT_REST := 6                   # a houseplant stands within this many px of a corner of the room or of a piece of furniture
 const FOOTING := 3                       # rows of clear floor a standing plant needs under it
 const BALCONY_X := 100                  # a balcony slot's doors occupy the left of the module
-const POTS := ["pot_fern_1", "pot_fern_2", "pot_flowers_3", "pot_flowers_4", "pot_flowers_5", "pot_tall_6", "pot_tall_7"]
-const DEAD_POTS := ["pot_dead_8", "pot_dead_9"]
+# HOME LOGIC (tools/art/home_logic.py, owner round 48k: "that plant on the floor… it would logically go on a table… a larger plant would be in a big pot on the floor and grow tall"):
+# a flat's FLOOR takes only TALL pots (>= home_logic.PLANT_FLOOR_MIN_H = 48 px); the small ones (fern, flowers, the little dead ones) stand on a balcony, where pots really do stand on the floor.
+const FLOOR_POTS := ["pot_tall_6", "pot_tall_7"]
+const FLOOR_DEAD_POTS := ["pot_taldead_10", "pot_taldead_11"]
 
 # room kinds: how they sit — the skyline they fit, and the row their foot / root is on
 const FIT := {
@@ -166,7 +168,7 @@ static func _houseplant(rng: RandomNumberGenerator, m: Dictionary, placed: Array
 	if has > 0.5 - 0.2 * depth:
 		return null
 	var dead: bool = style_roll < clampf(0.05 + 0.45 * depth + 0.22 * float(run - 1), 0.0, 0.9)
-	var list: Array = DEAD_POTS if dead else POTS
+	var list: Array = FLOOR_DEAD_POTS if dead else FLOOR_POTS
 	var name: String = String(list[pick % list.size()])
 	var tex := _tex(name)
 	if tex == null:

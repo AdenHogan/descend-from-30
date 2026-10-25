@@ -100,6 +100,15 @@ else
 	echo "FAIL   support audit — something would float above its furniture: see tools/art/support_audit.py and furnlib._settle_slots"; head -8 "$LOG_DIR/_support.log"
 	bad=$((bad + 1))
 fi
+# HOME LOGIC (owner round 48k: "this logic needs to be for everything… no one on earth has a piano in their kitchen"): every piece is a KIND of thing and a kind lists the only rooms a home could keep
+# it in; a floor piece says why a home keeps it there (a small plant is kept on a surface, only a tall one stands on a floor); the baked rooms' floor plants are tall; docs/HOME_LOGIC.md is current
+# (tools/art/home_logic.py, home_kinds.py). The rules are proven to FAIL by the script's own selftest and by tests/furniture_test.gd.
+if python3 tools/art/home_logic.py >"$LOG_DIR/_home.log" 2>&1; then
+	echo "ok     home logic ($(tail -1 "$LOG_DIR/_home.log" | sed 's/^home logic: //'))"
+else
+	echo "FAIL   home logic — see tools/art/home_logic.py (a piece outside its kind's rooms, a floor piece with no reason, a stale docs/HOME_LOGIC.md: python3 tools/art/home_logic.py --write)"; head -8 "$LOG_DIR/_home.log"
+	bad=$((bad + 1))
+fi
 # THE LOGO (owner round 48): assets/logo/* (png @1x / @4x, svg, ico) and docs/logo/logo_sheet.png are exactly what tools/art/logo.py draws, the four transparent
 # logo files really are transparent, the icon is 64 x 64, and the print's tones stay oxblood (never a comic red).
 if python3 tools/art/logo.py --check >"$LOG_DIR/_logo.log" 2>&1; then

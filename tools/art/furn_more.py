@@ -21,7 +21,7 @@ WOOD_LT = hexc('71503a')
 WOOD_OUT = hexc('2b1c13')
 
 
-# ================================================================================================================================ houseplants
+# ================================================================================================================================ houseplants (the leaf helper)
 def _leaf(lc, x0, y0, x1, y1, w, col, rib=True):
     """A lens-shaped leaf from (x0, y0) to (x1, y1), `w` wide at its belly, lit on one side, with a midrib."""
     dx, dy = x1 - x0, y1 - y0
@@ -46,54 +46,7 @@ def _leaf(lc, x0, y0, x1, y1, w, col, rib=True):
             lc.put(int(round(x0 + dx * t)), int(round(y0 + dy * t)), shade(col, 0.62))
 
 
-@piece('plant_pot', 20, 36, 'floor', rooms={'bedroom': 3, 'living_room': 7, 'study': 3, 'dining_room': 2, 'kitchen': 2, 'bathroom': 2}, styles={'adult': 3, 'sick': 2, 'teen': 1},
-       tags=('plant', 'clutter'), variants={'rubber': {'kind': 'rubber'}, 'fern': {'kind': 'fern'}, 'dead': {'kind': 'dead'}}, feet=(112, 119),
-       note='a houseplant in a terracotta pot: a rubber plant with broad ribbed leaves, a feathery fern, or one nobody watered — drooping brown leaves, dry soil, a cracked pot and a fallen leaf')
-def plant_pot(c, ox, oy, p):
-    kind = p['kind']
-    cx = ox + 10.0
-    K.contact_shadow(c, cx, oy + 0.5, 9, 1.6, 95)
-    L = K.Layer(c)
-    lc = L.c
-    pot = hexc('b0643c') if kind != 'dead' else hexc('9a6a48')
-    rng = random.Random(len(kind) * 9)
-    # the pot: a tapered terracotta bucket with a lit rim band, and its soil
-    K.frustum(lc, cx, oy - 11, oy - 1, 5.6, 4.0, pot, ry_t=1.7, ry_b=1.1, inner=hexc('3a2a20') if kind != 'dead' else hexc('8a7a68'), rim=shade(pot, 1.25), n=5, lo=0.5, hi=1.3)
-    lc.hline(int(cx - 6), int(cx + 5), oy - 10, shade(pot, 1.3))
-    lc.hline(int(cx - 5), int(cx + 4), oy - 9, shade(pot, 0.7))
-    if kind == 'dead':
-        for (px_, py_) in ((int(cx) - 1, oy - 8), (int(cx), oy - 6), (int(cx) + 1, oy - 4), (int(cx) + 1, oy - 3)):
-            lc.put(px_, py_, hexc('2a1c14'))                                                    # a crack
-        lc.put(int(cx) + 2, oy - 5, hexc('2a1c14'))
-    top = oy - 12
-    if kind == 'rubber':
-        stem = hexc('5a7a3c')
-        for dx in (-1, 0):
-            lc.vline(int(cx) + dx, oy - 24, top, shade(stem, 0.8))
-        for (dx, dy, ln, w) in ((-7, -22, 8, 2.6), (6, -21, 8, 2.6), (-4, -29, 8, 2.6), (3, -27, 8, 2.6), (-9, -16, 7, 2.2), (9, -15, 7, 2.2), (0, -33, 7, 2.2)):
-            _leaf(lc, cx, top - 6 - (0 if dy > -20 else 4), cx + dx, oy + dy, w, hexc('3f6a38') if (dx + dy) % 2 else hexc('4f7c40'))
-    elif kind == 'fern':
-        for k, a in enumerate((-70, -46, -22, 0, 22, 46, 70)):
-            ca, sa = math.sin(math.radians(a)), -math.cos(math.radians(a))
-            ln = 15 - abs(a) * 0.08
-            ex, ey = cx + ca * ln, top + sa * ln * 0.9 + 3
-            lc.line(int(cx), top, int(ex), int(ey + 6 * abs(a) / 70.0), hexc('3f6a38'))
-            for j in range(2, int(ln), 2):                                                      # the little leaflets along each frond
-                px_ = cx + ca * j
-                py_ = top + sa * j * 0.9 + 3 * (j / ln) + 6 * abs(a) / 70.0 * (j / ln)
-                lc.put(int(px_), int(py_) - 1, hexc('6a9a4a'))
-                lc.put(int(px_), int(py_) + 1, hexc('4a7a3a'))
-    else:
-        stems = ((-7, -19), (-3, -24), (3, -22), (8, -17), (-9, -12), (10, -11))
-        for (dx, dy) in stems:                                                                  # bare stems arching out and over, the leaves hanging dry off their ends
-            ex, ey = cx + dx, oy + dy
-            mx_, my_ = cx + dx * 0.55, top + (dy + 12) * 0.9
-            lc.line(int(cx), top, int(mx_), int(my_), hexc('6a5a3a'))
-            lc.line(int(mx_), int(my_), int(ex), int(ey), hexc('7a6a44'))
-            _leaf(lc, ex, ey, ex + (2 if dx > 0 else -2), ey + 7, 1.8, hexc('9a7a3a') if (dx % 2) else hexc('6a5230'))
-        lc.rect(int(cx) + 8, oy - 1, int(cx) + 11, oy, hexc('7a5a30'))                           # a leaf that has fallen
-        lc.put(int(cx) + 12, oy - 1, hexc('5a4222'))
-    L.flush()
+# (the houseplants are tools/art/furn_plants.py: a tall FLOOR plant and a small DESK plant — home_logic keeps a small one off the floor)
 
 
 # ================================================================================================================================ the bedside table

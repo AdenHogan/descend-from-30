@@ -53,17 +53,30 @@ _TOILETS = {
 
 @_fixture('toilet', 46, 36, rooms={'bathroom': 10}, styles=None, tags=('toilet', 'wet'),
           variants={k: {'t': k, 'for': v['forr']} for k, v in _TOILETS.items()},
-          anchors=({'name': 'toilet', 'dx': 12, 'dy': -22},),
-          note='a close-coupled toilet standing out from the wall, drawn in perspective: the cistern and its lever, the oval seat from above — white, avocado with its lid up, a gold throne with a red velvet seat, a squalid grey one, a pink one with a black seat — a roll of paper on its holder beside it')
+          anchors=({'name': 'toilet', 'dx': 12, 'dy': -22},
+                   {'name': 'toilet_rolls', 'dx': 39, 'dy': -29, 'if': {'t': 'white'}}, {'name': 'toilet_rolls', 'dx': 39, 'dy': -31, 'if': {'t': 'avocado'}},
+                   {'name': 'toilet_rolls', 'dx': 39, 'dy': -31, 'if': {'t': 'pink'}}),
+          slots=({'id': 'cistern', 'dx0': 3, 'dx1': 25, 'dy': -44, 'top': True, 'kinds': ('cistern',)},),
+          opens={'kind': 'unroll', 'frames': 4, 'anchor': 'toilet_rolls'},
+          note='a close-coupled toilet standing out from the wall, drawn in perspective: the cistern and its lever, the oval seat from above — white, avocado with its lid up, a gold throne with a red velvet seat, a squalid grey one, a pink one with a black seat — a roll of paper on its holder beside it (searched, the sheet unrolls); the cistern lid is a surface a small plant or a spare roll stands on')
 def toilet(c, ox, oy, p):
     spec = _TOILETS[p['t']]
     cx = ox + 14
     BR.toilet3d(c, cx, **spec['kw'])
     if spec['roll'] is not None:
-        BR.toilet_roll(c, cx + 22, spec['rolly'], spec['roll'])
+        BR.toilet_roll(c, cx + 22, spec['rolly'], spec['roll'], sheet=0.3 + 0.7 * float(p.get('open', 0.0)))     # searched, the sheet comes off the roll
     if p['t'] == 'wet':                                                                              # black mould creeping up behind the pan, spare rolls by it
         BR.mould_bloom(c, cx - 14, 92, 12, 22, seed=14, up=True)
         BR.standing_rolls(c, cx + 27, 102)
+
+
+# ---- a spare roll standing on the cistern (home logic: a small thing stands ON something)
+@piece('toilet_roll_spare', 9, 9, 'top', rooms={'bathroom': 5}, tags=('small', 'toilet'), on=('cistern',), limit=1,
+       variants={'white': {'paper': 'ece6d6'}, 'cream': {'paper': 'e4d8b8'}, 'pink': {'paper': 'ecc8d0'}},
+       note='a spare roll of paper standing on its end on the cistern, the cardboard tube hollow at the top')
+def toilet_roll_spare(c, ox, oy, p):
+    import props3d
+    props3d.spare_roll(c, ox + 4.5, oy, hexc(p['paper']))
 
 
 # ================================================================================================================================ the basin
@@ -250,7 +263,7 @@ def washer(c, ox, oy, p):
 
 
 # ================================================================================================================================ baskets, buckets, stools
-@piece('laundry_basket3d', 30, 20, 'floor', bucketed=True, lean=False, rooms={'bathroom': 7}, styles={'wetroom': 9, 'tub': 5, 'avocado': 4, 'pink': 4, 'gilded': 0.01}, tags=('clutter', 'clothes', 'laundry'),
+@piece('laundry_basket3d', 30, 20, 'floor', keep='clothes', bucketed=True, lean=False, rooms={'bathroom': 7}, styles={'wetroom': 9, 'tub': 5, 'avocado': 4, 'pink': 4, 'gilded': 0.01}, tags=('clutter', 'clothes', 'laundry'),
        variants={'plastic': {'k': 'plastic', 'for': ['wetroom']}, 'wicker': {'k': 'wicker', 'for': ['tub', 'avocado']}, 'white': {'k': 'white', 'for': ['pink']}},
        anchors=({'name': 'laundry_basket', 'dx': 14, 'dy': -10},), feet=(118, 118), near=('wet',),
        note='a laundry basket by the wall: a blue plastic tub with slots, washing heaped in it; a round wicker hamper with a lid and a towel caught under it; or a white wicker one with a pink rim')
@@ -272,21 +285,21 @@ def laundry_basket3d(c, ox, oy, p):
         setback(c, _hamper, depth=3, top=78, x_range=(cx - 14, cx + 14))
 
 
-@piece('stool_radio', 24, 38, 'floor', bucketed=True, lean=False, rooms={'bathroom': 5}, styles={'avocado': 9}, tags=('clutter', 'music'),
+@piece('stool_radio', 24, 38, 'floor', keep='stand', bucketed=True, lean=False, rooms={'bathroom': 5}, styles={'avocado': 9}, tags=('clutter', 'music'),
        variants={'teak': {'for': ['avocado']}}, anchors=({'name': 'radio_stool', 'dx': 12, 'dy': -17},), feet=(118, 118),
        note='a wooden stool against the wall with a transistor radio on it, its aerial up, a speaker grille and a tuning dial')
 def stool_radio(c, ox, oy, p):
     BR.stool_radio3d(c, ox + 12)
 
 
-@piece('mop_bucket3d', 28, 34, 'floor', bucketed=True, lean=False, rooms={'bathroom': 6}, styles={'avocado': 9, 'wetroom': 4, 'tub': 2}, tags=('clutter', 'wet', 'cleaning'),
+@piece('mop_bucket3d', 28, 34, 'floor', keep='cleaning', bucketed=True, lean=False, rooms={'bathroom': 6}, styles={'avocado': 9, 'wetroom': 4, 'tub': 2}, tags=('clutter', 'wet', 'cleaning'),
        variants={'red': {'for': ['avocado', 'wetroom', 'tub']}}, anchors=({'name': 'mop_bucket', 'dx': 14, 'dy': -10},), feet=(118, 118),
        note='a round red mop bucket standing a little out from the wall: grey water inside, the mop head sunk in it and its handle leant back against the wall, a wire handle')
 def mop_bucket3d(c, ox, oy, p):
     BR.mop_bucket(c, ox + 1, 100)
 
 
-@piece('champagne_stand', 18, 38, 'floor', bucketed=True, lean=False, rooms={'bathroom': 5}, styles={'gilded': 9}, tags=('clutter', 'drink'),
+@piece('champagne_stand', 18, 38, 'floor', keep='stand', bucketed=True, lean=False, rooms={'bathroom': 5}, styles={'gilded': 9}, tags=('clutter', 'drink'),
        variants={'gold': {'for': ['gilded']}}, anchors=({'name': 'champagne', 'dx': 9, 'dy': -20},), feet=(118, 118),
        note='a gold ice-bucket on a stand beside the tub with a bottle of champagne in it')
 def champagne_stand(c, ox, oy, p):
@@ -358,7 +371,7 @@ class _Off:
 
 
 # ================================================================================================================================ mirrors
-@piece('mirror_bath', 36, 36, 'decor', rooms={'bathroom': 9}, styles={'tub': 9, 'avocado': 9, 'gilded': 9, 'wetroom': 9, 'pink': 9}, tags=('picture', 'mirror'), above=('basin',), wall_y=(18, 32), limit=1,
+@piece('mirror_bath', 36, 36, 'decor', rooms={'bathroom': 9}, styles={'tub': 9, 'avocado': 9, 'gilded': 9, 'wetroom': 9, 'pink': 9}, tags=('picture', 'mirror'), above=('basin',), must_above=True, wall_y=(18, 32), limit=1,
        variants={'cabinet': {'k': 'cabinet', 'for': ['tub']}, 'round_crack': {'k': 'round', 'for': ['avocado']}, 'gilt': {'k': 'gilt', 'for': ['gilded']},
                  'tile': {'k': 'tile', 'for': ['wetroom']}, 'pink_round': {'k': 'pink', 'for': ['pink']}},
        note='the mirror over the basin: a mirrored medicine cabinet with its door swung open on bottles (classic), a cracked round one (avocado), a gilt-framed one with ornate corners (gilded), a cracked mirror tile (wetroom), a round one in a pink frame')

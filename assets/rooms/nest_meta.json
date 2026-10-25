@@ -20,7 +20,7 @@
  "bathroom_c_nest_rise_l": {"flies": [[256, 122], [166, 134]], "bodies": [], "dead": [[92, 126, 204, 141, 140]], "riser": [212, 131, 1], "zombies": [[166, 134]]},
  "bathroom_c_nest_rise_r": {"flies": [[233, 132], [84, 122], [214, 134]], "bodies": [], "dead": [[140, 124, 252, 141, 140]], "riser": [128, 131, -1], "zombies": [[214, 134]]},
  "bathroom_d_nest_corpse_l": {"flies": [[269, 131], [169, 134]], "bodies": [[266, 132]], "dead": [[232, 125, 299, 141, 140], [92, 125, 207, 141, 140]], "zombies": [[169, 134]]},
- "bathroom_d_nest_corpse_r": {"flies": [[39, 131], [123, 134]], "bodies": [[43, 132]], "dead": [[9, 125, 76, 141, 140], [84, 126, 201, 141, 140]], "zombies": [[123, 134]]},
+ "bathroom_d_nest_corpse_r": {"flies": [[39, 131], [181, 134]], "bodies": [[44, 133]], "dead": [[11, 127, 76, 141, 140], [101, 124, 219, 141, 140]], "zombies": [[181, 134]]},
  "bathroom_d_nest_door_l": {"flies": [], "bodies": []},
  "bathroom_d_nest_door_r": {"flies": [], "bodies": []},
  "bathroom_d_nest_doorkill_l": {"flies": [[248, 131], [167, 123]], "bodies": [[245, 132]], "dead": [[211, 125, 278, 141, 140]]},

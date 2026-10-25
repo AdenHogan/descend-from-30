@@ -151,7 +151,7 @@ def trunk(c, ox, oy, p):
 COATS = {'grey': hexc('5d6068'), 'green': hexc('4b5a3c'), 'mustard': hexc('a8873a'), 'navy': hexc('2f3a52')}
 
 
-@piece('coat_stand', 26, 66, 'wall', rooms={'living_room': 2, 'study': 2, 'dining_room': 1, 'bedroom': 1}, depth=0, limit=1, tags=('hall',),
+@piece('coat_stand', 26, 66, 'wall', rooms={'living_room': 2, 'study': 2, 'bedroom': 1}, depth=0, limit=1, tags=('hall',),
        variants={k: {'coat': v} for k, v in COATS.items()}, feet=(105, 109),
        note='a turned hat-and-coat stand on a splayed foot: a slim pole with two rings of pegs, a coat on one, a knitted scarf on another, a bowler on the finial')
 def coat_stand(c, ox, oy, p):

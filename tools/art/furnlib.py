@@ -58,6 +58,9 @@ STYLES = ('adult', 'teen', 'kid', 'sick', 'bedsit',                       # bedr
           'tub', 'avocado', 'gilded', 'wetroom', 'pink')                     # bathrooms
 ROOM_TYPES = ('bedroom', 'bathroom', 'kitchen', 'study', 'living_room', 'dining_room')
 
+import home_kinds as HK            # WHAT EVERY THING IS and the rooms a home could keep it in: tools/art/home_kinds.py
+import home_logic as HL            # HOW A HOME KEEPS A THING (floor vs surface, by kind and size): tools/art/home_logic.py — registration refuses a piece that breaks it
+
 # THE LOGIC, as data (owner round 47: "we do not ever need a bed in a kitchen"). A piece carrying one of these TAGS may only list rooms from the set — registration REFUSES a
 # piece that breaks it, so a new piece cannot be put somewhere it makes no sense even by accident. The planner only ever draws from the room's own pool, and
 # tests/furniture_test.gd re-checks every placement it makes against the same table (data/furniture.json carries it as "rules").
@@ -88,7 +91,7 @@ class Piece:
     face) at y = oy; `p` is the variant's parameter dict (colourway, which way the head of a bed faces, an open state 0..1…)."""
 
     def __init__(self, pid, draw, w, h, plane, rooms, styles, tags, variants, depth, lean, bucketed, surface_h, anchors, lights, slots, on, opens, anims,
-                 pair, near, wall_y, ceiling_drop, feet, sound, note, limit=None, needs=None, post=None, companion_only=False, above=(), lap=6, under=()):
+                 pair, near, wall_y, ceiling_drop, feet, sound, note, limit=None, needs=None, post=None, companion_only=False, above=(), lap=6, under=(), keep=None, kind=None, must_above=False):
         self.id, self.draw, self.w, self.h = pid, draw, w, h
         self.plane, self.rooms, self.styles, self.tags = plane, rooms, styles, tags
         self.variants = variants              # {variant id: params}
@@ -106,6 +109,9 @@ class Piece:
         self.above = tuple(above)             # hung things: tags of the pieces it prefers to hang above (wall cupboards over the run)
         self.lap = lap                        # a floor piece may overlap a body's drawn rect by this many rows along its lower edge (a coffee table over the front of the sofa)
         self.under = tuple(under)             # a rug that may lie (part) under bodies with these tags (a living-room rug under the sofa)
+        self.must_above = must_above          # a hung piece that is ONLY ever hung over one of its `above` pieces (a bathroom mirror over the basin, wall cupboards over the worktop)
+        self.kind = kind                      # what it IS (home_kinds.KINDS): the rooms a home could keep it in are an upper bound on `rooms`
+        self.keep = keep                      # a FLOOR piece's reason for standing on a floor (home_logic.FLOOR_KEEPS): 'seat', 'footwear', 'plant' (tall, big pot)…; None for every other plane
         self.limit = limit                    # at most this many in one room (None = the planner's default for its plane)
         self.companion_only = companion_only  # only ever placed as someone's companion (a desk chair), never on its own
         self.post = post                      # post(c, ox, oy, p, shift): drawn AFTER the set-back lean (things whose own perspective needs the piece's final shift, a CRT on a desk)
@@ -113,10 +119,28 @@ class Piece:
 
 
 REGISTRY = {}
+HOME_VIOLATIONS = []
+
+
+def recheck_registry():
+    """Every rule again on the FINAL registry — `furn_styles.apply()` widens some pieces to more rooms after registration, and a widened piece must still make sense there."""
+    for pid, pc in REGISTRY.items():
+        for t_ in pc.tags:
+            if t_ in TAG_ROOMS:
+                for r_ in pc.rooms:
+                    if r_ not in TAG_ROOMS[t_] and os.environ.get('HOME_REPORT'):
+                        HOME_VIOLATIONS.append('%s: a "%s" piece may not go in a %s (allowed: %s)' % (pid, t_, r_, ', '.join(TAG_ROOMS[t_])))
+                        continue
+                    assert r_ in TAG_ROOMS[t_], '%s: a "%s" piece may not go in a %s (allowed: %s)' % (pid, t_, r_, ', '.join(TAG_ROOMS[t_]))
+        why_ = HL.issue(pc.plane, pc.h, pc.tags, pc.keep, tuple(pc.rooms), pc.kind)
+        if why_ and os.environ.get('HOME_REPORT'):
+            HOME_VIOLATIONS.append('%s %s' % (pid, why_))
+        else:
+            assert not why_, '%s %s' % (pid, why_)
 
 
 def piece(pid, w, h, plane, rooms, styles=None, tags=(), variants=None, depth=0, lean=None, bucketed=None, surface_h=None, anchors=(), lights=(), slots=(),
-          on=(), opens=None, anims=(), pair=None, near=(), wall_y=None, ceiling_drop=0, feet=None, sound=None, note='', limit=None, needs=None, post=None, companion_only=False, above=(), lap=6, under=()):
+          on=(), opens=None, anims=(), pair=None, near=(), wall_y=None, ceiling_drop=0, feet=None, sound=None, note='', limit=None, needs=None, post=None, companion_only=False, above=(), lap=6, under=(), keep=None, must_above=False):
     """Register a piece (a decorator for its draw function). See Piece. `rooms` {room: weight}; `styles` {style: weight} (None = any style at weight 1)."""
     assert plane in PLANES, plane
     for r_ in rooms:
@@ -128,6 +152,13 @@ def piece(pid, w, h, plane, rooms, styles=None, tags=(), variants=None, depth=0,
     if styles is not None:
         for s_ in styles:
             assert s_ in STYLES, s_
+    assert not must_above or above, '%s: must_above needs an `above` list' % pid
+    kind_ = HK.PIECE_KIND.get(pid)
+    why_ = HL.issue(plane, h, tuple(tags), keep, tuple(rooms), kind_)
+    if why_ and os.environ.get('HOME_REPORT'):                                           # HOME_REPORT=1 lists every violation instead of stopping at the first
+        HOME_VIOLATIONS.append('%s %s' % (pid, why_))
+    else:
+        assert not why_, '%s %s' % (pid, why_)
 
     def deco(fn):
         assert pid not in REGISTRY, 'duplicate piece ' + pid
@@ -135,7 +166,7 @@ def piece(pid, w, h, plane, rooms, styles=None, tags=(), variants=None, depth=0,
         is_bucketed = is_lean if bucketed is None else bucketed
         REGISTRY[pid] = Piece(pid, fn, w, h, plane, dict(rooms), dict(styles) if styles else None, tuple(tags), variants or {'a': {}}, depth, is_lean, is_bucketed,
                               surface_h if surface_h is not None else h, tuple(anchors), tuple(lights), tuple(slots), tuple(on), opens, tuple(anims), pair, tuple(near),
-                              wall_y, ceiling_drop, feet or {'wall': (105, 109), 'front': (114, 120), 'floor': (108, 120), 'rug': (112, 118)}.get(plane, (0, 0)), sound, note, limit, needs, post, companion_only, above, lap, under)
+                              wall_y, ceiling_drop, feet or {'wall': (105, 109), 'front': (114, 120), 'floor': (108, 120), 'rug': (112, 118)}.get(plane, (0, 0)), sound, note, limit, needs, post, companion_only, above, lap, under, keep, kind_, must_above)
         return fn
     return deco
 
@@ -377,7 +408,7 @@ def build_piece(pc):
     rec = {'plane': pc.plane, 'rooms': pc.rooms, 'styles': pc.styles, 'tags': list(pc.tags), 'w': pc.w, 'h': pc.h, 'lean': pc.lean, 'bucketed': pc.bucketed,
            'variants': {}, 'on': list(pc.on), 'pair': pc.pair, 'near': list(pc.near), 'wall_y': list(pc.wall_y) if pc.wall_y else None,
            'ceiling_drop': pc.ceiling_drop, 'feet': list(pc.feet), 'sound': pc.sound, 'note': pc.note, 'opens': dict(pc.opens) if pc.opens else None,
-           'limit': pc.limit, 'needs': pc.needs, 'companion_only': pc.companion_only, 'above': list(pc.above), 'lap': pc.lap, 'under': list(pc.under)}
+           'limit': pc.limit, 'needs': pc.needs, 'companion_only': pc.companion_only, 'above': list(pc.above), 'lap': pc.lap, 'under': list(pc.under), 'keep': pc.keep, 'kind': pc.kind, 'must_above': pc.must_above}
     for vid, params in pc.variants.items():
         sprites = []
         first_spr = first_info = None

@@ -123,7 +123,7 @@ def _toy_chest(c, cx):
     L2.flush()
 
 
-@piece('toy_chest', 36, 30, 'floor', rooms={'bedroom': 4, 'living_room': 3}, styles={'kid': 8, 'teen': 1}, tags=('toy', 'storage'), variants={'blue': {}}, bucketed=True,
+@piece('toy_chest', 36, 30, 'floor', keep='storage', rooms={'bedroom': 4, 'living_room': 3}, styles={'kid': 8, 'teen': 1}, tags=('toy', 'storage'), variants={'blue': {}}, bucketed=True,
        anchors=({'name': 'toy_chest', 'dx': 18, 'dy': -10},), near=('sleeping',), feet=(116, 119),
        note='a worn blue toy chest in true perspective: two shades of plank, paint chipped back to wood, TOYS stencilled across the front, a lid with a star and a heart sticker, toys heaped high (teddy, drum, blocks, ball, trumpet, a stocking) and the teddy\'s arm hanging over the rim')
 def toy_chest(c, ox, oy, p):
@@ -147,7 +147,7 @@ def _lying_cyl(lc, x0, x1, yb, r, col):
     T3.lying_cyl(lc, x0, x1, yb, r, col)
 
 
-@piece('block_tower', 28, 28, 'floor', rooms={'bedroom': 4, 'living_room': 3}, styles={'kid': 8}, tags=('toy',), near=('toy',), feet=(106, 112), bucketed=True, lean=False,
+@piece('block_tower', 28, 28, 'floor', keep='toy', rooms={'bedroom': 4, 'living_room': 3}, styles={'kid': 8}, tags=('toy',), near=('toy',), feet=(106, 112), bucketed=True, lean=False,
        variants={'a': {'v': 0}, 'b': {'v': 1}, 'c': {'v': 2}},
        note='wooden toy blocks with letters, numbers and little animals, in the baked child\'s room\'s own drawing (toys3d.py): a square tower of three with a roof block and one beside it, a plank bridge with a drum on top, or a scatter with a roof block and a cylinder on its side; the side faces turn toward the room\'s middle')
 def block_tower(c, ox, oy, p):
@@ -178,7 +178,7 @@ def block_tower(c, ox, oy, p):
 
 
 # ================================================================================================================================ the rag doll
-@piece('rag_doll', 13, 20, 'floor', rooms={'bedroom': 4, 'living_room': 3}, styles={'kid': 8}, tags=('toy',),
+@piece('rag_doll', 13, 20, 'floor', keep='toy', rooms={'bedroom': 4, 'living_room': 3}, styles={'kid': 8}, tags=('toy',),
        variants={'a': {'dress': '5a82c0', 'hair': 'c8742c', 'skin': 'f0d4b8', 'apron': 'f0ead8'}, 'b': {'dress': 'c9a24e', 'hair': '4a3020', 'skin': 'd8a880', 'apron': 'e6d8c0'}},
        near=('sleeping',), feet=(112, 119),
        note='a rag doll slumped on the floor: yarn hair in braids with ribbons, button eyes, a stitched smile, rosy cheeks, a dress and apron, one arm up and one down, striped stockings, black shoes')

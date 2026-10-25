@@ -13,7 +13,7 @@ from furn_bedroom import _legacy, CLOTH
 PINE = F.PINE
 STAR = hexc('d9c24a')
 # --- the desk ----------------------------------------------------------------------------------------------------------------------------------------
-@piece('chair_office', 28, 30, 'floor', rooms={'bedroom': 6, 'study': 8}, styles={'teen': 6, 'adult': 1}, tags=('seat',),
+@piece('chair_office', 28, 30, 'floor', keep='seat', rooms={'bedroom': 6, 'study': 8}, styles={'teen': 6, 'adult': 1}, tags=('seat',),
        variants={'left': {'yaw': -40}, 'right': {'yaw': 40}, 'front': {'yaw': 0}}, feet=(116, 121), companion_only=True, note='an office chair rolled back from the desk, swivelled toward the room')
 def chair_office(c, ox, oy, p):
     import chair3d as C3

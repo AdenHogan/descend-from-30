@@ -438,3 +438,84 @@ def copper_pot(c, x, rail_y, r):
     lc.hline(x - r + 2, x + r - 2, cy - r, hexc('d8904a'))
     lc.rect(x + r, cy - 1, x + r + 3, cy, hexc('6a4a30'))                                     # the handle
     L.flush()
+
+
+# ================================================================================================================================ toilet paper
+CARD = hexc('b08a5c')                 # the cardboard tube
+
+
+def _roll_tones(paper):
+    return K.tones(paper, 5, 0.66, 1.1)
+
+
+def toilet_roll(c, x, y, paper=hexc('ece6d6'), sheet=0.3):
+    """A roll on a wall holder, seen from the front and a little above (owner round 48k: "that toilet roll is flat. it needs to be an object"): a chrome bracket off a wall plate, a
+    cylinder of paper lying along the wall — lit along its top, shaded under, wraps showing — its END facing the room as a disc with the rings of the paper round a hollow cardboard
+    tube (what makes it read as a roll), and the sheet hanging down the wall off the front: perforations, a ragged tear, a little shadow on the wall. `sheet` 0..1 = how much is pulled
+    off (the searched roll unrolls: the toilet's own animation draws this at 0 .. 1). (x, y) = the top-left of the roll's body; 7 + 3 px wide, 10 tall, the sheet below it."""
+    L = K.Layer(c)
+    lc = L.c
+    bw, d = 7, 10
+    tn = _roll_tones(paper)
+    ln = int(round(4 + 11 * max(0.0, min(1.0, sheet))))                                       # the hanging sheet, in rows
+    c.shadow(x + bw / 2.0 + 1, y + d + ln, bw * 0.6, 1.2, 70)                                    # on the wall under the sheet
+    CH, CD = hexc('aab0b2'), hexc('6e7478')
+    lc.rect(x - 3, y + 2, x - 2, y + d - 2, CD)                                               # the plate on the wall…
+    lc.vline(x - 3, y + 2, y + d - 2, CH)
+    lc.hline(x - 1, x, y + d // 2, CD)                                                        # …and the arm into the tube
+    lc.hline(x - 1, x, y + d // 2 - 1, CH)
+    for j in range(d):                                                                       # the body: a horizontal cylinder, light from above
+        u = (j + 0.5 - d / 2.0) / (d / 2.0)
+        nz = math.sqrt(max(0.0, 1.0 - u * u))
+        lam = max(0.0, -0.45 * u + 0.78 * nz)
+        col = K._pick(tn, 0.10 + 0.95 * lam)
+        for i in range(bw):
+            lc.put(x + i, y + j, col)
+    for j in (3, 6):                                                                         # wraps along the roll
+        lc.hline(x + 1, x + bw - 1, y + j, shade(paper, 0.86 if j == 3 else 0.7))
+    lc.vline(x, y + 1, y + d - 2, shade(paper, 0.82))                                         # the holder end, in shade
+    ex, ey = x + bw + 0.4, y + d / 2.0                                                        # the end disc, facing the room
+    K.ell(lc, ex, ey, 2.7, d / 2.0, shade(paper, 1.08))
+    K.ell(lc, ex, ey, 1.9, d / 2.0 - 1.5, shade(paper, 0.86))                                 # the rings of paper round the tube…
+    K.ell(lc, ex + 0.1, ey, 1.2, 2.0, CARD)                                                   # …the cardboard tube…
+    K.ell(lc, ex + 0.2, ey, 0.7, 1.2, hexc('3a2a1c'))                                         # …and the hole through it
+    sx0, sx1 = x + 1, x + bw - 1
+    top_ = y + d - 2
+    for r in range(ln):                                                                      # the sheet off the front of the roll, down the wall
+        t = r / float(max(1, ln - 1))
+        base = shade(paper, 0.80 + 0.17 * min(1.0, r / 2.0) - 0.05 * t)
+        for i in range(sx0, sx1 + 1):
+            lc.put(i, top_ + r, base)
+        lc.put(sx0, top_ + r, shade(paper, 0.98))
+        lc.put(sx1, top_ + r, shade(paper, 0.7))
+        if r in (5, 11) and r < ln - 1:                                                       # the perforations
+            for i in range(sx0 + 1, sx1, 2):
+                lc.put(i, top_ + r, shade(paper, 0.68))
+    if ln > 2:
+        for i in range(sx0, sx1 + 1):                                                         # the torn end: ragged
+            if (i + ln) % 3 == 0:
+                lc.put(i, top_ + ln - 1, (0, 0, 0, 0))
+        lc.hline(sx0, sx1, top_ + ln - 2, shade(paper, 1.06))
+    L.flush()
+
+
+def spare_roll(c, cx, base, paper=hexc('ece6d6')):
+    """A spare roll standing on its end (on a cistern, on a shelf): a short cylinder, wraps showing, the cardboard tube hollow at the top."""
+    L = K.Layer(c)
+    lc = L.c
+    tn = _roll_tones(paper)
+    c.shadow(cx, base + 0.4, 4.2, 1.1, 90)
+    K.cyl(lc, cx, base - 7.0, base - 0.6, 3.4, paper, ry=1.4, cap=True, cap_col=shade(paper, 1.06), n=5, lo=0.66, hi=1.1, inner=CARD)
+    for yy in (base - 5, base - 3):
+        for x in range(int(cx - 3), int(cx + 3)):
+            u = (x + 0.5 - cx) / 3.4
+            if abs(u) <= 1.0:
+                lc.put(x, yy, shade(paper, 1.0 - 0.34 * (u + 1.0) * 0.5 - 0.12))
+    L.flush()
+
+
+def roll_stack(c, x, base, n=3, paper=hexc('d8d2c2')):
+    """Spare rolls stacked against the wall: two on the floor, one on top (n = 1..3)."""
+    spots = [(0, 0), (8, 0), (4, -6)][:n]
+    for (dx, dh) in spots:
+        spare_roll(c, x + dx + 3, base + dh, paper)

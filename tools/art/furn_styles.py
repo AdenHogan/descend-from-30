@@ -29,7 +29,7 @@ STYLES = {
     'picture_landscape': {'cosy': 6, 'mid': 3, 'lodge': 2, 'family': 5, 'formal': 2, 'diner': 2, 'den': 3, 'library': 2, 'office': 1},
     'picture_portrait': {'parlour': 5, 'cosy': 3, 'formal': 3, 'family': 2, 'library': 5, 'den': 2},
     'pizza_boxes': {'squat': 8, 'party': 2, 'houseshare': 3},
-    'plant_pot': {'cosy': 3, 'mid': 4, 'parlour': 2, 'lodge': 1, 'family': 3, 'diner': 4, 'formal': 2, 'office': 4, 'den': 2, 'library': 3, 'gilded': 5, 'tub': 2, 'pink': 2},
+    'plant_floor': {'cosy': 3, 'mid': 4, 'parlour': 2, 'lodge': 1, 'family': 3, 'diner': 4, 'formal': 2, 'office': 4, 'den': 2, 'library': 3},
     'poster_film': {'squat': 4, 'bedsit': 4},
     'poster_game': {'squat': 4, 'bedsit': 3},
     'poster_gig': {'squat': 6, 'studio': 2, 'bedsit': 6},
@@ -48,6 +48,9 @@ STYLES = {
     'lamp_floor': {'library': 6, 'den': 3, 'office': 1},
     'armchair': {'library': 6, 'den': 5, 'office': 3, 'studio': 2},
     # ---- bathrooms (tub avocado gilded wetroom pink)
+    'piano_upright': {'library': 3, 'den': 2, 'formal': 4, 'family': 1, 'adult': 1},
+    'picture_landscape': {'tub': 3, 'avocado': 2, 'pink': 2, 'gilded': 2, 'wetroom': 1},
+    'wall_shelf': {'tub': 3, 'avocado': 3, 'pink': 3, 'gilded': 2, 'wetroom': 1},
     'pill_cabinet': {'avocado': 3, 'wetroom': 2},
     'clothes_pile': {'wetroom': 6, 'tub': 1},
     'slippers': {'pink': 3, 'tub': 3, 'avocado': 2},
@@ -73,8 +76,15 @@ ROOMS = {
     'photo_small': {'study': 3},
     'calendar_wall': {'dining_room': 2},
     'clock_cuckoo': {'dining_room': 3},
+    # round 48k (home logic): the bathroom has things a bathroom really has — a radiator, a picture, a shelf, a magazine on the cistern, a spare roll (furn_bathroom)
+    'radiator': {'bathroom': 3},
+    'piano_upright': {'study': 2, 'dining_room': 2, 'bedroom': 1},          # the owner's example: a piano may be in a living room, a bedroom, a study or a dining room — never a kitchen or a bathroom
+    'picture_landscape': {'bathroom': 2},
+    'wall_shelf': {'bathroom': 3},
+    'magazines': {'bathroom': 3},
 }
 ON = {
+    'magazines': ('cistern',),
     'fruit_bowl': ('table',),
     'teapot': ('table', 'low'),
     'mugs': ('table', 'low'),

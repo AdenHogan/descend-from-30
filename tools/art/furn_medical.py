@@ -20,7 +20,7 @@ STEEL = hexc('a4adb2')
 
 
 # ================================================================================================================================ the drip stand
-@piece('drip_stand', 16, 62, 'floor', rooms={'bedroom': 4, 'bathroom': 3}, styles={'sick': 8, 'adult': 1}, tags=('medical',), variants={'clear': {'liq': 'dcecee'}, 'amber': {'liq': 'e8d49a'}},
+@piece('drip_stand', 16, 62, 'floor', keep='tall', rooms={'bedroom': 4}, styles={'sick': 8, 'adult': 1}, tags=('medical',), variants={'clear': {'liq': 'dcecee'}, 'amber': {'liq': 'e8d49a'}},
        anims=({'kind': 'drop', 'dx': 7, 'dy': -37, 'fall': 3, 'color': 'e8f0f0'},), near=('sleeping',), feet=(114, 118),
        note='an IV drip stand on a five-star castor base: chrome pole, a bag with a fluid level and a label, a drip chamber that still drips, a looped line')
 def drip_stand(c, ox, oy, p):
@@ -122,7 +122,7 @@ def wheelchair_model():
     return m
 
 
-@piece('wheelchair', 33, 36, 'floor', rooms={'bathroom': 2, 'bedroom': 4, 'living_room': 1}, styles={'sick': 8, 'adult': 1}, tags=('medical',),
+@piece('wheelchair', 33, 36, 'floor', keep='seat', rooms={'bathroom': 2, 'bedroom': 4, 'living_room': 1}, styles={'sick': 8, 'adult': 1}, tags=('medical',),
        variants={'purple_l': {'yaw': 62, 'rug': '7a5a8a'}, 'purple_r': {'yaw': -62, 'rug': '7a5a8a'}, 'green_l': {'yaw': 40, 'rug': '4e6a5a'}, 'tartan_r': {'yaw': -40, 'rug': '8a4a3e'}},
        anchors=({'name': 'wheelchair', 'dx': 16, 'dy': -19},), near=('sleeping',), feet=(116, 120),
        note='a folding wheelchair, turned toward the room: spoked wheels with hand rims, casters, a sling seat and back, a blanket across the seat')
@@ -132,7 +132,7 @@ def wheelchair(c, ox, oy, p):
 
 
 # ================================================================================================================================ the medicine trolley
-@piece('med_trolley', 34, 38, 'floor', rooms={'bedroom': 4, 'bathroom': 3}, styles={'sick': 8}, tags=('medical',), variants={'a': {}, 'b': {'alt': True}},
+@piece('med_trolley', 34, 38, 'floor', keep='stand', rooms={'bedroom': 4}, styles={'sick': 8}, tags=('medical',), variants={'a': {}, 'b': {'alt': True}},
        anchors=({'name': 'med_trolley', 'dx': 10, 'dy': -28},), near=('sleeping',), feet=(116, 120),
        note='a two-tier steel medicine trolley on castors: an enamel basin, a stack of towels, bottles on the top tray; a first-aid box and a folded blanket below')
 def med_trolley(c, ox, oy, p):

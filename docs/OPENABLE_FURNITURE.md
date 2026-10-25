@@ -101,3 +101,10 @@ open frame's light, openings that survive a breach "nest" overlay being drawn ov
   produces must use a node whose NAME can't hide one (the generic-reaction test uses `bath_left`).
 - **Checked in the real engine** (xvfb, a scratch scene that rendered a module at game zoom and played a reaction): kitchen B's larder jar tips, its oven
   drops, the rat runs. The rest are contact strips + headless tests.
+
+## Round 48k — `unroll` (the toilet roll)
+
+A planned piece may open with the kind **`unroll`**: the toilet's `opens={'kind': 'unroll', 'frames': 4, 'anchor': 'toilet_rolls'}` redraws the whole piece per frame with `p['open']` 0..1 driving how much paper hangs
+(`BR.toilet_roll(..., sheet=0.3 + 0.7 * open)`), exactly like a drawer. Pressing interact on `anchor_bathroom_toilet_rolls` plays the frames (`open_furniture.play`), with `NodeReaction.KIND_SOUNDS["unroll"]`
+(`unroll_0.wav`: the spindle ticking as it slows, the sheet rasping off, a tear); the longer sheet is the rest state afterwards. `NodeReaction.material_for` calls a `toilet_roll` node paper (the toilet's special
+cistern sound still excludes it). Only the three toilets that hang a roll (white / avocado / pink) have the node. Tested by `open_furniture_test._test_toilet_roll` (the drawn paper grows frame by frame).

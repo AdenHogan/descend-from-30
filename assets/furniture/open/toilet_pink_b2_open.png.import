@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bd5bjk0whfg0d"
-path="res://.godot/imported/plant_pot_rubber.png-9a16a3382768be9c9bd167e8a1602330.ctex"
+uid="uid://b6073pyj41fbx"
+path="res://.godot/imported/toilet_pink_b2_open.png-e2f6ee17a37c1dd6def09bff0d440c9e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/furniture/plant_pot_rubber.png"
-dest_files=["res://.godot/imported/plant_pot_rubber.png-9a16a3382768be9c9bd167e8a1602330.ctex"]
+source_file="res://assets/furniture/open/toilet_pink_b2_open.png"
+dest_files=["res://.godot/imported/toilet_pink_b2_open.png-e2f6ee17a37c1dd6def09bff0d440c9e.ctex"]
 
 [params]
 

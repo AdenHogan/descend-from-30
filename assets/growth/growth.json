@@ -229,6 +229,18 @@
    "pin": "bottom",
    "w": 27
   },
+  "pot_taldead_10": {
+   "h": 57,
+   "kind": "potted",
+   "pin": "none",
+   "w": 17
+  },
+  "pot_taldead_11": {
+   "h": 59,
+   "kind": "potted",
+   "pin": "none",
+   "w": 17
+  },
   "pot_tall_6": {
    "h": 53,
    "kind": "potted",

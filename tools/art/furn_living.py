@@ -130,7 +130,7 @@ def _table_top(c, x0, x1, ytop, th, top, topdk, d=4, inset=2, out=None):
     c.vline(x1 + 1, ytop, ytop + th, out)
 
 
-@piece('coffee_table', 50, 24, 'floor', rooms={'living_room': 8}, styles={'cosy': 8, 'mid': 8, 'squat': 8, 'parlour': 8, 'lodge': 6}, tags=('table',), limit=1, feet=(114, 118), companion_only=True, lap=22,
+@piece('coffee_table', 50, 24, 'floor', keep='table', rooms={'living_room': 8}, styles={'cosy': 8, 'mid': 8, 'squat': 8, 'parlour': 8, 'lodge': 6}, tags=('table',), limit=1, feet=(114, 118), companion_only=True, lap=22,
        variants={'wood': {'kind': 'wood', 'for': ['cosy']}, 'kidney': {'kind': 'kidney', 'for': ['mid']}, 'pallet': {'kind': 'pallet', 'for': ['squat']},
                  'tea': {'kind': 'tea', 'for': ['parlour']}, 'trunk': {'kind': 'trunk', 'for': ['lodge']}},
        slots=({'id': 'top', 'dx0': 6, 'dx1': 43, 'dy': -17, 'top': True, 'kinds': ('small', 'low')},),
@@ -208,7 +208,7 @@ def coffee_table(c, ox, oy, p):
 
 
 # ================================================================================================================================ the pouf
-@piece('pouf', 24, 18, 'floor', rooms={'living_room': 4}, styles={'squat': 8, 'mid': 2}, tags=('seat',), limit=1,
+@piece('pouf', 24, 18, 'floor', keep='seat', rooms={'living_room': 4}, styles={'squat': 8, 'mid': 2}, tags=('seat',), limit=1,
        variants={'red': {'col': 'a23a34', 'for': ['squat', 'mid']}, 'teal': {'col': '3f7a78', 'for': ['squat', 'mid']}, 'mustard': {'col': 'c09a30', 'for': ['squat', 'mid']}},
        anchors=({'name': 'pouf', 'dx': 11, 'dy': -8},), feet=(112, 122),
        note='a round leather pouf: a seam round the middle, a button and a worn patch where somebody sits')

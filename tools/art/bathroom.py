@@ -838,30 +838,17 @@ def rim_things(c, x, base, mug=hexc('d9cfb8'), bottle=hexc('7ab0c8')):
     return (x - 2, base - 2)
 
 
-def toilet_roll(c, x, y, paper=hexc('ece6d6')):
-    """A roll on a wall holder, seen from the front: the chrome arm, the roll's end (the card tube
-    showing), the paper's curve and a sheet hanging down."""
-    c.hline(x - 1, x + 7, y - 1, CHROME_DK)                                      # the arm
-    c.put(x - 1, y, CHROME_DK)
-    rrect(c, x, y, x + 7, y + 5, shade(paper, 0.78), 2)
-    rrect(c, x, y, x + 6, y + 4, paper, 2)
-    c.hline(x + 1, x + 5, y, shade(paper, 1.05))
-    c.ellipse(x + 6, y + 2, 1.5, 2.4, shade(paper, 0.9))                        # the end, facing the room
-    c.put(x + 6, y + 2, hexc('9a7a52'))                                         # the card tube
-    c.rect(x + 1, y + 5, x + 4, y + 8, paper)                                   # a sheet hanging down
-    c.hline(x + 1, x + 4, y + 8, shade(paper, 0.8))
+def toilet_roll(c, x, y, paper=hexc('ece6d6'), sheet=0.3):
+    """A roll on a wall holder with its sheet hanging — one drawing for the baked bathrooms and the planned toilet (tools/art/props3d.py `toilet_roll`; `sheet` 0..1 = how much is
+    pulled off: the planned toilet's searched roll unrolls)."""
+    import props3d
+    props3d.toilet_roll(c, x, y, paper, sheet)
 
 
 def standing_rolls(c, x, base, n=3, paper=hexc('d8d2c2')):
-    """Spare rolls stacked on the floor against the wall: a pyramid of short cylinders from above."""
-    spots = [(0, 0), (8, 0), (4, -6)][:n]
-    for (dx, dh) in spots:
-        cx_, bt = x + dx + 3, base + dh
-        c.rect(cx_ - 3, bt - 6, cx_ + 3, bt, paper)
-        c.vline(cx_ + 3, bt - 6, bt, shade(paper, 0.8))
-        c.hline(cx_ - 3, cx_ + 3, bt, shade(paper, 0.7))
-        c.ellipse(cx_, bt - 6, 3.4, 1.4, shade(paper, 1.08))
-        c.put(cx_, bt - 6, hexc('9a7a52'))
+    """Spare rolls stacked on the floor against the wall (tools/art/props3d.py `roll_stack`)."""
+    import props3d
+    props3d.roll_stack(c, x, base, n, paper)
 
 
 def mop_bucket(c, x0, base):

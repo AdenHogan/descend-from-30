@@ -73,7 +73,7 @@ def _cardigan(c, cx, base_y, cbuf, pbuf, yaw):
     c.vline(cx + x0 + w // 2 - 1, base_y + top + 1, base_y + top + 6, tn[0])
 
 
-@piece('chair_wood', 28, 40, 'floor', rooms={'bedroom': 5}, styles={'adult': 3, 'teen': 2, 'sick': 3, 'bedsit': 2}, tags=('seat',), variants=_chair_variants(),
+@piece('chair_wood', 28, 40, 'floor', keep='seat', rooms={'bedroom': 5}, styles={'adult': 3, 'teen': 2, 'sick': 3, 'bedsit': 2}, tags=('seat',), variants=_chair_variants(),
        anchors=(), near=('sleeping', 'wardrobe', 'storage'), feet=(116, 121), limit=1, note='a plain wooden chair — ladder or spindle back, rush or cloth seat; sometimes a cardigan thrown over the back')
 def chair_wood(c, ox, oy, p):
     model = C3.dining_chair(p['style'])
@@ -95,7 +95,7 @@ def _kid_chairs():
     return v
 
 
-@piece('chair_child', 22, 28, 'floor', rooms={'bedroom': 4}, styles={'kid': 8}, tags=('seat', 'child'), variants=_kid_chairs(), anchors=(), near=('toy', 'sleeping'), feet=(116, 121),
+@piece('chair_child', 22, 28, 'floor', keep='seat', rooms={'bedroom': 4}, styles={'kid': 8}, tags=('seat', 'child'), variants=_kid_chairs(), anchors=(), near=('toy', 'sleeping'), feet=(116, 121),
        note="a child's chair in painted wood, turned a little toward the room")
 def chair_child(c, ox, oy, p):
     model = scaled(C3.dining_chair('ladder'), 0.68)
@@ -119,7 +119,7 @@ def _horse_variants():
     return v
 
 
-@piece('rocking_horse', 36, 30, 'floor', rooms={'bedroom': 4, 'living_room': 3}, styles={'kid': 8}, tags=('toy',), variants=_horse_variants(), anchors=({'name': 'rocking_horse', 'dx': 18, 'dy': -17},),
+@piece('rocking_horse', 36, 30, 'floor', keep='toy', rooms={'bedroom': 4, 'living_room': 3}, styles={'kid': 8}, tags=('toy',), variants=_horse_variants(), anchors=({'name': 'rocking_horse', 'dx': 18, 'dy': -17},),
        near=('sleeping',), feet=(116, 121), note='a rocking horse on its curved rockers: painted white, grey or brown — one in four is bloodied, as if a child had been taken off it in a hurry')
 def rocking_horse(c, ox, oy, p):
     T3.horse(c, ox + 18, oy, p['horse'], p['yaw'])
