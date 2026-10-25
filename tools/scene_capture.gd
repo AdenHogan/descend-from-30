@@ -33,6 +33,9 @@ extends Node
 #   mapdemo          fill the journal map's memory with a plausible descent (floors 30-14 seen, doors, fire, the dead, a body) — for reviewing it
 #   hud:<method>     call a no-arg HUD method (e.g. refresh_inventory)
 #   journal:<0-3|x>  open the journal on a tab (3 = Codex) / close it
+#   shop:<offer|wares|take|buy:<i>|x>  open the merchant's page on the floor's offer / the wares (after a `notes:` step) / close it       notes:<n>  set the wallet to n notes
+#   bench:<upgrade|tune|salvage|x>  open the workbench on a tab (give a weapon first: give:001)
+#   loot:<apartment>:<anchor>:<item id>[:<search fraction>]  open the found-item panel on a node (with a fraction: mid-search at that point; without: the finished result); loot:x closes it
 #   eqstyle:<square|rounded|circle>  shape of the in-hand box;  wear:<0..1>  wear the selected item to that fraction
 #   kill             kill the player now (player._die → the real Game.game_over flow)
 #   touch:<on|off>   force the phone's on-screen controls on / off (docs/CONTROLS.md)
@@ -52,6 +55,8 @@ var _steps: PackedStringArray = []
 var _tutorial := true
 var _seed := 0
 var _n := 0
+var _shop = null
+var _bench = null
 
 
 func _ready() -> void:
@@ -197,6 +202,58 @@ func _do(step: String) -> void:
 				HUD.character_panel.open()
 				HUD.character_panel._pick_tab(int(p[1]))
 			await _frames(3)
+		"notes":
+			WorldState.wallet_unlocked = true
+			WorldState.wallet_balance = int(p[1])
+			HUD.refresh_inventory()
+		"shop":
+			# the merchant's page, over whatever scene is current (the real ShopUI scene, the real stock for the floor)
+			if _shop == null or not is_instance_valid(_shop):
+				_shop = load("res://scenes/shop_ui.tscn").instantiate()
+				get_tree().root.add_child(_shop)
+			if p[1] == "x":
+				_shop.close()
+			elif p[1] == "take":
+				var slip = _shop.upgrades_box.find_children("Slip_*", "", true, false)[0]
+				_shop._on_card_chosen(slip.name.substr(5), slip)
+			elif p[1] == "buy":
+				_shop._on_buy_pressed(int(p[2]))
+			else:
+				_shop.open(WorldState.current_floor, "Well, well. Look who it is.")
+				if p[1] == "wares":
+					WorldState.resolve_upgrade_offer(WorldState.current_floor, "")
+					_shop._show_tab("shop")
+			await _frames(2 if p[1] in ["take", "buy"] else 40)
+		"bench":
+			# the workbench, over whatever scene is current: bench:upgrade|tune|salvage opens it on a tab, bench:x closes it (give a weapon first: give:001)
+			if _bench == null or not is_instance_valid(_bench):
+				_bench = load("res://scripts/workbench_ui.gd").new()
+				get_tree().root.add_child(_bench)
+			if p[1] == "x":
+				_bench.close()
+			else:
+				if not _bench.visible:
+					_bench.open()
+				_bench.show_tab(p[1])
+			await _frames(40)
+		"loot":
+			var lu = get_tree().get_first_node_in_group("loot_ui")
+			if lu == null:
+				push_warning("scene_capture: no loot panel in this scene")
+			elif p[1] == "x":
+				lu.leave()
+			else:
+				WorldState.set_anchor_item(p[1], p[2], p[3])
+				WorldState.set_anchor_amount(p[1], p[2], 1)
+				if p.size() > 4:
+					WorldState.is_scavenge_mode = true
+					lu.open(p[3], p[2], p[1])
+					lu.reveal_timer = lu.reveal_time * float(p[4])
+					lu.search_bar.set_progress(lu.reveal_timer, lu.reveal_time)
+				else:
+					WorldState.mark_anchor_searched(p[1], p[2])
+					lu.open(p[3], p[2], p[1])
+			await _frames(30)
 		"eqstyle":
 			HUD.set_equip_box_style(p[1])       # square | rounded | circle
 			await _frames(1)

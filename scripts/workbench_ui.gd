@@ -10,18 +10,20 @@ extends CanvasLayer
 #             steel" — points, once set, are set). A legendary weapon can be renamed here.
 #   SALVAGE — break carried items down for scrap (values in Salvage, action WorldState.salvage_item).
 # All rules/costs/perks/stats live in WeaponUpgrades; the actions are WorldState.upgrade_weapon /
-# tune_weapon / forge_heirloom / rename_weapon. Built in code (no .tscn). Close: ✕, ESC, or Leave.
+# tune_weapon / forge_heirloom / rename_weapon. Built in code (no .tscn). Close: ×, ESC, or Leave.
+# LEDGER look (owner round 48j; scripts/ledger.gd): the bench is a sheet of ruled paper — the weapon list left of the red margin rule, the page right of it; the two choices are
+# slips (ticked when chosen), tuning ranks are tally boxes, the player's notes are in their own hand. Same logic as before: every action below is unchanged.
 
 const W := 820.0
 const H := 480.0
-const INK := Color(0.93, 0.90, 0.84)
-const DIM := Color(0.62, 0.60, 0.56)
-const GOLD := Color(1.0, 0.82, 0.30)
-const BAD := Color(0.95, 0.45, 0.38)
-const GOOD := Color(0.55, 0.85, 0.50)
-const LEGEND := Color(1.0, 0.62, 0.25)
-const FONT := preload("res://assets/fonts/PixelOperator8.ttf")
-const FONT_BOLD := preload("res://assets/fonts/PixelOperator8-Bold.ttf")
+const INK := Ledger.INK                       # inks on paper (these are also the bbcode colours)
+const DIM := Ledger.INK_SOFT
+const GOLD := Ledger.BLUE_INK                 # what the pen underlines: names, points
+const BAD := Ledger.RED_INK
+const GOOD := Ledger.GREEN_INK
+const LEGEND := Ledger.GOLD_INK
+const TEXT_SCALE := 1.22                      # the old sizes were set for a pixel font; Barlow at the same number reads smaller
+const HEAD_SCALE := 1.38
 const FORGE_STEP := 25                 # "Put in 25" at the heirloom forge
 const RIGHT_X := 290.0
 # The tune grid's columns (name | pips | - | + | effect) must add up, with the 4 gaps of 8, to no more than the right pane (W - RIGHT_X - 24 = 506) - tests/weapon_upgrade_test checks it.
@@ -34,7 +36,8 @@ var chosen_perk: String = ""
 var staged: Dictionary = {}            # TUNE: {stat id: ranks staged but not yet set}
 var _prev_paused := false
 
-var _card: Panel = null
+var _card: LedgerSheet = null
+var _backdrop: TextureRect = null
 var _scrap_label: Label = null
 var _list: VBoxContainer = null
 var _list_hint: Label = null
@@ -67,47 +70,46 @@ func _ready() -> void:
 	layer = 20
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	add_to_group("modal_panel")      # Game._input closes a visible modal on ESC before the pause menu
-	var dim := ColorRect.new()
-	dim.color = Color(0, 0, 0, 0.6)
-	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
-	dim.mouse_filter = Control.MOUSE_FILTER_STOP
-	add_child(dim)
-	_card = Panel.new()
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.13, 0.11, 0.10, 0.97)
-	sb.border_color = Color(0.55, 0.38, 0.22)
-	sb.set_border_width_all(3)
-	sb.set_corner_radius_all(4)
-	_card.add_theme_stylebox_override("panel", sb)
+	_backdrop = _make_backdrop()
+	add_child(_backdrop)
+	_card = LedgerSheet.new()
+	_card.seed_value = 44
 	_card.size = Vector2(W, H)
 	_card.position = Vector2((1152.0 - W) * 0.5, maxf(8.0, (648.0 - H) * 0.5))
+	_card.rule_first = 84.0
+	_card.margin_x = 280.0
+	_card.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(_card)
 
-	var title := _label("WORKBENCH", 22, GOLD, FONT_BOLD)
-	title.position = Vector2(24, 16)
+	var title := _label("WORKBENCH", 22, INK, Ledger.font("head"))
+	title.position = Vector2(24, 10)
 	_card.add_child(title)
-	_scrap_label = _label("", 14, INK)
-	_scrap_label.position = Vector2(W - 230, 22)
-	_scrap_label.size = Vector2(170, 20)
+	_scrap_label = _label("", 22, Ledger.hand_ink(), Ledger.font("hand"))
+	_scrap_label.position = Vector2(W - 250, 8)
+	_scrap_label.size = Vector2(190, 40)
+	_scrap_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_scrap_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_card.add_child(_scrap_label)
-	var x := Button.new()
-	x.text = "✕"
-	x.position = Vector2(W - 44, 12)
-	x.size = Vector2(30, 30)
+	var x := LedgerButton.new()
+	x.text = "×"
+	x.px = 24
+	x.seed_value = 12
+	x.position = Vector2(W - 46, 12)
+	x.size = Vector2(32, 32)
+	x.custom_minimum_size = Vector2(32, 32)
 	x.pressed.connect(close)
 	_card.add_child(x)
 
-	_tab_up = _tab_button("Upgrade", Vector2(220, 16))
+	_tab_up = _tab_button("UPGRADE", Vector2(236, 12))
 	_tab_up.pressed.connect(func(): show_tab("upgrade"))
-	_tab_tune = _tab_button("Tune", Vector2(340, 16))
+	_tab_tune = _tab_button("TUNE", Vector2(358, 12))
 	_tab_tune.pressed.connect(func(): show_tab("tune"))
-	_tab_salv = _tab_button("Salvage", Vector2(460, 16))
+	_tab_salv = _tab_button("SALVAGE", Vector2(480, 12))
 	_tab_salv.pressed.connect(func(): show_tab("salvage"))
 
 	# The weapon list (shared by Upgrade + Tune).
-	_list_hint = _label("Your weapons", 12, DIM)
-	_list_hint.position = Vector2(24, 60)
+	_list_hint = _label("YOUR WEAPONS", 12, DIM, Ledger.font("head"))
+	_list_hint.position = Vector2(24, 62)
 	_card.add_child(_list_hint)
 	_list = VBoxContainer.new()
 	_list.position = Vector2(24, 80)
@@ -122,18 +124,46 @@ func _ready() -> void:
 	_build_tune_page()
 	_build_salvage_page()
 
-	var leave := Button.new()
-	leave.text = "Leave"
-	leave.position = Vector2(W - 310, H - 52)
-	leave.size = Vector2(100, 36)
+	var leave := LedgerButton.new()
+	leave.text = "LEAVE"
+	leave.seed_value = 33
+	leave.position = Vector2(W - 322, H - 52)
+	leave.size = Vector2(112, 38)
+	leave.custom_minimum_size = Vector2(112, 38)
 	leave.pressed.connect(close)
 	_card.add_child(leave)
-	_msg = _label("", 12, GOLD)
-	_msg.position = Vector2(24, H - 44)
-	_msg.size = Vector2(W - 350, 34)
+	_msg = _label("", 12, Ledger.hand_ink(), Ledger.font("hand"))
+	_msg.position = Vector2(24, H - 50)
+	_msg.size = Vector2(W - 360, 40)
 	_msg.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_card.add_child(_msg)
 	visible = false
+
+
+## The room dims round the page — a vignette that keeps the middle of the screen the world. It also stops clicks: the game is paused while the bench is open.
+func _make_backdrop() -> TextureRect:
+	var t := TextureRect.new()
+	t.name = "Backdrop"
+	var grad := Gradient.new()
+	grad.offsets = PackedFloat32Array([0.0, 0.5, 1.0])
+	grad.colors = PackedColorArray([Color(0, 0, 0, 0.18), Color(0, 0, 0, 0.40), Color(0.02, 0.012, 0.008, 0.78)])
+	var gt := GradientTexture2D.new()
+	gt.gradient = grad
+	gt.fill = GradientTexture2D.FILL_RADIAL
+	gt.fill_from = Vector2(0.5, 0.5)
+	gt.fill_to = Vector2(1.0, 1.0)
+	gt.width = 256
+	gt.height = 144
+	t.texture = gt
+	t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	t.stretch_mode = TextureRect.STRETCH_SCALE
+	t.set_anchors_preset(Control.PRESET_FULL_RECT)
+	t.mouse_filter = Control.MOUSE_FILTER_STOP
+	return t
+
+
+func _px(n: int, head: bool = false) -> int:
+	return int(round(n * (HEAD_SCALE if head else TEXT_SCALE)))
 
 
 func _page() -> Control:
@@ -151,10 +181,10 @@ func _rich(pos: Vector2, size: Vector2) -> RichTextLabel:
 	r.scroll_active = false
 	r.position = pos
 	r.size = size
-	r.add_theme_font_override("normal_font", FONT)
-	r.add_theme_font_override("bold_font", FONT_BOLD)
-	r.add_theme_font_size_override("normal_font_size", 12)
-	r.add_theme_font_size_override("bold_font_size", 13)
+	r.add_theme_font_override("normal_font", Ledger.font("body"))
+	r.add_theme_font_override("bold_font", Ledger.font("head"))
+	r.add_theme_font_size_override("normal_font_size", _px(12))
+	r.add_theme_font_size_override("bold_font_size", _px(13, true))
 	r.add_theme_color_override("default_color", INK)
 	return r
 
@@ -183,12 +213,15 @@ func _build_upgrade_page() -> void:
 	_upgrade_page.add_child(_forge_box)
 	_cost_label = _rich(Vector2(RIGHT_X, 324), Vector2(W - RIGHT_X - 24, 70))
 	_cost_label.add_theme_font_size_override("normal_font_size", 13)
-	_cost_label.add_theme_font_size_override("bold_font_size", 13)
+	_cost_label.add_theme_font_size_override("bold_font_size", _px(13, true))
 	_upgrade_page.add_child(_cost_label)
-	_upgrade_btn = Button.new()
-	_upgrade_btn.text = "Upgrade"
+	_upgrade_btn = LedgerButton.new()
+	_upgrade_btn.text = "UPGRADE"
+	_upgrade_btn.solid = true
+	_upgrade_btn.seed_value = 36
 	_upgrade_btn.position = Vector2(W - 194, H - 52)
-	_upgrade_btn.size = Vector2(170, 36)
+	_upgrade_btn.size = Vector2(170, 38)
+	_upgrade_btn.custom_minimum_size = Vector2(170, 38)
 	_upgrade_btn.pressed.connect(func(): confirm())
 	_upgrade_page.add_child(_upgrade_btn)
 
@@ -204,10 +237,10 @@ func _build_tune_page() -> void:
 	_tune_head = _flow_rich(col_w)
 	_tune_col.add_child(_tune_head)
 	_tune_explain = _flow_rich(col_w)
-	_tune_explain.add_theme_font_size_override("normal_font_size", 11)
+	_tune_explain.add_theme_font_size_override("normal_font_size", _px(11))
 	_tune_explain.add_theme_color_override("default_color", DIM)
 	_tune_col.add_child(_tune_explain)
-	_points_label = _label("", 13, GOLD, FONT_BOLD)
+	_points_label = _label("", 13, GOLD, Ledger.font("head"))
 	_points_label.custom_minimum_size = Vector2(col_w, 20)
 	_points_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_tune_col.add_child(_points_label)
@@ -220,31 +253,45 @@ func _build_tune_page() -> void:
 	_name_row.position = Vector2(RIGHT_X, H - 96)
 	_name_row.add_theme_constant_override("separation", 8)
 	_tune_page.add_child(_name_row)
-	var nl := _label("Its name:", 12, LEGEND)
+	var nl := _label("ITS NAME", 12, LEGEND, Ledger.font("head"))
 	_name_row.add_child(nl)
-	_name_edit = LineEdit.new()
+	_name_edit = LineEdit.new()                      # written in the player's hand on a ruled line
 	_name_edit.max_length = WeaponUpgrades.TITLE_MAX_LEN
-	_name_edit.custom_minimum_size = Vector2(220, 28)
-	_name_edit.add_theme_font_override("font", FONT)
-	_name_edit.add_theme_font_size_override("font_size", 12)
+	_name_edit.custom_minimum_size = Vector2(220, 32)
+	_name_edit.add_theme_font_override("font", Ledger.font("hand"))
+	_name_edit.add_theme_font_size_override("font_size", int(round(14 * Ledger.hand_scale())))
+	_name_edit.add_theme_color_override("font_color", Ledger.hand_ink())
+	_name_edit.add_theme_color_override("caret_color", Ledger.hand_ink())
+	var line := StyleBoxFlat.new()
+	line.bg_color = Color(0, 0, 0, 0)
+	line.border_color = Ledger.INK_SOFT
+	line.border_width_bottom = 2
+	line.content_margin_left = 4
+	_name_edit.add_theme_stylebox_override("normal", line)
+	_name_edit.add_theme_stylebox_override("focus", line)
 	_name_edit.text_submitted.connect(func(t): rename(t))
 	_name_row.add_child(_name_edit)
-	var nb := Button.new()
-	nb.text = "Rename"
-	nb.custom_minimum_size = Vector2(90, 28)
+	var nb := LedgerButton.new()
+	nb.text = "RENAME"
+	nb.px = 16
+	nb.seed_value = 37
+	nb.custom_minimum_size = Vector2(100, 32)
 	nb.pressed.connect(func(): rename(_name_edit.text))
 	_name_row.add_child(nb)
-	_set_btn = Button.new()
-	_set_btn.text = "Set in steel"
+	_set_btn = LedgerButton.new()
+	_set_btn.text = "SET IN STEEL"
+	_set_btn.solid = true
+	_set_btn.seed_value = 38
 	_set_btn.position = Vector2(W - 194, H - 52)
-	_set_btn.size = Vector2(170, 36)
+	_set_btn.size = Vector2(170, 38)
+	_set_btn.custom_minimum_size = Vector2(170, 38)
 	_set_btn.pressed.connect(func(): set_tuning())
 	_tune_page.add_child(_set_btn)
 
 
 func _build_salvage_page() -> void:
 	var shint := _label("Break things down for scrap. Junk is worth a little; worn items give less.", 12, DIM)
-	shint.position = Vector2(24, 60)
+	shint.position = Vector2(24, 62)
 	_salvage_page.add_child(shint)
 	_salvage_grid = GridContainer.new()
 	_salvage_grid.columns = 3
@@ -255,13 +302,14 @@ func _build_salvage_page() -> void:
 
 
 func _tab_button(text: String, pos: Vector2) -> Button:
-	var b := Button.new()
+	var b := LedgerButton.new()
 	b.text = text
+	b.px = 17
+	b.seed_value = 50 + int(pos.x) % 7
 	b.position = pos
-	b.size = Vector2(110, 30)
+	b.size = Vector2(112, 32)
+	b.custom_minimum_size = Vector2(112, 32)
 	b.toggle_mode = true
-	b.add_theme_font_override("font", FONT)
-	b.add_theme_font_size_override("font_size", 13)
 	_card.add_child(b)
 	return b
 
@@ -274,12 +322,16 @@ func show_tab(which: String) -> void:
 	refresh()
 
 
-func _label(text: String, size: int, col: Color, font: Font = FONT) -> Label:
+func _label(text: String, size: int, col: Color, font: Font = null) -> Label:
 	var l := Label.new()
 	l.text = text
-	l.add_theme_font_override("font", font)
-	l.add_theme_font_size_override("font_size", size)
+	var f: Font = font if font != null else Ledger.font("body")
+	var head: bool = f == Ledger.font("head")
+	var hand: bool = font != null and not head and f != Ledger.font("body") and f != Ledger.font("typed")
+	l.add_theme_font_override("font", f)
+	l.add_theme_font_size_override("font_size", int(round(size * (Ledger.hand_scale() * 1.1 if hand else (HEAD_SCALE if head else TEXT_SCALE)))))
 	l.add_theme_color_override("font_color", col)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return l
 
 
@@ -287,6 +339,7 @@ func open() -> void:
 	_prev_paused = get_tree().paused
 	get_tree().paused = true
 	visible = true
+	_arrive()
 	selected_slot = -1
 	chosen_perk = ""
 	staged = {}
@@ -299,9 +352,23 @@ func open() -> void:
 	refresh()
 
 
+## The sheet is set down on the bench: it settles a few px and the room dims behind it.
+func _arrive() -> void:
+	Ledger.play("sheet", -7.0)
+	var base_y := maxf(8.0, (648.0 - H) * 0.5)
+	_card.position.y = base_y + 14.0
+	_card.modulate.a = 0.0
+	_backdrop.modulate.a = 0.0
+	var t := create_tween().set_parallel(true)
+	t.tween_property(_card, "position:y", base_y, 0.26).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	t.tween_property(_card, "modulate:a", 1.0, 0.18)
+	t.tween_property(_backdrop, "modulate:a", 1.0, 0.30)
+
+
 func close() -> void:
 	if not visible:
 		return
+	Ledger.play("page", -12.0)
 	visible = false
 	get_tree().paused = _prev_paused
 
@@ -433,6 +500,10 @@ func _say_ok(t: String) -> String:
 
 func refresh() -> void:
 	_scrap_label.text = "SCRAP  %d" % WorldState.scrap
+	_scrap_label.add_theme_font_override("font", Ledger.font("hand"))       # the hand follows the run's character
+	_scrap_label.add_theme_color_override("font_color", Ledger.hand_ink())
+	_msg.add_theme_font_override("font", Ledger.font("hand"))
+	_msg.add_theme_color_override("font_color", Ledger.hand_ink())
 	_tab_up.button_pressed = tab == "upgrade"
 	_tab_tune.button_pressed = tab == "tune"
 	_tab_salv.button_pressed = tab == "salvage"
@@ -457,18 +528,18 @@ func _refresh_list() -> void:
 		c.queue_free()
 	for i in upgradable_slots():
 		var inst = WorldState.inventory[i]
-		var b := Button.new()
+		var b := LedgerButton.new()
 		var tag: String = inst.tier_tag()
 		var pts: int = WeaponUpgrades.points_free(inst)
 		b.text = "%s%s%s" % [inst.get_display_name(), ("   " + tag) if tag != "" else "", ("  · %d pt%s" % [pts, "" if pts == 1 else "s"]) if pts > 0 else ""]
-		b.clip_text = true
 		b.toggle_mode = true
 		b.button_pressed = i == selected_slot
-		b.custom_minimum_size = Vector2(250, 34)
-		b.add_theme_font_override("font", FONT)
-		b.add_theme_font_size_override("font_size", 11)
+		b.align_left = true
+		b.px = 16
+		b.seed_value = 80 + i
+		b.custom_minimum_size = Vector2(250, 36)
 		if inst.level >= WeaponUpgrades.LEGENDARY_LEVEL:
-			b.add_theme_color_override("font_color", LEGEND)
+			b.ink = LEGEND
 		b.pressed.connect(select_weapon.bind(i))
 		_list.add_child(b)
 
@@ -535,22 +606,10 @@ func _refresh_upgrade() -> void:
 		_refresh_forge(inst, chk)
 		return
 	var choices: Array = WeaponUpgrades.next_choices(inst)
+	var k := 0
 	for pid in choices:
-		var d: Dictionary = WeaponUpgrades.perk(pid)
-		var card := Button.new()
-		card.toggle_mode = true
-		card.button_pressed = pid == chosen_perk
-		card.custom_minimum_size = Vector2((W - RIGHT_X - 36) * 0.5, 124)
-		var special: bool = WeaponUpgrades.is_mod(pid)
-		card.text = "%s%s\n\n%s" % ["SPECIAL: " if special else "", d.get("name", pid), WeaponUpgrades.describe(inst, pid)]
-		if special:
-			card.add_theme_color_override("font_color", LEGEND)
-			card.add_theme_color_override("font_pressed_color", GOLD)
-		card.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		card.add_theme_font_override("font", FONT)
-		card.add_theme_font_size_override("font_size", 12)
-		card.pressed.connect(choose_perk.bind(pid))
-		_perk_box.add_child(card)
+		_perk_box.add_child(_perk_slip(inst, pid, k))
+		k += 1
 	if choices.is_empty():
 		var msg := "It already has every special the bench knows — this level gives it %d more tuning points." % WeaponUpgrades.POINTS_PER_LEVEL
 		var ink := DIM
@@ -575,9 +634,45 @@ func _refresh_upgrade() -> void:
 	if not chk["ok"]:
 		cost += "\n[color=#%s]%s[/color]" % [BAD.to_html(false), chk["reason"]]
 	_set_cost(cost)
-	_upgrade_btn.text = "Temper" if chk["heirloom"] else ("Reinforce" if to == WeaponUpgrades.REINFORCE_LEVEL else "Upgrade")
+	_upgrade_btn.text = "TEMPER" if chk["heirloom"] else ("REINFORCE" if to == WeaponUpgrades.REINFORCE_LEVEL else "UPGRADE")
 	_upgrade_btn.visible = true
 	_upgrade_btn.disabled = not chk["ok"] or (not choices.is_empty() and chosen_perk == "")
+
+
+## One of the two upgrades on offer: a slip taped to the page. Click it to tick it (it stays lifted, with a pen tick in its corner); click the other and the tick moves.
+func _perk_slip(inst, pid: String, index: int) -> Control:
+	var d: Dictionary = WeaponUpgrades.perk(pid)
+	var special: bool = WeaponUpgrades.is_mod(pid)
+	var slip := LedgerSlip.new()
+	slip.name = "Slip_" + pid
+	slip.seed_value = 300 + index * 19 + pid.hash() % 40
+	slip.tilt_deg = [-0.6, 0.5][index % 2]
+	slip.margin = 12
+	slip.custom_minimum_size = Vector2((W - RIGHT_X - 36) * 0.5, 130)
+	slip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 3)
+	slip.content.add_child(box)
+	box.add_child(_label("A SPECIAL" if special else "AN UPGRADE", 11, LEGEND if special else DIM, Ledger.font("head")))
+	var nm := _label(String(d.get("name", pid)), 17, INK, Ledger.font("head"))
+	box.add_child(nm)
+	slip.underline_target = nm
+	var ds := _label(WeaponUpgrades.describe(inst, pid), 12, INK)
+	ds.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	ds.custom_minimum_size = Vector2(slip.custom_minimum_size.x - 2.0 * slip.margin - 6.0, 0)
+	ds.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	box.add_child(ds)
+	slip.held = pid == chosen_perk
+	var hit := Button.new()                           # the whole slip is the click target
+	hit.flat = true
+	hit.focus_mode = Control.FOCUS_ALL
+	hit.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	for sb in ["normal", "hover", "pressed", "focus", "disabled"]:
+		hit.add_theme_stylebox_override(sb, StyleBoxEmpty.new())
+	hit.set_anchors_preset(Control.PRESET_FULL_RECT)
+	hit.pressed.connect(choose_perk.bind(pid))
+	slip.add_child(hit)
+	return slip
 
 
 func _set_cost(bbcode: String) -> void:
@@ -589,7 +684,7 @@ func _refresh_forge(inst, _chk: Dictionary) -> void:
 	var to: int = inst.level + 1
 	var need: Dictionary = WeaponUpgrades.HEIRLOOM[to]
 	var total: int = int(need["scrap"])
-	var head := _label("THE HEIRLOOM FORGE — %s" % WeaponUpgrades.tier_name(to), 13, LEGEND, FONT_BOLD)
+	var head := _label("THE HEIRLOOM FORGE — %s" % WeaponUpgrades.tier_name(to), 13, LEGEND, Ledger.font("head"))
 	_forge_box.add_child(head)
 	var bar := ProgressBar.new()
 	bar.min_value = 0
@@ -598,9 +693,11 @@ func _refresh_forge(inst, _chk: Dictionary) -> void:
 	bar.custom_minimum_size = Vector2(W - RIGHT_X - 24, 18)
 	bar.show_percentage = false
 	var fill := StyleBoxFlat.new()
-	fill.bg_color = LEGEND
+	fill.bg_color = Color(LEGEND.r, LEGEND.g, LEGEND.b, 0.85)
 	var back := StyleBoxFlat.new()
-	back.bg_color = Color(0.25, 0.21, 0.18)
+	back.bg_color = Color(0.45, 0.36, 0.22, 0.18)
+	back.border_color = Ledger.INK_SOFT
+	back.set_border_width_all(1)
 	bar.add_theme_stylebox_override("fill", fill)
 	bar.add_theme_stylebox_override("background", back)
 	_forge_box.add_child(bar)
@@ -610,13 +707,18 @@ func _refresh_forge(inst, _chk: Dictionary) -> void:
 	row.add_theme_constant_override("separation", 10)
 	_forge_box.add_child(row)
 	var owed: int = total - inst.forge_paid
-	var b1 := Button.new()
-	b1.text = "Put in %d" % mini(FORGE_STEP, maxi(owed, 0))
+	var b1 := LedgerButton.new()
+	b1.custom_minimum_size = Vector2(150, 34)
+	b1.px = 17
+	b1.text = "PUT IN %d" % mini(FORGE_STEP, maxi(owed, 0))
 	b1.disabled = owed <= 0 or WorldState.scrap <= 0
 	b1.pressed.connect(forge.bind(FORGE_STEP))
 	row.add_child(b1)
-	var b2 := Button.new()
-	b2.text = "Put in all I can (%d)" % mini(WorldState.scrap, maxi(owed, 0))
+	var b2 := LedgerButton.new()
+	b2.custom_minimum_size = Vector2(230, 34)
+	b2.px = 17
+	b2.seed_value = 9
+	b2.text = "PUT IN ALL I CAN (%d)" % mini(WorldState.scrap, maxi(owed, 0))
 	b2.disabled = owed <= 0 or WorldState.scrap <= 0
 	b2.pressed.connect(forge.bind(owed))
 	row.add_child(b2)
@@ -659,30 +761,28 @@ func _refresh_tune() -> void:
 		var have: int = int(inst.tuning.get(id, 0))
 		var add: int = int(staged.get(id, 0))
 		var cap: int = WeaponUpgrades.cap_for(inst, id)
-		var n := _label(String(st["name"]), 12, INK, FONT_BOLD)
+		var n := _label(String(st["name"]), 12, INK, Ledger.font("head"))
 		n.custom_minimum_size = Vector2(TUNE_NAME_W, 26)
 		n.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		_tune_grid.add_child(n)
-		var pips := RichTextLabel.new()
-		pips.bbcode_enabled = true
-		pips.fit_content = false
-		pips.scroll_active = false
+		var pips := LedgerPips.new()                    # a rank is one tally box: inked = set, hatched = staged, empty = still to earn
+		pips.box = 13.0
+		pips.gap = 4.0
 		pips.custom_minimum_size = Vector2(TUNE_PIPS_W, 26)
-		pips.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		pips.add_theme_font_override("normal_font", FONT)
-		pips.add_theme_font_size_override("normal_font_size", 12)
-		pips.text = "[color=#%s]%s[/color][color=#%s]%s[/color][color=#%s]%s[/color]" % [
-			GOLD.to_html(false), "# ".repeat(have), LEGEND.to_html(false), "+ ".repeat(add),
-			DIM.to_html(false), "- ".repeat(maxi(0, cap - have - add))]
+		pips.setup(have, add, cap)
 		_tune_grid.add_child(pips)
-		var minus := Button.new()
+		var minus := LedgerButton.new()
 		minus.text = "-"
+		minus.px = 20
+		minus.seed_value = 14
 		minus.custom_minimum_size = Vector2(28, 24)
 		minus.disabled = add <= 0
 		minus.pressed.connect(stage_point.bind(id, -1))
 		_tune_grid.add_child(minus)
-		var plus := Button.new()
+		var plus := LedgerButton.new()
 		plus.text = "+"
+		plus.px = 20
+		plus.seed_value = 15
 		plus.custom_minimum_size = Vector2(28, 24)
 		plus.disabled = free <= 0 or have + add >= cap
 		plus.pressed.connect(stage_point.bind(id, 1))
@@ -713,18 +813,18 @@ func _refresh_salvage() -> void:
 			disp_name += "  x%d" % inst.count
 		if inst.level > 1:
 			disp_name += "  " + inst.tier_label()
-		var n := _label(disp_name, 12, LEGEND if inst.level >= WeaponUpgrades.LEGENDARY_LEVEL else INK, FONT_BOLD)
+		var n := _label(disp_name, 12, LEGEND if inst.level >= WeaponUpgrades.LEGENDARY_LEVEL else INK, Ledger.font("head"))
 		n.custom_minimum_size = Vector2(290, 0)
 		_salvage_grid.add_child(n)
 		var st := _label(_condition(inst), 12, DIM)
 		st.custom_minimum_size = Vector2(210, 0)
 		_salvage_grid.add_child(st)
-		var b := Button.new()
-		b.custom_minimum_size = Vector2(210, 30)
-		b.add_theme_font_override("font", FONT)
-		b.add_theme_font_size_override("font_size", 12)
+		var b := LedgerButton.new()
+		b.custom_minimum_size = Vector2(210, 32)
+		b.px = 16
+		b.seed_value = 60 + i
 		var v: int = Salvage.value_of(inst)
-		b.text = ("Confirm?  +%d scrap" if _confirm_salvage == inst else "Break down  +%d") % v
+		b.text = ("SURE?  +%d SCRAP" if _confirm_salvage == inst else "BREAK DOWN  +%d") % v
 		b.pressed.connect(salvage.bind(i))
 		_salvage_grid.add_child(b)
 	if not any:
@@ -774,6 +874,7 @@ func salvage(slot: int) -> int:
 
 
 func _play_clank() -> void:
+	Ledger.play("pen", -10.0)                           # what was done is written down; the clank is the bench itself
 	var p := AudioStreamPlayer.new()
 	p.stream = preload("res://assets/audio/doors/metalLatch.ogg")
 	p.volume_db = -6.0

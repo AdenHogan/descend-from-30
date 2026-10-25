@@ -16,7 +16,6 @@ const RingGeo := preload("res://scripts/ring_geo.gd")
 
 const GAP := 14.0                       # screen px between the two rings' outer edges
 const MIN_SLOTS := 4                    # the ring always shows at least this many wedges (empties faint), so its shape is steady
-const COOL := Color(0.60, 0.72, 1.0)    # the body's own colour: the same cool blue as its glow in the world
 
 var is_open: bool = false               # showing (the pack is open AND a body is being searched)
 var key: String = ""                    # the player_corpses key of the body being searched ("" = none)
@@ -254,6 +253,7 @@ func _show(pack: Control) -> void:
 	is_open = true
 	visible = true
 	_refresh()
+	Ledger.play("sheet", -16.0, 0.2)
 	queue_redraw()
 
 
@@ -264,96 +264,80 @@ func _open_t() -> float:
 	return 1.0 - pow(1.0 - t, 3.0)
 
 
-func _text(font: Font, pos: Vector2, s: String, size: int, col: Color, width: float = -1.0, align: int = HORIZONTAL_ALIGNMENT_LEFT) -> void:
-	draw_string_outline(font, pos, s, align, width, size, 4, Color(0, 0, 0, 0.9))
-	draw_string(font, pos, s, align, width, size, col)
-
-
 func _draw() -> void:
 	if not is_open:
 		return
 	var t: float = _open_t()
 	var n: int = _slots
-	var font: Font = get_theme_default_font()
-	draw_circle(centre, (PW.RING_R + PW.DISC) * 1.05 * (0.6 + 0.4 * t), Color(0.02, 0.025, 0.04, 0.34 * t))
+	# The same paper tags on the same dark shade as the pack's ring (scripts/ledger_ring.gd) — a cooler stock, so the body's ring is never taken for the pack's.
+	LedgerRing.shade(self, centre, (PW.RING_R + PW.DISC) * 1.05 * (0.6 + 0.4 * t), t)
 	var r: float = PW.RING_R * (0.55 + 0.45 * t)
-	var band: float = PW.DISC + 20.0
-	draw_arc(centre, r, 0.0, TAU, 128, Color(0.06, 0.075, 0.1, 0.74 * t), band, true)
-	draw_arc(centre, r + band * 0.5, 0.0, TAU, 128, Color(COOL, 0.34 * t), 2.0, true)
-	draw_arc(centre, r - band * 0.5, 0.0, TAU, 128, Color(0.25, 0.29, 0.36, t), 2.0, true)
-	var wedge: float = TAU / float(n)
-	if hover >= 0:
-		var a: float = -PI * 0.5 + float(hover) * wedge
-		draw_arc(centre, r, a - wedge * 0.5 + 0.03, a + wedge * 0.5 - 0.03, 32, Color(COOL, 0.2 * t), band, true)
 	var pack_hot: bool = drag_k >= 0 and HUD.pack_wheel != null and HUD.pack_wheel.is_open and HUD.pack_wheel.on_ring(_mouse)
 	for k in range(n):
 		var inst = inst_at(k)
 		var pos: Vector2 = RingGeo.slot_position(centre, k, n, r)
 		var on: bool = k == hover
 		if k == drag_k:
-			draw_arc(pos, PW.DISC * 0.5, 0.0, TAU, 40, Color(COOL, 0.5), 2.0, true)
+			LedgerRing.dashed(self, pos, PW.DISC * 0.5, Color(LedgerRing.BODY_TINT.r, LedgerRing.BODY_TINT.g, LedgerRing.BODY_TINT.b, 0.5 * t))
 			continue
 		var rad: float = (PW.DISC_SEL if on and inst != null else PW.DISC) * 0.5 * (0.7 + 0.3 * t)
 		if inst == null:
-			draw_arc(pos, rad * 0.8, 0.0, TAU, 32, Color(0.25, 0.29, 0.36, 0.55 * t), 2.0, true)
+			LedgerRing.dashed(self, pos, rad * 0.8, Color(LedgerRing.BODY_TINT.r, LedgerRing.BODY_TINT.g, LedgerRing.BODY_TINT.b, 0.30 * t), 1.4)
 			continue
-		draw_circle(pos, rad, Color(0.1, 0.14, 0.2, 0.96) if on else Color(0.1, 0.115, 0.15, 0.96))
-		draw_arc(pos, rad, 0.0, TAU, 40, COOL if on else Color(0.25, 0.29, 0.36, 1.0), 4.0 if on else 2.0, true)
+		LedgerRing.tag(self, pos, rad, 71 + k, 1.0 if on else 0.0, t, LedgerRing.BODY_TINT)
+		var c: Vector2 = pos + Vector2(0, -4.0 if on else 0.0)
 		var tex: Texture2D = ItemData.get_texture(inst.item_id)
 		if tex != null:
 			var broken: bool = inst.is_depleted and inst.get_max_durability() > 0
-			draw_texture_rect(tex, Rect2(pos - Vector2(28, 28), Vector2(56, 56)), false, Color(0.5, 0.4, 0.4, 1.0) if broken else Color(1, 1, 1, 1))
+			draw_texture_rect(tex, Rect2(c - Vector2(25, 24), Vector2(56, 56)), false, Color(0.05, 0.07, 0.12, 0.26))
+			draw_texture_rect(tex, Rect2(c - Vector2(28, 28), Vector2(56, 56)), false, Color(0.5, 0.4, 0.4, 1.0) if broken else Color(1, 1, 1, 1))
 		var max_d: int = inst.get_max_durability()
 		if max_d > 1 and not inst.is_depleted:
-			var ratio: float = clampf(float(inst.current_durability) / float(max_d), 0.0, 1.0)
 			var bw: float = rad * 1.1
-			var by: float = pos.y + rad * 0.72
-			draw_rect(Rect2(pos.x - bw * 0.5, by, bw, 3.0), Color(0, 0, 0, 1))
-			draw_rect(Rect2(pos.x - bw * 0.5, by, bw * ratio, 3.0), Color(0.3, 0.8, 0.3) if ratio > 0.3 else Color(0.9, 0.25, 0.22))
+			LedgerRing.gauge(self, Vector2(c.x - bw * 0.5, c.y + rad * 0.78), bw, clampf(float(inst.current_durability) / float(max_d), 0.0, 1.0), k)
 		if inst.count > 1:
-			_text(font, pos + Vector2(rad * 0.15, rad * 0.62), "x%d" % inst.count, 12, PW.ROOT_TEXT, rad * 0.8, HORIZONTAL_ALIGNMENT_RIGHT)
-	# The middle: what the pointer is on, or whose body this is.
-	var cw: float = 176.0
+			LedgerRing.text(self, "typed", c + Vector2(rad * 0.1, rad * 0.62), "x%d" % inst.count, 12, Ledger.INK, rad * 0.8, HORIZONTAL_ALIGNMENT_RIGHT)
+	# The middle: a slip — what the pointer is on, or whose body this is.
 	var inst_h = inst_at(hover)
 	var notes_left: int = int(WorldState.player_corpses.get(key, {}).get("notes", 0))
+	var lines: Array = []
 	if drag_k >= 0 and inst_at(drag_k) != null:
 		var dn: String = String(inst_at(drag_k).get_data().get("name", "")).to_upper()
-		_text(font, centre + Vector2(-cw * 0.5, -22), "LET GO ON YOUR PACK" if not pack_hot else "LET GO TO TAKE", 12, PW.GOOD if pack_hot else PW.DIM_TEXT, cw, HORIZONTAL_ALIGNMENT_CENTER)
-		_text(font, centre + Vector2(-cw * 0.5, 0), dn, 14, PW.ROOT_TEXT, cw, HORIZONTAL_ALIGNMENT_CENTER)
+		lines = [{"kind": "hand", "text": "let go to take" if pack_hot else "let go on your pack", "px": 13, "col": Ledger.GREEN_INK if pack_hot else Ledger.INK_SOFT},
+			{"kind": "head", "text": dn, "px": 16, "col": Ledger.INK}]
 	elif inst_h != null:
-		var c: Dictionary = HUD.item_tip_content(inst_h)
+		var c2: Dictionary = HUD.item_tip_content(inst_h)
 		var cmp: Dictionary = ItemCompare.card(inst_h, ItemCompare.held_weapon())
-		_text(font, centre + Vector2(-cw * 0.5, -40 if not cmp.is_empty() else -22), String(c["title"]).to_upper(), 16, Color(1.0, 0.85, 0.4) if c.get("legendary", false) else PW.ROOT_TEXT, cw, HORIZONTAL_ALIGNMENT_CENTER)
+		lines = [{"kind": "head", "text": String(c2["title"]).to_upper(), "px": 17, "col": Ledger.GOLD_INK if c2.get("legendary", false) else Ledger.INK}]
 		if cmp.is_empty() or String(cmp["vs"]) == "":
-			var stats: Array = c["stats"]
+			var stats: Array = c2["stats"]
 			for i in range(mini(stats.size(), 2)):
-				_text(font, centre + Vector2(-cw * 0.5, 0 + i * 16), String(stats[i]), 12, Color(0.75, 0.79, 0.84), cw, HORIZONTAL_ALIGNMENT_CENTER)
+				lines.append({"kind": "body", "text": String(stats[i]), "px": 12, "col": Ledger.INK_SOFT})
 		else:
 			var rows: Array = cmp["rows"]
 			for i in range(mini(rows.size(), 4)):
 				var crow: Dictionary = rows[i]
-				var tone_col: Color = ItemCompare.GOOD if int(crow["tone"]) > 0 else (ItemCompare.BAD if int(crow["tone"]) < 0 else Color(0.75, 0.79, 0.84))
-				_text(font, centre + Vector2(-cw * 0.5, -20 + i * 15), "%s  %s   %s" % [crow["label"], crow["text"], crow["delta"]], 12, tone_col, cw, HORIZONTAL_ALIGNMENT_CENTER)
+				lines.append({"row": true, "label": crow["label"], "value": crow["text"], "delta": crow["delta"], "tone": crow["tone"]})
 	else:
-		_text(font, centre + Vector2(-cw * 0.5, -22), body_name(), 15, PW.ROOT_TEXT, cw, HORIZONTAL_ALIGNMENT_CENTER)
 		var empty: bool = true
 		for i2 in _insts:
 			if i2 != null:
 				empty = false
-		_text(font, centre + Vector2(-cw * 0.5, -2), "nothing left on them" if empty and notes_left <= 0 else "click here: take all", 12, PW.DIM_TEXT, cw, HORIZONTAL_ALIGNMENT_CENTER)
+		lines = [{"kind": "head", "text": body_name(), "px": 16, "col": Ledger.INK},
+			{"kind": "hand", "text": "nothing left on them" if empty and notes_left <= 0 else "click here: take all", "px": 12, "col": Ledger.INK_SOFT}]
 		if notes_left > 0:
-			_text(font, centre + Vector2(-cw * 0.5, 16), "%d notes (no room for them)" % notes_left, 12, Color(0.62, 0.82, 0.55), cw, HORIZONTAL_ALIGNMENT_CENTER)
+			lines.append({"kind": "body", "text": "%d notes (no room)" % notes_left, "px": 12, "col": Ledger.GREEN_INK})
+	LedgerRing.card(self, centre, lines, 83, LedgerRing.BODY_TINT, 124.0, t)
 	if drag_k >= 0:
 		var di = inst_at(drag_k)
 		if di != null:
 			var dtex: Texture2D = ItemData.get_texture(di.item_id)
 			if dtex != null:
-				draw_texture_rect(dtex, Rect2(_mouse - Vector2(28, 28), Vector2(56, 56)), false, Color(1, 1, 1, 0.85))
-	# a plate over the ring: whose body this is
+				draw_texture_rect(dtex, Rect2(_mouse - Vector2(22, 20), Vector2(56, 56)), false, Color(0.0, 0.0, 0.0, 0.30))
+				draw_texture_rect(dtex, Rect2(_mouse - Vector2(28, 28), Vector2(56, 56)), false, Color(1, 1, 1, 0.92))
+	# a tag over the ring: whose body this is
 	var title: String = "THEIR BODY" if key == "" else "%s - ON THE BODY" % body_name()
-	var hw: float = font.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x + 20.0
 	var hy: float = centre.y - (PW.RING_R + PW.DISC) * 1.05 - 26.0
 	if hy < 4.0:
 		hy = centre.y + (PW.RING_R + PW.DISC) * 1.05 + 6.0
-	draw_rect(Rect2(centre.x - hw * 0.5, hy, hw, 20.0), Color(0.03, 0.04, 0.06, 0.82 * t))
-	_text(font, Vector2(centre.x - hw * 0.5, hy + 14.0), title, 12, COOL, hw, HORIZONTAL_ALIGNMENT_CENTER)
+	LedgerRing.plate(self, "head", Vector2(centre.x, hy), title, 14, Ledger.INK, 87, false, t, 400.0, HUD.SCREEN_W)

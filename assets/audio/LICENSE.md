@@ -32,6 +32,8 @@
   `tools/gen_story_audio.py`). **CC0.** Replace with recorded sounds later (docs/CHARACTER_STORIES.md).
 - `room/*.wav` — procedurally generated sounds for searching a node (cloth rustle, paper crinkle, a ceramic / glass clink, a tin rattle, a drawer scraping out, a screen switching off, something tipping over and rolling; `tools/gen_node_audio.py`), played by `scripts/node_reaction.gd`. **CC0.** Replace with recorded foley later.
 
+- `ui/*.wav` — procedurally generated desk sounds for the ledger menus (a sheet laid down, a page flicked, a pencil tap, a rubber stamp, a pen writing, tape, banknotes counted, two knuckle raps; pink noise under a steep ceiling, `tools/gen_ui_audio.py`), played by `scripts/ledger.gd` (docs/LEDGER_UI.md). **CC0.** Replace with recorded foley later.
+
 - **Round 46 clean-up (`docs/AUDIO.md`):** every generated sound above now comes from generators built on `tools/audiolib.py` (pink noise under a steep ceiling, soft-limited,
   faded); `doors/metalLatch.ogg` and `impacts/knifeSlice*.ogg` (Kenney, CC0) were low-passed at 6 kHz and trimmed to -3 dBFS by `tools/audio_clean.py` (a re-encode; the
   untouched originals are in git history). `tools/audio_audit.py --check` is part of the gate.

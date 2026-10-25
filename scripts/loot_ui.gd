@@ -18,6 +18,8 @@ const RingGeo := preload("res://scripts/ring_geo.gd")
 const DRAG_THRESHOLD = 8.0
 const DOUBLE_CLICK_TIME = 0.35
 const PANEL_W = 300.0
+const PAD := 22.0                      # the paper's margin round its contents
+const REST_TILT := -0.009             # a slip is never quite square to the desk
 const SEARCH_W = 220.0                 # the compact panel while a search runs (owner round 45: "the searching box is far too big")
 const SCREEN_W = 1152.0
 const SCREEN_H = 648.0
@@ -35,7 +37,12 @@ var has_item = false               # a takeable item is currently shown
 
 # UI
 var panel: PanelContainer = null
+var paper: LedgerPaper = null
 var icon: TextureRect = null
+var icon_shadow: TextureRect = null
+var name_rule: LedgerRule = null
+var _land_tween: Tween = null
+var _pen_clock: float = 0.0
 var name_label: Label = null
 var hint_label: Label = null
 var compare_label: RichTextLabel = null      # a found weapon's numbers, set beside the one in hand (ItemCompare)
@@ -75,41 +82,58 @@ func _build_ui() -> void:
 	add_child(center)
 	_center = center
 
+	# The panel is a slip of ledger paper (scripts/ledger.gd): the paper only draws, a margin holds the contents, so a panel that changes height — a found weapon with its numbers under it — is
+	# still one sheet whatever it holds.
 	panel = PanelContainer.new()
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.custom_minimum_size = Vector2(PANEL_W, 0)
-	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.06, 0.06, 0.08, 0.95)
-	style.border_color = Color(0.7, 0.68, 0.55, 0.95)
-	style.set_border_width_all(2)
-	style.set_corner_radius_all(8)
-	style.set_content_margin_all(16)
-	panel.add_theme_stylebox_override("panel", style)
+	panel.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
 	center.add_child(panel)
+	paper = LedgerPaper.new()
+	paper.seed_value = 41
+	panel.add_child(paper)
+	var pad := MarginContainer.new()
+	pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pad.add_theme_constant_override("margin_left", int(PAD))
+	pad.add_theme_constant_override("margin_right", int(PAD))
+	pad.add_theme_constant_override("margin_top", int(PAD) + 8)           # the tape
+	pad.add_theme_constant_override("margin_bottom", int(PAD) - 2)
+	panel.add_child(pad)
 
 	var vbox = VBoxContainer.new()
 	vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vbox.add_theme_constant_override("separation", 8)
-	panel.add_child(vbox)
+	pad.add_child(vbox)
 
 	icon_row = CenterContainer.new()
 	icon_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	icon_row.custom_minimum_size = Vector2(PANEL_W - 32, 112)
+	icon_row.custom_minimum_size = Vector2(PANEL_W - 2.0 * PAD, 112)
 	vbox.add_child(icon_row)
+	var plate := Control.new()                          # the thing lies on the paper: a shadow a few px down and right of it
+	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	plate.custom_minimum_size = Vector2(112, 112)
+	icon_row.add_child(plate)
+	icon_shadow = TextureRect.new()
+	icon_shadow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon_shadow.size = Vector2(112, 112)
+	icon_shadow.position = Vector2(5, 6)
+	icon_shadow.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon_shadow.modulate = Color(0.12, 0.07, 0.02, 0.26)
+	plate.add_child(icon_shadow)
 	icon = TextureRect.new()
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	icon.custom_minimum_size = Vector2(112, 112)   # the 56px icon at exactly 2x
+	icon.size = Vector2(112, 112)                      # the 56px icon at exactly 2x
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon_row.add_child(icon)
+	plate.add_child(icon)
 
-	name_label = Label.new()
-	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	name_label.add_theme_font_size_override("font_size", 22)
-	name_label.add_theme_color_override("font_color", Color(0.95, 0.93, 0.82))
+	name_label = Ledger.label("", "head", 28, Ledger.INK, true)
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	name_label.custom_minimum_size = Vector2(PANEL_W - 32, 0)
+	name_label.custom_minimum_size = Vector2(PANEL_W - 2.0 * PAD, 0)
 	vbox.add_child(name_label)
+
+	name_rule = LedgerRule.new()
+	name_rule.seed_value = 9
+	vbox.add_child(name_rule)
 
 	compare_label = RichTextLabel.new()
 	compare_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -117,35 +141,59 @@ func _build_ui() -> void:
 	compare_label.fit_content = true
 	compare_label.scroll_active = false
 	compare_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	compare_label.add_theme_font_size_override("normal_font_size", 14)
-	compare_label.add_theme_color_override("default_color", Color(0.78, 0.82, 0.86))
-	compare_label.custom_minimum_size = Vector2(PANEL_W - 32, 0)
+	compare_label.add_theme_font_override("normal_font", Ledger.font("body"))
+	compare_label.add_theme_font_size_override("normal_font_size", 15)
+	compare_label.add_theme_color_override("default_color", Ledger.INK)
+	compare_label.custom_minimum_size = Vector2(PANEL_W - 2.0 * PAD, 0)
 	compare_label.visible = false
 	vbox.add_child(compare_label)
 
-	hint_label = Label.new()
-	hint_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hint_label.add_theme_font_size_override("font_size", 13)
-	hint_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.4))
+	hint_label = Ledger.label("", "hand", 15, Ledger.hand_ink(), true)                # what the player jots to themselves
 	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hint_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	hint_label.custom_minimum_size = Vector2(PANEL_W - 32, 0)
+	hint_label.custom_minimum_size = Vector2(PANEL_W - 2.0 * PAD, 0)
 	vbox.add_child(hint_label)
 
 	search_bar = SearchBar.new()
 	search_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	search_bar.custom_minimum_size = Vector2(SEARCH_W - 32, SearchBar.BAR_H)
+	search_bar.custom_minimum_size = Vector2(SEARCH_W - 2.0 * PAD, SearchBar.BAR_H)
 	search_bar.visible = false
 	vbox.add_child(search_bar)
+
+
+## The player writes in their own hand, and the cast changes between runs: re-ink what is theirs each time the panel opens.
+func _restyle() -> void:
+	Ledger.style(hint_label, "hand", 15, Ledger.hand_ink())
+	name_label.add_theme_color_override("font_color", Ledger.INK)
+
+
+## The icon and the shadow it throws on the paper are one picture.
+func _set_icon(tex: Texture2D) -> void:
+	icon.texture = tex
+	icon_shadow.texture = tex
+
+
+## The slip lands: a hair large and turned, settling flat in a tenth of a second, with the paper's own sound.
+func _land(sound: String) -> void:
+	Ledger.play(sound, -13.0, 0.12)
+	panel.pivot_offset = panel.size * 0.5
+	if _land_tween != null and _land_tween.is_valid():
+		_land_tween.kill()
+	panel.scale = Vector2(1.035, 1.035)
+	panel.rotation = -0.022
+	_land_tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_land_tween.tween_property(panel, "scale", Vector2.ONE, 0.11)
+	_land_tween.tween_property(panel, "rotation", REST_TILT, 0.13)
 
 
 ## A search is running: a small panel with just the word and a bar that fills across it; or it has finished: the full panel.
 func _layout(searching: bool) -> void:
 	var w: float = SEARCH_W if searching else PANEL_W
 	panel.custom_minimum_size = Vector2(w, 0)
-	name_label.custom_minimum_size = Vector2(w - 32, 0)
-	name_label.add_theme_font_size_override("font_size", 16 if searching else 22)
+	name_label.custom_minimum_size = Vector2(w - 2.0 * PAD, 0)
+	name_label.add_theme_font_size_override("font_size", 22 if searching else 28)
+	name_label.add_theme_color_override("font_color", Ledger.INK)
 	icon_row.visible = not searching
+	name_rule.visible = not searching
 	hint_label.visible = not searching
 	compare_label.visible = false
 	search_bar.visible = searching
@@ -171,6 +219,7 @@ func open(item_id: String, anchor_name: String, apartment_id: String) -> void:
 
 	# Someone living here watches you go through their things (resident_npc.gd).
 	get_tree().call_group("resident_npc", "on_scavenge", "start", apartment_id)
+	_restyle()
 	if WorldState.is_anchor_searched(apartment_id, anchor_name):
 		_reveal_item()
 		visible = has_item                    # an empty one has already said so and closed itself
@@ -181,12 +230,15 @@ func open(item_id: String, anchor_name: String, apartment_id: String) -> void:
 	# The press starts it: the drawer opens, the glass tips, the screen goes dark NOW, while the bar fills (owner round 45c)
 	if anchor_node != null and is_instance_valid(anchor_node) and anchor_node.has_method("on_search_begin"):
 		anchor_node.on_search_begin()
-	icon.texture = null
+	_set_icon(null)
+	_restyle()
 	name_label.text = "Searching"
 	hint_label.text = ""
 	_layout(true)
 	search_bar.set_progress(0.0, reveal_time)
+	_pen_clock = 0.0
 	visible = true
+	_land("sheet")
 
 
 ## What the player mutters over an empty search: a short line, stable per node (so re-searching reads the same).
@@ -206,7 +258,7 @@ func _reveal_item() -> void:
 	if current_item_id == "":
 		# An empty search is a line, not a panel (owner round 48i: "if there is nothing found, we don't need a big empty inventory box that pops... the
 		# player can say nothing in real time following the search, allowing us to just keep going"): close at once and say so in passing.
-		icon.texture = null
+		_set_icon(null)
 		name_label.text = ""
 		hint_label.text = ""
 		has_item = false
@@ -215,7 +267,7 @@ func _reveal_item() -> void:
 		_close(false)
 		return
 	if item_data.is_empty():
-		icon.texture = null
+		_set_icon(null)
 		name_label.text = "Nothing found."
 		hint_label.text = ""
 		has_item = false
@@ -223,7 +275,7 @@ func _reveal_item() -> void:
 		_notify_anchor_closed(false)
 		return
 	has_item = true
-	icon.texture = ItemData.get_texture(current_item_id)
+	_set_icon(ItemData.get_texture(current_item_id))
 	WorldState.note_item_seen(current_item_id)   # seeing it in the panel counts as found (codex)
 	if current_key_target != "":
 		name_label.text = WorldState.key_display(current_key_target)
@@ -236,6 +288,8 @@ func _reveal_item() -> void:
 	_show_compare(item_data)
 	if _is_rounds() and not WorldState.guns_with_room().is_empty():
 		hint_label.text = SettingsManager.localize("Drag onto your gun, or press [{item_use}], to load it · [{interact}] takes it")
+	visible = true
+	_land("page")
 
 
 ## A weapon in the panel shows its numbers beside the one in hand, so the choice never needs the bag opened to compare (owner round 48i).
@@ -249,7 +303,7 @@ func _show_compare(item_data: Dictionary) -> void:
 	var c: Dictionary = ItemCompare.card(inst, ItemCompare.held_weapon())
 	if c.is_empty():
 		return
-	compare_label.text = ItemCompare.bbcode(c)
+	compare_label.text = ItemCompare.bbcode(c, true)
 	compare_label.visible = true
 
 
@@ -278,6 +332,7 @@ func _process(delta: float) -> void:
 	if not visible:
 		_shift = 0.0
 		return
+	panel.pivot_offset = panel.size * 0.5
 	# the panel slides left while the pack ring is up on the right
 	var want: float = PACK_SHIFT if _pack_open() else 0.0
 	_shift = lerpf(_shift, want, clampf(delta * 14.0, 0.0, 1.0))
@@ -305,6 +360,10 @@ func _process(delta: float) -> void:
 			_close(false)
 			return
 		reveal_timer += delta
+		_pen_clock += delta
+		if _pen_clock >= 0.85:                                                  # the pen keeps scratching while the box fills
+			_pen_clock = 0.0
+			Ledger.play("pen", -21.0, 0.5)
 		search_bar.set_progress(reveal_timer, reveal_time)
 		name_label.text = "Searching" + ".".repeat(1 + int(reveal_timer * 2.5) % 3)
 		if reveal_timer >= reveal_time:
@@ -451,9 +510,16 @@ func _take() -> bool:
 		_finish_taken(cabinet)
 		return true
 	else:
-		name_label.text = "Inventory full"
-		hint_label.text = "Drag something off the ring (or onto this) to make room." if _pack_open() else "Open your pack and make room."
+		_say_full("Drag something off the ring (or onto this) to make room." if _pack_open() else "Open your pack and make room.")
 		return false
+
+
+## The pockets can't take it: the name goes red in the margin, the slip says why, and a knuckle on the desk.
+func _say_full(hint: String) -> void:
+	name_label.text = "Inventory full"
+	name_label.add_theme_color_override("font_color", Ledger.RED_INK)
+	hint_label.text = hint
+	Ledger.play("deny", -12.0, 0.4)
 
 
 ## The found thing is in the pack now: the node is spent, the journal counts it, the panel closes.
@@ -465,6 +531,7 @@ func _finish_taken(cabinet: bool) -> void:
 	WorldState.note_scavenge(current_apartment_id)   # journal stats: items + apartments looted
 	get_tree().call_group("resident_npc", "on_scavenge", "take", current_apartment_id)
 	HUD.refresh_inventory()
+	Ledger.play("tick", -12.0)
 	_close(true)
 
 
@@ -490,8 +557,7 @@ func _take_rounds() -> bool:
 	if int(res["to_gun"]) + int(res["to_pack"]) > 0:
 		_rounds_left(int(res["left"]), str(res["msg"]))
 	else:
-		name_label.text = "Inventory full"
-		hint_label.text = "Drag something off the ring (or onto this) to make room." if _pack_open() else "Open your pack and make room."
+		_say_full("Drag something off the ring (or onto this) to make room." if _pack_open() else "Open your pack and make room.")
 	return false
 
 
@@ -518,6 +584,7 @@ func _rounds_left(left: int, msg: String) -> void:
 	HUD.show_feedback(msg)
 	HUD.refresh_inventory()
 	name_label.text = "%s x%d" % [ItemData.get_item(current_item_id).get("name", "Bullets"), left]
+	Ledger.play("tick", -14.0)
 	hint_label.text = "The pack is full — drag something off the ring to make room for the rest." if _pack_open() else "The pack is full — make room for the rest."
 
 
@@ -560,14 +627,15 @@ func _notify_anchor_closed(item_taken: bool) -> void:
 		anchor_node.on_loot_closed(item_taken)
 
 
-## The search bar (owner round 45: "add an opaque bar to fill the box horizontally, just like similar bars for force door effects"): the
-## same warm look as the barricade's board bar — a dark opaque track in a bronze frame, an amber fill that grows left to right with a
-## brighter, pulsing leading edge, a highlight that sweeps along the fill, and a tick every tenth so the pace of the search reads.
+## The search bar (owner round 45: "add an opaque bar to fill the box horizontally, just like similar bars for force door effects"; round 48j: ledger look): a box ruled on the slip,
+## which the player's pen FILLS IN as the search runs — diagonal strokes laid down left to right, each a little off the last, in their own ink; the stroke being drawn is only part
+## of the way across the box. A tick under every tenth keeps the pace readable. `fraction()` is still how full it is.
 class SearchBar extends Control:
-	const BAR_H := 14.0
+	const BAR_H := 18.0
+	const STROKE_GAP := 5.5
+	const SLANT := 7.0
 	var elapsed := 0.0
 	var total := 1.0
-	var _t := 0.0
 
 	func set_progress(done: float, of: float) -> void:
 		elapsed = clampf(done, 0.0, maxf(of, 0.001))
@@ -577,28 +645,33 @@ class SearchBar extends Control:
 	func fraction() -> float:
 		return clampf(elapsed / total, 0.0, 1.0)
 
-	func _process(delta: float) -> void:
-		if visible:
-			_t += delta
-			queue_redraw()
-
 	func _draw() -> void:
 		var w := size.x
-		var h := size.y
-		draw_rect(Rect2(0, 0, w, h), Color(0.05, 0.04, 0.035, 1.0))                        # opaque track
-		var inner := Rect2(2, 2, w - 4, h - 4)
-		draw_rect(inner, Color(0.16, 0.13, 0.10, 1.0))
-		var fill := inner.size.x * fraction()
-		if fill >= 1.0:
-			draw_rect(Rect2(inner.position, Vector2(fill, inner.size.y)), Color(0.95, 0.66, 0.28, 1.0))
-			var pulse := 0.65 + 0.35 * sin(_t * 12.0)                                      # the leading edge breathes
-			draw_rect(Rect2(inner.position.x + fill - 3.0, inner.position.y, 3.0, inner.size.y), Color(1.0, 0.86, 0.5, pulse))
-			var sweep := fmod(_t * 60.0, maxf(fill, 1.0) + 12.0) - 12.0                    # a highlight running along the fill
-			var sx := clampf(sweep, 0.0, fill)
-			var ex := clampf(sweep + 12.0, 0.0, fill)
-			if ex > sx:
-				draw_rect(Rect2(inner.position.x + sx, inner.position.y, ex - sx, 2.0), Color(1.0, 0.92, 0.66, 0.55))
-		for i in range(1, 10):                                                              # tenths
-			var tx := inner.position.x + inner.size.x * float(i) / 10.0
-			draw_rect(Rect2(tx, inner.position.y, 1.0, inner.size.y), Color(0.05, 0.04, 0.035, 0.55))
-		draw_rect(Rect2(0, 0, w, h), Color(0.62, 0.46, 0.30, 1.0), false, 1.0)               # bronze frame
+		var h := size.y - 6.0                                                      # the ticks hang under the box
+		var ink := Ledger.INK_SOFT
+		var box := Rect2(1.5, 1.5, w - 3.0, h - 3.0)
+		var tl := box.position
+		var tr := Vector2(box.end.x, box.position.y)
+		var br := box.end
+		var bl := Vector2(box.position.x, box.end.y)
+		for e in [[tl, tr, 1], [tr, br, 2], [br, bl, 3], [bl, tl, 4]]:
+			draw_polyline(Ledger.pen_line(e[0], e[1], int(e[2]) + 40, 0.6), Color(ink.r, ink.g, ink.b, 0.85), 1.3, true)
+		var fill := box.size.x * fraction()
+		var hand := Ledger.hand_ink()
+		var n := int(floor(fill / STROKE_GAP))
+		for i in range(n + 1):
+			var x := box.position.x + 2.0 + i * STROKE_GAP
+			var part := 1.0 if i < n else clampf((fill - n * STROKE_GAP) / STROKE_GAP, 0.0, 1.0)     # the stroke in the pen right now is half drawn
+			if part <= 0.05:
+				continue
+			var j := sin(float(i) * 12.9898) * 43758.5453
+			j = j - floor(j)
+			var top := Vector2(x + SLANT + j * 1.6, box.position.y + 2.0 + j * 1.2)
+			var bot := Vector2(x - 0.5 + j, box.end.y - 2.0 - (1.0 - j) * 1.2)
+			if bot.x > box.position.x + 2.0 + fill + 1.0:
+				continue
+			draw_line(bot, bot.lerp(top, part), Color(hand.r, hand.g, hand.b, 0.78 + 0.18 * j), 1.5, true)
+		for k in range(1, 10):                                                          # tenths
+			var tx := box.position.x + box.size.x * float(k) / 10.0
+			var tall := 4.0 if k == 5 else 2.5
+			draw_line(Vector2(tx, size.y - 6.0 + 1.0), Vector2(tx, size.y - 6.0 + 1.0 + tall), Color(ink.r, ink.g, ink.b, 0.7), 1.0)
