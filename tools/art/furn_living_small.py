@@ -16,7 +16,7 @@ BRASS, BRASS_LT = hexc('b89a48'), hexc('e4cc78')
 
 
 # ================================================================================================================================ the standard lamp
-@piece('lamp_floor', 18, 56, 'floor', keep='light', rooms={'living_room': 6, 'study': 3, 'dining_room': 1}, styles={'cosy': 6, 'mid': 6, 'parlour': 5, 'lodge': 3, 'squat': 1}, tags=('light', 'lamp'), limit=1,
+@piece('lamp_floor', 18, 56, 'floor', keep='light', rooms={'living_room': 6, 'study': 3, 'dining_room': 1}, styles={'cosy': 6, 'mid': 6, 'parlour': 5, 'lodge': 3, 'squat': 1}, tags=('light', 'lamp'), limit=1, near=('seating_lounge',),
        variants={'brass': {'col': 'b89a48', 'shade': 'e8d8a8', 'for': ['cosy', 'parlour', 'lodge']}, 'black': {'col': '2a2a2e', 'shade': 'd8d0b8', 'for': ['mid', 'squat']},
                  'teak': {'col': '7a4a2a', 'shade': 'c8a060', 'for': ['mid', 'cosy']}},
        lights=({'dx': 9, 'dy': -46, 'kind': 'table'},), feet=(108, 118),

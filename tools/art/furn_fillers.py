@@ -26,7 +26,7 @@ BRASS_DK = hexc('7a6430')
 RAD_COLOURS = {'cream': hexc('d8cfb6'), 'iron': hexc('5a5d62')}
 
 
-@piece('radiator', 38, 30, 'wall', rooms={'bedroom': 2, 'living_room': 3, 'dining_room': 3, 'study': 3}, tags=('heating',), depth=1, limit=1,
+@piece('radiator', 38, 30, 'wall', rooms={'bedroom': 2, 'living_room': 3, 'dining_room': 3, 'study': 3}, tags=('heating',), depth=1, limit=1, under_window=True,
        variants={k: {'col': v} for k, v in RAD_COLOURS.items()}, feet=(105, 109),
        note='a column radiator: nine rounded sections lit across their width, a header rail top and bottom, a lockshield valve and two pipes down to the boards')
 def radiator(c, ox, oy, p):

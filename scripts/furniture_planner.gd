@@ -121,6 +121,36 @@ static func window_box(side: String) -> Rect2:
 	return Rect2(cx - WINDOW_HALF_W, WINDOW_Y0, WINDOW_HALF_W * 2 + 1, WINDOW_Y1 - WINDOW_Y0 + 1)
 
 
+## DESIGNER'S EYE (owner round 48k, tools/art/room_eye.py): a radiator and a butler sink belong UNDER the window, where the room has one. The x of the window's middle, -1.0 with no window (a balcony slot).
+const UNDER_WINDOW_SLACK := 10       # how far off the window's middle the middle of such a piece may be
+const SILL_INTRUSION := 14           # a sink's tap or a radiator's valve may rise this far into the bottom of the window box (a tap in front of the glass is how a kitchen looks)
+
+
+static func _window_mid(ctx: Dictionary) -> float:
+	var wb := window_box(String(ctx.get("window", "")))
+	return wb.position.x + wb.size.x * 0.5 if wb.size.x > 0.0 else -1.0
+
+
+## Is this piece where it belongs against the window? (Anything that does not belong under a window, or a room without one, is always fine.)
+static func _under_window_ok(it: Dictionary, ctx: Dictionary) -> bool:
+	var rec := piece(String(it["id"]))
+	if not bool(rec.get("under_window", false)) or bool(ctx.get("fallback", false)):       # (a recipe's hand-set fallback layout is one fixed picture for either window side)
+		return true
+	var m := _window_mid(ctx)
+	if m < 0.0:
+		return true
+	return absf(float(it["x"]) + float(rec["w"]) * 0.5 - m) <= float(UNDER_WINDOW_SLACK)
+
+
+## The x positions to try for a piece that belongs under the window: its middle on the window's, a few px either side. [] for any other piece.
+static func _window_spots(ctx: Dictionary, rec: Dictionary) -> Array:
+	var m := _window_mid(ctx)
+	if m < 0.0 or not bool(rec.get("under_window", false)):
+		return []
+	var base := int(round(m - float(rec["w"]) * 0.5))
+	return [base, base - 3, base + 3, base - 6, base + 6, base - 9, base + 9]
+
+
 # ------------------------------------------------------------------------------------------------------------------------------------ eligibility (THE LOGIC)
 ## May this piece be in this kind of room, in this style? Both lists must name it, and its tags must be allowed in the room by the rules table.
 static func eligible(id: String, room_type: String, style: String) -> bool:
@@ -382,11 +412,19 @@ static func _in_stand_zone(rect: Rect2, bands: Array) -> bool:
 	return false
 
 
-static func _blocked(rect: Rect2, ctx: Dictionary) -> bool:
+static func _blocked(rect: Rect2, ctx: Dictionary, allow: float = 0.0) -> bool:
+	var wbox = ctx.get("window_box", null)
 	for b in ctx.get("blocked", []):
-		if rect.intersects((b as Rect2).grow(1.0)):
+		var br: Rect2 = b
+		if allow > 0.0 and wbox != null and br == (wbox as Rect2):
+			br = Rect2(br.position, Vector2(br.size.x, br.size.y - allow))                      # the window box's lower edge gives way to a tap (SILL_INTRUSION)
+		if rect.intersects(br.grow(1.0)):
 			return true
 	return false
+
+
+static func _sill_allow(rec: Dictionary) -> float:
+	return float(SILL_INTRUSION) if bool(rec.get("under_window", false)) else 0.0
 
 
 static func _item_anchors(it: Dictionary) -> Array:
@@ -413,7 +451,7 @@ static func _fits(st: Dictionary, it: Dictionary, gap: int = 1) -> bool:
 		return false
 	if plane == "ceiling" and (rect.position.x < EDGE_L or rect.end.x - 1.0 > EDGE_R):
 		return false
-	if plane != "rug" and plane != "ceiling" and _blocked(rect, ctx):
+	if plane != "rug" and plane != "ceiling" and _blocked(rect, ctx, _sill_allow(piece(String(it["id"])))):
 		return false
 	# a node nobody can reach (above the window line / further than arm's length from the step-up plane) is not allowed
 	for a in _item_anchors(it):
@@ -429,6 +467,8 @@ static func _fits(st: Dictionary, it: Dictionary, gap: int = 1) -> bool:
 		return false
 	if _group_full(items, String(it["id"])):
 		return false                                                      # a room holds one clock, one television… (HOME LOGIC, one of a kind)
+	if not _under_window_ok(it, ctx):
+		return false                                                      # a radiator stands under the window, not in the middle of the wall
 	var face: Vector2 = it["face"]
 	var bands := _bands(items)
 	match plane:
@@ -513,6 +553,7 @@ static func plan(room_type: String, style: String, seed_: int, ctx_in: Dictionar
 	var wb := window_box(String(ctx_in.get("window", "")))
 	if wb.size.x > 0.0:
 		blocked.append(wb)
+		ctx["window_box"] = wb
 	ctx["blocked"] = blocked
 	for attempt in range(MAX_TRIES):
 		var rng := RandomNumberGenerator.new()
@@ -520,6 +561,7 @@ static func plan(room_type: String, style: String, seed_: int, ctx_in: Dictionar
 		var st := {"items": [], "rng": rng, "ctx": ctx, "room": room_type, "style": style, "rcp": rcp}
 		if _attempt(st, rcp):
 			return _result(st, room_type, style, rcp, seed_, attempt, false)
+	ctx["fallback"] = true
 	var fb := {"items": [], "rng": RandomNumberGenerator.new(), "ctx": ctx, "room": room_type, "style": style, "rcp": rcp}
 	for e in rcp.get("fallback", []):
 		var vid_ := String(e["variant"])
@@ -584,30 +626,73 @@ static func _result(st: Dictionary, room_type: String, style: String, rcp: Dicti
 
 
 # ------------------------------------------------------------------------------------------------------------------------------------ one attempt
+## Why attempts fail (tools only): reason -> count, filled while `collect_fail` is on — `tools/furniture_dump.tscn` prints it, so a recipe that keeps falling back says what stops it.
+static var collect_fail := false
+static var fail_log: Dictionary = {}
+
+
+static func _fail(why: String) -> bool:
+	if collect_fail:
+		fail_log[why] = int(fail_log.get(why, 0)) + 1
+	return false
+
+
+## DESIGNER'S EYE: the room's WET piece (a kitchen's sink) is the first thing placed — under the window, where a home puts it; the rest of the room is arranged around it. Returns its index, -1 when
+## the room has no window, wants no wet piece, or nothing fits.
+static func _place_window_sink(st: Dictionary, rcp: Dictionary) -> int:
+	if _window_mid(st["ctx"]) < 0.0:
+		return -1
+	var must_all: Array = rcp.get("run", {}).get("must", []) + rcp.get("wall", {}).get("must", [])
+	if not ("wet" in must_all):
+		return -1
+	var rng: RandomNumberGenerator = st["rng"]
+	var id := _wpick(rng, _open_pool(st, _pool(st["room"], st["style"], ["wall"], "wet")))
+	if id == "":
+		return -1
+	var rec := piece(id)
+	if not bool(rec.get("under_window", false)):
+		return -1
+	var vid := _vid(rng, rec, String(st["style"]))
+	var row := _feet(rng, rec)
+	for x in _window_spots(st["ctx"], rec):
+		var it := _make(id, vid, int(x), row)
+		if _fits(st, it, 0):
+			return _add(st, it)
+	return -1
+
+
 static func _attempt(st: Dictionary, rcp: Dictionary) -> bool:
 	var rng: RandomNumberGenerator = st["rng"]
 	var room: String = st["room"]
 	var style: String = st["style"]
 	var cr: Dictionary = rcp.get("centre", {})
+	st["sink_idx"] = _place_window_sink(st, rcp)
 	st["flank_tag"] = String(rcp.get("flank", {}).get("tag", ""))
 	var centre := -1
+	var run_first: bool = not rcp.get("run", {}).is_empty() and int(st["sink_idx"]) >= 0       # a kitchen's run grows from the sink under the window — it goes down BEFORE the table, which takes what room is left
+	if run_first:
+		_fill_run(st, rcp["run"])
+		for tag in rcp["run"].get("must", []):
+			if not _has_tag(st, tag):
+				return _fail("run lacks %s" % String(tag))
 	if not cr.is_empty():
 		centre = _place_centre(st, cr)
 		if centre < 0:
-			return false
+			return _fail("centre piece does not fit")
 		var fr: Dictionary = rcp.get("flank", {})
 		if not fr.is_empty() and rng.randf() < float(fr.get("chance", 1.0)):
 			_place_flank(st, centre, fr)
 		_place_needs(st, centre)                                          # a sofa wants its coffee table (never at the cost of the sofa: `optional`)
-	if not rcp.get("run", {}).is_empty():
+	if not run_first and not rcp.get("run", {}).is_empty():
 		_fill_run(st, rcp["run"])
 		for tag in rcp["run"].get("must", []):
 			if not _has_tag(st, tag):
-				return false
+				return _fail("run lacks %s" % String(tag))
+	_place_window_fixture(st)
 	_fill_wall(st, rcp.get("wall", {}))
 	for tag in rcp.get("wall", {}).get("must", []):
 		if not _has_tag(st, tag):
-			return false
+			return _fail("wall lacks %s" % String(tag))
 	_fill_gaps(st, rcp)
 	_fill_tops(st, float(rcp.get("tops", 0.7)))
 	_fill_decor(st, rcp.get("decor", [0, 0]))
@@ -617,8 +702,43 @@ static func _attempt(st: Dictionary, rcp: Dictionary) -> bool:
 	if rng.randf() < float(rcp.get("ceiling", 1.0)):
 		_place_ceiling(st)
 	if _count_front_nodes(st) < int(rcp.get("min_front", 2)):
+		return _fail("too few front nodes")
+	var vs := validate_state(st)
+	if not vs.is_empty():
+		return _fail("validate: %s" % String(vs[0]).substr(0, 60))
+	return true
+
+
+## DESIGNER'S EYE: a room with a window often has its radiator right under it (the ordinary way a home is heated) — before the wall fills up, with this chance, a piece that belongs under the window
+## goes there. A room without a window (a balcony slot) has nothing to be under, and the wall fill may still place one anywhere.
+const WINDOW_FIXTURE_CHANCE := 0.55
+
+
+## A piece that belongs under a window and that the room still lacks (a second sink is never dealt: a room that already has its wet piece does not get a butler sink as a "fixture").
+static func _wants_window_spot(st: Dictionary, id: String) -> bool:
+	var rec := piece(id)
+	if not bool(rec.get("under_window", false)):
 		return false
-	return validate_state(st).is_empty()
+	return not ("wet" in rec["tags"] and _has_tag(st, "wet"))
+
+
+static func _place_window_fixture(st: Dictionary) -> void:
+	if _window_mid(st["ctx"]) < 0.0:
+		return
+	var rng: RandomNumberGenerator = st["rng"]
+	var pool := _open_pool(st, _pool(st["room"], st["style"], ["wall"]).filter(func(e): return _wants_window_spot(st, String(e[0]))))
+	if pool.is_empty() or rng.randf() >= WINDOW_FIXTURE_CHANCE:
+		return
+	var id := _wpick(rng, pool)
+	if id == "":
+		return
+	var rec := piece(id)
+	var vid := _vid(rng, rec, String(st["style"]))
+	for x in _window_spots(st["ctx"], rec):
+		var it := _make(id, vid, int(x), _feet(rng, rec))
+		if _fits(st, it, 1):
+			_add(st, it)
+			return
 
 
 ## `tag` may name alternatives ("wardrobe|dressing" — a wardrobe OR a dressing table).
@@ -736,6 +856,9 @@ static func _fill_wall(st: Dictionary, wr: Dictionary) -> void:
 			var tmp = xs[k]
 			xs[k] = xs[j]
 			xs[j] = tmp
+		var ws := _window_spots(st["ctx"], rec)                      # a radiator / butler sink is tried under the window only
+		if not ws.is_empty():
+			xs = ws
 		var gap := 1 + rng.randi_range(0, 3)
 		for x in xs:
 			var it := _make(id, vid, int(x), _feet(rng, rec))
@@ -797,6 +920,10 @@ static func _fill_gaps(st: Dictionary, rcp: Dictionary) -> void:
 				continue
 			if "unit" in rec["tags"]:
 				continue                                                 # a run's units belong to the run, not to a stray gap
+			if bool(rec.get("under_window", false)):
+				var wm := _window_mid(st["ctx"])                          # a radiator closes a gap only where the window is
+				if wm >= 0.0 and (wm - float(rec["w"]) * 0.5 < g.x or wm + float(rec["w"]) * 0.5 > g.y):
+					continue
 			pool.append([e[0], float(e[1]) * (0.4 + float(rec["w"]) / float(gw))])
 		var placed := false
 		for attempt in range(8):
@@ -807,8 +934,11 @@ static func _fill_gaps(st: Dictionary, rcp: Dictionary) -> void:
 			var rec2 := piece(id)
 			var vid := _vid(rng, rec2, String(st["style"]))
 			var w := int(rec2["w"])
+			var gws := _window_spots(st["ctx"], rec2)
 			for k in range(6):
 				var x := int(g.x) + 1 + rng.randi_range(0, maxi(0, gw - w - 2))
+				if not gws.is_empty():
+					x = int(gws[k % gws.size()])
 				var it := _make(id, vid, x, _feet(rng, rec2))
 				if _fits(st, it, 1):
 					var idx := _add(st, it)
@@ -841,6 +971,15 @@ static func _fill_run(st: Dictionary, rr: Dictionary) -> void:
 	var row := -1
 	var placed := 0
 	var last_id := ""
+	var si := int(st.get("sink_idx", -1))                                      # a kitchen's sink is already under its window (`_place_window_sink`): the run grows from it, away from the nearer wall
+	if si >= 0 and "unit" in (st["items"][si] as Dictionary)["tags"]:
+		var sit: Dictionary = st["items"][si]
+		var win_mid := _window_mid(st["ctx"])
+		row = int(sit["y"])
+		placed += 1
+		last_id = String(sit["id"])
+		rtl = win_mid > float(MODULE_W) * 0.5
+		x = int(sit["x"]) if rtl else int(sit["x"]) + int(sit["w"])
 	for guard in range(n * 6 + 16):
 		var unmet := ""
 		for t in must:
@@ -905,13 +1044,18 @@ static func _place_needs(st: Dictionary, idx: int) -> void:
 	if id == "":
 		return
 	var crec := piece(id)
-	var dxr: Array = nd.get("dx", [0, 20])
-	for t in range(10):
-		var x := int(host["x"]) + rng.randi_range(int(dxr[0]), int(dxr[1]))
-		var it := _make(id, _vid(rng, crec, String(st["style"])), x, _feet(rng, crec))
-		if _fits(st, it):
-			_add(st, it)
-			return
+	var ranges: Array = [nd.get("dx", [0, 20])]
+	if nd.has("dx_left"):                                          # a stool is set BESIDE a piece whose front is a step-up spot (a piano, a dressing table), on whichever side — a coin toss
+		ranges.append(nd["dx_left"])
+		if rng.randf() < 0.5:
+			ranges.reverse()
+	for dxr in ranges:
+		for t in range(10 if ranges.size() == 1 else 6):
+			var x := int(host["x"]) + rng.randi_range(int(dxr[0]), int(dxr[1]))
+			var it := _make(id, _vid(rng, crec, String(st["style"])), x, _feet(rng, crec))
+			if _fits(st, it):
+				_add(st, it)
+				return
 	if bool(nd.get("optional", false)):
 		return                                                    # a sofa with no room for a coffee table is still a sofa
 	st["items"].remove_at(idx)                                # no room for the chair → no desk (never a desk with nowhere to sit)
@@ -1200,8 +1344,10 @@ static func validate_state(st: Dictionary) -> Array:
 		var rect: Rect2 = it["rect"]
 		if plane != "ceiling" and (rect.position.x < EDGE_L or rect.end.x - 1.0 > EDGE_R):
 			bad.append("%s leaves the module (x %d..%d)" % [id, int(rect.position.x), int(rect.end.x) - 1])
-		if plane != "rug" and plane != "ceiling" and _blocked(rect, ctx):
+		if plane != "rug" and plane != "ceiling" and _blocked(rect, ctx, _sill_allow(rec)):
 			bad.append("%s stands in front of the window / a blocked box %s" % [id, str(rect)])
+		if not _under_window_ok(it, ctx):
+			bad.append("%s belongs UNDER the window (x %d), not at x %d" % [id, int(_window_mid(ctx)), int(it["x"])])
 		for a in _item_anchors(it):
 			if int(a["y"]) < NODE_MIN_Y:
 				bad.append("%s has a node out of reach (y %d)" % [id, int(a["y"])])
@@ -1240,9 +1386,11 @@ static func validate(pl: Dictionary, ctx_in: Dictionary = {}) -> Array:
 	var wb := window_box(String(ctx_in.get("window", "")))
 	if wb.size.x > 0.0:
 		blocked.append(wb)
+		ctx["window_box"] = wb
 	for b in ctx_in.get("blocked", []):
 		blocked.append(b)
 	ctx["blocked"] = blocked
+	ctx["fallback"] = bool(pl.get("fallback", false))
 	var items: Array = []
 	for d in pl.get("items", []):
 		var it := _make(String(d["id"]), String(d["variant"]), int(d["x"]), int(d["y"]))

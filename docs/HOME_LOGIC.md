@@ -40,6 +40,7 @@ those rooms (its `rooms` weights); registration refuses a piece outside the boun
 | `dining_table` | dining_room, kitchen | you eat at it: the dining room or the kitchen | `table_dining` (D), `table_kitchen` (K) |
 | `display_cabinet` | dining_room, living_room | a china cabinet is for showing off: dining room or living room | `china_cabinet` (LD) |
 | `dresser` | kitchen, dining_room, living_room | a Welsh dresser holds plates: kitchen, dining room, or a living room | `dresser_welsh` (KD) |
+| `dressing_stool` | bedroom | a dressing-table stool is in the bedroom that has the table | `stool_dressing` (B) |
 | `dressing_table` | bedroom | somebody dresses at it: a bedroom | `dressing_table` (B) |
 | `drinks` | kitchen, dining_room, living_room | a row of bottles is in the kitchen, the dining room or the living room | `bottles_row` (LD), `trolley_drinks` (LD) |
 | `drinks_stand` | dining_room, living_room, bathroom | a champagne stand is for celebrating: a dining room, a living room, or a grand bathroom | `champagne_stand` (T) |
@@ -65,6 +66,7 @@ those rooms (its `rooms` weights); registration refuses a piece outside the boun
 | `notice` | kitchen, bedroom, study, living_room, dining_room | a calendar, a note or a timetable is where it is read: not on a bathroom wall | `calendar_wall` (BKSLD), `height_chart` (BKL), `map_street` (S), `note_bills` (K), `note_cat_food` (K), `note_milk_eggs` (K), `note_rent` (BK), `noticeboard` (S), `timetable` (BS) |
 | `paperwork` | study, bedroom, living_room, dining_room, kitchen | a pile of papers is where somebody was doing the bills | `papers_pile` (S) |
 | `party` | dining_room, living_room, bedroom, kitchen | party things are in the room the party was in | `balloons` (D), `gifts_pile` (D), `party_hats` (D) |
+| `piano_stool` | living_room, bedroom, study, dining_room | a piano stool stands wherever the piano does | `stool_piano` (BSLD) |
 | `plant_floor` | bedroom, living_room, dining_room, study | a tall plant in a big pot stands in a living space — never a kitchen or a bathroom | `plant_floor` (BSLD) |
 | `plant_small` | any room | a small plant on a sill, a shelf or a counter is anywhere | `plant_desk` (BTKSLD), `vase_flowers` (LD) |
 | `portrait` | bedroom, living_room, dining_room, study, kitchen | family photographs and portraits hang where the family lives — not the bathroom | `cameos` (LD), `frame_family` (BSLD), `photo_small` (BSLD), `photo_wedding` (BL), `picture_crayon` (BKL), `picture_portrait` (BSLD), `portraits_row` (LD), `sampler_home` (BKL) |
@@ -163,7 +165,7 @@ A piece tagged `small` is never kept on the floor. A thing on a SURFACE is at mo
 | `easel` | tall | 52 | — | study |
 | `gifts_pile` | party | 18 | table | dining_room |
 | `guitar_stand` | tall | 64 | — | bedroom, living_room |
-| `lamp_floor` | light | 56 | — | dining_room, living_room, study |
+| `lamp_floor` | light | 56 | seating_lounge | dining_room, living_room, study |
 | `laundry_basket` | clothes | 16 | wardrobe, sleeping | bathroom, bedroom |
 | `laundry_basket3d` | clothes | 20 | wet | bathroom |
 | `log_basket` | storage | 20 | hearth | living_room |
@@ -178,6 +180,8 @@ A piece tagged `small` is never kept on the floor. A thing on a SURFACE is at mo
 | `rocking_horse` | toy | 30 | sleeping | bedroom, living_room |
 | `shoes_pair` | footwear | 7 | sleeping | bedroom, living_room |
 | `slippers` | footwear | 5 | sleeping | bathroom, bedroom |
+| `stool_dressing` | seat | 22 | — | bedroom |
+| `stool_piano` | seat | 22 | — | bedroom, dining_room, living_room, study |
 | `stool_radio` | stand | 38 | — | bathroom |
 | `toy_chest` | storage | 30 | sleeping | bedroom, living_room |
 | `trainers` | footwear | 7 | sleeping, work | bedroom, living_room |

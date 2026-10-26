@@ -169,7 +169,8 @@ def chest_drawers(c, ox, oy, p):
        variants={'dark': {'pal': WOOD_PALS['dark'], 'cracked': False}, 'light': {'pal': WOOD_PALS['light'], 'cracked': False}, 'dark_cracked': {'pal': WOOD_PALS['dark'], 'cracked': True}},
        slots=({'id': 'top', 'dx0': 24, 'dx1': 40, 'dy': -33, 'top': True, 'kinds': ('small', 'vanity')},),
        anchors=({'name': 'dressing_table', 'dx': 32, 'dy': -37, 'top': True, 'note': 'the jewellery box on the top'},),
-       feet=(105, 108), note='a dressing table: a swivel mirror on turned posts (one is cracked), a lace doily on the top, two drawers with brass pulls, turned feet')
+       feet=(105, 108), needs={'tag': 'stool_dressing', 'dx': [48, 54], 'dx_left': [-26, -21], 'chance': 1.0},
+       note='a dressing table: a swivel mirror on turned posts (one is cracked), a lace doily on the top, two drawers with brass pulls, turned feet')
 def dressing_table(c, ox, oy, p):
     W_, WL, WD, WO = p['pal']
     x0, x1 = ox + 1, ox + 41

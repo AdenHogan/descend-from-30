@@ -28,6 +28,8 @@ AVOID = {
     'rug_oblong': {'mauve': ['adult', 'teen']},
     'sideboard': {'cream': ['party']},
     'sofa': {'olive': ['cosy']},
+    'stool_piano': {'black_maroon': ['cosy', 'den', 'library', 'lodge', 'parlour', 'party', 'sick'], 'black_rose': ['adult'], 'oak_blue': ['studio'],
+                    'walnut_rose': ['adult', 'den', 'lodge', 'party', 'sick', 'teen']},
     'trunk': {'green': ['den']},
 }
 

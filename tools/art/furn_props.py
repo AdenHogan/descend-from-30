@@ -27,7 +27,7 @@ def _shadow(c, cx, cy, rx, ry=1.5, a=95):
 
 
 # ================================================================================================================================ the alarm clock
-@piece('alarm_clock', 10, 11, 'top', rooms={'bedroom': 6}, styles={'adult': 3, 'teen': 4, 'kid': 1, 'sick': 1}, tags=('small',), on=('small',), anims=(),
+@piece('alarm_clock', 10, 11, 'top', rooms={'bedroom': 6}, styles={'adult': 3, 'teen': 4, 'kid': 1, 'sick': 1}, tags=('small',), on=('small',), anims=(), limit=1,
        variants={'red': {'body': 'a8322c'}, 'cream': {'body': 'd8cfb0'}, 'blue': {'body': '3f6a8a'}, 'green': {'body': '4a7a5a'}}, note='a wind-up twin-bell alarm clock')
 def alarm_clock(c, ox, oy, p):
     body = hexc(p['body'])
@@ -207,7 +207,7 @@ def jewel_box(c, ox, oy, p):
 
 
 # ================================================================================================================================ a lava lamp
-@piece('lamp_lava', 10, 18, 'top', rooms={'bedroom': 3, 'living_room': 1}, styles={'teen': 8}, tags=('light', 'lamp'), on=('lamp',),
+@piece('lamp_lava', 10, 18, 'top', rooms={'bedroom': 3, 'living_room': 1}, styles={'teen': 8}, tags=('light', 'lamp'), on=('lamp',), limit=1,
        variants={'purple': {'liq': '8a3a9a', 'wax': 'f0902e', 'top': 'c46ad0'}, 'blue': {'liq': '2a5a9a', 'wax': '58e0c8', 'top': '4a90d0'},
                  'green': {'liq': '2a8a4a', 'wax': 'e8e04a', 'top': '4ac870'}, 'red': {'liq': '9a2a2a', 'wax': 'f0a83a', 'top': 'd84a3a'}},
        lights=({'dx': 5, 'dy': -9, 'kind': 'lava', 'top': True},), note='a lava lamp — glowing wax in a tapered glass on a chrome base')

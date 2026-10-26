@@ -14,7 +14,7 @@
    "kind": "alarm_clock",
    "lap": 6,
    "lean": false,
-   "limit": null,
+   "limit": 1,
    "must_above": false,
    "near": [],
    "needs": null,
@@ -39,6 +39,7 @@
     "small"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "blue": {
      "anchors": [],
@@ -188,6 +189,7 @@
     "armchair"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "club_brown_l35": {
      "anchors": [
@@ -2391,6 +2393,7 @@
     "small"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "glass": {
      "anchors": [],
@@ -2489,6 +2492,7 @@
     "bag"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "navy": {
      "anchors": [
@@ -2656,6 +2660,7 @@
     "toy"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "red": {
      "anchors": [],
@@ -2719,6 +2724,7 @@
     "party"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "bunch": {
      "anchors": [],
@@ -2814,6 +2820,7 @@
     "party"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "rainbow": {
      "anchors": [],
@@ -2883,6 +2890,7 @@
     "wet"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "bracket": {
      "anchors": [
@@ -3264,6 +3272,7 @@
     "wet"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "claw": {
      "anchors": [
@@ -3756,6 +3765,7 @@
     "rug"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "fluffy_pink": {
      "anchors": [],
@@ -3884,6 +3894,7 @@
     "medical"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "l_blue_clean": {
      "anchors": [
@@ -4637,6 +4648,7 @@
     "sleeping"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "l_blue": {
      "anchors": [
@@ -5206,6 +5218,7 @@
     "sleeping"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "l_green": {
      "anchors": [
@@ -5953,6 +5966,7 @@
     "sleeping"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "l_mustard": {
      "anchors": [
@@ -6883,6 +6897,7 @@
     "rubbish"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "split": {
      "anchors": [
@@ -6985,6 +7000,7 @@
     "toy"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "a": {
      "anchors": [],
@@ -7336,6 +7352,7 @@
     "books"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "a": {
      "anchors": [],
@@ -7478,6 +7495,7 @@
     "storage"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "dark": {
      "anchors": [
@@ -7884,6 +7902,7 @@
     "storage"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "ladder": {
      "anchors": [
@@ -8310,6 +8329,7 @@
     "music"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "black": {
      "anchors": [
@@ -8418,6 +8438,7 @@
     "food"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "spirits": {
      "anchors": [],
@@ -8516,6 +8537,7 @@
     "clutter"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "bottles": {
      "anchors": [
@@ -8666,6 +8688,7 @@
     "storage"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "closed": {
      "anchors": [
@@ -8922,6 +8945,7 @@
     "food"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "cream": {
      "anchors": [],
@@ -9020,6 +9044,7 @@
     "wet"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "blue": {
      "anchors": [
@@ -9122,6 +9147,7 @@
     "food"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "blue": {
      "anchors": [],
@@ -9222,6 +9248,7 @@
     "notice"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "a": {
      "anchors": [],
@@ -9288,6 +9315,7 @@
     "picture"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "pair": {
      "anchors": [],
@@ -9357,6 +9385,7 @@
     "light"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "brass": {
      "anchors": [],
@@ -9459,6 +9488,7 @@
     "food"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "a": {
      "anchors": [],
@@ -9565,6 +9595,7 @@
     "art"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "few": {
      "anchors": [
@@ -9823,6 +9854,7 @@
     "food"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "a": {
      "anchors": [
@@ -9894,6 +9926,7 @@
     "ceiling"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "a": {
      "anchors": [],
@@ -9963,6 +9996,7 @@
     "ceiling"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "white": {
      "anchors": [],
@@ -10046,6 +10080,7 @@
     "ceiling"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "cream": {
      "anchors": [],
@@ -10209,6 +10244,7 @@
     "child"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "blue_f": {
      "anchors": [],
@@ -10625,6 +10661,7 @@
     "seat"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "front": {
      "anchors": [],
@@ -10743,6 +10780,7 @@
     "seat"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "ladder_dark_f": {
      "anchors": [],
@@ -11511,6 +11549,7 @@
     "drink"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "gold": {
      "anchors": [
@@ -11663,6 +11702,7 @@
     "ceiling"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "gold": {
      "anchors": [],
@@ -11749,6 +11789,7 @@
     "drawers"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "dark": {
      "anchors": [
@@ -12178,6 +12219,7 @@
     "display"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "mahogany": {
      "anchors": [
@@ -12458,6 +12500,7 @@
     "cooking"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "a": {
      "anchors": [],
@@ -12535,6 +12578,7 @@
     "clock"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "a": {
      "anchors": [],
@@ -12604,6 +12648,7 @@
     "storage"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "mahogany": {
      "anchors": [
@@ -12870,6 +12915,7 @@
     "clock"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "a": {
      "anchors": [],
@@ -12930,6 +12976,7 @@
     "clock"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "brass": {
      "anchors": [],
@@ -13045,6 +13092,7 @@
     "clock"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "black": {
      "anchors": [],
@@ -13174,6 +13222,7 @@
     "clothes"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "blue_red": {
      "anchors": [
@@ -13315,6 +13364,7 @@
     "clothes"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "a": {
      "anchors": [
@@ -13424,6 +13474,7 @@
     "hall"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "green": {
      "anchors": [],
@@ -13555,6 +13606,7 @@
     "table"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "kidney": {
      "anchors": [
@@ -13837,6 +13889,7 @@
     "work"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "beige": {
      "anchors": [
@@ -13963,6 +14016,7 @@
     "bedside"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "grey": {
      "anchors": [
@@ -14245,6 +14299,7 @@
     "storage"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "dairy": {
      "anchors": [
@@ -14526,6 +14581,7 @@
     "food"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "a": {
      "anchors": [
@@ -14604,6 +14660,7 @@
     "storage"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "pine": {
      "anchors": [
@@ -14758,6 +14815,7 @@
     "desk"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "bench": {
      "anchors": [
@@ -15068,6 +15126,7 @@
     "toy"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "blue": {
      "anchors": [
@@ -15548,6 +15607,7 @@
     "dresser"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "pine": {
      "anchors": [
@@ -15707,7 +15767,18 @@
    "limit": null,
    "must_above": false,
    "near": [],
-   "needs": null,
+   "needs": {
+    "chance": 1.0,
+    "dx": [
+     48,
+     54
+    ],
+    "dx_left": [
+     -26,
+     -21
+    ],
+    "tag": "stool_dressing"
+   },
    "note": "a dressing table: a swivel mirror on turned posts (one is cracked), a lace doily on the top, two drawers with brass pulls, turned feet",
    "on": [],
    "opens": null,
@@ -15727,6 +15798,7 @@
     "dressing"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "dark": {
      "anchors": [
@@ -16138,6 +16210,7 @@
     "medical"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "amber": {
      "anchors": [],
@@ -16242,6 +16315,7 @@
     "art"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "blank": {
      "anchors": [
@@ -16380,6 +16454,7 @@
     "files"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "cream": {
      "anchors": [
@@ -16824,6 +16899,7 @@
     "storage"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "brick": {
      "anchors": [
@@ -17064,6 +17140,7 @@
     "stain"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "a": {
      "anchors": [],
@@ -17164,6 +17241,7 @@
     "picture"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "seaside": {
      "anchors": [],
@@ -17232,6 +17310,7 @@
     "storage"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "cream": {
      "anchors": [
@@ -17749,6 +17828,7 @@
     "food"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "fresh": {
      "anchors": [],
@@ -17849,6 +17929,7 @@
     "party"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "a": {
      "anchors": [
@@ -17964,6 +18045,7 @@
     "small"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "full": {
      "anchors": [],
@@ -18055,6 +18137,7 @@
     "small"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "blue": {
      "anchors": [],
@@ -18145,6 +18228,7 @@
     "music"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "acoustic": {
      "anchors": [],
@@ -18234,6 +18318,7 @@
     "dressing"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "black": {
      "anchors": [],
@@ -18347,6 +18432,7 @@
     "mark"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "a": {
      "anchors": [],
@@ -18415,6 +18501,7 @@
     "dressing"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "ebony": {
      "anchors": [
@@ -18548,6 +18635,7 @@
     "cooking"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "cream": {
      "anchors": [],
@@ -18680,6 +18768,7 @@
     "lamp"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "amber": {
      "anchors": [],
@@ -18763,7 +18852,9 @@
    "lean": false,
    "limit": 1,
    "must_above": false,
-   "near": [],
+   "near": [
+    "seating_lounge"
+   ],
    "needs": null,
    "note": "a standard lamp on a round foot: a slender stem with a brass collar and a pleated drum shade, its inside glowing",
    "on": [],
@@ -18791,6 +18882,7 @@
     "lamp"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "black": {
      "anchors": [],
@@ -18916,7 +19008,7 @@
    "kind": "table_lamp",
    "lap": 6,
    "lean": false,
-   "limit": null,
+   "limit": 1,
    "must_above": false,
    "near": [],
    "needs": null,
@@ -18942,6 +19034,7 @@
     "lamp"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "blue": {
      "anchors": [],
@@ -19118,6 +19211,7 @@
     "lamp"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "cream_blue": {
      "anchors": [],
@@ -19800,6 +19894,7 @@
     "food"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "pine": {
      "anchors": [
@@ -20079,6 +20174,7 @@
     "clothes"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "blue": {
      "anchors": [
@@ -20188,7 +20284,7 @@
    "kind": "laundry_basket",
    "lap": 6,
    "lean": false,
-   "limit": null,
+   "limit": 1,
    "must_above": false,
    "near": [
     "wet"
@@ -20216,6 +20312,7 @@
     "laundry"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "plastic": {
      "anchors": [
@@ -20597,6 +20694,7 @@
     "ceiling"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "a": {
      "anchors": [],
@@ -20675,6 +20773,7 @@
     "ceiling"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "orange": {
      "anchors": [],
@@ -20754,6 +20853,7 @@
     "ceiling"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "a": {
      "anchors": [],
@@ -20835,6 +20935,7 @@
     "linen"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "cream": {
      "anchors": [
@@ -20998,6 +21099,7 @@
     "wood"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "wicker": {
      "anchors": [
@@ -21072,6 +21174,7 @@
     "sofa"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "avocado": {
      "anchors": [
@@ -21582,6 +21685,7 @@
     "paper"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "a": {
      "anchors": [],
@@ -21680,6 +21784,7 @@
     "notice"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "pins": {
      "anchors": [],
@@ -21746,6 +21851,7 @@
     "sleeping"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "l_bare": {
      "anchors": [
@@ -22491,6 +22597,7 @@
     "medical"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "a": {
      "anchors": [
@@ -22594,6 +22701,7 @@
     "cooking"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "black": {
      "anchors": [
@@ -22709,6 +22817,7 @@
     "mirror"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "cabinet": {
      "anchors": [],
@@ -22896,6 +23005,7 @@
     "mirror"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "dark": {
      "anchors": [],
@@ -22994,6 +23104,7 @@
     "cleaning"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "red": {
      "anchors": [
@@ -23149,6 +23260,7 @@
     "food"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "a": {
      "anchors": [],
@@ -23278,6 +23390,7 @@
     "paper"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "a": {
      "anchors": [
@@ -23435,6 +23548,7 @@
     "bedside"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "dark": {
      "anchors": [
@@ -23726,6 +23840,7 @@
     "notice"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "a": {
      "anchors": [],
@@ -23790,6 +23905,7 @@
     "notice"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "a": {
      "anchors": [],
@@ -23855,6 +23971,7 @@
     "notice"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "a": {
      "anchors": [],
@@ -23921,6 +24038,7 @@
     "notice"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "a": {
      "anchors": [],
@@ -23988,6 +24106,7 @@
     "picture"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "home": {
      "anchors": [],
@@ -24085,6 +24204,7 @@
     "books"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "pine": {
      "anchors": [
@@ -24238,6 +24358,7 @@
     "paper"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "messy": {
      "anchors": [],
@@ -24327,6 +24448,7 @@
     "small"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "a": {
      "anchors": [],
@@ -24423,6 +24545,7 @@
     "rubbish"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "green": {
      "anchors": [
@@ -24537,6 +24660,7 @@
     "dressing"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "amber": {
      "anchors": [],
@@ -24668,6 +24792,7 @@
     "picture"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "black_warm": {
      "anchors": [],
@@ -24815,6 +24940,7 @@
     "picture"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "a": {
      "anchors": [],
@@ -24862,7 +24988,18 @@
    "limit": null,
    "must_above": false,
    "near": [],
-   "needs": null,
+   "needs": {
+    "chance": 1.0,
+    "dx": [
+     40,
+     44
+    ],
+    "dx_left": [
+     -31,
+     -27
+    ],
+    "tag": "stool_piano"
+   },
    "note": "an upright piano: a panelled case with a music desk and sheet music, a keyboard of ivory and black keys, a candle bracket each side, pedals; the stool is a separate piece",
    "on": [],
    "opens": null,
@@ -24889,6 +25026,7 @@
     "storage"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "ebonised": {
      "anchors": [
@@ -25176,6 +25314,7 @@
     "picture"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "a": {
      "anchors": [],
@@ -25252,6 +25391,7 @@
     "picture"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "hills_autumn": {
      "anchors": [],
@@ -25590,6 +25730,7 @@
     "picture"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "p00": {
      "anchors": [],
@@ -26509,6 +26650,7 @@
     "medical"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "a": {
      "anchors": [],
@@ -26601,6 +26743,7 @@
     "medical"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "a": {
      "anchors": [
@@ -26865,6 +27008,7 @@
     "food"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "a": {
      "anchors": [
@@ -26938,6 +27082,7 @@
     "food"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "gilt": {
      "anchors": [],
@@ -27060,6 +27205,7 @@
     "plant"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "baby_rubber": {
      "anchors": [],
@@ -27293,6 +27439,7 @@
     "plant"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "dead": {
      "anchors": [],
@@ -27534,6 +27681,7 @@
     "picture"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "three": {
      "anchors": [],
@@ -27601,6 +27749,7 @@
     "poster"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "torn": {
      "anchors": [],
@@ -27692,6 +27841,7 @@
     "poster"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "a": {
      "anchors": [],
@@ -27761,6 +27911,7 @@
     "poster"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "a": {
      "anchors": [],
@@ -27829,6 +27980,7 @@
     "poster"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "a": {
      "anchors": [],
@@ -27895,6 +28047,7 @@
     "poster"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "a": {
      "anchors": [],
@@ -27960,6 +28113,7 @@
     "seat"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "mustard": {
      "anchors": [
@@ -28101,6 +28255,7 @@
     "picture"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "gilt": {
      "anchors": [],
@@ -28166,6 +28321,7 @@
     "work"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "cream": {
      "anchors": [
@@ -28237,6 +28393,7 @@
     "heating"
    ],
    "under": [],
+   "under_window": true,
    "variants": {
     "cream": {
      "anchors": [],
@@ -28479,6 +28636,7 @@
     "radio"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "set": {
      "anchors": [
@@ -28552,6 +28710,7 @@
     "toy"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "a": {
      "anchors": [],
@@ -28651,6 +28810,7 @@
     "hearth"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "black": {
      "anchors": [
@@ -28983,6 +29143,7 @@
     "music"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "teak": {
      "anchors": [],
@@ -29093,6 +29254,7 @@
     "toy"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "brown_fl": {
      "anchors": [
@@ -29641,6 +29803,7 @@
     "seating_lounge",
     "table"
    ],
+   "under_window": false,
    "variants": {
     "blue": {
      "anchors": [],
@@ -29837,6 +30000,7 @@
     "rug"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "blue": {
      "anchors": [],
@@ -29989,6 +30153,7 @@
     "picture"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "a": {
      "anchors": [],
@@ -30058,6 +30223,7 @@
     "food"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "a": {
      "anchors": [],
@@ -30137,6 +30303,7 @@
     "storage"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "oak": {
      "anchors": [
@@ -30431,6 +30598,7 @@
     "clutter"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "black": {
      "anchors": [],
@@ -30572,6 +30740,7 @@
     "shower"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "glass": {
      "anchors": [
@@ -30732,6 +30901,7 @@
     "storage"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "drawer": {
      "anchors": [
@@ -31027,6 +31197,7 @@
     "sideboard"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "cream": {
      "anchors": [
@@ -31630,6 +31801,7 @@
     "storage"
    ],
    "under": [],
+   "under_window": true,
    "variants": {
     "white": {
      "anchors": [
@@ -31787,6 +31959,7 @@
     "art"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "sheets": {
      "anchors": [],
@@ -31857,6 +32030,7 @@
     "clutter"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "blue": {
      "anchors": [],
@@ -31975,6 +32149,7 @@
     "sofa"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "avocado": {
      "anchors": [
@@ -32551,6 +32726,7 @@
     "trophy"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "twelve": {
      "anchors": [],
@@ -32580,6 +32756,1034 @@
     14,
     26
    ]
+  },
+  "stool_dressing": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": true,
+   "feet": [
+    116,
+    121
+   ],
+   "h": 22,
+   "keep": "seat",
+   "kind": "dressing_stool",
+   "lap": 18,
+   "lean": false,
+   "limit": 1,
+   "must_above": false,
+   "near": [],
+   "needs": null,
+   "note": "a round upholstered dressing-table stool: a piped drum cushion on four splayed turned legs; tucked in front of the dressing table",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "floor",
+   "rooms": {
+    "bedroom": 6
+   },
+   "sound": null,
+   "styles": {
+    "adult": 6,
+    "kid": 6
+   },
+   "tags": [
+    "seat",
+    "stool_dressing"
+   ],
+   "under": [],
+   "under_window": false,
+   "variants": {
+    "black_blue": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "blue",
+      "wood": "black"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "stool_dressing_black_blue",
+       "h": 25,
+       "l": -1,
+       "r": 20,
+       "rx": 1,
+       "ry": 21,
+       "sb": 1,
+       "t": -21,
+       "w": 22
+      }
+     ]
+    },
+    "black_cream": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "cream",
+      "wood": "black"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "stool_dressing_black_cream",
+       "h": 25,
+       "l": -1,
+       "r": 20,
+       "rx": 1,
+       "ry": 21,
+       "sb": 1,
+       "t": -21,
+       "w": 22
+      }
+     ]
+    },
+    "black_gold": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "gold",
+      "wood": "black"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "stool_dressing_black_gold",
+       "h": 25,
+       "l": -1,
+       "r": 20,
+       "rx": 1,
+       "ry": 21,
+       "sb": 1,
+       "t": -21,
+       "w": 22
+      }
+     ]
+    },
+    "black_maroon": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "maroon",
+      "wood": "black"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "stool_dressing_black_maroon",
+       "h": 25,
+       "l": -1,
+       "r": 20,
+       "rx": 1,
+       "ry": 21,
+       "sb": 1,
+       "t": -21,
+       "w": 22
+      }
+     ]
+    },
+    "black_rose": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "rose",
+      "wood": "black"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "stool_dressing_black_rose",
+       "h": 25,
+       "l": -1,
+       "r": 20,
+       "rx": 1,
+       "ry": 21,
+       "sb": 1,
+       "t": -21,
+       "w": 22
+      }
+     ]
+    },
+    "oak_blue": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "blue",
+      "wood": "oak"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "stool_dressing_oak_blue",
+       "h": 25,
+       "l": -1,
+       "r": 20,
+       "rx": 1,
+       "ry": 21,
+       "sb": 1,
+       "t": -21,
+       "w": 22
+      }
+     ]
+    },
+    "oak_cream": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "cream",
+      "wood": "oak"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "stool_dressing_oak_cream",
+       "h": 25,
+       "l": -1,
+       "r": 20,
+       "rx": 1,
+       "ry": 21,
+       "sb": 1,
+       "t": -21,
+       "w": 22
+      }
+     ]
+    },
+    "oak_gold": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "gold",
+      "wood": "oak"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "stool_dressing_oak_gold",
+       "h": 25,
+       "l": -1,
+       "r": 20,
+       "rx": 1,
+       "ry": 21,
+       "sb": 1,
+       "t": -21,
+       "w": 22
+      }
+     ]
+    },
+    "oak_maroon": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "maroon",
+      "wood": "oak"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "stool_dressing_oak_maroon",
+       "h": 25,
+       "l": -1,
+       "r": 20,
+       "rx": 1,
+       "ry": 21,
+       "sb": 1,
+       "t": -21,
+       "w": 22
+      }
+     ]
+    },
+    "oak_rose": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "rose",
+      "wood": "oak"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "stool_dressing_oak_rose",
+       "h": 25,
+       "l": -1,
+       "r": 20,
+       "rx": 1,
+       "ry": 21,
+       "sb": 1,
+       "t": -21,
+       "w": 22
+      }
+     ]
+    },
+    "walnut_blue": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "blue",
+      "wood": "walnut"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "stool_dressing_walnut_blue",
+       "h": 25,
+       "l": -1,
+       "r": 20,
+       "rx": 1,
+       "ry": 21,
+       "sb": 1,
+       "t": -21,
+       "w": 22
+      }
+     ]
+    },
+    "walnut_cream": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "cream",
+      "wood": "walnut"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "stool_dressing_walnut_cream",
+       "h": 25,
+       "l": -1,
+       "r": 20,
+       "rx": 1,
+       "ry": 21,
+       "sb": 1,
+       "t": -21,
+       "w": 22
+      }
+     ]
+    },
+    "walnut_gold": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "gold",
+      "wood": "walnut"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "stool_dressing_walnut_gold",
+       "h": 25,
+       "l": -1,
+       "r": 20,
+       "rx": 1,
+       "ry": 21,
+       "sb": 1,
+       "t": -21,
+       "w": 22
+      }
+     ]
+    },
+    "walnut_maroon": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "maroon",
+      "wood": "walnut"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "stool_dressing_walnut_maroon",
+       "h": 25,
+       "l": -1,
+       "r": 20,
+       "rx": 1,
+       "ry": 21,
+       "sb": 1,
+       "t": -21,
+       "w": 22
+      }
+     ]
+    },
+    "walnut_rose": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "rose",
+      "wood": "walnut"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "stool_dressing_walnut_rose",
+       "h": 25,
+       "l": -1,
+       "r": 20,
+       "rx": 1,
+       "ry": 21,
+       "sb": 1,
+       "t": -21,
+       "w": 22
+      }
+     ]
+    }
+   },
+   "w": 20,
+   "wall_y": null
+  },
+  "stool_piano": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": true,
+   "feet": [
+    116,
+    121
+   ],
+   "h": 22,
+   "keep": "seat",
+   "kind": "piano_stool",
+   "lap": 22,
+   "lean": false,
+   "limit": 1,
+   "must_above": false,
+   "near": [],
+   "needs": null,
+   "note": "a padded piano bench: a buttoned cushion (leather or tapestry) over a plain rail on four turned legs with a stretcher; stands in front of the keyboard",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "floor",
+   "rooms": {
+    "bedroom": 6,
+    "dining_room": 6,
+    "living_room": 6,
+    "study": 6
+   },
+   "sound": null,
+   "styles": null,
+   "tags": [
+    "seat",
+    "stool_piano"
+   ],
+   "under": [],
+   "under_window": false,
+   "variants": {
+    "black_black": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "black",
+      "tapestry": false,
+      "wood": "black"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "stool_piano_black_black",
+       "h": 29,
+       "l": -1,
+       "r": 28,
+       "rx": 1,
+       "ry": 25,
+       "sb": 1,
+       "t": -25,
+       "w": 30
+      }
+     ]
+    },
+    "black_blue": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "blue",
+      "tapestry": true,
+      "wood": "black"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "stool_piano_black_blue",
+       "h": 29,
+       "l": -1,
+       "r": 28,
+       "rx": 1,
+       "ry": 25,
+       "sb": 1,
+       "t": -25,
+       "w": 30
+      }
+     ]
+    },
+    "black_gold": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "gold",
+      "tapestry": true,
+      "wood": "black"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "stool_piano_black_gold",
+       "h": 29,
+       "l": -1,
+       "r": 28,
+       "rx": 1,
+       "ry": 25,
+       "sb": 1,
+       "t": -25,
+       "w": 30
+      }
+     ]
+    },
+    "black_green": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "green",
+      "tapestry": false,
+      "wood": "black"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "stool_piano_black_green",
+       "h": 29,
+       "l": -1,
+       "r": 28,
+       "rx": 1,
+       "ry": 25,
+       "sb": 1,
+       "t": -25,
+       "w": 30
+      }
+     ]
+    },
+    "black_maroon": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "maroon",
+      "not": [
+       "cosy",
+       "den",
+       "library",
+       "lodge",
+       "parlour",
+       "party",
+       "sick"
+      ],
+      "tapestry": false,
+      "wood": "black"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "stool_piano_black_maroon",
+       "h": 29,
+       "l": -1,
+       "r": 28,
+       "rx": 1,
+       "ry": 25,
+       "sb": 1,
+       "t": -25,
+       "w": 30
+      }
+     ]
+    },
+    "black_rose": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "rose",
+      "not": [
+       "adult"
+      ],
+      "tapestry": true,
+      "wood": "black"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "stool_piano_black_rose",
+       "h": 29,
+       "l": -1,
+       "r": 28,
+       "rx": 1,
+       "ry": 25,
+       "sb": 1,
+       "t": -25,
+       "w": 30
+      }
+     ]
+    },
+    "black_tan": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "tan",
+      "tapestry": false,
+      "wood": "black"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "stool_piano_black_tan",
+       "h": 29,
+       "l": -1,
+       "r": 28,
+       "rx": 1,
+       "ry": 25,
+       "sb": 1,
+       "t": -25,
+       "w": 30
+      }
+     ]
+    },
+    "oak_black": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "black",
+      "tapestry": false,
+      "wood": "oak"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "stool_piano_oak_black",
+       "h": 29,
+       "l": -1,
+       "r": 28,
+       "rx": 1,
+       "ry": 25,
+       "sb": 1,
+       "t": -25,
+       "w": 30
+      }
+     ]
+    },
+    "oak_blue": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "blue",
+      "not": [
+       "studio"
+      ],
+      "tapestry": true,
+      "wood": "oak"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "stool_piano_oak_blue",
+       "h": 29,
+       "l": -1,
+       "r": 28,
+       "rx": 1,
+       "ry": 25,
+       "sb": 1,
+       "t": -25,
+       "w": 30
+      }
+     ]
+    },
+    "oak_gold": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "gold",
+      "tapestry": true,
+      "wood": "oak"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "stool_piano_oak_gold",
+       "h": 29,
+       "l": -1,
+       "r": 28,
+       "rx": 1,
+       "ry": 25,
+       "sb": 1,
+       "t": -25,
+       "w": 30
+      }
+     ]
+    },
+    "oak_green": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "green",
+      "tapestry": false,
+      "wood": "oak"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "stool_piano_oak_green",
+       "h": 29,
+       "l": -1,
+       "r": 28,
+       "rx": 1,
+       "ry": 25,
+       "sb": 1,
+       "t": -25,
+       "w": 30
+      }
+     ]
+    },
+    "oak_maroon": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "maroon",
+      "tapestry": false,
+      "wood": "oak"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "stool_piano_oak_maroon",
+       "h": 29,
+       "l": -1,
+       "r": 28,
+       "rx": 1,
+       "ry": 25,
+       "sb": 1,
+       "t": -25,
+       "w": 30
+      }
+     ]
+    },
+    "oak_rose": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "rose",
+      "tapestry": true,
+      "wood": "oak"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "stool_piano_oak_rose",
+       "h": 29,
+       "l": -1,
+       "r": 28,
+       "rx": 1,
+       "ry": 25,
+       "sb": 1,
+       "t": -25,
+       "w": 30
+      }
+     ]
+    },
+    "oak_tan": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "tan",
+      "tapestry": false,
+      "wood": "oak"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "stool_piano_oak_tan",
+       "h": 29,
+       "l": -1,
+       "r": 28,
+       "rx": 1,
+       "ry": 25,
+       "sb": 1,
+       "t": -25,
+       "w": 30
+      }
+     ]
+    },
+    "walnut_black": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "black",
+      "tapestry": false,
+      "wood": "walnut"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "stool_piano_walnut_black",
+       "h": 29,
+       "l": -1,
+       "r": 28,
+       "rx": 1,
+       "ry": 25,
+       "sb": 1,
+       "t": -25,
+       "w": 30
+      }
+     ]
+    },
+    "walnut_blue": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "blue",
+      "tapestry": true,
+      "wood": "walnut"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "stool_piano_walnut_blue",
+       "h": 29,
+       "l": -1,
+       "r": 28,
+       "rx": 1,
+       "ry": 25,
+       "sb": 1,
+       "t": -25,
+       "w": 30
+      }
+     ]
+    },
+    "walnut_gold": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "gold",
+      "tapestry": true,
+      "wood": "walnut"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "stool_piano_walnut_gold",
+       "h": 29,
+       "l": -1,
+       "r": 28,
+       "rx": 1,
+       "ry": 25,
+       "sb": 1,
+       "t": -25,
+       "w": 30
+      }
+     ]
+    },
+    "walnut_green": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "green",
+      "tapestry": false,
+      "wood": "walnut"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "stool_piano_walnut_green",
+       "h": 29,
+       "l": -1,
+       "r": 28,
+       "rx": 1,
+       "ry": 25,
+       "sb": 1,
+       "t": -25,
+       "w": 30
+      }
+     ]
+    },
+    "walnut_maroon": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "maroon",
+      "tapestry": false,
+      "wood": "walnut"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "stool_piano_walnut_maroon",
+       "h": 29,
+       "l": -1,
+       "r": 28,
+       "rx": 1,
+       "ry": 25,
+       "sb": 1,
+       "t": -25,
+       "w": 30
+      }
+     ]
+    },
+    "walnut_rose": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "rose",
+      "not": [
+       "adult",
+       "den",
+       "lodge",
+       "party",
+       "sick",
+       "teen"
+      ],
+      "tapestry": true,
+      "wood": "walnut"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "stool_piano_walnut_rose",
+       "h": 29,
+       "l": -1,
+       "r": 28,
+       "rx": 1,
+       "ry": 25,
+       "sb": 1,
+       "t": -25,
+       "w": 30
+      }
+     ]
+    },
+    "walnut_tan": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "fab": "tan",
+      "tapestry": false,
+      "wood": "walnut"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "stool_piano_walnut_tan",
+       "h": 29,
+       "l": -1,
+       "r": 28,
+       "rx": 1,
+       "ry": 25,
+       "sb": 1,
+       "t": -25,
+       "w": 30
+      }
+     ]
+    }
+   },
+   "w": 28,
+   "wall_y": null
   },
   "stool_radio": {
    "above": [],
@@ -32616,6 +33820,7 @@
     "music"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "teak": {
      "anchors": [
@@ -32770,6 +33975,7 @@
     "storage"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "blue": {
      "anchors": [],
@@ -33032,6 +34238,7 @@
     "table"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "diner": {
      "anchors": [
@@ -33335,6 +34542,7 @@
     "table"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "camping": {
      "anchors": [
@@ -33562,6 +34770,7 @@
     "cloth"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "blue": {
      "anchors": [],
@@ -33666,6 +34875,7 @@
     "food"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "blue": {
      "anchors": [],
@@ -33766,6 +34976,7 @@
     "notice"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "a": {
      "anchors": [],
@@ -33835,6 +35046,7 @@
     "food"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "a": {
      "anchors": [],
@@ -33923,6 +35135,7 @@
     "cooking"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "chrome": {
      "anchors": [],
@@ -34022,6 +35235,7 @@
     "wet"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "avocado": {
      "anchors": [
@@ -34727,6 +35941,7 @@
     "toilet"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "cream": {
      "anchors": [],
@@ -34842,6 +36057,7 @@
     "towels"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "chrome": {
      "anchors": [],
@@ -34946,6 +36162,7 @@
     "storage"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "blue": {
      "anchors": [
@@ -35093,6 +36310,7 @@
     "shelf"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "a": {
      "anchors": [],
@@ -35164,6 +36382,7 @@
     "clutter"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "black": {
      "anchors": [],
@@ -35285,6 +36504,7 @@
     "storage"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "brass": {
      "anchors": [
@@ -35389,6 +36609,7 @@
     "storage"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "a": {
      "anchors": [
@@ -35473,6 +36694,7 @@
     "storage"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "green": {
      "anchors": [
@@ -35878,6 +37100,7 @@
     "tv"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "black": {
      "anchors": [
@@ -36054,6 +37277,7 @@
     "tv"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "black": {
      "anchors": [],
@@ -36132,6 +37356,7 @@
     "work"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "black": {
      "anchors": [],
@@ -36222,6 +37447,7 @@
     "storage"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "cream_dd": {
      "anchors": [
@@ -38904,6 +40130,7 @@
     "cooking"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "black_bare": {
      "anchors": [
@@ -39669,6 +40896,7 @@
     "storage"
    ],
    "under": [],
+   "under_window": true,
    "variants": {
     "cream": {
      "anchors": [
@@ -40253,6 +41481,7 @@
     "cooking"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "a": {
      "anchors": [],
@@ -40323,6 +41552,7 @@
     "storage"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "avocado": {
      "anchors": [
@@ -40486,6 +41716,7 @@
     "plant"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "daisies": {
      "anchors": [],
@@ -40602,6 +41833,7 @@
     "unit_above"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "cream_2": {
      "anchors": [],
@@ -40796,6 +42028,7 @@
     "shelf"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "a": {
      "anchors": [],
@@ -40890,6 +42123,7 @@
     "tall"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "clean": {
      "anchors": [
@@ -41146,6 +42380,7 @@
     "storage"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "blue": {
      "anchors": [
@@ -41518,6 +42753,7 @@
     "tall"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "dark": {
      "anchors": [
@@ -42080,6 +43316,7 @@
     "laundry"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "open": {
      "anchors": [
@@ -42345,6 +43582,7 @@
     "storage"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "gilt": {
      "anchors": [
@@ -42513,6 +43751,7 @@
     "rubbish"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "steel": {
      "anchors": [
@@ -42618,6 +43857,7 @@
     "medical"
    ],
    "under": [],
+   "under_window": false,
    "variants": {
     "green_l": {
      "anchors": [
@@ -44953,6 +46193,12 @@
      ],
      "why": "a Welsh dresser holds plates: kitchen, dining room, or a living room"
     },
+    "dressing_stool": {
+     "rooms": [
+      "bedroom"
+     ],
+     "why": "a dressing-table stool is in the bedroom that has the table"
+    },
     "dressing_table": {
      "rooms": [
       "bedroom"
@@ -45161,6 +46407,15 @@
       "kitchen"
      ],
      "why": "party things are in the room the party was in"
+    },
+    "piano_stool": {
+     "rooms": [
+      "living_room",
+      "bedroom",
+      "study",
+      "dining_room"
+     ],
+     "why": "a piano stool stands wherever the piano does"
     },
     "plant_floor": {
      "rooms": [

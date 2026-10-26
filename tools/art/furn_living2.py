@@ -225,6 +225,7 @@ def crate_cubes(c, ox, oy, p):
        variants={'mahogany': {'fin': 'walnut'}, 'ebonised': {'fin': 'black'}},
        slots=({'id': 'top', 'dx0': 4, 'dx1': 42, 'dy': -58, 'top': True, 'kinds': ('small', 'lamp')},),
        anchors=({'name': 'piano', 'dx': 23, 'dy': -26},), feet=(105, 108),
+       needs={'tag': 'stool_piano', 'dx': [40, 44], 'dx_left': [-31, -27], 'chance': 1.0},
        note='an upright piano: a panelled case with a music desk and sheet music, a keyboard of ivory and black keys, a candle bracket each side, pedals; the stool is a separate piece')
 def piano_upright(c, ox, oy, p):
     """An upright piano, front elevation (owner round 48i: it "looks like a giant vending machine with vertical piano keys"): a cornice, a music desk in front of a pierced

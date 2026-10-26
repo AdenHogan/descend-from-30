@@ -172,7 +172,7 @@ def _sink_variants():
     return v
 
 
-@piece('unit_sink', 38, 32, 'wall', rooms={'kitchen': 8}, styles=None, tags=('unit', 'wet', 'storage'), depth=4, variants=_sink_variants(), limit=1, feet=(106, 106),
+@piece('unit_sink', 38, 32, 'wall', rooms={'kitchen': 8}, styles=None, tags=('unit', 'wet', 'storage'), depth=4, variants=_sink_variants(), limit=1, feet=(106, 106), under_window=True,
        slots=({'id': 'top', 'dx0': 24, 'dx1': 36, 'dy': -31, 'top': True, 'kinds': ('worktop',)},),
        anchors=({'name': 'sink', 'dx': 14, 'dy': -31, 'top': True}, {'name': 'sink_cupboard', 'dx': 19, 'dy': -14}), opens={'kind': 'door_h', 'frames': 3, 'anchor': 'sink_cupboard'},
        note='a sink unit: a steel basin set in the worktop with a drainer, a gooseneck mixer tap, a dish rack of plates, doors below (one opens on a bucket)')
@@ -491,7 +491,7 @@ def dresser_welsh(c, ox, oy, p):
     c.rect(x0 + 1, base - 2, x1 - 1, base, hexc('2e2822'))
 
 
-@piece('sink_butler', 30, 40, 'wall', rooms={'kitchen': 6}, styles={'country': 8, 'hoarder': 1}, tags=('wet', 'storage'), depth=6, limit=1, feet=(106, 106),
+@piece('sink_butler', 30, 40, 'wall', rooms={'kitchen': 6}, styles={'country': 8, 'hoarder': 1}, tags=('wet', 'storage'), depth=6, limit=1, feet=(106, 106), under_window=True,
        variants={'white': {'for': ['country', 'hoarder']}},
        slots=(), anchors=({'name': 'sink', 'dx': 14, 'dy': -32}, {'name': 'sink_cupboard', 'dx': 14, 'dy': -10}),
        note='a deep white butler sink on a brick-and-pine base with a brass swan-neck tap and a slatted wooden drainer')

@@ -265,7 +265,7 @@ def washer(c, ox, oy, p):
 # ================================================================================================================================ baskets, buckets, stools
 @piece('laundry_basket3d', 30, 20, 'floor', keep='clothes', bucketed=True, lean=False, rooms={'bathroom': 7}, styles={'wetroom': 9, 'tub': 5, 'avocado': 4, 'pink': 4, 'gilded': 0.01}, tags=('clutter', 'clothes', 'laundry'),
        variants={'plastic': {'k': 'plastic', 'for': ['wetroom']}, 'wicker': {'k': 'wicker', 'for': ['tub', 'avocado']}, 'white': {'k': 'white', 'for': ['pink']}},
-       anchors=({'name': 'laundry_basket', 'dx': 14, 'dy': -10},), feet=(118, 118), near=('wet',),
+       anchors=({'name': 'laundry_basket', 'dx': 14, 'dy': -10},), feet=(118, 118), near=('wet',), limit=1,
        note='a laundry basket by the wall: a blue plastic tub with slots, washing heaped in it; a round wicker hamper with a lid and a towel caught under it; or a white wicker one with a pink rim')
 def laundry_basket3d(c, ox, oy, p):
     cx = ox + 15

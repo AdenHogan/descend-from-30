@@ -59,6 +59,8 @@ KINDS = {
     'armchair':         ('LBSD', 'an armchair is anywhere somebody sits to read or talk, but not where they cook or wash'),
     'chair':            ('BSDLK', 'a chair is at a desk or a table'),
     'pouf':             ('LB',   'a pouf is a living-room / bedroom seat'),
+    'piano_stool':      ('LBSD', 'a piano stool stands wherever the piano does'),
+    'dressing_stool':   ('B',    'a dressing-table stool is in the bedroom that has the table'),
     'coffee_table':     ('L',    'a low table is in front of the sofa'),
     'side_table':       ('LBDS', 'a side table stands beside a seat or a bed'),
     'sideboard':        ('DLK',  'a sideboard holds linen and crockery: dining room, living room, kitchen'),
@@ -128,7 +130,7 @@ PIECE_KIND = {
     'coffee_table': 'coffee_table', 'crate_veg': 'food_store', 'drip_stand': 'care_equipment', 'easel': 'art_supplies', 'gifts_pile': 'party', 'guitar_stand': 'instrument',
     'lamp_floor': 'floor_lamp', 'laundry_basket': 'laundry_basket', 'laundry_basket3d': 'laundry_basket', 'log_basket': 'fireplace', 'med_trolley': 'care_equipment',
     'mop_bucket3d': 'cleaning', 'pedal_bin': 'rubbish', 'pizza_boxes': 'food_store', 'plant_floor': 'plant_floor', 'pouf': 'pouf', 'printer_stand': 'work_gear',
-    'rag_doll': 'toys', 'rocking_horse': 'toys', 'shoes_pair': 'footwear', 'slippers': 'footwear', 'stool_radio': 'audio', 'toy_chest': 'toys', 'trainers': 'footwear',
+    'rag_doll': 'toys', 'rocking_horse': 'toys', 'shoes_pair': 'footwear', 'slippers': 'footwear', 'stool_dressing': 'dressing_stool', 'stool_piano': 'piano_stool', 'stool_radio': 'audio', 'toy_chest': 'toys', 'trainers': 'footwear',
     'trolley_drinks': 'drinks', 'waste_bin': 'rubbish', 'wheelchair': 'mobility_aid',
     # front
     'armchair': 'armchair', 'basin': 'sanitaryware', 'bath': 'sanitaryware', 'bed_iron': 'bed', 'bed_kid': 'bed', 'bed_pine': 'bed', 'bed_wood': 'bed', 'desk_study': 'desk',

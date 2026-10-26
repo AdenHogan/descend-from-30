@@ -43,6 +43,7 @@ import furn_study  # noqa: F401
 import furn_bathroom  # noqa: F401
 import furn_desk  # noqa: F401
 import furn_fillers  # noqa: F401           (round 48i: radiator, blanket trunk, coat stand - the ordinary things a sparse wall was missing)
+import furn_stools  # noqa: F401           (round 48k: the piano stool and the dressing-table stool — a piece used from a seat brings its seat)
 import furn_plants  # noqa: F401           (round 48k: the tall floor plant and the small desk plant that replace the one 36 px plant on the floor)
 import furn_styles
 import furn_rooms

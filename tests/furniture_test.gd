@@ -14,7 +14,7 @@ const STUDY_STYLES := ["den", "office", "library", "radio", "studio"]
 const BATH_STYLES := ["tub", "avocado", "gilded", "wetroom", "pink"]
 const PLANNED := {"bedroom": BEDROOM_STYLES, "kitchen": KITCHEN_STYLES, "living_room": LIVING_STYLES, "dining_room": DINING_STYLES, "study": STUDY_STYLES, "bathroom": BATH_STYLES}   # the room types the planner lays, and their styles
 const UNPLANNED := []                                                                      # every room type is planned now
-const SEEDS_PER_STYLE := 100
+const SEEDS_PER_STYLE := 70       # (was 100: the suite sat at 278 s of the gate's 300 s limit once the designer's-eye rules made planning pickier)
 
 var failures: int = 0
 
@@ -35,6 +35,7 @@ func _ready() -> void:
 	_test_library()
 	_test_logic_table()
 	_test_home_logic()
+	_test_designers_eye()
 	_test_plans_obey_the_rules()
 	_test_rules_can_fail()
 	_test_variety_and_determinism()
@@ -223,7 +224,7 @@ func _test_plans_obey_the_rules() -> void:
 				for e in rcp["fallback"]:
 					var rec := FurniturePlanner.piece(String(e["id"]))
 					items.append({"id": e["id"], "variant": e["variant"], "x": e["x"], "y": e["y"], "plane": rec["plane"], "host_plane": rec["plane"], "w": rec["w"]})
-				var v := FurniturePlanner.validate({"room": room, "style": style, "items": items}, {"window": side})
+				var v := FurniturePlanner.validate({"room": room, "style": style, "items": items, "fallback": true}, {"window": side})      # (a fallback is one fixed picture: the under-the-window preference is skipped for it)
 				check(v.is_empty(), "%s/%s: the fallback layout is valid with the window on the %s %s" % [room, style, side, str(v)])
 
 
@@ -370,6 +371,83 @@ func _test_home_logic() -> void:
 	check(doubled == 0, "…and none of the %d planned rooms hangs more than one clock" % plans)
 	check(piano_wrong == 0 and piano_rooms.size() >= 2, "a piano turns up in more than one kind of room %s — and never in a kitchen or a bathroom" % str(piano_rooms))
 	check(tall_seen > 0 and desk_seen > 0, "…and both plants really are dealt (%d tall, %d small — %d of those in bathrooms, on a surface)" % [tall_seen, desk_seen, desk_bath])
+
+
+## DESIGNER'S EYE (owner round 48k: "any player should look at the room and think a human designed it"; tools/art/room_eye.py measured these over 1200 planned rooms): a radiator and a sink stand
+## UNDER the window, a piano and a dressing table have their stool beside them, a floor lamp stands by a seat.
+func _test_designers_eye() -> void:
+	print("[designer's eye: radiator / sink under the window, a stool for the piano and the dressing table, a lamp by a seat]")
+	var rad := FurniturePlanner.piece("radiator")
+	check(bool(rad.get("under_window", false)) and bool(FurniturePlanner.piece("unit_sink").get("under_window", false)) and bool(FurniturePlanner.piece("sink_butler").get("under_window", false)),
+		"the radiator and both sinks are declared as belonging under a window")
+	var wmid := float(FurniturePlanner.window_box("left").position.x + FurniturePlanner.window_box("left").size.x * 0.5)
+	var rx := int(round(wmid - float(rad["w"]) * 0.5))
+	check(not ("UNDER the window" in _violations(_plan_in("living_room", "cosy", [["radiator", rx, 106]]), "left")), "a radiator right under the window is fine")
+	check("UNDER the window" in _violations(_plan_in("living_room", "cosy", [["radiator", 200, 106]]), "left"), "a radiator in the middle of the wall, away from the window, is refused")
+	check("UNDER the window" in _violations(_plan_in("living_room", "cosy", [["radiator", rx, 106]]), "right"), "…and the same radiator is refused when the window is on the other side")
+	check(not ("UNDER the window" in _violations(_plan_in("living_room", "cosy", [["radiator", 200, 106]]), "")), "…but a room with no window (a balcony slot) has nothing to be under: anywhere is fine")
+	var fb := _plan_in("living_room", "cosy", [["radiator", 200, 106]])
+	fb["fallback"] = true
+	check(not ("UNDER the window" in _violations(fb, "left")), "a recipe's hand-set fallback layout is exempt (one fixed picture for either window side)")
+	var butler_x := int(round(wmid - float(FurniturePlanner.piece("sink_butler")["w"]) * 0.5))
+	var butler := _violations(_plan_in("kitchen", "country", [["sink_butler", butler_x, 106]]), "left")
+	check(not ("UNDER the window" in butler) and not ("in front of the window" in butler), "a butler sink under the window is fine — its swan-neck tap rises into the glass's lower edge %s" % butler)
+	check("UNDER the window" in _violations(_plan_in("kitchen", "country", [["sink_butler", 200, 106]]), "left"), "…and a butler sink away from the window is refused")
+	# a stool is set BESIDE a piano / dressing table (the front of one is a step-up spot the player stands in), never inside that spot
+	var piano_in := _violations(_plan_in("living_room", "parlour", [["piano_upright", 100, 106], ["stool_piano", 108, 118]]), "right")
+	check("stand zone" in piano_in, "a stool pushed into the spot in front of the piano, where the player steps up, is refused")
+	var piano_side := _violations(_plan_in("living_room", "parlour", [["piano_upright", 100, 106], ["stool_piano", 142, 118]]), "right")
+	check(not ("stand zone" in piano_side), "…and the same stool pulled out beside the piano is fine %s" % piano_side)
+	check(String(FurniturePlanner.piece("piano_upright")["needs"]["tag"]) == "stool_piano" and String(FurniturePlanner.piece("dressing_table")["needs"]["tag"]) == "stool_dressing", "the piano wants a piano stool, the dressing table a dressing stool")
+	check(bool(FurniturePlanner.piece("stool_piano")["companion_only"]) and bool(FurniturePlanner.piece("stool_dressing")["companion_only"]), "a stool is only ever a companion — never dealt on its own")
+	# a floor lamp stands by a seat
+	var sofa := FurniturePlanner._make("sofa", _v("sofa"), 30, 110)
+	var lamp_near := int((sofa["rect"] as Rect2).end.x) + 4
+	check(not ("belongs beside" in _violations(_plan_in("living_room", "cosy", [["sofa", 30, 110], ["lamp_floor", lamp_near, 118, {"clutter": true}]]))), "a floor lamp right beside the sofa is fine")
+	check("belongs beside" in _violations(_plan_in("living_room", "cosy", [["sofa", 30, 110], ["lamp_floor", lamp_near + 120, 118, {"clutter": true}]])), "…and one standing 120 px down the wall from any seat is refused")
+	check("belongs beside" in _violations(_plan_in("living_room", "cosy", [["lamp_floor", 200, 118, {"clutter": true}]])), "a floor lamp in a room with nothing to sit on is refused")
+	# SWEEP over real plans, both window sides
+	var seen := {"radiator": 0, "sink": 0, "piano": 0, "dressing": 0, "kitchens": 0, "fallback": 0}
+	var wrong: Array = []
+	for room in PLANNED:
+		for style in PLANNED[room]:
+			for k in range(8):
+				var side := "left" if k % 2 == 0 else "right"
+				var pl := FurniturePlanner.plan(String(room), String(style), 770000 + k * 37, {"window": side})
+				if pl.is_empty():
+					continue
+				if bool(pl["fallback"]):
+					if String(room) == "kitchen":
+						seen["fallback"] += 1
+					continue
+				var ids := {}
+				var wm := float(FurniturePlanner.window_box(side).position.x + FurniturePlanner.window_box(side).size.x * 0.5)
+				for it in pl["items"]:
+					ids[String(it["id"])] = it
+					if String(it["id"]) == "radiator":
+						seen["radiator"] += 1
+						if absf(float(it["x"]) + float(it["w"]) * 0.5 - wm) > float(FurniturePlanner.UNDER_WINDOW_SLACK):
+							wrong.append("%s/%s radiator off the window" % [room, style])
+				if String(room) == "kitchen":
+					seen["kitchens"] += 1
+					var sink = ids.get("unit_sink", ids.get("sink_butler", null))
+					if sink == null:
+						wrong.append("%s/%s kitchen with no sink" % [room, style])
+					else:
+						seen["sink"] += 1
+						if absf(float(sink["x"]) + float(sink["w"]) * 0.5 - wm) > float(FurniturePlanner.UNDER_WINDOW_SLACK):
+							wrong.append("%s/%s sink off the window" % [room, style])
+				if ids.has("piano_upright"):
+					seen["piano"] += 1
+					if not ids.has("stool_piano"):
+						wrong.append("%s/%s piano with no stool" % [room, style])
+				if ids.has("dressing_table"):
+					seen["dressing"] += 1
+					if not ids.has("stool_dressing"):
+						wrong.append("%s/%s dressing table with no stool" % [room, style])
+	check(wrong.is_empty(), "in %d kitchens and every other planned room: the sink and the radiator under the window, a stool at every piano and dressing table %s" % [int(seen["kitchens"]), str(wrong.slice(0, 4))])
+	check(int(seen["radiator"]) > 5 and int(seen["piano"]) > 2 and int(seen["dressing"]) > 2, "…and they really were dealt (%d radiators, %d sinks, %d pianos, %d dressing tables)" % [int(seen["radiator"]), int(seen["sink"]), int(seen["piano"]), int(seen["dressing"])])
+	check(int(seen["fallback"]) <= 2, "…without kitchens falling back to the hand-set layout (%d of %d)" % [int(seen["fallback"]), int(seen["kitchens"])])
 
 
 # ------------------------------------------------------------------------------------------------------------------------------------ every rule can FAIL
