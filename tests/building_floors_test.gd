@@ -40,6 +40,7 @@ func _ready() -> void:
 	_test_followed_away_saved()
 	await _test_stair_gates()
 	await _test_fire_spawns()
+	await _test_merchant_ignores_other_floors_fire()
 	await _test_elevator_arrival_stairs()
 	await _test_enemies_stand_on_the_line_frame_zero()
 	await _test_corridor_art()
@@ -838,6 +839,56 @@ func _test_fire_spawns() -> void:
 	bf.queue_free()
 	await get_tree().process_frame
 	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
+
+
+# The merchant answers to THIS floor's flames only (owner round 48k: the merchant on 25 would not open after the player put 25's
+# fire out, because 24 — the origin it spread from — still burned). The floor's derived fire stage (`is_stair_fire`) stays lit for as
+# long as the origin burns; the merchant must not wait for that. Dev fire lv2 on origin 14: floor 15 (a merchant floor) is the
+# LIGHT neighbour, floor 14 the BLAZE that is never put out here.
+func _test_merchant_ignores_other_floors_fire() -> void:
+	print("[the merchant waits for its OWN floor's fire, not a neighbour's]")
+	WorldState.new_game()
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_FIRE2
+	WorldState.dev_fire_origin = 14
+	WorldState.current_run = 1
+	WorldState.current_floor = 15
+	WorldState.spawn_source = "stair"
+	WorldState.stair_direction = "down"
+	WorldState.stair_spawn_side = "left"
+	WorldState.pending_pry_arrival_floor = -1
+	WorldState.seed_floor_door_states(15)
+	check(15 in WorldState.MERCHANT_FLOORS, "floor 15 is a merchant floor")
+	var bf = load("res://scenes/building_floors.tscn").instantiate()
+	add_child(bf)
+	check(bf.floor_is_burning() and bf._merchant_pending_fire and bf.get_node_or_null("Merchant") == null, "while 15 itself burns the merchant shelters")
+	# put 15's fire out (an extinguisher blast over the whole corridor) — the origin below keeps burning
+	bf._fire_field.extinguish_span(0.0, 3000.0)
+	bf._process(0.1)
+	check(not bf.floor_is_burning(), "15's own flames are out")
+	check(WorldState.is_stair_fire(15) and WorldState.fire_intensity(14) >= 0, "...while the fire on 14 (the origin) is still live, so 15's DERIVED stage still reads 'on fire'")
+	check(bf.get_node_or_null("Merchant") != null and not bf._merchant_pending_fire, "the merchant steps out the moment 15's fire is out")
+	bf.free()
+	await get_tree().process_frame
+	# step into a flat and back (a fresh build of the same floor): the doused fire is remembered, and the merchant must be OUT — not
+	# left sheltering for a fire that is no longer there (the 'refuses to open' report)
+	var back = load("res://scenes/building_floors.tscn").instantiate()
+	add_child(back)
+	check(not back.floor_is_burning(), "coming back, 15's fire is still out")
+	check(back.get_node_or_null("Merchant") != null and not back._merchant_pending_fire, "coming back, the merchant is out — a neighbour's fire is not this floor's problem")
+	back.free()
+	await get_tree().process_frame
+	# a burnt-out (CHARRED) floor has nothing left to wait for either
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_FIRE3
+	WorldState.dev_fire_origin = 15
+	WorldState.fire_cells.clear()
+	var ash = load("res://scenes/building_floors.tscn").instantiate()
+	add_child(ash)
+	check(WorldState.fire_intensity(15) == WorldState.FIRE_CHARRED and not ash.floor_is_burning(), "a charred floor has no flames")
+	check(ash.get_node_or_null("Merchant") != null, "...and the merchant trades there")
+	ash.free()
+	await get_tree().process_frame
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
+	WorldState.dev_fire_origin = -1
 
 
 # Every standing enemy spawns with its FEET on the corridor floor line (419) on the very first

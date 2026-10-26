@@ -298,11 +298,11 @@ func _ready() -> void:
 	_spawn_maintenance_door(floor_num)
 	_spawn_world_drops(floor_num)
 	WorldState.spawn_player_corpse_into(self, floor_num, scene_file_path, "")
-	_spawn_merchant(floor_num)
 	_spawn_barricade_visuals(floor_num)
 	_spawn_stair_enemies(floor_num)
 	_spawn_follower(floor_num)
 	_spawn_fire(floor_num)
+	_spawn_merchant(floor_num)                    # AFTER the fire: the merchant answers to THIS floor's flames (see _spawn_merchant)
 	_apply_fire_scars(floor_num)
 	_spawn_door_fire(floor_num)
 	WorldState.apply_time_tint(self, floor_num)   # ambient darkness the real lights punch through
@@ -1545,15 +1545,22 @@ func _spawn_maintenance_door(floor_num: int) -> void:
 func _spawn_merchant(floor_num: int) -> void:
 	if floor_num not in WorldState.MERCHANT_FLOORS:
 		return
-	# A fire on the merchant's floor keeps them behind the doors — they won't come
-	# out to trade until it's dealt with. If the player puts it out this run, the
-	# merchant emerges (see _process); if it's left to burn, they simply don't
-	# appear on this floor across runs (too dangerous) while other merchant floors
-	# still trade normally.
-	if WorldState.is_stair_fire(floor_num):
+	# FLAMES ON THIS FLOOR keep the merchant behind the doors — they come out the moment
+	# THIS floor's own fire is out (see _process). Only this floor's flames count: the
+	# floor's DERIVED fire stage (`is_stair_fire`) stays lit for as long as the ORIGIN it
+	# spread from burns, which can be another floor entirely — a merchant on 25 whose fire
+	# the player put out refused to open because 24 still burned (owner, round 48k). A floor
+	# that burned out (CHARRED) or was doused has nothing left to wait for. Call after
+	# `_spawn_fire`: it reads the field that built.
+	if floor_is_burning():
 		_merchant_pending_fire = true
 		return
 	_do_spawn_merchant()
+
+
+## True while a flame on THIS floor's own corridor is lit. The one question the merchant asks.
+func floor_is_burning() -> bool:
+	return _fire_field != null and is_instance_valid(_fire_field) and _fire_field.any_burning()
 
 
 func _do_spawn_merchant() -> void:
