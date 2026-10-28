@@ -58,17 +58,21 @@ const LOGO_CENTRE := Vector2(576.0, 195.0)
 const TEXT_RISE := 10.0                 # the words settle this far (px) as they fade in
 const SHADOW_DROP := 3.0                # the lettering casts a soft shadow (no panel behind the logo): cream words would wash into a bright morning sky and its clouds
 const SHADOW_SHADER_CODE := "shader_type canvas_item;
-// the lettering's own shape, blurred by sampling its mipmaps (the texture is 2400 px shown at ~600, so level 3 is ~2 px of screen and level 5 ~8 px), tinted night-dark
+// the lettering's own shape, blurred by sampling its mipmaps (the texture is 2400 px shown at ~600, so level 3 is ~2 px of screen and level 5 ~8 px), tinted night-dark.
+// The shadow is only ever AROUND the letters: it is taken out under their solid bodies (sampled where the lettering really stands, `drop_texels` above this
+// sprite), so while the words fade in the cream is never laid over something dark (that read as black letters that then turned cream).
 uniform float tight_lod = 3.0;
 uniform float wide_lod = 5.0;
 uniform float tight_gain = 1.5;
 uniform float wide_gain = 1.6;
 uniform float strength = 0.62;
 uniform float halo = 0.30;
+uniform float drop_texels = 12.0;
 void fragment() {
 	float tight = clamp(textureLod(TEXTURE, UV, tight_lod).a * tight_gain, 0.0, 1.0);
 	float wide = clamp(textureLod(TEXTURE, UV, wide_lod).a * wide_gain, 0.0, 1.0);
-	COLOR = vec4(0.02, 0.012, 0.035, clamp(tight * strength + wide * halo, 0.0, 0.85));
+	float body = smoothstep(0.80, 1.0, textureLod(TEXTURE, UV + vec2(0.0, drop_texels * TEXTURE_PIXEL_SIZE.y), 2.0).a);
+	COLOR = vec4(0.02, 0.012, 0.035, clamp(tight * strength + wide * halo, 0.0, 0.85) * (1.0 - body));
 }
 "
 const GLASS_DARK := Color(0.24, 0.26, 0.32)
@@ -173,6 +177,12 @@ static func text_alpha(tt: float, wt: bool = true) -> float:
 
 static func hand_alpha(tt: float, wt: bool = true) -> float:
 	return _ease((tt - t_hand_in(true)) / T_HAND_FADE) if wt else 0.0
+
+
+## The lettering's shadow comes in BEHIND the words (the square of their fade): it only holds the words up against a bright sky, so it must never lead them.
+static func shadow_alpha(tt: float, wt: bool = true) -> float:
+	var a := text_alpha(tt, wt)
+	return a * a
 
 
 ## How much of the title is up: 1 once the last part of it (the hand) has landed.
@@ -345,6 +355,7 @@ func _build() -> bool:
 	var sh_code := Shader.new()
 	sh_code.code = SHADOW_SHADER_CODE
 	sh_mat.shader = sh_code
+	sh_mat.set_shader_parameter("drop_texels", SHADOW_DROP / LOGO_SCALE)
 	title_shadow.material = sh_mat
 	title_words = _logo_layer("TitleText", LOGO_TEXT)
 
@@ -727,7 +738,7 @@ func _apply(dt: float) -> void:
 	var wa := text_alpha(t, with_title)
 	title_words.modulate.a = wa
 	title_words.position = LOGO_CENTRE + Vector2(0.0, TEXT_RISE * (1.0 - wa))
-	title_shadow.modulate.a = wa
+	title_shadow.modulate.a = shadow_alpha(t, with_title)
 	title_shadow.position = title_words.position + Vector2(0.0, SHADOW_DROP)
 	title_hand.modulate.a = hand_alpha(t, with_title)
 	# the failing lamps

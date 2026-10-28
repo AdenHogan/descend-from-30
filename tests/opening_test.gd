@@ -203,6 +203,19 @@ func _test_timeline() -> void:
 		last_w = wa
 		last_h = ha
 		ts += 0.01
+	var shadow_ok := true
+	var shadow_lags := true
+	ts = Ext.t_title_in(true) - 1.0
+	while ts < Ext.t_pan_end(true) + 1.0:
+		var wa2: float = Ext.text_alpha(ts, true)
+		var sa: float = Ext.shadow_alpha(ts, true)
+		if sa > wa2 + 0.000001:
+			shadow_ok = false                       # the shadow must never be stronger than the words it holds up
+		if wa2 > 0.02 and wa2 < 0.98 and sa >= wa2 - 0.01:
+			shadow_lags = false                     # …and while they fade it comes in BEHIND them
+		ts += 0.01
+	check(shadow_ok and shadow_lags, "the lettering's shadow never leads the words: it comes in behind them (owner: the title flashed black while it faded in)")
+	check(Ext.shadow_alpha(Ext.t_title_in(true) - 0.05, true) == 0.0 and Ext.shadow_alpha(Ext.t_hand_in(true), true) == 1.0, "…it is absent before the words and whole once they are up")
 	check(order_ok, "the hand only starts once the lettering is fully up (text first, then the hand)")
 	check(rising, "…and neither layer ever fades back while the title lands")
 	check(Ext.text_alpha(Ext.t_title_in(true) - 0.05, true) == 0.0 and Ext.text_alpha(Ext.t_title_in(true) + Ext.T_TEXT_FADE * 0.5, true) > 0.2
@@ -293,6 +306,9 @@ func _test_logo_title() -> void:
 	check(e.title_hand.texture.get_size() == e.title_words.texture.get_size() and e.title_shadow.texture == e.title_words.texture,
 		"both layers are one canvas, so stacked they ARE the logo (%s)" % str(e.title_words.texture.get_size()))
 	check(e.title_shadow.material is ShaderMaterial, "the lettering casts a soft shadow (no panel — cream words would wash into a bright morning sky)")
+	var drop_tx: float = float((e.title_shadow.material as ShaderMaterial).get_shader_parameter("drop_texels"))
+	check(absf(drop_tx - Ext.SHADOW_DROP / Ext.LOGO_SCALE) < 0.001 and Ext.SHADOW_SHADER_CODE.contains("drop_texels") and Ext.SHADOW_SHADER_CODE.contains("(1.0 - body)"),
+		"the shadow is taken out under the solid letters, sampled where they stand (%.1f texels = the %.0f px drop)" % [drop_tx, Ext.SHADOW_DROP])
 	# at rest the layers sit on the same spot at the same scale
 	e.t = Ext.t_title_up(true) + 0.2
 	e._apply(0.0)
@@ -305,6 +321,11 @@ func _test_logo_title() -> void:
 	e.t = Ext.t_hand_in(true) - 0.02
 	e._apply(0.0)
 	check(e.title_words.modulate.a == 1.0 and e.title_hand.modulate.a == 0.0, "words up, the hand not yet")
+	e.t = Ext.t_title_in(true) + Ext.T_TEXT_FADE * 0.5
+	e._apply(0.0)
+	check(e.title_shadow.modulate.a < e.title_words.modulate.a and e.title_words.modulate.a > 0.2 and e.title_words.modulate.a < 0.8
+		and e.title_shadow.position == e.title_words.position + Vector2(0.0, Ext.SHADOW_DROP),
+		"mid-fade the shadow is fainter than the words (%.2f vs %.2f) and sits its drop below them" % [e.title_shadow.modulate.a, e.title_words.modulate.a])
 	e.t = Ext.t_hand_in(true) + T_HALF_HAND()
 	e._apply(0.0)
 	check(e.title_words.modulate.a == 1.0 and e.title_hand.modulate.a > 0.1 and e.title_hand.modulate.a < 0.9, "then the hand coming up behind them (%.2f)" % e.title_hand.modulate.a)
