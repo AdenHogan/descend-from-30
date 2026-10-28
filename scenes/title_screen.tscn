@@ -135,7 +135,7 @@ flat = true
 alignment = 0
 
 [node name="Logo" type="Sprite2D" parent="Menu"]
-position = Vector2(244, 188)
-scale = Vector2(0.168, 0.168)
+position = Vector2(262.6, 188)
+scale = Vector2(0.185, 0.185)
 texture_filter = 4
 texture = ExtResource("3_logo")

@@ -121,11 +121,11 @@ px), or to a clean multiple of them, and tell us your tile size so we can slot i
 ## Asset list (by priority)
 
 ### Tier 0: brand / identity (do this first, it sets the look)
-> **Update (owner round 48): an in-house logo now exists** — `assets/logo/` (full logo, wordmark, the handprint alone, a square icon + `.ico`; PNG, plus a
-> vector wordmark SVG, all on transparent backgrounds), built by `tools/art/logo.py`, with usage rules in `docs/logo/README.md`. It is a REAL bloodied
-> handprint (a textured print with drips and spatter) directly behind a big 30, with DESCEND / FROM in clean Barlow Condensed Bold capitals beside it. It is a working
-> brand mark, not a commission: an artist is welcome to redraw it, keeping the brief below. The studio credit lockup (**Mammoth Games**) is not drawn yet.
-> Wired into the title screen (round 48e); not yet the opening's title, the run-1 title card or the project icon.
+> **Update (owner round 48, final look round 48m): an in-house logo now exists** — `assets/logo/` (full logo, wordmark, the handprint alone, a square icon + `.ico`; PNG, plus a
+> vector wordmark SVG, all on transparent backgrounds), built by `tools/art/logo.py`, with usage rules in `docs/logo/README.md`. It is the OWNER'S OWN bloodied handprint (photographed,
+> cut out and drawn as a print, with drips that each end differently) directly behind a big 30, with DESCEND / FROM in Aldrich (set compact) beside it and the 30 in Barlow Condensed Bold,
+> the lettering worn and flecked with a few strikes of blood. It is a working brand mark, not a commission: an artist is welcome to redraw it, keeping the brief below. The studio credit
+> lockup (**Mammoth Games**) is not drawn yet. Wired into the title screen (round 48e / 48m); not yet the opening's title, the run-1 title card or the project icon.
 
 - **Game logo / title wordmark** for **"Descend From 30"**, the single most visible
   piece of art (title screen, store page, marketing, app icon). The title screen today
